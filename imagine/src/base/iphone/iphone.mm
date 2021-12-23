@@ -508,9 +508,9 @@ FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
 {
 	auto path = sharedStoragePath();
 	if(isRunningAsSystemApp)
-		return {path, "Storage Media", {"Media", path.size()}};
+		return {path, "Storage Media", "Media"};
 	else
-		return {path, "Documents", {"Documents", path.size()}};
+		return {path, "Documents", "Documents"};
 }
 
 std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const

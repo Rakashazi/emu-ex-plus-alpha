@@ -398,13 +398,11 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 		if(FS::exists(oldConfigFilePath))
 		{
 			logMsg("moving config file from prefs path to support path");
-			fixFilePermissions(ctx, oldConfigFilePath);
 			FS::rename(oldConfigFilePath, configFilePath);
 		}
 		if(!FS::directoryItems(oldConfigDir))
 		{
 			logMsg("removing old empty config directory");
-			fixFilePermissions(ctx, oldConfigDir);
 			FS::remove(oldConfigDir);
 		}
 	}

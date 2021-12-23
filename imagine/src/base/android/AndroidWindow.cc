@@ -287,11 +287,10 @@ void Window::setFormat(NativeWindowFormat fmt)
 		}
 		JNI::InstMethod<void(jint)> jSetWinFormat{env, (jobject)jWin, "setFormat", "(I)V"};
 		jSetWinFormat(env, jWin, fmt);
+		ANativeWindow_setBuffersGeometry(nWin, 0, 0, fmt);
 	}
-	if(Config::DEBUG_BUILD)
-		logMsg("setting window buffer format:%s -> %s",
-			aHardwareBufferFormatStr(ANativeWindow_getFormat(nWin)), aHardwareBufferFormatStr(fmt));
-	ANativeWindow_setBuffersGeometry(nWin, 0, 0, fmt);
+	// Note: The rendering API should set the window format when connecting to the window surface,
+	// for example eglCreateWindowSurface() will set it implicitly so no need to call ANativeWindow_setBuffersGeometry()
 }
 
 void Window::setFormat(IG::PixelFormat fmt)

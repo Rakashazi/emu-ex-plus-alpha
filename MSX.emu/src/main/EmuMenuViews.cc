@@ -241,7 +241,7 @@ public:
 		updateHDText(hdSlotStart+1);
 	}
 
-	void onHDMediaChange(const char *name, int slot)
+	void onHDMediaChange(std::string_view name, int slot)
 	{
 		hdName[slot] = name;
 		updateHDText(slot);
@@ -256,9 +256,9 @@ public:
 			{
 				auto id = diskGetHdDriveId(slot / 2, slot % 2);
 				logMsg("inserting hard drive id %d", id);
-				if(insertDisk(app(), path.data(), id))
+				if(insertDisk(app(), name.data(), id))
 				{
-					onHDMediaChange(path.data(), slot);
+					onHDMediaChange(name.data(), slot);
 					if(dismissPreviousView)
 						dismissPrevious();
 				}
@@ -309,7 +309,7 @@ public:
 		romSlot[slot].setName(fmt::format("{} {}", romSlotPrefix[slot], cartName[slot]));
 	}
 
-	void onROMMediaChange(const char *name, int slot)
+	void onROMMediaChange(std::string_view name, int slot)
 	{
 		cartName[slot] = name;
 		updateROMText(slot);
@@ -323,9 +323,9 @@ public:
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM),
 			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view path, std::string_view name, Input::Event e)
 			{
-				if(insertROM(app(), path.data(), slot))
+				if(insertROM(app(), name.data(), slot))
 				{
-					onROMMediaChange(path.data(), slot);
+					onROMMediaChange(name.data(), slot);
 					if(dismissPreviousView)
 						dismissPrevious();
 				}
@@ -391,7 +391,7 @@ public:
 		diskSlot[slot].setName(fmt::format("{} {}", diskSlotPrefix[slot], diskName[slot]));
 	}
 
-	void onDiskMediaChange(const char *name, int slot)
+	void onDiskMediaChange(std::string_view name, int slot)
 	{
 		diskName[slot] = name;
 		updateDiskText(slot);
@@ -405,9 +405,9 @@ public:
 			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view path, std::string_view name, Input::Event e)
 			{
 				logMsg("inserting disk in slot %d", slot);
-				if(insertDisk(app(), path.data(), slot))
+				if(insertDisk(app(), name.data(), slot))
 				{
-					onDiskMediaChange(path.data(), slot);
+					onDiskMediaChange(name.data(), slot);
 					if(dismissPreviousView)
 						dismissPrevious();
 				}

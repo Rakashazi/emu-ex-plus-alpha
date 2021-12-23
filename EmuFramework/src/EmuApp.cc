@@ -660,10 +660,11 @@ void EmuApp::reloadGame(EmuSystemCreateParams params)
 		return;
 	viewController().popToSystemActionsMenu();
 	emuSystemTask.pause();
+	auto ctx = appContext();
 	try
 	{
-		EmuSystem::createWithMedia(appContext(), {}, EmuSystem::contentLocation(),
-			EmuSystem::contentFileName(), params,
+		EmuSystem::createWithMedia(ctx, {}, EmuSystem::contentLocation(),
+			ctx.fileUriDisplayName(EmuSystem::contentLocation()), params,
 			[](int pos, int max, const char *label){ return true; });
 		viewController().onSystemCreated();
 		viewController().showEmulation();

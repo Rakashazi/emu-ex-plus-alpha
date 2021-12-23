@@ -106,7 +106,12 @@ void EmuSystem::setupContentFilePaths(Base::ApplicationContext ctx, IG::CStringV
 	contentName_ = IG::stringWithoutDotExtension(contentFileName_);
 	// find the realpath of the dirname portion separately in case the file is a symlink
 	auto fileDir = FS::dirname(filePath);
-	if(FS::PathStringArray realPath;
+	if(fileDir == ".")
+	{
+		// non-absolute path like bundled content name, don't set a content directory
+		contentLocation_ = filePath;
+	}
+	else if(FS::PathStringArray realPath;
 		!realpath(fileDir.data(), realPath.data()))
 	{
 		logErr("error in realpath() while setting content directory");

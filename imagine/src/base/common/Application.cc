@@ -246,6 +246,8 @@ void BaseApplication::dispatchOnExit(ApplicationContext ctx, bool backgrounded)
 		{
 			win->resetAppData();
 			win->resetRendererData();
+			// surface should be destroyed by reseting renderer data so remove surface change delegate
+			win->setOnSurfaceChange(nullptr);
 		}
 	}
 }

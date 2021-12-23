@@ -65,12 +65,6 @@ static EGLAttrList glConfigAttrsToEGLAttrs(int renderableType, GLBufferConfigAtt
 			list.push_back(EGL_BUFFER_SIZE);
 			list.push_back(16);
 		bcase PIXEL_RGBA8888:
-			list.push_back(EGL_RED_SIZE);
-			list.push_back(8);
-			list.push_back(EGL_GREEN_SIZE);
-			list.push_back(8);
-			list.push_back(EGL_BLUE_SIZE);
-			list.push_back(8);
 			if(attr.useAlpha)
 			{
 				list.push_back(EGL_ALPHA_SIZE);
@@ -172,6 +166,8 @@ EGLDrawable::EGLDrawable(EGLDisplay display, Window &win, EGLConfig config, cons
 {
 	if(!surface)
 	{
+		if(Config::DEBUG_BUILD)
+			logErr("eglCreateWindowSurface returned:%s", GLManager::errorString(eglGetError()));
 		ec = {EINVAL};
 	}
 }

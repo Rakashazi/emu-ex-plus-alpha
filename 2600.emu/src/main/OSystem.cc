@@ -89,8 +89,8 @@ StateManager& OSystem::state() const
 
 void OSystem::makeConsole(unique_ptr<Cartridge>& cart, const Properties& props, const char *gamePath)
 {
-	myConsole = std::make_unique<Console>(*this, cart, props, *myAudioSettings);
 	myRomFile = FilesystemNode{gamePath};
+	myConsole = std::make_unique<Console>(*this, cart, props, *myAudioSettings);
 	myConsole->riot().update();
 }
 
