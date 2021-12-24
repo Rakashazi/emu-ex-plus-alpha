@@ -390,31 +390,10 @@ void ReadPackData()
 			table_age_4=table_age_3;
 			table_age_3=table_age_2;
 			table_age_2=decompack->idx;
-			char name[PATH_MAX];
 			//open file
-			char drive [_MAX_DRIVE + 1];
-			char dir [_MAX_DIR + 1];
-			char fname [_MAX_FNAME + 1];
-			char ext [_MAX_EXT + 1];
-			if (strlen (FREEZEFOLDER))
-			{
-				//splitpath (Memory.ROMFilename, drive, dir, fname, ext);
-				strcpy (name, FREEZEFOLDER);
-				strcat (name, "/");
-			}
-			else
-			{
-				splitpath (Memory.ROMFilename, drive, dir, fname, ext);
-				strcpy(name, drive);
-				//strcat(filename, "\\");
-				strcat(name, dir);
-			}
-			strcat(name, pfold);
 			char bfname[11];
 			sprintf(bfname, "%06X.bin", table);
-			strcat(name, "/");
-			strcat(name, bfname);
-			decompack->binfiles[i]=(uint8*)fopen(name, "rb");
+			decompack->binfiles[i]=(uint8*)fopen(S9xGetSnapshotDirectory(bfname), "rb");
 		}
 		else
 		{

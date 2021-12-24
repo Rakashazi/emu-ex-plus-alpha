@@ -93,35 +93,33 @@ const char *S9xGetFilenameInc(const char *e)
 	return 0;
 }
 
-const char *S9xGetSnapshotDirectory()
+const char *S9xGetSnapshotDirectory(const char *name)
 {
-	globalPath = EmuSystem::contentSavePath();
+	globalPath = EmuSystem::contentSaveFilePath(appCtx, name);
 	return globalPath.c_str();
 }
 
 extern "C" char* osd_GetPackDir()
 {
-	globalPath = EmuSystem::contentSavePath();
-
 	if(!strncmp((char*)&Memory.ROM [0xffc0], "SUPER POWER LEAG 4   ", 21))
 	{
-		globalPath += "/SPL4-SP7";
+		globalPath = EmuSystem::contentSaveFilePath(appCtx, "SPL4-SP7");
 	}
 	else if(!strncmp((char*)&Memory.ROM [0xffc0], "MOMOTETSU HAPPY      ",21))
 	{
-		globalPath += "/SMHT-SP7";
+		globalPath = EmuSystem::contentSaveFilePath(appCtx, "SMHT-SP7");
 	}
 	else if(!strncmp((char*)&Memory.ROM [0xffc0], "HU TENGAI MAKYO ZERO ", 21))
 	{
-		globalPath += "/FEOEZSP7";
+		globalPath = EmuSystem::contentSaveFilePath(appCtx, "FEOEZSP7");
 	}
 	else if(!strncmp((char*)&Memory.ROM [0xffc0], "JUMP TENGAIMAKYO ZERO",21))
 	{
-		globalPath += "/SJUMPSP7";
+		globalPath = EmuSystem::contentSaveFilePath(appCtx, "SJUMPSP7");
 	}
 	else
 	{
-		globalPath += "/MISC-SP7";
+		globalPath = EmuSystem::contentSaveFilePath(appCtx, "MISC-SP7");
 	}
 	return globalPath.data();
 }

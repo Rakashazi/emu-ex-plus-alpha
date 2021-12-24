@@ -124,7 +124,7 @@ const char *S9xBasename (const char *filename) __attribute__((pure));
 
 int S9xFStrcmp (FILE *, const char *);
 const char *S9xGetHomeDirectory ();
-const char *S9xGetSnapshotDirectory ();
+const char *S9xGetSnapshotDirectory (const char *name);
 const char *S9xGetROMDirectory ();
 const char *S9xGetSRAMFilename ();
 const char *S9xGetFilename (const char *extension);
