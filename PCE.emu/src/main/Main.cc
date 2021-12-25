@@ -61,12 +61,12 @@ static MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
 
 bool hasHuCardExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".pce", ".sgx");
+	return IG::stringEndsWithAny(name, ".pce", ".sgx", ".PCE", ".SGX");
 }
 
 static bool hasCDExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".toc", ".cue", ".ccd");
+	return IG::stringEndsWithAny(name, ".toc", ".cue", ".ccd", ".TOC", ".CUE", ".CCD");
 }
 
 static bool hasPCEWithCDExtension(std::string_view name)

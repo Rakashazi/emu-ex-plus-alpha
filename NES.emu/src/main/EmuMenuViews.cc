@@ -214,7 +214,7 @@ class CustomVideoOptionView : public VideoOptionView
 			{
 				auto fsFilter = [](std::string_view name)
 					{
-						return name.ends_with(".pal");
+						return IG::stringEndsWithAny(name, ".pal", ".PAL");
 					};
 				auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::FILE, fsFilter, e, false);
 				fPicker->setOnSelectFile(

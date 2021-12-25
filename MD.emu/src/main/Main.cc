@@ -50,18 +50,23 @@ int8 mdInputPortDev[2]{-1, -1};
 t_bitmap bitmap{};
 static unsigned autoDetectedVidSysPAL = 0;
 
+static bool hasBinExtension(std::string_view name)
+{
+	return IG::stringEndsWithAny(name, ".bin", ".BIN");
+}
+
 bool hasMDExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".bin", ".smd", ".md", ".gen"
+	return hasBinExtension(name) || IG::stringEndsWithAny(name, ".smd", ".md", ".gen", ".SMD", ".MD", ".GEN"
 		#ifndef NO_SYSTEM_PBC
-		, ".sms"
+		, ".sms", ".SMS"
 		#endif
 		);
 }
 
 static bool hasMDCDExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".cue", ".iso");
+	return IG::stringEndsWithAny(name, ".cue", ".iso", ".CUE", ".ISO");
 }
 
 static bool hasMDWithCDExtension(std::string_view name)
@@ -343,7 +348,7 @@ FS::PathString EmuSystem::willLoadGameFromPath(Base::ApplicationContext ctx, std
 {
 	#ifndef NO_SCD
 	// check if loading a .bin with matching .cue
-	if(path.ends_with(".bin"))
+	if(hasBinExtension(path))
 	{
 		FS::PathString possibleCuePath{path};
 		possibleCuePath.replace(possibleCuePath.end() - 3, possibleCuePath.end(), "cue");
@@ -364,7 +369,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	CDAccess *cd{};
 	auto deleteCDAccess = IG::scopeGuard([&](){ delete cd; });
 	if(hasMDCDExtension(contentFileName()) ||
-		(contentFileName().ends_with(".bin") && io.size() > 1024*1024*10)) // CD
+		(hasBinExtension(contentFileName()) && io.size() > 1024*1024*10)) // CD
 	{
 		if(contentDirectory().empty())
 		{

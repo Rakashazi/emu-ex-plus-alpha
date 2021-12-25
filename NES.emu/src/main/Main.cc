@@ -67,17 +67,17 @@ bool swapDuty = false;
 
 bool hasFDSBIOSExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".rom", ".bin");
+	return IG::stringEndsWithAny(name, ".rom", ".bin", ".ROM", ".BIN");
 }
 
 static bool hasFDSExtension(std::string_view name)
 {
-	return name.ends_with(".fds");
+	return IG::stringEndsWithAny(name, ".fds", ".FDS");
 }
 
 static bool hasROMExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".nes", ".unf");
+	return IG::stringEndsWithAny(name, ".nes", ".unf", ".NES", ".UNF");
 }
 
 static bool hasNESExtension(std::string_view name)

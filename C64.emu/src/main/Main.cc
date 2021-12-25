@@ -404,17 +404,18 @@ int systemCartType(ViceSystem system)
 bool hasC64DiskExtension(std::string_view name)
 {
 	return IG::stringEndsWithAny(name,
-		".d64", ".d67", ".d71", ".d80", ".d81", ".d82", ".d1m", ".d2m", ".d4m", ".g64", ".p64", ".g41", ".x64", ".dsk");
+		".d64", ".d67", ".d71", ".d80", ".d81", ".d82", ".d1m", ".d2m", ".d4m", ".g64", ".p64", ".g41", ".x64", ".dsk",
+		".D64", ".D67", ".D71", ".D80", ".D81", ".D82", ".D1M", ".D2M", ".D4M", ".G64", ".P64", ".G41", ".X64", ".DSK");
 }
 
 bool hasC64TapeExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".t64", ".tap");
+	return IG::stringEndsWithAny(name, ".t64", ".tap", ".T64", ".TAP");
 }
 
 bool hasC64CartExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".bin", ".crt");
+	return IG::stringEndsWithAny(name, ".bin", ".crt", ".BIN", ".CRT");
 }
 
 static bool hasC64Extension(std::string_view name)
@@ -422,7 +423,7 @@ static bool hasC64Extension(std::string_view name)
 	return hasC64DiskExtension(name) ||
 			hasC64TapeExtension(name) ||
 			hasC64CartExtension(name) ||
-			IG::stringEndsWithAny(name, ".prg", ".p00");
+			IG::stringEndsWithAny(name, ".prg", ".p00", ".PRG", ".P00");
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasC64Extension;
@@ -623,7 +624,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 	if(shouldAutostart && plugin.autostart_autodetect_)
 	{
 		logMsg("loading & autostarting:%s", contentLocation().data());
-		if(contentFileName().ends_with(".prg"))
+		if(IG::stringEndsWithAny(contentFileName(), ".prg", ".PRG"))
 		{
 			// needed to store AutostartPrgDisk.d64
 			fallbackSaveDirectory(ctx, true);

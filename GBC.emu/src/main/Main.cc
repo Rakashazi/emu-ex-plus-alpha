@@ -43,7 +43,7 @@ bool EmuSystem::hasCheats = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::stringEndsWithAny(name, ".gb", ".gbc");
+		return IG::stringEndsWithAny(name, ".gb", ".gbc", ".GB", ".GBC");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 

@@ -41,7 +41,7 @@ static constexpr IG::Pixmap srcPix{{{ngpResX, ngpResY}, IG::PIXEL_FMT_RGB565}, c
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::stringEndsWithAny(name, ".ngc", ".ngp", ".npc");
+		return IG::stringEndsWithAny(name, ".ngc", ".ngp", ".npc", ".NGC", ".NGP", ".NPC");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 

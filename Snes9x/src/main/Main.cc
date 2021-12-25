@@ -40,7 +40,7 @@ bool EmuSystem::hasResetModes = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::stringEndsWithAny(name, ".smc", ".sfc", ".fig", ".mgd", ".bs");
+		return IG::stringEndsWithAny(name, ".smc", ".sfc", ".fig", ".mgd", ".bs", ".SMC", ".SFC", ".FIG", ".MGD", ".BS");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 

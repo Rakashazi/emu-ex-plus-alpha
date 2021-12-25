@@ -48,12 +48,12 @@ PerPad_struct *pad[2];
 
 static bool hasCDExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".cue", ".iso", ".bin");
+	return IG::stringEndsWithAny(name, ".cue", ".iso", ".bin", ".CUE", ".ISO", ".BIN");
 }
 
 bool hasBIOSExtension(std::string_view name)
 {
-	return name.ends_with(".bin");
+	return IG::stringEndsWithAny(name, ".bin", ".BIN");
 }
 
 CLINK void DisplayMessage(const char* str) {}
