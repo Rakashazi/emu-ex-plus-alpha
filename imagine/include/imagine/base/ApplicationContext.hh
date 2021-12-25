@@ -27,6 +27,7 @@
 
 #include <imagine/base/baseDefs.hh>
 #include <imagine/io/ioDefs.hh>
+#include <imagine/fs/FSDefs.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string/CStringView.hh>
@@ -49,10 +50,6 @@ class Device;
 
 namespace FS
 {
-class PathString;
-class FileString;
-struct RootPathInfo;
-struct PathLocation;
 class AssetDirectoryIterator;
 }
 
@@ -186,7 +183,7 @@ public:
 	std::string fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const;
 	FS::FileString fileUriDisplayName(IG::CStringView uri) const;
 	bool removeFileUri(IG::CStringView uri) const;
-	void forEachInDirectoryUri(IG::CStringView uri, DirectoryEntryDelegate) const;
+	void forEachInDirectoryUri(IG::CStringView uri, FS::DirectoryEntryDelegate) const;
 
 	// OS UI management (status & navigation bar)
 	void setSysUIStyle(uint32_t flags);

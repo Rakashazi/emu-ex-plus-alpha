@@ -307,13 +307,9 @@ FileIO ApplicationContext::openFileUri(IG::CStringView uri, unsigned openFlags) 
 	return FS::remove(uri);
 }
 
-[[gnu::weak]] void ApplicationContext::forEachInDirectoryUri(IG::CStringView uri, DirectoryEntryDelegate del) const
+[[gnu::weak]] void ApplicationContext::forEachInDirectoryUri(IG::CStringView uri, FS::DirectoryEntryDelegate del) const
 {
-	for(auto &entry : FS::directory_iterator{uri})
-	{
-		if(!del(entry))
-			break;
-	}
+	forEachInDirectory(uri, del);
 }
 
 Orientation ApplicationContext::validateOrientationMask(Orientation oMask) const

@@ -330,7 +330,7 @@ bool ApplicationContext::removeFileUri(IG::CStringView uri) const
 	return application().removeFileUri(thisThreadJniEnv(), baseActivityObject(), uri);
 }
 
-void AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity, IG::CStringView uri, DirectoryEntryDelegate del) const
+void AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity, IG::CStringView uri, FS::DirectoryEntryDelegate del) const
 {
 	logMsg("listing directory URI:%s", uri.data());
 	if(!listUriFiles(env, baseActivity, (jlong)&del, env->NewStringUTF(uri)))
@@ -339,16 +339,11 @@ void AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity
 	}
 }
 
-void ApplicationContext::forEachInDirectoryUri(IG::CStringView uri, DirectoryEntryDelegate del) const
+void ApplicationContext::forEachInDirectoryUri(IG::CStringView uri, FS::DirectoryEntryDelegate del) const
 {
 	if(androidSDK() < 21 || !IG::isUri(uri))
 	{
-		for(auto &entry : FS::directory_iterator{uri})
-		{
-			if(!del(entry))
-				break;
-		}
-		return;
+		return forEachInDirectory(uri, del);
 	}
 	application().forEachInDirectoryUri(thisThreadJniEnv(), baseActivityObject(), uri, del);
 }
@@ -595,7 +590,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				(void*)
 				+[](JNIEnv* env, jobject thiz, jlong userData, jstring jUri, jstring name, jboolean isDir)
 				{
-					auto &del = *((DirectoryEntryDelegate*)userData);
+					auto &del = *((FS::DirectoryEntryDelegate*)userData);
 					auto type = isDir ? FS::file_type::directory : FS::file_type::regular;
 					return del(FS::directory_entry{JNI::StringChars{env, jUri}, JNI::StringChars{env, name}, type});
 				}

@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/utility.h>
+#include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/string/StaticString.hh>
 #include <ctime>
 #include <array>
@@ -130,5 +131,9 @@ protected:
 	file_time_type lastWriteTime_{};
 	file_type type_ = file_type::none;
 };
+
+class directory_entry;
+
+using DirectoryEntryDelegate = DelegateFuncS<sizeof(void*)*3, bool(const directory_entry &)>;
 
 }

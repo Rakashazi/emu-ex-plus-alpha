@@ -20,6 +20,7 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/base/android/Choreographer.hh>
 #include <imagine/input/Device.hh>
+#include <imagine/fs/FSDefs.hh>
 #include <imagine/util/jni.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <pthread.h>
@@ -30,11 +31,6 @@ struct ANativeActivity;
 struct AInputQueue;
 struct AConfiguration;
 struct AInputEvent;
-
-namespace FS
-{
-class PathString;
-}
 
 namespace Input
 {
@@ -112,7 +108,7 @@ public:
 	std::string fileUriFormatLastWriteTimeLocal(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
 	FS::FileString fileUriDisplayName(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
 	bool removeFileUri(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
-	void forEachInDirectoryUri(JNIEnv *, jobject baseActivity, IG::CStringView uri, DirectoryEntryDelegate) const;
+	void forEachInDirectoryUri(JNIEnv *, jobject baseActivity, IG::CStringView uri, FS::DirectoryEntryDelegate) const;
 
 	// Input system functions
 	void onInputQueueCreated(ApplicationContext, AInputQueue *);

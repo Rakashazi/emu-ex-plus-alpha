@@ -74,7 +74,8 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 			pushFileLocationsView(e);
 		});
 	controller.setNavView(std::move(nav));
-	controller.push(makeView<TableView>(text));
+	controller.push(makeView<TableView>([&d = dir](const TableView &) { return d.size(); },
+		[&d = dir](const TableView &, size_t idx) -> MenuItem& { return d[idx].text; }));
 	controller.navView()->showLeftBtn(true);
 }
 
@@ -187,7 +188,6 @@ void FSPicker::setEmptyPath()
 	logMsg("setting empty path");
 	root = {};
 	dir.clear();
-	text.clear();
 	msgText.setString("No folder is set");
 	if(mode_ == Mode::FILE_IN_DIR)
 	{
@@ -213,7 +213,6 @@ std::error_code FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInf
 	{
 		root.path = path;
 		dir.clear();
-		text.clear();
 		ctx.forEachInDirectoryUri(path,
 			[this](auto &entry)
 			{
@@ -237,7 +236,7 @@ std::error_code FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInf
 				{
 					return true;
 				}
-				dir.emplace_back(FileEntry{std::string{entry.path()}, isDir});
+				dir.emplace_back(FileEntry{std::string{entry.path()}, isDir, {entry.name(), &face(), nullptr}});
 				return true;
 			});
 		std::sort(dir.begin(), dir.end(),
@@ -252,30 +251,29 @@ std::error_code FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInf
 			});
 		if(dir.size())
 		{
-			msgText.setString({});
-			text.reserve(dir.size());
-			for(auto const &entry : dir)
+			for(auto &d : dir)
 			{
-				if(entry.isDir)
+				if(d.isDir)
 				{
-					text.emplace_back(ctx.fileUriDisplayName(entry.path), &face(),
-						[this, &entry](Input::Event e)
+					d.text.setOnSelect(
+						[this, &dirPath = d.path](Input::Event e)
 						{
 							assert(!isSingleDirectoryMode());
-							auto path = std::move(entry.path);
+							auto path = std::move(dirPath);
 							logMsg("entering dir:%s", path.data());
 							changeDirByInput(path, root.info, e);
 						});
 				}
 				else
 				{
-					text.emplace_back(ctx.fileUriDisplayName(entry.path), &face(),
-						[this, &entry](Input::Event e)
+					d.text.setOnSelect(
+						[this, &dirPath = d.path](Input::Event e)
 						{
-							onSelectFile_.callCopy(*this, entry.path, appContext().fileUriDisplayName(entry.path), e);
+							onSelectFile_.callCopy(*this, dirPath, appContext().fileUriDisplayName(dirPath), e);
 						});
 				}
 			}
+			msgText.setString({});
 		}
 		else // no entries, show a message instead
 		{

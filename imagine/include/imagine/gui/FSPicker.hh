@@ -75,6 +75,7 @@ protected:
 	{
 		std::string path{};
 		bool isDir{};
+		TextMenuItem text{};
 	};
 
 	FilterFunc filter{};
@@ -82,7 +83,6 @@ protected:
 	OnChangePathDelegate onChangePath_{};
 	OnSelectFileDelegate onSelectFile_{};
 	OnCloseDelegate onClose_;
-	std::vector<TextMenuItem> text{};
 	std::vector<FileEntry> dir{};
 	FS::RootedPath root{};
 	Gfx::Text msgText{};

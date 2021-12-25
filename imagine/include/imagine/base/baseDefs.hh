@@ -94,11 +94,6 @@ class Device;
 class DeviceChange;
 }
 
-namespace FS
-{
-class directory_entry;
-}
-
 class GenericIO;
 
 namespace Base
@@ -219,7 +214,6 @@ using DeviceOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, 
 using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation oldOrientation, Orientation newOrientation)>;
 using ScreenChangeDelegate = DelegateFunc<void (ApplicationContext, Screen &s, ScreenChange)>;
 using SystemDocumentPickerDelegate = DelegateFunc<void(IG::CStringView uri, IG::CStringView displayName)>;
-using DirectoryEntryDelegate = DelegateFuncS<sizeof(void*)*3, bool(const FS::directory_entry &)>;
 
 using InputDeviceChangeDelegate = DelegateFunc<void (const Input::Device &dev, Input::DeviceChange)>;
 using InputDevicesEnumeratedDelegate = DelegateFunc<void ()>;

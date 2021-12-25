@@ -95,14 +95,20 @@ std::pair<std::string_view, size_t> uriPathSegment(std::string_view uri, std::st
 	return {pathStart.substr(0, pathStart.find('/')), pathPos};
 }
 
-int directoryItems(IG::CStringView path)
+size_t directoryItems(IG::CStringView path)
 {
-		uint32_t items = 0;
-		for(auto &d : FS::directory_iterator(path))
-		{
-			items++;
-		}
-		return items;
+	size_t items = 0;
+	forEachInDirectory(path, [&](auto &entry){ items++; return true; });
+	return items;
+}
+
+void forEachInDirectory(IG::CStringView path, DirectoryEntryDelegate del)
+{
+	for(FS::DirectoryStream dirStream{path}; dirStream.hasEntry(); dirStream.readNextDir())
+	{
+		if(!del(dirStream.entry()))
+			break;
+	}
 }
 
 }
