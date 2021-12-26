@@ -42,6 +42,7 @@ gzFile gzopenHelper(const char *filename, const char *mode);
 #endif
 
 FILE *fopenHelper(const char *filename, const char *mode);
+void removeFileHelper(const char *filename);
 
 #include "stream.h"
 

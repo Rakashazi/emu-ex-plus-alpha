@@ -10,6 +10,8 @@
 namespace Mednafen
 {
 
+int MDFNnetplay{};
+
 #ifndef NDEBUG
 void MDFN_printf(const char *format, ...) noexcept
 {
@@ -39,23 +41,11 @@ void MDFND_OutputNotice(MDFN_NoticeType t, const char* s) noexcept
 	logMsg("%s", s);
 }
 
-int MDFN_SavePNGSnapshot(const char *fname, const MDFN_Surface *src, const MDFN_Rect *rect, const MDFN_Rect *LineWidths)
-{
-	return 1;
-}
-
-void MDFN_ResetMessages(void) { }
-
-void GetFileBase(const char *f) { }
-
-void MDFN_indent(int indent) { }
-int MDFN_RawInputStateAction(StateMem *sm, int load, int data_only) { return 1; }
+void MDFN_indent(int indent) {}
 void MDFND_SetMovieStatus(StateStatusStruct *status) noexcept {}
 void MDFND_SetStateStatus(StateStatusStruct *status) noexcept {}
-void NetplaySendState(void) { }
+void NetplaySendState(void) {}
 void MDFND_NetplayText(const char *text, bool NetEcho) {}
-
-int MDFNnetplay=0;
 
 void MDFN_StateAction(StateMem *sm, const unsigned load, const bool data_only)
 {

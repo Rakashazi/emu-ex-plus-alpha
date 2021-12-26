@@ -77,6 +77,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 	controller.push(makeView<TableView>([&d = dir](const TableView &) { return d.size(); },
 		[&d = dir](const TableView &, size_t idx) -> MenuItem& { return d[idx].text; }));
 	controller.navView()->showLeftBtn(true);
+	dir.reserve(16); // start with some initial capacity to avoid small reallocations
 }
 
 void FSPicker::place()

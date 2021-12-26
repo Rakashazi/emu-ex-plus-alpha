@@ -92,6 +92,7 @@ public:
 	static ClipRect makeClipRect(const Base::Window &win, IG::WindowRect rect);
 	bool supportsSyncFences() const;
 	void setPresentationTime(Base::Window &, IG::FrameTime time) const;
+	bool supportsPresentationTime() const;
 	unsigned maxSwapChainImages() const;
 	void setCorrectnessChecks(bool on);
 	std::vector<DrawableConfigDesc> supportedDrawableConfigs() const;

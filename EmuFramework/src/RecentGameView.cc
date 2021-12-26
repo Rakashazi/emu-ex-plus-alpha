@@ -60,7 +60,6 @@ RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentLis
 						app().launchSystemWithResumePrompt(e);
 					});
 			});
-		recentItem.setActive(appContext().fileUriExists(entry.path));
 	}
 	clear.setActive(list.size());
 }

@@ -126,7 +126,11 @@ public:
 
 	StreamBase(IO io, std::ios::openmode mode = openMode()):
 		StdStream{&streamBuf},
-		streamBuf{std::move(io), mode} {}
+		streamBuf{std::move(io), mode | implicitOpenMode()}
+	{
+		if(!streamBuf) [[unlikely]]
+			this->setstate(std::ios::failbit);
+	}
 
 	StreamBase(StreamBase&& o)
 	{
@@ -141,19 +145,25 @@ public:
 		return *this;
 	}
 
-	static std::ios::openmode openMode()
+	static constexpr std::ios::openmode openMode()
 	{
 		if constexpr(std::is_same_v<StdStream, std::iostream>)
 			return std::ios::in | std::ios::out;
-		else if constexpr(std::is_same_v<StdStream, std::istream>)
-			return std::ios::in;
 		else
+			return implicitOpenMode();
+	}
+
+	static constexpr std::ios::openmode implicitOpenMode()
+	{
+		if constexpr(std::is_same_v<StdStream, std::istream>)
+			return std::ios::in;
+		else if constexpr(std::is_same_v<StdStream, std::ostream>)
 			return std::ios::out;
+		else
+			return {};
 	}
 
 	bool is_open() const { return (bool)streamBuf; }
-
-	explicit operator bool() const { return is_open(); }
 
 protected:
 	IOStreamBuf<IO> streamBuf{};

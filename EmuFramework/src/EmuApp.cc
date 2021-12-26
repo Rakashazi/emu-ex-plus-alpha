@@ -451,6 +451,8 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
 			emuViewController.emplace(viewAttach, vController, emuVideoLayer,
 				emuSystemTask, emuAudio);
+			if(!appConfig.rendererPresentationTime())
+				emuViewController->setUsePresentationTime(false);
 			applyRenderPixelFormat();
 
 			#if defined __ANDROID__

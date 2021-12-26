@@ -323,6 +323,7 @@ protected:
 	public:
 		static constexpr uint8_t BACK_NAVIGATION_IS_SET_BIT = IG::bit(0);
 		static constexpr uint8_t BACK_NAVIGATION_BIT = IG::bit(1);
+		static constexpr uint8_t RENDERER_PRESENTATION_TIME_BIT = IG::bit(2);
 
 		constexpr std::optional<bool> backNavigation() const
 		{
@@ -339,8 +340,18 @@ protected:
 			flags = IG::setOrClearBits(flags, BACK_NAVIGATION_BIT, *opt);
 		}
 
+		constexpr bool rendererPresentationTime() const
+		{
+			return flags & RENDERER_PRESENTATION_TIME_BIT;
+		}
+
+		constexpr void setRendererPresentationTime(bool on)
+		{
+			flags = IG::setOrClearBits(flags, RENDERER_PRESENTATION_TIME_BIT, on);
+		}
+
 	protected:
-		uint8_t flags{};
+		uint8_t flags{RENDERER_PRESENTATION_TIME_BIT};
 		Gfx::DrawableConfig windowDrawableConf{};
 	};
 

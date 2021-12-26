@@ -651,7 +651,7 @@ bool8 S9xSaveCheatFile (const char *filename)
 
     if (Cheat.g.size () == 0)
     {
-        remove (filename);
+        removeFileHelper(filename);
         return TRUE;
     }
 

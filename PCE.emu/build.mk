@@ -38,7 +38,6 @@ mednafen/movie.cpp \
 mednafen/state.cpp \
 mednafen/file.cpp \
 mednafen/mempatcher.cpp \
-mednafen/general.cpp \
 mednafen/error.cpp \
 mednafen/MemoryStream.cpp \
 mednafen/NativeVFS.cpp \

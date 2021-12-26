@@ -1,11 +1,14 @@
 #include <vector>
 #include <iostream>
-#include <fstream>
 #include <stack>
 #include <stdio.h>
 
 #include "port.h"
 #include "bml.h"
+
+#include <imagine/io/IOStream.hh>
+#include <imagine/io/FileIO.hh>
+#include <imagine/base/ApplicationContext.hh>
 
 bml_node::bml_node()
 {
@@ -131,7 +134,7 @@ static void bml_parse_data(bml_node &node, std::string &line)
     return;
 }
 
-static std::string bml_read_line(std::ifstream &fd)
+static std::string bml_read_line(std::istream &fd)
 {
     std::string line;
 
@@ -237,7 +240,7 @@ void bml_node::print()
     bml_print_node(*this, -1);
 }
 
-void bml_node::parse(std::ifstream &fd)
+void bml_node::parse(std::istream &fd)
 {
     std::stack<bml_node *> nodestack;
     nodestack.push(this);
@@ -278,9 +281,11 @@ bml_node *bml_node::find_subnode(std::string name)
     return NULL;
 }
 
+extern Base::ApplicationContext appCtx;
+
 bool bml_node::parse_file(std::string filename)
 {
-    std::ifstream file(filename.c_str(), std::ios_base::binary);
+    IG::IFStream file(appCtx.openFileUri(filename, IO::OPEN_TEST), std::ios_base::binary);
 
     if (!file)
         return false;

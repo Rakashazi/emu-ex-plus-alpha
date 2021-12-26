@@ -37,6 +37,7 @@ class EmuSystemTask;
 class EmuViewController;
 class EmuAudio;
 struct WindowData;
+class IO;
 
 class EmuMenuViewStack : public ViewStack
 {
@@ -97,6 +98,9 @@ public:
 	void handleOpenFileCommand(IG::CStringView path);
 	void setFastForwardActive(bool active);
 	bool isMenuDismissKey(Input::Event);
+	void setUsePresentationTime(bool on) { usePresentationTime_ = on; }
+	bool usePresentationTime() const { return usePresentationTime_; }
+	void writeConfig(IO &io);
 	Base::ApplicationContext appContext() const;
 	EmuSystemTask &emuTask() { return *systemTaskPtr; }
 
@@ -116,6 +120,7 @@ protected:
 	bool showingEmulation{};
 	Base::WindowFrameTimeSource winFrameTimeSrc{};
 	uint8_t targetFastForwardSpeed{};
+	IG_UseMemberIf(Config::envIsAndroid, bool, usePresentationTime_){true};
 
 	void initViews(ViewAttachParams attach);
 	void onFocusChange(bool in);

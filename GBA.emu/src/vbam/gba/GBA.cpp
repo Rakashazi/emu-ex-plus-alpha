@@ -1069,7 +1069,7 @@ bool CPUWriteBatteryFile(Base::ApplicationContext ctx, GBASys &gba, const char *
           return false;
         }
       } else {
-        if(fwrite(flashSaveMemory, 1, 0x10000, file) != 0x10000) {
+        if(fwrite(flashSaveMemory, 1, 0x8000, file) != 0x8000) {
           fclose(file);
           return false;
         }
@@ -1327,10 +1327,12 @@ bool CPUReadBatteryFile(Base::ApplicationContext ctx, GBASys &gba, const char *f
   		IG::copy_n_r(buff.data(), size, eepromData);
   		logMsg("loaded saved eeprom");
   		return true;
+  	case 0x8000:
   	case 0x10000:
   	case 0x20000:
   		IG::copy_n_r(buff.data(), size, flashSaveMemory);
-  		flashSetSize(size);
+  		if(size != 0x8000)
+  			flashSetSize(size);
   		logMsg("loaded saved flash");
   		return true;
   }

@@ -670,6 +670,15 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		}(),
 		renderPixelFormatItem
 	},
+	presentationTime
+	{
+		"Reduce Compositor Lag", &defaultFace(),
+		app().viewController().usePresentationTime(),
+		[this](BoolMenuItem &item, Input::Event e)
+		{
+			app().viewController().setUsePresentationTime(item.flipBoolValue(*this));
+		}
+	},
 	visualsHeading{"Visuals", &defaultBoldFace()},
 	screenShapeHeading{"Screen Shape", &defaultBoldFace()},
 	advancedHeading{"Advanced", &defaultBoldFace()},
@@ -804,6 +813,8 @@ void VideoOptionView::loadStockItems()
 	#endif
 	if(!optionVideoImageBuffers.isConst)
 		item.emplace_back(&imageBuffers);
+	if(IG::used(presentationTime) && renderer().supportsPresentationTime())
+		item.emplace_back(&presentationTime);
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	item.emplace_back(&secondDisplay);
 	#endif

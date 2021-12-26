@@ -13,13 +13,13 @@
 	You should have received a copy of the GNU General Public License
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "MDFN.hh"
-#include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/string.h>
+#include <imagine/logger/logger.h>
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include "internal.hh"
+#include "MDFN.hh"
 
 using namespace Mednafen;
 
@@ -27,9 +27,9 @@ namespace MDFN_IEN_PCE_FAST
 {
 // dummy HES functions
 int PCE_HESLoad(const uint8 *buf, uint32 size) { return 0; };
-void HES_Draw(MDFN_Surface *surface, MDFN_Rect *DisplayRect, int16 *SoundBuf, int32 SoundBufSize) { }
-void HES_Close(void) { }
-void HES_Reset(void) { }
+void HES_Draw(MDFN_Surface *surface, MDFN_Rect *DisplayRect, int16 *SoundBuf, int32 SoundBufSize) {}
+void HES_Close(void) {}
+void HES_Reset(void) {}
 uint8 ReadIBP(unsigned int A) { return 0; }
 };
 
@@ -38,7 +38,6 @@ uint8 ReadIBP(unsigned int A) { return 0; }
 namespace Mednafen
 {
 
-NativeVFS NVFS{};
 MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
 
 uint64 MDFN_GetSettingUI(const char *name)
@@ -134,13 +133,13 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 			ext += '.';
 			ext += cd1;
 			auto path = EmuSystem::contentSaveFilePath(appCtx, ext);
-			if(type == MDFNMKF_SAV) logMsg("created save path %s", path.c_str());
+			if(type == MDFNMKF_SAV) logMsg("save path:%s", path.c_str());
 			return std::string{path};
 		}
 		case MDFNMKF_FIRMWARE:
 		{
 			// pce-specific
-			logMsg("getting firmware path %s", sysCardPath.data());
+			logMsg("system card path:%s", sysCardPath.data());
 			return std::string(sysCardPath);
 		}
 		default:

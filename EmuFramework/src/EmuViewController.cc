@@ -285,14 +285,16 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 					video.dispatchFormatChanged();
 				}
 				emuWindow().setNeedsDraw(true);
-				r.setPresentationTime(emuWindow(), params.presentTime());
+				if(usePresentationTime())
+					r.setPresentationTime(emuWindow(), params.presentTime());
 				return true;
 			}
 			else
 			{
 				// run multiple frames async and let main loop collect additional input events
 				emuTask().runFrame(&video, audioPtr, framesToEmulate, skipForward, false);
-				r.setPresentationTime(emuWindow(), params.presentTime());
+				if(usePresentationTime())
+					r.setPresentationTime(emuWindow(), params.presentTime());
 				return false;
 			}
 		};
@@ -1053,4 +1055,10 @@ bool EmuViewController::isMenuDismissKey(Input::Event e)
 		dismissKey = Keycode::SPACE;
 	}
 	return e.key() == dismissKey || e.key() == dismissKey2;
+}
+
+void EmuViewController::writeConfig(IO &io)
+{
+	if(IG::used(usePresentationTime_) && !usePresentationTime_)
+		writeOptionValue(io, CFGKEY_RENDERER_PRESENTATION_TIME, false);
 }

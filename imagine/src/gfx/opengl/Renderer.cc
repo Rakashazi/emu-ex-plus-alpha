@@ -282,7 +282,7 @@ bool Renderer::supportsSyncFences() const
 void Renderer::setPresentationTime(Base::Window &win, IG::FrameTime time) const
 {
 	#ifdef __ANDROID__
-	if(!support.eglPresentationTimeANDROID)
+	if(!supportsPresentationTime())
 		return;
 	auto drawable = (Drawable)winData(win).drawable;
 	bool success = support.eglPresentationTimeANDROID(glDisplay(), drawable, time.count());
@@ -291,6 +291,15 @@ void Renderer::setPresentationTime(Base::Window &win, IG::FrameTime time) const
 		logErr("error:%s in eglPresentationTimeANDROID(%p, %llu)",
 			Base::GLManager::errorString(eglGetError()), (EGLSurface)drawable, (unsigned long long)time.count());
 	}
+	#endif
+}
+
+bool Renderer::supportsPresentationTime() const
+{
+	#ifdef __ANDROID__
+	return support.eglPresentationTimeANDROID;
+	#else
+	return false;
 	#endif
 }
 

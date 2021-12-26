@@ -97,7 +97,6 @@ ifdef hasSCD
  CDImpl.cc \
  error.cpp \
  endian.cpp \
- general.cpp \
  MemoryStream.cpp \
  NativeVFS.cpp \
  Stream.cpp \

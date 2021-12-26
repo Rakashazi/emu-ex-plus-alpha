@@ -317,10 +317,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	{
 		//Log.i(logTag, "intent action: " + getIntent().getAction());
 		String path = null;
-		Uri uri = getIntent().getData();
+		final Uri uri = getIntent().getData();
 		if(uri != null)
 		{
-			if(uri.getScheme().equals("file"))
+			final String scheme = uri.getScheme();
+			if(scheme != null && scheme.equals("file"))
 			{
 				path = uri.getPath();
 			}

@@ -23,6 +23,8 @@ extern Base::ApplicationContext appCtx;
 namespace Mednafen
 {
 
+NativeVFS NVFS{};
+
 VirtualFS::VirtualFS(char preferred_path_separator_, const std::string& allowed_path_separators_)
 	: preferred_path_separator(preferred_path_separator_), allowed_path_separators(allowed_path_separators_) {}
 

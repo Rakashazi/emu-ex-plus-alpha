@@ -289,6 +289,11 @@ FILE *fopenHelper(const char* filename, const char* mode)
 	return FileUtils::fopenUri(appCtx, filename, mode);
 }
 
+void removeFileHelper(const char* filename)
+{
+	appCtx.removeFileUri(filename);
+}
+
 gzFile gzopenHelper(const char *filename, const char *mode)
 {
 	unsigned openFlags = IG::stringContains(mode, 'w') ? IO::OPEN_CREATE : 0;

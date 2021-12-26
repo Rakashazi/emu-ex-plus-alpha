@@ -237,6 +237,7 @@ void EmuApp::saveConfigFile(IO &io)
 			writeOptionValue(io, CFGKEY_MOGA_INPUT_SYSTEM, true);
 	}
 	vController.writeConfig(io);
+	viewController().writeConfig(io);
 
 	if(customKeyConfig.size())
 	{
@@ -534,6 +535,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				bcase CFGKEY_WINDOW_PIXEL_FORMAT: pendingWindowDrawableConf.pixelFormat = readOptionValue<IG::PixelFormat>(io, size, windowPixelFormatIsValid).value_or(IG::PixelFormat{});
 				bcase CFGKEY_VIDEO_COLOR_SPACE: pendingWindowDrawableConf.colorSpace = readOptionValue<Gfx::ColorSpace>(io, size, colorSpaceIsValid).value_or(Gfx::ColorSpace{});
 				bcase CFGKEY_SHOW_HIDDEN_FILES: setShowHiddenFilesInPicker(readOptionValue<bool>(io, size).value_or(false));
+				bcase CFGKEY_RENDERER_PRESENTATION_TIME: appConfig.setRendererPresentationTime(readOptionValue<bool>(io, size).value_or(true));
 				bcase CFGKEY_INPUT_KEY_CONFIGS:
 				{
 					if(!readKeyConfig(io, size, inputControlCategories()))

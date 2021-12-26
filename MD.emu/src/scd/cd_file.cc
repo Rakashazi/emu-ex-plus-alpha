@@ -25,8 +25,6 @@
 namespace Mednafen
 {
 
-NativeVFS NVFS;
-
 bool MDFN_GetSettingB(const char *name) { return 0; }
 
 }
