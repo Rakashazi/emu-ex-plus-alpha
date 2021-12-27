@@ -316,7 +316,7 @@ public:
 	bool boundingAreaVisible() const;
 	void setShowOnTouchInput(std::optional<bool> opt);
 	bool showOnTouchInput() const;
-	void setVibrateOnTouchInput(std::optional<bool> opt);
+	void setVibrateOnTouchInput(EmuApp &, std::optional<bool> opt);
 	bool vibrateOnTouchInput() const;
 	bool shouldShowOnTouchInput() const;
 	void setGamepadControlsVisibility(std::optional<VControllerVisibility>);

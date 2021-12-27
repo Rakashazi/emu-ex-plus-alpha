@@ -13,9 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with NGP.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <neopop.h>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include "internal.hh"
 
 enum
 {
@@ -85,11 +85,10 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 
 void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
 {
-	uint8_t &ctrlBits = ram[0x6F82];
-	ctrlBits = IG::setOrClearBits(ctrlBits, (uint8_t)emuKey, action == Input::Action::PUSHED);
+	inputBuff = IG::setOrClearBits(inputBuff, (uint8_t)emuKey, action == Input::Action::PUSHED);
 }
 
 void EmuSystem::clearInputBuffers(EmuInputView &)
 {
-	ram[0x6F82] = 0;
+	inputBuff = {};
 }

@@ -13,9 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with NGP.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <neopop.h>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Option.hh>
+#include "internal.hh"
 
 enum
 {
@@ -30,7 +30,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 
-static Option<OptionMethodRef<bool, language_english>, uint8> optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
+Byte1Option optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
 
 bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 {

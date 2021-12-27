@@ -13,20 +13,20 @@
 	You should have received a copy of the GNU General Public License
 	along with NGP.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <neopop.h>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuApp.hh>
+#include "internal.hh"
 
 class CustomSystemOptionView : public SystemOptionView
 {
 	BoolMenuItem ngpLanguage
 	{
 		"NGP Language", &defaultFace(),
-		language_english,
+		(bool)optionNGPLanguage.val,
 		"Japanese", "English",
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			language_english = item.flipBoolValue(*this);
+			optionNGPLanguage = item.flipBoolValue(*this);
 		}
 	};
 

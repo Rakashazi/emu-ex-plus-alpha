@@ -727,9 +727,9 @@ bool VController::shouldShowOnTouchInput() const
 	return gamepadControlsVisibility() == VControllerVisibility::AUTO && showOnTouchInput();
 }
 
-void VController::setVibrateOnTouchInput(std::optional<bool> opt)
+void VController::setVibrateOnTouchInput(EmuApp &app, std::optional<bool> opt)
 {
-	if(!opt || !!app().vibrationManager().hasVibrator())
+	if(!opt || !app.vibrationManager().hasVibrator())
 		return;
 	vibrateOnTouchInput_ = *opt;
 }

@@ -3,77 +3,79 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
+VPATH += $(EMUFRAMEWORK_PATH)/src/shared
+
+CPPFLAGS += -DHAVE_CONFIG_H \
+-I$(projectPath)/src \
+-I$(EMUFRAMEWORK_PATH)/include/shared/mednafen \
+-I$(EMUFRAMEWORK_PATH)/src/shared \
+-I$(EMUFRAMEWORK_PATH)/src/shared/mednafen/hw_misc \
+-I$(EMUFRAMEWORK_PATH)/src/shared/mednafen/hw_sound
+
+CXXFLAGS_WARN += -Wno-register -Wno-missing-field-initializers
+
 SRC += main/Main.cc \
 main/options.cc \
 main/input.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \
-common/CDImpl.cc \
-common/MDFNApi.cc \
-common/MThreading.cc \
-common/StreamImpl.cc \
-common/VirtualFS.cpp \
 main/PCEFast.cc \
-main/MDFNFILE.cc
+mednafen-emuex/CDImpl.cc \
+mednafen-emuex/MDFNApi.cc \
+mednafen-emuex/MThreading.cc \
+mednafen-emuex/StreamImpl.cc \
+mednafen-emuex/VirtualFS.cpp \
+mednafen-emuex/MDFNFILE.cc
 
-CPPFLAGS += -DHAVE_CONFIG_H \
--I$(projectPath)/src \
--I$(projectPath)/src/include \
--I$(projectPath)/src/mednafen/hw_misc \
--I$(projectPath)/src/mednafen/hw_sound
+MDFN_SRC := pce_fast/input.cpp \
+pce_fast/vdc.cpp \
+pce_fast/huc6280.cpp \
+pce_fast/pce.cpp \
+pce_fast/huc.cpp \
+pce_fast/pcecd.cpp \
+pce_fast/pcecd_drive.cpp \
+pce_fast/psg.cpp \
+endian.cpp \
+movie.cpp \
+state.cpp \
+file.cpp \
+mempatcher.cpp \
+error.cpp \
+MemoryStream.cpp \
+NativeVFS.cpp \
+Stream.cpp \
+memory.cpp \
+git.cpp \
+cputest/cputest.c \
+sound/okiadpcm.cpp \
+sound/Blip_Buffer.cpp \
+cdrom/CDAFReader.cpp \
+cdrom/CDAFReader_FLAC.cpp \
+cdrom/CDAFReader_PCM.cpp \
+cdrom/CDAFReader_Vorbis.cpp \
+cdrom/galois.cpp \
+cdrom/recover-raw.cpp \
+cdrom/CDAccess.cpp \
+cdrom/CDAccess_Image.cpp \
+cdrom/CDAccess_CCD.cpp \
+cdrom/CDUtility.cpp \
+cdrom/l-ec.cpp \
+cdrom/scsicd.cpp \
+cdrom/CDInterface.cpp \
+cdrom/CDInterface_MT.cpp \
+cdrom/CDInterface_ST.cpp \
+cdrom/lec.cpp \
+cdrom/crc32.cpp \
+hw_misc/arcade_card/arcade_card.cpp \
+hw_sound/pce_psg/pce_psg.cpp \
+video/resize.cpp \
+video/surface.cpp \
+compress/GZFileStream.cpp \
+string/string.cpp \
+hash/crc.cpp \
+hash/md5.cpp
 
-CXXFLAGS_WARN += -Wno-register -Wno-missing-field-initializers
-
-# mednafen sources
-SRC += mednafen/pce_fast/input.cpp \
-mednafen/pce_fast/vdc.cpp \
-mednafen/pce_fast/huc6280.cpp \
-mednafen/pce_fast/pce.cpp \
-mednafen/pce_fast/huc.cpp \
-mednafen/pce_fast/pcecd.cpp \
-mednafen/pce_fast/pcecd_drive.cpp \
-mednafen/pce_fast/psg.cpp
-MDFN_SRC += mednafen/endian.cpp \
-mednafen/movie.cpp \
-mednafen/state.cpp \
-mednafen/file.cpp \
-mednafen/mempatcher.cpp \
-mednafen/error.cpp \
-mednafen/MemoryStream.cpp \
-mednafen/NativeVFS.cpp \
-mednafen/Stream.cpp \
-mednafen/memory.cpp \
-mednafen/git.cpp \
-mednafen/cputest/cputest.c \
-mednafen/sound/okiadpcm.cpp \
-mednafen/sound/Blip_Buffer.cpp \
-mednafen/cdrom/CDAFReader.cpp \
-mednafen/cdrom/CDAFReader_FLAC.cpp \
-mednafen/cdrom/CDAFReader_PCM.cpp \
-mednafen/cdrom/CDAFReader_Vorbis.cpp \
-mednafen/cdrom/galois.cpp \
-mednafen/cdrom/recover-raw.cpp \
-mednafen/cdrom/CDAccess.cpp \
-mednafen/cdrom/CDAccess_Image.cpp \
-mednafen/cdrom/CDAccess_CCD.cpp \
-mednafen/cdrom/CDUtility.cpp \
-mednafen/cdrom/l-ec.cpp \
-mednafen/cdrom/scsicd.cpp \
-mednafen/cdrom/CDInterface.cpp \
-mednafen/cdrom/CDInterface_MT.cpp \
-mednafen/cdrom/CDInterface_ST.cpp \
-mednafen/cdrom/lec.cpp \
-mednafen/cdrom/crc32.cpp \
-mednafen/hw_misc/arcade_card/arcade_card.cpp \
-mednafen/hw_sound/pce_psg/pce_psg.cpp \
-mednafen/video/resize.cpp \
-mednafen/video/surface.cpp \
-mednafen/compress/GZFileStream.cpp \
-mednafen/string/string.cpp \
-mednafen/hash/crc.cpp \
-mednafen/hash/md5.cpp
-
-SRC += $(MDFN_SRC)
+SRC += $(addprefix mednafen/,$(MDFN_SRC))
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/libvorbis.mk

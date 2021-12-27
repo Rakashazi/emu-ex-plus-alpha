@@ -2,6 +2,7 @@
 
 #include <imagine/base/ApplicationContext.hh>
 #include <emuframework/Option.hh>
+#include <mednafen/mednafen.h>
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/vdc.h>
 
@@ -23,7 +24,10 @@ bool hasHuCardExtension(std::string_view name);
 
 namespace MDFN_IEN_PCE_FAST
 {
-	void applyVideoFormat(EmulateSpecStruct *espec);
-	void applySoundFormat(EmulateSpecStruct *espec);
-	extern vce_t vce;
+void applyVideoFormat(Mednafen::EmulateSpecStruct *);
+void applySoundFormat(Mednafen::EmulateSpecStruct *);
+extern vce_t vce;
 }
+
+extern Mednafen::MDFNGI EmulatedPCE_Fast;
+static Mednafen::MDFNGI *emuSys = &EmulatedPCE_Fast;

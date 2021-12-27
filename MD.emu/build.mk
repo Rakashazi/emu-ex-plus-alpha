@@ -84,8 +84,8 @@ ifdef hasSCD
  scd/memMain.cc \
  scd/memSub.cc
 
- CPPFLAGS += -I$(EMUFRAMEWORK_PATH)/../PCE.emu/src/include -I$(EMUFRAMEWORK_PATH)/../PCE.emu/src
- VPATH += $(EMUFRAMEWORK_PATH)/../PCE.emu/src/mednafen $(EMUFRAMEWORK_PATH)/../PCE.emu/src/common
+ CPPFLAGS += -I$(EMUFRAMEWORK_PATH)/include/shared/mednafen -I$(EMUFRAMEWORK_PATH)/src/shared
+ VPATH += $(EMUFRAMEWORK_PATH)/src/shared/mednafen $(EMUFRAMEWORK_PATH)/src/shared/mednafen-emuex
  CPPFLAGS += -DHAVE_MKDIR \
  -DHAVE_CONFIG_H \
  -DMDFN_CD_SUPPORTS_BINARY_IMAGES \

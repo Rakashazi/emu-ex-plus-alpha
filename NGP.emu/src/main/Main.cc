@@ -14,12 +14,6 @@
 	along with NGP.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <neopop.h>
-#include <flash.h>
-#include "TLCS900h_interpret.h"
-#include "TLCS900h_registers.h"
-#include "Z80_interface.h"
-#include "interrupt.h"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuAudio.hh>
@@ -29,14 +23,19 @@
 #include <imagine/util/string.h>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
+#include "internal.hh"
+#include <mednafen/state-driver.h>
+#include <mednafen/hash/md5.h>
+#include <mednafen/MemoryStream.h>
+#include <mednafen/ngp/neopop.h>
+#include <mednafen/ngp/flash.h>
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
-uint32 frameskip_active = 0;
-static constexpr int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
-static EmuApp *emuAppPtr{};
-static EmuSystemTaskContext emuSysTask{};
-static EmuVideo *emuVideo{};
-static constexpr IG::Pixmap srcPix{{{ngpResX, ngpResY}, IG::PIXEL_FMT_RGB565}, cfb};
+static const unsigned vidBufferX = 160, vidBufferY = 152;
+alignas(8) static uint32_t pixBuff[vidBufferX*vidBufferY]{};
+static IG::Pixmap mSurfacePix;
+uint8_t inputBuff{};
+Base::ApplicationContext appCtx{};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
@@ -58,34 +57,34 @@ const char *EmuSystem::systemName()
 void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
-	::reset();
+	MDFN_IEN_NGP::reset();
+}
+
+static char saveSlotChar(int slot)
+{
+	switch(slot)
+	{
+		case -1: return 'q';
+		case 0 ... 9: return '0' + slot;
+		default: bug_unreachable("slot == %d", slot); return 0;
+	}
 }
 
 FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::format<FS::FileString>("{}.0{}.ngs", name, saveSlotCharUpper(slot));
+	return IG::format<FS::FileString>("{}.{}.nc{}", name, md5_context::asciistr(MDFNGameInfo->MD5, 0), saveSlotChar(slot));
 }
 
-FILE *fopenHelper(const char* filename, const char* mode)
+void EmuSystem::saveState(IG::CStringView path)
 {
-	return FileUtils::fopenUri(emuAppPtr->appContext(), filename, mode);
-}
-
-void EmuSystem::saveState(Base::ApplicationContext ctx, IG::CStringView path)
-{
-	if(!state_store(FileUtils::fopenUri(ctx, path, "w")))
+	if(!MDFNI_SaveState(path, 0, 0, 0, 0))
 		throwFileWriteError();
 }
 
 void EmuSystem::loadState(IG::CStringView path)
 {
-	if(!state_restore(path))
+	if(!MDFNI_LoadState(path, 0))
 		throwFileReadError();
-}
-
-bool system_io_state_read(const char* filename, uint8_t* buffer, uint32 bufferLength)
-{
-	return FileUtils::readFromUri(emuAppPtr->appContext(), filename, {buffer, bufferLength}) > 0;
 }
 
 static FS::PathString sprintSaveFilename(Base::ApplicationContext ctx)
@@ -93,185 +92,128 @@ static FS::PathString sprintSaveFilename(Base::ApplicationContext ctx)
 	return EmuSystem::contentSaveFilePath(ctx, ".ngf");
 }
 
+namespace MDFN_IEN_NGP
+{
+
 bool system_io_flash_read(uint8_t* buffer, uint32_t len)
 {
-	auto ctx = emuAppPtr->appContext();
-	auto saveStr = sprintSaveFilename(ctx);
-	return FileUtils::readFromUri(ctx, saveStr, {buffer, len}) > 0;
+	auto saveStr = sprintSaveFilename(appCtx);
+	return FileUtils::readFromUri(appCtx, saveStr, {buffer, len}) > 0;
 }
 
-bool system_io_flash_write(uint8_t* buffer, uint32 len)
+void system_io_flash_write(uint8_t* buffer, uint32 len)
 {
 	if(!len)
-		return 0;
-	auto ctx = emuAppPtr->appContext();
-	auto saveStr = sprintSaveFilename(ctx);
+		return;
+	auto saveStr = sprintSaveFilename(appCtx);
 	logMsg("writing flash %s", saveStr.data());
-	return FileUtils::writeToUri(ctx, saveStr, {buffer, len}) != -1;
+	FileUtils::writeToUri(appCtx, saveStr, {buffer, len}) != -1;
+}
+
 }
 
 void EmuSystem::saveBackupMem(Base::ApplicationContext)
 {
 	logMsg("saving flash");
-	flash_commit();
+	MDFN_IEN_NGP::FLASH_SaveNV();
 }
 
 void EmuSystem::closeSystem(Base::ApplicationContext)
 {
-	rom_unload();
+	emuSys->CloseGame();
 }
 
-static bool romLoad(IO &io)
+static MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
 {
-	const unsigned maxRomSize = 0x400000;
-	auto data = (uint8_t*)calloc(maxRomSize, 1);
-	unsigned readSize = io.read(data, maxRomSize);
-	if(readSize > 0)
-	{
-		logMsg("read 0x%X byte rom", readSize);
-		rom.data = data;
-		rom.length = readSize;
-		return true;
-	}
-	free(data);
-	return false;
+	MDFN_PixelFormat fmt =
+		[&]()
+		{
+			switch(pix.format().id())
+			{
+				case IG::PIXEL_BGRA8888: return MDFN_PixelFormat::ARGB32_8888;
+				case IG::PIXEL_RGBA8888: return MDFN_PixelFormat::ABGR32_8888;
+				case IG::PIXEL_RGB565: return MDFN_PixelFormat::RGB16_565;
+				default:
+					bug_unreachable("format id == %d", pix.format().id());
+					return MDFN_PixelFormat::ABGR32_8888;
+			};
+		}();
+	return {pix.pixel({0,0}), pix.w(), pix.h(), pix.pitchPixels(), fmt};
 }
 
 void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	if(!romLoad(io))
-	{
-		throw std::runtime_error("Error loading game");
-	}
-	rom_loaded();
-	logMsg("loaded NGP rom: %s, catalog %d,%d", rom.name, rom_header->catalog, rom_header->subCatalog);
-	::reset();
-	rom_bootHacks();
-}
-
-void EmuSystem::onPrepareAudio(EmuAudio &audio)
-{
-	audio.setStereo(false);
+	emuSys->name = std::string{EmuSystem::contentName()};
+	static constexpr size_t maxRomSize = 0x400000;
+	auto stream = std::make_unique<MemoryStream>(maxRomSize, true);
+	auto size = io.read(stream->map(), stream->map_size());
+	if(size <= 0)
+		throwFileReadError();
+	stream->setSize(size);
+	MDFNFILE fp(&NVFS, std::move(stream), contentFileName().data());
+	GameFile gf{fp.active_vfs(), fp.active_dir_path(), fp.stream(), fp.ext, fp.fbase};
+	emuSys->Load(&gf);
+	emuSys->SetInput(0, "gamepad", (uint8*)&inputBuff);
+	EmulateSpecStruct espec{};
+	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
+	espec.surface = &mSurface;
+	MDFN_IEN_NGP::applyVideoFormat(&espec);
 }
 
 void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
-	video.setFormat({{ngpResX, ngpResY}, fmt});
+	if(fmt == mSurfacePix.format())
+		return;
+	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
+	if(!gameIsRunning())
+		return;
+	EmulateSpecStruct espec{};
+	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
+	espec.surface = &mSurface;
+	MDFN_IEN_NGP::applyVideoFormat(&espec);
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
-	double mixRate = std::round(rate * (60. * frameTime.count()));
-	sound_init(mixRate);
-}
-
-void system_sound_chipreset(void)
-{
-	emuAppPtr->configFrameTime();
-}
-
-void system_VBL(void)
-{
-	if(emuVideo) [[likely]]
-	{
-		emuVideo->startFrameWithAltFormat(emuSysTask, srcPix);
-		emuVideo = {};
-		emuSysTask = {};
-	}
-}
-
-void EmuSystem::renderFramebuffer(EmuVideo &video)
-{
-	video.startFrameWithAltFormat({}, srcPix);
+	EmulateSpecStruct espec{};
+	static constexpr double ngpFrameRate = 59.95;
+	espec.SoundRate = std::round(rate * (ngpFrameRate * frameTime.count()));
+	logMsg("emu sound rate:%f", (double)espec.SoundRate);
+	MDFN_IEN_NGP::applySoundFormat(&espec);
 }
 
 void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	emuSysTask = taskCtx;
-	emuVideo = video;
-	frameskip_active = video ? 0 : 1;
-
-	#ifndef NEOPOP_DEBUG
-	emulate();
-	#else
-	emulate_debug(0, 1);
-	#endif
-	// video rendered in emulate()
-
+	unsigned maxFrames = 48000/54;
+	int16 audioBuff[maxFrames*2];
+	EmulateSpecStruct espec{};
 	if(audio)
 	{
-		auto audioFrames = updateAudioFramesPerVideoFrame();
-		uint16 destBuff[audioFrames];
-		sound_update(destBuff, audioFrames*2);
-		audio->writeFrames(destBuff, audioFrames);
+		espec.SoundBuf = audioBuff;
+		espec.SoundBufMaxSize = maxFrames;
+	}
+	espec.taskCtx = taskCtx;
+	espec.video = video;
+	espec.skip = !video;
+	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
+	espec.surface = &mSurface;
+	emuSys->Emulate(&espec);
+	if(audio)
+	{
+		assert((unsigned)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));
+		audio->writeFrames((uint8_t*)audioBuff, espec.SoundBufSize);
 	}
 }
 
-bool system_comms_read(uint8_t* buffer)
-{
-	return 0;
-}
-
-bool system_comms_poll(uint8_t* buffer)
-{
-	return 0;
-}
-
-void system_comms_write(uint8_t data)
+namespace Mednafen
 {
 
-}
-
-char *system_get_string(STRINGS string_id)
+void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 {
-	static char s[128];
-	snprintf(s, sizeof(s), "code %d", string_id);
-	return s;
+	espec->video->startFrameWithFormat(espec->taskCtx, mSurfacePix);
 }
 
-#ifndef NDEBUG
-void system_message(const char* format, ...)
-{
-	if(!logger_isEnabled())
-		return;
-	va_list args;
-	va_start(args, format);
-	logger_vprintf(LOG_M, format, args);
-	va_end( args );
-	logger_printf(LOG_M, "\n");
 }
-#endif
-
-#ifdef NEOPOP_DEBUG
-void system_debug_message(const char* format, ...)
-{
-	if(!logger_isEnabled())
-		return;
-	va_list args;
-	va_start(args, format);
-	logger_vprintfn(LOG_M, format, args);
-	va_end( args );
-	logger_printfn(LOG_M, "\n");
-}
-
-void system_debug_message_associate_address(uint32 address)
-{
-	//logMsg("with associated address 0x%X", address);
-}
-
-void system_debug_stop(void) { }
-
-void system_debug_refresh(void) { }
-
-void system_debug_history_add(void) { }
-
-void system_debug_history_clear(void) { }
-
-void system_debug_clear(void) { }
-#endif
-
-void gfx_buildColorConvMap();
-void gfx_buildMonoConvMap();
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
@@ -288,9 +230,5 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 
 void EmuSystem::onInit(Base::ApplicationContext ctx)
 {
-	emuAppPtr = &EmuApp::get(ctx);
-	gfx_buildMonoConvMap();
-	gfx_buildColorConvMap();
-	system_colour = COLOURMODE_AUTO;
-	bios_install();
+	appCtx = ctx;
 }

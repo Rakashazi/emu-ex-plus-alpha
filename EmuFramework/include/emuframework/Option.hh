@@ -152,15 +152,6 @@ struct OptionMethodFunc : public OptionMethodBase<T>
 	void set(T v) { SET(v); }
 };
 
-template <class T, T &val>
-struct OptionMethodRef : public OptionMethodBase<T>
-{
-	constexpr OptionMethodRef(bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) {}
-	constexpr OptionMethodRef(T init, bool (&validator)(T v) = OptionMethodIsAlwaysValid): OptionMethodBase<T>(validator) {}
-	T get() const { return val; }
-	void set(T v) { val = v; }
-};
-
 template <class T>
 struct OptionMethodVar : public OptionMethodBase<T>
 {

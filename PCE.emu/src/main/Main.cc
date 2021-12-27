@@ -14,7 +14,6 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include "MDFN.hh"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
@@ -25,11 +24,14 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
+#include <mednafen/cdrom/CDInterface.h>
+#include <mednafen/state-driver.h>
+#include <mednafen/hash/md5.h>
+#include <mednafen/MemoryStream.h>
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/huc.h>
 #include <mednafen/pce_fast/vdc.h>
 #include <mednafen/pce_fast/pcecd_drive.h>
-#include <mednafen/MemoryStream.h>
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
 FS::PathString sysCardPath{};

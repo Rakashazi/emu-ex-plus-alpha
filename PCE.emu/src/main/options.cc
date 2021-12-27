@@ -15,7 +15,6 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include "MDFN.hh"
 #include "internal.hh"
 
 enum

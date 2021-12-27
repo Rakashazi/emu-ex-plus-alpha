@@ -561,7 +561,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 		vController().vibrateOnTouchInput(),
 		[this](BoolMenuItem &item, Input::Event e)
 		{
-			vController().setVibrateOnTouchInput(item.flipBoolValue(*this));
+			vController().setVibrateOnTouchInput(app(), item.flipBoolValue(*this));
 		}
 	},
 	showOnTouch

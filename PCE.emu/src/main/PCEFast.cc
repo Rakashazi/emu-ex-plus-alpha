@@ -19,9 +19,8 @@
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include "internal.hh"
-#include "MDFN.hh"
-
-using namespace Mednafen;
+#include <mednafen/hash/md5.h>
+#include <mednafen/general.h>
 
 namespace MDFN_IEN_PCE_FAST
 {
@@ -33,7 +32,7 @@ void HES_Reset(void) {}
 uint8 ReadIBP(unsigned int A) { return 0; }
 };
 
-#define PCE_MODULE "pce_fast"
+#define EMU_MODULE "pce_fast"
 
 namespace Mednafen
 {
@@ -43,19 +42,19 @@ MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
 uint64 MDFN_GetSettingUI(const char *name)
 {
 	std::string_view nameV{name};
-	if(PCE_MODULE".ocmultiplier" == nameV)
+	if(EMU_MODULE".ocmultiplier" == nameV)
 		return 1;
-	if(PCE_MODULE".cdspeed" == nameV)
+	if(EMU_MODULE".cdspeed" == nameV)
 		return 2;
-	if(PCE_MODULE".cdpsgvolume" == nameV)
+	if(EMU_MODULE".cdpsgvolume" == nameV)
 		return 100;
-	if(PCE_MODULE".cddavolume" == nameV)
+	if(EMU_MODULE".cddavolume" == nameV)
 		return 100;
-	if(PCE_MODULE".adpcmvolume" == nameV)
+	if(EMU_MODULE".adpcmvolume" == nameV)
 		return 100;
-	if(PCE_MODULE".slstart" == nameV)
+	if(EMU_MODULE".slstart" == nameV)
 		return 12;
-	if(PCE_MODULE".slend" == nameV)
+	if(EMU_MODULE".slend" == nameV)
 		return 235;
 	bug_unreachable("unhandled settingUI %s", name);
 	return 0;
@@ -73,7 +72,7 @@ int64 MDFN_GetSettingI(const char *name)
 double MDFN_GetSettingF(const char *name)
 {
 	std::string_view nameV{name};
-	if(PCE_MODULE".mouse_sensitivity" == nameV)
+	if(EMU_MODULE".mouse_sensitivity" == nameV)
 		return 0.50;
 	bug_unreachable("unhandled settingF %s", name);
 	return 0;
@@ -84,21 +83,19 @@ bool MDFN_GetSettingB(const char *name)
 	std::string_view nameV{name};
 	if("cheats" == nameV)
 		return 0;
-	if("filesys.disablesavegz" == nameV)
-		return 0;
-	if(PCE_MODULE".arcadecard" == nameV)
+	if(EMU_MODULE".arcadecard" == nameV)
 		return optionArcadeCard;
-	if(PCE_MODULE".forcesgx" == nameV)
+	if(EMU_MODULE".forcesgx" == nameV)
 		return 0;
-	if(PCE_MODULE".nospritelimit" == nameV)
+	if(EMU_MODULE".nospritelimit" == nameV)
 		return 0;
-	if(PCE_MODULE".forcemono" == nameV)
+	if(EMU_MODULE".forcemono" == nameV)
 		return 0;
-	if(PCE_MODULE".disable_softreset" == nameV)
+	if(EMU_MODULE".disable_softreset" == nameV)
 		return 0;
-	if(PCE_MODULE".adpcmlp" == nameV)
+	if(EMU_MODULE".adpcmlp" == nameV)
 		return 0;
-	if(PCE_MODULE".correct_aspect" == nameV)
+	if(EMU_MODULE".correct_aspect" == nameV)
 		return 1;
 	if("cdrom.lec_eval" == nameV)
 		return 1;
@@ -111,7 +108,7 @@ bool MDFN_GetSettingB(const char *name)
 std::string MDFN_GetSettingS(const char *name)
 {
 	std::string_view nameV{name};
-	if(PCE_MODULE".cdbios" == nameV)
+	if(EMU_MODULE".cdbios" == nameV)
 	{
 		return {};
 	}
