@@ -606,9 +606,17 @@ void EmuApp::showEmuation()
 
 void EmuApp::launchSystemWithResumePrompt(Input::Event e)
 {
-	if(!viewController().showAutoStateConfirm(e))
+	if(optionAutoSaveState && optionConfirmAutoLoadState)
 	{
-		::launchSystem(*this, true);
+		if(!viewController().showAutoStateConfirm(e))
+		{
+			// state doesn't exist
+			::launchSystem(*this, false);
+		}
+	}
+	else
+	{
+		::launchSystem(*this, optionAutoSaveState);
 	}
 }
 

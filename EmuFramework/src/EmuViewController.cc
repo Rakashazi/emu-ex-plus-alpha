@@ -474,16 +474,13 @@ void EmuViewController::showUI(bool updateTopView)
 
 bool EmuViewController::showAutoStateConfirm(Input::Event e)
 {
-	if(!(optionConfirmAutoLoadState && optionAutoSaveState))
-	{
-		return false;
-	}
 	auto ctx = appContext();
 	auto saveStr = EmuSystem::statePath(ctx, -1);
-	if(ctx.fileUriExists(saveStr))
+	auto modTimeStr = ctx.fileUriFormatLastWriteTimeLocal(saveStr);
+	if(modTimeStr.size())
 	{
 		pushAndShowModal(std::make_unique<AutoStateConfirmAlertView>(viewStack.top().attachParams(),
-			ctx.fileUriFormatLastWriteTimeLocal(saveStr)), e, false);
+			modTimeStr), e, false);
 		return true;
 	}
 	return false;

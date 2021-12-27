@@ -533,10 +533,7 @@ static FS::FileString saveStateGetFileString(SaveState* state, const char* tagNa
 static void loadBlueMSXState(EmuApp &app, const char *filename)
 {
 	logMsg("loading state %s", filename);
-
 	assert(machine);
-	ejectMedia();
-
 	saveStateCreateForRead(filename);
 	auto destroySaveState = IG::scopeGuard([](){ saveStateDestroy(); });
 	int size;
@@ -552,6 +549,7 @@ static void loadBlueMSXState(EmuApp &app, const char *filename)
 	}
 	free(version);
 
+	ejectMedia();
 	machineLoadState(machine);
 
 	// from this point on, errors are fatal and require the existing game to close
