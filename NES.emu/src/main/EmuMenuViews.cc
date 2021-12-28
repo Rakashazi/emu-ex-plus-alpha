@@ -188,9 +188,9 @@ class CustomVideoOptionView : public VideoOptionView
 	static constexpr const char *wavebeamPalPath = "Wavebeam.pal";
 	static constexpr const char *classicPalPath = "Classic (FBX).pal";
 
-	static void setPalette(Base::ApplicationContext ctx, const char *palPath)
+	static void setPalette(Base::ApplicationContext ctx, IG::CStringView palPath)
 	{
-		if(palPath)
+		if(palPath.size())
 			defaultPalettePath = palPath;
 		else
 			defaultPalettePath = {};
@@ -206,7 +206,7 @@ class CustomVideoOptionView : public VideoOptionView
 
 	TextMenuItem defaultPalItem[5]
 	{
-		{"FCEUX", &defaultFace(), [this](){ setPalette(appContext(), {}); }},
+		{"FCEUX", &defaultFace(), [this](){ setPalette(appContext(), ""); }},
 		{"FirebrandX", &defaultFace(), [this]() { setPalette(appContext(), firebrandXPalPath); }},
 		{"Wavebeam", &defaultFace(), [this]() { setPalette(appContext(), wavebeamPalPath); }},
 		{"Classic", &defaultFace(), [this]() { setPalette(appContext(), classicPalPath); }},
@@ -245,7 +245,7 @@ class CustomVideoOptionView : public VideoOptionView
 		},
 		[this]()
 		{
-			if(defaultPalettePath == "")
+			if(defaultPalettePath.empty())
 				return 0;
 			if(defaultPalettePath == firebrandXPalPath)
 				return 1;
@@ -327,7 +327,7 @@ public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
-		fdsBiosPath.setName(appContext().fileUriDisplayName(::fdsBiosPath));
+		fdsBiosPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(::fdsBiosPath)));
 		item.emplace_back(&fdsBiosPath);
 	}
 };

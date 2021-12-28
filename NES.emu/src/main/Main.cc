@@ -197,18 +197,18 @@ static void setDefaultPalette(IO &io)
 	FCEU_setDefaultPalettePtr(defaultPal.data());
 }
 
-void setDefaultPalette(Base::ApplicationContext ctx, const char *palPath)
+void setDefaultPalette(Base::ApplicationContext ctx, IG::CStringView palPath)
 {
-	if(!palPath || !strlen(palPath))
+	if(palPath.empty())
 	{
 		FCEU_setDefaultPalettePtr(nullptr);
 		return;
 	}
-	logMsg("setting default palette with path:%s", palPath);
-	if(palPath[0] != '/')
+	logMsg("setting default palette with path:%s", palPath.data());
+	if(palPath[0] != '/' && !IG::isUri(palPath))
 	{
 		// load as asset
-		auto io = ctx.openAsset(IG::format<FS::PathString>("palette/{}", palPath).data(), IO::AccessHint::ALL);
+		auto io = ctx.openAsset(FS::pathString("palette", palPath), IO::AccessHint::ALL);
 		if(!io)
 			return;
 		setDefaultPalette(io);

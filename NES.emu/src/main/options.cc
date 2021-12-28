@@ -48,7 +48,7 @@ void EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
 {
 	FCEUI_SetSoundQuality(optionSoundQuality);
 	FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
-	setDefaultPalette(ctx, defaultPalettePath.data());
+	setDefaultPalette(ctx, defaultPalettePath);
 }
 
 void EmuSystem::onSessionOptionsLoaded(EmuApp &)
