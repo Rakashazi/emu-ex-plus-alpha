@@ -25,62 +25,37 @@
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 #include <emuframework/VController.hh>
 #endif
-#include <list>
 #include <memory>
+#include <string>
 
 class EmuViewController;
-
-struct InputDeviceSavedConfig
-{
-	const KeyConfig *keyConf{};
-	uint8_t enumId = 0;
-	uint8_t player = 0;
-	bool enabled = true;
-	uint8_t joystickAxisAsDpadBits = 0;
-	#ifdef CONFIG_INPUT_ICADE
-	bool iCadeMode = 0;
-	#endif
-	IG::StaticString<MAX_INPUT_DEVICE_NAME_SIZE> name{};
-
-	constexpr InputDeviceSavedConfig() {}
-
-	bool operator ==(InputDeviceSavedConfig const& rhs) const
-	{
-		return enumId == rhs.enumId && name == rhs.name;
-	}
-
-	bool matchesDevice(const Input::Device &dev) const
-	{
-		//logMsg("checking against device %s,%d", name, devId);
-		return dev.enumId() == enumId && dev.name() == name;
-	}
-};
 
 class InputDeviceConfig
 {
 public:
 	static constexpr unsigned PLAYER_MULTI = 0xFF;
 
-	constexpr InputDeviceConfig() {}
+	constexpr InputDeviceConfig() = default;
 	InputDeviceConfig(Input::Device &dev):
 		dev{&dev},
 		player_{(uint8_t)(dev.enumId() < EmuSystem::maxPlayers ? dev.enumId() : 0)}
 	{}
 
-	void deleteConf();
+	void deleteConf(InputDeviceSavedConfigContainer &);
 	#ifdef CONFIG_INPUT_ICADE
-	bool setICadeMode(bool on);
+	bool setICadeMode(bool on, InputDeviceSavedConfigContainer &);
 	bool iCadeMode();
 	#endif
 	unsigned joystickAxisAsDpadBits();
 	void setJoystickAxisAsDpadBits(unsigned axisMask);
 	const KeyConfig &keyConf() const;
-	void setKeyConf(const KeyConfig &kConf);
+	void setKeyConf(const KeyConfig &, InputDeviceSavedConfigContainer &);
 	void setDefaultKeyConf();
-	KeyConfig *mutableKeyConf();
+	KeyConfig *mutableKeyConf(KeyConfigContainer &) const;
 	KeyConfig *makeMutableKeyConf(EmuApp &);
-	KeyConfig *setKeyConfCopiedFromExisting(std::string_view name);
-	void save();
+	KeyConfig *setKeyConfCopiedFromExisting(std::string_view name,
+		KeyConfigContainer &, InputDeviceSavedConfigContainer &);
+	void save(InputDeviceSavedConfigContainer &);
 	void setSavedConf(InputDeviceSavedConfig *savedConf, bool updateKeymap = true);
 	bool hasSavedConf(const InputDeviceSavedConfig &conf) const { return savedConf && *savedConf == conf; };
 	bool setKey(EmuApp &, Input::Key mapKey, const KeyCategory &cat, int keyIdx);
@@ -89,12 +64,15 @@ public:
 	constexpr bool isEnabled() const { return enabled; }
 	void setPlayer(int);
 	constexpr uint8_t player() const { return player_; }
+	constexpr void setConsumeUnboundKeys(bool on) { handleUnboundEvents = on; }
+	bool shouldConsumeUnboundKeys() const { return handleUnboundEvents; }
 
 protected:
 	Input::Device *dev{};
 	InputDeviceSavedConfig *savedConf{};
 	uint8_t player_{};
 	bool enabled{true};
+	IG_UseMemberIf(Config::envIsAndroid, bool, handleUnboundEvents){};
 };
 
 struct InputDeviceData
@@ -107,7 +85,7 @@ struct InputDeviceData
 	InputDeviceConfig devConf{};
 	std::string displayName{};
 
-	InputDeviceData(Input::Device &, std::list<InputDeviceSavedConfig> &);
+	InputDeviceData(Input::Device &, InputDeviceSavedConfigContainer &);
 	void buildKeyMap(const Input::Device &d);
 	static std::string makeDisplayName(std::string_view name, unsigned id);
 };
@@ -127,16 +105,3 @@ static constexpr int guiKeyIdxFastForward = 6;
 static constexpr int guiKeyIdxGameScreenshot = 7;
 static constexpr int guiKeyIdxExit = 8;
 static constexpr int guiKeyIdxToggleFastForward = 9;
-
-extern std::list<KeyConfig> customKeyConfig;
-extern std::list<InputDeviceSavedConfig> savedInputDevList;
-
-static bool customKeyConfigsContainName(const char *name)
-{
-	for(auto &e : customKeyConfig)
-	{
-		if(e.name == name)
-			return 1;
-	}
-	return 0;
-}

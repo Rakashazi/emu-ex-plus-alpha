@@ -102,7 +102,6 @@ extern Byte1Option optionLowProfileOSNav;
 extern Byte1Option optionHideOSNav;
 extern Byte1Option optionIdleDisplayPowerSave;
 extern Byte1Option optionHideStatusBar;
-extern Byte1Option optionConsumeUnboundGamepadKeys;
 extern Byte1Option optionConfirmOverwriteState;
 extern Byte1Option optionFastForwardSpeed;
 #ifdef CONFIG_INPUT_DEVICE_HOTSWAP

@@ -104,7 +104,8 @@ bool EmuInputView::inputEvent(Input::Event e)
 			return true;
 		#endif
 		auto &emuApp = app();
-		const auto &actionTable = inputDevData(*e.device()).actionTable;
+		auto &devData = inputDevData(*e.device());
+		const auto &actionTable = devData.actionTable;
 		if(!actionTable.size()) [[unlikely]]
 			return false;
 		assumeExpr(e.device());
@@ -264,16 +265,8 @@ bool EmuInputView::inputEvent(Input::Event e)
 			else
 				break;
 		}
-		return didAction || (consumeUnboundGamepadKeys && e.isGamepad());
+		return didAction
+			|| e.isGamepad() // consume all gamepad events
+			|| devData.devConf.shouldConsumeUnboundKeys();
 	}
-}
-
-void EmuInputView::setConsumeUnboundGamepadKeys(bool on)
-{
-	consumeUnboundGamepadKeys = on;
-}
-
-bool EmuInputView::shouldConsumeUnboundGamepadKeys() const
-{
-	return consumeUnboundGamepadKeys;
 }

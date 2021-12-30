@@ -148,7 +148,7 @@ std::string_view actionStr(Action act)
 		case Action::EXIT_VIEW: return "Exit View";
 		case Action::ENTER_VIEW: return "Enter View";
 		case Action::SCROLL_UP: return "Scroll Up";
-		case Action::SCROLL_DOWN: return "Scroll Up";
+		case Action::SCROLL_DOWN: return "Scroll Down";
 		case Action::CANCELED: return "Canceled";
 	}
 	return "Unknown";

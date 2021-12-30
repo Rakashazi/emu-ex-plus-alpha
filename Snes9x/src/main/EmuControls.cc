@@ -5,7 +5,7 @@ namespace EmuControls
 {
 
 const unsigned categories = 6;
-extern const unsigned gamepadKeys = 20;
+extern const unsigned gamepadKeys = 22;
 const unsigned systemTotalKeys = gameActionKeys + gamepadKeys*5;
 
 void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player)
@@ -35,6 +35,8 @@ static const char *gamepadName[gamepadKeys] =
 	"Turbo B",
 	"Turbo X",
 	"Turbo Y",
+	"Turbo L",
+	"Turbo R",
 };
 
 static const unsigned gamepadKeyOffset = gameActionKeys;
@@ -55,9 +57,6 @@ const KeyCategory category[MAX_CATEGORIES]
 
 const KeyConfig defaultKeyProfile[] =
 {
-	#ifdef CONFIG_BASE_ANDROID
-	KEY_CONFIG_ANDROID_NAV_KEYS,
-	#endif
 	{
 		Map::SYSTEM,
 		{"PC Keyboard"},
@@ -84,6 +83,8 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::C,
 			Keycode::F,
 			Keycode::D,
+			Keycode::E,
+			Keycode::R,
 		}
 	},
 	{

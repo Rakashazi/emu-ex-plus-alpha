@@ -7,23 +7,6 @@
 #include <cheats.h>
 #include <imagine/util/format.hh>
 
-void checkAndEnableGlobalCheats()
-{
-	#ifndef SNES9X_VERSION_1_4
-	for(auto &c : Cheat.g)
-	{
-		if(c.enabled)
-		{
-			logMsg("cheat processing is enabled");
-			Cheat.enabled = true;
-			return;
-		}
-	}
-	logMsg("cheat processing is disabled");
-	Cheat.enabled = false;
-	#endif
-}
-
 uint32_t numCheats()
 {
 	#ifndef SNES9X_VERSION_1_4
@@ -57,7 +40,6 @@ static void deleteCheat(uint32_t idx)
 {
 	#ifndef SNES9X_VERSION_1_4
 	S9xDeleteCheatGroup(idx);
-	checkAndEnableGlobalCheats();
 	#else
 	S9xDeleteCheat(idx);
 	#endif
@@ -76,7 +58,6 @@ static void enableCheat(uint32_t idx)
 {
 	#ifndef SNES9X_VERSION_1_4
 	S9xEnableCheatGroup(idx);
-	checkAndEnableGlobalCheats();
 	#else
 	S9xEnableCheat(idx);
 	#endif
@@ -86,7 +67,6 @@ static void disableCheat(uint32_t idx)
 {
 	#ifndef SNES9X_VERSION_1_4
 	S9xDisableCheatGroup(idx);
-	checkAndEnableGlobalCheats();
 	#else
 	S9xDisableCheat(idx);
 	#endif
@@ -155,7 +135,6 @@ static bool addCheat(const char *cheatStr)
 	{
 		return false;
 	}
-	checkAndEnableGlobalCheats();
 	return true;
 	#else
 	uint8 byte;

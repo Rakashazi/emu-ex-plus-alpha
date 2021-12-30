@@ -32,15 +32,12 @@ public:
 	void draw(Gfx::RendererCommands &cmds) final;
 	bool inputEvent(Input::Event e) final;
 	void resetInput();
-	void setConsumeUnboundGamepadKeys(bool on);
-	bool shouldConsumeUnboundGamepadKeys() const;
 	VController *activeVController() const { return vController; }
 
 private:
 	VController *vController{};
 	EmuVideoLayer *videoLayer{};
 	bool ffToggleActive{};
-	IG_UseMemberIf(Config::envIsAndroid, bool, consumeUnboundGamepadKeys){};
 
 	void updateFastforward();
 };

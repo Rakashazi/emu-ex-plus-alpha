@@ -231,7 +231,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Key/Gamepad Input Setup", &defaultFace(),
 		[this](Input::Event e)
 		{
-			pushAndShow(makeView<InputManagerView>(), e);
+			pushAndShow(makeView<InputManagerView>(app().customKeyConfigList(), app().savedInputDeviceList()), e);
 		}
 	},
 	benchmark

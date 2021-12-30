@@ -221,7 +221,6 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	auto saveStr = sramFilename(ctx);
 	Memory.LoadSRAM(saveStr.data());
 	IPPU.RenderThisFrame = TRUE;
-	checkAndEnableGlobalCheats();
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -327,6 +326,7 @@ void EmuSystem::onInit(Base::ApplicationContext ctx)
 	#ifndef SNES9X_VERSION_1_4
 	S9xInitSound(0);
 	S9xUnmapAllControls();
+	S9xCheatsEnable();
 	#else
 	S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
 	assert(Settings.H_Max == SNES_CYCLES_PER_SCANLINE);

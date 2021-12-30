@@ -121,7 +121,7 @@ static bool isFromSource(int src, int srcTest)
 	return (src & srcTest) == srcTest;
 }
 
-static Input::Action motionEventAction(uint32_t e)
+static Input::Action motionEventAction(uint32_t e, AInputEvent* event)
 {
 	switch(e)
 	{
@@ -130,8 +130,23 @@ static Input::Action motionEventAction(uint32_t e)
 		case AMOTION_EVENT_ACTION_POINTER_UP:
 		case AMOTION_EVENT_ACTION_UP: return Input::Action::RELEASED;
 		case AMOTION_EVENT_ACTION_CANCEL: return Input::Action::CANCELED;
-		case AMOTION_EVENT_ACTION_MOVE:
-		default: return Input::Action::MOVED;
+		case AMOTION_EVENT_ACTION_HOVER_MOVE:
+		case AMOTION_EVENT_ACTION_MOVE: return Input::Action::MOVED;
+		case AMOTION_EVENT_ACTION_SCROLL:
+		{
+			auto vScroll = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_VSCROLL, 0);
+			if(vScroll > 0.f)
+				return Input::Action::SCROLL_UP;
+			else if(vScroll < 0.f)
+				return Input::Action::SCROLL_DOWN;
+			else
+				return Input::Action::UNUSED;
+		}
+		default:
+			logWarn("unknown motion event action:%u", e); [[fallthrough]];
+		case AMOTION_EVENT_ACTION_BUTTON_PRESS: // recognize but skip these events for now
+		case AMOTION_EVENT_ACTION_BUTTON_RELEASE:
+			return Input::Action::UNUSED;
 	}
 }
 
@@ -158,14 +173,16 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 						return false;
 					}
 					auto src = isFromSource(source, AINPUT_SOURCE_MOUSE) ? Input::Source::MOUSE : Input::Source::TOUCHSCREEN;
-					auto action = motionEventAction(eventAction & AMOTION_EVENT_ACTION_MASK);
+					auto action = motionEventAction(eventAction & AMOTION_EVENT_ACTION_MASK, event);
+					if(action == Input::Action::UNUSED) [[unlikely]]
+						return false;
 					uint32_t actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
 					auto pointers = AMotionEvent_getPointerCount(event);
 					uint32_t metaState = AMotionEvent_getMetaState(event);
 					assumeExpr(pointers >= 1);
 					bool handled = false;
 					//logMsg("motion event action:%s source:%d pointers:%d:%d",
-					//	Input::actionStr(action), source, (int)pointers, actionPIdx);
+					//	Input::actionStr(action).data(), source, (int)pointers, actionPIdx);
 					if(src == Input::Source::TOUCHSCREEN)
 					{
 						iterateTimes(pointers, i)
@@ -187,7 +204,8 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 					{
 						auto pos = win.transformInputPos({(int)AMotionEvent_getX(event, 0), (int)AMotionEvent_getY(event, 0)});
 						auto pId = AMotionEvent_getPointerId(event, 0);
-						handled |= win.dispatchInputEvent(Input::Event{Input::Map::POINTER, (Input::Key)AMotionEvent_getButtonState(event),
+						Key btnState = action == Action::RELEASED ? Pointer::LBUTTON : AMotionEvent_getButtonState(event);
+						handled |= win.dispatchInputEvent(Input::Event{Input::Map::POINTER, btnState,
 							metaState, action, pos.x, pos.y, pId, src, makeTimeFromMotionEvent(event), dev});
 					}
 					return handled;

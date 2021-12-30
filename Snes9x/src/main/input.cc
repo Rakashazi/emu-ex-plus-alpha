@@ -30,7 +30,9 @@ enum
 	s9xKeyIdxATurbo,
 	s9xKeyIdxBTurbo,
 	s9xKeyIdxXTurbo,
-	s9xKeyIdxYTurbo
+	s9xKeyIdxYTurbo,
+	s9xKeyIdxLTurbo,
+	s9xKeyIdxRTurbo,
 };
 
 void DoGunLatch (int, int);
@@ -160,7 +162,9 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 		case s9xKeyIdxA: return SNES_A_MASK | playerMask;
 		case s9xKeyIdxBTurbo: turbo = 1; [[fallthrough]];
 		case s9xKeyIdxB: return SNES_B_MASK | playerMask;
+		case s9xKeyIdxLTurbo: turbo = 1; [[fallthrough]];
 		case s9xKeyIdxL: return SNES_TL_MASK | playerMask;
+		case s9xKeyIdxRTurbo: turbo = 1; [[fallthrough]];
 		case s9xKeyIdxR: return SNES_TR_MASK | playerMask;
 		default: bug_unreachable("input == %d", input);
 	}

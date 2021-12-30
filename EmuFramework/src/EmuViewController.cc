@@ -112,10 +112,6 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	}
 {
 	emuInputView.setController(this);
-	if constexpr(Config::envIsAndroid)
-	{
-		emuInputView.setConsumeUnboundGamepadKeys(optionConsumeUnboundGamepadKeys);
-	}
 	auto &win = viewAttach.window();
 
 	win.setOnInputEvent(

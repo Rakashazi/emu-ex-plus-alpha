@@ -70,9 +70,6 @@ const KeyCategory category[MAX_CATEGORIES]
 
 const KeyConfig defaultKeyProfile[] =
 {
-	#ifdef CONFIG_BASE_ANDROID
-	KEY_CONFIG_ANDROID_NAV_KEYS,
-	#endif
 	{
 		Map::SYSTEM,
 		{"PC Keyboard"},

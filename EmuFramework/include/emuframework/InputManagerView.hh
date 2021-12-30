@@ -47,12 +47,14 @@ private:
 class InputManagerView final: public TableView, public EmuAppHelper<InputManagerView>
 {
 public:
-	InputManagerView(ViewAttachParams attach);
+	InputManagerView(ViewAttachParams attach, KeyConfigContainer &, InputDeviceSavedConfigContainer &);
 	~InputManagerView() final;
 	void onShow() final;
 	void pushAndShowDeviceView(const Input::Device &, Input::Event);
 
 private:
+	KeyConfigContainer *customKeyConfigsPtr{};
+	InputDeviceSavedConfigContainer *savedInputDevsPtr{};
 	TextMenuItem deleteDeviceConfig{};
 	TextMenuItem deleteProfile{};
 	#ifdef __ANDROID__
@@ -65,6 +67,8 @@ private:
 	std::vector<MenuItem*> item{};
 
 	void loadItems();
+	KeyConfigContainer &customKeyConfigs() const { return *customKeyConfigsPtr; };
+	InputDeviceSavedConfigContainer &savedInputDevs() const { return *savedInputDevsPtr; };
 };
 
 class InputManagerOptionsView : public TableView, public EmuAppHelper<InputManagerOptionsView>
@@ -91,7 +95,6 @@ private:
 	BoolMenuItem btScanCache{};
 	#endif
 	BoolMenuItem altGamepadConfirm{};
-	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, consumeUnboundGamepadKeys){};
 	StaticArrayList<MenuItem*, 10> item{};
 	EmuInputView *emuInputView{};
 };
@@ -99,11 +102,15 @@ private:
 class InputManagerDeviceView : public TableView, public EmuAppHelper<InputManagerDeviceView>
 {
 public:
-	InputManagerDeviceView(IG::utf16String name, ViewAttachParams attach, InputManagerView &rootIMView, const Input::Device &dev);
+	InputManagerDeviceView(IG::utf16String name, ViewAttachParams,
+		InputManagerView &rootIMView, const Input::Device &,
+		KeyConfigContainer &, InputDeviceSavedConfigContainer &);
 	void setPlayer(int playerVal);
 	void onShow() final;
 
 private:
+	KeyConfigContainer *customKeyConfigsPtr{};
+	InputDeviceSavedConfigContainer *savedInputDevsPtr{};
 	InputManagerView &rootIMView;
 	TextMenuItem playerItem[6];
 	MultiChoiceMenuItem player{};
@@ -117,6 +124,7 @@ private:
 	BoolMenuItem joystickAxis1DPad{};
 	BoolMenuItem joystickAxis2DPad{};
 	BoolMenuItem joystickAxisHatDPad{};
+	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, consumeUnboundKeys){};
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
 	StaticArrayList<TextMenuItem, EmuControls::MAX_CATEGORIES> inputCategory{};
 	StaticArrayList<MenuItem*, EmuControls::MAX_CATEGORIES + 11> item{};
@@ -124,4 +132,6 @@ private:
 
 	void confirmICadeMode(Input::Event e);
 	void loadItems();
+	KeyConfigContainer &customKeyConfigs() const { return *customKeyConfigsPtr; };
+	InputDeviceSavedConfigContainer &savedInputDevs() const { return *savedInputDevsPtr; };
 };

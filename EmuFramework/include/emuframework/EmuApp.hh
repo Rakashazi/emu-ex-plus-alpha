@@ -194,6 +194,8 @@ public:
 	void readRecentContent(Base::ApplicationContext, IO &, unsigned readSize_);
 	bool showHiddenFilesInPicker(){ return showHiddenFilesInPicker_; };
 	void setShowHiddenFilesInPicker(bool on){ showHiddenFilesInPicker_ = on; };
+	auto &customKeyConfigList() { return customKeyConfigs; };
+	auto &savedInputDeviceList() { return savedInputDevs; };
 	Base::ApplicationContext appContext() const;
 	static EmuApp &get(Base::ApplicationContext);
 
@@ -304,6 +306,8 @@ protected:
 	Base::Timer autoSaveStateTimer;
 	DelegateFunc<void ()> onUpdateInputDevices_{};
 	OnMainMenuOptionChanged onMainMenuOptionChanged_{};
+	KeyConfigContainer customKeyConfigs{};
+	InputDeviceSavedConfigContainer savedInputDevs{};
 	TurboInput turboActions{};
 	FS::PathString contentSearchPath_{};
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;

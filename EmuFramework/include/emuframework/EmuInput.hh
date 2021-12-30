@@ -23,13 +23,14 @@
 #include <imagine/input/Input.hh>
 #include <imagine/util/container/VMemArray.hh>
 #include <imagine/util/string/StaticString.hh>
+#include <string>
+#include <memory>
 
 namespace Input
 {
 class Device;
 }
 
-static constexpr unsigned MAX_INPUT_DEVICE_NAME_SIZE = 64;
 static constexpr unsigned MAX_KEY_CONFIG_NAME_SIZE = 80;
 static constexpr unsigned MAX_KEY_CONFIG_KEYS = 256;
 static constexpr unsigned MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;
@@ -88,6 +89,33 @@ struct KeyConfig
 	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev);
 };
 
+struct InputDeviceSavedConfig
+{
+	static constexpr uint8_t ENUM_ID_MASK = 0x1F;
+	static constexpr uint8_t HANDLE_UNBOUND_EVENTS_FLAG = 0x80;
+
+	const KeyConfig *keyConf{};
+	std::string name{};
+	uint8_t enumId{};
+	uint8_t player{};
+	bool enabled = true;
+	uint8_t joystickAxisAsDpadBits{};
+	#ifdef CONFIG_INPUT_ICADE
+	bool iCadeMode{};
+	#endif
+	IG_UseMemberIf(Config::envIsAndroid, bool, handleUnboundEvents){};
+
+	bool operator ==(InputDeviceSavedConfig const& rhs) const
+	{
+		return enumId == rhs.enumId && name == rhs.name;
+	}
+
+	bool matchesDevice(const Input::Device &dev) const;
+};
+
+using KeyConfigContainer = std::vector<std::unique_ptr<KeyConfig>>;
+using InputDeviceSavedConfigContainer = std::vector<std::unique_ptr<InputDeviceSavedConfig>>;
+
 namespace EmuControls
 {
 
@@ -123,21 +151,5 @@ void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player);
 // common transpose behavior
 void generic2PlayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned startCategory);
 void genericMultiplayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned startCategory);
-
-#ifdef __ANDROID__
-static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS
-{
-	Input::Map::SYSTEM,
-	{"Android Navigation Keys"},
-	{
-		EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
-
-		Input::Keycode::UP,
-		Input::Keycode::RIGHT,
-		Input::Keycode::DOWN,
-		Input::Keycode::LEFT,
-	}
-};
-#endif
 
 }

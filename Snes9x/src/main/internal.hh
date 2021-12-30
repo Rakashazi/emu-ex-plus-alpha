@@ -56,5 +56,4 @@ uint8 *S9xGetSuperscopeBits();
 CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons);
 #endif
 
-void checkAndEnableGlobalCheats();
 uint32_t numCheats();

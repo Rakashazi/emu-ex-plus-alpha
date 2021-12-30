@@ -33,9 +33,6 @@ struct RelPtr  // for Android trackball
 };
 static RelPtr relPtr{};
 
-std::list<InputDeviceSavedConfig> savedInputDevList{};
-std::list<KeyConfig> customKeyConfig{};
-
 static void processRelPtr(EmuApp &app, Input::Event e)
 {
 	using namespace IG;
@@ -125,23 +122,23 @@ void EmuApp::updateInputDevices(Base::ApplicationContext ctx)
 	for(auto &devPtr : ctx.inputDevices())
 	{
 		logMsg("input device:%s, id:%d, map:%d", devPtr->name().data(), devPtr->enumId(), (int)devPtr->map());
-		auto &appData = devPtr->makeAppData<InputDeviceData>(*devPtr, savedInputDevList);
+		auto &appData = devPtr->makeAppData<InputDeviceData>(*devPtr, savedInputDevs);
 	}
 	vController.setPhysicalControlsPresent(ctx.keyInputIsPresent());
 	onUpdateInputDevices_.callCopySafe();
 }
 
-InputDeviceData::InputDeviceData(Input::Device &dev, std::list<InputDeviceSavedConfig> &savedInputDevList):
+InputDeviceData::InputDeviceData(Input::Device &dev, InputDeviceSavedConfigContainer &savedInputDevs):
 	devConf{dev},
 	displayName{makeDisplayName(dev.name(), dev.enumId())}
 {
 	dev.setJoystickAxisAsDpadBits(Input::Device::AXIS_BITS_STICK_1 | Input::Device::AXIS_BITS_HAT);
-	for(auto &saved : savedInputDevList)
+	for(auto &savedPtr : savedInputDevs)
 	{
-		if(saved.matchesDevice(dev))
+		if(savedPtr->matchesDevice(dev))
 		{
 			logMsg("has saved config");
-			devConf.setSavedConf(&saved, false);
+			devConf.setSavedConf(savedPtr.get(), false);
 		}
 	}
 	buildKeyMap(dev);
@@ -276,7 +273,7 @@ const KeyConfig *KeyConfig::defaultConfigsForDevice(const Input::Device &dev)
 
 // InputDeviceConfig
 
-static IG::StaticString<16> uniqueCustomConfigName()
+static IG::StaticString<16> uniqueCustomConfigName(KeyConfigContainer &customKeyConfigs)
 {
 	iterateTimes(99, i) // Try up to "Custom 99"
 	{
@@ -284,10 +281,10 @@ static IG::StaticString<16> uniqueCustomConfigName()
 		// Check if this name is free
 		logMsg("checking:%s", name.data());
 		bool exists{};
-		for(auto &e : customKeyConfig)
+		for(auto &ePtr : customKeyConfigs)
 		{
-			logMsg("against:%s", e.name.data());
-			if(e.name == name)
+			logMsg("against:%s", ePtr->name.data());
+			if(ePtr->name == name)
 			{
 				exists = true;
 				break;
@@ -302,25 +299,24 @@ static IG::StaticString<16> uniqueCustomConfigName()
 	return {};
 }
 
-void InputDeviceConfig::deleteConf()
+void InputDeviceConfig::deleteConf(InputDeviceSavedConfigContainer &savedInputDevs)
 {
 	if(savedConf)
 	{
 		logMsg("removing device config for %s", savedConf->name.data());
-		auto removed = IG::eraseFirst(savedInputDevList, *savedConf);
-		assert(removed);
+		std::erase_if(savedInputDevs, [&](auto &ptr){ return ptr.get() == savedConf; });
 		savedConf = nullptr;
 	}
 }
 
 #ifdef CONFIG_INPUT_ICADE
-bool InputDeviceConfig::setICadeMode(bool on)
+bool InputDeviceConfig::setICadeMode(bool on, InputDeviceSavedConfigContainer &savedInputDevs)
 {
 	// delete device's config since its properties will change with iCade mode switch
-	deleteConf();
+	deleteConf(savedInputDevs);
 	dev->setICadeMode(on);
 	buildKeyMap();
-	save();
+	save(savedInputDevs);
 	if(!savedConf)
 	{
 		logErr("can't save iCade mode");
@@ -357,9 +353,9 @@ const KeyConfig &InputDeviceConfig::keyConf() const
 	return KeyConfig::defaultConfigForDevice(*dev);
 }
 
-void InputDeviceConfig::setKeyConf(const KeyConfig &kConf)
+void InputDeviceConfig::setKeyConf(const KeyConfig &kConf, InputDeviceSavedConfigContainer &savedInputDevs)
 {
-	save();
+	save(savedInputDevs);
 	savedConf->keyConf = &kConf;
 	buildKeyMap();
 }
@@ -372,16 +368,16 @@ void InputDeviceConfig::setDefaultKeyConf()
 	}
 }
 
-KeyConfig *InputDeviceConfig::mutableKeyConf()
+KeyConfig *InputDeviceConfig::mutableKeyConf(KeyConfigContainer &customKeyConfigs) const
 {
 	auto currConf = &keyConf();
 	//logMsg("curr key config %p", currConf);
-	for(auto &e : customKeyConfig)
+	for(auto &e : customKeyConfigs)
 	{
 		//logMsg("checking key config %p", &e);
-		if(&e == currConf)
+		if(e.get() == currConf)
 		{
-			return &e;
+			return e.get();
 		}
 	}
 	return nullptr;
@@ -389,31 +385,33 @@ KeyConfig *InputDeviceConfig::mutableKeyConf()
 
 KeyConfig *InputDeviceConfig::makeMutableKeyConf(EmuApp &app)
 {
-	auto conf = mutableKeyConf();
+	auto &customKeyConfigs = app.customKeyConfigList();
+	auto conf = mutableKeyConf(customKeyConfigs);
 	if(!conf)
 	{
 		logMsg("current config not mutable, creating one");
-		auto name = uniqueCustomConfigName();
-		conf = setKeyConfCopiedFromExisting(name);
+		auto name = uniqueCustomConfigName(customKeyConfigs);
+		conf = setKeyConfCopiedFromExisting(name, customKeyConfigs, app.savedInputDeviceList());
 		app.postMessage(3, false, fmt::format("Automatically created profile: {}", conf->name));
 	}
 	return conf;
 }
 
-KeyConfig *InputDeviceConfig::setKeyConfCopiedFromExisting(std::string_view name)
+KeyConfig *InputDeviceConfig::setKeyConfCopiedFromExisting(std::string_view name,
+	KeyConfigContainer &customKeyConfigs, InputDeviceSavedConfigContainer &savedInputDevs)
 {
-	auto &newConf = customKeyConfig.emplace_back(keyConf());
-	newConf.name = name;
-	setKeyConf(newConf);
-	return &newConf;
+	auto &newConf = customKeyConfigs.emplace_back(std::make_unique<KeyConfig>(keyConf()));
+	newConf->name = name;
+	setKeyConf(*newConf, savedInputDevs);
+	return newConf.get();
 }
 
-void InputDeviceConfig::save()
+void InputDeviceConfig::save(InputDeviceSavedConfigContainer &savedInputDevs)
 {
 	if(!savedConf)
 	{
-		savedConf = &savedInputDevList.emplace_back();
-		logMsg("allocated new device config, %d total", (int)savedInputDevList.size());
+		savedConf = savedInputDevs.emplace_back(std::make_unique<InputDeviceSavedConfig>()).get();
+		logMsg("allocated new device config, %d total", (int)savedInputDevs.size());
 	}
 	savedConf->player = player_;
 	savedConf->enabled = enabled;
@@ -422,6 +420,7 @@ void InputDeviceConfig::save()
 	#ifdef CONFIG_INPUT_ICADE
 	savedConf->iCadeMode = dev->iCadeMode();
 	#endif
+	savedConf->handleUnboundEvents = shouldConsumeUnboundKeys();
 	savedConf->name = dev->name();
 }
 
@@ -436,6 +435,17 @@ void InputDeviceConfig::setSavedConf(InputDeviceSavedConfig *savedConf, bool upd
 		#ifdef CONFIG_INPUT_ICADE
 		dev->setICadeMode(savedConf->iCadeMode);
 		#endif
+		setConsumeUnboundKeys(savedConf->handleUnboundEvents);
+	}
+	else
+	{
+		player_ = dev->enumId() < EmuSystem::maxPlayers ? dev->enumId() : 0;
+		enabled = true;
+		dev->setJoystickAxisAsDpadBits(Input::Device::AXIS_BITS_STICK_1 | Input::Device::AXIS_BITS_HAT);
+		#ifdef CONFIG_INPUT_ICADE
+		dev->setICadeMode(false);
+		#endif
+		setConsumeUnboundKeys(savedConf->handleUnboundEvents);
 	}
 	if(updateKeymap)
 		buildKeyMap();
@@ -576,4 +586,10 @@ const KeyConfig::Key *KeyConfig::key(const KeyCategory &category) const
 void KeyConfig::unbindCategory(const KeyCategory &category)
 {
 	std::fill_n(key(category), category.keys, 0);
+}
+
+bool InputDeviceSavedConfig::matchesDevice(const Input::Device &dev) const
+{
+	//logMsg("checking against device %s,%d", name, devId);
+	return dev.enumId() == enumId && dev.name() == name;
 }

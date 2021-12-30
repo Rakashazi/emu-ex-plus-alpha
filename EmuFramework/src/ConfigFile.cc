@@ -47,7 +47,8 @@ static bool colorSpaceIsValid(Gfx::ColorSpace val)
 	return val == Gfx::ColorSpace::SRGB;
 }
 
-static bool readKeyConfig(IO &io, uint16_t &size, std::span<const KeyCategory> categorySpan)
+static bool readKeyConfig(KeyConfigContainer &customKeyConfigs,
+	IO &io, uint16_t &size, std::span<const KeyCategory> categorySpan)
 {
 	auto confs = io.get<uint8_t>(); // TODO: unused currently, use to pre-allocate memory for configs
 	size--;
@@ -126,9 +127,9 @@ static bool readKeyConfig(IO &io, uint16_t &size, std::span<const KeyCategory> c
 		}
 
 		logMsg("read key config %s", keyConf.name.data());
-		customKeyConfig.push_back(keyConf);
+		customKeyConfigs.emplace_back(std::make_unique<KeyConfig>(keyConf));
 
-		if(customKeyConfig.size() == KEY_CONFIGS_HARD_LIMIT)
+		if(customKeyConfigs.size() == KEY_CONFIGS_HARD_LIMIT)
 		{
 			logWarn("reached custom key config hard limit:%d", KEY_CONFIGS_HARD_LIMIT);
 			break;
@@ -165,9 +166,6 @@ static OptionBase *cfgFileOption[] =
 	&optionPauseUnfocused,
 	&optionGameOrientation,
 	&optionMenuOrientation,
-	#ifdef __ANDROID__
-	&optionConsumeUnboundGamepadKeys,
-	#endif
 	&optionConfirmOverwriteState,
 	&optionFastForwardSpeed,
 	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
@@ -239,18 +237,19 @@ void EmuApp::saveConfigFile(IO &io)
 	vController.writeConfig(io);
 	viewController().writeConfig(io);
 
-	if(customKeyConfig.size())
+	if(customKeyConfigs.size())
 	{
 		auto categories = inputControlCategories();
-		bool writeCategory[customKeyConfig.size()][categories.size()];
-		uint8_t writeCategories[customKeyConfig.size()];
-		std::fill_n(writeCategories, customKeyConfig.size(), 0);
+		bool writeCategory[customKeyConfigs.size()][categories.size()];
+		uint8_t writeCategories[customKeyConfigs.size()];
+		std::fill_n(writeCategories, customKeyConfigs.size(), 0);
 		// compute total size
 		static_assert(sizeof(KeyConfig::name) <= 255, "key config name array is too large");
 		unsigned bytes = 2; // config key size
 		bytes += 1; // number of configs
-		for(uint8_t configs = 0; auto &e : customKeyConfig)
+		for(uint8_t configs = 0; auto &ePtr : customKeyConfigs)
 		{
+			auto &e = *ePtr;
 			bytes += 1; // input map type
 			bytes += 1; // name string length
 			bytes += e.name.size(); // name string
@@ -285,12 +284,13 @@ void EmuApp::saveConfigFile(IO &io)
 			bug_unreachable("excessive key config size, should not happen");
 		}
 		// write to config file
-		logMsg("saving %d key configs, %d bytes", (int)customKeyConfig.size(), bytes);
+		logMsg("saving %d key configs, %d bytes", (int)customKeyConfigs.size(), bytes);
 		io.write(uint16_t(bytes));
 		io.write((uint16_t)CFGKEY_INPUT_KEY_CONFIGS);
-		io.write((uint8_t)customKeyConfig.size());
-		for(uint8_t configs = 0; auto &e : customKeyConfig)
+		io.write((uint8_t)customKeyConfigs.size());
+		for(uint8_t configs = 0; auto &ePtr : customKeyConfigs)
 		{
+			auto &e = *ePtr;
 			logMsg("writing config %s", e.name.data());
 			io.write(uint8_t(e.map));
 			uint8_t nameLen = e.name.size();
@@ -311,17 +311,17 @@ void EmuApp::saveConfigFile(IO &io)
 		}
 	}
 
-	if(savedInputDevList.size())
+	if(savedInputDevs.size())
 	{
 		// input device configs must be saved after key configs since
 		// they reference the key configs when read back from the config file
 
 		// compute total size
-		static_assert(sizeof(InputDeviceSavedConfig::name) <= 255, "input device config name array is too large");
 		unsigned bytes = 2; // config key size
 		bytes += 1; // number of configs
-		for(auto &e : savedInputDevList)
+		for(auto &ePtr : savedInputDevs)
 		{
+			auto &e = *ePtr;
 			bytes += 1; // device id
 			bytes += 1; // enabled
 			bytes += 1; // player
@@ -330,7 +330,7 @@ void EmuApp::saveConfigFile(IO &io)
 			bytes += 1; // iCade mode
 			#endif
 			bytes += 1; // name string length
-			bytes += e.name.size(); // name string
+			bytes += std::min((size_t)256, e.name.size()); // name string
 			bytes += 1; // key config map
 			if(e.keyConf)
 			{
@@ -343,21 +343,25 @@ void EmuApp::saveConfigFile(IO &io)
 			bug_unreachable("excessive input device config size, should not happen");
 		}
 		// write to config file
-		logMsg("saving %d input device configs, %d bytes", (int)savedInputDevList.size(), bytes);
+		logMsg("saving %d input device configs, %d bytes", (int)savedInputDevs.size(), bytes);
 		io.write((uint16_t)bytes);
 		io.write((uint16_t)CFGKEY_INPUT_DEVICE_CONFIGS);
-		io.write((uint8_t)savedInputDevList.size());
-		for(auto &e : savedInputDevList)
+		io.write((uint8_t)savedInputDevs.size());
+		for(auto &ePtr : savedInputDevs)
 		{
+			auto &e = *ePtr;
 			logMsg("writing config %s, id %d", e.name.data(), e.enumId);
-			io.write((uint8_t)e.enumId);
+			uint8_t enumIdWithFlags = e.enumId;
+			if(e.handleUnboundEvents)
+				enumIdWithFlags |= e.HANDLE_UNBOUND_EVENTS_FLAG;
+			io.write((uint8_t)enumIdWithFlags);
 			io.write((uint8_t)e.enabled);
 			io.write((uint8_t)e.player);
 			io.write((uint8_t)e.joystickAxisAsDpadBits);
 			#ifdef CONFIG_INPUT_ICADE
 			io.write((uint8_t)e.iCadeMode);
 			#endif
-			uint8_t nameLen = e.name.size();
+			uint8_t nameLen = std::min((size_t)256, e.name.size());
 			io.write(nameLen);
 			io.write(e.name.data(), nameLen);
 			uint8_t keyConfMap = e.keyConf ? (uint8_t)e.keyConf->map : 0;
@@ -472,9 +476,6 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: vController.setVibrateOnTouchInput(*this, readOptionValue<bool>(io, size));
 				bcase CFGKEY_RECENT_GAMES: readRecentContent(ctx, io, size);
 				bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM: setSwappedConfirmKeys(readOptionValue<bool>(io, size));
-				#ifdef __ANDROID__
-				bcase CFGKEY_CONSUME_UNBOUND_GAMEPAD_KEYS: optionConsumeUnboundGamepadKeys.readFromIO(io, size);
-				#endif
 				bcase CFGKEY_PAUSE_UNFOCUSED: optionPauseUnfocused.readFromIO(io, size);
 				bcase CFGKEY_NOTIFICATION_ICON: optionNotificationIcon.readFromIO(io, size);
 				bcase CFGKEY_TITLE_BAR: optionTitleBar.readFromIO(io, size);
@@ -538,7 +539,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				bcase CFGKEY_RENDERER_PRESENTATION_TIME: appConfig.setRendererPresentationTime(readOptionValue<bool>(io, size).value_or(true));
 				bcase CFGKEY_INPUT_KEY_CONFIGS:
 				{
-					if(!readKeyConfig(io, size, inputControlCategories()))
+					if(!readKeyConfig(customKeyConfigs, io, size, inputControlCategories()))
 					{
 						logErr("error reading key configs from file");
 					}
@@ -559,15 +560,12 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 					{
 						InputDeviceSavedConfig devConf;
 
-						devConf.enumId = io.get<uint8_t>();
+						auto enumIdWithFlags = io.get<uint8_t>();
 						size--;
 						if(!size)
 							break;
-						if(devConf.enumId > 32)
-						{
-							logWarn("unusually large device id %d, skipping rest of configs", devConf.enumId);
-							break;
-						}
+						devConf.handleUnboundEvents = enumIdWithFlags & devConf.HANDLE_UNBOUND_EVENTS_FLAG;
+						devConf.enumId = enumIdWithFlags & devConf.ENUM_ID_MASK;
 
 						devConf.enabled = io.get<uint8_t>();
 						size--;
@@ -627,8 +625,9 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 							keyConfName[keyConfNameLen] = '\0';
 							size -= keyConfNameLen;
 
-							for(auto &e : customKeyConfig)
+							for(auto &ePtr : customKeyConfigs)
 							{
+								auto &e = *ePtr;
 								if(e.map == keyConfMap && e.name == keyConfName)
 								{
 									logMsg("found referenced custom key config %s while reading input device config", keyConfName);
@@ -654,9 +653,9 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 						}
 
 						logMsg("read input device config %s, id %d", devConf.name.data(), devConf.enumId);
-						savedInputDevList.push_back(devConf);
+						savedInputDevs.emplace_back(std::make_unique<InputDeviceSavedConfig>(devConf));
 
-						if(savedInputDevList.size() == INPUT_DEVICE_CONFIGS_HARD_LIMIT)
+						if(savedInputDevs.size() == INPUT_DEVICE_CONFIGS_HARD_LIMIT)
 						{
 							logWarn("reached input device config hard limit:%d", INPUT_DEVICE_CONFIGS_HARD_LIMIT);
 							break;
