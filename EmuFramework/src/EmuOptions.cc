@@ -66,7 +66,7 @@ Byte1Option optionSoundVolume(CFGKEY_SOUND_VOLUME,
 	100, false, optionIsValidWithMinMax<0, 100, uint8_t>);
 
 Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
-	4, 0, optionIsValidWithMinMax<2, 8, uint8_t>);
+	3, 0, optionIsValidWithMinMax<2, 8, uint8_t>);
 Byte1Option optionAddSoundBuffersOnUnderrun(CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, 1, 0);
 
 #ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
@@ -191,6 +191,7 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 	#endif
 
 	#ifdef __ANDROID__
+	auto androidSdk = ctx.androidSDK();
 	if(ctx.hasHardwareNavButtons())
 	{
 		optionLowProfileOSNav.isConst = 1;
@@ -198,22 +199,22 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 	}
 	else
 	{
-		if(ctx.androidSDK() >= 19)
+		if(androidSdk >= 19)
 			optionHideOSNav.initDefault(1);
 	}
-	if(ctx.androidSDK() >= 11)
+	if(androidSdk >= 11)
 	{
 		optionNotificationIcon.initDefault(false);
-		if(ctx.androidSDK() >= 17)
+		if(androidSdk >= 17)
 			optionNotificationIcon.isConst = true;
 	}
-	if(ctx.androidSDK() < 12)
+	if(androidSdk < 12)
 	{
 		#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 		optionNotifyInputDeviceChange.isConst = 1;
 		#endif
 	}
-	if(ctx.androidSDK() < 17)
+	if(androidSdk < 17)
 	{
 		optionShowOnSecondScreen.isConst = true;
 	}
@@ -237,10 +238,14 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 			optionSustainedPerformanceMode.isConst = true;
 		}
 	}
-	if(ctx.androidSDK() < 11)
+	if(androidSdk < 11)
 	{
 		// never run ctx in onPaused state on Android 2.3
 		optionPauseUnfocused.isConst = true;
+	}
+	if(androidSdk < 27) // use safer value for devices defaulting to OpenSL ES
+	{
+		optionSoundBuffers.initDefault(4);
 	}
 	#endif
 

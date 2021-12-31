@@ -99,24 +99,15 @@ final class ContentResolverUtils
 
 	static boolean uriExists(ContentResolver resolver, String uriStr)
 	{
-		Cursor c = null;
-		try
+		try(Cursor c = resolver.query(Uri.parse(uriStr),
+			new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID}, null, null, null);)
 		{
-			c = resolver.query(Uri.parse(uriStr),
-				new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID}, null, null, null);
 			return c.getCount() > 0;
 		}
 		catch(Exception e)
 		{
 			//Log.i(logTag, "uriExists exception:" + e.toString());
 			return false;
-		}
-		finally
-		{
-			if(c != null)
-			{
-				c.close();
-			}
 		}
 	}
 
@@ -130,7 +121,7 @@ final class ContentResolverUtils
 
 	static String uriDisplayName(ContentResolver resolver, Uri uri)
 	{
-		return queryString(resolver, uri, DocumentsContract.Document.COLUMN_DISPLAY_NAME, "");
+		return queryString(resolver, uri, DocumentsContract.Document.COLUMN_DISPLAY_NAME);
 	}
 
 	static String uriDisplayName(ContentResolver resolver, String uriStr)
@@ -153,25 +144,18 @@ final class ContentResolverUtils
 
 	static boolean listUriFiles(ContentResolver resolver, long nativeUserData, String uriStr)
 	{
-		Cursor c = null;
 		final Uri uri = Uri.parse(uriStr);
-		try
+		final Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, DocumentsContract.getDocumentId(uri));
+		try(final Cursor c = resolver.query(childrenUri,
+			new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE},
+			null, null, null);)
 		{
-			final Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, DocumentsContract.getDocumentId(uri));
-			c = resolver.query(childrenUri,
-				new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-				null, null, null);
-			final int documentIdIdx = c.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID);
-			final int mimeTypeIdx = c.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE);
-			final int displayNameIdx = c.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME);
 			while(c.moveToNext())
 			{
-				final String documentId = c.getString(documentIdIdx);
-				final String mimeType = c.getString(mimeTypeIdx);
-				String displayName = c.getString(displayNameIdx);
-				if(displayName == null)
-					displayName = "";
-				final boolean isDir = mimeType != null && mimeType.equals(DocumentsContract.Document.MIME_TYPE_DIR);
+				final String documentId = c.getString(0);
+				final String displayName = c.getString(1);
+				final String mimeType = c.getString(2);
+				final boolean isDir = mimeType.equals(DocumentsContract.Document.MIME_TYPE_DIR);
 				final Uri documentUri = DocumentsContract.buildDocumentUriUsingTree(uri, documentId);
 				if(!BaseActivity.uriFileListed(nativeUserData, documentUri.toString(), displayName, isDir))
 					break;
@@ -183,68 +167,34 @@ final class ContentResolverUtils
 			//Log.i(logTag, "listUriFiles exception:" + e.toString());
 			return false;
 		}
-		finally
-		{
-			if(c != null)
-			{
-				c.close();
-			}
-		}
 	}
 
 	static long queryLong(ContentResolver resolver, Uri uri, String column, long defaultValue)
 	{
-		Cursor c = null;
-		try
+		try(final Cursor c = resolver.query(uri, new String[] {column}, null, null, null))
 		{
-			c = resolver.query(uri, new String[] {column}, null, null, null);
-			if(c.moveToFirst() && !c.isNull(0))
-			{
-				return c.getLong(0);
-			}
-			else
-			{
+			if(!c.moveToFirst())
 				return defaultValue;
-			}
+			return c.getLong(0);
 		}
 		catch(Exception e)
 		{
 			return defaultValue;
-		}
-		finally
-		{
-			if(c != null)
-			{
-				c.close();
-			}
 		}
 	}
 
-	static String queryString(ContentResolver resolver, Uri uri, String column, String defaultValue)
+	static String queryString(ContentResolver resolver, Uri uri, String column)
 	{
-		Cursor c = null;
-		try
+		try(final Cursor c = resolver.query(uri, new String[] {column}, null, null, null);)
 		{
-			c = resolver.query(uri, new String[] {column}, null, null, null);
-			if(c.moveToFirst() && !c.isNull(0))
-			{
-				return c.getString(0);
-			}
-			else
-			{
-				return defaultValue;
-			}
+			if(!c.moveToFirst())
+				return "";
+			String str = c.getString(0);
+			return str != null ? str : "";
 		}
 		catch(Exception e)
 		{
-			return defaultValue;
-		}
-		finally
-		{
-			if(c != null)
-			{
-				c.close();
-			}
+			return "";
 		}
 	}
 }

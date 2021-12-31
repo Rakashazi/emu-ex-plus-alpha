@@ -284,7 +284,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			onBTOn(resultCode == RESULT_OK);
 		}
 		else if(android.os.Build.VERSION.SDK_INT >= 21 && requestCode == REQUEST_OPEN_DOCUMENT_TREE &&
-			resultCode == RESULT_OK && intent != null)
+			resultCode == RESULT_OK && intent != null && activityResultNativeUserData != 0)
 		{
 			final ContentResolver resolver = getContentResolver();
 			final Uri uri = intent.getData();
@@ -293,9 +293,10 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			final Uri dirUri = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri));
 			final String displayName = ContentResolverUtils.uriDisplayName(resolver, dirUri);
 			uriPicked(activityResultNativeUserData, dirUri.toString(), displayName);
+			activityResultNativeUserData = 0;
 		}
 		else if(android.os.Build.VERSION.SDK_INT >= 19 && requestCode == REQUEST_OPEN_DOCUMENT &&
-			resultCode == RESULT_OK && intent != null)
+			resultCode == RESULT_OK && intent != null && activityResultNativeUserData != 0)
 		{
 			// handles both ACTION_OPEN_DOCUMENT & ACTION_CREATE_DOCUMENT
 			final ContentResolver resolver = getContentResolver();
@@ -304,6 +305,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			resolver.takePersistableUriPermission(uri, takeFlags);
 			final String displayName = ContentResolverUtils.uriDisplayName(resolver, uri);
 			uriPicked(activityResultNativeUserData, uri.toString(), displayName);
+			activityResultNativeUserData = 0;
 		}
 	}
 	

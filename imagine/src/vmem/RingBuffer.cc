@@ -85,7 +85,7 @@ SizeType RingBuffer::freeSpace() const
 
 SizeType RingBuffer::size() const
 {
-	return written;
+	return written.load(std::memory_order_acquire);
 }
 
 SizeType RingBuffer::capacity() const
@@ -143,7 +143,7 @@ void RingBuffer::commitWrite(SizeType size)
 {
 	assert(size <= freeSpace());
 	end = advanceAddr(end, size);
-	written += size;
+	written.fetch_add(size, std::memory_order_release);
 }
 
 SizeType RingBuffer::read(void *buff, SizeType size_)
@@ -166,7 +166,7 @@ void RingBuffer::commitRead(SizeType size_)
 {
 	assert(size_ <= size());
 	start = advanceAddr(start, size_);
-	written -= size_;
+	written.fetch_sub(size_, std::memory_order_release);
 }
 
 char *RingBuffer::advanceAddr(char *ptr, SizeType size) const
