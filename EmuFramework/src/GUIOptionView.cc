@@ -26,19 +26,6 @@ static const char *landscape2Name = USE_MOBILE_ORIENTATION_NAMES ? "Landscape 2"
 static const char *portraitName = USE_MOBILE_ORIENTATION_NAMES ? "Portrait" : "Standard";
 static const char *portrait2Name = USE_MOBILE_ORIENTATION_NAMES ? "Portrait 2" : "Upside Down";
 
-static void setMenuOrientation(unsigned val, Base::Window &win, Gfx::Renderer &r)
-{
-	optionMenuOrientation = val;
-	r.setWindowValidOrientations(win, optionMenuOrientation);
-	logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
-}
-
-static void setGameOrientation(unsigned val)
-{
-	optionGameOrientation = val;
-	logMsg("set game orientation: %s", Base::orientationToStr(int(optionGameOrientation)));
-}
-
 GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"GUI Options", attach, item},
 	pauseUnfocused
@@ -52,15 +39,15 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fontSizeItem
 	{
-		{"2", &defaultFace(), [this]() { setFontSize(2000); }},
-		{"3", &defaultFace(), [this]() { setFontSize(3000); }},
-		{"4", &defaultFace(), [this]() { setFontSize(4000); }},
-		{"5", &defaultFace(), [this]() { setFontSize(5000); }},
-		{"6", &defaultFace(), [this]() { setFontSize(6000); }},
-		{"7", &defaultFace(), [this]() { setFontSize(7000); }},
-		{"8", &defaultFace(), [this]() { setFontSize(8000); }},
-		{"9", &defaultFace(), [this]() { setFontSize(9000); }},
-		{"10", &defaultFace(), [this]() { setFontSize(10000); }},
+		{"2",  &defaultFace(), setFontSizeDel(2000)},
+		{"3",  &defaultFace(), setFontSizeDel(3000)},
+		{"4",  &defaultFace(), setFontSizeDel(4000)},
+		{"5",  &defaultFace(), setFontSizeDel(5000)},
+		{"6",  &defaultFace(), setFontSizeDel(6000)},
+		{"7",  &defaultFace(), setFontSizeDel(7000)},
+		{"8",  &defaultFace(), setFontSizeDel(8000)},
+		{"9",  &defaultFace(), setFontSizeDel(9000)},
+		{"10", &defaultFace(), setFontSizeDel(10000)},
 		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
@@ -70,7 +57,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 						int scaledIntVal = val * 1000.0;
 						if(optionFontSize.isValidVal(scaledIntVal))
 						{
-							setFontSize(scaledIntVal);
+							app.setFontSize(scaledIntVal);
 							fontSize.setSelected(std::size(fontSizeItem) - 1, *this);
 							dismissPrevious();
 							return true;
@@ -122,30 +109,9 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	statusBarItem
 	{
-		{
-			"Off", &defaultFace(),
-			[this]()
-			{
-				optionHideStatusBar = 0;
-				app().applyOSNavStyle(appContext(), false);
-			}
-		},
-		{
-			"In Emu", &defaultFace(),
-			[this]()
-			{
-				optionHideStatusBar = 1;
-				app().applyOSNavStyle(appContext(), false);
-			}
-		},
-		{
-			"On", &defaultFace(),
-			[this]()
-			{
-				optionHideStatusBar = 2;
-				app().applyOSNavStyle(appContext(), false);
-			}
-		}
+		{"Off",    &defaultFace(), setStatusBarDel(0)},
+		{"In Emu", &defaultFace(), setStatusBarDel(1)},
+		{"On",     &defaultFace(), setStatusBarDel(2)}
 	},
 	statusBar
 	{
@@ -155,30 +121,9 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	lowProfileOSNavItem
 	{
-		{
-			"Off", &defaultFace(),
-			[this]()
-			{
-				optionLowProfileOSNav = 0;
-				app().applyOSNavStyle(appContext(), false);
-			}
-		},
-		{
-			"In Emu", &defaultFace(),
-			[this]()
-			{
-				optionLowProfileOSNav = 1;
-				app().applyOSNavStyle(appContext(), false);
-			}
-		},
-		{
-			"On", &defaultFace(),
-			[this]()
-			{
-				optionLowProfileOSNav = 2;
-				app().applyOSNavStyle(appContext(), false);
-			}
-		}
+		{"Off",    &defaultFace(), setLowProfileOSNavDel(0)},
+		{"In Emu", &defaultFace(), setLowProfileOSNavDel(1)},
+		{"On",     &defaultFace(), setLowProfileOSNavDel(2)}
 	},
 	lowProfileOSNav
 	{
@@ -188,30 +133,9 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	hideOSNavItem
 	{
-		{
-			"Off", &defaultFace(),
-			[this]()
-			{
-				optionHideOSNav = 0;
-				app().applyOSNavStyle(appContext(), false);
-			}
-		},
-		{
-			"In Emu", &defaultFace(),
-			[this]()
-			{
-				optionHideOSNav = 1;
-				app().applyOSNavStyle(appContext(), false);
-			}
-		},
-		{
-			"On", &defaultFace(),
-			[this]()
-			{
-				optionHideOSNav = 2;
-				app().applyOSNavStyle(appContext(), false);
-			}
-		}
+		{"Off",    &defaultFace(), setHideOSNavDel(0)},
+		{"In Emu", &defaultFace(), setHideOSNavDel(1)},
+		{"On",     &defaultFace(), setHideOSNavDel(2)}
 	},
 	hideOSNav
 	{
@@ -297,12 +221,12 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	menuOrientationItem
 	{
 		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", &defaultFace(), [this](){ setMenuOrientation(Base::VIEW_ROTATE_AUTO, window(), renderer()); }},
+		{"Auto", &defaultFace(), setMenuOrientationDel(Base::VIEW_ROTATE_AUTO)},
 		#endif
-		{landscapeName, &defaultFace(), [this](){ setMenuOrientation(Base::VIEW_ROTATE_90, window(), renderer()); }},
-		{landscape2Name, &defaultFace(), [this](){ setMenuOrientation(Base::VIEW_ROTATE_270, window(), renderer()); }},
-		{portraitName, &defaultFace(), [this](){ setMenuOrientation(Base::VIEW_ROTATE_0, window(), renderer()); }},
-		{portrait2Name, &defaultFace(), [this](){ setMenuOrientation(Base::VIEW_ROTATE_180, window(), renderer()); }},
+		{landscapeName,  &defaultFace(), setMenuOrientationDel(Base::VIEW_ROTATE_90)},
+		{landscape2Name, &defaultFace(), setMenuOrientationDel(Base::VIEW_ROTATE_270)},
+		{portraitName,   &defaultFace(), setMenuOrientationDel(Base::VIEW_ROTATE_0)},
+		{portrait2Name,  &defaultFace(), setMenuOrientationDel(Base::VIEW_ROTATE_180)},
 	},
 	menuOrientation
 	{
@@ -324,12 +248,12 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	gameOrientationItem
 	{
 		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", &defaultFace(), [](){ setGameOrientation(Base::VIEW_ROTATE_AUTO); }},
+		{"Auto", &defaultFace(), setGameOrientationDel(Base::VIEW_ROTATE_AUTO)},
 		#endif
-		{landscapeName, &defaultFace(), [](){ setGameOrientation(Base::VIEW_ROTATE_90); }},
-		{landscape2Name, &defaultFace(), [](){ setGameOrientation(Base::VIEW_ROTATE_270); }},
-		{portraitName, &defaultFace(), [](){ setGameOrientation(Base::VIEW_ROTATE_0); }},
-		{portrait2Name, &defaultFace(), [](){ setGameOrientation(Base::VIEW_ROTATE_180); }},
+		{landscapeName,  &defaultFace(), setGameOrientationDel(Base::VIEW_ROTATE_90)},
+		{landscape2Name, &defaultFace(), setGameOrientationDel(Base::VIEW_ROTATE_270)},
+		{portraitName,   &defaultFace(), setGameOrientationDel(Base::VIEW_ROTATE_0)},
+		{portrait2Name,  &defaultFace(), setGameOrientationDel(Base::VIEW_ROTATE_180)},
 	},
 	gameOrientation
 	{
@@ -410,9 +334,53 @@ void GUIOptionView::loadStockItems()
 	}
 }
 
-void GUIOptionView::setFontSize(uint16_t val)
+TextMenuItem::SelectDelegate GUIOptionView::setMenuOrientationDel(int val)
 {
-	optionFontSize = val;
-	setupFont(manager(), renderer(), window());
-	app().viewController().placeElements();
+	return [this, val]()
+		{
+			optionMenuOrientation = val;
+			renderer().setWindowValidOrientations(window(), optionMenuOrientation);
+			logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
+		};
+}
+
+TextMenuItem::SelectDelegate GUIOptionView::setGameOrientationDel(int val)
+{
+	return [val]()
+		{
+			optionGameOrientation = val;
+			logMsg("set game orientation: %s", Base::orientationToStr(int(optionGameOrientation)));
+		};
+}
+
+TextMenuItem::SelectDelegate GUIOptionView::setFontSizeDel(uint16_t val)
+{
+	return [this, val]() { app().setFontSize(val); };
+}
+
+TextMenuItem::SelectDelegate GUIOptionView::setStatusBarDel(int val)
+{
+	return [this, val]()
+		{
+			optionHideStatusBar = val;
+			app().applyOSNavStyle(appContext(), false);
+		};
+}
+
+TextMenuItem::SelectDelegate GUIOptionView::setLowProfileOSNavDel(int val)
+{
+	return [this, val]()
+		{
+			optionLowProfileOSNav = val;
+			app().applyOSNavStyle(appContext(), false);
+		};
+}
+
+TextMenuItem::SelectDelegate GUIOptionView::setHideOSNavDel(int val)
+{
+	return [this, val]()
+		{
+			optionHideOSNav = val;
+			app().applyOSNavStyle(appContext(), false);
+		};
 }

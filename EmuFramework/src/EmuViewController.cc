@@ -334,7 +334,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		[this, &videoLayer = videoLayer()](EmuVideo &)
 		{
 			#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-			videoLayer.setEffect(optionImgEffect, optionImageEffectPixelFormatValue());
+			videoLayer.setEffect((ImageEffectId)optionImgEffect.val, optionImageEffectPixelFormatValue());
 			#else
 			videoLayer.resetImage();
 			#endif

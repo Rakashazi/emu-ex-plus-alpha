@@ -61,8 +61,8 @@ endif
 
 ifndef RELEASE
  ifeq ($(compiler_sanitizeMode), address)
-  CFLAGS_CODEGEN += -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
-  LDFLAGS_SYSTEM += -fsanitize=address -fsanitize=undefined
+  CFLAGS_CODEGEN += -fsanitize=address,undefined -fno-omit-frame-pointer
+  LDFLAGS_SYSTEM += -fsanitize=address,undefined
   # Disable debug section compression since it may prevent symbols from appearing in backtrace
   COMPRESS_DEBUG_SECTIONS = none
  endif

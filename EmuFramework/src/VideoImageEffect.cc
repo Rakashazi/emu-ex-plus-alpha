@@ -23,34 +23,58 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
 
-static const VideoImageEffect::EffectDesc
+static constexpr VideoImageEffect::EffectDesc
 	hq2xDesc{"hq2x-v.txt", "hq2x-f.txt", {2, 2}};
 
-static const VideoImageEffect::EffectDesc
+static constexpr VideoImageEffect::EffectDesc
 	scale2xDesc{"scale2x-v.txt", "scale2x-f.txt", {2, 2}};
 
-static const VideoImageEffect::EffectDesc
+static constexpr VideoImageEffect::EffectDesc
 	prescale2xDesc{"direct-v.txt", "direct-f.txt", {2, 2}};
 
-static Gfx::Shader makeEffectVertexShader(Gfx::Renderer &r, const char *src)
+static constexpr const char *effectName(ImageEffectId id)
 {
-	const char *posDefs =
+	switch(id)
+	{
+		case ImageEffectId::NONE: return "None";
+		case ImageEffectId::HQ2X: return "HQ2X";
+		case ImageEffectId::SCALE2X: return "Scale2X";
+		case ImageEffectId::PRESCALE2X: return ("Prescale 2X");
+	}
+	return nullptr;
+}
+
+static constexpr VideoImageEffect::EffectDesc effectDesc(ImageEffectId id)
+{
+	switch(id)
+	{
+		case ImageEffectId::NONE: return {};
+		case ImageEffectId::HQ2X: return hq2xDesc;
+		case ImageEffectId::SCALE2X: return scale2xDesc;
+		case ImageEffectId::PRESCALE2X: return prescale2xDesc;
+	}
+	return {};
+}
+
+static Gfx::Shader makeEffectVertexShader(Gfx::Renderer &r, std::string_view src)
+{
+	std::string_view posDefs =
 		"#define POS pos\n"
 		"in vec4 pos;\n";
-	const char *shaderSrc[]
+	std::string_view shaderSrc[]
 	{
 		posDefs,
 		src
 	};
-	return r.makeCompatShader({shaderSrc, std::size(shaderSrc)}, Gfx::ShaderType::VERTEX);
+	return r.makeCompatShader(shaderSrc, Gfx::ShaderType::VERTEX);
 }
 
-static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, const char *src, bool isExternalTex)
+static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, std::string_view src, bool isExternalTex)
 {
-	const char *fragDefs = "FRAGCOLOR_DEF\n";
+	std::string_view fragDefs = "FRAGCOLOR_DEF\n";
 	if(isExternalTex)
 	{
-		const char *shaderSrc[]
+		std::string_view shaderSrc[]
 		{
 			// extensions -> shaderSrc[0]
 			"#extension GL_OES_EGL_image_external : enable\n"
@@ -61,37 +85,40 @@ static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, const char *src, b
 			"uniform lowp samplerExternalOES TEX;\n",
 			src
 		};
-		auto shader = r.makeCompatShader({shaderSrc, std::size(shaderSrc)}, Gfx::ShaderType::FRAGMENT);
+		auto shader = r.makeCompatShader(shaderSrc, Gfx::ShaderType::FRAGMENT);
 		if(!shader)
 		{
 			// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
 			logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
 			shaderSrc[1] = "#define TEXTURE texture\n";
-			shader = r.makeCompatShader({shaderSrc, std::size(shaderSrc)}, Gfx::ShaderType::FRAGMENT);
+			shader = r.makeCompatShader(shaderSrc, Gfx::ShaderType::FRAGMENT);
 		}
 		return shader;
 	}
 	else
 	{
-		const char *shaderSrc[]
+		std::string_view shaderSrc[]
 		{
 			"#define TEXTURE texture\n",
 			fragDefs,
 			"uniform sampler2D TEX;\n",
 			src
 		};
-		return r.makeCompatShader({shaderSrc, std::size(shaderSrc)}, Gfx::ShaderType::FRAGMENT);
+		return r.makeCompatShader(shaderSrc, Gfx::ShaderType::FRAGMENT);
 	}
 }
 
-void VideoImageEffect::setEffect(Gfx::Renderer &r, unsigned effect, unsigned bitDepth, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler)
+void VideoImageEffect::setEffect(Gfx::Renderer &r, Id effect, int bitDepth, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler)
 {
 	if(effect == effect_)
 		return;
-	deinit(r);
+	reset(r);
 	useRGB565RenderTarget = bitDepth <= 16;
 	effect_ = effect;
-	compile(r, isExternalTex, compatTexSampler);
+	if(effect == Id::NONE)
+		return;
+	logMsg("compiling effect:%s", effectName(effect));
+	compile(r, effectDesc(effect), isExternalTex, compatTexSampler);
 }
 
 VideoImageEffect::EffectParams VideoImageEffect::effectParams() const
@@ -99,7 +126,7 @@ VideoImageEffect::EffectParams VideoImageEffect::effectParams() const
 	return {useRGB565RenderTarget ? IG::PIXEL_FMT_RGB565 : IG::PIXEL_FMT_RGBA8888, effect_};
 }
 
-void VideoImageEffect::deinit(Gfx::Renderer &r)
+void VideoImageEffect::reset(Gfx::Renderer &r)
 {
 	renderTarget_ = {};
 	renderTargetScale = {0, 0};
@@ -121,68 +148,36 @@ void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r, const Gfx::Text
 	r.make(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 }
 
-void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler)
+void VideoImageEffect::compile(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler)
 {
 	if(program())
 		return; // already compiled
-	const EffectDesc *desc{};
-	switch(effect_)
+	if(!desc.scale.x) [[unlikely]]
 	{
-		bcase HQ2X:
-		{
-			logMsg("compiling effect HQ2X");
-			desc = &hq2xDesc;
-		}
-		bcase SCALE2X:
-		{
-			logMsg("compiling effect Scale2X");
-			desc = &scale2xDesc;
-		}
-		bcase PRESCALE2X:
-		{
-			logMsg("compiling effect Prescale 2X");
-			desc = &prescale2xDesc;
-		}
-		bdefault:
-			break;
-	}
-
-	if(!desc)
-	{
-		logErr("effect descriptor not found");
+		logErr("invalid effect descriptor");
 		return;
 	}
-
-	renderTargetScale = desc->scale;
+	renderTargetScale = desc.scale;
 	initRenderTargetTexture(r, compatTexSampler);
 	try
 	{
-		compileEffect(r, *desc, isExternalTex, false);
+		compileEffect(r, desc, isExternalTex, false);
 	}
 	catch(std::exception &err)
 	{
 		try
 		{
-			compileEffect(r, *desc, isExternalTex, true);
+			compileEffect(r, desc, isExternalTex, true);
 			logMsg("compiled fallback version of effect");
 		}
 		catch(std::exception &fallbackErr)
 		{
 			auto &app = EmuApp::get(r.appContext());
 			app.postErrorMessage(5, fmt::format("{}, {}", err.what(), fallbackErr.what()));
-			deinit(r);
+			reset(r);
 			return;
 		}
 	}
-}
-
-static std::unique_ptr<char[]> toCString(auto &&io)
-{
-	auto fileSize = io.size();
-	auto text = std::make_unique<char[]>(fileSize + 1);
-	io.read(text.get(), fileSize);
-	text[fileSize] = 0;
-	return text;
 }
 
 void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback)
@@ -193,7 +188,8 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isE
 
 	logMsg("making vertex shader");
 	auto vShader = makeEffectVertexShader(r,
-		toCString(ctx.openAsset(IG::format<FS::PathString>("shaders/{}{}", fallbackStr, desc.vShaderFilename), IO::AccessHint::ALL)).get());
+		ctx.openAsset(IG::format<FS::PathString>("shaders/{}{}", fallbackStr, desc.vShaderFilename),
+			IO::AccessHint::ALL).buffer().stringView());
 	if(!vShader)
 	{
 		throw std::runtime_error{"GPU rejected shader (vertex compile error)"};
@@ -201,7 +197,8 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isE
 
 	logMsg("making fragment shader");
 	auto fShader = makeEffectFragmentShader(r,
-		toCString(ctx.openAsset(IG::format<FS::PathString>("shaders/{}{}", fallbackStr, desc.fShaderFilename), IO::AccessHint::ALL)).get(),
+		ctx.openAsset(IG::format<FS::PathString>("shaders/{}{}", fallbackStr, desc.fShaderFilename),
+		IO::AccessHint::ALL).buffer().stringView(),
 		isExternalTex);
 	if(!fShader)
 	{
@@ -242,7 +239,7 @@ void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size, const Gfx::Te
 	initRenderTargetTexture(r, compatTexSampler);
 }
 
-void VideoImageEffect::setBitDepth(Gfx::Renderer &r, unsigned bitDepth, const Gfx::TextureSampler &compatTexSampler)
+void VideoImageEffect::setBitDepth(Gfx::Renderer &r, int bitDepth, const Gfx::TextureSampler &compatTexSampler)
 {
 	useRGB565RenderTarget = bitDepth <= 16;
 	initRenderTargetTexture(r, compatTexSampler);

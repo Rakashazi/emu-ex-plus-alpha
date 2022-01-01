@@ -100,10 +100,10 @@ public:
 
 	// shaders
 
-	Shader makeShader(std::span<const char *>, ShaderType type);
-	Shader makeShader(const char *src, ShaderType type);
-	Shader makeCompatShader(std::span<const char *>, ShaderType type);
-	Shader makeCompatShader(const char *src, ShaderType type);
+	Shader makeShader(std::span<std::string_view> srcs, ShaderType type);
+	Shader makeShader(std::string_view src, ShaderType type);
+	Shader makeCompatShader(std::span<std::string_view> srcs, ShaderType type);
+	Shader makeCompatShader(std::string_view src, ShaderType type);
 	NativeShader defaultVShader();
 	bool makeCommonProgram(CommonProgram);
 	bool commonProgramIsCompiled(CommonProgram program) const;

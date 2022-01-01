@@ -32,7 +32,7 @@ public:
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
 	void setOverlay(unsigned effect);
 	void setOverlayIntensity(Gfx::GC intensity);
-	void setEffect(unsigned effect, IG::PixelFormatID fmt);
+	void setEffect(ImageEffectId effect, IG::PixelFormatID fmt);
 	void setEffectFormat(IG::PixelFormatID fmt);
 	void setLinearFilter(bool on);
 	void setSrgbColorSpaceOutput(bool on);

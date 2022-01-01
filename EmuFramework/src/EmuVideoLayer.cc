@@ -307,7 +307,7 @@ void EmuVideoLayer::compileDefaultPrograms()
 	disp.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
-void EmuVideoLayer::setEffect(unsigned effect, IG::PixelFormatID fmt)
+void EmuVideoLayer::setEffect(ImageEffectId effect, IG::PixelFormatID fmt)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	assert(video.image());

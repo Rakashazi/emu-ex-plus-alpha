@@ -18,6 +18,8 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
+#include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/format.hh>
 #include "internalDefs.hh"
 #include "utils.hh"
 #include <cstring>
@@ -27,7 +29,11 @@ namespace Gfx
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 
-static const char *vShaderSrc =
+static constexpr size_t maxSourceStrings = 16;
+
+using namespace std::literals;
+
+static std::string_view vShaderSrc =
 "in vec4 pos; "
 "in vec4 color; "
 "in vec2 texUV; "
@@ -41,7 +47,7 @@ static const char *vShaderSrc =
 "}"
 ;
 
-static const char *texFragShaderSrc =
+static std::string_view texFragShaderSrc =
 "FRAGCOLOR_DEF "
 "in lowp vec4 colorOut; "
 "in lowp vec2 texUVOut; "
@@ -51,7 +57,7 @@ static const char *texFragShaderSrc =
 "}"
 ;
 
-static const char *texReplaceFragShaderSrc =
+static std::string_view texReplaceFragShaderSrc =
 "FRAGCOLOR_DEF "
 "in lowp vec4 colorOut; "
 "in lowp vec2 texUVOut; "
@@ -61,7 +67,7 @@ static const char *texReplaceFragShaderSrc =
 "}"
 ;
 
-static const char *texAlphaFragShaderSrc =
+static std::string_view texAlphaFragShaderSrc =
 "FRAGCOLOR_DEF "
 "in lowp vec4 colorOut; "
 "in lowp vec2 texUVOut; "
@@ -75,7 +81,7 @@ static const char *texAlphaFragShaderSrc =
 "}"
 ;
 
-static const char *texAlphaReplaceFragShaderSrc =
+static std::string_view texAlphaReplaceFragShaderSrc =
 "FRAGCOLOR_DEF "
 "in lowp vec4 colorOut; "
 "in lowp vec2 texUVOut; "
@@ -89,7 +95,7 @@ static const char *texAlphaReplaceFragShaderSrc =
 ;
 
 #ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
-static const char *texExternalFragShaderSrc =
+static std::string_view texExternalFragShaderSrc =
 "#extension GL_OES_EGL_image_external : enable\n"
 "#extension GL_OES_EGL_image_external_essl3 : enable\n"
 "FRAGCOLOR_DEF "
@@ -101,7 +107,7 @@ static const char *texExternalFragShaderSrc =
 "}"
 ;
 
-static const char *texExternalReplaceFragShaderSrc =
+static std::string_view texExternalReplaceFragShaderSrc =
 "#extension GL_OES_EGL_image_external : enable\n"
 "#extension GL_OES_EGL_image_external_essl3 : enable\n"
 "FRAGCOLOR_DEF "
@@ -114,7 +120,7 @@ static const char *texExternalReplaceFragShaderSrc =
 ;
 #endif
 
-static const char *noTexFragShaderSrc =
+static std::string_view noTexFragShaderSrc =
 "FRAGCOLOR_DEF "
 "in lowp vec4 colorOut; "
 "in lowp vec2 texUVOut; "
@@ -264,14 +270,26 @@ static void setGLProgram(GLuint program)
 	}, "glUseProgram()");
 }
 
-static GLuint makeGLShader(RendererTask &rTask, std::span<const char *> srcs, ShaderType type)
+static GLuint makeGLShader(RendererTask &rTask, std::span<std::string_view> srcs, ShaderType type)
 {
+	if(srcs.size() > maxSourceStrings) [[unlikely]]
+	{
+		logErr("%zu source strings is over %zu limit", srcs.size(), maxSourceStrings);
+		return 0;
+	}
 	GLuint shaderOut{};
 	rTask.runSync(
 		[&shaderOut, srcs, type]()
 		{
 			auto shader = glCreateShader((GLenum)type);
-			glShaderSource(shader, srcs.size(), srcs.data(), nullptr);
+			StaticArrayList<const GLchar*, maxSourceStrings> srcStrings{};
+			StaticArrayList<GLint, maxSourceStrings> srcSizes{};
+			for(auto s : srcs)
+			{
+				srcStrings.emplace_back(s.data());
+				srcSizes.emplace_back(s.size());
+			}
+			glShaderSource(shader, srcs.size(), srcStrings.data(), srcSizes.data());
 			glCompileShader(shader);
 			GLint success;
 			glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
@@ -284,13 +302,13 @@ static GLuint makeGLShader(RendererTask &rTask, std::span<const char *> srcs, Sh
 			}
 			if(success == GL_FALSE)
 			{
-				if(Config::DEBUG_BUILD)
+				if constexpr(Config::DEBUG_BUILD)
 				{
 					logErr("failed shader source:");
-					iterateTimes(srcs.size(), i)
+					for(auto &s : srcs)
 					{
-						logger_printfn(LOG_E, "[part %u]", i);
-						logger_printfn(LOG_E, "%s", srcs[i]);
+						logger_printfn(LOG_E, "[part %zu]", std::distance(srcs.data(), &s));
+						logger_printfn(LOG_E, "%s", fmt::format("{}", s).c_str());
 					}
 				}
 			}
@@ -304,38 +322,46 @@ static GLuint makeGLShader(RendererTask &rTask, std::span<const char *> srcs, Sh
 	return shaderOut;
 }
 
-static GLuint makeCompatGLShader(RendererTask &rTask, std::span<const char *> srcs, ShaderType type)
+static GLuint makeCompatGLShader(RendererTask &rTask, std::span<std::string_view> srcs, ShaderType type)
 {
-	const uint32_t srcCount = srcs.size() + 2;
-	const char *compatSrcs[srcCount];
-	const char *version = Config::Gfx::OPENGL_ES ? "#version 300 es\n" : "#version 330\n";
-	const char legacyVertDefs[] // for GL ES 2.0
+	if(auto srcCount = srcs.size() + 2;
+		srcCount > maxSourceStrings) [[unlikely]]
+	{
+		logErr("%zu source strings is over %zu limit", srcCount, maxSourceStrings);
+		return 0;
+	}
+	StaticArrayList<std::string_view, maxSourceStrings> compatSrcs{};
+	std::string_view version = Config::Gfx::OPENGL_ES ? "#version 300 es\n"sv : "#version 330\n"sv;
+	std::string_view legacyVertDefs // for GL ES 2.0
 	{
 		"#define in attribute\n"
 		"#define out varying\n"
 	};
-	const char legacyFragDefs[] // for GL ES 2.0
+	std::string_view legacyFragDefs // for GL ES 2.0
 	{
 		"#define in varying\n"
 		"#define texture texture2D\n"
 		"#define FRAGCOLOR_DEF\n"
 		"#define FRAGCOLOR gl_FragColor\n"
 	};
-	const char fragDefs[]
+	std::string_view fragDefs
 	{
 		"#define FRAGCOLOR_DEF out mediump vec4 FRAGCOLOR;\n"
 	};
 	bool legacyGLSL = rTask.renderer().support.useLegacyGLSL;
-	compatSrcs[0] = legacyGLSL ? "" : version;
+	compatSrcs.emplace_back(legacyGLSL ? ""sv : version);
 	if(type == ShaderType::VERTEX)
-		compatSrcs[1] = legacyGLSL ? legacyVertDefs : "";
+		compatSrcs.emplace_back(legacyGLSL ? legacyVertDefs : ""sv);
 	else
-		compatSrcs[1] = legacyGLSL ? legacyFragDefs : fragDefs;
-	IG::copy_n_r(srcs.data(), srcs.size(), &compatSrcs[2]);
-	return makeGLShader(rTask, {compatSrcs, srcCount}, type);
+		compatSrcs.emplace_back(legacyGLSL ? legacyFragDefs : fragDefs);
+	for(auto s : srcs)
+	{
+		compatSrcs.emplace_back(s);
+	}
+	return makeGLShader(rTask, compatSrcs, type);
 }
 
-static GLuint makeGLShader(RendererTask &rTask, std::span<const char *> srcs, ShaderType type, bool compatMode)
+static GLuint makeGLShader(RendererTask &rTask, std::span<std::string_view> srcs, ShaderType type, bool compatMode)
 {
 	if(compatMode)
 		return makeCompatGLShader(rTask, srcs, type);
@@ -343,29 +369,29 @@ static GLuint makeGLShader(RendererTask &rTask, std::span<const char *> srcs, Sh
 		return makeGLShader(rTask, srcs, type);
 }
 
-Shader::Shader(RendererTask &rTask, std::span<const char *> srcs, ShaderType type, bool compatMode):
+Shader::Shader(RendererTask &rTask, std::span<std::string_view> srcs, ShaderType type, bool compatMode):
 	UniqueGLShader{makeGLShader(rTask, srcs, type, compatMode), {&rTask}}
 {}
 
-Shader::Shader(RendererTask &rTask, const char *src, ShaderType type, bool compatMode):
+Shader::Shader(RendererTask &rTask, std::string_view src, ShaderType type, bool compatMode):
 	Shader{rTask, {&src, 1}, type, compatMode} {}
 
-Shader Renderer::makeShader(std::span<const char *> srcs, ShaderType type)
+Shader Renderer::makeShader(std::span<std::string_view> srcs, ShaderType type)
 {
 	return {task(), srcs, type};
 }
 
-Shader Renderer::makeShader(const char *src, ShaderType type)
+Shader Renderer::makeShader(std::string_view src, ShaderType type)
 {
 	return {task(), {&src, 1}, type};
 }
 
-Shader Renderer::makeCompatShader(std::span<const char *> srcs, ShaderType type)
+Shader Renderer::makeCompatShader(std::span<std::string_view> srcs, ShaderType type)
 {
 	return {task(), srcs, type, true};
 }
 
-Shader Renderer::makeCompatShader(const char *src, ShaderType type)
+Shader Renderer::makeCompatShader(std::string_view src, ShaderType type)
 {
 	return {task(), {&src, 1}, type, true};
 }
@@ -377,12 +403,12 @@ NativeShader Renderer::defaultVShader()
 	return defaultVShader_;
 }
 
-static bool linkCommonProgram(RendererTask &rTask, NativeProgramBundle &bundle, const char **fragSrc, uint32_t fragSrcCount, bool hasTex)
+static bool linkCommonProgram(RendererTask &rTask, NativeProgramBundle &bundle, std::span<std::string_view> fragSrcs, bool hasTex)
 {
-	assert(fragSrc);
+	assert(fragSrcs.size());
 	auto vShader = rTask.renderer().defaultVShader();
 	assert(vShader);
-	Shader fShader{rTask, {fragSrc, fragSrcCount}, ShaderType::FRAGMENT, true};
+	Shader fShader{rTask, fragSrcs, ShaderType::FRAGMENT, true};
 	if(!fShader)
 	{
 		return false;
@@ -393,17 +419,16 @@ static bool linkCommonProgram(RendererTask &rTask, NativeProgramBundle &bundle, 
 	return true;
 }
 
-static bool linkCommonProgram(RendererTask &rTask, NativeProgramBundle &bundle, const char *fragSrc, bool hasTex, const char *progName)
+static bool linkCommonProgram(RendererTask &rTask, NativeProgramBundle &bundle, std::string_view fragSrc, bool hasTex, const char *progName)
 {
 	if(bundle.program)
 		return false;
 	logMsg("making %s program", progName);
-	const char *singleSrc[]{fragSrc};
-	return linkCommonProgram(rTask, bundle, singleSrc, 1, hasTex);
+	return linkCommonProgram(rTask, bundle, {&fragSrc, 1}, hasTex);
 }
 
 #ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
-static bool linkCommonExternalTextureProgram(RendererTask &rTask, NativeProgramBundle &bundle, const char *fragSrc, const char *progName)
+static bool linkCommonExternalTextureProgram(RendererTask &rTask, NativeProgramBundle &bundle, std::string_view fragSrc, const char *progName)
 {
 	assert(rTask.appContext().androidSDK() >= 14);
 	bool compiled = linkCommonProgram(rTask, bundle, fragSrc, true, progName);
@@ -411,7 +436,7 @@ static bool linkCommonExternalTextureProgram(RendererTask &rTask, NativeProgramB
 	{
 		// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
 		logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
-		const char *workaroundFragSrc[]{"#define texture2D texture\n", fragSrc};
+		std::string_view workaroundFragSrc[]{"#define texture2D texture\n"sv, fragSrc};
 		return linkCommonProgram(rTask, bundle, workaroundFragSrc, std::size(workaroundFragSrc), true);
 	}
 	return compiled;

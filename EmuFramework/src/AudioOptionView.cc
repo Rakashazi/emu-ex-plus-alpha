@@ -19,23 +19,24 @@
 #include "EmuOptions.hh"
 #include <imagine/util/format.hh>
 
-static void setAudioRate(uint32_t rate, EmuAudio &audio)
+TextMenuItem::SelectDelegate AudioOptionView::setRateDel(uint32_t val)
 {
-	if(rate > optionSoundRate.defaultVal)
-		return;
-	optionSoundRate = rate;
-	EmuSystem::configAudioPlayback(audio, rate);
+	assert(val <= optionSoundRate.defaultVal);
+	return [this, val]() { app().setSoundRate(val); };
 }
 
-static void setSoundBuffers(int val)
+TextMenuItem::SelectDelegate AudioOptionView::setBuffersDel(int val)
 {
-	optionSoundBuffers = val;
+	return [val]() { optionSoundBuffers = val; };
 }
 
-static void setSoundVolume(uint8_t val, EmuAudio &audio)
+TextMenuItem::SelectDelegate AudioOptionView::setVolumeDel(uint8_t val)
 {
-	optionSoundVolume = val;
-	audio.setVolume(val);
+	return [this, val]()
+		{
+			optionSoundVolume = val;
+			audio->setVolume(val);
+		};
 }
 
 AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
@@ -64,9 +65,9 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	soundVolumeItem
 	{
-		{"100%", &defaultFace(), [this]() { setSoundVolume(100, *audio); }},
-		{"50%", &defaultFace(), [this]() { setSoundVolume(50, *audio); }},
-		{"25%", &defaultFace(), [this]() { setSoundVolume(25, *audio); }},
+		{"100%", &defaultFace(), setVolumeDel(100)},
+		{"50%",  &defaultFace(), setVolumeDel(50)},
+		{"25%",  &defaultFace(), setVolumeDel(25)},
 		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
@@ -75,7 +76,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 					{
 						if(optionSoundVolume.isValidVal(val))
 						{
-							setSoundVolume(val, *audio);
+							app.setSoundRate(val);
 							soundVolume.setSelected(std::size(soundVolumeItem) - 1, *this);
 							dismissPrevious();
 							return true;
@@ -112,13 +113,13 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	soundBuffersItem
 	{
-		{"2", &defaultFace(), [this]() { setSoundBuffers(2); }},
-		{"3", &defaultFace(), [this]() { setSoundBuffers(3); }},
-		{"4", &defaultFace(), [this]() { setSoundBuffers(4); }},
-		{"5", &defaultFace(), [this]() { setSoundBuffers(5); }},
-		{"6", &defaultFace(), [this]() { setSoundBuffers(6); }},
-		{"7", &defaultFace(), [this]() { setSoundBuffers(7); }},
-		{"8", &defaultFace(), [this]() { setSoundBuffers(8); }},
+		{"2", &defaultFace(), setBuffersDel(2)},
+		{"3", &defaultFace(), setBuffersDel(3)},
+		{"4", &defaultFace(), setBuffersDel(4)},
+		{"5", &defaultFace(), setBuffersDel(5)},
+		{"6", &defaultFace(), setBuffersDel(6)},
+		{"7", &defaultFace(), setBuffersDel(7)},
+		{"8", &defaultFace(), setBuffersDel(8)},
 	},
 	soundBuffers
 	{
@@ -204,18 +205,18 @@ void AudioOptionView::loadStockItems()
 		audioRateItem.emplace_back("Device Native", &defaultFace(),
 			[this](View &view)
 			{
-				setAudioRate(optionSoundRate.defaultVal, *audio);
-				updateAudioRateItem();
+				app().setSoundRate(optionSoundRate.defaultVal);
+				updateRateItem();
 				view.dismiss();
 				return false;
 			});
-		audioRateItem.emplace_back("22KHz", &defaultFace(), [this]() { setAudioRate(22050, *audio); });
-		audioRateItem.emplace_back("32KHz", &defaultFace(), [this]() { setAudioRate(32000, *audio); });
-		audioRateItem.emplace_back("44KHz", &defaultFace(), [this]() { setAudioRate(44100, *audio); });
+		audioRateItem.emplace_back("22KHz", &defaultFace(), setRateDel(22050));
+		audioRateItem.emplace_back("32KHz", &defaultFace(), setRateDel(32000));
+		audioRateItem.emplace_back("44KHz", &defaultFace(), setRateDel(44100));
 		if(optionSoundRate.defaultVal >= 48000)
-			audioRateItem.emplace_back("48KHz", &defaultFace(), [this]() { setAudioRate(48000, *audio); });
+			audioRateItem.emplace_back("48KHz", &defaultFace(), setRateDel(48000));
 		item.emplace_back(&audioRate);
-		updateAudioRateItem();
+		updateRateItem();
 	}
 	item.emplace_back(&soundBuffers);
 	item.emplace_back(&addSoundBuffersOnUnderrun);
@@ -236,7 +237,7 @@ void AudioOptionView::setEmuAudio(EmuAudio &audio_)
 	audio = &audio_;
 }
 
-void AudioOptionView::updateAudioRateItem()
+void AudioOptionView::updateRateItem()
 {
 	switch(optionSoundRate)
 	{

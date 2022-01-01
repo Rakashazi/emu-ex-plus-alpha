@@ -193,14 +193,17 @@ static void setFrameInterval(int interval)
 #endif
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-void VideoOptionView::setImgEffect(unsigned val)
+TextMenuItem::SelectDelegate VideoOptionView::setImgEffectDel(ImageEffectId val)
 {
-	optionImgEffect = val;
-	if(emuVideo().image())
-	{
-		videoLayer->setEffect(val, optionImageEffectPixelFormatValue());
-		app().viewController().postDrawToEmuWindows();
-	}
+	return [this, val]()
+		{
+			optionImgEffect = (unsigned)val;
+			if(emuVideo().image())
+			{
+				videoLayer->setEffect(val, optionImageEffectPixelFormatValue());
+				app().viewController().postDrawToEmuWindows();
+			}
+		};
 }
 #endif
 
@@ -446,22 +449,22 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	imgEffectItem
 	{
-		{"Off", &defaultFace(), [this]() { setImgEffect(0); }},
-		{"hq2x", &defaultFace(), [this]() { setImgEffect(VideoImageEffect::HQ2X); }},
-		{"Scale2x", &defaultFace(), [this]() { setImgEffect(VideoImageEffect::SCALE2X); }},
-		{"Prescale 2x", &defaultFace(), [this]() { setImgEffect(VideoImageEffect::PRESCALE2X); }}
+		{"Off",         &defaultFace(), setImgEffectDel(ImageEffectId::NONE)},
+		{"hq2x",        &defaultFace(), setImgEffectDel(ImageEffectId::HQ2X)},
+		{"Scale2x",     &defaultFace(), setImgEffectDel(ImageEffectId::SCALE2X)},
+		{"Prescale 2x", &defaultFace(), setImgEffectDel(ImageEffectId::PRESCALE2X)}
 	},
 	imgEffect
 	{
 		"Image Effect", &defaultFace(),
 		[]()
 		{
-			switch(optionImgEffect)
+			switch((ImageEffectId)optionImgEffect.val)
 			{
 				default: return 0;
-				case VideoImageEffect::HQ2X: return 1;
-				case VideoImageEffect::SCALE2X: return 2;
-				case VideoImageEffect::PRESCALE2X: return 3;
+				case ImageEffectId::HQ2X: return 1;
+				case ImageEffectId::SCALE2X: return 2;
+				case ImageEffectId::PRESCALE2X: return 3;
 			}
 		}(),
 		imgEffectItem

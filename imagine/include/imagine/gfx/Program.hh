@@ -23,6 +23,7 @@
 
 #include <imagine/gfx/defs.hh>
 #include <span>
+#include <string_view>
 
 namespace Gfx
 {
@@ -33,8 +34,8 @@ class Shader : public ShaderImpl
 {
 public:
 	using ShaderImpl::ShaderImpl;
-	Shader(RendererTask &, std::span<const char *>, ShaderType type, bool compatMode = false);
-	Shader(RendererTask &, const char *src, ShaderType type, bool compatMode = false);
+	Shader(RendererTask &, std::span<std::string_view> srcs, ShaderType type, bool compatMode = false);
+	Shader(RendererTask &, std::string_view src, ShaderType type, bool compatMode = false);
 	explicit operator bool() const;
 };
 

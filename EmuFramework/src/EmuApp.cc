@@ -1158,6 +1158,19 @@ void EmuApp::addCurrentContentToRecent()
 	addRecentContent(EmuSystem::contentLocation(), EmuSystem::contentDisplayName());
 }
 
+void EmuApp::setSoundRate(uint32_t rate)
+{
+	optionSoundRate = rate;
+	EmuSystem::configAudioPlayback(audio(), rate);
+}
+
+void EmuApp::setFontSize(int size)
+{
+	optionFontSize = size;
+	setupFont(viewManager, renderer, viewController().emuWindow());
+	viewController().placeElements();
+}
+
 EmuApp &EmuApp::get(Base::ApplicationContext ctx)
 {
 	return static_cast<EmuApp&>(ctx.application());

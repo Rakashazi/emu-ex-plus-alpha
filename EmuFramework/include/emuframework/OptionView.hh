@@ -26,6 +26,7 @@
 class EmuVideoLayer;
 class EmuAudio;
 class TextTableView;
+enum class ImageEffectId : uint8_t;
 
 namespace Gfx
 {
@@ -105,7 +106,7 @@ protected:
 	void setZoom(uint8_t val);
 	void setViewportZoom(uint8_t val);
 	void setAspectRatio(double val);
-	void setImgEffect(unsigned val);
+	TextMenuItem::SelectDelegate setImgEffectDel(ImageEffectId val);
 	void setOverlayEffect(unsigned val);
 	void setRenderPixelFormat(IG::PixelFormatID);
 	void setImgEffectPixelFormat(IG::PixelFormatID);
@@ -140,8 +141,11 @@ protected:
 	#endif
 	StaticArrayList<MenuItem*, 15> item{};
 
-	void updateAudioRateItem();
+	void updateRateItem();
 	unsigned idxOfAPI(IG::Audio::Api api, std::vector<IG::Audio::ApiDesc> apiVec);
+	TextMenuItem::SelectDelegate setRateDel(uint32_t val);
+	TextMenuItem::SelectDelegate setBuffersDel(int val);
+	TextMenuItem::SelectDelegate setVolumeDel(uint8_t val);
 };
 
 class SystemOptionView : public TableView, public EmuAppHelper<SystemOptionView>
@@ -202,7 +206,12 @@ protected:
 	MultiChoiceMenuItem gameOrientation;
 	StaticArrayList<MenuItem*, 21> item{};
 
-	void setFontSize(uint16_t val);
+	TextMenuItem::SelectDelegate setFontSizeDel(uint16_t val);
+	TextMenuItem::SelectDelegate setMenuOrientationDel(int val);
+	TextMenuItem::SelectDelegate setGameOrientationDel(int val);
+	TextMenuItem::SelectDelegate setStatusBarDel(int val);
+	TextMenuItem::SelectDelegate setLowProfileOSNavDel(int val);
+	TextMenuItem::SelectDelegate setHideOSNavDel(int val);
 };
 
 class BiosSelectMenu : public TableView, public EmuAppHelper<BiosSelectMenu>

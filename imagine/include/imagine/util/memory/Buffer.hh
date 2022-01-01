@@ -19,6 +19,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <memory>
 #include <span>
+#include <string_view>
 #include <cstdint>
 
 namespace IG
@@ -77,6 +78,11 @@ public:
 	constexpr std::span<T> span() const
 	{
 		return {data_.get(), size()};
+	}
+
+	constexpr std::string_view stringView() const requires (sizeof(T) == 1)
+	{
+		return {reinterpret_cast<const char*>(data_.get()), size()};
 	}
 
 	constexpr T *data() const
