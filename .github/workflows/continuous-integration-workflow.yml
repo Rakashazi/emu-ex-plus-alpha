@@ -163,14 +163,14 @@ jobs:
     - name: Download and unzip NDK
       working-directory: /opt/android-sdk-linux/ndk
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r23-linux.zip
-        unzip -qq ./android-ndk-r23-linux.zip
+        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
+        unzip -qq ./android-ndk-r24-beta2-linux.zip
         
     - name: Set up environment
       run: |
         mkdir imagine-sdk
         mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r23" >> $GITHUB_ENV
+        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
@@ -273,14 +273,14 @@ jobs:
     - name: Download and unzip NDK
       working-directory: /opt/android-sdk-linux/ndk
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r23-linux.zip
-        unzip -qq ./android-ndk-r23-linux.zip
+        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
+        unzip -qq ./android-ndk-r24-beta2-linux.zip
         
     - name: Set up environment
       run: |
         mkdir imagine-sdk
         mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r23" >> $GITHUB_ENV
+        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
@@ -383,14 +383,14 @@ jobs:
     - name: Download and unzip NDK
       working-directory: /opt/android-sdk-linux/ndk
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r23-linux.zip
-        unzip -qq ./android-ndk-r23-linux.zip
+        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
+        unzip -qq ./android-ndk-r24-beta2-linux.zip
         
     - name: Set up environment
       run: |
         mkdir imagine-sdk
         mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r23" >> $GITHUB_ENV
+        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
@@ -493,14 +493,14 @@ jobs:
     - name: Download and unzip NDK
       working-directory: /opt/android-sdk-linux/ndk
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r23-linux.zip
-        unzip -qq ./android-ndk-r23-linux.zip
+        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
+        unzip -qq ./android-ndk-r24-beta2-linux.zip
         
     - name: Set up environment
       run: |
         mkdir imagine-sdk
         mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r23" >> $GITHUB_ENV
+        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
@@ -603,14 +603,14 @@ jobs:
     - name: Download and unzip NDK
       working-directory: /opt/android-sdk-linux/ndk
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r23-linux.zip
-        unzip -qq ./android-ndk-r23-linux.zip
+        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
+        unzip -qq ./android-ndk-r24-beta2-linux.zip
         
     - name: Set up environment
       run: |
         mkdir imagine-sdk
         mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r23" >> $GITHUB_ENV
+        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
@@ -713,14 +713,14 @@ jobs:
     - name: Download and unzip NDK
       working-directory: /opt/android-sdk-linux/ndk
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r23-linux.zip
-        unzip -qq ./android-ndk-r23-linux.zip
+        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
+        unzip -qq ./android-ndk-r24-beta2-linux.zip
         
     - name: Set up environment
       run: |
         mkdir imagine-sdk
         mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r23" >> $GITHUB_ENV
+        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
@@ -823,14 +823,14 @@ jobs:
     - name: Download and unzip NDK
       working-directory: /opt/android-sdk-linux/ndk
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r23-linux.zip
-        unzip -qq ./android-ndk-r23-linux.zip
+        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
+        unzip -qq ./android-ndk-r24-beta2-linux.zip
         
     - name: Set up environment
       run: |
         mkdir imagine-sdk
         mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r23" >> $GITHUB_ENV
+        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
@@ -933,14 +933,14 @@ jobs:
     - name: Download and unzip NDK
       working-directory: /opt/android-sdk-linux/ndk
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r23-linux.zip
-        unzip -qq ./android-ndk-r23-linux.zip
+        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
+        unzip -qq ./android-ndk-r24-beta2-linux.zip
         
     - name: Set up environment
       run: |
         mkdir imagine-sdk
         mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r23" >> $GITHUB_ENV
+        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
@@ -1043,14 +1043,14 @@ jobs:
     - name: Download and unzip NDK
       working-directory: /opt/android-sdk-linux/ndk
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r23-linux.zip
-        unzip -qq ./android-ndk-r23-linux.zip
+        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
+        unzip -qq ./android-ndk-r24-beta2-linux.zip
         
     - name: Set up environment
       run: |
         mkdir imagine-sdk
         mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r23" >> $GITHUB_ENV
+        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
@@ -1153,14 +1153,14 @@ jobs:
     - name: Download and unzip NDK
       working-directory: /opt/android-sdk-linux/ndk
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r23-linux.zip
-        unzip -qq ./android-ndk-r23-linux.zip
+        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
+        unzip -qq ./android-ndk-r24-beta2-linux.zip
         
     - name: Set up environment
       run: |
         mkdir imagine-sdk
         mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r23" >> $GITHUB_ENV
+        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV

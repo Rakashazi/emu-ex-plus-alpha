@@ -18,7 +18,7 @@ android_arch : Optional, default set by app
 2. Dependencies
 ===============
 
-Install the SDK platform for Android 11.0 (API 30), Android NDK Revision 23 (tested on 23.1.7779620) or 24, and the Android Support Library from Android Studio's SDK tools menu
+Install the SDK platform for Android 11.0 (API 30), Android NDK Revision 24 (tested on 24.0.7956693) or 24, and the Android Support Library from Android Studio's SDK tools menu
 
 3. Building
 ===========
@@ -34,4 +34,4 @@ When upgrading build tools like the NDK run the android-clean-project make targe
 
 --------------------------------
 
-Copyright 2014-2021 by Robert Broglia
+Copyright 2014-2022 by Robert Broglia
