@@ -20,18 +20,14 @@
 #include <EGL/egl.h>
 #include <string_view>
 
-namespace IG
-{
-class PixmapDesc;
-}
-
 // Wrapper for ANativeWindowBuffer (android_native_buffer_t)
 // similar to GraphicBuffer class in Android frameworks
 
-namespace Base
+namespace IG
 {
 
 class ApplicationContext;
+class PixmapDesc;
 
 class GraphicBuffer : public android_native_buffer_t
 {

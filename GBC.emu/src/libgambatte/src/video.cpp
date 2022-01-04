@@ -27,46 +27,6 @@ uint_least32_t gbcToRgb32(unsigned const bgr15);
 
 namespace {
 
-/*unsigned long gbcToRgb32(unsigned const bgr15) {
-	unsigned long const r = bgr15       & 0x1F;
-	unsigned long const g = bgr15 >>  5 & 0x1F;
-	unsigned long const b = bgr15 >> 10 & 0x1F;
-
-	return ((r * 13 + g * 2 + b) >> 1) << 16
-	| (g * 3 + b) << 9
-	| (r * 3 + g * 2 + b * 11) >> 1;
-}*/
-
-/*unsigned long gbcToRgb16(unsigned const bgr15) {
-	unsigned const r = bgr15 & 0x1F;
-	unsigned const g = bgr15 >> 5 & 0x1F;
-	unsigned const b = bgr15 >> 10 & 0x1F;
-
-	return (((r * 13 + g * 2 + b + 8) << 7) & 0xF800)
-	     | ((g * 3 + b + 1) >> 1) << 5
-	     | ((r * 3 + g * 2 + b * 11 + 8) >> 4);
-}
-
-unsigned long gbcToUyvy(unsigned const bgr15) {
-	unsigned const r5 = bgr15 & 0x1F;
-	unsigned const g5 = bgr15 >> 5 & 0x1F;
-	unsigned const b5 = bgr15 >> 10 & 0x1F;
-
-	// y = (r5 * 926151 + g5 * 1723530 + b5 * 854319) / 510000 + 16;
-	// u = (b5 * 397544 - r5 * 68824 - g5 * 328720) / 225930 + 128;
-	// v = (r5 * 491176 - g5 * 328720 - b5 * 162456) / 178755 + 128;
-
-	unsigned long const y = (r5 * 116 + g5 * 216 + b5 * 107 + 16 * 64 + 32) >> 6;
-	unsigned long const u = (b5 * 225 - r5 * 39 - g5 * 186 + 128 * 128 + 64) >> 7;
-	unsigned long const v = (r5 * 176 - g5 * 118 - b5 * 58 + 128 * 64 + 32) >> 6;
-
-#ifdef WORDS_BIGENDIAN
-	return u << 24 | y << 16 | v << 8 | y;
-#else
-	return y << 24 | v << 16 | y << 8 | u;
-#endif
-}*/
-
 // TODO: simplify cycle offsets.
 
 long const mode1_irq_frame_cycle = 1l * lcd_vres * lcd_cycles_per_line - 2;

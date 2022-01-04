@@ -39,13 +39,16 @@
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 
+namespace EmuEx
+{
+
 static constexpr uint MAX_ROM_SIZE = 512 * 1024;
-Base::ApplicationContext appCtx{};
+IG::ApplicationContext appCtx{};
 std::optional<OSystem> osystem{};
 Properties defaultGameProps{};
 bool p1DiffB = true, p2DiffB = true, vcsColor = true;
 Controller::Type autoDetectedInput1{};
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella-emu.github.io";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella-emu.github.io";
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::f32;
@@ -81,7 +84,7 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotChar(slot));
 }
 
-void EmuSystem::closeSystem(Base::ApplicationContext)
+void EmuSystem::closeSystem(IG::ApplicationContext)
 {
 	osystem->deleteConsole();
 }
@@ -100,7 +103,7 @@ bool EmuSystem::vidSysIsPAL()
 	return osystem->hasConsole() && osystem->console().timing() != ConsoleTiming::ntsc;
 }
 
-void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto &os = *osystem;
 	if(io.size() > MAX_ROM_SIZE)
@@ -244,11 +247,13 @@ void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	}
 }
 
-void EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(IG::ApplicationContext ctx)
 {
 	appCtx = ctx;
 	auto &app = EmuApp::get(ctx);
 	osystem.emplace(app);
 	Paddles::setDigitalSensitivity(5);
 	Paddles::setMouseSensitivity(7);
+}
+
 }

@@ -28,6 +28,9 @@
 #include <imagine/util/string.h>
 #include <string>
 
+namespace IG
+{
+
 FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes,
 	FilterFunc filter, Mode mode, Gfx::GlyphTextureSet *face_):
 	View{attach},
@@ -168,7 +171,7 @@ void FSPicker::draw(Gfx::RendererCommands &cmds)
 	}
 	else
 	{
-		using namespace Gfx;
+		using namespace IG::Gfx;
 		cmds.set(ColorName::WHITE);
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
 		auto textRect = controller.top().viewRect();
@@ -192,11 +195,11 @@ void FSPicker::setEmptyPath()
 	msgText.setString("No folder is set");
 	if(mode_ == Mode::FILE_IN_DIR)
 	{
-		controller.top().setName({});
+		fileTableView().setName({});
 	}
 	else
 	{
-		controller.top().setName("Select File Location");
+		fileTableView().setName("Select File Location");
 	}
 }
 
@@ -325,7 +328,7 @@ std::error_code FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInf
 	{
 		rootedPath = IG::decodeUri<FS::PathString>(rootedPath);
 	}
-	controller.top().setName(rootedPath);
+	fileTableView().setName(rootedPath);
 	onChangePath_.callSafe(*this, prevPath, e);
 	return ec;
 }
@@ -408,9 +411,9 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 			[this, &loc](View &view, Input::Event e)
 			{
 				auto ctx = appContext();
-				if(ctx.usesPermission(Base::Permission::WRITE_EXT_STORAGE))
+				if(ctx.usesPermission(Permission::WRITE_EXT_STORAGE))
 				{
-					if(!ctx.requestPermission(Base::Permission::WRITE_EXT_STORAGE))
+					if(!ctx.requestPermission(Permission::WRITE_EXT_STORAGE))
 						return;
 				}
 				changeDirByInput(loc.root.path, loc.root.info, e);
@@ -480,7 +483,14 @@ Gfx::GlyphTextureSet &FSPicker::face()
 	return *msgText.face();
 }
 
+TableView &FSPicker::fileTableView()
+{
+	return static_cast<TableView&>(controller.top());
+}
+
 void FSPicker::setShowHiddenFiles(bool on)
 {
 	showHiddenFiles_ = on;
+}
+
 }

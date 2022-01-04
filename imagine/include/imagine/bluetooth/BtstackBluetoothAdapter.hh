@@ -20,11 +20,14 @@
 #include <imagine/base/Error.hh>
 #import <btstack/btstack.h>
 
+namespace IG
+{
+
 class BtstackBluetoothAdapter : public BluetoothAdapter
 {
 public:
-	constexpr BtstackBluetoothAdapter() {}
-	static BtstackBluetoothAdapter *defaultAdapter(Base::ApplicationContext);
+	constexpr BtstackBluetoothAdapter() = default;
+	static BtstackBluetoothAdapter *defaultAdapter(ApplicationContext);
 	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) final;
 	void cancelScan() final;
 	void close() final;
@@ -54,7 +57,7 @@ public:
 	uint16_t ch = 0;
 	uint16_t localCh = 0;
 
-	constexpr BluetoothPendingSocket() {}
+	constexpr BluetoothPendingSocket() = default;
 	constexpr BluetoothPendingSocket(uint32_t type, BluetoothAddr addr, uint16_t ch, uint16_t localCh):
 		type(type), addr(addr), ch(ch), localCh(localCh) {}
 	void close();
@@ -70,8 +73,8 @@ public:
 class BtstackBluetoothSocket final: public BluetoothSocket
 {
 public:
-	constexpr BtstackBluetoothSocket() {}
-	constexpr BtstackBluetoothSocket(Base::ApplicationContext) {}
+	constexpr BtstackBluetoothSocket() = default;
+	constexpr BtstackBluetoothSocket(ApplicationContext) {}
 	~BtstackBluetoothSocket();
 	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr addr, uint32_t psm) final;
 	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr addr, uint32_t channel) final;
@@ -99,3 +102,5 @@ private:
 	const void *pinCode = nullptr;
 	uint32_t pinSize = 0;
 };
+
+}

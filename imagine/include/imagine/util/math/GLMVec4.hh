@@ -20,7 +20,7 @@
 class GLMVec4
 {
 public:
-	constexpr GLMVec4() {}
+	constexpr GLMVec4() = default;
 	constexpr GLMVec4(float x, float y, float z, float w): v{x, y, z, w} {}
 	constexpr GLMVec4(glm::vec4 v): v{v} {}
 	constexpr glm::vec4 vec() const { return v; }

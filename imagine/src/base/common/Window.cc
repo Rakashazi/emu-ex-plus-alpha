@@ -22,7 +22,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
 
-namespace Base
+namespace IG
 {
 
 static constexpr uint8_t MAX_DRAW_EVENT_PRIORITY = 0xFF;
@@ -158,7 +158,7 @@ static Window::FrameTimeSource frameClock(const Screen &screen, Window::FrameTim
 	return clock;
 }
 
-bool Window::addOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock, int priority)
+bool Window::addOnFrame(OnFrameDelegate del, FrameTimeSource clock, int priority)
 {
 	clock = frameClock(*screen(), clock);
 	if(clock == FrameTimeSource::SCREEN)
@@ -178,7 +178,7 @@ bool Window::addOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock, int pr
 	}
 }
 
-bool Window::removeOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock)
+bool Window::removeOnFrame(OnFrameDelegate del, FrameTimeSource clock)
 {
 	clock = frameClock(*screen(), clock);
 	if(clock == FrameTimeSource::SCREEN)
@@ -362,7 +362,7 @@ void Window::dispatchOnFrame()
 	//logDMsg("running %u onFrame delegates", onFrame.size());
 	auto now = IG::steadyClockTimestamp();
 	FrameParams frameParams{now, screen()->frameTime()};
-	onFrame.runAll([&](Base::OnFrameDelegate del){ return del(frameParams); });
+	onFrame.runAll([&](OnFrameDelegate del){ return del(frameParams); });
 	if(onFrame.size())
 	{
 		setNeedsDraw(true);

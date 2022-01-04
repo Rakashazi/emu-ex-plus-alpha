@@ -37,7 +37,7 @@ int closeFinishedMovie = 0;
 int StackAddrBackup = -1;
 int KillFCEUXonFrame = 0;
 
-void FCEUI_Emulate(EmuSystemTaskContext taskCtx, EmuVideo *video, int skip, EmuAudio *audio)
+void FCEUI_Emulate(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, int skip, EmuEx::EmuAudio *audio)
 {
 	#ifdef _S9XLUA_H
 	FCEU_LuaFrameBoundary();
@@ -64,7 +64,7 @@ void FCEUI_Emulate(EmuSystemTaskContext taskCtx, EmuVideo *video, int skip, EmuA
 	soundtimestamp = 0;
 }
 
-void FCEUI_Emulate(EmuVideo *video, int skip, EmuAudio *audio)
+void FCEUI_Emulate(EmuEx::EmuVideo *video, int skip, EmuEx::EmuAudio *audio)
 {
 	FCEUI_Emulate({}, video, skip, audio);
 }
@@ -72,7 +72,7 @@ void FCEUI_Emulate(EmuVideo *video, int skip, EmuAudio *audio)
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode)
 {
 	logMsg("opening file:%s mode:%s", fn, mode);
-	return FileUtils::fopenUri(appCtx, fn, mode);
+	return IG::FileUtils::fopenUri(EmuEx::appCtx, fn, mode);
 }
 
 void FCEUD_PrintError(const char *errormsg) { logErr("%s", errormsg); }
@@ -177,6 +177,7 @@ void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC
 
 int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 {
+	using namespace EmuEx;
 	if(fdsBiosPath.empty())
 	{
 		throw std::runtime_error{"No FDS BIOS set"};
@@ -263,7 +264,7 @@ void NetplayUpdate(uint8 *joyp) { }
 // from fceu.cpp
 bool CheckFileExists(const char* filename)
 {
-	return FS::exists(filename);
+	return IG::FS::exists(filename);
 }
 
 //The code in this function is a modified version
@@ -299,6 +300,7 @@ void EncodeGG(char *str, int a, int v, int c)
 
 std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 {
+	using namespace EmuEx;
 	switch(type)
 	{
 		case FCEUMKF_SAV:

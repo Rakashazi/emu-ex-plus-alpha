@@ -19,7 +19,11 @@
 #include <imagine/util/fd-utils.h>
 #include "IOUtils.hh"
 #include <sys/mman.h>
+#include <errno.h>
 #include <cstring>
+
+namespace IG
+{
 
 #if defined __linux__
 static constexpr bool hasMmapPopulateFlag = true;
@@ -139,14 +143,14 @@ MapIO PosixFileIO::makePosixMapIO(IO::AccessHint access, int fd)
 	return {byteBufferFromMmap(data, size)};
 }
 
-ssize_t PosixFileIO::read(void *buff, size_t bytes, std::error_code *ecOut)
+ssize_t PosixFileIO::read(void *buff, size_t bytes)
 {
-	return std::visit([&](auto &&io){ return io.read(buff, bytes, ecOut); }, ioImpl);
+	return std::visit([&](auto &&io){ return io.read(buff, bytes); }, ioImpl);
 }
 
-ssize_t PosixFileIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
+ssize_t PosixFileIO::readAtPos(void *buff, size_t bytes, off_t offset)
 {
-	return std::visit([&](auto &&io){ return io.readAtPos(buff, bytes, offset, ecOut); }, ioImpl);
+	return std::visit([&](auto &&io){ return io.readAtPos(buff, bytes, offset); }, ioImpl);
 }
 
 std::span<uint8_t> PosixFileIO::map()
@@ -154,19 +158,19 @@ std::span<uint8_t> PosixFileIO::map()
 	return std::visit([&](auto &&io){ return io.map(); }, ioImpl);
 }
 
-ssize_t PosixFileIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
+ssize_t PosixFileIO::write(const void *buff, size_t bytes)
 {
-	return std::visit([&](auto &&io){ return io.write(buff, bytes, ecOut); }, ioImpl);
+	return std::visit([&](auto &&io){ return io.write(buff, bytes); }, ioImpl);
 }
 
-std::error_code PosixFileIO::truncate(off_t offset)
+bool PosixFileIO::truncate(off_t offset)
 {
 	return std::visit([&](auto &&io){ return io.truncate(offset); }, ioImpl);
 }
 
-off_t PosixFileIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
+off_t PosixFileIO::seek(off_t offset, IO::SeekMode mode)
 {
-	return std::visit([&](auto &&io){ return io.seek(offset, mode, ecOut); }, ioImpl);
+	return std::visit([&](auto &&io){ return io.seek(offset, mode); }, ioImpl);
 }
 
 void PosixFileIO::sync()
@@ -211,4 +215,6 @@ int PosixFileIO::releaseFd()
 	}
 	logWarn("trying to release fd of mapped IO");
 	return -1;
+}
+
 }

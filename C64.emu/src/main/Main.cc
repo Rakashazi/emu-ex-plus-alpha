@@ -68,14 +68,17 @@ extern "C"
 	#include "joyport.h"
 }
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
+namespace EmuEx
+{
+
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
 std::binary_semaphore execSem{0}, execDoneSem{0};
 EmuAudio *audioPtr{};
 static bool c64IsInit = false, c64FailedInit = false;
 FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3]{};
 VicePlugin plugin{};
 ViceSystem currSystem = VICE_SYSTEM_C64;
-Base::ApplicationContext appContext{};
+IG::ApplicationContext appContext{};
 IG::PixelFormat pixFmt{};
 
 bool EmuSystem::hasPALVideoSystem = true;
@@ -494,7 +497,7 @@ void EmuSystem::loadState(IG::CStringView path)
 		return throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem(Base::ApplicationContext)
+void EmuSystem::saveBackupMem(IG::ApplicationContext)
 {
 	if(gameIsRunning())
 	{
@@ -504,7 +507,7 @@ void EmuSystem::saveBackupMem(Base::ApplicationContext)
 
 bool EmuSystem::vidSysIsPAL() { return sysIsPal(); }
 
-void EmuSystem::closeSystem(Base::ApplicationContext ctx)
+void EmuSystem::closeSystem(IG::ApplicationContext ctx)
 {
 	if(!gameIsRunning())
 	{
@@ -535,7 +538,7 @@ static const char *mainROMFilename(ViceSystem system)
 	}
 }
 
-static void throwC64FirmwareError(Base::ApplicationContext app)
+static void throwC64FirmwareError(IG::ApplicationContext ctx)
 {
 	throw std::runtime_error{fmt::format("System files missing, please set them in Options➔System➔VICE System File Path")};
 }
@@ -569,7 +572,7 @@ bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event e)
 	return false;
 }
 
-static FS::PathString vic20ExtraCartPath(Base::ApplicationContext ctx, std::string_view baseCartName, std::string_view searchPath)
+static FS::PathString vic20ExtraCartPath(IG::ApplicationContext ctx, std::string_view baseCartName, std::string_view searchPath)
 {
 	auto findAddrSuffixOffset =
 	[](std::string_view baseCartName) -> uintptr_t
@@ -613,7 +616,7 @@ static FS::PathString vic20ExtraCartPath(Base::ApplicationContext ctx, std::stri
 	return {};
 }
 
-void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
 {
 	if(!initC64(EmuApp::get(ctx)))
 	{
@@ -732,7 +735,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-static FS::PathString autostartPrgDiskImagePath(Base::ApplicationContext ctx)
+static FS::PathString autostartPrgDiskImagePath(IG::ApplicationContext ctx)
 {
 	return FS::pathString(EmuSystem::fallbackSaveDirectory(ctx), "AutostartPrgDisk.d64");
 }
@@ -762,7 +765,7 @@ void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	}
 }
 
-void EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(IG::ApplicationContext ctx)
 {
 	IG::makeDetachedThread(
 		[]()
@@ -795,4 +798,6 @@ void EmuSystem::onInit(Base::ApplicationContext ctx)
 	#else
 	optionReSidSampling.initDefault(SID_RESID_SAMPLING_FAST);
 	#endif
+}
+
 }

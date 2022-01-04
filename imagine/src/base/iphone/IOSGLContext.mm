@@ -23,7 +23,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 
-namespace Base
+namespace IG
 {
 
 // GLDisplay
@@ -118,7 +118,7 @@ void GLContext::present(NativeGLDrawable) const
 
 // GLManager
 
-GLManager::GLManager(Base::NativeDisplayConnection ctx, GL::API api)
+GLManager::GLManager(NativeDisplayConnection ctx, GL::API api)
 {
 	if(!bindAPI(api))
 	{
@@ -177,7 +177,7 @@ bool GLManager::hasCurrentDrawable()
 
 GLDisplay GLManager::display() const { return {}; }
 
-std::optional<GLBufferConfig> GLManager::makeBufferConfig(Base::ApplicationContext, GLBufferConfigAttributes attr, GL::API, unsigned) const
+std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext, GLBufferConfigAttributes attr, GL::API, unsigned) const
 {
 	GLBufferConfig conf;
 	if(attr.pixelFormat == PIXEL_RGB565)
@@ -232,7 +232,7 @@ bool GLManager::hasSrgbColorSpace() const
 	return false;
 }
 
-Base::NativeWindowFormat GLManager::nativeWindowFormat(Base::ApplicationContext, GLBufferConfig) const
+NativeWindowFormat GLManager::nativeWindowFormat(ApplicationContext, GLBufferConfig) const
 {
 	return {};
 }

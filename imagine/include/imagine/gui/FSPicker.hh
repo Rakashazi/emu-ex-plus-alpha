@@ -26,15 +26,20 @@
 #include <vector>
 #include <system_error>
 
-namespace Input
+namespace IG::Input
 {
 class Event;
 }
 
-namespace FS
+namespace IG::FS
 {
 class directory_entry;
 }
+
+namespace IG
+{
+
+class TableView;
 
 class FSPicker : public View
 {
@@ -92,4 +97,7 @@ protected:
 	std::error_code changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, Input::Event e);
 	bool isAtRoot() const;
 	Gfx::GlyphTextureSet &face();
+	TableView &fileTableView();
 };
+
+}

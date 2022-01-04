@@ -26,7 +26,7 @@
 #include <EGL/eglext.h>
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Renderer;
@@ -42,7 +42,7 @@ enum class TextureType : uint8_t
 class GLLockedTextureBuffer
 {
 public:
-	constexpr GLLockedTextureBuffer() {}
+	constexpr GLLockedTextureBuffer() = default;
 	constexpr GLLockedTextureBuffer(void *bufferOffset, IG::Pixmap pix, IG::WindowRect srcDirtyRect,
 		uint16_t lockedLevel, bool shouldFreeBuffer, GLuint pbo = 0):
 		bufferOffset_{bufferOffset}, pix{pix}, srcDirtyRect{srcDirtyRect}, pbo_{pbo},
@@ -67,7 +67,7 @@ using LockedTextureBufferImpl = GLLockedTextureBuffer;
 class GLTexture
 {
 public:
-	constexpr GLTexture() {}
+	constexpr GLTexture() = default;
 	constexpr GLTexture(RendererTask &rTask):rTask{&rTask} {}
 	~GLTexture();
 	GLuint texName() const;

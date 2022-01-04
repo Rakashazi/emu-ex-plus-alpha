@@ -21,6 +21,10 @@
 #include <imagine/util/container/ArrayList.hh>
 #include <emuframework/config.hh>
 
+namespace EmuEx
+{
+
+using namespace IG;
 class VController;
 enum class VControllerState : uint8_t;
 enum class VControllerVisibility : uint8_t;
@@ -91,3 +95,5 @@ protected:
 	TextMenuItem::SelectDelegate setButtonStateDel(VControllerState, uint8_t btnIdx);
 	TextMenuItem::SelectDelegate setAlphaDel(uint8_t val);
 };
+
+}

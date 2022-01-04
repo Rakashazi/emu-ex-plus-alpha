@@ -24,6 +24,7 @@
 #include "shared.h"
 #include "hvc.h"
 #include <imagine/logger/logger.h>
+#include <imagine/pixmap/Pixmap.hh>
 #ifndef NO_SCD
 #include <scd/scd.h>
 #endif

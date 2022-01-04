@@ -30,7 +30,7 @@ public:
 	T x{}, y{}, x2{}, y2{};
 	static constexpr _2DOrigin o = LTIC2DO;
 
-	constexpr Rect2() {}
+	constexpr Rect2() = default;
 	constexpr Rect2(Point2D<T> p1, Point2D<T> p2): x(p1.x), y(p1.y), x2(p2.x), y2(p2.y) {}
 
 	static Rect2 makeRel(Point2D<T> pos, Point2D<T> size)
@@ -332,7 +332,7 @@ public:
 	static constexpr int yOriginVal = yIsCartesian ? -1 : 1;
 	static constexpr int y2OriginVal = yIsCartesian ? 1 : -1;
 
-	constexpr CoordinateRect() {}
+	constexpr CoordinateRect() = default;
 	constexpr CoordinateRect(Rect2<T> rect):Rect2<T>{rect} {}
 	constexpr CoordinateRect(Point2DType p1, Point2DType p2): Rect2<T>{p1, p2} {}
 

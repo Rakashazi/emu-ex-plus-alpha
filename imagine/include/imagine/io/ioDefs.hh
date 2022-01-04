@@ -17,7 +17,7 @@
 
 #include <unistd.h> // for SEEK_*
 
-namespace IODefs
+namespace IG::IODefs
 {
 
 enum class Advice

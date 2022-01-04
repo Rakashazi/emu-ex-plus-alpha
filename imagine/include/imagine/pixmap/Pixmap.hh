@@ -44,7 +44,7 @@ public:
 			{}
 	};
 
-	constexpr Pixmap() {}
+	constexpr Pixmap() = default;
 
 	constexpr Pixmap(PixmapDesc desc, void *data, PitchInit pitch):
 		PixmapDesc{desc},

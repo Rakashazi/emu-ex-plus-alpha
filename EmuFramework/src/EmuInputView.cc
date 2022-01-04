@@ -26,6 +26,9 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/format.hh>
 
+namespace EmuEx
+{
+
 EmuInputView::EmuInputView() {}
 
 EmuInputView::EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideoLayer &videoLayer)
@@ -117,7 +120,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 			auto action = actionGroup[i];
 			if(action != 0)
 			{
-				using namespace EmuControls;
+				using namespace Controls;
 				didAction = true;
 				action--;
 
@@ -269,4 +272,6 @@ bool EmuInputView::inputEvent(Input::Event e)
 			|| e.isGamepad() // consume all gamepad events
 			|| devData.devConf.shouldConsumeUnboundKeys();
 	}
+}
+
 }

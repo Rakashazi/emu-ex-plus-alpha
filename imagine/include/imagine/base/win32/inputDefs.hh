@@ -2,7 +2,7 @@
 
 #include <imagine/util/windows/windows.h>
 
-namespace Input
+namespace IG::Input
 {
 
 // TODO: remove dummy defs

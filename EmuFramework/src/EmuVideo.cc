@@ -21,6 +21,9 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 void EmuVideo::resetImage(IG::PixelFormat newFmt)
 {
 	if(!vidImg)
@@ -251,7 +254,7 @@ Gfx::Renderer &EmuVideo::renderer() const
 	return rTask->renderer();
 }
 
-Base::ApplicationContext EmuVideo::appContext() const
+IG::ApplicationContext EmuVideo::appContext() const
 {
 	return rTask->appContext();
 }
@@ -384,4 +387,6 @@ IG::PixelFormat EmuVideo::renderPixelFormat() const
 IG::PixelFormat EmuVideo::internalRenderPixelFormat() const
 {
 	return renderPixelFormat() == IG::PIXEL_BGRA8888 ? IG::PIXEL_FMT_RGBA8888 : renderPixelFormat();
+}
+
 }

@@ -20,12 +20,8 @@
 #include <imagine/util/string.h>
 #include <emuframework/EmuSystem.hh>
 
-namespace EmuCheats
+namespace EmuEx
 {
-
-static const unsigned MAX = 255;
-
-}
 
 struct GbcCheat
 {
@@ -53,8 +49,11 @@ struct GbcCheat
 	}
 };
 
+static constexpr size_t maxCheats = 255;
 extern bool cheatsModified;
-extern StaticArrayList<GbcCheat, EmuCheats::MAX> cheatList;
+extern StaticArrayList<GbcCheat, maxCheats> cheatList;
 void applyCheats();
-void readCheatFile(Base::ApplicationContext);
-void writeCheatFile(Base::ApplicationContext);
+void readCheatFile(IG::ApplicationContext);
+void writeCheatFile(IG::ApplicationContext);
+
+}

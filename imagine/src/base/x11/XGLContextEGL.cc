@@ -26,7 +26,7 @@
 #define EGL_PLATFORM_X11_EXT 0x31D5
 #endif
 
-namespace Base
+namespace IG
 {
 
 static constexpr bool HAS_EGL_PLATFORM = Config::envIsLinux && !Config::MACHINE_IS_PANDORA;
@@ -51,13 +51,13 @@ bool GLManager::bindAPI(GL::API api)
 		return eglBindAPI(EGL_OPENGL_API);
 }
 
-std::optional<GLBufferConfig> GLManager::makeBufferConfig(Base::ApplicationContext, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion) const
+std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion) const
 {
 	auto renderableType = makeRenderableType(api, majorVersion);
 	return chooseConfig(display(), renderableType, attr);
 }
 
-Base::NativeWindowFormat GLManager::nativeWindowFormat(Base::ApplicationContext ctx, GLBufferConfig glConfig) const
+NativeWindowFormat GLManager::nativeWindowFormat(ApplicationContext ctx, GLBufferConfig glConfig) const
 {
 	if(Config::MACHINE_IS_PANDORA)
 		return nullptr;

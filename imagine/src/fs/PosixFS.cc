@@ -26,7 +26,7 @@
 #include <cstring>
 #include <system_error>
 
-namespace FS
+namespace IG::FS
 {
 
 static file_type makeDirType(int type)

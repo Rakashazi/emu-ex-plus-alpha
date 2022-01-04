@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseApplication.hh>
 
-namespace Base
+namespace IG
 {
 
 class Window;

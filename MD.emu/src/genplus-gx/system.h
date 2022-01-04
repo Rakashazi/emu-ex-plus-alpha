@@ -25,7 +25,12 @@
 #define _SYSTEM_H_
 
 #include "genplus-config.h"
-#include <emuframework/EmuVideo.hh>
+
+namespace EmuEx
+{
+class EmuVideo;
+class EmuSystemTaskContext;
+}
 
 #ifndef NO_SYSTEM_PBC
 #define SYSTEM_PBC        0x00
@@ -91,7 +96,7 @@ extern void audio_set_equalizer(void);
 extern void system_init(void);
 extern void system_reset(void);
 extern void system_shutdown(void);
-extern void (*system_frame)(EmuSystemTaskContext, EmuVideo *);
+extern void (*system_frame)(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *);
 
 static bool emuSystemIs16Bit()
 {

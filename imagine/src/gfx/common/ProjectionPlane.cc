@@ -18,7 +18,7 @@
 #include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/logger/logger.h>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 GC ProjectionPlane::width() const

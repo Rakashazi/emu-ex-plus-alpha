@@ -20,6 +20,9 @@
 #include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <imagine/util/string/CStringView.hh>
 
+namespace IG
+{
+
 class PosixIO final : public IO
 {
 public:
@@ -41,11 +44,11 @@ public:
 	static PosixIO create(IG::CStringView path, OpenFlags oFlags = {});
 	int releaseFd();
 	int fd() const;
-	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) final;
-	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
-	std::error_code truncate(off_t offset) final;
-	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut) final;
+	ssize_t read(void *buff, size_t bytes) final;
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset) final;
+	ssize_t write(const void *buff, size_t bytes) final;
+	bool truncate(off_t offset) final;
+	off_t seek(off_t offset, IO::SeekMode mode) final;
 	void sync() final;
 	size_t size() final;
 	bool eof() final;
@@ -55,3 +58,5 @@ public:
 protected:
 	IG::UniqueFileDescriptor fd_{};
 };
+
+}

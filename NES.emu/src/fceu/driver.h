@@ -9,9 +9,12 @@
 #include <cstring>
 #include <iosfwd>
 
+namespace EmuEx
+{
 class EmuSystemTaskContext;
 class EmuVideo;
 class EmuAudio;
+}
 
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode);
 inline FILE *FCEUD_UTF8fopen(const std::string &n, const char *mode) { return FCEUD_UTF8fopen(n.c_str(),mode); }
@@ -113,8 +116,8 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silen
 bool FCEUI_Initialize();
 
 //Emulates a frame.
-void FCEUI_Emulate(EmuSystemTaskContext, EmuVideo *, int skip, EmuAudio *);
-void FCEUI_Emulate(EmuVideo *, int skip, EmuAudio *);
+void FCEUI_Emulate(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, int skip, EmuEx::EmuAudio *);
+void FCEUI_Emulate(EmuEx::EmuVideo *, int skip, EmuEx::EmuAudio *);
 
 //Closes currently loaded game
 void FCEUI_CloseGame(void);

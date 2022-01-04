@@ -18,16 +18,15 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/pixmap/PixelDesc.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererCommands;
 
 static constexpr auto VertexColorPixelFormat = IG::PIXEL_DESC_RGBA8888.nativeOrder();
 
-class VertexInfo
+struct VertexInfo
 {
-public:
 	static constexpr uint32_t posOffset = 0;
 	static constexpr bool hasColor = false;
 	static constexpr uint32_t colorOffset = 0;
@@ -40,55 +39,35 @@ public:
 template <class T>
 concept Vertex = IG::derived_from<T, VertexInfo>;
 
-class Vertex2D : public VertexInfo
+struct Vertex2D : public VertexInfo
 {
-public:
 	VertexPos x{}, y{};
-
-	constexpr Vertex2D() {};
-	constexpr Vertex2D(VertexPos x, VertexPos y):
-		x{x}, y{y} {}
 	static constexpr uint32_t ID = 1;
 };
 
-class ColVertex : public VertexInfo
+struct ColVertex : public VertexInfo
 {
-public:
 	VertexPos x{}, y{};
 	VertexColor color{};
-
-	constexpr ColVertex() {};
-	constexpr ColVertex(VertexPos x, VertexPos y, uint32_t color = 0):
-		x{x}, y{y}, color(color) {}
 	static constexpr bool hasColor = true;
 	static const uint32_t colorOffset;
 	static constexpr uint32_t ID = 2;
 };
 
-class TexVertex : public VertexInfo
+struct TexVertex : public VertexInfo
 {
-public:
 	VertexPos x{}, y{};
 	TextureCoordinate u{}, v{};
-
-	constexpr TexVertex() {};
-	constexpr TexVertex(VertexPos x, VertexPos y, TextureCoordinate u = 0, TextureCoordinate v = 0):
-		x{x}, y{y}, u{u}, v{v} {}
 	static constexpr bool hasTexture = true;
 	static const uint32_t textureOffset;
 	static constexpr uint32_t ID = 3;
 };
 
-class ColTexVertex : public VertexInfo
+struct ColTexVertex : public VertexInfo
 {
-public:
 	VertexPos x{}, y{};
 	TextureCoordinate u{}, v{};
 	VertexColor color{};
-
-	constexpr ColTexVertex() {};
-	constexpr ColTexVertex(VertexPos x, VertexPos y, uint32_t color = 0, TextureCoordinate u = 0, TextureCoordinate v = 0):
-		x{x}, y{y}, u{u}, v{v}, color(color) {}
 	static constexpr bool hasColor = true;
 	static const uint32_t colorOffset;
 	static constexpr bool hasTexture = true;

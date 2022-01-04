@@ -15,23 +15,22 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/input/inputDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/jni.hh>
 
-namespace Input
+namespace IG::Input
 {
 
 class AndroidTextField
 {
 public:
-	AndroidTextField(Base::ApplicationContext, TextFieldDelegate, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels);
+	AndroidTextField(ApplicationContext, TextFieldDelegate, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels);
 	~AndroidTextField();
 	AndroidTextField &operator=(AndroidTextField &&) = delete;
 
 protected:
-	Base::ApplicationContext ctx;
+	ApplicationContext ctx;
 	JNI::UniqueGlobalRef jTextEntry{};
 	TextFieldDelegate textDelegate;
 	IG::WindowRect textRect{{8, 200}, {8+304, 200+48}};

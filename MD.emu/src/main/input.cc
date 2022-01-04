@@ -20,9 +20,12 @@
 #include "input.h"
 #include "system.h"
 
+namespace EmuEx
+{
+
 enum
 {
-	mdKeyIdxUp = EmuControls::systemKeyMapStart,
+	mdKeyIdxUp = Controls::systemKeyMapStart,
 	mdKeyIdxRight,
 	mdKeyIdxDown,
 	mdKeyIdxLeft,
@@ -81,9 +84,9 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	assert(input >= mdKeyIdxUp);
-	unsigned player = (input - mdKeyIdxUp) / EmuControls::gamepadKeys;
+	unsigned player = (input - mdKeyIdxUp) / Controls::gamepadKeys;
 	unsigned playerMask = player << 30;
-	input -= EmuControls::gamepadKeys * player;
+	input -= Controls::gamepadKeys * player;
 	switch(input)
 	{
 		case mdKeyIdxUp: return INPUT_UP | playerMask;
@@ -151,4 +154,6 @@ void EmuSystem::clearInputBuffers(EmuInputView &)
 	{
 		IG::fill(analog);
 	}
+}
+
 }

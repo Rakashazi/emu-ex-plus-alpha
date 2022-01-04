@@ -25,7 +25,7 @@
 static constexpr char ASCII_LF = 0xA;
 static constexpr char ASCII_CR = 0xD;
 
-namespace Base
+namespace IG
 {
 
 struct XGlibSource : public GSource
@@ -192,7 +192,7 @@ bool XApplication::eventHandler(XEvent event)
 					logMsg("unknown WM_PROTOCOLS message");
 				}
 			}
-			else if(Config::Base::XDND && xdndIsInit())
+			else if(Config::XDND && xdndIsInit())
 			{
 				auto [draggerXWin, dragAction] = win.xdndData();
 				handleXDNDEvent(dpy, xdndAtom, event.xclient, win.nativeObject(), draggerXWin, dragAction);
@@ -206,7 +206,7 @@ bool XApplication::eventHandler(XEvent event)
 		bcase SelectionNotify:
 		{
 			logMsg("SelectionNotify");
-			if(Config::Base::XDND && event.xselection.property != None)
+			if(Config::XDND && event.xselection.property != None)
 			{
 				auto &win = *windowForXWindow(event.xselection.requestor);
 				int format;

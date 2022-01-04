@@ -34,13 +34,15 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #endif
 #include "../../gfx/opengl/utils.hh"
 
-namespace Base
+namespace IG
 {
 
 EAGLViewMakeRenderbufferDelegate makeRenderbuffer{};
 EAGLViewDeleteRenderbufferDelegate deleteRenderbuffer{};
 
 }
+
+using namespace IG;
 
 static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffer)
 {
@@ -66,7 +68,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 	GLuint _depthRenderbuffer;
 }
 
-+ (Class)layerClass
++ (::Class)layerClass
 {
 	return [CAEAGLLayer class];
 }
@@ -120,8 +122,8 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 		return; // already deinit
 	}
 	logMsg("deleting layer renderbuffer: %u", _colorRenderbuffer);
-	assumeExpr(Base::deleteRenderbuffer);
-	Base::deleteRenderbuffer(_colorRenderbuffer, _depthRenderbuffer);
+	assumeExpr(deleteRenderbuffer);
+	deleteRenderbuffer(_colorRenderbuffer, _depthRenderbuffer);
 	_colorRenderbuffer = 0;
 	_depthRenderbuffer = 0;
 }
@@ -136,7 +138,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 {
 	if(newWindow)
 	{
-		auto scale = Base::hasAtLeastIOS8() ? [newWindow.screen nativeScale] : [newWindow.screen scale];
+		auto scale = hasAtLeastIOS8() ? [newWindow.screen nativeScale] : [newWindow.screen scale];
 		logMsg("view %p moving to window %p with scale %f", self, newWindow, (double)scale);
 		self.contentScaleFactor = scale;
 	}
@@ -151,9 +153,9 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 {
 	logMsg("in layoutSubviews");
 	[self deleteDrawable];
-	assumeExpr(Base::makeRenderbuffer);
-	auto size = Base::makeRenderbuffer((__bridge void*)self.layer, _colorRenderbuffer, _depthRenderbuffer);
-	auto &win = *Base::windowForUIWindow({[UIApplication sharedApplication]}, self.window);
+	assumeExpr(makeRenderbuffer);
+	auto size = makeRenderbuffer((__bridge void*)self.layer, _colorRenderbuffer, _depthRenderbuffer);
+	auto &win = *windowForUIWindow({[UIApplication sharedApplication]}, self.window);
 	win.updateWindowSizeAndContentRect(size.x, size.y);
 	win.postDraw();
 	//logMsg("exiting layoutSubviews");
@@ -161,7 +163,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 
 static void dispatchTouches(NSSet *touches, EAGLView *view, Input::Action action)
 {
-	auto &win = *Base::ApplicationContext{[UIApplication sharedApplication]}.deviceWindow();
+	auto &win = *ApplicationContext{[UIApplication sharedApplication]}.deviceWindow();
 	for(UITouch* touch in touches)
 	{
 		CGPoint pos = [touch locationInView:view];

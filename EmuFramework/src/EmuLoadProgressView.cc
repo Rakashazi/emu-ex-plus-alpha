@@ -18,6 +18,9 @@
 #include <imagine/util/math/space.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, Input::Event e, EmuApp::CreateSystemCompleteDelegate onComplete):
 	View{attach},
 	onComplete{onComplete},
@@ -122,7 +125,7 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 {
 	if(!text.isVisible())
 		return;
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	projP.resetTransforms(cmds);
 	cmds.setBlendMode(0);
 	if(max)
@@ -142,4 +145,6 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 EmuLoadProgressView::MessagePortType &EmuLoadProgressView::messagePort()
 {
 	return msgPort;
+}
+
 }

@@ -26,7 +26,7 @@
 #include <imagine/base/timer/CFTimer.hh>
 #endif
 
-namespace Base
+namespace IG
 {
 
 struct Timer : public TimerImpl

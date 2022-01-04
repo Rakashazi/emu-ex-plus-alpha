@@ -17,7 +17,7 @@
 #include <imagine/input/Device.hh>
 #include <imagine/base/Application.hh>
 
-namespace Input
+namespace IG::Input
 {
 
 std::string_view Event::mapName() const

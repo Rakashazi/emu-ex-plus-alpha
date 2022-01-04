@@ -21,6 +21,9 @@
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/RTC.h>
 
+namespace EmuEx
+{
+
 class ConsoleOptionView : public TableView
 {
 	TextMenuItem rtcItem[3]
@@ -100,4 +103,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;
 	}
+}
+
 }

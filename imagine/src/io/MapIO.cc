@@ -14,23 +14,27 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "MapIO"
+#include <imagine/io/MapIO.hh>
+#include <imagine/logger/logger.h>
+#include "utils.hh"
+#include <errno.h>
 #include <cstring>
 #if defined __linux__ || defined __APPLE__
 #include <sys/mman.h>
 #include <imagine/util/system/pagesize.h>
 #endif
-#include <imagine/io/MapIO.hh>
-#include <imagine/logger/logger.h>
-#include "utils.hh"
+
+namespace IG
+{
 
 MapIO::MapIO(IG::ByteBuffer buff):
 	currPos{buff.data()},
 	buff{std::move(buff)} {}
 
-ssize_t MapIO::read(void *buff, size_t bytes, std::error_code *ecOut)
+ssize_t MapIO::read(void *buff, size_t bytes)
 {
 	assert(currPos >= data());
-	auto bytesRead = readAtAddr(buff, bytes, currPos, ecOut);
+	auto bytesRead = readAtAddr(buff, bytes, currPos);
 	if(bytesRead > 0)
 	{
 		currPos += bytesRead;
@@ -38,9 +42,9 @@ ssize_t MapIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 	return bytesRead;
 }
 
-ssize_t MapIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
+ssize_t MapIO::readAtPos(void *buff, size_t bytes, off_t offset)
 {
-	return readAtAddr(buff, bytes, data() + offset, ecOut);
+	return readAtAddr(buff, bytes, data() + offset);
 }
 
 std::span<uint8_t> MapIO::map()
@@ -48,22 +52,18 @@ std::span<uint8_t> MapIO::map()
 	return {data(), size()};
 }
 
-ssize_t MapIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
+ssize_t MapIO::write(const void *buff, size_t bytes)
 {
 	// TODO
-	if(ecOut)
-		*ecOut = {ENOSYS, std::system_category()};
 	return -1;
 }
 
-off_t MapIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
+off_t MapIO::seek(off_t offset, IO::SeekMode mode)
 {
 	auto newPos = (uint8_t*)transformOffsetToAbsolute(mode, offset, (off_t)data(), (off_t)dataEnd(), (off_t)currPos);
 	if(newPos < data() || newPos > dataEnd())
 	{
 		logErr("illegal seek position");
-		if(ecOut)
-			*ecOut = {EINVAL, std::system_category()};
 		return -1;
 	}
 	currPos = newPos;
@@ -137,16 +137,12 @@ uint8_t *MapIO::dataEnd() const
 	return data() + buff.size();
 }
 
-ssize_t MapIO::readAtAddr(void* buff, size_t bytes, const uint8_t *addr, std::error_code *ecOut)
+ssize_t MapIO::readAtAddr(void* buff, size_t bytes, const uint8_t *addr)
 {
 	if(addr >= dataEnd())
 	{
-		if(!data())
-		{
-			if(ecOut)
-				*ecOut = {EBADF, std::system_category()};
+		if(!data()) [[unlikely]]
 			return -1;
-		}
 		else
 			return 0;
 	}
@@ -163,4 +159,6 @@ ssize_t MapIO::readAtAddr(void* buff, size_t bytes, const uint8_t *addr, std::er
 	memcpy(buff, addr, bytesToRead);
 
 	return bytesToRead;
+}
+
 }

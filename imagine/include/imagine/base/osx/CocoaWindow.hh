@@ -4,7 +4,7 @@
 #include <imagine/base/BaseWindow.hh>
 #include <compare>
 
-namespace Base
+namespace IG
 {
 
 struct NativeWindowFormat {};

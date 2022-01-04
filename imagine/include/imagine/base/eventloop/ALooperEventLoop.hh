@@ -20,7 +20,7 @@
 #include <android/looper.h>
 #include <memory>
 
-namespace Base
+namespace IG
 {
 
 static const int POLLEV_IN = ALOOPER_EVENT_INPUT, POLLEV_OUT = ALOOPER_EVENT_OUTPUT,
@@ -35,7 +35,7 @@ struct ALooperFDEventSourceInfo
 class ALooperFDEventSource
 {
 public:
-	constexpr ALooperFDEventSource() {}
+	constexpr ALooperFDEventSource() = default;
 	ALooperFDEventSource(int fd) : ALooperFDEventSource{nullptr, fd} {}
 	ALooperFDEventSource(const char *debugLabel, int fd);
 	ALooperFDEventSource(ALooperFDEventSource &&o);
@@ -56,7 +56,7 @@ using FDEventSourceImpl = ALooperFDEventSource;
 class ALooperEventLoop
 {
 public:
-	constexpr ALooperEventLoop() {}
+	constexpr ALooperEventLoop() = default;
 	constexpr ALooperEventLoop(ALooper *looper): looper{looper} {}
 	ALooper *nativeObject() const { return looper; }
 

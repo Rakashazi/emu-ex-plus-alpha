@@ -22,7 +22,7 @@
 #include <imagine/util/utility.h>
 #include <cstring>
 
-namespace Base
+namespace IG
 {
 
 template <class MsgType>

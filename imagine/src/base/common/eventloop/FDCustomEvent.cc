@@ -76,7 +76,7 @@ static void cancelEventFD(int fd, const char *debugLabel)
 #endif
 }
 
-namespace Base
+namespace IG
 {
 
 FDCustomEvent::FDCustomEvent(const char *debugLabel):

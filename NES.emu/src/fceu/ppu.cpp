@@ -1751,7 +1751,7 @@ void FCEUPPU_Power(void) {
 	BWrite[0x4014] = B4014;
 }
 
-int FCEUPPU_Loop(EmuSystemTaskContext taskCtx, EmuVideo *video, int skip) {
+int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, int skip) {
 	if ((newppu) && (GameInfo->type != GIT_NSF)) {
 		int FCEUX_PPU_Loop(int skip);
 		return FCEUX_PPU_Loop(skip);
@@ -1898,7 +1898,7 @@ int FCEUPPU_Loop(EmuSystemTaskContext taskCtx, EmuVideo *video, int skip) {
 	}
 }
 
-int (*PPU_MASTER)(EmuSystemTaskContext, EmuVideo *, int skip) = FCEUPPU_Loop;
+int (*PPU_MASTER)(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, int skip) = FCEUPPU_Loop;
 
 static uint16 TempAddrT, RefreshAddrT;
 

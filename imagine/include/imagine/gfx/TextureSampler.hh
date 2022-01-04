@@ -23,7 +23,7 @@
 #include <imagine/gfx/opengl/GLTextureSampler.hh>
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Renderer;

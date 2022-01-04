@@ -20,7 +20,7 @@
 #include <imagine/logger/logger.h>
 #include <android/hardware_buffer.h>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 static constexpr uint32_t allocateUsage = AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE;
@@ -145,9 +145,9 @@ void HardwareBufferStorage<Buffer>::swapBuffer()
 	bufferIdx = (bufferIdx + 1) % 2;
 }
 
-template class HardwareSingleBufferStorage<Base::HardwareBuffer>;
-template class HardwareSingleBufferStorage<Base::GraphicBuffer>;
-template class HardwareBufferStorage<Base::HardwareBuffer>;
-template class HardwareBufferStorage<Base::GraphicBuffer>;
+template class HardwareSingleBufferStorage<HardwareBuffer>;
+template class HardwareSingleBufferStorage<GraphicBuffer>;
+template class HardwareBufferStorage<HardwareBuffer>;
+template class HardwareBufferStorage<GraphicBuffer>;
 
 }

@@ -21,7 +21,7 @@
 #include <imagine/fs/FS.hh>
 #endif
 
-namespace FS
+namespace IG::FS
 {
 
 class AAssetIterator;

@@ -27,7 +27,7 @@ static constexpr uint32_t defaultOutputBufferFrames = 192; // default used in Go
 static constexpr int AUDIOFOCUS_GAIN = 1;
 static constexpr int STREAM_MUSIC = 3;
 
-AndroidManager::AndroidManager(Base::ApplicationContext ctx_):
+AndroidManager::AndroidManager(ApplicationContext ctx_):
 	ctx{ctx_}
 {
 	auto env = ctx.mainThreadJniEnv();
@@ -95,7 +95,6 @@ bool Manager::soloMix() const
 
 void Manager::setMusicVolumeControlHint()
 {
-	using namespace Base;
 	auto env = ctx.mainThreadJniEnv();
 	auto baseActivity = ctx.baseActivityObject();
 	JNI::InstMethod<void(jint)> jSetVolumeControlStream{env, baseActivity, "setVolumeControlStream", "(I)V"};
@@ -130,9 +129,9 @@ std::vector<ApiDesc> Manager::audioAPIs() const
 	if(ctx.androidSDK() >= 26)
 	{
 		desc.reserve(2);
-		desc.emplace_back("AAudio", Api::AAUDIO);
+		desc.emplace_back(ApiDesc{"AAudio", Api::AAUDIO});
 	}
-	desc.emplace_back("OpenSL ES", Api::OPENSL_ES);
+	desc.emplace_back(ApiDesc{"OpenSL ES", Api::OPENSL_ES});
 	return desc;
 }
 

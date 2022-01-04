@@ -22,13 +22,12 @@
 #include <imagine/logger/logger.h>
 #include <android/native_window_jni.h>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig config, bool makeSingleBuffered, IG::ErrorCode *errorPtr):
 	TextureBufferStorage{r}
 {
-	using namespace Base;
 	IG::ErrorCode err{};
 	auto setErrorPtr = IG::scopeGuard(
 		[&]()
@@ -120,7 +119,6 @@ SurfaceTextureStorage::~SurfaceTextureStorage()
 
 void SurfaceTextureStorage::deinit()
 {
-	using namespace Base;
 	if(nativeWin)
 	{
 		logMsg("deinit SurfaceTexture, releasing window:%p", nativeWin);
@@ -142,7 +140,7 @@ void SurfaceTextureStorage::deinit()
 IG::ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *)
 {
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
-	int winFormat = Base::toAHardwareBufferFormat(desc.format());
+	int winFormat = toAHardwareBufferFormat(desc.format());
 	if(!winFormat) [[unlikely]]
 	{
 		logErr("pixel format not usable");
@@ -160,7 +158,6 @@ IG::ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace c
 
 LockedTextureBuffer SurfaceTextureStorage::lock(uint32_t bufferFlags)
 {
-	using namespace Base;
 	if(!nativeWin) [[unlikely]]
 	{
 		logErr("called lock when uninitialized");
@@ -197,7 +194,6 @@ LockedTextureBuffer SurfaceTextureStorage::lock(uint32_t bufferFlags)
 
 void SurfaceTextureStorage::unlock(LockedTextureBuffer, uint32_t)
 {
-	using namespace Base;
 	if(!nativeWin) [[unlikely]]
 	{
 		logErr("called unlock when uninitialized");
@@ -207,7 +203,7 @@ void SurfaceTextureStorage::unlock(LockedTextureBuffer, uint32_t)
 	task().run(
 		[tex = surfaceTex, app = task().appContext()]()
 		{
-			Base::updateSurfaceTextureImage(app.thisThreadJniEnv(), tex);
+			updateSurfaceTextureImage(app.thisThreadJniEnv(), tex);
 		});
 }
 

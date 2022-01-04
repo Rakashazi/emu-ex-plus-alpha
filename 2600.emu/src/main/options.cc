@@ -20,6 +20,9 @@
 #undef Debugger
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 static bool optionIsValidControllerType(uint8_t val);
 
 enum
@@ -165,4 +168,6 @@ void setRuntimeTVPhosphor(int val, int blend)
 	}
 	osystem->console().setProperties(props);
 	osystem->frameBuffer().tiaSurface().enablePhosphor(usePhosphor, blend);
+}
+
 }

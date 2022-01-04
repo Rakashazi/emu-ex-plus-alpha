@@ -20,6 +20,9 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
+namespace IG
+{
+
 NavView::NavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face):
 	View{attach},
 	text{"", face}
@@ -205,7 +208,7 @@ void BasicNavView::setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop,
 
 void BasicNavView::draw(Gfx::RendererCommands &cmds)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	auto const &textRect = control[1].rect;
 	if(bg)
 	{
@@ -266,7 +269,7 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 
 void BasicNavView::place()
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	auto &r = renderer();
 	NavView::place();
 	if(leftSpr.image())
@@ -316,4 +319,6 @@ void BasicNavView::setCenterTitle(bool on)
 void BasicNavView::setRotateLeftButton(bool on)
 {
 	rotateLeftBtn = on;
+}
+
 }

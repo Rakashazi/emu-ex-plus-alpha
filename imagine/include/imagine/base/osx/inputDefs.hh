@@ -85,7 +85,7 @@ enum {
 
 #endif
 
-namespace Input
+namespace IG::Input
 {
 
 using PointerIdImpl = void*;
@@ -136,6 +136,7 @@ namespace OSX
 	_0 = kVK_ANSI_0,
 	ENTER = kVK_Return,
 	ESCAPE = kVK_Escape,
+	BACK = ESCAPE,
 	BACK_SPACE = kVK_Delete,
 	TAB = kVK_Tab,
 	SPACE = kVK_Space,
@@ -266,10 +267,7 @@ namespace OSX
 	PRINT_SCREEN = NSPrintScreenFunctionKey,*/
 
 	// private key-codes for misc keys, gamepads, & analog -> digital joystick axis emulation
-	miscKeyBase = 30000,
-	BACK = miscKeyBase,
-
-	gpKeyBase = BACK + 1,
+	gpKeyBase = 30000,
 	GAME_A = gpKeyBase,
 	GAME_B = gpKeyBase+1,
 	GAME_C = gpKeyBase+2,
@@ -305,8 +303,9 @@ namespace OSX
 	JS3_YAXIS_POS = axisKeyBase+18, JS3_YAXIS_NEG = axisKeyBase+19,
 
 	JS_LTRIGGER_AXIS = axisKeyBase+20, JS_RTRIGGER_AXIS = axisKeyBase+21,
-	JS_GAS_AXIS = axisKeyBase+22, JS_BRAKE_AXIS = axisKeyBase+23
-	;
+	JS_GAS_AXIS = axisKeyBase+22, JS_BRAKE_AXIS = axisKeyBase+23,
+
+	BACK_KEY = ESCAPE;
 
 	static const uint32_t COUNT = 0xffff;
 };

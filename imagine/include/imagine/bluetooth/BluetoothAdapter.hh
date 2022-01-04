@@ -24,13 +24,16 @@
 #include <array>
 #include <compare>
 
+namespace IG
+{
+
 class BluetoothPendingSocket;
 
 using BluetoothAddrString = std::array<char, 18>;
 
 struct BluetoothAddr
 {
-	constexpr BluetoothAddr() {}
+	constexpr BluetoothAddr() = default;
 	constexpr BluetoothAddr(const uint8_t b[6]): b{b[0], b[1], b[2], b[3], b[4], b[5]} {}
 
 	const uint8_t *data() const
@@ -52,7 +55,7 @@ private:
 class BluetoothAdapter
 {
 public:
-	enum { INIT_FAILED, SCAN_FAILED, SCAN_PROCESSING, SCAN_NO_DEVS, SCAN_NAME_FAILED,
+	enum { INIT_FAILED = 1, SCAN_FAILED, SCAN_PROCESSING, SCAN_NO_DEVS, SCAN_NAME_FAILED,
 		SCAN_COMPLETE, SCAN_CANCELLED/*, SOCKET_OPEN_FAILED*/ };
 	enum State { STATE_OFF, STATE_ON, STATE_TURNING_OFF, STATE_TURNING_ON, STATE_ERROR };
 	bool inDetect = false;
@@ -68,8 +71,8 @@ public:
 	using OnScanDeviceNameDelegate = DelegateFunc<void (BluetoothAdapter &bta, const char *name, BluetoothAddr addr)>;
 	using OnIncomingL2capConnectionDelegate = DelegateFunc<void (BluetoothAdapter &bta, BluetoothPendingSocket &pending)>;
 
-	constexpr BluetoothAdapter() {}
-	static BluetoothAdapter *defaultAdapter(Base::ApplicationContext);
+	constexpr BluetoothAdapter() = default;
+	static BluetoothAdapter *defaultAdapter(ApplicationContext);
 	virtual bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) = 0;
 	virtual void cancelScan() = 0;
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
@@ -80,8 +83,8 @@ public:
 	virtual State state() = 0;
 	virtual void setActiveState(bool on, OnStateChangeDelegate onStateChange) = 0;
 	const OnStatusDelegate &onScanStatus() { return onScanStatusD; }
-	Base::ApplicationContext appContext() const;
-	void setAppContext(Base::ApplicationContext);
+	ApplicationContext appContext() const;
+	void setAppContext(ApplicationContext);
 
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	OnIncomingL2capConnectionDelegate &onIncomingL2capConnection() { return onIncomingL2capConnectionD; }
@@ -96,13 +99,13 @@ protected:
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	OnIncomingL2capConnectionDelegate onIncomingL2capConnectionD;
 	#endif
-	Base::ApplicationContext ctx{};
+	ApplicationContext ctx{};
 };
 
 class BluetoothSocket
 {
 public:
-	constexpr BluetoothSocket() {}
+	constexpr BluetoothSocket() = default;
 	virtual ~BluetoothSocket() = default;
 	virtual IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) = 0;
 	virtual IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) = 0;
@@ -125,9 +128,11 @@ protected:
 class BluetoothInputDevice : public Input::Device
 {
 public:
-	BluetoothInputDevice(Base::ApplicationContext, Input::Map, TypeBits, const char *name);
+	BluetoothInputDevice(ApplicationContext, Input::Map, TypeBits, const char *name);
 	virtual IG::ErrorCode open(BluetoothAdapter &adapter) = 0;
 
 protected:
-	Base::ApplicationContext ctx;
+	ApplicationContext ctx;
 };
+
+}

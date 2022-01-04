@@ -16,6 +16,9 @@
 #include <emuframework/EmuApp.hh>
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 enum
 {
 	CFGKEY_DEFAULT_MACHINE_NAME = 256, CFGKEY_SKIP_FDC_ACCESS = 257,
@@ -229,7 +232,7 @@ void EmuSystem::writeConfig(IO &io)
 	optionMixerPCMPan.writeWithKeyIfNotDefault(io);
 }
 
-void EmuSystem::onOptionsLoaded(Base::ApplicationContext app)
+void EmuSystem::onOptionsLoaded(IG::ApplicationContext app)
 {
 	mixerEnableChannelType(mixer, MIXER_CHANNEL_PSG, mixerEnableOption(MIXER_CHANNEL_PSG));
 	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_PSG, mixerVolumeOption(MIXER_CHANNEL_PSG));
@@ -266,4 +269,6 @@ bool setDefaultMachineName(const char *name)
 		return false;
 	optionDefaultMachineNameStr = name;
 	return true;
+}
+
 }

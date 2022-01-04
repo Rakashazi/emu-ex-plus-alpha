@@ -20,7 +20,7 @@
 #include "defs.hh"
 #include <chrono>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class GLSyncFence

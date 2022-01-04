@@ -20,7 +20,7 @@
 
 struct ANativeWindow;
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Renderer;

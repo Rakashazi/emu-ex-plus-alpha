@@ -4,7 +4,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/GeomQuad.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 using TexRect = TexQuad;

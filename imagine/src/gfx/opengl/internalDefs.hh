@@ -3,25 +3,25 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/Interpolator.hh>
 
-namespace Base
+namespace IG
 {
 class Window;
 class ApplicationContext;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 struct GLRendererWindowData
 {
 	constexpr GLRendererWindowData() {}
-	Base::GLDrawable drawable{};
-	Base::GLBufferConfig bufferConfig{};
+	GLDrawable drawable{};
+	GLBufferConfig bufferConfig{};
 	InterpolatorValue<Angle, IG::FrameTime, InterpolatorType::EASEOUTQUAD> projAngleM{};
-	Base::GLColorSpace colorSpace{};
+	GLColorSpace colorSpace{};
 };
 
-GLRendererWindowData &winData(Base::Window &win);
+GLRendererWindowData &winData(Window &win);
 
 extern bool checkGLErrors;
 extern bool checkGLErrorsVerbose;
@@ -29,9 +29,9 @@ extern bool checkGLErrorsVerbose;
 static constexpr bool defaultToFullErrorChecks = true;
 static constexpr GLuint VATTR_POS = 0, VATTR_TEX_UV = 1, VATTR_COLOR = 2;
 
-static constexpr Base::GL::API glAPI =
-	Config::Gfx::OPENGL_ES ? Base::GL::API::OPENGL_ES : Base::GL::API::OPENGL;
+static constexpr GL::API glAPI =
+	Config::Gfx::OPENGL_ES ? GL::API::OPENGL_ES : GL::API::OPENGL;
 
-Gfx::GC orientationToGC(Base::Orientation o);
+Gfx::GC orientationToGC(Orientation o);
 
 }

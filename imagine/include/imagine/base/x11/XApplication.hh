@@ -19,7 +19,6 @@
 #include <imagine/base/linux/LinuxApplication.hh>
 #include <imagine/base/FrameTimer.hh>
 #include <imagine/base/EventLoop.hh>
-#include <imagine/input/Device.hh>
 #include <memory>
 #include <string>
 
@@ -28,13 +27,10 @@ union _XEvent;
 
 namespace Config
 {
-	namespace Base
-	{
-	static constexpr bool XDND = !Config::MACHINE_IS_PANDORA;
-	}
+static constexpr bool XDND = !Config::MACHINE_IS_PANDORA;
 }
 
-namespace Base
+namespace IG
 {
 
 class Screen;
@@ -47,17 +43,6 @@ class XkbDescRec;
 enum class SupportedFrameTimer : uint8_t
 {
 	SIMPLE, DRM, FBDEV
-};
-
-struct XInputDevice : public Input::Device
-{
-	bool iCadeMode_ = false;
-
-	XInputDevice();
-	XInputDevice(TypeBits, std::string name);
-	XInputDevice(XIDeviceInfo, bool isPointingDevice, bool isPowerButton);
-	void setICadeMode(bool on) final;
-	bool iCadeMode() const final;
 };
 
 class XApplication : public LinuxApplication

@@ -23,6 +23,9 @@
 #include <imagine/util/math/int.hh>
 #include <string>
 
+namespace IG
+{
+
 ToastView::ToastView() {}
 
 ToastView::ToastView(ViewAttachParams attach): View{attach},
@@ -101,7 +104,7 @@ void ToastView::prepareDraw()
 
 void ToastView::draw(Gfx::RendererCommands &cmds)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	if(!text.isVisible())
 		return;
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
@@ -119,4 +122,6 @@ void ToastView::draw(Gfx::RendererCommands &cmds)
 bool ToastView::inputEvent(Input::Event event)
 {
 	return false;
+}
+
 }

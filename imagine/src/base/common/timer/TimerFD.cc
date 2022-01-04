@@ -61,7 +61,7 @@ static int timerfd_gettime(int ufd,
 }
 #endif
 
-namespace Base
+namespace IG
 {
 
 TimerFD::TimerFD(const char *debugLabel, CallbackDelegate c):

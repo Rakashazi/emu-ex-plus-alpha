@@ -17,6 +17,9 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
 
+namespace EmuEx
+{
+
 RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentList &list):
 	TableView
 	{
@@ -62,4 +65,6 @@ RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentLis
 			});
 	}
 	clear.setActive(list.size());
+}
+
 }

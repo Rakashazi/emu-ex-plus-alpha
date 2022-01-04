@@ -22,13 +22,16 @@
 #include <jni.h>
 #include <semaphore>
 
+namespace IG
+{
+
 struct SocketStatusMessage;
 
 class AndroidBluetoothAdapter : public BluetoothAdapter
 {
 public:
-	constexpr AndroidBluetoothAdapter() {}
-	static AndroidBluetoothAdapter *defaultAdapter(Base::ApplicationContext);
+	constexpr AndroidBluetoothAdapter() = default;
+	static AndroidBluetoothAdapter *defaultAdapter(ApplicationContext);
 	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) final;
 	void cancelScan() final;
 	void close() final;
@@ -50,14 +53,14 @@ private:
 	int statusPipe[2]{-1, -1};
 	bool scanCancelled = false;
 
-	bool openDefault(Base::ApplicationContext);
+	bool openDefault(ApplicationContext);
 };
 
 class AndroidBluetoothSocket final: public BluetoothSocket
 {
 public:
 	AndroidBluetoothSocket() {}
-	AndroidBluetoothSocket(Base::ApplicationContext ctx):ctx{ctx} {}
+	AndroidBluetoothSocket(ApplicationContext ctx):ctx{ctx} {}
 	~AndroidBluetoothSocket();
 	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) final;
 	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) final;
@@ -70,9 +73,9 @@ public:
 
 private:
 	jobject socket{}, outStream{};
-	Base::ApplicationContext ctx{};
+	ApplicationContext ctx{};
 	std::binary_semaphore connectSem{};
-	Base::FDEventSource fdSrc{};
+	FDEventSource fdSrc{};
 	int nativeFd = -1;
 	uint32_t channel = 0;
 	bool isClosing = false;
@@ -83,3 +86,5 @@ private:
 	IG::ErrorCode openSocket(BluetoothAdapter &, BluetoothAddr, uint32_t channel, bool l2cap);
 	bool readPendingData(int events);
 };
+
+}

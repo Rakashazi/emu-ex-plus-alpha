@@ -116,7 +116,7 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, CGColorS
 	}
 }
 
-UIKitFontFontManager::UIKitFontFontManager(Base::ApplicationContext)
+UIKitFontFontManager::UIKitFontFontManager(ApplicationContext)
 {
 	grayColorSpace = CGColorSpaceCreateDeviceGray();
 	const CGFloat component[]{1., 1.};

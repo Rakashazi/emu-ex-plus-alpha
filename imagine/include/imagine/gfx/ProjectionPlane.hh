@@ -20,7 +20,7 @@
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/util/rectangle2.h>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererCommands;
@@ -29,7 +29,7 @@ class Mat4;
 class ProjectionPlane
 {
 public:
-	constexpr ProjectionPlane() {}
+	constexpr ProjectionPlane() = default;
 	static ProjectionPlane makeWithMatrix(Viewport viewport, Mat4 mat);
 	GC wHalf() const { return rect.x2; }
 	GC hHalf() const { return rect.y2; }

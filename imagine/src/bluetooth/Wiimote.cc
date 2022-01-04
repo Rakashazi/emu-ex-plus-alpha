@@ -22,7 +22,8 @@
 #include <imagine/util/algorithm.h>
 #include "../input/PackedInputAccess.hh"
 
-using namespace IG;
+namespace IG
+{
 
 const uint8_t Wiimote::btClass[3] = { 0x04, 0x25, 0x00 };
 const uint8_t Wiimote::btClassDevOnly[3] = { 0x04, 0x05, 0x00 };
@@ -129,7 +130,7 @@ static const char *wiimoteButtonName(Input::Key k)
 
 static const char *wiiCCButtonName(Input::Key k)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	switch(k)
 	{
 		case 0: return "None";
@@ -171,7 +172,7 @@ static const char *wiiKeyName(Input::Key k, Input::Map map)
 	}
 }
 
-Wiimote::Wiimote(Base::ApplicationContext ctx, BluetoothAddr addr):
+Wiimote::Wiimote(ApplicationContext ctx, BluetoothAddr addr):
 	BluetoothInputDevice{ctx, Input::Map::WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"},
 	ctlSock{ctx}, intSock{ctx},
 	addr{addr}
@@ -305,7 +306,7 @@ void Wiimote::sendDataModeByExtension()
 
 bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	auto packet = (const uint8_t*)packetPtr;
 	if(packet[0] != 0xa1) [[unlikely]]
 	{
@@ -493,7 +494,7 @@ void Wiimote::decodeProSticks(const uint8_t *ccSticks, int &lX, int &lY, int &rX
 
 void Wiimote::processCoreButtons(const uint8_t *packet, Input::Time time)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	auto btnData = &packet[2];
 	for(auto &e : wiimoteDataAccess)
 	{
@@ -511,7 +512,7 @@ void Wiimote::processCoreButtons(const uint8_t *packet, Input::Time time)
 
 void Wiimote::processClassicButtons(const uint8_t *packet, Input::Time time)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	auto ccData = &packet[4];
 	int stickPos[4];
 	decodeCCSticks(ccData, stickPos[0], stickPos[1], stickPos[2], stickPos[3]);
@@ -537,7 +538,7 @@ void Wiimote::processClassicButtons(const uint8_t *packet, Input::Time time)
 
 void Wiimote::processProButtons(const uint8_t *packet, Input::Time time)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	const uint8_t *proData = &packet[4];
 	int stickPos[4];
 	decodeProSticks(proData, stickPos[0], stickPos[1], stickPos[2], stickPos[3]);
@@ -563,7 +564,7 @@ void Wiimote::processProButtons(const uint8_t *packet, Input::Time time)
 
 void Wiimote::processNunchukButtons(const uint8_t *packet, Input::Time time)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	const uint8_t *nunData = &packet[4];
 	iterateTimes(2, i)
 	{
@@ -627,4 +628,6 @@ std::pair<Input::Key, Input::Key> Wiimote::joystickKeys(Input::Map map, Input::A
 			default: return {};
 		}
 	}
+}
+
 }

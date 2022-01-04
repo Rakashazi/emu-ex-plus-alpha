@@ -3,6 +3,9 @@
 #include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/util/format.hh>
 
+namespace IG
+{
+
 static void baswap(BluetoothAddr *dst, const BluetoothAddr *src)
 {
 	unsigned char *d = (unsigned char *) dst;
@@ -60,4 +63,6 @@ static int str2ba(const char *str, BluetoothAddr *ba)
 	baswap(ba, &b);
 
 	return 0;
+}
+
 }

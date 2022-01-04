@@ -74,31 +74,27 @@ static constexpr bool SYSTEM_ROTATES_WINDOWS = false;
 static constexpr bool SYSTEM_ROTATES_WINDOWS = true;
 #endif
 
-	namespace Base
-	{
-	#if defined __linux__
-	#define CONFIG_BASE_GL_PLATFORM_EGL
-	static constexpr bool GL_PLATFORM_EGL = true;
-	#else
-	static constexpr bool GL_PLATFORM_EGL = false;
-	#endif
+#if defined __linux__
+#define CONFIG_BASE_GL_PLATFORM_EGL
+static constexpr bool GL_PLATFORM_EGL = true;
+#else
+static constexpr bool GL_PLATFORM_EGL = false;
+#endif
+static constexpr bool SYSTEM_FILE_PICKER = Config::envIsAndroid;
 
-	static constexpr bool SYSTEM_FILE_PICKER = Config::envIsAndroid;
-	}
 }
 
-namespace Input
+namespace IG::Input
 {
 class Event;
 class Device;
 class DeviceChange;
 }
 
-class GenericIO;
-
-namespace Base
+namespace IG
 {
-using namespace IG;
+
+class GenericIO;
 
 using OnFrameDelegate = DelegateFunc<bool (FrameParams params)>;
 
@@ -169,7 +165,6 @@ struct WindowDrawParams
 	bool wasResized_ = false;
 	bool needsSync_ = false;
 
-	constexpr WindowDrawParams() {}
 	bool wasResized() const { return wasResized_; }
 	bool needsSync() const { return needsSync_; }
 };
@@ -189,7 +184,7 @@ struct ScreenChange
 		REMOVED
 	};
 
-	Action action;
+	Action action{};
 
 	constexpr ScreenChange(Action action): action{action} {}
 	constexpr bool added() const { return action == Action::ADDED; }
@@ -214,6 +209,7 @@ using DeviceOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, 
 using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation oldOrientation, Orientation newOrientation)>;
 using ScreenChangeDelegate = DelegateFunc<void (ApplicationContext, Screen &s, ScreenChange)>;
 using SystemDocumentPickerDelegate = DelegateFunc<void(IG::CStringView uri, IG::CStringView displayName)>;
+using TextFieldDelegate = DelegateFunc<void (const char *str)>;
 
 using InputDeviceChangeDelegate = DelegateFunc<void (const Input::Device &dev, Input::DeviceChange)>;
 using InputDevicesEnumeratedDelegate = DelegateFunc<void ()>;

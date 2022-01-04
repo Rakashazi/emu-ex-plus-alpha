@@ -20,11 +20,14 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/concepts.hh>
 
+namespace IG
+{
+
 template <class Delegate>
 class DelegateFuncSet
 {
 public:
-	constexpr DelegateFuncSet() {}
+	constexpr DelegateFuncSet() = default;
 
 	bool add(Delegate del, int priority = 0)
 	{
@@ -94,3 +97,5 @@ protected:
 
 	IG::FlatMultiSet<DelegateEntry> delegate{};
 };
+
+}

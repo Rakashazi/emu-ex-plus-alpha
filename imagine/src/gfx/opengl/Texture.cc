@@ -27,8 +27,6 @@
 #include <cstdlib>
 #include <algorithm>
 
-using namespace IG;
-
 #ifndef GL_TEXTURE_SWIZZLE_R
 #define GL_TEXTURE_SWIZZLE_R 0x8E42
 #endif
@@ -69,7 +67,7 @@ using namespace IG;
 #define GL_RGB5 0x8050
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 static uint8_t makeUnpackAlignment(uintptr_t addr)
@@ -950,7 +948,6 @@ IG::PixmapDesc TextureSizeSupport::makePixmapDescWithSupportedSize(IG::PixmapDes
 
 IG::WP TextureSizeSupport::makeSupportedSize(IG::WP size) const
 {
-	using namespace IG;
 	IG::WP supportedSize;
 	if(nonPow2 && !forcePow2)
 	{

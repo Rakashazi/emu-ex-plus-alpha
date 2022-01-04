@@ -27,7 +27,7 @@ public:
 		T *v[4];
 	};
 
-	constexpr GLKitMat4() {}
+	constexpr GLKitMat4() = default;
 	constexpr GLKitMat4(GLKMatrix4 m):
 		m
 		{{

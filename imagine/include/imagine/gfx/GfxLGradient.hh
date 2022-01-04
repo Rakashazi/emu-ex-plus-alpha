@@ -19,7 +19,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/GeomQuadMesh.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 struct LGradientStopDesc
@@ -31,8 +31,7 @@ struct LGradientStopDesc
 class LGradient
 {
 public:
-	constexpr LGradient() {}
-
+	constexpr LGradient() = default;
 	void draw(RendererCommands &r) const;
 	void setColor(ColorComp r, ColorComp g, ColorComp b);
 	void setTranslucent(ColorComp a);

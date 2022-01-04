@@ -20,7 +20,7 @@
 
 #import <QuartzCore/CVDisplayLink.h>
 
-namespace Base
+namespace IG
 {
 
 class CocoaScreen

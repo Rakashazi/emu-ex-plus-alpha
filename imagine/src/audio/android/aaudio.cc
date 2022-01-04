@@ -53,32 +53,32 @@ static void loadAAudioLib(const Manager &manager)
 	if(loadedAAudioLib())
 		return;
 	logMsg("loading libaaudio.so functions");
-	auto lib = Base::openSharedLibrary("libaaudio.so", Base::RESOLVE_ALL_SYMBOLS_FLAG);
+	auto lib = openSharedLibrary("libaaudio.so", RESOLVE_ALL_SYMBOLS_FLAG);
 	if(!lib)
 	{
 		logErr("error opening libaaudio.so");
 		return;
 	}
-	Base::loadSymbol(AAudio_createStreamBuilder, lib, "AAudio_createStreamBuilder");
-	Base::loadSymbol(AAudioStreamBuilder_openStream, lib, "AAudioStreamBuilder_openStream");
-	Base::loadSymbol(AAudioStreamBuilder_setChannelCount, lib, "AAudioStreamBuilder_setChannelCount");
-	Base::loadSymbol(AAudioStreamBuilder_setFormat, lib, "AAudioStreamBuilder_setFormat");
-	Base::loadSymbol(AAudioStreamBuilder_setPerformanceMode, lib, "AAudioStreamBuilder_setPerformanceMode");
-	Base::loadSymbol(AAudioStreamBuilder_setSampleRate, lib, "AAudioStreamBuilder_setSampleRate");
-	Base::loadSymbol(AAudioStreamBuilder_setSharingMode, lib, "AAudioStreamBuilder_setSharingMode");
-	Base::loadSymbol(AAudioStreamBuilder_setDataCallback, lib, "AAudioStreamBuilder_setDataCallback");
-	Base::loadSymbol(AAudioStreamBuilder_setErrorCallback, lib, "AAudioStreamBuilder_setErrorCallback");
-	Base::loadSymbol(AAudioStreamBuilder_delete, lib, "AAudioStreamBuilder_delete");
-	Base::loadSymbol(AAudioStream_close, lib, "AAudioStream_close");
-	Base::loadSymbol(AAudioStream_requestStart, lib, "AAudioStream_requestStart");
-	Base::loadSymbol(AAudioStream_requestPause, lib, "AAudioStream_requestPause");
-	Base::loadSymbol(AAudioStream_requestFlush, lib, "AAudioStream_requestFlush");
-	Base::loadSymbol(AAudioStream_requestStop, lib, "AAudioStream_requestStop");
-	Base::loadSymbol(AAudioStream_getState, lib, "AAudioStream_getState");
-	Base::loadSymbol(AAudioStream_waitForStateChange, lib, "AAudioStream_waitForStateChange");
+	loadSymbol(AAudio_createStreamBuilder, lib, "AAudio_createStreamBuilder");
+	loadSymbol(AAudioStreamBuilder_openStream, lib, "AAudioStreamBuilder_openStream");
+	loadSymbol(AAudioStreamBuilder_setChannelCount, lib, "AAudioStreamBuilder_setChannelCount");
+	loadSymbol(AAudioStreamBuilder_setFormat, lib, "AAudioStreamBuilder_setFormat");
+	loadSymbol(AAudioStreamBuilder_setPerformanceMode, lib, "AAudioStreamBuilder_setPerformanceMode");
+	loadSymbol(AAudioStreamBuilder_setSampleRate, lib, "AAudioStreamBuilder_setSampleRate");
+	loadSymbol(AAudioStreamBuilder_setSharingMode, lib, "AAudioStreamBuilder_setSharingMode");
+	loadSymbol(AAudioStreamBuilder_setDataCallback, lib, "AAudioStreamBuilder_setDataCallback");
+	loadSymbol(AAudioStreamBuilder_setErrorCallback, lib, "AAudioStreamBuilder_setErrorCallback");
+	loadSymbol(AAudioStreamBuilder_delete, lib, "AAudioStreamBuilder_delete");
+	loadSymbol(AAudioStream_close, lib, "AAudioStream_close");
+	loadSymbol(AAudioStream_requestStart, lib, "AAudioStream_requestStart");
+	loadSymbol(AAudioStream_requestPause, lib, "AAudioStream_requestPause");
+	loadSymbol(AAudioStream_requestFlush, lib, "AAudioStream_requestFlush");
+	loadSymbol(AAudioStream_requestStop, lib, "AAudioStream_requestStop");
+	loadSymbol(AAudioStream_getState, lib, "AAudioStream_getState");
+	loadSymbol(AAudioStream_waitForStateChange, lib, "AAudioStream_waitForStateChange");
 	if(manager.hasStreamUsage())
 	{
-		Base::loadSymbol(AAudioStreamBuilder_setUsage, lib, "AAudioStreamBuilder_setUsage");
+		loadSymbol(AAudioStreamBuilder_setUsage, lib, "AAudioStreamBuilder_setUsage");
 	}
 }
 

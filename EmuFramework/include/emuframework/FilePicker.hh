@@ -19,6 +19,11 @@
 #include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/FSPicker.hh>
 
+namespace EmuEx
+{
+
+using namespace IG;
+
 class EmuFilePicker : public FSPicker, public EmuAppHelper<EmuFilePicker>
 {
 public:
@@ -33,3 +38,5 @@ public:
 	static std::unique_ptr<EmuFilePicker> makeForMediaCreation(ViewAttachParams);
 	bool inputEvent(Input::Event) final;
 };
+
+}

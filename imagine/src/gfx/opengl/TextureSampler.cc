@@ -20,7 +20,7 @@
 #include "utils.hh"
 #include <limits>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 static void setTexParameteriImpl(GLenum target, GLenum pname, GLint param, const char *pnameStr)

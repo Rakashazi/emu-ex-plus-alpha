@@ -20,14 +20,14 @@
 #include <imagine/util/string/CStringView.hh>
 #include <variant>
 
+namespace IG
+{
+
 class PosixFileIO : public IOUtils<PosixFileIO>
 {
 public:
 	using IOUtilsBase = IOUtils<PosixFileIO>;
-	using IOUtilsBase::read;
-	using IOUtilsBase::readAtPos;
 	using IOUtilsBase::write;
-	using IOUtilsBase::seek;
 	using IOUtilsBase::seekS;
 	using IOUtilsBase::seekE;
 	using IOUtilsBase::seekC;
@@ -45,12 +45,12 @@ public:
 	operator IO&();
 	operator GenericIO();
 	static MapIO makePosixMapIO(IO::AccessHint access, int fd);
-	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut);
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
+	ssize_t read(void *buff, size_t bytes);
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
 	std::span<uint8_t> map();
-	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut);
-	std::error_code truncate(off_t offset);
-	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut);
+	ssize_t write(const void *buff, size_t bytes);
+	bool truncate(off_t offset);
+	off_t seek(off_t offset, IO::SeekMode mode);
 	void sync();
 	size_t size();
 	bool eof();
@@ -64,3 +64,5 @@ protected:
 
 	void tryMmap(int fd, IO::AccessHint access, IO::OpenFlags);
 };
+
+}

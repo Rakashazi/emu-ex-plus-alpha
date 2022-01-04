@@ -24,7 +24,8 @@
 #include "../base/android/android.hh"
 #include "utils.hh"
 
-using namespace Base;
+namespace IG
+{
 
 struct SocketStatusMessage
 {
@@ -144,7 +145,7 @@ void AndroidBluetoothAdapter::handleTurnOnResult(bool success)
 	}
 }
 
-bool AndroidBluetoothAdapter::openDefault(Base::ApplicationContext ctx)
+bool AndroidBluetoothAdapter::openDefault(ApplicationContext ctx)
 {
 	if(adapter)
 		return true;
@@ -229,10 +230,10 @@ bool AndroidBluetoothAdapter::openDefault(Base::ApplicationContext ctx)
 	{
 		int ret = pipe(statusPipe);
 		assert(ret == 0);
-		ret = ALooper_addFd(Base::EventLoop::forThread().nativeObject(), statusPipe[0], ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
+		ret = ALooper_addFd(EventLoop::forThread().nativeObject(), statusPipe[0], ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
 			[](int fd, int events, void* data)
 			{
-				if(events & Base::POLLEV_ERR)
+				if(events & POLLEV_ERR)
 					return 0;
 				while(fd_bytesReadable(fd))
 				{
@@ -267,7 +268,7 @@ void AndroidBluetoothAdapter::close()
 	}
 }
 
-AndroidBluetoothAdapter *AndroidBluetoothAdapter::defaultAdapter(Base::ApplicationContext ctx)
+AndroidBluetoothAdapter *AndroidBluetoothAdapter::defaultAdapter(ApplicationContext ctx)
 {
 	if(defaultAndroidAdapter.openDefault(ctx))
 		return &defaultAndroidAdapter;
@@ -366,13 +367,13 @@ jobject AndroidBluetoothAdapter::openSocket(JNIEnv *env, const char *addrStr, in
 
 bool AndroidBluetoothSocket::readPendingData(int events)
 {
-	if(events & Base::POLLEV_ERR)
+	if(events & POLLEV_ERR)
 	{
 		logMsg("socket %d disconnected", nativeFd);
 		onStatusD(*this, STATUS_READ_ERROR);
 		return false;
 	}
-	else if(events & Base::POLLEV_IN)
+	else if(events & POLLEV_IN)
 	{
 		char buff[50];
 		//logMsg("at least %d bytes ready on socket %d", fd_bytesReadable(nativeFd), nativeFd);
@@ -427,7 +428,7 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 						return;
 					}
 
-					auto looper = Base::EventLoop::forThread().nativeObject();
+					auto looper = EventLoop::forThread().nativeObject();
 					int dataPipe[2];
 					{
 						int ret = pipe(dataPipe);
@@ -435,7 +436,7 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 						ret = ALooper_addFd(looper, dataPipe[0], ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
 							[](int fd, int events, void* data)
 							{
-								if(events & Base::POLLEV_ERR)
+								if(events & POLLEV_ERR)
 									return 0;
 								auto &socket = *((AndroidBluetoothSocket*)data);
 								while(fd_bytesReadable(fd))
@@ -654,4 +655,6 @@ IG::ErrorCode AndroidBluetoothSocket::write(const void *data, size_t size)
 		env->DeleteLocalRef(jData);
 	}
 	return {};
+}
+
 }

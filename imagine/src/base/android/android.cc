@@ -39,8 +39,9 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include "android.hh"
+#include "AndroidInputDevice.hh"
 
-namespace Base
+namespace IG
 {
 
 static JavaVM* jVM{};
@@ -475,7 +476,6 @@ jobject AndroidApplication::makeFontRenderer(JNIEnv *env, jobject baseActivity)
 
 uint32_t toAHardwareBufferFormat(IG::PixelFormatID format)
 {
-	using namespace IG;
 	switch(format)
 	{
 		case PIXEL_RGBA8888: return AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
@@ -1031,7 +1031,7 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 
 CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity *nActivity, void* savedState, size_t savedStateSize)
 {
-	using namespace Base;
+	using namespace IG;
 	if(Config::DEBUG_BUILD)
 	{
 		mainThreadId = gettid();

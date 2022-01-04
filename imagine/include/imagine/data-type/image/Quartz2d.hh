@@ -61,14 +61,14 @@ using PixmapImageImpl = Quartz2dImage;
 class Quartz2dImageReader
 {
 public:
-	constexpr Quartz2dImageReader(Base::ApplicationContext ctx):
+	constexpr Quartz2dImageReader(ApplicationContext ctx):
 		ctx{ctx}
 	{}
 
 protected:
-	Base::ApplicationContext ctx{};
+	ApplicationContext ctx{};
 
-	constexpr Base::ApplicationContext appContext() const { return ctx; }
+	constexpr ApplicationContext appContext() const { return ctx; }
 };
 
 using PixmapReaderImpl = Quartz2dImageReader;
@@ -76,7 +76,7 @@ using PixmapReaderImpl = Quartz2dImageReader;
 class Quartz2dImageWriter
 {
 public:
-	constexpr Quartz2dImageWriter(Base::ApplicationContext) {}
+	constexpr Quartz2dImageWriter(ApplicationContext) {}
 };
 
 using PixmapWriterImpl = Quartz2dImageWriter;

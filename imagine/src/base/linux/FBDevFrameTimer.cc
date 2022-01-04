@@ -26,7 +26,7 @@
 #include <linux/fb.h>
 #include <sys/eventfd.h>
 
-namespace Base
+namespace IG
 {
 
 static UniqueFileDescriptor openDevice()

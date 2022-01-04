@@ -18,6 +18,9 @@
 #include <imagine/base/MessagePort.hh>
 #include <thread>
 
+namespace EmuEx
+{
+
 class EmuVideo;
 class EmuAudio;
 class EmuApp;
@@ -70,7 +73,9 @@ public:
 
 private:
 	EmuApp *appPtr{};
-	Base::MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
+	IG::MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
 	std::thread taskThread{};
 	bool videoFormatChanged{};
 };
+
+}

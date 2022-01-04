@@ -6,7 +6,7 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/edge.h>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererCommands;
@@ -42,7 +42,7 @@ template<Vertex Vtx>
 class QuadGeneric
 {
 public:
-	constexpr QuadGeneric() {}
+	constexpr QuadGeneric() = default;
 
 	constexpr QuadGeneric(GP bl, GP tl, GP tr, GP br)
 	{

@@ -28,7 +28,7 @@
 #endif
 #include <imagine/logger/logger.h>
 
-namespace Input
+namespace IG::Input
 {
 
 static const char *keyButtonName(Key b)
@@ -476,12 +476,12 @@ static std::pair<Key, Key> joystickKeys(Map map, AxisId axisId)
 		case Map::SYSTEM: return joystickKeys(axisId);
 		#ifdef CONFIG_BLUETOOTH
 		case Map::WIIMOTE:
-		case Map::WII_CC: return ::Wiimote::joystickKeys(map, axisId);
-		case Map::ICONTROLPAD: return ::IControlPad::joystickKeys(axisId);
-		case Map::ZEEMOTE: return ::Zeemote::joystickKeys(axisId);
+		case Map::WII_CC: return ::IG::Wiimote::joystickKeys(map, axisId);
+		case Map::ICONTROLPAD: return ::IG::IControlPad::joystickKeys(axisId);
+		case Map::ZEEMOTE: return ::IG::Zeemote::joystickKeys(axisId);
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return ::PS3Controller::joystickKeys(axisId);
+		case Map::PS3PAD: return ::IG::PS3Controller::joystickKeys(axisId);
 		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case Map::APPLE_GAME_CONTROLLER: return appleJoystickKeys(axisId);
@@ -576,7 +576,7 @@ uint32_t Axis::idBit() const
 	}
 }
 
-bool Axis::update(float pos, Map map, Time time, const Device &dev, Base::Window &win, bool normalized)
+bool Axis::update(float pos, Map map, Time time, const Device &dev, Window &win, bool normalized)
 {
 	if(!normalized)
 		pos *= scaler;
@@ -605,7 +605,7 @@ AxisKeyEmu::UpdateKeys AxisKeyEmu::update(float pos)
 	return keys;
 }
 
-bool AxisKeyEmu::dispatch(float pos, Map map, Time time, const Device &dev, Base::Window &win)
+bool AxisKeyEmu::dispatch(float pos, Map map, Time time, const Device &dev, Window &win)
 {
 	auto updateKeys = update(pos);
 	auto src = Source::GAMEPAD;

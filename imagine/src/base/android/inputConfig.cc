@@ -21,6 +21,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 #include "input.hh"
+#include "AndroidInputDevice.hh"
 #include <android/configuration.h>
 #include <sys/inotify.h>
 #include <optional>
@@ -38,12 +39,12 @@ CLINK float AMotionEvent_getAxisValue(const AInputEvent* motion_event, int32_t a
 CLINK int32_t AMotionEvent_getButtonState(const AInputEvent *motion_event)
 {
 	if(!AMotionEvent_getButtonStateFunc)
-		return Input::Pointer::LBUTTON;
+		return IG::Input::Pointer::LBUTTON;
 	return AMotionEvent_getButtonStateFunc(motion_event);
 }
 #endif
 
-namespace Input
+namespace IG::Input
 {
 
 static constexpr uint32_t maxJoystickAxisPairs = 4; // 2 sticks + POV hat + L/R Triggers
@@ -261,7 +262,7 @@ void AndroidInputDevice::update(AndroidInputDevice other)
 	axis = other.axis;
 }
 
-bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, TypeBits typeBits)
+bool Device::anyTypeBitsPresent(ApplicationContext ctx, TypeBits typeBits)
 {
 	auto &app = ctx.application();
 	if(typeBits & TYPE_BIT_KEYBOARD)
@@ -311,7 +312,7 @@ bool hasGetAxisValue()
 
 }
 
-namespace Base
+namespace IG
 {
 
 static bool isXperiaPlayDeviceStr(std::string_view str)
@@ -332,13 +333,13 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 		if constexpr(Config::ENV_ANDROID_MIN_SDK == 9)
 		{
 			// load AMotionEvent_getAxisValue dynamically
-			if(!Base::loadSymbol(AMotionEvent_getAxisValueFunc, {}, "AMotionEvent_getAxisValue"))
+			if(!loadSymbol(AMotionEvent_getAxisValueFunc, {}, "AMotionEvent_getAxisValue"))
 			{
 				logWarn("AMotionEvent_getAxisValue not found even though using SDK level >= 12");
 			}
 			if(androidSDK >= 14)
 			{
-				if(!Base::loadSymbol(AMotionEvent_getButtonStateFunc, {}, "AMotionEvent_getButtonState"))
+				if(!loadSymbol(AMotionEvent_getButtonStateFunc, {}, "AMotionEvent_getButtonState"))
 				{
 					logWarn("AMotionEvent_getButtonState not found even though using SDK level >= 14");
 				}
@@ -381,19 +382,19 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 				}
 			};
 			env->RegisterNatives(inputDeviceListenerHelperCls, method, std::size(method));
-			addOnResume([this, env](Base::ApplicationContext ctx, bool)
+			addOnResume([this, env](ApplicationContext ctx, bool)
 				{
 					enumInputDevices(env, ctx.baseActivityObject(), true);
 					logMsg("registering input device listener");
 					jRegister(env, inputDeviceListenerHelper);
 					return true;
-				}, Base::INPUT_DEVICE_ON_RESUME_PRIORITY);
-			addOnExit([this, env](Base::ApplicationContext, bool backgrounded)
+				}, INPUT_DEVICE_ON_RESUME_PRIORITY);
+			addOnExit([this, env](ApplicationContext, bool backgrounded)
 				{
 					logMsg("unregistering input device listener");
 					jUnregister(env, inputDeviceListenerHelper);
 					return true;
-				}, Base::INPUT_DEVICE_ON_EXIT_PRIORITY);
+				}, INPUT_DEVICE_ON_EXIT_PRIORITY);
 		}
 		else
 		{
@@ -405,12 +406,12 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 			}
 			else
 			{
-				int ret = ALooper_addFd(Base::EventLoop::forThread().nativeObject(), inputDevNotifyFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
+				int ret = ALooper_addFd(EventLoop::forThread().nativeObject(), inputDevNotifyFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
 					[](int fd, int events, void* data)
 					{
 						logMsg("got inotify event");
 						auto &app = *((AndroidApplication*)data);
-						if(events == Base::POLLEV_IN)
+						if(events == POLLEV_IN)
 						{
 							char buffer[2048];
 							auto size = read(fd, buffer, sizeof(buffer));
@@ -425,7 +426,7 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 				{
 					logErr("couldn't add inotify fd to looper");
 				}
-				addOnResume([this, env](Base::ApplicationContext ctx, bool)
+				addOnResume([this, env](ApplicationContext ctx, bool)
 					{
 						inputRescanCallback.emplace("inputRescanCallback",
 							[this, ctx]()
@@ -443,8 +444,8 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 							}
 						}
 						return true;
-					}, Base::INPUT_DEVICE_ON_RESUME_PRIORITY);
-				addOnExit([this, env](Base::ApplicationContext, bool backgrounded)
+					}, INPUT_DEVICE_ON_RESUME_PRIORITY);
+				addOnExit([this, env](ApplicationContext, bool backgrounded)
 					{
 						if(watch != -1)
 						{
@@ -454,7 +455,7 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 							inputRescanCallback.reset();
 						}
 						return true;
-					}, Base::INPUT_DEVICE_ON_EXIT_PRIORITY);
+					}, INPUT_DEVICE_ON_EXIT_PRIORITY);
 			}
 		}
 	}

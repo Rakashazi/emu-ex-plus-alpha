@@ -25,6 +25,9 @@
 #include <imagine/logger/logger.h>
 #include <string>
 
+namespace EmuEx
+{
+
 EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
 	FSPicker::Mode mode, EmuSystem::NameFilterFunc filter, Input::Event e, bool includeArchives):
 	EmuFilePicker
@@ -136,4 +139,6 @@ bool EmuFilePicker::inputEvent(Input::Event e)
 		}
 	}
 	return FSPicker::inputEvent(e);
+}
+
 }

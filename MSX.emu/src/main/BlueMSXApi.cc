@@ -48,7 +48,7 @@ extern "C"
 
 int archCreateDirectory(const char* pathname)
 {
-    if(!FS::create_directory(pathname))
+    if(!IG::FS::create_directory(pathname))
     	return -1;
     return 0;
 }

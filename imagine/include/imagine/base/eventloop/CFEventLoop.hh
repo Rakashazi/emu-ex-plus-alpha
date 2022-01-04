@@ -20,7 +20,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <memory>
 
-namespace Base
+namespace IG
 {
 
 static constexpr int UNUSED_EVENT = 0;
@@ -39,7 +39,7 @@ struct CFFDEventSourceInfo
 class CFFDEventSource
 {
 public:
-	constexpr CFFDEventSource() {}
+	constexpr CFFDEventSource() = default;
 	CFFDEventSource(int fd) : CFFDEventSource{nullptr, fd} {}
 	CFFDEventSource(const char *debugLabel, int fd);
 	CFFDEventSource(CFFDEventSource &&o);
@@ -59,7 +59,7 @@ using FDEventSourceImpl = CFFDEventSource;
 class CFEventLoop
 {
 public:
-	constexpr CFEventLoop() {}
+	constexpr CFEventLoop() = default;
 	constexpr CFEventLoop(CFRunLoopRef loop): loop{loop} {}
 	CFRunLoopRef nativeObject() { return loop; }
 

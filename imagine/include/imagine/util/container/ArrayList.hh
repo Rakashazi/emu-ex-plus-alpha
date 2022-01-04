@@ -21,6 +21,9 @@
 #include <iterator>
 #include <span>
 
+namespace IG
+{
+
 template<class T, size_t SIZE>
 class StaticArrayList
 {
@@ -164,9 +167,6 @@ private:
 	constexpr T *storage() { return arr; }
 	constexpr const T *storage() const { return arr; }
 };
-
-namespace IG
-{
 
 template<class T, size_t SIZE, class Pred>
 static constexpr typename StaticArrayList<T,SIZE>::size_type

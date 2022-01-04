@@ -7,7 +7,6 @@
 #include "state.h"
 #include "settings-common.h"
 
-class EmuVideo;
 #include <emuframework/EmuSystemTaskContext.hh>
 #ifdef WANT_DEBUGGER
 // #ifdef WANT_DEBUGGER
@@ -15,6 +14,11 @@ class EmuVideo;
 // #else
  #include "debug.h"
 #endif
+
+namespace EmuEx
+{
+class EmuVideo;
+}
 
 namespace Mednafen
 {
@@ -394,8 +398,8 @@ struct EmulateSpecStruct
 	int skip = false;
 
 	// Calls MDFND_commitVideoFrame upon drawing a frame if non-null. Set by the driver code.
-	EmuSystemTaskContext taskCtx{};
-	EmuVideo *video{};
+	EmuEx::EmuSystemTaskContext taskCtx{};
+	EmuEx::EmuVideo *video{};
 
 	//
 	// If sound is disabled, the driver code must set SoundRate to false, SoundBuf to NULL, SoundBufMaxSize to 0.

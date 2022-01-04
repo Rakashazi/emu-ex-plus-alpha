@@ -39,7 +39,7 @@ private:
 	PixelFormatID id_ = PIXEL_NONE;
 
 public:
-	constexpr PixelFormat() {}
+	constexpr PixelFormat() = default;
 	constexpr PixelFormat(PixelFormatID id): id_{id} {}
 
 	constexpr PixelFormatID id() const

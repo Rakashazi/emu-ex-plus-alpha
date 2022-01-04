@@ -20,6 +20,9 @@
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/base/ApplicationContext.hh>
 
+namespace EmuEx
+{
+
 BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	TableView
 	{
@@ -61,4 +64,6 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	};
 
 	return info[0];
+}
+
 }

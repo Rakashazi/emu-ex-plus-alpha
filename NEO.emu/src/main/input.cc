@@ -22,9 +22,12 @@ extern "C"
 	#include <gngeo/memory.h>
 }
 
+namespace EmuEx
+{
+
 enum
 {
-	neogeoKeyIdxUp = EmuControls::systemKeyMapStart,
+	neogeoKeyIdxUp = EmuEx::Controls::systemKeyMapStart,
 	neogeoKeyIdxRight,
 	neogeoKeyIdxDown,
 	neogeoKeyIdxLeft,
@@ -43,7 +46,7 @@ enum
 	neogeoKeyIdxXTurbo,
 	neogeoKeyIdxYTurbo,
 	neogeoKeyIdxABC,
-	neogeoKeyIdxTestSwitch = EmuControls::systemKeyMapStart + EmuControls::joystickKeys*2
+	neogeoKeyIdxTestSwitch = EmuEx::Controls::systemKeyMapStart + EmuEx::Controls::joystickKeys*2
 };
 
 const char *EmuSystem::inputFaceBtnName = "A/B/C/D";
@@ -101,9 +104,9 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 		return SERVICE_EMU_INPUT;
 	}
 	assert(input >= neogeoKeyIdxUp);
-	unsigned player = (input - neogeoKeyIdxUp) / EmuControls::joystickKeys;
+	unsigned player = (input - neogeoKeyIdxUp) / EmuEx::Controls::joystickKeys;
 	unsigned playerMask = player << 11;
-	input -= EmuControls::joystickKeys * player;
+	input -= EmuEx::Controls::joystickKeys * player;
 	switch(input)
 	{
 		case neogeoKeyIdxUp: return UP | playerMask;
@@ -187,4 +190,6 @@ void EmuSystem::clearInputBuffers(EmuInputView &)
 	memory.intern_start = 0x8F;
 	memory.intern_p1 = 0xFF;
 	memory.intern_p2 = 0xFF;
+}
+
 }

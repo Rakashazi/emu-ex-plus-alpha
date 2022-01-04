@@ -19,13 +19,16 @@
 #include <imagine/input/Input.hh>
 #include <imagine/base/Error.hh>
 
+namespace IG
+{
+
 struct Zeemote : public BluetoothInputDevice
 {
 public:
 	static const uint8_t btClass[3];
 
-	Zeemote(Base::ApplicationContext ctx, BluetoothAddr addr);
-	IG::ErrorCode open(BluetoothAdapter &adapter) final;
+	Zeemote(ApplicationContext ctx, BluetoothAddr addr);
+	ErrorCode open(BluetoothAdapter &adapter) final;
 	void close();
 	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
 	bool dataHandler(const char *packet, size_t size);
@@ -54,3 +57,5 @@ private:
 	static const char *reportIDToStr(uint32_t id);
 	void processBtnReport(const uint8_t *btnData, Input::Time time);
 };
+
+}

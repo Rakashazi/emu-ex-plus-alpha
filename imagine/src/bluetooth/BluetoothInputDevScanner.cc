@@ -21,20 +21,23 @@
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Timer.hh>
-
-static std::vector<std::unique_ptr<BluetoothInputDevice>> btInputDevPendingList;
-
 #ifdef CONFIG_BLUETOOTH_SERVER
 #include <imagine/bluetooth/PS3Controller.hh>
+#endif
+
+namespace IG::Bluetooth
+{
+
+static std::vector<std::unique_ptr<BluetoothInputDevice>> btInputDevPendingList;
+static bool hidServiceActive = false;
+
+#ifdef CONFIG_BLUETOOTH_SERVER
 static PS3Controller *pendingPS3Controller = nullptr;
 static BluetoothPendingSocket pendingSocket;
 static BluetoothAdapter::OnStatusDelegate onServerStatus;
-static Base::Timer unregisterHIDServiceCallback{"unregisterHIDServiceCallback"};
+static Timer unregisterHIDServiceCallback{"unregisterHIDServiceCallback"};
 #endif
-static bool hidServiceActive = false;
 
-namespace Bluetooth
-{
 static bool testSupportedBTDevClasses(const uint8_t devClass[3])
 {
 	return Wiimote::isSupportedClass(devClass) ||
@@ -50,7 +53,7 @@ static void removePendingDevs()
 }
 
 #ifdef CONFIG_BLUETOOTH_SERVER
-bool listenForDevices(Base::ApplicationContext ctx, BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDelegate &onScanStatus)
+bool listenForDevices(ApplicationContext ctx, BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDelegate &onScanStatus)
 {
 	if(bta.inDetect || hidServiceActive)
 	{
@@ -153,7 +156,7 @@ bool listenForDevices(Base::ApplicationContext ctx, BluetoothAdapter &bta, const
 }
 #endif
 
-bool scanForDevices(Base::ApplicationContext ctx, BluetoothAdapter &bta, BluetoothAdapter::OnStatusDelegate onScanStatus)
+bool scanForDevices(ApplicationContext ctx, BluetoothAdapter &bta, BluetoothAdapter::OnStatusDelegate onScanStatus)
 {
 	if(!bta.inDetect && !hidServiceActive)
 	{
@@ -249,7 +252,7 @@ static bool isBluetoothDeviceInputMap(Input::Map map)
 	}
 }
 
-uint32_t devsConnected(Base::ApplicationContext ctx)
+uint32_t devsConnected(ApplicationContext ctx)
 {
 	auto &devs = ctx.inputDevices();
 	return std::count_if(devs.begin(), devs.end(), [](auto &devPtr){ return isBluetoothDeviceInputMap(devPtr->map()); });
@@ -257,11 +260,12 @@ uint32_t devsConnected(Base::ApplicationContext ctx)
 
 }
 
-namespace Base
+namespace IG
 {
 
 void BaseApplication::bluetoothInputDeviceStatus(Input::Device &dev, int status)
 {
+	using namespace Bluetooth;
 	switch(status)
 	{
 		case BluetoothSocket::STATUS_CONNECT_ERROR:

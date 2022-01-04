@@ -22,12 +22,15 @@
 #include <imagine/util/math/space.hh>
 #include <imagine/logger/logger.h>
 
+namespace IG
+{
+
 Gfx::Renderer &ViewAttachParams::renderer() const
 {
 	return rendererTask().renderer();
 }
 
-Base::ApplicationContext ViewAttachParams::appContext() const
+ApplicationContext ViewAttachParams::appContext() const
 {
 	return window().appContext();
 }
@@ -125,7 +128,7 @@ void ViewManager::setTableXIndentMM(float indentMM, Gfx::ProjectionPlane projP)
 	tableXIndent_ = projP.xMMSize(indentMM);
 }
 
-float ViewManager::defaultTableXIndentMM(const Base::Window &win)
+float ViewManager::defaultTableXIndentMM(const Window &win)
 {
 	auto wMM = win.sizeMM().x;
 	return
@@ -134,17 +137,10 @@ float ViewManager::defaultTableXIndentMM(const Base::Window &win)
 		4.;
 }
 
-void ViewManager::setTableXIndentToDefault(const Base::Window &win, Gfx::ProjectionPlane projP)
+void ViewManager::setTableXIndentToDefault(const Window &win, Gfx::ProjectionPlane projP)
 {
 	setTableXIndentMM(defaultTableXIndentMM(win), projP);
 }
-
-View::View(ViewAttachParams attach):
-	View{{}, attach} {}
-
-View::View(IG::utf16String name, ViewAttachParams attach):
-	win(&attach.window()), rendererTask_{&attach.rendererTask()},
-	manager_{&attach.viewManager()}, nameStr{std::move(name)} {}
 
 void View::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
 {
@@ -231,7 +227,7 @@ void View::postDraw()
 		win->postDraw();
 }
 
-Base::Window &View::window() const
+Window &View::window() const
 {
 	assumeExpr(win);
 	return *win;
@@ -259,24 +255,19 @@ ViewAttachParams View::attachParams() const
 	return {*manager_, *win, *rendererTask_};
 }
 
-Base::Screen *View::screen() const
+Screen *View::screen() const
 {
 	return win ? win->screen() : nullptr;
 }
 
-Base::ApplicationContext View::appContext() const
+ApplicationContext View::appContext() const
 {
 	return window().appContext();
 }
 
 std::u16string_view View::name() const
 {
-	return nameStr;
-}
-
-void View::setName(IG::utf16String name)
-{
-	nameStr = std::move(name);
+	return u"";
 }
 
 std::u16string View::nameString(const BaseTextMenuItem &item)
@@ -299,7 +290,7 @@ bool View::moveFocusToNextView(Input::Event e, _2DOrigin direction)
 	return controller_->moveFocusToNextView(e, direction);
 }
 
-void View::setWindow(Base::Window *w)
+void View::setWindow(Window *w)
 {
 	win = w;
 }
@@ -353,4 +344,6 @@ void View::waitForDrawFinished()
 	// currently a no-op due to RendererTask only running present() async
 	/*assumeExpr(rendererTask_);
 	rendererTask_->waitForDrawFinished();*/
+}
+
 }

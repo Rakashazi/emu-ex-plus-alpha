@@ -26,7 +26,7 @@ namespace IG
 class PixmapDesc
 {
 public:
-	constexpr PixmapDesc() {}
+	constexpr PixmapDesc() = default;
 	constexpr PixmapDesc(WP size, PixelFormat format):
 		size_{size}, format_(format)
 	{}

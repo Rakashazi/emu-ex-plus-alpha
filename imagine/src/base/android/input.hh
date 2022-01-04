@@ -17,7 +17,7 @@
 
 #include <imagine/input/config.hh>
 
-namespace Input
+namespace IG::Input
 {
 
 	namespace AInputDevice

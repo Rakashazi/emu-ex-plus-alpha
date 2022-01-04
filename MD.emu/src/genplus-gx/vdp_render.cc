@@ -22,6 +22,7 @@
  ****************************************************************************************/
 
 #include "shared.h"
+#include <imagine/pixmap/Pixmap.hh>
 
 #ifdef NGC
 #include "md_ntsc.h"

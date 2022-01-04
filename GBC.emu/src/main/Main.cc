@@ -29,7 +29,10 @@
 #include <main/Palette.hh>
 #include "internal.hh"
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011\nthe Gambatte Team\ngambatte.sourceforge.net";
+namespace EmuEx
+{
+
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\n\nPortions (c) the\nGambatte Team\ngambatte.sourceforge.net";
 gambatte::GB gbEmu;
 static Resampler *resampler{};
 static uint8_t activeResampler = 1;
@@ -76,28 +79,6 @@ static uint_least32_t makeOutputColor(uint_least32_t rgb888)
 	return desc.build(r, g, b, 0u);
 }
 
-uint_least32_t gbcToRgb32(unsigned const bgr15)
-{
-	unsigned r = bgr15       & 0x1F;
-	unsigned g = bgr15 >>  5 & 0x1F;
-	unsigned b = bgr15 >> 10 & 0x1F;
-	unsigned outR, outG, outB;
-	if(optionFullGbcSaturation)
-	{
-		outR = (r * 255 + 15) / 31;
-		outG = (g * 255 + 15) / 31;
-		outB = (b * 255 + 15) / 31;
-	}
-	else
-	{
-		outR = (r * 13 + g * 2 + b) >> 1;
-		outG = (g * 3 + b) << 1;
-		outB = (r * 3 + g * 2 + b * 11) >> 1;
-	}
-	auto desc = useBgrOrder ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
-	return desc.build(outR, outG, outB, 0u);
-}
-
 void applyGBPalette()
 {
 	unsigned idx = optionGBPal;
@@ -116,7 +97,7 @@ void applyGBPalette()
 		gbEmu.setDmgPaletteColor(2, i, makeOutputColor(pal.sp2[i]));
 }
 
-void EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
+void EmuSystem::onOptionsLoaded(IG::ApplicationContext ctx)
 {
 	gbEmu.setInputGetter(&gbcInput);
 	gbEmu.setStreamDelegates(
@@ -141,7 +122,7 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}.0{}.gqs", name, saveSlotCharUpper(slot));
 }
 
-void EmuSystem::saveState(Base::ApplicationContext ctx, IG::CStringView path)
+void EmuSystem::saveState(IG::ApplicationContext ctx, IG::CStringView path)
 {
 	IG::OFStream stream{ctx.openFileUri(path, IO::OPEN_CREATE)};
 	if(!gbEmu.saveState(frameBuffer, gambatte::lcd_hres, stream))
@@ -155,7 +136,7 @@ void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 		throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
+void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
 {
 	logMsg("saving battery");
 	gbEmu.saveSavedata();
@@ -168,7 +149,7 @@ void EmuSystem::savePathChanged()
 		gbEmu.setSaveDir(std::string{contentSaveDirectory()});
 }
 
-void EmuSystem::closeSystem(Base::ApplicationContext ctx)
+void EmuSystem::closeSystem(IG::ApplicationContext ctx)
 {
 	saveBackupMem(ctx);
 	cheatList.clear();
@@ -178,7 +159,7 @@ void EmuSystem::closeSystem(Base::ApplicationContext ctx)
 	totalSamples = 0;
 }
 
-void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	gbEmu.setSaveDir(std::string{contentSaveDirectory()});
 	auto buff = io.buffer();
@@ -307,4 +288,28 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 	view.setBackgroundGradient(navViewGrad);
+}
+
+}
+
+uint_least32_t gbcToRgb32(unsigned const bgr15)
+{
+	unsigned r = bgr15       & 0x1F;
+	unsigned g = bgr15 >>  5 & 0x1F;
+	unsigned b = bgr15 >> 10 & 0x1F;
+	unsigned outR, outG, outB;
+	if(EmuEx::optionFullGbcSaturation)
+	{
+		outR = (r * 255 + 15) / 31;
+		outG = (g * 255 + 15) / 31;
+		outB = (b * 255 + 15) / 31;
+	}
+	else
+	{
+		outR = (r * 13 + g * 2 + b) >> 1;
+		outG = (g * 3 + b) << 1;
+		outB = (r * 3 + g * 2 + b * 11) >> 1;
+	}
+	auto desc = EmuEx::useBgrOrder ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
+	return desc.build(outR, outG, outB, 0u);
 }

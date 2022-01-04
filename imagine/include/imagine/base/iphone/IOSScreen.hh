@@ -25,7 +25,7 @@
 #import <QuartzCore/QuartzCore.h>
 #endif
 
-namespace Base
+namespace IG
 {
 
 class ApplicationContext;
@@ -38,7 +38,7 @@ public:
 		void *uiScreen;
 	};
 
-	constexpr IOSScreen() {}
+	constexpr IOSScreen() = default;
 	IOSScreen(ApplicationContext, InitParams);
 	~IOSScreen();
 

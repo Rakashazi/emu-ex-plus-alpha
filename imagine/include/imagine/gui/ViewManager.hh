@@ -20,16 +20,19 @@
 #include <imagine/util/typeTraits.hh>
 #include <optional>
 
-namespace Base
+namespace IG
 {
 class Window;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 class Renderer;
 class ProjectionPlane;
 }
+
+namespace IG
+{
 
 class ViewManager
 {
@@ -48,8 +51,8 @@ public:
 	std::optional<bool> needsBackControlOption() const;
 	Gfx::GC tableXIndent() const;
 	void setTableXIndentMM(float indentMM, Gfx::ProjectionPlane);
-	float defaultTableXIndentMM(const Base::Window &);
-	void setTableXIndentToDefault(const Base::Window &, Gfx::ProjectionPlane);
+	float defaultTableXIndentMM(const Window &);
+	void setTableXIndentToDefault(const Window &, Gfx::ProjectionPlane);
 
 protected:
 	Gfx::GlyphTextureSet defaultFace_{};
@@ -59,3 +62,5 @@ protected:
 	IG_UseMemberIfOrConstant(needsBackControlIsMutable,
 		bool, needsBackControlDefault, needsBackControl_){needsBackControlDefault};
 };
+
+}

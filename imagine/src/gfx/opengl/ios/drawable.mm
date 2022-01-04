@@ -17,7 +17,7 @@
 #include <imagine/logger/logger.h>
 #include "../utils.hh"
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 static constexpr bool USE_DEPTH_BUFFER = false;
@@ -77,12 +77,12 @@ void GLRendererTask::deleteIOSDrawableRenderbuffer(GLuint colorRenderbuffer, GLu
 
 void GLRendererTask::setIOSDrawableDelegates()
 {
-	Base::makeRenderbuffer =
+	makeRenderbuffer =
 		[this](void *layer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer)
 		{
 			return makeIOSDrawableRenderbuffer(layer, colorRenderbuffer, depthRenderbuffer);
 		};
-	Base::deleteRenderbuffer =
+	deleteRenderbuffer =
 		[this](GLuint colorRenderbuffer, GLuint depthRenderbuffer)
 		{
 			deleteIOSDrawableRenderbuffer(colorRenderbuffer, depthRenderbuffer);

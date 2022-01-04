@@ -4,9 +4,14 @@
 #include <emuframework/Option.hh>
 #include <mednafen/mednafen.h>
 
-extern Base::ApplicationContext appCtx;
+namespace EmuEx
+{
+
+extern IG::ApplicationContext appCtx;
 extern Byte1Option optionNGPLanguage;
 extern uint8_t inputBuff;
+
+}
 
 namespace MDFN_IEN_NGP
 {

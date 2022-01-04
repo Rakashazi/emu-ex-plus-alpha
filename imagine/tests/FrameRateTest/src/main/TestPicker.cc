@@ -20,12 +20,15 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
+namespace FrameRateTest
+{
+
 TestTableEntry::TestTableEntry(Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
 	DualTextMenuItem{{}, {}, face, selectDel}
 {}
 
 void TestTableEntry::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-	Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+	Gfx::GC xIndent, IG::_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
 	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 	if(t2.isVisible())
@@ -39,7 +42,7 @@ void TestTableEntry::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPo
 	}
 }
 
-TestPicker::TestPicker(ViewAttachParams attach):
+TestPicker::TestPicker(IG::ViewAttachParams attach):
 	TableView
 	{
 		attach,
@@ -56,7 +59,7 @@ void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 	iterateTimes(tests, i)
 	{
 		testEntry.emplace_back(&defaultFace(),
-			[this, i](DualTextMenuItem &, View &, Input::Event e)
+			[this, i](IG::DualTextMenuItem &, IG::View &, IG::Input::Event e)
 			{
 				auto &app = mainApp(appContext());
 				auto test = app.startTest(window(), testParam[i]);
@@ -79,4 +82,6 @@ void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 	}
 	if(appContext().keyInputIsPresent())
 		highlightCell(0);
+}
+
 }

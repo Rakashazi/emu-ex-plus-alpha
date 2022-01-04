@@ -46,10 +46,16 @@
 #include <optional>
 #include <span>
 
+namespace IG
+{
 class BluetoothAdapter;
 class IO;
 class GenericIO;
 class BasicNavView;
+}
+
+namespace EmuEx
+{
 
 struct RecentContentInfo
 {
@@ -62,7 +68,7 @@ struct RecentContentInfo
 	}
 };
 
-class EmuApp : public Base::Application
+class EmuApp : public IG::Application
 {
 public:
 	using OnMainMenuOptionChanged = DelegateFunc<void()>;
@@ -99,7 +105,7 @@ public:
 	static bool autoSaveStateDefault;
 	static bool hasIcon;
 
-	EmuApp(Base::ApplicationInitParams, Base::ApplicationContext &);
+	EmuApp(IG::ApplicationInitParams, IG::ApplicationContext &);
 
 	bool willCreateSystem(ViewAttachParams attach, Input::Event e);
 	void createSystemWithMedia(GenericIO, IG::CStringView path, std::string_view displayName,
@@ -163,12 +169,12 @@ public:
 	void toggleKeyboard();
 	void updateVControllerMapping();
 	Gfx::PixmapTexture &asset(AssetID) const;
-	void updateInputDevices(Base::ApplicationContext);
+	void updateInputDevices(IG::ApplicationContext);
 	void setOnUpdateInputDevices(DelegateFunc<void ()>);
 	VController &defaultVController();
 	static std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
-	void applyOSNavStyle(Base::ApplicationContext, bool inGame);
-	void setCPUNeedsLowLatency(Base::ApplicationContext, bool needed);
+	void applyOSNavStyle(IG::ApplicationContext, bool inGame);
+	void setCPUNeedsLowLatency(IG::ApplicationContext, bool needed);
 	void runFrames(EmuSystemTaskContext, EmuVideo *, EmuAudio *, int frames, bool skipForward);
 	void skipFrames(EmuSystemTaskContext, uint32_t frames, EmuAudio *);
 	bool skipForwardFrames(EmuSystemTaskContext, uint32_t frames);
@@ -182,7 +188,7 @@ public:
 	std::pair<int, FS::PathString> makeNextScreenshotFilename();
 	bool mogaManagerIsActive() const;
 	void setMogaManagerActive(bool on, bool notify);
-	constexpr Base::VibrationManager &vibrationManager() { return vibrationManager_; }
+	constexpr IG::VibrationManager &vibrationManager() { return vibrationManager_; }
 	std::span<const KeyCategory> inputControlCategories() const;
 	BluetoothAdapter *bluetoothAdapter();
 	void closeBluetoothConnections();
@@ -191,15 +197,15 @@ public:
 	void addCurrentContentToRecent();
 	RecentContentList &recentContent() { return recentContentList; };
 	void writeRecentContent(IO &);
-	void readRecentContent(Base::ApplicationContext, IO &, unsigned readSize_);
+	void readRecentContent(IG::ApplicationContext, IO &, unsigned readSize_);
 	bool showHiddenFilesInPicker(){ return showHiddenFilesInPicker_; };
 	void setShowHiddenFilesInPicker(bool on){ showHiddenFilesInPicker_ = on; };
 	auto &customKeyConfigList() { return customKeyConfigs; };
 	auto &savedInputDeviceList() { return savedInputDevs; };
 	void setSoundRate(uint32_t rate);
 	void setFontSize(int size);
-	Base::ApplicationContext appContext() const;
-	static EmuApp &get(Base::ApplicationContext);
+	IG::ApplicationContext appContext() const;
+	static EmuApp &get(IG::ApplicationContext);
 
 	void postMessage(auto msg)
 	{
@@ -305,7 +311,7 @@ protected:
 	VController vController;
 	#endif
 	std::optional<EmuViewController> emuViewController{};
-	Base::Timer autoSaveStateTimer;
+	IG::Timer autoSaveStateTimer;
 	DelegateFunc<void ()> onUpdateInputDevices_{};
 	OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 	KeyConfigContainer customKeyConfigs{};
@@ -314,7 +320,7 @@ protected:
 	FS::PathString contentSearchPath_{};
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
 	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
-	[[no_unique_address]] Base::VibrationManager vibrationManager_;
+	[[no_unique_address]] IG::VibrationManager vibrationManager_;
 	#ifdef CONFIG_BLUETOOTH
 	BluetoothAdapter *bta{};
 	#endif
@@ -361,15 +367,17 @@ protected:
 		Gfx::DrawableConfig windowDrawableConf{};
 	};
 
-	void mainInitCommon(Base::ApplicationInitParams, Base::ApplicationContext);
+	void mainInitCommon(IG::ApplicationInitParams, IG::ApplicationContext);
 	Gfx::PixmapTexture *collectTextCloseAsset() const;
-	ConfigParams loadConfigFile(Base::ApplicationContext);
-	void saveConfigFile(Base::ApplicationContext);
+	ConfigParams loadConfigFile(IG::ApplicationContext);
+	void saveConfigFile(IG::ApplicationContext);
 	void saveConfigFile(IO &);
-	void initOptions(Base::ApplicationContext);
+	void initOptions(IG::ApplicationContext);
 	std::optional<IG::PixelFormat> renderPixelFormatOption() const;
 	void applyRenderPixelFormat();
 	std::optional<IG::PixelFormat> windowDrawablePixelFormatOption() const;
 	std::optional<Gfx::ColorSpace> windowDrawableColorSpaceOption() const;
 	FS::PathString sessionConfigPath();
 };
+
+}

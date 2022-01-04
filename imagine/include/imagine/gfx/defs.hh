@@ -28,10 +28,8 @@
 #include <imagine/gfx/opengl/gfx-globals.hh>
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
-
-using namespace IG;
 
 class RendererTask;
 class RendererCommands;
@@ -168,7 +166,7 @@ enum class DrawAsyncMode : uint8_t
 class DrawParams
 {
 public:
-	constexpr DrawParams() {}
+	constexpr DrawParams() = default;
 	constexpr DrawParams(DrawAsyncMode asyncMode):
 		asyncMode_{asyncMode}
 	{}

@@ -3,14 +3,17 @@
 #include <emuframework/Option.hh>
 #include <fceu/driver.h>
 
-class EmuAudio;
-
-namespace EmuControls
+namespace EmuEx::Controls
 {
 extern const unsigned gamepadKeys;
 }
 
-extern Base::ApplicationContext appCtx;
+namespace EmuEx
+{
+
+class EmuAudio;
+
+extern IG::ApplicationContext appCtx;
 extern FS::PathString fdsBiosPath;
 extern Byte1Option optionFourScore;
 extern SByte1Option optionInputPort1;
@@ -32,5 +35,7 @@ void setupNESFourScore();
 void connectNESInput(int port, ESI type);
 const char *regionToStr(int region);
 void emulateSound(EmuAudio *audio);
-void setDefaultPalette(Base::ApplicationContext, IG::CStringView palPath);
+void setDefaultPalette(IG::ApplicationContext, IG::CStringView palPath);
 void setRegion(int region, int defaultRegion, int detectedRegion);
+
+}

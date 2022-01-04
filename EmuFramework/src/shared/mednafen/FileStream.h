@@ -78,7 +78,7 @@ class FileStream : public Stream
  virtual uint64 size(void) override;
  virtual void flush(void) override;
  virtual void close(void) override;
- void advise(off_t offset, size_t bytes, IO::Advice advice) override;
+ void advise(off_t offset, size_t bytes, IG::IO::Advice advice) override;
 
  int get_char(void);
 
@@ -89,7 +89,7 @@ class FileStream : public Stream
  FileStream(const FileStream &);		// Copy constructor
  //FileStream(FileStream &);                // Copy constructor
 
- FileIO io;
+ IG::FileIO io;
  uint8 attribs;
 };
 

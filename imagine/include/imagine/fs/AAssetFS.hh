@@ -24,7 +24,7 @@
 struct AAssetManager;
 struct AAssetDir;
 
-namespace FS
+namespace IG::FS
 {
 
 class AAssetDirectory
@@ -56,7 +56,7 @@ protected:
 class AAssetIterator : public std::iterator<std::input_iterator_tag, AAssetDirectory>
 {
 public:
-	constexpr AAssetIterator() {}
+	constexpr AAssetIterator() = default;
 	AAssetIterator(AAssetManager *, IG::CStringView path);
 	AAssetIterator(const AAssetIterator&) = default;
 	AAssetIterator(AAssetIterator&&) = default;

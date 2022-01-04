@@ -26,27 +26,34 @@
 #endif
 #include <optional>
 
-class FrameRateTestApplication final: public Base::Application
+namespace FrameRateTest
+{
+
+using namespace IG;
+
+class FrameRateTestApplication final: public IG::Application
 {
 public:
-	FrameRateTestApplication(Base::ApplicationInitParams, Base::ApplicationContext &);
-	TestFramework *startTest(Base::Window &, const TestParams &t);
+	FrameRateTestApplication(IG::ApplicationInitParams, IG::ApplicationContext &);
+	TestFramework *startTest(IG::Window &, const TestParams &t);
 
 private:
 	IG::FontManager fontManager;
 	Gfx::Renderer renderer;
-	ViewManager viewManager{};
+	IG::ViewManager viewManager{};
 	#ifdef __ANDROID__
-	std::optional<Base::RootCpufreqParamSetter> cpuFreq{};
+	std::optional<IG::RootCpufreqParamSetter> cpuFreq{};
 	#endif
 
-	void setActiveTestHandlers(Base::Window &win);
-	void setPickerHandlers(Base::Window &);
-	void placeElements(const Base::Window &);
-	void finishTest(Base::Window &, IG::FrameTime);
+	void setActiveTestHandlers(IG::Window &win);
+	void setPickerHandlers(IG::Window &);
+	void placeElements(const IG::Window &);
+	void finishTest(IG::Window &, IG::FrameTime);
 };
 
-static FrameRateTestApplication &mainApp(Base::ApplicationContext ctx)
+static FrameRateTestApplication &mainApp(IG::ApplicationContext ctx)
 {
 	return static_cast<FrameRateTestApplication &>(ctx.application());
+}
+
 }

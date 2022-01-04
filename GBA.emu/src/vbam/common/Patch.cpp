@@ -105,10 +105,10 @@ static uLong computePatchCRC(FILE *f, unsigned int size)
   return crc;
 }
 
-bool patchApplyIPS(Base::ApplicationContext ctx, const char *patchname, u8 **r, int *s)
+bool patchApplyIPS(IG::ApplicationContext ctx, const char *patchname, u8 **r, int *s)
 {
   // from the IPS spec at http://zerosoft.zophar.net/ips.htm
-  FILE *f = FileUtils::fopenUri(ctx, patchname, "rb");
+  FILE *f = IG::FileUtils::fopenUri(ctx, patchname, "rb");
   if(!f)
     return false;
 
@@ -170,11 +170,11 @@ bool patchApplyIPS(Base::ApplicationContext ctx, const char *patchname, u8 **r, 
   return result;
 }
 
-bool patchApplyUPS(Base::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
+bool patchApplyUPS(IG::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
 {
   s64 srcCRC, dstCRC, patchCRC;
 
-  FILE *f = FileUtils::fopenUri(ctx, patchname, "rb");
+  FILE *f = IG::FileUtils::fopenUri(ctx, patchname, "rb");
   if (!f)
     return false;
 
@@ -408,9 +408,9 @@ static bool patchApplyPPF3(FILE *f, u8 **rom, int *size)
   return (count == 0);
 }
 
-bool patchApplyPPF(Base::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
+bool patchApplyPPF(IG::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
 {
-  FILE *f = FileUtils::fopenUri(ctx, patchname, "rb");
+  FILE *f = IG::FileUtils::fopenUri(ctx, patchname, "rb");
   if (!f)
     return false;
 
@@ -427,7 +427,7 @@ bool patchApplyPPF(Base::ApplicationContext ctx, const char *patchname, u8 **rom
   return res;
 }
 
-bool applyPatch(Base::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
+bool applyPatch(IG::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
 {
   if (strlen(patchname) < 5)
     return false;

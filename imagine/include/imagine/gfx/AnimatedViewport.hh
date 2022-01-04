@@ -19,12 +19,12 @@
 #include <imagine/util/Interpolator.hh>
 #include <array>
 
-namespace Base
+namespace IG
 {
 class Window;
 };
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Viewport;
@@ -32,8 +32,8 @@ class Viewport;
 class AnimatedViewport
 {
 public:
-	constexpr AnimatedViewport() {}
-	void start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport end);
+	constexpr AnimatedViewport() = default;
+	void start(Window &w, Gfx::Viewport begin, Gfx::Viewport end);
 	void finish();
 	bool isFinished() const;
 	void cancel();
@@ -41,8 +41,8 @@ public:
 
 protected:
 	std::array<IG::InterpolatorValue<int, IG::FrameTime, IG::InterpolatorType::EASEINOUTQUAD>, 4> animator{};
-	Base::OnFrameDelegate animate{};
-	Base::Window *win{};
+	OnFrameDelegate animate{};
+	Window *win{};
 };
 
 }

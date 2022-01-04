@@ -23,7 +23,7 @@
 #include <imagine/util/utility.h>
 #include <thread>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Renderer;
@@ -31,8 +31,8 @@ class GLRendererTask;
 
 struct GLTaskConfig
 {
-	Base::GLManager *glManagerPtr{};
-	Base::GLBufferConfig bufferConfig{};
+	GLManager *glManagerPtr{};
+	GLBufferConfig bufferConfig{};
 	Drawable initialDrawable{};
 	int threadPriority{};
 };
@@ -44,22 +44,22 @@ public:
 	class TaskContext
 	{
 	public:
-		constexpr TaskContext(Base::GLDisplay glDpy, std::binary_semaphore *semPtr, bool *semaphoreNeedsNotifyPtr):
+		constexpr TaskContext(GLDisplay glDpy, std::binary_semaphore *semPtr, bool *semaphoreNeedsNotifyPtr):
 			glDpy{glDpy}, semPtr{semPtr}, semaphoreNeedsNotifyPtr{semaphoreNeedsNotifyPtr}
 		{}
 		void notifySemaphore();
 		void markSemaphoreNotified();
-		constexpr Base::GLDisplay glDisplay() const { return glDpy; }
+		constexpr GLDisplay glDisplay() const { return glDpy; }
 		constexpr std::binary_semaphore *semaphorePtr() const { return semPtr; }
 
 	protected:
-		[[no_unique_address]] Base::GLDisplay glDpy{};
+		[[no_unique_address]] GLDisplay glDpy{};
 		std::binary_semaphore *semPtr{};
 		bool *semaphoreNeedsNotifyPtr{};
 	};
 
 	// Align delegate data to 16 bytes in case we store SIMD types
-	using FuncDelegate = DelegateFuncA<sizeof(uintptr_t)*4 + sizeof(int)*10, 16, void(Base::GLDisplay glDpy, std::binary_semaphore *semPtr)>;
+	using FuncDelegate = DelegateFuncA<sizeof(uintptr_t)*4 + sizeof(int)*10, 16, void(GLDisplay glDpy, std::binary_semaphore *semPtr)>;
 
 	enum class Command: uint8_t
 	{
@@ -80,7 +80,7 @@ public:
 		} args{};
 		Command command{Command::UNSET};
 
-		constexpr CommandMessage() {}
+		constexpr CommandMessage() = default;
 		constexpr CommandMessage(Command command, std::binary_semaphore *semPtr = nullptr):
 			semPtr{semPtr}, command{command} {}
 		constexpr CommandMessage(Command command, FuncDelegate funcDel, std::binary_semaphore *semPtr = nullptr):
@@ -89,21 +89,21 @@ public:
 		void setReplySemaphore(std::binary_semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
-	GLTask(Base::ApplicationContext);
-	GLTask(Base::ApplicationContext, const char *debugLabel);
+	GLTask(ApplicationContext);
+	GLTask(ApplicationContext, const char *debugLabel);
 	~GLTask();
 	GLTask &operator=(GLTask &&) = delete;
 	bool makeGLContext(GLTaskConfig);
 	void runFunc(FuncDelegate del, bool awaitReply);
-	Base::GLBufferConfig glBufferConfig() const;
-	const Base::GLContext &glContext() const;
-	Base::ApplicationContext appContext() const;
+	GLBufferConfig glBufferConfig() const;
+	const GLContext &glContext() const;
+	ApplicationContext appContext() const;
 	explicit operator bool() const;
 
 	void run(IG::invocable auto &&f, bool awaitReply = false)
 	{
 		runFunc(
-			[=](Base::GLDisplay, std::binary_semaphore *semPtr)
+			[=](GLDisplay, std::binary_semaphore *semPtr)
 			{
 				f();
 				if(semPtr)
@@ -116,7 +116,7 @@ public:
 	void run(IG::invocable<TaskContext> auto &&f, bool awaitReply = false)
 	{
 		runFunc(
-			[=](Base::GLDisplay glDpy, std::binary_semaphore *semPtr)
+			[=](GLDisplay glDpy, std::binary_semaphore *semPtr)
 			{
 				bool semaphoreNeedsNotify = semPtr;
 				TaskContext ctx{glDpy, semPtr, &semaphoreNeedsNotify};
@@ -132,12 +132,12 @@ public:
 
 protected:
 	std::thread thread{};
-	Base::GLContext context{};
-	Base::GLBufferConfig bufferConfig{};
-	Base::OnExit onExit;
-	Base::MessagePort<CommandMessage> commandPort{Base::MessagePort<CommandMessage>::NullInit{}};
+	GLContext context{};
+	GLBufferConfig bufferConfig{};
+	OnExit onExit;
+	MessagePort<CommandMessage> commandPort{MessagePort<CommandMessage>::NullInit{}};
 
-	Base::GLContext makeGLContext(Base::GLManager &, Base::GLBufferConfig bufferConf);
+	GLContext makeGLContext(GLManager &, GLBufferConfig bufferConf);
 	void deinit();
 };
 

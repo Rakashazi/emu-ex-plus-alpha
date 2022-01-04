@@ -28,7 +28,7 @@
 #import <imagine/base/iphone/EAGLView.hh>
 #endif
 
-namespace Base
+namespace IG
 {
 
 class GLDisplay;
@@ -54,7 +54,7 @@ using NativeGLContext = void *; // EAGLContext in ObjC
 class IOSGLContext
 {
 public:
-	constexpr IOSGLContext() {}
+	constexpr IOSGLContext() = default;
 	IOSGLContext(GLContextAttributes, NativeGLContext shareContext, IG::ErrorCode &);
 	operator NativeGLContext() const { return context_.get(); }
 	#ifdef __OBJC__
@@ -89,7 +89,7 @@ struct GLBufferConfig
 {
 	bool useRGB565 = false;
 
-	Base::NativeWindowFormat windowFormat(Base::ApplicationContext, GLDisplay display) const;
+	NativeWindowFormat windowFormat(ApplicationContext, GLDisplay display) const;
 	bool maySupportGLES(GLDisplay, unsigned majorVersion) const;
 	constexpr bool operator ==(GLBufferConfig const&) const = default;
 };

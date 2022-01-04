@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 
-namespace Base
+namespace IG
 {
 class ApplicationContext;
 }
@@ -31,7 +31,7 @@ public:
 	static constexpr bool HAS_SOLO_MIX = true;
 	static constexpr bool SOLO_MIX_DEFAULT = true;
 
-	AvfManager(Base::ApplicationContext);
+	AvfManager(ApplicationContext);
 
 protected:
 	#ifdef __OBJC__

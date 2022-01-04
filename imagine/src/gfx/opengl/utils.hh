@@ -55,7 +55,7 @@
 #define GL_FRAMEBUFFER_SRGB 0x8DB9
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
 extern bool checkGLErrors;
 extern bool checkGLErrorsVerbose;
@@ -181,7 +181,7 @@ static bool runGLCheckedAlways(FUNC func, const char *label = nullptr)
 template <class FUNC>
 static bool runGLChecked(FUNC func, const char *label = nullptr)
 {
-	if(!Gfx::checkGLErrors)
+	if(!IG::Gfx::checkGLErrors)
 	{
 		func();
 		return true;
@@ -192,7 +192,7 @@ static bool runGLChecked(FUNC func, const char *label = nullptr)
 template <class FUNC>
 static bool runGLCheckedVerbose(FUNC func, const char *label = nullptr)
 {
-	if(!Gfx::checkGLErrorsVerbose)
+	if(!IG::Gfx::checkGLErrorsVerbose)
 	{
 		func();
 		return true;

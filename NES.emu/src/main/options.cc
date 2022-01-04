@@ -16,6 +16,9 @@
 #include <emuframework/EmuApp.hh>
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 enum
 {
 	CFGKEY_FDS_BIOS_PATH = 270, CFGKEY_FOUR_SCORE = 271,
@@ -44,7 +47,7 @@ Byte1Option optionSoundQuality{CFGKEY_SOUND_QUALITY, 0, false, optionIsValidWith
 FS::PathString defaultPalettePath{};
 Byte1Option optionCompatibleFrameskip{CFGKEY_COMPATIBLE_FRAMESKIP, 0};
 
-void EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
+void EmuSystem::onOptionsLoaded(IG::ApplicationContext ctx)
 {
 	FCEUI_SetSoundQuality(optionSoundQuality);
 	FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
@@ -117,4 +120,6 @@ void EmuSystem::writeConfig(IO &io)
 	writeStringOptionValue(io, CFGKEY_FDS_BIOS_PATH, fdsBiosPath);
 	optionDefaultVideoSystem.writeWithKeyIfNotDefault(io);
 	writeStringOptionValue(io, CFGKEY_DEFAULT_PALETTE_PATH, defaultPalettePath);
+}
+
 }

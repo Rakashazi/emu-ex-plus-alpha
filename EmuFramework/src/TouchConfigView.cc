@@ -24,6 +24,9 @@
 #include <imagine/logger/logger.h>
 #include <utility>
 
+namespace EmuEx
+{
+
 static constexpr bool CAN_TURN_OFF_MENU_BTN = !Config::envIsIOS;
 
 static constexpr const char *ctrlStateStr[]
@@ -75,7 +78,7 @@ static constexpr uint8_t alphaMenuVal[6]
 	0, uint8_t(255. * .1), uint8_t(255. * .25), uint8_t(255. * .5), uint8_t(255. * .65), uint8_t(255. * .75)
 };
 
-static auto &layoutPosArr(VController &vController, Base::Window &win)
+static auto &layoutPosArr(VController &vController, IG::Window &win)
 {
 	return vController.layoutPosition()[win.isPortrait() ? 1 : 0];
 }
@@ -98,8 +101,8 @@ private:
 	Gfx::Text text{};
 	VController *vControllerPtr;
 	IG::InterpolatorValue<float, IG::FrameTime, IG::InterpolatorType::LINEAR> textFade{};
-	Base::Timer animationStartTimer{"OnScreenInputPlaceView::animationStartTimer"};
-	Base::OnFrameDelegate animate{};
+	IG::Timer animationStartTimer{"OnScreenInputPlaceView::animationStartTimer"};
+	IG::OnFrameDelegate animate{};
 	IG::WindowRect exitBtnRect{};
 	Input::DragTracker<DragData> dragTracker{};
 
@@ -210,7 +213,7 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 
 void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	projP.resetTransforms(cmds);
 	vController().draw(cmds, false, true, .75);
 	cmds.setColor(.5, .5, .5);
@@ -720,4 +723,6 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	item.emplace_back(&alpha);
 	item.emplace_back(&resetControls);
 	item.emplace_back(&resetAllControls);
+}
+
 }

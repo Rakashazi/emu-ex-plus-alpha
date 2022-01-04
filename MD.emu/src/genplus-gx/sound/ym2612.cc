@@ -132,6 +132,7 @@
 #include <math.h>
 
 #include "shared.h"
+#include <imagine/util/algorithm.h>
 
 /* compiler dependence */
 #ifndef INLINE

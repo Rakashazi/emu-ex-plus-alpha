@@ -19,14 +19,19 @@
 #include <mednafen/mednafen.h>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/utility.h>
+#include <system_error>
 
-extern Base::ApplicationContext appCtx;
+namespace EmuEx
+{
+extern IG::ApplicationContext appCtx;
+}
 
 namespace Mednafen
 {
 
 static std::pair<uint32_t, uint8_t> modeToAttribs(uint32 mode)
 {
+	using namespace IG;
 	switch(mode)
 	{
 		default:
@@ -51,7 +56,7 @@ static std::pair<uint32_t, uint8_t> modeToAttribs(uint32 mode)
 
 FileStream::FileStream(const std::string& path, const uint32 mode, const int do_lock, const uint32 buffer_size)
 try:
-	io{appCtx.openFileUri(path, IO::AccessHint::SEQUENTIAL, modeToAttribs(mode).first)},
+	io{EmuEx::appCtx.openFileUri(path, IG::IO::AccessHint::SEQUENTIAL, modeToAttribs(mode).first)},
 	attribs{modeToAttribs(mode).second}
 {
 	assert(!do_lock);
@@ -120,7 +125,7 @@ void FileStream::truncate(uint64 length)
 
 void FileStream::seek(int64 offset, int whence)
 {
-	io.seek(offset, (IO::SeekMode)whence);
+	io.seek(offset, (IG::IO::SeekMode)whence);
 }
 
 void FileStream::flush(void) {}
@@ -147,7 +152,7 @@ void FileStream::close(void)
 	io = {};
 }
 
-void FileStream::advise(off_t offset, size_t bytes, IO::Advice advice)
+void FileStream::advise(off_t offset, size_t bytes, IG::IO::Advice advice)
 {
 	io.advise(offset, bytes, advice);
 }
@@ -184,6 +189,6 @@ uint64 Stream::readAtPos(void *data, uint64 count, uint64 pos)
 
 bool Stream::isMemoryStream() { return false; }
 
-void Stream::advise(off_t offset, size_t bytes, IO::Advice advice) {}
+void Stream::advise(off_t offset, size_t bytes, IG::IO::Advice advice) {}
 
 }

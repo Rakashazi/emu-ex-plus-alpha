@@ -31,7 +31,7 @@
 #include <imagine/logger/logger.h>
 #include <cstring>
 
-namespace Base
+namespace IG
 {
 
 void ApplicationContext::dispatchOnInit(ApplicationInitParams initParams)
@@ -437,23 +437,23 @@ ApplicationContext OnExit::appContext() const
 
 }
 
-namespace FileUtils
+namespace IG::FileUtils
 {
 
-ssize_t writeToUri(Base::ApplicationContext ctx, IG::CStringView uri, std::span<const unsigned char> src)
+ssize_t writeToUri(ApplicationContext ctx, IG::CStringView uri, std::span<const unsigned char> src)
 {
 	auto f = ctx.openFileUri(uri, IO::OPEN_CREATE | IO::OPEN_TEST);
 	return f.write(src.data(), src.size());
 }
 
-ssize_t readFromUri(Base::ApplicationContext ctx, IG::CStringView uri, std::span<unsigned char> dest,
+ssize_t readFromUri(ApplicationContext ctx, IG::CStringView uri, std::span<unsigned char> dest,
 	IO::AccessHint accessHint)
 {
 	auto f = ctx.openFileUri(uri, accessHint, IO::OPEN_TEST);
 	return f.read(dest.data(), dest.size());
 }
 
-std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(Base::ApplicationContext ctx, IG::CStringView uri,
+std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext ctx, IG::CStringView uri,
 	std::span<unsigned char> dest, bool(*nameMatchFunc)(std::string_view), IO::AccessHint accessHint)
 {
 	auto io = ctx.openFileUri(uri, accessHint);
@@ -481,7 +481,7 @@ std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(Base::ApplicationC
 	}
 }
 
-IG::ByteBuffer bufferFromUri(Base::ApplicationContext ctx, IG::CStringView uri, unsigned openFlags, size_t sizeLimit)
+IG::ByteBuffer bufferFromUri(ApplicationContext ctx, IG::CStringView uri, unsigned openFlags, size_t sizeLimit)
 {
 	auto file = ctx.openFileUri(uri, IO::AccessHint::ALL, openFlags);
 	if(!file)
@@ -496,7 +496,7 @@ IG::ByteBuffer bufferFromUri(Base::ApplicationContext ctx, IG::CStringView uri, 
 	return file.buffer(IODefs::BufferMode::RELEASE);
 }
 
-FILE *fopenUri(Base::ApplicationContext ctx, IG::CStringView path, IG::CStringView mode)
+FILE *fopenUri(ApplicationContext ctx, IG::CStringView path, IG::CStringView mode)
 {
 	if(IG::isUri(path))
 	{

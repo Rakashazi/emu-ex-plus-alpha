@@ -19,6 +19,10 @@
 #include <main/Cheats.hh>
 #include <vector>
 #include "system.h"
+
+namespace EmuEx
+{
+
 unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &originalData);
 
 class EmuCheatsView : public BaseCheatsView
@@ -53,3 +57,5 @@ private:
 	const char *cheatNameString() const final;
 	void renamed(const char *str) final;
 };
+
+}

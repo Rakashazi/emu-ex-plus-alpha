@@ -25,13 +25,11 @@
 class GLStateCache
 {
 public:
-	constexpr GLStateCache() {}
+	constexpr GLStateCache() = default;
 
 	struct GLBindTextureState
 	{
 		GLuint GL_TEXTURE_2D_state = 0;
-
-		constexpr GLBindTextureState() {}
 	};
 
 	struct GLStateCaps
@@ -50,16 +48,12 @@ public:
 		// extensions
 		int8_t GL_MULTISAMPLE_state = -1;
 		#endif
-
-		constexpr GLStateCaps() {}
 	};
 
 	struct GLClientStateCaps
 	{
 		int8_t GL_TEXTURE_COORD_ARRAY_state = -1;
 		int8_t GL_COLOR_ARRAY_state = -1;
-
-		constexpr GLClientStateCaps() {}
 	};
 
 	struct GLPixelStoreParams
@@ -68,8 +62,6 @@ public:
 		#ifdef HAS_UNPACK_ROW_LENGTH
 		GLint GL_UNPACK_ROW_LENGTH_state = -1;
 		#endif
-
-		constexpr GLPixelStoreParams() {}
 	};
 
 	static bool verifyState;

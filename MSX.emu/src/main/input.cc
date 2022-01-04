@@ -22,11 +22,14 @@ extern "C"
 	#include <blueMSX/Input/InputEvent.h>
 }
 
+namespace EmuEx
+{
+
 static const unsigned msxKeyboardKeys = 92;
 
 enum
 {
-	msxKeyIdxUp = EmuControls::systemKeyMapStart,
+	msxKeyIdxUp = EmuEx::Controls::systemKeyMapStart,
 	msxKeyIdxRight,
 	msxKeyIdxDown,
 	msxKeyIdxLeft,
@@ -90,7 +93,6 @@ const unsigned EmuSystem::inputCenterBtns = 2;
 bool EmuSystem::inputHasKeyboard = true;
 const unsigned EmuSystem::maxPlayers = 2;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0};
-extern Machine *machine;
 
 static VController::KbMap kbToEventMap
 {
@@ -222,4 +224,6 @@ void EmuSystem::handleInputAction(EmuApp *appPtr, Input::Action action, unsigned
 void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	IG::fill(eventMap);
+}
+
 }

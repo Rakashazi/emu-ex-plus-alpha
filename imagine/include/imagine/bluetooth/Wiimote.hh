@@ -19,14 +19,17 @@
 #include <imagine/input/Input.hh>
 #include <imagine/base/Error.hh>
 
+namespace IG
+{
+
 class Wiimote final: public BluetoothInputDevice
 {
 public:
 	static const uint8_t btClass[3], btClassDevOnly[3], btClassRemotePlus[3];
 
-	Wiimote(Base::ApplicationContext, BluetoothAddr);
+	Wiimote(ApplicationContext, BluetoothAddr);
 	~Wiimote();
-	IG::ErrorCode open(BluetoothAdapter &adapter) final;
+	ErrorCode open(BluetoothAdapter &adapter) final;
 	bool dataHandler(const char *data, size_t size);
 	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
 	void requestStatus();
@@ -83,3 +86,5 @@ private:
 	void processNunchukButtons(const uint8_t *packet, Input::Time time);
 	void removeExtendedDevice();
 };
+
+}

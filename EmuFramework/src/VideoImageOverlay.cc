@@ -20,6 +20,9 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 #define CONV_COL(x) 0, x
 alignas(2) static uint8_t scanlinePixmapBuff[] = { CONV_COL(0x00), CONV_COL(0xff) };
 alignas(8) static uint8_t diagonalPixmapBuff[] =
@@ -97,7 +100,7 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, unsigned lines)
 {
 	if(!spr.image())
 		return;
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	//logMsg("placing overlay with %u lines in image", lines);
 	spr.setPos(disp);
 	GTexC width = lines*(EmuSystem::aspectRatioInfo[0].aspect.x/(float)EmuSystem::aspectRatioInfo[0].aspect.y);
@@ -120,10 +123,12 @@ void VideoImageOverlay::draw(Gfx::RendererCommands &cmds)
 {
 	if(!spr.image())
 		return;
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	cmds.set(CommonTextureSampler::NEAREST_MIP_REPEAT);
 	cmds.setColor(1., 1., 1., intensity);
 	cmds.setBlendMode(BLEND_MODE_ALPHA);
 	spr.setCommonProgram(cmds, IMG_MODE_MODULATE);
 	spr.draw(cmds);
+}
+
 }

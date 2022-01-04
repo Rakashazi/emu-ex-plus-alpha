@@ -20,6 +20,9 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/util/format.hh>
 
+namespace EmuEx
+{
+
 static constexpr bool USE_MOBILE_ORIENTATION_NAMES = Config::envIsAndroid || Config::envIsIOS;
 static const char *landscapeName = USE_MOBILE_ORIENTATION_NAMES ? "Landscape" : "90 Left";
 static const char *landscape2Name = USE_MOBILE_ORIENTATION_NAMES ? "Landscape 2" : "90 Right";
@@ -221,12 +224,12 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	menuOrientationItem
 	{
 		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", &defaultFace(), setMenuOrientationDel(Base::VIEW_ROTATE_AUTO)},
+		{"Auto", &defaultFace(), setMenuOrientationDel(IG::VIEW_ROTATE_AUTO)},
 		#endif
-		{landscapeName,  &defaultFace(), setMenuOrientationDel(Base::VIEW_ROTATE_90)},
-		{landscape2Name, &defaultFace(), setMenuOrientationDel(Base::VIEW_ROTATE_270)},
-		{portraitName,   &defaultFace(), setMenuOrientationDel(Base::VIEW_ROTATE_0)},
-		{portrait2Name,  &defaultFace(), setMenuOrientationDel(Base::VIEW_ROTATE_180)},
+		{landscapeName,  &defaultFace(), setMenuOrientationDel(IG::VIEW_ROTATE_90)},
+		{landscape2Name, &defaultFace(), setMenuOrientationDel(IG::VIEW_ROTATE_270)},
+		{portraitName,   &defaultFace(), setMenuOrientationDel(IG::VIEW_ROTATE_0)},
+		{portrait2Name,  &defaultFace(), setMenuOrientationDel(IG::VIEW_ROTATE_180)},
 	},
 	menuOrientation
 	{
@@ -237,10 +240,10 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			switch(optionMenuOrientation)
 			{
 				default: return 0;
-				case Base::VIEW_ROTATE_90: return 1 - itemOffset;
-				case Base::VIEW_ROTATE_270: return 2 - itemOffset;
-				case Base::VIEW_ROTATE_0: return 3 - itemOffset;
-				case Base::VIEW_ROTATE_180: return 4 - itemOffset;
+				case IG::VIEW_ROTATE_90: return 1 - itemOffset;
+				case IG::VIEW_ROTATE_270: return 2 - itemOffset;
+				case IG::VIEW_ROTATE_0: return 3 - itemOffset;
+				case IG::VIEW_ROTATE_180: return 4 - itemOffset;
 			}
 		}(),
 		menuOrientationItem
@@ -248,12 +251,12 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	gameOrientationItem
 	{
 		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", &defaultFace(), setGameOrientationDel(Base::VIEW_ROTATE_AUTO)},
+		{"Auto", &defaultFace(), setGameOrientationDel(IG::VIEW_ROTATE_AUTO)},
 		#endif
-		{landscapeName,  &defaultFace(), setGameOrientationDel(Base::VIEW_ROTATE_90)},
-		{landscape2Name, &defaultFace(), setGameOrientationDel(Base::VIEW_ROTATE_270)},
-		{portraitName,   &defaultFace(), setGameOrientationDel(Base::VIEW_ROTATE_0)},
-		{portrait2Name,  &defaultFace(), setGameOrientationDel(Base::VIEW_ROTATE_180)},
+		{landscapeName,  &defaultFace(), setGameOrientationDel(IG::VIEW_ROTATE_90)},
+		{landscape2Name, &defaultFace(), setGameOrientationDel(IG::VIEW_ROTATE_270)},
+		{portraitName,   &defaultFace(), setGameOrientationDel(IG::VIEW_ROTATE_0)},
+		{portrait2Name,  &defaultFace(), setGameOrientationDel(IG::VIEW_ROTATE_180)},
 	},
 	gameOrientation
 	{
@@ -264,10 +267,10 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			switch(optionGameOrientation)
 			{
 				default: return 0;
-				case Base::VIEW_ROTATE_90: return 1 - itemOffset;
-				case Base::VIEW_ROTATE_270: return 2 - itemOffset;
-				case Base::VIEW_ROTATE_0: return 3 - itemOffset;
-				case Base::VIEW_ROTATE_180: return 4 - itemOffset;
+				case IG::VIEW_ROTATE_90: return 1 - itemOffset;
+				case IG::VIEW_ROTATE_270: return 2 - itemOffset;
+				case IG::VIEW_ROTATE_0: return 3 - itemOffset;
+				case IG::VIEW_ROTATE_180: return 4 - itemOffset;
 			}
 		}(),
 		gameOrientationItem
@@ -340,7 +343,7 @@ TextMenuItem::SelectDelegate GUIOptionView::setMenuOrientationDel(int val)
 		{
 			optionMenuOrientation = val;
 			renderer().setWindowValidOrientations(window(), optionMenuOrientation);
-			logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
+			logMsg("set menu orientation: %s", IG::orientationToStr(int(optionMenuOrientation)));
 		};
 }
 
@@ -349,7 +352,7 @@ TextMenuItem::SelectDelegate GUIOptionView::setGameOrientationDel(int val)
 	return [val]()
 		{
 			optionGameOrientation = val;
-			logMsg("set game orientation: %s", Base::orientationToStr(int(optionGameOrientation)));
+			logMsg("set game orientation: %s", IG::orientationToStr(int(optionGameOrientation)));
 		};
 }
 
@@ -383,4 +386,6 @@ TextMenuItem::SelectDelegate GUIOptionView::setHideOSNavDel(int val)
 			optionHideOSNav = val;
 			app().applyOSNavStyle(appContext(), false);
 		};
+}
+
 }

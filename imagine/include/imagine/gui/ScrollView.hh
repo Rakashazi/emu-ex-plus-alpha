@@ -22,16 +22,18 @@
 #include <imagine/util/string/utf16.hh>
 #include <imagine/gui/View.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 class RendererCommands;
 }
+
+namespace IG
+{
 
 class ScrollView : public View
 {
 public:
 	ScrollView(ViewAttachParams attach);
-	ScrollView(IG::utf16String name, ViewAttachParams attach);
 	~ScrollView();
 	void onShow() override;
 	void onHide() override;
@@ -42,7 +44,7 @@ public:
 protected:
 	using VelocityTrackerType = Input::VelocityTracker<float, 1>;
 
-	Base::OnFrameDelegate animate;
+	OnFrameDelegate animate;
 	Input::SingleDragTracker<> dragTracker{};
 	VelocityTrackerType velTracker{}; // tracks y velocity as pixels/sec
 	IG::WindowRect scrollBarRect{};
@@ -65,3 +67,5 @@ protected:
 	int scrollOffset() const;
 	void stopScrollAnimation();
 };
+
+}

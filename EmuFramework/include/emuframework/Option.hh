@@ -24,6 +24,11 @@
 #include <cstring>
 #include <string_view>
 
+namespace EmuEx
+{
+
+using namespace IG;
+
 template <class T>
 static std::optional<T> readOptionValue(IO &io, size_t bytesToRead, IG::Predicate<const T&> auto &&isValid)
 {
@@ -32,12 +37,7 @@ static std::optional<T> readOptionValue(IO &io, size_t bytesToRead, IG::Predicat
 		logMsg("skipping %zu byte option value, expected %zu bytes", bytesToRead, sizeof(T));
 		return {};
 	}
-	auto [val, size] = io.read<T>();
-	if(size == -1) [[unlikely]]
-	{
-		logErr("error reading %zu byte option", bytesToRead);
-		return {};
-	}
+	auto val = io.get<T>();
 	if(!isValid(val))
 		return {};
 	return val;
@@ -233,12 +233,7 @@ public:
 			return false;
 		}
 
-		auto [x, size] = io.read<SERIALIZED_T>();
-		if(size == -1)
-		{
-			logErr("error reading option from io");
-			return false;
-		}
+		auto x = io.get<SERIALIZED_T>();
 		if(V::isValidVal(x))
 			V::set(x);
 		else
@@ -270,4 +265,6 @@ template<int MIN, int MAX, class T>
 static bool optionIsValidWithMinMax(T val)
 {
 	return val >= MIN && val <= MAX;
+}
+
 }

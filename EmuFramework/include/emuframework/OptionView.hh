@@ -23,15 +23,23 @@
 #include <imagine/util/container/ArrayList.hh>
 #include <memory>
 
-class EmuVideoLayer;
-class EmuAudio;
+namespace IG
+{
 class TextTableView;
-enum class ImageEffectId : uint8_t;
+}
 
-namespace Gfx
+namespace IG::Gfx
 {
 struct DrawableConfig;
 }
+
+namespace EmuEx
+{
+
+using namespace IG;
+class EmuVideoLayer;
+class EmuAudio;
+enum class ImageEffectId : uint8_t;
 
 class OptionCategoryView : public TableView, public EmuAppHelper<OptionCategoryView>
 {
@@ -229,3 +237,5 @@ protected:
 	FS::PathString *biosPathStr{};
 	EmuSystem::NameFilterFunc fsFilter{};
 };
+
+}

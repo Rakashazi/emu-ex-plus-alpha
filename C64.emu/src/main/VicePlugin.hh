@@ -45,7 +45,7 @@ enum ViceSystem
 struct VicePlugin
 {
 	static constexpr int SYSTEMS = 10;
-	Base::SharedLibraryRef libHandle{};
+	IG::SharedLibraryRef libHandle{};
 	uint8_t (*joystick_value)[JOYSTICK_NUM + 1]{};
 	int *warp_mode_enabled{};
 	int models = 0;

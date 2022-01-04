@@ -1,13 +1,16 @@
 #pragma once
 
+namespace EmuEx
+{
 class EmuSystemTaskContext;
 class EmuVideo;
+}
 
 void FCEUPPU_Init(void);
 void FCEUPPU_Reset(void);
 void FCEUPPU_Power(void);
-int FCEUPPU_Loop(EmuSystemTaskContext, EmuVideo *, int skip);
-void FCEUPPU_FrameReady(EmuSystemTaskContext, EmuVideo *, uint8 *data);
+int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, int skip);
+void FCEUPPU_FrameReady(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, uint8 *data);
 
 void FCEUPPU_LineUpdate();
 void FCEUPPU_SetVideoSystem(int w);

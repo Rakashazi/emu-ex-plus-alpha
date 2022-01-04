@@ -21,24 +21,22 @@
 #include <imagine/util/typeTraits.hh>
 #include <compare>
 
-namespace Base
+namespace IG
 {
-
 class Window;
-
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Viewport
 {
 public:
-	constexpr Viewport() {}
-	IG::WindowRect realBounds() const { return Base::orientationIsSideways(softOrientation_) ? rect.makeInverted() : rect; }
+	constexpr Viewport() = default;
+	IG::WindowRect realBounds() const { return orientationIsSideways(softOrientation_) ? rect.makeInverted() : rect; }
 	IG::WindowRect bounds() const { return rect; }
-	int realWidth() const { return Base::orientationIsSideways(softOrientation_) ? h : w; }
-	int realHeight() const { return Base::orientationIsSideways(softOrientation_) ? w : h; }
+	int realWidth() const { return orientationIsSideways(softOrientation_) ? h : w; }
+	int realHeight() const { return orientationIsSideways(softOrientation_) ? w : h; }
 	int width() const { return w; }
 	int height() const { return h; }
 	float aspectRatio() const { return (float)width() / (float)height(); }
@@ -61,8 +59,8 @@ public:
 	IG::WindowRect relRectFromViewport(int newX, int newY, IG::Point2D<int> size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
 	IG::WindowRect rectWithRatioBestFitFromViewport(int newX, int newY, float aR, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
 	static Viewport makeFromRect(IG::WindowRect fullRect, IG::WindowRect fullRealRect, IG::WindowRect subRect);
-	static Viewport makeFromWindow(const Base::Window &win, IG::WindowRect rect);
-	static Viewport makeFromWindow(const Base::Window &win);
+	static Viewport makeFromWindow(const Window &win, IG::WindowRect rect);
+	static Viewport makeFromWindow(const Window &win);
 	IG::Point2D<int> sizesWithRatioBestFitFromViewport(float destAspectRatio) const;
 
 	static Viewport makeFromRect(IG::WindowRect fullRect, IG::WindowRect subRect)
@@ -85,8 +83,8 @@ private:
 	int w = 0, h = 0;
 	float wMM = 0, hMM = 0;
 	IG::Rect2<int> relYFlipViewport;
-	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Base::Orientation,
-		Base::VIEW_ROTATE_0, softOrientation_){Base::VIEW_ROTATE_0};
+	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation,
+		VIEW_ROTATE_0, softOrientation_){VIEW_ROTATE_0};
 };
 
 }

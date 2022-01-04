@@ -33,10 +33,13 @@ class utf16String : public std::u16string
 public:
 	using std::u16string::u16string;
 	utf16String(IG::convertible_to<std::u16string> auto &&s):std::u16string{IG_forward(s)} {}
+	utf16String(std::u16string_view s):std::u16string{s} {}
+
+	// UTF-8 -> UTF-16 conversion
+	utf16String(std::string_view s):std::u16string{makeUTF16String(s)} {}
 	[[gnu::nonnull]]
 	utf16String(const char *s):utf16String{std::string_view{s}} {}
 	utf16String(CStringView s):utf16String{std::string_view{s}} {}
-	utf16String(std::string_view s):std::u16string{makeUTF16String(s)} {}
 	utf16String(const std::string &s):utf16String{std::string_view{s}} {}
 	template<size_t N>
 	utf16String(const StaticString<N> &s):utf16String{std::string_view{s}} {}

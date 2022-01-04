@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 
-namespace Base
+namespace IG
 {
 
 class XApplication;
@@ -26,7 +26,7 @@ class Application;
 class XApplicationContext
 {
 public:
-	constexpr XApplicationContext() {}
+	constexpr XApplicationContext() = default;
 	constexpr XApplicationContext(XApplication &app):appPtr{&app} {}
 	void setApplicationPtr(Application*);
 	Application &application() const;

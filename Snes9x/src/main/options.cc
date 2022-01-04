@@ -8,6 +8,9 @@
 #include "internal.hh"
 #include <snes9x.h>
 
+namespace EmuEx
+{
+
 enum
 {
 	CFGKEY_MULTITAP = 276, CFGKEY_BLOCK_INVALID_VRAM_ACCESS = 277,
@@ -64,7 +67,7 @@ void EmuSystem::initOptions(EmuApp &app)
 	app.setDefaultVControlsButtonStagger(5); // original SNES layout
 }
 
-void EmuSystem::onOptionsLoaded(Base::ApplicationContext)
+void EmuSystem::onOptionsLoaded(IG::ApplicationContext)
 {
 	#ifndef SNES9X_VERSION_1_4
 	SNES::dsp.spc_dsp.interpolation = optionAudioDSPInterpolation;
@@ -141,4 +144,6 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionSeparateEchoBuffer.writeWithKeyIfNotDefault(io);
 	optionSuperFXClockMultiplier.writeWithKeyIfNotDefault(io);
 	#endif
+}
+
 }

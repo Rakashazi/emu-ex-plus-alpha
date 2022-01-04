@@ -17,7 +17,7 @@
 
 #include <cstdio>
 
-namespace Base
+namespace IG
 {
 
 class RootCpufreqParamSetter

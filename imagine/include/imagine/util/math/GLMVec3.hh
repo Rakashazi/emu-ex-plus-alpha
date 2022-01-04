@@ -20,7 +20,7 @@
 class GLMVec3
 {
 public:
-	constexpr GLMVec3(): v{} {}
+	constexpr GLMVec3() = default;
 	constexpr GLMVec3(float x, float y, float z): v{x, y, z} {}
 	constexpr GLMVec3(glm::vec3 v): v{v} {}
 	constexpr glm::vec3 vec() const { return v; }

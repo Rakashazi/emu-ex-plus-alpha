@@ -34,30 +34,25 @@
 #include <vector>
 #include <optional>
 
-class AssetIO;
-class FileIO;
-
-namespace IG
-{
-class PixelFormat;
-}
-
-namespace Input
+namespace IG::Input
 {
 class Event;
 class Device;
 }
 
-namespace FS
+namespace IG::FS
 {
 class AssetDirectoryIterator;
 }
 
-namespace Base
+namespace IG
 {
 
 class Application;
 struct ApplicationInitParams;
+class PixelFormat;
+class AssetIO;
+class FileIO;
 
 enum class Permission
 {
@@ -236,7 +231,7 @@ public:
 class OnExit
 {
 public:
-	constexpr OnExit() {}
+	constexpr OnExit() = default;
 	constexpr OnExit(ApplicationContext ctx):ctx{ctx} {}
 	OnExit(ExitDelegate, ApplicationContext, int priority = APP_ON_EXIT_PRIORITY);
 	OnExit(OnExit &&);

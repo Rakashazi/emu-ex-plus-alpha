@@ -23,6 +23,9 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 
+namespace IG
+{
+
 BaseAlertView::BaseAlertView(ViewAttachParams attach, IG::utf16String label, TableView::ItemsDelegate items, TableView::ItemDelegate item):
 	View{attach},
 	text{std::move(label), &attach.viewManager().defaultFace()},
@@ -63,7 +66,7 @@ BaseAlertView::BaseAlertView(ViewAttachParams attach, IG::utf16String label, Tab
 
 void BaseAlertView::place()
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	int xSize = viewRect().xSize() * .8;
 	text.setMaxLineSize(projP.unprojectXSize(xSize) * 0.95_gc);
 	text.compile(renderer(), projP);
@@ -101,7 +104,7 @@ void BaseAlertView::prepareDraw()
 
 void BaseAlertView::draw(Gfx::RendererCommands &cmds)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	cmds.setBlendMode(BLEND_MODE_ALPHA);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	cmds.setColor(.4, .4, .4, .8);
@@ -168,4 +171,6 @@ void YesNoAlertView::setOnNo(TextMenuItem::SelectDelegate del)
 TextMenuItem::SelectDelegate YesNoAlertView::makeDefaultSelectDelegate()
 {
 	return [](){};
+}
+
 }

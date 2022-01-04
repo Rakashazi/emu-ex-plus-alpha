@@ -6,7 +6,10 @@
 #include "../System.h"
 #include "GBA.h"
 
+namespace EmuEx
+{
 class EmuAudio;
+}
 
 //// Setup/options (these affect GBA and GB sound)
 
@@ -71,7 +74,7 @@ void soundTimerOverflow(GBASys &gba, ARM7TDMI &cpu, int which );
 void interp_rate();
 
 // Notifies emulator that SOUND_CLOCK_TICKS clocks have passed
-void psoundTickfn(EmuAudio *audio);
+void psoundTickfn(EmuEx::EmuAudio *audio);
 extern const int SOUND_CLOCK_TICKS;   // Number of 16.8 MHz clocks between calls to soundTick()
 extern int &soundTicks;          // Number of 16.8 MHz clocks until soundTick() will be called
 
@@ -81,6 +84,6 @@ void soundReadGame( GBASys &gba, gzFile, int version );
 
 class Multi_Buffer;
 
-void flush_samples(Multi_Buffer * buffer, EmuAudio *audio);
+void flush_samples(Multi_Buffer * buffer, EmuEx::EmuAudio *audio);
 
 #endif // SOUND_H

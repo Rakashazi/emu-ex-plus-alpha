@@ -31,10 +31,9 @@ using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, unsigned frames)>;
 class OutputStreamConfig
 {
 public:
-	constexpr OutputStreamConfig() {}
+	constexpr OutputStreamConfig() = default;
 	constexpr OutputStreamConfig(Format format, OnSamplesNeededDelegate onSamplesNeeded = nullptr):
-		format_{format}, onSamplesNeeded_{onSamplesNeeded}
-		{}
+		format_{format}, onSamplesNeeded_{onSamplesNeeded} {}
 
 	constexpr Format format() const
 	{

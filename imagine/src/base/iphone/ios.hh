@@ -6,7 +6,7 @@
 #import "MainApp.hh"
 #include <imagine/input/Input.hh>
 
-namespace Base
+namespace IG
 {
 	class ApplicationContext;
 
@@ -18,10 +18,10 @@ namespace Base
 	bool hasAtLeastIOS8();
 }
 
-namespace Input
+namespace IG::Input
 {
 	static constexpr int GSEVENTKEY_KEYCODE_IOS7 = 17;
 	static constexpr int GSEVENTKEY_KEYCODE_64_BIT = 13;
 	extern int GSEVENTKEY_KEYCODE;
-	void handleKeyEvent(Base::ApplicationContext, UIEvent *);
+	void handleKeyEvent(ApplicationContext, UIEvent *);
 }

@@ -19,7 +19,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/pixmap/PixmapDesc.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class TextureSampler;
@@ -27,7 +27,7 @@ class TextureSampler;
 class TextureConfig
 {
 public:
-	constexpr TextureConfig() {}
+	constexpr TextureConfig() = default;
 	constexpr TextureConfig(IG::PixmapDesc pixDesc, const TextureSampler *compatSampler = {}):
 		compatSampler_{compatSampler}, pixmapDesc_{pixDesc}
 	{}

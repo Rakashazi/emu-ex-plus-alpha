@@ -46,8 +46,10 @@ static constexpr uint32_t CELL_PAD_BTN_OFFSET_DIGITAL1 = 0, CELL_PAD_BTN_OFFSET_
 
 #define CELL_PAD_CTRL_PS        (1 << 0)
 
-using namespace IG;
-using namespace Input;
+namespace IG
+{
+
+using namespace IG::Input;
 
 static const PackedInputAccess padDataAccess[] =
 {
@@ -74,7 +76,7 @@ static const PackedInputAccess padDataAccess[] =
 
 static const char *ps3ButtonName(Input::Key k)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	switch(k)
 	{
 		case 0: return "None";
@@ -107,7 +109,7 @@ static const char *ps3ButtonName(Input::Key k)
 	return "";
 }
 
-PS3Controller::PS3Controller(Base::ApplicationContext ctx, BluetoothAddr addr):
+PS3Controller::PS3Controller(ApplicationContext ctx, BluetoothAddr addr):
 	BluetoothInputDevice{ctx, Input::Map::PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"},
 	ctlSock{ctx}, intSock{ctx},
 	addr{addr}
@@ -300,4 +302,6 @@ std::pair<Input::Key, Input::Key> PS3Controller::joystickKeys(Input::AxisId axis
 		case Input::AxisId::RZ: return {Input::PS3::RSTICK_DOWN, Input::PS3::RSTICK_UP};
 		default: return {};
 	}
+}
+
 }

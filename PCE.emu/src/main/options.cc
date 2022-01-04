@@ -17,6 +17,9 @@
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 enum
 {
 	CFGKEY_SYSCARD_PATH = 275, CFGKEY_ARCADE_CARD = 276,
@@ -79,4 +82,6 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 void EmuSystem::writeConfig(IO &io)
 {
 	writeStringOptionValue(io, CFGKEY_SYSCARD_PATH, sysCardPath);
+}
+
 }

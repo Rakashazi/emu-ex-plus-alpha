@@ -7,7 +7,7 @@
 #include <imagine/gfx/Vertex.hh>
 #include <imagine/util/container/array.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererCommands;
@@ -15,7 +15,7 @@ class RendererCommands;
 class GeomQuadMesh
 {
 public:
-	constexpr GeomQuadMesh() {}
+	constexpr GeomQuadMesh() = default;
 	GeomQuadMesh(const VertexPos *x, uint32_t xVals, const VertexPos *y, uint32_t yVals, VertexColor color = 0);
 	template <size_t S1, size_t S2>
 	GeomQuadMesh(const VertexPos (&x)[S1], const VertexPos (&y)[S2], VertexColor color = 0):

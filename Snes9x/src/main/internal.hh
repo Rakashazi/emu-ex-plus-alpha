@@ -7,10 +7,13 @@
 #include <controls.h>
 #endif
 
-namespace EmuControls
+namespace EmuEx::Controls
 {
 extern const unsigned gamepadKeys;
 }
+
+namespace EmuEx
+{
 
 class VController;
 
@@ -20,7 +23,7 @@ static constexpr bool IS_SNES9X_VERSION_1_4 = true;
 static constexpr bool IS_SNES9X_VERSION_1_4 = false;
 #endif
 
-extern Base::ApplicationContext appCtx;
+extern IG::ApplicationContext appCtx;
 extern Byte1Option optionMultitap;
 extern SByte1Option optionInputPort;
 extern Byte1Option optionVideoSystem;
@@ -46,6 +49,10 @@ static const int &snesActiveInputPort = snesInputPort;
 void setupSNESInput(VController &);
 void setSuperFXSpeedMultiplier(unsigned val);
 
+uint32_t numCheats();
+
+}
+
 #ifndef SNES9X_VERSION_1_4
 uint16 *S9xGetJoypadBits(unsigned idx);
 uint8 *S9xGetMouseBits(unsigned idx);
@@ -55,5 +62,3 @@ int16 *S9xGetSuperscopePosBits();
 uint8 *S9xGetSuperscopeBits();
 CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons);
 #endif
-
-uint32_t numCheats();

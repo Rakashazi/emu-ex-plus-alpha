@@ -21,10 +21,10 @@
 
 struct png_struct_def;
 struct png_info_def;
-class GenericIO;
 
 namespace IG
 {
+class GenericIO;
 class PixelFormat;
 class Pixmap;
 }
@@ -35,7 +35,7 @@ namespace IG::Data
 class PngImage
 {
 public:
-	constexpr PngImage() {}
+	constexpr PngImage() = default;
 	PngImage(GenericIO io);
 	PngImage(PngImage &&o);
 	PngImage &operator=(PngImage &&o);
@@ -60,14 +60,14 @@ using PixmapImageImpl = PngImage;
 class PngReader
 {
 public:
-	constexpr PngReader(Base::ApplicationContext ctx):
+	constexpr PngReader(ApplicationContext ctx):
 		ctx{ctx}
 	{}
 
 protected:
-	Base::ApplicationContext ctx{};
+	ApplicationContext ctx{};
 
-	constexpr Base::ApplicationContext appContext() const { return ctx; }
+	constexpr ApplicationContext appContext() const { return ctx; }
 };
 
 using PixmapReaderImpl = PngReader;
@@ -75,7 +75,7 @@ using PixmapReaderImpl = PngReader;
 class PngWriter
 {
 public:
-	constexpr PngWriter(Base::ApplicationContext) {}
+	constexpr PngWriter(ApplicationContext) {}
 };
 
 using PixmapWriterImpl = PngWriter;

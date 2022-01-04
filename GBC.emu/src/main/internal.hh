@@ -4,6 +4,9 @@
 #include <gambatte.h>
 #include "Palette.hh"
 
+namespace EmuEx
+{
+
 class GbcInput : public gambatte::InputGetter
 {
 public:
@@ -38,3 +41,5 @@ extern gambatte::GB gbEmu;
 extern GbcInput gbcInput;
 
 void applyGBPalette();
+
+}

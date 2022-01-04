@@ -19,13 +19,13 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/util/typeTraits.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class TextureSamplerConfig
 {
 public:
-	constexpr TextureSamplerConfig() {}
+	constexpr TextureSamplerConfig() = default;
 
 	void setLinearFilter(bool on)
 	{

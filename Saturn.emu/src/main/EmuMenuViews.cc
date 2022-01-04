@@ -20,6 +20,9 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 
+namespace EmuEx
+{
+
 static constexpr unsigned MAX_SH2_CORES = 4;
 
 class CustomSystemOptionView : public SystemOptionView
@@ -30,10 +33,10 @@ class CustomSystemOptionView : public SystemOptionView
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			pushAndShow(
-				makeViewWithName<BiosSelectMenu>("BIOS", &::biosPath,
+				makeViewWithName<BiosSelectMenu>("BIOS", &EmuEx::biosPath,
 				[this](std::string_view displayName)
 				{
-					logMsg("set bios %s", ::biosPath.data());
+					logMsg("set bios %s", EmuEx::biosPath.data());
 					biosPath.compile(biosMenuEntryStr(displayName), renderer(), projP);
 				},
 				hasBIOSExtension), e);
@@ -80,7 +83,7 @@ public:
 			}
 			item.emplace_back(&sh2Core);
 		}
-		biosPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(::biosPath)));
+		biosPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(EmuEx::biosPath)));
 		item.emplace_back(&biosPath);
 	}
 };
@@ -92,4 +95,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		default: return nullptr;
 	}
+}
+
 }

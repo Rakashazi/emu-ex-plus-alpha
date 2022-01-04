@@ -24,7 +24,15 @@
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/base/ApplicationContext.hh>
 
+namespace IG
+{
 class ViewAttachParams;
+}
+
+namespace FrameRateTest
+{
+
+using namespace IG;
 
 enum TestID
 {
@@ -68,7 +76,7 @@ struct TestDesc
 class TestFramework
 {
 public:
-	using TestFinishedDelegate = DelegateFunc<void (TestFramework &test)>;
+	using TestFinishedDelegate = IG::DelegateFunc<void (TestFramework &test)>;
 	bool started{};
 	bool shouldEndTest{};
 	unsigned frames{};
@@ -81,14 +89,14 @@ public:
 
 	TestFramework() {}
 	virtual ~TestFramework() {}
-	virtual void initTest(Base::ApplicationContext, Gfx::Renderer &, IG::WP pixmapSize, Gfx::TextureBufferMode) {}
+	virtual void initTest(IG::ApplicationContext, Gfx::Renderer &, IG::WP pixmapSize, Gfx::TextureBufferMode) {}
 	virtual void placeTest(const Gfx::GCRect &testRect) {}
-	virtual void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime) = 0;
+	virtual void frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime) = 0;
 	virtual void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) = 0;
 	virtual void presentedTest(Gfx::RendererCommands &cmds) {}
-	void init(Base::ApplicationContext, Gfx::Renderer &, Gfx::GlyphTextureSet &face, IG::WP pixmapSize, Gfx::TextureBufferMode);
+	void init(IG::ApplicationContext, Gfx::Renderer &, Gfx::GlyphTextureSet &face, IG::WP pixmapSize, Gfx::TextureBufferMode);
 	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);
-	void frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameParams frameParams);
+	void frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::FrameParams frameParams);
 	void prepareDraw(Gfx::Renderer &r);
 	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, Gfx::GC xIndent);
 	void finish(Gfx::RendererTask &task, IG::FrameTime frameTime);
@@ -117,9 +125,7 @@ protected:
 	bool flash{true};
 
 public:
-	ClearTest() {}
-
-	void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime) override;
+	void frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
 
@@ -131,22 +137,19 @@ protected:
 	Gfx::Sprite sprite;
 
 public:
-	DrawTest() {}
-
-	void initTest(Base::ApplicationContext, Gfx::Renderer &, IG::WP pixmapSize, Gfx::TextureBufferMode) override;
+	void initTest(IG::ApplicationContext, Gfx::Renderer &, IG::WP pixmapSize, Gfx::TextureBufferMode) override;
 	void placeTest(const Gfx::GCRect &rect) override;
-	void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime) override;
+	void frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
 
 class WriteTest : public DrawTest
 {
 public:
-	WriteTest() {}
-	~WriteTest() override;
-
-	void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime) override;
+	void frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
 
 const char *testIDToStr(TestID id);
+
+}

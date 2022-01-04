@@ -78,8 +78,6 @@ namespace IG::Data
 
 bool PngImage::supportUncommonConv = 0;
 
-using namespace IG;
-
 static void png_ioReader(png_structp pngPtr, png_bytep data, png_size_t length)
 {
 	auto &io = *(IO*)png_get_io_ptr(pngPtr);

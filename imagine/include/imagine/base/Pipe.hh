@@ -23,7 +23,7 @@
 #include <imagine/util/utility.h>
 #include <array>
 
-namespace Base
+namespace IG
 {
 
 class Pipe

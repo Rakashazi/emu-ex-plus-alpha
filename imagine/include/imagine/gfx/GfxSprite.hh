@@ -21,7 +21,7 @@
 #include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/Vertex.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Texture;

@@ -17,7 +17,7 @@ struct CheatsData {
   char desc[32];
 };
 
-namespace Base
+namespace IG
 {
 class ApplicationContext;
 }
@@ -34,14 +34,14 @@ void cheatsDisable(ARM7TDMI &cpu, int number);
 void cheatsSaveGame(gzFile file);
 void cheatsReadGame(gzFile file, int version);
 void cheatsReadGameSkip(gzFile file, int version);
-void cheatsSaveCheatList(Base::ApplicationContext, const char *file);
-bool cheatsLoadCheatList(Base::ApplicationContext, const char *file);
+void cheatsSaveCheatList(IG::ApplicationContext, const char *file);
+bool cheatsLoadCheatList(IG::ApplicationContext, const char *file);
 void cheatsWriteMemory(u32 address, u32 value);
 void cheatsWriteHalfWord(u32 address, u16 value);
 void cheatsWriteByte(u32 address, u8 value);
 int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended);
 
-extern StaticArrayList<CheatsData, 100> cheatsList;
+extern IG::StaticArrayList<CheatsData, 100> cheatsList;
 static constexpr size_t CHEATS_LIST_DATA_SIZE = sizeof(CheatsData) * 100;
 
 #endif // CHEATS_H

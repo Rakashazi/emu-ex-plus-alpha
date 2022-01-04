@@ -18,9 +18,12 @@
 #include "internal.hh"
 #include <vbam/gba/GBA.h>
 
+namespace EmuEx
+{
+
 enum
 {
-	gbaKeyIdxUp = EmuControls::systemKeyMapStart,
+	gbaKeyIdxUp = Controls::systemKeyMapStart,
 	gbaKeyIdxRight,
 	gbaKeyIdxDown,
 	gbaKeyIdxLeft,
@@ -118,4 +121,6 @@ void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKe
 void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	P1 = 0x03FF;
+}
+
 }

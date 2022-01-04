@@ -9,9 +9,14 @@
 #include <memmap.h>
 #include <display.h>
 
+void DoGunLatch (int, int);
+
+namespace EmuEx
+{
+
 enum
 {
-	s9xKeyIdxUp = EmuControls::systemKeyMapStart,
+	s9xKeyIdxUp = Controls::systemKeyMapStart,
 	s9xKeyIdxRight,
 	s9xKeyIdxDown,
 	s9xKeyIdxLeft,
@@ -35,8 +40,6 @@ enum
 	s9xKeyIdxRTurbo,
 };
 
-void DoGunLatch (int, int);
-
 const char *EmuSystem::inputFaceBtnName = "A/B/X/Y/L/R";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
 const unsigned EmuSystem::inputFaceBtns = 6;
@@ -56,60 +59,6 @@ int snesActiveInputPort = SNES_JOYPAD;
 #else
 int snesInputPort = SNES_JOYPAD;
 static uint16 joypadData[5]{};
-#endif
-
-CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons)
-{
-    if (which == 1)
-    	return 0;
-
-    //logMsg("reading mouse %d: %d %d %d, prev %d %d", which1_0_to_1, snesPointerX, snesPointerY, snesPointerBtns, IPPU.PrevMouseX[which1_0_to_1], IPPU.PrevMouseY[which1_0_to_1]);
-    x = snesMouseX;
-    y = snesMouseY;
-    buttons = snesPointerBtns;
-
-    if(snesMouseClick)
-    	snesMouseClick--;
-    if(snesMouseClick == 1)
-    {
-    	//logDMsg("ending click");
-    	snesPointerBtns = 0;
-    }
-
-    return 1;
-}
-
-CLINK bool8 S9xReadSuperScopePosition(int &x, int &y, uint32 &buttons)
-{
-	//logMsg("reading super scope: %d %d %d", snesPointerX, snesPointerY, snesPointerBtns);
-	x = snesPointerX;
-	y = snesPointerY;
-	buttons = snesPointerBtns;
-	return 1;
-}
-
-#ifdef SNES9X_VERSION_1_4
-static uint16 *S9xGetJoypadBits(unsigned idx)
-{
-	return &joypadData[idx];
-}
-
-CLINK uint32 S9xReadJoypad(int which)
-{
-	assert(which < 5);
-	//logMsg("reading joypad %d", which);
-	return 0x80000000 | joypadData[which];
-}
-
-bool JustifierOffscreen()
-{
-	return false;
-}
-
-void JustifierButtons(uint32& justifiers) { }
-
-static bool usingMouse() { return IPPU.Controller == SNES_MOUSE_SWAPPED; }
-static bool usingGun() { return IPPU.Controller == SNES_SUPERSCOPE; }
 #endif
 
 void updateVControllerMapping(unsigned player, VController::Map &map)
@@ -139,9 +88,9 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	assert(input >= s9xKeyIdxUp);
-	unsigned player = (input - s9xKeyIdxUp) / EmuControls::gamepadKeys;
+	unsigned player = (input - s9xKeyIdxUp) / Controls::gamepadKeys;
 	unsigned playerMask = player << 29;
-	input -= EmuControls::gamepadKeys * player;
+	input -= Controls::gamepadKeys * player;
 	switch(input)
 	{
 		case s9xKeyIdxUp: return SNES_UP_MASK | playerMask;
@@ -170,6 +119,13 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 	}
 	return 0;
 }
+
+#ifdef SNES9X_VERSION_1_4
+static uint16 *S9xGetJoypadBits(unsigned idx)
+{
+	return &joypadData[idx];
+}
+#endif
 
 void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
 {
@@ -329,7 +285,6 @@ void setupSNESInput(VController &vCtrl)
 	#endif
 }
 
-
 bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG::WindowRect gameRect)
 {
 	switch(snesActiveInputPort)
@@ -472,3 +427,56 @@ bool EmuSystem::onPointerInputEnd(Input::Event e, Input::DragTrackerState dragSt
 	}
 	return false;
 }
+
+}
+
+using namespace EmuEx;
+
+CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons)
+{
+    if (which == 1)
+    	return 0;
+
+    //logMsg("reading mouse %d: %d %d %d, prev %d %d", which1_0_to_1, snesPointerX, snesPointerY, snesPointerBtns, IPPU.PrevMouseX[which1_0_to_1], IPPU.PrevMouseY[which1_0_to_1]);
+    x = snesMouseX;
+    y = snesMouseY;
+    buttons = snesPointerBtns;
+
+    if(snesMouseClick)
+    	snesMouseClick--;
+    if(snesMouseClick == 1)
+    {
+    	//logDMsg("ending click");
+    	snesPointerBtns = 0;
+    }
+
+    return 1;
+}
+
+CLINK bool8 S9xReadSuperScopePosition(int &x, int &y, uint32 &buttons)
+{
+	//logMsg("reading super scope: %d %d %d", snesPointerX, snesPointerY, snesPointerBtns);
+	x = snesPointerX;
+	y = snesPointerY;
+	buttons = snesPointerBtns;
+	return 1;
+}
+
+#ifdef SNES9X_VERSION_1_4
+CLINK uint32 S9xReadJoypad(int which)
+{
+	assert(which < 5);
+	//logMsg("reading joypad %d", which);
+	return 0x80000000 | joypadData[which];
+}
+
+bool JustifierOffscreen()
+{
+	return false;
+}
+
+void JustifierButtons(uint32& justifiers) { }
+
+static bool usingMouse() { return IPPU.Controller == SNES_MOUSE_SWAPPED; }
+static bool usingGun() { return IPPU.Controller == SNES_SUPERSCOPE; }
+#endif

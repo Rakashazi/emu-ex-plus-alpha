@@ -32,6 +32,9 @@
 #include <algorithm>
 #include <cstring>
 
+namespace EmuEx
+{
+
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
 FS::PathString EmuSystem::contentDirectory_{};
 FS::PathString EmuSystem::contentLocation_{};
@@ -70,17 +73,17 @@ static IG::Microseconds makeWantedAudioLatencyUSecs(uint8_t buffers)
 	return buffers * std::chrono::duration_cast<IG::Microseconds>(EmuSystem::frameTime());
 }
 
-bool EmuSystem::stateExists(Base::ApplicationContext ctx, int slot)
+bool EmuSystem::stateExists(IG::ApplicationContext ctx, int slot)
 {
 	return ctx.fileUriExists(statePath(ctx, slot));
 }
 
-bool EmuSystem::shouldOverwriteExistingState(Base::ApplicationContext ctx)
+bool EmuSystem::shouldOverwriteExistingState(IG::ApplicationContext ctx)
 {
 	return !optionConfirmOverwriteState || !EmuSystem::stateExists(ctx, EmuSystem::saveStateSlot);
 }
 
-EmuFrameTimeInfo EmuSystem::advanceFramesWithTime(Base::FrameTime time)
+EmuFrameTimeInfo EmuSystem::advanceFramesWithTime(IG::FrameTime time)
 {
 	return emuTiming.advanceFramesWithTime(time);
 }
@@ -91,7 +94,7 @@ void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, uint8_t speed)
 	emuAudio.setSpeedMultiplier(speed);
 }
 
-void EmuSystem::setupContentUriPaths(Base::ApplicationContext ctx, IG::CStringView uri, std::string_view displayName)
+void EmuSystem::setupContentUriPaths(IG::ApplicationContext ctx, IG::CStringView uri, std::string_view displayName)
 {
 	contentFileName_ = displayName;
 	contentName_ = IG::stringWithoutDotExtension(contentFileName_);
@@ -100,7 +103,7 @@ void EmuSystem::setupContentUriPaths(Base::ApplicationContext ctx, IG::CStringVi
 	updateContentSaveDirectory(ctx);
 }
 
-void EmuSystem::setupContentFilePaths(Base::ApplicationContext ctx, IG::CStringView filePath, std::string_view displayName)
+void EmuSystem::setupContentFilePaths(IG::ApplicationContext ctx, IG::CStringView filePath, std::string_view displayName)
 {
 	contentFileName_ = displayName;
 	contentName_ = IG::stringWithoutDotExtension(contentFileName_);
@@ -127,7 +130,7 @@ void EmuSystem::setupContentFilePaths(Base::ApplicationContext ctx, IG::CStringV
 	updateContentSaveDirectory(ctx);
 }
 
-void EmuSystem::updateContentSaveDirectory(Base::ApplicationContext ctx)
+void EmuSystem::updateContentSaveDirectory(IG::ApplicationContext ctx)
 {
 	if(contentName_.empty())
 		return;
@@ -148,7 +151,7 @@ void EmuSystem::updateContentSaveDirectory(Base::ApplicationContext ctx)
 	logMsg("updated content save path:%s", contentSaveDirectory_.data());
 }
 
-FS::PathString EmuSystem::fallbackSaveDirectory(Base::ApplicationContext ctx, bool create)
+FS::PathString EmuSystem::fallbackSaveDirectory(IG::ApplicationContext ctx, bool create)
 {
 	auto pathTemp = FS::pathString(ctx.storagePath(), "Game Data");
 	if(create)
@@ -160,7 +163,7 @@ FS::PathString EmuSystem::fallbackSaveDirectory(Base::ApplicationContext ctx, bo
 	return pathTemp;
 }
 
-FS::PathString EmuSystem::fallbackContentSaveDirectory(Base::ApplicationContext ctx, bool create)
+FS::PathString EmuSystem::fallbackContentSaveDirectory(IG::ApplicationContext ctx, bool create)
 {
 	assert(contentName_.size());
 	try
@@ -193,12 +196,12 @@ FS::PathString EmuSystem::contentSaveDirectory()
 	return contentSaveDirectory_;
 }
 
-FS::PathString EmuSystem::contentSavePath(Base::ApplicationContext ctx, std::string_view name)
+FS::PathString EmuSystem::contentSavePath(IG::ApplicationContext ctx, std::string_view name)
 {
 	return FS::uriString(contentSaveDirectory(), name);
 }
 
-FS::PathString EmuSystem::contentSaveFilePath(Base::ApplicationContext ctx, std::string_view ext)
+FS::PathString EmuSystem::contentSaveFilePath(IG::ApplicationContext ctx, std::string_view ext)
 {
 	return FS::uriString(contentSaveDirectory(), contentName().append(ext));
 }
@@ -208,7 +211,7 @@ FS::PathString EmuSystem::userSaveDirectory()
 	return userSaveDirectory_;
 }
 
-void EmuSystem::setUserSaveDirectory(Base::ApplicationContext ctx, IG::CStringView path)
+void EmuSystem::setUserSaveDirectory(IG::ApplicationContext ctx, IG::CStringView path)
 {
 	logMsg("set user save path:%s", path.data());
 	userSaveDirectory_ = path;
@@ -226,12 +229,12 @@ void EmuSystem::setFirmwarePath(std::string_view path)
 	firmwarePath_ = path;
 }
 
-FS::PathString EmuSystem::statePath(Base::ApplicationContext ctx, std::string_view filename, std::string_view basePath)
+FS::PathString EmuSystem::statePath(IG::ApplicationContext ctx, std::string_view filename, std::string_view basePath)
 {
 	return FS::uriString(basePath, filename);
 }
 
-FS::PathString EmuSystem::statePath(Base::ApplicationContext ctx, int slot, std::string_view path)
+FS::PathString EmuSystem::statePath(IG::ApplicationContext ctx, int slot, std::string_view path)
 {
 	return statePath(ctx, stateFilename(slot), path);
 }
@@ -376,7 +379,7 @@ bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 	return true;
 }
 
-[[gnu::weak]] FS::PathString EmuSystem::willLoadGameFromPath(Base::ApplicationContext, std::string_view path, std::string_view displayName)
+[[gnu::weak]] FS::PathString EmuSystem::willLoadGameFromPath(IG::ApplicationContext, std::string_view path, std::string_view displayName)
 {
 	return FS::PathString{path};
 }
@@ -387,7 +390,7 @@ void EmuSystem::prepareAudio(EmuAudio &audio)
 	configAudioPlayback(audio, optionSoundRate);
 }
 
-void EmuSystem::closeAndSetupNew(Base::ApplicationContext ctx, IG::CStringView path, std::string_view displayName)
+void EmuSystem::closeAndSetupNew(IG::ApplicationContext ctx, IG::CStringView path, std::string_view displayName)
 {
 	auto &app = EmuApp::get(ctx);
 	EmuSystem::closeRuntimeSystem(app, true);
@@ -399,7 +402,7 @@ void EmuSystem::closeAndSetupNew(Base::ApplicationContext ctx, IG::CStringView p
 	app.loadSessionOptions();
 }
 
-void EmuSystem::createWithMedia(Base::ApplicationContext ctx, GenericIO io, IG::CStringView path, std::string_view displayName,
+void EmuSystem::createWithMedia(IG::ApplicationContext ctx, GenericIO io, IG::CStringView path, std::string_view displayName,
 	EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	if(io)
@@ -408,7 +411,7 @@ void EmuSystem::createWithMedia(Base::ApplicationContext ctx, GenericIO io, IG::
 		loadGameFromPath(ctx, path, displayName, params, onLoadProgress);
 }
 
-void EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, IG::CStringView pathStr, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadGameFromPath(IG::ApplicationContext ctx, IG::CStringView pathStr, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	auto path = willLoadGameFromPath(ctx, pathStr, displayName);
 	if(!handlesGenericIO)
@@ -421,7 +424,7 @@ void EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, IG::CStringView p
 	loadGameFromFile(ctx, ctx.openFileUri(path, IO::AccessHint::SEQUENTIAL), path, displayName, params, onLoadProgress);
 }
 
-void EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, GenericIO file, IG::CStringView path, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadGameFromFile(IG::ApplicationContext ctx, GenericIO file, IG::CStringView path, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	if(EmuApp::hasArchiveExtension(displayName))
 	{
@@ -472,7 +475,7 @@ void EmuSystem::throwMissingContentDirError()
 	throw std::runtime_error("This content must be opened with a folder, \"Browse For File\" isn't supported");
 }
 
-FS::PathString EmuSystem::contentDirectory(Base::ApplicationContext ctx, std::string_view name)
+FS::PathString EmuSystem::contentDirectory(IG::ApplicationContext ctx, std::string_view name)
 {
 	return FS::uriString(contentDirectory(), name);
 }
@@ -496,7 +499,7 @@ void EmuSystem::setContentDisplayName(std::string_view name)
 	contentDisplayName_ = name;
 }
 
-FS::FileString EmuSystem::contentDisplayNameForPathDefaultImpl(Base::ApplicationContext ctx, IG::CStringView path)
+FS::FileString EmuSystem::contentDisplayNameForPathDefaultImpl(IG::ApplicationContext ctx, IG::CStringView path)
 {
 	return IG::stringWithoutDotExtension<FS::FileString>(ctx.fileUriDisplayName(path));
 }
@@ -539,13 +542,13 @@ bool EmuSystem::inputHasTriggers()
 	return inputLTriggerIndex != -1 && inputRTriggerIndex != -1;
 }
 
-[[gnu::weak]] void EmuSystem::onInit(Base::ApplicationContext) {}
+[[gnu::weak]] void EmuSystem::onInit(IG::ApplicationContext) {}
 
 [[gnu::weak]] void EmuSystem::initOptions(EmuApp &) {}
 
-[[gnu::weak]] void EmuSystem::onOptionsLoaded(Base::ApplicationContext) {}
+[[gnu::weak]] void EmuSystem::onOptionsLoaded(IG::ApplicationContext) {}
 
-[[gnu::weak]] void EmuSystem::saveBackupMem(Base::ApplicationContext) {}
+[[gnu::weak]] void EmuSystem::saveBackupMem(IG::ApplicationContext) {}
 
 [[gnu::weak]] void EmuSystem::savePathChanged() {}
 
@@ -565,7 +568,7 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat) {}
 
-[[gnu::weak]] FS::FileString EmuSystem::contentDisplayNameForPath(Base::ApplicationContext ctx, IG::CStringView path)
+[[gnu::weak]] FS::FileString EmuSystem::contentDisplayNameForPath(IG::ApplicationContext ctx, IG::CStringView path)
 {
 	return contentDisplayNameForPathDefaultImpl(ctx, path);
 }
@@ -584,7 +587,7 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize) { return false; }
 
-[[gnu::weak]] void EmuSystem::loadGame(Base::ApplicationContext, IO &io, EmuSystemCreateParams params,
+[[gnu::weak]] void EmuSystem::loadGame(IG::ApplicationContext, IO &io, EmuSystemCreateParams params,
 	EmuSystem::OnLoadProgressDelegate onLoadProgress)
 {
 	loadGame(io, params, onLoadProgress);
@@ -600,7 +603,7 @@ bool EmuSystem::inputHasTriggers()
 	loadState(path);
 }
 
-[[gnu::weak]] void EmuSystem::saveState(Base::ApplicationContext, IG::CStringView path)
+[[gnu::weak]] void EmuSystem::saveState(IG::ApplicationContext, IG::CStringView path)
 {
 	saveState(path);
 }
@@ -621,3 +624,5 @@ bool EmuSystem::inputHasTriggers()
 }
 
 [[gnu::weak]] void EmuSystem::onVKeyboardShown(VControllerKeyboard &, bool shown) {}
+
+}

@@ -18,6 +18,9 @@
 #include <imagine/gfx/Projection.hh>
 #include <imagine/gfx/AnimatedViewport.hh>
 
+namespace EmuEx
+{
+
 struct WindowData
 {
 	Gfx::Viewport viewport() const { return projection.plane().viewport(); }
@@ -28,4 +31,6 @@ struct WindowData
 	bool focused = true;
 };
 
-WindowData &windowData(const Base::Window &win);
+WindowData &windowData(const IG::Window &win);
+
+}

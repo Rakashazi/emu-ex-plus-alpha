@@ -22,28 +22,28 @@
 #include <compare>
 #include <memory>
 
-namespace FS
+namespace IG::FS
 {
 
-class ArchiveIterator : public std::iterator<std::input_iterator_tag, ArchiveEntry>
+class ArchiveIterator : public std::iterator<std::input_iterator_tag, IG::ArchiveEntry>
 {
 public:
 	constexpr ArchiveIterator() = default;
 	ArchiveIterator(IG::CStringView path);
-	ArchiveIterator(GenericIO io);
-	ArchiveIterator(ArchiveEntry entry);
+	ArchiveIterator(IG::GenericIO io);
+	ArchiveIterator(IG::ArchiveEntry entry);
 	ArchiveIterator(const ArchiveIterator&) = default;
 	ArchiveIterator(ArchiveIterator&&) = default;
 	ArchiveIterator &operator=(ArchiveIterator &&o) = default;
-	ArchiveEntry& operator*();
-	ArchiveEntry* operator->();
+	IG::ArchiveEntry& operator*();
+	IG::ArchiveEntry* operator->();
 	void operator++();
 	bool operator==(ArchiveIterator const &rhs) const;
 	void rewind();
 	bool hasEntry() const { return (bool)impl; }
 
 private:
-	std::shared_ptr<ArchiveEntry> impl{};
+	std::shared_ptr<IG::ArchiveEntry> impl{};
 };
 
 static const ArchiveIterator &begin(const ArchiveIterator &iter)
@@ -56,8 +56,8 @@ static ArchiveIterator end(const ArchiveIterator &)
 	return {};
 }
 
-ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath);
-ArchiveIO fileFromArchive(GenericIO io, std::string_view filePath);
+IG::ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath);
+IG::ArchiveIO fileFromArchive(IG::GenericIO io, std::string_view filePath);
 bool hasArchiveExtension(std::string_view name);
 
 };

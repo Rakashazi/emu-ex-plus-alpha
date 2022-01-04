@@ -20,10 +20,10 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
-void AnimatedViewport::start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport end)
+void AnimatedViewport::start(Window &w, Gfx::Viewport begin, Gfx::Viewport end)
 {
 	cancel();
 	win = &w;

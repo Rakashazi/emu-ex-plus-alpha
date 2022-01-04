@@ -13,6 +13,8 @@
 #include "scd.h"
 #include "cd_sys.h"
 #include "cd_file.h"
+#include <mednafen/mednafen.h>
+#include <mednafen/cdrom/CDAccess.h>
 
 #define cdprintf(x...)
 //#define DEBUG_CD

@@ -25,6 +25,9 @@
 #include "internal.hh"
 #include <imagine/util/format.hh>
 
+namespace EmuEx
+{
+
 class CustomAudioOptionView : public AudioOptionView
 {
 	void setResampleQuality(AudioSettings::ResamplingQuality val)
@@ -421,4 +424,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		default: return nullptr;
 	}
+}
+
 }

@@ -15,33 +15,38 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-namespace Base
+namespace IG
 {
 class Window;
 class ApplicationContext;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 class Renderer;
 class RendererTask;
 }
+
+namespace IG
+{
 
 class ViewManager;
 
 class ViewAttachParams
 {
 public:
-	constexpr ViewAttachParams(ViewManager &manager, Base::Window &win, Gfx::RendererTask &rTask):
+	constexpr ViewAttachParams(ViewManager &manager, Window &win, Gfx::RendererTask &rTask):
 		manager{manager}, win{win}, rTask{rTask} {}
 	constexpr ViewManager &viewManager() const { return manager; }
-	constexpr Base::Window &window() const { return win; }
+	constexpr Window &window() const { return win; }
 	constexpr Gfx::RendererTask &rendererTask() const { return rTask; }
 	Gfx::Renderer &renderer() const;
-	Base::ApplicationContext appContext() const;
+	ApplicationContext appContext() const;
 
 protected:
 	ViewManager &manager;
-	Base::Window &win;
+	Window &win;
 	Gfx::RendererTask &rTask;
 };
+
+}

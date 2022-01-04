@@ -26,6 +26,9 @@
 #include "io_ctrl.h"
 #include "vdp_ctrl.h"
 
+namespace EmuEx
+{
+
 class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem sixButtonPad
@@ -329,4 +332,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;
 	}
+}
+
 }

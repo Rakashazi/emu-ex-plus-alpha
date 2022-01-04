@@ -22,7 +22,7 @@
 #include <utility>
 #include <compare>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererTask;
@@ -73,7 +73,7 @@ struct NativeProgramBundle
 class GLSLProgram
 {
 public:
-	constexpr GLSLProgram() {}
+	constexpr GLSLProgram() = default;
 	constexpr GLint modelViewProjectionUniform() const { return mvpUniform; };
 	constexpr NativeProgram glProgram() const { return program_; }
 	constexpr bool operator ==(GLSLProgram const &rhs) const { return program_.get() == rhs.program_.get(); }

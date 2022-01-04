@@ -15,28 +15,30 @@
 
 #include <imagine/io/IO.hh>
 #include <imagine/io/FileIO.hh>
-#include <imagine/io/api/stdio.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include "IOUtils.hh"
+
+namespace IG
+{
 
 template class IOUtils<IO>;
 template class IOUtils<GenericIO>;
 
 std::span<uint8_t> IO::map() { return {}; };
 
-std::error_code IO::truncate(off_t offset) { return {ENOSYS, std::system_category()}; };
+bool IO::truncate(off_t offset) { return false; };
 
 void IO::sync() {}
 
 void IO::advise(off_t offset, size_t bytes, Advice advice) {}
 
-ssize_t IO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
+ssize_t IO::readAtPos(void *buff, size_t bytes, off_t offset)
 {
 	auto savedOffset = tell();
 	seekS(offset);
-	auto bytesRead = read(buff, bytes, ecOut);
+	auto bytesRead = read(buff, bytes);
 	seekS(savedOffset);
 	return bytesRead;
 }
@@ -131,26 +133,18 @@ FILE *GenericIO::moveToFileStream(const char *opentype)
 	return f;
 }
 
-ssize_t GenericIO::read(void *buff, size_t bytes, std::error_code *ecOut)
+ssize_t GenericIO::read(void *buff, size_t bytes)
 {
-	if(!io)
-	{
-		if(ecOut)
-			*ecOut = {EBADF, std::system_category()};
+	if(!io) [[unlikely]]
 		return -1;
-	}
-	return io->read(buff, bytes, ecOut);
+	return io->read(buff, bytes);
 }
 
-ssize_t GenericIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
+ssize_t GenericIO::readAtPos(void *buff, size_t bytes, off_t offset)
 {
-	if(!io)
-	{
-		if(ecOut)
-			*ecOut = {EBADF, std::system_category()};
+	if(!io) [[unlikely]]
 		return -1;
-	}
-	return io->readAtPos(buff, bytes, offset, ecOut);
+	return io->readAtPos(buff, bytes, offset);
 }
 
 std::span<uint8_t> GenericIO::map()
@@ -161,31 +155,23 @@ std::span<uint8_t> GenericIO::map()
 		return {};
 }
 
-ssize_t GenericIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
+ssize_t GenericIO::write(const void *buff, size_t bytes)
 {
-	if(!io)
-	{
-		if(ecOut)
-			*ecOut = {EBADF, std::system_category()};
+	if(!io) [[unlikely]]
 		return -1;
-	}
-	return io->write(buff, bytes, ecOut);
+	return io->write(buff, bytes);
 }
 
-std::error_code GenericIO::truncate(off_t offset)
+bool GenericIO::truncate(off_t offset)
 {
-	return io ? io->truncate(offset) : std::error_code{EBADF, std::system_category()};
+	return io ? io->truncate(offset) : false;
 }
 
-off_t GenericIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
+off_t GenericIO::seek(off_t offset, IO::SeekMode mode)
 {
-	if(!io)
-	{
-		if(ecOut)
-			*ecOut = {EBADF, std::system_category()};
+	if(!io) [[unlikely]]
 		return -1;
-	}
-	return io->seek(offset, mode, ecOut);
+	return io->seek(offset, mode);
 }
 
 void GenericIO::sync()
@@ -284,4 +270,6 @@ int fseek(IO &io, long offset, int whence)
 int fclose(IO &stream)
 {
 	return 0;
+}
+
 }

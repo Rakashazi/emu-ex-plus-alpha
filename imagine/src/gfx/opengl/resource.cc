@@ -16,7 +16,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/data-type/image/PixmapSource.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 Texture Renderer::makeTexture(TextureConfig config)

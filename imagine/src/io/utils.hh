@@ -4,6 +4,9 @@
 #include <imagine/util/utility.h>
 #include <imagine/logger/logger.h>
 
+namespace IG
+{
+
 static off_t transformOffsetToAbsolute(IO::SeekMode mode, off_t offset, off_t startPos, off_t endPos, off_t currentPos)
 {
 	switch(mode)
@@ -46,4 +49,6 @@ static const char *adviceStr(IO::Advice advice)
 			bug_unreachable("IO::Advice == %d", (int)advice);
 			return "";
 	}
+}
+
 }

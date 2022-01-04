@@ -26,6 +26,9 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 
+namespace EmuEx
+{
+
 static const char *confirmDeleteDeviceSettingsStr = "Delete device settings from the configuration file? Any key profiles in use are kept";
 static const char *confirmDeleteProfileStr = "Delete profile from the configuration file? Devices using it will revert to their default profile";
 
@@ -59,7 +62,7 @@ bool IdentInputDeviceView::inputEvent(Input::Event e)
 
 void IdentInputDeviceView::draw(Gfx::RendererCommands &cmds)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	cmds.setBlendMode(0);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	cmds.setColor(.4, .4, .4, 1.);
@@ -69,7 +72,7 @@ void IdentInputDeviceView::draw(Gfx::RendererCommands &cmds)
 	text.draw(cmds, 0, 0, C2DO, projP);
 }
 
-static void removeKeyConfFromAllDevices(auto &savedInputDevs, const KeyConfig *conf, Base::ApplicationContext ctx)
+static void removeKeyConfFromAllDevices(auto &savedInputDevs, const KeyConfig *conf, IG::ApplicationContext ctx)
 {
 	logMsg("removing saved key config %s from all devices", conf->name.data());
 	for(auto &ePtr : savedInputDevs)
@@ -850,4 +853,6 @@ void InputManagerDeviceView::setPlayer(int playerVal)
 	}
 	else
 		onShow();
+}
+
 }

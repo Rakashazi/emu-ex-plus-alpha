@@ -45,7 +45,7 @@ private:
 	AAudioStream *stream{};
 	AAudioStreamBuilder *builder{};
 	OnSamplesNeededDelegate onSamplesNeeded{};
-	Base::CustomEvent disconnectEvent{"AAudioOutputStream::disconnectEvent"};
+	CustomEvent disconnectEvent{"AAudioOutputStream::disconnectEvent"};
 	bool isPlaying_ = false;
 
 	void setBuilderData(AAudioStreamBuilder *builder, Format format, bool lowLatencyMode);

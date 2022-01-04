@@ -26,7 +26,10 @@
 #include <mednafen/MemoryStream.h>
 #include <fcntl.h>
 
-extern Base::ApplicationContext appCtx;
+namespace EmuEx
+{
+extern IG::ApplicationContext appCtx;
+}
 
 namespace Mednafen
 {
@@ -44,13 +47,13 @@ static bool hasKnownExtension(std::string_view name, const std::vector<FileExten
 MDFNFILE::MDFNFILE(VirtualFS* vfs, const char* path, const std::vector<FileExtensionSpecStruct>& known_ext, const char* purpose):
 	ext(f_ext), fbase(f_fbase), f_vfs{vfs}
 {
-	if(FS::hasArchiveExtension(path))
+	if(IG::FS::hasArchiveExtension(path))
 	{
 		try
 		{
-			for(auto &entry : FS::ArchiveIterator{appCtx.openFileUri(path)})
+			for(auto &entry : IG::FS::ArchiveIterator{EmuEx::appCtx.openFileUri(path)})
 			{
-				if(entry.type() == FS::file_type::directory)
+				if(entry.type() == IG::FS::file_type::directory)
 				{
 					continue;
 				}
@@ -94,8 +97,8 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, std::unique_ptr<Stream> str, const char *path
 
 extern int openFdHelper(const char *file, int oflag, mode_t mode)
 {
-	unsigned openFlags = (oflag & O_CREAT) ? IO::OPEN_CREATE : 0;
-	return appCtx.openFileUri(file, IO::AccessHint::UNMAPPED, openFlags | IO::OPEN_TEST).releaseFd();
+	unsigned openFlags = (oflag & O_CREAT) ? IG::IO::OPEN_CREATE : 0;
+	return EmuEx::appCtx.openFileUri(file, IG::IO::AccessHint::UNMAPPED, openFlags | IG::IO::OPEN_TEST).releaseFd();
 }
 
 }

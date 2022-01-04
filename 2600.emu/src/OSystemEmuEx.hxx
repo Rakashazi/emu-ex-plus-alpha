@@ -11,13 +11,10 @@ class EventHandler;
 class FrameBuffer;
 class Launcher;
 class Menu;
-class SoundEmuEx;
 class Properties;
 class Random;
 class Sound;
 class VideoDialog;
-class EmuAudio;
-class EmuApp;
 
 #include <stella/common/bspf.hxx>
 #include <stella/common/StateManager.hxx>
@@ -30,12 +27,20 @@ class EmuApp;
 #include <stella/emucore/EventHandlerConstants.hxx>
 #include <stella/emucore/Settings.hxx>
 
+namespace EmuEx
+{
+class EmuAudio;
+class EmuApp;
+}
+
+class SoundEmuEx;
+
 class OSystem
 {
 	friend class EventHandler;
 
 public:
-	OSystem(EmuApp &);
+	OSystem(EmuEx::EmuApp &);
 	EventHandler& eventHandler() const;
 	FrameBuffer& frameBuffer() const;
 	Sound& sound() const;
@@ -47,7 +52,7 @@ public:
 	void deleteConsole();
 	void setFrameTime(double frameTime, int rate);
 	void setResampleQuality(AudioSettings::ResamplingQuality quality);
-	void processAudio(EmuAudio *audio);
+	void processAudio(EmuEx::EmuAudio *audio);
 
 	Console& console() const { return *myConsole; }
 
@@ -72,10 +77,10 @@ public:
 
 	void resetFps() {}
 
-	EmuApp &app();
+	EmuEx::EmuApp &app();
 
 protected:
-	EmuApp *appPtr{};
+	EmuEx::EmuApp *appPtr{};
 	std::unique_ptr<Console> myConsole{};
 	std::unique_ptr<StateManager> myStateManager{};
 	std::unique_ptr<Random> myRandom{};

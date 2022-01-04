@@ -28,6 +28,9 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 
+namespace EmuEx
+{
+
 template<class T>
 bool optionFrameTimeIsValid(T val)
 {
@@ -42,11 +45,11 @@ bool optionFrameTimePALIsValid(T val)
 
 bool optionOrientationIsValid(uint32_t val)
 {
-	return val == Base::VIEW_ROTATE_AUTO ||
-			val == Base::VIEW_ROTATE_0 ||
-			val == Base::VIEW_ROTATE_90 ||
-			val == Base::VIEW_ROTATE_180 ||
-			val == Base::VIEW_ROTATE_270;
+	return val == IG::VIEW_ROTATE_AUTO ||
+			val == IG::VIEW_ROTATE_0 ||
+			val == IG::VIEW_ROTATE_90 ||
+			val == IG::VIEW_ROTATE_180 ||
+			val == IG::VIEW_ROTATE_270;
 }
 
 bool optionAspectRatioIsValid(double val)
@@ -140,11 +143,11 @@ Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDece
 #endif
 
 Byte4s1Option optionGameOrientation(CFGKEY_GAME_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS) ? Base::VIEW_ROTATE_AUTO : Base::VIEW_ROTATE_0,
+		(Config::envIsAndroid || Config::envIsIOS) ? IG::VIEW_ROTATE_AUTO : IG::VIEW_ROTATE_0,
 		false, optionOrientationIsValid);
 
 Byte4s1Option optionMenuOrientation(CFGKEY_MENU_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS) ? Base::VIEW_ROTATE_AUTO : Base::VIEW_ROTATE_0,
+		(Config::envIsAndroid || Config::envIsIOS) ? IG::VIEW_ROTATE_AUTO : IG::VIEW_ROTATE_0,
 		false, optionOrientationIsValid);
 
 bool isValidOption2DO(_2DOrigin val)
@@ -181,7 +184,7 @@ Byte1Option optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 0}
 
 Byte1Option optionShowBundledGames(CFGKEY_SHOW_BUNDLED_GAMES, 1);
 
-void EmuApp::initOptions(Base::ApplicationContext ctx)
+void EmuApp::initOptions(IG::ApplicationContext ctx)
 {
 	optionSoundRate.initDefault(audioManager().nativeRate());
 
@@ -232,7 +235,7 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 	}
 	{
 		auto type = ctx.sustainedPerformanceModeType();
-		if(type == Base::SustainedPerformanceType::NONE)
+		if(type == IG::SustainedPerformanceType::NONE)
 		{
 			optionSustainedPerformanceMode.initDefault(0);
 			optionSustainedPerformanceMode.isConst = true;
@@ -284,7 +287,7 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 	EmuSystem::initOptions(*this);
 }
 
-void setupFont(ViewManager &manager, Gfx::Renderer &r, Base::Window &win)
+void setupFont(ViewManager &manager, Gfx::Renderer &r, IG::Window &win)
 {
 	float size = optionFontSize / 1000.;
 	logMsg("setting up font size %f", (double)size);
@@ -310,7 +313,7 @@ void EmuApp::writeRecentContent(IO &io)
 	}
 }
 
-void EmuApp::readRecentContent(Base::ApplicationContext ctx, IO &io, unsigned readSize_)
+void EmuApp::readRecentContent(IG::ApplicationContext ctx, IO &io, unsigned readSize_)
 {
 	int readSize = readSize_;
 	while(readSize && !recentContentList.isFull())
@@ -402,4 +405,6 @@ IG::Audio::Api audioOutputAPI()
 	#else
 	return IG::Audio::Api::DEFAULT;
 	#endif
+}
+
 }

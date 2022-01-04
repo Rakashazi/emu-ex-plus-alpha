@@ -19,9 +19,10 @@
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include "input.hh"
+#include "AndroidInputDevice.hh"
 #include <android/input.h>
 
-namespace Input
+namespace IG::Input
 {
 
 static constexpr int ACTION_VERSION_MOGAPRO = 1;
@@ -29,24 +30,24 @@ static constexpr int STATE_CONNECTION = 1;
 static constexpr int STATE_SELECTED_VERSION = 4;
 static constexpr int DEVICE_ID = -128; // arbitrary value to avoid collisions
 
-MogaManager::MogaManager(Base::ApplicationContext ctx, bool notify):
+MogaManager::MogaManager(ApplicationContext ctx, bool notify):
 	onExit
 	{
-		[this, env = ctx.mainThreadJniEnv()](Base::ApplicationContext ctx, bool backgrounded)
+		[this, env = ctx.mainThreadJniEnv()](ApplicationContext ctx, bool backgrounded)
 		{
 			if(backgrounded)
 			{
 				jMOGAOnPause(env, mogaHelper);
 				ctx.addOnResume(
-					[this, env](Base::ApplicationContext, bool)
+					[this, env](ApplicationContext, bool)
 					{
 						onResumeMOGA(env, true);
 						return false;
-					}, Base::INPUT_DEVICE_ON_RESUME_PRIORITY
+					}, INPUT_DEVICE_ON_RESUME_PRIORITY
 				);
 			}
 			return true;
-		}, ctx, Base::INPUT_DEVICE_ON_EXIT_PRIORITY
+		}, ctx, INPUT_DEVICE_ON_EXIT_PRIORITY
 	}
 {
 	auto env = ctx.mainThreadJniEnv();
@@ -191,7 +192,7 @@ void MogaManager::onResumeMOGA(JNIEnv *env, bool notify)
 	updateMOGAState(env, isConnected, notify);
 }
 
-Base::ApplicationContext MogaManager::appContext() const
+ApplicationContext MogaManager::appContext() const
 {
 	return onExit.appContext();
 }

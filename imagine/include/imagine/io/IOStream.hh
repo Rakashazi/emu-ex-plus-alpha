@@ -20,10 +20,10 @@
 #include <istream>
 #include <ostream>
 
-class FileIO;
-
 namespace IG
 {
+
+class FileIO;
 
 // templates for using IO types with standard C++ stream-based IO
 

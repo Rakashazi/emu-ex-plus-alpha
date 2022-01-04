@@ -15,7 +15,7 @@
 
 #include <imagine/input/DragTracker.hh>
 
-namespace Input
+namespace IG::Input
 {
 
 void DragTrackerState::update(IG::WP pos, int dragStartPixels)

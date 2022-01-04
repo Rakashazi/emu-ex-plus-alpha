@@ -23,6 +23,9 @@
 #include <imagine/gui/View.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 void VControllerDPad::setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, Gfx::GTexC texHeight)
 {
 	spr = {{{-.5, -.5}, {.5, .5}}, {&dpadR, {{}, {1., 64.f/texHeight}}}};
@@ -284,4 +287,6 @@ bool VControllerGamepad::triggersInline() const
 int VControllerGamepad::faceButtonRows() const
 {
 	return faceBtns.rows();
+}
+
 }

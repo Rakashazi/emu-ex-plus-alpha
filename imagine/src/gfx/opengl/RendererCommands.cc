@@ -24,13 +24,13 @@
 #include "internalDefs.hh"
 #include "utils.hh"
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 static constexpr bool useGLCache = true;
 
-GLRendererCommands::GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, Drawable drawable,
-	Base::GLDisplay glDpy, const Base::GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr):
+GLRendererCommands::GLRendererCommands(RendererTask &rTask, Window *winPtr, Drawable drawable,
+	GLDisplay glDpy, const GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr):
 	rTask{&rTask}, r{&rTask.renderer()}, drawCompleteSemPtr{drawCompleteSemPtr},
 	winPtr{winPtr}, glDpy{glDpy}, glContextPtr{&glCtx}, drawable{drawable}
 {
@@ -53,8 +53,8 @@ void GLRendererCommands::setCurrentDrawable(Drawable drawable)
 {
 	auto &glCtx = glContext();
 	assert(glCtx);
-	assert(Base::GLManager::currentContext() == glCtx);
-	if(!Base::GLManager::hasCurrentDrawable(drawable))
+	assert(GLManager::currentContext() == glCtx);
+	if(!GLManager::hasCurrentDrawable(drawable))
 	{
 		glCtx.setCurrentDrawable(drawable);
 	}
@@ -626,7 +626,7 @@ void GLRendererCommands::glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GL
 }
 #endif
 
-const Base::GLContext &GLRendererCommands::glContext() const
+const GLContext &GLRendererCommands::glContext() const
 {
 	return *glContextPtr;
 }

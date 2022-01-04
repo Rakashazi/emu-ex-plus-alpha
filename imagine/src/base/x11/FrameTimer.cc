@@ -18,7 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <memory>
 
-namespace Base
+namespace IG
 {
 
 FrameTimer XApplication::makeFrameTimer(Screen &screen)

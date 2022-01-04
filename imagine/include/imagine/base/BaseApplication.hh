@@ -29,7 +29,7 @@
 #include <optional>
 #include <cstdint>
 
-namespace Base
+namespace IG
 {
 
 enum class ActivityState : uint8_t
@@ -117,7 +117,7 @@ public:
 	bool swappedConfirmKeys() const;
 	void setSwappedConfirmKeys(std::optional<bool>);
 	uint8_t keyEventFlags() const;
-	bool processICadeKey(Input::Key, Input::Action, Input::Time, const Input::Device &, Base::Window &);
+	bool processICadeKey(Input::Key, Input::Action, Input::Time, const Input::Device &, Window &);
 	void bluetoothInputDeviceStatus(Input::Device &, int status);
 
 protected:
@@ -138,7 +138,7 @@ protected:
 	ScreenContainer screen_{};
 	MessagePort<CommandMessage> commandPort{"Main thread messages"};
 	InputDeviceContainer inputDev{};
-	std::optional<Base::Timer> keyRepeatTimer{};
+	std::optional<Timer> keyRepeatTimer{};
 	Input::Event keyRepeatEvent{};
 	bool allowKeyRepeatTimer_{true};
 	bool swappedConfirmKeys_{Input::SWAPPED_CONFIRM_KEYS_DEFAULT};

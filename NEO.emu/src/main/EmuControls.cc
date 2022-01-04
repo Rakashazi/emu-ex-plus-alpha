@@ -17,7 +17,7 @@
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
 
-namespace EmuControls
+namespace EmuEx::Controls
 {
 
 const unsigned categories = 4;

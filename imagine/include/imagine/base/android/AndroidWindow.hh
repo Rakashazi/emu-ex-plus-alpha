@@ -24,7 +24,7 @@
 struct ANativeWindow;
 struct ANativeActivity;
 
-namespace Base
+namespace IG
 {
 
 class ApplicationContext;

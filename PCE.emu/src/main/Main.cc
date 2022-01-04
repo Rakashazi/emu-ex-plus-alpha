@@ -33,7 +33,10 @@
 #include <mednafen/pce_fast/vdc.h>
 #include <mednafen/pce_fast/pcecd_drive.h>
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+namespace EmuEx
+{
+
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
 FS::PathString sysCardPath{};
 static std::vector<CDInterface *> CDInterfaces;
 static const unsigned vidBufferX = 512, vidBufferY = 242;
@@ -41,7 +44,7 @@ alignas(8) static uint32_t pixBuff[vidBufferX*vidBufferY]{};
 static IG::Pixmap mSurfacePix;
 std::array<uint16, 5> inputBuff{}; // 5 gamepad buffers
 static bool prevUsing263Lines = false;
-Base::ApplicationContext appCtx{};
+IG::ApplicationContext appCtx{};
 
 static MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
 {
@@ -89,7 +92,7 @@ const char *EmuSystem::systemName()
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasHuCardExtension;
 
-void EmuSystem::saveBackupMem(Base::ApplicationContext ctx) // for manually saving when not closing game
+void EmuSystem::saveBackupMem(IG::ApplicationContext ctx) // for manually saving when not closing game
 {
 	if(gameIsRunning())
 	{
@@ -114,7 +117,7 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}.{}.nc{}", name, md5_context::asciistr(MDFNGameInfo->MD5, 0), saveSlotCharPCE(slot));
 }
 
-void EmuSystem::closeSystem(Base::ApplicationContext ctx)
+void EmuSystem::closeSystem(IG::ApplicationContext ctx)
 {
 	emuSys->CloseGame();
 	if(CDInterfaces.size())
@@ -152,7 +155,7 @@ static void writeCDMD5()
 
 unsigned EmuSystem::multiresVideoBaseX() { return 512; }
 
-void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	emuSys->name = std::string{EmuSystem::contentName()};
 	auto unloadCD = IG::scopeGuard(
@@ -223,6 +226,74 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	espec.SoundRate = std::round(rate * (systemFrameRate * frameTime.count()));
 	logMsg("emu sound rate:%f, 263 lines:%d", (double)espec.SoundRate, using263Lines);
 	MDFN_IEN_PCE_FAST::applySoundFormat(&espec);
+}
+
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
+{
+	unsigned maxFrames = 48000/54;
+	int16 audioBuff[maxFrames*2];
+	EmulateSpecStruct espec{};
+	if(audio)
+	{
+		espec.SoundBuf = audioBuff;
+		espec.SoundBufMaxSize = maxFrames;
+		const bool using263Lines = vce.CR & 0x04;
+		if(prevUsing263Lines != using263Lines) [[unlikely]]
+		{
+			configFrameTime(audio->format().rate);
+		}
+	}
+	espec.taskCtx = taskCtx;
+	espec.video = video;
+	espec.skip = !video;
+	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
+	espec.surface = &mSurface;
+	int32 lineWidth[242];
+	espec.LineWidths = lineWidth;
+	emuSys->Emulate(&espec);
+	if(audio)
+	{
+		assert((unsigned)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));
+		audio->writeFrames((uint8_t*)audioBuff, espec.SoundBufSize);
+	}
+}
+
+void EmuSystem::reset(ResetMode mode)
+{
+	assert(gameIsRunning());
+	MDFN_IEN_PCE_FAST::PCE_Power();
+}
+
+void EmuSystem::saveState(IG::CStringView path)
+{
+	if(!MDFNI_SaveState(path, 0, 0, 0, 0))
+		throwFileWriteError();
+}
+
+void EmuSystem::loadState(IG::CStringView path)
+{
+	if(!MDFNI_LoadState(path, 0))
+		throwFileReadError();
+}
+
+void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
+{
+	const Gfx::LGradientStopDesc navViewGrad[] =
+	{
+		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, Gfx::VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
+		{ .3, Gfx::VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
+		{ .97, Gfx::VertexColorPixelFormat.build((85./255.) * .4, (35./255.) * .4, (10./255.) * .4, 1.) },
+		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+	view.setBackgroundGradient(navViewGrad);
+}
+
+void EmuSystem::onInit(IG::ApplicationContext ctx)
+{
+	appCtx = ctx;
+}
+
 }
 
 namespace Mednafen
@@ -352,7 +423,7 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 			multiResOutputWidth = 1024;
 		}
 	}
-	IG::Pixmap srcPix = mSurfacePix.subView(
+	IG::Pixmap srcPix = EmuEx::mSurfacePix.subView(
 		{spec.DisplayRect.x, spec.DisplayRect.y},
 		{pixWidth, pixHeight});
 	if(multiResOutputWidth)
@@ -368,70 +439,4 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	}
 }
 
-}
-
-void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
-{
-	unsigned maxFrames = 48000/54;
-	int16 audioBuff[maxFrames*2];
-	EmulateSpecStruct espec{};
-	if(audio)
-	{
-		espec.SoundBuf = audioBuff;
-		espec.SoundBufMaxSize = maxFrames;
-		const bool using263Lines = vce.CR & 0x04;
-		if(prevUsing263Lines != using263Lines) [[unlikely]]
-		{
-			configFrameTime(audio->format().rate);
-		}
-	}
-	espec.taskCtx = taskCtx;
-	espec.video = video;
-	espec.skip = !video;
-	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
-	espec.surface = &mSurface;
-	int32 lineWidth[242];
-	espec.LineWidths = lineWidth;
-	emuSys->Emulate(&espec);
-	if(audio)
-	{
-		assert((unsigned)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));
-		audio->writeFrames((uint8_t*)audioBuff, espec.SoundBufSize);
-	}
-}
-
-void EmuSystem::reset(ResetMode mode)
-{
-	assert(gameIsRunning());
-	MDFN_IEN_PCE_FAST::PCE_Power();
-}
-
-void EmuSystem::saveState(IG::CStringView path)
-{
-	if(!MDFNI_SaveState(path, 0, 0, 0, 0))
-		throwFileWriteError();
-}
-
-void EmuSystem::loadState(IG::CStringView path)
-{
-	if(!MDFNI_LoadState(path, 0))
-		throwFileReadError();
-}
-
-void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
-{
-	const Gfx::LGradientStopDesc navViewGrad[] =
-	{
-		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-		{ .03, Gfx::VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build((85./255.) * .4, (35./255.) * .4, (10./255.) * .4, 1.) },
-		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	};
-	view.setBackgroundGradient(navViewGrad);
-}
-
-void EmuSystem::onInit(Base::ApplicationContext ctx)
-{
-	appCtx = ctx;
 }

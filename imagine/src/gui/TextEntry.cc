@@ -21,6 +21,9 @@
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/logger/logger.h>
 
+namespace IG
+{
+
 TextEntry::TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP):
 	t{initText, face},
 	str{initText}
@@ -105,7 +108,7 @@ void TextEntry::prepareDraw(Gfx::Renderer &r)
 
 void TextEntry::draw(Gfx::RendererCommands &cmds)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	t.draw(cmds, projP.unProjectRect(b).pos(LC2DO), LC2DO, projP);
 }
@@ -185,7 +188,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, IG::CStringV
 
 void CollectTextInputView::place()
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	auto &face = *message.face();
 	IG::doIfUsed(cancelSpr,
 		[&](auto &cancelSpr)
@@ -257,7 +260,7 @@ void CollectTextInputView::prepareDraw()
 
 void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	IG::doIfUsed(cancelSpr,
 		[&](auto &cancelSpr)
 		{
@@ -287,4 +290,6 @@ void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 			cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
 			message.draw(cmds, 0, projP.unprojectY(textField.windowRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
 		});
+}
+
 }

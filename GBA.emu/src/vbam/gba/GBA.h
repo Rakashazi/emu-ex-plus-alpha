@@ -1028,7 +1028,7 @@ extern bool CPUReadState(GBASys &gba, const char *);
 extern bool CPUWriteMemState(GBASys &gba, char *, int);
 extern bool CPUWriteState(GBASys &gba, const char *);
 extern int CPULoadRom(GBASys &gba, const char *);
-extern int CPULoadRomWithIO(GBASys &gba, IO &);
+extern int CPULoadRomWithIO(GBASys &gba, IG::IO &);
 extern void doMirroring(GBASys &gba, bool);
 extern void CPUUpdateRegister(ARM7TDMI &cpu, u32, u16);
 extern void applyTimer(ARM7TDMI &cpu);

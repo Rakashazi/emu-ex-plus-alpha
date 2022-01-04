@@ -26,13 +26,16 @@
 #include <imagine/util/container/ArrayList.hh>
 #endif
 
+namespace IG
+{
+
 class BluetoothPendingSocket
 {
 public:
 	int fd = -1;
 	sockaddr_l2 addr {};
 
-	constexpr BluetoothPendingSocket() {}
+	constexpr BluetoothPendingSocket() = default;
 	void close();
 	uint32_t channel() { return addr.l2_psm; }
 	void requestName(BluetoothAdapter::OnScanDeviceNameDelegate onDeviceName);
@@ -47,7 +50,7 @@ class BluezBluetoothAdapter : public BluetoothAdapter
 {
 public:
 	BluezBluetoothAdapter() {}
-	static BluezBluetoothAdapter *defaultAdapter(Base::ApplicationContext);
+	static BluezBluetoothAdapter *defaultAdapter(ApplicationContext);
 	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) final;
 	void cancelScan() final;
 	void close() final;
@@ -61,7 +64,7 @@ public:
 
 private:
 	int devId = -1, socket = -1;
-	Base::Pipe statusPipe{"BluezBluetoothAdapter::statusPipe"};
+	Pipe statusPipe{"BluezBluetoothAdapter::statusPipe"};
 	bool scanCancelled = false;
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	struct L2CapServer
@@ -70,7 +73,7 @@ private:
 		L2CapServer(uint32_t psm, int fd): psm(psm), fd(fd) {}
 		uint32_t psm = 0;
 		int fd = -1;
-		Base::FDEventSource connectSrc;
+		FDEventSource connectSrc;
 	};
 	StaticArrayList<L2CapServer, 2> serverList;
 	#endif
@@ -84,7 +87,7 @@ class BluezBluetoothSocket final: public BluetoothSocket
 {
 public:
 	BluezBluetoothSocket() {}
-	BluezBluetoothSocket(Base::ApplicationContext) {}
+	BluezBluetoothSocket(ApplicationContext) {}
 	~BluezBluetoothSocket();
 	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) final;
 	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) final;
@@ -96,7 +99,9 @@ public:
 	bool readPendingData(int events);
 
 private:
-	Base::FDEventSource fdSrc{};
+	FDEventSource fdSrc{};
 	int fd = -1;
 	void setupFDEvents(int events);
 };
+
+}

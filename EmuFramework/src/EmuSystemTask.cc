@@ -20,6 +20,9 @@
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 EmuSystemTask::EmuSystemTask(EmuApp &app):
 	appPtr{&app}
 {}
@@ -31,7 +34,7 @@ void EmuSystemTask::start()
 	taskThread = IG::makeThreadSync(
 		[this](auto &sem)
 		{
-			auto eventLoop = Base::EventLoop::makeForThread();
+			auto eventLoop = IG::EventLoop::makeForThread();
 			bool started = true;
 			commandPort.attach(eventLoop,
 				[this, &started](auto msgs)
@@ -58,7 +61,7 @@ void EmuSystemTask::start()
 							{
 								//logMsg("got exit command");
 								started = false;
-								Base::EventLoop::forThread().stop();
+								IG::EventLoop::forThread().stop();
 								return false;
 							}
 							bdefault:
@@ -111,7 +114,7 @@ void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video, std::binary_sem
 	else
 	{
 		app().runOnMainThread(
-			[&video](Base::ApplicationContext)
+			[&video](IG::ApplicationContext)
 			{
 				video.dispatchFormatChanged();
 			});
@@ -127,7 +130,7 @@ void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video, std::binary_semaphor
 	else
 	{
 		app().runOnMainThread(
-			[&video](Base::ApplicationContext)
+			[&video](IG::ApplicationContext)
 			{
 				video.dispatchFrameFinished();
 			});
@@ -137,7 +140,7 @@ void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video, std::binary_semaphor
 void EmuSystemTask::sendScreenshotReply(int num, bool success)
 {
 	app().runOnMainThread(
-		[=](Base::ApplicationContext ctx)
+		[=](IG::ApplicationContext ctx)
 		{
 			EmuApp::get(ctx).printScreenshotResult(num, success);
 		});
@@ -146,4 +149,6 @@ void EmuSystemTask::sendScreenshotReply(int num, bool success)
 EmuApp &EmuSystemTask::app() const
 {
 	return *appPtr;
+}
+
 }

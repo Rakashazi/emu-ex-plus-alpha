@@ -28,14 +28,14 @@ public:
 	static constexpr bool HAS_SOLO_MIX = true;
 	static constexpr bool SOLO_MIX_DEFAULT = true;
 
-	AndroidManager(Base::ApplicationContext);
+	AndroidManager(ApplicationContext);
 	bool hasFloatFormat() const;
 	bool hasStreamUsage() const;
 	unsigned defaultOutputBuffers() const;
 	uint32_t nativeOutputFramesPerBuffer() const;
 
 protected:
-	Base::ApplicationContext ctx;
+	ApplicationContext ctx;
 	JNI::UniqueGlobalRef audioManager{};
 	JNI::InstMethod<jint(jobject, jint, jint)> jRequestAudioFocus{};
 	JNI::InstMethod<jint(jobject)> jAbandonAudioFocus{};

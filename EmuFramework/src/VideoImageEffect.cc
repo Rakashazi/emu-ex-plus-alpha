@@ -23,6 +23,9 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 static constexpr VideoImageEffect::EffectDesc
 	hq2xDesc{"hq2x-v.txt", "hq2x-f.txt", {2, 2}};
 
@@ -269,4 +272,6 @@ void VideoImageEffect::setCompatTextureSampler(const Gfx::TextureSampler &compat
 	if(!renderTarget_)
 		return;
 	renderTarget_.setCompatTextureSampler(compatTexSampler);
+}
+
 }

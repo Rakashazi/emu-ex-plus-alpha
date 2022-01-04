@@ -21,7 +21,7 @@
 #include "libgen.hh"
 #include <stdlib.h>
 
-namespace FS
+namespace IG::FS
 {
 
 PathString makeAppPathFromLaunchCommand(IG::CStringView launchCmd)

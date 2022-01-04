@@ -25,7 +25,7 @@
 #include <unistd.h>
 #include <limits.h>
 
-namespace FS
+namespace IG::FS
 {
 
 class directory_entry

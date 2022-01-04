@@ -30,12 +30,12 @@
 #include <EGL/eglext.h>
 #endif
 
-namespace Base
+namespace IG
 {
 class ApplicationContext;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererCommands;
@@ -148,10 +148,10 @@ public:
 	bool hasEGLTextureStorage() const;
 	bool hasImmutableBufferStorage() const;
 	bool hasMemoryBarriers() const;
-	GLsync fenceSync(Base::GLDisplay dpy);
-	void deleteSync(Base::GLDisplay dpy, GLsync sync);
-	GLenum clientWaitSync(Base::GLDisplay dpy, GLsync sync, GLbitfield flags, GLuint64 timeout);
-	void waitSync(Base::GLDisplay dpy, GLsync sync);
+	GLsync fenceSync(GLDisplay dpy);
+	void deleteSync(GLDisplay dpy, GLsync sync);
+	GLenum clientWaitSync(GLDisplay dpy, GLsync sync, GLbitfield flags, GLuint64 timeout);
+	void waitSync(GLDisplay dpy, GLsync sync);
 	void setGLDebugOutput(bool on);
 };
 
@@ -184,23 +184,23 @@ class GLRenderer
 {
 public:
 	DrawContextSupport support{};
-	[[no_unique_address]] Base::GLManager glManager;
+	[[no_unique_address]] GLManager glManager;
 	RendererTask mainTask;
 	GLCommonPrograms commonProgram{};
 	GLCommonSamplers commonSampler{};
-	Base::CustomEvent releaseShaderCompilerEvent{Base::CustomEvent::NullInit{}};
+	CustomEvent releaseShaderCompilerEvent{CustomEvent::NullInit{}};
 	IG_UseMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader_){};
 
-	GLRenderer(Base::ApplicationContext);
+	GLRenderer(ApplicationContext);
 	void setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat) const;
 	void useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat) const;
-	Base::GLDisplay glDisplay() const;
-	bool makeWindowDrawable(RendererTask &task, Base::Window &, Base::GLBufferConfig, Base::GLColorSpace);
+	GLDisplay glDisplay() const;
+	bool makeWindowDrawable(RendererTask &task, Window &, GLBufferConfig, GLColorSpace);
 
 protected:
-	void addEventHandlers(Base::ApplicationContext, RendererTask &);
-	std::optional<Base::GLBufferConfig> makeGLBufferConfig(Base::ApplicationContext, IG::PixelFormat, const Base::Window * = {});
-	void setCurrentDrawable(Base::GLDisplay, Base::GLContext, Drawable);
+	void addEventHandlers(ApplicationContext, RendererTask &);
+	std::optional<GLBufferConfig> makeGLBufferConfig(ApplicationContext, IG::PixelFormat, const Window * = {});
+	void setCurrentDrawable(GLDisplay, GLContext, Drawable);
 	void setupNonPow2Textures();
 	void setupNonPow2MipmapTextures();
 	void setupNonPow2MipmapRepeatTextures();
@@ -222,8 +222,8 @@ protected:
 	void checkExtensionString(std::string_view extStr, bool &useFBOFuncs);
 	void checkFullExtensionString(const char *fullExtStr);
 	NativeProgramBundle commonProgramBundle(CommonProgram program) const;
-	bool attachWindow(Base::Window &, Base::GLBufferConfig, Base::GLColorSpace);
-	Base::NativeWindowFormat nativeWindowFormat(Base::GLBufferConfig) const;
+	bool attachWindow(Window &, GLBufferConfig, GLColorSpace);
+	NativeWindowFormat nativeWindowFormat(GLBufferConfig) const;
 };
 
 using RendererImpl = GLRenderer;

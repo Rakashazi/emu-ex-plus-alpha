@@ -16,7 +16,10 @@
 #include "EmuFileIO.hh"
 #include <imagine/io/api/stdio.hh>
 
-EmuFileIO::EmuFileIO(IO &srcIO):
+namespace EmuEx
+{
+
+EmuFileIO::EmuFileIO(IG::IO &srcIO):
 	io{srcIO}
 {
 	if(!io) [[unlikely]]
@@ -32,7 +35,7 @@ void EmuFileIO::truncate(s32 length)
 
 int EmuFileIO::fgetc()
 {
-	return ::fgetc(io);
+	return IG::fgetc(io);
 }
 
 size_t EmuFileIO::_fread(const void *ptr, size_t bytes)
@@ -45,15 +48,17 @@ size_t EmuFileIO::_fread(const void *ptr, size_t bytes)
 
 int EmuFileIO::fseek(int offset, int origin)
 {
-	return ::fseek(io, offset, origin);
+	return IG::fseek(io, offset, origin);
 }
 
 int EmuFileIO::ftell()
 {
-	return (int)::ftell(io);
+	return (int)IG::ftell(io);
 }
 
 int EmuFileIO::size()
 {
 	return io.size();
+}
+
 }

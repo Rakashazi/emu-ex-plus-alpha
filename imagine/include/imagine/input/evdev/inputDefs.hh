@@ -18,7 +18,7 @@
 #include <linux/input.h>
 #include <chrono>
 
-namespace Input
+namespace IG::Input
 {
 
 using Time = std::chrono::nanoseconds;

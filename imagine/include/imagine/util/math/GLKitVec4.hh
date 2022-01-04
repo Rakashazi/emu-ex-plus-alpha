@@ -21,7 +21,7 @@
 class GLKitVec4
 {
 public:
-	constexpr GLKitVec4() {}
+	constexpr GLKitVec4() = default;
 	constexpr GLKitVec4(float x, float y, float z, float w): v{{x, y, z, w}} {}
 	constexpr GLKitVec4(const GLKVector4 &v): v{{v.x, v.y, v.z, v.w}} {}
 	constexpr GLKVector4 vec() const { return v; }

@@ -57,7 +57,7 @@ bool MDFN_GetSettingB(const char *name)
 	if("cheats" == nameV)
 		return 0;
 	if(EMU_MODULE".language" == nameV)
-		return optionNGPLanguage;
+		return EmuEx::optionNGPLanguage;
 	if("filesys.untrusted_fip_check" == nameV)
 		return 0;
 	bug_unreachable("unhandled settingB %s", name);
@@ -79,11 +79,11 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 		case MDFNMKF_SAVBACK:
 		{
 			assert(cd1);
-			FS::FileString ext{'.'};
+			IG::FileString ext{'.'};
 			ext += md5_context::asciistr(MDFNGameInfo->MD5, 0);
 			ext += '.';
 			ext += cd1;
-			auto path = EmuSystem::contentSaveFilePath(appCtx, ext);
+			auto path = EmuEx::EmuSystem::contentSaveFilePath(EmuEx::appCtx, ext);
 			if(type == MDFNMKF_SAV) logMsg("save path:%s", path.c_str());
 			return std::string{path};
 		}

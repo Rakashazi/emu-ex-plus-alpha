@@ -14,11 +14,15 @@
 class Console;
 class OSystem;
 class TIA;
-class EmuApp;
 
 namespace IG
 {
 class Pixmap;
+}
+
+namespace EmuEx
+{
+class EmuApp;
 }
 
 class FrameBuffer
@@ -99,7 +103,7 @@ public:
 	PaletteHandler& paletteHandler() { return myPaletteHandler; }
 
 private:
-	EmuApp *appPtr{};
+	EmuEx::EmuApp *appPtr{};
 	PaletteHandler myPaletteHandler;
 	uInt16 tiaColorMap16[256]{};
 	uInt32 tiaColorMap32[256]{};

@@ -26,6 +26,9 @@
 #include <imagine/gfx/Renderer.hh>
 #include <cstdlib>
 
+namespace EmuEx
+{
+
 struct RelPtr  // for Android trackball
 {
 	int x = 0, y = 0;
@@ -35,35 +38,35 @@ static RelPtr relPtr{};
 
 static void processRelPtr(EmuApp &app, Input::Event e)
 {
-	using namespace IG;
+	using namespace IG::Input;
 	if(relPtr.x != 0 && sign(relPtr.x) != sign(e.pos().x))
 	{
 		//logMsg("reversed trackball X direction");
 		relPtr.x = e.pos().x;
-		EmuSystem::handleInputAction(&app, Input::Action::RELEASED, relPtr.xAction);
+		EmuSystem::handleInputAction(&app, Action::RELEASED, relPtr.xAction);
 	}
 	else
 		relPtr.x += e.pos().x;
 
 	if(e.pos().x)
 	{
-		relPtr.xAction = EmuSystem::translateInputAction(e.pos().x > 0 ? EmuControls::systemKeyMapStart+1 : EmuControls::systemKeyMapStart+3);
-		EmuSystem::handleInputAction(&app, Input::Action::PUSHED, relPtr.xAction);
+		relPtr.xAction = EmuSystem::translateInputAction(e.pos().x > 0 ? Controls::systemKeyMapStart+1 : Controls::systemKeyMapStart+3);
+		EmuSystem::handleInputAction(&app, Action::PUSHED, relPtr.xAction);
 	}
 
 	if(relPtr.y != 0 && sign(relPtr.y) != sign(e.pos().y))
 	{
 		//logMsg("reversed trackball Y direction");
 		relPtr.y = e.pos().y;
-		EmuSystem::handleInputAction(&app, Input::Action::RELEASED, relPtr.yAction);
+		EmuSystem::handleInputAction(&app, Action::RELEASED, relPtr.yAction);
 	}
 	else
 		relPtr.y += e.pos().y;
 
 	if(e.pos().y)
 	{
-		relPtr.yAction = EmuSystem::translateInputAction(e.pos().y > 0 ? EmuControls::systemKeyMapStart+2 : EmuControls::systemKeyMapStart);
-		EmuSystem::handleInputAction(&app, Input::Action::PUSHED, relPtr.yAction);
+		relPtr.yAction = EmuSystem::translateInputAction(e.pos().y > 0 ? Controls::systemKeyMapStart+2 : Controls::systemKeyMapStart);
+		EmuSystem::handleInputAction(&app, Action::PUSHED, relPtr.yAction);
 	}
 
 	//logMsg("trackball event %d,%d, rel ptr %d,%d", e.x, e.y, relPtr.x, relPtr.y);
@@ -117,7 +120,7 @@ void commonUpdateInput()
 #endif
 }
 
-void EmuApp::updateInputDevices(Base::ApplicationContext ctx)
+void EmuApp::updateInputDevices(IG::ApplicationContext ctx)
 {
 	for(auto &devPtr : ctx.inputDevices())
 	{
@@ -154,7 +157,7 @@ void InputDeviceData::buildKeyMap(const Input::Device &d)
 	KeyConfig::KeyArray key = devConf.keyConf().key();
 	if(devConf.player() != InputDeviceConfig::PLAYER_MULTI)
 	{
-		EmuControls::transposeKeysForPlayer(key, devConf.player());
+		Controls::transposeKeysForPlayer(key, devConf.player());
 	}
 	iterateTimes(MAX_KEY_CONFIG_KEYS, k)
 	{
@@ -220,36 +223,36 @@ const KeyConfig *KeyConfig::defaultConfigsForInputMap(Input::Map map, unsigned &
 	{
 		default: return nullptr;
 		case Input::Map::SYSTEM:
-			size = EmuControls::defaultKeyProfiles;
-			return EmuControls::defaultKeyProfile;
+			size = Controls::defaultKeyProfiles;
+			return Controls::defaultKeyProfile;
 		#ifdef CONFIG_BLUETOOTH
 		case Input::Map::WIIMOTE:
-			size = EmuControls::defaultWiimoteProfiles;
-			return EmuControls::defaultWiimoteProfile;
+			size = Controls::defaultWiimoteProfiles;
+			return Controls::defaultWiimoteProfile;
 		case Input::Map::WII_CC:
-			size = EmuControls::defaultWiiCCProfiles;
-			return EmuControls::defaultWiiCCProfile;
+			size = Controls::defaultWiiCCProfiles;
+			return Controls::defaultWiiCCProfile;
 		case Input::Map::ICONTROLPAD:
-			size = EmuControls::defaultIControlPadProfiles;
-			return EmuControls::defaultIControlPadProfile;
+			size = Controls::defaultIControlPadProfiles;
+			return Controls::defaultIControlPadProfile;
 		case Input::Map::ZEEMOTE:
-			size = EmuControls::defaultZeemoteProfiles;
-			return EmuControls::defaultZeemoteProfile;
+			size = Controls::defaultZeemoteProfiles;
+			return Controls::defaultZeemoteProfile;
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
 		case Input::Map::PS3PAD:
-			size = EmuControls::defaultPS3Profiles;
-			return EmuControls::defaultPS3Profile;
+			size = Controls::defaultPS3Profiles;
+			return Controls::defaultPS3Profile;
 		#endif
 		#ifdef CONFIG_INPUT_ICADE
 		case Input::Map::ICADE:
-			size = EmuControls::defaultICadeProfiles;
-			return EmuControls::defaultICadeProfile;
+			size = Controls::defaultICadeProfiles;
+			return Controls::defaultICadeProfile;
 		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case Input::Map::APPLE_GAME_CONTROLLER:
-			size = EmuControls::defaultAppleGCProfiles;
-			return EmuControls::defaultAppleGCProfile;
+			size = Controls::defaultAppleGCProfiles;
+			return Controls::defaultAppleGCProfile;
 		#endif
 	}
 }
@@ -445,7 +448,7 @@ void InputDeviceConfig::setSavedConf(InputDeviceSavedConfig *savedConf, bool upd
 		#ifdef CONFIG_INPUT_ICADE
 		dev->setICadeMode(false);
 		#endif
-		setConsumeUnboundKeys(savedConf->handleUnboundEvents);
+		setConsumeUnboundKeys(false);
 	}
 	if(updateKeymap)
 		buildKeyMap();
@@ -474,7 +477,7 @@ void InputDeviceConfig::buildKeyMap()
 	inputDevData(*dev).buildKeyMap(*dev);
 }
 
-namespace EmuControls
+namespace Controls
 {
 
 void generic2PlayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned startCategory)
@@ -592,4 +595,6 @@ bool InputDeviceSavedConfig::matchesDevice(const Input::Device &dev) const
 {
 	//logMsg("checking against device %s,%d", name, devId);
 	return dev.enumId() == enumId && dev.name() == name;
+}
+
 }

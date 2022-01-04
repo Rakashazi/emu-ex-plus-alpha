@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 
-namespace ViewDefs
+namespace IG::ViewDefs
 {
 
 static constexpr bool needsBackControlDefault = !Config::envIsAndroid;

@@ -21,7 +21,7 @@
 
 struct AChoreographer;
 
-namespace Base
+namespace IG
 {
 
 class AndroidApplication;
@@ -29,7 +29,7 @@ class AndroidApplication;
 class NativeChoreographer
 {
 public:
-	constexpr NativeChoreographer() {}
+	constexpr NativeChoreographer() = default;
 	NativeChoreographer(AndroidApplication &);
 	void scheduleVSync();
 	explicit constexpr operator bool() const { return choreographer; }
@@ -47,7 +47,7 @@ protected:
 class JavaChoreographer
 {
 public:
-	constexpr JavaChoreographer() {}
+	constexpr JavaChoreographer() = default;
 	JavaChoreographer(AndroidApplication &, JNIEnv *, jobject baseActivity, jclass baseActivityClass);
 	void scheduleVSync();
 	explicit constexpr operator bool() const { return frameHelper; }

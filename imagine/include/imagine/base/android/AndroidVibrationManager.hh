@@ -17,7 +17,7 @@
 
 #include <imagine/util/jni.hh>
 
-namespace Base
+namespace IG
 {
 
 class ApplicationContext;

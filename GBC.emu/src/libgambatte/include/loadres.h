@@ -23,8 +23,8 @@ enum LoadRes {
 
 std::string const to_string(LoadRes);
 
-using InputStreamDelegate = DelegateFunc<IG::IFStream(std::string_view basePath, std::string_view filename)>;
-using OutputStreamDelegate = DelegateFunc<IG::OFStream(std::string_view basePath, std::string_view filename)>;
+using InputStreamDelegate = IG::DelegateFunc<IG::IFStream(std::string_view basePath, std::string_view filename)>;
+using OutputStreamDelegate = IG::DelegateFunc<IG::OFStream(std::string_view basePath, std::string_view filename)>;
 
 }
 

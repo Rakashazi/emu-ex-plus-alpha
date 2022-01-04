@@ -2,7 +2,7 @@
 
 #include <imagine/input/Input.hh>
 
-namespace Input
+namespace IG::Input
 {
 
 struct PackedInputAccess

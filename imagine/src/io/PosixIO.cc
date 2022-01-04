@@ -23,6 +23,10 @@
 #include <cstring>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <system_error>
+
+namespace IG
+{
 
 static IG::StaticString<5> flagsString(uint32_t openFlags)
 {
@@ -88,15 +92,13 @@ PosixIO PosixIO::create(IG::CStringView path, uint32_t mode)
 	return {path, mode};
 }
 
-ssize_t PosixIO::read(void *buff, size_t bytes, std::error_code *ecOut)
+ssize_t PosixIO::read(void *buff, size_t bytes)
 {
 	auto bytesRead = ::read(fd_, buff, bytes);
-	if(bytesRead == -1)
+	if(bytesRead == -1) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD && errno != EAGAIN)
 			logErr("error reading %zu bytes", bytes);
-		if(ecOut)
-			*ecOut = {errno, std::system_category()};
 	}
 	else
 	{
@@ -105,49 +107,43 @@ ssize_t PosixIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 	return bytesRead;
 }
 
-ssize_t PosixIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
+ssize_t PosixIO::readAtPos(void *buff, size_t bytes, off_t offset)
 {
 	auto bytesRead = ::pread(fd_, buff, bytes, offset);
-	if(bytesRead == -1)
+	if(bytesRead == -1) [[unlikely]]
 	{
 		logErr("error reading %zu bytes at offset %lld", bytes, (long long)offset);
-		if(ecOut)
-			*ecOut = {errno, std::system_category()};
 	}
 	return bytesRead;
 }
 
-ssize_t PosixIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
+ssize_t PosixIO::write(const void *buff, size_t bytes)
 {
 	auto bytesWritten = ::write(fd_, buff, bytes);
 	if(bytesWritten == -1)
 	{
 		logErr("error writing %zu bytes", bytes);
-		if(ecOut)
-			*ecOut = {errno, std::system_category()};
 	}
 	return bytesWritten;
 }
 
-std::error_code PosixIO::truncate(off_t offset)
+bool PosixIO::truncate(off_t offset)
 {
 	logMsg("truncating at offset %lld", (long long)offset);
-	if(ftruncate(fd_, offset) == -1)
+	if(ftruncate(fd_, offset) == -1) [[unlikely]]
 	{
 		logErr("truncate failed");
-		return {errno, std::system_category()};
+		return false;
 	}
-	return {};
+	return true;
 }
 
-off_t PosixIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
+off_t PosixIO::seek(off_t offset, IO::SeekMode mode)
 {
 	auto newPos = lseek(fd_, offset, (int)mode);
 	if(newPos == -1) [[unlikely]]
 	{
 		logErr("seek to offset %lld failed", (long long)offset);
-		if(ecOut)
-			*ecOut = {errno, std::system_category()};
 		return -1;
 	}
 	return newPos;
@@ -215,4 +211,6 @@ int PosixIO::releaseFd()
 int PosixIO::fd() const
 {
 	return fd_;
+}
+
 }

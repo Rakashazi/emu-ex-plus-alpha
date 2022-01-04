@@ -23,10 +23,13 @@
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/input/Input.hh>
 
-namespace Base
+namespace IG
 {
 class ApplicationContext;
 }
+
+namespace EmuEx
+{
 
 class VController;
 
@@ -157,9 +160,11 @@ static const char *optionSavePathDefaultToken = ":DEFAULT:";
 
 extern Byte1Option optionShowBundledGames;
 
-void setupFont(ViewManager &manager, Gfx::Renderer &r, Base::Window &win);
+void setupFont(ViewManager &manager, Gfx::Renderer &r, IG::Window &win);
 bool soundIsEnabled();
 void setSoundEnabled(bool on);
 bool soundDuringFastForwardIsEnabled();
 void setSoundDuringFastForwardEnabled(bool on);
 IG::Audio::Api audioOutputAPI();
+
+}

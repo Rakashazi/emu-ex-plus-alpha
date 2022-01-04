@@ -18,7 +18,7 @@
 #include <imagine/pixmap/PixelFormat.hh>
 #include <jni.h>
 
-namespace Base
+namespace IG
 {
 
 class ApplicationContext;

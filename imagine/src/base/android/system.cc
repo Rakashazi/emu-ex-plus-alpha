@@ -23,7 +23,7 @@
 #include <imagine/logger/logger.h>
 #include "android.hh"
 
-namespace Base
+namespace IG
 {
 
 static jobject vibrator{};

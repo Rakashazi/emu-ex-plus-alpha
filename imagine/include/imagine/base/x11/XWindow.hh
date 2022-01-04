@@ -22,7 +22,7 @@
 
 struct _XDisplay;
 
-namespace Base
+namespace IG
 {
 
 using NativeWindowFormat = void*;

@@ -18,6 +18,11 @@
 #include <imagine/io/MapIO.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
+using namespace IG;
+
 template<class ON_KEY>
 static bool readConfigKeys(MapIO io, ON_KEY onKey)
 {
@@ -85,4 +90,6 @@ static void writeConfigHeader(IO &io)
 {
 	uint8_t blockHeaderSize = 2;
 	io.write(blockHeaderSize);
+}
+
 }

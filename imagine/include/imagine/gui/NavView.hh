@@ -23,10 +23,13 @@
 #include <memory>
 #include <array>
 
-namespace Input
+namespace IG::Input
 {
 class Event;
 };
+
+namespace IG
+{
 
 class NavView : public View
 {
@@ -90,3 +93,5 @@ protected:
 	bool centerTitle = true;
 	bool rotateLeftBtn{};
 };
+
+}

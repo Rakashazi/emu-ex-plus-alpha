@@ -17,9 +17,12 @@
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 enum
 {
-	ssKeyIdxUp = EmuControls::systemKeyMapStart,
+	ssKeyIdxUp = Controls::systemKeyMapStart,
 	ssKeyIdxRight,
 	ssKeyIdxDown,
 	ssKeyIdxLeft,
@@ -55,7 +58,7 @@ const unsigned EmuSystem::maxPlayers = 2;
 
 void updateVControllerMapping(unsigned player, VController::Map &map)
 {
-	unsigned playerOffset = player ? EmuControls::gamepadKeys : 0;
+	unsigned playerOffset = player ? Controls::gamepadKeys : 0;
 	map[VController::F_ELEM] = ssKeyIdxA + playerOffset;
 	map[VController::F_ELEM+1] = ssKeyIdxB + playerOffset;
 	map[VController::F_ELEM+2] = ssKeyIdxC + playerOffset;
@@ -88,12 +91,12 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 		case ssKeyIdxATurbo:
 		case ssKeyIdxBTurbo:
 		case ssKeyIdxCTurbo:
-		case ssKeyIdxXTurbo + EmuControls::gamepadKeys:
-		case ssKeyIdxYTurbo + EmuControls::gamepadKeys:
-		case ssKeyIdxZTurbo + EmuControls::gamepadKeys:
-		case ssKeyIdxATurbo + EmuControls::gamepadKeys:
-		case ssKeyIdxBTurbo + EmuControls::gamepadKeys:
-		case ssKeyIdxCTurbo + EmuControls::gamepadKeys:
+		case ssKeyIdxXTurbo + Controls::gamepadKeys:
+		case ssKeyIdxYTurbo + Controls::gamepadKeys:
+		case ssKeyIdxZTurbo + Controls::gamepadKeys:
+		case ssKeyIdxATurbo + Controls::gamepadKeys:
+		case ssKeyIdxBTurbo + Controls::gamepadKeys:
+		case ssKeyIdxCTurbo + Controls::gamepadKeys:
 			turbo = 1; [[fallthrough]];
 		default: return input;
 	}
@@ -105,7 +108,7 @@ void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKe
 	if(emuKey > ssKeyIdxLastGamepad)
 	{
 		player = 1;
-		emuKey -= EmuControls::gamepadKeys;
+		emuKey -= Controls::gamepadKeys;
 	}
 	PerPad_struct *p = (player == 1) ? pad[1] : pad[0];
 	bool pushed = action == Input::Action::PUSHED;
@@ -147,4 +150,6 @@ void EmuSystem::clearInputBuffers(EmuInputView &)
 	PerPortReset();
 	pad[0] = PerPadAdd(&PORTDATA1);
 	pad[1] = PerPadAdd(&PORTDATA2);
+}
+
 }

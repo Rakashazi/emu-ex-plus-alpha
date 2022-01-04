@@ -26,6 +26,8 @@ extern "C"
 	#include "zfile.h"
 }
 
+using namespace EmuEx;
+
 CLINK FILE *zfile_fopen(const char *path, const char *mode)
 {
 	if(EmuApp::hasArchiveExtension(appContext.fileUriDisplayName(path)))

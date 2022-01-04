@@ -18,6 +18,10 @@
 #include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/View.hh>
 
+namespace EmuEx
+{
+
+using namespace IG;
 class VController;
 class EmuApp;
 class EmuVideoLayer;
@@ -41,3 +45,5 @@ private:
 
 	void updateFastforward();
 };
+
+}

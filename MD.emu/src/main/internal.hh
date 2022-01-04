@@ -3,16 +3,20 @@
 #include <emuframework/Option.hh>
 #include "genplus-config.h"
 
-namespace EmuControls
+extern t_config config;
+
+namespace EmuEx::Controls
 {
 extern const unsigned gamepadKeys;
 }
+
+namespace EmuEx
+{
 
 class EmuApp;
 
 extern unsigned playerIdxMap[4];
 extern int8 mdInputPortDev[2];
-extern t_config config;
 extern Byte1Option optionBigEndianSram;
 extern Byte1Option optionSmsFM;
 extern Byte1Option option6BtnPad;
@@ -27,3 +31,5 @@ extern Byte1Option optionVideoSystem;
 
 void setupMDInput(EmuApp &);
 bool hasMDExtension(std::string_view name);
+
+}

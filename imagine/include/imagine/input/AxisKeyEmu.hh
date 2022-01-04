@@ -19,7 +19,7 @@
 #include <imagine/base/Window.hh>
 #include <utility>
 
-namespace Input
+namespace IG::Input
 {
 
 struct AxisKeyEmu
@@ -36,13 +36,13 @@ struct AxisKeyEmu
 		bool updated = false;
 	};
 
-	constexpr AxisKeyEmu() {}
+	constexpr AxisKeyEmu() = default;
 	constexpr AxisKeyEmu(std::pair<Key, Key> key, std::pair<Key, Key> sysKey):
 		key{key},
 		sysKey{sysKey} {}
 
 	UpdateKeys update(float pos);
-	bool dispatch(float pos, Map map, Time time, const Device &dev, Base::Window &win);
+	bool dispatch(float pos, Map map, Time time, const Device &dev, Window &win);
 };
 
 }

@@ -27,11 +27,22 @@
 #include <X11/cursorfont.h>
 #include <memory>
 
-namespace Base
+namespace IG
 {
 
 struct XIDeviceInfo : public ::XIDeviceInfo {};
 struct XkbDescRec : public ::XkbDescRec {};
+
+struct XInputDevice : public Input::Device
+{
+	bool iCadeMode_ = false;
+
+	XInputDevice();
+	XInputDevice(TypeBits, std::string name);
+	XInputDevice(XIDeviceInfo, bool isPointingDevice, bool isPowerButton);
+	void setICadeMode(bool on) final;
+	bool iCadeMode() const final;
+};
 
 XInputDevice::XInputDevice() {}
 
@@ -318,7 +329,7 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 	auto &win = *destWin;
 	auto time = IG::Milliseconds(ievent.time); // X11 timestamps are in ms
 	auto updatePointer =
-		[this](Base::Window &win, auto event, Input::Action action, Input::Time time)
+		[this](Window &win, auto event, Input::Action action, Input::Time time)
 		{
 			Input::Key key{};
 			if(action == Input::Action::PUSHED || action == Input::Action::RELEASED)
@@ -342,7 +353,7 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 				action, pos.x, pos.y, p, Input::Source::MOUSE, time, dev});
 		};
 	auto handleKeyEvent =
-		[this](Base::Window &win, XIDeviceEvent event, Input::Time time, bool pushed)
+		[this](Window &win, XIDeviceEvent event, Input::Time time, bool pushed)
 		{
 			auto action = pushed ? Input::Action::PUSHED : Input::Action::RELEASED;
 			if(pushed)
@@ -415,10 +426,10 @@ bool XApplication::hasPendingX11Events() const
 
 }
 
-namespace Input
+namespace IG::Input
 {
 
-bool Device::anyTypeBitsPresent(Base::ApplicationContext, TypeBits typeBits)
+bool Device::anyTypeBitsPresent(ApplicationContext, TypeBits typeBits)
 {
 	// TODO
 	if(typeBits & TYPE_BIT_KEYBOARD)
@@ -428,7 +439,7 @@ bool Device::anyTypeBitsPresent(Base::ApplicationContext, TypeBits typeBits)
 	return 0;
 }
 
-std::string Event::keyString(Base::ApplicationContext ctx) const
+std::string Event::keyString(ApplicationContext ctx) const
 {
 	return ctx.application().inputKeyString(rawKey, metaState ? ShiftMask : 0);
 }

@@ -43,7 +43,7 @@ static void handleEndInterruption()
 namespace IG::Audio
 {
 	
-AvfManager::AvfManager(Base::ApplicationContext ctx_) {}
+AvfManager::AvfManager(ApplicationContext ctx_) {}
 
 SampleFormat Manager::nativeSampleFormat() const
 {
@@ -87,7 +87,7 @@ void Manager::startSession()
 		logWarn("error in setActive()");
 	}
 	#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-	session.delegate = Base::mainApp;
+	session.delegate = mainApp;
 	#else
 	NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
 	sessionInterruptionObserver = [center addObserverForName:AVAudioSessionInterruptionNotification object:nil

@@ -17,6 +17,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <imagine/io/FileIO.hh>
+#include <mednafen/mednafen.h>
+#include <mednafen/cdrom/CDAccess.h>
 
 #define cdprintf(x...)
 //#define cdprintf(f,...) printf(f "\n",##__VA_ARGS__) // tmp

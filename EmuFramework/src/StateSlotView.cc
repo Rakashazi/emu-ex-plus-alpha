@@ -19,6 +19,9 @@
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 StateSlotView::StateSlotView(ViewAttachParams attach):
 	TableView
 	{
@@ -71,4 +74,6 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 				view.dismiss();
 			});
 	}
+}
+
 }

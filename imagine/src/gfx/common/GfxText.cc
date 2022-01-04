@@ -24,7 +24,7 @@
 #include <algorithm>
 #include <cctype>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 Text::Text(GlyphTextureSet *face): Text{{}, face}
@@ -166,7 +166,6 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 
 void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, ProjectionPlane projP) const
 {
-	using namespace Gfx;
 	if(!hasText()) [[unlikely]]
 		return;
 	//logMsg("drawing with origin: %s,%s", o.toString(o.x), o.toString(o.y));
@@ -275,7 +274,6 @@ GC Text::height() const
 
 GC Text::fullHeight() const
 {
-	using namespace Gfx;
 	return ySize + (nominalHeight_ * .5_gc);
 }
 

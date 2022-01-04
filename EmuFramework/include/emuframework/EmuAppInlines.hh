@@ -18,12 +18,15 @@
 #include <meta.h>
 #include <imagine/config/version.h>
 
-const char *const Base::ApplicationContext::applicationName{CONFIG_APP_NAME};
-const char *const Base::ApplicationContext::applicationId{CONFIG_APP_ID};
+const char *const IG::ApplicationContext::applicationName{CONFIG_APP_NAME};
+const char *const IG::ApplicationContext::applicationId{CONFIG_APP_ID};
 
-const char *appViewTitle()
+namespace EmuEx
 {
-	return CONFIG_APP_NAME " " IMAGINE_VERSION;
+
+std::u16string_view appViewTitle()
+{
+	return u"" CONFIG_APP_NAME " " IMAGINE_VERSION;
 }
 
 bool hasGooglePlayStoreFeatures()
@@ -33,4 +36,6 @@ bool hasGooglePlayStoreFeatures()
 	#else
 	return false;
 	#endif
+}
+
 }

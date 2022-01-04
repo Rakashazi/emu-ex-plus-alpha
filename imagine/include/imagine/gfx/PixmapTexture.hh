@@ -33,7 +33,7 @@ namespace IG::Data
 class PixmapSource;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererTask;

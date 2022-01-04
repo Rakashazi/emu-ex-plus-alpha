@@ -30,9 +30,13 @@
 #include "loadrom.h"
 #include "md_cart.h"
 #include "genesis.h"
-StaticArrayList<MdCheat, EmuCheats::MAX> cheatList;
-StaticArrayList<MdCheat*, EmuCheats::MAX> romCheatList;
-StaticArrayList<MdCheat*, EmuCheats::MAX> ramCheatList;
+
+namespace EmuEx
+{
+
+StaticArrayList<MdCheat, maxCheats> cheatList;
+StaticArrayList<MdCheat*, maxCheats> romCheatList;
+StaticArrayList<MdCheat*, maxCheats> ramCheatList;
 bool cheatsModified = 0;
 static const char *INPUT_CODE_8BIT_STR = "Input xxx-xxx-xxx (GG) or xxxxxx:xx (AR) code";
 static const char *INPUT_CODE_16BIT_STR = "Input xxxx-xxxx (GG) or xxxxxx:xxxx (AR) code";
@@ -385,7 +389,7 @@ void updateCheats()
 	applyCheats();
 }
 
-void writeCheatFile(Base::ApplicationContext ctx)
+void writeCheatFile(IG::ApplicationContext ctx)
 {
 	if(!cheatsModified)
 		return;
@@ -426,7 +430,7 @@ void writeCheatFile(Base::ApplicationContext ctx)
 	cheatsModified = false;
 }
 
-void readCheatFile(Base::ApplicationContext ctx)
+void readCheatFile(IG::ApplicationContext ctx)
 {
 	auto path = EmuSystem::contentSaveFilePath(ctx, ".pat");
 	auto file = ctx.openFileUri(path, IO::AccessHint::ALL, IO::OPEN_TEST);
@@ -488,35 +492,6 @@ void RAMCheatUpdate()
 		{
 			// byte patch
 			work_ram[e->address & 0xFFFF] = e->data;
-		}
-	}
-}
-
-void ROMCheatUpdate()
-{
-	for(auto &e : romCheatList)
-	{
-		// check if previous banked ROM address was patched
-		if (e->prev)
-		{
-			// restore original data
-			*e->prev = e->origData;
-
-			// no more patched ROM address
-			e->prev = nullptr;
-		}
-
-		// get current banked ROM address
-		auto ptr = &z80_readmap[(e->address) >> 10][e->address & 0x03FF];
-
-		// check if reference matches original ROM data
-		if (((uint8)e->origData) == *ptr)
-		{
-			// patch data
-			*ptr = e->data;
-
-			// save patched ROM address
-			e->prev = ptr;
 		}
 	}
 }
@@ -710,5 +685,36 @@ void EmuCheatsView::loadCheatItems()
 			});
 		logMsg("added cheat %s : %s", thisCheat.name.data(), thisCheat.code.data());
 		++it;
+	}
+}
+
+}
+
+void ROMCheatUpdate()
+{
+	for(auto &e : EmuEx::romCheatList)
+	{
+		// check if previous banked ROM address was patched
+		if (e->prev)
+		{
+			// restore original data
+			*e->prev = e->origData;
+
+			// no more patched ROM address
+			e->prev = nullptr;
+		}
+
+		// get current banked ROM address
+		auto ptr = &z80_readmap[(e->address) >> 10][e->address & 0x03FF];
+
+		// check if reference matches original ROM data
+		if (((uint8)e->origData) == *ptr)
+		{
+			// patch data
+			*ptr = e->data;
+
+			// save patched ROM address
+			e->prev = ptr;
+		}
 	}
 }

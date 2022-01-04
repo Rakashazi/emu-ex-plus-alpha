@@ -364,7 +364,7 @@ static void end_frame( blip_time_t time )
 	stereo_buffer.end_frame( time );
 }
 
-void flush_samples(Multi_Buffer * buffer, EmuAudio *audio)
+void flush_samples(Multi_Buffer * buffer, EmuEx::EmuAudio *audio)
 {
 	// Write one video frame worth of audio
 	unsigned samples = buffer->samples_avail();
@@ -393,7 +393,7 @@ static void apply_filtering()
 	}
 }
 
-void psoundTickfn(EmuAudio *audio)
+void psoundTickfn(EmuEx::EmuAudio *audio)
 {
 	// Run sound hardware to present
 	end_frame( SOUND_CLOCK_TICKS );

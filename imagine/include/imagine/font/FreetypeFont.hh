@@ -26,21 +26,18 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-class GenericIO;
 struct _FcConfig;
-
-namespace Base
-{
-class ApplicationContext;
-}
 
 namespace IG
 {
 
+class ApplicationContext;
+class GenericIO;
+
 class FreetypeGlyphImage
 {
 public:
-	constexpr FreetypeGlyphImage() {}
+	constexpr FreetypeGlyphImage() = default;
 	constexpr FreetypeGlyphImage(FT_Library library, FT_Bitmap bitmap):
 		library{library}, bitmap{bitmap} {}
 	FreetypeGlyphImage(FreetypeGlyphImage &&o);
@@ -61,7 +58,7 @@ class FreetypeFontSize
 public:
 	using FTSizeArray = std::array<FT_Size, MAX_FREETYPE_SLOTS>;
 
-	constexpr FreetypeFontSize() {}
+	constexpr FreetypeFontSize() = default;
 	FreetypeFontSize(FontSettings settings);
 	FreetypeFontSize(FreetypeFontSize &&o);
 	FreetypeFontSize &operator=(FreetypeFontSize &&o);
@@ -82,7 +79,7 @@ struct FreetypeFaceData
 	FT_Face face{};
 	std::unique_ptr<FT_StreamRec> streamRecPtr{};
 
-	constexpr FreetypeFaceData() {}
+	constexpr FreetypeFaceData() = default;
 	FreetypeFaceData(FT_Library, GenericIO file);
 };
 
@@ -95,7 +92,7 @@ public:
 		FT_Bitmap bitmap{};
 	};
 
-	constexpr FreetypeFont() {}
+	constexpr FreetypeFont() = default;
 	constexpr FreetypeFont(FT_Library library, bool isBold = false):
 		library{library}, isBold{isBold} {}
 	FreetypeFont(FT_Library, GenericIO);
@@ -118,7 +115,7 @@ protected:
 class FreetypeFontManager
 {
 public:
-	FreetypeFontManager(Base::ApplicationContext);
+	FreetypeFontManager(ApplicationContext);
 
 protected:
 	struct FtLibraryDeleter
@@ -139,7 +136,7 @@ protected:
 	};
 	using UniqueFcConfig = std::unique_ptr<_FcConfig, FcConfigDeleter>;
 
-	Base::ApplicationContext ctx{};
+	ApplicationContext ctx{};
 	UniqueFTLibrary library{};
 	#ifdef CONFIG_PACKAGE_FONTCONFIG
 	UniqueFcConfig fcConf{};

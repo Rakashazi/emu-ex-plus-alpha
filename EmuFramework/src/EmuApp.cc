@@ -42,7 +42,10 @@
 #include <imagine/thread/Thread.hh>
 #include <cmath>
 
-EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext &ctx):
+namespace EmuEx
+{
+
+EmuApp::EmuApp(IG::ApplicationInitParams initParams, IG::ApplicationContext &ctx):
 	Application{initParams},
 	fontManager{ctx},
 	renderer{ctx},
@@ -155,7 +158,7 @@ EmuViewController &EmuApp::viewController()
 	return *emuViewController;
 }
 
-void EmuApp::setCPUNeedsLowLatency(Base::ApplicationContext ctx, bool needed)
+void EmuApp::setCPUNeedsLowLatency(IG::ApplicationContext ctx, bool needed)
 {
 	#ifdef __ANDROID__
 	if(optionSustainedPerformanceMode)
@@ -178,15 +181,15 @@ void EmuApp::exitGame(bool allowAutosaveState)
 	viewController().closeSystem(allowAutosaveState);
 }
 
-void EmuApp::applyOSNavStyle(Base::ApplicationContext ctx, bool inGame)
+void EmuApp::applyOSNavStyle(IG::ApplicationContext ctx, bool inGame)
 {
-	auto flags = Base::SYS_UI_STYLE_NO_FLAGS;
+	auto flags = IG::SYS_UI_STYLE_NO_FLAGS;
 	if(optionLowProfileOSNav > (inGame ? 0 : 1))
-		flags |= Base::SYS_UI_STYLE_DIM_NAV;
+		flags |= IG::SYS_UI_STYLE_DIM_NAV;
 	if(optionHideOSNav > (inGame ? 0 : 1))
-		flags |= Base::SYS_UI_STYLE_HIDE_NAV;
+		flags |= IG::SYS_UI_STYLE_HIDE_NAV;
 	if(optionHideStatusBar > (inGame ? 0 : 1))
-		flags |= Base::SYS_UI_STYLE_HIDE_STATUS;
+		flags |= IG::SYS_UI_STYLE_HIDE_STATUS;
 	ctx.setSysUIStyle(flags);
 }
 
@@ -195,7 +198,7 @@ IG::Audio::Manager &EmuApp::audioManager()
 	return audioManager_;
 }
 
-Base::ApplicationContext EmuApp::appContext() const
+IG::ApplicationContext EmuApp::appContext() const
 {
 	return renderer.appContext();
 }
@@ -222,7 +225,7 @@ void EmuApp::showExitAlert(ViewAttachParams attach, Input::Event e)
 	viewController().pushAndShowModal(std::make_unique<ExitConfirmAlertView>(attach, *emuViewController), e, false);
 }
 
-static const char *parseCommandArgs(Base::CommandArgs arg)
+static const char *parseCommandArgs(IG::CommandArgs arg)
 {
 	if(arg.c < 2)
 	{
@@ -326,7 +329,7 @@ EmuVideo &EmuApp::video()
 	return emuVideo;
 }
 
-void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::ApplicationContext ctx)
+void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::ApplicationContext ctx)
 {
 	if(ctx.registerInstance(initParams))
 	{
@@ -335,7 +338,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 	}
 	ctx.setAcceptIPC(true);
 	ctx.setOnInterProcessMessage(
-		[this](Base::ApplicationContext, const char *path)
+		[this](IG::ApplicationContext, const char *path)
 		{
 			logMsg("got IPC path:%s", path);
 			if(emuViewController)
@@ -357,7 +360,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 	applyOSNavStyle(ctx, false);
 
 	ctx.addOnResume(
-		[this](Base::ApplicationContext ctx, bool focused)
+		[this](IG::ApplicationContext ctx, bool focused)
 		{
 			audioManager().startSession();
 			if(soundIsEnabled())
@@ -366,7 +369,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 		});
 
 	ctx.addOnExit(
-		[this](Base::ApplicationContext ctx, bool backgrounded)
+		[this](IG::ApplicationContext ctx, bool backgrounded)
 		{
 			if(backgrounded)
 			{
@@ -401,11 +404,11 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 		windowDrawableConf.colorSpace = {};
 	emuVideo.setSrgbColorSpaceOutput(windowDrawableConf.colorSpace == Gfx::ColorSpace::SRGB);
 
-	Base::WindowConfig winConf{};
+	IG::WindowConfig winConf{};
 	winConf.setTitle(ctx.applicationName);
 	winConf.setFormat(windowDrawableConf.pixelFormat);
 	ctx.makeWindow(winConf,
-		[this, appConfig](Base::ApplicationContext ctx, Base::Window &win)
+		[this, appConfig](IG::ApplicationContext ctx, IG::Window &win)
 		{
 			renderer.initMainTask(&win, windowDrawableConfig());
 			if(!supportsVideoImageBuffersOption(renderer))
@@ -471,14 +474,14 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			onMainWindowCreated(viewAttach, ctx.defaultInputEvent());
 
 			ctx.setOnInterProcessMessage(
-				[this](Base::ApplicationContext, const char *path)
+				[this](IG::ApplicationContext, const char *path)
 				{
 					logMsg("got IPC path:%s", path);
 					viewController().handleOpenFileCommand(path);
 				});
 
 			ctx.setOnScreenChange(
-				[this](Base::ApplicationContext ctx, Base::Screen &screen, Base::ScreenChange change)
+				[this](IG::ApplicationContext ctx, IG::Screen &screen, IG::ScreenChange change)
 				{
 					viewController().onScreenChange(ctx, screen, change);
 				});
@@ -510,7 +513,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 				});
 
 			ctx.setOnFreeCaches(
-				[this](Base::ApplicationContext, bool running)
+				[this](IG::ApplicationContext, bool running)
 				{
 					viewManager.defaultFace().freeCaches();
 					viewManager.defaultBoldFace().freeCaches();
@@ -534,7 +537,7 @@ Gfx::Projection updateProjection(Gfx::Viewport viewport)
 	return {viewport, Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.)};
 }
 
-Gfx::Viewport makeViewport(const Base::Window &win)
+Gfx::Viewport makeViewport(const IG::Window &win)
 {
 	if((int)optionViewportZoom != 100)
 	{
@@ -611,18 +614,18 @@ void EmuApp::launchSystemWithResumePrompt(Input::Event e)
 		if(!viewController().showAutoStateConfirm(e))
 		{
 			// state doesn't exist
-			::launchSystem(*this, false);
+			EmuEx::launchSystem(*this, false);
 		}
 	}
 	else
 	{
-		::launchSystem(*this, optionAutoSaveState);
+		EmuEx::launchSystem(*this, optionAutoSaveState);
 	}
 }
 
 void EmuApp::launchSystem(Input::Event e, bool tryAutoState)
 {
-	::launchSystem(*this, tryAutoState);
+	EmuEx::launchSystem(*this, tryAutoState);
 }
 
 bool EmuApp::hasArchiveExtension(std::string_view name)
@@ -1021,7 +1024,7 @@ void EmuApp::startAutoSaveStateTimer()
 	}
 }
 
-WindowData &windowData(const Base::Window &win)
+WindowData &windowData(const IG::Window &win)
 {
 	auto data = win.appData<WindowData>();
 	assumeExpr(data);
@@ -1127,7 +1130,7 @@ void EmuApp::setMogaManagerActive(bool on, bool notify)
 
 std::span<const KeyCategory> EmuApp::inputControlCategories() const
 {
-	return {EmuControls::category, EmuControls::categories};
+	return {Controls::category, Controls::categories};
 }
 
 ViewAttachParams EmuApp::attachParams()
@@ -1171,17 +1174,19 @@ void EmuApp::setFontSize(int size)
 	viewController().placeElements();
 }
 
-EmuApp &EmuApp::get(Base::ApplicationContext ctx)
+EmuApp &EmuApp::get(IG::ApplicationContext ctx)
 {
 	return static_cast<EmuApp&>(ctx.application());
 }
 
-namespace Base
+}
+
+namespace IG
 {
 
 void ApplicationContext::onInit(ApplicationInitParams initParams)
 {
-	initApplication<EmuApp>(initParams, *this);
+	initApplication<EmuEx::EmuApp>(initParams, *this);
 }
 
 }

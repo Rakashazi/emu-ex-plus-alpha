@@ -24,6 +24,9 @@
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 class KeyConflictAlertView : public AlertView
 {
 public:
@@ -156,7 +159,7 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 
 void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	cmds.setBlendMode(0);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	cmds.setColor(.4, .4, .4, 1.);
@@ -367,4 +370,6 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 			}
 		};
 	}
+}
+
 }

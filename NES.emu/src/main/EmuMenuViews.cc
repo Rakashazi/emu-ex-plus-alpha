@@ -29,6 +29,9 @@
 
 extern int pal_emulation;
 
+namespace EmuEx
+{
+
 class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem fourScore
@@ -188,7 +191,7 @@ class CustomVideoOptionView : public VideoOptionView
 	static constexpr const char *wavebeamPalPath = "Wavebeam.pal";
 	static constexpr const char *classicPalPath = "Classic (FBX).pal";
 
-	static void setPalette(Base::ApplicationContext ctx, IG::CStringView palPath)
+	static void setPalette(IG::ApplicationContext ctx, IG::CStringView palPath)
 	{
 		if(palPath.size())
 			defaultPalettePath = palPath;
@@ -307,10 +310,10 @@ class CustomSystemOptionView : public SystemOptionView
 		{}, &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("Disk System BIOS", &::fdsBiosPath,
+			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("Disk System BIOS", &EmuEx::fdsBiosPath,
 				[this](std::string_view displayName)
 				{
-					logMsg("set fds bios %s", ::fdsBiosPath.data());
+					logMsg("set fds bios %s", EmuEx::fdsBiosPath.data());
 					fdsBiosPath.compile(biosMenuEntryStr(displayName), renderer(), projP);
 				},
 				hasFDSBIOSExtension);
@@ -327,7 +330,7 @@ public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
-		fdsBiosPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(::fdsBiosPath)));
+		fdsBiosPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(EmuEx::fdsBiosPath)));
 		item.emplace_back(&fdsBiosPath);
 	}
 };
@@ -485,4 +488,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;
 	}
+}
+
 }

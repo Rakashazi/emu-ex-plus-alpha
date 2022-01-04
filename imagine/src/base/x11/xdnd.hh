@@ -19,7 +19,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
-namespace Base
+namespace IG
 {
 void handleXDNDEvent(Display *dpy, XApplication::XdndAtoms xdndAtom, const XClientMessageEvent &e, ::Window win, ::Window &draggerWin, Atom &dragAction);
 }

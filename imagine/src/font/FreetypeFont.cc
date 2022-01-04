@@ -29,6 +29,9 @@
 #include FT_BITMAP_H
 #include FT_SIZES_H
 
+namespace IG
+{
+
 #ifdef CONFIG_PACKAGE_FONTCONFIG
 static FS::PathString fontPathWithPattern(FcPattern *pat)
 {
@@ -86,10 +89,7 @@ static FS::PathString fontPathContainingChar(int c, int weight)
 }
 #endif
 
-namespace IG
-{
-
-FreetypeFontManager::FreetypeFontManager(Base::ApplicationContext ctx):
+FreetypeFontManager::FreetypeFontManager(ApplicationContext ctx):
 	ctx{ctx}
 {
 	FT_Library ftLib;

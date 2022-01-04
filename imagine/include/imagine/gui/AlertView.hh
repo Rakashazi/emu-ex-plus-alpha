@@ -21,6 +21,9 @@
 #include <imagine/gui/TableView.hh>
 #include <utility>
 
+namespace IG
+{
+
 class BaseAlertView : public View
 {
 public:
@@ -30,8 +33,8 @@ public:
 		{
 			attach,
 			std::move(label),
-			[&item](const ::TableView &) { return std::size(item); },
-			[&item](const ::TableView &, size_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
+			[&item](const TableView &) { return std::size(item); },
+			[&item](const TableView &, size_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
 		} {}
 	void place() override;
 	bool inputEvent(Input::Event e) override;
@@ -71,3 +74,5 @@ protected:
 	TextMenuItem yes, no;
 	TextMenuItem::SelectDelegate makeDefaultSelectDelegate();
 };
+
+}

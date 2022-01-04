@@ -20,7 +20,7 @@
 #include <imagine/logger/logger.h>
 #include <android/asset_manager.h>
 
-namespace FS
+namespace IG::FS
 {
 
 AAssetDirectory::AAssetDirectory(AAssetManager *mgr, IG::CStringView path):

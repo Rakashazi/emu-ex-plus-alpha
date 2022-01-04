@@ -23,12 +23,12 @@
 #else
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/input/inputDefs.hh>
-namespace Input
+namespace IG::Input
 {
 class TextFieldImpl
 {
 public:
-	constexpr TextFieldImpl(Base::ApplicationContext, TextFieldDelegate, const char *initialText, const char *promptText, int fontSizePixels) {}
+	constexpr TextFieldImpl(ApplicationContext, TextFieldDelegate, const char *initialText, const char *promptText, int fontSizePixels) {}
 };
 }
 #endif
@@ -36,7 +36,7 @@ public:
 #include <imagine/config/defs.hh>
 #include <imagine/util/rectangle2.h>
 
-namespace Input
+namespace IG::Input
 {
 
 class TextField : public TextFieldImpl

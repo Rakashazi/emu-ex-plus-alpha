@@ -23,16 +23,12 @@
 namespace IG::Audio
 {
 
-class Format
+struct Format
 {
-public:
-	uint32_t rate = 0;
+	uint32_t rate{};
 	SampleFormat sample{};
-	uint8_t channels = 0;
+	uint8_t channels{};
 
-	constexpr Format() {}
-	constexpr Format(uint32_t rate, SampleFormat sample, uint8_t channels) :
-		rate{rate}, sample{sample}, channels{channels} {}
 	constexpr bool operator ==(Format const& rhs) const = default;
 
 	constexpr explicit operator bool() const

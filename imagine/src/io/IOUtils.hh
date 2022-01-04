@@ -18,46 +18,25 @@
 #include <imagine/io/IO.hh>
 #include <array>
 
-template <class IO>
-ssize_t IOUtils<IO>::read(void *buff, size_t bytes)
+namespace IG
 {
-	return static_cast<IO*>(this)->read(buff, bytes, nullptr);
+
+template <class IO>
+off_t IOUtils<IO>::seekS(off_t offset)
+{
+	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::SET);
 }
 
 template <class IO>
-ssize_t IOUtils<IO>::readAtPos(void *buff, size_t bytes, off_t offset)
+off_t IOUtils<IO>::seekE(off_t offset)
 {
-	return static_cast<IO*>(this)->readAtPos(buff, bytes, offset, nullptr);
+	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::END);
 }
 
 template <class IO>
-ssize_t IOUtils<IO>::write(const void *buff, size_t bytes)
+off_t IOUtils<IO>::seekC(off_t offset)
 {
-	return static_cast<IO*>(this)->write(buff, bytes, nullptr);
-}
-
-template <class IO>
-off_t IOUtils<IO>::seek(off_t offset, IODefs::SeekMode mode)
-{
-	return static_cast<IO*>(this)->seek(offset, mode, nullptr);
-}
-
-template <class IO>
-off_t IOUtils<IO>::seekS(off_t offset, std::error_code *ecOut)
-{
-	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::SET, ecOut);
-}
-
-template <class IO>
-off_t IOUtils<IO>::seekE(off_t offset, std::error_code *ecOut)
-{
-	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::END, ecOut);
-}
-
-template <class IO>
-off_t IOUtils<IO>::seekC(off_t offset, std::error_code *ecOut)
-{
-	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::CUR, ecOut);
+	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::CUR);
 }
 
 template <class IO>
@@ -67,13 +46,13 @@ bool IOUtils<IO>::rewind()
 }
 
 template <class IO>
-off_t IOUtils<IO>::tell(std::error_code *ecOut)
+off_t IOUtils<IO>::tell()
 {
-	return static_cast<IO*>(this)->seekC(0, ecOut);
+	return static_cast<IO*>(this)->seekC(0);
 }
 
 template <class IO>
-ssize_t IOUtils<IO>::send(IO &output, off_t *srcOffset, size_t bytes, std::error_code *ecOut)
+ssize_t IOUtils<IO>::send(IO &output, off_t *srcOffset, size_t bytes)
 {
 	if(srcOffset)
 	{
@@ -90,15 +69,11 @@ ssize_t IOUtils<IO>::send(IO &output, off_t *srcOffset, size_t bytes, std::error
 			break;
 		if(bytesRead == -1)
 		{
-			if(ecOut)
-				*ecOut = {EIO, std::system_category()};
 			return -1;
 		}
 		ssize_t bytesWritten = output.write(buff.data(), bytes);
 		if(bytesWritten == -1)
 		{
-			if(ecOut)
-				*ecOut = {EIO, std::system_category()};
 			return -1;
 		}
 		totalBytesWritten += bytesWritten;
@@ -122,7 +97,7 @@ template <class IO>
 IG::ByteBuffer IOUtils<IO>::buffer(IODefs::BufferMode mode)
 {
 	auto &io = *static_cast<IO*>(this);
-	if(mode == ::IO::BufferMode::RELEASE)
+	if(mode == ::IG::IO::BufferMode::RELEASE)
 	{
 		if constexpr(requires {io.releaseBuffer();})
 		{
@@ -138,4 +113,6 @@ IG::ByteBuffer IOUtils<IO>::buffer(IODefs::BufferMode mode)
 			return {map};
 	}
 	return makeBufferCopy(io);
+}
+
 }

@@ -23,6 +23,9 @@
 #include <archive.h>
 #include <archive_entry.h>
 
+namespace IG
+{
+
 static FS::file_type makeEntryType(int type)
 {
 	using namespace FS;
@@ -245,45 +248,35 @@ std::string_view ArchiveIO::name() const
 	return entry.name();
 }
 
-ssize_t ArchiveIO::read(void *buff, size_t bytes, std::error_code *ecOut)
+ssize_t ArchiveIO::read(void *buff, size_t bytes)
 {
-	if(!*this)
+	if(!*this) [[unlikely]]
 	{
-		if(ecOut)
-			*ecOut = {EBADF, std::system_category()};
 		return -1;
 	}
 	int bytesRead = archive_read_data(entry.archive(), buff, bytes);
 	if(bytesRead < 0)
 	{
 		bytesRead = -1;
-		if(ecOut)
-			*ecOut = {EIO, std::system_category()};
 	}
 	return bytesRead;
 }
 
-ssize_t ArchiveIO::write(const void* buff, size_t bytes, std::error_code *ecOut)
+ssize_t ArchiveIO::write(const void* buff, size_t bytes)
 {
-	if(ecOut)
-		*ecOut = {ENOSYS, std::system_category()};
 	return -1;
 }
 
-off_t ArchiveIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
+off_t ArchiveIO::seek(off_t offset, IO::SeekMode mode)
 {
-	if(!*this)
+	if(!*this) [[unlikely]]
 	{
-		if(ecOut)
-			*ecOut = {EBADF, std::system_category()};
 		return -1;
 	}
 	long newPos = archive_seek_data(entry.archive(), offset, (int)mode);
 	if(newPos < 0)
 	{
 		logErr("seek to offset %lld failed", (long long)offset);
-		if(ecOut)
-			*ecOut = {EINVAL, std::system_category()};
 		return -1;
 	}
 	return newPos;
@@ -302,4 +295,6 @@ bool ArchiveIO::eof()
 ArchiveIO::operator bool() const
 {
 	return (bool)entry.archive();
+}
+
 }

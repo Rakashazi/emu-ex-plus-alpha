@@ -21,14 +21,14 @@
 #include <imagine/input/inputDefs.hh>
 #include <string>
 
-namespace Base
+namespace IG
 {
 class Window;
 class ApplicationContext;
 class Application;
 }
 
-namespace Input
+namespace IG::Input
 {
 
 class Device;
@@ -52,7 +52,7 @@ static constexpr bool SWAPPED_CONFIRM_KEYS_DEFAULT = Config::MACHINE_IS_PANDORA 
 class Event
 {
 public:
-	constexpr Event() {}
+	constexpr Event() = default;
 
 	constexpr Event(Map map, Key button, uint32_t metaState, Action state, int x, int y, PointerId pointerId, Source src, Time time, const Device *device)
 		: device_{device}, pointerId_{pointerId}, time_{time}, x{x}, y{y}, metaState{metaState}, button{button}, state_{state}, map_{map}, src{src} {}
@@ -108,7 +108,7 @@ public:
 	int scrolledVertical() const;
 	bool isSystemFunction() const;
 	static std::string_view actionToStr(Action action);
-	std::string keyString(Base::ApplicationContext) const;
+	std::string keyString(ApplicationContext) const;
 	Time time() const;
 	const Device *device() const;
 	bool hasSwappedConfirmKeys() const;

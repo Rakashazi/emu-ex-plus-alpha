@@ -22,7 +22,7 @@
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 
-namespace Base
+namespace IG
 {
 
 #define DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER 1

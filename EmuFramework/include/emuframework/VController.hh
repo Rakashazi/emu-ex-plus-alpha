@@ -24,23 +24,27 @@
 #include <span>
 #include <optional>
 
-class VController;
-class EmuApp;
-class EmuViewController;
-struct WindowData;
-class IO;
-
-namespace Base
+namespace IG
 {
 class Window;
 class ApplicationContext;
+class IO;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 class GlyphTextureSet;
 class Viewport;
 }
+
+namespace EmuEx
+{
+
+using namespace IG;
+class VController;
+class EmuApp;
+class EmuViewController;
+struct WindowData;
 
 enum class VControllerState : uint8_t
 {
@@ -242,11 +246,11 @@ public:
 	using KbMap = VControllerKeyboard::KbMap;
 	using VControllerLayoutPositionArr = std::array<std::array<VControllerLayoutPosition, 7>, 2>;
 
-	VController(Base::ApplicationContext, int faceButtons, int centerButtons);
+	VController(IG::ApplicationContext, int faceButtons, int centerButtons);
 	Gfx::GC xMMSize(Gfx::GC mm) const;
 	Gfx::GC yMMSize(Gfx::GC mm) const;
-	int xMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const;
-	int yMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const;
+	int xMMSizeToPixel(const IG::Window &win, Gfx::GC mm) const;
+	int yMMSizeToPixel(const IG::Window &win, Gfx::GC mm) const;
 	void setInputPlayer(uint8_t player);
 	uint8_t inputPlayer() const;
 	void updateMapping();
@@ -281,21 +285,21 @@ public:
 	VControllerKeyboard &keyboard() { return kb; }
 	void setRenderer(Gfx::Renderer &renderer);
 	Gfx::Renderer &renderer();
-	void setWindow(const Base::Window &win);
+	void setWindow(const IG::Window &win);
 	bool hasWindow() const { return win; }
-	const Base::Window &window() const { return *win; }
+	const IG::Window &window() const { return *win; }
 	const WindowData &windowData() const { return *winData; }
 	VControllerLayoutPositionArr &layoutPosition() { return layoutPos; };
 	const VControllerLayoutPositionArr &layoutPosition() const { return layoutPos; };
 	bool layoutPositionChanged() const { return layoutPosChanged; };
 	void setLayoutPositionChanged(bool changed = true) { layoutPosChanged = changed; }
-	Base::ApplicationContext appContext() const;
+	IG::ApplicationContext appContext() const;
 	const Gfx::GlyphTextureSet &face() const;
 	void setFace(const Gfx::GlyphTextureSet &face);
 	bool setButtonSize(std::optional<uint16_t> mm100xOpt, bool placeElements = true);
 	uint16_t buttonSize() const;
 	Gfx::GC buttonGCSize() const;
-	int buttonPixelSize(const Base::Window &) const;
+	int buttonPixelSize(const IG::Window &) const;
 	bool setButtonXPadding(std::optional<uint16_t> opt, bool placeElements = true);
 	uint16_t buttonXPadding() const;
 	bool setButtonYPadding(std::optional<uint16_t> opt, bool placeElements = true);
@@ -330,7 +334,7 @@ public:
 	void writeConfig(IO &) const;
 	void readSerializedLayoutPositions(IO &, unsigned size);
 	unsigned serializedLayoutPositionsSize() const;
-	void configure(Base::Window &, Gfx::Renderer &, const Gfx::GlyphTextureSet &face);
+	void configure(IG::Window &, Gfx::Renderer &, const Gfx::GlyphTextureSet &face);
 	static VControllerLayoutPosition pixelToLayoutPos(IG::WP pos, IG::WP size, IG::WindowRect viewBounds);
 	static IG::WP layoutToPixelPos(VControllerLayoutPosition, Gfx::Viewport);
 	void resetPositions();
@@ -351,7 +355,7 @@ private:
 	static constexpr uint8_t GAMEPAD_BITS = GAMEPAD_DPAD_BIT | GAMEPAD_BUTTONS_BIT;
 
 	Gfx::Renderer *renderer_{};
-	const Base::Window *win{};
+	const IG::Window *win{};
 	const WindowData *winData{};
 	const Gfx::GlyphTextureSet *facePtr{};
 	VControllerGamepad gp;
@@ -401,3 +405,5 @@ static constexpr unsigned VCTRL_LAYOUT_DPAD_IDX = 0,
 
 void updateVControllerMapping(unsigned player, VController::Map &map);
 VController::KbMap updateVControllerKeyboardMapping(unsigned mode);
+
+}

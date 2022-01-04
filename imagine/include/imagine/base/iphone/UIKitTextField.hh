@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/input/inputDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/rectangle2.h>
 
@@ -23,18 +22,18 @@
 @class IGAppTextField;
 #endif
 
-namespace Input
+namespace IG::Input
 {
 
 class UIKitTextField
 {
 public:
-	UIKitTextField(Base::ApplicationContext, TextFieldDelegate, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels);
+	UIKitTextField(ApplicationContext, TextFieldDelegate, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels);
 	~UIKitTextField();
 	UIKitTextField &operator=(UIKitTextField &&) = delete;
 
 protected:
-	Base::ApplicationContext ctx;
+	ApplicationContext ctx;
 	void *textField_{};
 	IG::WindowRect textRect{{8, 200}, {8+304, 200+48}};
 

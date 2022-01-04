@@ -61,7 +61,7 @@ enum
 
 static constexpr Atom currentDNDVersion = 5;
 
-namespace Base
+namespace IG
 {
 
 using XdndAtoms = XApplication::XdndAtoms;

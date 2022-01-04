@@ -28,6 +28,9 @@
 // min:negative y = bottom
 // max:positive y = top
 
+namespace IG
+{
+
 enum { _2DORIGIN_NONE = 0, _2DORIGIN_MIN, _2DORIGIN_MIN_INVERSE_CARTESIAN, _2DORIGIN_CENTER, _2DORIGIN_CENTER_INVERSE_CARTESIAN, _2DORIGIN_MAX, _2DORIGIN_MAX_INVERSE_CARTESIAN };
 class _2DOrigin
 {
@@ -291,31 +294,33 @@ public:
 
 // cartesian origin shortcuts sorted clockwise
 static constexpr _2DOrigin CenterTop2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_MAX);
-#define CT2DO CenterTop2DOrigin
+#define CT2DO ::IG::CenterTop2DOrigin
 static constexpr _2DOrigin RightTop2DOrigin(_2DORIGIN_MAX, _2DORIGIN_MAX);
-#define RT2DO RightTop2DOrigin
+#define RT2DO ::IG::RightTop2DOrigin
 static constexpr _2DOrigin RightCenter2DOrigin(_2DORIGIN_MAX, _2DORIGIN_CENTER);
-#define RC2DO RightCenter2DOrigin
+#define RC2DO ::IG::RightCenter2DOrigin
 static constexpr _2DOrigin RightBottom2DOrigin(_2DORIGIN_MAX, _2DORIGIN_MIN);
-#define RB2DO RightBottom2DOrigin
+#define RB2DO ::IG::RightBottom2DOrigin
 static constexpr _2DOrigin CenterBottom2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_MIN);
-#define CB2DO CenterBottom2DOrigin
+#define CB2DO ::IG::CenterBottom2DOrigin
 static constexpr _2DOrigin LeftBottom2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MIN);
-#define LB2DO LeftBottom2DOrigin
+#define LB2DO ::IG::LeftBottom2DOrigin
 static constexpr _2DOrigin LeftCenter2DOrigin(_2DORIGIN_MIN, _2DORIGIN_CENTER);
-#define LC2DO LeftCenter2DOrigin
+#define LC2DO ::IG::LeftCenter2DOrigin
 static constexpr _2DOrigin LeftTop2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MAX);
-#define LT2DO LeftTop2DOrigin
+#define LT2DO ::IG::LeftTop2DOrigin
 
 static constexpr _2DOrigin Center2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_CENTER);
-#define C2DO Center2DOrigin
+#define C2DO ::IG::Center2DOrigin
 
 static constexpr _2DOrigin LeftBottomInvCart2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MAX_INVERSE_CARTESIAN);
-#define LBIC2DO LeftBottomInvCart2DOrigin
+#define LBIC2DO ::IG::LeftBottomInvCart2DOrigin
 static constexpr _2DOrigin LeftTopInvCart2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MIN_INVERSE_CARTESIAN);
-#define LTIC2DO LeftTopInvCart2DOrigin
+#define LTIC2DO ::IG::LeftTopInvCart2DOrigin
 static constexpr _2DOrigin CenterInvCart2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_CENTER_INVERSE_CARTESIAN);
-#define CIC2DO CenterInvCart2DOrigin
+#define CIC2DO ::IG::CenterInvCart2DOrigin
 
 static constexpr _2DOrigin Null2DOrigin(_2DORIGIN_NONE, _2DORIGIN_NONE);
-#define NULL2DO Null2DOrigin
+#define NULL2DO ::IG::Null2DOrigin
+
+}

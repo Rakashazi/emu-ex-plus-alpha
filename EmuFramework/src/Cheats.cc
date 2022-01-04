@@ -18,6 +18,9 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 	TableView
 	{
@@ -116,4 +119,6 @@ BaseEditCheatView::BaseEditCheatView(IG::utf16String viewName, ViewAttachParams 
 void BaseEditCheatView::onCheatListChanged()
 {
 	onCheatListChanged_.callSafe();
+}
+
 }

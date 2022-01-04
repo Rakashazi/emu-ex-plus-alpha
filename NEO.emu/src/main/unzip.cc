@@ -29,6 +29,8 @@ extern "C"
 	#include <gngeo/state.h>
 }
 
+using namespace IG;
+
 struct PKZIP : public FS::ArchiveIterator {};
 
 struct ZFILE
@@ -75,7 +77,7 @@ int gn_unzip_fread(ZFILE *z, uint8_t *data, unsigned int size)
 
 PKZIP *gn_open_zip(void *contextPtr, const char *path)
 {
-	auto &ctx = *((Base::ApplicationContext*)contextPtr);
+	auto &ctx = *((IG::ApplicationContext*)contextPtr);
 	try
 	{
 		auto arch = std::make_unique<FS::ArchiveIterator>(ctx.openFileUri(path));
@@ -115,7 +117,7 @@ uint8_t *gn_unzip_file_malloc(PKZIP *archPtr, const char *filename, uint32_t fil
 
 struct PKZIP *open_rom_zip(void *contextPtr, char *romPath, char *name)
 {
-	auto &ctx = *((Base::ApplicationContext*)contextPtr);
+	auto &ctx = *((IG::ApplicationContext*)contextPtr);
 	auto baseUri = FS::uriString(romPath, name);
 	// Try to open each possible archive type
 	if(auto gz = gn_open_zip(contextPtr, FS::PathString{baseUri + ".zip"}.data());
@@ -138,7 +140,7 @@ struct PKZIP *open_rom_zip(void *contextPtr, char *romPath, char *name)
 
 gzFile gzopenHelper(void *contextPtr, const char *filename, const char *mode)
 {
-	auto &ctx = *((Base::ApplicationContext*)contextPtr);
-	unsigned openFlags = IG::stringContains(mode, 'w') ? IO::OPEN_CREATE : 0;
-	return gzdopen(ctx.openFileUri(filename, IO::AccessHint::UNMAPPED, openFlags | IO::OPEN_TEST).releaseFd(), mode);
+	auto &ctx = *((IG::ApplicationContext*)contextPtr);
+	unsigned openFlags = IG::stringContains(mode, 'w') ? IG::IO::OPEN_CREATE : 0;
+	return gzdopen(ctx.openFileUri(filename, IG::IO::AccessHint::UNMAPPED, openFlags | IG::IO::OPEN_TEST).releaseFd(), mode);
 }

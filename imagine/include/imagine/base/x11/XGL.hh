@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/EGLContextBase.hh>
 
-namespace Base
+namespace IG
 {
 
 using GLManagerImpl = EGLManager;

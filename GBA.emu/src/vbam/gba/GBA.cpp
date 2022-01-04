@@ -770,9 +770,9 @@ static bool CPUWriteState(GBASys &gba, gzFile gzFile)
   return true;
 }
 
-bool CPUWriteState(Base::ApplicationContext ctx, GBASys &gba, const char *file)
+bool CPUWriteState(IG::ApplicationContext ctx, GBASys &gba, const char *file)
 {
-  gzFile gzFile = utilGzOpen(ctx.openFileUri(file, IO::OPEN_CREATE).releaseFd(), "wb");
+  gzFile gzFile = utilGzOpen(ctx.openFileUri(file, IG::IO::OPEN_CREATE).releaseFd(), "wb");
 
   if(gzFile == NULL) {
     systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"), file);
@@ -998,9 +998,9 @@ bool CPUReadMemState(GBASys &gba, char *memory, int available)
   return res;
 }
 
-bool CPUReadState(Base::ApplicationContext ctx, GBASys &gba, const char * file)
+bool CPUReadState(IG::ApplicationContext ctx, GBASys &gba, const char * file)
 {
-  gzFile gzFile = utilGzOpen(ctx.openFileUri(file, IO::AccessHint::UNMAPPED).releaseFd(), "rb");
+  gzFile gzFile = utilGzOpen(ctx.openFileUri(file, IG::IO::AccessHint::UNMAPPED).releaseFd(), "rb");
 
   if(gzFile == NULL)
     return false;
@@ -1037,7 +1037,7 @@ bool CPUExportEepromFile(const char *fileName)
   return true;
 }
 
-bool CPUWriteBatteryFile(Base::ApplicationContext ctx, GBASys &gba, const char *fileName)
+bool CPUWriteBatteryFile(IG::ApplicationContext ctx, GBASys &gba, const char *fileName)
 {
   if(gbaSaveType == 0) {
     if(eepromInUse)
@@ -1053,7 +1053,7 @@ bool CPUWriteBatteryFile(Base::ApplicationContext ctx, GBASys &gba, const char *
   }
 
   if((gbaSaveType) && (gbaSaveType!=5)) {
-    FILE *file = FileUtils::fopenUri(ctx, fileName, "wb");
+    FILE *file = IG::FileUtils::fopenUri(ctx, fileName, "wb");
 
     if(!file) {
       systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"),
@@ -1310,9 +1310,9 @@ bool CPUImportEepromFile(GBASys &gba, const char *fileName)
   return true;
 }
 
-bool CPUReadBatteryFile(Base::ApplicationContext ctx, GBASys &gba, const char *fileName)
+bool CPUReadBatteryFile(IG::ApplicationContext ctx, GBASys &gba, const char *fileName)
 {
-	auto buff = FileUtils::bufferFromUri(ctx, fileName, IO::OPEN_TEST, 0x20000);
+	auto buff = IG::FileUtils::bufferFromUri(ctx, fileName, IG::IO::OPEN_TEST, 0x20000);
   if(!buff)
     return false;
 
@@ -1512,7 +1512,7 @@ int CPULoadRom(GBASys &gba, const char *szFile)
   return romSize;
 }
 
-int CPULoadRomWithIO(GBASys &gba, IO &io)
+int CPULoadRomWithIO(GBASys &gba, IG::IO &io)
 {
 	preLoadRomSetup(gba);
 	u8 *whereToLoad = gba.mem.rom;
@@ -3210,7 +3210,7 @@ void CPUInterrupt(GBASys &gba, ARM7TDMI &cpu)
 	gba.biosProtected[3] = 0xe5;
 }
 
-void CPULoop(GBASys &gba, EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
+void CPULoop(GBASys &gba, EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, EmuEx::EmuAudio *audio)
 {
 	auto cpu = gba.cpu;
 	auto &holdState = cpu.holdState;

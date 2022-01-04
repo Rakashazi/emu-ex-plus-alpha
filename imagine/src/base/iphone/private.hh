@@ -21,17 +21,17 @@
 #import <UIKit/UIKit.h>
 #endif
 
-namespace Base
+namespace IG
 {
 
 class ApplicationContext;
 
 }
 
-namespace Input
+namespace IG::Input
 {
 
-void init(Base::ApplicationContext);
+void init(ApplicationContext);
 
 }
 

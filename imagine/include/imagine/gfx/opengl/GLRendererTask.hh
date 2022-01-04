@@ -22,12 +22,12 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/utility.h>
 
-namespace Base
+namespace IG
 {
 class Window;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererTask;
@@ -40,8 +40,8 @@ public:
 	using Command = GLTask::Command;
 	using CommandMessage = GLTask::CommandMessage;
 
-	GLRendererTask(Base::ApplicationContext, Renderer &);
-	GLRendererTask(Base::ApplicationContext, const char *debugLabel, Renderer &);
+	GLRendererTask(ApplicationContext, Renderer &);
+	GLRendererTask(ApplicationContext, const char *debugLabel, Renderer &);
 	void initVBOs();
 	GLuint getVBO();
 	void initVAO();
@@ -51,15 +51,15 @@ public:
 	void runInitialCommandsInGL(TaskContext ctx, DrawContextSupport &support);
 	void setRenderer(Renderer *r);
 	void verifyCurrentContext() const;
-	void destroyDrawable(Base::GLDrawable &drawable);
+	void destroyDrawable(GLDrawable &drawable);
 	RendererCommands makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
-		bool notifyWindowAfterPresent, Base::Window &win, Viewport viewport, Mat4 projMat);
+		bool notifyWindowAfterPresent, Window &win, Viewport viewport, Mat4 projMat);
 
 	void run(IG::invocable auto &&f, bool awaitReply = false) { GLTask::run(IG_forward(f), awaitReply); }
 
-	bool draw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams params,
+	bool draw(Window &win, WindowDrawParams winParams, DrawParams params,
 		const Viewport &viewport, const Mat4 &projMat,
-		IG::invocable<Base::Window &, RendererCommands &> auto &&f)
+		IG::invocable<Window &, RendererCommands &> auto &&f)
 	{
 		doPreDraw(win, winParams, params);
 		assert(params.asyncMode() != DrawAsyncMode::AUTO); // doPreDraw() should set mode
@@ -90,7 +90,7 @@ protected:
 	GLuint fbo = 0;
 	IG_UseMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, debugEnabled){};
 
-	void doPreDraw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params) const;
+	void doPreDraw(Window &win, WindowDrawParams winParams, DrawParams &params) const;
 };
 
 using RendererTaskImpl = GLRendererTask;

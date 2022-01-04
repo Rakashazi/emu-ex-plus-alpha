@@ -33,6 +33,8 @@
 #include "genplus-config.h"
 #ifndef NO_SCD
 #include <scd/scd.h>
+#include <mednafen/mednafen.h>
+#include <mednafen/cdrom/CDAccess.h>
 #endif
 #include "Cheats.hh"
 #include <imagine/fs/FS.hh>
@@ -40,14 +42,18 @@
 #include <imagine/util/format.hh>
 #include <imagine/util/ScopeGuard.hh>
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
+t_config config{};
+t_bitmap bitmap{};
+bool config_ym2413_enabled = true;
+
+namespace EmuEx
+{
+
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
-Base::ApplicationContext appCtx{};
-t_config config{};
-bool config_ym2413_enabled = true;
+IG::ApplicationContext appCtx{};
 int8 mdInputPortDev[2]{-1, -1};
-t_bitmap bitmap{};
 static unsigned autoDetectedVidSysPAL = 0;
 
 static bool hasBinExtension(std::string_view name)
@@ -130,19 +136,19 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}.0{}.gp", name, saveSlotChar(slot));
 }
 
-static FS::PathString saveFilename(Base::ApplicationContext ctx)
+static FS::PathString saveFilename(IG::ApplicationContext ctx)
 {
 	return EmuSystem::contentSaveFilePath(ctx, ".srm");
 }
 
-static FS::PathString bramSaveFilename(Base::ApplicationContext ctx)
+static FS::PathString bramSaveFilename(IG::ApplicationContext ctx)
 {
 	return EmuSystem::contentSaveFilePath(ctx, ".brm");
 }
 
 static const unsigned maxSaveStateSize = STATE_SIZE+4;
 
-void EmuSystem::saveState(Base::ApplicationContext ctx, IG::CStringView path)
+void EmuSystem::saveState(IG::ApplicationContext ctx, IG::CStringView path)
 {
 	auto stateData = std::make_unique<uint8_t[]>(maxSaveStateSize);
 	logMsg("saving state data");
@@ -168,7 +174,7 @@ static bool sramHasContent(std::span<uint8> sram)
 	return false;
 }
 
-void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
+void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
 {
 	if(!gameIsRunning())
 		return;
@@ -229,7 +235,7 @@ void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 	writeCheatFile(ctx);
 }
 
-void EmuSystem::closeSystem(Base::ApplicationContext ctx)
+void EmuSystem::closeSystem(IG::ApplicationContext ctx)
 {
 	saveBackupMem(ctx);
 	#ifndef NO_SCD
@@ -344,7 +350,7 @@ static unsigned detectISORegion(uint8 bootSector[0x800])
 		return REGION_JAPAN_NTSC;
 }
 
-FS::PathString EmuSystem::willLoadGameFromPath(Base::ApplicationContext ctx, std::string_view path, std::string_view displayName)
+FS::PathString EmuSystem::willLoadGameFromPath(IG::ApplicationContext ctx, std::string_view path, std::string_view displayName)
 {
 	#ifndef NO_SCD
 	// check if loading a .bin with matching .cue
@@ -362,7 +368,7 @@ FS::PathString EmuSystem::willLoadGameFromPath(Base::ApplicationContext ctx, std
 	return FS::PathString{path};
 }
 
-void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	#ifndef NO_SCD
 	using namespace Mednafen;
@@ -530,7 +536,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(IG::ApplicationContext ctx)
 {
 	appCtx = ctx;
+}
+
 }

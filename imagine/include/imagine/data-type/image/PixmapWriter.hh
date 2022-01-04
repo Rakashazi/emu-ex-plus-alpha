@@ -25,13 +25,9 @@
 #include <imagine/data-type/image/Quartz2d.hh>
 #endif
 
-namespace Base
-{
-class ApplicationContext;
-}
-
 namespace IG
 {
+class ApplicationContext;
 class Pixmap;
 }
 

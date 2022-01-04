@@ -20,7 +20,7 @@
 #include <imagine/gfx/TextureConfig.hh>
 #include <imagine/gfx/Texture.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererTask;
@@ -30,7 +30,7 @@ class GLPixmapTexture : public Texture
 {
 public:
 	using Texture::Texture;
-	constexpr GLPixmapTexture() {}
+	constexpr GLPixmapTexture() = default;
 
 protected:
 	IG::ErrorCode init(RendererTask &rTask, TextureConfig config);

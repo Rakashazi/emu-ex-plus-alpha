@@ -29,7 +29,7 @@
 namespace IG::Data
 {
 
-BitmapFactoryReader::BitmapFactoryReader(Base::ApplicationContext ctx):
+BitmapFactoryReader::BitmapFactoryReader(ApplicationContext ctx):
 	appPtr{&ctx.application()},
 	baseActivity{ctx.baseActivityObject()},
 	jRecycleBitmap{ctx.application().recycleBitmapMethod()}
@@ -44,7 +44,7 @@ static PixmapImage makePixmapImage(JNIEnv *env, jobject bitmap, JNI::InstMethod<
 {
 	void *buff;
 	AndroidBitmap_lockPixels(env, bitmap, &buff);
-	auto pix = Base::makePixmapView(env, bitmap, buff, {});
+	auto pix = makePixmapView(env, bitmap, buff, {});
 	return PixmapImage{{env, bitmap, recycle}, pix};
 }
 
@@ -101,7 +101,7 @@ PixmapImage::operator PixmapSource()
 	return {pixmapView()};
 }
 
-BitmapWriter::BitmapWriter(Base::ApplicationContext ctx):
+BitmapWriter::BitmapWriter(ApplicationContext ctx):
 	appPtr{&ctx.application()},
 	baseActivity{ctx.baseActivityObject()}
 {
@@ -123,7 +123,7 @@ bool PixmapWriter::writeToFile(Pixmap pix, const char *path) const
 	}
 	void *buffer;
 	AndroidBitmap_lockPixels(env, bitmap, &buffer);
-	Base::makePixmapView(env, bitmap, buffer, pix.format()).writeConverted(pix, {});
+	makePixmapView(env, bitmap, buffer, pix.format()).writeConverted(pix, {});
 	AndroidBitmap_unlockPixels(env, bitmap);
 	auto pathJStr = env->NewStringUTF(path);
 	auto writeOK = jWritePNG(env, baseActivity, bitmap, pathJStr);

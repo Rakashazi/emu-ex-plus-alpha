@@ -21,21 +21,20 @@
 #include <imagine/gui/ScrollView.hh>
 #include <iterator>
 
-namespace Base
-{
-class Window;
-}
-
-namespace Input
+namespace IG::Input
 {
 class Event;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 class RendererCommands;
 }
 
+namespace IG
+{
+
+class Window;
 class MenuItem;
 
 class TableView : public ScrollView
@@ -46,7 +45,7 @@ public:
 	using SelectElementDelegate = DelegateFunc<void (Input::Event e, int i, MenuItem &item)>;
 
 	TableView(IG::utf16String name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
-		ScrollView{std::move(name), attach}, items{items}, item{item} {}
+		ScrollView{attach}, items{items}, item{item}, nameStr{std::move(name)} {}
 
 	TableView(ViewAttachParams attach, IG::Container auto &item):
 		TableView{{}, attach, item} {}
@@ -78,11 +77,14 @@ public:
 	IG::WP cellSize() const;
 	void highlightCell(int idx);
 	void setAlign(_2DOrigin align);
+	std::u16string_view name() const override;
+	void setName(IG::utf16String name) { nameStr = std::move(name); }
 
 protected:
 	ItemsDelegate items{};
 	ItemDelegate item{};
 	SelectElementDelegate selectElementDel{};
+	std::u16string nameStr{};
 	int yCellSize = 0;
 	int selected = -1;
 	int visibleCells = 0;
@@ -100,3 +102,5 @@ protected:
 	bool handleTableInput(Input::Event e, bool &movedSelected);
 	virtual void drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const;
 };
+
+}

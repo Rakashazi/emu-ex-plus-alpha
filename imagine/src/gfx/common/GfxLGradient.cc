@@ -17,7 +17,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/space.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 void LGradient::draw(RendererCommands &cmds) const

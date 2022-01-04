@@ -281,11 +281,14 @@ bml_node *bml_node::find_subnode(std::string name)
     return NULL;
 }
 
-extern Base::ApplicationContext appCtx;
+namespace EmuEx
+{
+extern IG::ApplicationContext appCtx;
+}
 
 bool bml_node::parse_file(std::string filename)
 {
-    IG::IFStream file(appCtx.openFileUri(filename, IO::OPEN_TEST), std::ios_base::binary);
+    IG::IFStream file(EmuEx::appCtx.openFileUri(filename, IG::IO::OPEN_TEST), std::ios_base::binary);
 
     if (!file)
         return false;

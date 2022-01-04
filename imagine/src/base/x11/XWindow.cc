@@ -24,7 +24,7 @@
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 
-namespace Base
+namespace IG
 {
 
 IG::PixelFormat ApplicationContext::defaultWindowPixelFormat() const
@@ -34,7 +34,7 @@ IG::PixelFormat ApplicationContext::defaultWindowPixelFormat() const
 
 void Window::setAcceptDnd(bool on)
 {
-	if(!Config::Base::XDND)
+	if(!Config::XDND)
 		return;
 	application().setXdnd(xWin, on);
 }

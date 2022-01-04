@@ -24,7 +24,7 @@
 #include "utils.hh"
 #include <cstring>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -307,7 +307,7 @@ static GLuint makeGLShader(RendererTask &rTask, std::span<std::string_view> srcs
 					logErr("failed shader source:");
 					for(auto &s : srcs)
 					{
-						logger_printfn(LOG_E, "[part %zu]", std::distance(srcs.data(), &s));
+						logger_printfn(LOG_E, "[part %zu]", (size_t)std::distance(srcs.data(), &s));
 						logger_printfn(LOG_E, "%s", fmt::format("{}", s).c_str());
 					}
 				}

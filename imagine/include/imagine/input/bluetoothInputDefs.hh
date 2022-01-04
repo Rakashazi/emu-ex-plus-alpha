@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/input/config.hh>
 
-namespace Input
+namespace IG::Input
 {
 
 static constexpr uint8_t MAX_BLUETOOTH_DEVS_PER_TYPE = 5;

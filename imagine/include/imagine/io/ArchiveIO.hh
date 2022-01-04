@@ -22,13 +22,17 @@
 
 struct archive;
 struct archive_entry;
-class ArchiveIO;
-class MapIO;
 
-namespace FS
+namespace IG::FS
 {
 enum class file_type : int8_t;
 }
+
+namespace IG
+{
+
+class ArchiveIO;
+class MapIO;
 
 // data used by libarchive callbacks allocated in its own memory block
 struct ArchiveControlBlock
@@ -91,9 +95,9 @@ public:
 	ArchiveIO(ArchiveEntry entry);
 	ArchiveEntry releaseArchive();
 	std::string_view name() const;
-	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
-	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
-	off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) final;
+	ssize_t read(void *buff, size_t bytes) final;
+	ssize_t write(const void *buff, size_t bytes) final;
+	off_t seek(off_t offset, SeekMode mode) final;
 	size_t size() final;
 	bool eof() final;
 	explicit operator bool() const final;
@@ -101,3 +105,5 @@ public:
 protected:
 	ArchiveEntry entry{};
 };
+
+}

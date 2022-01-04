@@ -64,18 +64,18 @@ struct PluginConfig
 	const char *borderModeStr;
 };
 
-static FS::PathString makePluginLibPath(const char *libName, const char *libBasePath)
+static IG::PathString makePluginLibPath(const char *libName, const char *libBasePath)
 {
 	if(libBasePath && strlen(libBasePath))
-		return FS::pathString(libBasePath, libName);
+		return IG::pathString(libBasePath, libName);
 	else
 		return libName;
 }
 
 template<class T>
-static void loadSymbolCheck(T &symPtr, Base::SharedLibraryRef lib, const char *name)
+static void loadSymbolCheck(T &symPtr, IG::SharedLibraryRef lib, const char *name)
 {
-	if(!Base::loadSymbol(symPtr, lib, name))
+	if(!IG::loadSymbol(symPtr, lib, name))
 		logErr("symbol:%s missing from plugin", name);
 }
 
@@ -96,7 +96,7 @@ void VicePlugin::deinit()
 		void (*machine_shutdown)();
 		loadSymbolCheck(machine_shutdown, libHandle, "machine_shutdown");
 		machine_shutdown();
-		Base::closeSharedLibrary(libHandle);
+		IG::closeSharedLibrary(libHandle);
 		libHandle = {};
 	}
 }
@@ -105,7 +105,7 @@ bool VicePlugin::hasSystemLib(ViceSystem system, const char *libBasePath)
 {
 	if(system < VICE_SYSTEM_C64 || system > VICE_SYSTEM_VIC20)
 		return false;
-	return FS::exists(makePluginLibPath(libName[system], libBasePath));
+	return IG::FS::exists(makePluginLibPath(libName[system], libBasePath));
 }
 
 const char *VicePlugin::systemName(ViceSystem system)
@@ -561,9 +561,9 @@ VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 			"VICBorderMode"
 		},
 	};
-	FS::PathString libPath = makePluginLibPath(libName[system], libBasePath);
+	auto libPath = makePluginLibPath(libName[system], libBasePath);
 	logMsg("loading VICE plugin:%s", libPath.data());
-	auto lib = Base::openSharedLibrary(libPath.data(), Base::RESOLVE_ALL_SYMBOLS_FLAG);
+	auto lib = IG::openSharedLibrary(libPath.data(), IG::RESOLVE_ALL_SYMBOLS_FLAG);
 	if(!lib)
 	{
 		return {};

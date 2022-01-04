@@ -26,7 +26,7 @@ class RingBuffer
 public:
 	using SizeType = uint32_t;
 
-	constexpr RingBuffer() {}
+	constexpr RingBuffer() = default;
 	RingBuffer(SizeType size);
 	RingBuffer(RingBuffer &&o);
 	RingBuffer &operator=(RingBuffer &&o);

@@ -17,7 +17,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 template<class Vtx>

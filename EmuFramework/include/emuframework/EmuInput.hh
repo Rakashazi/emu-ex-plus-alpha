@@ -26,7 +26,7 @@
 #include <string>
 #include <memory>
 
-namespace Input
+namespace IG::Input
 {
 class Device;
 }
@@ -35,11 +35,15 @@ static constexpr unsigned MAX_KEY_CONFIG_NAME_SIZE = 80;
 static constexpr unsigned MAX_KEY_CONFIG_KEYS = 256;
 static constexpr unsigned MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;
 
+namespace EmuEx
+{
+
+using namespace IG;
 class InputDeviceConfig;
 
 struct KeyCategory
 {
-	constexpr KeyCategory() {}
+	constexpr KeyCategory() = default;
 	template <size_t S>
 	constexpr KeyCategory(const char *name, const char *(&keyName)[S],
 			unsigned configOffset, bool isMultiplayer = false) :
@@ -62,7 +66,7 @@ struct KeyConfig
 	IG::StaticString<MAX_KEY_CONFIG_NAME_SIZE> name{};
 	KeyArray key_{};
 
-	constexpr KeyConfig() {}
+	constexpr KeyConfig() = default;
 	constexpr KeyConfig(Input::Map map, Input::DeviceSubtype devSubtype, std::string_view name, KeyArray key):
 		map{map}, devSubtype{devSubtype}, name{name}, key_{key} {}
 	constexpr KeyConfig(Input::Map map, std::string_view name, KeyArray key):
@@ -116,10 +120,12 @@ struct InputDeviceSavedConfig
 using KeyConfigContainer = std::vector<std::unique_ptr<KeyConfig>>;
 using InputDeviceSavedConfigContainer = std::vector<std::unique_ptr<InputDeviceSavedConfig>>;
 
-namespace EmuControls
+}
+
+namespace EmuEx::Controls
 {
 
-using namespace Input;
+using namespace IG::Input;
 
 static constexpr unsigned MAX_CATEGORIES = 8;
 

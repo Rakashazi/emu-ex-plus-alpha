@@ -19,10 +19,13 @@
 #include <imagine/input/Input.hh>
 #include <imagine/base/Error.hh>
 
+namespace IG
+{
+
 class PS3Controller : public BluetoothInputDevice
 {
 public:
-	PS3Controller(Base::ApplicationContext, BluetoothAddr);
+	PS3Controller(ApplicationContext, BluetoothAddr);
 	IG::ErrorCode open(BluetoothAdapter &adapter) final;
 	IG::ErrorCode open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
 	IG::ErrorCode open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
@@ -51,3 +54,5 @@ private:
 	static uint8_t playerLEDs(uint32_t player);
 	void sendFeatureReport();
 };
+
+}

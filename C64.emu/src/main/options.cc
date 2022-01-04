@@ -32,6 +32,9 @@ extern "C"
 	#include "sid/sid-resources.h"
 }
 
+namespace EmuEx
+{
+
 enum
 {
 	CFGKEY_DRIVE_TRUE_EMULATION = 256, CFGKEY_AUTOSTART_WARP = 257,
@@ -157,7 +160,7 @@ const char *externalPaletteName()
 	return stringResource(paletteFileResStr.data());
 }
 
-void EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
+void EmuSystem::onOptionsLoaded(IG::ApplicationContext ctx)
 {
 	currSystem = (ViceSystem)optionViceSystem.val;
 	plugin = loadVicePlugin(currSystem, ctx.libPath().data());
@@ -318,4 +321,6 @@ int optionDefaultModel(ViceSystem system)
 		case VICE_SYSTEM_VIC20: return optionVIC20Model;
 	}
 	return 0;
+}
+
 }

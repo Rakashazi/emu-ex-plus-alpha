@@ -21,11 +21,6 @@ extern "C"
 	#include <yabause/sh2int.h>
 }
 
-enum
-{
-	CFGKEY_BIOS_PATH = 279, CFGKEY_SH2_CORE = 280
-};
-
 SH2Interface_struct *SH2CoreList[]
 {
 	#ifdef SH2_DYNAREC
@@ -34,6 +29,14 @@ SH2Interface_struct *SH2CoreList[]
 	&SH2Interpreter,
 	//&SH2DebugInterpreter,
 	nullptr
+};
+
+namespace EmuEx
+{
+
+enum
+{
+	CFGKEY_BIOS_PATH = 279, CFGKEY_SH2_CORE = 280
 };
 
 static bool OptionSH2CoreIsValid(uint8_t val)
@@ -71,7 +74,7 @@ void EmuSystem::initOptions(EmuApp &app)
 	app.setDefaultVControlsButtonStagger(3);
 }
 
-void EmuSystem::onOptionsLoaded(Base::ApplicationContext)
+void EmuSystem::onOptionsLoaded(IG::ApplicationContext)
 {
 	yinit.sh2coretype = optionSH2Core;
 }
@@ -92,4 +95,6 @@ void EmuSystem::writeConfig(IO &io)
 {
 	writeStringOptionValue(io, CFGKEY_BIOS_PATH, biosPath);
 	optionSH2Core.writeWithKeyIfNotDefault(io);
+}
+
 }

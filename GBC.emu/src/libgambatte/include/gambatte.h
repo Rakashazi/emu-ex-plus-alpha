@@ -84,7 +84,7 @@ public:
 	  */
 	std::ptrdiff_t runFor(gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
 	                      gambatte::uint_least32_t *audioBuf, std::size_t &samples,
-	                      DelegateFunc<void()> videoFrameCallback);
+	                      IG::DelegateFunc<void()> videoFrameCallback);
 
 	/**
 	  * Reset to initial state.

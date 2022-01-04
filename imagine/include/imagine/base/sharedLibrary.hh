@@ -18,7 +18,7 @@
 #include <imagine/util/bitset.hh>
 #include <imagine/util/concepts.hh>
 
-namespace Base
+namespace IG
 {
 
 using SharedLibraryRef = void*;

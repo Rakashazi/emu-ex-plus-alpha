@@ -18,7 +18,7 @@
 #include <imagine/util/math/space.hh>
 #include <imagine/util/algorithm.h>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 GeomQuadMesh::GeomQuadMesh(const VertexPos *x, uint32_t xVals, const VertexPos *y, uint32_t yVals, VertexColor color)

@@ -22,49 +22,54 @@
 #include <imagine/util/concepts.hh>
 #include <memory>
 #include <utility>
-#include <system_error>
+
+namespace IG
+{
 
 template <class IO>
 class IOUtils
 {
 public:
-	ssize_t read(void *buff, size_t bytes);
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
-	ssize_t write(const void *buff, size_t bytes);
-	off_t seek(off_t offset, IODefs::SeekMode mode);
-	off_t seekS(off_t offset, std::error_code *ecOut = nullptr);
-	off_t seekE(off_t offset, std::error_code *ecOut = nullptr);
-	off_t seekC(off_t offset, std::error_code *ecOut = nullptr);
+	off_t seekS(off_t offset);
+	off_t seekE(off_t offset);
+	off_t seekC(off_t offset);
 	bool rewind();
-	off_t tell(std::error_code *ecOut = nullptr);
-	ssize_t send(IO &output, off_t *srcOffset, size_t bytes, std::error_code *ecOut = nullptr);
+	off_t tell();
+	ssize_t send(IO &output, off_t *srcOffset, size_t bytes);
 	IG::ByteBuffer buffer(IODefs::BufferMode mode = IODefs::BufferMode::DIRECT);
 
-	template <class T>
-	std::pair<T, ssize_t> read(std::error_code *ecOut = nullptr)
+	template <class T, bool useOffset = false>
+	T getImpl(off_t offset = 0)
 	{
-		T obj;
-		ssize_t size;
 		if constexpr(std::is_same_v<T, bool>)
 		{
 			// special case to convert value to a valid bool
-			uint8_t tmpObj;
-			size = static_cast<IO*>(this)->read(&tmpObj, sizeof(T), ecOut);
-			obj = tmpObj;
+			return getImpl<uint8_t, useOffset>(offset);
 		}
 		else
 		{
-			size = static_cast<IO*>(this)->read(&obj, sizeof(T), ecOut);
+			T obj;
+			ssize_t size;
+			if constexpr(useOffset)
+				size = static_cast<IO*>(this)->readAtPos(&obj, sizeof(T), offset);
+			else
+				size = static_cast<IO*>(this)->read(&obj, sizeof(T));
+			if(size < (ssize_t)sizeof(T)) [[unlikely]]
+				return {};
+			return obj;
 		}
-		if(size == -1)
-			return {{}, size};
-		return {obj, size};
 	}
 
 	template <class T>
 	T get()
 	{
-		return read<T>(nullptr).first;
+		return getImpl<T>();
+	}
+
+	template <class T>
+	T get(off_t offset)
+	{
+		return getImpl<T, true>(offset);
 	}
 
 	ssize_t readSized(IG::ResizableContainer auto &c, size_t maxBytes)
@@ -72,16 +77,16 @@ public:
 		if(c.max_size() < maxBytes)
 			return -1;
 		c.resize(maxBytes);
-		auto bytesRead = read(c.data(), maxBytes);
-		if(bytesRead == -1)
+		auto bytesRead = static_cast<IO*>(this)->read(c.data(), maxBytes);
+		if(bytesRead == -1) [[unlikely]]
 			return -1;
 		c.resize(bytesRead);
 		return bytesRead;
 	}
 
-	ssize_t write(IG::NotPointerDecayable auto &&obj, std::error_code *ecOut = nullptr)
+	ssize_t write(IG::NotPointerDecayable auto &&obj)
 	{
-		return static_cast<IO*>(this)->write(&obj, sizeof(decltype(obj)), ecOut);
+		return static_cast<IO*>(this)->write(&obj, sizeof(decltype(obj)));
 	}
 };
 
@@ -89,10 +94,7 @@ class IO : public IOUtils<IO>
 {
 public:
 	using IOUtilsBase = IOUtils<IO>;
-	using IOUtilsBase::read;
-	using IOUtilsBase::readAtPos;
 	using IOUtilsBase::write;
-	using IOUtilsBase::seek;
 	using IOUtilsBase::seekS;
 	using IOUtilsBase::seekE;
 	using IOUtilsBase::seekC;
@@ -126,15 +128,15 @@ public:
 	virtual ~IO() = default;
 
 	// reading
-	virtual ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) = 0;
-	virtual ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
+	virtual ssize_t read(void *buff, size_t bytes) = 0;
+	virtual ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
 
 	// writing
-	virtual ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) = 0;
-	virtual std::error_code truncate(off_t offset);
+	virtual ssize_t write(const void *buff, size_t bytes) = 0;
+	virtual bool truncate(off_t offset);
 
 	// seeking
-	virtual off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) = 0;
+	virtual off_t seek(off_t offset, SeekMode mode) = 0;
 
 	// other functions
 	virtual std::span<uint8_t> map();
@@ -149,10 +151,7 @@ class GenericIO : public IOUtils<GenericIO>
 {
 public:
 	using IOUtilsBase = IOUtils<GenericIO>;
-	using IOUtilsBase::read;
-	using IOUtilsBase::readAtPos;
 	using IOUtilsBase::write;
-	using IOUtilsBase::seek;
 	using IOUtilsBase::seekS;
 	using IOUtilsBase::seekE;
 	using IOUtilsBase::seekC;
@@ -168,12 +167,12 @@ public:
 	operator IO&();
 	IO *release();
 	FILE *moveToFileStream(const char *opentype);
-	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut);
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
+	ssize_t read(void *buff, size_t bytes);
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
 	std::span<uint8_t> map();
-	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut);
-	std::error_code truncate(off_t offset);
-	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut);
+	ssize_t write(const void *buff, size_t bytes);
+	bool truncate(off_t offset);
+	off_t seek(off_t offset, IO::SeekMode mode);
 	void sync();
 	size_t size();
 	bool eof();
@@ -183,3 +182,5 @@ public:
 protected:
 	std::unique_ptr<IO> io{};
 };
+
+}

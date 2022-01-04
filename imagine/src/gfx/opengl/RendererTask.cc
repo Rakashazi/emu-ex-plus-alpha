@@ -24,14 +24,14 @@
 #include "internalDefs.hh"
 #include "utils.hh"
 
-namespace Gfx
+namespace IG::Gfx
 {
 
-GLRendererTask::GLRendererTask(Base::ApplicationContext ctx, Renderer &r):
+GLRendererTask::GLRendererTask(ApplicationContext ctx, Renderer &r):
 	GLRendererTask{ctx, nullptr, r}
 {}
 
-GLRendererTask::GLRendererTask(Base::ApplicationContext ctx, const char *debugLabel, Renderer &r):
+GLRendererTask::GLRendererTask(ApplicationContext ctx, const char *debugLabel, Renderer &r):
 	GLTask{ctx, debugLabel}, r{&r}
 {}
 
@@ -104,7 +104,7 @@ Renderer &RendererTask::renderer() const
 	return *r;
 }
 
-void GLRendererTask::doPreDraw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params) const
+void GLRendererTask::doPreDraw(Window &win, WindowDrawParams winParams, DrawParams &params) const
 {
 	if(!context) [[unlikely]]
 	{
@@ -127,33 +127,33 @@ RendererTask::operator bool() const
 	return GLTask::operator bool();
 }
 
-void RendererTask::updateDrawableForSurfaceChange(Base::Window &win, Base::WindowSurfaceChange change)
+void RendererTask::updateDrawableForSurfaceChange(Window &win, WindowSurfaceChange change)
 {
 	auto &drawable = winData(win).drawable;
 	switch(change.action())
 	{
-		case Base::WindowSurfaceChange::Action::CREATED:
+		case WindowSurfaceChange::Action::CREATED:
 			r->makeWindowDrawable(*this, win, winData(win).bufferConfig, winData(win).colorSpace);
 			return;
-		case Base::WindowSurfaceChange::Action::CHANGED:
+		case WindowSurfaceChange::Action::CHANGED:
 			if(change.surfaceResized())
 			{
 				GLTask::run(
 					[this, drawable = (Drawable)drawable](TaskContext ctx)
 					{
 						// reset the drawable if it's currently in use
-						if(Base::GLManager::hasCurrentDrawable(drawable))
+						if(GLManager::hasCurrentDrawable(drawable))
 							context.setCurrentDrawable(drawable);
 					});
 			}
 			return;
-		case Base::WindowSurfaceChange::Action::DESTROYED:
+		case WindowSurfaceChange::Action::DESTROYED:
 			destroyDrawable(drawable);
 			return;
 	}
 }
 
-void GLRendererTask::destroyDrawable(Base::GLDrawable &drawable)
+void GLRendererTask::destroyDrawable(GLDrawable &drawable)
 {
 	if(!drawable)
 		return;
@@ -161,7 +161,7 @@ void GLRendererTask::destroyDrawable(Base::GLDrawable &drawable)
 		[this, drawable = (Drawable)drawable](TaskContext ctx)
 		{
 			// unset the drawable if it's currently in use
-			if(Base::GLManager::hasCurrentDrawable(drawable))
+			if(GLManager::hasCurrentDrawable(drawable))
 				context.setCurrentDrawable({});
 		}, true);
 	drawable = {};
@@ -200,10 +200,10 @@ void GLRendererTask::verifyCurrentContext() const
 {
 	if(!Config::DEBUG_BUILD)
 		return;
-	auto currentCtx = Base::GLManager::currentContext();
+	auto currentCtx = GLManager::currentContext();
 	if(currentCtx != glContext()) [[unlikely]]
 	{
-		bug_unreachable("expected GL context:%p but current is:%p", (Base::NativeGLContext)glContext(), currentCtx);
+		bug_unreachable("expected GL context:%p but current is:%p", (NativeGLContext)glContext(), currentCtx);
 	}
 }
 
@@ -225,7 +225,7 @@ void RendererTask::deleteSyncFence(SyncFence fence)
 	if(!fence.sync)
 		return;
 	assumeExpr(r->support.hasSyncFences());
-	const bool canPerformInCurrentThread = Config::Base::GL_PLATFORM_EGL;
+	const bool canPerformInCurrentThread = Config::GL_PLATFORM_EGL;
 	if(canPerformInCurrentThread)
 	{
 		auto dpy = renderer().glDisplay();
@@ -246,7 +246,7 @@ void RendererTask::clientWaitSync(SyncFence fence, int flags, std::chrono::nanos
 	if(!fence.sync)
 		return;
 	assumeExpr(r->support.hasSyncFences());
-	const bool canPerformInCurrentThread = Config::Base::GL_PLATFORM_EGL && !flags;
+	const bool canPerformInCurrentThread = Config::GL_PLATFORM_EGL && !flags;
 	if(canPerformInCurrentThread)
 	{
 		//logDMsg("waiting on sync:%p flush:%s timeout:0%llX", fence.sync, flags & 1 ? "yes" : "no", (unsigned long long)timeout);
@@ -318,7 +318,7 @@ void RendererTask::setDebugOutput(bool on)
 	{
 		return;
 	}
-	logMsg("set context:%p debug output:%s", (Base::NativeGLContext)glContext(), on ? "on" : "off");
+	logMsg("set context:%p debug output:%s", (NativeGLContext)glContext(), on ? "on" : "off");
 	debugEnabled = on;
 	run(
 		[&support = renderer().support, on]()
@@ -328,7 +328,7 @@ void RendererTask::setDebugOutput(bool on)
 }
 
 RendererCommands GLRendererTask::makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
-	bool notifyWindowAfterPresent, Base::Window &win, Viewport viewport, Mat4 projMat)
+	bool notifyWindowAfterPresent, Window &win, Viewport viewport, Mat4 projMat)
 {
 	initDefaultFramebuffer();
 	auto &drawable = winData(win).drawable;

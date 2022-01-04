@@ -18,6 +18,9 @@
 #include <imagine/input/Input.hh>
 #include <algorithm>
 
+namespace EmuEx
+{
+
 EmuView::EmuView() {}
 
 EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer):
@@ -34,7 +37,7 @@ void EmuView::prepareDraw()
 
 void EmuView::draw(Gfx::RendererCommands &cmds)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	if(layer)
 	{
 		layer->draw(cmds, projP);
@@ -94,4 +97,6 @@ void EmuView::clearAudioStats()
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	audioStatsText.setString(nullptr);
 	#endif
+}
+
 }

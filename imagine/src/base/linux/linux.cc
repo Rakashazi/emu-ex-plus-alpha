@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 #include <cstring>
 
-namespace Base
+namespace IG
 {
 
 constexpr mode_t defaultDirMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
@@ -174,10 +174,11 @@ void ApplicationContext::exitWithMessage(int exitVal, const char *msg)
 
 int main(int argc, char** argv)
 {
+	using namespace IG;
 	logger_setLogDirectoryPrefix(".");
-	auto eventLoop = Base::EventLoop::makeForThread();
-	Base::ApplicationContext ctx{};
-	Base::ApplicationInitParams initParams{eventLoop, &ctx, argc, argv};
+	auto eventLoop = EventLoop::makeForThread();
+	ApplicationContext ctx{};
+	ApplicationInitParams initParams{eventLoop, &ctx, argc, argv};
 	ctx.dispatchOnInit(initParams);
 	ctx.application().setRunningActivityState();
 	ctx.dispatchOnResume(true);

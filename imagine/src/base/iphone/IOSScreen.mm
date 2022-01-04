@@ -27,13 +27,13 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 @interface DisplayLinkHelper : NSObject
 {
 @private
-	Base::Screen *screen_;
+	IG::Screen *screen_;
 }
 @end
 
 @implementation DisplayLinkHelper
 
-- (id)initWithScreen:(Base::Screen *)screen
+- (id)initWithScreen:(IG::Screen *)screen
 {
 	self = [super init];
 	if(self)
@@ -58,7 +58,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 
 @end
 
-namespace Base
+namespace IG
 {
 
 IOSScreen::IOSScreen(ApplicationContext, InitParams initParams)
@@ -82,7 +82,7 @@ IOSScreen::IOSScreen(ApplicationContext, InitParams initParams)
 	if(Config::DEBUG_BUILD)
 	{
 		#ifdef CONFIG_BASE_IOS_RETINA_SCALE
-		if(Base::hasAtLeastIOS8())
+		if(hasAtLeastIOS8())
 		{
 			logMsg("has %f point scaling (%f native)", (double)[screen scale], (double)[screen nativeScale]);
 		}

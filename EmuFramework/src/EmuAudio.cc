@@ -20,6 +20,9 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 struct AudioStats
 {
 	constexpr AudioStats() {}
@@ -38,7 +41,7 @@ struct AudioStats
 
 #ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 static AudioStats audioStats{};
-static Base::Timer audioStatsTimer{"audioStatsTimer"};
+static IG::Timer audioStatsTimer{"audioStatsTimer"};
 #endif
 
 static void startAudioStats(IG::Audio::Format format)
@@ -374,4 +377,6 @@ EmuAudio::operator bool() const
 const IG::Audio::Manager &EmuAudio::audioManager() const
 {
 	return *audioManagerPtr;
+}
+
 }

@@ -22,46 +22,19 @@
 #include <gio/gio.h>
 #endif
 #include <imagine/base/EventLoop.hh>
-#include <imagine/input/Device.hh>
-#include <imagine/util/container/ArrayList.hh>
 #include <vector>
 #include <memory>
 
 struct _XDisplay;
 union _XEvent;
 
-namespace Base
+namespace IG
 {
 class LinuxApplication;
 class ApplicationContext;
 }
 
-namespace Input
-{
-
-class EvdevInputDevice : public Device
-{
-public:
-	EvdevInputDevice();
-	EvdevInputDevice(int id, int fd, TypeBits, std::string name);
-	~EvdevInputDevice();
-	void processInputEvents(Base::LinuxApplication &app, input_event *event, uint32_t events);
-	bool setupJoystickBits();
-	void addPollEvent(Base::LinuxApplication &app);
-	std::span<Axis> motionAxes() final;
-	int fileDesc() const;
-
-protected:
-	static constexpr unsigned AXIS_SIZE = 24;
-	int fd{-1};
-	StaticArrayList<Axis, AXIS_SIZE> axis{};
-	std::array<int, AXIS_SIZE> axisRangeOffset{};
-	Base::FDEventSource fdSrc{-1};
-};
-
-}
-
-namespace Base
+namespace IG
 {
 
 struct ApplicationInitParams
@@ -101,7 +74,7 @@ protected:
 
 	bool initDBus();
 	void deinitDBus();
-	void initEvdev(Base::EventLoop);
+	void initEvdev(EventLoop);
 };
 
 }

@@ -1,12 +1,8 @@
 #pragma once
 #include <emuframework/Cheats.hh>
 
-namespace EmuCheats
+namespace EmuEx
 {
-
-static const unsigned MAX = 254;
-
-}
 
 class EmuCheatsView : public BaseCheatsView
 {
@@ -46,3 +42,5 @@ private:
 public:
 	EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged);
 };
+
+}

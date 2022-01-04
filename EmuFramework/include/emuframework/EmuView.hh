@@ -20,6 +20,10 @@
 #include <imagine/gfx/GfxText.hh>
 #endif
 
+namespace EmuEx
+{
+
+using namespace IG;
 class EmuInputView;
 class EmuVideoLayer;
 
@@ -46,3 +50,5 @@ private:
 	Gfx::GCRect audioStatsRect{};
 	#endif
 };
+
+}

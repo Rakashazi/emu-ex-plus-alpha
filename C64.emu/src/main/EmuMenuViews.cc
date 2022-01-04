@@ -45,6 +45,9 @@ extern "C"
 	#include "vic20model.h"
 }
 
+namespace EmuEx
+{
+
 static constexpr const char *driveMenuPrefix[4]
 {
 	"Disk 8",
@@ -592,7 +595,7 @@ private:
 
 	void updateTapeCounter()
 	{
-		tapeCounter.setName(fmt::format("Tape Counter: {}", ::tapeCounter));
+		tapeCounter.setName(fmt::format("Tape Counter: {}", EmuEx::tapeCounter));
 	}
 
 	void onShow() final
@@ -1685,8 +1688,10 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 	}
 }
 
+}
+
 CLINK void ui_display_tape_counter(int counter)
 {
 	//logMsg("tape counter:%d", counter);
-	tapeCounter = counter;
+	EmuEx::tapeCounter = counter;
 }

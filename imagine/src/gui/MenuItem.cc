@@ -19,6 +19,9 @@
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/logger/logger.h>
 
+namespace IG
+{
+
 void BaseTextMenuItem::prepareDraw(Gfx::Renderer &r)
 {
 	t.makeGlyphs(r);
@@ -390,4 +393,6 @@ void MultiChoiceMenuItem::defaultOnSelect(View &view, Input::Event e)
 void MultiChoiceMenuItem::updateDisplayString()
 {
 	setDisplayString(selected_);
+}
+
 }

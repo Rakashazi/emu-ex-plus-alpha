@@ -26,6 +26,9 @@
 #include "tests.hh"
 #include "cpuUtils.hh"
 
+namespace FrameRateTest
+{
+
 const char *testIDToStr(TestID id)
 {
 	switch(id)
@@ -37,7 +40,7 @@ const char *testIDToStr(TestID id)
 	}
 }
 
-void TestFramework::init(Base::ApplicationContext app, Gfx::Renderer &r,
+void TestFramework::init(IG::ApplicationContext app, Gfx::Renderer &r,
 	Gfx::GlyphTextureSet &face, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
 {
 	cpuStatsText = {&face};
@@ -86,7 +89,7 @@ void TestFramework::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, c
 	placeTest(testRect);
 }
 
-void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameParams frameParams)
+void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::FrameParams frameParams)
 {
 	auto timestamp = frameParams.timestamp();
 	// CPU stats
@@ -170,7 +173,7 @@ void TestFramework::prepareDraw(Gfx::Renderer &r)
 
 void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, Gfx::GC xIndent)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	cmds.loadTransform(projP.makeTranslate());
 	drawTest(cmds, bounds);
 	cmds.setClipTest(false);
@@ -207,7 +210,7 @@ void TestFramework::finish(Gfx::RendererTask &task, IG::FrameTime frameTime)
 		onTestFinished(*this);
 }
 
-void ClearTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, IG::FrameTime)
+void ClearTest::frameUpdateTest(Gfx::RendererTask &, IG::Screen &, IG::FrameTime)
 {
 	flash ^= true;
 }
@@ -231,11 +234,12 @@ void ClearTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect)
 	}
 }
 
-void DrawTest::initTest(Base::ApplicationContext app, Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
+void DrawTest::initTest(IG::ApplicationContext app, Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
 {
+	using namespace IG::Gfx;
 	IG::PixmapDesc pixmapDesc = {pixmapSize, IG::PIXEL_FMT_RGB565};
-	Gfx::TextureConfig texConf{pixmapDesc};
-	texConf.setCompatSampler(&r.make(Gfx::CommonTextureSampler::NO_MIP_CLAMP));
+	TextureConfig texConf{pixmapDesc};
+	texConf.setCompatSampler(&r.make(CommonTextureSampler::NO_MIP_CLAMP));
 	const bool canSingleBuffer = r.maxSwapChainImages() < 3 || r.supportsSyncFences();
 	texture = r.makePixmapBufferTexture(texConf, bufferMode, canSingleBuffer);
 	if(!texture) [[unlikely]]
@@ -247,8 +251,8 @@ void DrawTest::initTest(Base::ApplicationContext app, Gfx::Renderer &r, IG::WP p
 	assert(lockedBuff);
 	memset(lockedBuff.pixmap().data(), 0xFF, lockedBuff.pixmap().bytes());
 	texture.unlock(lockedBuff);
-	texture.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
-	texture.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
+	texture.compileDefaultProgram(IMG_MODE_REPLACE);
+	texture.compileDefaultProgram(IMG_MODE_MODULATE);
 	sprite = {{}, texture};
 }
 
@@ -257,19 +261,20 @@ void DrawTest::placeTest(const Gfx::GCRect &rect)
 	sprite.setPos(rect);
 }
 
-void DrawTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, IG::FrameTime)
+void DrawTest::frameUpdateTest(Gfx::RendererTask &, IG::Screen &, IG::FrameTime)
 {
 	flash ^= true;
 }
 
 void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 {
+	using namespace IG::Gfx;
 	cmds.clear();
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);
-	cmds.setBlendMode(Gfx::BLEND_MODE_OFF);
-	cmds.set(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
-	sprite.setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
+	cmds.setBlendMode(BLEND_MODE_OFF);
+	cmds.set(CommonTextureSampler::NO_MIP_CLAMP);
+	sprite.setCommonProgram(cmds, IMG_MODE_MODULATE);
 	if(flash)
 	{
 		if(!droppedFrames)
@@ -284,7 +289,7 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	sprite.draw(cmds);
 }
 
-void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime)
+void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime)
 {
 	DrawTest::frameUpdateTest(rendererTask, screen, frameTime);
 	rendererTask.clientWaitSync(std::exchange(presentFence, {}));
@@ -313,13 +318,14 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &s
 
 void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 {
+	using namespace IG::Gfx;
 	cmds.clear();
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);
-	cmds.setBlendMode(Gfx::BLEND_MODE_OFF);
-	cmds.set(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
-	sprite.setCommonProgram(cmds, Gfx::IMG_MODE_REPLACE);
+	cmds.setBlendMode(BLEND_MODE_OFF);
+	cmds.set(CommonTextureSampler::NO_MIP_CLAMP);
+	sprite.setCommonProgram(cmds, IMG_MODE_REPLACE);
 	sprite.draw(cmds);
 }
 
-WriteTest::~WriteTest() {}
+}

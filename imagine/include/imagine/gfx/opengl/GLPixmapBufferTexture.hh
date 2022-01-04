@@ -18,7 +18,7 @@
 #include <imagine/gfx/PixmapTexture.hh>
 #include <memory>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererTask;
@@ -28,7 +28,7 @@ class TextureBufferStorage : public PixmapTexture
 {
 public:
 	using PixmapTexture::PixmapTexture;
-	constexpr TextureBufferStorage() {}
+	constexpr TextureBufferStorage() = default;
 	virtual ~TextureBufferStorage() = default;
 	TextureBufferStorage &operator=(TextureBufferStorage &&o) = default;
 	LockedTextureBuffer makeLockedBuffer(void *data, uint32_t pitchBytes, uint32_t bufferFlags);
@@ -56,7 +56,7 @@ public:
 		void *data{};
 		void *bufferOffset{}; // offset into PBO, same as data if no PBO
 
-		constexpr BufferInfo() {}
+		constexpr BufferInfo() = default;
 
 		constexpr BufferInfo(void *data, void *bufferOffset):
 			data{data}, bufferOffset{bufferOffset}
@@ -92,7 +92,7 @@ protected:
 class GLPixmapBufferTexture
 {
 public:
-	constexpr GLPixmapBufferTexture() {}
+	constexpr GLPixmapBufferTexture() = default;
 
 protected:
 	std::unique_ptr<TextureBufferStorage> directTex{};

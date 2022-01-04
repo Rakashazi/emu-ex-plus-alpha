@@ -24,6 +24,10 @@
 #include <imagine/bluetooth/sys.hh>
 #endif
 
+namespace EmuEx
+{
+
+using namespace IG;
 class EmuVideoLayer;
 class EmuAudio;
 
@@ -61,3 +65,5 @@ protected:
 	TextMenuItem exitApp;
 	StaticArrayList<MenuItem*, STANDARD_ITEMS + MAX_SYSTEM_ITEMS> item{};
 };
+
+}

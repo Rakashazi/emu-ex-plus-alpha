@@ -7,6 +7,9 @@
 #include <cheats.h>
 #include <imagine/util/format.hh>
 
+namespace EmuEx
+{
+
 uint32_t numCheats()
 {
 	#ifndef SNES9X_VERSION_1_4
@@ -456,4 +459,6 @@ void EmuCheatsView::loadCheatItems()
 					disableCheat(c);
 			});
 	}
+}
+
 }

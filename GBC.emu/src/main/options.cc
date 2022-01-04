@@ -16,6 +16,9 @@
 #include <emuframework/EmuApp.hh>
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 enum
 {
 	CFGKEY_GB_PAL_IDX = 270, CFGKEY_REPORT_AS_GBA = 271,
@@ -80,4 +83,6 @@ void EmuSystem::writeConfig(IO &io)
 	optionGBPal.writeWithKeyIfNotDefault(io);
 	optionFullGbcSaturation.writeWithKeyIfNotDefault(io);
 	optionAudioResampler.writeWithKeyIfNotDefault(io);
+}
+
 }

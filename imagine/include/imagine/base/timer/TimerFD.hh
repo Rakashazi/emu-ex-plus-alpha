@@ -22,7 +22,7 @@
 #include <time.h>
 #include <memory>
 
-namespace Base
+namespace IG
 {
 
 class TimerFD
@@ -30,7 +30,7 @@ class TimerFD
 public:
 	using Time = IG::Nanoseconds;
 
-	constexpr TimerFD() {}
+	constexpr TimerFD() = default;
 	TimerFD(CallbackDelegate c) : TimerFD{nullptr, c} {}
 	TimerFD(const char *debugLabel, CallbackDelegate c);
 	TimerFD(TimerFD &&o);

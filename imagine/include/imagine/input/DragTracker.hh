@@ -20,7 +20,7 @@
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/algorithm.h>
 
-namespace Input
+namespace IG::Input
 {
 
 class DragTrackerState

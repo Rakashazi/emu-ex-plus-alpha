@@ -40,12 +40,12 @@ uint32 mcycles_vdp;
 //uint32 Z80.cycleCount;
 //uint32 mcycles_68k;
 uint8 system_hw;
-void (*system_frame)(EmuSystemTaskContext, EmuVideo *);
+void (*system_frame)(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *);
 int (*audioUpdateFunc)(int16 *sb);
 
 template <bool hasSegaCD = 0>
-static void system_frame_md(EmuSystemTaskContext, EmuVideo *);
-static void system_frame_sms(EmuSystemTaskContext, EmuVideo *);
+static void system_frame_md(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *);
+static void system_frame_sms(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *);
 static int pause_b;
 static EQSTATE eq;
 static int32 llp,rrp;
@@ -350,11 +350,11 @@ static void runM68k(unsigned cycles)
 	#endif
 }
 
-template void system_frame_md<0>(EmuSystemTaskContext, EmuVideo *);
-template void system_frame_md<1>(EmuSystemTaskContext, EmuVideo *);
+template void system_frame_md<0>(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *);
+template void system_frame_md<1>(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *);
 
 template <bool hasSegaCD>
-static void system_frame_md(EmuSystemTaskContext taskCtx, EmuVideo *emuVideo)
+static void system_frame_md(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *emuVideo)
 {
 	int do_skip = !emuVideo;
 
@@ -750,7 +750,7 @@ static void system_frame_md(EmuSystemTaskContext taskCtx, EmuVideo *emuVideo)
 }
 
 
-static void system_frame_sms(EmuSystemTaskContext taskCtx, EmuVideo *emuVideo)
+static void system_frame_sms(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *emuVideo)
 {
 	int do_skip = !emuVideo;
 

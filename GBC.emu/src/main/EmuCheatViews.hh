@@ -18,6 +18,9 @@
 #include <emuframework/Cheats.hh>
 #include <main/Cheats.hh>
 
+namespace EmuEx
+{
+
 class EmuCheatsView : public BaseCheatsView
 {
 public:
@@ -50,3 +53,5 @@ private:
 	const char *cheatNameString() const final;
 	void renamed(const char *str) final;
 };
+
+}

@@ -20,6 +20,9 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
 
+namespace IG
+{
+
 static BtstackBluetoothAdapter defaultBtstackAdapter;
 static int writeAuthEnable = -1;
 static bool inL2capSocketOpenHandler = 0;
@@ -823,7 +826,7 @@ void BtstackBluetoothAdapter::close()
 	}
 }
 
-BtstackBluetoothAdapter *BtstackBluetoothAdapter::defaultAdapter(Base::ApplicationContext ctx)
+BtstackBluetoothAdapter *BtstackBluetoothAdapter::defaultAdapter(ApplicationContext ctx)
 {
 	defaultBtstackAdapter.setAppContext(ctx);
 	if(defaultBtstackAdapter.openDefault())
@@ -1065,4 +1068,6 @@ IG::ErrorCode BtstackBluetoothSocket::write(const void *data, size_t size)
 	else
 		bt_send_l2cap(localCh, (uint8_t*)data, size);
 	return {};
+}
+
 }

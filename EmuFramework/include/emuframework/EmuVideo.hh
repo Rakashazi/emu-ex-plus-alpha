@@ -22,11 +22,15 @@
 #include <imagine/gfx/SyncFence.hh>
 #include <optional>
 
-namespace Base
+namespace IG
 {
 class ApplicationContext;
 }
 
+namespace EmuEx
+{
+
+using namespace IG;
 class EmuVideo;
 
 class [[nodiscard]] EmuVideoImage
@@ -72,7 +76,7 @@ public:
 	bool isExternalTexture() const;
 	Gfx::PixmapBufferTexture &image();
 	Gfx::Renderer &renderer() const;
-	Base::ApplicationContext appContext() const;
+	IG::ApplicationContext appContext() const;
 	IG::WP size() const;
 	bool formatIsEqual(IG::PixmapDesc desc) const;
 	void setOnFrameFinished(FrameFinishedDelegate del);
@@ -107,3 +111,5 @@ protected:
 	void syncImageAccess();
 	void updateNeedsFence();
 };
+
+}

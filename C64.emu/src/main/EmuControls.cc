@@ -16,7 +16,7 @@
 #include <imagine/util/preprocessor/repeat.h>
 #include <emuframework/EmuInput.hh>
 
-namespace EmuControls
+namespace EmuEx::Controls
 {
 
 const unsigned categories = 4;

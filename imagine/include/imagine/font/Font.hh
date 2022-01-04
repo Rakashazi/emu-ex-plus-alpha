@@ -30,10 +30,10 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <system_error>
 
-class GenericIO;
-
 namespace IG
 {
+
+class GenericIO;
 
 namespace Data
 {
@@ -76,7 +76,7 @@ public:
 	Font makeFromFile(const char *name) const;
 	Font makeSystem() const;
 	Font makeBoldSystem() const;
-	Font makeFromAsset(const char *name, const char *appName = Base::ApplicationContext::applicationName) const;
+	Font makeFromAsset(const char *name, const char *appName = ApplicationContext::applicationName) const;
 };
 
 

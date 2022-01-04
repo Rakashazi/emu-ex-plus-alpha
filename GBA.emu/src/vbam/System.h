@@ -6,9 +6,13 @@
 #include <zlib.h>
 
 class SoundDriver;
+
+namespace EmuEx
+{
 class EmuVideo;
 class EmuAudio;
 class EmuSystemTaskContext;
+}
 
 struct EmulatedSystem {
   // main emulation function
@@ -46,7 +50,7 @@ extern void log(const char *,...);
 extern bool systemPauseOnFrame();
 extern void systemGbPrint(u8 *,int,int,int,int,int);
 extern void systemScreenCapture(int);
-extern void systemDrawScreen(EmuSystemTaskContext, EmuVideo &);
+extern void systemDrawScreen(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo &);
 // updates the joystick data
 extern bool systemReadJoypads();
 // return information about the given joystick, -1 for default joystick
@@ -59,7 +63,7 @@ extern void systemMessage(int, const char *, ...);
 #endif
 extern void systemSetTitle(const char *);
 extern SoundDriver * systemSoundInit();
-extern void systemOnWriteDataToSoundBuffer(EmuAudio *audio, const u16 * finalWave, int length);
+extern void systemOnWriteDataToSoundBuffer(EmuEx::EmuAudio *audio, const u16 * finalWave, int length);
 extern void systemOnSoundShutdown();
 extern void systemScreenMessage(const char *);
 extern void systemUpdateMotionSensor();

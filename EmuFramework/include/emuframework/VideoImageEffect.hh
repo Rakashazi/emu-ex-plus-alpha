@@ -19,6 +19,11 @@
 #include <imagine/gfx/Program.hh>
 #include <optional>
 
+namespace EmuEx
+{
+
+using namespace IG;
+
 enum class ImageEffectId : uint8_t
 {
 	NONE = 0,
@@ -75,3 +80,5 @@ private:
 	void compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback);
 	void reset(Gfx::Renderer &r);
 };
+
+}

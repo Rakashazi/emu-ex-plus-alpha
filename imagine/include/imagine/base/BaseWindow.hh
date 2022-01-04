@@ -24,7 +24,7 @@
 #include <imagine/util/typeTraits.hh>
 #include <memory>
 
-namespace Base
+namespace IG
 {
 
 class BaseWindow
@@ -54,7 +54,7 @@ protected:
 		DRAW		// Drawing in progress, return to READY phase when finished
 	};
 
-	Base::OnExit onExit;
+	OnExit onExit;
 	SurfaceChangeDelegate onSurfaceChange{};
 	DrawDelegate onDraw{};
 	InputEventDelegate onInputEvent{};
@@ -62,11 +62,11 @@ protected:
 	DragDropDelegate onDragDrop{};
 	DismissRequestDelegate onDismissRequest{};
 	DismissDelegate onDismiss{};
-	DelegateFuncSet<Base::OnFrameDelegate> onFrame{};
+	DelegateFuncSet<OnFrameDelegate> onFrame{};
 	std::shared_ptr<void> appDataPtr{};
 	std::shared_ptr<void> rendererDataPtr{};
 	IG_UseMemberIf(Config::BASE_MULTI_SCREEN, Screen*, screen_){};
-	Base::CustomEvent drawEvent{"Window::drawEvent"};
+	CustomEvent drawEvent{"Window::drawEvent"};
 	IG::Point2D<int> winSizePixels{}; // size of full window surface
 	IG::Point2D<float> winSizeMM{}; // size in millimeter
 	IG::Point2D<float> mmToPixelScaler{};

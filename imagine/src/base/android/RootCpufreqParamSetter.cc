@@ -26,6 +26,9 @@
 #define SAMPLING_RATE_PATH "/sys/devices/system/cpu/cpufreq/ondemand/sampling_rate"
 #define SAMPLING_RATE_MiN_PATH "/sys/devices/system/cpu/cpufreq/ondemand/sampling_rate_min"
 
+namespace IG
+{
+
 static int readIntFileValue(const char *path)
 {
 	try
@@ -42,9 +45,6 @@ static int readIntFileValue(const char *path)
 		return -1;
 	}
 }
-
-namespace Base
-{
 
 RootCpufreqParamSetter::RootCpufreqParamSetter()
 {

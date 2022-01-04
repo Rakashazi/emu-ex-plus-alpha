@@ -21,6 +21,9 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 
+namespace EmuEx
+{
+
 class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem sixButtonPad
@@ -91,10 +94,10 @@ class CustomSystemOptionView : public SystemOptionView
 		{}, &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("System Card", &::sysCardPath,
+			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("System Card", &EmuEx::sysCardPath,
 				[this](std::string_view displayName)
 				{
-					logMsg("set bios %s", ::sysCardPath.data());
+					logMsg("set bios %s", EmuEx::sysCardPath.data());
 					sysCardPath.compile(biosMenuEntryStr(displayName), renderer(), projP);
 				},
 				hasHuCardExtension);
@@ -111,7 +114,7 @@ public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
-		sysCardPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(::sysCardPath)));
+		sysCardPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(EmuEx::sysCardPath)));
 		item.emplace_back(&sysCardPath);
 	}
 };
@@ -124,4 +127,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		default: return nullptr;
 	}
+}
+
 }

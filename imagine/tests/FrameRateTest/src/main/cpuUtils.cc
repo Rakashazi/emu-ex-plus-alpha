@@ -33,10 +33,10 @@ struct CPUTime
 };
 
 static CPUTime cpuTime;
-static FileIO cpuFreqFile{};
+static IG::FileIO cpuFreqFile{};
 static FILE *procStatFile{};
 
-void updateCPUFreq(TestFramework &test)
+void updateCPUFreq(FrameRateTest::TestFramework &test)
 {
 	if(!cpuFreqFile)
 		return;
@@ -58,7 +58,7 @@ void initCPUFreqStatus()
 	const char *cpuFreqPath = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq";
 	try
 	{
-		cpuFreqFile = {cpuFreqPath, IO::AccessHint::NORMAL};
+		cpuFreqFile = {cpuFreqPath, IG::IO::AccessHint::NORMAL};
 	}
 	catch(...)
 	{
@@ -68,7 +68,7 @@ void initCPUFreqStatus()
 
 void deinitCPUFreqStatus() {}
 
-void updateCPULoad(TestFramework &test)
+void updateCPULoad(FrameRateTest::TestFramework &test)
 {
 	if(!procStatFile)
 		return;

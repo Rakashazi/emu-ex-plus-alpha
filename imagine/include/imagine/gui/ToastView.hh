@@ -21,6 +21,9 @@
 #include <cstdio>
 #include <array>
 
+namespace IG
+{
+
 class ToastView : public View
 {
 public:
@@ -38,9 +41,11 @@ public:
 
 private:
 	Gfx::Text text{};
-	Base::Timer unpostTimer{Base::Timer::NullInit{}};
+	Timer unpostTimer{Timer::NullInit{}};
 	Gfx::GCRect msgFrame{};
 	bool error = false;
 
 	void postContent(int secs);
 };
+
+}

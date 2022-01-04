@@ -21,7 +21,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-namespace Base
+namespace IG
 {
 
 static std::array<PosixIO, 2> makePipe()

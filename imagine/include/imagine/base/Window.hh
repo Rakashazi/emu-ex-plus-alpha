@@ -22,22 +22,18 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/utility.h>
 
-namespace IG
-{
-class PixelFormat;
-}
-
-namespace Input
+namespace IG::Input
 {
 class Event;
 }
 
-namespace Base
+namespace IG
 {
 
 class Screen;
 class ApplicationContext;
 class Application;
+class PixelFormat;
 
 class Window : public WindowImpl
 {
@@ -67,8 +63,8 @@ public:
 	void setFormat(IG::PixelFormat);
 	IG::PixelFormat pixelFormat() const;
 	bool operator ==(Window const &rhs) const;
-	bool addOnFrame(Base::OnFrameDelegate del, FrameTimeSource src = {}, int priority = 0);
-	bool removeOnFrame(Base::OnFrameDelegate del, FrameTimeSource src = {});
+	bool addOnFrame(OnFrameDelegate del, FrameTimeSource src = {}, int priority = 0);
+	bool removeOnFrame(OnFrameDelegate del, FrameTimeSource src = {});
 	void resetAppData();
 	void resetRendererData();
 	bool isMainWindow() const;

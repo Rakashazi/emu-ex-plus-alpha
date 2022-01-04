@@ -6,7 +6,11 @@
 #include "cd_sys.h"
 #include "gfx_cd.h"
 #include "InstructionCycleTableSCD.hh"
-#include <mednafen/cdrom/CDAccess.h>
+
+namespace Mednafen
+{
+class CDAccess;
+}
 
 struct SegaCD
 {
@@ -22,8 +26,8 @@ struct SegaCD
 	uint8_t gate[0x200]{};
 
 	_scd_toc TOC;
-	int32 cddaLBA = 0;
-	uint16 cddaDataLeftover = 0;
+	int32_t cddaLBA = 0;
+	uint16_t cddaDataLeftover = 0;
 	bool CDD_Complete = 0;
 	unsigned Status_CDD = 0;
 	unsigned Status_CDC = 0;
@@ -116,8 +120,8 @@ void scd_memmap();
 void scd_update();
 void scd_checkDma();
 void scd_updateCddaVol();
-int scd_saveState(uint8 *state);
-int scd_loadState(uint8 *state, unsigned exVersion);
+int scd_saveState(uint8_t *state);
+int scd_loadState(uint8_t *state, unsigned exVersion);
 
 int Insert_CD(Mednafen::CDAccess *cd);
 void Stop_CD();

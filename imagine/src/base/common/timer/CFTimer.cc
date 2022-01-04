@@ -17,7 +17,7 @@
 #include <imagine/logger/logger.h>
 #include <limits>
 
-namespace Base
+namespace IG
 {
 
 CFTimer::CFTimer(const char *debugLabel, CallbackDelegate c):
@@ -66,7 +66,6 @@ void CFTimer::callbackInCFAbsoluteTime(CFAbsoluteTime absTime, CFTimeInterval re
 		timer = CFRunLoopTimerCreate(nullptr, absTime, realRepeatInterval, 0, 0,
 			[](CFRunLoopTimerRef timer, void *infoPtr)
 			{
-				using namespace Base;
 				logMsg("running callback for timer: %p", timer);
 				auto &info = *((CFTimerInfo*)infoPtr);
 				bool keep = info.callback();

@@ -28,6 +28,9 @@
 #include <memory>
 #include <string>
 
+namespace EmuEx
+{
+
 class EmuViewController;
 
 class InputDeviceConfig
@@ -105,3 +108,5 @@ static constexpr int guiKeyIdxFastForward = 6;
 static constexpr int guiKeyIdxGameScreenshot = 7;
 static constexpr int guiKeyIdxExit = 8;
 static constexpr int guiKeyIdxToggleFastForward = 9;
+
+}

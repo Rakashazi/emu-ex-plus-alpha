@@ -23,9 +23,12 @@
 #include "internal.hh"
 #include <imagine/util/math/space.hh>
 
+namespace EmuEx
+{
+
 enum
 {
-	vcsKeyIdxUp = EmuControls::systemKeyMapStart,
+	vcsKeyIdxUp = Controls::systemKeyMapStart,
 	vcsKeyIdxRight,
 	vcsKeyIdxDown,
 	vcsKeyIdxLeft,
@@ -324,4 +327,6 @@ bool EmuSystem::onPointerInputUpdate(Input::Event, Input::DragTrackerState dragS
 		default:
 			return false;
 	}
+}
+
 }

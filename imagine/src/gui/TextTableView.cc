@@ -19,6 +19,9 @@
 #include <imagine/logger/logger.h>
 #include <algorithm>
 
+namespace IG
+{
+
 TextTableView::TextTableView(ViewAttachParams attach, size_t itemsHint): TextTableView{{}, attach, itemsHint} {}
 
 void TextTableView::appendItem(IG::utf16String name, TextMenuItem::SelectDelegate del)
@@ -58,3 +61,4 @@ void TextTableView::drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem 
 		xIndent, TableView::align, projP, menuTextColor((int)i == activeItem));
 }
 
+}

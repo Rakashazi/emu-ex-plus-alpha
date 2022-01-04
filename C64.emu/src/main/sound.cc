@@ -22,6 +22,8 @@ extern "C"
 	#include "sound.h"
 }
 
+using namespace EmuEx;
+
 static int soundInit(const char *param, int *speed,
 		   int *fragsize, int *fragnr, int *channels)
 {

@@ -17,6 +17,9 @@
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 enum
 {
 	CFGKEY_BIG_ENDIAN_SRAM = 278, CFGKEY_SMS_FM = 279,
@@ -51,7 +54,7 @@ void EmuSystem::initOptions(EmuApp &app)
 	app.setDefaultVControlsButtonSpacing(100);
 }
 
-void EmuSystem::onOptionsLoaded(Base::ApplicationContext)
+void EmuSystem::onOptionsLoaded(IG::ApplicationContext)
 {
 	config_ym2413_enabled = optionSmsFM;
 }
@@ -126,5 +129,7 @@ void EmuSystem::writeConfig(IO &io)
 	writeStringOptionValue(io, CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath);
 	writeStringOptionValue(io, CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath);
 	#endif
+
+}
 
 }

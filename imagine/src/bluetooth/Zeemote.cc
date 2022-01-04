@@ -22,6 +22,9 @@
 #include <algorithm>
 #include "../input/PackedInputAccess.hh"
 
+namespace IG
+{
+
 const uint8_t Zeemote::btClass[3] = { 0x84, 0x05, 0x00 };
 
 static const Input::Key sysKeyMap[4]
@@ -49,7 +52,7 @@ static const char *zeemoteButtonName(Input::Key k)
 	return "";
 }
 
-Zeemote::Zeemote(Base::ApplicationContext ctx, BluetoothAddr addr):
+Zeemote::Zeemote(ApplicationContext ctx, BluetoothAddr addr):
 	BluetoothInputDevice{ctx, Input::Map::ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"},
 	sock{ctx},
 	addr{addr}
@@ -182,7 +185,7 @@ const char *Zeemote::reportIDToStr(uint32_t id)
 
 void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	uint8_t btnPush[4] {0};
 	iterateTimes(4, i)
 	{
@@ -223,4 +226,6 @@ std::pair<Input::Key, Input::Key> Zeemote::joystickKeys(Input::AxisId axisId)
 		case Input::AxisId::Y: return {Input::Zeemote::DOWN, Input::Zeemote::UP};
 		default: return {};
 	}
+}
+
 }

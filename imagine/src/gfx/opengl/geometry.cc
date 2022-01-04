@@ -20,7 +20,7 @@
 #include <imagine/logger/logger.h>
 #include "internalDefs.hh"
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 const uint32_t ColVertex::colorOffset = offsetof(ColVertex, color);

@@ -40,7 +40,7 @@
 #define EGL_TRIPLE_BUFFER_NV 0x3230
 #endif
 
-namespace Base
+namespace IG
 {
 
 static constexpr bool HAS_DEBUG_CONTEXT = !Config::MACHINE_IS_PANDORA;
@@ -289,7 +289,7 @@ void GLContext::present(NativeGLDrawable drawable) const
 
 // GLManager
 
-GLManager::GLManager(Base::NativeDisplayConnection ctx, GL::API api)
+GLManager::GLManager(NativeDisplayConnection ctx, GL::API api)
 {
 	if(!bindAPI(api))
 	{

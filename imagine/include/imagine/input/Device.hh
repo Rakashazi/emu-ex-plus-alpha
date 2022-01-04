@@ -27,12 +27,12 @@
 #include <span>
 #include <memory>
 
-namespace Base
+namespace IG
 {
 class ApplicationContext;
 }
 
-namespace Input
+namespace IG::Input
 {
 
 enum class DeviceAction: uint8_t { ADDED, REMOVED, CHANGED, SHOWN, HIDDEN, CONNECT_ERROR };
@@ -141,7 +141,7 @@ public:
 	//bool isDisconnectable() { return 0; }
 	//void disconnect() { }
 
-	static bool anyTypeBitsPresent(Base::ApplicationContext, TypeBits);
+	static bool anyTypeBitsPresent(ApplicationContext, TypeBits);
 
 	template <class T>
 	T &makeAppData(auto &&...args)
@@ -169,13 +169,13 @@ protected:
 class Axis
 {
 public:
-	constexpr Axis() {}
+	constexpr Axis() = default;
 	Axis(const Device &, AxisId id, float scaler = 1.f);
 	void setEmulatesDirectionKeys(const Device &, bool);
 	bool emulatesDirectionKeys() const;
 	constexpr AxisId id() const { return id_; }
 	uint32_t idBit() const;
-	bool update(float pos, Map map, Time time, const Device &, Base::Window &, bool normalized = false);
+	bool update(float pos, Map map, Time time, const Device &, Window &, bool normalized = false);
 
 protected:
 	float scaler{};

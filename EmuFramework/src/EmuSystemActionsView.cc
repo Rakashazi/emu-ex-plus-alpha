@@ -28,6 +28,9 @@
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 class ResetAlertView : public BaseAlertView, public EmuAppHelper<ResetAlertView>
 {
 public:
@@ -299,4 +302,6 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	{
 		loadStandardItems();
 	}
+}
+
 }

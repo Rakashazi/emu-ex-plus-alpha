@@ -25,7 +25,7 @@
 #include <compare>
 #include <memory>
 
-namespace Base
+namespace IG
 {
 
 class ApplicationContext;

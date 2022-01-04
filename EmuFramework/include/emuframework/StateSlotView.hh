@@ -19,6 +19,11 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 
+namespace EmuEx
+{
+
+using namespace IG;
+
 class StateSlotView : public TableView, public EmuAppHelper<StateSlotView>
 {
 public:
@@ -28,3 +33,5 @@ private:
 	static constexpr unsigned stateSlots = 11;
 	TextMenuItem stateSlot[stateSlots]{};
 };
+
+}

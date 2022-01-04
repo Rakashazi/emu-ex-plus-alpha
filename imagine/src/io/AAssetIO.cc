@@ -23,6 +23,9 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+namespace IG
+{
+
 static int accessHintToAAssetMode(IO::AccessHint advice)
 {
 	switch(advice)
@@ -34,7 +37,7 @@ static int accessHintToAAssetMode(IO::AccessHint advice)
 	}
 }
 
-AAssetIO::AAssetIO(Base::ApplicationContext ctx, IG::CStringView name, AccessHint access, unsigned openFlags):
+AAssetIO::AAssetIO(ApplicationContext ctx, IG::CStringView name, AccessHint access, unsigned openFlags):
 	asset{AAssetManager_open(ctx.aAssetManager(), name, accessHintToAAssetMode(access))}
 {
 	if(!asset) [[unlikely]]
@@ -50,26 +53,24 @@ AAssetIO::AAssetIO(Base::ApplicationContext ctx, IG::CStringView name, AccessHin
 		makeMapIO();
 }
 
-ssize_t AAssetIO::read(void *buff, size_t bytes, std::error_code *ecOut)
+ssize_t AAssetIO::read(void *buff, size_t bytes)
 {
 	if(mapIO)
-		return mapIO.read(buff, bytes, ecOut);
+		return mapIO.read(buff, bytes);
 	auto bytesRead = AAsset_read(asset.get(), buff, bytes);
-	if(bytesRead < 0)
+	if(bytesRead < 0) [[unlikely]]
 	{
-		if(ecOut)
-			*ecOut = {EIO, std::system_category()};
 		return -1;
 	}
 	return bytesRead;
 }
 
-ssize_t AAssetIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
+ssize_t AAssetIO::readAtPos(void *buff, size_t bytes, off_t offset)
 {
 	if(mapIO)
-		return mapIO.readAtPos(buff, bytes, offset, ecOut);
+		return mapIO.readAtPos(buff, bytes, offset);
 	else
-		return IO::readAtPos(buff, bytes, offset, ecOut);
+		return IO::readAtPos(buff, bytes, offset);
 }
 
 std::span<uint8_t> AAssetIO::map()
@@ -80,22 +81,18 @@ std::span<uint8_t> AAssetIO::map()
 		return {};
 }
 
-ssize_t AAssetIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
+ssize_t AAssetIO::write(const void *buff, size_t bytes)
 {
-	if(ecOut)
-		*ecOut = {ENOSYS, std::system_category()};
 	return -1;
 }
 
-off_t AAssetIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
+off_t AAssetIO::seek(off_t offset, IO::SeekMode mode)
 {
 	if(mapIO)
-		return mapIO.seek(offset, mode, ecOut);
+		return mapIO.seek(offset, mode);
 	auto newPos = AAsset_seek(asset.get(), offset, (int)mode);
-	if(newPos < 0)
+	if(newPos < 0) [[unlikely]]
 	{
-		if(ecOut)
-			*ecOut = {EINVAL, std::system_category()};;
 		return -1;
 	}
 	return newPos;
@@ -164,4 +161,6 @@ void AAssetIO::closeAAsset(AAsset *asset)
 		return;
 	logMsg("closing asset:%p", asset);
 	AAsset_close(asset);
+}
+
 }

@@ -19,6 +19,11 @@
 #include <imagine/gui/View.hh>
 #include <imagine/util/Interpolator.hh>
 
+namespace EmuEx
+{
+
+using namespace IG;
+
 class CreditsView : public View
 {
 public:
@@ -28,9 +33,12 @@ public:
 	void draw(Gfx::RendererCommands &cmds) final;
 	void place() final;
 	bool inputEvent(Input::Event e) final;
+	std::u16string_view name() const final;
 
 private:
 	Gfx::Text text{};
 	IG::InterpolatorValue<float, IG::FrameTime, IG::InterpolatorType::LINEAR> fade{};
-	Base::OnFrameDelegate animate{};
+	IG::OnFrameDelegate animate{};
 };
+
+}

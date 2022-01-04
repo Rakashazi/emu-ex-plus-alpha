@@ -20,7 +20,7 @@
 #include "../../../base/android/privateApi/GraphicBuffer.hh"
 #include "egl.hh"
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 template<class Buffer>
@@ -69,9 +69,9 @@ protected:
 	void swapBuffer();
 };
 
-using AHardwareSingleBufferStorage = HardwareSingleBufferStorage<Base::HardwareBuffer>;
-using GraphicSingleBufferStorage = HardwareSingleBufferStorage<Base::GraphicBuffer>;
-using AHardwareBufferStorage = HardwareBufferStorage<Base::HardwareBuffer>;
-using GraphicBufferStorage = HardwareBufferStorage<Base::GraphicBuffer>;
+using AHardwareSingleBufferStorage = HardwareSingleBufferStorage<HardwareBuffer>;
+using GraphicSingleBufferStorage = HardwareSingleBufferStorage<GraphicBuffer>;
+using AHardwareBufferStorage = HardwareBufferStorage<HardwareBuffer>;
+using GraphicBufferStorage = HardwareBufferStorage<GraphicBuffer>;
 
 }

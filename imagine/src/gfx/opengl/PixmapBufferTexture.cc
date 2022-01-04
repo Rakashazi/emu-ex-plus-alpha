@@ -61,7 +61,7 @@
 #define GL_TEXTURE_EXTERNAL_OES 0x8D65
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 PixmapBufferTexture::PixmapBufferTexture(RendererTask &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer, IG::ErrorCode *errorPtr)
@@ -482,12 +482,12 @@ static bool hasHardwareBuffer(Renderer &r)
 		logErr("Can't use GraphicBuffer without OES_EGL_image extension");
 		return false;
 	}
-	if(Base::GraphicBuffer::isSupported())
+	if(GraphicBuffer::isSupported())
 		return true;
 	auto rendererStr = rendererGLStr(r);
-	if(!Base::GraphicBuffer::canSupport(r.appContext(), rendererStr))
+	if(!GraphicBuffer::canSupport(r.appContext(), rendererStr))
 		return false;
-	return Base::GraphicBuffer::testSupport();
+	return GraphicBuffer::testSupport();
 }
 #endif
 

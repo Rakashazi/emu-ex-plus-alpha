@@ -24,6 +24,9 @@
 #include <imagine/base/Window.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 struct [[gnu::packed]] VControllerLayoutPositionSerialized
 {
 	uint8_t origin{};
@@ -37,7 +40,7 @@ static constexpr uint16_t DEFAULT_DPAD_DIAGONAL_SENSITIVITY = 1750;
 static constexpr uint16_t DEFAULT_BUTTON_EXTRA_BOUNDS_WIDTH = 200;
 static constexpr uint16_t DEFAULT_BUTTON_EXTRA_BOUNDS_HEIGHT = 200;
 
-VController::VController(Base::ApplicationContext ctx, int faceButtons, int centerButtons):
+VController::VController(IG::ApplicationContext ctx, int faceButtons, int centerButtons):
 	gp{faceButtons, centerButtons},
 	alphaF{DEFAULT_ALPHA / 255.},
 	defaultButtonSize
@@ -66,12 +69,12 @@ Gfx::GC VController::yMMSize(Gfx::GC mm) const
 	return windowData().projection.plane().yMMSize(mm);
 }
 
-int VController::xMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const
+int VController::xMMSizeToPixel(const IG::Window &win, Gfx::GC mm) const
 {
 	return win.widthMMInPixels(mm);
 }
 
-int VController::yMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const
+int VController::yMMSizeToPixel(const IG::Window &win, Gfx::GC mm) const
 {
 	return win.heightMMInPixels(mm);
 }
@@ -575,13 +578,13 @@ Gfx::Renderer &VController::renderer()
 	return *renderer_;
 }
 
-void VController::setWindow(const Base::Window &win_)
+void VController::setWindow(const IG::Window &win_)
 {
 	win = &win_;
-	winData = &::windowData(win_);
+	winData = &EmuEx::windowData(win_);
 }
 
-Base::ApplicationContext VController::appContext() const
+IG::ApplicationContext VController::appContext() const
 {
 	assert(hasWindow());
 	return window().appContext();
@@ -617,7 +620,7 @@ Gfx::GC VController::buttonGCSize() const
 	return xMMSize(buttonSize() / 100.f);
 }
 
-int VController::buttonPixelSize(const Base::Window &win) const
+int VController::buttonPixelSize(const IG::Window &win) const
 {
 	return IG::makeEvenRoundedUp(xMMSizeToPixel(win, buttonSize() / 100.f));
 }
@@ -948,7 +951,7 @@ unsigned VController::serializedLayoutPositionsSize() const
 	return positions * sizeof(VControllerLayoutPositionSerialized);
 }
 
-void VController::configure(Base::Window &win, Gfx::Renderer &renderer, const Gfx::GlyphTextureSet &face)
+void VController::configure(IG::Window &win, Gfx::Renderer &renderer, const Gfx::GlyphTextureSet &face)
 {
 	setWindow(win);
 	setRenderer(renderer);
@@ -1073,4 +1076,6 @@ bool VController::shouldDraw(VControllerState state, bool showHidden)
 bool VController::gamepadIsActive() const
 {
 	return gamepadIsEnabled() && gamepadControlsVisible();
+}
+
 }

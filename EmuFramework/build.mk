@@ -26,7 +26,6 @@ EmuVideoLayer.cc \
 EmuView.cc \
 EmuViewController.cc \
 FilePicker.cc \
-FileUtils.cc \
 GUIOptionView.cc \
 InputManagerView.cc \
 RecentGameView.cc \

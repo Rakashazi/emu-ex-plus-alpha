@@ -27,6 +27,8 @@
 #include <imagine/logger/logger.h>
 #undef Debugger
 
+using namespace EmuEx;
+
 SoundEmuEx::SoundEmuEx(OSystem& osystem): Sound(osystem)
 {}
 
@@ -110,7 +112,7 @@ void SoundEmuEx::setResampleQuality(AudioSettings::ResamplingQuality quality)
 	configForVideoFrameRate(configuredVideoFrameRate);
 }
 
-void SoundEmuEx::processAudio(OSystem &osystem, EmuAudio *audio)
+void SoundEmuEx::processAudio(OSystem &osystem, EmuEx::EmuAudio *audio)
 {
 	auto videoFrameRate = osystem.console().currentFrameRate();
 	if(configuredVideoFrameRate != videoFrameRate &&

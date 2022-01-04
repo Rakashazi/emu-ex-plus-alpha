@@ -17,8 +17,14 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/io/PosixFileIO.hh>
+#ifdef __ANDROID__
+#include <imagine/io/AAssetIO.hh>
+#endif
 #include <imagine/util/string/CStringView.hh>
 #include <span>
+
+namespace IG
+{
 
 class FileIO: public PosixFileIO
 {
@@ -30,7 +36,6 @@ public:
 };
 
 #ifdef __ANDROID__
-#include <imagine/io/AAssetIO.hh>
 using AssetIOImpl = AAssetIO;
 #else
 using AssetIOImpl = FileIO;
@@ -42,31 +47,30 @@ public:
 	using AssetIOImpl::AssetIOImpl;
 };
 
-namespace Base
-{
 class ApplicationContext;
+
 }
 
-namespace FS
+namespace IG::FS
 {
 class PathString;
 }
 
-namespace FileUtils
+namespace IG::FileUtils
 {
 
 static constexpr size_t defaultBufferReadSizeLimit = 0x2000000; // 32 Megabytes
 
-ssize_t writeToPath(IG::CStringView path, std::span<const unsigned char> src);
-ssize_t writeToPath(IG::CStringView path, IO &io);
-ssize_t writeToUri(Base::ApplicationContext ctx, IG::CStringView uri, std::span<const unsigned char> src);
+ssize_t writeToPath(CStringView path, std::span<const unsigned char> src);
+ssize_t writeToPath(CStringView path, IO &io);
+ssize_t writeToUri(ApplicationContext ctx, CStringView uri, std::span<const unsigned char> src);
 ssize_t readFromPath(IG::CStringView path, std::span<unsigned char> dest, IO::AccessHint accessHint = IO::AccessHint::ALL);
-ssize_t readFromUri(Base::ApplicationContext, IG::CStringView uri, std::span<unsigned char> dest,
+ssize_t readFromUri(ApplicationContext, CStringView uri, std::span<unsigned char> dest,
 	IO::AccessHint accessHint = IO::AccessHint::ALL);
-std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(Base::ApplicationContext, IG::CStringView uri,
+std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext, IG::CStringView uri,
 	std::span<unsigned char> dest, bool(*nameMatchFunc)(std::string_view), IO::AccessHint accessHint = IO::AccessHint::ALL);
-IG::ByteBuffer bufferFromPath(IG::CStringView path, IO::OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
-IG::ByteBuffer bufferFromUri(Base::ApplicationContext, IG::CStringView uri, IO::OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
-FILE *fopenUri(Base::ApplicationContext, IG::CStringView path, IG::CStringView mode);
+IG::ByteBuffer bufferFromPath(CStringView path, IO::OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
+IG::ByteBuffer bufferFromUri(ApplicationContext, CStringView uri, IO::OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
+FILE *fopenUri(ApplicationContext, CStringView path, CStringView mode);
 
 }

@@ -14,10 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Evdev"
-#include <linux/input.h>
-#include <sys/inotify.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include "EvdevInputDevice.hh"
 #include <imagine/util/algorithm.h>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/math/int.hh>
@@ -29,12 +26,16 @@
 #include <imagine/time/Time.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
+#include <linux/input.h>
+#include <sys/inotify.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <vector>
 
 #define DEV_NODE_PATH "/dev/input"
 static constexpr uint32_t MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
 
-namespace Input
+namespace IG::Input
 {
 
 static Key toSysKey(Key key)
@@ -124,7 +125,7 @@ EvdevInputDevice::~EvdevInputDevice()
 	::close(fd);
 }
 
-void EvdevInputDevice::processInputEvents(Base::LinuxApplication &app, input_event *event, uint32_t events)
+void EvdevInputDevice::processInputEvents(LinuxApplication &app, input_event *event, uint32_t events)
 {
 	iterateTimes(events, i)
 	{
@@ -205,13 +206,13 @@ bool EvdevInputDevice::setupJoystickBits()
 	return true;
 }
 
-void EvdevInputDevice::addPollEvent(Base::LinuxApplication &app)
+void EvdevInputDevice::addPollEvent(LinuxApplication &app)
 {
 	assert(fd >= 0);
 	fdSrc = {"EvdevInputDevice", fd, {},
 		[this, &app](int fd, int pollEvents)
 		{
-			if(pollEvents & Base::POLLEV_ERR) [[unlikely]]
+			if(pollEvents & POLLEV_ERR) [[unlikely]]
 			{
 				logMsg("error %d in input fd %d (%s)", errno, fd, name().data());
 				app.removeInputDevice(*this, true);
@@ -272,7 +273,7 @@ static bool isEvdevInputDevice(Input::Device &d)
 	return d.map() == Input::Map::SYSTEM && (d.typeBits() & Input::Device::TYPE_BIT_GAMEPAD);
 }
 
-static bool processDevNode(Base::LinuxApplication &app, IG::CStringView path, int id, bool notify)
+static bool processDevNode(LinuxApplication &app, IG::CStringView path, int id, bool notify)
 {
 	if(access(path, R_OK) != 0)
 	{
@@ -328,7 +329,7 @@ static bool processDevNodeName(IG::CStringView name, uint32_t &id)
 
 }
 
-namespace Base
+namespace IG
 {
 
 void LinuxApplication::initEvdev(EventLoop loop)

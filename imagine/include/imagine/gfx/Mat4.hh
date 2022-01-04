@@ -21,7 +21,7 @@
 
 #include <imagine/util/math/GLMMat4.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 using Mat4Impl = GLMMat4;
 }
@@ -30,14 +30,14 @@ using Mat4Impl = GLMMat4;
 
 #include <imagine/util/math/GLKitMat4.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 using Mat4Impl = GLKitMat4;
 }
 
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Mat4 : public Mat4Impl

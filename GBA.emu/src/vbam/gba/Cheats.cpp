@@ -181,7 +181,7 @@
 #define CHEATS_16_BIT_WRITE           114
 #define CHEATS_32_BIT_WRITE           115
 
-StaticArrayList<CheatsData, 100> cheatsList{};
+IG::StaticArrayList<CheatsData, 100> cheatsList{};
 u32 rompatch2addr [4];
 u16 rompatch2val [4];
 u16 rompatch2oldval [4];
@@ -2687,11 +2687,11 @@ void cheatsReadGameSkip( gzFile file, int version )
 }
 
 
-void cheatsSaveCheatList(Base::ApplicationContext ctx, const char *file)
+void cheatsSaveCheatList(IG::ApplicationContext ctx, const char *file)
 {
   if(!cheatsList.size())
     return;
-  FILE *f = FileUtils::fopenUri(ctx, file, "wb");
+  FILE *f = IG::FileUtils::fopenUri(ctx, file, "wb");
   if(f == NULL)
     return;
   int version = 1;
@@ -2704,12 +2704,12 @@ void cheatsSaveCheatList(Base::ApplicationContext ctx, const char *file)
   fclose(f);
 }
 
-bool cheatsLoadCheatList(Base::ApplicationContext ctx, const char *file)
+bool cheatsLoadCheatList(IG::ApplicationContext ctx, const char *file)
 {
 
   int count = 0;
 
-  FILE *f = FileUtils::fopenUri(ctx, file, "rb");
+  FILE *f = IG::FileUtils::fopenUri(ctx, file, "rb");
 
   if(f == NULL)
     return false;

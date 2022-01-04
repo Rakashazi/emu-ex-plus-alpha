@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/DelegateFunc.hh>
 
-namespace Base
+namespace IG
 {
 
 class CallbackDelegate : public DelegateFunc<bool ()>

@@ -7,6 +7,10 @@
 
 class OSystem;
 class Console;
+
+namespace EmuEx
+{
+
 class EmuApp;
 
 enum class PaddleRegionMode : uint8_t
@@ -36,3 +40,5 @@ void setControllerType(EmuApp &, Console &console, Controller::Type type);
 Controller::Type limitToSupportedControllerTypes(Controller::Type type);
 const char *controllerTypeStr(Controller::Type type);
 void updatePaddlesRegionMode(EmuApp &, PaddleRegionMode);
+
+}

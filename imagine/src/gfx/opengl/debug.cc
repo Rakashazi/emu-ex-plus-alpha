@@ -54,7 +54,7 @@
 #define GL_DEBUG_SEVERITY_LOW 0x9148
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 bool checkGLErrors = Config::DEBUG_BUILD;
@@ -112,7 +112,7 @@ void DrawContextSupport::setGLDebugOutput(bool on)
 			auto glDebugMessageCallbackStr =
 					Config::Gfx::OPENGL_ES ? "glDebugMessageCallbackKHR" : "glDebugMessageCallback";
 			logWarn("enabling debug output with %s", glDebugMessageCallbackStr);
-			glDebugMessageCallback = (typeof(glDebugMessageCallback))Base::GLManager::procAddress(glDebugMessageCallbackStr);
+			glDebugMessageCallback = (typeof(glDebugMessageCallback))GLManager::procAddress(glDebugMessageCallbackStr);
 		}
 		glDebugMessageCallback(
 			GL_APIENTRY [](GLenum source, GLenum type, GLuint id,

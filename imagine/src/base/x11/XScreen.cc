@@ -23,7 +23,7 @@
 #include <X11/extensions/Xrandr.h>
 #include <cmath>
 
-namespace Base
+namespace IG
 {
 
 XScreen::XScreen(ApplicationContext ctx, InitParams params):

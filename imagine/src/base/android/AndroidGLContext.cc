@@ -19,10 +19,10 @@
 #include <imagine/time/Time.hh>
 #include <android/native_window.h>
 
-namespace Base
+namespace IG
 {
 
-GLDisplay GLManager::getDefaultDisplay(Base::NativeDisplayConnection) const
+GLDisplay GLManager::getDefaultDisplay(NativeDisplayConnection) const
 {
 	return {eglGetDisplay(EGL_DEFAULT_DISPLAY)};
 }
@@ -32,7 +32,7 @@ bool GLManager::bindAPI(GL::API api)
 	return api == GL::API::OPENGL_ES;
 }
 
-std::optional<GLBufferConfig> GLManager::makeBufferConfig(Base::ApplicationContext ctx, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion) const
+std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext ctx, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion) const
 {
 	if(majorVersion > 2 && ctx.androidSDK() < 18)
 	{
@@ -43,7 +43,7 @@ std::optional<GLBufferConfig> GLManager::makeBufferConfig(Base::ApplicationConte
 	return chooseConfig(display(), renderableType, attr);
 }
 
-Base::NativeWindowFormat GLManager::nativeWindowFormat(Base::ApplicationContext, GLBufferConfig glConfig) const
+NativeWindowFormat GLManager::nativeWindowFormat(ApplicationContext, GLBufferConfig glConfig) const
 {
 	EGLint nId;
 	auto dpy = display();

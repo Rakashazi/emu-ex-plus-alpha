@@ -29,7 +29,7 @@ template <class T, T VALUE, int Tag = 0>
 struct ConstantType
 {
 	// accept dummy assignment from any value
-	constexpr ConstantType() {}
+	constexpr ConstantType() = default;
 	constexpr ConstantType(auto && ...) {}
 
 	constexpr operator T() const { return VALUE; };
@@ -41,7 +41,7 @@ struct UnusedType
 	struct UnusedTypeTag;
 
 	// accept dummy assignment from any value
-	constexpr UnusedType() {}
+	constexpr UnusedType() = default;
 	constexpr UnusedType(auto && ...) {}
 
 	constexpr operator T() const { return {}; };

@@ -17,7 +17,7 @@
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 
-namespace Base
+namespace IG
 {
 
 const char copyright[] = "Imagine is Copyright 2010-2021 Robert Broglia";

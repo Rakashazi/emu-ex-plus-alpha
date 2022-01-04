@@ -19,10 +19,8 @@
 #include <imagine/base/BaseApplication.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/android/Choreographer.hh>
-#include <imagine/input/Device.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/util/jni.hh>
-#include <imagine/util/container/ArrayList.hh>
 #include <pthread.h>
 #include <optional>
 #include <string>
@@ -32,32 +30,12 @@ struct AInputQueue;
 struct AConfiguration;
 struct AInputEvent;
 
-namespace Input
+namespace IG::Input
 {
-
-class AndroidInputDevice : public Input::Device
-{
-public:
-	AndroidInputDevice(int osId, TypeBits, std::string name);
-	AndroidInputDevice(JNIEnv* env, jobject aDev, int osId, int src,
-		std::string name, int kbType, uint32_t axisBits, bool isPowerButton);
-	bool operator ==(AndroidInputDevice const& rhs) const;
-	void setTypeBits(TypeBits);
-	std::span<Axis> motionAxes() final;
-	void setICadeMode(bool on) final;
-	bool iCadeMode() const final;
-	auto &jsAxes() { return axis; }
-	void update(AndroidInputDevice);
-
-protected:
-	static constexpr uint32_t MAX_AXES = 14;
-	StaticArrayList<Axis, MAX_AXES> axis{};
-	bool iCadeMode_{};
-};
-
+class AndroidInputDevice;
 }
 
-namespace Base
+namespace IG
 {
 
 class ApplicationContext;
@@ -175,7 +153,7 @@ private:
 	JNI::InstMethod<void()> jUnregister{};
 
 	// inotify-based device changes
-	std::optional<Base::Timer> inputRescanCallback{};
+	std::optional<Timer> inputRescanCallback{};
 	int inputDevNotifyFd = -1;
 	int watch = -1;
 

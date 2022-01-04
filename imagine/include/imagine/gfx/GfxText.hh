@@ -22,13 +22,13 @@
 #include <vector>
 #include <limits>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Renderer;
 class RendererCommands;
 class GlyphTextureSet;
-class TexVertex;
+struct TexVertex;
 class ProjectionPlane;
 
 class Text

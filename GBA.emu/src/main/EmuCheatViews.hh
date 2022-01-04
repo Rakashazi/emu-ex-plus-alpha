@@ -18,12 +18,8 @@
 #include <emuframework/Cheats.hh>
 #include <vector>
 
-namespace EmuCheats
+namespace EmuEx
 {
-
-static const unsigned MAX = 100;
-
-}
 
 class EmuCheatsView : public BaseCheatsView
 {
@@ -58,3 +54,5 @@ private:
 	const char *cheatNameString() const final;
 	void renamed(const char *str) final;
 };
+
+}

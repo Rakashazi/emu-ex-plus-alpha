@@ -20,6 +20,9 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 void VControllerKeyboard::updateImg(Gfx::Renderer &r)
 {
 	if(mode_)
@@ -352,4 +355,6 @@ bool VControllerKeyboard::toggleShiftActive()
 bool VControllerKeyboard::shiftIsActive() const
 {
 	return shiftRect.x != -1;
+}
+
 }

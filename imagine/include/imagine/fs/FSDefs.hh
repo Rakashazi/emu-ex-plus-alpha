@@ -24,7 +24,7 @@
 #include <unistd.h>
 #include <limits.h>
 
-namespace FS
+namespace IG::FS
 {
 
 using file_time_type = std::time_t;
@@ -134,6 +134,6 @@ protected:
 
 class directory_entry;
 
-using DirectoryEntryDelegate = DelegateFuncS<sizeof(void*)*3, bool(const directory_entry &)>;
+using DirectoryEntryDelegate = IG::DelegateFuncS<sizeof(void*)*3, bool(const directory_entry &)>;
 
 }

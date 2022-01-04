@@ -19,7 +19,7 @@
 #include <imagine/util/concepts.hh>
 #include <imagine/util/utility.h>
 
-namespace Base
+namespace IG
 {
 
 class FDCustomEvent

@@ -41,7 +41,7 @@ template <class T, class Time = std::chrono::nanoseconds, InterpolatorType INTER
 class Interpolator
 {
 public:
-	constexpr Interpolator() {}
+	constexpr Interpolator() = default;
 
 	constexpr Interpolator(T start, T dest, InterpolatorType type, Time startTime, Time destTime):
 		startTime{startTime},
@@ -165,7 +165,7 @@ public:
 	struct AbsoluteTimeInit{};
 	using InterpolatorBase = Interpolator<T, Time, INTERPOLATOR_TYPE>;
 
-	constexpr InterpolatorValue() {}
+	constexpr InterpolatorValue() = default;
 
 	constexpr InterpolatorValue(T start, T dest, InterpolatorType type,
 		IG::ChronoDuration auto startTime, IG::ChronoDuration auto duration):

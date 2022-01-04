@@ -21,7 +21,7 @@
 #include <imagine/gfx/opengl/GLSyncFence.hh>
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class SyncFence : public SyncFenceImpl

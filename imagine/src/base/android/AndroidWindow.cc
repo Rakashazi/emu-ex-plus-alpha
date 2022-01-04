@@ -25,7 +25,7 @@
 #include <android/native_window_jni.h>
 #include <android/looper.h>
 
-namespace Base
+namespace IG
 {
 
 static JNI::InstMethod<jobject(jobject, jlong)> jPresentation{};
@@ -99,8 +99,7 @@ IG::Point2D<float> Window::pixelSizeAsScaledMM(IG::Point2D<int> size)
 
 bool Window::setValidOrientations(Orientation oMask)
 {
-	using namespace Base;
-	logMsg("requested orientation change to %s", Base::orientationToStr(oMask));
+	logMsg("requested orientation change to %s", orientationToStr(oMask));
 	auto maskToOrientation = [](Orientation oMask)
 		{
 			switch(oMask)
@@ -256,8 +255,8 @@ void Window::setIntendedFrameRate(double rate)
 		return;
 	if(!ANativeWindow_setFrameRate) [[unlikely]]
 	{
-		auto lib = Base::openSharedLibrary("libnativewindow.so");
-		Base::loadSymbol(ANativeWindow_setFrameRate, lib, "ANativeWindow_setFrameRate");
+		auto lib = openSharedLibrary("libnativewindow.so");
+		loadSymbol(ANativeWindow_setFrameRate, lib, "ANativeWindow_setFrameRate");
 	}
 	if(ANativeWindow_setFrameRate(nWin, rate, 0))
 	{

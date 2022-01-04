@@ -20,6 +20,9 @@
 #include <utility>
 #include <vector>
 
+namespace IG
+{
+
 class TextTableView : public TableView
 {
 public:
@@ -41,3 +44,5 @@ protected:
 	std::vector<TextMenuItem> textItem{};
 	int activeItem = -1;
 };
+
+}

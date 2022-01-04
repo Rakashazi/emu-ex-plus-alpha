@@ -18,16 +18,16 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/string.h>
 
-namespace FS
+namespace IG::FS
 {
 
 template <class... Args>
-static std::shared_ptr<ArchiveEntry> makeArchiveEntryPtr(Args&& ...args)
+static std::shared_ptr<IG::ArchiveEntry> makeArchiveEntryPtr(Args&& ...args)
 {
-	ArchiveEntry entry{std::forward<Args>(args)...};
+	IG::ArchiveEntry entry{std::forward<Args>(args)...};
 	if(entry.hasEntry())
 	{
-		return std::make_shared<ArchiveEntry>(std::move(entry));
+		return std::make_shared<IG::ArchiveEntry>(std::move(entry));
 	}
 	else
 	{
@@ -40,20 +40,20 @@ ArchiveIterator::ArchiveIterator(IG::CStringView path):
 	impl{makeArchiveEntryPtr(path)}
 {}
 
-ArchiveIterator::ArchiveIterator(GenericIO io):
+ArchiveIterator::ArchiveIterator(IG::GenericIO io):
 	impl{makeArchiveEntryPtr(std::move(io))}
 {}
 
-ArchiveIterator::ArchiveIterator(ArchiveEntry entry):
-	impl{entry.hasEntry() ? std::make_shared<ArchiveEntry>(std::move(entry)) : std::shared_ptr<ArchiveEntry>{}}
+ArchiveIterator::ArchiveIterator(IG::ArchiveEntry entry):
+	impl{entry.hasEntry() ? std::make_shared<IG::ArchiveEntry>(std::move(entry)) : std::shared_ptr<IG::ArchiveEntry>{}}
 {}
 
-ArchiveEntry& ArchiveIterator::operator*()
+IG::ArchiveEntry& ArchiveIterator::operator*()
 {
 	return *impl;
 }
 
-ArchiveEntry* ArchiveIterator::operator->()
+IG::ArchiveEntry* ArchiveIterator::operator->()
 {
 	return impl.get();
 }
@@ -75,7 +75,7 @@ void ArchiveIterator::rewind()
 	impl->rewind();
 }
 
-static ArchiveIO fileFromArchiveGeneric(auto &&init, std::string_view filePath)
+static IG::ArchiveIO fileFromArchiveGeneric(auto &&init, std::string_view filePath)
 {
 	for(auto &entry : FS::ArchiveIterator{std::forward<decltype(init)>(init)})
 	{
@@ -91,12 +91,12 @@ static ArchiveIO fileFromArchiveGeneric(auto &&init, std::string_view filePath)
 	return {};
 }
 
-ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath)
+IG::ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath)
 {
 	return fileFromArchiveGeneric(archivePath, filePath);
 }
 
-ArchiveIO fileFromArchive(GenericIO io, std::string_view filePath)
+IG::ArchiveIO fileFromArchive(IG::GenericIO io, std::string_view filePath)
 {
 	return fileFromArchiveGeneric(std::move(io), filePath);
 }

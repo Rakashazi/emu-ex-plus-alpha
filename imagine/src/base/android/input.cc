@@ -21,9 +21,10 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include "input.hh"
+#include "AndroidInputDevice.hh"
 #include <android/input.h>
 
-namespace Base
+namespace IG
 {
 
 static constexpr int AINPUT_SOURCE_JOYSTICK = 0x01000010;
@@ -68,7 +69,7 @@ static Time makeTimeFromKeyEvent(AInputEvent *event)
 static void mapKeycodesForSpecialDevices(const Input::Device &dev, int32_t &keyCode, int32_t &metaState,
 	Input::Source &src, AInputEvent *event)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	switch(dev.subtype())
 	{
 		bcase Device::Subtype::XPERIA_PLAY:
@@ -160,9 +161,9 @@ static Input::Action mouseEventAction(uint32_t e, AInputEvent* event)
 	}
 }
 
-bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win)
+bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	auto type = AInputEvent_getType(event);
 	switch(type)
 	{

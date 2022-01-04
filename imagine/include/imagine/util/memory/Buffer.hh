@@ -52,7 +52,7 @@ public:
 	using DeleterFunc = typename Deleter::DeleterFunc;
 	friend Buffer<std::add_const_t<T>>;
 
-	constexpr Buffer() {}
+	constexpr Buffer() = default;
 
 	constexpr Buffer(std::span<T> span, DeleterFunc deleter = [](const T*, size_t){}):
 		data_{span.data(), {deleter, span.size()}} {}

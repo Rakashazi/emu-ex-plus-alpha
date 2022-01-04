@@ -17,7 +17,7 @@ public:
 	uint8_t rShift{}, gShift{}, bShift{}, aShift{};
 	uint8_t bytesPerPixel_{};
 
-	constexpr PixelDesc() {}
+	constexpr PixelDesc() = default;
 
 	constexpr PixelDesc(uint8_t rBits, uint8_t gBits, uint8_t bBits, uint8_t aBits,
 		uint8_t rShift, uint8_t gShift, uint8_t bShift, uint8_t aShift,

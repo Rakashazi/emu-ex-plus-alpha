@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-namespace EmuControls
+namespace EmuEx::Controls
 {
 
 static constexpr unsigned gameActionKeys = 10;
@@ -189,7 +189,7 @@ Input::Keycode::GAME_1, \
 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_PROFILE_INIT \
-Input::Keycode::L, \
+Input::Keycode::F2, \
 Input::Keycode::MENU, \
 Input::Keycode::F1, \
 Input::Keycode::F4, \
@@ -197,11 +197,11 @@ Input::Keycode::LEFT_BRACKET, \
 Input::Keycode::RIGHT_BRACKET, \
 Input::Keycode::GRAVE, \
 0, \
-Input::Keycode::ESCAPE, \
+Input::Keycode::BACK_KEY, \
 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_ALT_PROFILE_INIT \
-Input::Keycode::L, \
+Input::Keycode::F10, \
 Input::Keycode::MENU, \
 Input::Keycode::F9, \
 Input::Keycode::F12, \
@@ -209,7 +209,7 @@ Input::Keycode::LEFT_BRACKET, \
 Input::Keycode::RIGHT_BRACKET, \
 Input::Keycode::GRAVE, \
 0, \
-Input::Keycode::ESCAPE, \
+Input::Keycode::BACK_KEY, \
 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_ALT2_PROFILE_INIT \
@@ -221,7 +221,7 @@ Input::Keycode::F12, \
 0, \
 Input::Keycode::GRAVE, \
 0, \
-Input::Keycode::ESCAPE, \
+Input::Keycode::BACK_KEY, \
 0
 
 #ifdef __ANDROID__

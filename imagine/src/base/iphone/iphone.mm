@@ -44,12 +44,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 @end
 #endif
 
-namespace Base
-{
-	MainApp *mainApp{};
-}
-
-namespace Input
+namespace IG::Input
 {
 	int GSEVENTKEY_KEYCODE = sizeof(NSInteger) == 8 ? GSEVENTKEY_KEYCODE_64_BIT : 15;
 }
@@ -57,18 +52,7 @@ namespace Input
 namespace IG
 {
 
-void releaseCFObject(void *ptr)
-{
-	if(!ptr)
-		return;
-	CFRelease(ptr);
-}
-
-}
-
-namespace Base
-{
-
+MainApp *mainApp{};
 Application *appPtr{};
 bool isIPad = false;
 static bool isRunningAsSystemApp = false;
@@ -94,6 +78,13 @@ static MFMailComposeViewController *composeController;
 #ifdef IPHONE_GAMEKIT
 #include "gameKit.h"
 #endif
+
+void releaseCFObject(void *ptr)
+{
+	if(!ptr)
+		return;
+	CFRelease(ptr);
+}
 
 static Screen &setupUIScreen(ApplicationContext ctx, UIScreen *screen, bool setOverscanCompensation)
 {
@@ -189,13 +180,15 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 
 }
 
+using namespace IG;
+
 @implementation MainApp
 
 #if 0
 - (void)keyboardWasShown:(NSNotification *)notification
 {
 	return;
-	using namespace Base;
+	using namespace IG;
 	#ifndef NDEBUG
 	CGSize keyboardSize = [[[notification userInfo] objectForKey:UIKeyboardFrameBeginUserInfoKey] CGRectValue].size;
 	logMsg("keyboard shown with size %d", (int)keyboardSize.height * pointScale);
@@ -213,20 +206,20 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 - (void) keyboardWillHide:(NSNotification *)notification
 {
 	return;
-	using namespace Base;
+	using namespace IG;
 	logMsg("keyboard hidden");
 	mainWin.postDraw();
 }
 #endif
 
-static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
+static Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	switch(orientation)
 	{
-		case UIDeviceOrientationPortrait: return Base::VIEW_ROTATE_0;
-		case UIDeviceOrientationLandscapeLeft: return Base::VIEW_ROTATE_90;
-		case UIDeviceOrientationLandscapeRight: return Base::VIEW_ROTATE_270;
-		case UIDeviceOrientationPortraitUpsideDown: return Base::VIEW_ROTATE_180;
+		case UIDeviceOrientationPortrait: return VIEW_ROTATE_0;
+		case UIDeviceOrientationLandscapeLeft: return VIEW_ROTATE_90;
+		case UIDeviceOrientationLandscapeRight: return VIEW_ROTATE_270;
+		case UIDeviceOrientationPortraitUpsideDown: return VIEW_ROTATE_180;
 		default : return 0; // TODO: handle Face-up/down
 	}
 }
@@ -234,7 +227,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
 	// TODO: use NSProcessInfo
-	using namespace Base;
+	using namespace IG;
 	mainApp = self;
 	auto uiApp = [UIApplication sharedApplication];
 	ApplicationInitParams initParams{.uiAppPtr = (__bridge void*)uiApp};
@@ -249,7 +242,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 - (void)applicationWillResignActive:(UIApplication *)application
 {
 	logMsg("resign active");
-	Base::ApplicationContext ctx{application};
+	ApplicationContext ctx{application};
 	for(auto &w : ctx.windows())
 	{
 		w->dispatchFocusChange(false);
@@ -260,7 +253,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 - (void)applicationDidBecomeActive:(UIApplication *)application
 {
 	logMsg("became active");
-	Base::ApplicationContext ctx{application};
+	ApplicationContext ctx{application};
 	for(auto &w : ctx.windows())
 	{
 		w->dispatchFocusChange(true);
@@ -270,7 +263,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 - (void)applicationWillTerminate:(UIApplication *)application
 {
 	logMsg("app exiting");
-	Base::ApplicationContext ctx{application};
+	ApplicationContext ctx{application};
 	ctx.application().setExitingActivityState();
 	ctx.dispatchOnExit(false);
 	logMsg("app exited");
@@ -279,7 +272,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 - (void)applicationDidEnterBackground:(UIApplication *)application
 {
 	logMsg("entering background");
-	Base::ApplicationContext ctx{application};
+	ApplicationContext ctx{application};
 	ctx.application().setPausedActivityState();
 	ctx.dispatchOnExit(true);
 	ctx.application().setActiveForAllScreens(false);
@@ -290,7 +283,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 - (void)applicationWillEnterForeground:(UIApplication *)application
 {
 	logMsg("entered foreground");
-	Base::ApplicationContext ctx{application};
+	ApplicationContext ctx{application};
 	ctx.application().setRunningActivityState();
 	ctx.application().setActiveForAllScreens(true);
 	for(auto &w : ctx.windows())
@@ -303,7 +296,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
 {
 	logMsg("got memory warning");
-	Base::ApplicationContext ctx{application};
+	ApplicationContext ctx{application};
 	ctx.dispatchOnFreeCaches(ctx.isRunning());
 }
 
@@ -334,7 +327,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 
 @end
 
-namespace Base
+namespace IG
 {
 
 static void setStatusBarHidden(ApplicationContext ctx, bool hidden)
@@ -361,7 +354,6 @@ bool ApplicationContext::hasTranslucentSysUI() const
 
 UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint32_t orientation)
 {
-	using namespace Base;
 	switch(orientation)
 	{
 		default: return UIInterfaceOrientationPortrait;
@@ -430,7 +422,7 @@ void ApplicationContext::setSystemOrientation(Orientation o)
 
 Orientation ApplicationContext::defaultSystemOrientations() const
 {
-	return Base::isIPad ? VIEW_ROTATE_ALL : VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN;
+	return isIPad ? VIEW_ROTATE_ALL : VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN;
 }
 
 void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
@@ -581,12 +573,12 @@ static void setupUID()
 
 void setUIDReal()
 {
-	seteuid(Base::realUID);
+	seteuid(realUID);
 }
 
 bool setUIDEffective()
 {
-	return seteuid(Base::effectiveUID) == 0;
+	return seteuid(effectiveUID) == 0;
 }
 
 #endif
@@ -626,7 +618,7 @@ const char *bad_variant_access::what() const noexcept { return ""; };
 
 int main(int argc, char *argv[])
 {
-	using namespace Base;
+	using namespace IG;
 	// check if running from system apps directory
 	if(strlen(argv[0]) >= 14 && memcmp(argv[0], "/Applications/", 14) == 0)
 	{

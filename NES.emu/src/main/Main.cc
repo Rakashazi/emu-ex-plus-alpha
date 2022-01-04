@@ -35,15 +35,29 @@
 #include <fceu/sound.h>
 #include <fceu/palette.h>
 
-using PalArray = std::array<pal, 512>;
 void ApplyDeemphasisComplete(pal* pal512);
 void FCEU_setDefaultPalettePtr(pal *ptr);
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
+static uint8 XBufData[256 * 256 + 16]{};
+// Separate front & back buffers not needed for our video implementation
+uint8 *XBuf = XBufData;
+uint8 *XBackBuf = XBufData;
+uint8 *XDBuf{};
+uint8 *XDBackBuf{};
+int dendy = 0;
+bool paldeemphswap = false;
+bool swapDuty = false;
+
+namespace EmuEx
+{
+
+using PalArray = std::array<pal, 512>;
+
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
-Base::ApplicationContext appCtx{};
+IG::ApplicationContext appCtx{};
 unsigned fceuCheats = 0;
 ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
 unsigned autoDetectedRegion = 0;
@@ -55,15 +69,6 @@ union
 	uint32_t col32[256];
 } nativeCol;
 static const unsigned nesPixX = 256, nesPixY = 240, nesVisiblePixY = 224;
-static uint8 XBufData[256 * 256 + 16]{};
-// Separate front & back buffers not needed for our video implementation
-uint8 *XBuf = XBufData;
-uint8 *XBackBuf = XBufData;
-uint8 *XDBuf{};
-uint8 *XDBackBuf{};
-int dendy = 0;
-bool paldeemphswap = false;
-bool swapDuty = false;
 
 bool hasFDSBIOSExtension(std::string_view name)
 {
@@ -144,7 +149,7 @@ void EmuSystem::loadState(IG::CStringView path)
 		EmuSystem::throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
+void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
 {
 	if(gameIsRunning())
 	{
@@ -157,24 +162,10 @@ void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 	}
 }
 
-void EmuSystem::closeSystem(Base::ApplicationContext ctx)
+void EmuSystem::closeSystem(IG::ApplicationContext ctx)
 {
 	FCEUI_CloseGame();
 	fceuCheats = 0;
-}
-
-void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
-{
-	if(pixFmt == IG::PIXEL_RGB565)
-	{
-		nativeCol.col16[index] = pixFmt.desc().build(r >> 3, g >> 2, b >> 3, 0);
-	}
-	else // RGBA8888
-	{
-		auto desc = pixFmt == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
-		nativeCol.col32[index] = desc.build(r, g, b, (uint8)0);
-	}
-	//logMsg("set palette %d %X", index, nativeCol[index]);
 }
 
 void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b)
@@ -197,7 +188,7 @@ static void setDefaultPalette(IO &io)
 	FCEU_setDefaultPalettePtr(defaultPal.data());
 }
 
-void setDefaultPalette(Base::ApplicationContext ctx, IG::CStringView palPath)
+void setDefaultPalette(IG::ApplicationContext ctx, IG::CStringView palPath)
 {
 	if(palPath.empty())
 	{
@@ -416,20 +407,6 @@ static void renderVideo(EmuSystemTaskContext taskCtx, EmuVideo &video, uint8 *bu
 	img.endFrame();
 }
 
-void FCEUPPU_FrameReady(EmuSystemTaskContext taskCtx, EmuVideo *video, uint8 *buf)
-{
-	if(!video)
-	{
-		return;
-	}
-	if(!buf) [[unlikely]]
-	{
-		video->startUnchangedFrame(taskCtx);
-		return;
-	}
-	renderVideo(taskCtx, *video, buf);
-}
-
 void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	bool skip = !video && !optionCompatibleFrameskip;
@@ -454,7 +431,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(IG::ApplicationContext ctx)
 {
 	appCtx = ctx;
 	backupSavestates = 0;
@@ -462,4 +439,35 @@ void EmuSystem::onInit(Base::ApplicationContext ctx)
 	{
 		throw std::runtime_error{"Error in FCEUI_Initialize"};
 	}
+}
+
+}
+
+void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
+{
+	using namespace EmuEx;
+	if(pixFmt == IG::PIXEL_RGB565)
+	{
+		nativeCol.col16[index] = pixFmt.desc().build(r >> 3, g >> 2, b >> 3, 0);
+	}
+	else // RGBA8888
+	{
+		auto desc = pixFmt == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
+		nativeCol.col32[index] = desc.build(r, g, b, (uint8)0);
+	}
+	//logMsg("set palette %d %X", index, nativeCol[index]);
+}
+
+void FCEUPPU_FrameReady(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, uint8 *buf)
+{
+	if(!video)
+	{
+		return;
+	}
+	if(!buf) [[unlikely]]
+	{
+		video->startUnchangedFrame(taskCtx);
+		return;
+	}
+	renderVideo(taskCtx, *video, buf);
 }

@@ -29,7 +29,10 @@ extern "C"
 	#include <blueMSX/IoDevice/Disk.h>
 }
 
-static std::vector<FS::FileString> machinesNames(Base::ApplicationContext ctx, std::string_view basePath)
+namespace EmuEx
+{
+
+static std::vector<FS::FileString> machinesNames(IG::ApplicationContext ctx, std::string_view basePath)
 {
 	std::vector<FS::FileString> machineName{};
 	auto machinePath = FS::uriString(basePath, "Machines");
@@ -862,4 +865,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
 		default: return nullptr;
 	}
+}
+
 }

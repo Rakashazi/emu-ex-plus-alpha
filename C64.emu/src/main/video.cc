@@ -30,10 +30,17 @@ extern "C"
 	#include "viewport.h"
 }
 
+namespace EmuEx
+{
+
 struct video_canvas_s *activeCanvas{};
 IG::Pixmap canvasSrcPix{};
 double systemFrameRate = 60.0;
 static std::atomic_bool runningFrame{};
+
+}
+
+using namespace EmuEx;
 
 void setCanvasSkipFrame(bool on)
 {

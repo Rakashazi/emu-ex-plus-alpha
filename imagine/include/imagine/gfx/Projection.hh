@@ -20,13 +20,13 @@
 #include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/gfx/Mat4.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Projection
 {
 public:
-	constexpr Projection() {}
+	constexpr Projection() = default;
 
 	Projection(Viewport viewport, Mat4 matrix)
 	{

@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 
-namespace Base::GL
+namespace IG::GL
 {
-		enum class API {OPENGL, OPENGL_ES};
+enum class API {OPENGL, OPENGL_ES};
 }

@@ -22,12 +22,12 @@
 #include <imagine/base/ApplicationContext.hh>
 #include "internalDefs.hh"
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 static_assert((uint8_t)TextureBufferMode::DEFAULT == 0, "TextureBufferMode::DEFAULT != 0");
 
-Renderer::Renderer(Base::ApplicationContext ctx):
+Renderer::Renderer(ApplicationContext ctx):
 	GLRenderer{ctx}
 {}
 
@@ -39,7 +39,7 @@ Renderer::~Renderer()
 	}
 }
 
-GLRenderer::GLRenderer(Base::ApplicationContext ctx):
+GLRenderer::GLRenderer(ApplicationContext ctx):
 	glManager{ctx.nativeDisplayConnection(), glAPI},
 	mainTask{ctx, "Main GL Context Messages", *static_cast<Renderer*>(this)},
 	releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"}
@@ -51,7 +51,7 @@ GLRenderer::GLRenderer(Base::ApplicationContext ctx):
 	glManager.logInfo();
 }
 
-void Renderer::initMainTask(Base::Window *initialWindow, DrawableConfig drawableConfig)
+void Renderer::initMainTask(Window *initialWindow, DrawableConfig drawableConfig)
 {
 	if(mainTask.glContext())
 	{
@@ -66,7 +66,7 @@ void Renderer::initMainTask(Base::Window *initialWindow, DrawableConfig drawable
 	Drawable initialDrawable{};
 	if(initialWindow)
 	{
-		if(!GLRenderer::attachWindow(*initialWindow, *bufferConfig, (Base::GLColorSpace)drawableConfig.colorSpace))
+		if(!GLRenderer::attachWindow(*initialWindow, *bufferConfig, (GLColorSpace)drawableConfig.colorSpace))
 		{
 			throw std::runtime_error("Renderer error creating window surface");
 		}
@@ -88,12 +88,12 @@ void Renderer::initMainTask(Base::Window *initialWindow, DrawableConfig drawable
 	configureRenderer();
 }
 
-Base::NativeWindowFormat GLRenderer::nativeWindowFormat(Base::GLBufferConfig bufferConfig) const
+NativeWindowFormat GLRenderer::nativeWindowFormat(GLBufferConfig bufferConfig) const
 {
 	return glManager.nativeWindowFormat(mainTask.appContext(), bufferConfig);
 }
 
-bool GLRenderer::attachWindow(Base::Window &win, Base::GLBufferConfig bufferConfig, Base::GLColorSpace colorSpace)
+bool GLRenderer::attachWindow(Window &win, GLBufferConfig bufferConfig, GLColorSpace colorSpace)
 {
 	if(!win.hasSurface()) [[unlikely]]
 	{
@@ -112,7 +112,7 @@ bool GLRenderer::attachWindow(Base::Window &win, Base::GLBufferConfig bufferConf
 		{
 			rData.projAngleM = orientationToGC(win.softOrientation());
 			win.appContext().setOnDeviceOrientationChanged(
-				[this, &win](Base::ApplicationContext, Base::Orientation newO)
+				[this, &win](ApplicationContext, Orientation newO)
 				{
 					auto oldWinO = win.softOrientation();
 					if(win.requestOrientationChange(newO))
@@ -124,7 +124,7 @@ bool GLRenderer::attachWindow(Base::Window &win, Base::GLBufferConfig bufferConf
 		else if(Config::SYSTEM_ROTATES_WINDOWS && !win.appContext().systemAnimatesWindowRotation())
 		{
 			win.appContext().setOnSystemOrientationChanged(
-				[this, &win](Base::ApplicationContext, Base::Orientation oldO, Base::Orientation newO) // TODO: parameters need proper type definitions in API
+				[this, &win](ApplicationContext, Orientation oldO, Orientation newO) // TODO: parameters need proper type definitions in API
 				{
 					const Angle orientationDiffTable[4][4]
 					{
@@ -142,13 +142,13 @@ bool GLRenderer::attachWindow(Base::Window &win, Base::GLBufferConfig bufferConf
 	return true;
 }
 
-bool GLRenderer::makeWindowDrawable(RendererTask &task, Base::Window &win, Base::GLBufferConfig bufferConfig, Base::GLColorSpace colorSpace)
+bool GLRenderer::makeWindowDrawable(RendererTask &task, Window &win, GLBufferConfig bufferConfig, GLColorSpace colorSpace)
 {
 	auto &rData = winData(win);
 	rData.bufferConfig = bufferConfig;
 	rData.colorSpace = colorSpace;
 	task.destroyDrawable(rData.drawable);
-	Base::GLDrawableAttributes attr{bufferConfig};
+	GLDrawableAttributes attr{bufferConfig};
 	attr.setColorSpace(colorSpace);
 	IG::ErrorCode ec{};
 	rData.drawable = glManager.makeDrawable(win, attr, ec);
@@ -159,9 +159,9 @@ bool GLRenderer::makeWindowDrawable(RendererTask &task, Base::Window &win, Base:
 	return true;
 }
 
-bool Renderer::attachWindow(Base::Window &win, DrawableConfig drawableConfig)
+bool Renderer::attachWindow(Window &win, DrawableConfig drawableConfig)
 {
-	Base::GLBufferConfig bufferConfig = mainTask.glBufferConfig();
+	GLBufferConfig bufferConfig = mainTask.glBufferConfig();
 	if(canRenderToMultiplePixelFormats())
 	{
 		auto bufferConfigOpt = makeGLBufferConfig(appContext(), drawableConfig.pixelFormat, &win);
@@ -171,10 +171,10 @@ bool Renderer::attachWindow(Base::Window &win, DrawableConfig drawableConfig)
 		}
 		bufferConfig = *bufferConfigOpt;
 	}
-	return GLRenderer::attachWindow(win, bufferConfig, (Base::GLColorSpace)drawableConfig.colorSpace);
+	return GLRenderer::attachWindow(win, bufferConfig, (GLColorSpace)drawableConfig.colorSpace);
 }
 
-void Renderer::detachWindow(Base::Window &win)
+void Renderer::detachWindow(Window &win)
 {
 	win.resetRendererData();
 	if(win.isMainWindow())
@@ -190,14 +190,14 @@ void Renderer::detachWindow(Base::Window &win)
 	}
 }
 
-bool Renderer::setDrawableConfig(Base::Window &win, DrawableConfig config)
+bool Renderer::setDrawableConfig(Window &win, DrawableConfig config)
 {
 	auto bufferConfig = makeGLBufferConfig(appContext(), config.pixelFormat, &win);
 	if(!bufferConfig) [[unlikely]]
 	{
 		return false;
 	}
-	if(winData(win).bufferConfig == *bufferConfig && winData(win).colorSpace == (Base::GLColorSpace)config.colorSpace)
+	if(winData(win).bufferConfig == *bufferConfig && winData(win).colorSpace == (GLColorSpace)config.colorSpace)
 	{
 		return true;
 	}
@@ -207,7 +207,7 @@ bool Renderer::setDrawableConfig(Base::Window &win, DrawableConfig config)
 		return false;
 	}
 	win.setFormat(config.pixelFormat);
-	return makeWindowDrawable(mainTask, win, *bufferConfig, (Base::GLColorSpace)config.colorSpace);
+	return makeWindowDrawable(mainTask, win, *bufferConfig, (GLColorSpace)config.colorSpace);
 }
 
 bool Renderer::canRenderToMultiplePixelFormats() const
@@ -229,7 +229,7 @@ void Renderer::autoReleaseShaderCompiler()
 	#endif
 }
 
-ClipRect Renderer::makeClipRect(const Base::Window &win, IG::WindowRect rect)
+ClipRect Renderer::makeClipRect(const Window &win, IG::WindowRect rect)
 {
 	int x = rect.x;
 	int y = rect.y;
@@ -239,7 +239,6 @@ ClipRect Renderer::makeClipRect(const Base::Window &win, IG::WindowRect rect)
 	// translate from view to window coordinates
 	if(!Config::SYSTEM_ROTATES_WINDOWS)
 	{
-		using namespace Base;
 		switch(win.softOrientation())
 		{
 			bcase VIEW_ROTATE_0:
@@ -279,7 +278,7 @@ bool Renderer::supportsSyncFences() const
 	return support.hasSyncFences();
 }
 
-void Renderer::setPresentationTime(Base::Window &win, IG::FrameTime time) const
+void Renderer::setPresentationTime(Window &win, IG::FrameTime time) const
 {
 	#ifdef __ANDROID__
 	if(!supportsPresentationTime())
@@ -289,7 +288,7 @@ void Renderer::setPresentationTime(Base::Window &win, IG::FrameTime time) const
 	if(Config::DEBUG_BUILD && !success)
 	{
 		logErr("error:%s in eglPresentationTimeANDROID(%p, %llu)",
-			Base::GLManager::errorString(eglGetError()), (EGLSurface)drawable, (unsigned long long)time.count());
+			GLManager::errorString(eglGetError()), (EGLSurface)drawable, (unsigned long long)time.count());
 	}
 	#endif
 }
@@ -322,18 +321,18 @@ bool Renderer::hasSrgbColorSpaceWriteControl() const
 	return support.hasSrgbWriteControl;
 }
 
-Base::ApplicationContext Renderer::appContext() const
+ApplicationContext Renderer::appContext() const
 {
 	return task().appContext();
 }
 
-GLRendererWindowData &winData(Base::Window &win)
+GLRendererWindowData &winData(Window &win)
 {
 	assumeExpr(win.rendererData<GLRendererWindowData>());
 	return *win.rendererData<GLRendererWindowData>();
 }
 
-Base::GLDisplay GLRenderer::glDisplay() const
+GLDisplay GLRenderer::glDisplay() const
 {
 	return glManager.display();
 }
@@ -359,7 +358,7 @@ std::vector<DrawableConfigDesc> Renderer::supportedDrawableConfigs() const
 	};
 	for(auto desc : testDescs)
 	{
-		if(glManager.hasDrawableConfig({desc.config.pixelFormat}, (Base::GLColorSpace)desc.config.colorSpace))
+		if(glManager.hasDrawableConfig({desc.config.pixelFormat}, (GLColorSpace)desc.config.colorSpace))
 		{
 			formats.emplace_back(desc);
 		}

@@ -25,7 +25,7 @@
 #include <imagine/base/iphone/IOSApplication.hh>
 #endif
 
-namespace Base
+namespace IG
 {
 
 class Application : public ApplicationImpl

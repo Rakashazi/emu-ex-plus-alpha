@@ -19,7 +19,7 @@
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 
-namespace Base
+namespace IG
 {
 
 void AndroidApplication::addNotification(JNIEnv *env, jobject baseActivity, const char *onShow, const char *title, const char *message)

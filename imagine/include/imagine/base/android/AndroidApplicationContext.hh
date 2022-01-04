@@ -28,7 +28,7 @@ class PixelFormat;
 class Pixmap;
 }
 
-namespace Base
+namespace IG
 {
 
 class Application;
@@ -45,7 +45,7 @@ enum SurfaceRotation : uint8_t;
 class AndroidApplicationContext
 {
 public:
-	constexpr AndroidApplicationContext() {}
+	constexpr AndroidApplicationContext() = default;
 	constexpr AndroidApplicationContext(ANativeActivity *act):act{act} {}
 	constexpr ANativeActivity *aNativeActivityPtr() const { return act; }
 	void setApplicationPtr(Application*);

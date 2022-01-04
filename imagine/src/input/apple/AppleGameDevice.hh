@@ -3,13 +3,13 @@
 #include <imagine/input/config.hh>
 #include <utility>
 
-namespace Base
+namespace IG
 {
 class ApplicationContext;
 }
 
-namespace Input
+namespace IG::Input
 {
-void initAppleGameControllers(Base::ApplicationContext);
+void initAppleGameControllers(ApplicationContext);
 std::pair<Input::Key, Input::Key> appleJoystickKeys(Input::AxisId);
 }

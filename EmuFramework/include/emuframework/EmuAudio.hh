@@ -26,6 +26,9 @@ namespace IG::Audio
 class Manager;
 }
 
+namespace EmuEx
+{
+
 class EmuAudio
 {
 public:
@@ -75,3 +78,5 @@ protected:
 	void resizeAudioBuffer(uint32_t targetBufferFillBytes);
 	const IG::Audio::Manager &audioManager() const;
 };
+
+}

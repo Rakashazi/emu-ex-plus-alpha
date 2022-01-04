@@ -26,7 +26,7 @@ class PixmapSource
 public:
 	using WriteDelegate = DelegateFunc<void(IG::Pixmap dest)>;
 
-	constexpr PixmapSource() {}
+	constexpr PixmapSource() = default;
 	constexpr PixmapSource(IG::Pixmap pix):pix{pix} {}
 	constexpr PixmapSource(WriteDelegate del, IG::Pixmap pix):
 		writeDel{del}, pix{pix} {}

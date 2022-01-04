@@ -24,7 +24,7 @@ namespace IG
 class MemPixmap : public PixmapDesc
 {
 public:
-	constexpr MemPixmap() {}
+	constexpr MemPixmap() = default;
 	MemPixmap(PixmapDesc format);
 	explicit operator bool() const;
 	Pixmap view() const;

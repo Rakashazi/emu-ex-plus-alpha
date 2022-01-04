@@ -19,14 +19,10 @@
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/jni.hh>
 
-namespace Base
+namespace IG
 {
 class ApplicationContext;
 class Application;
-}
-
-namespace IG
-{
 class PixelFormat;
 }
 
@@ -36,7 +32,7 @@ namespace IG::Data
 class BitmapFactoryImage
 {
 public:
-	constexpr BitmapFactoryImage() {}
+	constexpr BitmapFactoryImage() = default;
 	BitmapFactoryImage(JNI::LockedLocalBitmap, Pixmap);
 
 protected:
@@ -49,17 +45,17 @@ using PixmapImageImpl = BitmapFactoryImage;
 class BitmapFactoryReader
 {
 public:
-	BitmapFactoryReader(Base::ApplicationContext ctx);
+	BitmapFactoryReader(ApplicationContext ctx);
 
 protected:
-	Base::Application *appPtr{};
+	Application *appPtr{};
 	jobject baseActivity{};
 	JNI::UniqueGlobalRef jBitmapFactory{};
 	JNI::ClassMethod<jobject(jstring)> jDecodeFile{};
 	JNI::InstMethod<jobject(jstring)> jDecodeAsset{};
 	JNI::InstMethod<void()> jRecycleBitmap{};
 
-	constexpr Base::Application &app() const { return *appPtr; }
+	constexpr Application &app() const { return *appPtr; }
 };
 
 using PixmapReaderImpl = BitmapFactoryReader;
@@ -67,15 +63,15 @@ using PixmapReaderImpl = BitmapFactoryReader;
 class BitmapWriter
 {
 public:
-	BitmapWriter(Base::ApplicationContext);
+	BitmapWriter(ApplicationContext);
 
 protected:
-	Base::Application *appPtr{};
+	Application *appPtr{};
 	jobject baseActivity{};
 	JNI::InstMethod<jobject(jint, jint, jint)> jMakeBitmap;
 	JNI::InstMethod<jboolean(jobject, jobject)> jWritePNG;
 
-	constexpr Base::Application &app() const { return *appPtr; }
+	constexpr Application &app() const { return *appPtr; }
 };
 
 using PixmapWriterImpl = BitmapWriter;

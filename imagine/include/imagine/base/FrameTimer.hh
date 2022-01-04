@@ -19,7 +19,7 @@
 #include <imagine/time/Time.hh>
 #include <variant>
 
-namespace Base
+namespace IG
 {
 
 class FrameTimerI

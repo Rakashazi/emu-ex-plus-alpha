@@ -37,6 +37,9 @@
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
 
+namespace EmuEx
+{
+
 #ifdef CONFIG_BLUETOOTH
 
 BluetoothAdapter *EmuApp::bluetoothAdapter()
@@ -437,4 +440,6 @@ std::unique_ptr<View> EmuApp::makeView(ViewAttachParams attach, ViewID id)
 			bug_unreachable("Tried to make non-existing view ID:%d", (int)id);
 			return nullptr;
 	}
+}
+
 }

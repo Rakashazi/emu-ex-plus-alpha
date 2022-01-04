@@ -20,6 +20,10 @@
 #include <imagine/gui/MenuItem.hh>
 #include <vector>
 
+namespace EmuEx
+{
+
+using namespace IG;
 using RefreshCheatsDelegate = DelegateFunc<void ()>;
 
 class BaseCheatsView : public TableView, public EmuAppHelper<BaseCheatsView>
@@ -63,3 +67,5 @@ protected:
 	virtual const char *cheatNameString() const = 0;
 	virtual void renamed(const char *str) = 0;
 };
+
+}

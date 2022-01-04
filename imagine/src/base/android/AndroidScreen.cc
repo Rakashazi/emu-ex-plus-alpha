@@ -25,7 +25,7 @@
 #include "android.hh"
 #include <imagine/base/SimpleFrameTimer.hh>
 
-namespace Base
+namespace IG
 {
 
 static JNI::InstMethod<void(jboolean)> jSetListener{};
@@ -101,10 +101,10 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass b
 					jSetListener(env, displayListenerHelper, true);
 					jEnumDisplays(env, ctx.baseActivityObject(), (jlong)ctx.aNativeActivityPtr());
 					return false;
-				}, Base::SCREEN_ON_RESUME_PRIORITY);
+				}, SCREEN_ON_RESUME_PRIORITY);
 			}
 			return true;
-		}, Base::SCREEN_ON_EXIT_PRIORITY);
+		}, SCREEN_ON_EXIT_PRIORITY);
 	}
 	jEnumDisplays = {env, baseActivityClass, "enumDisplays", "(J)V"};
 	jEnumDisplays(env, baseActivity, (jlong)nActivity);

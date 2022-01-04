@@ -29,21 +29,15 @@
 
 namespace IG
 {
-class PixelFormat;
-}
-
-namespace Base
-{
-
-using namespace IG;
 
 class ApplicationContext;
 class Screen;
+class PixelFormat;
 
 class WindowConfig
 {
 public:
-	constexpr WindowConfig() {}
+	constexpr WindowConfig() = default;
 
 	void setDefaultPosition()
 	{

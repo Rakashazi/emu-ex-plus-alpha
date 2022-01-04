@@ -22,13 +22,16 @@
 #include <soundux.h>
 #endif
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
+namespace EmuEx
+{
+
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nSnes9x Team\nwww.snes9x.com";
 #if PIXEL_FORMAT == RGB565
 static constexpr auto srcPixFmt = IG::PIXEL_FMT_RGB565;
 #else
 #error "incompatible PIXEL_FORMAT value"
 #endif
-Base::ApplicationContext appCtx{};
+IG::ApplicationContext appCtx{};
 static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
 static const unsigned heightChangeFrameDelay = 4;
@@ -64,40 +67,6 @@ const char *EmuSystem::systemName()
 	return "Super Famicom (SNES)";
 }
 
-#ifndef SNES9X_VERSION_1_4
-bool8 S9xDeinitUpdate (int width, int height)
-#else
-bool8 S9xDeinitUpdate(int width, int height, bool8)
-#endif
-{
-	assumeExpr(emuVideo);
-	if(height == 239 && emuVideo->size().y == 224 && heightChangeFrames) [[unlikely]]
-	{
-		// ignore rapid 224 -> 239 -> 224 height changes
-		//logMsg("skipped height change");
-		heightChangeFrames--;
-		height = 224;
-	}
-	else
-	{
-		heightChangeFrames = heightChangeFrameDelay;
-	}
-	IG::Pixmap srcPix{{{width, height}, srcPixFmt}, GFX.Screen};
-	emuVideo->startFrameWithAltFormat(emuSysTask, srcPix);
-	#ifndef SNES9X_VERSION_1_4
-	memset(GFX.ZBuffer, 0, GFX.ScreenSize);
-	memset(GFX.SubZBuffer, 0, GFX.ScreenSize);
-	#endif
-	return true;
-}
-
-#ifndef SNES9X_VERSION_1_4
-bool8 S9xContinueUpdate(int width, int height)
-{
-	return S9xDeinitUpdate(width, height);
-}
-#endif
-
 void EmuSystem::renderFramebuffer(EmuVideo &video)
 {
 	IG::Pixmap srcPix{{video.image().size(), srcPixFmt}, GFX.Screen};
@@ -130,12 +99,12 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 
 #undef FREEZE_EXT
 
-static FS::PathString sramFilename(Base::ApplicationContext ctx)
+static FS::PathString sramFilename(IG::ApplicationContext ctx)
 {
 	return EmuSystem::contentSaveFilePath(ctx, ".srm");
 }
 
-static FS::PathString cheatsFilename(Base::ApplicationContext ctx)
+static FS::PathString cheatsFilename(IG::ApplicationContext ctx)
 {
 	return EmuSystem::contentSaveFilePath(ctx, ".cht");
 }
@@ -156,7 +125,7 @@ void EmuSystem::loadState(IG::CStringView path)
 		return throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
+void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
 {
 	if(gameIsRunning())
 	{
@@ -175,12 +144,7 @@ void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 	}
 }
 
-void S9xAutoSaveSRAM (void)
-{
-	EmuSystem::saveBackupMem(appCtx);
-}
-
-void EmuSystem::closeSystem(Base::ApplicationContext ctx)
+void EmuSystem::closeSystem(IG::ApplicationContext ctx)
 {
 	saveBackupMem(ctx);
 }
@@ -189,7 +153,7 @@ bool EmuSystem::vidSysIsPAL() { return Settings.PAL; }
 unsigned EmuSystem::multiresVideoBaseX() { return 256; }
 unsigned EmuSystem::multiresVideoBaseY() { return 239; }
 
-void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto size = io.size();
 	if(size > CMemory::MAX_ROM_SIZE + 512)
@@ -310,7 +274,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(IG::ApplicationContext ctx)
 {
 	appCtx = ctx;
 	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
@@ -332,4 +296,46 @@ void EmuSystem::onInit(Base::ApplicationContext ctx)
 	assert(Settings.H_Max == SNES_CYCLES_PER_SCANLINE);
 	assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
 	#endif
+}
+
+}
+
+#ifndef SNES9X_VERSION_1_4
+bool8 S9xDeinitUpdate (int width, int height)
+#else
+bool8 S9xDeinitUpdate(int width, int height, bool8)
+#endif
+{
+	using namespace EmuEx;
+	assumeExpr(emuVideo);
+	if(height == 239 && emuVideo->size().y == 224 && heightChangeFrames) [[unlikely]]
+	{
+		// ignore rapid 224 -> 239 -> 224 height changes
+		//logMsg("skipped height change");
+		heightChangeFrames--;
+		height = 224;
+	}
+	else
+	{
+		heightChangeFrames = heightChangeFrameDelay;
+	}
+	IG::Pixmap srcPix{{{width, height}, srcPixFmt}, GFX.Screen};
+	emuVideo->startFrameWithAltFormat(emuSysTask, srcPix);
+	#ifndef SNES9X_VERSION_1_4
+	memset(GFX.ZBuffer, 0, GFX.ScreenSize);
+	memset(GFX.SubZBuffer, 0, GFX.ScreenSize);
+	#endif
+	return true;
+}
+
+#ifndef SNES9X_VERSION_1_4
+bool8 S9xContinueUpdate(int width, int height)
+{
+	return S9xDeinitUpdate(width, height);
+}
+#endif
+
+void S9xAutoSaveSRAM (void)
+{
+	EmuEx::EmuSystem::saveBackupMem(EmuEx::appCtx);
 }

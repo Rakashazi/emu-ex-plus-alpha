@@ -23,9 +23,12 @@ extern "C"
 	#include "joyport.h"
 }
 
+namespace EmuEx
+{
+
 enum
 {
-	c64KeyIdxUp = EmuControls::systemKeyMapStart,
+	c64KeyIdxUp = EmuEx::Controls::systemKeyMapStart,
 	c64KeyIdxRight,
 	c64KeyIdxDown,
 	c64KeyIdxLeft,
@@ -482,8 +485,26 @@ void EmuSystem::onVKeyboardShown(VControllerKeyboard &kb, bool shown)
 	}
 }
 
+void setJoystickMode(JoystickMode mode)
+{
+	optionSwapJoystickPorts = mode;
+	if(mode == JoystickMode::KEYBOARD)
+	{
+		setIntResource("JoyPort1Device", JOYPORT_ID_NONE);
+		setIntResource("JoyPort2Device", JOYPORT_ID_NONE);
+	}
+	else
+	{
+		setIntResource("JoyPort1Device", JOYPORT_ID_JOYSTICK);
+		setIntResource("JoyPort2Device", JOYPORT_ID_JOYSTICK);
+	}
+}
+
+}
+
 signed long kbd_arch_keyname_to_keynum(char *keynamePtr)
 {
+	using namespace EmuEx;
 	//logMsg("kbd_arch_keyname_to_keynum(%s)", keyname);
 	std::string_view keyname{keynamePtr};
 	if(keyname == "F1") { return c64KeyF1; }
@@ -574,19 +595,4 @@ signed long kbd_arch_keyname_to_keynum(char *keynamePtr)
 	else if(keyname == "bar") { return shiftedPound; }
 	//logWarn("unknown keyname:%s", keyname.data());
 	return 0;
-}
-
-void setJoystickMode(JoystickMode mode)
-{
-	optionSwapJoystickPorts = mode;
-	if(mode == JoystickMode::KEYBOARD)
-	{
-		setIntResource("JoyPort1Device", JOYPORT_ID_NONE);
-		setIntResource("JoyPort2Device", JOYPORT_ID_NONE);
-	}
-	else
-	{
-		setIntResource("JoyPort1Device", JOYPORT_ID_JOYSTICK);
-		setIntResource("JoyPort2Device", JOYPORT_ID_JOYSTICK);
-	}
 }

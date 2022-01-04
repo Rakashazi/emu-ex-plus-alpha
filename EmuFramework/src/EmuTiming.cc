@@ -18,6 +18,9 @@
 #include <imagine/logger/logger.h>
 #include <cmath>
 
+namespace EmuEx
+{
+
 EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(IG::FrameTime time)
 {
 	if(!startFrameTime.count()) [[unlikely]]
@@ -65,4 +68,6 @@ void EmuTiming::updateScaledFrameTime()
 		timePerVideoFrameScaled = timePerVideoFrame / speed;
 	else
 		timePerVideoFrameScaled = timePerVideoFrame;
+}
+
 }

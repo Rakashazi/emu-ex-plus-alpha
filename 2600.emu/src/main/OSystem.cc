@@ -34,7 +34,7 @@
 #include <emuframework/EmuApp.hh>
 #undef Debugger
 
-OSystem::OSystem(EmuApp &app):
+OSystem::OSystem(EmuEx::EmuApp &app):
 	appPtr{&app}
 {
 	mySettings = std::make_unique<Settings>();
@@ -109,22 +109,22 @@ void OSystem::setResampleQuality(AudioSettings::ResamplingQuality quality)
 	mySound->setResampleQuality(quality);
 }
 
-void OSystem::processAudio(EmuAudio *audio)
+void OSystem::processAudio(EmuEx::EmuAudio *audio)
 {
 	mySound->processAudio(*this, audio);
 }
 
 FilesystemNode OSystem::stateDir() const
 {
-	return FilesystemNode{std::string{EmuSystem::contentSaveDirectory()}};
+	return FilesystemNode{std::string{EmuEx::EmuSystem::contentSaveDirectory()}};
 }
 
 FilesystemNode OSystem::nvramDir(std::string_view name) const
 {
-	return FilesystemNode{std::string{EmuSystem::contentSaveFilePath(appPtr->appContext(), name)}};
+	return FilesystemNode{std::string{EmuEx::EmuSystem::contentSaveFilePath(appPtr->appContext(), name)}};
 }
 
-EmuApp &OSystem::app()
+EmuEx::EmuApp &OSystem::app()
 {
 	return *appPtr;
 }

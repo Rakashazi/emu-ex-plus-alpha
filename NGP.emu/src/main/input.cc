@@ -17,9 +17,12 @@
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 enum
 {
-	ngpKeyIdxUp = EmuControls::systemKeyMapStart,
+	ngpKeyIdxUp = Controls::systemKeyMapStart,
 	ngpKeyIdxRight,
 	ngpKeyIdxDown,
 	ngpKeyIdxLeft,
@@ -91,4 +94,6 @@ void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKe
 void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	inputBuff = {};
+}
+
 }

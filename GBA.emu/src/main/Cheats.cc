@@ -23,6 +23,9 @@
 #include <gba/Cheats.h>
 static bool cheatsModified = false;
 
+namespace EmuEx
+{
+
 EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
@@ -93,7 +96,7 @@ void EmuEditCheatListView::loadCheatItems()
 
 void EmuEditCheatListView::addNewCheat(int isGSv3)
 {
-	if(cheatsList.size() == EmuCheats::MAX)
+	if(cheatsList.size() == cheatsList.capacity())
 	{
 		app().postMessage(true, "Too many cheats, delete some first");
 		return;
@@ -213,7 +216,7 @@ EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 	loadCheatItems();
 }
 
-void writeCheatFile(Base::ApplicationContext ctx)
+void writeCheatFile(IG::ApplicationContext ctx)
 {
 	if(!cheatsModified)
 		return;
@@ -231,11 +234,13 @@ void writeCheatFile(Base::ApplicationContext ctx)
 	cheatsModified = false;
 }
 
-void readCheatFile(Base::ApplicationContext ctx)
+void readCheatFile(IG::ApplicationContext ctx)
 {
 	auto filename = EmuSystem::contentSaveFilePath(ctx, ".clt");
 	if(cheatsLoadCheatList(ctx, filename.data()))
 	{
 		logMsg("loaded cheat file: %s", filename.data());
 	}
+}
+
 }

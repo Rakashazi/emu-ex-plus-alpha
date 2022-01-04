@@ -19,7 +19,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 
-namespace Base
+namespace IG
 {
 
 void FrameTimerI::cancel() {}

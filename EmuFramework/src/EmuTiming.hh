@@ -17,6 +17,9 @@
 
 #include <imagine/time/Time.hh>
 
+namespace EmuEx
+{
+
 struct EmuFrameTimeInfo
 {
 	uint32_t advanced;
@@ -40,3 +43,5 @@ protected:
 
 	void updateScaledFrameTime();
 };
+
+}

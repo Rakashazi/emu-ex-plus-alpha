@@ -63,7 +63,7 @@ GB::~GB() {
 
 std::ptrdiff_t GB::runFor(gambatte::uint_least32_t *const videoBuf, std::ptrdiff_t const pitch,
                           gambatte::uint_least32_t *const soundBuf, std::size_t &samples,
-													DelegateFunc<void()> videoFrameCallback) {
+													IG::DelegateFunc<void()> videoFrameCallback) {
 	if (!p_->cpu.loaded()) {
 		samples = 0;
 		return -1;

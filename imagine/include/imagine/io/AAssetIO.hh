@@ -22,10 +22,13 @@
 
 struct AAsset;
 
-namespace Base
+namespace IG
 {
 class ApplicationContext;
 }
+
+namespace IG
+{
 
 class AAssetIO : public IO
 {
@@ -43,12 +46,12 @@ public:
 	using IO::get;
 
 	constexpr AAssetIO() = default;
-	AAssetIO(Base::ApplicationContext, IG::CStringView name, AccessHint, OpenFlags oFlags = {});
-	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) final;
+	AAssetIO(ApplicationContext, IG::CStringView name, AccessHint, OpenFlags oFlags = {});
+	ssize_t read(void *buff, size_t bytes) final;
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset) final;
 	std::span<uint8_t> map() final;
-	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
-	off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) final;
+	ssize_t write(const void *buff, size_t bytes) final;
+	off_t seek(off_t offset, SeekMode mode) final;
 	size_t size() final;
 	bool eof() final;
 	explicit operator bool() const final;
@@ -71,3 +74,5 @@ protected:
 	bool makeMapIO();
 	static void closeAAsset(AAsset *);
 };
+
+}

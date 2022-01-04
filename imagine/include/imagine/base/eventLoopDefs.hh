@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/DelegateFunc.hh>
 
-namespace Base
+namespace IG
 {
 
 using PollEventDelegate = DelegateFunc<bool (int fd, int event)>;

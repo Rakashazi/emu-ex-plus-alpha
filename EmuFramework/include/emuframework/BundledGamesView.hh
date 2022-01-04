@@ -19,6 +19,11 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 
+namespace EmuEx
+{
+
+using namespace IG;
+
 class BundledGamesView : public TableView, public EmuAppHelper<BundledGamesView>
 {
 public:
@@ -27,3 +32,5 @@ public:
 private:
 	TextMenuItem game[1]{};
 };
+
+}

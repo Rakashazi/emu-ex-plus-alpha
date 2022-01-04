@@ -24,7 +24,7 @@ namespace IG
 class FontSettings
 {
 public:
-	constexpr FontSettings() {}
+	constexpr FontSettings() = default;
 	constexpr FontSettings(int pixelWidth, int pixelHeight) : pixWidth{pixelWidth}, pixHeight{pixelHeight} {}
 	constexpr FontSettings(int pixelHeight) : FontSettings{0, pixelHeight} {}
 	operator bool() const;

@@ -38,7 +38,7 @@
 #include <pthread.h>
 #endif
 
-namespace Base
+namespace IG
 {
 
 const char *orientationToStr(Orientation o)

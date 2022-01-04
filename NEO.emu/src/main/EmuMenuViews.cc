@@ -36,6 +36,9 @@ extern "C"
 	#include <gngeo/memory.h>
 }
 
+namespace EmuEx
+{
+
 class ConsoleOptionView : public TableView
 {
 	TextMenuItem timerItem[3]
@@ -699,4 +702,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		default: return nullptr;
 	}
+}
+
 }

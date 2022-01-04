@@ -19,7 +19,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureSamplerConfig.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererTask;
@@ -35,7 +35,7 @@ struct SamplerParams
 class GLTextureSampler
 {
 public:
-	constexpr GLTextureSampler() {}
+	constexpr GLTextureSampler() = default;
 	GLTextureSampler(RendererTask &rTask, TextureSamplerConfig config);
 	~GLTextureSampler();
 	static void setTexParamsInGL(GLenum target, SamplerParams params);

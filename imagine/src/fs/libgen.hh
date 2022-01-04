@@ -24,7 +24,7 @@
 #include <libgen.h>
 #endif
 
-namespace FS
+namespace IG::FS
 {
 
 static auto basenameImpl(const char *path)

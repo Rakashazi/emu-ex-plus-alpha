@@ -21,8 +21,11 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/int.hh>
 
+namespace EmuEx
+{
+
 CreditsView::CreditsView(ViewAttachParams attach, IG::utf16String str):
-	View{appViewTitle(), attach},
+	View{attach},
 	text{std::move(str), &defaultFace()},
 	animate
 	{
@@ -45,7 +48,7 @@ void CreditsView::prepareDraw()
 
 void CreditsView::draw(Gfx::RendererCommands &cmds)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	cmds.setColor(1., 1., 1., fade);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
 	auto textRect = viewRect();
@@ -73,4 +76,11 @@ bool CreditsView::inputEvent(Input::Event e)
 CreditsView::~CreditsView()
 {
 	window().removeOnFrame(animate);
+}
+
+std::u16string_view CreditsView::name() const
+{
+	return appViewTitle();
+}
+
 }

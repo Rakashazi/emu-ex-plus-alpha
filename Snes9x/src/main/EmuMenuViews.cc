@@ -11,6 +11,9 @@
 #include <snes9x.h>
 #include <imagine/util/format.hh>
 
+namespace EmuEx
+{
+
 static constexpr bool HAS_NSRT = !IS_SNES9X_VERSION_1_4;
 
 #ifndef SNES9X_VERSION_1_4
@@ -260,4 +263,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;
 	}
+}
+
 }

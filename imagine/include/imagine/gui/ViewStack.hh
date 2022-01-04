@@ -20,6 +20,9 @@
 #include <imagine/gui/NavView.hh>
 #include <vector>
 
+namespace IG
+{
+
 class BasicViewController : public ViewController
 {
 public:
@@ -109,3 +112,5 @@ protected:
 	bool navViewIsActive() const;
 	void popViews(int num);
 };
+
+}

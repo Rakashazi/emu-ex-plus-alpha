@@ -30,12 +30,15 @@
 #include <mednafen/ngp/neopop.h>
 #include <mednafen/ngp/flash.h>
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
+namespace EmuEx
+{
+
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nNeoPop Team\nwww.nih.at";
 static const unsigned vidBufferX = 160, vidBufferY = 152;
 alignas(8) static uint32_t pixBuff[vidBufferX*vidBufferY]{};
 static IG::Pixmap mSurfacePix;
 uint8_t inputBuff{};
-Base::ApplicationContext appCtx{};
+IG::ApplicationContext appCtx{};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
@@ -87,38 +90,18 @@ void EmuSystem::loadState(IG::CStringView path)
 		throwFileReadError();
 }
 
-static FS::PathString sprintSaveFilename(Base::ApplicationContext ctx)
+static FS::PathString saveFilename(IG::ApplicationContext ctx)
 {
 	return EmuSystem::contentSaveFilePath(ctx, ".ngf");
 }
 
-namespace MDFN_IEN_NGP
-{
-
-bool system_io_flash_read(uint8_t* buffer, uint32_t len)
-{
-	auto saveStr = sprintSaveFilename(appCtx);
-	return FileUtils::readFromUri(appCtx, saveStr, {buffer, len}) > 0;
-}
-
-void system_io_flash_write(uint8_t* buffer, uint32 len)
-{
-	if(!len)
-		return;
-	auto saveStr = sprintSaveFilename(appCtx);
-	logMsg("writing flash %s", saveStr.data());
-	FileUtils::writeToUri(appCtx, saveStr, {buffer, len}) != -1;
-}
-
-}
-
-void EmuSystem::saveBackupMem(Base::ApplicationContext)
+void EmuSystem::saveBackupMem(IG::ApplicationContext)
 {
 	logMsg("saving flash");
 	MDFN_IEN_NGP::FLASH_SaveNV();
 }
 
-void EmuSystem::closeSystem(Base::ApplicationContext)
+void EmuSystem::closeSystem(IG::ApplicationContext)
 {
 	emuSys->CloseGame();
 }
@@ -205,16 +188,6 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	}
 }
 
-namespace Mednafen
-{
-
-void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
-{
-	espec->video->startFrameWithFormat(espec->taskCtx, mSurfacePix);
-}
-
-}
-
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
@@ -228,7 +201,41 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(IG::ApplicationContext ctx)
 {
 	appCtx = ctx;
+}
+
+}
+
+namespace MDFN_IEN_NGP
+{
+
+bool system_io_flash_read(uint8_t* buffer, uint32_t len)
+{
+	using namespace EmuEx;
+	auto saveStr = saveFilename(appCtx);
+	return IG::FileUtils::readFromUri(appCtx, saveStr, {buffer, len}) > 0;
+}
+
+void system_io_flash_write(uint8_t* buffer, uint32 len)
+{
+	using namespace EmuEx;
+	if(!len)
+		return;
+	auto saveStr = saveFilename(appCtx);
+	logMsg("writing flash %s", saveStr.data());
+	IG::FileUtils::writeToUri(appCtx, saveStr, {buffer, len}) != -1;
+}
+
+}
+
+namespace Mednafen
+{
+
+void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
+{
+	espec->video->startFrameWithFormat(espec->taskCtx, EmuEx::mSurfacePix);
+}
+
 }

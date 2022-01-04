@@ -33,11 +33,14 @@
 #include <meta.h>
 #include <memory>
 
+namespace FrameRateTest
+{
+
 static constexpr unsigned framesToRun = 60*60;
 
 struct WindowData
 {
-	WindowData(ViewAttachParams attachParams):picker{attachParams} {}
+	WindowData(IG::ViewAttachParams attachParams):picker{attachParams} {}
 
 	Gfx::Projection proj{};
 	IG::WindowRect testRectWin{};
@@ -46,22 +49,22 @@ struct WindowData
 	std::unique_ptr<TestFramework> activeTest{};
 };
 
-static WindowData &windowData(const Base::Window &win)
+static WindowData &windowData(const IG::Window &win)
 {
 	return *win.appData<WindowData>();
 }
 
-FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams initParams,
-	Base::ApplicationContext &ctx):
+FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams initParams,
+	IG::ApplicationContext &ctx):
 	Application{initParams},
 	fontManager{ctx},
 	renderer{ctx}
 {
-	Base::WindowConfig winConf;
+	IG::WindowConfig winConf;
 	winConf.setTitle(ctx.applicationName);
 
 	ctx.makeWindow(winConf,
-		[this](Base::ApplicationContext ctx, Base::Window &win)
+		[this](IG::ApplicationContext ctx, IG::Window &win)
 		{
 			renderer.initMainTask(&win);
 			viewManager = {renderer};
@@ -69,7 +72,7 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 			defaultFace.precacheAlphaNum(renderer);
 			defaultFace.precache(renderer, ":.%()");
 			viewManager.setDefaultFace(std::move(defaultFace));
-			auto &winData = win.makeAppData<WindowData>(ViewAttachParams{viewManager, win, renderer.task()});
+			auto &winData = win.makeAppData<WindowData>(IG::ViewAttachParams{viewManager, win, renderer.task()});
 			std::vector<TestDesc> testDesc;
 			testDesc.emplace_back(TEST_CLEAR, "Clear");
 			IG::WP pixmapSize{256, 256};
@@ -85,7 +88,7 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 			setPickerHandlers(win);
 
 			win.setOnSurfaceChange(
-				[this](Base::Window &win, Base::Window::SurfaceChange change)
+				[this](IG::Window &win, IG::Window::SurfaceChange change)
 				{
 					auto &winData = windowData(win);
 					renderer.task().updateDrawableForSurfaceChange(win, change);
@@ -100,7 +103,7 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 				});
 
 			win.setOnInputEvent(
-				[this](Base::Window &win, Input::Event e)
+				[this](IG::Window &win, IG::Input::Event e)
 				{
 					auto &activeTest = windowData(win).activeTest;
 					if(!activeTest)
@@ -118,7 +121,7 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 						activeTest->shouldEndTest = true;
 						return true;
 					}
-					else if(e.pushed(Input::Keycode::D))
+					else if(e.pushed(IG::Input::Keycode::D))
 					{
 						logMsg("posting extra draw");
 						win.postDraw();
@@ -127,7 +130,7 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 				});
 
 			ctx.addOnResume(
-				[this, &win](Base::ApplicationContext, bool focused)
+				[this, &win](IG::ApplicationContext, bool focused)
 				{
 					windowData(win).picker.prepareDraw();
 					auto &activeTest = windowData(win).activeTest;
@@ -139,7 +142,7 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 				});
 
 			ctx.addOnExit(
-				[this, &win](Base::ApplicationContext ctx, bool backgrounded)
+				[this, &win](IG::ApplicationContext ctx, bool backgrounded)
 				{
 					if(backgrounded)
 					{
@@ -168,14 +171,14 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 	#endif
 }
 
-void FrameRateTestApplication::setPickerHandlers(Base::Window &win)
+void FrameRateTestApplication::setPickerHandlers(IG::Window &win)
 {
 	win.setOnDraw(
-		[&task = renderer.task()](Base::Window &win, Base::Window::DrawParams params)
+		[&task = renderer.task()](IG::Window &win, IG::Window::DrawParams params)
 		{
 			auto &winData = windowData(win);
 			return task.draw(win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
-				[&picker = winData.picker](Base::Window &win, Gfx::RendererCommands &cmds)
+				[&picker = winData.picker](IG::Window &win, Gfx::RendererCommands &cmds)
 				{
 					cmds.clear();
 					picker.draw(cmds);
@@ -185,9 +188,9 @@ void FrameRateTestApplication::setPickerHandlers(Base::Window &win)
 		});
 }
 
-void FrameRateTestApplication::setActiveTestHandlers(Base::Window &win)
+void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 {
-	win.addOnFrame([this, &win](Base::FrameParams params)
+	win.addOnFrame([this, &win](IG::FrameParams params)
 		{
 			auto atOnFrame = IG::steadyClockTimestamp();
 			renderer.setPresentationTime(win, params.presentTime());
@@ -214,13 +217,13 @@ void FrameRateTestApplication::setActiveTestHandlers(Base::Window &win)
 			}
 		});
 	win.setOnDraw(
-		[this, &task = renderer.task()](Base::Window &win, Base::Window::DrawParams params)
+		[this, &task = renderer.task()](IG::Window &win, IG::Window::DrawParams params)
 		{
 			auto &winData = windowData(win);
 			auto xIndent = viewManager.tableXIndent();
 			return task.draw(win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
 				[rect = winData.testRectWin, &activeTest = windowData(win).activeTest, xIndent]
-				(Base::Window &win, Gfx::RendererCommands &cmds)
+				(IG::Window &win, Gfx::RendererCommands &cmds)
 				{
 					activeTest->draw(cmds, cmds.renderer().makeClipRect(win, rect), xIndent);
 					activeTest->lastFramePresentTime.atWinPresent = IG::steadyClockTimestamp();
@@ -230,7 +233,7 @@ void FrameRateTestApplication::setActiveTestHandlers(Base::Window &win)
 		});
 }
 
-void FrameRateTestApplication::placeElements(const Base::Window &win)
+void FrameRateTestApplication::placeElements(const IG::Window &win)
 {
 	auto &winData = windowData(win);
 	auto &picker = winData.picker;
@@ -248,7 +251,7 @@ void FrameRateTestApplication::placeElements(const Base::Window &win)
 	}
 }
 
-void FrameRateTestApplication::finishTest(Base::Window &win, IG::FrameTime frameTime)
+void FrameRateTestApplication::finishTest(IG::Window &win, IG::FrameTime frameTime)
 {
 	auto app = win.appContext();
 	auto &activeTest = windowData(win).activeTest;
@@ -271,7 +274,7 @@ void FrameRateTestApplication::finishTest(Base::Window &win, IG::FrameTime frame
 	win.postDraw();
 }
 
-TestFramework *FrameRateTestApplication::startTest(Base::Window &win, const TestParams &t)
+TestFramework *FrameRateTestApplication::startTest(IG::Window &win, const TestParams &t)
 {
 	auto &face = viewManager.defaultFace();
 	auto app = win.appContext();
@@ -300,14 +303,16 @@ TestFramework *FrameRateTestApplication::startTest(Base::Window &win, const Test
 	return activeTest.get();
 }
 
-namespace Base
+}
+
+namespace IG
 {
 
 const char *const ApplicationContext::applicationName{CONFIG_APP_NAME};
 
 void ApplicationContext::onInit(ApplicationInitParams initParams)
 {
-	initApplication<FrameRateTestApplication>(initParams, *this);
+	initApplication<FrameRateTest::FrameRateTestApplication>(initParams, *this);
 }
 
 }

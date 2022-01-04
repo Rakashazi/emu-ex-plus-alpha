@@ -25,7 +25,7 @@
 #include <span>
 #include <string_view>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererTask;

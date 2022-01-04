@@ -21,6 +21,9 @@
 #include "internal.hh"
 #include <resample/resamplerinfo.h>
 
+namespace EmuEx
+{
+
 static constexpr unsigned MAX_RESAMPLERS = 4;
 
 class CustomAudioOptionView : public AudioOptionView
@@ -181,4 +184,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;
 	}
+}
+
 }

@@ -19,13 +19,16 @@
 #include <imagine/input/Input.hh>
 #include <imagine/base/Error.hh>
 
+namespace IG
+{
+
 struct IControlPad : public BluetoothInputDevice
 {
 public:
 	static const uint8_t btClass[3];
 
-	IControlPad(Base::ApplicationContext, BluetoothAddr);
-	IG::ErrorCode open(BluetoothAdapter &adapter) final;
+	IControlPad(ApplicationContext, BluetoothAddr);
+	ErrorCode open(BluetoothAdapter &adapter) final;
 	void close();
 	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
 	bool dataHandler(const char *packet, size_t size);
@@ -58,3 +61,5 @@ private:
 
 	void processBtnReport(const char *btnData, Input::Time time);
 };
+
+}

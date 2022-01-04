@@ -20,7 +20,7 @@
 #include <semaphore>
 #include <thread>
 
-namespace Base
+namespace IG
 {
 
 class Screen;
@@ -40,7 +40,7 @@ public:
 	}
 
 private:
-	Base::FDEventSource fdSrc{};
+	FDEventSource fdSrc{};
 	std::thread thread{};
 	std::binary_semaphore sem{0};
 	bool requested{};

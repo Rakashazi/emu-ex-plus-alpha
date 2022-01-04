@@ -26,7 +26,7 @@
 #import <UIKit/UIKit.h>
 #endif
 
-namespace Base
+namespace IG
 {
 
 struct NativeWindowFormat {};

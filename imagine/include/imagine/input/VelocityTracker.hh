@@ -21,7 +21,7 @@
 #include <chrono>
 #include <array>
 
-namespace Input
+namespace IG::Input
 {
 
 template <IG::floating_point T, uint32_t D>
@@ -31,7 +31,7 @@ public:
 	using TimeType = std::chrono::nanoseconds;
 	using ValArray = std::array<T, D>;
 
-	constexpr IntegratingVelocityTracker() {}
+	constexpr IntegratingVelocityTracker() = default;
 	constexpr IntegratingVelocityTracker(TimeType time, std::array<T, D> pos): updateTime{time}, pos{pos} {}
 
 	void update(TimeType time, std::array<T, D> pos_)

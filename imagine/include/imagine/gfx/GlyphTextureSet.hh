@@ -21,9 +21,12 @@
 #include <imagine/util/container/VMemArray.hh>
 #include <system_error>
 
+namespace IG
+{
 class GenericIO;
+}
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Renderer;
@@ -35,7 +38,6 @@ struct GlyphEntry
 	Gfx::PixmapTexture glyph_{};
 	IG::GlyphMetrics metrics{};
 
-	constexpr GlyphEntry() {}
 	constexpr const Gfx::PixmapTexture &glyph() const { return glyph_; }
 };
 
@@ -44,7 +46,7 @@ class GlyphTextureSet
 public:
 	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
 
-	constexpr GlyphTextureSet() {}
+	constexpr GlyphTextureSet() = default;
 	GlyphTextureSet(Renderer &, IG::Font, IG::FontSettings);
 	IG::FontSettings fontSettings() const;
 	bool setFontSettings(Renderer &r, IG::FontSettings set);

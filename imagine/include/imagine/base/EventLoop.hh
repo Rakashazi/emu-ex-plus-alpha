@@ -28,7 +28,7 @@
 
 #include <imagine/base/eventLoopDefs.hh>
 
-namespace Base
+namespace IG
 {
 
 class EventLoop : public EventLoopImpl
@@ -36,7 +36,7 @@ class EventLoop : public EventLoopImpl
 public:
 	using EventLoopImpl::EventLoopImpl;
 
-	constexpr EventLoop() {}
+	constexpr EventLoop() = default;
 	static EventLoop forThread();
 	static EventLoop makeForThread();
 	void run();

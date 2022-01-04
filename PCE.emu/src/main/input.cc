@@ -17,9 +17,12 @@
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 enum
 {
-	pceKeyIdxUp = EmuControls::systemKeyMapStart,
+	pceKeyIdxUp = Controls::systemKeyMapStart,
 	pceKeyIdxRight,
 	pceKeyIdxDown,
 	pceKeyIdxLeft,
@@ -75,9 +78,9 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	assert(input >= pceKeyIdxUp);
-	unsigned player = (input - pceKeyIdxUp) / EmuControls::gamepadKeys;
+	unsigned player = (input - pceKeyIdxUp) / Controls::gamepadKeys;
 	unsigned playerMask = player << playerBit;
-	input -= EmuControls::gamepadKeys * player;
+	input -= Controls::gamepadKeys * player;
 	using namespace IG;
 	switch(input)
 	{
@@ -126,4 +129,6 @@ void set6ButtonPadEnabled(EmuApp &app, bool on)
 	static constexpr std::pair<int, bool> enable6Btn[]{{0, true}, {3, true}, {4, true}, {5, true}};
 	static constexpr std::pair<int, bool> disable6Btn[]{{0, false}, {3, false}, {4, false}, {5, false}};
 	app.applyEnabledFaceButtons(on ? enable6Btn : disable6Btn);
+}
+
 }

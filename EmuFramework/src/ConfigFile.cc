@@ -23,6 +23,9 @@
 #include <imagine/input/config.hh>
 #include <imagine/util/ScopeGuard.hh>
 
+namespace EmuEx
+{
+
 static constexpr unsigned KEY_CONFIGS_HARD_LIMIT = 256;
 static constexpr unsigned INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
 
@@ -382,7 +385,7 @@ void EmuApp::saveConfigFile(IO &io)
 	EmuSystem::writeConfig(io);
 }
 
-EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
+EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 {
 	auto configFilePath = FS::pathString(ctx.supportPath(), "config");
 	// move config files from old locations
@@ -448,7 +451,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 					readStringOptionValue<FS::PathString>(io, size,
 						[&](auto &path)
 						{
-							if(ctx.permissionIsRestricted(Base::Permission::WRITE_EXT_STORAGE) && path[0] == '/')
+							if(ctx.permissionIsRestricted(IG::Permission::WRITE_EXT_STORAGE) && path[0] == '/')
 							{
 								logWarn("not restoring content dir due to storage permission restriction");
 								return;
@@ -521,7 +524,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 					readStringOptionValue<FS::PathString>(io, size,
 						[&](auto &path)
 						{
-							if(ctx.permissionIsRestricted(Base::Permission::WRITE_EXT_STORAGE) && path[0] == '/')
+							if(ctx.permissionIsRestricted(IG::Permission::WRITE_EXT_STORAGE) && path[0] == '/')
 							{
 								logWarn("not restoring save dir due to storage permission restriction");
 								return;
@@ -678,7 +681,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 	return appConfig;
 }
 
-void EmuApp::saveConfigFile(Base::ApplicationContext ctx)
+void EmuApp::saveConfigFile(IG::ApplicationContext ctx)
 {
 	auto configFilePath = FS::pathString(ctx.supportPath(), "config");
 	try
@@ -689,4 +692,6 @@ void EmuApp::saveConfigFile(Base::ApplicationContext ctx)
 	{
 		logErr("error writing config file");
 	}
+}
+
 }

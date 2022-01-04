@@ -17,7 +17,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/util/math/Point2D.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 IG::WindowRect Viewport::relRectFromViewport(int newX, int newY, int xSize, int ySize, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
@@ -64,7 +64,7 @@ Viewport Viewport::makeFromRect(IG::WindowRect fullRect, IG::WindowRect fullReal
 	return v;
 }
 
-Viewport Viewport::makeFromWindow(const Base::Window &win, IG::WindowRect rect)
+Viewport Viewport::makeFromWindow(const Window &win, IG::WindowRect rect)
 {
 	Viewport v;
 	v.rect = rect;
@@ -85,7 +85,7 @@ Viewport Viewport::makeFromWindow(const Base::Window &win, IG::WindowRect rect)
 	return v;
 }
 
-Viewport Viewport::makeFromWindow(const Base::Window &win)
+Viewport Viewport::makeFromWindow(const Window &win)
 {
 	return makeFromWindow(win, win.contentBounds());
 }

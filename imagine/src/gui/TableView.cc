@@ -26,6 +26,9 @@
 #include <imagine/util/math/int.hh>
 #include <imagine/logger/logger.h>
 
+namespace IG
+{
+
 TableView::TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
 	ScrollView{attach}, items{items}, item{item}
 {}
@@ -82,7 +85,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 	int cells_ = items(*this);
 	if(!cells_)
 		return;
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	auto y = viewRect().yPos(LT2DO);
 	auto x = viewRect().xPos(LT2DO);
 	int startYCell = std::min(scrollOffset() / yCellSize, cells_);
@@ -280,7 +283,6 @@ IG::WindowRect TableView::focusRect()
 
 int TableView::nextSelectableElement(int start, int items)
 {
-	using namespace IG;
 	int elem = wrapMinMax(start, 0, items);
 	iterateTimes(items, i)
 	{
@@ -295,7 +297,6 @@ int TableView::nextSelectableElement(int start, int items)
 
 int TableView::prevSelectableElement(int start, int items)
 {
-	using namespace IG;
 	int elem = wrapMinMax(start, 0, items);
 	iterateTimes(items, i)
 	{
@@ -310,7 +311,6 @@ int TableView::prevSelectableElement(int start, int items)
 
 bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 {
-	using namespace IG;
 	int cells_ = items(*this);
 	if(!cells_)
 	{
@@ -502,4 +502,11 @@ void TableView::onSelectElement(Input::Event e, size_t i, MenuItem &item)
 bool TableView::elementIsSelectable(MenuItem &item)
 {
 	return item.isSelectable;
+}
+
+std::u16string_view TableView::name() const
+{
+	return nameStr;
+}
+
 }

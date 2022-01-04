@@ -27,16 +27,11 @@
 
 #include <imagine/base/ApplicationContext.hh>
 
-class GenericIO;
-
-namespace Base
-{
-class ApplicationContext;
-}
-
 namespace IG
 {
 class Pixmap;
+class ApplicationContext;
+class GenericIO;
 }
 
 namespace IG::Data
@@ -60,7 +55,7 @@ public:
 	using PixmapReaderImpl::PixmapReaderImpl;
 	PixmapImage load(GenericIO io) const;
 	PixmapImage load(const char *name) const;
-	PixmapImage loadAsset(const char *name, const char *appName = Base::ApplicationContext::applicationName) const;
+	PixmapImage loadAsset(const char *name, const char *appName = ApplicationContext::applicationName) const;
 };
 
 }

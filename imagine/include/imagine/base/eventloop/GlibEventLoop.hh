@@ -19,7 +19,7 @@
 #include <imagine/util/typeTraits.hh>
 #include <glib.h>
 
-namespace Base
+namespace IG
 {
 
 static const int POLLEV_IN = G_IO_IN, POLLEV_OUT = G_IO_OUT, POLLEV_ERR = G_IO_ERR, POLLEV_HUP = G_IO_HUP;
@@ -32,7 +32,7 @@ struct GlibSource : public GSource
 class GlibFDEventSource
 {
 public:
-	constexpr GlibFDEventSource() {}
+	constexpr GlibFDEventSource() = default;
 	GlibFDEventSource(int fd) : GlibFDEventSource{nullptr, fd} {}
 	GlibFDEventSource(const char *debugLabel, int fd);
 	GlibFDEventSource(GlibFDEventSource &&o);
@@ -56,7 +56,7 @@ using FDEventSourceImpl = GlibFDEventSource;
 class GlibEventLoop
 {
 public:
-	constexpr GlibEventLoop() {}
+	constexpr GlibEventLoop() = default;
 	constexpr GlibEventLoop(GMainContext *ctx): mainContext{ctx} {}
 	GMainContext *nativeObject() const { return mainContext; }
 

@@ -20,12 +20,8 @@
 #include <imagine/util/string.h>
 #include <emuframework/EmuSystem.hh>
 
-namespace EmuCheats
+namespace EmuEx
 {
-
-static const unsigned MAX = 100;
-
-}
 
 // Needs to be a #define because it get strigified in Cheats.cc
 #define MAX_CHEAT_NAME_CHARS 127
@@ -73,12 +69,16 @@ void applyCheats();
 void clearCheats();
 void updateCheats(); // clears and applies cheats
 void clearCheatList();
-void writeCheatFile(Base::ApplicationContext);
-void readCheatFile(Base::ApplicationContext);
+void writeCheatFile(IG::ApplicationContext);
+void readCheatFile(IG::ApplicationContext);
 void RAMCheatUpdate();
-void ROMCheatUpdate();
 
-extern StaticArrayList<MdCheat, EmuCheats::MAX> cheatList;
-extern StaticArrayList<MdCheat*, EmuCheats::MAX> romCheatList;
-extern StaticArrayList<MdCheat*, EmuCheats::MAX> ramCheatList;
+static constexpr size_t maxCheats = 100;
+extern StaticArrayList<MdCheat, maxCheats> cheatList;
+extern StaticArrayList<MdCheat*, maxCheats> romCheatList;
+extern StaticArrayList<MdCheat*, maxCheats> ramCheatList;
 extern bool cheatsModified;
+
+}
+
+void ROMCheatUpdate();

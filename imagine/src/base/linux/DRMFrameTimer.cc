@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-namespace Base
+namespace IG
 {
 
 static UniqueFileDescriptor openDevice()

@@ -37,99 +37,8 @@ extern "C"
 	#include <yabause/cs2.h>
 }
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
-bool EmuSystem::handlesGenericIO = false;
-static EmuSystemTaskContext emuSysTask{};
-static EmuAudio *emuAudio{};
-static EmuVideo *emuVideo{};
-PerPad_struct *pad[2];
 // from sh2_dynarec.c
 #define SH2CORE_DYNAREC 2
-
-static bool hasCDExtension(std::string_view name)
-{
-	return IG::stringEndsWithAny(name, ".cue", ".iso", ".bin", ".CUE", ".ISO", ".BIN");
-}
-
-bool hasBIOSExtension(std::string_view name)
-{
-	return IG::stringEndsWithAny(name, ".bin", ".BIN");
-}
-
-CLINK void DisplayMessage(const char* str) {}
-CLINK int OSDInit(int coreid) { return 0; }
-CLINK void OSDPushMessage(int msgtype, int ttl, const char * message, ...) {}
-CLINK void OSDDisplayMessages(void) {}
-
-// Sound
-
-// EmuFramework is in charge of audio setup & parameters
-static int SNDImagineInit() { logMsg("called sound core init"); return 0; }
-static void SNDImagineDeInit() {}
-static int SNDImagineReset() { return 0; }
-static void SNDImagineMuteAudio() {}
-static void SNDImagineUnMuteAudio() {}
-static void SNDImagineSetVolume(int volume) {}
-
-static int SNDImagineChangeVideoFormat(int vertfreq)
-{
-	return 0;
-}
-
-static void mergeSamplesToStereo(s32 srcL, s32 srcR, s16 *dst)
-{
-	// Left Channel
-	if (srcL > 0x7FFF) *dst = 0x7FFF;
-	else if (srcL < -0x8000) *dst = -0x8000;
-	else *dst = srcL;
-	dst++;
-	// Right Channel
-	if (srcR > 0x7FFF) *dst = 0x7FFF;
-	else if (srcR < -0x8000) *dst = -0x8000;
-	else *dst = srcR;
-}
-
-static void SNDImagineUpdateAudioNull(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames) { }
-
-static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames)
-{
-	//logMsg("got %d audio frames to write", frames);
-	s16 sample[frames*2];
-	iterateTimes(frames, i)
-	{
-		mergeSamplesToStereo(leftchanbuffer[i], rightchanbuffer[i], &sample[i*2]);
-	}
-	if(emuAudio)
-	{
-		emuAudio->writeFrames(sample, frames);
-	}
-}
-
-static u32 SNDImagineGetAudioSpace()
-{
-	return 1024; // always render all samples available
-}
-
-#define SNDCORE_IMAGINE 1
-static SoundInterface_struct SNDImagine =
-{
-	SNDCORE_IMAGINE,
-	"Imagine Engine Sound Interface",
-	SNDImagineInit,
-	SNDImagineDeInit,
-	SNDImagineReset,
-	SNDImagineChangeVideoFormat,
-	SNDImagineUpdateAudio,
-	SNDImagineGetAudioSpace,
-	SNDImagineMuteAudio,
-	SNDImagineUnMuteAudio,
-	SNDImagineSetVolume
-};
-
-static FS::PathString bupPath{};
-static char mpegPath[] = "";
-static char cartPath[] = "";
-
 extern const int defaultSH2CoreID =
 #ifdef SH2_DYNAREC
 SH2CORE_DYNAREC;
@@ -148,6 +57,54 @@ CDInterface *CDCoreList[] =
 	&DummyCD,
 	&ISOCD,
 	nullptr
+};
+
+#define SNDCORE_IMAGINE 1
+
+// EmuFramework is in charge of audio setup & parameters
+static int SNDImagineInit() { logMsg("called sound core init"); return 0; }
+static void SNDImagineDeInit() {}
+static int SNDImagineReset() { return 0; }
+static void SNDImagineMuteAudio() {}
+static void SNDImagineUnMuteAudio() {}
+static void SNDImagineSetVolume(int volume) {}
+static int SNDImagineChangeVideoFormat(int vertfreq) { return 0; }
+
+static void mergeSamplesToStereo(s32 srcL, s32 srcR, s16 *dst)
+{
+	// Left Channel
+	if (srcL > 0x7FFF) *dst = 0x7FFF;
+	else if (srcL < -0x8000) *dst = -0x8000;
+	else *dst = srcL;
+	dst++;
+	// Right Channel
+	if (srcR > 0x7FFF) *dst = 0x7FFF;
+	else if (srcR < -0x8000) *dst = -0x8000;
+	else *dst = srcR;
+}
+
+static void SNDImagineUpdateAudioNull(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames) {}
+
+static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames);
+
+static u32 SNDImagineGetAudioSpace()
+{
+	return 1024; // always render all samples available
+}
+
+static SoundInterface_struct SNDImagine
+{
+	SNDCORE_IMAGINE,
+	"Imagine Engine Sound Interface",
+	SNDImagineInit,
+	SNDImagineDeInit,
+	SNDImagineReset,
+	SNDImagineChangeVideoFormat,
+	SNDImagineUpdateAudio,
+	SNDImagineGetAudioSpace,
+	SNDImagineMuteAudio,
+	SNDImagineUnMuteAudio,
+	SNDImagineSetVolume
 };
 
 SoundInterface_struct *SNDCoreList[] =
@@ -179,6 +136,33 @@ M68K_struct *M68KCoreList[] =
 	#endif
 	nullptr
 };
+
+static void SNDImagineUpdateAudioNull(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames);
+static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames);
+
+namespace EmuEx
+{
+
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nYabause Team\nyabause.org";
+bool EmuSystem::handlesGenericIO = false;
+static EmuSystemTaskContext emuSysTask{};
+static EmuAudio *emuAudio{};
+static EmuVideo *emuVideo{};
+PerPad_struct *pad[2];
+
+static bool hasCDExtension(std::string_view name)
+{
+	return IG::stringEndsWithAny(name, ".cue", ".iso", ".bin", ".CUE", ".ISO", ".BIN");
+}
+
+bool hasBIOSExtension(std::string_view name)
+{
+	return IG::stringEndsWithAny(name, ".bin", ".BIN");
+}
+
+static FS::PathString bupPath{};
+static char mpegPath[] = "";
+static char cartPath[] = "";
 
 FS::PathString biosPath{};
 
@@ -286,7 +270,7 @@ void EmuSystem::loadState(IG::CStringView path)
 		throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem(Base::ApplicationContext)
+void EmuSystem::saveBackupMem(IG::ApplicationContext)
 {
 	if(gameIsRunning())
 	{
@@ -297,7 +281,7 @@ void EmuSystem::saveBackupMem(Base::ApplicationContext)
 
 static bool yabauseIsInit = 0;
 
-void EmuSystem::closeSystem(Base::ApplicationContext)
+void EmuSystem::closeSystem(IG::ApplicationContext)
 {
 	if(yabauseIsInit)
 	{
@@ -306,7 +290,7 @@ void EmuSystem::closeSystem(Base::ApplicationContext)
 	}
 }
 
-void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	bupPath = contentSavePath(ctx, "bkram.bin");
 	if(YabauseInit(&yinit) != 0)
@@ -350,3 +334,24 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	};
 	view.setBackgroundGradient(navViewGrad);
 }
+
+}
+
+static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames)
+{
+	//logMsg("got %d audio frames to write", frames);
+	s16 sample[frames*2];
+	iterateTimes(frames, i)
+	{
+		mergeSamplesToStereo(leftchanbuffer[i], rightchanbuffer[i], &sample[i*2]);
+	}
+	if(EmuEx::emuAudio)
+	{
+		EmuEx::emuAudio->writeFrames(sample, frames);
+	}
+}
+
+CLINK void DisplayMessage(const char* str) {}
+CLINK int OSDInit(int coreid) { return 0; }
+CLINK void OSDPushMessage(int msgtype, int ttl, const char * message, ...) {}
+CLINK void OSDDisplayMessages(void) {}

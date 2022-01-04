@@ -23,7 +23,7 @@
 #include <imagine/gfx/opengl/GLRendererCommands.hh>
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Renderer;
@@ -80,7 +80,7 @@ public:
 	void setColor(Color);
 	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a = 1.);
 	void setColor(ColorComp i) { setColor(i, i, i, 1.); }
-	void set(ColorName c) { setColor(::Gfx::color(c)); }
+	void set(ColorName c) { setColor(::IG::Gfx::color(c)); }
 	Color color() const;
 	void setImgMode(uint32_t mode);
 	void setDither(bool on);

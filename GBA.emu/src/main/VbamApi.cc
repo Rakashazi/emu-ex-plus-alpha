@@ -83,6 +83,7 @@ static void resetGameSettings()
 
 void setGameSpecificSettings(GBASys &gba)
 {
+	using namespace EmuEx;
 	resetGameSettings();
 	bool mirroringEnable = 0;
 	static const GameSettings setting[] = {

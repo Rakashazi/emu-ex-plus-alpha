@@ -33,12 +33,12 @@ namespace IG::Data
 class PixmapSource;
 }
 
-namespace Base
+namespace IG
 {
 class Window;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class RendererTask;
@@ -74,24 +74,24 @@ class Renderer : public RendererImpl
 {
 public:
 	using RendererImpl::RendererImpl;
-	Renderer(Base::ApplicationContext);
+	Renderer(ApplicationContext);
 	~Renderer();
 	void configureRenderer();
 	bool isConfigured() const;
 	const RendererTask &task() const;
 	RendererTask &task();
-	Base::ApplicationContext appContext() const;
-	void initMainTask(Base::Window *initialWindow, DrawableConfig c = {});
-	bool attachWindow(Base::Window &, DrawableConfig c = {});
-	void detachWindow(Base::Window &);
-	bool setDrawableConfig(Base::Window &, DrawableConfig);
+	ApplicationContext appContext() const;
+	void initMainTask(Window *initialWindow, DrawableConfig c = {});
+	bool attachWindow(Window &, DrawableConfig c = {});
+	void detachWindow(Window &);
+	bool setDrawableConfig(Window &, DrawableConfig);
 	bool canRenderToMultiplePixelFormats() const;
-	Base::NativeWindowFormat nativeWindowFormat() const;
-	void setWindowValidOrientations(Base::Window &win, Base::Orientation validO);
-	void animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle, Angle destAngle);
-	static ClipRect makeClipRect(const Base::Window &win, IG::WindowRect rect);
+	NativeWindowFormat nativeWindowFormat() const;
+	void setWindowValidOrientations(Window &win, Orientation validO);
+	void animateProjectionMatrixRotation(Window &win, Angle srcAngle, Angle destAngle);
+	static ClipRect makeClipRect(const Window &win, IG::WindowRect rect);
 	bool supportsSyncFences() const;
-	void setPresentationTime(Base::Window &, IG::FrameTime time) const;
+	void setPresentationTime(Window &, IG::FrameTime time) const;
 	bool supportsPresentationTime() const;
 	unsigned maxSwapChainImages() const;
 	void setCorrectnessChecks(bool on);

@@ -28,7 +28,7 @@
 #define GL_SYNC_GPU_COMMANDS_COMPLETE 0x9117
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 void GLRenderer::setupFenceSync()
@@ -123,7 +123,7 @@ bool DrawContextSupport::hasServerWaitSync() const
 	#endif*/
 }
 
-GLsync DrawContextSupport::fenceSync(Base::GLDisplay dpy)
+GLsync DrawContextSupport::fenceSync(GLDisplay dpy)
 {
 	#ifdef CONFIG_BASE_GL_PLATFORM_EGL
 	return static_cast<GLsync>(eglCreateSync(dpy, EGL_SYNC_FENCE, nullptr));
@@ -132,27 +132,27 @@ GLsync DrawContextSupport::fenceSync(Base::GLDisplay dpy)
 	#endif
 }
 
-void DrawContextSupport::deleteSync(Base::GLDisplay dpy, GLsync sync)
+void DrawContextSupport::deleteSync(GLDisplay dpy, GLsync sync)
 {
 	#ifdef CONFIG_BASE_GL_PLATFORM_EGL
 	if(bool success = eglDestroySync(dpy, sync);
 		Config::DEBUG_BUILD && !success)
 	{
-		logErr("error:%s in eglDestroySync(%p, %p)", Base::GLManager::errorString(eglGetError()), (EGLDisplay)dpy, sync);
+		logErr("error:%s in eglDestroySync(%p, %p)", GLManager::errorString(eglGetError()), (EGLDisplay)dpy, sync);
 	}
 	#else
 	glDeleteSync(sync);
 	#endif
 }
 
-GLenum DrawContextSupport::clientWaitSync(Base::GLDisplay dpy, GLsync sync, GLbitfield flags, GLuint64 timeout)
+GLenum DrawContextSupport::clientWaitSync(GLDisplay dpy, GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
 	#ifdef CONFIG_BASE_GL_PLATFORM_EGL
 	if(auto status = eglClientWaitSync(dpy, sync, flags, timeout);
 		Config::DEBUG_BUILD && !status)
 	{
 		logErr("error:%s in eglClientWaitSync(%p, %p, 0x%X, %llu)",
-			Base::GLManager::errorString(eglGetError()), (EGLDisplay)dpy, sync, flags, (unsigned long long)timeout);
+			GLManager::errorString(eglGetError()), (EGLDisplay)dpy, sync, flags, (unsigned long long)timeout);
 		return status;
 	}
 	else
@@ -164,7 +164,7 @@ GLenum DrawContextSupport::clientWaitSync(Base::GLDisplay dpy, GLsync sync, GLbi
 	#endif
 }
 
-void DrawContextSupport::waitSync(Base::GLDisplay dpy, GLsync sync)
+void DrawContextSupport::waitSync(GLDisplay dpy, GLsync sync)
 {
 	bug_unreachable("waitSync() not currently used");
 	/*#ifdef CONFIG_BASE_GL_PLATFORM_EGL

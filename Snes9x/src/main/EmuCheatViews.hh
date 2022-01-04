@@ -11,6 +11,9 @@ static const unsigned MAX = 150;
 #endif
 }
 
+namespace EmuEx
+{
+
 class EmuCheatsView : public BaseCheatsView
 {
 public:
@@ -46,3 +49,5 @@ private:
 	const char *cheatNameString() const final;
 	void renamed(const char *str) final;
 };
+
+}

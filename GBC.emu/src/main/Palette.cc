@@ -16,6 +16,9 @@
 #include <main/Palette.hh>
 #include <imagine/util/string.h>
 
+namespace EmuEx
+{
+
 #define PACK15_4(c0, c1, c2, c3) {c0, c1, c2, c3}
 
 static GBPalette const p005 = {
@@ -455,4 +458,6 @@ GBPalette const *findGbcTitlePal(char const *title)
 			return &pal.p;
 	}
 	return nullptr;
+}
+
 }

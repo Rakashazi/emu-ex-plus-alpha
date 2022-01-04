@@ -19,10 +19,15 @@
 #include <emuframework/EmuAppHelper.hh>
 #include <imagine/base/MessagePort.hh>
 
+namespace EmuEx
+{
+
+using namespace IG;
+
 class EmuLoadProgressView : public View, public EmuAppHelper<EmuLoadProgressView>
 {
 public:
-	using MessagePortType = Base::MessagePort<EmuSystem::LoadProgressMessage>;
+	using MessagePortType = IG::MessagePort<EmuSystem::LoadProgressMessage>;
 
 	EmuLoadProgressView(ViewAttachParams attach, Input::Event e, EmuApp::CreateSystemCompleteDelegate onComplete);
 	void setMax(int val);
@@ -40,3 +45,5 @@ private:
 	Input::Event originalEvent{};
 	int pos = 0, max = 0;
 };
+
+}

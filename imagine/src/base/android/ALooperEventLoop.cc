@@ -18,7 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <unistd.h>
 
-namespace Base
+namespace IG
 {
 
 static int eventCallback(int fd, int events, void *data)

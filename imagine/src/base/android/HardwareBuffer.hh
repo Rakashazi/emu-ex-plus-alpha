@@ -25,7 +25,7 @@ namespace IG
 class PixmapDesc;
 }
 
-namespace Base
+namespace IG
 {
 
 class HardwareBuffer

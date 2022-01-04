@@ -8,20 +8,18 @@ namespace IG
 class PixmapDesc;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 
-class TextureSizeSupport
+struct TextureSizeSupport
 {
-public:
-	uint32_t maxXSize = 0, maxYSize = 0;
+	uint32_t maxXSize{}, maxYSize{};
 	bool nonPow2 = Config::Gfx::OPENGL_ES >= 2;
+	bool nonPow2CanMipmap{};
+	bool nonPow2CanRepeat{};
 	static constexpr bool nonSquare = true;
-	bool nonPow2CanMipmap = false;
-	bool nonPow2CanRepeat = false;
 	static constexpr bool forcePow2 = false;
 
-	constexpr TextureSizeSupport() {}
 	IG::PixmapDesc makePixmapDescWithSupportedSize(IG::PixmapDesc desc) const;
 	IG::WP makeSupportedSize(IG::WP size) const;
 	bool supportsMipmaps(uint32_t imageX, uint32_t imageY) const;

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace EmuControls
+namespace EmuEx::Controls
 {
 
 static const unsigned gamepadKeys = 23;

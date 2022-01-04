@@ -21,6 +21,9 @@
 #include <imagine/gui/MenuItem.hh>
 #include <vector>
 
+namespace EmuEx
+{
+
 class RecentGameView : public TableView, public EmuAppHelper<RecentGameView>
 {
 public:
@@ -31,3 +34,5 @@ private:
 	TextMenuItem clear{};
 	EmuApp::RecentContentList &list;
 };
+
+}

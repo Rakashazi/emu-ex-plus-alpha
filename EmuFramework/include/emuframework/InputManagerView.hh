@@ -26,6 +26,10 @@
 #include <array>
 #include <string>
 
+namespace EmuEx
+{
+
+using namespace IG;
 class InputDeviceConfig;
 class EmuInputView;
 
@@ -126,8 +130,8 @@ private:
 	BoolMenuItem joystickAxisHatDPad{};
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, consumeUnboundKeys){};
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
-	StaticArrayList<TextMenuItem, EmuControls::MAX_CATEGORIES> inputCategory{};
-	StaticArrayList<MenuItem*, EmuControls::MAX_CATEGORIES + 11> item{};
+	StaticArrayList<TextMenuItem, Controls::MAX_CATEGORIES> inputCategory{};
+	StaticArrayList<MenuItem*, Controls::MAX_CATEGORIES + 11> item{};
 	InputDeviceConfig *devConf{};
 
 	void confirmICadeMode(Input::Event e);
@@ -135,3 +139,5 @@ private:
 	KeyConfigContainer &customKeyConfigs() const { return *customKeyConfigsPtr; };
 	InputDeviceSavedConfigContainer &savedInputDevs() const { return *savedInputDevsPtr; };
 };
+
+}

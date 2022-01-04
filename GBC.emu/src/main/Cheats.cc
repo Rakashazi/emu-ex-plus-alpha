@@ -23,8 +23,12 @@
 #include "EmuCheatViews.hh"
 #include <main/Cheats.hh>
 #include <gambatte.h>
+
+namespace EmuEx
+{
+
 extern gambatte::GB gbEmu;
-StaticArrayList<GbcCheat, EmuCheats::MAX> cheatList;
+StaticArrayList<GbcCheat, maxCheats> cheatList;
 bool cheatsModified = 0;
 
 static bool strIsGGCode(const char *str)
@@ -66,7 +70,7 @@ void applyCheats()
 	}
 }
 
-void writeCheatFile(Base::ApplicationContext ctx)
+void writeCheatFile(IG::ApplicationContext ctx)
 {
 	if(!cheatsModified)
 		return;
@@ -103,7 +107,7 @@ void writeCheatFile(Base::ApplicationContext ctx)
 	cheatsModified = 0;
 }
 
-void readCheatFile(Base::ApplicationContext ctx)
+void readCheatFile(IG::ApplicationContext ctx)
 {
 	auto path = EmuSystem::contentSaveFilePath(ctx, ".gbcht");
 	auto file = ctx.openFileUri(path, IO::AccessHint::ALL, IO::OPEN_TEST);
@@ -329,4 +333,6 @@ void EmuCheatsView::loadCheatItems()
 		logMsg("added cheat %s : %s", thisCheat.name.data(), thisCheat.code.data());
 		++it;
 	}
+}
+
 }

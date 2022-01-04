@@ -17,9 +17,9 @@
 
 #include "tests.hh"
 
-void updateCPUFreq(TestFramework &activeTest);
+void updateCPUFreq(FrameRateTest::TestFramework &activeTest);
 void initCPUFreqStatus();
 void deinitCPUFreqStatus();
-void updateCPULoad(TestFramework &activeTest);
+void updateCPULoad(FrameRateTest::TestFramework &activeTest);
 void initCPULoadStatus();
 void deinitCPULoadStatus();

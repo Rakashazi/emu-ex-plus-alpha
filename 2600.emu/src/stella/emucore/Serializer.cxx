@@ -24,7 +24,10 @@
 using std::ios;
 using std::ios_base;
 
-extern Base::ApplicationContext appCtx;
+namespace EmuEx
+{
+extern IG::ApplicationContext appCtx;
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Serializer::Serializer(const string& filename, Mode m)
@@ -34,7 +37,7 @@ Serializer::Serializer(const string& filename, Mode m)
     FilesystemNode node(filename);
     if(node.isFile() && node.isReadable())
     {
-      auto str = make_unique<IG::FStream>(appCtx.openFileUri(filename, IO::AccessHint::ALL), ios::in | ios::binary);
+      auto str = make_unique<IG::FStream>(EmuEx::appCtx.openFileUri(filename, IG::IO::AccessHint::ALL), ios::in | ios::binary);
       if(str && str->is_open())
       {
         myStream = std::move(str);
@@ -58,7 +61,7 @@ Serializer::Serializer(const string& filename, Mode m)
     ios_base::openmode stream_mode = ios::in | ios::out | ios::binary;
     if(m == Mode::ReadWriteTrunc)
       stream_mode |= ios::trunc;
-    auto str = make_unique<IG::FStream>(appCtx.openFileUri(filename, IO::OPEN_CREATE), stream_mode);
+    auto str = make_unique<IG::FStream>(EmuEx::appCtx.openFileUri(filename, IG::IO::OPEN_CREATE), stream_mode);
     if(str && str->is_open())
     {
       myStream = std::move(str);

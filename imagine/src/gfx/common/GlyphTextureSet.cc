@@ -22,7 +22,7 @@
 #include <imagine/logger/logger.h>
 #include <cstdlib>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 static constexpr char firstDrawableAsciiChar = '!';

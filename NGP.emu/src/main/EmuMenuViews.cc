@@ -17,6 +17,9 @@
 #include <emuframework/EmuApp.hh>
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 class CustomSystemOptionView : public SystemOptionView
 {
 	BoolMenuItem ngpLanguage
@@ -45,4 +48,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		default: return nullptr;
 	}
+}
+
 }

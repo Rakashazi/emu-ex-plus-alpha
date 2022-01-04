@@ -27,14 +27,10 @@ using ByteArray = std::array<uint8_t, SIZE>;
 
 // simple 2D view into an array
 template <class T>
-class ArrayView2
+struct ArrayView2
 {
-public:
 	T *arr{};
-	uint32_t pitch = 0;
-
-	constexpr ArrayView2() {}
-	constexpr ArrayView2(T *arr, uint32_t pitch): arr(arr), pitch(pitch) {}
+	uint32_t pitch{};
 
 	constexpr std::size_t flatOffset(std::size_t row, std::size_t col) const
 	{

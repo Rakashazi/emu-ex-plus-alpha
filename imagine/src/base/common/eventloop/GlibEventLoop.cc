@@ -21,7 +21,7 @@
 #include <glib.h>
 #include <glib-unix.h>
 
-namespace Base
+namespace IG
 {
 
 GlibFDEventSource::GlibFDEventSource(const char *debugLabel, int fd):

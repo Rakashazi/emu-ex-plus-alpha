@@ -24,6 +24,9 @@
 #include <imagine/util/string/StaticString.hh>
 #include <array>
 
+namespace IG
+{
+
 class TextEntry
 {
 public:
@@ -72,3 +75,5 @@ protected:
 	IG_UseMemberIf(!Config::Input::SYSTEM_COLLECTS_TEXT, TextEntry, textEntry);
 	OnTextDelegate onTextD{};
 };
+
+}

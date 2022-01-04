@@ -18,13 +18,16 @@
 #include <fceu/emufile.h>
 #include <imagine/io/MapIO.hh>
 
+namespace EmuEx
+{
+
 class EmuFileIO : public EMUFILE {
 protected:
-	MapIO io{};
+	IG::MapIO io{};
 
 public:
 
-	EmuFileIO(IO &io);
+	EmuFileIO(IG::IO &io);
 
 	~EmuFileIO() {
 	}
@@ -68,3 +71,5 @@ public:
 	}
 
 };
+
+}

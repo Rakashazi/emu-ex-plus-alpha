@@ -17,6 +17,9 @@
 
 #include <array>
 
+namespace EmuEx
+{
+
 class EmuApp;
 
 struct TurboInput
@@ -40,3 +43,5 @@ struct TurboInput
 	void removeEvent(unsigned action);
 	void update(EmuApp *);
 };
+
+}

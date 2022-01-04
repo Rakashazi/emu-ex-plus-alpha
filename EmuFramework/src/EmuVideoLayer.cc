@@ -26,6 +26,9 @@
 #include <imagine/logger/logger.h>
 #include <algorithm>
 
+namespace EmuEx
+{
+
 EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
 	video{video}
 {}
@@ -224,7 +227,7 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 {
 	if(!EmuSystem::isStarted())
 		return;
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	bool replaceMode = true;
 	if(brightness != 1.f)
 	{
@@ -363,4 +366,6 @@ void EmuVideoLayer::setImageBuffers(unsigned num)
 unsigned EmuVideoLayer::imageBuffers() const
 {
 	return video.imageBuffers();
+}
+
 }

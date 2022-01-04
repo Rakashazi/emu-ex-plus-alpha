@@ -17,6 +17,9 @@
 
 #include <imagine/thread/Semaphore.hh>
 
+namespace EmuEx
+{
+
 class EmuSystemTask;
 
 class EmuSystemTaskContext
@@ -28,3 +31,5 @@ public:
 	constexpr EmuSystemTask &task() { return *taskPtr; }
 	constexpr operator bool() const { return taskPtr; }
 };
+
+}

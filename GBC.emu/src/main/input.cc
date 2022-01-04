@@ -17,9 +17,12 @@
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 enum
 {
-	gbcKeyIdxUp = EmuControls::systemKeyMapStart,
+	gbcKeyIdxUp = EmuEx::Controls::systemKeyMapStart,
 	gbcKeyIdxRight,
 	gbcKeyIdxDown,
 	gbcKeyIdxLeft,
@@ -95,4 +98,6 @@ void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKe
 void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	gbcInput.bits = 0;
+}
+
 }

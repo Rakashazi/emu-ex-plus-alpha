@@ -27,6 +27,9 @@
 #include <algorithm>
 #include <cmath>
 
+namespace IG
+{
+
 // minimum velocity before releasing a drag causes a scroll animation
 static constexpr float SCROLL_MIN_START_VEL = 1.;
 // scroll animation deceleration amount
@@ -34,10 +37,8 @@ static constexpr float SCROLL_DECEL = 1. * 60.;
 // over scroll animation velocity scale
 static constexpr float OVER_SCROLL_VEL_SCALE = .2 * 60.;
 
-ScrollView::ScrollView(ViewAttachParams attach): ScrollView{{}, attach} {}
-
-ScrollView::ScrollView(IG::utf16String name, ViewAttachParams attach):
-	View{std::move(name), attach},
+ScrollView::ScrollView(ViewAttachParams attach):
+	View{attach},
 	animate
 	{
 		[this](IG::FrameParams params)
@@ -148,7 +149,7 @@ void ScrollView::setContentSize(IG::WP size)
 
 void ScrollView::drawScrollContent(Gfx::RendererCommands &cmds)
 {
-	using namespace Gfx;
+	using namespace IG::Gfx;
 	if(contentIsBiggerThanView && (allowScrollWholeArea_ || dragTracker.isDragging()))
 	{
 		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
@@ -268,4 +269,6 @@ void ScrollView::stopScrollAnimation()
 {
 	lastFrameTimestamp = {};
 	window().removeOnFrame(animate);
+}
+
 }

@@ -19,7 +19,7 @@
 #include <imagine/base/FrameTimer.hh>
 #include <imagine/time/Time.hh>
 
-namespace Base
+namespace IG
 {
 
 class Screen;
@@ -27,7 +27,7 @@ class Screen;
 class SimpleFrameTimer final: public FrameTimerI
 {
 public:
-	constexpr SimpleFrameTimer() {}
+	constexpr SimpleFrameTimer() = default;
 	SimpleFrameTimer(Screen &screen, EventLoop loop = {});
 	void scheduleVSync() final;
 	void cancel() final;

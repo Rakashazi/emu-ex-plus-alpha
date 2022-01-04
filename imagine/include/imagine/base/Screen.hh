@@ -33,9 +33,8 @@
 #include <imagine/util/DelegateFuncSet.hh>
 #include <vector>
 
-namespace Base
+namespace IG
 {
-using namespace IG;
 
 class Screen : public ScreenImpl
 {

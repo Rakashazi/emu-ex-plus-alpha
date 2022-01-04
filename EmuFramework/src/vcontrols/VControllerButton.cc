@@ -19,6 +19,9 @@
 #include <imagine/gui/View.hh>
 #include <imagine/logger/logger.h>
 
+namespace EmuEx
+{
+
 void VControllerButton::setPos(IG::WP pos, Gfx::ProjectionPlane projP, _2DOrigin o)
 {
 	bounds_.setPos(pos, o);
@@ -233,4 +236,6 @@ std::vector<VControllerButton> &VControllerButtonGroup::buttons()
 const std::vector<VControllerButton> &VControllerButtonGroup::buttons() const
 {
 	return btns;
+}
+
 }

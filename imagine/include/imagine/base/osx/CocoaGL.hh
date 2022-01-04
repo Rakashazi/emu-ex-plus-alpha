@@ -26,7 +26,7 @@
 @end
 #endif
 
-namespace Base
+namespace IG
 {
 
 class GLDisplay;
@@ -59,7 +59,7 @@ protected:
 
 struct GLBufferConfig
 {
-	Base::NativeWindowFormat windowFormat(GLDisplay display) const;
+	NativeWindowFormat windowFormat(GLDisplay display) const;
 };
 
 using GLDrawableImpl = GLViewDrawable;

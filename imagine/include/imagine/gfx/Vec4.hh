@@ -21,7 +21,7 @@
 
 #include <imagine/util/math/GLMVec4.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 using Vec4 = GLMVec4;
 }
@@ -30,7 +30,7 @@ using Vec4 = GLMVec4;
 
 #include <imagine/util/math/GLKitVec4.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 using Vec4 = GLKitVec4;
 }

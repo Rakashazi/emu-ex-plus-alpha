@@ -20,7 +20,7 @@
 #include <imagine/pixmap/PixmapDesc.hh>
 #include <imagine/logger/logger.h>
 
-namespace Base
+namespace IG
 {
 
 static gralloc_module_t const *grallocMod{};
@@ -76,7 +76,7 @@ GraphicBuffer::GraphicBuffer()
 }
 
 GraphicBuffer::GraphicBuffer(IG::PixmapDesc desc, uint32_t usage):
-	GraphicBuffer(desc.w(), desc.h(), Base::toAHardwareBufferFormat(desc.format()), usage)
+	GraphicBuffer(desc.w(), desc.h(), toAHardwareBufferFormat(desc.format()), usage)
 {}
 
 GraphicBuffer::GraphicBuffer(uint32_t w, uint32_t h, uint32_t f, uint32_t reqUsage):

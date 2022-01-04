@@ -16,7 +16,7 @@
 #include <imagine/base/EventLoop.hh>
 #include <imagine/logger/logger.h>
 
-namespace Base
+namespace IG
 {
 
 static void eventCallback(CFFileDescriptorRef fdRef, CFOptionFlags callbackEventTypes, void *infoPtr)

@@ -26,7 +26,7 @@
 
 // Tries to mirror API of C++ filesystem TS library in most cases
 
-namespace FS
+namespace IG::FS
 {
 
 class directory_iterator : public std::iterator<std::input_iterator_tag, directory_entry>
@@ -101,4 +101,13 @@ static constexpr PathString uriString(ConvertibleToPathString auto &&base, auto 
 	return uri;
 }
 
-};
+}
+
+namespace IG
+{
+	// convenience aliases for path strings
+	using FS::PathString;
+	using FS::FileString;
+	using FS::pathString;
+	using FS::uriString;
+}

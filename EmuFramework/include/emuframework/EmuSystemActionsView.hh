@@ -24,6 +24,11 @@
 #define CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 #endif
 
+namespace EmuEx
+{
+
+using namespace IG;
+
 class EmuSystemActionsView : public TableView, public EmuAppHelper<EmuSystemActionsView>
 {
 public:
@@ -48,3 +53,5 @@ protected:
 	TextMenuItem close;
 	StaticArrayList<MenuItem*, STANDARD_ITEMS + MAX_SYSTEM_ITEMS> item{};
 };
+
+}

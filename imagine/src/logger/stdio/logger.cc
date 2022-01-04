@@ -28,6 +28,8 @@
 #include <unistd.h>
 #endif
 
+using namespace IG;
+
 static const bool bufferLogLineOutput = Config::envIsAndroid || Config::envIsIOS;
 static char logLineBuffer[512]{};
 uint8_t loggerVerbosity = loggerMaxVerbosity;

@@ -20,7 +20,7 @@
 #include <array>
 #include <type_traits>
 
-namespace Input
+namespace IG::Input
 {
 
 enum class Source : uint8_t
@@ -68,8 +68,6 @@ enum class DeviceSubtype : uint8_t
 	_8BITDO_SN30_PRO_PLUS = 11,
 	_8BITDO_M30_GAMEPAD = 12
 };
-
-using TextFieldDelegate = DelegateFunc<void (const char *str)>;
 
 using PointerId = PointerIdImpl;
 

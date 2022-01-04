@@ -21,7 +21,7 @@
 #include <imagine/gfx/opengl/GLPixmapBufferTexture.hh>
 #endif
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class Renderer;

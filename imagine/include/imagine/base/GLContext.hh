@@ -34,7 +34,7 @@
 #include <optional>
 #include <compare>
 
-namespace Base
+namespace IG
 {
 
 class Window;
@@ -53,7 +53,7 @@ public:
 class GLContextAttributes
 {
 public:
-	constexpr GLContextAttributes() {}
+	constexpr GLContextAttributes() = default;
 
 	constexpr GLContextAttributes(uint32_t majorVer, uint32_t minorVer, GL::API api)
 	{
@@ -131,7 +131,7 @@ enum class GLColorSpace : uint8_t
 class GLDrawableAttributes
 {
 public:
-	constexpr GLDrawableAttributes() {}
+	constexpr GLDrawableAttributes() = default;
 	constexpr GLDrawableAttributes(GLBufferConfig config):bufferConfig_{config} {}
 
 	constexpr void setColorSpace(GLColorSpace c)
@@ -159,7 +159,7 @@ class GLDisplay : public GLDisplayImpl
 public:
 	using GLDisplayImpl::GLDisplayImpl;
 
-	constexpr GLDisplay() {}
+	constexpr GLDisplay() = default;
 	constexpr bool operator ==(GLDisplay const&) const = default;
 	void resetCurrentContext() const;
 };
@@ -169,7 +169,7 @@ class GLDrawable : public GLDrawableImpl
 public:
 	using GLDrawableImpl::GLDrawableImpl;
 
-	constexpr GLDrawable() {}
+	constexpr GLDrawable() = default;
 	bool operator ==(GLDrawable const&) const = default;
 	operator NativeGLDrawable() const { return GLDrawableImpl::operator NativeGLDrawable(); }
 	GLDisplay display() const;
@@ -180,7 +180,7 @@ class GLContext : public GLContextImpl
 public:
 	using GLContextImpl::GLContextImpl;
 
-	constexpr GLContext() {}
+	constexpr GLContext() = default;
 	bool operator ==(GLContext const&) const = default;
 	operator NativeGLContext() const { return GLContextImpl::operator NativeGLContext(); }
 	GLDisplay display() const;
@@ -198,8 +198,8 @@ public:
 	GLManager(NativeDisplayConnection, GL::API);
 	GLDisplay display() const;
 	GLDisplay getDefaultDisplay(NativeDisplayConnection) const;
-	std::optional<GLBufferConfig> makeBufferConfig(Base::ApplicationContext, GLBufferConfigAttributes, GL::API, unsigned majorVersion = 0) const;
-	Base::NativeWindowFormat nativeWindowFormat(Base::ApplicationContext, GLBufferConfig) const;
+	std::optional<GLBufferConfig> makeBufferConfig(ApplicationContext, GLBufferConfigAttributes, GL::API, unsigned majorVersion = 0) const;
+	NativeWindowFormat nativeWindowFormat(ApplicationContext, GLBufferConfig) const;
 	GLContext makeContext(GLContextAttributes, GLBufferConfig, NativeGLContext shareContext, IG::ErrorCode &);
 	GLContext makeContext(GLContextAttributes, GLBufferConfig, IG::ErrorCode &);
 	static NativeGLContext currentContext();

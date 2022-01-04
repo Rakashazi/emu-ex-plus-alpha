@@ -30,12 +30,11 @@
 #include <string>
 #include <cassert>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
-Gfx::GC orientationToGC(Base::Orientation o)
+Gfx::GC orientationToGC(Orientation o)
 {
-	using namespace Base;
 	switch(o)
 	{
 		case VIEW_ROTATE_0: return Gfx::angleFromDegree(0.);
@@ -106,7 +105,7 @@ static void printFeatures(DrawContextSupport support)
 	}
 	if(support.hasSyncFences())
 	{
-		if(Config::Base::GL_PLATFORM_EGL)
+		if(Config::GL_PLATFORM_EGL)
 		{
 			if(support.hasServerWaitSync())
 				featuresStr.append(" [EGL Sync Fences + Server Sync]");
@@ -386,7 +385,7 @@ void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs
 	{
 		setupImmutableTexStorage(true);
 	}
-	else if(!Config::Base::GL_PLATFORM_EGL && Config::envIsIOS && extStr == "GL_APPLE_sync")
+	else if(!Config::GL_PLATFORM_EGL && Config::envIsIOS && extStr == "GL_APPLE_sync")
 	{
 		setupAppleFenceSync();
 	}
@@ -474,7 +473,7 @@ void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs
 	{
 		setupPBO();
 	}
-	else if(!Config::Base::GL_PLATFORM_EGL && extStr == "GL_ARB_sync")
+	else if(!Config::GL_PLATFORM_EGL && extStr == "GL_ARB_sync")
 	{
 		setupFenceSync();
 	}
@@ -571,7 +570,7 @@ void Renderer::configureRenderer()
 				setupFBOFuncs(useFBOFuncs);
 				support.hasSrgbWriteControl = true;
 			}
-			if(glVer >= 32 && !Config::Base::GL_PLATFORM_EGL)
+			if(glVer >= 32 && !Config::GL_PLATFORM_EGL)
 			{
 				setupFenceSync();
 			}
@@ -625,7 +624,7 @@ void Renderer::configureRenderer()
 					setupRGFormats();
 					setupSamplerObjects();
 					setupPBO();
-					if(!Config::Base::GL_PLATFORM_EGL)
+					if(!Config::GL_PLATFORM_EGL)
 						setupFenceSync();
 					if(!Config::envIsIOS)
 						setupSpecifyDrawReadBuffers();
@@ -671,7 +670,7 @@ RendererTask &Renderer::task()
 	return mainTask;
 }
 
-static void updateSensorStateForWindowOrientations(Base::Window &win)
+static void updateSensorStateForWindowOrientations(Window &win)
 {
 	// activate orientation sensor if doing rotation in software and the main window
 	// has multiple valid orientations
@@ -680,7 +679,7 @@ static void updateSensorStateForWindowOrientations(Base::Window &win)
 	win.appContext().setDeviceOrientationChangeSensor(std::popcount(win.validSoftOrientations()) > 1);
 }
 
-void Renderer::setWindowValidOrientations(Base::Window &win, Base::Orientation validO)
+void Renderer::setWindowValidOrientations(Window &win, Orientation validO)
 {
 	if(!win.isMainWindow())
 		return;
@@ -692,7 +691,7 @@ void Renderer::setWindowValidOrientations(Base::Window &win, Base::Orientation v
 	updateSensorStateForWindowOrientations(win);
 }
 
-void GLRenderer::addEventHandlers(Base::ApplicationContext ctx, RendererTask &task)
+void GLRenderer::addEventHandlers(ApplicationContext ctx, RendererTask &task)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	releaseShaderCompilerEvent.attach(
@@ -708,7 +707,7 @@ void GLRenderer::addEventHandlers(Base::ApplicationContext ctx, RendererTask &ta
 		task.setIOSDrawableDelegates();
 }
 
-std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(Base::ApplicationContext ctx, IG::PixelFormat pixelFormat, const Base::Window *winPtr)
+std::optional<GLBufferConfig> GLRenderer::makeGLBufferConfig(ApplicationContext ctx, IG::PixelFormat pixelFormat, const Window *winPtr)
 {
 	if(!pixelFormat)
 	{
@@ -717,7 +716,7 @@ std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(Base::Applica
 		else
 			pixelFormat = ctx.defaultWindowPixelFormat();
 	}
-	Base::GLBufferConfigAttributes glBuffAttr{.pixelFormat = pixelFormat};
+	GLBufferConfigAttributes glBuffAttr{.pixelFormat = pixelFormat};
 	if constexpr(Config::Gfx::OPENGL_ES >= 2)
 	{
 		if(auto config = glManager.makeBufferConfig(ctx, glBuffAttr, glAPI, 3);

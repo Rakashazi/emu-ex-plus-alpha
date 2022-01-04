@@ -26,13 +26,16 @@
 #include <iterator>
 #include <memory>
 
-class View;
-class TableView;
-
-namespace Input
+namespace IG::Input
 {
 class Event;
 }
+
+namespace IG
+{
+
+class View;
+class TableView;
 
 template <class Item>
 class MenuItemSelectDelegate : public DelegateFunc<bool (Item &, View &, Input::Event)>
@@ -310,3 +313,5 @@ protected:
 
 	void setDisplayString(size_t idx);
 };
+
+}

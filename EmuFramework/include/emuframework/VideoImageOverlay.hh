@@ -18,10 +18,15 @@
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/Texture.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 class Renderer;
 }
+
+namespace EmuEx
+{
+
+using namespace IG;
 
 class VideoImageOverlay
 {
@@ -48,3 +53,5 @@ private:
 	Gfx::GC intensity = 0.25;
 	unsigned effect = NO_EFFECT;
 };
+
+}

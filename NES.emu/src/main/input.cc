@@ -19,9 +19,12 @@
 #include "internal.hh"
 #include <fceu/fceu.h>
 
+namespace EmuEx
+{
+
 enum
 {
-	nesKeyIdxUp = EmuControls::systemKeyMapStart,
+	nesKeyIdxUp = Controls::systemKeyMapStart,
 	nesKeyIdxRight,
 	nesKeyIdxDown,
 	nesKeyIdxLeft,
@@ -67,11 +70,6 @@ void connectNESInput(int port, ESI type)
 	}
 }
 
-void GetMouseData(uint32 (&d)[3])
-{
-	// TODO
-}
-
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 void updateVControllerMapping(unsigned player, VController::Map &map)
 {
@@ -110,9 +108,9 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 	using namespace IG;
 	turbo = 0;
 	assert(input >= nesKeyIdxUp);
-	unsigned player = (input - nesKeyIdxUp) / EmuControls::gamepadKeys;
+	unsigned player = (input - nesKeyIdxUp) / Controls::gamepadKeys;
 	unsigned playerMask = player << 8;
-	input -= EmuControls::gamepadKeys * player;
+	input -= Controls::gamepadKeys * player;
 	switch(input)
 	{
 		case nesKeyIdxUp: return bit(4) | playerMask;
@@ -183,4 +181,11 @@ void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	IG::fill(zapperData);
 	padData = {};
+}
+
+}
+
+void GetMouseData(uint32 (&d)[3])
+{
+	// TODO
 }

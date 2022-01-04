@@ -19,7 +19,7 @@
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 
-namespace Input
+namespace IG::Input
 {
 
 static JNI::InstMethod<jobject(jstring, jstring, jint, jint, jint, jint, jint, jlong)> jNewTextEntry{};
@@ -33,7 +33,7 @@ static void setupBaseActivityJni(JNIEnv* env, jobject baseActivity)
 	jNewTextEntry = {env, baseActivity, "newTextEntry", "(Ljava/lang/String;Ljava/lang/String;IIIIIJ)Lcom/imagine/TextEntry;"};
 }
 
-AndroidTextField::AndroidTextField(Base::ApplicationContext ctx, TextFieldDelegate del, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels):
+AndroidTextField::AndroidTextField(ApplicationContext ctx, TextFieldDelegate del, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels):
 	ctx{ctx},
 	textDelegate{del}
 {

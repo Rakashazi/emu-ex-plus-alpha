@@ -17,6 +17,9 @@
 #include <emuframework/Option.hh>
 #include "internal.hh"
 
+namespace EmuEx
+{
+
 enum
 {
 	CFGKEY_NGPKEY_LANGUAGE = 269,
@@ -45,4 +48,6 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 void EmuSystem::writeConfig(IO &io)
 {
 	optionNGPLanguage.writeWithKeyIfNotDefault(io);
+}
+
 }

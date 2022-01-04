@@ -19,6 +19,9 @@
 #include "EmuOptions.hh"
 #include <imagine/util/format.hh>
 
+namespace EmuEx
+{
+
 TextMenuItem::SelectDelegate AudioOptionView::setRateDel(uint32_t val)
 {
 	assert(val <= optionSoundRate.defaultVal);
@@ -246,4 +249,6 @@ void AudioOptionView::updateRateItem()
 		bdefault: audioRate.setSelected(3); // 44100
 		bcase 48000: audioRate.setSelected(4);
 	}
+}
+
 }

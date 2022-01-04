@@ -17,6 +17,9 @@
 
 #include <emuframework/config.hh>
 
+namespace EmuEx
+{
+
 class EmuApp;
 
 // Easier access to the EmuApp object for any class that provides an appContext() function
@@ -30,3 +33,5 @@ public:
 		return static_cast<EmuApp&>(application);
 	}
 };
+
+}

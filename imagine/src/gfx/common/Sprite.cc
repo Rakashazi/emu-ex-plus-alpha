@@ -18,7 +18,7 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/logger/logger.h>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 template<class BaseRect>

@@ -27,7 +27,7 @@ public:
 	static constexpr bool HAS_SOLO_MIX = false;
 	static constexpr bool SOLO_MIX_DEFAULT = false;
 
-	constexpr BasicManager(Base::ApplicationContext) {}
+	constexpr BasicManager(ApplicationContext) {};
 };
 
 using ManagerImpl = BasicManager;

@@ -16,6 +16,9 @@
 #include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/bluetooth/sys.hh>
 
+namespace IG
+{
+
 #ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 bool BluetoothAdapter::useScanCache = 1;
 #endif
@@ -23,7 +26,7 @@ bool BluetoothAdapter::useScanCache = 1;
 uint32_t BluetoothAdapter::scanSecs = 4;
 #endif
 
-BluetoothAdapter *BluetoothAdapter::defaultAdapter(Base::ApplicationContext ctx)
+BluetoothAdapter *BluetoothAdapter::defaultAdapter(ApplicationContext ctx)
 {
 	#if defined CONFIG_BLUETOOTH_ANDROID
 	return AndroidBluetoothAdapter::defaultAdapter(ctx);
@@ -36,18 +39,20 @@ BluetoothAdapter *BluetoothAdapter::defaultAdapter(Base::ApplicationContext ctx)
 	#endif
 }
 
-Base::ApplicationContext BluetoothAdapter::appContext() const
+ApplicationContext BluetoothAdapter::appContext() const
 {
 	return ctx;
 }
 
-void BluetoothAdapter::setAppContext(Base::ApplicationContext ctx_)
+void BluetoothAdapter::setAppContext(ApplicationContext ctx_)
 {
 	ctx = ctx_;
 }
 
-BluetoothInputDevice::BluetoothInputDevice(Base::ApplicationContext ctx, Input::Map map,
+BluetoothInputDevice::BluetoothInputDevice(ApplicationContext ctx, Input::Map map,
 	Input::DeviceTypeBits typeBits, const char *name):
 	Device{0, map, typeBits, name},
 	ctx{ctx}
 {}
+
+}

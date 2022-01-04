@@ -30,7 +30,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define GL_RENDERBUFFER GL_RENDERBUFFER_OES
 #endif
 
-namespace Base
+namespace IG
 {
 
 #ifndef CONFIG_GFX_SOFT_ORIENTATION
@@ -58,7 +58,7 @@ const char *uiInterfaceOrientationToStr(UIInterfaceOrientation o)
 #ifndef CONFIG_GFX_SOFT_ORIENTATION
 static Orientation defaultValidOrientationMask()
 {
-	return Base::isIPad ? UIInterfaceOrientationMaskAll : UIInterfaceOrientationMaskAllButUpsideDown;
+	return isIPad ? UIInterfaceOrientationMaskAll : UIInterfaceOrientationMaskAllButUpsideDown;
 }
 
 bool Window::setValidOrientations(Orientation oMask)
@@ -297,7 +297,7 @@ void WindowConfig::setFormat(IG::PixelFormat) {}
 	// for iOS 5 (testing-only, this OS should use GLKit for orientations)
 	- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 	{
-		//logMsg("reporting if should autorotate to: %s", Base::uiInterfaceOrientationToStr(interfaceOrientation));
+		//logMsg("reporting if should autorotate to: %s", uiInterfaceOrientationToStr(interfaceOrientation));
 		return interfaceOrientation == UIInterfaceOrientationPortrait;
 	}
 	#endif
@@ -314,14 +314,14 @@ void WindowConfig::setFormat(IG::PixelFormat) {}
 - (NSUInteger)supportedInterfaceOrientations
 {
 	//logMsg("reporting supported orientations");
-	return Base::validO;
+	return IG::validO;
 }
 
 // for iOS 5
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 {
-	//logMsg("reporting if should autorotate to: %s", Base::uiInterfaceOrientationToStr(interfaceOrientation));
-	return (Base::validO & (1 << interfaceOrientation)) ? YES : NO;
+	//logMsg("reporting if should autorotate to: %s", uiInterfaceOrientationToStr(interfaceOrientation));
+	return (IG::validO & (1 << interfaceOrientation)) ? YES : NO;
 }
 
 #ifndef NDEBUG
@@ -340,7 +340,7 @@ void WindowConfig::setFormat(IG::PixelFormat) {}
 //- (BOOL)prefersStatusBarHidden
 //{
 //	logMsg("reporting prefers status bar hidden");
-//	return Base::hideStatusBar;
+//	return hideStatusBar;
 //}
 
 #endif

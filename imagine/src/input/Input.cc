@@ -23,7 +23,7 @@
 #include <imagine/logger/logger.h>
 #include <optional>
 
-namespace Input
+namespace IG::Input
 {
 
 static constexpr Key iCadeMap[12]
@@ -200,7 +200,7 @@ DirectionKeys directionKeys(Map map)
 
 }
 
-namespace Base
+namespace IG
 {
 
 void BaseApplication::startKeyRepeatTimer(Input::Event event)
@@ -400,7 +400,7 @@ void ApplicationContext::flushInternalInputEvents()
 
 bool BaseApplication::processICadeKey(Input::Key key, Input::Action action, Input::Time time, const Input::Device &dev, Window &win)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	if(auto onKey = keyToICadeOnKey(key))
 	{
 		if(action == Action::PUSHED)

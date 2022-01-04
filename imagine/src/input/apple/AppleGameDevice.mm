@@ -24,19 +24,19 @@
 #include <imagine/util/algorithm.h>
 #import <GameController/GameController.h>
 
-namespace Input
+namespace IG::Input
 {
 
 static const char *appleGCButtonName(Key k);
 
 struct AppleGameDevice : public Device
 {
-	Base::ApplicationContext ctx{};
+	ApplicationContext ctx{};
 	GCController *gcController = nil;
 	Input::Axis axis[4];
 	bool pushState[AppleGC::COUNT]{};
 	
-	AppleGameDevice(Base::ApplicationContext ctx, GCController *gcController):
+	AppleGameDevice(ApplicationContext ctx, GCController *gcController):
 		Device{0, Map::APPLE_GAME_CONTROLLER, TYPE_BIT_GAMEPAD, [gcController.vendorName UTF8String]},
 		ctx{ctx}, gcController{gcController}
 	{
@@ -200,7 +200,7 @@ static AppleGameDevice *asAppleGameDevice(Input::Device &dev)
 	return dev.map() == Map::APPLE_GAME_CONTROLLER ? static_cast<AppleGameDevice*>(&dev) : nullptr;
 }
 
-static AppleGameDevice *deviceForGCController(Base::Application &app, GCController *controller)
+static AppleGameDevice *deviceForGCController(Application &app, GCController *controller)
 {
 	for(auto &devPtr : app.inputDevices())
 	{
@@ -211,12 +211,12 @@ static AppleGameDevice *deviceForGCController(Base::Application &app, GCControll
 	return nullptr;
 }
 
-static bool devListContainsController(Base::Application &app, GCController *controller)
+static bool devListContainsController(Application &app, GCController *controller)
 {
 	return deviceForGCController(app, controller);
 }
 
-static void addController(Base::ApplicationContext ctx, GCController *controller, bool notify)
+static void addController(ApplicationContext ctx, GCController *controller, bool notify)
 {
 	if(devListContainsController(ctx.application(), controller))
 	{
@@ -227,7 +227,7 @@ static void addController(Base::ApplicationContext ctx, GCController *controller
 	ctx.application().addInputDevice(std::make_unique<AppleGameDevice>(ctx, controller), notify);
 }
 
-static void removeController(Base::Application &app, GCController *controller)
+static void removeController(Application &app, GCController *controller)
 {
 	app.removeInputDeviceIf(
 		[&](auto &devPtr)
@@ -237,7 +237,7 @@ static void removeController(Base::Application &app, GCController *controller)
 		}, true);
 }
 
-void initAppleGameControllers(Base::ApplicationContext ctx)
+void initAppleGameControllers(ApplicationContext ctx)
 {
 	if(kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_7_0)
 	{

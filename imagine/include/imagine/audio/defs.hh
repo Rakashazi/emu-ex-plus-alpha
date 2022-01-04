@@ -44,8 +44,6 @@ struct ApiDesc
 	const char *name = "";
 	Api api{Api::DEFAULT};
 
-	constexpr ApiDesc() {}
-	constexpr ApiDesc(const char *name, Api api):name{name}, api{api} {}
 	constexpr bool operator ==(Api api_) const { return api == api_; }
 };
 

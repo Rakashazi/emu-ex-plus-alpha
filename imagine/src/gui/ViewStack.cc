@@ -24,6 +24,9 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <utility>
 
+namespace IG
+{
+
 BasicViewController::BasicViewController() {}
 
 void BasicViewController::push(std::unique_ptr<View> v, Input::Event e)
@@ -490,4 +493,6 @@ void ViewStack::popModalViews()
 	place();
 	top().show();
 	top().postDraw();
+}
+
 }

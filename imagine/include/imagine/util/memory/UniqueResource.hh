@@ -25,7 +25,7 @@ template <class T, IG::invocable<T> Deleter, T NULL_VALUE = T()>
 class UniqueResource
 {
 public:
-	constexpr UniqueResource() {}
+	constexpr UniqueResource() = default;
 
 	constexpr UniqueResource(T r, Deleter del = {}):
 		r{r}, del{del} {}

@@ -26,6 +26,8 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include "../../input/apple/AppleGameDevice.hh"
 #include "ios.hh"
 
+using namespace IG;
+
 @interface UIEvent ()
 - (NSInteger*)_gsEvent;
 @end
@@ -72,7 +74,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 
 @end
 
-namespace Input
+namespace IG::Input
 {
 
 static constexpr int GSEVENT_TYPE = 2;
@@ -108,9 +110,8 @@ static bool hardwareKBAttached = false;
 using GSEventIsHardwareKeyboardAttachedProto = BOOL(*)();
 static GSEventIsHardwareKeyboardAttachedProto GSEventIsHardwareKeyboardAttached{};
 
-static CGAffineTransform makeTransformForOrientation(Base::Orientation orientation)
+static CGAffineTransform makeTransformForOrientation(Orientation orientation)
 {
-	using namespace Base;
 	switch(orientation)
 	{
 		default: return CGAffineTransformIdentity;
@@ -120,9 +121,8 @@ static CGAffineTransform makeTransformForOrientation(Base::Orientation orientati
 	}
 }
 
-static CGRect toCGRect(const Base::Window &win, const IG::WindowRect &rect)
+static CGRect toCGRect(const Window &win, const IG::WindowRect &rect)
 {
-	using namespace Base;
 	int x = rect.x, y = rect.y;
 	if(win.softOrientation() == VIEW_ROTATE_90 || win.softOrientation() == VIEW_ROTATE_270)
 	{
@@ -140,10 +140,9 @@ static CGRect toCGRect(const Base::Window &win, const IG::WindowRect &rect)
 	return CGRectMake(x / win.pointScale, y / win.pointScale, x2 / win.pointScale, y2 / win.pointScale);
 }
 
-static void setupTextView(Base::ApplicationContext ctx, UITextField *vkbdField, NSString *text)
+static void setupTextView(ApplicationContext ctx, UITextField *vkbdField, NSString *text)
 {
 	// init input text field
-	using namespace Base;
 
 	/*vkbdField = [ [ UITextView alloc ] initWithFrame: CGRectMake(12, 24, 286, 24*4) ];
 	vkbdField.backgroundColor = [UIColor whiteColor];
@@ -174,7 +173,7 @@ static void setupTextView(Base::ApplicationContext ctx, UITextField *vkbdField, 
 	logMsg("init vkeyboard");
 }
 
-UIKitTextField::UIKitTextField(Base::ApplicationContext ctx, TextFieldDelegate del, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels):
+UIKitTextField::UIKitTextField(ApplicationContext ctx, TextFieldDelegate del, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels):
 	ctx{ctx}
 {
 	auto uiTextField = [[UITextField alloc] initWithFrame: toCGRect(*ctx.deviceWindow(), textRect)];
@@ -221,7 +220,7 @@ void TextField::finish()
 	[textField().uiTextField resignFirstResponder];
 }
 
-bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, TypeBits typeBits)
+bool Device::anyTypeBitsPresent(ApplicationContext ctx, TypeBits typeBits)
 {
 	if((typeBits & TYPE_BIT_KEYBOARD) && hardwareKBAttached)
 		return true;
@@ -235,7 +234,7 @@ bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, TypeBits typeBits)
 	return false;
 }
 
-void handleKeyEvent(Base::ApplicationContext ctx, UIEvent *event)
+void handleKeyEvent(ApplicationContext ctx, UIEvent *event)
 {
 	const auto *eventMem = [event _gsEvent];
 	if(!eventMem)
@@ -256,12 +255,12 @@ void handleKeyEvent(Base::ApplicationContext ctx, UIEvent *event)
 	}
 }
 
-std::string Event::keyString(Base::ApplicationContext) const
+std::string Event::keyString(ApplicationContext) const
 {
 	return {}; // TODO
 }
 
-void init(Base::ApplicationContext ctx)
+void init(ApplicationContext ctx)
 {
 	keyDevPtr = static_cast<KeyboardDevice*>(&ctx.application().addInputDevice(std::make_unique<KeyboardDevice>()));
 	GSEventIsHardwareKeyboardAttached = (GSEventIsHardwareKeyboardAttachedProto)dlsym(RTLD_DEFAULT, "GSEventIsHardwareKeyboardAttached");
@@ -276,7 +275,7 @@ void init(Base::ApplicationContext ctx)
 				hardwareKBAttached = GSEventIsHardwareKeyboardAttached();
 				logMsg("hardware keyboard %s", hardwareKBAttached ? "attached" : "detached");
 				DeviceAction change{hardwareKBAttached ? DeviceAction::SHOWN : DeviceAction::HIDDEN};
-				auto &app = *((Base::Application*)observer);
+				auto &app = *((Application*)observer);
 				app.dispatchInputDeviceChange(*keyDevPtr, change);
 			},
 			(__bridge CFStringRef)@"GSEventHardwareKeyboardAttached",

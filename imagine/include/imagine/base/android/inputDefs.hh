@@ -18,7 +18,7 @@
 #include <chrono>
 #include <cstdint>
 
-namespace Input
+namespace IG::Input
 {
 
 using PointerIdImpl = int32_t;
@@ -199,7 +199,9 @@ using Key = uint16_t;
 	JS3_YAXIS_POS = axisKeyBase+18, JS3_YAXIS_NEG = axisKeyBase+19,
 
 	JS_LTRIGGER_AXIS = axisKeyBase+20, JS_RTRIGGER_AXIS = axisKeyBase+21,
-	JS_GAS_AXIS = axisKeyBase+22, JS_BRAKE_AXIS = axisKeyBase+23;
+	JS_GAS_AXIS = axisKeyBase+22, JS_BRAKE_AXIS = axisKeyBase+23,
+
+	BACK_KEY = BACK;
 
 	static constexpr Key LAST_KEY = JS_BRAKE_AXIS;
 	static constexpr uint32_t COUNT = LAST_KEY + 1;

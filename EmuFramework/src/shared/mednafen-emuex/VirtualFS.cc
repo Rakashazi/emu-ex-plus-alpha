@@ -18,7 +18,10 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
 
-extern Base::ApplicationContext appCtx;
+namespace EmuEx
+{
+extern IG::ApplicationContext appCtx;
+}
 
 namespace Mednafen
 {
@@ -32,8 +35,8 @@ VirtualFS::~VirtualFS() {}
 
 void VirtualFS::get_file_path_components(const std::string &file_path, std::string* dir_path_out, std::string* file_base_out, std::string *file_ext_out)
 {
-	auto dir = std::string{FS::dirnameUri(file_path)};
-	auto fileBase = std::string{appCtx.fileUriDisplayName(file_path)};
+	auto dir = std::string{IG::FS::dirnameUri(file_path)};
+	auto fileBase = std::string{EmuEx::appCtx.fileUriDisplayName(file_path)};
 	std::string fileExt{};
 	auto dotPos = fileBase.rfind('.');
 	if(dotPos != std::string::npos)
@@ -66,7 +69,7 @@ std::string VirtualFS::eval_fip(const std::string& dir_path, const std::string& 
 	if(is_absolute_path(rel_path))
 		return rel_path;
 	else
-		return std::string{FS::uriString(dir_path, rel_path)};
+		return std::string{IG::FS::uriString(dir_path, rel_path)};
 }
 
 }

@@ -23,6 +23,9 @@
 #include <array>
 #include <compare>
 
+namespace IG
+{
+
 template <size_t, size_t, class, class ...> class DelegateFuncBase;
 
 template <size_t StorageSize, size_t Align, class R, class ...Args>
@@ -114,3 +117,5 @@ using DelegateFuncS = DelegateFuncBase<StorageSize, sizeof(void*), R, Args...>;
 
 template <class R, class ...Args>
 using DelegateFunc = DelegateFuncBase<sizeof(void*)*2, sizeof(void*), R, Args...>;
+
+}

@@ -30,15 +30,18 @@
 #include <vbam/Util.h>
 
 void setGameSpecificSettings(GBASys &gba);
-void CPULoop(GBASys &, EmuSystemTaskContext, EmuVideo *, EmuAudio *);
+void CPULoop(GBASys &, EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, EmuEx::EmuAudio *);
 void CPUCleanUp();
-bool CPUReadBatteryFile(Base::ApplicationContext, GBASys &gba, const char *);
-bool CPUWriteBatteryFile(Base::ApplicationContext, GBASys &gba, const char *);
-bool CPUReadState(Base::ApplicationContext, GBASys &gba, const char *);
-bool CPUWriteState(Base::ApplicationContext, GBASys &gba, const char *);
+bool CPUReadBatteryFile(IG::ApplicationContext, GBASys &gba, const char *);
+bool CPUWriteBatteryFile(IG::ApplicationContext, GBASys &gba, const char *);
+bool CPUReadState(IG::ApplicationContext, GBASys &gba, const char *);
+bool CPUWriteState(IG::ApplicationContext, GBASys &gba, const char *);
+
+namespace EmuEx
+{
 
 bool detectedRtcGame = 0;
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 bool EmuSystem::hasBundledGames = true;
 bool EmuSystem::hasCheats = true;
 static constexpr IG::WP lcdSize{240, 160};
@@ -81,7 +84,7 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}{}.sgm", name, saveSlotChar(slot));
 }
 
-void EmuSystem::saveState(Base::ApplicationContext ctx, IG::CStringView path)
+void EmuSystem::saveState(IG::ApplicationContext ctx, IG::CStringView path)
 {
 	if(!CPUWriteState(ctx, gGba, path))
 		return throwFileWriteError();
@@ -93,7 +96,7 @@ void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 		return throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
+void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
 {
 	if(gameIsRunning())
 	{
@@ -104,7 +107,7 @@ void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 	}
 }
 
-void EmuSystem::closeSystem(Base::ApplicationContext ctx)
+void EmuSystem::closeSystem(IG::ApplicationContext ctx)
 {
 	assert(gameIsRunning());
 	saveBackupMem(ctx);
@@ -113,7 +116,7 @@ void EmuSystem::closeSystem(Base::ApplicationContext ctx)
 	cheatsList.clear();
 }
 
-static void applyGamePatches(Base::ApplicationContext ctx, u8 *rom, int &romSize)
+static void applyGamePatches(IG::ApplicationContext ctx, u8 *rom, int &romSize)
 {
 	if(auto patchStr = EmuSystem::contentSaveFilePath(ctx, ".ips");
 		ctx.fileUriExists(patchStr))
@@ -144,7 +147,7 @@ static void applyGamePatches(Base::ApplicationContext ctx, u8 *rom, int &romSize
 	}
 }
 
-void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	int size = CPULoadRomWithIO(gGba, io);
 	if(!size)
@@ -178,32 +181,6 @@ void EmuSystem::renderFramebuffer(EmuVideo &video)
 	systemDrawScreen({}, video);
 }
 
-void systemDrawScreen(EmuSystemTaskContext taskCtx, EmuVideo &video)
-{
-	auto img = video.startFrame(taskCtx);
-	IG::Pixmap framePix{{lcdSize, IG::PIXEL_RGB565}, gGba.lcd.pix};
-	assumeExpr(img.pixmap().size() == framePix.size());
-	if(img.pixmap().format() == IG::PIXEL_FMT_RGB565)
-	{
-		img.pixmap().writeTransformed([](uint16_t p){ return systemColorMap.map16[p]; }, framePix);
-	}
-	else
-	{
-		assumeExpr(img.pixmap().format().bytesPerPixel() == 4);
-		img.pixmap().writeTransformed([](uint16_t p){ return systemColorMap.map32[p]; }, framePix);
-	}
-	img.endFrame();
-}
-
-void systemOnWriteDataToSoundBuffer(EmuAudio *audio, const u16 * finalWave, int length)
-{
-	//logMsg("%d audio frames", Audio::pPCM.bytesToFrames(length));
-	if(audio)
-	{
-		audio->writeFrames(finalWave, audio->format().bytesToFrames(length));
-	}
-}
-
 void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	CPULoop(gGba, taskCtx, video, audio);
@@ -229,4 +206,33 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(Base::ApplicationContext) {}
+void EmuSystem::onInit(IG::ApplicationContext) {}
+
+}
+
+void systemDrawScreen(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo &video)
+{
+	using namespace EmuEx;
+	auto img = video.startFrame(taskCtx);
+	IG::Pixmap framePix{{lcdSize, IG::PIXEL_RGB565}, gGba.lcd.pix};
+	assumeExpr(img.pixmap().size() == framePix.size());
+	if(img.pixmap().format() == IG::PIXEL_FMT_RGB565)
+	{
+		img.pixmap().writeTransformed([](uint16_t p){ return systemColorMap.map16[p]; }, framePix);
+	}
+	else
+	{
+		assumeExpr(img.pixmap().format().bytesPerPixel() == 4);
+		img.pixmap().writeTransformed([](uint16_t p){ return systemColorMap.map32[p]; }, framePix);
+	}
+	img.endFrame();
+}
+
+void systemOnWriteDataToSoundBuffer(EmuEx::EmuAudio *audio, const u16 * finalWave, int length)
+{
+	//logMsg("%d audio frames", Audio::pPCM.bytesToFrames(length));
+	if(audio)
+	{
+		audio->writeFrames(finalWave, audio->format().bytesToFrames(length));
+	}
+}

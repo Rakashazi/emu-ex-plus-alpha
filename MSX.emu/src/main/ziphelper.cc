@@ -25,6 +25,8 @@
 #include "internal.hh"
 #include <cstdlib>
 
+using namespace EmuEx;
+
 static struct archive *writeArch{};
 static FS::ArchiveIterator cachedZipIt{};
 static FS::PathString cachedZipName{};

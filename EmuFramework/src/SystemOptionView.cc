@@ -24,7 +24,10 @@
 #include <imagine/util/format.hh>
 #include <imagine/util/ScopeGuard.hh>
 
-static FS::PathString savePathStrToDescStr(Base::ApplicationContext ctx, std::string_view savePathStr)
+namespace EmuEx
+{
+
+static FS::PathString savePathStrToDescStr(IG::ApplicationContext ctx, std::string_view savePathStr)
 {
 	if(savePathStr.size())
 	{
@@ -100,12 +103,12 @@ static void setAutoSaveState(unsigned val)
 	logMsg("set auto-savestate %d", optionAutoSaveState.val);
 }
 
-static auto makePathMenuEntryStr(Base::ApplicationContext ctx, std::string_view savePath)
+static auto makePathMenuEntryStr(IG::ApplicationContext ctx, std::string_view savePath)
 {
 	return fmt::format("Save Path: {}", savePathStrToDescStr(ctx, savePath));
 }
 
-static bool hasWriteAccessToDir(Base::ApplicationContext ctx, IG::CStringView path)
+static bool hasWriteAccessToDir(IG::ApplicationContext ctx, IG::CStringView path)
 {
 	// on Android test file creation since
 	// access() can still claim emulated storage is writable
@@ -357,3 +360,4 @@ void SystemOptionView::pushAndShowFirmwareFilePathMenu(IG::utf16String name, Inp
 	pushAndShowFirmwarePathMenu(std::move(name), e, true);
 }
 
+}

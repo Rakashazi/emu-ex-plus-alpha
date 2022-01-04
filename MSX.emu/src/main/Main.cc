@@ -53,22 +53,26 @@ extern "C"
 
 #include <blueMSX/Utils/ziphelper.h>
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
+extern int pendingInt;
+extern RomType currentRomType[2];
+Machine *machine{};
+IG::FS::FileString hdName[4]{};
+
+namespace EmuEx
+{
+
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor BlueMSX file loading code
 bool EmuSystem::hasResetModes = true;
 BoardInfo boardInfo{};
-Machine *machine{};
 Mixer *mixer{};
 FS::FileString cartName[2]{};
-extern RomType currentRomType[2];
 FS::FileString diskName[2]{};
 static FS::FileString tapeName{};
-FS::FileString hdName[4]{};
 static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
 static const char saveStateVersion[] = "blueMSX - state  v 8";
-extern int pendingInt;
-Base::ApplicationContext appCtx{};
+IG::ApplicationContext appCtx{};
 
 #if defined CONFIG_BASE_ANDROID || defined CONFIG_ENV_WEBOS || defined CONFIG_BASE_IOS || defined CONFIG_MACHINE_IS_PANDORA
 static const bool checkForMachineFolderOnStart = true;
@@ -78,7 +82,7 @@ static const bool checkForMachineFolderOnStart = false;
 
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
-FS::PathString machineBasePath(Base::ApplicationContext ctx)
+FS::PathString machineBasePath(IG::ApplicationContext ctx)
 {
 	if(EmuSystem::firmwarePath().empty())
 	{
@@ -343,7 +347,7 @@ void setCurrentMachineName(EmuApp &app, std::string_view machineName, bool inser
 		insertMedia(app);
 }
 
-static FS::FileString getFirstFilenameInArchive(Base::ApplicationContext ctx, IG::CStringView zipPath, auto nameMatch)
+static FS::FileString getFirstFilenameInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath, auto nameMatch)
 {
 	try
 	{
@@ -368,22 +372,22 @@ static FS::FileString getFirstFilenameInArchive(Base::ApplicationContext ctx, IG
 	return {};
 }
 
-static FS::FileString getFirstROMFilenameInArchive(Base::ApplicationContext ctx, IG::CStringView zipPath)
+static FS::FileString getFirstROMFilenameInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
 {
 	return getFirstFilenameInArchive(ctx, zipPath, hasMSXROMExtension);
 }
 
-static FS::FileString getFirstDiskFilenameInArchive(Base::ApplicationContext ctx, IG::CStringView zipPath)
+static FS::FileString getFirstDiskFilenameInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
 {
 	return getFirstFilenameInArchive(ctx, zipPath, hasMSXDiskExtension);
 }
 
-static FS::FileString getFirstTapeFilenameInArchive(Base::ApplicationContext ctx, IG::CStringView zipPath)
+static FS::FileString getFirstTapeFilenameInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
 {
 	return getFirstFilenameInArchive(ctx, zipPath, hasMSXTapeExtension);
 }
 
-static FS::FileString getFirstMediaFilenameInArchive(Base::ApplicationContext ctx, IG::CStringView zipPath)
+static FS::FileString getFirstMediaFilenameInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
 {
 	return getFirstFilenameInArchive(ctx, zipPath, hasMSXExtension);
 }
@@ -512,7 +516,7 @@ static void saveBlueMSXState(const char *filename)
 	zipEndWrite();
 }
 
-void EmuSystem::saveState(Base::ApplicationContext ctx, IG::CStringView path)
+void EmuSystem::saveState(IG::ApplicationContext ctx, IG::CStringView path)
 {
 	return saveBlueMSXState(path);
 }
@@ -593,7 +597,7 @@ void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 	return loadBlueMSXState(app, path);
 }
 
-void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
+void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
 {
 	if(gameIsRunning())
 	{
@@ -601,12 +605,12 @@ void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 	}
 }
 
-void EmuSystem::closeSystem(Base::ApplicationContext)
+void EmuSystem::closeSystem(IG::ApplicationContext)
 {
 	destroyMachine();
 }
 
-void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	if(contentDirectory().empty())
 	{
@@ -724,18 +728,6 @@ void EmuSystem::renderFramebuffer(EmuVideo &video)
 	video.startFrameWithAltFormat({}, frameBufferPixmap());
 }
 
-void RefreshScreen(int screenMode)
-{
-	//logMsg("called RefreshScreen");
-	if(emuVideo) [[likely]]
-	{
-		emuVideo->startFrameWithAltFormat(emuSysTask, frameBufferPixmap());
-		emuVideo = {};
-		emuSysTask = {};
-	}
-	boardInfo.stop(boardInfo.cpuRef);
-}
-
 void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	emuSysTask = taskCtx;
@@ -765,7 +757,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(IG::ApplicationContext ctx)
 {
 	/*mediaDbCreateRomdb();
 	mediaDbAddFromXmlFile("msxromdb.xml");
@@ -790,4 +782,19 @@ void EmuSystem::onInit(Base::ApplicationContext ctx)
 	int logFrequency = 50;
 	int frequency = (int)(3579545 * ::pow(2.0, (logFrequency - 50) / 15.0515));
 	mixerSetBoardFrequencyFixed(frequency);
+}
+
+}
+
+void RefreshScreen(int screenMode)
+{
+	using namespace EmuEx;
+	//logMsg("called RefreshScreen");
+	if(emuVideo) [[likely]]
+	{
+		emuVideo->startFrameWithAltFormat(emuSysTask, frameBufferPixmap());
+		emuVideo = {};
+		emuSysTask = {};
+	}
+	boardInfo.stop(boardInfo.cpuRef);
 }

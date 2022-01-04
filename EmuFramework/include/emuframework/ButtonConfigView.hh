@@ -22,6 +22,10 @@
 #include <imagine/input/config.hh>
 #include <string>
 
+namespace EmuEx
+{
+
+using namespace IG;
 class InputManagerView;
 class InputDeviceConfig;
 struct KeyCategory;
@@ -80,3 +84,5 @@ public:
 	ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView, const KeyCategory *cat, InputDeviceConfig &devConf);
 	bool inputEvent(Input::Event e) final;
 };
+
+}

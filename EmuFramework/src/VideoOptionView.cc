@@ -29,20 +29,21 @@
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/util/format.hh>
 
-using namespace IG;
+namespace EmuEx
+{
 
 class DetectFrameRateView final: public View, public EmuAppHelper<DetectFrameRateView>
 {
 public:
 	using DetectFrameRateDelegate = DelegateFunc<void (IG::FloatSeconds frameTime)>;
 	DetectFrameRateDelegate onDetectFrameTime;
-	Base::OnFrameDelegate detectFrameRate;
-	Base::FrameTime totalFrameTime{};
-	Base::FrameTime lastFrameTimestamp{};
+	IG::OnFrameDelegate detectFrameRate;
+	IG::FrameTime totalFrameTime{};
+	IG::FrameTime lastFrameTimestamp{};
 	Gfx::Text fpsText;
 	unsigned allTotalFrames = 0;
 	unsigned callbacks = 0;
-	std::vector<Base::FrameTime> frameTimeSample{};
+	std::vector<IG::FrameTime> frameTimeSample{};
 	bool useRenderTaskTime = false;
 
 	DetectFrameRateView(ViewAttachParams attach): View(attach),
@@ -80,14 +81,14 @@ public:
 
 	void draw(Gfx::RendererCommands &cmds) final
 	{
-		using namespace Gfx;
+		using namespace IG::Gfx;
 		cmds.setColor(1., 1., 1., 1.);
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
 		fpsText.draw(cmds, projP.alignXToPixel(projP.bounds().xCenter()),
 			projP.alignYToPixel(projP.bounds().yCenter()), C2DO, projP);
 	}
 
-	bool runFrameTimeDetection(Base::FrameTime timestampDiff, double slack)
+	bool runFrameTimeDetection(IG::FrameTime timestampDiff, double slack)
 	{
 		const unsigned framesToTime = frameTimeSample.capacity() * 10;
 		allTotalFrames++;
@@ -95,9 +96,9 @@ public:
 		if(frameTimeSample.size() == frameTimeSample.capacity())
 		{
 			bool stableFrameTime = true;
-			Base::FrameTime frameTimeTotal{};
+			IG::FrameTime frameTimeTotal{};
 			{
-				Base::FrameTime lastFrameTime{};
+				IG::FrameTime lastFrameTime{};
 				for(auto frameTime : frameTimeSample)
 				{
 					frameTimeTotal += frameTime;
@@ -229,7 +230,7 @@ void VideoOptionView::setRenderPixelFormat(PixelFormatID format)
 	imgEffectPixelFormat.updateDisplayString();
 }
 
-static const char *autoWindowPixelFormatStr(Base::ApplicationContext ctx)
+static const char *autoWindowPixelFormatStr(IG::ApplicationContext ctx)
 {
 	return ctx.defaultWindowPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGBA8888";
 }
@@ -966,4 +967,6 @@ void VideoOptionView::setAspectRatio(double val)
 EmuVideo &VideoOptionView::emuVideo() const
 {
 	return videoLayer->emuVideo();
+}
+
 }

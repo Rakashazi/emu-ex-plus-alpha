@@ -24,7 +24,7 @@ namespace IG::Audio
 class SampleFormat
 {
 public:
-	constexpr SampleFormat() {}
+	constexpr SampleFormat() = default;
 	constexpr SampleFormat(uint8_t bytes, bool isFloat = false):
 		bytesWithFlags{(uint8_t)((bytes & BYTES_MASK) | (isFloat ? IS_FLOAT_BIT : 0))}
 	{}
@@ -54,7 +54,7 @@ public:
 protected:
 	static constexpr uint8_t BYTES_MASK = 0xF;
 	static constexpr uint8_t IS_FLOAT_BIT = 0x80;
-	uint8_t bytesWithFlags = 0;
+	uint8_t bytesWithFlags{};
 };
 
 namespace SampleFormats

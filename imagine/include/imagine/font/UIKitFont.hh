@@ -23,18 +23,15 @@
 #import <UIKit/UIFont.h>
 #endif
 
-namespace Base
-{
-class ApplicationContext;
-}
-
 namespace IG
 {
+
+class ApplicationContext;
 
 class UIKitGlyphImage
 {
 public:
-	constexpr UIKitGlyphImage() {}
+	constexpr UIKitGlyphImage() = default;
 	constexpr UIKitGlyphImage(IG::Pixmap pixmap, void *pixData):
 		pixmap_{pixmap}, pixData_{pixData} {}
 	UIKitGlyphImage(UIKitGlyphImage &&o);
@@ -51,7 +48,7 @@ protected:
 class UIKitFont
 {
 public:
-	constexpr UIKitFont() {}
+	constexpr UIKitFont() = default;
 	constexpr UIKitFont(CGColorSpaceRef grayColorSpace, CGColorRef textColor, bool isBold = false):
 		grayColorSpace{grayColorSpace}, textColor{textColor}, isBold{isBold} {}
 
@@ -64,7 +61,7 @@ protected:
 class UIKitFontSize
 {
 public:
-	constexpr UIKitFontSize() {}
+	constexpr UIKitFontSize() = default;
 	constexpr UIKitFontSize(void *font): font_{font} {}
 	UIKitFontSize(UIKitFontSize &&o);
 	UIKitFontSize &operator=(UIKitFontSize &&o);
@@ -82,7 +79,7 @@ protected:
 class UIKitFontFontManager
 {
 public:
-	UIKitFontFontManager(Base::ApplicationContext);
+	UIKitFontFontManager(ApplicationContext);
 	~UIKitFontFontManager();
 
 protected:

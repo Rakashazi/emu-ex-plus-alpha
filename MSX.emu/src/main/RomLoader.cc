@@ -27,6 +27,9 @@ extern "C"
 	#include <blueMSX/Memory/RomLoader.h>
 }
 
+using namespace IG;
+using namespace EmuEx;
+
 static UInt8 *fileToMallocBuffer(IO &file, int *size)
 {
 	int fileSize = file.size();

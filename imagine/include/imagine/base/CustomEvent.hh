@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/eventloop/FDCustomEvent.hh>
 
-namespace Base
+namespace IG
 {
 
 class CustomEvent : public CustomEventImpl

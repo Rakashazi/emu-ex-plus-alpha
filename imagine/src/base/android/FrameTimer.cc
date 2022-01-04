@@ -27,7 +27,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-namespace Base
+namespace IG
 {
 
 FrameTimer AndroidApplication::makeFrameTimer(Screen &screen)
@@ -127,9 +127,9 @@ NativeChoreographer::NativeChoreographer(AndroidApplication &app):
 	appPtr{&app}
 {
 	AChoreographer* (*getInstance)(){};
-	Base::loadSymbol(getInstance, {}, "AChoreographer_getInstance");
+	loadSymbol(getInstance, {}, "AChoreographer_getInstance");
 	assert(getInstance);
-	Base::loadSymbol(postFrameCallback, {}, "AChoreographer_postFrameCallback");
+	loadSymbol(postFrameCallback, {}, "AChoreographer_postFrameCallback");
 	assert(postFrameCallback);
 	choreographer = getInstance();
 	assert(choreographer);

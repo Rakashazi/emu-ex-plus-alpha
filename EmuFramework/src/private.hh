@@ -19,36 +19,41 @@
 #include <imagine/pixmap/PixelFormat.hh>
 #include <memory>
 
-namespace Base
+namespace IG
 {
 class Window;
+class GenericIO;
+class ViewAttachParams;
 }
 
-namespace Input
+namespace IG::Input
 {
 class Event;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 class Viewport;
 class Projection;
 }
 
-class GenericIO;
-class ViewAttachParams;
+namespace EmuEx
+{
+
 class EmuSystemTask;
 class EmuViewController;
 class EmuVideo;
 class EmuAudio;
 
-const char *appViewTitle();
+std::u16string_view appViewTitle();
 bool hasGooglePlayStoreFeatures();
 void runBenchmarkOneShot(EmuApp &, EmuVideo &);
 void onSelectFileFromPicker(EmuApp &, GenericIO, IG::CStringView path, std::string_view displayName,
 	Input::Event, EmuSystemCreateParams, ViewAttachParams);
 void launchSystem(EmuApp &, bool tryAutoState);
-Gfx::Viewport makeViewport(const Base::Window &win);
+Gfx::Viewport makeViewport(const IG::Window &win);
 Gfx::Projection updateProjection(Gfx::Viewport viewport);
 uint8_t currentFrameInterval();
 IG::PixelFormatID optionImageEffectPixelFormatValue();
+
+}

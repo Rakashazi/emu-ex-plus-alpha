@@ -30,6 +30,9 @@ extern "C"
 	#include "archdep.h"
 }
 
+namespace EmuEx
+{
+
 static std::array<const char*, 3> sysFileDirs =
 {
 	"",
@@ -127,7 +130,7 @@ static ArchiveIO archiveIOForSysFile(IG::CStringView archivePath, std::string_vi
 	return {};
 }
 
-static AssetIO assetIOForSysFile(Base::ApplicationContext ctx, std::string_view sysFileName, char **complete_path_return)
+static AssetIO assetIOForSysFile(IG::ApplicationContext ctx, std::string_view sysFileName, char **complete_path_return)
 {
 	for(const auto &subDir : sysFileDirs)
 	{
@@ -199,6 +202,10 @@ std::vector<std::string> systemFilesWithExtension(const char *ext)
 	std::sort(filenames.begin(), filenames.end());
 	return filenames;
 }
+
+}
+
+using namespace EmuEx;
 
 CLINK int sysfile_init(const char *emu_id)
 {

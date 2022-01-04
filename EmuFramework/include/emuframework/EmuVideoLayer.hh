@@ -20,6 +20,9 @@
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VideoImageEffect.hh>
 
+namespace EmuEx
+{
+
 class EmuInputView;
 class EmuVideo;
 class VController;
@@ -65,3 +68,5 @@ private:
 	void placeEffect();
 	void placeOverlay();
 };
+
+}

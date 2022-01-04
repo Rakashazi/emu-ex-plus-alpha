@@ -18,6 +18,9 @@
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/RTC.h>
 
+namespace EmuEx
+{
+
 enum
 {
 	CFGKEY_RTC_EMULATION = 256
@@ -66,4 +69,6 @@ void setRTC(unsigned mode)
 		logMsg("%s RTC", mode == RTC_EMU_ON ? "enabled" : "disabled");
 		rtcEnable(mode == RTC_EMU_ON);
 	}
+}
+
 }

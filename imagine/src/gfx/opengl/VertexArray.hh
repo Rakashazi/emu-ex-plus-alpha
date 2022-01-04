@@ -2,7 +2,7 @@
 
 #include <imagine/gfx/VertexArray.hh>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 void VertexArray::init(const void *data, uint32_t size)

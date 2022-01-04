@@ -8,6 +8,9 @@
 #include <vector>
 #include <string>
 
+namespace EmuEx
+{
+
 class EmuAudio;
 
 enum Vic20Ram : uint8_t
@@ -30,7 +33,7 @@ static constexpr uint8_t SYSTEM_FLAG_NO_AUTOSTART = IG::bit(0);
 
 extern VicePlugin plugin;
 extern ViceSystem currSystem;
-extern Base::ApplicationContext appContext;
+extern IG::ApplicationContext appContext;
 extern FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3];
 extern EmuAudio *audioPtr;
 extern std::binary_semaphore execSem, execDoneSem;
@@ -79,8 +82,6 @@ void setAutostartTDE(bool on);
 void setAutostartBasicLoad(bool on);
 bool autostartBasicLoad();
 void setSysModel(int model);
-void setCanvasSkipFrame(bool on);
-void startCanvasRunningFrame();
 int sysModel();
 void setDefaultC64Model(int model);
 void setDefaultDTVModel(int model);
@@ -95,8 +96,6 @@ bool hasC64DiskExtension(std::string_view name);
 bool hasC64TapeExtension(std::string_view name);
 bool hasC64CartExtension(std::string_view name);
 int optionDefaultModel(ViceSystem system);
-void resetCanvasSourcePixmap(struct video_canvas_s *c);
-bool updateCanvasPixelFormat(struct video_canvas_s *c, IG::PixelFormat);
 void applySessionOptions();
 int systemCartType(ViceSystem system);
 std::vector<std::string> systemFilesWithExtension(const char *ext);
@@ -108,3 +107,10 @@ void setJoystickMode(JoystickMode);
 bool currSystemIsC64();
 bool currSystemIsC64Or128();
 void setRuntimeReuSize(int size);
+
+}
+
+void setCanvasSkipFrame(bool on);
+void startCanvasRunningFrame();
+void resetCanvasSourcePixmap(struct video_canvas_s *c);
+bool updateCanvasPixelFormat(struct video_canvas_s *c, IG::PixelFormat);

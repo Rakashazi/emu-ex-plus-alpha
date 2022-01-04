@@ -21,8 +21,13 @@
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <fceu/driver.h>
-extern unsigned fceuCheats;
+
 void EncodeGG(char *str, int a, int v, int c);
+
+namespace EmuEx
+{
+
+extern unsigned fceuCheats;
 static const int UNCHANGED_VAL = -2;
 
 static bool isValidGGCodeLen(const char *str)
@@ -437,4 +442,6 @@ void EmuCheatsView::loadCheatItems()
 				FCEUI_ToggleCheat(c);
 			});
 	}
+}
+
 }

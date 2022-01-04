@@ -23,6 +23,9 @@ extern "C"
 	#include <gngeo/emu.h>
 }
 
+namespace EmuEx
+{
+
 enum
 {
 	CFGKEY_LIST_ALL_GAMES = 275, CFGKEY_BIOS_TYPE = 276,
@@ -76,7 +79,7 @@ void EmuSystem::initOptions(EmuApp &app)
 	app.setDefaultVControlsButtonStagger(5);
 }
 
-void EmuSystem::onOptionsLoaded(Base::ApplicationContext)
+void EmuSystem::onOptionsLoaded(IG::ApplicationContext)
 {
 	conf.system = (SYSTEM)optionBIOSType.val;
 	conf.country = (COUNTRY)optionMVSCountry.val;
@@ -125,4 +128,6 @@ void EmuSystem::writeConfig(IO &io)
 	optionMVSCountry.writeWithKeyIfNotDefault(io);
 	optionCreateAndUseCache.writeWithKeyIfNotDefault(io);
 	optionStrictROMChecking.writeWithKeyIfNotDefault(io);
+}
+
 }

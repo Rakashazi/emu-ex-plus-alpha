@@ -23,26 +23,25 @@
 #include <imagine/util/string/utf16.hh>
 #include <memory>
 
-namespace Base
-{
-class Window;
-class Screen;
-class ApplicationContext;
-class Application;
-}
-
-namespace Input
+namespace IG::Input
 {
 class Event;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 class Renderer;
 class RendererTask;
 class GlyphTextureSet;
 }
 
+namespace IG
+{
+
+class Window;
+class Screen;
+class ApplicationContext;
+class Application;
 class View;
 class ViewManager;
 class BaseTextMenuItem;
@@ -70,9 +69,13 @@ public:
 	using DismissDelegate = DelegateFunc<bool (View &view)>;
 	static constexpr auto imageCommonTextureSampler = ViewDefs::imageCommonTextureSampler;
 
-	View() = default;
-	View(ViewAttachParams attach);
-	View(IG::utf16String name, ViewAttachParams attach);
+	constexpr View() = default;
+
+	constexpr View(ViewAttachParams attach):
+		win(&attach.window()),
+		rendererTask_{&attach.rendererTask()},
+		manager_{&attach.viewManager()} {}
+
 	virtual ~View() = default;
 	View &operator=(View &&) = delete;
 	virtual void place() = 0;
@@ -84,19 +87,18 @@ public:
 	virtual void onHide();
 	virtual void onAddedToController(ViewController *c, Input::Event e);
 	virtual void setFocus(bool focused);
+	virtual std::u16string_view name() const;
 
 	void setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP);
 	void setViewRect(Gfx::ProjectionPlane projP);
 	void postDraw();
-	Base::Window &window() const;
+	Window &window() const;
 	Gfx::Renderer &renderer() const;
 	Gfx::RendererTask &rendererTask() const;
 	ViewManager &manager();
 	ViewAttachParams attachParams() const;
-	Base::Screen *screen() const;
-	Base::ApplicationContext appContext() const;
-	std::u16string_view name() const;
-	void setName(IG::utf16String);
+	Screen *screen() const;
+	ApplicationContext appContext() const;
 	static std::u16string nameString(const BaseTextMenuItem &item);
 	Gfx::GlyphTextureSet &defaultFace();
 	Gfx::GlyphTextureSet &defaultBoldFace();
@@ -108,7 +110,7 @@ public:
 	void popTo(View &v);
 	void show();
 	bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
-	void setWindow(Base::Window *w);
+	void setWindow(Window *w);
 	void setOnDismiss(DismissDelegate del);
 	void onDismiss();
 	void setController(ViewController *c, Input::Event e);
@@ -138,12 +140,13 @@ public:
 	}
 
 protected:
-	Base::Window *win{};
+	Window *win{};
 	Gfx::RendererTask *rendererTask_{};
 	ViewManager *manager_{};
 	ViewController *controller_{};
-	std::u16string nameStr{};
 	DismissDelegate dismissDel{};
 	IG::WindowRect viewRect_{};
 	Gfx::ProjectionPlane projP{};
 };
+
+}

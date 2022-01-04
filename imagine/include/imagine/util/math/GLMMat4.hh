@@ -24,7 +24,7 @@
 class GLMMat4
 {
 public:
-	constexpr GLMMat4() {}
+	constexpr GLMMat4() = default;
 	constexpr GLMMat4(glm::mat4 m): m{m} {}
 	static GLMMat4 makeTranslate(GLMVec3 translation);
 	static GLMMat4 makePerspectiveFovRH(float fovy, float aspect, float znear, float zfar);

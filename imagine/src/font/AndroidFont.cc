@@ -37,7 +37,7 @@ static const char *androidBitmapResultToStr(int result)
 	}
 }
 
-AndroidFontManager::AndroidFontManager(Base::ApplicationContext ctx):
+AndroidFontManager::AndroidFontManager(ApplicationContext ctx):
 	appPtr{&ctx.application()},
 	jRecycleBitmap{ctx.application().recycleBitmapMethod()}
 {
@@ -121,7 +121,7 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 	ec = {};
 	void *data{};
 	auto res = AndroidBitmap_lockPixels(env, bitmap, &data);
-	auto pix = Base::makePixmapView(env, bitmap, data, PIXEL_A8);
+	auto pix = makePixmapView(env, bitmap, data, PIXEL_A8);
 	//logMsg("AndroidBitmap_lockPixels returned %s", androidBitmapResultToStr(res));
 	assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
 	return {{{env, bitmap, mgr.recycleBitmapMethod()}, pix}, metrics};

@@ -39,6 +39,9 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 
+namespace EmuEx
+{
+
 class AutoStateConfirmAlertView : public YesNoAlertView, public EmuAppHelper<AutoStateConfirmAlertView>
 {
 public:
@@ -77,7 +80,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	appPtr{&EmuApp::get(viewAttach.appContext())},
 	onExit
 	{
-		[this](Base::ApplicationContext ctx, bool backgrounded)
+		[this](IG::ApplicationContext ctx, bool backgrounded)
 		{
 			if(backgrounded)
 			{
@@ -88,7 +91,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 				}
 				viewStack.top().onHide();
 				ctx.addOnResume(
-					[this](Base::ApplicationContext, bool focused)
+					[this](IG::ApplicationContext, bool focused)
 					{
 						configureSecondaryScreens();
 						prepareDraw();
@@ -115,27 +118,27 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	auto &win = viewAttach.window();
 
 	win.setOnInputEvent(
-		[this](Base::Window &win, Input::Event e)
+		[this](IG::Window &win, Input::Event e)
 		{
 			return inputEvent(e);
 		});
 
 	win.setOnFocusChange(
-		[this](Base::Window &win, bool in)
+		[this](IG::Window &win, bool in)
 		{
 			windowData(win).focused = in;
 			onFocusChange(in);
 		});
 
 	win.setOnDragDrop(
-		[this](Base::Window &win, const char *filename)
+		[this](IG::Window &win, const char *filename)
 		{
 			logMsg("got DnD: %s", filename);
 			handleOpenFileCommand(filename);
 		});
 
 	win.setOnSurfaceChange(
-		[this](Base::Window &win, Base::Window::SurfaceChange change)
+		[this](IG::Window &win, IG::Window::SurfaceChange change)
 		{
 			auto &winData = windowData(win);
 			rendererTask().updateDrawableForSurfaceChange(win, change);
@@ -152,11 +155,11 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 		});
 
 	win.setOnDraw(
-		[this](Base::Window &win, Base::Window::DrawParams params)
+		[this](IG::Window &win, IG::Window::DrawParams params)
 		{
 			auto &winData = windowData(win);
 			return rendererTask().draw(win, params, {}, winData.viewport(), winData.projection.matrix(),
-				[this](Base::Window &win, Gfx::RendererCommands &cmds)
+				[this](IG::Window &win, Gfx::RendererCommands &cmds)
 				{
 					auto &winData = windowData(win);
 					cmds.clear();
@@ -228,11 +231,11 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	winData.hasPopup = true;
 	if(!screen.supportsTimestamps() && (!Config::envIsLinux || screen.frameRate() < 100.))
 	{
-		setWindowFrameClockSource(Base::Window::FrameTimeSource::RENDERER);
+		setWindowFrameClockSource(IG::Window::FrameTimeSource::RENDERER);
 	}
 	else
 	{
-		setWindowFrameClockSource(Base::Window::FrameTimeSource::SCREEN);
+		setWindowFrameClockSource(IG::Window::FrameTimeSource::SCREEN);
 	}
 	logMsg("timestamp source:%s", useRendererTime() ? "renderer" : "screen");
 	onFrameUpdate = [this, &r = std::as_const(viewAttach.renderer())](IG::FrameParams params)
@@ -389,7 +392,7 @@ bool EmuViewController::inputEvent(Input::Event e)
 	return viewStack.inputEvent(e);
 }
 
-void EmuViewController::movePopupToWindow(Base::Window &win)
+void EmuViewController::movePopupToWindow(IG::Window &win)
 {
 	auto &origWin = popup.window();
 	if(origWin == win)
@@ -401,7 +404,7 @@ void EmuViewController::movePopupToWindow(Base::Window &win)
 	popup.setWindow(&win);
 }
 
-void EmuViewController::moveEmuViewToWindow(Base::Window &win)
+void EmuViewController::moveEmuViewToWindow(IG::Window &win)
 {
 	auto &origWin = emuView.window();
 	if(origWin == win)
@@ -425,7 +428,7 @@ void EmuViewController::configureAppForEmulation(bool running)
 	appContext().setHintKeyRepeat(!running);
 }
 
-void EmuViewController::configureWindowForEmulation(Base::Window &win, bool running)
+void EmuViewController::configureWindowForEmulation(IG::Window &win, bool running)
 {
 	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 	win.screen()->setFrameInterval(optionFrameInterval);
@@ -502,44 +505,44 @@ void EmuViewController::placeElements()
 	viewStack.place(winData.viewport().bounds(), winData.projection.plane());
 }
 
-static bool hasExtraWindow(Base::ApplicationContext ctx)
+static bool hasExtraWindow(IG::ApplicationContext ctx)
 {
 	return ctx.windows().size() == 2;
 }
 
-static void dismissExtraWindow(Base::ApplicationContext ctx)
+static void dismissExtraWindow(IG::ApplicationContext ctx)
 {
 	if(!hasExtraWindow(ctx))
 		return;
 	ctx.windows()[1]->dismiss();
 }
 
-static bool extraWindowIsFocused(Base::ApplicationContext ctx)
+static bool extraWindowIsFocused(IG::ApplicationContext ctx)
 {
 	if(!hasExtraWindow(ctx))
 		return false;
 	return windowData(*ctx.windows()[1]).focused;
 }
 
-static Base::Screen *extraWindowScreen(Base::ApplicationContext ctx)
+static IG::Screen *extraWindowScreen(IG::ApplicationContext ctx)
 {
 	if(!hasExtraWindow(ctx))
 		return nullptr;
 	return ctx.windows()[1]->screen();
 }
 
-void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
+void EmuViewController::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 {
 	auto ctx = appContext();
 	if(on && !hasExtraWindow(ctx))
 	{
 		logMsg("setting emu view on extra window");
-		Base::WindowConfig winConf;
+		IG::WindowConfig winConf;
 		winConf.setScreen(screen);
 		winConf.setTitle(ctx.applicationName);
 		winConf.setFormat(app().windowDrawableConfig().pixelFormat);
 		auto extraWin = ctx.makeWindow(winConf,
-			[this](Base::ApplicationContext, Base::Window &win)
+			[this](IG::ApplicationContext, IG::Window &win)
 			{
 				emuView.renderer().attachWindow(win, app().windowDrawableConfig());
 				win.makeAppData<WindowData>();
@@ -557,7 +560,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 				emuView.setLayoutInputView(nullptr);
 
 				win.setOnSurfaceChange(
-					[this](Base::Window &win, Base::Window::SurfaceChange change)
+					[this](IG::Window &win, IG::Window::SurfaceChange change)
 					{
 						auto &winData = windowData(win);
 						rendererTask().updateDrawableForSurfaceChange(win, change);
@@ -571,11 +574,11 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 					});
 
 				win.setOnDraw(
-					[this](Base::Window &win, Base::Window::DrawParams params)
+					[this](IG::Window &win, IG::Window::DrawParams params)
 					{
 						auto &winData = windowData(win);
 						return rendererTask().draw(win, params, {}, winData.viewport(), winData.projection.matrix(),
-							[this, &winData](Base::Window &win, Gfx::RendererCommands &cmds)
+							[this, &winData](IG::Window &win, Gfx::RendererCommands &cmds)
 							{
 								cmds.clear();
 								emuView.draw(cmds);
@@ -588,7 +591,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 					});
 
 				win.setOnInputEvent(
-					[this](Base::Window &win, Input::Event e)
+					[this](IG::Window &win, Input::Event e)
 					{
 						if(EmuSystem::isActive() && e.isKey())
 						{
@@ -598,20 +601,20 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 					});
 
 				win.setOnFocusChange(
-					[this](Base::Window &win, bool in)
+					[this](IG::Window &win, bool in)
 					{
 						windowData(win).focused = in;
 						onFocusChange(in);
 					});
 
 				win.setOnDismissRequest(
-					[](Base::Window &win)
+					[](IG::Window &win)
 					{
 						win.dismiss();
 					});
 
 				win.setOnDismiss(
-					[this](Base::Window &win)
+					[this](IG::Window &win)
 					{
 						EmuSystem::resetFrameTime();
 						logMsg("setting emu view on main window");
@@ -644,7 +647,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 	}
 }
 
-void EmuViewController::startViewportAnimation(Base::Window &win)
+void EmuViewController::startViewportAnimation(IG::Window &win)
 {
 	auto &winData = windowData(win);
 	auto oldViewport = winData.viewport();
@@ -658,7 +661,7 @@ void EmuViewController::startMainViewportAnimation()
 	startViewportAnimation(mainWindow());
 }
 
-void EmuViewController::updateWindowViewport(Base::Window &win, Base::Window::SurfaceChange change)
+void EmuViewController::updateWindowViewport(IG::Window &win, IG::Window::SurfaceChange change)
 {
 	auto &winData = windowData(win);
 	if(change.surfaceResized())
@@ -701,7 +704,7 @@ void EmuViewController::applyFrameRates(bool updateFrameTime)
 		EmuSystem::configFrameTime(optionSoundRate);
 }
 
-Base::OnFrameDelegate EmuViewController::makeOnFrameDelayed(uint8_t delay)
+IG::OnFrameDelegate EmuViewController::makeOnFrameDelayed(uint8_t delay)
 {
 	return
 		[this, delay](IG::FrameParams params)
@@ -722,7 +725,7 @@ Base::OnFrameDelegate EmuViewController::makeOnFrameDelayed(uint8_t delay)
 		};
 }
 
-void EmuViewController::addOnFrameDelegate(Base::OnFrameDelegate onFrame)
+void EmuViewController::addOnFrameDelegate(IG::OnFrameDelegate onFrame)
 {
 	emuWindow().addOnFrame(onFrame, winFrameTimeSrc);
 }
@@ -745,7 +748,7 @@ void EmuViewController::removeOnFrame()
 	emuWindow().removeOnFrame(onFrameUpdate, winFrameTimeSrc);
 }
 
-void EmuViewController::moveOnFrame(Base::Window &from, Base::Window &to)
+void EmuViewController::moveOnFrame(IG::Window &from, IG::Window &to)
 {
 	from.removeOnFrame(onFrameUpdate, winFrameTimeSrc);
 	to.addOnFrame(onFrameUpdate, winFrameTimeSrc);
@@ -802,12 +805,12 @@ void EmuViewController::postDrawToEmuWindows()
 	emuView.window().postDraw();
 }
 
-Base::Screen *EmuViewController::emuWindowScreen() const
+IG::Screen *EmuViewController::emuWindowScreen() const
 {
 	return emuView.window().screen();
 }
 
-Base::Window &EmuViewController::emuWindow() const
+IG::Window &EmuViewController::emuWindow() const
 {
 	return emuView.window();
 }
@@ -850,7 +853,7 @@ void EmuViewController::prepareDraw()
 	viewStack.prepareDraw();
 }
 
-void EmuViewController::drawMainWindow(Base::Window &win, Gfx::RendererCommands &cmds, bool hasEmuView, bool hasPopup)
+void EmuViewController::drawMainWindow(IG::Window &win, Gfx::RendererCommands &cmds, bool hasEmuView, bool hasPopup)
 {
 	if(showingEmulation)
 	{
@@ -932,7 +935,7 @@ EmuAudio &EmuViewController::emuAudio() const
 	return *emuAudioPtr;
 }
 
-void EmuViewController::onScreenChange(Base::ApplicationContext ctx, Base::Screen &screen, Base::ScreenChange change)
+void EmuViewController::onScreenChange(IG::ApplicationContext ctx, IG::Screen &screen, IG::ScreenChange change)
 {
 	if(change.added())
 	{
@@ -1000,7 +1003,7 @@ WindowData &EmuViewController::mainWindowData() const
 	return windowData(emuInputView.window());
 }
 
-Base::Window &EmuViewController::mainWindow() const
+IG::Window &EmuViewController::mainWindow() const
 {
 	return emuInputView.window();
 }
@@ -1013,14 +1016,14 @@ void EmuViewController::setFastForwardActive(bool active)
 	emuAudio().setVolume(soundVolume);
 }
 
-void EmuViewController::setWindowFrameClockSource(Base::Window::FrameTimeSource src)
+void EmuViewController::setWindowFrameClockSource(IG::Window::FrameTimeSource src)
 {
 	winFrameTimeSrc = src;
 }
 
 bool EmuViewController::useRendererTime() const
 {
-	return winFrameTimeSrc == Base::Window::FrameTimeSource::RENDERER;
+	return winFrameTimeSrc == IG::Window::FrameTimeSource::RENDERER;
 }
 
 void EmuViewController::configureSecondaryScreens()
@@ -1031,14 +1034,14 @@ void EmuViewController::configureSecondaryScreens()
 	}
 }
 
-Base::ApplicationContext EmuViewController::appContext() const
+IG::ApplicationContext EmuViewController::appContext() const
 {
 	return emuWindow().appContext();
 }
 
 bool EmuViewController::isMenuDismissKey(Input::Event e)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	Key dismissKey = Keycode::MENU;
 	Key dismissKey2 = Keycode::GAME_Y;
 	if(Config::MACHINE_IS_PANDORA && e.device()->subtype() == Device::Subtype::PANDORA_HANDHELD)
@@ -1054,4 +1057,6 @@ void EmuViewController::writeConfig(IO &io)
 {
 	if(IG::used(usePresentationTime_) && !usePresentationTime_)
 		writeOptionValue(io, CFGKEY_RENDERER_PRESENTATION_TIME, false);
+}
+
 }

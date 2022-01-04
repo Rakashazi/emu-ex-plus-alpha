@@ -23,8 +23,10 @@
 #include "../input/PackedInputAccess.hh"
 #include <algorithm>
 
-using namespace IG;
-using namespace Input;
+namespace IG
+{
+
+using namespace IG::Input;
 
 static const PackedInputAccess iCPDataAccess[] =
 {
@@ -103,7 +105,7 @@ static const char *icpButtonName(Key b)
 	return "";
 }
 
-IControlPad::IControlPad(Base::ApplicationContext ctx, BluetoothAddr addr):
+IControlPad::IControlPad(ApplicationContext ctx, BluetoothAddr addr):
 	BluetoothInputDevice{ctx, Input::Map::ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"},
 	sock{ctx},
 	addr{addr}
@@ -220,7 +222,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 
 void IControlPad::processBtnReport(const char *btnData, Input::Time time)
 {
-	using namespace Input;
+	using namespace IG::Input;
 	for(auto e : iCPDataAccess)
 	{
 		bool oldState = prevBtnData[e.byteOffset] & e.mask,
@@ -256,4 +258,6 @@ std::pair<Input::Key, Input::Key> IControlPad::joystickKeys(Input::AxisId axisId
 		case Input::AxisId::RZ: return {Input::iControlPad::RNUB_DOWN, Input::iControlPad::RNUB_UP};
 		default: return {};
 	}
+}
+
 }

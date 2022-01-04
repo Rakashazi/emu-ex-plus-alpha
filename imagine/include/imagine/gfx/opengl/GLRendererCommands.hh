@@ -23,12 +23,12 @@
 #include "GLSLProgram.hh"
 #include <imagine/util/typeTraits.hh>
 
-namespace Base
+namespace IG
 {
 class GLContext;
 }
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 class TextureSampler;
@@ -39,9 +39,9 @@ class RendererTask;
 class GLRendererCommands
 {
 public:
-	constexpr GLRendererCommands() {}
-	GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, Drawable drawable, Base::GLDisplay glDpy,
-		const Base::GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr);
+	constexpr GLRendererCommands() = default;
+	GLRendererCommands(RendererTask &rTask, Window *winPtr, Drawable drawable, GLDisplay glDpy,
+		const GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr);
 	void discardTemporaryData();
 	void bindGLArrayBuffer(GLuint vbo);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -81,14 +81,14 @@ protected:
 	void doPresent();
 	void notifyDrawComplete();
 	void notifyPresentComplete();
-	const Base::GLContext &glContext() const;
+	const GLContext &glContext() const;
 
 	RendererTask *rTask{};
 	Renderer *r{};
 	std::binary_semaphore *drawCompleteSemPtr{};
-	Base::Window *winPtr{};
-	[[no_unique_address]] Base::GLDisplay glDpy{};
-	const Base::GLContext *glContextPtr{};
+	Window *winPtr{};
+	[[no_unique_address]] GLDisplay glDpy{};
+	const GLContext *glContextPtr{};
 	Drawable drawable{};
 	Viewport currViewport{};
 	GLuint currSamplerName{};

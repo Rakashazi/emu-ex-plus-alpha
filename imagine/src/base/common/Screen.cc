@@ -23,7 +23,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 
-namespace Base
+namespace IG
 {
 
 Screen::Screen(ApplicationContext ctx, InitParams params):

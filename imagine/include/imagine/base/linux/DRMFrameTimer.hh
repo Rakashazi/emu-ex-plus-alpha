@@ -19,7 +19,7 @@
 #include <imagine/base/EventLoop.hh>
 #include <imagine/time/Time.hh>
 
-namespace Base
+namespace IG
 {
 
 class Screen;
@@ -27,7 +27,7 @@ class Screen;
 class DRMFrameTimer : public FrameTimerI
 {
 public:
-	constexpr DRMFrameTimer() {}
+	constexpr DRMFrameTimer() = default;
 	DRMFrameTimer(Screen &screen, EventLoop loop = {});
 	~DRMFrameTimer() final;
 	void scheduleVSync() final;
@@ -40,7 +40,7 @@ public:
 	}
 
 protected:
-	Base::FDEventSource fdSrc{};
+	FDEventSource fdSrc{};
 	IG::Time timestamp{};
 	bool requested{};
 	bool cancelled{};

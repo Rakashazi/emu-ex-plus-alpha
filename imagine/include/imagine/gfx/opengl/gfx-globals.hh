@@ -21,7 +21,7 @@
 #include <imagine/base/GLContext.hh>
 #include <array>
 
-namespace Gfx
+namespace IG::Gfx
 {
 
 using TransformCoordinate = GLfloat;
@@ -62,7 +62,7 @@ static constexpr int ONE_MINUS_CONSTANT_ALPHA_IMPL = GL_ONE_MINUS_CONSTANT_ALPHA
 static constexpr int SYNC_FLUSH_COMMANDS_BIT = GL_SYNC_FLUSH_COMMANDS_BIT;
 
 using ClipRect = IG::WindowRect;
-using Drawable = Base::NativeGLDrawable;
+using Drawable = NativeGLDrawable;
 
 enum class ShaderType : uint16_t
 {
@@ -72,8 +72,8 @@ enum class ShaderType : uint16_t
 
 enum class ColorSpace : uint8_t
 {
-	LINEAR = (uint8_t)Base::GLColorSpace::LINEAR,
-	SRGB = (uint8_t)Base::GLColorSpace::SRGB,
+	LINEAR = (uint8_t)GLColorSpace::LINEAR,
+	SRGB = (uint8_t)GLColorSpace::SRGB,
 };
 
 }

@@ -19,7 +19,7 @@
 #include <X11/XF86keysym.h>
 #include <imagine/input/evdev/inputDefs.hh>
 
-namespace Input
+namespace IG::Input
 {
 
 using PointerIdImpl = int;
@@ -200,7 +200,9 @@ using PointerIdImpl = int;
 	JS3_YAXIS_POS = 0xfe32, JS3_YAXIS_NEG = 0xfe33,
 
 	JS_LTRIGGER_AXIS = 0xfe34, JS_RTRIGGER_AXIS = 0xfe35,
-	JS_GAS_AXIS = 0xfe36, JS_BRAKE_AXIS = 0xfe37;
+	JS_GAS_AXIS = 0xfe36, JS_BRAKE_AXIS = 0xfe37,
+
+	BACK_KEY = ESCAPE;
 
 	static constexpr uint32_t COUNT = 0xffff + 1;
 

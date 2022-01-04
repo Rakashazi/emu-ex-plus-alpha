@@ -23,6 +23,8 @@
 #ifndef _LOADROM_H_
 #define _LOADROM_H_
 
+#include <string_view>
+
 #define MAXROMSIZE 10485760
 
 typedef struct

@@ -29,7 +29,7 @@
 #include <type_traits>
 #include <compare>
 
-namespace Base
+namespace IG
 {
 
 class GLDisplay;
@@ -44,7 +44,7 @@ struct EGLBufferConfig
 {
 	EGLConfig glConfig{};
 
-	constexpr EGLBufferConfig() {}
+	constexpr EGLBufferConfig() = default;
 	constexpr EGLBufferConfig(EGLConfig eglConfig):
 		glConfig{eglConfig} {}
 
@@ -57,7 +57,7 @@ struct EGLBufferConfig
 class EGLDisplayConnection
 {
 public:
-	constexpr EGLDisplayConnection() {}
+	constexpr EGLDisplayConnection() = default;
 	constexpr EGLDisplayConnection(EGLDisplay display): display{display} {}
 	constexpr operator EGLDisplay() const { return display; }
 	constexpr bool operator ==(EGLDisplayConnection const&) const = default;
@@ -71,7 +71,7 @@ protected:
 class EGLDrawable
 {
 public:
-	constexpr EGLDrawable() {}
+	constexpr EGLDrawable() = default;
 	EGLDrawable(EGLDisplay, Window &, EGLConfig, const EGLint *surfaceAttr, IG::ErrorCode &);
 	operator EGLSurface() const { return surface.get(); }
 	bool operator ==(EGLDrawable const&) const = default;
@@ -98,7 +98,7 @@ protected:
 class EGLContextBase
 {
 public:
-	constexpr EGLContextBase() {}
+	constexpr EGLContextBase() = default;
 	EGLContextBase(EGLDisplay, GLContextAttributes, EGLConfig, EGLContext shareContext, bool savePBuffConfig, IG::ErrorCode &);
 	operator EGLContext() const { return context.get(); }
 	bool operator ==(EGLContextBase const&) const = default;
@@ -126,7 +126,7 @@ protected:
 class EGLManager
 {
 public:
-	constexpr EGLManager() {}
+	constexpr EGLManager() = default;
 	static const char *errorString(EGLint error);
 	static int makeRenderableType(GL::API, unsigned majorVersion);
 	explicit operator bool() const { return (bool)dpy; }

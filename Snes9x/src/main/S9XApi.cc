@@ -18,6 +18,8 @@
 #include <display.h>
 #include <memmap.h>
 
+using namespace EmuEx;
+
 #ifndef SNES9X_VERSION_1_4
 uint16 SSettings::DisplayColor = 0;
 uint32 SSettings::SkipFrames = 0;
@@ -286,18 +288,18 @@ void S9xCloseSnapshotFile(STREAM file)
 
 FILE *fopenHelper(const char* filename, const char* mode)
 {
-	return FileUtils::fopenUri(appCtx, filename, mode);
+	return IG::FileUtils::fopenUri(appCtx, filename, mode);
 }
 
 void removeFileHelper(const char* filename)
 {
-	appCtx.removeFileUri(filename);
+	EmuEx::appCtx.removeFileUri(filename);
 }
 
 gzFile gzopenHelper(const char *filename, const char *mode)
 {
-	unsigned openFlags = IG::stringContains(mode, 'w') ? IO::OPEN_CREATE : 0;
-	return gzdopen(appCtx.openFileUri(filename, IO::AccessHint::UNMAPPED, openFlags | IO::OPEN_TEST).releaseFd(), mode);
+	unsigned openFlags = IG::stringContains(mode, 'w') ? IG::IO::OPEN_CREATE : 0;
+	return gzdopen(appCtx.openFileUri(filename, IG::IO::AccessHint::UNMAPPED, openFlags | IG::IO::OPEN_TEST).releaseFd(), mode);
 }
 
 // from logger.h
