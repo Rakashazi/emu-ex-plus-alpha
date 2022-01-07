@@ -145,11 +145,6 @@ file_type directory_entry::symlink_type() const
 	return linkType_;
 }
 
-PathString directory_entry::path() const
-{
-	return path_;
-}
-
 static std::shared_ptr<DirectoryStream> makeDirectoryStream(IG::CStringView path)
 {
 	auto streamPtr = std::make_shared<DirectoryStream>(path);
@@ -327,13 +322,13 @@ bool access(IG::CStringView path, acc type)
 
 bool remove(IG::CStringView path)
 {
-	logErr("removing:%s", path.data());
-	if(::unlink(path) == -1) [[unlikely]]
+	if(::remove(path) == -1) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("unlink(%s) error:%s", path.data(), strerror(errno));
+			logErr("remove(%s) error:%s", path.data(), strerror(errno));
 		return false;
 	}
+	logErr("removed:%s", path.data());
 	return true;
 }
 
@@ -354,16 +349,20 @@ bool create_directory(IG::CStringView path)
 			throw std::system_error(err, std::system_category(), path);
 		}
 	}
+	logMsg("made directory:%s", path.data());
 	return true;
 }
 
-void rename(IG::CStringView oldPath, IG::CStringView newPath)
+bool rename(IG::CStringView oldPath, IG::CStringView newPath)
 {
 	if(::rename(oldPath, newPath) == -1) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("rename(%s, %s) error:%s", oldPath.data(), newPath.data(), strerror(errno));
+		return false;
 	}
+	logMsg("renamed:%s -> %s", oldPath.data(), newPath.data());
+	return true;
 }
 
 }

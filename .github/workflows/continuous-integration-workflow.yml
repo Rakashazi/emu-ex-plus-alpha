@@ -3,9 +3,12 @@ name: EX Emulators
 on: [push, pull_request]
 
 jobs:
-  Build-2600:
-    name: 2600.emu
+  Build:
+    name: Build
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x"]
     container: cirrusci/android-sdk:30-ndk
  
     steps:
@@ -93,1122 +96,205 @@ jobs:
         make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
 
     - name: Build 2600.emu
+      if: ${{ matrix.image == '2600.emu' }}
       run: |
         cd 2600.emu
         make -f android-release.mk V=1 -j2
 
-    - name: Copy Artifacts
+    - name: Copy 2600.emu artifact
+      if: ${{ matrix.image == '2600.emu' }}
       run: |
         cp 2600.emu/target/android-release/build/outputs/apk/release/2600Emu-release.apk EX-Emulators/2600Emu-release.apk
-        
-    - name: Upload Artifact to Emulators
-      uses: actions/upload-artifact@v2
-      with: 
-        name: EX-Emulators
-        path: EX-Emulators/
 
-    - name: Upload 2600.emu Artifact
+    - name: Upload 2600.emu artifact
       uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == '2600.emu' }}
       with: 
         name: 2600emu
         path: ${{ github.workspace }}/2600.emu/target/android-release/build/outputs/apk/release/2600Emu-release.apk
-
-  Build-C64:
-    name: C64.emu
-    runs-on: ubuntu-20.04
-    container: cirrusci/android-sdk:30-ndk
- 
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Decode debug keystore
-      env:
-        DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
-      run: |
-        if [ -z "$DEBUG_KEYSTORE" ]
-        then
-           echo "No debug keystore value"
-        else
-           echo $DEBUG_KEYSTORE > debug.keystore.base64
-           base64 --decode debug.keystore.base64 > debug.keystore
-           sudo cp -f debug.keystore /root/.android/.
-        fi
-        
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y autoconf
-        sudo apt-get install -y automake
-        sudo apt-get install -y autopoint
-        sudo apt-get install -y bash
-        sudo apt-get install -y binutils-arm-linux-gnueabi
-        sudo apt-get install -y clang
-        sudo apt-get install -y file
-        sudo apt-get install -y gawk
-        sudo apt-get install -y gettext
-        sudo apt-get install -y git
-        sudo apt-get install -y libtool
-        sudo apt-get install -y libtool-bin
-        sudo apt-get install -y llvm 
-        sudo apt-get install -y make
-        sudo apt-get install -y nasm
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y pkg-config
-        sudo apt-get install -y unzip
-        sudo apt-get upgrade -y
-        echo y | sdkmanager "cmake;3.18.1"
-        
-    - name: Download and unzip NDK
-      working-directory: /opt/android-sdk-linux/ndk
-      run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
-        unzip -qq ./android-ndk-r24-beta2-linux.zip
-        
-    - name: Set up environment
-      run: |
-        mkdir imagine-sdk
-        mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
-        echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
-        echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
-        echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-
-    - name: Patch build.gradle
-      run: |
-        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
-        cd imagine/make/gradle/app/
-        patch -p 1 -i 01-change-signing-to-debug.patch
-        rm 01-change-signing-to-debug.patch
-  
-    - name: Patch android.mk
-      run: |
-        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
-        cd imagine/make/shortcut/meta-builds
-        patch -p 1 -i 02-change-bundle-to-apk.patch
-        rm 02-change-bundle-to-apk.patch
-        
-    - name: Run script
-      run: |
-        cd imagine/bundle/all
-        chmod +x ./makeAll-android.sh
-        ./makeAll-android.sh install
-      shell: bash
-          
-    - name: Build environment
-      run: |
-        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
         
     - name: Build C64.emu
+      if: ${{ matrix.image == 'C64.emu' }}
       run: |        
         cd C64.emu
         make -f android-release.mk V=1 -j2
 
-    - name: Copy Artifacts
+    - name: Copy C64.emu artifact
+      if: ${{ matrix.image == 'C64.emu' }}
       run: |
         cp C64.emu/target/android-release/build/outputs/apk/release/C64Emu-release.apk EX-Emulators/C64Emu-release.apk
-        
-    - name: Upload Artifact to Emulators
-      uses: actions/upload-artifact@v2
-      with: 
-        name: EX-Emulators
-        path: EX-Emulators/
     
-    - name: Upload C64.emu Artifact
+    - name: Upload C64.emu artifact
       uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == 'C64.emu' }}
       with: 
         name: C64emu
         path: ${{ github.workspace }}/C64.emu/target/android-release/build/outputs/apk/release/C64Emu-release.apk
 
-  Build-GBA:
-    name: GBA.emu
-    runs-on: ubuntu-20.04
-    container: cirrusci/android-sdk:30-ndk
- 
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Decode debug keystore
-      env:
-        DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
-      run: |
-        if [ -z "$DEBUG_KEYSTORE" ]
-        then
-           echo "No debug keystore value"
-        else
-           echo $DEBUG_KEYSTORE > debug.keystore.base64
-           base64 --decode debug.keystore.base64 > debug.keystore
-           sudo cp -f debug.keystore /root/.android/.
-        fi
-        
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y autoconf
-        sudo apt-get install -y automake
-        sudo apt-get install -y autopoint
-        sudo apt-get install -y bash
-        sudo apt-get install -y binutils-arm-linux-gnueabi
-        sudo apt-get install -y clang
-        sudo apt-get install -y file
-        sudo apt-get install -y gawk
-        sudo apt-get install -y gettext
-        sudo apt-get install -y git
-        sudo apt-get install -y libtool
-        sudo apt-get install -y libtool-bin
-        sudo apt-get install -y llvm 
-        sudo apt-get install -y make
-        sudo apt-get install -y nasm
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y pkg-config
-        sudo apt-get install -y unzip
-        sudo apt-get upgrade -y
-        echo y | sdkmanager "cmake;3.18.1"
-        
-    - name: Download and unzip NDK
-      working-directory: /opt/android-sdk-linux/ndk
-      run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
-        unzip -qq ./android-ndk-r24-beta2-linux.zip
-        
-    - name: Set up environment
-      run: |
-        mkdir imagine-sdk
-        mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
-        echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
-        echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
-        echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-
-    - name: Patch build.gradle
-      run: |
-        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
-        cd imagine/make/gradle/app/
-        patch -p 1 -i 01-change-signing-to-debug.patch
-        rm 01-change-signing-to-debug.patch
-  
-    - name: Patch android.mk
-      run: |
-        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
-        cd imagine/make/shortcut/meta-builds
-        patch -p 1 -i 02-change-bundle-to-apk.patch
-        rm 02-change-bundle-to-apk.patch
-        
-    - name: Run script
-      run: |
-        cd imagine/bundle/all
-        chmod +x ./makeAll-android.sh
-        ./makeAll-android.sh install
-      shell: bash
-          
-    - name: Build environment
-      run: |
-        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
-
     - name: Build GBA.emu
+      if: ${{ matrix.image == 'GBA.emu' }}
       run: |        
         cd GBA.emu
         make -f android-release.mk V=1 -j2
 
-    - name: Copy Artifacts
+    - name: Copy GBA.emu artifact
+      if: ${{ matrix.image == 'GBA.emu' }}
       run: |
         cp GBA.emu/target/android-release/build/outputs/apk/release/GbaEmu-release.apk EX-Emulators/GbaEmu-release.apk
-        
-    - name: Upload Artifact to Emulators
-      uses: actions/upload-artifact@v2
-      with: 
-        name: EX-Emulators
-        path: EX-Emulators/
 
-    - name: Upload GBA.emu Artifact
+    - name: Upload GBA.emu artifact
       uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == 'GBA.emu' }}
       with: 
         name: GBAemu
         path: ${{ github.workspace }}/GBA.emu/target/android-release/build/outputs/apk/release/GbaEmu-release.apk
 
-  Build-GBC:
-    name: GBC.emu
-    runs-on: ubuntu-20.04
-    container: cirrusci/android-sdk:30-ndk
- 
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Decode debug keystore
-      env:
-        DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
-      run: |
-        if [ -z "$DEBUG_KEYSTORE" ]
-        then
-           echo "No debug keystore value"
-        else
-           echo $DEBUG_KEYSTORE > debug.keystore.base64
-           base64 --decode debug.keystore.base64 > debug.keystore
-           sudo cp -f debug.keystore /root/.android/.
-        fi
-        
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y autoconf
-        sudo apt-get install -y automake
-        sudo apt-get install -y autopoint
-        sudo apt-get install -y bash
-        sudo apt-get install -y binutils-arm-linux-gnueabi
-        sudo apt-get install -y clang
-        sudo apt-get install -y file
-        sudo apt-get install -y gawk
-        sudo apt-get install -y gettext
-        sudo apt-get install -y git
-        sudo apt-get install -y libtool
-        sudo apt-get install -y libtool-bin
-        sudo apt-get install -y llvm 
-        sudo apt-get install -y make
-        sudo apt-get install -y nasm
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y pkg-config
-        sudo apt-get install -y unzip
-        sudo apt-get upgrade -y
-        echo y | sdkmanager "cmake;3.18.1"
-        
-    - name: Download and unzip NDK
-      working-directory: /opt/android-sdk-linux/ndk
-      run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
-        unzip -qq ./android-ndk-r24-beta2-linux.zip
-        
-    - name: Set up environment
-      run: |
-        mkdir imagine-sdk
-        mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
-        echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
-        echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
-        echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-
-    - name: Patch build.gradle
-      run: |
-        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
-        cd imagine/make/gradle/app/
-        patch -p 1 -i 01-change-signing-to-debug.patch
-        rm 01-change-signing-to-debug.patch
-  
-    - name: Patch android.mk
-      run: |
-        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
-        cd imagine/make/shortcut/meta-builds
-        patch -p 1 -i 02-change-bundle-to-apk.patch
-        rm 02-change-bundle-to-apk.patch
-        
-    - name: Run script
-      run: |
-        cd imagine/bundle/all
-        chmod +x ./makeAll-android.sh
-        ./makeAll-android.sh install
-      shell: bash
-          
-    - name: Build environment
-      run: |
-        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
-
     - name: Build GBC.emu
+      if: ${{ matrix.image == 'GBC.emu' }}
       run: |        
         cd GBC.emu
         make -f android-release.mk V=1 -j2
 
-    - name: Copy Artifacts
+    - name: Copy GBC.emu artifact
+      if: ${{ matrix.image == 'GBC.emu' }}
       run: |
         cp GBC.emu/target/android-release/build/outputs/apk/release/GbcEmu-release.apk EX-Emulators/GbcEmu-release.apk
-        
-    - name: Upload Artifact to Emulators
-      uses: actions/upload-artifact@v2
-      with: 
-        name: EX-Emulators
-        path: EX-Emulators/
   
-    - name: Upload GBC.emu Artifact
+    - name: Upload GBC.emu artifact
       uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == 'GBC.emu' }}
       with: 
         name: GBCemu
         path: ${{ github.workspace }}/GBC.emu/target/android-release/build/outputs/apk/release/GbcEmu-release.apk
 
-  Build-MD:
-    name: MD.emu
-    runs-on: ubuntu-20.04
-    container: cirrusci/android-sdk:30-ndk
- 
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Decode debug keystore
-      env:
-        DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
-      run: |
-        if [ -z "$DEBUG_KEYSTORE" ]
-        then
-           echo "No debug keystore value"
-        else
-           echo $DEBUG_KEYSTORE > debug.keystore.base64
-           base64 --decode debug.keystore.base64 > debug.keystore
-           sudo cp -f debug.keystore /root/.android/.
-        fi
-        
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y autoconf
-        sudo apt-get install -y automake
-        sudo apt-get install -y autopoint
-        sudo apt-get install -y bash
-        sudo apt-get install -y binutils-arm-linux-gnueabi
-        sudo apt-get install -y clang
-        sudo apt-get install -y file
-        sudo apt-get install -y gawk
-        sudo apt-get install -y gettext
-        sudo apt-get install -y git
-        sudo apt-get install -y libtool
-        sudo apt-get install -y libtool-bin
-        sudo apt-get install -y llvm 
-        sudo apt-get install -y make
-        sudo apt-get install -y nasm
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y pkg-config
-        sudo apt-get install -y unzip
-        sudo apt-get upgrade -y
-        echo y | sdkmanager "cmake;3.18.1"
-        
-    - name: Download and unzip NDK
-      working-directory: /opt/android-sdk-linux/ndk
-      run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
-        unzip -qq ./android-ndk-r24-beta2-linux.zip
-        
-    - name: Set up environment
-      run: |
-        mkdir imagine-sdk
-        mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
-        echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
-        echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
-        echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-
-    - name: Patch build.gradle
-      run: |
-        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
-        cd imagine/make/gradle/app/
-        patch -p 1 -i 01-change-signing-to-debug.patch
-        rm 01-change-signing-to-debug.patch
-  
-    - name: Patch android.mk
-      run: |
-        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
-        cd imagine/make/shortcut/meta-builds
-        patch -p 1 -i 02-change-bundle-to-apk.patch
-        rm 02-change-bundle-to-apk.patch
-        
-    - name: Run script
-      run: |
-        cd imagine/bundle/all
-        chmod +x ./makeAll-android.sh
-        ./makeAll-android.sh install
-      shell: bash
-          
-    - name: Build environment
-      run: |
-        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
-
     - name: Build MD.emu
+      if: ${{ matrix.image == 'MD.emu' }}
       run: |        
         cd MD.emu
         make -f android-release.mk V=1 -j2
 
-    - name: Copy Artifacts
+    - name: Copy MD.emu artifact
+      if: ${{ matrix.image == 'MD.emu' }}
       run: |
         cp MD.emu/target/android-release/build/outputs/apk/release/MdEmu-release.apk EX-Emulators/MdEmu-release.apk
-        
-    - name: Upload Artifact to Emulators
-      uses: actions/upload-artifact@v2
-      with: 
-        name: EX-Emulators
-        path: EX-Emulators/
      
-    - name: Upload MD.emu Artifact
+    - name: Upload MD.emu artifact
       uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == 'MD.emu' }}
       with: 
         name: MDemu
         path: ${{ github.workspace }}/MD.emu/target/android-release/build/outputs/apk/release/MdEmu-release.apk
 
-  Build-MSX:
-    name: MSX.emu
-    runs-on: ubuntu-20.04
-    container: cirrusci/android-sdk:30-ndk
- 
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Decode debug keystore
-      env:
-        DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
-      run: |
-        if [ -z "$DEBUG_KEYSTORE" ]
-        then
-           echo "No debug keystore value"
-        else
-           echo $DEBUG_KEYSTORE > debug.keystore.base64
-           base64 --decode debug.keystore.base64 > debug.keystore
-           sudo cp -f debug.keystore /root/.android/.
-        fi
-        
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y autoconf
-        sudo apt-get install -y automake
-        sudo apt-get install -y autopoint
-        sudo apt-get install -y bash
-        sudo apt-get install -y binutils-arm-linux-gnueabi
-        sudo apt-get install -y clang
-        sudo apt-get install -y file
-        sudo apt-get install -y gawk
-        sudo apt-get install -y gettext
-        sudo apt-get install -y git
-        sudo apt-get install -y libtool
-        sudo apt-get install -y libtool-bin
-        sudo apt-get install -y llvm 
-        sudo apt-get install -y make
-        sudo apt-get install -y nasm
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y pkg-config
-        sudo apt-get install -y unzip
-        sudo apt-get upgrade -y
-        echo y | sdkmanager "cmake;3.18.1"
-        
-    - name: Download and unzip NDK
-      working-directory: /opt/android-sdk-linux/ndk
-      run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
-        unzip -qq ./android-ndk-r24-beta2-linux.zip
-        
-    - name: Set up environment
-      run: |
-        mkdir imagine-sdk
-        mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
-        echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
-        echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
-        echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-
-    - name: Patch build.gradle
-      run: |
-        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
-        cd imagine/make/gradle/app/
-        patch -p 1 -i 01-change-signing-to-debug.patch
-        rm 01-change-signing-to-debug.patch
-  
-    - name: Patch android.mk
-      run: |
-        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
-        cd imagine/make/shortcut/meta-builds
-        patch -p 1 -i 02-change-bundle-to-apk.patch
-        rm 02-change-bundle-to-apk.patch
-        
-    - name: Run script
-      run: |
-        cd imagine/bundle/all
-        chmod +x ./makeAll-android.sh
-        ./makeAll-android.sh install
-      shell: bash
-          
-    - name: Build environment
-      run: |
-        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
-
     - name: Build MSX.emu
+      if: ${{ matrix.image == 'MSX.emu' }}
       run: |        
         cd MSX.emu
         make -f android-release.mk V=1 -j2
 
-    - name: Copy Artifacts
+    - name: Copy MSX.emu artifact
+      if: ${{ matrix.image == 'MSX.emu' }}
       run: |
         cp MSX.emu/target/android-release/build/outputs/apk/release/MsxEmu-release.apk EX-Emulators/MsxEmu-release.apk
-        
-    - name: Upload Artifact to Emulators
-      uses: actions/upload-artifact@v2
-      with: 
-        name: EX-Emulators
-        path: EX-Emulators/
 
-    - name: Upload MSX.emu Artifact
+    - name: Upload MSX.emu artifact
       uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == 'MSX.emu' }}
       with: 
         name: MSXemu
         path: ${{ github.workspace }}/MSX.emu/target/android-release/build/outputs/apk/release/MsxEmu-release.apk
 
-  Build-NEO:
-    name: NEO.emu
-    runs-on: ubuntu-20.04
-    container: cirrusci/android-sdk:30-ndk
- 
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Decode debug keystore
-      env:
-        DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
-      run: |
-        if [ -z "$DEBUG_KEYSTORE" ]
-        then
-           echo "No debug keystore value"
-        else
-           echo $DEBUG_KEYSTORE > debug.keystore.base64
-           base64 --decode debug.keystore.base64 > debug.keystore
-           sudo cp -f debug.keystore /root/.android/.
-        fi
-        
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y autoconf
-        sudo apt-get install -y automake
-        sudo apt-get install -y autopoint
-        sudo apt-get install -y bash
-        sudo apt-get install -y binutils-arm-linux-gnueabi
-        sudo apt-get install -y clang
-        sudo apt-get install -y file
-        sudo apt-get install -y gawk
-        sudo apt-get install -y gettext
-        sudo apt-get install -y git
-        sudo apt-get install -y libtool
-        sudo apt-get install -y libtool-bin
-        sudo apt-get install -y llvm 
-        sudo apt-get install -y make
-        sudo apt-get install -y nasm
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y pkg-config
-        sudo apt-get install -y unzip
-        sudo apt-get upgrade -y
-        echo y | sdkmanager "cmake;3.18.1"
-        
-    - name: Download and unzip NDK
-      working-directory: /opt/android-sdk-linux/ndk
-      run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
-        unzip -qq ./android-ndk-r24-beta2-linux.zip
-        
-    - name: Set up environment
-      run: |
-        mkdir imagine-sdk
-        mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
-        echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
-        echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
-        echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-
-    - name: Patch build.gradle
-      run: |
-        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
-        cd imagine/make/gradle/app/
-        patch -p 1 -i 01-change-signing-to-debug.patch
-        rm 01-change-signing-to-debug.patch
-  
-    - name: Patch android.mk
-      run: |
-        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
-        cd imagine/make/shortcut/meta-builds
-        patch -p 1 -i 02-change-bundle-to-apk.patch
-        rm 02-change-bundle-to-apk.patch
-        
-    - name: Run script
-      run: |
-        cd imagine/bundle/all
-        chmod +x ./makeAll-android.sh
-        ./makeAll-android.sh install
-      shell: bash
-          
-    - name: Build environment
-      run: |
-        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
-
     - name: Build NEO.emu
+      if: ${{ matrix.image == 'NEO.emu' }}
       run: |        
         cd NEO.emu
         make -f android-release.mk V=1 -j2
 
-    - name: Copy Artifacts
+    - name: Copy NEO.emu artifact
+      if: ${{ matrix.image == 'NEO.emu' }}
       run: |
         cp NEO.emu/target/android-release/build/outputs/apk/release/NeoEmu-release.apk EX-Emulators/NeoEmu-release.apk
-        
-    - name: Upload Artifact to Emulators
-      uses: actions/upload-artifact@v2
-      with: 
-        name: EX-Emulators
-        path: EX-Emulators/
 
-    - name: Upload NEO.emu Artifact
+    - name: Upload NEO.emu artifact
       uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == 'NEO.emu' }}
       with: 
         name: NEOemu
         path: ${{ github.workspace }}/NEO.emu/target/android-release/build/outputs/apk/release/NeoEmu-release.apk
 
-  Build-NES:
-    name: NES.emu
-    runs-on: ubuntu-20.04
-    container: cirrusci/android-sdk:30-ndk
- 
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Decode debug keystore
-      env:
-        DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
-      run: |
-        if [ -z "$DEBUG_KEYSTORE" ]
-        then
-           echo "No debug keystore value"
-        else
-           echo $DEBUG_KEYSTORE > debug.keystore.base64
-           base64 --decode debug.keystore.base64 > debug.keystore
-           sudo cp -f debug.keystore /root/.android/.
-        fi
-        
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y autoconf
-        sudo apt-get install -y automake
-        sudo apt-get install -y autopoint
-        sudo apt-get install -y bash
-        sudo apt-get install -y binutils-arm-linux-gnueabi
-        sudo apt-get install -y clang
-        sudo apt-get install -y file
-        sudo apt-get install -y gawk
-        sudo apt-get install -y gettext
-        sudo apt-get install -y git
-        sudo apt-get install -y libtool
-        sudo apt-get install -y libtool-bin
-        sudo apt-get install -y llvm 
-        sudo apt-get install -y make
-        sudo apt-get install -y nasm
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y pkg-config
-        sudo apt-get install -y unzip
-        sudo apt-get upgrade -y
-        echo y | sdkmanager "cmake;3.18.1"
-        
-    - name: Download and unzip NDK
-      working-directory: /opt/android-sdk-linux/ndk
-      run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
-        unzip -qq ./android-ndk-r24-beta2-linux.zip
-        
-    - name: Set up environment
-      run: |
-        mkdir imagine-sdk
-        mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
-        echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
-        echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
-        echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-
-    - name: Patch build.gradle
-      run: |
-        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
-        cd imagine/make/gradle/app/
-        patch -p 1 -i 01-change-signing-to-debug.patch
-        rm 01-change-signing-to-debug.patch
-  
-    - name: Patch android.mk
-      run: |
-        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
-        cd imagine/make/shortcut/meta-builds
-        patch -p 1 -i 02-change-bundle-to-apk.patch
-        rm 02-change-bundle-to-apk.patch
-        
-    - name: Run script
-      run: |
-        cd imagine/bundle/all
-        chmod +x ./makeAll-android.sh
-        ./makeAll-android.sh install
-      shell: bash
-          
-    - name: Build environment
-      run: |
-        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
-
     - name: Build NES.emu
+      if: ${{ matrix.image == 'NES.emu' }}
       run: |        
         cd NES.emu
         make -f android-release.mk V=1 -j2
 
-    - name: Copy Artifacts
+    - name: Copy NES.emu artifact
+      if: ${{ matrix.image == 'NES.emu' }}
       run: |
         cp NES.emu/target/android-release/build/outputs/apk/release/NesEmu-release.apk EX-Emulators/NesEmu-release.apk
-        
-    - name: Upload Artifact to Emulators
-      uses: actions/upload-artifact@v2
-      with: 
-        name: EX-Emulators
-        path: EX-Emulators/
 
-    - name: Upload NES.emu Artifact
+    - name: Upload NES.emu artifact
       uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == 'NES.emu' }}
       with: 
         name: NESemu
         path: ${{ github.workspace }}/NES.emu/target/android-release/build/outputs/apk/release/NesEmu-release.apk 
 
-  Build-NGP:
-    name: NGP.emu
-    runs-on: ubuntu-20.04
-    container: cirrusci/android-sdk:30-ndk
- 
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Decode debug keystore
-      env:
-        DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
-      run: |
-        if [ -z "$DEBUG_KEYSTORE" ]
-        then
-           echo "No debug keystore value"
-        else
-           echo $DEBUG_KEYSTORE > debug.keystore.base64
-           base64 --decode debug.keystore.base64 > debug.keystore
-           sudo cp -f debug.keystore /root/.android/.
-        fi
-        
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y autoconf
-        sudo apt-get install -y automake
-        sudo apt-get install -y autopoint
-        sudo apt-get install -y bash
-        sudo apt-get install -y binutils-arm-linux-gnueabi
-        sudo apt-get install -y clang
-        sudo apt-get install -y file
-        sudo apt-get install -y gawk
-        sudo apt-get install -y gettext
-        sudo apt-get install -y git
-        sudo apt-get install -y libtool
-        sudo apt-get install -y libtool-bin
-        sudo apt-get install -y llvm 
-        sudo apt-get install -y make
-        sudo apt-get install -y nasm
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y pkg-config
-        sudo apt-get install -y unzip
-        sudo apt-get upgrade -y
-        echo y | sdkmanager "cmake;3.18.1"
-        
-    - name: Download and unzip NDK
-      working-directory: /opt/android-sdk-linux/ndk
-      run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
-        unzip -qq ./android-ndk-r24-beta2-linux.zip
-        
-    - name: Set up environment
-      run: |
-        mkdir imagine-sdk
-        mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
-        echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
-        echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
-        echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-
-    - name: Patch build.gradle
-      run: |
-        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
-        cd imagine/make/gradle/app/
-        patch -p 1 -i 01-change-signing-to-debug.patch
-        rm 01-change-signing-to-debug.patch
-  
-    - name: Patch android.mk
-      run: |
-        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
-        cd imagine/make/shortcut/meta-builds
-        patch -p 1 -i 02-change-bundle-to-apk.patch
-        rm 02-change-bundle-to-apk.patch
-        
-    - name: Run script
-      run: |
-        cd imagine/bundle/all
-        chmod +x ./makeAll-android.sh
-        ./makeAll-android.sh install
-      shell: bash
-          
-    - name: Build environment
-      run: |
-        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
-
     - name: Build NGP.emu
+      if: ${{ matrix.image == 'NGP.emu' }}
       run: |        
         cd NGP.emu
         make -f android-release.mk V=1 -j2
 
-    - name: Copy Artifacts
+    - name: Copy NGP.emu artifact
+      if: ${{ matrix.image == 'NGP.emu' }}
       run: |
         cp NGP.emu/target/android-release/build/outputs/apk/release/NgpEmu-release.apk EX-Emulators/NgpEmu-release.apk
-        
-    - name: Upload Artifact to Emulators
-      uses: actions/upload-artifact@v2
-      with: 
-        name: EX-Emulators
-        path: EX-Emulators/
 
-    - name: Upload NGP.emu Artifact
+    - name: Upload NGP.emu artifact
       uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == 'NGP.emu' }}
       with: 
         name: NGPemu
         path: ${{ github.workspace }}/NGP.emu/target/android-release/build/outputs/apk/release/NgpEmu-release.apk 
 
-  Build-PCE:
-    name: PCE.emu
-    runs-on: ubuntu-20.04
-    container: cirrusci/android-sdk:30-ndk
- 
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Decode debug keystore
-      env:
-        DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
-      run: |
-        if [ -z "$DEBUG_KEYSTORE" ]
-        then
-           echo "No debug keystore value"
-        else
-           echo $DEBUG_KEYSTORE > debug.keystore.base64
-           base64 --decode debug.keystore.base64 > debug.keystore
-           sudo cp -f debug.keystore /root/.android/.
-        fi
-        
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y autoconf
-        sudo apt-get install -y automake
-        sudo apt-get install -y autopoint
-        sudo apt-get install -y bash
-        sudo apt-get install -y binutils-arm-linux-gnueabi
-        sudo apt-get install -y clang
-        sudo apt-get install -y file
-        sudo apt-get install -y gawk
-        sudo apt-get install -y gettext
-        sudo apt-get install -y git
-        sudo apt-get install -y libtool
-        sudo apt-get install -y libtool-bin
-        sudo apt-get install -y llvm 
-        sudo apt-get install -y make
-        sudo apt-get install -y nasm
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y pkg-config
-        sudo apt-get install -y unzip
-        sudo apt-get upgrade -y
-        echo y | sdkmanager "cmake;3.18.1"
-        
-    - name: Download and unzip NDK
-      working-directory: /opt/android-sdk-linux/ndk
-      run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
-        unzip -qq ./android-ndk-r24-beta2-linux.zip
-        
-    - name: Set up environment
-      run: |
-        mkdir imagine-sdk
-        mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
-        echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
-        echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
-        echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-
-    - name: Patch build.gradle
-      run: |
-        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
-        cd imagine/make/gradle/app/
-        patch -p 1 -i 01-change-signing-to-debug.patch
-        rm 01-change-signing-to-debug.patch
-  
-    - name: Patch android.mk
-      run: |
-        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
-        cd imagine/make/shortcut/meta-builds
-        patch -p 1 -i 02-change-bundle-to-apk.patch
-        rm 02-change-bundle-to-apk.patch
-        
-    - name: Run script
-      run: |
-        cd imagine/bundle/all
-        chmod +x ./makeAll-android.sh
-        ./makeAll-android.sh install
-      shell: bash
-          
-    - name: Build environment
-      run: |
-        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
-
     - name: Build PCE.emu
+      if: ${{ matrix.image == 'PCE.emu' }}
       run: |        
         cd PCE.emu
         make -f android-release.mk V=1 -j2
 
-    - name: Copy Artifacts
+    - name: Copy PCE.emu artifact
+      if: ${{ matrix.image == 'PCE.emu' }}
       run: |
         cp PCE.emu/target/android-release/build/outputs/apk/release/PceEmu-release.apk EX-Emulators/PceEmu-release.apk
-        
-    - name: Upload Artifact to Emulators
-      uses: actions/upload-artifact@v2
-      with: 
-        name: EX-Emulators
-        path: EX-Emulators/
      
-    - name: Upload PCE.emu Artifact
+    - name: Upload PCE.emu artifact
       uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == 'PCE.emu' }}
       with: 
         name: PCEemu
         path: ${{ github.workspace }}/PCE.emu/target/android-release/build/outputs/apk/release/PceEmu-release.apk
 
-  Build-Snes9x:
-    name: Snes9x
-    runs-on: ubuntu-20.04
-    container: cirrusci/android-sdk:30-ndk
- 
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Decode debug keystore
-      env:
-        DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
-      run: |
-        if [ -z "$DEBUG_KEYSTORE" ]
-        then
-           echo "No debug keystore value"
-        else
-           echo $DEBUG_KEYSTORE > debug.keystore.base64
-           base64 --decode debug.keystore.base64 > debug.keystore
-           sudo cp -f debug.keystore /root/.android/.
-        fi
-        
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y autoconf
-        sudo apt-get install -y automake
-        sudo apt-get install -y autopoint
-        sudo apt-get install -y bash
-        sudo apt-get install -y binutils-arm-linux-gnueabi
-        sudo apt-get install -y clang
-        sudo apt-get install -y file
-        sudo apt-get install -y gawk
-        sudo apt-get install -y gettext
-        sudo apt-get install -y git
-        sudo apt-get install -y libtool
-        sudo apt-get install -y libtool-bin
-        sudo apt-get install -y llvm 
-        sudo apt-get install -y make
-        sudo apt-get install -y nasm
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y pkg-config
-        sudo apt-get install -y unzip
-        sudo apt-get upgrade -y
-        echo y | sdkmanager "cmake;3.18.1"
-        
-    - name: Download and unzip NDK
-      working-directory: /opt/android-sdk-linux/ndk
-      run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r24-beta2-linux.zip
-        unzip -qq ./android-ndk-r24-beta2-linux.zip
-        
-    - name: Set up environment
-      run: |
-        mkdir imagine-sdk
-        mkdir EX-Emulators
-        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r24-beta2" >> $GITHUB_ENV
-        echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
-        echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
-        echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-
-    - name: Patch build.gradle
-      run: |
-        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
-        cd imagine/make/gradle/app/
-        patch -p 1 -i 01-change-signing-to-debug.patch
-        rm 01-change-signing-to-debug.patch
-  
-    - name: Patch android.mk
-      run: |
-        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
-        cd imagine/make/shortcut/meta-builds
-        patch -p 1 -i 02-change-bundle-to-apk.patch
-        rm 02-change-bundle-to-apk.patch
-        
-    - name: Run script
-      run: |
-        cd imagine/bundle/all
-        chmod +x ./makeAll-android.sh
-        ./makeAll-android.sh install
-      shell: bash
-          
-    - name: Build environment
-      run: |
-        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
-
     - name: Build Snes9x
+      if: ${{ matrix.image == 'Snes9x' }}
       run: |        
         cd Snes9x
         make -f android-release.mk V=1 -j2
 
-    - name: Copy Artifacts
+    - name: Copy Snes9x artifact
+      if: ${{ matrix.image == 'Snes9x' }}
       run: |
         cp Snes9x/target/android-release/build/outputs/apk/release/Snes9xEXPlus-release.apk EX-Emulators/Snes9xEXPlus-release.apk
-        
-    - name: Upload Artifact to Emulators
+     
+    - name: Upload Snes9x artifact
+      uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == 'Snes9x' }}
+      with: 
+        name: Snes9x
+        path: ${{ github.workspace }}/Snes9x/target/android-release/build/outputs/apk/release/Snes9xEXPlus-release.apk
+
+    - name: Upload EX-Emulators artifacts
       uses: actions/upload-artifact@v2
       with: 
         name: EX-Emulators
         path: EX-Emulators/
-     
-    - name: Upload Snes9x Artifact
-      uses: actions/upload-artifact@v2
-      with: 
-        name: Snes9x
-        path: ${{ github.workspace }}/Snes9x/target/android-release/build/outputs/apk/release/Snes9xEXPlus-release.apk

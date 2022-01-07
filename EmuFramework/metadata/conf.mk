@@ -6,6 +6,7 @@ android_metadata_vibrate = 1
 android_metadata_installShortcut = 1
 android_metadata_xperiaPlayOptimized = 1
 android_metadata_legacyStorage = 1
+android_metadata_appExtStorage = 1
 ios_metadata_setuidPermissionHelper = 1
 pnd_metadata_subcategory = Emulator
 pnd_metadata_website = http://www.explusalpha.com

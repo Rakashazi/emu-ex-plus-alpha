@@ -19,6 +19,7 @@
 #include "EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/TextTableView.hh>
+#include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/format.hh>
@@ -174,7 +175,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		{}, &defaultFace(),
 		[this](TextMenuItem &, View &view, Input::Event e)
 		{
-			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 3);
+			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 4);
 			multiChoiceView->appendItem("Select Folder",
 				[this](Input::Event e)
 				{
@@ -216,6 +217,46 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 					EmuSystem::setUserSaveDirectory(appContext(), optionSavePathDefaultToken);
 					onSavePathChange(optionSavePathDefaultToken);
 					view.dismiss();
+				});
+			multiChoiceView->appendItem("Legacy Game Data Folder",
+				[this](View &view, Input::Event e)
+				{
+					auto ynAlertView = makeView<YesNoAlertView>(
+						fmt::format("Please select the Game Data/{} folder from an old version of the app to use its existing saves and convert it to a regular save path (this is only needed once)", EmuSystem::shortSystemName()));
+					ynAlertView->setOnYes(
+						[this](Input::Event e)
+						{
+							auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
+							fPicker->setPath("");
+							fPicker->setOnClose(
+								[this](FSPicker &picker, Input::Event e)
+								{
+									if(e.isDefaultCancelButton())
+									{
+										picker.dismiss();
+										return;
+									}
+									auto path = picker.path();
+									auto ctx = appContext();
+									if(!hasWriteAccessToDir(ctx, path))
+									{
+										app().postErrorMessage("This folder lacks write access");
+										return;
+									}
+									if(ctx.fileUriDisplayName(path) != EmuSystem::shortSystemName())
+									{
+										app().postErrorMessage(fmt::format("Please select the {} folder", EmuSystem::shortSystemName()));
+										return;
+									}
+									EmuApp::updateLegacySavePath(ctx, path);
+									EmuSystem::setUserSaveDirectory(appContext(), path);
+									onSavePathChange(path);
+									dismissPrevious();
+									picker.dismiss();
+								});
+							pushAndShowModal(std::move(fPicker), e);
+						});
+					pushAndShowModal(std::move(ynAlertView), e);
 				});
 			pushAndShow(std::move(multiChoiceView), e);
 			postDraw();

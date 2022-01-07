@@ -65,7 +65,7 @@ void chown(IG::CStringView path, uid_t owner, gid_t group);
 bool access(IG::CStringView path, acc type);
 bool remove(IG::CStringView path);
 bool create_directory(IG::CStringView path);
-void rename(IG::CStringView oldPath, IG::CStringView newPath);
+bool rename(IG::CStringView oldPath, IG::CStringView newPath);
 
 PathString makeAppPathFromLaunchCommand(IG::CStringView launchPath);
 FileString basename(IG::CStringView path);
@@ -87,7 +87,11 @@ concept ConvertibleToPathString = IG::convertible_to<T, PathStringImpl> || IG::c
 static constexpr PathString pathString(ConvertibleToPathString auto &&base, auto &&...components)
 {
 	PathString path{IG_forward(base)};
-	([&](){path += '/'; path += IG_forward(components);}(), ...);
+	([&]()
+	{
+		path += '/';
+		path += IG_forward(components);
+	}(), ...);
 	return path;
 }
 
@@ -97,8 +101,24 @@ static constexpr PathString uriString(ConvertibleToPathString auto &&base, auto 
 		return pathString(IG_forward(base), IG_forward(components)...);
 	// assumes base is already encoded and encodes the components
 	PathString uri{IG_forward(base)};
-	([&](){uri += "%2F"; uri += IG::encodeUri<PathString>(IG_forward(components));}(), ...);
+	([&]()
+	{
+		uri += "%2F";
+		uri += IG::encodeUri<PathString>(IG_forward(components));
+	}(), ...);
 	return uri;
+}
+
+static PathString createDirectorySegments(ConvertibleToPathString auto &&base, auto &&...components)
+{
+	PathString path{IG_forward(base)};
+	([&]()
+	{
+		path += '/';
+		path += IG_forward(components);
+		create_directory(path);
+	}(), ...);
+	return path;
 }
 
 }

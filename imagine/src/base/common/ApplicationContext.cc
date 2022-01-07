@@ -307,6 +307,21 @@ FileIO ApplicationContext::openFileUri(IG::CStringView uri, unsigned openFlags) 
 	return FS::remove(uri);
 }
 
+[[gnu::weak]] bool ApplicationContext::renameFileUri(IG::CStringView oldUri, IG::CStringView newUri) const
+{
+	return FS::rename(oldUri, newUri);
+}
+
+[[gnu::weak]] bool ApplicationContext::createDirectoryUri(IG::CStringView uri) const
+{
+	return FS::create_directory(uri);
+}
+
+[[gnu::weak]] bool ApplicationContext::removeDirectoryUri(IG::CStringView uri) const
+{
+	return FS::remove(uri);
+}
+
 [[gnu::weak]] void ApplicationContext::forEachInDirectoryUri(IG::CStringView uri, FS::DirectoryEntryDelegate del) const
 {
 	forEachInDirectory(uri, del);

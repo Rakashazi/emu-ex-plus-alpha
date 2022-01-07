@@ -96,3 +96,7 @@ endif
 ifdef android_metadata_legacyStorage
  android_gen_metadata_args += --legacy-storage
 endif
+
+ifdef android_metadata_appExtStorage
+ android_gen_metadata_args += --app-ext-storage
+endif

@@ -85,7 +85,9 @@ public:
 	bool fileUriExists(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
 	FS::FileString fileUriDisplayName(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
-	bool removeFileUri(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
+	bool removeFileUri(JNIEnv *, jobject baseActivity, IG::CStringView uri, bool isDir) const;
+	bool renameFileUri(JNIEnv *, jobject baseActivity, IG::CStringView oldUri, IG::CStringView newUri) const;
+	bool createDirectoryUri(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
 	void forEachInDirectoryUri(JNIEnv *, jobject baseActivity, IG::CStringView uri, FS::DirectoryEntryDelegate) const;
 
 	// Input system functions
@@ -123,8 +125,10 @@ private:
 	JNI::InstMethod<jboolean(jstring)> uriExists{};
 	JNI::InstMethod<jstring(jstring)> uriLastModified{};
 	JNI::InstMethod<jstring(jstring)> uriDisplayName{};
-	JNI::InstMethod<jboolean(jstring)> deleteUri{};
+	JNI::InstMethod<jboolean(jstring, jboolean)> deleteUri{};
 	JNI::InstMethod<jboolean(jlong, jstring)> listUriFiles{};
+	JNI::InstMethod<jboolean(jstring)> createDirUri{};
+	JNI::InstMethod<jboolean(jstring, jstring)> renameUri{};
 	SystemDocumentPickerDelegate onSystemDocumentPicker{};
 	SystemOrientationChangedDelegate onSystemOrientationChanged{};
 	Timer userActivityCallback{"userActivityCallback"};

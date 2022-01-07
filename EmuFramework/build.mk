@@ -28,6 +28,7 @@ EmuViewController.cc \
 FilePicker.cc \
 GUIOptionView.cc \
 InputManagerView.cc \
+pathUtils.cc \
 RecentGameView.cc \
 StateSlotView.cc \
 SystemOptionView.cc \

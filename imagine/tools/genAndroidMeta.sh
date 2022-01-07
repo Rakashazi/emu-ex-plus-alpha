@@ -65,6 +65,9 @@ do
 		--legacy-storage)
 			usesLegacyStorage=1
 		;;
+		--app-ext-storage)
+			usesAppExtStorage=1
+		;;
 		# special actions
 		-v | --verbose)
 			verbose=1
@@ -136,6 +139,11 @@ fi
 if [ $usesLegacyStorage ]
 then
 	applicationOutput="$applicationOutput android:requestLegacyExternalStorage=\"true\""
+fi
+
+if [ $usesAppExtStorage ]
+then
+	applicationOutput="$applicationOutput android:hasFragileUserData=\"true\""
 fi
 
 if [ ! $versionCode ]

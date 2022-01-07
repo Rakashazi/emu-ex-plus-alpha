@@ -624,11 +624,25 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return ContentResolverUtils.uriDisplayName(getContentResolver(), uriStr);
 	}
 
-	boolean deleteUri(String uriStr)
+	boolean deleteUri(String uriStr, boolean isDir)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 19)
 			return false;
-		return ContentResolverUtils.deleteUri(getContentResolver(), uriStr);
+		return ContentResolverUtils.deleteUri(getContentResolver(), uriStr, isDir);
+	}
+
+	boolean renameUri(String oldUriStr, String newUriStr)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 24)
+			return false;
+		return ContentResolverUtils.renameUri(getContentResolver(), oldUriStr, newUriStr);
+	}
+
+	boolean createDirUri(String uriStr)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 21)
+			return false;
+		return ContentResolverUtils.createDirUri(getContentResolver(), uriStr);
 	}
 
 	boolean listUriFiles(long nativeUserData, String uriStr)

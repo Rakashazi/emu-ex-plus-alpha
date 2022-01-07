@@ -148,6 +148,7 @@ public:
 	void setContentSearchPath(std::string_view path);
 	FS::PathString firmwareSearchPath() const;
 	void setFirmwareSearchPath(std::string_view path);
+	static void updateLegacySavePath(IG::ApplicationContext, IG::CStringView path);
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
 	void addTurboInputEvent(unsigned action);
 	void removeTurboInputEvent(unsigned action);

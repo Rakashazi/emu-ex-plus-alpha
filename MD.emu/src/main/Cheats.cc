@@ -618,6 +618,11 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 							view.dismiss();
 							return false;
 						}
+						if(strlen(str) > 11)
+						{
+							app().postMessage(true, "Code is too long");
+							return true;
+						}
 						MdCheat c;
 						c.code = IG::stringToUpper<decltype(c.code)>(str);
 						if(!decodeCheat(c.code.data(), c.address, c.data, c.origData))

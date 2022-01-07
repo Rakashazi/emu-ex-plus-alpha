@@ -175,7 +175,6 @@ public:
 	static FS::FileString contentDisplayNameForPath(IG::ApplicationContext, IG::CStringView path);
 	static void setInitialLoadPath(IG::CStringView path);
 	static FS::PathString fallbackSaveDirectory(IG::ApplicationContext, bool create = false);
-	static FS::PathString fallbackContentSaveDirectory(IG::ApplicationContext, bool create = false);
 	static FS::PathString contentSaveDirectory();
 	static FS::PathString contentSavePath(IG::ApplicationContext, std::string_view name);
 	static const char *contentSaveDirectoryPtr() { return contentSaveDirectory_.data(); }

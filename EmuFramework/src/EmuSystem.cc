@@ -31,6 +31,7 @@
 #include <imagine/util/string.h>
 #include <algorithm>
 #include <cstring>
+#include "pathUtils.hh"
 
 namespace EmuEx
 {
@@ -137,7 +138,7 @@ void EmuSystem::updateContentSaveDirectory(IG::ApplicationContext ctx)
 	if(userSaveDirectory_.size())
 	{
 		if(userSaveDirectory_ == optionSavePathDefaultToken)
-			contentSaveDirectory_ = fallbackContentSaveDirectory(ctx, true);
+			contentSaveDirectory_ = fallbackSaveDirectory(ctx, true);
 		else
 			contentSaveDirectory_ = userSaveDirectory_;
 	}
@@ -146,36 +147,23 @@ void EmuSystem::updateContentSaveDirectory(IG::ApplicationContext ctx)
 		if(contentDirectory_.size())
 			contentSaveDirectory_ = contentDirectory_;
 		else
-			contentSaveDirectory_ = fallbackContentSaveDirectory(ctx, true);
+			contentSaveDirectory_ = fallbackSaveDirectory(ctx, true);
 	}
 	logMsg("updated content save path:%s", contentSaveDirectory_.data());
 }
 
 FS::PathString EmuSystem::fallbackSaveDirectory(IG::ApplicationContext ctx, bool create)
 {
-	auto pathTemp = FS::pathString(ctx.storagePath(), "Game Data");
-	if(create)
-		FS::create_directory(pathTemp);
-	pathTemp += '/';
-	pathTemp += shortSystemName();
-	if(create)
-		FS::create_directory(pathTemp);
-	return pathTemp;
-}
-
-FS::PathString EmuSystem::fallbackContentSaveDirectory(IG::ApplicationContext ctx, bool create)
-{
-	assert(contentName_.size());
 	try
 	{
-		auto pathTemp = FS::pathString(fallbackSaveDirectory(ctx, create), contentName_);
 		if(create)
-			FS::create_directory(pathTemp);
-		return pathTemp;
+			return FS::createDirectorySegments(ctx.storagePath(), "EmuEx", shortSystemName(), "saves");
+		else
+			return FS::pathString(ctx.storagePath(), "EmuEx", shortSystemName(), "saves");
 	}
 	catch(...)
 	{
-		logErr("error making fallback content save dir");
+		logErr("error making fallback save dir");
 		return {};
 	}
 }

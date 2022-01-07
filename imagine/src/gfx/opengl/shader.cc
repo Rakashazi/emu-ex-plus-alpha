@@ -34,100 +34,91 @@ static constexpr size_t maxSourceStrings = 16;
 using namespace std::literals;
 
 static std::string_view vShaderSrc =
-"in vec4 pos; "
-"in vec4 color; "
-"in vec2 texUV; "
-"out vec4 colorOut; "
-"out vec2 texUVOut; "
-"uniform mat4 modelviewproj; "
-"void main() { "
-	"colorOut = color; "
-	"texUVOut = texUV; "
-	"gl_Position = modelviewproj * pos; "
-"}"
-;
+R"(in vec4 pos;
+in vec4 color;
+in vec2 texUV;
+out vec4 colorOut;
+out vec2 texUVOut;
+uniform mat4 modelviewproj;
+void main() {
+	colorOut = color;
+	texUVOut = texUV;
+	gl_Position = modelviewproj * pos;
+})";
 
 static std::string_view texFragShaderSrc =
-"FRAGCOLOR_DEF "
-"in lowp vec4 colorOut; "
-"in lowp vec2 texUVOut; "
-"uniform sampler2D tex; "
-"void main() { "
-	"FRAGCOLOR = colorOut * texture(tex, texUVOut); "
-"}"
-;
+R"(FRAGCOLOR_DEF
+in lowp vec4 colorOut;
+in lowp vec2 texUVOut;
+uniform sampler2D tex;
+void main() {
+	FRAGCOLOR = colorOut * texture(tex, texUVOut);
+})";
 
 static std::string_view texReplaceFragShaderSrc =
-"FRAGCOLOR_DEF "
-"in lowp vec4 colorOut; "
-"in lowp vec2 texUVOut; "
-"uniform sampler2D tex; "
-"void main() { "
-	"FRAGCOLOR = texture(tex, texUVOut); "
-"}"
-;
+R"(FRAGCOLOR_DEF
+in lowp vec4 colorOut;
+in lowp vec2 texUVOut;
+uniform sampler2D tex;
+void main() {
+	FRAGCOLOR = texture(tex, texUVOut);
+})";
 
 static std::string_view texAlphaFragShaderSrc =
-"FRAGCOLOR_DEF "
-"in lowp vec4 colorOut; "
-"in lowp vec2 texUVOut; "
-"uniform sampler2D tex; "
-"void main() { "
-	// adapted from: gl_FragColor = colorOut * vec4(1., 1., 1., texture2D(tex, texUVOut).[alpha]);
-	"lowp vec4 tmp; "
-	"tmp.rgb = colorOut.rgb; "
-	"tmp.a = colorOut.a * texture(tex, texUVOut).a; "
-	"FRAGCOLOR = tmp;"
-"}"
-;
+R"(FRAGCOLOR_DEF
+in lowp vec4 colorOut;
+in lowp vec2 texUVOut;
+uniform sampler2D tex;
+void main() {
+	lowp vec4 tmp;
+	tmp.rgb = colorOut.rgb;
+	tmp.a = colorOut.a * texture(tex, texUVOut).a;
+	FRAGCOLOR = tmp;
+})"; // adapted from: gl_FragColor = colorOut * vec4(1., 1., 1., texture2D(tex, texUVOut).[alpha]);
 
 static std::string_view texAlphaReplaceFragShaderSrc =
-"FRAGCOLOR_DEF "
-"in lowp vec4 colorOut; "
-"in lowp vec2 texUVOut; "
-"uniform sampler2D tex; "
-"void main() { "
-	"lowp vec4 tmp; "
-	"tmp.rgb = colorOut.rgb; "
-	"tmp.a = texture(tex, texUVOut).a; "
-	"FRAGCOLOR = tmp;"
-"}"
-;
+R"(FRAGCOLOR_DEF
+in lowp vec4 colorOut;
+in lowp vec2 texUVOut;
+uniform sampler2D tex;
+void main() {
+	lowp vec4 tmp;
+	tmp.rgb = colorOut.rgb;
+	tmp.a = texture(tex, texUVOut).a;
+	FRAGCOLOR = tmp;
+})";
 
 #ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
 static std::string_view texExternalFragShaderSrc =
-"#extension GL_OES_EGL_image_external : enable\n"
-"#extension GL_OES_EGL_image_external_essl3 : enable\n"
-"FRAGCOLOR_DEF "
-"in lowp vec4 colorOut; "
-"in lowp vec2 texUVOut; "
-"uniform lowp samplerExternalOES tex; "
-"void main() { "
-	"FRAGCOLOR = colorOut * texture2D(tex, texUVOut); "
-"}"
-;
+R"(#extension GL_OES_EGL_image_external : enable
+#extension GL_OES_EGL_image_external_essl3 : enable
+FRAGCOLOR_DEF
+in lowp vec4 colorOut;
+in lowp vec2 texUVOut;
+uniform lowp samplerExternalOES tex;
+void main() {
+	FRAGCOLOR = colorOut * texture2D(tex, texUVOut);
+})";
 
 static std::string_view texExternalReplaceFragShaderSrc =
-"#extension GL_OES_EGL_image_external : enable\n"
-"#extension GL_OES_EGL_image_external_essl3 : enable\n"
-"FRAGCOLOR_DEF "
-"in lowp vec4 colorOut; "
-"in lowp vec2 texUVOut; "
-"uniform lowp samplerExternalOES tex; "
-"void main() { "
-	"FRAGCOLOR = texture2D(tex, texUVOut); "
-"}"
-;
+R"(#extension GL_OES_EGL_image_external : enable
+#extension GL_OES_EGL_image_external_essl3 : enable
+FRAGCOLOR_DEF
+in lowp vec4 colorOut;
+in lowp vec2 texUVOut;
+uniform lowp samplerExternalOES tex;
+void main() {
+	FRAGCOLOR = texture2D(tex, texUVOut);
+})";
 #endif
 
 static std::string_view noTexFragShaderSrc =
-"FRAGCOLOR_DEF "
-"in lowp vec4 colorOut; "
-"in lowp vec2 texUVOut; "
-"void main() { "
-	"FRAGCOLOR = colorOut; "
-"}"
-;
+R"(FRAGCOLOR_DEF
+in lowp vec4 colorOut;
+in lowp vec2 texUVOut;
+void main() {
+	FRAGCOLOR = colorOut;
+})";
 
 static GLuint makeGLProgram(GLuint vShader, GLuint fShader)
 {

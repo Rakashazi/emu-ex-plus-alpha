@@ -39,8 +39,8 @@ public:
 	std::string_view name() const;
 	file_type type() const;
 	file_type symlink_type() const;
-	PathString path() const;
-	explicit operator bool() const { return path_.size(); }
+	constexpr const PathString &path() const { return path_; };
+	constexpr explicit operator bool() const { return path_.size(); }
 
 protected:
 	struct dirent *dirent_{};

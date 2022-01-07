@@ -178,6 +178,9 @@ public:
 	std::string fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const;
 	FS::FileString fileUriDisplayName(IG::CStringView uri) const;
 	bool removeFileUri(IG::CStringView uri) const;
+	bool renameFileUri(IG::CStringView oldUri, IG::CStringView newUri) const;
+	bool createDirectoryUri(IG::CStringView uri) const;
+	bool removeDirectoryUri(IG::CStringView uri) const;
 	void forEachInDirectoryUri(IG::CStringView uri, FS::DirectoryEntryDelegate) const;
 
 	// OS UI management (status & navigation bar)

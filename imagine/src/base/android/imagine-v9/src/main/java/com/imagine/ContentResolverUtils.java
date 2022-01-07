@@ -59,21 +59,10 @@ final class ContentResolverUtils
 			if(android.os.Build.VERSION.SDK_INT >= 21 && (flags & OPEN_WRITE) != 0)
 			{
 				// no existing file, try creating it in the document part of the URI path
-				final int docPos = uriStr.lastIndexOf("/document/");
-				int subStrPos = uriStr.lastIndexOf("%2F");
-				if(subStrPos == -1 || subStrPos < docPos) // no /, look for :
-				{
-					subStrPos = uriStr.lastIndexOf("%3A");
-					if(subStrPos == -1 || subStrPos < docPos)
-					{
-						return -1;
-					}
-					subStrPos += 3;
-				}
-				final Uri pathUri = Uri.parse(uriStr.substring(0, subStrPos));
-				final File file = new File(uri.getPath());
-				final String name = file.getName();
-				return openDocumentUriFd(resolver, pathUri, name, flags);
+				final Uri dirUri = documentUriDir(uriStr);
+				if(dirUri == null)
+					return -1;
+				return openDocumentUriFd(resolver, dirUri, documentUriName(uriStr), flags);
 			}
 			//Log.i(logTag, "openUriFd exception:" + e.toString());
 			return -1;
@@ -94,6 +83,26 @@ final class ContentResolverUtils
 		{
 			//Log.i(logTag, "openDocumentUriFd exception:" + e.toString());
 			return -1;
+		}
+	}
+
+	static boolean createDirUri(ContentResolver resolver, String uriStr)
+	{
+		try
+		{
+			if(uriExists(resolver, uriStr))
+				return false;
+			final Uri dirUri = documentUriDir(uriStr);
+			if(dirUri == null)
+				return false;
+			DocumentsContract.createDocument(resolver, dirUri,
+				DocumentsContract.Document.MIME_TYPE_DIR, documentUriName(uriStr));
+			return true;
+		}
+		catch(Exception e)
+		{
+			//Log.i(logTag, "createFolder exception:" + e.toString());
+			return false;
 		}
 	}
 
@@ -129,17 +138,65 @@ final class ContentResolverUtils
 		return uriDisplayName(resolver, Uri.parse(uriStr));
 	}
 
-	static boolean deleteUri(ContentResolver resolver, String uriStr)
+	static boolean deleteUri(ContentResolver resolver, String uriStr, boolean isDir)
 	{
 		try
 		{
-			return DocumentsContract.deleteDocument(resolver, Uri.parse(uriStr));
+			final Uri uri = Uri.parse(uriStr);
+			if(isDir) // make sure directory is empty
+			{
+				final Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, DocumentsContract.getDocumentId(uri));
+				try(final Cursor c = resolver.query(childrenUri,
+					new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID},
+					null, null, null);)
+				{
+					if(c.getCount() > 0)
+						return false;
+				}
+			}
+			return DocumentsContract.deleteDocument(resolver, uri);
 		}
 		catch(Exception e)
 		{
 			//Log.i(logTag, "deleteUri exception:" + e.toString());
 			return false;
 		}
+	}
+
+	static boolean renameUri(ContentResolver resolver, String oldUriStr, String newUriStr)
+	{
+		final Uri oldUriDir = documentUriDir(oldUriStr);
+		final Uri newUriDir = documentUriDir(newUriStr);
+		if(oldUriDir == null || newUriDir == null)
+			return false;
+		final String oldName = documentUriName(oldUriStr);
+		final String newName = documentUriName(newUriStr);
+		Uri oldUri = Uri.parse(oldUriStr);
+		if(!oldName.equals(newName))
+		{
+			try
+			{
+				oldUri = DocumentsContract.renameDocument(resolver, oldUri, newName);
+			}
+			catch(Exception e)
+			{
+				//Log.i(logTag, "renameDocument exception:" + e.toString());
+				return false;
+			}
+		}
+		if(!oldUriDir.equals(newUriDir))
+		{
+			try
+			{
+				DocumentsContract.moveDocument(resolver, oldUri, oldUriDir, newUriDir);
+			}
+			catch(Exception e)
+			{
+				//Log.i(logTag, "moveDocument exception:" + e.toString());
+				return false;
+			}
+		}
+		return true;
 	}
 
 	static boolean listUriFiles(ContentResolver resolver, long nativeUserData, String uriStr)
@@ -196,5 +253,32 @@ final class ContentResolverUtils
 		{
 			return "";
 		}
+	}
+
+	static Uri documentUriDir(String uriStr)
+	{
+		final int docPos = uriStr.lastIndexOf("/document/");
+		int subStrPos = uriStr.lastIndexOf("%2F");
+		if(subStrPos == -1 || subStrPos < docPos) // no /, look for :
+		{
+			subStrPos = uriStr.lastIndexOf("%3A");
+			if(subStrPos == -1 || subStrPos < docPos)
+			{
+				return null;
+			}
+			subStrPos += 3;
+		}
+		return Uri.parse(uriStr.substring(0, subStrPos));
+	}
+
+	static String documentUriName(Uri uri)
+	{
+		final File file = new File(uri.getPath());
+		return file.getName();
+	}
+
+	static String documentUriName(String uriStr)
+	{
+		return documentUriName(Uri.parse(uriStr));
 	}
 }

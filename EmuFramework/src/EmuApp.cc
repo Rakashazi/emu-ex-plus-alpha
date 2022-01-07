@@ -25,6 +25,7 @@
 #include "WindowData.hh"
 #include "configFile.hh"
 #include "EmuOptions.hh"
+#include "pathUtils.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/fs/FS.hh>
@@ -329,6 +330,17 @@ EmuVideo &EmuApp::video()
 	return emuVideo;
 }
 
+void EmuApp::updateLegacySavePath(IG::ApplicationContext ctx, IG::CStringView path)
+{
+	auto oldSaveSubDirs = subDirectoryStrings(ctx, path);
+	if(oldSaveSubDirs.empty())
+	{
+		logMsg("no legacy save folders in:%s", path.data());
+		return;
+	}
+	flattenSubDirectories(ctx, std::move(oldSaveSubDirs), path);
+}
+
 void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::ApplicationContext ctx)
 {
 	if(ctx.registerInstance(initParams))
@@ -349,6 +361,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 	initOptions(ctx);
 	auto appConfig = loadConfigFile(ctx);
 	EmuSystem::onOptionsLoaded(ctx);
+	updateLegacySavePathOnStoragePath(ctx);
 	auto launchGame = parseCommandArgs(initParams.commandArgs());
 	if(launchGame)
 		EmuSystem::setInitialLoadPath(launchGame);
