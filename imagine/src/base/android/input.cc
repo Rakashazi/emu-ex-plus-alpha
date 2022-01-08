@@ -291,8 +291,8 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 			auto eventSource = isFromSource(source, AINPUT_SOURCE_GAMEPAD) ? Source::GAMEPAD : Source::KEYBOARD;
 			if(Config::DEBUG_BUILD)
 			{
-				//logMsg("key event, code:%d id:%d repeat:%d action:%s source:%s", keyCode, devID, repeatCount,
-				//	keyEventActionStr(AKeyEvent_getAction(event)), sourceStr(eventSource).data());
+				logMsg("key event, code:%d id:%d repeat:%d action:%s source:%s", keyCode, devID, repeatCount,
+					keyEventActionStr(AKeyEvent_getAction(event)), sourceStr(eventSource).data());
 			}
 			auto keyWasReallyRepeated =
 				[](int devID, int mostRecentKeyEventDevID, int repeatCount)
