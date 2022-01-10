@@ -121,7 +121,7 @@ uint32_t Event::mapNumKeys(Map map)
 	}
 }
 
-std::string_view sourceStr(Source src)
+const char *sourceStr(Source src)
 {
 	switch(src)
 	{
@@ -136,7 +136,7 @@ std::string_view sourceStr(Source src)
 	return "Unknown";
 }
 
-std::string_view actionStr(Action act)
+const char *actionStr(Action act)
 {
 	switch(act)
 	{

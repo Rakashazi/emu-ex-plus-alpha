@@ -318,7 +318,7 @@ bool EmuSystem::onPointerInputUpdate(Input::Event, Input::DragTrackerState dragS
 			{
 				regionXStart = regionXEnd / 2;
 			}
-			auto pos = IG::scalePointRange((float)dragState.pos().x, (float)regionXStart, (float)regionXEnd, 0.f, 32767.f);
+			auto pos = IG::remap(dragState.pos().x, regionXStart, regionXEnd, 0, 32767);
 			auto evType = app.defaultVController().inputPlayer() == 0 ? Event::PaddleZeroAnalog : Event::PaddleOneAnalog;
 			osystem->eventHandler().event().set(evType, pos);
 			//logMsg("set paddle position:%d", pos);

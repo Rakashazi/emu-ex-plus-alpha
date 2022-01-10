@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "VideoImageEffect"
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/io/FileIO.hh>
@@ -189,7 +190,6 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isE
 	const char *fallbackStr = useFallback ? "fallback-" : "";
 	auto releaseShaderCompiler = IG::scopeGuard([&](){ r.autoReleaseShaderCompiler(); });
 
-	logMsg("making vertex shader");
 	auto vShader = makeEffectVertexShader(r,
 		ctx.openAsset(IG::format<FS::PathString>("shaders/{}{}", fallbackStr, desc.vShaderFilename),
 			IO::AccessHint::ALL).buffer().stringView());
@@ -198,7 +198,6 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isE
 		throw std::runtime_error{"GPU rejected shader (vertex compile error)"};
 	}
 
-	logMsg("making fragment shader");
 	auto fShader = makeEffectFragmentShader(r,
 		ctx.openAsset(IG::format<FS::PathString>("shaders/{}{}", fallbackStr, desc.fShaderFilename),
 		IO::AccessHint::ALL).buffer().stringView(),
@@ -208,7 +207,6 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isE
 		throw std::runtime_error{"GPU rejected shader (fragment compile error)"};
 	}
 
-	logMsg("linking program");
 	prog = {r.task(), vShader, fShader, false, true};
 	if(!prog)
 	{

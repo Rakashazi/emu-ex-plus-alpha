@@ -41,4 +41,6 @@ protected:
 	bool iCadeMode_{};
 };
 
+bool hasGetAxisValue();
+
 }

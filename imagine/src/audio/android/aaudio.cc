@@ -206,7 +206,7 @@ static void waitUntilState(AAudioStream *stream, aaudio_stream_state_t wantedSta
 	while(res == AAUDIO_OK && currentState != wantedState)
 	{
 		res = AAudioStream_waitForStateChange(stream, inputState, &currentState, INT64_MAX);
-		logMsg("transitioned form state:%s to %s", streamStateStr(inputState), streamStateStr(currentState));
+		logMsg("transitioned state:%s -> %s", streamStateStr(inputState), streamStateStr(currentState));
 		inputState = currentState;
 	}
 	if(res != AAUDIO_OK)

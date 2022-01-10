@@ -18,7 +18,6 @@
 #include <imagine/input/android/MogaManager.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
-#include "input.hh"
 #include "AndroidInputDevice.hh"
 #include <android/input.h>
 

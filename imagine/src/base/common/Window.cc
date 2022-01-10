@@ -302,7 +302,12 @@ void Window::setNeedsCustomViewportResize(bool needsResize)
 
 bool Window::dispatchInputEvent(Input::Event event)
 {
-	return onInputEvent.callCopy(*this, event);
+	bool handled = onInputEvent.callCopy(*this, event);
+	if(!handled && event.isPointer())
+	{
+		return contentBounds().overlaps(event.pos());
+	}
+	return handled;
 }
 
 bool Window::dispatchRepeatableKeyInputEvent(Input::Event event)

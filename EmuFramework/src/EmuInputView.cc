@@ -83,7 +83,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 		{
 			vController->pointerInputEvent(e, videoLayer->gameRect());
 		}
-		return true;
+		return false;
 	}
 	#else
 	if(e.isPointer())
@@ -92,7 +92,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 		{
 			app().showMenuViewFromSystem(attachParams(), e);
 		}
-		return true;
+		return false;
 	}
 	#endif
 	if(e.isRelativePointer())

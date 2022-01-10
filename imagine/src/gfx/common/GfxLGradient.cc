@@ -66,7 +66,7 @@ void LGradient::setPos(const LGradientStopDesc *stop, uint32_t stops, GC x, GC y
 	iterateTimes(stops, i)
 	{
 		v[i*2].x = x;
-		v[i*2].y = v[(i*2)+1].y = IG::scalePointRange(stop[i].pos, GC(0), GC(1), y, y2);
+		v[i*2].y = v[(i*2)+1].y = IG::remap(stop[i].pos, GC(0), GC(1), y, y2);
 		v[(i*2)+1].x = x2;
 
 		v[i*2].color = stop[i].color;

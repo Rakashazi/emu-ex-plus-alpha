@@ -39,7 +39,6 @@ AndroidTextField::AndroidTextField(ApplicationContext ctx, TextFieldDelegate del
 {
 	auto env = ctx.mainThreadJniEnv();
 	auto &app = ctx.application();
-	app.setEventsUseOSInputMethod(true);
 	auto baseActivity = ctx.baseActivityObject();
 	setupBaseActivityJni(env, baseActivity);
 	logMsg("starting system text input");
@@ -50,7 +49,6 @@ AndroidTextField::AndroidTextField(ApplicationContext ctx, TextFieldDelegate del
 
 AndroidTextField::~AndroidTextField()
 {
-	ctx.application().setEventsUseOSInputMethod(false);
 	static_cast<TextField*>(this)->cancel();
 }
 

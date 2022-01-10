@@ -20,9 +20,9 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
-#include "input.hh"
 #include "AndroidInputDevice.hh"
 #include <android/configuration.h>
+#include <android/input.h>
 #include <sys/inotify.h>
 #include <optional>
 
@@ -78,9 +78,9 @@ static const char *inputDeviceKeyboardTypeToStr(int type)
 {
 	switch(type)
 	{
-		case AInputDevice::KEYBOARD_TYPE_NONE: return "None";
-		case AInputDevice::KEYBOARD_TYPE_NON_ALPHABETIC: return "Non-Alphabetic";
-		case AInputDevice::KEYBOARD_TYPE_ALPHABETIC: return "Alphabetic";
+		case AINPUT_KEYBOARD_TYPE_NONE: return "None";
+		case AINPUT_KEYBOARD_TYPE_NON_ALPHABETIC: return "Non-Alphabetic";
+		case AINPUT_KEYBOARD_TYPE_ALPHABETIC: return "Alphabetic";
 	}
 	return "Unknown";
 }
@@ -101,19 +101,19 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 	{
 		typeBits_ |= Device::TYPE_BIT_POWER_BUTTON;
 	}
-	if(src & AInputDevice::SOURCE_CLASS_POINTER)
+	if(src & AINPUT_SOURCE_CLASS_POINTER)
 	{
-		if(IG::isBitMaskSet(src, AInputDevice::SOURCE_TOUCHSCREEN))
+		if(IG::isBitMaskSet(src, (int)AINPUT_SOURCE_TOUCHSCREEN))
 		{
 			typeBits_ |= Device::TYPE_BIT_TOUCHSCREEN;
 		}
-		if(IG::isBitMaskSet(src, AInputDevice::SOURCE_MOUSE))
+		if(IG::isBitMaskSet(src, (int)AINPUT_SOURCE_MOUSE))
 		{
 			typeBits_ |= Device::TYPE_BIT_MOUSE;
 		}
 	}
 	auto &name = name_;
-	if(IG::isBitMaskSet(src, AInputDevice::SOURCE_GAMEPAD))
+	if(IG::isBitMaskSet(src, (int)AINPUT_SOURCE_GAMEPAD))
 	{
 		bool isGamepad = 1;
 		if(Config::MACHINE_IS_GENERIC_ARMV7 && IG::stringContains(name, "-zeus"))
@@ -179,14 +179,14 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 		// Classify full alphabetic keyboards, and also devices with other keyboard
 		// types, as long as they are exclusively SOURCE_KEYBOARD
 		// (needed for the iCade 8-bitty since it reports a non-alphabetic keyboard type)
-		if(kbType == AInputDevice::KEYBOARD_TYPE_ALPHABETIC
-			|| src == AInputDevice::SOURCE_KEYBOARD)
+		if(kbType == AINPUT_KEYBOARD_TYPE_ALPHABETIC
+			|| src == AINPUT_SOURCE_KEYBOARD)
 		{
 			typeBits_ |= Device::TYPE_BIT_KEYBOARD;
 			logMsg("has keyboard type: %s", inputDeviceKeyboardTypeToStr(kbType));
 		}
 	}
-	if(IG::isBitMaskSet(src, AInputDevice::SOURCE_JOYSTICK))
+	if(IG::isBitMaskSet(src, (int)AINPUT_SOURCE_JOYSTICK))
 	{
 		typeBits_ |= Device::TYPE_BIT_JOYSTICK;
 		logMsg("detected a joystick");
@@ -564,18 +564,6 @@ bool AndroidApplication::hasXperiaPlayGamepad() const
 {
 	return builtinKeyboardDev && builtinKeyboardDev->subtype() == Input::Device::Subtype::XPERIA_PLAY;
 }
-
-void AndroidApplication::setEventsUseOSInputMethod(bool on)
-{
-	logMsg("set IME use %s", on ? "On" : "Off");
-	sendInputToIME = on;
-}
-
-bool AndroidApplication::eventsUseOSInputMethod() const
-{
-	return sendInputToIME;
-}
-
 
 Input::AndroidInputDevice *AndroidApplication::addAndroidInputDevice(Input::AndroidInputDevice dev, bool notify)
 {

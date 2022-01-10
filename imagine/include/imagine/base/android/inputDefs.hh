@@ -266,7 +266,8 @@ namespace Keycode = Android;
 	MBUTTON = 4,
 	RBUTTON = 2,
 	DOWN_BUTTON = 8,
-	UP_BUTTON = 16;
+	UP_BUTTON = 16,
+	ALL_BUTTONS = LBUTTON | MBUTTON | RBUTTON | DOWN_BUTTON | UP_BUTTON;
 	};
 
 	namespace Meta

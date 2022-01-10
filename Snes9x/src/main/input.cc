@@ -294,8 +294,8 @@ bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG:
 			if(gameRect.overlaps(e.pos()))
 			{
 				int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
-				snesPointerX = IG::scalePointRange((float)xRel, (float)gameRect.xSize(), (float)256.);
-				snesPointerY = IG::scalePointRange((float)yRel, (float)gameRect.ySize(), (float)224.);
+				snesPointerX = IG::remap(xRel, 0, gameRect.xSize(), 0, 256);
+				snesPointerY = IG::remap(yRel, 0, gameRect.ySize(), 0, 224);
 				//logMsg("mouse moved to @ %d,%d, on SNES %d,%d", e.x, e.y, snesPointerX, snesPointerY);
 				if(e.pushed())
 				{
@@ -377,8 +377,8 @@ bool EmuSystem::onPointerInputUpdate(Input::Event e, Input::DragTrackerState dra
 				snesPointerX += relPos.x;
 				snesPointerY += relPos.y;
 			}
-			snesMouseX = IG::scalePointRange((float)snesPointerX, (float)gameRect.xSize(), (float)256.);
-			snesMouseY = IG::scalePointRange((float)snesPointerY, (float)gameRect.ySize(), (float)224.);
+			snesMouseX = IG::remap(snesPointerX, 0, gameRect.xSize(), 0, 256);
+			snesMouseY = IG::remap(snesPointerY, 0, gameRect.ySize(), 0, 224);
 			return true;
 		}
 	}

@@ -131,8 +131,8 @@ bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG:
 	if(gameRect.overlaps(e.pos()))
 	{
 		int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
-		input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)gameRect.xSize(), (float)bitmap.viewport.w);
-		input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)gameRect.ySize(), (float)bitmap.viewport.h);
+		input.analog[gunDevIdx][0] = IG::remap(xRel, 0, gameRect.xSize(), 0, bitmap.viewport.w);
+		input.analog[gunDevIdx][1] = IG::remap(yRel, 0, gameRect.ySize(), 0, bitmap.viewport.h);
 	}
 	input.pad[gunDevIdx] |= INPUT_A;
 	logMsg("gun pushed @ %d,%d, on MD %d,%d", e.pos().x, e.pos().y, input.analog[gunDevIdx][0], input.analog[gunDevIdx][1]);

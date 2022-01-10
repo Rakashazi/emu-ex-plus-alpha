@@ -97,8 +97,6 @@ public:
 	int hardKeyboardState() const;
 	int keyboardType() const;
 	bool hasXperiaPlayGamepad() const;
-	void setEventsUseOSInputMethod(bool on);
-	bool eventsUseOSInputMethod() const;
 	Input::AndroidInputDevice *addAndroidInputDevice(Input::AndroidInputDevice, bool notify);
 	Input::AndroidInputDevice *updateAndroidInputDevice(Input::AndroidInputDevice, bool notify);
 	Input::AndroidInputDevice *inputDeviceForId(int id) const;
@@ -149,7 +147,6 @@ private:
 	bool hasPermanentMenuKey{true};
 	bool keepScreenOn{};
 	bool trackballNav{};
-	bool sendInputToIME{};
 
 	// InputDeviceListener-based device changes
 	JNI::UniqueGlobalRef inputDeviceListenerHelper{};

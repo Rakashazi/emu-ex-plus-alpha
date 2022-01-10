@@ -130,8 +130,8 @@ protected:
 	uint8_t keyFlags{};
 };
 
-std::string_view sourceStr(Source);
-std::string_view actionStr(Action);
+const char *sourceStr(Source);
+const char *actionStr(Action);
 Map validateMap(uint8_t mapValue);
 
 struct DirectionKeys

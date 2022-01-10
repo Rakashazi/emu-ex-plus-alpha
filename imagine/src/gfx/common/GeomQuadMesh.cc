@@ -111,9 +111,9 @@ void GeomQuadMesh::setPos(GC x, GC y, GC x2, GC y2)
 	iterateTimes(yVals, yIdx)
 		iterateTimes(xVals, xIdx)
 		{
-			vPtr->x = yIdx == 0 ? IG::scalePointRange((GC)xIdx, (GC)0, GC(xVals-1), x, x2)
+			vPtr->x = yIdx == 0 ? IG::remap((GC)xIdx, (GC)0, GC(xVals-1), x, x2)
 					: (vPtr-xVals)->x;
-			vPtr->y = xIdx == 0 ? IG::scalePointRange((GC)yIdx, (GC)0, GC(yVals-1), y, y2)
+			vPtr->y = xIdx == 0 ? IG::remap((GC)yIdx, (GC)0, GC(yVals-1), y, y2)
 					: (vPtr-xIdx)->y;
 			vPtr++;
 		}

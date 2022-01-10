@@ -309,7 +309,7 @@ static GLuint makeGLShader(RendererTask &rTask, std::span<std::string_view> srcs
 			}
 		});
 	if(shaderOut)
-		logMsg("made shader:%d", shaderOut);
+		logMsg("made %s shader:%d", type == ShaderType::FRAGMENT ? "fragment" : "vertex", shaderOut);
 	return shaderOut;
 }
 

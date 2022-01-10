@@ -153,8 +153,8 @@ bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG:
 	if(gameRect.overlaps(e.pos()))
 	{
 		int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
-		int xNes = IG::scalePointRange((float)xRel, (float)gameRect.xSize(), (float)256.);
-		int yNes = IG::scalePointRange((float)yRel, (float)gameRect.ySize(), (float)224.) + 8;
+		int xNes = IG::remap(xRel, 0, gameRect.xSize(), 0, 256);
+		int yNes = IG::remap(yRel, 0, gameRect.ySize(), 0, 224) + 8;
 		logMsg("zapper pushed @ %d,%d, on NES %d,%d", e.pos().x, e.pos().y, xNes, yNes);
 		zapperData[0] = xNes;
 		zapperData[1] = yNes;

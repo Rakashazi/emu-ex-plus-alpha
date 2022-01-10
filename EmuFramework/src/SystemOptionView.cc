@@ -222,7 +222,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 				[this](View &view, Input::Event e)
 				{
 					auto ynAlertView = makeView<YesNoAlertView>(
-						fmt::format("Please select the Game Data/{} folder from an old version of the app to use its existing saves and convert it to a regular save path (this is only needed once)", EmuSystem::shortSystemName()));
+						fmt::format("Please select the \"Game Data/{}\" folder from an old version of the app to use its existing saves and convert it to a regular save path (this is only needed once)", EmuSystem::shortSystemName()));
 					ynAlertView->setOnYes(
 						[this](Input::Event e)
 						{

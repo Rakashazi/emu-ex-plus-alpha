@@ -26,34 +26,16 @@ static T distance3D(T x1, T y1, T z1, T x2, T y2, T z2)
 	return std::sqrt(pow2(x1 - x2) + pow2(y1 - y2) + pow2(z1 - z2));
 }
 
-template<class T>
-static T scalePointRange(T val, T origMin, T origMax, T newMin, T newMax)
+constexpr auto remap(auto val, auto origMin, auto origMax, auto newMin, auto newMax)
 {
-	if(val == origMin) return newMin;
-	if(val == origMax) return newMax;
-	T origSize = origMax - origMin;
-	T newSize = newMax - newMin;
-	if(origSize == 0)
-		return val;
-	T scale = newSize / origSize;
-
-	val -= origMin; // shift so that 0 == origMin
-	val *= scale; // scale to new range size
-	val += newMin; // shift into new range
-
-	return val;
+	auto origSize = origMax - origMin;
+	auto newSize = newMax - newMin;
+	return newMin + (val - origMin) * newSize / origSize;
 }
 
-template<class T>
-static T scalePointRange(T val, T origMax, T newMax)
+constexpr auto normalize(floating_point auto val, floating_point auto origMin, floating_point auto origMax)
 {
-	return scalePointRange(val, T(0), origMax, T(0), newMax);
-}
-
-template<class T>
-static T normalizePoint(T val, T origMin, T origMax)
-{
-	return scalePointOnLine(val, origMin, origMax, (T)0, (T)1);
+	return remap(val, origMin, origMax, (decltype(origMin))0, (decltype(origMin))1);
 }
 
 template <class T>
