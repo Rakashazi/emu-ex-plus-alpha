@@ -54,6 +54,8 @@ int EmuSystem::saveStateSlot = 0;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
 IG::FloatSeconds EmuSystem::frameTimeNative{1./60.};
 IG::FloatSeconds EmuSystem::frameTimePAL{1./50.};
+[[gnu::weak]] bool EmuSystem::canRenderRGB565 = true;
+[[gnu::weak]] bool EmuSystem::canRenderRGBA8888 = true;
 [[gnu::weak]] bool EmuSystem::hasResetModes = false;
 [[gnu::weak]] bool EmuSystem::handlesArchiveFiles = false;
 [[gnu::weak]] bool EmuSystem::handlesGenericIO = true;
@@ -554,7 +556,7 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] void EmuSystem::onPrepareAudio(EmuAudio &) {}
 
-[[gnu::weak]] void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat) {}
+[[gnu::weak]] bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat) { return false; }
 
 [[gnu::weak]] FS::FileString EmuSystem::contentDisplayNameForPath(IG::ApplicationContext ctx, IG::CStringView path)
 {

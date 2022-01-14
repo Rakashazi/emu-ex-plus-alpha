@@ -143,17 +143,16 @@ void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 	MDFN_IEN_NGP::applyVideoFormat(&espec);
 }
 
-void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
+bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
-	if(fmt == mSurfacePix.format())
-		return;
 	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
 	if(!gameIsRunning())
-		return;
+		return false;
 	EmulateSpecStruct espec{};
 	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
 	espec.surface = &mSurface;
 	MDFN_IEN_NGP::applyVideoFormat(&espec);
+	return false;
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)

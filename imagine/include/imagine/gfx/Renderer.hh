@@ -130,6 +130,7 @@ public:
 
 	bool supportsColorSpace() const;
 	bool hasSrgbColorSpaceWriteControl() const;
+	static ColorSpace supportedColorSpace(IG::PixelFormat, ColorSpace wantedColorSpace);
 };
 
 }

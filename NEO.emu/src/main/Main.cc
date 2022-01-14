@@ -92,6 +92,7 @@ namespace EmuEx
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGngeo Team\ncode.google.com/p/gngeo";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
+bool EmuSystem::canRenderRGBA8888 = false;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static uint16_t screenBuff[352*256] __attribute__ ((aligned (8))){};
 static GN_Surface sdlSurf;
@@ -240,7 +241,7 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 
 void EmuSystem::renderFramebuffer(EmuVideo &video)
 {
-	video.startFrameWithAltFormat({}, srcPix);
+	video.startFrameWithFormat({}, srcPix);
 }
 
 void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
@@ -363,7 +364,7 @@ CLINK void screen_update(void *emuTaskCtxPtr, void *emuVideoPtr)
 	if(emuVideo) [[likely]]
 	{
 		//logMsg("screen render");
-		emuVideo->startFrameWithAltFormat(*taskCtxPtr, EmuEx::srcPix);
+		emuVideo->startFrameWithFormat(*taskCtxPtr, EmuEx::srcPix);
 	}
 	else
 	{

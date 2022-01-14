@@ -64,6 +64,7 @@ namespace EmuEx
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor BlueMSX file loading code
 bool EmuSystem::hasResetModes = true;
+bool EmuSystem::canRenderRGBA8888 = false;
 BoardInfo boardInfo{};
 Mixer *mixer{};
 FS::FileString cartName[2]{};
@@ -725,7 +726,7 @@ static void commitUnchangedVideoFrame()
 
 void EmuSystem::renderFramebuffer(EmuVideo &video)
 {
-	video.startFrameWithAltFormat({}, frameBufferPixmap());
+	video.startFrameWithFormat({}, frameBufferPixmap());
 }
 
 void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
@@ -792,7 +793,7 @@ void RefreshScreen(int screenMode)
 	//logMsg("called RefreshScreen");
 	if(emuVideo) [[likely]]
 	{
-		emuVideo->startFrameWithAltFormat(emuSysTask, frameBufferPixmap());
+		emuVideo->startFrameWithFormat(emuSysTask, frameBufferPixmap());
 		emuVideo = {};
 		emuSysTask = {};
 	}

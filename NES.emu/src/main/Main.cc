@@ -351,13 +351,12 @@ void EmuSystem::onPrepareAudio(EmuAudio &audio)
 	audio.setStereo(false);
 }
 
-void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
+bool EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
-	if(pixFmt == fmt)
-		return;
+	video.setFormat({{nesPixX, nesVisiblePixY}, fmt});
 	pixFmt = fmt;
 	FCEU_ResetPalette();
-	video.setFormat({{nesPixX, nesVisiblePixY}, fmt});
+	return true;
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)

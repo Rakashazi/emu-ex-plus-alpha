@@ -39,6 +39,7 @@ static unsigned heightChangeFrames = heightChangeFrameDelay;
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
+bool EmuSystem::canRenderRGBA8888 = false;
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
@@ -70,7 +71,7 @@ const char *EmuSystem::systemName()
 void EmuSystem::renderFramebuffer(EmuVideo &video)
 {
 	IG::Pixmap srcPix{{video.image().size(), srcPixFmt}, GFX.Screen};
-	video.startFrameWithAltFormat({}, srcPix);
+	video.startFrameWithFormat({}, srcPix);
 }
 
 void EmuSystem::reset(ResetMode mode)
@@ -320,7 +321,7 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 		heightChangeFrames = heightChangeFrameDelay;
 	}
 	IG::Pixmap srcPix{{{width, height}, srcPixFmt}, GFX.Screen};
-	emuVideo->startFrameWithAltFormat(emuSysTask, srcPix);
+	emuVideo->startFrameWithFormat(emuSysTask, srcPix);
 	#ifndef SNES9X_VERSION_1_4
 	memset(GFX.ZBuffer, 0, GFX.ScreenSize);
 	memset(GFX.SubZBuffer, 0, GFX.ScreenSize);

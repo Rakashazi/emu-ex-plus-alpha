@@ -321,6 +321,23 @@ bool Renderer::hasSrgbColorSpaceWriteControl() const
 	return support.hasSrgbWriteControl;
 }
 
+ColorSpace Renderer::supportedColorSpace(PixelFormat fmt, ColorSpace wantedColorSpace)
+{
+	switch(wantedColorSpace)
+	{
+		case ColorSpace::LINEAR: return ColorSpace::LINEAR;
+		case ColorSpace::SRGB:
+			switch(fmt.id())
+			{
+				case PIXEL_FMT_RGBA8888:
+				case PIXEL_FMT_BGRA8888:
+					return ColorSpace::SRGB;
+				default: return ColorSpace::LINEAR;
+			}
+	}
+	return ColorSpace::LINEAR;
+}
+
 ApplicationContext Renderer::appContext() const
 {
 	return task().appContext();

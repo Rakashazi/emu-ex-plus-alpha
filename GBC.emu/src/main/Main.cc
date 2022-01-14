@@ -43,6 +43,7 @@ static constexpr IG::WP lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
 static bool useBgrOrder{};
 static const GBPalette *gameBuiltinPalette{};
 bool EmuSystem::hasCheats = true;
+bool EmuSystem::canRenderRGB565 = false;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
@@ -183,10 +184,9 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreatePara
 	applyCheats();
 }
 
-void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
+bool EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
-	if(!video.setFormat({lcdSize, fmt}))
-		return;
+	video.setFormat({lcdSize, fmt});
 	auto isBgrOrder = fmt == IG::PIXEL_BGRA8888;
 	if(isBgrOrder != useBgrOrder)
 	{
@@ -199,6 +199,7 @@ void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 			});
 	}
 	gbEmu.refreshPalettes();
+	return true;
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)

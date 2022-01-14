@@ -52,6 +52,8 @@ namespace EmuEx
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
+bool EmuSystem::canRenderRGB565 = RENDER_BPP == 16;
+bool EmuSystem::canRenderRGBA8888 = RENDER_BPP == 32;
 IG::ApplicationContext appCtx{};
 int8 mdInputPortDev[2]{-1, -1};
 static unsigned autoDetectedVidSysPAL = 0;
@@ -518,9 +520,10 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	logMsg("md sound buffer size %d", snd.buffer_size);
 }
 
-void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
+bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
 	setFramebufferRenderFormat(fmt);
+	return false;
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

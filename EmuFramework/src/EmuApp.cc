@@ -245,7 +245,7 @@ bool EmuApp::setWindowDrawableConfig(Gfx::DrawableConfig conf)
 		if(!renderer.setDrawableConfig(*w, conf))
 			return false;
 	}
-	emuVideoLayer.setSrgbColorSpaceOutput(conf.colorSpace == Gfx::ColorSpace::SRGB);
+	applyRenderPixelFormat();
 	return true;
 }
 
@@ -268,6 +268,14 @@ std::optional<Gfx::ColorSpace> EmuApp::windowDrawableColorSpaceOption() const
 	return {};
 }
 
+IG::PixelFormat EmuApp::windowPixelFormat() const
+{
+	auto fmt = windowDrawableConfig().pixelFormat;
+	if(fmt)
+		return fmt;
+	return appContext().defaultWindowPixelFormat();
+}
+
 void EmuApp::setRenderPixelFormat(std::optional<IG::PixelFormat> fmtOpt)
 {
 	if(!fmtOpt)
@@ -283,7 +291,7 @@ IG::PixelFormat EmuApp::renderPixelFormat() const
 
 std::optional<IG::PixelFormat> EmuApp::renderPixelFormatOption() const
 {
-	if(renderPixelFmt)
+	if(EmuSystem::canRenderRGBA8888 && renderPixelFmt)
 		return renderPixelFmt;
 	return {};
 }
@@ -294,14 +302,13 @@ void EmuApp::applyRenderPixelFormat()
 		return;
 	auto fmt = renderPixelFormat();
 	if(!fmt)
-		fmt = windowDrawableConfig().pixelFormat;
-	if(!fmt)
-		fmt = appContext().defaultWindowPixelFormat();
-	emuVideo.setRenderPixelFormat(fmt);
-	fmt = emuVideo.renderPixelFormat();
-	logMsg("setting render pixel format:%s", fmt.name());
-	EmuSystem::onVideoRenderFormatChange(emuVideo, fmt);
-	renderSystemFramebuffer(emuVideo);
+		fmt = windowPixelFormat();
+	if(!EmuSystem::canRenderRGBA8888 && fmt != IG::PIXEL_RGB565)
+	{
+		logMsg("Using RGB565 render format since emulated system can't render RGBA8888");
+		fmt = IG::PIXEL_RGB565;
+	}
+	emuVideoLayer.setFormat(fmt, imageEffectPixelFormat(), windowDrawableConf.colorSpace);
 }
 
 void EmuApp::renderSystemFramebuffer(EmuVideo &video)
@@ -370,6 +377,8 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 		optionSoundRate.reset();
 	emuAudio.setRate(optionSoundRate);
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
+	if(!renderer.supportsColorSpace())
+		windowDrawableConf.colorSpace = {};
 	applyOSNavStyle(ctx, false);
 
 	ctx.addOnResume(
@@ -413,10 +422,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			return true;
 		});
 
-	if(!renderer.supportsColorSpace())
-		windowDrawableConf.colorSpace = {};
-	emuVideo.setSrgbColorSpaceOutput(windowDrawableConf.colorSpace == Gfx::ColorSpace::SRGB);
-
 	IG::WindowConfig winConf{};
 	winConf.setTitle(ctx.applicationName);
 	winConf.setFormat(windowDrawableConf.pixelFormat);
@@ -435,17 +440,10 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					optionTextureBufferMode.reset();
 				}
 			}
-			emuVideo.setRendererTask(renderer.task());
-			emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
-			emuVideo.setImageBuffers(optionVideoImageBuffers);
-			emuVideoLayer.setLinearFilter(optionImgFilter);
-			emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
-
 			viewManager = {renderer};
 			viewManager.setNeedsBackControl(appConfig.backNavigation());
 			viewManager.setDefaultFace({renderer, fontManager.makeSystem(), IG::FontSettings{}});
 			viewManager.setDefaultBoldFace({renderer, fontManager.makeBoldSystem(), IG::FontSettings{}});
-
 			win.makeAppData<WindowData>();
 			auto &winData = windowData(win);
 			setupFont(viewManager, renderer, win);
@@ -469,7 +467,13 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				emuSystemTask, emuAudio);
 			if(!appConfig.rendererPresentationTime())
 				emuViewController->setUsePresentationTime(false);
+			emuVideo.setRendererTask(renderer.task());
+			emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
+			emuVideo.setImageBuffers(optionVideoImageBuffers);
 			applyRenderPixelFormat();
+			emuVideoLayer.setLinearFilter(optionImgFilter);
+			emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
+			emuVideoLayer.setEffect((ImageEffectId)optionImgEffect.val, imageEffectPixelFormat());
 
 			#if defined __ANDROID__
 			if(!ctx.apkSignatureIsConsistent())

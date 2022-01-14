@@ -336,12 +336,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	videoLayer().emuVideo().setOnFormatChanged(
 		[this, &videoLayer = videoLayer()](EmuVideo &)
 		{
-			#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-			videoLayer.setEffect((ImageEffectId)optionImgEffect.val, optionImageEffectPixelFormatValue());
-			#else
-			videoLayer.resetImage();
-			#endif
-			videoLayer.setOverlay(optionOverlayEffect);
+			videoLayer.onVideoFormatChanged(app().imageEffectPixelFormat());
 			if((unsigned)optionImageZoom > 100)
 			{
 				placeEmuViews();

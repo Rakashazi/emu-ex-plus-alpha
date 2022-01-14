@@ -77,18 +77,14 @@ protected:
 	TextMenuItem viewportZoomItem[4];
 	MultiChoiceMenuItem viewportZoom;
 	BoolMenuItem imgFilter;
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	TextMenuItem imgEffectItem[4];
 	MultiChoiceMenuItem imgEffect;
-	#endif
 	TextMenuItem overlayEffectItem[6];
 	MultiChoiceMenuItem overlayEffect;
 	TextMenuItem overlayEffectLevelItem[5];
 	MultiChoiceMenuItem overlayEffectLevel;
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	TextMenuItem imgEffectPixelFormatItem[3];
 	MultiChoiceMenuItem imgEffectPixelFormat;
-	#endif
 	StaticArrayList<TextMenuItem, 4> windowPixelFormatItem{};
 	MultiChoiceMenuItem windowPixelFormat;
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
@@ -110,15 +106,15 @@ protected:
 
 	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e);
 	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time);
-	void setOverlayEffectLevel(uint8_t val);
-	void setZoom(uint8_t val);
-	void setViewportZoom(uint8_t val);
-	void setAspectRatio(double val);
+	TextMenuItem::SelectDelegate setOverlayEffectLevelDel(uint8_t val);
+	TextMenuItem::SelectDelegate setZoomDel(uint8_t val);
+	TextMenuItem::SelectDelegate setViewportZoomDel(uint8_t val);
 	TextMenuItem::SelectDelegate setImgEffectDel(ImageEffectId val);
-	void setOverlayEffect(unsigned val);
-	void setRenderPixelFormat(IG::PixelFormatID);
-	void setImgEffectPixelFormat(IG::PixelFormatID);
-	void setWindowDrawableConfig(Gfx::DrawableConfig);
+	TextMenuItem::SelectDelegate setOverlayEffectDel(int val);
+	TextMenuItem::SelectDelegate setRenderPixelFormatDel(IG::PixelFormat);
+	TextMenuItem::SelectDelegate setImgEffectPixelFormatDel(IG::PixelFormat);
+	TextMenuItem::SelectDelegate setWindowDrawableConfigDel(Gfx::DrawableConfig);
+	TextMenuItem::SelectDelegate setImageBuffersDel(int buffers);
 	EmuVideo &emuVideo() const;
 };
 

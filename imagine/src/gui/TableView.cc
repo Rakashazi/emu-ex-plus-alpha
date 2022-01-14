@@ -343,7 +343,7 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 		auto &it = item(*this, i);
 		if(e.pushed())
 		{
-			logMsg("input pushed on cell %d", i);
+			//logMsg("input pushed on cell %d", i);
 			hasFocus = true;
 			if(i >= 0 && i < cells_ && elementIsSelectable(it))
 			{

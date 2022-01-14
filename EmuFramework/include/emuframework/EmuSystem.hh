@@ -130,6 +130,8 @@ public:
 	enum VideoSystem { VIDSYS_NATIVE_NTSC, VIDSYS_PAL };
 	static IG::FloatSeconds frameTimeNative;
 	static IG::FloatSeconds frameTimePAL;
+	static bool canRenderRGB565;
+	static bool canRenderRGBA8888;
 	static double audioFramesPerVideoFrameFloat;
 	static double currentAudioFramesPerVideoFrame;
 	static uint32_t audioFramesPerVideoFrame;
@@ -215,7 +217,7 @@ public:
 	static void renderFramebuffer(EmuVideo &);
 	static bool shouldFastForward();
 	static void onPrepareAudio(EmuAudio &);
-	static void onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
+	static bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
 	static bool vidSysIsPAL();
 	static uint32_t updateAudioFramesPerVideoFrame();
 	static double frameRate();

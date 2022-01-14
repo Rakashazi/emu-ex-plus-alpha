@@ -81,13 +81,12 @@ public:
 	bool formatIsEqual(IG::PixmapDesc desc) const;
 	void setOnFrameFinished(FrameFinishedDelegate del);
 	void setOnFormatChanged(FormatChangedDelegate del);
-	bool setTextureBufferMode(Gfx::TextureBufferMode mode);
-	bool setImageBuffers(unsigned num);
-	unsigned imageBuffers() const;
+	void setTextureBufferMode(Gfx::TextureBufferMode mode);
+	void setImageBuffers(int num);
+	int imageBuffers() const;
 	void setCompatTextureSampler(const Gfx::TextureSampler &);
-	void setSrgbColorSpaceOutput(bool);
-	bool isSrgbFormat() const;
-	void setRenderPixelFormat(IG::PixelFormat);
+	constexpr auto colorSpace() const { return colSpace; }
+	bool setRenderPixelFormat(IG::PixelFormat, Gfx::ColorSpace);
 	IG::PixelFormat renderPixelFormat() const;
 	IG::PixelFormat internalRenderPixelFormat() const;
 
@@ -103,8 +102,7 @@ protected:
 	bool screenshotNextFrame{};
 	bool singleBuffer{};
 	bool needsFence{};
-	bool useSrgbColorSpace{};
-	Gfx::ColorSpace colorSpace_{};
+	Gfx::ColorSpace colSpace{};
 
 	void doScreenshot(EmuSystemTaskContext, IG::Pixmap pix);
 	void postFrameFinished(EmuSystemTaskContext);

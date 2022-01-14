@@ -113,9 +113,7 @@ Byte1Option optionShowBluetoothScan(CFGKEY_SHOW_BLUETOOTH_SCAN, 1);
 DoubleOption optionAspectRatio{CFGKEY_GAME_ASPECT_RATIO, (double)EmuSystem::aspectRatioInfo[0], 0, optionAspectRatioIsValid};
 
 Byte1Option optionImgFilter(CFGKEY_GAME_IMG_FILTER, 1, 0);
-#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 Byte1Option optionImgEffect(CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<lastImageEffectIdValue>);
-#endif
 Byte1Option optionOverlayEffect(CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL>);
 Byte1Option optionOverlayEffectLevel(CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>);
 
@@ -130,9 +128,7 @@ bool imageEffectPixelFormatIsValid(uint8_t val)
 	return false;
 }
 
-#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 Byte1Option optionImageEffectPixelFormat(CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid);
-#endif
 
 Byte1Option optionVideoImageBuffers{CFGKEY_VIDEO_IMAGE_BUFFERS, 0, 0,
 	optionIsValidWithMax<2>};
@@ -369,13 +365,11 @@ uint8_t currentFrameInterval()
 	#endif
 }
 
-IG::PixelFormatID optionImageEffectPixelFormatValue()
+IG::PixelFormat EmuApp::imageEffectPixelFormat() const
 {
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	return (IG::PixelFormatID)optionImageEffectPixelFormat.val;
-	#else
-	return IG::PIXEL_NONE;
-	#endif
+	if(optionImageEffectPixelFormat)
+		return (IG::PixelFormatID)optionImageEffectPixelFormat.val;
+	return windowPixelFormat();
 }
 
 bool soundIsEnabled()
@@ -405,6 +399,36 @@ IG::Audio::Api audioOutputAPI()
 	#else
 	return IG::Audio::Api::DEFAULT;
 	#endif
+}
+
+void EmuApp::setVideoZoom(uint8_t val)
+{
+	optionImageZoom = val;
+	logMsg("set video zoom: %d", int(optionImageZoom));
+	viewController().placeEmuViews();
+	viewController().postDrawToEmuWindows();
+}
+
+void EmuApp::setViewportZoom(uint8_t val)
+{
+	optionViewportZoom = val;
+	logMsg("set viewport zoom: %d", int(optionViewportZoom));
+	viewController().startMainViewportAnimation();
+}
+
+void EmuApp::setOverlayEffectLevel(EmuVideoLayer &videoLayer, uint8_t val)
+{
+	optionOverlayEffectLevel = val;
+	videoLayer.setOverlayIntensity(val/100.);
+	viewController().postDrawToEmuWindows();
+}
+
+void EmuApp::setVideoAspectRatio(double val)
+{
+	optionAspectRatio = val;
+	logMsg("set aspect ratio: %.2f", val);
+	viewController().placeEmuViews();
+	viewController().postDrawToEmuWindows();
 }
 
 }

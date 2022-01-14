@@ -182,9 +182,15 @@ public:
 	IG::Audio::Manager &audioManager();
 	bool setWindowDrawableConfig(Gfx::DrawableConfig);
 	Gfx::DrawableConfig windowDrawableConfig() const;
+	IG::PixelFormat windowPixelFormat() const;
 	void setRenderPixelFormat(std::optional<IG::PixelFormat>);
 	IG::PixelFormat renderPixelFormat() const;
+	IG::PixelFormat imageEffectPixelFormat() const;
 	void renderSystemFramebuffer(EmuVideo &);
+	void setVideoZoom(uint8_t val);
+	void setViewportZoom(uint8_t val);
+	void setOverlayEffectLevel(EmuVideoLayer &, uint8_t val);
+	void setVideoAspectRatio(double val);
 	bool writeScreenshot(IG::Pixmap, IG::CStringView path);
 	std::pair<int, FS::PathString> makeNextScreenshotFilename();
 	bool mogaManagerIsActive() const;

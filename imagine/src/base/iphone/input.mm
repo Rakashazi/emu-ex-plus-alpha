@@ -26,16 +26,14 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include "../../input/apple/AppleGameDevice.hh"
 #include "ios.hh"
 
-using namespace IG;
-
 @interface UIEvent ()
 - (NSInteger*)_gsEvent;
 @end
 
 @interface IGAppTextField : NSObject <UITextFieldDelegate>
 @property (nonatomic, retain) UITextField *uiTextField;
-@property (nonatomic) Input::TextFieldDelegate textDelegate;
--(id)initWithTextField:(UITextField*)field textDelegate:(Input::TextFieldDelegate)del;
+@property (nonatomic) IG::TextFieldDelegate textDelegate;
+-(id)initWithTextField:(UITextField*)field textDelegate:(IG::TextFieldDelegate)del;
 @end
 
 @implementation IGAppTextField
@@ -43,7 +41,7 @@ using namespace IG;
 @synthesize uiTextField;
 @synthesize textDelegate;
 
--(id)initWithTextField:(UITextField*)field textDelegate:(Input::TextFieldDelegate)del
+-(id)initWithTextField:(UITextField*)field textDelegate:(IG::TextFieldDelegate)del
 {
 	self = [super init];
 	uiTextField = field;

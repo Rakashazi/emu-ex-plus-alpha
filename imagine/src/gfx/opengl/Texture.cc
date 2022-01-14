@@ -361,7 +361,7 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace
 	SamplerParams samplerParams = compatSampler ? compatSampler->samplerParams() : SamplerParams{};
 	if(renderer().support.hasImmutableTexStorage)
 	{
-		bool isSrgb = colorSpace == ColorSpace::SRGB && (desc.format() == IG::PIXEL_RGBA8888 || desc.format() == IG::PIXEL_BGRA8888);
+		bool isSrgb = renderer().supportedColorSpace(desc.format(), colorSpace) == ColorSpace::SRGB;
 		task().runSync(
 			[=, &r = std::as_const(renderer()), &texName_ = texName_](GLTask::TaskContext ctx)
 			{

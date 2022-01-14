@@ -15,10 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/GfxSprite.hh>
-#include <imagine/pixmap/PixelFormat.hh>
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VideoImageEffect.hh>
+#include <imagine/gfx/GfxSprite.hh>
+#include <imagine/pixmap/PixelFormat.hh>
+#include <imagine/util/container/ArrayList.hh>
 
 namespace EmuEx
 {
@@ -33,18 +34,17 @@ public:
 	EmuVideoLayer(EmuVideo &video);
 	void place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView);
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
-	void setOverlay(unsigned effect);
+	void setFormat(IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace);
+	void setOverlay(int effect);
 	void setOverlayIntensity(Gfx::GC intensity);
-	void setEffect(ImageEffectId effect, IG::PixelFormatID fmt);
-	void setEffectFormat(IG::PixelFormatID fmt);
+	void setEffect(ImageEffectId, IG::PixelFormat);
+	void setEffectFormat(IG::PixelFormat);
 	void setLinearFilter(bool on);
-	void setSrgbColorSpaceOutput(bool on);
-	void resetImage();
 	void setBrightness(float b);
-	void setTextureBufferMode(Gfx::TextureBufferMode mode);
-	void setImageBuffers(unsigned num);
-	unsigned imageBuffers() const;
+	void onVideoFormatChanged(IG::PixelFormat effectFmt);
 	EmuVideo &emuVideo() const { return video; }
+	Gfx::ColorSpace colorSpace() const { return colSpace; }
+	bool srgbColorSpace() const { return colSpace == Gfx::ColorSpace::SRGB; }
 
 	const IG::WindowRect &gameRect() const
 	{
@@ -53,20 +53,26 @@ public:
 
 private:
 	VideoImageOverlay vidImgOverlay{};
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	VideoImageEffect vidImgEffect{};
-	#endif
+	IG::StaticArrayList<VideoImageEffect*, 1> effects{};
 	EmuVideo &video;
 	const Gfx::TextureSampler *texSampler{};
+	VideoImageEffect userEffect{};
 	Gfx::Sprite disp{};
 	IG::WindowRect gameRect_{};
 	Gfx::GCRect gameRectG{};
 	float brightness = 1.f;
 	float brightnessSrgb = 1.f;
+	ImageEffectId userEffectId{};
+	Gfx::ColorSpace colSpace{};
 
-	void compileDefaultPrograms();
-	void placeEffect();
 	void placeOverlay();
+	void updateEffectImageSize();
+	void buildEffectChain();
+	bool updateConvertColorSpaceEffect();
+	void updateSprite();
+	void logOutputFormat();
+	Gfx::Renderer &renderer();
+	Gfx::ColorSpace videoColorSpace(IG::PixelFormat videoFmt) const;
 };
 
 }

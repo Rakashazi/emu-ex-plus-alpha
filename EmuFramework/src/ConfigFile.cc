@@ -155,10 +155,8 @@ static OptionBase *cfgFileOption[] =
 	&optionShowOnSecondScreen,
 	#endif
 	&optionImgFilter,
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	&optionImgEffect,
 	&optionImageEffectPixelFormat,
-	#endif
 	&optionVideoImageBuffers,
 	&optionOverlayEffect,
 	&optionOverlayEffectLevel,
@@ -468,10 +466,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
 				bcase CFGKEY_SHOW_ON_2ND_SCREEN: optionShowOnSecondScreen.readFromIO(io, size);
 				#endif
-				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 				bcase CFGKEY_IMAGE_EFFECT: optionImgEffect.readFromIO(io, size);
 				bcase CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: optionImageEffectPixelFormat.readFromIO(io, size);
-				#endif
 				bcase CFGKEY_RENDER_PIXEL_FORMAT: setRenderPixelFormat(readOptionValue<IG::PixelFormat>(io, size, renderPixelFormatIsValid));
 				bcase CFGKEY_VIDEO_IMAGE_BUFFERS: optionVideoImageBuffers.readFromIO(io, size);
 				bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);

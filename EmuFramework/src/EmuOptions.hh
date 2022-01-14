@@ -121,10 +121,8 @@ extern Byte1Option optionShowBluetoothScan;
 
 extern Byte1Option optionImgFilter;
 extern DoubleOption optionAspectRatio;
-#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 extern Byte1Option optionImgEffect;
 extern Byte1Option optionImageEffectPixelFormat;
-#endif
 extern Byte1Option optionOverlayEffect;
 extern Byte1Option optionOverlayEffectLevel;
 

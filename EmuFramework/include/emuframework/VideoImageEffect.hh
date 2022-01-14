@@ -26,7 +26,7 @@ using namespace IG;
 
 enum class ImageEffectId : uint8_t
 {
-	NONE = 0,
+	DIRECT = 0,
 	HQ2X = 1,
 	SCALE2X = 2,
 	PRESCALE2X = 3,
@@ -46,21 +46,17 @@ public:
 		IG::WP scale;
 	};
 
-	struct EffectParams
-	{
-		IG::PixelFormatID formatID;
-		Id effectID;
-	};
-
 	constexpr	VideoImageEffect() = default;
-	void setEffect(Gfx::Renderer &r, Id effect, int bitDepth, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler);
-	EffectParams effectParams() const;
+	VideoImageEffect(Gfx::Renderer &r, Id effect, IG::PixelFormat, Gfx::ColorSpace,
+		const Gfx::TextureSampler &compatTexSampler, IG::WP size);
 	void setImageSize(Gfx::Renderer &r, IG::WP size, const Gfx::TextureSampler &compatTexSampler);
-	void setBitDepth(Gfx::Renderer &r, int bitDepth, const Gfx::TextureSampler &compatTexSampler);
+	void setFormat(Gfx::Renderer &r, IG::PixelFormat, Gfx::ColorSpace, const Gfx::TextureSampler &compatTexSampler);
 	void setCompatTextureSampler(const Gfx::TextureSampler &);
 	Gfx::Program &program();
 	Gfx::Texture &renderTarget();
-	void drawRenderTarget(Gfx::RendererCommands &cmds, const Gfx::Texture &img);
+	void drawRenderTarget(Gfx::RendererCommands &, const Gfx::TextureSpan);
+	constexpr IG::PixelFormat imageFormat() const { return format; }
+	operator bool() const { return (bool)prog; }
 
 private:
 	Gfx::Texture renderTarget_{};
@@ -71,14 +67,13 @@ private:
 	IG::WP renderTargetScale{};
 	IG::WP renderTargetImgSize{};
 	IG::WP inputImgSize{1, 1};
-	Id effect_{};
-	bool useRGB565RenderTarget = true;
+	IG::PixelFormat format{};
+	Gfx::ColorSpace colorSpace{};
 
 	void initRenderTargetTexture(Gfx::Renderer &r, const Gfx::TextureSampler &compatTexSampler);
 	void updateProgramUniforms(Gfx::Renderer &r);
-	void compile(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler);
-	void compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback);
-	void reset(Gfx::Renderer &r);
+	void compile(Gfx::Renderer &r, EffectDesc desc, const Gfx::TextureSampler &compatTexSampler);
+	void compileEffect(Gfx::Renderer &r, EffectDesc desc, bool useFallback);
 };
 
 }

@@ -54,6 +54,5 @@ void launchSystem(EmuApp &, bool tryAutoState);
 Gfx::Viewport makeViewport(const IG::Window &win);
 Gfx::Projection updateProjection(Gfx::Viewport viewport);
 uint8_t currentFrameInterval();
-IG::PixelFormatID optionImageEffectPixelFormatValue();
 
 }

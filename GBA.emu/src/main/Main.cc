@@ -163,17 +163,17 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreatePara
 	readCheatFile(ctx);
 }
 
-void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
+bool EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
-	if(!video.setFormat({lcdSize, fmt}))
-		return;
 	logMsg("updating system color maps");
+	video.setFormat({lcdSize, fmt});
 	if(fmt == IG::PIXEL_RGB565)
 		utilUpdateSystemColorMaps(16, 11, 6, 0);
 	else if(fmt == IG::PIXEL_BGRA8888)
 		utilUpdateSystemColorMaps(32, 19, 11, 3);
 	else
 		utilUpdateSystemColorMaps(32, 3, 11, 19);
+	return true;
 }
 
 void EmuSystem::renderFramebuffer(EmuVideo &video)

@@ -30,28 +30,7 @@ namespace EmuEx
 {
 
 EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
-	video{video}
-{}
-
-void EmuVideoLayer::resetImage()
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(vidImgEffect.renderTarget())
-	{
-		logMsg("drawing video via render target");
-		disp.setImg(&vidImgEffect.renderTarget());
-		vidImgEffect.setImageSize(video.renderer(), video.size(), *texSampler);
-		video.setCompatTextureSampler(video.renderer().make(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP));
-	}
-	else
-	#endif
-	{
-		logMsg("drawing video texture directly");
-		disp.setImg(video.image());
-		video.setCompatTextureSampler(*texSampler);
-	}
-	compileDefaultPrograms();
-}
+	video{video} {}
 
 void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView)
 {
@@ -220,7 +199,6 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 				(double)gameRectG.x, (double)gameRectG.y, (double)gameRectG.x2, (double)gameRectG.y2);
 	}
 	placeOverlay();
-	placeEffect();
 }
 
 void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP)
@@ -231,32 +209,32 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	bool replaceMode = true;
 	if(brightness != 1.f)
 	{
-		auto c = video.isSrgbFormat() ? brightnessSrgb : brightness;
+		auto c = srgbColorSpace() ? brightnessSrgb : brightness;
 		cmds.setColor(c, c, c);
 		replaceMode = false;
 	}
 	cmds.setBlendMode(0);
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(vidImgEffect.program())
+	if(effects.size())
 	{
 		auto prevViewport = cmds.viewport();
 		cmds.setClipTest(false);
-		cmds.setProgram(vidImgEffect.program());
-		cmds.setRenderTarget(vidImgEffect.renderTarget());
 		cmds.setDither(false);
-		cmds.clear();
-		vidImgEffect.drawRenderTarget(cmds, video.image());
+		TextureSpan srcTex = video.image();
+		for(auto &ePtr : effects)
+		{
+			auto &e = *ePtr;
+			cmds.setProgram(e.program());
+			cmds.setRenderTarget(e.renderTarget());
+			cmds.clear();
+			e.drawRenderTarget(cmds, srcTex);
+			srcTex = e.renderTarget();
+		}
 		cmds.setDefaultRenderTarget();
 		cmds.setDither(true);
 		cmds.setViewport(prevViewport);
-		disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 	}
-	else
-	#endif
-	{
-		disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
-	}
-	bool srgbFrameBufferWrite = video.isSrgbFormat();
+	disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
+	bool srgbFrameBufferWrite = srgbColorSpace();
 	cmds.setTextureSampler(*texSampler);
 	if(srgbFrameBufferWrite)
 		cmds.setSrgbFramebufferWrite(true);
@@ -267,7 +245,21 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	vidImgOverlay.draw(cmds);
 }
 
-void EmuVideoLayer::setOverlay(unsigned effect)
+void EmuVideoLayer::setFormat(IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace colorSpace)
+{
+	colSpace = colorSpace;
+	if(EmuSystem::canRenderRGBA8888 && colorSpace == Gfx::ColorSpace::SRGB)
+	{
+		videoFmt = IG::PIXEL_RGBA8888;
+	}
+	if(!video.setRenderPixelFormat(videoFmt, videoColorSpace(videoFmt)))
+	{
+		setEffectFormat(effectFmt);
+		updateConvertColorSpaceEffect();
+	}
+}
+
+void EmuVideoLayer::setOverlay(int effect)
 {
 	vidImgOverlay.setEffect(video.renderer(), effect);
 	placeOverlay();
@@ -283,62 +275,39 @@ void EmuVideoLayer::placeOverlay()
 	vidImgOverlay.place(disp, video.size().y);
 }
 
-static unsigned effectFormatToBits(IG::PixelFormatID format, EmuVideo &video)
+void EmuVideoLayer::setEffectFormat(IG::PixelFormat fmt)
 {
-	if(format == IG::PIXEL_NONE)
+	userEffect.setFormat(renderer(), fmt, colorSpace(), *texSampler);
+}
+
+void EmuVideoLayer::setEffect(ImageEffectId effect, IG::PixelFormat fmt)
+{
+	if(userEffectId == effect)
+		return;
+	userEffectId = effect;
+	if(effect == ImageEffectId::DIRECT)
 	{
-		format = video.image().pixmapDesc().format().id();
+		userEffect = {};
+		buildEffectChain();
+		logMsg("deleted user effect");
+		video.setRenderPixelFormat(video.renderPixelFormat(), videoColorSpace(video.renderPixelFormat()));
+		updateConvertColorSpaceEffect();
 	}
-	return format == IG::PIXEL_RGB565 ? 16 : 32;
-}
-
-void EmuVideoLayer::setEffectFormat(IG::PixelFormatID fmt)
-{
-	vidImgEffect.setBitDepth(video.renderer(), effectFormatToBits(fmt, video), *texSampler);
-}
-
-void EmuVideoLayer::placeEffect()
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize(video.renderer(), video.size(), *texSampler);
-	#endif
-}
-
-void EmuVideoLayer::compileDefaultPrograms()
-{
-	disp.compileDefaultProgramOneShot(Gfx::IMG_MODE_REPLACE);
-	disp.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
-}
-
-void EmuVideoLayer::setEffect(ImageEffectId effect, IG::PixelFormatID fmt)
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	assert(video.image());
-	vidImgEffect.setEffect(video.renderer(), effect, effectFormatToBits(fmt, video), video.isExternalTexture(), *texSampler);
-	placeEffect();
-	resetImage();
-	#endif
+	else
+	{
+		userEffect = {renderer(), effect, fmt, colorSpace(), *texSampler, video.size()};
+		buildEffectChain();
+		video.setRenderPixelFormat(video.renderPixelFormat(), Gfx::ColorSpace::LINEAR);
+	}
 }
 
 void EmuVideoLayer::setLinearFilter(bool on)
 {
-	texSampler = &video.renderer().make(on ? Gfx::CommonTextureSampler::NO_MIP_CLAMP : Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(vidImgEffect.renderTarget())
-	{
-		vidImgEffect.setCompatTextureSampler(*texSampler);
-	}
+	texSampler = &renderer().make(on ? Gfx::CommonTextureSampler::NO_MIP_CLAMP : Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
+	if(effects.size())
+		effects.back()->setCompatTextureSampler(*texSampler);
 	else
-	#endif
-	{
 		video.setCompatTextureSampler(*texSampler);
-	}
-}
-
-void EmuVideoLayer::setSrgbColorSpaceOutput(bool on)
-{
-	video.setSrgbColorSpaceOutput(on);
-	video.resetImage();
 }
 
 void EmuVideoLayer::setBrightness(float b)
@@ -347,25 +316,104 @@ void EmuVideoLayer::setBrightness(float b)
 	brightnessSrgb = std::pow(b, 2.2f);
 }
 
-void EmuVideoLayer::setTextureBufferMode(Gfx::TextureBufferMode mode)
+void EmuVideoLayer::onVideoFormatChanged(IG::PixelFormat effectFmt)
 {
-	if(video.setTextureBufferMode(mode))
+	setEffectFormat(effectFmt);
+	if(!updateConvertColorSpaceEffect())
 	{
-		video.resetImage();
+		updateEffectImageSize();
+		updateSprite();
+	}
+	setOverlay(optionOverlayEffect);
+}
+
+Gfx::Renderer &EmuVideoLayer::renderer()
+{
+	return video.renderer();
+}
+
+void EmuVideoLayer::updateEffectImageSize()
+{
+	auto &r = renderer();
+	auto &noLinearSampler = r.make(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
+	for(auto &e : effects)
+	{
+		e->setImageSize(r, video.size(), e == effects.back() ? *texSampler : noLinearSampler);
 	}
 }
 
-void EmuVideoLayer::setImageBuffers(unsigned num)
+void EmuVideoLayer::buildEffectChain()
 {
-	if(video.setImageBuffers(num))
+	auto &r = renderer();
+	effects.clear();
+	if(userEffect)
 	{
-		video.resetImage();
+		effects.emplace_back(&userEffect);
+	}
+	updateEffectImageSize();
+	updateSprite();
+	logOutputFormat();
+}
+
+bool EmuVideoLayer::updateConvertColorSpaceEffect()
+{
+	bool needsConversion = video.colorSpace() == Gfx::ColorSpace::LINEAR
+		&& colorSpace() == Gfx::ColorSpace::SRGB
+		&& userEffectId == ImageEffectId::DIRECT;
+	if(needsConversion && !userEffect)
+	{
+		userEffect = {renderer(), ImageEffectId::DIRECT, IG::PIXEL_RGBA8888, Gfx::ColorSpace::SRGB, *texSampler, video.size()};
+		logMsg("made sRGB conversion effect");
+		buildEffectChain();
+		return true;
+	}
+	else if(userEffect && userEffectId == ImageEffectId::DIRECT)
+	{
+		userEffect = {};
+		logMsg("deleted sRGB conversion effect");
+		buildEffectChain();
+		return true;
+	}
+	return false;
+}
+
+void EmuVideoLayer::updateSprite()
+{
+	if(effects.size())
+	{
+		disp.setImg(effects.back()->renderTarget());
+		video.setCompatTextureSampler(renderer().make(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP));
+	}
+	else
+	{
+		disp.setImg(video.image());
+		video.setCompatTextureSampler(*texSampler);
+	}
+	disp.compileDefaultProgramOneShot(Gfx::IMG_MODE_REPLACE);
+	disp.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
+}
+
+void EmuVideoLayer::logOutputFormat()
+{
+	if constexpr(Config::DEBUG_BUILD)
+	{
+		IG::StaticString<255> str{"output format: main video:"};
+		str += video.image().usedPixmapDesc().format().name();
+		for(auto &ePtr : effects)
+		{
+			auto &e = *ePtr;
+			str += " -> effect:";
+			str += e.imageFormat().name();
+		}
+		logMsg("%s", str.data());
 	}
 }
 
-unsigned EmuVideoLayer::imageBuffers() const
+Gfx::ColorSpace EmuVideoLayer::videoColorSpace(IG::PixelFormat videoFmt) const
 {
-	return video.imageBuffers();
+	// if we want sRGB output and are rendering directly, set the video to sRGB if possible
+	return colorSpace() == Gfx::ColorSpace::SRGB && userEffectId == ImageEffectId::DIRECT ?
+			Gfx::Renderer::supportedColorSpace(videoFmt, colorSpace()) : Gfx::ColorSpace::LINEAR;
 }
 
 }

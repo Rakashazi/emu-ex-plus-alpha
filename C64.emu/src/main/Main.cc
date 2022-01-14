@@ -756,13 +756,14 @@ void EmuSystem::onPrepareAudio(EmuAudio &audio)
 	audio.setStereo(false);
 }
 
-void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
+bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
 	pixFmt = fmt;
 	if(activeCanvas)
 	{
 		updateCanvasPixelFormat(activeCanvas, fmt);
 	}
+	return false;
 }
 
 void EmuSystem::onInit(IG::ApplicationContext ctx)

@@ -238,13 +238,14 @@ void EmuSystem::onPrepareAudio(EmuAudio &audio)
 	audio.setStereo(false); // TODO: stereo mode
 }
 
-void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
+bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
 	osystem->frameBuffer().setPixelFormat(fmt);
 	if(osystem->hasConsole())
 	{
 		osystem->frameBuffer().paletteHandler().setPalette(osystem->settings().getString("palette"));
 	}
+	return false;
 }
 
 void EmuSystem::onInit(IG::ApplicationContext ctx)

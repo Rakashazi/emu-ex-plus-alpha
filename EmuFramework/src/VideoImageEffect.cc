@@ -28,6 +28,9 @@ namespace EmuEx
 {
 
 static constexpr VideoImageEffect::EffectDesc
+	directDesc{"direct-v.txt", "direct-f.txt", {1, 1}};
+
+static constexpr VideoImageEffect::EffectDesc
 	hq2xDesc{"hq2x-v.txt", "hq2x-f.txt", {2, 2}};
 
 static constexpr VideoImageEffect::EffectDesc
@@ -40,10 +43,10 @@ static constexpr const char *effectName(ImageEffectId id)
 {
 	switch(id)
 	{
-		case ImageEffectId::NONE: return "None";
+		case ImageEffectId::DIRECT: return "Direct";
 		case ImageEffectId::HQ2X: return "HQ2X";
 		case ImageEffectId::SCALE2X: return "Scale2X";
-		case ImageEffectId::PRESCALE2X: return ("Prescale 2X");
+		case ImageEffectId::PRESCALE2X: return "Prescale 2X";
 	}
 	return nullptr;
 }
@@ -52,7 +55,7 @@ static constexpr VideoImageEffect::EffectDesc effectDesc(ImageEffectId id)
 {
 	switch(id)
 	{
-		case ImageEffectId::NONE: return {};
+		case ImageEffectId::DIRECT: return directDesc;
 		case ImageEffectId::HQ2X: return hq2xDesc;
 		case ImageEffectId::SCALE2X: return scale2xDesc;
 		case ImageEffectId::PRESCALE2X: return prescale2xDesc;
@@ -73,69 +76,34 @@ static Gfx::Shader makeEffectVertexShader(Gfx::Renderer &r, std::string_view src
 	return r.makeCompatShader(shaderSrc, Gfx::ShaderType::VERTEX);
 }
 
-static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, std::string_view src, bool isExternalTex)
+static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, std::string_view src)
 {
-	std::string_view fragDefs = "FRAGCOLOR_DEF\n";
-	if(isExternalTex)
+	std::string_view shaderSrc[]
 	{
-		std::string_view shaderSrc[]
-		{
-			// extensions -> shaderSrc[0]
-			"#extension GL_OES_EGL_image_external : enable\n"
-			"#extension GL_OES_EGL_image_external_essl3 : enable\n",
-			// texture define -> shaderSrc[1]
-			"#define TEXTURE texture2D\n",
-			fragDefs,
-			"uniform lowp samplerExternalOES TEX;\n",
-			src
-		};
-		auto shader = r.makeCompatShader(shaderSrc, Gfx::ShaderType::FRAGMENT);
-		if(!shader)
-		{
-			// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
-			logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
-			shaderSrc[1] = "#define TEXTURE texture\n";
-			shader = r.makeCompatShader(shaderSrc, Gfx::ShaderType::FRAGMENT);
-		}
-		return shader;
-	}
-	else
-	{
-		std::string_view shaderSrc[]
-		{
-			"#define TEXTURE texture\n",
-			fragDefs,
-			"uniform sampler2D TEX;\n",
-			src
-		};
-		return r.makeCompatShader(shaderSrc, Gfx::ShaderType::FRAGMENT);
-	}
+		"#define TEXTURE texture\n",
+		"FRAGCOLOR_DEF\n",
+		"uniform sampler2D TEX;\n",
+		src
+	};
+	return r.makeCompatShader(shaderSrc, Gfx::ShaderType::FRAGMENT);
 }
 
-void VideoImageEffect::setEffect(Gfx::Renderer &r, Id effect, int bitDepth, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler)
+static PixelFormat effectFormat(IG::PixelFormat format, Gfx::ColorSpace colSpace)
 {
-	if(effect == effect_)
-		return;
-	reset(r);
-	useRGB565RenderTarget = bitDepth <= 16;
-	effect_ = effect;
-	if(effect == Id::NONE)
-		return;
+	assert(format);
+	if(colSpace == Gfx::ColorSpace::SRGB)
+	{
+		return IG::PIXEL_RGBA8888;
+	}
+	return format;
+}
+
+VideoImageEffect::VideoImageEffect(Gfx::Renderer &r, Id effect, IG::PixelFormat fmt, Gfx::ColorSpace colSpace,
+	const Gfx::TextureSampler &compatTexSampler, IG::WP size):
+		inputImgSize{size}, format{effectFormat(fmt, colSpace)}, colorSpace{colSpace}
+{
 	logMsg("compiling effect:%s", effectName(effect));
-	compile(r, effectDesc(effect), isExternalTex, compatTexSampler);
-}
-
-VideoImageEffect::EffectParams VideoImageEffect::effectParams() const
-{
-	return {useRGB565RenderTarget ? IG::PIXEL_FMT_RGB565 : IG::PIXEL_FMT_RGBA8888, effect_};
-}
-
-void VideoImageEffect::reset(Gfx::Renderer &r)
-{
-	renderTarget_ = {};
-	renderTargetScale = {0, 0};
-	renderTargetImgSize = {0, 0};
-	prog = {};
+	compile(r, effectDesc(effect), compatTexSampler);
 }
 
 void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r, const Gfx::TextureSampler &compatTexSampler)
@@ -144,15 +112,19 @@ void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r, const Gfx::Text
 		return;
 	renderTargetImgSize.x = inputImgSize.x * renderTargetScale.x;
 	renderTargetImgSize.y = inputImgSize.y * renderTargetScale.y;
-	IG::PixmapDesc renderPix{renderTargetImgSize, useRGB565RenderTarget ? IG::PIXEL_RGB565 : IG::PIXEL_RGBA8888};
+	IG::PixmapDesc renderPix{renderTargetImgSize, format};
 	if(!renderTarget_)
-		renderTarget_ = r.makeTexture({renderPix, &compatTexSampler});
+	{
+		Gfx::TextureConfig conf{renderPix, &compatTexSampler};
+		conf.setColorSpace(colorSpace);
+		renderTarget_ = r.makeTexture(conf);
+	}
 	else
-		renderTarget_.setFormat(renderPix, 1, {}, &compatTexSampler);
+		renderTarget_.setFormat(renderPix, 1, colorSpace, &compatTexSampler);
 	r.make(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 }
 
-void VideoImageEffect::compile(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler)
+void VideoImageEffect::compile(Gfx::Renderer &r, EffectDesc desc, const Gfx::TextureSampler &compatTexSampler)
 {
 	if(program())
 		return; // already compiled
@@ -165,26 +137,25 @@ void VideoImageEffect::compile(Gfx::Renderer &r, EffectDesc desc, bool isExterna
 	initRenderTargetTexture(r, compatTexSampler);
 	try
 	{
-		compileEffect(r, desc, isExternalTex, false);
+		compileEffect(r, desc, false);
 	}
 	catch(std::exception &err)
 	{
 		try
 		{
-			compileEffect(r, desc, isExternalTex, true);
+			compileEffect(r, desc, true);
 			logMsg("compiled fallback version of effect");
 		}
 		catch(std::exception &fallbackErr)
 		{
 			auto &app = EmuApp::get(r.appContext());
 			app.postErrorMessage(5, fmt::format("{}, {}", err.what(), fallbackErr.what()));
-			reset(r);
 			return;
 		}
 	}
 }
 
-void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback)
+void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool useFallback)
 {
 	auto ctx = r.appContext();
 	const char *fallbackStr = useFallback ? "fallback-" : "";
@@ -200,8 +171,7 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isE
 
 	auto fShader = makeEffectFragmentShader(r,
 		ctx.openAsset(IG::format<FS::PathString>("shaders/{}{}", fallbackStr, desc.fShaderFilename),
-		IO::AccessHint::ALL).buffer().stringView(),
-		isExternalTex);
+		IO::AccessHint::ALL).buffer().stringView());
 	if(!fShader)
 	{
 		throw std::runtime_error{"GPU rejected shader (fragment compile error)"};
@@ -240,9 +210,13 @@ void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size, const Gfx::Te
 	initRenderTargetTexture(r, compatTexSampler);
 }
 
-void VideoImageEffect::setBitDepth(Gfx::Renderer &r, int bitDepth, const Gfx::TextureSampler &compatTexSampler)
+void VideoImageEffect::setFormat(Gfx::Renderer &r,IG::PixelFormat fmt, Gfx::ColorSpace colSpace, const Gfx::TextureSampler &compatTexSampler)
 {
-	useRGB565RenderTarget = bitDepth <= 16;
+	fmt = effectFormat(fmt, colSpace);
+	if(format == fmt && colorSpace == colSpace)
+		return;
+	format = fmt;
+	colorSpace = colSpace;
 	initRenderTargetTexture(r, compatTexSampler);
 }
 
@@ -256,12 +230,12 @@ Gfx::Texture &VideoImageEffect::renderTarget()
 	return renderTarget_;
 }
 
-void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, const Gfx::Texture &img)
+void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, const Gfx::TextureSpan span)
 {
 	auto viewport = Gfx::Viewport::makeFromRect({{}, renderTargetImgSize});
 	cmds.setViewport(viewport);
 	cmds.set(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
-	Gfx::Sprite spr{{{-1., -1.}, {1., 1.}}, {&img, {{0., 1.}, {1., 0.}}}};
+	Gfx::Sprite spr{{{-1., -1.}, {1., 1.}}, {span.texture(), {{0., 1.}, {1., 0.}}}};
 	spr.draw(cmds);
 }
 
