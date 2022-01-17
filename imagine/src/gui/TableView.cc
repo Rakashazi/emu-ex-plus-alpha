@@ -329,7 +329,7 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 	}
 	if(e.isPointer())
 	{
-		if(!pointIsInView(e.pos()) || e.mapKey() != Input::Pointer::LBUTTON)
+		if(!pointIsInView(e.pos()) || !(e.mapKey() & Input::Pointer::LBUTTON))
 		{
 			//logMsg("cursor not in table");
 			return false;

@@ -60,15 +60,9 @@ ifdef CHOST
 endif
 
 ifndef RELEASE
- ifeq ($(compiler_sanitizeMode), address)
-  CFLAGS_CODEGEN += -fsanitize=address,undefined -fno-omit-frame-pointer
-  LDFLAGS_SYSTEM += -fsanitize=address,undefined
-  # Disable debug section compression since it may prevent symbols from appearing in backtrace
-  COMPRESS_DEBUG_SECTIONS = none
- endif
- ifeq ($(compiler_sanitizeMode), thread)
-  CFLAGS_CODEGEN += -fsanitize=thread -fno-omit-frame-pointer
-  LDFLAGS_SYSTEM += -fsanitize=thread
+ ifneq ($(compiler_sanitizeMode),)
+  CFLAGS_CODEGEN += -fsanitize=$(compiler_sanitizeMode) -fno-omit-frame-pointer
+  LDFLAGS_SYSTEM += -fsanitize=$(compiler_sanitizeMode)
   # Disable debug section compression since it may prevent symbols from appearing in backtrace
   COMPRESS_DEBUG_SECTIONS = none
  endif

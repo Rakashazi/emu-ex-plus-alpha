@@ -470,8 +470,8 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			emuVideo.setRendererTask(renderer.task());
 			emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
 			emuVideo.setImageBuffers(optionVideoImageBuffers);
+			emuVideoLayer.setLinearFilter(optionImgFilter); // init the texture sampler before setting format
 			applyRenderPixelFormat();
-			emuVideoLayer.setLinearFilter(optionImgFilter);
 			emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
 			emuVideoLayer.setEffect((ImageEffectId)optionImgEffect.val, imageEffectPixelFormat());
 

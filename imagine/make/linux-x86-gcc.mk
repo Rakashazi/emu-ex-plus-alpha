@@ -1,6 +1,6 @@
 include $(IMAGINE_PATH)/make/config.mk
 
-compiler_sanitizeMode ?= address
+compiler_sanitizeMode ?= address,undefined
 include $(buildSysPath)/linux-gcc.mk
 
 CHOST := $(shell $(CC) -dumpmachine)

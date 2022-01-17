@@ -48,14 +48,16 @@ enum MDFN_NoticeType : uint8
 #ifndef NDEBUG
 void MDFN_Notify(MDFN_NoticeType t, const char* format, ...) noexcept MDFN_FORMATSTR(gnu_printf, 2, 3);
 #else
-static void MDFN_Notify(MDFN_NoticeType t, const char* format, ...) MDFN_FORMATSTR(gnu_printf, 2, 3) {}
+MDFN_FORMATSTR(gnu_printf, 2, 3)
+static void MDFN_Notify(MDFN_NoticeType t, const char* format, ...) {}
 #endif
 
 // Verbose status and informational messages, primarily during startup and exit.
 #ifndef NDEBUG
 void MDFN_printf(const char *format, ...) noexcept MDFN_FORMATSTR(gnu_printf, 1, 2);
 #else
-static void MDFN_printf(const char *format, ...) MDFN_FORMATSTR(gnu_printf, 1, 2) {}
+MDFN_FORMATSTR(gnu_printf, 1, 2)
+static void MDFN_printf(const char *format, ...) {}
 #endif
 
 void MDFN_DebugPrintReal(const char *file, const int line, const char *format, ...) MDFN_FORMATSTR(gnu_printf, 3, 4);

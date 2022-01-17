@@ -63,29 +63,29 @@ static Time makeTimeFromKeyEvent(AInputEvent *event)
 	return IG::Nanoseconds(AKeyEvent_getEventTime(event));
 }
 
-static void mapKeycodesForSpecialDevices(const Input::Device &dev, int32_t &keyCode, int32_t &metaState,
-	Input::Source &src, AInputEvent *event)
+static std::pair<int32_t, Input::Source> mapKeycodesForSpecialDevices(const Input::Device &dev,
+	int32_t keyCode, int32_t metaState, Input::Source src, AInputEvent *event)
 {
 	using namespace IG::Input;
 	switch(dev.subtype())
 	{
-		bcase Device::Subtype::XPERIA_PLAY:
+		case Device::Subtype::XPERIA_PLAY:
 		{
 			if(!Config::MACHINE_IS_GENERIC_ARMV7)
 				break;
 			switch(keyCode)
 			{
-				bcase Keycode::BACK:
+				case Keycode::BACK:
 					if(metaState & AMETA_ALT_ON)
-					{
-						keyCode = Keycode::GAME_B;
-						src = Source::GAMEPAD;
-					}
-				bcase Keycode::GAME_A ... Keycode::GAME_SELECT:
-					src = Source::GAMEPAD;
+						return {Keycode::GAME_B, Source::GAMEPAD};
+					else
+						break;
+				case Keycode::GAME_A ... Keycode::GAME_SELECT:
+					return {keyCode, Source::GAMEPAD};
 			}
+			break;
 		}
-		bcase Device::Subtype::XBOX_360_CONTROLLER:
+		case Device::Subtype::XBOX_360_CONTROLLER:
 		{
 			if(keyCode)
 				break;
@@ -93,14 +93,23 @@ static void mapKeycodesForSpecialDevices(const Input::Device &dev, int32_t &keyC
 			auto scanCode = AKeyEvent_getScanCode(event);
 			switch(scanCode)
 			{
-				bcase 704: keyCode = Keycode::LEFT;
-				bcase 705: keyCode = Keycode::RIGHT;
-				bcase 706: keyCode = Keycode::UP;
-				bcase 707: keyCode = Keycode::DOWN;
+				case 704: return {Keycode::LEFT, src};
+				case 705: return {Keycode::RIGHT, src};
+				case 706: return {Keycode::UP, src};
+				case 707: return {Keycode::DOWN, src};
 			}
+			break;
 		}
-		bdefault: break;
+		default:
+			switch(keyCode) // map volume/media keys to keyboard source
+			{
+				case Keycode::VOL_UP ... Keycode::VOL_DOWN:
+				case Keycode::MEDIA_PLAY_PAUSE ... Keycode::MUTE:
+					return {keyCode, Source::KEYBOARD};
+			}
+			break;
 	}
+	return {keyCode, src};
 }
 
 static const char *keyEventActionStr(uint32_t action)
@@ -166,6 +175,8 @@ static std::pair<Input::Action, Input::Key> mouseEventAction(uint32_t e, AInputE
 		case AMOTION_EVENT_ACTION_BUTTON_RELEASE: return {Action::RELEASED, AMotionEvent_getActionButtonCompat(event, sdk)};
 		case AMOTION_EVENT_ACTION_UP:             return {Action::RELEASED, Pointer::ALL_BUTTONS};
 		case AMOTION_EVENT_ACTION_CANCEL:         return {Action::CANCELED, 0};
+		case AMOTION_EVENT_ACTION_HOVER_ENTER:    return {Action::ENTER_VIEW, 0};
+		case AMOTION_EVENT_ACTION_HOVER_EXIT:     return {Action::EXIT_VIEW, 0};
 		case AMOTION_EVENT_ACTION_HOVER_MOVE:
 		case AMOTION_EVENT_ACTION_MOVE:           return {Action::MOVED, 0};
 		case AMOTION_EVENT_ACTION_SCROLL:
@@ -341,7 +352,9 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 				//	repeatCount, keyEventActionStr(AKeyEvent_getAction(event)), sourceStr(eventSource));
 			}
 			auto metaState = AKeyEvent_getMetaState(event);
-			mapKeycodesForSpecialDevices(*dev, keyCode, metaState, eventSource, event);
+			auto [mappedKeyCode, mappedSource] = mapKeycodesForSpecialDevices(*dev, keyCode, metaState, eventSource, event);
+			keyCode = mappedKeyCode;
+			eventSource = mappedSource;
 			if(!keyCode) [[unlikely]] // ignore "unknown" key codes
 			{
 				return false;
