@@ -2059,7 +2059,7 @@ bool cheatsImportGSACodeFile(ARM7TDMI &cpu, const char *name, int game, bool v3)
      fclose(f);
      return false;
   }
-  int len = 0;
+  uint32_t len = 0;
   bool found = false;
   int g = 0;
   while (games > 0) {

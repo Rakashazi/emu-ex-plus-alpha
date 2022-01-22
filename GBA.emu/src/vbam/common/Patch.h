@@ -1,6 +1,7 @@
 #ifndef PATCH_H
 #define PATCH_H
 
+#include "../Util.h"
 #include "Types.h"
 
 namespace IG

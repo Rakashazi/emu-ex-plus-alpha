@@ -75,11 +75,6 @@ static inline uint32_t CPUReadMemory(ARM7TDMI &cpu, uint32_t address)
     }
 #endif
     uint32_t value = 0;
-    uint32_t oldAddress = address;
-
-    if (address & 3) {
-        address &= ~0x03;
-    }
 
     switch (address >> 24) {
     case 0:
@@ -121,16 +116,17 @@ static inline uint32_t CPUReadMemory(ARM7TDMI &cpu, uint32_t address)
     case 5:
         value = READ32LE(((uint32_t*)&paletteRAM[address & 0x3fC]));
         break;
-    case 6:
-        address = (address & 0x1fffc);
-        if (((DISPCNT & 7) > 2) && ((address & 0x1C000) == 0x18000)) {
+    case 6: {
+        unsigned addr = (address & 0x1fffc);
+        if (((DISPCNT & 7) > 2) && ((addr & 0x1C000) == 0x18000)) {
             value = 0;
             break;
         }
-        if ((address & 0x18000) == 0x18000)
-            address &= 0x17fff;
-        value = READ32LE(((uint32_t*)&vram[address]));
+        if ((addr & 0x18000) == 0x18000)
+            addr &= 0x17fff;
+        value = READ32LE(((uint32_t*)&vram[addr]));
         break;
+    }
     case 7:
         value = READ32LE(((uint32_t*)&oam[address & 0x3FC]));
         break;
@@ -150,8 +146,9 @@ static inline uint32_t CPUReadMemory(ARM7TDMI &cpu, uint32_t address)
     case 15:
         if (cpuFlashEnabled | cpuSramEnabled) { // no need to swap this
             value = flashRead(address) * 0x01010101;
-        }
         break;
+        }
+        [[fallthrough]];
     // default
     default:
     unreadable:
@@ -166,17 +163,17 @@ static inline uint32_t CPUReadMemory(ARM7TDMI &cpu, uint32_t address)
             value = cpuDmaLast;
         } else {
             if (armState) {
-                return CPUReadMemoryQuick(reg[15].I);
+            	value = CPUReadMemoryQuick(reg[15].I);
             } else {
-                return CPUReadHalfWordQuick(reg[15].I) | CPUReadHalfWordQuick(reg[15].I) << 16;
+            	value = CPUReadHalfWordQuick(reg[15].I) | CPUReadHalfWordQuick(reg[15].I) << 16;
             }
         }
         break;
     }
 
-    if (oldAddress & 3) {
+    if (address & 3) {
 #ifdef C_CORE
-        int shift = (oldAddress & 3) << 3;
+    	  int shift = (address & 3) << 3;
         value = (value >> shift) | (value << (32 - shift));
 #else
 #ifdef __GNUC__
@@ -184,10 +181,10 @@ static inline uint32_t CPUReadMemory(ARM7TDMI &cpu, uint32_t address)
             "shl $3 ,%%ecx;"
             "ror %%cl, %0"
             : "=r"(value)
-            : "r"(value), "c"(oldAddress));
+            : "r"(value), "c"(address));
 #else
         __asm {
-      mov ecx, oldAddress;
+      mov ecx, address;
       and ecx, 3;
       shl ecx, 3;
       ror [dword ptr value], cl;
@@ -197,10 +194,10 @@ static inline uint32_t CPUReadMemory(ARM7TDMI &cpu, uint32_t address)
     }
 
 #ifdef GBA_LOGGING
-    if (oldAddress & 3) {
+    if (address & 3) {
         if (systemVerbose & VERBOSE_UNALIGNED_MEMORY) {
             log("Unaligned word read from: %08x at %08x (%08x)\n",
-                oldAddress,
+            	  address,
                 armMode ? armNextPC - 4 : armNextPC - 2,
                 value);
         }
@@ -221,12 +218,7 @@ static inline uint32_t CPUReadHalfWord(ARM7TDMI &cpu, uint32_t address)
     }
 #endif
 
-    uint32_t value{};
-    uint32_t oldAddress = address;
-
-    if (address & 1) {
-        address &= ~0x01;
-    }
+    uint32_t value = 0;
 
     switch (address >> 24) {
     case 0:
@@ -235,7 +227,7 @@ static inline uint32_t CPUReadHalfWord(ARM7TDMI &cpu, uint32_t address)
 #ifdef GBA_LOGGING
                 if (systemVerbose & VERBOSE_ILLEGAL_READ) {
                     log("Illegal halfword read from bios: %08x at %08x\n",
-                        oldAddress,
+                    	  address,
                         armMode ? armNextPC - 4 : armNextPC - 2);
                 }
 #endif
@@ -272,16 +264,17 @@ static inline uint32_t CPUReadHalfWord(ARM7TDMI &cpu, uint32_t address)
     case 5:
         value = READ16LE(((uint16_t*)&paletteRAM[address & 0x3fe]));
         break;
-    case 6:
-        address = (address & 0x1fffe);
-        if (((DISPCNT & 7) > 2) && ((address & 0x1C000) == 0x18000)) {
+    case 6: {
+        unsigned addr = (address & 0x1fffe);
+        if (((DISPCNT & 7) > 2) && ((addr & 0x1C000) == 0x18000)) {
             value = 0;
             break;
         }
-        if ((address & 0x18000) == 0x18000)
-            address &= 0x17fff;
-        value = READ16LE(((uint16_t*)&vram[address]));
+        if ((addr & 0x18000) == 0x18000)
+            addr &= 0x17fff;
+        value = READ16LE(((uint16_t*)&vram[addr]));
         break;
+    }
     case 7:
         value = READ16LE(((uint16_t*)&oam[address & 0x3fe]));
         break;
@@ -305,37 +298,37 @@ static inline uint32_t CPUReadHalfWord(ARM7TDMI &cpu, uint32_t address)
         if (cpuFlashEnabled | cpuSramEnabled) {
             // no need to swap this
             value = flashRead(address) * 0x0101;
+            break;
         }
-        [[fallthrough]];
+    break;
     // default
     default:
     unreadable:
         if (cpuDmaHack) {
             value = cpuDmaLast & 0xFFFF;
         } else {
-            if (armState) {
-                value = CPUReadHalfWordQuick(reg[15].I + (address & 2));
-            } else {
-                value = CPUReadHalfWordQuick(reg[15].I);
-            }
+        	int param = reg[15].I;
+        	if (armState)
+        	    param += (address & 2);
+        	value = CPUReadHalfWordQuick(param);
         }
 #ifdef GBA_LOGGING
         if (systemVerbose & VERBOSE_ILLEGAL_READ) {
             log("Illegal halfword read: %08x at %08x (%08x)\n",
-                oldAddress,
+            	  address,
                 reg[15].I,
                 value);
         }
 #endif
-        return value;
+        break;
     }
 
-    if (oldAddress & 1) {
+    if (address & 1) {
         value = (value >> 8) | (value << 24);
 #ifdef GBA_LOGGING
         if (systemVerbose & VERBOSE_UNALIGNED_MEMORY) {
             log("Unaligned halfword read from: %08x at %08x (%08x)\n",
-                oldAddress,
+            	address,
                 armMode ? armNextPC - 4 : armNextPC - 2,
                 value);
         }
@@ -357,6 +350,7 @@ static inline int16_t CPUReadHalfWordSigned(ARM7TDMI &cpu, uint32_t address)
               value);
       }
 #endif
+      return (int8_t)value;
   }
   return (int16_t)value;
 }
@@ -480,8 +474,6 @@ static inline void CPUWriteMemory(ARM7TDMI &cpu, uint32_t address, uint32_t valu
     }
 #endif
 
-    address &= 0xFFFFFFFC;
-
     switch (address >> 24) {
     case 0x02:
 #ifdef BKPT_SUPPORT
@@ -586,8 +578,6 @@ static inline void CPUWriteHalfWord(ARM7TDMI &cpu, uint32_t address, uint16_t va
     }
 #endif
 
-    address &= 0xFFFFFFFE;
-
     switch (address >> 24) {
     case 2:
 #ifdef BKPT_SUPPORT
@@ -660,7 +650,7 @@ static inline void CPUWriteHalfWord(ARM7TDMI &cpu, uint32_t address, uint16_t va
             (*cpuSaveGameFunc)(address, (uint8_t)value);
             break;
         }
-        goto unwritable;
+        [[fallthrough]];
     default:
     unwritable:
 #ifdef GBA_LOGGING

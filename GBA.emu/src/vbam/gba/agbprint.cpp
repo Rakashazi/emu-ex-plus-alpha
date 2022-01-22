@@ -68,16 +68,13 @@ void agbPrintFlush()
 
     while (get != put) {
         char c = data[get++];
+#ifdef BKPT_SUPPORT
         char s[2];
         s[0] = c;
         s[1] = 0;
-
         if (systemVerbose & VERBOSE_AGBPRINT)
-	{
-#ifdef BKPT_SUPPORT
             dbgOutput(s, 0);
 #endif
-	}
         if (c == '\n')
             break;
     }

@@ -708,7 +708,7 @@ DEFINE_ALU_INSN_C(1F, 3F, MVNS, YES)
         clockTicks += 3;                                \
     if (busPrefetchCount == 0)                          \
 		    busPrefetchCount = ((busPrefetchCount + 1) << clockTicks) - 1; \
-    clockTicks += 1 + codeTicksAccess32(armNextPC);
+		clockTicks += CYCLES + 1 + codeTicksAccess32(armNextPC);
 
 #define OP_MUL \
     reg[dest].I = reg[mult].I * rs;
@@ -945,7 +945,7 @@ static INSN_REGPARM void arm121(ARM7TDMI &cpu, uint32_t opcode, int &clockTicks)
             clockTicks = 3 + codeTicksAccessSeq16(armNextPC)
                            + codeTicksAccessSeq16(armNextPC)
                            + codeTicksAccess16(armNextPC);
-            if(CONFIG_TRIGGER_ARM_STATE_EVENT)
+            if constexpr(CONFIG_TRIGGER_ARM_STATE_EVENT)
             	cpu.cpuNextEvent = cpu.cpuTotalTicks + clockTicks;
         }
     } else {
@@ -2042,8 +2042,7 @@ static INSN_REGPARM void armA00(ARM7TDMI &cpu, uint32_t opcode, int &clockTicks)
     armNextPC = reg[15].I;
     reg[15].I += 4;
     ARM_PREFETCH;
-    clockTicks = codeTicksAccessSeq32(armNextPC) + 1;
-    clockTicks = (clockTicks * 2) + codeTicksAccess32(armNextPC) + 1;
+    clockTicks = (codeTicksAccessSeq32(armNextPC) * 2) + codeTicksAccess32(armNextPC) + 3;
     busPrefetchCount = 0;
 }
 
@@ -2056,8 +2055,7 @@ static INSN_REGPARM void armB00(ARM7TDMI &cpu, uint32_t opcode, int &clockTicks)
     armNextPC = reg[15].I;
     reg[15].I += 4;
     ARM_PREFETCH;
-    clockTicks = codeTicksAccessSeq32(armNextPC) + 1;
-    clockTicks = (clockTicks * 2) + codeTicksAccess32(armNextPC) + 1;
+    clockTicks = (codeTicksAccessSeq32(armNextPC) * 2) + codeTicksAccess32(armNextPC) + 3;
     busPrefetchCount = 0;
 }
 
@@ -2073,8 +2071,7 @@ static INSN_REGPARM void armE01(ARM7TDMI &cpu, uint32_t opcode, int &clockTicks)
 // SWI <comment>
 static INSN_REGPARM void armF00(ARM7TDMI &cpu, uint32_t opcode, int &clockTicks)
 {
-    clockTicks = codeTicksAccessSeq32(armNextPC) + 1;
-    clockTicks = (clockTicks * 2) + codeTicksAccess32(armNextPC) + 1;
+	  clockTicks = (codeTicksAccessSeq32(armNextPC) * 2) + codeTicksAccess32(armNextPC) + 3;
     busPrefetchCount = 0;
     CPUSoftwareInterrupt(cpu, (opcode & 0x00FFFFFF) >> 16);
 }

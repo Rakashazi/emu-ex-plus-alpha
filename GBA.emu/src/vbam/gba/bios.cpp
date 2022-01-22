@@ -53,6 +53,11 @@ constexpr int16_t sineTable[256] = {
 #define workRAM cpu.gba->mem.workRAM
 #define internalRAM cpu.gba->mem.internalRAM
 
+// 2020-08-12 - negativeExponent
+// Fix ArcTan and ArcTan2 based on mgba's hle bios fixes
+// https://github.com/mgba-emu/mgba/commit/14dc01409c9e971ea0697f5017b45d0db6a7faf5#diff-8f06a143a9fd912c83209f935d3aca25
+// https://github.com/mgba-emu/mgba/commit/b154457857d3367a4c0196a4abadeeb6c850ffdf#diff-8f06a143a9fd912c83209f935d3aca25
+
 void BIOS_ArcTan(ARM7TDMI &cpu)
 {
 #ifdef GBA_LOGGING
@@ -63,7 +68,8 @@ void BIOS_ArcTan(ARM7TDMI &cpu)
   }
 #endif
 
-  int32_t a =  -(((int32_t)(reg[0].I * reg[0].I)) >> 14);
+  int32_t i = reg[0].I;
+  int32_t a = -((i * i) >> 14);
   int32_t b = ((0xA9 * a) >> 14) + 0x390;
   b = ((b * a) >> 14) + 0x91C;
   b = ((b * a) >> 14) + 0xFB6;
@@ -71,8 +77,9 @@ void BIOS_ArcTan(ARM7TDMI &cpu)
   b = ((b * a) >> 14) + 0x2081;
   b = ((b * a) >> 14) + 0x3651;
   b = ((b * a) >> 14) + 0xA2F9;
-  a = ((int32_t)reg[0].I * b) >> 16;
-  reg[0].I = a;
+  reg[0].I = (i * b) >> 16;
+  reg[1].I = a;
+  reg[3].I = b;
 
 #ifdef GBA_LOGGING
   if (systemVerbose & VERBOSE_SWI) {
@@ -95,7 +102,7 @@ void BIOS_ArcTan2(ARM7TDMI &cpu)
 
   int32_t x = reg[0].I;
   int32_t y = reg[1].I;
-  uint32_t res = 0;
+  int32_t res = 0;
   if (y == 0) {
     res = ((x >> 16) & 0x8000);
   } else {
@@ -120,6 +127,7 @@ void BIOS_ArcTan2(ARM7TDMI &cpu)
     }
   }
   reg[0].I = res;
+  reg[3].I = 0x170;
 
 #ifdef GBA_LOGGING
   if (systemVerbose & VERBOSE_SWI) {

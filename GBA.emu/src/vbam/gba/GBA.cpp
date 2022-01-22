@@ -542,6 +542,25 @@ static int romSize = SIZE_ROM;
 
 static void UPDATE_REG(auto, auto) {} // dummy function
 
+#if 0
+void gbaUpdateRomSize(int size)
+{
+    // Only change memory block if new size is larger
+    if (size > romSize) {
+        romSize = size;
+
+        uint8_t* tmp = (uint8_t*)realloc(rom, SIZE_ROM);
+        rom = tmp;
+
+        uint16_t* temp = (uint16_t*)(rom + ((romSize + 1) & ~1));
+        for (int i = (romSize + 1) & ~1; i < SIZE_ROM; i += 2) {
+            WRITE16LE(temp, (i >> 1) & 0xFFFF);
+            temp++;
+        }
+    }
+}
+#endif
+
 #ifdef PROFILING
 void cpuProfil(profile_segment* seg)
 {
@@ -1537,19 +1556,23 @@ void SetMapMasks()
 #ifdef BKPT_SUPPORT
     for (int i = 0; i < 16; i++) {
         map[i].size = map[i].mask + 1;
-        if (map[i].size > 0) {
-            map[i].trace = (uint8_t*)calloc(map[i].size >> 3, sizeof(uint8_t));
+        map[i].trace = NULL;
+        map[i].breakPoints = NULL;
 
+        if ((map[i].size >> 1) > 0) {
             map[i].breakPoints = (uint8_t*)calloc(map[i].size >> 1, sizeof(uint8_t));
-
-            if (map[i].trace == NULL || map[i].breakPoints == NULL) {
+            if (map[i].breakPoints == NULL) {
                 systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
                     "TRACE");
             }
-        } else {
-            map[i].trace = NULL;
-            map[i].breakPoints = NULL;
+        }
 
+        if ((map[i].size >> 3) > 0) {
+            map[i].trace = (uint8_t*)calloc(map[i].size >> 3, sizeof(uint8_t));
+            if (map[i].trace == NULL) {
+                systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
+                    "TRACE");
+            }
         }
     }
     clearBreakRegList();
@@ -1657,7 +1680,7 @@ int CPULoadRomData(const char* data, int size)
 
     uint16_t* temp = (uint16_t*)(rom + ((romSize + 1) & ~1));
     int i;
-    for (i = (romSize + 1) & ~1; i < romSize; i += 2) {
+    for (i = (romSize + 1) & ~1; i < SIZE_ROM; i += 2) {
         WRITE16LE(temp, (i >> 1) & 0xFFFF);
         temp++;
     }
@@ -1763,9 +1786,27 @@ const char* GetSaveDotCodeFile()
     return saveDotCodeFile;
 }
 
+void ResetLoadDotCodeFile()
+{
+    if (loadDotCodeFile) {
+        free((char*)loadDotCodeFile);
+    }
+
+    loadDotCodeFile = strdup("");
+}
+
 void SetLoadDotCodeFile(const char* szFile)
 {
     loadDotCodeFile = strdup(szFile);
+}
+
+void ResetSaveDotCodeFile()
+{
+    if (saveDotCodeFile) {
+        free((char*)saveDotCodeFile);
+    }
+
+    saveDotCodeFile = strdup("");
 }
 
 void SetSaveDotCodeFile(const char* szFile)
@@ -2157,6 +2198,7 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
     break;
   case 0x0A:
     BIOS_ArcTan2(cpu);
+    reg[3].I = 0x170;
     break;
   case 0x0B: {
     int len = (reg[2].I & 0x1FFFFF) >> 1;
@@ -3048,9 +3090,22 @@ void CPUUpdateRegister(ARM7TDMI &cpu, uint32_t address, uint16_t value)
 
 #ifndef NO_LINK
   case COMM_SIOCNT:
-	  StartLink(value);
-	  break;
+    StartLink(value);
+#else
+    if (value & 0x80) {
+        value &= 0xff7f;
+        if (value & 1 && (value & 0x4000)) {
+            UPDATE_REG(cpu.gba, COMM_SIOCNT, 0xFF);
+            IF |= 0x80;
+            UPDATE_REG(0x202, IF);
+            value &= 0x7f7f;
+        }
+    }
+    UPDATE_REG(cpu.gba, COMM_SIOCNT, value);
+#endif
+  break;
 
+#ifndef NO_LINK
   case COMM_SIODATA8:
 	  UPDATE_REG(cpu.gba, COMM_SIODATA8, value);
 	  break;
@@ -3065,11 +3120,15 @@ void CPUUpdateRegister(ARM7TDMI &cpu, uint32_t address, uint16_t value)
 	  UPDATE_REG(cpu.gba, 0x132, value & 0xC3FF);
 	  break;
 
-#ifndef NO_LINK
   case COMM_RCNT:
-	  StartGPLink(value);
-	  break;
+#ifndef NO_LINK
+    StartGPLink(value);
+#else
+  	UPDATE_REG(cpu.gba, COMM_RCNT, value);
+#endif
+   break;
 
+#ifndef NO_LINK
   case COMM_JOYCNT: {
 		  uint16_t cur = READ16LE(&ioMem.b[COMM_JOYCNT]);
 
@@ -3788,35 +3847,32 @@ void CPULoop(GBASys &gba, EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *
         } else {
         	int framesToSkip = systemFrameSkip;
 
-#ifndef __LIBRETRO__
 					static bool speedup_throttle_set = false;
+          bool turbo_button_pressed        = (joy >> 10) & 1;
+#if 0
 					static uint32_t last_throttle;
 
-					if ((joy >> 10) & 1) {
-							if (speedup_throttle != 0) {
+					if (turbo_button_pressed) {
+							if (speedup_frame_skip)
+									framesToSkip = speedup_frame_skip;
+							else {
 									if (!speedup_throttle_set && throttle != speedup_throttle) {
 											last_throttle = throttle;
-											throttle = speedup_throttle;
 											soundSetThrottle(speedup_throttle);
 											speedup_throttle_set = true;
 									}
-							}
-							else {
-									if (speedup_frame_skip)
-											framesToSkip = speedup_frame_skip;
 
-									speedup_throttle_set = false;
+									if (speedup_throttle_frame_skip)
+											framesToSkip += std::ceil(double(speedup_throttle) / 100.0) - 1;
 							}
 					}
 					else if (speedup_throttle_set) {
-							throttle = last_throttle;
 							soundSetThrottle(last_throttle);
-
 							speedup_throttle_set = false;
 					}
 #else
-          if ((joy >> 10) & 1)
-              framesToSkip = 9;
+					if (turbo_button_pressed)
+							framesToSkip = 9;
 #endif
 
           if (DISPSTAT & 2) {
@@ -3855,11 +3911,7 @@ void CPULoop(GBASys &gba, EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *
 #if 0
               speedup = false;
 
-#ifndef __LIBRETRO__
-              if (ext & 1 && speedup_throttle == 0)
-#else
-              if (ext & 1)
-#endif
+              if (ext & 1 && !speedup_throttle_set)
                   speedup = true;
 
               capture = (ext & 2) ? true : false;
@@ -3886,8 +3938,10 @@ void CPULoop(GBASys &gba, EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *
               if (frameCount >= framesToSkip) {
                   systemDrawScreen();
                   frameCount = 0;
-              } else
+              } else {
                   frameCount++;
+                  systemSendScreen();
+              }
               if (systemPauseOnFrame())
                   ticks = 0;
 #endif

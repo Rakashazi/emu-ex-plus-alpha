@@ -35,11 +35,12 @@ class Multi_Buffer
         };
         virtual channel_t channel(int index) BLARGG_PURE(;)
 
-            // See Blip_Buffer.h
-            virtual blargg_err_t set_sample_rate(long rate, int msec = blip_default_length)
-                BLARGG_PURE(;) virtual void clock_rate(long)
-                    BLARGG_PURE({}) virtual void bass_freq(int) BLARGG_PURE({}) virtual void clear()
-                        BLARGG_PURE({}) long sample_rate() const;
+        // See Blip_Buffer.h
+        virtual blargg_err_t set_sample_rate(long rate, int msec = blip_default_length) BLARGG_PURE(;)
+        virtual void clock_rate(long) BLARGG_PURE({}) 
+        virtual void bass_freq(int) BLARGG_PURE({}) 
+        virtual void clear() BLARGG_PURE({})
+        long sample_rate() const;
 
         // Length of buffer, in milliseconds
         int length() const;
@@ -47,8 +48,8 @@ class Multi_Buffer
         // See Blip_Buffer.h
         virtual void end_frame(blip_time_t) BLARGG_PURE({})
 
-            // Number of samples per output frame (1 = mono, 2 = stereo)
-            int samples_per_frame() const;
+        // Number of samples per output frame (1 = mono, 2 = stereo)
+        int samples_per_frame() const;
 
         // Count of changes to channel configuration. Incremented whenever
         // a change is made to any of the Blip_Buffers for any channel.
@@ -58,10 +59,12 @@ class Multi_Buffer
         }
 
         // See Blip_Buffer.h
-        virtual long read_samples(blip_sample_t *, long)
-            BLARGG_PURE({ return 0; }) virtual long samples_avail() const BLARGG_PURE({ return 0; })
+        virtual long read_samples(blip_sample_t *, long) BLARGG_PURE({ return 0; })
+        virtual long samples_avail() const BLARGG_PURE({ return 0; })
 
-                public : BLARGG_DISABLE_NOTHROW void disable_immediate_removal()
+        BLARGG_DISABLE_NOTHROW
+
+        void disable_immediate_removal()
         {
                 immediate_removal_ = false;
         }

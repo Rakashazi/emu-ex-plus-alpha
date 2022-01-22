@@ -700,9 +700,9 @@ static INSN_REGPARM int thumb43_1(ARM7TDMI &cpu, uint32_t opcode, uint32_t oldAr
   reg[dest].I = reg[(opcode >> 3) & 7].I * rm;
   if (((int32_t)rm) < 0)
     rm = ~rm;
-  if ((rm & 0xFFFFFF00) == 0)
-    clockTicks += 0;
-  else if ((rm & 0xFFFF0000) == 0)
+  if ((rm & 0xFFFFFF00) == 0) {
+      // clockTicks += 0;
+  } else if ((rm & 0xFFFF0000) == 0)
     clockTicks += 1;
   else if ((rm & 0xFF000000) == 0)
     clockTicks += 2;
@@ -877,9 +877,9 @@ static INSN_REGPARM int thumb47(ARM7TDMI &cpu, uint32_t opcode, uint32_t oldArmN
     armNextPC = reg[15].I;
     reg[15].I += 4;
     ARM_PREFETCH;
+    if constexpr(CONFIG_TRIGGER_ARM_STATE_EVENT)
+    	cpu.cpuNextEvent = cpu.cpuTotalTicks + (codeTicksAccessSeq32(armNextPC) * 2 + codeTicksAccess32(armNextPC) + 3);
     return codeTicksAccessSeq32(armNextPC) * 2 + codeTicksAccess32(armNextPC) + 3;
-    /*if(CONFIG_TRIGGER_ARM_STATE_EVENT)
-    	cpu.cpuNextEvent = cpu.cpuTotalTicks + clockTicks;*/
   }
 }
 
@@ -973,7 +973,7 @@ static INSN_REGPARM int thumb5E(ARM7TDMI &cpu, uint32_t opcode, uint32_t oldArmN
   if (busPrefetchCount == 0)
     busPrefetch = busPrefetchEnable;
   uint32_t address = reg[(opcode >> 3) & 7].I + reg[(opcode >> 6) & 7].I;
-  reg[opcode & 7].I = (int16_t)CPUReadHalfWordSigned(address);
+  reg[opcode & 7].I = (uint32_t)CPUReadHalfWordSigned(address);
   return 3 + dataTicksAccess16(address) + codeTicksAccess16(armNextPC);
 }
 
@@ -1199,7 +1199,7 @@ static INSN_REGPARM int thumbBC(ARM7TDMI &cpu, uint32_t opcode, uint32_t oldArmN
   clockTicks += POP_REG(64, 6);
   clockTicks += POP_REG(128, 7);
   reg[13].I = temp;
-  clockTicks = 2 + codeTicksAccess16(armNextPC);
+  clockTicks += 2 + codeTicksAccess16(armNextPC);
   return clockTicks;
 }
 
@@ -1232,7 +1232,7 @@ static INSN_REGPARM int thumbBD(ARM7TDMI &cpu, uint32_t opcode, uint32_t oldArmN
   reg[13].I = temp;
   THUMB_PREFETCH;
   busPrefetchCount = 0;
-  clockTicks += 3 + codeTicksAccess16(armNextPC) + codeTicksAccess16(armNextPC);
+  clockTicks += 3 + (codeTicksAccess16(armNextPC) * 2);
   return clockTicks;
 }
 
@@ -1330,7 +1330,7 @@ static INSN_REGPARM int thumbC8(ARM7TDMI &cpu, uint32_t opcode, uint32_t oldArmN
 #define THUMB_CONDITIONAL_BRANCH(COND)                                  \
     UPDATE_OLDREG;                                                      \
     int clockTicks = codeTicksAccessSeq16(armNextPC) + 1;               \
-    if (COND) {                                                         \
+    if ((bool)COND) {                                                         \
         uint32_t offset = (uint32_t)((int8_t)(opcode & 0xFF)) << 1;     \
         reg[15].I += offset;                                            \
         armNextPC = reg[15].I;                                          \

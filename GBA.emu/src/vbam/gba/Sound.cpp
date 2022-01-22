@@ -529,7 +529,10 @@ int soundGetEnable()
 
 void soundReset(GBASys &gba)
 {
-	//soundDriver->reset();
+	/*if (!soundDriver)
+	  return;
+
+	soundDriver->reset();*/
 
 	remake_stereo_buffer(gba);
 	reset_apu();
@@ -549,6 +552,10 @@ bool soundInit()
 
 	if (!soundDriver->init(soundSampleRate))
 		return false;
+
+	if (!stereo_buffer) {
+		remake_stereo_buffer();
+	}
 
 	soundPaused = true;
 	return true;
