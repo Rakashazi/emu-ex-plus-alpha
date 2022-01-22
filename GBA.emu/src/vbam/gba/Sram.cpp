@@ -1,21 +1,21 @@
+#include "Sram.h"
+#include "Flash.h"
 #include "GBA.h"
 #include "Globals.h"
-#include "Flash.h"
-#include "Sram.h"
 
-u8 sramRead(u32 address)
+uint8_t sramRead(uint32_t address)
 {
-  return flashSaveMemory[address & 0xFFFF];
+    return flashSaveMemory[address & 0xFFFF];
 }
-void sramDelayedWrite(u32 address, u8 byte)
+void sramDelayedWrite(uint32_t address, uint8_t byte)
 {
-  saveType = 1;
-  cpuSaveGameFunc = sramWrite;
-  sramWrite(address, byte);
+    saveType = GBA_SAVE_SRAM;
+    cpuSaveGameFunc = sramWrite;
+    sramWrite(address, byte);
 }
 
-void sramWrite(u32 address, u8 byte)
+void sramWrite(uint32_t address, uint8_t byte)
 {
-  flashSaveMemory[address & 0xFFFF] = byte;
-  systemSaveUpdateCounter = SYSTEM_SAVE_UPDATED;
+    flashSaveMemory[address & 0xFFFF] = byte;
+    systemSaveUpdateCounter = SYSTEM_SAVE_UPDATED;
 }

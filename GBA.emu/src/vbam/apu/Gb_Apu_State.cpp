@@ -42,7 +42,7 @@ inline const char* Gb_Apu::save_load( gb_apu_state_t* io, bool save )
 		assert( sizeof (gb_apu_state_t) == 256 );
 	#endif
 
-	unsigned int format = io->format0;
+	int format = io->format0;
 	REFLECT( format, format );
 	if ( format != io->format0 )
 		return "Unsupported sound save state format";

@@ -13,21 +13,16 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software Foundation,
-// Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+// Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #ifndef __VBA_TYPES_H__
 #define __VBA_TYPES_H__
 
+#ifdef __LIBRETRO__
 #include <stdint.h>
-
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
+#else
+#include <zlib.h>
+#include <stdint.h>
+#endif
 
 #endif // __VBA_TYPES_H__

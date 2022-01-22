@@ -1,49 +1,78 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef __LIBRETRO__
 #include <zlib.h>
+#endif
 
 #include "Patch.h"
 
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/io/FileIO.hh>
 
+#if defined(__FreeBSD__) || defined(__NetBSD__)
+#include <sys/param.h>
+#include "BSD.h"
+#endif
+
+#ifndef __LIBRETRO__
+
+#ifdef __GNUC__
+#if defined(__APPLE__) || defined(BSD) || defined(__NetBSD__)
+typedef off_t __off64_t; /* off_t is 64 bits on BSD. */
+#define fseeko64 fseeko
+#define ftello64 ftello
+#else
+typedef off64_t __off64_t;
+#endif /* __APPLE__ || BSD */
+#endif /* __GNUC__ */
+
+#ifndef _MSC_VER
+#define _stricmp strcasecmp
+#endif // ! _MSC_VER
+
+#ifdef _MSC_VER
+#define fseeko64 _fseeki64
+#define ftello64 _ftelli64
+typedef __int64 __off64_t;
+#endif
+
 #define	fseeko64 fseek
 #define	ftello64 ftell
 
-static int readInt2(FILE *f)
+static int readInt2(FILE* f)
 {
   int res = 0;
   int c = fgetc(f);
-  if(c == EOF)
+  if (c == EOF)
     return -1;
   res = c;
   c = fgetc(f);
-  if(c == EOF)
+  if (c == EOF)
     return -1;
-  return c + (res<<8);
+  return c + (res << 8);
 }
 
-static int readInt3(FILE *f)
+static int readInt3(FILE* f)
 {
   int res = 0;
   int c = fgetc(f);
-  if(c == EOF)
+  if (c == EOF)
     return -1;
   res = c;
   c = fgetc(f);
-  if(c == EOF)
+  if (c == EOF)
     return -1;
-  res = c + (res<<8);
+  res = c + (res << 8);
   c = fgetc(f);
-  if(c == EOF)
+  if (c == EOF)
     return -1;
-  return c + (res<<8);
+  return c + (res << 8);
 }
 
-static s64 readInt4(FILE *f)
+static int64_t readInt4(FILE* f)
 {
-  s64 tmp, res = 0;
+	int64_t tmp, res = 0;
   int c;
 
   for (int i = 0; i < 4; i++) {
@@ -51,15 +80,15 @@ static s64 readInt4(FILE *f)
     if (c == EOF)
       return -1;
     tmp = c;
-    res = res + (tmp << (i*8));
+    res = res + (tmp << (i * 8));
   }
 
   return res;
 }
 
-static s64 readInt8(FILE *f)
+static int64_t readInt8(FILE* f)
 {
-  s64 tmp, res = 0;
+	int64_t tmp, res = 0;
   int c;
 
   for (int i = 0; i < 8; i++) {
@@ -67,20 +96,22 @@ static s64 readInt8(FILE *f)
     if (c == EOF)
       return -1;
     tmp = c;
-    res = res + (tmp << (i*8));
+    res = res + (tmp << (i * 8));
   }
 
   return res;
 }
 
-static s64 readVarPtr(FILE *f)
+static int64_t readVarPtr(FILE* f)
 {
-  s64 offset = 0, shift = 1;
+	int64_t offset = 0, shift = 1;
   for (;;) {
     int c = fgetc(f);
-    if (c == EOF) return 0;
+    if (c == EOF)
+    	return 0;
     offset += (c & 0x7F) * shift;
-    if (c & 0x80) break;
+    if (c & 0x80)
+    	break;
     shift <<= 7;
     offset += shift;
   }
@@ -88,10 +119,10 @@ static s64 readVarPtr(FILE *f)
 }
 
 #ifndef MIN
-#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-static uLong computePatchCRC(FILE *f, unsigned int size)
+static uLong computePatchCRC(FILE* f, unsigned int size)
 {
   Bytef buf[4096];
   long readed;
@@ -105,60 +136,56 @@ static uLong computePatchCRC(FILE *f, unsigned int size)
   return crc;
 }
 
-bool patchApplyIPS(IG::ApplicationContext ctx, const char *patchname, u8 **r, int *s)
+bool patchApplyIPS(IG::ApplicationContext ctx, const char *patchname, uint8_t **r, int *s)
 {
   // from the IPS spec at http://zerosoft.zophar.net/ips.htm
   FILE *f = IG::FileUtils::fopenUri(ctx, patchname, "rb");
-  if(!f)
+  if (!f)
     return false;
 
   bool result = false;
 
-  u8 *rom = *r;
+  uint8_t* rom = *r;
   int size = *s;
-  if(fgetc(f) == 'P' &&
-     fgetc(f) == 'A' &&
-     fgetc(f) == 'T' &&
-     fgetc(f) == 'C' &&
-     fgetc(f) == 'H') {
+  if (fgetc(f) == 'P' && fgetc(f) == 'A' && fgetc(f) == 'T' && fgetc(f) == 'C' && fgetc(f) == 'H') {
     int b;
     int offset;
     int len;
 
     result = true;
 
-    for(;;) {
+    for (;;) {
       // read offset
       offset = readInt3(f);
       // if offset == EOF, end of patch
-      if(offset == 0x454f46 || offset == -1)
+      if (offset == 0x454f46 || offset == -1)
         break;
       // read length
       len = readInt2(f);
-      if(!len) {
+      if (!len) {
         // len == 0, RLE block
         len = readInt2(f);
         // byte to fill
         int c = fgetc(f);
-        if(c == -1)
+        if (c == -1)
           break;
-        b = (u8)c;
+        b = (uint8_t)c;
       } else
-        b= -1;
+        b = -1;
       // check if we need to reallocate our ROM
-      if((offset + len) >= size) {
+      if ((offset + len) >= size) {
         size *= 2;
-        //rom = (u8 *)realloc(rom, size);
+        //rom = (uint8_t *)realloc(rom, size);
         *r = rom;
         *s = size;
       }
-      if(b == -1) {
+      if (b == -1) {
         // normal block, just read the data
-        if(fread(&rom[offset], 1, len, f) != (size_t)len)
+        if (fread(&rom[offset], 1, len, f) != (size_t)len)
           break;
       } else {
         // fill the region with the given byte
-        while(len--) {
+        while (len--) {
           rom[offset++] = b;
         }
       }
@@ -170,23 +197,23 @@ bool patchApplyIPS(IG::ApplicationContext ctx, const char *patchname, u8 **r, in
   return result;
 }
 
-bool patchApplyUPS(IG::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
+bool patchApplyUPS(IG::ApplicationContext ctx, const char *patchname, uint8_t **rom, int *size)
 {
-  s64 srcCRC, dstCRC, patchCRC;
+	int64_t srcCRC, dstCRC, patchCRC;
 
   FILE *f = IG::FileUtils::fopenUri(ctx, patchname, "rb");
   if (!f)
     return false;
 
   fseeko64(f, 0, SEEK_END);
-  off_t patchSize = ftello64(f);
+  __off64_t patchSize = ftello64(f);
   if (patchSize < 20) {
     fclose(f);
     return false;
   }
 
   fseeko64(f, 0, SEEK_SET);
-  if(fgetc(f) != 'U' || fgetc(f) != 'P' || fgetc(f) != 'S' || fgetc(f) != '1') {
+  if (fgetc(f) != 'U' || fgetc(f) != 'P' || fgetc(f) != 'S' || fgetc(f) != '1') {
     fclose(f);
     return false;
   }
@@ -201,7 +228,7 @@ bool patchApplyUPS(IG::ApplicationContext ctx, const char *patchname, u8 **rom, 
   }
 
   fseeko64(f, 0, SEEK_SET);
-  u32 crc = computePatchCRC(f, patchSize-4);
+  uint32_t crc = computePatchCRC(f, patchSize - 4);
 
   if (crc != patchCRC) {
     fclose(f);
@@ -212,9 +239,9 @@ bool patchApplyUPS(IG::ApplicationContext ctx, const char *patchname, u8 **rom, 
   crc = crc32(crc, *rom, *size);
 
   fseeko64(f, 4, SEEK_SET);
-  s64 dataSize;
-  s64 srcSize = readVarPtr(f);
-  s64 dstSize = readVarPtr(f);
+  int64_t dataSize;
+  int64_t srcSize = readVarPtr(f);
+  int64_t dstSize = readVarPtr(f);
 
   if (crc == srcCRC) {
     if (srcSize != *size) {
@@ -233,21 +260,23 @@ bool patchApplyUPS(IG::ApplicationContext ctx, const char *patchname, u8 **rom, 
     return false;
   }
   if (dataSize > *size) {
-   // *rom = (u8*)realloc(*rom, dataSize);
+   // *rom = (uint8_t*)realloc(*rom, dataSize);
     memset(*rom + *size, 0, dataSize - *size);
     *size = dataSize;
   }
 
-  s64 relative = 0;
-  u8 *mem;
-  while(ftello64(f) < patchSize - 12) {
+  int64_t relative = 0;
+  uint8_t* mem;
+  while (ftello64(f) < patchSize - 12) {
     relative += readVarPtr(f);
-    if (relative > dataSize) continue;
+    if (relative > dataSize)
+    	continue;
     mem = *rom + relative;
-    for(s64 i = relative; i < dataSize; i++) {
+    for (int64_t i = relative; i < dataSize; i++) {
       int x = fgetc(f);
       relative++;
-      if (!x) break;
+      if (!x)
+      	break;
       if (i < dataSize) {
         *mem++ ^= x;
       }
@@ -258,20 +287,24 @@ bool patchApplyUPS(IG::ApplicationContext ctx, const char *patchname, u8 **rom, 
   return true;
 }
 
-static int ppfVersion(FILE *f)
+static int ppfVersion(FILE* f)
 {
-  fseeko64(f, 0, SEEK_SET);
-  if (fgetc(f) != 'P' || fgetc(f) != 'P' || fgetc(f) != 'F')
-    return 0;
-  switch(fgetc(f)){
-    case '1': return 1;
-    case '2': return 2;
-    case '3': return 3;
-    default: return 0;
-  }
+    fseeko64(f, 0, SEEK_SET);
+    if (fgetc(f) != 'P' || fgetc(f) != 'P' || fgetc(f) != 'F') //-V501
+        return 0;
+    switch (fgetc(f)) {
+    case '1':
+        return 1;
+    case '2':
+        return 2;
+    case '3':
+        return 3;
+    default:
+        return 0;
+    }
 }
 
-static int ppfFileIdLen(FILE *f, int version)
+static int ppfFileIdLen(FILE* f, int version)
 {
   if (version == 2) {
     fseeko64(f, -8, SEEK_END);
@@ -285,7 +318,7 @@ static int ppfFileIdLen(FILE *f, int version)
   return (version == 2) ? readInt4(f) : readInt2(f);
 }
 
-static bool patchApplyPPF1(FILE *f, u8 **rom, int *size)
+static bool patchApplyPPF1(FILE* f, uint8_t **rom, int *size)
 {
   fseek(f, 0, SEEK_END);
   int count = ftell(f);
@@ -295,7 +328,7 @@ static bool patchApplyPPF1(FILE *f, u8 **rom, int *size)
 
   fseek(f, 56, SEEK_SET);
 
-  u8 *mem = *rom;
+  uint8_t* mem = *rom;
 
   while (count > 0) {
     int offset = readInt4(f);
@@ -304,7 +337,7 @@ static bool patchApplyPPF1(FILE *f, u8 **rom, int *size)
     int len = fgetc(f);
     if (len == EOF)
       break;
-    if (offset+len > *size)
+    if (offset + len > *size)
       break;
     if (fread(&mem[offset], 1, len, f) != (size_t)len)
       break;
@@ -314,13 +347,13 @@ static bool patchApplyPPF1(FILE *f, u8 **rom, int *size)
   return (count == 0);
 }
 
-static bool patchApplyPPF2(FILE *f, u8 **rom, int *size)
+static bool patchApplyPPF2(FILE* f, uint8_t **rom, int *size)
 {
   fseek(f, 0, SEEK_END);
   int count = ftell(f);
-  if (count < 56+4+1024)
+  if (count < 56 + 4 + 1024)
     return false;
-  count -= 56+4+1024;
+  count -= 56 + 4 + 1024;
 
   fseek(f, 56, SEEK_SET);
 
@@ -328,18 +361,18 @@ static bool patchApplyPPF2(FILE *f, u8 **rom, int *size)
   if (datalen != *size)
     return false;
 
-  u8 *mem = *rom;
+  uint8_t* mem = *rom;
 
-  u8 block[1024];
-  fread(&block, 1, 1024, f);
-  if (memcmp(&mem[0x9320], &block, 1024) != 0)
+  uint8_t block[1024];
+  if (fread(&block, 1, 1024, f) == 0 ||
+  		memcmp(&mem[0x9320], &block, 1024) != 0)
     return false;
 
   int idlen = ppfFileIdLen(f, 2);
   if (idlen > 0)
     count -= 16 + 16 + idlen;
 
-  fseek(f, 56+4+1024, SEEK_SET);
+  fseek(f, 56 + 4 + 1024, SEEK_SET);
 
   while (count > 0) {
     int offset = readInt4(f);
@@ -348,7 +381,7 @@ static bool patchApplyPPF2(FILE *f, u8 **rom, int *size)
     int len = fgetc(f);
     if (len == EOF)
       break;
-    if (offset+len > *size)
+    if (offset + len > *size)
       break;
     if (fread(&mem[offset], 1, len, f) != (size_t)len)
       break;
@@ -358,13 +391,13 @@ static bool patchApplyPPF2(FILE *f, u8 **rom, int *size)
   return (count == 0);
 }
 
-static bool patchApplyPPF3(FILE *f, u8 **rom, int *size)
+static bool patchApplyPPF3(FILE* f, uint8_t** rom, int* size)
 {
   fseek(f, 0, SEEK_END);
   int count = ftell(f);
-  if (count < 56+4+1024)
+  if (count < 56 + 4 + 1024)
     return false;
-  count -= 56+4;
+  count -= 56 + 4;
 
   fseek(f, 56, SEEK_SET);
 
@@ -373,12 +406,12 @@ static bool patchApplyPPF3(FILE *f, u8 **rom, int *size)
   int undo = fgetc(f);
   fgetc(f);
 
-  u8 *mem = *rom;
+  uint8_t* mem = *rom;
 
   if (blockcheck) {
-    u8 block[1024];
-    fread(&block, 1, 1024, f);
-    if (memcmp(&mem[(imagetype == 0) ? 0x9320 : 0x80A0], &block, 1024) != 0)
+  	uint8_t block[1024];
+  	if (fread(&block, 1, 1024, f) == 0 ||
+  			memcmp(&mem[(imagetype == 0) ? 0x9320 : 0x80A0], &block, 1024) != 0)
       return false;
     count -= 1024;
   }
@@ -387,28 +420,30 @@ static bool patchApplyPPF3(FILE *f, u8 **rom, int *size)
   if (idlen > 0)
     count -= 16 + 16 + idlen;
 
-  fseek(f, 56+4+(blockcheck ? 1024 : 0), SEEK_SET);
+  fseek(f, 56 + 4 + (blockcheck ? 1024 : 0), SEEK_SET);
 
   while (count > 0) {
-    off_t offset = readInt8(f);
+  	__off64_t offset = readInt8(f);
     if (offset == -1)
       break;
     int len = fgetc(f);
     if (len == EOF)
       break;
-    if (offset+len > *size)
+    if (offset + len > *size)
       break;
     if (fread(&mem[offset], 1, len, f) != (size_t)len)
       break;
-    if (undo) fseeko64(f, len, SEEK_CUR);
+    if (undo)
+    	fseeko64(f, len, SEEK_CUR);
     count -= 8 + 1 + len;
-    if (undo) count -= len;
+    if (undo)
+    	count -= len;
   }
 
   return (count == 0);
 }
 
-bool patchApplyPPF(IG::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
+bool patchApplyPPF(IG::ApplicationContext ctx, const char *patchname, uint8_t** rom, int *size)
 {
   FILE *f = IG::FileUtils::fopenUri(ctx, patchname, "rb");
   if (!f)
@@ -418,20 +453,29 @@ bool patchApplyPPF(IG::ApplicationContext ctx, const char *patchname, u8 **rom, 
 
   int version = ppfVersion(f);
   switch (version) {
-    case 1: res = patchApplyPPF1(f, rom, size); break;
-    case 2: res = patchApplyPPF2(f, rom, size); break;
-    case 3: res = patchApplyPPF3(f, rom, size); break;
+    case 1:
+    	res = patchApplyPPF1(f, rom, size);
+    	break;
+    case 2:
+    	res = patchApplyPPF2(f, rom, size);
+    	break;
+    case 3:
+    	res = patchApplyPPF3(f, rom, size);
+    	break;
   }
 
   fclose(f);
   return res;
 }
 
-bool applyPatch(IG::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
+#endif
+
+bool applyPatch(IG::ApplicationContext ctx, const char *patchname, uint8_t** rom, int *size)
 {
+#ifndef __LIBRETRO__
   if (strlen(patchname) < 5)
     return false;
-  const char * p = strrchr(patchname, '.');
+  const char* p = strrchr(patchname, '.');
   if (p == NULL)
     return false;
   if (strcasecmp(p, ".ips") == 0)
@@ -440,5 +484,6 @@ bool applyPatch(IG::ApplicationContext ctx, const char *patchname, u8 **rom, int
     return patchApplyUPS(ctx, patchname, rom, size);
   if (strcasecmp(p, ".ppf") == 0)
     return patchApplyPPF(ctx, patchname, rom, size);
+#endif
   return false;
 }

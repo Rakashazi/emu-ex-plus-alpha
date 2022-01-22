@@ -19,7 +19,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 	#include BLARGG_ENABLE_OPTIMIZER
 #endif
 
-/*Multi_Buffer::Multi_Buffer( int spf ) : samples_per_frame_( spf )
+Multi_Buffer::Multi_Buffer( int spf ) : samples_per_frame_( spf )
 {
 	length_                 = 0;
 	sample_rate_            = 0;
@@ -27,7 +27,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 	channel_types_          = 0;
 	channel_count_          = 0;
 	immediate_removal_      = true;
-}*/
+}
 
 Multi_Buffer::channel_t Multi_Buffer::channel( int /*index*/ )
 {
@@ -65,10 +65,10 @@ blargg_err_t Mono_Buffer::set_sample_rate( long rate, int msec )
 
 // Tracked_Blip_Buffer
 
-/*Tracked_Blip_Buffer::Tracked_Blip_Buffer()
+Tracked_Blip_Buffer::Tracked_Blip_Buffer()
 {
 	last_non_silence = 0;
-}*/
+}
 
 void Tracked_Blip_Buffer::clear()
 {
@@ -126,13 +126,13 @@ long Tracked_Blip_Buffer::read_samples( blip_sample_t* out, long count )
 
 int const stereo = 2;
 
-/*Stereo_Buffer::Stereo_Buffer() : Multi_Buffer( 2 )
+Stereo_Buffer::Stereo_Buffer() : Multi_Buffer( 2 )
 {
 	chan.center = mixer.bufs [2] = &bufs [2];
 	chan.left   = mixer.bufs [0] = &bufs [0];
 	chan.right  = mixer.bufs [1] = &bufs [1];
 	mixer.samples_read = 0;
-}*/
+}
 
 Stereo_Buffer::~Stereo_Buffer() { }
 

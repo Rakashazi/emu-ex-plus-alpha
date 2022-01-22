@@ -27,9 +27,9 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 
 int const silent_buf_size = 1; // size used for Silent_Blip_Buffer
 
-/*Blip_Buffer::Blip_Buffer()
+Blip_Buffer::Blip_Buffer()
 {
-	factor_       = (blip_ulong)LONG_MAX;
+	factor_       = (blip_u64)LLONG_MAX;
 	buffer_       = 0;
 	buffer_size_  = 0;
 	sample_rate_  = 0;
@@ -50,7 +50,7 @@ int const silent_buf_size = 1; // size used for Silent_Blip_Buffer
 	#endif
 
 	clear();
-}*/
+}
 
 Blip_Buffer::~Blip_Buffer()
 {
@@ -187,12 +187,12 @@ void Blip_Buffer::remove_samples( long count )
 
 // Blip_Synth_
 
-/*Blip_Synth_Fast_::Blip_Synth_Fast_()
+Blip_Synth_Fast_::Blip_Synth_Fast_()
 {
 	buf          = 0;
 	last_amp     = 0;
 	delta_factor = 0;
-}*/
+}
 
 void Blip_Synth_Fast_::volume_unit( double new_unit )
 {

@@ -20,7 +20,9 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/format.hh>
+#include <imagine/logger/logger.h>
 #include <gba/Cheats.h>
+#include <gba/GBA.h>
 static bool cheatsModified = false;
 
 namespace EmuEx

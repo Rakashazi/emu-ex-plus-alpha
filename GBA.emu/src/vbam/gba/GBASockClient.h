@@ -1,18 +1,28 @@
 #pragma once
 
-#include <SFML/Network.hpp>
 #include "../common/Types.h"
 
-class GBASockClient : public sf::SocketTCP
-{
-public:
-	GBASockClient(sf::IPAddress server_addr);
-	~GBASockClient();
+#include <SFML/Network.hpp>
 
-	void Send(std::vector<char> data);
-	char ReceiveCmd(char* data_in);
+class GBASockClient {
+public:
+    GBASockClient(sf::IpAddress _server_addr);
+    ~GBASockClient();
+
+    bool Connect(sf::IpAddress server_addr);
+    void Send(std::vector<char> data);
+    char ReceiveCmd(char* data_in, bool block);
+    void ReceiveClock(bool block);
+
+    void ClockSync(uint32_t ticks);
+    void Disconnect();
+    bool IsDisconnected();
 
 private:
-	sf::IPAddress server_addr;
-	sf::SocketTCP client;
+    sf::IpAddress server_addr;
+    sf::TcpSocket client;
+    sf::TcpSocket clock_client;
+
+    int32_t clock_sync;
+    bool is_disconnected;
 };

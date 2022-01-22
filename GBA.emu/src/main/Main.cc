@@ -29,14 +29,6 @@
 #include <vbam/common/Patch.h>
 #include <vbam/Util.h>
 
-void setGameSpecificSettings(GBASys &gba);
-void CPULoop(GBASys &, EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, EmuEx::EmuAudio *);
-void CPUCleanUp();
-bool CPUReadBatteryFile(IG::ApplicationContext, GBASys &gba, const char *);
-bool CPUWriteBatteryFile(IG::ApplicationContext, GBASys &gba, const char *);
-bool CPUReadState(IG::ApplicationContext, GBASys &gba, const char *);
-bool CPUWriteState(IG::ApplicationContext, GBASys &gba, const char *);
-
 namespace EmuEx
 {
 
@@ -44,7 +36,7 @@ bool detectedRtcGame = 0;
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 bool EmuSystem::hasBundledGames = true;
 bool EmuSystem::hasCheats = true;
-static constexpr IG::WP lcdSize{240, 160};
+constexpr IG::WP lcdSize{240, 160};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
@@ -100,7 +92,8 @@ void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
 {
 	if(gameIsRunning())
 	{
-		logMsg("saving backup memory");
+		if(saveType != GBA_SAVE_NONE)
+		 logMsg("saving backup memory");
 		auto saveStr = EmuSystem::contentSaveFilePath(ctx, ".sav");
 		CPUWriteBatteryFile(ctx, gGba, saveStr.data());
 		writeCheatFile(ctx);
@@ -116,7 +109,7 @@ void EmuSystem::closeSystem(IG::ApplicationContext ctx)
 	cheatsList.clear();
 }
 
-static void applyGamePatches(IG::ApplicationContext ctx, u8 *rom, int &romSize)
+static void applyGamePatches(IG::ApplicationContext ctx, uint8_t *rom, int &romSize)
 {
 	if(auto patchStr = EmuSystem::contentSaveFilePath(ctx, ".ips");
 		ctx.fileUriExists(patchStr))
@@ -154,7 +147,7 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreatePara
 	{
 		throwFileReadError();
 	}
-	setGameSpecificSettings(gGba);
+	setGameSpecificSettings(gGba, size);
 	applyGamePatches(ctx, gGba.mem.rom, size);
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
@@ -228,11 +221,11 @@ void systemDrawScreen(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo &vide
 	img.endFrame();
 }
 
-void systemOnWriteDataToSoundBuffer(EmuEx::EmuAudio *audio, const u16 * finalWave, int length)
+void systemOnWriteDataToSoundBuffer(EmuEx::EmuAudio *audio, const uint16_t *finalWave, int length)
 {
-	//logMsg("%d audio frames", Audio::pPCM.bytesToFrames(length));
 	if(audio)
 	{
+		//logMsg("%d audio frames", audio->format().bytesToFrames(length));
 		audio->writeFrames(finalWave, audio->format().bytesToFrames(length));
 	}
 }
