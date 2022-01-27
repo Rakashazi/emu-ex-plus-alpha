@@ -78,11 +78,8 @@ protected:
 	TextureRef texName_{};
 	IG::PixmapDesc pixDesc{};
 	uint8_t levels_{};
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	TextureType type_ = TextureType::UNSET;
-	#else
-	static constexpr TextureType type_ = TextureType::T2D_4;
-	#endif
+	IG_UseMemberIfOrConstant(Config::Gfx::OPENGL_SHADER_PIPELINE,
+		TextureType, TextureType::T2D_4, type_){TextureType::UNSET};
 
 	IG::ErrorCode init(RendererTask &r, TextureConfig config);
 	TextureConfig baseInit(RendererTask &r, TextureConfig config);

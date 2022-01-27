@@ -62,8 +62,8 @@ bool orientationIsSideways(Orientation o)
 	return o == VIEW_ROTATE_90 || o == VIEW_ROTATE_270;
 }
 
-FDEventSource::FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events):
-	FDEventSource{debugLabel, fd}
+FDEventSource::FDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd, EventLoop loop, PollEventDelegate callback, uint32_t events):
+	FDEventSource{debugLabel, std::move(fd)}
 {
 	attach(loop, callback, events);
 }

@@ -199,8 +199,8 @@ void ButtonConfigSetView::onAddedToController(ViewController *, Input::Event e)
 	#endif
 }
 
-void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-	Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &cmds, float xPos, float yPos, float xSize, float ySize,
+	float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
 	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, Gfx::color(Gfx::ColorName::YELLOW));

@@ -26,7 +26,7 @@
 namespace EmuEx
 {
 
-void VControllerDPad::setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, Gfx::GTexC texHeight)
+void VControllerDPad::setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, float texHeight)
 {
 	spr = {{{-.5, -.5}, {.5, .5}}, {&dpadR, {{}, {1., 64.f/texHeight}}}};
 	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
@@ -190,7 +190,7 @@ void VControllerGamepad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::
 	faceBtns.setShowBounds(on);
 }
 
-static Gfx::GTexCRect faceButtonCoordinates(int slot, float texHeight)
+static FRect faceButtonCoordinates(int slot, float texHeight)
 {
 	switch(slot)
 	{

@@ -39,10 +39,10 @@ public:
 	using IO::get;
 
 	constexpr PosixIO() = default;
-	constexpr PosixIO(int fd):fd_{fd} {}
+	PosixIO(UniqueFileDescriptor fd):fd_{std::move(fd)} {}
 	PosixIO(IG::CStringView path, OpenFlags oFlags = {});
 	static PosixIO create(IG::CStringView path, OpenFlags oFlags = {});
-	int releaseFd();
+	UniqueFileDescriptor releaseFd();
 	int fd() const;
 	ssize_t read(void *buff, size_t bytes) final;
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset) final;

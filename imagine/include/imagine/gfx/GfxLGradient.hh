@@ -24,7 +24,7 @@ namespace IG::Gfx
 
 struct LGradientStopDesc
 {
-	GC pos;
+	float pos;
 	VertexColor color;
 };
 
@@ -37,8 +37,8 @@ public:
 	void setTranslucent(ColorComp a);
 	void setColorStop(ColorComp r, ColorComp g, ColorComp b, uint32_t i);
 	void setTranslucentStop(ColorComp a, uint32_t i);
-	void setPos(const LGradientStopDesc *stop, uint32_t stops, GC x, GC y, GC x2, GC y2);
-	void setPos(const LGradientStopDesc *stop, uint32_t stops, const GCRect &d);
+	void setPos(std::span<const LGradientStopDesc> stops, float x, float y, float x2, float y2);
+	void setPos(std::span<const LGradientStopDesc> stops, GCRect d);
 	uint32_t stops() const;
 	explicit operator bool() const;
 

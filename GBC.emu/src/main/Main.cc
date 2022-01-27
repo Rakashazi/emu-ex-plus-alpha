@@ -76,7 +76,7 @@ static uint_least32_t makeOutputColor(uint_least32_t rgb888)
 	unsigned b = rgb888       & 0xFF;
 	unsigned g = rgb888 >>  8 & 0xFF;
 	unsigned r = rgb888 >> 16 & 0xFF;
-	auto desc = useBgrOrder ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
+	auto desc = useBgrOrder ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
 	return desc.build(r, g, b, 0u);
 }
 
@@ -311,6 +311,6 @@ uint_least32_t gbcToRgb32(unsigned const bgr15)
 		outG = (g * 3 + b) << 1;
 		outB = (r * 3 + g * 2 + b * 11) >> 1;
 	}
-	auto desc = EmuEx::useBgrOrder ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
+	auto desc = EmuEx::useBgrOrder ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
 	return desc.build(outR, outG, outB, 0u);
 }

@@ -68,7 +68,7 @@ void BaseAlertView::place()
 {
 	using namespace IG::Gfx;
 	int xSize = viewRect().xSize() * .8;
-	text.setMaxLineSize(projP.unprojectXSize(xSize) * 0.95_gc);
+	text.setMaxLineSize(projP.unprojectXSize(xSize) * 0.95f);
 	text.compile(renderer(), projP);
 
 	int menuYSize = menu.cells() * text.face()->nominalHeight()*2;

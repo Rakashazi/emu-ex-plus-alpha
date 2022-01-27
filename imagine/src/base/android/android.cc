@@ -255,7 +255,7 @@ FS::PathString ApplicationContext::libPath(const char *) const
 	return {};
 }
 
-FileIO AndroidApplication::openFileUri(JNIEnv *env, jobject baseActivity, IG::CStringView uri, IO::AccessHint access, IODefs::OpenFlags openFlags) const
+UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject baseActivity, IG::CStringView uri, IODefs::OpenFlags openFlags) const
 {
 	int fd = openUriFd(env, baseActivity, env->NewStringUTF(uri), openFlags);
 	if(fd == -1)
@@ -263,19 +263,26 @@ FileIO AndroidApplication::openFileUri(JNIEnv *env, jobject baseActivity, IG::CS
 		if constexpr(Config::DEBUG_BUILD)
 			logErr("error opening URI:%s", uri.data());
 		if(openFlags & IO::OPEN_TEST)
-			return {};
+			return -1;
 		else
 			throw std::system_error{ENOENT, std::system_category(), uri};
 	}
-	logMsg("opened file URI:%s", uri.data());
-	return {fd, access, openFlags};
+	logMsg("opened fd:%d file URI:%s", fd, uri.data());
+	return fd;
 }
 
 FileIO ApplicationContext::openFileUri(IG::CStringView uri, IO::AccessHint access, IODefs::OpenFlags openFlags) const
 {
 	if(androidSDK() < 19 || !IG::isUri(uri))
 		return {uri, access, openFlags};
-	return application().openFileUri(thisThreadJniEnv(), baseActivityObject(), uri, access, openFlags);
+	return {application().openFileUriFd(thisThreadJniEnv(), baseActivityObject(), uri, openFlags), access, openFlags};
+}
+
+UniqueFileDescriptor ApplicationContext::openFileUriFd(IG::CStringView uri, IODefs::OpenFlags openFlags) const
+{
+	if(androidSDK() < 19 || !IG::isUri(uri))
+		return PosixIO{uri, openFlags}.releaseFd();
+	return application().openFileUriFd(thisThreadJniEnv(), baseActivityObject(), uri, openFlags);
 }
 
 bool AndroidApplication::fileUriExists(JNIEnv *env, jobject baseActivity, IG::CStringView uri) const

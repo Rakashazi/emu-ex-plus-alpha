@@ -66,7 +66,7 @@ class VControllerDPad
 {
 public:
 	constexpr VControllerDPad() {}
-	void setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, Gfx::GTexC texHeight);
+	void setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, float texHeight);
 	void draw(Gfx::RendererCommands &cmds) const;
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::ProjectionPlane);
 	int getInput(IG::WP c) const;
@@ -105,7 +105,7 @@ public:
 	constexpr VControllerKeyboard() {}
 	void updateImg(Gfx::Renderer &r);
 	void setImg(Gfx::Renderer &r, Gfx::TextureSpan img);
-	void place(Gfx::GC btnSize, Gfx::GC yOffset, Gfx::ProjectionPlane);
+	void place(float btnSize, float yOffset, Gfx::ProjectionPlane);
 	void draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPlane) const;
 	int getInput(IG::WP c) const;
 	int translateInput(unsigned idx) const;
@@ -131,7 +131,7 @@ protected:
 	unsigned mode_{};
 	IG::WindowRect selected{{-1, -1}, {-1, -1}};
 	IG::WindowRect shiftRect{{-1, -1}, {-1, -1}};
-	Gfx::GTexC texXEnd{};
+	float texXEnd{};
 	KeyTable table{};
 };
 
@@ -247,10 +247,10 @@ public:
 	using VControllerLayoutPositionArr = std::array<std::array<VControllerLayoutPosition, 7>, 2>;
 
 	VController(IG::ApplicationContext, int faceButtons, int centerButtons);
-	Gfx::GC xMMSize(Gfx::GC mm) const;
-	Gfx::GC yMMSize(Gfx::GC mm) const;
-	int xMMSizeToPixel(const IG::Window &win, Gfx::GC mm) const;
-	int yMMSizeToPixel(const IG::Window &win, Gfx::GC mm) const;
+	float xMMSize(float mm) const;
+	float yMMSize(float mm) const;
+	int xMMSizeToPixel(const IG::Window &win, float mm) const;
+	int yMMSizeToPixel(const IG::Window &win, float mm) const;
 	void setInputPlayer(uint8_t player);
 	uint8_t inputPlayer() const;
 	void updateMapping();
@@ -298,7 +298,7 @@ public:
 	void setFace(const Gfx::GlyphTextureSet &face);
 	bool setButtonSize(std::optional<uint16_t> mm100xOpt, bool placeElements = true);
 	uint16_t buttonSize() const;
-	Gfx::GC buttonGCSize() const;
+	float buttonGCSize() const;
 	int buttonPixelSize(const IG::Window &) const;
 	bool setButtonXPadding(std::optional<uint16_t> opt, bool placeElements = true);
 	uint16_t buttonXPadding() const;

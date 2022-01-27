@@ -36,43 +36,17 @@ class RendererCommands;
 class SyncFence;
 class Texture;
 
-using GC = TransformCoordinate;
-using Coordinate = TransformCoordinate;
-using GfxPoint = IG::Point2D<GC>;
-using GP = GfxPoint;
-using GCRect = IG::CoordinateRect<GC, true, true>;
-using GTexC = TextureCoordinate;
-using GTexCPoint = IG::Point2D<GTexC>;
-using GTexCRect = IG::Rect2<GTexC>;
-
-static constexpr GC operator"" _gc (long double n)
-{
-	return (GC)n;
-}
-
-static constexpr GC operator"" _gc (unsigned long long n)
-{
-	return (GC)n;
-}
-
-static constexpr GC operator"" _gtexc (long double n)
-{
-	return (GTexC)n;
-}
-
-static constexpr GC operator"" _gtexc (unsigned long long n)
-{
-	return (GTexC)n;
-}
+using GP = FP;
+using GCRect = IG::CoordinateRect<float, true, true>;
 
 static GCRect makeGCRectRel(GP p, GP size)
 {
 	return GCRect::makeRel(p, size);
 }
 
-static GTexC pixelToTexC(IG::integral auto pixel, IG::integral auto total)
+static auto pixelToTexC(IG::integral auto pixel, IG::integral auto total)
 {
-	return (GTexC)pixel / (GTexC)total;
+	return pixel / (float)total;
 }
 
 enum WrapMode
@@ -137,16 +111,16 @@ enum class CommonTextureSampler
 class TextureSpan
 {
 public:
-	constexpr TextureSpan(const Texture *tex = {}, GTexCRect uv = {{}, {1., 1.}}):
+	constexpr TextureSpan(const Texture *tex = {}, FRect uv = {{}, {1., 1.}}):
 		tex{tex}, uv{uv}
 	{}
 	constexpr const Texture *texture() const { return tex; }
-	constexpr GTexCRect uvBounds() const { return uv; }
+	constexpr auto uvBounds() const { return uv; }
 	explicit operator bool() const;
 
 protected:
 	const Texture *tex;
-	GTexCRect uv;
+	FRect uv;
 };
 
 enum class TextureBufferMode : uint8_t

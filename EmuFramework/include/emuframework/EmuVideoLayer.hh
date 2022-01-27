@@ -36,7 +36,7 @@ public:
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
 	void setFormat(IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace);
 	void setOverlay(int effect);
-	void setOverlayIntensity(Gfx::GC intensity);
+	void setOverlayIntensity(float intensity);
 	void setEffect(ImageEffectId, IG::PixelFormat);
 	void setEffectFormat(IG::PixelFormat);
 	void setLinearFilter(bool on);

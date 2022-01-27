@@ -28,7 +28,7 @@
 static constexpr uintptr_t CUSTOM_IDENT = 1;
 #endif
 
-static int makeEventFD()
+static IG::UniqueFileDescriptor makeEventFD()
 {
 #ifdef USE_EVENTFD
 	return eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
@@ -89,24 +89,6 @@ FDCustomEvent::FDCustomEvent(const char *debugLabel):
 	}
 }
 
-FDCustomEvent::FDCustomEvent(FDCustomEvent &&o)
-{
-	*this = std::move(o);
-}
-
-FDCustomEvent &FDCustomEvent::operator=(FDCustomEvent &&o)
-{
-	deinit();
-	fdSrc = std::move(o.fdSrc);
-	debugLabel = o.debugLabel;
-	return *this;
-}
-
-FDCustomEvent::~FDCustomEvent()
-{
-	deinit();
-}
-
 void FDCustomEvent::attach(EventLoop loop, PollEventDelegate del)
 {
 	fdSrc.attach(loop, del);
@@ -140,11 +122,6 @@ CustomEvent::operator bool() const
 const char *FDCustomEvent::label()
 {
 	return debugLabel;
-}
-
-void FDCustomEvent::deinit()
-{
-	fdSrc.closeFD();
 }
 
 bool FDCustomEvent::shouldPerformCallback(int fd)

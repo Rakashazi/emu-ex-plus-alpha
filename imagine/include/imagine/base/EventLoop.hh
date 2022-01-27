@@ -56,9 +56,9 @@ struct FDEventSource : public FDEventSourceImpl
 {
 public:
 	using FDEventSourceImpl::FDEventSourceImpl;
-	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN):
-		FDEventSource(nullptr, fd, loop, callback, events) {}
-	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
+	FDEventSource(MaybeUniqueFileDescriptor fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN):
+		FDEventSource(nullptr, std::move(fd), loop, callback, events) {}
+	FDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	bool attach(PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	bool attach(EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	#if defined CONFIG_BASE_GLIB
@@ -70,7 +70,6 @@ public:
 	void setCallback(PollEventDelegate callback);
 	bool hasEventLoop() const;
 	int fd() const;
-	void closeFD();
 };
 
 }

@@ -46,10 +46,6 @@ class RendererTask;
 class DrawContextSupport
 {
 public:
-	#ifdef CONFIG_MACHINE_PANDORA
-	using EGLSync = void*;
-	using EGLTime = uint64_t;
-	#endif
 	#ifdef CONFIG_GFX_OPENGL_ES
 	void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers){};
 	void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers){};

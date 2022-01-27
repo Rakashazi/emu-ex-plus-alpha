@@ -24,7 +24,7 @@
 namespace IG
 {
 
-static std::array<PosixIO, 2> makePipe()
+static auto makePipe()
 {
 	std::array<int, 2> fd{-1, -1};
 	#ifdef __linux__
@@ -36,7 +36,7 @@ static std::array<PosixIO, 2> makePipe()
 	{
 		logErr("error creating pipe");
 	}
-	return {fd[0], fd[1]};
+	return std::array<PosixIO, 2>{UniqueFileDescriptor{fd[0]}, UniqueFileDescriptor{fd[1]}};
 }
 
 Pipe::Pipe(const char *debugLabel, int preferredSize):

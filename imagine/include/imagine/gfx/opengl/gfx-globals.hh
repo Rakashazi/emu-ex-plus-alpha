@@ -24,17 +24,14 @@
 namespace IG::Gfx
 {
 
-using TransformCoordinate = GLfloat;
 using VertexPos = GLfloat;
-using Angle = GLfloat;
-using TextureCoordinate = GLfloat;
 using ColorComp = GLfloat;
 using Color = std::array<GLfloat, 4>;
 
-static constexpr Angle angleFromDegree(Angle deg) { return IG::radians(deg); }
-static constexpr Angle angleFromRadian(Angle rad) { return rad; }
-static constexpr Angle angleToDegree(Angle a) { return IG::degrees(a); }
-static constexpr Angle angleToRadian(Angle a) { return a; }
+static constexpr float angleFromDegree(float deg) { return IG::radians(deg); }
+static constexpr float angleFromRadian(float rad) { return rad; }
+static constexpr float angleToDegree(float a) { return IG::degrees(a); }
+static constexpr float angleToRadian(float a) { return a; }
 
 using TextureRef = GLuint;
 using VertexIndex = GLushort;

@@ -132,9 +132,9 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 	{
 		cmds.setCommonProgram(CommonProgram::NO_TEX);
 		cmds.setColor(.0, .0, .75);
-		Gfx::GC barHeight = text.height()*1.5;
-		auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - GP{0_gc, barHeight/2_gc},
-			{IG::remap((Gfx::GC)pos, 0_gc, (Gfx::GC)max, 0_gc, projP.width()), barHeight});
+		float barHeight = text.height()*1.5;
+		auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - GP{0.f, barHeight/2.f},
+			{IG::remap((float)pos, 0.f, (float)max, 0.f, projP.width()), barHeight});
 		GeomRect::draw(cmds, bar);
 	}
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);

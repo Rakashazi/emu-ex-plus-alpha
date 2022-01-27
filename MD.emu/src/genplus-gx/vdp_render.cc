@@ -456,7 +456,7 @@ static Pixel MAKE_PIXEL(int r, int g, int b)
 {
 	if constexpr(RENDER_BPP == 32)
 	{
-		auto desc = fbRenderFormat == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
+		auto desc = fbRenderFormat == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
 		return desc.build(r << 4 | r, g << 4 | g, b << 4 | b, 0);
 	}
 	else

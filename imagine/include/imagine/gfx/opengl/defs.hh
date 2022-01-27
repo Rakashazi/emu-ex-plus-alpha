@@ -39,8 +39,7 @@ namespace Config
 	static constexpr int OPENGL_ES = 0;
 	#endif
 
-	#if !defined CONFIG_BASE_MACOSX && \
-	((defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES == 1) || !defined CONFIG_GFX_OPENGL_ES)
+	#if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES == 1) || (!defined __APPLE__ && !defined CONFIG_GFX_OPENGL_ES)
 	#define CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	static constexpr bool OPENGL_FIXED_FUNCTION_PIPELINE = true;
 	#else
@@ -73,7 +72,6 @@ namespace Config
 	#endif
 
 	#if defined CONFIG_BASE_IOS
-	#define CONFIG_GFX_GLDRAWABLE_NEEDS_FRAMEBUFFER
 	static constexpr bool GLDRAWABLE_NEEDS_FRAMEBUFFER = true;
 	#else
 	static constexpr bool GLDRAWABLE_NEEDS_FRAMEBUFFER = false;

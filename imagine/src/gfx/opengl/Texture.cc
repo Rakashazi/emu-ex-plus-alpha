@@ -903,7 +903,7 @@ IG::ErrorCode PixmapTexture::setFormat(IG::PixmapDesc desc, uint8_t levels, Colo
 	return {};
 }
 
-GTexCRect PixmapTexture::uvBounds() const
+FRect PixmapTexture::uvBounds() const
 {
 	return {{}, uv};
 }

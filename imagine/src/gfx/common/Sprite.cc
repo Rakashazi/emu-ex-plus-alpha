@@ -35,7 +35,7 @@ void SpriteBase<BaseRect>::setImg(TextureSpan span)
 }
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setUVBounds(GTexCRect uvBounds)
+void SpriteBase<BaseRect>::setUVBounds(FRect uvBounds)
 {
 	if(!uvBounds.xSize())
 		logWarn("setting Empty UV bounds");

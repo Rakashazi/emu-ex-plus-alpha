@@ -17,6 +17,7 @@
 
 #include <imagine/base/eventLoopDefs.hh>
 #include <imagine/util/typeTraits.hh>
+#include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <android/looper.h>
 #include <memory>
 
@@ -36,8 +37,8 @@ class ALooperFDEventSource
 {
 public:
 	constexpr ALooperFDEventSource() = default;
-	ALooperFDEventSource(int fd) : ALooperFDEventSource{nullptr, fd} {}
-	ALooperFDEventSource(const char *debugLabel, int fd);
+	ALooperFDEventSource(MaybeUniqueFileDescriptor fd) : ALooperFDEventSource{nullptr, std::move(fd)} {}
+	ALooperFDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd);
 	ALooperFDEventSource(ALooperFDEventSource &&o);
 	ALooperFDEventSource &operator=(ALooperFDEventSource &&o);
 	~ALooperFDEventSource();
@@ -45,7 +46,7 @@ public:
 protected:
 	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 	std::unique_ptr<ALooperFDEventSourceInfo> info{};
-	int fd_ = -1;
+	MaybeUniqueFileDescriptor fd_{};
 
 	const char *label() const;
 	void deinit();

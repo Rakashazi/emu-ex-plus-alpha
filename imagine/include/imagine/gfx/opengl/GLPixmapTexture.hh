@@ -40,7 +40,7 @@ protected:
 	void initWithEGLImage(IG::WP usedSize, EGLImageKHR, IG::PixmapDesc, SamplerParams, bool isMutable);
 	#endif
 
-	GTexCPoint uv{};
+	FP uv{};
 	IG::WP usedSize{};
 };
 

@@ -98,7 +98,7 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, std::unique_ptr<Stream> str, const char *path
 extern int openFdHelper(const char *file, int oflag, mode_t mode)
 {
 	unsigned openFlags = (oflag & O_CREAT) ? IG::IO::OPEN_CREATE : 0;
-	return EmuEx::appCtx.openFileUri(file, IG::IO::AccessHint::UNMAPPED, openFlags | IG::IO::OPEN_TEST).releaseFd();
+	return EmuEx::appCtx.openFileUriFd(file, openFlags | IG::IO::OPEN_TEST).release();
 }
 
 }

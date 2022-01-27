@@ -45,7 +45,7 @@ void Text::setFace(GlyphTextureSet *face_)
 	this->face_ = face_;
 }
 
-static GC xSizeOfChar(Renderer &r, GlyphTextureSet *face_, int c, GC spaceX, const ProjectionPlane &projP)
+static float xSizeOfChar(Renderer &r, GlyphTextureSet *face_, int c, float spaceX, const ProjectionPlane &projP)
 {
 	assert(c != '\0');
 	if(c == ' ')
@@ -97,9 +97,9 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 	
 	lines = 1;
 	lineInfo.clear();
-	GC xLineSize = 0, maxXLineSize = 0;
+	float xLineSize = 0, maxXLineSize = 0;
 	uint32_t prevC = 0;
-	GC textBlockSize = 0;
+	float textBlockSize = 0;
 	uint32_t textBlockIdx = 0, currLineIdx = 0;
 	uint32_t charIdx = 0, charsInLine = 0;
 	for(auto c : textStr)
@@ -160,11 +160,11 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 	}
 	maxXLineSize = std::max(xLineSize, maxXLineSize);
 	xSize = maxXLineSize;
-	ySize = nominalHeight_ * (GC)lines;
+	ySize = nominalHeight_ * (float)lines;
 	return true;
 }
 
-void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, ProjectionPlane projP) const
+void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, ProjectionPlane projP) const
 {
 	if(!hasText()) [[unlikely]]
 		return;
@@ -177,14 +177,14 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, Projectio
 	_2DOrigin align = o;
 	xPos = o.adjustX(xPos, xSize, LT2DO);
 	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
-	yPos = o.adjustY(yPos, projP.alignYToPixel(ySize/2_gc), ySize, LT2DO);
+	yPos = o.adjustY(yPos, projP.alignYToPixel(ySize/2.f), ySize, LT2DO);
 	if(IG::isOdd(projP.viewport().height()))
 		yPos = projP.alignYToPixel(yPos);
 	yPos -= nominalHeight_ - yLineStart;
-	GC xOrig = xPos;
+	float xOrig = xPos;
 	//logMsg("drawing text @ %f,%f: str", xPos, yPos, str);
 	auto startingXPos =
-		[&](GC xLineSize)
+		[&](float xLineSize)
 		{
 			return projP.alignXToPixel(LT2DO.adjustX(xOrig, xSize-xLineSize, align));
 		};
@@ -194,7 +194,7 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, Projectio
 		for(auto &span : lineInfo)
 		{
 			// Get line info (1 line case doesn't use per-line info)
-			GC xLineSize = span.size;
+			float xLineSize = span.size;
 			uint32_t charsToDraw = span.chars;
 			xPos = startingXPos(xLineSize);
 			//logMsg("line %d, %d chars", l, charsToDraw);
@@ -206,7 +206,7 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, Projectio
 	}
 	else
 	{
-		GC xLineSize = xSize;
+		float xLineSize = xSize;
 		xPos = startingXPos(xLineSize);
 		//logMsg("line %d, %d chars", l, charsToDraw);
 		drawSpan(cmds, xPos, yPos, projP, std::u16string_view{textStr}, vArr);
@@ -218,7 +218,7 @@ void Text::draw(RendererCommands &cmds, GP p, _2DOrigin o, ProjectionPlane projP
 	draw(cmds, p.x, p.y, o, projP);
 }
 
-void Text::drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane projP, std::u16string_view strView, std::array<TexVertex, 4> &vArr) const
+void Text::drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPlane projP, std::u16string_view strView, std::array<TexVertex, 4> &vArr) const
 {
 	auto xViewLimit = projP.wHalf();
 	for(auto c : strView)
@@ -239,7 +239,7 @@ void Text::drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane pr
 			//logMsg("skipped %c, off right screen edge", s[i]);
 			continue;
 		}
-		GC xSize = projP.unprojectXSize(gly->metrics.xSize);
+		float xSize = projP.unprojectXSize(gly->metrics.xSize);
 		auto x = xPos + projP.unprojectXSize(gly->metrics.xOffset);
 		auto y = yPos - projP.unprojectYSize(gly->metrics.ySize - gly->metrics.yOffset);
 		auto &glyph = gly->glyph();
@@ -252,7 +252,7 @@ void Text::drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane pr
 	}
 }
 
-void Text::setMaxLineSize(GC size)
+void Text::setMaxLineSize(float size)
 {
 	maxLineSize = size;
 }
@@ -262,27 +262,27 @@ void Text::setMaxLines(uint16_t lines)
 	maxLines = lines;
 }
 
-GC Text::width() const
+float Text::width() const
 {
 	return xSize;
 }
 
-GC Text::height() const
+float Text::height() const
 {
 	return ySize;
 }
 
-GC Text::fullHeight() const
+float Text::fullHeight() const
 {
-	return ySize + (nominalHeight_ * .5_gc);
+	return ySize + (nominalHeight_ * .5f);
 }
 
-GC Text::nominalHeight() const
+float Text::nominalHeight() const
 {
 	return nominalHeight_;
 }
 
-GC Text::spaceWidth() const
+float Text::spaceWidth() const
 {
 	return spaceSize;
 }

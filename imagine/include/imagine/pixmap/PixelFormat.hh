@@ -32,6 +32,7 @@ static constexpr PixelDesc PIXEL_DESC_RGBA4444 	{4, 4, 4, 4, 12,	8, 	4, 	0, 	2, 
 static constexpr PixelDesc PIXEL_DESC_RGB888 		{8, 8, 8, 0, 16,	8, 	0, 	0, 	3, "RGB888"};
 static constexpr PixelDesc PIXEL_DESC_RGBA8888 	{8, 8, 8, 8, 24,	16, 8, 	0, 	4, "RGBA8888"};
 static constexpr PixelDesc PIXEL_DESC_BGRA8888 	{8, 8, 8, 8, 8, 	16, 24, 0, 	4, "BGRA8888"};
+static constexpr PixelDesc PIXEL_DESC_RGBA8888_NATIVE = PIXEL_DESC_RGBA8888.nativeOrder();
 
 class PixelFormat
 {

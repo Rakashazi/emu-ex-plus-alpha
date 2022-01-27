@@ -37,7 +37,7 @@ static int accessHintToAAssetMode(IO::AccessHint advice)
 	}
 }
 
-AAssetIO::AAssetIO(ApplicationContext ctx, IG::CStringView name, AccessHint access, unsigned openFlags):
+AAssetIO::AAssetIO(ApplicationContext ctx, IG::CStringView name, AccessHint access, OpenFlags openFlags):
 	asset{AAssetManager_open(ctx.aAssetManager(), name, accessHintToAAssetMode(access))}
 {
 	if(!asset) [[unlikely]]

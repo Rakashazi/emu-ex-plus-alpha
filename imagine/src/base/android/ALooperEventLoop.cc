@@ -32,10 +32,10 @@ static int eventCallback(int fd, int events, void *data)
 	return keep;
 }
 
-ALooperFDEventSource::ALooperFDEventSource(const char *debugLabel, int fd):
+ALooperFDEventSource::ALooperFDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
 	info{std::make_unique<ALooperFDEventSourceInfo>()},
-	fd_{fd}
+	fd_{std::move(fd)}
 {}
 
 ALooperFDEventSource::ALooperFDEventSource(ALooperFDEventSource &&o)
@@ -47,7 +47,7 @@ ALooperFDEventSource &ALooperFDEventSource::operator=(ALooperFDEventSource &&o)
 {
 	deinit();
 	info = std::move(o.info);
-	fd_ = std::exchange(o.fd_, -1);
+	fd_ = std::move(o.fd_);
 	debugLabel = o.debugLabel;
 	return *this;
 }
@@ -59,7 +59,7 @@ ALooperFDEventSource::~ALooperFDEventSource()
 
 bool FDEventSource::attach(EventLoop loop, PollEventDelegate callback, uint32_t events)
 {
-	logMsg("adding fd:%d to looper:%p (%s)", fd_, loop.nativeObject(), label());
+	logMsg("adding fd:%d to looper:%p (%s)", (int)fd_, loop.nativeObject(), label());
 	assumeExpr(info);
 	detach();
 	if(!loop)
@@ -78,7 +78,7 @@ void FDEventSource::detach()
 {
 	if(!info || !info->looper)
 		return;
-	logMsg("removing fd %d from looper (%s)", fd_, label());
+	logMsg("removing fd %d from looper (%s)", (int)fd_, label());
 	ALooper_removeFd(info->looper, fd_);
 	info->looper = {};
 }
@@ -117,15 +117,6 @@ bool FDEventSource::hasEventLoop() const
 int FDEventSource::fd() const
 {
 	return fd_;
-}
-
-void FDEventSource::closeFD()
-{
-	if(fd_ == -1)
-		return;
-	detach();
-	close(fd_);
-	fd_ = -1;
 }
 
 void ALooperFDEventSource::deinit()

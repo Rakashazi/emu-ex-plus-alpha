@@ -35,7 +35,7 @@ class Text
 {
 public:
 	static constexpr uint16_t NO_MAX_LINES = std::numeric_limits<uint16_t>::max();
-	static constexpr GC NO_MAX_LINE_SIZE = std::numeric_limits<GC>::max();
+	static constexpr float NO_MAX_LINE_SIZE = std::numeric_limits<float>::max();
 
 	Text() = default;
 	Text(GlyphTextureSet *face);
@@ -44,15 +44,15 @@ public:
 	void setFace(GlyphTextureSet *face);
 	void makeGlyphs(Renderer &r);
 	bool compile(Renderer &r, ProjectionPlane projP);
-	void draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, ProjectionPlane projP) const;
+	void draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, ProjectionPlane projP) const;
 	void draw(RendererCommands &cmds, GP p, _2DOrigin o, ProjectionPlane projP) const;
-	void setMaxLineSize(GC size);
+	void setMaxLineSize(float size);
 	void setMaxLines(uint16_t lines);
-	GC width() const;
-	GC height() const;
-	GC fullHeight() const;
-	GC nominalHeight() const;
-	GC spaceWidth() const;
+	float width() const;
+	float height() const;
+	float fullHeight() const;
+	float nominalHeight() const;
+	float spaceWidth() const;
 	GlyphTextureSet *face() const;
 	uint16_t currentLines() const;
 	unsigned stringSize() const;
@@ -63,26 +63,26 @@ public:
 protected:
 	struct LineSpan
 	{
-		constexpr LineSpan(GC size, uint32_t chars):
+		constexpr LineSpan(float size, uint32_t chars):
 			size{size}, chars{chars}
 		{}
-		GC size;
+		float size;
 		uint32_t chars;
 	};
 
 	std::u16string textStr{};
 	GlyphTextureSet *face_{};
 	std::vector<LineSpan> lineInfo{};
-	GC spaceSize = 0;
-	GC nominalHeight_ = 0;
-	GC yLineStart = 0;
-	GC xSize = 0;
-	GC ySize = 0;
-	GC maxLineSize = NO_MAX_LINE_SIZE;
+	float spaceSize = 0;
+	float nominalHeight_ = 0;
+	float yLineStart = 0;
+	float xSize = 0;
+	float ySize = 0;
+	float maxLineSize = NO_MAX_LINE_SIZE;
 	uint16_t lines = 0;
 	uint16_t maxLines = NO_MAX_LINES;
 
-	void drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane projP, std::u16string_view strView, std::array<TexVertex, 4> &vArr) const;
+	void drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPlane projP, std::u16string_view strView, std::array<TexVertex, 4> &vArr) const;
 	bool hasText() const;
 };
 

@@ -48,33 +48,28 @@ static void applyAccessHint(PosixFileIO &io, IO::AccessHint access, bool isMappe
 	}
 }
 
-PosixFileIO::PosixFileIO(int fd, IO::AccessHint access, unsigned openFlags):
-	ioImpl{std::in_place_type<PosixIO>, fd}
+PosixFileIO::PosixFileIO(UniqueFileDescriptor fd_, IO::AccessHint access, IO::OpenFlags openFlags):
+	ioImpl{std::in_place_type<PosixIO>, std::move(fd_)}
 {
-	tryMmap(fd, access, openFlags);
+	tryMmap(std::get<PosixIO>(ioImpl).fd(), access, openFlags);
 }
 
-PosixFileIO::PosixFileIO(int fd, unsigned openFlags):
-	PosixFileIO{fd, IO::AccessHint::NORMAL, openFlags} {}
+PosixFileIO::PosixFileIO(UniqueFileDescriptor fd, IO::OpenFlags openFlags):
+	PosixFileIO{std::move(fd), IO::AccessHint::NORMAL, openFlags} {}
 
-PosixFileIO::PosixFileIO(IG::CStringView path, IO::AccessHint access, unsigned openFlags):
+PosixFileIO::PosixFileIO(IG::CStringView path, IO::AccessHint access, IO::OpenFlags openFlags):
 	ioImpl{std::in_place_type<PosixIO>, path, openFlags}
 {
-	auto fd = std::get<PosixIO>(ioImpl).fd();
-	if(fd == -1) [[unlikely]] // open failed in OPEN_TEST case
-	{
-		return;
-	}
-	tryMmap(fd, access, openFlags);
+	tryMmap(std::get<PosixIO>(ioImpl).fd(), access, openFlags);
 }
 
-PosixFileIO::PosixFileIO(IG::CStringView path, unsigned openFlags):
+PosixFileIO::PosixFileIO(IG::CStringView path, IO::OpenFlags openFlags):
 	PosixFileIO{path, IO::AccessHint::NORMAL, openFlags} {}
 
-void PosixFileIO::tryMmap(int fd, IO::AccessHint access, unsigned openFlags)
+void PosixFileIO::tryMmap(int fd, IO::AccessHint access, IO::OpenFlags openFlags)
 {
 	// try to open as memory map only if read-only
-	if(openFlags & IO::OPEN_WRITE || access == IO::AccessHint::UNMAPPED)
+	if(openFlags & IO::OPEN_WRITE || access == IO::AccessHint::UNMAPPED || fd == -1)
 		return;
 	MapIO mappedFile = makePosixMapIO(access, fd);
 	if(mappedFile)
@@ -88,7 +83,7 @@ void PosixFileIO::tryMmap(int fd, IO::AccessHint access, unsigned openFlags)
 	}
 }
 
-FileIO FileIO::create(IG::CStringView path, unsigned mode)
+FileIO FileIO::create(IG::CStringView path, IO::OpenFlags mode)
 {
 	mode |= IO::OPEN_CREATE;
 	return {path, IO::AccessHint::NORMAL, mode};
@@ -206,7 +201,7 @@ IG::ByteBuffer PosixFileIO::releaseBuffer()
 	return mapIoPtr->releaseBuffer();
 }
 
-int PosixFileIO::releaseFd()
+UniqueFileDescriptor PosixFileIO::releaseFd()
 {
 	if(auto ioPtr = std::get_if<PosixIO>(&ioImpl);
 		ioPtr)
@@ -214,7 +209,7 @@ int PosixFileIO::releaseFd()
 		return ioPtr->releaseFd();
 	}
 	logWarn("trying to release fd of mapped IO");
-	return -1;
+	return {};
 }
 
 }

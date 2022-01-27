@@ -49,9 +49,8 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 		}
 		auto outputInfo = XRRGetOutputInfo(DisplayOfScreen(xScreen), screenRes, primaryOutput);
 		auto crtcInfo = XRRGetCrtcInfo(DisplayOfScreen(xScreen), screenRes, outputInfo->crtc);
-		iterateTimes(screenRes->nmode, i)
+		for(auto &modeInfo : std::span<XRRModeInfo>{screenRes->modes, (size_t)screenRes->nmode})
 		{
-			auto &modeInfo = screenRes->modes[i];
 			if(modeInfo.id == crtcInfo->mode)
 			{
 				if(modeInfo.hTotal && modeInfo.vTotal)

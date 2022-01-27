@@ -23,7 +23,7 @@ namespace IG::Gfx
 
 class RendererCommands;
 
-static constexpr auto VertexColorPixelFormat = IG::PIXEL_DESC_RGBA8888.nativeOrder();
+static constexpr auto VertexColorPixelFormat = PIXEL_DESC_RGBA8888_NATIVE;
 
 struct VertexInfo
 {
@@ -57,7 +57,7 @@ struct ColVertex : public VertexInfo
 struct TexVertex : public VertexInfo
 {
 	VertexPos x{}, y{};
-	TextureCoordinate u{}, v{};
+	float u{}, v{};
 	static constexpr bool hasTexture = true;
 	static const uint32_t textureOffset;
 	static constexpr uint32_t ID = 3;
@@ -66,7 +66,7 @@ struct TexVertex : public VertexInfo
 struct ColTexVertex : public VertexInfo
 {
 	VertexPos x{}, y{};
-	TextureCoordinate u{}, v{};
+	float u{}, v{};
 	VertexColor color{};
 	static constexpr bool hasColor = true;
 	static const uint32_t colorOffset;

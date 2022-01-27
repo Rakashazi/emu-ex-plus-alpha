@@ -71,14 +71,7 @@ class BasicNavView : public NavView
 public:
 	BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::TextureSpan leftRes, Gfx::TextureSpan rightRes);
 	void setBackImage(Gfx::TextureSpan img);
-	void setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, int gradStops);
-
-	template <size_t S>
-	void setBackgroundGradient(const Gfx::LGradientStopDesc (&gradStop)[S])
-	{
-		setBackgroundGradient(gradStop, S);
-	}
-
+	void setBackgroundGradient(std::span<const Gfx::LGradientStopDesc> gradStops);
 	void draw(Gfx::RendererCommands &cmds) override;
 	void place() override;
 	void showLeftBtn(bool show) override;

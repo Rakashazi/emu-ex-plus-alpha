@@ -49,7 +49,7 @@ public:
 	constexpr bool needsBackControl() const { return needsBackControl_; }
 	void setNeedsBackControl(std::optional<bool>);
 	std::optional<bool> needsBackControlOption() const;
-	Gfx::GC tableXIndent() const;
+	float tableXIndent() const;
 	void setTableXIndentMM(float indentMM, Gfx::ProjectionPlane);
 	float defaultTableXIndentMM(const Window &);
 	void setTableXIndentToDefault(const Window &, Gfx::ProjectionPlane);
@@ -57,7 +57,7 @@ public:
 protected:
 	Gfx::GlyphTextureSet defaultFace_{};
 	Gfx::GlyphTextureSet defaultBoldFace_{};
-	Gfx::GC tableXIndent_{};
+	float tableXIndent_{};
 	// True if the platform needs an on-screen/pointer-based control to move to a previous view
 	IG_UseMemberIfOrConstant(needsBackControlIsMutable,
 		bool, needsBackControlDefault, needsBackControl_){needsBackControlDefault};

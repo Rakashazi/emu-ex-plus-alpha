@@ -20,7 +20,7 @@
 #include <imagine/base/EventLoop.hh>
 #include <imagine/util/concepts.hh>
 
-#if defined __linux
+#if defined __linux__
 #include <imagine/base/timer/TimerFD.hh>
 #elif defined __APPLE__
 #include <imagine/base/timer/CFTimer.hh>

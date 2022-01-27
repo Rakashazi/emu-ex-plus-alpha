@@ -88,7 +88,7 @@ public:
 	bool canRenderToMultiplePixelFormats() const;
 	NativeWindowFormat nativeWindowFormat() const;
 	void setWindowValidOrientations(Window &win, Orientation validO);
-	void animateProjectionMatrixRotation(Window &win, Angle srcAngle, Angle destAngle);
+	void animateProjectionMatrixRotation(Window &win, float srcAngle, float destAngle);
 	static ClipRect makeClipRect(const Window &win, IG::WindowRect rect);
 	bool supportsSyncFences() const;
 	void setPresentationTime(Window &, IG::FrameTime time) const;

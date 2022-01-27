@@ -3,8 +3,9 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/math/math.hh>
-#include <type_traits>
+#include <imagine/util/concepts.hh>
 #include <bit>
+#include <array>
 
 namespace IG
 {
@@ -28,31 +29,29 @@ public:
 		bytesPerPixel_{bytesPerPixel}
 	{}
 
-	template<class T>
-	constexpr uint32_t build(T r_, T g_, T b_, T a_) const
+	constexpr uint32_t build(IG::floating_point auto r_, IG::floating_point auto g_, IG::floating_point auto b_,
+		IG::floating_point auto a_) const
 	{
-		uint32_t r = 0, g = 0, b = 0, a = 0;
-		if constexpr(std::is_floating_point_v<T>)
-		{
-			r = IG::clampFromFloat<uint32_t>(r_, rBits);
-			g = IG::clampFromFloat<uint32_t>(g_, gBits);
-			b = IG::clampFromFloat<uint32_t>(b_, bBits);
-			a = IG::clampFromFloat<uint32_t>(a_, aBits);
-		}
-		else
-		{
-			r = (uint32_t)r_;
-			g = (uint32_t)g_;
-			b = (uint32_t)b_;
-			a = (uint32_t)a_;
-		}
+		return build(IG::clampFromFloat<uint32_t>(r_, rBits),
+			IG::clampFromFloat<uint32_t>(g_, gBits),
+			IG::clampFromFloat<uint32_t>(b_, bBits),
+			IG::clampFromFloat<uint32_t>(a_, aBits));
+	}
+
+	constexpr uint32_t build(IG::integral auto r_, IG::integral auto g_, IG::integral auto b_,
+		IG::integral auto a_) const
+	{
+		auto r = (uint32_t)r_;
+		auto g = (uint32_t)g_;
+		auto b = (uint32_t)b_;
+		auto a = (uint32_t)a_;
 		return (rBits ? ((r & bits<uint32_t>(rBits)) << rShift) : 0) |
 			(gBits ? ((g & bits<uint32_t>(gBits)) << gShift) : 0) |
 			(bBits ? ((b & bits<uint32_t>(bBits)) << bShift) : 0) |
 			(aBits ? ((a & bits<uint32_t>(aBits)) << aShift) : 0);
 	}
 
-	static constexpr uint32_t component(uint32_t pixel, uint8_t shift, uint8_t bits_)
+	static constexpr uint8_t component(uint32_t pixel, uint8_t shift, uint8_t bits_)
 	{
 		return (pixel >> shift) & bits<uint32_t>(bits_);
 	}
@@ -61,6 +60,11 @@ public:
 	constexpr uint32_t r(uint32_t pixel) const { return component(pixel, rShift, rBits); }
 	constexpr uint32_t g(uint32_t pixel) const { return component(pixel, gShift, gBits); }
 	constexpr uint32_t b(uint32_t pixel) const { return component(pixel, bShift, bBits); }
+
+	constexpr std::array<uint8_t, 4> rgba(uint32_t pixel) const
+	{
+		return {(uint8_t)r(pixel), (uint8_t)g(pixel), (uint8_t)b(pixel), (uint8_t)a(pixel)};
+	}
 
 	constexpr size_t offsetBytes(int x, int y, uint32_t pitch) const
 	{

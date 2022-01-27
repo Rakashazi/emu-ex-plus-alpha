@@ -17,6 +17,7 @@
 
 #include <imagine/base/eventLoopDefs.hh>
 #include <imagine/util/typeTraits.hh>
+#include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <CoreFoundation/CoreFoundation.h>
 #include <memory>
 
@@ -40,8 +41,8 @@ class CFFDEventSource
 {
 public:
 	constexpr CFFDEventSource() = default;
-	CFFDEventSource(int fd) : CFFDEventSource{nullptr, fd} {}
-	CFFDEventSource(const char *debugLabel, int fd);
+	CFFDEventSource(MaybeUniqueFileDescriptor fd) : CFFDEventSource{nullptr, std::move(fd)} {}
+	CFFDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd);
 	CFFDEventSource(CFFDEventSource &&o);
 	CFFDEventSource &operator=(CFFDEventSource &&o);
 	~CFFDEventSource();

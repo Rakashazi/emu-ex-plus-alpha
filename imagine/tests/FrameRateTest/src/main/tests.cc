@@ -171,7 +171,7 @@ void TestFramework::prepareDraw(Gfx::Renderer &r)
 	frameStatsText.makeGlyphs(r);
 }
 
-void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, Gfx::GC xIndent)
+void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, float xIndent)
 {
 	using namespace IG::Gfx;
 	cmds.loadTransform(projP.makeTranslate());

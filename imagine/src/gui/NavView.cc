@@ -199,11 +199,11 @@ void BasicNavView::setBackImage(Gfx::TextureSpan img)
 	control[0].isActive = leftSpr.image();
 }
 
-void BasicNavView::setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, int gradStops)
+void BasicNavView::setBackgroundGradient(std::span<const Gfx::LGradientStopDesc> gradStops)
 {
-	gradientStops = std::make_unique<Gfx::LGradientStopDesc[]>(gradStops);
-	memcpy(gradientStops.get(), gradStop, sizeof(Gfx::LGradientStopDesc) * gradStops);
-	bg.setPos(gradientStops.get(), gradStops, {});
+	gradientStops = std::make_unique<Gfx::LGradientStopDesc[]>(gradStops.size());
+	std::copy(gradStops.begin(), gradStops.end(), gradientStops.get());
+	bg.setPos({gradientStops.get(), gradStops.size()}, {});
 }
 
 void BasicNavView::draw(Gfx::RendererCommands &cmds)
@@ -275,16 +275,16 @@ void BasicNavView::place()
 	if(leftSpr.image())
 	{
 		auto rect = projP.unProjectRect(control[0].rect);
-		Gfx::GCRect scaledRect{-rect.size() / 3_gc, rect.size() / 3_gc};
+		Gfx::GCRect scaledRect{-rect.size() / 3.f, rect.size() / 3.f};
 		leftSpr.setPos(scaledRect);
 	}
 	if(rightSpr.image())
 	{
 		auto rect = projP.unProjectRect(control[2].rect);
-		Gfx::GCRect scaledRect{-rect.size() / 3_gc, rect.size() / 3_gc};
+		Gfx::GCRect scaledRect{-rect.size() / 3.f, rect.size() / 3.f};
 		rightSpr.setPos(scaledRect);
 	}
-	bg.setPos(gradientStops.get(), bg.stops(), projP.unProjectRect(viewRect_));
+	bg.setPos({gradientStops.get(), bg.stops()}, projP.unProjectRect(viewRect_));
 }
 
 void BasicNavView::showLeftBtn(bool show)

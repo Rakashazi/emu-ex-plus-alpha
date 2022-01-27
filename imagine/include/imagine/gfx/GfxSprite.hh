@@ -33,7 +33,7 @@ class SpriteBase : public BaseRect
 {
 public:
 	constexpr SpriteBase():
-		BaseRect{{}, GTexCRect{{}, {1., 1.}}}
+		BaseRect{{}, FRect{{}, {1., 1.}}}
 	{}
 
 	constexpr SpriteBase(GCRect pos, TextureSpan span = {}):
@@ -43,7 +43,7 @@ public:
 
 	void setImg(const Texture *img);
 	void setImg(TextureSpan span);
-	void setUVBounds(GTexCRect uvBounds);
+	void setUVBounds(FRect uvBounds);
 	void draw(RendererCommands &r) const;
 	bool compileDefaultProgram(uint32_t mode);
 	bool compileDefaultProgramOneShot(uint32_t mode);

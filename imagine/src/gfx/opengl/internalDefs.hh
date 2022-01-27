@@ -17,7 +17,7 @@ struct GLRendererWindowData
 	constexpr GLRendererWindowData() {}
 	GLDrawable drawable{};
 	GLBufferConfig bufferConfig{};
-	InterpolatorValue<Angle, IG::FrameTime, InterpolatorType::EASEOUTQUAD> projAngleM{};
+	InterpolatorValue<float, IG::FrameTime, InterpolatorType::EASEOUTQUAD> projAngleM{};
 	GLColorSpace colorSpace{};
 };
 
@@ -32,6 +32,6 @@ static constexpr GLuint VATTR_POS = 0, VATTR_TEX_UV = 1, VATTR_COLOR = 2;
 static constexpr GL::API glAPI =
 	Config::Gfx::OPENGL_ES ? GL::API::OPENGL_ES : GL::API::OPENGL;
 
-Gfx::GC orientationToGC(Orientation o);
+float orientationRadians(Orientation o);
 
 }

@@ -18,10 +18,6 @@
 #include <imagine/config/env.hh>
 #include <imagine/gfx/defs.hh>
 
-#if !defined CONFIG_GFX_OPENGL_ES || CONFIG_GFX_OPENGL_ES > 1
-#define HAS_UNPACK_ROW_LENGTH
-#endif
-
 class GLStateCache
 {
 public:
@@ -54,14 +50,6 @@ public:
 	{
 		int8_t GL_TEXTURE_COORD_ARRAY_state = -1;
 		int8_t GL_COLOR_ARRAY_state = -1;
-	};
-
-	struct GLPixelStoreParams
-	{
-		GLint GL_UNPACK_ALIGNMENT_state = -1;
-		#ifdef HAS_UNPACK_ROW_LENGTH
-		GLint GL_UNPACK_ROW_LENGTH_state = -1;
-		#endif
 	};
 
 	static bool verifyState;

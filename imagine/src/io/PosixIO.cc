@@ -203,9 +203,9 @@ PosixIO::operator bool() const
 	return fd_ != -1;
 }
 
-int PosixIO::releaseFd()
+UniqueFileDescriptor PosixIO::releaseFd()
 {
-	return fd_.release();
+	return std::move(fd_);
 }
 
 int PosixIO::fd() const

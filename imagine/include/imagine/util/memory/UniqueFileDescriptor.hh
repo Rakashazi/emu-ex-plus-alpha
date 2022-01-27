@@ -31,4 +31,29 @@ struct FileDescriptorDeleter
 
 using UniqueFileDescriptor = UniqueResource<int, FileDescriptorDeleter, -1>;
 
+struct OwnsFileDescriptorDeleter
+{
+	bool ownsFd{};
+
+	void operator()(int fd) const
+	{
+		if(ownsFd)
+			::close(fd);
+	}
+};
+
+class MaybeUniqueFileDescriptor : public UniqueResource<int, OwnsFileDescriptorDeleter, -1>
+{
+public:
+	using UniqueResource::UniqueResource;
+
+	constexpr MaybeUniqueFileDescriptor(int fd):
+		UniqueResource{fd, {false}} {}
+
+	MaybeUniqueFileDescriptor(UniqueFileDescriptor fd):
+		UniqueResource{fd.release(), {true}} {}
+
+	constexpr bool ownsFd() const { return get_deleter().ownsFd; }
+};
+
 }

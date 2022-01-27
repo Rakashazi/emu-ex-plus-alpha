@@ -26,6 +26,8 @@ namespace IG
 template <class T>
 struct Point2D : public AssignmentArithmetics< Point2D<T> >
 {
+	using Value = T;
+
 	T x{}, y{};
 
 	constexpr Point2D() {}
@@ -106,5 +108,8 @@ struct Point2D : public AssignmentArithmetics< Point2D<T> >
 		return std::sqrt(dx * dx + dy * dy);
 	}
 };
+
+using IP = IG::Point2D<int>;
+using FP = IG::Point2D<float>;
 
 }

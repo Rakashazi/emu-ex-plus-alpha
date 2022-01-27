@@ -142,5 +142,5 @@ gzFile gzopenHelper(void *contextPtr, const char *filename, const char *mode)
 {
 	auto &ctx = *((IG::ApplicationContext*)contextPtr);
 	unsigned openFlags = IG::stringContains(mode, 'w') ? IG::IO::OPEN_CREATE : 0;
-	return gzdopen(ctx.openFileUri(filename, IG::IO::AccessHint::UNMAPPED, openFlags | IG::IO::OPEN_TEST).releaseFd(), mode);
+	return gzdopen(ctx.openFileUriFd(filename, openFlags | IG::IO::OPEN_TEST).release(), mode);
 }

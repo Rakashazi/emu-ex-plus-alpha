@@ -27,8 +27,8 @@ TestTableEntry::TestTableEntry(Gfx::GlyphTextureSet *face, SelectDelegate select
 	DualTextMenuItem{{}, {}, face, selectDel}
 {}
 
-void TestTableEntry::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-	Gfx::GC xIndent, IG::_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+void TestTableEntry::draw(Gfx::RendererCommands &cmds, float xPos, float yPos, float xSize, float ySize,
+	float xIndent, IG::_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
 	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 	if(t2.isVisible())

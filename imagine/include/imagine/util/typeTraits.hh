@@ -23,7 +23,7 @@ namespace IG
 template<class T> struct dependentFalse : std::false_type {};
 
 template <class T>
-inline constexpr bool dependentFalseValue = dependentFalse<T>::value;
+constexpr bool dependentFalseValue = dependentFalse<T>::value;
 
 template <class T, T VALUE, int Tag = 0>
 struct ConstantType
@@ -33,6 +33,12 @@ struct ConstantType
 	constexpr ConstantType(auto && ...) {}
 
 	constexpr operator T() const { return VALUE; };
+
+	constexpr auto& operator +=(const auto &) { return *this; }
+	constexpr auto& operator -=(const auto &) { return *this; }
+	constexpr auto& operator *=(const auto &) { return *this; }
+	constexpr auto& operator /=(const auto &) { return *this; }
+	constexpr auto operator<=>(const T &o) const { return VALUE <=> o; };
 };
 
 template <class T, int Tag = 0>
@@ -49,6 +55,12 @@ struct UnusedType
 
 	// can take address of object, but always returns nullptr
 	constexpr T* operator &() const { return nullptr; };
+
+	constexpr auto& operator +=(const auto &) { return *this; }
+	constexpr auto& operator -=(const auto &) { return *this; }
+	constexpr auto& operator *=(const auto &) { return *this; }
+	constexpr auto& operator /=(const auto &) { return *this; }
+	constexpr auto operator<=>(const T &o) const { return T{} <=> o; };
 };
 
 template <class T>
@@ -71,32 +83,32 @@ using UseIf = std::conditional_t<CONDITION, T, UnusedType<T, Tag>>;
 	[[no_unique_address]] IG::UseIf<(c), t, __LINE__> name
 
 // test that a variable's type is used in UseIf and not the UnusedType case
-static constexpr bool used(auto &) { return true; }
+constexpr bool used(auto &) { return true; }
 
-static constexpr bool used(Unused auto &) { return false; }
+constexpr bool used(Unused auto &) { return false; }
 
 // invoke func if v's type is used in UseIf
-static constexpr void doIfUsed(auto &v, auto &&func)
+constexpr void doIfUsed(auto &v, auto &&func)
 {
 	func(v);
 }
 
-static constexpr void doIfUsed(Unused auto &v, auto &&) {}
+constexpr void doIfUsed(Unused auto &v, auto &&) {}
 
 // same as above, but invoke defaultFunc if v's type is unused
-static constexpr auto doIfUsedOr(auto &v, auto &&func, auto &&defaultFunc)
+constexpr auto doIfUsedOr(auto &v, auto &&func, auto &&defaultFunc)
 {
 	return func(v);
 }
 
-static constexpr auto doIfUsedOr(Unused auto &v, auto &&func, auto &&defaultFunc)
+constexpr auto doIfUsedOr(Unused auto &v, auto &&func, auto &&defaultFunc)
 {
 	return defaultFunc();
 }
 
-static constexpr auto &deref(IG::Pointer auto &obj) { return *obj; }
+constexpr auto &deref(IG::Pointer auto &obj) { return *obj; }
 
-static constexpr auto &deref(IG::NotPointer auto &obj) { return obj; }
+constexpr auto &deref(IG::NotPointer auto &obj) { return obj; }
 
 }
 

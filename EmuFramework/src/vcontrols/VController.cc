@@ -59,22 +59,22 @@ VController::VController(IG::ApplicationContext ctx, int faceButtons, int center
 	alpha{DEFAULT_ALPHA}
 {}
 
-Gfx::GC VController::xMMSize(Gfx::GC mm) const
+float VController::xMMSize(float mm) const
 {
 	return windowData().projection.plane().xMMSize(mm);
 }
 
-Gfx::GC VController::yMMSize(Gfx::GC mm) const
+float VController::yMMSize(float mm) const
 {
 	return windowData().projection.plane().yMMSize(mm);
 }
 
-int VController::xMMSizeToPixel(const IG::Window &win, Gfx::GC mm) const
+int VController::xMMSizeToPixel(const IG::Window &win, float mm) const
 {
 	return win.widthMMInPixels(mm);
 }
 
-int VController::yMMSizeToPixel(const IG::Window &win, Gfx::GC mm) const
+int VController::yMMSizeToPixel(const IG::Window &win, float mm) const
 {
 	return win.heightMMInPixels(mm);
 }
@@ -615,7 +615,7 @@ uint16_t VController::buttonSize() const
 	return btnSize;
 }
 
-Gfx::GC VController::buttonGCSize() const
+float VController::buttonGCSize() const
 {
 	return xMMSize(buttonSize() / 100.f);
 }

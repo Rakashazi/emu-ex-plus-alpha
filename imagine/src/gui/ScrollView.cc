@@ -144,7 +144,7 @@ void ScrollView::setContentSize(IG::WP size)
 	scrollBarRect.x = (viewFrame.x2 - scrollBarRightPadding) - scrollBarWidth;
 	scrollBarRect.x2 = scrollBarRect.x + scrollBarWidth;
 	scrollBarRect.y = 0;
-	scrollBarRect.y2 = std::max(10, (int)(viewFrame.ySize() * (viewFrame.ySize() / (Gfx::GC)contentSize.y)));
+	scrollBarRect.y2 = std::max(10, (int)(viewFrame.ySize() * (viewFrame.ySize() / (float)contentSize.y)));
 }
 
 void ScrollView::drawScrollContent(Gfx::RendererCommands &cmds)
@@ -164,7 +164,7 @@ void ScrollView::drawScrollContent(Gfx::RendererCommands &cmds)
 		else
 			cmds.setColor(.5, .5, .5);
 		scrollBarRect.setYPos(
-			IG::remap((Gfx::GC)offset, 0_gc, Gfx::GC(offsetMax), (Gfx::GC)viewRect().y, Gfx::GC(viewRect().y2 - scrollBarRect.ySize())));
+			IG::remap((float)offset, 0.f, float(offsetMax), (float)viewRect().y, float(viewRect().y2 - scrollBarRect.ySize())));
 		GeomRect::draw(cmds, scrollBarRect, projP);
 	}
 }
@@ -212,7 +212,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 				const auto viewFrame = viewRect();
 				if(scrollWholeArea_)
 				{
-					offset = IG::remap((Gfx::GC)e.pos().y, (Gfx::GC)viewFrame.y, (Gfx::GC)viewFrame.y + (Gfx::GC)viewFrame.ySize(), (Gfx::GC)0, (Gfx::GC)offsetMax);
+					offset = IG::remap((float)e.pos().y, (float)viewFrame.y, (float)viewFrame.y + (float)viewFrame.ySize(), 0.f, (float)offsetMax);
 					offset = std::clamp(offset, 0, offsetMax);
 				}
 				else

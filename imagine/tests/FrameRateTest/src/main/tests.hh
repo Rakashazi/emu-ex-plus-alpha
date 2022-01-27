@@ -98,7 +98,7 @@ public:
 	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);
 	void frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::FrameParams frameParams);
 	void prepareDraw(Gfx::Renderer &r);
-	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, Gfx::GC xIndent);
+	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, float xIndent);
 	void finish(Gfx::RendererTask &task, IG::FrameTime frameTime);
 	void setCPUFreqText(std::string_view str);
 	void setCPUUseText(std::string_view str);

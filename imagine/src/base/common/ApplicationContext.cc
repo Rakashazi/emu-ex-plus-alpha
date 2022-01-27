@@ -277,14 +277,19 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(IG::CStringVie
 
 [[gnu::weak]] void ApplicationContext::showSystemCreateDocumentPicker(SystemDocumentPickerDelegate) {}
 
-[[gnu::weak]] FileIO ApplicationContext::openFileUri(IG::CStringView uri, IO::AccessHint access, unsigned openFlags) const
+[[gnu::weak]] FileIO ApplicationContext::openFileUri(IG::CStringView uri, IO::AccessHint access, IODefs::OpenFlags openFlags) const
 {
 	return {uri, access, openFlags};
 }
 
-FileIO ApplicationContext::openFileUri(IG::CStringView uri, unsigned openFlags) const
+FileIO ApplicationContext::openFileUri(IG::CStringView uri, IODefs::OpenFlags openFlags) const
 {
 	return openFileUri(uri, IO::AccessHint::NORMAL, openFlags);
+}
+
+[[gnu::weak]] UniqueFileDescriptor ApplicationContext::openFileUriFd(IG::CStringView uri, IODefs::OpenFlags openFlags) const
+{
+	return PosixIO{uri, openFlags}.releaseFd();
 }
 
 [[gnu::weak]] bool ApplicationContext::fileUriExists(IG::CStringView uri) const

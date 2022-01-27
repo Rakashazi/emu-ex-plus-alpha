@@ -408,8 +408,9 @@ public:
 };
 
 using WindowRect = CoordinateRect<int, true, false>;
-
-using WP = WindowRect::Point2DType;
+using WP = IP;
+using IRect = Rect2<int>;
+using FRect = Rect2<float>;
 
 constexpr static WindowRect makeWindowRectRel(WP pos, WP size)
 {

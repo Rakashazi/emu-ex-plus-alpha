@@ -451,7 +451,7 @@ void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
 	}
 	else // RGBA8888
 	{
-		auto desc = pixFmt == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
+		auto desc = pixFmt == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
 		nativeCol.col32[index] = desc.build(r, g, b, (uint8)0);
 	}
 	//logMsg("set palette %d %X", index, nativeCol[index]);

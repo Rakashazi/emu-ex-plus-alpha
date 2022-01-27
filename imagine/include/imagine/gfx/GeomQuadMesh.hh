@@ -31,7 +31,7 @@ public:
 	void setColorTranslucent(ColorComp a);
 	void setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint32_t i);
 	void setColorTranslucentV(ColorComp a, uint32_t i);
-	void setPos(GC x, GC y, GC x2, GC y2);
+	void setPos(float x, float y, float x2, float y2);
 	IG::ArrayView2<ColVertex> v() const;
 
 protected:

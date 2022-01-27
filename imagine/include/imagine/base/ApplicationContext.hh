@@ -31,6 +31,7 @@
 #include <imagine/util/bitset.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string/CStringView.hh>
+#include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <vector>
 #include <optional>
 
@@ -174,6 +175,7 @@ public:
 	void showSystemCreateDocumentPicker(SystemDocumentPickerDelegate);
 	FileIO openFileUri(IG::CStringView uri, IODefs::AccessHint, IODefs::OpenFlags oFlags = {}) const;
 	FileIO openFileUri(IG::CStringView uri, IODefs::OpenFlags oFlags = {}) const;
+	UniqueFileDescriptor openFileUriFd(IG::CStringView uri, IODefs::OpenFlags oFlags = {}) const;
 	bool fileUriExists(IG::CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const;
 	FS::FileString fileUriDisplayName(IG::CStringView uri) const;

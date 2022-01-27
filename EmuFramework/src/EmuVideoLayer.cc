@@ -56,20 +56,20 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 				gameY /= 2;
 			}
 
-			auto gameAR = Gfx::GC(gameX) / Gfx::GC(gameY);
+			auto gameAR = float(gameX) / float(gameY);
 
 			// avoid overly wide images (SNES, etc.) or tall images (2600, etc.)
 			if(gameAR >= 2)
 			{
 				logMsg("unscaled image too wide, doubling height to compensate");
 				gameY *= 2;
-				gameAR = Gfx::GC(gameX) / Gfx::GC(gameY);
+				gameAR = float(gameX) / float(gameY);
 			}
 			else if(gameAR < 0.8)
 			{
 				logMsg("unscaled image too tall, doubling width to compensate");
 				gameX *= 2;
-				gameAR = Gfx::GC(gameX) / Gfx::GC(gameY);
+				gameAR = float(gameX) / float(gameY);
 			}
 
 			unsigned scaleFactor;
@@ -99,7 +99,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 			if((unsigned)optionImageZoom == optionImageZoomIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height
-				Gfx::GC width = projP.unprojectYSize(gameRect_.ySize()) * (Gfx::GC)aR;
+				float width = projP.unprojectYSize(gameRect_.ySize()) * (float)aR;
 				if(!aR)
 				{
 					width = projP.width();
@@ -112,7 +112,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 				Gfx::GP size = projP.size();
 				if(aR)
 				{
-					size = IG::sizesWithRatioBestFit((Gfx::GC)aR, size.x, size.y);
+					size = IG::sizesWithRatioBestFit((float)aR, size.x, size.y);
 				}
 				gameRectG.x = -size.x/2.;
 				gameRectG.x2 = size.x/2.;
@@ -135,7 +135,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		// apply sub-pixel zoom
 		if(optionImageZoom.val < 100)
 		{
-			auto scaler = (Gfx::GC(optionImageZoom.val) / 100.);
+			auto scaler = (float(optionImageZoom.val) / 100.f);
 			gameRectG.x *= scaler;
 			gameRectG.y *= scaler;
 			gameRectG.x2 *= scaler;
@@ -265,7 +265,7 @@ void EmuVideoLayer::setOverlay(int effect)
 	placeOverlay();
 }
 
-void EmuVideoLayer::setOverlayIntensity(Gfx::GC intensity)
+void EmuVideoLayer::setOverlayIntensity(float intensity)
 {
 	vidImgOverlay.setIntensity(intensity);
 }

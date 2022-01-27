@@ -61,7 +61,7 @@ uint8_t FrameBuffer::getPhosphor(uInt8 c1, uInt8 c2) const
 void FrameBuffer::setTIAPalette(const PaletteArray& palette)
 {
 	logMsg("setTIAPalette");
-	auto desc32 = format == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
+	auto desc32 = format == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
 	iterateTimes(256, i)
 	{
 		uint8_t r = (palette[i] >> 16) & 0xff;
@@ -82,13 +82,10 @@ IG::PixelFormat FrameBuffer::pixelFormat() const
 	return format;
 }
 
-#define TO_RGB(color, red, green, blue) \
-	const uInt8 red = color >> 16; const uInt8 green = color >> 8; const uInt8 blue = color >> 0;
-
 std::array<uInt8, 3> FrameBuffer::getRGBPhosphorTriple(uInt32 c, uInt32 p) const
 {
-  TO_RGB(c, rc, gc, bc);
-  TO_RGB(p, rp, gp, bp);
+	auto [rc, gc, bc, ac] = IG::PIXEL_DESC_RGBA8888_NATIVE.rgba(c);
+	auto [rp, gp, bp, ap] = IG::PIXEL_DESC_RGBA8888_NATIVE.rgba(p);
 
   // Mix current calculated frame with previous displayed frame
   const uInt8 rn = myPhosphorPalette[rc][rp];
@@ -106,7 +103,7 @@ uInt16 FrameBuffer::getRGBPhosphor16(const uInt32 c, const uInt32 p) const
 uInt32 FrameBuffer::getRGBPhosphor32(const uInt32 c, const uInt32 p) const
 {
   auto [rn, gn, bn] = getRGBPhosphorTriple(c, p);
-  return IG::PIXEL_DESC_RGBA8888.nativeOrder().build(rn, gn, bn, (uInt8)0);
+  return IG::PIXEL_DESC_RGBA8888_NATIVE.build(rn, gn, bn, (uInt8)0);
 }
 
 template <int outputBits>

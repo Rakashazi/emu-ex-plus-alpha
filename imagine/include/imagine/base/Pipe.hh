@@ -59,7 +59,7 @@ public:
 				{
 					PosixIO io{fd};
 					bool keep = f(io);
-					io.releaseFd();
+					io.releaseFd().release();
 					return keep;
 				}
 			});
@@ -67,7 +67,7 @@ public:
 
 protected:
 	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
-	std::array<PosixIO, 2> io{-1, -1};
+	std::array<PosixIO, 2> io{};
 	FDEventSource fdSrc{};
 
 	const char *label() const;

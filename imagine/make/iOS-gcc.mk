@@ -39,7 +39,6 @@ LD := $(CXX)
 iosSimulatorSDKsPath := $(CCTOOLS_TOOCHAIN_PATH)/SDK
 iosSDKsPath := $(CCTOOLS_TOOCHAIN_PATH)/SDK
 CPPFLAGS += -I$(firstword $(wildcard $(iosSDKsPath)/iPhoneOS*.sdk/usr/include/c++))
-LDFLAGS_SYSTEM += -Wl,-force_load,$(firstword $(wildcard $(iosSDKsPath)/iPhoneOS*.sdk/usr/lib/arc/libarclite_iphoneos.a))
 else
 XCODE_PATH := $(shell xcode-select --print-path)
 iosSimulatorSDKsPath := $(XCODE_PATH)/Platforms/iPhoneSimulator.platform/Developer/SDKs

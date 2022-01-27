@@ -603,19 +603,15 @@ inline int CPUUpdateTicks(ARM7TDMI &cpu)
     }
 #endif
 
-#ifdef VBAM_USE_SWITICKS
   if (SWITicks) {
     if (SWITicks < cpuLoopTicks)
         cpuLoopTicks = SWITicks;
   }
-#endif
 
-#ifdef VBAM_USE_IRQTICKS
   if (IRQTicks) {
     if (IRQTicks < cpuLoopTicks)
         cpuLoopTicks = IRQTicks;
   }
-#endif
 
   return cpuLoopTicks;
 }
@@ -861,7 +857,7 @@ static bool CPUWriteState(GBASys &gba, gzFile gzFile)
 
 bool CPUWriteState(IG::ApplicationContext ctx, GBASys &gba, const char* file)
 {
-  gzFile gzFile = utilGzOpen(ctx.openFileUri(file, IG::IO::OPEN_CREATE).releaseFd(), "wb");
+  gzFile gzFile = utilGzOpen(ctx.openFileUriFd(file, IG::IO::OPEN_CREATE).release(), "wb");
 
   if (gzFile == NULL) {
     systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"), file);
@@ -947,11 +943,9 @@ static bool CPUReadState(GBASys &gba, gzFile gzFile)
   	intState = false;
   } else {
   	IRQTicks = utilReadInt(gzFile);
-#ifdef VBAM_USE_IRQTICKS
     if (IRQTicks > 0)
       intState = true;
     else
-#endif
     {
       intState = false;
       IRQTicks = 0;
@@ -1059,7 +1053,7 @@ bool CPUReadMemState(GBASys &gba, char *memory, int available)
 
 bool CPUReadState(IG::ApplicationContext ctx, GBASys &gba, const char * file)
 {
-  gzFile gzFile = utilGzOpen(ctx.openFileUri(file, IG::IO::AccessHint::UNMAPPED).releaseFd(), "rb");
+  gzFile gzFile = utilGzOpen(ctx.openFileUriFd(file).release(), "rb");
 
   if (gzFile == NULL)
     return false;
@@ -3791,26 +3785,22 @@ void CPULoop(GBASys &gba, EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *
     	bool cpuBreakLoop = false;
       int remainingTicks = cpuTotalTicks - cpuNextEvent;
 
-#ifdef VBAM_USE_SWITICKS
       if (SWITicks) {
         SWITicks -= clockTicks;
         if (SWITicks < 0)
           SWITicks = 0;
       }
-#endif
 
       clockTicks = cpuNextEvent;
       cpuTotalTicks = 0;
 
     updateLoop:
 
-#ifdef VBAM_USE_IRQTICKS
       if (IRQTicks) {
           IRQTicks -= clockTicks;
         if (IRQTicks < 0)
           IRQTicks = 0;
       }
-#endif
 
       lcdTicks -= clockTicks;
 

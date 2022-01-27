@@ -17,6 +17,7 @@
 
 #include <imagine/base/eventLoopDefs.hh>
 #include <imagine/util/typeTraits.hh>
+#include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <glib.h>
 
 namespace IG
@@ -24,30 +25,41 @@ namespace IG
 
 static const int POLLEV_IN = G_IO_IN, POLLEV_OUT = G_IO_OUT, POLLEV_ERR = G_IO_ERR, POLLEV_HUP = G_IO_HUP;
 
-struct GlibSource : public GSource
+struct PollEventGSource : public GSource
 {
 	PollEventDelegate callback{};
+};
+
+class GlibFDSource
+{
+public:
+	constexpr GlibFDSource() = default;
+	GlibFDSource(GSource *, int fd, GIOCondition events, GMainContext *, gpointer &tagOut);
+	GlibFDSource(GlibFDSource &&o);
+	GlibFDSource &operator=(GlibFDSource &&o);
+	~GlibFDSource();
+	operator PollEventGSource *() const { return static_cast<PollEventGSource*>(src); }
+
+protected:
+	GSource *src{};
+
+	void deinit();
 };
 
 class GlibFDEventSource
 {
 public:
 	constexpr GlibFDEventSource() = default;
-	GlibFDEventSource(int fd) : GlibFDEventSource{nullptr, fd} {}
-	GlibFDEventSource(const char *debugLabel, int fd);
-	GlibFDEventSource(GlibFDEventSource &&o);
-	GlibFDEventSource &operator=(GlibFDEventSource &&o);
-	~GlibFDEventSource();
+	GlibFDEventSource(MaybeUniqueFileDescriptor fd) : GlibFDEventSource{nullptr, std::move(fd)} {}
+	GlibFDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd);
 
 protected:
 	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
-	GSource *source{};
+	GlibFDSource fdSource{};
 	gpointer tag{};
-	int fd_ = -1;
+	MaybeUniqueFileDescriptor fd_{};
 	IG_UseMemberIfOrConstant(Config::DEBUG_BUILD, bool, true, usingGlibSource){};
 
-	bool attachGSource(GSource *, GIOCondition events, GMainContext *);
-	void deinit();
 	const char *label() const;
 };
 

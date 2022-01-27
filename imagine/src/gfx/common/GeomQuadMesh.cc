@@ -104,16 +104,16 @@ void GeomQuadMesh::setColorTranslucentV(ColorComp a, uint32_t i)
 	vPtr[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(vPtr[i].color), VertexColorPixelFormat.g(vPtr[i].color), VertexColorPixelFormat.b(vPtr[i].color), (uint32_t)a);
 }
 
-void GeomQuadMesh::setPos(GC x, GC y, GC x2, GC y2)
+void GeomQuadMesh::setPos(float x, float y, float x2, float y2)
 {
 	uint32_t yVals = verts/xVals;
 	auto vPtr = v().data();
 	iterateTimes(yVals, yIdx)
 		iterateTimes(xVals, xIdx)
 		{
-			vPtr->x = yIdx == 0 ? IG::remap((GC)xIdx, (GC)0, GC(xVals-1), x, x2)
+			vPtr->x = yIdx == 0 ? IG::remap((float)xIdx, 0.f, float(xVals-1), x, x2)
 					: (vPtr-xVals)->x;
-			vPtr->y = xIdx == 0 ? IG::remap((GC)yIdx, (GC)0, GC(yVals-1), y, y2)
+			vPtr->y = xIdx == 0 ? IG::remap((float)yIdx, 0.f, float(yVals-1), y, y2)
 					: (vPtr-xIdx)->y;
 			vPtr++;
 		}

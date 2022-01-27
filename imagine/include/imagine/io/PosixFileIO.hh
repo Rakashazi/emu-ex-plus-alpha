@@ -37,8 +37,8 @@ public:
 	using IOUtilsBase::get;
 
 	constexpr PosixFileIO() = default;
-	PosixFileIO(int fd, IO::AccessHint access, IO::OpenFlags);
-	PosixFileIO(int fd, IO::OpenFlags);
+	PosixFileIO(UniqueFileDescriptor fd, IO::AccessHint access, IO::OpenFlags);
+	PosixFileIO(UniqueFileDescriptor fd, IO::OpenFlags);
 	PosixFileIO(IG::CStringView path, IO::AccessHint access, IO::OpenFlags oFlags = {});
 	PosixFileIO(IG::CStringView path, IO::OpenFlags oFlags = {});
 	explicit operator IO*();
@@ -57,7 +57,7 @@ public:
 	void advise(off_t offset, size_t bytes, IO::Advice advice);
 	explicit operator bool() const;
 	IG::ByteBuffer releaseBuffer();
-	int releaseFd();
+	UniqueFileDescriptor releaseFd();
 
 protected:
 	std::variant<PosixIO, MapIO> ioImpl{};

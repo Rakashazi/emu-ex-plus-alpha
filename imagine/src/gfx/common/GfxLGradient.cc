@@ -47,36 +47,36 @@ void LGradient::setTranslucentStop(ColorComp a, uint32_t i)
 	g.setColorTranslucentV(a, (i*2)+1);
 }
 
-void LGradient::setPos(const LGradientStopDesc *stop, uint32_t stops, GC x, GC y, GC x2, GC y2)
+void LGradient::setPos(std::span<const LGradientStopDesc> stops, float x, float y, float x2, float y2)
 {
-	if(stops != stops_)
+	if(stops.size() != stops_)
 	{
-		assert(stops >= 2);
-		stops_ = stops;
+		assert(stops.size() >= 2);
+		stops_ = stops.size();
 		VertexPos thickness[2]{x, x2};
-		VertexPos stopPos[stops];
-		iterateTimes(stops, i)
+		VertexPos stopPos[stops.size()];
+		iterateTimes(stops.size(), i)
 		{
-			stopPos[i] = stop[i].pos;
+			stopPos[i] = stops[i].pos;
 		}
-		g = {thickness, stopPos, stops};
+		g = {thickness, stopPos, (uint32_t)stops.size()};
 	}
 
 	ColVertex *v = g.v().data();
-	iterateTimes(stops, i)
+	iterateTimes(stops.size(), i)
 	{
 		v[i*2].x = x;
-		v[i*2].y = v[(i*2)+1].y = IG::remap(stop[i].pos, GC(0), GC(1), y, y2);
+		v[i*2].y = v[(i*2)+1].y = IG::remap(stops[i].pos, 0.f, 1.f, y, y2);
 		v[(i*2)+1].x = x2;
 
-		v[i*2].color = stop[i].color;
-		v[(i*2)+1].color = stop[i].color;
+		v[i*2].color = stops[i].color;
+		v[(i*2)+1].color = stops[i].color;
 	}
 }
 
-void LGradient::setPos(const LGradientStopDesc *stop, uint32_t stops, const GCRect &d)
+void LGradient::setPos(std::span<const LGradientStopDesc> stops, GCRect d)
 {
-	 setPos(stop, stops, d.x, d.y2, d.x2, d.y);
+	 setPos(stops, d.x, d.y2, d.x2, d.y);
 }
 
 uint32_t LGradient::stops() const

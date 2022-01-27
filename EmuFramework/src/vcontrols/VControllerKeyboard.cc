@@ -39,11 +39,11 @@ void VControllerKeyboard::setImg(Gfx::Renderer &r, Gfx::TextureSpan img)
 	updateImg(r);
 }
 
-void VControllerKeyboard::place(Gfx::GC btnSize, Gfx::GC yOffset, Gfx::ProjectionPlane projP)
+void VControllerKeyboard::place(float btnSize, float yOffset, Gfx::ProjectionPlane projP)
 {
-	Gfx::GC xSize, ySize;
+	float xSize, ySize;
 	IG::setSizesWithRatioX(xSize, ySize, 3./2., std::min(btnSize*10, projP.width()));
-	Gfx::GC vArea = projP.height() - yOffset*2;
+	float vArea = projP.height() - yOffset*2;
 	if(ySize > vArea)
 	{
 		IG::setSizesWithRatioY(xSize, ySize, 3./2., vArea);

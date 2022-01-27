@@ -243,7 +243,7 @@ bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	osystem->frameBuffer().setPixelFormat(fmt);
 	if(osystem->hasConsole())
 	{
-		osystem->frameBuffer().paletteHandler().setPalette(osystem->settings().getString("palette"));
+		osystem->frameBuffer().paletteHandler().setPalette();
 	}
 	return false;
 }

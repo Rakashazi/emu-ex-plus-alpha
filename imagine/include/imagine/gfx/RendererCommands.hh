@@ -103,7 +103,7 @@ public:
 
 	void setTransformTarget(TransformTargetEnum target);
 	void loadTransform(Mat4 mat);
-	void loadTranslate(GC x, GC y, GC z);
+	void loadTranslate(float x, float y, float z);
 	void loadIdentTransform();
 	void setProjectionMatrix(Mat4 mat);
 

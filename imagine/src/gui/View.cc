@@ -113,7 +113,7 @@ std::optional<bool> ViewManager::needsBackControlOption() const
 	return needsBackControl();
 }
 
-Gfx::GC ViewManager::tableXIndent() const
+float ViewManager::tableXIndent() const
 {
 	return tableXIndent_;
 }

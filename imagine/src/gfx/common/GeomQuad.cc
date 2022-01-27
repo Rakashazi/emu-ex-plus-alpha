@@ -63,7 +63,7 @@ void QuadGeneric<Vtx>::setPos(IG::WindowRect b, ProjectionPlane proj)
 }
 
 template<Vertex Vtx>
-void QuadGeneric<Vtx>::setPosRel(GC x, GC y, GC xSize, GC ySize)
+void QuadGeneric<Vtx>::setPosRel(float x, float y, float xSize, float ySize)
 {
 	setPos({{x, y}, {x+xSize, y+ySize}});
 }

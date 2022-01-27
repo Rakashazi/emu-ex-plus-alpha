@@ -299,7 +299,7 @@ void removeFileHelper(const char* filename)
 gzFile gzopenHelper(const char *filename, const char *mode)
 {
 	unsigned openFlags = IG::stringContains(mode, 'w') ? IG::IO::OPEN_CREATE : 0;
-	return gzdopen(appCtx.openFileUri(filename, IG::IO::AccessHint::UNMAPPED, openFlags | IG::IO::OPEN_TEST).releaseFd(), mode);
+	return gzdopen(appCtx.openFileUriFd(filename, openFlags | IG::IO::OPEN_TEST).release(), mode);
 }
 
 // from logger.h

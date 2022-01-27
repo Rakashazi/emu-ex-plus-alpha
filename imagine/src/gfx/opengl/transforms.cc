@@ -44,7 +44,7 @@ void GLRenderer::setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat) const
 
 void RendererCommands::setProjectionMatrix(Mat4 mat)
 {
-	auto projectionMatRot = winPtr ? (Angle)winData(*winPtr).projAngleM : Angle{};
+	auto projectionMatRot = winPtr ? (float)winData(*winPtr).projAngleM : 0.f;
 	if(projectionMatRot)
 	{
 		logMsg("rotated projection matrix by %f degrees", (double)IG::degrees(projectionMatRot));
@@ -58,7 +58,7 @@ void RendererCommands::setProjectionMatrix(Mat4 mat)
 	}
 }
 
-void Renderer::animateProjectionMatrixRotation(Window &win, Angle srcAngle, Angle destAngle)
+void Renderer::animateProjectionMatrixRotation(Window &win, float srcAngle, float destAngle)
 {
 	winData(win).projAngleM = {srcAngle, destAngle, {}, IG::steadyClockTimestamp(), IG::Milliseconds{165}};
 	win.addOnFrame(
@@ -105,7 +105,7 @@ void RendererCommands::loadTransform(Mat4 mat)
 	#endif
 }
 
-void RendererCommands::loadTranslate(TransformCoordinate x, TransformCoordinate y, TransformCoordinate z)
+void RendererCommands::loadTranslate(float x, float y, float z)
 {
 	loadTransform(Mat4::makeTranslate({x, y, z}));
 }

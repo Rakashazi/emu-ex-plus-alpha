@@ -42,7 +42,7 @@ static FS::file_type makeEntryType(int type)
 	return file_type::unknown;
 }
 
-static constexpr unsigned bufferedIoSize = 32 * 1024;
+static constexpr size_t bufferedIoSize = 32 * 1024;
 
 struct ArchiveControlBlockWithBuffer : public ArchiveControlBlock
 {

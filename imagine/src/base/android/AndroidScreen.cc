@@ -294,17 +294,15 @@ std::vector<double> Screen::supportedFrameRates(ApplicationContext ctx) const
 	auto env = ctx.mainThreadJniEnv();
 	JNI::InstMethod<jobject()> jGetSupportedRefreshRates{env, (jobject)aDisplay, "getSupportedRefreshRates", "()[F"};
 	auto jRates = (jfloatArray)jGetSupportedRefreshRates(env, aDisplay);
-	auto rate = env->GetFloatArrayElements(jRates, 0);
-	auto rates = env->GetArrayLength(jRates);
-	rateVec.reserve(rates);
-	logMsg("screen %d supports %d rate(s):", id_, rates);
-	iterateTimes(rates, i)
+	std::span<jfloat> rates{env->GetFloatArrayElements(jRates, 0), (size_t)env->GetArrayLength(jRates)};
+	rateVec.reserve(rates.size());
+	logMsg("screen %d supports %zu rate(s):", id_, rates.size());
+	for(auto r : rates)
 	{
-		double r = rate[i];
 		logMsg("%f", r);
 		rateVec.emplace_back(r);
 	}
-	env->ReleaseFloatArrayElements(jRates, rate, 0);
+	env->ReleaseFloatArrayElements(jRates, rates.data(), 0);
 	return rateVec;
 }
 

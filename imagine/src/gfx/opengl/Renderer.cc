@@ -110,14 +110,14 @@ bool GLRenderer::attachWindow(Window &win, GLBufferConfig bufferConfig, GLColorS
 	{
 		if(!Config::SYSTEM_ROTATES_WINDOWS)
 		{
-			rData.projAngleM = orientationToGC(win.softOrientation());
+			rData.projAngleM = orientationRadians(win.softOrientation());
 			win.appContext().setOnDeviceOrientationChanged(
 				[this, &win](ApplicationContext, Orientation newO)
 				{
 					auto oldWinO = win.softOrientation();
 					if(win.requestOrientationChange(newO))
 					{
-						static_cast<Renderer*>(this)->animateProjectionMatrixRotation(win, orientationToGC(oldWinO), orientationToGC(newO));
+						static_cast<Renderer*>(this)->animateProjectionMatrixRotation(win, orientationRadians(oldWinO), orientationRadians(newO));
 					}
 				});
 		}
@@ -126,7 +126,7 @@ bool GLRenderer::attachWindow(Window &win, GLBufferConfig bufferConfig, GLColorS
 			win.appContext().setOnSystemOrientationChanged(
 				[this, &win](ApplicationContext, Orientation oldO, Orientation newO) // TODO: parameters need proper type definitions in API
 				{
-					const Angle orientationDiffTable[4][4]
+					const float orientationDiffTable[4][4]
 					{
 						{0, angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90)},
 						{angleFromDegree(-90), 0, angleFromDegree(90), angleFromDegree(-180)},

@@ -67,31 +67,12 @@ namespace IG
 TimerFD::TimerFD(const char *debugLabel, CallbackDelegate c):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
 	callback_{std::make_unique<CallbackDelegate>(c)},
-	fdSrc{label(), timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC)}
+	fdSrc{label(), UniqueFileDescriptor{timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC)}}
 {
 	if(fdSrc.fd() == -1)
 	{
 		logErr("error creating timerfd");
 	}
-}
-
-TimerFD::TimerFD(TimerFD &&o)
-{
-	*this = std::move(o);
-}
-
-TimerFD &TimerFD::operator=(TimerFD &&o)
-{
-	deinit();
-	fdSrc = std::move(o.fdSrc);
-	callback_ = std::move(o.callback_);
-	debugLabel = o.debugLabel;
-	return *this;
-}
-
-TimerFD::~TimerFD()
-{
-	deinit();
 }
 
 bool TimerFD::arm(timespec time, timespec repeatInterval, int flags, EventLoop loop)
@@ -123,14 +104,6 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, int flags, EventLoop l
 		return false;
 	}
 	return true;
-}
-
-void TimerFD::deinit()
-{
-	if(fdSrc.fd() == -1)
-		return;
-	logMsg("closing fd:%d (%s)", fdSrc.fd(), label());
-	fdSrc.closeFD();
 }
 
 void Timer::run(Time time, Time repeatTime, bool isAbsTime, EventLoop loop, CallbackDelegate callback)

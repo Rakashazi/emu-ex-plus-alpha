@@ -13,7 +13,7 @@ class RendererCommands;
 class ProjectionPlane;
 
 template<class Vtx>
-static constexpr auto mapQuadUV(std::array<Vtx, 4> v, GTexCRect rect)
+static constexpr auto mapQuadUV(std::array<Vtx, 4> v, FRect rect)
 {
 	v[0].u = rect.x;  v[0].v = rect.y2; //BL
 	v[1].u = rect.x;  v[1].v = rect.y;  //TL
@@ -54,7 +54,7 @@ public:
 		setPos(posRect);
 	}
 
-	constexpr QuadGeneric(GCRect posRect, GTexCRect uvRect)
+	constexpr QuadGeneric(GCRect posRect, FRect uvRect)
 	{
 		setPos(posRect);
 		setUV(uvRect);
@@ -80,9 +80,9 @@ public:
 	}
 
 	void setPos(IG::WindowRect b, ProjectionPlane proj);
-	void setPosRel(GC x, GC y, GC xSize, GC ySize);
+	void setPosRel(float x, float y, float xSize, float ySize);
 
-	constexpr void setUV(GTexCRect rect)
+	constexpr void setUV(FRect rect)
 	{
 		if constexpr(!Vtx::hasTexture)
 		{

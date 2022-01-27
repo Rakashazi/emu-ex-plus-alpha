@@ -100,7 +100,7 @@ protected:
 	int nextSelectableElement(int start, int items);
 	int prevSelectableElement(int start, int items);
 	bool handleTableInput(Input::Event e, bool &movedSelected);
-	virtual void drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const;
+	virtual void drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const;
 };
 
 }

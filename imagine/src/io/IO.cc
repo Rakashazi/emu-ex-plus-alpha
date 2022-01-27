@@ -222,7 +222,7 @@ ssize_t readFromPath(IG::CStringView path, std::span<unsigned char> dest, IO::Ac
 	return f.read(dest.data(), dest.size());
 }
 
-IG::ByteBuffer bufferFromPath(IG::CStringView path, unsigned openFlags, size_t sizeLimit)
+IG::ByteBuffer bufferFromPath(IG::CStringView path, IO::OpenFlags openFlags, size_t sizeLimit)
 {
 	FileIO file{path, IO::AccessHint::ALL, openFlags};
 	if(!file)

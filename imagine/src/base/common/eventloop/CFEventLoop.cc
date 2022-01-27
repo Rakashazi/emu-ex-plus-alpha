@@ -53,12 +53,12 @@ void CFFDEventSourceInfo::detachSource()
 	loop = {};
 }
 
-CFFDEventSource::CFFDEventSource(const char *debugLabel, int fd):
+CFFDEventSource::CFFDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
 	info{std::make_unique<CFFDEventSourceInfo>()}
 {
 	CFFileDescriptorContext ctx{.info = info.get()};
-	info->fdRef = CFFileDescriptorCreate(kCFAllocatorDefault, fd, false,
+	info->fdRef = CFFileDescriptorCreate(kCFAllocatorDefault, fd.release(), fd.ownsFd(),
 		eventCallback, &ctx);
 }
 
@@ -151,15 +151,6 @@ int FDEventSource::fd() const
 {
 	assumeExpr(info);
 	return info->fdRef ? CFFileDescriptorGetNativeDescriptor(info->fdRef) : -1;
-}
-
-void FDEventSource::closeFD()
-{
-	int fd_ = fd();
-	if(fd_ == -1)
-		return;
-	deinit();
-	close(fd_);
 }
 
 void CFFDEventSource::deinit()

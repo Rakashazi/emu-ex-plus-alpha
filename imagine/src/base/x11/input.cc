@@ -233,22 +233,22 @@ void XApplication::initInputSystem()
 	vkbDevice = &addInputDevice(std::make_unique<XInputDevice>(Input::Device::TYPE_BIT_VIRTUAL | Input::Device::TYPE_BIT_KEYBOARD | Input::Device::TYPE_BIT_KEY_MISC, "Virtual"));
 	int devices;
 	::XIDeviceInfo *device = XIQueryDevice(dpy, XIAllDevices, &devices);
-	iterateTimes(devices, i)
+	for(auto &d : std::span<::XIDeviceInfo>{device, (size_t)devices})
 	{
-		if(device[i].use == XIMasterPointer || device[i].use == XISlaveKeyboard)
+		if(d.use == XIMasterPointer || d.use == XISlaveKeyboard)
 		{
 			/*logMsg("Device %s (id: %d) %s paired to id %d",
-				device[i].name, device[i].deviceid, xInputDeviceTypeToStr(device[i].use), device[i].attachment);*/
+				d.name, d.deviceid, xInputDeviceTypeToStr(d.use), d.attachment);*/
 		}
-		switch(device[i].use)
+		switch(d.use)
 		{
 			bcase XIMasterPointer:
 			{
-				addXInputDevice({device[i]}, false, true);
+				addXInputDevice({d}, false, true);
 			}
 			bcase XISlaveKeyboard:
 			{
-				addXInputDevice({device[i]}, false, false);
+				addXInputDevice({d}, false, false);
 			}
 		}
 	}
@@ -296,12 +296,12 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 	{
 		//logMsg("input device hierarchy changed");
 		auto &ev = *((XIHierarchyEvent*)cookie->data);
-		iterateTimes(ev.num_info, i)
+		for(auto &info : std::span<XIHierarchyInfo>{ev.info, (size_t)ev.num_info})
 		{
-			if(ev.info[i].flags & XISlaveAdded)
+			if(info.flags & XISlaveAdded)
 			{
 				int devices;
-				::XIDeviceInfo *device = XIQueryDevice(dpy, ev.info[i].deviceid, &devices);
+				::XIDeviceInfo *device = XIQueryDevice(dpy, info.deviceid, &devices);
 				if(devices)
 				{
 					if(device->use == XISlaveKeyboard)
@@ -312,9 +312,9 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 					XIFreeDeviceInfo(device);
 				}
 			}
-			else if(ev.info[i].flags & XISlaveRemoved)
+			else if(info.flags & XISlaveRemoved)
 			{
-				removeInputDeviceIf([&](auto &devPtr){ return hasXInputDeviceId(*devPtr, ev.info[i].deviceid); }, true);
+				removeInputDeviceIf([&](auto &devPtr){ return hasXInputDeviceId(*devPtr, info.deviceid); }, true);
 			}
 		}
 		return true;

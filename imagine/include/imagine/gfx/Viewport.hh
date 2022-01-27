@@ -80,8 +80,8 @@ public:
 
 private:
 	IG::WindowRect rect;
-	int w = 0, h = 0;
-	float wMM = 0, hMM = 0;
+	int w{}, h{};
+	float wMM{}, hMM{};
 	IG::Rect2<int> relYFlipViewport;
 	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation,
 		VIEW_ROTATE_0, softOrientation_){VIEW_ROTATE_0};

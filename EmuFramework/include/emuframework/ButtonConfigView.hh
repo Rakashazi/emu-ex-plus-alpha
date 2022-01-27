@@ -66,8 +66,8 @@ private:
 	struct BtnConfigMenuItem : public DualTextMenuItem
 	{
 		using DualTextMenuItem::DualTextMenuItem;
-		void draw(Gfx::RendererCommands &, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-			Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const final;
+		void draw(Gfx::RendererCommands &, float xPos, float yPos, float xSize, float ySize,
+			float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const final;
 	};
 
 	InputManagerView &rootIMView;

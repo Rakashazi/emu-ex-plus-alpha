@@ -91,7 +91,7 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, unsigned effect_)
 	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
-void VideoImageOverlay::setIntensity(Gfx::GC i)
+void VideoImageOverlay::setIntensity(float i)
 {
 	intensity = i;
 }
@@ -103,19 +103,19 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, unsigned lines)
 	using namespace IG::Gfx;
 	//logMsg("placing overlay with %u lines in image", lines);
 	spr.setPos(disp);
-	GTexC width = lines*(EmuSystem::aspectRatioInfo[0].aspect.x/(float)EmuSystem::aspectRatioInfo[0].aspect.y);
+	auto width = lines*(EmuSystem::aspectRatioInfo[0].aspect.x/(float)EmuSystem::aspectRatioInfo[0].aspect.y);
 	switch(effect)
 	{
 		bcase SCANLINES:
-			spr.setImg({&img, {{}, {1.0, (Gfx::GTexC)lines}}});
+			spr.setImg({&img, {{}, {1.0f, (float)lines}}});
 		bcase SCANLINES_2:
-			spr.setImg({&img, {{}, {1.0, lines*2._gtexc}}});
+			spr.setImg({&img, {{}, {1.0f, lines*2.f}}});
 		bcase CRT:
-			spr.setImg({&img, {{}, {width/2._gtexc, lines/2._gtexc}}});
+			spr.setImg({&img, {{}, {width/2.f, lines/2.f}}});
 		bcase CRT_RGB:
-			spr.setImg({&img, {{}, {width/2._gtexc, (Gfx::GTexC)lines}}});
+			spr.setImg({&img, {{}, {width/2.f, (float)lines}}});
 		bcase CRT_RGB_2:
-			spr.setImg({&img, {{}, {width/2._gtexc, lines*2._gtexc}}});
+			spr.setImg({&img, {{}, {width/2.f, lines*2.f}}});
 	}
 }
 

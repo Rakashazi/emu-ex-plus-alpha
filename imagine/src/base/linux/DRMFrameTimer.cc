@@ -42,7 +42,7 @@ DRMFrameTimer::DRMFrameTimer(Screen &screen, EventLoop loop)
 		logErr("error opening device:%s", std::system_category().message(errno).c_str());
 		return;
 	}
-	fdSrc = {"DRMFrameTimer", fd.release(), loop,
+	fdSrc = {"DRMFrameTimer", std::move(fd), loop,
 		[this, &screen](int fd, int event)
 		{
 			requested = false;
@@ -73,11 +73,6 @@ DRMFrameTimer::DRMFrameTimer(Screen &screen, EventLoop loop)
 			}
 			return true;
 		}};
-}
-
-DRMFrameTimer::~DRMFrameTimer()
-{
-	fdSrc.closeFD();
 }
 
 void DRMFrameTimer::scheduleVSync()

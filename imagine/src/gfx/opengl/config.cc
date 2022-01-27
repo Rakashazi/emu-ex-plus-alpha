@@ -33,7 +33,7 @@
 namespace IG::Gfx
 {
 
-Gfx::GC orientationToGC(Orientation o)
+float orientationRadians(Orientation o)
 {
 	switch(o)
 	{
@@ -686,7 +686,7 @@ void Renderer::setWindowValidOrientations(Window &win, Orientation validO)
 	auto oldWinO = win.softOrientation();
 	if(win.setValidOrientations(validO) && !Config::SYSTEM_ROTATES_WINDOWS)
 	{
-		animateProjectionMatrixRotation(win, orientationToGC(oldWinO), orientationToGC(win.softOrientation()));
+		animateProjectionMatrixRotation(win, orientationRadians(oldWinO), orientationRadians(win.softOrientation()));
 	}
 	updateSensorStateForWindowOrientations(win);
 }

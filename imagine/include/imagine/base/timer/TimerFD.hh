@@ -33,16 +33,12 @@ public:
 	constexpr TimerFD() = default;
 	TimerFD(CallbackDelegate c) : TimerFD{nullptr, c} {}
 	TimerFD(const char *debugLabel, CallbackDelegate c);
-	TimerFD(TimerFD &&o);
-	TimerFD &operator=(TimerFD &&o);
-	~TimerFD();
 
 protected:
 	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 	std::unique_ptr<CallbackDelegate> callback_{};
 	FDEventSource fdSrc{};
 
-	void deinit();
 	bool arm(timespec ms, timespec repeatInterval, int flags, EventLoop loop);
 	const char *label();
 };

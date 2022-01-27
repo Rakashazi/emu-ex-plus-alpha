@@ -29,7 +29,6 @@ class DRMFrameTimer : public FrameTimerI
 public:
 	constexpr DRMFrameTimer() = default;
 	DRMFrameTimer(Screen &screen, EventLoop loop = {});
-	~DRMFrameTimer() final;
 	void scheduleVSync() final;
 	void cancel() final;
 	static bool testSupport();

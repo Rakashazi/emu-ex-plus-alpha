@@ -30,9 +30,6 @@ public:
 	explicit constexpr FDCustomEvent(NullInit) {}
 	FDCustomEvent() : FDCustomEvent{nullptr} {}
 	FDCustomEvent(const char *debugLabel);
-	FDCustomEvent(FDCustomEvent &&o);
-	FDCustomEvent &operator=(FDCustomEvent &&o);
-	~FDCustomEvent();
 	void attach(EventLoop loop, PollEventDelegate del);
 
 	void attach(auto &&f)
@@ -59,7 +56,6 @@ protected:
 	FDEventSource fdSrc{};
 
 	const char *label();
-	void deinit();
 	static bool shouldPerformCallback(int fd);
 };
 

@@ -98,7 +98,6 @@ FBDevFrameTimer::~FBDevFrameTimer()
 	quiting = true;
 	sem.release();
 	thread.join();
-	fdSrc.closeFD();
 }
 
 void FBDevFrameTimer::scheduleVSync()

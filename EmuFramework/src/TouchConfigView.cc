@@ -218,18 +218,18 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
 	vController().draw(cmds, false, true, .75);
 	cmds.setColor(.5, .5, .5);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
-	Gfx::GC lineSize = projP.unprojectYSize(1);
-	GeomRect::draw(cmds, Gfx::GCRect{{-projP.wHalf(), -lineSize/(Gfx::GC)2.},
-		{projP.wHalf(), lineSize/(Gfx::GC)2.}});
+	float lineSize = projP.unprojectYSize(1);
+	GeomRect::draw(cmds, Gfx::GCRect{{-projP.wHalf(), -lineSize/2.f},
+		{projP.wHalf(), lineSize/2.f}});
 	lineSize = projP.unprojectYSize(1);
-	GeomRect::draw(cmds, Gfx::GCRect{{-lineSize/(Gfx::GC)2., -projP.hHalf()},
-		{lineSize/(Gfx::GC)2., projP.hHalf()}});
+	GeomRect::draw(cmds, Gfx::GCRect{{-lineSize/2.f, -projP.hHalf()},
+		{lineSize/2.f, projP.hHalf()}});
 
 	if(textFade != 0.)
 	{
 		cmds.setColor(0., 0., 0., textFade/2.);
-		GeomRect::draw(cmds, Gfx::makeGCRectRel({-text.width()/(Gfx::GC)2. - text.spaceWidth(), -text.height()/(Gfx::GC)2. - text.spaceWidth()},
-			{text.width() + text.spaceWidth()*(Gfx::GC)2., text.height() + text.spaceWidth()*(Gfx::GC)2.}));
+		GeomRect::draw(cmds, Gfx::makeGCRectRel({-text.width()/2.f - text.spaceWidth(), -text.height()/2.f - text.spaceWidth()},
+			{text.width() + text.spaceWidth()*2.f, text.height() + text.spaceWidth()*2.f}));
 		cmds.setColor(1., 1., 1., textFade);
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 		text.draw(cmds, projP.unProjectRect(viewRect()).pos(C2DO), C2DO, projP);
