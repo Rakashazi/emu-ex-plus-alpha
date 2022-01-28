@@ -112,7 +112,7 @@ uInt8 Cartridge4A50::peek(uInt16 address)
     else if((address & 0x1f00) == 0x1f00)      // 256B region from 0x1f00 - 0x1fff
     {
       value = myImage[(address & 0xff) + 0x1ff00];
-      if(!bankLocked() && ((myLastData & 0xe0) == 0x60) &&
+      if(!hotspotsLocked() && ((myLastData & 0xe0) == 0x60) &&
          ((myLastAddress >= 0x1000) || (myLastAddress < 0x200)))
         mySliceHigh = (mySliceHigh & 0xf0ff) | ((address & 0x8) << 8) |
                       ((address & 0x70) << 4);
@@ -167,7 +167,7 @@ bool Cartridge4A50::poke(uInt16 address, uInt8 value)
     }
     else if((address & 0x1f00) == 0x1f00)      // 256B region at 0x1f00 - 0x1fff
     {
-      if(!bankLocked() && ((myLastData & 0xe0) == 0x60) &&
+      if(!hotspotsLocked() && ((myLastData & 0xe0) == 0x60) &&
          ((myLastAddress >= 0x1000) || (myLastAddress < 0x200)))
       {
         mySliceHigh = (mySliceHigh & 0xf0ff) | ((address & 0x8) << 8) |
@@ -250,7 +250,7 @@ void Cartridge4A50::setAccessFlags(uInt16 address, Device::AccessFlags flags)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Cartridge4A50::checkBankSwitch(uInt16 address, uInt8 value)
 {
-  if(bankLocked()) return;
+  if(hotspotsLocked()) return;
 
   // This scheme contains so many hotspots that it's easier to just check
   // all of them

@@ -38,7 +38,7 @@ class TrakBall : public PointingDevice
     /**
       Returns the name of this controller.
     */
-    string name() const override { return "TrakBall"; }
+    string name() const override { return "Trak-Ball"; }
 
   protected:
     uInt8 ioPortA(uInt8 countH, uInt8 countV, uInt8 left, uInt8 down) override

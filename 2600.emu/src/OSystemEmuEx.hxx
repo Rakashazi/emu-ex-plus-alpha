@@ -51,8 +51,7 @@ public:
 	void makeConsole(unique_ptr<Cartridge>& cart, const Properties& props, const char *gamePath);
 	void deleteConsole();
 	void setFrameTime(double frameTime, int rate);
-	void setResampleQuality(AudioSettings::ResamplingQuality quality);
-	void processAudio(EmuEx::EmuAudio *audio);
+	SoundEmuEx &soundEmuEx() const { return *mySound; }
 
 	Console& console() const { return *myConsole; }
 

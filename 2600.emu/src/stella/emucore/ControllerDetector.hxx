@@ -125,6 +125,9 @@ class ControllerDetector
     static bool isProbablyQuadTari(const ByteBuffer& image, size_t size,
                                    Controller::Jack port);
 
+    // Returns true if a Kid Vid code pattern is found.
+    static bool isProbablyKidVid(const ByteBuffer& image, size_t size,
+                                   Controller::Jack port);
   private:
     // Following constructors and assignment operators not supported
     ControllerDetector() = delete;

@@ -20,7 +20,6 @@
 #endif
 #include "MD5.hxx"
 #include "System.hxx"
-#include "Thumbulator.hxx"
 #include "CartDPCPlus.hxx"
 #include "TIA.hxx"
 #include "exception/FatalEmulationError.hxx"
@@ -28,7 +27,7 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeDPCPlus::CartridgeDPCPlus(const ByteBuffer& image, size_t size,
                                    const string& md5, const Settings& settings)
-  : Cartridge(settings, md5),
+  : CartridgeARM(md5, settings),
     myImage{make_unique<uInt8[]>(32_KB)},
     mySize{std::min(size, 32_KB)}
 {
@@ -58,6 +57,8 @@ CartridgeDPCPlus::CartridgeDPCPlus(const ByteBuffer& image, size_t size,
       0x00000C08,
       0x40001FDC,
        devSettings ? settings.getBool("dev.thumb.trapfatal") : false,
+       devSettings ? static_cast<double>(
+          settings.getFloat("dev.thumb.cyclefactor")) : 1.0,
        Thumbulator::ConfigureFor::DPCplus,
        this);
 
@@ -78,6 +79,11 @@ CartridgeDPCPlus::CartridgeDPCPlus(const ByteBuffer& image, size_t size,
     myFractionalLowMask = 0x0F0000;
 
   setInitialState();
+
+  myPlusROM = make_unique<PlusROM>(mySettings, *this);
+
+  // Determine whether we have a PlusROM cart
+  myPlusROM->initialize(myImage, mySize);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -90,6 +96,8 @@ void CartridgeDPCPlus::reset()
 
   // Upon reset we switch to the startup bank
   bank(startBank());
+
+  CartridgeARM::reset();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -118,12 +126,8 @@ void CartridgeDPCPlus::setInitialState()
   myFastFetch = myLDAimmediate = false;
   myAudioCycles = myARMCycles = 0;
   myFractionalClocks = 0.0;
-}
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeDPCPlus::consoleChanged(ConsoleTiming timing)
-{
-  myThumbEmulator->setConsoleTiming(timing);
+  CartridgeARM::setInitialState();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -165,7 +169,7 @@ inline void CartridgeDPCPlus::updateMusicModeDataFetchers()
   myAudioCycles = mySystem->cycles();
 
   // Calculate the number of DPC+ OSC clocks since the last update
-  double clocks = ((20000.0 * cycles) / 1193191.66666667) + myFractionalClocks;
+  double clocks = ((20000.0 * cycles) / myClockRate) + myFractionalClocks;
   uInt32 wholeClocks = uInt32(clocks);
   myFractionalClocks = clocks - double(wholeClocks);
 
@@ -200,10 +204,11 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
               // time for Stella as ARM code "runs in zero 6507 cycles".
     case 255: // call without IRQ driven audio
       try {
-        Int32 cycles = Int32(mySystem->cycles() - myARMCycles);
-        myARMCycles = mySystem->cycles();
+        uInt32 cycles = uInt32(mySystem->cycles() - myARMCycles);
 
-        myThumbEmulator->run(cycles);
+        myARMCycles = mySystem->cycles();
+        myThumbEmulator->run(cycles, value == 254);
+        updateCycles(cycles);
       }
       catch(const runtime_error& e) {
         if(!mySystem->autodetectMode())
@@ -220,6 +225,14 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 CartridgeDPCPlus::peek(uInt16 address)
 {
+  // Is this a PlusROM?
+  if(myPlusROM->isValid())
+  {
+    uInt8 value = 0;
+    if(myPlusROM->peekHotspot(address, value))
+      return value;
+  }
+
   address &= 0x0FFF;
 
   uInt8 peekvalue = myProgramImage[myBankOffset + address];
@@ -227,7 +240,7 @@ uInt8 CartridgeDPCPlus::peek(uInt16 address)
 
   // In debugger/bank-locked mode, we ignore all hotspots and in general
   // anything that can change the internal state of the cart
-  if(bankLocked())
+  if(hotspotsLocked())
     return peekvalue;
 
   // Check if we're in Fast Fetch mode and the prior byte was an A9 (LDA #value)
@@ -407,6 +420,10 @@ uInt8 CartridgeDPCPlus::peek(uInt16 address)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeDPCPlus::poke(uInt16 address, uInt8 value)
 {
+  // Is this a PlusROM?
+  if(myPlusROM->isValid() && myPlusROM->pokeHotspot(address, value))
+    return true;
+
   address &= 0x0FFF;
 
   if((address >= 0x0028) && (address < 0x0080))
@@ -597,7 +614,7 @@ bool CartridgeDPCPlus::poke(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeDPCPlus::bank(uInt16 bank, uInt16)
 {
-  if(bankLocked()) return false;
+  if(hotspotsLocked()) return false;
 
   // Remember what bank we're in
   myBankOffset = bank << 12;
@@ -710,6 +727,8 @@ bool CartridgeDPCPlus::save(Serializer& out) const
 
     // Clock info for Thumbulator
     out.putLong(myARMCycles);
+
+    CartridgeARM::save(out);
   }
   catch(...)
   {
@@ -771,6 +790,8 @@ bool CartridgeDPCPlus::load(Serializer& in)
 
     // Clock info for Thumbulator
     myARMCycles = in.getLong();
+
+    CartridgeARM::load(in);
   }
   catch(...)
   {

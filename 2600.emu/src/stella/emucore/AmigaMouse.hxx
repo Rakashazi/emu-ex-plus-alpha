@@ -38,7 +38,7 @@ class AmigaMouse : public PointingDevice
     /**
       Returns the name of this controller.
     */
-    string name() const override { return "AmigaMouse"; }
+    string name() const override { return "Amiga mouse"; }
 
   protected:
     uInt8 ioPortA(uInt8 countH, uInt8 countV, uInt8, uInt8) override

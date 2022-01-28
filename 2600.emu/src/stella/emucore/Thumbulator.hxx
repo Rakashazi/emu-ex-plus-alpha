@@ -32,7 +32,6 @@ class Cartridge;
 
 #ifdef RETRON77
   #define UNSAFE_OPTIMIZATIONS
-  #define NO_THUMB_STATS
 #endif
 
 #define ROMADDMASK 0x7FFFF
@@ -45,6 +44,17 @@ class Cartridge;
 #define CPSR_Z (1u<<30)
 #define CPSR_C (1u<<29)
 #define CPSR_V (1u<<28)
+
+#ifdef DEBUGGER_SUPPORT
+  #define THUMB_CYCLE_COUNT
+  //#define COUNT_OPS
+  #define THUMB_STATS
+#endif
+
+#ifdef THUMB_CYCLE_COUNT
+  //#define EMULATE_PIPELINE  // enable coarse ARM pipeline emulation (TODO)
+  #define TIMER_0           // enable timer 0 support (e.g. for measuring cycle count)
+#endif
 
 class Thumbulator
 {
@@ -59,16 +69,37 @@ class Thumbulator
       CDFJplus, // cartridges of type CDFJ+
       DPCplus   // cartridges of type DPC+
     };
-
+    enum class ChipType {
+      LPC2101,    // Harmony (includes LPC2103)
+      LPC2104_OC, // Dev cart overclocked (includes LPC2105)
+      LPC2104,    // Dev cart (includes LPC2105)
+      LPC213x,    // future use (includes LPC2132)
+      numTypes
+    };
+    enum class MamModeType {
+      mode0, mode1, mode2, modeX
+    };
+    struct ChipPropsType {
+      double MHz;
+      uInt32 flashCycles;
+      uInt32 flashBanks;
+    };
     struct Stats {
-    #ifndef NO_THUMB_STATS
-      uInt32 fetches{0}, reads{0}, writes{0};
+      uInt32 instructions{0};
+    #ifdef THUMB_STATS
+      uInt32 reads{0}, writes{0};
+      uInt32 nCylces{0}, sCylces{0}, iCylces{0};
+      uInt32 branches{0}, taken{0};
+      uInt32 mamPrefetchHits{0}, mamPrefetchMisses{0};
+      uInt32 mamBranchHits{0}, mamBranchMisses{0};
+      uInt32 mamDataHits{0}, mamDataMisses{0};
     #endif
     };
 
     Thumbulator(const uInt16* rom_ptr, uInt16* ram_ptr, uInt32 rom_size,
                 const uInt32 c_base, const uInt32 c_start, const uInt32 c_stack,
-                bool traponfatal, Thumbulator::ConfigureFor configurefor,
+                bool traponfatal, double cyclefactor,
+                Thumbulator::ConfigureFor configurefor,
                 Cartridge* cartridge);
 
     /**
@@ -79,11 +110,24 @@ class Thumbulator
       @return  The results of any debugging output (if enabled),
                otherwise an empty string
     */
-    string run();
-    string run(uInt32 cycles);
+    string run(uInt32& cycles, bool irqDrivenAudio);
+    void enableCycleCount(bool enable) { _countCycles = enable; }
     const Stats& stats() const { return _stats; }
+    uInt32 cycles() const { return _totalCycles; }
+    ChipPropsType setChipType(ChipType type);
+    void setMamMode(MamModeType mode) { mamcr = mode; }
+    void lockMamMode(bool lock) { _lockMamcr = lock; }
+    MamModeType mamMode() const { return static_cast<MamModeType>(mamcr); }
 
-#ifndef UNSAFE_OPTIMIZATIONS
+  #ifdef THUMB_CYCLE_COUNT
+    void cycleFactor(double factor) { _armCyclesFactor = factor; }
+    double cycleFactor() const { return _armCyclesFactor; }
+  #else
+    void cycleFactor(double) { }
+    double cycleFactor() const { return 1.0; }
+  #endif
+
+  #ifndef UNSAFE_OPTIMIZATIONS
     /**
       Normally when a fatal error is encountered, the ARM emulation
       immediately throws an exception and exits.  This method allows execution
@@ -96,8 +140,8 @@ class Thumbulator
 
       @param enable  Enable (the default) or disable exceptions on fatal errors
     */
-    static void trapFatalErrors(bool enable) { trapOnFatal = enable; }
-#endif
+    void trapFatalErrors(bool enable) { trapOnFatal = enable; }
+  #endif
 
     /**
       Inform the Thumbulator class about the console currently in use,
@@ -155,18 +199,35 @@ class Thumbulator
       sxth,
       tst,
       uxtb,
-      uxth
+      uxth,
+      numOps
     };
+  #ifdef THUMB_CYCLE_COUNT
+    enum class CycleType {
+      S, N, I // Sequential, Non-sequential, Internal
+    };
+    enum class AccessType {
+      prefetch, branch, data
+    };
+  #endif
+    const std::array<ChipPropsType, uInt32(ChipType::numTypes)> ChipProps =
+    {{
+      { 70.0, 4, 1 }, // LPC2101_02_03
+      { 70.0, 4, 2 }, // LPC2104_05_06 Overclocked
+      { 60.0, 3, 2 }, // LPC2104_05_06
+      { 60.0, 3, 1 }, // LPC2132..
+    }};
 
   private:
+    string doRun(uInt32& cycles, bool irqDrivenAudio);
     uInt32 read_register(uInt32 reg);
-    void write_register(uInt32 reg, uInt32 data);
+    void write_register(uInt32 reg, uInt32 data, bool isFlowBreak = true);
     uInt32 fetch16(uInt32 addr);
     uInt32 read16(uInt32 addr);
     uInt32 read32(uInt32 addr);
-#ifndef UNSAFE_OPTIMIZATIONS
+  #ifndef UNSAFE_OPTIMIZATIONS
     bool isProtected(uInt32 addr);
-#endif
+  #endif
     void write16(uInt32 addr, uInt32 data);
     void write32(uInt32 addr, uInt32 data);
     void updateTimer(uInt32 cycles);
@@ -180,7 +241,7 @@ class Thumbulator
     void do_cflag_bit(uInt32 x);
     void do_vflag_bit(uInt32 x);
 
-#ifndef UNSAFE_OPTIMIZATIONS
+  #ifndef UNSAFE_OPTIMIZATIONS
     // Throw a runtime_error exception containing an error referencing the
     // given message and variables
     // Note that the return value is never used in these methods
@@ -189,9 +250,17 @@ class Thumbulator
 
     void dump_counters();
     void dump_regs();
-#endif
+  #endif
     int execute();
     int reset();
+
+  #ifdef THUMB_CYCLE_COUNT
+    bool isMamBuffered(uInt32 addr, AccessType = AccessType::data);
+    void incCycles(AccessType accessType, uInt32 cycles);
+    void incSCycles(uInt32 addr, AccessType = AccessType::data);
+    void incNCycles(uInt32 addr, AccessType = AccessType::data);
+    void incICycles(uInt32 m = 1);
+  #endif
 
   private:
     const uInt16* rom{nullptr};
@@ -202,26 +271,60 @@ class Thumbulator
     const unique_ptr<Op[]> decodedRom;  // NOLINT
     uInt16* ram{nullptr};
     std::array<uInt32, 16> reg_norm; // normal execution mode, do not have a thread mode
-    uInt32 cpsr{0}, mamcr{0};
+    uInt32 cpsr{0};
+    MamModeType mamcr{MamModeType::mode0};
     bool handler_mode{false};
     uInt32 systick_ctrl{0}, systick_reload{0}, systick_count{0}, systick_calibrate{0};
-  #ifndef UNSAFE_OPTIMIZATIONS
-    uInt32 instructions{0};
-  #endif
-    Stats _stats;
+    ChipType _chipType{ChipType::LPC2101};
+    ConsoleTiming _consoleTiming{ConsoleTiming::ntsc};
+    double _MHz{70.0};
+    uInt32 _flashCycles{4};
+    uInt32 _flashBanks{1};
+    Stats _stats{0};
+    bool _irqDrivenAudio{false};
+    uInt32 _totalCycles{0};
 
     // For emulation of LPC2103's timer 1, used for NTSC/PAL/SECAM detection.
     // Register names from documentation:
     // http://www.nxp.com/documents/user_manual/UM10161.pdf
-    uInt32 T1TCR{0};  // Timer 1 Timer Control Register
-    uInt32 T1TC{0};   // Timer 1 Timer Counter
+  #ifdef TIMER_0
+    uInt32 T0TCR{0};      // Timer 0 Timer Control Register
+    uInt32 T0TC{0};       // Timer 0 Timer Counter
+    uInt32 tim0Start{0};  // _totalCycles when Timer 0 got started last time
+    uInt32 tim0Total{0};  // total cycles of Timer 0
+  #endif
+    uInt32 T1TCR{0};      // Timer 1 Timer Control Register
+    uInt32 T1TC{0};       // Timer 1 Timer Counter
+    uInt32 tim1Start{0};  // _totalCycles when Timer 1 got started last time
+    uInt32 tim1Total{0};  // total cycles of Timer 1
     double timing_factor{0.0};
 
-#ifndef UNSAFE_OPTIMIZATIONS
+  #ifndef UNSAFE_OPTIMIZATIONS
     ostringstream statusMsg;
+    bool trapOnFatal{true};
+  #endif
+    bool _countCycles{false};
+    bool _lockMamcr{false};
 
-    static bool trapOnFatal;
+  #ifdef THUMB_CYCLE_COUNT
+    double _armCyclesFactor{1.05};
+    uInt32 _pipeIdx{0};
+    CycleType _prefetchCycleType[3]{CycleType::S};
+    CycleType _lastCycleType[3]{CycleType::S};
+#if 0 // unused for now
+    AccessType _prefetchAccessType[3]{AccessType::data};
 #endif
+   #ifdef EMULATE_PIPELINE
+    uInt32 _fetchPipeline{0}; // reserve fetch cycles resulting from pipelining (execution stage)
+    uInt32 _memory0Pipeline{0}, _memory1Pipeline{0};
+   #endif
+    uInt32 _prefetchBufferAddr[2]{0};
+    uInt32 _branchBufferAddr[2]{0};
+    uInt32 _dataBufferAddr{0};
+  #endif
+  #ifdef COUNT_OPS
+    uInt32 opCount[size_t(Op::numOps)]{0};
+  #endif
 
     ConfigureFor configuration;
 

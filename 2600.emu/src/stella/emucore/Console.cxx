@@ -49,6 +49,7 @@
 #include "SaveKey.hxx"
 #include "Settings.hxx"
 #include "Sound.hxx"
+#include "StateManager.hxx"
 #include "Switches.hxx"
 #include "System.hxx"
 #include "FrameBuffer.hxx"
@@ -62,6 +63,7 @@
 #include "FrameLayout.hxx"
 #include "AudioQueue.hxx"
 #include "AudioSettings.hxx"
+#include "DevSettingsHandler.hxx"
 #include "frame-manager/FrameManager.hxx"
 #include "frame-manager/FrameLayoutDetector.hxx"
 
@@ -153,6 +155,9 @@ Console::Console(OSystem& osystem, unique_ptr<Cartridge>& cart,
 
   // We can only initialize after all the devices/components have been created
   mySystem->initialize();
+
+  // Create developer/player settings handler (handles switching sets)
+  myDevSettingsHandler = make_unique<DevSettingsHandler>(myOSystem);
 
   // Auto-detect NTSC/PAL mode if it's requested
   string autodetected = "";
@@ -312,13 +317,14 @@ void Console::redetectFrameLayout()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 string Console::formatFromFilename() const
 {
-  static const BSPF::array2D<string, 6, 2> Pattern = {{
-    { R"([ _\-(\[<]+NTSC[ _-]?50)",     "NTSC50"  },
-    { R"([ _\-(\[<]+PAL[ _-]?60)",      "PAL60"   },
-    { R"([ _\-(\[<]+SECAM[ _-]?60)",    "SECAM60" },
-    { R"([ _\-(\[<]+NTSC[ _\-)\]>.])",  "NTSC"    },
-    { R"([ _\-(\[<]+PAL[ _\-)\]>.])",   "PAL"     },
-    { R"([ _\-(\[<]+SECAM[ _\-)\]>.])", "SECAM"   }
+  static const BSPF::array2D<string, 7, 2> Pattern = {{
+    { R"([ _\-(\[<]+NTSC[ _-]?50)",          "NTSC50"  },
+    { R"([ _\-(\[<]+PAL[ _-]?60)",           "PAL60"   },
+    { R"([ _\-(\[<]+SECAM[ _-]?60)",         "SECAM60" },
+    { R"([ _\-(\[<]+NTSC[ _\-)\]>.])",       "NTSC"    },
+    { R"([ _\-(\[<]+PAL[ _-]?M[ _\-)\]>.])", "NTSC"    }, // PAL-M == NTSC
+    { R"([ _\-(\[<]+PAL[ _\-)\]>.])",        "PAL"     },
+    { R"([ _\-(\[<]+SECAM[ _\-)\]>.])",      "SECAM"   }
   }};
 
   // Get filename, and search using regex's above
@@ -472,11 +478,14 @@ void Console::setFormat(uInt32 format, bool force)
   myConsoleInfo.DisplayFormat = myDisplayFormat + autodetected;
 
   setTIAProperties();
-  initializeVideo();  // takes care of refreshing the screen
-  initializeAudio(); // ensure that audio synthesis is set up to match emulation rate
-  myOSystem.resetFps(); // Reset FPS measurement
+  if(myOSystem.eventHandler().inTIAMode())
+  {
+    initializeVideo();    // takes care of refreshing the screen
+    initializeAudio();    // ensure that audio synthesis is set up to match emulation rate
+    myOSystem.resetFps(); // Reset FPS measurement
 
-  myOSystem.frameBuffer().showTextMessage(message);
+    myOSystem.frameBuffer().showTextMessage(message);
+  }
 
   // Let the other devices know about the console change
   mySystem->consoleChanged(myConsoleTiming);
@@ -509,19 +518,25 @@ void Console::enableColorLoss(bool state)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::toggleInter(bool toggle)
 {
-  bool enabled = myOSystem.settings().getBool("tia.inter");
+  if(myOSystem.settings().getString("video") != "software")
+  {
+    bool enabled = myOSystem.settings().getBool("tia.inter");
 
-  if(toggle)
-    enabled = !enabled;
+    if(toggle)
+      enabled = !enabled;
 
-  myOSystem.settings().setValue("tia.inter", enabled);
+    myOSystem.settings().setValue("tia.inter", enabled);
 
-  // ... and apply potential setting changes to the TIA surface
-  myOSystem.frameBuffer().tiaSurface().updateSurfaceSettings();
-  ostringstream ss;
+    // ... and apply potential setting changes to the TIA surface
+    myOSystem.frameBuffer().tiaSurface().updateSurfaceSettings();
+    ostringstream ss;
 
-  ss << "Interpolation " << (enabled ? "enabled" : "disabled");
-  myOSystem.frameBuffer().showTextMessage(ss.str());
+    ss << "Interpolation " << (enabled ? "enabled" : "disabled");
+    myOSystem.frameBuffer().showTextMessage(ss.str());
+  }
+  else
+    myOSystem.frameBuffer().showTextMessage(
+      "Interpolation not available for Software renderer");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -655,6 +670,7 @@ void Console::initializeAudio()
 
   createAudioQueue();
   myTIA->setAudioQueue(myAudioQueue);
+  myTIA->setAudioRewindMode(myOSystem.state().mode() != StateManager::Mode::Off);
 
   myOSystem.sound().open(myAudioQueue, &myEmulationTiming);
 }
@@ -949,10 +965,10 @@ unique_ptr<Controller> Console::getControllerPort(const Controller::Type type,
 
     case Controller::Type::AtariVox:
     {
-      FilesystemNode nvramfile = myOSystem.nvramDir("atarivox_eeprom.dat");
+    	FilesystemNode nvramfile = myOSystem.nvramDir("atarivox_eeprom.dat");
       Controller::onMessageCallback callback = [&os = myOSystem](const string& msg) {
         bool devSettings = os.settings().getBool("dev.settings");
-        if(os.settings().getBool(devSettings ? "dev.eepromaccess" : "plr.eepromaccess"))
+        if(os.settings().getBool(devSettings ? "dev.extaccess" : "plr.extaccess"))
           os.frameBuffer().showTextMessage(msg);
       };
       controller = make_unique<AtariVox>(port, myEvent, *mySystem,
@@ -961,10 +977,10 @@ unique_ptr<Controller> Console::getControllerPort(const Controller::Type type,
     }
     case Controller::Type::SaveKey:
     {
-      FilesystemNode nvramfile = myOSystem.nvramDir("savekey_eeprom.dat");
+    	FilesystemNode nvramfile = myOSystem.nvramDir("savekey_eeprom.dat");
       Controller::onMessageCallback callback = [&os = myOSystem](const string& msg) {
         bool devSettings = os.settings().getBool("dev.settings");
-        if(os.settings().getBool(devSettings ? "dev.eepromaccess" : "plr.eepromaccess"))
+        if(os.settings().getBool(devSettings ? "dev.extaccess" : "plr.extaccess"))
           os.frameBuffer().showTextMessage(msg);
       };
       controller = make_unique<SaveKey>(port, myEvent, *mySystem, nvramfile, callback);
@@ -1132,6 +1148,26 @@ int Console::gameRefreshRate() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Console::toggleDeveloperSet(bool toggle)
+{
+  bool devSettings = myOSystem.settings().getBool("dev.settings");
+  if(toggle)
+  {
+    devSettings = !devSettings;
+    DevSettingsHandler::SettingsSet set = devSettings
+      ? DevSettingsHandler::SettingsSet::developer
+      : DevSettingsHandler::SettingsSet::player;
+
+    myOSystem.settings().setValue("dev.settings", devSettings);
+    myDevSettingsHandler->loadSettings(set);
+    myDevSettingsHandler->applySettings(set);
+  }
+  const string message = (devSettings ? "Developer" : "Player") + string(" settings enabled");
+
+  myOSystem.frameBuffer().showTextMessage(message);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::toggleTIABit(TIABit bit, const string& bitname, bool show, bool toggle) const
 {
   bool result = myTIA->toggleBit(bit, toggle ? 2 : 3);
@@ -1182,7 +1218,40 @@ void Console::toggleJitter(bool toggle) const
   bool enabled = myTIA->toggleJitter(toggle ? 2 : 3);
   const string message = string("TV scanline jitter ") + (enabled ? "enabled" : "disabled");
 
+  myOSystem.settings().setValue(
+    myOSystem.settings().getBool("dev.settings") ? "dev.tv.jitter" : "plr.tv.jitter", enabled);
   myOSystem.frameBuffer().showTextMessage(message);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Console::changeJitter(int direction) const
+{
+  const string prefix = myOSystem.settings().getBool("dev.settings") ? "dev." : "plr.";
+  int recovery = myOSystem.settings().getInt(prefix + "tv.jitter_recovery");
+  bool enabled = direction ? recovery + direction > 0 : myTIA->toggleJitter(3);
+
+  // if disabled, enable before first before increasing recovery
+  if(!myTIA->toggleJitter(3))
+    direction = 0;
+
+  recovery = BSPF::clamp(recovery + direction, 1, 20);
+  myOSystem.settings().setValue(prefix + "tv.jitter", enabled);
+
+  if(enabled)
+  {
+    ostringstream val;
+
+    myTIA->toggleJitter(1);
+    myTIA->setJitterRecoveryFactor(recovery);
+    myOSystem.settings().setValue(prefix + "tv.jitter_recovery", recovery);
+    val << recovery;
+    myOSystem.frameBuffer().showGaugeMessage("TV jitter roll", val.str(), recovery, 0, 20);
+  }
+  else
+  {
+    myTIA->toggleJitter(0);
+    myOSystem.frameBuffer().showTextMessage("TV scanline jitter disabled");
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

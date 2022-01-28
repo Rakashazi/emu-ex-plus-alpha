@@ -116,7 +116,7 @@ bool Lightgun::read(DigitalPin pin)
 void Lightgun::update()
 {
   // Digital events (from keyboard or joystick hats & buttons)
-  bool firePressed = myEvent.get(Event::JoystickZeroFire) != 0;
+  bool firePressed = myEvent.get(Event::LeftJoystickFire) != 0;
 
   // We allow left and right mouse buttons for fire button
   firePressed = firePressed

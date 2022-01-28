@@ -65,7 +65,7 @@ class Missile : public Serializable
     void toggleEnabled(bool enabled);
 
     bool isOn() const { return (collision & 0x8000); }
-    uInt8 getColor() const { return myColor; }
+    uInt8 getColor() const;
 
     uInt8 getPosition() const;
     void setPosition(uInt8 newPosition);
@@ -115,6 +115,7 @@ class Missile : public Serializable
     bool myIsRendering{false};
     bool myIsVisible{false};
     Int8 myRenderCounter{0};
+    Int8 myCopy{1};
 
     const uInt8* myDecodes{nullptr};
     uInt8 myDecodesOffset{0};  // needed for state saving
@@ -169,6 +170,7 @@ void Missile::tick(uInt8 hclock, bool isReceivingMclock)
   if (myDecodes[myCounter] && !myResmp) {
     myIsRendering = true;
     myRenderCounter = renderCounterOffset;
+    myCopy = myDecodes[myCounter];
   } else if (myIsRendering) {
 
       if (myRenderCounter == -1) {

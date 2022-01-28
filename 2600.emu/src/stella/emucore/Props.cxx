@@ -171,7 +171,7 @@ void Properties::print() const
        << get(PropType::Controller_Left2)       << "|"
        << get(PropType::Controller_Right)       << "|"
        << get(PropType::Controller_Right1)      << "|"
-       << get(PropType::Controller_Right2)     << "|"
+       << get(PropType::Controller_Right2)      << "|"
        << get(PropType::Controller_SwapPaddles) << "|"
        << get(PropType::Controller_PaddlesXCenter) << "|"
        << get(PropType::Controller_PaddlesYCenter) << "|"
@@ -180,7 +180,8 @@ void Properties::print() const
        << get(PropType::Display_VCenter)        << "|"
        << get(PropType::Display_Phosphor)       << "|"
        << get(PropType::Display_PPBlend)        << "|"
-       << get(PropType::Cart_Highscore)
+       << get(PropType::Cart_Highscore)         << "|"
+       << get(PropType::Cart_Url)
        << endl;
 }
 
@@ -240,7 +241,8 @@ void Properties::printHeader()
        << "Display_VCenter|"
        << "Display_Phosphor|"
        << "Display_PPBlend|"
-       << "Cart_Highscore"
+       << "Cart_Highscore|"
+       << "Cart_Url"
        << endl;
 }
 
@@ -267,14 +269,15 @@ std::array<string, Properties::NUM_PROPS> Properties::ourDefaultProperties =
   "",       // Controller.Right1
   "",       // Controller.Right2
   "NO",     // Controller.SwapPaddles
-  "0",      // Controller.PaddlesXCenter
-  "0",      // Controller.PaddlesYCenter
+  "12",     // Controller.PaddlesXCenter
+  "12",     // Controller.PaddlesYCenter
   "AUTO",   // Controller.MouseAxis
   "AUTO",   // Display.Format
   "0",      // Display.VCenter
   "NO",     // Display.Phosphor
   "0",      // Display.PPBlend
-  ""        // Cart.Highscore
+  "",       // Cart.Highscore
+  ""        // Cart.Url
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -307,5 +310,6 @@ std::array<string, Properties::NUM_PROPS> Properties::ourPropertyNames =
   "Display.VCenter",
   "Display.Phosphor",
   "Display.PPBlend",
-  "Cart.Highscore"
+  "Cart.Highscore",
+  "Cart.Url"
 };

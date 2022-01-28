@@ -49,6 +49,11 @@ class Cartridge : public Device
   public:
     using StartBankFromPropsFunc = std::function<int()>;
 
+    /**
+      Callback type for general cart messages
+    */
+    using messageCallback = std::function<void(const string&)>;
+
     // Maximum size of a ROM cart that Stella can support
     static constexpr size_t maxSize() { return 512_KB; }
 
@@ -78,13 +83,13 @@ class Cartridge : public Device
     bool saveROM(const FilesystemNode& out) const;
 
     /**
-      Lock/unlock bankswitching capability.  The debugger will lock
-      the banks before querying the cart state, otherwise reading values
-      could inadvertantly cause a bankswitch to occur.
+      Lock/unlock bankswitching and other hotspot capabilities. The debugger
+      will lock the hotspots before querying the cart state, otherwise reading
+      values could inadvertantly cause e.g. a bankswitch to occur.
     */
-    void lockBank()   { myBankLocked = true;  }
-    void unlockBank() { myBankLocked = false; }
-    bool bankLocked() const { return myBankLocked; }
+    void lockHotspots()   { myHotspotsLocked = true;  }
+    void unlockHotspots() { myHotspotsLocked = false; }
+    bool hotspotsLocked() const { return myHotspotsLocked; }
 
     /**
       Get the default startup bank for a cart.  This is the bank where
@@ -127,6 +132,22 @@ class Cartridge : public Device
       @return The value of the interal RAM byte
     */
     virtual uInt8 internalRamGetValue(uInt16 addr) const { return 0; }
+
+    /**
+      Answer whether this is a PlusROM cart.  Note that until the
+      initialize method has been called, this will always return false.
+
+      @return  Whether this is actually a PlusROM cart
+    */
+    virtual bool isPlusROM() const { return false; }
+
+    /**
+      Set the callback for displaying messages
+    */
+    virtual void setMessageCallback(const messageCallback& callback)
+    {
+      myMsgCallback = callback;
+    }
 
   #ifdef DEBUGGER_SUPPORT
     /**
@@ -392,13 +413,16 @@ class Cartridge : public Device
     // Total size of ROM access area (might include RAM too)
     uInt32 myAccessSize;
 
+    // Callback to output messages
+    messageCallback myMsgCallback{nullptr};
+
   private:
     // The startup bank to use (where to look for the reset vector address)
     uInt16 myStartBank{0};
 
-    // If myBankLocked is true, ignore attempts at bankswitching. This is used
+    // If myHotspotsLocked is true, ignore attempts at bankswitching. This is used
     // by the debugger, when disassembling/dumping ROM.
-    bool myBankLocked{false};
+    bool myHotspotsLocked{false};
 
     // Semi-random values to use when a read from write port occurs
     std::array<uInt8, 256> myRWPRandomValues;

@@ -26,13 +26,15 @@ public:
 	EventHandler(OSystem& osystem) {}
 	Event& event() { return myEvent; }
 	void allowAllDirections(bool allow) {}
-	EventHandlerState state() const { return EventHandlerState::NONE; }
+	EventHandlerState state() const { return EventHandlerState::EMULATION; }
+	bool inTIAMode() const { return true; }
 	void defineKeyControllerMappings(const Controller::Type type, Controller::Jack port) {}
 	void enableEmulationKeyMappings() {}
 	void defineJoyControllerMappings(const Controller::Type type, Controller::Jack port) {}
 	void enableEmulationJoyMappings() {}
 	void setMouseControllerMode(const string& enable) {}
 	void defineKeyControllerMappings(const Controller::Type, Controller::Jack, const Properties&) {}
+	void set7800Mode() {}
 
 private:
 	Event myEvent{};

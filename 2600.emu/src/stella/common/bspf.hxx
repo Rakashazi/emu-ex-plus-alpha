@@ -87,8 +87,6 @@ using StringList = std::vector<std::string>;
 using ByteBuffer = std::unique_ptr<uInt8[]>;  // NOLINT
 using DWordBuffer = std::unique_ptr<uInt32[]>;  // NOLINT
 
-using AdjustFunction = std::function<void(int)>;
-
 // We use KB a lot; let's make a literal for it
 constexpr size_t operator "" _KB(unsigned long long size)
 {
@@ -260,7 +258,7 @@ namespace BSPF
   // Test whether the first string matches the second one (case insensitive)
   // - the first character must match
   // - the following characters must appear in the order of the first string
-  inline bool matches(string_view s1, string_view s2)
+  inline bool matchesIgnoreCase(string_view s1, string_view s2)
   {
     if(startsWithIgnoreCase(s1, s2.substr(0, 1)))
     {
@@ -271,6 +269,50 @@ namespace BSPF
         if(found == string::npos)
           return false;
         pos += found + 1;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // Test whether the first string matches the second one
+  //  (case sensitive for upper case characters in second string, except first one)
+  // - the first character must match
+  // - the following characters must appear in the order of the first string
+  inline bool matchesCamelCase(const string_view s1, const string_view s2)
+  {
+    // skip leading '_' for matching
+    uInt32 ofs = (s1[0] == '_' && s2[0] == '_') ? 1 : 0;
+
+    if(startsWithIgnoreCase(s1.substr(ofs), s2.substr(ofs, 1)))
+    {
+      size_t lastUpper = ofs, pos = 1;
+
+      for(uInt32 j = 1 + ofs; j < s2.size(); ++j)
+      {
+        if(std::isupper(s2[j]))
+        {
+          size_t found = s1.find_first_of(s2[j], pos + ofs);
+
+          if(found == string::npos)
+            return false;
+          // make sure no upper case characters are skipped
+          for(size_t k = lastUpper + 1; k < found; ++k)
+            if(isupper(s1[k]))
+              return false;
+
+          pos = found + 1;
+          lastUpper = found;
+        }
+        else
+        {
+          size_t found = findIgnoreCase(s1, s2.substr(j, 1), pos + ofs);
+
+          if(found == string::npos)
+            return false;
+
+          pos += found + 1;
+        }
       }
       return true;
     }

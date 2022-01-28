@@ -67,7 +67,7 @@ class Player : public Serializable
     uInt8 getClock() const { return myCounter; }
 
     bool isOn() const { return (collision & 0x8000); }
-    uInt8 getColor() const { return myColor; }
+    uInt8 getColor() const;
 
     void shufflePatterns();
 
@@ -125,6 +125,7 @@ class Player : public Serializable
     bool myIsRendering{false};
     Int8 myRenderCounter{0};
     Int8 myRenderCounterTripPoint{0};
+    Int8 myCopy{1};
     uInt8 myDivider{0};
     uInt8 myDividerPending{0};
     uInt8 mySampleCounter{0};
@@ -186,6 +187,7 @@ void Player::tick()
     myIsRendering = true;
     mySampleCounter = 0;
     myRenderCounter = renderCounterOffset;
+    myCopy = myDecodes[myCounter];
   } else if (myIsRendering) {
     ++myRenderCounter;
 

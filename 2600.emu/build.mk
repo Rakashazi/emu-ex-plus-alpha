@@ -26,6 +26,7 @@ Cart4A50.cxx \
 Cart4K.cxx \
 Cart4KSC.cxx \
 CartAR.cxx \
+CartARM.cxx \
 CartBF.cxx \
 CartBFSC.cxx \
 CartBUS.cxx \
@@ -41,7 +42,6 @@ CartDFSC.cxx \
 CartDPC.cxx \
 CartDPCPlus.cxx \
 CartE0.cxx \
-CartE78K.cxx \
 CartE7.cxx \
 CartEF.cxx \
 CartEFSC.cxx \
@@ -58,7 +58,7 @@ CartFA.cxx \
 CartFC.cxx \
 CartFE.cxx \
 CartMDM.cxx \
-CartMNetwork.cxx \
+CartMVC.cxx \
 CartSB.cxx \
 CartTVBoy.cxx \
 CartUA.cxx \
@@ -102,7 +102,6 @@ tia/Ball.cxx \
 tia/DrawCounterDecodes.cxx \
 tia/LatchedInput.cxx \
 tia/Missile.cxx \
-tia/PaddleReader.cxx \
 tia/Player.cxx \
 tia/Playfield.cxx \
 tia/TIA.cxx \
@@ -124,6 +123,7 @@ main/FSNodeEmuEx.cc \
 stella/common/AudioQueue.cxx \
 stella/common/AudioSettings.cxx \
 stella/common/Base.cxx \
+stella/common/DevSettingsHandler.cxx \
 stella/common/PaletteHandler.cxx \
 stella/common/RewindManager.cxx \
 stella/common/StateManager.cxx \

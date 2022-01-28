@@ -70,7 +70,7 @@ void CartridgeWD::install(System& system)
 uInt8 CartridgeWD::peek(uInt16 address)
 {
   // Is it time to do an actual bankswitch?
-  if(myPendingBank != 0xF0 && !bankLocked() &&
+  if(myPendingBank != 0xF0 && !hotspotsLocked() &&
      mySystem->cycles() > (myCyclesAtBankswitchInit + 3))
   {
     bank(myPendingBank);
@@ -82,7 +82,7 @@ uInt8 CartridgeWD::peek(uInt16 address)
     // Hotspots at $30 - $3F
     // Note that a hotspot read triggers a bankswitch after at least 3 cycles
     // have passed, so we only initiate the switch here
-    if(!bankLocked() && (address & 0x00FF) >= 0x30 && (address & 0x00FF) <= 0x3F)
+    if(!hotspotsLocked() && (address & 0x00FF) >= 0x30 && (address & 0x00FF) <= 0x3F)
     {
       myCyclesAtBankswitchInit = mySystem->cycles();
       myPendingBank = address & 0x000F;
@@ -105,7 +105,7 @@ bool CartridgeWD::poke(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeWD::bank(uInt16 bank, uInt16)
 {
-  if(bankLocked()) return false;
+  if(hotspotsLocked()) return false;
 
   myCurrentBank = bank % romBankCount();
 

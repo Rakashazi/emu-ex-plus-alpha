@@ -54,17 +54,27 @@ class CartridgeDPC : public CartridgeF8
 
   public:
     /**
+      Reset device to its power-on state
+    */
+    void reset() override;
+
+    /**
+      Notification method invoked by the system when the console type
+      has changed.  We need this to inform the Thumbulator that the
+      timing has changed.
+
+      @param timing  Enum representing the new console type
+    */
+
+    void consoleChanged(ConsoleTiming timing) override;
+    /**
       Install cartridge in the specified system.  Invoked by the system
       when the cartridge is attached to it.
 
       @param system The system the device should install itself in
     */
-    void install(System& system) override;
 
-    /**
-    Reset device to its power-on state
-    */
-    void reset() override;
+    void install(System& system) override;
 
     /**
       Patch the cartridge ROM.
@@ -147,6 +157,9 @@ class CartridgeDPC : public CartridgeF8
     void updateMusicModeDataFetchers();
 
   private:
+    // Console clock rate
+    double myClockRate{1193191.66666667};
+
     // Pointer to the 2K display ROM image of the cartridge
     uInt8* myDisplayImage{nullptr};
 

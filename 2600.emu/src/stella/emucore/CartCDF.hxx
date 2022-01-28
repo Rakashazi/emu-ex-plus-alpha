@@ -21,8 +21,7 @@
 class System;
 
 #include "bspf.hxx"
-#include "Thumbulator.hxx"
-#include "Cart.hxx"
+#include "CartARM.hxx"
 
 /**
   Cartridge class used for CDF/CDFJ/CDFJ+.
@@ -52,7 +51,7 @@ class System;
   @authors: Darrell Spice Jr, Chris Walton, Fred Quimby, John Champeau
             Thomas Jentzsch, Stephen Anthony, Bradford W. Mott
 */
-class CartridgeCDF : public Cartridge
+class CartridgeCDF : public CartridgeARM
 {
   friend class CartridgeCDFWidget;
   friend class CartridgeCDFInfoWidget;
@@ -85,15 +84,6 @@ class CartridgeCDF : public Cartridge
       Reset device to its power-on state
     */
     void reset() override;
-
-    /**
-      Notification method invoked by the system when the console type
-      has changed.  We need this to inform the Thumbulator that the
-      timing has changed.
-
-      @param timing  Enum representing the new console type
-    */
-    void consoleChanged(ConsoleTiming timing) override;
 
     /**
       Install cartridge in the specified system.  Invoked by the system
@@ -238,7 +228,7 @@ class CartridgeCDF : public Cartridge
     /**
       Sets the initial state of the DPC pointers and RAM
     */
-    void setInitialState();
+    void setInitialState() override;
 
     /**
       Updates any data fetchers in music mode based on the number of
@@ -263,8 +253,13 @@ class CartridgeCDF : public Cartridge
     uInt32 getSample();
     void setupVersion();
 
-    // Get number of memory accesses of last ARM run.
-    const Thumbulator::Stats& stats() const { return myThumbEmulator->stats(); }
+    /**
+      Answer whether this is a PlusROM cart.  Note that until the
+      initialize method has been called, this will always return false.
+
+      @return  Whether this is actually a PlusROM cart
+    */
+    bool isPlusROM() const override { return myPlusROM->isValid(); }
 
   private:
     // The ROM image of the cartridge
@@ -290,9 +285,6 @@ class CartridgeCDF : public Cartridge
     //   $0000 - 2K Driver
     //   $0800 - Display Data, C Variables & Stack
     std::array<uInt8, 32_KB> myRAM;
-
-    // Pointer to the Thumb ARM emulator object
-    unique_ptr<Thumbulator> myThumbEmulator;
 
     // Indicates the offset into the ROM image (aligns to current bank)
     uInt16 myBankOffset{0};

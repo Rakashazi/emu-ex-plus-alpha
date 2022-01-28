@@ -66,7 +66,7 @@ class Lightgun : public Controller
     /**
       Returns the name of this controller.
     */
-    string name() const override { return "Lightgun"; }
+    string name() const override { return "Light Gun"; }
 
   private:
     const FrameBuffer& myFrameBuffer;

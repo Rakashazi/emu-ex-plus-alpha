@@ -69,9 +69,9 @@ const uint EmuSystem::inputFaceBtns = 4;
 const uint EmuSystem::inputCenterBtns = 2;
 bool EmuSystem::inputHasShortBtnTexture = true;
 const uint EmuSystem::maxPlayers = 2;
-static std::array<Event::Type, 2> jsFireMap{Event::JoystickZeroFire, Event::JoystickOneFire};
-static std::array<Event::Type, 2> jsLeftMap{Event::JoystickZeroLeft, Event::JoystickOneLeft};
-static std::array<Event::Type, 2> jsRightMap{Event::JoystickZeroRight, Event::JoystickOneRight};
+static std::array<Event::Type, 2> jsFireMap{Event::LeftJoystickFire, Event::RightJoystickFire};
+static std::array<Event::Type, 2> jsLeftMap{Event::LeftJoystickLeft, Event::RightJoystickLeft};
+static std::array<Event::Type, 2> jsRightMap{Event::LeftJoystickRight, Event::RightJoystickRight};
 
 void EmuSystem::clearInputBuffers(EmuInputView &)
 {
@@ -91,39 +91,39 @@ void updateVControllerMapping(uint player, VController::Map &map)
 	uint playerShift = player ? 7 : 0;
 	map[VController::F_ELEM] = jsFireMap[player];
 	map[VController::F_ELEM+1] = jsFireMap[player] | VController::TURBO_BIT;
-	map[VController::F_ELEM+2] = Event::JoystickZeroFire5 + playerShift;
-	map[VController::F_ELEM+3] = (Event::JoystickZeroFire5 + playerShift) | VController::TURBO_BIT;
+	map[VController::F_ELEM+2] = Event::LeftJoystickFire5 + playerShift;
+	map[VController::F_ELEM+3] = (Event::LeftJoystickFire5 + playerShift) | VController::TURBO_BIT;
 
 	map[VController::C_ELEM] = Event::ConsoleSelect;
 	map[VController::C_ELEM+1] = Event::ConsoleReset;
 
-	map[VController::D_ELEM] = (((uint)Event::JoystickZeroUp) + playerShift)
-																| (((uint)Event::JoystickZeroLeft + playerShift) << 8);
-	map[VController::D_ELEM+1] = Event::JoystickZeroUp + playerShift; // up
-	map[VController::D_ELEM+2] = ((uint)Event::JoystickZeroUp  + playerShift)
-																	| (((uint)Event::JoystickZeroRight + playerShift) << 8);
+	map[VController::D_ELEM] = (((uint)Event::LeftJoystickUp) + playerShift)
+																| (((uint)Event::LeftJoystickLeft + playerShift) << 8);
+	map[VController::D_ELEM+1] = Event::LeftJoystickUp + playerShift; // up
+	map[VController::D_ELEM+2] = ((uint)Event::LeftJoystickUp  + playerShift)
+																	| (((uint)Event::LeftJoystickRight + playerShift) << 8);
 	map[VController::D_ELEM+3] = jsLeftMap[player]; // left
 	map[VController::D_ELEM+5] = jsRightMap[player]; // right
-	map[VController::D_ELEM+6] = ((uint)Event::JoystickZeroDown + playerShift)
-																	| (((uint)Event::JoystickZeroLeft + playerShift) << 8);
-	map[VController::D_ELEM+7] = Event::JoystickZeroDown + playerShift; // down
-	map[VController::D_ELEM+8] = ((uint)Event::JoystickZeroDown + playerShift)
-																	| (((uint)Event::JoystickZeroRight + playerShift) << 8);
+	map[VController::D_ELEM+6] = ((uint)Event::LeftJoystickDown + playerShift)
+																	| (((uint)Event::LeftJoystickLeft + playerShift) << 8);
+	map[VController::D_ELEM+7] = Event::LeftJoystickDown + playerShift; // down
+	map[VController::D_ELEM+8] = ((uint)Event::LeftJoystickDown + playerShift)
+																	| (((uint)Event::LeftJoystickRight + playerShift) << 8);
 }
 
 static void updateJoytickMapping(EmuApp &app, Controller::Type type)
 {
 	if(type == Controller::Type::Paddles)
 	{
-		jsFireMap = {Event::PaddleZeroFire, Event::PaddleOneFire};
-		jsLeftMap = {Event::PaddleZeroIncrease, Event::PaddleOneIncrease};
-		jsRightMap = {Event::PaddleZeroDecrease, Event::PaddleOneDecrease};
+		jsFireMap = {Event::LeftPaddleAFire, Event::LeftPaddleBFire};
+		jsLeftMap = {Event::LeftPaddleAIncrease, Event::LeftPaddleBIncrease};
+		jsRightMap = {Event::LeftPaddleADecrease, Event::LeftPaddleBDecrease};
 	}
 	else
 	{
-		jsFireMap = {Event::JoystickZeroFire, Event::JoystickOneFire};
-		jsLeftMap = {Event::JoystickZeroLeft, Event::JoystickOneLeft};
-		jsRightMap = {Event::JoystickZeroRight, Event::JoystickOneRight};
+		jsFireMap = {Event::LeftJoystickFire, Event::RightJoystickFire};
+		jsLeftMap = {Event::LeftJoystickLeft, Event::RightJoystickLeft};
+		jsRightMap = {Event::LeftJoystickRight, Event::RightJoystickRight};
 	}
 	app.updateVControllerMapping();
 }
@@ -133,31 +133,31 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	turbo = 0;
 	switch(input)
 	{
-		case vcsKeyIdxUp: return Event::JoystickZeroUp;
+		case vcsKeyIdxUp: return Event::LeftJoystickUp;
 		case vcsKeyIdxRight: return jsRightMap[0];
-		case vcsKeyIdxDown: return Event::JoystickZeroDown;
+		case vcsKeyIdxDown: return Event::LeftJoystickDown;
 		case vcsKeyIdxLeft: return jsLeftMap[0];
-		case vcsKeyIdxLeftUp: return Event::JoystickZeroLeft | (Event::JoystickZeroUp << 8);
-		case vcsKeyIdxRightUp: return Event::JoystickZeroRight | (Event::JoystickZeroUp << 8);
-		case vcsKeyIdxRightDown: return Event::JoystickZeroRight | (Event::JoystickZeroDown << 8);
-		case vcsKeyIdxLeftDown: return Event::JoystickZeroLeft | (Event::JoystickZeroDown << 8);
+		case vcsKeyIdxLeftUp: return Event::LeftJoystickLeft | (Event::LeftJoystickUp << 8);
+		case vcsKeyIdxRightUp: return Event::LeftJoystickRight | (Event::LeftJoystickUp << 8);
+		case vcsKeyIdxRightDown: return Event::LeftJoystickRight | (Event::LeftJoystickDown << 8);
+		case vcsKeyIdxLeftDown: return Event::LeftJoystickLeft | (Event::LeftJoystickDown << 8);
 		case vcsKeyIdxJSBtnTurbo: turbo = 1; [[fallthrough]];
 		case vcsKeyIdxJSBtn: return jsFireMap[0];
 		case vcsKeyIdxJSBtnAltTurbo: turbo = 1; [[fallthrough]];
-		case vcsKeyIdxJSBtnAlt: return Event::JoystickZeroFire5;
+		case vcsKeyIdxJSBtnAlt: return Event::LeftJoystickFire5;
 
-		case vcsKeyIdxUp2: return Event::JoystickOneUp;
+		case vcsKeyIdxUp2: return Event::RightJoystickUp;
 		case vcsKeyIdxRight2: return jsRightMap[1];
-		case vcsKeyIdxDown2: return Event::JoystickOneDown;
+		case vcsKeyIdxDown2: return Event::RightJoystickDown;
 		case vcsKeyIdxLeft2: return jsLeftMap[1];
-		case vcsKeyIdxLeftUp2: return Event::JoystickOneLeft | (Event::JoystickOneUp << 8);
-		case vcsKeyIdxRightUp2: return Event::JoystickOneRight | (Event::JoystickOneUp << 8);
-		case vcsKeyIdxRightDown2: return Event::JoystickOneRight | (Event::JoystickOneDown << 8);
-		case vcsKeyIdxLeftDown2: return Event::JoystickOneLeft | (Event::JoystickOneDown << 8);
+		case vcsKeyIdxLeftUp2: return Event::RightJoystickLeft | (Event::RightJoystickUp << 8);
+		case vcsKeyIdxRightUp2: return Event::RightJoystickRight | (Event::RightJoystickUp << 8);
+		case vcsKeyIdxRightDown2: return Event::RightJoystickRight | (Event::RightJoystickDown << 8);
+		case vcsKeyIdxLeftDown2: return Event::RightJoystickLeft | (Event::RightJoystickDown << 8);
 		case vcsKeyIdxJSBtnTurbo2: turbo = 1; [[fallthrough]];
 		case vcsKeyIdxJSBtn2: return jsFireMap[1];
 		case vcsKeyIdxJSBtnAltTurbo2: turbo = 1; [[fallthrough]];
-		case vcsKeyIdxJSBtnAlt2: return Event::JoystickOneFire5;
+		case vcsKeyIdxJSBtnAlt2: return Event::RightJoystickFire5;
 
 		case vcsKeyIdxSelect: return Event::ConsoleSelect;
 		case vcsKeyIdxP1Diff: return Event::Combo1; // toggle P1 diff
@@ -165,9 +165,9 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case vcsKeyIdxColorBW: return Event::Combo3; // toggle Color/BW
 		case vcsKeyIdxReset: return Event::ConsoleReset;
 		case vcsKeyIdxKeyboard1Base ... vcsKeyIdxKeyboard1Base + 11:
-			return Event::KeyboardZero1 + (input - vcsKeyIdxKeyboard1Base);
+			return Event::LeftKeyboard1 + (input - vcsKeyIdxKeyboard1Base);
 		case vcsKeyIdxKeyboard2Base ... vcsKeyIdxKeyboard2Base + 11:
-			return Event::KeyboardOne1 + (input - vcsKeyIdxKeyboard2Base);
+			return Event::RightKeyboard1 + (input - vcsKeyIdxKeyboard2Base);
 		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
@@ -212,7 +212,7 @@ void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, uint emuKey
 			}
 			ev.set(Event::ConsoleColor, vcsColor);
 			ev.set(Event::ConsoleBlackWhite, !vcsColor);
-		bcase Event::KeyboardZero1 ... Event::KeyboardOnePound:
+		bcase Event::LeftKeyboard1 ... Event::RightKeyboardPound:
 			ev.set(Event::Type(event1), action == Input::Action::PUSHED);
 		bdefault:
 			ev.set(Event::Type(event1), action == Input::Action::PUSHED);
@@ -318,8 +318,9 @@ bool EmuSystem::onPointerInputUpdate(Input::Event, Input::DragTrackerState dragS
 			{
 				regionXStart = regionXEnd / 2;
 			}
-			auto pos = IG::remap(dragState.pos().x, regionXStart, regionXEnd, 0, 32767);
-			auto evType = app.defaultVController().inputPlayer() == 0 ? Event::PaddleZeroAnalog : Event::PaddleOneAnalog;
+			auto pos = IG::remap(dragState.pos().x, regionXStart, regionXEnd, -32768 / 2, 32767 / 2);
+			pos = std::clamp(pos, -32768, 32767);
+			auto evType = app.defaultVController().inputPlayer() == 0 ? Event::LeftPaddleAAnalog : Event::LeftPaddleBAnalog;
 			osystem->eventHandler().event().set(evType, pos);
 			//logMsg("set paddle position:%d", pos);
 			return true;

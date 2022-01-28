@@ -44,7 +44,7 @@ class BoosterGrip : public Joystick
     /**
       Returns the name of this controller.
     */
-    string name() const override { return "BoosterGrip"; }
+    string name() const override { return "Booster Grip"; }
 
   private:
     /**

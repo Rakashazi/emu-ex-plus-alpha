@@ -34,6 +34,7 @@ void Player::reset()
   isMoving = false;
   myIsRendering = false;
   myRenderCounter = 0;
+  myCopy = 1;
   myPatternOld = 0;
   myPatternNew = 0;
   myIsReflected = 0;
@@ -356,6 +357,23 @@ void Player::applyColors()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt8 Player::getColor() const
+{
+  if(!myDebugEnabled)
+    return myColor;
+  else
+    switch(myCopy)
+    {
+      case 2:
+        return myColor - 2;
+      case 3:
+        return myColor + 2;
+      default:
+        return myColor;
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 Player::getPosition() const
 {
   // Wide players are shifted by one pixel to the right
@@ -407,6 +425,7 @@ bool Player::save(Serializer& out) const
     out.putBool(myIsRendering);
     out.putByte(myRenderCounter);
     out.putByte(myRenderCounterTripPoint);
+    out.putByte(myCopy);
     out.putByte(myDivider);
     out.putByte(myDividerPending);
     out.putByte(mySampleCounter);
@@ -453,6 +472,7 @@ bool Player::load(Serializer& in)
     myIsRendering = in.getBool();
     myRenderCounter = in.getByte();
     myRenderCounterTripPoint = in.getByte();
+    myCopy = in.getByte();
     myDivider = in.getByte();
     myDividerPending = in.getByte();
     mySampleCounter = in.getByte();

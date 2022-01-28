@@ -20,13 +20,12 @@
 
 class System;
 
-#include "Thumbulator.hxx"
 #ifdef DEBUGGER_SUPPORT
   #include "CartDPCPlusWidget.hxx"
 #endif
 
 #include "bspf.hxx"
-#include "Cart.hxx"
+#include "CartARM.hxx"
 
 /**
   Cartridge class used for DPC+, derived from Pitfall II.  There are six 4K
@@ -42,7 +41,7 @@ class System;
 
   @authors  Darrell Spice Jr, Fred Quimby, Stephen Anthony, Bradford W. Mott
 */
-class CartridgeDPCPlus : public Cartridge
+class CartridgeDPCPlus : public CartridgeARM
 {
   friend class CartridgeDPCPlusWidget;
   friend class CartridgeRamDPCPlusWidget;
@@ -65,15 +64,6 @@ class CartridgeDPCPlus : public Cartridge
       Reset device to its power-on state
     */
     void reset() override;
-
-    /**
-      Notification method invoked by the system when the console type
-      has changed.  We need this to inform the Thumbulator that the
-      timing has changed.
-
-      @param timing  Enum representing the new console type
-    */
-    void consoleChanged(ConsoleTiming timing) override;
 
     /**
       Install cartridge in the specified system.  Invoked by the system
@@ -159,6 +149,13 @@ class CartridgeDPCPlus : public Cartridge
     */
     uInt8 internalRamGetValue(uInt16 addr) const override;
 
+    /**
+      Answer whether this is a PlusROM cart.  Note that until the
+      initialize method has been called, this will always return false.
+
+      @return  Whether this is actually a PlusROM cart
+    */
+    bool isPlusROM() const override { return myPlusROM->isValid(); }
 
   #ifdef DEBUGGER_SUPPORT
     /**
@@ -200,7 +197,7 @@ class CartridgeDPCPlus : public Cartridge
     /**
       Sets the initial state of the DPC pointers and RAM
     */
-    void setInitialState();
+    void setInitialState() override;
 
     /**
       Clocks the random number generator to move it to its next state
@@ -223,9 +220,6 @@ class CartridgeDPCPlus : public Cartridge
     */
     void callFunction(uInt8 value);
 
-    // Get number of memory accesses of last ARM run.
-    const Thumbulator::Stats& stats() const { return myThumbEmulator->stats(); }
-
   private:
     // The ROM image and size
     ByteBuffer myImage;
@@ -242,9 +236,6 @@ class CartridgeDPCPlus : public Cartridge
     //   4K Display Data
     //   1K Frequency Data
     std::array<uInt8, 8_KB> myDPCRAM;
-
-    // Pointer to the Thumb ARM emulator object
-    unique_ptr<Thumbulator> myThumbEmulator;
 
     // Pointer to the 1K frequency table
     uInt8* myFrequencyImage{nullptr};

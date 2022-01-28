@@ -76,7 +76,7 @@ class TIA : public Device
      * Possible palette entries for objects in "fixed debug color mode".
      */
     enum FixedColor {
-      NTSC_RED      = 0x30,
+      NTSC_RED      = 0x42,
       NTSC_ORANGE   = 0x38,
       NTSC_YELLOW   = 0x1c,
       NTSC_GREEN    = 0xc6,
@@ -86,7 +86,7 @@ class TIA : public Device
 
       PAL_RED       = 0x62,
       PAL_ORANGE    = 0x4a,
-      PAL_YELLOW    = 0x2e,
+      PAL_YELLOW    = 0x2c,
       PAL_GREEN     = 0x36,
       PAL_BLUE      = 0xbc,
       PAL_PURPLE    = 0xa6,
@@ -130,6 +130,12 @@ class TIA : public Device
       the timing has been determined.
     */
     void setAudioQueue(const shared_ptr<AudioQueue>& audioQueue);
+
+    /**
+      Enable/disable pushing audio samples. These are required for TimeMachine
+      playback with sound.
+    */
+    void setAudioRewindMode(bool enable);
 
     /**
       Clear the configured frame manager and deteach the lifecycle callbacks.
@@ -818,6 +824,11 @@ class TIA : public Device
 
     // Frames since the last time a frame was rendered to the render buffer
     uInt32 myFramesSinceLastRender{0};
+
+    /**
+     * Setting this to true randomizes TIA on reset.
+     */
+    bool myRandomize{false};
 
     /**
      * Setting this to true injects random values into undefined reads.

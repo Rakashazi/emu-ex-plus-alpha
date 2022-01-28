@@ -42,25 +42,25 @@ class Event
       ConsoleRightDiffA, ConsoleRightDiffB, ConsoleRightDiffToggle,
       ConsoleSelect, ConsoleReset,
 
-      JoystickZeroUp, JoystickZeroDown, JoystickZeroLeft, JoystickZeroRight,
-      JoystickZeroFire, JoystickZeroFire5, JoystickZeroFire9,
-      JoystickOneUp, JoystickOneDown, JoystickOneLeft, JoystickOneRight,
-      JoystickOneFire, JoystickOneFire5, JoystickOneFire9,
+      LeftJoystickUp, LeftJoystickDown, LeftJoystickLeft, LeftJoystickRight,
+      LeftJoystickFire, LeftJoystickFire5, LeftJoystickFire9,
+      RightJoystickUp, RightJoystickDown, RightJoystickLeft, RightJoystickRight,
+      RightJoystickFire, RightJoystickFire5, RightJoystickFire9,
 
-      PaddleZeroDecrease, PaddleZeroIncrease, PaddleZeroAnalog, PaddleZeroFire,
-      PaddleOneDecrease, PaddleOneIncrease, PaddleOneAnalog, PaddleOneFire,
-      PaddleTwoDecrease, PaddleTwoIncrease, PaddleTwoAnalog, PaddleTwoFire,
-      PaddleThreeDecrease, PaddleThreeIncrease, PaddleThreeAnalog, PaddleThreeFire,
+      LeftPaddleADecrease, LeftPaddleAIncrease, LeftPaddleAAnalog, LeftPaddleAFire,
+      LeftPaddleBDecrease, LeftPaddleBIncrease, LeftPaddleBAnalog, LeftPaddleBFire,
+      RightPaddleADecrease, RightPaddleAIncrease, RightPaddleAAnalog, RightPaddleAFire,
+      RightPaddleBDecrease, RightPaddleBIncrease, RightPaddleBAnalog, RightPaddleBFire,
 
-      KeyboardZero1, KeyboardZero2, KeyboardZero3,
-      KeyboardZero4, KeyboardZero5, KeyboardZero6,
-      KeyboardZero7, KeyboardZero8, KeyboardZero9,
-      KeyboardZeroStar, KeyboardZero0, KeyboardZeroPound,
+      LeftKeyboard1, LeftKeyboard2, LeftKeyboard3,
+      LeftKeyboard4, LeftKeyboard5, LeftKeyboard6,
+      LeftKeyboard7, LeftKeyboard8, LeftKeyboard9,
+      LeftKeyboardStar, LeftKeyboard0, LeftKeyboardPound,
 
-      KeyboardOne1, KeyboardOne2, KeyboardOne3,
-      KeyboardOne4, KeyboardOne5, KeyboardOne6,
-      KeyboardOne7, KeyboardOne8, KeyboardOne9,
-      KeyboardOneStar, KeyboardOne0, KeyboardOnePound,
+      RightKeyboard1, RightKeyboard2, RightKeyboard3,
+      RightKeyboard4, RightKeyboard5, RightKeyboard6,
+      RightKeyboard7, RightKeyboard8, RightKeyboard9,
+      RightKeyboardStar, RightKeyboard0, RightKeyboardPound,
 
       CompuMateFunc, CompuMateShift,
       CompuMate0, CompuMate1, CompuMate2, CompuMate3, CompuMate4,
@@ -89,7 +89,7 @@ class Event
 
       Quit, ReloadConsole, Fry,
       TogglePauseMode, StartPauseMode,
-      OptionsMenuMode, CmdMenuMode, DebuggerMode, ExitMode,
+      OptionsMenuMode, CmdMenuMode, DebuggerMode, PlusRomsSetupMode, ExitMode,
       TakeSnapshot, ToggleContSnapshots, ToggleContSnapshotsFrame,
       ToggleTurbo,
 
@@ -111,7 +111,9 @@ class Event
       PreviousVideoMode, NextVideoMode,
       PreviousAttribute, NextAttribute, DecreaseAttribute, IncreaseAttribute,
       ScanlinesDecrease, ScanlinesIncrease,
-      PhosphorDecrease, PhosphorIncrease, TogglePhosphor, ToggleInter, ToggleJitter,
+      PreviousScanlineMask, NextScanlineMask,
+      PhosphorDecrease, PhosphorIncrease, TogglePhosphor, ToggleInter,
+      ToggleDeveloperSet, JitterDecrease, JitterIncrease, ToggleJitter,
 
       VolumeDecrease, VolumeIncrease, SoundToggle,
 
@@ -129,10 +131,10 @@ class Event
       DecreaseAutoFire, IncreaseAutoFire,
       DecreaseSpeed, IncreaseSpeed,
 
-      JoystickTwoUp, JoystickTwoDown, JoystickTwoLeft, JoystickTwoRight,
-      JoystickTwoFire,
-      JoystickThreeUp, JoystickThreeDown, JoystickThreeLeft, JoystickThreeRight,
-      JoystickThreeFire,
+      QTJoystickThreeUp, QTJoystickThreeDown, QTJoystickThreeLeft, QTJoystickThreeRight,
+      QTJoystickThreeFire,
+      QTJoystickFourUp, QTJoystickFourDown, QTJoystickFourLeft, QTJoystickFourRight,
+      QTJoystickFourFire,
 
       ToggleCorrectAspectRatio,
 
@@ -147,7 +149,9 @@ class Event
       HighScoresMenuMode,
       // Input settings
       DecreaseDeadzone, IncreaseDeadzone,
+      DecAnalogDeadzone, IncAnalogDeadzone,
       DecAnalogSense, IncAnalogSense,
+      DecAnalogLinear, IncAnalogLinear,
       DecDejtterAveraging, IncDejtterAveraging,
       DecDejtterReaction, IncDejtterReaction,
       DecDigitalSense, IncDigitalSense,
@@ -167,7 +171,7 @@ class Event
       DecreaseMouseAxesRange, IncreaseMouseAxesRange,
 
       SALeftAxis0Value, SALeftAxis1Value, SARightAxis0Value, SARightAxis1Value,
-      PaddleFourFire, PaddleFiveFire, PaddleSixFire, PaddleSevenFire,
+      QTPaddle3AFire, QTPaddle3BFire, QTPaddle4AFire, QTPaddle4BFire,
       UIHelp,
       LastType
     };
@@ -198,7 +202,7 @@ class Event
       Get the value associated with the event of the specified type.
     */
     Int32 get(Type type) const {
-      std::lock_guard<std::mutex> lock(myMutex);
+      //std::lock_guard<std::mutex> lock(myMutex);
 
       return myValues[type];
     }
@@ -207,7 +211,7 @@ class Event
       Set the value associated with the event of the specified type.
     */
     void set(Type type, Int32 value) {
-      std::lock_guard<std::mutex> lock(myMutex);
+      //std::lock_guard<std::mutex> lock(myMutex);
 
       myValues[type] = value;
     }
@@ -217,7 +221,7 @@ class Event
     */
     void clear()
     {
-      std::lock_guard<std::mutex> lock(myMutex);
+      //std::lock_guard<std::mutex> lock(myMutex);
 
       myValues.fill(Event::NoType);
     }
@@ -229,10 +233,10 @@ class Event
     {
       switch(type)
       {
-        case Event::PaddleZeroAnalog:
-        case Event::PaddleOneAnalog:
-        case Event::PaddleTwoAnalog:
-        case Event::PaddleThreeAnalog:
+        case Event::LeftPaddleAAnalog:
+        case Event::LeftPaddleBAnalog:
+        case Event::RightPaddleAAnalog:
+        case Event::RightPaddleBAnalog:
           return true;
         default:
           return false;
@@ -243,7 +247,7 @@ class Event
     // Array of values associated with each event type
     std::array<Int32, LastType> myValues;
 
-    mutable std::mutex myMutex;
+    //mutable std::mutex myMutex;
 
   private:
     // Following constructors and assignment operators not supported
@@ -256,62 +260,62 @@ class Event
 // Hold controller related events
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 static const Event::EventSet LeftJoystickEvents = {
-  Event::JoystickZeroUp, Event::JoystickZeroDown, Event::JoystickZeroLeft, Event::JoystickZeroRight,
-  Event::JoystickZeroFire, Event::JoystickZeroFire5, Event::JoystickZeroFire9,
+  Event::LeftJoystickUp, Event::LeftJoystickDown, Event::LeftJoystickLeft, Event::LeftJoystickRight,
+  Event::LeftJoystickFire, Event::LeftJoystickFire5, Event::LeftJoystickFire9,
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-static const Event::EventSet Left2JoystickEvents = {
-  Event::JoystickTwoUp, Event::JoystickTwoDown, Event::JoystickTwoLeft, Event::JoystickTwoRight,
-  Event::JoystickTwoFire
+static const Event::EventSet QTJoystick3Events = {
+  Event::QTJoystickThreeUp, Event::QTJoystickThreeDown, Event::QTJoystickThreeLeft, Event::QTJoystickThreeRight,
+  Event::QTJoystickThreeFire
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 static const Event::EventSet RightJoystickEvents = {
-  Event::JoystickOneUp, Event::JoystickOneDown, Event::JoystickOneLeft, Event::JoystickOneRight,
-  Event::JoystickOneFire, Event::JoystickOneFire5, Event::JoystickOneFire9,
+  Event::RightJoystickUp, Event::RightJoystickDown, Event::RightJoystickLeft, Event::RightJoystickRight,
+  Event::RightJoystickFire, Event::RightJoystickFire5, Event::RightJoystickFire9,
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-static const Event::EventSet Right2JoystickEvents = {
-  Event::JoystickThreeUp, Event::JoystickThreeDown, Event::JoystickThreeLeft, Event::JoystickThreeRight,
-  Event::JoystickThreeFire
+static const Event::EventSet QTJoystick4Events = {
+  Event::QTJoystickFourUp, Event::QTJoystickFourDown, Event::QTJoystickFourLeft, Event::QTJoystickFourRight,
+  Event::QTJoystickFourFire
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 static const Event::EventSet LeftPaddlesEvents = {
-  Event::PaddleZeroDecrease, Event::PaddleZeroIncrease, Event::PaddleZeroAnalog, Event::PaddleZeroFire,
-  Event::PaddleOneDecrease, Event::PaddleOneIncrease, Event::PaddleOneAnalog, Event::PaddleOneFire,
+  Event::LeftPaddleADecrease, Event::LeftPaddleAIncrease, Event::LeftPaddleAAnalog, Event::LeftPaddleAFire,
+  Event::LeftPaddleBDecrease, Event::LeftPaddleBIncrease, Event::LeftPaddleBAnalog, Event::LeftPaddleBFire,
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-static const Event::EventSet Left2PaddlesEvents = {
+static const Event::EventSet QTPaddles3Events = {
   // Only fire buttons supported by QuadTari
-  Event::PaddleFourFire, Event::PaddleFiveFire
+  Event::QTPaddle3AFire, Event::QTPaddle3BFire
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 static const Event::EventSet RightPaddlesEvents = {
-  Event::PaddleTwoDecrease, Event::PaddleTwoIncrease, Event::PaddleTwoAnalog, Event::PaddleTwoFire,
-  Event::PaddleThreeDecrease, Event::PaddleThreeIncrease, Event::PaddleThreeAnalog, Event::PaddleThreeFire,
+  Event::RightPaddleADecrease, Event::RightPaddleAIncrease, Event::RightPaddleAAnalog, Event::RightPaddleAFire,
+  Event::RightPaddleBDecrease, Event::RightPaddleBIncrease, Event::RightPaddleBAnalog, Event::RightPaddleBFire,
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-static const Event::EventSet Right2PaddlesEvents = {
+static const Event::EventSet QTPaddles4Events = {
   // Only fire buttons supported by QuadTari
-  Event::PaddleSixFire, Event::PaddleSevenFire
+  Event::QTPaddle4AFire, Event::QTPaddle4BFire
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-static const Event::EventSet LeftKeypadEvents = {
-  Event::KeyboardZero1, Event::KeyboardZero2, Event::KeyboardZero3,
-  Event::KeyboardZero4, Event::KeyboardZero5, Event::KeyboardZero6,
-  Event::KeyboardZero7, Event::KeyboardZero8, Event::KeyboardZero9,
-  Event::KeyboardZeroStar, Event::KeyboardZero0, Event::KeyboardZeroPound,
+static const Event::EventSet LeftKeyboardEvents = {
+  Event::LeftKeyboard1, Event::LeftKeyboard2, Event::LeftKeyboard3,
+  Event::LeftKeyboard4, Event::LeftKeyboard5, Event::LeftKeyboard6,
+  Event::LeftKeyboard7, Event::LeftKeyboard8, Event::LeftKeyboard9,
+  Event::LeftKeyboardStar, Event::LeftKeyboard0, Event::LeftKeyboardPound,
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-static const Event::EventSet RightKeypadEvents = {
-  Event::KeyboardOne1, Event::KeyboardOne2, Event::KeyboardOne3,
-  Event::KeyboardOne4, Event::KeyboardOne5, Event::KeyboardOne6,
-  Event::KeyboardOne7, Event::KeyboardOne8, Event::KeyboardOne9,
-  Event::KeyboardOneStar, Event::KeyboardOne0, Event::KeyboardOnePound,
+static const Event::EventSet RightKeyboardEvents = {
+  Event::RightKeyboard1, Event::RightKeyboard2, Event::RightKeyboard3,
+  Event::RightKeyboard4, Event::RightKeyboard5, Event::RightKeyboard6,
+  Event::RightKeyboard7, Event::RightKeyboard8, Event::RightKeyboard9,
+  Event::RightKeyboardStar, Event::RightKeyboard0, Event::RightKeyboardPound,
 };
 
 #endif

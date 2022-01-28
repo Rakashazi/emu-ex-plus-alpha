@@ -14,6 +14,7 @@
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <OSystem.hxx>
+#include <SoundEmuEx.hh>
 #include <stella/emucore/Paddles.hxx>
 // TODO: Some Stella types collide with MacTypes.h
 #define Debugger DebuggerMac
@@ -34,7 +35,7 @@ class CustomAudioOptionView : public AudioOptionView
 	{
 		logMsg("set resampling quality:%d", (int)val);
 		optionAudioResampleQuality = (uint8_t)val;
-		osystem->setResampleQuality(val);
+		osystem->soundEmuEx().setResampleQuality(val);
 	}
 
 	TextMenuItem resampleQualityItem[3]

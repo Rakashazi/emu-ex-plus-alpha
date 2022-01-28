@@ -24,33 +24,33 @@ Keyboard::Keyboard(Jack jack, const Event& event, const System& system)
 {
   if(myJack == Jack::Left)
   {
-    myOneEvent   = Event::KeyboardZero1;
-    myTwoEvent   = Event::KeyboardZero2;
-    myThreeEvent = Event::KeyboardZero3;
-    myFourEvent  = Event::KeyboardZero4;
-    myFiveEvent  = Event::KeyboardZero5;
-    mySixEvent   = Event::KeyboardZero6;
-    mySevenEvent = Event::KeyboardZero7;
-    myEightEvent = Event::KeyboardZero8;
-    myNineEvent  = Event::KeyboardZero9;
-    myStarEvent  = Event::KeyboardZeroStar;
-    myZeroEvent  = Event::KeyboardZero0;
-    myPoundEvent = Event::KeyboardZeroPound;
+    myOneEvent   = Event::LeftKeyboard1;
+    myTwoEvent   = Event::LeftKeyboard2;
+    myThreeEvent = Event::LeftKeyboard3;
+    myFourEvent  = Event::LeftKeyboard4;
+    myFiveEvent  = Event::LeftKeyboard5;
+    mySixEvent   = Event::LeftKeyboard6;
+    mySevenEvent = Event::LeftKeyboard7;
+    myEightEvent = Event::LeftKeyboard8;
+    myNineEvent  = Event::LeftKeyboard9;
+    myStarEvent  = Event::LeftKeyboardStar;
+    myZeroEvent  = Event::LeftKeyboard0;
+    myPoundEvent = Event::LeftKeyboardPound;
   }
   else
   {
-    myOneEvent   = Event::KeyboardOne1;
-    myTwoEvent   = Event::KeyboardOne2;
-    myThreeEvent = Event::KeyboardOne3;
-    myFourEvent  = Event::KeyboardOne4;
-    myFiveEvent  = Event::KeyboardOne5;
-    mySixEvent   = Event::KeyboardOne6;
-    mySevenEvent = Event::KeyboardOne7;
-    myEightEvent = Event::KeyboardOne8;
-    myNineEvent  = Event::KeyboardOne9;
-    myStarEvent  = Event::KeyboardOneStar;
-    myZeroEvent  = Event::KeyboardOne0;
-    myPoundEvent = Event::KeyboardOnePound;
+    myOneEvent   = Event::RightKeyboard1;
+    myTwoEvent   = Event::RightKeyboard2;
+    myThreeEvent = Event::RightKeyboard3;
+    myFourEvent  = Event::RightKeyboard4;
+    myFiveEvent  = Event::RightKeyboard5;
+    mySixEvent   = Event::RightKeyboard6;
+    mySevenEvent = Event::RightKeyboard7;
+    myEightEvent = Event::RightKeyboard8;
+    myNineEvent  = Event::RightKeyboard9;
+    myStarEvent  = Event::RightKeyboardStar;
+    myZeroEvent  = Event::RightKeyboard0;
+    myPoundEvent = Event::RightKeyboardPound;
   }
 }
 

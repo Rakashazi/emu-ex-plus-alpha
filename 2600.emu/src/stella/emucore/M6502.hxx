@@ -255,6 +255,8 @@ class M6502 : public Serializable
     void setGhostReadsTrap(bool enable) { myGhostReadsTrap = enable; }
     void setReadFromWritePortBreak(bool enable) { myReadFromWritePortBreak = enable; }
     void setWriteToReadPortBreak(bool enable) { myWriteToReadPortBreak = enable; }
+    void setLogBreaks(bool enable) { myLogBreaks = enable; }
+    bool getLogBreaks() { return myLogBreaks; }
 #endif  // DEBUGGER_SUPPORT
 
   private:
@@ -469,6 +471,7 @@ class M6502 : public Serializable
     bool myReadFromWritePortBreak{false};  // trap on reads from write ports
     bool myWriteToReadPortBreak{false};    // trap on writes to read ports
     bool myStepStateByInstruction{false};
+    bool myLogBreaks{false};               // log breaks/taps and continue emulation
 
   private:
     // Following constructors and assignment operators not supported

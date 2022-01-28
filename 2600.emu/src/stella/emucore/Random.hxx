@@ -18,6 +18,8 @@
 #ifndef RANDOM_HXX
 #define RANDOM_HXX
 
+#include <chrono>
+
 #include "bspf.hxx"
 #include "Serializable.hxx"
 
@@ -32,7 +34,14 @@ class Random : public Serializable
 {
   public:
     /**
-      Create a new random number generator
+      Create a new random number generator with seed based on system time.
+    */
+    explicit Random() {
+      initSeed(static_cast<uInt32>(std::chrono::system_clock::now().time_since_epoch().count()));
+    }
+
+    /**
+      Create a new random number generator with given seed.
     */
     explicit Random(uInt32 seed) { initSeed(seed); }
 
@@ -46,7 +55,7 @@ class Random : public Serializable
     }
 
     /**
-      Answer the next random number from the random number generator
+      Answer the next random number from the random number generator.
 
       @return A random number
     */
@@ -107,7 +116,6 @@ class Random : public Serializable
 
   private:
     // Following constructors and assignment operators not supported
-    Random() = delete;
     Random(const Random&) = delete;
     Random(Random&&) = delete;
     Random& operator=(const Random&) = delete;

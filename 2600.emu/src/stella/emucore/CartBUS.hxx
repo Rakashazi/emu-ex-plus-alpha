@@ -19,14 +19,13 @@
 #define CARTRIDGE_BUS_HXX
 
 class System;
-class Thumbulator;
+
 #ifdef DEBUGGER_SUPPORT
   #include "CartBUSWidget.hxx"
 #endif
 
 #include "bspf.hxx"
-#include "Thumbulator.hxx"
-#include "Cart.hxx"
+#include "CartARM.hxx"
 
 /**
   Cartridge class used for BUS.
@@ -41,7 +40,7 @@ class Thumbulator;
   @authors: Darrell Spice Jr, Chris Walton, Fred Quimby,
             Stephen Anthony, Bradford W. Mott
 */
-class CartridgeBUS : public Cartridge
+class CartridgeBUS : public CartridgeARM
 {
   friend class CartridgeBUSWidget;
   friend class CartridgeRamBUSWidget;
@@ -64,15 +63,6 @@ class CartridgeBUS : public Cartridge
       Reset device to its power-on state
     */
     void reset() override;
-
-    /**
-      Notification method invoked by the system when the console type
-      has changed.  We need this to inform the Thumbulator that the
-      timing has changed.
-
-      @param timing  Enum representing the new console type
-    */
-    void consoleChanged(ConsoleTiming timing) override;
 
     /**
       Install cartridge in the specified system.  Invoked by the system
@@ -206,7 +196,7 @@ class CartridgeBUS : public Cartridge
     /**
       Sets the initial state of the DPC pointers and RAM
     */
-    void setInitialState();
+    void setInitialState() override;
 
     /**
       Updates any data fetchers in music mode based on the number of
@@ -233,9 +223,6 @@ class CartridgeBUS : public Cartridge
     uInt32 getWaveformSize(uInt8 index) const;
     uInt32 getSample();
 
-    // Get number of memory accesses of last ARM run.
-    const Thumbulator::Stats& stats() const { return myThumbEmulator->stats(); }
-
   private:
     // The 32K ROM image of the cartridge
     ByteBuffer myImage;
@@ -254,9 +241,6 @@ class CartridgeBUS : public Cartridge
     //   $0800 - 4K Display Data
     //   $1800 - 2K C Variable & Stack
     std::array<uInt8, 8_KB> myRAM;
-
-    // Pointer to the Thumb ARM emulator object
-    unique_ptr<Thumbulator> myThumbEmulator;
 
     // Indicates the offset into the ROM image (aligns to current bank)
     uInt16 myBankOffset{0};

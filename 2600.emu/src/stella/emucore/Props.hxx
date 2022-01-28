@@ -50,6 +50,7 @@ enum class PropType : uInt8 {
   Display_Phosphor,
   Display_PPBlend,
   Cart_Highscore,
+  Cart_Url,
   NumTypes
 };
 

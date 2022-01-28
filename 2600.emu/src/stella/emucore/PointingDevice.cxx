@@ -90,7 +90,7 @@ void PointingDevice::update()
       myTrackBallDown, myTrackBallLinesV, myScanCountV, myFirstScanOffsetV);
 
   // We allow left and right mouse buttons for fire button
-  setPin(DigitalPin::Six, !getAutoFireState(myEvent.get(Event::JoystickZeroFire) ||
+  setPin(DigitalPin::Six, !getAutoFireState(myEvent.get(Event::LeftJoystickFire) ||
     myEvent.get(Event::MouseButtonLeftValue) || myEvent.get(Event::MouseButtonRightValue)));
 }
 

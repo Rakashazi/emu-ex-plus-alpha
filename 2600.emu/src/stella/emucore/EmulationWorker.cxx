@@ -20,6 +20,7 @@
 #include "EmulationWorker.hxx"
 #include "DispatchResult.hxx"
 #include "TIA.hxx"
+#include "Logger.hxx"
 
 using namespace std::chrono;
 
@@ -238,10 +239,13 @@ void EmulationWorker::handleWakeupFromWaitingForStop(std::unique_lock<std::mutex
       break;
 
     case Signal::none:
-      if (myVirtualTime <= high_resolution_clock::now())
+      if(myVirtualTime <= high_resolution_clock::now())
         // The time allotted to the emulation timeslice has passed and we haven't been stopped?
         // -> go for another emulation timeslice
+      {
+        Logger::debug("Frame dropped!");
         dispatchEmulation(lock);
+      }
       else
         // Wakeup was spurious, reenter sleep
         myWakeupCondition.wait_until(lock, myVirtualTime);

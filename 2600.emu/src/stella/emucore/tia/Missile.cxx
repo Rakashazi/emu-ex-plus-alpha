@@ -40,6 +40,7 @@ void Missile::reset()
   myIsRendering = false;
   myIsVisible = false;
   myRenderCounter = 0;
+  myCopy = 1;
   myColor = myObjectColor = myDebugColor = 0;
   myDebugEnabled = false;
   collision = myCollisionMaskDisabled;
@@ -221,6 +222,23 @@ void Missile::applyColors()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt8 Missile::getColor() const
+{
+  if(!myDebugEnabled)
+    return myColor;
+  else
+    switch (myCopy)
+    {
+      case 2:
+        return myColor - 2;
+      case 3:
+        return myColor + 2;
+      default:
+        return myColor;
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 Missile::getPosition() const
 {
   // position =
@@ -267,6 +285,7 @@ bool Missile::save(Serializer& out) const
     out.putBool(myIsVisible);
     out.putBool(myIsRendering);
     out.putByte(myRenderCounter);
+    out.putByte(myCopy);
 
     out.putByte(myDecodesOffset);
 
@@ -307,6 +326,7 @@ bool Missile::load(Serializer& in)
     myIsVisible = in.getBool();
     myIsRendering = in.getBool();
     myRenderCounter = in.getByte();
+    myCopy = in.getByte();
 
     myDecodesOffset = in.getByte();
     myDecodes = DrawCounterDecodes::get().missileDecodes()[myDecodesOffset];

@@ -22,10 +22,6 @@
 MindLink::MindLink(Jack jack, const Event& event, const System& system)
   : Controller(jack, event, system, Controller::Type::MindLink)
 {
-  setPin(DigitalPin::One, true);
-  setPin(DigitalPin::Two, true);
-  setPin(DigitalPin::Three, true);
-  setPin(DigitalPin::Four, true);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -39,19 +35,16 @@ void MindLink::update()
   if(!myMouseEnabled)
     return;
 
-  myMindlinkPos = (myMindlinkPos & 0x3fffffff) +
-                  (myEvent.get(Event::MouseAxisXMove) << 3);
-  if(myMindlinkPos < 0x2800)
-    myMindlinkPos = 0x2800;
-  if(myMindlinkPos >= 0x3800)
-    myMindlinkPos = 0x3800;
-
-  myMindlinkShift = 1;
-  nextMindlinkBit();
+  myMindlinkPos = BSPF::clamp((myMindlinkPos & ~CALIBRATE_FLAG) +
+                              myEvent.get(Event::MouseAxisXMove) * MOUSE_SENSITIVITY,
+                              MIN_POS, MAX_POS);
 
   if(myEvent.get(Event::MouseButtonLeftValue) ||
      myEvent.get(Event::MouseButtonRightValue))
-    myMindlinkPos |= 0x4000;  // this bit starts a game
+    myMindlinkPos = CALIBRATE_FLAG; // flag starts game & calibates
+
+  myMindlinkShift = 1; // start transfer with least significant bit
+  nextMindlinkBit();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -63,8 +56,8 @@ void MindLink::nextMindlinkBit()
     setPin(DigitalPin::Four, false);
     if(myMindlinkPos & myMindlinkShift)
       setPin(DigitalPin::Four, true);
-    myMindlinkShift <<= 1;
-	}
+    myMindlinkShift <<= 1; // next bit
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -79,3 +72,4 @@ bool MindLink::setMouseControl(
                    (xid != -1 || yid != -1);
   return true;
 }
+

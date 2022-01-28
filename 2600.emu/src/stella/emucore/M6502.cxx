@@ -93,6 +93,7 @@ void M6502::reset()
   myGhostReadsTrap = mySettings.getBool("dbg.ghostreadstrap");
   myReadFromWritePortBreak = devSettings ? mySettings.getBool("dev.rwportbreak") : false;
   myWriteToReadPortBreak = devSettings ? mySettings.getBool("dev.wrportbreak") : false;
+  myLogBreaks = mySettings.getBool("dbg.logbreaks");
 
   myLastBreakCycle = ULLONG_MAX;
 }
@@ -162,7 +163,7 @@ inline void M6502::poke(uInt16 address, uInt8 value, Device::AccessFlags flags)
     {
       myJustHitWriteTrapFlag = true;
       stringstream msg;
-      msg << "WTrap[" << Common::Base::HEX2 << cond << "]" << (myTrapCondNames[cond].empty() ? ": " : "If: {" + myTrapCondNames[cond] + "} ");
+      msg << "WTrap[" << Common::Base::HEX2 << cond << "]" << (myTrapCondNames[cond].empty() ? ":" : "If: {" + myTrapCondNames[cond] + "}");
       myHitTrapInfo.message = msg.str();
       myHitTrapInfo.address = address;
     }
@@ -243,10 +244,16 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
           myJustHitReadTrapFlag = myJustHitWriteTrapFlag = false;
 
           myLastBreakCycle = mySystem->cycles();
-          result.setDebugger(currentCycles, myHitTrapInfo.message,
-                             read ? "Read trap" : "Write trap",
-                             myHitTrapInfo.address, read);
-          return;
+
+          if(myLogBreaks)
+            myDebugger->log(myHitTrapInfo.message);
+          else
+          {
+            result.setDebugger(currentCycles, myHitTrapInfo.message + " ",
+                               read ? "Read trap" : "Write trap",
+                               myHitTrapInfo.address, read);
+            return;
+          }
         }
 
         if(myBreakPoints.isInitialized())
@@ -260,15 +267,21 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
             if(myBreakPoints.get(PC, bank) & BreakpointMap::ONE_SHOT)
             {
               myBreakPoints.erase(PC, bank);
+              return;
             }
             else
             {
-              ostringstream msg;
+              if(myLogBreaks)
+                myDebugger->log("BP:");
+              else
+              {
+                ostringstream msg;
 
-              msg << "BP: $" << Common::Base::HEX4 << PC << ", bank #" << std::dec << int(bank);
-              result.setDebugger(currentCycles, msg.str(), "Breakpoint");
+                msg << "BP: $" << Common::Base::HEX4 << PC << ", bank #" << std::dec << int(bank);
+                result.setDebugger(currentCycles, msg.str(), "Breakpoint");
+                return;
+              }
             }
-            return;
           }
         }
 
@@ -277,11 +290,19 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
         {
           ostringstream msg;
 
-          msg << "CBP[" << Common::Base::HEX2 << cond << "]: " << myCondBreakNames[cond];
-
           myLastBreakCycle = mySystem->cycles();
-          result.setDebugger(currentCycles, msg.str(), "Conditional breakpoint");
-          return;
+
+          if(myLogBreaks)
+          {
+            msg << "CBP[" << Common::Base::HEX2 << cond << "]:";
+            myDebugger->log(msg.str());
+          }
+          else
+          {
+            msg << "CBP[" << Common::Base::HEX2 << cond << "]: " << myCondBreakNames[cond];
+            result.setDebugger(currentCycles, msg.str(), "Conditional breakpoint");
+            return;
+          }
         }
       }
 

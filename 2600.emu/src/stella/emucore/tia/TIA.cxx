@@ -114,6 +114,12 @@ void TIA::setAudioQueue(const shared_ptr<AudioQueue>& queue)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TIA::setAudioRewindMode(bool enable)
+{
+  myAudio.setAudioRewindMode(enable);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIA::clearFrameManager()
 {
   if (!myFrameManager) return;
@@ -198,6 +204,21 @@ void TIA::reset()
   // Simply call initialize(); mostly to get around calling a virtual method
   // from the constructor
   initialize();
+
+  if(myRandomize && !mySystem->autodetectMode())
+  {
+    for(uInt32 i = 0; i < 0x4000; ++i)
+    {
+      uInt16 address = mySystem->randGenerator().next() & 0x3F;
+
+      if(address <= 0x2F)
+      {
+        poke(address, mySystem->randGenerator().next());
+        cycle(1 + (mySystem->randGenerator().next() & 7)); // process delay queue
+      }
+    }
+    cycle(76); // just to be sure :)
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -956,6 +977,7 @@ void TIA::applyDeveloperSettings()
     setBlSwapDelay(false);
   }
 
+  myRandomize = mySettings.getBool(devSettings ? "dev.tiarandom" : "plr.tiarandom");
   myTIAPinsDriven = devSettings ? mySettings.getBool("dev.tiadriven") : false;
 
   myEnableJitter = mySettings.getBool(devSettings ? "dev.tv.jitter" : "plr.tv.jitter");

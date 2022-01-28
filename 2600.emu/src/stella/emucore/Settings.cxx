@@ -21,7 +21,9 @@
 #include "Version.hxx"
 #include "Logger.hxx"
 #include "AudioSettings.hxx"
+#include "TIASurface.hxx"
 #include "PaletteHandler.hxx"
+#include "Joystick.hxx"
 #include "Paddles.hxx"
 
 #ifdef DEBUGGER_SUPPORT
@@ -79,6 +81,7 @@ Settings::Settings()
   setPermanent("tv.phosphor", "byrom");
   setPermanent("tv.phosblend", "50");
   setPermanent("tv.scanlines", "0");
+  setPermanent("tv.scanmask", TIASurface::SETTING_STANDARD);
   // TV options when using 'custom' mode
   setPermanent("tv.sharpness", "0.0");
   setPermanent("tv.resolution", "0.0");
@@ -114,6 +117,8 @@ Settings::Settings()
   setPermanent("usemouse", "analog");
   setPermanent("grabmouse", "true");
   setPermanent("cursor", "2");
+  setPermanent("adeadzone", "0");
+  setPermanent("plinear", "100");
   setPermanent("dejitter.base", "0");
   setPermanent("dejitter.diff", "0");
   setPermanent("dsense", "10");
@@ -181,6 +186,9 @@ Settings::Settings()
   setTemporary("maxres", "");
   setPermanent("initials", "");
   setTemporary("turbo", "0");
+  setPermanent("plusroms.nick", "");
+  setTemporary("plusroms.id", "");
+  setPermanent("plusroms.fixedid", "");
 
 #ifdef DEBUGGER_SUPPORT
   // Debugger/disassembly options
@@ -188,6 +196,8 @@ Settings::Settings()
   setPermanent("dbg.fontstyle", "0");
   setPermanent("dbg.uhex", "false");
   setPermanent("dbg.ghostreadstrap", "true");
+  setPermanent("dbg.logbreaks", "false");
+  setPermanent("dbg.autosave", "false");
   setPermanent("dis.resolve", "true");
   setPermanent("dis.gfxformat", "2");
   setPermanent("dis.showaddr", "true");
@@ -201,6 +211,7 @@ Settings::Settings()
   setPermanent("plr.bankrandom", "false");
   setPermanent("plr.ramrandom", "true");
   setPermanent("plr.cpurandom", "AXYP");
+  setPermanent("plr.tiarandom", "false");
   setPermanent("plr.colorloss", "false");
   setPermanent("plr.tv.jitter", "true");
   setPermanent("plr.tv.jitter_recovery", "10");
@@ -212,7 +223,7 @@ Settings::Settings()
   setPermanent("plr.tm.interval", "30f"); // = 0.5 seconds
   setPermanent("plr.tm.horizon", "10m"); // = ~10 minutes
   setPermanent("plr.detectedinfo", "false");
-  setPermanent("plr.eepromaccess", "false");
+  setPermanent("plr.extaccess", "false");
 
   // Developer settings
   setPermanent("dev.settings", "false");
@@ -220,6 +231,7 @@ Settings::Settings()
   setPermanent("dev.bankrandom", "true");
   setPermanent("dev.ramrandom", "true");
   setPermanent("dev.cpurandom", "SAXYP");
+  setPermanent("dev.tiarandom", "true");
   setPermanent("dev.colorloss", "true");
   setPermanent("dev.tv.jitter", "true");
   setPermanent("dev.tv.jitter_recovery", "2");
@@ -240,10 +252,16 @@ Settings::Settings()
   setPermanent("dev.tm.uncompressed", 600);
   setPermanent("dev.tm.interval", "1f"); // = 1 frame
   setPermanent("dev.tm.horizon", "30s"); // = ~30 seconds
+  setPermanent("dev.detectedinfo", "true");
+  setPermanent("dev.extaccess", "true");
   // Thumb ARM emulation options
   setPermanent("dev.thumb.trapfatal", "true");
-  setPermanent("dev.detectedinfo", "true");
-  setPermanent("dev.eepromaccess", "true");
+#ifdef DEBUGGER_SUPPORT
+  setPermanent("dev.thumb.inccycles", "true");
+  setPermanent("dev.thumb.cyclefactor", "1.05");
+  setPermanent("dev.thumb.chiptype", "0"); // = LPC2103
+  setPermanent("dev.thumb.mammode", "2");
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -299,6 +317,14 @@ void Settings::validate()
   i = getInt("tv.phosblend");
   if(i < 0 || i > 100)  setValue("tv.phosblend", "50");
 
+  s = getString("tv.scanmask");
+  if(s != TIASurface::SETTING_STANDARD
+      && s != TIASurface::SETTING_THIN
+      && s != TIASurface::SETTING_PIXELS
+      && s != TIASurface::SETTING_APERTURE
+      && s != TIASurface::SETTING_MAME)
+    setValue("tv.scanmask", TIASurface::SETTING_STANDARD);
+
   i = getInt("tv.filter");
   if(i < 0 || i > 5)  setValue("tv.filter", "0");
 
@@ -344,25 +370,33 @@ void Settings::validate()
   AudioSettings::normalize(*this);
 #endif
 
-  i = getInt("joydeadzone");
-  if(i < 0)        setValue("joydeadzone", "0");
-  else if(i > 29)  setValue("joydeadzone", "29");
+  setValue("joydeadzone", BSPF::clamp(getInt("joydeadzone"),
+           Controller::MIN_DIGITAL_DEADZONE, Joystick::MAX_DIGITAL_DEADZONE));
+
+  setValue("adeadzone", BSPF::clamp(getInt("adeadzone"),
+           Controller::MIN_ANALOG_DEADZONE, Controller::MAX_ANALOG_DEADZONE));
+
+  setValue("psense", BSPF::clamp(getInt("psense"),
+           Paddles::MIN_ANALOG_SENSE, Paddles::MAX_ANALOG_SENSE));
+
+  setValue("plinear", BSPF::clamp(getInt("plinear"),
+           Paddles::MIN_ANALOG_LINEARITY, Paddles::MAX_ANALOG_LINEARITY));
+
+  setValue("dejitter.base", BSPF::clamp(getInt("dejitter.base"),
+           Paddles::MIN_DEJITTER, Paddles::MAX_DEJITTER));
+
+  setValue("dejitter.diff", BSPF::clamp(getInt("dejitter.diff"),
+           Paddles::MIN_DEJITTER, Paddles::MAX_DEJITTER));
+
+  setValue("dsense", BSPF::clamp(getInt("dsense"),
+           Paddles::MIN_DIGITAL_SENSE, Paddles::MAX_DIGITAL_SENSE));
+
+  setValue("msense", BSPF::clamp(getInt("msense"),
+           Controller::MIN_MOUSE_SENSE, Controller::MAX_MOUSE_SENSE));
 
   i = getInt("cursor");
   if(i < 0 || i > 3)
     setValue("cursor", "2");
-
-  i = getInt("psense");
-  if(i < Paddles::MIN_ANALOG_SENSE || i > Paddles::MAX_ANALOG_SENSE)
-    setValue("psense", "20");
-
-  i = getInt("dsense");
-  if(i < Paddles::MIN_DIGITAL_SENSE || i > Paddles::MAX_DIGITAL_SENSE)
-    setValue("dsense", "10");
-
-  i = getInt("msense");
-  if(i < 1 || i > 20)
-    setValue("msense", "10");
 
   i = getInt("tsense");
   if(i < 1 || i > 20)
@@ -482,6 +516,9 @@ void Settings::usage() const
     << "  -tv.phosblend <0-100>         Set default blend level in phosphor mode\n"
     << "  -tv.scanlines <0-100>         Set scanline intensity to percentage\n"
     << "                                 (0 disables completely)\n"
+    << "  -tv.scanmask  <standard|      Use the specified scanline mask\n"
+    << "                 thin|pixel|\n"
+    << "                 mame>\n"
     << "  -tv.sharpness   <-1.0 - 1.0>  Set TV effects custom sharpness\n"
     << "  -tv.resolution  <-1.0 - 1.0>  Set TV effects custom resolution\n"
     << "  -tv.artifacts   <-1.0 - 1.0>  Set TV effects custom artifacts\n"
@@ -493,22 +530,24 @@ void Settings::usage() const
     << "  -loglevel     <0|1|2>        Set level of logging during application run\n"
     << endl
     << "  -logtoconsole <1|0>          Log output to console/commandline\n"
-    << "  -joydeadzone  <number>       Sets 'deadzone' area for analog joysticks (0-29)\n"
+    << "  -joydeadzone  <0-29>         Sets digital 'dead zone' area for analog joysticks\n"
     << "  -joyallow4    <1|0>          Allow all 4 directions on a joystick to be\n"
     << "                                pressed simultaneously\n"
     << "  -usemouse     <always|\n"
     << "                 analog|\n"
     << "                 never>        Use mouse as a controller as specified by ROM\n"
     << "                                properties in given mode(see manual)\n"
-    << "  -grabmouse    <1|0>          Locks the mouse cursor in the TIA window\n"
-    << "  -cursor       <0,1,2,3>      Set cursor state in UI/emulation modes\n"
-    << "  -dejitter.base <0-10>        Strength of analog paddle value averaging\n"
-    << "  -dejitter.diff <0-10>        Strength of analog paddle reaction to fast movements\n"
-    << "  -psense       <0-30>         Sensitivity of analog paddle movement\n"
-    << "  -dsense       <1-20>         Sensitivity of digital emulated paddle movement\n"
-    << "  -msense       <1-20>         Sensitivity of mouse emulated paddle movement\n"
-    << "  -tsense       <1-20>         Sensitivity of mouse emulated trackball movement\n"
-    << "  -dcsense      <1-20>         Sensitivity of digital emulated driving controller\n"
+    << "  -grabmouse      <1|0>        Locks the mouse cursor in the TIA window\n"
+    << "  -cursor         <0,1,2,3>    Set cursor state in UI/emulation modes\n"
+    << "  -adeadzone      <0-29>       Sets analog 'dead zone' area for analog joysticks\n"
+    << "  -plinear        <25-100>     Sets paddle linearity\n"
+    << "  -dejitter.base  <0-10>       Strength of analog paddle value averaging\n"
+    << "  -dejitter.diff  <0-10>       Strength of analog paddle reaction to fast movements\n"
+    << "  -psense         <0-30>       Sensitivity of analog paddle movement\n"
+    << "  -dsense         <1-20>       Sensitivity of digital emulated paddle movement\n"
+    << "  -msense         <1-20>       Sensitivity of mouse emulated paddle movement\n"
+    << "  -tsense         <1-20>       Sensitivity of mouse emulated trackball movement\n"
+    << "  -dcsense        <1-20>       Sensitivity of digital emulated driving controller\n"
     << "                                movement\n"
     << "  -autofirerate <0-30>         Set fire button's autofire rate (0 means off)\n"
     << "  -saport       <lr|rl>        How to assign virtual ports to multiple\n"
@@ -592,6 +631,8 @@ void Settings::usage() const
     << "  -basedir  <path>             Override the base directory for all config files\n"
     << "  -baseinappdir                Override the base directory for all config files\n"
     << "                                by attempting to use the application directory\n"
+    << "  -plusroms.nick <nick>        Define a nickname for the PlusROMs backends.\n"
+    << "  -plusroms.id   <id>          Define a temporary ID for the PlusROMs backends.\n"
     << "  -help                        Show the text you're now reading\n"
   #ifdef DEBUGGER_SUPPORT
     << endl
@@ -613,7 +654,9 @@ void Settings::usage() const
     << "   -dbg.fontstyle <0-3>          Font style to use in debugger window (bold vs.\n"
     << "                                  normal)\n"
     << "   -dbg.ghostreadstrap <1|0>     Debugger traps on 'ghost' reads\n"
-    << "   -dbg.uhex      <0|1>          lower-/uppercase HEX display\n"
+    << "   -dbg.uhex      <0|1>          Lower-/uppercase HEX display\n"
+    << "   -dbg.logbreaks <0|1>          Log breaks and traps and continue emulation\n"
+    << "   -dbg.autosave  <0|1>          Automatically save breaks, traps etc.\n"
     << "   -break         <address>      Set a breakpoint at 'address'\n"
     << "   -debug                        Start in debugger mode\n"
     << endl
@@ -649,14 +692,13 @@ void Settings::usage() const
     << "                                    handling and RAM initialization\n"
     << "  -plr.bankrandom   <1|0>          Randomize the startup bank on reset\n"
     << "  -plr.ramrandom    <1|0>          Randomize the contents of RAM on reset\n"
-    << "  -plr.cpurandom    <1|0>          Randomize the contents of CPU registers on\n"
-    << "                                    reset\n"
+    << "  -plr.tiarandom    <1|0>          Randomize the TIA registers on reset\n"
+    << "  -plr.ramrandom    <1|0>          Randomize the contents of RAM on reset\n"
     << "  -plr.debugcolors  <1|0>          Enable debug colors\n"
     << "  -plr.colorloss    <1|0>          Enable PAL color-loss effect\n"
     << "  -plr.tv.jitter    <1|0>          Enable TV jitter effect\n"
     << "  -plr.tv.jitter_recovery <1-20>   Set recovery time for TV jitter effect\n"
-    << "  -plr.eepromaccess <1|0>          Enable messages for AtariVox/SaveKey access\n"
-    << "                                    messages\n"
+    << "  -plr.extaccess    <1|0>          Enable messages for external access\n"
     << endl
     << " The same parameters but for developer settings mode\n"
     << "  -dev.stats        <1|0>          Overlay console info during emulation\n"
@@ -667,6 +709,7 @@ void Settings::usage() const
     << "  -dev.ramrandom    <1|0>          Randomize the contents of RAM on reset\n"
     << "  -dev.cpurandom    <1|0>          Randomize the contents of CPU registers on\n"
     << "                                    reset\n"
+    << "  -dev.tiarandom    <1|0>          Randomize the TIA registers on reset\n"
     << "  -dev.debugcolors  <1|0>          Enable debug colors\n"
     << "  -dev.colorloss    <1|0>          Enable PAL color-loss effect\n"
     << "  -dev.tv.jitter    <1|0>          Enable TV jitter effect\n"
@@ -674,13 +717,19 @@ void Settings::usage() const
     << "  -dev.tiadriven    <1|0>          Drive unused TIA pins randomly on a\n"
     << "                                    read/peek\n"
 #ifdef DEBUGGER_SUPPORT
-    << "  -dev.rwportbreak      <1|0>      Debugger breaks on reads from write ports\n"
-    << "  -dev.wrportbreak      <1|0>      Debugger breaks on writes to read ports\n"
+    << "  -dev.rwportbreak       <1|0>     Debugger breaks on reads from write ports\n"
+    << "  -dev.wrportbreak       <1|0>     Debugger breaks on writes to read ports\n"
 #endif
-    << "  -dev.thumb.trapfatal  <1|0>      Determines whether errors in ARM emulation\n"
+    << "  -dev.thumb.trapfatal   <1|0>     Determines whether errors in ARM emulation\n"
     << "                                    throw an exception\n"
-    << "  -dev.eepromaccess     <1|0>      Enable messages for AtariVox/SaveKey access\n"
-    << "                                    messages\n"
+#ifdef DEBUGGER_SUPPORT
+    << "  -dev.thumb.inccycles   <1|0>     Determines whether ARM emulation cycles\n"
+    << "                                    increase system cycles\n"
+    << "  -dev.thumb.cyclefactor <float>   Sets the ARM cycles correction multiplier\n"
+    << "  -dev.thumb.chiptype    <0|1>     Selects the ARM chip type\n"
+    << "  -dev.thumb.mammode     <0-3>     Selects the LPC's MAM mode\n"
+#endif
+    << "  -dev.extaccess         <1|0>     Enable messages for external access\n"
     << "  -dev.tia.type <standard|custom|  Selects a TIA type\n"
     << "                 koolaidman|\n"
     << "                 cosmicark|pesco|\n"
@@ -717,9 +766,11 @@ const Variant& Settings::value(const string& key) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Settings::setValue(const string& key, const Variant& value, bool persist)
 {
-  auto it = myPermanentSettings.find(key);
+  const auto it = myPermanentSettings.find(key);
+
   if(it != myPermanentSettings.end()) {
-    if (persist && it->second != value && myRespository->atomic()) myRespository->atomic()->save(key, value);
+    if (persist && it->second != value && myRespository->atomic())
+      myRespository->atomic()->save(key, value);
     it->second = value;
   }
   else

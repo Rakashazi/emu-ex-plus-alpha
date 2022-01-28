@@ -65,6 +65,22 @@ void CartridgeCTY::reset()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void CartridgeCTY::consoleChanged(ConsoleTiming timing)
+{
+  constexpr double NTSC  = 1193191.66666667;  // NTSC  6507 clock rate
+  constexpr double PAL   = 1182298.0;         // PAL   6507 clock rate
+  constexpr double SECAM = 1187500.0;         // SECAM 6507 clock rate
+
+  switch(timing)
+  {
+    case ConsoleTiming::ntsc:   myClockRate = NTSC;   break;
+    case ConsoleTiming::pal:    myClockRate = PAL;    break;
+    case ConsoleTiming::secam:  myClockRate = SECAM;  break;
+    default:  break;  // satisfy compiler
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeCTY::install(System& system)
 {
   mySystem = &system;
@@ -87,7 +103,7 @@ uInt8 CartridgeCTY::peek(uInt16 address)
 
   // In debugger/bank-locked mode, we ignore all hotspots and in general
   // anything that can change the internal state of the cart
-  if(bankLocked())
+  if(hotspotsLocked())
     return peekValue;
 
   // Check for aliasing to 'LDA #$F2'
@@ -232,7 +248,7 @@ bool CartridgeCTY::poke(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeCTY::bank(uInt16 bank, uInt16)
 {
-  if(bankLocked()) return false;
+  if(hotspotsLocked()) return false;
 
   // Remember what bank we're in
   myBankOffset = bank << 12;
@@ -343,7 +359,7 @@ bool CartridgeCTY::load(Serializer& in)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeCTY::setNVRamFile(const string& nvramfile)
 {
-  myEEPROMFile = nvramfile + "_eeprom.dat";
+	myEEPROMFile = nvramfile + "_eeprom.dat";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -366,7 +382,7 @@ uInt8 CartridgeCTY::ramReadWrite()
        1 s for write).
   */
 
-  if(bankLocked()) return 0xff;
+  if(hotspotsLocked()) return 0xff;
 
   // First access sets the timer
   if(myRamAccessTimeout == 0)
@@ -573,7 +589,7 @@ inline void CartridgeCTY::updateMusicModeDataFetchers()
   myAudioCycles = mySystem->cycles();
 
   // Calculate the number of CTY OSC clocks since the last update
-  double clocks = ((20000.0 * cycles) / 1193191.66666667) + myFractionalClocks;
+  double clocks = ((20000.0 * cycles) / myClockRate) + myFractionalClocks;
   uInt32 wholeClocks = uInt32(clocks);
   myFractionalClocks = clocks - double(wholeClocks);
 

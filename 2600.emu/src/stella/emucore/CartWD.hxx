@@ -152,6 +152,12 @@ class CartridgeWD : public CartridgeEnhanced
     bool poke(uInt16 address, uInt8 value) override;
 
   private:
+    /**
+      Checks if startup bank randomization is enabled.  For this scheme,
+      randomization is not supported.
+    */
+    bool randomStartBank() const override { return false; }
+
     bool checkSwitchBank(uInt16, uInt8 = 0) override { return false; }
 
     uInt16 hotspot() const override { return 0x0030; }

@@ -45,7 +45,7 @@ class Genesis : public Joystick
     /**
       Returns the name of this controller.
     */
-    string name() const override { return "Genesis"; }
+    string name() const override { return "Sega Genesis"; }
 
   private:
     /**

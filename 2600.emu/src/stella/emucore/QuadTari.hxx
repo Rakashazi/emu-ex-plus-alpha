@@ -60,6 +60,16 @@ class QuadTari : public Controller
     bool read(DigitalPin pin) override;
 
     /**
+      Write the given value to the specified digital pin for this
+      controller.  Writing is only allowed to the pins associated
+      with the PIA.  Therefore you cannot write to pin six.
+
+      @param pin The pin of the controller jack to write to
+      @param value The value to write to the pin
+    */
+    void write(DigitalPin pin, bool value) override;
+
+    /**
       Update the entire digital and analog pin state according to the
       events currently set.
     */
@@ -69,6 +79,16 @@ class QuadTari : public Controller
       Returns the name of this controller.
     */
     string name() const override;
+
+    /**
+      Returns the first attached controller.
+    */
+    const Controller& firstController() const { return *myFirstController; }
+
+    /**
+      Returns the second attached controller.
+    */
+    const Controller& secondController() const { return *mySecondController; }
 
     /**
       Answers whether the controller is intrinsically an analog controller.
@@ -96,6 +116,9 @@ class QuadTari : public Controller
       Controller::Type xtype, int xid, Controller::Type ytype, int yid) override;
 
   private:
+    // determine which controller is active
+    bool isFirst() const;
+
     unique_ptr<Controller> addController(const Controller::Type type, bool second);
 
     const OSystem& myOSystem;

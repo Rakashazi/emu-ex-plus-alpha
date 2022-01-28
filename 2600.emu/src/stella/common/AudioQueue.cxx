@@ -50,7 +50,7 @@ uInt32 AudioQueue::capacity() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt32 AudioQueue::size() const
 {
-  lock_guard<mutex> guard(myMutex);
+  //lock_guard<mutex> guard(myMutex);
 
   return mySize;
 }
@@ -70,7 +70,7 @@ uInt32 AudioQueue::fragmentSize() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Int16* AudioQueue::enqueue(Int16* fragment)
 {
-  lock_guard<mutex> guard(myMutex);
+  //lock_guard<mutex> guard(myMutex);
 
   Int16* newFragment;
 
@@ -95,13 +95,14 @@ Int16* AudioQueue::enqueue(Int16* fragment)
     if (!myIgnoreOverflows) myOverflowLogger.log();
   }
 
+  onFragmentEnqueued(*this, fragmentSize());
   return newFragment;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Int16* AudioQueue::dequeue(Int16* fragment)
 {
-  lock_guard<mutex> guard(myMutex);
+  //lock_guard<mutex> guard(myMutex);
 
   if (mySize == 0) return nullptr;
 
@@ -124,7 +125,7 @@ Int16* AudioQueue::dequeue(Int16* fragment)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void AudioQueue::closeSink(Int16* fragment)
 {
-  lock_guard<mutex> guard(myMutex);
+  //lock_guard<mutex> guard(myMutex);
 
   if (myFirstFragmentForDequeue && fragment)
     throw runtime_error("attempt to return unknown buffer on closeSink");

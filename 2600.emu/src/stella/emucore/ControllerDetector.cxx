@@ -86,8 +86,10 @@ Controller::Type ControllerDetector::autodetectPort(
   {
     if(usesPaddle(image, size, port, settings))
       type = Controller::Type::Paddles;
+    else if(isProbablyKidVid(image, size, port))
+      type = Controller::Type::KidVid;
   }
-  // TODO: BOOSTERGRIP, DRIVING, MINDLINK, ATARIVOX, KIDVID
+  // TODO: BOOSTERGRIP, DRIVING, COMPUMATE, MINDLINK, ATARIVOX
   // not detectable: PADDLES_IAXIS, PADDLES_IAXDR
   return type;
 }
@@ -522,7 +524,7 @@ bool ControllerDetector::usesPaddle(const ByteBuffer& image, size_t size,
       { 0xb5, 0x3a, 0x10 }, // lda INPT2|$30,x; bpl
       { 0xb5, 0x3a, 0x30 }, // lda INPT2|$30,x; bmi
       { 0xb5, 0x38, 0x10 }, // lda INPT0|$30,x; bpl  (Circus Atari, old code!)
-      { 0xb5, 0x38, 0x30 }, // lda INPT0|$30,x; bmi (no joystick games)
+      { 0xb5, 0x38, 0x30 }, // lda INPT0|$30,x; bmi (no joystick games, except G.I. Joe)
       { 0xa4, 0x3a, 0x30 }, // ldy INPT2|$30; bmi (no joystick games)
       { 0xa5, 0x3b, 0x30 }  // lda INPT3|$30; bmi (only Tac Scan, ports and paddles swapped)
     };
@@ -723,6 +725,20 @@ bool ControllerDetector::isProbablyQuadTari(const ByteBuffer& image, size_t size
   {
     const int SIG_SIZE = 5;
     uInt8 signature[SIG_SIZE] = { 'Q', 'U', 'A', 'D', 'R' };
+
+    return searchForBytes(image, size, signature, SIG_SIZE);
+  }
+  return false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool ControllerDetector::isProbablyKidVid(const ByteBuffer& image, size_t size,
+                                            Controller::Jack port)
+{
+  if(port == Controller::Jack::Right)
+  {
+    const int SIG_SIZE = 5;
+    uInt8 signature[SIG_SIZE] = {0xA9, 0x03, 0x8D, 0x81, 0x02};
 
     return searchForBytes(image, size, signature, SIG_SIZE);
   }

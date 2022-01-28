@@ -18,8 +18,13 @@
 #ifndef PLUSROM_HXX
 #define PLUSROM_HXX
 
+class Settings;
+
+#include <deque>
+
 #include "bspf.hxx"
 #include "Serializable.hxx"
+#include "Cart.hxx"
 
 /**
   Class used to emulate the 'PlusROM' meta-scheme, documented at
@@ -42,10 +47,13 @@
 
   @author  Stephen Anthony
 */
+
+class PlusROMRequest;
+
 class PlusROM : public Serializable
 {
   public:
-    PlusROM() = default;
+    PlusROM(const Settings& settings, const Cartridge& cart);
     ~PlusROM() override = default;
 
   public:
@@ -108,18 +116,48 @@ class PlusROM : public Serializable
     */
     bool load(Serializer& in) override;
 
+    /**
+      Reset.
+    */
+    void reset();
+
+    /**
+      Set the callback for displaying messages
+    */
+    void setMessageCallback(const Cartridge::messageCallback& callback)
+    {
+      myMsgCallback = callback;
+    }
+
   private:
-    //////////////////////////////////////////////////////
-    // These probably belong in the networking library
     bool isValidHost(const string& host) const;
     bool isValidPath(const string& path) const;
-    //////////////////////////////////////////////////////
+
+    /**
+      Receive data from all requests that have completed.
+    */
+    void receive();
+
+    /**
+      Send pending data to the backend on a thread.
+    */
+    void send();
 
   private:
+    const Settings& mySettings;
+    const Cartridge& myCart;
+
     bool myIsPlusROM{false};
-    string myURL;
+    string myHost;
+    string myPath;
 
     std::array<uInt8, 256> myRxBuffer, myTxBuffer;
+    uInt8 myRxReadPos, myRxWritePos, myTxPos;
+
+    std::deque<shared_ptr<PlusROMRequest>> myPendingRequests;
+
+    // Callback to output messages
+    Cartridge::messageCallback myMsgCallback{nullptr};
 
   private:
     // Following constructors and assignment operators not supported

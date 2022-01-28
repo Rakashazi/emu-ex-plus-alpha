@@ -165,6 +165,24 @@ class CartridgeEnhanced : public Cartridge
     virtual uInt16 hotspot() const { return 0; }
     // TODO: handle cases where there the hotspots cover multiple pages
 
+    /**
+      Answer whether this is a PlusROM cart.  Note that until the
+      initialize method has been called, this will always return false.
+
+      @return  Whether this is actually a PlusROM cart
+    */
+    bool isPlusROM() const override { return myPlusROM->isValid(); }
+
+    /**
+      Set the callback for displaying messages
+    */
+    void setMessageCallback(const messageCallback& callback) override
+    {
+      Cartridge::setMessageCallback(callback);
+      if(myPlusROM->isValid())
+        myPlusROM->setMessageCallback(myMsgCallback);
+    }
+
   protected:
     // The '2 ^ N = bank segment size' exponent
     uInt16 myBankShift{BANK_SHIFT};             // default 12 (-> one 4K segment)
@@ -226,7 +244,7 @@ class CartridgeEnhanced : public Cartridge
     size_t mySize{0};
 
     // Handle PlusROM functionality, if available
-    PlusROM myPlusROM;
+    unique_ptr<PlusROM> myPlusROM;
 
   protected:
     // The mask for 6507 address space

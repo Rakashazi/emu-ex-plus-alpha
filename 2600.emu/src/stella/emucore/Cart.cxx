@@ -100,7 +100,7 @@ uInt8 Cartridge::peekRAM(uInt8& dest, uInt16 address)
   // Reading from the write port triggers an unwanted write
   // But this only happens when in normal emulation mode
 #ifdef DEBUGGER_SUPPORT
-  if(!bankLocked() && !mySystem->autodetectMode())
+  if(!hotspotsLocked() && !mySystem->autodetectMode())
   {
     // Record access here; final determination will happen in ::pokeRAM()
     myRamReadAccesses.push_back(address);

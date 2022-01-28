@@ -129,6 +129,15 @@ class CartridgeCTY : public Cartridge
     void reset() override;
 
     /**
+      Notification method invoked by the system when the console type
+      has changed.  We need this to inform the Thumbulator that the
+      timing has changed.
+
+      @param timing  Enum representing the new console type
+    */
+    void consoleChanged(ConsoleTiming timing) override;
+
+    /**
       Install cartridge in the specified system.  Invoked by the system
       when the cartridge is attached to it.
 
@@ -270,6 +279,9 @@ class CartridgeCTY : public Cartridge
 
     // The 64 bytes of RAM accessible at $1000 - $1080
     std::array<uInt8, 64> myRAM;
+
+    // Console clock rate
+    double myClockRate{1193191.66666667};
 
     // Operation type (written to $1000, used by hotspot $1FF4)
     uInt8 myOperationType{0};

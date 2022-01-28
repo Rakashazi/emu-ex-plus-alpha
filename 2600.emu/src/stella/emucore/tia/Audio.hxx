@@ -33,6 +33,17 @@ class Audio : public Serializable
 
     void setAudioQueue(const shared_ptr<AudioQueue>& queue);
 
+    /**
+      Enable/disable pushing audio samples. These are required for TimeMachine
+      playback with sound.
+    */
+    void setAudioRewindMode(bool enable)
+    {
+    #ifdef GUI_SUPPORT
+      myRewindMode = enable;
+    #endif
+    }
+
     void tick();
 
     AudioChannel& channel0();
@@ -63,6 +74,7 @@ class Audio : public Serializable
     Int16* myCurrentFragment{nullptr};
     uInt32 mySampleIndex{0};
   #ifdef GUI_SUPPORT
+    bool myRewindMode{false};
     mutable ByteArray mySamples;
   #endif
 

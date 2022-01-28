@@ -23,7 +23,6 @@
 #include "System.hxx"
 #include "M6532.hxx"
 #include "TIA.hxx"
-#include "Thumbulator.hxx"
 #include "CartBUS.hxx"
 #include "exception/FatalEmulationError.hxx"
 
@@ -43,7 +42,7 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeBUS::CartridgeBUS(const ByteBuffer& image, size_t size,
                            const string& md5, const Settings& settings)
-  : Cartridge(settings, md5),
+  : CartridgeARM(md5, settings),
     myImage{make_unique<uInt8[]>(32_KB)}
 {
   // Copy the ROM image into my buffer
@@ -72,6 +71,8 @@ CartridgeBUS::CartridgeBUS(const ByteBuffer& image, size_t size,
     0x00000808,
     0x40001FDC,
     devSettings ? settings.getBool("dev.thumb.trapfatal") : false,
+    devSettings ? static_cast<double>(
+        settings.getFloat("dev.thumb.cyclefactor")) : 1.0,
     Thumbulator::ConfigureFor::BUS,
     this);
 
@@ -112,12 +113,8 @@ void CartridgeBUS::setInitialState()
     mySTYZeroPageAddress = myJMPoperandAddress = 0;
 
   myFastJumpActive = 0;
-}
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeBUS::consoleChanged(ConsoleTiming timing)
-{
-  myThumbEmulator->setConsoleTiming(timing);
+  CartridgeARM::setInitialState();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -147,7 +144,7 @@ inline void CartridgeBUS::updateMusicModeDataFetchers()
   myAudioCycles = mySystem->cycles();
 
   // Calculate the number of BUS OSC clocks since the last update
-  double clocks = ((20000.0 * cycles) / 1193191.66666667) + myFractionalClocks;
+  double clocks = ((20000.0 * cycles) / myClockRate) + myFractionalClocks;
   uInt32 wholeClocks = uInt32(clocks);
   myFractionalClocks = clocks - double(wholeClocks);
 
@@ -167,10 +164,11 @@ inline void CartridgeBUS::callFunction(uInt8 value)
               // time for Stella as ARM code "runs in zero 6507 cycles".
     case 255: // call without IRQ driven audio
       try {
-        Int32 cycles = Int32(mySystem->cycles() - myARMCycles);
-        myARMCycles = mySystem->cycles();
+        uInt32 cycles = uInt32(mySystem->cycles() - myARMCycles);
 
-        myThumbEmulator->run(cycles);
+        myARMCycles = mySystem->cycles();
+        myThumbEmulator->run(cycles, value == 254);
+        updateCycles(cycles);
       }
       catch(const runtime_error& e) {
         if(!mySystem->autodetectMode())
@@ -204,7 +202,7 @@ uInt8 CartridgeBUS::peek(uInt16 address)
 
     // In debugger/bank-locked mode, we ignore all hotspots and in general
     // anything that can change the internal state of the cart
-    if(bankLocked())
+    if(hotspotsLocked())
       return peekvalue;
 
     // implement JMP FASTJMP which fetches the destination address from stream 17
@@ -436,7 +434,7 @@ bool CartridgeBUS::poke(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeBUS::bank(uInt16 bank, uInt16)
 {
-  if(bankLocked()) return false;
+  if(hotspotsLocked()) return false;
 
   // Remember what bank we're in
   myBankOffset = bank << 12;
@@ -588,6 +586,8 @@ bool CartridgeBUS::save(Serializer& out) const
 
     // Indicates if in the middle of a fast jump
     out.putByte(myFastJumpActive);
+
+    CartridgeARM::save(out);
   }
   catch(...)
   {
@@ -629,6 +629,8 @@ bool CartridgeBUS::load(Serializer& in)
 
     // Indicates if in the middle of a fast jump
     myFastJumpActive = in.getByte();
+
+    CartridgeARM::load(in);
   }
   catch(...)
   {

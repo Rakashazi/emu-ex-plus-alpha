@@ -151,13 +151,6 @@ class DialogContainer
     void reStack();
 
     /**
-      Issue a 'reload' event to each dialog surface in the stack.  This
-      is typically used when interpolation or attributes for a dialog
-      have changed.
-    */
-    void resetSurfaces();
-
-    /**
       Inform the container that it should resize according to the current
       screen dimensions.  We make this virtual, since the container may or
       may not choose to do a resize, and even if it does, *how* it does it

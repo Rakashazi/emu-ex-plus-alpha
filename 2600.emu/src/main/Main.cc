@@ -123,6 +123,7 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreatePara
 	auto &settings = os.settings();
 	settings.setValue("romloadcount", 0);
 	auto cartridge = CartCreator::create(fsNode, image, size, md5, romType, settings);
+	cartridge->setMessageCallback([](const string& msg){ logMsg("%s", msg.c_str()); });
 	if((int)optionTVPhosphor != TV_PHOSPHOR_AUTO)
 	{
 		props.set(PropType::Display_Phosphor, optionTVPhosphor ? "YES" : "NO");
@@ -160,6 +161,8 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 {
 	auto &os = *osystem;
 	auto &console = os.console();
+	auto &sound = os.soundEmuEx();
+	sound.setEmuAudio(audio);
 	console.leftController().update();
 	console.rightController().update();
 	console.switches().update();
@@ -171,7 +174,7 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	{
 		renderVideo(taskCtx, *video, os.frameBuffer(), tia);
 	}
-	os.processAudio(audio);
+	sound.updateRate(os);
 }
 
 void EmuSystem::renderFramebuffer(EmuVideo &video)

@@ -23,6 +23,8 @@
 #include "bspf.hxx"
 #include "StaggeredLogger.hxx"
 
+#include <imagine/util/DelegateFunc.hh>
+
 /**
   This class implements a an audio queue that acts both like a ring buffer
   and a pool of audio fragments. The TIA emulation core fills a fragment
@@ -96,6 +98,8 @@ class AudioQueue
      */
     void ignoreOverflows(bool shouldIgnoreOverflows);
 
+    IG::DelegateFunc<void(AudioQueue &, uInt32 fragmentSize)> onFragmentEnqueued{};
+
   private:
 
     // The size of an individual fragment (in stereo / mono samples)
@@ -120,7 +124,7 @@ class AudioQueue
     uInt32 myNextFragment{0};
 
     // We need a mutex for thread safety.
-    mutable std::mutex myMutex;
+    //mutable std::mutex myMutex;
 
     // The first (empty) enqueue call returns this fragment.
     Int16* myFirstFragmentForEnqueue{nullptr};

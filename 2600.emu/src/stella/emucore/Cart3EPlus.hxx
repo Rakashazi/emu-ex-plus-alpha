@@ -125,6 +125,12 @@ class Cartridge3EPlus: public Cartridge3E
   #endif
 
   private:
+    /**
+      Checks if startup bank randomization is enabled.  For this scheme,
+      randomization is not supported (see above).
+    */
+    bool randomStartBank() const override { return false; }
+
     bool checkSwitchBank(uInt16 address, uInt8 value) override;
 
   private:

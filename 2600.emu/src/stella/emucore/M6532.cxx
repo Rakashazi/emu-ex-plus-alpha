@@ -460,8 +460,8 @@ Int32 M6532::intimClocks()
   updateEmulation();
 
   // This method is similar to intim(), except instead of giving the actual
-  // INTIM value, it will give the current number of clocks between one
-  // INTIM value and the next
+  // INTIM value, it will give the current number of CPU clocks since the last
+  // TIMxxT write
 
   return ((myInterruptFlag & TimerBit) != 0) ? 1 : (myDivider - mySubTimer);
 }

@@ -92,7 +92,7 @@ bool CartridgeMDM::poke(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeMDM::bank(uInt16 bank, uInt16)
 {
-  if(bankLocked() || myBankingDisabled) return false;
+  if(hotspotsLocked() || myBankingDisabled) return false;
 
   CartridgeEnhanced::bank(bank);
 

@@ -77,39 +77,40 @@ static constexpr ColorId
   kTextColorHi = 262,
   kTextColorEm = 263,
   kTextColorInv = 264,
+  kTextColorLink = 265,
   // *** UI elements(dialog and widgets) ***
-  kDlgColor = 265,
-  kWidColor = 266,
-  kWidColorHi = 267,
-  kWidFrameColor = 268,
+  kDlgColor = 266,
+  kWidColor = 267,
+  kWidColorHi = 268,
+  kWidFrameColor = 269,
   // *** Button colors ***
-  kBtnColor = 269,
-  kBtnColorHi = 270,
-  kBtnBorderColor = 271,
-  kBtnBorderColorHi = 272,
-  kBtnTextColor = 273,
-  kBtnTextColorHi = 274,
+  kBtnColor = 270,
+  kBtnColorHi = 271,
+  kBtnBorderColor = 272,
+  kBtnBorderColorHi = 273,
+  kBtnTextColor = 274,
+  kBtnTextColorHi = 275,
   // *** Checkbox colors ***
-  kCheckColor = 275,
+  kCheckColor = 276,
   // *** Scrollbar colors ***
-  kScrollColor = 276,
-  kScrollColorHi = 277,
+  kScrollColor = 277,
+  kScrollColorHi = 278,
   // *** Debugger colors ***
-  kDbgChangedColor = 278,
-  kDbgChangedTextColor = 279,
-  kDbgColorHi = 280,
-  kDbgColorRed = 281, // Note: this must be < 0x11e (286)! (see PromptWidget::putcharIntern)
+  kDbgChangedColor = 279,
+  kDbgChangedTextColor = 280,
+  kDbgColorHi = 281,
+  kDbgColorRed = 282, // Note: this must be < 0x11e (286)! (see PromptWidget::putcharIntern)
   // *** Slider colors ***
-  kSliderColor = 282,
-  kSliderColorHi = 283,
-  kSliderBGColor = 284,
-  kSliderBGColorHi = 285,
-  kSliderBGColorLo = 286,
+  kSliderColor = 283,
+  kSliderColorHi = 284,
+  kSliderBGColor = 285,
+  kSliderBGColorHi = 286,
+  kSliderBGColorLo = 287,
   // *** Other colors ***
-  kColorInfo = 287,
-  kColorTitleBar = 288,
-  kColorTitleText = 289,
-  kNumColors = 290,
+  kColorInfo = 288,
+  kColorTitleBar = 289,
+  kColorTitleText = 290,
+  kNumColors = 291,
   kNone = 0  // placeholder to represent default/no color
 ;
 

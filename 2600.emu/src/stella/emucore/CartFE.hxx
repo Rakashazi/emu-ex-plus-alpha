@@ -27,7 +27,8 @@ class System;
 #endif
 
 /**
-  Bankswitching method used by Activision's Robot Tank and Decathlon.
+  Bankswitching method used by Activision e.g. for Robot Tank and Decathlon
+  Originally named SCABS (Subroutine Controlled Automatic Bank Switching)
 
   This scheme was originally designed to have up to 8 4K banks, and is
   triggered by monitoring the address bus for address $01FE.  All released

@@ -24,17 +24,17 @@
 CartridgeAR::CartridgeAR(const ByteBuffer& image, size_t size,
                          const string& md5, const Settings& settings)
   : Cartridge(settings, md5),
-    mySize{std::max<size_t>(size, 8448)}
+    mySize{std::max<size_t>(size, LOAD_SIZE)}
 {
   // Create a load image buffer and copy the given image
   myLoadImages = make_unique<uInt8[]>(mySize);
-  myNumberOfLoadImages = uInt8(mySize / 8448);
+  myNumberOfLoadImages = uInt8(mySize / LOAD_SIZE);
   std::copy_n(image.get(), size, myLoadImages.get());
 
   // Add header if image doesn't include it
-  if(size < 8448)
+  if(size < LOAD_SIZE)
     std::copy_n(ourDefaultHeader.data(), ourDefaultHeader.size(),
-                myLoadImages.get()+myImage.size());
+                myLoadImages.get() + myImage.size());
 
   // We use System::PageAccess.romAccessBase, but don't allow its use
   // through a pointer, since the AR scheme doesn't support bankswitching
@@ -87,11 +87,11 @@ uInt8 CartridgeAR::peek(uInt16 addr)
 {
   // In debugger/bank-locked mode, we ignore all hotspots and in general
   // anything that can change the internal state of the cart
-  if(bankLocked())
+  if(hotspotsLocked())
     return myImage[(addr & 0x07FF) + myImageOffset[(addr & 0x0800) ? 1 : 0]];
 
   // Is the "dummy" SC BIOS hotspot for reading a load being accessed?
-  if(((addr & 0x1FFF) == 0x1850) && (myImageOffset[1] == (3 << 11)))
+  if(((addr & 0x1FFF) == 0x1850) && (myImageOffset[1] == RAM_SIZE))
   {
     // Get load that's being accessed (BIOS places load number at 0x80)
     uInt8 load = mySystem->peek(0x0080);
@@ -133,7 +133,7 @@ uInt8 CartridgeAR::peek(uInt16 addr)
       myImage[(addr & 0x07FF) + myImageOffset[0]] = myDataHoldRegister;
       mySystem->setDirtyPage(addr);
     }
-    else if(myImageOffset[1] != (3 << 11))    // Can't poke to ROM :-)
+    else if(myImageOffset[1] != (3 * BANK_SIZE))    // Can't poke to ROM :-)
     {
       myImage[(addr & 0x07FF) + myImageOffset[1]] = myDataHoldRegister;
       mySystem->setDirtyPage(addr);
@@ -180,7 +180,7 @@ bool CartridgeAR::poke(uInt16 addr, uInt8)
       myImage[(addr & 0x07FF) + myImageOffset[0]] = myDataHoldRegister;
       modified = true;
     }
-    else if(myImageOffset[1] != (3 << 11))    // Can't poke to ROM :-)
+    else if(myImageOffset[1] != (3 * BANK_SIZE))    // Can't poke to ROM :-)
     {
       myImage[(addr & 0x07FF) + myImageOffset[1]] = myDataHoldRegister;
       modified = true;
@@ -227,72 +227,22 @@ bool CartridgeAR::bankConfiguration(uInt8 configuration)
   //    to happen.  0 = disabled, and the cart acts like ROM.)
   //  p = ROM Power (0 = enabled, 1 = off.)  Only power the ROM if you're
   //    wanting to access the ROM for multiloads.  Otherwise set to 1.
+  const uInt32 OFFSET_0[8] = {2 * BANK_SIZE, 0 * BANK_SIZE, 2 * BANK_SIZE, 0 * BANK_SIZE,
+                              2 * BANK_SIZE, 1 * BANK_SIZE, 2 * BANK_SIZE, 1 * BANK_SIZE};
+  const uInt32 OFFSET_1[8] = {3 * BANK_SIZE, 3 * BANK_SIZE, 0 * BANK_SIZE, 2 * BANK_SIZE,
+                              3 * BANK_SIZE, 3 * BANK_SIZE, 1 * BANK_SIZE, 2 * BANK_SIZE};
+  const int bankConfig = (configuration & 0b11100) >> 2;
 
-  myCurrentBank = configuration & 0x1F; // remember for the bank() method
+  myCurrentBank = configuration & 0b11111; // remember for the bank() method
 
   // Handle ROM power configuration
-  myPower = !(configuration & 0x01);
+  myPower = !(configuration & 0b00001);
 
-  myWriteEnabled = configuration & 0x02;
+  myWriteEnabled = configuration & 0b00010;
 
-  switch((configuration >> 2) & 0x07)
-  {
-    case 0:
-    {
-      myImageOffset[0] = 2 << 11;
-      myImageOffset[1] = 3 << 11;
-      break;
-    }
+  myImageOffset[0] = OFFSET_0[bankConfig];
+  myImageOffset[1] = OFFSET_1[bankConfig];
 
-    case 1:
-    {
-      myImageOffset[0] = 0      ;
-      myImageOffset[1] = 3 << 11;
-      break;
-    }
-
-    case 2:
-    {
-      myImageOffset[0] = 2 << 11;
-      myImageOffset[1] = 0      ;
-      break;
-    }
-
-    case 3:
-    {
-      myImageOffset[0] = 0      ;
-      myImageOffset[1] = 2 << 11;
-      break;
-    }
-
-    case 4:
-    {
-      myImageOffset[0] = 2 << 11;
-      myImageOffset[1] = 3 << 11;
-      break;
-    }
-
-    case 5:
-    {
-      myImageOffset[0] = 1 << 11;
-      myImageOffset[1] = 3 << 11;
-      break;
-    }
-
-    case 6:
-    {
-      myImageOffset[0] = 2 << 11;
-      myImageOffset[1] = 1 << 11;
-      break;
-    }
-
-    case 7:
-    {
-      myImageOffset[0] = 1 << 11;
-      myImageOffset[1] = 2 << 11;
-      break;
-    }
-  }
   return myBankChanged = true;
 }
 
@@ -314,16 +264,16 @@ void CartridgeAR::initializeROM()
   ourDummyROMCode[281] = mySystem->randGenerator().next();
 
   // Initialize ROM with illegal 6502 opcode that causes a real 6502 to jam
-  std::fill_n(myImage.begin() + (3<<11), 2_KB, 0x02);
+  std::fill_n(myImage.begin() + (RAM_SIZE), BANK_SIZE, 0x02);
 
   // Copy the "dummy" Supercharger BIOS code into the ROM area
-  std::copy_n(ourDummyROMCode.data(), ourDummyROMCode.size(), myImage.data() + (3<<11));
+  std::copy_n(ourDummyROMCode.data(), ourDummyROMCode.size(), myImage.data() + (RAM_SIZE));
 
   // Finally set 6502 vectors to point to initial load code at 0xF80A of BIOS
-  myImage[(3<<11) + 2044] = 0x0A;
-  myImage[(3<<11) + 2045] = 0xF8;
-  myImage[(3<<11) + 2046] = 0x0A;
-  myImage[(3<<11) + 2047] = 0xF8;
+  myImage[(RAM_SIZE) + BANK_SIZE - 4] = 0x0A;
+  myImage[(RAM_SIZE) + BANK_SIZE - 3] = 0xF8;
+  myImage[(RAM_SIZE) + BANK_SIZE - 2] = 0x0A;
+  myImage[(RAM_SIZE) + BANK_SIZE - 1] = 0xF8;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -340,40 +290,48 @@ uInt8 CartridgeAR::checksum(uInt8* s, uInt16 length)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeAR::loadIntoRAM(uInt8 load)
 {
+  bool success = true;
   uInt16 image;
 
   // Scan through all of the loads to see if we find the one we're looking for
   for(image = 0; image < myNumberOfLoadImages; ++image)
   {
     // Is this the correct load?
-    if(myLoadImages[(image * 8448) + myImage.size() + 5] == load)
+    if(myLoadImages[(image * LOAD_SIZE) + myImage.size() + 5] == load)
     {
       // Copy the load's header
-      std::copy_n(myLoadImages.get() + (image * 8448) + myImage.size(), myHeader.size(), myHeader.data());
+      std::copy_n(myLoadImages.get() + (image * LOAD_SIZE) + myImage.size(), myHeader.size(), myHeader.data());
 
       // Verify the load's header
       if(checksum(myHeader.data(), 8) != 0x55)
+      {
         cerr << "WARNING: The Supercharger header checksum is invalid...\n";
+        myMsgCallback("Supercharger load #" + std::to_string(load) + " done with hearder checksum error");
+        success = false;
+      }
 
       // Load all of the pages from the load
       bool invalidPageChecksumSeen = false;
       for(uInt32 j = 0; j < myHeader[3]; ++j)
       {
-        uInt32 bank = myHeader[16 + j] & 0x03;
-        uInt32 page = (myHeader[16 + j] >> 2) & 0x07;
-        uInt8* src = myLoadImages.get() + (image * 8448) + (j * 256);
+        uInt32 bank = myHeader[16 + j] & 0b00011;
+        uInt32 page = (myHeader[16 + j] & 0b11100) >> 2;
+        uInt8* src = myLoadImages.get() + (image * LOAD_SIZE) + (j * 256);
         uInt8 sum = checksum(src, 256) + myHeader[16 + j] + myHeader[64 + j];
 
         if(!invalidPageChecksumSeen && (sum != 0x55))
         {
           cerr << "WARNING: Some Supercharger page checksums are invalid...\n";
+          myMsgCallback("Supercharger load #" + std::to_string(load) + " done with page #"
+                           + std::to_string(j) + " checksum error");
           invalidPageChecksumSeen = true;
         }
 
         // Copy page to Supercharger RAM (don't allow a copy into ROM area)
         if(bank < 3)
-          std::copy_n(src, 256, myImage.data() + (bank * 2048) + (page * 256));
+          std::copy_n(src, 256, myImage.data() + (bank * BANK_SIZE) + (page * 256));
       }
+      success &= !invalidPageChecksumSeen;
 
       // Copy the bank switching byte and starting address into the 2600's
       // RAM for the "dummy" SC BIOS to access it
@@ -382,6 +340,8 @@ void CartridgeAR::loadIntoRAM(uInt8 load)
       mySystem->poke(0x80, myHeader[2]);
 
       myBankChanged = true;
+      if(success)
+        myMsgCallback("Supercharger load #" + std::to_string(load) + " done");
       return;
     }
   }
@@ -394,7 +354,7 @@ void CartridgeAR::loadIntoRAM(uInt8 load)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeAR::bank(uInt16 bank, uInt16)
 {
-  if(!bankLocked())
+  if(!hotspotsLocked())
     return bankConfiguration(uInt8(bank));
   else
     return false;
@@ -442,7 +402,7 @@ bool CartridgeAR::save(Serializer& out) const
 
     // All of the 8448 byte loads associated with the game
     // Note that the size of this array is myNumberOfLoadImages * 8448
-    out.putByteArray(myLoadImages.get(), myNumberOfLoadImages * 8448);
+    out.putByteArray(myLoadImages.get(), myNumberOfLoadImages * LOAD_SIZE);
 
     // Indicates how many 8448 loads there are
     out.putByte(myNumberOfLoadImages);
@@ -487,7 +447,7 @@ bool CartridgeAR::load(Serializer& in)
 
     // All of the 8448 byte loads associated with the game
     // Note that the size of this array is myNumberOfLoadImages * 8448
-    in.getByteArray(myLoadImages.get(), myNumberOfLoadImages * 8448);
+    in.getByteArray(myLoadImages.get(), myNumberOfLoadImages * LOAD_SIZE);
 
     // Indicates how many 8448 loads there are
     myNumberOfLoadImages = in.getByte();

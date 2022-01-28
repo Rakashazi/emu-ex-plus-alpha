@@ -17,6 +17,7 @@
 
 #include "FSNodeFactory.hxx"
 #include "FSNode.hxx"
+#include "CartDetector.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FilesystemNode::FilesystemNode(const AbstractFSNodePtr& realNode)
@@ -332,7 +333,7 @@ bool FilesystemNode::rename(const string& newfile)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-size_t FilesystemNode::read(ByteBuffer& buffer) const
+size_t FilesystemNode::read(ByteBuffer& buffer, size_t size) const
 {
   size_t sizeRead = 0;
 
@@ -341,7 +342,7 @@ size_t FilesystemNode::read(ByteBuffer& buffer) const
     throw runtime_error("File not found/readable");
 
   // First let the private subclass attempt to open the file
-  if (_realNode && (sizeRead = _realNode->read(buffer)) > 0)
+  if (_realNode && (sizeRead = _realNode->read(buffer, size)) > 0)
     return sizeRead;
 
   // Otherwise, the default behaviour is to read from a normal C++ ifstream
@@ -354,6 +355,8 @@ size_t FilesystemNode::read(ByteBuffer& buffer) const
 
     if (sizeRead == 0)
       throw runtime_error("Zero-byte file");
+    else if (size != 0)
+      sizeRead = size;
 
     buffer = make_unique<uInt8[]>(sizeRead);
     in.read(reinterpret_cast<char*>(buffer.get()), sizeRead);

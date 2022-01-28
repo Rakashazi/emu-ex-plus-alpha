@@ -45,11 +45,18 @@ class PaletteHandler;
 class TIASurface
 {
   public:
+    // Setting names of palette types
+    static constexpr const char* SETTING_STANDARD = "standard";
+    static constexpr const char* SETTING_THIN     = "thin";
+    static constexpr const char* SETTING_PIXELS   = "pixels";
+    static constexpr const char* SETTING_APERTURE = "aperture";
+    static constexpr const char* SETTING_MAME     = "mame";
+
     /**
       Creates a new TIASurface object
     */
     explicit TIASurface(OSystem& system);
-    virtual ~TIASurface();
+    ~TIASurface();
 
     /**
       Set the TIA object, which is needed for actually rendering the TIA image.
@@ -138,21 +145,25 @@ class TIASurface
 
       @param direction  +1 indicates increase, -1 indicates decrease.
     */
-    void setScanlineIntensity(int direction = +1);
+    void changeScanlineIntensity(int direction = +1);
 
     /**
-      Change scanline intensity and interpolation.
+      Cycle through available scanline masks.
 
-      @param change  change current intensity by 'change'
-      @return  New current intensity
+      @param direction  +1 next mask, -1 mask.
     */
-    uInt32 enableScanlines(int change);
+    void cycleScanlineMask(int direction = +1);
 
     /**
       Enable/disable/query phosphor effect.
     */
     void enablePhosphor(bool enable, int blend = -1);
     bool phosphorEnabled() const { return myPhosphorHandler.phosphorEnabled(); }
+
+    /**
+      Creates a scanline surface for the current TIA resolution
+    */
+    void createScanlineSurface();
 
     /**
       Enable/disable/query NTSC filtering effects.
@@ -183,10 +194,24 @@ class TIASurface
      */
     void updateSurfaceSettings();
 
-    /**
-      Issue a 'reload' to each surface.
-    */
-    void resetSurfaces();
+  private:
+    enum class ScanlineMask {
+      Standard,
+      Thin,
+      Pixels,
+      Aperture,
+      Mame,
+      NumMasks
+    };
+
+    // Enumeration created such that phosphor off/on is in LSB,
+    // and Blargg off/on is in MSB
+    enum class Filter: uInt8 {
+      Normal         = 0x00,
+      Phosphor       = 0x01,
+      BlarggNormal   = 0x10,
+      BlarggPhosphor = 0x11
+    };
 
   private:
     /**
@@ -197,15 +222,9 @@ class TIASurface
     // Is plain video mode enabled?
     bool correctAspect() const;
 
-  private:
-    // Enumeration created such that phosphor off/on is in LSB,
-    // and Blargg off/on is in MSB
-    enum class Filter: uInt8 {
-      Normal         = 0x00,
-      Phosphor       = 0x01,
-      BlarggNormal   = 0x10,
-      BlarggPhosphor = 0x11
-    };
+    // Convert scanline mask setting name into type
+    ScanlineMask scanlineMaskType(int direction = 0);
+
     Filter myFilter{Filter::Normal};
 
   private:
@@ -213,7 +232,8 @@ class TIASurface
     FrameBuffer& myFB;
     TIA* myTIA{nullptr};
 
-    unique_ptr<FBSurface> myTiaSurface, mySLineSurface, myBaseTiaSurface, myShadeSurface;
+    shared_ptr<FBSurface> myTiaSurface, mySLineSurface,
+                          myBaseTiaSurface, myShadeSurface;
 
     // NTSC object to use in TIA rendering mode
     NTSCFilter myNTSCFilter;
@@ -222,6 +242,9 @@ class TIASurface
     // Phosphor mode items (aka reduced flicker on 30Hz screens)
     // RGB frame buffer
     PhosphorHandler myPhosphorHandler;
+
+    // Phosphor blend
+    int myPBlend{0};
 
     std::array<uInt32, AtariNTSC::outWidth(TIAConstants::frameBufferWidth) *
         TIAConstants::frameBufferHeight> myRGBFramebuffer;

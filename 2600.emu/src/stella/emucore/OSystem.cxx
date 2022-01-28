@@ -31,10 +31,12 @@
   #include "Debugger.hxx"
 #endif
 #ifdef GUI_SUPPORT
-  #include "Menu.hxx"
+  #include "BrowserDialog.hxx"
+  #include "OptionsMenu.hxx"
   #include "CommandMenu.hxx"
   #include "HighScoresMenu.hxx"
   #include "MessageMenu.hxx"
+  #include "PlusRomsMenu.hxx"
   #include "Launcher.hxx"
   #include "TimeMachine.hxx"
   #include "Widget.hxx"
@@ -44,6 +46,7 @@
 #include "MD5.hxx"
 #include "Cart.hxx"
 #include "CartCreator.hxx"
+#include "CartDetector.hxx"
 #include "FrameBuffer.hxx"
 #include "TIASurface.hxx"
 #include "TIAConstants.hxx"
@@ -110,6 +113,13 @@ OSystem::OSystem()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 OSystem::~OSystem()
 {
+#ifdef GUI_SUPPORT
+  // BrowserDialog is a special dialog that is statically allocated
+  // So we need to make sure that it is destroyed in the normal d'tor chain;
+  // not at the very end of program exit, when some objects it requires
+  // have already been destroyed
+  BrowserDialog::hide();
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -174,11 +184,12 @@ bool OSystem::initialize(const Settings::Options& options)
 
 #ifdef GUI_SUPPORT
   // Create various subsystems (menu and launcher GUI objects, etc)
-  myMenu = make_unique<Menu>(*this);
+  myOptionsMenu = make_unique<OptionsMenu>(*this);
   myCommandMenu = make_unique<CommandMenu>(*this);
   myHighScoresManager = make_unique<HighScoresManager>(*this);
   myHighScoresMenu = make_unique<HighScoresMenu>(*this);
   myMessageMenu = make_unique<MessageMenu>(*this);
+  myPlusRomMenu = make_unique<PlusRomsMenu>(*this);
   myTimeMachine = make_unique<TimeMachine>(*this);
   myLauncher = make_unique<Launcher>(*this);
 
@@ -501,8 +512,26 @@ string OSystem::createConsole(const FilesystemNode& rom, const string& md5sum,
 
       msg << myConsole->leftController().name() << "/" << myConsole->rightController().name()
         << " - " << myConsole->cartridge().detectedType()
+        << (myConsole->cartridge().isPlusROM() ? " PlusROM " : "")
         << " - " << myConsole->getFormatString();
       myFrameBuffer->showTextMessage(msg.str());
+    }
+    // Check for first PlusROM start
+    if(myConsole->cartridge().isPlusROM() &&
+       settings().getString("plusroms.fixedid") == EmptyString)
+    {
+      // Make sure there always is an id
+      constexpr int ID_LEN = 32;
+      const char* HEX_DIGITS = "0123456789ABCDEF";
+      char id_chr[ID_LEN] = {0};
+      Random rnd;
+
+      for(char& c: id_chr)
+        c = HEX_DIGITS[rnd.next() % 16];
+
+      settings().setValue("plusroms.fixedid", string(id_chr, ID_LEN));
+
+      myEventHandler->changeStateByEvent(Event::PlusRomsSetupMode);
     }
   }
 
@@ -572,6 +601,13 @@ string OSystem::getROMInfo(const FilesystemNode& romfile)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void OSystem::toggleTimeMachine()
+{
+  myStateManager->toggleTimeMachine();
+  myConsole->tia().setAudioRewindMode(myStateManager->mode() != StateManager::Mode::Off);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void OSystem::resetFps()
 {
   myFpsMeter.reset();
@@ -606,8 +642,17 @@ unique_ptr<Console> OSystem::openConsole(const FilesystemNode& romfile, string& 
     // Now create the cartridge
     string cartmd5 = md5;
     const string& type = props.get(PropType::Cart_Type);
+    const Cartridge::messageCallback callback = [&os = *this](const string& msg)
+    {
+      bool devSettings = os.settings().getBool("dev.settings");
+
+      if(os.settings().getBool(devSettings ? "dev.extaccess" : "plr.extaccess"))
+        os.frameBuffer().showTextMessage(msg);
+    };
+
     unique_ptr<Cartridge> cart =
       CartCreator::create(romfile, image, size, cartmd5, type, *mySettings);
+    cart->setMessageCallback(callback);
 
     // Some properties may not have a name set; we can't leave it blank
     if(props.get(PropType::Cart_Name) == EmptyString)
@@ -688,8 +733,16 @@ ByteBuffer OSystem::openROM(const FilesystemNode& rom, string& md5, size_t& size
   // but also adds a properties entry if the one for the ROM doesn't
   // contain a valid name
 
+  // First check if this is a 'streaming' ROM (one where we only read
+  // a portion of the file)
+  size_t sizeToRead = CartDetector::isProbablyMVC(rom);
+
+  // Next check if rom is a valid size
+  // TODO: We should check if ROM is < Cart::maxSize(), but only
+  //       if it's not a ZIP file (that size should be higher; still TBD)
+
   ByteBuffer image;
-  if((size = rom.read(image)) == 0)
+  if((size = rom.read(image, sizeToRead)) == 0)
     return nullptr;
 
   // If we get to this point, we know we have a valid file to open

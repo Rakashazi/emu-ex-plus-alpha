@@ -25,15 +25,15 @@ Driving::Driving(Jack jack, const Event& event, const System& system, bool altma
   {
     if(!altmap)
     {
-      myCCWEvent  = Event::JoystickZeroLeft;
-      myCWEvent   = Event::JoystickZeroRight;
-      myFireEvent = Event::JoystickZeroFire;
+      myCCWEvent  = Event::LeftJoystickLeft;
+      myCWEvent   = Event::LeftJoystickRight;
+      myFireEvent = Event::LeftJoystickFire;
     }
     else
     {
-      myCCWEvent  = Event::JoystickTwoLeft;
-      myCWEvent   = Event::JoystickTwoRight;
-      myFireEvent = Event::JoystickTwoFire;
+      myCCWEvent  = Event::QTJoystickThreeLeft;
+      myCWEvent   = Event::QTJoystickThreeRight;
+      myFireEvent = Event::QTJoystickThreeFire;
     }
     myXAxisValue = Event::SALeftAxis0Value; // joystick input
     myYAxisValue = Event::SALeftAxis1Value; // driving controller input
@@ -42,15 +42,15 @@ Driving::Driving(Jack jack, const Event& event, const System& system, bool altma
   {
     if(!altmap)
     {
-      myCCWEvent  = Event::JoystickOneLeft;
-      myCWEvent   = Event::JoystickOneRight;
-      myFireEvent = Event::JoystickOneFire;
+      myCCWEvent  = Event::RightJoystickLeft;
+      myCWEvent   = Event::RightJoystickRight;
+      myFireEvent = Event::RightJoystickFire;
     }
     else
     {
-      myCCWEvent  = Event::JoystickThreeLeft;
-      myCWEvent   = Event::JoystickThreeRight;
-      myFireEvent = Event::JoystickThreeFire;
+      myCCWEvent  = Event::QTJoystickFourLeft;
+      myCWEvent   = Event::QTJoystickFourRight;
+      myFireEvent = Event::QTJoystickFourFire;
     }
     myXAxisValue = Event::SARightAxis0Value; // joystick input
     myYAxisValue = Event::SARightAxis1Value; // driving controller input

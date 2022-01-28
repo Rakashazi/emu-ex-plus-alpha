@@ -24,7 +24,6 @@
 #endif
 
 #include "System.hxx"
-#include "Thumbulator.hxx"
 #include "CartCDF.hxx"
 #include "TIA.hxx"
 #include "exception/FatalEmulationError.hxx"
@@ -65,7 +64,7 @@ namespace {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeCDF::CartridgeCDF(const ByteBuffer& image, size_t size,
                            const string& md5, const Settings& settings)
-  : Cartridge(settings, md5)
+  : CartridgeARM(md5, settings)
 {
   // Copy the ROM image into my buffer
   mySize = std::min(size, 512_KB);
@@ -108,10 +107,17 @@ CartridgeCDF::CartridgeCDF(const ByteBuffer& image, size_t size,
     static_cast<uInt32>(mySize),
     cBase, cStart, cStack,
     devSettings ? settings.getBool("dev.thumb.trapfatal") : false,
+    devSettings ? static_cast<double>(
+      settings.getFloat("dev.thumb.cyclefactor")) : 1.0,
     thumulatorConfiguration(myCDFSubtype),
     this);
 
   setInitialState();
+
+  myPlusROM = make_unique<PlusROM>(mySettings, *this);
+
+  // Determine whether we have a PlusROM cart
+  myPlusROM->initialize(myImage, mySize);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -129,6 +135,8 @@ void CartridgeCDF::reset()
 
   // Upon reset we switch to the startup bank
   bank(startBank());
+
+  CartridgeARM::reset();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -145,12 +153,8 @@ void CartridgeCDF::setInitialState()
 
   myBankOffset = myLDAimmediateOperandAddress = myJMPoperandAddress = 0;
   myFastJumpActive = myFastJumpStream = 0;
-}
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeCDF::consoleChanged(ConsoleTiming timing)
-{
-  myThumbEmulator->setConsoleTiming(timing);
+  CartridgeARM::setInitialState();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -175,7 +179,7 @@ inline void CartridgeCDF::updateMusicModeDataFetchers()
   myAudioCycles = mySystem->cycles();
 
   // Calculate the number of CDF OSC clocks since the last update
-  double clocks = ((20000.0 * cycles) / 1193191.66666667) + myFractionalClocks;
+  double clocks = ((20000.0 * cycles) / myClockRate) + myFractionalClocks;
   uInt32 wholeClocks = uInt32(clocks);
   myFractionalClocks = clocks - double(wholeClocks);
 
@@ -195,10 +199,11 @@ inline void CartridgeCDF::callFunction(uInt8 value)
               // time for Stella as ARM code "runs in zero 6507 cycles".
     case 255: // call without IRQ driven audio
       try {
-        Int32 cycles = Int32(mySystem->cycles() - myARMCycles);
-        myARMCycles = mySystem->cycles();
+        uInt32 cycles = uInt32(mySystem->cycles() - myARMCycles);
 
-        myThumbEmulator->run(cycles);
+        myARMCycles = mySystem->cycles();
+        myThumbEmulator->run(cycles, value == 254);
+        updateCycles(cycles);
       }
       catch(const runtime_error& e) {
         if(!mySystem->autodetectMode())
@@ -215,12 +220,20 @@ inline void CartridgeCDF::callFunction(uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 CartridgeCDF::peek(uInt16 address)
 {
+  // Is this a PlusROM?
+  if(myPlusROM->isValid())
+  {
+    uInt8 value = 0;
+    if(myPlusROM->peekHotspot(address, value))
+      return value;
+  }
+
   address &= 0x0FFF;
   uInt8 peekvalue = myProgramImage[myBankOffset + address];
 
   // In debugger/bank-locked mode, we ignore all hotspots and in general
   // anything that can change the internal state of the cart
-  if(bankLocked())
+  if(hotspotsLocked())
     return peekvalue;
 
   // implement JMP FASTJMP which fetches the destination address from stream 33
@@ -358,6 +371,10 @@ bool CartridgeCDF::poke(uInt16 address, uInt8 value)
 {
   uInt32 pointer;
 
+  // Is this a PlusROM?
+  if(myPlusROM->isValid() && myPlusROM->pokeHotspot(address, value))
+    return true;
+
   address &= 0x0FFF;
   switch(address)
   {
@@ -436,7 +453,7 @@ bool CartridgeCDF::poke(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeCDF::bank(uInt16 bank, uInt16)
 {
-  if(bankLocked()) return false;
+  if(hotspotsLocked()) return false;
 
   // Remember what bank we're in
   myBankOffset = bank << 12;
@@ -560,6 +577,8 @@ bool CartridgeCDF::save(Serializer& out) const
     out.putLong(myAudioCycles);
     out.putDouble(myFractionalClocks);
     out.putLong(myARMCycles);
+
+    CartridgeARM::save(out);
   }
   catch(...)
   {
@@ -600,6 +619,8 @@ bool CartridgeCDF::load(Serializer& in)
     myAudioCycles = in.getLong();
     myFractionalClocks = in.getDouble();
     myARMCycles = in.getLong();
+
+    CartridgeARM::load(in);
   }
   catch(...)
   {

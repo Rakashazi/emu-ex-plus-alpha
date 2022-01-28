@@ -188,7 +188,7 @@ void EmulationTiming::recalculate()
   myCyclesPerFrame = 76 * myLinesPerFrame;
   myMaxCyclesPerTimeslice = uInt32(round(mySpeedFactor * myCyclesPerFrame * 2));
   myMinCyclesPerTimeslice = uInt32(round(mySpeedFactor * myCyclesPerFrame / 2));
-  myAudioFragmentSize = uInt32(round((mySpeedFactor * AUDIO_HALF_FRAMES_PER_FRAGMENT * myLinesPerFrame) / 4.));
+  myAudioFragmentSize = uInt32(round((mySpeedFactor * AUDIO_HALF_FRAMES_PER_FRAGMENT * myLinesPerFrame) / 2.));
 
   myPrebufferFragmentCount = discreteDivCeil(
     myPlaybackPeriod * myAudioSampleRate,

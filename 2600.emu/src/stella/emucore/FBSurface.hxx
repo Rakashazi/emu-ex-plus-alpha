@@ -211,41 +211,52 @@ class FBSurface
     /**
       This method should be called to draw the specified string.
 
-      @param font   The font to draw the string with
-      @param s      The string to draw
-      @param x      The x coordinate
-      @param y      The y coordinate
-      @param w      The width of the string area
-      @param h      The height of the string area (for multi line strings)
-      @param color  The color of the text
-      @param align  The alignment of the text in the string width area
-      @param deltax FIXME
+      @param font         The font to draw the string with
+      @param s            The string to draw
+      @param x            The x coordinate
+      @param y            The y coordinate
+      @param w            The width of the string area
+      @param h            The height of the string area (for multi line strings)
+      @param color        The color of the text
+      @param align        The alignment of the text in the string width area
+      @param deltax       The horizontal scroll offset
       @param useEllipsis  Whether to use '...' when the string is too long
+      @param shadowColor  The shadow color of the text
+      @param linkStart    The start position of a link in drawn string
+      @param linkLen      The length of a link in drawn string
+      @param underline    Whether to underline the link
       @return       Number of lines drawn
     */
 
-    virtual int drawString(
-      const GUI::Font& font, const string& s, int x, int y, int w, int h,
-      ColorId color, TextAlign align = TextAlign::Left,
-      int deltax = 0, bool useEllipsis = true, ColorId shadowColor = kNone);
+    virtual int drawString(const GUI::Font& font, const string& s, int x, int y, int w, int h,
+                           ColorId color, TextAlign align = TextAlign::Left,
+                           int deltax = 0, bool useEllipsis = true, ColorId shadowColor = kNone,
+                           size_t linkStart = string::npos, size_t linkLen = string::npos,
+                           bool underline = false);
 
     /**
       This method should be called to draw the specified string.
 
-      @param font   The font to draw the string with
-      @param s      The string to draw
-      @param x      The x coordinate
-      @param y      The y coordinate
-      @param w      The width of the string area
-      @param color  The color of the text
-      @param align  The alignment of the text in the string width area
-      @param deltax FIXME
+      @param font         The font to draw the string with
+      @param s            The string to draw
+      @param x            The x coordinate
+      @param y            The y coordinate
+      @param w            The width of the string area
+      @param color        The color of the text
+      @param align        The alignment of the text in the string width area
+      @param deltax       The horizontal scroll offset
       @param useEllipsis  Whether to use '...' when the string is too long
+      @param shadowColor  The shadow color of the text
+      @param linkStart    The start position of a link in drawn string
+      @param linkLen      The length of a link in drawn string
+      @param underline    Whether to underline the link
+
     */
-    virtual void drawString(
-        const GUI::Font& font, const string& s, int x, int y, int w,
-        ColorId color, TextAlign align = TextAlign::Left,
-        int deltax = 0, bool useEllipsis = true, ColorId shadowColor = kNone);
+    virtual void drawString(const GUI::Font& font, const string& s, int x, int y, int w,
+                            ColorId color, TextAlign align = TextAlign::Left,
+                            int deltax = 0, bool useEllipsis = true, ColorId shadowColor = kNone,
+                            size_t linkStart = string::npos, size_t linkLen = string::npos,
+                            bool underline = false);
 
     /**
       Splits a given string to a given width considering whitespaces.

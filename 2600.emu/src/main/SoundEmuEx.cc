@@ -29,8 +29,7 @@
 
 using namespace EmuEx;
 
-SoundEmuEx::SoundEmuEx(OSystem& osystem): Sound(osystem)
-{}
+SoundEmuEx::SoundEmuEx(OSystem& osystem): Sound(osystem) {}
 
 void SoundEmuEx::open(shared_ptr<AudioQueue> audioQueue, EmulationTiming* emulationTiming)
 {
@@ -112,7 +111,31 @@ void SoundEmuEx::setResampleQuality(AudioSettings::ResamplingQuality quality)
 	configForVideoFrameRate(configuredVideoFrameRate);
 }
 
-void SoundEmuEx::processAudio(OSystem &osystem, EmuEx::EmuAudio *audio)
+void SoundEmuEx::setEmuAudio(EmuEx::EmuAudio *audio)
+{
+	audioQueue->onFragmentEnqueued =
+	[this, audio](AudioQueue &queue, uInt32 fragFrames)
+	{
+		const uint32_t samplesPerFrame = 1; //audioQueue->isStereo() ? 2 : 1;
+		const uint32_t fragSamples = fragFrames * samplesPerFrame;
+		uint32_t wroteFrames = 0;
+		//logDMsg("%d fragments of %d size ready", audioQueue->size(), fragFrames);
+		while(queue.size())
+		{
+			float buffF[512];
+			assert(fragSamples <= std::size(buffF));
+			myResampler->fillFragment(buffF, fragFrames);
+			if(audio)
+			{
+				audio->writeFrames(buffF, fragFrames);
+				wroteFrames += fragFrames;
+			}
+		}
+		//logDMsg("wrote %d audio frames", (int)wroteFrames);
+	};
+}
+
+void SoundEmuEx::updateRate(OSystem &osystem)
 {
 	auto videoFrameRate = osystem.console().currentFrameRate();
 	if(configuredVideoFrameRate != videoFrameRate &&
@@ -122,22 +145,6 @@ void SoundEmuEx::processAudio(OSystem &osystem, EmuEx::EmuAudio *audio)
 		configuredVideoFrameRate = videoFrameRate;
 		configForVideoFrameRate(videoFrameRate);
 	}
-	const auto fragFrames = audioQueue->fragmentSize();
-	const uint32_t samplesPerFrame = 1; //audioQueue->isStereo() ? 2 : 1;
-	const uint32_t fragSamples = fragFrames * samplesPerFrame;
-	uint32_t wroteFrames = 0;
-	//logDMsg("%d fragments of %d size ready", audioQueue->size(), fragFrames);
-	while(audioQueue->size())
-	{
-		float buffF[fragSamples];
-		myResampler->fillFragment(buffF, fragFrames);
-		if(audio)
-		{
-			audio->writeFrames(buffF, fragFrames);
-			wroteFrames += fragFrames;
-		}
-	}
-	//logDMsg("wrote %d frames, video frame rate:%.2f", (int)wroteFrames, osystem.console().getFramerate());
 }
 
 void SoundEmuEx::setEnabled(bool enable) {}

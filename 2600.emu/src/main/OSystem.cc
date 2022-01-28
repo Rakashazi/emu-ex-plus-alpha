@@ -104,16 +104,6 @@ void OSystem::setFrameTime(double frameTime, int rate)
 	mySound->setFrameTime(*this, frameTime, rate);
 }
 
-void OSystem::setResampleQuality(AudioSettings::ResamplingQuality quality)
-{
-	mySound->setResampleQuality(quality);
-}
-
-void OSystem::processAudio(EmuEx::EmuAudio *audio)
-{
-	mySound->processAudio(*this, audio);
-}
-
 FilesystemNode OSystem::stateDir() const
 {
 	return FilesystemNode{std::string{EmuEx::EmuSystem::contentSaveDirectory()}};

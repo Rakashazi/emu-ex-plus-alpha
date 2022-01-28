@@ -16,6 +16,7 @@
 //============================================================================
 
 #include <cassert>
+#include <cmath>
 
 #include "System.hxx"
 #include "Control.hxx"
@@ -107,10 +108,10 @@ string Controller::getName(const Type type)
   static const std::array<string, int(Controller::Type::LastType)> NAMES =
   {
     "Unknown",
-    "AmigaMouse", "AtariMouse", "AtariVox", "BoosterGrip", "CompuMate",
-    "Driving", "Sega Genesis", "Joystick", "Keyboard", "KidVid", "MindLink",
-    "Paddles", "Paddles_IAxis", "Paddles_IAxDr", "SaveKey", "TrakBall",
-    "Lightgun", "QuadTari"
+    "Amiga mouse", "Atari mouse", "AtariVox", "Booster Grip", "CompuMate",
+    "Driving", "Sega Genesis", "Joystick", "Keyboard", "Kid Vid", "MindLink",
+    "Paddles", "Paddles_IAxis", "Paddles_IAxDr", "SaveKey", "Trak-Ball",
+    "Light Gun", "QuadTari"
   };
 
   return NAMES[int(type)];
@@ -149,6 +150,41 @@ Controller::Type Controller::getType(const string& propName)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Controller::setDigitalDeadZone(int deadZone)
+{
+  DIGITAL_DEAD_ZONE = digitalDeadZoneValue(deadZone);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int Controller::digitalDeadZoneValue(int deadZone)
+{
+  deadZone = BSPF::clamp(deadZone, MIN_DIGITAL_DEADZONE, MAX_DIGITAL_DEADZONE);
+
+  return 3200 + deadZone * 1000;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Controller::setAnalogDeadZone(int deadZone)
+{
+  ANALOG_DEAD_ZONE = analogDeadZoneValue(deadZone);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int Controller::analogDeadZoneValue(int deadZone)
+{
+  deadZone = BSPF::clamp(deadZone, MIN_ANALOG_DEADZONE, MAX_ANALOG_DEADZONE);
+
+  return deadZone * std::round(32768 / 2. / MAX_DIGITAL_DEADZONE);
+}
+
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Controller::setMouseSensitivity(int sensitivity)
+{
+  MOUSE_SENSITIVITY = BSPF::clamp(sensitivity, MIN_MOUSE_SENSE, MAX_MOUSE_SENSE);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Controller::setAutoFireRate(int rate, bool isNTSC)
 {
   rate = BSPF::clamp(rate, 0, isNTSC ? 30 : 25);
@@ -156,5 +192,7 @@ void Controller::setAutoFireRate(int rate, bool isNTSC)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int Controller::DIGITAL_DEAD_ZONE = 3200;
+int Controller::ANALOG_DEAD_ZONE = 0;
+int Controller::MOUSE_SENSITIVITY = -1;
 int Controller::AUTO_FIRE_RATE = 0;
-

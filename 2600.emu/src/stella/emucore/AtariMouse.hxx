@@ -38,7 +38,7 @@ class AtariMouse : public PointingDevice
     /**
       Returns the name of this controller.
     */
-    string name() const override { return "AtariMouse"; }
+    string name() const override { return "Atari mouse"; }
 
   protected:
     uInt8 ioPortA(uInt8 countH, uInt8 countV, uInt8, uInt8) override

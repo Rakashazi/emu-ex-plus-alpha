@@ -57,7 +57,7 @@ uInt8 CartridgeFA2::peek(uInt16 address)
   if((address & ROM_MASK) == 0x0FF4)
   {
     // Load/save RAM to/from Harmony cart flash
-    if(mySize == 28_KB && !bankLocked())
+    if(mySize == 28_KB && !hotspotsLocked())
       return ramReadWrite();
   }
 
@@ -70,7 +70,7 @@ bool CartridgeFA2::poke(uInt16 address, uInt8 value)
   if((address & ROM_MASK) == 0x0FF4)
   {
     // Load/save RAM to/from Harmony cart flash
-    if(mySize == 28_KB && !bankLocked())
+    if(mySize == 28_KB && !hotspotsLocked())
       ramReadWrite();
     return false;
   }
@@ -81,7 +81,7 @@ bool CartridgeFA2::poke(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeFA2::setNVRamFile(const string& nvramfile)
 {
-  myFlashFile = nvramfile + "_flash.dat";
+	myFlashFile = nvramfile + "_flash.dat";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -37,12 +37,13 @@ Serializer::Serializer(const string& filename, Mode m)
     FilesystemNode node(filename);
     if(node.isFile() && node.isReadable())
     {
-      auto str = make_unique<IG::FStream>(EmuEx::appCtx.openFileUri(filename, IG::IO::AccessHint::ALL), ios::in | ios::binary);
+    	auto str = make_unique<IG::FStream>(EmuEx::appCtx.openFileUri(filename, IG::IO::AccessHint::ALL), ios::in | ios::binary);
       if(str && str->is_open())
       {
         myStream = std::move(str);
-        myStream->exceptions( ios_base::failbit | ios_base::badbit | ios_base::eofbit );
         rewind();
+        myStream->exceptions( ios_base::failbit | ios_base::badbit |
+                              ios_base::eofbit );
       }
     }
   }
@@ -65,8 +66,9 @@ Serializer::Serializer(const string& filename, Mode m)
     if(str && str->is_open())
     {
       myStream = std::move(str);
-      myStream->exceptions( ios_base::failbit | ios_base::badbit | ios_base::eofbit );
       rewind();
+      myStream->exceptions( ios_base::failbit | ios_base::badbit |
+                            ios_base::eofbit );
     }
   }
 }
@@ -79,10 +81,18 @@ Serializer::Serializer()
   // the stream before it is used for the first time
   if(myStream)
   {
-    myStream->exceptions( ios_base::failbit | ios_base::badbit | ios_base::eofbit );
     putBool(true);
     rewind();
+    myStream->exceptions( ios_base::failbit | ios_base::badbit | ios_base::eofbit );
   }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Serializer::setPosition(size_t pos)
+{
+  myStream->clear();
+  myStream->seekg(pos);
+  myStream->seekp(pos);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -94,11 +104,15 @@ void Serializer::rewind()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-size_t Serializer::size() const
+size_t Serializer::size()
 {
-  myStream->seekp(0, std::ios::end);
+  std::streampos oldPos = myStream->tellp();
 
-  return myStream->tellp();
+  myStream->seekp(0, std::ios::end);
+  size_t s = myStream->tellp();
+  myStream->seekp(oldPos);
+
+  return s;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

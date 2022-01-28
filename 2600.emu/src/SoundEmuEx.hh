@@ -40,7 +40,8 @@ public:
 	void close() final;
 	void setFrameTime(OSystem &osystem, double frameTime, unsigned int soundRate);
 	void setResampleQuality(AudioSettings::ResamplingQuality quality);
-	void processAudio(OSystem &osystem, EmuEx::EmuAudio *audio);
+	void setEmuAudio(EmuEx::EmuAudio *audio);
+	void updateRate(OSystem &osystem);
 	void setEnabled(bool enable) final;
 	bool mute(bool state) final;
 	bool toggleMute() final;

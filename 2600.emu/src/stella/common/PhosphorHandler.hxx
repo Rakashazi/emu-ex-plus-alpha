@@ -57,7 +57,7 @@ class PhosphorHandler
     bool myUsePhosphor{false};
 
     // Amount to blend when using phosphor effect
-    float myPhosphorPercent{0.60F};
+    float myPhosphorPercent{0.50F};
 
     // Precalculated averaged phosphor colors
     using PhosphorLUT = BSPF::array2D<uInt8, kColor, kColor>;

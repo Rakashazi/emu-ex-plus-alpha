@@ -40,7 +40,6 @@
 #include "CartDPCPlus.hxx"
 #include "CartE0.hxx"
 #include "CartE7.hxx"
-#include "CartE78K.hxx"
 #include "CartEF.hxx"
 #include "CartEFSC.hxx"
 #include "CartF0.hxx"
@@ -55,6 +54,7 @@
 #include "CartFC.hxx"
 #include "CartFE.hxx"
 #include "CartMDM.hxx"
+#include "CartMVC.hxx"
 #include "CartSB.hxx"
 #include "CartTVBoy.hxx"
 #include "CartUA.hxx"
@@ -63,7 +63,7 @@
 #include "MD5.hxx"
 #include "Props.hxx"
 #include "Logger.hxx"
-#include "OSystem.hxx"
+#include "Settings.hxx"
 
 #include "CartDetector.hxx"
 #include "CartCreator.hxx"
@@ -108,7 +108,7 @@ unique_ptr<Cartridge> CartCreator::create(const FilesystemNode& file,
   {
     case Bankswitch::Type::_2IN1:
       // Make sure we have a valid sized image
-      if(size == 2*2_KB || size == 2*4_KB || size == 2*8_KB || size == 2*16_KB)
+      if(size == 2*2_KB || size == 2*4_KB || size == 2*8_KB || size == 2*16_KB || size == 2*32_KB)
       {
         cartridge =
           createFromMultiCart(image, size, 2, md5, detectedType, id, settings);
@@ -121,7 +121,7 @@ unique_ptr<Cartridge> CartCreator::create(const FilesystemNode& file,
 
     case Bankswitch::Type::_4IN1:
       // Make sure we have a valid sized image
-      if(size == 4*2_KB || size == 4*4_KB || size == 4*8_KB)
+      if(size == 4*2_KB || size == 4*4_KB || size == 4*8_KB || size == 4*16_KB)
       {
         cartridge =
           createFromMultiCart(image, size, 4, md5, detectedType, id, settings);
@@ -197,6 +197,10 @@ unique_ptr<Cartridge> CartCreator::create(const FilesystemNode& file,
                             Bankswitch::typeToName(type) + "'");
       break;
 
+    case Bankswitch::Type::_MVC:
+      cartridge = make_unique<CartridgeMVC>(file.getPath(), size, md5, settings);
+      break;
+
     default:
       cartridge = createFromImage(image, size, detectedType, md5, settings);
       break;
@@ -237,10 +241,14 @@ CartCreator::createFromMultiCart(const ByteBuffer& image, size_t& size,
   buf << " [G" << (i+1) << "]";
   id = buf.str();
 
-  if(size <= 2_KB)       type = Bankswitch::Type::_2K;
-  else if(size == 4_KB)  type = Bankswitch::Type::_4K;
-  else if(size == 8_KB)  type = Bankswitch::Type::_F8;
-  else  /* default */    type = Bankswitch::Type::_4K;
+  if(size <= 2_KB)
+    type = Bankswitch::Type::_2K;
+  else if(size == 4_KB)
+    type = Bankswitch::Type::_4K;
+  else if(size == 8_KB || size == 16_KB || size == 32_KB || size == 64_KB)
+    type = CartDetector::autodetectType(slice, size);
+  else  /* default */
+    type = Bankswitch::Type::_4K;
 
   return createFromImage(slice, size, type, md5, settings);
 }
@@ -299,8 +307,6 @@ CartCreator::createFromImage(const ByteBuffer& image, size_t size, Bankswitch::T
       return make_unique<CartridgeE0>(image, size, md5, settings);
     case Bankswitch::Type::_E7:
       return make_unique<CartridgeE7>(image, size, md5, settings);
-    case Bankswitch::Type::_E78K:
-      return make_unique<CartridgeE78K>(image, size, md5, settings);
     case Bankswitch::Type::_EF:
       return make_unique<CartridgeEF>(image, size, md5, settings);
     case Bankswitch::Type::_EFSC:

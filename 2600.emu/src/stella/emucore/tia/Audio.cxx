@@ -88,7 +88,8 @@ void Audio::phase1()
 
   addSample(sample0, sample1);
 #ifdef GUI_SUPPORT
-  mySamples.push_back(sample0 | (sample1 << 4));
+  if(myRewindMode)
+    mySamples.push_back(sample0 | (sample1 << 4));
 #endif
 }
 

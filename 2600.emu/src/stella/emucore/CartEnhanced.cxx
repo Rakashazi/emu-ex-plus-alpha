@@ -56,12 +56,10 @@ CartridgeEnhanced::CartridgeEnhanced(const ByteBuffer& image, size_t size,
   // space will be filled with 0's from above
   std::copy_n(image.get(), std::min(mySize, size), myImage.get());
 
-#if 0
+  myPlusROM = make_unique<PlusROM>(mySettings, *this);
+
   // Determine whether we have a PlusROM cart
-  // PlusROM needs to call peek() method, so disable direct peeks
-  if(myPlusROM.initialize(myImage, mySize))
-    myDirectPeek = false;
-#endif
+  myPlusROM->initialize(myImage, mySize);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -143,6 +141,8 @@ void CartridgeEnhanced::reset()
 
   // Upon reset we switch to the reset bank
   bank(startBank());
+
+  if (myPlusROM->isValid()) myPlusROM->reset();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -150,15 +150,13 @@ uInt8 CartridgeEnhanced::peek(uInt16 address)
 {
   const uInt16 peekAddress = address;
 
-#if 0
   // Is this a PlusROM?
-  if(myPlusROM.isValid())
+  if(myPlusROM->isValid())
   {
     uInt8 value = 0;
-    if(myPlusROM.peekHotspot(address, value))
+    if(myPlusROM->peekHotspot(address, value))
       return value;
   }
-#endif
 
   // hotspots in TIA range are reacting to pokes only
   if (hotspot() >= 0x80)
@@ -189,11 +187,9 @@ uInt8 CartridgeEnhanced::peek(uInt16 address)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeEnhanced::poke(uInt16 address, uInt8 value)
 {
-#if 0
   // Is this a PlusROM?
-  if(myPlusROM.isValid() && myPlusROM.pokeHotspot(address, value))
+  if(myPlusROM->isValid() && myPlusROM->pokeHotspot(address, value))
     return true;
-#endif
 
   // Switch banks if necessary
   if (checkSwitchBank(address & ADDR_MASK, value))
@@ -236,7 +232,7 @@ bool CartridgeEnhanced::poke(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeEnhanced::bank(uInt16 bank, uInt16 segment)
 {
-  if(bankLocked()) return false;
+  if(hotspotsLocked()) return false;
 
   const uInt16 segmentOffset = segment << myBankShift;
 
@@ -248,6 +244,7 @@ bool CartridgeEnhanced::bank(uInt16 bank, uInt16 segment)
     const uInt32 bankOffset = myCurrentSegOffset[segment] = romBank << myBankShift;
     const uInt16 hotspot = this->hotspot();
     uInt16 hotSpotAddr;
+    uInt16 plusROMAddr;
     // Skip extra RAM; if existing it is only mapped into first segment
     const uInt16 fromAddr = (ROM_OFFSET + segmentOffset + (segment == 0 ? myRomOffset : 0)) & ~System::PAGE_MASK;
     // for ROMs < 4_KB, the whole address space will be mapped.
@@ -257,6 +254,10 @@ bool CartridgeEnhanced::bank(uInt16 bank, uInt16 segment)
       hotSpotAddr = (hotspot & ~System::PAGE_MASK);
     else
       hotSpotAddr = 0xFFFF; // none
+    if(myPlusROM->isValid())
+      plusROMAddr = (0x1FF0 & ~System::PAGE_MASK);
+    else
+      plusROMAddr = 0xFFFF; // none
 
     System::PageAccess access(this, System::PageAccessType::READ);
     // Setup the page access methods for the current bank
@@ -264,7 +265,7 @@ bool CartridgeEnhanced::bank(uInt16 bank, uInt16 segment)
     {
       const uInt32 offset = bankOffset + (addr & myBankMask);
 
-      if(myDirectPeek && addr != hotSpotAddr)
+      if(myDirectPeek && addr != hotSpotAddr && addr != plusROMAddr)
         access.directPeekBase = &myImage[offset];
       else
         access.directPeekBase = nullptr;
@@ -387,10 +388,10 @@ bool CartridgeEnhanced::save(Serializer& out) const
     out.putIntArray(myCurrentSegOffset.get(), myBankSegs);
     if(myRamSize > 0)
       out.putByteArray(myRAM.get(), myRamSize);
-#if 0
-    if(myPlusROM.isValid() && !myPlusROM.save(out))
+
+    if(myPlusROM->isValid() && !myPlusROM->save(out))
       return false;
-#endif
+
   }
   catch(...)
   {
@@ -409,10 +410,9 @@ bool CartridgeEnhanced::load(Serializer& in)
     in.getIntArray(myCurrentSegOffset.get(), myBankSegs);
     if(myRamSize > 0)
       in.getByteArray(myRAM.get(), myRamSize);
-#if 0
-    if(myPlusROM.isValid() && !myPlusROM.load(in))
+
+    if(myPlusROM->isValid() && !myPlusROM->load(in))
       return false;
-#endif
   }
   catch(...)
   {
