@@ -947,6 +947,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 	trainerpoo = NULL;
 	ExtraNTARAM = NULL;
 	return LOADER_HANDLED_ERROR;
+
 init_ok:
 
 	GameInfo->mappernum = MapperNo;
@@ -1083,10 +1084,6 @@ static int iNES_Init(int num) {
 					// mapper 256 (OneBus) has not CHR-RAM _and_ has not CHR-ROM region in iNES file
 					// so zero-sized CHR should be supported at least for this mapper
 					VROM = NULL;
-				}
-				{
-					SetupCartCHRMapping(0, VROM, CHRRAMSize, 1);
-					AddExState(VROM, CHRRAMSize, 0, "CHRR");
 				}
 			}
 			if (head.ROM_type & 8)

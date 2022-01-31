@@ -15,6 +15,8 @@
 
 #include <emuframework/EmuApp.hh>
 #include "internal.hh"
+#include <fceu/sound.h>
+#include <fceu/fceu.h>
 
 namespace EmuEx
 {
@@ -25,7 +27,8 @@ enum
 	CFGKEY_VIDEO_SYSTEM = 272, CFGKEY_SPRITE_LIMIT = 273,
 	CFGKEY_SOUND_QUALITY = 274, CFGKEY_INPUT_PORT_1 = 275,
 	CFGKEY_INPUT_PORT_2 = 276, CFGKEY_DEFAULT_PALETTE_PATH = 277,
-	CFGKEY_DEFAULT_VIDEO_SYSTEM = 278, CFGKEY_COMPATIBLE_FRAMESKIP = 279
+	CFGKEY_DEFAULT_VIDEO_SYSTEM = 278, CFGKEY_COMPATIBLE_FRAMESKIP = 279,
+	CFGKEY_DEFAULT_SOUND_LOW_PASS_FILTER = 280, CFGKEY_SWAP_DUTY_CYCLES = 281
 };
 
 const char *EmuSystem::configFilename = "NesEmu.config";
@@ -109,6 +112,10 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 		bcase CFGKEY_DEFAULT_VIDEO_SYSTEM: optionDefaultVideoSystem.readFromIO(io, readSize);
 		bcase CFGKEY_DEFAULT_PALETTE_PATH:
 			readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){defaultPalettePath = path;});
+		bcase CFGKEY_DEFAULT_SOUND_LOW_PASS_FILTER:
+			readOptionValue<bool>(io, readSize, [](auto &val){FCEUI_SetLowPass(val);});
+		bcase CFGKEY_SWAP_DUTY_CYCLES:
+			readOptionValue<bool>(io, readSize, [](auto &val){swapDuty = val;});
 	}
 	return 1;
 }
@@ -120,6 +127,10 @@ void EmuSystem::writeConfig(IO &io)
 	writeStringOptionValue(io, CFGKEY_FDS_BIOS_PATH, fdsBiosPath);
 	optionDefaultVideoSystem.writeWithKeyIfNotDefault(io);
 	writeStringOptionValue(io, CFGKEY_DEFAULT_PALETTE_PATH, defaultPalettePath);
+	if(swapDuty)
+		writeOptionValue(io, CFGKEY_SWAP_DUTY_CYCLES, swapDuty);
+	if(FSettings.lowpass)
+		writeOptionValue(io, CFGKEY_DEFAULT_SOUND_LOW_PASS_FILTER, (bool)FSettings.lowpass);
 }
 
 }

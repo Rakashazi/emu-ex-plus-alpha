@@ -22,7 +22,7 @@ namespace IG
 {
 
 template <class T>
-constexpr auto &&doOptionally(const std::optional<T> &optionalValue, invocable<T&> auto &&func)
+constexpr auto doOptionally(const std::optional<T> &optionalValue, invocable<T&> auto &&func)
 {
 	if(optionalValue)
 	{

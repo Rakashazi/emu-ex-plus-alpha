@@ -30,7 +30,7 @@ ArchiveScanRecord FCEUD_ScanArchive(std::string fname);
 const char *FCEUD_GetCompilerString();
 
 //This makes me feel dirty for some reason.
-//void FCEU_printf(const char *format, ...);
+void FCEU_printf(const char *format, ...);
 #define FCEUI_printf FCEU_printf
 
 //Video interface
@@ -192,10 +192,16 @@ void FCEUD_MovieRecordTo(void);
 void FCEUD_MovieReplayFrom(void);
 void FCEUD_LuaRunFrom(void);
 
+#ifdef _S9XLUA_H
+// lua engine
+void TaseditorAutoFunction(void);
+void TaseditorManualFunction(void);
+#endif
+
 int32 FCEUI_GetDesiredFPS(void);
 void FCEUI_SaveSnapshot(void);
 void FCEUI_SaveSnapshotAs(void);
-//void FCEU_DispMessage(const char *format, int disppos, ...);
+void FCEU_DispMessage(const char *format, int disppos, ...);
 #define FCEUI_DispMessage FCEU_DispMessage
 
 int FCEUI_DecodePAR(const char *code, int *a, int *v, int *c, int *type);

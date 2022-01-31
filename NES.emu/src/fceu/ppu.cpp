@@ -1855,10 +1855,10 @@ int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, in
 
 			for (scanline = 0; scanline < totalscanlines; ) {	//scanline is incremented in  DoLine.  Evil. :/
 				deempcnt[deemp]++;
+
 				if (scanline < 240)
-				{
 					DEBUG(FCEUD_UpdatePPUView(scanline, 1));
-				}
+
 				DoLine();
 
 				if (scanline < normalscanlines || scanline == totalscanlines)
@@ -1921,7 +1921,7 @@ SFORMAT FCEUPPU_STATEINFO[] = {
 	{ &TempAddrT, 2 | FCEUSTATE_RLSB, "TADD" },
 	{ &VRAMBuffer, 1, "VBUF" },
 	{ &PPUGenLatch, 1, "PGEN" },
-	{ }
+	{ 0 }
 };
 
 SFORMAT FCEU_NEWPPU_STATEINFO[] = {
@@ -1956,7 +1956,7 @@ SFORMAT FCEU_NEWPPU_STATEINFO[] = {
 	{ &ppur.status.sl, 4 | FCEUSTATE_RLSB, "PST0" },
 	{ &ppur.status.cycle, 4 | FCEUSTATE_RLSB, "PST1" },
 	{ &ppur.status.end_cycle, 4 | FCEUSTATE_RLSB, "PST2" },
-	{ }
+	{ 0 }
 };
 
 void FCEUPPU_SaveState(void) {

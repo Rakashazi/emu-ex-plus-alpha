@@ -295,11 +295,33 @@ class CustomAudioOptionView : public AudioOptionView
 		qualityItem
 	};
 
+	BoolMenuItem lowPassFilter
+	{
+		"Low Pass Filter", &defaultFace(),
+		(bool)FSettings.lowpass,
+		[this](BoolMenuItem &item)
+		{
+			FCEUI_SetLowPass(item.flipBoolValue(*this));
+		}
+	};
+
+	BoolMenuItem swapDutyCycles
+	{
+		"Swap Duty Cycles", &defaultFace(),
+		swapDuty,
+		[this](BoolMenuItem &item)
+		{
+			swapDuty = item.flipBoolValue(*this);
+		}
+	};
+
 public:
 	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&quality);
+		item.emplace_back(&lowPassFilter);
+		item.emplace_back(&swapDutyCycles);
 	}
 };
 

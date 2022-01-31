@@ -75,13 +75,46 @@ FILE *FCEUD_UTF8fopen(const char *fn, const char *mode)
 	return IG::FileUtils::fopenUri(EmuEx::appCtx, fn, mode);
 }
 
-void FCEUD_PrintError(const char *errormsg) { logErr("%s", errormsg); }
+void FCEU_printf(const char *format, ...)
+{
+	if(!Config::DEBUG_BUILD)
+		return;
+	va_list ap;
+	va_start(ap, format);
+	logger_vprintf(0, format, ap);
+	va_end(ap);
+	logger_printf(0, "\n");
+}
 
-#ifndef NDEBUG
-void FCEUD_Message(const char *s) { logger_printf(0, "%s", s); }
+void FCEUD_PrintError(const char *errormsg)
+{
+	if(!Config::DEBUG_BUILD)
+		return;
+	logErr("%s", errormsg);
+}
+
+void FCEUD_Message(const char *s)
+{
+	if(!Config::DEBUG_BUILD)
+		return;
+	logger_printf(0, "%s", s);
+}
+
+void FCEU_PrintError(const char *format, ...)
+{
+	if(!Config::DEBUG_BUILD)
+		return;
+	va_list ap;
+	va_start(ap, format);
+	logger_vprintf(LOGGER_ERROR, format, ap);
+	va_end(ap);
+	logger_printf(LOGGER_ERROR, "\n");
+}
 
 void FCEU_DispMessageOnMovie(const char *format, ...)
 {
+	if(!Config::DEBUG_BUILD)
+		return;
 	va_list ap;
 	va_start(ap, format);
 	logger_vprintf(0, format, ap);
@@ -91,13 +124,14 @@ void FCEU_DispMessageOnMovie(const char *format, ...)
 
 void FCEU_DispMessage(const char *format, int disppos=0, ...)
 {
+	if(!Config::DEBUG_BUILD)
+		return;
 	va_list ap;
 	va_start(ap, disppos);
 	logger_vprintf(0, format, ap);
 	va_end(ap);
 	logger_printf(0, "\n");
 }
-#endif
 
 const char *FCEUD_GetCompilerString() { return ""; }
 

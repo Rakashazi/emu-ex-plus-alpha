@@ -37,7 +37,7 @@ static uint32 wlookup2[203];
 
 int32 Wave[2048+512];
 int32 WaveHi[40000];
-//int32 WaveFinal[2048+512];
+int32 WaveFinal[2048+512];
 
 EXPSOUND GameExpSound={0,0,0};
 
@@ -1110,11 +1110,11 @@ int FlushEmulateSound(int32 *WaveFinal)
   return(end);
 }
 
-/*int GetSoundBuffer(int32 **W)
+int GetSoundBuffer(int32 **W)
 {
  *W=WaveFinal;
  return(inbuf);
-}*/
+}
 
 /* FIXME:  Find out what sound registers get reset on reset.  I know $4001/$4005 don't,
 due to that whole MegaMan 2 Game Genie thing.

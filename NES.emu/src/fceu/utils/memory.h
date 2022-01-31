@@ -22,7 +22,7 @@
 		(at least that's the idea) 
 */
 
-static void FCEU_dwmemset(uint8 *d, uint32 c, uint32 n) {for(int x=n-4;x>=0;x-=4) *(uint32 *)&(d)[x]=c;}
+void FCEU_dwmemset(uint8 *d, auto c, auto n) {for(int x=n-4;x>=0;x-=4) *(uint32 *)&(d)[x]=c;}
 
 void *FCEU_malloc(uint32 size); // initialized to 0
 void *FCEU_gmalloc(uint32 size); // used by boards for WRAM etc, initialized to 0 (default) or other via RAMInitOption

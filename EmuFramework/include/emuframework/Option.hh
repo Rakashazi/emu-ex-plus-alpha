@@ -52,7 +52,7 @@ static std::optional<T> readOptionValue(IO &io, size_t bytesToRead)
 template <class T>
 static std::optional<T> readOptionValue(IO &io, size_t bytesToRead, auto &&func)
 {
-	IG::doOptionally(readOptionValue<T>(io, bytesToRead), std::forward<decltype(func)>(func));
+	return IG::doOptionally(readOptionValue<T>(io, bytesToRead), std::forward<decltype(func)>(func));
 }
 
 template <IG::Container T>
