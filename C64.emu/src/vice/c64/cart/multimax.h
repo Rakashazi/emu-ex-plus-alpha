@@ -46,6 +46,7 @@ extern void multimax_config_setup(uint8_t *rawcart);
 extern int multimax_bin_attach(const char *filename, uint8_t *rawcart);
 extern int multimax_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void multimax_detach(void);
+extern void multimax_powerup(void);
 
 extern int multimax_snapshot_write_module(struct snapshot_s *s);
 extern int multimax_snapshot_read_module(struct snapshot_s *s);

@@ -40,6 +40,7 @@
 #include "mon_disassemble.h"
 #include "mon_util.h"
 #include "montypes.h"
+#include "monitor.h"
 #include "uimon.h"
 #include "mon_breakpoint.h"
 
@@ -277,24 +278,26 @@ void mon_breakpoint_switch_checkpoint(int op, int cp_num)
     int i;
     mon_checkpoint_t *cp = NULL;
 
-    cp = mon_breakpoint_find_checkpoint(cp_num);
-
     if (cp_num == -1) {
         mon_out("Set all checkpoints to state: %s\n",
                 (op == e_ON) ? "enabled" : "disabled");
         for (i = 1; i < breakpoint_count; i++) {
-            if ((cp = mon_breakpoint_find_checkpoint(i))) {
-                cp = mon_breakpoint_find_checkpoint(i);
+            cp = mon_breakpoint_find_checkpoint(i);
+            if (cp) {
                 cp->enabled = op;
             }
         }
-    } else if (!(cp = mon_breakpoint_find_checkpoint(cp_num))) {
+        return;
+    }
+    
+    cp = mon_breakpoint_find_checkpoint(cp_num);
+    
+    if (!cp) {
         mon_out("#%d not a valid checkpoint\n", cp_num);
         return;
-    } else {
-        cp = mon_breakpoint_find_checkpoint(cp_num);
-        cp->enabled = op;
     }
+    
+    cp->enabled = op;
 }
 
 void mon_breakpoint_set_ignore_count(int cp_num, int count)
@@ -496,18 +499,48 @@ bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr, unsigned i
     checkpoint_list_t *ptr;
     mon_checkpoint_t *cp;
     checkpoint_list_t *list;
-    monitor_cpu_type_t *monitor_cpu;
+    monitor_cpu_type_t *monitor_cpu, *searchcpu;
     bool must_stop = FALSE;
-    MON_ADDR instpc;
+    MON_ADDR instpc, searchpc;
     MON_ADDR loadstorepc;
     char is_loadstore = 0;
     const char *op_str;
     const char *action_str;
+    supported_cpu_type_list_t *cpulist;
     int monbank = mon_interfaces[mem]->current_bank;
 
     monitor_cpu = monitor_cpu_for_memspace[mem];
     instpc = new_addr(mem, (monitor_cpu->mon_register_get_val)(mem, e_PC));
     loadstorepc = new_addr(mem, lastpc);
+
+    /* HACK: the following is a hack to allow switching to another CPU when
+             a breakpoint triggers (eg to the z80 of the c128). at some point
+             we should refactor the checkpoint system to also provide us the
+             CPU that triggered it instead.
+       CAUTION: this only works for exec, not for load/store
+    */
+
+    /* if the address is not the same of the PC of the current CPU... */
+    if ((op == e_exec) && (new_addr(mem, addr) != instpc)) {
+        /* ... loop over the list of supported CPUs in this memspace ... */
+        cpulist = monitor_cpu_type_supported[mem];
+        while (cpulist != NULL) {
+            searchcpu = cpulist->monitor_cpu_type_p;
+            /* if we find other CPUs than the current one... */
+            if (searchcpu != monitor_cpu) {
+                searchpc = new_addr(mem, (searchcpu->mon_register_get_val)(mem, e_PC));
+                /* check if the PC of the other CPU is not the same as the PC of the
+                   current CPU, but the checkpoint address matches the PC of the CPU we found */
+                if (searchpc != instpc && searchpc == new_addr(mem, addr)) {
+                    /* if so, assume the checkpoint hit on the other CPU and switch to it */
+                    instpc = searchpc;
+                    monitor_cpu_for_memspace[mem] = monitor_cpu = searchcpu;
+                    break;
+                }
+            }
+            cpulist = cpulist->next;
+        }
+    }
 
     switch (op) {
         case e_load:
@@ -567,10 +600,10 @@ bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr, unsigned i
                 mon_interfaces[mem]->get_line_cycle(&line, &cycle, &half_cycle);
 
                 if (half_cycle == -1) {
-                    mon_out(" %3u/$%03x, %3u/$%03x\n",
+                    mon_out(" %3u/$%03x, %3u/$%02x\n",
                             line, line, cycle, cycle);
                 } else {
-                    mon_out(" %3u/$%03x, %3u/$%03x %i\n",
+                    mon_out(" %3u/$%03x, %3u/$%02x %i\n",
                             line, line, cycle, cycle, half_cycle);
                 }
             } else {
@@ -579,8 +612,7 @@ bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr, unsigned i
             mon_interfaces[mem]->current_bank = 0; /* always disassemble using CPU bank */
             if (is_loadstore) {
                 mon_disassemble_with_regdump(mem, loadstorepc);
-            }
-            if (!is_loadstore || cp->stop) {
+            } else if (!is_loadstore || cp->stop) {
                 mon_disassemble_with_regdump(mem, instpc);
             }
             mon_interfaces[mem]->current_bank = monbank; /* restore value used in monitor */

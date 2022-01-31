@@ -42,9 +42,12 @@ extern void vic_um_blk5_store(uint16_t addr, uint8_t value);
 
 extern void vic_um_init(void);
 extern void vic_um_reset(void);
+extern void vic_um_powerup(void);
 
 extern void vic_um_config_setup(uint8_t *rawcart);
 extern int vic_um_bin_attach(const char *filename);
+/* extern int vic_um_bin_attach(const char *filename, uint8_t *rawcart); */
+extern int vic_um_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void vic_um_detach(void);
 
 extern int vic_um_resources_init(void);

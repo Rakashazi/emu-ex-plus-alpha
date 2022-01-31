@@ -59,11 +59,11 @@ typedef struct scsi_context_s {
     uint8_t asc;
     uint8_t cmd_buf[256];
     uint8_t data_buf[512];
-    uint8_t max_ids;
     uint8_t msg_after_status;
-    uint32_t max_imagesize;
+    uint32_t max_imagesize; /* in 512 byte sectors */
+    uint32_t limit_imagesize; /* in 512 byte sectors */
     uint32_t log;
-    FILE *file[7];
+    FILE *file[56];
     void *p;
     void (*user_format)(struct scsi_context_s *);
     void (*user_read)(struct scsi_context_s *);
@@ -98,6 +98,7 @@ MSG C/D I/O   Phase Name          Direction Of Transfer         Comment
 #define SCSI_STATE_BUSFREE    0x10
 #define SCSI_STATE_SELECTION  0x20
 
+/* will be bitshifted left by 1 before sent: see table 14-2 of scsi spec */
 #define SCSI_STATUS_GOOD                     0x00
 #define SCSI_STATUS_CHECKCONDITION           0x01
 #define SCSI_STATUS_CONDITIONMET             0x02
@@ -114,12 +115,13 @@ MSG C/D I/O   Phase Name          Direction Of Transfer         Comment
 #define SCSI_SENSEKEY_MEDIUMERROR    0x03
 #define SCSI_SENSEKEY_HARDWAREERROR  0x04
 #define SCSI_SENSEKEY_ILLEGALREQUEST 0x05
-#define SCSI_SENSEKEY_UNITATTENTION  0x05
+#define SCSI_SENSEKEY_UNITATTENTION  0x06
 #define SCSI_SENSEKEY_DATAPROTECT    0x07
 #define SCSI_SENSEKEY_BLANKCHECK     0x08
 #define SCSI_SENSEKEY_VENDORSPECIFIC 0x09
 #define SCSI_SENSEKEY_COPYABORTED    0x0a
 #define SCSI_SENSEKEY_ABORTEDCOMMAND 0x0b
+#define SCSI_SENSEKEY_EQUAL          0x0c
 #define SCSI_SENSEKEY_VOLUMEOVERFLOW 0x0d
 #define SCSI_SENSEKEY_MISCOMPARE     0x0e
 #define SCSI_SENSEKEY_COMPLETED      0x0f
@@ -149,6 +151,9 @@ MSG C/D I/O   Phase Name          Direction Of Transfer         Comment
 #define SCSI_COMMAND_VERIFY                0x2f
 #define SCSI_COMMAND_MODE_SENSE_10         0x5a
 
+/* commands users have requested to be implemented */
+#define SCSI_COMMAND_WRITE_VERIFY          0x2e
+
 /* unimplemented commands */
 #define SCSI_COMMAND_READ_BLOCK_LIMITS     0x05
 #define SCSI_COMMAND_SEEK_6                0x0b
@@ -165,7 +170,6 @@ MSG C/D I/O   Phase Name          Direction Of Transfer         Comment
 #define SCSI_COMMAND_ALLOW_MEDIUM_REMOVAL  0x1e
 #define SCSI_COMMAND_SET_WINDOW            0x24
 #define SCSI_COMMAND_SEEK_10               0x2b
-#define SCSI_COMMAND_WRITE_VERIFY          0x2e
 #define SCSI_COMMAND_SEARCH_HIGH           0x30
 #define SCSI_COMMAND_SEARCH_EQUAL          0x31
 #define SCSI_COMMAND_SEARCH_LOW            0x32
@@ -204,9 +208,9 @@ MSG C/D I/O   Phase Name          Direction Of Transfer         Comment
 #define SCSI_COMMAND_SEND_VOLUME_TAG       0xb6
 #define SCSI_COMMAND_WRITE_LONG_2          0xea
 
-extern int scsi_image_detach(struct scsi_context_s *context, int id);
+extern int scsi_image_detach(struct scsi_context_s *context, int disk);
 extern void scsi_image_detach_all(struct scsi_context_s *context);
-extern int scsi_image_attach(struct scsi_context_s *context, int id,
+extern int scsi_image_attach(struct scsi_context_s *context, int disk,
     char *filename);
 extern int32_t scsi_image_read(struct scsi_context_s *context);
 extern int32_t scsi_image_write(struct scsi_context_s *context);

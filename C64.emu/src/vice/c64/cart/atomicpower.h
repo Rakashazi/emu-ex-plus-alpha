@@ -39,6 +39,7 @@ extern void atomicpower_mmu_translate(unsigned int addr, uint8_t **base, int *st
 
 extern void atomicpower_freeze(void);
 extern void atomicpower_reset(void);
+extern void atomicpower_powerup(void);
 
 extern void atomicpower_config_init(void);
 extern void atomicpower_config_setup(uint8_t *rawcart);

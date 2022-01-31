@@ -121,7 +121,7 @@ inline static void sprite_dma_cycle_0(int i)
 
 #ifdef DEBUG
         if (debug.maincpu_traceflg && (vicii.sprite_dma & (1 << i))) {
-            log_debug("SDMA0 in cycle %u   %u", vicii.raster_cycle, maincpu_clk);
+            log_debug("SDMA0 in cycle %u   %"PRIu64, vicii.raster_cycle, maincpu_clk);
         }
 #endif
     }
@@ -144,7 +144,7 @@ inline static void sprite_dma_cycle_2(int i)
 
 #ifdef DEBUG
         if (debug.maincpu_traceflg && (vicii.sprite_dma & (1 << i))) {
-            log_debug("SDMA2 in cycle %u   %u", vicii.raster_cycle, maincpu_clk);
+            log_debug("SDMA2 in cycle %u   %"PRIu64, vicii.raster_cycle, maincpu_clk);
         }
 #endif
     }

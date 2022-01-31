@@ -105,6 +105,7 @@ struct crtc_s {
     int hjitter;        /* horizontal jitter when sync phase is changed */
     int xoffset;        /* pixel-offset of current rasterline */
     int screen_xoffset; /* pixel-offset of current rasterline */
+    int screen_hsync;   /* reference position of hsync at top of screen */
     int screen_yoffset; /* rasterline-offset of CRTC to VICE screen */
 
     int henable;        /* flagged when horizontal enable flipflop has not

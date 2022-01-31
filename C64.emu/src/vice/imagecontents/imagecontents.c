@@ -126,7 +126,8 @@ image_contents_screencode_t *image_contents_to_screencode(image_contents_t
 
     screencode_ptr = image_contents_screencode;
 
-    sprintf((char *)rawline, "0 \"%s\" %s", contents->name, contents->id);
+    sprintf((char *)rawline, "%d \"%s\" %s", contents->partition, contents->name,
+            contents->id);
     charset_petcii_to_screencode_line(rawline, &buf, &len);
     screencode_ptr->line = buf;
     screencode_ptr->length = len;
@@ -193,7 +194,8 @@ image_contents_screencode_t *image_contents_to_screencode(image_contents_t
  */
 char *image_contents_to_string(image_contents_t * contents, char out_charset)
 {
-    uint8_t *str = (uint8_t *)lib_msprintf("0 \"%s\" %s", contents->name, contents->id);
+    uint8_t *str = (uint8_t *)lib_msprintf("%d \"%s\" %s", contents->partition,
+                                           contents->name, contents->id);
 
     if (out_charset == IMAGE_CONTENTS_STRING_PETSCII) {
         return (char *)str;

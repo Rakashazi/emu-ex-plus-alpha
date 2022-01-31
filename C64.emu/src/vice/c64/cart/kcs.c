@@ -41,6 +41,7 @@
 #include "log.h"
 #include "maincpu.h"
 #include "monitor.h"
+#include "ram.h"
 #include "snapshot.h"
 #include "types.h"
 #include "util.h"
@@ -95,6 +96,8 @@
  *      !EXROM Q3 <- D3  74LS02 pin13
  *
  */
+
+#define CART_RAM_SIZE 128
 
 static int config;
 
@@ -214,6 +217,25 @@ void kcs_config_setup(uint8_t *rawcart)
 }
 
 /* ---------------------------------------------------------------------*/
+
+/* FIXME: this still needs to be tweaked to match the hardware */
+static RAMINITPARAM ramparam = {
+    .start_value = 255,
+    .value_invert = 2,
+    .value_offset = 1,
+
+    .pattern_invert = 0x100,
+    .pattern_invert_value = 255,
+
+    .random_start = 0,
+    .random_repeat = 0,
+    .random_chance = 0,
+};
+
+void kcs_powerup(void)
+{
+    ram_init_with_pattern(export_ram0, CART_RAM_SIZE, &ramparam);
+}
 
 static int kcs_common_attach(void)
 {

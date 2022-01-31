@@ -113,7 +113,7 @@ static int print_char(ascii_t *ascii, unsigned int prnr, uint8_t c)
         }
     }
 
-    asc = charset_p_toascii(c, 0);
+    asc = charset_p_toascii(c, CONVERT_WITHOUT_CTRLCODES);
 
     if (asc == '\n') {
         if (print_lineend(ascii, prnr) < 0) {

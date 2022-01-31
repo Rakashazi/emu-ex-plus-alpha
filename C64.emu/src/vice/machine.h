@@ -36,20 +36,21 @@
 extern const char machine_name[];
 
 /* A little handier way to identify the machine: */
-#define VICE_MACHINE_NONE      0
-#define VICE_MACHINE_C64       1
-#define VICE_MACHINE_C128      2
-#define VICE_MACHINE_VIC20     3
-#define VICE_MACHINE_PET       4
-#define VICE_MACHINE_CBM5x0    5
-#define VICE_MACHINE_CBM6x0    6
-#define VICE_MACHINE_PLUS4     7
-#define VICE_MACHINE_C64DTV    8
-#define VICE_MACHINE_C64SC     9
-#define VICE_MACHINE_VSID      10
-#define VICE_MACHINE_SCPU64    11
-#define VICE_MACHINE_C1541     12
-#define VICE_MACHINE_PETCAT    13
+#define VICE_MACHINE_NONE       0
+
+#define VICE_MACHINE_C64        (1U<<0)
+#define VICE_MACHINE_C128       (1U<<1)
+#define VICE_MACHINE_VIC20      (1U<<2)
+#define VICE_MACHINE_PET        (1U<<3)
+#define VICE_MACHINE_CBM5x0     (1U<<4)
+#define VICE_MACHINE_CBM6x0     (1U<<5)
+#define VICE_MACHINE_PLUS4      (1U<<6)
+#define VICE_MACHINE_C64DTV     (1U<<7)
+#define VICE_MACHINE_C64SC      (1U<<8)
+#define VICE_MACHINE_VSID       (1U<<9)
+#define VICE_MACHINE_SCPU64     (1U<<10)
+
+#define VICE_MACHINE_ALL        (VICE_MACHINE_C64|VICE_MACHINE_C64SC|VICE_MACHINE_C64DTV|VICE_MACHINE_SCPU64|VICE_MACHINE_C128|VICE_MACHINE_VIC20|VICE_MACHINE_PLUS4|VICE_MACHINE_PET|VICE_MACHINE_CBM5x0|VICE_MACHINE_CBM6x0|VICE_MACHINE_VSID)
 
 /* Sync factors (changed to positive 2016-11-07, BW)  */
 #define MACHINE_SYNC_PAL     1
@@ -74,6 +75,7 @@ const
 #endif
 int console_mode;
 extern int video_disabled_mode;
+extern int help_requested;
 
 #define MACHINE_JAM_ACTION_DIALOG       0
 #define MACHINE_JAM_ACTION_CONTINUE     1
@@ -101,6 +103,8 @@ extern void machine_early_init(void);
 
 /* Initialize the main CPU of the machine.  */
 extern void machine_maincpu_init(void);
+/* Shutdown the main CPU of the machine. */
+extern void machine_maincpu_shutdown(void);
 
 /* Reset the machine.  */
 #define MACHINE_RESET_MODE_SOFT 0
@@ -143,7 +147,7 @@ extern int machine_write_snapshot(const char *name, int save_roms,
 extern int machine_read_snapshot(const char *name, int even_mode);
 
 /* handle pending interrupts - needed by libsid.a.  */
-extern void machine_handle_pending_alarms(int num_write_cycles);
+extern void machine_handle_pending_alarms(CLOCK num_write_cycles);
 
 /* Autodetect PSID file.  */
 extern int machine_autodetect_psid(const char *name);

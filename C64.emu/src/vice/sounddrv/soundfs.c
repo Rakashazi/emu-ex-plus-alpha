@@ -53,7 +53,7 @@ static void fs_close(void)
     fs_fd = NULL;
 }
 
-static sound_device_t fs_device =
+static const sound_device_t fs_device =
 {
     "fs",
     fs_init,

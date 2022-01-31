@@ -25,30 +25,70 @@
  *
  */
 
+/* #define DEBUG_TAPE */
+
 #include "vice.h"
 
 #include "cbm2.h"
 #include "cbm2tpi.h"
 #include "cia.h"
 #include "datasette.h"
+#include "log.h"
+#include "tapeport.h"
 
+#ifdef DEBUG_TAPE
+#define DBG(x)  log_debug x
+#else
+#define DBG(x)
+#endif
 
-void machine_trigger_flux_change(unsigned int on)
+#ifdef DEBUG_TAPE
+static void logit(int f, int n)
 {
-    ciacore_set_flag(machine_context.cia1);
+    static char *names[4] = {
+        "machine_trigger_flux_change",
+        "machine_set_tape_sense",
+        "machine_set_tape_write_in",
+        "machine_set_tape_motor_in"
+    };
+    static int buf[4];
+    buf[f] = n;
+    log_debug("%28s flux:%d sense:%d write:%d motor:%d",
+              names[f], buf[0], buf[1], buf[2], buf[3]);
+
+}
+#else
+#define logit(f, n)
+#endif
+
+void machine_trigger_flux_change(int port, unsigned int on)
+{
+    if (port == TAPEPORT_PORT_1) {
+        logit(0, on);
+        ciacore_set_flag(machine_context.cia1);
+    }
 }
 
-void machine_set_tape_sense(int sense)
+void machine_set_tape_sense(int port, int sense)
 {
-    tpi1_set_tape_sense(sense);
+    if (port == TAPEPORT_PORT_1) {
+        logit(1, sense);
+        tpi1_set_tape_sense(sense);
+    }
 }
 
-void machine_set_tape_write_in(int val)
+void machine_set_tape_write_in(int port, int val)
 {
-    tpi1_set_tape_write_in(val);
+    if (port == TAPEPORT_PORT_1) {
+        logit(2, val);
+        tpi1_set_tape_write_in(val);
+    }
 }
 
-void machine_set_tape_motor_in(int val)
+void machine_set_tape_motor_in(int port, int val)
 {
-    tpi1_set_tape_motor_in(val);
+    if (port == TAPEPORT_PORT_1) {
+        logit(3, val);
+        tpi1_set_tape_motor_in(val);
+    }
 }

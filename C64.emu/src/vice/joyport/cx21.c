@@ -32,6 +32,7 @@
 
 #include "joyport.h"
 #include "keyboard.h"
+#include "snapshot.h"
 
 #include "cx21.h"
 
@@ -46,6 +47,11 @@
      5   | KEYCOL3 |  I
      6   | KEYCOL2 |  I
      9   | KEYCOL1 |  I
+
+Works on:
+- native port(s) (x64/x64sc/xscpu64/xvic)
+- sidcart joystick adapter port (xplus4)
+
 
 The keypad has the following layout:
 
@@ -142,25 +148,25 @@ static uint8_t cx21_read_dig(int p)
 
     if (keys[KEYPAD_KEY_3]) {
         if (port & 1) {
-            retval = 0x10;
+            retval = JOYPORT_FIRE;   /* output on joyport 'fire' pin */
         }
     }
 
     if (keys[KEYPAD_KEY_6]) {
         if (port & 2) {
-            retval = 0x10;
+            retval = JOYPORT_FIRE;   /* output on joyport 'fire' pin */
         }
     }
 
     if (keys[KEYPAD_KEY_9]) {
         if (port & 4) {
-            retval = 0x10;
+            retval = JOYPORT_FIRE;   /* output on joyport 'fire' pin */
         }
     }
 
     if (keys[KEYPAD_KEY_HASH]) {
         if (port & 8) {
-            retval = 0x10;
+            retval = JOYPORT_FIRE;   /* output on joyport 'fire' pin */
         }
     }
 
@@ -169,7 +175,7 @@ static uint8_t cx21_read_dig(int p)
     return (uint8_t)~retval;
 }
 
-static void cx21_store_dig(uint8_t val)
+static void cx21_store_dig(int prt, uint8_t val)
 {
     port = (uint8_t)~val;
 }
@@ -234,18 +240,27 @@ static uint8_t cx21_read_poty(int joyport)
 
 /* ------------------------------------------------------------------------- */
 
+static int cx21_write_snapshot(struct snapshot_s *s, int port);
+static int cx21_read_snapshot(struct snapshot_s *s, int port);
+
 static joyport_t joyport_cx21_device = {
-    "Atari CX21 keypad",     /* name of the device */
-    JOYPORT_RES_ID_KEYPAD,   /* device is a keypad, only 1 keypad can be active at the same time */
-    JOYPORT_IS_NOT_LIGHTPEN, /* device is NOT a lightpen */
-    JOYPORT_POT_REQUIRED,    /* device uses the potentiometer lines */
-    joyport_cx21_enable,     /* device enable function */
-    cx21_read_dig,           /* digital line read function */
-    cx21_store_dig,          /* digital line store function */
-    cx21_read_potx,          /* pot-x read function */
-    cx21_read_poty,          /* pot-y read function */
-    NULL,                    /* NO device write snapshot function */
-    NULL                     /* NO device read snapshot function */
+    "Keypad (Atari CX21)",    /* name of the device */
+    JOYPORT_RES_ID_KEYPAD,    /* device is a keypad, only 1 keypad can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,  /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,     /* device uses the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE, /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_KEYPAD,    /* device is a Keypad */
+    0x0F,                     /* bits 3, 2, 1 and 0 are output bits */
+    joyport_cx21_enable,      /* device enable function */
+    cx21_read_dig,            /* digital line read function */
+    cx21_store_dig,           /* digital line store function */
+    cx21_read_potx,           /* pot-x read function */
+    cx21_read_poty,           /* pot-y read function */
+    NULL,                     /* NO powerup function */
+    cx21_write_snapshot,      /* device write snapshot function */
+    cx21_read_snapshot,       /* device read snapshot function */
+    NULL,                     /* NO device hook function */
+    0                         /* NO device hook function mask */
 };
 
 /* ------------------------------------------------------------------------- */
@@ -253,4 +268,64 @@ static joyport_t joyport_cx21_device = {
 int joyport_cx21_resources_init(void)
 {
     return joyport_device_register(JOYPORT_ID_CX21_KEYPAD, &joyport_cx21_device);
+}
+
+/* ------------------------------------------------------------------------- */
+
+/* CX21 snapshot module format:
+
+   type  | name | description
+   ----------------------------------
+   BYTE  | PORT | PORT register state
+ */
+
+static const char snap_module_name[] = "CX21";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
+
+static int cx21_write_snapshot(struct snapshot_s *s, int p)
+{
+    snapshot_module_t *m;
+
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
+    if (m == NULL) {
+        return -1;
+    }
+
+    if (0 
+        || SMW_B(m, port) < 0) {
+            snapshot_module_close(m);
+            return -1;
+    }
+    return snapshot_module_close(m);
+}
+
+static int cx21_read_snapshot(struct snapshot_s *s, int p)
+{
+    uint8_t major_version, minor_version;
+    snapshot_module_t *m;
+
+    m = snapshot_module_open(s, snap_module_name, &major_version, &minor_version);
+
+    if (m == NULL) {
+        return -1;
+    }
+
+    /* Do not accept versions higher than current */
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
+    }
+
+    if (0
+        || SMR_B(m, &port) < 0) {
+        goto fail;
+    }
+
+    return snapshot_module_close(m);
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

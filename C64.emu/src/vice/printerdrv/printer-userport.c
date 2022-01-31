@@ -35,8 +35,3 @@ int printer_userport_init_resources(void)
 {
     return interface_userport_init_resources();
 }
-
-int printer_userport_init_cmdline_options(void)
-{
-    return interface_userport_init_cmdline_options();
-}

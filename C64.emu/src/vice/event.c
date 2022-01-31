@@ -36,7 +36,6 @@
 #include "archdep.h"
 #include "attach.h"
 #include "autostart.h"
-#include "clkguard.h"
 #include "cmdline.h"
 #include "crc32.h"
 #include "datasette.h"
@@ -52,6 +51,7 @@
 #include "resources.h"
 #include "snapshot.h"
 #include "tape.h"
+#include "tapeport.h"
 #include "types.h"
 #include "uiapi.h"
 #include "util.h"
@@ -308,7 +308,7 @@ static void event_playback_attach_image(void *data, unsigned int size)
     }
     /* now filename holds the name to attach    */
     /* FIXME: read_only isn't handled for tape  */
-    if (unit == 1) {
+    if (unit == 1 || unit == 2) {
         tape_image_event_playback(unit, filename);
     } else {
         resources_set_int_sprintf("AttachDevice%dReadonly", read_only, unit);
@@ -348,7 +348,6 @@ void event_record_in_list(event_list_state_t *list, unsigned int type,
             memcpy(event_data, data, size);
             break;
         case EVENT_LIST_END:            /* fall through */
-        case EVENT_OVERFLOW:            /* fall through */
         case EVENT_KEYBOARD_CLEAR:
             break;
         default:
@@ -378,11 +377,6 @@ static void next_alarm_set(void)
     CLOCK new_value;
 
     new_value = event_list->current->clk;
-
-    if (maincpu_clk > CLKGUARD_SUB_MIN
-        && new_value < maincpu_clk - CLKGUARD_SUB_MIN) {
-        new_value += clk_guard_clock_sub(maincpu_clk_guard);
-    }
 
     alarm_set(event_alarm, new_value);
 }
@@ -417,7 +411,7 @@ static void event_alarm_handler(CLOCK offset, void *data)
             joystick_event_playback(offset, event_list->current->data);
             break;
         case EVENT_DATASETTE:
-            datasette_event_playback(offset, event_list->current->data);
+            datasette_event_playback_port1(offset, event_list->current->data);
             break;
         case EVENT_ATTACHIMAGE:
             event_playback_attach_image(event_list->current->data,
@@ -433,7 +427,7 @@ static void event_alarm_handler(CLOCK offset, void *data)
                 unit = (unsigned int)((char*)event_list->current->data)[0];
                 filename = &((char*)event_list->current->data)[1];
 
-                if (unit == 1) {
+                if (unit == 1 || unit == 2) {
                     tape_image_event_playback(unit, filename);
                 } else {
                     /* TODO: drive 1? */
@@ -449,8 +443,6 @@ static void event_alarm_handler(CLOCK offset, void *data)
             break;
         case EVENT_LIST_END:
             event_playback_stop();
-            break;
-        case EVENT_OVERFLOW:
             break;
         default:
             log_error(event_log, "Unknow event type %u.",
@@ -492,7 +484,7 @@ void event_playback_event_list(event_list_state_t *list)
                 joystick_event_delayed_playback(current->data);
                 break;
             case EVENT_DATASETTE:
-                datasette_event_playback(0, current->data);
+                datasette_event_playback_port1(0, current->data);
                 break;
             case EVENT_RESETCPU:
                 machine_reset_event_playback(0, current->data);
@@ -506,7 +498,7 @@ void event_playback_event_list(event_list_state_t *list)
                     unit = (unsigned int)((char*)current->data)[0];
 
                     if (unit == 1) {
-                        tape_image_event_playback(1, NULL);
+                        tape_image_event_playback(unit, NULL);
                     } else {
                         /* TODO: drive 1? */
                         file_system_event_playback(unit, 0, NULL);
@@ -820,8 +812,8 @@ void event_reset_ack(void)
 }
 
 /* XXX: the 'unused' (prev. 'data') param is only passed from one function:
- * 	interrupt_maincpu_trigger_trap(), and that one passes (void*)0, ie NULL.
- * 	So fixing the shadowing of 'data' should be fine.
+ *      interrupt_maincpu_trigger_trap(), and that one passes (void*)0, ie NULL.
+ *      So fixing the shadowing of 'data' should be fine.
  */
 static void event_playback_start_trap(uint16_t addr, void *unused)
 {
@@ -1055,7 +1047,7 @@ int event_snapshot_read_module(struct snapshot_s *s, int event_mode)
                 return -1;
             }
 
-            if (SMR_DW(m, &(clk)) < 0) {
+            if (SMR_CLOCK(m, &(clk)) < 0) {
                 snapshot_module_close(m);
                 return -1;
             }
@@ -1086,7 +1078,7 @@ int event_snapshot_read_module(struct snapshot_s *s, int event_mode)
             }
         } else {
             /* insert timestamps each second */
-            while (next_timestamp_clk < clk || (type == EVENT_OVERFLOW && next_timestamp_clk < maincpu_clk_guard->clk_max_value))
+            while (next_timestamp_clk < clk)
             {
                 curr->type = EVENT_TIMESTAMP;
                 curr->clk = next_timestamp_clk;
@@ -1095,10 +1087,6 @@ int event_snapshot_read_module(struct snapshot_s *s, int event_mode)
                 curr = curr->next;
                 next_timestamp_clk += machine_get_cycles_per_second();
                 num_of_timestamps++;
-            }
-
-            if (type == EVENT_OVERFLOW) {
-                next_timestamp_clk -= clk_guard_clock_sub(maincpu_clk_guard);
             }
         }
 
@@ -1137,7 +1125,7 @@ int event_snapshot_write_module(struct snapshot_s *s, int event_mode)
         return 0;
     }
 
-    m = snapshot_module_create(s, "EVENT", 0, 0);
+    m = snapshot_module_create(s, "EVENT", 0, 1);
 
     if (m == NULL) {
         return -1;
@@ -1149,7 +1137,7 @@ int event_snapshot_write_module(struct snapshot_s *s, int event_mode)
         if (curr->type != EVENT_TIMESTAMP
             && (0
                 || SMW_DW(m, (uint32_t)curr->type) < 0
-                || SMW_DW(m, (uint32_t)curr->clk) < 0
+                || SMW_CLOCK(m, curr->clk) < 0
                 || SMW_DW(m, (uint32_t)curr->size) < 0
                 || SMW_BA(m, curr->data, curr->size) < 0)) {
             snapshot_module_close(m);
@@ -1302,24 +1290,10 @@ int event_cmdline_options_init(void)
 
 /*-----------------------------------------------------------------------*/
 
-static void clk_overflow_callback(CLOCK sub, void *data)
-{
-    if (event_record_active()) {
-        event_record(EVENT_OVERFLOW, NULL, 0);
-    }
-
-    if (next_timestamp_clk) {
-        next_timestamp_clk -= sub;
-    }
-}
-
-
 void event_init(void)
 {
     event_log = log_open("Event");
 
     event_alarm = alarm_new(maincpu_alarm_context, "Event",
                             event_alarm_handler, NULL);
-
-    clk_guard_add_callback(maincpu_clk_guard, clk_overflow_callback, NULL);
 }

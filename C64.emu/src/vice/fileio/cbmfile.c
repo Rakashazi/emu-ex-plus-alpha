@@ -96,7 +96,7 @@ fileio_info_t *cbmfile_open(const char *file_name, const char *path,
     fsname = lib_strdup(file_name);
 
     if (!(command & FILEIO_COMMAND_FSNAME)) {
-        charset_petconvstring((uint8_t *)fsname, 1);
+        charset_petconvstring((uint8_t *)fsname, CONVERT_TO_ASCII);
     }
 
     if (cbmdos_parse_wildcard_check(fsname, (unsigned int)strlen(fsname))) {
@@ -120,7 +120,7 @@ fileio_info_t *cbmfile_open(const char *file_name, const char *path,
     cbm_name = (uint8_t *)lib_strdup(file_name);
 
     if (command & FILEIO_COMMAND_FSNAME) {
-        charset_petconvstring(cbm_name, 0);
+        charset_petconvstring(cbm_name, CONVERT_TO_PETSCII);
     }
 
     info = lib_malloc(sizeof(fileio_info_t));
@@ -162,8 +162,8 @@ unsigned int cbmfile_rename(const char *src_name, const char *dst_name,
     src_cbm = lib_strdup(src_name);
     dst_cbm = lib_strdup(dst_name);
 
-    charset_petconvstring((uint8_t *)src_cbm, 1);
-    charset_petconvstring((uint8_t *)dst_cbm, 1);
+    charset_petconvstring((uint8_t *)src_cbm, CONVERT_TO_ASCII);
+    charset_petconvstring((uint8_t *)dst_cbm, CONVERT_TO_ASCII);
 
     rc = rawfile_rename(src_cbm, dst_cbm, path);
 
@@ -179,7 +179,7 @@ unsigned int cbmfile_scratch(const char *file_name, const char *path)
     unsigned int rc;
 
     src_cbm = lib_strdup(file_name);
-    charset_petconvstring((uint8_t *)src_cbm, 1);
+    charset_petconvstring((uint8_t *)src_cbm, CONVERT_TO_ASCII);
 
     rc = rawfile_remove(src_cbm, path);
 

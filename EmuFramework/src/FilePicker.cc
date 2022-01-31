@@ -106,9 +106,11 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams at
 	return picker;
 }
 
-std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaChange(ViewAttachParams attach, Input::Event e, EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate onSelect)
+std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaChange(ViewAttachParams attach, Input::Event e,
+	EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate onSelect, bool singleDir)
 {
-	auto picker = std::make_unique<EmuFilePicker>(attach, FSPicker::Mode::FILE_IN_DIR, filter, e);
+	auto mode = singleDir ? FSPicker::Mode::FILE_IN_DIR : FSPicker::Mode::FILE;
+	auto picker = std::make_unique<EmuFilePicker>(attach, mode, filter, e);
 	picker->setPath(EmuSystem::contentDirectory(), e);
 	picker->setOnSelectFile(onSelect);
 	return picker;

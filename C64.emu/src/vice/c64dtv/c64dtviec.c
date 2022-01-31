@@ -112,3 +112,12 @@ void plus4tcbm_update_pb(uint8_t byte, unsigned int dnr)
 void plus4tcbm_update_pc(uint8_t byte, unsigned int dnr)
 {
 }
+
+void parallel_cable_drive_write(int port, uint8_t data, int handshake, unsigned int dnr)
+{
+}
+
+uint8_t parallel_cable_drive_read(int port, int handshake)
+{
+    return 0;
+}

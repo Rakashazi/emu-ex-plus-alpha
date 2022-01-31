@@ -131,7 +131,7 @@ static unsigned sample_size = 0;
 static int sound_sampling_started = 0;
 
 static unsigned int sound_sample_frame_start;
-static unsigned int old_frame;
+static CLOCK old_frame;
 static unsigned int sound_frames_per_sec;
 static unsigned int sound_cycles_per_frame;
 static unsigned int sound_samples_per_frame;
@@ -1295,8 +1295,12 @@ static double float80tofloat64(unsigned char* bytes)
             f = HUGE_VAL;
         } else {
             expon -= 16383;
-            f  = ldexp(U2F(hiMant), expon -= 31);
-            f += ldexp(U2F(loMant), expon -= 32);
+            
+            expon -= 31;            
+            f  = ldexp(U2F(hiMant), expon);
+            
+            expon -= 32;
+            f += ldexp(U2F(loMant), expon);
         }
     }
 
@@ -2093,30 +2097,34 @@ static void file_load_sample(int channels)
     FILE *sample_file = NULL;
     int err = 0;
 
-    sample_file = fopen(sample_name, "rb");
-    if (sample_file) {
-        fseek(sample_file, 0, SEEK_END);
-        file_size = (unsigned int)ftell(sample_file);
-        fseek(sample_file, 0, SEEK_SET);
-        file_buffer = lib_malloc(file_size);
-        if (fread(file_buffer, 1, file_size, sample_file) != file_size) {
-            log_warning(filedrv_log, "Unexpected end of data in '%s'.", sample_name);
-        }
-        fclose(sample_file);
-        err = handle_file_type(channels);
-        if (!err) {
-            sound_sampling_started = 0;
-            sound_cycles_per_frame = (unsigned int)machine_get_cycles_per_frame();
-            sound_frames_per_sec = (unsigned int)machine_get_cycles_per_second() / sound_cycles_per_frame;
-            sound_samples_per_frame = sound_audio_rate / sound_frames_per_sec;
-            current_channels = channels;
+    current_channels = channels;
+
+    if (sample_name != NULL && *sample_name != '\0') {
+        sample_file = fopen(sample_name, "rb");
+        if (sample_file) {
+            fseek(sample_file, 0, SEEK_END);
+            file_size = (unsigned int)ftell(sample_file);
+            fseek(sample_file, 0, SEEK_SET);
+            file_buffer = lib_malloc(file_size);
+            if (fread(file_buffer, 1, file_size, sample_file) != file_size) {
+                log_warning(filedrv_log, "Unexpected end of data in '%s'.", sample_name);
+            }
+            fclose(sample_file);
+            err = handle_file_type(channels);
+            if (!err) {
+                sound_sampling_started = 0;
+                sound_cycles_per_frame = (unsigned int)machine_get_cycles_per_frame();
+                sound_frames_per_sec = (unsigned int)machine_get_cycles_per_second() / sound_cycles_per_frame;
+                sound_samples_per_frame = sound_audio_rate / sound_frames_per_sec;
+                log_message(filedrv_log, "using %s as the sampler file", sample_name);
+            } else {
+                lib_free(file_buffer);
+                file_buffer = NULL;
+                log_error(filedrv_log, "Unknown file type for '%s'.", sample_name);
+            }
         } else {
-            lib_free(file_buffer);
-            file_buffer = NULL;
-            log_error(filedrv_log, "Unknown file type for '%s'.", sample_name);
+            log_error(filedrv_log, "Cannot open sampler file: '%s'.", sample_name);
         }
-    } else {
-        log_error(filedrv_log, "Cannot open sampler file: '%s'.", sample_name);
     }
 }
 
@@ -2151,11 +2159,11 @@ static int set_sample_name(const char *name, void *param)
 
     if (sample_buffer1) {
         file_free_sample();
-        util_string_set(&sample_name, name);
-        file_load_sample(current_channels);
-    } else {
-        util_string_set(&sample_name, name);
     }
+
+    util_string_set(&sample_name, name);
+
+    file_load_sample(current_channels);
 
     return 0;
 }
@@ -2200,9 +2208,9 @@ static int sampler_file_cmdline_options_init(void)
 /* For now channel is ignored */
 static uint8_t file_get_sample(int channel)
 {
-    unsigned int current_frame = 0;
+    CLOCK current_frame = 0;
     unsigned int current_cycle = 0;
-    unsigned int frame_diff = 0;
+    CLOCK frame_diff = 0;
     unsigned int frame_sample = 0;
 
     if (!sample_buffer1) {

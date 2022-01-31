@@ -258,7 +258,7 @@ static int uss_suspend(void)
     return 0;
 }
 
-static sound_device_t uss_device =
+static const sound_device_t uss_device =
 {
     "uss",
     uss_init,

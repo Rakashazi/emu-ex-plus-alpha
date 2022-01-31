@@ -33,7 +33,6 @@
 #include <string.h>
 
 #include "archdep.h"
-#include "embedded.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
@@ -81,7 +80,9 @@ void palette_free(palette_t *p)
 }
 
 static int palette_set_entry(palette_t *p, unsigned int number,
-                             uint8_t red, uint8_t green, uint8_t blue, uint8_t dither)
+                             uint8_t red,
+                             uint8_t green,
+                             uint8_t blue)
 {
     if (p == NULL || number >= p->num_entries) {
         return -1;
@@ -90,7 +91,6 @@ static int palette_set_entry(palette_t *p, unsigned int number,
     p->entries[number].red = red;
     p->entries[number].green = green;
     p->entries[number].blue = blue;
-    p->entries[number].dither = dither;
 
     return 0;
 }
@@ -106,20 +106,22 @@ static int palette_copy(palette_t *dest, const palette_t *src)
     }
 
     for (i = 0; i < src->num_entries; i++) {
-        palette_set_entry(dest, i, src->entries[i].red, src->entries[i].green,
-                          src->entries[i].blue, src->entries[i].dither);
+        palette_set_entry(dest, i,
+                          src->entries[i].red,
+                          src->entries[i].green,
+                          src->entries[i].blue);
     }
 
     return 0;
 }
 
-static char *next_nonspace(const char *p)
+static const char *next_nonspace(const char *p)
 {
     while (*p != '\0' && isspace((int)*p)) {
         p++;
     }
 
-    return (char *)p;
+    return p;
 }
 
 static int palette_load_core(FILE *f, const char *file_name,
@@ -133,7 +135,7 @@ static int palette_load_core(FILE *f, const char *file_name,
 
     while (1) {
         int i;
-        uint8_t values[4];
+        uint8_t values[3];
         const char *p1;
 
         int line_len = util_get_line(buf, 1024, f);
@@ -154,11 +156,12 @@ static int palette_load_core(FILE *f, const char *file_name,
             continue;
         }
 
-        for (i = 0; i < 4; i++) {
+        for (i = 0; i < 3; i++) {
             long result;
-            const char *p2;
+            char *p2;
 
-            if (util_string_to_long(p1, &p2, 16, &result) < 0) {
+            result = strtol(p1, &p2, 16);
+            if (p1 == p2) {
                 log_error(palette_log, "%s, %u: number expected.",
                           file_name, line_num);
                 return -1;
@@ -177,10 +180,9 @@ static int palette_load_core(FILE *f, const char *file_name,
 
         p1 = next_nonspace(p1);
         if (*p1 != '\0') {
-            log_error(palette_log,
+            log_warning(palette_log,
                       "%s, %u: garbage at end of line.",
                       file_name, line_num);
-            return -1;
         }
         if (entry_num >= palette_return->num_entries) {
             log_error(palette_log,
@@ -189,7 +191,7 @@ static int palette_load_core(FILE *f, const char *file_name,
             return -1;
         }
         if (palette_set_entry(tmp_palette, entry_num,
-                              values[0], values[1], values[2], values[3]) < 0) {
+                              values[0], values[1], values[2]) < 0) {
             log_error(palette_log, "Failed to set palette entry.");
             return -1;
         }
@@ -215,25 +217,21 @@ static int palette_load_core(FILE *f, const char *file_name,
     return 0;
 }
 
-int palette_load(const char *file_name, palette_t *palette_return)
+int palette_load(const char *file_name, const char *subpath, palette_t *palette_return)
 {
     palette_t *tmp_palette;
     char *complete_path;
     FILE *f;
     int rc;
 
-    if (embedded_palette_load(file_name, palette_return) == 0) {
-        return 0;
-    }
-
-    f = sysfile_open(file_name, &complete_path, MODE_READ_TEXT);
+    f = sysfile_open(file_name, subpath, &complete_path, MODE_READ_TEXT);
 
     if (f == NULL) {
         /* Try to add the extension.  */
         char *tmp = lib_strdup(file_name);
 
         util_add_extension(&tmp, "vpl");
-        f = sysfile_open(tmp, &complete_path, MODE_READ_TEXT);
+        f = sysfile_open(tmp, subpath, &complete_path, MODE_READ_TEXT);
         lib_free(tmp);
 
         if (f == NULL) {
@@ -267,15 +265,14 @@ int palette_save(const char *file_name, const palette_t *palette)
     }
 
     fprintf(f, "#\n# VICE Palette file\n#\n");
-    fprintf(f, "# Syntax:\n# Red Green Blue Dither\n#\n\n");
+    fprintf(f, "# Syntax:\n# Red Green Blue\n#\n\n");
 
     for (i = 0; i < palette->num_entries; i++) {
-        fprintf(f, "# %s\n%02X %02X %02X %01X\n\n",
+        fprintf(f, "# %s\n%02X %02X %02X\n\n",
                 palette->entries[i].name,
                 palette->entries[i].red,
                 palette->entries[i].green,
-                palette->entries[i].blue,
-                palette->entries[i].dither);
+                palette->entries[i].blue);
     }
 
     return fclose(f);
@@ -300,7 +297,6 @@ static const palette_info_t palettelist[] = {
     { "VICII", "Pepto (NTSC, Sony)", "pepto-ntsc-sony"},
     { "VICII", "Pepto (NTSC)",       "pepto-ntsc"},
     { "VICII", "Colodore (PAL)",     "colodore"},
-    { "VICII", "ChristopherJam",     "cjam"},
     { "VICII", "VICE",               "vice"},
     { "VICII", "C64HQ",              "c64hq"},
     { "VICII", "C64S",               "c64s"},
@@ -309,9 +305,12 @@ static const palette_info_t palettelist[] = {
     { "VICII", "Godot",              "godot"},
     { "VICII", "PC64",               "pc64"},
     { "VICII", "RGB",                "rgb"},
+    { "VICII", "ChristopherJam",     "cjam"},
     { "VICII", "Deekay",             "deekay"},
+    { "VICII", "PALette",            "palette"},
     { "VICII", "Ptoing",             "ptoing"},
     { "VICII", "Community Colors",   "community-colors"},
+    { "VICII", "Pixcen",             "pixcen"},
     /* data/C128/ */
     { "VDC",   "RGB",                "vdc_deft"}, /* default */
     { "VDC",   "Composite",          "vdc_comp"},
@@ -319,6 +318,7 @@ static const palette_info_t palettelist[] = {
     { "VIC",   "Mike (PAL)",         "mike-pal"}, /* default */
     { "VIC",   "Mike (NTSC)",        "mike-ntsc"},
     { "VIC",   "Colodore (PAL)",     "colodore_vic"},
+    { "VIC",   "PALette 6561",       "PALette"},
     { "VIC",   "VICE",               "vice"},
     /* data/CBM-II/ */
     /* data/PET/ */

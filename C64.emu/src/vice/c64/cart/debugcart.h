@@ -32,5 +32,6 @@
 extern int debugcart_cmdline_options_init(void);
 extern int debugcart_resources_init(void);
 extern void debugcart_resources_shutdown(void);
+extern void debugcart_detach(void);
 
 #endif

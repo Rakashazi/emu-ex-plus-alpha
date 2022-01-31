@@ -507,7 +507,7 @@ private:
 		"Stop", &defaultFace(),
 		[this]()
 		{
-			plugin.datasette_control(DATASETTE_CONTROL_STOP);
+			plugin.datasette_control(0, DATASETTE_CONTROL_STOP);
 			app().showEmuation();
 		}
 	};
@@ -517,7 +517,7 @@ private:
 		"Start", &defaultFace(),
 		[this]()
 		{
-			plugin.datasette_control(DATASETTE_CONTROL_START);
+			plugin.datasette_control(0, DATASETTE_CONTROL_START);
 			app().showEmuation();
 		}
 	};
@@ -527,7 +527,7 @@ private:
 		"Forward", &defaultFace(),
 		[this]()
 		{
-			plugin.datasette_control(DATASETTE_CONTROL_FORWARD);
+			plugin.datasette_control(0, DATASETTE_CONTROL_FORWARD);
 			app().showEmuation();
 		}
 	};
@@ -537,7 +537,7 @@ private:
 		"Rewind", &defaultFace(),
 		[this]()
 		{
-			plugin.datasette_control(DATASETTE_CONTROL_REWIND);
+			plugin.datasette_control(0, DATASETTE_CONTROL_REWIND);
 			app().showEmuation();
 		}
 	};
@@ -547,7 +547,7 @@ private:
 		"Record", &defaultFace(),
 		[this]()
 		{
-			plugin.datasette_control(DATASETTE_CONTROL_RECORD);
+			plugin.datasette_control(0, DATASETTE_CONTROL_RECORD);
 			app().showEmuation();
 		}
 	};
@@ -557,7 +557,7 @@ private:
 		"Reset", &defaultFace(),
 		[this](TextMenuItem &, View &view, Input::Event)
 		{
-			plugin.datasette_control(DATASETTE_CONTROL_RESET);
+			plugin.datasette_control(0, DATASETTE_CONTROL_RESET);
 			updateTapeCounter();
 			view.place();
 			app().postMessage("Tape reset");
@@ -569,7 +569,7 @@ private:
 		"Reset Counter", &defaultFace(),
 		[this](TextMenuItem &, View &view, Input::Event)
 		{
-			plugin.datasette_control(DATASETTE_CONTROL_RESET_COUNTER);
+			plugin.datasette_control(0, DATASETTE_CONTROL_RESET_COUNTER);
 			updateTapeCounter();
 			view.place();
 			app().postMessage("Tape counter reset");
@@ -610,7 +610,7 @@ class C64IOControlView : public TableView, public EmuAppHelper<C64IOControlView>
 private:
 	void updateTapeText()
 	{
-		auto name = plugin.tape_get_file_name();
+		auto name = plugin.tape_get_file_name(0);
 		tapeSlot.setName(fmt::format("Tape: {}", name ? appContext().fileUriDisplayName(name) : ""));
 		datasetteControls.setActive(name);
 	}
@@ -635,7 +635,7 @@ public:
 						dismissPrevious();
 				}
 				picker.dismiss();
-			}), e);
+			}, false), e);
 	}
 
 private:
@@ -646,7 +646,7 @@ private:
 		{
 			if(!item.active())
 				return;
-			auto name = plugin.tape_get_file_name();
+			auto name = plugin.tape_get_file_name(0);
 			if(name && strlen(name))
 			{
 				auto multiChoiceView = makeViewWithName<TextTableView>("Tape Drive", std::size(insertEjectMenuStr));
@@ -708,7 +708,7 @@ public:
 						dismissPrevious();
 				}
 				picker.dismiss();
-			}), e);
+			}, false), e);
 	}
 
 private:
@@ -768,7 +768,7 @@ private:
 						dismissPrevious();
 				}
 				picker.dismiss();
-			}), e);
+			}, false), e);
 	}
 
 public:
@@ -1174,22 +1174,6 @@ class MachineOptionView : public TableView, public EmuAppHelper<MachineOptionVie
 			EmuSystem::sessionOptionSet();
 			optionDriveTrueEmulation = item.flipBoolValue(*this);
 			setDriveTrueEmulation(optionDriveTrueEmulation);
-			if(!optionDriveTrueEmulation && !optionVirtualDeviceTraps)
-			{
-				app().postMessage("Enable Virtual Device Traps to use disks without TDE");
-			}
-		}
-	};
-
-	BoolMenuItem virtualDeviceTraps
-	{
-		"Virtual Device Traps", &defaultFace(),
-		(bool)optionVirtualDeviceTraps,
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			EmuSystem::sessionOptionSet();
-			optionVirtualDeviceTraps = item.flipBoolValue(*this);
-			setVirtualDeviceTraps(optionVirtualDeviceTraps);
 		}
 	};
 
@@ -1255,7 +1239,7 @@ class MachineOptionView : public TableView, public EmuAppHelper<MachineOptionVie
 		reuItem
 	};
 
-	StaticArrayList<MenuItem*, 11> menuItem{};
+	StaticArrayList<MenuItem*, 10> menuItem{};
 
 public:
 	MachineOptionView(ViewAttachParams attach):
@@ -1289,7 +1273,6 @@ public:
 		menuItem.emplace_back(&autostartTDE);
 		menuItem.emplace_back(&autostartBasicLoad);
 		menuItem.emplace_back(&autostartWarp);
-		menuItem.emplace_back(&virtualDeviceTraps);
 		menuItem.emplace_back(&videoHeader);
 		paletteItem.emplace_back("Internal", &defaultFace(),
 			[](Input::Event)
@@ -1354,7 +1337,6 @@ class CustomSystemActionsView : public EmuSystemActionsView
 				[this]()
 				{
 					EmuSystem::sessionOptionSet();
-					optionVirtualDeviceTraps = 0;
 					optionDriveTrueEmulation = 1;
 					optionModel = defaultNTSCModel[currSystem];
 					app().reloadGame();
@@ -1363,7 +1345,6 @@ class CustomSystemActionsView : public EmuSystemActionsView
 				[this]()
 				{
 					EmuSystem::sessionOptionSet();
-					optionVirtualDeviceTraps = 1;
 					optionDriveTrueEmulation = 0;
 					optionModel = defaultNTSCModel[currSystem];
 					app().reloadGame();
@@ -1372,7 +1353,6 @@ class CustomSystemActionsView : public EmuSystemActionsView
 				[this]()
 				{
 					EmuSystem::sessionOptionSet();
-					optionVirtualDeviceTraps = 0;
 					optionDriveTrueEmulation = 1;
 					optionModel = defaultPALModel[currSystem];
 					app().reloadGame();
@@ -1381,7 +1361,6 @@ class CustomSystemActionsView : public EmuSystemActionsView
 				[this]()
 				{
 					EmuSystem::sessionOptionSet();
-					optionVirtualDeviceTraps = 1;
 					optionDriveTrueEmulation = 0;
 					optionModel = defaultPALModel[currSystem];
 					app().reloadGame();
@@ -1431,7 +1410,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		(bool)*plugin.warp_mode_enabled,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			*plugin.warp_mode_enabled = item.flipBoolValue(*this);
+			plugin.vsync_set_warp_mode(item.flipBoolValue(*this));
 		}
 	};
 
@@ -1690,7 +1669,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 
 }
 
-CLINK void ui_display_tape_counter(int counter)
+CLINK void ui_display_tape_counter(int port, int counter)
 {
 	//logMsg("tape counter:%d", counter);
 	EmuEx::tapeCounter = counter;

@@ -40,7 +40,11 @@
 #include "types.h"
 #include "via.h"
 #include "vic20iec.h"
+#include "drive/iec/cmdhd.h"
 
+/* FIXME: this code should be a wrapper to the functions in src/iecbus/iecbus.c
+          and not implement the IEC stuff right here - this is needed to make the
+          "IECDevice" implementation work in xvic as well */
 
 #define NOT(x) ((x) ^ 1)
 
@@ -88,12 +92,14 @@ void iec_update_ports_embedded(void)
     iec_update_ports();
 }
 
+/* NOTE: when adding drives, do the equivalent change in src/iecbus/iecbus.c */
 static void iec_calculate_data_modifier(unsigned int dnr)
 {
     switch (diskunit_context[dnr]->type) {
         case DRIVE_TYPE_1581:
         case DRIVE_TYPE_2000:
         case DRIVE_TYPE_4000:
+        case DRIVE_TYPE_CMDHD:
             drive_data_modifier[dnr] = (cpu_atn & drive_atna[dnr]);
             break;
         default:
@@ -143,6 +149,7 @@ uint8_t iec_pa_read(void)
     return cpu_bus_val;
 }
 
+/* NOTE: when adding drives, do the equivalent change in src/iecbus/iecbus.c */
 void iec_pa_write(uint8_t data)
 {
     unsigned int i;
@@ -163,6 +170,9 @@ void iec_pa_write(uint8_t data)
                     case DRIVE_TYPE_4000:
                         viacore_signal(unit->via4000, VIA_SIG_CA2, VIA_SIG_RISE);
                         break;
+                    case DRIVE_TYPE_CMDHD:
+                        viacore_signal(unit->cmdhd->via10, VIA_SIG_CA1, VIA_SIG_FALL);
+                        break;
                     default:
                         viacore_signal(unit->via1d1541, VIA_SIG_CA1, VIA_SIG_RISE);
                 }
@@ -182,6 +192,9 @@ void iec_pa_write(uint8_t data)
                     case DRIVE_TYPE_2000:
                     case DRIVE_TYPE_4000:
                         viacore_signal(unit->via4000, VIA_SIG_CA2, 0);
+                        break;
+                    case DRIVE_TYPE_CMDHD:
+                        viacore_signal(unit->cmdhd->via10, VIA_SIG_CA1, VIA_SIG_RISE);
                         break;
                     default:
                         viacore_signal(unit->via1d1541, VIA_SIG_CA1, 0);

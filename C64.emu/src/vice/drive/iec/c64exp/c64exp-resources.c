@@ -43,21 +43,6 @@ static char *profdos_1571_name = NULL;
 static char *supercard_name = NULL;
 static char *stardos_name = NULL;
 
-
-static void set_drive_ram(unsigned int dnr)
-{
-    diskunit_context_t *unit = diskunit_context[dnr];
-
-    if (unit->type != DRIVE_TYPE_1570 && unit->type != DRIVE_TYPE_1571
-        && unit->type != DRIVE_TYPE_1571CR) {
-        return;
-    }
-
-    drivemem_init(unit);
-
-    return;
-}
-
 static int set_drive_parallel_cable(int val, void *param)
 {
     diskunit_context_t *unit = diskunit_context[vice_ptr_to_uint(param)];
@@ -67,13 +52,17 @@ static int set_drive_parallel_cable(int val, void *param)
         case DRIVE_PC_STANDARD:
         case DRIVE_PC_DD3:
         case DRIVE_PC_FORMEL64:
+        case DRIVE_PC_21SEC_BACKUP:
             break;
         default:
             return -1;
     }
 
     unit->parallel_cable = val;
-    set_drive_ram(vice_ptr_to_uint(param));
+    /* don't reset CMDHD drives */
+    if (unit->type != DRIVE_TYPE_CMDHD) {
+        drivemem_init(unit);
+    }
 
     return 0;
 }
@@ -83,7 +72,7 @@ static int set_drive_profdos(int val, void *param)
     diskunit_context_t *unit = diskunit_context[vice_ptr_to_uint(param)];
 
     unit->profdos = val ? 1 : 0;
-    set_drive_ram(vice_ptr_to_uint(param));
+    drivemem_init(unit);
 
     return 0;
 }
@@ -102,7 +91,7 @@ static int set_drive_supercard(int val, void *param)
     diskunit_context_t *unit = diskunit_context[vice_ptr_to_uint(param)];
 
     unit->supercard = val ? 1 : 0;
-    set_drive_ram(vice_ptr_to_uint(param));
+    drivemem_init(unit);
 
     return 0;
 }
@@ -153,7 +142,7 @@ static const resource_string_t resources_string[] =
     { "DriveSuperCardName", "", RES_EVENT_NO, NULL,
       &supercard_name, set_supercard_name, NULL },
     { "DriveStarDosName", "", RES_EVENT_NO, NULL,
-      &supercard_name, set_stardos_name, NULL },
+      &stardos_name, set_stardos_name, NULL },
     RESOURCE_STRING_LIST_END
 };
 

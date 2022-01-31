@@ -273,17 +273,17 @@ int VicePlugin::tape_image_detach(unsigned int unit)
 	return -1;
 }
 
-const char *VicePlugin::tape_get_file_name()
+const char *VicePlugin::tape_get_file_name(int port)
 {
 	if(tape_get_file_name_)
-		return tape_get_file_name_();
+		return tape_get_file_name_(port);
 	return "";
 }
 
-void VicePlugin::datasette_control(int command)
+void VicePlugin::datasette_control(int port, int command)
 {
 	if(datasette_control_)
-		datasette_control_(command);
+		datasette_control_(port, command);
 }
 
 int VicePlugin::file_system_attach_disk(unsigned int unit, unsigned int drive, const char *filename)
@@ -313,7 +313,7 @@ int VicePlugin::drive_check_type(unsigned int drive_type, unsigned int dnr)
 	return 0;
 }
 
-int VicePlugin::sound_register_device(sound_device_t *pdevice)
+int VicePlugin::sound_register_device(const sound_device_t *pdevice)
 {
 	if(sound_register_device_)
 		return sound_register_device_(pdevice);
@@ -321,13 +321,13 @@ int VicePlugin::sound_register_device(sound_device_t *pdevice)
 }
 
 void VicePlugin::video_canvas_render(struct video_canvas_s *canvas, uint8_t *trg,
-	int width, int height, int xs, int ys,
-	int xt, int yt, int pitcht, int depth)
+  int width, int height, int xs, int ys,
+  int xt, int yt, int pitcht)
 {
 	if(video_canvas_render_)
 	{
 		video_canvas_render_(canvas, trg, width, height, xs, ys,
-			xt, yt, pitcht, depth);
+			xt, yt, pitcht);
 	}
 }
 
@@ -340,11 +340,12 @@ void VicePlugin::video_render_setphysicalcolor(video_render_config_t *config,
 	}
 }
 
-void VicePlugin::video_render_setrawrgb(unsigned int index, uint32_t r, uint32_t g, uint32_t b)
+void VicePlugin::video_render_setrawrgb(video_render_color_tables_t *color_tab, unsigned int index,
+	uint32_t r, uint32_t g, uint32_t b)
 {
 	if(video_render_setrawrgb_)
 	{
-		video_render_setrawrgb_(index, r, g, b);
+		video_render_setrawrgb_(color_tab, index, r, g, b);
 	}
 }
 
@@ -383,6 +384,11 @@ void VicePlugin::keyboard_key_released(signed long key, int mod)
 void VicePlugin::keyboard_key_clear(void)
 {
 	keyboard_key_clear_();
+}
+
+void VicePlugin::vsync_set_warp_mode(int val)
+{
+	vsync_set_warp_mode_(val);
 }
 
 VicePlugin commonVicePlugin(void *lib, ViceSystem system)
@@ -473,6 +479,7 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 	loadSymbolCheck(plugin.keyboard_key_pressed_, lib, "keyboard_key_pressed");
 	loadSymbolCheck(plugin.keyboard_key_released_, lib, "keyboard_key_released");
 	loadSymbolCheck(plugin.keyboard_key_clear_, lib, "keyboard_key_clear");
+	loadSymbolCheck(plugin.vsync_set_warp_mode_, lib, "vsync_set_warp_mode");
 	return plugin;
 }
 

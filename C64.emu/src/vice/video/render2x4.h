@@ -1,5 +1,5 @@
 /*
- * render2x4.h - Implementation of framebuffer to physical screen copy
+ * render2x4.h - 2x4 renderers (unfiltered)
  *
  * Written by
  *  groepaz <groepaz@gmx.net> based on the renderers written by
@@ -31,40 +31,21 @@
 #include "types.h"
 #include "video.h"
 
-extern void render_08_2x4_04(const video_render_color_tables_t *color_tab,
-                             const uint8_t *src, uint8_t *trg,
-                             unsigned int width, const unsigned int height,
-                             const unsigned int xs, const unsigned int ys,
-                             const unsigned int xt, const unsigned int yt,
-                             const unsigned int pitchs,
-                             const unsigned int pitcht,
-                             const unsigned int doublescan,
-                             video_render_config_t *config);
-extern void render_16_2x4_04(const video_render_color_tables_t *color_tab,
-                             const uint8_t *src, uint8_t *trg,
-                             unsigned int width, const unsigned int height,
-                             const unsigned int xs, const unsigned int ys,
-                             const unsigned int xt, const unsigned int yt,
-                             const unsigned int pitchs,
-                             const unsigned int pitcht,
-                             const unsigned int doublescan,
-                             video_render_config_t *config);
-extern void render_24_2x4_04(const video_render_color_tables_t *color_tab,
-                             const uint8_t *src, uint8_t *trg,
-                             unsigned int width, const unsigned int height,
-                             const unsigned int xs, const unsigned int ys,
-                             const unsigned int xt, const unsigned int yt,
-                             const unsigned int pitchs,
-                             const unsigned int pitcht,
-                             const unsigned int doublescan,
-                             video_render_config_t *config);
-extern void render_32_2x4_04(const video_render_color_tables_t *color_tab,
-                             const uint8_t *src, uint8_t *trg,
-                             unsigned int width, const unsigned int height,
-                             const unsigned int xs, const unsigned int ys,
-                             const unsigned int xt, const unsigned int yt,
-                             const unsigned int pitchs,
-                             const unsigned int pitcht,
-                             const unsigned int doublescan,
-                             video_render_config_t *config);
+extern void render_32_2x4_interlaced(const video_render_color_tables_t *color_tab,
+                                     const uint8_t *src, uint8_t *trg,
+                                     unsigned int width, const unsigned int height,
+                                     const unsigned int xs, const unsigned int ys,
+                                     const unsigned int xt, const unsigned int yt,
+                                     const unsigned int pitchs, const unsigned int pitcht,
+                                     video_render_config_t *config, const uint32_t scanline_color);
+
+extern void render_32_2x4(const video_render_color_tables_t *color_tab,
+                          const uint8_t *src, uint8_t *trg,
+                          unsigned int width, const unsigned int height,
+                          const unsigned int xs, const unsigned int ys,
+                          const unsigned int xt, const unsigned int yt,
+                          const unsigned int pitchs,
+                          const unsigned int pitcht,
+                          const unsigned int doublescan,
+                          video_render_config_t *config);
 #endif

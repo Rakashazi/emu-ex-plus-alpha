@@ -49,7 +49,6 @@
 #include "cartio.h"
 #include "cartridge.h"
 #include "cia.h"
-#include "clkguard.h"
 #include "machine.h"
 #include "maincpu.h"
 #include "mem.h"
@@ -81,11 +80,7 @@ int machine_class = VICE_MACHINE_C64;
 /* The C64 memory.  */
 uint8_t mem_ram[C64_RAM_SIZE];
 
-#ifdef USE_EMBEDDED
-#include "c64chargen.h"
-#else
 uint8_t mem_chargen_rom[C64_CHARGEN_ROM_SIZE];
-#endif
 
 /* Internal color memory.  */
 static uint8_t mem_color_ram[0x400];
@@ -206,27 +201,8 @@ void mem_toggle_watchpoints(int flag, void *context)
     see testprogs/CPU/cpuport for details and tests
 */
 
-static void clk_overflow_callback(CLOCK sub, void *unused_data)
-{
-    if (pport.data_set_clk_bit6 > (CLOCK)0) {
-        pport.data_set_clk_bit6 -= sub;
-    }
-    if (pport.data_falloff_bit6 && (pport.data_set_clk_bit6 < maincpu_clk)) {
-        pport.data_falloff_bit6 = 0;
-        pport.data_set_bit6 = 0;
-    }
-    if (pport.data_set_clk_bit7 > (CLOCK)0) {
-        pport.data_set_clk_bit7 -= sub;
-    }
-    if (pport.data_falloff_bit7 && (pport.data_set_clk_bit7 < maincpu_clk)) {
-        pport.data_falloff_bit7 = 0;
-        pport.data_set_bit7 = 0;
-    }
-}
-
 void c64_mem_init(void)
 {
-    clk_guard_add_callback(maincpu_clk_guard, clk_overflow_callback, NULL);
 }
 
 void mem_pla_config_changed(void)
@@ -833,7 +809,6 @@ void mem_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit
 void mem_powerup(void)
 {
     ram_init(mem_ram, 0x10000);
-    cartridge_ram_init();  /* Clean cartridge ram too */
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1091,7 +1066,7 @@ static const char *banknames[] = {
     NULL
 };
 
-static const int banknums[] = { 1, 0, 1, 2, 3, 4, -1 };
+static const int banknums[] = { 0, 0, 1, 2, 3, 4, -1 };
 static const int bankindex[] = { -1, -1, -1, -1, -1, -1, -1 };
 static const int bankflags[] = { 0, 0, 0, 0, 0, 0, -1 };
 
@@ -1183,7 +1158,11 @@ uint8_t mem_bank_read(int bank, uint16_t addr, void *context)
 uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
 {
     switch (bank) {
-        case 0:                   /* current */
+        case 0: /* CPU */
+            /* special case to read the CPU port of the 6510 */
+            if (addr < 2) {
+                return mem_read(addr);
+            }
             /* we must check for which bank is currently active */
             if (c64meminit_io_config[mem_config]) {
                 if ((addr >= 0xd000) && (addr < 0xe000)) {
@@ -1203,7 +1182,7 @@ uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
             }
             if (c64meminit_io_config[mem_config] == 2) {
                 /* ultimax mode */
-                if (addr >= 0x0000 && addr <= 0x0fff) {
+                if (/*addr >= 0x0000 &&*/ addr <= 0x0fff) {
                     return mem_ram[addr];
                 }
                 return cartridge_peek_mem(addr);
@@ -1225,14 +1204,14 @@ uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
                 }
             }
             break;
-        case 3:                   /* io */
+        case 3: /* io */
             if (addr >= 0xd000 && addr < 0xe000) {
                 return peek_bank_io(addr);
             }
             /* FALL THROUGH */
-        case 4:                   /* cart */
+        case 4: /* cart */
             return cartridge_peek_mem(addr);
-        case 2:                   /* rom */
+        case 2: /* rom */
             if (addr >= 0xa000 && addr <= 0xbfff) {
                 return c64memrom_basic64_rom[addr & 0x1fff];
             }
@@ -1243,7 +1222,7 @@ uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
                 return c64memrom_kernal64_rom[addr & 0x1fff];
             }
             /* FALL THROUGH */
-        case 1:                   /* ram */
+        case 1: /* ram */
             break;
     }
     return mem_ram[addr];
@@ -1320,11 +1299,25 @@ void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, i
  */
 void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uint8_t *line_length, int *blinking)
 {
-    /* Cursor Blink enable: 1 = Flash Cursor, 0 = Cursor disabled, -1 = n/a */
+    /* CAUTION: this function can be called at any time when the emulation (KERNAL)
+                is in the middle of a screen update. we must make sure that all
+                values are being looked up in an "atomic" way so we dont use a low-
+                and high- byte from before and after an update, leading to invalid
+                values */
+    int screen_base = (mem_ram[0xd1] + (mem_ram[0xd2] * 256)) & ~0x3ff; /* the upper bits will not change */
+
+    /* Cursor Blink enable: 1 = Cursor in Blink Phase (visible), 0 = Cursor disabled, -1 = n/a */
     *blinking = mem_ram[0xcc] ? 0 : 1;
-    *screen_addr = mem_ram[0xd1] + mem_ram[0xd2] * 256; /* Current Screen Line Address */
-    *cursor_column = mem_ram[0xd3];    /* Cursor Column on Current Line */
-    *line_length = mem_ram[0xd5] + 1;  /* Physical Screen Line Length */
+    /* Current Screen Line Address */
+    *screen_addr = screen_base + (mem_ram[0xd6] * 40);
+    /* Cursor Column on Current Line */
+    *cursor_column = mem_ram[0xd3];
+    while (*cursor_column >= 40) {
+        *cursor_column -= 40;
+        *screen_addr += 40;
+    }
+    /* Physical Screen Line Length */
+    *line_length = 40;
 }
 
 /* ------------------------------------------------------------------------- */

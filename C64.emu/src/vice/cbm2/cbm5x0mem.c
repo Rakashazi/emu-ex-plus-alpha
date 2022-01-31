@@ -588,7 +588,7 @@ static uint8_t read_io(uint16_t addr)
                 case 0xdf00:
                     return cbm2io_df00_read(addr);
             }
-	}
+    }
     return read_unused(addr);
 }
 
@@ -1195,7 +1195,7 @@ void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uin
     *cursor_column = zero_read(0xcb);  /* Cursor Column on Current Line */
     *line_length = 40;                 /* Physical Screen Line Length */
 }
-
+    
 void mem_color_ram_to_snapshot(uint8_t *color_ram)
 {
     memcpy(color_ram, mem_color_ram, 0x400);

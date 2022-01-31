@@ -24,19 +24,30 @@
  *
  */
 
-#include <vice.h>
+#include "vice.h"
 #include "archdep_defs.h"
+#include <stdbool.h>
+#include <inttypes.h>
 
+#include "attach.h"
+#include "cartridge.h"
 #include "cmdline.h"
+#include "crt.h"
 #include "drive.h"
 #include "imagecontents.h"
+#include "kbd.h"
 #include "machine.h"
+#include "machine-bus.h"
+#include "machine-drive.h"
+#include "main.h"
+#include "mainlock.h"
+#include "network.h"
 #include "serial.h"
 #include "tape.h"
 #include "vdrive.h"
 #include "vice-event.h"
-
-#include <stdbool.h>
+#include "vsync.h"
+#include "uiapi.h"
 
 /*
    FIXME: these really shouldnt be needed here and are a sign of bad modular
@@ -93,6 +104,7 @@ void main_exit(void)
 
 }
 
+#ifdef USE_VICE_THREAD
 bool mainlock_is_vice_thread(void)
 {
 
@@ -101,9 +113,10 @@ bool mainlock_is_vice_thread(void)
 
 void mainlock_initiate_shutdown(void)
 {
-
 }
+#endif
 
+#if 0
 void enable_text(void)
 {
 }
@@ -111,16 +124,23 @@ void enable_text(void)
 void disable_text(void)
 {
 }
+#endif
 
-int machine_bus_device_attach(unsigned int device, const char *name,
-                              int (*getf)(vdrive_t *, uint8_t *, unsigned int,
-                                          struct cbmdos_cmd_parse_s *),
-                              int (*putf)(vdrive_t *, uint8_t, unsigned int),
-                              int (*openf)(vdrive_t *, const char *, int,
-                                           unsigned int),
-                              int (*closef)(vdrive_t *, unsigned int),
-                              void (*flushf)(vdrive_t *, unsigned int),
-                              void (*listenf)(vdrive_t *, unsigned int))
+int machine_bus_device_attach(unsigned int unit, const char *name,
+                                     int (*getf)(struct vdrive_s *,
+                                                 uint8_t *, unsigned int),
+                                     int (*putf)(struct vdrive_s *, uint8_t,
+                                                 unsigned int),
+                                     int (*openf)(struct vdrive_s *,
+                                                  const uint8_t *, unsigned int,
+                                                  unsigned int,
+                                                  struct cbmdos_cmd_parse_s *),
+                                     int (*closef)(struct vdrive_s *,
+                                                   unsigned int),
+                                     void (*flushf)(struct vdrive_s *,
+                                                    unsigned int),
+                                     void (*listenf)(struct vdrive_s *,
+                                                     unsigned int))
 {
     return 0;
 }
@@ -150,9 +170,74 @@ int snapshot_module_read_dword_into_uint(snapshot_module_t *m, unsigned int *val
     return 0;
 }
 
+
+int snapshot_module_write_byte_array(snapshot_module_t *m,
+                                     const uint8_t *data,
+                                     unsigned int num)
+{
+    return 0;
+}
+
+int snapshot_module_read_byte_array(snapshot_module_t *m,
+                                    uint8_t *b_return,
+                                    unsigned int num)
+{
+    return 0;
+}
+
+int snapshot_module_write_word(snapshot_module_t *m, uint16_t data)
+{
+    return 0;
+}
+
+int snapshot_module_read_word_into_int(snapshot_module_t *m,
+                                       int *value_return)
+{
+    return 0;
+}
+
+int snapshot_version_is_smaller(uint8_t major_version,
+                                uint8_t minor_version,
+                                uint8_t major_version_required,
+                                uint8_t minor_version_required)
+{
+    return 0;
+}
+
+int snapshot_version_is_equal(uint8_t major_version,
+                              uint8_t minor_version,
+                              uint8_t major_version_required,
+                              uint8_t minor_version_required)
+{
+    return 0;
+}
+
+int snapshot_version_is_bigger(uint8_t major_version,
+                               uint8_t minor_version,
+                               uint8_t major_version_required,
+                               uint8_t minor_version_required)
+{
+    return 0;
+}
+
+void snapshot_set_error(int error)
+{
+    /* NOP */
+}
+
+int snapshot_get_error(void)
+{
+    return 0;
+}
+
+
+
+
+#if 0
 void ui_error_string(const char *text)
 {
 }
+#endif
 
 void vsync_suspend_speed_eval(void)
 {
@@ -198,7 +283,7 @@ const char machine_name[] = "C1541";
 
 /** \brief  Machine class
  */
-int machine_class = VICE_MACHINE_C1541;
+int machine_class = 0;
 
 const char *machine_get_name(void)
 {
@@ -210,7 +295,19 @@ uint8_t machine_tape_behaviour(void)
     return TAPE_BEHAVIOUR_NORMAL;
 }
 
+#if defined(USE_SDLUI) || defined(USE_SDLUI2)
 char *kbd_get_menu_keyname(void)
 {
     return NULL;
+}
+#endif
+
+int crt_getid(const char *filename)
+{
+    return -1;
+}
+
+
+void ui_hotkeys_init(void)
+{
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vice.h"
+#include "video.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -15,6 +16,7 @@ struct video_canvas_s
 	uint8_t *pixmapData;
 	int w;
 	int h;
+	int crt_type;
 	bool initialized;
 	bool created;
 	bool skipFrame;

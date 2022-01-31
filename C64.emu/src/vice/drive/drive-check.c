@@ -34,7 +34,7 @@
 #include "machine-drive.h"
 #include "resources.h"
 
-
+/* FIXME: what is the difference between drive_check_ieee and drive_check_old ? */
 static unsigned int drive_check_ieee(unsigned int type)
 {
     switch (type) {
@@ -85,6 +85,46 @@ unsigned int drive_check_old(unsigned int type)
     }
 
     return 0;
+}
+
+/* return number of heads for given drive */
+unsigned int drive_get_num_heads(unsigned int type)
+{
+    switch (type) {
+        case DRIVE_TYPE_1571:
+        case DRIVE_TYPE_1571CR:
+        case DRIVE_TYPE_1581:
+        case DRIVE_TYPE_2000:
+        case DRIVE_TYPE_4000:
+        case DRIVE_TYPE_1001:
+        case DRIVE_TYPE_8250:
+        return 2;   /* double sided */
+    }
+    return 1; /* single sided */
+}
+
+/* return number of physical half tracks for given drive */
+unsigned int drive_get_half_tracks(unsigned int type)
+{
+    switch (type) {
+        /* 'old' drives with DD mech */
+        case DRIVE_TYPE_2040:
+        case DRIVE_TYPE_3040:
+        case DRIVE_TYPE_4040:
+        return 70;
+        /* drives with QD mechs */
+        case DRIVE_TYPE_1001:
+        case DRIVE_TYPE_8050:
+        case DRIVE_TYPE_8250:
+        return 77 * 2;
+        /* we dont actually have halftracks on 3.5" */
+        case DRIVE_TYPE_1581:
+        case DRIVE_TYPE_2000:
+        case DRIVE_TYPE_4000:
+        return 83 * 2;
+    }
+    /* 'new' drives with DD mech */
+    return 84;
 }
 
 unsigned int drive_check_dual(unsigned int type)

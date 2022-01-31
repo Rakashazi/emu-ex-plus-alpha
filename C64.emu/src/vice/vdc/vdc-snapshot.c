@@ -49,7 +49,7 @@
  */
 
 
-static char snap_module_name[] = "VDC";
+static const char snap_module_name[] = "VDC";
 #define SNAP_MAJOR 0
 #define SNAP_MINOR 0
 

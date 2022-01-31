@@ -235,7 +235,8 @@ _CIAT_FUNC CLOCK ciat_alarm_clk(ciat_t *state)
 
 _CIAT_FUNC int ciat_update(ciat_t *state, CLOCK cclk)
 {
-    int n, m;
+    int n;
+    CLOCK m;
     ciat_tstate_t t = state->state;
 
 /* printf("%s update: state->clk=%d cclk=%d, state=%d, cnt=%d, latch=%d\n",

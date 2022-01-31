@@ -36,7 +36,7 @@
 #include "util.h"
 #include "video.h"
 
-static const char *cname_chip[] = {
+static const char * const cname_chip[] = {
     "-", "vcache", "VideoCache",
     "+", "vcache", "VideoCache",
     NULL

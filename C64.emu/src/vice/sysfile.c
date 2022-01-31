@@ -32,7 +32,6 @@
 
 #include "archdep.h"
 #include "cmdline.h"
-#include "embedded.h"
 #include "findpath.h"
 #include "ioutil.h"
 #include "lib.h"
@@ -69,7 +68,7 @@ static int set_system_path(const char *val, void *param)
     current_dir = ioutil_current_dir();
 
     tmp_path = tmp_path_save; /* tmp_path points into tmp_path_save */
-    do {
+    for (;;) {
         p = strstr(tmp_path, ARCHDEP_FINDPATH_SEPARATOR_STRING);
 
         if (p != NULL) {
@@ -99,9 +98,13 @@ static int set_system_path(const char *val, void *param)
         }
         lib_free(expanded_system_path);
         expanded_system_path = s;
+        
+        if (p == NULL) {
+            break;
+        }
 
         tmp_path = p + strlen(ARCHDEP_FINDPATH_SEPARATOR_STRING);
-    } while (p != NULL);
+    }
 
     lib_free(current_dir);
     lib_free(tmp_path_save);
@@ -165,7 +168,7 @@ int sysfile_cmdline_options_init(void)
    return an open stdio stream for that file.  If `complete_path_return' is
    not NULL, `*complete_path_return' points to a malloced string with the
    complete path if the file was found or is NULL if not.  */
-FILE *sysfile_open(const char *name, char **complete_path_return,
+FILE *sysfile_open(const char *name, const char *subpath, char **complete_path_return,
                    const char *open_mode)
 {
     char *p = NULL;
@@ -176,7 +179,7 @@ FILE *sysfile_open(const char *name, char **complete_path_return,
         return NULL;
     }
 
-    p = findpath(name, expanded_system_path, IOUTIL_ACCESS_R_OK);
+    p = findpath(name, expanded_system_path, subpath, IOUTIL_ACCESS_R_OK);
 
     if (p == NULL) {
         if (complete_path_return != NULL) {
@@ -199,9 +202,9 @@ FILE *sysfile_open(const char *name, char **complete_path_return,
 
 /* As `sysfile_open', but do not open the file.  Just return 0 if the file is
    found and is readable, or -1 if an error occurs.  */
-int sysfile_locate(const char *name, char **complete_path_return)
+int sysfile_locate(const char *name, const char *subpath, char **complete_path_return)
 {
-    FILE *f = sysfile_open(name, complete_path_return, MODE_READ);
+    FILE *f = sysfile_open(name, subpath, complete_path_return, MODE_READ);
 
     if (f != NULL) {
         fclose(f);
@@ -218,31 +221,14 @@ int sysfile_locate(const char *name, char **complete_path_return)
  * into the end of the memory range.
  * If minsize < 0, load it at the start.
  */
-int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize)
+int sysfile_load(const char *name, const char *subpath, uint8_t *dest, int minsize, int maxsize)
 {
     FILE *fp = NULL;
     size_t rsize = 0;
     char *complete_path = NULL;
     int load_at_end;
 
-
-/*
- * This feature is only active when --enable-embedded is given to the
- * configure script, its main use is to make developing new ports easier
- * and to allow ports for platforms which don't have a filesystem, or a
- * filesystem which is hard/impossible to load data files from.
- *
- * when USE_EMBEDDED is defined this will check if a
- * default system file is loaded, when USE_EMBEDDED
- * is not defined the function is just 0 and will
- * be optimized away.
- */
-
-    if ((rsize = embedded_check_file(name, dest, minsize, maxsize)) != 0) {
-        return (int)rsize;
-    }
-
-    fp = sysfile_open(name, &complete_path, MODE_READ);
+    fp = sysfile_open(name, subpath, &complete_path, MODE_READ);
 
     if (fp == NULL) {
         /* Try to open the file from the current directory. */
@@ -252,7 +238,7 @@ int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize)
         char *local_name = NULL;
 
         local_name = util_concat(working_dir_prefix, name, NULL);
-        fp = sysfile_open((const char *)local_name, &complete_path, MODE_READ);
+        fp = sysfile_open((const char *)local_name, subpath, &complete_path, MODE_READ);
         lib_free(local_name);
         local_name = NULL;
 

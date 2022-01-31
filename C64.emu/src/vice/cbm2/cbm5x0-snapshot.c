@@ -36,6 +36,7 @@
 #include "cia.h"
 #include "drive-snapshot.h"
 #include "drive.h"
+#include "serial.h"
 #include "ioutil.h"
 #include "joyport.h"
 #include "joystick.h"
@@ -77,6 +78,7 @@ int cbm2_snapshot_write(const char *name, int save_roms, int save_disks,
         || acia1_snapshot_write_module(s) < 0
         || sid_snapshot_write_module(s) < 0
         || drive_snapshot_write_module(s, save_disks, save_roms) < 0
+        || fsdrive_snapshot_write_module(s) < 0
         || vicii_snapshot_write_module(s) < 0
         || cbm2_c500_snapshot_write_module(s) < 0
         || event_snapshot_write_module(s, event_mode) < 0

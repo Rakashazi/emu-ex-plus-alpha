@@ -24,6 +24,11 @@
  *
  */
 
+#ifndef DATASETTE_SOUND_H_
+#define DATASETTE_SOUND_H_
+
 void datasette_sound_init(void);
-void datasette_sound_add_to_circular_buffer(long gap);
+void datasette_sound_add_to_circular_buffer(CLOCK gap);
 void datasette_sound_set_halfwaves(char halfwaves);
+
+#endif

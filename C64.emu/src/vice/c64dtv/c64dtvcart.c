@@ -100,7 +100,3 @@ uint8_t *ultimax_romh_phi2_ptr(uint16_t addr)
 {
     return romh_banks;
 }
-
-void tapeport_snapshot_register(tapeport_snapshot_t *snapshot)
-{
-}

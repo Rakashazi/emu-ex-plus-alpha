@@ -141,7 +141,7 @@ static int stb_dump(void)
 void stb_config_init(void)
 {
     /* turn on normal config: bank 0 */
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     stb_bank = 0;
     stb_active = 1;
 }
@@ -152,7 +152,7 @@ void stb_config_setup(uint8_t *rawcart)
     memcpy(roml_banks, rawcart, 0x4000);
 
     /* turn on normal config: bank 0 */
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     stb_bank = 0;
     stb_active = 1;
 }

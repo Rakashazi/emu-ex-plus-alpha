@@ -424,7 +424,7 @@ void ds1307_set_data_line(rtc_ds1307_t *context, uint8_t data)
 
 uint8_t ds1307_read_data_line(rtc_ds1307_t *context)
 {
-	switch (context->state) {
+    switch (context->state) {
         case DS1307_READ_REGS:
             return (context->reg & (1 << (7 - context->bit))) >> (7 - context->bit);
         case DS1307_ADDRESS_READ_ACK:

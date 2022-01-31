@@ -35,13 +35,8 @@
 #include "c64dtvflash.h"
 
 /* These are read directly from flash in the DTV emulation and not used. */
-#ifdef USE_EMBEDDED
-#include "c64basic.h"
-#include "c64kernal.h"
-#else
 uint8_t c64memrom_basic64_rom[C64_BASIC_ROM_SIZE];
 uint8_t c64memrom_kernal64_rom[C64_KERNAL_ROM_SIZE];
-#endif
 
 uint8_t c64memrom_kernal64_trap_rom[C64_KERNAL_ROM_SIZE];
 

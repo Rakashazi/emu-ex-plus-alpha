@@ -30,7 +30,6 @@
 
 #include "6510core.h"   /* using 6510core.h because the registers are the same */
 #include "alarm.h"
-#include "clkguard.h"
 #include "debug.h"
 #include "drive.h"
 #include "drivecpu65c02.h"
@@ -48,6 +47,7 @@
 #include "rotation.h"
 #include "snapshot.h"
 #include "types.h"
+#include "uiapi.h"
 
 
 #define DRIVE_CPU
@@ -111,8 +111,6 @@ void drivecpu65c02_setup_context(struct diskunit_context_s *drv, int i)
     cpu->monspace = monitor_diskspace_mem(drv->mynumber);
 
     if (i) {
-        drv->cpu->clk_guard = clk_guard_new(drv->clk_ptr, CLOCK_MAX - CLKGUARD_SUB_MIN);
-
         drv->cpu->alarm_context = alarm_context_new(drv->cpu->identification_string);
     }
 }
@@ -153,6 +151,7 @@ static void cpu_reset(diskunit_context_t *drv)
     preserve_monitor = drv->cpu->int_status->global_pending_int & IK_MONITOR;
 
     log_message(drv->log, "RESET.");
+    ui_display_reset(drv->mynumber + DRIVE_UNIT_MIN, 0);
 
     interrupt_cpu_status_reset(drv->cpu->int_status);
 
@@ -206,9 +205,6 @@ void drivecpu65c02_shutdown(diskunit_context_t *drv)
     if (cpu->alarm_context != NULL) {
         alarm_context_destroy(cpu->alarm_context);
     }
-    if (cpu->clk_guard != NULL) {
-        clk_guard_destroy(cpu->clk_guard);
-    }
 
     monitor_interface_destroy(cpu->monitor_interface);
     interrupt_cpu_status_destroy(cpu->int_status);
@@ -245,28 +241,6 @@ void drivecpu65c02_wake_up(diskunit_context_t *drv)
 void drivecpu65c02_sleep(diskunit_context_t *drv)
 {
     /* Currently does nothing.  But we might need this hook some day.  */
-}
-
-/* Make sure the drive clock counters never overflow; return nonzero if
-   they have been decremented to prevent overflow.  */
-CLOCK drivecpu65c02_prevent_clk_overflow(diskunit_context_t *drv, CLOCK sub)
-{
-    if (sub != 0) {
-        /* First, get in sync with what the main CPU has done.  Notice that
-           `clk' has already been decremented at this point.  */
-        if (drv->enable) {
-            if (drv->cpu->last_clk < sub) {
-                /* Hm, this is kludgy.  :-(  */
-                drive_cpu_execute_all(maincpu_clk + sub);
-            }
-            drv->cpu->last_clk -= sub;
-        } else {
-            drv->cpu->last_clk = maincpu_clk;
-        }
-    }
-
-    /* Then, check our own clock counters.  */
-    return clk_guard_prevent_overflow(drv->cpu->clk_guard);
 }
 
 /* Handle a ROM trap. */
@@ -360,7 +334,7 @@ inline static int interrupt_check_irq_delay(interrupt_cpu_status_t *cs,
 void drivecpu65c02_execute(diskunit_context_t *drv, CLOCK clk_value)
 {
     CLOCK cycles;
-    int tcycles;
+    CLOCK tcycles;
     drivecpu_context_t *cpu;
     int cpu_type = CPU_R65C02;
 
@@ -372,6 +346,7 @@ void drivecpu65c02_execute(diskunit_context_t *drv, CLOCK clk_value)
 #define reg_p   (cpu->cpu_R65C02_regs.p)
 #define flag_z  (cpu->cpu_R65C02_regs.z)
 #define flag_n  (cpu->cpu_R65C02_regs.n)
+#define origin  (drv->mynumber + 1)
 
     cpu = drv->cpu;
 
@@ -454,7 +429,7 @@ static void drivecpu65c02_set_bank_base(void *context)
 /* ------------------------------------------------------------------------- */
 
 #define SNAP_MAJOR 1
-#define SNAP_MINOR 1
+#define SNAP_MINOR 2
 
 int drivecpu65c02_snapshot_write_module(diskunit_context_t *drv, snapshot_t *s)
 {
@@ -536,7 +511,7 @@ int drivecpu65c02_snapshot_read_module(diskunit_context_t *drv, snapshot_t *s)
 
     /* XXX: Assumes `CLOCK' is the same size as a `DWORD'.  */
     if (0
-        || SMR_DW(m, drv->clk_ptr) < 0
+        || SMR_CLOCK(m, drv->clk_ptr) < 0
         || SMR_B(m, &a) < 0
         || SMR_B(m, &x) < 0
         || SMR_B(m, &y) < 0
@@ -544,10 +519,10 @@ int drivecpu65c02_snapshot_read_module(diskunit_context_t *drv, snapshot_t *s)
         || SMR_W(m, &pc) < 0
         || SMR_B(m, &status) < 0
         || SMR_DW_UINT(m, &(cpu->last_opcode_info)) < 0
-        || SMR_DW(m, &(cpu->last_clk)) < 0
-        || SMR_DW(m, &(cpu->cycle_accum)) < 0
-        || SMR_DW(m, &(cpu->last_exc_cycles)) < 0
-        || SMR_DW(m, &(cpu->stop_clk)) < 0
+        || SMR_CLOCK(m, &(cpu->last_clk)) < 0
+        || SMR_CLOCK(m, &(cpu->cycle_accum)) < 0
+        || SMR_CLOCK(m, &(cpu->last_exc_cycles)) < 0
+        || SMR_CLOCK(m, &(cpu->stop_clk)) < 0
         ) {
         goto fail;
     }

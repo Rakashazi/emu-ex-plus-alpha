@@ -36,6 +36,7 @@ extern uint8_t acia1_read(uint16_t a);
 extern uint8_t acia1_peek(uint16_t a);
 extern void acia1_store(uint16_t a, uint8_t b);
 extern void acia1_reset(void);
+extern int acia1_dump(void);
 
 extern int acia1_cmdline_options_init(void);
 extern int acia1_resources_init(void);

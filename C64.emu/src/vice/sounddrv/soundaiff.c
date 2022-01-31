@@ -148,7 +148,7 @@ fail:
     }
 }
 
-static sound_device_t aiff_device =
+static const sound_device_t aiff_device =
 {
     "aiff",
     aiff_init,

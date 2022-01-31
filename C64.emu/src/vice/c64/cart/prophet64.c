@@ -117,14 +117,14 @@ static const export_resource_t export_res = {
 
 void p64_config_init(void)
 {
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     cart_romlbank_set_slotmain(0);
 }
 
 void p64_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, PROPHET64_CART_SIZE);
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     cart_romlbank_set_slotmain(0);
 }
 

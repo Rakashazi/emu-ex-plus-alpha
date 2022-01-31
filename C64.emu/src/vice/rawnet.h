@@ -32,6 +32,10 @@
 #ifndef VICE_RAWNET_H
 #define VICE_RAWNET_H
 
+extern int rawnet_resources_init(void);
+extern int rawnet_cmdline_options_init(void);
+extern void rawnet_resources_shutdown(void);
+
 /*
  This is a helper for the _receive() function of the emulated ethernet chip to determine
  if the received frame should be accepted according to the settings.
@@ -71,5 +75,10 @@ extern int rawnet_enumadapter_open(void);
 extern int rawnet_enumadapter(char **ppname, char **ppdescription);
 extern int rawnet_enumadapter_close(void);
 extern char *rawnet_get_standard_interface(void);
+
+extern int rawnet_enumdriver_open(void);
+extern int rawnet_enumdriver(char **ppname, char **ppdescription);
+extern int rawnet_enumdriver_close(void);
+extern char *rawnet_get_standard_driver(void);
 
 #endif

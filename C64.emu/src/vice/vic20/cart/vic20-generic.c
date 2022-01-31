@@ -27,7 +27,7 @@
  *
  */
 
-/* #define DEBUGCART */
+#define DEBUGCART
 
 #include "vice.h"
 
@@ -37,6 +37,7 @@
 
 #include "archdep.h"
 #include "cartridge.h"
+#include "crt.h"
 #include "lib.h"
 #include "log.h"
 #include "mem.h"
@@ -219,7 +220,7 @@ static int attach_image(int type, const char *filename)
     long len;
     size_t n;
 
-    DBG(("attach_image type %d (%04x), file=`%s'.\n", type, type, filename));
+    DBG(("attach_image type %d (%04x), file=`%s'.\n", type, (unsigned int)type, filename));
 
     fd = zfile_fopen(filename, MODE_READ);
     if (!fd) {
@@ -231,7 +232,7 @@ static int attach_image(int type, const char *filename)
     len = ftell(fd);
     fseek(fd, 0, SEEK_SET);
 
-    switch (len & 0xfff) {
+    switch (len & 0x7ff) {
         case 0: /* plain binary */
             addr = 0;
             break;
@@ -242,7 +243,7 @@ static int attach_image(int type, const char *filename)
             break;
         default: /* not a valid file */
             zfile_fclose(fd);
-            DBG(("attach_image error (length check), len=%d.\n", len));
+            DBG(("attach_image error (length check), len=%ld.\n", len));
             return -1;
             break;
     }
@@ -300,27 +301,36 @@ static int attach_image(int type, const char *filename)
                 type = CARTRIDGE_VIC20_4KB_A000;
                 log_message(LOG_DEFAULT, "could not determine type of cartridge, defaulting to 4KiB $a000-$afff");
             }
+        } else if (len == 0x0800) {
+            /* 2K image */
+            if (addr == 0xB000) {
+                type = CARTRIDGE_VIC20_2KB_B000;
+            } else {
+                /* raw 2KB binary images default to $b000-$b7ff */
+                type = CARTRIDGE_VIC20_2KB_B000;
+                log_message(LOG_DEFAULT, "could not determine type of cartridge, defaulting to 2KiB $b000-$b7ff");
+            }
         } else {
-            DBG(("attach_image error (autodetect), len=%d.\n", len));
+            DBG(("attach_image error (autodetect), len=%ld.\n", len));
             return -1;
         }
-            
-        DBG(("detected cartridge type: %04x addr: %04x len: %04x\n", type, addr, len));
+        DBG(("detected cartridge type: %04x addr: %04x len: %04lx\n", (unsigned int)type, addr, (long unsigned int)len));
     }
 
     memset(rawcart, 0xff, 0x8000); /* init all blocks with 0xff */
 
     /* FIXME: the following can probably be shortened and simplified by using the
               file length that was determined above */
-    
-    if ((n = fread(rawcart, 0x1000, 8, fd)) < 1) {
+
+    if ((n = fread(rawcart, 0x400, 32, fd)) < 1) {
         zfile_fclose(fd);
         return -1;
     }
     zfile_fclose(fd);
 
-    DBG(("loaded %d 4KiB chunks, preparing type %d (%04x)\n", n, type, type));
-    
+    DBG(("loaded %ld 1KiB chunks, preparing type %d (%04x)\n", (long int)n, type, (unsigned int)type));
+
+    /* depending on the detected type, set the respective filename string */
     switch (type) {
         case CARTRIDGE_VIC20_4KB_2000:  /* fall through */
         case CARTRIDGE_VIC20_8KB_2000:  /* fall through */
@@ -345,16 +355,28 @@ static int attach_image(int type, const char *filename)
         case CARTRIDGE_VIC20_8KB_A000:
             util_string_set(&cartfileA, filename);
             break;
+        case CARTRIDGE_VIC20_2KB_B000: /* fall through */
         case CARTRIDGE_VIC20_4KB_B000:
             util_string_set(&cartfileB, filename);
             break;
         default:
-            DBG(("attach_image error (string set), len=%d.\n", len));
+            DBG(("attach_image error (string set), len=%ld.\n", len));
             return -1;
             break;
     }
-    
+
+    /* depending on the type, and the loaded size, create mirrors */
     switch (type) {
+        case CARTRIDGE_VIC20_2KB_B000:
+            /* create a mirror in the second 2k */
+            memcpy(rawcart + 0x0800, rawcart, 0x0800);
+            /* if no cart is present at A000, mirror this one at A000 */
+            if (!(cartfileA && *cartfileA)) {
+                type = CARTRIDGE_VIC20_8KB_A000;
+                memcpy(rawcart + 0x1000, rawcart, 0x1000);
+            }
+            break;
+
         case CARTRIDGE_VIC20_4KB_2000:  /* fall through */
         case CARTRIDGE_VIC20_4KB_3000:  /* fall through */
         case CARTRIDGE_VIC20_4KB_4000:  /* fall through */
@@ -371,24 +393,24 @@ static int attach_image(int type, const char *filename)
                 memcpy(rawcart + 0x1000, rawcart, 0x1000);
             }
             break;
-        
+
         case CARTRIDGE_VIC20_8KB_2000:
             /* if we loaded just 4k, create a mirror at 3000 */
-            if (n < 2) {
+            if (n < 8) {
                 type = CARTRIDGE_VIC20_4KB_2000;
                 memcpy(rawcart + 0x1000, rawcart, 0x1000);
             }
             break;
         case CARTRIDGE_VIC20_8KB_4000:
             /* if we loaded just 4k, create a mirror at 5000 */
-            if (n < 2) {
+            if (n < 8) {
                 type = CARTRIDGE_VIC20_4KB_4000;
                 memcpy(rawcart + 0x1000, rawcart, 0x1000);
             }
             break;
         case CARTRIDGE_VIC20_8KB_6000:
             /* if we loaded just 4k, create a mirror at 7000 */
-            if (n < 2) {
+            if (n < 8) {
                 type = CARTRIDGE_VIC20_4KB_6000;
                 memcpy(rawcart + 0x1000, rawcart, 0x1000);
             }
@@ -396,7 +418,7 @@ static int attach_image(int type, const char *filename)
         case CARTRIDGE_VIC20_8KB_A000:
             /* if we loaded just 4k, check if a cart exists at B000. if so,
                change the type to 4k. if not, create a mirror at B000. */
-            if (n < 2) {
+            if (n < 8) {
                 if (cartfileB && *cartfileB) {
                     type = CARTRIDGE_VIC20_4KB_A000;
                 } else {
@@ -404,12 +426,12 @@ static int attach_image(int type, const char *filename)
                 }
             }
             break;
-            
+
         case CARTRIDGE_VIC20_16KB_2000:         /* fall through */
         case CARTRIDGE_VIC20_16KB_2000_A000:
-            if (n < 4) {
+            if (n < 16) {
                 type = CARTRIDGE_VIC20_8KB_2000;
-                if (n < 2) {
+                if (n < 8) {
                     type = CARTRIDGE_VIC20_4KB_2000;
                     memcpy(rawcart + 0x1000, rawcart, 0x1000);
                 }
@@ -417,18 +439,18 @@ static int attach_image(int type, const char *filename)
             break;
         case CARTRIDGE_VIC20_16KB_4000:         /* fall through */
         case CARTRIDGE_VIC20_16KB_4000_A000:
-            if (n < 4) {
+            if (n < 16) {
                 type = CARTRIDGE_VIC20_8KB_4000;
-                if (n < 2) {
+                if (n < 8) {
                     type = CARTRIDGE_VIC20_4KB_4000;
                     memcpy(rawcart + 0x1000, rawcart, 0x1000);
                 }
             }
             break;
         case CARTRIDGE_VIC20_16KB_6000:
-            if (n < 4) {
+            if (n < 16) {
                 type = CARTRIDGE_VIC20_8KB_6000;
-                if (n < 2) {
+                if (n < 8) {
                     type = CARTRIDGE_VIC20_4KB_6000;
                     memcpy(rawcart + 0x1000, rawcart, 0x1000);
                 }
@@ -439,15 +461,20 @@ static int attach_image(int type, const char *filename)
             break;
 
         default:
-            DBG(("attach_image error (creating mirrors), len=%d.\n", len));
+            DBG(("attach_image error (creating mirrors), len=%ld.\n", len));
             return -1;
             break;
     }
 
-    DBG(("attaching type %d (%04x)\n", n, type, type));
-    
+    DBG(("attaching type %d (%04x)\n", type, (unsigned int)type));
+
     /* attach cartridge data */
     switch (type) {
+        case CARTRIDGE_VIC20_2KB_B000:
+            memcpy(cart_rom + 0x1000, rawcart, 0x0800); /* block 5 (2nd 4k) */
+            generic_rom_blocks |= VIC_CART_BLK5;
+            break;
+
         case CARTRIDGE_VIC20_4KB_2000:
             memcpy(cart_rom + 0x2000, rawcart, 0x1000); /* block 1 (1st 4k) */
             generic_rom_blocks |= VIC_CART_BLK1;
@@ -497,7 +524,7 @@ static int attach_image(int type, const char *filename)
             memcpy(cart_rom + 0x0000, rawcart, 0x2000); /* block 5 */
             generic_rom_blocks |= VIC_CART_BLK5;
             break;
-            
+
         case CARTRIDGE_VIC20_16KB_2000:
             memcpy(cart_rom + 0x2000, rawcart, 0x4000); /* block 1, block 2 */
             generic_rom_blocks |= (VIC_CART_BLK1 | VIC_CART_BLK2);
@@ -529,7 +556,7 @@ static int attach_image(int type, const char *filename)
                                    VIC_CART_BLK3 | VIC_CART_BLK5);
             break;
         default:
-            DBG(("attach_image error (image attach), len=%d.\n", len));
+            DBG(("attach_image error (image attach), len=%ld.\n", len));
             return -1;
             break;
     }
@@ -579,6 +606,66 @@ int generic_bin_attach(int type, const char *filename)
     mem_cart_blocks = generic_ram_blocks | generic_rom_blocks;
     mem_initialize_memory();
     return 0;
+}
+
+/*
+    returns -1 on error, else a positive CRT ID
+*/
+int generic_crt_attach(FILE *fd, uint8_t *rawcart)
+{
+    crt_chip_header_t chip;
+    int idx = 0;
+    int offset;
+
+    if (!cart_ram) {
+        cart_ram = lib_malloc(CART_RAM_SIZE);
+    }
+    if (!cart_rom) {
+        cart_rom = lib_malloc(CART_ROM_SIZE);
+    }
+
+    DBG(("generic_crt_attach\n"));
+
+    do
+    {
+        if (crt_read_chip_header(&chip, fd)) {
+            if (idx > 0) {
+                mem_cart_blocks = generic_ram_blocks | generic_rom_blocks;
+                mem_initialize_memory();
+                return CARTRIDGE_VIC20_GENERIC;
+            }
+            goto exiterror;
+        }
+
+        DBG(("chip %d at %02x len %02x\n", idx, chip.start, chip.size));
+        if ((chip.start >= 0x2000) && (chip.start <= 0x3fff)) {     /* block 1 */
+            generic_rom_blocks |= VIC_CART_BLK1;
+            offset = chip.start;
+        } else if ((chip.start >= 0x4000) && (chip.start <= 0x5fff)) {     /* block 2 */
+            generic_rom_blocks |= VIC_CART_BLK2;
+            offset = chip.start;
+        } else if ((chip.start >= 0x6000) && (chip.start <= 0x7fff)) {     /* block 3 */
+            generic_rom_blocks |= VIC_CART_BLK3;
+            offset = chip.start;
+        } else if ((chip.start >= 0xa000) && (chip.start <= 0xbfff)) {     /* block 5 */
+            generic_rom_blocks |= VIC_CART_BLK5;
+            offset = chip.start - 0xa000;
+        } else {
+            log_error(LOG_DEFAULT, "unsupported CHIP load address: $%04x", chip.start);
+            goto exiterror;
+        }
+
+        if (crt_read_chip(cart_rom + offset, 0, &chip, fd)) {
+            goto exiterror;
+        }
+
+        idx++;
+    } while (idx < 8); /* FIXME */
+
+exiterror:
+    DBG(("generic_crt_attach: error\n"));
+    generic_detach();
+    return -1;
 }
 
 void generic_detach(void)

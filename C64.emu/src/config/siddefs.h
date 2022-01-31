@@ -25,7 +25,7 @@
 #define RESID_INLINE inline
 #define RESID_BRANCH_HINTS 1
 
-#define NEW_8580_FILTER 0
+#define NEW_8580_FILTER 1
 
 // Compiler specifics.
 #define HAVE_BOOL 1

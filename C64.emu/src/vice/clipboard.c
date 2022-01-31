@@ -70,7 +70,7 @@ char *clipboard_read_screen_output(const char *line_ending)
                 uint8_t data;
 
                 data = mem_bank_peek(bank, base++, NULL);
-                data = charset_p_toascii(charset_screencode_to_petcii(data), 1);
+                data = charset_p_toascii(charset_screencode_to_petcii(data), CONVERT_WITH_CTRLCODES);
 
                 if (data != ' ') {
                     last_non_whitespace = p;

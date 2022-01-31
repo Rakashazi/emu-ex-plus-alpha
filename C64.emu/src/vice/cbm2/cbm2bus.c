@@ -55,7 +55,7 @@ unsigned int machine_bus_device_type_get(unsigned int unit)
     return SERIAL_DEVICE_VIRT;
 }
 
-void machine_bus_status_truedrive_set(unsigned int enable)
+void machine_bus_status_truedrive_set(unsigned int unit, unsigned int enable)
 {
 }
 
@@ -63,9 +63,9 @@ void machine_bus_status_drivetype_set(unsigned int unit, unsigned int enable)
 {
 }
 
-void machine_bus_status_virtualdevices_set(unsigned int enable)
+void machine_bus_status_virtualdevices_set(unsigned int unit, unsigned int enable)
 {
-    parallel_bus_enable(enable);
+    parallel_bus_enable(unit, enable);
 }
 
 void machine_bus_eof_callback_set(void (*func)(void))

@@ -136,7 +136,7 @@ static const export_resource_t export_res = {
 
 void ross_config_init(void)
 {
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
 }
 
 void ross_config_setup(uint8_t *rawcart)
@@ -145,7 +145,7 @@ void ross_config_setup(uint8_t *rawcart)
     memcpy(&romh_banks[0x0000], &rawcart[0x2000], 0x2000);
     memcpy(&roml_banks[0x2000], &rawcart[0x4000], 0x2000);
     memcpy(&romh_banks[0x2000], &rawcart[0x6000], 0x2000);
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     currbank = 0;
 }
 

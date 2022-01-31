@@ -24,6 +24,8 @@
  *
  */
 
+/* #define DEBUG_IECBUS */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -40,6 +42,12 @@
 #include "serial.h"
 #include "drive/iec/cmdhd.h"
 
+#ifdef DEBUG_IECBUS
+#include "log.h"
+#define DBG(x)  log_debug x
+#else
+#define DBG(x)
+#endif
 
 #define IECBUS_DEVICE_NONE      0
 #define IECBUS_DEVICE_TRUEDRIVE 1
@@ -215,7 +223,7 @@ static void iecbus_cpu_write_conf0(uint8_t data, CLOCK clock)
     iecbus.iec_fast_1541 = data;
 }
 
-/* Only the first disk unit is enabled.  */
+/* Only the first disk unit (drive 8) is enabled.  */
 static uint8_t iecbus_cpu_read_conf1(CLOCK clock)
 {
     drive_cpu_execute_all(clock);
@@ -225,6 +233,7 @@ static uint8_t iecbus_cpu_read_conf1(CLOCK clock)
     return iecbus.cpu_port;
 }
 
+/* NOTE: when adding drives, do the equivalent change in src/vic20/vic20iec.c */
 static void iecbus_cpu_write_conf1(uint8_t data, CLOCK clock)
 {
     diskunit_context_t *unit = diskunit_context[0];
@@ -277,7 +286,7 @@ static void iecbus_cpu_write_conf1(uint8_t data, CLOCK clock)
     iec_update_ports();
 }
 
-/* Only the second disk unit is enabled.  */
+/* Only the second disk unit (drive 9) is enabled.  */
 static uint8_t iecbus_cpu_read_conf2(CLOCK clock)
 {
     drive_cpu_execute_all(clock);
@@ -287,6 +296,7 @@ static uint8_t iecbus_cpu_read_conf2(CLOCK clock)
     return iecbus.cpu_port;
 }
 
+/* NOTE: when adding drives, do the equivalent change in src/vic20/vic20iec.c */
 static void iecbus_cpu_write_conf2(uint8_t data, CLOCK clock)
 {
     diskunit_context_t *unit = diskunit_context[1];
@@ -350,6 +360,7 @@ static uint8_t iecbus_cpu_read_conf3(CLOCK clock)
     return iecbus.cpu_port;
 }
 
+/* NOTE: when adding drives, do the equivalent change in src/vic20/vic20iec.c */
 static void iecbus_cpu_write_conf3(uint8_t data, CLOCK clock)
 {
     unsigned int dnr;
@@ -453,31 +464,29 @@ static void calculate_callback_index(void)
 
 /*
 
-iecbus_status_set() sets IEC bus devices according to the following table:
+     TDE ID VD DE                                      iecbus_device
+none 0  0  0  0  nothing enabled                       IECBUS_DEVICE_NONE
+     0  0  0  1  nothing enabled                       IECBUS_DEVICE_NONE
+VD   0  0  1  0  trap device enabled                   IECBUS_DEVICE_NONE
+VD   0  0  1  1  trap device enabled                   IECBUS_DEVICE_NONE
+IEC  0  1  0  0  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
+IEC  0  1  0  1  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
+     0  1  1  0  IEC device enabled+trap dev. enabled  IECBUS_DEVICE_IECDEVICE
+     0  1  1  1  IEC device enabled+trap dev. enabled  IECBUS_DEVICE_IECDEVICE
+     --------------------------------------------------------------------------
+     1  0  0  0  nothing enabled                       IECBUS_DEVICE_NONE
+TDE  1  0  0  1  TDE drive enabled                     IECBUS_DEVICE_TRUEDRIVE
+     1  0  1  0  nothing enabled                       IECBUS_DEVICE_NONE
+     1  0  1  1  TDE drive enabled                     IECBUS_DEVICE_TRUEDRIVE
+     1  1  0  0  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
+     1  1  0  1  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
+     1  1  1  0  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
+     1  1  1  1  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
 
-TDE DE ID VD                                       iecbus_device
- 0  0  0  0  nothing enabled                       IECBUS_DEVICE_NONE
- 0  0  0  1  trap device enabled                   IECBUS_DEVICE_NONE
- 0  0  1  0  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
- 0  0  1  1  IEC device enabled+trap dev. enabled  IECBUS_DEVICE_IECDEVICE
- 0  1  0  0  nothing enabled                       IECBUS_DEVICE_NONE
- 0  1  0  1  trap device enabled                   IECBUS_DEVICE_NONE
- 0  1  1  0  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
- 0  1  1  1  IEC device enabled+trap dev. enabled  IECBUS_DEVICE_IECDEVICE
---------------------------------------------------------------------------
- 1  0  0  0  nothing enabled                       IECBUS_DEVICE_NONE
- 1  0  0  1  nothing enabled                       IECBUS_DEVICE_NONE
- 1  0  1  0  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
- 1  0  1  1  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
- 1  1  0  0  TDE drive enabled                     IECBUS_DEVICE_TRUEDRIVE
- 1  1  0  1  TDE drive enabled                     IECBUS_DEVICE_TRUEDRIVE
- 1  1  1  0  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
- 1  1  1  1  IEC device enabled                    IECBUS_DEVICE_IECDEVICE
-
-TDE = true drive emulation (global switch)
-DE = device enable (device switch)
-ID = IEC devices (device switch)
-VD = virtual devices (global switch)
+TDE = true drive emulation
+ID = IEC devices
+VD = virtual devices
+DE = device enable
 
 */
 
@@ -500,16 +509,17 @@ static const unsigned int iecbus_device_index[16] = {
     IECBUS_DEVICE_IECDEVICE
 };
 
-void iecbus_status_set(unsigned int type, unsigned int unit,
-                       unsigned int enable)
+void iecbus_status_set(unsigned int type, unsigned int unit, unsigned int enable)
 {
-    static unsigned int truedrive, drivetype[IECBUS_NUM], iecdevice[IECBUS_NUM],
-                        virtualdevices;
+    static unsigned int truedrive[IECBUS_NUM], drivetype[IECBUS_NUM], iecdevice[IECBUS_NUM],
+                        virtualdevices[IECBUS_NUM];
     unsigned int dev;
+
+    DBG(("iecbus_status_set unit: %u type: %u enabled: %u", unit, type, enable));
 
     switch (type) {
         case IECBUS_STATUS_TRUEDRIVE:
-            truedrive = enable ? (1 << 3) : 0;
+            truedrive[unit] = enable ? (1 << 3) : 0;
             break;
         case IECBUS_STATUS_DRIVETYPE:
             drivetype[unit] = enable ? (1 << 2) : 0;
@@ -518,15 +528,20 @@ void iecbus_status_set(unsigned int type, unsigned int unit,
             iecdevice[unit] = enable ? (1 << 1) : 0;
             break;
         case IECBUS_STATUS_VIRTUALDEVICES:
-            virtualdevices = enable ? (1 << 0) : 0;
+            virtualdevices[unit] = enable ? (1 << 0) : 0;
             break;
     }
 
     for (dev = 0; dev < IECBUS_NUM; dev++) {
         unsigned int index;
 
-        index = truedrive | drivetype[dev] | iecdevice[dev] | virtualdevices;
+        index = truedrive[dev] | drivetype[dev] | iecdevice[dev] | virtualdevices[dev];
         iecbus_device[dev] = iecbus_device_index[index];
+#if 0
+        DBG(("iecbus_status_set dev: %u uses (idx:%d): %s", dev, index,
+             iecbus_device[dev] == IECBUS_DEVICE_IECDEVICE ? "IECBUS_DEVICE_IECDEVICE" :
+             iecbus_device[dev] == IECBUS_DEVICE_TRUEDRIVE ? "IECBUS_DEVICE_TRUEDRIVE" : "IECBUS_DEVICE_NONE"));
+#endif
     }
 
     calculate_callback_index();

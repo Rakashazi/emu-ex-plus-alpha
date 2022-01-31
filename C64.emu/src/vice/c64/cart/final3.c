@@ -178,13 +178,13 @@ void final_v3_freeze(void)
     fc3_reg_enabled = 1;
 
     /* note: freeze does NOT force a specific bank like some other carts do */
-    cart_config_changed_slotmain(2, (uint8_t)(3 | (roml_bank << CMODE_BANK_SHIFT)), CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, (uint8_t)(CMODE_ULTIMAX | (roml_bank << CMODE_BANK_SHIFT)), CMODE_READ);
 }
 
 void final_v3_config_init(void)
 {
     fc3_reg_enabled = 1;
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
 }
 
 void final_v3_config_setup(uint8_t *rawcart)
@@ -194,7 +194,7 @@ void final_v3_config_setup(uint8_t *rawcart)
         memcpy(&roml_banks[0x2000 * i], &rawcart[0x0000 + (0x4000 * i)], 0x2000);
         memcpy(&romh_banks[0x2000 * i], &rawcart[0x2000 + (0x4000 * i)], 0x2000);
     }
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/

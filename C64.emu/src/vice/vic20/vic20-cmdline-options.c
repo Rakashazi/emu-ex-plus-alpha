@@ -51,6 +51,7 @@ static struct model_s model_match[] = {
     { "vic20pal", VIC20MODEL_VIC20_PAL },
     { "vic20ntsc", VIC20MODEL_VIC20_NTSC },
     { "vic21", VIC20MODEL_VIC21 },
+    { "vic1001", VIC20MODEL_VIC1001 },
     { NULL, VIC20MODEL_UNKNOWN }
 };
 

@@ -36,8 +36,20 @@
 #define TAP_HDR_MAGIC_OFFSET 0
 #define TAP_HDR_VERSION      12
 #define TAP_HDR_SYSTEM       13
+#define TAP_HDR_VIDEO        14
 #define TAP_HDR_LEN          16
 
+#define TAP_HDR_SYSTEM_C64      0
+#define TAP_HDR_SYSTEM_VIC20    1
+#define TAP_HDR_SYSTEM_C16      2
+#define TAP_HDR_SYSTEM_PET      3
+#define TAP_HDR_SYSTEM_C500     4
+#define TAP_HDR_SYSTEM_C600     5
+
+#define TAP_HDR_VIDEO_PAL       0
+#define TAP_HDR_VIDEO_NTSC      1
+#define TAP_HDR_VIDEO_NTSCOLD   2
+#define TAP_HDR_VIDEO_PALN      3
 
 struct tape_init_s;
 struct tape_file_record_s;
@@ -57,6 +69,12 @@ typedef struct tap_s {
 
     /* System the image is made for.  */
     uint8_t system;
+
+    /* Videostandard the image is made for.  */
+    uint8_t video;
+
+    /* clock speed the tap file was created with */
+    int tap_clock;
 
     /* Tape name.  */
     uint8_t name[12];
@@ -104,10 +122,13 @@ extern int tap_create(const char *name);
 
 extern int tap_seek_start(tap_t *tap);
 extern int tap_seek_to_file(tap_t *tap, unsigned int file_number);
+extern int tap_seek_to_offset(tap_t *tap, unsigned long offset);
 extern int tap_seek_to_next_file(tap_t *tap, unsigned int allow_rewind);
 extern void tap_get_header(tap_t *tap, uint8_t *name);
 extern struct tape_file_record_s *tap_get_current_file_record(tap_t *tap);
 
 extern int tap_read(tap_t *tap, uint8_t *buf, size_t size);
+
+extern int tap_cmdline_options_init(void);
 
 #endif

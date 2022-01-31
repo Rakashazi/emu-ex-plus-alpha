@@ -41,9 +41,8 @@
 
 
 typedef struct driveriot2_context_s {
-    unsigned int number;
     uint8_t drivenumberjumper;
-    struct drive_s *drive;
+    drive_t *drives[2];
     int r_atn_active;     /* init to 0 */
     unsigned int int_num;
 } driveriot2_context_t;
@@ -173,6 +172,7 @@ static void store_pra(riot_context_t *riot_context, uint8_t byte)
 static void undump_prb(riot_context_t *riot_context, uint8_t byte)
 {
     driveriot2_context_t *riot2p;
+    drive_t *drive;
 
     riot2p = (driveriot2_context_t *)(riot_context->prv);
 
@@ -180,21 +180,27 @@ static void undump_prb(riot_context_t *riot_context, uint8_t byte)
     /* bit 4 Act LED 0 */
     /* bit 5 Error LED */
 
-    /* 1001 only needs LED 0 and Error LED */
-    riot2p->drive->led_status = (byte >> 4) & 0x03;
+    /*
+     * SFD-1001 only needs LED 0 and Error LED, but the drives[1] structure
+     * is attached anyway.
+     */
+    drive = riot2p->drives[0];
+    drive->led_status = (byte >> 4) & 0x03;
 
-/* TODO: drive 1
-    if ((is_drive0(riot2p->number)) && (drive_check_dual(riot2p->drive->type))) {
-        diskunit_context[mk_drive1(riot2p->number)]->drive->led_status
-            = ((byte & 8) ? 1 : 0) | ((byte & 32) ? 2 : 0);
+    if (drive->led_status & 1) {
+        drive->led_active_ticks += *(riot_context->clk_ptr)
+                                   - drive->led_last_change_clk;
     }
-*/
+    drive->led_last_change_clk = *(riot_context->clk_ptr);
 
-    if (riot2p->drive->led_status & 1) {
-        riot2p->drive->led_active_ticks += *(riot_context->clk_ptr)
-                                           - riot2p->drive->led_last_change_clk;
+    drive = riot2p->drives[1];
+    drive->led_status = (byte >> 3) & 0x01;
+
+    if (drive->led_status & 1) {
+        drive->led_active_ticks += *(riot_context->clk_ptr)
+                                   - drive->led_last_change_clk;
     }
-    riot2p->drive->led_last_change_clk = *(riot_context->clk_ptr);
+    drive->led_last_change_clk = *(riot_context->clk_ptr);
 }
 
 static void store_prb(riot_context_t *riot_context, uint8_t byte)
@@ -208,14 +214,8 @@ static void store_prb(riot_context_t *riot_context, uint8_t byte)
     /* bit 5 Error LED */
 
     /* 1001 only needs LED 0 and Error LED */
-    riot2p->drive->led_status = (byte >> 4) & 0x03;
-
-/* TODO: drive 1
-    if ((is_drive0(riot2p->number)) && (drive_check_dual(riot2p->drive->type))) {
-        diskunit_context[mk_drive1(riot2p->number)]->drive->led_status
-            = ((byte & 8) ? 1 : 0) | ((byte & 32) ? 2 : 0);
-    }
-*/
+    riot2p->drives[0]->led_status = (byte >> 4) & 0x03;
+    riot2p->drives[1]->led_status = (byte >> 3) & 0x01;
 }
 
 static void reset(riot_context_t *riot_context)
@@ -234,7 +234,8 @@ static void reset(riot_context_t *riot_context)
     set_handshake(riot_context, riot_context->old_pa);
 
     /* 1001 only needs LED 0 and Error LED */
-    riot2p->drive->led_status = 3;
+    riot2p->drives[0]->led_status = 3;
+    riot2p->drives[1]->led_status = 1;
 }
 
 static uint8_t read_pra(riot_context_t *riot_context)
@@ -278,7 +279,7 @@ static uint8_t read_prb(riot_context_t *riot_context)
 void riot2_init(diskunit_context_t *ctxptr)
 {
     riotcore_init(ctxptr->riot2, ctxptr->cpu->alarm_context,
-                  ctxptr->cpu->clk_guard, ctxptr->mynumber);
+                  ctxptr->mynumber);
 }
 
 void riot2_setup_context(diskunit_context_t *ctxptr)
@@ -291,7 +292,6 @@ void riot2_setup_context(diskunit_context_t *ctxptr)
 
     riot->prv = lib_malloc(sizeof(driveriot2_context_t));
     riot2p = (driveriot2_context_t *)(riot->prv);
-    riot2p->number = ctxptr->mynumber;
     riot2p->drivenumberjumper = ctxptr->mynumber & 0x07; /* 3 bits */
 
     riot->context = (void *)ctxptr;
@@ -303,8 +303,8 @@ void riot2_setup_context(diskunit_context_t *ctxptr)
 
     riot->myname = lib_msprintf("RIOT2D%d", ctxptr->mynumber);
 
-    /* TODO: drive 1 correct? */
-    riot2p->drive = ctxptr->drives[0];
+    riot2p->drives[0] = ctxptr->drives[0];
+    riot2p->drives[1] = ctxptr->drives[1];
     riot2p->r_atn_active = 0;
     riot2p->int_num = interrupt_cpu_status_int_new(ctxptr->cpu->int_status,
                                                    ctxptr->riot2->myname);

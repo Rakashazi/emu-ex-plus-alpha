@@ -27,6 +27,8 @@
 #include "vice.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 
 #include "drive.h"
 #include "drivemem.h"
@@ -38,6 +40,7 @@
 #include "resources.h"
 #include "traps.h"
 #include "util.h"
+#include "cmdhd.h"
 
 static char *dos_rom_name_1540 = NULL;
 static char *dos_rom_name_1541 = NULL;
@@ -143,6 +146,91 @@ static int set_dos_rom_name_CMDHD(const char *val, void *param)
     return iecrom_load_CMDHD();
 }
 
+static int set_drive_fixed(const char *val, void *param)
+{
+    char *end;
+    int shift;
+    diskunit_context_t *unit = diskunit_context[vice_ptr_to_uint(param)];
+    unsigned long long int work;
+    char suffix;
+#if 0
+    unsigned long long int calc;
+    char text[50];
+    int tp = 0;
+    int i;
+#endif
+
+    /* free existing ASCII value of resource */
+    if (unit->fixed_size_text) {
+        lib_free(unit->fixed_size_text);
+    }
+
+    /* turn whatever we are given into a number */
+    errno = 0;
+    work = strtoll(val, &end, 0);
+
+    /* if it is good, and the remaining pointer is good, process any suffix */
+    if (!errno && end) {
+        /* skip any spaces */
+        while (*end == ' ') {
+            end++;
+        }
+        /* check for 3 suffixes */
+        suffix = util_toupper(*end);
+        if (suffix == 'K') {
+            shift = 10;
+        } else if (suffix == 'M') {
+            shift = 20;
+        } else if (suffix == 'G') {
+            shift = 30;
+        } else {
+            shift = 0;
+            suffix = 0;
+        }
+#if 0
+        /* make my own ascii output since lib_msprintf("%"PRIu64"%c", work, suffix)
+            doesn't work on windows at all */
+        text[tp++] = 0;
+        text[tp++] = suffix;
+
+        /* generate ascii output in reverse order */
+        calc = work;
+        while (calc && tp < 48) {
+            text[tp++] = (calc % 10) + '0';
+            calc = calc / 10;
+        }
+
+        /* allocate and copy back in proper order */
+        unit->fixed_size_text = lib_malloc(tp);
+        for (i = 0; i < tp; i++) {
+            unit->fixed_size_text[i] = text[tp - 1 - i];
+        }
+#else
+        /* just copy what was passed */
+        unit->fixed_size_text = lib_strdup(val);
+#endif
+
+        /* apply change */
+        work = work << shift;
+        /* make it terms of 512 byte units */
+        unit->fixed_size = (unsigned int)(work >> 9);
+        /* round up if need be */
+        if (work & 511) {
+            unit->fixed_size++;
+        }
+    } else {
+        /* if any conversion errors happen, just make it 0 */
+        unit->fixed_size = 0;
+        /* generate a new ascii representation of the full value */
+        unit->fixed_size_text = lib_msprintf("0");
+    }
+
+    /* tell the CMDHD, if there is one, the updated value */
+    cmdhd_update_maxsize(unit->fixed_size, vice_ptr_to_uint(param) + 8);
+
+    return 0;
+}
+
 static int set_drive_ram2(int val, void *param)
 {
     diskunit_context_t *unit = diskunit_context[vice_ptr_to_uint(param)];
@@ -225,6 +313,12 @@ static resource_int_t res_drive[] = {
     RESOURCE_INT_LIST_END
 };
 
+static resource_string_t res_string[] = {
+    { NULL, "8G", RES_EVENT_NO, NULL,
+      NULL, set_drive_fixed, NULL },
+    RESOURCE_STRING_LIST_END
+};
+
 int iec_resources_init(void)
 {
     unsigned int dnr;
@@ -257,6 +351,19 @@ int iec_resources_init(void)
         lib_free(res_drive[2].name);
         lib_free(res_drive[3].name);
         lib_free(res_drive[4].name);
+
+        res_string[0].name = lib_msprintf("Drive%iFixedSize", dnr + 8);
+        res_string[0].value_ptr = &(unit->fixed_size_text);
+        res_string[0].param = uint_to_void_ptr(dnr);
+        unit->fixed_size_text = NULL;
+        unit->fixed_size = 0;
+
+        if (resources_register_string(res_string) < 0) {
+            return -1;
+        }
+
+        lib_free(res_string[0].name);
+
     }
 
     if (resources_register_string(resources_string) < 0) {

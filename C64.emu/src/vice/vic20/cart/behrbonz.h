@@ -39,6 +39,8 @@ extern void behrbonz_reset(void);
 
 extern void behrbonz_config_setup(uint8_t *rawcart);
 extern int behrbonz_bin_attach(const char *filename);
+/* extern int behrbonz_bin_attach(const char *filename, uint8_t *rawcart); */
+extern int behrbonz_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void behrbonz_detach(void);
 
 struct snapshot_s;

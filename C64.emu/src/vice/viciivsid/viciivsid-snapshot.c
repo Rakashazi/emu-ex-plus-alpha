@@ -106,7 +106,7 @@ void vicii_snapshot_prepare(void)
 
 static char snap_module_name[] = "VIC-II";
 #define SNAP_MAJOR 1
-#define SNAP_MINOR 1
+#define SNAP_MINOR 2
 
 int vicii_snapshot_write_module(snapshot_t *s)
 {
@@ -188,7 +188,7 @@ int vicii_snapshot_write_module(snapshot_t *s)
         }
     }
 
-    if (/* FetchEventTick */ SMW_DW(m, vicii.fetch_clk - maincpu_clk) < 0
+    if (/* FetchEventTick */ SMW_CLOCK(m, vicii.fetch_clk - maincpu_clk) < 0
             /* FetchEventType */
             || SMW_B(m, (uint8_t)vicii.fetch_idx) < 0) {
         goto fail;
@@ -476,15 +476,15 @@ int vicii_snapshot_read_module(snapshot_t *s)
     alarm_set(vicii.raster_draw_alarm, vicii.draw_clk);
 
     {
-        uint32_t dw;
+        CLOCK qw;
         uint8_t b;
 
-        if (SMR_DW(m, &dw) < 0  /* FetchEventTick */
+        if (SMR_CLOCK(m, &qw) < 0  /* FetchEventTick */
                 || SMR_B(m, &b) < 0    /* FetchEventType */) {
             goto fail;
         }
 
-        vicii.fetch_clk = maincpu_clk + dw;
+        vicii.fetch_clk = maincpu_clk + qw;
         vicii.fetch_idx = b;
 
         alarm_set(vicii.raster_fetch_alarm, vicii.fetch_clk);

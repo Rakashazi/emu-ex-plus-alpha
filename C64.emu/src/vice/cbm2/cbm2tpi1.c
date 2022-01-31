@@ -163,13 +163,13 @@ static void undump_pa(tpi_context_t *tpi_context, uint8_t byte)
 static void store_pb(tpi_context_t *tpi_context, uint8_t byte)
 {
     if ((byte ^ tpi_context->oldpb) & 0x80) {
-        tapeport_set_sense_out(!(byte & 0x80));
+        tapeport_set_sense_out(TAPEPORT_PORT_1, !(byte & 0x80));
     }
     if ((byte ^ tpi_context->oldpb) & 0x40) {
-        tapeport_set_motor(!(byte & 0x40));
+        tapeport_set_motor(TAPEPORT_PORT_1, !(byte & 0x40));
     }
     if ((byte ^ tpi_context->oldpb) & 0x20) {
-        tapeport_toggle_write_bit(byte & 0x20);
+        tapeport_toggle_write_bit(TAPEPORT_PORT_1, byte & 0x20);
     }
 }
 
@@ -209,7 +209,7 @@ static uint8_t read_pb(tpi_context_t *tpi_context)
     uint8_t byte;
 
     byte = 0x1f;
-    byte |= tape1_sense ? 0x80 : 0;
+    byte |= tape1_sense ? 0 : 0x80;
     byte |= tape1_motor_in ? 0x40 : 0;
     byte |= tape1_write_in ? 0x20 : 0;
 

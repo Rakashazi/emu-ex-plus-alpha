@@ -89,13 +89,13 @@ static void restore_int(via_context_t *via_context, unsigned int int_num, int va
 
 static void undump_pra(via_context_t *via_context, uint8_t byte)
 {
-    store_userport_pbx(byte);
+    store_userport_pbx(byte, USERPORT_NO_PULSE);
 }
 
 static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t myoldpa,
                       uint16_t addr)
 {
-    store_userport_pbx(byte);
+    store_userport_pbx(byte, USERPORT_NO_PULSE);
 }
 
 static void undump_prb(via_context_t *via_context, uint8_t byte)
@@ -114,8 +114,10 @@ static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t myoldpb,
     parallel_cpu_set_nrfd((uint8_t)(!(byte & 0x02)));
     parallel_cpu_set_atn((uint8_t)(!(byte & 0x04)));
     if ((byte ^ myoldpb) & 0x8) {
-        tapeport_toggle_write_bit((~(via_context->via[VIA_DDRB]) | byte) & 0x8);
+        tapeport_toggle_write_bit(TAPEPORT_PORT_1, (~(via_context->via[VIA_DDRB]) | byte) & 0x8);
+        tapeport_toggle_write_bit(TAPEPORT_PORT_2, (~(via_context->via[VIA_DDRB]) | byte) & 0x8);
     }
+    tapeport_set_motor(TAPEPORT_PORT_2, ((~(via_context->via[VIA_DDRB]) | byte) & 0x10) ? 0 : 1);
 }
 
 static void undump_pcr(via_context_t *via_context, uint8_t byte)
@@ -170,7 +172,7 @@ static void store_acr(via_context_t *via_context, uint8_t byte)
 
 static void store_sr(via_context_t *via_context, uint8_t byte)
 {
-    petsound_store_sample(byte);
+    petsound_store_waveform(byte);
 }
 
 static void store_t2l(via_context_t *via_context, uint8_t byte)
@@ -190,7 +192,7 @@ static void reset(via_context_t *via_context)
     parallel_cpu_set_atn(0);
     parallel_cpu_set_nrfd(0);
 
-    store_userport_pbx(0xff);
+    store_userport_pbx(0xff, USERPORT_NO_PULSE);
     store_userport_pa2(1);
 }
 
@@ -198,9 +200,7 @@ inline static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
 {
     uint8_t byte = 0xff;
 
-    byte = read_userport_pbx((uint8_t)~via_context->via[VIA_DDRA], byte);
-
-    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
+    byte = read_userport_pbx(byte);
 
     /* joystick always pulls low, even if high output, so no
        masking with DDRA */
@@ -232,7 +232,7 @@ static uint8_t read_prb(via_context_t *via_context)
 void via_init(via_context_t *via_context)
 {
     viacore_init(machine_context.via, maincpu_alarm_context,
-                 maincpu_int_status, maincpu_clk_guard);
+                 maincpu_int_status);
 }
 
 void petvia_setup_context(machine_context_t *machinecontext)

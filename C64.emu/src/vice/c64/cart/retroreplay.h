@@ -64,6 +64,7 @@ extern int retroreplay_bin_save(const char *filename);
 extern int retroreplay_crt_save(const char *filename);
 extern int retroreplay_flush_image(void);
 extern void retroreplay_detach(void);
+extern void retroreplay_powerup(void);
 
 extern int retroreplay_cart_enabled(void);
 

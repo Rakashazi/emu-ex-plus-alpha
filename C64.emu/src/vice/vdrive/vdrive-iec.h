@@ -48,4 +48,6 @@ extern void vdrive_iec_listen(struct vdrive_s *vdrive, unsigned int secondary);
 
 extern int vdrive_iec_update_dirent(struct vdrive_s *vdrive, unsigned int channel);
 
+extern void vdrive_iec_unswitch(struct vdrive_s *vdrive, struct bufferinfo_s *p);
+extern int vdrive_iec_switch(struct vdrive_s *vdrive, struct bufferinfo_s *p);
 #endif

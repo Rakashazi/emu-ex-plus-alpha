@@ -131,7 +131,8 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
     set_joyport_pot_mask((byte >> 6) & 3);
 
-    store_joyport_dig(JOYPORT_2, byte, 0xff);
+    store_joyport_dig(JOYPORT_1, byte >> 2, 0x10);
+    store_joyport_dig(JOYPORT_2, byte >> 3, 0x10);
 
     parallel_cpu_set_bus((uint8_t)(cia1_ieee_is_output ? byte : 0xff));
 }
@@ -147,7 +148,8 @@ static void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t b)
 
 static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
-    store_joyport_dig(JOYPORT_1, byte, 0xff);
+    store_joyport_dig(JOYPORT_1, byte, 0x0f);
+    store_joyport_dig(JOYPORT_2, byte >> 4, 0x0f);
 }
 
 /* read_* functions must return 0xff if nothing to read!!! */
@@ -206,7 +208,7 @@ static void store_sdr(cia_context_t *cia_context, uint8_t byte)
 void cia1_init(cia_context_t *cia_context)
 {
     ciacore_init(machine_context.cia1, maincpu_alarm_context,
-                 maincpu_int_status, maincpu_clk_guard);
+                 maincpu_int_status);
 }
 
 void cia1_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)

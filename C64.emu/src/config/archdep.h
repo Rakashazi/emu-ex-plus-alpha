@@ -106,3 +106,8 @@
 
 /* Keyword to use for a static prototype */
 #define STATIC_PROTOTYPE static
+
+#include "zfile.h"
+
+// redirect all fopen() calls
+#define fopen(name, mode) zfile_fopen(name, mode)

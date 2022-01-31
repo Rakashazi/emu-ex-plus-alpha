@@ -47,25 +47,40 @@
      1   | button              |  I
      6   | light sensor        |  I
 
+   Works on:
+   - native joystick port 1 (x64/x64sc/xscpu64/x128/xvic)
+
    cport | lightpen left       | I/O
    ---------------------------------
      3   | button              |  I
      6   | light sensor        |  I
+
+   Works on:
+   - native joystick port 1 (x64/x64sc/xscpu64/x128/xvic)
 
    cport | datel pen           | I/O
    ---------------------------------
      3   | button              |  I
      6   | light sensor        |  I
 
+   Works on:
+   - native joystick port 1 (x64/x64sc/xscpu64/x128/xvic)
+
    cport | magnum light phaser | I/O
    ---------------------------------
      6   | light sensor        |  I
      9   | button              |  I
 
+   Works on:
+   - native joystick port 1 (x64/x64sc/xscpu64/x128/xvic)
+
    cport | stack light rifle   | I/O
    ---------------------------------
      3   | button              |  I
      6   | light sensor        |  I
+
+   Works on:
+   - native joystick port 1 (x64/x64sc/xscpu64/x128/xvic)
 
    cport | inkwell lightpen    | I/O
    ---------------------------------
@@ -75,6 +90,9 @@
 
      not fully implemented:
 
+   Works on:
+   - native joystick port 1 (x64/x64sc/xscpu64/x128/xvic)
+
    cport | Gun Stick           | I/O
    ---------------------------------
      2   | light sensor        |  I
@@ -83,7 +101,6 @@
      This gun is somewhat weird, in that it uses pin 2 (down) for the light
      sensor, and pin 6 (lp-trigger) for the trigger button. also the signal
      on pin 2 is stretched a bit by the logic in the gun.
-
  */
 
 /* --------------------------------------------------------- */
@@ -141,20 +158,20 @@ typedef struct lp_type_s lp_type_t;
  */
 static const lp_type_t lp_type[LIGHTPEN_TYPE_NUM] = {
     /* Pen with button Up (e.g. Atari CX75) */
-    { PEN, 0x01, 0x00, 0, 0 },
+    { PEN, JOYPORT_UP, 0x00, 0, 0 },
     /* Pen with button Left */
-    { PEN, 0x04, 0x00, 0, 0 },
+    { PEN, JOYPORT_LEFT, 0x00, 0, 0 },
     /* Datel Pen */
-    { PEN, 0x04, 0x00, 20, -5 },
+    { PEN, JOYPORT_LEFT, 0x00, 20, -5 },
     /* Magnum Light Phaser, Cheetah Defender */
-    { GUN, 0x20, 0x00, 30, -10 },   /* tweaked against "Blaze Out" and "3-D Action Pack" */
+    { GUN, JOYPORT_FIRE_2, 0x00, 30, -10 },   /* tweaked against "Blaze Out" and "3-D Action Pack" */
     /* Stack Light Rifle */
-    { GUN, 0x04, 0x00, 20, 0 },
+    { GUN, JOYPORT_LEFT, 0x00, 20, 0 },
     /* Inkwell Lightpen */
-    { GUN, 0x04, 0x20, 20, 0 },
+    { GUN, JOYPORT_LEFT, JOYPORT_FIRE_2, 20, 0 },
 #ifdef JOYPORT_EXPERIMENTAL_DEVICES
     /* Gun Stick */
-    { GUN, 0x12, 0x00, 0, 0 },
+    { GUN, JOYPORT_FIRE | JOYPORT_DOWN, 0x00, 0, 0 },
 #endif
 };
 
@@ -163,7 +180,7 @@ typedef struct lp_id_s {
     int id;
 } lp_id_t;
 
-static lp_id_t lp_id[] = {
+static const lp_id_t lp_id[] = {
     { LIGHTPEN_TYPE_PEN_U,     JOYPORT_ID_LIGHTPEN_U },
     { LIGHTPEN_TYPE_PEN_L,     JOYPORT_ID_LIGHTPEN_L },
     { LIGHTPEN_TYPE_PEN_DATEL, JOYPORT_ID_LIGHTPEN_DATEL },
@@ -223,7 +240,7 @@ static inline void lightpen_check_button_mask(uint8_t mask, int pressed)
     if (id == -1) {
         return;
     }
-    joyport_display_joyport(id, lightpen_value);
+    joyport_display_joyport(id, (uint16_t)lightpen_value);
 }
 
 static inline void lightpen_update_buttons(int buttons)
@@ -289,13 +306,19 @@ static joyport_t lightpen_u_joyport_device = {
     JOYPORT_RES_ID_MOUSE,     /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_LIGHTPEN,      /* device is a lightpen */
     JOYPORT_POT_OPTIONAL,     /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE, /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_LIGHTPEN,  /* device is a Light Pen */
+    0,                        /* NO output bits */
     joyport_lightpen_enable,  /* device enable function */
     lightpen_digital_val,     /* digital line read function */
     NULL,                     /* NO digital line store function */
     NULL,                     /* NO pot-x read function */
     NULL,                     /* NO pot-y read function */
+    NULL,                     /* NO powerup function */
     lightpen_write_snapshot,  /* device write snapshot function */
-    lightpen_read_snapshot    /* device read snapshot function */
+    lightpen_read_snapshot,   /* device read snapshot function */
+    NULL,                     /* NO device hook function */
+    0                         /* NO device hook function mask */
 };
 
 static joyport_t lightpen_l_joyport_device = {
@@ -303,84 +326,120 @@ static joyport_t lightpen_l_joyport_device = {
     JOYPORT_RES_ID_MOUSE,       /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_LIGHTPEN,        /* device is a lightpen */
     JOYPORT_POT_OPTIONAL,       /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,   /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_LIGHTPEN,    /* device is a Light Pen */
+    0,                          /* NO output bits */
     joyport_lightpen_enable,    /* device enable function */
     lightpen_digital_val,       /* digital line read function */
     NULL,                       /* NO digital line store function */
     NULL,                       /* NO pot-x read function */
     NULL,                       /* NO pot-y read function */
+    NULL,                       /* NO powerup function */
     lightpen_write_snapshot,    /* device write snapshot function */
-    lightpen_read_snapshot      /* device read snapshot function */
+    lightpen_read_snapshot,     /* device read snapshot function */
+    NULL,                       /* NO device hook function */
+    0                           /* NO device hook function mask */
 };
 
 static joyport_t lightpen_datel_joyport_device = {
-    "Datel Light Pen",       /* name of the device */
-    JOYPORT_RES_ID_MOUSE,    /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
-    JOYPORT_IS_LIGHTPEN,     /* device is a lightpen */
-    JOYPORT_POT_OPTIONAL,    /* device does NOT use the potentiometer lines */
-    joyport_lightpen_enable, /* device enable function */
-    lightpen_digital_val,    /* digital line read function */
-    NULL,                    /* NO digital line store function */
-    NULL,                    /* NO pot-x read function */
-    NULL,                    /* NO pot-y read function */
-    lightpen_write_snapshot, /* device write snapshot function */
-    lightpen_read_snapshot   /* device read snapshot function */
+    "Light Pen (Datel)",      /* name of the device */
+    JOYPORT_RES_ID_MOUSE,     /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_LIGHTPEN,      /* device is a lightpen */
+    JOYPORT_POT_OPTIONAL,     /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE, /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_LIGHTPEN,  /* device is a Light Pen */
+    0,                        /* NO output bits */
+    joyport_lightpen_enable,  /* device enable function */
+    lightpen_digital_val,     /* digital line read function */
+    NULL,                     /* NO digital line store function */
+    NULL,                     /* NO pot-x read function */
+    NULL,                     /* NO pot-y read function */
+    NULL,                     /* NO powerup function */
+    lightpen_write_snapshot,  /* device write snapshot function */
+    lightpen_read_snapshot,   /* device read snapshot function */
+    NULL,                     /* NO device hook function */
+    0                         /* NO device hook function mask */
 };
 
 static joyport_t magnum_light_phaser_joyport_device = {
-    "Magnum Light Phaser",   /* name of the device */
-    JOYPORT_RES_ID_MOUSE,    /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
-    JOYPORT_IS_LIGHTPEN,     /* device is a lightpen */
-    JOYPORT_POT_REQUIRED,    /* device uses the potentiometer lines */
-    joyport_lightpen_enable, /* device enable function */
-    lightpen_digital_val,    /* digital line read function */
-    NULL,                    /* NO digital line store function */
-    NULL,                    /* NO pot-x read function */
-    lightpen_read_button_y,  /* pot-y read function */
-    lightpen_write_snapshot, /* device write snapshot function */
-    lightpen_read_snapshot   /* device read snapshot function */
+    "Light Gun (Magnum Light Phaser)", /* name of the device */
+    JOYPORT_RES_ID_MOUSE,              /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_LIGHTPEN,               /* device is a lightpen */
+    JOYPORT_POT_REQUIRED,              /* device uses the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,          /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_LIGHTGUN,           /* device is a Light Gun */
+    0,                                 /* NO output bits */
+    joyport_lightpen_enable,           /* device enable function */
+    lightpen_digital_val,              /* digital line read function */
+    NULL,                              /* NO digital line store function */
+    NULL,                              /* NO pot-x read function */
+    lightpen_read_button_y,            /* pot-y read function */
+    NULL,                              /* NO powerup function */
+    lightpen_write_snapshot,           /* device write snapshot function */
+    lightpen_read_snapshot,            /* device read snapshot function */
+    NULL,                              /* NO device hook function */
+    0                                  /* NO device hook function mask */
 };
 
 static joyport_t stack_light_rifle_joyport_device = {
-    "Stack Light Rifle",     /* name of the device */
-    JOYPORT_RES_ID_MOUSE,    /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
-    JOYPORT_IS_LIGHTPEN,     /* device is a lightpen */
-    JOYPORT_POT_OPTIONAL,    /* device does NOT use the potentiometer lines */
-    joyport_lightpen_enable, /* device enable function */
-    lightpen_digital_val,    /* digital line read function */
-    NULL,                    /* NO digital line store function */
-    NULL,                    /* NO pot-x read function */
-    NULL,                    /* NO pot-y read function */
-    lightpen_write_snapshot, /* device write snapshot function */
-    lightpen_read_snapshot   /* device read snapshot function */
+    "Light Gun (Stack Light Rifle)", /* name of the device */
+    JOYPORT_RES_ID_MOUSE,            /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_LIGHTPEN,             /* device is a lightpen */
+    JOYPORT_POT_OPTIONAL,            /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,        /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_LIGHTGUN,         /* device is a Light Gun */
+    0,                               /* NO output bits */
+    joyport_lightpen_enable,         /* device enable function */
+    lightpen_digital_val,            /* digital line read function */
+    NULL,                            /* NO digital line store function */
+    NULL,                            /* NO pot-x read function */
+    NULL,                            /* NO pot-y read function */
+    NULL,                            /* NO powerup function */
+    lightpen_write_snapshot,         /* device write snapshot function */
+    lightpen_read_snapshot,          /* device read snapshot function */
+    NULL,                            /* NO device hook function */
+    0                                /* NO device hook function mask */
 };
 
 static joyport_t inkwell_lightpen_joyport_device = {
-    "Inkwell Light Pen",     /* name of the device */
-    JOYPORT_RES_ID_MOUSE,    /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
-    JOYPORT_IS_LIGHTPEN,     /* device is a lightpen */
-    JOYPORT_POT_REQUIRED,    /* device uses the potentiometer lines */
-    joyport_lightpen_enable, /* device enable function */
-    lightpen_digital_val,    /* digital line read function */
-    NULL,                    /* NO digital line store function */
-    NULL,                    /* NO pot-x read function */
-    lightpen_read_button_y,  /* pot-y read function */
-    lightpen_write_snapshot, /* device write snapshot function */
-    lightpen_read_snapshot   /* device read snapshot function */
+    "Light Pen (Inkwell)",    /* name of the device */
+    JOYPORT_RES_ID_MOUSE,     /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_LIGHTPEN,      /* device is a lightpen */
+    JOYPORT_POT_REQUIRED,     /* device uses the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE, /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_LIGHTPEN,  /* device is a Light Pen */
+    0,                        /* NO output bits */
+    joyport_lightpen_enable,  /* device enable function */
+    lightpen_digital_val,     /* digital line read function */
+    NULL,                     /* NO digital line store function */
+    NULL,                     /* NO pot-x read function */
+    lightpen_read_button_y,   /* pot-y read function */
+    NULL,                     /* NO powerup function */
+    lightpen_write_snapshot,  /* device write snapshot function */
+    lightpen_read_snapshot,   /* device read snapshot function */
+    NULL,                     /* NO device hook function */
+    0                         /* NO device hook function mask */
 };
 
 #ifdef JOYPORT_EXPERIMENTAL_DEVICES
 static joyport_t gun_stick_joyport_device = {
-    "Gun Stick",             /* name of the device */
-    JOYPORT_RES_ID_MOUSE,    /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
-    JOYPORT_IS_LIGHTPEN,     /* device is a lightpen */
-    JOYPORT_POT_OPTIONAL,    /* device does NOT use the potentiometer lines */
-    joyport_lightpen_enable, /* device enable function */
-    lightpen_digital_val,    /* digital line read function */
-    NULL,                    /* NO digital line store function */
-    NULL,                    /* NO pot-x read function */
-    NULL,                    /* NO pot-y read function */
-    lightpen_write_snapshot, /* device write snapshot function */
-    lightpen_read_snapshot   /* device read snapshot function */
+    "Light Gun (Gun Stick)",  /* name of the device */
+    JOYPORT_RES_ID_MOUSE,     /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_LIGHTPEN,      /* device is a lightpen */
+    JOYPORT_POT_OPTIONAL,     /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE, /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_LIGHTGUN,  /* device is a Light Gun */
+    0,                        /* NO output bits */
+    joyport_lightpen_enable,  /* device enable function */
+    lightpen_digital_val,     /* digital line read function */
+    NULL,                     /* NO digital line store function */
+    NULL,                     /* NO pot-x read function */
+    NULL,                     /* NO pot-y read function */
+    NULL,                     /* NO powerup function */
+    lightpen_write_snapshot,  /* device write snapshot function */
+    lightpen_read_snapshot,   /* device read snapshot function */
+    NULL,                     /* NO device hook function */
+    0                         /* NO device hook function mask */
 };
 #endif
 
@@ -502,7 +561,7 @@ void lightpen_update(int window, int x, int y, int buttons)
    DWORD | button x | button X state
  */
 
-static char snap_module_name[] = "LIGHTPEN";
+static const char snap_module_name[] = "LIGHTPEN";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

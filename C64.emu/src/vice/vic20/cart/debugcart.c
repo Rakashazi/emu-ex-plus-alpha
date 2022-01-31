@@ -72,7 +72,7 @@ static const export_resource_t export_res = {
 
 static void debugcart_store(uint16_t addr, uint8_t value)
 {
-    fprintf(stdout, "DBGCART: exit(%d) cycles elapsed: %u\n",
+    fprintf(stdout, "DBGCART: exit(%d) cycles elapsed: %"PRIu64"\n",
             (int)value, maincpu_clk);
 
     archdep_vice_exit(value);

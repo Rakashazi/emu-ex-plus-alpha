@@ -152,16 +152,32 @@ static int noop;
 #undef HAVE_RS232DEV
 #endif
 
-
-#if defined(USE_NATIVE_GTK3) && defined(WIN32_COMPILE) && !defined(__cplusplus)
-extern int vice_atexit(void (*function)(void));
-extern void vice_exit(int excode);
-#endif
-
 /* Avoid windows.h including too much garbage
  */
 #ifdef WIN32_COMPILE
 # define WIN32_LEAN_AND_MEAN
+#endif
+
+/* some attribute defines that are useful mostly for static analysis */
+/* see https://clang.llvm.org/docs/AttributeReference.html */
+#ifdef __clang__
+#define VICE_ATTR_NORETURN  __attribute__((analyzer_noreturn))
+#else
+#define VICE_ATTR_NORETURN
+#endif
+
+
+/* Not all platforms have fseeko()/fseeko(), so we define macros here that use
+ * fseek()/ftell() instead. Which is wrong, but will have to do before proper
+ * fixes after the 3.6 release. (so: FIXME!)
+ *
+ * -- Compyx, 2021-11-10, in response to bug #1612
+ */
+#ifndef HAVE_FSEEKO
+#define fseeko(stream, offset, whence) fseek(stream, offset, whence)
+#endif
+#ifndef HAVE_FTELLO
+#define ftello(stream) ftell(stream)
 #endif
 
 #endif

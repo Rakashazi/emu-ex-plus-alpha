@@ -79,12 +79,12 @@ struct interrupt_cpu_status_s {
        left at the start of this particular DMA (needed by *_set_irq() to
        calculate irq_clk).  */
     unsigned int num_dma_per_opcode;
-    unsigned int num_cycles_left[INTRRUPT_MAX_DMA_PER_OPCODE];
+    CLOCK num_cycles_left[INTRRUPT_MAX_DMA_PER_OPCODE];
     CLOCK dma_start_clk[INTRRUPT_MAX_DMA_PER_OPCODE];
 
     /* counters for delay between interrupt request and handler */
-    unsigned int irq_delay_cycles;
-    unsigned int nmi_delay_cycles;
+    CLOCK irq_delay_cycles;
+    CLOCK nmi_delay_cycles;
 
     /* If 1, do a RESET.  */
     int reset;
@@ -92,17 +92,28 @@ struct interrupt_cpu_status_s {
     /* If 1, call the trapping function.  */
     int trap;
 
-    /* Debugging function.  */
-    void (*trap_func)(uint16_t, void *data);
+#define INTRRUPT_MAX_TRAP_FUNC_SIZE 4
 
-    /* Data to pass to the debugging function when called.  */
-    void *trap_data;
+    /* Various subsystems use this to call a function next cycle  */
+    void (*trap_func[INTRRUPT_MAX_TRAP_FUNC_SIZE])(uint16_t, void *data);
+    
+    /* Data to pass to the trap_func when called. */
+    void *trap_data[INTRRUPT_MAX_TRAP_FUNC_SIZE];
+    
+    /* Size of the trap funcs/datas array. */
+    int traps_size;
+    
+    /* Index of the next trap func to execute. */
+    int traps_next;
+    
+    /* How many pending trap funcs to call. */
+    int traps_count;
 
     /* Pointer to the last executed opcode information.  */
     unsigned int *last_opcode_info_ptr;
 
     /* Number of cycles we have stolen to the processor last time.  */
-    int num_last_stolen_cycles;
+    CLOCK num_last_stolen_cycles;
 
     /* Clock tick at which these cycles have been stolen.  */
     CLOCK last_stolen_cycles_clk;

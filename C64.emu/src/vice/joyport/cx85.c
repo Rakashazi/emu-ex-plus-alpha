@@ -46,6 +46,11 @@
      5   | PRESS  |  I
      6   | KEY4   |  I
 
+Works on:
+- native joystick port(s) (x64/x64sc/xscpu64/xvic)
+- sidcart joystick adapter port (xplus4)
+
+
 The keypad has the following layout:
 
 KEYPAD                  KEYMAP KEYS
@@ -166,7 +171,7 @@ static uint8_t cx85_read_dig(int port)
     unsigned int tmp;
 
     /* KEY4 */
-    tmp = !keys[KEYPAD_KEY_ESCAPE] << 4;
+    tmp = !keys[KEYPAD_KEY_ESCAPE] << JOYPORT_FIRE_BIT;  /* output key 4 on joyport 'fire' pin */
     retval |= tmp;
 
     /* KEY3 */
@@ -179,7 +184,7 @@ static uint8_t cx85_read_dig(int port)
           keys[KEYPAD_KEY_1]     |
           keys[KEYPAD_KEY_YES]   |
           keys[KEYPAD_KEY_ESCAPE];
-    tmp <<= 3;
+    tmp <<= JOYPORT_RIGHT_BIT;   /* output key 3 on joyport 'right' pin */
     retval |= tmp;
 
     /* KEY2 */
@@ -192,7 +197,7 @@ static uint8_t cx85_read_dig(int port)
           keys[KEYPAD_KEY_DOT]   |
           keys[KEYPAD_KEY_0]     |
           keys[KEYPAD_KEY_ESCAPE];
-    tmp <<= 2;
+    tmp <<= JOYPORT_LEFT_BIT;   /* output key 2 on joyport 'left' pin */
     retval |= tmp;
 
     /* KEY1 */
@@ -204,7 +209,7 @@ static uint8_t cx85_read_dig(int port)
           keys[KEYPAD_KEY_3]     |
           keys[KEYPAD_KEY_9]     |
           keys[KEYPAD_KEY_6];
-    tmp <<= 1;
+    tmp <<= JOYPORT_DOWN_BIT;   /* output key 1 on joyport 'down' pin */
     retval |= tmp;
 
     /* KEY0 */
@@ -216,11 +221,11 @@ static uint8_t cx85_read_dig(int port)
           keys[KEYPAD_KEY_3]     |
           keys[KEYPAD_KEY_9]     |
           keys[KEYPAD_KEY_6];
-    retval |= tmp;
+    retval |= tmp;   /* output key 0 on joyport 'up' pin */
 
     retval |= 0xe0;
 
-    joyport_display_joyport(JOYPORT_ID_CX85_KEYPAD, (uint8_t)~retval);
+    joyport_display_joyport(JOYPORT_ID_CX85_KEYPAD, (uint16_t)~retval);
 
     return (uint8_t)retval;
 }
@@ -241,17 +246,23 @@ static uint8_t cx85_read_pot(int port)
 /* ------------------------------------------------------------------------- */
 
 static joyport_t joyport_cx85_device = {
-    "Atari CX85 keypad",     /* name of the device */
-    JOYPORT_RES_ID_KEYPAD,   /* device is a keypad, only 1 keypad can be active at the same time */
-    JOYPORT_IS_NOT_LIGHTPEN, /* device is NOT a lightpen */
-    JOYPORT_POT_REQUIRED,    /* device uses the potentiometer lines */
-    joyport_cx85_enable,     /* device enable function */
-    cx85_read_dig,           /* digital line read function */
-    NULL,                    /* NO digital line store function */
-    NULL,                    /* NO pot-x read function */
-    cx85_read_pot,           /* pot-y read function */
-    NULL,                    /* NO device write snapshot function */
-    NULL                     /* NO device read snapshot function */
+    "Keypad (Atari CX85)",    /* name of the device */
+    JOYPORT_RES_ID_KEYPAD,    /* device is a keypad, only 1 keypad can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,  /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,     /* device uses the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE, /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_KEYPAD,    /* device is a Keypad */
+    0,                        /* NO output bits */
+    joyport_cx85_enable,      /* device enable function */
+    cx85_read_dig,            /* digital line read function */
+    NULL,                     /* NO digital line store function */
+    NULL,                     /* NO pot-x read function */
+    cx85_read_pot,            /* pot-y read function */
+    NULL,                     /* NO powerup function */
+    NULL,                     /* NO device write snapshot function */
+    NULL,                     /* NO device read snapshot function */
+    NULL,                     /* NO device hook function */
+    0                         /* NO device hook function mask */
 };
 
 /* ------------------------------------------------------------------------- */

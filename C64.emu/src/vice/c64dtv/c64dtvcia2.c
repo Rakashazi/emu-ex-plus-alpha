@@ -53,15 +53,10 @@
 #include "userport.h"
 #include "vicii.h"
 
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-#include "rsuser.h"
-#endif
-
-
 void cia2_store(uint16_t addr, uint8_t data)
 {
     if ((addr & 0x1f) == 1) {
-        store_userport_pbx(data);
+        store_userport_pbx(data, USERPORT_NO_PULSE);
 
         /* The functions below will gradually be removed as the functionality is added to the new userport system. */
         if (c64dtv_hummer_adc_enabled) {
@@ -80,7 +75,7 @@ uint8_t cia2_read(uint16_t addr)
     uint8_t retval = 0xff;
 
     if ((addr & 0x1f) == 1) {
-        retval = read_userport_pbx(0x1f, retval);
+        retval = read_userport_pbx(retval);
 
         /* The functions below will gradually be removed as the functionality is added to the new userport system. */
         if (ps2mouse_enabled) {
@@ -127,13 +122,7 @@ static int vbank;
 
 static void do_reset_cia(cia_context_t *cia_context)
 {
-    store_userport_pbx(0xff);
-
-    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    rsuser_write_ctrl((uint8_t)0xff);
-    rsuser_set_tx_bit(1);
-#endif
+    store_userport_pbx(0xff, USERPORT_NO_PULSE);
 
     vbank = 0;
     mem_set_vbank(vbank);
@@ -160,11 +149,6 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
         uint8_t tmp;
         int new_vbank;
 
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-        if (rsuser_enabled && ((cia_context->old_pa ^ byte) & 0x04)) {
-            rsuser_set_tx_bit(byte & 4);
-        }
-#endif
         tmp = ~byte;
         new_vbank = tmp & 3;
         if (new_vbank != vbank) {
@@ -177,11 +161,6 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 
 static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    if (rsuser_enabled) {
-        rsuser_set_tx_bit((int)(byte & 4));
-    }
-#endif
     vbank = (byte ^ 3) & 3;
     mem_set_vbank(vbank);
     iecbus_cpu_undump((uint8_t)(byte ^ 0xff));
@@ -190,31 +169,18 @@ static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 
 static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
-    store_userport_pbx(byte);
-
-    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
-    parallel_cable_cpu_write(DRIVE_PC_STANDARD, (uint8_t)byte);
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    rsuser_write_ctrl((uint8_t)byte);
-#endif
+    store_userport_pbx(byte, USERPORT_NO_PULSE);
 }
 
 static void pulse_ciapc(cia_context_t *cia_context, CLOCK rclk)
 {
-    parallel_cable_cpu_pulse(DRIVE_PC_STANDARD);
 }
 
 /* FIXME! */
 static inline void undump_ciapb(cia_context_t *cia_context, CLOCK rclk,
                                 uint8_t byte)
 {
-    store_userport_pbx(byte);
-
-    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
-    parallel_cable_cpu_undump(DRIVE_PC_STANDARD, (uint8_t)byte);
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    rsuser_write_ctrl((uint8_t)byte);
-#endif
+    store_userport_pbx(byte, USERPORT_NO_PULSE);
 }
 
 /* read_* functions must return 0xff if nothing to read!!! */
@@ -229,15 +195,7 @@ static uint8_t read_ciapb(cia_context_t *cia_context)
 {
     uint8_t byte = 0xff;
 
-    byte = read_userport_pbx(0x1f, byte);
-
-    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    if (rsuser_enabled) {
-        byte = rsuser_read_ctrl(byte);
-    } else
-#endif
-    byte = parallel_cable_cpu_read(DRIVE_PC_STANDARD, byte);
+    byte = read_userport_pbx(byte);
 
     byte = (byte & ~(cia_context->c_cia[CIA_DDRB]))
            | (cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]);
@@ -246,7 +204,6 @@ static uint8_t read_ciapb(cia_context_t *cia_context)
 
 static void read_ciaicr(cia_context_t *cia_context)
 {
-    parallel_cable_cpu_execute(DRIVE_PC_STANDARD);
 }
 
 static void read_sdr(cia_context_t *cia_context)
@@ -271,7 +228,7 @@ void cia2_set_sdrx(uint8_t received_byte)
 void cia2_init(cia_context_t *cia_context)
 {
     ciacore_init(machine_context.cia2, maincpu_alarm_context,
-                 maincpu_int_status, maincpu_clk_guard);
+                 maincpu_int_status);
 }
 
 void cia2_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)

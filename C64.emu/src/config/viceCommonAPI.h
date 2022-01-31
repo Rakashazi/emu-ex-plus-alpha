@@ -29,7 +29,10 @@ VICE_API int vdrive_internal_create_format_disk_image(const char *filename, cons
 VICE_API int vic20model_get(void);
 VICE_API void vic20model_set(int model);
 
+#ifndef NDEBUG
 VICE_API void archdep_startup_log_error(const char *format, ...);
+#endif
+
 VICE_API char *archdep_default_rtc_file_name(void);
 
 VICE_API const char *file_system_get_disk_name(unsigned int unit, unsigned int drive);
@@ -49,6 +52,7 @@ VICE_API int init_main(void);
 
 VICE_API void interrupt_maincpu_trigger_trap(void (*trap_func)(uint16_t, void *data), void *data);
 
+#ifndef NDEBUG
 VICE_API int log_message(signed int log, const char *format, ...)
     __attribute__((format(printf, 2, 3)));
 VICE_API int log_warning(signed int log, const char *format, ...)
@@ -59,6 +63,7 @@ VICE_API int log_debug(const char *format, ...)
     __attribute__((format(printf, 1, 2)));
 VICE_API int log_verbose(const char *format, ...)
     __attribute__((format(printf, 1, 2)));
+#endif
 
 VICE_API void machine_trigger_reset(const unsigned int reset_mode);
 VICE_API void machine_set_restore_key(int v);
@@ -75,19 +80,22 @@ VICE_API int resources_get_int(const char *name, int *value_return);
 VICE_API int resources_get_string(const char *name, const char **value_return);
 VICE_API int resources_get_default_value(const char *name, void *value_return);
 
-VICE_API const char *tape_get_file_name(void);
+VICE_API const char *tape_get_file_name(int port);
 VICE_API int tape_image_detach(unsigned int unit);
 VICE_API int tape_image_attach(unsigned int unit, const char *name);
 
-VICE_API void datasette_control(int command);
+VICE_API void datasette_control(int port, int command);
+VICE_API void ui_display_tape_counter(int port, int counter);
 
+#ifndef NDEBUG
 VICE_API void ui_error(const char *format, ...);
-VICE_API void ui_display_tape_counter(int counter);
-
 VICE_API int uimon_out(const char *buffer);
+#endif
 
 VICE_API int cbmimage_create_image(const char *name, unsigned int type);
 
 VICE_API void keyboard_key_pressed(signed long key, int mod);
 VICE_API void keyboard_key_released(signed long key, int mod);
 VICE_API void keyboard_key_clear(void);
+
+VICE_API void vsync_set_warp_mode(int val);

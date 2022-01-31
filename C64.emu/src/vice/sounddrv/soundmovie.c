@@ -104,7 +104,7 @@ static void soundmovie_close(void)
     }
 }
 
-static sound_device_t soundmovie_device =
+static const sound_device_t soundmovie_device =
 {
     "soundmovie",
     soundmovie_init,

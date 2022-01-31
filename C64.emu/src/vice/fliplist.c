@@ -1,5 +1,3 @@
-/* vim: set et ts=4 sw=4 sts=4 fdm=marker syntax=c.doxygen: */
-
 /** \file   fliplist.c
  * \brief   Fliplist handling
  *
@@ -28,6 +26,8 @@
  *
  */
 
+/* #define DEBUG_FLIPLIST */
+
 #include "vice.h"
 
 #include <ctype.h>
@@ -38,6 +38,7 @@
 
 #include "archdep.h"
 #include "attach.h"
+#include "charset.h"
 #include "cmdline.h"
 #include "drive.h"
 #include "fliplist.h"
@@ -47,6 +48,11 @@
 #include "resources.h"
 #include "util.h"
 
+#ifdef DEBUG_FLIPLIST
+#define DBG(x)  log_debug   x
+#else
+#define DBG(x)
+#endif
 
 struct fliplist_s {
     fliplist_t next, prev;
@@ -63,7 +69,9 @@ static char *current_image = (char *)NULL;
 static unsigned int current_drive;
 static fliplist_t iterator;
 
-static const char flip_file_header[] = "# Vice fliplist file";
+static const char flip_file_header_old[] = "# Vice fliplist file";
+static const char flip_file_header_new[] = "; Vice fliplist file";
+static const char flip_file_petscii[9] = { 0x23, 0x50, 0x45, 0x54, 0x53, 0x43, 0x49, 0x49, 0 };
 
 #define buffer_size 1024
 
@@ -200,11 +208,10 @@ bool fliplist_add_image(unsigned int unit)
 
     log_message(LOG_DEFAULT, "Adding `%s' to fliplist[%u]", n->image, unit);
     if (fliplist[unit - 8]) {
-        n->next = fliplist[unit - 8];
+        fliplist[unit - 8]->prev->next = n;
         n->prev = fliplist[unit - 8]->prev;
-        n->next->prev = n;
-        n->prev->next = n;
-        fliplist[unit - 8] = n;
+        fliplist[unit - 8]->prev = n;
+        n->next = fliplist[unit - 8];
     } else {
         fliplist[unit - 8] = n;
         n->next = n;
@@ -349,14 +356,27 @@ int fliplist_save_list(unsigned int unit, const char *filename)
     int all_units = 0;
     fliplist_t flip;
     FILE *fp = NULL;
-    char *savedir;
+    char *fliplist_fullname, *fliplist_path, *fliplist_name;
+    char *file_path, *file_name;
+
+    if (filename == NULL || *filename == 0) {
+        return -1;
+    }
+
+    DBG(("fliplist_save_list unit %u, name: '%s'", unit, filename));
+
+    if (archdep_expand_path(&fliplist_fullname, filename) != 0) {
+        return -1;
+    }
+
+    DBG(("full name: '%s'", fliplist_fullname));
 
     /* create the directory where the fliplist should be written first */
-    util_fname_split(filename, &savedir, NULL);
-    if ((savedir != NULL) && (*savedir != 0) && (!strcmp(savedir, "."))) {
-        ioutil_mkdir(savedir, IOUTIL_MKDIR_RWXU);
+    util_fname_split(fliplist_fullname, &fliplist_path, &fliplist_name);
+    if ((fliplist_path != NULL) && (*fliplist_path != 0) && (!strcmp(fliplist_path, "."))) {
+        ioutil_mkdir(fliplist_path, IOUTIL_MKDIR_RWXU);
     }
-    lib_free(savedir);
+    DBG(("path: '%s' name: '%s'", fliplist_path, fliplist_name));
 
     if (unit == FLIPLIST_ALL_UNITS) {
         all_units = 1;
@@ -368,16 +388,37 @@ int fliplist_save_list(unsigned int unit, const char *filename)
 
         if (flip != NULL) {
             if (!fp) {
-                if ((fp = fopen(filename, MODE_WRITE)) == NULL) {
+                if ((fp = fopen(fliplist_fullname, MODE_WRITE)) == NULL) {
+                    lib_free(fliplist_fullname);
+                    lib_free(fliplist_path);
+                    lib_free(fliplist_name);
                     return -1;
                 }
-                fprintf(fp, "%s\n", flip_file_header);
+                /* output the header line */
+                fprintf(fp, "%s\n", flip_file_header_new);
             }
 
-            fprintf(fp, "\nUNIT %u", unit);
+            /* omit the ";UNIT X" line if this is the only unit */
+            if (all_units) {
+                fprintf(fp, ";UNIT %u\n", unit);
+            }
+            /* output the names of the images */
             do {
-                fprintf(fp, "\n%s", flip->image);
+                util_fname_split(flip->image, &file_path, &file_name);
+                DBG(("file path: '%s' name: '%s'", file_path, file_name));
+                /* FIXME: we should handle some more special cases:
+                   - absolute pathes must not be modified (those are non portable anyway
+                   - relative pathes could be converted to a CMD style path so it works with sd2iec
+                */
+                /* if file- and fliplist path is the same, omit the path in the fliplist */
+                if (!strcmp(file_path, fliplist_path)) {
+                    fprintf(fp, "%s\n", file_name);
+                } else {
+                    fprintf(fp, "%s\n", flip->image);
+                }
                 flip = flip->next;
+                lib_free(file_path);
+                lib_free(file_name);
             }
             while (flip != fliplist[unit - 8]);
         }
@@ -387,6 +428,9 @@ int fliplist_save_list(unsigned int unit, const char *filename)
     if (fp) {
         fclose(fp);
     }
+    lib_free(fliplist_fullname);
+    lib_free(fliplist_path);
+    lib_free(fliplist_name);
     return 0;
 }
 
@@ -396,22 +440,37 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
     char buffer[buffer_size];
     int all_units = 0, i;
     int listok = 0;
+    int ispetscii = 0;
+    int firstline = 1;
+    int c;
+    char *fliplist_fullname, *fliplist_path, *fliplist_name;
+    char *buffer_fullname;
+    char *cwd;
 
     if (filename == NULL || *filename == 0 || (fp = fopen(filename, MODE_READ)) == NULL) {
         return -1;
     }
 
-    buffer[0] = '\0';
-    if (fgets(buffer, buffer_size, fp) == NULL) {
-        fclose(fp);
+    DBG(("fliplist_load_list unit %u, autoattach: %d, name: '%s'",
+         unit, autoattach, filename));
+
+    if (archdep_expand_path(&fliplist_fullname, filename) != 0) {
         return -1;
     }
 
-    if (strncmp(buffer, flip_file_header, strlen(flip_file_header)) != 0) {
-        log_message(LOG_DEFAULT, "File %s is not a fliplist file", filename);
-        fclose(fp);
-        return -1;
-    }
+    DBG(("full name: '%s'", fliplist_fullname));
+
+    util_fname_split(fliplist_fullname, &fliplist_path, &fliplist_name);
+
+    DBG(("path: '%s' name: '%s'", fliplist_path, fliplist_name));
+
+    /* KLUDGES: we need to change the current dir to the fliplist path, else
+       the archdep_expand_path below will not work as expected */
+    cwd = lib_malloc(ioutil_maxpathlen() + 1);
+    ioutil_getcwd(cwd, ioutil_maxpathlen());
+    ioutil_chdir(fliplist_path);
+
+    /* remove current fliplist */
     if (unit == FLIPLIST_ALL_UNITS) {
         all_units = 1;
         for (i = 0; i < NUM_DISK_UNITS; i++) {
@@ -425,20 +484,76 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
         char *b;
 
         buffer[0] = '\0';
+
+        /* do not use fgets here, we should deal with all kind of line endings,
+           including petscii */
+#if 0
         if (fgets(buffer, buffer_size, fp) == NULL) {
             break;
         }
+#endif
+        b = buffer;
+        while (!feof(fp)) {
+            c = fgetc(fp);
+            if ((c == EOF) || (c == 0x0a) || (c == 0x0d)) {
+                break;
+            }
+            *b++ = c;
+        }
+        *b = '\0';
 
-        if (strncmp("UNIT ", buffer, 5) == 0) {
+        /* remove trailing whitespace (linefeeds etc) */
+        b = buffer + strlen(buffer);
+        while ((b > buffer) && (isspace((unsigned int)(b[-1])))) {
+            b--;
+            *b = '\0';
+        }
+
+        DBG(("got line: '%s'", buffer));
+
+        if (firstline) {
+            firstline = 0;
+            /* check the header line VICE creates */
+            if ((!strncmp(buffer, flip_file_header_old, strlen(flip_file_header_old))) ||
+                (!strncmp(buffer, flip_file_header_new, strlen(flip_file_header_new)))) {
+                log_message(LOG_DEFAULT, "File %s recognized as fliplist file created by VICE", filename);
+                continue;
+            } else {
+                log_warning(LOG_DEFAULT, "File %s is not a fliplist file created by VICE, continuing anyway...", filename);
+            }
+            /* check for the #PETSCI tag (sd2iec) */
+            if (!strncmp(buffer, flip_file_petscii, strlen(flip_file_petscii))) {
+                DBG(("found #PETSCII tag"));
+                ispetscii = 1;
+                continue;
+            }
+        }
+
+        if (ispetscii) {
+            DBG(("petscii line: '%s'", buffer));
+            charset_petconvstring((uint8_t*)buffer, CONVERT_TO_ASCII);
+            DBG(("ascii line: '%s'", buffer));
+        }
+
+        /* ";UNIT X" (former "UNIT X") indicates the following files belong to that drive */
+        if (!strncmp("UNIT ", buffer, 5) || !strncmp(";UNIT ", buffer, 6)) {
             if (all_units != 0) {
                 long unit_long = -1;
+                char *unit_buffer = buffer + 5; /* points to the number (old) or the space before it (new) */
 
-                util_string_to_long(buffer + 5, NULL, 10, &unit_long);
+                unit_long = strtol(unit_buffer, NULL, 10);
+                DBG(("got UNIT '%s' number: %ld", unit_buffer, unit_long));
 
-                if (unit_long < 8 || unit_long > 11) {
+                if ((unit_long < 8) || (unit_long > 11)) {
                     log_message(LOG_DEFAULT,
                             "Invalid unit number %ld for fliplist\n", unit_long);
                     /* perhaps VICE should properly error out, ie quit? */
+                    fclose(fp);
+                    ioutil_chdir(cwd);
+                    lib_free(cwd);
+                    lib_free(fliplist_fullname);
+                    lib_free(fliplist_path);
+                    lib_free(fliplist_name);
                     return -1;
                 }
 
@@ -447,42 +562,76 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
             continue;
         }
 
-        /* remove trailing whitespace (linefeeds etc) */
-        b = buffer + strlen(buffer);
-        while ((b > buffer) && (isspace((unsigned int)(b[-1])))) {
-            b--;
+        /* ; at the start of a line indicates a comment, skip it */
+        if (buffer[0] == ';') {
+            continue;
         }
 
-        if (b > buffer) {
+        /* skip empty lines, non empty lines contain a filename */
+        if (buffer[0] != 0) {
             fliplist_t tmp;
 
             *b = '\0';
+
+            DBG(("file name: '%s'", buffer));
 
             if (unit == FLIPLIST_ALL_UNITS) {
                 log_message(LOG_DEFAULT, "Fliplist has inconsistent view for unit, assuming 8.\n");
                 unit = 8;
             }
 
-            tmp = lib_malloc(sizeof(struct fliplist_s));
-            tmp->image = lib_strdup(buffer);
-            tmp->unit = unit;
+            /* FIXME: we should handle some special cases of pathes we can find
+                      in .lst files:
+               - sd2iec accepts 'cmd' style pathes
+               - all kinds of absolute pathes musst not be converted, those are
+                 non portable anyway
+            */
 
-            if (fliplist[unit - 8] == NULL) {
-                fliplist[unit - 8] = tmp;
-                tmp->prev = tmp;
-                tmp->next = tmp;
-            } else {
-                tmp->next = fliplist[unit - 8];
-                tmp->prev = fliplist[unit - 8]->prev;
-                tmp->next->prev = tmp;
-                tmp->prev->next = tmp;
-                fliplist[unit - 8] = tmp;
+            /* always use full path for attaching in the fliplist */
+            if (archdep_expand_path(&buffer_fullname, buffer) != 0) {
+                fclose(fp);
+                ioutil_chdir(cwd);
+                lib_free(cwd);
+                lib_free(fliplist_fullname);
+                lib_free(fliplist_path);
+                lib_free(fliplist_name);
+                return -1;
             }
-            listok = 1;
+
+            DBG(("file full name: '%s'", buffer_fullname));
+
+            if (ioutil_access(buffer_fullname, IOUTIL_ACCESS_R_OK) == 0) {
+                tmp = lib_malloc(sizeof(struct fliplist_s));
+                tmp->image = lib_strdup(buffer_fullname);
+                tmp->unit = unit;
+
+                lib_free(buffer_fullname);
+
+                if (fliplist[unit - 8] == NULL) {
+                    /* the first entry in the list */
+                    fliplist[unit - 8] = tmp;
+                    tmp->prev = tmp;
+                    tmp->next = tmp;
+                } else {
+                    /* add next entry at the bottom of the list */
+                    fliplist[unit - 8]->prev->next = tmp;
+                    tmp->prev = fliplist[unit - 8]->prev;
+                    fliplist[unit - 8]->prev = tmp;
+                    tmp->next = fliplist[unit - 8];
+                }
+                listok = 1;
+            } else {
+                log_error(LOG_DEFAULT, "File '%s' could not be added to flip list", buffer_fullname);
+            }
         }
     }
 
     fclose(fp);
+    ioutil_chdir(cwd);
+    lib_free(cwd);
+    lib_free(fliplist_fullname);
+    lib_free(fliplist_path);
+    lib_free(fliplist_name);
 
     if (listok) {
         current_drive = unit;

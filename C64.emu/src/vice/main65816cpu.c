@@ -33,7 +33,7 @@
 #include "6510core.h"
 #include "alarm.h"
 #include "archdep.h"
-#include "clkguard.h"
+#include "autostart.h"
 #include "debug.h"
 #include "interrupt.h"
 #include "log.h"
@@ -115,7 +115,6 @@ struct interrupt_cpu_status_s *maincpu_int_status = NULL;
 #ifndef CYCLE_EXACT_ALARM
 alarm_context_t *maincpu_alarm_context = NULL;
 #endif
-clk_guard_t *maincpu_clk_guard = NULL;
 monitor_interface_t *maincpu_monitor_interface = NULL;
 
 /* This flag is an obsolete optimization. It's always 0 for the 65816 CPU,
@@ -355,6 +354,8 @@ void maincpu_mainloop(void)
             log_error(LOG_DEFAULT, "cycle limit reached.");
             archdep_vice_exit(EXIT_FAILURE);
         }
+
+        autostart_advance();
 #if 0
         if (CLK > 246171754)
             debug.maincpu_traceflg = 1;
@@ -420,7 +421,7 @@ unsigned int maincpu_get_sp(void) {
 
 static char snap_module_name[] = "MAIN6565802CPU";
 #define SNAP_MAJOR 1
-#define SNAP_MINOR 1
+#define SNAP_MINOR 2
 
 int maincpu_snapshot_write_module(snapshot_t *s)
 {
@@ -432,7 +433,7 @@ int maincpu_snapshot_write_module(snapshot_t *s)
         return -1;
 
     if (0
-        || SMW_DW(m, maincpu_clk) < 0
+        || SMW_CLOCK(m, maincpu_clk) < 0
         || SMW_B(m, (uint8_t)WDC65816_REGS_GET_A(&maincpu_regs)) < 0
         || SMW_B(m, (uint8_t)WDC65816_REGS_GET_B(&maincpu_regs)) < 0
         || SMW_W(m, (uint16_t)WDC65816_REGS_GET_X(&maincpu_regs)) < 0
@@ -478,7 +479,7 @@ int maincpu_snapshot_read_module(snapshot_t *s)
 
     /* XXX: Assumes `CLOCK' is the same size as a `DWORD'.  */
     if (0
-        || SMR_DW(m, &maincpu_clk) < 0
+        || SMR_CLOCK(m, &maincpu_clk) < 0
         || SMR_B(m, &a) < 0
         || SMR_B(m, &b) < 0
         || SMR_W(m, &x) < 0

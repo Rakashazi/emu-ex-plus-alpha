@@ -68,14 +68,6 @@ static const feature_list_t featurelist[] = {
 #else
         1 },
 #endif
-#ifdef UNIX /* (unix) */
-    { "HAS_DIGITAL_JOYSTICK", "Enable emulation for digital joysticks.",
-#ifndef HAS_DIGITAL_JOYSTICK
-        0 },
-#else
-        1 },
-#endif
-#endif
 #ifdef MACOSX_SUPPORT /* (osx) */
     { "HAS_HIDMGR", "Enable Mac IOHIDManager Joystick driver.",
 #ifndef HAS_HIDMGR
@@ -196,7 +188,7 @@ static const feature_list_t featurelist[] = {
         1 },
 #endif
 #endif
-#if defined(AMIGA_SUPPORT) || defined(USE_SDLUI) || defined(USE_SDLUI2) || defined(UNIX) || defined(MACOSX_SUPPORT) || defined(WIN32) /* (amiga/sdl/unix/osx/windows) */
+#if defined(USE_SDLUI) /* (optional only in sdl1) */
     { "HAVE_HWSCALE", "Enable arbitrary window scaling",
 #ifndef HAVE_HWSCALE
         0 },
@@ -390,6 +382,14 @@ static const feature_list_t featurelist[] = {
 #else
         1 },
 #endif
+#if defined(UNIX) /* (unix) */
+    { "HAVE_CAPABILITIES", "Support for POSIX 1003.1e capabilities",
+#ifndef HAVE_CAPABILITIES
+        0 },
+#else
+        1 },
+#endif
+#endif
 /* (all) */
     { "HAVE_X64_IMAGE", "Support for X64 image files",
 #ifndef HAVE_X64_IMAGE
@@ -444,13 +444,6 @@ static const feature_list_t featurelist[] = {
 #else
         1 },
 #endif
-#endif
-/* (all) */
-    { "USE_EMBEDDED", "Use embedded data files.",
-#ifndef USE_EMBEDDED
-        0 },
-#else
-        1 },
 #endif
 /* (all) */
     { "USE_LAMEMP3", "Enable lamemp3 encoding support.",

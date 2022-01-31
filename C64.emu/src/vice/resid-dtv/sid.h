@@ -51,8 +51,8 @@ public:
   void enable_external_filter(bool enable);
   void adjust_filter_bias(double bias);
   bool set_sampling_parameters(double clock_freq, sampling_method method,
-			       double sample_freq, double pass_freq = 20000,
-			       double filter_scale = 0.97);
+  double sample_freq, double pass_freq = 20000,
+  double filter_scale = 0.97);
   void adjust_sampling_frequency(double sample_freq);
 
   void clock();
@@ -94,11 +94,11 @@ public:
 protected:
   static double I0(double x);
   RESID_INLINE int clock_interpolate(cycle_count& delta_t, short* buf, int n,
-				     int interleave);
+                                        int interleave);
   RESID_INLINE int clock_resample_interpolate(cycle_count& delta_t, short* buf,
-					      int n, int interleave);
+                                                int n, int interleave);
   RESID_INLINE int clock_resample_fast(cycle_count& delta_t, short* buf,
-				       int n, int interleave);
+                                        int n, int interleave);
 
   Voice voice[3];
   Filter filter;

@@ -47,6 +47,7 @@ extern void magicformel_config_setup(uint8_t *rawcart);
 extern int magicformel_bin_attach(const char *filename, uint8_t *rawcart);
 extern int magicformel_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void magicformel_detach(void);
+extern void magicformel_powerup(void);
 
 extern int magicformel_snapshot_write_module(struct snapshot_s *s);
 extern int magicformel_snapshot_read_module(struct snapshot_s *s);

@@ -153,7 +153,7 @@ fail:
     }
 }
 
-static sound_device_t iff_device =
+static const sound_device_t iff_device =
 {
     "iff",
     iff_init,

@@ -28,25 +28,44 @@
 #include "vice.h"
 
 #include "datasette.h"
+#include "pet.h"
 #include "petpia.h"
+#include "petvia.h"
+#include "tapeport.h"
+#include "via.h"
 
-
-void machine_trigger_flux_change(unsigned int on)
+void machine_trigger_flux_change(int port, unsigned int on)
 {
-    pia1_signal(PIA_SIG_CA1, PIA_SIG_FALL);
+    if (port == TAPEPORT_PORT_1) {
+        pia1_signal(PIA_SIG_CA1, PIA_SIG_FALL);
+    } else {
+        viacore_signal(machine_context.via, VIA_SIG_CB1, VIA_SIG_FALL);
+    }
 }
 
-void machine_set_tape_sense(int sense)
+void machine_set_tape_sense(int port, int sense)
 {
-    pia1_set_tape_sense(sense);
+    if (port == TAPEPORT_PORT_1) {
+        pia1_set_tape1_sense(sense);
+    } else {
+        pia1_set_tape2_sense(sense);
+    }
 }
 
-void machine_set_tape_write_in(int val)
+void machine_set_tape_write_in(int port, int val)
 {
-    pia1_set_tape_write_in(val);
+    if (port == TAPEPORT_PORT_1) {
+        pia1_set_tape1_write_in(val);
+    } else {
+        pia1_set_tape2_write_in(val);
+    }
 }
 
-void machine_set_tape_motor_in(int val)
+void machine_set_tape_motor_in(int port, int val)
 {
-    pia1_set_tape_motor_in(val);
+    if (port == TAPEPORT_PORT_1) {
+        pia1_set_tape1_motor_in(val);
+    } else {
+        pia1_set_tape2_motor_in(val);
+    }
 }

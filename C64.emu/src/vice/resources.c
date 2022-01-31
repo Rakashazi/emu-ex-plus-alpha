@@ -227,6 +227,8 @@ static resource_ram_t *lookup(const char *name)
     resource_ram_t *res;
     unsigned int hashkey;
 
+    DBG(("lookup name:'%s'\n", name ? name : "<empty/null>"));
+
     if (name == NULL) {
         return NULL;
     }
@@ -345,7 +347,9 @@ int resources_register_string(const resource_string_t *r)
         dp->hash_next = hashTable[hashkey];
         hashTable[hashkey] = (int)(dp - resources);
 
-        num_resources++, sp++, dp++;
+        num_resources++;
+        sp++;
+        dp++;
     }
 
     return 0;
@@ -921,23 +925,26 @@ int resources_set_defaults(void)
     cartridge_detach_image(-1);
 
     for (i = 0; i < num_resources; i++) {
+        DBG(("setting default for '%s'\n", resources[i].name));
         switch (resources[i].type) {
             case RES_INTEGER:
                 if ((*resources[i].set_func_int)(vice_ptr_to_int(resources[i].factory_value),
                                                  resources[i].param) < 0) {
-                    log_verbose("Cannot set resource %s", resources[i].name);
+                    log_verbose("Cannot set int resource '%s' to default '%d'",
+                                resources[i].name, vice_ptr_to_int(resources[i].factory_value));
                     return -1;
                 }
                 break;
             case RES_STRING:
                 if ((*resources[i].set_func_string)((const char *)(resources[i].factory_value),
                                                     resources[i].param) < 0) {
-                    log_verbose("Cannot set resource %s", resources[i].name);
+                    log_verbose("Cannot set string resource '%s' to default '%s'",
+                                resources[i].name, (const char *)(resources[i].factory_value));
                     return -1;
                 }
                 break;
         }
-
+        DBG(("issue callback for '%s'\n", resources[i].name));
         resources_issue_callback(resources + i, 0);
     }
 
@@ -1165,9 +1172,7 @@ int resources_read_item_from_file(FILE *f)
     }
 }
 
-/* Load the resources from file `fname'.  If `fname' is NULL, load them from
-   the default resource file.  */
-int resources_load(const char *fname)
+static int load_resource_file(const char *fname)
 {
     FILE *f;
     int retval;
@@ -1223,9 +1228,9 @@ int resources_load(const char *fname)
     return err ? RESERR_FILE_INVALID : 0;
 }
 
-/* Reset resources to defaults, then load the resources from file `fname'.  
-   If `fname' is NULL, load them from the default resource file.  */
-int resources_reset_and_load(const char *fname)
+/* Load the resources from file `fname'.  If `fname' is NULL, load them from
+   the default resource file.  */
+int resources_load(const char *fname)
 {
     char *default_name = NULL;
     int res;
@@ -1245,10 +1250,17 @@ int resources_reset_and_load(const char *fname)
         }
         fname = default_name;
     }
-    resources_set_defaults();
-    res = resources_load(fname);
+    res = load_resource_file(fname);
     lib_free(default_name);
     return res;
+}
+
+/* Reset resources to defaults, then load the resources from file `fname'.
+   If `fname' is NULL, load them from the default resource file.  */
+int resources_reset_and_load(const char *fname)
+{
+    resources_set_defaults();
+    return resources_load(fname);
 }
 
 static char *string_resource_item(int num, const char *delim)
@@ -1491,6 +1503,26 @@ int resources_dump(const char *fname)
 
     fclose(out_file);
     return 0;
+}
+
+/* log resources that do not have their default values */
+void resources_log_active(void)
+{
+    unsigned int i, n = 0;
+
+    for (i = 0; i < num_resources; i++) {
+        if (!resource_item_isdefault(i)) {
+            char *line = string_resource_item(i, "");
+            if (line != NULL) {
+                if (n == 0) {
+                    log_message(LOG_DEFAULT, "\nResources with non default values:");
+                    n++;
+                }
+                log_message(LOG_DEFAULT, "%s", line);
+                lib_free(line);
+            }
+        }
+    }
 }
 
 int resources_register_callback(const char *name,

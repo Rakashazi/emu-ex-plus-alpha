@@ -47,6 +47,8 @@
 #ifdef HAVE_MOUSE
 #include "lightpen.h"
 #include "mouse.h"
+
+static CLOCK pot_cycle = 0;  /* pot sampling cycle */
 #endif
 
 /* VIC access functions. */
@@ -223,25 +225,86 @@ static inline unsigned vic_read_rasterline(void)
 {
     unsigned ypos = VIC_RASTER_Y(maincpu_clk + vic.cycle_offset);
 
-    /* HACK: on NTSC, rasterline 0 seems to start 33 cycles late. when interlace
-     *       is enabled, this seems to happen only on the first half frame.
-     */
     /* TODO: examine/verify what exactly happens, and in what cycles. the over-
      *       all frame timing must be correct (as hardcoded timer values in
      *       games work) so the only way it makes sense is that when rasterline 0
      *       is "shorter", the last rasterline has to be "longer".
      */
-    if ((ypos == 0) && (vic.cycles_per_line == VIC20_NTSC_CYCLES_PER_LINE)) {
-        if (VIC_RASTER_CYCLE(maincpu_clk + vic.cycle_offset) < 33) {
-            return vic.screen_height - 1; /* confirm this */
+    if (vic.cycles_per_line == VIC20_NTSC_CYCLES_PER_LINE) {
+        if (vic.interlace_enabled) {
+            /* FIXME: unfortunately using this for the VIC_RASTER_Y macro breaks non interlaced
+                      timing and perhaps also PAL - we need to investigate this further */
+            ypos = ((unsigned int)(((maincpu_clk + vic.cycle_offset) - vic.framestart_cycle) / 65));
+            /* interlaced
+               top + bottom field combined cycle count: 32+262x65 + 262x65+33 = 525x65 cycles
+             */
+            if (vic.interlace_field == 0) {
+                /* 
+                 * top
+                 * line 0 with 32 cycles
+                   lines 1..262 with 65 cycles
+                */
+                /* HACK: the cycle offset pushes ypos to last+1, this is part of
+                         line 0 of the next field */
+                if (ypos >= (VIC20_NTSC_INTERLACE_FIELD1_LAST_LINE + 1)) {
+                    return 0;
+                }
+            } else {
+                /* 
+                 * bottom
+                 * lines 0..261 with 65 cycles
+                   line 262 with 33 cycles
+                */
+                /* HACK: the last line of this field and the first line of the other field add
+                         up to a full line */
+                if (ypos >= VIC20_NTSC_INTERLACE_FIELD2_LAST_LINE) {
+                    if (VIC_RASTER_CYCLE(maincpu_clk + vic.cycle_offset) < VIC20_NTSC_INTERLACE_FIELD2_CYCLES_LAST_LINE) {
+                        return VIC20_NTSC_INTERLACE_FIELD2_LAST_LINE; /* confirm this */
+                    } else {
+                        return 0;
+                    }
+                }
+            }
+            return ypos;
+        } else {
+            /* no interlace */
+            /* line 0 with 32 cycles
+               lines 1..260 with 65 cycles
+               line 261 with 33 cycles
+               total number: 32+260x65+33 = 261x65 cycles
+               HACK: we fake this by returning line=261 for the first 33 cycles of line 0
+            */
+            if (ypos == 0) {
+                if (VIC_RASTER_CYCLE(maincpu_clk + vic.cycle_offset) < VIC20_NTSC_CYCLES_LAST_LINE) {
+                    return VIC20_NTSC_LAST_LINE; /* confirm this */
+                }
+            }
         }
     }
+
     return ypos;
 }
 
 uint8_t vic_read(uint16_t addr)
 {
     addr &= 0xf;
+
+#ifdef HAVE_MOUSE
+    if ((addr == 8) || (addr == 9)) {
+        if (_mouse_enabled) {
+            if ((maincpu_clk ^ pot_cycle) & ~511) {
+                pot_cycle = maincpu_clk & ~511; /* simplistic 512 cycle sampling */
+
+                if (_mouse_enabled) {
+                    mouse_poll();
+                }
+
+                vic.regs[8] = read_joyport_potx();
+                vic.regs[9] = read_joyport_poty();
+            }
+        }
+    }
+#endif
 
     switch (addr) {
         case 3:
@@ -252,10 +315,6 @@ uint8_t vic_read(uint16_t addr)
             return vic.light_pen.x;
         case 7:
             return vic.light_pen.y;
-        case 8:
-            return read_joyport_potx();
-        case 9:
-            return read_joyport_poty();
         default:
             return vic.regs[addr];
     }

@@ -37,7 +37,7 @@
 #include "raster.h"
 #include "video.h"
 #include "viewport.h"
-
+#include "vsync.h"
 
 inline static void refresh_canvas(raster_t *raster)
 {
@@ -111,7 +111,7 @@ void raster_canvas_handle_end_of_frame(raster_t *raster)
         return;
     }
 
-    if (raster->skip_frame) {
+    if (vsync_should_skip_frame(raster->canvas)) {
         return;
     }
 
@@ -123,6 +123,13 @@ void raster_canvas_handle_end_of_frame(raster_t *raster)
         video_canvas_refresh_all(raster->canvas);
     } else {
         refresh_canvas(raster);
+    }
+
+    if (raster->canvas->videoconfig->interlaced) {
+        /* swap the draw buffer pointers */
+        raster->canvas->draw_buffer->draw_buffer = raster->canvas->draw_buffer->draw_buffer_non_padded[raster->canvas->videoconfig->interlace_field];
+    } else {
+        raster->canvas->draw_buffer->draw_buffer = raster->canvas->draw_buffer->draw_buffer_non_padded[0];
     }
 }
 

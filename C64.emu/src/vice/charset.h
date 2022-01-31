@@ -31,15 +31,21 @@
 #include "types.h"
 #include <stddef.h>
 
-#define a2p(c) charset_petconvstring(c, 0)
-#define p2a(c) charset_petconvstring(c, 1)
+/* for charset_petconvstring, charset_petconv_stralloc */
+#define CONVERT_TO_PETSCII                  0
+#define CONVERT_TO_ASCII                    1
+#define CONVERT_TO_ASCII_WITH_CTRLCODES     2
+#define CONVERT_TO_UTF8                     3
 
+/* for charset_p_toascii */
+#define CONVERT_WITHOUT_CTRLCODES           0
+#define CONVERT_WITH_CTRLCODES              1
 
 /* TODO:    Fix these functions to use size_t for lenght, not int
  */
 
-extern uint8_t *charset_petconvstring(uint8_t *c, int dir);
-extern uint8_t charset_p_toascii(uint8_t c, int cs);
+extern uint8_t *charset_petconvstring(uint8_t *c, int mode);
+extern uint8_t charset_p_toascii(uint8_t c, int mode);
 extern uint8_t charset_p_topetcii(uint8_t c);
 
 extern uint8_t charset_screencode_to_petcii(uint8_t code);
@@ -52,13 +58,7 @@ extern void charset_petcii_to_screencode_line(const uint8_t *line, uint8_t **buf
 extern int charset_petscii_to_ucs(uint8_t c);
 extern int charset_ucs_to_utf8(uint8_t *out, int code, size_t len);
 
-#define CONVERT_TO_PETSCII 0
-#define CONVERT_TO_ASCII 1
-#define CONVERT_TO_UTF8 2
-
-#define CONVERT_TO_MASK 3
-
-extern uint8_t *charset_petconv_stralloc(uint8_t *in, int conv);
+extern uint8_t *charset_petconv_stralloc(uint8_t *in, int mode);
 
 extern char *charset_hexstring_to_byte(char *source, char *destination);
 extern char *charset_replace_hexcodes(char *source);

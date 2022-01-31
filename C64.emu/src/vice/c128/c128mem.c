@@ -49,7 +49,6 @@
 #include "cartio.h"
 #include "cartridge.h"
 #include "cia.h"
-#include "clkguard.h"
 #include "functionrom.h"
 #include "georam.h"
 #include "keyboard.h"
@@ -68,7 +67,9 @@
 #include "vicii-mem.h"
 #include "vicii-phi1.h"
 #include "vicii.h"
+#include "viciitypes.h"
 #include "z80mem.h"
+#include "video.h"
 
 /* #define DEBUG_MMU */
 
@@ -331,6 +332,11 @@ static void mem_toggle_caps_key(void)
     log_message(c128_mem_log, "CAPS key (ASCII/DIN) %s.", (caps_sense) ? "released" : "pressed");
 }
 
+static int mem_get_caps_key(void)
+{
+    return caps_sense;
+}
+
 /* ------------------------------------------------------------------------- */
 
 /* $00/$01 unused bits emulation
@@ -350,28 +356,16 @@ static void mem_toggle_caps_key(void)
     see testprogs/CPU/cpuport for details and tests
 */
 
-static void clk_overflow_callback(CLOCK sub, void *unused_data)
-{
-    if (pport.data_set_clk_bit7 > (CLOCK)0) {
-        pport.data_set_clk_bit7 -= sub;
-    }
-    if (pport.data_falloff_bit7 && (pport.data_set_clk_bit7 < maincpu_clk)) {
-        pport.data_falloff_bit7 = 0;
-        pport.data_set_bit7 = 0;
-    }
-}
-
 uint8_t zero_read(uint16_t addr)
 {
-    uint8_t retval;
-
-	addr &= 0xff;
+    addr &= 0xff;
 
     switch ((uint8_t)addr) {
         case 0:
-            return pport.dir_read;
+            vicii.last_cpu_val = pport.dir_read;
+            break;
         case 1:
-            retval = pport.data_read;
+            vicii.last_cpu_val = pport.data_read;
 
             /* discharge the "capacitor" */
 
@@ -385,19 +379,22 @@ uint8_t zero_read(uint16_t addr)
 
             /* set real value of bit 7 */
             if (!(pport.dir_read & 0x80)) {
-               retval &= ~0x80;
-               retval |= pport.data_set_bit7;
+               vicii.last_cpu_val &= ~0x80;
+               vicii.last_cpu_val |= pport.data_set_bit7;
             }
-
-            return retval;
+            break;
+        default:
+            vicii.last_cpu_val = mem_page_zero[addr];
     }
 
-    return mem_page_zero[addr];
+    return vicii.last_cpu_val;
 }
 
 void zero_store(uint16_t addr, uint8_t value)
 {
     addr &= 0xff;
+
+    vicii.last_cpu_val = value;
 
     switch ((uint8_t)addr) {
         case 0:
@@ -484,11 +481,13 @@ void one_store(uint16_t addr, uint8_t value)
 
 uint8_t chargen_read(uint16_t addr)
 {
-    return mem_chargen_rom_ptr[addr & 0x0fff];
+    vicii.last_cpu_val = mem_chargen_rom_ptr[addr & 0x0fff];
+    return vicii.last_cpu_val;
 }
 
 void chargen_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     mem_chargen_rom_ptr[addr & 0x0fff] = value;
 }
 
@@ -561,26 +560,35 @@ void mem_store_without_romlh(uint16_t addr, uint8_t value)
 /* $0200 - $3FFF: RAM (normal or shared).  */
 uint8_t lo_read(uint16_t addr)
 {
-    return READ_BOTTOM_SHARED(addr);
+    vicii.last_cpu_val = READ_BOTTOM_SHARED(addr);
+
+    return vicii.last_cpu_val;
 }
 
 void lo_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     STORE_BOTTOM_SHARED(addr, value);
 }
 
 uint8_t ram_read(uint16_t addr)
 {
-    return ram_bank[addr];
+    vicii.last_cpu_val = ram_bank[addr];
+
+    return vicii.last_cpu_val;
 }
 
 void ram_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
+
     ram_bank[addr] = value;
 }
 
 void ram_hi_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
+
     if (vbank == 3) {
         vicii_mem_vbank_3fxx_store(addr, value);
     } else {
@@ -595,33 +603,41 @@ void ram_hi_store(uint16_t addr, uint8_t value)
 /* $4000 - $7FFF: RAM or low BASIC ROM.  */
 uint8_t basic_lo_read(uint16_t addr)
 {
-    return c128memrom_basic_rom[addr - 0x4000];
+    vicii.last_cpu_val = c128memrom_basic_rom[addr - 0x4000];
+
+    return vicii.last_cpu_val;
 }
 
 void basic_lo_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
+
     ram_bank[addr] = value;
 }
 
 /* $8000 - $BFFF: RAM or high BASIC ROM.  */
 uint8_t basic_hi_read(uint16_t addr)
 {
-    return c128memrom_basic_rom[addr - 0x4000];
+    vicii.last_cpu_val = c128memrom_basic_rom[addr - 0x4000];
+    return vicii.last_cpu_val;
 }
 
 void basic_hi_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     ram_bank[addr] = value;
 }
 
 /* $C000 - $CFFF: RAM (normal or shared) or Editor ROM.  */
 uint8_t editor_read(uint16_t addr)
 {
-    return c128memrom_basic_rom[addr - 0x4000];
+    vicii.last_cpu_val = c128memrom_basic_rom[addr - 0x4000];
+    return vicii.last_cpu_val;
 }
 
 void editor_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     STORE_TOP_SHARED(addr, value);
 }
 
@@ -632,6 +648,7 @@ static uint8_t d5xx_read(uint16_t addr)
 
 static void d5xx_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
 }
 
 uint8_t d7xx_read(uint16_t addr)
@@ -683,26 +700,31 @@ void d7xx_store(uint16_t addr, uint8_t value)
     if (sid_stereo >= 7 && addr >= sid8_address_start && addr < sid8_address_end) {
         sid8_store(addr, value);
     }
+    vicii.last_cpu_val = value;
 }
 
 /* $E000 - $FFFF: RAM or Kernal.  */
 uint8_t hi_read(uint16_t addr)
 {
-    return c128memrom_kernal_rom[addr & 0x1fff];
+    vicii.last_cpu_val = c128memrom_kernal_rom[addr & 0x1fff];
+    return vicii.last_cpu_val;
 }
 
 void hi_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     STORE_TOP_SHARED(addr, value);
 }
 
 uint8_t top_shared_read(uint16_t addr)
 {
-    return READ_TOP_SHARED(addr);
+    vicii.last_cpu_val = READ_TOP_SHARED(addr);
+    return vicii.last_cpu_val;
 }
 
 void top_shared_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     STORE_TOP_SHARED(addr, value);
 }
 
@@ -710,12 +732,14 @@ void top_shared_store(uint16_t addr, uint8_t value)
 
 void colorram_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     mem_color_ram_cpu[addr & 0x3ff] = value & 0xf;
 }
 
 uint8_t colorram_read(uint16_t addr)
 {
-    return mem_color_ram_cpu[addr & 0x3ff] | (vicii_read_phi1() & 0xf0);
+    vicii.last_cpu_val = mem_color_ram_cpu[addr & 0x3ff] | (vicii_read_phi1() & 0xf0);
+    return vicii.last_cpu_val;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -743,8 +767,6 @@ void mem_read_base_set(unsigned int base, unsigned int index, uint8_t *mem_ptr)
 void mem_initialize_memory(void)
 {
     int i, j, k;
-
-    clk_guard_add_callback(maincpu_clk_guard, clk_overflow_callback, NULL);
 
     mem_chargen_rom_ptr = mem_chargen_rom;
     mem_color_ram_cpu = mem_color_ram;
@@ -871,6 +893,7 @@ void mem_initialize_memory(void)
     mmu_reset();
 
     keyboard_register_caps_key(mem_toggle_caps_key);
+    keyboard_register_get_caps_key(mem_get_caps_key);
 
     top_shared_limit = 0xffff;
     bottom_shared_limit = 0x0000;
@@ -904,7 +927,6 @@ void mem_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit
 void mem_powerup(void)
 {
     ram_init(mem_ram, C128_RAM_SIZE);
-    cartridge_ram_init();  /* Clean cartridge ram too */
 }
 
 /* ------------------------------------------------------------------------- */
@@ -970,10 +992,16 @@ uint8_t mem_read_screen(uint16_t addr)
 {
     /* we assume in C64 mode the kernal never uses the VDC :) */
     if (mmu_is_c64config()) {
-        return ram_read(addr);
+        /* directly read the memory without going through the mmu - it may
+           point to the upper 64k block and then we read the wrong memory */
+        /* return ram_read(addr); */
+        return mem_ram[addr];
     }
     if (!(mem_ram[215] & 0x80)) {
-        return ram_read(addr);
+        /* directly read the memory without going through the mmu - it may
+           point to the upper 64k block and then we read the wrong memory */
+        /* return ram_read(addr); */
+        return mem_ram[addr];
     }
     return vdc_ram_read(addr);
 }
@@ -1191,7 +1219,7 @@ enum {
 };
 
 static const int banknums[MAXBANKS + 1] = {
-    bank_ram, /* default */
+    bank_cpu, /* default */
     bank_cpu,
     bank_ram,
     bank_rom,
@@ -1468,18 +1496,26 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
 
 void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, int *bank)
 {
+    int chip_idx = video_arch_get_active_chip();
+
     /* Check the 40/80 DISPLAY switch state */
-    if (peek_bank_io(0xD505) & 0x80) { /* 40 column so read VIC screen */
-        *base = ((vicii_peek(0xd018) & 0xf0) << 6) | ((~cia2_peek(0xdd00) & 0x03) << 14);
-        *rows = 25;
-        *columns = 40;
-        *bank = 0;
-    } else { /* Read VDC */
-        *base = (vdc.regs[12] << 8) | vdc.regs[13];
-        *rows = vdc.regs[6];
-        *columns = vdc.regs[1];
-        *bank = bank_vdc;
+    switch (chip_idx) {
+        case VIDEO_CHIP_VDC:
+            *base = (vdc.regs[12] << 8) | vdc.regs[13];
+            *rows = vdc.regs[6];
+            *columns = vdc.regs[1];
+            *bank = bank_vdc;
+            break;
+
+        case VIDEO_CHIP_VICII:
+        default:
+            *base = ((vicii_peek(0xd018) & 0xf0) << 6) | ((~cia2_peek(0xdd00) & 0x03) << 14);
+            *rows = 25;
+            *columns = 40;
+            *bank = 0;
+            break;
     }
+
 /*    printf("mem_get_screen_parameter (%s) base:%04x rows: %d colums: %d bank: %d\n",
            mem_ram[215] & 0x80 ? "vdc" : "vicii", *base, *rows, *columns, *bank); */
 }
@@ -1491,54 +1527,40 @@ void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, i
 void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uint8_t *line_length, int *blinking)
 {
     if (mmu_is_c64config()) {
-        /* VICII in C64 mode */
-        *screen_addr = mem_ram[0xd1] + mem_ram[0xd2] * 256; /* Current Screen Line Address */
-        *cursor_column = mem_ram[0xd3];    /* Cursor Column on Current Line */
-        *line_length = mem_ram[0xd5] + 1;  /* Physical Screen Line Length */
-        /* Cursor Blink enable: 1 = Flash Cursor, 0 = Cursor disabled, -1 = n/a */
+        /* CAUTION: this function can be called at any time when the emulation (KERNAL)
+                    is in the middle of a screen update. we must make sure that all
+                    values are being looked up in an "atomic" way so we dont use a low-
+                    and high- byte from before and after an update, leading to invalid
+                    values */
+        int screen_base = (mem_ram[0xd1] + (mem_ram[0xd2] * 256)) & ~0x3ff; /* the upper bits will not change */
+
+        /* Cursor Blink enable: 1 = Cursor in Blink Phase (visible), 0 = Cursor disabled, -1 = n/a */
         *blinking = mem_ram[0xcc] ? 0 : 1;
+        /* Current Screen Line Address */
+        *screen_addr = screen_base + (mem_ram[0xd6] * 40);
+        /* Cursor Column on Current Line */
+        *cursor_column = mem_ram[0xd3];
+        while (*cursor_column >= 40) {
+            *cursor_column -= 40;
+            *screen_addr += 40;
+        }
+        /* Physical Screen Line Length */
+        *line_length = 40;
     } else {
         if (!(mem_ram[215] & 0x80)) {
             /* VICII */
-            *screen_addr = mem_ram[0xe0] + mem_ram[0xe1] * 256;
+            int screen_base = (mem_ram[0xe0] + (mem_ram[0xe1] * 256)) & ~0x3ff; /* the upper bits will not change */
+            *screen_addr = screen_base + (mem_ram[0xeb] * 40);
             *cursor_column = mem_ram[0xec];
             *line_length = 40;
             *blinking = mem_ram[0xa27] ? 0 : 1;
         } else { 
             /* VDC */
-            /*
-              FIXME: somehow working out the cursor position and
-                     blink state can not be done in the same way
-                     as with the other videochips. the problem is
-                     likely that the vdc cursor is not advanced to
-                     the first column of the next line until
-                     actually some characters are being printed.
-                     
-                 6 ready.
-                 7 load"
-                 8 
-                 9 searching for
-                10 loading
-                11 ready.
-                12 run:
-            */
-            *screen_addr = mem_ram[0xe0] + mem_ram[0xe1] * 256;
-            *cursor_column = vdc.crsrpos - *screen_addr;
+            int screen_base = ((vdc.regs[12] << 8) + vdc.regs[13]) & vdc.vdc_address_mask;
+            int cursor_pos = ((vdc.regs[14] << 8) + vdc.regs[15]) & vdc.vdc_address_mask;
             *line_length = vdc.regs[1];
-#if 1
-            /* FIXME: ugly hack to forward autostart to "searching" */
-            if ((*cursor_column > 4) && (mem_ram[0xeb] == 7)) {
-                *screen_addr += 80 * 2;
-                *cursor_column = 0;
-            }
-#endif
-#if 0
-            /* FIXME: ugly hack to forward to "ready" after "loading" */
-            if ((*cursor_column == 0) && (mem_ram[0xeb] == 11)) {
-                 *screen_addr += 80 * 1;
-            }
-#endif
-            /* *blinking = *cursor_column == 0 ? 1 : 0; */
+            *cursor_column = (cursor_pos - screen_base) % *line_length;
+            *screen_addr = screen_base + (((cursor_pos - screen_base) / *line_length) * *line_length);
             *blinking = ((vdc.regs[10] & 0x60) == 0x20) ? 0 : 1;
         }
     }
@@ -1573,210 +1595,196 @@ void mem_color_ram_from_snapshot(uint8_t *color_ram)
 
 uint8_t c128_c64io_d000_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = c64io_d000_read(addr);
+    vicii.last_cpu_val = c64io_d000_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_c64io_d000_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     c64io_d000_store(addr, value);
 }
 
 uint8_t c128_c64io_d100_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = c64io_d100_read(addr);
+    vicii.last_cpu_val = c64io_d100_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_c64io_d100_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     c64io_d100_store(addr, value);
 }
 
 uint8_t c128_c64io_d200_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = c64io_d200_read(addr);
+    vicii.last_cpu_val = c64io_d200_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_c64io_d200_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     c64io_d200_store(addr, value);
 }
 
 uint8_t c128_c64io_d300_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = c64io_d300_read(addr);
+    vicii.last_cpu_val = c64io_d300_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_c64io_d300_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     c64io_d300_store(addr, value);
 }
 
 uint8_t c128_c64io_d400_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = c64io_d400_read(addr);
+    vicii.last_cpu_val = c64io_d400_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_c64io_d400_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     c64io_d400_store(addr, value);
 }
 
 uint8_t c128_mmu_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = mmu_read(addr);
+    vicii.last_cpu_val = mmu_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_mmu_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     mmu_store(addr, value);
 }
 
 uint8_t c128_d5xx_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = d5xx_read(addr);
+    vicii.last_cpu_val = d5xx_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_d5xx_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     d5xx_store(addr, value);
 }
 
 uint8_t c128_vdc_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = vdc_read(addr);
+    vicii.last_cpu_val = vdc_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_vdc_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     vdc_store(addr, value);
 }
 
 uint8_t c128_c64io_d700_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = c64io_d700_read(addr);
+    vicii.last_cpu_val = c64io_d700_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_c64io_d700_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     c64io_d700_store(addr, value);
 }
 
 uint8_t c128_colorram_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = colorram_read(addr);
+    vicii.last_cpu_val = colorram_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_colorram_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     colorram_store(addr, value);
 }
 
 uint8_t c128_cia1_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = cia1_read(addr);
+    vicii.last_cpu_val = cia1_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_cia1_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     cia1_store(addr, value);
 }
 
 uint8_t c128_cia2_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = cia2_read(addr);
+    vicii.last_cpu_val = cia2_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_cia2_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     cia2_store(addr, value);
 }
 
 uint8_t c128_c64io_de00_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = c64io_de00_read(addr);
+    vicii.last_cpu_val = c64io_de00_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_c64io_de00_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     c64io_de00_store(addr, value);
 }
 
 uint8_t c128_c64io_df00_read(uint16_t addr)
 {
-    uint8_t temp_value;
-
-    temp_value = c64io_df00_read(addr);
+    vicii.last_cpu_val = c64io_df00_read(addr);
     vicii_clock_read_stretch();
-    return temp_value;
+    return vicii.last_cpu_val;
 }
 
 void c128_c64io_df00_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     vicii_clock_write_stretch();
     c64io_df00_store(addr, value);
 }

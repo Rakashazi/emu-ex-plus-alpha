@@ -31,6 +31,7 @@
 #include <string.h>
 
 #include "cmdline.h"
+#include "machine.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "tapeport.h"
@@ -75,7 +76,7 @@ static int dtlbasic_dongle_enabled = 0;
 
 static int dtlbasic_counter = -1;
 
-static uint8_t dtlbasic_key[20] = { 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 };
+static const uint8_t dtlbasic_key[20] = { 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 };
 
 static int write_status = -1;
 static int sense_status = -1;
@@ -85,40 +86,35 @@ static int dtlbasic_state = DTLBASIC_DONGLE_IDLE;
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static void dtlbasic_dongle_reset(void);
-static void dtlbasic_write(int write_bit);
-static void dtlbasic_sense_out(int sense);
-static int dtlbasic_write_snapshot(struct snapshot_s *s, int write_image);
-static int dtlbasic_read_snapshot(struct snapshot_s *s);
+static void dtlbasic_powerup(int port);
+static void dtlbasic_write(int port, int write_bit);
+static void dtlbasic_sense_out(int port, int sense);
+static int dtlbasic_write_snapshot(int port, struct snapshot_s *s, int write_image);
+static int dtlbasic_read_snapshot(int port, struct snapshot_s *s);
+static int dtlbasic_enable(int port, int val);
+
+#define VICE_MACHINE_MASK (VICE_MACHINE_C64|VICE_MACHINE_C64SC|VICE_MACHINE_C128)
 
 static tapeport_device_t dtlbasic_dongle_device = {
-    TAPEPORT_DEVICE_DTL_BASIC_DONGLE, /* device id */
-    "DTL BASIC dongle",               /* device name */
-    0,                                /* order of the device, filled in by the tapeport system when the device is attached */
-    "DTLBasicDongle",                 /* resource used by the device */
-    NULL,                             /* NO device shutdown function */
-    dtlbasic_dongle_reset,            /* device specific reset function */
-    NULL,                             /* NO set motor line function */
-    dtlbasic_write,                   /* set write line function */
-    dtlbasic_sense_out,               /* set sense line function */
-    NULL,                             /* NO set read line function */
-    NULL,                             /* NO passthrough flux change function */
-    NULL,                             /* NO passthrough sense read function */
-    NULL,                             /* NO passthrough write line function */
-    NULL                              /* NO passthrough motor line function */
+    "DTL BASIC dongle",          /* device name */
+    TAPEPORT_DEVICE_TYPE_DONGLE, /* device is a 'dongle' type device */
+    VICE_MACHINE_MASK,           /* device works on x64/x64sc/x128 machines */
+    TAPEPORT_PORT_1_MASK,        /* device only works on port 1 */
+    dtlbasic_enable,             /* device enable function */
+    dtlbasic_powerup,            /* device specific hard reset function */
+    NULL,                        /* NO device shutdown function */
+    NULL,                        /* NO set motor line function */
+    dtlbasic_write,              /* set write line function */
+    dtlbasic_sense_out,          /* set sense line function */
+    NULL,                        /* NO set read line function */
+    dtlbasic_write_snapshot,     /* device snapshot write function */
+    dtlbasic_read_snapshot       /* device snapshot read function */
 };
 
-static tapeport_snapshot_t dtlbasic_snapshot = {
-    TAPEPORT_DEVICE_DTL_BASIC_DONGLE,
-    dtlbasic_write_snapshot,
-    dtlbasic_read_snapshot
-};
-
-static tapeport_device_list_t *dtlbasic_dongle_list_item = NULL;
 
 /* ------------------------------------------------------------------------- */
 
-static int set_dtlbasic_dongle_enabled(int value, void *param)
+static int dtlbasic_enable(int port, int value)
 {
     int val = value ? 1 : 0;
 
@@ -127,53 +123,22 @@ static int set_dtlbasic_dongle_enabled(int value, void *param)
     }
 
     if (val) {
-        dtlbasic_dongle_list_item = tapeport_device_register(&dtlbasic_dongle_device);
-        if (dtlbasic_dongle_list_item == NULL) {
-            return -1;
-        }
         dtlbasic_counter = -1;
         dtlbasic_state = DTLBASIC_DONGLE_IDLE;
-    } else {
-        tapeport_device_unregister(dtlbasic_dongle_list_item);
-        dtlbasic_dongle_list_item = NULL;
     }
 
     dtlbasic_dongle_enabled = val;
     return 0;
 }
 
-static const resource_int_t resources_int[] = {
-    { "DTLBasicDongle", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      &dtlbasic_dongle_enabled, set_dtlbasic_dongle_enabled, NULL },
-    RESOURCE_INT_LIST_END
-};
-
-int dtlbasic_dongle_resources_init(void)
+int dtlbasic_dongle_resources_init(int amount)
 {
-    tapeport_snapshot_register(&dtlbasic_snapshot);
-
-    return resources_register_int(resources_int);
-}
-
-static const cmdline_option_t cmdline_options[] =
-{
-    { "-dtlbasicdongle", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "DTLBasicDongle", (resource_value_t)1,
-      NULL, "Enable DTL Basic dongle" },
-    { "+dtlbasicdongle", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "DTLBasicDongle", (resource_value_t)0,
-      NULL, "Enable DTL Basic dongle" },
-    CMDLINE_LIST_END
-};
-
-int dtlbasic_dongle_cmdline_options_init(void)
-{
-    return cmdline_register_options(cmdline_options);
+    return tapeport_device_register(TAPEPORT_DEVICE_DTL_BASIC_DONGLE, &dtlbasic_dongle_device);
 }
 
 /* ---------------------------------------------------------------------*/
 
-static void dtlbasic_dongle_reset(void)
+static void dtlbasic_powerup(int port)
 {
     dtlbasic_state = DTLBASIC_DONGLE_IDLE;
     dtlbasic_counter = -1;
@@ -181,7 +146,7 @@ static void dtlbasic_dongle_reset(void)
     sense_status = -1;
 }
 
-static void dtlbasic_write(int write_bit)
+static void dtlbasic_write(int port, int write_bit)
 {
     if (write_bit == write_status) {
         return;
@@ -203,7 +168,7 @@ static void dtlbasic_write(int write_bit)
     if (!write_bit) {
         if (dtlbasic_counter != -1) {
             if (dtlbasic_key[dtlbasic_counter]) {
-                tapeport_trigger_flux_change(1, dtlbasic_dongle_device.id);
+                tapeport_trigger_flux_change(1, TAPEPORT_PORT_1);
             }
             ++dtlbasic_counter;
             if (dtlbasic_counter == 20) {
@@ -213,7 +178,7 @@ static void dtlbasic_write(int write_bit)
     }
 }
 
-static void dtlbasic_sense_out(int sense)
+static void dtlbasic_sense_out(int port, int sense)
 {
     if (sense == sense_status) {
         return;
@@ -244,11 +209,11 @@ static void dtlbasic_sense_out(int sense)
    DWORD | state   | device state
  */
 
-static char snap_module_name[] = "TP_DTLBASIC";
+static const char snap_module_name[] = "TP_DTLBASIC";
 #define SNAP_MAJOR   0
-#define SNAP_MINOR   0
+#define SNAP_MINOR   1
 
-static int dtlbasic_write_snapshot(struct snapshot_s *s, int write_image)
+static int dtlbasic_write_snapshot(int port, struct snapshot_s *s, int write_image)
 {
     snapshot_module_t *m;
 
@@ -269,13 +234,10 @@ static int dtlbasic_write_snapshot(struct snapshot_s *s, int write_image)
     return snapshot_module_close(m);
 }
 
-static int dtlbasic_read_snapshot(struct snapshot_s *s)
+static int dtlbasic_read_snapshot(int port, struct snapshot_s *s)
 {
     uint8_t major_version, minor_version;
     snapshot_module_t *m;
-
-    /* enable device */
-    set_dtlbasic_dongle_enabled(1, NULL);
 
     m = snapshot_module_open(s, snap_module_name, &major_version, &minor_version);
 

@@ -34,7 +34,6 @@
 
 #include "alarm.h"
 #include "archdep.h"
-#include "clkguard.h"
 #include "cmdline.h"
 #include "interrupt.h"
 #include "lib.h"
@@ -232,20 +231,11 @@ int midi_cmdline_options_init(void)
 
 /******************************************************************/
 
-static void clk_overflow_callback(CLOCK sub, void *var)
-{
-    if (alarm_active) {
-        midi_alarm_clk -= sub;
-    }
-}
-
 void midi_init(void)
 {
     midi_int_num = interrupt_cpu_status_int_new(maincpu_int_status, "MIDI");
 
     midi_alarm = alarm_new(maincpu_alarm_context, "MIDI", int_midi, NULL);
-
-    clk_guard_add_callback(maincpu_clk_guard, clk_overflow_callback, NULL);
 
     if (midi_log == LOG_ERR) {
         midi_log = log_open("MIDI");

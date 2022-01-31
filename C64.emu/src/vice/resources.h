@@ -61,7 +61,8 @@ struct resource_int_s {
      */
     char *name;
 
-    /* Factory default value.  */
+    /* Factory default value.  This cannot be 'const' since in some cases the
+       value will be determined and set at runtime */
     int factory_value;
 
     /* Is the resource important for history recording or netplay? */
@@ -158,6 +159,7 @@ extern int resources_load(const char *fname);
    for actual settings (vicerc) */
 extern int resources_reset_and_load(const char *fname);
 extern int resources_dump(const char *fname);
+extern void resources_log_active(void);
 
 extern int resources_write_item_to_file(FILE *fp, const char *name);
 extern int resources_read_item_from_file(FILE *fp);

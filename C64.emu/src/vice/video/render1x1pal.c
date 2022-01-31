@@ -47,48 +47,7 @@ void yuv_to_rgb(int32_t y, int32_t u, int32_t v,
 }
 
 static inline
-void store_pixel_2(uint8_t *trg, int32_t y1, int32_t u1, int32_t v1, int32_t y2, int32_t u2, int32_t v2)
-{
-    uint16_t *tmp;
-    int32_t red;
-    int32_t grn;
-    int32_t blu;
-
-    yuv_to_rgb(y1, u1, v1, &red, &grn, &blu);
-    tmp = (uint16_t *) trg;
-    tmp[0] = (uint16_t) (gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu]);
-
-    yuv_to_rgb(y2, u2, v2, &red, &grn, &blu);
-    tmp[1] = (uint16_t) (gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu]);
-}
-
-static inline
-void store_pixel_3(uint8_t *trg, int32_t y1, int32_t u1, int32_t v1, int32_t y2, int32_t u2, int32_t v2)
-{
-    uint32_t tmp;
-    int32_t red;
-    int32_t grn;
-    int32_t blu;
-
-    yuv_to_rgb(y1, u1, v1, &red, &grn, &blu);
-    tmp = gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu];
-    trg[0] = (uint8_t) tmp;
-    tmp >>= 8;
-    trg[1] = (uint8_t) tmp;
-    tmp >>= 8;
-    trg[2] = (uint8_t) tmp;
-
-    yuv_to_rgb(y2, u2, v2, &red, &grn, &blu);
-    tmp = gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu];
-    trg[3] = (uint8_t) tmp;
-    tmp >>= 8;
-    trg[4] = (uint8_t) tmp;
-    tmp >>= 8;
-    trg[5] = (uint8_t) tmp;
-}
-
-static inline
-void store_pixel_4(uint8_t *trg, int32_t y1, int32_t u1, int32_t v1, int32_t y2, int32_t u2, int32_t v2)
+void store_pixel_4(video_render_color_tables_t *color_tab, uint8_t *trg, int32_t y1, int32_t u1, int32_t v1, int32_t y2, int32_t u2, int32_t v2)
 {
     uint32_t *tmp;
     int32_t red;
@@ -97,55 +56,16 @@ void store_pixel_4(uint8_t *trg, int32_t y1, int32_t u1, int32_t v1, int32_t y2,
 
     yuv_to_rgb(y1, u1, v1, &red, &grn, &blu);
     tmp = (uint32_t *) trg;
-    tmp[0] = gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu] | alpha;
+    tmp[0] = color_tab->gamma_red[256 + red]
+             | color_tab->gamma_grn[256 + grn]
+             | color_tab->gamma_blu[256 + blu]
+             | color_tab->alpha;
 
     yuv_to_rgb(y2, u2, v2, &red, &grn, &blu);
-    tmp[1] = gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu] | alpha;
-}
-
-static inline
-void store_pixel_UYVY(uint8_t *trg, int32_t y1_, int32_t u1, int32_t v1, int32_t y2_, int32_t u2, int32_t v2)
-{
-    uint8_t y1 = (uint8_t)((y1_ >> 16) & 0xFFu);
-    uint8_t y2 = (uint8_t)((y2_ >> 16) & 0xFFu);
-
-    u1 = (u1 + u2) >> 17;
-    v1 = (v1 + v2) >> 17;
-
-    trg[0] = (uint8_t)(u1 + 128);
-    trg[1] = y1;
-    trg[2] = (uint8_t)(v1 + 128);
-    trg[3] = y2;
-}
-
-static inline
-void store_pixel_YUY2(uint8_t *trg, int32_t y1_, int32_t u1, int32_t v1, int32_t y2_, int32_t u2, int32_t v2)
-{
-    uint8_t y1 = (uint8_t)((y1_ >> 16) & 0xFFu);
-    uint8_t y2 = (uint8_t)((y2_ >> 16) & 0xFFu);
-
-    u1 = (u1 + u2) >> 17;
-    v1 = (v1 + v2) >> 17;
-
-    trg[0] = y1;
-    trg[1] = (uint8_t)(u1 + 128);
-    trg[2] = y2;
-    trg[3] = (uint8_t)(v1 + 128);
-}
-
-static inline
-void store_pixel_YVYU(uint8_t *trg, int32_t y1_, int32_t u1, int32_t v1, int32_t y2_, int32_t u2, int32_t v2)
-{
-    uint8_t y1 = (uint8_t)((y1_ >> 16) & 0xFFu);
-    uint8_t y2 = (uint8_t)((y2_ >> 16) & 0xFFu);
-
-    u1 = (u1 + u2) >> 17;
-    v1 = (v1 + v2) >> 17;
-
-    trg[0] = y1;
-    trg[1] = (uint8_t)(v1 + 128);
-    trg[2] = y2;
-    trg[3] = (uint8_t)(u1 + 128);
+    tmp[1] = color_tab->gamma_red[256 + red]
+             | color_tab->gamma_grn[256 + grn]
+             | color_tab->gamma_blu[256 + blu]
+             | color_tab->alpha;
 }
 
 /* PAL 1x1 renderers */
@@ -156,13 +76,10 @@ render_generic_1x1_pal(video_render_color_tables_t *color_tab, const uint8_t *sr
                        unsigned int xt, const unsigned int yt,
                        const unsigned int pitchs, const unsigned int pitcht,
                        const unsigned int pixelstride,
-                       void (*store_func)(uint8_t *trg,
-                                          int32_t y1, int32_t u1, int32_t v1,
-                                          int32_t y2, int32_t u2, int32_t v2),
                        int yuvtarget, video_render_config_t *config)
 {
-    const int32_t *cbtable = color_tab->cbtable;
-    const int32_t *crtable = color_tab->crtable;
+    const int32_t *cbtable;
+    const int32_t *crtable;
     const int32_t *ytablel = color_tab->ytablel;
     const int32_t *ytableh = color_tab->ytableh;
     const uint8_t *tmpsrc;
@@ -257,78 +174,13 @@ render_generic_1x1_pal(video_render_color_tables_t *color_tab, const uint8_t *sr
             line[1] = vnew;
             line += 2;
 
-            store_func(tmptrg, l1, u1, v1, l2, u2, v2);
+            store_pixel_4(color_tab, tmptrg, l1, u1, v1, l2, u2, v2);
             tmptrg += pixelstride;
         }
 
         src += pitchs;
         trg += pitcht;
     }
-}
-
-void
-render_UYVY_1x1_pal(video_render_color_tables_t *color_tab,
-                    const uint8_t *src, uint8_t *trg,
-                    const unsigned int width, const unsigned int height,
-                    const unsigned int xs, const unsigned int ys,
-                    const unsigned int xt, const unsigned int yt,
-                    const unsigned int pitchs, const unsigned int pitcht, video_render_config_t *config)
-{
-    render_generic_1x1_pal(color_tab, src, trg, width, height, xs, ys, xt, yt,
-                           pitchs, pitcht,
-                           4, store_pixel_UYVY, 1, config);
-}
-
-void
-render_YUY2_1x1_pal(video_render_color_tables_t *color_tab,
-                    const uint8_t *src, uint8_t *trg,
-                    const unsigned int width, const unsigned int height,
-                    const unsigned int xs, const unsigned int ys,
-                    const unsigned int xt, const unsigned int yt,
-                    const unsigned int pitchs, const unsigned int pitcht, video_render_config_t *config)
-{
-    render_generic_1x1_pal(color_tab, src, trg, width, height, xs, ys, xt, yt,
-                           pitchs, pitcht,
-                           4, store_pixel_YUY2, 1, config);
-}
-
-void
-render_YVYU_1x1_pal(video_render_color_tables_t *color_tab,
-                    const uint8_t *src, uint8_t *trg,
-                    const unsigned int width, const unsigned int height,
-                    const unsigned int xs, const unsigned int ys,
-                    const unsigned int xt, const unsigned int yt,
-                    const unsigned int pitchs, const unsigned int pitcht, video_render_config_t *config)
-{
-    render_generic_1x1_pal(color_tab, src, trg, width, height, xs, ys, xt, yt,
-                           pitchs, pitcht,
-                           4, store_pixel_YVYU, 1, config);
-}
-
-void
-render_16_1x1_pal(video_render_color_tables_t *color_tab,
-                  const uint8_t *src, uint8_t *trg,
-                  const unsigned int width, const unsigned int height,
-                  const unsigned int xs, const unsigned int ys,
-                  const unsigned int xt, const unsigned int yt,
-                  const unsigned int pitchs, const unsigned int pitcht, video_render_config_t *config)
-{
-    render_generic_1x1_pal(color_tab, src, trg, width, height, xs, ys, xt, yt,
-                           pitchs, pitcht,
-                           4, store_pixel_2, 0, config);
-}
-
-void
-render_24_1x1_pal(video_render_color_tables_t *color_tab,
-                  const uint8_t *src, uint8_t *trg,
-                  const unsigned int width, const unsigned int height,
-                  const unsigned int xs, const unsigned int ys,
-                  const unsigned int xt, const unsigned int yt,
-                  const unsigned int pitchs, const unsigned int pitcht, video_render_config_t *config)
-{
-    render_generic_1x1_pal(color_tab, src, trg, width, height, xs, ys, xt, yt,
-                           pitchs, pitcht,
-                           6, store_pixel_3, 0, config);
 }
 
 void
@@ -341,5 +193,5 @@ render_32_1x1_pal(video_render_color_tables_t *color_tab,
 {
     render_generic_1x1_pal(color_tab, src, trg, width, height, xs, ys, xt, yt,
                            pitchs, pitcht,
-                           8, store_pixel_4, 0, config);
+                           8, 0, config);
 }

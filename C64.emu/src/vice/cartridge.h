@@ -68,6 +68,8 @@ void cartridge_unset_default(void);
 
 /* reset button pressed in UI */
 extern void cartridge_reset(void);
+/* powerup / hardreset */
+extern void cartridge_powerup(void);
 
 /* FIXME: this should also be made a generic function that takes the type */
 /* freeze button pressed in UI */
@@ -231,9 +233,11 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_BLACKBOX9            71 /* blackbox9.c */
 #define CARTRIDGE_LT_KERNAL            72 /* ltkernal.c */
 #define CARTRIDGE_RAMLINK              73 /* ramlink.c */
-#define CARTRIDGE_HERO                 74 /* hero.c */
-
-#define CARTRIDGE_LAST                 74 /* cartconv: last cartridge in list */
+#define CARTRIDGE_DREAN                74 /* drean.c */
+#define CARTRIDGE_IEEEFLASH64          75 /* ieeeflash64.c */
+#define CARTRIDGE_TURTLE_GRAPHICS_II   76 /* turtlegraphics.c */
+#define CARTRIDGE_FREEZE_FRAME_MK2     77 /* freezeframe2.c */
+#define CARTRIDGE_LAST                 77 /* cartconv: last cartridge in list */
 
 /* list of canonical names for the c64 cartridges:
    note: often it is hard to determine "the" official name, let alone the way it
@@ -287,15 +291,17 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_NAME_TFE                "The Final Ethernet"
 #define CARTRIDGE_NAME_FORMEL64           "Formel 64"
 #define CARTRIDGE_NAME_FREEZE_FRAME       "Freeze Frame" /* http://rr.pokefinder.org/wiki/Freeze_Frame */
+#define CARTRIDGE_NAME_FREEZE_FRAME_MK2   "Freeze Frame MK2" /* http://rr.pokefinder.org/wiki/Freeze_Frame */
 #define CARTRIDGE_NAME_FREEZE_MACHINE     "Freeze Machine" /* http://rr.pokefinder.org/wiki/Freeze_Frame */
 #define CARTRIDGE_NAME_FUNPLAY            "Fun Play" /* also: "Power Play" */ /* http://home.nomansland.biz/~zerqent/commodore_salg/CIMG2132.JPG */
 #define CARTRIDGE_NAME_GAME_KILLER        "Game Killer" /* http://rr.pokefinder.org/wiki/Game_Killer */
 #define CARTRIDGE_NAME_GEORAM             "GEO-RAM" /* http://www.retroport.de/Rex.html */
 #define CARTRIDGE_NAME_GMOD2              "GMod2" /* http://wiki.icomp.de/wiki/GMod2 */
 #define CARTRIDGE_NAME_GMOD3              "GMod3" /* http://wiki.icomp.de/wiki/GMod3 */
-#define CARTRIDGE_NAME_HERO               "H.E.R.O. (Drean)"
+#define CARTRIDGE_NAME_DREAN              "Drean"
 #define CARTRIDGE_NAME_IDE64              "IDE64" /* see http://www.ide64.org/ */
 #define CARTRIDGE_NAME_IEEE488            "IEEE-488 Interface"
+#define CARTRIDGE_NAME_IEEEFLASH64        "IEEE Flash! 64"
 #define CARTRIDGE_NAME_ISEPIC             "ISEPIC" /* http://rr.pokefinder.org/wiki/Isepic */
 #define CARTRIDGE_NAME_KCS_POWER          "KCS Power Cartridge" /* http://rr.pokefinder.org/wiki/Power_Cartridge */
 #define CARTRIDGE_NAME_KINGSOFT           "Kingsoft"
@@ -341,6 +347,7 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_NAME_SUPER_SNAPSHOT     "Super Snapshot V4" /* http://rr.pokefinder.org/wiki/Super_Snapshot */
 #define CARTRIDGE_NAME_SUPER_SNAPSHOT_V5  "Super Snapshot V5" /* http://rr.pokefinder.org/wiki/Super_Snapshot */
 #define CARTRIDGE_NAME_SWIFTLINK          "Swiftlink" /* http://mikenaberezny.com/hardware/peripherals/swiftlink-rs232-interface/ */
+#define CARTRIDGE_NAME_TURTLE_GRAPHICS_II "HES Turtle Graphics II"
 #define CARTRIDGE_NAME_TURBO232           "Turbo232" /* also: "ACIA/SWIFTLINK" */ /*http://www.retroport.de/C64_C128_Hardware2.html */
 #define CARTRIDGE_NAME_WARPSPEED          "Warp Speed" /* see manual http://rr.pokefinder.org/wiki/WarpSpeed */
 #define CARTRIDGE_NAME_WESTERMANN         "Westermann Learning"
@@ -350,6 +357,15 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_NAME_GENERIC_8KB        "generic 8KiB game"
 #define CARTRIDGE_NAME_GENERIC_16KB       "generic 16KiB game"
 #define CARTRIDGE_NAME_ULTIMAX            "generic Ultimax"
+
+/*
+ * C128 cartridge system
+ */
+
+#define CARTRIDGE_C128_WARPSPEED128 1
+#define CARTRIDGE_C128_LAST 1
+
+#define CARTRIDGE_C128_NAME_WARPSPEED128  "Warp Speed 128"
 
 /*
  * VIC20 cartridge system
@@ -374,17 +390,24 @@ extern void cartridge_sound_chip_init(void);
 
 #define CARTRIDGE_VIC20_DEBUGCART          -124 /* debugcart.c */
 
+#define CARTRIDGE_VIC20_GENERIC              -2 /* generic.c */
+
+#define CARTRIDGE_VIC20_SIDCART             -10 /* vic20-sidcart.c */
+#define CARTRIDGE_VIC20_IEEE488             -11 /* vic20-ieee488.c */
+#define CARTRIDGE_VIC20_IO2_RAM             -12 /* ioramcart.c */
+#define CARTRIDGE_VIC20_IO3_RAM             -13 /* ioramcart.c */
+
 /* #define CARTRIDGE_NONE               -1 */
-#define CARTRIDGE_VIC20_GENERIC         1   /* generic.c */
-#define CARTRIDGE_VIC20_MEGACART        2   /* megacart.c */
-#define CARTRIDGE_VIC20_FINAL_EXPANSION 3   /* finalexpansion.c */
-#define CARTRIDGE_VIC20_FP              4   /* vic-fp.c */
-#define CARTRIDGE_VIC20_IEEE488         5   /* vic20-ieee488.c */
-#define CARTRIDGE_VIC20_SIDCART         6   /* vic20-sidcart.c */
-#define CARTRIDGE_VIC20_UM              7   /* ultimem.c */
-#define CARTRIDGE_VIC20_IO2_RAM         8   /* ioramcart.c */
-#define CARTRIDGE_VIC20_IO3_RAM         9   /* ioramcart.c */
-#define CARTRIDGE_VIC20_BEHRBONZ       10   /* behrbonz.c */
+/* #define CARTRIDGE_CRT                 0 */
+
+/* the following must match the CRT IDs */
+#define CARTRIDGE_VIC20_MEGACART        1   /* megacart.c */
+#define CARTRIDGE_VIC20_BEHRBONZ        2   /* behrbonz.c */
+#define CARTRIDGE_VIC20_FP              3   /* vic-fp.c */
+#define CARTRIDGE_VIC20_UM              4   /* ultimem.c */
+#define CARTRIDGE_VIC20_FINAL_EXPANSION 5   /* finalexpansion.c */
+
+#define CARTRIDGE_VIC20_LAST            5   /* cartconv: last cartridge in list */
 
 /*
  * VIC20 Generic cartridges
@@ -397,45 +420,46 @@ extern void cartridge_sound_chip_init(void);
  *     1:  uses block 3 (6000-7fff)
  *     2:  uses block 2 (4000-5fff)
  *     3:  uses block 1 (2000-3fff)
- * 
- * bit 4:  0=4k 1=8k (only useful if just one block is used)
- * bit 5:  0=first, 1=second 4k in block (only useful for 4k images)
+ *
+ * bit 4+5:  0,0=1k, 0,1=2k 1,0=4k 1,1=8k (only useful if just one block is used)
+ * bit 6:    starts at 0=first, 1=second 4k in block (only useful for 1k/2k/4k images)
  */
 #define CARTRIDGE_VIC20_DETECT       0x8000
 
-#define CARTRIDGE_VIC20_TYPEDEF(h, s, b1, b2, b3, b5) \
-    (0x8000 | ((h) << 5) | ((s) << 4) | ((b1) << 3) | ((b2) << 2) | ((b3) << 1) | ((b5) << 0))
+#define CARTRIDGE_VIC20_TYPEDEF(h, s1, s0, b1, b2, b3, b5) \
+    (0x8000 | ((h) << 6) | ((s1) << 5) | ((s0) << 4) | ((b1) << 3) | ((b2) << 2) | ((b3) << 1) | ((b5) << 0))
 
 /* block 1 */    
-#define CARTRIDGE_VIC20_4KB_2000        CARTRIDGE_VIC20_TYPEDEF(0, 0, 1, 0, 0, 0)
-#define CARTRIDGE_VIC20_8KB_2000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 1, 0, 0, 0)
-#define CARTRIDGE_VIC20_4KB_3000        CARTRIDGE_VIC20_TYPEDEF(1, 0, 1, 0, 0, 0)
+#define CARTRIDGE_VIC20_4KB_2000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 0,  1, 0, 0, 0)
+#define CARTRIDGE_VIC20_8KB_2000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  1, 0, 0, 0)
+#define CARTRIDGE_VIC20_4KB_3000        CARTRIDGE_VIC20_TYPEDEF(1, 1, 0,  1, 0, 0, 0)
 /* block 2 */
-#define CARTRIDGE_VIC20_4KB_4000        CARTRIDGE_VIC20_TYPEDEF(0, 0, 0, 1, 0, 0)
-#define CARTRIDGE_VIC20_8KB_4000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 0, 1, 0, 0)
-#define CARTRIDGE_VIC20_4KB_5000        CARTRIDGE_VIC20_TYPEDEF(1, 0, 0, 1, 0, 0)
+#define CARTRIDGE_VIC20_4KB_4000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 0,  0, 1, 0, 0)
+#define CARTRIDGE_VIC20_8KB_4000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 1, 0, 0)
+#define CARTRIDGE_VIC20_4KB_5000        CARTRIDGE_VIC20_TYPEDEF(1, 1, 0,  0, 1, 0, 0)
 /* block 3 */
-#define CARTRIDGE_VIC20_4KB_6000        CARTRIDGE_VIC20_TYPEDEF(0, 0, 0, 0, 1, 0)
-#define CARTRIDGE_VIC20_8KB_6000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 0, 0, 1, 0)
-#define CARTRIDGE_VIC20_4KB_7000        CARTRIDGE_VIC20_TYPEDEF(1, 0, 0, 0, 1, 0)
+#define CARTRIDGE_VIC20_4KB_6000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 0,  0, 0, 1, 0)
+#define CARTRIDGE_VIC20_8KB_6000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 0, 1, 0)
+#define CARTRIDGE_VIC20_4KB_7000        CARTRIDGE_VIC20_TYPEDEF(1, 1, 0,  0, 0, 1, 0)
 /* block 5 */
-#define CARTRIDGE_VIC20_4KB_A000        CARTRIDGE_VIC20_TYPEDEF(0, 0, 0, 0, 0, 1)
-#define CARTRIDGE_VIC20_8KB_A000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 0, 0, 0, 1)
-#define CARTRIDGE_VIC20_4KB_B000        CARTRIDGE_VIC20_TYPEDEF(1, 0, 0, 0, 0, 1)
+#define CARTRIDGE_VIC20_4KB_A000        CARTRIDGE_VIC20_TYPEDEF(0, 0, 0,  0, 0, 0, 1)
+#define CARTRIDGE_VIC20_8KB_A000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 0, 0, 1)
+#define CARTRIDGE_VIC20_4KB_B000        CARTRIDGE_VIC20_TYPEDEF(1, 1, 0,  0, 0, 0, 1)
+#define CARTRIDGE_VIC20_2KB_B000        CARTRIDGE_VIC20_TYPEDEF(1, 0, 1,  0, 0, 0, 1)
 
 /* block 1 + block 2 */
-#define CARTRIDGE_VIC20_16KB_2000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1, 1, 0, 0) 
+#define CARTRIDGE_VIC20_16KB_2000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  1, 1, 0, 0) 
 /* block 1 + block 5 */
-#define CARTRIDGE_VIC20_16KB_2000_A000  CARTRIDGE_VIC20_TYPEDEF(0, 1, 1, 0, 0, 1) 
+#define CARTRIDGE_VIC20_16KB_2000_A000  CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  1, 0, 0, 1) 
 /* block 2 + block 3 */
-#define CARTRIDGE_VIC20_16KB_4000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 0, 1, 1, 0) 
+#define CARTRIDGE_VIC20_16KB_4000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 1, 1, 0) 
 /* block 2 + block 5 */
-#define CARTRIDGE_VIC20_16KB_4000_A000  CARTRIDGE_VIC20_TYPEDEF(0, 1, 0, 1, 0, 1) 
+#define CARTRIDGE_VIC20_16KB_4000_A000  CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 1, 0, 1) 
 /* block 3 + block 5 */
-#define CARTRIDGE_VIC20_16KB_6000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 0, 0, 1, 1) 
+#define CARTRIDGE_VIC20_16KB_6000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 0, 1, 1) 
 
 /* block 1,2,3,5 */
-#define CARTRIDGE_VIC20_32KB_2000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1, 1, 1, 1)
+#define CARTRIDGE_VIC20_32KB_2000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  1, 1, 1, 1)
 
 /* list of canonical names for the VIC20 cartridges: */
 #define CARTRIDGE_VIC20_NAME_BEHRBONZ        "Behr Bonz"
@@ -452,23 +476,35 @@ extern void cartridge_sound_chip_init(void);
 /*
  * plus4 cartridge system
  */
-/* #define CARTRIDGE_NONE               -1 */
-#define CARTRIDGE_V364_SPEECH           0x8100
 
+#define CARTRIDGE_PLUS4_GENERIC         -2 /* plus4-generic.c */
+
+/* #define CARTRIDGE_NONE               -1 */
+#define CARTRIDGE_PLUS4_MAGIC           1   /* c264 magic cart */
+#define CARTRIDGE_PLUS4_MULTI           2   /* plus4 multi cart */
+#define CARTRIDGE_PLUS4_JACINT1MB       3   /* 1MB Cartridge */
+
+#define CARTRIDGE_PLUS4_LAST            3
+
+/* FIXME: get rid of this */
 #define CARTRIDGE_PLUS4_DETECT          0x8200 /* low byte must be 0x00 */
 
-#define CARTRIDGE_PLUS4_16KB_C0LO       0x8201
-#define CARTRIDGE_PLUS4_16KB_C0HI       0x8202
-#define CARTRIDGE_PLUS4_16KB_C1LO       0x8204
-#define CARTRIDGE_PLUS4_16KB_C1HI       0x8208
-#define CARTRIDGE_PLUS4_16KB_C2LO       0x8210
-#define CARTRIDGE_PLUS4_16KB_C2HI       0x8220
+#define CARTRIDGE_PLUS4_GENERIC_TYPE_MASK    0x000f
 
-#define CARTRIDGE_PLUS4_32KB_C0         0x8203
-#define CARTRIDGE_PLUS4_32KB_C1         0x820c
-#define CARTRIDGE_PLUS4_32KB_C2         0x8230
+#define CARTRIDGE_PLUS4_IS_GENERIC(x)   (((x) & 0xff00) == 0x8200)
 
-#define CARTRIDGE_PLUS4_NEWROM          0x8207 /* c0lo,c0hi,c1lo (48k) */
+#define CARTRIDGE_PLUS4_GENERIC_C1LO    0x8201
+#define CARTRIDGE_PLUS4_GENERIC_C1HI    0x8202
+#define CARTRIDGE_PLUS4_GENERIC_C2LO    0x8204
+#define CARTRIDGE_PLUS4_GENERIC_C2HI    0x8208
+#define CARTRIDGE_PLUS4_GENERIC_C1      (CARTRIDGE_PLUS4_GENERIC_C1LO | CARTRIDGE_PLUS4_GENERIC_C1HI)
+#define CARTRIDGE_PLUS4_GENERIC_C2      (CARTRIDGE_PLUS4_GENERIC_C2LO | CARTRIDGE_PLUS4_GENERIC_C2HI)
+#define CARTRIDGE_PLUS4_GENERIC_ALL     (CARTRIDGE_PLUS4_GENERIC_C1 | CARTRIDGE_PLUS4_GENERIC_C2)
+
+/* list of canonical names for the Plus4 cartridges: */
+#define CARTRIDGE_PLUS4_NAME_JACINT1MB  "1MB Cartridge"
+#define CARTRIDGE_PLUS4_NAME_MAGIC      "c264 magic cart"
+#define CARTRIDGE_PLUS4_NAME_MULTI      "Plus4 multi cart"
 
 /*
  * cbm2 cartridge system
@@ -501,8 +537,17 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_SIZE_16384KB 0x01000000
 #define CARTRIDGE_SIZE_MAX     CARTRIDGE_SIZE_16384KB
 
+/* for convenience */
+#define CARTRIDGE_SIZE_1MB      CARTRIDGE_SIZE_1024KB
+#define CARTRIDGE_SIZE_2MB      CARTRIDGE_SIZE_2048KB
+#define CARTRIDGE_SIZE_4MB      CARTRIDGE_SIZE_4096KB
+#define CARTRIDGE_SIZE_8MB      CARTRIDGE_SIZE_8192KB
+#define CARTRIDGE_SIZE_16MB     CARTRIDGE_SIZE_16384KB
+
 #define CARTRIDGE_FILETYPE_BIN  1
 #define CARTRIDGE_FILETYPE_CRT  2
+
+/* FIXME: merge the cartridge list with the one used by cartconv */
 
 /* cartridge info for GUIs */
 typedef struct {

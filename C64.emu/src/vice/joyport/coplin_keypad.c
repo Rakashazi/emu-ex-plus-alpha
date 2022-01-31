@@ -45,6 +45,16 @@
      4   | KEY3   |  I
      6   | KEY4   |  I
 
+Works on:
+- native port(s) (x64/x64sc/xscpu64/x64dtv/xplus4/xvic)
+- cga userport joystick adapter ports (x64/x64sc/xscpu64)
+- hit userport joystick adapter ports (x64/x64sc/xscpu64)
+- kingsoft userport joystick adapter ports (x64/x64sc/xscpu64)
+- starbyte userport joystick adapter ports (x64/x64sc/xscpu64)
+- hummer userport joystick adapter port (x64dtv)
+- oem userport joystick adapter port (xvic)
+- sidcart joystick adapter port (xplus4)
+
 The keypad has the following layout:
 
 KEYPAD             KEYMAP KEYS
@@ -150,31 +160,31 @@ static uint8_t coplin_keypad_read(int port)
     unsigned int tmp;
 
     /* KEY4 */
-    tmp = !keys[KEYPAD_KEY_R] << 4;
+    tmp = !keys[KEYPAD_KEY_R] << JOYPORT_FIRE_BIT;   /* output key 4 on the joyport 'fire' pin */
     retval |= tmp;
 
     /* KEY3 */
     tmp = (unsigned int)(!keys[KEYPAD_KEY_6] & !keys[KEYPAD_KEY_9] & !keys[KEYPAD_KEY_3] & !keys[KEYPAD_KEY_0] & !keys[KEYPAD_KEY_P] & !keys[KEYPAD_KEY_5]);
-    tmp <<= 3;
+    tmp <<= JOYPORT_RIGHT_BIT;   /* output key 3 on the joyport 'right' pin */
     retval |= tmp;
 
     /* KEY2 */
     tmp = (unsigned int)(!keys[KEYPAD_KEY_4] & !keys[KEYPAD_KEY_7] & !keys[KEYPAD_KEY_P] & !keys[KEYPAD_KEY_5] & !keys[KEYPAD_KEY_0] & !keys[KEYPAD_KEY_1]);
-    tmp <<= 2;
+    tmp <<= JOYPORT_LEFT_BIT;   /* output key 2 on the joyport 'left' pin */
     retval |= tmp;
 
     /* KEY1 */
     tmp = (unsigned int)(!keys[KEYPAD_KEY_0] & !keys[KEYPAD_KEY_3] & !keys[KEYPAD_KEY_1] & !keys[KEYPAD_KEY_2]);
-    tmp <<= 1;
+    tmp <<= JOYPORT_DOWN_BIT;   /* output key 1 on the joyport 'down' pin */
     retval |= tmp;
 
     /* KEY0 */
     tmp = (unsigned int)(!keys[KEYPAD_KEY_P] & !keys[KEYPAD_KEY_9] & !keys[KEYPAD_KEY_7] & !keys[KEYPAD_KEY_8]);
-    retval |= tmp;
+    retval |= tmp;   /* output key 0 on the joyport 'up' pin */
 
     retval |= 0xe0;
 
-    joyport_display_joyport(JOYPORT_ID_COPLIN_KEYPAD, (uint8_t)~retval);
+    joyport_display_joyport(JOYPORT_ID_COPLIN_KEYPAD, (uint16_t)~retval);
 
     return (uint8_t)retval;
 }
@@ -182,17 +192,23 @@ static uint8_t coplin_keypad_read(int port)
 /* ------------------------------------------------------------------------- */
 
 static joyport_t joyport_coplin_keypad_device = {
-    "Coplin Keypad",              /* name of the device */
+    "Keypad (Coplin)",            /* name of the device */
     JOYPORT_RES_ID_KEYPAD,        /* device is a keypad, only 1 keypad can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,      /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,         /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,     /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_KEYPAD,        /* device is a Keypad */
+    0,                            /* No output bits */
     joyport_coplin_keypad_enable, /* device enable function */
     coplin_keypad_read,           /* digital line read function */
     NULL,                         /* NO digital line store function */
     NULL,                         /* NO pot-x read function */
     NULL,                         /* NO pot-y read function */
+    NULL,                         /* NO powerup function */
     NULL,                         /* NO device write snapshot function */
-    NULL                          /* NO device read snapshot function */
+    NULL,                         /* NO device read snapshot function */
+    NULL,                         /* NO device hook function */
+    0                             /* NO device hook function mask */
 };
 
 /* ------------------------------------------------------------------------- */

@@ -169,6 +169,16 @@ int tape_seek_to_next_file(tape_image_t *tape_image, unsigned int allow_rewind)
     return -1;
 }
 
+int tape_seek_to_offset(tape_image_t *tape_image, unsigned long offset)
+{
+    switch (tape_image->type) {
+        case TAPE_TYPE_TAP:
+            return tap_seek_to_offset((tap_t *)tape_image->data, offset);
+    }
+    return -1;
+}
+
+/* used by virtual devices */
 int tape_read(tape_image_t *tape_image, uint8_t *buf, size_t size)
 {
     switch (tape_image->type) {

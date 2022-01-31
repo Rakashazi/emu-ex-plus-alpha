@@ -40,10 +40,11 @@
 #define TAPE_ENCODING_CBM       1
 #define TAPE_ENCODING_TURBOTAPE 2
 
-#define TAPE_CAS_TYPE_BAS  1 /* Relocatable Program */
-#define TAPE_CAS_TYPE_PRG  3 /* Binary Program */
-#define TAPE_CAS_TYPE_DATA 4 /* Data Record */
-#define TAPE_CAS_TYPE_EOF  5 /* End of Tape marker */
+#define TAPE_CAS_TYPE_BAS           1 /* Relocatable Program (program header for SAVE "",1,0) */
+#define TAPE_CAS_TYPE_DATA_BLOCK    2 /* Data Block */
+#define TAPE_CAS_TYPE_PRG           3 /* Binary Program (absolute load SAVE "",1,1 (VIC-20 and later)) */
+#define TAPE_CAS_TYPE_DATA          4 /* Data File Header */
+#define TAPE_CAS_TYPE_EOF           5 /* End of Tape marker (SAVE "",1,2) */
 
 #define TAPE_BEHAVIOUR_NORMAL 0 /* tape interrupt is falling-edge triggered, normal tape blocks end with a long and a short pulse */
 #define TAPE_BEHAVIOUR_C16    1 /* tape senses both falling edges and rising edges, normal tape blocks end with a medium and a short pulse */
@@ -87,7 +88,7 @@ struct tape_file_record_s {
 typedef struct tape_file_record_s tape_file_record_t;
 
 
-extern tape_image_t *tape_image_dev1;
+extern tape_image_t *tape_image_dev[];
 
 extern int tape_init(const tape_init_t *init);
 extern int tape_reinit(const tape_init_t *init);
@@ -98,8 +99,8 @@ extern int tape_find_header_trap(void);
 extern int tape_receive_trap(void);
 extern int tape_find_header_trap_plus4(void);
 extern int tape_receive_trap_plus4(void);
-extern const char *tape_get_file_name(void);
-extern int tape_tap_attached(void);
+extern const char *tape_get_file_name(int port);
+extern int tape_tap_attached(int port);
 
 extern void tape_traps_install(void);
 extern void tape_traps_deinstall(void);
@@ -108,6 +109,7 @@ extern tape_file_record_t *tape_get_current_file_record(tape_image_t *tape_image
 extern int tape_seek_start(tape_image_t *tape_image);
 extern int tape_seek_to_file(tape_image_t *tape_image, unsigned int file_number);
 extern int tape_seek_to_next_file(tape_image_t *tape_image, unsigned int allow_rewind);
+extern int tape_seek_to_offset(tape_image_t *tape_image, unsigned long offset);
 extern int tape_read(tape_image_t *tape_image, uint8_t *buf, size_t size);
 
 extern int tape_internal_close_tape_image(tape_image_t *tape_image);

@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "alarm.h"
 #include "archdep.h"
 #include "cartio.h"
 #include "cartridge.h"
@@ -55,6 +56,7 @@
 #include "machine.h"
 #include "maincpu.h"
 #include "mem.h"
+#include "ram.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "types.h"
@@ -255,6 +257,8 @@ static struct reu_ba_s reu_ba = {
 
 static int reu_write_image = 0;
 
+static int floating_bus_value = 0xff;
+
 /* ------------------------------------------------------------------------- */
 
 /* some prototypes are needed */
@@ -333,6 +337,7 @@ static int set_reu_enabled(int value, void *param)
         if (export_add(&export_res_reu) < 0) {
             return -1;
         }
+
         reu_list_item = io_source_register(&reu_io2_device);
         reu_enabled = 1;
     }
@@ -416,8 +421,8 @@ static int set_reu_size(int val, void *param)
         case 8192:
         case 16384:
             rec_options.reg_bank_unused = 0;
-            rec_options.wrap_around_mask_when_storing = 0x00ffffff;
-            rec_options.dram_wrap_around = 0x01000000;
+            rec_options.dram_wrap_around = val * 1024;
+            rec_options.wrap_around_mask_when_storing = (val * 1024) - 1;
             break;
         default:
             log_message(reu_log, "Unknown REU size %d.", val);
@@ -609,8 +614,67 @@ void reu_reset(void)
     rec.address_control_reg = REU_REG_RW_ADDR_CONTROL_UNUSED_MASK;
 }
 
+/* observed values from a 1764 REU with 256k */
+static RAMINITPARAM reuramparam = {
+    .start_value = 255,
+    .value_invert = 2,
+    .value_offset = 1,
+
+    .pattern_invert = 0x100,
+    .pattern_invert_value = 255,
+
+    .random_start = 0,
+    .random_repeat = 0,
+    .random_chance = 0,
+};
+
+static void invertblock(unsigned int addr, unsigned int len)
+{
+    unsigned int end = addr + len;
+    while (addr < end) {
+        if (addr >= reu_size) {
+            return;
+        }
+        reu_ram[addr] ^= 0xff;
+        addr++;
+    }
+}
+
+static void reu_init_ram(void)
+{
+    unsigned int b, i;
+    DEBUG_LOG(DEBUG_LEVEL_REGISTER, (reu_log, "reu_init_ram"));
+    if (reu_ram) {
+        ram_init_with_pattern(reu_ram, reu_size, &reuramparam);
+        /* apply additional slightly odd invert pattern, observed by x1541 */
+        for (b = 0; b < (reu_size >> 16); b += 4) {
+            for (i = 0; i < 2; i++) {
+                invertblock(0x002a00 + ((i + b) << 16), 0x2a00);
+                invertblock(0x008000 + ((i + b) << 16), 0x2c00);
+                invertblock(0x00d600 + ((i + b) << 16), 0x2a00);
+            }
+            for (i = 0; i < 2; i++) {
+                invertblock(0x020000 + ((i + b) << 16), 0x2a00);
+                invertblock(0x025400 + ((i + b) << 16), 0x2c00);
+                invertblock(0x02ac00 + ((i + b) << 16), 0x2a00);
+            }
+        }
+    }
+}
+
+void reu_powerup(void)
+{
+    DEBUG_LOG(DEBUG_LEVEL_REGISTER, (reu_log, "reu_powerup"));
+    if ((reu_filename != NULL) && (*reu_filename != 0)) {
+        /* do not init ram if a file is used for ram content (like battery backup) */
+        return;
+    }
+    reu_init_ram();
+}
+
 static int reu_activate(void)
 {
+    DEBUG_LOG(DEBUG_LEVEL_REGISTER, (reu_log, "reu_activate"));
     if (!reu_size) {
         return 0;
     }
@@ -618,9 +682,7 @@ static int reu_activate(void)
     reu_ram = lib_realloc(reu_ram, reu_size);
 
     /* Clear newly allocated RAM.  */
-    if (reu_size > old_reu_ram_size) {
-        memset(reu_ram, 0, (size_t)(reu_size - old_reu_ram_size));
-    }
+    reu_init_ram();
 
     old_reu_ram_size = reu_size;
 
@@ -1016,7 +1078,6 @@ inline static unsigned int increment_reu_with_wrap_around(unsigned int reu_addr,
     if (next == rec_options.wrap_around) {
         next = 0;
     }
-
     return (reu_addr & 0x00f80000) | next;
 }
 
@@ -1064,16 +1125,17 @@ inline static void store_to_reu(unsigned int reu_addr, uint8_t value)
 */
 inline static uint8_t read_from_reu(unsigned int reu_addr)
 {
-    uint8_t value = 0xff; /* dummy value to return if not DRAM is available */
+    uint8_t value;
 
     reu_addr &= rec_options.dram_wrap_around - 1;
     if (reu_addr < rec_options.not_backedup_addresses) {
+        /* this is a valid read */
         assert(reu_addr < reu_size);
         value = reu_ram[reu_addr];
     } else {
         DEBUG_LOG(DEBUG_LEVEL_NO_DRAM, (reu_log, "--> read from REU address %05X, but no DRAM!", reu_addr));
+        value = floating_bus_value;
     }
-
     return value;
 }
 
@@ -1190,6 +1252,8 @@ static void reu_dma_host_to_reu(uint16_t host_addr, unsigned int reu_addr, int h
     }
     DEBUG_LOG(DEBUG_LEVEL_REGISTER2, (reu_log, "END OF BLOCK"));
     reu_dma_update_regs(host_addr, reu_addr, ++len, REU_REG_R_STATUS_END_OF_BLOCK);
+    /* the last value written to the REU will stay in the latch that drives the bus */
+    floating_bus_value = value;
 }
 
 /*! \brief DMA operation writing from the REU to the host
@@ -1222,7 +1286,9 @@ static void reu_dma_reu_to_host(uint16_t host_addr, unsigned int reu_addr, int h
     while (len) {
         DEBUG_LOG(DEBUG_LEVEL_TRANSFER_LOW_LEVEL, (reu_log, "Transferring byte: %x from ext $%05X to main $%04X.", reu_ram[reu_addr % reu_size], reu_addr, host_addr));
         reu_clk_inc_pre();
-        value = read_from_reu(reu_addr);
+        /* after a transfer from REU to host, the last (pre)fetched value from valid
+           REU RAM stays in the latch that drives the bus. see comment below. */
+        floating_bus_value = value = read_from_reu(reu_addr);
         mem_store(host_addr, value);
         reu_clk_inc_post();
         machine_handle_pending_alarms(0);
@@ -1236,6 +1302,11 @@ static void reu_dma_reu_to_host(uint16_t host_addr, unsigned int reu_addr, int h
     }
     DEBUG_LOG(DEBUG_LEVEL_REGISTER2, (reu_log, "END OF BLOCK"));
     reu_dma_update_regs(host_addr, reu_addr, ++len, REU_REG_R_STATUS_END_OF_BLOCK);
+    /* after a transfer from REU to host, the last (pre)fetched value from valid
+       REU RAM stays in the latch that drives the bus. we can use read_from_reu()
+       here without an additional check, since it checks for the valid range
+       internally and will return the latched value for invalid addresses. */
+    floating_bus_value = read_from_reu(reu_addr);
 }
 
 /*! \brief DMA operation swaping data between host and REU

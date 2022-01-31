@@ -50,6 +50,7 @@
 #endif
 
 #include "archdep.h"
+#include "archdep_defs.h"
 #include "ioutil.h"
 #include "lib.h"
 #include "log.h"
@@ -310,70 +311,6 @@ int util_check_filename_access(const char *filename)
 
 /* ------------------------------------------------------------------------- */
 
-int util_string_to_long(const char *str, const char **endptr, int base,
-                        long *result)
-{
-    const char *sp, *ep;
-    long weight, value;
-    long sign;
-    char last_letter = 0;       /* Initialize to make compiler happy.  */
-    char c;
-
-    if (base > 10) {
-        last_letter = 'A' + base - 11;
-    }
-
-    c = toupper((int) *str);
-
-    if (!isspace((int)c)
-        && !isdigit((int)c)
-        && (base <= 10 || c > last_letter || c < 'A')
-        && c != '+' && c != '-') {
-        return -1;
-    }
-
-    if (*str == '+') {
-        sign = +1;
-        str++;
-    } else if (*str == '-') {
-        str++;
-        sign = -1;
-    } else {
-        sign = +1;
-    }
-
-    for (sp = str; isspace((int)*sp); sp++) {
-    }
-
-    for (ep = sp;
-         (isdigit((int)*ep)
-          || (base > 10
-              && toupper((int)*ep) <= last_letter
-              && toupper((int)*ep) >= 'A')); ep++) {
-    }
-
-    if (ep == sp) {
-        return -1;
-    }
-
-    if (endptr != NULL) {
-        *endptr = (char *)ep;
-    }
-
-    ep--;
-
-    for (value = 0, weight = 1; ep >= sp; weight *= base, ep--) {
-        if (base > 10 && toupper((int) *ep) >= 'A') {
-            value += weight * (toupper((int)*ep) - 'A' + 10);
-        } else {
-            value += weight * (int)(*ep - '0');
-        }
-    }
-
-    *result = value * sign;
-    return 0;
-}
-
 /* Replace every occurrence of `string' in `s' with `replacement' and return
    the result as a malloc'ed string.  */
 char *util_subst(const char *s, const char *string, const char *replacement)
@@ -423,14 +360,14 @@ char *util_subst(const char *s, const char *string, const char *replacement)
 /* ------------------------------------------------------------------------- */
 
 /* Return the length of an open file in bytes.  */
-size_t util_file_length(FILE *fd)
+off_t util_file_length(FILE *fd)
 {
-    size_t off, filesize;
+    off_t off, filesize;
 
     off = ftello(fd);
     fseeko(fd, 0, SEEK_END);
     filesize = ftello(fd);
-    fseeko(fd, (long)off, SEEK_SET);
+    fseeko(fd, off, SEEK_SET);
     return filesize;
 }
 
@@ -444,7 +381,7 @@ int util_file_load(const char *name, uint8_t *dest, size_t size,
     long start = 0;
 
     if (util_check_null_string(name)) {
-        log_error(LOG_ERR, "No file name given for load_file().");
+        log_error(LOG_ERR, "No file name given for util_file_load().");
         return -1;
     }
 
@@ -473,6 +410,33 @@ int util_file_load(const char *name, uint8_t *dest, size_t size,
     if (r < size) {
         return -1;
     }
+    return 0;
+}
+
+/* Allocate buffer and load entire file + terminating null byte.  Return 0 on
+   success, -1 on failure.  */
+int util_file_load_string(FILE *fd, char **dest)
+{
+    char *buffer;
+    size_t size;
+    size_t r;
+
+    size = util_file_length(fd);
+    buffer = lib_malloc(size + 1);
+
+    r = fread(buffer, 1, size, fd);
+
+    if (r < size) {
+        lib_free(buffer);
+        log_error(LOG_ERR, "Could only load %"PRI_SIZE_T" of %"PRI_SIZE_T" bytes", r, size);
+        return -1;
+    }
+
+    /* Add terminating byte to allow this buffer to be used as string */
+    buffer[size] = '\0';
+
+    *dest = buffer;
+
     return 0;
 }
 
@@ -535,8 +499,9 @@ int util_get_line(char *buf, int bufsize, FILE *f)
         while ((len > 0) && (*(buf + len - 1) == ' ')) {
             len--;
         }
-        for (p = buf; *p == ' '; p++, len--) {
+        for (p = buf; *p == ' ' && len > 0; p++, len--) {
         }
+
         memmove(buf, p, len + 1);
         *(buf + len) = '\0';
     }

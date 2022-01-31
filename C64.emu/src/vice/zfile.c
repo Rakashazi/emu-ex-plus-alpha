@@ -575,39 +575,44 @@ static char *try_uncompress_zipcode(const char *name, int write_mode)
     char *tmp_name = NULL;
     char *argv[5];
     int exit_status;
+    FILE *fd;
 
     /* The 2nd char has to be '!'?  */
     util_fname_split(name, NULL, &tmp_name);
     if (tmp_name == NULL) {
         return NULL;
     }
-    if (strlen(tmp_name) < 3 || tmp_name[1] != '!') {
+    if (strlen(tmp_name) < 3 || tmp_name[1] != '!'
+            || !(tmp_name[0] >= '1' && tmp_name[0] <= '5')) {
         lib_free(tmp_name);
         return NULL;
     }
     lib_free(tmp_name);
 
-
-    /* don't ask for permission. just do it, if it fails, it fails. This relies
-     * on zipcode.c doing the right thing, which I doubt */
-#if 0
     /* Can we read this file?  */
     fd = fopen(name, MODE_READ);
     if (fd == NULL) {
         return NULL;
-    }
-    /* Read first track to see if this is zipcode.  */
-    fseek(fd, 4, SEEK_SET);
-    for (count = 1; count < 21; count++) {
-        i = zipcode_read_sector(fd, 1, &sector, tmp);
-        if (i || sector < 0 || sector > 20 || (sectors & (1 << sector))) {
-            fclose(fd);
-            return NULL;
+    } else {
+        int sector;
+        int count;
+        int i;
+        int sectors = 0;
+        char tmp[256];
+
+        /* Read first track to see if this is zipcode.  */
+        fseek(fd, 4, SEEK_SET);
+        for (count = 1; count < 21; count++) {
+            i = zipcode_read_sector(fd, 1, &sector, tmp);
+            if (i || sector < 0 || sector > 20 || (sectors & (1 << sector))) {
+                fclose(fd);
+                return NULL;
+            }
+            sectors |= 1 << sector;
         }
-        sectors |= 1 << sector;
+        fclose(fd);
     }
-    fclose(fd);
-#endif
+
     /* it is a zipcode. We cannot support write_mode */
     if (write_mode) {
         return "";
@@ -618,7 +623,7 @@ static char *try_uncompress_zipcode(const char *name, int write_mode)
 
     /* ok, now extract the zipcode */
     argv[0] = lib_strdup(C1541_NAME);
-    argv[1] = lib_strdup("-zcreate");
+    argv[1] = lib_strdup("-unzip");
     argv[2] = lib_strdup(tmp_name);
     argv[3] = archdep_filename_parameter(name);
     argv[4] = NULL;

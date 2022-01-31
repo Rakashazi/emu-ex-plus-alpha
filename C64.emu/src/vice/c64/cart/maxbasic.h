@@ -46,6 +46,7 @@ extern void maxbasic_config_setup(uint8_t *rawcart);
 extern int maxbasic_bin_attach(const char *filename, uint8_t *rawcart);
 extern int maxbasic_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void maxbasic_detach(void);
+extern void maxbasic_powerup(void);
 
 extern int maxbasic_snapshot_write_module(struct snapshot_s *s);
 extern int maxbasic_snapshot_read_module(struct snapshot_s *s);

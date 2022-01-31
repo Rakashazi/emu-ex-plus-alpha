@@ -114,9 +114,8 @@ void video_canvas_shutdown(video_canvas_t *canvas)
 
 void video_canvas_render(video_canvas_t *canvas, uint8_t *trg, int width,
                          int height, int xs, int ys, int xt, int yt,
-                         int pitcht, int depth)
+                         int pitcht)
 {
-    static int lastmode = -1;
     viewport_t *viewport = canvas->viewport;
 #ifdef VIDEO_SCALE_SOURCE
     xs /= canvas->videoconfig->scalex;
@@ -124,9 +123,9 @@ void video_canvas_render(video_canvas_t *canvas, uint8_t *trg, int width,
 #endif
 
     /* when the color encoding changed, the palette must be recalculated */
-    if (viewport->crt_type != lastmode) {
+    if (viewport->crt_type != canvas->crt_type) {
         canvas->videoconfig->color_tables.updated = 0;
-        lastmode = viewport->crt_type;
+        canvas->crt_type = viewport->crt_type;
     }
 
     if (!canvas->videoconfig->color_tables.updated) { /* update colors as necessary */
@@ -134,7 +133,7 @@ void video_canvas_render(video_canvas_t *canvas, uint8_t *trg, int width,
     }
     video_render_main(canvas->videoconfig, canvas->draw_buffer->draw_buffer,
                       trg, width, height, xs, ys, xt, yt,
-                      canvas->draw_buffer->draw_buffer_width, pitcht, depth,
+                      canvas->draw_buffer->draw_buffer_width, pitcht,
                       viewport);
 }
 

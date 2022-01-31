@@ -29,24 +29,32 @@
 
 #include "datasette.h"
 #include "plus4mem.h"
+#include "tapeport.h"
 
-
-void machine_trigger_flux_change(unsigned int on)
+void machine_trigger_flux_change(int port, unsigned int on)
 {
-    mem_proc_port_trigger_flux_change(on);
+    if (port == TAPEPORT_PORT_1) {
+        mem_proc_port_trigger_flux_change(on);
+    }
 }
 
-void machine_set_tape_sense(int sense)
+void machine_set_tape_sense(int port, int sense)
 {
-    pio1_set_tape_sense(sense);
+    if (port == TAPEPORT_PORT_1) {
+        pio1_set_tape_sense(sense);
+    }
 }
 
-void machine_set_tape_write_in(int val)
+void machine_set_tape_write_in(int port, int val)
 {
-    mem_proc_port_set_write_in(val);
+    if (port == TAPEPORT_PORT_1) {
+        mem_proc_port_set_write_in(val);
+    }
 }
 
-void machine_set_tape_motor_in(int val)
+void machine_set_tape_motor_in(int port, int val)
 {
-    mem_proc_port_set_motor_in(val);
+    if (port == TAPEPORT_PORT_1) {
+        mem_proc_port_set_motor_in(val);
+    }
 }

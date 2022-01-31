@@ -100,7 +100,6 @@ static uint32_t cart_size = 0;
 /* ---------------------------------------------------------------------*/
 static void ocean_io1_store(uint16_t addr, uint8_t value)
 {
-    addr &= 0xff;
     regval = value;
     currbank = value & io1_mask & 0x3f;
 
@@ -156,14 +155,14 @@ void ocean_config_init(void)
     ocean_io1_store((uint16_t)0xde00, 0);
 #ifdef ALWAYS16K
     /* Hack: using 16kB configuration, but some carts are 8kB only */
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
 #else
     if (cart_size == 0x80000) {
         /* 8k configuration */
-        cart_config_changed_slotmain(0, 0, CMODE_READ);
+        cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     } else {
         /* 16kB configuration */
-        cart_config_changed_slotmain(1, 1, CMODE_READ);
+        cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
     }
 #endif
 }
@@ -173,14 +172,14 @@ void ocean_config_setup(uint8_t *rawcart)
     memcpy(roml_banks, rawcart, 0x2000 * 64);
 #ifdef ALWAYS16K
     /* Hack: using 16kB configuration, but some carts are 8kB only */
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
 #else
     if (cart_size == 0x80000) {
         /* 8k configuration */
-        cart_config_changed_slotmain(0, 0, CMODE_READ);
+        cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     } else {
         /* 16kB configuration */
-        cart_config_changed_slotmain(1, 1, CMODE_READ);
+        cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
     }
 #endif
 }

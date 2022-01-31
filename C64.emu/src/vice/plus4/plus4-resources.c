@@ -36,6 +36,7 @@
 #include "mem.h"
 #include "plus4-resources.h"
 #include "plus4mem.h"
+#include "plus4memrom.h"
 #include "plus4memcsory256k.h"
 #include "plus4memhacks.h"
 #include "plus4memhannes256k.h"
@@ -62,9 +63,7 @@ static char *kernal_rom_name = NULL;
 static char *func_lo_rom_name = NULL;
 static char *func_hi_rom_name = NULL;
 
-/* Name of the external cartridge ROMs.  */
-static char *c1lo_rom_name = NULL;
-static char *c1hi_rom_name = NULL;
+/* FIXME: c2lo/hi can be external or internal  */
 static char *c2lo_rom_name = NULL;
 static char *c2hi_rom_name = NULL;
 
@@ -105,24 +104,6 @@ static int set_func_hi_rom_name(const char *val, void *param)
     }
 
     return plus4cart_load_func_hi(func_hi_rom_name);
-}
-
-static int set_c1lo_rom_name(const char *val, void *param)
-{
-    if (util_string_set(&c1lo_rom_name, val)) {
-        return 0;
-    }
-
-    return plus4cart_load_c1lo(c1lo_rom_name);
-}
-
-static int set_c1hi_rom_name(const char *val, void *param)
-{
-    if (util_string_set(&c1hi_rom_name, val)) {
-        return 0;
-    }
-
-    return plus4cart_load_c1hi(c1hi_rom_name);
 }
 
 static int set_c2lo_rom_name(const char *val, void *param)
@@ -210,10 +191,6 @@ static const resource_string_t resources_string[] = {
       &func_lo_rom_name, set_func_lo_rom_name, NULL },
     { "FunctionHighName", "3plus1hi", RES_EVENT_NO, NULL,
       &func_hi_rom_name, set_func_hi_rom_name, NULL },
-    { "c1loName", "", RES_EVENT_NO, NULL,
-      &c1lo_rom_name, set_c1lo_rom_name, NULL },
-    { "c1hiName", "", RES_EVENT_NO, NULL,
-      &c1hi_rom_name, set_c1hi_rom_name, NULL },
     { "c2loName", "", RES_EVENT_NO, NULL,
       &c2lo_rom_name, set_c2lo_rom_name, NULL },
     { "c2hiName", "", RES_EVENT_NO, NULL,
@@ -247,8 +224,6 @@ void plus4_resources_shutdown(void)
     lib_free(kernal_rom_name);
     lib_free(func_lo_rom_name);
     lib_free(func_hi_rom_name);
-    lib_free(c1lo_rom_name);
-    lib_free(c1hi_rom_name);
     lib_free(c2lo_rom_name);
     lib_free(c2hi_rom_name);
 }

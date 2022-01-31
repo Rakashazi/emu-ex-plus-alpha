@@ -53,7 +53,7 @@ void alarm_context_init(alarm_context_t *context, const char *name)
     context->alarms = NULL;
 
     context->num_pending_alarms = 0;
-    context->next_pending_alarm_clk = (CLOCK) ~0L;
+    context->next_pending_alarm_clk = CLOCK_MAX;
 }
 
 void alarm_context_destroy(alarm_context_t *context)
@@ -199,7 +199,7 @@ void alarm_unset(alarm_t *alarm)
         }
     } else {
         context->num_pending_alarms = 0;
-        context->next_pending_alarm_clk = (CLOCK) ~0L;
+        context->next_pending_alarm_clk = CLOCK_MAX;
         context->next_pending_alarm_idx = -1;
     }
 

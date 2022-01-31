@@ -29,20 +29,13 @@
 
 #include "types.h"
 
-#define USERPORT_JOYSTICK_CGA      0
-#define USERPORT_JOYSTICK_PET      1
-#define USERPORT_JOYSTICK_HUMMER   2
-#define USERPORT_JOYSTICK_OEM      3
-#define USERPORT_JOYSTICK_HIT      4
-#define USERPORT_JOYSTICK_KINGSOFT 5
-#define USERPORT_JOYSTICK_STARBYTE 6
-
-#define USERPORT_JOYSTICK_NUM 7
-
-extern int userport_joystick_enable;
-extern int userport_joystick_type;
-
-extern int userport_joystick_resources_init(void);
-extern int userport_joystick_cmdline_options_init(void);
+extern int userport_joystick_cga_resources_init(void);
+extern int userport_joystick_pet_resources_init(void);
+extern int userport_joystick_hummer_resources_init(void);
+extern int userport_joystick_oem_resources_init(void);
+extern int userport_joystick_hit_resources_init(void);
+extern int userport_joystick_kingsoft_resources_init(void);
+extern int userport_joystick_starbyte_resources_init(void);
+extern int userport_joystick_synergy_resources_init(void);
 
 #endif

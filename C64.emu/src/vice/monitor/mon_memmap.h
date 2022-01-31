@@ -34,7 +34,8 @@ extern void mon_memmap_init(void);
 extern void mon_memmap_shutdown(void);
 
 extern int monitor_cpuhistory_allocate(int lines);
-extern void mon_cpuhistory(int count);
+extern void mon_cpuhistory(int count, MEMSPACE filter1, MEMSPACE filter2, MEMSPACE filter3,
+                           MEMSPACE filter4, MEMSPACE filter5);
 
 extern void mon_memmap_zap(void);
 extern void mon_memmap_show(int mask, MON_ADDR start_addr, MON_ADDR end_addr);

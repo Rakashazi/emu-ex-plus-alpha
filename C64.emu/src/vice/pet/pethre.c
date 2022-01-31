@@ -188,13 +188,13 @@ void pethre_shutdown(void)
 int e888_dump(void)
 {
     if (pethre_enabled) {
-	char *s = "";
-	if (reg_E888 != 0x0F && reg_E888 != 0x83) {
-	    s = "(unusual value) ";
-	}
-	mon_out("e888 = %02x %sramON = %d\n", reg_E888, s, petmem_ramON);
+        char *s = "";
+        if (reg_E888 != 0x0F && reg_E888 != 0x83) {
+            s = "(unusual value) ";
+        }
+        mon_out("e888 = %02x %sramON = %d\n", reg_E888, s, petmem_ramON);
 
-	return 0;
+        return 0;
     }
     return -1;
 }

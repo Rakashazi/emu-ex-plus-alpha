@@ -24,6 +24,8 @@
  *
  */
 
+/* #define DEBUG_C64BUS */
+
 #include "vice.h"
 
 #include "iecbus.h"
@@ -31,6 +33,13 @@
 #include "parallel.h"
 #include "serial.h"
 #include "types.h"
+
+#ifdef DEBUG_C64BUS
+#include "log.h"
+#define DBG(x) log_debug x
+#else
+#define DBG(x)
+#endif
 
 int machine_bus_lib_directory(unsigned int unit, const char *pattern, uint8_t **buf)
 {
@@ -52,21 +61,24 @@ unsigned int machine_bus_device_type_get(unsigned int unit)
     return serial_device_type_get(unit);
 }
 
-void machine_bus_status_truedrive_set(unsigned int enable)
+void machine_bus_status_truedrive_set(unsigned int unit, unsigned int enable)
 {
-    iecbus_status_set(IECBUS_STATUS_TRUEDRIVE, 0, enable);
-    serial_trap_truedrive_set(enable);
+    DBG(("machine_bus_status_truedrive_set unit: %u enable: %u", unit, enable));
+    iecbus_status_set(IECBUS_STATUS_TRUEDRIVE, unit, enable);
+    serial_trap_truedrive_set(unit, enable);
 }
 
 void machine_bus_status_drivetype_set(unsigned int unit, unsigned int enable)
 {
+    DBG(("machine_bus_status_drivetype_set unit: %u enable: %u", unit, enable));
     iecbus_status_set(IECBUS_STATUS_DRIVETYPE, unit, enable);
 }
 
-void machine_bus_status_virtualdevices_set(unsigned int enable)
+void machine_bus_status_virtualdevices_set(unsigned int unit, unsigned int enable)
 {
-    iecbus_status_set(IECBUS_STATUS_VIRTUALDEVICES, 0, enable);
-    parallel_bus_enable(enable);
+    DBG(("machine_bus_status_virtualdevices_set unit: %u enable: %u", unit, enable));
+    iecbus_status_set(IECBUS_STATUS_VIRTUALDEVICES, unit, enable); /* IEC */
+    parallel_bus_enable(unit, enable); /* IEEE488 */
 }
 
 void machine_bus_eof_callback_set(void (*func)(void))

@@ -42,6 +42,13 @@ extern int rexramfloppy_bin_attach(const char *filename, uint8_t *rawcart);
 extern int rexramfloppy_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void rexramfloppy_detach(void);
 
+extern int rexramfloppy_resources_init(void);
+extern void rexramfloppy_resources_shutdown(void);
+extern int rexramfloppy_cmdline_options_init(void);
+
+extern int rexramfloppy_flush_image(void);
+extern int rexramfloppy_bin_save(const char *filename);
+
 struct snapshot_s;
 
 extern int rexramfloppy_snapshot_write_module(struct snapshot_s *s);

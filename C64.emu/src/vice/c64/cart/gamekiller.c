@@ -149,20 +149,20 @@ int gamekiller_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 void gamekiller_freeze(void)
 {
     DBG(("Game Killer freeze\n"));
-    cart_config_changed_slotmain(3, 3, CMODE_READ | CMODE_RELEASE_FREEZE);
+    cart_config_changed_slotmain(CMODE_ULTIMAX, CMODE_ULTIMAX, CMODE_READ | CMODE_RELEASE_FREEZE);
     cartridge_disable_flag = 0;
 }
 
 void gamekiller_config_init(void)
 {
-    cart_config_changed_slotmain(3, 3, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_ULTIMAX, CMODE_ULTIMAX, CMODE_READ);
     cartridge_disable_flag = 0;
 }
 
 void gamekiller_config_setup(uint8_t *rawcart)
 {
     memcpy(romh_banks, rawcart, GAME_KILLER_CART_SIZE);
-    cart_config_changed_slotmain(3, 3, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_ULTIMAX, CMODE_ULTIMAX, CMODE_READ);
     cartridge_disable_flag = 0;
 }
 

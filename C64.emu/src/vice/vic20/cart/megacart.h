@@ -40,11 +40,12 @@ extern void megacart_blk5_store(uint16_t addr, uint8_t value);
 
 extern void megacart_init(void);
 extern void megacart_reset(void);
+extern void megacart_powerup(void);
 
 extern void megacart_config_setup(uint8_t *rawcart);
 extern int megacart_bin_attach(const char *filename);
 /* extern int megacart_bin_attach(const char *filename, uint8_t *rawcart); */
-/* extern int megacart_crt_attach(FILE *fd, uint8_t *rawcart); */
+extern int megacart_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void megacart_detach(void);
 
 extern int megacart_resources_init(void);

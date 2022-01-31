@@ -77,6 +77,7 @@
 #include "final3.h"
 #include "formel64.h"
 #include "freezeframe.h"
+#include "freezeframe2.h"
 #include "freezemachine.h"
 #include "funplay.h"
 #include "gamekiller.h"
@@ -84,8 +85,9 @@
 #include "gmod2.h"
 #include "gmod3.h"
 #include "gs.h"
-#include "hero.h"
+#include "drean.h"
 #include "ide64.h"
+#include "ieeeflash64.h"
 #include "isepic.h"
 #include "kcs.h"
 #include "kingsoft.h"
@@ -120,6 +122,7 @@
 #include "superexplode5.h"
 #include "supersnapshot.h"
 #include "supersnapshot4.h"
+#include "turtlegraphics.h"
 #include "warpspeed.h"
 #include "westermann.h"
 #include "zaxxon.h"
@@ -262,6 +265,14 @@ void cart_config_changed_slot0(uint8_t mode_phi1, uint8_t mode_phi2, unsigned in
     assert((wflag & CMODE_PHI2_RAM) == 0);
     assert((wflag & CMODE_EXPORT_RAM) == 0);
 
+#ifdef DEBUGCART
+    static int old1 = 0, old2 = 0, old3 = 0;
+    if ((mode_phi1 != old1) || (mode_phi2 != old2) || (wflag != old3)) {
+        DBG(("CARTMEM: cart_config_changed_slot0 phi1:%d phi2:%d bank: %d flags:%02x\n", mode_phi1 & 3, mode_phi2 & 3, (mode_phi2 >> CMODE_BANK_SHIFT) & CMODE_BANK_MASK, wflag));
+    }
+    old1 = mode_phi1; old2 = mode_phi2; old3 = wflag;
+#endif
+
 #ifndef USESLOTS
     cart_config_changed(0, mode_phi1, mode_phi2, wflag);
 #else
@@ -320,6 +331,12 @@ void cart_passthrough_changed(void)
             break;
         case CARTRIDGE_IEEE488:
             tpi_passthrough_changed(&export_passthrough);
+            break;
+        case CARTRIDGE_IEEEFLASH64:
+            ieeeflash64_passthrough_changed(&export_passthrough);
+            break;
+        case CARTRIDGE_RAMLINK:
+            ramlink_passthrough_changed(&export_passthrough);
             break;
         default:
             /* no slot 0 cartridge */
@@ -536,6 +553,8 @@ void cart_romlbank_set_slotmain(unsigned int bank)
         capture
         magicformel
         mmcreplay
+        ieeeflash64
+        ramlink
 
     carts that use "unusual" mapping:
 
@@ -616,6 +635,8 @@ static uint8_t roml_read_slotmain(uint16_t addr)
             return final_v1_roml_read(addr);
         case CARTRIDGE_FINAL_PLUS:
             return final_plus_roml_read(addr);
+        case CARTRIDGE_FREEZE_FRAME_MK2:
+            return freezeframe2_roml_read(addr);
         case CARTRIDGE_FREEZE_MACHINE:
             return freezemachine_roml_read(addr);
         case CARTRIDGE_GMOD2:
@@ -636,8 +657,6 @@ static uint8_t roml_read_slotmain(uint16_t addr)
             return multimax_roml_read(addr);
         case CARTRIDGE_PAGEFOX:
             return pagefox_roml_read(addr);
-        case CARTRIDGE_RAMLINK:
-            return ramlink_roml_read(addr);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_roml_read(addr);
         case CARTRIDGE_REX_RAMFLOPPY:
@@ -674,6 +693,16 @@ static uint8_t roml_read_slotmain(uint16_t addr)
             return generic_roml_read(addr);
         case CARTRIDGE_CRT: /* invalid */
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
+            break;
+        case CARTRIDGE_NONE:
+            /* RAMLINK operates as ULTIMAX when the address is > $e000, but
+                a normal cart when $8000 - $bfff.  Since VICE doesn't allow
+                the cart config to change on different addresses, we have
+                to hack it here.
+                So when RAMLINK is enabled, pass whatever is "default". */
+            if (ramlink_cart_enabled()) {
+                return mem_read_without_ultimax(addr);
+            }
             break;
     }
 
@@ -724,6 +753,13 @@ uint8_t roml_read(uint16_t addr)
         if ((res = tpi_roml_read(addr, &value)) == CART_READ_VALID) {
             return value;
         }
+    } else if (ieeeflash64_cart_enabled()) {
+        /* fake ultimax hack */
+        return mem_read_without_ultimax(addr);
+    } else if (ramlink_cart_enabled()) {
+        if ((res = ramlink_roml_read(addr, &value)) == CART_READ_VALID) {
+            return value;
+        }
     }
 
     switch (res) {
@@ -747,7 +783,8 @@ void roml_store(uint16_t addr, uint8_t value)
         mmc64_roml_store(addr, value);
         return;
     }
-    if (magicvoice_cart_enabled()) {
+    if (magicvoice_cart_enabled() ||
+        ieeeflash64_cart_enabled()) {
         /* fake ultimax hack */
         mem_store_without_ultimax(addr, value);
         return;
@@ -802,14 +839,27 @@ void roml_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_FORMEL64:
         case CARTRIDGE_GAME_KILLER:
         case CARTRIDGE_GMOD3:
-        case CARTRIDGE_RAMLINK:
         case CARTRIDGE_STARDOS:
         case CARTRIDGE_MAGIC_FORMEL: /* ? */
             /* fake ultimax hack */
             mem_store_without_ultimax(addr, value);
             return;
         default: /* use default cartridge */
-            generic_roml_store(addr, value);
+            /* RAMLINK operates as ULTIMAX when the address is > $e000, but
+                a normal cart when $8000 - $bfff.  Since VICE doesn't allow
+                the cart config to change on different addresses, we have
+                to hack it here.
+                So when RAMLINK is enabled, pass whatever is "default". */
+            if (ramlink_cart_enabled()) {
+                if ( ( (ramlink_cart_mode() & 0x18) == 0x08 ) ||
+                    ( (ramlink_cart_mode() & 0x13) == 0x13 ) ) {
+                    /* call slot1 code if cart is in ROMLO mode */
+                    generic_roml_store(addr, value);
+                } else {
+                    /* otherwise store to whereever ie. ROM/RAM */
+                    mem_store_without_ultimax(addr, value);
+                }
+            }
             return;
         case CARTRIDGE_CRT: /* invalid */
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
@@ -863,8 +913,6 @@ static uint8_t romh_read_slotmain(uint16_t addr)
             return ocean_romh_read(addr);
         case CARTRIDGE_PAGEFOX:
             return pagefox_romh_read(addr);
-        case CARTRIDGE_RAMLINK:
-            return ramlink_romh_read(addr);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_romh_read(addr);
         case CARTRIDGE_SNAPSHOT64:
@@ -880,11 +928,22 @@ static uint8_t romh_read_slotmain(uint16_t addr)
         case CARTRIDGE_ACTION_REPLAY4:
         case CARTRIDGE_FINAL_III:
         case CARTRIDGE_FREEZE_FRAME:
+        case CARTRIDGE_FREEZE_FRAME_MK2:
         case CARTRIDGE_FREEZE_MACHINE:
         default: /* use default cartridge */
             return generic_romh_read(addr);
         case CARTRIDGE_CRT: /* invalid */
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
+            break;
+        case CARTRIDGE_NONE:
+            /* RAMLINK operates as ULTIMAX when the address is > $e000, but
+                a normal cart when $8000 - $bfff.  Since VICE doesn't allow
+                the cart config to change on different addresses, we have
+                to hack it here.
+                So when RAMLINK is enabled, pass whatever is "default". */
+            if (ramlink_cart_enabled()) {
+                return mem_read_without_ultimax(addr);
+            }
             break;
     }
 
@@ -922,6 +981,16 @@ uint8_t romh_read(uint16_t addr)
             return value;
         }
     }
+    if (ieeeflash64_cart_enabled()) {
+        /* fake ultimax hack */
+        res = CART_READ_C64MEM;
+    }
+    if (ramlink_cart_enabled()) {
+        if ((res = ramlink_romh_read(addr, &value)) == CART_READ_VALID) {
+            return value;
+        }
+    }
+
     switch (res) {
         case CART_READ_C64MEM:
             return mem_read_without_ultimax(addr);
@@ -976,8 +1045,6 @@ static uint8_t ultimax_romh_read_hirom_slotmain(uint16_t addr)
             return multimax_romh_read(addr);
         case CARTRIDGE_OCEAN:
             return ocean_romh_read(addr);
-        case CARTRIDGE_RAMLINK:
-            return ramlink_romh_read(addr);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_romh_read(addr);
         case CARTRIDGE_SNAPSHOT64:
@@ -992,11 +1059,22 @@ static uint8_t ultimax_romh_read_hirom_slotmain(uint16_t addr)
         case CARTRIDGE_ACTION_REPLAY4:
         case CARTRIDGE_FINAL_III:
         case CARTRIDGE_FREEZE_FRAME:
+        case CARTRIDGE_FREEZE_FRAME_MK2:
         case CARTRIDGE_FREEZE_MACHINE:
         default: /* use default cartridge */
             return generic_romh_read(addr);
         case CARTRIDGE_CRT: /* invalid */
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
+            break;
+        case CARTRIDGE_NONE:
+            /* RAMLINK operates as ULTIMAX when the address is > $e000, but
+                a normal cart when $8000 - $bfff.  Since VICE doesn't allow
+                the cart config to change on different addresses, we have
+                to hack it here.
+                So when RAMLINK is enabled, pass whatever is "default". */
+            if (ramlink_cart_enabled()) {
+                return mem_read_without_ultimax(addr);
+            }
             break;
     }
 
@@ -1035,6 +1113,15 @@ uint8_t ultimax_romh_read_hirom(uint16_t addr)
             return value;
         }
     }
+    if (ieeeflash64_cart_enabled()) {
+        return ieeeflash64_romh_read_hirom(addr);
+    }
+    if (ramlink_cart_enabled()) {
+        if ((res = ramlink_romh_read(addr, &value)) == CART_READ_VALID) {
+            return value;
+        }
+    }
+
     switch (res) {
         case CART_READ_C64MEM:
             return mem_read_without_ultimax(addr);
@@ -1053,7 +1140,8 @@ void romh_store(uint16_t addr, uint8_t value)
     /* DBG(("ultimax w e000: %04x %02x\n", addr, value)); */
 
     /* "Slot 0" */
-    if (magicvoice_cart_enabled()) {
+    if (magicvoice_cart_enabled() ||
+        ieeeflash64_cart_enabled()) {
         /* fake ultimax hack, c64 ram */
         mem_store_without_ultimax(addr, value);
     }
@@ -1065,6 +1153,7 @@ void romh_store(uint16_t addr, uint8_t value)
     /* "Main Slot" */
     /* to aid in debugging, use return instead of break incase of a successful store */
     switch (mem_cartridge_type) {
+        /* DO NOT ADD A DEFAULT CASE OR IT WILL BREAK RAMLINK */
         case CARTRIDGE_CAPTURE:
             capture_romh_store(addr, value);
             return;
@@ -1083,8 +1172,8 @@ void romh_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_EXOS:
         case CARTRIDGE_FINAL_PLUS:
         case CARTRIDGE_GMOD3:
+        case CARTRIDGE_IEEEFLASH64:
         case CARTRIDGE_MAGIC_FORMEL: /* ? */
-        case CARTRIDGE_RAMLINK:
         case CARTRIDGE_STARDOS:
         case CARTRIDGE_SNAPSHOT64: /* ? */
             /* fake ultimax hack, c64 ram */
@@ -1094,6 +1183,12 @@ void romh_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_CRT: /* invalid */
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
             return;
+    }
+
+    if (ramlink_cart_enabled()) {
+        /* fake ultimax hack */
+        mem_store_without_ultimax(addr, value);
+        return;
     }
 
     /* open bus */
@@ -1349,10 +1444,10 @@ static uint8_t ultimax_1000_7fff_read_slot1(uint16_t addr)
         case CARTRIDGE_GAME_KILLER:
         case CARTRIDGE_GMOD2:
         case CARTRIDGE_GMOD3:
+        case CARTRIDGE_IEEEFLASH64:
         case CARTRIDGE_KINGSOFT:
         case CARTRIDGE_LT_KERNAL:
         case CARTRIDGE_MAGIC_FORMEL:
-        case CARTRIDGE_RAMLINK:
         case CARTRIDGE_STARDOS:
             /* fake ultimax hack, c64 ram */
             return mem_read_without_ultimax(addr);
@@ -1378,6 +1473,14 @@ uint8_t ultimax_1000_7fff_read(uint16_t addr)
             return value;
         }
     }
+    if (ieeeflash64_cart_enabled()) {
+        /* fake ultimax hack */
+        res = CART_READ_C64MEM;
+    }
+    if (ramlink_cart_enabled()) {
+        /* fake ultimax hack */
+        res = CART_READ_C64MEM;
+    }
 
     switch (res) {
         case CART_READ_C64MEM:
@@ -1396,7 +1499,8 @@ uint8_t ultimax_1000_7fff_read(uint16_t addr)
 void ultimax_1000_7fff_store(uint16_t addr, uint8_t value)
 {
     /* "Slot 0" */
-    if (magicvoice_cart_enabled()) {
+    if (magicvoice_cart_enabled() ||
+        ieeeflash64_cart_enabled()) {
         mem_store_without_ultimax(addr, value); /* fake ultimax hack, c64 ram */
     }
     /* "Slot 1" */
@@ -1409,6 +1513,7 @@ void ultimax_1000_7fff_store(uint16_t addr, uint8_t value)
 
     /* "Main Slot" */
     switch (mem_cartridge_type) {
+        /* DO NOT ADD A DEFAULT CASE OR IT WILL BREAK RAMLINK */
         case CARTRIDGE_IDE64:
             ide64_ram_store(addr, value);
             break;
@@ -1427,7 +1532,6 @@ void ultimax_1000_7fff_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_KINGSOFT:
         case CARTRIDGE_LT_KERNAL:
         case CARTRIDGE_MAGIC_FORMEL:
-        case CARTRIDGE_RAMLINK:
         case CARTRIDGE_STARDOS:
             /* fake ultimax hack, c64 ram */
             mem_store_without_ultimax(addr, value);
@@ -1435,6 +1539,12 @@ void ultimax_1000_7fff_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_CRT: /* invalid */
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
             break;
+    }
+
+    if (ramlink_cart_enabled()) {
+        /* fake ultimax hack */
+        mem_store_without_ultimax(addr, value);
+        return;
     }
 
     /* default; no cart, open bus */
@@ -1460,8 +1570,6 @@ static uint8_t ultimax_a000_bfff_read_slot1(uint16_t addr)
             return ide64_rom_read(addr);
         case CARTRIDGE_MMC_REPLAY:
             return mmcreplay_a000_bfff_read(addr);
-        case CARTRIDGE_RAMLINK:
-            return ramlink_a000_bfff_read(addr);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_a000_bfff_read(addr);
         case CARTRIDGE_CAPTURE:
@@ -1478,6 +1586,22 @@ static uint8_t ultimax_a000_bfff_read_slot1(uint16_t addr)
         case CARTRIDGE_CRT: /* invalid */
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
             break;
+        default:
+            /* RAMLINK operates as ULTIMAX when the address is > $e000, but
+                a normal cart when $8000 - $bfff.  Since VICE doesn't allow
+                the cart config to change on different addresses, we have
+                to hack it here.
+                So when RAMLINK is enabled, pass whatever is "default". */
+            if (ramlink_cart_enabled()) {
+                if ( (ramlink_cart_mode() & 0x1a) == 0x1a ) {
+                    /* call slot1 code if cart is in ROMHI mode */
+                    return romh_read_slot1(addr);
+                } else {
+                    /* otherwise return whatever should be there; ie. ROM/RAM */
+                    return mem_read_without_ultimax(addr);
+                }
+            }
+            break;
     }
     /* default; no cart, open bus */
     return vicii_read_phi1();
@@ -1492,6 +1616,15 @@ uint8_t ultimax_a000_bfff_read(uint16_t addr)
     res = CART_READ_THROUGH;
     if (magicvoice_cart_enabled()) {
         if ((res = magicvoice_a000_bfff_read(addr, &value)) == CART_READ_VALID) {
+            return value;
+        }
+    }
+    if (ieeeflash64_cart_enabled()) {
+        /* fake ultimax hack */
+        res = CART_READ_C64MEM;
+    }
+    if (ramlink_cart_enabled()) {
+        if ((res = ramlink_a000_bfff_read(addr, &value)) == CART_READ_VALID) {
             return value;
         }
     }
@@ -1511,7 +1644,8 @@ uint8_t ultimax_a000_bfff_read(uint16_t addr)
 void ultimax_a000_bfff_store(uint16_t addr, uint8_t value)
 {
     /* "Slot 0" */
-    if (magicvoice_cart_enabled()) {
+    if (magicvoice_cart_enabled() ||
+        ieeeflash64_cart_enabled()) {
         /* fake ultimax hack, c64 ram */
         mem_store_without_ultimax(addr, value);
     }
@@ -1525,6 +1659,7 @@ void ultimax_a000_bfff_store(uint16_t addr, uint8_t value)
 
     /* "Main Slot" */
     switch (mem_cartridge_type) {
+        /* DO NOT ADD A DEFAULT CASE OR IT WILL BREAK RAMLINK */
         case CARTRIDGE_MMC_REPLAY:
             mmcreplay_a000_bfff_store(addr, value);
             break;
@@ -1539,7 +1674,6 @@ void ultimax_a000_bfff_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_GMOD3:
         case CARTRIDGE_LT_KERNAL:
         case CARTRIDGE_MAGIC_FORMEL:
-        case CARTRIDGE_RAMLINK:
         case CARTRIDGE_STARDOS:
             /* fake ultimax hack, c64 ram */
             mem_store_without_ultimax(addr, value);
@@ -1547,6 +1681,12 @@ void ultimax_a000_bfff_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_CRT: /* invalid */
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
             break;
+    }
+
+    if (ramlink_cart_enabled()) {
+        /* fake ultimax hack */
+        mem_store_without_ultimax(addr, value);
+        return;
     }
 
     /* default; no cart, open bus */
@@ -1575,10 +1715,10 @@ static uint8_t ultimax_c000_cfff_read_slot1(uint16_t addr)
         case CARTRIDGE_GAME_KILLER:
         case CARTRIDGE_GMOD2:
         case CARTRIDGE_GMOD3:
+        case CARTRIDGE_IEEEFLASH64:
         case CARTRIDGE_KINGSOFT:
         case CARTRIDGE_LT_KERNAL:
         case CARTRIDGE_MAGIC_FORMEL:
-        case CARTRIDGE_RAMLINK:
         case CARTRIDGE_STARDOS:
             /* fake ultimax hack, c64 ram */
             return mem_read_without_ultimax(addr);
@@ -1603,6 +1743,14 @@ uint8_t ultimax_c000_cfff_read(uint16_t addr)
             return value;
         }
     }
+    if (ieeeflash64_cart_enabled()) {
+        /* fake ultimax hack */
+        res = CART_READ_C64MEM;
+    }
+    if (ramlink_cart_enabled()) {
+        /* fake ultimax hack */
+        res = CART_READ_C64MEM;
+    }
 
     switch (res) {
         case CART_READ_C64MEM:
@@ -1621,7 +1769,8 @@ uint8_t ultimax_c000_cfff_read(uint16_t addr)
 void ultimax_c000_cfff_store(uint16_t addr, uint8_t value)
 {
     /* "Slot 0" */
-    if (magicvoice_cart_enabled()) {
+    if (magicvoice_cart_enabled() ||
+        ieeeflash64_cart_enabled()) {
         mem_store_without_ultimax(addr, value); /* fake ultimax hack, c64 ram */
     }
     /* "Slot 1" */
@@ -1634,6 +1783,7 @@ void ultimax_c000_cfff_store(uint16_t addr, uint8_t value)
 
     /* "Main Slot" */
     switch (mem_cartridge_type) {
+        /* DO NOT ADD A DEFAULT CASE OR IT WILL BREAK RAMLINK */
         case CARTRIDGE_MMC_REPLAY:
             mmcreplay_c000_cfff_store(addr, value);
             break;
@@ -1646,7 +1796,6 @@ void ultimax_c000_cfff_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_KINGSOFT:
         case CARTRIDGE_LT_KERNAL:
         case CARTRIDGE_MAGIC_FORMEL:
-        case CARTRIDGE_RAMLINK:
         case CARTRIDGE_STARDOS:
             /* fake ultimax hack, c64 ram */
             mem_store_without_ultimax(addr, value);
@@ -1654,6 +1803,12 @@ void ultimax_c000_cfff_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_CRT: /* invalid */
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
             break;
+    }
+
+    if (ramlink_cart_enabled()) {
+        /* fake ultimax hack */
+        mem_store_without_ultimax(addr, value);
+        return;
     }
 
     /* default; no cart, open bus */
@@ -1678,7 +1833,6 @@ static uint8_t ultimax_d000_dfff_read_slot1(uint16_t addr)
         case CARTRIDGE_KINGSOFT:
         case CARTRIDGE_LT_KERNAL:
         case CARTRIDGE_MAGIC_FORMEL:
-        case CARTRIDGE_RAMLINK:
         case CARTRIDGE_SNAPSHOT64: /* ? */
         case CARTRIDGE_STARDOS:
             /* fake ultimax hack, c64 io,colram,ram */
@@ -1703,6 +1857,14 @@ uint8_t ultimax_d000_dfff_read(uint16_t addr)
             return value;
         }
     }
+    if (ieeeflash64_cart_enabled()) {
+        /* fake ultimax hack */
+        res = CART_READ_C64MEM;
+    }
+    if (ramlink_cart_enabled()) {
+        /* fake ultimax hack */
+        res = CART_READ_C64MEM;
+    }
 
     switch (res) {
         case CART_READ_C64MEM:
@@ -1721,7 +1883,8 @@ uint8_t ultimax_d000_dfff_read(uint16_t addr)
 void ultimax_d000_dfff_store(uint16_t addr, uint8_t value)
 {
     /* "Slot 0" */
-    if (magicvoice_cart_enabled()) {
+    if (magicvoice_cart_enabled() ||
+        ieeeflash64_cart_enabled()) {
         /* fake ultimax hack, c64 io,colram,ram */
         mem_store_without_ultimax(addr, value);
         return;
@@ -1735,6 +1898,7 @@ void ultimax_d000_dfff_store(uint16_t addr, uint8_t value)
 
     /* "Main Slot" */
     switch (mem_cartridge_type) {
+        /* DO NOT ADD A DEFAULT CASE OR IT WILL BREAK RAMLINK */
         case CARTRIDGE_CAPTURE:
         case CARTRIDGE_EXOS:
         case CARTRIDGE_FINAL_PLUS:
@@ -1743,7 +1907,6 @@ void ultimax_d000_dfff_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_KINGSOFT:
         case CARTRIDGE_LT_KERNAL:
         case CARTRIDGE_MAGIC_FORMEL:
-        case CARTRIDGE_RAMLINK:
         case CARTRIDGE_SNAPSHOT64: /* ? */
         case CARTRIDGE_STARDOS:
             /* fake ultimax hack, c64 io,colram,ram */
@@ -1753,6 +1916,13 @@ void ultimax_d000_dfff_store(uint16_t addr, uint8_t value)
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
             break;
     }
+
+    if (ramlink_cart_enabled()) {
+        /* fake ultimax hack */
+        mem_store_without_ultimax(addr, value);
+        return;
+    }
+
     /* default;no cart, c64 i/o */
     store_bank_io(addr, value);
 }
@@ -1861,6 +2031,11 @@ int ultimax_romh_phi1_read(uint16_t addr, uint8_t *value)
             return 1;
         }
     }
+    if (ieeeflash64_cart_enabled()) {
+        if ((res = ieeeflash64_romh_phi1_read(addr, value)) == CART_READ_VALID) {
+            return 1;
+        }
+    }
 
     switch (res) {
         case CART_READ_C64MEM:
@@ -1964,6 +2139,11 @@ int ultimax_romh_phi2_read(uint16_t addr, uint8_t *value)
 
     if (magicvoice_cart_enabled()) {
         if ((res = magicvoice_romh_phi2_read(addr, value)) == CART_READ_VALID) {
+            return 1;
+        }
+    }
+    if (ieeeflash64_cart_enabled()) {
+        if ((res = ieeeflash64_romh_phi2_read(addr, value)) == CART_READ_VALID) {
             return 1;
         }
     }
@@ -2117,9 +2297,6 @@ static uint8_t cartridge_peek_mem_slotmain(uint16_t addr)
         case CARTRIDGE_MAGIC_FORMEL:
             res = magicformel_peek_mem(&export_slotmain, addr, &value);
             break;
-        case CARTRIDGE_RAMLINK:
-            res = ramlink_peek_mem(&export_slotmain, addr, &value);
-            break;
         case CARTRIDGE_RETRO_REPLAY:
             res = retroreplay_peek_mem(&export_slotmain, addr, &value);
             break;
@@ -2160,6 +2337,14 @@ static uint8_t cartridge_peek_mem_slotmain(uint16_t addr)
             }
             break;
         case CARTRIDGE_NONE:
+            /* RAMLINK operates as ULTIMAX when the address is > $e000, but
+                a normal cart when $8000 - $bfff.  Since VICE doesn't allow
+                the cart config to change on different addresses, we have
+                to hack it here.
+                So when RAMLINK is enabled, pass whatever is "default". */
+            if (ramlink_cart_enabled()) {
+                return mem_read_without_ultimax(addr);
+            }
             break;
     }
 
@@ -2233,6 +2418,14 @@ uint8_t cartridge_peek_mem(uint16_t addr)
         }
     } else if (tpi_cart_enabled()) {
         if ((res = tpi_peek_mem(addr, &value)) == CART_READ_VALID) {
+            return value;
+        }
+    } else if (ieeeflash64_cart_enabled()) {
+        if ((res = ieeeflash64_peek_mem(addr, &value)) == CART_READ_VALID) {
+            return value;
+        }
+    } else if (ramlink_cart_enabled()) {
+        if ((res = ramlink_peek_mem(addr, &value)) == CART_READ_VALID) {
             return value;
         }
     }

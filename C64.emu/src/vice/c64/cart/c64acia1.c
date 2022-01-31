@@ -32,7 +32,6 @@
 #define mycpu           maincpu
 #define myclk           maincpu_clk
 #define mycpu_rmw_flag  maincpu_rmw_flag
-#define mycpu_clk_guard maincpu_clk_guard
 
 #define myacia acia1
 
@@ -118,7 +117,7 @@ static io_source_t acia_device = {
     NULL,                 /* NO poke function */
     aciacart_read,        /* read function */
     aciacart_peek,        /* peek function */
-    NULL,                 /* TODO: device state information dump function */
+    acia_dump,            /* device state information dump function */
     CARTRIDGE_ACIA,       /* cartridge ID */
     IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
     0                     /* insertion order, gets filled in by the registration function */
@@ -289,13 +288,14 @@ int acia1_set_mode(int mode)
 /* ------------------------------------------------------------------------- */
 
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-static const resource_int_t resources_i[] = {
+static resource_int_t resources_i[] = {
     { "Acia1Enable", 0, RES_EVENT_STRICT, 0,
       &acia_enabled, set_acia_enabled, NULL },
     { "Acia1Irq", MyIrq, RES_EVENT_NO, NULL,
       &acia.irq_res, acia_set_irq, NULL },
     { "Acia1Mode", ACIA_MODE_SWIFTLINK, RES_EVENT_NO, NULL,
       &acia.mode, acia_set_mode, NULL },
+    /* CAUTION: position is hardcoded below */
     { "Acia1Base", 0xffff, RES_EVENT_STRICT, int_to_void_ptr(0xffff),
       &acia_base, set_acia_base, NULL },
     RESOURCE_INT_LIST_END
@@ -305,6 +305,17 @@ static const resource_int_t resources_i[] = {
 int aciacart_resources_init(void)
 {
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
+    /* Set the default factory value depending on the machine. We do this
+       here so the default value will not end up in the config file. */
+    switch (machine_class) {
+        case VICE_MACHINE_VIC20:
+            resources_i[3].factory_value = 0x9800;
+            break;
+        default:
+            resources_i[3].factory_value = 0xde00;
+            break;
+    }
+
     if (acia1_resources_init() < 0) {
         return -1;
     }

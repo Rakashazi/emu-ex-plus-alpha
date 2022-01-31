@@ -38,7 +38,6 @@
 #include "videoarch.h"
 
 #include "archdep.h"
-#include "clkguard.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
@@ -71,13 +70,6 @@
 vic_t vic;
 
 static void vic_set_geometry(void);
-
-static void clk_overflow_callback(CLOCK sub, void *unused_data)
-{
-    if (vic.light_pen.trigger_cycle < CLOCK_MAX) {
-        vic.light_pen.trigger_cycle -= sub;
-    }
-}
 
 void vic_change_timing(machine_timing_t *machine_timing, int border_mode)
 {
@@ -161,9 +153,7 @@ void vic_raster_draw_handler(void)
 
     /* handle start of frame */
     if (vic.raster.current_line == 0) {
-        raster_skip_frame(&vic.raster,
-                          vsync_do_vsync(vic.raster.canvas,
-                                         vic.raster.skip_frame));
+        vsync_do_vsync(vic.raster.canvas);
     }
 }
 
@@ -254,8 +244,6 @@ raster_t *vic_init(void)
     vic_draw_init();
 
     vic.initialized = 1;
-
-    clk_guard_add_callback(maincpu_clk_guard, clk_overflow_callback, NULL);
 
     resources_touch("VICDoubleSize");
 

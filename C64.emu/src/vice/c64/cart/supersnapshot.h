@@ -40,6 +40,7 @@ extern void supersnapshot_v5_config_setup(uint8_t *rawcart);
 extern int supersnapshot_v5_bin_attach(const char *filename, uint8_t *rawcart);
 extern int supersnapshot_v5_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void supersnapshot_v5_detach(void);
+extern void supersnapshot_v5_powerup(void);
 
 extern int supersnapshot_v5_resources_init(void);
 extern void supersnapshot_v5_resources_shutdown(void);

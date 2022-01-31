@@ -183,7 +183,7 @@ uint8_t gmod3_io1_read(uint16_t addr)
             return eeprom_data_out;
         }
     } else {
-        if ((addr >= 0x00) && (addr <= 0x07)) {
+        if (/*(addr >= 0x00) &&*/ (addr <= 0x07)) {
             gmod3_io1_device.io_source_valid = 1;
             return gmod3_bank & 0xff;
         } else if ((addr >= 0x08) && (addr <= 0x0f)) {
@@ -201,7 +201,7 @@ uint8_t gmod3_io1_peek(uint16_t addr)
             return eeprom_data_out;
         }
     } else {
-        if ((addr >= 0x00) && (addr <= 0x07)) {
+        if (/*(addr >= 0x00) &&*/ (addr <= 0x07)) {
             return gmod3_bank & 0xff;
         } else if ((addr >= 0x08) && (addr <= 0x0f)) {
             return (gmod3_bank & 0x0700) >> 8;
@@ -219,7 +219,7 @@ void gmod3_io1_store(uint16_t addr, uint8_t value)
     addr &= 0xff;
 
     /* banking */
-    if ((addr >= 0x00) && (addr <= 0x07)) {
+    if (/*(addr >= 0x00) &&*/ (addr <= 0x07)) {
         if (gmod3_bitbang_enabled) {
             eeprom_cs = ((value >> 6) & 1);   /* active low */
             eeprom_clock = (value >> 5) & 1;
@@ -277,7 +277,7 @@ static uint8_t vectors[8] = { 0x08, 0x00, 0x08, 0x00, 0x0c, 0x80, 0x0c, 0x00 };
 uint8_t gmod3_romh_read(uint16_t addr)
 {
     DBG(("gmod3_romh_read %04x\n", addr));
-    if (addr >= 0xfff8 && addr <= 0xffff) {
+    if (addr >= 0xfff8 /*&& addr <= 0xffff*/) {
         return vectors[addr & 7];
     }
     return mem_read_without_ultimax(addr);
@@ -301,7 +301,7 @@ int gmod3_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
         return CART_READ_VALID;
     }
     if (gmod3_vectors_enabled) {
-        if (addr >= 0xfff8 && addr <= 0xffff) {
+        if (addr >= 0xfff8 /*&& addr <= 0xffff*/) {
             *value = gmod3_romh_read(addr);
             return CART_READ_VALID;
         }

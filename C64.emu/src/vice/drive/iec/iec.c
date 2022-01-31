@@ -154,6 +154,11 @@ void iec_drive_shutdown(struct diskunit_context_s *drv)
     /* due to the complexity of the CMD HD memory addressing and IO,
         we keep the setup of it in separate functions */
     cmdhd_shutdown(drv->cmdhd);
+    /* free existing ASCII value of resource */
+    if (drv->fixed_size_text) {
+        lib_free(drv->fixed_size_text);
+        drv->fixed_size_text = NULL;
+    }
 }
 
 void iec_drive_idling_method(unsigned int dnr)

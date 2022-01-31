@@ -53,10 +53,6 @@
 #include "userport.h"
 #include "vicii.h"
 
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-#include "rsuser.h"
-#endif
-
 /* Flag for recording port A DDR changes (for c64gluelogic) */
 static int pa_ddr_change = 0;
 
@@ -115,14 +111,8 @@ static int vbank;
 
 static void do_reset_cia(cia_context_t *cia_context)
 {
-    store_userport_pbx(0xff);
+    store_userport_pbx(0xff, USERPORT_NO_PULSE);
     store_userport_pa2(1);
-
-    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    rsuser_write_ctrl((uint8_t)0xff);
-    rsuser_set_tx_bit(1);
-#endif
 
     vbank = 0;
     c64_glue_reset();
@@ -157,11 +147,6 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
             store_userport_pa3((uint8_t)((byte & 8) >> 3));
         }
 
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-        if (rsuser_enabled && ((cia_context->old_pa ^ byte) & 0x04)) {
-            rsuser_set_tx_bit(byte & 4);
-        }
-#endif
         tmp = ~byte;
         new_vbank = tmp & 3;
         if (new_vbank != vbank) {
@@ -169,6 +154,11 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
             c64_glue_set_vbank(new_vbank, pa_ddr_change);
         }
         if (c64iec_active) {
+            /*  Bit 7  Serial Bus Data Input
+                Bit 6  Serial Bus Clock Pulse Input
+                Bit 5  Serial Bus Data Output
+                Bit 4  Serial Bus Clock Pulse Output
+                Bit 3  Serial Bus ATN Signal Output */
             (*iecbus_callback_write)((uint8_t)tmp, maincpu_clk + !(cia_context->write_offset));
         }
     }
@@ -179,11 +169,6 @@ static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
     store_userport_pa2((uint8_t)((byte & 4) >> 2));
     store_userport_pa3((uint8_t)((byte & 8) >> 3));
 
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    if (rsuser_enabled) {
-        rsuser_set_tx_bit((int)(byte & 4));
-    }
-#endif
     vbank = (byte ^ 3) & 3;
     c64_glue_undump(vbank);
 
@@ -194,54 +179,49 @@ static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 
 static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
-    store_userport_pbx(byte);
-
-    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
-    parallel_cable_cpu_write(DRIVE_PC_STANDARD, byte);
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    rsuser_write_ctrl(byte);
-#endif
+    store_userport_pbx(byte, USERPORT_NO_PULSE);
 }
 
 static void pulse_ciapc(cia_context_t *cia_context, CLOCK rclk)
 {
-    parallel_cable_cpu_pulse(DRIVE_PC_STANDARD);
-    store_userport_pbx((uint8_t)(cia_context->old_pb));
+    store_userport_pbx((uint8_t)(cia_context->old_pb), USERPORT_PULSE);
 }
 
 /* FIXME! */
 static inline void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
-    store_userport_pbx(byte);
+    store_userport_pbx(byte, USERPORT_NO_PULSE);
 
     /* The functions below will gradually be removed as the functionality is added to the new userport system. */
     parallel_cable_cpu_undump(DRIVE_PC_STANDARD, (uint8_t)byte);
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    rsuser_write_ctrl((uint8_t)byte);
-#endif
 }
 
 /* read_* functions must return 0xff if nothing to read!!! */
 static uint8_t read_ciapa(cia_context_t *cia_context)
 {
     uint8_t value;
-    uint8_t userval;
+    uint8_t userval = 1;
 
     value = ((cia_context->c_cia[CIA_PRA] | ~(cia_context->c_cia[CIA_DDRA])) & 0x3f);
 
     if (c64iec_active) {
+        /*  Bit 7  Serial Bus Data Input
+            Bit 6  Serial Bus Clock Pulse Input
+            Bit 5  Serial Bus Data Output
+            Bit 4  Serial Bus Clock Pulse Output
+            Bit 3  Serial Bus ATN Signal Output */
         value |= (*iecbus_callback_read)(maincpu_clk);
     }
 
     if (!(cia_context->c_cia[CIA_DDRA] & 4)) {
-        userval = read_userport_pa2(value);
+        userval = read_userport_pa2(userval);
         if (value != userval) {
             value &= (userval & 1) ? 0xff : 0xfb;
         }
     }
 
     if (!(cia_context->c_cia[CIA_DDRA] & 8)) {
-        userval = read_userport_pa3(value);
+        userval = read_userport_pa3(userval);
         if (value != userval) {
             value &= (userval & 1) ? 0xff : 0xf7;
         }
@@ -255,15 +235,7 @@ static uint8_t read_ciapb(cia_context_t *cia_context)
 {
     uint8_t byte = 0xff;
 
-    byte = read_userport_pbx((uint8_t)~cia_context->c_cia[CIA_DDRB], byte);
-
-    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    if (rsuser_enabled) {
-        byte = rsuser_read_ctrl(byte);
-    } else
-#endif
-    byte = parallel_cable_cpu_read(DRIVE_PC_STANDARD, byte);
+    byte = read_userport_pbx(byte);
 
     byte = (byte & ~(cia_context->c_cia[CIA_DDRB])) | (cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]);
 
@@ -312,7 +284,7 @@ void cia2_set_sdrx(uint8_t received_byte)
 
 void cia2_init(cia_context_t *cia_context)
 {
-    ciacore_init(machine_context.cia2, maincpu_alarm_context, maincpu_int_status, maincpu_clk_guard);
+    ciacore_init(machine_context.cia2, maincpu_alarm_context, maincpu_int_status);
 }
 
 void cia2_setup_context(machine_context_t *machinecontext)

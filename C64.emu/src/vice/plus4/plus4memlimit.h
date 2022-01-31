@@ -27,6 +27,9 @@
 #ifndef VICE_PLUS4MEMLIMIT_H
 #define VICE_PLUS4MEMLIMIT_H
 
-extern void mem_limit_init(int mem_read_limit_tab[2][0x101]);
+#define NUM_SEGMENTS 6
+#define NUM_CONFIGS 32
+
+extern void mem_limit_init(int mem_read_limit_tab[NUM_CONFIGS][0x101]);
 
 #endif

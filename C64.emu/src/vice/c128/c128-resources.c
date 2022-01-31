@@ -115,7 +115,7 @@ static char *kernal64_rom_name = NULL;
 int c128_full_banks;
 
 
-/* Hide the VDC window (Gtk only)
+/* Hide the VDC window
  */
 static int c128_hide_vdc;
 

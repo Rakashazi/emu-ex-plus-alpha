@@ -270,7 +270,7 @@ void vicii_init_vsp_bug(void)
 
     vsp_ysmoothold = vicii.ysmooth;
     vsp_bugwarn = 100;  /* max 100 lines of warnings before we give up */
-    
+
     for (i = 0; i < 8; i++) {
         vsp_buglines[i] =  VSP_PROB_MAX / 2;
         vsp_bugchannels[i] =  VSP_PROB_MAX / 2;
@@ -289,7 +289,7 @@ void vicii_init_vsp_bug(void)
             (val & 0x40) ? "6" : "",
             (val & 0x80) ? "7" : "",
             vicii_resources.vsp_bug_enabled ? "enabled" : "disabled"
-               );  
+               );
     for (i = 0; i < 8; i++) {
         if (val & 1) {
             vsp_bugchannels[i] = VSP_PROB_MIN;
@@ -322,20 +322,20 @@ static inline void vicii_handle_vsp_bug(void)
         channel = (vicii.ysmooth ^ vsp_ysmoothold) & 7;
         line = vicii.raster_line & 7;
     }
-    
+
     /* if emulation is disabled, warn only */
     if (vsp_bugwarn) {
         log_message(vicii.log,
-                "VSP Bug: Line: %u/%2u  Cycle: %2u  Channel: %u %s", 
+                "VSP Bug: Line: %u/%2u  Cycle: %2u  Channel: %u %s",
                 line, vicii.raster_line, vicii.raster_cycle, channel,
                 ((vsp_buglines[line] + vsp_bugchannels[channel] + 1) > VSP_PROB_THRESH) ? "*" :""
-                   );  
+                   );
         vsp_bugwarn--;
         if (vsp_bugwarn == 0) {
             log_message(vicii.log, "VSP Bug: further warnings supressed");
         }
     }
-        
+
     /* simulate the "VSP bug" problem */
     if(vicii_resources.vsp_bug_enabled) {
         if((vsp_buglines[line] + vsp_bugchannels[channel] + lib_unsigned_rand(0, 1)) > VSP_PROB_THRESH) {
@@ -359,7 +359,7 @@ static inline void vicii_handle_vsp_bug(void)
 #if 0
                         if (vsp_bugwarn) {
                             log_message(vicii.log,
-                                "VSP Bug: Corrupting %04x, fragile %02x, new bits %02x", 
+                                "VSP Bug: Corrupting %04x, fragile %02x, new bits %02x",
                                 (unsigned int)(page << 8) | row,
                                 (unsigned int)fragile, (unsigned int)result);
                         }
@@ -529,9 +529,9 @@ int vicii_cycle(void)
     if (vicii.allow_bad_lines) {
         check_badline();
     }
-    
+
     /* VSP-bug condition */
-    if(vicii.bad_line && vsp_may_crash && 
+    if (vicii.bad_line && vsp_may_crash &&
         (vicii.raster_cycle >= VICII_PAL_CYCLE(16)) &&
         (vicii.raster_cycle < VICII_PAL_CYCLE(55))) {
             vicii_handle_vsp_bug();
@@ -595,7 +595,7 @@ int vicii_cycle(void)
     if (vicii.bad_line && cycle_may_fetch_c(vicii.cycle_flags)) {
 #ifdef DEBUG
         if (debug.maincpu_traceflg) {
-            log_debug("DMA at cycle %u   %u", vicii.raster_cycle, maincpu_clk);
+            log_debug("DMA at cycle %u   %"PRIu64"", vicii.raster_cycle, maincpu_clk);
         }
 #endif
         vicii_fetch_matrix();

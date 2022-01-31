@@ -30,6 +30,12 @@
 
 #include "types.h"
 
+/*
+ * FIXME: Note about ATTACH_DEVICE_FS and ATTACH_DEVICE_VIRT:
+ * Attaching a disk image also uses _FS even though you would expect _VIRT.
+ * The value _VIRT seems to be unused in practice.
+ * One would expect _FS for the fsdevice, and _VIRT for vdrive images.
+ */
 #define ATTACH_DEVICE_NONE 0
 #define ATTACH_DEVICE_FS   1 /* filesystem */
 #define ATTACH_DEVICE_REAL 2 /* real IEC device (opencbm) */
@@ -47,7 +53,8 @@ extern const char *file_system_get_disk_name(unsigned int unit, unsigned int dri
 extern int file_system_attach_disk(unsigned int unit, unsigned int drive, const char *filename);
 extern void file_system_detach_disk(unsigned int unit, unsigned int drive);
 extern void file_system_detach_disk_shutdown(void);
-extern struct vdrive_s *file_system_get_vdrive(unsigned int unit, unsigned int drive);
+extern struct vdrive_s *file_system_get_vdrive(unsigned int unit);
+extern struct disk_image_s *file_system_get_image(unsigned int unit, unsigned int drive);
 extern int file_system_bam_get_disk_id(unsigned int unit, unsigned int drive, uint8_t *id);
 extern int file_system_bam_set_disk_id(unsigned int unit, unsigned int drive, uint8_t *id);
 extern void file_system_event_playback(unsigned int unit, unsigned int drive, const char *filename);

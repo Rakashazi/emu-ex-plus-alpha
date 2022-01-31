@@ -46,7 +46,7 @@
 
 /* Some prototypes are needed */
 static int digiblaster_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
-static int digiblaster_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
+static int digiblaster_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
 static void digiblaster_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val);
 static void digiblaster_sound_reset(sound_t *psid, CLOCK cpu_clk);
 
@@ -202,7 +202,7 @@ struct digiblaster_sound_s {
 
 static struct digiblaster_sound_s snd;
 
-static int digiblaster_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, int *delta_t)
+static int digiblaster_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
 {
     return sound_dac_calculate_samples(&digiblaster_dac, pbuf, (int)snd.voice0 * 128, nr, soc, (soc > 1) ? 3 : 1);
 }

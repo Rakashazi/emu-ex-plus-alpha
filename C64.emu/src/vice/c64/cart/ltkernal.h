@@ -30,6 +30,7 @@
 struct snapshot_s;
 
 extern void ltkernal_freeze(void);
+extern void ltkernal_powerup(void);
 extern void ltkernal_config_init(void);
 extern void ltkernal_config_setup(uint8_t *rawcart);
 extern int ltkernal_bin_attach(const char *filename, uint8_t *rawcart);

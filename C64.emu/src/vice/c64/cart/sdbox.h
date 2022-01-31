@@ -32,7 +32,7 @@
 #include "types.h"
 
 extern void sdbox_config_init(void);
-extern void sdbox_ram_init(void);
+extern void sdbox_powerup(void);
 extern void sdbox_config_setup(uint8_t *rawcart);
 extern int sdbox_bin_attach(const char *filename, uint8_t *rawcart);
 extern int sdbox_crt_attach(FILE *fd, uint8_t *rawcart);

@@ -49,11 +49,13 @@
 #include "vdc-cmdline-options.h"
 #include "vdc-color.h"
 #include "vdc-draw.h"
+#include "vdc-mem.h"
 #include "vdc-resources.h"
 #include "vdc-snapshot.h"
 #include "vdc.h"
 #include "vdctypes.h"
 #include "video.h"
+#include "videoarch.h"
 #include "viewport.h"
 
 vdc_t vdc;
@@ -69,7 +71,7 @@ static void vdc_raster_draw_alarm_handler(CLOCK offset, void *data);
    so that means that the ratio is 12.2727 / 16 = 0.76704375
  * The article above compensates for the VIC-II's not quite standard line
    frequency but that is not necessary here as the VDC produces exact PAL & NTSC
-   line frequency of 64µs & 63.5µs respectively with default kernal values.
+   line frequency of 64Âµs & 63.5Âµs respectively with default kernal values.
  * NOTE if we were not using Stretch_Vertically by default we could be halving
    the value here to achieve the correct aspect naturally..
 */
@@ -109,7 +111,9 @@ static void vdc_set_geometry(void)
     raster = &vdc.raster;
     /* total visible pixels including border(s) - constants defined in vdctypes.h */
     screen_width = VDC_SCREEN_WIDTH;    /* 856 */
-    screen_height = vdc.canvas_height;  /* was 288 - maximum number of raster lines visible on a PAL system. also the same as old winvice    //VDC_SCREEN_HEIGHT;  //312 */
+     /* was 288 - maximum number of raster lines visible on a PAL system. also
+      * the same as old winvice      VDC_SCREEN_HEIGHT;    312 */
+    screen_height = vdc.canvas_height;
 
     screen_xpix = vdc.screen_xpix;
 
@@ -329,7 +333,7 @@ void vdc_reset(void)
     vdc.regs[5] = 0;
     vdc.regs[6] = 25;
     vdc.regs[8] = 0;
-	vdc.interlaced = 0;
+    vdc.interlaced = 0;
     vdc.regs[9] = vdc.raster_ycounter_max = 7;
     vdc.regs[22] = 0x78;
     vdc.charwidth = 8;
@@ -544,8 +548,8 @@ static void vdc_raster_draw_alarm_handler(CLOCK offset, void *data)
                         if (j == 82) {
                             j = 41;
                         }
-                        vdc.attrbuf[vdc.attrbufdraw | j] = vdc.ram[(vdc.attribute_adr + vdc.mem_counter + i) & vdc.vdc_address_mask];
-                        vdc.scrnbuf[vdc.scrnbufdraw | j] = vdc.ram[(vdc.screen_adr + vdc.mem_counter + i) & vdc.vdc_address_mask];
+                        vdc.attrbuf[vdc.attrbufdraw | j] = vdc_ram_read(vdc.attribute_adr + vdc.mem_counter + i);
+                        vdc.scrnbuf[vdc.scrnbufdraw | j] = vdc_ram_read(vdc.screen_adr + vdc.mem_counter + i);
                     }
                 }
                 vdc.draw_finished = 1;
@@ -553,22 +557,22 @@ static void vdc_raster_draw_alarm_handler(CLOCK offset, void *data)
                 vdc_vert_fine_adj = 1;
             }
         }
-        
+
         /* check if we've hit the vsync position and should start vsync */
         if (vdc.row_counter == vdc.regs[7]) {
             vdc.vsync = 1;
             vdc.vsync_counter = 0;
-
-            //printf("vdc.raster.current_line: %03u vdc.canvas_height_old: %03u ", vdc.raster.current_line, vdc.canvas_height_old);
-            //printf("current_line: %03u ", vdc.raster.current_line);
-            //printf("vdc.draw_active: %01u vdc.prime_draw: %01u ", vdc.draw_active, vdc.prime_draw);
-            //printf("vdc.draw_finished: %01u vdc.display_enable: %03u\n", vdc.draw_finished, vdc.display_enable);
-
+/*
+            printf("vdc.raster.current_line: %03u vdc.canvas_height_old: %03u ", vdc.raster.current_line, vdc.canvas_height_old);
+            printf("current_line: %03u ", vdc.raster.current_line);
+            printf("vdc.draw_active: %01u vdc.prime_draw: %01u ", vdc.draw_active, vdc.prime_draw);
+            printf("vdc.draw_finished: %01u vdc.display_enable: %03u\n", vdc.draw_finished, vdc.display_enable);
+*/
             /* Check if the screen size has changed and if it's been stable for enough frames, update the canvas size appropriately */
             if (vdc.raster.current_line != vdc.canvas_height_old) {
                 vdc.canvas_height_old = vdc.raster.current_line;
                 stable_size_count = 0;  /* the size changed again so reset our stable size counter back to 0 */
-                //printf("height changed! current_line: %03u \n", vdc.raster.current_line);
+                /* printf("height changed! current_line: %03u \n", vdc.raster.current_line); */
             } else if (stable_size_count == 10) {   /* we've had a few frames of stable size so lock it in and resize the window */
                 /* For now do a simple check of the frame size at the mid-point between PAL (288) & NTSC (240)
                     to catch NTSC <> PAL changes, until we do a proper dynamic resize.
@@ -625,6 +629,13 @@ static void vdc_raster_draw_alarm_handler(CLOCK offset, void *data)
             raster_canvas_handle_end_of_frame(&vdc.raster);
         
             vdc.frame_counter++;    /* As far as the frame counter is concerned, we are now on a new frame */
+            
+            if (vdc.interlaced) {
+                vdc.raster.canvas->videoconfig->interlace_field = vdc.frame_counter & 1;
+            } else {
+                vdc.raster.canvas->videoconfig->interlace_field = 0;
+            }
+
             if (vdc.regs[24] & 0x20) {
                 vdc.attribute_blink = vdc.frame_counter & 16;
             } else {
@@ -701,8 +712,8 @@ static void vdc_raster_draw_alarm_handler(CLOCK offset, void *data)
             if (j == 82) {
                 j = 41;
             }
-            vdc.attrbuf[vdc.attrbufdraw | j] = vdc.ram[(vdc.attribute_adr + vdc.mem_counter + i) & vdc.vdc_address_mask];
-            vdc.scrnbuf[vdc.scrnbufdraw | j] = vdc.ram[(vdc.screen_adr + vdc.mem_counter + i) & vdc.vdc_address_mask];
+            vdc.attrbuf[vdc.attrbufdraw | j] = vdc_ram_read(vdc.attribute_adr + vdc.mem_counter + i);
+            vdc.scrnbuf[vdc.scrnbufdraw | j] = vdc_ram_read(vdc.screen_adr + vdc.mem_counter + i);
         }
     }
 
@@ -822,8 +833,8 @@ static void vdc_raster_draw_alarm_handler(CLOCK offset, void *data)
             if (j == 82) {
                 j = 41;
             }
-            vdc.attrbuf[(vdc.attrbufdraw ^ 0x100) | j] = vdc.ram[(vdc.attribute_adr + vdc.mem_counter + vdc.mem_counter_inc + vdc.regs[27] + i) & vdc.vdc_address_mask];
-            vdc.scrnbuf[(vdc.scrnbufdraw ^ 0x100) | j] = vdc.ram[(vdc.screen_adr + vdc.mem_counter + vdc.mem_counter_inc + vdc.regs[27] + i) & vdc.vdc_address_mask];
+            vdc.attrbuf[(vdc.attrbufdraw ^ 0x100) | j] = vdc_ram_read(vdc.attribute_adr + vdc.mem_counter + vdc.mem_counter_inc + vdc.regs[27] + i);
+            vdc.scrnbuf[(vdc.scrnbufdraw ^ 0x100) | j] = vdc_ram_read(vdc.screen_adr + vdc.mem_counter + vdc.mem_counter_inc + vdc.regs[27] + i);
         }
     }
 

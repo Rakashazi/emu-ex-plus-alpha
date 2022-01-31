@@ -534,7 +534,6 @@ static const uint8_t burst_status_tab[] = {
 #endif /* !ALLOW_UNALIGNED_ACCESS */
 
 #ifdef FEATURE_CPUMEMHISTORY
-#warning "CPUMEMHISTORY implementation for x64dtv is incomplete"
 #if 0
 void memmap_mem_store(unsigned int addr, unsigned int value)
 {

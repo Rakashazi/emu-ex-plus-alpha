@@ -56,10 +56,10 @@ extern void mouse_move(float dx, float dy);
 extern void mouse_get_int16(int16_t *x, int16_t *y);
 
 extern void neos_mouse_set_machine_parameter(long clock_rate);
-extern void neos_mouse_store(uint8_t val);
+extern void neos_mouse_store(int port, uint8_t val);
 extern uint8_t neos_mouse_read(void);
 extern uint8_t mouse_poll(void);
-extern void smart_mouse_store(uint8_t val);
+extern void smart_mouse_store(int port, uint8_t val);
 extern uint8_t smart_mouse_read(void);
 extern uint8_t micromys_mouse_read(void);
 
@@ -72,6 +72,10 @@ extern uint8_t micromys_mouse_read(void);
 #define MOUSE_TYPE_SMART    6
 #define MOUSE_TYPE_MICROMYS 7
 #define MOUSE_TYPE_KOALAPAD 8
-#define MOUSE_TYPE_NUM      9
+#define MOUSE_TYPE_MF_JOY   9
+#define MOUSE_TYPE_NUM      10
+
+#define PADDLES_INPUT_MOUSE    0
+#define PADDLES_INPUT_JOY_AXIS 1
 
 #endif

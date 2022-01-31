@@ -180,8 +180,7 @@ struct sid_engine_s {
     void (*store)(struct sound_s *psid, uint16_t addr, uint8_t val);
     void (*reset)(struct sound_s *psid, CLOCK cpu_clk);
     int (*calculate_samples)(struct sound_s *psid, short *pbuf, int nr,
-                             int interleave, int *delta_t);
-    void (*prevent_clk_overflow)(struct sound_s *psid, CLOCK sub);
+                             int interleave, CLOCK *delta_t);
     char *(*dump_state)(struct sound_s *psid);
     void (*state_read)(struct sound_s *psid,
                        struct sid_snapshot_state_s *sid_state);
@@ -204,8 +203,7 @@ extern void sid_sound_machine_close(sound_t *psid);
 extern uint8_t sid_sound_machine_read(sound_t *psid, uint16_t addr);
 extern void sid_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t byte);
 extern void sid_sound_machine_reset(sound_t *psid, CLOCK cpu_clk);
-extern int sid_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
-extern void sid_sound_machine_prevent_clk_overflow(sound_t *psid, CLOCK sub);
+extern int sid_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
 extern char *sid_sound_machine_dump_state(sound_t *psid);
 extern int sid_sound_machine_cycle_based(void);
 extern int sid_sound_machine_channels(void);

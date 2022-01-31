@@ -350,7 +350,7 @@ static int relative_read(vdrive_t *vdrive, bufinfo_t *bufinfo, uint8_t *data)
     DBG(("relative_read: store '%c' %02x", *data, *data));
 
     if (bufinfo->position_in_record < bufinfo->current_record_length) {
-        //DBG(("relative_read: record not exhausted (%d < %d), read a byte to buffer", bufinfo->position_in_record, bufinfo->current_record_length));
+        /* DBG(("relative_read: record not exhausted (%d < %d), read a byte to buffer", bufinfo->position_in_record, bufinfo->current_record_length)); */
         /* Read the next buffer; if nothing read, set EOF signal */
         bufinfo->iseof = !fileio_read(bufinfo->fileio_info, &(bufinfo->buffered), 1);
         bufinfo->position_in_record++;

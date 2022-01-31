@@ -465,20 +465,20 @@ static void dx_close(void)
 
 static int dx_bufferspace(void)
 {
-    DWORD play_cursor;
+    DWORD write_cursor;
     int free_samples, buffer_samples;
 
-    IDirectSoundBuffer_GetCurrentPosition(buffer, &play_cursor, NULL);
+    IDirectSoundBuffer_GetCurrentPosition(buffer, NULL, &write_cursor);
     /* We should properly distinguish between buffer empty and buffer fill
      * case. However, it's absolutely essential that the state where play and
      * write cursors overlap is read as buffer being filled with data. */
-    if (play_cursor < buffer_offset) {
-        free_samples = buffer_size - (buffer_offset - play_cursor);
+    if (write_cursor < buffer_offset) {
+        free_samples = buffer_size - (buffer_offset - write_cursor);
     } else {
-        free_samples = play_cursor - buffer_offset;
+        free_samples = write_cursor - buffer_offset;
     }
 
-    SDEBUG(("play=%d, ourwrite=%d, free=%d", play_cursor, buffer_offset, free_samples));
+    SDEBUG(("play=%d, ourwrite=%d, free=%d", write_cursor, buffer_offset, free_samples));
 
     free_samples /= (is16bit ? 2 : 1) * num_of_channels;
 
@@ -593,7 +593,7 @@ static int dx_resume(void)
     return 0;
 }
 
-static sound_device_t dx_device =
+static const sound_device_t dx_device =
 {
     "dx",
     dx_init,

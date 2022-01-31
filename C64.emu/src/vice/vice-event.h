@@ -40,7 +40,6 @@
 #define EVENT_RESETCPU          8
 #define EVENT_TIMESTAMP         9
 #define EVENT_ATTACHIMAGE       10
-#define EVENT_OVERFLOW          11
 #define EVENT_KEYBOARD_DELAY    12
 #define EVENT_JOYSTICK_DELAY    13
 #define EVENT_SYNC_TEST         14

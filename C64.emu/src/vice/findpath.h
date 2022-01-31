@@ -28,6 +28,6 @@
 #ifndef VICE_FINDPATH_H
 #define VICE_FINDPATH_H
 
-char *findpath(const char *cmd, const char *syspath, int mode);
+char *findpath(const char *cmd, const char *syspath, const char *subpath, int mode);
 
 #endif /* _FINDPATH_H */

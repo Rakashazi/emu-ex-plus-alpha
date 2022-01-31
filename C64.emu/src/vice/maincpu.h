@@ -74,12 +74,11 @@ extern int dtvclockneg;
 
 struct alarm_context_s;
 struct snapshot_s;
-struct clk_guard_s;
 struct monitor_interface_s;
 
 extern const CLOCK maincpu_opcode_write_cycles[];
 extern struct alarm_context_s *maincpu_alarm_context;
-extern struct clk_guard_s *maincpu_clk_guard;
+extern CLOCK maincpu_clk;
 extern struct monitor_interface_s *maincpu_monitor_interface;
 
 /* Return the number of write accesses in the last opcode emulated. */

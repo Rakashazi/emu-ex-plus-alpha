@@ -124,6 +124,7 @@ static void undump_pra(via_context_t *via_context, uint8_t byte)
     } else {
         switch (via1p->diskunit->parallel_cable) {
             case DRIVE_PC_STANDARD:
+            case DRIVE_PC_21SEC_BACKUP:
             case DRIVE_PC_FORMEL64:
                 if (dc->type == DRIVE_TYPE_1540
                     || dc->type == DRIVE_TYPE_1541
@@ -161,6 +162,7 @@ static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t oldpa_va
     } else {
         switch (dc->parallel_cable) {
             case DRIVE_PC_STANDARD:
+            case DRIVE_PC_21SEC_BACKUP:
             case DRIVE_PC_FORMEL64:
                 if (dc->type == DRIVE_TYPE_1540
                     || dc->type == DRIVE_TYPE_1541
@@ -304,6 +306,7 @@ static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
 
     switch (via1p->diskunit->parallel_cable) {
         case DRIVE_PC_STANDARD:
+        case DRIVE_PC_21SEC_BACKUP:
         case DRIVE_PC_FORMEL64:
             byte = parallel_cable_drive_read(via1p->diskunit->parallel_cable,
                                              (((addr == VIA_PRA) && (via_context->via[VIA_PCR] & 0xe) == 0xa)) ? 1 : 0);
@@ -346,7 +349,7 @@ static uint8_t read_prb(via_context_t *via_context)
 void via1d1541_init(diskunit_context_t *ctxptr)
 {
     viacore_init(ctxptr->via1d1541, ctxptr->cpu->alarm_context,
-                 ctxptr->cpu->int_status, ctxptr->cpu->clk_guard);
+                 ctxptr->cpu->int_status);
 }
 
 void via1d1541_setup_context(diskunit_context_t *ctxptr)

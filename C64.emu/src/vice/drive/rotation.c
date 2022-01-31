@@ -72,7 +72,7 @@ struct rotation_s {
 
     uint32_t cycle_index; /* cycle_index */
 
-    int ref_advance; /* reference cycles already simulated, e.g. when emulating bus delay */
+    CLOCK ref_advance; /* reference cycles already simulated, e.g. when emulating bus delay */
 
     uint32_t PulseHeadPosition;
 
@@ -330,11 +330,11 @@ static void rotation_do_wobble(drive_t *dptr)
  * 1541 circuit simulation for GCR-based images (.g64),
  * see 1541 circuit description in this file for details
  ******************************************************************************/
-static void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
+static void rotation_1541_gcr(drive_t *dptr, CLOCK ref_cycles)
 {
     rotation_t *rptr;
     int clk_ref_per_rev, cyc_act_frv;
-    unsigned int todo;
+    CLOCK todo;
     int32_t delta;
     uint32_t count_new_bitcell, cyc_sum_frv /*, sum_new_bitcell*/;
     unsigned int dnr = dptr->unit;
@@ -567,7 +567,7 @@ static void rotation_1541_gcr_cycle(drive_t *dptr)
 {
     rotation_t *rptr = &rotation[dptr->unit];
     CLOCK cpu_cycles;
-    int ref_cycles, ref_advance_cycles;
+    CLOCK ref_cycles, ref_advance_cycles;
     CLOCK one_rotation = rptr->frequency ? 400000 : 200000;
 
     /* cpu cycles since last call */
@@ -625,11 +625,11 @@ static inline int rotation_p64_get_delta(drive_t *dptr)
 
 /* FIXME: RPM related resources "DriveXRPM" and "DriveXwobble" are ignored for p64 */
 
-static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
+static void rotation_1541_p64(drive_t *dptr, CLOCK ref_cycles)
 {
     rotation_t *rptr;
     PP64PulseStream P64PulseStream;
-    uint32_t DeltaPositionToNextPulse, ToDo;
+    CLOCK DeltaPositionToNextPulse, ToDo;
 
     rptr = &rotation[dptr->unit];
 
@@ -700,6 +700,8 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
             {
                 /* Clock logic */
 
+                /* update UE7 before a possible reset of decoder to start with requested speedzone instead of todo value */
+                rptr->ue7_counter += ToDo;
                 /* 2.5 microseconds filter */
                 rptr->filter_counter += (rptr->filter_counter < 40) ? ToDo : 0;
                 if (((rptr->filter_counter >= 40) && (rptr->filter_state != rptr->filter_last_state))) {
@@ -719,7 +721,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
                 /* Increment the pulse divider clock until the speed zone pulse divider clock threshold value is reached, which is:
                 ** 16-(CurrentSpeedZone & 3), and each overflow, increment the pulse counter clock until the 4th pulse is reached
                 */
-                rptr->ue7_counter += ToDo;
+                
                 if (rptr->ue7_counter == 16) {
                     rptr->ue7_counter = rptr->ue7_dcba;
 
@@ -936,7 +938,7 @@ static void rotation_1541_p64_cycle(drive_t *dptr)
 {
     rotation_t *rptr = &rotation[dptr->unit];
     CLOCK cpu_cycles;
-    int ref_cycles, ref_advance_cycles;
+    CLOCK ref_cycles, ref_advance_cycles;
     CLOCK one_rotation = rptr->frequency ? 400000 : 200000;
 
     /* cpu cycles since last call */
@@ -980,7 +982,7 @@ static void rotation_1541_simple(drive_t *dptr)
 {
     rotation_t *rptr;
     CLOCK delta;
-    int tdelta;
+    CLOCK tdelta;
     int bits_moved = 0;
     uint64_t tmp = 1000000UL;
     unsigned long rpmscale;

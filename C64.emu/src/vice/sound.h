@@ -60,14 +60,31 @@
 
 #endif
 
+/* Fragment sizes */
+#define SOUND_FRAGMENT_VERY_SMALL    0
+#define SOUND_FRAGMENT_SMALL         1
+#define SOUND_FRAGMENT_MEDIUM        2
+#define SOUND_FRAGMENT_LARGE         3
+#define SOUND_FRAGMENT_VERY_LARGE    4
+
+/* Sound output modes */
+#define SOUND_OUTPUT_SYSTEM   0
+#define SOUND_OUTPUT_MONO     1
+#define SOUND_OUTPUT_STEREO   2
 
 /* Sound defaults.  */
 #ifdef ANDROID_COMPILE
 #define SOUND_SAMPLE_RATE 22050
 #define SOUND_SAMPLE_BUFFER_SIZE 100
+#define SOUND_FRAGMENT_SIZE SOUND_FRAGMENT_MEDIUM
+#elif defined(MACOSX_SUPPORT)
+#define SOUND_SAMPLE_RATE 48000
+#define SOUND_SAMPLE_BUFFER_SIZE 20
+#define SOUND_FRAGMENT_SIZE SOUND_FRAGMENT_VERY_SMALL
 #else
-#define SOUND_SAMPLE_RATE 44100
-#define SOUND_SAMPLE_BUFFER_SIZE 26
+#define SOUND_SAMPLE_RATE 48000
+#define SOUND_SAMPLE_BUFFER_SIZE 30
+#define SOUND_FRAGMENT_SIZE SOUND_FRAGMENT_MEDIUM
 #endif
 
 #define SOUND_CHANNELS_MAX 2
@@ -82,9 +99,8 @@
 #define SOUND_RECORD_DEVICE     0
 #define SOUND_PLAYBACK_DEVICE   1
 
-/* I need this to serialize close_sound and enablesound/sound_open in
-   the OS/2 Multithreaded environment                              */
 extern int sound_state_changed;
+extern int sound_playdev_reopen;
 extern int sid_state_changed;
 
 /* device structure */
@@ -137,18 +153,6 @@ static inline int16_t sound_audio_mix(int ch1, int ch2)
 
     return (int16_t)-((-(ch1) + -(ch2)) - (-(ch1) * -(ch2) / 32768));
 }
-
-/* Fragment sizes */
-#define SOUND_FRAGMENT_VERY_SMALL    0
-#define SOUND_FRAGMENT_SMALL         1
-#define SOUND_FRAGMENT_MEDIUM        2
-#define SOUND_FRAGMENT_LARGE         3
-#define SOUND_FRAGMENT_VERY_LARGE    4
-
-/* Sound output modes */
-#define SOUND_OUTPUT_SYSTEM   0
-#define SOUND_OUTPUT_MONO     1
-#define SOUND_OUTPUT_STEREO   2
 
 /* external functions for vice */
 extern void sound_init(unsigned int clock_rate, unsigned int ticks_per_frame);
@@ -203,7 +207,7 @@ extern int sound_init_vorbis_device(void);
 extern int sound_init_pulse_device(void);
 
 /* internal function for sound device registration */
-extern int sound_register_device(sound_device_t *pdevice);
+extern int sound_register_device(const sound_device_t *pdevice);
 
 /* other internal functions used around sound -code */
 extern int sound_read(uint16_t addr, int chipno);
@@ -214,7 +218,6 @@ extern int sound_dump(int chipno);
 /* functions and structs implemented by each machine */
 typedef struct sound_s sound_t;
 extern char *sound_machine_dump_state(sound_t *psid);
-extern void sound_machine_prevent_clk_overflow(sound_t *psid, CLOCK sub);
 extern void sound_machine_enable(int enable);
 
 extern unsigned int sound_device_num(void);
@@ -234,7 +237,7 @@ typedef struct sound_chip_s {
     void (*close)(sound_t *psid);
 
     /* sound chip calculate samples function */
-    int (*calculate_samples)(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
+    int (*calculate_samples)(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
 
     /* sound chip store function */
     void (*store)(sound_t *psid, uint16_t addr, uint8_t val);

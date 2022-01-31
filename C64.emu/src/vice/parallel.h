@@ -40,7 +40,7 @@
 #include "types.h"
 
 /* to switch on/off IEEE488 filesystem engine */
-extern void parallel_bus_enable(int enable);
+extern void parallel_bus_enable(unsigned int unit, unsigned int enable);
 
 extern void parallel_trap_eof_callback_set(void (*func)(void));
 extern void parallel_trap_attention_callback_set(void (*func)(void));

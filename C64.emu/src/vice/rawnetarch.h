@@ -41,7 +41,12 @@
 */
 /* #define RAWNET_DEBUG_FRAMES */
 
+#include "log.h"
 #include "types.h"
+
+extern int rawnet_arch_resources_init(void);
+extern int rawnet_arch_cmdline_options_init(void);
+extern void rawnet_arch_resources_shutdown(void);
 
 extern int rawnet_arch_init(void);
 extern void rawnet_arch_pre_reset(void);
@@ -62,7 +67,58 @@ extern int rawnet_arch_receive(uint8_t *pbuffer, int *plen, int *phashed, int *p
 extern int rawnet_arch_enumadapter_open(void);
 extern int rawnet_arch_enumadapter(char **ppname, char **ppdescription);
 extern int rawnet_arch_enumadapter_close(void);
-
 extern char *rawnet_arch_get_standard_interface(void);
+
+extern int rawnet_arch_enumdriver_open(void);
+extern int rawnet_arch_enumdriver(char **ppname, char **ppdescription);
+extern int rawnet_arch_enumdriver_close(void);
+extern char *rawnet_arch_get_standard_driver(void);
+
+#ifdef UNIX_COMPILE
+
+/** #define RAWNET_DEBUG_ARCH 1 **/
+/** #define RAWNET_DEBUG_PKTDUMP 1 **/
+
+#ifdef RAWNET_DEBUG_PKTDUMP
+extern void rawnet_arch_debug_output(const char *text, uint8_t *what, int count);
+#endif
+
+/* Logging device to be used by rawnet drivers */
+extern log_t rawnet_arch_log;
+
+/* Under Unix we can have various rawnet drivers, and each exposes its
+ * interface by instantiating a rawnet_driver_t structure */
+typedef struct rawnet_arch_driver_s {
+    const char *name;
+    void (*pre_reset)(void);
+    void (*post_reset)(void);
+    int (*activate)(const char *interface_name);
+    void (*deactivate)(void);
+    void (*set_mac)(const uint8_t mac[6]);
+    void (*set_hashfilter)(const uint32_t hash_mask[2]);
+
+    void (*recv_ctl)(int bBroadcast, int bIA, int bMulticast, int bCorrect, int bPromiscuous, int bIAHash);
+
+    void (*line_ctl)(int bEnableTransmitter, int bEnableReceiver);
+
+    void (*transmit)(int force, int onecoll, int inhibit_crc, int tx_pad_dis, int txlength, uint8_t *txframe);
+
+    int (*receive)(uint8_t *pbuffer, int *plen, int *phashed, int *phash_index, int *prx_ok, int *pcorrect_mac, int *pbroadcast, int *pcrc_error);
+
+    int (*enumadapter_open)(void);
+    int (*enumadapter)(char **ppname, char **ppdescription);
+    int (*enumadapter_close)(void);
+
+    char *(*get_standard_interface)(void);
+} rawnet_arch_driver_t;
+
+#ifdef HAVE_PCAP
+extern rawnet_arch_driver_t rawnet_arch_driver_pcap;
+#endif
+#ifdef HAVE_TUNTAP
+extern rawnet_arch_driver_t rawnet_arch_driver_tuntap;
+#endif
+
+#endif /* ifdef UNIX_COMPILE */
 
 #endif

@@ -99,7 +99,7 @@ static uint8_t freezeframe_io1_peek(uint16_t addr)
 
 static void freezeframe_io1_store(uint16_t addr, uint8_t value)
 {
-    DBG(("io1 %04x %02x\n", addr, value));
+    DBG(("io1 w %04x %02x\n", addr, value));
 }
 
 static uint8_t freezeframe_io2_read(uint16_t addr)
@@ -121,7 +121,7 @@ static uint8_t freezeframe_io2_peek(uint16_t addr)
 
 static void freezeframe_io2_store(uint16_t addr, uint8_t value)
 {
-    DBG(("io2 %04x %02x\n", addr, value));
+    DBG(("io2 w %04x %02x\n", addr, value));
 }
 
 static int freezeframe_dump(void)
@@ -176,14 +176,14 @@ static const export_resource_t export_res = {
 void freezeframe_freeze(void)
 {
     DBG(("Freeze Frame: freeze\n"));
-    cart_config_changed_slotmain(2, 3, CMODE_READ | CMODE_RELEASE_FREEZE);
+    cart_config_changed_slotmain(CMODE_RAM, CMODE_ULTIMAX, CMODE_READ | CMODE_RELEASE_FREEZE);
     freezeframe_rom_8000 = 1;
     freezeframe_rom_e000 = 1;
 }
 
 void freezeframe_config_init(void)
 {
-    cart_config_changed_slotmain(2, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, CMODE_8KGAME, CMODE_READ);
     freezeframe_rom_8000 = 1;
     freezeframe_rom_e000 = 0;
 }
@@ -192,7 +192,7 @@ void freezeframe_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, FREEZE_FRAME_CART_SIZE);
     memcpy(romh_banks, rawcart, FREEZE_FRAME_CART_SIZE);
-    cart_config_changed_slotmain(2, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, CMODE_8KGAME, CMODE_READ);
     freezeframe_rom_8000 = 1;
     freezeframe_rom_e000 = 0;
 }

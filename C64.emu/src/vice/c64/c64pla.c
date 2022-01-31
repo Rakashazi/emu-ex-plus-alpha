@@ -72,17 +72,17 @@ void c64pla_config_changed(int tape_sense, int write_in, int motor_in, int caps_
 
     if (((pport.dir & pport.data) & 0x20) != old_port_data_out) {
         old_port_data_out = (pport.dir & pport.data) & 0x20;
-        tapeport_set_motor(!old_port_data_out);
+        tapeport_set_motor(TAPEPORT_PORT_1, !old_port_data_out);
     }
 
     if (((~pport.dir | pport.data) & 0x8) != old_port_write_bit) {
         old_port_write_bit = (~pport.dir | pport.data) & 0x8;
-        tapeport_toggle_write_bit((~pport.dir | pport.data) & 0x8);
+        tapeport_toggle_write_bit(TAPEPORT_PORT_1, (~pport.dir | pport.data) & 0x8);
     }
 
     if (((pport.dir & pport.data) & 0x10) != old_port_sense_out) {
         old_port_sense_out = (pport.dir & pport.data) & 0x10;
-        tapeport_set_sense_out(!old_port_sense_out);
+        tapeport_set_sense_out(TAPEPORT_PORT_1, !old_port_sense_out);
     }
 
     pport.dir_read = pport.dir;

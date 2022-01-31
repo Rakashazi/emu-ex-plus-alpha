@@ -38,7 +38,7 @@
     tape
 *******************************************************************************/
 
-tape_image_t *tape_image_dev1 = NULL;
+tape_image_t *tape_image_dev[TAPEPORT_MAX_PORTS] =  { NULL };
 
 int tape_image_attach(unsigned int unit, const char *name)
 {
@@ -49,7 +49,7 @@ void tape_shutdown(void)
 {
 }
 
-int tape_tap_attached(void)
+int tape_tap_attached(int port)
 {
     return 0;
 }
@@ -60,6 +60,11 @@ int tape_seek_start(tape_image_t *tape_image)
 }
 
 int tape_seek_to_file(tape_image_t *tape_image, unsigned int file_number)
+{
+    return 0;
+}
+
+int tape_seek_to_offset(tape_image_t *tape_image, unsigned long offset)
 {
     return 0;
 }
@@ -78,17 +83,22 @@ int tap_seek_start(tap_t *tap)
     return 0;
 }
 
+int tap_seek_to_offset(tap_t *tap, unsigned long offset)
+{
+    return 0;
+}
+
 int tape_image_create(const char *name, unsigned int type)
 {
     return 0;
 }
 
-int tape_snapshot_write_module(snapshot_t *s, int save_image)
+int tape_snapshot_write_module(int port, snapshot_t *s, int save_image)
 {
     return 0;
 }
 
-int tape_snapshot_read_module(snapshot_t *s)
+int tape_snapshot_read_module(int port, snapshot_t *s)
 {
     return 0;
 }
@@ -132,7 +142,7 @@ void tape_get_header(tape_image_t *tape_image, uint8_t *name)
 {
 }
 
-const char *tape_get_file_name(void)
+const char *tape_get_file_name(int port)
 {
     return NULL;
 }
@@ -146,23 +156,30 @@ void colorram_store(uint16_t addr, uint8_t value)
 {
 }
 
-tapeport_device_list_t *tapeport_device_register(tapeport_device_t *device)
+int tapeport_device_register(int id, tapeport_device_t *device)
+{
+    return 0;
+}
+
+void tapeport_trigger_flux_change(unsigned int on, int port)
+{
+}
+
+void tapeport_set_tape_sense(int sense, int port)
+{
+}
+
+tapeport_desc_t *tapeport_get_valid_devices(int port, int sort)
 {
     return NULL;
 }
 
-void tapeport_snapshot_register(tapeport_snapshot_t *snapshot)
+const char *tapeport_get_device_type_desc(int type)
 {
+    return NULL;
 }
 
-void tapeport_device_unregister(tapeport_device_list_t *device)
+int tapeport_valid_port(int port)
 {
-}
-
-void tapeport_trigger_flux_change(unsigned int on, int id)
-{
-}
-
-void tapeport_set_tape_sense(int sense, int id)
-{
+    return 0;
 }

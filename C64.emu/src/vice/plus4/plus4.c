@@ -36,7 +36,6 @@
 #include "cardkey.h"
 #include "cartio.h"
 #include "cartridge.h"
-#include "clkguard.h"
 #include "coplin_keypad.h"
 #include "cx21.h"
 #include "cx85.h"
@@ -56,6 +55,7 @@
 #include "imagecontents.h"
 #include "init.h"
 #include "joyport.h"
+#include "joyport_io_sim.h"
 #include "joystick.h"
 #include "kbdbuf.h"
 #include "keyboard.h"
@@ -68,7 +68,6 @@
 #include "maincpu.h"
 #include "monitor.h"
 #include "network.h"
-#include "paperclip64.h"
 #include "plus4-cmdline-options.h"
 #include "plus4-resources.h"
 #include "plus4-snapshot.h"
@@ -79,10 +78,12 @@
 #include "plus4memcsory256k.h"
 #include "plus4memhannes256k.h"
 #include "plus4memrom.h"
+#include "plus4parallel.h"
 #include "plus4speech.h"
 #include "plus4tcbm.h"
 #include "plus4ui.h"
 #include "printer.h"
+#include "protopad.h"
 #include "rs232drv.h"
 #include "rushware_keypad.h"
 #include "sampler.h"
@@ -102,9 +103,11 @@
 #include "ted-sound.h"
 #include "ted.h"
 #include "traps.h"
+#include "trapthem_snespad.h"
 #include "types.h"
 #include "userport.h"
 #include "userport_dac.h"
+#include "userport_io_sim.h"
 #include "userport_joystick.h"
 #include "vice-event.h"
 #include "video.h"
@@ -114,7 +117,6 @@
 #ifdef HAVE_MOUSE
 #include "mouse.h"
 #endif
-
 
 /** \brief  Delay in seconds before pasting -keybuf argument into the buffer
  */
@@ -299,6 +301,8 @@ static joyport_port_props_t control_port_1 =
     "Control port 1",
     0,                  /* has NO potentiometer connected to this port */
     0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    0,                  /* has NO output support on this port */
     1                   /* port is always active */
 };
 
@@ -307,22 +311,38 @@ static joyport_port_props_t control_port_2 =
     "Control port 2",
     0,                  /* has NO potentiometer connected to this port */
     0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    0,                  /* has NO output support on this port */
     1                   /* port is always active */
 };
 
-static joyport_port_props_t userport_joy_control_port_1 =
+static joyport_port_props_t joy_adapter_control_port_1 =
 {
-    "Userport joystick adapter port 1",
+    "Joystick adapter port 1",
     0,                  /* has NO potentiometer connected to this port */
     0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    0,                  /* has NO output support on this port */
     0                   /* port can be switched on/off */
 };
 
-static joyport_port_props_t userport_joy_control_port_2 =
+static joyport_port_props_t joy_adapter_control_port_2 =
 {
-    "Userport joystick adapter port 2",
+    "Joystick adapter port 2",
     0,                  /* has NO potentiometer connected to this port */
     0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    0,                  /* has NO output support on this port */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_3 =
+{
+    "Joystick adapter port 3",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    0,                  /* has NO output support on this port */
     0                   /* port can be switched on/off */
 };
 
@@ -331,6 +351,8 @@ static joyport_port_props_t sidcard_port =
     "SIDCard control port",
     1,                  /* has a potentiometer connected to this port */
     0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    1,                  /* has output support on this port */
     0                   /* port can be switched on/off */
 };
 
@@ -339,16 +361,19 @@ static int init_joyport_ports(void)
     if (joyport_port_register(JOYPORT_1, &control_port_1) < 0) {
         return -1;
     }
-    if (joyport_port_register(JOYPORT_3, &userport_joy_control_port_1) < 0) {
+    if (joyport_port_register(JOYPORT_2, &control_port_2) < 0) {
         return -1;
     }
-    if (joyport_port_register(JOYPORT_4, &userport_joy_control_port_2) < 0) {
+    if (joyport_port_register(JOYPORT_3, &joy_adapter_control_port_1) < 0) {
         return -1;
     }
-    if (joyport_port_register(JOYPORT_5, &sidcard_port) < 0) {
+    if (joyport_port_register(JOYPORT_4, &joy_adapter_control_port_2) < 0) {
         return -1;
     }
-    return joyport_port_register(JOYPORT_2, &control_port_2);
+    if (joyport_port_register(JOYPORT_5, &joy_adapter_control_port_3) < 0) {
+        return -1;
+    }
+    return joyport_port_register(JOYPORT_6, &sidcard_port);
 }
 
 /* Plus4-specific resource initialization.  This is called before initializing
@@ -384,7 +409,7 @@ int machine_resources_init(void)
         return -1;
     }
     if (sidcart_resources_init() < 0) {
-        init_resource_fail("sidcart");
+        init_resource_fail("sid cartridge");
         return -1;
     }
     if (acia_resources_init() < 0) {
@@ -401,6 +426,14 @@ int machine_resources_init(void)
     }
     if (printer_resources_init() < 0) {
         init_resource_fail("printer");
+        return -1;
+    }
+    if (userport_resources_init() < 0) {
+        init_resource_fail("userport devices");
+        return -1;
+    }
+    if (parallel_cable_cpu_resources_init() < 0) {
+        init_resource_fail("userport drive parallel cable");
         return -1;
     }
 /* FIXME: Add userport printer support to xplus4 */
@@ -430,10 +463,6 @@ int machine_resources_init(void)
         init_resource_fail("joyport bbrtc");
         return -1;
     }
-    if (joyport_paperclip64_resources_init() < 0) {
-        init_resource_fail("joyport paperclip64 dongle");
-        return -1;
-    }
     if (joyport_coplin_keypad_resources_init() < 0) {
         init_resource_fail("joyport coplin keypad");
         return -1;
@@ -454,20 +483,44 @@ int machine_resources_init(void)
         init_resource_fail("joyport cardkey keypad");
         return -1;
     }
+    if (joyport_protopad_resources_init() < 0) {
+        init_resource_fail("joyport protopad");
+        return -1;
+    }
+    if (joyport_trapthem_snespad_resources_init() < 0) {
+        init_resource_fail("joyport trapthem snespad");
+        return -1;
+    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
     }
-    if (userport_resources_init() < 0) {
-        init_resource_fail("userport devices");
+    if (userport_joystick_pet_resources_init() < 0) {
+        init_resource_fail("userport pet joystick");
         return -1;
     }
-    if (userport_joystick_resources_init() < 0) {
-        init_resource_fail("userport joystick");
+    if (userport_joystick_hummer_resources_init() < 0) {
+        init_resource_fail("userport hummer joystick");
+        return -1;
+    }
+    if (userport_joystick_oem_resources_init() < 0) {
+        init_resource_fail("userport oem joystick");
+        return -1;
+    }
+    if (userport_joystick_synergy_resources_init() < 0) {
+        init_resource_fail("userport synergy joystick");
         return -1;
     }
     if (userport_dac_resources_init() < 0) {
         init_resource_fail("userport dac");
+        return -1;
+    }
+    if (userport_io_sim_resources_init() < 0) {
+        init_resource_fail("userport I/O simulation");
+        return -1;
+    }
+    if (joyport_io_sim_resources_init() < 0) {
+        init_resource_fail("joyport I/O simulation");
         return -1;
     }
     if (gfxoutput_resources_init() < 0) {
@@ -525,20 +578,16 @@ int machine_resources_init(void)
         return -1;
     }
 #endif
+    /* Must be called after initializing cartridge resources. Some carts provide
+     * additional busses.  The drive resources check the validity of the drive
+     * type against the available busses on the system.  So if you had e.g. an
+     * IEEE cart enabled and an IEEE defined, on startup the drive code would
+     * reset the drive type to the default for the IEC bus. */
     if (drive_resources_init() < 0) {
         init_resource_fail("drive");
         return -1;
     }
-    /*
-     * This needs to be called before tapeport_resources_init(), otherwise
-     * the tapecart will fail to initialize due to the Datasette resource
-     * appearing after the Tapecart resources
-     */
-    if (datasette_resources_init() < 0) {
-        init_resource_fail("datasette");
-        return -1;
-    }
-    if (tapeport_resources_init() < 0) {
+    if (tapeport_resources_init(1) < 0) {
         init_resource_fail("tapeport");
         return -1;
     }
@@ -562,7 +611,6 @@ void machine_resources_shutdown(void)
     disk_image_resources_shutdown();
     sampler_resources_shutdown();
     cartio_shutdown();
-    userport_resources_shutdown();
     joyport_bbrtc_resources_shutdown();
     tapeport_resources_shutdown();
     debugcart_resources_shutdown();
@@ -596,7 +644,7 @@ int machine_cmdline_options_init(void)
         return -1;
     }
     if (sidcart_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("sidcart");
+        init_cmdline_options_fail("sid cartridge");
         return -1;
     }
     if (speech_cmdline_options_init() < 0) {
@@ -640,14 +688,6 @@ int machine_cmdline_options_init(void)
     }
     if (userport_cmdline_options_init() < 0) {
         init_cmdline_options_fail("userport");
-        return -1;
-    }
-    if (userport_joystick_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("userport joystick");
-        return -1;
-    }
-    if (userport_dac_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("userport dac");
         return -1;
     }
     if (gfxoutput_cmdline_options_init() < 0) {
@@ -710,10 +750,6 @@ int machine_cmdline_options_init(void)
     }
     if (tapeport_cmdline_options_init() < 0) {
         init_cmdline_options_fail("tapeport");
-        return -1;
-    }
-    if (datasette_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("datasette");
         return -1;
     }
     if (debugcart_cmdline_options_init() < 0) {
@@ -880,6 +916,8 @@ void machine_specific_reset(void)
     plus4tcbm1_reset();
     plus4tcbm2_reset();
 
+    userport_reset();
+
     ted_reset();
 
     sid_reset();
@@ -891,16 +929,22 @@ void machine_specific_reset(void)
     datasette_reset();
 
     sampler_reset();
+
+    cartridge_reset();
 }
 
 void machine_specific_powerup(void)
 {
+    cartridge_powerup();
     ted_reset_registers();
+    userport_powerup();
+    tapeport_powerup();
+    joyport_powerup();
 }
 
 void machine_specific_shutdown(void)
 {
-    tape_image_detach_internal(1);
+    tape_image_detach_internal(TAPEPORT_PORT_1 + 1);
 
     ted_shutdown();
     speech_shutdown();
@@ -912,12 +956,14 @@ void machine_specific_shutdown(void)
     mouse_shutdown();
 #endif
 
+    sidcart_cmdline_options_shutdown();
+
     if (!console_mode) {
         plus4ui_shutdown();
     }
 }
 
-void machine_handle_pending_alarms(int num_write_cycles)
+void machine_handle_pending_alarms(CLOCK num_write_cycles)
 {
     ted_handle_pending_alarms(num_write_cycles);
 }
@@ -927,19 +973,9 @@ void machine_handle_pending_alarms(int num_write_cycles)
 /* This hook is called at the end of every frame.  */
 static void machine_vsync_hook(void)
 {
-    CLOCK sub;
-
     drive_vsync_hook();
 
-    autostart_advance();
-
     screenshot_record();
-
-    sub = clk_guard_prevent_overflow(maincpu_clk_guard);
-
-    /* The drive has to deal both with our overflowing and its own one, so
-       it is called even when there is no overflowing in the main CPU.  */
-    drive_cpu_prevent_clk_overflow_all(sub);
 }
 
 void machine_set_restore_key(int v)
@@ -1006,7 +1042,6 @@ void machine_change_timing(int timeval, int border_mode)
 #ifdef HAVE_MOUSE
     neos_mouse_set_machine_parameter(machine_timing.cycles_per_sec);
 #endif
-    clk_guard_set_clk_base(maincpu_clk_guard, (CLOCK)machine_timing.cycles_per_rfsh);
 
     ted_change_timing(&machine_timing, border_mode);
 
@@ -1081,12 +1116,16 @@ uint8_t machine_tape_behaviour(void)
 
 int machine_addr_in_ram(unsigned int addr)
 {
-    /* FIXME are these correct? */
-    /* ROM is 8000-bfff
-     *        d000-fcff
-     *        fd00-     I/O
-     */
-    return ((addr < 0x8000) || (addr >= 0xc000 && addr <= 0xcfff)) ? 1 : 0;
+    if (addr >= 0x8000) {
+        return 0;
+    }
+    
+    if (addr >= 0x473 && addr <= 04E6) {
+        /* bunch of ROM routines  */
+        return 0;
+    }
+    
+    return 1;
 }
 
 const char *machine_get_name(void)
@@ -1101,7 +1140,8 @@ static userport_port_props_t userport_props = {
     0,    /* port does NOT have the pa3 pin */
     NULL, /* NO flag pin */
     0,    /* port does NOT have the pc pin */
-    0     /* port does NOT have the cnt1, cnt2 or sp pins */
+    0,    /* port does NOT have the cnt1, cnt2 or sp pins */
+    1     /* port has the reset pin */
 };
 
 int machine_register_userport(void)

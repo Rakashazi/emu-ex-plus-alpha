@@ -216,7 +216,7 @@ int final_plus_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 void final_plus_freeze(void)
 {
     DBG(("fc+ freeze\n"));
-    cart_config_changed_slotmain(0, 3, CMODE_READ | CMODE_RELEASE_FREEZE | CMODE_PHI2_RAM);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_ULTIMAX, CMODE_READ | CMODE_RELEASE_FREEZE | CMODE_PHI2_RAM);
     fcplus_enabled = 1;
     fcplus_roml = 1;
     fcplus_romh = 1;
@@ -225,7 +225,7 @@ void final_plus_freeze(void)
 void final_plus_config_init(void)
 {
     DBG(("fc+ config init\n"));
-    cart_config_changed_slotmain(0, 3, CMODE_READ | CMODE_PHI2_RAM);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_ULTIMAX, CMODE_READ | CMODE_PHI2_RAM);
     fcplus_enabled = 1;
     fcplus_roml = 1;
     fcplus_romh = 1;
@@ -240,7 +240,7 @@ void final_plus_config_setup(uint8_t *rawcart)
     DBG(("fc+ config setup\n"));
     memcpy(roml_banks, &rawcart[0x4000], 0x4000);
     memcpy(romh_banks, &rawcart[0x2000], 0x2000);
-    cart_config_changed_slotmain(0, 3, CMODE_READ | CMODE_PHI2_RAM);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_ULTIMAX, CMODE_READ | CMODE_PHI2_RAM);
 }
 
 /* ---------------------------------------------------------------------*/

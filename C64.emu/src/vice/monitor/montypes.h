@@ -154,6 +154,14 @@ enum t_action {
 };
 typedef enum t_action ACTION;
 
+enum t_io_sim_result {
+    e_IO_SIM_RESULT_OK = 0,
+    e_IO_SIM_RESULT_GENERAL_FAILURE = -1,
+    e_IO_SIM_RESULT_ILLEGAL_VALUE = -2,
+    e_IO_SIM_RESULT_ILLEGAL_PORT = -3,
+};
+typedef enum t_io_sim_result IO_SIM_RESULT;
+
 struct cond_node_s {
     int operation;
     int value;
@@ -250,6 +258,8 @@ extern void mon_add_number_masked_to_buffer(int number, int mask);
 extern void mon_add_string_to_buffer(char *str);
 extern void mon_backtrace(void);
 extern void mon_cart_freeze(void);
+extern IO_SIM_RESULT mon_userport_set_output(int value);
+extern IO_SIM_RESULT mon_joyport_set_output(int port, int value);
 extern void mon_reset_machine(int type);
 extern void mon_resource_get(const char *name);
 extern void mon_resource_set(const char *name, const char* value);
@@ -258,7 +268,7 @@ extern void mon_show_dir(const char *path);
 extern void mon_show_pwd(void);
 extern void mon_make_dir(const char *path);
 extern void mon_remove_dir(const char *path);
-extern void mon_tape_ctrl(int command);
+extern void mon_tape_ctrl(int port, int command);
 extern void mon_display_screen(long addr);
 extern void mon_instructions_step(int count);
 extern void mon_instructions_next(int count);
@@ -319,7 +329,7 @@ extern void mon_save_symbols(MEMSPACE mem, const char *filename);
 
 extern void mon_record_commands(char *filename);
 extern void mon_end_recording(void);
-extern int mon_playback_commands(const char* filename);
+extern int mon_playback_commands(const char* filename, bool interrupt_current_playback);
 extern void monitor_change_device(MEMSPACE mem);
 
 extern void mon_export(void);

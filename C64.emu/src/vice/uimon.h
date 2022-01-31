@@ -33,7 +33,7 @@ struct console_s;
 struct console_private_s;
 struct monitor_interface_s;
 
-extern struct console_s *uimon_window_open(void);
+extern struct console_s *uimon_window_open(bool display_now);
 extern void uimon_window_suspend(void);
 extern struct console_s *uimon_window_resume(void);
 extern void uimon_window_close(void);
@@ -52,5 +52,8 @@ extern int uimon_get_string(struct console_private_s *t, char* string, int strin
 
 /* Gtk3-specific, so far */
 extern bool uimon_set_font(void);
+extern bool uimon_set_foreground_color(const char *color);
+extern bool uimon_set_background_color(const char *color);
+
 
 #endif

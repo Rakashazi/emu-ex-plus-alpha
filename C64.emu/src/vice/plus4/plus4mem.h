@@ -44,17 +44,22 @@ extern pport_t pport;
 #define PLUS4_RAM_SIZE        0x10000
 #define PLUS4_BASIC_ROM_SIZE  0x4000
 #define PLUS4_KERNAL_ROM_SIZE 0x4000
+
+#define PLUS4_C0LO_ROM_SIZE  0x4000
+#define PLUS4_C0HI_ROM_SIZE  0x4000
+#define PLUS4_C2LO_ROM_SIZE  0x4000
+#define PLUS4_C2HI_ROM_SIZE  0x4000
+
 #define PLUS4_CART8K_SIZE     0x2000
 #define PLUS4_CART16K_SIZE    0x4000
 
 extern unsigned int mem_config;
 
-extern uint8_t extromlo1[PLUS4_BASIC_ROM_SIZE];
-extern uint8_t extromlo2[PLUS4_BASIC_ROM_SIZE];
-extern uint8_t extromlo3[PLUS4_BASIC_ROM_SIZE];
-extern uint8_t extromhi1[PLUS4_KERNAL_ROM_SIZE];
-extern uint8_t extromhi2[PLUS4_KERNAL_ROM_SIZE];
-extern uint8_t extromhi3[PLUS4_KERNAL_ROM_SIZE];
+extern uint8_t extromlo1[PLUS4_C0LO_ROM_SIZE];
+extern uint8_t extromhi1[PLUS4_C0HI_ROM_SIZE];
+
+extern uint8_t extromlo3[PLUS4_C2LO_ROM_SIZE];
+extern uint8_t extromhi3[PLUS4_C2HI_ROM_SIZE];
 
 extern int plus4_mem_init_resources(void);
 extern int plus4_mem_init_cmdline_options(void);

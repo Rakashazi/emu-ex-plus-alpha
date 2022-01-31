@@ -61,6 +61,7 @@ extern int expert_flush_image(void);
 extern void expert_detach(void);
 extern int expert_enable(void);
 int expert_disable(void);
+extern void expert_powerup(void);
 
 extern int expert_freeze_allowed(void);
 extern int expert_cart_enabled(void);

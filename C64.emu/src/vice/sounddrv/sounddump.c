@@ -67,7 +67,7 @@ static void dump_close(void)
     dump_fd = NULL;
 }
 
-static sound_device_t dump_device =
+static const sound_device_t dump_device =
 {
     "dump",
     dump_init,

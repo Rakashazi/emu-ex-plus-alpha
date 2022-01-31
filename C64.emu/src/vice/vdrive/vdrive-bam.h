@@ -37,14 +37,14 @@
 #define BAM_BIT_MAP_1581        16
 #define BAM_BIT_MAP_8050        6
 #define BAM_BIT_MAP_8250        BAM_BIT_MAP_8050
-#define BAM_BIT_MAP_4000        32
+#define BAM_BIT_MAP_NP          32
 #define BAM_BIT_MAP_9000        16
 #define BAM_VERSION_1541        165     /* position of DOS version (2A/2C)
                                            in BAM blk */
 #define BAM_VERSION_1581        25
 #define BAM_VERSION_8050        27
 #define BAM_VERSION_8250        BAM_VERSION_8050
-#define BAM_VERSION_4000        25
+#define BAM_VERSION_NP          25
 #define BAM_VERSION_9000        27
 
 struct vdrive_s;
@@ -74,11 +74,15 @@ extern void vdrive_bam_create_empty_bam(struct vdrive_s *vdrive,
 extern int unsigned vdrive_bam_free_block_count(struct vdrive_s *vdrive);
 extern int vdrive_bam_free_sector(struct vdrive_s *vdrive,
                                   unsigned int track, unsigned int sector);
+extern int vdrive_bam_int_get_disk_id(struct vdrive_s *vdrive, uint8_t *id);
 extern int vdrive_bam_get_disk_id(unsigned int unit, unsigned int drive, uint8_t *id);
 extern int vdrive_bam_set_disk_id(unsigned int unit, unsigned int drive, uint8_t *id);
 extern int vdrive_bam_read_bam(struct vdrive_s *vdrive);
+#if 0
 extern int vdrive_bam_reread_bam(unsigned int unit, unsigned int drive);
+#endif
 extern int vdrive_bam_write_bam(struct vdrive_s *vdrive);
-extern int vdrive_bam_get_interleave(unsigned int type);
+extern int vdrive_bam_isgeos(struct vdrive_s *vdrive);
+extern void vdrive_bam_setup_bam(struct vdrive_s *vdrive);
 
 #endif

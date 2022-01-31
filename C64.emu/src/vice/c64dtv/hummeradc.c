@@ -110,6 +110,7 @@ inline static int hummeradc_rising_edge(uint8_t value)
 
 void hummeradc_store(uint8_t value)
 {
+    uint16_t joyport_3_joystick_value;
 #ifdef HUMMERADC_DEBUG_ENABLED
     HUMMERADC_DEBUG("write: value %02x, state %i", value, hummeradc_state);
 #endif
@@ -229,7 +230,8 @@ void hummeradc_store(uint8_t value)
                 /* TODO:
                     - ADC works only on channel 0
                     - "inertia" (hold down left/right for value++/--), handled elsewhere */
-                switch (joystick_value[3] & 0x0c) {
+                joyport_3_joystick_value = get_joystick_value(JOYPORT_3);
+                switch (joyport_3_joystick_value & 0x0c) {
                     case 4:
                         hummeradc_value = 0x00;
                         break;

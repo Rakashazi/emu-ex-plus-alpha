@@ -41,11 +41,7 @@
 /* Logging goes here.  */
 static log_t tcbmrom_log;
 
-#ifdef USE_EMBEDDED
-#include "drivedos1551.h"
-#else
 static uint8_t drive_rom1551[DRIVE_ROM1551_SIZE];
-#endif
 
 /* If nonzero, the ROM image has been loaded.  */
 static unsigned int rom1551_loaded = 0;

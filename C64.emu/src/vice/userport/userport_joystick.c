@@ -39,6 +39,7 @@
 #include "types.h"
 #include "userport.h"
 #include "userport_joystick.h"
+#include "uiapi.h"
 
 /* CGA userport joystick adapter (C64/C128/CBM2/PET/VIC20)
 
@@ -154,420 +155,549 @@ C64/C128 | JOY1 | JOY2 | NOTES
    M     |  -   |  1   | PA2 <- JOY2 UP
 */
 
+/* Synergy userport joystick adapter (C64/C128/CBM2/PET/PLUS4/VIC20)
+
+C64/C128 | CBM2 | PET | PLUS4 | VIC20 | I/O | NOTES
+---------------------------------------------------
+    C    |  14  |  C  |   B   |   C   |  I  | PB0 <- JOY1/2/3 UP
+    D    |  13  |  D  |   K   |   D   |  I  | PB1 <- JOY1/2/3 DOWN
+    E    |  12  |  E  |   4   |   E   |  I  | PB2 <- JOY1/2/3 LEFT
+    F    |  11  |  F  |   5   |   F   |  I  | PB3 <- JOY1/2/3 RIGHT
+    H    |  10  |  H  |   6   |   H   |  I  | PB4 <- JOY1/2/3 FIRE
+    J    |   9  |  J  |   7   |   J   |  O  | PB5 -> JOY1 SELECT
+    K    |   8  |  K  |   J   |   K   |  O  | PB6 -> JOY2 SELECT
+    L    |   7  |  L  |   F   |   L   |  O  | PB7 -> JOY3 SELECT
+*/
+
 /* ------------------------------------------------------------------------- */
 
-int userport_joystick_enable = 0;
-int userport_joystick_type = USERPORT_JOYSTICK_HUMMER;	/* default for x64dtv */
+static int userport_joy_cga_enable = 0;
+static int userport_joy_pet_enable = 0;
+static int userport_joy_hummer_enable = 0;
+static int userport_joy_oem_enable = 0;
+static int userport_joy_hit_enable = 0;
+static int userport_joy_kingsoft_enable = 0;
+static int userport_joy_starbyte_enable = 0;
+static int userport_joy_synergy_enable = 0;
 
 static int userport_joystick_cga_select = 0;
+static int userport_joystick_synergy_select = 0;
 
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static void userport_joystick_cga_read_pbx(void);
-static void userport_joystick_cga_store_pbx(uint8_t value);
+static uint8_t userport_joystick_cga_read_pbx(uint8_t orig);
+static void userport_joystick_cga_store_pbx(uint8_t value, int pulse);
 static int userport_joystick_cga_write_snapshot_module(snapshot_t *s);
 static int userport_joystick_cga_read_snapshot_module(snapshot_t *s);
+static int userport_joystick_cga_enable(int value);
 
-static void userport_joystick_pet_read_pbx(void);
-static void userport_joystick_pet_hit_store_pbx(uint8_t value);
+static uint8_t userport_joystick_pet_read_pbx(uint8_t orig);
+static void userport_joystick_pet_hit_store_pbx(uint8_t value, int pulse);
 static int userport_joystick_pet_write_snapshot_module(snapshot_t *s);
 static int userport_joystick_pet_read_snapshot_module(snapshot_t *s);
+static int userport_joystick_pet_enable(int value);
 
-static void userport_joystick_hummer_read_pbx(void);
-static void userport_joystick_hummer_store_pbx(uint8_t value);
-static int userport_joystick_hummer_oem_write_snapshot_module(snapshot_t *s);
+static uint8_t userport_joystick_hummer_read_pbx(uint8_t orig);
+static void userport_joystick_hummer_store_pbx(uint8_t value, int pulse);
+static int userport_joystick_hummer_write_snapshot_module(snapshot_t *s);
 static int userport_joystick_hummer_read_snapshot_module(snapshot_t *s);
+static int userport_joystick_hummer_enable(int value);
 
-static void userport_joystick_oem_read_pbx(void);
-static void userport_joystick_oem_store_pbx(uint8_t value);
+static uint8_t userport_joystick_oem_read_pbx(uint8_t orig);
+static void userport_joystick_oem_store_pbx(uint8_t value, int pulse);
+static int userport_joystick_oem_write_snapshot_module(snapshot_t *s);
 static int userport_joystick_oem_read_snapshot_module(snapshot_t *s);
+static int userport_joystick_oem_enable(int value);
 
-static void userport_joystick_hit_read_pbx(void);
-static void userport_joystick_hit_read_pa2(void);
+static uint8_t userport_joystick_hit_read_pbx(uint8_t orig);
+static uint8_t userport_joystick_hit_read_pa2(uint8_t orig);
+static void userport_joystick_hit_store_pa2(uint8_t val);
 static void userport_joystick_hit_store_sp1(uint8_t val);
-static void userport_joystick_hit_read_sp2(void);
+static uint8_t userport_joystick_hit_read_sp2(uint8_t orig);
 static int userport_joystick_hit_write_snapshot_module(snapshot_t *s);
 static int userport_joystick_hit_read_snapshot_module(snapshot_t *s);
+static int userport_joystick_hit_enable(int value);
 
-static void userport_joystick_kingsoft_read_pbx(void);
-static void userport_joystick_kingsoft_store_pbx(uint8_t value);
-static void userport_joystick_kingsoft_read_pa2(void);
+static uint8_t userport_joystick_kingsoft_read_pbx(uint8_t orig);
+static void userport_joystick_kingsoft_store_pbx(uint8_t value, int pulse);
+static uint8_t userport_joystick_kingsoft_read_pa2(uint8_t orig);
+static void userport_joystick_kingsoft_store_pa2(uint8_t val);
 static void userport_joystick_kingsoft_store_sp1(uint8_t val);
-static void userport_joystick_kingsoft_read_sp2(void);
+static uint8_t userport_joystick_kingsoft_read_sp2(uint8_t orig);
 static int userport_joystick_kingsoft_write_snapshot_module(snapshot_t *s);
 static int userport_joystick_kingsoft_read_snapshot_module(snapshot_t *s);
+static int userport_joystick_kingsoft_enable(int value);
 
-static void userport_joystick_starbyte_read_pbx(void);
-static void userport_joystick_starbyte_store_pbx(uint8_t value);
-static void userport_joystick_starbyte_read_pa2(void);
+static uint8_t userport_joystick_starbyte_read_pbx(uint8_t orig);
+static void userport_joystick_starbyte_store_pbx(uint8_t value, int pulse);
+static uint8_t userport_joystick_starbyte_read_pa2(uint8_t orig);
+static void userport_joystick_starbyte_store_pa2(uint8_t val);
 static void userport_joystick_starbyte_store_sp1(uint8_t val);
-static void userport_joystick_starbyte_read_sp2(void);
+static uint8_t userport_joystick_starbyte_read_sp2(uint8_t orig);
 static int userport_joystick_starbyte_write_snapshot_module(snapshot_t *s);
 static int userport_joystick_starbyte_read_snapshot_module(snapshot_t *s);
+static int userport_joystick_starbyte_enable(int value);
+
+static uint8_t userport_joystick_synergy_read_pbx(uint8_t orig);
+static void userport_joystick_synergy_store_pbx(uint8_t value, int pulse);
+static int userport_joystick_synergy_write_snapshot_module(snapshot_t *s);
+static int userport_joystick_synergy_read_snapshot_module(snapshot_t *s);
+static int userport_joystick_synergy_enable(int value);
 
 static userport_device_t cga_device = {
-    USERPORT_DEVICE_JOYSTICK_CGA,    /* device id */
-    "CGA userport joy adapter",      /* device name */
-    userport_joystick_cga_read_pbx,  /* read pb0-pb7 function */
-    userport_joystick_cga_store_pbx, /* store pb0-pb7 function */
-    NULL,                            /* NO read pa2 pin function */
-    NULL,                            /* NO store pa2 pin function */
-    NULL,                            /* NO read pa3 pin function */
-    NULL,                            /* NO store pa3 pin function */
-    0,                               /* pc pin is NOT needed */
-    NULL,                            /* NO store sp1 pin function */
-    NULL,                            /* NO read sp1 pin function */
-    NULL,                            /* NO store sp2 pin function */
-    NULL,                            /* NO read sp2 pin function */
-    "UserportJoy",                   /* resource used by the device */
-    0xff,                            /* return value from a read, to be filled in by the device */
-    0x3f,                            /* validity mask of the device, doesn't change */
-    0,                               /* device involved in a read collision, to be filled in by the collision detection system */
-    0                                /* a tag to indicate the order of insertion */
-};
-
-static userport_snapshot_t cga_snapshot = {
-    USERPORT_DEVICE_JOYSTICK_CGA,
-    userport_joystick_cga_write_snapshot_module,
-    userport_joystick_cga_read_snapshot_module
+    "CGA userport joy adapter",                  /* device name */
+    JOYSTICK_ADAPTER_ID_GENERIC_USERPORT,        /* this is a joystick adapter */
+    USERPORT_DEVICE_TYPE_JOYSTICK_ADAPTER,       /* device is a joystick adapter */
+    userport_joystick_cga_enable,                /* enable function */
+    userport_joystick_cga_read_pbx,              /* read pb0-pb7 function */
+    userport_joystick_cga_store_pbx,             /* store pb0-pb7 function */
+    NULL,                                        /* NO read pa2 pin function */
+    NULL,                                        /* NO store pa2 pin function */
+    NULL,                                        /* NO read pa3 pin function */
+    NULL,                                        /* NO store pa3 pin function */
+    0,                                           /* pc pin is NOT needed */
+    NULL,                                        /* NO store sp1 pin function */
+    NULL,                                        /* NO read sp1 pin function */
+    NULL,                                        /* NO store sp2 pin function */
+    NULL,                                        /* NO read sp2 pin function */
+    NULL,                                        /* NO reset function */
+    NULL,                                        /* NO powerup function */
+    userport_joystick_cga_write_snapshot_module, /* snapshot write function */
+    userport_joystick_cga_read_snapshot_module   /* snapshot read function */
 };
 
 static userport_device_t pet_device = {
-    USERPORT_DEVICE_JOYSTICK_PET,        /* device id */
-    "PET userport joy adapter",          /* device name */
-    userport_joystick_pet_read_pbx,      /* read pb0-pb7 function */
-    userport_joystick_pet_hit_store_pbx, /* store pb0-pb7 function */
-    NULL,                                /* NO read pa2 pin function */
-    NULL,                                /* NO store pa2 pin function */
-    NULL,                                /* NO read pa3 pin function */
-    NULL,                                /* NO store pa3 pin function */
-    0,                                   /* pc pin is NOT needed */
-    NULL,                                /* NO store sp1 pin function */
-    NULL,                                /* NO read sp1 pin function */
-    NULL,                                /* NO store sp2 pin function */
-    NULL,                                /* NO read sp2 pin function */
-    "UserportJoy",                       /* resource used by the device */
-    0xff,                                /* return value from a read, to be filled in by the device */
-    0xff,                                /* validity mask of the device, doesn't change */
-    0,                                   /* device involved in a read collision, to be filled in by the collision detection system */
-    0                                    /* a tag to indicate the order of insertion */
-};
-
-static userport_snapshot_t pet_snapshot = {
-    USERPORT_DEVICE_JOYSTICK_PET,
-    userport_joystick_pet_write_snapshot_module,
-    userport_joystick_pet_read_snapshot_module
+    "PET userport joy adapter",                  /* device name */
+    JOYSTICK_ADAPTER_ID_GENERIC_USERPORT,        /* this is a joystick adapter */
+    USERPORT_DEVICE_TYPE_JOYSTICK_ADAPTER,       /* device is a joystick adapter */
+    userport_joystick_pet_enable,                /* enable function */
+    userport_joystick_pet_read_pbx,              /* read pb0-pb7 function */
+    userport_joystick_pet_hit_store_pbx,         /* store pb0-pb7 function */
+    NULL,                                        /* NO read pa2 pin function */
+    NULL,                                        /* NO store pa2 pin function */
+    NULL,                                        /* NO read pa3 pin function */
+    NULL,                                        /* NO store pa3 pin function */
+    0,                                           /* pc pin is NOT needed */
+    NULL,                                        /* NO store sp1 pin function */
+    NULL,                                        /* NO read sp1 pin function */
+    NULL,                                        /* NO store sp2 pin function */
+    NULL,                                        /* NO read sp2 pin function */
+    NULL,                                        /* NO reset function */
+    NULL,                                        /* NO powerup function */
+    userport_joystick_pet_write_snapshot_module, /* snapshot write function */
+    userport_joystick_pet_read_snapshot_module   /* snapshot read function */
 };
 
 static userport_device_t hummer_device = {
-    USERPORT_DEVICE_JOYSTICK_HUMMER,    /* device id */
-    "Hummer userport joy adapter",      /* device name */
-    userport_joystick_hummer_read_pbx,  /* read pb0-pb7 function */
-    userport_joystick_hummer_store_pbx, /* store pb0-pb7 function */
-    NULL,                               /* NO read pa2 pin function */
-    NULL,                               /* NO store pa2 pin function */
-    NULL,                               /* NO read pa3 pin function */
-    NULL,                               /* NO store pa3 pin function */
-    0,                                  /* pc pin is NOT needed */
-    NULL,                               /* NO store sp1 pin function */
-    NULL,                               /* NO read sp1 pin function */
-    NULL,                               /* NO store sp2 pin function */
-    NULL,                               /* NO read sp2 pin function */
-    "UserportJoy",                      /* resource used by the device */
-    0xff,                               /* return value from a read, to be filled in by the device */
-    0x1f,                               /* validity mask of the device, doesn't change */
-    0,                                  /* device involved in a read collision, to be filled in by the collision detection system */
-    0                                   /* a tag to indicate the order of insertion */
-};
-
-static userport_snapshot_t hummer_snapshot = {
-    USERPORT_DEVICE_JOYSTICK_HUMMER,
-    userport_joystick_hummer_oem_write_snapshot_module,
-    userport_joystick_hummer_read_snapshot_module
+    "Hummer userport joy adapter",                  /* device name */
+    JOYSTICK_ADAPTER_ID_GENERIC_USERPORT,           /* this is a joystick adapter */
+    USERPORT_DEVICE_TYPE_JOYSTICK_ADAPTER,          /* device is a joystick adapter */
+    userport_joystick_hummer_enable,                /* enable function */
+    userport_joystick_hummer_read_pbx,              /* read pb0-pb7 function */
+    userport_joystick_hummer_store_pbx,             /* store pb0-pb7 function */
+    NULL,                                           /* NO read pa2 pin function */
+    NULL,                                           /* NO store pa2 pin function */
+    NULL,                                           /* NO read pa3 pin function */
+    NULL,                                           /* NO store pa3 pin function */
+    0,                                              /* pc pin is NOT needed */
+    NULL,                                           /* NO store sp1 pin function */
+    NULL,                                           /* NO read sp1 pin function */
+    NULL,                                           /* NO store sp2 pin function */
+    NULL,                                           /* NO read sp2 pin function */
+    NULL,                                           /* NO reset function */
+    NULL,                                           /* NO powerup function */
+    userport_joystick_hummer_write_snapshot_module, /* snapshot write function */
+    userport_joystick_hummer_read_snapshot_module   /* snapshot read function */
 };
 
 static userport_device_t oem_device = {
-    USERPORT_DEVICE_JOYSTICK_OEM,    /* device id */
-    "OEM userport joy adapter",      /* device name */
-    userport_joystick_oem_read_pbx,  /* read pb0-pb7 function */
-    userport_joystick_oem_store_pbx, /* store pb0-pb7 function */
-    NULL,                            /* NO read pa2 pin function */
-    NULL,                            /* NO store pa2 pin function */
-    NULL,                            /* NO read pa3 pin function */
-    NULL,                            /* NO store pa3 pin function */
-    0,                               /* pc pin is NOT needed */
-    NULL,                            /* NO store sp1 pin function */
-    NULL,                            /* NO read sp1 pin function */
-    NULL,                            /* NO store sp2 pin function */
-    NULL,                            /* NO read sp2 pin function */
-    "UserportJoy",                   /* resource used by the device */
-    0xff,                            /* return value from a read, to be filled in by the device */
-    0xf8,                            /* validity mask of the device, doesn't change */
-    0,                               /* device involved in a read collision, to be filled in by the collision detection system */
-    0                                /* a tag to indicate the order of insertion */
-};
-
-static userport_snapshot_t oem_snapshot = {
-    USERPORT_DEVICE_JOYSTICK_OEM,
-    userport_joystick_hummer_oem_write_snapshot_module,
-    userport_joystick_oem_read_snapshot_module
+    "OEM userport joy adapter",                  /* device name */
+    JOYSTICK_ADAPTER_ID_GENERIC_USERPORT,        /* this is a joystick adapter */
+    USERPORT_DEVICE_TYPE_JOYSTICK_ADAPTER,       /* device is a joystick adapter */
+    userport_joystick_oem_enable,                /* enable function */
+    userport_joystick_oem_read_pbx,              /* read pb0-pb7 function */
+    userport_joystick_oem_store_pbx,             /* store pb0-pb7 function */
+    NULL,                                        /* NO read pa2 pin function */
+    NULL,                                        /* NO store pa2 pin function */
+    NULL,                                        /* NO read pa3 pin function */
+    NULL,                                        /* NO store pa3 pin function */
+    0,                                           /* pc pin is NOT needed */
+    NULL,                                        /* NO store sp1 pin function */
+    NULL,                                        /* NO read sp1 pin function */
+    NULL,                                        /* NO store sp2 pin function */
+    NULL,                                        /* NO read sp2 pin function */
+    NULL,                                        /* NO reset function */
+    NULL,                                        /* NO powerup function */
+    userport_joystick_oem_write_snapshot_module, /* snapshot write function */
+    userport_joystick_oem_read_snapshot_module   /* snapshot read function */
 };
 
 static userport_device_t hit_device = {
-    USERPORT_DEVICE_JOYSTICK_HIT,        /* device id */
-    "HIT userport joy adapter",          /* device name */
-    userport_joystick_hit_read_pbx,      /* read pb0-pb7 function */
-    userport_joystick_pet_hit_store_pbx, /* store pb0-pb7 function */
-    userport_joystick_hit_read_pa2,      /* read pa2 pin function */
-    NULL,                                /* NO store pa2 pin function */
-    NULL,                                /* NO read pa3 pin function */
-    NULL,                                /* NO store pa3 pin function */
-    0,                                   /* pc pin is NOT needed */
-    userport_joystick_hit_store_sp1,     /* store sp1 pin function */
-    NULL,                                /* NO read sp1 pin function */
-    NULL,                                /* NO store sp2 pin function */
-    userport_joystick_hit_read_sp2,      /* read sp2 pin function */
-    "UserportJoy",                       /* resource used by the device */
-    0xff,                                /* return value from a read, to be filled in by the device */
-    0xff,                                /* validity mask of the device, doesn't change */
-    0,                                   /* device involved in a read collision, to be filled in by the collision detection system */
-    0                                    /* a tag to indicate the order of insertion */
-};
-
-static userport_snapshot_t hit_snapshot = {
-    USERPORT_DEVICE_JOYSTICK_HIT,
-    userport_joystick_hit_write_snapshot_module,
-    userport_joystick_hit_read_snapshot_module
+    "HIT userport joy adapter",                  /* device name */
+    JOYSTICK_ADAPTER_ID_GENERIC_USERPORT,        /* this is a joystick adapter */
+    USERPORT_DEVICE_TYPE_JOYSTICK_ADAPTER,       /* device is a joystick adapter */
+    userport_joystick_hit_enable,                /* enable function */
+    userport_joystick_hit_read_pbx,              /* read pb0-pb7 function */
+    userport_joystick_pet_hit_store_pbx,         /* store pb0-pb7 function */
+    userport_joystick_hit_read_pa2,              /* read pa2 pin function */
+    userport_joystick_hit_store_pa2,             /* store pa2 pin function */
+    NULL,                                        /* NO read pa3 pin function */
+    NULL,                                        /* NO store pa3 pin function */
+    0,                                           /* pc pin is NOT needed */
+    userport_joystick_hit_store_sp1,             /* store sp1 pin function */
+    NULL,                                        /* NO read sp1 pin function */
+    NULL,                                        /* NO store sp2 pin function */
+    userport_joystick_hit_read_sp2,              /* read sp2 pin function */
+    NULL,                                        /* NO reset function */
+    NULL,                                        /* NO powerup function */
+    userport_joystick_hit_write_snapshot_module, /* snapshot write function */
+    userport_joystick_hit_read_snapshot_module   /* snapshot read function */
 };
 
 static userport_device_t kingsoft_device = {
-    USERPORT_DEVICE_JOYSTICK_KINGSOFT,    /* device id */
-    "KingSoft userport joy adapter",      /* device name */
-    userport_joystick_kingsoft_read_pbx,  /* read pb0-pb7 function */
-    userport_joystick_kingsoft_store_pbx, /* store pb0-pb7 function */
-    userport_joystick_kingsoft_read_pa2,  /* read pa2 pin function */
-    NULL,                                 /* NO store pa2 pin function */
-    NULL,                                 /* NO read pa3 pin function */
-    NULL,                                 /* NO store pa3 pin function */
-    0,                                    /* pc pin is NOT needed */
-    userport_joystick_kingsoft_store_sp1, /* store sp1 pin function */
-    NULL,                                 /* NO read sp1 pin function */
-    NULL,                                 /* NO store sp2 pin function */
-    userport_joystick_kingsoft_read_sp2,  /* read sp2 pin function */
-    "UserportJoy",                        /* resource used by the device */
-    0xff,                                 /* return value from a read, to be filled in by the device */
-    0xff,                                 /* validity mask of the device, doesn't change */
-    0,                                    /* device involved in a read collision, to be filled in by the collision detection system */
-    0                                     /* a tag to indicate the order of insertion */
-};
-
-static userport_snapshot_t kingsoft_snapshot = {
-    USERPORT_DEVICE_JOYSTICK_KINGSOFT,
-    userport_joystick_kingsoft_write_snapshot_module,
-    userport_joystick_kingsoft_read_snapshot_module
+    "KingSoft userport joy adapter",                  /* device name */
+    JOYSTICK_ADAPTER_ID_GENERIC_USERPORT,             /* this is a joystick adapter */
+    USERPORT_DEVICE_TYPE_JOYSTICK_ADAPTER,            /* device is a joystick adapter */
+    userport_joystick_kingsoft_enable,                /* enable function */
+    userport_joystick_kingsoft_read_pbx,              /* read pb0-pb7 function */
+    userport_joystick_kingsoft_store_pbx,             /* store pb0-pb7 function */
+    userport_joystick_kingsoft_read_pa2,              /* read pa2 pin function */
+    userport_joystick_kingsoft_store_pa2,             /* store pa2 pin function */
+    NULL,                                             /* NO read pa3 pin function */
+    NULL,                                             /* NO store pa3 pin function */
+    0,                                                /* pc pin is NOT needed */
+    userport_joystick_kingsoft_store_sp1,             /* store sp1 pin function */
+    NULL,                                             /* NO read sp1 pin function */
+    NULL,                                             /* NO store sp2 pin function */
+    userport_joystick_kingsoft_read_sp2,              /* read sp2 pin function */
+    NULL,                                             /* NO reset function */
+    NULL,                                             /* NO powerup function */
+    userport_joystick_kingsoft_write_snapshot_module, /* snapshot write function */
+    userport_joystick_kingsoft_read_snapshot_module   /* snapshot read function */
 };
 
 static userport_device_t starbyte_device = {
-    USERPORT_DEVICE_JOYSTICK_STARBYTE,    /* device id */
-    "StarByte userport joy adapter",      /* device name */
-    userport_joystick_starbyte_read_pbx,  /* read pb0-pb7 function */
-    userport_joystick_starbyte_store_pbx, /* store pb0-pb7 function */
-    userport_joystick_starbyte_read_pa2,  /* read pa2 pin function */
-    NULL,                                 /* NO store pa2 pin function */
-    NULL,                                 /* NO read pa3 pin function */
-    NULL,                                 /* NO store pa3 pin function */
-    0,                                    /* pc pin is NOT needed */
-    userport_joystick_starbyte_store_sp1, /* store sp1 pin function */
-    NULL,                                 /* NO read sp1 pin function */
-    NULL,                                 /* NO store sp2 pin function */
-    userport_joystick_starbyte_read_sp2,  /* read sp2 pin function */
-    "UserportJoy",                        /* resource used by the device */
-    0xff,                                 /* return value from a read, to be filled in by the device */
-    0xff,                                 /* validity mask of the device, doesn't change */
-    0,                                    /* device involved in a read collision, to be filled in by the collision detection system */
-    0                                     /* a tag to indicate the order of insertion */
+    "StarByte userport joy adapter",                  /* device name */
+    JOYSTICK_ADAPTER_ID_GENERIC_USERPORT,             /* this is a joystick adapter */
+    USERPORT_DEVICE_TYPE_JOYSTICK_ADAPTER,            /* device is a joystick adapter */
+    userport_joystick_starbyte_enable,                /* enable function */
+    userport_joystick_starbyte_read_pbx,              /* read pb0-pb7 function */
+    userport_joystick_starbyte_store_pbx,             /* store pb0-pb7 function */
+    userport_joystick_starbyte_read_pa2,              /* read pa2 pin function */
+    userport_joystick_starbyte_store_pa2,             /* store pa2 pin function */
+    NULL,                                             /* NO read pa3 pin function */
+    NULL,                                             /* NO store pa3 pin function */
+    0,                                                /* pc pin is NOT needed */
+    userport_joystick_starbyte_store_sp1,             /* store sp1 pin function */
+    NULL,                                             /* NO read sp1 pin function */
+    NULL,                                             /* NO store sp2 pin function */
+    userport_joystick_starbyte_read_sp2,              /* read sp2 pin function */
+    NULL,                                             /* NO reset function */
+    NULL,                                             /* NO powerup function */
+    userport_joystick_starbyte_write_snapshot_module, /* snapshot write function */
+    userport_joystick_starbyte_read_snapshot_module   /* snapshot read function */
 };
 
-static userport_snapshot_t starbyte_snapshot = {
-    USERPORT_DEVICE_JOYSTICK_STARBYTE,
-    userport_joystick_starbyte_write_snapshot_module,
-    userport_joystick_starbyte_read_snapshot_module
+static userport_device_t synergy_device = {
+    "Synergy userport joy adapter",                  /* device name */
+    JOYSTICK_ADAPTER_ID_GENERIC_USERPORT,            /* this is a joystick adapter */
+    USERPORT_DEVICE_TYPE_JOYSTICK_ADAPTER,           /* device is a joystick adapter */
+    userport_joystick_synergy_enable,                /* enable function */
+    userport_joystick_synergy_read_pbx,              /* read pb0-pb7 function */
+    userport_joystick_synergy_store_pbx,             /* store pb0-pb7 function */
+    NULL,                                            /* NO read pa2 pin function */
+    NULL,                                            /* NO store pa2 pin function */
+    NULL,                                            /* NO read pa3 pin function */
+    NULL,                                            /* NO store pa3 pin function */
+    0,                                               /* pc pin is NOT needed */
+    NULL,                                            /* NO store sp1 pin function */
+    NULL,                                            /* NO read sp1 pin function */
+    NULL,                                            /* NO store sp2 pin function */
+    NULL,                                            /* NO read sp2 pin function */
+    NULL,                                            /* NO reset function */
+    NULL,                                            /* NO powerup function */
+    userport_joystick_synergy_write_snapshot_module, /* snapshot write function */
+    userport_joystick_synergy_read_snapshot_module   /* snapshot read function */
 };
-
-static userport_device_list_t *userport_joystick_list_item = NULL;
 
 /* ------------------------------------------------------------------------- */
 
-static int register_userport_adapter(int adapter)
+static int userport_joystick_pet_output_check(int port, uint8_t output_bits)
 {
-    switch (adapter) {
-        case USERPORT_JOYSTICK_CGA:
-            userport_joystick_list_item = userport_device_register(&cga_device);
-            break;
-        case USERPORT_JOYSTICK_PET:
-            userport_joystick_list_item = userport_device_register(&pet_device);
-            break;
-        case USERPORT_JOYSTICK_HUMMER:
-            userport_joystick_list_item = userport_device_register(&hummer_device);
-            break;
-        case USERPORT_JOYSTICK_OEM:
-            userport_joystick_list_item = userport_device_register(&oem_device);
-            break;
-        case USERPORT_JOYSTICK_HIT:
-            userport_joystick_list_item = userport_device_register(&hit_device);
-            break;
-        case USERPORT_JOYSTICK_KINGSOFT:
-            userport_joystick_list_item = userport_device_register(&kingsoft_device);
-            break;
-        case USERPORT_JOYSTICK_STARBYTE:
-            userport_joystick_list_item = userport_device_register(&starbyte_device);
-            break;
-        default:
-            return -1;
-    }
-    if (userport_joystick_list_item != NULL) {
+    if (output_bits & 0x10) {   /* no output on 'fire' pin */
         return 0;
     }
-    return -1;
+    return 1;
 }
 
-static int set_userport_joystick_enable(int value, void *param)
+static int userport_joystick_hit_kingsoft_output_check(int port, uint8_t output_bits)
+{
+    if (port == JOYPORT_4) {
+        if (output_bits & 0x10) {   /* no output on 'fire' pin for userport joystick 2 */
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int userport_joystick_starbyte_output_check(int port, uint8_t output_bits)
+{
+    if (port == JOYPORT_3) {
+        if (output_bits & 0x10) {   /* no output on 'fire' pin for userport joystick 1 */
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int userport_joystick_cga_enable(int value)
 {
     int val = value ? 1 : 0;
 
-    if (userport_joystick_enable == val) {
+    if (userport_joy_cga_enable == val) {
         return 0;
     }
 
     if (val) {
-        if (register_userport_adapter(userport_joystick_type) < 0) {
+        /* check if a different joystick adapter is already active */
+        if (joystick_adapter_get_id()) {
+            ui_error("Joystick adapter %s is already active", joystick_adapter_get_name());
             return -1;
         }
+        joystick_adapter_activate(JOYSTICK_ADAPTER_ID_GENERIC_USERPORT, "Userport CGA joystick adapter");
+        joystick_adapter_set_ports(2);
     } else {
-        userport_device_unregister(userport_joystick_list_item);
-        userport_joystick_list_item = NULL;
+        joystick_adapter_deactivate();
     }
 
-    userport_joystick_enable = val;
+    userport_joy_cga_enable = val;
 
     return 0;
 }
 
-static int set_userport_joystick_type(int val, void *param)
+static int userport_joystick_pet_enable(int value)
 {
-    switch (val) {
-        case USERPORT_JOYSTICK_CGA:
-            if (machine_class != VICE_MACHINE_PLUS4) {
-                break;
-            }
-            return -1;
-        case USERPORT_JOYSTICK_PET:
-        case USERPORT_JOYSTICK_HUMMER:
-        case USERPORT_JOYSTICK_OEM:
-            break;
-        case USERPORT_JOYSTICK_HIT:
-        case USERPORT_JOYSTICK_KINGSOFT:
-        case USERPORT_JOYSTICK_STARBYTE:
-            if (machine_class == VICE_MACHINE_C64
-                || machine_class == VICE_MACHINE_C128
-                || machine_class == VICE_MACHINE_C64SC
-                || machine_class == VICE_MACHINE_SCPU64) {
-                break;
-            }
-            return -1;
-        default:
-            return -1;
+    int val = value ? 1 : 0;
+
+    if (userport_joy_pet_enable == val) {
+        return 0;
     }
 
-    if (userport_joystick_enable) {
-        userport_device_unregister(userport_joystick_list_item);
-        userport_joystick_list_item = NULL;
-        if (register_userport_adapter(val) < 0) {
+    if (val) {
+        /* check if a different joystick adapter is already active */
+        if (joystick_adapter_get_id()) {
+            ui_error("Joystick adapter %s is already active", joystick_adapter_get_name());
             return -1;
         }
+        joystick_adapter_activate(JOYSTICK_ADAPTER_ID_GENERIC_USERPORT, "Userport PET joystick adapter");
+        joystick_adapter_set_output_check_function(userport_joystick_pet_output_check);
+        joystick_adapter_set_ports(2);
+    } else {
+        joystick_adapter_deactivate();
     }
 
-    userport_joystick_type = val;
+    userport_joy_pet_enable = val;
 
     return 0;
 }
 
-static const resource_int_t resources_int[] = {
-    { "UserportJoy", 0, RES_EVENT_NO, NULL,
-      &userport_joystick_enable, set_userport_joystick_enable, NULL },
-    RESOURCE_INT_LIST_END
-};
-
-static const resource_int_t resources_int_type_plus4[] = {
-    { "UserportJoyType", USERPORT_JOYSTICK_PET, RES_EVENT_NO, NULL,
-      &userport_joystick_type, set_userport_joystick_type, NULL },
-    RESOURCE_INT_LIST_END
-};
-
-static const resource_int_t resources_int_type[] = {
-    { "UserportJoyType", USERPORT_JOYSTICK_CGA, RES_EVENT_NO, NULL,
-      &userport_joystick_type, set_userport_joystick_type, NULL },
-    RESOURCE_INT_LIST_END
-};
-
-int userport_joystick_resources_init(void)
+static int userport_joystick_hummer_enable(int value)
 {
-    userport_snapshot_register(&cga_snapshot);
-    userport_snapshot_register(&pet_snapshot);
-    userport_snapshot_register(&hummer_snapshot);
-    userport_snapshot_register(&oem_snapshot);
-    userport_snapshot_register(&hit_snapshot);
-    userport_snapshot_register(&kingsoft_snapshot);
-    userport_snapshot_register(&starbyte_snapshot);
+    int val = value ? 1 : 0;
 
-    if (machine_class != VICE_MACHINE_C64DTV) {
-        if (machine_class == VICE_MACHINE_PLUS4) {
-            if (resources_register_int(resources_int_type_plus4) < 0) {
-                return -1;
-            }
-        } else {
-            if (resources_register_int(resources_int_type) < 0) {
-                return -1;
-            }
-        }
+    if (userport_joy_hummer_enable == val) {
+        return 0;
     }
 
-    return resources_register_int(resources_int);
-}
-
-static const cmdline_option_t cmdline_options[] =
-{
-    { "-userportjoy", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "UserportJoy", (resource_value_t)1,
-      NULL, "Enable Userport joystick adapter" },
-    { "+userportjoy", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "UserportJoy", (resource_value_t)0,
-      NULL, "Disable Userport joystick adapter" },
-    CMDLINE_LIST_END
-};
-
-static const cmdline_option_t cmdline_options_type[] =
-{
-    { "-userportjoytype", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
-      NULL, NULL, "UserportJoyType", NULL,
-      "<Type>", "Set Userport joystick adapter type (0: CGA/Protovision, 1: PET, 2: Hummer, 3: OEM, 4: DXS/HIT, 5: Kingsoft, 6: Starbyte)" },
-    CMDLINE_LIST_END
-};
-
-int userport_joystick_cmdline_options_init(void)
-{
-    if (machine_class != VICE_MACHINE_C64DTV) {
-        if (cmdline_register_options(cmdline_options_type) < 0) {
+    if (val) {
+        /* check if a different joystick adapter is already active */
+        if (joystick_adapter_get_id()) {
+            ui_error("Joystick adapter %s is already active", joystick_adapter_get_name());
             return -1;
         }
+        joystick_adapter_activate(JOYSTICK_ADAPTER_ID_GENERIC_USERPORT, "Userport HUMMER joystick adapter");
+        joystick_adapter_set_ports(1);
+    } else {
+        joystick_adapter_deactivate();
     }
-    return cmdline_register_options(cmdline_options);
+
+    userport_joy_hummer_enable = val;
+
+    return 0;
+}
+
+static int userport_joystick_oem_enable(int value)
+{
+    int val = value ? 1 : 0;
+
+    if (userport_joy_oem_enable == val) {
+        return 0;
+    }
+
+    if (val) {
+        /* check if a different joystick adapter is already active */
+        if (joystick_adapter_get_id()) {
+            ui_error("Joystick adapter %s is already active", joystick_adapter_get_name());
+            return -1;
+        }
+        joystick_adapter_activate(JOYSTICK_ADAPTER_ID_GENERIC_USERPORT, "Userport OEM joystick adapter");
+        joystick_adapter_set_ports(1);
+    } else {
+        joystick_adapter_deactivate();
+    }
+
+    userport_joy_oem_enable = val;
+
+    return 0;
+}
+
+static int userport_joystick_hit_enable(int value)
+{
+    int val = value ? 1 : 0;
+
+    if (userport_joy_hit_enable == val) {
+        return 0;
+    }
+
+    if (val) {
+        /* check if a different joystick adapter is already active */
+        if (joystick_adapter_get_id()) {
+            ui_error("Joystick adapter %s is already active", joystick_adapter_get_name());
+            return -1;
+        }
+        joystick_adapter_activate(JOYSTICK_ADAPTER_ID_GENERIC_USERPORT, "Userport HIT joystick adapter");
+        joystick_adapter_set_output_check_function(userport_joystick_hit_kingsoft_output_check);
+        joystick_adapter_set_ports(2);
+    } else {
+        joystick_adapter_deactivate();
+    }
+
+    userport_joy_hit_enable = val;
+
+    return 0;
+}
+
+static int userport_joystick_kingsoft_enable(int value)
+{
+    int val = value ? 1 : 0;
+
+    if (userport_joy_kingsoft_enable == val) {
+        return 0;
+    }
+
+    if (val) {
+        /* check if a different joystick adapter is already active */
+        if (joystick_adapter_get_id()) {
+            ui_error("Joystick adapter %s is already active", joystick_adapter_get_name());
+            return -1;
+        }
+        joystick_adapter_activate(JOYSTICK_ADAPTER_ID_GENERIC_USERPORT, "Userport Kingsoft joystick adapter");
+        joystick_adapter_set_output_check_function(userport_joystick_hit_kingsoft_output_check);
+        joystick_adapter_set_ports(2);
+    } else {
+        joystick_adapter_deactivate();
+    }
+
+    userport_joy_kingsoft_enable = val;
+
+    return 0;
+}
+
+static int userport_joystick_starbyte_enable(int value)
+{
+    int val = value ? 1 : 0;
+
+    if (userport_joy_starbyte_enable == val) {
+        return 0;
+    }
+
+    if (val) {
+        /* check if a different joystick adapter is already active */
+        if (joystick_adapter_get_id()) {
+            ui_error("Joystick adapter %s is already active", joystick_adapter_get_name());
+            return -1;
+        }
+        joystick_adapter_activate(JOYSTICK_ADAPTER_ID_GENERIC_USERPORT, "Userport Starbyte joystick adapter");
+        joystick_adapter_set_output_check_function(userport_joystick_starbyte_output_check);
+        joystick_adapter_set_ports(2);
+    } else {
+        joystick_adapter_deactivate();
+    }
+
+    userport_joy_starbyte_enable = val;
+
+    return 0;
+}
+
+static int userport_joystick_synergy_enable(int value)
+{
+    int val = value ? 1 : 0;
+
+    if (userport_joy_synergy_enable == val) {
+        return 0;
+    }
+
+    if (val) {
+        /* check if a different joystick adapter is already active */
+        if (joystick_adapter_get_id()) {
+            ui_error("Joystick adapter %s is already active", joystick_adapter_get_name());
+            return -1;
+        }
+        joystick_adapter_activate(JOYSTICK_ADAPTER_ID_GENERIC_USERPORT, "Userport Synergy joystick adapter");
+        joystick_adapter_set_ports(3);
+    } else {
+        joystick_adapter_deactivate();
+    }
+
+    userport_joy_synergy_enable = val;
+
+    return 0;
+}
+
+int userport_joystick_cga_resources_init(void)
+{
+    return userport_device_register(USERPORT_DEVICE_JOYSTICK_CGA, &cga_device);
+}
+
+int userport_joystick_pet_resources_init(void)
+{
+    return userport_device_register(USERPORT_DEVICE_JOYSTICK_PET, &pet_device);
+}
+
+int userport_joystick_hummer_resources_init(void)
+{
+    return userport_device_register(USERPORT_DEVICE_JOYSTICK_HUMMER, &hummer_device);
+}
+
+int userport_joystick_oem_resources_init(void)
+{
+    return userport_device_register(USERPORT_DEVICE_JOYSTICK_OEM, &oem_device);
+}
+
+int userport_joystick_hit_resources_init(void)
+{
+    return userport_device_register(USERPORT_DEVICE_JOYSTICK_HIT, &hit_device);
+}
+
+int userport_joystick_kingsoft_resources_init(void)
+{
+    return userport_device_register(USERPORT_DEVICE_JOYSTICK_KINGSOFT, &kingsoft_device);
+}
+
+int userport_joystick_starbyte_resources_init(void)
+{
+    return userport_device_register(USERPORT_DEVICE_JOYSTICK_STARBYTE, &starbyte_device);
+}
+
+int userport_joystick_synergy_resources_init(void)
+{
+    return userport_device_register(USERPORT_DEVICE_JOYSTICK_SYNERGY, &synergy_device);
 }
 
 /* ------------------------------------------------------------------------- */
 
-static void userport_joystick_cga_read_pbx(void)
+static uint8_t userport_joystick_cga_read_pbx(uint8_t orig)
 {
     uint8_t retval;
     uint8_t jv3 = ~read_joyport_dig(JOYPORT_3);
@@ -578,17 +708,17 @@ static void userport_joystick_cga_read_pbx(void)
     } else {
         retval = (uint8_t)~((jv3 & 0xf) | (jv3 & 0x10) | ((jv4 & 0x10) << 1));
     }
-    cga_device.retval = retval;
+    return retval;
 }
 
-static void userport_joystick_cga_store_pbx(uint8_t value)
+static void userport_joystick_cga_store_pbx(uint8_t value, int pulse)
 {
     userport_joystick_cga_select = (value & 0x80) ? 0 : 1;
 }
 
 /* ------------------------------------------------------------------------- */
 
-static void userport_joystick_pet_read_pbx(void)
+static uint8_t userport_joystick_pet_read_pbx(uint8_t orig)
 {
     uint8_t retval;
     uint8_t jv3 = ~read_joyport_dig(JOYPORT_3);
@@ -599,10 +729,10 @@ static void userport_joystick_pet_read_pbx(void)
     retval |= (jv4 & 0x10) ? 0x30 : 0;
     retval = (uint8_t)~retval;
 
-    pet_device.retval = retval;
+    return retval;
 }
 
-static void userport_joystick_pet_hit_store_pbx(uint8_t value)
+static void userport_joystick_pet_hit_store_pbx(uint8_t value, int pulse)
 {
     uint8_t j1 = value & 0xf;
     uint8_t j2 = (value & 0xf0) >> 4;
@@ -613,17 +743,17 @@ static void userport_joystick_pet_hit_store_pbx(uint8_t value)
 
 /* ------------------------------------------------------------------------- */
 
-static void userport_joystick_hummer_read_pbx(void)
+static uint8_t userport_joystick_hummer_read_pbx(uint8_t orig)
 {
     uint8_t retval;
     uint8_t jv3 = ~read_joyport_dig(JOYPORT_3);
 
     retval = (uint8_t)~(jv3 & 0x1f);
 
-    hummer_device.retval = retval;
+    return retval;
 }
 
-static void userport_joystick_hummer_store_pbx(uint8_t value)
+static void userport_joystick_hummer_store_pbx(uint8_t value, int pulse)
 {
     uint8_t j1 = value & 0x1f;
 
@@ -632,7 +762,7 @@ static void userport_joystick_hummer_store_pbx(uint8_t value)
 
 /* ------------------------------------------------------------------------- */
 
-static void userport_joystick_oem_read_pbx(void)
+static uint8_t userport_joystick_oem_read_pbx(uint8_t orig)
 {
     uint8_t retval;
     uint8_t jv3 = ~read_joyport_dig(JOYPORT_3);
@@ -644,10 +774,10 @@ static void userport_joystick_oem_read_pbx(void)
     retval |= ((jv3 & 16) >> 1);
     retval = (uint8_t)~retval;
 
-    oem_device.retval = retval;
+    return retval;
 }
 
-static void userport_joystick_oem_store_pbx(uint8_t value)
+static void userport_joystick_oem_store_pbx(uint8_t value, int pulse)
 {
     uint8_t j1 = (value & 8) << 1;
 
@@ -661,7 +791,7 @@ static void userport_joystick_oem_store_pbx(uint8_t value)
 
 /* ------------------------------------------------------------------------- */
 
-static void userport_joystick_hit_read_pbx(void)
+static uint8_t userport_joystick_hit_read_pbx(uint8_t orig)
 {
     uint8_t retval;
     uint8_t jv3 = ~read_joyport_dig(JOYPORT_3);
@@ -669,14 +799,19 @@ static void userport_joystick_hit_read_pbx(void)
 
     retval = (uint8_t)~((jv3 & 0xf) | ((jv4 & 0xf) << 4));
 
-    hit_device.retval = retval;
+    return retval;
 }
 
-static void userport_joystick_hit_read_pa2(void)
+static uint8_t userport_joystick_hit_read_pa2(uint8_t orig)
 {
     uint8_t jv1 = ~read_joyport_dig(JOYPORT_3);
 
-    hit_device.retval = (jv1 & 0x10) ? 0 : 1;
+    return (jv1 & 0x10) ? 0 : 1;
+}
+
+static void userport_joystick_hit_store_pa2(uint8_t val)
+{
+    store_joyport_dig(JOYPORT_3, (val & 1) << 4, 0x10);
 }
 
 static uint8_t hit_sp2_retval = 0xff;
@@ -686,14 +821,14 @@ static void userport_joystick_hit_store_sp1(uint8_t val)
     hit_sp2_retval = ((~read_joyport_dig(JOYPORT_4)) & 0x10) ? 0 : 0xff;
 }
 
-static void userport_joystick_hit_read_sp2(void)
+static uint8_t userport_joystick_hit_read_sp2(uint8_t orig)
 {
-    hit_device.retval = hit_sp2_retval;
+    return hit_sp2_retval;
 }
 
 /* ------------------------------------------------------------------------- */
 
-static void userport_joystick_kingsoft_read_pbx(void)
+static uint8_t userport_joystick_kingsoft_read_pbx(uint8_t orig)
 {
     uint8_t retval;
     uint8_t jv3 = ~read_joyport_dig(JOYPORT_3);
@@ -709,10 +844,10 @@ static void userport_joystick_kingsoft_read_pbx(void)
     retval |= ((jv3 >> 1) & 1) << 7;
     retval = (uint8_t)~retval;
 
-    kingsoft_device.retval = retval;
+    return retval;
 }
 
-static void userport_joystick_kingsoft_store_pbx(uint8_t value)
+static void userport_joystick_kingsoft_store_pbx(uint8_t value, int pulse)
 {
     uint8_t j1 = value & 0x10;
     uint8_t j2 = (value & 1) << 3;
@@ -728,11 +863,16 @@ static void userport_joystick_kingsoft_store_pbx(uint8_t value)
     store_joyport_dig(JOYPORT_4, j2, 0xf);
 }
 
-static void userport_joystick_kingsoft_read_pa2(void)
+static uint8_t userport_joystick_kingsoft_read_pa2(uint8_t orig)
 {
     uint8_t jv1 = ~read_joyport_dig(JOYPORT_3);
 
-    kingsoft_device.retval = (jv1 & 1) ? 0 : 1;
+    return (jv1 & 1) ? 0 : 1;
+}
+
+static void userport_joystick_kingsoft_store_pa2(uint8_t val)
+{
+    store_joyport_dig(JOYPORT_3, val & 1, 1);
 }
 
 static uint8_t kingsoft_sp2_retval = 0xff;
@@ -742,14 +882,14 @@ static void userport_joystick_kingsoft_store_sp1(uint8_t val)
     kingsoft_sp2_retval = ((~read_joyport_dig(JOYPORT_4)) & 0x10) ? 0 : 0xff;
 }
 
-static void userport_joystick_kingsoft_read_sp2(void)
+static uint8_t userport_joystick_kingsoft_read_sp2(uint8_t orig)
 {
-    kingsoft_device.retval = kingsoft_sp2_retval;
+    return kingsoft_sp2_retval;
 }
 
 /* ------------------------------------------------------------------------- */
 
-static void userport_joystick_starbyte_read_pbx(void)
+static uint8_t userport_joystick_starbyte_read_pbx(uint8_t orig)
 {
     uint8_t retval;
     uint8_t jv3 = ~read_joyport_dig(JOYPORT_3);
@@ -765,10 +905,10 @@ static void userport_joystick_starbyte_read_pbx(void)
     retval |= ((jv4 >> 2) & 1) << 7;
     retval = (uint8_t)~retval;
 
-    starbyte_device.retval = retval;
+    return retval;
 }
 
-static void userport_joystick_starbyte_store_pbx(uint8_t value)
+static void userport_joystick_starbyte_store_pbx(uint8_t value, int pulse)
 {
     uint8_t j1 = (value & 1) << 1;
     uint8_t j2 = value & 0x10;
@@ -785,11 +925,16 @@ static void userport_joystick_starbyte_store_pbx(uint8_t value)
     store_joyport_dig(JOYPORT_4, j2, 0x1e);
 }
 
-static void userport_joystick_starbyte_read_pa2(void)
+static uint8_t userport_joystick_starbyte_read_pa2(uint8_t orig)
 {
     uint8_t jv2 = ~read_joyport_dig(JOYPORT_4);
 
-    starbyte_device.retval = (jv2 & 1) ? 0 : 1;
+    return (jv2 & 1) ? 0 : 1;
+}
+
+static void userport_joystick_starbyte_store_pa2(uint8_t val)
+{
+    store_joyport_dig(JOYPORT_4, val & 1, 1);
 }
 
 static uint8_t starbyte_sp2_retval = 0xff;
@@ -799,9 +944,57 @@ static void userport_joystick_starbyte_store_sp1(uint8_t val)
     starbyte_sp2_retval = ((~read_joyport_dig(JOYPORT_3)) & 0x10) ? 0 : 0xff;
 }
 
-static void userport_joystick_starbyte_read_sp2(void)
+static uint8_t userport_joystick_starbyte_read_sp2(uint8_t orig)
 {
-    starbyte_device.retval = starbyte_sp2_retval;
+    return starbyte_sp2_retval;
+}
+
+/* ------------------------------------------------------------------------- */
+
+static uint8_t userport_joystick_synergy_read_pbx(uint8_t orig)
+{
+    uint8_t retval;
+    uint8_t jv3 = ~read_joyport_dig(JOYPORT_3);
+    uint8_t jv4 = ~read_joyport_dig(JOYPORT_4);
+    uint8_t jv5 = ~read_joyport_dig(JOYPORT_5);
+
+    if (userport_joystick_synergy_select == 0) {
+        retval = (uint8_t)~(jv3 & 0x1f);
+    } else if (userport_joystick_synergy_select == 1) {
+        retval = (uint8_t)~(jv4 & 0x1f);
+    } else {
+        retval = (uint8_t)~(jv5 & 0x1f);
+    }
+
+    return retval;
+}
+
+static void userport_joystick_synergy_store_pbx(uint8_t value, int pulse)
+{
+    uint8_t j1 = value & 0x1f;
+
+    uint8_t j5_select = (value & 0x80) ? 1 : 0;
+    uint8_t j4_select = (value & 0x40) ? 1 : 0;
+    uint8_t j3_select = (value & 0x20) ? 1 : 0;
+
+    /* sanity check, only 1 value should be 0 */
+    if (j3_select + j4_select + j5_select == 2) {
+        if (j3_select == 0) {
+            userport_joystick_synergy_select = 0;
+        } else if (j4_select == 0) {
+            userport_joystick_synergy_select = 1;
+        } else {
+            userport_joystick_synergy_select = 2;
+        }
+    }
+
+    if (userport_joystick_synergy_select == 0) {
+        store_joyport_dig(JOYPORT_3, j1, 0x1f);
+    } else if (userport_joystick_synergy_select == 1) {
+        store_joyport_dig(JOYPORT_4, j1, 0x1f);
+    } else {
+        store_joyport_dig(JOYPORT_5, j1, 0x1f);
+    }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -813,9 +1006,9 @@ static void userport_joystick_starbyte_read_sp2(void)
    BYTE  | select | joyport select
  */
 
-static char cga_module_name[] = "UP_JOY_CGA";
+static const char cga_module_name[] = "UPJOYCGA";
 #define CGA_VER_MAJOR   0
-#define CGA_VER_MINOR   0
+#define CGA_VER_MINOR   1
 
 static int userport_joystick_cga_write_snapshot_module(snapshot_t *s)
 {
@@ -846,10 +1039,6 @@ static int userport_joystick_cga_read_snapshot_module(snapshot_t *s)
 {
     uint8_t major_version, minor_version;
     snapshot_module_t *m;
-
-    /* enable device */
-    set_userport_joystick_type(USERPORT_JOYSTICK_CGA, NULL);
-    set_userport_joystick_enable(1, NULL);
 
     m = snapshot_module_open(s, cga_module_name, &major_version, &minor_version);
 
@@ -894,10 +1083,6 @@ static int userport_joystick_pet_write_snapshot_module(snapshot_t *s)
 
 static int userport_joystick_pet_read_snapshot_module(snapshot_t *s)
 {
-    /* enable device */
-    set_userport_joystick_type(USERPORT_JOYSTICK_PET, NULL);
-    set_userport_joystick_enable(1, NULL);
-
     if (0
         || joyport_snapshot_read_module(s, JOYPORT_3) < 0
         || joyport_snapshot_read_module(s, JOYPORT_4) < 0) {
@@ -908,26 +1093,23 @@ static int userport_joystick_pet_read_snapshot_module(snapshot_t *s)
 
 /* ------------------------------------------------------------------------- */
 
-static int userport_joystick_hummer_oem_write_snapshot_module(snapshot_t *s)
+static int userport_joystick_hummer_write_snapshot_module(snapshot_t *s)
 {
     return joyport_snapshot_write_module(s, JOYPORT_3);
 }
 
 static int userport_joystick_hummer_read_snapshot_module(snapshot_t *s)
 {
-    /* enable device */
-    set_userport_joystick_type(USERPORT_JOYSTICK_HUMMER, NULL);
-    set_userport_joystick_enable(1, NULL);
-
     return joyport_snapshot_read_module(s, JOYPORT_3);
+}
+
+static int userport_joystick_oem_write_snapshot_module(snapshot_t *s)
+{
+    return joyport_snapshot_write_module(s, JOYPORT_3);
 }
 
 static int userport_joystick_oem_read_snapshot_module(snapshot_t *s)
 {
-    /* enable device */
-    set_userport_joystick_type(USERPORT_JOYSTICK_OEM, NULL);
-    set_userport_joystick_enable(1, NULL);
-
     return joyport_snapshot_read_module(s, JOYPORT_3);
 }
 
@@ -940,9 +1122,9 @@ static int userport_joystick_oem_read_snapshot_module(snapshot_t *s)
    BYTE  | retval | current serial port brigde value
  */
 
-static char hit_module_name[] = "UP_JOY_HIT";
+static const char hit_module_name[] = "UPJOYHIT";
 #define HIT_VER_MAJOR   0
-#define HIT_VER_MINOR   0
+#define HIT_VER_MINOR   1
 
 static int userport_joystick_hit_write_snapshot_module(snapshot_t *s)
 {
@@ -973,10 +1155,6 @@ static int userport_joystick_hit_read_snapshot_module(snapshot_t *s)
 {
     uint8_t major_version, minor_version;
     snapshot_module_t *m;
-
-    /* enable device */
-    set_userport_joystick_type(USERPORT_JOYSTICK_HIT, NULL);
-    set_userport_joystick_enable(1, NULL);
 
     m = snapshot_module_open(s, hit_module_name, &major_version, &minor_version);
 
@@ -1016,9 +1194,10 @@ fail:
    BYTE  | retval | current serial port brigde value
  */
 
-static char kingsoft_module_name[] = "UP_JOY_KINGSOFT";
+/* FIXME */
+static const char kingsoft_module_name[] = "UPJOYKINGSOFT";
 #define KINGSOFT_VER_MAJOR   0
-#define KINGSOFT_VER_MINOR   0
+#define KINGSOFT_VER_MINOR   1
 
 static int userport_joystick_kingsoft_write_snapshot_module(snapshot_t *s)
 {
@@ -1049,10 +1228,6 @@ static int userport_joystick_kingsoft_read_snapshot_module(snapshot_t *s)
 {
     uint8_t major_version, minor_version;
     snapshot_module_t *m;
-
-    /* enable device */
-    set_userport_joystick_type(USERPORT_JOYSTICK_KINGSOFT, NULL);
-    set_userport_joystick_enable(1, NULL);
 
     m = snapshot_module_open(s, kingsoft_module_name, &major_version, &minor_version);
 
@@ -1089,12 +1264,12 @@ fail:
 
    type  | name   | description
    ----------------------------
-   BYTE  | retval | current serial port brigde value
+   BYTE  | retval | current serial port bridge value
  */
 
-static char starbyte_module_name[] = "UP_JOY_STARBYTE";
+static const char starbyte_module_name[] = "UPJOYSTARBYTE";
 #define STARBYTE_VER_MAJOR   0
-#define STARBYTE_VER_MINOR   0
+#define STARBYTE_VER_MINOR   1
 
 static int userport_joystick_starbyte_write_snapshot_module(snapshot_t *s)
 {
@@ -1126,10 +1301,6 @@ static int userport_joystick_starbyte_read_snapshot_module(snapshot_t *s)
     uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
-    /* enable device */
-    set_userport_joystick_type(USERPORT_JOYSTICK_STARBYTE, NULL);
-    set_userport_joystick_enable(1, NULL);
-
     m = snapshot_module_open(s, starbyte_module_name, &major_version, &minor_version);
 
     if (m == NULL) {
@@ -1150,6 +1321,80 @@ static int userport_joystick_starbyte_read_snapshot_module(snapshot_t *s)
     if (0
         || joyport_snapshot_read_module(s, JOYPORT_3) < 0
         || joyport_snapshot_read_module(s, JOYPORT_4) < 0) {
+        return -1;
+    }
+    return 0;
+
+fail:
+    snapshot_module_close(m);
+    return -1;
+}
+
+/* ------------------------------------------------------------------------- */
+
+/* UP_JOY_SYNERGY snapshot module format:
+
+   type  | name   | description
+   ----------------------------
+   BYTE  | select | joyport select
+ */
+
+static const char synergy_module_name[] = "UPJOYSYNERGY";
+#define SYNERGY_VER_MAJOR   0
+#define SYNERGY_VER_MINOR   1
+
+static int userport_joystick_synergy_write_snapshot_module(snapshot_t *s)
+{
+    snapshot_module_t *m;
+
+    m = snapshot_module_create(s, synergy_module_name, SYNERGY_VER_MAJOR, SYNERGY_VER_MINOR);
+ 
+    if (m == NULL) {
+        return -1;
+    }
+
+    if (SMW_B(m, (uint8_t)userport_joystick_synergy_select) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
+
+    snapshot_module_close(m);
+
+    if (0
+        || joyport_snapshot_write_module(s, JOYPORT_3) < 0
+        || joyport_snapshot_write_module(s, JOYPORT_4) < 0
+        || joyport_snapshot_write_module(s, JOYPORT_5) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+static int userport_joystick_synergy_read_snapshot_module(snapshot_t *s)
+{
+    uint8_t major_version, minor_version;
+    snapshot_module_t *m;
+
+    m = snapshot_module_open(s, synergy_module_name, &major_version, &minor_version);
+
+    if (m == NULL) {
+        return -1;
+    }
+
+    /* Do not accept versions higher than current */
+    if (snapshot_version_is_bigger(major_version, minor_version, SYNERGY_VER_MAJOR, SYNERGY_VER_MINOR)) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
+    }
+
+    if (SMR_B_INT(m, &userport_joystick_synergy_select) < 0) {
+        goto fail;
+    }
+    snapshot_module_close(m);
+
+    if (0
+        || joyport_snapshot_read_module(s, JOYPORT_3) < 0
+        || joyport_snapshot_read_module(s, JOYPORT_4) < 0
+        || joyport_snapshot_read_module(s, JOYPORT_5) < 0) {
         return -1;
     }
     return 0;

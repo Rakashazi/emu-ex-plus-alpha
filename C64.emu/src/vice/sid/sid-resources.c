@@ -62,6 +62,7 @@ static int sid_resid_filter_bias;
 static int sid_resid_8580_passband;
 static int sid_resid_8580_gain;
 static int sid_resid_8580_filter_bias;
+static int sid_resid_enable_raw_output;
 #endif
 int sid_stereo = 0;
 int checking_sid_stereo;
@@ -143,6 +144,17 @@ static int set_sid_filters_enabled(int val, void *param)
 
     return 0;
 }
+
+#if defined(HAVE_RESID) || defined(HAVE_RESID_DTV)
+static int set_sid_resid_enable_raw_output(int val, void *param)
+{
+    sid_resid_enable_raw_output = val ? 1 : 0;
+
+    sid_state_changed = 1;
+
+    return 0;
+}
+#endif
 
 static int set_sid_stereo(int val, void *param)
 {
@@ -370,6 +382,8 @@ void sid_set_enable(int value)
 
 #if defined(HAVE_RESID) || defined(HAVE_RESID_DTV)
 static const resource_int_t resid_resources_int[] = {
+    { "SidResidEnableRawOutput", 0, RES_EVENT_NO, NULL,
+      &sid_resid_enable_raw_output, set_sid_resid_enable_raw_output, NULL },
     { "SidResidSampling", SID_RESID_SAMPLING_RESAMPLING, RES_EVENT_NO, NULL,
       &sid_resid_sampling, set_sid_resid_sampling, NULL },
     { "SidResidPassband", 90, RES_EVENT_NO, NULL,
@@ -382,18 +396,14 @@ static const resource_int_t resid_resources_int[] = {
       &sid_resid_8580_passband, set_sid_resid_8580_passband, NULL },
     { "SidResid8580Gain", 97, RES_EVENT_NO, NULL,
       &sid_resid_8580_gain, set_sid_resid_8580_gain, NULL },
-#ifdef HAVE_NEW_8580_FILTER
-    { "SidResid8580FilterBias", -3000, RES_EVENT_NO, NULL,
-      &sid_resid_8580_filter_bias, set_sid_resid_8580_filter_bias, NULL },
-#else
     { "SidResid8580FilterBias", 0, RES_EVENT_NO, NULL,
       &sid_resid_8580_filter_bias, set_sid_resid_8580_filter_bias, NULL },
-#endif
     RESOURCE_INT_LIST_END
 };
 #endif
 
-static const resource_int_t common_resources_int[] = {
+static resource_int_t common_resources_int[] = {
+    /* CAUTION: position is hardcoded below */
 #ifdef HAVE_RESID
     { "SidEngine", SID_ENGINE_DEFAULT,
       RES_EVENT_STRICT, (resource_value_t)SID_ENGINE_RESID,
@@ -405,6 +415,7 @@ static const resource_int_t common_resources_int[] = {
 #endif
     { "SidFilters", 1, RES_EVENT_SAME, NULL,
       &sid_filters_enabled, set_sid_filters_enabled, NULL },
+    /* CAUTION: position is hardcoded below */
     { "SidModel", SID_MODEL_DEFAULT, RES_EVENT_SAME, NULL,
       &sid_model, set_sid_model, NULL },
     RESOURCE_INT_LIST_END
@@ -428,6 +439,29 @@ static const resource_int_t stereo_resources_int[] = {
 
 int sid_common_resources_init(void)
 {
+    /* Setup default factory value for sid engine and model. We do this
+       here so the default value will not end up in the config file. */
+
+    /* setup the default for sid engine */
+#ifdef HAVE_RESID
+    common_resources_int[0].factory_value = SID_ENGINE_RESID;
+#else
+    common_resources_int[0].factory_value = SID_ENGINE_FASTSID;
+#endif
+    /* setup the default for sid model */
+    common_resources_int[2].factory_value = SID_MODEL_6581;
+#ifdef HAVE_RESID
+    if (machine_class == VICE_MACHINE_C64DTV) {
+        common_resources_int[2].factory_value = SID_MODEL_DTVSID;
+    } else
+#endif
+    if ((machine_class == VICE_MACHINE_C128) || 
+        (machine_class == VICE_MACHINE_C64) ||
+        (machine_class == VICE_MACHINE_C64SC) ||
+        (machine_class == VICE_MACHINE_SCPU64)){
+        common_resources_int[2].factory_value = SID_MODEL_8580;
+    }
+
 #ifdef HAVE_HARDSID
     if (hardsid_available()) {
         if (resources_register_int(hardsid_resources_int) < 0) {

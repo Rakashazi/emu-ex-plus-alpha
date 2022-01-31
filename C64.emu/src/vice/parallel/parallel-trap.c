@@ -80,8 +80,8 @@ static int parallelcommand(void)
 
     dnr = TrapDevice & 0x0f;
     if (dnr >= DRIVE_UNIT_MIN &&
-	dnr < DRIVE_UNIT_MIN+NUM_DISK_UNITS &&
-	diskunit_context[dnr - DRIVE_UNIT_MIN]->enable) {
+        dnr < DRIVE_UNIT_MIN+NUM_DISK_UNITS &&
+        diskunit_context[dnr - DRIVE_UNIT_MIN]->enable) {
             return PAR_STATUS_DEVICE_NOT_PRESENT +    /* device not present */
                    PAR_STATUS_TIME_OUT_ON_WRITE +
                    PAR_STATUS_TIME_OUT_ON_READ;
@@ -89,8 +89,7 @@ static int parallelcommand(void)
 
     /* which device ? */
     p = serial_device_get(TrapDevice & 0x0f);
-    /* TODO: drive 1? */
-    vdrive = (void *)file_system_get_vdrive(TrapDevice & 0x0f, 0);
+    vdrive = (void *)file_system_get_vdrive(TrapDevice & 0x0f);
     channel = TrapSecondary & 0x0f;
 
     /* if command on a channel, reset output buffer... */
@@ -182,71 +181,69 @@ int parallel_trap_attention(int b)
     }
 #endif
 
-    if (b == 0x3f					/* unlisten */
-        && (((TrapSecondary & 0xf0) == 0xf0)		/* open filename */
-            || ((TrapSecondary & 0x0f) == 0x0f))) {	/* secaddr #15 */
+    if (b == 0x3f                                       /* unlisten */
+        && (((TrapSecondary & 0xf0) == 0xf0)            /* open filename */
+            || ((TrapSecondary & 0x0f) == 0x0f))) {     /* secaddr #15 */
         st = parallelcommand();
     } else {
         switch (b & 0xf0) {
-            case 0x20:		/* Listen + device */
-            case 0x40:		/* Talk + device */
-		/* If this device is already emulated with TDE, don't
-		 * try to react to it here. */
-		{
-		    int dnr = b & 0x0f;
-		    if (dnr >= DRIVE_UNIT_MIN &&
-			    dnr < DRIVE_UNIT_MIN+NUM_DISK_UNITS &&
-			    diskunit_context[dnr - DRIVE_UNIT_MIN]->enable) {
-		    } else {
-			TrapDevice = b;
-		    }
-		}
+            case 0x20:          /* Listen + device */
+            case 0x40:          /* Talk + device */
+                /* If this device is already emulated with TDE, don't
+                 * try to react to it here. */
+                {
+                    int dnr = b & 0x0f;
+                    if (dnr >= DRIVE_UNIT_MIN &&
+                        dnr < DRIVE_UNIT_MIN+NUM_DISK_UNITS &&
+                        diskunit_context[dnr - DRIVE_UNIT_MIN]->enable) {
+                    } else {
+                        TrapDevice = b;
+                    }
+                }
                 break;
 
             case 0x60:          /* Secondary address */
             case 0xe0:          /* Close a file */
-		if (TrapDevice != 0) {
-		    TrapSecondary = b;
-		    st |= parallelcommand();
-		}
+                if (TrapDevice != 0) {
+                    TrapSecondary = b;
+                    st |= parallelcommand();
+                }
                 break;
 
             case 0xf0:          /* Open File; needs the filename first */
-		if (TrapDevice != 0) {
-		    TrapSecondary = b;
-		    p = serial_device_get(TrapDevice & 0x0f);
+                if (TrapDevice != 0) {
+                    TrapSecondary = b;
+                    p = serial_device_get(TrapDevice & 0x0f);
 #ifndef DELAYEDCLOSE
-		    /* TODO drive 1? */
-		    vdrive = (void *)file_system_get_vdrive(TrapDevice & 0x0f, 0);
-		    if (p->isopen[b & 0x0f] == ISOPEN_OPEN) {
-			(*(p->closef))(vdrive, b & 0x0f);
-		    }
+                    vdrive = (void *)file_system_get_vdrive(TrapDevice & 0x0f);
+                    if (p->isopen[b & 0x0f] == ISOPEN_OPEN) {
+                        (*(p->closef))(vdrive, b & 0x0f);
+                    }
 #endif
-		    p->isopen[b & 0x0f] = ISOPEN_AWAITING_NAME;
-		}
+                    p->isopen[b & 0x0f] = ISOPEN_AWAITING_NAME;
+                }
                 break;
         }
     }
 
     if (TrapDevice != 0) {
-	p = serial_device_get(TrapDevice & 0x0f);
-	if (!(p->inuse)) {
-	    st |= PAR_STATUS_DEVICE_NOT_PRESENT;
-	}
+        p = serial_device_get(TrapDevice & 0x0f);
+        if (!(p->inuse)) {
+            st |= PAR_STATUS_DEVICE_NOT_PRESENT;
+        }
 
-	/* If it was a listen or talk or secondary addr or unlisten */
-	if (((b & 0xf0) == 0x20) || ((b & 0xf0) == 0x40) || ((b & 0xf0) == 0x60)
-	    || (b == 0x3f)) {
-	    if (p->listenf) {
-		/* send talk/listen/unlisten to emulated devices for
-		   flushing of REL file write buffer. */
-		if ((TrapDevice & 0x0f) >= DRIVE_UNIT_MIN) {
-		    /* TODO drive 1? */
-		    vdrive = (void *)file_system_get_vdrive(TrapDevice & 0x0f, 0);
-		    (*(p->listenf))(vdrive, TrapSecondary & 0x0f);
-		}
-	    }
-	}
+        /* If it was a listen or talk or secondary addr or unlisten */
+        if (((b & 0xf0) == 0x20) || ((b & 0xf0) == 0x40) || ((b & 0xf0) == 0x60)
+            || (b == 0x3f)) {
+            if (p->listenf) {
+                /* send talk/listen/unlisten to emulated devices for
+                    flushing of REL file write buffer. */
+                if ((TrapDevice & 0x0f) >= DRIVE_UNIT_MIN) {
+                    vdrive = (void *)file_system_get_vdrive(TrapDevice & 0x0f);
+                    (*(p->listenf))(vdrive, TrapSecondary & 0x0f);
+                }
+            }
+        }
     }
 
     if ((b == 0x3f) || (b == 0x5f)) {
@@ -272,16 +269,15 @@ int parallel_trap_sendbyte(uint8_t data)
 
     dnr = TrapDevice & 0x0f;
     if (dnr >= DRIVE_UNIT_MIN &&
-	dnr < DRIVE_UNIT_MIN+NUM_DISK_UNITS &&
-	diskunit_context[dnr - DRIVE_UNIT_MIN]->enable) {
+        dnr < DRIVE_UNIT_MIN+NUM_DISK_UNITS &&
+        diskunit_context[dnr - DRIVE_UNIT_MIN]->enable) {
             return PAR_STATUS_DEVICE_NOT_PRESENT +    /* device not present */
                    PAR_STATUS_TIME_OUT_ON_WRITE +
                    PAR_STATUS_TIME_OUT_ON_READ;
     }
 
     p = serial_device_get(TrapDevice & 0x0f);
-    /* TODO drive 1 */
-    vdrive = (void *)file_system_get_vdrive(TrapDevice & 0x0f, 0);
+    vdrive = (void *)file_system_get_vdrive(TrapDevice & 0x0f);
 
     if (p->inuse) {
         if (p->isopen[TrapSecondary & 0x0f] == ISOPEN_AWAITING_NAME) {
@@ -318,14 +314,13 @@ int parallel_trap_receivebyte(uint8_t *data, int fake)
 
     dnr = TrapDevice & 0x0f;
     if (dnr >= DRIVE_UNIT_MIN &&
-	dnr < DRIVE_UNIT_MIN+NUM_DISK_UNITS &&
-	diskunit_context[dnr - DRIVE_UNIT_MIN]->enable) {
+        dnr < DRIVE_UNIT_MIN+NUM_DISK_UNITS &&
+        diskunit_context[dnr - DRIVE_UNIT_MIN]->enable) {
             return 0x83;    /* device not present */
     }
 
     p = serial_device_get(TrapDevice & 0x0f);
-    /* TODO: drive 1 */
-    vdrive = (void *)file_system_get_vdrive(TrapDevice & 0x0f, 0);
+    vdrive = (void *)file_system_get_vdrive(TrapDevice & 0x0f);
 
     /* first fill up buffers */
 #if 0

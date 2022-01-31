@@ -6579,7 +6579,7 @@ int cpmcart_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_DW(m, maincpu_clk) < 0
+        || SMW_CLOCK(m, maincpu_clk) < 0
         || SMW_B(m, reg_a) < 0
         || SMW_B(m, reg_b) < 0
         || SMW_B(m, reg_c) < 0
@@ -6638,9 +6638,8 @@ int cpmcart_snapshot_read_module(snapshot_t *s)
        wrong number of cycles.  */
     maincpu_rmw_flag = 0;
 
-    /* XXX: Assumes `CLOCK' is the same size as a `DWORD'.  */
     if (0
-        || SMR_DW(m, &maincpu_clk) < 0
+        || SMR_CLOCK(m, &maincpu_clk) < 0
         || SMR_B(m, &reg_a) < 0
         || SMR_B(m, &reg_b) < 0
         || SMR_B(m, &reg_c) < 0

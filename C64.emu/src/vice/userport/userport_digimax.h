@@ -31,7 +31,6 @@
 #include "sound.h"
 
 extern int userport_digimax_resources_init(void);
-extern int userport_digimax_cmdline_options_init(void);
 
 extern void userport_digimax_sound_chip_init(void);
 

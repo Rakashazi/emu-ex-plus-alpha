@@ -44,6 +44,7 @@
 #include "mon_file.h"
 #include "mon_util.h"
 #include "tape.h"
+#include "tapeport.h"
 #include "uimon.h"
 #include "vdrive-iec.h"
 #include "vdrive.h"
@@ -66,8 +67,6 @@ static int mon_file_open(const char *filename,
     const char *s;
     int i;
 
-    /* TODO: drive 1 */
-    unsigned int drive = 0;
     const char *fspath = NULL;
     char *fullpath;
 
@@ -84,8 +83,8 @@ static int mon_file_open(const char *filename,
         case 9:
         case 10:
         case 11:
-            vdrive = file_system_get_vdrive((unsigned int)device, drive);
-            if (vdrive == NULL || vdrive->image == NULL) {
+            vdrive = file_system_get_vdrive((unsigned int)device);
+            if (vdrive == NULL) {
                 /* if vdrive did not succeed, try fsdevice */
                 if ((fspath = mon_drive_get_fsdevice_path(device))) {
                     fullpath = archdep_join_paths(fspath, filename, NULL);
@@ -221,7 +220,10 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
     }
 
     do {
-        uint8_t load_byte;
+        /* initialize to avoid false positive with clang static initializer
+         * about using a garbage load_byte in the memset() call
+         */
+        uint8_t load_byte = 0;
 
         if (mon_file_read(&load_byte, 0, device) < 0) {
             break;
@@ -288,8 +290,6 @@ void mon_file_save(const char *filename, int device, MON_ADDR start_addr,
         return;
     }
 
-    printf("Saving file `%s'...\n", filename);
-
     if (is_bsave == FALSE) {
         if (mon_file_write((uint8_t)(adr & 0xff), 1, device) < 0
             || mon_file_write((uint8_t)((adr >> 8) & 0xff), 1, device) < 0) {
@@ -305,10 +305,15 @@ void mon_file_save(const char *filename, int device, MON_ADDR start_addr,
         save_byte = mon_get_mem_val(mem, (uint16_t)(adr + ch));
         if (mon_file_write(save_byte, 1, device) < 0) {
             mon_out("Saving for `%s' failed.\n", filename);
-            break;
+            mon_file_close(1, device);
+            return;
         }
         ch++;
     } while ((adr + ch) <= end);
+
+    mon_out("Saving file `%s' from $%04x to $%04x\n",
+            filename, addr_location(start_addr), addr_location(end_addr));
+
 
     mon_file_close(1, device);
 }
@@ -357,7 +362,11 @@ void mon_file_verify(const char *filename, int device, MON_ADDR start_addr, bool
     }
 
     do {
-        uint8_t load_byte, mem_byte;
+        /* initialize to avoid false positive with clang static initializer
+         * about using a garbage load_byte in the if() below
+         */
+        uint8_t load_byte = 0;
+        uint8_t mem_byte;
 
         if (mon_file_read(&load_byte, 0, device) < 0) {
             break;
@@ -403,7 +412,14 @@ void mon_attach(const char *filename, int device)
 {
     switch (device) {
         case 1:
-            if (machine_class == VICE_MACHINE_C64DTV) {
+            if (machine_class == VICE_MACHINE_C64DTV || machine_class == VICE_MACHINE_SCPU64) {
+                mon_out("Unimplemented.\n");
+            } else if (tape_image_attach(device, filename)) {
+                mon_out("Failed.\n");
+            }
+            break;
+        case 2:
+            if (machine_class != VICE_MACHINE_PET) {
                 mon_out("Unimplemented.\n");
             } else if (tape_image_attach(device, filename)) {
                 mon_out("Failed.\n");
@@ -437,7 +453,14 @@ void mon_detach(int device)
 {
     switch (device) {
         case 1:
-            if (machine_class == VICE_MACHINE_C64DTV) {
+            if (machine_class == VICE_MACHINE_C64DTV || machine_class == VICE_MACHINE_SCPU64) {
+                mon_out("Unimplemented.\n");
+            } else {
+                tape_image_detach(device);
+            }
+            break;
+        case 2:
+            if (machine_class != VICE_MACHINE_PET) {
                 mon_out("Unimplemented.\n");
             } else {
                 tape_image_detach(device);

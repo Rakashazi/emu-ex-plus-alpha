@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "clkguard.h"
 #include "diskimage.h"
 #include "drive.h"
 #include "drivetypes.h"
@@ -171,16 +170,6 @@ static log_t wd1770_log = LOG_ERR;
 /*-----------------------------------------------------------------------*/
 /* WD1770 external interface.  */
 
-/* Clock overflow handling.  */
-static void clk_overflow_callback(CLOCK sub, void *data)
-{
-    wd1770_t *drv = (wd1770_t *)data;
-
-    if (drv->clk > (CLOCK) 0) {
-        drv->clk -= sub;
-    }
-}
-
 /* Functions using disk unit context.  */
 void wd1770d_init(diskunit_context_t *drv)
 {
@@ -201,9 +190,6 @@ void wd1770d_init(diskunit_context_t *drv)
      * connected. It just so happens that all drives with a wd177x have
      * this clock frequency.
      */
-
-    clk_guard_add_callback(drv->cpu->clk_guard, clk_overflow_callback,
-                           drv->wd1770);
 }
 
 void wd1770_shutdown(wd1770_t *drv)
@@ -231,7 +217,7 @@ static void wd1770_execute(wd1770_t *drv)
                     return;
                 }
                 drv->status &= ~WD_BSY;
-                drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
+                drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
                 if (fdd_index_count(drv->fdd) >= 10) {
                     drv->status &= ~WD_MO;
                 }
@@ -263,7 +249,7 @@ static void wd1770_execute(wd1770_t *drv)
                         drv->step++;
                         /* fall through */
                     case 2:
-                        drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
+                        drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
                         if (fdd_index_count(drv->fdd) < 6) {
                             return;
                         }
@@ -405,7 +391,7 @@ static void wd1770_execute(wd1770_t *drv)
                         drv->step++;
                         /* fall through */
                     case 2:
-                        drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
+                        drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
                         if (fdd_index_count(drv->fdd) < 6) {
                             return;
                         }
@@ -628,7 +614,7 @@ static void wd1770_execute(wd1770_t *drv)
                         drv->step++;
                         /* fall through */
                     case 2:
-                        drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
+                        drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
                         if (fdd_index_count(drv->fdd) < 6) {
                             return;
                         }
@@ -670,7 +656,7 @@ static void wd1770_execute(wd1770_t *drv)
                         /* fall through */
                     case 6:
                         if (fdd_index_count(drv->fdd) < 1) {
-                            drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
+                            drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
                             return;
                         }
                         if (fdd_index_count(drv->fdd) > 1) {
@@ -742,7 +728,7 @@ static void wd1770_execute(wd1770_t *drv)
                         /* fall through */
                     case 10:
                         if (fdd_index_count(drv->fdd) < 1) {
-                            drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
+                            drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
                             return;
                         }
                         if (fdd_index_count(drv->fdd) > 1) {
@@ -847,7 +833,7 @@ static void wd1770_store(wd1770_t *drv, uint16_t addr, uint8_t byte)
             }
             drv->command = wd_commands[i].command;
             drv->type = wd_commands[i].type;
-            drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
+            drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
             drv->step = 0;
             switch (drv->command) {
                 case WD_RESTORE:
@@ -1042,7 +1028,7 @@ int wd1770_snapshot_write_module(wd1770_t *drv, struct snapshot_s *s)
         || SMW_DW(m, drv->byte_count) < 0
         || SMW_DW(m, drv->tmp) < 0
         || SMW_DW(m, drv->direction) < 0
-        || SMW_DW(m, drv->clk) < 0
+        || SMW_CLOCK(m, drv->clk) < 0
         || SMW_B(m, (uint8_t)drv->irq) < 0
         || SMW_B(m, (uint8_t)drv->dden) < 0
         || SMW_B(m, (uint8_t)drv->sync) < 0
@@ -1089,7 +1075,7 @@ int wd1770_snapshot_read_module(wd1770_t *drv, struct snapshot_s *s)
         || SMR_DW_INT(m, &drv->byte_count) < 0
         || SMR_DW_INT(m, (int *)(&drv->tmp)) < 0
         || SMR_DW_INT(m, &drv->direction) < 0
-        || SMR_DW(m, &drv->clk) < 0
+        || SMR_CLOCK(m, &drv->clk) < 0
         || SMR_B_INT(m, &drv->irq) < 0
         || SMR_B_INT(m, &drv->dden) < 0
         || SMR_B_INT(m, &drv->sync) < 0

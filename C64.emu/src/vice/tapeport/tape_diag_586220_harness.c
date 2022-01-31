@@ -62,105 +62,68 @@ static int tape_diag_586220_harness_enabled = 0;
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static void tape_diag_586220_harness_set_motor(int flag);
-static void tape_diag_586220_harness_toggle_write_bit(int write_bit);
-static void tape_diag_586220_harness_set_sense_out(int sense);
-static void tape_diag_586220_harness_set_read_out(int val);
+static void tape_diag_586220_harness_set_motor(int port, int flag);
+static void tape_diag_586220_harness_toggle_write_bit(int port, int write_bit);
+static void tape_diag_586220_harness_set_sense_out(int port, int sense);
+static void tape_diag_586220_harness_set_read_out(int port, int val);
+static int tape_diag_586220_harness_enable(int port, int val);
+
+#define VICE_MACHINE_MASK (VICE_MACHINE_C64|VICE_MACHINE_C64SC)
 
 static tapeport_device_t tape_diag_586220_harness_device = {
-    TAPEPORT_DEVICE_TAPE_DIAG_586220_HARNESS,  /* device id */
     "Tape 586220 diagnostics harness module",  /* device name */
-    0,                                         /* order of the device, filled in by the tapeport system when the device is attached */
-    "TapeDiag586220Harness",                   /* resource used by the device */
+    TAPEPORT_DEVICE_TYPE_HARNESS,              /* device is a 'harness' type device */
+    VICE_MACHINE_MASK,                         /* device works on x64/x64sc machines */
+    TAPEPORT_PORT_1_MASK,                      /* device only works on port 1 */
+    tape_diag_586220_harness_enable,           /* device enable function */
+    NULL,                                      /* NO device specific hard reset function */
     NULL,                                      /* NO device shutdown function */
-    NULL,                                      /* NO device specific reset function */
     tape_diag_586220_harness_set_motor,        /* set motor line function */
     tape_diag_586220_harness_toggle_write_bit, /* set write line function */
     tape_diag_586220_harness_set_sense_out,    /* set sense line function */
     tape_diag_586220_harness_set_read_out,     /* set read line function */
-    NULL,                                      /* NO passthrough flux change function */
-    NULL,                                      /* NO passthrough sense read function */
-    NULL,                                      /* NO passthrough write line function */
-    NULL                                       /* NO passthrough motor line function */
+    NULL,                                      /* NO device snapshot write function */
+    NULL                                       /* NO device snapshot read function */
 };
-
-static tapeport_device_list_t *tape_diag_586220_harness_list_item = NULL;
 
 /* ------------------------------------------------------------------------- */
 
-static void tape_diag_586220_harness_set_motor(int flag)
+static void tape_diag_586220_harness_set_motor(int port, int flag)
 {
     c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_MOTOR, (uint8_t)flag);
 }
 
-static void tape_diag_586220_harness_toggle_write_bit(int write_bit)
+static void tape_diag_586220_harness_toggle_write_bit(int port, int write_bit)
 {
     c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_WRITE, (uint8_t)write_bit);
 }
 
-static void tape_diag_586220_harness_set_sense_out(int sense)
+static void tape_diag_586220_harness_set_sense_out(int port, int sense)
 {
     c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_SENSE, (uint8_t)sense);
 }
 
-static void tape_diag_586220_harness_set_read_out(int read)
+static void tape_diag_586220_harness_set_read_out(int port, int read)
 {
     c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_READ, (uint8_t)read);
 }
 
 /* ------------------------------------------------------------------------- */
 
-static int set_tape_diag_586220_harness_enabled(int value, void *param)
+static int tape_diag_586220_harness_enable(int port, int value)
 {
     int val = value ? 1 : 0;
 
-    if (tape_diag_586220_harness_enabled == val) {
-        return 0;
-    }
-
-    if (val) {
-        tape_diag_586220_harness_list_item = tapeport_device_register(&tape_diag_586220_harness_device);
-        if (tape_diag_586220_harness_list_item == NULL) {
-            return -1;
-        }
-    } else {
-        tapeport_device_unregister(tape_diag_586220_harness_list_item);
-        tape_diag_586220_harness_list_item = NULL;
-    }
-
     tape_diag_586220_harness_enabled = val;
+
     return 0;
 }
 
 /* ------------------------------------------------------------------------- */
 
-static const resource_int_t resources_int[] = {
-    { "TapeDiag586220Harness", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      &tape_diag_586220_harness_enabled, set_tape_diag_586220_harness_enabled, NULL },
-    RESOURCE_INT_LIST_END
-};
-
-int tape_diag_586220_harness_resources_init(void)
+int tape_diag_586220_harness_resources_init(int amount)
 {
-    return resources_register_int(resources_int);
-}
-
-/* ------------------------------------------------------------------------- */
-
-static const cmdline_option_t cmdline_options[] =
-{
-    { "-tapediag586220harness", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "TapeDiag586220Harness", (resource_value_t)1,
-      NULL, "Enable the tape part of the 586220 diagnostics harness" },
-    { "+tapediag586220harness", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "TapeDiag586220Harness", (resource_value_t)0,
-      NULL, "Disable the tape part of the 586220 diagnostics harness" },
-    CMDLINE_LIST_END
-};
-
-int tape_diag_586220_harness_cmdline_options_init(void)
-{
-    return cmdline_register_options(cmdline_options);
+    return tapeport_device_register(TAPEPORT_DEVICE_TAPE_DIAG_586220_HARNESS, &tape_diag_586220_harness_device);
 }
 
 #endif

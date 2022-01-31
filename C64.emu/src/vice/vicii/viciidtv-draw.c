@@ -1018,16 +1018,13 @@ inline static void _draw_ext_text_cached(uint8_t *p, unsigned int xs,
     msk_ptr = cache->gfx_msk + GFX_MSK_LEFTBORDER_SIZE;
 
     for (i = xs; i <= xe; i++) {
-        uint32_t *ptr;
         int d;
 
         uint8_t fcolor;
         uint8_t bcolor;
 
-        ptr = hr_table + (color_data_1[i] << 8);
         d = foreground_data[i];
 
-        ptr += color_data_2[color_data_3[i]] << 4;
         *(msk_ptr + i) = d;
 
         fcolor = vicii.dtvpalette[color_data_1[i] & cmask];

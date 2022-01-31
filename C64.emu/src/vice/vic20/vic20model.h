@@ -32,8 +32,9 @@
 #define VIC20MODEL_VIC20_PAL        0
 #define VIC20MODEL_VIC20_NTSC       1
 #define VIC20MODEL_VIC21            2 /* SuperVIC (+16K) */
+#define VIC20MODEL_VIC1001          3 /* vic-1001 (japanese VIC20) */
 
-#define VIC20MODEL_NUM 3
+#define VIC20MODEL_NUM 4
 
 #define VIC20MODEL_UNKNOWN 99
 

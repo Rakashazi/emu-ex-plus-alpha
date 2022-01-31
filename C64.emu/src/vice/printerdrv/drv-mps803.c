@@ -73,11 +73,7 @@ struct mps_s {
 };
 typedef struct mps_s mps_t;
 
-#ifdef USE_EMBEDDED
-#include "printermps803.h"
-#else
 static uint8_t charset[512][7];
-#endif
 
 static mps_t drv_mps803[NUM_OUTPUT_SELECT];
 static palette_t *palette = NULL;
@@ -398,7 +394,7 @@ static int init_charset(uint8_t chrset[512][7], const char *name)
 {
     uint8_t romimage[MPS803_ROM_SIZE];
 
-    if (sysfile_load(name, romimage, MPS803_ROM_SIZE, MPS803_ROM_SIZE) < 0) {
+    if (sysfile_load(name, "PRINTER", romimage, MPS803_ROM_SIZE, MPS803_ROM_SIZE) < 0) {
         log_error(drv803_log, "Could not load MPS-803 charset '%s'.", name);
         return -1;
     }
@@ -507,7 +503,7 @@ int drv_mps803_init(void)
         return -1;
     }
 
-    if (palette_load("mps803" FSDEV_EXT_SEP_STR "vpl", palette) < 0) {
+    if (palette_load("mps803" FSDEV_EXT_SEP_STR "vpl", "PRINTER", palette) < 0) {
         log_error(drv803_log, "Cannot load palette file `%s'.",
                   "mps803" FSDEV_EXT_SEP_STR "vpl");
         return -1;

@@ -45,28 +45,21 @@
 #   include <mach/mach_time.h>
 #endif
 
+#include <stdio.h>
+
 #ifndef MIN
 #define MIN(a, b)  (((a) < (b)) ? (a) : (b))
 #endif
 
-/* ------------------------------------------------------------------------- */
+/* #define OVERSLEEP_COMPENSATION */
 
-#ifndef WIN32_COMPILE
-#   ifdef HAVE_NANOSLEEP
-#       define TICKSPERSECOND  1000000000L  /* Nanoseconds resolution. */
-#       define TICKSPERMSEC    1000000L
-#       define TICKSPERUSEC    1000L
-#       define TICKSPERNSEC    1L
-#   else
-#       define TICKSPERSECOND  1000000L     /* Microseconds resolution. */
-#       define TICKSPERMSEC    1000L
-#       define TICKSPERUSEC    1L
-#   endif
-#endif
+/* ------------------------------------------------------------------------- */
 
 #ifdef WIN32_COMPILE
 static LARGE_INTEGER timer_frequency;
 static HANDLE wait_timer;
+#elif defined(MACOSX_SUPPORT)
+static mach_timebase_info_data_t timebase_info;
 #endif
 
 void tick_init(void)
@@ -75,112 +68,146 @@ void tick_init(void)
     QueryPerformanceFrequency(&timer_frequency);
 
     wait_timer = CreateWaitableTimer(NULL, TRUE, NULL);
+
+#elif defined(MACOSX_SUPPORT)
+    mach_timebase_info(&timebase_info);
+
 #endif
 }
 
-unsigned long tick_per_second(void)
+tick_t tick_per_second(void)
 {
-#ifdef WIN32_COMPILE
-    return timer_frequency.QuadPart;
-#else
-    return TICKSPERSECOND;
-#endif
+    return TICK_PER_SECOND;
 }
 
-/* Get time in timer units. */
-unsigned long tick_now(void)
-{
 #ifdef WIN32_COMPILE
+tick_t tick_now(void)
+{
     LARGE_INTEGER time_now;
     
     QueryPerformanceCounter(&time_now);
 
-    return time_now.QuadPart;
-
-#elif defined(HAVE_NANOSLEEP)
-#   ifdef MACOSX_SUPPORT
-        static uint64_t factor = 0;
-        uint64_t time = mach_absolute_time();
-        if (!factor) {
-            mach_timebase_info_data_t info;
-            mach_timebase_info(&info);
-            factor = info.numer / info.denom;
-        }
-        return time * factor;
-#   else
-        struct timespec now;
-#       if defined(__linux__)
-            clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-#       elif defined(__FreeBSD__)
-            clock_gettime(CLOCK_MONOTONIC_PRECISE, &now);
-#       else
-            clock_gettime(CLOCK_MONOTONIC, &now);
-#       endif
-        return (TICKSPERSECOND * now.tv_sec) + (TICKSPERNSEC * now.tv_nsec);
-#   endif
-#else
-    /* this is really really bad, we should never use the wallclock
-       see: https://blog.habets.se/2010/09/gettimeofday-should-never-be-used-to-measure-time.html */
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    return (TICKSPERSECOND * now.tv_sec) + (TICKSPERUSEC * now.tv_usec);
-#endif
+    return (tick_t)(time_now.QuadPart / ((double)timer_frequency.QuadPart / TICK_PER_SECOND));
 }
 
-#if 0
-/* Sleep a number of timer units. */
-void tick_sleep(unsigned long ticks)
+#elif defined(MACOSX_SUPPORT)
+tick_t tick_now(void)
 {
-    /* do this asap. */
-    unsigned long before_yield_tick = tick_now();
+    return NANO_TO_TICK(mach_absolute_time() * timebase_info.numer / timebase_info.denom);
+}
+
+#else
+tick_t tick_now(void)
+{
+    struct timespec now;
     
-    unsigned long target_tick = before_yield_tick + ticks;
-    unsigned long after_yield_tick;
-    unsigned long adjusted_tick;
+#if defined(__linux__)
+    clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+#elif defined(__FreeBSD__)
+    clock_gettime(CLOCK_MONOTONIC_PRECISE, &now);
+#else
+    clock_gettime(CLOCK_MONOTONIC, &now);
+#endif
 
-    /* Since we're about to sleep, give another thread a go of the lock */
-    mainlock_yield_once();
+    return NANO_TO_TICK(((uint64_t)NANO_PER_SECOND * now.tv_sec) + now.tv_nsec);
+}
+#endif
 
-    after_yield_tick = tick_after(before_yield_tick);
-
-    /* Adjust ticks to account for the yield time */
-    adjusted_tick = target_tick - after_yield_tick;
-
-    /* Since we yielded the lock to the UI, maybe for a while, Check if we still need to sleep */
-    if (adjusted_tick > ticks) {
-        return;
-    }
-    
 #ifdef WIN32_COMPILE
+static inline void sleep_impl(tick_t sleep_ticks)
+{
     LARGE_INTEGER timeout;
 
-    timeout.QuadPart = 0LL - adjusted_tick;
+    timeout.QuadPart = 0LL - ((NANO_PER_SECOND / 100) * ((double)sleep_ticks / TICK_PER_SECOND));
 
     SetWaitableTimer(wait_timer, &timeout, 0, NULL, NULL, 0);
     WaitForSingleObject(wait_timer, INFINITE);
+}
 
 #elif defined(HAVE_NANOSLEEP)
+static inline void sleep_impl(tick_t sleep_ticks)
+{
     struct timespec ts;
+    uint64_t nanos = TICK_TO_NANO(sleep_ticks);
 
-    if (ticks < TICKSPERSECOND) {
+    if (nanos < NANO_PER_SECOND) {
         ts.tv_sec = 0;
-        ts.tv_nsec = ticks;
+        ts.tv_nsec = nanos;
     } else {
-        ts.tv_sec = ticks / TICKSPERSECOND;
-        ts.tv_nsec = ticks % TICKSPERSECOND;
+        ts.tv_sec = nanos / NANO_PER_SECOND;
+        ts.tv_nsec = nanos % NANO_PER_SECOND;
     }
 
     nanosleep(&ts, NULL);
+}
 
 #else
-    if (usleep(ticks) == -EINVAL) {
-        usleep(999999);
+static inline void sleep_impl(tick_t sleep_ticks)
+{
+    if (usleep(TICK_TO_MICRO(sleep_ticks)) == -EINVAL) {
+        usleep(MICRO_PER_SECOND - 1);
     }
+}
+#endif
+
+#if 0
+/* Sleep a number of timer units. */
+void tick_sleep(tick_t sleep_ticks)
+{
+#ifdef OVERSLEEP_COMPENSATION
+#   define OVERSLEEP_PUSH_FACTOR (0.99)
+    
+    tick_t before_yield_tick = tick_now(); /* do this asap. */
+    tick_t adjusted_sleep_ticks;
+    
+    static double rolling_oversleep_ticks;
+    tick_t slept_ticks;
+    tick_t oversleep_ticks;
+
+    /*
+     * Oversleep compensation. Systems will typically sleep for longer than
+     * requested. This code measures a rolling average amount of oversleep
+     * and uses it to request a shorter sleep, followed by a hotloop up to
+     * the originally requested time. This yields more accurate timing at
+     * a small cost to CPU usage.
+     * 
+     * Disabled by default for now.
+     */
+
+    /* Push the oversleep compensation towards zero */
+    rolling_oversleep_ticks *= OVERSLEEP_PUSH_FACTOR;
+
+    /* Sleep, if we're not expecting to oversleep by more than the requested amount */
+    if (sleep_ticks > rolling_oversleep_ticks) {
+        adjusted_sleep_ticks = sleep_ticks - rolling_oversleep_ticks;
+
+        mainlock_yield_begin();
+        sleep_impl(adjusted_sleep_ticks);
+        mainlock_yield_end();
+
+        slept_ticks = tick_now_delta(before_yield_tick);
+        if (slept_ticks > adjusted_sleep_ticks) {
+            /* Then we overslept */
+            oversleep_ticks = slept_ticks - adjusted_sleep_ticks;
+            rolling_oversleep_ticks += (double)oversleep_ticks * (1.0 - OVERSLEEP_PUSH_FACTOR);
+        }
+    }
+
+    while (tick_now_delta(before_yield_tick) < sleep_ticks) {
+        /* hot loop to catch up */
+    }
+    
+#else /*#ifdef OVERSLEEP_COMPENSATION */
+    
+    mainlock_yield_begin();
+    sleep_impl(sleep_ticks);
+    mainlock_yield_end();
+    
 #endif
 }
 #endif
 
-unsigned long tick_after(unsigned long previous_tick)
+tick_t tick_now_after(tick_t previous_tick)
 {
     /*
      * Fark, high performance counters, called from different threads / cpus, can be off by 1 tick.
@@ -195,7 +222,7 @@ unsigned long tick_after(unsigned long previous_tick)
      * https://docs.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps#guidance-for-acquiring-time-stamps
      */
 
-    unsigned long after = tick_now();
+    tick_t after = tick_now();
 
     if (after == previous_tick - 1) {
         after = previous_tick;
@@ -204,7 +231,7 @@ unsigned long tick_after(unsigned long previous_tick)
     return after;
 }
 
-unsigned long tick_delta(unsigned long previous_tick)
+tick_t tick_now_delta(tick_t previous_tick)
 {
-    return tick_after(previous_tick) - previous_tick;
+    return tick_now_after(previous_tick) - previous_tick;
 }

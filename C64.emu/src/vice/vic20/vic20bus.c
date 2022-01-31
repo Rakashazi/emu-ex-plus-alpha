@@ -56,10 +56,10 @@ unsigned int machine_bus_device_type_get(unsigned int unit)
     return serial_device_type_get(unit);
 }
 
-void machine_bus_status_truedrive_set(unsigned int enable)
+void machine_bus_status_truedrive_set(unsigned int unit, unsigned int enable)
 {
-    iecbus_status_set(IECBUS_STATUS_TRUEDRIVE, 0, enable);
-    serial_trap_truedrive_set(enable);
+    iecbus_status_set(IECBUS_STATUS_TRUEDRIVE, unit, enable);
+    serial_trap_truedrive_set(unit, enable);
 }
 
 void machine_bus_status_drivetype_set(unsigned int unit, unsigned int enable)
@@ -67,10 +67,10 @@ void machine_bus_status_drivetype_set(unsigned int unit, unsigned int enable)
     iecbus_status_set(IECBUS_STATUS_DRIVETYPE, unit, enable);
 }
 
-void machine_bus_status_virtualdevices_set(unsigned int enable)
+void machine_bus_status_virtualdevices_set(unsigned int unit, unsigned int enable)
 {
-    iecbus_status_set(IECBUS_STATUS_VIRTUALDEVICES, 0, enable);
-    parallel_bus_enable(enable);
+    iecbus_status_set(IECBUS_STATUS_VIRTUALDEVICES, unit, enable); /* IEC */
+    parallel_bus_enable(unit, enable); /* IEEE488 */
 }
 
 void machine_bus_eof_callback_set(void (*func)(void))

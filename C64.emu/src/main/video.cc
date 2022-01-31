@@ -44,7 +44,8 @@ using namespace EmuEx;
 
 void setCanvasSkipFrame(bool on)
 {
-	activeCanvas->skipFrame = on;
+	if(activeCanvas)
+		activeCanvas->skipFrame = on;
 }
 
 void startCanvasRunningFrame()
@@ -52,8 +53,8 @@ void startCanvasRunningFrame()
 	runningFrame = true;
 }
 
-CLINK LVISIBLE int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped);
-int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped)
+CLINK LVISIBLE void vsync_do_vsync2(struct video_canvas_s *c);
+void vsync_do_vsync2(struct video_canvas_s *c)
 {
 	if(runningFrame) [[likely]]
 	{
@@ -66,7 +67,6 @@ int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped)
 	{
 		logMsg("spurious vsync_do_vsync()");
 	}
-	return c->skipFrame;
 }
 
 void vsyncarch_refresh_frequency_changed(double rate)
@@ -105,16 +105,18 @@ void video_arch_canvas_init(struct video_canvas_s *c)
 {
 	logMsg("init canvas:%p with size %d,%d", c, c->draw_buffer->canvas_width, c->draw_buffer->canvas_height);
 	c->video_draw_buffer_callback = nullptr;
-	activeCanvas = c;
+	if(!activeCanvas)
+		activeCanvas = c;
 }
 
 int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 {
 	IG::PixelFormat fmt{(IG::PixelFormatID)c->pixelFormat};
 	const auto pDesc = pixelDesc(fmt);
+	auto colorTables = &c->videoconfig->color_tables;
 	iterateTimes(256, i)
 	{
-		plugin.video_render_setrawrgb(i, pDesc.build(i/255., 0., 0., 0.), pDesc.build(0., i/255., 0., 0.), pDesc.build(0., 0., i/255., 0.));
+		plugin.video_render_setrawrgb(colorTables, i, pDesc.build(i/255., 0., 0., 0.), pDesc.build(0., i/255., 0., 0.), pDesc.build(0., 0., i/255., 0.));
 	}
 	plugin.video_render_initraw(c->videoconfig);
 
@@ -145,11 +147,13 @@ void video_canvas_refresh(struct video_canvas_s *c, unsigned int xs, unsigned in
 	w = std::min(w, pixView.w());
 	h = std::min(h, pixView.h());
 
-	plugin.video_canvas_render(c, (uint8_t*)pixView.data(), w, h, xs, ys, xi, yi, pixView.pitchBytes(), c->bpp);
+	plugin.video_canvas_render(c, (uint8_t*)pixView.data(), w, h, xs, ys, xi, yi, pixView.pitchBytes());
 }
 
 void resetCanvasSourcePixmap(struct video_canvas_s *c)
 {
+	if(activeCanvas != c)
+		return;
 	unsigned canvasW = c->w;
 	unsigned canvasH = c->h;
 	if(optionCropNormalBorders && (canvasH == 247 || canvasH == 272))
@@ -241,4 +245,6 @@ void video_canvas_destroy(struct video_canvas_s *c)
 	c->created = false;
 	delete[] c->pixmapData;
 	c->pixmapData = {};
+	if(c == activeCanvas)
+		activeCanvas = {};
 }

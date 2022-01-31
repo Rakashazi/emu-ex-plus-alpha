@@ -38,6 +38,7 @@
 #include "mem.h"
 #include "snapshot.h"
 #include "types.h"
+#include "raster-snapshot.h"
 #include "vicii-draw-cycle.h"
 #include "vicii-resources.h"
 #include "vicii-snapshot.h"
@@ -60,9 +61,9 @@ void vicii_snapshot_prepare(void)
 
 */
 
-static char snap_module_name[] = "VIC-II";
+static const char snap_module_name[] = "VIC-II";
 #define SNAP_MAJOR 1
-#define SNAP_MINOR 1
+#define SNAP_MINOR 3
 
 int vicii_snapshot_write_module(snapshot_t *s)
 {
@@ -111,7 +112,7 @@ int vicii_snapshot_write_module(snapshot_t *s)
         || SMW_DW(m, (uint32_t)vicii.light_pen.x) < 0
         || SMW_DW(m, (uint32_t)vicii.light_pen.y) < 0
         || SMW_DW(m, (uint32_t)vicii.light_pen.x_extra_bits) < 0
-        || SMW_DW(m, (uint32_t)vicii.light_pen.trigger_cycle) < 0
+        || SMW_CLOCK(m, vicii.light_pen.trigger_cycle) < 0
         /* vbank_phi[12] updated from elsewhere */
         /* log is initialized at startup */
         || SMW_B(m, vicii.reg11_delay) < 0
@@ -149,6 +150,10 @@ int vicii_snapshot_write_module(snapshot_t *s)
         goto fail;
     }
 
+    if (raster_snapshot_write(m, &vicii.raster)) {
+        goto fail;
+    }
+
     return snapshot_module_close(m);
 
 fail:
@@ -176,6 +181,7 @@ int vicii_snapshot_read_module(snapshot_t *s)
                   "Snapshot module version (%d.%d) newer than %d.%d.",
                   major_version, minor_version,
                   SNAP_MAJOR, SNAP_MINOR);
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
@@ -189,6 +195,7 @@ int vicii_snapshot_read_module(snapshot_t *s)
         log_error(vicii.log,
                   "Snapshot was made with model %i while the current model is %i.",
                   i, vicii_resources.model);
+        snapshot_set_error(SNAPSHOT_VICII_MODEL_MISMATCH);
         goto fail;
     }
 
@@ -224,7 +231,7 @@ int vicii_snapshot_read_module(snapshot_t *s)
         || SMR_DW_INT(m, &vicii.light_pen.x) < 0
         || SMR_DW_INT(m, &vicii.light_pen.y) < 0
         || SMR_DW_INT(m, &vicii.light_pen.x_extra_bits) < 0
-        || SMR_DW(m, &vicii.light_pen.trigger_cycle) < 0
+        || SMR_CLOCK(m, &vicii.light_pen.trigger_cycle) < 0
         /* vbank_phi[12] updated from elsewhere */
         /* log is initialized at startup */
         || SMR_B(m, &vicii.reg11_delay) < 0
@@ -274,6 +281,10 @@ int vicii_snapshot_read_module(snapshot_t *s)
     }
     if (vicii.irq_status & 0x80) {
         interrupt_restore_irq(maincpu_int_status, vicii.int_num, 1);
+    }
+
+    if (raster_snapshot_read(m, &vicii.raster)) {
+        goto fail;
     }
 
     raster_force_repaint(&vicii.raster);

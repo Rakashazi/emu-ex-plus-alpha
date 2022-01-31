@@ -97,9 +97,9 @@ struct ViciiCycle {
 #define UpdateRc        0x400
 
 struct ViciiChipModel {
-    char *name;
+    const char *name;
     int cycles_per_line;
-    struct ViciiCycle *cycle_tab;
+    const struct ViciiCycle *cycle_tab;
     int num_raster_lines;
     int color_latency;
     int lightpen_old_irq_mode;
@@ -108,7 +108,7 @@ struct ViciiChipModel {
 
 
 /* PAL */
-static struct ViciiCycle cycle_tab_pal[] = {
+static const struct ViciiCycle cycle_tab_pal[] = {
     { Phi1(1),  0x194, None,    SprPtr(3),  BaSpr2(3, 4),    None                 },
     { Phi2(1),  0x198, None,    SprDma0(3), BaSpr2(3, 4),    None                 },
     { Phi1(2),  0x19c, None,    SprDma1(3), BaSpr3(3, 4, 5), None                 },
@@ -237,7 +237,7 @@ static struct ViciiCycle cycle_tab_pal[] = {
     { Phi2(63), 0x190, None,    SprDma2(2), BaSpr3(2, 3, 4), None                 }
 };
 
-struct ViciiChipModel chip_model_mos6569r1 = {
+static const struct ViciiChipModel chip_model_mos6569r1 = {
     "MOS6569R1",     /* name */
     63,              /* cycles per line */
     cycle_tab_pal,   /* cycle table */
@@ -247,7 +247,7 @@ struct ViciiChipModel chip_model_mos6569r1 = {
     0                /* new luminances */
 };
 
-struct ViciiChipModel chip_model_mos6569r3 = {
+static const struct ViciiChipModel chip_model_mos6569r3 = {
     "MOS6569R3",     /* name */
     63,              /* cycles per line */
     cycle_tab_pal,   /* cycle table */
@@ -257,7 +257,7 @@ struct ViciiChipModel chip_model_mos6569r3 = {
     1                /* new luminances */
 };
 
-struct ViciiChipModel chip_model_mos8565 = {
+static const struct ViciiChipModel chip_model_mos8565 = {
     "MOS8565",       /* name */
     63,              /* cycles per line */
     cycle_tab_pal,   /* cycle table */
@@ -269,7 +269,7 @@ struct ViciiChipModel chip_model_mos8565 = {
 
 
 /* NTSC (and PAL-N) */
-static struct ViciiCycle cycle_tab_ntsc[] = {
+static const struct ViciiCycle cycle_tab_ntsc[] = {
     { Phi1(1),  0x19c, None,    SprDma1(3), BaSpr3(3, 4, 5), None                 },
     { Phi2(1),  0x1a0, None,    SprDma2(3), BaSpr3(3, 4, 5), None                 },
     { Phi1(2),  0x1a4, None,    SprPtr(4),  BaSpr2(4, 5),    None                 },
@@ -402,7 +402,7 @@ static struct ViciiCycle cycle_tab_ntsc[] = {
     { Phi2(65), 0x198, None,    SprDma0(3), BaSpr2(3, 4),    None                 }
 };
 
-struct ViciiChipModel chip_model_mos6567r8 = {
+static const struct ViciiChipModel chip_model_mos6567r8 = {
     "MOS6567R8",     /* name */
     65,              /* cycles per line */
     cycle_tab_ntsc,  /* cycle table */
@@ -412,7 +412,7 @@ struct ViciiChipModel chip_model_mos6567r8 = {
     1                /* new luminances */
 };
 
-struct ViciiChipModel chip_model_mos8562 = {
+static const struct ViciiChipModel chip_model_mos8562 = {
     "MOS8562",       /* name */
     65,              /* cycles per line */
     cycle_tab_ntsc,  /* cycle table */
@@ -422,7 +422,7 @@ struct ViciiChipModel chip_model_mos8562 = {
     1                /* new luminances */
 };
 
-struct ViciiChipModel chip_model_mos6572 = {
+static const struct ViciiChipModel chip_model_mos6572 = {
     "MOS6572",       /* name */
     65,              /* cycles per line */
     cycle_tab_ntsc,  /* cycle table */
@@ -434,7 +434,7 @@ struct ViciiChipModel chip_model_mos6572 = {
 
 
 /* Old NTSC */
-static struct ViciiCycle cycle_tab_ntsc_old[] = {
+static const struct ViciiCycle cycle_tab_ntsc_old[] = {
     { Phi1(1),  0x19c, None,    SprPtr(3),  BaSpr2(3, 4),    None                 },
     { Phi2(1),  0x1a0, None,    SprDma0(3), BaSpr2(3, 4),    None                 },
     { Phi1(2),  0x1a4, None,    SprDma1(3), BaSpr3(3, 4, 5), None                 },
@@ -565,7 +565,7 @@ static struct ViciiCycle cycle_tab_ntsc_old[] = {
     { Phi2(64), 0x198, None,    SprDma2(2), BaSpr3(2, 3, 4), None                 }
 };
 
-struct ViciiChipModel chip_model_mos6567r56a = {
+static const struct ViciiChipModel chip_model_mos6567r56a = {
     "MOS6567R56A",   /* name */
     64,              /* cycles per line */
     cycle_tab_ntsc_old, /* cycle table */
@@ -576,7 +576,7 @@ struct ViciiChipModel chip_model_mos6567r56a = {
 };
 
 
-static void vicii_chip_model_set(struct ViciiChipModel *cm)
+static void vicii_chip_model_set(const struct ViciiChipModel *cm)
 {
     int i;
     int xpos_phi[2];
@@ -584,7 +584,7 @@ static void vicii_chip_model_set(struct ViciiChipModel *cm)
     int ba_phi[2];
     int flags_phi[2];
 
-    struct ViciiCycle *ct = cm->cycle_tab;
+    const struct ViciiCycle *ct = cm->cycle_tab;
 
     vicii.cycles_per_line = cm->cycles_per_line;
     vicii.screen_height = cm->num_raster_lines;
@@ -716,7 +716,7 @@ static void vicii_chip_model_set(struct ViciiChipModel *cm)
             }
 
             /* dump to log */
-            log_verbose("VIC-II: %s $%03x %s %s %s %s %s %s", 
+            log_verbose("VIC-II: %s $%03x %s %s %s %s %s %s",
                         cycle_str, (unsigned int)xpos, visible_str, ba_str,
                         fetch_str, border_str, gfx_str, sprite_str);
         }

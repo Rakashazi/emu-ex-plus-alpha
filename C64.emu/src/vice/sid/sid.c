@@ -556,7 +556,7 @@ void sid_sound_machine_reset(sound_t *psid, CLOCK cpu_clk)
     sid_engine.reset(psid, cpu_clk);
 }
 
-int sid_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, int *delta_t)
+int sid_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
 {
     int i;
     int16_t *tmp_buf1;
@@ -567,7 +567,7 @@ int sid_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, i
     int16_t *tmp_buf6;
     int16_t *tmp_buf7;
     int tmp_nr = 0;
-    int tmp_delta_t = *delta_t;
+    CLOCK tmp_delta_t = *delta_t;
 
     if (soc == 1 && scc == 1) {
         return sid_engine.calculate_samples(psid[0], pbuf, nr, 1, delta_t);
@@ -846,11 +846,6 @@ int sid_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, i
         }
     }
     return tmp_nr;
-}
-
-void sid_sound_machine_prevent_clk_overflow(sound_t *psid, CLOCK sub)
-{
-    sid_engine.prevent_clk_overflow(psid, sub);
 }
 
 char *sid_sound_machine_dump_state(sound_t *psid)

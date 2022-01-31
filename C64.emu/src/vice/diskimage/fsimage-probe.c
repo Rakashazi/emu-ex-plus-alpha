@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "crt.h"
 #include "diskconstants.h"
 #include "diskimage.h"
 #include "gcr.h"
@@ -672,17 +673,17 @@ static int disk_image_check_for_d4m(disk_image_t *image)
 
 static int disk_image_check_for_dhd(disk_image_t *image)
 {
-    unsigned int blk = 0;
+    off_t blk = 0;
     uint8_t sector[512];
     fsimage_t *fsimage;
-    uint32_t pos;
+    off_t pos;
     unsigned char hdmagic[16] = {0x43, 0x4d, 0x44, 0x20, 0x48, 0x44, 0x20, 0x20,
         0x8d, 0x03, 0x88, 0x8e, 0x02, 0x88, 0xea, 0x60};
 
     fsimage = image->media.fsimage;
     image->tracks = 65535;
 
-    blk = (unsigned int)util_file_length(fsimage->fd);
+    blk = util_file_length(fsimage->fd);
 
     /* only allow blank images to be attached if the CMDHD rom is loaded */
     if (blk == 0) {
@@ -695,11 +696,23 @@ static int disk_image_check_for_dhd(disk_image_t *image)
         return 0;
     }
 
-    /* next make sure the file is a multiple of 512 bytes and greater than
+    /* next make sure the file is a multiple of 256 bytes and greater than
        equal 73728 bytes (which is the smallest possible running DHD image */
-    if ((blk % 512 != 0) || ( blk < 73728 )) {
+    /* we used to look for multiples of 512 bytes, but writes of 256 bytes
+       to expanding images in vdrive might make this fail. */
+    /* FIXME: perhaps this can be made more strict to prevent false positives? */
+    if ((blk % 256 != 0) || ( blk < 73728 )) {
         return 0;
     }
+
+    /* since the size check(s) are weak, check CRT header to prevent CRT files
+       being detected as DHD images (bug #1489). having a crt header at the start
+       of a DHD container seems unlikely enough for this to work fine. */
+    if (crt_getid(image->media.fsimage->name) >= 0) {
+        log_error(disk_image_probe_log, "trying to attach a CRT file as DHD image, aborting.");
+        return 0;
+    }
+    /* FIXME: perhaps other headers (g64, t64, p64...) need to be checked here */
 
     /* if the CMDHD rom is loaded, allow it regardless */
     if (!machine_drive_rom_check_loaded(DISK_IMAGE_TYPE_DHD)) {
@@ -714,7 +727,7 @@ static int disk_image_check_for_dhd(disk_image_t *image)
     pos = 1024;
 
     while ( pos < blk ) {
-        if (fseek(fsimage->fd, pos, SEEK_SET)) {
+        if (fseeko(fsimage->fd, pos, SEEK_SET)) {
             /* hit the end of file */
             break;
         }
@@ -745,13 +758,13 @@ good:
 
 static int disk_image_check_for_d90(disk_image_t *image)
 {
-    unsigned int blk = 0;
+    off_t blk = 0;
     fsimage_t *fsimage;
 
     fsimage = image->media.fsimage;
 
     /* get file size */
-    blk = (unsigned int)util_file_length(fsimage->fd);
+    blk = util_file_length(fsimage->fd);
 
     /* only allow true D9090/D9060 image sizes right now */
     if (blk == D9060_FILE_SIZE) {

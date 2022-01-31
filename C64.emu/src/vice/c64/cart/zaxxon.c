@@ -76,14 +76,14 @@ int zaxxon_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 
 void zaxxon_config_init(void)
 {
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
 }
 
 void zaxxon_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     memcpy(romh_banks, &rawcart[0x2000], 0x4000);
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
 }
 
 static int zaxxon_common_attach(void)

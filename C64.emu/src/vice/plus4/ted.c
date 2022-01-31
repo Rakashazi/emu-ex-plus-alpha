@@ -35,7 +35,6 @@
 #include "videoarch.h"
 
 #include "alarm.h"
-#include "clkguard.h"
 #include "dma.h"
 #include "lib.h"
 #include "log.h"
@@ -78,15 +77,6 @@ CLOCK first_write_cycle;
 
 static void ted_set_geometry(void);
 
-
-static void clk_overflow_callback(CLOCK sub, void *unused_data)
-{
-    ted.raster_irq_clk -= sub;
-    ted.last_emulate_line_clk -= sub;
-    ted.fetch_clk -= sub;
-    ted.draw_clk -= sub;
-    old_maincpu_clk -= sub;
-}
 
 void ted_change_timing(machine_timing_t *machine_timing, int bordermode)
 {
@@ -181,7 +171,7 @@ fastloop:
     return;
 }
 
-inline void ted_handle_pending_alarms(int num_write_cycles)
+inline void ted_handle_pending_alarms(CLOCK num_write_cycles)
 {
     if (num_write_cycles != 0) {
         int f;
@@ -382,8 +372,6 @@ raster_t *ted_init(void)
 
     ted.initialized = 1;
 
-    clk_guard_add_callback(maincpu_clk_guard, clk_overflow_callback, NULL);
-
     return &ted.raster;
 }
 
@@ -550,7 +538,7 @@ void ted_update_memory_ptrs(unsigned int cycle)
         }
     }
 
-    if (ted.raster.skip_frame || (tmp <= 0 && maincpu_clk < ted.draw_clk)) {
+    if (tmp <= 0 && maincpu_clk < ted.draw_clk) {
         old_screen_ptr = ted.screen_ptr = screen_base;
         old_bitmap_ptr = ted.bitmap_ptr = bitmap_base;
         old_chargen_ptr = ted.chargen_ptr = char_base;
@@ -781,9 +769,8 @@ void ted_raster_draw_alarm_handler(CLOCK offset, void *data)
 
         /*log_debug("Vsync %d %d",ted.tv_current_line, ted.ted_raster_counter);*/
 
-        raster_skip_frame(&ted.raster,
-                          vsync_do_vsync(ted.raster.canvas,
-                                         ted.raster.skip_frame));
+        vsync_do_vsync(ted.raster.canvas);
+                      
         ted.tv_current_line = 0;
 
         /* FIXME increment at appropriate cycle */

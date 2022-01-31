@@ -30,7 +30,6 @@
 #include <stdio.h>
 
 #include "alarm.h"
-#include "clkguard.h"
 #include "lib.h"
 #include "log.h"
 #include "riot.h"
@@ -79,7 +78,7 @@ void riotcore_signal(riot_context_t *riot_context, int sig, int type)
 
 static void update_timer(riot_context_t *riot_context)
 {
-    int underfl = (*(riot_context->clk_ptr) - riot_context->r_write_clk)
+    CLOCK underfl = (*(riot_context->clk_ptr) - riot_context->r_write_clk)
                   / riot_context->r_divider;
 
     if (underfl > riot_context->r_N) {
@@ -90,27 +89,6 @@ static void update_timer(riot_context_t *riot_context)
     }
     riot_context->r_write_clk += (*(riot_context->clk_ptr)
                                   - riot_context->r_write_clk) & 0xff00;
-}
-
-static void riotcore_clk_overflow_callback(CLOCK sub, void *data)
-{
-    riot_context_t *riot_context;
-
-    riot_context = (riot_context_t *)data;
-
-    if (riot_context->enabled == 0) {
-        return;
-    }
-
-    update_timer(riot_context);
-
-    riot_context->r_write_clk -= sub;
-
-    if (riot_context->read_clk > sub) {
-        riot_context->read_clk -= sub;
-    } else {
-        riot_context->read_clk = 0;
-    }
 }
 
 void riotcore_disable(riot_context_t *riot_context)
@@ -381,7 +359,7 @@ void riotcore_setup_context(riot_context_t *riot_context)
 }
 
 void riotcore_init(riot_context_t *riot_context,
-                   alarm_context_t *alarm_context, clk_guard_t *clk_guard,
+                   alarm_context_t *alarm_context,
                    unsigned int number)
 {
     char *buffer;
@@ -392,9 +370,6 @@ void riotcore_init(riot_context_t *riot_context,
     riot_context->alarm = alarm_new(alarm_context, buffer, riotcore_int_riot,
                                     riot_context);
     lib_free(buffer);
-
-    clk_guard_add_callback(clk_guard, riotcore_clk_overflow_callback,
-                           riot_context);
 }
 
 void riotcore_shutdown(riot_context_t *riot_context)

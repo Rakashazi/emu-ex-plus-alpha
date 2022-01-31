@@ -29,8 +29,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "cartridge.h"
 #include "log.h"
 #include "mem.h"
+#include "plus4cart.h"
 #include "plus4mem.h"
 #include "plus4memrom.h"
 #include "plus4memsnapshot.h"
@@ -71,10 +73,10 @@ static int plus4_snapshot_write_rom_module(snapshot_t *s)
     if (SMW_BA(m, plus4memrom_kernal_rom, PLUS4_KERNAL_ROM_SIZE) < 0
         || SMW_BA(m, plus4memrom_basic_rom, PLUS4_BASIC_ROM_SIZE) < 0
         || SMW_BA(m, extromlo1, PLUS4_BASIC_ROM_SIZE) < 0
-        || SMW_BA(m, extromlo2, PLUS4_BASIC_ROM_SIZE) < 0
+        /*|| SMW_BA(m, extromlo2, PLUS4_BASIC_ROM_SIZE) < 0*/
         || SMW_BA(m, extromlo3, PLUS4_BASIC_ROM_SIZE) < 0
         || SMW_BA(m, extromhi1, PLUS4_KERNAL_ROM_SIZE) < 0
-        || SMW_BA(m, extromhi2, PLUS4_KERNAL_ROM_SIZE) < 0
+        /*|| SMW_BA(m, extromhi2, PLUS4_KERNAL_ROM_SIZE) < 0*/
         || SMW_BA(m, extromhi3, PLUS4_KERNAL_ROM_SIZE) < 0
         ) {
         goto fail;
@@ -96,11 +98,38 @@ fail2:
     return -1;
 }
 
+#define NUM_TRAP_DEVICES 9  /* FIXME: is there a better constant ? */
+static int trapfl[NUM_TRAP_DEVICES];
+static int trapdevices[NUM_TRAP_DEVICES + 1] = { 1, 4, 5, 6, 7, 8, 9, 10, 11, -1 };
+
+static void get_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_get_int_sprintf("VirtualDevice%d", &trapfl[i], trapdevices[i]);
+    }
+}
+
+static void clear_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_set_int_sprintf("VirtualDevice%d", 0, trapdevices[i]);
+    }
+}
+
+static void restore_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_set_int_sprintf("VirtualDevice%d", trapfl[i], trapdevices[i]);
+    }
+}
+
 static int plus4_snapshot_read_rom_module(snapshot_t *s)
 {
     uint8_t major_version, minor_version;
     snapshot_module_t *m;
-    int trapfl;
 
     /* Main memory module.  */
 
@@ -118,16 +147,16 @@ static int plus4_snapshot_read_rom_module(snapshot_t *s)
     }
 
     /* disable traps before loading the ROM */
-    resources_get_int("VirtualDevices", &trapfl);
-    resources_set_int("VirtualDevices", 0);
+    get_trapflags();
+    clear_trapflags();
 
     if (SMR_BA(m, plus4memrom_kernal_rom, PLUS4_KERNAL_ROM_SIZE) < 0
         || SMR_BA(m, plus4memrom_basic_rom, PLUS4_BASIC_ROM_SIZE) < 0
         || SMR_BA(m, extromlo1, PLUS4_BASIC_ROM_SIZE) < 0
-        || SMR_BA(m, extromlo2, PLUS4_BASIC_ROM_SIZE) < 0
+        /*|| SMR_BA(m, extromlo2, PLUS4_BASIC_ROM_SIZE) < 0*/
         || SMR_BA(m, extromlo3, PLUS4_BASIC_ROM_SIZE) < 0
         || SMR_BA(m, extromhi1, PLUS4_KERNAL_ROM_SIZE) < 0
-        || SMR_BA(m, extromhi2, PLUS4_KERNAL_ROM_SIZE) < 0
+        /*|| SMR_BA(m, extromhi2, PLUS4_KERNAL_ROM_SIZE) < 0*/
         || SMR_BA(m, extromhi3, PLUS4_KERNAL_ROM_SIZE) < 0
         ) {
         goto fail;
@@ -140,7 +169,7 @@ static int plus4_snapshot_read_rom_module(snapshot_t *s)
     memcpy(plus4memrom_kernal_trap_rom, plus4memrom_kernal_rom, PLUS4_KERNAL_ROM_SIZE);
 
     /* enable traps again when necessary */
-    resources_set_int("VirtualDevices", trapfl);
+    restore_trapflags();
     DBG(("rom snapshots loaded.\n"));
     return 0;
 
@@ -148,7 +177,7 @@ fail:
     if (m != NULL) {
         snapshot_module_close(m);
     }
-    resources_set_int("VirtualDevices", trapfl);
+    restore_trapflags();
     DBG(("error loading rom snapshots.\n"));
     return -1;
 }
@@ -184,11 +213,9 @@ int plus4_snapshot_write_module(snapshot_t *s, int save_roms)
     if (save_roms && plus4_snapshot_write_rom_module(s) < 0) {
         goto fail;
     }
-#if 0
     if (cartridge_snapshot_write_modules(s) < 0) {
         goto fail;
     }
-#endif
     return 0;
 
 fail:
@@ -239,11 +266,9 @@ int plus4_snapshot_read_module(snapshot_t *s)
     if (plus4_snapshot_read_rom_module(s) < 0) {
         goto fail;
     }
-#if 0
     if (cartridge_snapshot_read_modules(s) < 0) {
         goto fail;
     }
-#endif
     return 0;
 
 fail:

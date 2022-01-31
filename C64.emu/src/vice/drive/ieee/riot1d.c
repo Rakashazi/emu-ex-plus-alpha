@@ -119,7 +119,7 @@ static uint8_t read_prb(riot_context_t *riot_context)
 void riot1_init(diskunit_context_t *ctxptr)
 {
     riotcore_init(ctxptr->riot1, ctxptr->cpu->alarm_context,
-                  ctxptr->cpu->clk_guard, ctxptr->mynumber);
+                  ctxptr->mynumber);
 }
 
 void riot1_setup_context(diskunit_context_t *ctxptr)

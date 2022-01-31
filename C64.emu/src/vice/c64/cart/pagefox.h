@@ -36,6 +36,7 @@ extern void pagefox_config_setup(uint8_t *rawcart);
 extern int pagefox_bin_attach(const char *filename, uint8_t *rawcart);
 extern int pagefox_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void pagefox_detach(void);
+extern void pagefox_powerup(void);
 
 extern uint8_t pagefox_roml_read(uint16_t addr);
 extern void pagefox_roml_store(uint16_t addr, uint8_t value);

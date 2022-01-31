@@ -392,13 +392,13 @@ void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, unsigned em
 			else
 			{
 				auto &joystick_value = *plugin.joystick_value;
-				auto player = (emuKey & IG::bit(5)) ? 2 : 1;
+				auto player = (emuKey & IG::bit(5)) ? 1 : 0;
 				if(optionSwapJoystickPorts == JoystickMode::SWAPPED)
 				{
-					player = (player == 1) ? 2 : 1;
+					player = (player == 1) ? 0 : 1;
 				}
 				//logMsg("js %X p %d", key, player);
-				joystick_value[player] = IG::setOrClearBits(joystick_value[player], (uint8_t)key, action == Input::Action::PUSHED);
+				joystick_value[player] = IG::setOrClearBits(joystick_value[player], (uint16_t)key, action == Input::Action::PUSHED);
 			}
 		}
 		bcase KB_MODE:

@@ -64,8 +64,6 @@ void        archdep_boot_path_free(void);
 const char *archdep_home_path(void);
 void        archdep_home_path_free(void);
 
-const char *archdep_pref_path(void);
-
 int         archdep_mkdir(const char *pathname, int mode);
 int         archdep_rmdir(const char *pathname);
 
@@ -82,10 +80,15 @@ int         archdep_rename(const char *oldpath, const char *newpath);
 char *      archdep_default_sysfile_pathlist(const char *emu_id);
 void        archdep_default_sysfile_pathlist_free(void);
 
+char *      archdep_xdg_data_home(void);
+char *      archdep_xdg_config_home(void);
+char *      archdep_xdg_cache_home(void);
+
+
 char *      archdep_extra_title_text(void);
 void        archdep_extra_title_text_free(void);
 
-void        archdep_vice_exit(int excode);
+void        archdep_vice_exit(int excode) VICE_ATTR_NORETURN;
 
 #ifdef USE_NATIVE_GTK3
 void        archdep_thread_init(void);
@@ -97,13 +100,15 @@ void        archdep_thread_shutdown(void);
 char *      archdep_get_vice_docsdir(void);
 /* Get the absolute path to the directory that contains resources, icons, etc */
 char *      archdep_get_vice_datadir(void);
+char *      archdep_get_vice_drivesdir(void);
+char *      archdep_get_vice_machinedir(void);
 
 void        archdep_create_user_cache_dir(void);
-char *      archdep_user_cache_path(void);
+const char *archdep_user_cache_path(void);
 void        archdep_user_cache_path_free(void);
 
 void        archdep_create_user_config_dir(void);
-char *      archdep_user_config_path(void);
+const char *archdep_user_config_path(void);
 void        archdep_user_config_path_free(void);
 
 char *      archdep_default_hotkey_file_name(void);

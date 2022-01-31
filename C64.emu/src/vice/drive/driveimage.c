@@ -42,6 +42,37 @@
 /* Logging goes here.  */
 static log_t driveimage_log = LOG_DEFAULT;
 
+int drive_image_type_to_drive_type(unsigned int type)
+{
+    switch (type) {
+        case DISK_IMAGE_TYPE_G64:
+        case DISK_IMAGE_TYPE_P64:
+        case DISK_IMAGE_TYPE_D64:
+            return DRIVE_TYPE_1541II;
+        case DISK_IMAGE_TYPE_G71:
+        case DISK_IMAGE_TYPE_D71:
+            return DRIVE_TYPE_1571;
+        case DISK_IMAGE_TYPE_D81:
+            return DRIVE_TYPE_1581;
+        case DISK_IMAGE_TYPE_D1M:
+        case DISK_IMAGE_TYPE_D2M:
+            return DRIVE_TYPE_2000;
+        case DISK_IMAGE_TYPE_D4M:
+            return DRIVE_TYPE_4000;
+        case DISK_IMAGE_TYPE_D67:
+            return DRIVE_TYPE_2040;
+        case DISK_IMAGE_TYPE_D80:
+            return DRIVE_TYPE_8050;
+        case DISK_IMAGE_TYPE_D82:
+            return DRIVE_TYPE_8250;
+        case DISK_IMAGE_TYPE_D90:
+            return DRIVE_TYPE_9000;
+        case DISK_IMAGE_TYPE_DHD:
+            return DRIVE_TYPE_CMDHD;
+    }
+    return DRIVE_TYPE_NONE;
+}
+
 int drive_check_image_format(unsigned int format, unsigned int dnr)
 {
     diskunit_context_t *unit = diskunit_context[dnr];
@@ -156,7 +187,7 @@ int drive_image_attach(disk_image_t *image, unsigned int unit, unsigned int drv)
     if (drive->detach_clk > (CLOCK)0) {
         drive->attach_detach_clk = diskunit_clk[dnr];
     }
-    drive->ask_extend_disk_image = 1;
+    drive->ask_extend_disk_image = DRIVE_EXTEND_ASK;
 
     switch (image->type) {
         case DISK_IMAGE_TYPE_D64:

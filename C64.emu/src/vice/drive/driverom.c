@@ -24,6 +24,8 @@
  *
  */
 
+/* #define DBGDRIVEROM */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -39,6 +41,12 @@
 #include "traps.h"
 #include "types.h"
 #include "snapshot.h"
+
+#ifdef DBGDRIVEROM
+#define DBG(x)  printf x
+#else
+#define DBG(x)
+#endif
 
 /* patch for 1541 driverom at $EAAF */
 /* skips RAM and ROM check for fast drive reset */
@@ -73,13 +81,18 @@ int driverom_load(const char *resource_name, uint8_t *drive_rom, unsigned
     int filesize;
     unsigned int dnr;
 
+    DBG(("driverom_load res:%s loaded:%u min:%d max:%d name:%s type:%u size:%u\n",
+       resource_name, *loaded, min, max, name, type, size ? *size : 0));
+
     if (!drive_rom_load_ok) {
         return 0;
     }
 
     resources_get_string(resource_name, &rom_name);
 
-    filesize = sysfile_load(rom_name, drive_rom, min, max);
+    DBG(("driverom_load rom_name: %s\n", rom_name));
+
+    filesize = sysfile_load(rom_name, "DRIVES", drive_rom, min, max);
 
     if (filesize < 0) {
         log_error(driverom_log, "%s ROM image not found. "
@@ -90,12 +103,14 @@ int driverom_load(const char *resource_name, uint8_t *drive_rom, unsigned
         }
         return -1;
     } 
+
     *loaded = 1;
     if (size != NULL) {
         *size = (unsigned int)filesize;
     }
     /* Align to the end of available space */
-    if (filesize <= min && min < max) {
+    if ((filesize <= min) && (min < max)) {
+        DBG(("driverom_load align drive rom\n"));
         memmove(drive_rom, &drive_rom[max - min], min);
     }
 
@@ -103,8 +118,10 @@ int driverom_load(const char *resource_name, uint8_t *drive_rom, unsigned
         diskunit_context_t *unit = diskunit_context[dnr];
 
         if (unit->type == type) {
-            /* printf("machine_drive_rom_setup_image %u", type); */
+            DBG(("driverom_load prepare drive rom and reset\n"));
             machine_drive_rom_setup_image(dnr);
+            driverom_initialize_traps(diskunit_context[dnr]);
+            drive_cpu_trigger_reset(dnr);
         }
     }
     return 0;
@@ -132,6 +149,9 @@ void driverom_initialize_traps(diskunit_context_t *unit)
 
     unit->trap = -1;
     unit->trapcont = -1;
+
+    DBG(("driverom_initialize_traps type: %u trap idle: %s\n", unit->type,
+           unit->idling_method == DRIVE_IDLE_TRAP_IDLE ? "enabled" : "disabled"));
 
     if (unit->idling_method != DRIVE_IDLE_TRAP_IDLE) {
         return;

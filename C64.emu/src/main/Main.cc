@@ -97,36 +97,6 @@ const char *EmuSystem::systemName()
 	return "Commodore 64";
 }
 
-void setAutostartWarp(bool on)
-{
-	setIntResource("AutostartWarp", on);
-}
-
-static bool autostartWarp()
-{
-	return intResource("AutostartWarp");
-}
-
-void setAutostartTDE(bool on)
-{
-	setIntResource("AutostartHandleTrueDriveEmulation", on);
-}
-
-static bool autostartTDE()
-{
-	return intResource("AutostartHandleTrueDriveEmulation");
-}
-
-void setAutostartBasicLoad(bool on)
-{
-	setIntResource("AutostartBasicLoad", on);
-}
-
-bool autostartBasicLoad()
-{
-	return intResource("AutostartBasicLoad");
-}
-
 static bool sysIsPal()
 {
 	switch(intResource("MachineVideoStandard"))
@@ -154,107 +124,6 @@ void setSysModel(int model)
 	setModel(model);
 }
 
-void setBorderMode(int mode)
-{
-	if(!plugin.borderModeStr)
-		return;
-	setIntResource(plugin.borderModeStr, mode);
-}
-
-static int borderMode()
-{
-	if(!plugin.borderModeStr)
-		return -1;
-	return intResource(plugin.borderModeStr);
-}
-
-void setSidEngine(int engine)
-{
-	logMsg("set SID engine %d", engine);
-	setIntResource("SidEngine", engine);
-}
-
-static int sidEngine()
-{
-	return intResource("SidEngine");
-}
-
-void setReSidSampling(int sampling)
-{
-	logMsg("set ReSID sampling %d", sampling);
-	setIntResource("SidResidSampling", sampling);
-}
-
-static int reSidSampling()
-{
-	return intResource("SidResidSampling");
-}
-
-void setDriveTrueEmulation(bool on)
-{
-	setIntResource("DriveTrueEmulation", on);
-}
-
-bool driveTrueEmulation()
-{
-	return intResource("DriveTrueEmulation");
-}
-
-void setVirtualDeviceTraps(bool on)
-{
-	setIntResource("VirtualDevices", on);
-}
-
-bool virtualDeviceTraps()
-{
-	return intResource("VirtualDevices");
-}
-
-void setDefaultC64Model(int model)
-{
-	optionC64Model = model;
-}
-
-void setDefaultDTVModel(int model)
-{
-	optionDTVModel = model;
-}
-
-void setDefaultC128Model(int model)
-{
-	optionC128Model = model;
-}
-
-void setDefaultSuperCPUModel(int model)
-{
-	optionSuperCPUModel = model;
-}
-
-void setDefaultCBM2Model(int model)
-{
-	optionCBM2Model = model;
-}
-
-void setDefaultCBM5x0Model(int model)
-{
-	optionCBM5x0Model = model;
-}
-
-void setDefaultPETModel(int model)
-{
-	optionPETModel = model;
-}
-
-void setDefaultPlus4Model(int model)
-{
-	optionPlus4Model = model;
-}
-
-void setDefaultVIC20Model(int model)
-{
-	optionVIC20Model = model;
-}
-
 const char *videoChipStr()
 {
 	switch (currSystem)
@@ -278,17 +147,6 @@ const char *videoChipStr()
 		return "Crtc";
 	}
 	return "";
-}
-
-static void setIntResourceToDefault(const char *name)
-{
-	int val;
-	if(plugin.resources_get_default_value(name, &val) < 0)
-	{
-		return;
-	}
-	logMsg("setting resource %s to default:%d", name, val);
-	setIntResource(name, val);
 }
 
 bool currSystemIsC64()
@@ -333,46 +191,6 @@ void setRuntimeReuSize(int size)
 	execC64Frame();
 }
 
-void applySessionOptions()
-{
-	if((int)optionModel == -1)
-	{
-		logMsg("using default model");
-		setSysModel(optionDefaultModel(currSystem));
-	}
-	else
-	{
-		setSysModel(optionModel);
-	}
-	setVirtualDeviceTraps(optionVirtualDeviceTraps);
-	setDriveTrueEmulation(optionDriveTrueEmulation);
-	setAutostartWarp(optionAutostartWarp);
-	setAutostartTDE(optionAutostartTDE);
-	setAutostartBasicLoad(optionAutostartBasicLoad);
-	if(currSystem == VICE_SYSTEM_VIC20)
-	{
-		uint8_t blocks = optionVic20RamExpansions;
-		if(blocks & BLOCK_0)
-			setIntResource("RamBlock0", 1);
-		if(blocks & BLOCK_1)
-			setIntResource("RamBlock1", 1);
-		if(blocks & BLOCK_2)
-			setIntResource("RamBlock2", 1);
-		if(blocks & BLOCK_3)
-			setIntResource("RamBlock3", 1);
-		if(blocks & BLOCK_5)
-			setIntResource("RamBlock5", 1);
-	}
-	if(currSystemIsC64Or128())
-	{
-		if(optionC64RamExpansionModule)
-		{
-			setIntResource("REU", 1);
-			setIntResource("REUsize", optionC64RamExpansionModule);
-		}
-	}
-}
-
 static void applyInitialOptionResources()
 {
 	setIntResource("JoyPort1Device", JOYPORT_ID_JOYSTICK);
@@ -382,7 +200,7 @@ static void applyInitialOptionResources()
 	setSidEngine(optionSidEngine);
 	setReSidSampling(optionReSidSampling);
 	// default drive setup
-	setIntResourceToDefault("Drive8Type");
+	resetIntResource("Drive8Type");
 	setIntResource("Drive9Type", DRIVE_TYPE_NONE);
 	setIntResource("Drive10Type", DRIVE_TYPE_NONE);
 	setIntResource("Drive11Type", DRIVE_TYPE_NONE);
@@ -445,9 +263,8 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 
 struct SnapshotTrapData
 {
-	constexpr SnapshotTrapData() {}
-	bool hasError = true;
 	const char *pathStr{};
+	bool hasError = true;
 };
 
 static void loadSnapshotTrap(uint16_t, void *data)
@@ -472,8 +289,7 @@ static void saveSnapshotTrap(uint16_t, void *data)
 
 void EmuSystem::saveState(IG::CStringView path)
 {
-	SnapshotTrapData data;
-	data.pathStr = path;
+	SnapshotTrapData data{.pathStr{path}};
 	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 	execC64Frame(); // execute cpu trap
 	if(data.hasError)
@@ -482,9 +298,8 @@ void EmuSystem::saveState(IG::CStringView path)
 
 void EmuSystem::loadState(IG::CStringView path)
 {
-	setIntResource("WarpMode", 0);
-	SnapshotTrapData data;
-	data.pathStr = path;
+	plugin.vsync_set_warp_mode(0);
+	SnapshotTrapData data{.pathStr{path}};
 	execC64Frame(); // run extra frame in case C64 was just started
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	execC64Frame(); // execute cpu trap, snapshot load may cause reboot from a C64 model change
@@ -514,7 +329,7 @@ void EmuSystem::closeSystem(IG::ApplicationContext ctx)
 		return;
 	}
 	saveBackupMem(ctx);
-	setIntResource("WarpMode", 0);
+	plugin.vsync_set_warp_mode(0);
 	if(intResource("REU"))
 	{
 		setRuntimeReuSize(0);
@@ -547,7 +362,7 @@ static bool initC64(EmuApp &app)
 {
 	if(c64IsInit)
 		return true;
-	if(sysfile_locate(mainROMFilename(currSystem), nullptr) == -1)
+	if(sysfile_locate(mainROMFilename(currSystem), sysFileDir, nullptr) == -1)
 	{
 		return false;
 	}

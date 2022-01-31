@@ -37,7 +37,6 @@
 #define CPU_DELAY_CLK ted_delay_clk();
 
 #ifdef FEATURE_CPUMEMHISTORY
-#warning "CPUMEMHISTORY implementation for xplus4 is incomplete"
 static void memmap_mem_store(unsigned int addr, unsigned int value)
 {
     monitor_memmap_store(addr, MEMMAP_RAM_W);

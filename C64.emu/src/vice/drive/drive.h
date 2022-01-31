@@ -57,7 +57,7 @@
  */
 #define DRIVE_NUMBER_MAX  1
 
-#define NUM_DRIVES	2
+#define NUM_DRIVES  2
 
 /** \brief  Default drive number
  */
@@ -158,6 +158,9 @@
 #define DRIVE_LED2_RED     0
 #define DRIVE_LED2_GREEN   2
 
+/* maximum number of LEDs per drive (not unit!) */
+#define DRIVE_LEDS_MAX  2
+
 /* Number of cycles before an attached disk becomes visible to the R/W head.
    This is mostly to make routines that auto-detect disk changes happy.  */
 #define DRIVE_ATTACH_DELAY           (3 * 600000)
@@ -174,8 +177,9 @@
 #define DRIVE_PC_STANDARD 1  /* speed-dos userport cable */
 #define DRIVE_PC_DD3      2  /* dolphin-dos 3 userport cable */
 #define DRIVE_PC_FORMEL64 3  /* formel 64 cartridge */
+#define DRIVE_PC_21SEC_BACKUP 4  /* 21 second backup userport cable */
 
-#define DRIVE_PC_NUM 4
+#define DRIVE_PC_NUM 5
 
 /* ------------------------------------------------------------------------- */
 
@@ -206,7 +210,7 @@ typedef struct drive_s {
     CLOCK led_last_change_clk;
     CLOCK led_last_uiupdate_clk;
     CLOCK led_active_ticks;
-    unsigned int led_last_pwm;
+    CLOCK led_last_pwm;
 
     /* Current half track on which the R/W head is positioned.  */
     int current_half_track;
@@ -280,7 +284,7 @@ typedef struct drive_s {
     uint32_t snap_xorShift32;
     uint32_t snap_so_delay;
     uint32_t snap_cycle_index;
-    uint32_t snap_ref_advance;
+    CLOCK snap_ref_advance;
     uint32_t snap_req_ref_cycles;
 
     /* IF: requested additional R cycles */
@@ -329,6 +333,7 @@ typedef struct drive_s {
     int wobble_factor;      /* calculated factor used in the rotation code */
     int wobble_frequency;   /* from the resource */
     int wobble_amplitude;   /* from the resource */
+    int true_emulation;     /* from the resource */
 
 } drive_t;
 
@@ -349,7 +354,6 @@ extern void drive_move_head(int step, struct drive_s *drive);
 /* Don't use these pointers before the context is set up!  */
 extern struct monitor_interface_s *drive_cpu_monitor_interface_get(unsigned int dnr);
 extern void drive_cpu_early_init_all(void);
-extern void drive_cpu_prevent_clk_overflow_all(CLOCK sub);
 extern void drive_cpu_trigger_reset(unsigned int dnr);
 extern void drive_reset(void);
 extern void drive_shutdown(void);
@@ -401,5 +405,9 @@ extern int drive_resources_type_init(unsigned int default_type);
 
 extern int drive_has_buttons(unsigned int dnr);
 extern void drive_cpu_trigger_reset_button(unsigned int dnr, unsigned int button);
+
+extern unsigned int drive_jam(int mynumber, const char *format, ...);
+extern bool drive_is_jammed(int mynumber);
+extern char *drive_jam_reason(int mynumber);
 
 #endif

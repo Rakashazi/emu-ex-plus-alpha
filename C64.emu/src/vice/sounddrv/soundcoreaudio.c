@@ -4,6 +4,7 @@
  * Written by
  *  Michael Klein <michael.klein@puffin.lb.shuttle.de>
  *  Christian Vogelgsang <C.Vogelgsang@web.de> (Ported to Intel Mac)
+ *  David Hogan <david.q.hogan@gmail.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -67,20 +68,20 @@ static AudioDeviceID device = kAudioDeviceUnknown;
 static volatile int16_t *ringbuffer;
 
 /* the buffer used to pass non cyclic data to the driver  */
-static volatile int16_t *copybuffer;
-static volatile int copybuffer_size_bytes;
+static uint8_t *copybuffer;
+static int copybuffer_size_bytes;
 
 /* current read position: no. of fragment in soundbuffer */
-static volatile int read_position_2;
+static int read_position;
 
 /* the next position to write: no. of fragment in soundbuffer */
-static volatile int write_position_2;
+static int write_position;
 
 /* current number of fragments in buffer */
-static volatile int fragments_in_queue_2;
+static atomic_int fragments_in_queue;
 
 /* samples left in current fragment */
-static volatile int frames_left_in_fragment_2;
+static int frames_left_in_fragment;
 
 
 
@@ -102,33 +103,10 @@ static int in_channels;
 /* bytes per input frame */
 static unsigned int in_frame_byte_size;
 
-/* How many times the audio code didn't get enough audio */
-static unsigned long underflow_count;
-
-#if 0
-static void coreaudio_buffer_stats(bool force)
-{
-    static unsigned long last_log_time_sec;
-
-    unsigned long this_log_time_sec;
-    unsigned long now;
-
-    now = tick_now();
-    this_log_time_sec = now / (tick_per_second());
-
-    if (!force && this_log_time_sec == last_log_time_sec) {
-        return;
-    }
-
-    last_log_time_sec = this_log_time_sec;
-
-    log_message(LOG_DEFAULT, "%d of %d (underflows: %lu)", fragments_in_queue_2, fragment_count, underflow_count);
-}
-#endif
 
 /* ----- Audio Converter ------------------------------------------------ */
 
-static AudioConverterRef converter = 0;
+static AudioConverterRef converter;
 
 static OSStatus converter_input(AudioConverterRef inAudioConverter,
                                 UInt32 * ioNumberDataPackets,
@@ -138,19 +116,20 @@ static OSStatus converter_input(AudioConverterRef inAudioConverter,
 {
     UInt32 needed_frames = *ioNumberDataPackets;
     int needed_bytes = needed_frames * in_frame_byte_size;
-    int this_read_position  = read_position_2;
-    int consumed_fragments = 0;
+    int queued_frames;
+    int queued_bytes;
     
     int16_t *source;
     int16_t *dest;
     
     /* ensure our copy buffer is large enough */
     if (needed_bytes > copybuffer_size_bytes) {
-        lib_free((void *)copybuffer);
+        lib_free(copybuffer);
         copybuffer_size_bytes = needed_bytes;
         copybuffer = lib_malloc(copybuffer_size_bytes);
         log_message(LOG_DEFAULT, "Copybuffer increase to %d bytes", copybuffer_size_bytes);
     }
+    dest = (int16_t *)copybuffer;
     
     /* prepare return buffer */
     ioData->mBuffers[0].mNumberChannels = in_channels;
@@ -158,53 +137,51 @@ static OSStatus converter_input(AudioConverterRef inAudioConverter,
     ioData->mBuffers[0].mDataByteSize = needed_bytes;
     ioData->mNumberBuffers = 1;
     
-    dest = (int16_t *)copybuffer;
+    /* Determine how much queued audio we have */
+    if (fragments_in_queue) {
+        queued_frames = frames_left_in_fragment + ((fragments_in_queue - 1) * frames_in_fragment);
+    } else {
+        queued_frames = 0;
+    }
+    queued_bytes = queued_frames * in_frame_byte_size;
     
-    while (fragments_in_queue_2 && needed_frames) {
+    /* If we don't have enough audio queued, lead with silence */
+    if (needed_bytes > queued_bytes) {
+        memset(dest, 0, needed_bytes - queued_bytes);
+        dest = (int16_t *)(copybuffer + needed_bytes - queued_bytes);
+        
+        needed_frames   -= needed_frames - queued_frames;
+        needed_bytes    -= needed_bytes - queued_bytes;
+    }
+    
+    while (fragments_in_queue && needed_frames) {
+        
         /*
          * Assemble a single block of samples for the converter
          */
 
         /* calc position in ring buffer */
-        int sample_offset_in_fragment = frames_in_fragment - frames_left_in_fragment_2;
-        source = (int16_t *)ringbuffer + (swords_in_fragment * this_read_position) + (sample_offset_in_fragment * in_channels);
+        int sample_offset_in_fragment = frames_in_fragment - frames_left_in_fragment;
+        source = (int16_t *)ringbuffer + (swords_in_fragment * read_position) + (sample_offset_in_fragment * in_channels);
 
-        if (needed_frames < frames_left_in_fragment_2) {
+        if (needed_frames < frames_left_in_fragment) {
             /* The current fragement has more than enough, so it will be read from again next time. */
             memcpy(dest, source, needed_frames * in_frame_byte_size);
 
             dest += needed_frames * in_channels;
-            frames_left_in_fragment_2 -= needed_frames;
+            frames_left_in_fragment -= needed_frames;
 
             needed_frames = 0;
         } else {
             /* We'll need all the audio in the current frament. */
-            memcpy(dest, source, frames_left_in_fragment_2 * in_frame_byte_size);
+            memcpy(dest, source, frames_left_in_fragment * in_frame_byte_size);
 
-            dest += frames_left_in_fragment_2 * in_channels;
-            needed_frames -= frames_left_in_fragment_2;
+            dest += frames_left_in_fragment * in_channels;
+            needed_frames -= frames_left_in_fragment;
+            frames_left_in_fragment = frames_in_fragment;
 
-            this_read_position = (this_read_position + 1) % fragment_count;
-
-            consumed_fragments++;
-            frames_left_in_fragment_2 = frames_in_fragment;
-        }
-    }
-    
-    if (needed_frames) {
-        /* Underflow */
-        underflow_count++;
-        *ioNumberDataPackets = 0;
-        
-        //memset(dest, 0, needed_frames * in_frame_byte_size);
-    } else {
-        /*
-        * There was enough data, apply the read.
-        */
-        
-        while(consumed_fragments--) {
-            OSAtomicDecrement32(&fragments_in_queue_2);
-            read_position_2 = this_read_position;
+            read_position = (read_position + 1) % fragment_count;
+            atomic_fetch_sub(&fragments_in_queue, 1);
         }
     }
 
@@ -689,11 +666,7 @@ static int coreaudio_init(const char *param, int *speed,
     in.mChannelsPerFrame = *channels;
     in.mSampleRate = (float)*speed;
     in.mFormatID = kAudioFormatLinearPCM;
-#if defined(__x86_64__) || defined(__i386__)
     in.mFormatFlags = kAudioFormatFlagIsSignedInteger;
-#else
-    in.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsBigEndian;
-#endif
     in.mBytesPerFrame = sizeof(int16_t) * *channels;
     in.mBytesPerPacket = in.mBytesPerFrame;
     in.mFramesPerPacket = 1;
@@ -721,18 +694,18 @@ static int coreaudio_write(int16_t *pbuf, size_t nr)
 
     for (i = 0; i < count; i++)
     {
-        if (fragments_in_queue_2 == fragment_count) {
+        if (fragments_in_queue == fragment_count) {
             log_warning(LOG_DEFAULT, "sound (coreaudio): buffer overrun");
             return 0;
         }
 
-        memcpy((int16_t *)ringbuffer + (swords_in_fragment * write_position_2),
+        memcpy((int16_t *)ringbuffer + (swords_in_fragment * write_position),
                pbuf + (i * swords_in_fragment),
                bytes_in_fragment);
 
-        write_position_2 = (write_position_2 + 1) % fragment_count;
+        write_position = (write_position + 1) % fragment_count;
 
-        OSAtomicIncrement32(&fragments_in_queue_2);
+        atomic_fetch_add(&fragments_in_queue, 1);
     }
     
     /* coreaudio_buffer_stats(false); */
@@ -742,7 +715,7 @@ static int coreaudio_write(int16_t *pbuf, size_t nr)
 
 static int coreaudio_bufferspace(void)
 {
-    return (fragment_count - fragments_in_queue_2) * frames_in_fragment;
+    return (fragment_count - fragments_in_queue) * frames_in_fragment;
 }
 
 static void coreaudio_close(void)
@@ -781,10 +754,10 @@ static int coreaudio_resume(void)
     int result;
 
     /* reset buffers before resume */
-    read_position_2 = 0;
-    write_position_2 = 0;
-    fragments_in_queue_2 = 0;
-    frames_left_in_fragment_2 = frames_in_fragment;
+    read_position = 0;
+    write_position = 0;
+    fragments_in_queue = 0;
+    frames_left_in_fragment = frames_in_fragment;
 
     result = audio_start();
     if (result < 0) {
@@ -793,7 +766,7 @@ static int coreaudio_resume(void)
     return result;
 }
 
-static sound_device_t coreaudio_device =
+static const sound_device_t coreaudio_device =
 {
     "coreaudio",
     coreaudio_init,

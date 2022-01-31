@@ -24,6 +24,8 @@
  *
  */
 
+/* #define DEBUGCART */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -34,6 +36,7 @@
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "crt.h"
 #include "export.h"
 #include "lib.h"
 #include "machine.h"
@@ -43,6 +46,7 @@
 #include "log.h"
 #include "mem.h"
 #include "monitor.h"
+#include "ram.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "types.h"
@@ -51,6 +55,12 @@
 #include "vic20cartmem.h"
 #include "vic20mem.h"
 #include "zfile.h"
+
+#ifdef DEBUGCART
+#define DBG(x) printf x
+#else
+#define DBG(x)
+#endif
 
 /* ------------------------------------------------------------------------- */
 
@@ -290,6 +300,12 @@ static uint8_t internal_read(uint16_t addr, int blk, uint16_t base, int sel)
             bank = register_a & REGA_BANK_MASK;
             break;
         case MODE_ROM_RAM:
+            if (sel) {
+                bank = 0;
+            } else {
+                bank = 1;
+            }
+            break;
         case MODE_RAM1:
             bank = 1;
             break;
@@ -387,10 +403,6 @@ static void internal_store(uint16_t addr, uint8_t value, int blk, uint16_t base,
             flash040core_store(&flash_state, faddr, value);
             break;
         case MODE_ROM_RAM:
-            if (sel) {
-                cart_ram[faddr] = value;
-            }
-            break;
         case MODE_START:
         case MODE_RAM1:
         case MODE_RAM2:
@@ -581,6 +593,27 @@ static void finalexpansion_io3_store(uint16_t addr, uint8_t value)
 
 /* ------------------------------------------------------------------------- */
 
+/* FIXME: this still needs to be tweaked to match the hardware */
+static RAMINITPARAM ramparam = {
+    .start_value = 255,
+    .value_invert = 2,
+    .value_offset = 1,
+
+    .pattern_invert = 0x100,
+    .pattern_invert_value = 255,
+
+    .random_start = 0,
+    .random_repeat = 0,
+    .random_chance = 0,
+};
+
+void finalexpansion_powerup(void)
+{
+    if (cart_ram) {
+        ram_init_with_pattern(cart_ram, CART_RAM_SIZE, &ramparam);
+    }
+}
+
 void finalexpansion_init(void)
 {
     if (fe_log == LOG_ERR) {
@@ -639,6 +672,59 @@ static int zfile_load(const char *filename, uint8_t *dest)
     log_message(fe_log, "Read image `%s'.",
                 filename);
     return 0;
+}
+
+int finalexpansion_crt_attach(FILE *fd, uint8_t *rawcart)
+{
+    crt_chip_header_t chip;
+    int idx = 0;
+    uint8_t *cart_flash;
+
+    if (!cart_ram) {
+        cart_ram = lib_malloc(CART_RAM_SIZE);
+    }
+
+    cart_flash = lib_malloc(CART_ROM_SIZE);
+    if (cart_flash == NULL) {
+        goto exiterror;
+    }
+
+    /* flash040core_init() does not clear the flash */
+    memset(cart_flash, 0xff, CART_ROM_SIZE);
+
+    flash040core_init(&flash_state, maincpu_alarm_context, FLASH040_TYPE_B, cart_flash);
+
+    for (idx = 0; idx < 64; idx++) {
+        if (crt_read_chip_header(&chip, fd)) {
+            goto exiterror;
+        }
+
+        DBG(("chip %d at %02x len %02x\n", idx, chip.start, chip.size));
+        if (chip.size != 0x2000) {
+            goto exiterror;
+        }
+
+        if (crt_read_chip(&flash_state.flash_data[0x2000 * idx], 0, &chip, fd)) {
+            goto exiterror;
+        }
+    }
+
+    if (export_add(&export_res) < 0) {
+        return -1;
+    }
+
+    mem_cart_blocks = VIC_CART_RAM123 |
+                      VIC_CART_BLK1 | VIC_CART_BLK2 | VIC_CART_BLK3 | VIC_CART_BLK5 |
+                      VIC_CART_IO3;
+    mem_initialize_memory();
+
+    finalexpansion_list_item = io_source_register(&finalexpansion_device);
+
+    return 0;
+
+exiterror:
+    finalexpansion_detach();
+    return -1;
 }
 
 int finalexpansion_bin_attach(const char *filename)
@@ -931,10 +1017,10 @@ static void finalexpansion_mon_dump_blk(int blk)
             acc_mode_w = ACC_RAM;
             break;
         case MODE_ROM_RAM:
-            bank_r = 1;
+            bank_r = sel ? 0 : 1;
             bank_w = sel ? 2 : 1;
             acc_mode_r = sel ? ACC_FLASH : ACC_RAM;
-            acc_mode_w = sel ? ACC_RAM : ACC_OFF;
+            acc_mode_w = ACC_RAM;
             break;
         case MODE_RAM1:
             bank_r = 1;

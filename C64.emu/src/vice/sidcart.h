@@ -49,4 +49,6 @@ extern void sidcart_detach(void);
 extern int sidcart_snapshot_write_module(snapshot_t *s);
 extern int sidcart_snapshot_read_module(snapshot_t *s);
 
+extern void sidcart_cmdline_options_shutdown(void);
+
 #endif

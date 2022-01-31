@@ -31,7 +31,6 @@
 #include "sound.h"
 
 extern int userport_dac_resources_init(void);
-extern int userport_dac_cmdline_options_init(void);
 
 extern void userport_dac_sound_chip_init(void);
 

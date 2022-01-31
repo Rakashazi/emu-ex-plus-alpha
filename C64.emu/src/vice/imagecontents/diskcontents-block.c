@@ -99,7 +99,7 @@ static int circular_check(unsigned int track, unsigned int sector)
     return 0;
 }
 
-image_contents_t *diskcontents_block_read(vdrive_t *vdrive)
+image_contents_t *diskcontents_block_read(vdrive_t *vdrive, int part)
 {
     image_contents_t *contents;
     uint8_t buffer[256];
@@ -116,8 +116,7 @@ image_contents_t *diskcontents_block_read(vdrive_t *vdrive)
     retval = vdrive_bam_read_bam(vdrive);
 
     /* vdrive_bam_read_bam returns CBM error, so not zero is a problem */
-    if (retval != 0) {
-        vdrive_internal_close_disk_image(vdrive);
+    if (retval != 0 || !vdrive->bam_size) {
         return NULL;
     }
 
@@ -131,6 +130,8 @@ image_contents_t *diskcontents_block_read(vdrive_t *vdrive)
     contents->id[IMAGE_CONTENTS_ID_LEN] = 0;
 
     contents->blocks_free = (int)vdrive_bam_free_block_count(vdrive);
+
+    contents->partition = vdrive->selected_part;
 
     curr_track = vdrive->Dir_Track;
     curr_sector = vdrive->Dir_Sector;
@@ -148,10 +149,8 @@ image_contents_t *diskcontents_block_read(vdrive_t *vdrive)
 
         if (retval != 0
             || circular_check(curr_track, curr_sector)) {
-            /*image_contents_destroy(contents);*/
-            vdrive_internal_close_disk_image(vdrive);
             circular_check_free();
-            return contents /*NULL*/;
+            return contents;
         }
 
         for (p = buffer, j = 0; j < 8; j++, p += 32) {
@@ -198,7 +197,6 @@ image_contents_t *diskcontents_block_read(vdrive_t *vdrive)
         curr_sector = (int)buffer[1];
     }
 
-    vdrive_internal_close_disk_image(vdrive);
     circular_check_free();
     return contents;
 }

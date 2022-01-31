@@ -28,6 +28,8 @@
  *
  */
 
+/* #define DEBUGCART */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -44,10 +46,12 @@
 #include <sys/types.h>
 #endif
 
+#include "archdep.h"
 #include "behrbonz.h"
 #include "c64acia.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "crt.h"
 #include "debugcart.h"
 #include "digimax.h"
 #include "ds12c887rtc.h"
@@ -83,8 +87,6 @@
 #include "vic20-ieee488.h"
 #include "vic20-midi.h"
 #include "zfile.h"
-
-/* #define DEBUGCART */
 
 #ifdef DEBUGCART
 #define DBG(x)  printf x
@@ -125,11 +127,13 @@ int try_cartridge_attach(int c)
         return 0;
     }
 */
+    DBG(("try_cartridge_attach '%d'\n", c));
     return cartridge_attach_from_resource(vic20cart_type, cartfile);
 }
 
 static int set_cartridge_type(int val, void *param)
 {
+    DBG(("set_cartridge_type '%d'\n", val));
     switch (val) {
         case CARTRIDGE_NONE:
         case CARTRIDGE_VIC20_BEHRBONZ:
@@ -264,6 +268,7 @@ static const cmdline_option_t cmdline_options[] =
     { "+cartreset", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "CartridgeReset", (void *)0,
       NULL, "Do not reset machine if a cartridge is attached or detached" },
+    /* generic cartridges */
     { "-cart2", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_16KB_2000, NULL, NULL,
       "<Name>", "Specify 4/8/16KiB extension ROM name at $2000" },
@@ -278,13 +283,18 @@ static const cmdline_option_t cmdline_options[] =
       "<Name>", "Specify 4/8KiB extension ROM name at $A000" },
     { "-cartB", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_4KB_B000, NULL, NULL,
-      "<Name>", "Specify 4KiB extension ROM name at $B000" },
-    { "-cartbb", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_BEHRBONZ, NULL, NULL,
-      "<Name>", "Specify Behr Bonz extension ROM name" },
+      "<Name>", "Specify 2/4KiB extension ROM name at $B000" },
     { "-cartgeneric", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_GENERIC, NULL, NULL,
       "<Name>", "Specify generic extension ROM name" },
+    /* smart-insert CRT */
+    { "-cartcrt", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
+      attach_cartridge_cmdline, (void *)CARTRIDGE_CRT, NULL, NULL,
+      "<Name>", "Attach CRT cartridge image" },
+    /* binary images: */
+    { "-cartbb", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
+      attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_BEHRBONZ, NULL, NULL,
+      "<Name>", "Specify Behr Bonz extension ROM name" },
     { "-cartmega", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_MEGACART, NULL, NULL,
       "<Name>", "Specify Mega-Cart extension ROM name" },
@@ -332,6 +342,7 @@ int cartridge_cmdline_options_init(void)
 /* ------------------------------------------------------------------------- */
 static int cartridge_attach_from_resource(int type, const char *filename)
 {
+    DBG(("cartridge_attach_from_resource type: %d name: '%s'\n", type, filename));
     if (vic20cart_type == CARTRIDGE_VIC20_GENERIC) {
         /* special case handling for the multiple file generic type */
         return generic_attach_from_resource(vic20cart_type, cartfile);
@@ -339,21 +350,87 @@ static int cartridge_attach_from_resource(int type, const char *filename)
     return cartridge_attach_image(vic20cart_type, cartfile);
 }
 
-int cartridge_attach_image(int type, const char *filename)
-{
-    int type_orig;
-    int generic_multifile = 0;
-    int ret = 0;
+/*
+    returns -1 on error, else a positive CRT ID
 
-    /* Attaching no cartridge always works.  */
-    if (type == CARTRIDGE_NONE || filename == NULL || *filename == '\0') {
-        return 0;
+    FIXME: to simplify this function a little bit, all subfunctions should
+           also return the respective CRT ID on success
+*/
+static int crt_attach(const char *filename, uint8_t *rawcart)
+{
+    crt_header_t header;
+    int ret, new_crttype;
+    FILE *fd;
+
+    DBG(("crt_attach: %s\n", filename));
+
+    fd = crt_open(filename, &header);
+
+    if (fd == NULL) {
+        return -1;
     }
 
-    log_message(LOG_DEFAULT, "Attached cartridge type %d, file=`%s'.", type, filename);
+    new_crttype = header.type;
+    if (new_crttype & 0x8000) {
+        /* handle our negative test IDs */
+        new_crttype -= 0x10000;
+    }
+    DBG(("crt_attach ID: %d\n", new_crttype));
 
-    type_orig = type;
-    switch (type_orig) {
+/*  cart should always be detached. there is no reason for doing fancy checks
+    here, and it will cause problems incase a cart MUST be detached before
+    attaching another, or even itself. (eg for initialization reasons)
+
+    most obvious reason: attaching a different ROM (software) for the same
+    cartridge (hardware) */
+
+    cartridge_detach_image(new_crttype);
+
+    switch (new_crttype) {
+        case CARTRIDGE_CRT:
+        /* case CARTRIDGE_VIC20_GENERIC: */
+            ret = generic_crt_attach(fd, rawcart);
+            if (ret != CARTRIDGE_NONE) {
+                new_crttype = ret;
+            }
+            break;
+        case CARTRIDGE_VIC20_MEGACART:
+            ret = megacart_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_VIC20_BEHRBONZ:
+            ret = behrbonz_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_VIC20_FP:
+            ret = vic_fp_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_VIC20_UM:
+            ret = vic_um_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_VIC20_FINAL_EXPANSION:
+            ret = finalexpansion_crt_attach(fd, rawcart);
+            break;
+        default:
+            archdep_startup_log_error("unknown CRT ID: %d\n", new_crttype);
+            ret = -1;
+            break;
+    }
+
+    fclose(fd);
+
+    if (ret == -1) {
+        DBG(("crt_attach error (%d)\n", ret));
+        return -1;
+    }
+    DBG(("crt_attach return ID: %d\n", new_crttype));
+    return new_crttype;
+}
+
+static int cart_bin_attach(int type, const char *filename, uint8_t *rawcart)
+{
+    int ret = -1;
+
+    switch (type) {
+        case CARTRIDGE_VIC20_GENERIC:
         case CARTRIDGE_VIC20_DETECT:
         case CARTRIDGE_VIC20_4KB_2000:
         case CARTRIDGE_VIC20_8KB_2000:
@@ -362,40 +439,16 @@ int cartridge_attach_image(int type, const char *filename)
         case CARTRIDGE_VIC20_4KB_A000:
         case CARTRIDGE_VIC20_8KB_A000:
         case CARTRIDGE_VIC20_4KB_B000:
+        case CARTRIDGE_VIC20_2KB_B000:
         case CARTRIDGE_VIC20_8KB_4000:
         case CARTRIDGE_VIC20_4KB_4000:
         case CARTRIDGE_VIC20_16KB_2000:
         case CARTRIDGE_VIC20_16KB_4000:
         case CARTRIDGE_VIC20_16KB_6000:
-            /*
-             * For specific layouts only detach if we were something else than
-             * CARTRIDGE_VIC20_GENERIC before.
-             * This allows us to add images to a generic type.
-             */
-            if (vic20cart_type != CARTRIDGE_VIC20_GENERIC) {
-                cartridge_detach_image(-1);
-            }
-            generic_multifile = 1;
-            type = CARTRIDGE_VIC20_GENERIC;
+            ret = generic_bin_attach(type, filename);
             break;
-        case CARTRIDGE_VIC20_GENERIC:
-            /*
-             * this is because the only generic cart that is attachable
-             * will be attached as a auto detected multi file cart for now
-             * Remove when this changes.
-             */
-            generic_multifile = 1;
-            break;
-        default:
-            cartridge_detach_image(-1);
-    }
-
-    switch (type) {
         case CARTRIDGE_VIC20_BEHRBONZ:
             ret = behrbonz_bin_attach(filename);
-            break;
-        case CARTRIDGE_VIC20_GENERIC:
-            ret = generic_bin_attach(type_orig, filename);
             break;
         case CARTRIDGE_VIC20_UM:
             ret = vic_um_bin_attach(filename);
@@ -410,17 +463,134 @@ int cartridge_attach_image(int type, const char *filename)
             ret = finalexpansion_bin_attach(filename);
             break;
     }
+    DBG(("cart_bin_attach type: %d ret: %d\n", type, ret));
 
-    vic20cart_type = type;
+    return ret;
+}
+
+/*
+    attach cartridge image
+
+    type == -1  NONE
+    type ==  0  CRT format
+
+    returns -1 on error, 0 on success
+*/
+int cartridge_attach_image(int type, const char *filename)
+{
+    uint8_t *rawcart;
+    char *abs_filename;
+    int carttype = CARTRIDGE_NONE;
+    int cartid = CARTRIDGE_NONE;
+    int generic_multifile = 0;
+
+    DBG(("cartridge_attach_image type '%d' name: '%s'\n", type, filename));
+/*
+    if (filename == NULL) {
+        return -1;
+    }
+*/
+    /* Attaching no cartridge always works.  */
+    if (type == CARTRIDGE_NONE || filename == NULL || *filename == '\0') {
+        return 0;
+    }
+
+    if (archdep_path_is_relative(filename)) {
+        archdep_expand_path(&abs_filename, filename);
+    } else {
+        abs_filename = lib_strdup(filename);
+    }
+
+    if (type == CARTRIDGE_CRT) {
+        carttype = crt_getid(abs_filename);
+        if (carttype == -1) {
+            log_message(LOG_DEFAULT, "CART: '%s' is not a valid CRT file.", abs_filename);
+            lib_free(abs_filename);
+            return -1;
+        }
+    } else {
+        carttype = type;
+    }
+    /* allocate temporary array */
+    rawcart = lib_malloc(VIC20CART_IMAGE_LIMIT);
+
+    DBG(("CART: cartridge_attach_image type: %d ID: %d\n", type, carttype));
+
+    log_message(LOG_DEFAULT, "Attached cartridge type %d, file=`%s'.", type, filename);
+
+    switch (carttype) {
+        case CARTRIDGE_VIC20_DETECT:
+        case CARTRIDGE_VIC20_4KB_2000:
+        case CARTRIDGE_VIC20_8KB_2000:
+        case CARTRIDGE_VIC20_4KB_4000:
+        case CARTRIDGE_VIC20_8KB_4000:
+        case CARTRIDGE_VIC20_4KB_6000:
+        case CARTRIDGE_VIC20_8KB_6000:
+        case CARTRIDGE_VIC20_4KB_A000:
+        case CARTRIDGE_VIC20_8KB_A000:
+        case CARTRIDGE_VIC20_4KB_B000:
+        case CARTRIDGE_VIC20_2KB_B000:
+        case CARTRIDGE_VIC20_16KB_2000:
+        case CARTRIDGE_VIC20_16KB_4000:
+        case CARTRIDGE_VIC20_16KB_6000:
+            /*
+             * For specific layouts only detach if we were something else than
+             * CARTRIDGE_VIC20_GENERIC before.
+             * This allows us to add images to a generic type.
+             */
+            if (vic20cart_type != CARTRIDGE_VIC20_GENERIC) {
+                cartridge_detach_image(-1);
+            }
+            generic_multifile = 1;
+            carttype = CARTRIDGE_VIC20_GENERIC;
+            break;
+        case CARTRIDGE_VIC20_GENERIC:
+            /*
+             * this is because the only generic cart that is attachable
+             * will be attached as a auto detected multi file cart for now
+             * Remove when this changes.
+             */
+            generic_multifile = 1;
+            break;
+        default:
+            cartridge_detach_image(-1);
+    }
+
+    if (type == CARTRIDGE_CRT) {
+        DBG(("CART: attach CRT ID: %d '%s'\n", carttype, filename));
+        cartid = crt_attach(abs_filename, rawcart);
+        if (cartid == CARTRIDGE_NONE) {
+            goto exiterror;
+        }
+        carttype = cartid;
+    } else {
+        DBG(("CART: attach BIN ID: %d '%s'\n", carttype, filename));
+        if (cart_bin_attach(carttype, abs_filename, rawcart) < 0) {
+            goto exiterror;
+        }
+    }
+
+    DBG(("CART: attach RAW ID: %d carttype: %d\n", cartid, carttype));
+    vic20cart_type = carttype;
     if (generic_multifile) {
         util_string_set(&cartfile, NULL);
     } else {
         util_string_set(&cartfile, filename);
     }
-    if (ret == 0) {
-        cartridge_attach(type, NULL);
-    }
-    return ret;
+    cartridge_attach(carttype, NULL);
+
+    DBG(("CART: cartridge_attach_image type: %d ID: %d done.\n", type, carttype));
+    lib_free(rawcart);
+    log_message(LOG_DEFAULT, "CART: attached '%s' as ID %d.", abs_filename, carttype);
+    lib_free(abs_filename);
+    return 0;
+
+exiterror:
+    DBG(("CART: error\n"));
+    lib_free(rawcart);
+    log_message(LOG_DEFAULT, "CART: could not attach '%s'.", abs_filename);
+    lib_free(abs_filename);
+    return -1;
 }
 
 void cartridge_detach_image(int type)

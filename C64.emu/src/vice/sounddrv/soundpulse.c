@@ -104,15 +104,17 @@ static int pulsedrv_suspend(void)
 static void pulsedrv_close(void)
 {
     int error = 0;
-    if (pa_simple_flush(simple, &error)) {
-        log_error(LOG_DEFAULT, "pa_simple_flush(): %s", pa_strerror(error));
-        /* don't stop */
+    if (simple) {
+        if (pa_simple_flush(simple, &error)) {
+            log_error(LOG_DEFAULT, "pa_simple_flush(): %s", pa_strerror(error));
+            /* don't stop */
+        }
+        pa_simple_free(simple);
+        simple = NULL;
     }
-    pa_simple_free(simple);
-    simple = NULL;
 }
 
-static sound_device_t pulsedrv_device =
+static const sound_device_t pulsedrv_device =
 {
     "pulse",
     pulsedrv_init,

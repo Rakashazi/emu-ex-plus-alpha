@@ -390,9 +390,9 @@ void debug_nmi(interrupt_cpu_status_t *cs, CLOCK iclk)
     debug_int(cs, "*** NMI", IK_NMI, iclk);
 }
 
-void debug_dma(const char *txt, CLOCK dclk, int num)
+void debug_dma(const char *txt, CLOCK dclk, CLOCK num)
 {
-    log_debug("*** DMA %s %10ld  %02i", txt, (long)dclk, num);
+    log_debug("*** DMA %s %"PRIu64"  %02"PRIu64, txt, dclk, num);
 }
 
 /*------------------------------------------------------------------------*/

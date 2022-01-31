@@ -42,9 +42,8 @@
 #include "vdc-mem.h"
 #include "vdc.h"
 #include "vdctypes.h"
-
-
 #include "vdc-draw.h"
+#include "videoarch.h"
 
 static CLOCK vdc_status_clear_clock = 0;
 
@@ -94,21 +93,25 @@ static void vdc_perform_fillcopy(void)
         /* Block start address.  */
         ptr2 = (vdc.regs[32] << 8) + vdc.regs[33];
         for (i = 0; i < blklen; i++) {
-            vdc.ram[(ptr + i) & vdc.vdc_address_mask]
-                = vdc.ram[(ptr2 + i) & vdc.vdc_address_mask];
+            vdc_ram_store((ptr + i),
+                vdc_ram_read(ptr2 + i));
         }
         ptr2 += blklen;
-        vdc.regs[31] = vdc.ram[(ptr2 - 1) & vdc.vdc_address_mask];
+        vdc.regs[31] = vdc_ram_read(ptr2 - 1);
         vdc.regs[32] = (ptr2 >> 8) & 0xff;
         vdc.regs[33] = ptr2 & 0xff;
+        /* Set the clock for when the vdc status will be clear after this operation */
+        vdc_status_clear_clock = maincpu_clk + (blklen*120/100);    /* Copies take longer than fills (below) */
     } else { /* FILL */
 #ifdef REG_DEBUG
         log_message(vdc.log, "Fill mem %04i, len %03i, data %02x",
                     ptr, blklen, vdc.regs[31]);
 #endif
         for (i = 0; i < blklen; i++) {
-            vdc.ram[(ptr + i) & vdc.vdc_address_mask] = vdc.regs[31];
+            vdc_ram_store((ptr + i), vdc.regs[31]);
         }
+        /* Set the clock for when the vdc status will be clear after this operation */
+        vdc_status_clear_clock = maincpu_clk + (blklen*66/100);
     }
 
     ptr = ptr + blklen;
@@ -264,12 +267,19 @@ void vdc_store(uint16_t addr, uint8_t value)
             break;
 
         case 8:                 /* R08  Interlace and Skew */
-			if ((vdc.regs[8] & 0x03) == 3)  {   /* interlace */
-				vdc.interlaced = 1;
-			} else {
-				vdc.interlaced = 0;
-			}
-			//vdc.update_geometry = 1;
+            if ((vdc.regs[8] & 0x03) == 3)  {   /* interlace sync and video */
+                vdc.interlaced = 1;
+                vdc.raster.canvas->videoconfig->interlaced = 1;
+            } else if ((vdc.regs[8] & 0x03) == 1)  {   /* interlace sync */
+                /* we don't set vdc.interlaced here because in interlace sync the fields are identical,
+                   they are just offset, so the VDC behaviour doesn't change, only the renderer */
+                vdc.interlaced = 0;
+                vdc.raster.canvas->videoconfig->interlaced = 1;
+            } else {    /* 0x00 or 0x02 are non-interlaced */
+                vdc.interlaced = 0;
+                vdc.raster.canvas->videoconfig->interlaced = 0;
+            }
+            /* vdc.update_geometry = 1; */
 #ifdef REG_DEBUG
             log_message(vdc.log, "REG 8 Interlace:%02x", vdc.regs[8]);
 #endif
@@ -323,7 +333,11 @@ void vdc_store(uint16_t addr, uint8_t value)
         case 19:
             vdc.update_adr = ((vdc.regs[18] << 8) | vdc.regs[19]) & vdc.vdc_address_mask;
             /* writing to 18/19 forces the vdc to go read its memory, which takes a while */
-            vdc_status_clear_clock = maincpu_clk + 37;
+            if (vdc.display_enable) {
+                vdc_status_clear_clock = maincpu_clk + 43;  /* The VDC is 'busier' when in the active display area */
+            } else {
+                vdc_status_clear_clock = maincpu_clk + 4;   /* And less busy in the top/bottom border */
+            }
             break;
 
         case 20:                /* R20/21 Attribute Start Address hi/lo */
@@ -455,14 +469,16 @@ void vdc_store(uint16_t addr, uint8_t value)
 
         case 30:                /* Word Count + initiate fill or copy */
             vdc_perform_fillcopy();
-            /* Set the clock for when the vdc status will be clear after this operation */
-            vdc_status_clear_clock = maincpu_clk + (vdc.regs[30]*45/100);
             break;
 
         case 31:                /* Data for memory write */
             vdc_write_data();
             /* Set the clock for when the vdc status will be clear after this operation */
-            vdc_status_clear_clock = maincpu_clk + 15;
+            if (vdc.display_enable) {
+                vdc_status_clear_clock = maincpu_clk + 43;  /* The VDC is 'busier' when in the active display area */
+            } else {
+                vdc_status_clear_clock = maincpu_clk + 4;   /* And less busy in the top/bottom border */
+            }
             break;
 
         case 32:                /* R32/33 Block Start Address hi/lo */
@@ -512,8 +528,12 @@ uint8_t vdc_read(uint16_t addr)
                   & vdc.vdc_address_mask;
             vdc.regs[18] = (ptr >> 8) & 0xff;
             vdc.regs[19] = ptr & 0xff;
-             /* Set the clock for when the vdc status will be clear after this operation */
-            vdc_status_clear_clock = maincpu_clk + 37;
+            /* Set the clock for when the vdc status will be clear after this operation */
+            if (vdc.display_enable) {
+                vdc_status_clear_clock = maincpu_clk + 43;  /* The VDC is 'busier' when in the active display area */
+            } else {
+                vdc_status_clear_clock = maincpu_clk + 4;   /* And less busy in the top/bottom border */
+            }
             return retval;
         }
 
@@ -561,7 +581,7 @@ uint8_t vdc_peek(uint16_t addr)    /* No sidefx read of external VDC registers *
 
         /* Read VDCs RAM without incrementing the pointer */
         if (vdc.update_reg == 31) {
-            return vdc.ram[((vdc.regs[18] << 8) + vdc.regs[19]) & vdc.vdc_address_mask];
+            return vdc_ram_read((vdc.regs[18] << 8) + vdc.regs[19]);
         }
 
         /* Make sure light pen flag is not altered if either light pen position register is read */
@@ -576,8 +596,7 @@ uint8_t vdc_peek(uint16_t addr)    /* No sidefx read of external VDC registers *
     }
 }
 
-#if 0
-/* address translation function for a 64KB VDC in 16KB mode */
+/* address translation function for a 64KB VDC in 16KB mode, used by below 2 functions */
 static uint16_t vdc_64k_to_16k_map(uint16_t address)
 {
     uint16_t new_address = address & 0x80ff;
@@ -589,27 +608,22 @@ static uint16_t vdc_64k_to_16k_map(uint16_t address)
     new_address |= tmp;
     return new_address;
 }
-#endif
 
 uint8_t vdc_ram_read(uint16_t addr)
 {
-#if 0
-    /* check for 16KB memory map and 64KB VDC */
-    if (!(vdc.regs[28] & 0x10) && (vdc_resources.vdc_64kb_expansion)) {
+    /* Use 16KB memory map when the RAM chip type register #28 bit 4 is 0 for 4416 chips */
+    if (!(vdc.regs[28] & 0x10)) {
         return vdc.ram[vdc_64k_to_16k_map(addr & vdc.vdc_address_mask)];
     }
-#endif
-    /* for now the default till all possible combinations have been fixed */
+    /* otherwise return the default linear memory layout for the 4164 chip setting */
     return vdc.ram[addr & vdc.vdc_address_mask];
 }
 
 void vdc_ram_store(uint16_t addr, uint8_t value)
-{
-#if 0
-    if (!(vdc.regs[28] & 0x10) && (vdc_resources.vdc_64kb_expansion)) {
+{   /* as above but for storing to VDC ram with appropriate address translation*/
+    if (!(vdc.regs[28] & 0x10)) {
         vdc.ram[vdc_64k_to_16k_map(addr & vdc.vdc_address_mask)] = value;
     } else
-#endif
     vdc.ram[addr & vdc.vdc_address_mask] = value;
 }
 
@@ -650,7 +664,13 @@ int vdc_dump(void *context, uint16_t addr)
     mon_out(vdc.regs[25] & 0x40 ? " & Attributes" : ", no Attributes");
     mon_out(vdc.regs[25] & 0x20 ? ", Semigraphic" : "");
     mon_out(vdc.regs[24] & 0x40 ? ", Reverse" : "");
-    mon_out(vdc.regs[8] & 0x03 ? ", Interlaced" : ", Non-Interlaced");
+    if ((vdc.regs[8] & 0x03) == 3)  {   /* interlace sync and video */
+        mon_out(", Interlaced Sync & Video");
+    } else if ((vdc.regs[8] & 0x03) == 1)  {   /* interlace sync */
+        mon_out(", Interlaced Sync");
+    } else {    /* 0x00 or 0x02 are non-interlaced */
+        mon_out(", Non-Interlaced");
+    }
     if (vdc.regs[25] & 0x10) { /* double pixel mode aka 40column mode */
         mon_out(", Pixel Double");
         mon_out("\nScreen Size    : %d x %d chars", vdc.regs[1], vdc.regs[6]);

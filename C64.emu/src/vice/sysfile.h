@@ -36,9 +36,9 @@ extern void sysfile_shutdown(void);
 extern int sysfile_resources_init(void);
 extern void sysfile_resources_shutdown(void);
 extern int sysfile_cmdline_options_init(void);
-extern FILE *sysfile_open(const char *name, char **complete_path_return, const char *open_mode);
-extern int sysfile_locate(const char *name, char **complete_path_return);
-extern int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize);
+extern FILE *sysfile_open(const char *name, const char *subpath, char **complete_path_return, const char *open_mode);
+extern int sysfile_locate(const char *name, const char *subpath, char **complete_path_return);
+extern int sysfile_load(const char *name, const char *subpath, uint8_t *dest, int minsize, int maxsize);
 
 #include <viceSysFileAPI.h>
 

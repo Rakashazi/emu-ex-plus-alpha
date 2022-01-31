@@ -180,14 +180,14 @@ uint8_t final_v1_romh_read(uint16_t addr)
 void final_v1_freeze(void)
 {
     DBG(("freeze enable\n"));
-    cart_config_changed_slotmain(3, 3, CMODE_READ | CMODE_RELEASE_FREEZE);
+    cart_config_changed_slotmain(CMODE_ULTIMAX, CMODE_ULTIMAX, CMODE_READ | CMODE_RELEASE_FREEZE);
     final_v1_active = 1;
     cartridge_release_freeze();
 }
 
 void final_v1_config_init(void)
 {
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
     final_v1_active = 1;
 }
 
@@ -195,7 +195,7 @@ void final_v1_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     memcpy(romh_banks, &rawcart[0x2000], 0x2000);
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
     final_v1_active = 1;
 }
 

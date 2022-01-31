@@ -176,7 +176,7 @@ void sdbox_config_init(void)
     currbank = 0;
 }
 
-void sdbox_ram_init(void)
+void sdbox_powerup(void)
 {
     memset(regs, 0, 4);
 }

@@ -113,7 +113,7 @@ static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t myoldpb,
     uint8_t joy_bit = (byte & 0x80) >> 4;
 
     if ((byte ^ myoldpb) & 8) {
-        tapeport_toggle_write_bit((~(via_context->via[VIA_DDRB]) | byte) & 0x8);
+        tapeport_toggle_write_bit(TAPEPORT_PORT_1, (~(via_context->via[VIA_DDRB]) | byte) & 0x8);
     }
     store_joyport_dig(JOYPORT_1, joy_bit, 8);
 }
@@ -191,7 +191,7 @@ static uint8_t read_prb(via_context_t *via_context)
 void via1_init(via_context_t *via_context)
 {
     viacore_init(machine_context.via1, maincpu_alarm_context,
-                 maincpu_int_status, maincpu_clk_guard);
+                 maincpu_int_status);
 }
 
 void vic20via1_setup_context(machine_context_t *machinecontext)

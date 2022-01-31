@@ -50,6 +50,7 @@ public:
   double sample_freq, double pass_freq = -1,
   double filter_scale = 0.97);
   void adjust_sampling_frequency(double sample_freq);
+  void enable_raw_debug_output(bool enable);
 
   void clock();
   void clock(cycle_count delta_t);
@@ -99,6 +100,8 @@ public:
 
   // 16-bit output (AUDIO OUT).
   int output();
+
+  void debugoutput(void);
 
  protected:
   static double I0(double x);
@@ -165,6 +168,8 @@ public:
 
   // FIR_RES filter tables (FIR_N*FIR_RES).
   short* fir;
+
+  bool raw_debug_output; // FIXME: should be private?
 };
 
 
@@ -228,6 +233,10 @@ void SID::clock()
   // Age bus value.
   if (unlikely(!--bus_value_ttl)) {
     bus_value = 0;
+  }
+
+  if (unlikely(raw_debug_output)) {
+    debugoutput();
   }
 }
 

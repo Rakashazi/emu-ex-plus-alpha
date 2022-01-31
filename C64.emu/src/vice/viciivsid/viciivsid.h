@@ -73,7 +73,7 @@ extern void vicii_powerup(void);
 extern void vicii_set_canvas_refresh(int enable);
 extern void vicii_reset_registers(void);
 extern void vicii_update_memory_ptrs_external(void);
-extern void vicii_handle_pending_alarms_external(int num_write_cycles);
+extern void vicii_handle_pending_alarms_external(CLOCK num_write_cycles);
 extern void vicii_handle_pending_alarms_external_write(void);
 
 extern void vicii_screenshot(struct screenshot_s *screenshot);

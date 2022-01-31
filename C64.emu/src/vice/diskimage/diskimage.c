@@ -763,7 +763,7 @@ int disk_image_cmdline_options_init(void)
 
 /*-----------------------------------------------------------------------*/
 
-uint32_t disk_image_size(const disk_image_t *image)
+off_t disk_image_size(const disk_image_t *image)
 {
     switch (image->device) {
         case DISK_IMAGE_DEVICE_FS:

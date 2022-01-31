@@ -39,6 +39,7 @@
 #include "cartridge.h"
 #include "maxbasic.h"
 #include "export.h"
+#include "ram.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "types.h"
@@ -54,6 +55,8 @@
     2K RAM
     - RAM is mapped to $0800
 */
+
+#define CART_RAM_SIZE (2 * 1024)
 
 static const export_resource_t export_res = {
     CARTRIDGE_NAME_MAX_BASIC, 0, 1, NULL, NULL, CARTRIDGE_MAX_BASIC
@@ -98,7 +101,7 @@ int maxbasic_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 
 void maxbasic_config_init(void)
 {
-    cart_config_changed_slotmain(3, 3, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_ULTIMAX, CMODE_ULTIMAX, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -107,10 +110,29 @@ void maxbasic_config_setup(uint8_t *rawcart)
 {
     memcpy(&roml_banks[0x0000], &rawcart[0x0000], 0x2000);
     memcpy(&romh_banks[0x0000], &rawcart[0x2000], 0x2000);
-    cart_config_changed_slotmain(3, 3, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_ULTIMAX, CMODE_ULTIMAX, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/
+
+/* FIXME: this still needs to be tweaked to match the hardware */
+static RAMINITPARAM ramparam = {
+    .start_value = 255,
+    .value_invert = 2,
+    .value_offset = 1,
+
+    .pattern_invert = 0x100,
+    .pattern_invert_value = 255,
+
+    .random_start = 0,
+    .random_repeat = 0,
+    .random_chance = 0,
+};
+
+void maxbasic_powerup(void)
+{
+    ram_init_with_pattern(export_ram0, CART_RAM_SIZE, &ramparam);
+}
 
 static int maxbasic_common_attach(void)
 {

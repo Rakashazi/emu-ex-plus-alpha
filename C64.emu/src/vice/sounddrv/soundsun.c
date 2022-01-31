@@ -222,7 +222,7 @@ static void sun_close(void)
 }
 
 
-static sound_device_t sun_device =
+static const sound_device_t sun_device =
 {
 #if defined(__NetBSD__)
     "netbsd",

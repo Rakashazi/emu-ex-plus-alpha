@@ -202,8 +202,10 @@ static int alsa_bufferspace(void)
 
 static void alsa_close(void)
 {
-    snd_pcm_close(handle);
-    handle = NULL;
+    if (handle) {
+        snd_pcm_close(handle);
+        handle = NULL;
+    }
     alsa_bufsize = 0;
     alsa_fragsize = 0;
 }
@@ -240,7 +242,7 @@ static int alsa_resume(void)
     return 0;
 }
 
-static sound_device_t alsa_device =
+static const sound_device_t alsa_device =
 {
     "alsa",
     alsa_init,

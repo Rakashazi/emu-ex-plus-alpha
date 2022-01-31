@@ -162,7 +162,7 @@ uint8_t se5_roml_read(uint16_t addr)
 
 void se5_config_init(void)
 {
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     cart_romlbank_set_slotmain(0);
     se5_bank = 0;
 }
@@ -170,7 +170,7 @@ void se5_config_init(void)
 void se5_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, SE5_CART_SIZE);
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     cart_romlbank_set_slotmain(0);
     se5_bank = 0;
 }

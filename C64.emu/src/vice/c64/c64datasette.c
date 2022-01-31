@@ -31,24 +31,32 @@
 #include "c64mem.h"
 #include "cia.h"
 #include "datasette.h"
+#include "tapeport.h"
 
-
-void machine_trigger_flux_change(unsigned int on)
+void machine_trigger_flux_change(int port, unsigned int on)
 {
-    ciacore_set_flag(machine_context.cia1);
+    if (port == TAPEPORT_PORT_1) {
+        ciacore_set_flag(machine_context.cia1);
+    }
 }
 
-void machine_set_tape_sense(int sense)
+void machine_set_tape_sense(int port, int sense)
 {
-    mem_set_tape_sense(sense);
+    if (port == TAPEPORT_PORT_1) {
+        mem_set_tape_sense(sense);
+    }
 }
 
-void machine_set_tape_write_in(int val)
+void machine_set_tape_write_in(int port, int val)
 {
-    mem_set_tape_write_in(val);
+    if (port == TAPEPORT_PORT_1) {
+        mem_set_tape_write_in(val);
+    }
 }
 
-void machine_set_tape_motor_in(int val)
+void machine_set_tape_motor_in(int port, int val)
 {
-    mem_set_tape_motor_in(val);
+    if (port == TAPEPORT_PORT_1) {
+        mem_set_tape_motor_in(val);
+    }
 }

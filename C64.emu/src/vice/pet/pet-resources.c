@@ -285,6 +285,19 @@ static int set_eoiblank_enabled(int val, void *param)
     return 0;
 }
 
+static int set_screen2001_enabled(int val, void *param)
+{
+    int i = (val) ? 1 : 0;
+
+    if (i != petres.screenmirrors2001) {
+        petres.screenmirrors2001 = i;
+
+        petmem_set_vidmem();
+    }
+
+    return 0;
+}
+
 static int set_sync_factor(int val, void *param)
 {
     int change_timing = 0;
@@ -426,6 +439,8 @@ static const resource_int_t resources_int[] = {
       &petres.pet2kchar, set_pet2kchar_enabled, NULL },
     { "EoiBlank", 0, RES_EVENT_SAME, NULL,
       &petres.eoiblank, set_eoiblank_enabled, NULL },
+    { "Screen2001", 0, RES_EVENT_SAME, NULL,
+      &petres.screenmirrors2001, set_screen2001_enabled, NULL },
     { "CPUswitch", SUPERPET_CPU_6502, RES_EVENT_SAME, NULL,
       &petres.superpet_cpu_switch, set_superpet_cpu_switch, NULL },
 /*  { "SuperPETRamWriteProtect", 0, RES_EVENT_SAME, NULL,

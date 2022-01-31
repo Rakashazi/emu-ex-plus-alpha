@@ -46,12 +46,12 @@
 #include "c64iec.h"
 #include "c64keyboard.h"
 #include "scpu64mem.h"
+#include "c64parallel.h"
 #include "c64rsuser.h"
 #include "cardkey.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cia.h"
-#include "clkguard.h"
 #include "coplin_keypad.h"
 #include "cx21.h"
 #include "cx85.h"
@@ -66,8 +66,10 @@
 #include "fsdevice.h"
 #include "gfxoutput.h"
 #include "imagecontents.h"
+#include "inception.h"
 #include "init.h"
 #include "joyport.h"
+#include "joyport_io_sim.h"
 #include "joystick.h"
 #include "kbdbuf.h"
 #include "keyboard.h"
@@ -79,11 +81,14 @@
 #include "main65816cpu.h"
 #include "mem.h"
 #include "monitor.h"
+#include "multijoy.h"
 #include "network.h"
+#include "ninja_snespad.h"
 #include "paperclip64.h"
 #include "parallel.h"
 #include "patchrom.h"
 #include "printer.h"
+#include "protopad.h"
 #include "resources.h"
 #include "rs232drv.h"
 #include "rsuser.h"
@@ -103,19 +108,24 @@
 #include "sid-cmdline-options.h"
 #include "sid-resources.h"
 #include "sid.h"
-#include "snespad.h"
 #include "sound.h"
+#include "spaceballs.h"
 #include "tapecart.h"
 #include "traps.h"
+#include "trapthem_snespad.h"
 #include "types.h"
 #include "userport.h"
 #include "userport_4bit_sampler.h"
 #include "userport_8bss.h"
 #include "userport_dac.h"
 #include "userport_digimax.h"
+#include "userport_io_sim.h"
 #include "userport_joystick.h"
+#include "userport_petscii_snespad.h"
 #include "userport_rtc_58321a.h"
 #include "userport_rtc_ds1307.h"
+#include "userport_superpad64.h"
+#include "userport_wic64.h"
 #include "vice-event.h"
 #include "vicii.h"
 #include "vicii-mem.h"
@@ -128,7 +138,6 @@
 #include "lightpen.h"
 #include "mouse.h"
 #endif
-
 
 /** \brief  Delay in seconds before pasting -keybuf argument into the buffer
  */
@@ -349,6 +358,8 @@ static joyport_port_props_t control_port_1 =
     "Control port 1",
     1,                  /* has a potentiometer connected to this port */
     1,                  /* has lightpen support on this port */
+    1,                  /* has joystick adapter on this port */
+    1,                  /* has output support on this port */
     1                   /* port is always active */
 };
 
@@ -357,22 +368,88 @@ static joyport_port_props_t control_port_2 =
     "Control port 2",
     1,                  /* has a potentiometer connected to this port */
     0,                  /* has NO lightpen support on this port */
+    1,                  /* has joystick adapter on this port */
+    1,                  /* has output support on this port */
     1                   /* port is always active */
 };
 
-static joyport_port_props_t userport_joy_control_port_1 =
+static joyport_port_props_t joy_adapter_control_port_1 =
 {
-    "Userport joystick adapter port 1",
+    "Joystick adapter port 1",
     0,                  /* has NO potentiometer connected to this port */
     0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    1,                  /* has output support on this port */
     0                   /* port can be switched on/off */
 };
 
-static joyport_port_props_t userport_joy_control_port_2 =
+static joyport_port_props_t joy_adapter_control_port_2 =
 {
-    "Userport joystick adapter port 2",
+    "Joystick adapter port 2",
     0,                  /* has NO potentiometer connected to this port */
     0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    1,                  /* has output support on this port */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_3 =
+{
+    "Joystick adapter port 3",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    1,                  /* has output support on this port */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_4 =
+{
+    "Joystick adapter port 4",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    1,                  /* has output support on this port */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_5 =
+{
+    "Joystick adapter port 5",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    1,                  /* has output support on this port */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_6 =
+{
+    "Joystick adapter port 6",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    1,                  /* has output support on this port */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_7 =
+{
+    "Joystick adapter port 7",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    1,                  /* has output support on this port */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_8 =
+{
+    "Joystick adapter port 8",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    1,                  /* has output support on this port */
     0                   /* port can be switched on/off */
 };
 
@@ -384,10 +461,28 @@ static int init_joyport_ports(void)
     if (joyport_port_register(JOYPORT_2, &control_port_2) < 0) {
         return -1;
     }
-    if (joyport_port_register(JOYPORT_3, &userport_joy_control_port_1) < 0) {
+    if (joyport_port_register(JOYPORT_3, &joy_adapter_control_port_1) < 0) {
         return -1;
     }
-    return joyport_port_register(JOYPORT_4, &userport_joy_control_port_2);
+    if (joyport_port_register(JOYPORT_4, &joy_adapter_control_port_2) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_5, &joy_adapter_control_port_3) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_6, &joy_adapter_control_port_4) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_7, &joy_adapter_control_port_5) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_8, &joy_adapter_control_port_6) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_9, &joy_adapter_control_port_7) < 0) {
+        return -1;
+    }
+    return joyport_port_register(JOYPORT_10, &joy_adapter_control_port_8);
 }
 
 /* SCPU64-specific resource initialization.  This is called before initializing
@@ -420,6 +515,14 @@ int machine_resources_init(void)
     }
     if (rs232drv_resources_init() < 0) {
         init_resource_fail("rs232drv");
+        return -1;
+    }
+    if (userport_resources_init() < 0) {
+        init_resource_fail("userport devices");
+        return -1;
+    }
+    if (parallel_cable_cpu_resources_init() < 0) {
+        init_resource_fail("userport parallel drive cable");
         return -1;
     }
     if (rsuser_resources_init() < 0) {
@@ -490,16 +593,32 @@ int machine_resources_init(void)
         init_resource_fail("joyport cardkey keypad");
         return -1;
     }
-    if (joyport_snespad_resources_init() < 0) {
-        init_resource_fail("joyport snespad");
+    if (joyport_trapthem_snespad_resources_init() < 0) {
+        init_resource_fail("joyport trapthem snespad");
+        return -1;
+    }
+    if (joyport_ninja_snespad_resources_init() < 0) {
+        init_resource_fail("joyport ninja snespad");
+        return -1;
+    }
+    if (joyport_protopad_resources_init() < 0) {
+        init_resource_fail("joyport protopad");
+        return -1;
+    }
+    if (joyport_spaceballs_resources_init() < 0) {
+        init_resource_fail("joyport spaceballs");
+        return -1;
+    }
+    if (joyport_inception_resources_init() < 0) {
+        init_resource_fail("joyport inception");
+        return -1;
+    }
+    if (joyport_multijoy_resources_init() < 0) {
+        init_resource_fail("joyport multijoy");
         return -1;
     }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
-        return -1;
-    }
-    if (userport_resources_init() < 0) {
-        init_resource_fail("userport devices");
         return -1;
     }
     if (gfxoutput_resources_init() < 0) {
@@ -563,16 +682,40 @@ int machine_resources_init(void)
     }
 #endif
 #endif
-    if (drive_resources_init() < 0) {
-        init_resource_fail("drive");
-        return -1;
-    }
     if (scpu64_glue_resources_init() < 0) {
         init_resource_fail("scpu64 glue");
         return -1;
     }
-    if (userport_joystick_resources_init() < 0) {
-        init_resource_fail("userport joystick");
+    if (userport_joystick_cga_resources_init() < 0) {
+        init_resource_fail("userport cga joystick");
+        return -1;
+    }
+    if (userport_joystick_pet_resources_init() < 0) {
+        init_resource_fail("userport pet joystick");
+        return -1;
+    }
+    if (userport_joystick_hummer_resources_init() < 0) {
+        init_resource_fail("userport hummer joystick");
+        return -1;
+    }
+    if (userport_joystick_oem_resources_init() < 0) {
+        init_resource_fail("userport oem joystick");
+        return -1;
+    }
+    if (userport_joystick_hit_resources_init() < 0) {
+        init_resource_fail("userport hit joystick");
+        return -1;
+    }
+    if (userport_joystick_kingsoft_resources_init() < 0) {
+        init_resource_fail("userport kingsoft joystick");
+        return -1;
+    }
+    if (userport_joystick_starbyte_resources_init() < 0) {
+        init_resource_fail("userport starbyte joystick");
+        return -1;
+    }
+    if (userport_joystick_synergy_resources_init() < 0) {
+        init_resource_fail("userport synergy joystick");
         return -1;
     }
     if (userport_dac_resources_init() < 0) {
@@ -599,12 +742,43 @@ int machine_resources_init(void)
         init_resource_fail("userport 8bit stereo sampler");
         return -1;
     }
+    if (userport_superpad64_resources_init() < 0) {
+        init_resource_fail("userport superpad64");
+        return -1;
+    }
+    if (userport_petscii_snespad_resources_init() < 0) {
+        init_resource_fail("userport petscii snes pad");
+        return -1;
+    }
+#ifdef USERPORT_EXPERIMENTAL_DEVICES
+    if (userport_wic64_resources_init() < 0) {
+        init_resource_fail("userport wic64");
+        return -1;
+    }
+#endif
+    if (userport_io_sim_resources_init() < 0) {
+        init_resource_fail("userport I/O simulation");
+        return -1;
+    }
+    if (joyport_io_sim_resources_init() < 0) {
+        init_resource_fail("joyport I/O simulation");
+        return -1;
+    }
     if (cartio_resources_init() < 0) {
         init_resource_fail("cartio");
         return -1;
     }
     if (cartridge_resources_init() < 0) {
         init_resource_fail("cartridge");
+        return -1;
+    }
+    /* Must be called after initializing cartridge resources. Some carts provide
+     * additional busses.  The drive resources check the validity of the drive
+     * type against the available busses on the system.  So if you had e.g. an
+     * IEEE cart enabled and an IEEE defined, on startup the drive code would
+     * reset the drive type to the default for the IEC bus. */
+    if (drive_resources_init() < 0) {
+        init_resource_fail("drive");
         return -1;
     }
     return 0;
@@ -625,7 +799,6 @@ void machine_resources_shutdown(void)
     fsdevice_resources_shutdown();
     disk_image_resources_shutdown();
     sampler_resources_shutdown();
-    userport_resources_shutdown();
     joyport_bbrtc_resources_shutdown();
 }
 
@@ -746,32 +919,12 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("scpu64 glue");
         return -1;
     }
-    if (userport_joystick_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("userport joystick");
-        return -1;
-    }
-    if (userport_dac_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("userport dac");
-        return -1;
-    }
-    if (userport_digimax_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("userport digimax");
-        return -1;
-    }
     if (userport_rtc_58321a_cmdline_options_init() < 0) {
         init_cmdline_options_fail("userport rtc (58321a)");
         return -1;
     }
     if (userport_rtc_ds1307_cmdline_options_init() < 0) {
         init_cmdline_options_fail("userport rtc (ds1307)");
-        return -1;
-    }
-    if (userport_4bit_sampler_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("userport 4bit sampler");
-        return -1;
-    }
-    if (userport_8bss_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("userport 8bit stereo sampler");
         return -1;
     }
     if (cartio_cmdline_options_init() < 0) {
@@ -953,7 +1106,7 @@ void machine_specific_reset(void)
     sid_reset();
 
     rs232drv_reset(); /* driver is used by both user- and expansion port ? */
-    rsuser_reset();
+    userport_reset();
 
     printer_reset();
 
@@ -976,7 +1129,10 @@ void machine_specific_reset(void)
 
 void machine_specific_powerup(void)
 {
+    cartridge_powerup();
     vicii_reset_registers();
+    userport_powerup();
+    joyport_powerup();
     reset_poweron = 1;
 }
 
@@ -1006,7 +1162,7 @@ void machine_specific_shutdown(void)
     }
 }
 
-void machine_handle_pending_alarms(int num_write_cycles)
+void machine_handle_pending_alarms(CLOCK num_write_cycles)
 {
     vicii_handle_pending_alarms_external(num_write_cycles);
 }
@@ -1016,21 +1172,11 @@ void machine_handle_pending_alarms(int num_write_cycles)
 /* This hook is called at the end of every frame.  */
 static void machine_vsync_hook(void)
 {
-    CLOCK sub;
-
     network_hook();
 
     drive_vsync_hook();
 
-    autostart_advance();
-
     screenshot_record();
-
-    sub = clk_guard_prevent_overflow(maincpu_clk_guard);
-
-    /* The drive has to deal both with our overflowing and its own one, so
-       it is called even when there is no overflowing in the main CPU.  */
-    drive_cpu_prevent_clk_overflow_all(sub);
 }
 
 void machine_set_restore_key(int v)
@@ -1110,7 +1256,6 @@ void machine_change_timing(int timeval, int border_mode)
 #ifdef HAVE_MOUSE
     neos_mouse_set_machine_parameter(machine_timing.cycles_per_sec);
 #endif
-    clk_guard_set_clk_base(maincpu_clk_guard, (CLOCK)machine_timing.cycles_per_rfsh);
 
     vicii_change_timing(&machine_timing, border_mode);
 
@@ -1120,6 +1265,8 @@ void machine_change_timing(int timeval, int border_mode)
     cia2_set_timing(machine_context.cia2,
                     (int)machine_timing.cycles_per_sec,
                     machine_timing.power_freq);
+
+    rsuser_change_timing(machine_timing.cycles_per_sec);
 
     machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 }
@@ -1249,7 +1396,8 @@ static userport_port_props_t userport_props = {
     1,                        /* port has the pa3 pin */
     scpu64_userport_set_flag, /* port has the flag pin, set flag function */
     1,                        /* port has the pc pin */
-    1                         /* port has the cnt1, cnt2 and sp pins */
+    1,                        /* port has the cnt1, cnt2 and sp pins */
+    1                         /* port has the reset pin */
 };
 
 int machine_register_userport(void)

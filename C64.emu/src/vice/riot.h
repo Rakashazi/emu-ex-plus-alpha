@@ -82,13 +82,12 @@ typedef struct riot_context_s {
 } riot_context_t;
 
 struct alarm_context_s;
-struct clk_guard_s;
 struct snapshot_s;
 
 extern void riotcore_setup_context(riot_context_t *riot_context);
 extern void riotcore_init(riot_context_t *riot_context,
                           struct alarm_context_s *alarm_context,
-                          struct clk_guard_s *clk_guard, unsigned int number);
+                          unsigned int number);
 extern void riotcore_shutdown(struct riot_context_s *riot_context);
 extern void riotcore_reset(riot_context_t *riot_context);
 extern void riotcore_disable(riot_context_t *riot_context);

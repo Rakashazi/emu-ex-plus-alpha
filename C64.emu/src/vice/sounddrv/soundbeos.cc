@@ -157,7 +157,7 @@ static int beos_resume(void)
     return 0;
 }
 
-static sound_device_t beos_device =
+static const sound_device_t beos_device =
 {
     "beos",
     beos_init,

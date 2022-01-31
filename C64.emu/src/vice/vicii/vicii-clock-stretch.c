@@ -33,7 +33,7 @@
 #include "vicii.h"
 #include "viciitypes.h"
 
-CLOCK vicii_clock_add(CLOCK clock, int amount)
+CLOCK vicii_clock_add(CLOCK clock, int64_t amount)
 {
     CLOCK tmp_clock = clock;
 
@@ -139,8 +139,8 @@ int vicii_get_half_cycle(void)
 
 void vicii_memory_refresh_alarm_handler(void)
 {
-    int offset;
-    int amount;
+    int64_t offset;
+    int64_t amount;
     int current_refresh;
     int current_cycle;
 

@@ -168,7 +168,10 @@ inline static void handle_fetch_matrix(long offset, CLOCK sub,
 /* Handle matrix fetch events.  FIXME: could be made slightly faster.  */
 void ted_fetch_alarm_handler(CLOCK offset, void *data)
 {
-    CLOCK last_opcode_first_write_clk, last_opcode_last_write_clk;
+    CLOCK last_opcode_first_write_clk;
+    CLOCK last_opcode_last_write_clk;
+    CLOCK sub;
+    CLOCK write_offset;
 
     /* This kludgy thing is used to emulate the behavior of the 6510 when BA
        goes low.  When BA goes low, every read access stops the processor
@@ -209,21 +212,16 @@ void ted_fetch_alarm_handler(CLOCK offset, void *data)
         last_opcode_first_write_clk = last_opcode_last_write_clk = 0;
     }
 
-    {
-        CLOCK sub;
-        CLOCK write_offset;
-
-        if (ted.fetch_clk < (last_opcode_first_write_clk - 1)
-            || ted.fetch_clk > last_opcode_last_write_clk) {
-            sub = 0;
-        } else {
-            sub = last_opcode_last_write_clk - ted.fetch_clk + 1;
-        }
-
-        handle_fetch_matrix(offset, sub, &write_offset);
-        last_opcode_first_write_clk += write_offset;
-        last_opcode_last_write_clk += write_offset;
+    if (ted.fetch_clk < (last_opcode_first_write_clk - 1)
+        || ted.fetch_clk > last_opcode_last_write_clk) {
+        sub = 0;
+    } else {
+        sub = last_opcode_last_write_clk - ted.fetch_clk + 1;
     }
+
+    handle_fetch_matrix(offset, sub, &write_offset);
+    last_opcode_last_write_clk += write_offset;
+
     if ((offset > 11) && (ted.fastmode)) {
         dma_maincpu_steal_cycles(ted.fetch_clk, -(((signed)offset - 11) / 2), 0);
         ted_delay_oldclk(-(((signed)offset - 11) / 2));

@@ -31,6 +31,7 @@
 
 #include "c64_diag_586220_harness.h"
 #include "datasette.h"
+#include "tapeport.h"
 #include "types.h"
 
 static uint8_t c64_diag_userport_pax = 0;
@@ -86,16 +87,16 @@ void c64_diag_586220_store_tapeport(uint8_t pin, uint8_t val)
 
     switch (pin) {
         case C64_DIAG_TAPEPORT_MOTOR:
-            machine_set_tape_write_in(val);
+            machine_set_tape_write_in(TAPEPORT_PORT_1, val);
             break;
         case C64_DIAG_TAPEPORT_READ:
-            machine_set_tape_sense(val);
+            machine_set_tape_sense(TAPEPORT_PORT_1, val);
             break;
         case C64_DIAG_TAPEPORT_WRITE:
-            machine_set_tape_motor_in(val);
+            machine_set_tape_motor_in(TAPEPORT_PORT_1, val);
             break;
         case C64_DIAG_TAPEPORT_SENSE:
-            machine_trigger_flux_change(val);
+            machine_trigger_flux_change(TAPEPORT_PORT_1, val);
             break;
     }
 

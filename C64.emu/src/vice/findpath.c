@@ -46,7 +46,7 @@
  * Overflow testing for internal buffer is always done.
  */
 
-char *findpath(const char *cmd, const char *syspath, int mode)
+char *findpath(const char *cmd, const char *syspath, const char *subpath, int mode)
 {
     char *pd = NULL;
     char *c, *buf;
@@ -146,17 +146,18 @@ char *findpath(const char *cmd, const char *syspath, int mode)
         pd = buf + 1;
     } else {
         const char *path = syspath;
-        const char *s;
+        const char *s = path;
         size_t cl = strlen(cmd) + 1;
+        size_t spl = subpath ? strlen(subpath) + 1 : 0;
 
-        for (s = path; s; path = s + 1) {
+        for (;;) {
             char * p;
             int l;
 
             s = strchr(path, ARCHDEP_FINDPATH_SEPARATOR_CHAR);
             l = s ? (int)(s - path) : (int)strlen(path);
 
-            if (l + cl > maxpathlen - 5) {
+            if (l + cl + spl > maxpathlen - 5) {
                 continue;
             }
 
@@ -165,6 +166,11 @@ char *findpath(const char *cmd, const char *syspath, int mode)
             p = buf + l;  /* buf + 1 + l - 1 */
 
             if (*p++ != '/') {
+                *p++ = '/';
+            }
+            if (subpath != NULL) {
+                memcpy(p, subpath, spl - 1);
+                p += spl - 1;
                 *p++ = '/';
             }
 
@@ -189,6 +195,12 @@ char *findpath(const char *cmd, const char *syspath, int mode)
                 pd = p /* + cl*/;
                 break;
             }
+            
+            if (s == NULL) {
+                break;
+            }
+                
+            path = s + 1;
         }
     }
 

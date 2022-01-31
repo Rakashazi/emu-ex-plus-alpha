@@ -24,10 +24,13 @@
  *
  */
 
+/* #define DEBUG_SERIAL */
+
 #include "vice.h"
 
-#include <stdio.h>
+#include <stdio.h> /* for NULL */
 
+#include "iecbus.h"
 #include "maincpu.h"
 #include "mem.h"
 #include "serial-iec-bus.h"
@@ -37,20 +40,36 @@
 #include "serial.h"
 #include "types.h"
 
+#ifdef DEBUG_SERIAL
+#include "log.h"
+#define DBG(x)  log_debug x
+#else
+#define DBG(x)
+#endif
+
+#define MAX_DEVICES 15  /* FIXME: is there another constant we can use instead? */
+extern int traps_enabled_device[MAX_DEVICES]; /* FIXME */
 
 /* Warning: these are only valid for the VIC20, C64 and C128, but *not* for
    the PET.  (FIXME?)  */
 #define BSOUR 0x95 /* Buffered Character for IEEE Bus */
 
 /* FIXME: code here assumes 4 bits for device number; should be 5? */
-#define LISTEN_MASK     0xF0    /* should be 0xE0 */
 #define DEVNR_MASK      0x0F    /* should be 0x1F */
 #define SA_MASK         0x0F
+
+/* bits 7=0 6,5 dev=4,3,2,1,0 */
 #define LISTEN          0x20
 #define TALK            0x40
 #define SECONDARY       0x60
+
+/* bits 7=1 6,5,4 sec=3,2,1,0 */
 #define CLOSE           0xE0
 #define OPEN            0xF0
+
+/* bits 7=0 6,5 dev=4,3,2,1,0=31 */
+#define UNLISTEN        0x3f    /* LISTEN with dev=31 correct?*/
+#define UNTALK          0x5f    /* TALK with dev=31 correct?*/
 
 /* Address of serial TMP register.  */
 static uint16_t tmp_in;
@@ -59,13 +78,15 @@ static uint16_t tmp_in;
 static uint8_t TrapDevice;
 static uint8_t TrapSecondary;
 
+static int ActiveDevice = -1;
+
 /* Function to call when EOF happens in `serialreceivebyte()'.  */
 static void (*eof_callback_func)(void);
 
 /* Function to call when the `serialattention()' trap is called.  */
 static void (*attention_callback_func)(void);
 
-static unsigned int serial_truedrive;
+static unsigned int serial_truedrive[IECBUS_NUM];
 
 #define IS_PRINTER(d)   (((d) & DEVNR_MASK) >= 4 && ((d) & DEVNR_MASK) <= 7)
 
@@ -95,54 +116,82 @@ static void send_listen_talk_secondary(uint8_t b)
     }
 }
 
+/* FIXME: the printers are strange */
+static int device_uses_serial_traps(int device)
+{
+    if ((device < 4) || (device > 11) || /* only devices 4 to 11 can use traps */
+        !traps_enabled_device[device] ||
+        (serial_truedrive[device] && !IS_PRINTER(device))) {
+        return 0;
+    }
+    return 1;
+}
+
 /* Command Serial Bus to TALK, LISTEN, UNTALK, or UNLISTEN, and send the
    Secondary Address to Serial Bus under Attention.  */
 int serial_trap_attention(void)
 {
-    uint8_t b;
+    uint8_t iecdata;
     serial_t *p;
 
-    /*
-     * Which Secondary Address ?
-     */
-    b = mem_read(((uint8_t)(BSOUR))); /* BSOUR - character for serial bus */
+    iecdata = mem_read(((uint8_t)(BSOUR))); /* BSOUR - character for serial bus */
 
-    if (serial_truedrive && !IS_PRINTER(b)) {
-        if (((b & 0xf0) == LISTEN) || ((b & 0xf0) == TALK)) {
-            /* Set TrapDevice even if the trap is not taken; needed
-               for other traps.  */
-            TrapDevice = b;
+    if ((iecdata == UNLISTEN) || (iecdata == UNTALK)) {
+        /* transfer ends */
+        DBG(("serial_trap_attention unlisten/untalk for device %d", ActiveDevice));
+    } else if (((iecdata & 0xf0) == OPEN) || ((iecdata & 0xf0) == CLOSE)) {
+        DBG(("serial_trap_attention open/close for device %d", ActiveDevice));
+    } else if (((iecdata & 0xf0) == LISTEN) || ((iecdata & 0xf0) == TALK)) {
+        ActiveDevice = iecdata & DEVNR_MASK;
+        DBG(("serial_trap_attention listen/talk for device %d", ActiveDevice));
+    }
+
+    if (!device_uses_serial_traps(ActiveDevice)) {
+        DBG(("serial_trap_attention aborted (dev %d)", ActiveDevice));
+        if ((iecdata == UNLISTEN) || (iecdata == UNTALK)) {
+            ActiveDevice = 0;
         }
         return 0;
     }
 
+    DBG(("serial_trap_attention 0x%02x", iecdata));
+
     /* do a flush if unlisten for close and command channel */
-    if (b == (LISTEN + 0x1f)) {
+    if (iecdata == UNLISTEN) {
+        DBG(("serial_trap_attention unlisten TrapDevice: 0x%02x", TrapDevice));
         serial_iec_bus_unlisten(TrapDevice, TrapSecondary, serial_set_st);
-    } else if (b == (TALK + 0x1f)) {
+        ActiveDevice = 0;
+    } else if (iecdata == UNTALK) {
+        DBG(("serial_trap_attention untalk TrapDevice: 0x%02x", TrapDevice));
         serial_iec_bus_untalk(TrapDevice, TrapSecondary, serial_set_st);
+        ActiveDevice = 0;
     } else {
-        switch (b & 0xf0) {
+        switch (iecdata & 0xf0) {
             case LISTEN:
             case TALK:
-                TrapDevice = b;
+                TrapDevice = iecdata;
                 TrapSecondary = 0;
+                DBG(("serial_trap_attention listen/talk TrapDevice: 0x%02x TrapSecondary: 0x%02x", TrapDevice, TrapSecondary));
                 break;
             case SECONDARY:
-                send_listen_talk_secondary(b);
+                DBG(("serial_trap_attention secondary TrapDevice: 0x%02x iecdata: 0x%02x", TrapDevice, iecdata));
+                send_listen_talk_secondary(iecdata);
                 break;
             case CLOSE:
-                TrapSecondary = b;
+                TrapSecondary = iecdata;
+                DBG(("serial_trap_attention close TrapDevice: 0x%02x TrapSecondary: 0x%02x", TrapDevice, TrapSecondary));
                 serial_iec_bus_close(TrapDevice, TrapSecondary, serial_set_st);
                 break;
             case OPEN:
-                TrapSecondary = b;
+                TrapSecondary = iecdata;
+                DBG(("serial_trap_attention open TrapDevice: 0x%02x TrapSecondary: 0x%02x", TrapDevice, TrapSecondary));
                 serial_iec_bus_open(TrapDevice, TrapSecondary, serial_set_st);
                 break;
         }
     }
 
     p = serial_device_get(TrapDevice & DEVNR_MASK);
+    DBG(("serial_trap_attention p:%p inuse:%d", p, p->inuse));
     if (!(p->inuse)) {
         serial_set_st(0x80);
     }
@@ -160,11 +209,14 @@ int serial_trap_attention(void)
 /* Send one byte on the serial bus.  */
 int serial_trap_send(void)
 {
-    uint8_t data;
+    uint8_t iecdata;
 
-    if (serial_truedrive && !IS_PRINTER(TrapDevice)) {
+    if (!device_uses_serial_traps(ActiveDevice)) {
+        DBG(("serial_trap_send aborted (dev %d) no traps", ActiveDevice));
         return 0;
     }
+
+    DBG(("serial_trap_send (TrapDevice 0x%02x)", TrapDevice));
 
     /*
      * If no secondary address was sent, it means that no LISTEN was
@@ -174,9 +226,9 @@ int serial_trap_send(void)
         send_listen_talk_secondary(SECONDARY + 0);
     }
 
-    data = mem_read(BSOUR); /* BSOUR - character for serial bus */
+    iecdata = mem_read(BSOUR); /* BSOUR - character for serial bus */
 
-    serial_iec_bus_write(TrapDevice, TrapSecondary, data, serial_set_st);
+    serial_iec_bus_write(TrapDevice, TrapSecondary, iecdata, serial_set_st);
 
     maincpu_set_carry(0);
     maincpu_set_interrupt(0);
@@ -189,9 +241,12 @@ int serial_trap_receive(void)
 {
     uint8_t data;
 
-    if (serial_truedrive && !IS_PRINTER(TrapDevice)) {
+    if (!device_uses_serial_traps(ActiveDevice)) {
+        DBG(("serial_trap_receive aborted (dev %d) no traps", ActiveDevice));
         return 0;
     }
+
+    DBG(("serial_trap_receive (TrapDevice 0x%02x)", TrapDevice));
 
     /*
      * If no secondary address was sent, it means that no TALK was
@@ -225,9 +280,12 @@ int serial_trap_receive(void)
 
 int serial_trap_ready(void)
 {
-    if (serial_truedrive && !IS_PRINTER(TrapDevice)) {
+    if (!device_uses_serial_traps(ActiveDevice)) {
+        DBG(("serial_trap_ready aborted (dev %d) no traps", ActiveDevice));
         return 0;
     }
+
+    DBG(("serial_trap_ready (TrapDevice 0x%02x)", TrapDevice));
 
     maincpu_set_a(1);
     maincpu_set_sign(0);
@@ -278,7 +336,8 @@ void serial_trap_attention_callback_set(void (*func)(void))
     attention_callback_func = func;
 }
 
-void serial_trap_truedrive_set(unsigned int flag)
+void serial_trap_truedrive_set(unsigned int unit, unsigned int flag)
 {
-    serial_truedrive = flag;
+    DBG(("serial_trap_truedrive_set unit: %u flag: %u", unit, flag));
+    serial_truedrive[unit] = flag;
 }

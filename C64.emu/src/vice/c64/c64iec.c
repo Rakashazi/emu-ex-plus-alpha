@@ -162,7 +162,12 @@ iecbus_t *iecbus_drive_port(void)
 /* This function is called from ui_update_menus() */
 int iec_available_busses(void)
 {
-    return IEC_BUS_IEC | (cartridge_type_enabled(CARTRIDGE_IEEE488) ? IEC_BUS_IEEE : 0);
+    if (cartridge_type_enabled(CARTRIDGE_IEEE488) ||
+        cartridge_type_enabled(CARTRIDGE_IEEEFLASH64)) {
+        return IEC_BUS_IEC | IEC_BUS_IEEE;
+    } else {
+        return IEC_BUS_IEC;
+    }
 }
 
 void c64iec_init(void)

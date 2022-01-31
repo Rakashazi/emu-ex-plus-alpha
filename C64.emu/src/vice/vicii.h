@@ -86,7 +86,7 @@ extern void vicii_powerup(void);
 extern void vicii_set_canvas_refresh(int enable);
 extern void vicii_reset_registers(void);
 extern void vicii_update_memory_ptrs_external(void);
-extern void vicii_handle_pending_alarms_external(int num_write_cycles);
+extern void vicii_handle_pending_alarms_external(CLOCK num_write_cycles);
 extern void vicii_handle_pending_alarms_external_write(void);
 
 extern void vicii_screenshot(struct screenshot_s *screenshot);
@@ -112,7 +112,7 @@ extern void vicii_set_phi1_chargen_addr_options(uint16_t mask, uint16_t value);
 extern void vicii_set_phi2_chargen_addr_options(uint16_t mask, uint16_t value);
 
 /* 8502 specific functions */
-extern CLOCK vicii_clock_add(CLOCK clock, int amount);
+extern CLOCK vicii_clock_add(CLOCK clock, int64_t amount);
 extern void vicii_clock_read_stretch(void);
 extern void vicii_clock_write_stretch(void);
 extern int vicii_get_half_cycle(void);

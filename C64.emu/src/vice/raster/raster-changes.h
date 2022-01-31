@@ -168,7 +168,7 @@ inline static void raster_changes_add_sorted_int(raster_changes_t *changes,
     }
 
     changes->count++;
-    action = changes->actions + i + 1;
+    action = changes->actions + 1 + i;
 
     action->where = where;
     action->type = RASTER_CHANGES_TYPE_INT;

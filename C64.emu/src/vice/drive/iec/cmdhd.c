@@ -50,6 +50,7 @@
 #include "util.h"
 #include "diskimage/fsimage.h"
 #include "rtc/rtc-72421.h"
+#include "resources.h"
 
 #define LOG LOG_DEFAULT
 #define ERR LOG_ERR
@@ -140,7 +141,7 @@ simplify the interface */
 
 #include "log.h"
 
-void my_debug_iec_drv_write(unsigned int data)
+static void my_debug_iec_drv_write(unsigned int data)
 {
     if (debug.iec) {
         uint8_t value = data;
@@ -158,7 +159,7 @@ void my_debug_iec_drv_write(unsigned int data)
     }
 }
 
-void my_debug_iec_drv_read(unsigned int data)
+static void my_debug_iec_drv_read(unsigned int data)
 {
     if (debug.iec) {
         uint8_t value = data;
@@ -239,15 +240,20 @@ static void cmdhd_scsiread(struct scsi_context_s *scsi)
     int track;
 
     /* update track info on status bar; never 100 or above */
-    track = (scsi->address * 200) / ((hd->imagesize >> 9) + 1);
+    track = (scsi->address * 200) / (hd->imagesize + 1);
     if (track >= 200) {
         track = 199;
     }
     dc->current_half_track = track;
 
+    /* leave if we are not the first disk */
+    if (scsi->target !=0 || scsi->lun != 0 ) {
+        return;
+    }
+
     /* correct device number on the fly since it is stored on HD not by switch or EEPROM */
     if (hd->baselba != UINT32_MAX && scsi->address == hd->baselba + 2) {
-        /* make sure it has the cmd signature first */
+        /* make sure it has the CMD signature first */
         if (!cmdhd_has_sig(&(scsi->data_buf[256]))) {
             /* if it isn't what was defined by vice, set it to it */
             if ( (scsi->data_buf[0x1e1] != unit) ||
@@ -259,7 +265,7 @@ static void cmdhd_scsiread(struct scsi_context_s *scsi)
                 scsi->data_buf[0x1e4] = unit;
             }
         } else {
-            /* block we had on record no long has signature, invalidate it */
+            /* block we had on record no longer has signature, invalidate it */
             hd->baselba = UINT32_MAX;
         }
     }
@@ -272,13 +278,13 @@ static void cmdhd_scsiwrite(struct scsi_context_s *scsi)
     uint32_t temp;
 
     /* keep track of the maximum lba written to */
-    temp=(scsi->address + 1) << 9;
+    temp = scsi->address + 1;
     if (temp > hd->imagesize) {
         hd->imagesize = temp;
     }
 
     /* update track info on status bar */
-    dc->current_half_track = (scsi->address * 200) / ((hd->imagesize >> 9) + 1);
+    dc->current_half_track = (scsi->address * 200) / (hd->imagesize + 1);
 }
 
 /* We don't actually format the disk, we just remove the 16 byte CMD signature */
@@ -287,10 +293,16 @@ static void cmdhd_scsiformat(struct scsi_context_s *scsi)
     cmdhd_context_t *hd = (cmdhd_context_t*)(scsi->p);
     int i;
 
+    /* leave if we are not the first disk */
+    if (scsi->target !=0 || scsi->lun != 0 ) {
+        return;
+    }
+
+    /* correct device number on the fly since it is stored on HD not by switch or EEPROM */
     /* figure out where to start looking */
     if (hd->baselba != UINT32_MAX) {
         /* use what we already have if we found it before */
-        if (hd->baselba < (hd->imagesize >> 9)) {
+        if (hd->baselba < hd->imagesize) {
             scsi->address = hd->baselba + 2;
         } else {
         /* other wise, start from scratch */
@@ -300,8 +312,8 @@ static void cmdhd_scsiformat(struct scsi_context_s *scsi)
     } else {
         scsi->address = 2;
     }
-    /* start searching, ever 128 LBAs starting from 2 or known base */
-    while (scsi->address < (hd->imagesize >> 9)) {
+    /* start searching, every 128 LBAs starting from 2 or known base */
+    while (scsi->address < hd->imagesize) {
         /* stop if we hit the end of the file */
         if (scsi_image_read(scsi) < 0) {
             break;
@@ -352,14 +364,15 @@ void cmdbus_update(void)
     }
     for (i = 0; i < NUM_DISK_UNITS; i++) {
         /* only allow devices to impact the bus if bit 0 is set on bus part */
-        if (cmdbus.drv_bus[i] & 1) {
+        /* and if the parallel cable is not set to none */
+        if ((cmdbus.drv_bus[i] & 1) && (diskunit_context[i]->parallel_cable)) {
             cmdbus.bus &= cmdbus.drv_bus[i];
             cmdbus.data &= cmdbus.drv_data[i];
         }
     }
 
-    BLOG(("CMDBUS PREADY=%s PCLK=%s PATN=%s",cmdbus.bus&0x80?"LOW ":"HIGH",
-        cmdbus.bus&0x40?"LOW ":"HIGH", cmdbus.bus&0x20?"LOW ":"HIGH"));
+    BLOG((LOG, "CMDBUS PREADY=%s PCLK=%s PATN=%s", cmdbus.bus & 0x80 ? "LOW " : "HIGH",
+        cmdbus.bus & 0x40 ? "LOW " : "HIGH", cmdbus.bus & 0x20 ? "LOW " : "HIGH"));
 }
 
 /* U11 or i8255a interfacing */
@@ -496,7 +509,6 @@ static void set_pc(struct _i8255a_state *ctx, uint8_t byte, int8_t reg)
 {
     cmdhd_context_t *hd = (cmdhd_context_t*)(ctx->p);
     scsi_context_t *scsi = (scsi_context_t*)(hd->scsi);
-/*    drivecpu_context_t *cpu = hd->mycontext->cpu; */
     int t;
     int mynumber = hd->mycontext->mynumber;
 
@@ -1101,6 +1113,9 @@ void cmdhd_setup_context(diskunit_context_t *ctxptr)
     ctxptr->cmdhd->reset_alarm = alarm_new(ctxptr->cpu->alarm_context, name,
         reset_alarm_handler, ctxptr->cmdhd);
     lib_free(name);
+
+    /* reset attachment counter for warning messages */
+    ctxptr->cmdhd->numattached = 0;
 }
 
 void cmdhd_init(diskunit_context_t *ctxptr)
@@ -1111,19 +1126,23 @@ void cmdhd_init(diskunit_context_t *ctxptr)
 
     /* init via cores */
     viacore_init(ctxptr->cmdhd->via9, ctxptr->cpu->alarm_context,
-                 ctxptr->cpu->int_status, ctxptr->cpu->clk_guard);
+                 ctxptr->cpu->int_status);
     viacore_init(ctxptr->cmdhd->via10, ctxptr->cpu->alarm_context,
-                 ctxptr->cpu->int_status, ctxptr->cpu->clk_guard);
+                 ctxptr->cpu->int_status);
 
     /* reset scsi system */
     scsi_reset(scsi);
     /* change any defaults */
-    scsi->max_imagesize = 16777214U << 8;
+    /* grab value from unit structure as it is likely it is initialized
+        before the drive init is run */
+    scsi->max_imagesize = diskunit_context[ctxptr->mynumber]->fixed_size;
+    /* don't allow more than a 24-bit value -2 to be returned on disk query
+        as this will cause problems for CMDHD tools */
+    scsi->limit_imagesize = 0xfffffe;
     /* CMDHD can handle 56 drives, but the latest boot rom has a bug which
         corrupts data when deleting partitions that span across disk
-        boundaries. So we only allow it to use one disk. This is fine as
-        one disk is enough to max out the whole system. */
-    scsi->max_ids = 1;
+        boundaries. However, there are a number of users who want multiple
+        device and LUN support, so we will make it adaptive. */
     /* Setup SCSI user functions */
     scsi->user_format = cmdhd_scsiformat;
     scsi->user_read = cmdhd_scsiread;
@@ -1136,7 +1155,7 @@ void cmdhd_shutdown(cmdhd_context_t *hd)
 {
     CLOG((LOG, "CMDHD: shutdown"));
 
-    /* leave if no contxt provided */
+    /* leave if no context provided */
     if (!hd) {
         return;
     }
@@ -1153,17 +1172,18 @@ void cmdhd_shutdown(cmdhd_context_t *hd)
     lib_free(hd);
 }
 
-/* Function to find the baselba of the cmd partition. We need this so we
-can modify the device number of the drive as it is stored on disk. */
+/* Function to find the baselba of the CMD partition. We need this so we
+    can modify the device number of the drive as it is stored on disk. */
 static void cmdhd_findbaselba(cmdhd_context_t *hd)
 {
     uint32_t  i;
     disk_addr_t dadr;
     unsigned char buf[256];
+    int rlpresent;
 
     CLOG((LOG, "CMDHD: findbaselba"));
 
-    /* leave if no contxt provided */
+    /* leave if no context provided */
     if (!hd) {
         return;
     }
@@ -1179,7 +1199,7 @@ static void cmdhd_findbaselba(cmdhd_context_t *hd)
     /* look for configuration block */
     i = 2;
     /* start at LBA 2 as in 512-byte blocks */
-    while (i < (hd->imagesize >> 9)) {
+    while (i < hd->imagesize) {
         /* translate to T/S for DHD images, ie. 65536 for each */
         dadr.track = (i / 32768) + 1;
         dadr.sector = (i % 32768) * 2 + 1;
@@ -1188,7 +1208,7 @@ static void cmdhd_findbaselba(cmdhd_context_t *hd)
             /* hit the end of file */
             break;
         }
-        /* otherwise check the cmd sig */
+        /* otherwise check the CMD sig */
         if (!cmdhd_has_sig(buf)) {
             /* if it has it, update the offset */
             hd->baselba = i - 2;
@@ -1200,6 +1220,16 @@ static void cmdhd_findbaselba(cmdhd_context_t *hd)
     }
 
     CLOG((LOG, "CMDHD: findbaselba=%u", hd->baselba));
+
+    /* check if RAMLINK is enabled */
+    rlpresent = 0;
+    resources_get_int("RAMLINK", &rlpresent);
+
+    if (!hd->mycontext->parallel_cable && rlpresent) {
+        hd->mycontext->parallel_cable = 1;
+        CRIT((ERR, "CMDHD: RAMLink detected. Drive %d 'parallel cable' set to 'standard'.",
+            hd->mycontext->mynumber + 8));
+    }
 }
 
 void cmdhd_reset(cmdhd_context_t *hd)
@@ -1210,7 +1240,7 @@ void cmdhd_reset(cmdhd_context_t *hd)
 
     CLOG((LOG, "CMDHD: reset"));
 
-    /* leave if no contxt provided */
+    /* leave if no context provided */
     if (!hd) {
         return;
     }
@@ -1240,24 +1270,24 @@ void cmdhd_reset(cmdhd_context_t *hd)
     cmdhd_findbaselba(hd);
 
     /* check if write protect button is pressed */
-    if (hd->mycontext->button&1) {
-        hd->i8255a_i[1]&=0xf7;
+    if (hd->mycontext->button & 1) {
+        hd->i8255a_i[1] &= 0xf7;
         CLOG((LOG, "CMDHD: WP pressed down"));
     }
     /* check if swap8 button is pressed */
-    if (hd->mycontext->button&2) {
-        hd->i8255a_i[1]&=0xfd;
+    if (hd->mycontext->button & 2) {
+        hd->i8255a_i[1] &= 0xfd;
         CLOG((LOG, "CMDHD: SWAP8 pressed down"));
     }
     /* check if swap9 button is pressed */
-    if (hd->mycontext->button&4) {
-        hd->i8255a_i[1]&=0xfb;
+    if (hd->mycontext->button & 4) {
+        hd->i8255a_i[1] &= 0xfb;
         CLOG((LOG, "CMDHD: SWAP9 pressed down"));
     }
 
     /* count the number of connected drives */
     unit = 0;
-    for (i = 0; i < 7; i++) {
+    for (i = 0; i < 56; i++) {
         if (hd->scsi->file[i]) {
             unit++;
         }
@@ -1265,10 +1295,16 @@ void cmdhd_reset(cmdhd_context_t *hd)
 
     /* if the image size is too small, put the drive in installation mode */
     /* but if there is more than one drive connect, go to normal mode */
-    if (hd->imagesize < 73728) {
+    if (hd->imagesize < 144) {
         if (unit == 1) {
-            hd->i8255a_i[1]&=0xf9;
-            CRIT((ERR, "CMDHD: image size too small, starting up in installation mode"));
+            hd->i8255a_i[1] &= 0xf9;
+            CRIT((ERR, "CMDHD: Image size too small, starting up in installation mode."));
+            if (hd->mycontext->parallel_cable) {
+                hd->mycontext->parallel_cable = 0;
+                CRIT((ERR, "CMDHD: Drive %d 'parallel cable' set to none. Set it back to 'standard' when",
+                    hd->mycontext->mynumber + 8));
+                CRIT((ERR, "CMDHD: HDDOS installation is complete."));
+            }
         } else {
             /* remove scsi ID 0 */
             hd->scsi->file[0] = NULL;
@@ -1276,21 +1312,24 @@ void cmdhd_reset(cmdhd_context_t *hd)
     }
 
     /* make sure the cmdbus isn't held down */
-    unit = hd->mycontext->mynumber + 8;
-    cmdbus.drv_data[unit - 8] = 0xff;
-    cmdbus.drv_bus[unit - 8] = 0xff;
+    unit = hd->mycontext->mynumber;
+    cmdbus.drv_data[unit] = 0xff;
+    cmdbus.drv_bus[unit] = 0xff;
 
     /* propogate inputs to output */
     i8255a_reset(hd->i8255a);
+
+    /* reset attachment counter for warning messages */
+    hd->numattached = 1;
 }
 
 int cmdhd_attach_image(disk_image_t *image, unsigned int unit)
 {
     cmdhd_context_t *hd;
     char *basename, *testname;
-    size_t i;
+    size_t i, j;
     FILE *test;
-    size_t filelength;
+    off_t filelength;
 
     CLOG((LOG, "CMDHD: attach_image"));
 
@@ -1311,14 +1350,14 @@ int cmdhd_attach_image(disk_image_t *image, unsigned int unit)
     /* get context */
     hd = diskunit_context[unit - 8]->cmdhd;
 
-    /* leave if no contxt provided */
+    /* leave if no context provided */
     if (!hd) {
         return -1;
     }
 
     /* record passed values */
     hd->image = image;
-    hd->imagesize = disk_image_size(image);
+    hd->imagesize = (uint32_t)(disk_image_size(image) >> 9);
 
     /* leave if there is a problem getting the image size */
     if (hd->imagesize == UINT32_MAX) {
@@ -1332,9 +1371,8 @@ int cmdhd_attach_image(disk_image_t *image, unsigned int unit)
     cmdhd_findbaselba(hd);
 
     /* look to see if there are more files with the same base
-       name, but different extensions: s10, s20, s30,
-       s<ID><LUN>, no LUN support yet */
-    hd->scsi->max_ids = 1;
+       name, but different extensions: s10, s11, ..., s20, ..., s67
+       s<ID><LUN> */
     /* copy the file name */
     basename = lib_strdup(image->media.fsimage->name);
 
@@ -1348,34 +1386,55 @@ int cmdhd_attach_image(disk_image_t *image, unsigned int unit)
         basename[i - 2] = 0;
         /* change the first D to an S */
         basename[i - 3] = (basename[i - 3] & ~31) | 'S';
-        /* cycle through all of them S10-S60 */
-        for (i = 1; i < 7; i++) {
-            /* generate the name */
-            testname = lib_msprintf("%s%1u0", basename, i);
-            /* open the file */
-            test = fopen(testname, "rb+");
-            if (test) {
-                /* if it is there, check the length */
-                filelength = util_file_length(test);
-                /* must be multiple of 512 */
-                if ((filelength % 512) == 0) {
-                    /* set the FILE pointer */
-                    hd->scsi->file[i] = test;
-                    /* update the max ID */
-                    hd->scsi->max_ids = i + 1;
-                } else {
-                    /* otherwise make sure it is zero */
-                    hd->scsi->file[i] = NULL;
-                    fclose(test);
-                }
+        /* cycle through all of them S01-S67 */
+        for (i = 0; i < 7; i++) {
+            /* skip first disk as it has a DHD extension */
+            for (j = (i == 0); j < 8; j++) {
+               /* generate the name */
+               testname = lib_msprintf("%s%1u%1u", basename, i, j);
+               /* open the file */
+               test = fopen(testname, "rb+");
+               if (test) {
+                   /* if it is there, check the length */
+                   filelength = util_file_length(test);
+                   /* must be multiple of 512 */
+                   if ((filelength % 512) == 0) {
+                       /* set the FILE pointer */
+                       hd->scsi->file[(i << 3) | j] = test;
+                   } else {
+                       /* otherwise make sure it is zero */
+                       hd->scsi->file[(i << 3) | j] = NULL;
+                       fclose(test);
+                   }
+               }
+               /* release any memory */
+               lib_free(testname);
             }
-            /* release any memory */
-            lib_free(testname);
+        }
+    } else {
+        /* otherwise clear out SCSI resources just in case */
+        for (i = 1; i < 56; i++) {
+            hd->scsi->file[i] = NULL;
         }
     }
 
     /* release any more memory */
     lib_free(basename);
+
+    /* don't do this yet as a lot of 3rd party CMD tools don't expect this */
+#if 0
+    /* attaching a new disk requires a device reset */
+    drive_cpu_trigger_reset(unit - 8);
+#endif
+
+    /* process attachment counter for warning messages */
+    hd->numattached++;
+
+    if (hd->numattached > 1) {
+        CRIT((ERR, "CMDHD: Attaching a new DHD normally requires the drive to be manually reset as"));
+        CRIT((ERR, "CMDHD: the HDDOS is not designed to detect this. Exceptions are when handling"));
+        CRIT((ERR, "CMDHD: removable media on SCSI IDs other than 0 (ie. changing .S?? files)."));
+    }
 
     return 0;
 }
@@ -1404,7 +1463,7 @@ int cmdhd_detach_image(disk_image_t *image, unsigned int unit)
     /* get context */
     hd = diskunit_context[unit - 8]->cmdhd;
 
-    /* leave if no contxt provided */
+    /* leave if no context provided */
     if (!hd) {
         return -1;
     }
@@ -1416,7 +1475,7 @@ int cmdhd_detach_image(disk_image_t *image, unsigned int unit)
     hd->scsi->file[0] = NULL;
 
     /* close all additional SCSI ID files */
-    for (i = 1; i < 7; i++) {
+    for (i = 1; i < 56; i++) {
         /* if it isn't NULL, it must be a file */
         if (hd->scsi->file[i]) {
             /* close it and set to NULL */
@@ -1429,6 +1488,27 @@ int cmdhd_detach_image(disk_image_t *image, unsigned int unit)
     cmdbus.drv_data[unit - 8] = 0xff;
     cmdbus.drv_bus[unit - 8] = 0xff;
 
+    return 0;
+}
+
+int cmdhd_update_maxsize(unsigned int size, unsigned int unit)
+{
+    cmdhd_context_t *hd;
+
+    /* standard unit range check */
+    if (unit < 8 || unit > 8 + NUM_DISK_UNITS) {
+        return -1;
+    }
+
+    /* get context */
+    hd = diskunit_context[unit - 8]->cmdhd;
+
+    /* leave if no context provided */
+    if (!hd) {
+        return -1;
+    }
+
+    hd->scsi->max_imagesize = size;
     return 0;
 }
 

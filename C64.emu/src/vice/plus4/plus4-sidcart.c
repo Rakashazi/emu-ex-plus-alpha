@@ -93,7 +93,7 @@ static void sidcartjoy_store(uint16_t addr, uint8_t value);
 static uint8_t sidcartjoy_read(uint16_t addr);
 
 static io_source_t sidcart_fd40_device = {
-    "SIDCart",            /* name of the device */
+    "SID Cartridge",      /* name of the device */
     IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
     "SidCart",            /* resource to set to '0' */
     0xfd40, 0xfd5d, 0x1f, /* range for the device, regs:$fd40-$fd5d */
@@ -109,7 +109,7 @@ static io_source_t sidcart_fd40_device = {
 };
 
 static io_source_t sidcart_fe80_device = {
-    "SIDCart",            /* name of the device */
+    "SID Cartridge",      /* name of the device */
     IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
     "SidCart",            /* resource to set to '0' */
     0xfe80, 0xfe9d, 0x1f, /* range for the device, regs:$fe80-$fe9d */
@@ -125,19 +125,19 @@ static io_source_t sidcart_fe80_device = {
 };
 
 static io_source_t sidcart_joy_device = {
-    "SIDCartJoy",         /* name of the device */
-    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
-    "SIDCartJoy",         /* resource to set to '0' */
-    0xfd80, 0xfd8f, 0xff, /* range for the device, address is ignored, reg:$fd80, mirrors:$fd81-$fd8f */
-    1,                    /* read is always valid */
-    sidcartjoy_store,     /* store function */
-    NULL,                 /* NO poke function */
-    sidcartjoy_read,      /* read function */
-    NULL,                 /* TODO: peek function */
-    NULL,                 /* TODO: device state information dump function */
-    IO_CART_ID_NONE,      /* not a cartridge */
-    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
-    0                     /* insertion order, gets filled in by the registration function */
+    "SID Cartridge Joystick", /* name of the device */
+    IO_DETACH_RESOURCE,       /* use resource to detach the device when involved in a read-collision */
+    "SIDCartJoy",             /* resource to set to '0' */
+    0xfd80, 0xfd8f, 0xff,     /* range for the device, address is ignored, reg:$fd80, mirrors:$fd81-$fd8f */
+    1,                        /* read is always valid */
+    sidcartjoy_store,         /* store function */
+    NULL,                     /* NO poke function */
+    sidcartjoy_read,          /* read function */
+    NULL,                     /* TODO: peek function */
+    NULL,                     /* TODO: device state information dump function */
+    IO_CART_ID_NONE,          /* not a cartridge */
+    IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
+    0                         /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *sidcartjoy_list_item = NULL;
@@ -230,9 +230,11 @@ static int set_sidcartjoy_enabled(int value, void *param)
 
     if (val) {
         sidcartjoy_list_item = io_source_register(&sidcart_joy_device);
+        joystick_adapter_set_add_ports(1);
     } else {
         io_source_unregister(sidcartjoy_list_item);
         sidcartjoy_list_item = NULL;
+        joystick_adapter_set_add_ports(0);
     }
 
     sidcartjoy_enabled = val;
@@ -298,14 +300,22 @@ int sidcart_cmdline_options_init(void)
     return cmdline_register_options(sidcart_cmdline_options);
 }
 
+/** \brief  Free memory allocated for the sidcart command line options
+ */
+void sidcart_cmdline_options_shutdown(void)
+{
+    /* clean up the runtime-constructed sid cmdline help */
+    sid_cmdline_options_shutdown();
+}
+
 /* ------------------------------------------------------------------------- */
 
 static void sidcartjoy_store(uint16_t addr, uint8_t value)
 {
-    store_joyport_dig(JOYPORT_5, value, 0xff);
+    store_joyport_dig(JOYPORT_6, value, 0xff);
 }
 
 static uint8_t sidcartjoy_read(uint16_t addr)
 {
-    return read_joyport_dig(JOYPORT_5);
+    return read_joyport_dig(JOYPORT_6);
 }

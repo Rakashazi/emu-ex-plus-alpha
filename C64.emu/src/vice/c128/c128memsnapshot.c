@@ -94,11 +94,38 @@ fail:
     return -1;
 }
 
+#define NUM_TRAP_DEVICES 9  /* FIXME: is there a better constant ? */
+static int trapfl[NUM_TRAP_DEVICES];
+static int trapdevices[NUM_TRAP_DEVICES + 1] = { 1, 4, 5, 6, 7, 8, 9, 10, 11, -1 };
+
+static void get_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_get_int_sprintf("VirtualDevice%d", &trapfl[i], trapdevices[i]);
+    }
+}
+
+static void clear_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_set_int_sprintf("VirtualDevice%d", 0, trapdevices[i]);
+    }
+}
+
+static void restore_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_set_int_sprintf("VirtualDevice%d", trapfl[i], trapdevices[i]);
+    }
+}
+
 static int mem_read_rom_snapshot_module(snapshot_t *s)
 {
     uint8_t major_version, minor_version;
     snapshot_module_t *m;
-    int trapfl;
 
     /* Main memory module.  */
 
@@ -110,8 +137,8 @@ static int mem_read_rom_snapshot_module(snapshot_t *s)
     }
 
     /* disable traps before loading the ROM */
-    resources_get_int("VirtualDevices", &trapfl);
-    resources_set_int("VirtualDevices", 0);
+    get_trapflags();
+    clear_trapflags();
 
     /* Do not accept higher versions than current */
     if (snapshot_version_is_bigger(major_version, minor_version, SNAP_ROM_MAJOR, SNAP_ROM_MINOR)) {
@@ -131,7 +158,7 @@ static int mem_read_rom_snapshot_module(snapshot_t *s)
         goto fail;
     }
 
-    log_warning(c128_snapshot_log, "Dumped Romset files and saved settings will "                "represent\nthe state before loading the snapshot!");
+    log_warning(c128_snapshot_log, "Dumped Romset files and saved settings will represent\nthe state before loading the snapshot!");
 
     memcpy(c128memrom_kernal_trap_rom, c128memrom_kernal_rom, C128_KERNAL_ROM_SIZE);
 
@@ -139,14 +166,14 @@ static int mem_read_rom_snapshot_module(snapshot_t *s)
     c128rom_kernal_checksum();
 
     /* enable traps again when necessary */
-    resources_set_int("VirtualDevices", trapfl);
+    restore_trapflags();
 
     return 0;
 
 fail:
 
     /* enable traps again when necessary */
-    resources_set_int("VirtualDevices", trapfl);
+    restore_trapflags();
 
     if (m != NULL) {
         snapshot_module_close(m);

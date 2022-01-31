@@ -36,6 +36,7 @@ extern int warpspeed_bin_attach(const char *filename, uint8_t *rawcart);
 extern int warpspeed_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void warpspeed_detach(void);
 extern void warpspeed_config_init(void);
+extern void warpspeed_reset(void);
 
 struct snapshot_s;
 

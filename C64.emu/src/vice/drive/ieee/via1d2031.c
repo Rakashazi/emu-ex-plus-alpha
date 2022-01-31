@@ -304,7 +304,7 @@ static uint8_t read_prb(via_context_t *via_context)
 void via1d2031_init(diskunit_context_t *ctxptr)
 {
     viacore_init(ctxptr->via1d2031, ctxptr->cpu->alarm_context,
-                 ctxptr->cpu->int_status, ctxptr->cpu->clk_guard);
+                 ctxptr->cpu->int_status);
 }
 
 void via1d2031_setup_context(diskunit_context_t *ctxptr)

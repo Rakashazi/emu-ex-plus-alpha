@@ -105,6 +105,14 @@ static void output_graphics_line_data(screenshot_t *screenshot, uint8_t *data,
                 data[i * 4 + 3] = 0;
             }
             break;
+        case SCREENSHOT_MODE_RGB24:
+            for (i = 0; i < screenshot->width; i++) {
+                color = output_pixel_to_palette_index(line_base[i]);
+                data[i * 3] = screenshot->palette->entries[color].red;
+                data[i * 3 + 1] = screenshot->palette->entries[color].green;
+                data[i * 3 + 2] = screenshot->palette->entries[color].blue;
+            }
+            break;
         default:
             log_error(LOG_ERR, "Invalid mode %u.", mode);
     }
@@ -248,6 +256,17 @@ static int output_graphics_flush(unsigned int prnr)
     return 0;
 }
 
+static int output_graphics_formfeed(unsigned int prnr)
+{
+    /*
+     * Will finish writing current file, and leaves open
+     * the option to start a new one.
+     */
+    output_graphics_close(prnr);
+
+    return 0;
+}
+
 /* ------------------------------------------------------------------------- */
 
 void output_graphics_init(void)
@@ -284,6 +303,7 @@ int output_graphics_init_resources(void)
     output_select.output_putc = output_graphics_putc;
     output_select.output_getc = output_graphics_getc;
     output_select.output_flush = output_graphics_flush;
+    output_select.output_formfeed = output_graphics_formfeed;
 
     output_select_register(&output_select);
 

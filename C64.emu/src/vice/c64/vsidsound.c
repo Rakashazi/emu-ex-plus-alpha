@@ -85,11 +85,6 @@ void machine_sid2_enable(int val)
 {
 }
 
-void sound_machine_prevent_clk_overflow(sound_t *psid, CLOCK sub)
-{
-    sid_sound_machine_prevent_clk_overflow(psid, sub);
-}
-
 char *sound_machine_dump_state(sound_t *psid)
 {
     return sid_sound_machine_dump_state(psid);

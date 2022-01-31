@@ -42,15 +42,21 @@
 #include "types.h"
 #include "util.h"
 
-/* TODO: configure check that matches what arch/unix/coproc.c does... */
+/* TODO: configure check that matches what arch/shared/coproc.c does... */
 #if defined(HAVE_FORK)
-#  if !defined(OPENSTEP_COMPILE) && !defined(RHAPSODY_COMPILE) \
-    && !defined(NEXTSTEP_COMPILE) && !defined(BEOS_COMPILE) \
-    && !defined(__ANDROID__)
-#    include <unistd.h>
-#    define COPROC_SUPPORT        1
-#    include "coproc.h"
+# if !defined(OPENSTEP_COMPILE) && !defined(RHAPSODY_COMPILE) \
+   && !defined(NEXTSTEP_COMPILE) && !defined(BEOS_COMPILE) \
+   && !defined(__ANDROID__)
+#   define COPROC_SUPPORT
 # endif
+#elif defined(WIN32_COMPILE)
+# include <windows.h>
+# define COPROC_SUPPORT
+#endif
+
+#ifdef COPROC_SUPPORT
+# include <unistd.h>
+# include "coproc.h"
 #endif
 
 static char *PrinterDev[NUM_OUTPUT_SELECT] = { NULL, NULL, NULL };
@@ -153,16 +159,16 @@ int output_text_init_cmdline_options(void)
 static FILE *fopen_or_pipe(char *name)
 {
     if (name[0] == '|') {
-#if COPROC_SUPPORT
+#ifdef COPROC_SUPPORT
         int fd_rd, fd_wr;
         if (fork_coproc(&fd_wr, &fd_rd, name + 1) < 0) {
-            /* error */
+            log_error(LOG_DEFAULT, "fopen_or_pipe(): Cannot fork process '%s'.", name + 1);
             return NULL;
         }
         close(fd_rd);   /* We only want to write to the process */
         return fdopen(fd_wr, MODE_WRITE);
 #else
-        log_error(LOG_DEFAULT, "Cannot fork process.");
+        log_error(LOG_DEFAULT, "COPROC_SUPPORT is disabled, Cannot fork process.");
         return NULL;
 #endif
     } else {
@@ -234,6 +240,11 @@ static int output_text_flush(unsigned int prnr)
     return 0;
 }
 
+static int output_text_formfeed(unsigned int prnr)
+{
+    return output_text_flush(prnr);
+}
+
 /* ------------------------------------------------------------------------- */
 
 int output_text_init_resources(void)
@@ -246,6 +257,7 @@ int output_text_init_resources(void)
     output_select.output_putc = output_text_putc;
     output_select.output_getc = output_text_getc;
     output_select.output_flush = output_text_flush;
+    output_select.output_formfeed = output_text_formfeed;
 
     output_select_register(&output_select);
 

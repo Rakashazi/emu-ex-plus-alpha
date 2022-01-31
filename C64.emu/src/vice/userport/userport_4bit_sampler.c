@@ -45,6 +45,7 @@ C64/C128 | CBM2 | ADC | NOTES
 #include "resources.h"
 #include "sampler.h"
 #include "snapshot.h"
+#include "joyport.h"
 #include "userport.h"
 #include "userport_4bit_sampler.h"
 
@@ -55,14 +56,15 @@ int userport_4bit_sampler_read = 1;
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static void userport_4bit_sampler_read_pbx(void);
+static uint8_t userport_4bit_sampler_read_pbx(uint8_t orig);
 static void userport_4bit_sampler_store_pa2(uint8_t value);
-static int userport_4bit_sampler_write_snapshot_module(snapshot_t *s);
-static int userport_4bit_sampler_read_snapshot_module(snapshot_t *s);
+static int userport_4bit_sampler_enable(int value);
 
 static userport_device_t sampler_device = {
-    USERPORT_DEVICE_4BIT_SAMPLER,    /* device id */
     "Userport 4bit sampler",         /* device name */
+    JOYSTICK_ADAPTER_ID_NONE,        /* NOT a joystick adapter */
+    USERPORT_DEVICE_TYPE_SAMPLER,    /* device is a sampler */
+    userport_4bit_sampler_enable,    /* enable function */
     userport_4bit_sampler_read_pbx,  /* read pb0-pb7 function */
     NULL,                            /* NO store pb0-pb7 function */
     NULL,                            /* NO read pa2 pin function */
@@ -74,24 +76,15 @@ static userport_device_t sampler_device = {
     NULL,                            /* NO read sp1 pin function */
     NULL,                            /* NO store sp2 pin function */
     NULL,                            /* NO read sp2 pin function */
-    "Userport4bitSampler",           /* resource used by the device */
-    0xff,                            /* return value from a read, to be filled in by the device */
-    0xf0,                            /* validity mask of the device, doesn't change */
-    0,                               /* device involved in a read collision, to be filled in by the collision detection system */
-    0                                /* a tag to indicate the order of insertion */
+    NULL,                            /* NO reset function */
+    NULL,                            /* NO powerup function */
+    NULL,                            /* NO snapshot write function */
+    NULL                             /* NO snapshot read function */
 };
-
-static userport_snapshot_t sampler_snapshot = {
-    USERPORT_DEVICE_4BIT_SAMPLER,
-    userport_4bit_sampler_write_snapshot_module,
-    userport_4bit_sampler_read_snapshot_module
-};
-
-static userport_device_list_t *userport_4bit_sampler_list_item = NULL;
 
 /* ------------------------------------------------------------------------- */
 
-static int set_userport_4bit_sampler_enabled(int value, void *param)
+static int userport_4bit_sampler_enable(int value)
 {
     int val = value ? 1 : 0;
 
@@ -101,14 +94,7 @@ static int set_userport_4bit_sampler_enabled(int value, void *param)
 
     if (val) {
         sampler_start(SAMPLER_OPEN_MONO, "4bit userport sampler");
-        userport_4bit_sampler_list_item = userport_device_register(&sampler_device);
-        if (userport_4bit_sampler_list_item == NULL) {
-            sampler_stop();
-            return -1;
-        }
     } else {
-        userport_device_unregister(userport_4bit_sampler_list_item);
-        userport_4bit_sampler_list_item = NULL;
         sampler_stop();
     }
 
@@ -116,33 +102,9 @@ static int set_userport_4bit_sampler_enabled(int value, void *param)
     return 0;
 }
 
-static const resource_int_t resources_int[] = {
-    { "Userport4bitSampler", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      &userport_4bit_sampler_enabled, set_userport_4bit_sampler_enabled, NULL },
-    RESOURCE_INT_LIST_END
-};
-
 int userport_4bit_sampler_resources_init(void)
 {
-    userport_snapshot_register(&sampler_snapshot);
-
-    return resources_register_int(resources_int);
-}
-
-static const cmdline_option_t cmdline_options[] =
-{
-    { "-userport4bitsampler", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "Userport4bitSampler", (resource_value_t)1,
-      NULL, "Enable Userport 4bit sampler" },
-    { "+userport4bitsampler", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "Userport4bitSampler", (resource_value_t)0,
-      NULL, "Disable Userport 4bit sampler" },
-    CMDLINE_LIST_END
-};
-
-int userport_4bit_sampler_cmdline_options_init(void)
-{
-    return cmdline_register_options(cmdline_options);
+    return userport_device_register(USERPORT_DEVICE_4BIT_SAMPLER, &sampler_device);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -152,28 +114,12 @@ static void userport_4bit_sampler_store_pa2(uint8_t value)
     userport_4bit_sampler_read = value & 1;
 }
 
-static void userport_4bit_sampler_read_pbx(void)
+static uint8_t userport_4bit_sampler_read_pbx(uint8_t orig)
 {
-    uint8_t retval = 0xf0;
+    uint8_t retval = orig;
 
     if (!userport_4bit_sampler_read) {
         retval = sampler_get_sample(SAMPLER_CHANNEL_DEFAULT) & 0xf0;
     }
-    sampler_device.retval = retval;
-}
-
-/* ---------------------------------------------------------------------*/
-
-static int userport_4bit_sampler_write_snapshot_module(snapshot_t *s)
-{
-    /* No data to save */
-    return 0;
-}
-
-static int userport_4bit_sampler_read_snapshot_module(snapshot_t *s)
-{
-    /* No data to load, this is used to enable the device when loading a snapshot */
-    set_userport_4bit_sampler_enabled(1, NULL);
-
-    return 0;
+    return retval;
 }

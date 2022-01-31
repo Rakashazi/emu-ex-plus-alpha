@@ -25,6 +25,9 @@
  *
  */
 
+/* #define IEC_DEVICE_DEBUG 0 */
+/* #define IEC_DEVICE_DEBUG 8 */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -36,9 +39,13 @@
 #include "serial-iec-device.h"
 #include "serial.h"
 #include "log.h"
+#include "machine.h"
 #include "maincpu.h"
-#include "clkguard.h"
 #include "serial-iec-bus.h"
+
+#if IEC_DEVICE_DEBUG > 0
+#include <ctype.h>
+#endif
 
 void serial_iec_device_enable(unsigned int devnr);
 void serial_iec_device_disable(unsigned int devnr);
@@ -93,6 +100,11 @@ static const resource_int_t resources_int[] = {
 
 int serial_iec_device_resources_init(void)
 {
+    if (machine_class == VICE_MACHINE_VIC20) {
+        /* FIXME: xvic does not use the generic iec code in src/iecbus/iecbus.c,
+                  which makes iecdevice not work */
+        return 0;
+    }
     return resources_register_int(resources_int);
 }
 
@@ -151,6 +163,11 @@ static const cmdline_option_t cmdline_options[] =
 
 int serial_iec_device_cmdline_options_init(void)
 {
+    if (machine_class == VICE_MACHINE_VIC20) {
+        /* FIXME: xvic does not use the generic iec code in src/iecbus/iecbus.c,
+                  which makes iecdevice not work */
+        return 0;
+    }
     return cmdline_register_options(cmdline_options);
 }
 
@@ -159,8 +176,6 @@ int serial_iec_device_cmdline_options_init(void)
 /* Implement IEC devices here.  */
 
 /*------------------------------------------------------------------------*/
-
-#define IEC_DEVICE_DEBUG 0
 
 /* Logging goes here.  */
 #if IEC_DEVICE_DEBUG > 0
@@ -179,23 +194,6 @@ static int serial_iec_device_inited = 0;
 static serial_iec_device_state_t serial_iec_device_state[IECBUS_NUM];
 
 
-static void serial_iec_device_clk_overflow_callback(CLOCK sub, void *data)
-{
-    unsigned int i;
-
-#if IEC_DEVICE_DEBUG > 0
-    log_message(serial_iec_device_log,
-                "serial_iec_device_clk_overflow_callback(%u)", sub);
-#endif
-
-    for (i = 0; i < IECBUS_NUM; i++) {
-        if (serial_iec_device_state[i].timeout > (CLOCK)0) {
-            serial_iec_device_state[i].timeout -= sub;
-        }
-    }
-}
-
-
 void serial_iec_device_init(void)
 {
     unsigned int i;
@@ -203,8 +201,6 @@ void serial_iec_device_init(void)
     serial_iec_device_log = log_open("Serial-IEC-Device");
     log_message(serial_iec_device_log, "serial_iec_device_init()");
 #endif
-
-    clk_guard_add_callback(maincpu_clk_guard, serial_iec_device_clk_overflow_callback, NULL);
 
     for (i = 0; i < IECBUS_NUM; i++) {
         serial_iec_device_state[i].enabled = 0;

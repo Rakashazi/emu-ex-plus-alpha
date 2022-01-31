@@ -55,18 +55,17 @@ extern void util_add_extension_maxpath(char *name, const char *extension,
                                        unsigned int maxpath);
 extern char *util_get_extension(const char *filename);
 
-extern size_t util_file_length(FILE *fd);
+extern off_t util_file_length(FILE *fd);
 extern int util_file_exists(const char *name);
 extern int util_file_load(const char *name, uint8_t *dest, size_t size,
                           unsigned int load_flag);
+extern int util_file_load_string(FILE *fd, char **dest);
 extern int util_file_save(const char *name, uint8_t *src, int size);
 
 extern int util_get_line(char *buf, int bufsize, FILE *f);
 extern void util_fname_split(const char *path, char **directory_return,
                              char **name_return);
 
-extern int util_string_to_long(const char *str, const char **endptr, int base,
-                               long *result);
 extern char *util_subst(const char *s, const char *string,
                         const char *replacement);
 extern int util_string_set(char **str, const char *new_value);

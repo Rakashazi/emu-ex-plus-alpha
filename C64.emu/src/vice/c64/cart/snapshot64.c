@@ -116,9 +116,9 @@ static void enable_rom(int enable, int mode)
 {
     romconfig = enable;
     if (enable == 0) {
-        cart_config_changed_slotmain(2, 2, mode);
+        cart_config_changed_slotmain(CMODE_RAM, CMODE_RAM, mode);
     } else {
-        cart_config_changed_slotmain(3, 3, mode);
+        cart_config_changed_slotmain(CMODE_ULTIMAX, CMODE_ULTIMAX, mode);
     }
 }
 

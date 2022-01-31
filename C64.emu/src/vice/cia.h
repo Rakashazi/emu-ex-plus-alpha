@@ -62,7 +62,6 @@
 struct alarm_context_s;
 struct cia_context_s;
 struct ciat_s;
-struct clk_guard_s;
 struct interrupt_cpu_status_s;
 struct snapshot_s;
 
@@ -97,7 +96,7 @@ typedef struct cia_context_s {
     char todlatched;
     uint8_t todalarm[4];
     uint8_t todlatch[4];
-    int todticks;                 /* init to 100000 */
+    CLOCK todticks;                 /* init to 100000 */
     uint8_t todtickcounter;
 
     int power_freq;
@@ -150,8 +149,7 @@ typedef struct cia_context_s {
 extern void ciacore_setup_context(struct cia_context_s *cia_context);
 extern void ciacore_init(struct cia_context_s *cia_context,
                          struct alarm_context_s *alarm_context,
-                         struct interrupt_cpu_status_s *int_status,
-                         struct clk_guard_s *clk_guard);
+                         struct interrupt_cpu_status_s *int_status);
 extern void ciacore_shutdown(cia_context_t *cia_context);
 extern void ciacore_reset(struct cia_context_s *cia_context);
 extern void ciacore_disable(struct cia_context_s *cia_context);

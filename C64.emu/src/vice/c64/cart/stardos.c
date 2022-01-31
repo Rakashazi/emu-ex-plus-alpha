@@ -61,6 +61,8 @@
 
     the second rom bank contains a kernal replacement. the necessary select
     signal comes from a clip that has to be installed inside of the c64.
+
+    the original EPROM has D1 and D2 swapped around.
 */
 
 /* #define DBGSTARDOS  */
@@ -299,7 +301,7 @@ void stardos_config_init(void)
 {
     flipflop();
     cap_trigger_access();
-    cart_config_changed_slotmain(2, 3, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, CMODE_ULTIMAX, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -318,7 +320,7 @@ void stardos_config_setup(uint8_t *rawcart)
     memcpy(roml_banks, &rawcart[0], 0x2000);
     memcpy(romh_banks, &rawcart[0x2000], 0x2000);
 
-    cart_config_changed_slotmain(2, 3, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, CMODE_ULTIMAX, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -396,7 +398,7 @@ int stardos_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || (SMW_DW(m, stardos_alarm_time) < 0)
+        || (SMW_CLOCK(m, stardos_alarm_time) < 0)
         || (SMW_DW(m, (uint32_t)cap_voltage) < 0)
         || (SMW_B(m, (uint8_t)roml_enable) < 0)
         || (SMW_BA(m, roml_banks, 0x2000) < 0)
@@ -426,7 +428,7 @@ int stardos_snapshot_read_module(snapshot_t *s)
     }
 
     if (0
-        || (SMR_DW(m, &temp_clk) < 0)
+        || (SMR_CLOCK(m, &temp_clk) < 0)
         || (SMR_DW_INT(m, &cap_voltage) < 0)
         || (SMR_B_INT(m, &roml_enable) < 0)
         || (SMR_BA(m, roml_banks, 0x2000) < 0)

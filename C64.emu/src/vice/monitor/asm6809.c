@@ -34,6 +34,7 @@
 #include "types.h"
 
 static const int addr_mode_size[] = {
+    /* 6502 */
     1, /* ASM_ADDR_MODE_IMPLIED */
     -1,/* ASM_ADDR_MODE_ACCUMULATOR */
     -1,/* ASM_ADDR_MODE_IMMEDIATE */
@@ -48,40 +49,47 @@ static const int addr_mode_size[] = {
     -1,/* ASM_ADDR_MODE_INDIRECT_Y */
     -1,/* ASM_ADDR_MODE_RELATIVE */
        /* more modes needed for z80 */
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_A,*/
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_HL, */
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_IX,*/
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_IY,*/
-    -1,/* ASM_ADDR_MODE_ABS_INDIRECT_ZP, */
-    -1,/* ASM_ADDR_MODE_IMMEDIATE_16, */
-    -1,/* ASM_ADDR_MODE_REG_B, */
-    -1,/* ASM_ADDR_MODE_REG_C, */
-    -1,/* ASM_ADDR_MODE_REG_D, */
-    -1,/* ASM_ADDR_MODE_REG_E, */
-    -1,/* ASM_ADDR_MODE_REG_H, */
-    -1,/* ASM_ADDR_MODE_REG_IXH, */
-    -1,/* ASM_ADDR_MODE_REG_IYH, */
-    -1,/* ASM_ADDR_MODE_REG_L, */
-    -1,/* ASM_ADDR_MODE_REG_IXL, */
-    -1,/* ASM_ADDR_MODE_REG_IYL, */
-    -1,/* ASM_ADDR_MODE_REG_AF, */
-    -1,/* ASM_ADDR_MODE_REG_BC, */
-    -1,/* ASM_ADDR_MODE_REG_DE, */
-    -1,/* ASM_ADDR_MODE_REG_HL, */
-    -1,/* ASM_ADDR_MODE_REG_IX, */
-    -1,/* ASM_ADDR_MODE_REG_IY, */
-    -1,/* ASM_ADDR_MODE_REG_SP, */
-    -1,/* ASM_ADDR_MODE_REG_IND_BC, */
-    -1,/* ASM_ADDR_MODE_REG_IND_DE, */
-    -1,/* ASM_ADDR_MODE_REG_IND_HL, */
-    -1,/* ASM_ADDR_MODE_REG_IND_IX, */
-    -1,/* ASM_ADDR_MODE_REG_IND_IY, */
-    -1,/* ASM_ADDR_MODE_REG_IND_SP, */
+    -1,/* ASM_ADDR_MODE_ABSOLUTE_A */
+    -1,/* ASM_ADDR_MODE_ABSOLUTE_HL */
+    -1,/* ASM_ADDR_MODE_ABSOLUTE_IX */
+    -1,/* ASM_ADDR_MODE_ABSOLUTE_IY */
+    -1,/* ASM_ADDR_MODE_Z80_ABSOLUTE_BC */
+    -1,/* ASM_ADDR_MODE_Z80_ABSOLUTE_DE */
+    -1,/* ASM_ADDR_MODE_Z80_ABSOLUTE_SP */
+    -1,/* ASM_ADDR_MODE_ABS_INDIRECT_ZP */
+    -1,/* ASM_ADDR_MODE_Z80_ABS_INDIRECT_EXT */
+    -1,/* ASM_ADDR_MODE_IMMEDIATE_16 */
+    -1,/* ASM_ADDR_MODE_REG_B */
+    -1,/* ASM_ADDR_MODE_REG_C */
+    -1,/* ASM_ADDR_MODE_REG_D */
+    -1,/* ASM_ADDR_MODE_REG_E */
+    -1,/* ASM_ADDR_MODE_REG_H */
+    -1,/* ASM_ADDR_MODE_REG_IXH */
+    -1,/* ASM_ADDR_MODE_REG_IYH */
+    -1,/* ASM_ADDR_MODE_REG_L */
+    -1,/* ASM_ADDR_MODE_REG_IXL */
+    -1,/* ASM_ADDR_MODE_REG_IYL */
+    -1,/* ASM_ADDR_MODE_REG_AF */
+    -1,/* ASM_ADDR_MODE_REG_BC */
+    -1,/* ASM_ADDR_MODE_REG_DE */
+    -1,/* ASM_ADDR_MODE_REG_HL */
+    -1,/* ASM_ADDR_MODE_REG_IX */
+    -1,/* ASM_ADDR_MODE_REG_IY */
+    -1,/* ASM_ADDR_MODE_REG_SP */
+    -1,/* ASM_ADDR_MODE_REG_IND_BC */
+    -1,/* ASM_ADDR_MODE_REG_IND_DE */
+    -1,/* ASM_ADDR_MODE_REG_IND_HL */
+    -1,/* ASM_ADDR_MODE_REG_IND_IY */
+    -1,/* ASM_ADDR_MODE_REG_IND_SP */
+    -1,/* ASM_ADDR_MODE_Z80_IND_IMMEDIATE */
+    -1,/* ASM_ADDR_MODE_Z80_IND_REG */
+    -1,/* ASM_ADDR_MODE_IND_IX_REG */
+    -1,/* ASM_ADDR_MODE_IND_IY_REG */
        /* R65C02 */
-    -1,/* ASM_ADDR_MODE_INDIRECT, */
-    -1,/* ASM_ADDR_MODE_ABS_INDIRECT_X, */
-    -1,/* ASM_ADDR_MODE_DOUBLE, */
-    -1,/* ASM_ADDR_MODE_ZERO_PAGE_RELATIVE, */
+    -1,/* ASM_ADDR_MODE_INDIRECT */
+    -1,/* ASM_ADDR_MODE_ABS_INDIRECT_X */
+    -1,/* ASM_ADDR_MODE_DOUBLE */
+    -1,/* ASM_ADDR_MODE_ZERO_PAGE_RELATIVE */
        /* 65816 */
     -1,/* ASM_ADDR_MODE_RELATIVE_LONG */
     -1,/* ASM_ADDR_MODE_STACK_RELATIVE_Y */
@@ -93,17 +101,17 @@ static const int addr_mode_size[] = {
     -1,/* ASM_ADDR_MODE_MOVE */
     -1,/* ASM_ADDR_MODE_ABS_IND_LONG */
        /* more modes needed for 6809 */
-    1, /* ASM_ADDR_MODE_ILLEGAL, */
-    2, /* ASM_ADDR_MODE_IMM_BYTE, */
-    3, /* ASM_ADDR_MODE_IMM_WORD, */
-    2, /* ASM_ADDR_MODE_DIRECT, */
-    3, /* ASM_ADDR_MODE_EXTENDED, */
+    1, /* ASM_ADDR_MODE_ILLEGAL */
+    2, /* ASM_ADDR_MODE_IMM_BYTE */
+    3, /* ASM_ADDR_MODE_IMM_WORD */
+    2, /* ASM_ADDR_MODE_DIRECT */
+    3, /* ASM_ADDR_MODE_EXTENDED */
     2, /* ASM_ADDR_MODE_INDEXED,        post-byte determines sub-mode */
-    2, /* ASM_ADDR_MODE_REL_BYTE, */
-    3, /* ASM_ADDR_MODE_REL_WORD, */
-    2, /* ASM_ADDR_MODE_REG_POST, */
-    2, /* ASM_ADDR_MODE_SYS_POST, */
-    2, /* ASM_ADDR_MODE_USR_POST, */
+    2, /* ASM_ADDR_MODE_REL_BYTE */
+    3, /* ASM_ADDR_MODE_REL_WORD */
+    2, /* ASM_ADDR_MODE_REG_POST */
+    2, /* ASM_ADDR_MODE_SYS_POST */
+    2, /* ASM_ADDR_MODE_USR_POST */
 };
 
 static const int indexed_size[0x20] = {
@@ -918,7 +926,8 @@ static const asm_opcode_info_t opcode_list_11[256] = {
     /* ff */ { "UNDOC", ASM_ADDR_MODE_ILLEGAL }         /* STU extended (6809), illegal trap (6309) */
 };
 
-static const asm_opcode_info_t *asm_opcode_info_get(unsigned int p0, unsigned int p1, unsigned int p2)
+static const asm_opcode_info_t *asm_opcode_info_get(unsigned int p0, unsigned int p1,
+                                                    unsigned int p2, unsigned int p3)
 {
     /*
      * Extra prefix bytes after the first one should be ignored (UNDOC),
@@ -935,7 +944,7 @@ static const asm_opcode_info_t *asm_opcode_info_get(unsigned int p0, unsigned in
 }
 
 static unsigned int asm_addr_mode_get_size(unsigned int mode, unsigned int p0,
-                                           unsigned int p1, unsigned int p2)
+                                           unsigned int p1, unsigned int p2, unsigned int p3)
 {
     int size = 0;
 

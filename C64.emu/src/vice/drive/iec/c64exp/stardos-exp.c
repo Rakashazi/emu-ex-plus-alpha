@@ -50,11 +50,23 @@
 /*
     StarDOS
 
+    the original EPROM has A10 and A11 swapped around.
+
+    the EPROM contains 16k:
+
     - 8k additional ROM at $A000-$Bfff
+    - 8k patched upper DOS ROM ($E000-$FFFF)
 
     to test use:
 
-    x64sc -cartstar StarDosCartRomV1-4-decoded.bin -stardos stardos1541romv1-4-a000-decoded.bin -dos1541 stardos1541romv1-4-e000-decoded.bin -drive8stardos
+    x64sc -default -drive8type 1541 \
+        -cartstar StarDosCartRomV1-4-decoded.bin \
+        -dos1541 stardosdriverom.bin \
+        -stardos stardos1541romv1-4-a000-decoded.bin \
+        -drive8stardos
+
+    stardosdriverom.bin should combine the lower half of the original DOS plus
+    the upper half of the stardos ROM
 
  */
 

@@ -29,9 +29,10 @@
 #define VICE_TYPES_H
 
 #include "vice.h"
-
+#if 0
 #if defined(USE_SDLUI) || defined(USE_SDLUI2)
 #  include "vice_sdl.h"
+#endif
 #endif
 
 #include <stdbool.h>
@@ -45,23 +46,16 @@
 #  endif
 #endif
 
-typedef uint32_t CLOCK;
+typedef uint64_t CLOCK;
 
 /* Maximum value of a CLOCK.  */
 #undef CLOCK_MAX
 #define CLOCK_MAX (~((CLOCK)0))
 
-#ifdef _WIN64
-#define vice_ptr_to_int(x) ((int)(long long)(x))
-#define vice_ptr_to_uint(x) ((unsigned int)(unsigned long long)(x))
-#define int_to_void_ptr(x) ((void *)(long long)(x))
-#define uint_to_void_ptr(x) ((void *)(unsigned long long)(x))
-#else
-#define vice_ptr_to_int(x) ((int)(long)(x))
-#define vice_ptr_to_uint(x) ((unsigned int)(unsigned long)(x))
-#define int_to_void_ptr(x) ((void *)(long)(x))
-#define uint_to_void_ptr(x) ((void *)(unsigned long)(x))
-#endif
+#define vice_ptr_to_int(x) ((int)(intptr_t)(x))
+#define vice_ptr_to_uint(x) ((unsigned int)(uintptr_t)(x))
+#define int_to_void_ptr(x) ((void *)(intptr_t)(x))
+#define uint_to_void_ptr(x) ((void *)(uintptr_t)(x))
 
 typedef uint16_t uint16align1 __attribute__((aligned(1)));
 typedef uint32_t uint32align1 __attribute__((aligned(1)));

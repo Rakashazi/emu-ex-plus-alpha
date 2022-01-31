@@ -241,7 +241,7 @@ static void store_sdr(cia_context_t *cia_context, uint8_t byte)
 void cia1581_init(diskunit_context_t *ctxptr)
 {
     ciacore_init(ctxptr->cia1581, ctxptr->cpu->alarm_context,
-                 ctxptr->cpu->int_status, ctxptr->cpu->clk_guard);
+                 ctxptr->cpu->int_status);
 }
 
 void cia1581_setup_context(diskunit_context_t *ctxptr)

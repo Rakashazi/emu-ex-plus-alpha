@@ -501,7 +501,7 @@ inline static void _draw_mc_text(uint8_t *p, unsigned int xs, unsigned int xe,
     uint8_t c[8];
     uint32_t *table_ptr;
     uint8_t *char_ptr, *msk_ptr;
-    uint16_t *ptmp;
+    uint16align1 *ptmp;
     unsigned int i;
 
     table_ptr = hr_table + (vicii.raster.background_color << 4);

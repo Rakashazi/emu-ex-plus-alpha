@@ -48,6 +48,7 @@ extern void easyflash_detach(void);
 extern int easyflash_bin_save(const char *filename);
 extern int easyflash_crt_save(const char *filename);
 extern int easyflash_flush_image(void);
+extern void easyflash_powerup(void);
 
 struct snapshot_s;
 

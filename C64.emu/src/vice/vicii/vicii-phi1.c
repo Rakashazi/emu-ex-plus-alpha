@@ -326,5 +326,8 @@ uint8_t vicii_read_phi1(void)
 {
     vicii_handle_pending_alarms(0);
 
+    if (vicii.fastmode != 0) {
+        return vicii.last_cpu_val;
+    }
     return vicii_read_phi1_lowlevel();
 }

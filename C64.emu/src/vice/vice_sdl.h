@@ -62,9 +62,7 @@
 #    ifdef HAVE_SDLMAIN
 #      include <SDL/SDL_main.h>
 #    endif
-#    ifdef HAVE_HWSCALE
-#      include <SDL/SDL_opengl.h>
-#    endif
+#    include <SDL/SDL_opengl.h>
 #  else
 #    include <SDL.h>
 #    ifdef INCLUDE_SDL_SYSWM_H
@@ -73,9 +71,7 @@
 #    ifdef HAVE_SDLMAIN
 #      include <SDL_main.h>
 #    endif
-#    ifdef HAVE_HWSCALE
-#      include <SDL_opengl.h>
-#    endif
+#    include <SDL_opengl.h>
 #  endif
 #endif
 

@@ -67,15 +67,15 @@ friend class SID;
 // ----------------------------------------------------------------------------
 RESID_INLINE
 void Filter::clock(sound_sample voice1,
-		   sound_sample voice2,
-		   sound_sample voice3)
+                    sound_sample voice2,
+                    sound_sample voice3)
 {
   /* Voice3off always disables the voice, even when the filter routing bits are
      set. (We don't track routing bits at all.) */
   if (voice3off) {
     voice3 = 0;
   }
-  
+
   Vnf = (voice1 + voice2 + voice3) << 9;
 }
 

@@ -35,6 +35,7 @@
 #include "kbdbuf.h"
 #include "crtc.h"
 #include "log.h"
+#include "machine.h"
 #include "mem.h"
 #include "pet.h"
 #include "petmem.h"
@@ -412,24 +413,24 @@ void petrom_checksum(void)
             petres.rom_video = 40;
             autostart_init(3, 0);
         }
-        petrom_keybuf_init();
         tape_init(&tapeinit4);
+        petrom_keybuf_init();
     } else if (petres.kernal_checksum == PET_KERNAL2_CHECKSUM) {
         if (petres.kernal_checksum != last_kernal) {
             log_message(petrom_log, "Identified Kernal 2 ROM by checksum.");
         }
         petres.rom_video = 40;
         autostart_init(3, 0);
-        petrom_keybuf_init();
         tape_init(&tapeinit2);
+        petrom_keybuf_init();
     } else if (petres.kernal_checksum == PET_KERNAL1_CHECKSUM) {
         if (petres.kernal_checksum != last_kernal) {
             log_message(petrom_log, "Identified Kernal 1 ROM by checksum.");
         }
         petres.rom_video = 40;
         autostart_init(3, 0);
-        petrom_keybuf_init();
         tape_init(&tapeinit1);
+        petrom_keybuf_init();
     } else {
         log_warning(petrom_log, "Unknown PET ROM.");
     }
@@ -531,7 +532,7 @@ int petrom_load_chargen(void)
      */
 
     /* memset(mem_chargen_rom, 1, 0x1000); */
-    rsize = sysfile_load(petres.chargenName, mem_chargen_rom, -0x800, 0x1000);
+    rsize = sysfile_load(petres.chargenName, machine_name, mem_chargen_rom, -0x800, 0x1000);
     if (rsize < 0) {
         log_error(petrom_log,
                   "Couldn't load character ROM (%s).", petres.chargenName);
@@ -563,7 +564,7 @@ int petrom_load_basic(void)
     if (!util_check_null_string(petres.basicName)) {
         const char *name = petres.basicName;
 
-        if ((krsize = sysfile_load(name, mem_rom + 0x3000, 0x2000, 0x3000)) < 0) {
+        if ((krsize = sysfile_load(name, machine_name, mem_rom + 0x3000, 0x2000, 0x3000)) < 0) {
             log_error(petrom_log, "Couldn't load ROM `%s'.", name);
             return -1;
         }
@@ -610,7 +611,7 @@ int petrom_load_kernal(void)
     if (!util_check_null_string(petres.kernalName)) {
         const char *name = petres.kernalName;
 
-        if ((krsize = sysfile_load(name, mem_rom + 0x7000, 0x1000, 0x1000)) < 0) {
+        if ((krsize = sysfile_load(name, machine_name, mem_rom + 0x7000, 0x1000, 0x1000)) < 0) {
             log_error(petrom_log, "Couldn't load ROM `%s'.", name);
             return -1;
         }
@@ -641,7 +642,7 @@ int petrom_load_editor(void)
     if (!util_check_null_string(petres.editorName)) {
         const char *name = petres.editorName;
 
-        if ((rsize = sysfile_load(name, mem_rom + 0x6000, -0x0800, 0x1000)) < 0) {
+        if ((rsize = sysfile_load(name, machine_name, mem_rom + 0x6000, -0x0800, 0x1000)) < 0) {
             log_error(petrom_log, "Couldn't load ROM `%s'.", name);
             return -1;
         }
@@ -667,7 +668,7 @@ int petrom_load_rom9(void)
     }
 
     if (!util_check_null_string(petres.mem9name)) {
-        if ((rsize = sysfile_load(petres.mem9name, mem_rom + 0x1000, -0x0800, 0x1000)) < 0) {
+        if ((rsize = sysfile_load(petres.mem9name, machine_name, mem_rom + 0x1000, -0x0800, 0x1000)) < 0) {
             log_error(petrom_log, "Couldn't load ROM `%s'.", petres.mem9name);
             return -1;
         }
@@ -697,7 +698,7 @@ int petrom_load_romA(void)
     }
 
     if (!util_check_null_string(petres.memAname)) {
-        if ((rsize = sysfile_load(petres.memAname, mem_rom + 0x2000, -0x0800, 0x1000)) < 0) {
+        if ((rsize = sysfile_load(petres.memAname, machine_name, mem_rom + 0x2000, -0x0800, 0x1000)) < 0) {
             log_error(petrom_log, "Couldn't load ROM `%s'.", petres.memAname);
             return -1;
         }
@@ -727,7 +728,7 @@ int petrom_load_romB(void)
     }
 
     if (!util_check_null_string(petres.memBname)) {
-        if ((rsize = sysfile_load(petres.memBname, mem_rom + 0x3000, -0x0800, 0x1000)) < 0) {
+        if ((rsize = sysfile_load(petres.memBname, machine_name, mem_rom + 0x3000, -0x0800, 0x1000)) < 0) {
             log_error(petrom_log, "Couldn't load ROM `%s'.",
                       petres.memBname);
             return -1;
@@ -776,7 +777,7 @@ int petrom_load_6809rom(int num)
         int maxsize = 0x10000 - startaddr;
         int minsize = (startaddr == 0xE000) ? -0x800 : -0x1000;
 
-        if ((rsize = sysfile_load(petres.h6809romName[num], mem_6809rom + startoff, minsize, maxsize)) < 0) {
+        if ((rsize = sysfile_load(petres.h6809romName[num], machine_name, mem_6809rom + startoff, minsize, maxsize)) < 0) {
             log_error(petrom_log, "Couldn't load 6809 ROM `%s'.",
                       petres.h6809romName[num]);
             return -1;
@@ -841,6 +842,7 @@ int mem_load(void)
             return -1;
         }
     }
+
 
     mem_initialize_memory();
 

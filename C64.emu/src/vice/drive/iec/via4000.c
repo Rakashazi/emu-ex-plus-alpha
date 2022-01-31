@@ -268,7 +268,7 @@ static uint8_t read_prb(via_context_t *via_context)
 void via4000_init(diskunit_context_t *ctxptr)
 {
     viacore_init(ctxptr->via4000, ctxptr->cpu->alarm_context,
-                 ctxptr->cpu->int_status, ctxptr->cpu->clk_guard);
+                 ctxptr->cpu->int_status);
 }
 
 void via4000_setup_context(diskunit_context_t *ctxptr)

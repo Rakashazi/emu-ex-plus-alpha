@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern void dma_maincpu_steal_cycles(CLOCK start_clk, int num, CLOCK sub);
+extern void dma_maincpu_steal_cycles(CLOCK start_clk, CLOCK num, CLOCK sub);
 
 #endif

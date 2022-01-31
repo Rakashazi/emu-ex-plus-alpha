@@ -52,7 +52,7 @@ extern struct video_canvas_s *ted_get_canvas(void);
 extern void ted_reset(void);
 extern void ted_powerup(void);
 extern void ted_reset_registers(void);
-extern void ted_handle_pending_alarms(int num_write_cycles);
+extern void ted_handle_pending_alarms(CLOCK num_write_cycles);
 extern void ted_screenshot(struct screenshot_s *screenshot);
 extern void ted_async_refresh(struct canvas_refresh_s *r);
 extern void ted_shutdown(void);

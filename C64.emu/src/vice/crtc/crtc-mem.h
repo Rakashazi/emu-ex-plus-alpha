@@ -40,6 +40,8 @@ extern uint8_t crtc_read(uint16_t addr);
 extern uint8_t crtc_peek(uint16_t addr);
 extern int crtc_dump(void);
 
+extern uint8_t crtc_peek_register(uint8_t regno);
+
 extern void crtc_set_char(int crom);
 
 extern void crtc_update_memory_ptrs(void);

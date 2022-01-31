@@ -295,46 +295,6 @@ static int fsdevice_flush_scratch(vdrive_t *vdrive, char *realarg)
 }
 
 /*
-    fake drive memory access
-*/
-
-/* M-R - Memory Read */
-static int fsdevice_flush_mr(vdrive_t *vdrive, char *realarg)
-{
-    unsigned int dnr = vdrive->unit - DRIVE_UNIT_MIN;
-    unsigned int length;
-    uint16_t addr;
-
-    addr = fsdevice_dev[dnr].cmdbuf[3] | (fsdevice_dev[dnr].cmdbuf[4] << 8);
-    length = 6 + ((realarg != NULL) ? (unsigned int)strlen(realarg) : 0); /* FIXME */
-    return vdrive_command_memory_read(vdrive, &fsdevice_dev[dnr].cmdbuf[5], addr, length);
-}
-
-/* M-W - Memory Write */
-static int fsdevice_flush_mw(vdrive_t *vdrive, char *realarg)
-{
-    unsigned int dnr = vdrive->unit - DRIVE_UNIT_MIN;
-    unsigned int length;
-    uint16_t addr;
-
-    addr = fsdevice_dev[dnr].cmdbuf[3] | (fsdevice_dev[dnr].cmdbuf[4] << 8);
-    length = 6 + ((realarg != NULL) ? (unsigned int)strlen(realarg) : 0); /* FIXME */
-    return vdrive_command_memory_write(vdrive, &fsdevice_dev[dnr].cmdbuf[5], addr, length);
-}
-
-/* M-E - Memory Execute */
-static int fsdevice_flush_me(vdrive_t *vdrive, char *realarg)
-{
-    unsigned int dnr = vdrive->unit - DRIVE_UNIT_MIN;
-    unsigned int length;
-    uint16_t addr;
-
-    addr = fsdevice_dev[dnr].cmdbuf[3] | (fsdevice_dev[dnr].cmdbuf[4] << 8);
-    length = 5 + ((realarg != NULL) ? (unsigned int)strlen(realarg) : 0); /* FIXME */
-    return vdrive_command_memory_exec(vdrive, &fsdevice_dev[dnr].cmdbuf[5], addr, length);
-}
-
-/*
     fake block access
 */
 
@@ -653,6 +613,41 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
 
     cbmcmd = lib_malloc(ioutil_maxpathlen());
 
+    /*
+                                            '41 '71 '81  FD
+       m-r lo hi len                          *   *   *   *    memory read
+       m-w lo hi len <data>                   *   *   *   *    memory write
+       m-e lo hi                              *   *   *   *    memory execute
+
+    */
+
+    /* don't change anything about the cmdbuf for M-* commands */
+    if (fsdevice_dev[dnr].cmdbuf[0] == 'M'
+        && fsdevice_dev[dnr].cmdbuf[1] == '-' ) {
+        unsigned int length;
+        uint16_t addr;
+        bufferinfo_t *p = &vdrive->buffers[15];
+
+        addr = fsdevice_dev[dnr].cmdbuf[3] | (fsdevice_dev[dnr].cmdbuf[4] << 8);
+        length = fsdevice_dev[dnr].cptr;
+
+        if (fsdevice_dev[dnr].cmdbuf[2] == 'R') {
+            er = vdrive_command_memory_read(vdrive, &fsdevice_dev[dnr].cmdbuf[5], addr, length);
+            /* don't set status for M-R, return memory data */
+            length = fsdevice_dev[dnr].cmdbuf[5];
+            memcpy(fsdevice_dev[dnr].errorl, p->buffer, length + 1);
+            fsdevice_dev[dnr].elen = length + 1;
+            fsdevice_dev[dnr].eptr = 0;
+        } else if (fsdevice_dev[dnr].cmdbuf[2] == 'W') {
+            er = vdrive_command_memory_write(vdrive, &fsdevice_dev[dnr].cmdbuf[5], addr, length);
+            fsdevice_error(vdrive, er);
+        } else if (fsdevice_dev[dnr].cmdbuf[2] == 'E') {
+            er = vdrive_command_memory_exec(vdrive, &fsdevice_dev[dnr].cmdbuf[5], addr, length);
+            fsdevice_error(vdrive, er);
+        }
+        goto leave;
+    }
+
     /* FIXME: Use `vdrive_command_parse()'! */
     /* remove trailing cr */
     while (fsdevice_dev[dnr].cptr
@@ -663,7 +658,7 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
     fsdevice_dev[dnr].cmdbuf[fsdevice_dev[dnr].cptr] = 0;
 
     strcpy(cbmcmd, (char *)(fsdevice_dev[dnr].cmdbuf));
-    charset_petconvstring((uint8_t *)cbmcmd, 1);   /* CBM name to FSname */
+    charset_petconvstring((uint8_t *)cbmcmd, CONVERT_TO_ASCII);   /* CBM name to FSname */
     cmd = cbmcmd;
 
     while (*cmd == ' ') {
@@ -709,10 +704,6 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
        b-f drv trk sec                        *   *   *   *    block-free
        b-e chn drv trk sec                    *   *   *   *    block execute
 
-       m-r lo hi len                          *   *   *   *    memory read
-       m-w lo hi len <data>                   *   *   *   *    memory write
-       m-e lo hi                              *   *   *   *    memory execute
-
        u9/ui                                  *   *   *   *    switch mode (NMI,warmstart)       
        u:/uj                                  *   *   *   *    reset (powerup)
        
@@ -754,13 +745,7 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
        g-d                                  n/a n/a n/a   *    get disk change status     
 
     */
-    if (!strncmp((char *)(fsdevice_dev[dnr].cmdbuf), "M-R", 3)) {
-        er = fsdevice_flush_mr(vdrive, realarg);
-    } else if (!strncmp((char *)(fsdevice_dev[dnr].cmdbuf), "M-W", 3)) {
-        er = fsdevice_flush_mw(vdrive, realarg);
-    } else if (!strncmp((char *)(fsdevice_dev[dnr].cmdbuf), "M-E", 3)) {
-        er = fsdevice_flush_me(vdrive, realarg);
-    } else if (!strcmp(cmd, "u0")) {
+    if (!strcmp(cmd, "u0")) {
         /* FIXME: not implemented */
     } else if (!strcmp(cmd, "u1") || !strcmp(cmd, "ua")) {
         er = fsdevice_flush_u1(vdrive, realarg);
@@ -835,6 +820,8 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
     }
 
     fsdevice_error(vdrive, er);
+
+leave:
 
     fsdevice_dev[dnr].cptr = 0;
 

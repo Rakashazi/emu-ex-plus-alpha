@@ -94,7 +94,7 @@ extern void debug_drive(uint32_t reg_pc, CLOCK mclk, const char *dis,
                         unsigned int driveno);
 extern void debug_irq(struct interrupt_cpu_status_s *cs, CLOCK iclk);
 extern void debug_nmi(struct interrupt_cpu_status_s *cs, CLOCK iclk);
-extern void debug_dma(const char *txt, CLOCK dclk, int num);
+extern void debug_dma(const char *txt, CLOCK dclk, CLOCK num);
 extern void debug_text(const char *text);
 extern void debug_start_recording(void);
 extern void debug_stop_recording(void);

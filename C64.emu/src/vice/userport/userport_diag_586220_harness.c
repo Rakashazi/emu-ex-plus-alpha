@@ -28,7 +28,7 @@
 
 PIN | PIN | NOTES
 -----------------
- 4  |  6  | CNT1 <-> CNT2		
+ 4  |  6  | CNT1 <-> CNT2
  5  |  7  | SP1 <-> SP2
  6  |  4  | CNT2 <-> CNT1
  7  |  5  | SP2 <-> SP1
@@ -55,6 +55,7 @@ PIN | PIN | NOTES
 #include "c64_diag_586220_harness.h"
 #include "cmdline.h"
 #include "resources.h"
+#include "joyport.h"
 #include "userport.h"
 #include "userport_diag_586220_harness.h"
 
@@ -65,20 +66,23 @@ int userport_diag_586220_harness_enabled = 0;
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static void userport_diag_586220_harness_read_pbx(void);
-static void userport_diag_586220_harness_store_pbx(uint8_t value);
-static void userport_diag_586220_harness_read_pa2(void);
+static uint8_t userport_diag_586220_harness_read_pbx(uint8_t orig);
+static void userport_diag_586220_harness_store_pbx(uint8_t value, int pulse);
+static uint8_t userport_diag_586220_harness_read_pa2(uint8_t orig);
 static void userport_diag_586220_harness_store_pa2(uint8_t value);
-static void userport_diag_586220_harness_read_pa3(void);
+static uint8_t userport_diag_586220_harness_read_pa3(uint8_t orig);
 static void userport_diag_586220_harness_store_pa3(uint8_t value);
-static void userport_diag_586220_harness_read_sp1(void);
+static uint8_t userport_diag_586220_harness_read_sp1(uint8_t orig);
 static void userport_diag_586220_harness_store_sp1(uint8_t value);
-static void userport_diag_586220_harness_read_sp2(void);
+static uint8_t userport_diag_586220_harness_read_sp2(uint8_t orig);
 static void userport_diag_586220_harness_store_sp2(uint8_t value);
+static int userport_diag_586220_harness_enable(int value);
 
 static userport_device_t diag_586220_harness_device = {
-    USERPORT_DEVICE_RTC_58321A,             /* device id */
     "Userport diag 586220 harness",         /* device name */
+    JOYSTICK_ADAPTER_ID_NONE,               /* NOT a joystick adapter */
+    USERPORT_DEVICE_TYPE_HARNESS,           /* device is an audio output */
+    userport_diag_586220_harness_enable,    /* enable function */
     userport_diag_586220_harness_read_pbx,  /* read pb0-pb7 function */
     userport_diag_586220_harness_store_pbx, /* store pb0-pb7 function */
     userport_diag_586220_harness_read_pa2,  /* read pa2 pin function */
@@ -90,85 +94,46 @@ static userport_device_t diag_586220_harness_device = {
     userport_diag_586220_harness_read_sp1,  /* read sp1 pin function */
     userport_diag_586220_harness_store_sp2, /* store sp2 pin function */
     userport_diag_586220_harness_read_sp2,  /* read sp2 pin function */
-    "UserportDiag586220Harness",            /* resource used by the device */
-    0xff,                                   /* return value from a read, to be filled in by the device */
-    0xff,                                   /* validity mask of the device, doesn't change */
-    0,                                      /* device involved in a read collision, to be filled in by the collision detection system */
-    0                                       /* a tag to indicate the order of insertion */
+    NULL,                                   /* NO reset function */
+    NULL,                                   /* NO powerup function */
+    NULL,                                   /* NO snapshot write function */
+    NULL                                    /* NO snapshot read function */
 };
-
-static userport_device_list_t *userport_diag_586220_harness_list_item = NULL;
 
 /* ------------------------------------------------------------------------- */
 
-static int set_userport_diag_586220_harness_enabled(int value, void *param)
+static int userport_diag_586220_harness_enable(int value)
 {
     int val = value ? 1 : 0;
-
-    if (userport_diag_586220_harness_enabled == val) {
-        return 0;
-    }
-
-    if (val) {
-        userport_diag_586220_harness_list_item = userport_device_register(&diag_586220_harness_device);
-        if (userport_diag_586220_harness_list_item == NULL) {
-            return -1;
-        }
-    } else {
-        userport_device_unregister(userport_diag_586220_harness_list_item);
-        userport_diag_586220_harness_list_item = NULL;
-    }
 
     userport_diag_586220_harness_enabled = val;
     return 0;
 }
 
-static const resource_int_t resources_int[] = {
-    { "UserportDiag586220Harness", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      &userport_diag_586220_harness_enabled, set_userport_diag_586220_harness_enabled, NULL },
-    RESOURCE_INT_LIST_END
-};
-
 int userport_diag_586220_harness_resources_init(void)
 {
-    return resources_register_int(resources_int);
-}
-
-static const cmdline_option_t cmdline_options[] =
-{
-    { "-userportdiag586220harness", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "UserportDiag586220Harness", (resource_value_t)1,
-      NULL, "Enable Userport diag 586220 harness module" },
-    { "+userportdiag586220harness", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "UserportDiag586220Harness", (resource_value_t)0,
-      NULL, "Disable Userport diag 586220 harness module" },
-    CMDLINE_LIST_END
-};
-
-int userport_diag_586220_harness_cmdline_options_init(void)
-{
-    return cmdline_register_options(cmdline_options);
+    return userport_device_register(USERPORT_DEVICE_DIAG_586220_HARNESS, &diag_586220_harness_device);
 }
 
 /* ---------------------------------------------------------------------*/
 
 static uint8_t pax = 0;
 
-static void userport_diag_586220_harness_read_pbx(void)
+static uint8_t userport_diag_586220_harness_read_pbx(uint8_t orig)
 {
-    diag_586220_harness_device.retval = c64_diag_586220_read_userport_pbx();
+    return c64_diag_586220_read_userport_pbx();
 }
 
-static void userport_diag_586220_harness_store_pbx(uint8_t value)
+static void userport_diag_586220_harness_store_pbx(uint8_t value, int pulse)
 {
     set_userport_flag(1); /* signal lo->hi */
     set_userport_flag(0); /* signal hi->lo */
     c64_diag_586220_store_userport_pbx(value);
 }
 
-static void userport_diag_586220_harness_read_pa2(void)
+static uint8_t userport_diag_586220_harness_read_pa2(uint8_t orig)
 {
-    diag_586220_harness_device.retval = (c64_diag_586220_read_userport_pax() & 4) >> 2;
+    return (c64_diag_586220_read_userport_pax() & 4) >> 2;
 }
 
 static void userport_diag_586220_harness_store_pa2(uint8_t value)
@@ -179,9 +144,9 @@ static void userport_diag_586220_harness_store_pa2(uint8_t value)
    c64_diag_586220_store_userport_pax(pax);
 }
 
-static void userport_diag_586220_harness_read_pa3(void)
+static uint8_t userport_diag_586220_harness_read_pa3(uint8_t orig)
 {
-    diag_586220_harness_device.retval = (c64_diag_586220_read_userport_pax() & 8) >> 3;
+    return (c64_diag_586220_read_userport_pax() & 8) >> 3;
 }
 
 static void userport_diag_586220_harness_store_pa3(uint8_t value)
@@ -192,9 +157,9 @@ static void userport_diag_586220_harness_store_pa3(uint8_t value)
    c64_diag_586220_store_userport_pax(pax);
 }
 
-static void userport_diag_586220_harness_read_sp1(void)
+static uint8_t userport_diag_586220_harness_read_sp1(uint8_t orig)
 {
-    diag_586220_harness_device.retval = c64_diag_586220_read_userport_sp(0);
+    return c64_diag_586220_read_userport_sp(0);
 }
 
 static void userport_diag_586220_harness_store_sp1(uint8_t value)
@@ -202,14 +167,13 @@ static void userport_diag_586220_harness_store_sp1(uint8_t value)
     c64_diag_586220_store_userport_sp(0, value);
 }
 
-static void userport_diag_586220_harness_read_sp2(void)
+static uint8_t userport_diag_586220_harness_read_sp2(uint8_t orig)
 {
-    diag_586220_harness_device.retval = c64_diag_586220_read_userport_sp(1);
+    return c64_diag_586220_read_userport_sp(1);
 }
 
 static void userport_diag_586220_harness_store_sp2(uint8_t value)
 {
     c64_diag_586220_store_userport_sp(1, value);
 }
-
 #endif

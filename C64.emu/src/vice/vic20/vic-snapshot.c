@@ -32,6 +32,7 @@
 #include "log.h"
 #include "maincpu.h"
 #include "mem.h"
+#include "raster-snapshot.h"
 #include "snapshot.h"
 #include "sound.h"
 #include "types.h"
@@ -43,46 +44,47 @@
 
 static char snap_module_name[] = "VIC-I";
 #define SNAP_MAJOR 0
-#define SNAP_MINOR 2
+#define SNAP_MINOR 4
 
 
 int vic_snapshot_write_module(snapshot_t *s)
 {
     int i;
     snapshot_module_t *m;
-
+    
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
     if (m == NULL) {
         return -1;
     }
 
-    if (SMW_B(m, (uint8_t)VIC_RASTER_CYCLE(maincpu_clk)) < 0
-        || SMW_W(m, (uint16_t)VIC_RASTER_Y(maincpu_clk)) < 0) {
-        goto fail;
-    }
-
     if (0
-        || (SMW_W(m, (uint16_t)vic.area) < 0)
-        || (SMW_W(m, (uint16_t)vic.fetch_state) < 0)
-        || (SMW_DW(m, (uint32_t)vic.raster_line) < 0)
-        || (SMW_DW(m, (uint32_t)vic.text_cols) < 0)
-        || (SMW_DW(m, (uint32_t)vic.text_lines) < 0)
-        || (SMW_DW(m, (uint32_t)vic.pending_text_cols) < 0)
-        || (SMW_DW(m, (uint32_t)vic.line_was_blank) < 0)
-        || (SMW_DW(m, (uint32_t)vic.memptr) < 0)
-        || (SMW_DW(m, (uint32_t)vic.memptr_inc) < 0)
-        || (SMW_DW(m, (uint32_t)vic.row_counter) < 0)
-        || (SMW_DW(m, (uint32_t)vic.buf_offset) < 0)
+        || SMW_DW(m, (uint32_t)vic.interlace_enabled) < 0
+        || SMW_DW(m, (uint32_t)vic.interlace_field) < 0
+        || SMW_CLOCK(m, vic.framestart_cycle) < 0
+        || SMW_B(m, (uint8_t)vic.raster_cycle) < 0
+        || SMW_W(m, (uint16_t)vic.raster_line) < 0
+        || SMW_W(m, (uint16_t)vic.area) < 0
+        || SMW_W(m, (uint16_t)vic.fetch_state) < 0
+        || SMW_DW(m, (uint32_t)vic.raster_line) < 0
+        || SMW_DW(m, (uint32_t)vic.text_cols) < 0
+        || SMW_DW(m, (uint32_t)vic.text_lines) < 0
+        || SMW_DW(m, (uint32_t)vic.pending_text_cols) < 0
+        || SMW_DW(m, (uint32_t)vic.line_was_blank) < 0
+        || SMW_DW(m, (uint32_t)vic.memptr) < 0
+        || SMW_DW(m, (uint32_t)vic.memptr_inc) < 0
+        || SMW_DW(m, (uint32_t)vic.row_counter) < 0
+        || SMW_DW(m, (uint32_t)vic.buf_offset) < 0
         || SMW_B(m, (uint8_t)vic.light_pen.state) < 0
         || SMW_B(m, (uint8_t)vic.light_pen.triggered) < 0
         || SMW_DW(m, (uint32_t)vic.light_pen.x) < 0
         || SMW_DW(m, (uint32_t)vic.light_pen.y) < 0
         || SMW_DW(m, (uint32_t)vic.light_pen.x_extra_bits) < 0
-        || SMW_DW(m, (uint32_t)vic.light_pen.trigger_cycle) < 0
-        || (SMW_B(m, vic.vbuf) < 0)) {
+        || SMW_CLOCK(m, vic.light_pen.trigger_cycle) < 0
+        || SMW_B(m, vic.vbuf) < 0
+        ) {
         goto fail;
     }
-
+    
     /* Color RAM.  */
     if (SMW_BA(m, mem_ram + 0x9400, 0x400) < 0) {
         goto fail;
@@ -92,6 +94,10 @@ int vic_snapshot_write_module(snapshot_t *s)
         if (SMW_B(m, (uint8_t)vic.regs[i]) < 0) {
             goto fail;
         }
+    }
+
+    if (raster_snapshot_write(m, &vic.raster)) {
+        goto fail;
     }
 
     return snapshot_module_close(m);
@@ -109,7 +115,6 @@ int vic_snapshot_read_module(snapshot_t *s)
     uint16_t i;
     snapshot_module_t *m;
     uint8_t major_version, minor_version;
-    uint16_t w;
     uint8_t b;
 
     sound_close();
@@ -120,58 +125,36 @@ int vic_snapshot_read_module(snapshot_t *s)
         return -1;
     }
 
-    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
-        log_error(vic.log, "Snapshot module version (%d.%d) newer than %d.%d.",
+    if (snapshot_version_is_smaller(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
+        log_error(vic.log, "Snapshot module version (%d.%d) older than %d.%d.",
                   major_version, minor_version,
                   SNAP_MAJOR, SNAP_MINOR);
         goto fail;
     }
 
-    if (SMR_B(m, &b) < 0) {
-        goto fail;
-    }
-    if (b != VIC_RASTER_CYCLE(maincpu_clk)) {
-        log_error(vic.log, "Cycle value (%d) incorrect; should be %u.",
-                  (int)b, VIC_RASTER_CYCLE(maincpu_clk));
-        goto fail;
-    }
-    vic.raster_cycle = (unsigned int)b;
-
-    if (SMR_W(m, &w) < 0) {
-        goto fail;
-    }
-    if (w != VIC_RASTER_Y(maincpu_clk)) {
-        log_error(vic.log, "Raster line value (%d) incorrect; should be %u.",
-                  (int)w, VIC_RASTER_Y(maincpu_clk));
-        goto fail;
-    }
-
-    if (SMR_W(m, &w) < 0) {
-        goto fail;
-    }
-    vic.area = (vic_area_state_t)w;
-
-    if (SMR_W(m, &w) < 0) {
-        goto fail;
-    }
-    vic.fetch_state = (vic_fetch_state_t)w;
-
     if (0
-        || (SMR_DW_UINT(m, &vic.raster_line) < 0)
-        || (SMR_DW_UINT(m, &vic.text_cols) < 0)
-        || (SMR_DW_UINT(m, &vic.text_lines) < 0)
-        || (SMR_DW_UINT(m, &vic.pending_text_cols) < 0)
-        || (SMR_DW_UINT(m, &vic.line_was_blank) < 0)
-        || (SMR_DW_UINT(m, &vic.memptr) < 0)
-        || (SMR_DW_UINT(m, &vic.memptr_inc) < 0)
-        || (SMR_DW_UINT(m, &vic.row_counter) < 0)
-        || (SMR_DW_UINT(m, &vic.buf_offset) < 0)
+        || SMR_DW_INT(m, &vic.interlace_enabled) < 0
+        || SMR_DW_INT(m, &vic.interlace_field) < 0
+        || SMR_CLOCK(m, &vic.framestart_cycle) < 0
+        || SMR_B_UINT(m, &vic.raster_cycle) < 0
+        || SMR_W_UINT(m, &vic.raster_line) < 0
+        || SMR_W_INT(m, (int *)&vic.area) < 0
+        || SMR_W_INT(m, (int *)&vic.fetch_state) < 0
+        || SMR_DW_UINT(m, &vic.raster_line) < 0
+        || SMR_DW_UINT(m, &vic.text_cols) < 0
+        || SMR_DW_UINT(m, &vic.text_lines) < 0
+        || SMR_DW_UINT(m, &vic.pending_text_cols) < 0
+        || SMR_DW_UINT(m, &vic.line_was_blank) < 0
+        || SMR_DW_UINT(m, &vic.memptr) < 0
+        || SMR_DW_UINT(m, &vic.memptr_inc) < 0
+        || SMR_DW_UINT(m, &vic.row_counter) < 0
+        || SMR_DW_UINT(m, &vic.buf_offset) < 0
         || SMR_B_INT(m, &vic.light_pen.state) < 0
         || SMR_B_INT(m, &vic.light_pen.triggered) < 0
         || SMR_DW_INT(m, &vic.light_pen.x) < 0
         || SMR_DW_INT(m, &vic.light_pen.y) < 0
         || SMR_DW_INT(m, &vic.light_pen.x_extra_bits) < 0
-        || SMR_DW(m, &vic.light_pen.trigger_cycle) < 0
+        || SMR_CLOCK(m, &vic.light_pen.trigger_cycle) < 0
         || (SMR_B(m, &vic.vbuf) < 0)) {
         goto fail;
     }
@@ -188,6 +171,22 @@ int vic_snapshot_read_module(snapshot_t *s)
 
         /* XXX: This assumes that there are no side effects.  */
         vic_store(i, b);
+    }
+
+    if (vic.raster_cycle != VIC_RASTER_CYCLE(maincpu_clk)) {
+        log_error(vic.log, "Cycle value (%u) incorrect; should be %u.",
+                  vic.raster_cycle, VIC_RASTER_CYCLE(maincpu_clk));
+        goto fail;
+    }
+
+    if (vic.raster_line != VIC_RASTER_Y(maincpu_clk)) {
+        log_error(vic.log, "Raster line value (%u) incorrect; should be %u.",
+                  vic.raster_line, VIC_RASTER_Y(maincpu_clk));
+        goto fail;
+    }
+
+    if (raster_snapshot_read(m, &vic.raster)) {
+        goto fail;
     }
 
     raster_force_repaint(&vic.raster);

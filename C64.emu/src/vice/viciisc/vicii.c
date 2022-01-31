@@ -35,7 +35,6 @@
 
 #include "c64cart.h"
 #include "c64cartmem.h"
-#include "clkguard.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
@@ -113,13 +112,6 @@ vicii_t vicii;
 
 static void vicii_set_geometry(void);
 
-static void clk_overflow_callback(CLOCK sub, void *unused_data)
-{
-    if (vicii.light_pen.trigger_cycle < CLOCK_MAX) {
-        vicii.light_pen.trigger_cycle -= sub;
-    }
-}
-
 void vicii_change_timing(machine_timing_t *machine_timing, int border_mode)
 {
     vicii_timing_set(machine_timing, border_mode);
@@ -130,7 +122,7 @@ void vicii_change_timing(machine_timing_t *machine_timing, int border_mode)
     }
 }
 
-void vicii_handle_pending_alarms_external(int num_write_cycles)
+void vicii_handle_pending_alarms_external(CLOCK num_write_cycles)
 {
     return;
 }
@@ -291,8 +283,6 @@ raster_t *vicii_init(unsigned int flag)
 
     vicii.initialized = 1;
 
-    clk_guard_add_callback(maincpu_clk_guard, clk_overflow_callback, NULL);
-
     return &vicii.raster;
 }
 
@@ -324,7 +314,7 @@ void vicii_reset(void)
     vicii.vborder = 1;
     vicii.set_vborder = 1;
     vicii.main_border = 1;
-    
+
 }
 
 /* called at powerup */
@@ -438,6 +428,7 @@ void vicii_update_memory_ptrs_external(void)
    of each line.  */
 void vicii_raster_draw_handler(void)
 {
+#if 0
     int in_visible_area;
 
     in_visible_area = (vicii.raster.current_line
@@ -450,7 +441,7 @@ void vicii_raster_draw_handler(void)
         in_visible_area |= vicii.raster.current_line
                            <= ((unsigned int)vicii.last_displayed_line - vicii.screen_height);
     }
-
+#endif
     raster_line_emulate(&vicii.raster);
 
     vsync_do_end_of_line();
@@ -458,9 +449,7 @@ void vicii_raster_draw_handler(void)
     if (vicii.raster.current_line == 0) {
         /* no vsync here for NTSC  */
         if ((unsigned int)vicii.last_displayed_line < vicii.screen_height) {
-            raster_skip_frame(&vicii.raster,
-                              vsync_do_vsync(vicii.raster.canvas,
-                                             vicii.raster.skip_frame));
+            vsync_do_vsync(vicii.raster.canvas);
         }
 
     }
@@ -468,9 +457,7 @@ void vicii_raster_draw_handler(void)
     /* vsync for NTSC */
     if ((unsigned int)vicii.last_displayed_line >= vicii.screen_height
         && vicii.raster.current_line == vicii.last_displayed_line - vicii.screen_height + 1) {
-        raster_skip_frame(&vicii.raster,
-                          vsync_do_vsync(vicii.raster.canvas,
-                                         vicii.raster.skip_frame));
+        vsync_do_vsync(vicii.raster.canvas);
     }
 }
 
@@ -564,41 +551,41 @@ void vicii_screenshot(screenshot_t *screenshot)
 
     /* Set full dimensions regardless of border settings */
     if(video == MACHINE_SYNC_PALN) {
-        screenshot->debug_offset_x = 
+        screenshot->debug_offset_x =
             VICII_SCREEN_PALN_DEBUG_LEFTBORDERWIDTH;
-        screenshot->debug_offset_y = 
+        screenshot->debug_offset_y =
             VICII_NO_BORDER_FIRST_DISPLAYED_LINE - VICII_PALN_DEBUG_FIRST_DISPLAYED_LINE;
-        screenshot->debug_width = 
+        screenshot->debug_width =
             screenshot->debug_offset_x + VICII_SCREEN_XPIX + VICII_SCREEN_PALN_DEBUG_RIGHTBORDERWIDTH;
         screenshot->debug_height =
             screenshot->debug_offset_y + VICII_SCREEN_YPIX +
             (VICII_PALN_DEBUG_LAST_DISPLAYED_LINE - VICII_NO_BORDER_LAST_DISPLAYED_LINE);
     } else if(video == MACHINE_SYNC_NTSC) {
-        screenshot->debug_offset_x = 
+        screenshot->debug_offset_x =
             VICII_SCREEN_NTSC_DEBUG_LEFTBORDERWIDTH;
-        screenshot->debug_offset_y = 
+        screenshot->debug_offset_y =
             VICII_NO_BORDER_FIRST_DISPLAYED_LINE - VICII_NTSC_DEBUG_FIRST_DISPLAYED_LINE;
-        screenshot->debug_width = 
+        screenshot->debug_width =
             screenshot->debug_offset_x + VICII_SCREEN_XPIX + VICII_SCREEN_NTSC_DEBUG_RIGHTBORDERWIDTH;
         screenshot->debug_height =
             screenshot->debug_offset_y + VICII_SCREEN_YPIX +
             (VICII_NTSC_DEBUG_LAST_DISPLAYED_LINE - VICII_NO_BORDER_LAST_DISPLAYED_LINE);
     } else if(video == MACHINE_SYNC_NTSCOLD) {
-        screenshot->debug_offset_x = 
+        screenshot->debug_offset_x =
             VICII_SCREEN_NTSCOLD_DEBUG_LEFTBORDERWIDTH;
-        screenshot->debug_offset_y = 
+        screenshot->debug_offset_y =
             VICII_NO_BORDER_FIRST_DISPLAYED_LINE - VICII_NTSCOLD_DEBUG_FIRST_DISPLAYED_LINE;
-        screenshot->debug_width = 
+        screenshot->debug_width =
             screenshot->debug_offset_x + VICII_SCREEN_XPIX + VICII_SCREEN_NTSCOLD_DEBUG_RIGHTBORDERWIDTH;
         screenshot->debug_height =
             screenshot->debug_offset_y + VICII_SCREEN_YPIX +
             (VICII_NTSCOLD_DEBUG_LAST_DISPLAYED_LINE - VICII_NO_BORDER_LAST_DISPLAYED_LINE);
     } else {
-        screenshot->debug_offset_x = 
+        screenshot->debug_offset_x =
             VICII_SCREEN_PAL_DEBUG_LEFTBORDERWIDTH;
-        screenshot->debug_offset_y = 
+        screenshot->debug_offset_y =
             VICII_NO_BORDER_FIRST_DISPLAYED_LINE - VICII_PAL_DEBUG_FIRST_DISPLAYED_LINE;
-        screenshot->debug_width = 
+        screenshot->debug_width =
             screenshot->debug_offset_x + VICII_SCREEN_XPIX + VICII_SCREEN_PAL_DEBUG_RIGHTBORDERWIDTH;
         screenshot->debug_height =
             screenshot->debug_offset_y + VICII_SCREEN_YPIX +
@@ -638,7 +625,7 @@ static const char *fetch_phi1_type(int addr)
 
 int vicii_dump(void)
 {
-    static const char *mode_name[] = {
+    static const char * const mode_name[] = {
         "Standard Text",
         "Multicolor Text",
         "Hires Bitmap",
@@ -739,10 +726,11 @@ int vicii_dump(void)
     }
     mon_out("\nPri./MC:");
     bits = vicii.regs[0x1b];
-    bits = vicii.regs[0x1c];
+    bits2 = vicii.regs[0x1c];
     for (i = 0; i < 8; i++) {
         mon_out(" %c/%c", (bits & 1) ? 'b' : 's', (bits2 & 1) ? '*' : ' ');
         bits >>= 1;
+        bits2 >>= 1;
     }
     mon_out("\nColor:  ");
     for (i = 0; i < 8; i++) {

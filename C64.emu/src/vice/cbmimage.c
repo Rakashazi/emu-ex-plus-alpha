@@ -33,6 +33,8 @@
 
 #include "vice.h"
 
+#include <stdio.h>
+
 #include "diskimage.h"
 #include "tape.h"
 

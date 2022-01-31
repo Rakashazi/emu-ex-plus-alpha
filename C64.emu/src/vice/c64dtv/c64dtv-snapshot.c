@@ -38,6 +38,7 @@
 #include "cia.h"
 #include "drive-snapshot.h"
 #include "drive.h"
+#include "serial.h"
 #include "ioutil.h"
 #include "joyport.h"
 #include "joystick.h"
@@ -57,8 +58,8 @@
 #include "c64dtvblitter.h"
 #include "c64dtvmemsnapshot.h"
 
-#define SNAP_MAJOR 1
-#define SNAP_MINOR 1
+#define SNAP_MAJOR 2
+#define SNAP_MINOR 0
 
 int c64dtv_snapshot_write(const char *name, int save_roms, int save_disks,
                           int event_mode)
@@ -85,6 +86,7 @@ int c64dtv_snapshot_write(const char *name, int save_roms, int save_disks,
         || ciacore_snapshot_write_module(machine_context.cia2, s) < 0
         || sid_snapshot_write_module(s) < 0
         || drive_snapshot_write_module(s, save_disks, save_roms) < 0
+        || fsdrive_snapshot_write_module(s) < 0
         || vicii_snapshot_write_module(s) < 0
         || event_snapshot_write_module(s, event_mode) < 0
         || keyboard_snapshot_write_module(s) < 0
@@ -129,6 +131,7 @@ int c64dtv_snapshot_read(const char *name, int event_mode)
         || ciacore_snapshot_read_module(machine_context.cia2, s) < 0
         || sid_snapshot_read_module(s) < 0
         || drive_snapshot_read_module(s) < 0
+        || fsdrive_snapshot_read_module(s) < 0
         || vicii_snapshot_read_module(s) < 0
         || event_snapshot_read_module(s, event_mode) < 0
         || keyboard_snapshot_read_module(s) < 0

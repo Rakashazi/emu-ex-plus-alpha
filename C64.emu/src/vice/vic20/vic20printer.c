@@ -50,10 +50,7 @@ void machine_printer_resources_shutdown(void)
 
 int machine_printer_cmdline_options_init(void)
 {
-    if (printer_serial_init_cmdline_options() < 0 || printer_userport_init_cmdline_options() < 0) {
-        return -1;
-    }
-    return 0;
+    return printer_serial_init_cmdline_options();
 }
 
 void machine_printer_init(void)

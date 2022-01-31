@@ -43,11 +43,9 @@ extern CLOCK maincpu_clk;
 
 struct alarm_context_s;
 struct snapshot_s;
-struct clk_guard_s;
 struct monitor_interface_s;
 
 extern struct alarm_context_s *maincpu_alarm_context;
-extern struct clk_guard_s *maincpu_clk_guard;
 extern struct monitor_interface_s *maincpu_monitor_interface;
 
 extern void maincpu_resync_limits(void);

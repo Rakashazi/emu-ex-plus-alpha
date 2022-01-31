@@ -558,7 +558,7 @@ inline static void draw_hires_sprite_expanded(uint8_t *data_ptr, int n,
     int spritex_unwrapped = (sprite_status->sprites[n].x + vicii.sprite_wrap_x)
                             % vicii.sprite_wrap_x;
 
-    sprmsk = (sprite_doubling_table[data_ptr[0]] << 16) | sprite_doubling_table[data_ptr[1]];
+    sprmsk = ((uint32_t)sprite_doubling_table[data_ptr[0]] << 16) | sprite_doubling_table[data_ptr[1]];
 
 
     if (spritex_unwrapped > SPRITE_EXPANDED_REPEAT_PIXELS_START(n)
@@ -758,11 +758,11 @@ inline static void draw_mc_sprite_expanded(uint8_t *data_ptr, int n, uint32_t *c
                             % vicii.sprite_wrap_x;
 
     mcsprmsk = (data_ptr[0] << 16) | (data_ptr[1] << 8) | data_ptr[2];
-    collmsk = ((((msk_ptr[1] << 24) | (msk_ptr[2] << 16)
+    collmsk = (((((uint32_t)msk_ptr[1] << 24) | (msk_ptr[2] << 16)
                  | (msk_ptr[3] << 8) | msk_ptr[4]) << lshift)
                | (msk_ptr[5] >> (8 - lshift)));
 
-    sprmsk = (sprite_doubling_table[mcsprtable[data_ptr[0]]] << 16)
+    sprmsk = ((uint32_t)sprite_doubling_table[mcsprtable[data_ptr[0]]] << 16)
              | sprite_doubling_table[mcsprtable[data_ptr[1]]];
 
     trim_size = 32;

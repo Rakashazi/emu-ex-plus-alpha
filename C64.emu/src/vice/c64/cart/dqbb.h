@@ -58,6 +58,7 @@ extern const char *dqbb_get_file_name(void);
 extern int dqbb_bin_attach(const char *filename, uint8_t *rawcart);
 extern int dqbb_bin_save(const char *filename);
 extern int dqbb_flush_image(void);
+extern void dqbb_powerup(void);
 
 struct snapshot_s;
 extern int dqbb_snapshot_read_module(struct snapshot_s *s);

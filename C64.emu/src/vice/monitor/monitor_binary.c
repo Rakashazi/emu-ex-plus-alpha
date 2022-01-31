@@ -31,9 +31,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "archdep_defs.h"
 #include "cmdline.h"
+#include "drive.h"
+#include "interrupt.h"
 #include "lib.h"
 #include "log.h"
+#include "kbdbuf.h"
 #include "monitor.h"
 #include "monitor_binary.h"
 #include "montypes.h"
@@ -49,6 +53,12 @@
 #include "mon_breakpoint.h"
 #include "mon_file.h"
 #include "mon_register.h"
+
+#include "version.h"
+
+#ifdef USE_SVN_REVISION
+# include "svnversion.h"
+#endif
 
 #ifdef HAVE_NETWORK
 
@@ -91,6 +101,13 @@ enum t_binary_command {
     e_MON_CMD_BANKS_AVAILABLE = 0x82,
     e_MON_CMD_REGISTERS_AVAILABLE = 0x83,
     e_MON_CMD_DISPLAY_GET = 0x84,
+    e_MON_CMD_VICE_INFO = 0x85,
+
+    e_MON_CMD_PALETTE_GET = 0x91,
+
+    e_MON_CMD_JOYPORT_SET = 0xa2,
+
+    e_MON_CMD_USERPORT_SET = 0xb2,
 
     e_MON_CMD_EXIT = 0xaa,
     e_MON_CMD_QUIT = 0xbb,
@@ -131,6 +148,13 @@ enum t_binary_response {
     e_MON_RESPONSE_BANKS_AVAILABLE = 0x82,
     e_MON_RESPONSE_REGISTERS_AVAILABLE = 0x83,
     e_MON_RESPONSE_DISPLAY_GET = 0x84,
+    e_MON_RESPONSE_VICE_INFO = 0x85,
+
+    e_MON_RESPONSE_PALETTE_GET = 0x91,
+
+    e_MON_RESPONSE_JOYPORT_SET = 0xa2,
+
+    e_MON_RESPONSE_USERPORT_SET = 0xb2,
 
     e_MON_RESPONSE_EXIT = 0xaa,
     e_MON_RESPONSE_QUIT = 0xbb,
@@ -153,10 +177,6 @@ typedef enum t_mon_error BINARY_ERROR;
 
 enum t_display_get_mode {
     e_DISPLAY_GET_MODE_INDEXED8 = 0x00,
-    e_DISPLAY_GET_MODE_RGB24 = 0x01,
-    e_DISPLAY_GET_MODE_BGR24 = 0x02,
-    e_DISPLAY_GET_MODE_RGBA32 = 0x03,
-    e_DISPLAY_GET_MODE_BGRA32 = 0x04,
 };
 typedef enum t_display_get_mode DISPLAY_GET_MODE;
 
@@ -200,22 +220,30 @@ static void monitor_binary_quit(void)
 
 int monitor_binary_receive(unsigned char *buffer, size_t buffer_length)
 {
-    int count = 0;
+    int bytes_received = 0;
+    int total_bytes_received = 0;
 
-    do {
-        if (!connected_socket) {
+    while (buffer_length && connected_socket) {
+        bytes_received = vice_network_receive(connected_socket, buffer, buffer_length, 0);
+
+        if (bytes_received <= 0) {
+            log_message(LOG_DEFAULT, "monitor_binary_receive(): vice_network_receive() returned %d, breaking connection", bytes_received);
+            monitor_binary_quit();
             break;
         }
 
-        count = vice_network_receive(connected_socket, buffer, buffer_length, 0);
-
-        if (count < 0) {
-            log_message(LOG_DEFAULT, "monitor_binary_receive(): vice_network_receive() returned -1, breaking connection");
-            monitor_binary_quit();
+        if (bytes_received < buffer_length) {
+            log_message(LOG_DEFAULT,
+                    "monitor_binary_receive(): received %d of %"PRI_SIZE_T,
+                    bytes_received, buffer_length);
         }
-    } while (0);
 
-    return count;
+        total_bytes_received += bytes_received;
+        buffer += bytes_received;
+        buffer_length -= bytes_received;
+    }
+
+    return total_bytes_received;
 }
 
 static int monitor_binary_data_available(void)
@@ -245,7 +273,7 @@ void monitor_check_binary(void)
 
 #define ASC_STX 0x02
 
-#define MON_BINARY_API_VERSION 0x01
+#define MON_BINARY_API_VERSION 0x02
 
 #define MON_EVENT_ID 0xffffffff
 
@@ -361,7 +389,23 @@ static MEMSPACE get_requested_memspace(uint8_t requested_memspace) {
     }
 }
 
-void monitor_binary_response_register_info(uint32_t request_id, MEMSPACE memspace)
+static uint8_t memspace_to_uint8_t(MEMSPACE mem) {
+    if (mem == e_comp_space) {
+        return 0;
+    } else if(mem == e_disk8_space) {
+        return 1;
+    } else if(mem == e_disk9_space) {
+        return 2;
+    } else if(mem == e_disk10_space) {
+        return 3;
+    } else if(mem == e_disk11_space) {
+        return 4;
+    } else {
+        return 0xff;
+    }
+}
+
+static void monitor_binary_response_register_info(uint32_t request_id, MEMSPACE memspace)
 {
     mon_reg_list_t *regs;
     mon_reg_list_t *regs_cursor;
@@ -428,7 +472,7 @@ void monitor_binary_event_closed(void) {
  \param hit Is the checkpoint hit in the emulator?
 */
 void monitor_binary_response_checkpoint_info(uint32_t request_id, mon_checkpoint_t *checkpt, bool hit) {
-    unsigned char response[22];
+    unsigned char response[23];
     MEMORY_OP op = (MEMORY_OP)(
         (checkpt->check_store ? e_store : 0) 
         | (checkpt->check_load ? e_load : 0) 
@@ -448,6 +492,7 @@ void monitor_binary_response_checkpoint_info(uint32_t request_id, mon_checkpoint
     write_uint32((uint32_t)checkpt->hit_count, &response[13]);
     write_uint32((uint32_t)checkpt->ignore_count, &response[17]);
     response[21] = !!checkpt->condition;
+    response[22] = memspace_to_uint8_t(addr_memspace(checkpt->start_addr));
 
     monitor_binary_response(sizeof (response), e_MON_RESPONSE_CHECKPOINT_INFO, e_MON_ERR_OK, request_id, response);
 }
@@ -481,16 +526,28 @@ static void monitor_binary_process_checkpoint_set(binary_command_t *command)
 {
     int brknum;
     mon_checkpoint_t *checkpt;
+    MEMSPACE memspace = e_comp_space;
     unsigned char *body = command->body;
+    uint8_t requested_memspace = command->body[8];
 
     if (command->length < 8) {
         monitor_binary_error(e_MON_ERR_CMD_INVALID_LENGTH, command->request_id);
         return;
     }
 
+    if(command->length >= 9) {
+        memspace = get_requested_memspace(requested_memspace);
+
+        if(memspace == e_invalid_space) {
+            monitor_binary_error(e_MON_ERR_INVALID_MEMSPACE, command->request_id);
+            log_message(LOG_DEFAULT, "monitor binary checkpoint set: Unknown memspace %u", requested_memspace);
+            return;
+        }
+    }
+
     brknum = mon_breakpoint_add_checkpoint(
-        (MON_ADDR)little_endian_to_uint16(&body[0]),
-        (MON_ADDR)little_endian_to_uint16(&body[2]),
+        (MON_ADDR)new_addr(memspace, little_endian_to_uint16(&body[0])),
+        (MON_ADDR)new_addr(memspace, little_endian_to_uint16(&body[2])),
         (bool)body[4],
         (MEMORY_OP)body[6],
         (bool)body[7],
@@ -653,6 +710,11 @@ static void monitor_binary_process_keyboard_feed(binary_command_t *command)
     unsigned char *body = command->body;
     uint8_t length = body[0];
 
+    if(command->api_version < 0x02) {
+        monitor_binary_error(e_MON_ERR_CMD_INVALID_API_VERSION, command->request_id);
+        return;
+    }
+
     if(command->length < 1 + length) {
         monitor_binary_error(e_MON_ERR_CMD_INVALID_LENGTH, command->request_id);
         return;
@@ -660,7 +722,7 @@ static void monitor_binary_process_keyboard_feed(binary_command_t *command)
 
     body[1 + length] = '\0';
 
-    mon_keyboard_feed((char *)&body[1]);
+    kbdbuf_feed((char *)&body[1]);
 
     monitor_binary_response(0, e_MON_RESPONSE_KEYBOARD_FEED, e_MON_ERR_OK, command->request_id, NULL);
 }
@@ -1054,8 +1116,6 @@ static void monitor_binary_process_registers_available(binary_command_t *command
     response = lib_malloc(response_size);
     response_cursor = response;
 
-    i = 0;
-
     response_cursor = write_uint16(count_response, response_cursor);
 
     for (i = 0; i < count_all; i++) {
@@ -1087,9 +1147,10 @@ static void monitor_binary_process_registers_available(binary_command_t *command
 static void monitor_binary_screenshot_line_data(screenshot_t *screenshot, uint8_t *data,
                                  unsigned int line, DISPLAY_GET_MODE mode)
 {
-    unsigned int i, bytes, except_right_border_width;
+    unsigned int i, except_right_border_width;
     uint8_t *line_base;
-    uint8_t color;
+    /* bytes per pixel */
+    unsigned int bytes = 1;
 
     unsigned int excess_width = (screenshot->width - screenshot->inner_width) / 2;
     unsigned int excess_height = (screenshot->height - screenshot->inner_height) / 2;
@@ -1106,18 +1167,6 @@ static void monitor_binary_screenshot_line_data(screenshot_t *screenshot, uint8_
 
 #define BUFFER_LINE_START(i, n) ((i)->draw_buffer + (n) * (i)->draw_buffer_line_size)
 
-    if(mode == e_DISPLAY_GET_MODE_BGRA32) {
-        bytes = 4;
-    } else if(mode == e_DISPLAY_GET_MODE_BGR24) {
-        bytes = 3;
-    } else if(mode == e_DISPLAY_GET_MODE_RGBA32) {
-        bytes = 4;
-    } else if(mode == e_DISPLAY_GET_MODE_RGB24) {
-        bytes = 3;
-    } else {
-        bytes = 1;
-    }
-
     line_base = BUFFER_LINE_START(screenshot,
                                   ((line - true_offset_y) + screenshot->y_offset)
                                   * screenshot->size_height);
@@ -1125,52 +1174,10 @@ static void monitor_binary_screenshot_line_data(screenshot_t *screenshot, uint8_
     if(line < true_offset_y || line > true_offset_y + screenshot->height) {
         memset(data, 0x00, screenshot->debug_width * bytes);
         return;
-    } else if(mode == e_DISPLAY_GET_MODE_RGB24) {
-        bytes = 3;
-        for (i = 0; i < screenshot->width; i++) {
-            color = screenshot->color_map[
-                line_base[i * screenshot->size_width + screenshot->x_offset]
-            ];
-            data[(i + true_offset_x) * 3] = screenshot->palette->entries[color].red;
-            data[(i + true_offset_x) * 3 + 1] = screenshot->palette->entries[color].green;
-            data[(i + true_offset_x) * 3 + 2] = screenshot->palette->entries[color].blue;
-        }
-    } else if(mode == e_DISPLAY_GET_MODE_BGR24) {
-        for (i = 0; i < screenshot->width; i++) {
-            color = screenshot->color_map[
-                line_base[i * screenshot->size_width + screenshot->x_offset]
-            ];
-            data[(i + true_offset_x) * 3] = screenshot->palette->entries[color].blue;
-            data[(i + true_offset_x) * 3 + 1] = screenshot->palette->entries[color].green;
-            data[(i + true_offset_x) * 3 + 2] = screenshot->palette->entries[color].red;
-        }
-    } else if(mode == e_DISPLAY_GET_MODE_RGBA32) {
-        for (i = 0; i < screenshot->width; i++) {
-            color = screenshot->color_map[
-                line_base[i * screenshot->size_width + screenshot->x_offset]
-            ];
-            data[(i + true_offset_x) * 4] = screenshot->palette->entries[color].red;
-            data[(i + true_offset_x) * 4 + 1] = screenshot->palette->entries[color].green;
-            data[(i + true_offset_x) * 4 + 2] = screenshot->palette->entries[color].blue;
-            data[(i + true_offset_x) * 4 + 3] = 255;
-        }
-    } else if(mode == e_DISPLAY_GET_MODE_BGRA32) {
-        for (i = 0; i < screenshot->width; i++) {
-            color = screenshot->color_map[
-                line_base[i * screenshot->size_width + screenshot->x_offset]
-            ];
-            data[(i + true_offset_x) * 4] = screenshot->palette->entries[color].blue;
-            data[(i + true_offset_x) * 4 + 1] = screenshot->palette->entries[color].green;
-            data[(i + true_offset_x) * 4 + 2] = screenshot->palette->entries[color].red;
-            data[(i + true_offset_x) * 4 + 3] = 255;
-        }
     } else {
-        bytes = 1;
         for (i = 0; i < screenshot->width; i++) {
-            color = screenshot->color_map[
-                line_base[i * screenshot->size_width + screenshot->x_offset]
-            ];
-            data[(i + true_offset_x)] = color;
+            data[(i + true_offset_x)] =
+                line_base[i * screenshot->size_width + screenshot->x_offset];
         }
     }
 
@@ -1183,42 +1190,32 @@ static void monitor_binary_screenshot_line_data(screenshot_t *screenshot, uint8_
     );
 }
 
-static unsigned char* reserved_data(screenshot_t* screenshot, unsigned char *response_cursor, DISPLAY_GET_MODE mode);
-
 static void monitor_binary_process_display_get(binary_command_t *command)
 {
     screenshot_t screenshot;
     struct video_canvas_s *canvas;
     unsigned char *response, *response_cursor;
     uint32_t response_length, buffer_length;
-    uint8_t depth;
     unsigned int i;
+    uint8_t depth = 8;
 
-    uint32_t main_length = 17;
-    uint32_t reserved_length = 18;
-
-    uint32_t info_length = 4 + main_length + 4 + reserved_length;
+    uint32_t info_length = 13;
 
     uint8_t use_vic = !!command->body[0];
 
     DISPLAY_GET_MODE format = command->body[1];
+
+    if(command->api_version < 0x02) {
+        monitor_binary_error(e_MON_ERR_CMD_INVALID_API_VERSION, command->request_id);
+        return;
+    }
 
     if(command->length < 2) {
         monitor_binary_error(e_MON_ERR_CMD_INVALID_LENGTH, command->request_id);
         return;
     }
 
-    if(format == e_DISPLAY_GET_MODE_BGRA32) {
-        depth = 32;
-    } else if(format == e_DISPLAY_GET_MODE_BGR24) {
-        depth = 24;
-    } else if(format == e_DISPLAY_GET_MODE_RGBA32) {
-        depth = 32;
-    } else if(format == e_DISPLAY_GET_MODE_RGB24) {
-        depth = 24;
-    } else if(format == e_DISPLAY_GET_MODE_INDEXED8) {
-        depth = 8;
-    } else {
+    if(format != e_DISPLAY_GET_MODE_INDEXED8) {
         monitor_binary_error(e_MON_ERR_INVALID_PARAMETER, command->request_id);
         return;
     }
@@ -1238,12 +1235,6 @@ static void monitor_binary_process_display_get(binary_command_t *command)
     screenshot.height = screenshot.last_displayed_line - screenshot.first_displayed_line + 1;
     screenshot.y_offset = screenshot.first_displayed_line;
 
-    screenshot.color_map = lib_calloc(1, 256);
-
-    for (i = 0; i < screenshot.palette->num_entries; i++) {
-        screenshot.color_map[i] = i;
-    }
-
     buffer_length = screenshot.debug_width * screenshot.debug_height * depth / 8;
     response_length = 4 + info_length + buffer_length;
     response = lib_malloc(response_length);
@@ -1252,11 +1243,6 @@ static void monitor_binary_process_display_get(binary_command_t *command)
     /* Length of fields before display buffer */
     response_cursor = write_uint32(info_length, response_cursor);
 
-    /* Length of fields before reserved area */
-    response_cursor = write_uint32(main_length, response_cursor);
-
-    /* Length of display buffer */
-    response_cursor = write_uint32(buffer_length, response_cursor);
     /* Full width of buffer */
     response_cursor = write_uint16(screenshot.debug_width, response_cursor);
     /* Full height of buffer */
@@ -1273,8 +1259,8 @@ static void monitor_binary_process_display_get(binary_command_t *command)
     *response_cursor = depth;
     response_cursor++;
 
-    /* PUT NEW FIELDS BEFORE THIS */
-    response_cursor = reserved_data(&screenshot, response_cursor, format);
+    /* Length of display buffer */
+    response_cursor = write_uint32(buffer_length, response_cursor);
 
     /* Buffer Data in requested format */
     screenshot.convert_line = monitor_binary_screenshot_line_data;
@@ -1286,59 +1272,134 @@ static void monitor_binary_process_display_get(binary_command_t *command)
     monitor_binary_response(response_length, e_MON_RESPONSE_DISPLAY_GET, e_MON_ERR_OK, command->request_id, response);
 
     lib_free(response);
-    lib_free(screenshot.color_map);
 }
 
-static unsigned char* reserved_data(screenshot_t* screenshot, unsigned char *response_cursor, DISPLAY_GET_MODE mode)
+static void monitor_binary_process_palette_get(binary_command_t *command)
 {
-    uint8_t depth;
-    uint8_t descriptor = 0x20;
+    screenshot_t screenshot;
+    struct video_canvas_s *canvas;
+    unsigned char *response, *response_cursor;
+    unsigned int i;
+    uint32_t response_length;
+    uint16_t num_entries;
+    uint8_t item_size = 3;
+    palette_entry_t *entry;
+    uint8_t use_vic = !!command->body[0];
 
-    if(mode == e_DISPLAY_GET_MODE_BGRA32) {
-        depth = 32;
-        descriptor |= 8;
-    } else if(mode == e_DISPLAY_GET_MODE_BGR24) {
-        depth = 24;
-    } else if(mode == e_DISPLAY_GET_MODE_RGBA32) {
-        depth = 32;
-        descriptor |= 8;
-    } else if(mode == e_DISPLAY_GET_MODE_RGB24) {
-        depth = 24;
-    } else {
-        depth = 16;
+    if(command->length < 1) {
+        monitor_binary_error(e_MON_ERR_CMD_INVALID_LENGTH, command->request_id);
+        return;
     }
 
-    /* Length of this section */
-    response_cursor = write_uint32(18, response_cursor);
+    if (machine_class == VICE_MACHINE_C128 && use_vic) {
+        canvas = machine_video_canvas_get(1);
+    } else {
+        canvas = machine_video_canvas_get(0);
+    }
 
-    /* ID Length - None */
-    *response_cursor = 0;
-    response_cursor++;
-    /* Color map type - No map */
-    *response_cursor = 0;
-    response_cursor++;
-    /* Image type - Unmapped RGB */
-    *response_cursor = 2;
-    response_cursor++;
-    /* Color map specs - Ignored */
-    memset(response_cursor, 0x00, 5);
-    response_cursor += 5;
-    /* X Origin - Bottom left */
-    response_cursor = write_uint16(0x00, response_cursor);
-    /* Y Origin - Bottom left */
-    response_cursor = write_uint16(screenshot->debug_height, response_cursor);
-    /* Image width */
-    response_cursor = write_uint16(screenshot->debug_width / (depth == 16 ? 2 : 1), response_cursor);
-    /* Image height */
-    response_cursor = write_uint16(screenshot->debug_height, response_cursor);
-    /* Depth */
-    *response_cursor = depth;
-    response_cursor++;
-    /* Descriptor - Upper left origin, non-interleaved */
-    *response_cursor = descriptor;
-    response_cursor++;
+    if(machine_screenshot(&screenshot, canvas) < 0) {
+        monitor_binary_error(e_MON_ERR_CMD_FAILURE, command->request_id);
+        return;
+    }
 
-    return response_cursor;
+    num_entries = screenshot.palette->num_entries;
+    response_length = 2 + num_entries * (item_size + 1);
+    response = lib_malloc(response_length);
+    response_cursor = response;
+
+    response_cursor = write_uint16(num_entries, response_cursor);
+
+    for(i = 0; i < num_entries; i++) {
+        entry = &screenshot.palette->entries[i];
+
+        *response_cursor = item_size;
+        ++response_cursor;
+
+        *response_cursor = entry->red;
+        ++response_cursor;
+
+        *response_cursor = entry->green;
+        ++response_cursor;
+
+        *response_cursor = entry->blue;
+        ++response_cursor;
+#if 0
+        *response_cursor = entry->dither;
+        ++response_cursor;
+#endif
+    }
+
+    monitor_binary_response(response_length, e_MON_RESPONSE_PALETTE_GET, e_MON_ERR_OK, command->request_id, response);
+
+    lib_free(response);
+}
+
+static void monitor_binary_process_joyport_set(binary_command_t *command)
+{
+    IO_SIM_RESULT ret;
+    unsigned char *body = command->body;
+    uint16_t port = little_endian_to_uint16(&body[0]);
+    uint16_t value = little_endian_to_uint16(&body[2]);
+
+    if (command->length < 4) {
+        monitor_binary_error(e_MON_ERR_CMD_INVALID_LENGTH, command->request_id);
+        return;
+    }
+
+    ret = mon_joyport_set_output((int)port, (int)value);
+    if (ret != e_IO_SIM_RESULT_OK) {
+        if (ret == e_IO_SIM_RESULT_ILLEGAL_PORT) {
+            monitor_binary_error(e_MON_ERR_OBJECT_MISSING, command->request_id);
+            return;
+        } else if (ret == e_IO_SIM_RESULT_ILLEGAL_VALUE) {
+            monitor_binary_error(e_MON_ERR_INVALID_PARAMETER, command->request_id);
+            return;
+        } else {
+            monitor_binary_error(e_MON_ERR_CMD_FAILURE, command->request_id);
+            return;
+        }
+    }
+
+    monitor_binary_response(0, e_MON_RESPONSE_JOYPORT_SET, e_MON_ERR_OK, command->request_id, NULL);
+}
+
+static void monitor_binary_process_userport_set(binary_command_t *command)
+{
+    IO_SIM_RESULT ret;
+    unsigned char *body = command->body;
+    uint16_t value = little_endian_to_uint16(&body[0]);
+
+    if(command->length < 2) {
+        monitor_binary_error(e_MON_ERR_CMD_INVALID_LENGTH, command->request_id);
+        return;
+    }
+
+    ret = mon_userport_set_output((int)value);
+    if(ret != e_IO_SIM_RESULT_OK) {
+        if (ret == e_IO_SIM_RESULT_ILLEGAL_VALUE) {
+            monitor_binary_error(e_MON_ERR_INVALID_PARAMETER, command->request_id);
+            return;
+        } else {
+            monitor_binary_error(e_MON_ERR_CMD_FAILURE, command->request_id);
+            return;
+        }
+    }
+
+    monitor_binary_response(0, e_MON_RESPONSE_USERPORT_SET, e_MON_ERR_OK, command->request_id, NULL);
+}
+
+static void monitor_binary_process_vice_info(binary_command_t *command)
+{
+    unsigned char response[10] = { 
+        4, VERSION_RC_NUMBER, /* this expands to something like 3,5,0,0 */
+        4, 0, 0, 0, 0,
+    };
+
+    #ifdef USE_SVN_REVISION
+        write_uint32(VICE_SVN_REV_NUMBER, &response[6]);
+    #endif
+
+    monitor_binary_response(sizeof(response), e_MON_RESPONSE_VICE_INFO, e_MON_ERR_OK, command->request_id, response);
 }
 
 static void monitor_binary_process_mem_get(binary_command_t *command)
@@ -1361,7 +1422,7 @@ static void monitor_binary_process_mem_get(binary_command_t *command)
     uint8_t requested_memspace = body[5];
     uint16_t requested_banknum = little_endian_to_uint16(&body[6]);
 
-    uint16_t length = endaddress - startaddress + 1;
+    uint32_t length = endaddress - startaddress + 1;
 
     if (startaddress > endaddress) {
         monitor_binary_error(e_MON_ERR_INVALID_PARAMETER, command->request_id);
@@ -1428,7 +1489,7 @@ static void monitor_binary_process_mem_set(binary_command_t *command)
     uint8_t requested_memspace = body[5];
     uint16_t requested_banknum = little_endian_to_uint16(&body[6]);
 
-    uint16_t length = endaddress - startaddress + 1;
+    uint32_t length = endaddress - startaddress + 1;
 
     if (startaddress > endaddress) {
         monitor_binary_error(e_MON_ERR_INVALID_PARAMETER, command->request_id);
@@ -1467,97 +1528,110 @@ static void monitor_binary_process_mem_set(binary_command_t *command)
     monitor_binary_response(0, e_MON_RESPONSE_MEM_SET, e_MON_ERR_OK, command->request_id, NULL);
 }
 
+
 static void monitor_binary_process_command(unsigned char * pbuffer)
 {
     BINARY_COMMAND command_type;
-    binary_command_t *command = lib_malloc(sizeof(binary_command_t));
+    binary_command_t command;
+    
+    command.api_version = (uint8_t)pbuffer[1];
 
-    command->api_version = (uint8_t)pbuffer[1];
+    command.request_id = little_endian_to_uint32(&pbuffer[6]);
 
-    if (command->api_version != 0x01) {
-        monitor_binary_error(e_MON_ERR_CMD_INVALID_API_VERSION, command->request_id);
+    if (command.api_version < 0x01 || command.api_version > 0x02) {
+        monitor_binary_error(e_MON_ERR_CMD_INVALID_API_VERSION, command.request_id);
         return;
     }
 
-    command->length = little_endian_to_uint32(&pbuffer[2]);
+    /* Ensure drive CPU emulation is up to date with main cpu CLOCK. */
+    drive_cpu_execute_all(maincpu_clk);
 
-    if (command->api_version >= 0x01) {
-        command->request_id = little_endian_to_uint32(&pbuffer[6]);
-        command->type = pbuffer[10];
-        command->body = &pbuffer[11];
-    }
+    command.length = little_endian_to_uint32(&pbuffer[2]);
 
-    command_type = command->type;
+    command.type = pbuffer[10];
+    command.body = &pbuffer[11];
+
+    command_type = command.type;
     if (command_type == e_MON_CMD_PING) {
-        monitor_binary_process_ping(command);
+        monitor_binary_process_ping(&command);
 
     } else if (command_type == e_MON_CMD_MEM_GET) {
-        monitor_binary_process_mem_get(command);
+        monitor_binary_process_mem_get(&command);
     } else if (command_type == e_MON_CMD_MEM_SET) {
-        monitor_binary_process_mem_set(command);
+        monitor_binary_process_mem_set(&command);
 
     } else if (command_type == e_MON_CMD_CHECKPOINT_GET) {
-        monitor_binary_process_checkpoint_get(command);
+        monitor_binary_process_checkpoint_get(&command);
     } else if (command_type == e_MON_CMD_CHECKPOINT_SET) {
-        monitor_binary_process_checkpoint_set(command);
+        monitor_binary_process_checkpoint_set(&command);
     } else if (command_type == e_MON_CMD_CHECKPOINT_DELETE) {
-        monitor_binary_process_checkpoint_delete(command);
+        monitor_binary_process_checkpoint_delete(&command);
     } else if (command_type == e_MON_CMD_CHECKPOINT_LIST) {
-        monitor_binary_process_checkpoint_list(command);
+        monitor_binary_process_checkpoint_list(&command);
     } else if (command_type == e_MON_CMD_CHECKPOINT_TOGGLE) {
-        monitor_binary_process_checkpoint_toggle(command);
+        monitor_binary_process_checkpoint_toggle(&command);
 
     } else if (command_type == e_MON_CMD_CONDITION_SET) {
-        monitor_binary_process_condition_set(command);
+        monitor_binary_process_condition_set(&command);
 
     } else if (command_type == e_MON_CMD_REGISTERS_GET) {
-        monitor_binary_process_registers_get(command);
+        monitor_binary_process_registers_get(&command);
     } else if (command_type == e_MON_CMD_REGISTERS_SET) {
-        monitor_binary_process_registers_set(command);
+        monitor_binary_process_registers_set(&command);
 
     } else if (command_type == e_MON_CMD_DUMP) {
-        monitor_binary_process_dump(command);
+        monitor_binary_process_dump(&command);
     } else if (command_type == e_MON_CMD_UNDUMP) {
-        monitor_binary_process_undump(command);
+        monitor_binary_process_undump(&command);
 
     } else if (command_type == e_MON_CMD_RESOURCE_GET) {
-        monitor_binary_process_resource_get(command);
+        monitor_binary_process_resource_get(&command);
     } else if (command_type == e_MON_CMD_RESOURCE_SET) {
-        monitor_binary_process_resource_set(command);
+        monitor_binary_process_resource_set(&command);
 
     } else if (command_type == e_MON_CMD_ADVANCE_INSTRUCTIONS) {
-        monitor_binary_process_advance_instructions(command);
+        monitor_binary_process_advance_instructions(&command);
     } else if (command_type == e_MON_CMD_KEYBOARD_FEED) {
-        monitor_binary_process_keyboard_feed(command);
+        monitor_binary_process_keyboard_feed(&command);
     } else if (command_type == e_MON_CMD_EXECUTE_UNTIL_RETURN) {
-        monitor_binary_process_execute_until_return(command);
+        monitor_binary_process_execute_until_return(&command);
 
-    } else if (command_type == e_MON_CMD_EXIT) {
-        monitor_binary_process_exit(command);
-    } else if (command_type == e_MON_CMD_QUIT) {
-        monitor_binary_process_quit(command);
-    } else if (command_type == e_MON_CMD_RESET) {
-        monitor_binary_process_reset(command);
-    } else if (command_type == e_MON_CMD_AUTOSTART) {
-        monitor_binary_process_autostart(command);
+    } else if (command_type == e_MON_CMD_PALETTE_GET) {
+        monitor_binary_process_palette_get(&command);
+
+    } else if (command_type == e_MON_CMD_JOYPORT_SET) {
+        monitor_binary_process_joyport_set(&command);
+
+    } else if (command_type == e_MON_CMD_USERPORT_SET) {
+        monitor_binary_process_userport_set(&command);
 
     } else if (command_type == e_MON_CMD_BANKS_AVAILABLE) {
-        monitor_binary_process_banks_available(command);
+        monitor_binary_process_banks_available(&command);
     } else if (command_type == e_MON_CMD_REGISTERS_AVAILABLE) {
-        monitor_binary_process_registers_available(command);
+        monitor_binary_process_registers_available(&command);
     } else if (command_type == e_MON_CMD_DISPLAY_GET) {
-        monitor_binary_process_display_get(command);
+        monitor_binary_process_display_get(&command);
+    } else if (command_type == e_MON_CMD_VICE_INFO) {
+        monitor_binary_process_vice_info(&command);
+
+    } else if (command_type == e_MON_CMD_EXIT) {
+        monitor_binary_process_exit(&command);
+    } else if (command_type == e_MON_CMD_QUIT) {
+        monitor_binary_process_quit(&command);
+    } else if (command_type == e_MON_CMD_RESET) {
+        monitor_binary_process_reset(&command);
+    } else if (command_type == e_MON_CMD_AUTOSTART) {
+        monitor_binary_process_autostart(&command);
+
     } else {
-        monitor_binary_error(e_MON_ERR_CMD_INVALID_TYPE, command->request_id);
+        monitor_binary_error(e_MON_ERR_CMD_INVALID_TYPE, command.request_id);
         log_message(LOG_DEFAULT,
                 "monitor_network binary command: unknown command %u, "
                 "skipping command length of %u",
-                command->type, command->length);
+                command.type, command.length);
     }
 
     pbuffer[0] = 0;
-
-    lib_free(command);
 }
 
 static int monitor_binary_activate(void)
@@ -1620,17 +1694,22 @@ int monitor_binary_get_command_line(void)
             continue;
         }
 
-        n = monitor_binary_receive(&buffer[1], sizeof(api_version) + sizeof(body_length));
+        n = 0;
 
-        if (n < sizeof(api_version) + sizeof(body_length)) {
-            monitor_binary_quit();
-            return 0;
+        while (n < sizeof(api_version) + sizeof(body_length)) {
+            int o = monitor_binary_receive(&buffer[1 + n], (sizeof(api_version) + sizeof(body_length)) - n);
+            if (o <= 0) {
+                monitor_binary_quit();
+                return 0;
+            }
+
+            n += o;
         }
 
         api_version = buffer[1];
         body_length = little_endian_to_uint32(&buffer[2]);
 
-        if (api_version == 0x01) {
+        if (api_version >= 0x01 && api_version <= 0x02) {
             remaining_header_size = 5;
         } else {
             continue;

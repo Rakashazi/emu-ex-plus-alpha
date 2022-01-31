@@ -179,18 +179,44 @@ static int set_cia2_model(int val, void *param)
     return 0;
 }
 
+#define NUM_TRAP_DEVICES 9  /* FIXME: is there a better constant ? */
+static int trapfl[NUM_TRAP_DEVICES];
+static int trapdevices[NUM_TRAP_DEVICES + 1] = { 1, 4, 5, 6, 7, 8, 9, 10, 11, -1 };
+
+static void get_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_get_int_sprintf("VirtualDevice%d", &trapfl[i], trapdevices[i]);
+    }
+}
+
+static void clear_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_set_int_sprintf("VirtualDevice%d", 0, trapdevices[i]);
+    }
+}
+
+static void restore_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_set_int_sprintf("VirtualDevice%d", trapfl[i], trapdevices[i]);
+    }
+}
+
 static int set_kernal_revision(int val, void *param)
 {
-    int trapfl;
-
     log_verbose("set_kernal_revision (\"KernalRev\") val:%d kernal_revision: %d", val, kernal_revision);
     if(!c64rom_isloaded()) {
         return 0;
     }
     /* disable device traps before kernal patching */
     if (machine_class != VICE_MACHINE_VSID) {
-        resources_get_int("VirtualDevices", &trapfl);
-        resources_set_int("VirtualDevices", 0);
+        get_trapflags();
+        clear_trapflags();
     }
     /* patch kernal to given revision */
     if ((val != -1) && (patch_rom_idx(val) < 0)) {
@@ -202,7 +228,7 @@ static int set_kernal_revision(int val, void *param)
     }
     /* restore traps */
     if (machine_class != VICE_MACHINE_VSID) {
-        resources_set_int("VirtualDevices", trapfl);
+        restore_trapflags();
     }
     kernal_revision = val;
     log_verbose("set_kernal_revision (\"KernalRev\") new kernal_revision: %d", kernal_revision);

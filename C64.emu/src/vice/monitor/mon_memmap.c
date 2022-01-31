@@ -68,8 +68,9 @@ uint8_t memmap_state = 0;
 #define MEMMAP_ELEM uint16_t
 
 struct cpuhistory_s {
-   uint32_t cycle;
+   CLOCK cycle;
    uint16_t addr;
+   uint16_t reg_st;
    uint8_t op;
    uint8_t p1;
    uint8_t p2;
@@ -77,7 +78,7 @@ struct cpuhistory_s {
    uint8_t reg_x;
    uint8_t reg_y;
    uint8_t reg_sp;
-   uint16_t reg_st;
+   int8_t origin;
 };
 typedef struct cpuhistory_s cpuhistory_t;
 
@@ -93,6 +94,8 @@ static int cpuhistory_i = 0;
  */
 int monitor_cpuhistory_allocate(int lines)
 {
+    uint32_t i;
+
     if (lines <= 0) {
         fprintf(stderr, "%s(): illegal cpuhistory line count: %d\n",
                 __func__, lines);
@@ -109,6 +112,11 @@ int monitor_cpuhistory_allocate(int lines)
          * -- Compyx
          * */
         memset((void *)cpuhistory, 0, sizeof(cpuhistory_t) * (size_t)lines);
+        /* flag lines so they won't output anything after startup */
+        for (i = 0; i < lines ; i++) {
+            /* don't use -1 */
+            cpuhistory[i].origin = -2;
+        }
     }
 
     cpuhistory_lines = lines;
@@ -117,14 +125,19 @@ int monitor_cpuhistory_allocate(int lines)
 }
 
 
-void monitor_cpuhistory_store(uint32_t cycle, unsigned int addr, unsigned int op,
+void monitor_cpuhistory_store(CLOCK cycle, unsigned int addr, unsigned int op,
                               unsigned int p1, unsigned int p2,
                               uint8_t reg_a,
                               uint8_t reg_x,
                               uint8_t reg_y,
                               uint8_t reg_sp,
-                              unsigned int reg_st)
+                              unsigned int reg_st,
+                              uint8_t origin)
 {
+    if (machine_is_jammed()) {
+        return;
+    }
+    
     ++cpuhistory_i;
     cpuhistory_i %= cpuhistory_lines;
     cpuhistory[cpuhistory_i].cycle = cycle;
@@ -137,6 +150,7 @@ void monitor_cpuhistory_store(uint32_t cycle, unsigned int addr, unsigned int op
     cpuhistory[cpuhistory_i].reg_y = reg_y;
     cpuhistory[cpuhistory_i].reg_sp = reg_sp;
     cpuhistory[cpuhistory_i].reg_st = reg_st;
+    cpuhistory[cpuhistory_i].origin = origin;
 }
 
 void monitor_cpuhistory_fix_p2(unsigned int p2)
@@ -144,7 +158,8 @@ void monitor_cpuhistory_fix_p2(unsigned int p2)
     cpuhistory[cpuhistory_i].p2 = p2;
 }
 
-void mon_cpuhistory(int count)
+void mon_cpuhistory(int count, MEMSPACE filter1, MEMSPACE filter2, MEMSPACE filter3,
+                    MEMSPACE filter4, MEMSPACE filter5)
 {
     uint8_t op, p1, p2, p3 = 0;
     MEMSPACE mem;
@@ -153,44 +168,90 @@ void mon_cpuhistory(int count)
     const char *dis_inst;
     unsigned opc_size;
     int i, pos;
-    uint32_t cycle;
+    CLOCK cycle;
+    char otext[10];
 
+    /* the filterX is 0 = no value, 1 = cpu, 2 = drive 8, etc */
+
+    /* if nothing passed, set the first filter to the default device */
+    if (filter1 + filter2 + filter3 + filter4 + filter5 == 0) {
+        filter1 = default_memspace;
+    }
+
+    /* determine the actual maximum records to go through */
     if ((count < 1) || (count > cpuhistory_lines)) {
         count = cpuhistory_lines;
     }
 
-    pos = (cpuhistory_i + 1 - count);
-    if (pos < 0) {
-        pos += cpuhistory_lines;
+    /* 'i' is the actual counter */
+    i = 0;
+    /* start looking at last entry */
+    pos = cpuhistory_i;
+
+    /* find out where we need to start */
+    while (i < count) {
+        /* make sure the record matches */
+        if (cpuhistory[pos].origin >= 0
+            && (filter1 - 1 == cpuhistory[pos].origin
+                || filter2 - 1 == cpuhistory[pos].origin
+                || filter3 - 1 == cpuhistory[pos].origin
+                || filter4 - 1 == cpuhistory[pos].origin
+                || filter5 - 1 == cpuhistory[pos].origin)) {
+            i++;
+        }
+        pos--;
+        if (pos < 0) {
+            pos += cpuhistory_lines;
+        }
+        /* stop if we hit the starting point */
+        /* this is totally possible since the emulation runs each CPU in
+            chunks and eventually syncs up. Syncing is more aggressive
+            when talking between devices. */
+        if (pos == cpuhistory_i) {
+            break;
+        }
     }
 
-    for (i = 0; i < count; ++i) {
-        cycle = cpuhistory[pos].cycle;
-        addr = cpuhistory[pos].addr;
-        op = cpuhistory[pos].op;
-        p1 = cpuhistory[pos].p1;
-        p2 = cpuhistory[pos].p2;
+    /* loop through all entries until we find the number records requested */
+    while (i > 0) {
+        /* adjust our buffer circular reference */
+        pos = ( pos + 1) % cpuhistory_lines;
+        /* make sure the record matches */
+        if (cpuhistory[pos].origin >= 0
+            && (filter1 - 1 == cpuhistory[pos].origin
+                || filter2 - 1 == cpuhistory[pos].origin
+                || filter3 - 1 == cpuhistory[pos].origin
+                || filter4 - 1 == cpuhistory[pos].origin
+                || filter5 - 1 == cpuhistory[pos].origin)) {
+            cycle = cpuhistory[pos].cycle;
+            addr = cpuhistory[pos].addr;
+            op = cpuhistory[pos].op;
+            p1 = cpuhistory[pos].p1;
+            p2 = cpuhistory[pos].p2;
 
-        mem = addr_memspace(addr);
-        loc = addr_location(addr);
+            mem = cpuhistory[pos].origin + 1;
+            loc = addr_location(addr);
 
-        dis_inst = mon_disassemble_to_string_ex(mem, loc, op, p1, p2, p3, hex_mode, &opc_size);
+            dis_inst = mon_disassemble_to_string_ex(mem, loc, op, p1, p2, p3, hex_mode, &opc_size);
 
-        /* Print the disassembled instruction */
-        mon_out("%04x  %-30s - A:%02x X:%02x Y:%02x SP:%02x %c%c-%c%c%c%c%c %09u\n",
-            loc, dis_inst,
-            cpuhistory[pos].reg_a, cpuhistory[pos].reg_x, cpuhistory[pos].reg_y, cpuhistory[pos].reg_sp,
-            ((cpuhistory[pos].reg_st & (1 << 7)) != 0) ? 'N' : ' ',
-            ((cpuhistory[pos].reg_st & (1 << 6)) != 0) ? 'V' : ' ',
-            ((cpuhistory[pos].reg_st & (1 << 4)) != 0) ? 'B' : ' ',
-            ((cpuhistory[pos].reg_st & (1 << 3)) != 0) ? 'D' : ' ',
-            ((cpuhistory[pos].reg_st & (1 << 2)) != 0) ? 'I' : ' ',
-            ((cpuhistory[pos].reg_st & (1 << 1)) != 0) ? 'Z' : ' ',
-            ((cpuhistory[pos].reg_st & (1 << 0)) != 0) ? 'C' : ' ',
-            cycle
-            );
+            strncpy(otext, mon_memspace_string[cpuhistory[pos].origin + 1], 4);
 
-        pos = (pos + 1) % cpuhistory_lines;
+            /* Print the disassembled instruction */
+            mon_out(".%s:%04x  %-26s A:%02x X:%02x Y:%02x SP:%02x %c%c-%c%c%c%c%c %12"PRIu64"\n",
+                otext, loc, dis_inst,
+                cpuhistory[pos].reg_a, cpuhistory[pos].reg_x,
+                cpuhistory[pos].reg_y, cpuhistory[pos].reg_sp,
+                ((cpuhistory[pos].reg_st & (1 << 7)) != 0) ? 'N' : '.',
+                ((cpuhistory[pos].reg_st & (1 << 6)) != 0) ? 'V' : '.',
+                ((cpuhistory[pos].reg_st & (1 << 4)) != 0) ? 'B' : '.',
+                ((cpuhistory[pos].reg_st & (1 << 3)) != 0) ? 'D' : '.',
+                ((cpuhistory[pos].reg_st & (1 << 2)) != 0) ? 'I' : '.',
+                ((cpuhistory[pos].reg_st & (1 << 1)) != 0) ? 'Z' : '.',
+                ((cpuhistory[pos].reg_st & (1 << 0)) != 0) ? 'C' : '.',
+                cycle
+                );
+            i--;
+        }
     }
 }
 
@@ -364,7 +425,8 @@ static void mon_memmap_stub(void)
     mon_out("Disabled. configure with --enable-cpuhistory and recompile.\n");
 }
 
-void mon_cpuhistory(int count)
+void mon_cpuhistory(int count, MEMSPACE filter1, MEMSPACE filter2, MEMSPACE filter3,
+                    MEMSPACE filter4, MEMSPACE filter5)
 {
     mon_memmap_stub();
 }

@@ -569,7 +569,7 @@ static int set_c64dtvflash_filename(const char *name, void *param)
 #ifndef AMIGA_SUPPORT
     /* check if the given rom file can be found in a sys dir and set resource with absolute path */
     if (name != NULL && *name != '\0' && !util_file_exists(name)) {
-        sysfile_locate(name, &complete_path);
+        sysfile_locate(name, "C64DTV", &complete_path);
         if (complete_path != NULL) {
             name = complete_path;
         }

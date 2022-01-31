@@ -154,7 +154,7 @@ static void vorbis_close(void)
     vorbis_fd = NULL;
 }
 
-static sound_device_t vorbis_device =
+static const sound_device_t vorbis_device =
 {
     "ogg",
     vorbis_init,

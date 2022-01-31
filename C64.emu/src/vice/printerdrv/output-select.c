@@ -256,3 +256,8 @@ int output_select_flush(unsigned int prnr)
 {
     return output_select[prnr].output_flush(prnr);
 }
+
+int output_select_formfeed(unsigned int prnr)
+{
+    return output_select[prnr].output_formfeed(prnr);
+}

@@ -55,7 +55,8 @@ extern int autostart_autodetect_opt_prgname(const char *file_prog_name,
 extern int autostart_disk(int unit, int drive, const char *file_name, const char *program_name,
                           unsigned int program_number, unsigned int runmode);
 extern int autostart_tape(const char *file_name, const char *program_name,
-                          unsigned int program_number, unsigned int runmode);
+                          unsigned int program_number, unsigned int runmode,
+                          unsigned int tapeport);
 extern int autostart_prg(const char *file_name, unsigned int runmode);
 extern int autostart_snapshot(const char *file_name, const char *program_name);
 extern int autostart_tapecart(const char *file_name, void *unused);
@@ -71,5 +72,7 @@ extern int autostart_ignore_reset;
 extern int autostart_in_progress(void);
 
 extern void autostart_trigger_monitor(int enable);
+
+extern int autostart_set_initial_tap_offset(unsigned long offset);
 
 #endif

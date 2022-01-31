@@ -68,19 +68,30 @@
 #define KBD_INDEX_NUM     4
 
 /* the mapping of the host ("KeyboardMapping")
-   (keep in sync with table in keyboard.c) */
+
+   CAUTION: keep in sync with constants in keyboard.h and code in
+            arch/shared/archdep_kbd_get_host_mapping.c and also with the
+            description of the KeyboardMapping resource in vice.texi
+
+   CAUTION: append new mappings to the end of the list, do not change the
+            existing IDs, since these are referenced by number in config files
+            and cmdline options.
+*/
 #define KBD_MAPPING_US    0     /* "" (us mapping) this must be first (=0) always */
 #define KBD_MAPPING_UK    1     /* "uk" */
 #define KBD_MAPPING_DA    2     /* "da" */
 #define KBD_MAPPING_NL    3     /* "nl" */
 #define KBD_MAPPING_FI    4     /* "fi" */
-#define KBD_MAPPING_DE    5     /* "de" */
-#define KBD_MAPPING_IT    6     /* "it" */
-#define KBD_MAPPING_NO    7     /* "no" */
-#define KBD_MAPPING_SE    8     /* "se" */
-#define KBD_MAPPING_CH    9     /* "ch" */
-#define KBD_MAPPING_LAST  9
-#define KBD_MAPPING_NUM   10
+#define KBD_MAPPING_FR    5     /* "fr" */
+#define KBD_MAPPING_DE    6     /* "de" */
+#define KBD_MAPPING_IT    7     /* "it" */
+#define KBD_MAPPING_NO    8     /* "no" */
+#define KBD_MAPPING_ES    9     /* "es" */
+#define KBD_MAPPING_SE    10    /* "se" */
+#define KBD_MAPPING_CH    11    /* "ch" */
+#define KBD_MAPPING_BE    12    /* "be" */
+#define KBD_MAPPING_LAST  12
+#define KBD_MAPPING_NUM   13
 extern int keyboard_get_num_mappings(void);
 
 /* mapping info for GUIs */
@@ -127,11 +138,18 @@ extern void keyboard_key_pressed(signed long key, int mod);
 extern void keyboard_key_released(signed long key, int mod);
 extern void keyboard_key_clear(void);
 
+extern int keyboard_get_shiftlock(void);
+extern void keyboard_set_shiftlock(int state);
+
 typedef void (*key_ctrl_column4080_func_t)(void);
 extern void keyboard_register_column4080_key(key_ctrl_column4080_func_t func);
 
 typedef void (*key_ctrl_caps_func_t)(void);
 extern void keyboard_register_caps_key(key_ctrl_caps_func_t func);
+extern void keyboard_toggle_caps_key(void);
+typedef int (*key_ctrl_get_caps_func_t)(void);
+extern void keyboard_register_get_caps_key(key_ctrl_get_caps_func_t func);
+extern int keyboard_get_caps_key(void);
 
 typedef void (*key_joy_keypad_func_t)(int row, int col, int pressed);
 extern void keyboard_register_joy_keypad(key_joy_keypad_func_t func);

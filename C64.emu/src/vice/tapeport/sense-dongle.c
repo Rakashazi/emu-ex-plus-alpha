@@ -31,6 +31,7 @@
 #include <string.h>
 
 #include "cmdline.h"
+#include "machine.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "tapeport.h"
@@ -38,115 +39,56 @@
 #include "sense-dongle.h"
 
 
-static int sense_dongle_enabled = 0;
+static int sense_dongle_enabled[TAPEPORT_MAX_PORTS] = { 0 };
 
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static void sense_dongle_reset(void);
-static int sense_dongle_write_snapshot(struct snapshot_s *s, int write_image);
-static int sense_dongle_read_snapshot(struct snapshot_s *s);
+static void sense_dongle_powerup(int port);
+static int sense_dongle_enable(int port, int val);
 
 static tapeport_device_t sense_dongle_device = {
-    TAPEPORT_DEVICE_SENSE_DONGLE, /* device id */
-    "Sense dongle",               /* device name */
-    0,                            /* order of the device, filled in by the tapeport system when the device is attached */
-    "TapeSenseDongle",            /* resource used by the device */
-    NULL,                         /* NO device shutdown function */
-    sense_dongle_reset,           /* device specific reset function */
-    NULL,                         /* NO set motor line function */
-    NULL,                         /* NO set write line function */
-    NULL,                         /* NO set sense line function */
-    NULL,                         /* NO set read line function */
-    NULL,                         /* NO passthrough flux change function */
-    NULL,                         /* NO passthrough sense read function */
-    NULL,                         /* NO passthrough write line function */
-    NULL                          /* NO passthrough motor line function */
+    "Sense dongle",              /* device name */
+    TAPEPORT_DEVICE_TYPE_DONGLE, /* device is a 'dongle' type device */
+    VICE_MACHINE_ALL,            /* device works on all machines */
+    TAPEPORT_PORT_ALL_MASK,      /* device works on all ports */
+    sense_dongle_enable,         /* device enable function */
+    sense_dongle_powerup,        /* device specific hard reset function */
+    NULL,                        /* NO device shutdown function */
+    NULL,                        /* NO set motor line function */
+    NULL,                        /* NO set write line function */
+    NULL,                        /* NO set sense line function */
+    NULL,                        /* NO set read line function */
+    NULL,                        /* NO device snapshot write function */
+    NULL                         /* NO device snapshot read function */
 };
-
-static tapeport_snapshot_t sense_dongle_snapshot = {
-    TAPEPORT_DEVICE_SENSE_DONGLE,
-    sense_dongle_write_snapshot,
-    sense_dongle_read_snapshot
-};
-
-static tapeport_device_list_t *sense_dongle_list_item = NULL;
 
 /* ------------------------------------------------------------------------- */
 
-static int set_sense_dongle_enabled(int value, void *param)
+static int sense_dongle_enable(int port, int value)
 {
     int val = value ? 1 : 0;
 
-    if (sense_dongle_enabled == val) {
+    if (sense_dongle_enabled[port] == val) {
         return 0;
     }
 
     if (val) {
-        sense_dongle_list_item = tapeport_device_register(&sense_dongle_device);
-        if (sense_dongle_list_item == NULL) {
-            return -1;
-        }
-        tapeport_set_tape_sense(1, sense_dongle_device.id);
-    } else {
-        tapeport_device_unregister(sense_dongle_list_item);
-        sense_dongle_list_item = NULL;
+        tapeport_set_tape_sense(1, port);
     }
 
-    sense_dongle_enabled = val;
+    sense_dongle_enabled[port] = val;
     return 0;
 }
 
-static const resource_int_t resources_int[] = {
-    { "TapeSenseDongle", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      &sense_dongle_enabled, set_sense_dongle_enabled, NULL },
-    RESOURCE_INT_LIST_END
-};
-
-int sense_dongle_resources_init(void)
+int sense_dongle_resources_init(int amount)
 {
-    tapeport_snapshot_register(&sense_dongle_snapshot);
-
-    return resources_register_int(resources_int);
-}
-
-static const cmdline_option_t cmdline_options[] =
-{
-    { "-tapesensedongle", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "TapeSenseDongle", (resource_value_t)1,
-      NULL, "Enable tape sense dongle" },
-    { "+tapesensedongle", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "TapeSenseDongle", (resource_value_t)0,
-      NULL, "Disable tape sense dongle" },
-    CMDLINE_LIST_END
-};
-
-int sense_dongle_cmdline_options_init(void)
-{
-    return cmdline_register_options(cmdline_options);
+    return tapeport_device_register(TAPEPORT_DEVICE_SENSE_DONGLE, &sense_dongle_device);
 }
 
 /* ---------------------------------------------------------------------*/
 
-static void sense_dongle_reset(void)
+static void sense_dongle_powerup(int port)
 {
-    tapeport_set_tape_sense(1, sense_dongle_device.id);
-}
-
-/* ---------------------------------------------------------------------*/
-
-static int sense_dongle_write_snapshot(struct snapshot_s *s, int write_image)
-{
-    /* No data to write */
-    return 0;
-}
-
-static int sense_dongle_read_snapshot(struct snapshot_s *s)
-{
-    /* No data to read, we use this to enable the device when reading a snapshot */
-
-    /* enable device */
-    set_sense_dongle_enabled(1, NULL);
-
-    return 0;
+    tapeport_set_tape_sense(1, port);
 }

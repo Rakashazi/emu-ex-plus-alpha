@@ -125,7 +125,8 @@ static int resid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
     char model_text[100];
     char method_text[100];
     double passband, gain;
-    int filters_enabled, model, warp_mode, sampling, passband_percentage, gain_percentage, filter_bias_mV;
+    int filters_enabled, model, sampling, passband_percentage, gain_percentage, filter_bias_mV;
+    int rawoutput;
 
     if (resources_get_int("SidFilters", &filters_enabled) < 0) {
         return 0;
@@ -135,13 +136,13 @@ static int resid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
         return 0;
     }
 
-    if (resources_get_int("WarpMode", &warp_mode) < 0) {
+    if (resources_get_int("SidResidEnableRawOutput", &rawoutput) < 0) {
         return 0;
     }
 
     /*
      * Don't even think about changing this to fast during warp :)
-     * the result is visible to the emulator.
+     * the resampled result is visible to the emulator.
      */
     if (resources_get_int("SidResidSampling", &sampling) < 0) {
         return 0;
@@ -244,10 +245,13 @@ static int resid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
         return 0;
     }
 
-    log_message(LOG_DEFAULT, "reSID: %s, filter %s, sampling rate %dHz - %s",
+    psid->sid->enable_raw_debug_output(rawoutput);
+
+    log_message(LOG_DEFAULT, "reSID: %s, filter %s, sampling rate %dHz - %s%s",
                 model_text,
                 filters_enabled ? "on" : "off",
-                speed, method_text);
+                speed, method_text,
+                rawoutput ? ", raw debug output enabled": "");
 
     return 1;
 }
@@ -279,27 +283,68 @@ static void resid_reset(sound_t *psid, CLOCK cpu_clk)
 }
 
 static int resid_calculate_samples(sound_t *psid, short *pbuf, int nr,
-                                   int interleave, int *delta_t)
+                                   int interleave, CLOCK *delta_t)
 {
     short *tmp_buf;
     int retval;
+    int int_delta_t_original = (int)*delta_t;
+    int int_delta_t = (int)*delta_t;
+    
+    /* Tried not to mess with resid during 64-bit conversion. clock(...) wants to modify *delta_t ... */
 
     if (psid->factor == 1000) {
-        return psid->sid->clock(*delta_t, pbuf, nr, interleave);
+        retval = psid->sid->clock(int_delta_t, pbuf, nr, interleave);
+        (*delta_t) += int_delta_t - int_delta_t_original;
+        return retval;
     }
+    
     tmp_buf = getbuf(2 * nr * psid->factor / 1000);
-    retval = psid->sid->clock(*delta_t, tmp_buf, nr * psid->factor / 1000, interleave) * 1000 / psid->factor;
+    retval = psid->sid->clock(int_delta_t, tmp_buf, nr * psid->factor / 1000, interleave) * 1000 / psid->factor;
+    (*delta_t) += int_delta_t - int_delta_t_original;
     memcpy(pbuf, tmp_buf, 2 * nr);
+    
     return retval;
-}
-
-static void resid_prevent_clk_overflow(sound_t *psid, CLOCK sub)
-{
 }
 
 static char *resid_dump_state(sound_t *psid)
 {
-    return lib_strdup("");
+    reSID::SID::State state;
+    char strbuf[0x400];
+    /* when sound is disabled *psid is NULL */
+    if (psid && psid->sid) {
+        state = psid->sid->read_state();
+    } else {
+        return lib_strdup("no state available when sound is disabled.");
+    }
+    sprintf(strbuf, 
+            "FREQ:   %04x %04x %04x\n"
+            "PULSE:  %04x %04x %04x\n"
+            "CTRL:     %02x   %02x   %02x\n"
+            "ADSR:   %04x %04x %04x\n"
+            "FILTER: %04x RES: %02x MODE/VOL: %02x\n"
+            "ADC: %02x %02x\n"
+            "OSC3: %02x ENV3: %02x\n",
+            ((state.sid_register[(0 * 7) + 1] << 8) | state.sid_register[(0 * 7) + 0]) & 0xffff,
+            ((state.sid_register[(1 * 7) + 1] << 8) | state.sid_register[(1 * 7) + 0]) & 0xffff,
+            ((state.sid_register[(2 * 7) + 1] << 8) | state.sid_register[(2 * 7) + 0]) & 0xffff,
+            ((state.sid_register[(0 * 7) + 3] << 8) | state.sid_register[(0 * 7) + 2]) & 0xffff,
+            ((state.sid_register[(1 * 7) + 3] << 8) | state.sid_register[(1 * 7) + 2]) & 0xffff,
+            ((state.sid_register[(2 * 7) + 3] << 8) | state.sid_register[(2 * 7) + 2]) & 0xffff,
+            (state.sid_register[(0 * 7) + 4]) & 0xff,
+            (state.sid_register[(1 * 7) + 4]) & 0xff,
+            (state.sid_register[(2 * 7) + 4]) & 0xff,
+            ((state.sid_register[(0 * 7) + 5] << 8) | state.sid_register[(0 * 7) + 6]) & 0xffff,
+            ((state.sid_register[(1 * 7) + 5] << 8) | state.sid_register[(1 * 7) + 6]) & 0xffff,
+            ((state.sid_register[(2 * 7) + 5] << 8) | state.sid_register[(2 * 7) + 6]) & 0xffff,
+            ((state.sid_register[22] << 8) | state.sid_register[21]) & 0xffff,
+            (state.sid_register[23]) & 0xff,
+            (state.sid_register[24]) & 0xff,
+            (state.sid_register[25]) & 0xff,
+            (state.sid_register[26]) & 0xff,
+            (state.sid_register[27]) & 0xff,
+            (state.sid_register[28]) & 0xff
+            );
+    return lib_strdup(strbuf);
 }
 
 static void resid_state_read(sound_t *psid, sid_snapshot_state_t *sid_state)
@@ -386,7 +431,6 @@ sid_engine_t resid_hooks =
     resid_store,
     resid_reset,
     resid_calculate_samples,
-    resid_prevent_clk_overflow,
     resid_dump_state,
     resid_state_read,
     resid_state_write

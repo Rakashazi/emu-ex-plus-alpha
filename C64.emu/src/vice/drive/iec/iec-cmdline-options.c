@@ -97,6 +97,9 @@ static cmdline_option_t cmd_drive[] =
     { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)0,
       NULL, "Disable 8KiB RAM expansion at $A000-$BFFF" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, NULL, NULL,
+      NULL, "Fixed Disk Size" },
     CMDLINE_LIST_END
 };
 
@@ -135,12 +138,15 @@ int iec_cmdline_options_init(void)
         cmd_drive[9].name = lib_msprintf("+drive%irama000", dnr + 8);
         cmd_drive[9].resource_name
             = lib_msprintf("Drive%iRAMA000", dnr + 8);
+        cmd_drive[10].name = lib_msprintf("-drive%ifixedsize", dnr + 8);
+        cmd_drive[10].resource_name
+            = lib_msprintf("Drive%iFixedSize", dnr + 8);
 
         if (cmdline_register_options(cmd_drive) < 0) {
             return -1;
         }
 
-        for (i = 0; i < 10; i++) {
+        for (i = 0; i < 11; i++) {
             lib_free(cmd_drive[i].name);
             lib_free(cmd_drive[i].resource_name);
         }

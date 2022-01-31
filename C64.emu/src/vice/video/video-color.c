@@ -51,20 +51,6 @@
 #include "video-color.h"
 #include "video.h"
 
-uint32_t gamma_red[256 * 3];
-uint32_t gamma_grn[256 * 3];
-uint32_t gamma_blu[256 * 3];
-
-uint32_t gamma_red_fac[256 * 3 * 2];
-uint32_t gamma_grn_fac[256 * 3 * 2];
-uint32_t gamma_blu_fac[256 * 3 * 2];
-
-uint32_t alpha = 0;
-
-static uint32_t color_red[256];
-static uint32_t color_grn[256];
-static uint32_t color_blu[256];
-
 #define RMIN(x,min) (((x) < (min)) ? (min) : (x))
 #define RMAX(x,max) (((x) > (max)) ? (max) : (x))
 #define RMINMAX(x,min,max) RMIN(RMAX(x,max),min)
@@ -82,16 +68,16 @@ typedef struct video_ycbcr_palette_s {
     video_ycbcr_color_t *entries;
 } video_ycbcr_palette_t;
 
-void video_render_setrawrgb(unsigned int index, uint32_t r, uint32_t g, uint32_t b)
+void video_render_setrawrgb(video_render_color_tables_t *color_tab, unsigned int index, uint32_t r, uint32_t g, uint32_t b)
 {
-    color_red[index] = r;
-    color_grn[index] = g;
-    color_blu[index] = b;
+    color_tab->color_red[index] = r;
+    color_tab->color_grn[index] = g;
+    color_tab->color_blu[index] = b;
 }
 
-void video_render_setrawalpha(uint32_t a)
+void video_render_setrawalpha(video_render_color_tables_t *color_tab, uint32_t a)
 {
-    alpha = a;
+    color_tab->alpha = a;
 }
 
 static video_ycbcr_palette_t *video_ycbcr_palette_create(unsigned int num_entries)
@@ -452,7 +438,6 @@ static void video_convert_renderer_to_rgb_gamma(video_ycbcr_color_t *src, float 
     g = (int)gf;
     b = (int)bf;
 
-    dst->dither = 0;
     dst->red = (uint8_t)RMAX(r,255);
     dst->green = (uint8_t)RMAX(g,255);
     dst->blue = (uint8_t)RMAX(b,255);
@@ -493,7 +478,7 @@ static float video_get_gamma(video_resources_t *video_resources, int video)
 }
 
 /* gammatable calculation */
-static void video_calc_gammatable(video_resources_t *video_resources, int video)
+static void video_calc_gammatable(video_render_color_tables_t *color_tab, video_resources_t *video_resources, int video)
 {
     int i;
     float bri, con, gam, scn, v;
@@ -514,25 +499,25 @@ static void video_calc_gammatable(video_resources_t *video_resources, int video)
         if (vi > 255) {
             vi = 255;
         }
-        gamma_red[i] = color_red[vi];
-        gamma_grn[i] = color_grn[vi];
-        gamma_blu[i] = color_blu[vi];
+        color_tab->gamma_red[i] = color_tab->color_red[vi];
+        color_tab->gamma_grn[i] = color_tab->color_grn[vi];
+        color_tab->gamma_blu[i] = color_tab->color_blu[vi];
 
         vi = (uint32_t)(v * scn);
         if (vi > 255) {
             vi = 255;
         }
-        gamma_red_fac[i * 2] = color_red[vi];
-        gamma_grn_fac[i * 2] = color_grn[vi];
-        gamma_blu_fac[i * 2] = color_blu[vi];
+        color_tab->gamma_red_fac[i * 2] = color_tab->color_red[vi];
+        color_tab->gamma_grn_fac[i * 2] = color_tab->color_grn[vi];
+        color_tab->gamma_blu_fac[i * 2] = color_tab->color_blu[vi];
         v = video_gamma((float)(i - 256) + 0.5f, factor, gam, bri, con);
         vi = (uint32_t)(v * scn);
         if (vi > 255) {
             vi = 255;
         }
-        gamma_red_fac[i * 2 + 1] = color_red[vi];
-        gamma_grn_fac[i * 2 + 1] = color_grn[vi];
-        gamma_blu_fac[i * 2 + 1] = color_blu[vi];
+        color_tab->gamma_red_fac[i * 2 + 1] = color_tab->color_red[vi];
+        color_tab->gamma_grn_fac[i * 2 + 1] = color_tab->color_grn[vi];
+        color_tab->gamma_blu_fac[i * 2 + 1] = color_tab->color_blu[vi];
     }
 }
 
@@ -837,8 +822,9 @@ static palette_t *video_load_palette(const video_cbm_palette_t *p,
         return NULL;
     }
 
-    if (!video_disabled_mode && palette_load(name, palette) < 0) {
+    if (!video_disabled_mode && palette_load(name, machine_name, palette) < 0) {
         /* log_message(vicii.log, "Cannot load palette file `%s'.", name); */
+        palette_free(palette);
         return NULL;
     }
 
@@ -896,7 +882,7 @@ int video_color_update_palette(struct video_canvas_s *canvas)
             return -1;
         }
 
-        video_calc_gammatable(video_resources, video);
+        video_calc_gammatable(&canvas->videoconfig->color_tables, video_resources, video);
         ycbcr = video_ycbcr_palette_create(palette->num_entries);
         video_palette_to_ycbcr(palette, ycbcr, video);
         video_calc_ycbcrtable(video_resources, ycbcr, &canvas->videoconfig->color_tables, video);
@@ -908,7 +894,7 @@ int video_color_update_palette(struct video_canvas_s *canvas)
         video_palette_to_ycbcr_oddlines(palette, ycbcr, video);
         video_calc_ycbcrtable_oddlines(video_resources, ycbcr, &canvas->videoconfig->color_tables, video);
     } else {
-        video_calc_gammatable(video_resources, video);
+        video_calc_gammatable(&canvas->videoconfig->color_tables, video_resources, video);
         ycbcr = video_ycbcr_palette_create(canvas->videoconfig->cbm_palette->num_entries);
         video_cbm_palette_to_ycbcr(canvas->videoconfig->cbm_palette, ycbcr, video);
         video_calc_ycbcrtable(video_resources, ycbcr, &canvas->videoconfig->color_tables, video);
@@ -944,5 +930,5 @@ void video_render_initraw(struct video_render_config_s *videoconfig)
 {
     int video;
     resources_get_int("MachineVideoStandard", &video);
-    video_calc_gammatable(&(videoconfig->video_resources), video);
+    video_calc_gammatable(&videoconfig->color_tables, &videoconfig->video_resources, video);
 }

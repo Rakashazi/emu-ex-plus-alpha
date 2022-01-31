@@ -40,6 +40,7 @@ extern void georam_reset(void);
 extern void georam_detach(void);
 extern int georam_enable(void);
 int georam_disable(void);
+extern void georam_powerup(void);
 
 extern int georam_read_snapshot_module(struct snapshot_s *s);
 extern int georam_write_snapshot_module(struct snapshot_s *s);

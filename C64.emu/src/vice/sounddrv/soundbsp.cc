@@ -210,7 +210,7 @@ static int bsp_resume(void)
     return 0;
 }
 
-static sound_device_t bsp_device =
+static const sound_device_t bsp_device =
 {
     "bsp",
     bsp_init,

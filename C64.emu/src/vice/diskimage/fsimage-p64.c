@@ -180,7 +180,11 @@ int fsimage_p64_write_half_track(disk_image_t *image, unsigned int half_track,
 
     P64PulseStreamConvertFromGCR(&P64Image->PulseStreams[0][half_track], (void*)raw->data, raw->size << 3);
 
+    return 0;
+    /* image flush will happen on close; added by Roberto Muscedere on 20210125 */
+#if 0
     return fsimage_write_p64_image(image);
+#endif
 }
 
 static int fsimage_p64_write_track(disk_image_t *image, unsigned int track,
@@ -202,7 +206,11 @@ static int fsimage_p64_write_track(disk_image_t *image, unsigned int track,
 
     P64PulseStreamConvertFromGCR(&P64Image->PulseStreams[0][track << 1], (void*)gcr_track_start_ptr, gcr_track_size << 3);
 
+    return 0;
+    /* image flush will happen on close; added by Roberto Muscedere on 20210125 */
+#if 0
     return fsimage_write_p64_image(image);
+#endif
 }
 
 /*-----------------------------------------------------------------------*/

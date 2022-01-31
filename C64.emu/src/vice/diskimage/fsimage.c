@@ -125,10 +125,25 @@ void fsimage_media_destroy(disk_image_t *image)
 int fsimage_open(disk_image_t *image)
 {
     fsimage_t *fsimage;
+    size_t length;
+    unsigned int isdir;
 
     fsimage = image->media.fsimage;
     fsimage->error_info.map = NULL;
 
+    /* stat file to find out if it exists or if it is a directory */
+    if (archdep_stat(fsimage->name, &length, &isdir) < 0) {
+        log_error(fsimage_log, "Cannot open file `%s'.", fsimage->name);
+        return -1;
+    }
+
+    /* it exists, is it a directory? */
+    if (isdir) {
+        log_error(fsimage_log, "Cannot open directory `%s' as an image.", fsimage->name);
+        return -1;
+    }
+
+    /* proceed with normal opening */
     if (image->read_only) {
         fsimage->fd = zfile_fopen(fsimage->name, MODE_READ);
     } else {
@@ -166,9 +181,10 @@ int fsimage_close(disk_image_t *image)
         return -1;
     }
 
-/*   if (image->type == DISK_IMAGE_TYPE_P64) {
+    /* flush the image when closed; added by Roberto Muscedere on 20210125 */
+    if (image->type == DISK_IMAGE_TYPE_P64) {
         fsimage_write_p64_image(image);
-    }*/
+    }
 
     if (fsimage->error_info.map) {
         lib_free(fsimage->error_info.map);
@@ -284,10 +300,10 @@ void fsimage_init(void)
 
 /*-----------------------------------------------------------------------*/
 
-uint32_t fsimage_size(const disk_image_t *image)
+off_t fsimage_size(const disk_image_t *image)
 {
     fsimage_t *fsimage;
 
     fsimage = image->media.fsimage;
-    return (uint32_t)util_file_length(fsimage->fd);
+    return util_file_length(fsimage->fd);
 }

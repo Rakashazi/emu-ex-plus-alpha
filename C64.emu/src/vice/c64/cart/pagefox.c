@@ -40,6 +40,7 @@
 #include "export.h"
 #include "lib.h"
 #include "monitor.h"
+#include "ram.h"
 #include "snapshot.h"
 #include "types.h"
 #include "util.h"
@@ -190,6 +191,27 @@ void pagefox_romh_store(uint16_t addr, uint8_t value)
 }
 
 /* ---------------------------------------------------------------------*/
+
+/* FIXME: this still needs to be tweaked to match the hardware */
+static RAMINITPARAM ramparam = {
+    .start_value = 255,
+    .value_invert = 2,
+    .value_offset = 1,
+
+    .pattern_invert = 0x100,
+    .pattern_invert_value = 255,
+
+    .random_start = 0,
+    .random_repeat = 0,
+    .random_chance = 0,
+};
+
+void pagefox_powerup(void)
+{
+    if (pagefox_ram) {
+        ram_init_with_pattern(pagefox_ram, PAGEFOX_RAMSIZE, &ramparam);
+    }
+}
 
 void pagefox_config_init(void)
 {

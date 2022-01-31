@@ -39,16 +39,38 @@
 #include "autostart.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "console.h"
+#include "drive.h"
+#include "fliplist.h"
+#include "fsdevice.h"
+#include "gfxoutput.h"
 #include "initcmdline.h"
 #include "ioutil.h"
+#include "kbdbuf.h"
+#include "keyboard.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
 #include "maincpu.h"
+#include "monitor.h"
+#include "monitor_binary.h"
+#include "monitor_network.h"
+#include "network.h"
+#include "printer.h"
 #include "resources.h"
+#include "romset.h"
+#include "sysfile.h"
 #include "tape.h"
+#include "tapeport.h"
+#include "traps.h"
+#include "uiapi.h"
 #include "util.h"
+#include "vice-event.h"
 #include "vicefeatures.h"
+#include "video.h"
+#include "vsync.h"
+#include "zfile.h"
+
 
 #ifdef DEBUG_CMDLINE
 #define DBG(x)  printf x
@@ -59,7 +81,7 @@
 #define NUM_STARTUP_DISK_IMAGES 8
 static char *autostart_string = NULL;
 static char *startup_disk_images[NUM_STARTUP_DISK_IMAGES];
-static char *startup_tape_image;
+static char *startup_tape_image[TAPEPORT_MAX_PORTS];
 static unsigned int autostart_mode = AUTOSTART_MODE_NONE;
 
 
@@ -95,15 +117,117 @@ void initcmdline_shutdown(void)
         }
         startup_disk_images[unit] = NULL;
     }
-    if (startup_tape_image != NULL) {
-        lib_free(startup_tape_image);
+    for (unit = 0; unit < TAPEPORT_MAX_PORTS; unit++) {
+        if (startup_tape_image[unit] != NULL) {
+            lib_free(startup_tape_image[unit]);
+        }
+        startup_tape_image[unit] = NULL;
     }
-    startup_tape_image = NULL;
 }
 
 static int cmdline_help(const char *param, void *extra_param)
 {
     cmdline_show_help(NULL);
+
+    /*
+     * Clean up memory.
+     *
+     * (Once this works properly it should be refactored into a separate function
+     *  so cmdline_features() can also use this code.
+     *
+     * Currently still leaks in various drive-related code, such as ieee and
+     * drive CPUs, alarm/clock code and drive-related monitor interface(s).
+     *
+     * Looks like the drive contexts are only half initialized, because when
+     * I remove the `if (!drive_init_was_called)` from drive/drive.c I get a
+     * nice segfault:
+     *
+     * wd1770_shutdown (drv=0x0) at ../../../../vice/src/drive/iec/wd1770.c:211
+     * 211          lib_free(drv->myname);
+     *
+     * This can be avoided by properly setting drv->myname to NULL and checking
+     * for NULL before calling lib_free(), but I fear there will be a lot of
+     * this in the drive code.
+     *
+     * --compyx
+     */
+
+/* FIXME: a hack to prevent -help crashing on the SDL ui.
+          This needs to be fixed properly!! */
+#if defined(USE_SDLUI) || defined(USE_SDLUI2)
+    /* remove any trace of this variable once this is properly fixed! */
+    sdl_help_shutdown = 1;
+#endif
+
+#if 0
+    file_system_detach_disk_shutdown();
+#endif
+    machine_specific_shutdown();
+    printer_shutdown();
+    gfxoutput_shutdown();
+#if 0
+    fliplist_shutdown();
+    file_system_shutdown();
+    fsdevice_shutdown();
+    tape_shutdown();
+    traps_shutdown();
+    kbdbuf_shutdown();
+#endif
+    keyboard_shutdown();
+
+    monitor_shutdown();
+
+    console_close_all();
+
+    cmdline_shutdown();
+    initcmdline_shutdown();
+
+    resources_shutdown();
+    drive_shutdown();
+
+    machine_maincpu_shutdown();
+#if 0
+    video_shutdown();
+    if (!console_mode) {
+        ui_shutdown();
+    }
+#endif
+
+    sysfile_shutdown();
+    log_close_all();
+
+    event_shutdown();
+
+    network_shutdown();
+
+    autostart_resources_shutdown();
+    sound_resources_shutdown();
+#if 0
+    video_resources_shutdown();
+#endif
+    machine_resources_shutdown();
+    machine_common_resources_shutdown();
+
+    vsync_shutdown();
+
+    sysfile_resources_shutdown();
+#if 0
+    zfile_shutdown();
+#endif
+
+    ui_resources_shutdown();
+    log_resources_shutdown();
+    fliplist_resources_shutdown();
+#if 0
+    romset_resources_shutdown();
+#endif
+#ifdef HAVE_NETWORK
+    monitor_network_resources_shutdown();
+    monitor_binary_resources_shutdown();
+#endif
+    monitor_resources_shutdown();
+
+    archdep_shutdown();
     archdep_vice_exit(0);
     return 0;   /* OSF1 cc complains */
 }
@@ -154,7 +278,7 @@ static int cmdline_limitcycles(const char *param, void *extra_param)
 {
     uint64_t clk_limit = strtoull(param, NULL, 0);
     if (clk_limit > CLOCK_MAX) {
-        fprintf(stderr, "too many cycles, use max %u\n", CLOCK_MAX);
+        fprintf(stderr, "too many cycles, use max %"PRIu64"\n", CLOCK_MAX);
         return -1;
     }
     maincpu_clk_limit = (CLOCK)clk_limit;
@@ -181,11 +305,16 @@ static int cmdline_autoload(const char *param, void *extra_param)
 static int cmdline_console(const char *param, void *extra_param)
 {
     console_mode = 1;
-    video_disabled_mode = 1;
+    /* video_disabled_mode = 1; Breaks exitscreenshot */
     return 0;
 }
 #endif
 
+static int cmdline_seed(const char *param, void *extra_param)
+{
+    lib_rand_seed(strtoul(param, NULL, 0));
+    return 0;
+}
 
 static int cmdline_attach(const char *param, void *extra_param)
 {
@@ -193,8 +322,16 @@ static int cmdline_attach(const char *param, void *extra_param)
 
     switch (unit) {
         case 1:
-            lib_free(startup_tape_image);
-            startup_tape_image = lib_strdup(param);
+            lib_free(startup_tape_image[TAPEPORT_PORT_1]);
+            startup_tape_image[TAPEPORT_PORT_1] = lib_strdup(param);
+            break;
+        case 2:
+            if (machine_class == VICE_MACHINE_PET) {
+                lib_free(startup_tape_image[TAPEPORT_PORT_2]);
+                startup_tape_image[TAPEPORT_PORT_2] = lib_strdup(param);
+            } else {
+                archdep_startup_log_error("cmdline_attach(): unexpected unit number %d?!\n", unit);
+            }
             break;
         case 8:
         case 9:
@@ -221,7 +358,7 @@ static const cmdline_option_t common_cmdline_options[] =
 {
     { "-help", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       cmdline_help, NULL, NULL, NULL,
-      NULL, "Show a list of the available options an_vice_xit normally" },
+      NULL, "Show a list of the available options and exit normally" },
     { "-?", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       cmdline_help, NULL, NULL, NULL,
       NULL, "Show a list of the available options and exit normally" },
@@ -252,6 +389,9 @@ static const cmdline_option_t common_cmdline_options[] =
     { "-console", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       cmdline_console, NULL, NULL, NULL,
       NULL, "Console mode (for music playback)" },
+    { "-seed", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
+      cmdline_seed, NULL, NULL, NULL,
+      "<value>", "Set random seed (for debugging)" },
     { "-core", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DoCoreDump", (resource_value_t)1,
       NULL, "Allow production of core dumps" },
@@ -301,6 +441,14 @@ static const cmdline_option_t cmdline_options[] =
     CMDLINE_LIST_END
 };
 
+static const cmdline_option_t cmdline_pet_options[] =
+{
+    { "-2", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
+      cmdline_attach, (void *)2, NULL, NULL,
+      "<Name>", "Attach <name> as a tape image" },
+    CMDLINE_LIST_END
+};
+
 int initcmdline_init(void)
 {
     if (cmdline_register_options(common_cmdline_options) < 0) {
@@ -310,6 +458,13 @@ int initcmdline_init(void)
     /* Disable autostart options for vsid */
     if (machine_class != VICE_MACHINE_VSID) {
         if (cmdline_register_options(cmdline_options) < 0) {
+            return -1;
+        }
+    }
+
+    /* Add tape 2 option for pet */
+    if (machine_class == VICE_MACHINE_PET) {
+        if (cmdline_register_options(cmdline_pet_options) < 0) {
             return -1;
         }
     }
@@ -346,7 +501,8 @@ int initcmdline_check_args(int argc, char **argv)
     if ((argc > 1) && (autostart_string == NULL)) {
         autostart_string = lib_strdup(argv[1]);
         autostart_mode = AUTOSTART_MODE_RUN;
-        argc--, argv++;
+        argc--;
+        argv++;
     }
     DBG(("initcmdline_check_args 2 (argc:%d)\n", argc));
 
@@ -415,9 +571,15 @@ void initcmdline_check_attach(void)
         }
 
         /* `-1': Attach specified tape image.  */
-        if (startup_tape_image && tape_image_attach(1, startup_tape_image) < 0) {
+        if (startup_tape_image[TAPEPORT_PORT_1] && tape_image_attach(TAPEPORT_PORT_1 + 1, startup_tape_image[TAPEPORT_PORT_1]) < 0) {
             log_error(LOG_DEFAULT, "Cannot attach tape image `%s'.",
-                      startup_tape_image);
+                      startup_tape_image[TAPEPORT_PORT_1]);
+        }
+
+        /* `-2': Attach specified tape image.  */
+        if (startup_tape_image[TAPEPORT_PORT_2] && tape_image_attach(TAPEPORT_PORT_2 + 1, startup_tape_image[TAPEPORT_PORT_2]) < 0) {
+            log_error(LOG_DEFAULT, "Cannot attach tape image `%s'.",
+                      startup_tape_image[TAPEPORT_PORT_2]);
         }
     }
 

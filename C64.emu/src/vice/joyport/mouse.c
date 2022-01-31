@@ -61,7 +61,6 @@
 #include "snapshot.h"
 #include "tick.h"
 #include "vsyncapi.h"
-#include "clkguard.h"
 #include "ds1202_1302.h"
 
 /* Control port <--> mouse/paddles/pad connections:
@@ -73,6 +72,10 @@
      6   | left button  |  I
      9   | X-position   |  I
 
+   Works on:
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/xcbm5x0/xvic)
+   - sidcart joystick adapter port (xplus4)
+
    cport | neos         | I/O
    --------------------------
      1   | D0           |  I
@@ -82,6 +85,15 @@
      6   | strobe       |  O
      6   | left button  |  I
      9   | right button |  I
+
+   Works on:
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/x64dtv/xcbm5x0/xvic)
+   - hit userport joystick adaper port 1 (x64/x64sc/xscpu64/x128)
+   - kingsoft userport joystick adapter port 1 (x64/x64sc/xscpu64/x128)
+   - starbyte userport joystick adapter port 2 (x64/x64sc/xscpu64/x128)
+   - hummer userport joystick adapter port (x64dtv)
+   - oem userport joystick adapter port (xvic)
+   - sidcart joystick adapter port (xplus4)
 
    cport | amiga         | I/O
    ---------------------------
@@ -93,12 +105,41 @@
      6   | left button   |  I
      9   | right button  |  I
 
+   Works on:
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/x64dtv/xcbm5x0/xplus4/xvic)
+   - cga userport joystick adapater ports (x64/x64sc/xscpu64/x128)
+   - hit userport joystick adaper ports (x64/x64sc/xscpu64/x128)
+   - kingsoft userport joystick adapter ports (x64/x64sc/xscpu64/x128)
+   - starbyte userport joystick adapter ports (x64/x64sc/xscpu64/x128)
+   - hummer userport joystick adapter port (x64dtv)
+   - pet userport joystick adapter ports (xcbm2/xpet)
+   - oem userport joystick adapter port (xvic)
+   - sidcart joystick adapter port (xplus4)
+
    cport | paddles         | I/O
    -----------------------------
      3   | paddle X button |  I
      4   | paddle Y button |  I
      5   | paddle Y value  |  I
      9   | paddle X value  |  I
+
+   Works on:
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/xcbm5x0/xvic)
+   - sidcart joystick adapter port (xplus4)
+
+   cport | microflyte joystick  | I/O
+   ----------------------------------
+     1   | Throttle up button   |  I
+     2   | Throttle down button |  I
+     3   | Brake button         |  I
+     4   | Flaps button         |  I
+     5   | up/down pot value    |  I
+     6   | Reset button         |  I
+     9   | left/right pot value |  I
+
+   Works on:
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/xcbm5x0/xvic)
+   - sidcart joystick adapter port (xplus4)
 
    cport | cx22        | I/O
    -------------------------
@@ -108,6 +149,17 @@
      4   | Y motion    |  I
      6   | button      |  I
 
+   Works on:
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/x64dtv/xcbm5x0/xplus4/xvic)
+   - cga userport joystick adapater ports (x64/x64sc/xscpu64/x128)
+   - hit userport joystick adaper ports (x64/x64sc/xscpu64/x128)
+   - kingsoft userport joystick adapter ports (x64/x64sc/xscpu64/x128)
+   - starbyte userport joystick adapter ports (x64/x64sc/xscpu64/x128)
+   - hummer userport joystick adapter port (x64dtv)
+   - pet userport joystick adapter ports (xcbm2/xpet)
+   - oem userport joystick adapter port (xvic)
+   - sidcart joystick adapter port (xplus4)
+
    cport | atari-st     | I/O
    --------------------------
      1   | XB           |  I
@@ -116,6 +168,17 @@
      4   | YB           |  I
      6   | left button  |  I
      9   | right button |  I
+
+   Works on:
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/x64dtv/xcbm5x0/xplus4/xvic)
+   - cga userport joystick adapater ports (x64/x64sc/xscpu64/x128)
+   - hit userport joystick adaper ports (x64/x64sc/xscpu64/x128)
+   - kingsoft userport joystick adapter ports (x64/x64sc/xscpu64/x128)
+   - starbyte userport joystick adapter ports (x64/x64sc/xscpu64/x128)
+   - hummer userport joystick adapter port (x64dtv)
+   - pet userport joystick adapter ports (xcbm2/xpet)
+   - oem userport joystick adapter port (xvic)
+   - sidcart joystick adapter port (xplus4)
 
    cport | smart mouse  | I/O
    --------------------------
@@ -127,6 +190,10 @@
      6   | left button  |  I
      9   | X-position   |  I
 
+   Works on:
+   - Native joystick port(s) (x64/x64sc/xscpu64/x128/xcbm5x0/xvic)
+   - sidcart joystick adapter port (xplus4)
+
    cport | micromys      | I/O
    ---------------------------
      1   | right button  |  I
@@ -137,12 +204,21 @@
      6   | left button   |  I
      9   | X-position    |  I
 
+   Works on:
+   - Native joystick port(s) (x64/x64sc/xscpu64/x128/xcbm5x0/xvic)
+   - sidcart joystick adapter port (xplus4)
+
    cport | koalapad     | I/O
    --------------------------
      3   | left button  |  I
      4   | right button |  I
      5   | Y-position   |  I
      9   | X-position   |  I
+
+   Works on:
+   - Native joystick port(s) (x64/x64sc/xscpu64/x128/xcbm5x0/xvic)
+   - sidcart joystick adapter port (xplus4)
+
  */
 
 /* Log descriptor.  */
@@ -155,7 +231,7 @@ static log_t mouse_log = LOG_ERR;
 
 static float mouse_move_x = 0.0f;
 static float mouse_move_y = 0.0f;
-static unsigned long mouse_timestamp = 0;
+static tick_t mouse_timestamp = 0;
 static int16_t mouse_x = 0;
 static int16_t mouse_y = 0;
 
@@ -192,6 +268,8 @@ static int last_mouse_x = 0;
 static int last_mouse_y = 0;
 static rtc_ds1202_1302_t *ds1202; /* smartmouse */
 static int ds1202_rtc_save; /* smartmouse rtc data save */
+static int paddles_p1_input = PADDLES_INPUT_MOUSE; /* host input source for paddles in port 1 */
+static int paddles_p2_input = PADDLES_INPUT_MOUSE; /* host input source for paddles in port 2 */
 static uint8_t mouse_digital_val = 0;
 
 /*
@@ -261,28 +339,28 @@ static void neos_get_new_movement(void)
     neos_lasty = new_y;
 }
 
-void neos_mouse_store(uint8_t val)
+void neos_mouse_store(int port, uint8_t val)
 {
     if ((neos_prev & 16) != (val & 16)) {
         /* each change on the strobe line advances to the next state */
         switch (neos_state) {
             case NEOS_XH:
-                if (val & 16) {
+                if (val & JOYPORT_FIRE) {
                     neos_state = NEOS_XL;
                 }
                 break;
             case NEOS_XL:
-                if (neos_prev & 16) {
+                if (neos_prev & JOYPORT_FIRE) {
                     neos_state = NEOS_YH;
                 }
                 break;
             case NEOS_YH:
-                if (val & 16) {
+                if (val & JOYPORT_FIRE) {
                     neos_state = NEOS_YL;
                 }
                 break;
             case NEOS_YL:
-                if (neos_prev & 16) {
+                if (neos_prev & JOYPORT_FIRE) {
                     neos_state = NEOS_XH;
                     neos_get_new_movement();
                 }
@@ -306,16 +384,16 @@ uint8_t neos_mouse_read(void)
 
     switch (neos_state) {
         case NEOS_XH:
-            return ((neos_x >> 4) & 0xf) | 0xf0;
+            return ((neos_x >> 4) & 0xf) | 0xf0;   /* output high nibble of X on joyport direction pins */
             break;
         case NEOS_XL:
-            return (neos_x & 0xf) | 0xf0;
+            return (neos_x & 0xf) | 0xf0;          /* output low nibble of X on joyport direction pins */
             break;
         case NEOS_YH:
-            return ((neos_y >> 4) & 0xf) | 0xf0;
+            return ((neos_y >> 4) & 0xf) | 0xf0;   /* output high nibble of Y on joyport direction pins */
             break;
         case NEOS_YL:
-            return (neos_y & 0xf) | 0xf0;
+            return (neos_y & 0xf) | 0xf0;          /* output low nibble of X on joyport direction pins */
             break;
         default:
             /* never reaches here */
@@ -332,7 +410,7 @@ uint8_t neos_mouse_read(void)
  * successive readings. The estimated interval is then converted from
  * vsynchapi units to emulated cpu cycles which in turn are used to
  * clock the quardrature emulation. */
-static unsigned long latest_os_ts = 0; /* in vsynchapi units */
+static tick_t latest_os_ts = 0; /* in vsynchapi units */
 /* The mouse coordinates returned from the latest unique mousedrv
  * reading */
 static int16_t latest_x = 0;
@@ -358,26 +436,13 @@ static uint8_t polled_joyval = 0xff;
 static const uint8_t amiga_mouse_table[4] = { 0x0, 0x1, 0x5, 0x4 };
 static const uint8_t st_mouse_table[4] = { 0x0, 0x2, 0x3, 0x1 };
 
-/* Clock overflow handling.  */
-static void clk_overflow_callback(CLOCK sub, void *data)
-{
-    if (next_update_x_emu_ts > (CLOCK) 0) {
-        next_update_x_emu_ts -= sub;
-    }
-    if (next_update_y_emu_ts > (CLOCK) 0) {
-        next_update_y_emu_ts -= sub;
-    }
-    if (up_down_pulse_end > (CLOCK) 0) {
-        up_down_pulse_end -= sub;
-    }
-}
-
 void mouse_move(float dx, float dy)
 {
     /* Capture the relative mouse movement to be processed later in mouse_poll() */
     mouse_move_x += dx;
     mouse_move_y -= dy;
     mouse_timestamp = tick_now();
+    DBG(("mouse_move %f %f\n", dx, dy));
 }
 
 void mouse_get_int16(int16_t *x, int16_t *y)
@@ -418,9 +483,11 @@ uint8_t mouse_poll(void)
     int16_t delta_x, delta_y;
 
     int16_t new_x, new_y;
-    unsigned long os_now, os_iv, os_iv2;
+    tick_t os_now, os_iv, os_iv2;
     CLOCK emu_now, emu_iv, emu_iv2;
     int diff_x, diff_y;
+
+    DBG(("mouse_poll\n"));
 
     /* Ensure the mouse hasn't moved too far since the last poll */
     mouse_move_apply_limit();
@@ -529,7 +596,7 @@ uint8_t mouse_poll(void)
 #endif
 
         /* The mouse read is probably old. Do the movement since then */
-        os_iv2 = tick_delta(os_now);
+        os_iv2 = tick_now_delta(os_now);
         /* FIXME: call function only once */
         if (os_iv2 > tick_per_second()) {
             os_iv2 = tick_per_second(); /* more than a second response time?! */
@@ -599,6 +666,7 @@ uint8_t micromys_mouse_read(void)
 /* --------------------------------------------------------- */
 /* Paddle support */
 
+/* FIXME: only paddle_val[2] and paddle_val[3] is actually used by the code */
 static uint8_t paddle_val[] = {
 /*  x     y  */
     0x00, 0xff, /* no port */
@@ -620,12 +688,12 @@ static inline uint8_t mouse_paddle_update(uint8_t paddle_v, int16_t *old_v, int1
     *old_v = new_v;
 
     if (new_paddle > 255) {
-        return 255;
+        new_paddle = 255;
+    } else if (new_paddle < 0) {
+        new_paddle = 0;
     }
-    if (new_paddle < 0) {
-        return 0;
-    }
-
+    DBG(("mouse_paddle_update paddle:%d oldv:%d newv:%d ret:%d\n",
+        paddle_v, *old_v, new_v, new_paddle));
     return (uint8_t)new_paddle;
 }
 
@@ -645,18 +713,55 @@ static inline uint8_t mouse_paddle_update(uint8_t paddle_v, int16_t *old_v, int1
 
 static uint8_t mouse_get_paddle_x(int port)
 {
-    if (_mouse_enabled) {
-        paddle_val[2] = mouse_paddle_update(paddle_val[2], &(paddle_old[2]), (int16_t)mouse_x / PADDLE_DIV);
-        return (uint8_t)(0xff - paddle_val[2]);
+    DBG(("mouse_get_paddle_x port:%d mouse enabled:%d mouse_x:%d mouse_y:%d\n",
+         port, _mouse_enabled, mouse_x, mouse_y));
+
+    if (port == JOYPORT_1 || (machine_class == VICE_MACHINE_PLUS4 && port == JOYPORT_6)) {
+        if (paddles_p1_input == PADDLES_INPUT_JOY_AXIS) {
+            return joystick_get_axis_value(port << 1);
+        } else {
+            if (_mouse_enabled) {
+                paddle_val[2] = mouse_paddle_update(paddle_val[2], &(paddle_old[2]), (int16_t)mouse_x / PADDLE_DIV);
+                return (uint8_t)(0xff - paddle_val[2]);
+            }
+        }
+    }
+
+    if (port == JOYPORT_2) {
+        if (paddles_p2_input == PADDLES_INPUT_JOY_AXIS) {
+            return joystick_get_axis_value(port << 1);
+        } else {
+            if (_mouse_enabled) {
+                paddle_val[2] = mouse_paddle_update(paddle_val[2], &(paddle_old[2]), (int16_t)mouse_x / PADDLE_DIV);
+                return (uint8_t)(0xff - paddle_val[2]);
+            }
+        }
     }
     return 0xff;
 }
 
 static uint8_t mouse_get_paddle_y(int port)
 {
-    if (_mouse_enabled) {
-        paddle_val[3] = mouse_paddle_update(paddle_val[3], &(paddle_old[3]), (int16_t)mouse_y / PADDLE_DIV);
-        return (uint8_t)(0xff - paddle_val[3]);
+    if (port == JOYPORT_1 || (machine_class == VICE_MACHINE_PLUS4 && port == JOYPORT_6)) {
+        if (paddles_p1_input == PADDLES_INPUT_JOY_AXIS) {
+            return joystick_get_axis_value((port << 1) | 1);
+        } else {
+            if (_mouse_enabled) {
+                paddle_val[3] = mouse_paddle_update(paddle_val[3], &(paddle_old[3]), (int16_t)mouse_y / PADDLE_DIV);
+                return (uint8_t)(0xff - paddle_val[3]);
+            }
+        }
+    }
+
+    if (port == JOYPORT_2) {
+        if (paddles_p2_input == PADDLES_INPUT_JOY_AXIS) {
+            return joystick_get_axis_value((port << 1) | 1);
+        } else {
+            if (_mouse_enabled) {
+                paddle_val[3] = mouse_paddle_update(paddle_val[3], &(paddle_old[3]), (int16_t)mouse_y / PADDLE_DIV);
+                return (uint8_t)(0xff - paddle_val[3]);
+            }
+        }
     }
     return 0xff;
 }
@@ -670,6 +775,7 @@ typedef struct mt_id_s {
 
 static const mt_id_t mt_id[] = {
     { MOUSE_TYPE_PADDLE,   JOYPORT_ID_PADDLES },
+    { MOUSE_TYPE_MF_JOY,   JOYPORT_ID_MF_JOYSTICK },
     { MOUSE_TYPE_1351,     JOYPORT_ID_MOUSE_1351 },
     { MOUSE_TYPE_NEOS,     JOYPORT_ID_MOUSE_NEOS },
     { MOUSE_TYPE_AMIGA,    JOYPORT_ID_MOUSE_AMIGA },
@@ -746,9 +852,109 @@ static int joyport_mouse_enable(int port, int val)
     return 0;
 }
 
+static joyport_mapping_t paddles_mapping =  {
+    "Paddle",   /* name of the device */
+    NULL,       /* NO mapping of pin 0 (UP) */
+    NULL,       /* NO mapping of pin 1 (DOWN) */
+    NULL,       /* NO mapping of pin 2 (LEFT) */
+    NULL,       /* NO mapping of pin 3 (RIGHT) */
+    "Button 1", /* name for the mapping of pin 4 (FIRE-1/SNES-A) */
+    "Button 2", /* name for the mapping of pin 5 (FIRE-2/SNES-B) */
+    NULL,       /* NO mapping of pin 6 (FIRE-3/SNES-X) */
+    NULL,       /* NO mapping of pin 7 (SNES-Y) */
+    NULL,       /* NO mapping of pin 8 (SNES-LB) */
+    NULL,       /* NO mapping of pin 9 (SNES-RB) */
+    NULL,       /* NO mapping of pin 10 (SNES-SELECT) */
+    NULL,       /* NO mapping of pin 11 (SNES-START) */
+    "Paddle 1", /* name for the mapping of pot 1 (POT-X) */
+    "Paddle 2"  /* name for the mapping of pot 2 (POT-Y) */
+};
+
+static int joyport_paddles_enable(int port, int val)
+{
+    if (val) {
+        joyport_set_mapping(&paddles_mapping, port);
+    } else {
+        joyport_clear_mapping(port);
+    }
+    return joyport_mouse_enable(port, val);
+}
+
+static joyport_mapping_t mf_mapping =  {
+    "Microflyte Joystick", /* name of the device on the port */
+    "Throttle Up",         /* name for the mapping of pin 0 (UP) */
+    "Throttle Down",       /* name for the mapping of pin 1 (DOWN) */
+    "Brake",               /* name for the mapping of pin 2 (LEFT) */
+    "Flaps",               /* name for the mapping of pin 3 (RIGHT) */
+    "Reset",               /* name for the mapping of pin 4 (FIRE-1/SNES-A) */
+    NULL,                  /* NO mapping of pin 5 (FIRE-2/SNES-B) */
+    NULL,                  /* NO mapping of pin 6 (FIRE-3/SNES-X) */
+    NULL,                  /* NO mapping of pin 7 (SNES-Y) */
+    NULL,                  /* NO mapping of pin 8 (SNES-LB) */
+    NULL,                  /* NO mapping of pin 9 (SNES-RB) */
+    NULL,                  /* NO mapping of pin 10 (SNES-SELECT) */
+    NULL,                  /* NO mapping of pin 11 (SNES-START) */
+    "Up/Down",             /* name for the mapping of pot 1 (POT-X) */
+    "Left/Right"           /* name for the mapping of pot 2 (POT-Y) */
+};
+
+static int joyport_mf_enable(int port, int val)
+{
+    if (val) {
+        joyport_set_mapping(&mf_mapping, port);
+    } else {
+        joyport_clear_mapping(port);
+    }
+    return joyport_mouse_enable(port, val);
+}
+
 static uint8_t joyport_mouse_value(int port)
 {
     return _mouse_enabled ? (uint8_t)~mouse_digital_val : 0xff;
+}
+
+static uint8_t joyport_paddles_value(int port)
+{
+    uint16_t paddle_fire_buttons = get_joystick_value(port);
+
+    if (port == JOYPORT_1 || (machine_class == VICE_MACHINE_PLUS4 && port == JOYPORT_6)) {
+        if (paddles_p1_input == PADDLES_INPUT_JOY_AXIS) {
+            return (uint8_t)~((paddle_fire_buttons & 0x30) >> 2);
+        } else {
+            return _mouse_enabled ? (uint8_t)~mouse_digital_val : 0xff;
+        }
+    }
+
+    if (port == JOYPORT_2) {
+        if (paddles_p2_input == PADDLES_INPUT_JOY_AXIS) {
+            return (uint8_t)~((paddle_fire_buttons & 0x30) >> 2);
+        } else {
+            return _mouse_enabled ? (uint8_t)~mouse_digital_val : 0xff;
+        }
+    }
+    return 0xff;
+}
+
+static uint8_t joyport_mf_joystick_value(int port)
+{
+    uint16_t mf_fire_buttons = get_joystick_value(port);
+
+    if (port == JOYPORT_1 || (machine_class == VICE_MACHINE_PLUS4 && port == JOYPORT_6)) {
+        if (paddles_p1_input == PADDLES_INPUT_JOY_AXIS) {
+            return (uint8_t)(~mf_fire_buttons);
+        } else {
+            return _mouse_enabled ? (uint8_t)~mouse_digital_val : 0xff;
+        }
+    }
+
+    if (port == JOYPORT_2) {
+        if (paddles_p2_input == PADDLES_INPUT_JOY_AXIS) {
+            return (uint8_t)(~mf_fire_buttons);
+        } else {
+            return _mouse_enabled ? (uint8_t)~mouse_digital_val : 0xff;
+        }
+    }
+    return 0xff;
 }
 
 /* Some prototypes are needed */
@@ -756,17 +962,47 @@ static int paddles_write_snapshot(struct snapshot_s *s, int port);
 static int paddles_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t paddles_joyport_device = {
-    "Paddles",               /* name of the device */
-    JOYPORT_RES_ID_MOUSE,    /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
-    JOYPORT_IS_NOT_LIGHTPEN, /* device is NOT a lightpen */
-    JOYPORT_POT_REQUIRED,    /* device uses the potentiometer lines */
-    joyport_mouse_enable,    /* device enable function */
-    joyport_mouse_value,     /* digital line read function */
-    NULL,                    /* NO digital line store function */
-    mouse_get_paddle_x,      /* pot-x read function */
-    mouse_get_paddle_y,      /* pot-y read function */
-    paddles_write_snapshot,  /* device write snapshot function */
-    paddles_read_snapshot    /* device read snapshot function */
+    "Paddles",                /* name of the device */
+    JOYPORT_RES_ID_NONE,      /* device normally uses the mouse for input,
+                                 but it can be mapped to a joystick axis too,
+                                 therefor it is flagged as not using the mouse */
+    JOYPORT_IS_NOT_LIGHTPEN,  /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,     /* device uses the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE, /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_PADDLES,   /* device is a Paddle */
+    0,                        /* NO output bits */
+    joyport_paddles_enable,   /* device enable function */
+    joyport_paddles_value,    /* digital line read function */
+    NULL,                     /* NO digital line store function */
+    mouse_get_paddle_x,       /* pot-x read function */
+    mouse_get_paddle_y,       /* pot-y read function */
+    NULL,                     /* NO powerup function */
+    paddles_write_snapshot,   /* device write snapshot function */
+    paddles_read_snapshot,    /* device read snapshot function */
+    NULL,                     /* NO device hook function */
+    0                         /* NO device hook function mask */
+};
+
+static joyport_t mf_joystick_joyport_device = {
+    "Microflyte Joystick",     /* name of the device */
+    JOYPORT_RES_ID_NONE,       /* device normally uses the mouse for input,
+                                 but it can be mapped to a joystick axis too,
+                                 therefor it is flagged as not using the mouse */
+    JOYPORT_IS_NOT_LIGHTPEN,   /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,      /* device uses the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,  /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_PADDLES,    /* device is a Paddle */
+    0,                         /* NO output bits */
+    joyport_mf_enable,         /* device enable function */
+    joyport_mf_joystick_value, /* digital line read function */
+    NULL,                      /* NO digital line store function */
+    mouse_get_paddle_x,        /* pot-x read function */
+    mouse_get_paddle_y,        /* pot-y read function */
+    NULL,                      /* NO powerup function */
+    paddles_write_snapshot,    /* device write snapshot function */
+    paddles_read_snapshot,     /* device read snapshot function */
+    NULL,                      /* NO device hook function */
+    0                          /* NO device hook function mask */
 };
 
 /* Some prototypes are needed */
@@ -778,13 +1014,19 @@ static joyport_t mouse_1351_joyport_device = {
     JOYPORT_RES_ID_MOUSE,      /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,   /* device is NOT a lightpen */
     JOYPORT_POT_REQUIRED,      /* device uses the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,  /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_MOUSE,      /* device is a Mouse */
+    0,                         /* NO output bits */
     joyport_mouse_enable,      /* device enable function */
     joyport_mouse_value,       /* digital line read function */
     NULL,                      /* NO digital line store function */
     mouse_get_1351_x,          /* pot-x read function */
     mouse_get_1351_y,          /* pot-y read function */
+    NULL,                      /* NO powerup function */
     mouse_1351_write_snapshot, /* device write snapshot function */
-    mouse_1351_read_snapshot   /* device read snapshot function */
+    mouse_1351_read_snapshot,  /* device read snapshot function */
+    NULL,                      /* NO device hook function */
+    0                          /* NO device hook function mask */
 };
 
 static uint8_t joyport_mouse_neos_value(int port)
@@ -801,7 +1043,7 @@ static uint8_t joyport_mouse_neos_value(int port)
             retval &= ~0x0f;
         }
         if (retval != (uint8_t)~mouse_digital_val) {
-            joyport_display_joyport(mt_to_id(mouse_type), (uint8_t)(~retval));
+            joyport_display_joyport(mt_to_id(mouse_type), (uint16_t)(~retval));
         }
     }
     return retval;
@@ -821,13 +1063,19 @@ static joyport_t mouse_neos_joyport_device = {
     JOYPORT_RES_ID_MOUSE,                  /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,               /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,                  /* device uses the potentiometer line for the right button, but could work without it */
+    JOYSTICK_ADAPTER_ID_NONE,              /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_MOUSE,                  /* device is a Mouse */
+    0x10,                                  /* bit 4 is an output bit */
     joyport_mouse_enable,                  /* device enable function */
     joyport_mouse_neos_value,              /* digital line read function */
     neos_mouse_store,                      /* digital line store function */
     joyport_mouse_neos_amiga_st_read_potx, /* pot-x read function */
     NULL,                                  /* NO pot-y read function */
+    NULL,                                  /* NO powerup function */
     mouse_neos_write_snapshot,             /* device write snapshot function */
-    mouse_neos_read_snapshot               /* device read snapshot function */
+    mouse_neos_read_snapshot,              /* device read snapshot function */
+    NULL,                                  /* NO device hook function */
+    0                                      /* NO device hook function mask */
 };
 
 static uint8_t joyport_mouse_poll_value(int port)
@@ -837,7 +1085,7 @@ static uint8_t joyport_mouse_poll_value(int port)
     if (_mouse_enabled) {
         retval = (uint8_t)((~mouse_digital_val) & mouse_poll());
         if (retval != (uint8_t)~mouse_digital_val) {
-            joyport_display_joyport(mt_to_id(mouse_type), (uint8_t)(~retval));
+            joyport_display_joyport(mt_to_id(mouse_type), (uint16_t)(~retval));
         }
     }
     return retval;
@@ -857,13 +1105,19 @@ static joyport_t mouse_amiga_joyport_device = {
     JOYPORT_RES_ID_MOUSE,                  /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,               /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,                  /* device uses the potentiometer lines for the right and middle buttons, but could work without it */
+    JOYSTICK_ADAPTER_ID_NONE,              /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_MOUSE,                  /* device is a Mouse */
+    0,                                     /* NO output bits */
     joyport_mouse_enable,                  /* device enable function */
     joyport_mouse_poll_value,              /* digital line read function */
     NULL,                                  /* NO digital line store function */
     joyport_mouse_neos_amiga_st_read_potx, /* pot-x read function */
     joyport_mouse_amiga_st_read_poty,      /* pot-y read function */
+    NULL,                                  /* NO powerup function */
     mouse_amiga_write_snapshot,            /* device write snapshot function */
-    mouse_amiga_read_snapshot              /* device read snapshot function */
+    mouse_amiga_read_snapshot,             /* device read snapshot function */
+    NULL,                                  /* NO device hook function */
+    0                                      /* NO device hook function mask */
 };
 
 /* Some prototypes are needed */
@@ -875,13 +1129,19 @@ static joyport_t mouse_cx22_joyport_device = {
     JOYPORT_RES_ID_MOUSE,      /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,   /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,      /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,  /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_MOUSE,      /* device is a Mouse/Trackball */
+    0,                         /* NO output bits */
     joyport_mouse_enable,      /* device enable function */
     joyport_mouse_poll_value,  /* digital line read function */
     NULL,                      /* NO digital line store function */
     NULL,                      /* NO pot-x read function */
     NULL,                      /* NO pot-y read function */
+    NULL,                      /* NO powerup function */
     mouse_cx22_write_snapshot, /* device write snapshot function */
-    mouse_cx22_read_snapshot   /* device read snapshot function */
+    mouse_cx22_read_snapshot,  /* device read snapshot function */
+    NULL,                      /* NO device hook function */
+    0                          /* NO device hook function mask */
 };
 
 
@@ -894,13 +1154,19 @@ static joyport_t mouse_st_joyport_device = {
     JOYPORT_RES_ID_MOUSE,                  /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,               /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,                  /* device uses the potentiometer lines for the right button, but could work without it */
+    JOYSTICK_ADAPTER_ID_NONE,              /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_MOUSE,                  /* device is a Mouse */
+    0,                                     /* NO output bits */
     joyport_mouse_enable,                  /* device enable function */
     joyport_mouse_poll_value,              /* digital line read function */
     NULL,                                  /* NO digital line store function */
     joyport_mouse_neos_amiga_st_read_potx, /* pot-x read function */
     joyport_mouse_amiga_st_read_poty,      /* pot-y read function */
+    NULL,                                  /* NO powerup function */
     mouse_st_write_snapshot,               /* device write snapshot function */
-    mouse_st_read_snapshot                 /* device read snapshot function */
+    mouse_st_read_snapshot,                /* device read snapshot function */
+    NULL,                                  /* NO device hook function */
+    0                                      /* NO device hook function mask */
 };
 
 static uint8_t joyport_mouse_smart_value(int port)
@@ -910,7 +1176,7 @@ static uint8_t joyport_mouse_smart_value(int port)
     if (_mouse_enabled) {
         retval = (uint8_t)((~mouse_digital_val) & smart_mouse_read());
         if (retval != (uint8_t)~mouse_digital_val) {
-            joyport_display_joyport(mt_to_id(mouse_type), (uint8_t)(~retval));
+            joyport_display_joyport(mt_to_id(mouse_type), (uint16_t)(~retval));
         }
     }
     return retval;
@@ -925,13 +1191,19 @@ static joyport_t mouse_smart_joyport_device = {
     JOYPORT_RES_ID_MOUSE,       /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,    /* device is NOT a lightpen */
     JOYPORT_POT_REQUIRED,       /* device uses the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,   /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_MOUSE,       /* device is a Mouse */
+    0x0E,                       /* bits 3, 2 and 1 are output bits */
     joyport_mouse_enable,       /* device enable function */
     joyport_mouse_smart_value,  /* digital line read function */
     smart_mouse_store,          /* digital line store function */
     mouse_get_1351_x,           /* pot-x read function */
     mouse_get_1351_y,           /* pot-y read function */
+    NULL,                       /* NO powerup function */
     mouse_smart_write_snapshot, /* device write snapshot function */
-    mouse_smart_read_snapshot   /* device read snapshot function */
+    mouse_smart_read_snapshot,  /* device read snapshot function */
+    NULL,                       /* NO device hook function */
+    0                           /* NO device hook function mask */
 };
 
 static uint8_t joyport_mouse_micromys_value(int port)
@@ -940,7 +1212,7 @@ static uint8_t joyport_mouse_micromys_value(int port)
 
     if (_mouse_enabled) {
         retval = (uint8_t)((~mouse_digital_val) & micromys_mouse_read());
-        joyport_display_joyport(mt_to_id(mouse_type), (uint8_t)(~retval));
+        joyport_display_joyport(mt_to_id(mouse_type), (uint16_t)(~retval));
     }
     return retval;
 }
@@ -954,13 +1226,19 @@ static joyport_t mouse_micromys_joyport_device = {
     JOYPORT_RES_ID_MOUSE,          /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,       /* device is NOT a lightpen */
     JOYPORT_POT_REQUIRED,          /* device uses the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,      /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_MOUSE,          /* device is a Mouse */
+    0,                             /* NO output bits */
     joyport_mouse_enable,          /* device enable function */
     joyport_mouse_micromys_value,  /* digital line read function */
     NULL,                          /* NO digital line store function */
     mouse_get_1351_x,              /* pot-x read function */
     mouse_get_1351_y,              /* pot-y read function */
+    NULL,                          /* NO powerup function */
     mouse_micromys_write_snapshot, /* device write snapshot function */
-    mouse_micromys_read_snapshot   /* device read snapshot function */
+    mouse_micromys_read_snapshot,  /* device read snapshot function */
+    NULL,                          /* NO device hook function */
+    0                              /* NO device hook function mask */
 };
 
 static uint8_t joyport_koalapad_pot_x(int port)
@@ -973,22 +1251,32 @@ static int koalapad_write_snapshot(struct snapshot_s *s, int port);
 static int koalapad_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t koalapad_joyport_device = {
-    "KoalaPad",              /* name of the device */
-    JOYPORT_RES_ID_MOUSE,    /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
-    JOYPORT_IS_NOT_LIGHTPEN, /* device is NOT a lightpen */
-    JOYPORT_POT_REQUIRED,    /* device uses the potentiometer lines */
-    joyport_mouse_enable,    /* device enable function */
-    joyport_mouse_value,     /* digital line read function */
-    NULL,                    /* NO digital line store function */
-    joyport_koalapad_pot_x,  /* pot-x read function */
-    mouse_get_paddle_y,      /* pot-y read function */
-    koalapad_write_snapshot, /* device write snapshot function */
-    koalapad_read_snapshot   /* device read snapshot function */
+    "KoalaPad",                 /* name of the device */
+    JOYPORT_RES_ID_MOUSE,       /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,    /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,       /* device uses the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,   /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_DRAWING_PAD, /* device is a Drawing Tablet */
+    0,                          /* NO output bits */
+    joyport_mouse_enable,       /* device enable function */
+    joyport_mouse_value,        /* digital line read function */
+    NULL,                       /* NO digital line store function */
+    joyport_koalapad_pot_x,     /* pot-x read function */
+    mouse_get_paddle_y,         /* pot-y read function */
+    NULL,                       /* NO powerup function */
+    koalapad_write_snapshot,    /* device write snapshot function */
+    koalapad_read_snapshot,     /* device read snapshot function */
+    NULL,                       /* NO device hook function */
+    0                           /* NO device hook function mask */
 };
 
 static int mouse_joyport_register(void)
 {
+    DBG(("mouse_joyport_register\n"));
     if (joyport_device_register(JOYPORT_ID_PADDLES, &paddles_joyport_device) < 0) {
+        return -1;
+    }
+    if (joyport_device_register(JOYPORT_ID_MF_JOYSTICK, &mf_joystick_joyport_device) < 0) {
         return -1;
     }
     if (joyport_device_register(JOYPORT_ID_MOUSE_1351, &mouse_1351_joyport_device) < 0) {
@@ -1046,6 +1334,20 @@ static int set_smart_mouse_rtc_save(int val, void *param)
     return 0;
 }
 
+static int set_paddles_p1_input(int val, void *param)
+{
+    paddles_p1_input = val ? PADDLES_INPUT_JOY_AXIS : PADDLES_INPUT_MOUSE;
+
+    return 0;
+}
+
+static int set_paddles_p2_input(int val, void *param)
+{
+    paddles_p2_input = val ? PADDLES_INPUT_JOY_AXIS : PADDLES_INPUT_MOUSE;
+
+    return 0;
+}
+
 /* FIXME: this should get moved into archdep */
 #ifdef ANDROID_COMPILE
 #define ARCHDEP_MOUSE_ENABLE_DEFAULT  1
@@ -1062,10 +1364,14 @@ static const resource_int_t resources_int[] = {
 static const resource_int_t resources_extra_int[] = {
     { "SmartMouseRTCSave", 0, RES_EVENT_SAME, NULL,
       &ds1202_rtc_save, set_smart_mouse_rtc_save, NULL },
+    { "PaddlesInput1", PADDLES_INPUT_MOUSE, RES_EVENT_SAME, NULL,
+      &paddles_p1_input, set_paddles_p1_input, NULL },
+    { "PaddlesInput2", PADDLES_INPUT_MOUSE, RES_EVENT_SAME, NULL,
+      &paddles_p2_input, set_paddles_p2_input, NULL },
     RESOURCE_INT_LIST_END
 };
 
-static mouse_func_t mouse_funcs =
+static const mouse_func_t mouse_funcs =
 {
     mouse_button_left,
     mouse_button_right,
@@ -1076,6 +1382,7 @@ static mouse_func_t mouse_funcs =
 
 int mouse_resources_init(void)
 {
+    DBG(("mouse_resources_init\n"));
     if (mouse_joyport_register() < 0) {
         return -1;
     }
@@ -1109,6 +1416,18 @@ static const cmdline_option_t cmdline_extra_option[] =
     { "+smartmousertcsave", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SmartMouseRTCSave", (void *)0,
       NULL, "Disable saving of smart mouse RTC data when changed." },
+    { "-paddles1inputmouse", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "PaddlesInput1", (void *)PADDLES_INPUT_MOUSE,
+      NULL, "Use host mouse as input for paddles in port 1." },
+    { "-paddles1inputjoyaxis", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "PaddlesInput1", (void *)PADDLES_INPUT_JOY_AXIS,
+      NULL, "Use host joystick axis as input for paddles in port 1." },
+    { "-paddles2inputmouse", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "PaddlesInput2", (void *)PADDLES_INPUT_MOUSE,
+      NULL, "Use host mouse as input for paddles in port 2." },
+    { "-paddles2inputjoyaxis", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "PaddlesInput2", (void *)PADDLES_INPUT_JOY_AXIS,
+      NULL, "Use host joystick axis as input for paddles in port 2." },
     CMDLINE_LIST_END
 };
 
@@ -1138,7 +1457,6 @@ void mouse_init(void)
     neos_and_amiga_buttons = 0;
     neos_prev = 0xff;
     mousedrv_init();
-    clk_guard_add_callback(maincpu_clk_guard, clk_overflow_callback, NULL);
 }
 
 void mouse_shutdown(void)
@@ -1155,7 +1473,7 @@ void mouse_shutdown(void)
 static void mouse_button_left(int pressed)
 {
     uint8_t old_val = mouse_digital_val;
-    uint8_t joypin = (((mouse_type == MOUSE_TYPE_PADDLE) || (mouse_type == MOUSE_TYPE_KOALAPAD)) ? 4 : 16);
+    uint8_t joypin = (((mouse_type == MOUSE_TYPE_PADDLE) || (mouse_type == MOUSE_TYPE_KOALAPAD)) ? JOYPORT_LEFT : JOYPORT_FIRE_1);
 
     if (pressed) {
         mouse_digital_val |= joypin;
@@ -1166,7 +1484,7 @@ static void mouse_button_left(int pressed)
     if (old_val == mouse_digital_val || mouse_type == -1) {
         return;
     }
-    joyport_display_joyport(mt_to_id(mouse_type), mouse_digital_val);
+    joyport_display_joyport(mt_to_id(mouse_type), (uint16_t)mouse_digital_val);
 }
 
 static void mouse_button_right(int pressed)
@@ -1179,27 +1497,27 @@ static void mouse_button_right(int pressed)
         case MOUSE_TYPE_MICROMYS:
             /* "joystick up" */
             if (pressed) {
-                mouse_digital_val |= 1;
+                mouse_digital_val |= JOYPORT_UP;
             } else {
-                mouse_digital_val &= (uint8_t)~1;
+                mouse_digital_val &= (uint8_t)~JOYPORT_UP;
             }
             break;
         case MOUSE_TYPE_KOALAPAD:
         case MOUSE_TYPE_PADDLE:
             /* "joystick right" */
             if (pressed) {
-                mouse_digital_val |= 8;
+                mouse_digital_val |= JOYPORT_RIGHT;
             } else {
-                mouse_digital_val &= (uint8_t)~8;
+                mouse_digital_val &= (uint8_t)~JOYPORT_RIGHT;
             }
             break;
         case MOUSE_TYPE_NEOS:
         case MOUSE_TYPE_AMIGA:
         case MOUSE_TYPE_ST:
             if (pressed) {
-                neos_and_amiga_buttons |= 1;
+                neos_and_amiga_buttons |= JOYPORT_UP;
             } else {
-                neos_and_amiga_buttons &= ~1;
+                neos_and_amiga_buttons &= ~JOYPORT_UP;
             }
             break;
         default:
@@ -1208,7 +1526,7 @@ static void mouse_button_right(int pressed)
     if (old_val == mouse_digital_val || mouse_type == -1) {
         return;
     }
-    joyport_display_joyport(mt_to_id(mouse_type), mouse_digital_val);
+    joyport_display_joyport(mt_to_id(mouse_type), (uint16_t)mouse_digital_val);
 }
 
 static void mouse_button_middle(int pressed)
@@ -1218,17 +1536,17 @@ static void mouse_button_middle(int pressed)
     switch (mouse_type) {
         case MOUSE_TYPE_MICROMYS:
             if (pressed) {
-                mouse_digital_val |= 2;
+                mouse_digital_val |= JOYPORT_DOWN;
             } else {
-                mouse_digital_val &= (uint8_t)~2;
+                mouse_digital_val &= (uint8_t)~JOYPORT_DOWN;
             }
             break;
         case MOUSE_TYPE_AMIGA:
         case MOUSE_TYPE_ST:
             if (pressed) {
-                neos_and_amiga_buttons |= 2;
+                neos_and_amiga_buttons |= JOYPORT_DOWN;
             } else {
-                neos_and_amiga_buttons &= ~2;
+                neos_and_amiga_buttons &= ~JOYPORT_DOWN;
             }
             break;
         default:
@@ -1237,7 +1555,7 @@ static void mouse_button_middle(int pressed)
     if (old_val == mouse_digital_val || mouse_type == -1) {
         return;
     }
-    joyport_display_joyport(mt_to_id(mouse_type), mouse_digital_val);
+    joyport_display_joyport(mt_to_id(mouse_type), (uint16_t)mouse_digital_val);
 }
 
 static void mouse_button_up(int pressed)
@@ -1272,9 +1590,9 @@ static void mouse_button_down(int pressed)
     }
 }
 
-void smart_mouse_store(uint8_t val)
+void smart_mouse_store(int port, uint8_t val)
 {
-    ds1202_1302_set_lines(ds1202, !(val & 8), !!(val & 2), !!(val & 4));
+    ds1202_1302_set_lines(ds1202, !(val & JOYPORT_RIGHT), !!(val & JOYPORT_DOWN), !!(val & JOYPORT_LEFT));
 }
 
 uint8_t smart_mouse_read(void)
@@ -1357,6 +1675,7 @@ static int read_poll_val_snapshot(snapshot_module_t *m)
     uint32_t tmpc2;
     uint32_t tmpc3;
     uint32_t tmpc4;
+    unsigned long tmp_latest_os_ts;
 
     if (0
         || SMR_B(m, &quadrature_x) < 0
@@ -1369,7 +1688,7 @@ static int read_poll_val_snapshot(snapshot_module_t *m)
         || SMR_DW_INT(m, &sx) < 0
         || SMR_DW_INT(m, &sy) < 0
         || SMR_DW_INT(m, &update_limit) < 0
-        || SMR_DW_UL(m, &latest_os_ts) < 0
+        || SMR_DW_UL(m, &tmp_latest_os_ts) < 0
         || SMR_DB(m, &tmp_db) < 0
         || SMR_DW(m, &tmpc1) < 0
         || SMR_DW(m, &tmpc2) < 0
@@ -1381,6 +1700,7 @@ static int read_poll_val_snapshot(snapshot_module_t *m)
     latest_x = (int16_t)tmp_latest_x;
     latest_y = (int16_t)tmp_latest_y;
     emu_units_per_os_units = (float)tmp_db;
+    latest_os_ts = (tick_t)tmp_latest_os_ts;
     next_update_x_emu_ts = (CLOCK)tmpc1;
     next_update_y_emu_ts = (CLOCK)tmpc2;
     update_x_emu_iv = (CLOCK)tmpc3;
@@ -1412,7 +1732,7 @@ static int read_neos_and_amiga_val_snapshot(snapshot_module_t *m)
    BYTE  | old paddle value 3 | old paddle value 3
  */
 
-static char paddles_snap_module_name[] = "PADDLES";
+static const char paddles_snap_module_name[] = "PADDLES";
 #define PADDLES_VER_MAJOR   0
 #define PADDLES_VER_MINOR   0
 
@@ -1498,7 +1818,7 @@ fail:
    DWORD  | update y emu iv        | update Y emu IV
  */
 
-static char mouse_1351_snap_module_name[] = "MOUSE_1351";
+static const char mouse_1351_snap_module_name[] = "MOUSE_1351";
 #define MOUSE_1351_VER_MAJOR   0
 #define MOUSE_1351_VER_MINOR   0
 
@@ -1577,7 +1897,7 @@ fail:
    DWORD | neos time out cycles | time out cycles
  */
 
-static char mouse_neos_snap_module_name[] = "MOUSE_NEOS";
+static const char mouse_neos_snap_module_name[] = "MOUSE_NEOS";
 #define MOUSE_NEOS_VER_MAJOR   0
 #define MOUSE_NEOS_VER_MINOR   0
 
@@ -1695,7 +2015,7 @@ fail:
    DWORD  | buttons                | buttons state
  */
 
-static char mouse_amiga_snap_module_name[] = "MOUSE_AMIGA";
+static const char mouse_amiga_snap_module_name[] = "MOUSE_AMIGA";
 #define MOUSE_AMIGA_VER_MAJOR   0
 #define MOUSE_AMIGA_VER_MINOR   0
 
@@ -1787,7 +2107,7 @@ fail:
    DWORD  | update y emu iv        | update Y emu IV
  */
 
-static char mouse_cx22_snap_module_name[] = "MOUSE_CX22";
+static const char mouse_cx22_snap_module_name[] = "MOUSE_CX22";
 #define MOUSE_CX22_VER_MAJOR   0
 #define MOUSE_CX22_VER_MINOR   0
 
@@ -1874,7 +2194,7 @@ fail:
    DWORD  | buttons                | buttons state
  */
 
-static char mouse_st_snap_module_name[] = "MOUSE_ST";
+static const char mouse_st_snap_module_name[] = "MOUSE_ST";
 #define MOUSE_ST_VER_MAJOR   0
 #define MOUSE_ST_VER_MINOR   0
 
@@ -1966,7 +2286,7 @@ fail:
    DWORD  | update y emu iv        | update Y emu IV
  */
 
-static char mouse_smart_snap_module_name[] = "MOUSE_SMART";
+static const char mouse_smart_snap_module_name[] = "MOUSE_SMART";
 #define MOUSE_SMART_VER_MAJOR   0
 #define MOUSE_SMART_VER_MINOR   0
 
@@ -2057,7 +2377,7 @@ fail:
    DWORD  | up down pulse end      | up down pulse end
  */
 
-static char mouse_micromys_snap_module_name[] = "MOUSE_MICROMYS";
+static const char mouse_micromys_snap_module_name[] = "MOUSE_MICROMYS";
 #define MOUSE_MICROMYS_VER_MAJOR   0
 #define MOUSE_MICROMYS_VER_MINOR   0
 
@@ -2146,7 +2466,7 @@ fail:
    WORD   | old paddle value 3 | old paddle value 3
  */
 
-static char koalapad_snap_module_name[] = "KOALAPAD";
+static const char koalapad_snap_module_name[] = "KOALAPAD";
 #define KOALAPAD_VER_MAJOR   0
 #define KOALAPAD_VER_MINOR   0
 

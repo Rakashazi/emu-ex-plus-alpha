@@ -1,5 +1,5 @@
 /*
- * render1x1.h - Implementation of framebuffer to physical screen copy
+ * render1x1.h - 1x1 renderers (unfiltered)
  *
  * Written by
  *  John Selck <graham@cruise.de>
@@ -32,24 +32,6 @@
 
 #include "video.h"
 
-extern void render_08_1x1_04(const video_render_color_tables_t *color_tab, const uint8_t *src, uint8_t *trg,
-                             unsigned int width, const unsigned int height,
-                             const unsigned int xs, const unsigned int ys,
-                             const unsigned int xt, const unsigned int yt,
-                             const unsigned int pitchs,
-                             const unsigned int pitcht);
-extern void render_16_1x1_04(const video_render_color_tables_t *color_tab, const uint8_t *src, uint8_t *trg,
-                             unsigned int width, const unsigned int height,
-                             const unsigned int xs, const unsigned int ys,
-                             const unsigned int xt, const unsigned int yt,
-                             const unsigned int pitchs,
-                             const unsigned int pitcht);
-extern void render_24_1x1_04(const video_render_color_tables_t *color_tab, const uint8_t *src, uint8_t *trg,
-                             unsigned int width, const unsigned int height,
-                             const unsigned int xs, const unsigned int ys,
-                             const unsigned int xt, const unsigned int yt,
-                             const unsigned int pitchs,
-                             const unsigned int pitcht);
 extern void render_32_1x1_04(const video_render_color_tables_t *color_tab, const uint8_t *src, uint8_t *trg,
                              unsigned int width, const unsigned int height,
                              const unsigned int xs, const unsigned int ys,

@@ -112,7 +112,7 @@ inline static CLOCK alarm_context_next_pending_clk(alarm_context_t *context)
 
 inline static void alarm_context_update_next_pending(alarm_context_t *context)
 {
-    CLOCK next_pending_alarm_clk = (CLOCK)~0L;
+    CLOCK next_pending_alarm_clk = CLOCK_MAX;
     int next_pending_alarm_idx;
     unsigned int i;
 
@@ -138,7 +138,7 @@ inline static void alarm_context_dispatch(alarm_context_t *context,
     int idx;
     alarm_t *alarm;
 
-    offset = (CLOCK)(cpu_clk - context->next_pending_alarm_clk);
+    offset = cpu_clk - context->next_pending_alarm_clk;
 
     idx = context->next_pending_alarm_idx;
     alarm = context->pending_alarms[idx].alarm;

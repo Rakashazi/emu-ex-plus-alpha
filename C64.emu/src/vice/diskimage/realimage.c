@@ -26,6 +26,8 @@
 
 #include "vice.h"
 
+#include <stdio.h>
+
 #include "diskimage.h"
 #include "log.h"
 #include "machine-bus.h"

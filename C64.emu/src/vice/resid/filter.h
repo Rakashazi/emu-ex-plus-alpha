@@ -672,7 +672,7 @@ void Filter::clock(cycle_count delta_t, int voice1, int voice2, int voice3)
     // MOS 6581.
     while (delta_t) {
       if (unlikely(delta_t < delta_t_flt)) {
-	delta_t_flt = delta_t;
+        delta_t_flt = delta_t;
       }
 
       // Calculate filter outputs.
@@ -687,7 +687,7 @@ void Filter::clock(cycle_count delta_t, int voice1, int voice2, int voice3)
     // MOS 8580. FIXME: Not yet using op-amp model.
     while (delta_t) {
       if (delta_t < delta_t_flt) {
-	delta_t_flt = delta_t;
+        delta_t_flt = delta_t;
       }
 
       // delta_t is converted to seconds given a 1MHz clock by dividing

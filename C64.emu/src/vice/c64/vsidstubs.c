@@ -39,13 +39,16 @@
 #include "cartridge.h"
 #include "cbmdos.h"
 #include "cia.h"
-#include "imagecontents/diskcontents.h"
+#include "diskcontents.h"
+#include "diskcontents-block.h"
 #include "diskimage.h"
 #include "drive.h"
+#include "drive-check.h"
 #include "driveimage.h"
 #include "drivetypes.h"
 #include "fileio.h"
 #include "fsdevice.h"
+#include "fsdevice-filename.h"
 #include "gfxoutput.h"
 #include "iecbus.h"
 #include "iecdrive.h"
@@ -61,13 +64,15 @@
 #include "tape.h"
 #include "tapecart.h"
 #include "tapeport.h"
-#include "imagecontents/tapecontents.h"
+#include "tapecontents.h"
 #include "tape-snapshot.h"
-#include "vdrive/vdrive.h"
-#include "vdrive/vdrive-bam.h"
-#include "vdrive/vdrive-command.h"
-#include "vdrive/vdrive-iec.h"
-#include "vdrive/vdrive-internal.h"
+#include "userport.h"
+#include "userport_io_sim.h"
+#include "vdrive.h"
+#include "vdrive-bam.h"
+#include "vdrive-command.h"
+#include "vdrive-iec.h"
+#include "vdrive-internal.h"
 #include "vicii-phi1.h"
 #include "ds1202_1302.h"
 
@@ -326,7 +331,7 @@ int ds1202_1302_read_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s)
     tape
 *******************************************************************************/
 
-tape_image_t *tape_image_dev1 = NULL;
+tape_image_t *tape_image_dev[TAPEPORT_MAX_PORTS] = { NULL };
 
 int tape_image_attach(unsigned int unit, const char *name)
 {
@@ -337,7 +342,7 @@ void tape_shutdown(void)
 {
 }
 
-int tape_tap_attached(void)
+int tape_tap_attached(int port)
 {
     return 0;
 }
@@ -371,12 +376,12 @@ int tape_image_create(const char *name, unsigned int type)
     return 0;
 }
 
-int tape_snapshot_write_module(snapshot_t *s, int save_image)
+int tape_snapshot_write_module(int port, snapshot_t *s, int save_image)
 {
     return 0;
 }
 
-int tape_snapshot_read_module(snapshot_t *s)
+int tape_snapshot_read_module(int port, snapshot_t *s)
 {
     return 0;
 }
@@ -420,11 +425,15 @@ void tape_get_header(tape_image_t *tape_image, uint8_t *name)
 {
 }
 
-const char *tape_get_file_name(void)
+const char *tape_get_file_name(int port)
 {
     return NULL;
 }
 
+int tapeport_valid_port(int port)
+{
+    return 0;
+}
 
 /*****************************************************************************
  *  tapecart                                                                 *
@@ -478,27 +487,7 @@ image_contents_t *tapecontents_read(const char *file_name)
     return NULL;
 }
 
-image_contents_t *diskcontents_read(const char *file_name, unsigned int unit, unsigned int drive)
-{
-    return NULL;
-}
-
-image_contents_t *diskcontents_read_unit8(const char *file_name)
-{
-    return NULL;
-}
-
-image_contents_t *diskcontents_read_unit9(const char *file_name)
-{
-    return NULL;
-}
-
-image_contents_t *diskcontents_read_unit10(const char *file_name)
-{
-    return NULL;
-}
-
-image_contents_t *diskcontents_read_unit11(const char *file_name)
+image_contents_t *diskcontents_block_read(struct vdrive_s *vdrive, int part)
 {
     return NULL;
 }
@@ -708,7 +697,7 @@ unsigned int machine_bus_device_type_get(unsigned int unit)
     return 0;
 }
 
-void machine_bus_status_truedrive_set(unsigned int enable)
+void machine_bus_status_truedrive_set(unsigned int unit, unsigned int enable)
 {
 }
 
@@ -716,7 +705,7 @@ void machine_bus_status_drivetype_set(unsigned int unit, unsigned int enable)
 {
 }
 
-void machine_bus_status_virtualdevices_set(unsigned int enable)
+void machine_bus_status_virtualdevices_set(unsigned int unit, unsigned int enable)
 {
 }
 
@@ -849,7 +838,7 @@ void vdrive_init(void)
 {
 }
 
-int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit, unsigned int drive)
+int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit)
 {
     return 0;
 }
@@ -916,39 +905,46 @@ int vdrive_command_execute(vdrive_t *vdrive, const uint8_t *buf, unsigned int le
     return 0;
 }
 
-int vdrive_write_sector(vdrive_t *vdrive, const uint8_t *buf, unsigned int track, unsigned int sector)
+int vdrive_ext_write_sector(vdrive_t *vdrive, int drive, const uint8_t *buf, unsigned int track, unsigned int sector)
 {
     return 0;
 }
 
-int vdrive_read_sector(vdrive_t *vdrive, uint8_t *buf, unsigned int track, unsigned int sector)
+int vdrive_ext_read_sector(vdrive_t *vdrive, int drive, uint8_t *buf, unsigned int track, unsigned int sector)
 {
     return 0;
+}
+
+struct disk_image_s *vdrive_get_image(vdrive_t *vdrive, unsigned int drive)
+{
+    return NULL;
 }
 
 /*******************************************************************************
     c64 stuff
 *******************************************************************************/
 
-tapeport_device_list_t *tapeport_device_register(tapeport_device_t *device)
+int tapeport_device_register(int id, tapeport_device_t *device)
 {
-    return NULL;
+    return 0;
 }
 
-void tapeport_device_unregister(tapeport_device_list_t *device)
-{
-}
-
-void tapeport_trigger_flux_change(unsigned int on, int id)
+void tapeport_trigger_flux_change(unsigned int on, int port)
 {
 }
 
-void tapeport_set_tape_sense(int sense, int id)
+void tapeport_set_tape_sense(int sense, int port)
 {
 }
 
-void tapeport_snapshot_register(tapeport_snapshot_t *snapshot)
+int tape_seek_to_offset(tape_image_t *tape_image, unsigned long offset)
 {
+    return 0;
+}
+
+int tap_seek_to_offset(tap_t *tap, unsigned long offset)
+{
+    return 0;
 }
 
 int iec_available_busses(void)
@@ -989,3 +985,59 @@ int drive_has_buttons(unsigned int dnr)
     return 0;
 }
 
+int drive_image_type_to_drive_type(unsigned int type)
+{
+    return 0;
+}
+
+unsigned int drive_check_dual(unsigned int type)
+{
+    return 0;
+}
+
+unsigned int drive_get_num_heads(unsigned int type)
+{
+    return 0;
+}
+
+unsigned int drive_get_half_tracks(unsigned int type)
+{
+    return 0;
+}
+
+bool drive_is_jammed(int mynumber)
+{
+    return false;
+}
+
+char *drive_jam_reason(int mynumber)
+{
+    return NULL;
+}
+
+userport_desc_t *userport_get_valid_devices(int sort)
+{
+    return NULL;
+}
+
+const char *userport_get_device_type_desc(int type)
+{
+    return NULL;
+}
+
+#if !defined(USE_SDLUI) && !defined(USE_SDL2UI)
+tapeport_desc_t *tapeport_get_valid_devices(int port, int sort)
+{
+    return NULL;
+}
+
+const char *tapeport_get_device_type_desc(int type)
+{
+    return NULL;
+}
+#endif
+
+void userport_io_sim_set_pbx_out_lines(uint8_t val)
+{
+    return;
+}

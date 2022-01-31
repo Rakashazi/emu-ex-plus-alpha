@@ -109,7 +109,7 @@ static void mp3_close(void)
     vice_lame_close(gfp);
 }
 
-static sound_device_t mp3_device =
+static const sound_device_t mp3_device =
 {
     "mp3",
     mp3_init,

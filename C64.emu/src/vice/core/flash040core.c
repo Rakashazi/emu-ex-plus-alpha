@@ -184,7 +184,7 @@ inline static int flash_program_byte(flash040_context_t *flash040_context, unsig
 inline static int flash_write_operation_status(flash040_context_t *flash040_context)
 {
     return ((flash040_context->program_byte ^ 0x80) & 0x80)   /* DQ7 = inverse of programmed data */
-           | ((maincpu_clk & 2) << 5)                         /* DQ6 = toggle bit (2 us) */
+           | ((int)(maincpu_clk & 2) << 5)                    /* DQ6 = toggle bit (2 us) */
            | (1 << 5)                                         /* DQ5 = timeout */
     ;
 }

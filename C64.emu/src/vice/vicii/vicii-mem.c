@@ -2052,6 +2052,12 @@ uint8_t vicii_peek(uint16_t addr)
             } else {
                 return /* vicii.regs[addr] | */ 0xff;
             }
+        case 0x30:            /* VIC-IIe extension */
+            if (vicii.viciie) {
+                return vicii.regs[addr] | 0xfc;
+            } else {
+                return /* vicii.regs[addr] | */ 0xff;
+            }
         default:
             if (!vicii.viciidtv) {
                 return vicii.regs[addr] | unused_bits_in_registers[addr];

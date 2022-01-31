@@ -42,9 +42,12 @@ extern void vic_fp_blk5_store(uint16_t addr, uint8_t value);
 
 extern void vic_fp_init(void);
 extern void vic_fp_reset(void);
+extern void vic_fp_powerup(void);
 
 extern void vic_fp_config_setup(uint8_t *rawcart);
 extern int vic_fp_bin_attach(const char *filename);
+/* extern int vic_fp_bin_attach(const char *filename, uint8_t *rawcart); */
+extern int vic_fp_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void vic_fp_detach(void);
 
 extern int vic_fp_resources_init(void);

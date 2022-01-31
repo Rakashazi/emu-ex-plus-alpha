@@ -31,7 +31,6 @@
 #include <string.h>
 
 #include "alarm.h"
-#include "clkguard.h"
 #include "interrupt.h"
 #include "lib.h"
 #include "log.h"
@@ -203,7 +202,7 @@ inline static void update_myviatal(via_context_t *via_context, CLOCK rclk)
     via_context->pb7xx = 0;
 
     if (rclk > via_context->tau) {
-        int nuf = (via_context->tal + 1 + rclk - via_context->tau)
+        CLOCK nuf = (via_context->tal + 1 + rclk - via_context->tau)
                   / (via_context->tal + 2);
 
         if (!(via_context->via[VIA_ACR] & 0x40)) {
@@ -1097,44 +1096,6 @@ static void viacore_intsr(CLOCK offset, void *data)
     alarm_set(via_context->sr_alarm, rclk + 1);
 }
 
-static void viacore_clk_overflow_callback(CLOCK sub, void *data)
-{
-    via_context_t *via_context;
-
-    via_context = (via_context_t *)data;
-
-    if (via_context->enabled == 0) {
-        return;
-    }
-
-#if 0
-    via_context->tau = via_context->tal + 2 -
-                       ((*(via_context->clk_ptr) + sub - via_context->tau)
-                        % (via_context->tal + 2));
-
-    via_context->tbu = via_context->tbl + 2 -
-                       ((*(via_context->clk_ptr) + sub - via_context->tbu)
-                        % (via_context->tbl + 2));
-#else
-    via_context->tau -= sub;
-    via_context->tbu -= sub;
-#endif
-
-    if (via_context->tai) {
-        via_context->tai -= sub;
-    }
-
-    if (via_context->tbi) {
-        via_context->tbi -= sub;
-    }
-
-    if (via_context->read_clk > sub) {
-        via_context->read_clk -= sub;
-    } else {
-        via_context->read_clk = 0;
-    }
-}
-
 void viacore_setup_context(via_context_t *via_context)
 {
     int i;
@@ -1168,7 +1129,7 @@ void viacore_setup_context(via_context_t *via_context)
 }
 
 void viacore_init(via_context_t *via_context, alarm_context_t *alarm_context,
-                  interrupt_cpu_status_t *int_status, clk_guard_t *clk_guard)
+                  interrupt_cpu_status_t *int_status)
 {
     char *buffer;
 
@@ -1189,7 +1150,6 @@ void viacore_init(via_context_t *via_context, alarm_context_t *alarm_context,
     lib_free(buffer);
 
     via_context->int_num = interrupt_cpu_status_int_new(int_status, via_context->myname);
-    clk_guard_add_callback(clk_guard, viacore_clk_overflow_callback, via_context);
 }
 
 void viacore_shutdown(via_context_t *via_context)

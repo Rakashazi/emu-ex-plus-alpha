@@ -37,7 +37,9 @@
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
+#include "cmdline.h"
 #include "export.h"
+#include "resources.h"
 #include "rgcd.h"
 #include "monitor.h"
 #include "snapshot.h"
@@ -61,27 +63,38 @@
 
     bit 0-2   bank number
     bit 3     exrom (1 = cart rom and I/O disabled until reset/powercycle)
+
+    the eprom cartridge by "hucky" works exactly the same, except the banks
+    are in reverse order. it is implemented as hardware revision 1.
+
+    the Hucky cartridge may also be equipped with 8k, 16k or 32k EPROMs
 */
 
 #define MAXBANKS 8
 
 static uint8_t regval = 0;
 static uint8_t disabled = 0;
+static int rgcd_revision = 0;
+static int bankmask = 7;
 
 static void rgcd_io1_store(uint16_t addr, uint8_t value)
 {
     regval = value & 0x0f;
+    if (rgcd_revision == RGCD_REV_HUCKY) {
+        value ^= 7;
+    }
     cart_set_port_game_slotmain(0);
     disabled |= (value & 0x08) ? 1 : 0;
     if (disabled) {
         /* turn off cart ROM */
         cart_set_port_exrom_slotmain(0);
     } else {
-        cart_romlbank_set_slotmain(value & 0x07);
+        cart_romlbank_set_slotmain(value & bankmask);
         cart_set_port_exrom_slotmain(1);
     }
     cart_port_config_changed_slotmain();
-    DBG(("RGCD: Reg: %02x (Bank: %d, %s)\n", regval, (regval & 0x07), disabled ? "disabled" : "enabled"));
+    DBG(("RGCD: Reg: %02x (Bank: %d of %d, %s)\n",
+        regval, (regval & bankmask), bankmask + 1, disabled ? "disabled" : "enabled"));
 }
 
 static uint8_t rgcd_io1_peek(uint16_t addr)
@@ -91,7 +104,8 @@ static uint8_t rgcd_io1_peek(uint16_t addr)
 
 static int rgcd_dump(void)
 {
-    mon_out("Reg: %02x (Bank: %d, %s)\n", regval, (regval & 0x07), disabled ? "disabled" : "enabled");
+    mon_out("Reg: %02x (Bank: %d of %d, %s)\n",
+            regval, (regval & bankmask), bankmask + 1, disabled ? "disabled" : "enabled");
     return 0;
 }
 
@@ -142,6 +156,40 @@ void rgcd_config_setup(uint8_t *rawcart)
 
 /* ---------------------------------------------------------------------*/
 
+static int set_rgcd_revision(int val, void *param)
+{
+    rgcd_revision = val ? 1 : 0;
+    return 0;
+}
+
+static const resource_int_t resources_int[] = {
+    { "RGCDrevision", RGCD_REV_RGCD_64K, RES_EVENT_NO, NULL,
+      &rgcd_revision, set_rgcd_revision, NULL },
+    RESOURCE_INT_LIST_END
+};
+
+int rgcd_resources_init(void)
+{
+    return resources_register_int(resources_int);
+}
+
+void rgcd_resources_shutdown(void)
+{
+}
+
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-rgcdrev", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "RGCDrevision", NULL,
+      "<Revision>", "Set RGCD Revision (0: RGCD 64K, 1: Hucky)" },
+    CMDLINE_LIST_END
+};
+
+int rgcd_cmdline_options_init(void)
+{
+    return cmdline_register_options(cmdline_options);
+}
+
 static int rgcd_common_attach(void)
 {
     if (export_add(&export_res) < 0) {
@@ -159,21 +207,40 @@ int rgcd_bin_attach(const char *filename, uint8_t *rawcart)
     return rgcd_common_attach();
 }
 
-int rgcd_crt_attach(FILE *fd, uint8_t *rawcart)
+int rgcd_crt_attach(FILE *fd, uint8_t *rawcart, uint8_t revision)
 {
     crt_chip_header_t chip;
+    int highbank = 0;
 
     while (1) {
         if (crt_read_chip_header(&chip, fd)) {
             break;
         }
+        printf("bank %d %04x %04x\n", chip.bank, chip.start, chip.size);
         if ((chip.bank >= MAXBANKS) || ((chip.start != 0x8000) && (chip.start != 0xa000)) || (chip.size != 0x2000)) {
             return -1;
+        }
+        if (chip.bank > highbank) {
+            highbank = chip.bank;
         }
         if (crt_read_chip(rawcart, chip.bank << 13, &chip, fd)) {
             return -1;
         }
     }
+
+    if (revision > 0) {
+        rgcd_revision = RGCD_REV_HUCKY;
+        if ((highbank != 7) && (highbank != 3) && (highbank != 1) && (highbank != 0)) {
+            return -1;
+        }
+        bankmask = highbank;
+    } else {
+        if (highbank != 7) {
+            return -1;
+        }
+        bankmask = 7;
+    }
+
     return rgcd_common_attach();
 }
 
@@ -192,6 +259,8 @@ void rgcd_detach(void)
    ----------------------------------------
    BYTE  | regval   |   0.1+  | register
    BYTE  | disabled |   0.2   | cartridge disabled flag
+   BYTE  | revision |   0.3   | hw revision
+   BYTE  | mask     |   0.4   | bank mask
    ARRAY | ROML     |   0.1+  | 65536 BYTES of ROML data
 
    Note: for some reason this module was created at rev 0.1, so there never was a 0.0
@@ -199,7 +268,7 @@ void rgcd_detach(void)
 
 static const char snap_module_name[] = "CARTRGCD";
 #define SNAP_MAJOR   0
-#define SNAP_MINOR   2
+#define SNAP_MINOR   4
 
 int rgcd_snapshot_write_module(snapshot_t *s)
 {
@@ -214,6 +283,8 @@ int rgcd_snapshot_write_module(snapshot_t *s)
     if (0
         || SMW_B(m, (uint8_t)regval) < 0
         || SMW_B(m, (uint8_t)disabled) < 0
+        || SMW_B(m, (uint8_t)rgcd_revision) < 0
+        || SMW_B(m, (uint8_t)bankmask) < 0
         || SMW_BA(m, roml_banks, 0x2000 * MAXBANKS) < 0) {
         snapshot_module_close(m);
         return -1;
@@ -250,6 +321,24 @@ int rgcd_snapshot_read_module(snapshot_t *s)
         }
     } else {
         disabled = 0;
+    }
+
+    /* new in 0.3 */
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 3)) {
+        if (SMR_B_INT(m, &rgcd_revision) < 0) {
+            goto fail;
+        }
+    } else {
+        rgcd_revision = 0;
+    }
+
+    /* new in 0.4 */
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 4)) {
+        if (SMR_B_INT(m, &bankmask) < 0) {
+            goto fail;
+        }
+    } else {
+        bankmask = 7;
     }
 
     if (SMR_BA(m, roml_banks, 0x2000 * MAXBANKS) < 0) {

@@ -333,7 +333,7 @@ static int sdl_resume(void)
     return 0;
 }
 
-static sound_device_t sdl_device =
+static const sound_device_t sdl_device =
 {
     "sdl",
     sdl_init,

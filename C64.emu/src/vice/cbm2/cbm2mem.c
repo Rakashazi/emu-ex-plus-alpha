@@ -1098,9 +1098,9 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
 void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, int *bank)
 {
     *base = 0xd000;
-    *rows = 25;
-    *columns = 80;
     *bank = 16;
+    *columns = crtc_peek_register(CRTC_REG_HDISP);
+    *rows = crtc_peek_register(CRTC_REG_VDISP);
 }
 
 /* used by autostart to locate and "read" kernal output on the current screen
@@ -1109,11 +1109,13 @@ void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, i
  */
 void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uint8_t *line_length, int *blinking)
 {
-    /* Cursor Blink enable: 1 = Flash Cursor, 0 = Cursor disabled, -1 = n/a */
-    *blinking = -1;
     *screen_addr = zero_read(0xc8) + zero_read(0xc9) * 256; /* Current Screen Line Address */
     *cursor_column = zero_read(0xcb);    /* Cursor Column on Current Line */
-    *line_length = 80;                   /* Physical Screen Line Length */
+
+    *line_length = crtc_peek_register(CRTC_REG_HDISP); /* Physical Screen Line Length */
+    /* Cursor Blink enable: 1 = Flash Cursor, 0 = Cursor disabled, -1 = n/a */
+    *blinking = (crtc_peek_register(CRTC_REG_CURSORSTART) != 1);
+    /* printf("mem_get_cursor_parameter %04x %d %d %d\n", *screen_addr, *cursor_column, *line_length, *blinking); */
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1193,7 +1195,7 @@ static io_source_t acia_device = {
     NULL,                  /* NO poke function */
     acia1_read,            /* read function */
     acia1_peek,            /* peek function */
-    NULL,                  /* TODO: chip state information dump function */
+    acia1_dump,            /* chip state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_HIGH,          /* high priority, chip never involved in collisions */
     0                      /* insertion order, gets filled in by the registration function */

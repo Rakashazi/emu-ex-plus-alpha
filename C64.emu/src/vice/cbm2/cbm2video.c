@@ -33,14 +33,6 @@
 #include "video.h"
 
 
-void machine_video_init(void)
-{
-    video_render_1x2_init();
-    video_render_2x2_init();
-    video_render_pal_init();
-    video_render_crt_init();
-}
-
 int machine_video_resources_init(void)
 {
     if (video_resources_init() < 0) {

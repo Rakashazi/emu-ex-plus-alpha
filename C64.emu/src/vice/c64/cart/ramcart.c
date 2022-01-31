@@ -24,6 +24,8 @@
  *
  */
 
+/* #define DEBUG_RAMCART */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -43,6 +45,7 @@
 #include "machine.h"
 #include "mem.h"
 #include "monitor.h"
+#include "ram.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "types.h"
@@ -52,6 +55,12 @@
 #define CARTRIDGE_INCLUDE_PRIVATE_API
 #include "ramcart.h"
 #undef CARTRIDGE_INCLUDE_PRIVATE_API
+
+#ifdef DEBUG_RAMCART
+#define DBG(x)  log_debug   x
+#else
+#define DBG(x)
+#endif
 
 /*
     "RamCart"
@@ -275,6 +284,20 @@ static int ramcart_dump(void)
 
 /* ------------------------------------------------------------------------- */
 
+/* FIXME: this still needs to be tweaked to match the hardware */
+static RAMINITPARAM ramparam = {
+    .start_value = 255,
+    .value_invert = 2,
+    .value_offset = 1,
+
+    .pattern_invert = 0x100,
+    .pattern_invert_value = 255,
+
+    .random_start = 0,
+    .random_repeat = 0,
+    .random_chance = 0,
+};
+
 static int ramcart_activate(void)
 {
     if (!ramcart_size) {
@@ -285,7 +308,11 @@ static int ramcart_activate(void)
 
     /* Clear newly allocated RAM.  */
     if (ramcart_size > old_ramcart_ram_size) {
-        memset(ramcart_ram, 0, (size_t)(ramcart_size - old_ramcart_ram_size));
+        /* memset(ramcart_ram, 0, (size_t)(ramcart_size - old_ramcart_ram_size)); */
+        ram_init_with_pattern(&ramcart_ram[old_ramcart_ram_size],
+                              (unsigned int)(ramcart_size - old_ramcart_ram_size), &ramparam);
+        DBG(("ramcart clear offset: %x length: %x total size: %x old size: %x",
+             old_ramcart_ram_size, ramcart_size - old_ramcart_ram_size, ramcart_size, old_ramcart_ram_size));
     }
 
     old_ramcart_ram_size = ramcart_size;

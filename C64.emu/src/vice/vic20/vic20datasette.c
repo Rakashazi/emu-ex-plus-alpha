@@ -28,27 +28,36 @@
 #include "vice.h"
 
 #include "datasette.h"
+#include "tapeport.h"
 #include "via.h"
 #include "vic20.h"
 #include "vic20via.h"
 
 
-void machine_trigger_flux_change(unsigned int on)
+void machine_trigger_flux_change(int port, unsigned int on)
 {
-    viacore_signal(machine_context.via1, VIA_SIG_CA1, VIA_SIG_FALL);
+    if (port == TAPEPORT_PORT_1) {
+        viacore_signal(machine_context.via1, VIA_SIG_CA1, VIA_SIG_FALL);
+    }
 }
 
-void machine_set_tape_sense(int sense)
+void machine_set_tape_sense(int port, int sense)
 {
-    via2_set_tape_sense(sense);
+    if (port == TAPEPORT_PORT_1) {
+        via2_set_tape_sense(sense);
+    }
 }
 
-void machine_set_tape_write_in(int val)
+void machine_set_tape_write_in(int port, int val)
 {
-    via2_set_tape_write_in(val);
+    if (port == TAPEPORT_PORT_1) {
+        via2_set_tape_write_in(val);
+    }
 }
 
-void machine_set_tape_motor_in(int val)
+void machine_set_tape_motor_in(int port, int val)
 {
-    via2_set_tape_motor_in(val);
+    if (port == TAPEPORT_PORT_1) {
+        via2_set_tape_motor_in(val);
+    }
 }

@@ -84,6 +84,8 @@ enum {
     ACIA_CMD_BITS_IRQ_DISABLED            = 0x02,
     ACIA_CMD_BITS_DTR_ENABLE_RECV_AND_IRQ = 0x01,
 
+    /* This bit is set only in the MOS 6551, not the Rockwell 6551 or the 65c51 versions */
+    /* ACIA_CMD_DEFAULT_AFTER_HW_RESET       = ACIA_CMD_BITS_IRQ_DISABLED */
     ACIA_CMD_DEFAULT_AFTER_HW_RESET       = 0
 };
 
@@ -126,6 +128,6 @@ enum {
 
 #define ACIA_MODE_LOWEST ACIA_MODE_NORMAL
 
-int acia_dump(void *acia_context);
+int acia_dump(void);
 
 #endif

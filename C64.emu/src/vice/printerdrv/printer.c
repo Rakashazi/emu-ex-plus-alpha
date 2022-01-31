@@ -110,11 +110,19 @@ void printer_reset(void)
 
 void printer_shutdown(void)
 {
+    driver_select_shutdown();
+    /*
+     * This shuts down the serial port, which may close some lingering
+     * secondary addresses on the printers, which may produce some final
+     * (graphics) output.
+     */
+    machine_printer_shutdown();
+    /*
+     * So really shutting them down should be done after that.
+     */
     drv_mps803_shutdown();
     drv_nl10_shutdown();
     drv_1520_shutdown();
-    driver_select_shutdown();
-    machine_printer_shutdown();
     output_graphics_shutdown();
     output_select_shutdown();
 }

@@ -39,6 +39,7 @@
 #include "export.h"
 #include "log.h"
 #include "monitor.h"
+#include "ram.h"
 #include "snapshot.h"
 #include "types.h"
 #include "util.h"
@@ -66,6 +67,8 @@
     io2 (r/w)
         cart RAM (if enabled) or cart ROM
 */
+
+#define CART_RAM_SIZE (8 * 1024)
 
 static int ar_active;
 
@@ -289,17 +292,36 @@ void actionreplay_roml_store(uint16_t addr, uint8_t value)
 
 /* ---------------------------------------------------------------------*/
 
+/* FIXME: this still needs to be tweaked to match the hardware */
+static RAMINITPARAM ramparam = {
+    .start_value = 255,
+    .value_invert = 2,
+    .value_offset = 1,
+
+    .pattern_invert = 0x100,
+    .pattern_invert_value = 255,
+
+    .random_start = 0,
+    .random_repeat = 0,
+    .random_chance = 0,
+};
+
+void actionreplay_powerup(void)
+{
+    ram_init_with_pattern(export_ram0, CART_RAM_SIZE, &ramparam);
+}
+
 void actionreplay_freeze(void)
 {
     ar_active = 1;
-    cart_config_changed_slotmain(3, 3, CMODE_READ | CMODE_EXPORT_RAM);
+    cart_config_changed_slotmain(CMODE_ULTIMAX, CMODE_ULTIMAX, CMODE_READ | CMODE_EXPORT_RAM);
 }
 
 void actionreplay_config_init(void)
 {
     ar_active = 1;
     regvalue = 0;
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
 }
 
 void actionreplay_reset(void)

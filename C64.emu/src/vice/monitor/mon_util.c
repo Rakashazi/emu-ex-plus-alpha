@@ -337,6 +337,9 @@ char *uimon_in(const char *prompt)
 
             /* get input from the user */
             p = uimon_get_in(&pchCommandLine, prompt);
+            if (!p) {
+                break;
+            }
 #ifdef HAVE_NETWORK
         }
 #endif

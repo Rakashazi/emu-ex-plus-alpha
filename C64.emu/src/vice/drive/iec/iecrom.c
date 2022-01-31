@@ -48,15 +48,9 @@ static uint8_t drive_rom1540[DRIVE_ROM1540_SIZE_EXPANDED];
 static uint8_t drive_rom1541[DRIVE_ROM1541_SIZE_EXPANDED];
 static uint8_t drive_rom1541ii[DRIVE_ROM1541II_SIZE_EXPANDED];
 
-#ifdef USE_EMBEDDED
-#include "drivedos1570.h"
-#include "drivedos1571.h"
-#include "drivedos1581.h"
-#else
 static uint8_t drive_rom1570[DRIVE_ROM1570_SIZE];
 static uint8_t drive_rom1571[DRIVE_ROM1571_SIZE];
 static uint8_t drive_rom1581[DRIVE_ROM1581_SIZE];
-#endif
 
 static uint8_t drive_rom2000[DRIVE_ROM2000_SIZE];
 static uint8_t drive_rom4000[DRIVE_ROM4000_SIZE];

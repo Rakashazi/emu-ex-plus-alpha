@@ -48,7 +48,6 @@ extern void drivecpu_init(struct diskunit_context_s *drv, int type);
 extern void drivecpu_reset(struct diskunit_context_s *drv);
 extern void drivecpu_sleep(struct diskunit_context_s *drv);
 extern void drivecpu_wake_up(struct diskunit_context_s *drv);
-extern CLOCK drivecpu_prevent_clk_overflow(struct diskunit_context_s *drv, CLOCK sub);
 extern void drivecpu_shutdown(struct diskunit_context_s *drv);
 extern void drivecpu_reset_clk(struct diskunit_context_s *drv);
 extern void drivecpu_trigger_reset(unsigned int dnr);

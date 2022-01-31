@@ -38,6 +38,7 @@
 #include "resources.h"
 #include "snapshot.h"
 #include "types.h"
+#include "joyport.h"
 #include "userport.h"
 
 /* 
@@ -58,39 +59,33 @@ C64/C128 | CBM2 | PET | VIC20 | CENTRONICS  | NOTES
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static void userport_printer_store_pbx(uint8_t b);
+static void userport_printer_store_pbx(uint8_t b, int pulse);
 static void userport_printer_store_pa2(uint8_t s);
 static int userport_printer_write_snapshot_module(snapshot_t *s);
 static int userport_printer_read_snapshot_module(snapshot_t *s);
+static int userport_printer_enable(int val);
 
 static userport_device_t printer_device = {
-    USERPORT_DEVICE_PRINTER,    /* device id */
-    "Userport printer",         /* device name */
-    NULL,                       /* NO read pb0-pb7 function */
-    userport_printer_store_pbx, /* store pb0-pb7 function */
-    NULL,                       /* NO read pa2 pin function */
-    userport_printer_store_pa2, /* store pa2 pin function */
-    NULL,                       /* NO read pa3 pin function */
-    NULL,                       /* NO store pa3 pin function */
-    0,                          /* pc pin is NOT needed */
-    NULL,                       /* NO store sp1 pin function */
-    NULL,                       /* NO read sp1 pin function */
-    NULL,                       /* NO store sp2 pin function */
-    NULL,                       /* NO read sp2 pin function */
-    "PrinterUserport",          /* resource used by the device */
-    0xff,                       /* return value from a read, to be filled in by the device */
-    0xff,                       /* validity mask of the device, doesn't change */
-    0,                          /* device involved in a read collision, to be filled in by the collision detection system */
-    0                           /* a tag to indicate the order of insertion */
+    "Userport printer",                     /* device name */
+    JOYSTICK_ADAPTER_ID_NONE,               /* NOT a joystick adapter */
+    USERPORT_DEVICE_TYPE_PRINTER,           /* device is a printer */
+    userport_printer_enable,                /* enable function */
+    NULL,                                   /* NO read pb0-pb7 function */
+    userport_printer_store_pbx,             /* store pb0-pb7 function */
+    NULL,                                   /* NO read pa2 pin function */
+    userport_printer_store_pa2,             /* store pa2 pin function */
+    NULL,                                   /* NO read pa3 pin function */
+    NULL,                                   /* NO store pa3 pin function */
+    0,                                      /* pc pin is NOT needed */
+    NULL,                                   /* NO store sp1 pin function */
+    NULL,                                   /* NO read sp1 pin function */
+    NULL,                                   /* NO store sp2 pin function */
+    NULL,                                   /* NO read sp2 pin function */
+    NULL,                                   /* NO reset function */
+    NULL,                                   /* NO power toggle function */
+    userport_printer_write_snapshot_module, /* snapshot write function */
+    userport_printer_read_snapshot_module   /* snapshot read function */
 };
-
-static userport_snapshot_t printer_snapshot = {
-    USERPORT_DEVICE_PRINTER,
-    userport_printer_write_snapshot_module,
-    userport_printer_read_snapshot_module
-};
-
-static userport_device_list_t *userport_printer_list_item = NULL;
 
 /* ------------------------------------------------------------------------- */
 
@@ -98,23 +93,17 @@ static int userport_printer_enabled = 0;
 
 #define USERPORT_OUTPUT         (NUM_OUTPUT_SELECT - 1)
 
-static int set_up_enabled(int val, void *param)
+static int userport_printer_enable(int val)
 {
     int newval = val ? 1 : 0;
 
     if (newval && !userport_printer_enabled) {
         /* Switch printer on.  */
         if (driver_select_open(USERPORT_OUTPUT, 4) >= 0) {
-            userport_printer_list_item = userport_device_register(&printer_device);
-            if (userport_printer_list_item == NULL) {
-                return -1;
-            }
             userport_printer_enabled = 1;
         }
     }
     if (userport_printer_enabled && !newval) {
-        userport_device_unregister(userport_printer_list_item);
-        userport_printer_list_item = NULL;
         driver_select_close(USERPORT_OUTPUT, 4);
         userport_printer_enabled = 0;
     }
@@ -122,33 +111,9 @@ static int set_up_enabled(int val, void *param)
     return 0;
 }
 
-static const resource_int_t resources_int[] = {
-    { "PrinterUserport", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      (void *)&userport_printer_enabled, set_up_enabled, NULL },
-    RESOURCE_INT_LIST_END
-};
-
 int interface_userport_init_resources(void)
 {
-    userport_snapshot_register(&printer_snapshot);
-
-    return resources_register_int(resources_int);
-}
-
-static const cmdline_option_t cmdline_options[] =
-{
-    { "-pruser", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "PrinterUserport", (resource_value_t) 1,
-      NULL, "Enable the userport printer emulation" },
-    { "+pruser", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "PrinterUserport", (resource_value_t) 0,
-      NULL, "Disable the userport printer emulation" },
-    CMDLINE_LIST_END
-};
-
-int interface_userport_init_cmdline_options(void)
-{
-    return cmdline_register_options(cmdline_options);
+    return userport_device_register(USERPORT_DEVICE_PRINTER, &printer_device);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -156,7 +121,7 @@ int interface_userport_init_cmdline_options(void)
 static uint8_t value; /* userport value */
 static uint8_t strobe;
 
-static void userport_printer_store_pbx(uint8_t b)
+static void userport_printer_store_pbx(uint8_t b, int pulse)
 {
     value = b;
 }
@@ -182,9 +147,9 @@ static void userport_printer_store_pa2(uint8_t s)
    BYTE  | strobe | strobe flag
  */
 
-static char snap_module_name[] = "USERPORT_PRINTER";
+static char snap_module_name[] = "UPPRINTER";
 #define SNAP_MAJOR   0
-#define SNAP_MINOR   0
+#define SNAP_MINOR   1
 
 static int userport_printer_write_snapshot_module(snapshot_t *s)
 {
@@ -208,9 +173,6 @@ static int userport_printer_read_snapshot_module(snapshot_t *s)
 {
     uint8_t major_version, minor_version;
     snapshot_module_t *m;
-
-    /* enable device */
-    set_up_enabled(1, NULL);
 
     m = snapshot_module_open(s, snap_module_name, &major_version, &minor_version);
 

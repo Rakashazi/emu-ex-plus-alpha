@@ -63,5 +63,6 @@ extern const char *reu_get_file_name(void);
 extern int reu_bin_attach(const char *filename, uint8_t *rawcart);
 extern int reu_bin_save(const char *filename);
 extern int reu_flush_image(void);
+extern void reu_powerup(void);
 
 #endif

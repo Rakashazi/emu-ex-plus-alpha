@@ -365,7 +365,7 @@ extern vicii_t vicii;
 extern void vicii_update_memory_ptrs(unsigned int cycle);
 extern void vicii_update_video_mode(unsigned int cycle);
 extern void vicii_raster_draw_alarm_handler(CLOCK offset, void *data);
-extern void vicii_handle_pending_alarms(int num_write_cycles);
+extern void vicii_handle_pending_alarms(CLOCK num_write_cycles);
 extern void vicii_delay_clk(void);
 extern void vicii_delay_oldclk(CLOCK num);
 

@@ -39,6 +39,7 @@
 #include "resources.h"
 #include "types.h"
 #include "util.h"
+#include "viciitypes.h"
 
 
 #define INTERNAL_FUNCTION_ROM_SIZE 0x8000
@@ -301,7 +302,17 @@ static int functionrom_load_external(void)
             /* try 16k */
             if (util_file_load(external_function_rom_name, ext_function_rom,
                             EXTERNAL_FUNCTION_ROM_SIZE / 2, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
-                return -1;
+                /* try 8k */
+                if (util_file_load(external_function_rom_name, ext_function_rom,
+                                EXTERNAL_FUNCTION_ROM_SIZE / 4, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
+                    return -1;
+                } else {
+                    /* create a mirror */
+                    memcpy(&ext_function_rom[EXTERNAL_FUNCTION_ROM_SIZE / 4], 
+                        ext_function_rom, EXTERNAL_FUNCTION_ROM_SIZE / 4);
+                    memcpy(&ext_function_rom[EXTERNAL_FUNCTION_ROM_SIZE / 2], 
+                        ext_function_rom, EXTERNAL_FUNCTION_ROM_SIZE / 2);
+                }
             } else {
                 /* create a mirror */
                 memcpy(&ext_function_rom[EXTERNAL_FUNCTION_ROM_SIZE / 2], 
@@ -318,13 +329,16 @@ static int functionrom_load_external(void)
 uint8_t internal_function_rom_read(uint16_t addr)
 {
     if (internal_function_rom_enabled == INT_FUNCTION_RTC) {
-        return bq4830y_read(rtc1_context, (uint16_t)(addr & 0x7fff));
+        vicii.last_cpu_val = bq4830y_read(rtc1_context, (uint16_t)(addr & 0x7fff));
+    } else {
+        vicii.last_cpu_val = int_function_rom[addr & (INTERNAL_FUNCTION_ROM_SIZE - 1)];
     }
-    return int_function_rom[addr & (INTERNAL_FUNCTION_ROM_SIZE - 1)];
+    return vicii.last_cpu_val;
 }
 
 void internal_function_rom_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     if (internal_function_rom_enabled == INT_FUNCTION_RTC) {
         bq4830y_store(rtc1_context, (uint16_t)(addr & 0x7fff), value);
         ram_store(addr, value);
@@ -338,6 +352,7 @@ void internal_function_rom_store(uint16_t addr, uint8_t value)
 
 void internal_function_top_shared_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     if (internal_function_rom_enabled == INT_FUNCTION_RTC) {
         bq4830y_store(rtc1_context, (uint16_t)(addr & 0x7fff), value);
         top_shared_store(addr, value);
@@ -352,13 +367,16 @@ void internal_function_top_shared_store(uint16_t addr, uint8_t value)
 uint8_t external_function_rom_read(uint16_t addr)
 {
     if (external_function_rom_enabled == EXT_FUNCTION_RTC) {
-        return bq4830y_read(rtc2_context, (uint16_t)(addr & 0x7fff));
+        vicii.last_cpu_val = bq4830y_read(rtc2_context, (uint16_t)(addr & 0x7fff));
+    } else {
+        vicii.last_cpu_val = ext_function_rom[addr & (EXTERNAL_FUNCTION_ROM_SIZE - 1)];
     }
-    return ext_function_rom[addr & (EXTERNAL_FUNCTION_ROM_SIZE - 1)];
+    return vicii.last_cpu_val;
 }
 
 void external_function_rom_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     if (external_function_rom_enabled == EXT_FUNCTION_RTC) {
         bq4830y_store(rtc2_context, (uint16_t)(addr & 0x7fff), value);
         ram_store(addr, value);
@@ -372,6 +390,7 @@ void external_function_rom_store(uint16_t addr, uint8_t value)
 
 void external_function_top_shared_store(uint16_t addr, uint8_t value)
 {
+    vicii.last_cpu_val = value;
     if (external_function_rom_enabled == INT_FUNCTION_RTC) {
         bq4830y_store(rtc2_context, (uint16_t)(addr & 0x7fff), value);
         top_shared_store(addr, value);

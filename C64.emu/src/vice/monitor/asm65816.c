@@ -36,6 +36,7 @@
    handled in 8bit mode only */
 
 static const int addr_mode_size[] = {
+    /* 6502 */
     1, /* ASM_ADDR_MODE_IMPLIED */
     1, /* ASM_ADDR_MODE_ACCUMULATOR */
     2, /* ASM_ADDR_MODE_IMMEDIATE */
@@ -49,11 +50,16 @@ static const int addr_mode_size[] = {
     2, /* ASM_ADDR_MODE_INDIRECT_X */
     2, /* ASM_ADDR_MODE_INDIRECT_Y */
     2, /* ASM_ADDR_MODE_RELATIVE */
+    /* z80 */
     0, /* ASM_ADDR_MODE_ABSOLUTE_A */
     0, /* ASM_ADDR_MODE_ABSOLUTE_HL */
     0, /* ASM_ADDR_MODE_ABSOLUTE_IX */
     0, /* ASM_ADDR_MODE_ABSOLUTE_IY */
+   -1, /* ASM_ADDR_MODE_Z80_ABSOLUTE_BC */
+   -1, /* ASM_ADDR_MODE_Z80_ABSOLUTE_DE */
+   -1, /* ASM_ADDR_MODE_Z80_ABSOLUTE_SP */
     0, /* ASM_ADDR_MODE_ABS_INDIRECT_ZP */
+   -1, /* ASM_ADDR_MODE_Z80_ABS_INDIRECT_EXT */
     3, /* ASM_ADDR_MODE_IMMEDIATE_16 */
     0, /* ASM_ADDR_MODE_REG_B */
     0, /* ASM_ADDR_MODE_REG_C */
@@ -78,10 +84,16 @@ static const int addr_mode_size[] = {
     0, /* ASM_ADDR_MODE_REG_IND_IX */
     0, /* ASM_ADDR_MODE_REG_IND_IY */
     0, /* ASM_ADDR_MODE_REG_IND_SP */
+   -1, /* ASM_ADDR_MODE_Z80_IND_IMMEDIATE */
+   -1, /* ASM_ADDR_MODE_Z80_IND_REG */
+   -1, /* ASM_ADDR_MODE_IND_IX_REG */
+   -1, /* ASM_ADDR_MODE_IND_IY_REG */
+    /* R65C02 */
     2, /* ASM_ADDR_MODE_INDIRECT */
     3, /* ASM_ADDR_MODE_ABS_INDIRECT_X */
    -1, /* ASM_ADDR_MODE_DOUBLE */
     3, /* ASM_ADDR_MODE_ZERO_PAGE_RELATIVE */
+    /* 65816 */
     3, /* ASM_ADDR_MODE_RELATIVE_LONG */
     2, /* ASM_ADDR_MODE_STACK_RELATIVE_Y */
     2, /* ASM_ADDR_MODE_STACK_RELATIVE */
@@ -367,13 +379,14 @@ static const asm_opcode_info_t opcode_list[] = {
     /* ff */ { "SBC",   ASM_ADDR_MODE_ABSOLUTE_LONG_X }
 };
 
-static const asm_opcode_info_t *asm_opcode_info_get(unsigned int p0, unsigned int p1, unsigned int p2)
+static const asm_opcode_info_t *asm_opcode_info_get(unsigned int p0, unsigned int p1,
+                                                    unsigned int p2, unsigned int p3)
 {
     return opcode_list + p0;
 }
 
 static unsigned int asm_addr_mode_get_size(unsigned int mode, unsigned int p0,
-                                                 unsigned int p1, unsigned int p2)
+                                                 unsigned int p1, unsigned int p2, unsigned int p3)
 {
     return addr_mode_size[mode];
 }

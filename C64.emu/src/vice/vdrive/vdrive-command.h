@@ -35,9 +35,12 @@ extern void vdrive_command_init(void);
 extern int vdrive_command_execute(struct vdrive_s *vdrive, const uint8_t *buf, unsigned int length);
 extern int vdrive_command_format(struct vdrive_s *vdrive, const char *disk_name);
 extern int vdrive_command_validate(struct vdrive_s *vdrive);
-extern void vdrive_command_set_error(struct vdrive_s *vdrive, int code, unsigned int track, unsigned int sector);
+extern int vdrive_command_set_error(struct vdrive_s *vdrive, int code, unsigned int track, unsigned int sector);
 extern int vdrive_command_memory_read(struct vdrive_s *vdrive, const uint8_t *buf, uint16_t addr, unsigned int length);
 extern int vdrive_command_memory_write(struct vdrive_s *vdrive, const uint8_t *buf, uint16_t addr, unsigned int length);
 extern int vdrive_command_memory_exec(struct vdrive_s *vdrive, const uint8_t *buf, uint16_t addr, unsigned int length);
+extern int vdrive_command_switch(struct vdrive_s *vdrive, int part);
+extern void vdrive_command_return(struct vdrive_s *vdrive, int origpart);
+extern int vdrive_command_switchtraverse(struct vdrive_s *vdrive, cbmdos_cmd_parse_plus_t *cmd);
 
 #endif

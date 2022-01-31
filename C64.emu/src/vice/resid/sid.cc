@@ -27,9 +27,9 @@
 #include "sid.h"
 #include <math.h>
 
-#ifndef round
-#define round(x) (x>=0.0?floor(x+0.5):ceil(x-0.5))
-#endif
+#include <iostream>
+#include <fstream>
+using namespace std;
 
 namespace reSID
 {
@@ -403,10 +403,18 @@ SID::State SID::read_state()
 void SID::write_state(const State& state)
 {
   int i;
+  sampling_method tmp;
 
+  /* HACK: remember sampling mode and set it to resampling incase it was fast,
+           else the write() call will not work correctly */
+  tmp = sampling;
+  if (unlikely(sampling == SAMPLE_FAST) && (sid_model == MOS8580)) {
+    sampling = SAMPLE_RESAMPLE;
+  }
   for (i = 0; i <= 0x18; i++) {
     write(i, state.sid_register[i]);
   }
+  sampling = tmp;   /* restore original mode */
 
   bus_value = state.bus_value;
   bus_value_ttl = state.bus_value_ttl;
@@ -473,6 +481,47 @@ void SID::enable_external_filter(bool enable)
   extfilt.enable_filter(enable);
 }
 
+// ----------------------------------------------------------------------------
+// write raw output to a file
+// ----------------------------------------------------------------------------
+void SID::debugoutput(void)
+{
+#if 0
+    static int recording = -1;
+    static ofstream myFile;
+    static int lastn;
+    int n = filter.output();
+    if (recording == -1) {
+        /* the first call opens the file */
+        recording = 0;
+        myFile.open ("resid.raw", ios::out | ios::binary);
+        lastn = n;
+        std::cout << "reSID: waiting for output to change..." << std::endl;
+    } else if ((recording == 0) && (lastn != n)) {
+        /* start recording when the reSID output changes */
+        recording = 1;
+        std::cout << "reSID: starting recording..." << std::endl;
+    }
+    /* write 16bit little endian signed data */
+    if (recording) {
+        myFile.put(n & 0xff);
+        myFile.put((n >> 8) & 0xff);
+    }
+#endif
+}
+
+// ----------------------------------------------------------------------------
+// Enable raw debug output
+// ----------------------------------------------------------------------------
+void SID::enable_raw_debug_output(bool enable)
+{
+#if 0
+    raw_debug_output = enable;
+    if (enable) {
+        std::cout << "reSID: raw output enabled." << std::endl;
+    }
+#endif
+}
 
 // ----------------------------------------------------------------------------
 // I0() computes the 0th order modified Bessel function of the first kind.

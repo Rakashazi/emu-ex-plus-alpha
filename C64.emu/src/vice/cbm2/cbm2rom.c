@@ -96,8 +96,8 @@ int cbm2rom_load_chargen(const char *rom_name)
            charset in the first 4k, the rest is FF, "localized" ROMs have a 
            second charset in the upper half. */
         memset(temp, 0xff, 0x2000);
-        if (sysfile_load(rom_name, temp, 0x2000, 0x2000) < 0) {
-            if (sysfile_load(rom_name, temp, 0x1000, 0x1000) < 0) {
+        if (sysfile_load(rom_name, machine_name, temp, 0x2000, 0x2000) < 0) {
+            if (sysfile_load(rom_name, machine_name, temp, 0x1000, 0x1000) < 0) {
                 log_error(cbm2rom_log, "Couldn't load character ROM '%s'.", rom_name);
                 lib_free(temp);
                 return -1;
@@ -151,7 +151,7 @@ int cbm2rom_load_kernal(const char *rom_name)
 
     /* Load Kernal ROM.  */
     if (!util_check_null_string(rom_name)) {
-        if (sysfile_load(rom_name, mem_rom + 0xe000, 0x2000, 0x2000) < 0) {
+        if (sysfile_load(rom_name, machine_name, mem_rom + 0xe000, 0x2000, 0x2000) < 0) {
             log_error(cbm2rom_log, "Couldn't load ROM `%s'.", rom_name);
             return -1;
         }
@@ -167,7 +167,7 @@ int cbm2rom_load_basic(const char *rom_name)
     }
     /* Load BASIC ROM.  */
     if (!util_check_null_string(rom_name)) {
-        if ((sysfile_load(rom_name, mem_rom + 0x8000, 0x4000, 0x4000) < 0)) {
+        if ((sysfile_load(rom_name, machine_name, mem_rom + 0x8000, 0x4000, 0x4000) < 0)) {
             log_error(cbm2rom_log, "Couldn't load BASIC ROM `%s'.",
                       rom_name);
             return -1;
@@ -185,7 +185,7 @@ int cbm2rom_load_cart_1(const char *rom_name)
         return 0;  /* init not far enough */
     }
     if (!util_check_null_string(rom_name)) {
-        if ((sysfile_load(rom_name, mem_rom + 0x1000, 0x1000, 0x1000) < 0)) {
+        if ((sysfile_load(rom_name, machine_name, mem_rom + 0x1000, 0x1000, 0x1000) < 0)) {
             log_error(cbm2rom_log, "Couldn't load ROM `%s'.",
                       rom_name);
         }
@@ -201,7 +201,7 @@ int cbm2rom_load_cart_2(const char *rom_name)
         return 0;  /* init not far enough */
     }
     if (!util_check_null_string(rom_name)) {
-        if ((sysfile_load(rom_name, mem_rom + 0x2000, 0x2000, 0x2000) < 0)) {
+        if ((sysfile_load(rom_name, machine_name, mem_rom + 0x2000, 0x2000, 0x2000) < 0)) {
             log_error(cbm2rom_log, "Couldn't load ROM `%s'.",
                       rom_name);
         }
@@ -217,7 +217,7 @@ int cbm2rom_load_cart_4(const char *rom_name)
         return 0;  /* init not far enough */
     }
     if (!util_check_null_string(rom_name)) {
-        if ((sysfile_load(rom_name, mem_rom + 0x4000, 0x2000, 0x2000) < 0)) {
+        if ((sysfile_load(rom_name, machine_name, mem_rom + 0x4000, 0x2000, 0x2000) < 0)) {
             log_error(cbm2rom_log, "Couldn't load ROM `%s'.",
                       rom_name);
         }
@@ -233,7 +233,7 @@ int cbm2rom_load_cart_6(const char *rom_name)
         return 0;  /* init not far enough */
     }
     if (!util_check_null_string(rom_name)) {
-        if ((sysfile_load(rom_name, mem_rom + 0x6000, 0x2000, 0x2000) < 0)) {
+        if ((sysfile_load(rom_name, machine_name, mem_rom + 0x6000, 0x2000, 0x2000) < 0)) {
             log_error(cbm2rom_log, "Couldn't load ROM `%s'.",
                       rom_name);
         }

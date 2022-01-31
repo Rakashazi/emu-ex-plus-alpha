@@ -39,43 +39,20 @@
 #include "machine.h"
 #include "serial.h"
 #include "attach.h"
+#include "vdrive.h"
 #include "vdrive-internal.h"
-
-
-image_contents_t *diskcontents_read(const char *file_name, unsigned int unit, unsigned int drive)
-{
-    switch (machine_bus_device_type_get(unit)) {
-        default:
-            return diskcontents_filesystem_read(file_name);
-        case SERIAL_DEVICE_REAL:
-            return machine_diskcontents_bus_read(unit);
-        case SERIAL_DEVICE_RAW:
-            return diskcontents_block_read(file_system_get_vdrive(unit, drive));
-    }
-}
 
 image_contents_t *diskcontents_filesystem_read(const char *file_name)
 {
-    return diskcontents_block_read(vdrive_internal_open_fsimage(file_name, 1));
-}
+    vdrive_t *vdrive;
+    image_contents_t *contents = NULL;
 
-image_contents_t *diskcontents_read_unit8(const char *file_name)
-{
-    /* TODO: drive 1 */
-    return diskcontents_read(file_name, 8, 0);
-}
+    vdrive = vdrive_internal_open_fsimage(file_name, 1);
 
-image_contents_t *diskcontents_read_unit9(const char *file_name)
-{
-    return diskcontents_read(file_name, 9, 0);
-}
+    if (vdrive) {
+        contents = diskcontents_block_read(vdrive, 0);
+        vdrive_internal_close_disk_image(vdrive);
+    }
 
-image_contents_t *diskcontents_read_unit10(const char *file_name)
-{
-    return diskcontents_read(file_name, 10, 0);
-}
-
-image_contents_t *diskcontents_read_unit11(const char *file_name)
-{
-    return diskcontents_read(file_name, 11, 0);
+    return contents;
 }

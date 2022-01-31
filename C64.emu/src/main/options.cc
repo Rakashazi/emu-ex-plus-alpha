@@ -60,7 +60,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 Byte1Option optionDriveTrueEmulation(CFGKEY_DRIVE_TRUE_EMULATION, 0);
-Byte1Option optionVirtualDeviceTraps(CFGKEY_VIRTUAL_DEVICE_TRAPS, 1);
 Byte1Option optionCropNormalBorders(CFGKEY_CROP_NORMAL_BORDERS, 1);
 Byte1Option optionAutostartWarp(CFGKEY_AUTOSTART_WARP, 1);
 Byte1Option optionAutostartTDE(CFGKEY_AUTOSTART_TDE, 0);
@@ -105,38 +104,6 @@ Byte2Option optionC64RamExpansionModule(CFGKEY_C64_RAM_EXPANSION_MODULE, 0);
 static std::array<char, 21> externalPaletteResStr{};
 static std::array<char, 17> paletteFileResStr{};
 
-int intResource(const char *name)
-{
-	int val{};
-	auto failed = plugin.resources_get_int(name, &val);
-	if(failed)
-	{
-		logErr("error getting int resource:%s", name);
-	}
-	return val;
-}
-
-void setIntResource(const char *name, int val)
-{
-	plugin.resources_set_int(name, val);
-}
-
-const char *stringResource(const char *name)
-{
-	const char *val{};
-	auto failed = plugin.resources_get_string(name, &val);
-	if(failed)
-	{
-		logErr("error getting string resource:%s", name);
-	}
-	return val;
-}
-
-void setStringResource(const char *name, const char *val)
-{
-	plugin.resources_set_string(name, val);
-}
-
 void setPaletteResources(const char *palName)
 {
 	if(palName && strlen(palName))
@@ -172,6 +139,45 @@ void EmuSystem::onOptionsLoaded(IG::ApplicationContext ctx)
 	IG::formatTo(paletteFileResStr, "{}PaletteFile", videoChipStr());
 }
 
+void applySessionOptions()
+{
+	if((int)optionModel == -1)
+	{
+		logMsg("using default model");
+		setSysModel(optionDefaultModel(currSystem));
+	}
+	else
+	{
+		setSysModel(optionModel);
+	}
+	setDriveTrueEmulation(optionDriveTrueEmulation);
+	setAutostartWarp(optionAutostartWarp);
+	setAutostartTDE(optionAutostartTDE);
+	setAutostartBasicLoad(optionAutostartBasicLoad);
+	if(currSystem == VICE_SYSTEM_VIC20)
+	{
+		uint8_t blocks = optionVic20RamExpansions;
+		if(blocks & BLOCK_0)
+			setIntResource("RamBlock0", 1);
+		if(blocks & BLOCK_1)
+			setIntResource("RamBlock1", 1);
+		if(blocks & BLOCK_2)
+			setIntResource("RamBlock2", 1);
+		if(blocks & BLOCK_3)
+			setIntResource("RamBlock3", 1);
+		if(blocks & BLOCK_5)
+			setIntResource("RamBlock5", 1);
+	}
+	if(currSystemIsC64Or128())
+	{
+		if(optionC64RamExpansionModule)
+		{
+			setIntResource("REU", 1);
+			setIntResource("REUsize", optionC64RamExpansionModule);
+		}
+	}
+}
+
 void EmuSystem::onSessionOptionsLoaded(EmuApp &)
 {
 	if(optionModel >= plugin.models)
@@ -185,7 +191,6 @@ bool EmuSystem::resetSessionOptions(EmuApp &app)
 {
 	optionModel.reset();
 	optionDriveTrueEmulation.reset();
-	optionVirtualDeviceTraps.reset();
 	optionAutostartWarp.reset();
 	optionAutostartTDE.reset();
 	optionAutostartBasicLoad.reset();
@@ -210,7 +215,6 @@ bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 				optionModel.reset();
 			}
 		bcase CFGKEY_DRIVE_TRUE_EMULATION: optionDriveTrueEmulation.readFromIO(io, readSize);
-		bcase CFGKEY_VIRTUAL_DEVICE_TRAPS: optionVirtualDeviceTraps.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_WARP: optionAutostartWarp.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_TDE: optionAutostartTDE.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_BASIC_LOAD: optionAutostartBasicLoad.readFromIO(io, readSize);
@@ -228,7 +232,6 @@ void EmuSystem::writeSessionConfig(IO &io)
 {
 	optionModel.writeWithKeyIfNotDefault(io);
 	optionDriveTrueEmulation.writeWithKeyIfNotDefault(io);
-	optionVirtualDeviceTraps.writeWithKeyIfNotDefault(io);
 	optionAutostartWarp.writeWithKeyIfNotDefault(io);
 	optionAutostartTDE.writeWithKeyIfNotDefault(io);
 	optionAutostartBasicLoad.writeWithKeyIfNotDefault(io);
@@ -321,6 +324,51 @@ int optionDefaultModel(ViceSystem system)
 		case VICE_SYSTEM_VIC20: return optionVIC20Model;
 	}
 	return 0;
+}
+
+void setDefaultC64Model(int model)
+{
+	optionC64Model = model;
+}
+
+void setDefaultDTVModel(int model)
+{
+	optionDTVModel = model;
+}
+
+void setDefaultC128Model(int model)
+{
+	optionC128Model = model;
+}
+
+void setDefaultSuperCPUModel(int model)
+{
+	optionSuperCPUModel = model;
+}
+
+void setDefaultCBM2Model(int model)
+{
+	optionCBM2Model = model;
+}
+
+void setDefaultCBM5x0Model(int model)
+{
+	optionCBM5x0Model = model;
+}
+
+void setDefaultPETModel(int model)
+{
+	optionPETModel = model;
+}
+
+void setDefaultPlus4Model(int model)
+{
+	optionPlus4Model = model;
+}
+
+void setDefaultVIC20Model(int model)
+{
+	optionVIC20Model = model;
 }
 
 }

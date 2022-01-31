@@ -35,91 +35,103 @@
 
 #include "types.h"
 
+/* CAUTION: when adding stuff to this enum, all addr_mode_size tables in all
+            asmXXXX.c files must be updated accordingly */
 enum asm_addr_mode {
-    ASM_ADDR_MODE_IMPLIED,
-    ASM_ADDR_MODE_ACCUMULATOR,
-    ASM_ADDR_MODE_IMMEDIATE,
-    ASM_ADDR_MODE_ZERO_PAGE,
-    ASM_ADDR_MODE_ZERO_PAGE_X,
-    ASM_ADDR_MODE_ZERO_PAGE_Y,
-    ASM_ADDR_MODE_ABSOLUTE,
-    ASM_ADDR_MODE_ABSOLUTE_X,
-    ASM_ADDR_MODE_ABSOLUTE_Y,
-    ASM_ADDR_MODE_ABS_INDIRECT,
-    ASM_ADDR_MODE_INDIRECT_X,     /* 10 */
-    ASM_ADDR_MODE_INDIRECT_Y,
-    ASM_ADDR_MODE_RELATIVE,
+    ASM_ADDR_MODE_IMPLIED,                  /* 6502, 6502DTV, 65816, R65C02, z80, 6809 */
+    ASM_ADDR_MODE_ACCUMULATOR,              /* 6502, 6502DTV, 65816, R65C02, z80 */
+    ASM_ADDR_MODE_IMMEDIATE,                /* 6502, 6502DTV, 65816, R65C02, z80 */
+    ASM_ADDR_MODE_ZERO_PAGE,                /* 6502, 6502DTV, 65816, R65C02, z80 */
+    ASM_ADDR_MODE_ZERO_PAGE_X,              /* 6502, 6502DTV, 65816, R65C02, z80 */
+    ASM_ADDR_MODE_ZERO_PAGE_Y,              /* 6502, 6502DTV, 65816, R65C02, z80 */
+    ASM_ADDR_MODE_ABSOLUTE,                 /* 6502, 6502DTV, 65816, R65C02, z80 */
+    ASM_ADDR_MODE_ABSOLUTE_X,               /* 6502, 6502DTV, 65816, R65C02, z80 */
+    ASM_ADDR_MODE_ABSOLUTE_Y,               /* 6502, 6502DTV, 65816, R65C02, z80 */
+    ASM_ADDR_MODE_ABS_INDIRECT,             /* 6502, 6502DTV, 65816, R65C02, z80 */
+    ASM_ADDR_MODE_INDIRECT_X,     /* 10 */  /* 6502, 6502DTV, 65816, R65C02, z80 */
+    ASM_ADDR_MODE_INDIRECT_Y,               /* 6502, 6502DTV, 65816, R65C02, z80 */
+    ASM_ADDR_MODE_RELATIVE,                 /* 6502, 6502DTV, 65816, R65C02, z80 */
     /* more modes needed for z80 */
-    ASM_ADDR_MODE_ABSOLUTE_A,     /* 13 */
-    ASM_ADDR_MODE_ABSOLUTE_HL,
-    ASM_ADDR_MODE_ABSOLUTE_IX,
-    ASM_ADDR_MODE_ABSOLUTE_IY,
-    ASM_ADDR_MODE_ABS_INDIRECT_ZP,
-    ASM_ADDR_MODE_IMMEDIATE_16,
-    ASM_ADDR_MODE_REG_B,
-    ASM_ADDR_MODE_REG_C,          /* 20 */
-    ASM_ADDR_MODE_REG_D,
-    ASM_ADDR_MODE_REG_E,
-    ASM_ADDR_MODE_REG_H,
-    ASM_ADDR_MODE_REG_IXH,
-    ASM_ADDR_MODE_REG_IYH,
-    ASM_ADDR_MODE_REG_L,
-    ASM_ADDR_MODE_REG_IXL,
-    ASM_ADDR_MODE_REG_IYL,
-    ASM_ADDR_MODE_REG_AF,
-    ASM_ADDR_MODE_REG_BC,         /* 30 */
-    ASM_ADDR_MODE_REG_DE,
-    ASM_ADDR_MODE_REG_HL,
-    ASM_ADDR_MODE_REG_IX,
-    ASM_ADDR_MODE_REG_IY,
-    ASM_ADDR_MODE_REG_SP,
-    ASM_ADDR_MODE_REG_IND_BC,
-    ASM_ADDR_MODE_REG_IND_DE,
-    ASM_ADDR_MODE_REG_IND_HL,
-    ASM_ADDR_MODE_REG_IND_IX,
-    ASM_ADDR_MODE_REG_IND_IY,     /* 40 */
-    ASM_ADDR_MODE_REG_IND_SP,
+    ASM_ADDR_MODE_ABSOLUTE_A,     /* 13 */  /* z80 */
+    ASM_ADDR_MODE_ABSOLUTE_HL,              /* z80 */
+    ASM_ADDR_MODE_ABSOLUTE_IX,              /* z80 */
+    ASM_ADDR_MODE_ABSOLUTE_IY,              /* z80 */
+    ASM_ADDR_MODE_Z80_ABSOLUTE_BC,          /* z80 */
+    ASM_ADDR_MODE_Z80_ABSOLUTE_DE,          /* z80 */
+    ASM_ADDR_MODE_Z80_ABSOLUTE_SP,          /* z80 */
+    ASM_ADDR_MODE_ABS_INDIRECT_ZP,          /* z80 */
+    ASM_ADDR_MODE_Z80_ABS_INDIRECT_EXT,     /* z80 */
+    ASM_ADDR_MODE_IMMEDIATE_16,             /* z80, 65816 */
+    ASM_ADDR_MODE_REG_B,                    /* z80 */
+    ASM_ADDR_MODE_REG_C,          /* 24 */  /* z80 */
+    ASM_ADDR_MODE_REG_D,                    /* z80 */
+    ASM_ADDR_MODE_REG_E,                    /* z80 */
+    ASM_ADDR_MODE_REG_H,                    /* z80 */
+    ASM_ADDR_MODE_REG_IXH,                  /* z80 */
+    ASM_ADDR_MODE_REG_IYH,                  /* z80 */
+    ASM_ADDR_MODE_REG_L,                    /* z80 */
+    ASM_ADDR_MODE_REG_IXL,                  /* z80 */
+    ASM_ADDR_MODE_REG_IYL,                  /* z80 */
+    ASM_ADDR_MODE_REG_AF,                   /* z80 */
+    ASM_ADDR_MODE_REG_BC,         /* 34 */  /* z80 */
+    ASM_ADDR_MODE_REG_DE,                   /* z80 */
+    ASM_ADDR_MODE_REG_HL,                   /* z80 */
+    ASM_ADDR_MODE_REG_IX,                   /* z80 */
+    ASM_ADDR_MODE_REG_IY,                   /* z80 */
+    ASM_ADDR_MODE_REG_SP,                   /* z80 */
+    ASM_ADDR_MODE_REG_IND_BC,               /* z80 */
+    ASM_ADDR_MODE_REG_IND_DE,               /* z80 */
+    ASM_ADDR_MODE_REG_IND_HL,               /* z80 */
+    ASM_ADDR_MODE_REG_IND_IX,               /* z80 */       /* B, (IX+$12) */
+    ASM_ADDR_MODE_REG_IND_IY,     /* 44 */  /* z80 */       /* B, (IY+$12) */
+    ASM_ADDR_MODE_REG_IND_SP,               /* z80 */
+    ASM_ADDR_MODE_Z80_IND_IMMEDIATE,        /* z80 */
+    ASM_ADDR_MODE_Z80_IND_REG,    /* 47 */  /* z80 */
+    ASM_ADDR_MODE_IND_IX_REG,               /* z80 */       /* (IX+$12), B */
+    ASM_ADDR_MODE_IND_IY_REG,               /* z80 */       /* (IY+$12), B */
     /* R65C02 */
-    ASM_ADDR_MODE_INDIRECT,
-    ASM_ADDR_MODE_ABS_INDIRECT_X,
+    ASM_ADDR_MODE_INDIRECT,                 /* 65816, R65C02 */
+    ASM_ADDR_MODE_ABS_INDIRECT_X,           /* 65816, R65C02 */
     ASM_ADDR_MODE_DOUBLE,
-    ASM_ADDR_MODE_ZERO_PAGE_RELATIVE,
+    ASM_ADDR_MODE_ZERO_PAGE_RELATIVE,       /* 65816, R65C02 */
     /* 65816 */
-    ASM_ADDR_MODE_RELATIVE_LONG,
-    ASM_ADDR_MODE_STACK_RELATIVE_Y,
-    ASM_ADDR_MODE_STACK_RELATIVE,
-    ASM_ADDR_MODE_INDIRECT_LONG,
-    ASM_ADDR_MODE_ABSOLUTE_LONG,
-    ASM_ADDR_MODE_INDIRECT_LONG_Y,
-    ASM_ADDR_MODE_ABSOLUTE_LONG_X,
-    ASM_ADDR_MODE_MOVE,
-    ASM_ADDR_MODE_ABS_IND_LONG,
+    ASM_ADDR_MODE_RELATIVE_LONG,            /* 65816 */
+    ASM_ADDR_MODE_STACK_RELATIVE_Y,         /* 65816 */
+    ASM_ADDR_MODE_STACK_RELATIVE,           /* 65816 */
+    ASM_ADDR_MODE_INDIRECT_LONG,            /* 65816 */
+    ASM_ADDR_MODE_ABSOLUTE_LONG,            /* 65816 */
+    ASM_ADDR_MODE_INDIRECT_LONG_Y,          /* 65816 */
+    ASM_ADDR_MODE_ABSOLUTE_LONG_X,          /* 65816 */
+    ASM_ADDR_MODE_MOVE,                     /* 65816 */
+    ASM_ADDR_MODE_ABS_IND_LONG,             /* 65816 */
     /* more modes needed for 6809 */
-    ASM_ADDR_MODE_ILLEGAL,        /* 42 */
-    ASM_ADDR_MODE_IMM_BYTE,       /* 43 looks like  ASM_ADDR_MODE_IMMEDIATE */
-    ASM_ADDR_MODE_IMM_WORD,       /* 44 looks like  ASM_ADDR_MODE_IMMEDIATE_16 */
-    ASM_ADDR_MODE_DIRECT,         /* 45 looks like  ASM_ADDR_MODE_ZERO_PAGE */
-    ASM_ADDR_MODE_EXTENDED,       /* 46 looks like  ASM_ADDR_MODE_ABSOLUTE */
-    ASM_ADDR_MODE_INDEXED,        /* 47 post-byte determines sub-mode */
-    ASM_ADDR_MODE_REL_BYTE,       /* 48 */
-    ASM_ADDR_MODE_REL_WORD,       /* 48 */
-    ASM_ADDR_MODE_REG_POST,       /* 50 */
-    ASM_ADDR_MODE_SYS_POST,       /* 51 */
-    ASM_ADDR_MODE_USR_POST,       /* 52 */
+    ASM_ADDR_MODE_ILLEGAL,        /* 63 */                                          /* 6809 */
+    ASM_ADDR_MODE_IMM_BYTE,       /* 64 looks like  ASM_ADDR_MODE_IMMEDIATE */      /* 6809 */
+    ASM_ADDR_MODE_IMM_WORD,       /* 65 looks like  ASM_ADDR_MODE_IMMEDIATE_16 */   /* 6809 */
+    ASM_ADDR_MODE_DIRECT,         /* 66 looks like  ASM_ADDR_MODE_ZERO_PAGE */      /* 6809 */
+    ASM_ADDR_MODE_EXTENDED,       /* 67 looks like  ASM_ADDR_MODE_ABSOLUTE */       /* 6809 */
+    ASM_ADDR_MODE_INDEXED,        /* 68 post-byte determines sub-mode */            /* 6809, 65816 */
+    ASM_ADDR_MODE_REL_BYTE,       /* 69 */                                          /* 6809 */
+    ASM_ADDR_MODE_REL_WORD,       /* 70 */                                          /* 6809 */
+    ASM_ADDR_MODE_REG_POST,       /* 71 */                                          /* 6809 */
+    ASM_ADDR_MODE_SYS_POST,       /* 72 */                                          /* 6809 */
+    ASM_ADDR_MODE_USR_POST,       /* 73 */                                          /* 6809 */
     /* more modes needed for FULL 6809 */
-    ASM_ADDR_MODE_F6809_INDEXED,  /* 53 post-byte determines sub-mode (FULL 6809) */
+    ASM_ADDR_MODE_F6809_INDEXED,  /* 74 post-byte determines sub-mode (FULL 6809) */
     /* more modes needed for 6309 */
-    ASM_ADDR_MODE_IM_DIRECT,      /* 54 #$xx,<$xx */
-    ASM_ADDR_MODE_IM_EXTENDED,    /* 55 #$xx,$xxxx */
-    ASM_ADDR_MODE_IM_INDEXED,     /* 56 #$xx,sub-mode */
-    ASM_ADDR_MODE_BITWISE,        /* 57 R,x,x,<$xx */
-    ASM_ADDR_MODE_TFM_PP,         /* 58 R+,R+ */
-    ASM_ADDR_MODE_TFM_MM,         /* 59 R-,R- */
-    ASM_ADDR_MODE_TFM_PC,         /* 60 R+,R */
-    ASM_ADDR_MODE_TFM_CP,         /* 61 R,R+ */
-    ASM_ADDR_MODE_IMM_DWORD,      /* 62 #$xxxxxxxx */
-    ASM_ADDR_MODE_H6309_INDEXED,  /* 63 post-byte determines sub-mode (6309 indexed) */
-    ASM_ADDR_MODE_H6309_REG_POST  /* 64 (6309 post) */
+    ASM_ADDR_MODE_IM_DIRECT,      /* 75 #$xx,<$xx */
+    ASM_ADDR_MODE_IM_EXTENDED,    /* 76 #$xx,$xxxx */
+    ASM_ADDR_MODE_IM_INDEXED,     /* 77 #$xx,sub-mode */
+    ASM_ADDR_MODE_BITWISE,        /* 78 R,x,x,<$xx */
+    ASM_ADDR_MODE_TFM_PP,         /* 79 R+,R+ */
+    ASM_ADDR_MODE_TFM_MM,         /* 80 R-,R- */
+    ASM_ADDR_MODE_TFM_PC,         /* 81 R+,R */
+    ASM_ADDR_MODE_TFM_CP,         /* 82 R,R+ */
+    ASM_ADDR_MODE_IMM_DWORD,      /* 83 #$xxxxxxxx */
+    ASM_ADDR_MODE_H6309_INDEXED,  /* 84 post-byte determines sub-mode (6309 indexed) */
+    ASM_ADDR_MODE_H6309_REG_POST, /* 85 (6309 post) */
+    /* flag to tag undocumented opcodes, so we can ignore them in the assembler and tag them in the disassembler */
+    ASM_ADDR_MODE_UNDOC = 0x1000
 };
 typedef enum asm_addr_mode asm_addr_mode_t;
 

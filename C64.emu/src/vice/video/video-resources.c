@@ -52,34 +52,8 @@
 /*-----------------------------------------------------------------------*/
 /* global resources.  */
 
-#ifdef HAVE_HWSCALE
-static int hwscale_possible;
-
-static int set_hwscale_possible(int val, void *param)
-{
-    hwscale_possible = val ? 1 : 0;
-
-    return 0;
-}
-
-static resource_int_t resources_hwscale_possible[] =
-{
-    { "HwScalePossible", 1, RES_EVENT_NO, NULL,
-      &hwscale_possible, set_hwscale_possible, NULL },
-    RESOURCE_INT_LIST_END
-};
-#endif
-
 int video_resources_init(void)
 {
-#ifdef HAVE_HWSCALE
-    if (machine_class != VICE_MACHINE_VSID) {
-        if (resources_register_int(resources_hwscale_possible) < 0) {
-            return -1;
-        }
-    }
-#endif
-
     return video_arch_resources_init();
 }
 
@@ -178,36 +152,6 @@ static resource_int_t resources_chip_scan[] =
 {
     { NULL, 1, RES_EVENT_NO, NULL,
       NULL, set_double_scan_enabled, NULL },
-    RESOURCE_INT_LIST_END
-};
-
-static int set_hwscale_enabled(int val, void *param)
-{
-    video_canvas_t *canvas = (video_canvas_t *)param;
-
-#ifdef HAVE_HWSCALE
-    if (val
-        && !canvas->videoconfig->hwscale
-        && !hwscale_possible)
-#endif
-    {
-        log_message(LOG_DEFAULT, "HW scale not available, forcing to disabled");
-        return 0;
-    }
-
-    canvas->videoconfig->hwscale = val ? 1 : 0;
-    canvas->videoconfig->color_tables.updated = 0;
-
-    video_viewport_resize(canvas, 1);
-    
-    return 0;
-}
-
-static const char * const vname_chip_hwscale[] = { "HwScale", NULL };
-
-static resource_int_t resources_chip_hwscale[] =
-{
-    { NULL, 1, RES_EVENT_NO, NULL, NULL, set_hwscale_enabled, NULL },
     RESOURCE_INT_LIST_END
 };
 
@@ -684,23 +628,6 @@ int video_resources_chip_init(const char *chipname,
             lib_free(resources_chip_scan[0].name);
         } else {
             set_double_scan_enabled(0, (void *)*canvas);
-        }
-    }
-
-    if (video_chip_cap->hwscale_allowed != 0) {
-        if (machine_class != VICE_MACHINE_VSID) {
-            resources_chip_hwscale[0].name
-                = util_concat(chipname, vname_chip_hwscale[0], NULL);
-            resources_chip_hwscale[0].value_ptr
-                = &((*canvas)->videoconfig->hwscale);
-            resources_chip_hwscale[0].param = (void *)*canvas;
-            if (resources_register_int(resources_chip_hwscale) < 0) {
-                return -1;
-            }
-
-            lib_free(resources_chip_hwscale[0].name);
-        } else {
-            set_hwscale_enabled(0, (void *)*canvas);
         }
     }
 

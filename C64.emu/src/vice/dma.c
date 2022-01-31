@@ -36,7 +36,7 @@
 
 /* Asynchronously steal `num' cycles from the CPU, starting from cycle
    `start_clk'.  */
-void dma_maincpu_steal_cycles(CLOCK start_clk, int num, CLOCK sub)
+void dma_maincpu_steal_cycles(CLOCK start_clk, CLOCK num, CLOCK sub)
 {
     CLOCK irq_sub = 0;
     CLOCK nmi_sub = 0;
@@ -58,7 +58,7 @@ void dma_maincpu_steal_cycles(CLOCK start_clk, int num, CLOCK sub)
 
 #ifdef DEBUG
     if (debug.maincpu_traceflg) {
-        log_debug("START %u NUM %i SUB %u MAIN %u DMAST %u",
+        log_debug("START %"PRIu64" NUM %"PRIu64" SUB %"PRIu64" MAIN %"PRIu64" DMAST %"PRIu64,
                   start_clk, num, sub, maincpu_clk, dma_start);
     }
 #endif

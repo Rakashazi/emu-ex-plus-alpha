@@ -107,7 +107,7 @@ static int westermann_dump(void)
 
 void westermann_config_init(void)
 {
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
     westermann_a000 = 1;
 }
 
@@ -115,7 +115,7 @@ void westermann_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     memcpy(romh_banks, &rawcart[0x2000], 0x2000);
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
     westermann_a000 = 1;
 }
 

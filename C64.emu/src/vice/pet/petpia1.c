@@ -126,23 +126,42 @@ static int tape1_sense = 0;
 static int tape1_write_in = 0;
 static int tape1_motor_in = 0;
 
+static int tape2_sense = 0;
+static int tape2_write_in = 0;
+static int tape2_motor_in = 0;
+
 static int old_cb2_status = 0xff;
 
-void pia1_set_tape_sense(int v)
+void pia1_set_tape1_sense(int v)
 {
     tape1_sense = v;
 }
 
+void pia1_set_tape2_sense(int v)
+{
+    tape2_sense = v;
+}
+
 /* FIXME: find out how the pet can read the write and motor lines */
 
-void pia1_set_tape_write_in(int v)
+void pia1_set_tape1_write_in(int v)
 {
     tape1_write_in = v;
 }
 
-void pia1_set_tape_motor_in(int v)
+void pia1_set_tape2_write_in(int v)
+{
+    tape2_write_in = v;
+}
+
+void pia1_set_tape1_motor_in(int v)
 {
     tape1_motor_in = v;
+}
+
+void pia1_set_tape2_motor_in(int v)
+{
+    tape2_motor_in = v;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -159,7 +178,7 @@ static void pia_set_ca2(int a)
 static void pia_set_cb2(int a)
 {
     if (old_cb2_status != a) {
-        tapeport_set_motor(!a);
+        tapeport_set_motor(TAPEPORT_PORT_1, !a);
         old_cb2_status = a;
     }
 }
@@ -201,7 +220,8 @@ E813    CB2         output to cassette #1 motor: 0=on, 1=off
 
 static void store_pa(uint8_t byte)
 {
-    tapeport_set_sense_out(byte & 16 ? 1 : 0);
+    tapeport_set_sense_out(TAPEPORT_PORT_1, byte & 16 ? 1 : 0);
+    tapeport_set_sense_out(TAPEPORT_PORT_2, byte & 32 ? 1 : 0);
 }
 
 static void store_pb(uint8_t byte)
@@ -224,6 +244,7 @@ static uint8_t read_pa(void)
 
     byte = 0xff
            - (tape1_sense ? 16 : 0)
+           - (tape2_sense ? 32 : 0)
            - (parallel_eoi ? 64 : 0)
            - ((diagnostic_pin_enabled || petmem_superpet_diag()) ? 128 : 0);
     byte = ((byte & ~mypia.ddr_a) | (mypia.port_a & mypia.ddr_a));

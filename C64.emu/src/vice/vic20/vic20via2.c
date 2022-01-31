@@ -47,10 +47,6 @@
 #include "vic20iec.h"
 #include "vic20via.h"
 
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-#include "rsuser.h"
-#endif
-
 int vic20_vflihack_userport = 0xff;
 
 void via2_store(uint16_t addr, uint8_t data)
@@ -138,12 +134,12 @@ static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t myoldpa,
     joy_bits = ((byte & 0x20) >> 1) | ((byte & 0x1c) >> 2);
     store_joyport_dig(JOYPORT_1, joy_bits, 0x17);
 
-    tapeport_set_sense_out(byte & 0x40 ? 1 : 0);
+    tapeport_set_sense_out(TAPEPORT_PORT_1, byte & 0x40 ? 1 : 0);
 }
 
 static void undump_prb(via_context_t *via_context, uint8_t byte)
 {
-    store_userport_pbx(byte);
+    store_userport_pbx(byte, USERPORT_NO_PULSE);
 }
 
 static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t myoldpb,
@@ -152,11 +148,7 @@ static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t myoldpb,
     /* for mike's VFLI hack, PB0-PB3 are used as A10-A13 of the color ram */
     vic20_vflihack_userport = byte & 0x0f;
 
-    store_userport_pbx(byte);
-
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    rsuser_write_ctrl(byte);
-#endif
+    store_userport_pbx(byte, USERPORT_NO_PULSE);
 }
 
 static void undump_pcr(via_context_t *via_context, uint8_t byte)
@@ -165,13 +157,8 @@ static void undump_pcr(via_context_t *via_context, uint8_t byte)
 
 static void reset(via_context_t *via_context)
 {
-    store_userport_pbx(0xff);
+    store_userport_pbx(0xff, USERPORT_NO_PULSE);
     store_userport_pa2(1);
-
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    rsuser_write_ctrl(0xff);
-    rsuser_set_tx_bit(1);
-#endif
 }
 
 static uint8_t store_pcr(via_context_t *via_context, uint8_t byte, uint16_t addr)
@@ -187,14 +174,8 @@ static uint8_t store_pcr(via_context_t *via_context, uint8_t byte, uint16_t addr
             tmp |= 0x20;
         }
 
-        tapeport_set_motor(!(byte & 0x02));
+        tapeport_set_motor(TAPEPORT_PORT_1, !(byte & 0x02));
 
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-        /* switching userport strobe with CB2 */
-        if (rsuser_enabled) {
-            rsuser_set_tx_bit(byte & 0x20);
-        }
-#endif
         store_userport_pa2((uint8_t)((byte & 0x20) >> 5));
     }
     return byte;
@@ -255,14 +236,7 @@ inline static uint8_t read_prb(via_context_t *via_context)
     uint8_t byte = 0xff;
     byte = via_context->via[VIA_PRB] | ~(via_context->via[VIA_DDRB]);
 
-    byte = read_userport_pbx((uint8_t)~via_context->via[VIA_DDRB], byte);
-
-    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    if (rsuser_enabled) {
-        byte = rsuser_read_ctrl(byte);
-    }
-#endif
+    byte = read_userport_pbx(byte);
 
     return byte;
 }
@@ -270,7 +244,7 @@ inline static uint8_t read_prb(via_context_t *via_context)
 void via2_init(via_context_t *via_context)
 {
     viacore_init(machine_context.via2, maincpu_alarm_context,
-                 maincpu_int_status, maincpu_clk_guard);
+                 maincpu_int_status);
 }
 
 void vic20via2_setup_context(machine_context_t *machinecontext)

@@ -475,7 +475,7 @@ static const cmdline_option_t cmdline_options[] =
 
 /* ------------------------------------------------------------------------- */
 
-static mouse_func_t mouse_funcs =
+static const mouse_func_t mouse_funcs =
 {
     mouse_button_left,    
     mouse_button_right,

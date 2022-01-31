@@ -65,7 +65,7 @@
 #define TCRT_MAGIC_LEN  13
 
 
-static char idstring[] = "TAPECART V1.0 W25QFLASH";
+static const char idstring[] = "TAPECART V1.0 W25QFLASH";
 
 
 static int tapecart_enabled       = 0;
@@ -93,12 +93,13 @@ typedef clock_t (*wait_handler_t)(void);
 
 /* a few forward declarations */
 static void    tapecart_shutdown(void);
-static void    tapecart_store_motor(int state);
-static void    tapecart_store_write(int state);
-static void    tapecart_store_sense(int state);
+static void    tapecart_store_motor(int port, int state);
+static void    tapecart_store_write(int port, int state);
+static void    tapecart_store_sense(int port, int state);
+static int     tapecart_enable(int port, int val);
 
-static int     tapecart_write_snapshot(struct snapshot_s *s, int write_image);
-static int     tapecart_read_snapshot(struct snapshot_s *s);
+static int     tapecart_write_snapshot(int port, struct snapshot_s *s, int write_image);
+static int     tapecart_read_snapshot(int port, struct snapshot_s *s);
 
 static void    tapecart_pulse_alarm_handler(CLOCK offset, void *unused);
 static void    tapecart_logic_alarm_handler(CLOCK offset, void *unused);
@@ -110,30 +111,23 @@ static clock_t cmdmode_receive_command(void);
 static int     load_tcrt(const char *filename, tapecart_memory_t *tcmem);
 static void    update_tcrt(void);
 
+#define VICE_MACHINE_MASK (VICE_MACHINE_C64|VICE_MACHINE_C64SC|VICE_MACHINE_C128)
+
 static tapeport_device_t tapecart_device = {
-    TAPEPORT_DEVICE_TAPECART, /* device id */
-    "tapecart",               /* device name */
-    0,                        /* order of the device, filled in by the tapeport system when the device is attached */
-    "TapecartEnabled",        /* resource used by the device */
-    tapecart_shutdown,        /* device shutdown function */
-    NULL,                     /* NO device specific reset function */
-    tapecart_store_motor,     /* set motor line function */
-    tapecart_store_write,     /* set write line function */
-    tapecart_store_sense,     /* set sense line function */
-    NULL,                     /* NO set read line function */
-    NULL,                     /* NO passthrough flux change function */
-    NULL,                     /* NO passthrough sense read function */
-    NULL,                     /* NO passthrough write line function */
-    NULL                      /* NO passthrough motor line function */
+    "tapecart",                   /* device name */
+    TAPEPORT_DEVICE_TYPE_STORAGE, /* device is a 'storage' type device */
+    VICE_MACHINE_MASK,            /* device works on x64/x64sc/x128 machines */
+    TAPEPORT_PORT_1_MASK,         /* device only works on port 1 */
+    tapecart_enable,              /* device enable function */
+    NULL,                         /* NO device specific hard reset function */
+    tapecart_shutdown,            /* device shutdown function */
+    tapecart_store_motor,         /* set motor line function */
+    tapecart_store_write,         /* set write line function */
+    tapecart_store_sense,         /* set sense line function */
+    NULL,                         /* NO set read line function */
+    tapecart_write_snapshot,      /* device snapshot write function */
+    tapecart_read_snapshot        /* device snapshot read function */
 };
-
-static tapeport_snapshot_t tapecart_snapshot = {
-    TAPEPORT_DEVICE_TAPECART,
-    tapecart_write_snapshot,
-    tapecart_read_snapshot
-};
-
-static tapeport_device_list_t *tapecart_list_item;
 
 static alarm_t *tapecart_logic_alarm;
 static alarm_t *tapecart_pulse_alarm;
@@ -311,12 +305,12 @@ static wait_handler_t      alarm_trigger_callback;
 /* workaround for inverted tapeport functions to keep my sanity */
 static void set_sense(int value)
 {
-    tapeport_set_tape_sense(!value, tapecart_device.id);
+    tapeport_set_tape_sense(!value, TAPEPORT_PORT_1);
 }
 
 static void set_write(int value)
 {
-    tapeport_set_write_in(!value, tapecart_device.id);
+    tapeport_set_write_in(!value, TAPEPORT_PORT_1);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -329,7 +323,7 @@ static void clear_memory(tapecart_memory_t *memory)
     memory->changed = 0;
 }
 
-static int set_tapecart_enabled(int value, void *unused_param)
+static int tapecart_enable(int port, int value)
 {
     int val = !!value;
 
@@ -339,11 +333,6 @@ static int set_tapecart_enabled(int value, void *unused_param)
     }
 
     if (val) {
-        tapecart_list_item = tapeport_device_register(&tapecart_device);
-        if (tapecart_list_item == NULL) {
-            return -1;
-        }
-
         /* allocate the tapecart's internal memory */
         tapecart_memory = lib_malloc(sizeof(tapecart_memory_t));
         if (tapecart_memory == NULL) {
@@ -391,9 +380,6 @@ static int set_tapecart_enabled(int value, void *unused_param)
 
         set_sense(1);
 
-        tapeport_device_unregister(tapecart_list_item);
-        tapecart_list_item = NULL;
-
         lib_free(tapecart_memory);
         tapecart_memory = NULL;
 
@@ -428,8 +414,6 @@ static int set_tapecart_loglevel(int value, void *unused_param)
 }
 
 static const resource_int_t resources_int[] = {
-    { "TapecartEnabled", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      &tapecart_enabled, set_tapecart_enabled, NULL },
     { "TapecartUpdateTCRT", 1, RES_EVENT_STRICT, (resource_value_t)0,
       &tapecart_update_tcrt, set_tapecart_update_tcrt, NULL },
     { "TapecartOptimizeTCRT", 1, RES_EVENT_STRICT, (resource_value_t)0,
@@ -445,9 +429,11 @@ static const resource_string_t resources_string[] = {
     RESOURCE_STRING_LIST_END
 };
 
-int tapecart_resources_init(void)
+int tapecart_resources_init(int amount)
 {
-    tapeport_snapshot_register(&tapecart_snapshot);
+    if (tapeport_device_register(TAPEPORT_DEVICE_TAPECART, &tapecart_device) < 0) {
+        return -1;
+    }
 
     if (resources_register_int(resources_int) < 0) {
         return -1;
@@ -458,12 +444,6 @@ int tapecart_resources_init(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-tapecart", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "TapecartEnabled", (resource_value_t)1,
-      NULL, "Enable tapecart" },
-    { "+tapecart", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "TapecartEnabled", (resource_value_t)0,
-      NULL, "Disable tapecart" },
     { "-tcrt", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "TapecartTCRTFilename", NULL,
       "<Name>", "Attach TCRT tapecart image" },
@@ -1329,7 +1309,7 @@ static clock_t cmdmode_dispatch_command(void)
 
         case CMD_READ_DEVICEINFO:
             transmit_1bit(0, (uint8_t *)idstring,
-                          (unsigned int)(strlen(idstring) + 1U),
+                          (unsigned int)(sizeof(idstring)),
                           cmdmode_receive_command);
             break;
 
@@ -1447,7 +1427,7 @@ static clock_t cmdmode_send_pulses(void)
     wait_for_signal = WAIT_WRITE_LOW;
 
     alarm_trigger_callback = cmdmode_send_pulses;
-    tapeport_trigger_flux_change(1, tapecart_device.id);
+    tapeport_trigger_flux_change(1, TAPEPORT_PORT_1);
 
     return CBMPULSE_SHORT * PULSE_CYCLES;
 }
@@ -1525,7 +1505,7 @@ static void tapecart_pulse_alarm_handler(CLOCK offset, void *data)
             alarm_set(tapecart_logic_alarm,
                       (CLOCK)(maincpu_clk + machine_get_cycles_per_second() / 1000));
         } else {
-            tapeport_trigger_flux_change(1, tapecart_device.id);
+            tapeport_trigger_flux_change(1, TAPEPORT_PORT_1);
             alarm_set(tapecart_pulse_alarm, maincpu_clk + pulselen - offset);
         }
     } /* no alarm needed if motor was turned off */
@@ -1605,7 +1585,7 @@ static void tapecart_shutdown(void)
     update_tcrt();
 }
 
-static void tapecart_store_motor(int state)
+static void tapecart_store_motor(int port, int state)
 {
     /* called by VICE with the inverted state of the processor port bit, */
     /* which is the physical state of the line */
@@ -1657,7 +1637,7 @@ static void tapecart_store_motor(int state)
     }
 }
 
-static void tapecart_store_write(int state)
+static void tapecart_store_write(int port, int state)
 {
     /* called by VICE with the actual state of the processor port bit */
     clock_t delta_ticks;
@@ -1675,7 +1655,7 @@ static void tapecart_store_write(int state)
     }
 }
 
-static void tapecart_store_sense(int inv_state)
+static void tapecart_store_sense(int port, int inv_state)
 {
     /* called by VICE with the INVERTED state of the processor port bit */
     int state = !inv_state;
@@ -1966,7 +1946,7 @@ void tapecart_exit(void)
 /*  snapshots                                                           */
 /* ---------------------------------------------------------------------*/
 
-static int tapecart_write_snapshot(struct snapshot_s *s, int write_image)
+static int tapecart_write_snapshot(int port, struct snapshot_s *s, int write_image)
 {
     /* FIXME: Implement */
     log_error(tapecart_log,
@@ -1975,10 +1955,8 @@ static int tapecart_write_snapshot(struct snapshot_s *s, int write_image)
     return 0; /* should be -1 */
 }
 
-static int tapecart_read_snapshot(struct snapshot_s *s)
+static int tapecart_read_snapshot(int port, struct snapshot_s *s)
 {
-    /* enable device */
-    set_tapecart_enabled(1, NULL);
     /* FIXME: Implement */
     log_error(tapecart_log,
               "restoring tapecart from snapshot not implemented yet");

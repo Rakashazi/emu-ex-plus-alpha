@@ -43,6 +43,7 @@ struct cbmdos_cmd_parse_s;
 struct disk_image_s;
 struct trap_s;
 struct vdrive_s;
+struct snapshot_s;
 
 typedef struct serial_s {
     int inuse;
@@ -70,9 +71,9 @@ typedef struct serial_s {
     int lastst[16];
 } serial_t;
 
-#define ISOPEN_CLOSED		0
-#define ISOPEN_AWAITING_NAME	1
-#define ISOPEN_OPEN		2
+#define ISOPEN_CLOSED           0
+#define ISOPEN_AWAITING_NAME    1
+#define ISOPEN_OPEN             2
 
 extern int serial_init(const struct trap_s *trap_list);
 extern int serial_resources_init(void);
@@ -89,7 +90,7 @@ extern int serial_trap_ready(void);
 extern void serial_traps_reset(void);
 extern void serial_trap_eof_callback_set(void (*func)(void));
 extern void serial_trap_attention_callback_set(void (*func)(void));
-extern void serial_trap_truedrive_set(unsigned int flag);
+extern void serial_trap_truedrive_set(unsigned int unit, unsigned int flag);
 
 extern int serial_realdevice_enable(void);
 extern void serial_realdevice_disable(void);
@@ -110,4 +111,7 @@ extern void serial_iec_device_exec(CLOCK clk_value);
 
 extern void serial_iec_bus_init(void);
 
+extern void fsdrive_snapshot_prepare(void);
+extern int fsdrive_snapshot_write_module(struct snapshot_s *s);
+extern int fsdrive_snapshot_read_module(struct snapshot_s *s);
 #endif

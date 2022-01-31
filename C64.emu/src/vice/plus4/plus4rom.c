@@ -31,6 +31,7 @@
 #include <string.h>
 
 #include "log.h"
+#include "machine.h"
 #include "mem.h"
 #include "plus4mem.h"
 #include "plus4memrom.h"
@@ -46,31 +47,56 @@ static log_t plus4rom_log = LOG_ERR;
 /* Flag: nonzero if the Kernal and BASIC ROMs have been loaded.  */
 int plus4_rom_loaded = 0;
 
+#define NUM_TRAP_DEVICES 9  /* FIXME: is there a better constant ? */
+static int trapfl[NUM_TRAP_DEVICES];
+static int trapdevices[NUM_TRAP_DEVICES + 1] = { 1, 4, 5, 6, 7, 8, 9, 10, 11, -1 };
+
+static void get_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_get_int_sprintf("VirtualDevice%d", &trapfl[i], trapdevices[i]);
+    }
+}
+
+static void clear_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_set_int_sprintf("VirtualDevice%d", 0, trapdevices[i]);
+    }
+}
+
+static void restore_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_set_int_sprintf("VirtualDevice%d", trapfl[i], trapdevices[i]);
+    }
+}
 
 int plus4rom_load_kernal(const char *rom_name)
 {
-    int trapfl;
-
     if (!plus4_rom_loaded) {
         return 0;
     }
 
     /* disable traps before loading the ROM */
-    resources_get_int("VirtualDevices", &trapfl);
-    resources_set_int("VirtualDevices", 0);
+    get_trapflags();
+    clear_trapflags();
 
     /* Load Kernal ROM.  */
-    if (sysfile_load(rom_name, plus4memrom_kernal_rom,
+    if (sysfile_load(rom_name, machine_name, plus4memrom_kernal_rom,
                      PLUS4_KERNAL_ROM_SIZE, PLUS4_KERNAL_ROM_SIZE) < 0) {
         log_error(plus4rom_log, "Couldn't load kernal ROM `%s'.",
                   rom_name);
-        resources_set_int("VirtualDevices", trapfl);
+        restore_trapflags();
         return -1;
     }
     memcpy(plus4memrom_kernal_trap_rom, plus4memrom_kernal_rom,
            PLUS4_KERNAL_ROM_SIZE);
 
-    resources_set_int("VirtualDevices", trapfl);
+    restore_trapflags();
 
     return 0;
 }
@@ -82,7 +108,7 @@ int plus4rom_load_basic(const char *rom_name)
     }
 
     /* Load Basic ROM.  */
-    if (sysfile_load(rom_name, plus4memrom_basic_rom,
+    if (sysfile_load(rom_name, machine_name, plus4memrom_basic_rom,
                      PLUS4_BASIC_ROM_SIZE, PLUS4_BASIC_ROM_SIZE) < 0) {
         log_error(plus4rom_log,
                   "Couldn't load basic ROM `%s'.",
@@ -129,7 +155,7 @@ int mem_load(void)
     if (plus4cart_load_func_hi(rom_name) < 0) {
         return -1;
     }
-
+#if 0
     if (resources_get_string("c1loName", &rom_name) < 0) {
         return -1;
     }
@@ -143,7 +169,7 @@ int mem_load(void)
     if (plus4cart_load_c1hi(rom_name) < 0) {
         return -1;
     }
-
+#endif
     if (resources_get_string("c2loName", &rom_name) < 0) {
         return -1;
     }

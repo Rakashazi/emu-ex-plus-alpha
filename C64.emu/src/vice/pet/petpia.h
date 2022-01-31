@@ -53,9 +53,12 @@ extern void pia1_signal(int line, int edge);
 extern void pia1_store(uint16_t addr, uint8_t value);
 extern uint8_t pia1_read(uint16_t addr);
 extern uint8_t pia1_peek(uint16_t addr);
-extern void pia1_set_tape_sense(int v);
-extern void pia1_set_tape_write_in(int v);
-extern void pia1_set_tape_motor_in(int v);
+extern void pia1_set_tape1_sense(int v);
+extern void pia1_set_tape2_sense(int v);
+extern void pia1_set_tape1_write_in(int v);
+extern void pia1_set_tape2_write_in(int v);
+extern void pia1_set_tape1_motor_in(int v);
+extern void pia1_set_tape2_motor_in(int v);
 
 extern int pia1_snapshot_read_module(struct snapshot_s *);
 extern int pia1_snapshot_write_module(struct snapshot_s *);

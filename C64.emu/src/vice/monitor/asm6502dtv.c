@@ -39,6 +39,7 @@
 #include "types.h"
 
 static const int addr_mode_size[] = {
+    /* 6502 */
     1, /* ASM_ADDR_MODE_IMPLIED */
     1, /* ASM_ADDR_MODE_ACCUMULATOR */
     2, /* ASM_ADDR_MODE_IMMEDIATE */
@@ -328,13 +329,14 @@ static const asm_opcode_info_t opcode_list[] = {
     /* ff */ { "ISB",   ASM_ADDR_MODE_ABSOLUTE_X }
 };
 
-static const asm_opcode_info_t *asm_opcode_info_get(unsigned int p0, unsigned int p1, unsigned int p2)
+static const asm_opcode_info_t *asm_opcode_info_get(unsigned int p0, unsigned int p1,
+                                                    unsigned int p2, unsigned int p3)
 {
     return opcode_list + p0;
 }
 
 static unsigned int asm_addr_mode_get_size(unsigned int mode, unsigned int p0,
-                                           unsigned int p1, unsigned int p2)
+                                           unsigned int p1, unsigned int p2, unsigned int p3)
 {
     return addr_mode_size[mode];
 }

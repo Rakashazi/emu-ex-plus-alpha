@@ -46,10 +46,6 @@
 #include "types.h"
 #include "vicii.h"
 
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-#include "rsuser.h"
-#endif
-
 #include "c64dtv-resources.h"
 #include "hummeradc.h"
 
@@ -123,6 +119,7 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t b)
             vicii_trigger_light_pen(maincpu_clk);
         }
     }
+    store_joyport_dig(JOYPORT_2, b, 0xff);
 }
 
 static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t b)
@@ -135,6 +132,7 @@ static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
     if ((byte ^ 0x10) & cia_context->old_pb & 0x10) {
         vicii_trigger_light_pen(rclk);
     }
+    store_joyport_dig(JOYPORT_1, byte, 0xff);
 }
 
 static void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
@@ -170,6 +168,7 @@ static uint8_t read_ciapb(cia_context_t *cia_context)
     uint8_t msk;
     uint8_t m;
     int i;
+    uint16_t joyport_3_joystick_value;
 
     msk = cia_context->old_pa & read_joyport_dig(JOYPORT_2);
 
@@ -180,7 +179,8 @@ static uint8_t read_ciapb(cia_context_t *cia_context)
     }
 
     if (c64dtv_hummer_adc_enabled && (!(msk & 1))) {
-        val &= ~(joystick_value[3] & 3);
+        joyport_3_joystick_value = get_joystick_value(JOYPORT_3);
+        val &= ~((uint8_t)joyport_3_joystick_value & 3);
     }
 
     byte = (val & (cia_context->c_cia[CIA_PRB]
@@ -199,11 +199,6 @@ static void read_sdr(cia_context_t *cia_context)
 
 static void store_sdr(cia_context_t *cia_context, uint8_t byte)
 {
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    if (rsuser_enabled) {
-        rsuser_tx_byte(byte);
-    }
-#endif
 }
 
 /* dummy function for c64keyboard.c */
@@ -214,7 +209,7 @@ void cia1_check_lightpen(void)
 void cia1_init(cia_context_t *cia_context)
 {
     ciacore_init(machine_context.cia1, maincpu_alarm_context,
-                 maincpu_int_status, maincpu_clk_guard);
+                 maincpu_int_status);
 }
 
 void cia1_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)

@@ -39,8 +39,10 @@
 #include "cmdline.h"
 #include "export.h"
 #include "lib.h"
+#include "log.h"
 #include "mem.h"
 #include "monitor.h"
+#include "ram.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "types.h"
@@ -75,10 +77,12 @@
 /* #define DBGDQBB */
 
 #ifdef DBGDQBB
-#define DBG(x) printf x
+#define DBG(x) log_debug x
 #else
 #define DBG(x)
 #endif
+
+static log_t dqbb_log = LOG_DEFAULT; /*!< the log output for the dqbb_log */
 
 /* DQBB register bits */
 static int dqbb_a000_mapped;
@@ -180,10 +184,43 @@ static int dqbb_dump(void)
 
 /* ------------------------------------------------------------------------- */
 
+/* FIXME: this still needs to be tweaked to match the hardware */
+static RAMINITPARAM ramparam = {
+    .start_value = 255,
+    .value_invert = 2,
+    .value_offset = 1,
+
+    .pattern_invert = 0x100,
+    .pattern_invert_value = 255,
+
+    .random_start = 0,
+    .random_repeat = 0,
+    .random_chance = 0,
+};
+
+void dqbb_powerup(void)
+{
+    DBG(("dqbb_powerup"));
+    if ((dqbb_filename != NULL) && (*dqbb_filename != 0)) {
+        /* do not init ram if a file is used for ram content (like battery backup) */
+        return;
+    }
+    if (dqbb_ram) {
+        DBG(("dqbb_powerup ram clear"));
+        ram_init_with_pattern(dqbb_ram, DQBB_RAM_SIZE, &ramparam);
+    }
+}
+
 static int dqbb_activate(void)
 {
+    DBG(("dqbb_activate"));
     lib_free(dqbb_ram);
     dqbb_ram = lib_malloc(DQBB_RAM_SIZE);
+    ram_init_with_pattern(dqbb_ram, DQBB_RAM_SIZE, &ramparam);
+
+    if (dqbb_log == LOG_DEFAULT) {
+        dqbb_log = log_open("DQBB");
+    }
 
     if (!util_check_null_string(dqbb_filename)) {
         if (util_file_load(dqbb_filename, dqbb_ram, DQBB_RAM_SIZE, UTIL_FILE_LOAD_RAW) < 0) {
@@ -192,7 +229,10 @@ static int dqbb_activate(void)
                 if (util_file_save(dqbb_filename, dqbb_ram, DQBB_RAM_SIZE) < 0) {
                     return -1;
                 }
+                log_message(dqbb_log, "created '%s'", dqbb_filename);
             }
+        } else {
+            log_message(dqbb_log, "loaded '%s'", dqbb_filename);
         }
     }
     return 0;

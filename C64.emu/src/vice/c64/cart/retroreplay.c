@@ -47,6 +47,7 @@
 #include "lib.h"
 #include "maincpu.h"
 #include "monitor.h"
+#include "ram.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "types.h"
@@ -85,6 +86,8 @@
 #else
 #define DBG(x)
 #endif
+
+#define CART_RAM_SIZE (32 * 1024)
 
 /* Cart is activated.  */
 static int rr_active = 0;
@@ -748,6 +751,25 @@ static int retroreplay_dump(void)
 }
 
 /* ---------------------------------------------------------------------*/
+
+/* FIXME: this still needs to be tweaked to match the hardware */
+static RAMINITPARAM ramparam = {
+    .start_value = 255,
+    .value_invert = 2,
+    .value_offset = 1,
+
+    .pattern_invert = 0x100,
+    .pattern_invert_value = 255,
+
+    .random_start = 0,
+    .random_repeat = 0,
+    .random_chance = 0,
+};
+
+void retroreplay_powerup(void)
+{
+    ram_init_with_pattern(export_ram0, CART_RAM_SIZE, &ramparam);
+}
 
 void retroreplay_freeze(void)
 {

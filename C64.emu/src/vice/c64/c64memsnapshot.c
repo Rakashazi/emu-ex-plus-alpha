@@ -92,11 +92,38 @@ static int c64_snapshot_write_rom_module(snapshot_t *s)
     return snapshot_module_close(m);
 }
 
+#define NUM_TRAP_DEVICES 9  /* FIXME: is there a better constant ? */
+static int trapfl[NUM_TRAP_DEVICES];
+static int trapdevices[NUM_TRAP_DEVICES + 1] = { 1, 4, 5, 6, 7, 8, 9, 10, 11, -1 };
+
+static void get_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_get_int_sprintf("VirtualDevice%d", &trapfl[i], trapdevices[i]);
+    }
+}
+
+static void clear_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_set_int_sprintf("VirtualDevice%d", 0, trapdevices[i]);
+    }
+}
+
+static void restore_trapflags(void)
+{
+    int i;
+    for(i = 0; trapdevices[i] != -1; i++) {
+        resources_set_int_sprintf("VirtualDevice%d", trapfl[i], trapdevices[i]);
+    }
+}
+
 static int c64_snapshot_read_rom_module(snapshot_t *s)
 {
     uint8_t major_version, minor_version;
     snapshot_module_t *m;
-    int trapfl;
 
     /* Main memory module.  */
 
@@ -109,7 +136,7 @@ static int c64_snapshot_read_rom_module(snapshot_t *s)
     }
 
     /* get old value */
-    resources_get_int("VirtualDevices", &trapfl);
+    get_trapflags();
 
     /* Do not accept versions higher than current */
     if (snapshot_version_is_bigger(major_version, minor_version, SNAP_ROM_MAJOR, SNAP_ROM_MINOR)) {
@@ -118,7 +145,7 @@ static int c64_snapshot_read_rom_module(snapshot_t *s)
     }
 
     /* disable traps before loading the ROM */
-    resources_set_int("VirtualDevices", 0);
+    clear_trapflags();
 
     if (0
         || SMR_BA(m, c64memrom_kernal64_rom, C64_KERNAL_ROM_SIZE) < 0
@@ -128,7 +155,7 @@ static int c64_snapshot_read_rom_module(snapshot_t *s)
     }
 
     if (snapshot_module_close(m) < 0) {
-        resources_set_int("VirtualDevices", trapfl);
+        restore_trapflags();
         return -1;
     }
 
@@ -137,14 +164,14 @@ static int c64_snapshot_read_rom_module(snapshot_t *s)
     c64rom_get_basic_checksum();
 
     /* enable traps again when necessary */
-    resources_set_int("VirtualDevices", trapfl);
+    restore_trapflags();
 
     return 0;
 
 fail:
     snapshot_module_close(m);
     /* restore old value */
-    resources_set_int("VirtualDevices", trapfl);
+    restore_trapflags();
     return -1;
 }
 

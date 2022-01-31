@@ -50,6 +50,7 @@ C64/C128 | CBM2 | PET | VIC20 | NAME
 #include "rtc-58321a.h"
 #include "snapshot.h"
 #include "uiapi.h"
+#include "joyport.h"
 #include "userport.h"
 #include "userport_rtc_58321a.h"
 
@@ -66,43 +67,37 @@ static int read_line_active = 0;
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static void userport_rtc_read_pbx(void);
-static void userport_rtc_store_pbx(uint8_t value);
+static uint8_t userport_rtc_read_pbx(uint8_t orig);
+static void userport_rtc_store_pbx(uint8_t value, int pulse);
 static int userport_rtc_write_snapshot_module(snapshot_t *s);
 static int userport_rtc_read_snapshot_module(snapshot_t *s);
+static int userport_rtc_enable(int value);
 
 static userport_device_t rtc_device = {
-    USERPORT_DEVICE_RTC_58321A, /* device id */
-    "Userport RTC (RTC58321A)", /* device name */
-    userport_rtc_read_pbx,      /* read pb0-pb7 function */
-    userport_rtc_store_pbx,     /* store pb0-pb7 function */
-    NULL,                       /* NO read pa2 pin function */
-    NULL,                       /* NO store pa2 pin function */
-    NULL,                       /* NO read pa3 pin function */
-    NULL,                       /* NO store pa3 pin function */
-    0,                          /* pc pin is NOT needed */
-    NULL,                       /* NO store sp1 pin function */
-    NULL,                       /* NO read sp1 pin function */
-    NULL,                       /* NO store sp2 pin function */
-    NULL,                       /* NO read sp2 pin function */
-    "UserportRTC58321a",        /* resource used by the device */
-    0xff,                       /* return value from a read, to be filled in by the device */
-    0xff,                       /* validity mask of the device, doesn't change */
-    0,                          /* device involved in a read collision, to be filled in by the collision detection system */
-    0                           /* a tag to indicate the order of insertion */
+    "Userport RTC (RTC58321A)",         /* device name */
+    JOYSTICK_ADAPTER_ID_NONE,           /* NOT a joystick adapter */
+    USERPORT_DEVICE_TYPE_RTC,           /* device is an RTC */
+    userport_rtc_enable,                /* enable function */
+    userport_rtc_read_pbx,              /* read pb0-pb7 function */
+    userport_rtc_store_pbx,             /* store pb0-pb7 function */
+    NULL,                               /* NO read pa2 pin function */
+    NULL,                               /* NO store pa2 pin function */
+    NULL,                               /* NO read pa3 pin function */
+    NULL,                               /* NO store pa3 pin function */
+    0,                                  /* pc pin is NOT needed */
+    NULL,                               /* NO store sp1 pin function */
+    NULL,                               /* NO read sp1 pin function */
+    NULL,                               /* NO store sp2 pin function */
+    NULL,                               /* NO read sp2 pin function */
+    NULL,                               /* NO reset function */
+    NULL,                               /* NO powerup function */
+    userport_rtc_write_snapshot_module, /* snapshot write function */
+    userport_rtc_read_snapshot_module   /* snapshot read function */
 };
-
-static userport_snapshot_t rtc_snapshot = {
-    USERPORT_DEVICE_RTC_58321A,
-    userport_rtc_write_snapshot_module,
-    userport_rtc_read_snapshot_module
-};
-
-static userport_device_list_t *userport_rtc_list_item = NULL;
 
 /* ------------------------------------------------------------------------- */
 
-static int set_userport_rtc_enabled(int value, void *param)
+static int userport_rtc_enable(int value)
 {
     int val = value ? 1 : 0;
 
@@ -112,17 +107,11 @@ static int set_userport_rtc_enabled(int value, void *param)
 
     if (val) {
         rtc58321a_context = rtc58321a_init("USER");
-        userport_rtc_list_item = userport_device_register(&rtc_device);
-        if (userport_rtc_list_item == NULL) {
-            return -1;
-        }
     } else {
         if (rtc58321a_context) {
             rtc58321a_destroy(rtc58321a_context, rtc58321a_rtc_save);
             rtc58321a_context = NULL;
         }
-        userport_device_unregister(userport_rtc_list_item);
-        userport_rtc_list_item = NULL;
     }
 
     userport_rtc_58321a_enabled = val;
@@ -138,8 +127,6 @@ static int set_userport_rtc_save(int val, void *param)
 
 
 static const resource_int_t resources_int[] = {
-    { "UserportRTC58321a", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      &userport_rtc_58321a_enabled, set_userport_rtc_enabled, NULL },
     { "UserportRTC58321aSave", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &rtc58321a_rtc_save, set_userport_rtc_save, NULL },
     RESOURCE_INT_LIST_END
@@ -147,19 +134,15 @@ static const resource_int_t resources_int[] = {
 
 int userport_rtc_58321a_resources_init(void)
 {
-    userport_snapshot_register(&rtc_snapshot);
+    if (userport_device_register(USERPORT_DEVICE_RTC_58321A, &rtc_device) < 0) {
+        return -1;
+    }
 
     return resources_register_int(resources_int);
 }
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-userportrtc58321a", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "UserportRTC58321a", (resource_value_t)1,
-      NULL, "Enable Userport RTC (58321a)" },
-    { "+userportrtc58321a", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "UserportRTC58321a", (resource_value_t)0,
-      NULL, "Disable Userport RTC (58321a)" },
     { "-userportrtc58321asave", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "UserportRTC58321aSave", (resource_value_t)1,
       NULL, "Enable saving of the Userport RTC (58321a) data when changed." },
@@ -184,7 +167,7 @@ void userport_rtc_58321a_resources_shutdown(void)
 
 /* ---------------------------------------------------------------------*/
 
-static void userport_rtc_store_pbx(uint8_t value)
+static void userport_rtc_store_pbx(uint8_t value, int pulse)
 {
     if (value & 0x10) {
         rtc58321a_write_address(rtc58321a_context, (uint8_t)(value & 0xf));
@@ -199,14 +182,14 @@ static void userport_rtc_store_pbx(uint8_t value)
     }
 }
 
-static void userport_rtc_read_pbx(void)
+static uint8_t userport_rtc_read_pbx(uint8_t orig)
 {
     uint8_t retval = 0xf;
 
     if (read_line_active) {
         retval = rtc58321a_read(rtc58321a_context);
     }
-    rtc_device.retval = retval;
+    return retval;
 }
 
 /* ---------------------------------------------------------------------*/
@@ -215,12 +198,13 @@ static void userport_rtc_read_pbx(void)
 
    type  | name | description
    --------------------------
-   BYTE  | read | read line active
+   BYTE  | read    | read line active
+   BYTE  | rtcsave | save rtc offset when detaching
  */
 
-static char snap_module_name[] = "UP_RTC_58321A";
+static const char snap_module_name[] = "UP_RTC_58321A";
 #define SNAP_MAJOR   0
-#define SNAP_MINOR   0
+#define SNAP_MINOR   1
 
 static int userport_rtc_write_snapshot_module(snapshot_t *s)
 {
@@ -232,7 +216,9 @@ static int userport_rtc_write_snapshot_module(snapshot_t *s)
         return -1;
     }
 
-    if (SMW_B(m, (uint8_t)read_line_active) < 0) {
+    if (0
+        || (SMW_B(m, (uint8_t)read_line_active) < 0)
+        || (SMW_B(m, (uint8_t)rtc58321a_rtc_save) < 0)) {
         snapshot_module_close(m);
         return -1;
     }
@@ -246,8 +232,6 @@ static int userport_rtc_read_snapshot_module(snapshot_t *s)
     uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
-    /* enable device */
-    set_userport_rtc_enabled(1, NULL);
 
     m = snapshot_module_open(s, snap_module_name, &major_version, &minor_version);
 
@@ -261,7 +245,9 @@ static int userport_rtc_read_snapshot_module(snapshot_t *s)
         goto fail;
     }
 
-    if (SMR_B_INT(m, &read_line_active) < 0) {
+    if (0
+        || (SMR_B_INT(m, &read_line_active) < 0)
+        || (SMR_B_INT(m, &rtc58321a_rtc_save) < 0)) {
         goto fail;
     }
     snapshot_module_close(m);

@@ -65,7 +65,6 @@
     (*_mem_read_ind_tab_ptr[(addr) >> 8])((uint16_t)(addr))
 
 #ifdef FEATURE_CPUMEMHISTORY
-#warning "CPUMEMHISTORY implementation for xcbm2 is incomplete"
 static void memmap_mem_store(unsigned int addr, unsigned int value)
 {
     monitor_memmap_store(addr, MEMMAP_RAM_W);

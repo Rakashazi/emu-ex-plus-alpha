@@ -54,14 +54,17 @@
 #include "vsync.h"
 #include "zfile.h"
 #include "mousedrv.h"
+#include "rs232.h"
 
 VICE_API int vice_init();
 
 int console_mode = 0;
 int video_disabled_mode = 0;
 extern void (*vsync_hook)(void);
+int rs232_useip232[RS232_NUM_DEVICES];
 
-int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped);
+void vsync_do_vsync2(struct video_canvas_s *c);
+void execute_vsync_callbacks(void);
 
 int c64ui_init_early() { return 0; }
 int c64ui_init() { return 0; }
@@ -174,6 +177,11 @@ int archdep_rtc_get_centisecond(void)
 	return (int)(t.tv_usec / 10000);
 }
 
+int archdep_real_path_equal(const char *path1, const char *path2)
+{
+	return !strcmp(path1, path2);
+}
+
 void ui_update_menus(void) {}
 
 int ui_extend_image_dialog(void)
@@ -181,9 +189,18 @@ int ui_extend_image_dialog(void)
 	return 0;
 }
 
-void ui_display_drive_led(unsigned int drive_number, unsigned int drive_base, unsigned int led_pwm1, unsigned int led_pwm2) {}
-void ui_display_drive_track(unsigned int drive_number, unsigned int drive_base, unsigned int half_track_number) {}
-void ui_display_joyport(uint8_t *joyport) {}
+void ui_display_reset(int device, int mode) {}
+bool ui_pause_loop_iteration(void) { return false; }
+
+void ui_display_drive_led(unsigned int drive_number,
+	unsigned int drive_base,
+	unsigned int led_pwm1,
+	unsigned int led_pwm2) {}
+void ui_display_drive_track(unsigned int drive_number,
+  unsigned int drive_base,
+  unsigned int half_track_number,
+  unsigned int disk_side) {}
+void ui_display_joyport(uint16_t *joyport) {}
 void ui_enable_drive_status(ui_drive_enable_t state, int *drive_led_color) {}
 int uicolor_alloc_color(unsigned int red, unsigned int green,
                                unsigned int blue, unsigned long *color_pixel,
@@ -374,16 +391,16 @@ void uimon_set_interface(monitor_interface_t **monitor_interface_init, int count
 void uimon_window_suspend(void) {}
 void fullscreen_resume(void) {}
 void fullscreen_capability(cap_fullscreen_t *cap_fullscreen) {}
-void ui_display_tape_current_image(const char *image) {}
+void ui_display_tape_current_image(int port, const char *image) {}
 void ui_display_drive_current_image(unsigned int unit_number, unsigned int drive_number, const char *image) {}
-void ui_display_tape_control_status(int control) {}
-void ui_display_tape_motor_status(int motor) {}
+void ui_display_tape_control_status(int port, int control) {}
+void ui_display_tape_motor_status(int port, int motor) {}
 void ui_display_recording(int recording_status) {}
 void ui_display_playback(int playback_status, char *version) {}
 void ui_display_event_time(unsigned int current, unsigned int total) {}
 void ui_display_volume(int vol) {}
 void ui_cmdline_show_help(unsigned int num_options, cmdline_option_ram_t *options, void *userparam) {}
-void ui_set_tape_status(int tape_status) {}
+void ui_set_tape_status(int port, int tape_status) {}
 char* ui_get_file(const char *format,...) { return NULL; }
 void ui_shutdown(void) {}
 void ui_resources_shutdown(void) {}
@@ -397,7 +414,7 @@ void kbd_initialize_numpad_joykeys(int* joykeys) {}
 int joystick_arch_init_resources(void) { return 0; }
 void joy_arch_init_default_mapping(int joynum) {}
 int joystick_init_resources(void) { return 0; }
-void joystick_close() {}
+//void joystick_close() {}
 int console_close_all(void) { return 0; }
 void video_shutdown(void) {}
 gfxoutputdrv_t *gfxoutput_get_driver(const char *drvname) { return NULL; }
@@ -427,6 +444,7 @@ int cmdline_register_options(const cmdline_option_t *c) { return 0; }
 int cmdline_init() { return 0; }
 int initcmdline_init() { return 0; }
 void cmdline_shutdown() {}
+int video_arch_get_active_chip() { return VIDEO_CHIP_VICII; }
 void video_render_1x2_init() {}
 void video_render_2x2_init() {}
 int cmdline_get_autostart_mode(void) { return AUTOSTART_MODE_NONE; }
@@ -457,6 +475,7 @@ const unsigned int xt, const unsigned int yt, \
 const unsigned int pitchs, const unsigned int pitcht, \
 viewport_t *viewport, video_render_config_t *config) {}
 
+DUMMY_VIDEO_RENDER(render_32_2x2)
 DUMMY_VIDEO_RENDER(render_08_2x2_04)
 DUMMY_VIDEO_RENDER(render_16_2x2_04)
 DUMMY_VIDEO_RENDER(render_24_2x2_04)
@@ -465,6 +484,7 @@ DUMMY_VIDEO_RENDER(render_08_2x4_04)
 DUMMY_VIDEO_RENDER(render_16_2x4_04)
 DUMMY_VIDEO_RENDER(render_24_2x4_04)
 DUMMY_VIDEO_RENDER(render_32_2x4_04)
+DUMMY_VIDEO_RENDER(render_32_2x4)
 DUMMY_VIDEO_RENDER_SCALE2X(render_08_scale2x)
 DUMMY_VIDEO_RENDER_SCALE2X(render_16_scale2x)
 DUMMY_VIDEO_RENDER_SCALE2X(render_24_scale2x)
@@ -481,6 +501,8 @@ DUMMY_VIDEO_RENDER_CRT(render_24_2x2_ntsc)
 DUMMY_VIDEO_RENDER_CRT(render_24_2x2_pal)
 DUMMY_VIDEO_RENDER_CRT(render_32_2x2_ntsc)
 DUMMY_VIDEO_RENDER_CRT(render_32_2x2_pal)
+DUMMY_VIDEO_RENDER_CRT(render_32_2x2_rgbi)
+DUMMY_VIDEO_RENDER_CRT(render_32_2x4_rgbi)
 
 int mousedrv_resources_init(mouse_func_t *funcs) { return 0; }
 int mousedrv_cmdline_options_init(void) { return 0; }
@@ -494,7 +516,7 @@ unsigned long mousedrv_get_timestamp(void) { return 0; }
 
 void mouse_button(int bnumber, int state) {}
 
-void joystick() {}
+//void joystick() {}
 int joy_arch_init(void) { return 0; }
 int joy_arch_set_device(int port_idx, int new_dev) { return 0; }
 int joy_arch_resources_init(void) { return 0; }
@@ -526,11 +548,17 @@ void vsync_do_end_of_line(void)
 	sound_flush();
 }
 
-int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
+void vsync_do_vsync(struct video_canvas_s *c)
 {
-	kbdbuf_flush();
+	vsync_do_vsync2(c);
 	vsync_hook();
-	return vsync_do_vsync2(c, been_skipped);
+	execute_vsync_callbacks();
+	kbdbuf_flush();
+}
+
+bool vsync_should_skip_frame(struct video_canvas_s *c)
+{
+	return c->skipFrame;
 }
 
 int zfile_fclose(FILE *stream)
@@ -547,6 +575,17 @@ int zfile_close_action(const char *filename, zfile_action_t action,
 }
 
 void tick_sleep(unsigned long ticks) { assert(!"emulation thread should not explicitly call sleep for timing"); }
+
+#ifdef NDEBUG
+int log_message(log_t log, const char *format, ...) { return 0; }
+int log_warning(log_t log, const char *format, ...) { return 0; }
+int log_error(log_t log, const char *format, ...) { return 0; }
+int log_debug(const char *format, ...) { return 0; }
+int log_verbose(const char *format, ...) { return 0; }
+void archdep_startup_log_error(const char *format, ...) {}
+void ui_error(const char *format,...) {}
+int uimon_out(const char *buffer) { return 0; }
+#endif
 
 int vice_init()
 {

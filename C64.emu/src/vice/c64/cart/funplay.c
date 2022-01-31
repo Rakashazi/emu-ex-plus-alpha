@@ -155,7 +155,7 @@ static const export_resource_t export_res = {
 void funplay_config_init(void)
 {
     /* 8k configuration */
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     funplay_io1_store((uint16_t)0xde00, 0);
 }
 
@@ -163,7 +163,7 @@ void funplay_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000 * 16);
     /* 8k configuration */
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/

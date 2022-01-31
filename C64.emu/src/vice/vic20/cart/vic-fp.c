@@ -27,6 +27,8 @@
  *
  */
 
+#define DEBUGCART
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -37,6 +39,7 @@
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "crt.h"
 #include "export.h"
 #include "flash040.h"
 #include "lib.h"
@@ -45,6 +48,7 @@
 #include "maincpu.h"
 #include "mem.h"
 #include "monitor.h"
+#include "ram.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "types.h"
@@ -54,6 +58,12 @@
 #include "vic20cartmem.h"
 #include "vic20mem.h"
 #include "zfile.h"
+
+#ifdef DEBUGCART
+#define DBG(x) printf x
+#else
+#define DBG(x)
+#endif
 
 /* ------------------------------------------------------------------------- */
 /*
@@ -285,6 +295,27 @@ void vic_fp_io2_store(uint16_t addr, uint8_t value)
 
 /* ------------------------------------------------------------------------- */
 
+/* FIXME: this still needs to be tweaked to match the hardware */
+static RAMINITPARAM ramparam = {
+    .start_value = 255,
+    .value_invert = 2,
+    .value_offset = 1,
+
+    .pattern_invert = 0x100,
+    .pattern_invert_value = 255,
+
+    .random_start = 0,
+    .random_repeat = 0,
+    .random_chance = 0,
+};
+
+void vic_fp_powerup(void)
+{
+    if (cart_ram) {
+        ram_init_with_pattern(cart_ram, CART_RAM_SIZE, &ramparam);
+    }
+}
+
 void vic_fp_init(void)
 {
     if (fp_log == LOG_ERR) {
@@ -321,6 +352,54 @@ static int zfile_load(const char *filename, uint8_t *dest, size_t size)
     }
     zfile_fclose(fd);
     return 0;
+}
+
+int vic_fp_crt_attach(FILE *fd, uint8_t *rawcart)
+{
+    crt_chip_header_t chip;
+    int idx = 0;
+
+    if (!cart_ram) {
+        cart_ram = lib_malloc(CART_RAM_SIZE);
+    }
+    if (!cart_rom) {
+        cart_rom = lib_malloc(CART_ROM_SIZE);
+    }
+
+    /* util_string_set(&cartfile, filename); */ /* FIXME */
+
+    for (idx = 0; idx < 512; idx++) {
+        if (crt_read_chip_header(&chip, fd)) {
+            goto exiterror;
+        }
+
+        DBG(("chip %d at %02x len %02x\n", idx, chip.start, chip.size));
+        if (chip.size != 0x2000) {
+            goto exiterror;
+        }
+
+        if (crt_read_chip(&cart_rom[0x2000 * idx], 0, &chip, fd)) {
+            goto exiterror;
+        }
+    }
+
+    if (export_add(&export_res) < 0) {
+        goto exiterror;
+    }
+
+    flash040core_init(&flash_state, maincpu_alarm_context, FLASH040_TYPE_032B_A0_1_SWAP, cart_rom);
+
+    mem_cart_blocks = VIC_CART_RAM123 |
+                      VIC_CART_BLK1 | VIC_CART_BLK2 | VIC_CART_BLK3 | VIC_CART_BLK5 |
+                      VIC_CART_IO2;
+    mem_initialize_memory();
+
+    vfp_list_item = io_source_register(&vfp_device);
+
+    return CARTRIDGE_VIC20_FP;
+exiterror:
+    vic_fp_detach();
+    return -1;
 }
 
 int vic_fp_bin_attach(const char *filename)

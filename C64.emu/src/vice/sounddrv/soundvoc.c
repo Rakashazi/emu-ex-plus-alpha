@@ -158,7 +158,7 @@ static void voc_close(void)
     }
 }
 
-static sound_device_t voc_device =
+static const sound_device_t voc_device =
 {
     "voc",
     voc_init,

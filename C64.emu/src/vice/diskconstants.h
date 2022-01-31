@@ -142,8 +142,8 @@
 #define NUM_BLOCKS_8050        2083     /* 2052 free */
 #define MAX_TRACKS_8050        77
 #define MAX_BLOCKS_8050        2083
-#define HDR_TRACK_8050	       DIR_TRACK_8050	/* block w/disk name */
-#define HDR_SECTOR_8050	       0		/* block w/disk name */
+#define HDR_TRACK_8050         DIR_TRACK_8050   /* block w/disk name */
+#define HDR_SECTOR_8050        0        /* block w/disk name */
 #define BAM_TRACK_8050         38
 #define BAM_SECTOR_8050        0
 #define BAM_NAME_8050          6        /* pos. of disk name in header blk */
@@ -185,6 +185,13 @@
 #define NUM_SYS_SECTORS_4000   160      /* on system partition track */
 #define MAX_TRACKS_4000        51
 #define MAX_BLOCKS_4000        12960
+
+#define DIR_TRACK_NP           1
+#define DIR_SECTOR_NP          34
+#define BAM_TRACK_NP           1
+#define BAM_SECTOR_NP          1
+#define BAM_NAME_NP            4
+#define BAM_ID_NP              22
 
 #define DIR_TRACK_4000         1
 #define DIR_SECTOR_4000        34

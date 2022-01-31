@@ -38,6 +38,7 @@ struct output_select_s {
     int (*output_putc)(unsigned int prnr, uint8_t b);
     int (*output_getc)(unsigned int prnr, uint8_t *b);
     int (*output_flush)(unsigned int prnr);
+    int (*output_formfeed)(unsigned int prnr);
 };
 typedef struct output_select_s output_select_t;
 
@@ -57,6 +58,7 @@ extern void output_select_close(unsigned int prnr);
 extern int output_select_putc(unsigned int prnr, uint8_t b);
 extern int output_select_getc(unsigned int prnr, uint8_t *b);
 extern int output_select_flush(unsigned int prnr);
+extern int output_select_formfeed(unsigned int prnr);
 extern void output_select_writeline(unsigned int prnr);
 
 #endif

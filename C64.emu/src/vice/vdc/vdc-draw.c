@@ -37,6 +37,7 @@
 #include "raster-modes.h"
 #include "types.h"
 #include "vdc-draw.h"
+#include "vdc-mem.h"
 #include "vdc-resources.h"
 #include "vdc.h"
 #include "vdctypes.h"
@@ -657,8 +658,8 @@ static void draw_std_text(void)
    screen, attr(ibute) and char(set) ram (which are one byte per 8 pixels */
 {
     uint8_t *p, *q;
-    uint32_t *table_ptr, *pdl_ptr, *pdh_ptr;
-    uint8_t *attr_ptr, *screen_ptr, *char_ptr;
+    uint32_t *table_ptr, *pdl_ptr, *pdh_ptr, char_index;
+    uint8_t *attr_ptr, *screen_ptr;
 
     unsigned int i, d, d2;
     unsigned int cpos = 0xFFFF;
@@ -686,7 +687,7 @@ static void draw_std_text(void)
     attr_ptr = &vdc.attrbuf[vdc.attrbufdraw];
     /* screen_ptr = vdc.ram + ((vdc.screen_adr + vdc.mem_counter) & vdc.vdc_address_mask);*/ /* as above */
     screen_ptr = &vdc.scrnbuf[vdc.attrbufdraw];
-    char_ptr = vdc.ram + vdc.chargen_adr + vdc.raster.ycounter;
+    char_index = vdc.chargen_adr + vdc.raster.ycounter;
     
     calculate_draw_masks();
     
@@ -700,7 +701,7 @@ static void draw_std_text(void)
                 /* Return nothing if > Vertical Character Size */
                 d = 0x00;
             } else {
-                d = *(char_ptr
+                d = vdc_ram_read(char_index
                   + ((*(attr_ptr + i) & VDC_ALTCHARSET_ATTR) ? 0x100 * vdc.bytes_per_char : 0) /* the offset to the alternate character set is either 0x1000 or 0x2000, depending on the character size (16 or 32) */
                   + (*(screen_ptr + i) * vdc.bytes_per_char));
             }
@@ -789,7 +790,8 @@ static void draw_std_text(void)
                 /* Return nothing if > Vertical Character Size */
                 d = 0x00;
             } else {
-                d = *(char_ptr + (*(screen_ptr + i) * vdc.bytes_per_char));
+                d = vdc_ram_read(char_index
+                  + (*(screen_ptr + i) * vdc.bytes_per_char));
             }
             d &= dmask; /* mask off to active pixels only */
             d2 = 0x00;
@@ -987,9 +989,9 @@ static void draw_std_bitmap(void)
    See draw_std_text(), this is for bitmap mode. */
 {
     uint8_t *p, *q;
-    uint8_t *attr_ptr, *bitmap_ptr;
+    uint8_t *attr_ptr;
 
-    unsigned int i, d, d2, j, fg, bg;
+    unsigned int i, d, d2, j, fg, bg, bitmap_index;
     int icsi = -1;  /* Inter Character Spacing Index - used as a combo flag/index as to whether there is any intercharacter gap to render */
 
     if(vdc.regs[25] & 0x10) { /* double pixel a.k.a 40column mode */
@@ -1010,7 +1012,7 @@ static void draw_std_bitmap(void)
 
     /*attr_ptr = vdc.ram + ((vdc.attribute_adr + vdc.mem_counter) & vdc.vdc_address_mask);*/    /* keep pre-buffer pointer set-up for testing */
     attr_ptr = &vdc.attrbuf[vdc.attrbufdraw];
-    bitmap_ptr = vdc.ram + ((vdc.screen_adr + vdc.bitmap_counter) & vdc.vdc_address_mask);
+    bitmap_index = vdc.screen_adr + vdc.bitmap_counter;
 
     calculate_draw_masks();
     
@@ -1033,7 +1035,7 @@ static void draw_std_bitmap(void)
             /* Return nothing if > Vertical Character Size */
             d = 0x00;
         } else {
-            d = *(bitmap_ptr + i); /* grab the data byte from the bitmap */
+            d = vdc_ram_read(bitmap_index + i); /* grab the data byte from the bitmap */
         }
         d &= dmask; /* mask off to active pixels only */
         d2 = 0x00;
@@ -1076,7 +1078,7 @@ static void draw_std_bitmap(void)
     }
 
     /* fill the last few pixels of the display with bg colour if xsmooth scroll != maximum  */
-    d = *(bitmap_ptr + i);
+    d = vdc_ram_read(bitmap_index + i); /* grab the data byte from the bitmap */
     if (vdc.regs[24] & VDC_REVERSE_ATTR) { /* reverse screen bit */
         d ^= 0xff;
     }

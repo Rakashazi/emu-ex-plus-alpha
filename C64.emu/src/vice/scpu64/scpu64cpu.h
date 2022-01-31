@@ -29,7 +29,7 @@
 
 struct snapshot_module_s;
 
-int scpu64_get_half_cycle(void);
+CLOCK scpu64_get_half_cycle(void);
 void scpu64_set_fastmode(int mode);
 void scpu64_set_fastmode_nosync(int mode);
 void scpu64_set_simm_row_size(int value);

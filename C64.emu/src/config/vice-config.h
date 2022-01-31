@@ -148,6 +148,9 @@
 /* Define to 1 if you have the <execinfo.h> header file. */
 /* #undef HAVE_EXECINFO_H */
 
+/* This version provides FastSID support. */
+#define HAVE_FASTSID 1
+
 /* Define to 1 if you have the <fcntl.h> header file. */
 #define HAVE_FCNTL_H 1
 
@@ -178,8 +181,16 @@
 /* Support for FreeBSD par port device file. */
 /* #undef HAVE_FREEBSD_PARPORT_HEADERS */
 
+#if !defined(__ANDROID__) || __ANDROID_API__ >= 24
+// fseeko/ftello not supported on older Android versions
+
 /* Define to 1 if you have the `fseeko' function. */
 #define HAVE_FSEEKO 1
+
+/* Define to 1 if you have the `ftello' function. */
+#define HAVE_FTELLO 1
+
+#endif
 
 /* Enable Fullscreen support. */
 /* #undef HAVE_FULLSCREEN */
@@ -410,7 +421,7 @@
 //#define HAVE_NETWORK /**/
 
 /* Use the new 8580 filter */
-//#define HAVE_NEW_8580_FILTER /**/
+#define HAVE_NEW_8580_FILTER 1
 
 /* Define to 1 if you have the `outb' function. */
 /* #undef HAVE_OUTB */
@@ -826,7 +837,7 @@
 //#define USE_VORBIS /**/
 
 /* Version number of package */
-#define VERSION "3.5"
+#define VERSION "3.6.1"
 
 /* Where should we lookup for data files? */
 //#define VICEDIR "/usr/local/lib64/vice"
@@ -892,9 +903,3 @@
 /* #undef vfork */
 
 #define VICE_API __attribute__((visibility("default")))
-
-#if __ANDROID__ && __ANDROID_API__ < 24
-// fseeko/ftello not supported on older Android versions
-#define fseeko fseek
-#define ftello ftell
-#endif

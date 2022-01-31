@@ -28,7 +28,6 @@
 #include "vice.h"
 
 
-#include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +39,7 @@
 #include "archdep.h"
 #include "types.h"
 #include "debug.h"
+#include "log.h"
 
 #define COMPILING_LIB_DOT_C
 #include "lib.h"
@@ -98,6 +98,14 @@ static pthread_mutex_t lib_debug_lock = PTHREAD_MUTEX_INITIALIZER;
 #define LIB_DEBUG_LOCK() pthread_mutex_lock(&lib_debug_lock)
 #define LIB_DEBUG_UNLOCK() pthread_mutex_unlock(&lib_debug_lock)
 #endif
+
+
+#ifdef DEBUG
+/** \brief  Flag to enable/debug output on exit of emu/tool
+ */
+static int lib_debug_enable_output = 1;
+#endif
+
 
 /*----------------------------------------------------------------------------*/
 
@@ -478,6 +486,10 @@ static void lib_debug_check(void)
     leakbytes = 0;
     lib_debug_leaklist_num = 0;
 
+    if (!lib_debug_enable_output) {
+        return;
+    }
+
     for (index = 0; index < LIB_DEBUG_SIZE; index++) {
         if (lib_debug_address[index] != NULL) {
             count++;
@@ -821,7 +833,7 @@ char *lib_strdup_trimmed(char *str)
 
     copy = lib_strdup(str);
     trimmed = copy;
-                
+
     /* trim leading whitespace */
     while (*trimmed != '\0') {
         if (*trimmed == ' ' || *trimmed == '\t') {
@@ -839,7 +851,7 @@ char *lib_strdup_trimmed(char *str)
             break;
         }
     }
-    
+
     trimmed = lib_strdup(trimmed);
 
     lib_free(copy);
@@ -847,30 +859,117 @@ char *lib_strdup_trimmed(char *str)
     return trimmed;
 }
 
-/*
-    encapsulated random routines to generate random numbers within a given range.
+/* Multiplier for a linear congruential generator (LCG) with modulus 2^64.  The
+ * choice of multiplier is critical to the quality of the generator.  This
+ * particular value is credited to Knuth, has known good statistical properties,
+ * and is widely used. */
+#define LCG_MULTIPLIER (6364136223846793005uLL)
 
-    see http://c-faq.com/lib/randrange.html
-*/
+/* Increment for a linear congruential generator (LCG) with modulus 2^64.  The
+ * increment must be odd (and thus share no factors with 2^64), but the choice
+ * is otherwise arbitrary. */
+#define LCG_INCREMENT  (1uLL)
 
-unsigned int lib_unsigned_rand(unsigned int min, unsigned int max)
+/* Pseudo-random number generator state. */
+static uint64_t rand_state = LCG_MULTIPLIER + LCG_INCREMENT;
+
+/* Generate a 32-bit pseudorandom number, with all 32 bits equally random, using
+ * shared global state.  Not reentrant. */
+static uint32_t rand_uint32(void)
 {
-    return min + (rand() / ((RAND_MAX / (max - min + 1)) + 1));
+    /* The choice of algorithm for this function probably doesn't matter, so
+     * long as it: (1) is an acceptable-quality PRNG; and (2) has the properties
+     * specified in the doc comment.
+     *
+     * The implementation here is the permuted congruential generator (PCG)
+     * algorithm PCG-XSH-RR 32/64 (LCG), which consists of a 64-bit linear
+     * congruential generator with a 32-bit permutation output function.  This
+     * is one of the simplest 32-bit PRNGs with no more than 64 bits of state
+     * which is known to pass all common statistical tests.  The version here is
+     * re-implemented following the PCG paper, as the author's C implementation
+     * is provided under a GPLv2-incompatible license (Apache License 2.0).
+     *
+     * References:
+     *   Melissa E. O'Neill.  2014.  "PCG: A Family of Simple Fast
+     *     Space-Efficient Statistically Good Algorithms for Random Number
+     *     Generation".  <https://www.cs.hmc.edu/tr/hmc-cs-2014-0905.pdf>.
+     *   Donald E. Knuth.  1998.  /The Art of Computer Programming, Volume 2/
+     *     (3rd Ed.), Section 3.2.1 "The Linear Congruential Method", 10-21.
+     */
+    uint64_t prev_state;
+    uint32_t output_base;
+    unsigned int output_rot;
+
+    /* Advance the LCG to the next state. */
+    prev_state = rand_state;
+    rand_state = LCG_MULTIPLIER * prev_state + LCG_INCREMENT;
+
+    /* Apply PCG output function PCG-XSH-RR to the previous state, defined in
+     * pseudocode in the paper as:
+     * > rotate32((state ^ (state >> 18)) >> 27, state >> 59)
+     * Where rotate32() is a clockwise (right) circular rotation. */
+    output_base = (uint32_t)((prev_state ^ (prev_state >> 18)) >> 27);
+    output_rot = prev_state >> 59;
+    return (output_base >> output_rot) | (output_base << (-output_rot & 31));
 }
 
+/* Seed the pseudorandom number generator shared global state.  All possible
+ * 64-bit values are valid seeds.  Not reentrant.  */
+static void rand_seed(uint64_t seed)
+{
+    /* Initialize the state to the seed. */
+    rand_state = seed;
+    /* Advance the generator once in order to avoid generating an initial value
+     * consisting directly of the initial seed state. */
+    rand_uint32();
+}
+
+/* Generate a uniform random unsigned integer in the range [min, max]
+ * inclusive. */
+unsigned int lib_unsigned_rand(unsigned int min, unsigned int max)
+{
+    uint64_t range = (uint64_t)(max - min) + 1uLL;
+    /* Fixed-point projection of random variate to range.  This method is fast,
+     * generates all values in the range, and correctly handles the case where
+     * the range spans all 32-bit values.  It is slightly biased for ranges
+     * which are not a power of 2, but less so than other approaches lacking an
+     * explicit rejection step. */
+    return min + (((uint64_t)rand_uint32() * range) >> 32);
+}
+
+/* Generate a uniform random float in the range [min, max] inclusive.  */
 float lib_float_rand(float min, float max)
 {
-    return min + ((float)rand() / (((float)RAND_MAX / (max - min + 1.0f)) + 1.0f));
+    /* Generate as a double internally in order to avoid making the high end of
+     * the output range unnecessarily spare. */
+    return min + (max - min) * ((double)rand_uint32() / UINT32_MAX);
+}
+
+/* Generate a uniform random double in the unit range -- [0, 1), including 0 and
+ * excluding 1. */
+double lib_double_rand_unit(void)
+{
+    /* Multiply by floating point hex literal for 2^{-32}.  This approach is
+     * fast and generates uniform results.  It forces all output to be a
+     * multiple of 2^{-32}, but that is acceptable for most practical uses. */
+    return 0x1.0p-32 * rand_uint32();
+}
+
+static uint64_t initalseed;
+void lib_rand_printseed(void)
+{
+    log_message(LOG_DEFAULT, "random seed was: 0x%"PRIx64, initalseed);
+}
+
+void lib_rand_seed(uint64_t seed)
+{
+    initalseed = seed;
+    srand((unsigned int)seed);
+    rand_seed((uint64_t)seed);
 }
 
 void lib_init(void)
 {
-    /*
-     * set random seed for rand() from current time, so things like random startup
-     * delay are actually random, ie different on each startup, at all.
-     */
-    srand((unsigned int)time(NULL));
-
 #ifdef DEBUG
 
 #ifdef USE_VICE_THREAD
@@ -884,6 +983,19 @@ void lib_init(void)
 
     lib_debug_init();
 #endif
+    /*
+     * set random seed for all actively-used PRNGs from current time, so things
+     * like random startup delay are actually random, ie different on each
+     * startup, at all.
+     */
+    lib_rand_seed((uint64_t)time(NULL));
 }
 
+
+void lib_debug_set_output(int state)
+{
+#ifdef DEBUG
+    lib_debug_enable_output = state;
+#endif
+}
 

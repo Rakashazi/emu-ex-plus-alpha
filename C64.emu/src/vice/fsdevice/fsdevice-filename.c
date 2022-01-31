@@ -77,6 +77,12 @@
 
 */
 
+/* character to be used as a marker for long names. this must be a valid character
+   in a petscii filename, but an invalid character in the host filesystem. in
+   practise that means we have to use the forward slash, as this is the only
+   invalid character in filenames on linux. */
+#define LONGNAMEMARKER '/'
+
 /*
     convert real (long) name into shortened representation
 
@@ -93,7 +99,9 @@ static int _limit_longname(struct ioutil_dir_s *ioutil_dir, vdrive_t *vdrive, ch
     int longnames;
     int dirpos = 0;
     int tmppos;
-    char *dirposmark = { "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" };
+    char *dirposmark[2] = { 
+        "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"};
 
     DBG(("limit_longname enter '%s' mode: %d\n", longname, mode));
     if (resources_get_int("FSDeviceLongNames", &longnames) < 0) {    
@@ -115,7 +123,7 @@ static int _limit_longname(struct ioutil_dir_s *ioutil_dir, vdrive_t *vdrive, ch
                 }
                 strcpy(newname, direntry);
                 if (mode) {
-                    charset_petconvstring((uint8_t *)newname, 0);   /* ASCII name to PETSCII */
+                    charset_petconvstring((uint8_t *)newname, CONVERT_TO_PETSCII);   /* ASCII name to PETSCII */
                 }
                 if (!strncmp(newname, longname, 14)) {
                     dirpos++;
@@ -130,8 +138,8 @@ static int _limit_longname(struct ioutil_dir_s *ioutil_dir, vdrive_t *vdrive, ch
                 DBG(("limit_longname>%d '%s'->'%s' (%s)\n", dirpos, direntry, newname, longname));
                 if (!strcmp(newname, longname)) {
                     DBG(("limit_longname found full '%s'\n", longname));
-                    longname[14] = dirposmark[dirpos];
-                    longname[15] = '/';     /* FIXME: use macro */
+                    longname[14] = dirposmark[mode][dirpos];
+                    longname[15] = LONGNAMEMARKER;
                     longname[16] = 0;
                     break;
                 }
@@ -200,13 +208,13 @@ static char *expand_shortname(vdrive_t *vdrive, char *shortname, int mode)
             strcpy(longname, direntry);
             _limit_longname(ioutil_dir, vdrive, longname, 0);
             if (mode) {
-                charset_petconvstring((uint8_t *)longname, 0);   /* ASCII name to PETSCII */
+                charset_petconvstring((uint8_t *)longname, CONVERT_TO_PETSCII);   /* ASCII name to PETSCII */
             }
             DBG(("expand_shortname>'%s'->'%s'('%s')\n", direntry, longname, shortname));
             if (!strcmp(longname, shortname)) {
                 strcpy(longname, direntry);
                 if (mode) {
-                    charset_petconvstring((uint8_t *)longname, 0);   /* ASCII name to PETSCII */            
+                    charset_petconvstring((uint8_t *)longname, CONVERT_TO_PETSCII);   /* ASCII name to PETSCII */
                 }
                 ioutil_closedir(ioutil_dir);
                 return longname;
@@ -227,7 +235,13 @@ static char *expand_shortname(vdrive_t *vdrive, char *shortname, int mode)
 */
 char *fsdevice_expand_shortname(vdrive_t *vdrive, char *name)
 {
+#ifdef DEBUGFILENAME
+    char *ptr = expand_shortname(vdrive, name, 1);
+    DBG(("fsdevice_expand_shortname '%s' (%02x) -> '%s'\n", name, (unsigned char)name[14], ptr));
+    return ptr;
+#else
     return expand_shortname(vdrive, name, 1);
+#endif
 }
 
 /* takes a short name and returns a pointer to a long name
@@ -236,7 +250,13 @@ char *fsdevice_expand_shortname(vdrive_t *vdrive, char *name)
 */
 char *fsdevice_expand_shortname_ascii(vdrive_t *vdrive, char *name)
 {
+#ifdef DEBUGFILENAME
+    char *ptr = expand_shortname(vdrive, name, 1);
+    DBG(("fsdevice_expand_shortname_ascii '%s' (%02x) -> '%s'\n", name, (unsigned char)name[14], ptr));
+    return ptr;
+#else
     return expand_shortname(vdrive, name, 0);
+#endif
 }
 
 

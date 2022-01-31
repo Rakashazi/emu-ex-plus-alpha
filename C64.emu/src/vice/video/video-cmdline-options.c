@@ -36,28 +36,8 @@
 #include "util.h"
 #include "video.h"
 
-#ifdef HAVE_HWSCALE
-static cmdline_option_t cmdline_options[] =
-{
-    { "-hwscalepossible", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "HwScalePossible", (resource_value_t)1,
-      NULL, "Enable the possibility of hardware scaling" },
-    { "+hwscalepossible", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "HwScalePossible", (resource_value_t)0,
-      NULL, "Disable the possibility of hardware scaling" },
-    CMDLINE_LIST_END
-};
-#endif
-
 int video_cmdline_options_init(void)
 {
-#ifdef HAVE_HWSCALE
-    if (machine_class != VICE_MACHINE_VSID) {
-        if (cmdline_register_options(cmdline_options) < 0) {
-            return -1;
-        }
-    }
-#endif
     return video_arch_cmdline_options_init();
 }
 
@@ -112,24 +92,6 @@ static cmdline_option_t cmdline_options_chip_audioleak[] =
     { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)0,
       NULL, "Disable audio leak emulation" },
-    CMDLINE_LIST_END
-};
-
-static const char * const cname_chip_hwscale[] =
-{
-    "-", "hwscale", "HwScale",
-    "+", "hwscale", "HwScale",
-    NULL
-};
-
-static cmdline_option_t cmdline_options_chip_hwscale[] =
-{
-    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, NULL, (void *)1,
-      NULL, "Enable hardware scaling" },
-    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, NULL, (void *)0,
-      NULL, "Disable hardware scaling" },
     CMDLINE_LIST_END
 };
 
@@ -347,25 +309,6 @@ int video_cmdline_options_chip_init(const char *chipname,
     for (i = 0; cname_chip_audioleak[i * 3] != NULL; i++) {
         lib_free(cmdline_options_chip_audioleak[i].name);
         lib_free(cmdline_options_chip_audioleak[i].resource_name);
-    }
-
-    if (video_chip_cap->hwscale_allowed) {
-        for (i = 0; cname_chip_hwscale[i * 3] != NULL; i++) {
-            cmdline_options_chip_hwscale[i].name
-                = util_concat(cname_chip_hwscale[i * 3], chipname,
-                              cname_chip_hwscale[i * 3 + 1], NULL);
-            cmdline_options_chip_hwscale[i].resource_name
-                = util_concat(chipname, cname_chip_hwscale[i * 3 + 2], NULL);
-        }
-
-        if (cmdline_register_options(cmdline_options_chip_hwscale) < 0) {
-            return -1;
-        }
-
-        for (i = 0; cname_chip_hwscale[i * 3] != NULL; i++) {
-            lib_free(cmdline_options_chip_hwscale[i].name);
-            lib_free(cmdline_options_chip_hwscale[i].resource_name);
-        }
     }
 
     /* video render filters */

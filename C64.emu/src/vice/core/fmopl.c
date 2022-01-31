@@ -470,7 +470,7 @@ void fmopl_set_machine_parameter(long clock_rate)
 static void fmopl_alarm_A(CLOCK offset, void *data)
 {
     FM_OPL *OPL = (FM_OPL *)data;
-    UINT32 new_start = maincpu_clk - offset + ((256 - OPL->T[0]) * fmopl_timer_80);
+    CLOCK new_start = maincpu_clk - offset + ((256 - OPL->T[0]) * fmopl_timer_80);
 
     alarm_unset(OPL->fmopl_alarm[0]);
     alarm_set(OPL->fmopl_alarm[0], new_start);
@@ -480,7 +480,7 @@ static void fmopl_alarm_A(CLOCK offset, void *data)
 static void fmopl_alarm_B(CLOCK offset, void *data)
 {
     FM_OPL *OPL = (FM_OPL *)data;
-    UINT32 new_start = maincpu_clk - offset + ((256 - OPL->T[1]) * fmopl_timer_320);
+    CLOCK new_start = maincpu_clk - offset + ((256 - OPL->T[1]) * fmopl_timer_320);
 
     alarm_unset(OPL->fmopl_alarm[1]);
     alarm_set(OPL->fmopl_alarm[1], new_start);

@@ -33,7 +33,7 @@ public:
 	static std::unique_ptr<EmuFilePicker> makeForLoading(ViewAttachParams, Input::Event, bool singleDir = false,
 		EmuSystemCreateParams params = {});
 	static std::unique_ptr<EmuFilePicker> makeForMediaChange(ViewAttachParams, Input::Event,
-		EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate);
+		EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate, bool singleDir = false);
 	static std::unique_ptr<EmuFilePicker> makeForMediaCreation(ViewAttachParams, Input::Event);
 	static std::unique_ptr<EmuFilePicker> makeForMediaCreation(ViewAttachParams);
 	bool inputEvent(Input::Event) final;

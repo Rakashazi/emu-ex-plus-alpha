@@ -87,7 +87,7 @@ static int _ahi_resume(void)
     return 0;
 }
 
-static sound_device_t ahi_device =
+static const sound_device_t ahi_device =
 {
     "ahi",
     _ahi_init,

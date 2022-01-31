@@ -24,6 +24,8 @@
  *
  */
 
+/* #define DEBUG_WARPSPEED */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -44,11 +46,20 @@
 #include "warpspeed.h"
 #include "crt.h"
 
+#ifdef DEBUG_WARPSPEED
+#define DBG(x)  printf x
+#else
+#define DBG(x)
+#endif
+
 /*
     Warpspeed
 
     - 16k ROM
     - uses full io1/io2
+
+    the cartridge uses two j/k flipflops to enable/disable the ROM. simply said
+    it works like this:
 
     io1
     - read: ROM (offset $1e00)
@@ -57,6 +68,25 @@
     io2
     - read: ROM (offset $1f00)
     - write: disable rom at 8000
+
+    however, in reality its like this (for writing):
+
+    to enable the cartridge:
+    - write access in IO1
+    - write access outside of IO2
+    (two write accesses in IO1 will work)
+
+    to disable the cartridge:
+    - write access outside of IO1
+    - write access in IO2
+    (two write accesses in IO2 will work)
+
+    to toggle the ROM enabled state:
+    - write access to IO1
+    - write access to IO2
+
+    the software uses "indexed INC abs" to do the switching, which is why the
+    simplified version also works.
 */
 
 /* some prototypes are needed */
@@ -103,17 +133,9 @@ static io_source_list_t *warpspeed_io2_list_item = NULL;
 
 /* ---------------------------------------------------------------------*/
 
-static int warpspeed_8000 = 0;
-
 static uint8_t warpspeed_io1_read(uint16_t addr)
 {
     return roml_banks[0x1e00 + (addr & 0xff)];
-}
-
-static void warpspeed_io1_store(uint16_t addr, uint8_t value)
-{
-    cart_config_changed_slotmain(1, 1, CMODE_WRITE);
-    warpspeed_8000 = 1;
 }
 
 static uint8_t warpspeed_io2_read(uint16_t addr)
@@ -121,15 +143,69 @@ static uint8_t warpspeed_io2_read(uint16_t addr)
     return roml_banks[0x1f00 + (addr & 0xff)];
 }
 
+#define LASTWRITE_IO1   0
+#define LASTWRITE_IO2   1
+#define LASTWRITE_NOTIO 2
+
+static int warpspeed_enabled = 0;
+static int warpspeed_lastwrite = 0;
+
+/* FIXME: this should be called on *any other* write access. we cant really do
+          that right now with the cartridge system :( fortunately the warpspeed
+          cartridge software does not rely on this, so it works anyway */
+#if 0
+void warpspeed_no_io_store(uint16_t addr, uint8_t value)
+{
+    /* if last write did go to IO1, enable the cartridge */
+    if (warpspeed_lastwrite == LASTWRITE_IO1) {
+        DBG(("warpspeed_io1_store %04x %02x - lastwrite: IO1 rom: enabling\n", addr, value));
+        warpspeed_enabled = 1;
+        cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
+    }
+    warpspeed_lastwrite = LASTWRITE_NOTIO;
+}
+#endif
+
+static void warpspeed_io1_store(uint16_t addr, uint8_t value)
+{
+    /* if last write did go to IO1, enable the cartridge */
+    if (warpspeed_lastwrite == LASTWRITE_IO1) {
+        DBG(("warpspeed_io1_store de%02x %02x - lastwrite: IO1 rom: enabling\n", addr, value));
+        warpspeed_enabled = 1;
+        cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
+    }
+#ifdef DEBUG_WARPSPEED
+    else {
+        DBG(("warpspeed_io1_store de%02x %02x - lastwrite: not IO1 rom: %s (no change)\n",
+            addr, value, warpspeed_enabled ? "enabled" : "disabled"));
+    }
+#endif
+    warpspeed_lastwrite = LASTWRITE_IO1;
+}
+
 static void warpspeed_io2_store(uint16_t addr, uint8_t value)
 {
-    cart_config_changed_slotmain(2, 2, CMODE_WRITE);
-    warpspeed_8000 = 0;
+    /* if last write did not go to IO1, disable the cartridge */
+    if (warpspeed_lastwrite != LASTWRITE_IO1) {
+        DBG(("warpspeed_io2_store df%02x %02x - lastwrite: not IO1 rom: disabling\n", addr, value));
+        warpspeed_enabled = 0;
+    } else if (warpspeed_lastwrite == LASTWRITE_IO1) {
+        /* if last write did go to IO1, then toggle the cartridge enabled status */
+        warpspeed_enabled ^= 1;
+        DBG(("warpspeed_io2_store df%02x %02x - lastwrite: IO1 rom: toggling (now: %s)\n",
+             addr, value, warpspeed_enabled ? "enabled" : "disabled"));
+    }
+    if (warpspeed_enabled) {
+        cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
+    } else {
+        cart_config_changed_slotmain(CMODE_RAM, CMODE_RAM, CMODE_RAM);
+    }
+    warpspeed_lastwrite = LASTWRITE_IO2;
 }
 
 static int warpspeed_dump(void)
 {
-    mon_out("$8000-$9FFF ROM: %s\n", (warpspeed_8000) ? "enabled" : "disabled");
+    mon_out("$8000-$9FFF ROM: %s\n", (warpspeed_enabled) ? "enabled" : "disabled");
 
     return 0;
 }
@@ -141,19 +217,23 @@ static const export_resource_t export_res_warpspeed = {
 };
 
 /* ---------------------------------------------------------------------*/
+void warpspeed_reset(void)
+{
+    cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
+    warpspeed_enabled = 1;
+    warpspeed_lastwrite = 0;
+}
 
 void warpspeed_config_init(void)
 {
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
-    warpspeed_8000 = 1;
+    warpspeed_reset();
 }
 
 void warpspeed_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     memcpy(romh_banks, &rawcart[0x2000], 0x2000);
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
-    warpspeed_8000 = 1;
+    warpspeed_reset();
 }
 
 static int warpspeed_common_attach(void)
@@ -230,7 +310,7 @@ int warpspeed_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (uint8_t)warpspeed_8000) < 0
+        || SMW_B(m, (uint8_t)warpspeed_enabled) < 0
         || SMW_BA(m, roml_banks, 0x2000) < 0
         || SMW_BA(m, romh_banks, 0x2000) < 0) {
         snapshot_module_close(m);
@@ -259,11 +339,11 @@ int warpspeed_snapshot_read_module(snapshot_t *s)
 
     /* new in 0.1 */
     if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1)) {
-        if (SMR_B_INT(m, &warpspeed_8000) < 0) {
+        if (SMR_B_INT(m, &warpspeed_enabled) < 0) {
             goto fail;
         }
     } else {
-        warpspeed_8000 = 0;
+        warpspeed_enabled = 0;
     }
 
     if (0

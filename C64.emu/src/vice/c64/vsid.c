@@ -44,7 +44,6 @@
 #include "c64gluelogic.h"
 #include "c64mem.h"
 #include "cia.h"
-#include "clkguard.h"
 #include "debug.h"
 #include "drive.h"
 #include "imagecontents.h"
@@ -282,7 +281,7 @@ void machine_specific_shutdown(void)
     psid_shutdown();
 }
 
-void machine_handle_pending_alarms(int num_write_cycles)
+void machine_handle_pending_alarms(CLOCK num_write_cycles)
 {
     vicii_handle_pending_alarms_external(num_write_cycles);
 }
@@ -322,8 +321,6 @@ static void machine_vsync_hook(void)
         time = playtime;
         vsid_ui_display_time(playtime);
     }
-
-    clk_guard_prevent_overflow(maincpu_clk_guard);
 }
 
 void machine_set_restore_key(int v)
@@ -397,7 +394,6 @@ void machine_change_timing(int timeval, int border_mode)
     sound_set_machine_parameter(machine_timing.cycles_per_sec, machine_timing.cycles_per_rfsh);
     debug_set_machine_parameter(machine_timing.cycles_per_line, machine_timing.screen_lines);
     sid_set_machine_parameter(machine_timing.cycles_per_sec);
-    clk_guard_set_clk_base(maincpu_clk_guard, (CLOCK)machine_timing.cycles_per_rfsh);
 
     vicii_change_timing(&machine_timing);
 

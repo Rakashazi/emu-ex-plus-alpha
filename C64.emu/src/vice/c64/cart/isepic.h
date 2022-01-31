@@ -42,6 +42,7 @@ extern void isepic_freeze(void);
 extern void isepic_reset(void);
 extern void isepic_config_init(void);
 extern void isepic_config_setup(uint8_t *rawcart);
+extern void isepic_powerup(void);
 
 extern int isepic_resources_init(void);
 extern void isepic_resources_shutdown(void);

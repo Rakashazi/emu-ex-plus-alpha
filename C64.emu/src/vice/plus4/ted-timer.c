@@ -44,23 +44,22 @@ static alarm_t *ted_t1_alarm = NULL;
 static alarm_t *ted_t2_alarm = NULL;
 static alarm_t *ted_t3_alarm = NULL;
 
-static unsigned int t1_start;
-static unsigned int t2_start;
-static unsigned int t3_start;
+static CLOCK t1_start;
+static CLOCK t2_start;
+static CLOCK t3_start;
 
-static unsigned int t1_last_restart;
-static unsigned int t2_last_restart;
-static unsigned int t3_last_restart;
-
+static CLOCK t1_last_restart;
+static CLOCK t2_last_restart;
+static CLOCK t3_last_restart;
 
 static unsigned int t1_running;
 static unsigned int t2_running;
 static unsigned int t3_running;
 
 
-static unsigned int t1_value;
-static unsigned int t2_value;
-static unsigned int t3_value;
+static CLOCK t1_value;
+static CLOCK t2_value;
+static CLOCK t3_value;
 
 /*-----------------------------------------------------------------------*/
 

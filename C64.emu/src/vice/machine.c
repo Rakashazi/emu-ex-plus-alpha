@@ -34,7 +34,6 @@
 #include "archdep.h"
 #include "attach.h"
 #include "autostart.h"
-#include "clkguard.h"
 #include "cmdline.h"
 #include "console.h"
 #include "diskimage.h"
@@ -45,7 +44,7 @@
 #include "gfxoutput.h"
 #include "initcmdline.h"
 #include "interrupt.h"
-#include "joy.h"
+#include "joystick.h"
 #include "kbdbuf.h"
 #include "keyboard.h"
 #include "lib.h"
@@ -94,8 +93,8 @@ int machine_keymap_index;
 static char *ExitScreenshotName = NULL;
 static char *ExitScreenshotName1 = NULL;
 
-
-
+/* NOTE: this function is very similar to drive_jam - in case the behavior
+         changes, change drive_jam too */
 unsigned int machine_jam(const char *format, ...)
 {
     va_list ap;
@@ -186,6 +185,8 @@ static void machine_trigger_reset_internal(const unsigned int mode)
             maincpu_trigger_reset();
             break;
     }
+
+    ui_display_reset(0, mode);
 }
 
 void machine_trigger_reset(const unsigned int mode)
@@ -238,12 +239,6 @@ void machine_reset(void)
     vsync_reset_hook();
 }
 
-static void machine_maincpu_clk_overflow_callback(CLOCK sub, void *data)
-{
-    alarm_context_time_warp(maincpu_alarm_context, sub, -1);
-    interrupt_cpu_status_time_warp(maincpu_int_status, sub, -1);
-}
-
 void machine_maincpu_init(void)
 {
     maincpu_init();
@@ -253,19 +248,11 @@ void machine_maincpu_init(void)
 void machine_early_init(void)
 {
     maincpu_alarm_context = alarm_context_new("MainCPU");
-
-    maincpu_clk_guard = clk_guard_new(&maincpu_clk, CLOCK_MAX
-                                      - CLKGUARD_SUB_MIN);
-
-    clk_guard_add_callback(maincpu_clk_guard,
-                           machine_maincpu_clk_overflow_callback, NULL);
 }
 
 int machine_init(void)
 {
     machine_init_was_called = 1;
-
-    machine_video_init();
 
     fsdevice_init();
     file_system_init();
@@ -274,13 +261,10 @@ int machine_init(void)
     return machine_specific_init();
 }
 
-static void machine_maincpu_shutdown(void)
+void machine_maincpu_shutdown(void)
 {
     if (maincpu_alarm_context != NULL) {
         alarm_context_destroy(maincpu_alarm_context);
-    }
-    if (maincpu_clk_guard != NULL) {
-        clk_guard_destroy(maincpu_clk_guard);
     }
 
     lib_free(maincpu_monitor_interface);
@@ -320,7 +304,7 @@ void machine_shutdown(void)
         /* happens at the -help command line command*/
         return;
     }
-    
+
     /*
      * Avoid SoundRecordDeviceName being written to vicerc when save-on-exit
      * is enabled. If recording is/was active vicerc will contain some setting
@@ -348,6 +332,9 @@ void machine_shutdown(void)
     autostart_shutdown();
 
     joystick_close();
+#ifdef MAC_JOYSTICK
+    joy_hidlib_exit();
+#endif
 
     sound_close();
 
@@ -397,6 +384,8 @@ void machine_shutdown(void)
     video_resources_shutdown();
     machine_resources_shutdown();
     machine_common_resources_shutdown();
+
+    vsync_shutdown();
 
     sysfile_resources_shutdown();
     zfile_shutdown();

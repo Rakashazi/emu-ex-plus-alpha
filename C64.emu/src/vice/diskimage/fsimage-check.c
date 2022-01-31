@@ -27,6 +27,8 @@
 
 #include "vice.h"
 
+#include <stdio.h>
+
 #include "diskconstants.h"
 #include "diskimage.h"
 #include "fsimage-check.h"

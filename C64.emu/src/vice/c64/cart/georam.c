@@ -40,6 +40,7 @@
 #include "machine.h"
 #include "mem.h"
 #include "monitor.h"
+#include "ram.h"
 #include "resources.h"
 #include "georam.h"
 #include "snapshot.h"
@@ -71,9 +72,6 @@
  *
  * RAM size | $dfff
  * ------------------
- *    64k   | $00-$03
- *   128k   | $00-$07
- *   256k   | $00-$0f
  *   512k   | $00-$1f
  *  1024k   | $00-$3f
  *  2048k   | $00-$7f
@@ -233,6 +231,31 @@ static int georam_dump(void)
 
 /* ------------------------------------------------------------------------- */
 
+/* FIXME: this still needs to be tweaked to match the hardware */
+static RAMINITPARAM ramparam = {
+    .start_value = 255,
+    .value_invert = 2,
+    .value_offset = 1,
+
+    .pattern_invert = 0x100,
+    .pattern_invert_value = 255,
+
+    .random_start = 0,
+    .random_repeat = 0,
+    .random_chance = 0,
+};
+
+void georam_powerup(void)
+{
+    if ((georam_filename != NULL) && (*georam_filename != 0)) {
+        /* do not init ram if a file is used for ram content (like battery backup) */
+        return;
+    }
+    if (georam_ram) {
+        ram_init_with_pattern(georam_ram, georam_size, &ramparam);
+    }
+}
+
 static int georam_activate(void)
 {
     if (!georam_size) {
@@ -243,7 +266,9 @@ static int georam_activate(void)
 
     /* Clear newly allocated RAM.  */
     if (georam_size > old_georam_ram_size) {
-        memset(georam_ram, 0, (size_t)(georam_size - old_georam_ram_size));
+        /* memset(georam_ram, 0, (size_t)(georam_size - old_georam_ram_size)); */
+        ram_init_with_pattern(&georam_ram[old_georam_ram_size],
+                              (unsigned int)(georam_size - old_georam_ram_size), &ramparam);
     }
 
     old_georam_ram_size = georam_size;
@@ -339,9 +364,7 @@ static int set_georam_size(int val, void *param)
     }
 
     switch (val) {
-        case 64:
-        case 128:
-        case 256:
+        /* sizes smaller than 512k never existed */
         case 512:
         case 1024:
         case 2048:
@@ -420,12 +443,13 @@ static const resource_string_t resources_string[] = {
 };
 
 static const resource_int_t resources_int[] = {
-    { "GEORAM", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      &georam_enabled, set_georam_enabled, NULL },
     { "GEORAMsize", 512, RES_EVENT_NO, NULL,
       &georam_size_kb, set_georam_size, NULL },
     { "GEORAMImageWrite", 0, RES_EVENT_NO, NULL,
       &georam_write_image, set_georam_image_write, NULL },
+    /* CAUTION: the order matters here, enable must happen last */
+    { "GEORAM", 0, RES_EVENT_STRICT, (resource_value_t)0,
+      &georam_enabled, set_georam_enabled, NULL },
     RESOURCE_INT_LIST_END
 };
 

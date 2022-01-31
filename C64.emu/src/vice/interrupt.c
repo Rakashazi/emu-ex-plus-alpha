@@ -216,7 +216,8 @@ int interrupt_get_nmi(interrupt_cpu_status_t *cs, int int_num)
 void interrupt_fixup_int_clk(interrupt_cpu_status_t *cs, CLOCK cpu_clk,
                              CLOCK *int_clk)
 {
-    unsigned int num_cycles_left = 0, last_num_cycles_left = 0, num_dma;
+    CLOCK num_cycles_left = 0, last_num_cycles_left = 0;
+    unsigned int num_dma;
     unsigned int cycles_left_to_trigger_irq = (OPINFO_DELAYS_INTERRUPT(*cs->last_opcode_info_ptr) ? 2 : 1);
     CLOCK last_start_clk = CLOCK_MAX;
 
@@ -309,25 +310,56 @@ void interrupt_ack_reset(interrupt_cpu_status_t *cs)
     }
 }
 
-/* Trigger a TRAP.  This is a special condition that can be used for
-   debugging.  `trap_func' will be called with PC as the argument when this
-   condition is detected.  */
+/* Trigger a TRAP next cycle */
 void interrupt_maincpu_trigger_trap(void (*trap_func)(uint16_t, void *data),
                                     void *data)
 {
     interrupt_cpu_status_t *cs = maincpu_int_status;
+    int this_trap_index;
+    int trap_size_needed;
+    
+    this_trap_index = cs->traps_next + cs->traps_count;
+    cs->traps_count++;
+    trap_size_needed = cs->traps_next + cs->traps_count;
+    
+    /*
+     * traps can trigger traps and more than one can be triggered per cycle ...
+     * so this is not as simple as it might otherwise be.
+     */
+    
+    if (trap_size_needed > cs->traps_size) {
+        log_message(LOG_DEFAULT, "Increasing trap_func array size to %d with %d to run", trap_size_needed, cs->traps_count);
+        cs->traps_size = trap_size_needed;
+    }
 
     cs->global_pending_int |= IK_TRAP;
-    cs->trap_func = trap_func;
-    cs->trap_data = data;
+    
+    cs->trap_func[this_trap_index] = trap_func;
+    cs->trap_data[this_trap_index] = data;
 }
 
 
 /* Dispatch the TRAP condition.  */
 void interrupt_do_trap(interrupt_cpu_status_t *cs, uint16_t address)
 {
-    cs->global_pending_int &= ~IK_TRAP;
-    cs->trap_func(address, cs->trap_data);
+    int i;
+    int traps_this_cycle = cs->traps_count;
+    
+    for (i = 0; i < traps_this_cycle; i++) {
+        cs->trap_func[cs->traps_next](address, cs->trap_data[cs->traps_next]);
+        /* Don't increment this before the trap func above has exectued! */
+        cs->traps_next++;
+    }
+    
+    if (cs->traps_count > traps_this_cycle) {
+        /* Executuing a trap scheduled another trap! Run them next cycle */
+        cs->traps_count -= traps_this_cycle;
+    } else {
+        /* All traps have been executed */
+        cs->global_pending_int &= ~IK_TRAP;
+        cs->traps_next = 0;
+        cs->traps_count = 0;
+    }
 }
 
 void interrupt_monitor_trap_on(interrupt_cpu_status_t *cs)
@@ -345,11 +377,11 @@ void interrupt_monitor_trap_off(interrupt_cpu_status_t *cs)
 int interrupt_write_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
 {
     /* FIXME: could we avoid some of this info?  */
-    if (SMW_DW(m, cs->irq_clk) < 0
-        || SMW_DW(m, cs->nmi_clk) < 0
-        || SMW_DW(m, cs->irq_pending_clk) < 0
-        || SMW_DW(m, (uint32_t)cs->num_last_stolen_cycles) < 0
-        || SMW_DW(m, cs->last_stolen_cycles_clk) < 0) {
+    if (SMW_CLOCK(m, cs->irq_clk) < 0
+        || SMW_CLOCK(m, cs->nmi_clk) < 0
+        || SMW_CLOCK(m, cs->irq_pending_clk) < 0
+        || SMW_CLOCK(m, cs->num_last_stolen_cycles) < 0
+        || SMW_CLOCK(m, cs->last_stolen_cycles_clk) < 0) {
         return -1;
     }
 
@@ -371,8 +403,8 @@ int interrupt_write_new_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *
 int interrupt_write_sc_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
 {
     if (0
-        || SMW_DW(m, cs->irq_delay_cycles) < 0
-        || SMW_DW(m, cs->nmi_delay_cycles) < 0) {
+        || SMW_CLOCK(m, cs->irq_delay_cycles) < 0
+        || SMW_CLOCK(m, cs->nmi_delay_cycles) < 0) {
         return -1;
     }
 
@@ -382,7 +414,7 @@ int interrupt_write_sc_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m
 int interrupt_read_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
 {
     unsigned int i;
-    uint32_t dw;
+    CLOCK qw;
 
     for (i = 0; i < cs->num_ints; i++) {
         cs->pending_int[i] = IK_NONE;
@@ -392,21 +424,21 @@ int interrupt_read_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
     cs->nirq = cs->nnmi = cs->reset = cs->trap = 0;
 
     if (0
-        || SMR_DW(m, &cs->irq_clk) < 0
-        || SMR_DW(m, &cs->nmi_clk) < 0
-        || SMR_DW(m, &cs->irq_pending_clk) < 0) {
+        || SMR_CLOCK(m, &cs->irq_clk) < 0
+        || SMR_CLOCK(m, &cs->nmi_clk) < 0
+        || SMR_CLOCK(m, &cs->irq_pending_clk) < 0) {
         return -1;
     }
 
-    if (SMR_DW(m, &dw) < 0) {
+    if (SMR_CLOCK(m, &qw) < 0) {
         return -1;
     }
-    cs->num_last_stolen_cycles = dw;
+    cs->num_last_stolen_cycles = qw;
 
-    if (SMR_DW(m, &dw) < 0) {
+    if (SMR_CLOCK(m, &qw) < 0) {
         return -1;
     }
-    cs->last_stolen_cycles_clk = dw;
+    cs->last_stolen_cycles_clk = qw;
 
     return 0;
 }
@@ -426,8 +458,8 @@ int interrupt_read_new_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m
 int interrupt_read_sc_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
 {
     if (0
-        || SMR_DW_UINT(m, &cs->irq_delay_cycles) < 0
-        || SMR_DW_UINT(m, &cs->nmi_delay_cycles) < 0) {
+        || SMR_CLOCK(m, &cs->irq_delay_cycles) < 0
+        || SMR_CLOCK(m, &cs->nmi_delay_cycles) < 0) {
         return -1;
     }
 

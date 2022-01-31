@@ -533,7 +533,7 @@ static int wmm_resume(void)
     return 0;
 }
 
-static sound_device_t wmm_device =
+static const sound_device_t wmm_device =
 {
     "wmm",
     wmm_init,

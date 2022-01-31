@@ -374,18 +374,27 @@ int ethernetcart_disable(void)
 }
 
 
-static const resource_int_t resources_int[] = {
+static resource_int_t resources_int[] = {
     { "ETHERNETCART_ACTIVE", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &ethernetcart_enabled, set_ethernetcart_enabled, NULL },
+    /* CAUTION: position is hardcoded below */
     { "ETHERNETCARTBase", 0xffff, RES_EVENT_STRICT, (resource_value_t)0xffff,
       &ethernetcart_base, set_ethernetcart_base, NULL },
-    { "ETHERNETCARTMode", ETHERNETCART_MODE_TFE, RES_EVENT_STRICT, (resource_value_t)ETHERNETCART_MODE_TFE,
+    { "ETHERNETCARTMode", ETHERNETCART_MODE_RRNET, RES_EVENT_STRICT, (resource_value_t)ETHERNETCART_MODE_RRNET,
       &ethernetcart_mode, set_ethernetcart_mode, NULL },
     RESOURCE_INT_LIST_END
 };
 
 int ethernetcart_resources_init(void)
 {
+    /* Set the default factory value depending on the machine. We do this
+       here so the default value will not end up in the config file. */
+    if (machine_class == VICE_MACHINE_VIC20) {
+        resources_int[1].factory_value = 0x9800;
+    } else {
+        resources_int[1].factory_value = 0xde00;
+    }
+
     if (cs8900io_resources_init() < 0) {
         return -1;
     }

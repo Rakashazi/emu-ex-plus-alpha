@@ -208,14 +208,14 @@ void actionreplay3_freeze(void)
 {
     DBG(("AR3: freeze\n"));
     ar_active = 1;
-    cart_config_changed_slotmain(3, 3, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_ULTIMAX, CMODE_ULTIMAX, CMODE_READ);
 }
 
 void actionreplay3_config_init(void)
 {
     DBG(("AR3: config init\n"));
     ar_active = 1;
-    cart_config_changed_slotmain(0 | (1 << CMODE_BANK_SHIFT), 0 | (1 << CMODE_BANK_SHIFT), CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME | (1 << CMODE_BANK_SHIFT), CMODE_8KGAME | (1 << CMODE_BANK_SHIFT), CMODE_READ);
 }
 
 void actionreplay3_reset(void)

@@ -41,6 +41,7 @@ extern int supersnapshot_v4_bin_attach(const char *filename, uint8_t *rawcart);
 extern int supersnapshot_v4_crt_attach(FILE *fd, uint8_t *rawcart);
 
 extern void supersnapshot_v4_detach(void);
+extern void supersnapshot_v4_powerup(void);
 
 struct snapshot_s;
 

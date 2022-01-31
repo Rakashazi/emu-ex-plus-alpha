@@ -30,7 +30,6 @@
 #define mycpu           maincpu
 #define myclk           maincpu_clk
 #define mycpu_rmw_flag  maincpu_rmw_flag
-#define mycpu_clk_guard maincpu_clk_guard
 
 #define myacia acia1
 
@@ -52,6 +51,7 @@ int acia1_cmdline_options_init(void);
 #define myacia_snapshot_write_module acia1_snapshot_write_module
 #define myacia_peek acia1_peek
 #define myacia_read acia1_read
+#define acia_dump acia1_dump
 #define myacia_reset acia1_reset
 #define myacia_store acia1_store
 

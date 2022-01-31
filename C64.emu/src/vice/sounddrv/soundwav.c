@@ -125,7 +125,7 @@ static void wav_close(void)
     }
 }
 
-static sound_device_t wav_device =
+static const sound_device_t wav_device =
 {
     "wav",
     wav_init,

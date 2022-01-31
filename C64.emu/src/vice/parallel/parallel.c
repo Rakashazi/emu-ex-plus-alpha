@@ -37,6 +37,8 @@
 
 /* FIXME: This should have its own log instead of using `LOG_DEFAULT'.  */
 
+/* #define DEBUG_PARALLEL */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -45,6 +47,7 @@
 #include "cmdline.h"
 #include "drive.h"
 #include "drivetypes.h"
+#include "iecbus.h"
 #include "ieee.h"
 #include "log.h"
 #include "maincpu.h"
@@ -53,13 +56,26 @@
 #include "resources.h"
 #include "types.h"
 
+#ifdef DEBUG_PARALLEL
+#define DBG(x)  log_debug x
+#else
+#define DBG(x)
+#endif
 
 #define PARALLEL_DEBUG_VERBOSE
-static int parallel_emu = 1;
+static int parallel_emu = 0;
+static int parallel_unit_enabled[IECBUS_NUM];
 
-void parallel_bus_enable(int enable)
+void parallel_bus_enable(unsigned int unit, unsigned int enable)
 {
-    parallel_emu = enable;
+    int n;
+    DBG(("parallel_bus_enable unit: %u enable: %u", unit, enable));
+    parallel_unit_enabled[unit] = enable ? 1 : 0;
+    parallel_emu = 0;
+    for (n = 0; n < IECBUS_NUM; n++) {
+        parallel_emu |= parallel_unit_enabled[unit];
+    }
+    DBG(("parallel_bus_enable parallel_emu: %d", parallel_emu));
 }
 
 /***************************************************************************
@@ -135,13 +151,13 @@ static int par_status = 0;      /* lower 8 bits = PET par_status, upper bits own
 
 /* Transitions */
 
-#define ATN_true        0	/* active low: 0 on the physical bus */
+#define ATN_true        0       /* active low: 0 on the physical bus */
 #define ATN_false       1
-#define DAV_true        2	/* active low: 0 on the physical bus */
+#define DAV_true        2       /* active low: 0 on the physical bus */
 #define DAV_false       3
-#define NDAC_true       4	/* active low: 0 on the physical bus */
+#define NDAC_true       4       /* active low: 0 on the physical bus */
 #define NDAC_false      5
-#define NRFD_true       6	/* active low: 0 on the physical bus */
+#define NRFD_true       6       /* active low: 0 on the physical bus */
 #define NRFD_false      7
 
 typedef struct State_t {
@@ -150,13 +166,13 @@ typedef struct State_t {
 } State_t;
 
 #ifdef DEBUG
-static const char *Trans[NTRANS] = {
+static const char * const Trans[NTRANS] = {
     "ATN true", "ATN false", "DAV true", "DAV false",
     "NDAC true", "NDAC false", "NRFD true", "NRFD false"
 };
 #endif
 
-static State_t State[NSTATE];
+static const State_t State[NSTATE];
 
 static int state = WaitATN;
 
@@ -414,7 +430,7 @@ static void Out2_NDAC_false(int tr)
  *
  */
 
-static State_t State[NSTATE] = {
+static const State_t State[NSTATE] = {
     { "WaitATN", { WATN_ATN_true, ignore, ignore, ignore,
                    ignore, ignore, ignore, ignore } },
     { "In1", { In1_ATN_true, In1_ATN_false, In1_DAV_true, unexpected,
@@ -708,7 +724,7 @@ void parallel_drv3_set_bus(uint8_t b)
     PARALLEL_DEBUG_SET_BUS(drv3)
 }
 
-drivefunc_context_t drive_funcs[NUM_DISK_UNITS] = {
+const drivefunc_context_t drive_funcs[NUM_DISK_UNITS] = {
     { parallel_drv0_set_bus,
       parallel_drv0_set_eoi,
       parallel_drv0_set_dav,

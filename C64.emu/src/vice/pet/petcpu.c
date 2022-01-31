@@ -66,7 +66,6 @@
 #define HAVE_6809_REGS
 
 #ifdef FEATURE_CPUMEMHISTORY
-#warning "CPUMEMHISTORY implementation for xpet is incomplete"
 static void memmap_mem_store(unsigned int addr, unsigned int value)
 {
     monitor_memmap_store(addr, MEMMAP_RAM_W);

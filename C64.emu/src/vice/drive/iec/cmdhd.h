@@ -60,6 +60,7 @@ typedef struct cmdhd_context_s {
     uint8_t i8255a_o[3];
     uint8_t scsi_dir;
     uint8_t preadyff;
+    uint8_t numattached;
 } cmdhd_context_t;
 
 typedef struct cmdhd_context_s cmdhd_context_t;
@@ -76,6 +77,7 @@ extern uint8_t cmdhd_peek(struct diskunit_context_s *ctxptr, uint16_t addr);
 extern int cmdhd_dump(diskunit_context_t *ctxptr, uint16_t addr);
 extern int cmdhd_attach_image(disk_image_t *image, unsigned int unit);
 extern int cmdhd_detach_image(disk_image_t *image, unsigned int unit);
+extern int cmdhd_update_maxsize(unsigned int size, unsigned int unit);
 
 extern int cmdhd_snapshot_write_module(cmdhd_context_t *drv, struct snapshot_s *s);
 extern int cmdhd_snapshot_read_module(cmdhd_context_t *drv, struct snapshot_s *s);

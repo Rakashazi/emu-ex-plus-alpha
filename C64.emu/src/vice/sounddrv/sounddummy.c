@@ -35,7 +35,7 @@ static int dummy_write(int16_t *pbuf, size_t nr)
     return 0;
 }
 
-static sound_device_t dummy_device =
+static const sound_device_t dummy_device =
 {
     "dummy",
     NULL,

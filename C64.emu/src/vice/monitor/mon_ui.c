@@ -369,7 +369,8 @@ void mon_navigate_goto_string(mon_navigate_private_t * mnp, char *addr)
     }
 }
 
-
+/* FIXME: seems to be dead code, leftover from the windows UI? */
+#if 0
 void mon_disassembly_determine_popup_commands(mon_disassembly_private_t *pmdp, int xPos, int yPos, uint16_t *ulMask, uint16_t *ulDefault)
 {
     MON_ADDR CurrentAddress;
@@ -430,6 +431,7 @@ void mon_disassembly_determine_popup_commands(mon_disassembly_private_t *pmdp, i
         }
     }
 }
+#endif
 
 void mon_ui_init(void)
 {

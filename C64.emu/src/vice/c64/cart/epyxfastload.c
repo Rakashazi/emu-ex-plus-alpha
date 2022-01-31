@@ -272,7 +272,7 @@ int epyxfastload_snapshot_write_module(snapshot_t *s)
 
     if (0
         || (SMW_B(m, (uint8_t)epyxrom_active) < 0)
-        || (SMW_DW(m, epyxrom_alarm_time) < 0)
+        || (SMW_CLOCK(m, epyxrom_alarm_time) < 0)
         || (SMW_BA(m, roml_banks, 0x2000) < 0)) {
         snapshot_module_close(m);
         return -1;
@@ -310,7 +310,7 @@ int epyxfastload_snapshot_read_module(snapshot_t *s)
     }
 
     if (0
-        || (SMR_DW(m, &temp_clk) < 0)
+        || (SMR_CLOCK(m, &temp_clk) < 0)
         || (SMR_BA(m, roml_banks, 0x2000) < 0)) {
         goto fail;
     }
