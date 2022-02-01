@@ -17,7 +17,7 @@
 #define ADD_CYCLES(n)	{ CPU.Cycles += (n); }
 
 extern uint8	*HDMAMemPointers[8];
-static constexpr int HDMA_ModeByteCounts[8]
+constexpr int HDMA_ModeByteCounts[8]
 {
 	1, 2, 2, 4, 4, 4, 2, 4
 };

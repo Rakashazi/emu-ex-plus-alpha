@@ -18,9 +18,9 @@ namespace EmuEx
 class VController;
 
 #ifdef SNES9X_VERSION_1_4
-static constexpr bool IS_SNES9X_VERSION_1_4 = true;
+constexpr bool IS_SNES9X_VERSION_1_4 = true;
 #else
-static constexpr bool IS_SNES9X_VERSION_1_4 = false;
+constexpr bool IS_SNES9X_VERSION_1_4 = false;
 #endif
 
 extern IG::ApplicationContext appCtx;

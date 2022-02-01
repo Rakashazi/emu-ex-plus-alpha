@@ -14,6 +14,8 @@
 #include "display.h"
 #include <math.h>
 
+#define fopen fopenHelper
+
 //#define BSX_DEBUG
 
 #define BIOS_SIZE	0x100000
@@ -1206,11 +1208,11 @@ static bool8 BSX_LoadBIOS (void)
 
 	strcpy(name, S9xGetFullFilename("BS-X.bin", BIOS_DIR));
 
-	fp = fopenHelper(name, "rb");
+	fp = fopen(name, "rb");
 	if (!fp)
 	{
 		strcpy(name, S9xGetFullFilename("BS-X.bios", BIOS_DIR));
-		fp = fopenHelper(name, "rb");
+		fp = fopen(name, "rb");
 	}
 
 	if (fp)

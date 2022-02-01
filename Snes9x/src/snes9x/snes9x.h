@@ -8,7 +8,7 @@
 #define _SNES9X_H_
 
 #ifndef VERSION
-#define VERSION	"1.60"
+#define VERSION	"1.61"
 #endif
 
 #include "port.h"
@@ -240,7 +240,7 @@ struct SSettings
 	uint32	FrameTimeNTSC = 16667;
 	uint32	FrameTime = 0;
 
-	static const bool8	SoundSync = 1;
+	static const bool8	SoundSync = 0;
 	static const bool8	SixteenBitSound = 1;
 	uint32	SoundPlaybackRate = 44100;
 	static const uint32	SoundInputRate = 32040;

@@ -16,7 +16,7 @@
 
 namespace TileImpl {
 
-	static const uint16	BlackColourMap[256]{};
+	constexpr uint16	BlackColourMap[256]{};
 
 	struct BPProgressive
 	{

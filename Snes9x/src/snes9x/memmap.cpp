@@ -49,6 +49,7 @@
 #endif
 
 #define printf S9xPrintf
+#define fopen fopenHelper
 
 static bool8	stopMovie = TRUE;
 static char		LastRomFilename[PATH_MAX + 1] = "";
@@ -896,6 +897,8 @@ static void S9xDeinterleaveGD24 (int size, uint8 *base)
 
 bool8 CMemory::Init (void)
 {
+	// TODO: If these change size, check other locations in the code that also
+	// have the fixed size. In the future, make this a static allocation.
     RAM	 = (uint8 *) malloc(0x20000);
     SRAM = (uint8 *) malloc(0x80000);
     VRAM = (uint8 *) malloc(0x10000);
@@ -1749,7 +1752,7 @@ bool8 CMemory::LoadMultiCartInt ()
 
 	    strcpy(path, S9xGetFullFilename("STBIOS.bin", BIOS_DIR));
 
-	    fp = fopenHelper(path, "rb");
+	    fp = fopen(path, "rb");
 	    if (fp)
 	    {
 		    size = fread((void *) ROM, 1, 0x40000, fp);
@@ -1888,7 +1891,7 @@ bool8 CMemory::LoadSRTC (void)
 {
 	FILE	*fp;
 
-	fp = fopenHelper(S9xGetFilename(".rtc", SRAM_DIR), "rb");
+	fp = fopen(S9xGetFilename(".rtc", SRAM_DIR), "rb");
 	if (!fp)
 		return (FALSE);
 
@@ -1903,7 +1906,7 @@ bool8 CMemory::SaveSRTC (void)
 {
 	FILE	*fp;
 
-	fp = fopenHelper(S9xGetFilename(".rtc", SRAM_DIR), "wb");
+	fp = fopen(S9xGetFilename(".rtc", SRAM_DIR), "wb");
 	if (!fp)
 		return (FALSE);
 
@@ -1921,8 +1924,8 @@ void CMemory::ClearSRAM (bool8 onlyNonSavedSRAM)
 	if (onlyNonSavedSRAM)
 		if (!(Settings.SuperFX && ROMType < 0x15) && !(Settings.SA1 && ROMType == 0x34)) // can have SRAM
 			return;
-
-	memset(SRAM, SNESGameFixes.SRAMInitialValue, 0x20000);
+	// TODO: If SRAM size changes change this value as well
+	memset(SRAM, SNESGameFixes.SRAMInitialValue, 0x80000);
 }
 
 bool8 CMemory::LoadSRAM (const char *filename)
@@ -1944,7 +1947,7 @@ bool8 CMemory::LoadSRAM (const char *filename)
 
 		size = (1 << (Multi.sramSizeB + 3)) * 128;
 
-		file = fopenHelper(S9xGetFilename(".srm", SRAM_DIR), "rb");
+		file = fopen(S9xGetFilename(".srm", SRAM_DIR), "rb");
 		if (file)
 		{
 			len = fread((char *) Multi.sramB, 1, 0x10000, file);
@@ -1957,15 +1960,17 @@ bool8 CMemory::LoadSRAM (const char *filename)
 	}
 
 	size = SRAMSize ? (1 << (SRAMSize + 3)) * 128 : 0;
-	if (size > 0x20000)
-		size = 0x20000;
+	if (LoROM)
+		size = size < 0x70000 ? size : 0x70000;
+	else if (HiROM)
+		size = size < 0x40000 ? size : 0x40000;
 
 	if (size)
 	{
-		file = fopenHelper(sramName, "rb");
+		file = fopen(sramName, "rb");
 		if (file)
 		{
-			len = fread((char *) SRAM, 1, 0x20000, file);
+			len = fread((char *) SRAM, 1, size, file);
 			fclose(file);
 			if (len - size == 512)
 				memmove(SRAM, SRAM + 512, size);
@@ -1984,10 +1989,10 @@ bool8 CMemory::LoadSRAM (const char *filename)
 
 			strcpy(path, S9xGetFullFilename("BS-X.srm", SRAM_DIR));
 
-			file = fopenHelper(path, "rb");
+			file = fopen(path, "rb");
 			if (file)
 			{
-				len = fread((char *) SRAM, 1, 0x20000, file);
+				len = fread((char *) SRAM, 1, size, file);
 				fclose(file);
 				if (len - size == 512)
 					memmove(SRAM, SRAM + 512, size);
@@ -2032,7 +2037,7 @@ bool8 CMemory::SaveSRAM (const char *filename)
 
 		size = (1 << (Multi.sramSizeB + 3)) * 128;
 
-		file = fopenHelper(name, "wb");
+		file = fopen(name, "wb");
 		if (file)
 		{
 			if (!fwrite((char *) Multi.sramB, size, 1, file))
@@ -2044,12 +2049,14 @@ bool8 CMemory::SaveSRAM (const char *filename)
     }
 
     size = SRAMSize ? (1 << (SRAMSize + 3)) * 128 : 0;
-	if (size > 0x20000)
-		size = 0x20000;
+  	if (LoROM)
+  		size = size < 0x70000 ? size : 0x70000;
+  	else if (HiROM)
+  		size = size < 0x40000 ? size : 0x40000;
 
 	if (size)
 	{
-		file = fopenHelper(sramName, "wb");
+		file = fopen(sramName, "wb");
 		if (file)
 		{
 			if (!fwrite((char *) SRAM, size, 1, file))
@@ -2078,7 +2085,7 @@ bool8 CMemory::SaveMPAK (const char *filename)
 		size = 0x100000;
 		if (size)
 		{
-			file = fopenHelper(mempakName, "wb");
+			file = fopen(mempakName, "wb");
 			if (file)
 			{
 				size_t	written;
@@ -2374,6 +2381,11 @@ void CMemory::InitROM (void)
 		case 0x1420:
 		case 0x1520:
 		case 0x1A20:
+		// SuperFX FastROM for ROM hacks
+		case 0x1330:
+		case 0x1430:
+		case 0x1530:
+		case 0x1A30:
 			Settings.SuperFX = TRUE;
 			S9xInitSuperFX();
 			if (ROM[0x7FDA] == 0x33)
@@ -3686,6 +3698,8 @@ void CMemory::ApplyROMFixes (void)
 		Timings.RenderPos = 128;
 	else if (match_na("AIR STRIKE PATROL") || match_na("DESERT FIGHTER"))
 		Timings.RenderPos = 128; // Just hides shadow
+	else if (match_na("FULL THROTTLE RACING"))
+		Timings.RenderPos = 128;
 	// From bsnes
 	else if (match_na("NHL '94") || match_na("NHL PROHOCKEY'94"))
 		Timings.RenderPos = 32;

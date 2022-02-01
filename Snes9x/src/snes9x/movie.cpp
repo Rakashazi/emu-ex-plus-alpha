@@ -28,6 +28,8 @@
 #define ftruncate chsize
 #endif
 
+#define fopen fopenHelper
+
 #define SMV_MAGIC				0x1a564d53 // SMV0x1a
 #define SMV_VERSION				5
 #define SMV_HEADER_SIZE			64

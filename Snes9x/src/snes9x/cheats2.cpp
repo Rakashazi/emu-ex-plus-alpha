@@ -11,6 +11,8 @@
 #include "cheats.h"
 #include "bml.h"
 
+#define fopen fopenHelper
+
 static inline char *trim (char *string)
 {
     int start;
@@ -62,7 +64,7 @@ static inline uint8 S9xGetByteFree (uint32 Address)
 
     case CMemory::MAP_HIROM_SRAM:
     case CMemory::MAP_RONLY_SRAM:
-        byte = *(Memory.SRAM + (((Address & 0x7fff) - 0x6000 + ((Address & 0xf0000) >> 3)) & Memory.SRAMMask));
+        byte = *(Memory.SRAM + (((Address & 0x7fff) - 0x6000 + ((Address & 0x1f0000) >> 3)) & Memory.SRAMMask));
         return (byte);
 
     case CMemory::MAP_BWRAM:
@@ -153,7 +155,7 @@ static inline void S9xSetByteFree (uint8 Byte, uint32 Address)
     case CMemory::MAP_HIROM_SRAM:
         if (Memory.SRAMMask)
         {
-            *(Memory.SRAM + (((Address & 0x7fff) - 0x6000 + ((Address & 0xf0000) >> 3)) & Memory.SRAMMask)) = Byte;
+            *(Memory.SRAM + (((Address & 0x7fff) - 0x6000 + ((Address & 0x1f0000) >> 3)) & Memory.SRAMMask)) = Byte;
             CPU.SRAMModified = TRUE;
         }
         return;
@@ -595,7 +597,7 @@ static bool8 S9xLoadCheatFileClassic (const char *filename)
     FILE *fs;
     uint8 data[28];
 
-    fs = fopenHelper(filename, "rb");
+    fs = fopen(filename, "rb");
     if (!fs)
         return (FALSE);
 
@@ -655,7 +657,7 @@ bool8 S9xSaveCheatFile (const char *filename)
         return TRUE;
     }
 
-    file = fopenHelper(filename, "w");
+    file = fopen (filename, "w");
 
     if (!file)
         return FALSE;

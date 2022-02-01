@@ -21,11 +21,11 @@ enum
 
 #ifdef SNES9X_VERSION_1_4
 const char *EmuSystem::configFilename = "Snes9x.config";
-static constexpr int inputPortMinVal = 0;
+constexpr int inputPortMinVal = 0;
 #else
 bool EmuSystem::hasBundledGames = true;
 const char *EmuSystem::configFilename = "Snes9xP.config";
-static constexpr int inputPortMinVal = -1;
+constexpr int inputPortMinVal = -1;
 #endif
 Byte1Option optionMultitap{CFGKEY_MULTITAP, 0};
 SByte1Option optionInputPort{CFGKEY_INPUT_PORT, inputPortMinVal, false, optionIsValidWithMinMax<inputPortMinVal, 3>};

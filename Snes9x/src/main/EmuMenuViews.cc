@@ -14,7 +14,7 @@
 namespace EmuEx
 {
 
-static constexpr bool HAS_NSRT = !IS_SNES9X_VERSION_1_4;
+constexpr bool HAS_NSRT = !IS_SNES9X_VERSION_1_4;
 
 #ifndef SNES9X_VERSION_1_4
 class CustomAudioOptionView : public AudioOptionView

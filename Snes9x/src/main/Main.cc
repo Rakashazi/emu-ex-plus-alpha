@@ -27,7 +27,7 @@ namespace EmuEx
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nSnes9x Team\nwww.snes9x.com";
 #if PIXEL_FORMAT == RGB565
-static constexpr auto srcPixFmt = IG::PIXEL_FMT_RGB565;
+constexpr auto srcPixFmt = IG::PIXEL_FMT_RGB565;
 #else
 #error "incompatible PIXEL_FORMAT value"
 #endif
@@ -166,13 +166,18 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreatePara
 	#endif
 	Memory.HeaderCount = 0;
 	strncpy(Memory.ROMFilename, contentFileName().data(), sizeof(Memory.ROMFilename));
-	Settings.ForceNTSC = Settings.ForcePAL = 0;
-	switch(optionVideoSystem.val)
+	auto forceVideoSystemSettings = []() -> std::pair<bool, bool> // ForceNTSC, ForcePAL
 	{
-		bcase 1: Settings.ForceNTSC = 1;
-		bcase 2: Settings.ForcePAL = 1;
-		bcase 3: Settings.ForceNTSC = Settings.ForcePAL = 1;
-	}
+		switch(optionVideoSystem.val)
+		{
+			case 1: return {true, false};
+			case 2: return {false, true};
+			case 3: return {true, true};
+		}
+		return {false, false};
+	};
+	Settings.ForceNTSC = forceVideoSystemSettings().first;
+	Settings.ForcePAL = forceVideoSystemSettings().second;
 	auto buff = io.buffer();
 	if(!buff)
 	{

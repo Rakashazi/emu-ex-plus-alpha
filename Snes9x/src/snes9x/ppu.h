@@ -197,7 +197,7 @@ struct SPPU
 	uint16	VRAMReadBuffer;
 };
 
-static constexpr uint16 SignExtend[2]
+constexpr uint16 SignExtend[2]
 {
 	0x0000,
 	0xff00
