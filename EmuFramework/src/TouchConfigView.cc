@@ -21,6 +21,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/Interpolator.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
 #include <utility>
 
@@ -89,7 +90,7 @@ public:
 	OnScreenInputPlaceView(ViewAttachParams attach, VController &vController);
 	~OnScreenInputPlaceView() final;
 	void place() final;
-	bool inputEvent(Input::Event e) final;
+	bool inputEvent(const Input::Event &e) final;
 	void draw(Gfx::RendererCommands &cmds) final;
 
 private:
@@ -149,66 +150,72 @@ void OnScreenInputPlaceView::place()
 	text.compile(renderer(), projP);
 }
 
-bool OnScreenInputPlaceView::inputEvent(Input::Event e)
+bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 {
-	if(!e.isPointer())
+	return visit(overloaded
 	{
-		if(e.pushed())
+		[&](const Input::KeyEvent &e)
 		{
-			dismiss();
-			return true;
-		}
-		return false;
-	}
-	if(e.pushed() && animationStartTimer.isArmed())
-	{
-		animationStartTimer.dispatchEarly();
-	}
-	dragTracker.inputEvent(e,
-		[&](Input::DragTrackerState, DragData &d)
-		{
-			if(d.elem == -1)
-			{
-				iterateTimes(vController().numElements(), i)
-				{
-					if(vController().state(i) == VControllerState::OFF || !vController().bounds(i).contains(e.pos()))
-						continue;
-					for(const auto &state : dragTracker.stateList())
-					{
-						if(state.data.elem == (int)i)
-							continue; // element already grabbed
-					}
-					d.elem = i;
-					d.startPos = vController().bounds(d.elem).pos(C2DO);
-					break;
-				}
-			}
-		},
-		[&](Input::DragTrackerState state, Input::DragTrackerState, DragData &d)
-		{
-			if(d.elem >= 0)
-			{
-				auto newPos = d.startPos + state.downPosDiff();
-				waitForDrawFinished();
-				vController().setPos(d.elem, newPos);
-				auto layoutPos = vController().pixelToLayoutPos(vController().bounds(d.elem).pos(C2DO), vController().bounds(d.elem).size(), viewRect());
-				//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
-				auto &vCtrlLayoutPos = vController().layoutPosition()[window().isPortrait() ? 1 : 0];
-				vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
-				vCtrlLayoutPos[d.elem].pos = layoutPos.pos;
-				vController().setLayoutPositionChanged();
-				app().viewController().placeEmuViews();
-				postDraw();
-			}
-		},
-		[&](Input::DragTrackerState state, DragData &d)
-		{
-			if(d.elem == -1 && exitBtnRect.overlaps(state.pos()) && exitBtnRect.overlaps(state.downPos()))
+			if(e.pushed())
 			{
 				dismiss();
+				return true;
 			}
-		});
-	return true;
+			return false;
+		},
+		[&](const Input::MotionEvent &e)
+		{
+			if(e.pushed() && animationStartTimer.isArmed())
+			{
+				animationStartTimer.dispatchEarly();
+			}
+			dragTracker.inputEvent(e,
+				[&](Input::DragTrackerState, DragData &d)
+				{
+					if(d.elem == -1)
+					{
+						iterateTimes(vController().numElements(), i)
+						{
+							if(vController().state(i) == VControllerState::OFF || !vController().bounds(i).contains(e.pos()))
+								continue;
+							for(const auto &state : dragTracker.stateList())
+							{
+								if(state.data.elem == (int)i)
+									continue; // element already grabbed
+							}
+							d.elem = i;
+							d.startPos = vController().bounds(d.elem).pos(C2DO);
+							break;
+						}
+					}
+				},
+				[&](Input::DragTrackerState state, Input::DragTrackerState, DragData &d)
+				{
+					if(d.elem >= 0)
+					{
+						auto newPos = d.startPos + state.downPosDiff();
+						waitForDrawFinished();
+						vController().setPos(d.elem, newPos);
+						auto layoutPos = vController().pixelToLayoutPos(vController().bounds(d.elem).pos(C2DO), vController().bounds(d.elem).size(), viewRect());
+						//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
+						auto &vCtrlLayoutPos = vController().layoutPosition()[window().isPortrait() ? 1 : 0];
+						vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
+						vCtrlLayoutPos[d.elem].pos = layoutPos.pos;
+						vController().setLayoutPositionChanged();
+						app().viewController().placeEmuViews();
+						postDraw();
+					}
+				},
+				[&](Input::DragTrackerState state, DragData &d)
+				{
+					if(d.elem == -1 && exitBtnRect.overlaps(state.pos()) && exitBtnRect.overlaps(state.downPos()))
+					{
+						dismiss();
+					}
+				});
+			return true;
+		}
+	}, e.asVariant());
 }
 
 void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
@@ -390,7 +397,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 		{"14",  &defaultFace(), setSizeDel(touchCtrlSizeMenuVal[8])},
 		{"15",  &defaultFace(), setSizeDel(touchCtrlSizeMenuVal[9])},
 		{"Custom Value", &defaultFace(),
-			[this](Input::Event e)
+			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 3.0 to 15.0", "",
 					[this](EmuApp &app, auto val)
@@ -492,7 +499,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	{
 		"Inline L/R", &defaultFace(),
 		vController().triggersInline(),
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			vController().setTriggersInline(item.flipBoolValue(*this));
 		}
@@ -552,7 +559,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	{
 		"Show Bounding Boxes", &defaultFace(),
 		vController().boundingAreaVisible(),
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			vController().setBoundingAreaVisible(item.flipBoolValue(*this));
 			postDraw();
@@ -562,7 +569,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	{
 		"Vibration", &defaultFace(),
 		vController().vibrateOnTouchInput(),
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			vController().setVibrateOnTouchInput(app(), item.flipBoolValue(*this));
 		}
@@ -571,7 +578,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	{
 		"Show Gamepad If Screen Touched", &defaultFace(),
 		vController().showOnTouchInput(),
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			vController().setShowOnTouchInput(item.flipBoolValue(*this));
 		}
@@ -594,7 +601,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	btnPlace
 	{
 		"Set Button Positions", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			auto onScreenInputPlace = makeView<OnScreenInputPlaceView>(vController());
 			pushAndShowModal(std::move(onScreenInputPlace), e);
@@ -634,7 +641,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	resetControls
 	{
 		"Reset Position & Spacing Options", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Reset buttons to default positions & spacing?");
 			ynAlertView->setOnYes(
@@ -650,7 +657,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	resetAllControls
 	{
 		"Reset All Options", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Reset all on-screen control options to default?");
 			ynAlertView->setOnYes(

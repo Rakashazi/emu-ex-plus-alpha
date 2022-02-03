@@ -37,7 +37,7 @@ RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentLis
 	clear
 	{
 		"Clear List", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Really clear the list?");
 			ynAlertView->setOnYes(
@@ -55,10 +55,10 @@ RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentLis
 	for(auto &entry : list)
 	{
 		auto &recentItem = recentGame.emplace_back(entry.name, &defaultFace(),
-			[this, &entry](Input::Event e)
+			[this, &entry](const Input::Event &e)
 			{
 				app().createSystemWithMedia({}, entry.path, appContext().fileUriDisplayName(entry.path), e, {}, attachParams(),
-					[this](Input::Event e)
+					[this](const Input::Event &e)
 					{
 						app().launchSystemWithResumePrompt(e);
 					});

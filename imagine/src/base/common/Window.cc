@@ -20,6 +20,7 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
@@ -31,7 +32,7 @@ static auto defaultOnSurfaceChange = [](Window &, Window::SurfaceChange){};
 static auto defaultOnDraw = [](Window &, Window::DrawParams){ return true; };
 static auto defaultOnFocusChange = [](Window &, bool){};
 static auto defaultOnDragDrop = [](Window &, const char *){};
-static auto defaultOnInputEvent = [](Window &, Input::Event ){ return false; };
+static auto defaultOnInputEvent = [](Window &, const Input::Event &){ return false; };
 static auto defaultOnDismissRequest = [](Window &win){ win.appContext().exit(); };
 static auto defaultOnDismiss = [](Window &){};
 
@@ -303,16 +304,17 @@ void Window::setNeedsCustomViewportResize(bool needsResize)
 bool Window::dispatchInputEvent(Input::Event event)
 {
 	bool handled = onInputEvent.callCopy(*this, event);
-	if(!handled && event.isPointer())
-	{
-		return contentBounds().overlaps(event.pos());
-	}
-	return handled;
+	return visit(overloaded{
+		[&](const Input::MotionEvent &e)
+		{
+			return handled || (e.isAbsolute() && contentBounds().overlaps(e.pos()));
+		},
+		[&](const Input::KeyEvent &e) { return handled; }
+	}, event.asVariant());
 }
 
-bool Window::dispatchRepeatableKeyInputEvent(Input::Event event)
+bool Window::dispatchRepeatableKeyInputEvent(Input::KeyEvent event)
 {
-	assert(event.isKey());
 	application().startKeyRepeatTimer(event);
 	return dispatchInputEvent(event);
 }

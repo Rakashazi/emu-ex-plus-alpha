@@ -354,7 +354,7 @@ void ApplicationContext::setHintKeyRepeat(bool on)
 
 Input::Event ApplicationContext::defaultInputEvent() const
 {
-	Input::Event e{};
+	Input::KeyEvent e{};
 	e.setMap(keyInputIsPresent() ? Input::Map::SYSTEM : Input::Map::POINTER);
 	return e;
 }

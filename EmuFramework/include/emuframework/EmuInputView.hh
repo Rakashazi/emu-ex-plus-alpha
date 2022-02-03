@@ -34,7 +34,7 @@ public:
 	EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideoLayer &videoLayer);
 	void place() final;
 	void draw(Gfx::RendererCommands &cmds) final;
-	bool inputEvent(Input::Event e) final;
+	bool inputEvent(const Input::Event &) final;
 	void resetInput();
 	VController *activeVController() const { return vController; }
 

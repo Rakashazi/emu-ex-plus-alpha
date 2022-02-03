@@ -49,7 +49,7 @@ std::u16string_view appViewTitle();
 bool hasGooglePlayStoreFeatures();
 void runBenchmarkOneShot(EmuApp &, EmuVideo &);
 void onSelectFileFromPicker(EmuApp &, GenericIO, IG::CStringView path, std::string_view displayName,
-	Input::Event, EmuSystemCreateParams, ViewAttachParams);
+	const Input::Event &, EmuSystemCreateParams, ViewAttachParams);
 void launchSystem(EmuApp &, bool tryAutoState);
 Gfx::Viewport makeViewport(const IG::Window &win);
 Gfx::Projection updateProjection(Gfx::Viewport viewport);

@@ -35,7 +35,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Pause if unfocused", &defaultFace(),
 		(bool)optionPauseUnfocused,
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionPauseUnfocused = item.flipBoolValue(*this);
 		}
@@ -52,7 +52,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		{"9",  &defaultFace(), setFontSizeDel(9000)},
 		{"10", &defaultFace(), setFontSizeDel(10000)},
 		{"Custom Value", &defaultFace(),
-			[this](Input::Event e)
+			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 2.0 to 10.0", "",
 					[this](EmuApp &app, auto val)
@@ -105,7 +105,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Suspended App Icon", &defaultFace(),
 		(bool)optionNotificationIcon,
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionNotificationIcon = item.flipBoolValue(*this);
 		}
@@ -150,7 +150,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Allow Screen Timeout In Emulation", &defaultFace(),
 		(bool)optionIdleDisplayPowerSave,
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionIdleDisplayPowerSave = item.flipBoolValue(*this);
 			appContext().setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
@@ -160,7 +160,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Title Bar", &defaultFace(),
 		(bool)optionTitleBar,
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionTitleBar = item.flipBoolValue(*this);
 			app().viewController().showNavView(optionTitleBar);
@@ -171,7 +171,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Title Back Navigation", &defaultFace(),
 		attach.viewManager().needsBackControl(),
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			manager().setNeedsBackControl(item.flipBoolValue(*this));
 			app().viewController().setShowNavViewBackButton(manager().needsBackControl());
@@ -183,7 +183,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		"Default Menu", &defaultFace(),
 		(bool)optionSystemActionsIsDefaultMenu,
 		"Last Used", "System Actions",
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionSystemActionsIsDefaultMenu = item.flipBoolValue(*this);
 		}
@@ -192,7 +192,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Show Bundled Content", &defaultFace(),
 		(bool)optionShowBundledGames,
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionShowBundledGames = item.flipBoolValue(*this);
 			app().dispatchOnMainMenuItemOptionChanged();
@@ -202,7 +202,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Show Bluetooth Menu Items", &defaultFace(),
 		(bool)optionShowBluetoothScan,
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionShowBluetoothScan = item.flipBoolValue(*this);
 			app().dispatchOnMainMenuItemOptionChanged();
@@ -212,7 +212,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Show Hidden Files", &defaultFace(),
 		app().showHiddenFilesInPicker(),
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			app().setShowHiddenFilesInPicker(item.flipBoolValue(*this));
 		}

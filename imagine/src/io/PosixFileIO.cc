@@ -17,6 +17,7 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/fd-utils.h>
+#include <imagine/util/variant.hh>
 #include "IOUtils.hh"
 #include <sys/mman.h>
 #include <errno.h>
@@ -51,7 +52,7 @@ static void applyAccessHint(PosixFileIO &io, IO::AccessHint access, bool isMappe
 PosixFileIO::PosixFileIO(UniqueFileDescriptor fd_, IO::AccessHint access, IO::OpenFlags openFlags):
 	ioImpl{std::in_place_type<PosixIO>, std::move(fd_)}
 {
-	tryMmap(std::get<PosixIO>(ioImpl).fd(), access, openFlags);
+	tryMmap(std::get_if<PosixIO>(&ioImpl)->fd(), access, openFlags);
 }
 
 PosixFileIO::PosixFileIO(UniqueFileDescriptor fd, IO::OpenFlags openFlags):
@@ -60,7 +61,7 @@ PosixFileIO::PosixFileIO(UniqueFileDescriptor fd, IO::OpenFlags openFlags):
 PosixFileIO::PosixFileIO(IG::CStringView path, IO::AccessHint access, IO::OpenFlags openFlags):
 	ioImpl{std::in_place_type<PosixIO>, path, openFlags}
 {
-	tryMmap(std::get<PosixIO>(ioImpl).fd(), access, openFlags);
+	tryMmap(std::get_if<PosixIO>(&ioImpl)->fd(), access, openFlags);
 }
 
 PosixFileIO::PosixFileIO(IG::CStringView path, IO::OpenFlags openFlags):
@@ -91,7 +92,7 @@ FileIO FileIO::create(IG::CStringView path, IO::OpenFlags mode)
 
 static IO& getIO(std::variant<PosixIO, MapIO> &ioImpl)
 {
-	return std::visit([](auto &&io) -> IO& { return io; }, ioImpl);
+	return visit([](auto &io) -> IO& { return io; }, ioImpl);
 }
 
 PosixFileIO::operator IO*() { return &getIO(ioImpl); }
@@ -100,7 +101,7 @@ PosixFileIO::operator IO&() { return getIO(ioImpl); }
 
 PosixFileIO::operator GenericIO()
 {
-	return std::visit([](auto &&io) { return GenericIO{std::move(io)}; }, ioImpl);
+	return visit([](auto &&io) { return GenericIO{std::move(io)}; }, ioImpl);
 }
 
 static IG::ByteBuffer byteBufferFromMmap(void *data, off_t size)
@@ -140,57 +141,57 @@ MapIO PosixFileIO::makePosixMapIO(IO::AccessHint access, int fd)
 
 ssize_t PosixFileIO::read(void *buff, size_t bytes)
 {
-	return std::visit([&](auto &&io){ return io.read(buff, bytes); }, ioImpl);
+	return visit([&](auto &io){ return io.read(buff, bytes); }, ioImpl);
 }
 
 ssize_t PosixFileIO::readAtPos(void *buff, size_t bytes, off_t offset)
 {
-	return std::visit([&](auto &&io){ return io.readAtPos(buff, bytes, offset); }, ioImpl);
+	return visit([&](auto &io){ return io.readAtPos(buff, bytes, offset); }, ioImpl);
 }
 
 std::span<uint8_t> PosixFileIO::map()
 {
-	return std::visit([&](auto &&io){ return io.map(); }, ioImpl);
+	return visit([&](auto &io){ return io.map(); }, ioImpl);
 }
 
 ssize_t PosixFileIO::write(const void *buff, size_t bytes)
 {
-	return std::visit([&](auto &&io){ return io.write(buff, bytes); }, ioImpl);
+	return visit([&](auto &io){ return io.write(buff, bytes); }, ioImpl);
 }
 
 bool PosixFileIO::truncate(off_t offset)
 {
-	return std::visit([&](auto &&io){ return io.truncate(offset); }, ioImpl);
+	return visit([&](auto &io){ return io.truncate(offset); }, ioImpl);
 }
 
 off_t PosixFileIO::seek(off_t offset, IO::SeekMode mode)
 {
-	return std::visit([&](auto &&io){ return io.seek(offset, mode); }, ioImpl);
+	return visit([&](auto &io){ return io.seek(offset, mode); }, ioImpl);
 }
 
 void PosixFileIO::sync()
 {
-	std::visit([&](auto &&io){ io.sync(); }, ioImpl);
+	visit([&](auto &io){ io.sync(); }, ioImpl);
 }
 
 size_t PosixFileIO::size()
 {
-	return std::visit([&](auto &&io){ return io.size(); }, ioImpl);
+	return visit([&](auto &io){ return io.size(); }, ioImpl);
 }
 
 bool PosixFileIO::eof()
 {
-	return std::visit([&](auto &&io){ return io.eof(); }, ioImpl);
+	return visit([&](auto &io){ return io.eof(); }, ioImpl);
 }
 
 void PosixFileIO::advise(off_t offset, size_t bytes, IO::Advice advice)
 {
-	std::visit([&](auto &&io){ io.advise(offset, bytes, advice); }, ioImpl);
+	visit([&](auto &io){ io.advise(offset, bytes, advice); }, ioImpl);
 }
 
 PosixFileIO::operator bool() const
 {
-	return std::visit([&](auto &&io){ return (bool)io; }, ioImpl);
+	return visit([&](auto &io){ return (bool)io; }, ioImpl);
 }
 
 IG::ByteBuffer PosixFileIO::releaseBuffer()

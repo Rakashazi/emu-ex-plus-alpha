@@ -35,6 +35,7 @@ class GenericIO;
 namespace IG::Input
 {
 class Event;
+class MotionEvent;
 class DragTrackerState;
 enum class Action : uint8_t;
 }
@@ -241,9 +242,9 @@ public:
 		bool turbo;
 		return translateInputAction(input, turbo);
 	}
-	static bool onPointerInputStart(IG::Input::Event, IG::Input::DragTrackerState, IG::WindowRect gameRect);
-	static bool onPointerInputUpdate(IG::Input::Event, IG::Input::DragTrackerState current, IG::Input::DragTrackerState previous, IG::WindowRect gameRect);
-	static bool onPointerInputEnd(IG::Input::Event, IG::Input::DragTrackerState, IG::WindowRect gameRect);
+	static bool onPointerInputStart(const Input::MotionEvent &, IG::Input::DragTrackerState, IG::WindowRect gameRect);
+	static bool onPointerInputUpdate(const Input::MotionEvent &, IG::Input::DragTrackerState current, IG::Input::DragTrackerState previous, IG::WindowRect gameRect);
+	static bool onPointerInputEnd(const Input::MotionEvent &, IG::Input::DragTrackerState, IG::WindowRect gameRect);
 	static void onVKeyboardShown(VControllerKeyboard &, bool shown);
 	static bool inputHasTriggers();
 	static void setStartFrameTime(IG::FrameTime time);

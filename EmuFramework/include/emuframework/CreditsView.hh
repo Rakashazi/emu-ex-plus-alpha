@@ -32,7 +32,7 @@ public:
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &cmds) final;
 	void place() final;
-	bool inputEvent(Input::Event e) final;
+	bool inputEvent(const Input::Event &) final;
 	std::u16string_view name() const final;
 
 private:

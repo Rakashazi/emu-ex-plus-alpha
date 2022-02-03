@@ -73,7 +73,7 @@ void EmuView::place()
 	#endif
 }
 
-bool EmuView::inputEvent(Input::Event e)
+bool EmuView::inputEvent(const Input::Event &e)
 {
 	return false;
 }

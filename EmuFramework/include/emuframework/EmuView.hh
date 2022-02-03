@@ -35,7 +35,7 @@ public:
 	void place() final;
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &cmds) final;
-	bool inputEvent(Input::Event e) final;
+	bool inputEvent(const Input::Event &) final;
 	bool hasLayer() const { return layer; }
 	void setLayoutInputView(EmuInputView *view);
 	void updateAudioStats(unsigned underruns, unsigned overruns, unsigned callbacks, double avgCallbackFrames, unsigned frames);

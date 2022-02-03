@@ -503,7 +503,7 @@ void Wiimote::processCoreButtons(const uint8_t *packet, Input::Time time)
 		{
 			//logMsg("%s %s @ wiimote %d", buttonName(Map::WIIMOTE, e.keyEvent), newState ? "pushed" : "released", player);
 			ctx.endIdleByUserActivity();
-			Event event{Map::WIIMOTE, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+			KeyEvent event{Map::WIIMOTE, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}
@@ -529,7 +529,7 @@ void Wiimote::processClassicButtons(const uint8_t *packet, Input::Time time)
 			// note: buttons are 0 when pushed
 			//logMsg("%s %s @ wiimote cc", buttonName(Map::WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			Event event{Map::WII_CC, e.keyEvent, e.sysKey, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, extDevicePtr};
+			KeyEvent event{Map::WII_CC, e.keyEvent, e.sysKey, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, extDevicePtr};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}
@@ -555,7 +555,7 @@ void Wiimote::processProButtons(const uint8_t *packet, Input::Time time)
 			// note: buttons are 0 when pushed
 			//logMsg("%s %s @ wii u pro", buttonName(Map::WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			Event event{Map::WII_CC, e.keyEvent, e.sysKey, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+			KeyEvent event{Map::WII_CC, e.keyEvent, e.sysKey, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}
@@ -578,7 +578,7 @@ void Wiimote::processNunchukButtons(const uint8_t *packet, Input::Time time)
 		{
 			//logMsg("%s %s @ wiimote nunchuk",buttonName(Map::WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			Event event{Map::WIIMOTE, e.keyEvent, e.sysKey, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+			KeyEvent event{Map::WIIMOTE, e.keyEvent, e.sysKey, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}

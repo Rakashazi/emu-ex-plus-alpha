@@ -46,9 +46,9 @@ void TextTableView::setItems(size_t items)
 	textItem.resize(items);
 }
 
-void TextTableView::onAddedToController(ViewController *c, Input::Event e)
+void TextTableView::onAddedToController(ViewController *c, const Input::Event &e)
 {
-	if(activeItem != -1 && !e.isPointer())
+	if(activeItem != -1 && e.keyEvent())
 	{
 		selected = activeItem;
 	}

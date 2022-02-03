@@ -106,7 +106,7 @@ static void onScanStatus(EmuApp &app, unsigned status, int arg)
 	};
 
 template <class ViewT>
-static void handledFailedBTAdapterInit(ViewT &view, ViewAttachParams attach, Input::Event e)
+static void handledFailedBTAdapterInit(ViewT &view, ViewAttachParams attach, const Input::Event &e)
 {
 	view.app().postErrorMessage("Unable to initialize Bluetooth adapter");
 	#ifdef CONFIG_BLUETOOTH_BTSTACK
@@ -179,7 +179,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	loadGame
 	{
 		"Open Content", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e), e, false);
 		}
@@ -187,7 +187,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	systemActions
 	{
 		"System Actions", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(!EmuSystem::gameIsRunning())
 				return;
@@ -197,7 +197,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	recentGames
 	{
 		"Recent Content", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(app().recentContent().size())
 			{
@@ -208,7 +208,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	bundledGames
 	{
 		"Bundled Content", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<BundledGamesView>(), e);
 		}
@@ -216,7 +216,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	options
 	{
 		"Options", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<OptionCategoryView>(*audio, *videoLayer), e);
 		}
@@ -224,7 +224,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	onScreenInputManager
 	{
 		"On-screen Input Setup", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<TouchConfigView>(app().defaultVController(), EmuSystem::inputFaceBtnName, EmuSystem::inputCenterBtnName), e);
 		}
@@ -232,7 +232,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	inputManager
 	{
 		"Key/Gamepad Input Setup", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<InputManagerView>(app().customKeyConfigList(), app().savedInputDeviceList()), e);
 		}
@@ -240,7 +240,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	benchmark
 	{
 		"Benchmark Content", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			pushAndShow(EmuFilePicker::makeForBenchmarking(attachParams(), e), e, false);
 		}
@@ -249,7 +249,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	scanWiimotes
 	{
 		"Scan for Wiimotes/iCP/JS1", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(app().bluetoothAdapter())
 			{
@@ -276,7 +276,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	bluetoothDisconnect
 	{
 		"Disconnect Bluetooth", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			auto devConnected = Bluetooth::devsConnected(appContext());
 			if(devConnected)
@@ -297,7 +297,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	acceptPS3ControllerConnection
 	{
 		"Scan for PS3 Controller", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(app().bluetoothAdapter())
 			{
@@ -337,7 +337,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	about
 	{
 		"About", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<CreditsView>(EmuSystem::creditsViewStr), e);
 		}
@@ -345,7 +345,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	exitApp
 	{
 		"Exit", &defaultFace(),
-		[this](Input::Event e)
+		[this]()
 		{
 			appContext().exit();
 		}
@@ -378,7 +378,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 	{
 		{
 			"Video", &defaultFace(),
-			[this, &videoLayer](Input::Event e)
+			[this, &videoLayer](const Input::Event &e)
 			{
 				auto view = EmuApp::makeView(attachParams(), EmuApp::ViewID::VIDEO_OPTIONS);
 				static_cast<VideoOptionView*>(view.get())->setEmuVideoLayer(videoLayer);
@@ -387,7 +387,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 		},
 		{
 			"Audio", &defaultFace(),
-			[this, &audio](Input::Event e)
+			[this, &audio](const Input::Event &e)
 			{
 				auto view = EmuApp::makeView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS);
 				static_cast<AudioOptionView*>(view.get())->setEmuAudio(audio);
@@ -396,14 +396,14 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 		},
 		{
 			"System", &defaultFace(),
-			[this](Input::Event e)
+			[this](const Input::Event &e)
 			{
 				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::SYSTEM_OPTIONS), e);
 			}
 		},
 		{
 			"GUI", &defaultFace(),
-			[this](Input::Event e)
+			[this](const Input::Event &e)
 			{
 				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::GUI_OPTIONS), e);
 			}

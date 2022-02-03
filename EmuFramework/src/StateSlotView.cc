@@ -67,7 +67,7 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 		}
 
 		stateSlot[idx].setOnSelect(
-			[slot](TextMenuItem &, View &view, Input::Event e)
+			[slot](View &view)
 			{
 				EmuSystem::saveStateSlot = slot;
 				logMsg("set state slot %d", EmuSystem::saveStateSlot);

@@ -40,7 +40,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 {
 	auto &info = EmuSystem::bundledGameInfo(0);
 	game[0] = {info.displayName, &defaultFace(),
-		[this, &info](Input::Event e)
+		[this, &info](const Input::Event &e)
 		{
 			auto file = appContext().openAsset(info.assetName, IO::AccessHint::ALL, IO::OPEN_TEST);
 			if(!file)
@@ -49,7 +49,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 				return;
 			}
 			app().createSystemWithMedia(std::move(file), info.assetName, info.assetName, e, {}, attachParams(),
-				[this](Input::Event e)
+				[this](const Input::Event &e)
 				{
 					app().launchSystemWithResumePrompt(e);
 				});

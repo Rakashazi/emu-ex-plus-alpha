@@ -145,7 +145,7 @@ void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKe
 	padData = IG::setOrClearBits(padData, key << playerInputShift(player), action == Input::Action::PUSHED);
 }
 
-bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG::WindowRect gameRect)
+bool EmuSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
 {
 	if(!usingZapper)
 		return false;
@@ -169,7 +169,7 @@ bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG:
 	return true;
 }
 
-bool EmuSystem::onPointerInputEnd(Input::Event, Input::DragTrackerState, IG::WindowRect)
+bool EmuSystem::onPointerInputEnd(const Input::MotionEvent &, Input::DragTrackerState, IG::WindowRect)
 {
 	if(!usingZapper)
 		return false;

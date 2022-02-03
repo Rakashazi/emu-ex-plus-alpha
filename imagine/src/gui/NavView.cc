@@ -18,6 +18,7 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
@@ -80,58 +81,65 @@ bool NavView::selectNextRightButton()
 	return false;
 }
 
-bool NavView::inputEvent(Input::Event e)
+bool NavView::inputEvent(const Input::Event &e)
 {
-	if(!e.isPointer())
+	return visit(overloaded
 	{
-		if(!e.pushed())
-			return false;
-		if(e.isDefaultUpButton() || e.isDefaultDownButton())
+		[&](const Input::KeyEvent &keyEv)
 		{
-			if(e.repeated())
+			if(!keyEv.pushed())
 				return false;
-			if(selected == -1)
+			if(keyEv.isDefaultUpButton() || keyEv.isDefaultDownButton())
+			{
+				if(keyEv.repeated())
+					return false;
+				if(selected == -1)
+				{
+					return selectNextLeftButton();
+				}
+				else if(moveFocusToNextView(keyEv, keyEv.isDefaultDownButton() ? CB2DO : CT2DO))
+				{
+					logMsg("nav focus moved");
+					selected = -1;
+					return true;
+				}
+				else
+				{
+					logMsg("nav focus not moved");
+				}
+			}
+			else if(keyEv.isDefaultLeftButton())
 			{
 				return selectNextLeftButton();
 			}
-			else if(moveFocusToNextView(e, e.isDefaultDownButton() ? CB2DO : CT2DO))
+			else if(keyEv.isDefaultRightButton())
 			{
-				logMsg("nav focus moved");
-				selected = -1;
+				return selectNextRightButton();
+			}
+			else if(keyEv.isDefaultConfirmButton() && selected != -1 && control[selected].isActive)
+			{
+				control[selected].onPush.callCopySafe(e);
 				return true;
 			}
-			else
+			return false;
+		},
+		[&](const Input::MotionEvent &motionEv)
+		{
+			if(motionEv.pushed())
 			{
-				logMsg("nav focus not moved");
+				for(auto &c : control)
+				{
+					if(c.isActive && c.rect.overlaps(motionEv.pos()))
+					{
+						selected = -1;
+						c.onPush.callCopySafe(e);
+						return true;
+					}
+				}
 			}
+			return false;
 		}
-		else if(e.isDefaultLeftButton())
-		{
-			return selectNextLeftButton();
-		}
-		else if(e.isDefaultRightButton())
-		{
-			return selectNextRightButton();
-		}
-		else if(e.isDefaultConfirmButton() && selected != -1 && control[selected].isActive)
-		{
-			control[selected].onPush.callCopySafe(e);
-			return true;
-		}
-	}
-	else if(e.pushed())
-	{
-		for(auto &c : control)
-		{
-			if(c.isActive && c.rect.overlaps(e.pos()))
-			{
-				selected = -1;
-				c.onPush.callCopySafe(e);
-				return true;
-			}
-		}
-	}
-	return false;
+	}, e.asVariant());
 }
 
 void NavView::prepareDraw()

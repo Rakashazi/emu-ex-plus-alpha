@@ -41,7 +41,7 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 	edit
 	{
 		"Add/Edit", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			auto editCheatsView = EmuApp::makeView(attachParams(), EmuApp::ViewID::EDIT_CHEATS);
 			static_cast<BaseEditCheatListView*>(editCheatsView.get())->setOnCheatListChanged(
@@ -94,7 +94,7 @@ BaseEditCheatView::BaseEditCheatView(IG::utf16String viewName, ViewAttachParams 
 	name
 	{
 		std::move(cheatName), &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input description", cheatNameString(),
 				[this](EmuApp &, auto str)

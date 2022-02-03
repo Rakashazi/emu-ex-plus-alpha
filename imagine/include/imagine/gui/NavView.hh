@@ -23,18 +23,13 @@
 #include <memory>
 #include <array>
 
-namespace IG::Input
-{
-class Event;
-};
-
 namespace IG
 {
 
 class NavView : public View
 {
 public:
-	using OnPushDelegate = DelegateFunc<void (Input::Event e)>;
+	using OnPushDelegate = DelegateFunc<void (const Input::Event &)>;
 
 	NavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face);
 	void setOnPushLeftBtn(OnPushDelegate del);
@@ -43,7 +38,7 @@ public:
 	void setTitle(IG::utf16String title) { text.setString(std::move(title)); }
 	void prepareDraw() override;
 	void place() override;
-	bool inputEvent(Input::Event e) override;
+	bool inputEvent(const Input::Event &) override;
 	void clearSelection() override;
 	virtual void showLeftBtn(bool show) = 0;
 	virtual void showRightBtn(bool show) = 0;

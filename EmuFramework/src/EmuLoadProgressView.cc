@@ -21,7 +21,7 @@
 namespace EmuEx
 {
 
-EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, Input::Event e, EmuApp::CreateSystemCompleteDelegate onComplete):
+EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::Event &e, EmuApp::CreateSystemCompleteDelegate onComplete):
 	View{attach},
 	onComplete{onComplete},
 	text{"Loading...", &defaultFace()},
@@ -116,7 +116,7 @@ void EmuLoadProgressView::place()
 	text.compile(renderer(), projP);
 }
 
-bool EmuLoadProgressView::inputEvent(Input::Event e)
+bool EmuLoadProgressView::inputEvent(const Input::Event &e)
 {
 	return true;
 }

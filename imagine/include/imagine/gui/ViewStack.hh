@@ -30,15 +30,15 @@ public:
 
 	BasicViewController();
 	RemoveViewDelegate &onRemoveView() { return removeViewDel; }
-	void push(std::unique_ptr<View> v, Input::Event e);
-	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal) override;
+	void push(std::unique_ptr<View>, const Input::Event &);
+	void pushAndShow(std::unique_ptr<View>, const Input::Event &, bool needsNavView, bool isModal) override;
 	using ViewController::pushAndShow;
 	void dismissView(View &v, bool refreshLayout = true) override;
 	void dismissView(int idx, bool refreshLayout = true) override;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
 	bool hasView() { return (bool)view; }
-	bool inputEvent(Input::Event e) override;
+	bool inputEvent(const Input::Event &) override;
 	void draw(Gfx::RendererCommands &cmds);
 
 protected:
@@ -56,13 +56,13 @@ public:
 	NavView *navView() const;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
-	bool inputEvent(Input::Event e) override;
-	bool moveFocusToNextView(Input::Event e, _2DOrigin direction) override;
+	bool inputEvent(const Input::Event &) override;
+	bool moveFocusToNextView(const Input::Event &, _2DOrigin direction) override;
 	void prepareDraw();
 	void draw(Gfx::RendererCommands &cmds);
-	void push(std::unique_ptr<View> v, Input::Event e);
-	void push(std::unique_ptr<View> v);
-	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal) override;
+	void push(std::unique_ptr<View>, const Input::Event &);
+	void push(std::unique_ptr<View>);
+	void pushAndShow(std::unique_ptr<View>, const Input::Event &, bool needsNavView, bool isModal) override;
 	using ViewController::pushAndShow;
 	void pop() override;
 	void popAndShow() override;

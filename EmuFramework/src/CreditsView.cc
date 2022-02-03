@@ -20,6 +20,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/int.hh>
+#include <imagine/util/variant.hh>
 
 namespace EmuEx
 {
@@ -62,10 +63,13 @@ void CreditsView::place()
 	text.compile(renderer(), projP);
 }
 
-bool CreditsView::inputEvent(Input::Event e)
+bool CreditsView::inputEvent(const Input::Event &e)
 {
-	if((e.isPointer() && viewRect().overlaps(e.pos()) && e.released())
-			|| (!e.isPointer() && !e.isSystemFunction() && e.pushed()))
+	if(visit(overloaded
+		{
+			[&](const Input::MotionEvent &e) { return viewRect().overlaps(e.pos()) && e.released(); },
+			[&](const Input::KeyEvent &e) { return e.pushed(Input::DefaultKey::CANCEL); }
+		}, e.asVariant()))
 	{
 		dismiss();
 		return true;

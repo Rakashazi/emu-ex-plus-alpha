@@ -100,11 +100,11 @@ public:
 		}
 	}
 
-	bool inputEvent(Input::Event e) final
+	bool inputEvent(const Input::Event &e) final
 	{
-		if(e.pushed() && e.isDefaultCancelButton())
+		if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::CANCEL))
 		{
-			if(!e.repeated())
+			if(!e.asKeyEvent().repeated())
 			{
 				appContext().exit();
 			}
@@ -204,12 +204,12 @@ IG::ApplicationContext EmuApp::appContext() const
 	return renderer.appContext();
 }
 
-void EmuApp::showSystemActionsViewFromSystem(ViewAttachParams attach, Input::Event e)
+void EmuApp::showSystemActionsViewFromSystem(ViewAttachParams attach, const Input::Event &e)
 {
 	viewController().showSystemActionsView(attach, e);
 }
 
-void EmuApp::showLastViewFromSystem(ViewAttachParams attach, Input::Event e)
+void EmuApp::showLastViewFromSystem(ViewAttachParams attach, const Input::Event &e)
 {
 	if(optionSystemActionsIsDefaultMenu)
 	{
@@ -221,7 +221,7 @@ void EmuApp::showLastViewFromSystem(ViewAttachParams attach, Input::Event e)
 	}
 }
 
-void EmuApp::showExitAlert(ViewAttachParams attach, Input::Event e)
+void EmuApp::showExitAlert(ViewAttachParams attach, const Input::Event &e)
 {
 	viewController().pushAndShowModal(std::make_unique<ExitConfirmAlertView>(attach, *emuViewController), e, false);
 }
@@ -597,10 +597,10 @@ void launchSystem(EmuApp &app, bool tryAutoState)
 }
 
 void onSelectFileFromPicker(EmuApp &app, GenericIO io, IG::CStringView path, std::string_view displayName,
-	Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams)
+	const Input::Event &e, EmuSystemCreateParams params, ViewAttachParams attachParams)
 {
 	app.createSystemWithMedia(std::move(io), path, displayName, e, params, attachParams,
-		[&app, path](Input::Event e)
+		[&app, path](const Input::Event &e)
 		{
 			app.addCurrentContentToRecent();
 			app.launchSystemWithResumePrompt(e);
@@ -624,7 +624,7 @@ void EmuApp::showEmuation()
 	}
 }
 
-void EmuApp::launchSystemWithResumePrompt(Input::Event e)
+void EmuApp::launchSystemWithResumePrompt(const Input::Event &e)
 {
 	if(optionAutoSaveState && optionConfirmAutoLoadState)
 	{
@@ -640,7 +640,7 @@ void EmuApp::launchSystemWithResumePrompt(Input::Event e)
 	}
 }
 
-void EmuApp::launchSystem(Input::Event e, bool tryAutoState)
+void EmuApp::launchSystem(const Input::Event &e, bool tryAutoState)
 {
 	EmuEx::launchSystem(*this, tryAutoState);
 }
@@ -650,20 +650,20 @@ bool EmuApp::hasArchiveExtension(std::string_view name)
 	return FS::hasArchiveExtension(name);
 }
 
-void EmuApp::pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::Event e, const char *msgText,
+void EmuApp::pushAndShowNewCollectTextInputView(ViewAttachParams attach, const Input::Event &e, const char *msgText,
 	const char *initialContent, CollectTextInputView::OnTextDelegate onText)
 {
 	pushAndShowModalView(std::make_unique<CollectTextInputView>(attach, msgText, initialContent,
 		collectTextCloseAsset(), onText), e);
 }
 
-void EmuApp::pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e, const char *label,
+void EmuApp::pushAndShowNewYesNoAlertView(ViewAttachParams attach, const Input::Event &e, const char *label,
 	const char *choice1, const char *choice2, TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo)
 {
 	pushAndShowModalView(std::make_unique<YesNoAlertView>(attach, label, choice1, choice2, onYes, onNo), e);
 }
 
-void EmuApp::pushAndShowModalView(std::unique_ptr<View> v, Input::Event e)
+void EmuApp::pushAndShowModalView(std::unique_ptr<View> v, const Input::Event &e)
 {
 	viewController().pushAndShowModal(std::move(v), e, false);
 }
@@ -706,7 +706,7 @@ void EmuApp::reloadGame(EmuSystemCreateParams params)
 	}
 }
 
-void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e, EmuSystemCreateParams params)
+void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, const Input::Event &e, EmuSystemCreateParams params)
 {
 	if(!EmuSystem::gameIsRunning())
 		return;
@@ -738,10 +738,10 @@ void EmuApp::printScreenshotResult(int num, bool success)
 	}
 }
 
-[[gnu::weak]] bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event) { return true; }
+[[gnu::weak]] bool EmuApp::willCreateSystem(ViewAttachParams attach, const Input::Event &) { return true; }
 
 void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, std::string_view displayName,
-	Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams,
+	const Input::Event &e, EmuSystemCreateParams params, ViewAttachParams attachParams,
 	CreateSystemCompleteDelegate onComplete)
 {
 	assert(strlen(path));
@@ -915,7 +915,7 @@ void EmuApp::setFirmwareSearchPath(std::string_view path)
 	EmuSystem::setFirmwarePath(path);
 }
 
-[[gnu::weak]] void EmuApp::onMainWindowCreated(ViewAttachParams, Input::Event) {}
+[[gnu::weak]] void EmuApp::onMainWindowCreated(ViewAttachParams, const Input::Event &) {}
 
 [[gnu::weak]] void EmuApp::onCustomizeNavView(EmuApp::NavView &) {}
 

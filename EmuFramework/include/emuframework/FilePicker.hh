@@ -27,16 +27,16 @@ using namespace IG;
 class EmuFilePicker : public FSPicker, public EmuAppHelper<EmuFilePicker>
 {
 public:
-	EmuFilePicker(ViewAttachParams, FSPicker::Mode, EmuSystem::NameFilterFunc, Input::Event, bool includeArchives = true);
-	EmuFilePicker(ViewAttachParams, EmuApp &, FSPicker::Mode, EmuSystem::NameFilterFunc, Input::Event, bool includeArchives = true);
-	static std::unique_ptr<EmuFilePicker> makeForBenchmarking(ViewAttachParams, Input::Event, bool singleDir = false);
-	static std::unique_ptr<EmuFilePicker> makeForLoading(ViewAttachParams, Input::Event, bool singleDir = false,
+	EmuFilePicker(ViewAttachParams, FSPicker::Mode, EmuSystem::NameFilterFunc, const Input::Event &, bool includeArchives = true);
+	EmuFilePicker(ViewAttachParams, EmuApp &, FSPicker::Mode, EmuSystem::NameFilterFunc, const Input::Event &, bool includeArchives = true);
+	static std::unique_ptr<EmuFilePicker> makeForBenchmarking(ViewAttachParams, const Input::Event &, bool singleDir = false);
+	static std::unique_ptr<EmuFilePicker> makeForLoading(ViewAttachParams, const Input::Event &, bool singleDir = false,
 		EmuSystemCreateParams params = {});
-	static std::unique_ptr<EmuFilePicker> makeForMediaChange(ViewAttachParams, Input::Event,
+	static std::unique_ptr<EmuFilePicker> makeForMediaChange(ViewAttachParams, const Input::Event &,
 		EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate, bool singleDir = false);
-	static std::unique_ptr<EmuFilePicker> makeForMediaCreation(ViewAttachParams, Input::Event);
+	static std::unique_ptr<EmuFilePicker> makeForMediaCreation(ViewAttachParams, const Input::Event &);
 	static std::unique_ptr<EmuFilePicker> makeForMediaCreation(ViewAttachParams);
-	bool inputEvent(Input::Event) final;
+	bool inputEvent(const Input::Event &) final;
 };
 
 }

@@ -48,7 +48,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Sound", &defaultFace(),
 		(bool)soundIsEnabled(),
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			setSoundEnabled(item.flipBoolValue(*this));
 			if(item.boolValue())
@@ -61,7 +61,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Sound During Fast Forward", &defaultFace(),
 		(bool)soundDuringFastForwardIsEnabled(),
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			setSoundDuringFastForwardEnabled(item.flipBoolValue(*this));
 		}
@@ -72,7 +72,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{"50%",  &defaultFace(), setVolumeDel(50)},
 		{"25%",  &defaultFace(), setVolumeDel(25)},
 		{"Custom Value", &defaultFace(),
-			[this](Input::Event e)
+			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
 					[this](EmuApp &app, auto val)
@@ -134,7 +134,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Auto-increase Buffer Size", &defaultFace(),
 		(bool)optionAddSoundBuffersOnUnderrun,
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionAddSoundBuffersOnUnderrun = item.flipBoolValue(*this);
 			audio->setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
@@ -150,7 +150,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Mix With Other Apps", &defaultFace(),
 		!app().audioManager().soloMix(),
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			app().audioManager().setSoloMix(!item.flipBoolValue(*this));
 		}

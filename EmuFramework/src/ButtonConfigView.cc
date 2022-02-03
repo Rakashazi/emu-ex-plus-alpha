@@ -22,6 +22,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
@@ -98,63 +99,71 @@ void ButtonConfigSetView::place()
 	#endif
 }
 
-bool ButtonConfigSetView::inputEvent(Input::Event e)
+bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 {
-	#ifdef CONFIG_INPUT_POINTING_DEVICES
-	if(e.isPointer() && !pointerUIIsInit())
+	return visit(overloaded
 	{
-		initPointerUI();
-		place();
-		postDraw();
-		return true;
-	}
-	else if(pointerUIIsInit() && e.isPointer() && e.released())
-	{
-		if(unbindB.overlaps(e.pos()))
+		[&](const Input::MotionEvent &motionEv)
 		{
-			logMsg("unbinding key");
-			auto onSet = onSetD;
-			dismiss();
-			onSet(Input::Event());
-			return true;
-		}
-		else if(cancelB.overlaps(e.pos()))
-		{
-			dismiss();
-			return true;
-		}
-		return false;
-	}
-	else
-	#endif
-	if(!e.isPointer() && e.pushed())
-	{
-		auto d = e.device();
-		if(d != &dev)
-		{
-			if(d == savedDev)
+			if(!Config::Input::POINTING_DEVICES || !motionEv.isAbsolute())
+				return false;
+			if(!pointerUIIsInit())
 			{
-				app().unpostMessage();
-				auto &rootIMView = this->rootIMView;
-				popTo(rootIMView);
-				rootIMView.pushAndShowDeviceView(*d, e);
-			}
-			else
-			{
-				savedDev = d;
-				app().postMessage(7, false,
-					fmt::format("You pushed a key from device:\n{}\nPush another from it to open its config menu",
-					inputDevData(*d).displayName));
+				initPointerUI();
+				place();
 				postDraw();
+				return true;
 			}
-			return true;
+			else if(pointerUIIsInit() && motionEv.released())
+			{
+				if(unbindB.overlaps(motionEv.pos()))
+				{
+					logMsg("unbinding key");
+					auto onSet = onSetD;
+					dismiss();
+					onSet(Input::KeyEvent{});
+					return true;
+				}
+				else if(cancelB.overlaps(motionEv.pos()))
+				{
+					dismiss();
+					return true;
+				}
+			}
+			return false;
+		},
+		[&](const Input::KeyEvent &keyEv)
+		{
+			if(keyEv.pushed())
+			{
+				auto d = keyEv.device();
+				if(d != &dev)
+				{
+					if(d == savedDev)
+					{
+						app().unpostMessage();
+						auto &rootIMView = this->rootIMView;
+						popTo(rootIMView);
+						rootIMView.pushAndShowDeviceView(*d, e);
+					}
+					else
+					{
+						savedDev = d;
+						app().postMessage(7, false,
+							fmt::format("You pushed a key from device:\n{}\nPush another from it to open its config menu",
+							inputDevData(*d).displayName));
+						postDraw();
+					}
+					return true;
+				}
+				auto onSet = onSetD;
+				dismiss();
+				onSet(keyEv);
+				return true;
+			}
+			return false;
 		}
-		auto onSet = onSetD;
-		dismiss();
-		onSet(e);
-		return true;
-	}
-	return false;
+	}, e.asVariant());
 }
 
 void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
@@ -185,14 +194,14 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
 	text.draw(cmds, 0, 0, C2DO, projP);
 }
 
-void ButtonConfigSetView::onAddedToController(ViewController *, Input::Event e)
+void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Event &e)
 {
-	if(e.isPointer())
+	if(e.motionEvent())
 		text.setString(fmt::format("Push key to set:\n{}", actionStr));
 	else
 		text.setString(fmt::format("Push key to set:\n{}\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr));
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
-	if(e.isPointer())
+	if(e.motionEvent())
 	{
 		initPointerUI();
 	}
@@ -250,12 +259,13 @@ void ButtonConfigView::onSet(Input::Key mapKey, int keyToSet)
 	devConf->buildKeyMap();
 }
 
-bool ButtonConfigView::inputEvent(Input::Event e)
+bool ButtonConfigView::inputEvent(const Input::Event &e)
 {
-	if(e.pushed() && e.isDefaultLeftButton() && selected > 0)
+	if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::LEFT) && selected > 0)
 	{
-		auto durationSinceLastKeySet = leftKeyPushTime.count() ? e.time() - leftKeyPushTime : Input::Time{};
-		leftKeyPushTime = e.time();
+		auto &keyEv = e.asKeyEvent();
+		auto durationSinceLastKeySet = leftKeyPushTime.count() ? keyEv.time() - leftKeyPushTime : Input::Time{};
+		leftKeyPushTime = keyEv.time();
 		if(durationSinceLastKeySet.count() && durationSinceLastKeySet <= IG::Milliseconds(500))
 		{
 			// unset key
@@ -292,11 +302,11 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 	reset
 	{
 		"Unbind All", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Really unbind all keys in this category?");
 			ynAlertView->setOnYes(
-				[this](Input::Event e)
+				[this]()
 				{
 					auto conf = devConf->makeMutableKeyConf(app());
 					if(!conf)
@@ -313,7 +323,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 		}
 	}
 {
-	logMsg("init button config view for %s", Input::Event::mapName(devConf_.device().map()).data());
+	logMsg("init button config view for %s", Input::KeyEvent::mapName(devConf_.device().map()).data());
 	cat = cat_;
 	devConf = &devConf_;
 	auto keyConfig = devConf_.keyConf();
@@ -326,11 +336,11 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 			cat->keyName[i],
 			makeKeyNameStr(key, devConf_.device().keyName(key)),
 			&defaultFace(),
-			[this, keyToSet = i](Input::Event e)
+			[this, keyToSet = i](const Input::Event &e)
 			{
 				auto btnSetView = makeView<ButtonConfigSetView>(rootIMView,
 					devConf->device(), cat->keyName[keyToSet],
-					[this, keyToSet](Input::Event e)
+					[this, keyToSet](const Input::KeyEvent &e)
 					{
 						auto mapKey = e.mapKey();
 						if(mapKey)

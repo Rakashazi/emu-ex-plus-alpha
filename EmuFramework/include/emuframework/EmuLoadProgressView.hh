@@ -29,12 +29,12 @@ class EmuLoadProgressView : public View, public EmuAppHelper<EmuLoadProgressView
 public:
 	using MessagePortType = IG::MessagePort<EmuSystem::LoadProgressMessage>;
 
-	EmuLoadProgressView(ViewAttachParams attach, Input::Event e, EmuApp::CreateSystemCompleteDelegate onComplete);
+	EmuLoadProgressView(ViewAttachParams, const Input::Event &, EmuApp::CreateSystemCompleteDelegate);
 	void setMax(int val);
 	void setPos(int val);
 	void setLabel(IG::utf16String label);
 	void place() final;
-	bool inputEvent(Input::Event e) final;
+	bool inputEvent(const Input::Event &) final;
 	void draw(Gfx::RendererCommands &cmds) final;
 	MessagePortType &messagePort();
 

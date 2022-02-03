@@ -119,7 +119,7 @@ void ToastView::draw(Gfx::RendererCommands &cmds)
 	text.draw(cmds, 0, projP.alignYToPixel(msgFrame.pos(C2DO).y), C2DO, projP);
 }
 
-bool ToastView::inputEvent(Input::Event event)
+bool ToastView::inputEvent(const Input::Event &event)
 {
 	return false;
 }

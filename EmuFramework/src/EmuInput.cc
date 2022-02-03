@@ -36,7 +36,7 @@ struct RelPtr  // for Android trackball
 };
 static RelPtr relPtr{};
 
-static void processRelPtr(EmuApp &app, Input::Event e)
+static void processRelPtr(EmuApp &app, const Input::MotionEvent &e)
 {
 	using namespace IG::Input;
 	if(relPtr.x != 0 && sign(relPtr.x) != sign(e.pos().x))
@@ -149,7 +149,7 @@ InputDeviceData::InputDeviceData(Input::Device &dev, InputDeviceSavedConfigConta
 
 void InputDeviceData::buildKeyMap(const Input::Device &d)
 {
-	auto totalKeys = Input::Event::mapNumKeys(d.map());
+	auto totalKeys = Input::KeyEvent::mapNumKeys(d.map());
 	if(!totalKeys || !devConf.isEnabled()) [[unlikely]]
 		return;
 	logMsg("allocating key mapping for:%s with player:%d", d.name().data(), devConf.player()+1);

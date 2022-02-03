@@ -615,11 +615,11 @@ bool AxisKeyEmu::dispatch(float pos, Map map, Time time, const Device &dev, Wind
 	}
 	if(updateKeys.released)
 	{
-		win.dispatchRepeatableKeyInputEvent(Event(map, updateKeys.released, updateKeys.sysReleased, Action::RELEASED, 0, 0, src, time, &dev));
+		win.dispatchRepeatableKeyInputEvent(KeyEvent{map, updateKeys.released, updateKeys.sysReleased, Action::RELEASED, 0, 0, src, time, &dev});
 	}
 	if(updateKeys.pushed)
 	{
-		Event event{map, updateKeys.pushed, updateKeys.sysPushed, Action::PUSHED, 0, 0, src, time, &dev};
+		KeyEvent event{map, updateKeys.pushed, updateKeys.sysPushed, Action::PUSHED, 0, 0, src, time, &dev};
 		win.dispatchRepeatableKeyInputEvent(event);
 	}
 	return true;

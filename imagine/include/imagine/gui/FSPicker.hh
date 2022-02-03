@@ -26,11 +26,6 @@
 #include <vector>
 #include <system_error>
 
-namespace IG::Input
-{
-class Event;
-}
-
 namespace IG::FS
 {
 class directory_entry;
@@ -44,35 +39,35 @@ class TableView;
 class FSPicker : public View
 {
 public:
-	using FilterFunc = DelegateFunc<bool(const FS::directory_entry &entry)>;
-	using OnChangePathDelegate = DelegateFunc<void (FSPicker &picker, FS::PathString prevPath, Input::Event e)>;
-	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, IG::CStringView filePath, std::string_view displayName, Input::Event e)>;
-	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, Input::Event e)>;
+	using FilterFunc = DelegateFunc<bool(const FS::directory_entry &)>;
+	using OnChangePathDelegate = DelegateFunc<void (FSPicker &, FS::PathString prevPath, const Input::Event &)>;
+	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &, IG::CStringView filePath, std::string_view displayName, const Input::Event &)>;
+	using OnCloseDelegate = DelegateFunc<void (FSPicker &, const Input::Event &)>;
 	enum class Mode : uint8_t { FILE, FILE_IN_DIR, DIR };
 
 	FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes,
 			FilterFunc filter = {}, Mode mode = Mode::FILE, Gfx::GlyphTextureSet *face = {});
 	void place() override;
-	bool inputEvent(Input::Event) override;
+	bool inputEvent(const Input::Event &) override;
 	void prepareDraw() override;
 	void draw(Gfx::RendererCommands &) override;
-	void onAddedToController(ViewController *, Input::Event) override;
+	void onAddedToController(ViewController *, const Input::Event &) override;
 	void setOnChangePath(OnChangePathDelegate);
 	void setOnSelectFile(OnSelectFileDelegate);
 	void setOnClose(OnCloseDelegate);
-	void onLeftNavBtn(Input::Event);
-	void onRightNavBtn(Input::Event);
+	void onLeftNavBtn(const Input::Event &);
+	void onRightNavBtn(const Input::Event &);
 	void setEmptyPath();
-	std::error_code setPath(IG::CStringView path, FS::RootPathInfo rootInfo, Input::Event);
-	std::error_code setPath(IG::CStringView path, FS::RootPathInfo rootInfo);
-	std::error_code setPath(IG::CStringView path, Input::Event);
+	std::error_code setPath(IG::CStringView path, FS::RootPathInfo, const Input::Event &);
+	std::error_code setPath(IG::CStringView path, FS::RootPathInfo);
+	std::error_code setPath(IG::CStringView path, const Input::Event &);
 	std::error_code setPath(IG::CStringView path);
 	FS::PathString path() const;
 	FS::RootedPath rootedPath() const;
 	void clearSelection() override;
 	bool isSingleDirectoryMode() const;
-	void goUpDirectory(Input::Event);
-	void pushFileLocationsView(Input::Event);
+	void goUpDirectory(const Input::Event &);
+	void pushFileLocationsView(const Input::Event &);
 	void setShowHiddenFiles(bool);
 
 protected:
@@ -94,7 +89,7 @@ protected:
 	Mode mode_{};
 	bool showHiddenFiles_{};
 
-	std::error_code changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, Input::Event e);
+	std::error_code changeDirByInput(IG::CStringView path, FS::RootPathInfo, const Input::Event &);
 	bool isAtRoot() const;
 	Gfx::GlyphTextureSet &face();
 	TableView &fileTableView();

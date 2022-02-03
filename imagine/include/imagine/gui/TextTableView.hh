@@ -37,7 +37,7 @@ public:
 	void setItem(size_t idx, IG::utf16String name, TextMenuItem::SelectDelegate del);
 	TextMenuItem &item(size_t idx);
 	void setItems(size_t items);
-	void onAddedToController(ViewController *c, Input::Event e) override;
+	void onAddedToController(ViewController *, const Input::Event &) override;
 	void drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const override;
 
 protected:

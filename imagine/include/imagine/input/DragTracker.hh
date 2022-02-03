@@ -74,12 +74,12 @@ public:
 
 	constexpr DragTracker() = default;
 
-	bool inputEvent(Event e,
+	bool inputEvent(const MotionEvent &e,
 		IG::invocable<DragTrackerState, UserData&> auto &&onDown,
 		IG::invocable<DragTrackerState, DragTrackerState, UserData&> auto &&onMove,
 		IG::invocable<DragTrackerState, UserData&> auto &&onUp)
 	{
-		if(!e.isPointer())
+		if(!e.isAbsolute())
 			return false;
 		auto pID = e.pointerId();
 		switch(e.state())

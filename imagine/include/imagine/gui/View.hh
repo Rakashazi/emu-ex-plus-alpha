@@ -51,16 +51,16 @@ class ViewController
 public:
 	constexpr ViewController() = default;
 	ViewController &operator=(ViewController &&) = delete;
-	virtual void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal) = 0;
-	void pushAndShow(std::unique_ptr<View> v, Input::Event e);
+	virtual void pushAndShow(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView, bool isModal) = 0;
+	void pushAndShow(std::unique_ptr<View> v, const Input::Event &e);
 	void pushAndShow(std::unique_ptr<View> v);
 	virtual void pop();
 	virtual void popAndShow();
 	virtual void popTo(View &v) = 0;
 	virtual void dismissView(View &v, bool refreshLayout = true) = 0;
 	virtual void dismissView(int idx, bool refreshLayout = true) = 0;
-	virtual bool inputEvent(Input::Event e);
-	virtual bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
+	virtual bool inputEvent(const Input::Event &e);
+	virtual bool moveFocusToNextView(const Input::Event &e, _2DOrigin direction);
 };
 
 class View
@@ -81,11 +81,11 @@ public:
 	virtual void place() = 0;
 	virtual void prepareDraw();
 	virtual void draw(Gfx::RendererCommands &cmds) = 0;
-	virtual bool inputEvent(Input::Event event) = 0;
+	virtual bool inputEvent(const Input::Event &event) = 0;
 	virtual void clearSelection(); // de-select any items from previous input
 	virtual void onShow();
 	virtual void onHide();
-	virtual void onAddedToController(ViewController *c, Input::Event e);
+	virtual void onAddedToController(ViewController *c, const Input::Event &e);
 	virtual void setFocus(bool focused);
 	virtual std::u16string_view name() const;
 
@@ -105,15 +105,15 @@ public:
 	static Gfx::Color menuTextColor(bool isSelected);
 	void dismiss(bool refreshLayout = true);
 	void dismissPrevious();
-	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView = true, bool isModal = false);
-	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView = false);
+	void pushAndShow(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView = true, bool isModal = false);
+	void pushAndShowModal(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView = false);
 	void popTo(View &v);
 	void show();
-	bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
+	bool moveFocusToNextView(const Input::Event &e, _2DOrigin direction);
 	void setWindow(Window *w);
 	void setOnDismiss(DismissDelegate del);
 	void onDismiss();
-	void setController(ViewController *c, Input::Event e);
+	void setController(ViewController *c, const Input::Event &e);
 	void setController(ViewController *c);
 	ViewController *controller() const;
 	IG::WindowRect viewRect() const;

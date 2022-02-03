@@ -62,7 +62,7 @@ protected:
 
 	void setContentSize(IG::WP size);
 	void drawScrollContent(Gfx::RendererCommands &cmds);
-	bool scrollInputEvent(Input::Event e);
+	bool scrollInputEvent(const Input::MotionEvent &);
 	void setScrollOffset(int o);
 	int scrollOffset() const;
 	void stopScrollAnimation();

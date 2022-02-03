@@ -21,6 +21,7 @@
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/variant.hh>
 #include <imagine/base/SimpleFrameTimer.hh>
 #include <imagine/logger/logger.h>
 #include <android/choreographer.h>
@@ -32,23 +33,20 @@ namespace IG
 
 FrameTimer AndroidApplication::makeFrameTimer(Screen &screen)
 {
-	if(auto javaChoreographerPtr = std::get_if<JavaChoreographer>(&choreographer);
-		javaChoreographerPtr)
+	return visit(overloaded
 	{
-		return FrameTimer{std::in_place_type<JavaChoreographerFrameTimer>, *javaChoreographerPtr};
-	}
-	else
-	{
-		auto &nativeChoreographer = std::get<NativeChoreographer>(choreographer);
-		if(nativeChoreographer)
+		[&](JavaChoreographer &c)
 		{
-			return FrameTimer{std::in_place_type<NativeChoreographerFrameTimer>, nativeChoreographer};
-		}
-		else
+			return FrameTimer{std::in_place_type<JavaChoreographerFrameTimer>, c};
+		},
+		[&](NativeChoreographer &c)
 		{
-			return FrameTimer{std::in_place_type<SimpleFrameTimer>, screen};
-		}
-	}
+			if(c)
+				return FrameTimer{std::in_place_type<NativeChoreographerFrameTimer>, c};
+			else // no choreographer
+				return FrameTimer{std::in_place_type<SimpleFrameTimer>, screen};
+		},
+	}, choreographer);
 }
 
 void AndroidApplication::initChoreographer(JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK)

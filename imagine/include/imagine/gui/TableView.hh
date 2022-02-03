@@ -42,7 +42,7 @@ class TableView : public ScrollView
 public:
 	using ItemsDelegate = DelegateFunc<size_t (const TableView &view)>;
 	using ItemDelegate = DelegateFunc<MenuItem& (const TableView &view, size_t idx)>;
-	using SelectElementDelegate = DelegateFunc<void (Input::Event e, int i, MenuItem &item)>;
+	using SelectElementDelegate = DelegateFunc<void (const Input::Event &, int i, MenuItem &)>;
 
 	TableView(IG::utf16String name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
 		ScrollView{attach}, items{items}, item{item}, nameStr{std::move(name)} {}
@@ -66,11 +66,11 @@ public:
 	void setScrollableIfNeeded(bool yes);
 	void scrollToFocusRect();
 	void resetScroll();
-	bool inputEvent(Input::Event event) override;
+	bool inputEvent(const Input::Event &) override;
 	void clearSelection() override;
 	void onShow() override;
 	void onHide() override;
-	void onAddedToController(ViewController *c, Input::Event e) override;
+	void onAddedToController(ViewController *, const Input::Event &) override;
 	void setFocus(bool focused) override;
 	void setOnSelectElement(SelectElementDelegate del);
 	size_t cells() const;
@@ -95,11 +95,11 @@ protected:
 
 	void setYCellSize(int s);
 	IG::WindowRect focusRect();
-	void onSelectElement(Input::Event e, size_t i, MenuItem &item);
+	void onSelectElement(const Input::Event &, size_t i, MenuItem &);
 	bool elementIsSelectable(MenuItem &item);
 	int nextSelectableElement(int start, int items);
 	int prevSelectableElement(int start, int items);
-	bool handleTableInput(Input::Event e, bool &movedSelected);
+	bool handleTableInput(const Input::Event &, bool &movedSelected);
 	virtual void drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const;
 };
 

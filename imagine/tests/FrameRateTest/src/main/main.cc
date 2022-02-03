@@ -102,33 +102,6 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 					}
 				});
 
-			win.setOnInputEvent(
-				[this](IG::Window &win, IG::Input::Event e)
-				{
-					auto &activeTest = windowData(win).activeTest;
-					if(!activeTest)
-					{
-						if(e.pushed() && !e.repeated() && e.isDefaultCancelButton())
-						{
-							win.appContext().exit();
-							return true;
-						}
-						return windowData(win).picker.inputEvent(e);
-					}
-					else if(e.pushed() && (e.isDefaultCancelButton() || Config::envIsIOS))
-					{
-						logMsg("canceled activeTest from input");
-						activeTest->shouldEndTest = true;
-						return true;
-					}
-					else if(e.pushed(IG::Input::Keycode::D))
-					{
-						logMsg("posting extra draw");
-						win.postDraw();
-					}
-					return false;
-				});
-
 			ctx.addOnResume(
 				[this, &win](IG::ApplicationContext, bool focused)
 				{
@@ -186,6 +159,16 @@ void FrameRateTestApplication::setPickerHandlers(IG::Window &win)
 					cmds.present();
 				});
 		});
+	win.setOnInputEvent(
+		[this](IG::Window &win, const Input::Event &e)
+		{
+			if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::CANCEL) && !e.asKeyEvent().repeated())
+			{
+				win.appContext().exit();
+				return true;
+			}
+			return windowData(win).picker.inputEvent(e);
+		});
 }
 
 void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
@@ -230,6 +213,40 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 					activeTest->presentFence = cmds.clientWaitSyncReset(activeTest->presentFence);
 					cmds.present();
 				});
+		});
+	win.setOnInputEvent(
+		[this](IG::Window &win, const Input::Event &e)
+		{
+			auto &activeTest = windowData(win).activeTest;
+			return visit(overloaded
+			{
+				[&](const Input::MotionEvent &motionEv)
+				{
+					if(motionEv.pushed() && Config::envIsIOS)
+					{
+						logMsg("canceled activeTest from pointer input");
+						activeTest->shouldEndTest = true;
+						return true;
+					}
+					return false;
+				},
+				[&](const Input::KeyEvent &keyEv)
+				{
+					if(keyEv.pushed(Input::DefaultKey::CANCEL))
+					{
+						logMsg("canceled activeTest from key input");
+						activeTest->shouldEndTest = true;
+						return true;
+					}
+					else if(keyEv.pushed(IG::Input::Keycode::D))
+					{
+						logMsg("posting extra draw");
+						win.postDraw();
+						return true;
+					}
+					return false;
+				}
+			}, e.asVariant());
 		});
 }
 

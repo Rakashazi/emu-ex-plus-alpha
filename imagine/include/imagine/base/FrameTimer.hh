@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
-#include <variant>
+#include <imagine/util/variant.hh>
 
 namespace IG
 {
@@ -44,17 +44,17 @@ public:
 
 	constexpr void scheduleVSync()
 	{
-		std::visit([](auto &&e){ e.scheduleVSync(); }, asVariant());
+		IG::visit([](auto &e){ e.scheduleVSync(); }, asVariant());
 	}
 
 	constexpr void cancel()
 	{
-		std::visit([](auto &&e){ e.cancel(); }, asVariant());
+		IG::visit([](auto &e){ e.cancel(); }, asVariant());
 	}
 
 	constexpr void setFrameTime(IG::FloatSeconds rate)
 	{
-		std::visit([&](auto &&e){ e.setFrameTime(rate); }, asVariant());
+		IG::visit([&](auto &e){ e.setFrameTime(rate); }, asVariant());
 	}
 };
 

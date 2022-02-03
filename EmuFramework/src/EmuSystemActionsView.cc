@@ -125,7 +125,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	cheats
 	{
 		"Cheats", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -136,7 +136,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	reset
 	{
 		"Reset", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -161,7 +161,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	loadState
 	{
 		"Load State", &defaultFace(),
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(item.active() && EmuSystem::gameIsRunning())
 			{
@@ -179,7 +179,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	saveState
 	{
 		"Save State", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -209,7 +209,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	stateSlot
 	{
 		{}, &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<StateSlotView>(), e);
 		}
@@ -218,7 +218,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	addLauncherIcon
 	{
 		"Add Game Shortcut to Launcher", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -245,7 +245,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	screenshot
 	{
 		"Screenshot Next Frame", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(!EmuSystem::gameIsRunning())
 				return;
@@ -268,7 +268,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	resetSessionOptions
 	{
 		"Reset Saved Options", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(!app().hasSavedSessionOptions())
 				return;
@@ -286,7 +286,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	close
 	{
 		"Close Game", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Really close current game?");
 			ynAlertView->setOnYes(

@@ -235,7 +235,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 							}
 							auto pos = win.transformInputPos({(int)AMotionEvent_getX(event, i), (int)AMotionEvent_getY(event, i)});
 							auto pId = AMotionEvent_getPointerId(event, i);
-							handled |= win.dispatchInputEvent(Input::Event{Input::Map::POINTER, Input::Pointer::LBUTTON,
+							handled |= win.dispatchInputEvent(MotionEvent{Input::Map::POINTER, Input::Pointer::LBUTTON,
 								metaState, pAction, pos.x, pos.y, pId, src, makeTimeFromMotionEvent(event), dev});
 						}
 						return handled;
@@ -246,7 +246,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 						//logMsg("mouse motion event: id:%d (%s) action:%s buttons:%d", devId, dev->name().data(), actionStr(action), btnState);
 						auto pos = win.transformInputPos({(int)AMotionEvent_getX(event, 0), (int)AMotionEvent_getY(event, 0)});
 						auto pId = AMotionEvent_getPointerId(event, 0);
-						return win.dispatchInputEvent(Input::Event{Input::Map::POINTER, btnState,
+						return win.dispatchInputEvent(MotionEvent{Input::Map::POINTER, btnState,
 							metaState, action, pos.x, pos.y, pId, src, makeTimeFromMotionEvent(event), dev});
 					}
 				}
@@ -261,11 +261,11 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 					//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 					auto src = Source::KEYBOARD;
 					if(actionCode == AMOTION_EVENT_ACTION_MOVE)
-						win.dispatchInputEvent({Map::REL_POINTER, 0, 0, Action::MOVED_RELATIVE, pos.x, pos.y, 0, Source::NAVIGATION, time, nullptr});
+						win.dispatchInputEvent(MotionEvent{Map::REL_POINTER, 0, 0, Action::MOVED_RELATIVE, pos.x, pos.y, 0, Source::NAVIGATION, time, nullptr});
 					else
 					{
 						Key key = Keycode::ENTER;
-						win.dispatchInputEvent({Map::REL_POINTER, key, key, actionCode == AMOTION_EVENT_ACTION_DOWN ? Action::PUSHED : Action::RELEASED, 0, 0, Source::KEYBOARD, time, nullptr});
+						win.dispatchInputEvent(KeyEvent{Map::REL_POINTER, key, key, actionCode == AMOTION_EVENT_ACTION_DOWN ? Action::PUSHED : Action::RELEASED, 0, 0, Source::KEYBOARD, time, nullptr});
 					}
 					return true;
 				}

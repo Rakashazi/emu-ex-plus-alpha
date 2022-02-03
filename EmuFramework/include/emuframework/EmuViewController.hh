@@ -32,6 +32,7 @@ class IO;
 namespace IG::Input
 {
 class Event;
+class KeyEvent;
 }
 
 namespace EmuEx
@@ -47,7 +48,7 @@ class EmuMenuViewStack : public ViewStack
 {
 public:
 	EmuMenuViewStack(EmuViewController &);
-	bool inputEvent(Input::Event e) final;
+	bool inputEvent(const Input::Event &) final;
 	constexpr EmuViewController &viewController() { return *emuViewControllerPtr; }
 
 protected:
@@ -60,18 +61,18 @@ public:
 	EmuViewController();
 	EmuViewController(ViewAttachParams,
 		VController &, EmuVideoLayer &, EmuSystemTask &, EmuAudio &);
-	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal = false) final;
+	void pushAndShow(std::unique_ptr<View>, const Input::Event &, bool needsNavView, bool isModal = false) final;
 	using ViewController::pushAndShow;
-	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView);
-	void pushAndShowModal(std::unique_ptr<View> v, bool needsNavView);
+	void pushAndShowModal(std::unique_ptr<View>, const Input::Event &, bool needsNavView);
+	void pushAndShowModal(std::unique_ptr<View>, bool needsNavView);
 	void pop() final;
 	void popTo(View &v) final;
 	void dismissView(View &v, bool refreshLayout) final;
 	void dismissView(int idx, bool refreshLayout) final;
-	bool inputEvent(Input::Event e) final;
+	bool inputEvent(const Input::Event &) final;
 	void showEmulation();
 	void showUI(bool updateTopView = true);
-	bool showAutoStateConfirm(Input::Event e);
+	bool showAutoStateConfirm(const Input::Event &);
 	void placeEmuViews();
 	void placeElements();
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &screen);
@@ -91,7 +92,7 @@ public:
 	void popToRoot();
 	void showNavView(bool show);
 	void setShowNavViewBackButton(bool show);
-	void showSystemActionsView(ViewAttachParams attach, Input::Event e);
+	void showSystemActionsView(ViewAttachParams, const Input::Event &);
 	void onInputDevicesChanged();
 	void onSystemCreated();
 	EmuInputView &inputView();
@@ -101,7 +102,7 @@ public:
 	void onScreenChange(IG::ApplicationContext, IG::Screen &, IG::ScreenChange);
 	void handleOpenFileCommand(IG::CStringView path);
 	void setFastForwardActive(bool active);
-	bool isMenuDismissKey(Input::Event);
+	bool isMenuDismissKey(const Input::KeyEvent &);
 	void setUsePresentationTime(bool on) { usePresentationTime_ = on; }
 	bool usePresentationTime() const { return usePresentationTime_; }
 	void writeConfig(IO &io);

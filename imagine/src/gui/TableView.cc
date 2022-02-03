@@ -23,6 +23,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/variant.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/logger/logger.h>
 
@@ -195,9 +196,9 @@ void TableView::onHide()
 	ScrollView::onHide();
 }
 
-void TableView::onAddedToController(ViewController *, Input::Event e)
+void TableView::onAddedToController(ViewController *, const Input::Event &e)
 {
-	if((!Config::Input::POINTING_DEVICES || !e.isPointer()))
+	if(e.keyEvent())
 	{
 		auto cells = items(*this);
 		if(!cells)
@@ -242,10 +243,11 @@ void TableView::resetScroll()
 	setScrollOffset(0);
 }
 
-bool TableView::inputEvent(Input::Event e)
+bool TableView::inputEvent(const Input::Event &e)
 {
 	bool handleScroll = !onlyScrollIfNeeded || contentIsBiggerThanView;
-	if(handleScroll && scrollInputEvent(e))
+	auto motionEv = e.motionEvent();
+	if(motionEv && handleScroll && scrollInputEvent(*motionEv))
 	{
 		selected = -1;
 		return true;
@@ -253,7 +255,7 @@ bool TableView::inputEvent(Input::Event e)
 	bool movedSelected = false;
 	if(handleTableInput(e, movedSelected))
 	{
-		if(movedSelected && handleScroll && !e.isPointer())
+		if(movedSelected && handleScroll && !motionEv)
 		{
 			scrollToFocusRect();
 		}
@@ -309,181 +311,181 @@ int TableView::prevSelectableElement(int start, int items)
 	return -1;
 }
 
-bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
+bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 {
 	int cells_ = items(*this);
-	if(!cells_)
+	return visit(overloaded
 	{
-		if(e.pushed() && e.isDefaultUpButton() && moveFocusToNextView(e, CT2DO))
+		[&](const Input::KeyEvent &keyEv)
 		{
-			return true;
-		}
-		else if(e.pushed() && e.isDefaultDownButton() && moveFocusToNextView(e, CB2DO))
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-	if(e.isPointer())
-	{
-		if(!pointIsInView(e.pos()) || !(e.mapKey() & Input::Pointer::LBUTTON))
-		{
-			//logMsg("cursor not in table");
-			return false;
-		}
-		int i = ((e.pos().y + scrollOffset()) - viewRect().y) / yCellSize;
-		if(i < 0 || i >= cells_)
-		{
-			//logMsg("pushed outside of item bounds");
-			return false;
-		}
-		auto &it = item(*this, i);
-		if(e.pushed())
-		{
-			//logMsg("input pushed on cell %d", i);
-			hasFocus = true;
-			if(i >= 0 && i < cells_ && elementIsSelectable(it))
+			if(!cells_)
 			{
-				selected = i;
-				postDraw();
-			}
-		}
-		else if(e.isOff()) // TODO, need to check that Input::PUSHED was sent on entry
-		{
-			//logMsg("input released on cell %d", i);
-			if(i >= 0 && i < cells_ && selected == i && elementIsSelectable(it))
-			{
-				postDraw();
-				selected = -1;
-				if(!e.canceled())
+				if(keyEv.pushed(Input::DefaultKey::UP) && moveFocusToNextView(e, CT2DO))
 				{
-					logDMsg("entry %d pushed", i);
+					return true;
+				}
+				else if(keyEv.pushed(Input::DefaultKey::DOWN) && moveFocusToNextView(e, CB2DO))
+				{
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+			if(keyEv.pushed(Input::DefaultKey::UP))
+			{
+				if(!hasFocus)
+				{
+					logMsg("gained focus from key input");
+					hasFocus = true;
+					if(selected != -1)
+					{
+						postDraw();
+						return true;
+					}
+				}
+				//logMsg("move up %d", selected);
+				if(selected == -1)
+					selected = prevSelectableElement(cells_ - 1, cells_);
+				else
+				{
+					auto prevSelected = selected;
+					selected = prevSelectableElement(selected - 1, cells_);
+					if(selected > prevSelected || cells_ == 1)
+					{
+						if(keyEv.repeated())
+						{
+							selected = prevSelected;
+							return true;
+						}
+						else if(moveFocusToNextView(e, CT2DO))
+						{
+							selected = -1;
+							return true;
+						}
+					}
+				}
+				logMsg("up, selected %d", selected);
+				postDraw();
+				movedSelected = true;
+				return true;
+			}
+			else if(keyEv.pushed(Input::DefaultKey::DOWN))
+			{
+				if(!hasFocus)
+				{
+					logMsg("gained focus from key input");
+					hasFocus = true;
+					if(selected != -1)
+					{
+						postDraw();
+						return true;
+					}
+				}
+				if(selected == -1)
+					selected = nextSelectableElement(0, cells_);
+				else
+				{
+					auto prevSelected = selected;
+					selected = nextSelectableElement(selected + 1, cells_);
+					if(selected < prevSelected || cells_ == 1)
+					{
+						if(keyEv.repeated())
+						{
+							selected = prevSelected;
+							return true;
+						}
+						else if(moveFocusToNextView(e, CB2DO))
+						{
+							selected = -1;
+							return true;
+						}
+					}
+				}
+				logMsg("down, selected %d", selected);
+				postDraw();
+				movedSelected = true;
+				return true;
+			}
+			else if(keyEv.pushed(Input::DefaultKey::CONFIRM))
+			{
+				if(selected != -1)
+				{
+					logDMsg("entry %d pushed", selected);
 					selectedIsActivated = true;
-					onSelectElement(e, i, it);
+					onSelectElement(e, selected, item(*this, selected));
+				}
+				return true;
+			}
+			else if(keyEv.pushed(Input::DefaultKey::PAGE_UP))
+			{
+				if(selected == -1)
+					selected = cells_ - 1;
+				else
+					selected = std::clamp(selected - visibleCells, 0, cells_ - 1);
+				logMsg("selected %d", selected);
+				postDraw();
+				movedSelected = true;
+				return true;
+			}
+			else if(keyEv.pushed(Input::DefaultKey::PAGE_DOWN))
+			{
+				if(selected == -1)
+					selected = 0;
+				else
+					selected = std::clamp(selected + visibleCells, 0, cells_ - 1);
+				logMsg("selected %d", selected);
+				postDraw();
+				movedSelected = true;
+				return true;
+			}
+			return false;
+		},
+		[&](const Input::MotionEvent &motionEv)
+		{
+			if(!motionEv.isAbsolute())
+				return false;
+			if(!pointIsInView(motionEv.pos()) || !(motionEv.mapKey() & Input::Pointer::LBUTTON))
+			{
+				//logMsg("cursor not in table");
+				return false;
+			}
+			int i = ((motionEv.pos().y + scrollOffset()) - viewRect().y) / yCellSize;
+			if(i < 0 || i >= cells_)
+			{
+				//logMsg("pushed outside of item bounds");
+				return false;
+			}
+			auto &it = item(*this, i);
+			if(motionEv.pushed())
+			{
+				//logMsg("input pushed on cell %d", i);
+				hasFocus = true;
+				if(i >= 0 && i < cells_ && elementIsSelectable(it))
+				{
+					selected = i;
+					postDraw();
 				}
 			}
-		}
-		return true;
-	}
-	else // Key or Relative Pointer
-	{
-		if(e.isRelativePointer())
-			logMsg("got rel pointer %d", e.pos().y);
-
-		if((e.pushed() && e.isDefaultUpButton())
-			|| (e.isRelativePointer() && e.pos().y < 0))
-		{
-			if(!hasFocus)
+			else if(motionEv.isOff()) // TODO, need to check that Input::PUSHED was sent on entry
 			{
-				logMsg("gained focus from key input");
-				hasFocus = true;
-				if(selected != -1)
+				//logMsg("input released on cell %d", i);
+				if(i >= 0 && i < cells_ && selected == i && elementIsSelectable(it))
 				{
 					postDraw();
-					return true;
-				}
-			}
-			//logMsg("move up %d", selected);
-			if(selected == -1)
-				selected = prevSelectableElement(cells_ - 1, cells_);
-			else
-			{
-				auto prevSelected = selected;
-				selected = prevSelectableElement(selected - 1, cells_);
-				if(selected > prevSelected || cells_ == 1)
-				{
-					if(e.repeated())
+					selected = -1;
+					if(!motionEv.canceled())
 					{
-						selected = prevSelected;
-						return true;
-					}
-					else if(moveFocusToNextView(e, CT2DO))
-					{
-						selected = -1;
-						return true;
+						logDMsg("entry %d pushed", i);
+						selectedIsActivated = true;
+						onSelectElement(e, i, it);
 					}
 				}
 			}
-			logMsg("up, selected %d", selected);
-			postDraw();
-			movedSelected = true;
 			return true;
 		}
-		else if((e.pushed() && e.isDefaultDownButton())
-			|| (e.isRelativePointer() && e.pos().y > 0))
-		{
-			if(!hasFocus)
-			{
-				logMsg("gained focus from key input");
-				hasFocus = true;
-				if(selected != -1)
-				{
-					postDraw();
-					return true;
-				}
-			}
-			if(selected == -1)
-				selected = nextSelectableElement(0, cells_);
-			else
-			{
-				auto prevSelected = selected;
-				selected = nextSelectableElement(selected + 1, cells_);
-				if(selected < prevSelected || cells_ == 1)
-				{
-					if(e.repeated())
-					{
-						selected = prevSelected;
-						return true;
-					}
-					else if(moveFocusToNextView(e, CB2DO))
-					{
-						selected = -1;
-						return true;
-					}
-				}
-			}
-			logMsg("down, selected %d", selected);
-			postDraw();
-			movedSelected = true;
-			return true;
-		}
-		else if(e.pushed() && e.isDefaultConfirmButton())
-		{
-			if(selected != -1)
-			{
-				logDMsg("entry %d pushed", selected);
-				selectedIsActivated = true;
-				onSelectElement(e, selected, item(*this, selected));
-			}
-			return true;
-		}
-		else if(e.pushed() && e.isDefaultPageUpButton())
-		{
-			if(selected == -1)
-				selected = cells_ - 1;
-			else
-				selected = std::clamp(selected - visibleCells, 0, cells_ - 1);
-			logMsg("selected %d", selected);
-			postDraw();
-			movedSelected = true;
-			return true;
-		}
-		else if(e.pushed() && e.isDefaultPageDownButton())
-		{
-			if(selected == -1)
-				selected = 0;
-			else
-				selected = std::clamp(selected + visibleCells, 0, cells_ - 1);
-			logMsg("selected %d", selected);
-			postDraw();
-			movedSelected = true;
-			return true;
-		}
-	}
-	return false;
+	}, e.asVariant());
 }
 
 void TableView::drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const
@@ -491,7 +493,7 @@ void TableView::drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &ite
 	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, align, projP, Gfx::color(Gfx::ColorName::WHITE));
 }
 
-void TableView::onSelectElement(Input::Event e, size_t i, MenuItem &item)
+void TableView::onSelectElement(const Input::Event &e, size_t i, MenuItem &item)
 {
 	if(selectElementDel)
 		selectElementDel(e, i, item);

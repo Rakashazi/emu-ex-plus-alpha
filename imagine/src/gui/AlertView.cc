@@ -39,7 +39,7 @@ BaseAlertView::BaseAlertView(ViewAttachParams attach, IG::utf16String label, Tab
 	menu.setAlign(C2DO);
 	menu.setScrollableIfNeeded(true);
 	menu.setOnSelectElement(
-		[this](Input::Event e, int i, MenuItem &item)
+		[this](const Input::Event &e, int i, MenuItem &item)
 		{
 			bool wasDismissed = false;
 			setOnDismiss(
@@ -86,9 +86,9 @@ void BaseAlertView::place()
 	menu.place();
 }
 
-bool BaseAlertView::inputEvent(Input::Event e)
+bool BaseAlertView::inputEvent(const Input::Event &e)
 {
-	if(e.pushed() && e.isDefaultCancelButton())
+	if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::CANCEL))
 	{
 		dismiss();
 		return true;
@@ -120,7 +120,7 @@ void BaseAlertView::draw(Gfx::RendererCommands &cmds)
 	//setClipRect(0);
 }
 
-void BaseAlertView::onAddedToController(ViewController *c, Input::Event e)
+void BaseAlertView::onAddedToController(ViewController *c, const Input::Event &e)
 {
 	menu.setController(c, e);
 }

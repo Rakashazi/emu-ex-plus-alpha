@@ -37,7 +37,7 @@ public:
 	void unpost();
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &cmds) final;
-	bool inputEvent(Input::Event event) final;
+	bool inputEvent(const Input::Event &) final;
 
 private:
 	Gfx::Text text{};

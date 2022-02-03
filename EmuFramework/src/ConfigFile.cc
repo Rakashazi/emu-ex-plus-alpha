@@ -115,7 +115,7 @@ static bool readKeyConfig(KeyConfigContainer &customKeyConfigs,
 
 			// verify keys
 			{
-				const auto keyMax = Input::Event::mapNumKeys(keyConf.map);
+				const auto keyMax = Input::KeyEvent::mapNumKeys(keyConf.map);
 				iterateTimes(cat.keys, i)
 				{
 					if(key[i] >= keyMax)

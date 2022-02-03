@@ -297,7 +297,7 @@ const char *controllerTypeStr(Controller::Type type)
 	}
 }
 
-bool EmuSystem::onPointerInputUpdate(Input::Event, Input::DragTrackerState dragState,
+bool EmuSystem::onPointerInputUpdate(const Input::MotionEvent &, Input::DragTrackerState dragState,
 	Input::DragTrackerState, IG::WindowRect)
 {
 	switch(osystem->console().leftController().type())

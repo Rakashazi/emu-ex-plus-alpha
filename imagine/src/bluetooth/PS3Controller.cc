@@ -221,7 +221,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 				{
 					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e.keyEvent), newState ? "pushed" : "released", player);
 					ctx.endIdleByUserActivity();
-					Event event{Map::PS3PAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+					KeyEvent event{Map::PS3PAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 					ctx.application().dispatchRepeatableKeyInputEvent(event);
 				}
 			}

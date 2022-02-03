@@ -68,9 +68,9 @@ public:
 		fpsText.compile(renderer(), projP);
 	}
 
-	bool inputEvent(Input::Event e) final
+	bool inputEvent(const Input::Event &e) final
 	{
-		if(e.pushed() && e.isDefaultCancelButton())
+		if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::CANCEL))
 		{
 			logMsg("aborted detection");
 			dismiss();
@@ -152,7 +152,7 @@ public:
 		}
 	}
 
-	void onAddedToController(ViewController *, Input::Event e) final
+	void onAddedToController(ViewController *, const Input::Event &e) final
 	{
 		lastFrameTimestamp = std::chrono::duration_cast<IG::FrameTime>(IG::steadyClockTimestamp());
 		detectFrameRate =
@@ -298,7 +298,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Skip Late Frames", &defaultFace(),
 		(bool)optionSkipLateFrames,
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionSkipLateFrames.val = item.flipBoolValue(*this);
 		}
@@ -306,7 +306,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	frameRate
 	{
 		{}, &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_NATIVE_NTSC, e);
 			postDraw();
@@ -315,7 +315,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	frameRatePAL
 	{
 		{}, &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_PAL, e);
 			postDraw();
@@ -344,7 +344,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"Integer-only",          &defaultFace(), setZoomDel(optionImageZoomIntegerOnly)},
 		{"Integer-only (Height)", &defaultFace(), setZoomDel(optionImageZoomIntegerOnlyY)},
 		{"Custom Value", &defaultFace(),
-			[this](Input::Event e)
+			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 10 to 100", "",
 					[this](EmuApp &app, auto val)
@@ -398,7 +398,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"95%", &defaultFace(),  setViewportZoomDel(95)},
 		{"90%", &defaultFace(),  setViewportZoomDel(90)},
 		{"Custom Value", &defaultFace(),
-			[this](Input::Event e)
+			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 50 to 100", "",
 					[this](EmuApp &app, auto val)
@@ -445,7 +445,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Image Interpolation", &defaultFace(),
 		(bool)optionImgFilter,
 		"None", "Linear",
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionImgFilter.val = item.flipBoolValue(*this);
 			videoLayer->setLinearFilter(optionImgFilter);
@@ -507,7 +507,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"50%",  &defaultFace(), setOverlayEffectLevelDel(50)},
 		{"25%",  &defaultFace(), setOverlayEffectLevelDel(25)},
 		{"Custom Value", &defaultFace(),
-			[this](Input::Event e)
+			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
 					[this](EmuApp &app, auto val)
@@ -601,7 +601,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"2nd Window (for testing only)", &defaultFace(),
 		false,
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			app().viewController().setEmuViewOnExtraWindow(item.flipBoolValue(*this), appContext().mainScreen());
 		}
@@ -613,7 +613,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"External Screen", &defaultFace(),
 		(bool)optionShowOnSecondScreen,
 		"OS Managed", "Emu Content",
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionShowOnSecondScreen = item.flipBoolValue(*this);
 			if(appContext().screens().size() > 1)
@@ -679,7 +679,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Reduce Compositor Lag", &defaultFace(),
 		app().viewController().usePresentationTime(),
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			app().viewController().setUsePresentationTime(item.flipBoolValue(*this));
 		}
@@ -707,7 +707,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			});
 	}
 	aspectRatioItem.emplace_back("Custom Value", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			app().pushAndShowNewCollectValueInputView<std::pair<double, double>>(attachParams(), e,
 				"Input decimal or fraction", "",
@@ -851,12 +851,12 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::Float
 	return true;
 }
 
-void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e)
+void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, const Input::Event &e)
 {
 	const bool includeFrameRateDetection = !Config::envIsIOS;
 	auto multiChoiceView = makeViewWithName<TextTableView>("Frame Rate", includeFrameRateDetection ? 4 : 3);
 	multiChoiceView->appendItem("Set with screen's reported rate",
-		[this, vidSys](View &view, Input::Event e)
+		[this, vidSys](View &view)
 		{
 			if(!app().viewController().emuWindowScreen()->frameRateIsReliable())
 			{
@@ -877,13 +877,13 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 				view.dismiss();
 		});
 	multiChoiceView->appendItem("Set default rate",
-		[this, vidSys](View &view, Input::Event e)
+		[this, vidSys](View &view)
 		{
 			onFrameTimeChange(vidSys, EmuSystem::defaultFrameTime(vidSys));
 			view.dismiss();
 		});
 	multiChoiceView->appendItem("Set custom rate",
-		[this, vidSys](Input::Event e)
+		[this, vidSys](const Input::Event &e)
 		{
 			app().pushAndShowNewCollectValueInputView<std::pair<double, double>>(attachParams(), e,
 				"Input decimal or fraction", "",
@@ -901,7 +901,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 	if(includeFrameRateDetection)
 	{
 		multiChoiceView->appendItem("Detect screen's rate and set",
-			[this, vidSys](Input::Event e)
+			[this, vidSys](const Input::Event &e)
 			{
 				window().setIntendedFrameRate(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC ? 60. : 50.);
 				auto frView = makeView<DetectFrameRateView>();

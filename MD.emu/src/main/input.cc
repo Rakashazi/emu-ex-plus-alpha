@@ -124,7 +124,7 @@ void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKe
 	padData = IG::setOrClearBits(padData, (uint16)emuKey, action == Input::Action::PUSHED);
 }
 
-bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG::WindowRect gameRect)
+bool EmuSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
 {
 	if(input.dev[gunDevIdx] != DEVICE_LIGHTGUN)
 		return false;
@@ -139,7 +139,7 @@ bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG:
 	return true;
 }
 
-bool EmuSystem::onPointerInputEnd(Input::Event, Input::DragTrackerState, IG::WindowRect)
+bool EmuSystem::onPointerInputEnd(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect)
 {
 	if(input.dev[gunDevIdx] != DEVICE_LIGHTGUN)
 		return false;

@@ -33,7 +33,7 @@ public:
 	TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP);
 	void setAcceptingInput(bool on);
 	bool isAcceptingInput() const;
-	bool inputEvent(View &parentView, Input::Event e);
+	bool inputEvent(View &parentView, const Input::Event &);
 	void prepareDraw(Gfx::Renderer &r);
 	void draw(Gfx::RendererCommands &cmds);
 	void place(Gfx::Renderer &r);
@@ -62,7 +62,7 @@ public:
 		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = {}):
 		CollectTextInputView(attach, msgText, "", closeRes, onText, face) {}
 	void place() override;
-	bool inputEvent(Input::Event e) override;
+	bool inputEvent(const Input::Event &) override;
 	void prepareDraw() override;
 	void draw(Gfx::RendererCommands &cmds) override;
 

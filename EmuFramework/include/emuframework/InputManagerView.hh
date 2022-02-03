@@ -36,12 +36,12 @@ class EmuInputView;
 class IdentInputDeviceView : public View
 {
 public:
-	using OnIdentInputDelegate = DelegateFunc<void (Input::Event e)>;
+	using OnIdentInputDelegate = DelegateFunc<void (const Input::KeyEvent &)>;
 	OnIdentInputDelegate onIdentInput{};
 
 	IdentInputDeviceView(ViewAttachParams attach);
 	void place() final;
-	bool inputEvent(Input::Event e) final;
+	bool inputEvent(const Input::Event &) final;
 	void draw(Gfx::RendererCommands &cmds) final;
 
 private:
@@ -54,7 +54,7 @@ public:
 	InputManagerView(ViewAttachParams attach, KeyConfigContainer &, InputDeviceSavedConfigContainer &);
 	~InputManagerView() final;
 	void onShow() final;
-	void pushAndShowDeviceView(const Input::Device &, Input::Event);
+	void pushAndShowDeviceView(const Input::Device &, const Input::Event &);
 
 private:
 	KeyConfigContainer *customKeyConfigsPtr{};
@@ -134,7 +134,7 @@ private:
 	StaticArrayList<MenuItem*, Controls::MAX_CATEGORIES + 11> item{};
 	InputDeviceConfig *devConf{};
 
-	void confirmICadeMode(Input::Event e);
+	void confirmICadeMode();
 	void loadItems();
 	KeyConfigContainer &customKeyConfigs() const { return *customKeyConfigsPtr; };
 	InputDeviceSavedConfigContainer &savedInputDevs() const { return *savedInputDevsPtr; };

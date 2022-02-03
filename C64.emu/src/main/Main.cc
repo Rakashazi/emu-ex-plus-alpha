@@ -377,7 +377,7 @@ static bool initC64(EmuApp &app)
 	return true;
 }
 
-bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event e)
+bool EmuApp::willCreateSystem(ViewAttachParams attach, const Input::Event &e)
 {
 	if(!c64FailedInit)
 		return true;
@@ -555,7 +555,7 @@ static FS::PathString autostartPrgDiskImagePath(IG::ApplicationContext ctx)
 	return FS::pathString(EmuSystem::fallbackSaveDirectory(ctx), "AutostartPrgDisk.d64");
 }
 
-void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
+void EmuApp::onMainWindowCreated(ViewAttachParams attach, const Input::Event &e)
 {
 	sysFilePath[0] = EmuSystem::firmwarePath();
 	plugin.init();

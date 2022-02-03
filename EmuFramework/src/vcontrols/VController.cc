@@ -227,7 +227,7 @@ std::array<int, 2> VController::findGamepadElements(IG::WP pos)
 	return {-1, -1};
 }
 
-int VController::keyboardKeyFromPointer(Input::Event e)
+int VController::keyboardKeyFromPointer(const Input::MotionEvent &e)
 {
 	assert(isInKeyboardMode());
 	if(e.pushed())
@@ -257,9 +257,8 @@ int VController::keyboardKeyFromPointer(Input::Event e)
 	return -1;
 }
 
-bool VController::pointerInputEvent(Input::Event e, IG::WindowRect gameRect)
+bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect gameRect)
 {
-	assert(e.isPointer());
 	static constexpr std::array<int, 2> nullElems{-1, -1};
 	std::array<int, 2> newElems = nullElems;
 	if(isInKeyboardMode())
@@ -334,7 +333,7 @@ bool VController::pointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 	return elementsArePushed;
 }
 
-bool VController::keyInput(Input::Event e)
+bool VController::keyInput(const Input::KeyEvent &e)
 {
 	if(!isInKeyboardMode())
 		return false;

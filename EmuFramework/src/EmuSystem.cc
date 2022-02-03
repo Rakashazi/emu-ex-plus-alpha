@@ -548,11 +548,11 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] bool EmuSystem::vidSysIsPAL() { return false; }
 
-[[gnu::weak]] bool EmuSystem::onPointerInputStart(Input::Event, Input::DragTrackerState, IG::WindowRect) { return false; }
+[[gnu::weak]] bool EmuSystem::onPointerInputStart(const Input::MotionEvent &, Input::DragTrackerState, IG::WindowRect) { return false; }
 
-[[gnu::weak]] bool EmuSystem::onPointerInputUpdate(Input::Event, Input::DragTrackerState, Input::DragTrackerState, IG::WindowRect) { return false; }
+[[gnu::weak]] bool EmuSystem::onPointerInputUpdate(const Input::MotionEvent &, Input::DragTrackerState, Input::DragTrackerState, IG::WindowRect) { return false; }
 
-[[gnu::weak]] bool EmuSystem::onPointerInputEnd(Input::Event, Input::DragTrackerState, IG::WindowRect) { return false; }
+[[gnu::weak]] bool EmuSystem::onPointerInputEnd(const Input::MotionEvent &, Input::DragTrackerState, IG::WindowRect) { return false; }
 
 [[gnu::weak]] void EmuSystem::onPrepareAudio(EmuAudio &) {}
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <imagine/input/Input.hh>
 #include <imagine/bluetooth/sys.hh>
 
 namespace IG

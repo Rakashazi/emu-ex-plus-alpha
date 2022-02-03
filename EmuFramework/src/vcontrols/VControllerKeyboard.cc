@@ -107,11 +107,11 @@ int VControllerKeyboard::translateInput(unsigned idx) const
 	return table[0][idx];
 }
 
-bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, Input::Event e)
+bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, const Input::KeyEvent &e)
 {
 	if(selected.x == -1)
 	{
-		if(e.pushed() && (e.isDefaultConfirmButton() || e.isDefaultDirectionButton()))
+		if(e.pushed(Input::DefaultKey::CONFIRM) || e.pushed(Input::DefaultKey::DIRECTION))
 		{
 			selected = selectKey(0, 3);
 			return true;

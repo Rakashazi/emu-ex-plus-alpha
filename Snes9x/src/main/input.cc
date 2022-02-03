@@ -285,7 +285,7 @@ void setupSNESInput(VController &vCtrl)
 	#endif
 }
 
-bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG::WindowRect gameRect)
+bool EmuSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
 {
 	switch(snesActiveInputPort)
 	{
@@ -340,7 +340,7 @@ bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG:
 	return false;
 }
 
-bool EmuSystem::onPointerInputUpdate(Input::Event e, Input::DragTrackerState dragState,
+bool EmuSystem::onPointerInputUpdate(const Input::MotionEvent &e, Input::DragTrackerState dragState,
 	Input::DragTrackerState prevDragState, IG::WindowRect gameRect)
 {
 	switch(snesActiveInputPort)
@@ -385,7 +385,7 @@ bool EmuSystem::onPointerInputUpdate(Input::Event e, Input::DragTrackerState dra
 	return false;
 }
 
-bool EmuSystem::onPointerInputEnd(Input::Event e, Input::DragTrackerState dragState, IG::WindowRect)
+bool EmuSystem::onPointerInputEnd(const Input::MotionEvent &e, Input::DragTrackerState dragState, IG::WindowRect)
 {
 	switch(snesActiveInputPort)
 	{

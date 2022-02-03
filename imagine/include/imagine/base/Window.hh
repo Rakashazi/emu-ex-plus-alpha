@@ -25,6 +25,7 @@
 namespace IG::Input
 {
 class Event;
+class KeyEvent;
 }
 
 namespace IG
@@ -149,7 +150,7 @@ public:
 	bool updatePhysicalSizeWithCurrentSize();
 	bool hasSurface() const;
 	bool dispatchInputEvent(Input::Event event);
-	bool dispatchRepeatableKeyInputEvent(Input::Event event);
+	bool dispatchRepeatableKeyInputEvent(Input::KeyEvent event);
 	void dispatchFocusChange(bool in);
 	void dispatchDragDrop(const char *filename);
 	void dispatchDismissRequest();

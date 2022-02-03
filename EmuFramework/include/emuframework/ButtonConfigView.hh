@@ -33,14 +33,14 @@ struct KeyCategory;
 class ButtonConfigSetView : public View, public EmuAppHelper<ButtonConfigSetView>
 {
 public:
-	using SetDelegate = DelegateFunc<void (Input::Event e)>;
+	using SetDelegate = DelegateFunc<void (const Input::KeyEvent &)>;
 
 	ButtonConfigSetView(ViewAttachParams attach, InputManagerView &rootIMView,
 		Input::Device &dev, const char *actionName, SetDelegate onSet);
 	void place() final;
-	bool inputEvent(Input::Event e) final;
+	bool inputEvent(const Input::Event &) final;
 	void draw(Gfx::RendererCommands &cmds) final;
-	void onAddedToController(ViewController *c, Input::Event e) final;
+	void onAddedToController(ViewController *, const Input::Event &) final;
 
 private:
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
@@ -82,7 +82,7 @@ private:
 
 public:
 	ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView, const KeyCategory *cat, InputDeviceConfig &devConf);
-	bool inputEvent(Input::Event e) final;
+	bool inputEvent(const Input::Event &) final;
 };
 
 }

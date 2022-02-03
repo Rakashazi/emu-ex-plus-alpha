@@ -109,7 +109,7 @@ public:
 	void draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPlane) const;
 	int getInput(IG::WP c) const;
 	int translateInput(unsigned idx) const;
-	bool keyInput(VController &v, Gfx::Renderer &r, Input::Event e);
+	bool keyInput(VController &v, Gfx::Renderer &r, const Input::KeyEvent &e);
 	[[nodiscard]] IG::WindowRect selectKey(unsigned x, unsigned y);
 	void selectKeyRel(int x, int y);
 	void unselectKey();
@@ -263,8 +263,8 @@ public:
 	void resetInput();
 	void place();
 	void toggleKeyboard();
-	bool pointerInputEvent(Input::Event e, IG::WindowRect gameRect);
-	bool keyInput(Input::Event e);
+	bool pointerInputEvent(const Input::MotionEvent &, IG::WindowRect gameRect);
+	bool keyInput(const Input::KeyEvent &);
 	void draw(Gfx::RendererCommands &cmds, bool activeFF, bool showHidden = false);
 	void draw(Gfx::RendererCommands &cmds, bool activeFF, bool showHidden, float alpha);
 	int numElements() const;
@@ -391,7 +391,7 @@ private:
 	IG_UseMemberIf(Config::BASE_SUPPORTS_VIBRATOR, bool, vibrateOnTouchInput_){};
 
 	std::array<int, 2> findGamepadElements(IG::WP pos);
-	int keyboardKeyFromPointer(Input::Event);
+	int keyboardKeyFromPointer(const Input::MotionEvent &);
 	void applyButtonSize();
 };
 

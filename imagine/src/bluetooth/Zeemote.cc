@@ -201,7 +201,7 @@ void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time)
 			uint32_t code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			Event event{Map::ZEEMOTE, (Key)code, sysKeyMap[i], newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+			KeyEvent event{Map::ZEEMOTE, (Key)code, sysKeyMap[i], newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 			ctx.application().dispatchRepeatableKeyInputEvent( event);
 		}
 	}

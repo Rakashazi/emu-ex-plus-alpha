@@ -19,6 +19,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
+#include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
@@ -49,56 +50,66 @@ bool TextEntry::isAcceptingInput() const
 	return acceptingInput;
 }
 
-bool TextEntry::inputEvent(View &parentView, Input::Event e)
+bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 {
-	if(e.isPointer() && e.pushed() && b.overlaps(e.pos()))
+	return visit(overloaded
 	{
-		setAcceptingInput(true);
-		return true;
-	}
-	if(acceptingInput && e.pushed() && e.map() == Input::Map::SYSTEM)
-	{
-		bool updateText = false;
-
-		if(e.mapKey() == Input::Keycode::BACK_SPACE)
+		[&](const Input::MotionEvent &motionEv)
 		{
-			int len = str.size();
-			if(len > 0)
+			if(motionEv.isAbsolute() && motionEv.pushed() && b.overlaps(motionEv.pos()))
 			{
-				str.pop_back();
-				updateText = true;
+				setAcceptingInput(true);
+				return true;
 			}
-		}
-		else
+			return false;
+		},
+		[&](const Input::KeyEvent &keyEv)
 		{
-			auto keyStr = e.keyString(parentView.appContext());
-			if(keyStr.size())
+			if(acceptingInput && keyEv.pushed() && keyEv.isKeyboard())
 			{
-				if(!multiLine)
+				bool updateText = false;
+
+				if(keyEv.mapKey() == Input::Keycode::BACK_SPACE)
 				{
-					if(keyStr[0] == '\r' || keyStr[0] == '\n')
+					int len = str.size();
+					if(len > 0)
 					{
-						setAcceptingInput(false);
-						return true;
+						str.pop_back();
+						updateText = true;
 					}
 				}
-				str.append(keyStr);
-				updateText = true;
-			}
-		}
+				else
+				{
+					auto keyStr = keyEv.keyString(parentView.appContext());
+					if(keyStr.size())
+					{
+						if(!multiLine)
+						{
+							if(keyStr[0] == '\r' || keyStr[0] == '\n')
+							{
+								setAcceptingInput(false);
+								return true;
+							}
+						}
+						str.append(keyStr);
+						updateText = true;
+					}
+				}
 
-		if(updateText)
-		{
-			{
-				parentView.waitForDrawFinished();
-				t.setString(str);
-				t.compile(parentView.renderer(), projP);
+				if(updateText)
+				{
+					{
+						parentView.waitForDrawFinished();
+						t.setString(str);
+						t.compile(parentView.renderer(), projP);
+					}
+					parentView.postDraw();
+				}
+				return true;
 			}
-			parentView.postDraw();
+			return false;
 		}
-		return true;
-	}
-	return false;
+	}, e.asVariant());
 }
 
 void TextEntry::prepareDraw(Gfx::Renderer &r)
@@ -217,15 +228,16 @@ void CollectTextInputView::place()
 		});
 }
 
-bool CollectTextInputView::inputEvent(Input::Event e)
+bool CollectTextInputView::inputEvent(const Input::Event &e)
 {
-	if(e.state() == Input::Action::PUSHED)
-	{
-		if(e.isDefaultCancelButton() || (e.isPointer() && cancelBtn.overlaps(e.pos())))
+	if(visit(overloaded
 		{
-			dismiss();
-			return true;
-		}
+			[&](const Input::MotionEvent &e) { return cancelBtn.overlaps(e.pos()); },
+			[&](const Input::KeyEvent &e)	{ return e.pushed(Input::DefaultKey::CANCEL); }
+		}, e.asVariant()))
+	{
+		dismiss();
+		return true;
 	}
 	return IG::doIfUsedOr(textEntry,
 		[&](auto &textEntry)

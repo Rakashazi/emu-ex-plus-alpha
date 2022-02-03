@@ -75,7 +75,7 @@ static Key keyToICadeOffKey(Key key)
 	return 0;
 }
 
-std::string_view Event::mapName(Map map)
+std::string_view BaseEvent::mapName(Map map)
 {
 	switch(map)
 	{
@@ -99,7 +99,7 @@ std::string_view Event::mapName(Map map)
 	}
 }
 
-uint32_t Event::mapNumKeys(Map map)
+uint32_t BaseEvent::mapNumKeys(Map map)
 {
 	switch(map)
 	{
@@ -203,7 +203,7 @@ DirectionKeys directionKeys(Map map)
 namespace IG
 {
 
-void BaseApplication::startKeyRepeatTimer(Input::Event event)
+void BaseApplication::startKeyRepeatTimer(Input::KeyEvent event)
 {
 	if(!allowKeyRepeatTimer_)
 		return;
@@ -318,25 +318,24 @@ uint8_t BaseApplication::nextInputDeviceEnumId(std::string_view name) const
 	return maxEnum;
 }
 
-bool BaseApplication::dispatchRepeatableKeyInputEvent(Input::Event e, Window &win)
+bool BaseApplication::dispatchRepeatableKeyInputEvent(Input::KeyEvent e, Window &win)
 {
 	e.setKeyFlags(swappedConfirmKeys());
 	return win.dispatchRepeatableKeyInputEvent(e);
 }
 
-bool BaseApplication::dispatchRepeatableKeyInputEvent(Input::Event e)
+bool BaseApplication::dispatchRepeatableKeyInputEvent(Input::KeyEvent e)
 {
 	return dispatchRepeatableKeyInputEvent(e, mainWindow());
 }
 
-bool BaseApplication::dispatchKeyInputEvent(Input::Event e, Window &win)
+bool BaseApplication::dispatchKeyInputEvent(Input::KeyEvent e, Window &win)
 {
-	assert(e.isKey());
 	e.setKeyFlags(swappedConfirmKeys());
 	return win.dispatchInputEvent(e);
 }
 
-bool BaseApplication::dispatchKeyInputEvent(Input::Event e)
+bool BaseApplication::dispatchKeyInputEvent(Input::KeyEvent e)
 {
 	return dispatchKeyInputEvent(e, mainWindow());
 }

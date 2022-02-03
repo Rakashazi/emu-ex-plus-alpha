@@ -91,7 +91,7 @@ public:
 	void dispatchOnInterProcessMessage(ApplicationContext, const char *filename);
 
 	// Input functions
-	void startKeyRepeatTimer(Input::Event);
+	void startKeyRepeatTimer(Input::KeyEvent);
 	void cancelKeyRepeatTimer();
 	void deinitKeyRepeatTimer();
 	void setAllowKeyRepeatTimer(bool on);
@@ -106,10 +106,10 @@ public:
 	}
 
 	void removeInputDevices(Input::Map matchingMap, bool notify = false);
-	bool dispatchRepeatableKeyInputEvent(Input::Event, Window &);
-	bool dispatchRepeatableKeyInputEvent(Input::Event);
-	bool dispatchKeyInputEvent(Input::Event, Window &);
-	bool dispatchKeyInputEvent(Input::Event);
+	bool dispatchRepeatableKeyInputEvent(Input::KeyEvent, Window &);
+	bool dispatchRepeatableKeyInputEvent(Input::KeyEvent);
+	bool dispatchKeyInputEvent(Input::KeyEvent, Window &);
+	bool dispatchKeyInputEvent(Input::KeyEvent);
 	void setOnInputDeviceChange(InputDeviceChangeDelegate);
 	void dispatchInputDeviceChange(const Input::Device &, Input::DeviceChange);
 	void setOnInputDevicesEnumerated(InputDevicesEnumeratedDelegate);
@@ -139,7 +139,7 @@ protected:
 	MessagePort<CommandMessage> commandPort{"Main thread messages"};
 	InputDeviceContainer inputDev{};
 	std::optional<Timer> keyRepeatTimer{};
-	Input::Event keyRepeatEvent{};
+	Input::KeyEvent keyRepeatEvent{};
 	bool allowKeyRepeatTimer_{true};
 	bool swappedConfirmKeys_{Input::SWAPPED_CONFIRM_KEYS_DEFAULT};
 	ActivityState appState = ActivityState::PAUSED;

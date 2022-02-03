@@ -231,7 +231,7 @@ void IControlPad::processBtnReport(const char *btnData, Input::Time time)
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			Event event{Map::ICONTROLPAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+			KeyEvent event{Map::ICONTROLPAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}

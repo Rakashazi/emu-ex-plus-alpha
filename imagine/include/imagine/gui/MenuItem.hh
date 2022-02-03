@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gui/ViewAttachParams.hh>
 #include <imagine/gfx/GfxText.hh>
-#include <imagine/input/Input.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/concepts.hh>
 #include <imagine/util/utility.h>
@@ -38,55 +37,55 @@ class View;
 class TableView;
 
 template <class Item>
-class MenuItemSelectDelegate : public DelegateFunc<bool (Item &, View &, Input::Event)>
+class MenuItemSelectDelegate : public DelegateFunc<bool (Item &, View &, const Input::Event &)>
 {
 public:
-	using DelegateFuncBase = DelegateFunc<bool (Item &, View &, Input::Event)>;
+	using DelegateFuncBase = DelegateFunc<bool (Item &, View &, const Input::Event &)>;
 	using DelegateFuncBase::DelegateFuncBase;
 
 	// Wraps different function signatures into a delegate function with signature:
-	// bool (Item &, View &, Input::Event)
+	// bool (Item &, View &, const Input::Event &)
 
-	constexpr MenuItemSelectDelegate(IG::Callable<void, Item &, View &, Input::Event> auto &&f):
+	constexpr MenuItemSelectDelegate(IG::Callable<void, Item &, View &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, Input::Event e) { return callAndReturnBool(f, i, v, e); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, i, v, e); }
 		} {}
 
-	constexpr MenuItemSelectDelegate(IG::invocable<Item &, Input::Event> auto &&f):
+	constexpr MenuItemSelectDelegate(IG::invocable<Item &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, Input::Event e) { return callAndReturnBool(f, i, e); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, i, e); }
 		} {}
 
-	constexpr MenuItemSelectDelegate(IG::invocable<View &, Input::Event> auto &&f):
+	constexpr MenuItemSelectDelegate(IG::invocable<View &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, Input::Event e) { return callAndReturnBool(f, v, e); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, v, e); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(IG::invocable<Item &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, Input::Event e) { return callAndReturnBool(f, i); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, i); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(IG::invocable<View &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, Input::Event e) { return callAndReturnBool(f, v); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, v); }
 		} {}
 
-	constexpr MenuItemSelectDelegate(IG::invocable<Input::Event> auto &&f):
+	constexpr MenuItemSelectDelegate(IG::invocable<const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, Input::Event e) { return callAndReturnBool(f, e); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, e); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(IG::invocable auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, Input::Event e) { return callAndReturnBool(f); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f); }
 		} {}
 
 	constexpr static auto callAndReturnBool(auto &f, auto &&...args)
@@ -119,7 +118,7 @@ public:
 	virtual void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) = 0;
 	virtual int ySize() = 0;
 	virtual float xSize() = 0;
-	virtual bool select(View &view, Input::Event e) = 0;
+	virtual bool select(View &, const Input::Event &) = 0;
 };
 
 class BaseTextMenuItem : public MenuItem
@@ -155,7 +154,7 @@ public:
 
 	TextMenuItem() = default;
 	TextMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, SelectDelegate selectDel);
-	bool select(View &, Input::Event) override;
+	bool select(View &, const Input::Event &) override;
 	void setOnSelect(SelectDelegate onSelect);
 	SelectDelegate onSelect() const;
 
@@ -169,7 +168,7 @@ public:
 	TextHeadingMenuItem() = default;
 	TextHeadingMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face):
 		BaseTextMenuItem{std::move(name), false, face} {}
-	bool select(View &view, Input::Event e) override;
+	bool select(View &, const Input::Event &) override;
 };
 
 class BaseDualTextMenuItem : public BaseTextMenuItem
@@ -200,7 +199,7 @@ public:
 			Gfx::GlyphTextureSet *face, SelectDelegate selectDel);
 	DualTextMenuItem(IG::utf16String name, IG::utf16String name2, Gfx::GlyphTextureSet *face):
 		BaseDualTextMenuItem{std::move(name), std::move(name2), face} {}
-	bool select(View &view, Input::Event e) override;
+	bool select(View &, const Input::Event &) override;
 	void setOnSelect(SelectDelegate onSelect);
 
 protected:
@@ -233,7 +232,7 @@ public:
 	bool flipBoolValue();
 	void draw(Gfx::RendererCommands &, float xPos, float yPos, float xSize, float ySize,
 		float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const override;
-	bool select(View &view, Input::Event e) override;
+	bool select(View &, const Input::Event &) override;
 	void setOnSelect(SelectDelegate onSelect);
 
 protected:
@@ -246,7 +245,7 @@ protected:
 class MultiChoiceMenuItem : public BaseDualTextMenuItem
 {
 public:
-	using SelectDelegate = DelegateFunc<void (MultiChoiceMenuItem &item, View &view, Input::Event e)>;
+	using SelectDelegate = DelegateFunc<void (MultiChoiceMenuItem &, View &, const Input::Event &)>;
 	using ItemsDelegate = DelegateFunc<size_t (const MultiChoiceMenuItem &item)>;
 	using ItemDelegate = DelegateFunc<TextMenuItem& (const MultiChoiceMenuItem &item, size_t idx)>;
 	using SetDisplayStringDelegate = DelegateFunc<bool(size_t idx, Gfx::Text &text)>;
@@ -298,10 +297,10 @@ public:
 	bool setSelected(int idx);
 	int cycleSelected(int offset, View &view);
 	int cycleSelected(int offset);
-	bool select(View &view, Input::Event e) override;
+	bool select(View &, const Input::Event &) override;
 	void setOnSelect(SelectDelegate onSelect);
 	std::unique_ptr<TableView> makeTableView(ViewAttachParams attach);
-	void defaultOnSelect(View &view, Input::Event e);
+	void defaultOnSelect(View &, const Input::Event &);
 	void updateDisplayString();
 
 protected:

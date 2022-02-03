@@ -138,13 +138,13 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	TextMenuItem videoSystemItem[7]
 	{
-		{"Auto", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(0, e); }},
-		{"NTSC", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(1, e); }},
-		{"PAL", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(2, e); }},
-		{"SECAM", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(3, e); }},
-		{"NTSC 50", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(4, e); }},
-		{"PAL 60", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(5, e); }},
-		{"SECAM 60", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(6, e); }},
+		{"Auto",     &defaultFace(), setVideoSystemDel(0)},
+		{"NTSC",     &defaultFace(), setVideoSystemDel(1)},
+		{"PAL",      &defaultFace(), setVideoSystemDel(2)},
+		{"SECAM",    &defaultFace(), setVideoSystemDel(3)},
+		{"NTSC 50",  &defaultFace(), setVideoSystemDel(4)},
+		{"PAL 60",   &defaultFace(), setVideoSystemDel(5)},
+		{"SECAM 60", &defaultFace(), setVideoSystemDel(6)},
 	};
 
 	MultiChoiceMenuItem videoSystem
@@ -171,11 +171,14 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		setRuntimeTVPhosphor(val, optionTVPhosphorBlend);
 	}
 
-	void setVideoSystem(int val, Input::Event e)
+	TextMenuItem::SelectDelegate setVideoSystemDel(int val)
 	{
-		EmuSystem::sessionOptionSet();
-		optionVideoSystem = val;
-		app().promptSystemReloadDueToSetOption(attachParams(), e);
+		return [this, val](const Input::Event &e)
+		{
+			EmuSystem::sessionOptionSet();
+			optionVideoSystem = val;
+			app().promptSystemReloadDueToSetOption(attachParams(), e);
+		};
 	}
 
 	TextMenuItem inputPortsItem[4]
@@ -251,7 +254,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	{
 		{"Default", &defaultFace(), [this]() { setDPaddleSensitivity(1); }},
 		{"Custom Value", &defaultFace(),
-			[this](Input::Event e)
+			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 1 to 20", "",
 					[this](EmuApp &app, auto val)
@@ -327,7 +330,7 @@ class VCSSwitchesView : public TableView
 		"Left (P1) Difficulty", &defaultFace(),
 		p1DiffB,
 		"A", "B",
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			p1DiffB = item.flipBoolValue(*this);
 		}
@@ -338,7 +341,7 @@ class VCSSwitchesView : public TableView
 		"Right (P2) Difficulty", &defaultFace(),
 		p2DiffB,
 		"A", "B",
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			p2DiffB = item.flipBoolValue(*this);
 		}
@@ -348,7 +351,7 @@ class VCSSwitchesView : public TableView
 	{
 		"Color", &defaultFace(),
 		vcsColor,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			vcsColor = item.flipBoolValue(*this);
 		}
@@ -386,7 +389,7 @@ private:
 	TextMenuItem switches
 	{
 		"Console Switches", &defaultFace(),
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -398,7 +401,7 @@ private:
 	TextMenuItem options
 	{
 		"Console Options", &defaultFace(),
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](const Input::Event &e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{

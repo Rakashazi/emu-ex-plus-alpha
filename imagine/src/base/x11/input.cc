@@ -332,6 +332,7 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 		[this](Window &win, auto event, Input::Action action, Input::Time time)
 		{
 			Input::Key key{};
+			bool sendKeyEvent{};
 			if(action == Input::Action::PUSHED || action == Input::Action::RELEASED)
 			{
 				if(event.detail == 4)
@@ -340,6 +341,8 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 					action = Input::Action::SCROLL_DOWN;
 				else
 					key = IG::bit(event.detail - 1);
+				if(event.detail > 5)
+					sendKeyEvent = true;
 			}
 			else
 			{
@@ -347,10 +350,19 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 				key = makePointerButtonState(event.buttons) >> 1;
 			}
 			auto dev = deviceForInputId(event.sourceid);
-			auto pos = win.transformInputPos({(int)event.event_x, (int)event.event_y});
-			Input::PointerId p = event.deviceid;
-			win.dispatchInputEvent(Input::Event{Input::Map::POINTER, (Input::Key)key, (uint32_t)event.mods.effective,
-				action, pos.x, pos.y, p, Input::Source::MOUSE, time, dev});
+			if(sendKeyEvent)
+			{
+				auto ev = Input::KeyEvent{Input::Map::POINTER, key, key, action, (uint32_t)event.mods.effective,
+					0, Input::Source::MOUSE, time, dev};
+				dispatchKeyInputEvent(ev, win);
+			}
+			else
+			{
+				auto pos = win.transformInputPos({(int)event.event_x, (int)event.event_y});
+				Input::PointerId p = event.deviceid;
+				win.dispatchInputEvent(Input::MotionEvent{Input::Map::POINTER, (Input::Key)key, (uint32_t)event.mods.effective,
+					action, pos.x, pos.y, p, Input::Source::MOUSE, time, dev});
+			}
 		};
 	auto handleKeyEvent =
 		[this](Window &win, XIDeviceEvent event, Input::Time time, bool pushed)
@@ -372,7 +384,7 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 					|| (dev->iCadeMode() && !processICadeKey(k, action, time, *dev, win)))
 				{
 					auto key = keysymToKey(k);
-					auto ev = Input::Event{Input::Map::SYSTEM, key, key, action, (uint32_t)event.mods.effective,
+					auto ev = Input::KeyEvent{Input::Map::SYSTEM, key, key, action, (uint32_t)event.mods.effective,
 						repeated, Input::Source::KEYBOARD, time, dev};
 					ev.setX11RawKey(event.detail);
 					dispatchKeyInputEvent(ev, win);
@@ -439,7 +451,7 @@ bool Device::anyTypeBitsPresent(ApplicationContext, TypeBits typeBits)
 	return 0;
 }
 
-std::string Event::keyString(ApplicationContext ctx) const
+std::string KeyEvent::keyString(ApplicationContext ctx) const
 {
 	return ctx.application().inputKeyString(rawKey, metaState ? ShiftMask : 0);
 }

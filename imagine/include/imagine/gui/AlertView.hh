@@ -37,10 +37,10 @@ public:
 			[&item](const TableView &, size_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
 		} {}
 	void place() override;
-	bool inputEvent(Input::Event e) override;
+	bool inputEvent(const Input::Event &) override;
 	void prepareDraw() override;
-	void draw(Gfx::RendererCommands &cmds) override;
-	void onAddedToController(ViewController *c, Input::Event e) override;
+	void draw(Gfx::RendererCommands &) override;
+	void onAddedToController(ViewController *, const Input::Event &) override;
 	void setLabel(IG::utf16String label);
 
 protected:

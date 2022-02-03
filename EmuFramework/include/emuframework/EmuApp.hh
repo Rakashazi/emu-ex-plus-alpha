@@ -72,7 +72,7 @@ class EmuApp : public IG::Application
 {
 public:
 	using OnMainMenuOptionChanged = DelegateFunc<void()>;
-	using CreateSystemCompleteDelegate = DelegateFunc<void (Input::Event e)>;
+	using CreateSystemCompleteDelegate = DelegateFunc<void (const Input::Event &)>;
 	using NavView = BasicNavView;
 	static constexpr unsigned MAX_RECENT = 10;
 	using RecentContentList = StaticArrayList<RecentContentInfo, MAX_RECENT>;
@@ -107,29 +107,29 @@ public:
 
 	EmuApp(IG::ApplicationInitParams, IG::ApplicationContext &);
 
-	bool willCreateSystem(ViewAttachParams attach, Input::Event e);
+	bool willCreateSystem(ViewAttachParams, const Input::Event &);
 	void createSystemWithMedia(GenericIO, IG::CStringView path, std::string_view displayName,
-		Input::Event, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
+		const Input::Event &, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
 	void exitGame(bool allowAutosaveState = true);
 	void reloadGame(EmuSystemCreateParams params = {});
-	void promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e, EmuSystemCreateParams params = {});
-	void onMainWindowCreated(ViewAttachParams attach, Input::Event e);
+	void promptSystemReloadDueToSetOption(ViewAttachParams, const Input::Event &, EmuSystemCreateParams params = {});
+	void onMainWindowCreated(ViewAttachParams, const Input::Event &);
 	static void onCustomizeNavView(NavView &v);
-	void pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::Event e,
-		const char *msgText, const char *initialContent, CollectTextInputView::OnTextDelegate onText);
-	void pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e,
+	void pushAndShowNewCollectTextInputView(ViewAttachParams, const Input::Event &,
+		const char *msgText, const char *initialContent, CollectTextInputView::OnTextDelegate);
+	void pushAndShowNewYesNoAlertView(ViewAttachParams, const Input::Event &,
 		const char *label, const char *choice1, const char *choice2,
 		TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo);
-	void pushAndShowModalView(std::unique_ptr<View> v, Input::Event e);
+	void pushAndShowModalView(std::unique_ptr<View> v, const Input::Event &);
 	void pushAndShowModalView(std::unique_ptr<View> v);
 	void popModalViews();
 	void popMenuToRoot();
-	void showSystemActionsViewFromSystem(ViewAttachParams attach, Input::Event e);
-	void showLastViewFromSystem(ViewAttachParams attach, Input::Event e);
-	void showExitAlert(ViewAttachParams attach, Input::Event e);
+	void showSystemActionsViewFromSystem(ViewAttachParams, const Input::Event &);
+	void showLastViewFromSystem(ViewAttachParams, const Input::Event &);
+	void showExitAlert(ViewAttachParams, const Input::Event &);
 	void showEmuation();
-	void launchSystemWithResumePrompt(Input::Event e);
-	void launchSystem(Input::Event e, bool tryAutoState);
+	void launchSystemWithResumePrompt(const Input::Event &);
+	void launchSystem(const Input::Event &, bool tryAutoState);
 	static bool hasArchiveExtension(std::string_view name);
 	void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
 	void dispatchOnMainMenuItemOptionChanged();
@@ -240,7 +240,7 @@ public:
 	}
 
 	template<class T>
-	void pushAndShowNewCollectValueInputView(ViewAttachParams attach, Input::Event e,
+	void pushAndShowNewCollectValueInputView(ViewAttachParams attach, const Input::Event &e,
 	IG::CStringView msgText, IG::CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
 	{
 		pushAndShowNewCollectTextInputView(attach, e, msgText, initialContent,

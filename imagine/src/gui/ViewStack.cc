@@ -29,7 +29,7 @@ namespace IG
 
 BasicViewController::BasicViewController() {}
 
-void BasicViewController::push(std::unique_ptr<View> v, Input::Event e)
+void BasicViewController::push(std::unique_ptr<View> v, const Input::Event &e)
 {
 	if(view)
 	{
@@ -42,7 +42,7 @@ void BasicViewController::push(std::unique_ptr<View> v, Input::Event e)
 	logMsg("push view in basic view controller");
 }
 
-void BasicViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool, bool)
+void BasicViewController::pushAndShow(std::unique_ptr<View> v, const Input::Event &e, bool, bool)
 {
 	push(std::move(v), e);
 	place();
@@ -86,7 +86,7 @@ void BasicViewController::place()
 	view->place();
 }
 
-bool BasicViewController::inputEvent(Input::Event e)
+bool BasicViewController::inputEvent(const Input::Event &e)
 {
 	return view->inputEvent(e);
 }
@@ -147,20 +147,21 @@ void ViewStack::place()
 	top().place();
 }
 
-bool ViewStack::inputEvent(Input::Event e)
+bool ViewStack::inputEvent(const Input::Event &e)
 {
 	if(!view.size())
 		return false;
-	if(e.isPointer())
+	if(e.motionEvent() && e.asMotionEvent().isAbsolute())
 	{
-		if(navViewIsActive() && nav->viewRect().overlaps(e.pos()))
+		auto &motionEv = e.asMotionEvent();
+		if(navViewIsActive() && nav->viewRect().overlaps(motionEv.pos()))
 		{
 			if(nav->inputEvent(e))
 			{
 				return true;
 			}
 		}
-		if(e.pushed())
+		if(motionEv.pushed())
 		{
 			navViewHasFocus = false;
 			nav->clearSelection();
@@ -176,7 +177,7 @@ bool ViewStack::inputEvent(Input::Event e)
 	}
 }
 
-bool ViewStack::moveFocusToNextView(Input::Event e, _2DOrigin direction)
+bool ViewStack::moveFocusToNextView(const Input::Event &e, _2DOrigin direction)
 {
 	if(changingViewFocus || !view.size() || !navViewIsActive())
 		return false;
@@ -225,7 +226,7 @@ void ViewStack::draw(Gfx::RendererCommands &cmds)
 		nav->draw(cmds);
 }
 
-void ViewStack::push(std::unique_ptr<View> v, Input::Event e)
+void ViewStack::push(std::unique_ptr<View> v, const Input::Event &e)
 {
 	assumeExpr(v);
 	if(view.size())
@@ -250,7 +251,7 @@ void ViewStack::push(std::unique_ptr<View> v)
 	push(std::move(v), e);
 }
 
-void ViewStack::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
+void ViewStack::pushAndShow(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView, bool isModal)
 {
 	push(std::move(v), e);
 	view.back().needsNavView = needsNavView;

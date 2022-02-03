@@ -19,6 +19,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/util/math/space.hh>
 #include <imagine/logger/logger.h>
 
@@ -35,7 +36,7 @@ ApplicationContext ViewAttachParams::appContext() const
 	return window().appContext();
 }
 
-void ViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e)
+void ViewController::pushAndShow(std::unique_ptr<View> v, const Input::Event &e)
 {
 	pushAndShow(std::move(v), e, true, false);
 }
@@ -61,12 +62,12 @@ void ViewController::popTo(View &v)
 	logErr("popTo() not implemented for this controller");
 }
 
-bool ViewController::inputEvent(Input::Event)
+bool ViewController::inputEvent(const Input::Event &)
 {
 	return false;
 }
 
-bool ViewController::moveFocusToNextView(Input::Event, _2DOrigin)
+bool ViewController::moveFocusToNextView(const Input::Event &, _2DOrigin)
 {
 	return false;
 };
@@ -142,13 +143,13 @@ void ViewManager::setTableXIndentToDefault(const Window &win, Gfx::ProjectionPla
 	setTableXIndentMM(defaultTableXIndentMM(win), projP);
 }
 
-void View::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
+void View::pushAndShow(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView, bool isModal)
 {
 	assumeExpr(controller_);
 	controller_->pushAndShow(std::move(v), e, needsNavView, isModal);
 }
 
-void View::pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
+void View::pushAndShowModal(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView)
 {
 	pushAndShow(std::move(v), e, needsNavView, true);
 }
@@ -204,7 +205,7 @@ void View::onShow() {}
 
 void View::onHide() {}
 
-void View::onAddedToController(ViewController *, Input::Event) {}
+void View::onAddedToController(ViewController *, const Input::Event &) {}
 
 void View::prepareDraw() {}
 
@@ -283,7 +284,7 @@ void View::show()
 	postDraw();
 }
 
-bool View::moveFocusToNextView(Input::Event e, _2DOrigin direction)
+bool View::moveFocusToNextView(const Input::Event &e, _2DOrigin direction)
 {
 	if(!controller_)
 		return false;
@@ -305,7 +306,7 @@ void View::onDismiss()
 	dismissDel.callSafe(*this);
 }
 
-void View::setController(ViewController *c, Input::Event e)
+void View::setController(ViewController *c, const Input::Event &e)
 {
 	controller_ = c;
 	if(c)

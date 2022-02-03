@@ -138,7 +138,7 @@ void EvdevInputDevice::processInputEvents(LinuxApplication &app, input_event *ev
 			{
 				//logMsg("got key event code:0x%X value:%d", ev.code, ev.value);
 				auto key = toSysKey(ev.code);
-				Event event{Map::SYSTEM, key, key, ev.value ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+				KeyEvent event{Map::SYSTEM, key, key, ev.value ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 				app.dispatchRepeatableKeyInputEvent(event);
 			}
 			bcase EV_ABS:

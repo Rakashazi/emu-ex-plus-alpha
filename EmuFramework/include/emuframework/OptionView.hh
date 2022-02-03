@@ -104,7 +104,7 @@ protected:
 	TextHeadingMenuItem systemSpecificHeading;
 	StaticArrayList<MenuItem*, 31> item{};
 
-	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e);
+	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem, const Input::Event &);
 	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time);
 	TextMenuItem::SelectDelegate setOverlayEffectLevelDel(uint8_t val);
 	TextMenuItem::SelectDelegate setZoomDel(uint8_t val);
@@ -175,8 +175,8 @@ protected:
 	void onSavePathChange(std::string_view path);
 	virtual bool onFirmwarePathChange(IG::CStringView path, bool isDir);
 	std::unique_ptr<TextTableView> makeFirmwarePathMenu(IG::utf16String name, bool allowFiles = false, unsigned extraItemsHint = 0);
-	void pushAndShowFirmwarePathMenu(IG::utf16String name, Input::Event e, bool allowFiles = false);
-	void pushAndShowFirmwareFilePathMenu(IG::utf16String name, Input::Event e);
+	void pushAndShowFirmwarePathMenu(IG::utf16String name, const Input::Event &, bool allowFiles = false);
+	void pushAndShowFirmwareFilePathMenu(IG::utf16String name, const Input::Event &);
 };
 
 class GUIOptionView : public TableView, public EmuAppHelper<GUIOptionView>

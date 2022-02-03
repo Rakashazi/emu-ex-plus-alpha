@@ -65,12 +65,12 @@ BiosSelectMenu::BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS
 	selectFile
 	{
 		"Select File", &defaultFace(),
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::FILE, fsFilter, e);
 			fPicker->setPath(biosPathStr->size() ? FS::dirnameUri(*biosPathStr) : app().contentSearchPath(), e);
 			fPicker->setOnSelectFile(
-				[this](FSPicker &picker, std::string_view path, std::string_view displayName, Input::Event e)
+				[this](FSPicker &picker, std::string_view path, std::string_view displayName, const Input::Event &e)
 				{
 					*biosPathStr = path;
 					onBiosChangeD.callSafe(displayName);
@@ -156,7 +156,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Confirm Auto-load State", &defaultFace(),
 		(bool)optionConfirmAutoLoadState,
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionConfirmAutoLoadState = item.flipBoolValue(*this);
 		}
@@ -165,7 +165,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Confirm Overwrite State", &defaultFace(),
 		(bool)optionConfirmOverwriteState,
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionConfirmOverwriteState = item.flipBoolValue(*this);
 		}
@@ -173,20 +173,20 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	savePath
 	{
 		{}, &defaultFace(),
-		[this](TextMenuItem &, View &view, Input::Event e)
+		[this](TextMenuItem &, View &view, const Input::Event &e)
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 4);
 			multiChoiceView->appendItem("Select Folder",
-				[this](Input::Event e)
+				[this](const Input::Event &e)
 				{
 					auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
 					auto userSavePath = EmuSystem::userSaveDirectory();
 					fPicker->setPath(userSavePath.size() && userSavePath != optionSavePathDefaultToken ? userSavePath
 						: app().contentSearchPath(), e);
 					fPicker->setOnClose(
-						[this](FSPicker &picker, Input::Event e)
+						[this](FSPicker &picker, const Input::Event &e)
 						{
-							if(e.isDefaultCancelButton())
+							if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::CANCEL))
 							{
 								picker.dismiss();
 								return;
@@ -219,19 +219,19 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 					view.dismiss();
 				});
 			multiChoiceView->appendItem("Legacy Game Data Folder",
-				[this](View &view, Input::Event e)
+				[this](View &view, const Input::Event &e)
 				{
 					auto ynAlertView = makeView<YesNoAlertView>(
 						fmt::format("Please select the \"Game Data/{}\" folder from an old version of the app to use its existing saves and convert it to a regular save path (this is only needed once)", EmuSystem::shortSystemName()));
 					ynAlertView->setOnYes(
-						[this](Input::Event e)
+						[this](const Input::Event &e)
 						{
 							auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
 							fPicker->setPath("");
 							fPicker->setOnClose(
-								[this](FSPicker &picker, Input::Event e)
+								[this](FSPicker &picker, const Input::Event &e)
 								{
-									if(e.isDefaultCancelButton())
+									if(e.keyEvent() && e.asKeyEvent().isDefaultCancelButton())
 									{
 										picker.dismiss();
 										return;
@@ -290,7 +290,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		"Performance Mode", &defaultFace(),
 		(bool)optionSustainedPerformanceMode,
 		"Normal", "Sustained",
-		[this](BoolMenuItem &item, Input::Event e)
+		[this](BoolMenuItem &item)
 		{
 			optionSustainedPerformanceMode = item.flipBoolValue(*this);
 		}
@@ -333,14 +333,14 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16S
 	unsigned items = (allowFiles ? 3 : 2) + extraItemsHint;
 	auto multiChoiceView = std::make_unique<TextTableView>(std::move(name), attachParams(), items);
 	multiChoiceView->appendItem("Select Folder",
-		[this](Input::Event e)
+		[this](const Input::Event &e)
 		{
 			auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
 			fPicker->setPath(app().firmwareSearchPath(), e);
 			fPicker->setOnClose(
-				[this](FSPicker &picker, Input::Event e)
+				[this](FSPicker &picker, const Input::Event &e)
 				{
-					if(e.isDefaultCancelButton())
+					if(e.keyEvent() && e.asKeyEvent().isDefaultCancelButton())
 					{
 						picker.dismiss();
 						return;
@@ -358,12 +358,12 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16S
 	if(allowFiles)
 	{
 		multiChoiceView->appendItem("Select Archive File",
-			[this](Input::Event e)
+			[this](const Input::Event &e)
 			{
 				auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::FILE, EmuSystem::NameFilterFunc{}, e);
 				fPicker->setPath(app().firmwareSearchPath(), e);
 				fPicker->setOnSelectFile(
-					[this](FSPicker &picker, IG::CStringView path, std::string_view displayName, Input::Event e)
+					[this](FSPicker &picker, IG::CStringView path, std::string_view displayName, const Input::Event &e)
 					{
 						if(!EmuApp::hasArchiveExtension(displayName))
 						{
@@ -382,7 +382,7 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16S
 			});
 	}
 	multiChoiceView->appendItem("Unset",
-		[this](View &view, Input::Event e)
+		[this](View &view)
 		{
 			onFirmwarePathChange("", false);
 			app().setFirmwareSearchPath("");
@@ -391,12 +391,12 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16S
 	return multiChoiceView;
 }
 
-void SystemOptionView::pushAndShowFirmwarePathMenu(IG::utf16String name, Input::Event e, bool allowFiles)
+void SystemOptionView::pushAndShowFirmwarePathMenu(IG::utf16String name, const Input::Event &e, bool allowFiles)
 {
 	pushAndShow(makeFirmwarePathMenu(std::move(name), allowFiles), e);
 }
 
-void SystemOptionView::pushAndShowFirmwareFilePathMenu(IG::utf16String name, Input::Event e)
+void SystemOptionView::pushAndShowFirmwareFilePathMenu(IG::utf16String name, const Input::Event &e)
 {
 	pushAndShowFirmwarePathMenu(std::move(name), e, true);
 }

@@ -20,67 +20,62 @@
 namespace IG::Input
 {
 
-std::string_view Event::mapName() const
+std::string_view BaseEvent::mapName() const
 {
 	return mapName(map());
 }
 
-Map Event::map() const
+Map BaseEvent::map() const
 {
 	return map_;
 }
 
-void Event::setMap(Map map)
+void BaseEvent::setMap(Map map)
 {
 	map_ = map;
 }
 
-PointerId Event::pointerId() const
+PointerId MotionEvent::pointerId() const
 {
 	return pointerId_;
 }
 
-Action Event::state() const
+Action BaseEvent::state() const
 {
 	return state_;
 }
 
-void Event::setKeyFlags(uint8_t flags)
+void KeyEvent::setKeyFlags(uint8_t flags)
 {
 	keyFlags = flags;
 }
 
-bool Event::stateIsPointer() const
+bool MotionEvent::isAbsolute() const
 {
-	return state() == Action::MOVED || state() == Action::EXIT_VIEW || state() == Action::ENTER_VIEW;
+	return Config::Input::POINTING_DEVICES && map() == Map::POINTER;
 }
 
-bool Event::isPointer() const
+bool MotionEvent::isRelative() const
 {
-	return Config::Input::POINTING_DEVICES && (map() == Map::POINTER || stateIsPointer());
+	return Config::Input::RELATIVE_MOTION_DEVICES && map() == Map::REL_POINTER;
 }
 
-bool Event::isRelativePointer() const
-{
-	return Config::Input::RELATIVE_MOTION_DEVICES && state() == Action::MOVED_RELATIVE;
-}
-
-bool Event::isTouch() const
+bool MotionEvent::isTouch() const
 {
 	return Config::Input::TOUCH_DEVICES && src == Source::TOUCHSCREEN;
 }
 
-bool Event::isKey() const
-{
-	return !isPointer() && !isRelativePointer();
-}
-
-bool Event::isGamepad() const
+bool KeyEvent::isGamepad() const
 {
 	return src == Source::GAMEPAD;
 }
 
-bool Event::isDefaultConfirmButton(uint32_t swapped) const
+bool KeyEvent::isKeyboard() const
+{
+	return src == Source::KEYBOARD;
+}
+
+bool KeyEvent::isDefaultConfirmButton(uint32_t swapped) const
 {
 	switch(map())
 	{
@@ -118,7 +113,7 @@ bool Event::isDefaultConfirmButton(uint32_t swapped) const
 	}
 }
 
-bool Event::isDefaultCancelButton(uint32_t swapped) const
+bool KeyEvent::isDefaultCancelButton(uint32_t swapped) const
 {
 	switch(map())
 	{
@@ -157,17 +152,17 @@ bool Event::isDefaultCancelButton(uint32_t swapped) const
 	}
 }
 
-bool Event::isDefaultConfirmButton() const
+bool KeyEvent::isDefaultConfirmButton() const
 {
 	return isDefaultConfirmButton(hasSwappedConfirmKeys());
 }
 
-bool Event::isDefaultCancelButton() const
+bool KeyEvent::isDefaultCancelButton() const
 {
 	return isDefaultCancelButton(hasSwappedConfirmKeys());
 }
 
-bool Event::isDefaultLeftButton() const
+bool KeyEvent::isDefaultLeftButton() const
 {
 	switch(map())
 	{
@@ -195,7 +190,7 @@ bool Event::isDefaultLeftButton() const
 	}
 }
 
-bool Event::isDefaultRightButton() const
+bool KeyEvent::isDefaultRightButton() const
 {
 	switch(map())
 	{
@@ -223,7 +218,7 @@ bool Event::isDefaultRightButton() const
 	}
 }
 
-bool Event::isDefaultUpButton() const
+bool KeyEvent::isDefaultUpButton() const
 {
 	switch(map())
 	{
@@ -251,7 +246,7 @@ bool Event::isDefaultUpButton() const
 	}
 }
 
-bool Event::isDefaultDownButton() const
+bool KeyEvent::isDefaultDownButton() const
 {
 	switch(map())
 	{
@@ -279,12 +274,12 @@ bool Event::isDefaultDownButton() const
 	}
 }
 
-bool Event::isDefaultDirectionButton() const
+bool KeyEvent::isDefaultDirectionButton() const
 {
 	return isDefaultLeftButton() || isDefaultRightButton() || isDefaultUpButton() || isDefaultDownButton();
 }
 
-bool Event::isDefaultPageUpButton() const
+bool KeyEvent::isDefaultPageUpButton() const
 {
 	switch(map())
 	{
@@ -316,7 +311,7 @@ bool Event::isDefaultPageUpButton() const
 	}
 }
 
-bool Event::isDefaultPageDownButton() const
+bool KeyEvent::isDefaultPageDownButton() const
 {
 	switch(map())
 	{
@@ -348,102 +343,119 @@ bool Event::isDefaultPageDownButton() const
 	}
 }
 
-Key Event::key() const
+bool KeyEvent::isDefaultKey(DefaultKey dKey) const
+{
+	switch(dKey)
+	{
+		case DefaultKey::CONFIRM: return isDefaultConfirmButton();
+		case DefaultKey::CANCEL: return isDefaultCancelButton();
+		case DefaultKey::LEFT: return isDefaultLeftButton();
+		case DefaultKey::RIGHT: return isDefaultRightButton();
+		case DefaultKey::UP: return isDefaultUpButton();
+		case DefaultKey::DOWN: return isDefaultDownButton();
+		case DefaultKey::DIRECTION: return isDefaultDirectionButton();
+		case DefaultKey::PAGE_UP: return isDefaultPageUpButton();
+		case DefaultKey::PAGE_DOWN: return isDefaultPageDownButton();
+	}
+	return false;
+}
+
+Key KeyEvent::key() const
 {
 	return sysKey_;
 }
 
-Key Event::mapKey() const
+Key BaseEvent::mapKey() const
 {
 	return button;
 }
 
 #ifdef CONFIG_BASE_X11
-void Event::setX11RawKey(Key key)
+void KeyEvent::setX11RawKey(Key key)
 {
 	rawKey = key;
 }
 #endif
 
-bool Event::pushed() const
+bool BaseEvent::pushed(Key key) const
 {
-	return state() == Action::PUSHED;
+	return state() == Action::PUSHED
+		&& (!key || button == key);
 }
 
-bool Event::pushed(Key key) const
-{
-	return pushed() && button == key;
-}
-
-bool Event::pushedKey(Key sysKey) const
+bool KeyEvent::pushedKey(Key sysKey) const
 {
 	return pushed() && sysKey_ == sysKey;
 }
 
-bool Event::released() const
+bool BaseEvent::released(Key key) const
 {
-	return state() == Action::RELEASED;
+	return state() == Action::RELEASED
+		&& (!key || button == key);
 }
 
-bool Event::released(Key key) const
-{
-	return released() && button == key;
-}
-
-bool Event::releasedKey(Key sysKey) const
+bool KeyEvent::releasedKey(Key sysKey) const
 {
 	return released() && sysKey_ == sysKey;
 }
 
-bool Event::canceled() const
+bool KeyEvent::pushed(DefaultKey defaultKey) const
+{
+	return pushed() && isDefaultKey(defaultKey);
+}
+
+bool KeyEvent::released(DefaultKey defaultKey) const
+{
+	return released() && isDefaultKey(defaultKey);
+}
+
+bool MotionEvent::canceled() const
 {
 	return state() == Action::CANCELED;
 }
 
-bool Event::isOff() const
+bool MotionEvent::isOff() const
 {
 	return released() || canceled();
 }
 
-bool Event::moved() const
+bool MotionEvent::moved() const
 {
 	return state() == Action::MOVED;
 }
 
-uint32_t Event::metaKeyBits() const
+uint32_t BaseEvent::metaKeyBits() const
 {
 	return metaState;
 }
 
-bool Event::isShiftPushed() const
+bool BaseEvent::isShiftPushed() const
 {
 	return metaState & Meta::SHIFT;
 }
 
-int Event::repeated() const
+int KeyEvent::repeated() const
 {
 	return repeatCount;
 }
 
-void Event::setRepeatCount(int count)
+void KeyEvent::setRepeatCount(int count)
 {
 	repeatCount = count;
 }
 
-IG::WP Event::pos() const
+IG::WP MotionEvent::pos() const
 {
 	return {x, y};
 }
 
-bool Event::pointerDown(Key btnMask) const
+bool MotionEvent::pointerDown(Key btnMask) const
 {
-	assert(isPointer());
 	return !released() && button & btnMask;
 }
 
-int Event::scrolledVertical() const
+int MotionEvent::scrolledVertical() const
 {
-	assert(isPointer());
 	switch(state())
 	{
 		case Action::SCROLL_UP: return -1;
@@ -452,10 +464,8 @@ int Event::scrolledVertical() const
 	}
 }
 
-bool Event::isSystemFunction() const
+bool KeyEvent::isSystemFunction() const
 {
-	if(!isKey())
-		return false;
 	#ifdef __linux__
 	switch(key())
 	{
@@ -469,7 +479,7 @@ bool Event::isSystemFunction() const
 	#endif
 }
 
-std::string_view Event::actionToStr(Action action)
+std::string_view BaseEvent::actionToStr(Action action)
 {
 	switch(action)
 	{
@@ -484,19 +494,23 @@ std::string_view Event::actionToStr(Action action)
 	}
 }
 
-Time Event::time() const
+Time BaseEvent::time() const
 {
 	return time_;
 }
 
-const Device *Event::device() const
+const Device *BaseEvent::device() const
 {
 	return device_;
 }
 
-bool Event::hasSwappedConfirmKeys() const
+bool KeyEvent::hasSwappedConfirmKeys() const
 {
 	return keyFlags; // currently there is only a single flag
 }
+
+Time Event::time() const { return visit([](auto &e){ return e.time(); }, asVariant()); }
+
+const Device *Event::device() const { return visit([](auto &e){ return e.device(); }, asVariant()); }
 
 }

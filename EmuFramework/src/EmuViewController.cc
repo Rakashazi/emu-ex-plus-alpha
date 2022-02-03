@@ -118,7 +118,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	auto &win = viewAttach.window();
 
 	win.setOnInputEvent(
-		[this](IG::Window &win, Input::Event e)
+		[this](IG::Window &win, const Input::Event &e)
 		{
 			return inputEvent(e);
 		});
@@ -171,7 +171,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	configureSecondaryScreens();
 }
 
-static bool shouldExitFromViewRootWithoutPrompt(Input::Event e)
+static bool shouldExitFromViewRootWithoutPrompt(const Input::KeyEvent &e)
 {
 	return e.map() == Input::Map::SYSTEM && (Config::envIsAndroid || Config::envIsLinux);
 }
@@ -180,44 +180,48 @@ EmuMenuViewStack::EmuMenuViewStack(EmuViewController &emuViewController):
 	ViewStack{}, emuViewControllerPtr{&emuViewController}
 {}
 
-bool EmuMenuViewStack::inputEvent(Input::Event e)
+bool EmuMenuViewStack::inputEvent(const Input::Event &e)
 {
 	if(ViewStack::inputEvent(e))
 	{
 		return true;
 	}
-	if(e.pushed() && e.isDefaultCancelButton())
+	if(e.keyEvent())
 	{
-		if(size() == 1)
+		auto &keyEv = e.asKeyEvent();
+		if(keyEv.pushed(Input::DefaultKey::CANCEL))
 		{
-			//logMsg("cancel button at view stack root");
-			if(e.repeated())
+			if(size() == 1)
 			{
-				return true;
-			}
-			if(EmuSystem::gameIsRunning() ||
-					(!EmuSystem::gameIsRunning() && !shouldExitFromViewRootWithoutPrompt(e)))
-			{
-				viewController().app().showExitAlert(top().attachParams(), e);
+				//logMsg("cancel button at view stack root");
+				if(keyEv.repeated())
+				{
+					return true;
+				}
+				if(EmuSystem::gameIsRunning() ||
+						(!EmuSystem::gameIsRunning() && !shouldExitFromViewRootWithoutPrompt(keyEv)))
+				{
+					viewController().app().showExitAlert(top().attachParams(), e);
+				}
+				else
+				{
+					viewController().appContext().exit();
+				}
 			}
 			else
 			{
-				viewController().appContext().exit();
+				popAndShow();
 			}
+			return true;
 		}
-		else
+		if(keyEv.pushed() && viewController().isMenuDismissKey(keyEv) && !hasModalView())
 		{
-			popAndShow();
+			if(EmuSystem::gameIsRunning())
+			{
+				viewController().showEmulation();
+			}
+			return true;
 		}
-		return true;
-	}
-	if(e.pushed() && viewController().isMenuDismissKey(e) && !hasModalView())
-	{
-		if(EmuSystem::gameIsRunning())
-		{
-			viewController().showEmulation();
-		}
-		return true;
 	}
 	return false;
 }
@@ -309,12 +313,12 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		);
 		viewNav->setRotateLeftButton(true);
 		viewNav->setOnPushLeftBtn(
-			[this](Input::Event)
+			[this](const Input::Event &)
 			{
 				viewStack.popAndShow();
 			});
 		viewNav->setOnPushRightBtn(
-			[this](Input::Event)
+			[this](const Input::Event &)
 			{
 				if(EmuSystem::gameIsRunning())
 				{
@@ -344,7 +348,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		});
 }
 
-void EmuViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
+void EmuViewController::pushAndShow(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView, bool isModal)
 {
 	showUI(false);
 	viewStack.pushAndShow(std::move(v), e, needsNavView, isModal);
@@ -370,16 +374,8 @@ void EmuViewController::dismissView(int idx, bool refreshLayout)
 	viewStack.dismissView(idx, showingEmulation ? false : refreshLayout);
 }
 
-bool EmuViewController::inputEvent(Input::Event e)
+bool EmuViewController::inputEvent(const Input::Event &e)
 {
-	if(e.isPointer())
-	{
-		//logMsg("Pointer %s @ %d,%d", e.actionToStr(e.state), e.x, e.y);
-	}
-	else
-	{
-		//logMsg("%s %s from %s", e.device->keyName(e.button), e.actionToStr(e.state), e.device->name());
-	}
 	if(showingEmulation)
 	{
 		return emuInputView.inputEvent(e);
@@ -466,7 +462,7 @@ void EmuViewController::showUI(bool updateTopView)
 	}
 }
 
-bool EmuViewController::showAutoStateConfirm(Input::Event e)
+bool EmuViewController::showAutoStateConfirm(const Input::Event &e)
 {
 	auto ctx = appContext();
 	auto saveStr = EmuSystem::statePath(ctx, -1);
@@ -586,9 +582,9 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 					});
 
 				win.setOnInputEvent(
-					[this](IG::Window &win, Input::Event e)
+					[this](IG::Window &win, const Input::Event &e)
 					{
-						if(EmuSystem::isActive() && e.isKey())
+						if(EmuSystem::isActive() && e.keyEvent())
 						{
 							return emuInputView.inputEvent(e);
 						}
@@ -820,7 +816,7 @@ Gfx::RendererTask &EmuViewController::rendererTask() const
 	return *rendererTask_;
 }
 
-void EmuViewController::pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
+void EmuViewController::pushAndShowModal(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView)
 {
 	pushAndShow(std::move(v), e, needsNavView, true);
 }
@@ -887,7 +883,7 @@ void EmuViewController::setShowNavViewBackButton(bool show)
 	viewStack.setShowNavViewBackButton(show);
 }
 
-void EmuViewController::showSystemActionsView(ViewAttachParams attach, Input::Event e)
+void EmuViewController::showSystemActionsView(ViewAttachParams attach, const Input::Event &e)
 {
 	showUI();
 	if(!viewStack.contains("System Actions"))
@@ -969,7 +965,7 @@ void EmuViewController::handleOpenFileCommand(IG::CStringView path)
 	logMsg("opening file %s from external command", path.data());
 	showUI();
 	popToRoot();
-	onSelectFileFromPicker(*appPtr, {}, path, name, Input::Event{}, {}, viewStack.top().attachParams());
+	onSelectFileFromPicker(*appPtr, {}, path, name, Input::KeyEvent{}, {}, viewStack.top().attachParams());
 }
 
 void EmuViewController::onFocusChange(bool in)
@@ -1034,7 +1030,7 @@ IG::ApplicationContext EmuViewController::appContext() const
 	return emuWindow().appContext();
 }
 
-bool EmuViewController::isMenuDismissKey(Input::Event e)
+bool EmuViewController::isMenuDismissKey(const Input::KeyEvent &e)
 {
 	using namespace IG::Input;
 	Key dismissKey = Keycode::MENU;

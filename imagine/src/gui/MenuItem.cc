@@ -96,7 +96,7 @@ TextMenuItem::TextMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, Sel
 	BaseTextMenuItem{std::move(name), face},
 	selectD{selectDel} {}
 
-bool TextMenuItem::select(View &parent, Input::Event e)
+bool TextMenuItem::select(View &parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
 	return selectD.callCopySafe(*this, parent, e);
@@ -112,7 +112,7 @@ TextMenuItem::SelectDelegate TextMenuItem::onSelect() const
 	return selectD;
 }
 
-bool TextHeadingMenuItem::select(View &parent, Input::Event e) { return true; };
+bool TextHeadingMenuItem::select(View &parent, const Input::Event &e) { return true; };
 
 BaseDualTextMenuItem::BaseDualTextMenuItem(IG::utf16String name, IG::utf16String name2, Gfx::GlyphTextureSet *face):
 	BaseTextMenuItem{std::move(name), face},
@@ -155,7 +155,7 @@ DualTextMenuItem::DualTextMenuItem(IG::utf16String name, IG::utf16String name2,
 	BaseDualTextMenuItem{std::move(name), std::move(name2), face},
 	selectD{selectDel} {}
 
-bool DualTextMenuItem::select(View &parent, Input::Event e)
+bool DualTextMenuItem::select(View &parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
 	selectD.callCopySafe(*this, parent, e);
@@ -167,7 +167,7 @@ void DualTextMenuItem::setOnSelect(SelectDelegate onSelect)
 	selectD = onSelect;
 }
 
-bool BoolMenuItem::select(View &parent, Input::Event e)
+bool BoolMenuItem::select(View &parent, const Input::Event &e)
 {
 	selectD.callCopySafe(*this, parent, e);
 	return true;
@@ -245,7 +245,7 @@ public:
 		src{src}
 	{
 		setOnSelectElement(
-			[this](Input::Event e, int i, MenuItem &item)
+			[this](const Input::Event &e, int i, MenuItem &item)
 			{
 				if(item.select(*this, e))
 				{
@@ -255,12 +255,10 @@ public:
 			});
 	}
 
-	void onAddedToController(ViewController *, Input::Event e) final
+	void onAddedToController(ViewController *, const Input::Event &e) final
 	{
-		if(!e.isPointer())
-		{
+		if(e.keyEvent())
 			selected = activeItem;
-		}
 	}
 
 	void drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const final
@@ -275,7 +273,7 @@ MultiChoiceMenuItem::MultiChoiceMenuItem(IG::utf16String name, Gfx::GlyphTexture
 	selectD
 	{
 		selectDel ? selectDel :
-			[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+			[this](MultiChoiceMenuItem &item, View &view, const Input::Event &e)
 			{
 				item.defaultOnSelect(view, e);
 			}
@@ -354,7 +352,7 @@ int MultiChoiceMenuItem::cycleSelected(int offset)
 	return selected_;
 }
 
-bool MultiChoiceMenuItem::select(View &parent, Input::Event e)
+bool MultiChoiceMenuItem::select(View &parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
 	selectD.callCopySafe(*this, parent, e);
@@ -385,7 +383,7 @@ std::unique_ptr<TableView> MultiChoiceMenuItem::makeTableView(ViewAttachParams a
 	);
 }
 
-void MultiChoiceMenuItem::defaultOnSelect(View &view, Input::Event e)
+void MultiChoiceMenuItem::defaultOnSelect(View &view, const Input::Event &e)
 {
 	view.pushAndShow(makeTableView(view.attachParams()), e);
 }
