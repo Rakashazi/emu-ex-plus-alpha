@@ -34,49 +34,33 @@ namespace EmuEx
 class ResetAlertView : public BaseAlertView, public EmuAppHelper<ResetAlertView>
 {
 public:
-	ResetAlertView(ViewAttachParams attach, const char *label):
-		BaseAlertView(attach, label,
-			[this](const TableView &)
+	ResetAlertView(ViewAttachParams attach, IG::utf16String label):
+		BaseAlertView{attach, std::move(label), items},
+		items
+		{
+			TextMenuItem
 			{
-				return 3;
-			},
-			[this](const TableView &, size_t idx) -> MenuItem&
-			{
-				switch(idx)
+				"Soft Reset", &defaultFace(),
+				[this]()
 				{
-					default: bug_unreachable("idx == %d", (int)idx); return soft;
-					case 0: return soft;
-					case 1: return hard;
-					case 2: return cancel;
+					EmuSystem::reset(app(), EmuSystem::RESET_SOFT);
+					app().viewController().showEmulation();
 				}
-			}),
-		soft
-		{
-			"Soft Reset", &defaultFace(),
-			[this]()
+			},
+			TextMenuItem
 			{
-				EmuSystem::reset(app(), EmuSystem::RESET_SOFT);
-				app().viewController().showEmulation();
-			}
-		},
-		hard
-		{
-			"Hard Reset", &defaultFace(),
-			[this]()
-			{
-				EmuSystem::reset(app(), EmuSystem::RESET_HARD);
-				app().viewController().showEmulation();
-			}
-		},
-		cancel
-		{
-			"Cancel", &defaultFace(),
-			[](){}
-		}
-	{}
+				"Hard Reset", &defaultFace(),
+				[this]()
+				{
+					EmuSystem::reset(app(), EmuSystem::RESET_HARD);
+					app().viewController().showEmulation();
+				}
+			},
+			TextMenuItem{"Cancel", &defaultFace(), [](){}}
+		} {}
 
 protected:
-	TextMenuItem soft, hard, cancel;
+	std::array<TextMenuItem, 3> items;
 };
 
 static auto makeStateSlotStr(int slot)
@@ -189,7 +173,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 						if(app.saveStateWithSlot(EmuSystem::saveStateSlot))
 							app.viewController().showEmulation();
 					};
-				if(EmuSystem::shouldOverwriteExistingState(appContext()))
+				if(app().shouldOverwriteExistingState())
 				{
 					doSaveState(app());
 				}

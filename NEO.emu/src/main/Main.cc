@@ -99,7 +99,7 @@ static GN_Surface sdlSurf;
 static FS::PathString datafilePath{};
 static const int FBResX = 352;
 // start image on y 16, x 24, size 304x224, 48 pixel padding on the right
-static constexpr IG::Pixmap srcPix{{{304, 224}, pixFmt}, screenBuff + (16*FBResX) + (24), {FBResX, IG::Pixmap::PIXEL_UNITS}};
+static constexpr IG::Pixmap srcPix{{{304, 224}, pixFmt}, screenBuff + (16*FBResX) + (24), {FBResX, IG::Pixmap::Units::PIXEL}};
 static EmuSystem::OnLoadProgressDelegate onLoadProgress{};
 
 const char *EmuSystem::shortSystemName()

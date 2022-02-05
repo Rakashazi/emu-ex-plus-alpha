@@ -68,7 +68,18 @@ EmuApp::EmuApp(IG::ApplicationInitParams initParams, IG::ApplicationContext &ctx
 	},
 	pixmapReader{ctx},
 	pixmapWriter{ctx},
-	vibrationManager_{ctx}
+	vibrationManager_{ctx},
+	optionFontSize{CFGKEY_FONT_Y_SIZE,
+		Config::MACHINE_IS_PANDORA ? 6500 :
+		(Config::envIsIOS || Config::envIsAndroid) ? 3000 :
+		8000,
+		false, optionIsValidWithMinMax<2000, 10000, uint16_t>},
+	optionPauseUnfocused{CFGKEY_PAUSE_UNFOCUSED, 1,
+		!(Config::envIsLinux || Config::envIsAndroid)},
+	optionAutoSaveState{CFGKEY_AUTO_SAVE_STATE, 1},
+	optionConfirmAutoLoadState{CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1},
+	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
+	optionFastForwardSpeed{CFGKEY_FAST_FORWARD_SPEED, 4, false, optionIsValidWithMinMax<2, 7>}
 {
 	EmuSystem::onInit(ctx);
 	mainInitCommon(initParams, ctx);
@@ -446,7 +457,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			viewManager.setDefaultBoldFace({renderer, fontManager.makeBoldSystem(), IG::FontSettings{}});
 			win.makeAppData<WindowData>();
 			auto &winData = windowData(win);
-			setupFont(viewManager, renderer, win);
+			applyFontSize(win);
 			winData.projection = updateProjection(makeViewport(win));
 			win.setAcceptDnd(true);
 			renderer.setWindowValidOrientations(win, optionMenuOrientation);
@@ -943,7 +954,7 @@ void EmuApp::runTurboInputEvents()
 void EmuApp::resetInput()
 {
 	turboActions = {};
-	viewController().setFastForwardActive(false);
+	viewController().setFastForwardSpeed(0);
 }
 
 FS::PathString EmuApp::sessionConfigPath()
@@ -1180,15 +1191,30 @@ void EmuApp::addCurrentContentToRecent()
 
 void EmuApp::setSoundRate(uint32_t rate)
 {
+	assert(rate <= optionSoundRate.defaultVal);
 	optionSoundRate = rate;
 	EmuSystem::configAudioPlayback(audio(), rate);
 }
 
-void EmuApp::setFontSize(int size)
+void EmuApp::setSoundVolume(uint8_t vol)
 {
+	optionSoundVolume = vol;
+	audio().setVolume(vol);
+}
+
+bool EmuApp::setFontSize(int size)
+{
+	if(!optionFontSize.isValidVal(size))
+		return false;
 	optionFontSize = size;
-	setupFont(viewManager, renderer, viewController().emuWindow());
+	applyFontSize(viewController().emuWindow());
 	viewController().placeElements();
+	return true;
+}
+
+int EmuApp::fontSize() const
+{
+	return optionFontSize;
 }
 
 EmuApp &EmuApp::get(IG::ApplicationContext ctx)

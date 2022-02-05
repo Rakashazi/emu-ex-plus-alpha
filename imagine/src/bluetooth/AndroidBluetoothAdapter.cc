@@ -20,7 +20,6 @@
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/jni.hh>
 #include <errno.h>
-#include <cctype>
 #include "../base/android/android.hh"
 #include "utils.hh"
 

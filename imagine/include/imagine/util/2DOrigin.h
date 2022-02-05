@@ -21,6 +21,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <compare>
 
 // Origins are based on Cartesian coordinates,
 // min:negative x = left
@@ -36,11 +37,11 @@ class _2DOrigin
 {
 public:
 	uint8_t x = _2DORIGIN_NONE, y = _2DORIGIN_NONE;
-	constexpr _2DOrigin() { }
-	constexpr _2DOrigin(uint8_t x, uint8_t y): x(x & 7), y(y & 7) { }
-	explicit constexpr _2DOrigin(uint8_t val): x(val & 7), y(val >> 3) { }
+	constexpr _2DOrigin() = default;
+	constexpr _2DOrigin(uint8_t x, uint8_t y): x(x & 7), y(y & 7) {}
+	explicit constexpr _2DOrigin(uint8_t val): x(val & 7), y(val >> 3) {}
 
-	static const char *toString(uint32_t value)
+	static constexpr const char *toString(uint32_t value)
 	{
 		switch(value)
 		{
@@ -54,7 +55,7 @@ public:
 		}
 	}
 
-	static int scaler(uint32_t originValue)
+	static constexpr int scaler(uint32_t originValue)
 	{
 		switch(originValue)
 		{
@@ -68,27 +69,27 @@ public:
 		}
 	}
 
-	int xScaler() const
+	constexpr int xScaler() const
 	{
 		return scaler(x);
 	}
 
-	int yScaler() const
+	constexpr int yScaler() const
 	{
 		return scaler(y);
 	}
 
-	bool isYCartesian() const
+	constexpr bool isYCartesian() const
 	{
 		return isCartesian(y);
 	}
 
-	static int isCartesian(int type)
+	static constexpr int isCartesian(int type)
 	{
 		return type == _2DORIGIN_MIN || type ==_2DORIGIN_MAX || type ==_2DORIGIN_CENTER;
 	}
 
-	static bool valIsValid(uint32_t originValue)
+	static constexpr bool valIsValid(uint32_t originValue)
 	{
 		switch(originValue)
 		{
@@ -101,19 +102,19 @@ public:
 		return 0;
 	}
 
-	bool isValid()
+	constexpr bool isValid()
 	{
 		return valIsValid(x) && valIsValid(y);
 	}
 
-	bool isXCentered() { return scaler(x) == 0; }
-	bool onYCenter() { return scaler(y) == 0; }
-	bool onRight() { return scaler(x) == 1; }
-	bool onLeft() { return scaler(x) == -1; }
-	bool onTop() { return scaler(y) == 1; }
-	bool onBottom() { return scaler(y) == -1; }
+	constexpr bool isXCentered() { return scaler(x) == 0; }
+	constexpr bool onYCenter() { return scaler(y) == 0; }
+	constexpr bool onRight() { return scaler(x) == 1; }
+	constexpr bool onLeft() { return scaler(x) == -1; }
+	constexpr bool onTop() { return scaler(y) == 1; }
+	constexpr bool onBottom() { return scaler(y) == -1; }
 
-	static int inverted(int inputType, int outputType)
+	static constexpr uint8_t inverted(uint8_t inputType, uint8_t outputType)
 	{
 		int inputInverted;
 		if(isCartesian(inputType))
@@ -128,17 +129,17 @@ public:
 		return lxor(inputInverted, outputInverted);
 	}
 
-	int xInverted(_2DOrigin outputType) const
+	constexpr uint8_t xInverted(_2DOrigin outputType) const
 	{
 		return inverted(x, outputType.x);
 	}
 
-	int yInverted(_2DOrigin outputType) const
+	constexpr uint8_t yInverted(_2DOrigin outputType) const
 	{
 		return inverted(y, outputType.y);
 	}
 
-	static int invert(uint32_t originValue)
+	static constexpr uint8_t invert(uint32_t originValue)
 	{
 		switch(originValue)
 		{
@@ -152,32 +153,20 @@ public:
 		}
 	}
 
-	_2DOrigin invertX() const
-	{
-		_2DOrigin o(x, y);
-		o.x = invert(x);
-		return o;
-	}
+	constexpr _2DOrigin invertX() const { return {invert(x), y}; }
 
-	_2DOrigin invertY() const
-	{
-		_2DOrigin o(x, y);
-		o.y = invert(y);
-		return o;
-	}
+	constexpr _2DOrigin invertY() const { return {x, invert(y)}; }
 
-	_2DOrigin invertYIfCartesian() const
+	constexpr _2DOrigin invertYIfCartesian() const
 	{
-		_2DOrigin o(x, y);
 		if(isCartesian(y))
 		{
-			o.y = invert(y);
-			//logDMsg("inverted");
+			return invertY();
 		}
-		return o;
+		return *this;
 	}
 
-	static int flip(uint32_t originValue)
+	static constexpr uint8_t flip(uint32_t originValue)
 	{
 		switch(originValue)
 		{
@@ -191,19 +180,9 @@ public:
 		}
 	}
 
-	_2DOrigin flipX() const
-	{
-		_2DOrigin o(x, y);
-		o.x = flip(x);
-		return o;
-	}
+	constexpr _2DOrigin flipX() const { return {flip(x), y}; }
 
-	_2DOrigin flipY() const
-	{
-		_2DOrigin o(x, y);
-		o.y = flip(y);
-		return o;
-	}
+	constexpr _2DOrigin flipY() const { return {x, flip(y)}; }
 
 	template<class T>
 	static T adjust(T pos, T halfSize, T fullSize, int inputScale, int outputScale)
@@ -270,23 +249,15 @@ public:
 		return adjust(pos, halfSize, halfSize+halfSize, yScaler(), outputType.yScaler());
 	}
 
-	bool operator ==(_2DOrigin const& rhs) const
-	{
-		return x == rhs.x && y == rhs.y;
-	}
+	constexpr bool operator==(_2DOrigin const &rhs) const = default;
 
-	bool operator !=(_2DOrigin const& rhs) const
-	{
-		return !(*this == rhs);
-	}
-
-	operator unsigned int() const
+	constexpr operator unsigned int() const
 	{
 		//logMsg("converting 0x%X 0x%X to 0x%X", x, y, x | (y << 3));
 		return x | (y << 3);
 	}
 
-	static int lxor(int a, int b)
+	static constexpr int lxor(int a, int b)
 	{
 		return !a != !b;
 	}

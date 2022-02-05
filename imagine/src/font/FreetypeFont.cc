@@ -556,7 +556,7 @@ IG::Pixmap IG::GlyphImage::pixmap()
 		{
 			{{(int)bitmap.width, (int)bitmap.rows}, IG::PIXEL_FMT_A8},
 			bitmap.buffer,
-			{(uint32_t)bitmap.pitch, IG::Pixmap::BYTE_UNITS}
+			{(uint32_t)bitmap.pitch, IG::Pixmap::Units::BYTE}
 		};
 }
 

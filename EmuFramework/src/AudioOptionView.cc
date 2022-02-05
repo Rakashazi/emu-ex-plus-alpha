@@ -24,7 +24,6 @@ namespace EmuEx
 
 TextMenuItem::SelectDelegate AudioOptionView::setRateDel(uint32_t val)
 {
-	assert(val <= optionSoundRate.defaultVal);
 	return [this, val]() { app().setSoundRate(val); };
 }
 
@@ -35,11 +34,7 @@ TextMenuItem::SelectDelegate AudioOptionView::setBuffersDel(int val)
 
 TextMenuItem::SelectDelegate AudioOptionView::setVolumeDel(uint8_t val)
 {
-	return [this, val]()
-		{
-			optionSoundVolume = val;
-			audio->setVolume(val);
-		};
+	return [this, val]() { app().setSoundVolume(val); };
 }
 
 AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
@@ -79,7 +74,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 					{
 						if(optionSoundVolume.isValidVal(val))
 						{
-							app.setSoundRate(val);
+							app.setSoundVolume(val);
 							soundVolume.setSelected(std::size(soundVolumeItem) - 1, *this);
 							dismissPrevious();
 							return true;
@@ -145,8 +140,8 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		"Sound Rate", &defaultFace(),
 		0,
 		audioRateItem
-	}
-	,audioSoloMix
+	},
+	audioSoloMix
 	{
 		"Mix With Other Apps", &defaultFace(),
 		!app().audioManager().soloMix(),

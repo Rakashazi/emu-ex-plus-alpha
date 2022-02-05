@@ -370,7 +370,7 @@ std::unique_ptr<TableView> MultiChoiceMenuItem::makeTableView(ViewAttachParams a
 	(
 		std::u16string{t.stringView()},
 		attach,
-		selected_ < (bool)items_(*this) ? selected_ : -1,
+		selected_ < (int)items_(*this) ? selected_ : -1,
 		[this](const TableView &)
 		{
 			return items_(*this);

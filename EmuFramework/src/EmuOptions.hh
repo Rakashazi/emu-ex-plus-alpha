@@ -17,7 +17,6 @@
 
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
-#include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/audio/defs.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
@@ -32,10 +31,6 @@ namespace EmuEx
 {
 
 class VController;
-
-#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-using OptionBlueToothScanCache = Option<OptionMethodFunc<bool, BluetoothAdapter::scanCacheUsage, BluetoothAdapter::setScanCacheUsage>, uint8_t>;
-#endif
 
 // TODO: recycle obsolete enums
 enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
@@ -86,8 +81,6 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	// 256+ is reserved
 };
 
-extern Byte1Option optionAutoSaveState;
-extern Byte1Option optionConfirmAutoLoadState;
 extern Byte1Option optionSound;
 extern Byte1Option optionSoundVolume;
 extern Byte1Option optionSoundBuffers;
@@ -96,8 +89,6 @@ extern Byte1Option optionAddSoundBuffersOnUnderrun;
 extern Byte1Option optionAudioAPI;
 #endif
 extern Byte4Option optionSoundRate;
-extern Byte2Option optionFontSize;
-extern Byte1Option optionPauseUnfocused;
 extern Byte1Option optionNotificationIcon;
 extern Byte1Option optionTitleBar;
 extern Byte1Option optionSystemActionsIsDefaultMenu;
@@ -105,8 +96,6 @@ extern Byte1Option optionLowProfileOSNav;
 extern Byte1Option optionHideOSNav;
 extern Byte1Option optionIdleDisplayPowerSave;
 extern Byte1Option optionHideStatusBar;
-extern Byte1Option optionConfirmOverwriteState;
-extern Byte1Option optionFastForwardSpeed;
 #ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 extern Byte1Option optionNotifyInputDeviceChange;
 #endif
@@ -114,9 +103,6 @@ extern Byte1Option optionNotifyInputDeviceChange;
 #ifdef CONFIG_BLUETOOTH
 extern Byte1Option optionKeepBluetoothActive;
 extern Byte1Option optionShowBluetoothScan;
-	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-	extern OptionBlueToothScanCache optionBlueToothScanCache;
-	#endif
 #endif
 
 extern Byte1Option optionImgFilter;
@@ -131,8 +117,8 @@ static const unsigned optionRelPointerDecelLow = 500, optionRelPointerDecelMed =
 extern Byte4Option optionRelPointerDecel;
 #endif
 
-extern Byte4s1Option optionGameOrientation;
-extern Byte4s1Option optionMenuOrientation;
+extern Byte1Option optionGameOrientation;
+extern Byte1Option optionMenuOrientation;
 
 #if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 extern Byte1Option optionFrameInterval;
@@ -158,7 +144,6 @@ static const char *optionSavePathDefaultToken = ":DEFAULT:";
 
 extern Byte1Option optionShowBundledGames;
 
-void setupFont(ViewManager &manager, Gfx::Renderer &r, IG::Window &win);
 bool soundIsEnabled();
 void setSoundEnabled(bool on);
 bool soundDuringFastForwardIsEnabled();

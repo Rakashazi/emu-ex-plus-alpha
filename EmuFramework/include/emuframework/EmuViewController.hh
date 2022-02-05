@@ -101,7 +101,7 @@ public:
 	EmuAudio &emuAudio() const;
 	void onScreenChange(IG::ApplicationContext, IG::Screen &, IG::ScreenChange);
 	void handleOpenFileCommand(IG::CStringView path);
-	void setFastForwardActive(bool active);
+	void setFastForwardSpeed(int speed);
 	bool isMenuDismissKey(const Input::KeyEvent &);
 	void setUsePresentationTime(bool on) { usePresentationTime_ = on; }
 	bool usePresentationTime() const { return usePresentationTime_; }

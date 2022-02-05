@@ -98,10 +98,18 @@ BiosSelectMenu::BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS
 	assert(biosPathStr);
 }
 
-static void setAutoSaveState(unsigned val)
+TextMenuItem::SelectDelegate SystemOptionView::setAutoSaveStateDel(int val)
 {
-	optionAutoSaveState = val;
-	logMsg("set auto-savestate %d", optionAutoSaveState.val);
+	return [this, val]()
+	{
+		app().autoSaveStateOption() = val;
+		logMsg("set auto-savestate:%u", val);
+	};
+}
+
+TextMenuItem::SelectDelegate SystemOptionView::setFastForwardSpeedDel(int val)
+{
+	return [this, val]() { app().fastForwardSpeedOption() = val; };
 }
 
 static auto makePathMenuEntryStr(IG::ApplicationContext ctx, std::string_view savePath)
@@ -132,17 +140,17 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"System Options", attach, item},
 	autoSaveStateItem
 	{
-		{"Off", &defaultFace(), [this]() { setAutoSaveState(0); }},
-		{"Game Exit", &defaultFace(), [this]() { setAutoSaveState(1); }},
-		{"15mins", &defaultFace(), [this]() { setAutoSaveState(15); }},
-		{"30mins", &defaultFace(), [this]() { setAutoSaveState(30); }}
+		{"Off",       &defaultFace(), setAutoSaveStateDel(0)},
+		{"Game Exit", &defaultFace(), setAutoSaveStateDel(1)},
+		{"15mins",    &defaultFace(), setAutoSaveStateDel(15)},
+		{"30mins",    &defaultFace(), setAutoSaveStateDel(30)}
 	},
 	autoSaveState
 	{
 		"Auto-save State", &defaultFace(),
-		[]()
+		[this]()
 		{
-			switch(optionAutoSaveState.val)
+			switch(app().autoSaveStateOption().val)
 			{
 				default: return 0;
 				case 1: return 1;
@@ -155,19 +163,19 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	confirmAutoLoadState
 	{
 		"Confirm Auto-load State", &defaultFace(),
-		(bool)optionConfirmAutoLoadState,
+		(bool)app().confirmAutoLoadStateOption(),
 		[this](BoolMenuItem &item)
 		{
-			optionConfirmAutoLoadState = item.flipBoolValue(*this);
+			app().confirmAutoLoadStateOption() = item.flipBoolValue(*this);
 		}
 	},
 	confirmOverwriteState
 	{
 		"Confirm Overwrite State", &defaultFace(),
-		(bool)optionConfirmOverwriteState,
+		(bool)app().confirmOverwriteStateOption(),
 		[this](BoolMenuItem &item)
 		{
-			optionConfirmOverwriteState = item.flipBoolValue(*this);
+			app().confirmOverwriteStateOption() = item.flipBoolValue(*this);
 		}
 	},
 	savePath
@@ -264,18 +272,19 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fastForwardSpeedItem
 	{
-		{"2x", &defaultFace(), [this]() { optionFastForwardSpeed = 2; }},
-		{"3x", &defaultFace(), [this]() { optionFastForwardSpeed = 3; }},
-		{"4x", &defaultFace(), [this]() { optionFastForwardSpeed = 4; }},
-		{"5x", &defaultFace(), [this]() { optionFastForwardSpeed = 5; }},
-		{"6x", &defaultFace(), [this]() { optionFastForwardSpeed = 6; }},
-		{"7x", &defaultFace(), [this]() { optionFastForwardSpeed = 7; }},
+		{"2x", &defaultFace(), setFastForwardSpeedDel(2)},
+		{"3x", &defaultFace(), setFastForwardSpeedDel(3)},
+		{"4x", &defaultFace(), setFastForwardSpeedDel(4)},
+		{"5x", &defaultFace(), setFastForwardSpeedDel(5)},
+		{"6x", &defaultFace(), setFastForwardSpeedDel(6)},
+		{"7x", &defaultFace(), setFastForwardSpeedDel(7)},
 	},
 	fastForwardSpeed
 	{
 		"Fast Forward Speed", &defaultFace(),
-		[]() -> int
+		[this]() -> int
 		{
+			auto &optionFastForwardSpeed = app().fastForwardSpeedOption();
 			if(optionFastForwardSpeed >= MIN_FAST_FORWARD_SPEED && optionFastForwardSpeed <= 7)
 			{
 				return optionFastForwardSpeed - MIN_FAST_FORWARD_SPEED;

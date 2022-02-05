@@ -34,10 +34,10 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	pauseUnfocused
 	{
 		"Pause if unfocused", &defaultFace(),
-		(bool)optionPauseUnfocused,
+		(bool)app().pauseUnfocusedOption(),
 		[this](BoolMenuItem &item)
 		{
-			optionPauseUnfocused = item.flipBoolValue(*this);
+			app().pauseUnfocusedOption() = item.flipBoolValue(*this);
 		}
 	},
 	fontSizeItem
@@ -58,9 +58,8 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 					[this](EmuApp &app, auto val)
 					{
 						int scaledIntVal = val * 1000.0;
-						if(optionFontSize.isValidVal(scaledIntVal))
+						if(app.setFontSize(scaledIntVal))
 						{
-							app.setFontSize(scaledIntVal);
 							fontSize.setSelected(std::size(fontSizeItem) - 1, *this);
 							dismissPrevious();
 							return true;
@@ -80,12 +79,12 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		"Font Size", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{:.2f}", optionFontSize / 1000.));
+			t.setString(fmt::format("{:.2f}", app().fontSize() / 1000.));
 			return true;
 		},
-		[]()
+		[this]()
 		{
-			switch(optionFontSize)
+			switch(app().fontSize())
 			{
 				case 2000: return 0;
 				case 3000: return 1;
@@ -284,7 +283,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 
 void GUIOptionView::loadStockItems()
 {
-	if(!optionPauseUnfocused.isConst)
+	if(!app().pauseUnfocusedOption().isConst)
 	{
 		item.emplace_back(&pauseUnfocused);
 	}
@@ -301,10 +300,7 @@ void GUIOptionView::loadStockItems()
 		item.emplace_back(&backNav);
 	}
 	item.emplace_back(&systemActionsIsDefaultMenu);
-	if(!optionFontSize.isConst)
-	{
-		item.emplace_back(&fontSize);
-	}
+	item.emplace_back(&fontSize);
 	if(!optionIdleDisplayPowerSave.isConst)
 	{
 		item.emplace_back(&idleDisplayPowerSave);

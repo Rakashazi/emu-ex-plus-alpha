@@ -17,47 +17,47 @@
 
 #include <imagine/util/string/CStringView.hh>
 #include <imagine/util/utility.h>
+#include <imagine/util/ctype.hh>
 #include <string_view>
 #include <type_traits>
-#include <cctype>
 
 namespace IG
 {
 
 [[nodiscard]]
-static constexpr bool stringContains(std::string_view sv, auto &&toFind)
+constexpr bool stringContains(std::string_view sv, auto &&toFind)
 {
 	return sv.find(IG_forward(toFind)) != std::string_view::npos;
 }
 
 [[nodiscard]]
-static constexpr bool stringContainsAny(std::string_view sv, auto &&...substrs)
+constexpr bool stringContainsAny(std::string_view sv, auto &&...substrs)
 {
 	return (stringContains(sv, IG_forward(substrs)) || ...);
 }
 
 [[nodiscard]]
-static constexpr bool stringEndsWithAny(std::string_view sv, auto &&...endings)
+constexpr bool stringEndsWithAny(std::string_view sv, auto &&...endings)
 {
 	return (sv.ends_with(IG_forward(endings)) || ...);
 }
 
 template <class String>
 [[nodiscard]]
-static auto stringToUpper(std::string_view str)
+constexpr auto stringToUpper(std::string_view str)
 {
 	String destStr{};
 	destStr.reserve(str.size());
 	for(auto c : str)
 	{
-		destStr.push_back(std::toupper(c));
+		destStr.push_back(toupper(c));
 	}
 	return destStr;
 }
 
 template <class Return = void>
 [[nodiscard]]
-static constexpr auto stringWithoutDotExtension(auto &&str)
+constexpr auto stringWithoutDotExtension(auto &&str)
 {
 	auto dotOffset = str.rfind('.');
 	// If Return isn't specified, return result as argument type

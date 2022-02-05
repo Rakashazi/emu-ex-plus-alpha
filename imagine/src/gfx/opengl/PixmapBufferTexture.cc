@@ -494,7 +494,7 @@ static bool hasHardwareBuffer(Renderer &r)
 LockedTextureBuffer TextureBufferStorage::makeLockedBuffer(void *data, uint32_t pitchBytes, uint32_t bufferFlags)
 {
 	IG::WindowRect fullRect{{}, size(0)};
-	IG::Pixmap pix{pixmapDesc(), data, {pitchBytes, IG::Pixmap::BYTE_UNITS}};
+	IG::Pixmap pix{pixmapDesc(), data, {pitchBytes, IG::Pixmap::Units::BYTE}};
 	if(bufferFlags & Texture::BUFFER_FLAG_CLEARED)
 		pix.clear();
 	return {nullptr, pix, fullRect, 0, false};

@@ -25,6 +25,7 @@
 #include <emuframework/EmuInput.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/TurboInput.hh>
+#include <emuframework/Option.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/android/MogaManager.hh>
 #include <imagine/gui/ViewManager.hh>
@@ -210,7 +211,16 @@ public:
 	auto &customKeyConfigList() { return customKeyConfigs; };
 	auto &savedInputDeviceList() { return savedInputDevs; };
 	void setSoundRate(uint32_t rate);
-	void setFontSize(int size);
+	void setSoundVolume(uint8_t vol);
+	bool setFontSize(int size); // size in micro-meters
+	int fontSize() const;
+	void applyFontSize(Window &win);
+	bool shouldOverwriteExistingState() const;
+	Byte1Option &pauseUnfocusedOption() { return optionPauseUnfocused; }
+	Byte1Option &autoSaveStateOption() { return optionAutoSaveState; }
+	Byte1Option &confirmAutoLoadStateOption() { return optionConfirmAutoLoadState; }
+	Byte1Option &confirmOverwriteStateOption() { return optionConfirmOverwriteState; }
+	Byte1Option &fastForwardSpeedOption() { return optionFastForwardSpeed; }
 	IG::ApplicationContext appContext() const;
 	static EmuApp &get(IG::ApplicationContext);
 
@@ -333,6 +343,12 @@ protected:
 	#endif
 	IG_UseMemberIf(Config::EmuFramework::MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr){};
 	RecentContentList recentContentList{};
+	Byte2Option optionFontSize;
+	Byte1Option optionPauseUnfocused;
+	Byte1Option optionAutoSaveState;
+	Byte1Option optionConfirmAutoLoadState;
+	Byte1Option optionConfirmOverwriteState;
+	Byte1Option optionFastForwardSpeed;
 	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
 	bool showHiddenFilesInPicker_{};

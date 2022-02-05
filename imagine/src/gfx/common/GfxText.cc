@@ -20,9 +20,9 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/int.hh>
+#include <imagine/util/ctype.hh>
 #include <imagine/logger/logger.h>
 #include <algorithm>
-#include <cctype>
 
 namespace IG::Gfx
 {

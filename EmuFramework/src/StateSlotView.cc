@@ -23,54 +23,37 @@ namespace EmuEx
 {
 
 StateSlotView::StateSlotView(ViewAttachParams attach):
-	TableView
-	{
-		"State Slot",
-		attach,
-		[this](const TableView &)
-		{
-			return stateSlots;
-		},
-		[this](const TableView &, size_t idx) -> MenuItem&
-		{
-			return stateSlot[idx];
-		}
-	}
+	TableView{"State Slot", attach, stateSlot}
 {
-	for(int slot = -1; slot < 10; slot++)
+	for(auto &s : stateSlot)
 	{
-		auto idx = slot+1;
-
+		int slot = std::distance(stateSlot, &s) - 1;
 		if(EmuSystem::gameIsRunning())
 		{
 			auto ctx = appContext();
 			auto saveStr = EmuSystem::statePath(ctx, slot);
 			auto modTimeStr = ctx.fileUriFormatLastWriteTimeLocal(saveStr);
 			bool fileExists = modTimeStr.size();
-			auto str =
-				[&]()
-				{
-					if(fileExists)
-					{
-						return fmt::format("{} ({})", stateNameStr(slot), modTimeStr);
-					}
-					else
-						return fmt::format("{}", stateNameStr(slot));
-				}();
-			stateSlot[idx] = {str, &defaultFace(), nullptr};
-			stateSlot[idx].setActive(fileExists);
+			auto str = [&]()
+			{
+				if(fileExists)
+					return fmt::format("{} ({})", stateNameStr(slot), modTimeStr);
+				else
+					return fmt::format("{}", stateNameStr(slot));
+			};
+			s = {str(), &defaultFace(), nullptr};
+			s.setActive(fileExists);
 		}
 		else
 		{
-			stateSlot[idx] = {fmt::format("{}", stateNameStr(slot)), &defaultFace(), nullptr};
-			stateSlot[idx].setActive(false);
+			s = {fmt::format("{}", stateNameStr(slot)), &defaultFace(), nullptr};
+			s.setActive(false);
 		}
-
-		stateSlot[idx].setOnSelect(
+		s.setOnSelect(
 			[slot](View &view)
 			{
 				EmuSystem::saveStateSlot = slot;
-				logMsg("set state slot %d", EmuSystem::saveStateSlot);
+				logMsg("set state slot:%d", EmuSystem::saveStateSlot);
 				view.dismiss();
 			});
 	}

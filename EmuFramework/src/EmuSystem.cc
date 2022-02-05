@@ -81,9 +81,9 @@ bool EmuSystem::stateExists(IG::ApplicationContext ctx, int slot)
 	return ctx.fileUriExists(statePath(ctx, slot));
 }
 
-bool EmuSystem::shouldOverwriteExistingState(IG::ApplicationContext ctx)
+bool EmuApp::shouldOverwriteExistingState() const
 {
-	return !optionConfirmOverwriteState || !EmuSystem::stateExists(ctx, EmuSystem::saveStateSlot);
+	return !optionConfirmOverwriteState || !EmuSystem::stateExists(appContext(), EmuSystem::saveStateSlot);
 }
 
 EmuFrameTimeInfo EmuSystem::advanceFramesWithTime(IG::FrameTime time)

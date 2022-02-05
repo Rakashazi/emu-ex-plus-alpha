@@ -162,7 +162,6 @@ public:
 	static void saveState(IG::ApplicationContext, IG::CStringView uri);
 	static void saveState(IG::CStringView path);
 	static bool stateExists(IG::ApplicationContext, int slot);
-	static bool shouldOverwriteExistingState(IG::ApplicationContext);
 	static const char *systemName();
 	static const char *shortSystemName();
 	static const BundledGameInfo &bundledGameInfo(unsigned idx);

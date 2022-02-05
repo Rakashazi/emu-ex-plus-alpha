@@ -32,28 +32,23 @@ concept PixmapTransformFunc =
 class Pixmap : public PixmapDesc
 {
 public:
-	enum PitchUnits { PIXEL_UNITS, BYTE_UNITS };
-	class PitchInit
+	enum class Units : uint8_t { PIXEL, BYTE };
+	struct PitchInit
 	{
-	public:
 		unsigned val;
-		PitchUnits units;
-
-		constexpr PitchInit(uint32_t pitchVal, PitchUnits units):
-			val{pitchVal}, units{units}
-			{}
+		Units units;
 	};
 
 	constexpr Pixmap() = default;
 
 	constexpr Pixmap(PixmapDesc desc, void *data, PitchInit pitch):
 		PixmapDesc{desc},
-		pitch{pitch.units == PIXEL_UNITS ? pitch.val * desc.format().bytesPerPixel() : pitch.val},
+		pitch{pitch.units == Units::PIXEL ? pitch.val * desc.format().bytesPerPixel() : pitch.val},
 		data_{data}
 		{}
 
 	constexpr Pixmap(PixmapDesc desc, void *data):
-		Pixmap{desc, data, {desc.w(), PIXEL_UNITS}}
+		Pixmap{desc, data, {desc.w(), Units::PIXEL}}
 		{}
 
 	constexpr operator bool() const
@@ -111,7 +106,7 @@ public:
 		//logDMsg("sub-pixmap with pos:%dx%d size:%dx%d", pos.x, pos.y, size.x, size.y);
 		assumeExpr(pos.x >= 0 && pos.y >= 0);
 		assumeExpr(pos.x + size.x <= (int)w() && pos.y + size.y <= (int)h());
-		return Pixmap{makeNewSize(size), pixel(pos), {pitchBytes(), BYTE_UNITS}};
+		return Pixmap{makeNewSize(size), pixel(pos), {pitchBytes(), Units::BYTE}};
 	}
 
 	void write(Pixmap pixmap);
@@ -165,27 +160,9 @@ public:
 		auto srcBytesPerPixel = pixmap.format().bytesPerPixel();
 		switch(format().bytesPerPixel())
 		{
-			bcase 1:
-				switch(srcBytesPerPixel)
-				{
-					case 1: return writeTransformed2<uint8_t,  uint8_t>(func, pixmap);
-					case 2: return writeTransformed2<uint16_t, uint8_t>(func, pixmap);
-					case 4: return writeTransformed2<uint32_t, uint8_t>(func, pixmap);
-				}
-			bcase 2:
-				switch(srcBytesPerPixel)
-				{
-					case 1: return writeTransformed2<uint8_t,  uint16_t>(func, pixmap);
-					case 2: return writeTransformed2<uint16_t, uint16_t>(func, pixmap);
-					case 4: return writeTransformed2<uint32_t, uint16_t>(func, pixmap);
-				}
-			bcase 4:
-				switch(srcBytesPerPixel)
-				{
-					case 1: return writeTransformed2<uint8_t,  uint32_t>(func, pixmap);
-					case 2: return writeTransformed2<uint16_t, uint32_t>(func, pixmap);
-					case 4: return writeTransformed2<uint32_t, uint32_t>(func, pixmap);
-				}
+			case 1: return writeTransformed<uint8_t>(srcBytesPerPixel, IG_forward(func), pixmap);
+			case 2: return writeTransformed<uint16_t>(srcBytesPerPixel, IG_forward(func), pixmap);
+			case 4: return writeTransformed<uint32_t>(srcBytesPerPixel, IG_forward(func), pixmap);
 		}
 	}
 
@@ -203,6 +180,17 @@ public:
 protected:
 	uint32_t pitch = 0; // in bytes
 	void *data_{};
+
+	template <class Dest>
+	void writeTransformed(uint8_t srcBytesPerPixel, PixmapTransformFunc auto &&func, Pixmap pixmap)
+	{
+		switch(srcBytesPerPixel)
+		{
+			case 1: return writeTransformed2<uint8_t,  Dest>(IG_forward(func), pixmap);
+			case 2: return writeTransformed2<uint16_t, Dest>(IG_forward(func), pixmap);
+			case 4: return writeTransformed2<uint32_t, Dest>(IG_forward(func), pixmap);
+		}
+	};
 
 	template <class Src, class Dest>
 	void writeTransformed2(PixmapTransformFunc<Src> auto &&func, Pixmap pixmap)

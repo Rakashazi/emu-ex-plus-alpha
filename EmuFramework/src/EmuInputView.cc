@@ -62,7 +62,7 @@ void EmuInputView::resetInput()
 
 void EmuInputView::updateFastforward()
 {
-	app().viewController().setFastForwardActive(ffToggleActive);
+	app().viewController().setFastForwardSpeed(ffToggleActive ? app().fastForwardSpeedOption().val : 0);
 }
 
 bool EmuInputView::inputEvent(const Input::Event &e)
@@ -153,10 +153,10 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 									}
 								};
 
-							if(EmuSystem::shouldOverwriteExistingState(appContext()))
+							if(emuApp.shouldOverwriteExistingState())
 							{
 								emuApp.syncEmulationThread();
-								doSaveState(emuApp, optionConfirmOverwriteState);
+								doSaveState(emuApp, emuApp.confirmOverwriteStateOption());
 							}
 							else
 							{

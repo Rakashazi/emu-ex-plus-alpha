@@ -177,6 +177,8 @@ protected:
 	std::unique_ptr<TextTableView> makeFirmwarePathMenu(IG::utf16String name, bool allowFiles = false, unsigned extraItemsHint = 0);
 	void pushAndShowFirmwarePathMenu(IG::utf16String name, const Input::Event &, bool allowFiles = false);
 	void pushAndShowFirmwareFilePathMenu(IG::utf16String name, const Input::Event &);
+	TextMenuItem::SelectDelegate setAutoSaveStateDel(int val);
+	TextMenuItem::SelectDelegate setFastForwardSpeedDel(int val);
 };
 
 class GUIOptionView : public TableView, public EmuAppHelper<GUIOptionView>

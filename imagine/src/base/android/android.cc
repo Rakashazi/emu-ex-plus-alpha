@@ -127,7 +127,7 @@ IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFo
 		// use format from bitmap info
 		format = makePixelFormatFromAndroidFormat(info.format);
 	}
-	return {{{(int)info.width, (int)info.height}, format}, pixels, {info.stride, IG::Pixmap::BYTE_UNITS}};
+	return {{{(int)info.width, (int)info.height}, format}, pixels, {info.stride, IG::Pixmap::Units::BYTE}};
 }
 
 void ApplicationContext::exit(int returnVal)

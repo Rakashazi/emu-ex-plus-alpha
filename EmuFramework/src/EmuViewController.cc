@@ -767,7 +767,7 @@ void EmuViewController::pauseEmulation()
 	emuTask().pause();
 	EmuSystem::pause(*appPtr);
 	videoLayer().setBrightness(showingEmulation ? .75f : .25f);
-	setFastForwardActive(false);
+	setFastForwardSpeed(0);
 	emuWindow().setDrawEventPriority();
 	removeOnFrame();
 }
@@ -980,7 +980,7 @@ void EmuViewController::onFocusChange(bool in)
 			#endif
 			startEmulation();
 		}
-		else if(optionPauseUnfocused && !EmuSystem::isPaused() && !allWindowsAreFocused())
+		else if(app().pauseUnfocusedOption() && !EmuSystem::isPaused() && !allWindowsAreFocused())
 		{
 			logMsg("pausing emulation with all windows unfocused");
 			pauseEmulation();
@@ -999,9 +999,10 @@ IG::Window &EmuViewController::mainWindow() const
 	return emuInputView.window();
 }
 
-void EmuViewController::setFastForwardActive(bool active)
+void EmuViewController::setFastForwardSpeed(int speed)
 {
-	targetFastForwardSpeed = active ? optionFastForwardSpeed.val : 0;
+	bool active = speed > 1;
+	targetFastForwardSpeed = speed;
 	emuAudio().setAddSoundBuffersOnUnderrun(active ? optionAddSoundBuffersOnUnderrun.val : false);
 	auto soundVolume = (active && !soundDuringFastForwardIsEnabled()) ? 0 : optionSoundVolume.val;
 	emuAudio().setVolume(soundVolume);

@@ -141,69 +141,6 @@ static bool readKeyConfig(KeyConfigContainer &customKeyConfigs,
 	return true;
 }
 
-static OptionBase *cfgFileOption[] =
-{
-	&optionAutoSaveState,
-	&optionConfirmAutoLoadState,
-	&optionSound,
-	&optionSoundVolume,
-	&optionSoundRate,
-	&optionAspectRatio,
-	&optionImageZoom,
-	&optionViewportZoom,
-	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
-	&optionShowOnSecondScreen,
-	#endif
-	&optionImgFilter,
-	&optionImgEffect,
-	&optionImageEffectPixelFormat,
-	&optionVideoImageBuffers,
-	&optionOverlayEffect,
-	&optionOverlayEffectLevel,
-	#if 0
-	&optionRelPointerDecel,
-	#endif
-	&optionFontSize,
-	&optionPauseUnfocused,
-	&optionGameOrientation,
-	&optionMenuOrientation,
-	&optionConfirmOverwriteState,
-	&optionFastForwardSpeed,
-	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
-	&optionNotifyInputDeviceChange,
-	#endif
-	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-	&optionFrameInterval,
-	#endif
-	&optionSkipLateFrames,
-	&optionFrameRate,
-	&optionFrameRatePAL,
-	&optionNotificationIcon,
-	&optionTitleBar,
-	&optionIdleDisplayPowerSave,
-	&optionHideStatusBar,
-	&optionSystemActionsIsDefaultMenu,
-	&optionTextureBufferMode,
-	#if defined __ANDROID__
-	&optionLowProfileOSNav,
-	&optionHideOSNav,
-	&optionSustainedPerformanceMode,
-	#endif
-	#ifdef CONFIG_BLUETOOTH
-	&optionKeepBluetoothActive,
-	&optionShowBluetoothScan,
-		#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-		&optionBlueToothScanCache,
-		#endif
-	#endif
-	&optionSoundBuffers,
-	&optionAddSoundBuffersOnUnderrun,
-	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-	&optionAudioAPI,
-	#endif
-	&optionShowBundledGames,
-};
-
 void EmuApp::saveConfigFile(IO &io)
 {
 	if(!io)
@@ -213,14 +150,67 @@ void EmuApp::saveConfigFile(IO &io)
 	}
 	writeConfigHeader(io);
 
-	for(auto &e : cfgFileOption)
-	{
-		if(!e->isDefault())
-		{
-			io.write((uint16_t)e->ioSize());
-			e->writeToIO(io);
-		}
-	}
+	const auto cfgFileOptions = std::tie
+	(
+		optionAutoSaveState,
+		optionConfirmAutoLoadState,
+		optionSound,
+		optionSoundVolume,
+		optionSoundRate,
+		optionAspectRatio,
+		optionImageZoom,
+		optionViewportZoom,
+		#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
+		optionShowOnSecondScreen,
+		#endif
+		optionImgFilter,
+		optionImgEffect,
+		optionImageEffectPixelFormat,
+		optionVideoImageBuffers,
+		optionOverlayEffect,
+		optionOverlayEffectLevel,
+		#if 0
+		optionRelPointerDecel,
+		#endif
+		optionFontSize,
+		optionPauseUnfocused,
+		optionGameOrientation,
+		optionMenuOrientation,
+		optionConfirmOverwriteState,
+		optionFastForwardSpeed,
+		#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
+		optionNotifyInputDeviceChange,
+		#endif
+		#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+		optionFrameInterval,
+		#endif
+		optionSkipLateFrames,
+		optionFrameRate,
+		optionFrameRatePAL,
+		optionNotificationIcon,
+		optionTitleBar,
+		optionIdleDisplayPowerSave,
+		optionHideStatusBar,
+		optionSystemActionsIsDefaultMenu,
+		optionTextureBufferMode,
+		#if defined __ANDROID__
+		optionLowProfileOSNav,
+		optionHideOSNav,
+		optionSustainedPerformanceMode,
+		#endif
+		#ifdef CONFIG_BLUETOOTH
+		optionKeepBluetoothActive,
+		optionShowBluetoothScan,
+		#endif
+		optionSoundBuffers,
+		optionAddSoundBuffersOnUnderrun,
+		#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+		optionAudioAPI,
+		#endif
+		optionShowBundledGames
+	);
+
+	std::apply([&](auto &...opt){ (writeOptionValue(io, opt), ...); }, cfgFileOptions);
 
 	writeRecentContent(io);
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
@@ -237,6 +227,10 @@ void EmuApp::saveConfigFile(IO &io)
 	}
 	vController.writeConfig(io);
 	viewController().writeConfig(io);
+	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
+	if(!BluetoothAdapter::scanCacheUsage())
+		writeOptionValue(io, CFGKEY_BLUETOOTH_SCAN_CACHE, false);
+	#endif
 
 	if(customKeyConfigs.size())
 	{
@@ -506,7 +500,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE: optionKeepBluetoothActive.readFromIO(io, size);
 				bcase CFGKEY_SHOW_BLUETOOTH_SCAN: optionShowBluetoothScan.readFromIO(io, size);
 					#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-					bcase CFGKEY_BLUETOOTH_SCAN_CACHE: optionBlueToothScanCache.readFromIO(io, size);
+					bcase CFGKEY_BLUETOOTH_SCAN_CACHE: BluetoothAdapter::setScanCacheUsage(readOptionValue<bool>(io, size).value_or(true));
 					#endif
 				#endif
 				bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);

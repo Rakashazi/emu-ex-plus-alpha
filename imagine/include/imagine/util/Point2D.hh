@@ -30,7 +30,7 @@ struct Point2D : public AssignmentArithmetics< Point2D<T> >
 
 	T x{}, y{};
 
-	constexpr Point2D() {}
+	constexpr Point2D() = default;
 	constexpr Point2D(T x, T y): x{x}, y{y} {}
 
 	constexpr bool operator ==(Point2D const& rhs) const = default;

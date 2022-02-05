@@ -448,10 +448,10 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	btScanCache
 	{
 		"Cache Scan Results", &defaultFace(),
-		(bool)optionBlueToothScanCache,
+		BluetoothAdapter::scanCacheUsage(),
 		[this](BoolMenuItem &item)
 		{
-			optionBlueToothScanCache = item.flipBoolValue(*this);
+			BluetoothAdapter::setScanCacheUsage(item.flipBoolValue(*this));
 		}
 	},
 	#endif

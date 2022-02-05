@@ -43,7 +43,7 @@ bool optionFrameTimePALIsValid(T val)
 	return !val || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_PAL, IG::FloatSeconds(val));
 }
 
-bool optionOrientationIsValid(uint32_t val)
+constexpr bool optionOrientationIsValid(uint8_t val)
 {
 	return val == IG::VIEW_ROTATE_AUTO ||
 			val == IG::VIEW_ROTATE_0 ||
@@ -52,13 +52,10 @@ bool optionOrientationIsValid(uint32_t val)
 			val == IG::VIEW_ROTATE_270;
 }
 
-bool optionAspectRatioIsValid(double val)
+constexpr bool optionAspectRatioIsValid(double val)
 {
 	return val == 0. || (val >= 0.1 && val <= 10.);
 }
-
-Byte1Option optionAutoSaveState(CFGKEY_AUTO_SAVE_STATE, 1);
-Byte1Option optionConfirmAutoLoadState(CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1);
 
 constexpr uint8_t OPTION_SOUND_ENABLED_FLAG = IG::bit(0);
 constexpr uint8_t OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG = IG::bit(1);
@@ -76,17 +73,19 @@ Byte1Option optionAddSoundBuffersOnUnderrun(CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN
 Byte1Option optionAudioAPI(CFGKEY_AUDIO_API, 0);
 #endif
 
-Byte4Option optionSoundRate(CFGKEY_SOUND_RATE, 48000, false, optionIsValidWithMax<48000>);
+constexpr bool isValidSoundRate(uint32_t rate)
+{
+	switch(rate)
+	{
+		case 22050:
+		case 32000:
+		case 44100:
+		case 48000: return true;
+	}
+	return false;
+}
 
-// Store in micro-meters
-Byte2Option optionFontSize(CFGKEY_FONT_Y_SIZE,
-	Config::MACHINE_IS_PANDORA ? 6500 :
-	(Config::envIsIOS || Config::envIsAndroid) ? 3000 :
-	8000,
-	0, optionIsValidWithMinMax<2000, 10000, uint16_t>);
-
-Byte1Option optionPauseUnfocused(CFGKEY_PAUSE_UNFOCUSED, 1,
-	!(Config::envIsLinux || Config::envIsAndroid));
+Byte4Option optionSoundRate(CFGKEY_SOUND_RATE, 48000, false, isValidSoundRate);
 
 Byte1Option optionNotificationIcon(CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid);
 Byte1Option optionTitleBar(CFGKEY_TITLE_BAR, 1, Config::envIsIOS);
@@ -96,8 +95,6 @@ Byte1Option optionLowProfileOSNav(CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAn
 Byte1Option optionHideOSNav(CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid);
 Byte1Option optionIdleDisplayPowerSave(CFGKEY_IDLE_DISPLAY_POWER_SAVE, 0, !Config::envIsAndroid && !Config::envIsIOS);
 Byte1Option optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 1, !Config::envIsAndroid && !Config::envIsIOS);
-Byte1Option optionConfirmOverwriteState(CFGKEY_CONFIRM_OVERWRITE_STATE, 1, 0);
-Byte1Option optionFastForwardSpeed(CFGKEY_FAST_FORWARD_SPEED, 4, 0, optionIsValidWithMinMax<2, 7>);
 #ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 Byte1Option optionNotifyInputDeviceChange(CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Config::Input::DEVICE_HOTSWAP, !Config::Input::DEVICE_HOTSWAP);
 #endif
@@ -105,9 +102,6 @@ Byte1Option optionNotifyInputDeviceChange(CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Con
 #ifdef CONFIG_BLUETOOTH
 Byte1Option optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0, !Config::BASE_CAN_BACKGROUND_APP);
 Byte1Option optionShowBluetoothScan(CFGKEY_SHOW_BLUETOOTH_SCAN, 1);
-	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-	OptionBlueToothScanCache optionBlueToothScanCache(CFGKEY_BLUETOOTH_SCAN_CACHE, 1);
-	#endif
 #endif
 
 DoubleOption optionAspectRatio{CFGKEY_GAME_ASPECT_RATIO, (double)EmuSystem::aspectRatioInfo[0], 0, optionAspectRatioIsValid};
@@ -117,7 +111,7 @@ Byte1Option optionImgEffect(CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<last
 Byte1Option optionOverlayEffect(CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL>);
 Byte1Option optionOverlayEffectLevel(CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>);
 
-bool imageEffectPixelFormatIsValid(uint8_t val)
+constexpr bool imageEffectPixelFormatIsValid(uint8_t val)
 {
 	switch(val)
 	{
@@ -138,11 +132,11 @@ Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDece
 		!Config::envIsAndroid, optionIsValidWithMax<optionRelPointerDecelHigh>);
 #endif
 
-Byte4s1Option optionGameOrientation(CFGKEY_GAME_ORIENTATION,
+Byte1Option optionGameOrientation(CFGKEY_GAME_ORIENTATION,
 		(Config::envIsAndroid || Config::envIsIOS) ? IG::VIEW_ROTATE_AUTO : IG::VIEW_ROTATE_0,
 		false, optionOrientationIsValid);
 
-Byte4s1Option optionMenuOrientation(CFGKEY_MENU_ORIENTATION,
+Byte1Option optionMenuOrientation(CFGKEY_MENU_ORIENTATION,
 		(Config::envIsAndroid || Config::envIsIOS) ? IG::VIEW_ROTATE_AUTO : IG::VIEW_ROTATE_0,
 		false, optionOrientationIsValid);
 
@@ -283,12 +277,12 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	EmuSystem::initOptions(*this);
 }
 
-void setupFont(ViewManager &manager, Gfx::Renderer &r, IG::Window &win)
+void EmuApp::applyFontSize(Window &win)
 {
 	float size = optionFontSize / 1000.;
 	logMsg("setting up font size %f", (double)size);
-	manager.defaultFace().setFontSettings(r, IG::FontSettings(win.heightScaledMMInPixels(size)));
-	manager.defaultBoldFace().setFontSettings(r, IG::FontSettings(win.heightScaledMMInPixels(size)));
+	viewManager.defaultFace().setFontSettings(renderer, IG::FontSettings(win.heightScaledMMInPixels(size)));
+	viewManager.defaultBoldFace().setFontSettings(renderer, IG::FontSettings(win.heightScaledMMInPixels(size)));
 }
 
 void EmuApp::writeRecentContent(IO &io)
