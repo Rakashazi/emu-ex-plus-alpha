@@ -2,7 +2,7 @@
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
 /* FileStream.h:
-**  Copyright (C) 2010-2016 Mednafen Team
+**  Copyright (C) 2010-2021 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -73,12 +73,12 @@ class FileStream : public Stream
  uint64 readAtPos(void *data, uint64 count, uint64 pos) override;
  virtual void write(const void *data, uint64 count) override;
  virtual void truncate(uint64 length) override;
+ void advise(off_t offset, size_t bytes, IG::IO::Advice advice) override;
  virtual void seek(int64 offset, int whence) override;
  virtual uint64 tell(void) override;
  virtual uint64 size(void) override;
  virtual void flush(void) override;
  virtual void close(void) override;
- void advise(off_t offset, size_t bytes, IG::IO::Advice advice) override;
 
  int get_char(void);
 
@@ -88,6 +88,13 @@ class FileStream : public Stream
  FileStream & operator=(const FileStream &);    // Assignment operator
  FileStream(const FileStream &);		// Copy constructor
  //FileStream(FileStream &);                // Copy constructor
+
+ void lock(bool nb);
+ void unlock(void);
+
+ uint64 read_ub(void* data, uint64 count);
+ uint64 write_ub(const void* data, uint64 count);
+ void write_buffered_data(void);
 
  IG::FileIO io;
  uint8 attribs;

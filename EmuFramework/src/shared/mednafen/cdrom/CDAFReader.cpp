@@ -28,7 +28,7 @@
 #include <mednafen/mednafen.h>
 #include "CDAFReader.h"
 #include "CDAFReader_Vorbis.h"
-//#include "CDAFReader_MPC.h"
+#include "CDAFReader_MPC.h"
 
 #ifdef HAVE_LIBFLAC
 #include "CDAFReader_FLAC.h"
@@ -53,7 +53,7 @@ CDAFReader* CDAFR_Open(Stream* fp)
 {
  static CDAFReader* (* const OpenFuncs[])(Stream* fp) =
  {
-  //CDAFR_MPC_Open,
+  CDAFR_MPC_Open,
   CDAFR_Vorbis_Open,
 #ifdef HAVE_LIBFLAC
   CDAFR_FLAC_Open,

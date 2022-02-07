@@ -355,9 +355,9 @@ enum
 
 struct EmulateSpecStruct
 {
-	// Pitch(32-bit) must be equal to width and >= the "fb_width" specified in the MDFNGI struct for the emulated system.
-	// Height must be >= to the "fb_height" specified in the MDFNGI struct for the emulated system.
-	// The framebuffer pointed to by surface->pixels is written to by the system emulation code.
+	// The surface pixel data is the framebuffer written to by the system emulation code, and must be aligned to at least what malloc() guarantees.
+	// Pitch must either be == MDFNGI::fb_width, or a value > MDFNGI::fb_width that preserves the pixel data alignment requirement for successive rows.
+	// Height must be >= MDFNGI::fb_height
 	MDFN_Surface* surface = nullptr;
 
 	// Will be set to true if the video pixel format has changed since the last call to Emulate(), false otherwise.
@@ -449,7 +449,6 @@ struct EmulateSpecStruct
         // individual system emulation code can also do it if this is set, and clear it after it's done.
         // (Also, the driver code shouldn't touch this variable)
 	bool NeedSoundReverse = false;
-
 };
 
 typedef enum
@@ -643,7 +642,6 @@ struct MDFNGI
  uint64 CPInfoActiveBF;			// 1 = 0, 2 = 1, 4 = 2, 8 = 3, etc. (to allow for future expansion for systems that might need
 					// multiple custom palette files, without having to go back and restructure this data).
 
-
  const CheatInfoStruct& CheatInfo;
 
  bool SaveStateAltersState;	// true for bsnes and some libco-style emulators, false otherwise.
@@ -668,7 +666,7 @@ struct MDFNGI
  void (*DoSimpleCommand)(int cmd);
 
  // Called when netplay starts, or the controllers controlled by local players changes during
- // an existing netplay session.  Called with ~(uint64)0 when netplay ends.
+ // an existing netplay session.  Called with (uint64)-1 when netplay ends.
  // (For future use in implementing portable console netplay)
  void (*NPControlNotif)(uint64 c);
 
@@ -687,7 +685,6 @@ struct MDFNGI
 
  // Additional video format support, in addition to the required 4-byte RGB-colorspace xxx888 support.
  uint32 ExtraVideoFormatSupport; // = EVFSUPPORT_NONE
-
 
  // multires is a hint that, if set, indicates that the system has fairly programmable video modes(particularly, the ability
  // to display multiple horizontal resolutions, such as the PCE, PC-FX, or Genesis).  In practice, it will cause the driver
@@ -740,7 +737,6 @@ struct MDFNGI
 
  // For mouse relative motion.
  double mouse_sensitivity;
-
 
  //
  // For absolute coordinates(IDIT_X_AXIS and IDIT_Y_AXIS), usually mapped to a mouse(hence the naming).

@@ -2,7 +2,7 @@
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
 /* GZFileStream.h:
-**  Copyright (C) 2014-2016 Mednafen Team
+**  Copyright (C) 2014-2021 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -67,7 +67,7 @@ class GZFileStream : public Stream
    const char* errstring;
 
    errstring = gzerror(gzp, &errnum);
-   throw MDFN_Error(0, _("Error reading from opened file \"%s\": %s"), path_save.c_str(), errstring);
+   throw MDFN_Error(0, _("Error reading from opened file \"%s\": %s"), path_humesc.c_str(), errstring);
   }
   return(c);
  }
@@ -81,7 +81,7 @@ class GZFileStream : public Stream
 
  gzFile gzp;
  const MODE OpenedMode;
- std::string path_save;
+ const std::string path_humesc;
 };
 
 }

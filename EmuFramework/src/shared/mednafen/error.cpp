@@ -37,7 +37,7 @@ MDFN_Error::MDFN_Error(int errno_code_new, const char *format, ...) noexcept
 
  va_list ap;
  va_start(ap, format);
- vasprintf(&error_message, format, ap);
+ error_message = trio_vaprintf(format, ap);
  va_end(ap);
 }
 

@@ -51,6 +51,7 @@ sound/okiadpcm.cpp \
 sound/Blip_Buffer.cpp \
 cdrom/CDAFReader.cpp \
 cdrom/CDAFReader_FLAC.cpp \
+cdrom/CDAFReader_MPC.cpp \
 cdrom/CDAFReader_PCM.cpp \
 cdrom/CDAFReader_Vorbis.cpp \
 cdrom/galois.cpp \
@@ -73,7 +74,16 @@ video/surface.cpp \
 compress/GZFileStream.cpp \
 string/string.cpp \
 hash/crc.cpp \
-hash/md5.cpp
+hash/md5.cpp \
+mpcdec/huffman.c \
+mpcdec/mpc_decoder.c \
+mpcdec/mpc_reader.c \
+mpcdec/requant.c \
+mpcdec/streaminfo.c \
+mpcdec/synth_filter.c \
+mpcdec/mpc_bits_reader.c \
+mpcdec/mpc_demux.c \
+mpcdec/crc32.c
 
 SRC += $(addprefix mednafen/,$(MDFN_SRC))
 

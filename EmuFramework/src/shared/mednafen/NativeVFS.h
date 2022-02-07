@@ -38,6 +38,7 @@ class NativeVFS final : public VirtualFS
  virtual void rename(const std::string& oldpath, const std::string& newpath, const CanaryType canary = CanaryType::rename) override;
  virtual bool finfo(const std::string& path, FileInfo*, const bool throw_on_noent = true) override;
  virtual void readdirentries(const std::string& path, std::function<bool(const std::string&)> callb) override;
+ virtual std::string get_human_path(const std::string& path) override;
 
  virtual bool is_absolute_path(const std::string& path) override;
  virtual void get_file_path_components(const std::string& file_path, std::string* dir_path_out, std::string* file_base_out = nullptr, std::string *file_ext_out = nullptr) override;

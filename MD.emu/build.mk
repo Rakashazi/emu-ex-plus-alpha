@@ -104,6 +104,7 @@ ifdef hasSCD
  VirtualFS.cpp \
  cdrom/CDAFReader.cpp \
  cdrom/CDAFReader_FLAC.cpp \
+ cdrom/CDAFReader_MPC.cpp \
  cdrom/CDAFReader_PCM.cpp \
  cdrom/CDAFReader_Vorbis.cpp \
  cdrom/lec.cpp \
@@ -115,7 +116,16 @@ ifdef hasSCD
  cdrom/CDAccess_Image.cpp \
  cdrom/CDAccess.cpp \
  hash/crc.cpp \
- string/string.cpp
+ string/string.cpp \
+ mpcdec/huffman.c \
+ mpcdec/mpc_decoder.c \
+ mpcdec/mpc_reader.c \
+ mpcdec/requant.c \
+ mpcdec/streaminfo.c \
+ mpcdec/synth_filter.c \
+ mpcdec/mpc_bits_reader.c \
+ mpcdec/mpc_demux.c \
+ mpcdec/crc32.c
 
  cxxExceptions := 1
  include $(IMAGINE_PATH)/make/package/libvorbis.mk

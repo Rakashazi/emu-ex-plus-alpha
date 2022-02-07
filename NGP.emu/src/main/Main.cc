@@ -133,8 +133,10 @@ void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 	if(size <= 0)
 		throwFileReadError();
 	stream->setSize(size);
-	MDFNFILE fp(&NVFS, std::move(stream), contentFileName().data());
-	GameFile gf{fp.active_vfs(), fp.active_dir_path(), fp.stream(), fp.ext, fp.fbase};
+	MDFNFILE fp(&NVFS, std::move(stream));
+	GameFile gf{&NVFS, std::string{contentDirectory()}, fp.stream(),
+		stringWithoutDotExtension<std::string>(contentFileName()),
+		std::string{contentName()}};
 	emuSys->Load(&gf);
 	emuSys->SetInput(0, "gamepad", (uint8*)&inputBuff);
 	EmulateSpecStruct espec{};

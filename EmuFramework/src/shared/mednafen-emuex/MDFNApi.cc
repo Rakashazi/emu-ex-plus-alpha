@@ -27,10 +27,9 @@ namespace Mednafen
 
 int MDFNnetplay{};
 
-#ifndef NDEBUG
 void MDFN_printf(const char *format, ...) noexcept
 {
-	if(!logger_isEnabled())
+	if(!Config::DEBUG_BUILD || !logger_isEnabled())
 		return;
 	va_list args;
 	va_start( args, format );
@@ -40,14 +39,13 @@ void MDFN_printf(const char *format, ...) noexcept
 
 void MDFN_Notify(MDFN_NoticeType t, const char* format, ...) noexcept
 {
-	if(!logger_isEnabled())
+	if(!Config::DEBUG_BUILD || !logger_isEnabled())
 		return;
 	va_list args;
 	va_start( args, format );
 	logger_vprintf(LOG_E, format, args);
 	va_end( args );
 }
-#endif
 
 void MDFND_OutputNotice(MDFN_NoticeType t, const char* s) noexcept
 {

@@ -32,6 +32,265 @@
 namespace Mednafen
 {
 
+void MDFN_strlcpy(char* d, const char* s, size_t l)
+{
+ while(l--)
+ {
+  char c = *s;
+
+  if(!l)
+   c = 0;
+
+  if(!c)
+   l = 0;
+
+  *d = c;
+
+  d++;
+  s++;
+ }
+}
+
+/*extern*/static const char MDFN_shex_lut[2][16] =
+{
+ { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' },
+ { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' }
+};
+
+static INLINE void MDFN_shex_u8(char* const s, const uint8 v, const bool uc = false)
+{
+ //MDFN_HIDE extern const char MDFN_shex_lut[2][16];
+
+ s[0] = MDFN_shex_lut[uc][v >> 4];
+ s[1] = MDFN_shex_lut[uc][v & 0xF];
+ s[2] = 0;
+}
+
+static INLINE void MDFN_shex_u16(char* const s, const uint16 v, const bool uc = false)
+{
+ MDFN_shex_u8(s + 0, v >> 8, uc);
+ MDFN_shex_u8(s + 2, v, uc);
+}
+
+static INLINE void MDFN_shex_u32(char* const s, const uint32 v, const bool uc = false)
+{
+ MDFN_shex_u16(s + 0, v >> 16, uc);
+ MDFN_shex_u16(s + 4, v, uc);
+}
+
+static INLINE void MDFN_shex_u64(char* const s, const uint64 v, const bool uc = false)
+{
+ MDFN_shex_u32(s + 0, v >> 32, uc);
+ MDFN_shex_u32(s + 8, v, uc);
+}
+
+void MDFN_snhex_u8(char* s, size_t n, uint8 v, bool uc)
+{
+ char tmp[2 + 1];
+
+ MDFN_shex_u8(tmp, v, uc);
+ MDFN_strlcpy(s, tmp, n);
+}
+
+void MDFN_snhex_u16(char* s, size_t n, uint16 v, bool uc)
+{
+ char tmp[4 + 1];
+
+ MDFN_shex_u16(tmp, v, uc);
+ MDFN_strlcpy(s, tmp, n);
+}
+
+void MDFN_snhex_u32(char* s, size_t n, uint32 v, bool uc)
+{
+ char tmp[8 + 1];
+
+ MDFN_shex_u32(tmp, v, uc);
+ MDFN_strlcpy(s, tmp, n);
+}
+
+void MDFN_snhex_u64(char* s, size_t n, uint64 v, bool uc)
+{
+ char tmp[16 + 1];
+
+ MDFN_shex_u64(tmp, v, uc);
+ MDFN_strlcpy(s, tmp, n);
+}
+
+template<typename T>
+static INLINE void sndec_T(char* s, size_t n, T v)
+{
+ if(!n)
+  return;
+
+ typename std::make_unsigned<T>::type nv = v;
+
+ if(std::is_signed<T>::value && v < 0)
+ {
+  *s = '-';
+  s += (bool)(n -= (bool)n);
+  nv = -nv;
+ }
+
+ char tmp[(sizeof(T) * 8 + 2) / 3 /* log(10)/log(2)*/];
+ unsigned w = 0;
+
+ do
+ {
+  tmp[w] = '0' + (nv % 10);
+  w++;
+  nv /= 10;
+ } while(nv);
+
+ for(unsigned i = 0; i < w; i++)
+ {
+  *s = tmp[w - 1 - i];
+  s += (bool)(n -= (bool)n);
+ }
+
+ *s = 0;
+}
+
+void MDFN_sndec_s64(char* s, size_t n, int64 v)
+{
+ sndec_T<int64>(s, n, v);
+}
+
+void MDFN_sndec_u64(char* s, size_t n, uint64 v)
+{
+ sndec_T<uint64>(s, n, v);
+}
+
+template<typename T>
+static INLINE T Xfromstr(const char* v, unsigned base, unsigned* error)
+{
+ bool neg = false;
+ //const char* const vbegin = v;
+
+ if(base > 36)
+ {
+  *error = XFROMSTR_ERROR_INVALID_BASE;
+  return 0;
+ }
+
+ if(v[0] == '-')
+ {
+  neg = !neg;
+  v++;
+ }
+ else if(v[0] == '+')
+  v++;
+
+ if((!base || base == 16) && v[0] == '0' && MDFN_azlower(v[1]) == 'x')
+ {
+  base = 16;
+  v += 2;
+ }
+
+ if(!base)
+  base = 10;
+ //
+ //
+ if(!*v)
+ {
+  *error = XFROMSTR_ERROR_MALFORMED; //(v != vbegin) ? XFROMSTR_ERROR_MALFORMED : XFROMSTR_ERROR_EMPTY;
+  return 0;
+ }
+ //
+ //
+ //
+ typename std::make_unsigned<T>::type tmp = 0;
+ const decltype(tmp) all1b = ~(decltype(tmp))0;
+ const T minval = (T)(std::is_signed<T>::value ? ((all1b >> 1) + neg) : 0);
+ const T maxval = std::is_signed<T>::value ? (all1b >> 1) : ~(T)0;
+ const decltype(tmp) overflow_thresh = all1b / base;
+ char c;
+
+ *error = XFROMSTR_ERROR_NONE;
+
+ while((c = *v))
+ {
+  unsigned n;
+  decltype(tmp) ntmp;
+
+  if(c >= '0' && c <= '9')
+   n = c - '0';
+  else if(MDFN_isazlower(c))
+   n = 10 + (c - 'a');
+  else if(MDFN_isazupper(c))
+   n = 10 + (c - 'A');
+  else
+  {
+   *error = XFROMSTR_ERROR_MALFORMED;
+   return 0;
+  }
+
+  if(n >= base)
+  {
+   *error = XFROMSTR_ERROR_MALFORMED;
+   return 0;
+  }
+
+  if(MDFN_UNLIKELY(tmp > overflow_thresh))
+  {
+   const bool uflow = neg;
+   //printf("MOO0 0x%016llx 0x%016llx\n", minval, maxval);
+   *error = uflow ? XFROMSTR_ERROR_UNDERFLOW : XFROMSTR_ERROR_OVERFLOW;
+   return uflow ? minval : maxval;
+  }
+
+  tmp *= base;
+  ntmp = tmp + n;
+  if(MDFN_UNLIKELY(ntmp < tmp))
+  {
+   //puts("MOO1");
+   *error = neg ? XFROMSTR_ERROR_UNDERFLOW : XFROMSTR_ERROR_OVERFLOW;
+   return neg ? minval : maxval;
+  }
+
+  tmp = ntmp;
+  v++;
+ }
+
+ if(std::is_signed<T>::value && MDFN_UNLIKELY(tmp > ((all1b >> 1) + neg)))
+ {
+  //puts("MOO2");
+  *error = neg ? XFROMSTR_ERROR_UNDERFLOW : XFROMSTR_ERROR_OVERFLOW;
+
+  tmp = ((all1b >> 1) + neg);
+ }
+
+ if(std::is_unsigned<T>::value && MDFN_UNLIKELY(neg) && tmp > 0)
+ {
+  *error = XFROMSTR_ERROR_UNDERFLOW;
+  tmp = minval;
+ }
+
+ if(neg)
+  tmp = -tmp;
+
+ return (T)tmp;
+}
+
+uint64 MDFN_u64fromstr(const char* p, unsigned base, unsigned* error)
+{
+ return Xfromstr<uint64>(p, base, error);
+}
+
+int64 MDFN_s64fromstr(const char* p, unsigned base, unsigned* error)
+{
+ return Xfromstr<int64>(p, base, error);
+}
+
+uint32 MDFN_u32fromstr(const char* p, unsigned base, unsigned* error)
+{
+ return Xfromstr<uint32>(p, base, error);
+}
+
+int32 MDFN_s32fromstr(const char* p, unsigned base, unsigned* error)
+{
+ return Xfromstr<int32>(p, base, error);
+}
+
 static int AppendSS(void* data, int c)
 {
  std::string* ss = (std::string*)data;
@@ -46,13 +305,12 @@ std::string MDFN_sprintf(const char* format, ...)
  std::string ret;
  va_list ap;
 
- char *str;
+ ret.reserve(64);
+
  va_start(ap, format);
- vasprintf(&str, format, ap);
+ trio_vcprintf(AppendSS, &ret, format, ap);
  va_end(ap);
 
- ret = str;
- free(str);
  return ret;
 }
 
@@ -260,6 +518,27 @@ std::string MDFN_strazupper(const std::string& s)
  return ret;
 }
 
+/*
+void MDFN_strazcasexlate(char* d, const char* s)
+{
+ while(*d && *s)
+ {
+  const char sc = *s;
+  char dc = *d;
+
+  if(MDFN_isazupper(sc))
+   dc = MDFN_azupper(dc);
+  else if(MDFN_isazlower(sc))
+   dc = MDFN_azlower(dc);
+  
+  *d = dc;
+  //
+  d++;
+  s++;
+ }
+}
+*/
+
 int MDFN_strazicmp(const char* s, const char* t, size_t n)
 {
  if(!n)
@@ -420,14 +699,23 @@ std::string MDFN_strunescape(const std::string& str)
  return ret;
 }
 
+static INLINE size_t ofszmult(const size_t a, const size_t b)
+{
+ size_t ret = a * b;
+
+ if((ret / b) != a)
+  throw std::overflow_error("size_t multiply overflow");
+
+ return ret;
+}
+
 std::string MDFN_strescape(const std::string& str)
 {
- std::string ret;
+ const size_t str_size = str.size();
+ std::string ret(ofszmult(str_size, 4), 0);
  size_t di = 0;
 
- ret.resize(str.size() * 4);
-
- for(size_t i = 0; i < str.size(); i++)
+ for(size_t i = 0; i < str_size; i++)
  {
   unsigned char c = str[i];
 
@@ -461,6 +749,32 @@ std::string MDFN_strescape(const std::string& str)
 
  return ret;
 }
+
+std::string MDFN_strhumesc(const std::string& str)
+{
+ const size_t str_size = str.size();
+ std::string ret(ofszmult(str_size, 2), 0);
+ size_t di = 0;
+
+ for(size_t i = 0; i < str_size; i++)
+ {
+  unsigned char c = str[i];
+
+  if(c < 0x20 || c == 0x7F)
+  {
+   ret[di++] = '^';
+   ret[di++] = c ^ 0x40;
+  }
+  else
+   ret[di++] = c;
+ }
+
+ ret.resize(di);
+ ret.shrink_to_fit();
+
+ return ret;
+}
+
 
 std::vector<std::string> MDFN_strargssplit(const std::string& str)
 {
@@ -635,16 +949,6 @@ bool UTF8_to_UTF32(const char* s, size_t slen, char32_t* d, size_t* dlen, bool p
 		[&](char32_t cp) { if(MDFN_LIKELY(di < *dlen)) { d[di] = cp; } di++; });
 
  *dlen = di;
-
- return ret;
-}
-
-static INLINE size_t ofszmult(const size_t a, const size_t b)
-{
- size_t ret = a * b;
-
- if((ret / b) != a)
-  throw std::overflow_error("size_t multiply overflow");
 
  return ret;
 }

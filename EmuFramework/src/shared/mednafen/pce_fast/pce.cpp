@@ -16,7 +16,6 @@
  */
 
 #include "pce.h"
-#include <zlib.h>
 #include "vdc.h"
 #include "psg.h"
 #include "input.h"
@@ -40,7 +39,7 @@ static Blip_Buffer* sbuf = NULL; //[2];
 bool PCE_ACEnabled;
 
 static bool IsSGX;
-static const bool IsHES = false;
+constexpr bool IsHES = false;
 int pce_overclocked;
 
 // Statically allocated for speed...or something.
@@ -234,14 +233,10 @@ static MDFN_COLD void Load(GameFile* gf)
  {
   uint8 hes_header[4];
 
-  const bool IsHES = false;
   IsSGX = false;
 
   gf->stream->read(hes_header, 4);
   gf->stream->seek(0, SEEK_SET);
-
-  /*if(!memcmp(hes_header, "HESM", 4))
-   IsHES = true;*/
 
   LoadCommonPre();
 
@@ -481,7 +476,6 @@ static MDFN_COLD void LoadCD(std::vector<CDInterface*> *CDInterfaces)
  {
   std::string bios_path = MDFN_MakeFName(MDFNMKF_FIRMWARE, 0, MDFN_GetSettingS("pce_fast.cdbios"));
 
-  //IsHES = 0;
   IsSGX = DetectSGXCD(CDInterfaces);
 
   LoadCommonPre();

@@ -200,7 +200,7 @@ static void ReadStateChunk(Stream *st, const SFORMAT *sf, const char* sname, uin
 
   sfmit = sfmap.find((char *)toa + 1);
 
-  if(sfmit != sfmap.end())
+  if(MDFN_LIKELY(sfmit != sfmap.end()))
   {
    const SFORMAT *tmp = sfmit->second;
 
@@ -286,7 +286,7 @@ static void ReadStateChunk(Stream *st, const SFORMAT *sf, const char* sname, uin
   }
   else
   {
-   printf("Unknown variable in save state section \"%s\": %s\n", sname, toa + 1);
+   printf("Unknown variable in save state section \"%s\": %s\n", sname, MDFN_strhumesc((char*)toa + 1).c_str());
    st->seek(recorded_size, SEEK_CUR);
   }
  } // while(...)
@@ -642,6 +642,26 @@ void MDFNSS_LoadSM(Stream *st, bool data_only, const int fuzz)
 	 }
 	 st->seek(start_pos + total_len, SEEK_SET);			// Seek to just beyond end of save state before returning.
 	}
+}
+
+void MDFNSS_SaveInternal(Stream* st, void (*safunc)(StateMem*, const unsigned, const bool))
+{
+ if(!MDFNGameInfo->StateAction)
+  throw MDFN_Error(0, _("Module \"%s\" doesn't support save states."), MDFNGameInfo->shortname);
+ //
+ StateMem sm(st);
+ safunc(&sm, 0, true);
+ sm.ThrowDeferred();
+}
+
+void MDFNSS_LoadInternal(Stream* st, void (*safunc)(StateMem*, const unsigned, const bool))
+{
+ if(!MDFNGameInfo->StateAction)
+  throw MDFN_Error(0, _("Module \"%s\" doesn't support save states."), MDFNGameInfo->shortname);
+ //
+ StateMem sm(st);
+ safunc(&sm, MEDNAFEN_VERSION_NUMERIC, true);
+ sm.ThrowDeferred();
 }
 
 //

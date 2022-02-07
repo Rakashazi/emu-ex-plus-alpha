@@ -266,7 +266,7 @@ void MDFN_LoadGameCheats(Stream* override)
  if(!override)
  {
   MDFN_printf("\n");
-  MDFN_printf(_("Loading cheats from %s...\n"), fn.c_str());
+  MDFN_printf(_("Loading cheats from \"%s\"...\n"), MDFN_strhumesc(fn).c_str());
   MDFN_indent(1);
  }
 

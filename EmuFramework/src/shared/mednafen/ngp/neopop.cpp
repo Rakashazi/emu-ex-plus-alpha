@@ -156,7 +156,6 @@ static void Emulate(EmulateSpecStruct *espec)
 	} while(!MeowMeow);
 	if(espec->video)
 		MDFND_commitVideoFrame(espec);
-
 	espec->MasterCycles = ngpc_soundTS;
 	espec->SoundBufSize = MDFNNGPCSOUND_Flush(espec->SoundBuf, espec->SoundBufMaxSize);
 }

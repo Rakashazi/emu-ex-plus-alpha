@@ -44,8 +44,8 @@ static bool hasKnownExtension(std::string_view name, const std::vector<FileExten
 	return false;
 }
 
-MDFNFILE::MDFNFILE(VirtualFS* vfs, const char* path, const std::vector<FileExtensionSpecStruct>& known_ext, const char* purpose):
-	ext(f_ext), fbase(f_fbase), f_vfs{vfs}
+MDFNFILE::MDFNFILE(VirtualFS* vfs, const std::string& path, const std::vector<FileExtensionSpecStruct>& known_ext,
+	const char* purpose, int* monocomp_double_ext)
 {
 	if(IG::FS::hasArchiveExtension(path))
 	{
@@ -66,8 +66,6 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, const char* path, const std::vector<FileExten
 					{
 						throw MDFN_Error(0, "Error reading archive");
 					}
-					auto extStr = strrchr(path, '.');
-					f_ext = extStr ? extStr + 1 : "";
 					return; // success
 				}
 			}
@@ -81,23 +79,15 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, const char* path, const std::vector<FileExten
 	else
 	{
 		str.reset(vfs->open(path, VirtualFS::MODE_READ));
-		auto extStr = strrchr(path, '.');
-		f_ext = extStr ? extStr + 1 : "";
 	}
 }
 
-MDFNFILE::MDFNFILE(VirtualFS* vfs, std::unique_ptr<Stream> str, const char *path, const char *purpose):
-	ext(f_ext), fbase(f_fbase),
-	str{std::move(str)},
-	f_vfs{vfs}
-{
-	auto extStr = strrchr(path, '.');
-	f_ext = extStr ? extStr + 1 : "";
-}
+MDFNFILE::MDFNFILE(VirtualFS* vfs, std::unique_ptr<Stream> str):
+	str{std::move(str)} {}
 
 extern int openFdHelper(const char *file, int oflag, mode_t mode)
 {
-	unsigned openFlags = (oflag & O_CREAT) ? IG::IO::OPEN_CREATE : 0;
+	auto openFlags = (oflag & O_CREAT) ? IG::IO::OPEN_CREATE : 0;
 	return EmuEx::appCtx.openFileUriFd(file, openFlags | IG::IO::OPEN_TEST).release();
 }
 
