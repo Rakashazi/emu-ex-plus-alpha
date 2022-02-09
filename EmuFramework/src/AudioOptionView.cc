@@ -111,18 +111,18 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	soundBuffersItem
 	{
+		{"1", &defaultFace(), setBuffersDel(1)},
 		{"2", &defaultFace(), setBuffersDel(2)},
 		{"3", &defaultFace(), setBuffersDel(3)},
 		{"4", &defaultFace(), setBuffersDel(4)},
 		{"5", &defaultFace(), setBuffersDel(5)},
 		{"6", &defaultFace(), setBuffersDel(6)},
 		{"7", &defaultFace(), setBuffersDel(7)},
-		{"8", &defaultFace(), setBuffersDel(8)},
 	},
 	soundBuffers
 	{
 		"Buffer Size In Frames", &defaultFace(),
-		(int)optionSoundBuffers - 2,
+		(int)optionSoundBuffers - 1,
 		soundBuffersItem
 	},
 	addSoundBuffersOnUnderrun

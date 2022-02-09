@@ -297,6 +297,43 @@ const char *controllerTypeStr(Controller::Type type)
 	}
 }
 
+static bool updatePaddle(Input::DragTrackerState dragState)
+{
+	auto regionMode = (PaddleRegionMode)optionPaddleAnalogRegion.val;
+	if(regionMode == PaddleRegionMode::OFF)
+		return false;
+	auto &app = osystem->app();
+	int regionXStart = 0;
+	int regionXEnd = app.viewController().inputView().viewRect().size().x;
+	if(regionMode == PaddleRegionMode::LEFT)
+	{
+		regionXEnd /= 2;
+	}
+	else if(regionMode == PaddleRegionMode::RIGHT)
+	{
+		regionXStart = regionXEnd / 2;
+	}
+	auto pos = IG::remap(dragState.pos().x, regionXStart, regionXEnd, -32768 / 2, 32767 / 2);
+	pos = std::clamp(pos, -32768, 32767);
+	auto evType = app.defaultVController().inputPlayer() == 0 ? Event::LeftPaddleAAnalog : Event::LeftPaddleBAnalog;
+	osystem->eventHandler().event().set(evType, pos);
+	//logMsg("set paddle position:%d", pos);
+	return true;
+}
+
+bool EmuSystem::onPointerInputStart(const Input::MotionEvent &, Input::DragTrackerState dragState, IG::WindowRect)
+{
+	switch(osystem->console().leftController().type())
+	{
+		case Controller::Type::Paddles:
+		{
+			return updatePaddle(dragState);
+		}
+		default:
+			return false;
+	}
+}
+
 bool EmuSystem::onPointerInputUpdate(const Input::MotionEvent &, Input::DragTrackerState dragState,
 	Input::DragTrackerState, IG::WindowRect)
 {
@@ -304,26 +341,7 @@ bool EmuSystem::onPointerInputUpdate(const Input::MotionEvent &, Input::DragTrac
 	{
 		case Controller::Type::Paddles:
 		{
-			auto regionMode = (PaddleRegionMode)optionPaddleAnalogRegion.val;
-			if(regionMode == PaddleRegionMode::OFF || !dragState.isDragging())
-				return false;
-			auto &app = osystem->app();
-			int regionXStart = 0;
-			int regionXEnd = app.viewController().inputView().viewRect().size().x;
-			if(regionMode == PaddleRegionMode::LEFT)
-			{
-				regionXEnd /= 2;
-			}
-			else if(regionMode == PaddleRegionMode::RIGHT)
-			{
-				regionXStart = regionXEnd / 2;
-			}
-			auto pos = IG::remap(dragState.pos().x, regionXStart, regionXEnd, -32768 / 2, 32767 / 2);
-			pos = std::clamp(pos, -32768, 32767);
-			auto evType = app.defaultVController().inputPlayer() == 0 ? Event::LeftPaddleAAnalog : Event::LeftPaddleBAnalog;
-			osystem->eventHandler().event().set(evType, pos);
-			//logMsg("set paddle position:%d", pos);
-			return true;
+			return updatePaddle(dragState);
 		}
 		default:
 			return false;

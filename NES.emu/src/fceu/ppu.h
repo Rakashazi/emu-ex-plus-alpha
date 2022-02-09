@@ -4,12 +4,13 @@ namespace EmuEx
 {
 class EmuSystemTaskContext;
 class EmuVideo;
+class EmuAudio;
 }
 
 void FCEUPPU_Init(void);
 void FCEUPPU_Reset(void);
 void FCEUPPU_Power(void);
-int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, int skip);
+int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, EmuEx::EmuAudio *, int skip);
 void FCEUPPU_FrameReady(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, uint8 *data);
 
 void FCEUPPU_LineUpdate();

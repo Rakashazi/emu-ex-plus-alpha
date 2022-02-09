@@ -1365,13 +1365,13 @@ bool CPUReadBatteryFile(IG::ApplicationContext ctx, GBASys &gba, const char* fil
   {
   	case 512:
   	case 0x2000:
-  		IG::copy_n_r(buff.data(), size, eepromData);
+  		IG::copy_n(buff.data(), size, eepromData);
   		logMsg("loaded saved eeprom");
   		return true;
   	case 0x8000:
   	case 0x10000:
   	case 0x20000:
-  		IG::copy_n_r(buff.data(), size, flashSaveMemory);
+  		IG::copy_n(buff.data(), size, flashSaveMemory);
   		if (size != 0x8000)
   			flashSetSize(size);
   		logMsg("loaded saved flash");

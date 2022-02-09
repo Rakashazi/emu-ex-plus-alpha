@@ -132,7 +132,7 @@ public:
 		auto data = (Data*)data_;
 		if(!isPadded())
 		{
-			IG::transformN(data, w() * h(), data,
+			transformNOverlapped(data, w() * h(), data,
 				[=](Data pixel)
 				{
 					return func(pixel);
@@ -145,7 +145,7 @@ public:
 			iterateTimes(h(), y)
 			{
 				auto lineData = data;
-				IG::transformN(lineData, width, lineData,
+				transformNOverlapped(lineData, width, lineData,
 					[=](Data pixel)
 					{
 						return func(pixel);
@@ -199,7 +199,7 @@ protected:
 		auto destData = (Dest*)data_;
 		if(w() == pixmap.w() && !isPadded() && !pixmap.isPadded())
 		{
-			IG::transform_n_r(srcData, pixmap.w() * pixmap.h(), destData,
+			transformN(srcData, pixmap.w() * pixmap.h(), destData,
 				[=](Src srcPixel)
 				{
 					return func(srcPixel);
@@ -212,7 +212,7 @@ protected:
 			{
 				auto destLineData = destData;
 				auto srcLineData = srcData;
-				IG::transform_n_r(srcLineData, pixmap.w(), destLineData,
+				transformN(srcLineData, pixmap.w(), destLineData,
 					[=](Src srcPixel)
 					{
 						return func(srcPixel);

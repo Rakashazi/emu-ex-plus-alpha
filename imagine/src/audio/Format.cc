@@ -29,7 +29,7 @@ static int16_t clamp16FromFloat(float x)
 
 static float *convertI16SamplesToFloat(float * __restrict__ dest, unsigned samples, const int16_t * __restrict__ src, float volume)
 {
-	return IG::transform_n_r(src, samples, dest,
+	return transformN(src, samples, dest,
 		[=](int16_t s)
 		{
 			return (s / 32768.f) * volume;
@@ -38,7 +38,7 @@ static float *convertI16SamplesToFloat(float * __restrict__ dest, unsigned sampl
 
 static int16_t *convertFloatSamplesToI16(int16_t * __restrict__ dest, unsigned samples, const float * __restrict__ src, float volume)
 {
-	return IG::transform_n_r(src, samples, dest,
+	return transformN(src, samples, dest,
 		[=](float s)
 		{
 			return clamp16FromFloat(s * volume);
@@ -49,11 +49,11 @@ static int16_t *copyI16Samples(int16_t * __restrict__ dest, unsigned samples, co
 {
 	if(volume == 1.f)
 	{
-		return IG::copy_n_r(src, samples, dest);
+		return copy_n(src, samples, dest);
 	}
 	else
 	{
-		return IG::transform_n_r(src, samples, dest,
+		return transformN(src, samples, dest,
 			[=](int16_t s)
 			{
 				return clamp16FromFloat((s / 32768.f) * volume);
@@ -65,11 +65,11 @@ static float *copyFloatSamples(float * __restrict__ dest, unsigned samples, cons
 {
 	if(volume == 1.f)
 	{
-		return IG::copy_n_r(src, samples, dest);
+		return copy_n(src, samples, dest);
 	}
 	else
 	{
-		return IG::transform_n_r(src, samples, dest,
+		return transformN(src, samples, dest,
 			[=](float s)
 			{
 				return s * volume;

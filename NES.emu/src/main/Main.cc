@@ -34,6 +34,7 @@
 #include <fceu/video.h>
 #include <fceu/sound.h>
 #include <fceu/palette.h>
+#include <fceu/x6502.h>
 
 void ApplyDeemphasisComplete(pal* pal512);
 void FCEU_setDefaultPalettePtr(pal *ptr);
@@ -371,18 +372,16 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 
 void emulateSound(EmuAudio *audio)
 {
-	const unsigned maxAudioFrames = EmuSystem::audioFramesPerVideoFrame+32;
+	static constexpr size_t maxAudioFrames = 1024;
 	int32 sound[maxAudioFrames];
-	unsigned frames = FlushEmulateSound(sound);
+	auto frames = FlushEmulateSound(sound);
+	soundtimestamp = 0;
 	//logMsg("%d frames", frames);
 	assert(frames <= maxAudioFrames);
 	if(audio)
 	{
 		int16 sound16[maxAudioFrames];
-		iterateTimes(maxAudioFrames, i)
-		{
-			sound16[i] = sound[i];
-		}
+		copy_n(sound, maxAudioFrames, sound16);
 		audio->writeFrames(sound16, frames);
 	}
 }

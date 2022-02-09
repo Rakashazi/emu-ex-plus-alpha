@@ -35,7 +35,7 @@ public:
 
 	constexpr VMemArray() = default;
 
-	VMemArray(unsigned size)
+	VMemArray(size_t size)
 	{
 		resize(size);
 	}
@@ -97,8 +97,8 @@ public:
 	T *data() { return data_; }
 	const T *data() const { return data_; }
 
-	T& operator[] (int idx) { return data()[idx]; }
-	const T& operator[] (int idx) const { return data()[idx]; }
+	T& operator[] (size_t idx) { return data()[idx]; }
+	const T& operator[] (size_t idx) const { return data()[idx]; }
 
 	void resetElements()
 	{
@@ -108,7 +108,7 @@ public:
 
 private:
 	T *data_{};
-	unsigned size_ = 0;
+	size_t size_ = 0;
 
 	void freeStorage()
 	{

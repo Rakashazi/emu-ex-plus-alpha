@@ -1751,7 +1751,12 @@ void FCEUPPU_Power(void) {
 	BWrite[0x4014] = B4014;
 }
 
-int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, int skip) {
+namespace EmuEx
+{
+void emulateSound(EmuAudio *audio);
+}
+
+int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, EmuEx::EmuAudio *audio, int skip) {
 	if ((newppu) && (GameInfo->type != GIT_NSF)) {
 		int FCEUX_PPU_Loop(int skip);
 		return FCEUX_PPU_Loop(skip);
@@ -1868,6 +1873,10 @@ int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, in
 						break;
 					overclocking = 1;
 				}
+				if(soundtimestamp > 8000)
+				{
+					emulateSound(audio);
+				}
 			}
 			FCEUPPU_FrameReady(taskCtx, video, XBuf);
 			DMC_7bit = 0;
@@ -1898,7 +1907,7 @@ int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, in
 	}
 }
 
-int (*PPU_MASTER)(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, int skip) = FCEUPPU_Loop;
+int (*PPU_MASTER)(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, EmuEx::EmuAudio *, int skip) = FCEUPPU_Loop;
 
 static uint16 TempAddrT, RefreshAddrT;
 

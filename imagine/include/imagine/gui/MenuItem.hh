@@ -88,15 +88,14 @@ public:
 			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f); }
 		} {}
 
-	constexpr static auto callAndReturnBool(auto &f, auto &&...args)
-		requires IG::SameInvokeResult<decltype(f), bool, decltype(args)...>
+	constexpr static bool callAndReturnBool(auto &f, auto &&...args)
 	{
 		return f(IG_forward(args)...);
 	}
 
 	// auto-return true if the supplied function doesn't return a value
-	constexpr static auto callAndReturnBool(auto &f, auto &&...args)
-		requires IG::SameInvokeResult<decltype(f), void, decltype(args)...>
+	constexpr static bool callAndReturnBool(auto &f, auto &&...args)
+		requires IG::VoidInvokeResult<decltype(f), decltype(args)...>
 	{
 		f(IG_forward(args)...);
 		return true;

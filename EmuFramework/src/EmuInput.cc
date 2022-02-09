@@ -153,7 +153,7 @@ void InputDeviceData::buildKeyMap(const Input::Device &d)
 	if(!totalKeys || !devConf.isEnabled()) [[unlikely]]
 		return;
 	logMsg("allocating key mapping for:%s with player:%d", d.name().data(), devConf.player()+1);
-	actionTable.resize(totalKeys);
+	actionTable = {totalKeys};
 	KeyConfig::KeyArray key = devConf.keyConf().key();
 	if(devConf.player() != InputDeviceConfig::PLAYER_MULTI)
 	{
@@ -161,7 +161,7 @@ void InputDeviceData::buildKeyMap(const Input::Device &d)
 	}
 	iterateTimes(MAX_KEY_CONFIG_KEYS, k)
 	{
-		//logMsg("mapping key %d to %u %s", k, key, Input::buttonName(devConf.dev->map, key[k]));
+		//logMsg("mapping key %d to %u %s", k, key[k], d.keyName(key[k]));
 		assert(key[k] < totalKeys);
 		auto &group = actionTable[key[k]];
 		auto slot = IG::find_if(group, [](auto &a){ return a == 0; });

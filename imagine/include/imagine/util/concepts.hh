@@ -119,6 +119,9 @@ concept SameInvokeResult = same_as<std::invoke_result_t<F, Args...>, Return>;
 template<class F, class Return, class... Args>
 concept ConvertibleInvokeResult = convertible_to<std::invoke_result_t<F, Args...>, Return>;
 
+template<class F, class... Args>
+concept VoidInvokeResult = same_as<std::invoke_result_t<F, Args...>, void>;
+
 template<class F, class Return, class... Args>
 concept Callable = invocable<F, Args...> && ConvertibleInvokeResult<F, Return, Args...>;
 

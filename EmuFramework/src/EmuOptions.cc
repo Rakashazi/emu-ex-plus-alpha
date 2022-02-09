@@ -66,7 +66,7 @@ Byte1Option optionSoundVolume(CFGKEY_SOUND_VOLUME,
 	100, false, optionIsValidWithMinMax<0, 100, uint8_t>);
 
 Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
-	3, 0, optionIsValidWithMinMax<2, 8, uint8_t>);
+	3, 0, optionIsValidWithMinMax<1, 7, uint8_t>);
 Byte1Option optionAddSoundBuffersOnUnderrun(CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, 1, 0);
 
 #ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS

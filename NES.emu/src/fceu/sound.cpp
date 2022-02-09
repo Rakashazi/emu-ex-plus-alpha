@@ -1042,12 +1042,14 @@ int FlushEmulateSound(int32 *WaveFinal)
 
   if(!soundtimestamp) return(0);
 
+#if 0
   if(!FSettings.SndRate)
   {
    left=0;
    end=0;
    goto nosoundo;
   }
+#endif
 
   DoSQ1();
   DoSQ2();

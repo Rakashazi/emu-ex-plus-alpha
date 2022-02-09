@@ -51,7 +51,7 @@ void FCEUI_Emulate(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, 
 	#endif
 
 	if (geniestage != 1) FCEU_ApplyPeriodicCheats();
-	FCEUPPU_Loop(taskCtx, video, skip);
+	FCEUPPU_Loop(taskCtx, video, audio, skip);
 
 	emulateSound(audio);
 
@@ -61,7 +61,6 @@ void FCEUI_Emulate(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, 
 
 	timestampbase += timestamp;
 	timestamp = 0;
-	soundtimestamp = 0;
 }
 
 void FCEUI_Emulate(EmuEx::EmuVideo *video, int skip, EmuEx::EmuAudio *audio)

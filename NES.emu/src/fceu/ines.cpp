@@ -717,6 +717,7 @@ BMAPPINGLocal bmap[] = {
 	{"DRAGON BALL PIRATE",	253, Mapper253_Init},
 	{"",					254, Mapper254_Init},
 //	{"",					255, Mapper255_Init},	// No good dumps for this mapper
+	{"HP898F",    319, Mapper319_Init},
 
 //-------- Mappers 256-511 is the Supplementary Multilingual Plane ----------
 //-------- Mappers 512-767 is the Supplementary Ideographic Plane -----------
@@ -793,7 +794,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 
 	VROM_size = uppow2(head.VROM_size | (iNES2?((head.Upper_ROM_VROM_size & 0xF0)<<4):0));
 	if (!iNES2)	{
-		VROM_size = head.VROM_size;
+		VROM_size = uppow2(head.VROM_size);
 	}
 	else {
 		if ((head.Upper_ROM_VROM_size & 0xF0) != 0xF0)
