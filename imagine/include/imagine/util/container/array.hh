@@ -30,7 +30,7 @@ template <class T>
 struct ArrayView2
 {
 	T *arr{};
-	uint32_t pitch{};
+	std::size_t pitch{};
 
 	constexpr std::size_t flatOffset(std::size_t row, std::size_t col) const
 	{

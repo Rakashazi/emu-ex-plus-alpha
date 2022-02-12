@@ -4053,12 +4053,11 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 	long		offset = header ? 512 : 0;
 	int			ret;
 	bool		flag;
-	char		dir[_MAX_DIR + 1], drive[_MAX_DRIVE + 1], name[_MAX_FNAME + 1], ext[_MAX_EXT + 1], ips[_MAX_EXT + 3], fname[PATH_MAX + 1];
+	char		ips[_MAX_EXT + 3];
 	const char	*n;
 
-	_splitpath(rom_filename, drive, dir, name, ext);
-
 	// BPS
+#if 0
 	_makepath(fname, drive, dir, name, "bps");
 
 	if ((patch_file = OPEN_FSTREAM(fname, "rb")) != NULL)
@@ -4077,6 +4076,7 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 		else
 			printf(" failed!\n");
 	}
+#endif
 
 #ifdef UNZIP_SUPPORT
 	if (!strcasecmp(ext, "zip") || !strcasecmp(ext, ".zip"))
@@ -4123,7 +4123,7 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 	}
 
 	// UPS
-
+#if 0
 	_makepath(fname, drive, dir, name, "ups");
 
 	if ((patch_file = OPEN_FSTREAM(fname, "rb")) != NULL)
@@ -4142,6 +4142,7 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 		else
 			printf(" failed!\n");
 	}
+#endif
 
 #ifdef UNZIP_SUPPORT
 	if (!strcasecmp(ext, "zip") || !strcasecmp(ext, ".zip"))
@@ -4188,7 +4189,7 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 	}
 
 	// IPS
-
+#if 0
 	_makepath(fname, drive, dir, name, "ips");
 
 	if ((patch_file = OPEN_FSTREAM(fname, "rb")) != NULL)
@@ -4314,6 +4315,7 @@ void CMemory::CheckForAnyPatch (const char *rom_filename, bool8 header, int32 &r
 		if (flag)
 			return;
 	}
+#endif
 
 #ifdef UNZIP_SUPPORT
 	if (!strcasecmp(ext, "zip") || !strcasecmp(ext, ".zip"))

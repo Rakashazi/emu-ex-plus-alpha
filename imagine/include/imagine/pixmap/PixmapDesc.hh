@@ -30,11 +30,11 @@ public:
 	constexpr PixmapDesc(WP size, PixelFormat format):
 		size_{size}, format_(format)
 	{}
-	constexpr unsigned w() const { return size().x; }
-	constexpr unsigned h() const { return size().y; }
+	constexpr int w() const { return size().x; }
+	constexpr int h() const { return size().y; }
 	constexpr WP size() const { return size_; }
 	constexpr PixelFormat format() const { return format_; }
-	constexpr size_t bytes() const { return format().pixelBytes(w() * h()); }
+	constexpr int bytes() const { return format().pixelBytes(w() * h()); }
 	constexpr PixmapDesc makeNewSize(WP newSize) const { return {newSize, format_}; }
 	constexpr bool operator ==(const PixmapDesc &rhs) const = default;
 

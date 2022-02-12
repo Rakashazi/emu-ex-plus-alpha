@@ -28,8 +28,33 @@ enum
 	CFGKEY_SOUND_QUALITY = 274, CFGKEY_INPUT_PORT_1 = 275,
 	CFGKEY_INPUT_PORT_2 = 276, CFGKEY_DEFAULT_PALETTE_PATH = 277,
 	CFGKEY_DEFAULT_VIDEO_SYSTEM = 278, CFGKEY_COMPATIBLE_FRAMESKIP = 279,
-	CFGKEY_DEFAULT_SOUND_LOW_PASS_FILTER = 280, CFGKEY_SWAP_DUTY_CYCLES = 281
+	CFGKEY_DEFAULT_SOUND_LOW_PASS_FILTER = 280, CFGKEY_SWAP_DUTY_CYCLES = 281,
+	CFGKEY_START_VIDEO_LINE = 282, CFGKEY_VISIBLE_VIDEO_LINES = 283,
+	CFGKEY_HORIZONTAL_VIDEO_CROP = 284,
 };
+
+constexpr bool isSupportedStartingLine(uint8_t line)
+{
+	switch(line)
+	{
+		case 0:
+		case 8:
+			return true;
+	}
+	return false;
+}
+
+constexpr bool isSupportedLineCount(uint8_t lines)
+{
+	switch(lines)
+	{
+		case 224:
+		case 232:
+		case 240:
+			return true;
+	}
+	return false;
+}
 
 const char *EmuSystem::configFilename = "NesEmu.config";
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
@@ -49,6 +74,9 @@ Byte1Option optionSpriteLimit{CFGKEY_SPRITE_LIMIT, 1};
 Byte1Option optionSoundQuality{CFGKEY_SOUND_QUALITY, 0, false, optionIsValidWithMax<2>};
 FS::PathString defaultPalettePath{};
 Byte1Option optionCompatibleFrameskip{CFGKEY_COMPATIBLE_FRAMESKIP, 0};
+Byte1Option optionStartVideoLine{CFGKEY_START_VIDEO_LINE, 8, false, isSupportedStartingLine};
+Byte1Option optionVisibleVideoLines{CFGKEY_VISIBLE_VIDEO_LINES, 224, false, isSupportedLineCount};
+Byte1Option optionHorizontalVideoCrop{CFGKEY_HORIZONTAL_VIDEO_CROP, 0};
 
 void EmuSystem::onOptionsLoaded(IG::ApplicationContext ctx)
 {
@@ -57,13 +85,14 @@ void EmuSystem::onOptionsLoaded(IG::ApplicationContext ctx)
 	setDefaultPalette(ctx, defaultPalettePath);
 }
 
-void EmuSystem::onSessionOptionsLoaded(EmuApp &)
+void EmuSystem::onSessionOptionsLoaded(EmuApp &app)
 {
 	nesInputPortDev[0] = (ESI)(int)optionInputPort1;
 	nesInputPortDev[1] = (ESI)(int)optionInputPort2;
+	updateVideoPixmap(app.video(), optionHorizontalVideoCrop, optionVisibleVideoLines);
 }
 
-bool EmuSystem::resetSessionOptions(EmuApp &)
+bool EmuSystem::resetSessionOptions(EmuApp &app)
 {
 	optionFourScore.reset();
 	setupNESFourScore();
@@ -74,6 +103,10 @@ bool EmuSystem::resetSessionOptions(EmuApp &)
 	nesInputPortDev[1] = (ESI)(int)optionInputPort2;
 	setupNESInputPorts();
 	optionCompatibleFrameskip.reset();
+	optionStartVideoLine.reset();
+	optionVisibleVideoLines.reset();
+	optionHorizontalVideoCrop.reset();
+	updateVideoPixmap(app.video(), optionHorizontalVideoCrop, optionVisibleVideoLines);
 	return true;
 }
 
@@ -87,6 +120,9 @@ bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 		bcase CFGKEY_INPUT_PORT_1: optionInputPort1.readFromIO(io, readSize);
 		bcase CFGKEY_INPUT_PORT_2: optionInputPort2.readFromIO(io, readSize);
 		bcase CFGKEY_COMPATIBLE_FRAMESKIP: optionCompatibleFrameskip.readFromIO(io, readSize);
+		bcase CFGKEY_START_VIDEO_LINE: optionStartVideoLine.readFromIO(io, readSize);
+		bcase CFGKEY_VISIBLE_VIDEO_LINES: optionVisibleVideoLines.readFromIO(io, readSize);
+		bcase CFGKEY_HORIZONTAL_VIDEO_CROP: optionHorizontalVideoCrop.readFromIO(io, readSize);
 	}
 	return 1;
 }
@@ -98,6 +134,9 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionInputPort1.writeWithKeyIfNotDefault(io);
 	optionInputPort2.writeWithKeyIfNotDefault(io);
 	optionCompatibleFrameskip.writeWithKeyIfNotDefault(io);
+	optionStartVideoLine.writeWithKeyIfNotDefault(io);
+	optionVisibleVideoLines.writeWithKeyIfNotDefault(io);
+	optionHorizontalVideoCrop.writeWithKeyIfNotDefault(io);
 }
 
 bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)

@@ -62,7 +62,7 @@ void ToastView::place()
 	text.setMaxLineSize(projP.width());
 	text.compile(renderer(), projP);
 
-	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.fullHeight()));
+	int labelYSize = IG::makeEvenRoundedUp((int)projP.projectYSize(text.fullHeight()));
 	IG::WindowRect viewFrame;
 	//logMsg("label y size:%d", labelYSize);
 	viewFrame.setPosRel(viewRect().pos(CB2DO),

@@ -91,7 +91,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	MultiChoiceMenuItem videoSystem
 	{
-		"Video System", &defaultFace(),
+		"System", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			if(idx == 0)
@@ -140,12 +140,66 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		}
 	};
 
-	std::array<MenuItem*, 4> menuItem
+	TextHeadingMenuItem videoHeading{"Video", &defaultBoldFace()};
+
+	TextMenuItem visibleVideoLinesItem[4]
+	{
+		{"8+224", &defaultFace(), setVisibleVideoLinesDel(8, 224)},
+		{"8+232", &defaultFace(), setVisibleVideoLinesDel(8, 232)},
+		{"0+232", &defaultFace(), setVisibleVideoLinesDel(0, 232)},
+		{"0+240", &defaultFace(), setVisibleVideoLinesDel(0, 240)},
+	};
+
+	MultiChoiceMenuItem visibleVideoLines
+	{
+		"Visible Lines", &defaultFace(),
+		[]()
+		{
+			switch(optionVisibleVideoLines.val)
+			{
+				default: return 0;
+				case 232: return optionStartVideoLine == 8 ? 1 : 2;
+				case 240: return 3;
+			}
+		}(),
+		visibleVideoLinesItem
+	};
+
+	TextMenuItem::SelectDelegate setVisibleVideoLinesDel(uint8_t startLine, uint8_t lines)
+	{
+		return [this, startLine, lines]()
+		{
+			EmuSystem::sessionOptionSet();
+			optionStartVideoLine = startLine;
+			optionVisibleVideoLines = lines;
+			updateVideoPixmap(app().video(), optionHorizontalVideoCrop, optionVisibleVideoLines);
+			EmuSystem::renderFramebuffer(app().video());
+		};
+	}
+
+	BoolMenuItem horizontalVideoCrop
+	{
+		"Crop 8 Pixels On Sides", &defaultFace(),
+		(bool)optionHorizontalVideoCrop,
+		[this](BoolMenuItem &item)
+		{
+			EmuSystem::sessionOptionSet();
+			optionHorizontalVideoCrop = item.flipBoolValue(*this);
+			updateVideoPixmap(app().video(), optionHorizontalVideoCrop, optionVisibleVideoLines);
+			app().viewController().placeEmuViews();
+			EmuSystem::renderFramebuffer(app().video());
+		}
+	};
+
+	std::array<MenuItem*, 7> menuItem
 	{
 		&inputPorts,
 		&fourScore,
-		&videoSystem,
 		&compatibleFrameskip,
+		&videoHeading,
+		&videoSystem,
+		&visibleVideoLines,
+		&horizontalVideoCrop,
 	};
 
 public:

@@ -35,7 +35,7 @@ public:
 	enum class Units : uint8_t { PIXEL, BYTE };
 	struct PitchInit
 	{
-		unsigned val;
+		int val;
 		Units units;
 	};
 
@@ -58,7 +58,7 @@ public:
 
 	constexpr char *pixel(WP pos) const
 	{
-		return &IG::ArrayView2<char>{data(), pitchBytes()}[pos.y][format().pixelBytes(pos.x)];
+		return &IG::ArrayView2<char>{data(), (size_t)pitchBytes()}[pos.y][format().pixelBytes(pos.x)];
 	}
 
 	constexpr char *data() const
@@ -66,22 +66,22 @@ public:
 		return (char*)data_;
 	}
 
-	constexpr uint32_t pitchPixels() const
+	constexpr int pitchPixels() const
 	{
 		return pitch / format().bytesPerPixel();
 	}
 
-	constexpr uint32_t pitchBytes() const
+	constexpr int pitchBytes() const
 	{
 		return pitch;
 	}
 
-	constexpr size_t bytes() const
+	constexpr int bytes() const
 	{
 		return pitchBytes() * h();
 	}
 
-	constexpr size_t unpaddedBytes() const
+	constexpr int unpaddedBytes() const
 	{
 		return PixmapDesc::bytes();
 	}
@@ -91,12 +91,12 @@ public:
 		return w() != pitchPixels();
 	}
 
-	constexpr uint32_t paddingPixels() const
+	constexpr int paddingPixels() const
 	{
 		return pitchPixels() - w();
 	}
 
-	constexpr uint32_t paddingBytes() const
+	constexpr int paddingBytes() const
 	{
 		return pitchBytes() - format().pixelBytes(w());
 	}
@@ -105,7 +105,7 @@ public:
 	{
 		//logDMsg("sub-pixmap with pos:%dx%d size:%dx%d", pos.x, pos.y, size.x, size.y);
 		assumeExpr(pos.x >= 0 && pos.y >= 0);
-		assumeExpr(pos.x + size.x <= (int)w() && pos.y + size.y <= (int)h());
+		assumeExpr(pos.x + size.x <= w() && pos.y + size.y <= h());
 		return Pixmap{makeNewSize(size), pixel(pos), {pitchBytes(), Units::BYTE}};
 	}
 
@@ -178,7 +178,7 @@ public:
 	}
 
 protected:
-	uint32_t pitch = 0; // in bytes
+	int pitch{}; // in bytes
 	void *data_{};
 
 	template <class Dest>

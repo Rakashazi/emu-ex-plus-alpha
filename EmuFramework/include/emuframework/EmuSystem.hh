@@ -229,6 +229,7 @@ public:
 	static bool setFrameTime(VideoSystem system, IG::FloatSeconds time);
 	static unsigned multiresVideoBaseX();
 	static unsigned multiresVideoBaseY();
+	static double videoAspectRatioScale();
 	static void configAudioRate(IG::FloatSeconds frameTime, uint32_t rate);
 	static void configAudioPlayback(EmuAudio &, uint32_t rate);
 	static void configFrameTime(uint32_t rate);

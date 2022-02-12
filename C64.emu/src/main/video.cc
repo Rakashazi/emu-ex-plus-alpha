@@ -144,8 +144,8 @@ void video_canvas_refresh(struct video_canvas_s *c, unsigned int xs, unsigned in
 	h *= c->videoconfig->scaley;
 	auto pixView = makePixmapView(c);
 
-	w = std::min(w, pixView.w());
-	h = std::min(h, pixView.h());
+	w = std::min((int)w, pixView.w());
+	h = std::min((int)h, pixView.h());
 
 	plugin.video_canvas_render(c, (uint8_t*)pixView.data(), w, h, xs, ys, xi, yi, pixView.pitchBytes());
 }

@@ -16,7 +16,7 @@ enum
 	CFGKEY_MULTITAP = 276, CFGKEY_BLOCK_INVALID_VRAM_ACCESS = 277,
 	CFGKEY_VIDEO_SYSTEM = 278, CFGKEY_INPUT_PORT = 279,
 	CFGKEY_AUDIO_DSP_INTERPOLATON = 280, CFGKEY_SEPARATE_ECHO_BUFFER = 281,
-	CFGKEY_SUPERFX_CLOCK_MULTIPLIER = 282
+	CFGKEY_SUPERFX_CLOCK_MULTIPLIER = 282, CFGKEY_ALLOW_EXTENDED_VIDEO_LINES = 283,
 };
 
 #ifdef SNES9X_VERSION_1_4
@@ -30,6 +30,7 @@ constexpr int inputPortMinVal = -1;
 Byte1Option optionMultitap{CFGKEY_MULTITAP, 0};
 SByte1Option optionInputPort{CFGKEY_INPUT_PORT, inputPortMinVal, false, optionIsValidWithMinMax<inputPortMinVal, 3>};
 Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<3>};
+Byte1Option optionAllowExtendedVideoLines{CFGKEY_ALLOW_EXTENDED_VIDEO_LINES, 0};
 #ifndef SNES9X_VERSION_1_4
 Byte1Option optionBlockInvalidVRAMAccess{CFGKEY_BLOCK_INVALID_VRAM_ACCESS, 1};
 Byte1Option optionSeparateEchoBuffer{CFGKEY_SEPARATE_ECHO_BUFFER, 0};
@@ -108,6 +109,7 @@ bool EmuSystem::resetSessionOptions(EmuApp &app)
 	applyInputPortOption(optionInputPort.reset(), app.defaultVController());
 	optionMultitap.reset();
 	optionVideoSystem.reset();
+	optionAllowExtendedVideoLines.reset();
 	#ifndef SNES9X_VERSION_1_4
 	// reset emulations hacks
 	PPU.BlockInvalidVRAMAccess = optionBlockInvalidVRAMAccess.reset();
@@ -125,6 +127,7 @@ bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 		bcase CFGKEY_INPUT_PORT: optionInputPort.readFromIO(io, readSize);
 		bcase CFGKEY_MULTITAP: optionMultitap.readFromIO(io, readSize);
 		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
+		bcase CFGKEY_ALLOW_EXTENDED_VIDEO_LINES: optionAllowExtendedVideoLines.readFromIO(io, readSize);
 		#ifndef SNES9X_VERSION_1_4
 		bcase CFGKEY_BLOCK_INVALID_VRAM_ACCESS: optionBlockInvalidVRAMAccess.readFromIO(io, readSize);
 		bcase CFGKEY_SEPARATE_ECHO_BUFFER: optionSeparateEchoBuffer.readFromIO(io, readSize);
@@ -139,6 +142,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionInputPort.writeWithKeyIfNotDefault(io);
 	optionMultitap.writeWithKeyIfNotDefault(io);
 	optionVideoSystem.writeWithKeyIfNotDefault(io);
+	optionAllowExtendedVideoLines.writeWithKeyIfNotDefault(io);
 	#ifndef SNES9X_VERSION_1_4
 	optionBlockInvalidVRAMAccess.writeWithKeyIfNotDefault(io);
 	optionSeparateEchoBuffer.writeWithKeyIfNotDefault(io);

@@ -69,7 +69,6 @@ union
 	uint16_t col16[256];
 	uint32_t col32[256];
 } nativeCol;
-static const unsigned nesPixX = 256, nesPixY = 240, nesVisiblePixY = 224;
 
 bool hasFDSBIOSExtension(std::string_view name)
 {
@@ -259,6 +258,11 @@ bool EmuSystem::vidSysIsPAL()
 	return PAL || dendy;
 }
 
+double EmuSystem::videoAspectRatioScale()
+{
+	return optionHorizontalVideoCrop ? 0.9375 : 0.;
+}
+
 void setupNESInputPorts()
 {
 	if(!GameInfo)
@@ -354,8 +358,8 @@ void EmuSystem::onPrepareAudio(EmuAudio &audio)
 
 bool EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
-	video.setFormat({{nesPixX, nesVisiblePixY}, fmt});
 	pixFmt = fmt;
+	updateVideoPixmap(video, optionHorizontalVideoCrop, optionVisibleVideoLines);
 	FCEU_ResetPalette();
 	return true;
 }
@@ -386,12 +390,19 @@ void emulateSound(EmuAudio *audio)
 	}
 }
 
+void updateVideoPixmap(EmuVideo &video, bool horizontalCrop, int lines)
+{
+	int xPixels = horizontalCrop ? 240 : 256;
+	video.setFormat({{xPixels, lines}, pixFmt});
+}
+
 static void renderVideo(EmuSystemTaskContext taskCtx, EmuVideo &video, uint8 *buf)
 {
 	auto img = video.startFrame(taskCtx);
 	auto pix = img.pixmap();
 	IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
-	auto ppuPixRegion = ppuPix.subView({0, 8}, {256, 224});
+	int xStart = pix.w() == 256 ? 0 : 8;
+	auto ppuPixRegion = ppuPix.subView({xStart, optionStartVideoLine}, pix.size());
 	assumeExpr(pix.size() == ppuPixRegion.size());
 	if(pix.format() == IG::PIXEL_RGB565)
 	{

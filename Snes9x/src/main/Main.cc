@@ -34,8 +34,8 @@ constexpr auto srcPixFmt = IG::PIXEL_FMT_RGB565;
 IG::ApplicationContext appCtx{};
 static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
-static const unsigned heightChangeFrameDelay = 4;
-static unsigned heightChangeFrames = heightChangeFrameDelay;
+static constexpr auto SNES_HEIGHT_480i = SNES_HEIGHT * 2;
+static constexpr auto SNES_HEIGHT_EXTENDED_480i = SNES_HEIGHT_EXTENDED * 2;
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
@@ -314,16 +314,11 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 {
 	using namespace EmuEx;
 	assumeExpr(emuVideo);
-	if(height == 239 && emuVideo->size().y == 224 && heightChangeFrames) [[unlikely]]
+	if((height == SNES_HEIGHT_EXTENDED || height == SNES_HEIGHT_EXTENDED_480i)
+		&& !optionAllowExtendedVideoLines)
 	{
-		// ignore rapid 224 -> 239 -> 224 height changes
-		//logMsg("skipped height change");
-		heightChangeFrames--;
-		height = 224;
-	}
-	else
-	{
-		heightChangeFrames = heightChangeFrameDelay;
+		bool is480i = height >= SNES_HEIGHT_480i;
+		height = is480i ? SNES_HEIGHT_480i : SNES_HEIGHT;
 	}
 	IG::Pixmap srcPix{{{width, height}, srcPixFmt}, GFX.Screen};
 	emuVideo->startFrameWithFormat(emuSysTask, srcPix);

@@ -32,6 +32,7 @@
 #include <mednafen/pce_fast/huc.h>
 #include <mednafen/pce_fast/vdc.h>
 #include <mednafen/pce_fast/pcecd_drive.h>
+#include <mednafen-emuex/MDFNUtils.hh>
 
 namespace EmuEx
 {
@@ -45,24 +46,6 @@ static IG::Pixmap mSurfacePix;
 std::array<uint16, 5> inputBuff{}; // 5 gamepad buffers
 static bool prevUsing263Lines = false;
 IG::ApplicationContext appCtx{};
-
-static MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
-{
-	MDFN_PixelFormat fmt =
-		[&]()
-		{
-			switch(pix.format().id())
-			{
-				case IG::PIXEL_BGRA8888: return MDFN_PixelFormat::ARGB32_8888;
-				case IG::PIXEL_RGBA8888: return MDFN_PixelFormat::ABGR32_8888;
-				case IG::PIXEL_RGB565: return MDFN_PixelFormat::RGB16_565;
-				default:
-					bug_unreachable("format id == %d", pix.format().id());
-					return MDFN_PixelFormat::ABGR32_8888;
-			};
-		}();
-	return {pix.pixel({0,0}), pix.w(), pix.h(), pix.pitchPixels(), fmt};
-}
 
 bool hasHuCardExtension(std::string_view name)
 {

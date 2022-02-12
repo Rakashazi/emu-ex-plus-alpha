@@ -95,7 +95,10 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		if((unsigned)optionImageZoom <= 100 || (unsigned)optionImageZoom == optionImageZoomIntegerOnlyY)
 		{
 			auto aR = optionAspectRatio.val;
-
+			if(EmuSystem::videoAspectRatioScale())
+			{
+				aR *= EmuSystem::videoAspectRatioScale();
+			}
 			if((unsigned)optionImageZoom == optionImageZoomIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height

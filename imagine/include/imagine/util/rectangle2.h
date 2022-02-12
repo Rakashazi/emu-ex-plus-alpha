@@ -28,7 +28,6 @@ class Rect2 : public AssignmentArithmetics< Rect2<T> >
 {
 public:
 	T x{}, y{}, x2{}, y2{};
-	static constexpr _2DOrigin o = LTIC2DO;
 
 	constexpr Rect2() = default;
 	constexpr Rect2(Point2D<T> p1, Point2D<T> p2): x(p1.x), y(p1.y), x2(p2.x), y2(p2.y) {}
@@ -304,9 +303,6 @@ public:
 		var = newVal;
 	}
 };
-
-template<class T>
-constexpr _2DOrigin Rect2<T>::o;
 
 template<class T>
 constexpr static Rect2<T> makeRectRel(Point2D<T> pos, Point2D<T> size)

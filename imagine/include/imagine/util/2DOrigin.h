@@ -184,69 +184,37 @@ public:
 
 	constexpr _2DOrigin flipY() const { return {x, flip(y)}; }
 
-	template<class T>
-	static T adjust(T pos, T halfSize, T fullSize, int inputScale, int outputScale)
+	static auto adjust(auto pos, auto halfSize, auto fullSize, int inputScale, int outputScale)
 	{
 		int scaleDiff = inputScale - outputScale;
-		if(std::abs(scaleDiff) == 1)
-			return pos - halfSize * IG::sign(scaleDiff);
-		else if(std::abs(scaleDiff) == 2)
-			return pos - fullSize * IG::sign(scaleDiff);
-		else
-			return pos;
+		switch(std::abs(scaleDiff))
+		{
+			case 1: return pos - halfSize * IG::sign(scaleDiff);
+			case 2: return pos - fullSize * IG::sign(scaleDiff);
+		}
+		return pos;
 	}
 
-	template<class T>
-	T adjustX(T pos, T halfSize, T fullSize, _2DOrigin outputType) const
+	auto adjustX(auto pos, auto halfSize, auto fullSize, _2DOrigin outputType) const
 	{
 		pos = xInverted(outputType) ? (fullSize) - pos : pos;
 		return adjust(pos, halfSize, fullSize, xScaler(), outputType.xScaler());
 	}
 
-	template<class T>
-	T adjustX(T pos, T fullSize, _2DOrigin outputType) const
+	auto adjustX(auto pos, auto fullSize, _2DOrigin outputType) const
 	{
-		return adjustX(pos, fullSize/(T)2, fullSize, outputType);
+		return adjustX(pos, fullSize / (decltype(fullSize))2, fullSize, outputType);
 	}
 
-	template<class T>
-	T adjustY(T pos, T halfSize, T fullSize, _2DOrigin outputType) const
+	auto adjustY(auto pos, auto halfSize, auto fullSize, _2DOrigin outputType) const
 	{
 		pos = yInverted(outputType) ? (fullSize) - pos : pos;
 		return adjust(pos, halfSize, fullSize, yScaler(), outputType.yScaler());
 	}
 
-	template<class T>
-	T adjustY(T pos, T fullSize, _2DOrigin outputType) const
+	auto adjustY(auto pos, auto fullSize, _2DOrigin outputType) const
 	{
-		return adjustY(pos, fullSize/(T)2, fullSize, outputType);
-	}
-
-	template<class T>
-	T adjustYInv(T pos, T halfSize, T fullSize, _2DOrigin outputType) const
-	{
-		_2DOrigin o = invertY();
-		return o.adjustY(pos, halfSize, fullSize, outputType.invertY());
-	}
-
-	template<class T>
-	T adjustYInv(T pos, T fullSize, _2DOrigin outputType) const
-	{
-		return adjustYInv(pos, fullSize/(T)2, fullSize, outputType);
-	}
-
-	template<class T>
-	T adjustXExtent(T pos, T halfSize, _2DOrigin outputType) const
-	{
-		assert(!xInverted(outputType));
-		return adjust(pos, halfSize, halfSize+halfSize, xScaler(), outputType.xScaler());
-	}
-
-	template<class T>
-	T adjustYExtent(T pos, T halfSize, _2DOrigin outputType) const
-	{
-		assert(!yInverted(outputType));
-		return adjust(pos, halfSize, halfSize+halfSize, yScaler(), outputType.yScaler());
+		return adjustY(pos, fullSize / (decltype(fullSize))2, fullSize, outputType);
 	}
 
 	constexpr bool operator==(_2DOrigin const &rhs) const = default;
@@ -283,13 +251,6 @@ static constexpr _2DOrigin LeftTop2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MAX);
 
 static constexpr _2DOrigin Center2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_CENTER);
 #define C2DO ::IG::Center2DOrigin
-
-static constexpr _2DOrigin LeftBottomInvCart2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MAX_INVERSE_CARTESIAN);
-#define LBIC2DO ::IG::LeftBottomInvCart2DOrigin
-static constexpr _2DOrigin LeftTopInvCart2DOrigin(_2DORIGIN_MIN, _2DORIGIN_MIN_INVERSE_CARTESIAN);
-#define LTIC2DO ::IG::LeftTopInvCart2DOrigin
-static constexpr _2DOrigin CenterInvCart2DOrigin(_2DORIGIN_CENTER, _2DORIGIN_CENTER_INVERSE_CARTESIAN);
-#define CIC2DO ::IG::CenterInvCart2DOrigin
 
 static constexpr _2DOrigin Null2DOrigin(_2DORIGIN_NONE, _2DORIGIN_NONE);
 #define NULL2DO ::IG::Null2DOrigin

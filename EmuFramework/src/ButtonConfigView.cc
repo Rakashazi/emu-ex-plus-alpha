@@ -88,7 +88,7 @@ void ButtonConfigSetView::place()
 		cancel.compile(renderer(), projP);
 
 		IG::WindowRect btnFrame;
-		btnFrame.setPosRel(viewRect().pos(LB2DO), IG::makeEvenRoundedUp(projP.projectYSize(unbind.nominalHeight()*2)), LB2DO);
+		btnFrame.setPosRel(viewRect().pos(LB2DO), IG::makeEvenRoundedUp((int)projP.projectYSize(unbind.nominalHeight()*2)), LB2DO);
 		unbindB = btnFrame;
 		unbindB.x = (viewRect().xSize()/2)*0;
 		unbindB.x2 = (viewRect().xSize()/2)*1;

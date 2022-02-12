@@ -29,6 +29,7 @@
 #include <mednafen/MemoryStream.h>
 #include <mednafen/ngp/neopop.h>
 #include <mednafen/ngp/flash.h>
+#include <mednafen-emuex/MDFNUtils.hh>
 
 namespace EmuEx
 {
@@ -104,24 +105,6 @@ void EmuSystem::saveBackupMem(IG::ApplicationContext)
 void EmuSystem::closeSystem(IG::ApplicationContext)
 {
 	emuSys->CloseGame();
-}
-
-static MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
-{
-	MDFN_PixelFormat fmt =
-		[&]()
-		{
-			switch(pix.format().id())
-			{
-				case IG::PIXEL_BGRA8888: return MDFN_PixelFormat::ARGB32_8888;
-				case IG::PIXEL_RGBA8888: return MDFN_PixelFormat::ABGR32_8888;
-				case IG::PIXEL_RGB565: return MDFN_PixelFormat::RGB16_565;
-				default:
-					bug_unreachable("format id == %d", pix.format().id());
-					return MDFN_PixelFormat::ABGR32_8888;
-			};
-		}();
-	return {pix.pixel({0,0}), pix.w(), pix.h(), pix.pitchPixels(), fmt};
 }
 
 void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)

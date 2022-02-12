@@ -103,51 +103,51 @@ void ProjectionPlane::resetTransforms(Gfx::RendererCommands &cmds) const
 	loadTranslate(cmds, 0., 0.);
 }
 
-float ProjectionPlane::unprojectXSize(int x) const
+float ProjectionPlane::unprojectXSize(float x) const
 {
-	float s = (float)(x) * pixToXScale;
-	//logMsg("project x %d, to %f", x, r);
+	float s = x * pixToXScale;
+	//logMsg("project x %f, to %f", x, r);
 	return s;
 }
 
-float ProjectionPlane::unprojectYSize(int y) const
+float ProjectionPlane::unprojectYSize(float y) const
 {
-	float s = (float)y * pixToYScale;
-	//logMsg("project y %d, to %f", y, r);
+	float s = y * pixToYScale;
+	//logMsg("project y %f, to %f", y, r);
 	return s;
 }
 
-float ProjectionPlane::unprojectX(int x) const
+float ProjectionPlane::unprojectX(float x) const
 {
 	return unprojectXSize(x - viewport().bounds().x) - wHalf();
 }
 
-float ProjectionPlane::unprojectY(int y) const
+float ProjectionPlane::unprojectY(float y) const
 {
 	return -unprojectYSize(y - viewport().bounds().y) + hHalf();
 }
 
-int ProjectionPlane::projectXSize(float x) const
+float ProjectionPlane::projectXSize(float x) const
 {
-	int s = int(std::floor(x * xToPixScale));
-	//if(s) logMsg("unproject x %f, to %d", x, s);
+	float s = x * xToPixScale;
+	//if(s) logMsg("unproject x %f, to %f", x, s);
 	return s;
 }
 
-int ProjectionPlane::projectYSize(float y) const
+float ProjectionPlane::projectYSize(float y) const
 {
-	int s = int(std::floor(y * yToPixScale));
-	//if(s) logMsg("unproject y %f, to %d", y, s);
+	float s = y * yToPixScale;
+	//if(s) logMsg("unproject y %f, to %f", y, s);
 	return s;
 }
 
-int ProjectionPlane::projectX(float x) const
+float ProjectionPlane::projectX(float x) const
 {
 	//logMsg("unproject x %f", x);
 	return projectXSize(x + wHalf()) + viewport().bounds().x;
 }
 
-int ProjectionPlane::projectY(float y) const
+float ProjectionPlane::projectY(float y) const
 {
 	//logMsg("unproject y %f", y);
 	return projectYSize(-(y - hHalf())) + viewport().bounds().y;
@@ -180,12 +180,12 @@ IG::WindowRect ProjectionPlane::projectRect(GCRect r) const
 
 float ProjectionPlane::alignXToPixel(float x) const
 {
-	return unprojectX(projectX(x));
+	return unprojectX(std::floor(projectX(x)));
 }
 
 float ProjectionPlane::alignYToPixel(float y) const
 {
-	return unprojectY(projectY(y));
+	return unprojectY(std::floor(projectY(y)));
 }
 
 IG::Point2D<float> ProjectionPlane::alignToPixel(IG::Point2D<float> p) const

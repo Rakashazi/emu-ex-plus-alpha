@@ -87,7 +87,7 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 	}
 
 	yLineStart = projP.alignYToPixel(projP.unprojectYSize(gGly->metrics.ySize - gGly->metrics.yOffset));
-	
+
 	int spaceSizeI = mGly->metrics.xSize/2;
 	spaceSize = projP.unprojectXSize(spaceSizeI);
 	uint32_t nominalHeightPixels = mGly->metrics.ySize + gGly->metrics.ySize/2;

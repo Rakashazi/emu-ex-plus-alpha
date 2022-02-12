@@ -112,7 +112,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	MultiChoiceMenuItem videoSystem
 	{
-		"Video System", &defaultFace(),
+		"System", &defaultFace(),
 		optionVideoSystem,
 		videoSystemItem
 	};
@@ -123,6 +123,19 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		optionVideoSystem = val;
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
+
+	TextHeadingMenuItem videoHeading{"Video", &defaultBoldFace()};
+
+	BoolMenuItem allowExtendedLines
+	{
+		"Allow Extended 239/478 Lines", &defaultFace(),
+		(bool)optionAllowExtendedVideoLines,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			EmuSystem::sessionOptionSet();
+			optionAllowExtendedVideoLines = item.flipBoolValue(*this);
+		}
+	};
 
 	#ifndef SNES9X_VERSION_1_4
 	TextHeadingMenuItem emulationHacks{"Emulation Hacks", &defaultBoldFace()};
@@ -204,11 +217,13 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	};
 	#endif
 
-	std::array<MenuItem*, IS_SNES9X_VERSION_1_4 ? 3 : 7> menuItem
+	std::array<MenuItem*, IS_SNES9X_VERSION_1_4 ? 5 : 9> menuItem
 	{
 		&inputPorts,
 		&multitap,
+		&videoHeading,
 		&videoSystem,
+		&allowExtendedLines,
 		#ifndef SNES9X_VERSION_1_4
 		&emulationHacks,
 		&blockInvalidVRAMAccess,

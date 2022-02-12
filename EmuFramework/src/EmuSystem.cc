@@ -546,6 +546,8 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] unsigned EmuSystem::multiresVideoBaseY() { return 0; }
 
+[[gnu::weak]] double EmuSystem::videoAspectRatioScale() { return 0; }
+
 [[gnu::weak]] bool EmuSystem::vidSysIsPAL() { return false; }
 
 [[gnu::weak]] bool EmuSystem::onPointerInputStart(const Input::MotionEvent &, Input::DragTrackerState, IG::WindowRect) { return false; }

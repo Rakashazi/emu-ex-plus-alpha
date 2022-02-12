@@ -40,14 +40,14 @@ public:
 	GP size() const;
 	float focalZ() const;
 	Viewport viewport() const;
-	float unprojectXSize(int x) const;
-	float unprojectYSize(int y) const;
-	float unprojectX(int x) const;
-	float unprojectY(int y) const;
-	int projectXSize(float x) const;
-	int projectYSize(float y) const;
-	int projectX(float x) const;
-	int projectY(float y) const;
+	float unprojectXSize(float x) const;
+	float unprojectYSize(float y) const;
+	float unprojectX(float x) const;
+	float unprojectY(float y) const;
+	float projectXSize(float x) const;
+	float projectYSize(float y) const;
+	float projectX(float x) const;
+	float projectY(float y) const;
 	float unprojectXSize(IG::WindowRect r) const { return unprojectXSize(r.xSize()); }
 	float unprojectYSize(IG::WindowRect r) const { return unprojectYSize(r.ySize()); }
 	GP unprojectSize(IG::WindowRect r) const { return {unprojectXSize(r), unprojectYSize(r)}; }

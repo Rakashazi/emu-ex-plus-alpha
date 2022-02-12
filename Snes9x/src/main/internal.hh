@@ -27,6 +27,7 @@ extern IG::ApplicationContext appCtx;
 extern Byte1Option optionMultitap;
 extern SByte1Option optionInputPort;
 extern Byte1Option optionVideoSystem;
+extern Byte1Option optionAllowExtendedVideoLines;
 #ifndef SNES9X_VERSION_1_4
 extern Byte1Option optionBlockInvalidVRAMAccess;
 extern Byte1Option optionSeparateEchoBuffer;

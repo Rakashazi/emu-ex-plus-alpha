@@ -53,22 +53,22 @@ public:
 		return id_;
 	}
 
-	constexpr size_t offsetBytes(int x, int y, uint32_t pitchBytes) const
+	constexpr int offsetBytes(int x, int y, int pitchBytes) const
 	{
 		return desc().offsetBytes(x, y, pitchBytes);
 	}
 
-	constexpr size_t pixelBytes(int pixels) const
+	constexpr int pixelBytes(int pixels) const
 	{
 		return desc().pixelBytes(pixels);
 	}
 
-	constexpr uint32_t bytesPerPixel() const
+	constexpr int bytesPerPixel() const
 	{
 		return desc().bytesPerPixel();
 	}
 
-	constexpr uint32_t bitsPerPixel() const
+	constexpr int bitsPerPixel() const
 	{
 		return desc().bytesPerPixel() * 8;
 	}

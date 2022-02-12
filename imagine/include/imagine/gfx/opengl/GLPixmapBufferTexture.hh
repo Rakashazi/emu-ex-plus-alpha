@@ -31,7 +31,7 @@ public:
 	constexpr TextureBufferStorage() = default;
 	virtual ~TextureBufferStorage() = default;
 	TextureBufferStorage &operator=(TextureBufferStorage &&o) = default;
-	LockedTextureBuffer makeLockedBuffer(void *data, uint32_t pitchBytes, uint32_t bufferFlags);
+	LockedTextureBuffer makeLockedBuffer(void *data, int pitchBytes, uint32_t bufferFlags);
 	virtual IG::ErrorCode setFormat(IG::PixmapDesc, ColorSpace, const TextureSampler *compatSampler) = 0;
 	virtual void writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags = 0);
 	virtual LockedTextureBuffer lock(uint32_t bufferFlags = 0) = 0;

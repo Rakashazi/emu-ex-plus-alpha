@@ -66,22 +66,22 @@ public:
 		return {(uint8_t)r(pixel), (uint8_t)g(pixel), (uint8_t)b(pixel), (uint8_t)a(pixel)};
 	}
 
-	constexpr size_t offsetBytes(int x, int y, uint32_t pitch) const
+	constexpr int offsetBytes(int x, int y, int pitch) const
 	{
 		return (y * pitch) + pixelBytes(x);
 	}
 
-	constexpr size_t pixelBytes(int pixels) const
+	constexpr int pixelBytes(int pixels) const
 	{
 		return pixels * bytesPerPixel_;
 	}
 
-	constexpr uint8_t bytesPerPixel() const
+	constexpr int bytesPerPixel() const
 	{
 		return bytesPerPixel_;
 	}
 
-	constexpr uint8_t bitsPerPixel() const
+	constexpr int bitsPerPixel() const
 	{
 		return bytesPerPixel_ * 8;
 	}
