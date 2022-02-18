@@ -274,7 +274,7 @@ class CustomVideoOptionView : public VideoOptionView
 						return IG::stringEndsWithAny(name, ".pal", ".PAL");
 					};
 				auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::FILE, fsFilter, e, false);
-				fPicker->setOnSelectFile(
+				fPicker->setOnSelectPath(
 					[this](FSPicker &picker, IG::CStringView path, std::string_view name, Input::Event)
 					{
 						setPalette(appContext(), path.data());

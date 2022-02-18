@@ -1501,10 +1501,10 @@ class CustomMainMenuView : public EmuMainMenuView
 						newMediaName = str;
 						newMediaName.append(".d64");
 						auto fPicker = EmuFilePicker::makeForMediaCreation(attachParams());
-						fPicker->setOnClose(
-							[this](FSPicker &picker, Input::Event e)
+						fPicker->setOnSelectPath(
+							[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 							{
-								newMediaPath = FS::uriString(picker.path(), newMediaName);
+								newMediaPath = FS::uriString(path, newMediaName);
 								picker.dismiss();
 								if(e.keyEvent() && e.asKeyEvent().isDefaultCancelButton())
 								{
@@ -1577,10 +1577,10 @@ class CustomMainMenuView : public EmuMainMenuView
 						newMediaName = str;
 						newMediaName.append(".tap");
 						auto fPicker = EmuFilePicker::makeForMediaCreation(attachParams());
-						fPicker->setOnClose(
-							[this](FSPicker &picker, Input::Event e)
+						fPicker->setOnSelectPath(
+							[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 							{
-								newMediaPath = FS::uriString(picker.path(), newMediaName);
+								newMediaPath = FS::uriString(path, newMediaName);
 								picker.dismiss();
 								if(e.keyEvent() && e.asKeyEvent().isDefaultCancelButton())
 								{

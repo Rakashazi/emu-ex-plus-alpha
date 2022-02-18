@@ -79,6 +79,7 @@ public:
 	void setAlign(_2DOrigin align);
 	std::u16string_view name() const override;
 	void setName(IG::utf16String name) { nameStr = std::move(name); }
+	void setItemsDelegate(ItemsDelegate items_ = [](const TableView &){ return 0; }) { items = items_; }
 
 protected:
 	ItemsDelegate items{};

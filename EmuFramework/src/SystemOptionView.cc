@@ -69,8 +69,8 @@ BiosSelectMenu::BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS
 		{
 			auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::FILE, fsFilter, e);
 			fPicker->setPath(biosPathStr->size() ? FS::dirnameUri(*biosPathStr) : app().contentSearchPath(), e);
-			fPicker->setOnSelectFile(
-				[this](FSPicker &picker, std::string_view path, std::string_view displayName, const Input::Event &e)
+			fPicker->setOnSelectPath(
+				[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 				{
 					*biosPathStr = path;
 					onBiosChangeD.callSafe(displayName);
@@ -191,15 +191,9 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 					auto userSavePath = EmuSystem::userSaveDirectory();
 					fPicker->setPath(userSavePath.size() && userSavePath != optionSavePathDefaultToken ? userSavePath
 						: app().contentSearchPath(), e);
-					fPicker->setOnClose(
-						[this](FSPicker &picker, const Input::Event &e)
+					fPicker->setOnSelectPath(
+						[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 						{
-							if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::CANCEL))
-							{
-								picker.dismiss();
-								return;
-							}
-							auto path = picker.path();
 							if(!hasWriteAccessToDir(appContext(), path))
 							{
 								app().postErrorMessage("This folder lacks write access");
@@ -236,15 +230,9 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 						{
 							auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
 							fPicker->setPath("");
-							fPicker->setOnClose(
-								[this](FSPicker &picker, const Input::Event &e)
+							fPicker->setOnSelectPath(
+								[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 								{
-									if(e.keyEvent() && e.asKeyEvent().isDefaultCancelButton())
-									{
-										picker.dismiss();
-										return;
-									}
-									auto path = picker.path();
 									auto ctx = appContext();
 									if(!hasWriteAccessToDir(ctx, path))
 									{
@@ -346,15 +334,9 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16S
 		{
 			auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
 			fPicker->setPath(app().firmwareSearchPath(), e);
-			fPicker->setOnClose(
-				[this](FSPicker &picker, const Input::Event &e)
+			fPicker->setOnSelectPath(
+				[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 				{
-					if(e.keyEvent() && e.asKeyEvent().isDefaultCancelButton())
-					{
-						picker.dismiss();
-						return;
-					}
-					auto path = picker.path();
 					logMsg("set firmware path:%s", path.data());
 					if(!onFirmwarePathChange(path, true))
 						return;
@@ -371,8 +353,8 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16S
 			{
 				auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::FILE, EmuSystem::NameFilterFunc{}, e);
 				fPicker->setPath(app().firmwareSearchPath(), e);
-				fPicker->setOnSelectFile(
-					[this](FSPicker &picker, IG::CStringView path, std::string_view displayName, const Input::Event &e)
+				fPicker->setOnSelectPath(
+					[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 					{
 						if(!EmuApp::hasArchiveExtension(displayName))
 						{
