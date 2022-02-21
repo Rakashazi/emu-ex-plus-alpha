@@ -100,10 +100,16 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 				return false;
 			assumeExpr(keyEv.device());
 			const auto &actionGroup = actionTable[keyEv.mapKey()];
-			//logMsg("player %d input %s", player, Input::buttonName(keyEv.map, keyEv.button));
 			bool isPushed = keyEv.pushed();
 			bool isRepeated = keyEv.repeated();
 			bool didAction = false;
+			static constexpr bool printKeyEvent = false;
+			if(printKeyEvent && !isRepeated)
+			{
+				app().postMessage(fmt::format("{} key: {} from device: {}",
+					isPushed ? "pushed" : "released", keyEv.device()->keyName(keyEv.key()),
+					keyEv.device()->name()));
+			}
 			iterateTimes(InputDeviceData::maxKeyActions, i)
 			{
 				auto action = actionGroup[i];

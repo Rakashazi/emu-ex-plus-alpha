@@ -84,7 +84,7 @@ protected:
 	std::vector<FileEntry> dir{};
 	FS::RootedPath root{};
 	Gfx::Text msgText{};
-	CustomEvent dirListEvent{};
+	CustomEvent dirListEvent{"FSPicker::dirListEvent", {}};
 	Mode mode_{};
 	bool showHiddenFiles_{};
 	bool highlightFirstDirEntry{};

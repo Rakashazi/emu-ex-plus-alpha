@@ -354,9 +354,10 @@ void ApplicationContext::setHintKeyRepeat(bool on)
 
 Input::Event ApplicationContext::defaultInputEvent() const
 {
-	Input::KeyEvent e{};
-	e.setMap(keyInputIsPresent() ? Input::Map::SYSTEM : Input::Map::POINTER);
-	return e;
+	if(keyInputIsPresent())
+		return Input::KeyEvent{};
+	else
+		return Input::MotionEvent{};
 }
 
 std::optional<bool> ApplicationContext::swappedConfirmKeysOption() const

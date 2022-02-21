@@ -26,47 +26,60 @@ namespace IG
 class ThreadStop
 {
 public:
-	void requestStop() { stopRequest.store(true, std::memory_order::relaxed); }
-	void reset() { stopRequest.store(false, std::memory_order::relaxed); }
-	operator bool() const { return stopRequest.load(std::memory_order::relaxed); }
+	static constexpr int8_t INTERRUPT = 1;
+	static constexpr int8_t QUIT = 2;
+
+	void requestStop(int8_t code = INTERRUPT) { stopRequest.store(code, std::memory_order::relaxed); }
+	void reset() { stopRequest.store(0, std::memory_order::relaxed); }
+	int8_t code() const { return stopRequest.load(std::memory_order::relaxed); }
+	bool isQuitting() const { return code() == QUIT; }
+	operator bool() const { return code(); }
 
 protected:
-	std::atomic_bool stopRequest{};
+	std::atomic_int8_t stopRequest{};
 };
 
 class WorkThread
 {
 public:
+	struct Context
+	{
+		ThreadStop &stop;
+		std::atomic_bool &working;
+
+		void finishedWork() { working.store(false, std::memory_order::relaxed); }
+	};
+
 	WorkThread() {}
 
 	WorkThread(auto &&f, auto &&...args)
-		requires IG::invocable<decltype(f), ThreadStop &, decltype(args)...>:
-		running{true},
+		requires IG::invocable<decltype(f), Context, decltype(args)...>:
+		working{true},
 		thread{makeThread(IG_forward(f), IG_forward(args)...)} {}
 
-	~WorkThread() { stop(); }
+	~WorkThread() { stop(ThreadStop::QUIT); }
 
 	[[nodiscard]]
 	bool joinable() const { return thread.joinable(); }
 	void join() { thread.join(); }
-	void requestStop() { threadStop.requestStop(); }
+	void requestStop(int8_t code = ThreadStop::INTERRUPT) { threadStop.requestStop(code); }
 	[[nodiscard]]
-	bool isRunning() const { return running.load(std::memory_order::relaxed); }
+	bool isWorking() const { return working.load(std::memory_order::relaxed); }
 
 	void reset(auto &&f, auto &&...args)
-		requires IG::invocable<decltype(f), ThreadStop &, decltype(args)...>
+		requires IG::invocable<decltype(f), Context, decltype(args)...>
 	{
-		stop();
+		stop(ThreadStop::QUIT);
 		threadStop.reset();
-		running.store(true, std::memory_order::relaxed);
+		working.store(true, std::memory_order::relaxed);
 		thread = makeThread(IG_forward(f), IG_forward(args)...);
 	}
 
-	bool stop()
+	bool stop(int8_t code = ThreadStop::INTERRUPT)
 	{
 		if(joinable())
 		{
-			requestStop();
+			requestStop(code);
 			join();
 			return true;
 		}
@@ -75,15 +88,15 @@ public:
 
 protected:
 	ThreadStop threadStop{};
-	std::atomic_bool running{};
+	std::atomic_bool working{};
 	std::thread thread;
 
 	auto makeThread(auto &&f, auto &&...args)
 	{
 		return std::thread{[this, f = IG_forward(f)](auto &&...args)
 		{
-			f(threadStop, IG_forward(args)...);
-			running.store(false, std::memory_order::relaxed);
+			f(Context{threadStop, working}, IG_forward(args)...);
+			working.store(false, std::memory_order::relaxed);
 		}, IG_forward(args)...};
 	}
 };

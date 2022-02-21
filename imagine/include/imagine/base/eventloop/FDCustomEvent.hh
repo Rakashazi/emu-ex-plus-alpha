@@ -30,25 +30,34 @@ public:
 	explicit constexpr FDCustomEvent(NullInit) {}
 	FDCustomEvent() : FDCustomEvent{nullptr} {}
 	FDCustomEvent(const char *debugLabel);
-	void attach(EventLoop loop, PollEventDelegate del);
 
-	void attach(auto &&f)
+	FDCustomEvent(const char *debugLabel, EventLoop loop):
+		FDCustomEvent{debugLabel}
 	{
-		attach({}, IG_forward(f));
+		attach(loop);
 	}
 
-	void attach(EventLoop loop, IG::invocable auto &&f)
+	void attach(EventLoop loop, PollEventDelegate del);
+
+	static constexpr PollEventDelegate makeDelegate(IG::invocable auto &&f)
 	{
-		attach(loop,
-			PollEventDelegate
-			{
-				[=](int fd, int)
-				{
-					if(shouldPerformCallback(fd))
-						f();
-					return true;
-				}
-			});
+		return [=](int fd, int)
+		{
+			if(shouldPerformCallback(fd))
+				f();
+			return true;
+		};
+	}
+
+	void attach(EventLoop loop) { attach(loop, makeDelegate([](){})); }
+
+	void attach(auto &&f) { attach({}, IG_forward(f)); }
+
+	void attach(EventLoop loop, IG::invocable auto &&f)	{ attach(loop, makeDelegate(IG_forward(f))); }
+
+	void setCallback(IG::invocable auto &&f)
+	{
+		fdSrc.setCallback(makeDelegate(IG_forward(f)));
 	}
 
 protected:

@@ -369,6 +369,58 @@ class CustomAudioOptionView : public AudioOptionView
 		}
 	};
 
+	TextHeadingMenuItem mixer{"Mixer", &defaultBoldFace()};
+
+	BoolMenuItem squareWave1
+	{
+		"Square Wave #1", &defaultFace(),
+		(bool)FSettings.Square1Volume,
+		[this](BoolMenuItem &item)
+		{
+			FSettings.Square1Volume = item.flipBoolValue(*this) ? 256 : 0;
+		}
+	};
+
+	BoolMenuItem squareWave2
+	{
+		"Square Wave #2", &defaultFace(),
+		(bool)FSettings.Square2Volume,
+		[this](BoolMenuItem &item)
+		{
+			FSettings.Square2Volume = item.flipBoolValue(*this) ? 256 : 0;
+		}
+	};
+
+	BoolMenuItem triangleWave1
+	{
+		"Triangle Wave", &defaultFace(),
+		(bool)FSettings.TriangleVolume,
+		[this](BoolMenuItem &item)
+		{
+			FSettings.TriangleVolume = item.flipBoolValue(*this) ? 256 : 0;
+		}
+	};
+
+	BoolMenuItem noise
+	{
+		"Noise", &defaultFace(),
+		(bool)FSettings.NoiseVolume,
+		[this](BoolMenuItem &item)
+		{
+			FSettings.NoiseVolume = item.flipBoolValue(*this) ? 256 : 0;
+		}
+	};
+
+	BoolMenuItem dpcm
+	{
+		"DPCM", &defaultFace(),
+		(bool)FSettings.PCMVolume,
+		[this](BoolMenuItem &item)
+		{
+			FSettings.PCMVolume = item.flipBoolValue(*this) ? 256 : 0;
+		}
+	};
+
 public:
 	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
 	{
@@ -376,6 +428,12 @@ public:
 		item.emplace_back(&quality);
 		item.emplace_back(&lowPassFilter);
 		item.emplace_back(&swapDutyCycles);
+		item.emplace_back(&mixer);
+		item.emplace_back(&squareWave1);
+		item.emplace_back(&squareWave2);
+		item.emplace_back(&triangleWave1);
+		item.emplace_back(&noise);
+		item.emplace_back(&dpcm);
 	}
 };
 

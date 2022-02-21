@@ -143,7 +143,7 @@ protected:
 	StaticArrayList<TextMenuItem, MAX_APIS + 1> apiItem{};
 	MultiChoiceMenuItem api;
 	#endif
-	StaticArrayList<MenuItem*, 15> item{};
+	StaticArrayList<MenuItem*, 17> item{};
 
 	void updateRateItem();
 	unsigned idxOfAPI(IG::Audio::Api api, std::vector<IG::Audio::ApiDesc> apiVec);

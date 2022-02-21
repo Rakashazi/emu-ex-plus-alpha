@@ -75,22 +75,12 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 		[&d = dir](const TableView &, size_t idx) -> MenuItem& { return d[idx].text; }));
 	controller.navView()->showLeftBtn(true);
 	dir.reserve(16); // start with some initial capacity to avoid small reallocations
-	dirListEvent.attach([this]()
-	{
-		fileTableView().setItemsDelegate([&d = dir](const TableView &) { return d.size(); });
-		if(highlightFirstDirEntry)
-			fileTableView().highlightCell(0);
-		else
-			fileTableView().resetScroll();
-		place();
-		postDraw();
-	});
 }
 
 void FSPicker::place()
 {
 	controller.place(viewRect(), projP);
-	if(dirListThread.isRunning())
+	if(dirListThread.isWorking())
 		return;
 	msgText.compile(renderer(), projP);
 }
@@ -161,14 +151,14 @@ void FSPicker::prepareDraw()
 {
 	controller.navView()->prepareDraw();
 	controller.top().prepareDraw();
-	if(dirListThread.isRunning())
+	if(dirListThread.isWorking())
 		return;
 	msgText.makeGlyphs(renderer());
 }
 
 void FSPicker::draw(Gfx::RendererCommands &cmds)
 {
-	if(!dirListThread.isRunning())
+	if(!dirListThread.isWorking())
 	{
 		if(dir.size())
 		{
@@ -197,6 +187,7 @@ void FSPicker::setEmptyPath()
 {
 	logMsg("setting empty path");
 	dirListThread.stop();
+	dirListEvent.cancel();
 	root = {};
 	dir.clear();
 	msgText.setString("No folder is set");
@@ -219,6 +210,7 @@ void FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInfo, const In
 	}
 	highlightFirstDirEntry = e.keyEvent();
 	startDirectoryListThread(path);
+	root.path = path;
 	auto pathLen = path.size();
 	// verify root info
 	if(rootInfo.length && rootInfo.length > pathLen)
@@ -419,18 +411,37 @@ void FSPicker::setShowHiddenFiles(bool on)
 
 void FSPicker::startDirectoryListThread(CStringView path)
 {
-	dirListThread.stop();
-	dirListEvent.cancel();
-	root.path = path;
+	if(dirListThread.isWorking())
+	{
+		logMsg("deferring listing directory until worker thread stops");
+		dirListThread.requestStop();
+		dirListEvent.setCallback([this]()
+		{
+			startDirectoryListThread(root.path);
+		});
+		return;
+	}
 	dir.clear();
 	fileTableView().setItemsDelegate();
-	dirListThread.reset([this](ThreadStop &stop)
+	dirListEvent.setCallback([this]()
 	{
-		listDirectory(root.path, stop);
-		if(stop) [[unlikely]]
-			return;
-		dirListEvent.notify();
+		fileTableView().setItemsDelegate([&d = dir](const TableView &) { return d.size(); });
+		if(highlightFirstDirEntry)
+			fileTableView().highlightCell(0);
+		else
+			fileTableView().resetScroll();
+		place();
+		postDraw();
 	});
+	dirListEvent.cancel();
+	dirListThread.reset([this](WorkThread::Context ctx, std::string path)
+	{
+		listDirectory(path, ctx.stop);
+		if(ctx.stop.isQuitting()) [[unlikely]]
+			return;
+		ctx.finishedWork();
+		dirListEvent.notify();
+	}, std::string{path});
 }
 
 void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
@@ -443,7 +454,7 @@ void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
 				//logMsg("entry:%s", entry.path().data());
 				if(stop) [[unlikely]]
 				{
-					logMsg("stopped list directory early");
+					logMsg("interrupted listing directory");
 					return false;
 				}
 				bool isDir = entry.type() == FS::file_type::directory;

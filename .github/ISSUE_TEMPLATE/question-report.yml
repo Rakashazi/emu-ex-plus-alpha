@@ -1,12 +1,12 @@
 name: Question
-description: If you have a question you can fill in the report here.
+description: If you have a question, please fill out this form.
 title: "[Question]: "
 labels: question
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill in the question report!
+        Thank you for taking the time to fill out the question form!
   - type: textarea
     id: question
     attributes:

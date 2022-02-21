@@ -1,12 +1,12 @@
-name: Bug Report
-description: If you are experiencing an issue you can fill in a bug report here.
+name: Bug report
+description: If you are experiencing an issue, please fill out this form.
 title: "[Issue]: "
 labels: bug
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
+        Thank you for taking the time to fill out this bug form!
   - type: textarea
     id: describe-bug
     attributes:
@@ -25,7 +25,7 @@ body:
     id: expected-behavior
     attributes:
       label: Expected behavior
-      description: Describe what you expect to happen.
+      description: Describe what you expected to happen.
     validations:
       required: true
   - type: textarea
