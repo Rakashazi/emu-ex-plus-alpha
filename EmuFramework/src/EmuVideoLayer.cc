@@ -17,6 +17,7 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuVideo.hh>
+#include <emuframework/EmuSystem.hh>
 #include <emuframework/VController.hh>
 #include "EmuOptions.hh"
 #include <imagine/util/math/Point2D.hh>

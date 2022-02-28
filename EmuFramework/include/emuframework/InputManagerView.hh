@@ -81,15 +81,11 @@ public:
 	InputManagerOptionsView(ViewAttachParams attach, EmuInputView *emuInputView);
 
 private:
-	#if 0
-	TextMenuItem relativePointerDecelItem[3];
-	MultiChoiceMenuItem relativePointerDecel{};
-	#endif
-	IG_UseMemberIf(Config::EmuFramework::MOGA_INPUT, BoolMenuItem, mogaInputSystem){};
+	IG_UseMemberIf(MOGA_INPUT, BoolMenuItem, mogaInputSystem){};
 	IG_UseMemberIf(Config::Input::DEVICE_HOTSWAP, BoolMenuItem, notifyDeviceChange){};
 	#ifdef CONFIG_BLUETOOTH
 	TextHeadingMenuItem bluetoothHeading{};
-	BoolMenuItem keepBtActive{};
+	IG_UseMemberIf(Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, BoolMenuItem, keepBtActive);
 	#endif
 	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
 	TextMenuItem btScanSecsItem[5];

@@ -307,47 +307,6 @@ static void setBTScanSecs(int secs)
 
 InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInputView *emuInputView_):
 	TableView{"General Input Options", attach, item},
-	#if 0
-	relativePointerDecelItem
-	{
-		{
-			"Low", &defaultFace(),
-			[this]()
-			{
-				optionRelPointerDecel.val = optionRelPointerDecelLow;
-			}
-		},
-		{
-			"Med.", &defaultFace(),
-			[this]()
-			{
-				optionRelPointerDecel.val = optionRelPointerDecelMed;
-			}
-		},
-		{
-			"High", &defaultFace(),
-			[this]()
-			{
-				optionRelPointerDecel.val = optionRelPointerDecelHigh;
-			}
-		}
-	},
-	relativePointerDecel
-	{
-		"Trackball Sensitivity", &defaultFace(),
-		[]()
-		{
-			if(optionRelPointerDecel == optionRelPointerDecelLow)
-				return 0;
-			if(optionRelPointerDecel == optionRelPointerDecelMed)
-				return 1;
-			if(optionRelPointerDecel == optionRelPointerDecelHigh)
-				return 2;
-			return 0;
-		}(),
-		relativePointerDecelItem
-	},
-	#endif
 	mogaInputSystem
 	{
 		"MOGA Controller Support", &defaultFace(),
@@ -366,10 +325,10 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	notifyDeviceChange
 	{
 		"Notify If Devices Change", &defaultFace(),
-		(bool)optionNotifyInputDeviceChange,
+		(bool)app().notifyInputDeviceChangeOption().val,
 		[this](BoolMenuItem &item)
 		{
-			optionNotifyInputDeviceChange = item.flipBoolValue(*this);
+			app().notifyInputDeviceChangeOption() = item.flipBoolValue(*this);
 		}
 	},
 	#ifdef CONFIG_BLUETOOTH
@@ -380,10 +339,10 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	keepBtActive
 	{
 		"Keep Connections In Background", &defaultFace(),
-		(bool)optionKeepBluetoothActive,
+		(bool)app().keepBluetoothActiveOption(),
 		[this](BoolMenuItem &item)
 		{
-			optionKeepBluetoothActive = item.flipBoolValue(*this);
+			app().keepBluetoothActiveOption() = item.flipBoolValue(*this);
 		}
 	},
 	#endif
@@ -466,7 +425,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	},
 	emuInputView{emuInputView_}
 {
-	if constexpr(Config::EmuFramework::MOGA_INPUT)
+	if constexpr(MOGA_INPUT)
 	{
 		item.emplace_back(&mogaInputSystem);
 	}
@@ -479,14 +438,14 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	#endif
 	if constexpr(Config::Input::DEVICE_HOTSWAP)
 	{
-		if(!optionNotifyInputDeviceChange.isConst)
+		if(!app().notifyInputDeviceChangeOption().isConst)
 		{
 			item.emplace_back(&notifyDeviceChange);
 		}
 	}
 	#ifdef CONFIG_BLUETOOTH
 	item.emplace_back(&bluetoothHeading);
-	if(!optionKeepBluetoothActive.isConst)
+	if(used(keepBtActive))
 	{
 		item.emplace_back(&keepBtActive);
 	}

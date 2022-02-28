@@ -476,15 +476,17 @@ void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
 				{
 					return true;
 				}
-				dir.emplace_back(FileEntry{std::string{entry.path()}, isDir, {entry.name(), &face(), nullptr}});
+				auto &item = dir.emplace_back(FileEntry{std::string{entry.path()}, {entry.name(), &face(), nullptr}});
+				if(isDir)
+					item.text.setFlags(item.text.flags() | FileEntry::IS_DIR_FLAG);
 				return true;
 			});
 		std::sort(dir.begin(), dir.end(),
 			[](const FileEntry &e1, const FileEntry &e2)
 			{
-				if(e1.isDir && !e2.isDir)
+				if(e1.isDir() && !e2.isDir())
 					return true;
-				else if(!e1.isDir && e2.isDir)
+				else if(!e1.isDir() && e2.isDir())
 					return false;
 				else
 					return IG::stringNoCaseLexCompare(e1.path, e2.path);
@@ -493,7 +495,7 @@ void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
 		{
 			for(auto &d : dir)
 			{
-				if(d.isDir)
+				if(d.isDir())
 				{
 					d.text.setOnSelect(
 						[this, &dirPath = d.path](const Input::Event &e)

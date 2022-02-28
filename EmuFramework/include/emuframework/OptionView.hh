@@ -63,10 +63,8 @@ protected:
 
 	StaticArrayList<TextMenuItem, 5> textureBufferModeItem{};
 	MultiChoiceMenuItem textureBufferMode;
-	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-	TextMenuItem frameIntervalItem[4];
-	MultiChoiceMenuItem frameInterval;
-	#endif
+	IG_UseMemberIf(Config::SCREEN_FRAME_INTERVAL, TextMenuItem, frameIntervalItem[4]);
+	IG_UseMemberIf(Config::SCREEN_FRAME_INTERVAL, MultiChoiceMenuItem, frameInterval);
 	BoolMenuItem dropLateFrames;
 	TextMenuItem frameRate;
 	TextMenuItem frameRatePAL;
@@ -106,15 +104,15 @@ protected:
 
 	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem, const Input::Event &);
 	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time);
-	TextMenuItem::SelectDelegate setOverlayEffectLevelDel(uint8_t val);
-	TextMenuItem::SelectDelegate setZoomDel(uint8_t val);
-	TextMenuItem::SelectDelegate setViewportZoomDel(uint8_t val);
-	TextMenuItem::SelectDelegate setImgEffectDel(ImageEffectId val);
-	TextMenuItem::SelectDelegate setOverlayEffectDel(int val);
-	TextMenuItem::SelectDelegate setRenderPixelFormatDel(IG::PixelFormat);
-	TextMenuItem::SelectDelegate setImgEffectPixelFormatDel(IG::PixelFormat);
+	TextMenuItem::SelectDelegate setZoomDel();
+	TextMenuItem::SelectDelegate setViewportZoomDel();
+	TextMenuItem::SelectDelegate setImgEffectDel();
+	TextMenuItem::SelectDelegate setOverlayEffectDel();
+	TextMenuItem::SelectDelegate setOverlayEffectLevelDel();
+	TextMenuItem::SelectDelegate setRenderPixelFormatDel();
+	TextMenuItem::SelectDelegate setImgEffectPixelFormatDel();
 	TextMenuItem::SelectDelegate setWindowDrawableConfigDel(Gfx::DrawableConfig);
-	TextMenuItem::SelectDelegate setImageBuffersDel(int buffers);
+	TextMenuItem::SelectDelegate setImageBuffersDel();
 	EmuVideo &emuVideo() const;
 };
 
@@ -123,11 +121,9 @@ class AudioOptionView : public TableView, public EmuAppHelper<AudioOptionView>
 public:
 	AudioOptionView(ViewAttachParams attach, bool customMenu = false);
 	void loadStockItems();
-	void setEmuAudio(EmuAudio &audio);
 
 protected:
 	static constexpr unsigned MAX_APIS = 2;
-	EmuAudio *audio{};
 
 	BoolMenuItem snd;
 	BoolMenuItem soundDuringFastForward;
@@ -138,18 +134,15 @@ protected:
 	BoolMenuItem addSoundBuffersOnUnderrun;
 	StaticArrayList<TextMenuItem, 5> audioRateItem{};
 	MultiChoiceMenuItem audioRate;
-	IG_UseMemberIf(IG::Audio::Manager::HAS_SOLO_MIX, BoolMenuItem, audioSoloMix){};
-	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-	StaticArrayList<TextMenuItem, MAX_APIS + 1> apiItem{};
-	MultiChoiceMenuItem api;
-	#endif
+	IG_UseMemberIf(IG::Audio::Manager::HAS_SOLO_MIX, BoolMenuItem, audioSoloMix);
+	using ApiItemContainer = StaticArrayList<TextMenuItem, MAX_APIS + 1>;
+	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, ApiItemContainer, apiItem);
+	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, MultiChoiceMenuItem, api);
 	StaticArrayList<MenuItem*, 17> item{};
 
-	void updateRateItem();
-	unsigned idxOfAPI(IG::Audio::Api api, std::vector<IG::Audio::ApiDesc> apiVec);
-	TextMenuItem::SelectDelegate setRateDel(uint32_t val);
-	TextMenuItem::SelectDelegate setBuffersDel(int val);
-	TextMenuItem::SelectDelegate setVolumeDel(uint8_t val);
+	TextMenuItem::SelectDelegate setRateDel();
+	TextMenuItem::SelectDelegate setBuffersDel();
+	TextMenuItem::SelectDelegate setVolumeDel();
 };
 
 class SystemOptionView : public TableView, public EmuAppHelper<SystemOptionView>
@@ -167,9 +160,7 @@ protected:
 	static constexpr unsigned MIN_FAST_FORWARD_SPEED = 2;
 	TextMenuItem fastForwardSpeedItem[6];
 	MultiChoiceMenuItem fastForwardSpeed;
-	#if defined __ANDROID__
-	BoolMenuItem performanceMode;
-	#endif
+	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
 	StaticArrayList<MenuItem*, 24> item{};
 
 	void onSavePathChange(std::string_view path);
@@ -177,8 +168,8 @@ protected:
 	std::unique_ptr<TextTableView> makeFirmwarePathMenu(IG::utf16String name, bool allowFiles = false, unsigned extraItemsHint = 0);
 	void pushAndShowFirmwarePathMenu(IG::utf16String name, const Input::Event &, bool allowFiles = false);
 	void pushAndShowFirmwareFilePathMenu(IG::utf16String name, const Input::Event &);
-	TextMenuItem::SelectDelegate setAutoSaveStateDel(int val);
-	TextMenuItem::SelectDelegate setFastForwardSpeedDel(int val);
+	TextMenuItem::SelectDelegate setAutoSaveStateDel();
+	TextMenuItem::SelectDelegate setFastForwardSpeedDel();
 };
 
 class GUIOptionView : public TableView, public EmuAppHelper<GUIOptionView>
@@ -192,14 +183,14 @@ protected:
 	TextMenuItem fontSizeItem[10];
 	MultiChoiceMenuItem fontSize;
 	BoolMenuItem notificationIcon;
-	TextMenuItem statusBarItem[3];
-	MultiChoiceMenuItem statusBar;
-	TextMenuItem lowProfileOSNavItem[3];
-	MultiChoiceMenuItem lowProfileOSNav;
-	TextMenuItem hideOSNavItem[3];
-	MultiChoiceMenuItem hideOSNav;
+	IG_UseMemberIf(Config::STATUS_BAR, TextMenuItem, statusBarItem[3]);
+	IG_UseMemberIf(Config::STATUS_BAR, MultiChoiceMenuItem, statusBar);
+	IG_UseMemberIf(Config::NAVIGATION_BAR, TextMenuItem, lowProfileOSNavItem[3]);
+	IG_UseMemberIf(Config::NAVIGATION_BAR, MultiChoiceMenuItem, lowProfileOSNav);
+	IG_UseMemberIf(Config::NAVIGATION_BAR, TextMenuItem, hideOSNavItem[3]);
+	IG_UseMemberIf(Config::NAVIGATION_BAR, MultiChoiceMenuItem, hideOSNav);
 	BoolMenuItem idleDisplayPowerSave;
-	BoolMenuItem navView;
+	IG_UseMemberIf(CAN_HIDE_TITLE_BAR, BoolMenuItem, navView);
 	BoolMenuItem backNav;
 	BoolMenuItem systemActionsIsDefaultMenu;
 	BoolMenuItem showBundledGames;
@@ -208,16 +199,16 @@ protected:
 	TextHeadingMenuItem orientationHeading;
 	TextMenuItem menuOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
 	MultiChoiceMenuItem menuOrientation;
-	TextMenuItem gameOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
-	MultiChoiceMenuItem gameOrientation;
+	TextMenuItem emuOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
+	MultiChoiceMenuItem emuOrientation;
 	StaticArrayList<MenuItem*, 21> item{};
 
-	TextMenuItem::SelectDelegate setFontSizeDel(uint16_t val);
-	TextMenuItem::SelectDelegate setMenuOrientationDel(int val);
-	TextMenuItem::SelectDelegate setGameOrientationDel(int val);
-	TextMenuItem::SelectDelegate setStatusBarDel(int val);
-	TextMenuItem::SelectDelegate setLowProfileOSNavDel(int val);
-	TextMenuItem::SelectDelegate setHideOSNavDel(int val);
+	TextMenuItem::SelectDelegate setFontSizeDel();
+	TextMenuItem::SelectDelegate setMenuOrientationDel();
+	TextMenuItem::SelectDelegate setEmuOrientationDel();
+	TextMenuItem::SelectDelegate setStatusBarDel();
+	TextMenuItem::SelectDelegate setLowProfileOSNavDel();
+	TextMenuItem::SelectDelegate setHideOSNavDel();
 };
 
 class BiosSelectMenu : public TableView, public EmuAppHelper<BiosSelectMenu>

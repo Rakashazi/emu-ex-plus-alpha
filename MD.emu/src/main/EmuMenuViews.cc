@@ -56,35 +56,28 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	TextMenuItem inputPortsItem[4]
 	{
-		{"Auto", &defaultFace(), [this](){ setInputPorts(-1, -1); }},
-		{"Gamepads", &defaultFace(), [this]() { setInputPorts(SYSTEM_MD_GAMEPAD, SYSTEM_MD_GAMEPAD); }},
-		{"Menacer", &defaultFace(), [this]() { setInputPorts(SYSTEM_MD_GAMEPAD, SYSTEM_MENACER); }},
-		{"Justifier", &defaultFace(), [this]() { setInputPorts(SYSTEM_MD_GAMEPAD, SYSTEM_JUSTIFIER); }},
+		{"Auto",      &defaultFace(), setInputPortsDel(-1, -1)},
+		{"Gamepads",  &defaultFace(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_MD_GAMEPAD), SYSTEM_MD_GAMEPAD},
+		{"Menacer",   &defaultFace(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_MENACER),    SYSTEM_MENACER},
+		{"Justifier", &defaultFace(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_JUSTIFIER),  SYSTEM_JUSTIFIER},
 	};
 
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports", &defaultFace(),
-		[]()
-		{
-			if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_MD_GAMEPAD)
-				return 1;
-			else if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_MENACER)
-				return 2;
-			else if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_JUSTIFIER)
-				return 3;
-			else
-				return 0;
-		}(),
+		(MenuItem::Id)mdInputPortDev[1],
 		inputPortsItem
 	};
 
-	void setInputPorts(int port1, int port2)
+	TextMenuItem::SelectDelegate setInputPortsDel(int8_t port1, int8_t port2)
 	{
-		EmuSystem::sessionOptionSet();
-		optionInputPort1 = mdInputPortDev[0] = port1;
-		optionInputPort2 = mdInputPortDev[1] = port2;
-		setupMDInput(app());
+		return [this, port1, port2]()
+		{
+			EmuSystem::sessionOptionSet();
+			optionInputPort1 = mdInputPortDev[0] = port1;
+			optionInputPort2 = mdInputPortDev[1] = port2;
+			setupMDInput(app());
+		};
 	}
 
 	TextMenuItem videoSystemItem[3]
@@ -106,7 +99,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 			}
 			return false;
 		},
-		optionVideoSystem,
+		optionVideoSystem.val,
 		videoSystemItem
 	};
 

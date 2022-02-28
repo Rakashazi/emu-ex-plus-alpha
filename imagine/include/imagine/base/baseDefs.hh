@@ -53,6 +53,9 @@ static constexpr bool BASE_MULTI_SCREEN = false;
 
 #if defined CONFIG_BASE_IOS
 #define CONFIG_BASE_SCREEN_FRAME_INTERVAL
+static constexpr bool SCREEN_FRAME_INTERVAL = true;
+#else
+static constexpr bool SCREEN_FRAME_INTERVAL = false;
 #endif
 
 #if (defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA) || defined CONFIG_BASE_MULTI_SCREEN
@@ -81,6 +84,20 @@ static constexpr bool GL_PLATFORM_EGL = true;
 static constexpr bool GL_PLATFORM_EGL = false;
 #endif
 static constexpr bool SYSTEM_FILE_PICKER = Config::envIsAndroid;
+
+#if defined __ANDROID__ || (defined __APPLE__ && TARGET_OS_IPHONE)
+#define CONFIG_BASE_STATUS_BAR
+static constexpr bool STATUS_BAR = true;
+#else
+static constexpr bool STATUS_BAR = false;
+#endif
+
+#if defined __ANDROID__
+#define CONFIG_BASE_NAVIGATION_BAR
+static constexpr bool NAVIGATION_BAR = true;
+#else
+static constexpr bool NAVIGATION_BAR = false;
+#endif
 
 }
 

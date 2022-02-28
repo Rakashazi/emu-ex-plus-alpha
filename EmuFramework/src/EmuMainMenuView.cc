@@ -141,7 +141,7 @@ void EmuMainMenuView::loadFileBrowserItems()
 {
 	item.emplace_back(&loadGame);
 	item.emplace_back(&recentGames);
-	if(EmuSystem::hasBundledGames && optionShowBundledGames)
+	if(EmuSystem::hasBundledGames && app().showsBundledGames())
 	{
 		item.emplace_back(&bundledGames);
 	}
@@ -154,7 +154,7 @@ void EmuMainMenuView::loadStandardItems()
 	item.emplace_back(&inputManager);
 	item.emplace_back(&options);
 	#ifdef CONFIG_BLUETOOTH
-	if(optionShowBluetoothScan)
+	if(app().showsBluetoothScanItems())
 	{
 		item.emplace_back(&scanWiimotes);
 		#ifdef CONFIG_BLUETOOTH_SERVER
@@ -390,7 +390,6 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 			[this, &audio](const Input::Event &e)
 			{
 				auto view = EmuApp::makeView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS);
-				static_cast<AudioOptionView*>(view.get())->setEmuAudio(audio);
 				pushAndShow(std::move(view), e);
 			}
 		},

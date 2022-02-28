@@ -42,15 +42,15 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fontSizeItem
 	{
-		{"2",  &defaultFace(), setFontSizeDel(2000)},
-		{"3",  &defaultFace(), setFontSizeDel(3000)},
-		{"4",  &defaultFace(), setFontSizeDel(4000)},
-		{"5",  &defaultFace(), setFontSizeDel(5000)},
-		{"6",  &defaultFace(), setFontSizeDel(6000)},
-		{"7",  &defaultFace(), setFontSizeDel(7000)},
-		{"8",  &defaultFace(), setFontSizeDel(8000)},
-		{"9",  &defaultFace(), setFontSizeDel(9000)},
-		{"10", &defaultFace(), setFontSizeDel(10000)},
+		{"2",  &defaultFace(), setFontSizeDel(), 2000},
+		{"3",  &defaultFace(), setFontSizeDel(), 3000},
+		{"4",  &defaultFace(), setFontSizeDel(), 4000},
+		{"5",  &defaultFace(), setFontSizeDel(), 5000},
+		{"6",  &defaultFace(), setFontSizeDel(), 6000},
+		{"7",  &defaultFace(), setFontSizeDel(), 7000},
+		{"8",  &defaultFace(), setFontSizeDel(), 8000},
+		{"9",  &defaultFace(), setFontSizeDel(), 9000},
+		{"10", &defaultFace(), setFontSizeDel(), 10000},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
@@ -82,88 +82,70 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			t.setString(fmt::format("{:.2f}", app().fontSize() / 1000.));
 			return true;
 		},
-		[this]()
-		{
-			switch(app().fontSize())
-			{
-				case 2000: return 0;
-				case 3000: return 1;
-				case 4000: return 2;
-				case 5000: return 3;
-				case 6000: return 4;
-				case 7000: return 5;
-				case 8000: return 6;
-				case 9000: return 7;
-				case 10000: return 8;
-				default: return 9;
-			}
-		}(),
+		(MenuItem::Id)app().fontSize(),
 		fontSizeItem
 	},
 	notificationIcon
 	{
 		"Suspended App Icon", &defaultFace(),
-		(bool)optionNotificationIcon,
+		(bool)app().notificationIconOption().val,
 		[this](BoolMenuItem &item)
 		{
-			optionNotificationIcon = item.flipBoolValue(*this);
+			app().notificationIconOption() = item.flipBoolValue(*this);
 		}
 	},
 	statusBarItem
 	{
-		{"Off",    &defaultFace(), setStatusBarDel(0)},
-		{"In Emu", &defaultFace(), setStatusBarDel(1)},
-		{"On",     &defaultFace(), setStatusBarDel(2)}
+		{"Off",    &defaultFace(), setStatusBarDel(), (int)Tristate::OFF},
+		{"In Emu", &defaultFace(), setStatusBarDel(), (int)Tristate::IN_EMU},
+		{"On",     &defaultFace(), setStatusBarDel(), (int)Tristate::ON}
 	},
 	statusBar
 	{
 		"Hide Status Bar", &defaultFace(),
-		optionHideStatusBar,
+		(MenuItem::Id)app().hideStatusBarMode(),
 		statusBarItem
 	},
 	lowProfileOSNavItem
 	{
-		{"Off",    &defaultFace(), setLowProfileOSNavDel(0)},
-		{"In Emu", &defaultFace(), setLowProfileOSNavDel(1)},
-		{"On",     &defaultFace(), setLowProfileOSNavDel(2)}
+		{"Off",    &defaultFace(), setLowProfileOSNavDel(), (int)Tristate::OFF},
+		{"In Emu", &defaultFace(), setLowProfileOSNavDel(), (int)Tristate::IN_EMU},
+		{"On",     &defaultFace(), setLowProfileOSNavDel(), (int)Tristate::ON}
 	},
 	lowProfileOSNav
 	{
 		"Dim OS UI", &defaultFace(),
-		optionLowProfileOSNav,
+		(MenuItem::Id)app().lowProfileOSNavMode(),
 		lowProfileOSNavItem
 	},
 	hideOSNavItem
 	{
-		{"Off",    &defaultFace(), setHideOSNavDel(0)},
-		{"In Emu", &defaultFace(), setHideOSNavDel(1)},
-		{"On",     &defaultFace(), setHideOSNavDel(2)}
+		{"Off",    &defaultFace(), setHideOSNavDel(), (int)Tristate::OFF},
+		{"In Emu", &defaultFace(), setHideOSNavDel(), (int)Tristate::IN_EMU},
+		{"On",     &defaultFace(), setHideOSNavDel(), (int)Tristate::ON}
 	},
 	hideOSNav
 	{
 		"Hide OS Navigation", &defaultFace(),
-		optionHideOSNav,
+		(MenuItem::Id)app().hideOSNavMode(),
 		hideOSNavItem
 	},
 	idleDisplayPowerSave
 	{
 		"Allow Screen Timeout In Emulation", &defaultFace(),
-		(bool)optionIdleDisplayPowerSave,
+		app().idleDisplayPowerSave(),
 		[this](BoolMenuItem &item)
 		{
-			optionIdleDisplayPowerSave = item.flipBoolValue(*this);
-			appContext().setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
+			app().setIdleDisplayPowerSave(item.flipBoolValue(*this));
 		}
 	},
 	navView
 	{
 		"Title Bar", &defaultFace(),
-		(bool)optionTitleBar,
+		app().showsTitleBar(),
 		[this](BoolMenuItem &item)
 		{
-			optionTitleBar = item.flipBoolValue(*this);
-			app().viewController().showNavView(optionTitleBar);
-			app().viewController().placeElements();
+			app().setShowsTitleBar(item.flipBoolValue(*this));
 		}
 	},
 	backNav
@@ -180,31 +162,29 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	systemActionsIsDefaultMenu
 	{
 		"Default Menu", &defaultFace(),
-		(bool)optionSystemActionsIsDefaultMenu,
+		(bool)app().systemActionsIsDefaultMenuOption().val,
 		"Last Used", "System Actions",
 		[this](BoolMenuItem &item)
 		{
-			optionSystemActionsIsDefaultMenu = item.flipBoolValue(*this);
+			app().systemActionsIsDefaultMenuOption() = item.flipBoolValue(*this);
 		}
 	},
 	showBundledGames
 	{
 		"Show Bundled Content", &defaultFace(),
-		(bool)optionShowBundledGames,
+		app().showsBundledGames(),
 		[this](BoolMenuItem &item)
 		{
-			optionShowBundledGames = item.flipBoolValue(*this);
-			app().dispatchOnMainMenuItemOptionChanged();
+			app().setShowsBundledGames(item.flipBoolValue(*this));
 		}
 	},
 	showBluetoothScan
 	{
 		"Show Bluetooth Menu Items", &defaultFace(),
-		(bool)optionShowBluetoothScan,
+		app().showsBluetoothScanItems(),
 		[this](BoolMenuItem &item)
 		{
-			optionShowBluetoothScan = item.flipBoolValue(*this);
-			app().dispatchOnMainMenuItemOptionChanged();
+			app().setShowsBluetoothScanItems(item.flipBoolValue(*this));
 		}
 	},
 	showHiddenFiles
@@ -223,56 +203,34 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	menuOrientationItem
 	{
 		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", &defaultFace(), setMenuOrientationDel(IG::VIEW_ROTATE_AUTO)},
+		{"Auto", &defaultFace(), setMenuOrientationDel(), IG::VIEW_ROTATE_AUTO},
 		#endif
-		{landscapeName,  &defaultFace(), setMenuOrientationDel(IG::VIEW_ROTATE_90)},
-		{landscape2Name, &defaultFace(), setMenuOrientationDel(IG::VIEW_ROTATE_270)},
-		{portraitName,   &defaultFace(), setMenuOrientationDel(IG::VIEW_ROTATE_0)},
-		{portrait2Name,  &defaultFace(), setMenuOrientationDel(IG::VIEW_ROTATE_180)},
+		{landscapeName,  &defaultFace(), setMenuOrientationDel(), IG::VIEW_ROTATE_90},
+		{landscape2Name, &defaultFace(), setMenuOrientationDel(), IG::VIEW_ROTATE_270},
+		{portraitName,   &defaultFace(), setMenuOrientationDel(), IG::VIEW_ROTATE_0},
+		{portrait2Name,  &defaultFace(), setMenuOrientationDel(), IG::VIEW_ROTATE_180},
 	},
 	menuOrientation
 	{
 		"In Menu", &defaultFace(),
-		[]()
-		{
-			int itemOffset = Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 0 : 1;
-			switch(optionMenuOrientation)
-			{
-				default: return 0;
-				case IG::VIEW_ROTATE_90: return 1 - itemOffset;
-				case IG::VIEW_ROTATE_270: return 2 - itemOffset;
-				case IG::VIEW_ROTATE_0: return 3 - itemOffset;
-				case IG::VIEW_ROTATE_180: return 4 - itemOffset;
-			}
-		}(),
+		(MenuItem::Id)app().menuOrientation(),
 		menuOrientationItem
 	},
-	gameOrientationItem
+	emuOrientationItem
 	{
 		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", &defaultFace(), setGameOrientationDel(IG::VIEW_ROTATE_AUTO)},
+		{"Auto", &defaultFace(), setEmuOrientationDel(), IG::VIEW_ROTATE_AUTO},
 		#endif
-		{landscapeName,  &defaultFace(), setGameOrientationDel(IG::VIEW_ROTATE_90)},
-		{landscape2Name, &defaultFace(), setGameOrientationDel(IG::VIEW_ROTATE_270)},
-		{portraitName,   &defaultFace(), setGameOrientationDel(IG::VIEW_ROTATE_0)},
-		{portrait2Name,  &defaultFace(), setGameOrientationDel(IG::VIEW_ROTATE_180)},
+		{landscapeName,  &defaultFace(), setEmuOrientationDel(), IG::VIEW_ROTATE_90},
+		{landscape2Name, &defaultFace(), setEmuOrientationDel(), IG::VIEW_ROTATE_270},
+		{portraitName,   &defaultFace(), setEmuOrientationDel(), IG::VIEW_ROTATE_0},
+		{portrait2Name,  &defaultFace(), setEmuOrientationDel(), IG::VIEW_ROTATE_180},
 	},
-	gameOrientation
+	emuOrientation
 	{
 		"In Emu", &defaultFace(),
-		[]()
-		{
-			int itemOffset = Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 0 : 1;
-			switch(optionGameOrientation)
-			{
-				default: return 0;
-				case IG::VIEW_ROTATE_90: return 1 - itemOffset;
-				case IG::VIEW_ROTATE_270: return 2 - itemOffset;
-				case IG::VIEW_ROTATE_0: return 3 - itemOffset;
-				case IG::VIEW_ROTATE_180: return 4 - itemOffset;
-			}
-		}(),
-		gameOrientationItem
+		(MenuItem::Id)app().emuOrientation(),
+		emuOrientationItem
 	}
 {
 	if(!customMenu)
@@ -287,11 +245,11 @@ void GUIOptionView::loadStockItems()
 	{
 		item.emplace_back(&pauseUnfocused);
 	}
-	if(!optionNotificationIcon.isConst)
+	if(!app().notificationIconOption().isConst)
 	{
 		item.emplace_back(&notificationIcon);
 	}
-	if(!optionTitleBar.isConst)
+	if(used(navView))
 	{
 		item.emplace_back(&navView);
 	}
@@ -301,19 +259,16 @@ void GUIOptionView::loadStockItems()
 	}
 	item.emplace_back(&systemActionsIsDefaultMenu);
 	item.emplace_back(&fontSize);
-	if(!optionIdleDisplayPowerSave.isConst)
-	{
-		item.emplace_back(&idleDisplayPowerSave);
-	}
-	if(!optionLowProfileOSNav.isConst)
+	item.emplace_back(&idleDisplayPowerSave);
+	if(used(lowProfileOSNav))
 	{
 		item.emplace_back(&lowProfileOSNav);
 	}
-	if(!optionHideOSNav.isConst)
+	if(used(hideOSNav))
 	{
 		item.emplace_back(&hideOSNav);
 	}
-	if(!optionHideStatusBar.isConst)
+	if(used(statusBar))
 	{
 		item.emplace_back(&statusBar);
 	}
@@ -325,63 +280,39 @@ void GUIOptionView::loadStockItems()
 	item.emplace_back(&showBluetoothScan);
 	#endif
 	item.emplace_back(&showHiddenFiles);
-	if(!optionGameOrientation.isConst)
-	{
-		item.emplace_back(&orientationHeading);
-		item.emplace_back(&gameOrientation);
-		item.emplace_back(&menuOrientation);
-	}
+	item.emplace_back(&orientationHeading);
+	item.emplace_back(&emuOrientation);
+	item.emplace_back(&menuOrientation);
 }
 
-TextMenuItem::SelectDelegate GUIOptionView::setMenuOrientationDel(int val)
+TextMenuItem::SelectDelegate GUIOptionView::setMenuOrientationDel()
 {
-	return [this, val]()
-		{
-			optionMenuOrientation = val;
-			renderer().setWindowValidOrientations(window(), optionMenuOrientation);
-			logMsg("set menu orientation: %s", IG::orientationToStr(int(optionMenuOrientation)));
-		};
+	return [this](TextMenuItem &item) { app().setMenuOrientation(item.id()); };
 }
 
-TextMenuItem::SelectDelegate GUIOptionView::setGameOrientationDel(int val)
+TextMenuItem::SelectDelegate GUIOptionView::setEmuOrientationDel()
 {
-	return [val]()
-		{
-			optionGameOrientation = val;
-			logMsg("set game orientation: %s", IG::orientationToStr(int(optionGameOrientation)));
-		};
+	return [this](TextMenuItem &item) { app().setEmuOrientation(item.id()); };
 }
 
-TextMenuItem::SelectDelegate GUIOptionView::setFontSizeDel(uint16_t val)
+TextMenuItem::SelectDelegate GUIOptionView::setFontSizeDel()
 {
-	return [this, val]() { app().setFontSize(val); };
+	return [this](TextMenuItem &item) { app().setFontSize(item.id()); };
 }
 
-TextMenuItem::SelectDelegate GUIOptionView::setStatusBarDel(int val)
+TextMenuItem::SelectDelegate GUIOptionView::setStatusBarDel()
 {
-	return [this, val]()
-		{
-			optionHideStatusBar = val;
-			app().applyOSNavStyle(appContext(), false);
-		};
+	return [this](TextMenuItem &item) { app().setHideStatusBarMode((Tristate)item.id()); };
 }
 
-TextMenuItem::SelectDelegate GUIOptionView::setLowProfileOSNavDel(int val)
+TextMenuItem::SelectDelegate GUIOptionView::setLowProfileOSNavDel()
 {
-	return [this, val]()
-		{
-			optionLowProfileOSNav = val;
-			app().applyOSNavStyle(appContext(), false);
-		};
+	return [this](TextMenuItem &item) { app().setLowProfileOSNavMode((Tristate)item.id()); };
 }
 
-TextMenuItem::SelectDelegate GUIOptionView::setHideOSNavDel(int val)
+TextMenuItem::SelectDelegate GUIOptionView::setHideOSNavDel()
 {
-	return [this, val]()
-		{
-			optionHideOSNav = val;
-			app().applyOSNavStyle(appContext(), false);
-		};
+	return [this](TextMenuItem &item) { app().setHideOSNavMode((Tristate)item.id()); };
 }
 
 }

@@ -46,6 +46,31 @@
 namespace EmuEx
 {
 
+constexpr uint8_t OPTION_SOUND_ENABLED_FLAG = IG::bit(0);
+constexpr uint8_t OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG = IG::bit(1);
+constexpr uint8_t OPTION_SOUND_DEFAULT_FLAGS = OPTION_SOUND_ENABLED_FLAG | OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG;
+
+constexpr bool isValidSoundRate(uint32_t rate)
+{
+	switch(rate)
+	{
+		case 22050:
+		case 32000:
+		case 44100:
+		case 48000: return true;
+	}
+	return false;
+}
+
+constexpr bool optionOrientationIsValid(uint8_t val)
+{
+	return val == IG::VIEW_ROTATE_AUTO ||
+		val == IG::VIEW_ROTATE_0 ||
+		val == IG::VIEW_ROTATE_90 ||
+		val == IG::VIEW_ROTATE_180 ||
+		val == IG::VIEW_ROTATE_270;
+}
+
 EmuApp::EmuApp(IG::ApplicationInitParams initParams, IG::ApplicationContext &ctx):
 	Application{initParams},
 	fontManager{ctx},
@@ -69,6 +94,7 @@ EmuApp::EmuApp(IG::ApplicationInitParams initParams, IG::ApplicationContext &ctx
 	pixmapReader{ctx},
 	pixmapWriter{ctx},
 	vibrationManager_{ctx},
+	optionSoundRate{CFGKEY_SOUND_RATE, 48000, false, isValidSoundRate},
 	optionFontSize{CFGKEY_FONT_Y_SIZE,
 		Config::MACHINE_IS_PANDORA ? 6500 :
 		(Config::envIsIOS || Config::envIsAndroid) ? 3000 :
@@ -79,7 +105,32 @@ EmuApp::EmuApp(IG::ApplicationInitParams initParams, IG::ApplicationContext &ctx
 	optionAutoSaveState{CFGKEY_AUTO_SAVE_STATE, 1},
 	optionConfirmAutoLoadState{CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1},
 	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
-	optionFastForwardSpeed{CFGKEY_FAST_FORWARD_SPEED, 4, false, optionIsValidWithMinMax<2, 7>}
+	optionFastForwardSpeed{CFGKEY_FAST_FORWARD_SPEED, 4, false, optionIsValidWithMinMax<2, 7>},
+	optionSound{CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS},
+	optionSoundVolume{CFGKEY_SOUND_VOLUME,
+		100, false, optionIsValidWithMinMax<0, 100, uint8_t>},
+	optionSoundBuffers{CFGKEY_SOUND_BUFFERS,
+		3, 0, optionIsValidWithMinMax<1, 7, uint8_t>},
+	optionAddSoundBuffersOnUnderrun{CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, 1, 0},
+	optionAudioAPI{CFGKEY_AUDIO_API, 0},
+	optionNotificationIcon{CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid},
+	optionTitleBar{CFGKEY_TITLE_BAR, 1, !CAN_HIDE_TITLE_BAR},
+	optionSystemActionsIsDefaultMenu{CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU, 1},
+	optionIdleDisplayPowerSave{CFGKEY_IDLE_DISPLAY_POWER_SAVE, 0},
+	optionLowProfileOSNav{CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAndroid},
+	optionHideOSNav{CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid},
+	optionHideStatusBar{CFGKEY_HIDE_STATUS_BAR, 1, !Config::envIsAndroid && !Config::envIsIOS},
+	optionNotifyInputDeviceChange{CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Config::Input::DEVICE_HOTSWAP, !Config::Input::DEVICE_HOTSWAP},
+	optionEmuOrientation{CFGKEY_GAME_ORIENTATION,
+		(Config::envIsAndroid || Config::envIsIOS) ? IG::VIEW_ROTATE_AUTO : IG::VIEW_ROTATE_0,
+		false, optionOrientationIsValid},
+	optionMenuOrientation{CFGKEY_MENU_ORIENTATION,
+		(Config::envIsAndroid || Config::envIsIOS) ? IG::VIEW_ROTATE_AUTO : IG::VIEW_ROTATE_0,
+		false, optionOrientationIsValid},
+	optionShowBundledGames{CFGKEY_SHOW_BUNDLED_GAMES, 1},
+	optionKeepBluetoothActive{CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0},
+	optionShowBluetoothScan{CFGKEY_SHOW_BLUETOOTH_SCAN, 1},
+	optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 0}
 {
 	EmuSystem::onInit(ctx);
 	mainInitCommon(initParams, ctx);
@@ -196,11 +247,11 @@ void EmuApp::exitGame(bool allowAutosaveState)
 void EmuApp::applyOSNavStyle(IG::ApplicationContext ctx, bool inGame)
 {
 	auto flags = IG::SYS_UI_STYLE_NO_FLAGS;
-	if(optionLowProfileOSNav > (inGame ? 0 : 1))
+	if((int)optionLowProfileOSNav > (inGame ? 0 : 1))
 		flags |= IG::SYS_UI_STYLE_DIM_NAV;
-	if(optionHideOSNav > (inGame ? 0 : 1))
+	if((int)optionHideOSNav > (inGame ? 0 : 1))
 		flags |= IG::SYS_UI_STYLE_HIDE_NAV;
-	if(optionHideStatusBar > (inGame ? 0 : 1))
+	if((int)optionHideStatusBar > (inGame ? 0 : 1))
 		flags |= IG::SYS_UI_STYLE_HIDE_STATUS;
 	ctx.setSysUIStyle(flags);
 }
@@ -338,6 +389,22 @@ static bool supportsVideoImageBuffersOption(const Gfx::Renderer &r)
 	return r.supportsSyncFences() && r.maxSwapChainImages() > 2;
 }
 
+static IG::Microseconds makeWantedAudioLatencyUSecs(uint8_t buffers)
+{
+	return buffers * std::chrono::duration_cast<IG::Microseconds>(EmuSystem::frameTime());
+}
+
+void EmuApp::prepareAudio()
+{
+	EmuSystem::onPrepareAudio(audio());
+	EmuSystem::configAudioPlayback(audio(), optionSoundRate);
+}
+
+void EmuApp::startAudio()
+{
+	audio().start(makeWantedAudioLatencyUSecs(optionSoundBuffers), makeWantedAudioLatencyUSecs(1));
+}
+
 EmuAudio &EmuApp::audio()
 {
 	return emuAudio;
@@ -465,7 +532,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			vController.configure(win, renderer, viewManager.defaultFace());
 			vController.setMenuImage(asset(EmuApp::AssetID::MENU));
 			vController.setFastForwardImage(asset(EmuApp::AssetID::FAST_FORWARD));
-			if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+			if constexpr(VCONTROLS_GAMEPAD)
 			{
 				vController.setImg(asset(AssetID::GAMEPAD_OVERLAY));
 			}
@@ -1189,17 +1256,71 @@ void EmuApp::addCurrentContentToRecent()
 	addRecentContent(EmuSystem::contentLocation(), EmuSystem::contentDisplayName());
 }
 
-void EmuApp::setSoundRate(uint32_t rate)
+void EmuApp::setSoundRate(unsigned rate)
 {
 	assert(rate <= optionSoundRate.defaultVal);
+	if(!rate)
+		rate = optionSoundRate.defaultVal;
 	optionSoundRate = rate;
 	EmuSystem::configAudioPlayback(audio(), rate);
 }
 
-void EmuApp::setSoundVolume(uint8_t vol)
+bool EmuApp::setSoundVolume(int vol)
 {
+	if(!optionSoundVolume.isValidVal(vol))
+		return false;
 	optionSoundVolume = vol;
 	audio().setVolume(vol);
+	return true;
+}
+
+void EmuApp::setSoundBuffers(int buffers)
+{
+	optionSoundBuffers = buffers;
+}
+
+bool EmuApp::soundIsEnabled() const
+{
+	return optionSound & OPTION_SOUND_ENABLED_FLAG;
+}
+
+void EmuApp::setSoundEnabled(bool on)
+{
+	optionSound = IG::setOrClearBits(optionSound.val, OPTION_SOUND_ENABLED_FLAG, on);
+	if(on)
+		audio().open(audioOutputAPI());
+	else
+		audio().close();
+}
+
+void EmuApp::setAddSoundBuffersOnUnderrun(bool on)
+{
+	optionAddSoundBuffersOnUnderrun = on;
+	audio().setAddSoundBuffersOnUnderrun(on);
+}
+
+bool EmuApp::soundDuringFastForwardIsEnabled() const
+{
+	return optionSound & OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG;
+}
+
+void EmuApp::setSoundDuringFastForwardEnabled(bool on)
+{
+	optionSound = IG::setOrClearBits(optionSound.val, OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG, on);
+}
+
+void EmuApp::setAudioOutputAPI(IG::Audio::Api api)
+{
+	optionAudioAPI = (uint8_t)api;
+	audio().open(api);
+}
+
+IG::Audio::Api EmuApp::audioOutputAPI() const
+{
+	if(IG::used(optionAudioAPI))
+		return (IG::Audio::Api)optionAudioAPI.val;
+	else
+		return IG::Audio::Api::DEFAULT;
 }
 
 bool EmuApp::setFontSize(int size)

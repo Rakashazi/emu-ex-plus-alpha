@@ -31,32 +31,27 @@ namespace EmuEx
 
 class CustomAudioOptionView : public AudioOptionView
 {
-	void setResampleQuality(AudioSettings::ResamplingQuality val)
+	TextMenuItem::SelectDelegate setResampleQualityDel()
 	{
-		logMsg("set resampling quality:%d", (int)val);
-		optionAudioResampleQuality = (uint8_t)val;
-		osystem->soundEmuEx().setResampleQuality(val);
+		return [](TextMenuItem &item)
+		{
+			logMsg("set resampling quality:%d", item.id());
+			optionAudioResampleQuality = item.id();
+			osystem->soundEmuEx().setResampleQuality((AudioSettings::ResamplingQuality)item.id());
+		};
 	}
 
 	TextMenuItem resampleQualityItem[3]
 	{
-		{"Low", &defaultFace(), [this](){ setResampleQuality(AudioSettings::ResamplingQuality::nearestNeightbour); }},
-		{"High", &defaultFace(), [this](){ setResampleQuality(AudioSettings::ResamplingQuality::lanczos_2); }},
-		{"Ultra", &defaultFace(), [this](){ setResampleQuality(AudioSettings::ResamplingQuality::lanczos_3); }},
+		{"Low",   &defaultFace(), setResampleQualityDel(), (int)AudioSettings::ResamplingQuality::nearestNeightbour},
+		{"High",  &defaultFace(), setResampleQualityDel(), (int)AudioSettings::ResamplingQuality::lanczos_2},
+		{"Ultra", &defaultFace(), setResampleQualityDel(), (int)AudioSettings::ResamplingQuality::lanczos_3},
 	};
 
 	MultiChoiceMenuItem resampleQuality
 	{
 		"Resampling Quality", &defaultFace(),
-		[]()
-		{
-			switch((AudioSettings::ResamplingQuality)optionAudioResampleQuality.val)
-			{
-				default: return 0;
-				case AudioSettings::ResamplingQuality::lanczos_2: return 1;
-				case AudioSettings::ResamplingQuality::lanczos_3: return 2;
-			}
-		}(),
+		(MenuItem::Id)optionAudioResampleQuality.val,
 		resampleQualityItem
 	};
 
@@ -72,32 +67,26 @@ class CustomVideoOptionView : public VideoOptionView
 {
 	TextMenuItem tvPhosphorBlendItem[4]
 	{
-		{"70%", &defaultFace(), []() { setTVPhosphorBlend(70); }},
-		{"80%", &defaultFace(), []() { setTVPhosphorBlend(80); }},
-		{"90%", &defaultFace(), []() { setTVPhosphorBlend(90); }},
-		{"100%", &defaultFace(), []() { setTVPhosphorBlend(100); }},
+		{"70%",  &defaultFace(), setTVPhosphorBlendDel(), 70},
+		{"80%",  &defaultFace(), setTVPhosphorBlendDel(), 80},
+		{"90%",  &defaultFace(), setTVPhosphorBlendDel(), 90},
+		{"100%", &defaultFace(), setTVPhosphorBlendDel(), 100},
 	};
 
 	MultiChoiceMenuItem tvPhosphorBlend
 	{
 		"TV Phosphor Blending", &defaultFace(),
-		[]()
-		{
-			switch(optionTVPhosphorBlend)
-			{
-				case 70: return 0;
-				default: return 1;
-				case 90: return 2;
-				case 100: return 3;
-			}
-		}(),
+		(MenuItem::Id)optionTVPhosphorBlend.val,
 		tvPhosphorBlendItem
 	};
 
-	static void setTVPhosphorBlend(uint val)
+	TextMenuItem::SelectDelegate setTVPhosphorBlendDel()
 	{
-		optionTVPhosphorBlend = val;
-		setRuntimeTVPhosphor(optionTVPhosphor, val);
+		return [](TextMenuItem &item)
+		{
+			optionTVPhosphorBlend = item.id();
+			setRuntimeTVPhosphor(optionTVPhosphor, item.id());
+		};
 	}
 
 public:
@@ -113,9 +102,9 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 {
 	TextMenuItem tvPhosphorItem[3]
 	{
-		{"Off", &defaultFace(), []() { setTVPhosphor(0); }},
-		{"On", &defaultFace(), []() { setTVPhosphor(1); }},
-		{"Auto", &defaultFace(), []() { setTVPhosphor(TV_PHOSPHOR_AUTO); }},
+		{"Off",  &defaultFace(), setTVPhosphorDel(), 0},
+		{"On",   &defaultFace(), setTVPhosphorDel(), 1},
+		{"Auto", &defaultFace(), setTVPhosphorDel(), TV_PHOSPHOR_AUTO},
 	};
 
 	MultiChoiceMenuItem tvPhosphor
@@ -132,19 +121,19 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 			else
 				return false;
 		},
-		optionTVPhosphor,
+		(MenuItem::Id)optionTVPhosphor.val,
 		tvPhosphorItem
 	};
 
 	TextMenuItem videoSystemItem[7]
 	{
-		{"Auto",     &defaultFace(), setVideoSystemDel(0)},
-		{"NTSC",     &defaultFace(), setVideoSystemDel(1)},
-		{"PAL",      &defaultFace(), setVideoSystemDel(2)},
-		{"SECAM",    &defaultFace(), setVideoSystemDel(3)},
-		{"NTSC 50",  &defaultFace(), setVideoSystemDel(4)},
-		{"PAL 60",   &defaultFace(), setVideoSystemDel(5)},
-		{"SECAM 60", &defaultFace(), setVideoSystemDel(6)},
+		{"Auto",     &defaultFace(), setVideoSystemDel(), 0},
+		{"NTSC",     &defaultFace(), setVideoSystemDel(), 1},
+		{"PAL",      &defaultFace(), setVideoSystemDel(), 2},
+		{"SECAM",    &defaultFace(), setVideoSystemDel(), 3},
+		{"NTSC 50",  &defaultFace(), setVideoSystemDel(), 4},
+		{"PAL 60",   &defaultFace(), setVideoSystemDel(), 5},
+		{"SECAM 60", &defaultFace(), setVideoSystemDel(), 6},
 	};
 
 	MultiChoiceMenuItem videoSystem
@@ -160,33 +149,36 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 			else
 				return false;
 		},
-		optionVideoSystem,
+		(MenuItem::Id)optionVideoSystem.val,
 		videoSystemItem
 	};
 
-	static void setTVPhosphor(uint val)
+	TextMenuItem::SelectDelegate setTVPhosphorDel()
 	{
-		EmuSystem::sessionOptionSet();
-		optionTVPhosphor = val;
-		setRuntimeTVPhosphor(val, optionTVPhosphorBlend);
-	}
-
-	TextMenuItem::SelectDelegate setVideoSystemDel(int val)
-	{
-		return [this, val](const Input::Event &e)
+		return [](TextMenuItem &item)
 		{
 			EmuSystem::sessionOptionSet();
-			optionVideoSystem = val;
+			optionTVPhosphor = item.id();
+			setRuntimeTVPhosphor(item.id(), optionTVPhosphorBlend);
+		};
+	}
+
+	TextMenuItem::SelectDelegate setVideoSystemDel()
+	{
+		return [this](TextMenuItem &item, const Input::Event &e)
+		{
+			EmuSystem::sessionOptionSet();
+			optionVideoSystem = item.id();
 			app().promptSystemReloadDueToSetOption(attachParams(), e);
 		};
 	}
 
 	TextMenuItem inputPortsItem[4]
 	{
-		{"Auto", &defaultFace(), [this](){ setInputPorts(Controller::Type::Unknown); }},
-		{"Joystick", &defaultFace(), [this](){ setInputPorts(Controller::Type::Joystick); }},
-		{"Genesis Gamepad", &defaultFace(), [this](){ setInputPorts(Controller::Type::Genesis); }},
-		{"Paddles", &defaultFace(), [this](){ setInputPorts(Controller::Type::Paddles); }},
+		{"Auto",            &defaultFace(), setInputPortsDel(), (int)Controller::Type::Unknown},
+		{"Joystick",        &defaultFace(), setInputPortsDel(), (int)Controller::Type::Joystick},
+		{"Genesis Gamepad", &defaultFace(), setInputPortsDel(), (int)Controller::Type::Genesis},
+		{"Paddles",         &defaultFace(), setInputPortsDel(), (int)Controller::Type::Paddles},
 	};
 
 	MultiChoiceMenuItem inputPorts
@@ -202,57 +194,50 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 			else
 				return false;
 		},
-		[]()
-		{
-			if((Controller::Type)optionInputPort1.val == Controller::Type::Joystick)
-				return 1;
-			else if((Controller::Type)optionInputPort1.val == Controller::Type::Genesis)
-				return 2;
-			else if((Controller::Type)optionInputPort1.val == Controller::Type::Paddles)
-				return 3;
-			else
-				return 0;
-		}(),
+		(MenuItem::Id)optionInputPort1.val,
 		inputPortsItem
 	};
 
-	void setInputPorts(Controller::Type type)
+	TextMenuItem::SelectDelegate setInputPortsDel()
 	{
-		EmuSystem::sessionOptionSet();
-		optionInputPort1 = (uint8_t)type;
-		if(osystem->hasConsole())
+		return [this](TextMenuItem &item)
 		{
-			setControllerType(app(), osystem->console(), type);
-		}
+			EmuSystem::sessionOptionSet();
+			optionInputPort1 = item.id();
+			if(osystem->hasConsole())
+			{
+				setControllerType(app(), osystem->console(), (Controller::Type)item.id());
+			}
+		};
 	}
 
 	TextMenuItem aPaddleRegionItem[4]
 	{
-		{"Off", &defaultFace(), [this]() { setAPaddleRegion(PaddleRegionMode::OFF); }},
-		{"Left Half", &defaultFace(), [this]() { setAPaddleRegion(PaddleRegionMode::LEFT); }},
-		{"Right Half", &defaultFace(), [this]() { setAPaddleRegion(PaddleRegionMode::RIGHT); }},
-		{"Full", &defaultFace(), [this]() { setAPaddleRegion(PaddleRegionMode::FULL); }},
+		{"Off",        &defaultFace(), setAPaddleRegionDel(), (int)PaddleRegionMode::OFF},
+		{"Left Half",  &defaultFace(), setAPaddleRegionDel(), (int)PaddleRegionMode::LEFT},
+		{"Right Half", &defaultFace(), setAPaddleRegionDel(), (int)PaddleRegionMode::RIGHT},
+		{"Full",       &defaultFace(), setAPaddleRegionDel(), (int)PaddleRegionMode::FULL},
 	};
 
 	MultiChoiceMenuItem aPaddleRegion
 	{
 		"Analog Paddle Region", &defaultFace(),
-		[]()
-		{
-			return std::min((int)optionPaddleAnalogRegion, 3);
-		}(),
+		(MenuItem::Id)optionPaddleAnalogRegion.val,
 		aPaddleRegionItem
 	};
 
-	void setAPaddleRegion(PaddleRegionMode val)
+	TextMenuItem::SelectDelegate setAPaddleRegionDel()
 	{
-		EmuSystem::sessionOptionSet();
-		updatePaddlesRegionMode(app(), val);
+		return [this](TextMenuItem &item)
+		{
+			EmuSystem::sessionOptionSet();
+			updatePaddlesRegionMode(app(), (PaddleRegionMode)item.id());
+		};
 	}
 
 	TextMenuItem dPaddleSensitivityItem[2]
 	{
-		{"Default", &defaultFace(), [this]() { setDPaddleSensitivity(1); }},
+		{"Default", &defaultFace(), [this]() { setDPaddleSensitivity(1); }, 1},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
@@ -285,14 +270,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 			t.setString(fmt::format("{}", optionPaddleDigitalSensitivity.val));
 			return true;
 		},
-		[]()
-		{
-			switch(optionPaddleDigitalSensitivity)
-			{
-				case 1: return 0;
-				default: return 1;
-			}
-		}(),
+		(MenuItem::Id)optionPaddleDigitalSensitivity.val,
 		dPaddleSensitivityItem
 	};
 

@@ -35,28 +35,30 @@
 #endif
 
 
-namespace Config::EmuFramework
+namespace EmuEx
 {
 
 #if defined __ANDROID__ || \
 	defined CONFIG_BASE_IOS || \
 	(defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA)
 #define CONFIG_VCONTROLS_GAMEPAD
-static constexpr bool VCONTROLS_GAMEPAD = true;
+constexpr bool VCONTROLS_GAMEPAD = true;
 #else
-static constexpr bool VCONTROLS_GAMEPAD = false;
+constexpr bool VCONTROLS_GAMEPAD = false;
 #endif
 
 #if defined CONFIG_BASE_X11 || defined __ANDROID__ || defined CONFIG_BASE_IOS
 #define EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 #endif
-static constexpr bool HAS_MULTIPLE_WINDOW_PIXEL_FORMATS = Config::envIsLinux || Config::envIsAndroid || Config::envIsIOS;
+constexpr bool HAS_MULTIPLE_WINDOW_PIXEL_FORMATS = Config::envIsLinux || Config::envIsAndroid || Config::envIsIOS;
 
 #ifdef __ANDROID__
 #define CONFIG_INPUT_ANDROID_MOGA
-static constexpr bool MOGA_INPUT = false;
+constexpr bool MOGA_INPUT = false;
 #else
-static constexpr bool MOGA_INPUT = false;
+constexpr bool MOGA_INPUT = false;
 #endif
+
+constexpr bool CAN_HIDE_TITLE_BAR = !Config::envIsIOS;
 
 }

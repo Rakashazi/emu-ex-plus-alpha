@@ -38,7 +38,7 @@ class CustomAudioOptionView : public AudioOptionView
 	MultiChoiceMenuItem dspInterpolation
 	{
 		"DSP Interpolation", &defaultFace(),
-		optionAudioDSPInterpolation,
+		optionAudioDSPInterpolation.val,
 		dspInterpolationItem
 	};
 
@@ -68,38 +68,29 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	TextMenuItem inputPortsItem[HAS_NSRT ? 4 : 3]
 	{
 		#ifndef SNES9X_VERSION_1_4
-		{"Auto (NSRT)", &defaultFace(), [this]() { setInputPorts(SNES_AUTO_INPUT, app().defaultVController()); }},
+		{"Auto (NSRT)", &defaultFace(), setInputPortsDel(), SNES_AUTO_INPUT},
 		#endif
-		{"Gamepads", &defaultFace(), [this]() { setInputPorts(SNES_JOYPAD, app().defaultVController()); }},
-		{"Superscope", &defaultFace(), [this]() { setInputPorts(SNES_SUPERSCOPE, app().defaultVController()); }},
-		{"Mouse", &defaultFace(), [this]() { setInputPorts(SNES_MOUSE_SWAPPED, app().defaultVController()); }},
+		{"Gamepads",    &defaultFace(), setInputPortsDel(), SNES_JOYPAD},
+		{"Superscope",  &defaultFace(), setInputPortsDel(), SNES_SUPERSCOPE},
+		{"Mouse",       &defaultFace(), setInputPortsDel(), SNES_MOUSE_SWAPPED},
 	};
 
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports", &defaultFace(),
-		[]()
-		{
-			constexpr int SNES_JOYPAD_MENU_IDX = HAS_NSRT ? 1 : 0;
-			constexpr int SNES_SUPERSCOPE_MENU_IDX = HAS_NSRT ? 2 : 1;
-			constexpr int SNES_MOUSE_MENU_IDX = HAS_NSRT ? 3 : 2;
-			if(snesInputPort == SNES_JOYPAD)
-				return SNES_JOYPAD_MENU_IDX;
-			else if(snesInputPort == SNES_SUPERSCOPE)
-				return SNES_SUPERSCOPE_MENU_IDX;
-			else if(snesInputPort == SNES_MOUSE_SWAPPED)
-				return SNES_MOUSE_MENU_IDX;
-			return 0;
-		}(),
+		(MenuItem::Id)snesInputPort,
 		inputPortsItem
 	};
 
-	static void setInputPorts(int val, VController &vCtrl)
+	TextMenuItem::SelectDelegate setInputPortsDel()
 	{
-		EmuSystem::sessionOptionSet();
-		optionInputPort = val;
-		snesInputPort = val;
-		setupSNESInput(vCtrl);
+		return [this](TextMenuItem &item)
+		{
+			EmuSystem::sessionOptionSet();
+			optionInputPort = item.id();
+			snesInputPort = item.id();
+			setupSNESInput(app().defaultVController());
+		};
 	}
 
 	TextMenuItem videoSystemItem[4]
@@ -113,7 +104,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	MultiChoiceMenuItem videoSystem
 	{
 		"System", &defaultFace(),
-		optionVideoSystem,
+		optionVideoSystem.val,
 		videoSystemItem
 	};
 

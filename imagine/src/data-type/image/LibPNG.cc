@@ -444,7 +444,7 @@ bool PixmapWriter::writeToFile(IG::Pixmap pix, const char *path) const
 		IG::MemPixmap tempMemPix{{pix.size(), IG::PIXEL_FMT_RGB888}};
 		auto tempPix = tempMemPix.view();
 		tempPix.writeConverted(pix);
-		uint32_t rowBytes = png_get_rowbytes(pngPtr, infoPtr);
+		int rowBytes = png_get_rowbytes(pngPtr, infoPtr);
 		assert(rowBytes == tempPix.pitchBytes());
 		auto rowData = (png_const_bytep)tempPix.data();
 		iterateTimes(tempPix.h(), i)

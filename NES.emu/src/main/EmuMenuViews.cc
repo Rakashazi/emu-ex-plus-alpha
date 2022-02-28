@@ -46,39 +46,43 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		}
 	};
 
+	static uint16_t packInputEnums(ESI port1, ESI port2)
+	{
+		return (uint16_t)port1 | ((uint16_t)port2 << 8);
+	}
+
+	static std::pair<ESI, ESI> unpackInputEnums(uint16_t packed)
+	{
+		return {ESI(packed & 0xFF), ESI(packed >> 8)};
+	}
+
 	TextMenuItem inputPortsItem[4]
 	{
-		{"Auto", &defaultFace(), [](){ setInputPorts(SI_UNSET, SI_UNSET); }},
-		{"Gamepads", &defaultFace(), [](){ setInputPorts(SI_GAMEPAD, SI_GAMEPAD); }},
-		{"Gun (2P, NES)", &defaultFace(), [](){ setInputPorts(SI_GAMEPAD, SI_ZAPPER); }},
-		{"Gun (1P, VS)", &defaultFace(), [](){ setInputPorts(SI_ZAPPER, SI_GAMEPAD); }},
+		{"Auto",          &defaultFace(), setInputPortsDel(), packInputEnums(SI_UNSET, SI_UNSET)},
+		{"Gamepads",      &defaultFace(), setInputPortsDel(), packInputEnums(SI_GAMEPAD, SI_GAMEPAD)},
+		{"Gun (2P, NES)", &defaultFace(), setInputPortsDel(), packInputEnums(SI_GAMEPAD, SI_ZAPPER)},
+		{"Gun (1P, VS)",  &defaultFace(), setInputPortsDel(), packInputEnums(SI_ZAPPER, SI_GAMEPAD)},
 	};
 
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports", &defaultFace(),
-		[]()
-		{
-			if(nesInputPortDev[0] == SI_GAMEPAD && nesInputPortDev[1] == SI_GAMEPAD)
-				return 1;
-			else if(nesInputPortDev[0] == SI_GAMEPAD && nesInputPortDev[1] == SI_ZAPPER)
-				return 2;
-			else if(nesInputPortDev[0] == SI_ZAPPER && nesInputPortDev[1] == SI_GAMEPAD)
-				return 3;
-			else
-				return 0;
-		}(),
+		(MenuItem::Id)packInputEnums(nesInputPortDev[0], nesInputPortDev[1]),
 		inputPortsItem
 	};
 
-	static void setInputPorts(ESI port1, ESI port2)
+	TextMenuItem::SelectDelegate setInputPortsDel()
 	{
-		EmuSystem::sessionOptionSet();
-		optionInputPort1 = (int)port1;
-		optionInputPort2 = (int)port2;
-		nesInputPortDev[0] = port1;
-		nesInputPortDev[1] = port2;
-		setupNESInputPorts();
+		return [](TextMenuItem &item)
+		{
+			EmuSystem::sessionOptionSet();
+			auto [port1, port2] = unpackInputEnums(item.id());
+			optionInputPort1 = (int)port1;
+			optionInputPort2 = (int)port2;
+			nesInputPortDev[0] = port1;
+			nesInputPortDev[1] = port2;
+			setupNESInputPorts();
+		};
 	}
 
 	TextMenuItem videoSystemItem[4]
@@ -101,7 +105,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 			}
 			return false;
 		},
-		optionVideoSystem,
+		optionVideoSystem.val,
 		videoSystemItem
 	};
 
@@ -237,7 +241,7 @@ class CustomVideoOptionView : public VideoOptionView
 	MultiChoiceMenuItem videoSystem
 	{
 		"Default Video System", &defaultFace(),
-		optionDefaultVideoSystem,
+		optionDefaultVideoSystem.val,
 		videoSystemItem
 	};
 
@@ -345,7 +349,7 @@ class CustomAudioOptionView : public AudioOptionView
 	MultiChoiceMenuItem quality
 	{
 		"Emulation Quality", &defaultFace(),
-		optionSoundQuality,
+		optionSoundQuality.val,
 		qualityItem
 	};
 

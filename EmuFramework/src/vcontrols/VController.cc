@@ -86,7 +86,7 @@ bool VController::hasTriggers() const
 
 void VController::setImg(Gfx::Texture &pics)
 {
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		gp.setImg(renderer(), pics);
 	}
@@ -106,7 +106,7 @@ void VController::setButtonSize(unsigned gamepadBtnSizeInPixels, unsigned uiBtnS
 {
 	if(EmuSystem::inputHasKeyboard)
 		kb.place(projP.unprojectYSize(gamepadBtnSizeInPixels), projP.unprojectYSize(gamepadBtnSizeInPixels * .75), projP);
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		IG::WP size{(int)gamepadBtnSizeInPixels, (int)gamepadBtnSizeInPixels};
 		IG::WP extraFaceBtnSize
@@ -172,7 +172,7 @@ void VController::place()
 {
 	auto &winData = windowData();
 	auto &win = window();
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		auto &gp = gamePad();
 		gp.setSpacingPixels(IG::makeEvenRoundedUp(xMMSizeToPixel(win, buttonSpacing() / 100.)));
@@ -200,7 +200,7 @@ void VController::toggleKeyboard()
 
 std::array<int, 2> VController::findGamepadElements(IG::WP pos)
 {
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		if(gamepadButtonsAreEnabled())
 		{
@@ -369,7 +369,7 @@ void VController::draw(Gfx::RendererCommands &cmds, bool activeFF, bool showHidd
 
 int VController::numElements() const
 {
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		return (EmuSystem::inputHasTriggers() && !gp.triggersInline()) ? 7 : 5;
 	}
@@ -381,7 +381,7 @@ int VController::numElements() const
 
 IG::WindowRect VController::bounds(int elemIdx) const
 {
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		switch(elemIdx)
 		{
@@ -411,7 +411,7 @@ IG::WindowRect VController::bounds(int elemIdx) const
 
 void VController::setPos(int elemIdx, IG::WP pos)
 {
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		switch(elemIdx)
 		{
@@ -441,7 +441,7 @@ void VController::setPos(int elemIdx, IG::WP pos)
 
 void VController::setState(int elemIdx, VControllerState state)
 {
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		switch(elemIdx)
 		{
@@ -471,7 +471,7 @@ void VController::setState(int elemIdx, VControllerState state)
 
 VControllerState VController::state(int elemIdx) const
 {
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		switch(elemIdx)
 		{
@@ -869,7 +869,7 @@ bool VController::readConfig(IO &io, unsigned key, unsigned size)
 
 void VController::writeConfig(IO &io) const
 {
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		if(buttonAlpha() != DEFAULT_ALPHA)
 			writeOptionValue(io, CFGKEY_TOUCH_CONTROL_ALPHA, buttonAlpha());
@@ -957,7 +957,7 @@ void VController::configure(IG::Window &win, Gfx::Renderer &renderer, const Gfx:
 	setFace(face);
 	auto &app = this->app();
 	auto &winData = windowData();
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		auto &gp = gamePad();
 		gp.dPad().setDeadzone(renderer, xMMSizeToPixel(win, dpadDeadzone() / 100.), winData.projection.plane());
@@ -978,13 +978,13 @@ void VController::resetPositions()
 		? VControllerState::SHOWN : VControllerState::OFF;
 	auto initMenuState = (Config::envIsAndroid && ctx.hasHardwareNavButtons())
 		? VControllerState::HIDDEN : VControllerState::SHOWN;
-	auto initGamepadState = Config::EmuFramework::VCONTROLS_GAMEPAD && (Config::envIsAndroid || Config::envIsIOS || gamepadControlsVisibility() == VControllerVisibility::ON) ? VControllerState::SHOWN : VControllerState::OFF;
+	auto initGamepadState = VCONTROLS_GAMEPAD && (Config::envIsAndroid || Config::envIsIOS || gamepadControlsVisibility() == VControllerVisibility::ON) ? VControllerState::SHOWN : VControllerState::OFF;
 	bool isLandscape = true;
 	for(auto &e : layoutPosition())
 	{
 		auto defaultSidePadding = xMMSizeToPixel(win, 4.);
 		int xOffset = isLandscape ? xMMSizeToPixel(win, 2.) : xMMSizeToPixel(win, .5);
-		if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+		if constexpr(VCONTROLS_GAMEPAD)
 		{
 			e[VCTRL_LAYOUT_DPAD_IDX] = {LB2DO, {xOffset + bounds(0).xSize()/2, (int)(-buttonPixelSize(win)) - bounds(0).ySize()/2}, initGamepadState};
 			e[VCTRL_LAYOUT_CENTER_BTN_IDX] = {CB2DO, {0, 0}, initGamepadState};
@@ -992,7 +992,7 @@ void VController::resetPositions()
 		}
 		e[VCTRL_LAYOUT_MENU_IDX] = {RT2DO, {-defaultSidePadding, 0}, initMenuState};
 		e[VCTRL_LAYOUT_FF_IDX] = {LT2DO, {defaultSidePadding, 0}, initFastForwardState};
-		if(Config::EmuFramework::VCONTROLS_GAMEPAD && EmuSystem::inputHasTriggers())
+		if(VCONTROLS_GAMEPAD && EmuSystem::inputHasTriggers())
 		{
 			int y = std::min(e[0].pos.y - bounds(0).ySize()/2, e[2].pos.y - bounds(2).ySize()/2);
 			y -= bounds(5).ySize()/2 + yMMSizeToPixel(win, 1.);

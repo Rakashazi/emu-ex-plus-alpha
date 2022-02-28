@@ -22,59 +22,39 @@
 namespace EmuEx
 {
 
-TextMenuItem::SelectDelegate AudioOptionView::setRateDel(uint32_t val)
-{
-	return [this, val]() { app().setSoundRate(val); };
-}
-
-TextMenuItem::SelectDelegate AudioOptionView::setBuffersDel(int val)
-{
-	return [val]() { optionSoundBuffers = val; };
-}
-
-TextMenuItem::SelectDelegate AudioOptionView::setVolumeDel(uint8_t val)
-{
-	return [this, val]() { app().setSoundVolume(val); };
-}
-
 AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"Audio Options", attach, item},
 	snd
 	{
 		"Sound", &defaultFace(),
-		(bool)soundIsEnabled(),
+		app().soundIsEnabled(),
 		[this](BoolMenuItem &item)
 		{
-			setSoundEnabled(item.flipBoolValue(*this));
-			if(item.boolValue())
-				audio->open(audioOutputAPI());
-			else
-				audio->close();
+			app().setSoundEnabled(item.flipBoolValue(*this));
 		}
 	},
 	soundDuringFastForward
 	{
 		"Sound During Fast Forward", &defaultFace(),
-		(bool)soundDuringFastForwardIsEnabled(),
+		app().soundDuringFastForwardIsEnabled(),
 		[this](BoolMenuItem &item)
 		{
-			setSoundDuringFastForwardEnabled(item.flipBoolValue(*this));
+			app().setSoundDuringFastForwardEnabled(item.flipBoolValue(*this));
 		}
 	},
 	soundVolumeItem
 	{
-		{"100%", &defaultFace(), setVolumeDel(100)},
-		{"50%",  &defaultFace(), setVolumeDel(50)},
-		{"25%",  &defaultFace(), setVolumeDel(25)},
+		{"100%", &defaultFace(), setVolumeDel(), 100},
+		{"50%",  &defaultFace(), setVolumeDel(), 50},
+		{"25%",  &defaultFace(), setVolumeDel(), 25},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(optionSoundVolume.isValidVal(val))
+						if(app.setSoundVolume(val))
 						{
-							app.setSoundVolume(val);
 							soundVolume.setSelected(std::size(soundVolumeItem) - 1, *this);
 							dismissPrevious();
 							return true;
@@ -92,47 +72,37 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	soundVolume
 	{
 		"Volume", &defaultFace(),
-		[this](uint32_t idx, Gfx::Text &t)
+		[this](size_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", optionSoundVolume.val));
+			t.setString(fmt::format("{}%", app().soundVolume()));
 			return true;
 		},
-		[]()
-		{
-			switch(optionSoundVolume.val)
-			{
-				case 100: return 0;
-				case 50: return 1;
-				case 25: return 2;
-				default: return 3;
-			}
-		}(),
+		(MenuItem::Id)app().soundVolume(),
 		soundVolumeItem
 	},
 	soundBuffersItem
 	{
-		{"1", &defaultFace(), setBuffersDel(1)},
-		{"2", &defaultFace(), setBuffersDel(2)},
-		{"3", &defaultFace(), setBuffersDel(3)},
-		{"4", &defaultFace(), setBuffersDel(4)},
-		{"5", &defaultFace(), setBuffersDel(5)},
-		{"6", &defaultFace(), setBuffersDel(6)},
-		{"7", &defaultFace(), setBuffersDel(7)},
+		{"1", &defaultFace(), setBuffersDel(), 1},
+		{"2", &defaultFace(), setBuffersDel(), 2},
+		{"3", &defaultFace(), setBuffersDel(), 3},
+		{"4", &defaultFace(), setBuffersDel(), 4},
+		{"5", &defaultFace(), setBuffersDel(), 5},
+		{"6", &defaultFace(), setBuffersDel(), 6},
+		{"7", &defaultFace(), setBuffersDel(), 7},
 	},
 	soundBuffers
 	{
 		"Buffer Size In Frames", &defaultFace(),
-		(int)optionSoundBuffers - 1,
+		(MenuItem::Id)app().soundBuffers(),
 		soundBuffersItem
 	},
 	addSoundBuffersOnUnderrun
 	{
 		"Auto-increase Buffer Size", &defaultFace(),
-		(bool)optionAddSoundBuffersOnUnderrun,
+		app().addSoundBuffersOnUnderrun(),
 		[this](BoolMenuItem &item)
 		{
-			optionAddSoundBuffersOnUnderrun = item.flipBoolValue(*this);
-			audio->setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
+			app().setAddSoundBuffersOnUnderrun(item.flipBoolValue(*this));
 		}
 	},
 	audioRate
@@ -149,43 +119,39 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			app().audioManager().setSoloMix(!item.flipBoolValue(*this));
 		}
-	}
-	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-	,api
+	},
+	api
 	{
 		"Audio Driver", &defaultFace(),
 		0,
 		apiItem
 	}
-	#endif
 {
-	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-	apiItem.emplace_back("Auto", &defaultFace(),
-		[this](View &view)
+	if(IG::used(apiItem))
+	{
+		apiItem.emplace_back("Auto", &defaultFace(),
+			[this](View &view)
+			{
+				app().setAudioOutputAPI(Audio::Api::DEFAULT);
+				auto &audioManager = app().audioManager();
+				api.setSelected((MenuItem::Id)audioManager.makeValidAPI());
+				view.dismiss();
+				return false;
+			});
 		{
 			auto &audioManager = app().audioManager();
-			optionAudioAPI = 0;
-			auto defaultApi = audioManager.makeValidAPI();
-			audio->open(defaultApi);
-			api.setSelected(IG::findIndex(audioManager.audioAPIs(), defaultApi) + 1);
-			view.dismiss();
-			return false;
-		});
-	{
-		auto &audioManager = app().audioManager();
-		auto descs = audioManager.audioAPIs();
-		for(auto desc: descs)
-		{
-			apiItem.emplace_back(desc.name, &defaultFace(),
-				[this, api = desc.api]()
-				{
-					optionAudioAPI = (uint8_t)api;
-					audio->open(api);
-				});
+			auto descs = audioManager.audioAPIs();
+			for(auto desc: descs)
+			{
+				apiItem.emplace_back(desc.name, &defaultFace(),
+					[this](TextMenuItem &item)
+					{
+						app().setAudioOutputAPI((Audio::Api)item.id());
+					}, (MenuItem::Id)desc.api);
+			}
+			api.setSelected((MenuItem::Id)audioManager.makeValidAPI(app().audioOutputAPI()));
 		}
-		api.setSelected(IG::findIndex(descs, audioManager.makeValidAPI(audioOutputAPI())) + 1);
 	}
-	#endif
 	if(!customMenu)
 	{
 		loadStockItems();
@@ -197,24 +163,24 @@ void AudioOptionView::loadStockItems()
 	item.emplace_back(&snd);
 	item.emplace_back(&soundDuringFastForward);
 	item.emplace_back(&soundVolume);
-	if(!optionSoundRate.isConst)
+	if(app().canChangeSoundRate())
 	{
 		audioRateItem.clear();
 		audioRateItem.emplace_back("Device Native", &defaultFace(),
 			[this](View &view)
 			{
-				app().setSoundRate(optionSoundRate.defaultVal);
-				updateRateItem();
+				app().setSoundRate(0);
+				audioRate.setSelected((MenuItem::Id)app().soundRate());
 				view.dismiss();
 				return false;
 			});
-		audioRateItem.emplace_back("22KHz", &defaultFace(), setRateDel(22050));
-		audioRateItem.emplace_back("32KHz", &defaultFace(), setRateDel(32000));
-		audioRateItem.emplace_back("44KHz", &defaultFace(), setRateDel(44100));
-		if(optionSoundRate.defaultVal >= 48000)
-			audioRateItem.emplace_back("48KHz", &defaultFace(), setRateDel(48000));
+		audioRateItem.emplace_back("22KHz", &defaultFace(), setRateDel(), 22050);
+		audioRateItem.emplace_back("32KHz", &defaultFace(), setRateDel(), 32000);
+		audioRateItem.emplace_back("44KHz", &defaultFace(), setRateDel(), 44100);
+		if(app().soundRateMax() >= 48000)
+			audioRateItem.emplace_back("48KHz", &defaultFace(), setRateDel(), 48000);
 		item.emplace_back(&audioRate);
-		updateRateItem();
+		audioRate.setSelected((MenuItem::Id)app().soundRate());
 	}
 	item.emplace_back(&soundBuffers);
 	item.emplace_back(&addSoundBuffersOnUnderrun);
@@ -222,28 +188,25 @@ void AudioOptionView::loadStockItems()
 	{
 		item.emplace_back(&audioSoloMix);
 	}
-	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 	if(apiItem.size() > 2)
 	{
 		item.emplace_back(&api);
 	}
-	#endif
 }
 
-void AudioOptionView::setEmuAudio(EmuAudio &audio_)
+TextMenuItem::SelectDelegate AudioOptionView::setRateDel()
 {
-	audio = &audio_;
+	return [this](TextMenuItem &item) { app().setSoundRate(item.id()); };
 }
 
-void AudioOptionView::updateRateItem()
+TextMenuItem::SelectDelegate AudioOptionView::setBuffersDel()
 {
-	switch(optionSoundRate)
-	{
-		bcase 22050: audioRate.setSelected(1);
-		bcase 32000: audioRate.setSelected(2);
-		bdefault: audioRate.setSelected(3); // 44100
-		bcase 48000: audioRate.setSelected(4);
-	}
+	return [this](TextMenuItem &item) { app().setSoundBuffers(item.id()); };
+}
+
+TextMenuItem::SelectDelegate AudioOptionView::setVolumeDel()
+{
+	return [this](TextMenuItem &item) { app().setSoundVolume(item.id()); };
 }
 
 }

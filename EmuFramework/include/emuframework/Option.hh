@@ -18,6 +18,7 @@
 #include <imagine/io/IO.hh>
 #include <imagine/util/concepts.hh>
 #include <imagine/util/optional.hh>
+#include <imagine/util/typeTraits.hh>
 #include <imagine/logger/logger.h>
 #include <array>
 #include <cstring>
@@ -235,6 +236,8 @@ inline void writeOptionValue(IO &io, const Option<T> &opt)
 	io.write((uint16_t)opt.ioSize());
 	opt.writeToIO(io);
 }
+
+inline void writeOptionValue(IO &io, Unused auto &opt) {}
 
 template<int MAX, class T>
 constexpr bool optionIsValidWithMax(T val)

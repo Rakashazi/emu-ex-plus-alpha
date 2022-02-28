@@ -33,7 +33,7 @@ class CustomAudioOptionView : public AudioOptionView
 	MultiChoiceMenuItem resampler
 	{
 		"Resampler", &defaultFace(),
-		optionAudioResampler,
+		optionAudioResampler.val,
 		resamplerItem
 	};
 
@@ -80,7 +80,7 @@ class CustomVideoOptionView : public VideoOptionView
 	MultiChoiceMenuItem gbPalette
 	{
 		"GB Palette", &defaultFace(),
-		optionGBPal,
+		optionGBPal.val,
 		gbPaletteItem
 	};
 

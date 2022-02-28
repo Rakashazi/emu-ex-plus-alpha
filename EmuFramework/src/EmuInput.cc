@@ -96,30 +96,6 @@ void TurboInput::update(EmuApp *app)
 	if(clock == turboFrames) clock = 0;
 }
 
-void commonUpdateInput()
-{
-#if 0
-	auto applyRelPointerDecel =
-		[](int val)
-		{
-			return std::max(std::abs(val) - (int)optionRelPointerDecel, 0) * IG::sign(val);
-		};
-
-	if(relPtr.x)
-	{
-		relPtr.x = applyRelPointerDecel(relPtr.x);
-		if(!relPtr.x)
-			EmuSystem::handleInputAction(Input::RELEASED, relPtr.xAction);
-	}
-	if(relPtr.y)
-	{
-		relPtr.y = applyRelPointerDecel(relPtr.y);
-		if(!relPtr.y)
-			EmuSystem::handleInputAction(Input::RELEASED, relPtr.yAction);
-	}
-#endif
-}
-
 void EmuApp::updateInputDevices(IG::ApplicationContext ctx)
 {
 	for(auto &devPtr : ctx.inputDevices())
@@ -517,7 +493,7 @@ void genericMultiplayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsi
 
 void EmuApp::applyEnabledFaceButtons(std::span<const std::pair<int, bool>> applyEnableMap)
 {
-	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		auto &vController = defaultVController();
 		auto &btnGroup = vController.gamePad().faceButtons();

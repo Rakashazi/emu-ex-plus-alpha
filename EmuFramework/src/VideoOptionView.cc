@@ -185,50 +185,51 @@ static auto makeFrameRatePALStr()
 		EmuSystem::frameRate(EmuSystem::VIDSYS_PAL));
 }
 
-#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-static void setFrameInterval(int interval)
+static TextMenuItem::SelectDelegate setFrameIntervalDel()
 {
-	optionFrameInterval = interval;
-	logMsg("set frame interval: %d", int(optionFrameInterval));
-}
-#endif
-
-TextMenuItem::SelectDelegate VideoOptionView::setImgEffectDel(ImageEffectId val)
-{
-	return [this, val]()
+	return [](TextMenuItem &item)
 	{
-		optionImgEffect = (unsigned)val;
+		optionFrameInterval = item.id();
+		logMsg("set frame interval: %d", int(optionFrameInterval));
+	};
+}
+
+TextMenuItem::SelectDelegate VideoOptionView::setImgEffectDel()
+{
+	return [this](TextMenuItem &item)
+	{
+		optionImgEffect = item.id();
 		if(emuVideo().image())
 		{
-			videoLayer->setEffect(val, app().imageEffectPixelFormat());
+			videoLayer->setEffect((ImageEffectId)item.id(), app().imageEffectPixelFormat());
 			app().viewController().postDrawToEmuWindows();
 		}
 	};
 }
 
-TextMenuItem::SelectDelegate VideoOptionView::setOverlayEffectDel(int val)
+TextMenuItem::SelectDelegate VideoOptionView::setOverlayEffectDel()
 {
-	return [this, val]()
+	return [this](TextMenuItem &item)
 	{
-		optionOverlayEffect = val;
-		videoLayer->setOverlay(val);
+		optionOverlayEffect = item.id();
+		videoLayer->setOverlay(item.id());
 		app().viewController().postDrawToEmuWindows();
 	};
 }
 
-TextMenuItem::SelectDelegate VideoOptionView::setImgEffectPixelFormatDel(PixelFormat format)
+TextMenuItem::SelectDelegate VideoOptionView::setImgEffectPixelFormatDel()
 {
-	return [this, format]()
+	return [this](TextMenuItem &item)
 	{
-		optionImageEffectPixelFormat = format;
+		optionImageEffectPixelFormat = item.id();
 		videoLayer->setEffectFormat(app().imageEffectPixelFormat());
 		app().viewController().postDrawToEmuWindows();
 	};
 }
 
-TextMenuItem::SelectDelegate VideoOptionView::setRenderPixelFormatDel(PixelFormat format)
+TextMenuItem::SelectDelegate VideoOptionView::setRenderPixelFormatDel()
 {
-	return [this, format]() { app().setRenderPixelFormat(format); };
+	return [this](TextMenuItem &item) { app().setRenderPixelFormat((PixelFormatID)item.id()); };
 }
 
 static const char *autoWindowPixelFormatStr(IG::ApplicationContext ctx)
@@ -250,12 +251,12 @@ TextMenuItem::SelectDelegate VideoOptionView::setWindowDrawableConfigDel(Gfx::Dr
 	};
 }
 
-TextMenuItem::SelectDelegate VideoOptionView::setImageBuffersDel(int buffers)
+TextMenuItem::SelectDelegate VideoOptionView::setImageBuffersDel()
 {
-	return [this, buffers]()
+	return [this](TextMenuItem &item)
 	{
-		optionVideoImageBuffers = buffers;
-		emuVideo().setImageBuffers(buffers);
+		optionVideoImageBuffers = item.id();
+		emuVideo().setImageBuffers(item.id());
 	};
 }
 
@@ -279,21 +280,19 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		0,
 		textureBufferModeItem
 	},
-	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 	frameIntervalItem
 	{
-		{"Full", &defaultFace(), [this]() { setFrameInterval(1); }},
-		{"1/2", &defaultFace(), [this]() { setFrameInterval(2); }},
-		{"1/3", &defaultFace(), [this]() { setFrameInterval(3); }},
-		{"1/4", &defaultFace(), [this]() { setFrameInterval(4); }},
+		{"Full", &defaultFace(), setFrameIntervalDel(), 1},
+		{"1/2",  &defaultFace(), setFrameIntervalDel(), 2},
+		{"1/3",  &defaultFace(), setFrameIntervalDel(), 3},
+		{"1/4",  &defaultFace(), setFrameIntervalDel(), 4},
 	},
 	frameInterval
 	{
 		"Target Frame Rate", &defaultFace(),
-		optionFrameInterval - 1,
+		(MenuItem::Id)optionFrameInterval.val,
 		frameIntervalItem
 	},
-	#endif
 	dropLateFrames
 	{
 		"Skip Late Frames", &defaultFace(),
@@ -338,11 +337,11 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	zoomItem
 	{
-		{"100%",                  &defaultFace(), setZoomDel(100)},
-		{"90%",                   &defaultFace(), setZoomDel(90)},
-		{"80%",                   &defaultFace(), setZoomDel(80)},
-		{"Integer-only",          &defaultFace(), setZoomDel(optionImageZoomIntegerOnly)},
-		{"Integer-only (Height)", &defaultFace(), setZoomDel(optionImageZoomIntegerOnlyY)},
+		{"100%",                  &defaultFace(), setZoomDel(), 100},
+		{"90%",                   &defaultFace(), setZoomDel(), 90},
+		{"80%",                   &defaultFace(), setZoomDel(), 80},
+		{"Integer-only",          &defaultFace(), setZoomDel(), optionImageZoomIntegerOnly},
+		{"Integer-only (Height)", &defaultFace(), setZoomDel(), optionImageZoomIntegerOnlyY},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
@@ -378,25 +377,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			}
 			return false;
 		},
-		[]()
-		{
-			switch(optionImageZoom.val)
-			{
-				case 100: return 0;
-				case 90: return 1;
-				case 80: return 2;
-				case optionImageZoomIntegerOnly: return 3;
-				case optionImageZoomIntegerOnlyY: return 4;
-				default: return 5;
-			}
-		}(),
+		(MenuItem::Id)optionImageZoom.val,
 		zoomItem
 	},
 	viewportZoomItem
 	{
-		{"100%", &defaultFace(), setViewportZoomDel(100)},
-		{"95%", &defaultFace(),  setViewportZoomDel(95)},
-		{"90%", &defaultFace(),  setViewportZoomDel(90)},
+		{"100%", &defaultFace(), setViewportZoomDel(), 100},
+		{"95%", &defaultFace(),  setViewportZoomDel(), 95},
+		{"90%", &defaultFace(),  setViewportZoomDel(), 90},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
@@ -428,16 +416,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			t.setString(fmt::format("{}%", optionViewportZoom.val));
 			return true;
 		},
-		[]()
-		{
-			switch(optionViewportZoom.val)
-			{
-				case 100: return 0;
-				case 95: return 1;
-				case 90: return 2;
-				default: return 3;
-			}
-		}(),
+		(MenuItem::Id)optionViewportZoom.val,
 		viewportZoomItem
 	},
 	imgFilter
@@ -454,58 +433,38 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	imgEffectItem
 	{
-		{"Off",         &defaultFace(), setImgEffectDel(ImageEffectId::DIRECT)},
-		{"hq2x",        &defaultFace(), setImgEffectDel(ImageEffectId::HQ2X)},
-		{"Scale2x",     &defaultFace(), setImgEffectDel(ImageEffectId::SCALE2X)},
-		{"Prescale 2x", &defaultFace(), setImgEffectDel(ImageEffectId::PRESCALE2X)}
+		{"Off",         &defaultFace(), setImgEffectDel(), (uint8_t)ImageEffectId::DIRECT},
+		{"hq2x",        &defaultFace(), setImgEffectDel(), (uint8_t)ImageEffectId::HQ2X},
+		{"Scale2x",     &defaultFace(), setImgEffectDel(), (uint8_t)ImageEffectId::SCALE2X},
+		{"Prescale 2x", &defaultFace(), setImgEffectDel(), (uint8_t)ImageEffectId::PRESCALE2X}
 	},
 	imgEffect
 	{
 		"Image Effect", &defaultFace(),
-		[]()
-		{
-			switch((ImageEffectId)optionImgEffect.val)
-			{
-				default: return 0;
-				case ImageEffectId::HQ2X: return 1;
-				case ImageEffectId::SCALE2X: return 2;
-				case ImageEffectId::PRESCALE2X: return 3;
-			}
-		}(),
+		(MenuItem::Id)optionImgEffect.val,
 		imgEffectItem
 	},
 	overlayEffectItem
 	{
-		{"Off",          &defaultFace(), setOverlayEffectDel(0)},
-		{"Scanlines",    &defaultFace(), setOverlayEffectDel(VideoImageOverlay::SCANLINES)},
-		{"Scanlines 2x", &defaultFace(), setOverlayEffectDel(VideoImageOverlay::SCANLINES_2)},
-		{"CRT Mask",     &defaultFace(), setOverlayEffectDel(VideoImageOverlay::CRT)},
-		{"CRT",          &defaultFace(), setOverlayEffectDel(VideoImageOverlay::CRT_RGB)},
-		{"CRT 2x",       &defaultFace(), setOverlayEffectDel(VideoImageOverlay::CRT_RGB_2)}
+		{"Off",          &defaultFace(), setOverlayEffectDel(), 0},
+		{"Scanlines",    &defaultFace(), setOverlayEffectDel(), VideoImageOverlay::SCANLINES},
+		{"Scanlines 2x", &defaultFace(), setOverlayEffectDel(), VideoImageOverlay::SCANLINES_2},
+		{"CRT Mask",     &defaultFace(), setOverlayEffectDel(), VideoImageOverlay::CRT},
+		{"CRT",          &defaultFace(), setOverlayEffectDel(), VideoImageOverlay::CRT_RGB},
+		{"CRT 2x",       &defaultFace(), setOverlayEffectDel(), VideoImageOverlay::CRT_RGB_2}
 	},
 	overlayEffect
 	{
 		"Overlay Effect", &defaultFace(),
-		[]()
-		{
-			switch(optionOverlayEffect)
-			{
-				default: return 0;
-				case VideoImageOverlay::SCANLINES: return 1;
-				case VideoImageOverlay::SCANLINES_2: return 2;
-				case VideoImageOverlay::CRT: return 3;
-				case VideoImageOverlay::CRT_RGB: return 4;
-				case VideoImageOverlay::CRT_RGB_2: return 5;
-			}
-		}(),
+		(MenuItem::Id)optionOverlayEffect.val,
 		overlayEffectItem
 	},
 	overlayEffectLevelItem
 	{
-		{"100%", &defaultFace(), setOverlayEffectLevelDel(100)},
-		{"75%",  &defaultFace(), setOverlayEffectLevelDel(75)},
-		{"50%",  &defaultFace(), setOverlayEffectLevelDel(50)},
-		{"25%",  &defaultFace(), setOverlayEffectLevelDel(25)},
+		{"100%", &defaultFace(), setOverlayEffectLevelDel(), 100},
+		{"75%",  &defaultFace(), setOverlayEffectLevelDel(), 75},
+		{"50%",  &defaultFace(), setOverlayEffectLevelDel(), 50},
+		{"25%",  &defaultFace(), setOverlayEffectLevelDel(), 25},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
@@ -537,24 +496,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			t.setString(fmt::format("{}%", optionOverlayEffectLevel.val));
 			return true;
 		},
-		[]()
-		{
-			switch(optionOverlayEffectLevel)
-			{
-				case 100: return 0;
-				case 75: return 1;
-				case 50: return 2;
-				case 25: return 3;
-				default: return 4;
-			}
-		}(),
+		(MenuItem::Id)optionOverlayEffectLevel.val,
 		overlayEffectLevelItem
 	},
 	imgEffectPixelFormatItem
 	{
-		{"Auto (Match display format)", &defaultFace(), setImgEffectPixelFormatDel(PIXEL_NONE)},
-		{"RGBA8888",                    &defaultFace(), setImgEffectPixelFormatDel(PIXEL_RGBA8888)},
-		{"RGB565",                      &defaultFace(), setImgEffectPixelFormatDel(PIXEL_RGB565)},
+		{"Auto (Match display format)", &defaultFace(), setImgEffectPixelFormatDel(), PIXEL_NONE},
+		{"RGBA8888",                    &defaultFace(), setImgEffectPixelFormatDel(), PIXEL_RGBA8888},
+		{"RGB565",                      &defaultFace(), setImgEffectPixelFormatDel(), PIXEL_RGB565},
 	},
 	imgEffectPixelFormat
 	{
@@ -569,15 +518,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			else
 				return false;
 		},
-		[]()
-		{
-			switch(optionImageEffectPixelFormat.val)
-			{
-				default: return 0;
-				case PIXEL_RGBA8888: return 1;
-				case PIXEL_RGB565: return 2;
-			}
-		}(),
+		(MenuItem::Id)optionImageEffectPixelFormat.val,
 		imgEffectPixelFormatItem
 	},
 	windowPixelFormat
@@ -623,9 +564,9 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	#endif
 	imageBuffersItem
 	{
-		{"Auto",                                     &defaultFace(), setImageBuffersDel(0)},
-		{"1 (Syncs GPU each frame, less input lag)", &defaultFace(), setImageBuffersDel(1)},
-		{"2 (More stable, may add 1 frame of lag)",  &defaultFace(), setImageBuffersDel(2)},
+		{"Auto",                                     &defaultFace(), setImageBuffersDel(), 0},
+		{"1 (Syncs GPU each frame, less input lag)", &defaultFace(), setImageBuffersDel(), 1},
+		{"2 (More stable, may add 1 frame of lag)",  &defaultFace(), setImageBuffersDel(), 2},
 	},
 	imageBuffers
 	{
@@ -635,22 +576,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			t.setString(emuVideo().imageBuffers() == 1 ? "1" : "2");
 			return true;
 		},
-		[]()
-		{
-			switch(optionVideoImageBuffers.val)
-			{
-				default: return 0;
-				case 1: return 1;
-				case 2: return 2;
-			}
-		}(),
+		(MenuItem::Id)optionVideoImageBuffers.val,
 		imageBuffersItem
 	},
 	renderPixelFormatItem
 	{
-		{"Auto (Match display format)", &defaultFace(), setRenderPixelFormatDel(IG::PIXEL_NONE)},
-		{"RGBA8888",                    &defaultFace(), setRenderPixelFormatDel(IG::PIXEL_RGBA8888)},
-		{"RGB565",                      &defaultFace(), setRenderPixelFormatDel(IG::PIXEL_RGB565)},
+		{"Auto (Match display format)", &defaultFace(), setRenderPixelFormatDel(), IG::PIXEL_NONE},
+		{"RGBA8888",                    &defaultFace(), setRenderPixelFormatDel(), IG::PIXEL_RGBA8888},
+		{"RGB565",                      &defaultFace(), setRenderPixelFormatDel(), IG::PIXEL_RGB565},
 	},
 	renderPixelFormat
 	{
@@ -664,15 +597,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			}
 			return false;
 		},
-		[this]()
-		{
-			switch(app().renderPixelFormat())
-			{
-				default: return 0;
-				case IG::PIXEL_RGBA8888: return 1;
-				case IG::PIXEL_RGB565: return 2;
-			}
-		}(),
+		(MenuItem::Id)app().renderPixelFormat().id(),
 		renderPixelFormatItem
 	},
 	presentationTime
@@ -773,9 +698,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 
 void VideoOptionView::loadStockItems()
 {
-	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-	item.emplace_back(&frameInterval);
-	#endif
+	if(used(frameInterval))
+		item.emplace_back(&frameInterval);
 	item.emplace_back(&dropLateFrames);
 	if(!optionFrameRate.isConst)
 	{
@@ -837,7 +761,7 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::Float
 		app().postMessage(4, true, fmt::format("{:.2f}Hz not in valid range", 1. / wantedTime.count()));
 		return false;
 	}
-	EmuSystem::configFrameTime(optionSoundRate);
+	EmuSystem::configFrameTime(app().soundRate());
 	if(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC)
 	{
 		optionFrameRate = time.count();
@@ -924,19 +848,19 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 	pushAndShow(std::move(multiChoiceView), e);
 }
 
-TextMenuItem::SelectDelegate VideoOptionView::setZoomDel(uint8_t val)
+TextMenuItem::SelectDelegate VideoOptionView::setZoomDel()
 {
-	return [this, val]() { app().setVideoZoom(val); };
+	return [this](TextMenuItem &item) { app().setVideoZoom(item.id()); };
 }
 
-TextMenuItem::SelectDelegate VideoOptionView::setViewportZoomDel(uint8_t val)
+TextMenuItem::SelectDelegate VideoOptionView::setViewportZoomDel()
 {
-	return [this, val]() { app().setViewportZoom(val); };
+	return [this](TextMenuItem &item) { app().setViewportZoom(item.id()); };
 }
 
-TextMenuItem::SelectDelegate VideoOptionView::setOverlayEffectLevelDel(uint8_t val)
+TextMenuItem::SelectDelegate VideoOptionView::setOverlayEffectLevelDel()
 {
-	return [this, val]() { app().setOverlayEffectLevel(*videoLayer, val); };
+	return [this](TextMenuItem &item) { app().setOverlayEffectLevel(*videoLayer, item.id()); };
 }
 
 EmuVideo &VideoOptionView::emuVideo() const

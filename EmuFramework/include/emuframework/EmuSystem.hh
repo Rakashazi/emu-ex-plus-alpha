@@ -253,7 +253,6 @@ public:
 	static IG::Time benchmark(EmuVideo &video);
 	static bool gameIsRunning();
 	static void resetFrameTime();
-	static void prepareAudio(EmuAudio &audio);
 	static void pause(EmuApp &);
 	static void start(EmuApp &);
 	static void closeSystem(IG::ApplicationContext ctx);

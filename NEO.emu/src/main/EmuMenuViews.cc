@@ -106,33 +106,30 @@ private:
 		regionItem
 	};
 
+	TextMenuItem::SelectDelegate setBiosDel()
+	{
+		return [](TextMenuItem &item)
+		{
+			conf.system = (SYSTEM)item.id();
+			optionBIOSType = conf.system;
+		};
+	}
+
 	TextMenuItem biosItem[7]
 	{
-		{"Unibios 2.3", &defaultFace(), [](){ conf.system = SYS_UNIBIOS; optionBIOSType = conf.system; }},
-		{"Unibios 3.0", &defaultFace(), [](){ conf.system = SYS_UNIBIOS_3_0; optionBIOSType = conf.system; }},
-		{"Unibios 3.1", &defaultFace(), [](){ conf.system = SYS_UNIBIOS_3_1; optionBIOSType = conf.system; }},
-		{"Unibios 3.2", &defaultFace(), [](){ conf.system = SYS_UNIBIOS_3_2; optionBIOSType = conf.system; }},
-		{"Unibios 3.3", &defaultFace(), [](){ conf.system = SYS_UNIBIOS_3_3; optionBIOSType = conf.system; }},
-		{"Unibios 4.0", &defaultFace(), [](){ conf.system = SYS_UNIBIOS_4_0; optionBIOSType = conf.system; }},
-		{"MVS", &defaultFace(), [](){ conf.system = SYS_ARCADE; optionBIOSType = conf.system; }},
+		{"Unibios 2.3", &defaultFace(), setBiosDel(), SYS_UNIBIOS},
+		{"Unibios 3.0", &defaultFace(), setBiosDel(), SYS_UNIBIOS_3_0},
+		{"Unibios 3.1", &defaultFace(), setBiosDel(), SYS_UNIBIOS_3_1},
+		{"Unibios 3.2", &defaultFace(), setBiosDel(), SYS_UNIBIOS_3_2},
+		{"Unibios 3.3", &defaultFace(), setBiosDel(), SYS_UNIBIOS_3_3},
+		{"Unibios 4.0", &defaultFace(), setBiosDel(), SYS_UNIBIOS_4_0},
+		{"MVS",         &defaultFace(), setBiosDel(), SYS_ARCADE},
 	};
 
 	MultiChoiceMenuItem bios
 	{
 		"BIOS Type", &defaultFace(),
-		[]()
-		{
-			switch(conf.system)
-			{
-				default: return 0;
-				case SYS_UNIBIOS_3_0: return 1;
-				case SYS_UNIBIOS_3_1: return 2;
-				case SYS_UNIBIOS_3_2: return 3;
-				case SYS_UNIBIOS_3_3: return 4;
-				case SYS_UNIBIOS_4_0: return 5;
-				case SYS_ARCADE: return 6;
-			}
-		}(),
+		(MenuItem::Id)conf.system,
 		biosItem
 	};
 
@@ -193,7 +190,7 @@ struct RomListEntry
 	unsigned bugs;
 };
 
-static const RomListEntry romlist[]
+constexpr RomListEntry romlist[]
 {
 	{ "2020bb", 0 },
 	{ "2020bba", 0 },

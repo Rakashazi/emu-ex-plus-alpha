@@ -30,7 +30,7 @@ void BaseTextMenuItem::prepareDraw(Gfx::Renderer &r)
 void BaseTextMenuItem::draw(Gfx::RendererCommands &cmds, float xPos, float yPos, float xSize, float ySize,
 	float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
-	if(!active_)
+	if(!active())
 	{
 		// half-bright color
 		cmds.setColor(color[0]/2.f, color[1]/2.f, color[2]/2.f, color[3]);
@@ -82,20 +82,6 @@ const Gfx::Text &BaseTextMenuItem::text() const
 	return t;
 }
 
-void BaseTextMenuItem::setActive(bool on)
-{
-	active_ = on;
-}
-
-bool BaseTextMenuItem::active()
-{
-	return active_;
-}
-
-TextMenuItem::TextMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
-	BaseTextMenuItem{std::move(name), face},
-	selectD{selectDel} {}
-
 bool TextMenuItem::select(View &parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
@@ -113,10 +99,6 @@ TextMenuItem::SelectDelegate TextMenuItem::onSelect() const
 }
 
 bool TextHeadingMenuItem::select(View &parent, const Input::Event &e) { return true; };
-
-BaseDualTextMenuItem::BaseDualTextMenuItem(IG::utf16String name, IG::utf16String name2, Gfx::GlyphTextureSet *face):
-	BaseTextMenuItem{std::move(name), face},
-	t2{std::move(name2), face} {}
 
 void BaseDualTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
@@ -150,11 +132,6 @@ void BaseDualTextMenuItem::draw(Gfx::RendererCommands &cmds, float xPos, float y
 	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 }
 
-DualTextMenuItem::DualTextMenuItem(IG::utf16String name, IG::utf16String name2,
-	Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
-	BaseDualTextMenuItem{std::move(name), std::move(name2), face},
-	selectD{selectDel} {}
-
 bool DualTextMenuItem::select(View &parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
@@ -175,7 +152,7 @@ bool BoolMenuItem::select(View &parent, const Input::Event &e)
 
 bool BoolMenuItem::setBoolValue(bool val, View &view)
 {
-	if(val != on)
+	if(val != boolValue())
 	{
 		setBoolValue(val);
 		t2.compile(view.renderer(), view.projection());
@@ -187,10 +164,10 @@ bool BoolMenuItem::setBoolValue(bool val, View &view)
 
 bool BoolMenuItem::setBoolValue(bool val)
 {
-	if(val != on)
+	if(val != boolValue())
 	{
 		//logMsg("setting bool: %d", val);
-		on = val;
+		flags_ = setOrClearBits(flags_, ON_FLAG, val);
 		t2.setString(val ? onStr : offStr);
 		return true;
 	}
@@ -199,19 +176,19 @@ bool BoolMenuItem::setBoolValue(bool val)
 
 bool BoolMenuItem::boolValue() const
 {
-	return on;
+	return flags_ & ON_FLAG;
 }
 
 bool BoolMenuItem::flipBoolValue(View &view)
 {
-	setBoolValue(on ^ true, view);
-	return on;
+	setBoolValue(boolValue() ^ true, view);
+	return boolValue();
 }
 
 bool BoolMenuItem::flipBoolValue()
 {
-	setBoolValue(on ^ true);
-	return on;
+	setBoolValue(boolValue() ^ true);
+	return boolValue();
 }
 
 void BoolMenuItem::draw(Gfx::RendererCommands &cmds, float xPos, float yPos, float xSize, float ySize,
@@ -219,9 +196,9 @@ void BoolMenuItem::draw(Gfx::RendererCommands &cmds, float xPos, float yPos, flo
 {
 	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 	Gfx::Color color2;
-	if(!onOffStyle) // custom strings
+	if(!(flags_ & ON_OFF_STYLE_FLAG)) // custom strings
 		color2 = Gfx::color(0.f, .8f, 1.f);
-	else if(on)
+	else if(boolValue())
 		color2 = Gfx::color(.27f, 1.f, .27f);
 	else
 		color2 = Gfx::color(1.f, .27f, .27f);
@@ -267,22 +244,6 @@ public:
 	}
 };
 
-MultiChoiceMenuItem::MultiChoiceMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, SetDisplayStringDelegate onDisplayStr,
-	int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
-	BaseDualTextMenuItem{std::move(name), {}, face},
-	selectD
-	{
-		selectDel ? selectDel :
-			[this](MultiChoiceMenuItem &item, View &view, const Input::Event &e)
-			{
-				item.defaultOnSelect(view, e);
-			}
-	},
-	items_{items},
-	item_{item},
-	onSetDisplayString{onDisplayStr},
-	selected_{selected} {}
-
 void MultiChoiceMenuItem::draw(Gfx::RendererCommands &cmds, float xPos, float yPos, float xSize, float ySize,
 	float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
@@ -322,6 +283,16 @@ bool MultiChoiceMenuItem::setSelected(int idx)
 	selected_ = idx;
 	setDisplayString(idx);
 	return selectChanged;
+}
+
+bool MultiChoiceMenuItem::setSelected(Id id, View &view)
+{
+	return setSelected(idxOfId(id), view);
+}
+
+bool MultiChoiceMenuItem::setSelected(Id id)
+{
+	return setSelected(idxOfId(id));
 }
 
 void MultiChoiceMenuItem::setDisplayString(size_t idx)
@@ -391,6 +362,16 @@ void MultiChoiceMenuItem::defaultOnSelect(View &view, const Input::Event &e)
 void MultiChoiceMenuItem::updateDisplayString()
 {
 	setDisplayString(selected_);
+}
+
+int MultiChoiceMenuItem::idxOfId(IdInt id)
+{
+	iterateTimes(items_(*this), i)
+	{
+		if(item_(*this, i).id() == id)
+			return i;
+	}
+	return -1;
 }
 
 }

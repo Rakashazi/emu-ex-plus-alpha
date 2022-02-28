@@ -16,21 +16,9 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/Option.hh>
-#include <emuframework/EmuSystem.hh>
-#include <imagine/audio/defs.hh>
-#include <imagine/gui/View.hh>
-#include <imagine/gfx/PixmapBufferTexture.hh>
-#include <imagine/input/Input.hh>
-
-namespace IG
-{
-class ApplicationContext;
-}
 
 namespace EmuEx
 {
-
-class VController;
 
 // TODO: recycle obsolete enums
 enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
@@ -81,30 +69,6 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	// 256+ is reserved
 };
 
-extern Byte1Option optionSound;
-extern Byte1Option optionSoundVolume;
-extern Byte1Option optionSoundBuffers;
-extern Byte1Option optionAddSoundBuffersOnUnderrun;
-#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-extern Byte1Option optionAudioAPI;
-#endif
-extern Byte4Option optionSoundRate;
-extern Byte1Option optionNotificationIcon;
-extern Byte1Option optionTitleBar;
-extern Byte1Option optionSystemActionsIsDefaultMenu;
-extern Byte1Option optionLowProfileOSNav;
-extern Byte1Option optionHideOSNav;
-extern Byte1Option optionIdleDisplayPowerSave;
-extern Byte1Option optionHideStatusBar;
-#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
-extern Byte1Option optionNotifyInputDeviceChange;
-#endif
-
-#ifdef CONFIG_BLUETOOTH
-extern Byte1Option optionKeepBluetoothActive;
-extern Byte1Option optionShowBluetoothScan;
-#endif
-
 extern Byte1Option optionImgFilter;
 extern DoubleOption optionAspectRatio;
 extern Byte1Option optionImgEffect;
@@ -112,17 +76,7 @@ extern Byte1Option optionImageEffectPixelFormat;
 extern Byte1Option optionOverlayEffect;
 extern Byte1Option optionOverlayEffectLevel;
 
-#if 0
-static const unsigned optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;
-extern Byte4Option optionRelPointerDecel;
-#endif
-
-extern Byte1Option optionGameOrientation;
-extern Byte1Option optionMenuOrientation;
-
-#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 extern Byte1Option optionFrameInterval;
-#endif
 extern Byte1Option optionSkipLateFrames;
 extern DoubleOption optionFrameRate;
 extern DoubleOption optionFrameRatePAL;
@@ -134,20 +88,9 @@ extern Byte1Option optionViewportZoom;
 extern Byte1Option optionShowOnSecondScreen;
 
 extern Byte1Option optionTextureBufferMode;
-#ifdef __ANDROID__
-extern Byte1Option optionSustainedPerformanceMode;
-#endif
 
 extern Byte1Option optionVideoImageBuffers;
 
 static const char *optionSavePathDefaultToken = ":DEFAULT:";
-
-extern Byte1Option optionShowBundledGames;
-
-bool soundIsEnabled();
-void setSoundEnabled(bool on);
-bool soundDuringFastForwardIsEnabled();
-void setSoundDuringFastForwardEnabled(bool on);
-IG::Audio::Api audioOutputAPI();
 
 }

@@ -5,16 +5,17 @@ on: [push, pull_request]
 jobs:
   Build:
     name: Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x"]
     container: cirrusci/android-sdk:30-ndk
  
     steps:
-    - uses: actions/checkout@v1
+    - name: Checkout emu-ex-plus-alpha repo
+      uses: actions/checkout@v2
       with:
-        submodules: true
+        fetch-depth: 0
 
     - name: Decode debug keystore
       env:
@@ -29,7 +30,7 @@ jobs:
            sudo cp -f debug.keystore /root/.android/.
         fi
         
-    - name: Install
+    - name: Install build dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y autoconf

@@ -71,11 +71,6 @@ uint32_t EmuSystem::audioFramesPerVideoFrame = 0;
 static EmuTiming emuTiming{};
 [[gnu::weak]] std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{0, 1, 2, 3, 4, 5, 6, 7};
 
-static IG::Microseconds makeWantedAudioLatencyUSecs(uint8_t buffers)
-{
-	return buffers * std::chrono::duration_cast<IG::Microseconds>(EmuSystem::frameTime());
-}
-
 bool EmuSystem::stateExists(IG::ApplicationContext ctx, int slot)
 {
 	return ctx.fileUriExists(statePath(ctx, slot));
@@ -271,7 +266,7 @@ void EmuSystem::start(EmuApp &app)
 		app.defaultVController().keyboard().setShiftActive(false);
 	clearInputBuffers(app.viewController().inputView());
 	resetFrameTime();
-	app.audio().start(makeWantedAudioLatencyUSecs(optionSoundBuffers), makeWantedAudioLatencyUSecs(1));
+	app.startAudio();
 	app.startAutoSaveStateTimer();
 }
 
@@ -372,12 +367,6 @@ bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 [[gnu::weak]] FS::PathString EmuSystem::willLoadGameFromPath(IG::ApplicationContext, std::string_view path, std::string_view displayName)
 {
 	return FS::PathString{path};
-}
-
-void EmuSystem::prepareAudio(EmuAudio &audio)
-{
-	onPrepareAudio(audio);
-	configAudioPlayback(audio, optionSoundRate);
 }
 
 void EmuSystem::closeAndSetupNew(IG::ApplicationContext ctx, IG::CStringView path, std::string_view displayName)

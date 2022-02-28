@@ -330,7 +330,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		appPtr->onCustomizeNavView(*viewNav);
 		viewStack.setNavView(std::move(viewNav));
 	}
-	viewStack.showNavView(optionTitleBar);
+	viewStack.showNavView(app().showsTitleBar());
 	emuView.setLayoutInputView(&inputView());
 	placeElements();
 	auto mainMenu = EmuApp::makeView(viewAttach, EmuApp::ViewID::MAIN_MENU);
@@ -414,17 +414,16 @@ void EmuViewController::moveEmuViewToWindow(IG::Window &win)
 
 void EmuViewController::configureAppForEmulation(bool running)
 {
-	appContext().setIdleDisplayPowerSave(running ? (bool)optionIdleDisplayPowerSave : true);
+	appContext().setIdleDisplayPowerSave(running ? app().idleDisplayPowerSave() : true);
 	app().applyOSNavStyle(appContext(), running);
 	appContext().setHintKeyRepeat(!running);
 }
 
 void EmuViewController::configureWindowForEmulation(IG::Window &win, bool running)
 {
-	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-	win.screen()->setFrameInterval(optionFrameInterval);
-	#endif
-	emuView.renderer().setWindowValidOrientations(win, running ? optionGameOrientation : optionMenuOrientation);
+	if constexpr(Config::SCREEN_FRAME_INTERVAL)
+		win.screen()->setFrameInterval(optionFrameInterval);
+	emuView.renderer().setWindowValidOrientations(win, running ? app().emuOrientation() : app().menuOrientation());
 	win.setIntendedFrameRate(running ? EmuSystem::frameRate() : 0.);
 	movePopupToWindow(running ? emuView.window() : emuInputView.window());
 }
@@ -692,7 +691,7 @@ void EmuViewController::applyFrameRates(bool updateFrameTime)
 	EmuSystem::setFrameTime(EmuSystem::VIDSYS_PAL,
 		optionFrameRatePAL.val ? IG::FloatSeconds(optionFrameRatePAL.val) : emuView.window().screen()->frameTime());
 	if(updateFrameTime)
-		EmuSystem::configFrameTime(optionSoundRate);
+		EmuSystem::configFrameTime(app().soundRate());
 }
 
 IG::OnFrameDelegate EmuViewController::makeOnFrameDelayed(uint8_t delay)
@@ -902,7 +901,7 @@ void EmuViewController::onInputDevicesChanged()
 
 void EmuViewController::onSystemCreated()
 {
-	EmuSystem::prepareAudio(emuAudio());
+	app().prepareAudio();
 	viewStack.navView()->showRightBtn(true);
 }
 
@@ -1003,8 +1002,9 @@ void EmuViewController::setFastForwardSpeed(int speed)
 {
 	bool active = speed > 1;
 	targetFastForwardSpeed = speed;
-	emuAudio().setAddSoundBuffersOnUnderrun(active ? optionAddSoundBuffersOnUnderrun.val : false);
-	auto soundVolume = (active && !soundDuringFastForwardIsEnabled()) ? 0 : optionSoundVolume.val;
+	auto &emuApp = app();
+	emuAudio().setAddSoundBuffersOnUnderrun(active ? emuApp.addSoundBuffersOnUnderrun() : false);
+	auto soundVolume = (active && !emuApp.soundDuringFastForwardIsEnabled()) ? 0 : emuApp.soundVolume();
 	emuAudio().setVolume(soundVolume);
 }
 

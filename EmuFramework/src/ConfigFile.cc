@@ -169,12 +169,9 @@ void EmuApp::saveConfigFile(IO &io)
 		optionVideoImageBuffers,
 		optionOverlayEffect,
 		optionOverlayEffectLevel,
-		#if 0
-		optionRelPointerDecel,
-		#endif
 		optionFontSize,
 		optionPauseUnfocused,
-		optionGameOrientation,
+		optionEmuOrientation,
 		optionMenuOrientation,
 		optionConfirmOverwriteState,
 		optionFastForwardSpeed,
@@ -220,7 +217,7 @@ void EmuApp::saveConfigFile(IO &io)
 	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
 	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
 	if(showHiddenFilesInPicker()) writeOptionValue(io, CFGKEY_SHOW_HIDDEN_FILES, true);
-	if constexpr(Config::EmuFramework::MOGA_INPUT)
+	if constexpr(MOGA_INPUT)
 	{
 		if(mogaManagerPtr)
 			writeOptionValue(io, CFGKEY_MOGA_INPUT_SYSTEM, true);
@@ -451,7 +448,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 							setContentSearchPath(path);
 						});
 				bcase CFGKEY_FONT_Y_SIZE: optionFontSize.readFromIO(io, size);
-				bcase CFGKEY_GAME_ORIENTATION: optionGameOrientation.readFromIO(io, size);
+				bcase CFGKEY_GAME_ORIENTATION: optionEmuOrientation.readFromIO(io, size);
 				bcase CFGKEY_MENU_ORIENTATION: optionMenuOrientation.readFromIO(io, size);
 				bcase CFGKEY_GAME_IMG_FILTER: optionImgFilter.readFromIO(io, size);
 				bcase CFGKEY_GAME_ASPECT_RATIO: optionAspectRatio.readFromIO(io, size);
@@ -475,14 +472,15 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_BACK_NAVIGATION: appConfig.setBackNavigation(readOptionValue<bool>(io, size));
 				bcase CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: optionSystemActionsIsDefaultMenu.readFromIO(io, size);
 				bcase CFGKEY_IDLE_DISPLAY_POWER_SAVE: optionIdleDisplayPowerSave.readFromIO(io, size);
-				bcase CFGKEY_HIDE_STATUS_BAR: optionHideStatusBar.readFromIO(io, size);
+				bcase CFGKEY_HIDE_STATUS_BAR:
+					doIfUsed(optionHideStatusBar, [&](auto &opt){ opt.readFromIO(io, size); });
 				bcase CFGKEY_CONFIRM_OVERWRITE_STATE: optionConfirmOverwriteState.readFromIO(io, size);
 				bcase CFGKEY_FAST_FORWARD_SPEED: optionFastForwardSpeed.readFromIO(io, size);
 				#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 				bcase CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: optionNotifyInputDeviceChange.readFromIO(io, size);
 				#endif
 				bcase CFGKEY_MOGA_INPUT_SYSTEM:
-					if constexpr(Config::EmuFramework::MOGA_INPUT)
+					if constexpr(MOGA_INPUT)
 					{
 						if(readOptionValue<bool>(io, size).value_or(false))
 						{
@@ -493,11 +491,11 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				#if defined __ANDROID__
 				bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
 				bcase CFGKEY_HIDE_OS_NAV: optionHideOSNav.readFromIO(io, size);
-				//bcase CFGKEY_REL_POINTER_DECEL: optionRelPointerDecel.readFromIO(io, size);
 				bcase CFGKEY_SUSTAINED_PERFORMANCE_MODE: optionSustainedPerformanceMode.readFromIO(io, size);
 				#endif
 				#ifdef CONFIG_BLUETOOTH
-				bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE: optionKeepBluetoothActive.readFromIO(io, size);
+				bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE:
+					doIfUsed(optionKeepBluetoothActive, [&](auto &opt){ opt.readFromIO(io, size); });
 				bcase CFGKEY_SHOW_BLUETOOTH_SCAN: optionShowBluetoothScan.readFromIO(io, size);
 					#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 					bcase CFGKEY_BLUETOOTH_SCAN_CACHE: BluetoothAdapter::setScanCacheUsage(readOptionValue<bool>(io, size).value_or(true));

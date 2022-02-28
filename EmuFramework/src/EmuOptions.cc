@@ -43,66 +43,10 @@ bool optionFrameTimePALIsValid(T val)
 	return !val || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_PAL, IG::FloatSeconds(val));
 }
 
-constexpr bool optionOrientationIsValid(uint8_t val)
-{
-	return val == IG::VIEW_ROTATE_AUTO ||
-			val == IG::VIEW_ROTATE_0 ||
-			val == IG::VIEW_ROTATE_90 ||
-			val == IG::VIEW_ROTATE_180 ||
-			val == IG::VIEW_ROTATE_270;
-}
-
 constexpr bool optionAspectRatioIsValid(double val)
 {
 	return val == 0. || (val >= 0.1 && val <= 10.);
 }
-
-constexpr uint8_t OPTION_SOUND_ENABLED_FLAG = IG::bit(0);
-constexpr uint8_t OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG = IG::bit(1);
-constexpr uint8_t OPTION_SOUND_DEFAULT_FLAGS = OPTION_SOUND_ENABLED_FLAG | OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG;
-
-Byte1Option optionSound(CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS);
-Byte1Option optionSoundVolume(CFGKEY_SOUND_VOLUME,
-	100, false, optionIsValidWithMinMax<0, 100, uint8_t>);
-
-Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
-	3, 0, optionIsValidWithMinMax<1, 7, uint8_t>);
-Byte1Option optionAddSoundBuffersOnUnderrun(CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, 1, 0);
-
-#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-Byte1Option optionAudioAPI(CFGKEY_AUDIO_API, 0);
-#endif
-
-constexpr bool isValidSoundRate(uint32_t rate)
-{
-	switch(rate)
-	{
-		case 22050:
-		case 32000:
-		case 44100:
-		case 48000: return true;
-	}
-	return false;
-}
-
-Byte4Option optionSoundRate(CFGKEY_SOUND_RATE, 48000, false, isValidSoundRate);
-
-Byte1Option optionNotificationIcon(CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid);
-Byte1Option optionTitleBar(CFGKEY_TITLE_BAR, 1, Config::envIsIOS);
-
-Byte1Option optionSystemActionsIsDefaultMenu(CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU, 1, 0);
-Byte1Option optionLowProfileOSNav(CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAndroid);
-Byte1Option optionHideOSNav(CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid);
-Byte1Option optionIdleDisplayPowerSave(CFGKEY_IDLE_DISPLAY_POWER_SAVE, 0, !Config::envIsAndroid && !Config::envIsIOS);
-Byte1Option optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 1, !Config::envIsAndroid && !Config::envIsIOS);
-#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
-Byte1Option optionNotifyInputDeviceChange(CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Config::Input::DEVICE_HOTSWAP, !Config::Input::DEVICE_HOTSWAP);
-#endif
-
-#ifdef CONFIG_BLUETOOTH
-Byte1Option optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0, !Config::BASE_CAN_BACKGROUND_APP);
-Byte1Option optionShowBluetoothScan(CFGKEY_SHOW_BLUETOOTH_SCAN, 1);
-#endif
 
 DoubleOption optionAspectRatio{CFGKEY_GAME_ASPECT_RATIO, (double)EmuSystem::aspectRatioInfo[0], 0, optionAspectRatioIsValid};
 
@@ -127,19 +71,6 @@ Byte1Option optionImageEffectPixelFormat(CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::P
 Byte1Option optionVideoImageBuffers{CFGKEY_VIDEO_IMAGE_BUFFERS, 0, 0,
 	optionIsValidWithMax<2>};
 
-#if 0
-Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDecelMed,
-		!Config::envIsAndroid, optionIsValidWithMax<optionRelPointerDecelHigh>);
-#endif
-
-Byte1Option optionGameOrientation(CFGKEY_GAME_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS) ? IG::VIEW_ROTATE_AUTO : IG::VIEW_ROTATE_0,
-		false, optionOrientationIsValid);
-
-Byte1Option optionMenuOrientation(CFGKEY_MENU_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS) ? IG::VIEW_ROTATE_AUTO : IG::VIEW_ROTATE_0,
-		false, optionOrientationIsValid);
-
 bool isValidOption2DO(_2DOrigin val)
 {
 	return val.isValid() && val != C2DO;
@@ -149,10 +80,8 @@ bool isValidOption2DOCenterBtn(_2DOrigin val)
 	return val.isValid() && !val.onYCenter();
 }
 
-#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 Byte1Option optionFrameInterval
 	{CFGKEY_FRAME_INTERVAL,	1, !Config::envIsIOS, optionIsValidWithMinMax<1, 4>};
-#endif
 Byte1Option optionSkipLateFrames{CFGKEY_SKIP_LATE_FRAMES, 1, 0};
 DoubleOption optionFrameRate{CFGKEY_FRAME_RATE, 0, 0, optionFrameTimeIsValid};
 DoubleOption optionFrameRatePAL{CFGKEY_FRAME_RATE_PAL, 1./50., !EmuSystem::hasPALVideoSystem, optionFrameTimePALIsValid};
@@ -168,11 +97,6 @@ Byte1Option optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMi
 Byte1Option optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 1, 0};
 
 Byte1Option optionTextureBufferMode{CFGKEY_TEXTURE_BUFFER_MODE, 0};
-#ifdef __ANDROID__
-Byte1Option optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 0};
-#endif
-
-Byte1Option optionShowBundledGames(CFGKEY_SHOW_BUNDLED_GAMES, 1);
 
 void EmuApp::initOptions(IG::ApplicationContext ctx)
 {
@@ -203,9 +127,7 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	}
 	if(androidSdk < 12)
 	{
-		#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 		optionNotifyInputDeviceChange.isConst = 1;
-		#endif
 	}
 	if(androidSdk < 17)
 	{
@@ -352,11 +274,10 @@ void EmuApp::readRecentContent(IG::ApplicationContext ctx, IO &io, unsigned read
 
 uint8_t currentFrameInterval()
 {
-	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-	return optionFrameInterval;
-	#else
-	return 1;
-	#endif
+	if constexpr(Config::SCREEN_FRAME_INTERVAL)
+		return optionFrameInterval;
+	else
+		return 1;
 }
 
 IG::PixelFormat EmuApp::imageEffectPixelFormat() const
@@ -364,35 +285,6 @@ IG::PixelFormat EmuApp::imageEffectPixelFormat() const
 	if(optionImageEffectPixelFormat)
 		return (IG::PixelFormatID)optionImageEffectPixelFormat.val;
 	return windowPixelFormat();
-}
-
-bool soundIsEnabled()
-{
-	return optionSound & OPTION_SOUND_ENABLED_FLAG;
-}
-
-void setSoundEnabled(bool on)
-{
-	optionSound = IG::setOrClearBits(optionSound.val, OPTION_SOUND_ENABLED_FLAG, on);
-}
-
-bool soundDuringFastForwardIsEnabled()
-{
-	return optionSound & OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG;
-}
-
-void setSoundDuringFastForwardEnabled(bool on)
-{
-	optionSound = IG::setOrClearBits(optionSound.val, OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG, on);
-}
-
-IG::Audio::Api audioOutputAPI()
-{
-	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-	return (IG::Audio::Api)optionAudioAPI.val;
-	#else
-	return IG::Audio::Api::DEFAULT;
-	#endif
 }
 
 void EmuApp::setVideoZoom(uint8_t val)
@@ -423,6 +315,62 @@ void EmuApp::setVideoAspectRatio(double val)
 	logMsg("set aspect ratio: %.2f", val);
 	viewController().placeEmuViews();
 	viewController().postDrawToEmuWindows();
+}
+
+void EmuApp::setShowsTitleBar(bool on)
+{
+	optionTitleBar = on;
+	viewController().showNavView(optionTitleBar);
+	viewController().placeElements();
+}
+
+void EmuApp::setIdleDisplayPowerSave(bool on)
+{
+	optionIdleDisplayPowerSave = on;
+	appContext().setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
+}
+
+void EmuApp::setLowProfileOSNavMode(Tristate mode)
+{
+	optionLowProfileOSNav = (uint8_t)mode;
+	applyOSNavStyle(appContext(), false);
+}
+
+void EmuApp::setHideOSNavMode(Tristate mode)
+{
+	optionHideOSNav = (uint8_t)mode;
+	applyOSNavStyle(appContext(), false);
+}
+
+void EmuApp::setHideStatusBarMode(Tristate mode)
+{
+	optionHideStatusBar = (uint8_t)mode;
+	applyOSNavStyle(appContext(), false);
+}
+
+void EmuApp::setEmuOrientation(Orientation o)
+{
+	optionEmuOrientation = o;
+	logMsg("set game orientation: %s", orientationToStr(int(optionEmuOrientation)));
+}
+
+void EmuApp::setMenuOrientation(Orientation o)
+{
+	optionMenuOrientation = o;
+	renderer.setWindowValidOrientations(appContext().mainWindow(), optionMenuOrientation);
+	logMsg("set menu orientation: %s", IG::orientationToStr(int(optionMenuOrientation)));
+}
+
+void EmuApp::setShowsBundledGames(bool on)
+{
+	optionShowBundledGames = on;
+	dispatchOnMainMenuItemOptionChanged();
+}
+
+void EmuApp::setShowsBluetoothScanItems(bool on)
+{
+	optionShowBluetoothScan = on;
+	dispatchOnMainMenuItemOptionChanged();
 }
 
 }

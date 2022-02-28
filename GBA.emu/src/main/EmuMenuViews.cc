@@ -45,7 +45,7 @@ class ConsoleOptionView : public TableView
 			}
 			return false;
 		},
-		optionRtcEmulation,
+		optionRtcEmulation.val,
 		rtcItem
 	};
 

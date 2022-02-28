@@ -503,7 +503,7 @@ void TableView::onSelectElement(const Input::Event &e, size_t i, MenuItem &item)
 
 bool TableView::elementIsSelectable(MenuItem &item)
 {
-	return item.isSelectable;
+	return item.selectable();
 }
 
 std::u16string_view TableView::name() const

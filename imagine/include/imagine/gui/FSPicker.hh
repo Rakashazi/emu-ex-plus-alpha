@@ -72,9 +72,12 @@ public:
 protected:
 	struct FileEntry
 	{
+		static constexpr auto IS_DIR_FLAG = MenuItem::USER_FLAG_START;
+
 		std::string path{};
-		bool isDir{};
 		TextMenuItem text{};
+
+		bool isDir() const { return text.flags() & IS_DIR_FLAG; }
 	};
 
 	FilterFunc filter{};

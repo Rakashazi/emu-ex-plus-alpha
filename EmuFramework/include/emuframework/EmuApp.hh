@@ -69,6 +69,11 @@ struct RecentContentInfo
 	}
 };
 
+enum class Tristate : uint8_t
+{
+	OFF, IN_EMU, ON
+};
+
 class EmuApp : public IG::Application
 {
 public:
@@ -142,6 +147,7 @@ public:
 	bool saveStateWithSlot(int slot);
 	bool loadState(IG::CStringView path);
 	bool loadStateWithSlot(int slot);
+	bool shouldOverwriteExistingState() const;
 	void setDefaultVControlsButtonSpacing(int spacing);
 	void setDefaultVControlsButtonStagger(int stagger);
 	FS::PathString contentSearchPath() const;
@@ -160,6 +166,8 @@ public:
 	bool hasSavedSessionOptions();
 	void deleteSessionOptions();
 	void syncEmulationThread();
+	void prepareAudio();
+	void startAudio();
 	EmuAudio &audio();
 	EmuVideo &video();
 	EmuViewController &viewController();
@@ -210,17 +218,62 @@ public:
 	void setShowHiddenFilesInPicker(bool on){ showHiddenFilesInPicker_ = on; };
 	auto &customKeyConfigList() { return customKeyConfigs; };
 	auto &savedInputDeviceList() { return savedInputDevs; };
-	void setSoundRate(uint32_t rate);
-	void setSoundVolume(uint8_t vol);
+
+	// Audio Options
+	void setAudioOutputAPI(IG::Audio::Api);
+	IG::Audio::Api audioOutputAPI() const;
+	void setSoundRate(unsigned rate);
+	unsigned soundRate() const { return optionSoundRate; }
+	unsigned soundRateMax() const { return optionSoundRate.defaultVal; }
+	bool canChangeSoundRate() const { return !optionSoundRate.isConst; }
+	bool setSoundVolume(int vol);
+	int soundVolume() const { return optionSoundVolume; }
+	void setSoundBuffers(int buffers);
+	int soundBuffers() const { return optionSoundBuffers; }
+	void setSoundEnabled(bool on);
+	bool soundIsEnabled() const;
+	void setAddSoundBuffersOnUnderrun(bool on);
+	bool addSoundBuffersOnUnderrun() const { return optionAddSoundBuffersOnUnderrun; }
+	void setSoundDuringFastForwardEnabled(bool on);
+	bool soundDuringFastForwardIsEnabled() const;
+
+	// System Options
+	auto &autoSaveStateOption() { return optionAutoSaveState; }
+	auto &confirmAutoLoadStateOption() { return optionConfirmAutoLoadState; }
+	auto &confirmOverwriteStateOption() { return optionConfirmOverwriteState; }
+	auto &fastForwardSpeedOption() { return optionFastForwardSpeed; }
+	auto &sustainedPerformanceModeOption() { return optionSustainedPerformanceMode; }
+
+	// GUI Options
+	auto &pauseUnfocusedOption() { return optionPauseUnfocused; }
+	auto &systemActionsIsDefaultMenuOption() { return optionSystemActionsIsDefaultMenu; }
+	void setIdleDisplayPowerSave(bool on);
+	bool idleDisplayPowerSave() const { return optionIdleDisplayPowerSave; }
 	bool setFontSize(int size); // size in micro-meters
 	int fontSize() const;
 	void applyFontSize(Window &win);
-	bool shouldOverwriteExistingState() const;
-	Byte1Option &pauseUnfocusedOption() { return optionPauseUnfocused; }
-	Byte1Option &autoSaveStateOption() { return optionAutoSaveState; }
-	Byte1Option &confirmAutoLoadStateOption() { return optionConfirmAutoLoadState; }
-	Byte1Option &confirmOverwriteStateOption() { return optionConfirmOverwriteState; }
-	Byte1Option &fastForwardSpeedOption() { return optionFastForwardSpeed; }
+	void setShowsTitleBar(bool on);
+	bool showsTitleBar() const { return optionTitleBar; };
+	void setLowProfileOSNavMode(Tristate mode);
+	void setHideOSNavMode(Tristate mode);
+	void setHideStatusBarMode(Tristate mode);
+	Tristate lowProfileOSNavMode() const { return (Tristate)(uint8_t)optionLowProfileOSNav; }
+	Tristate hideOSNavMode() const { return (Tristate)(uint8_t)optionHideOSNav; }
+	Tristate hideStatusBarMode() const { return (Tristate)(uint8_t)optionHideStatusBar; }
+	void setEmuOrientation(Orientation);
+	void setMenuOrientation(Orientation);
+	Orientation emuOrientation() const { return optionEmuOrientation; }
+	Orientation menuOrientation() const { return optionMenuOrientation; }
+	void setShowsBundledGames(bool);
+	bool showsBundledGames() const { return optionShowBundledGames; }
+	auto &notificationIconOption() { return optionNotificationIcon; }
+	void setShowsBluetoothScanItems(bool on);
+	bool showsBluetoothScanItems() const { return optionShowBluetoothScan; }
+
+	// Input Options
+	auto &notifyInputDeviceChangeOption() { return optionNotifyInputDeviceChange; }
+	auto &keepBluetoothActiveOption() { return optionKeepBluetoothActive; }
+
 	IG::ApplicationContext appContext() const;
 	static EmuApp &get(IG::ApplicationContext);
 
@@ -341,14 +394,34 @@ protected:
 	#ifdef CONFIG_BLUETOOTH
 	BluetoothAdapter *bta{};
 	#endif
-	IG_UseMemberIf(Config::EmuFramework::MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr){};
+	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr){};
 	RecentContentList recentContentList{};
+	Byte4Option optionSoundRate;
 	Byte2Option optionFontSize;
 	Byte1Option optionPauseUnfocused;
 	Byte1Option optionAutoSaveState;
 	Byte1Option optionConfirmAutoLoadState;
 	Byte1Option optionConfirmOverwriteState;
 	Byte1Option optionFastForwardSpeed;
+	Byte1Option optionSound;
+	Byte1Option optionSoundVolume;
+	Byte1Option optionSoundBuffers;
+	Byte1Option optionAddSoundBuffersOnUnderrun;
+	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, Byte1Option, optionAudioAPI);
+	Byte1Option optionNotificationIcon;
+	Byte1Option optionTitleBar;
+	Byte1Option optionSystemActionsIsDefaultMenu;
+	Byte1Option optionIdleDisplayPowerSave;
+	IG_UseMemberIf(Config::NAVIGATION_BAR, Byte1Option, optionLowProfileOSNav);
+	IG_UseMemberIf(Config::NAVIGATION_BAR, Byte1Option, optionHideOSNav);
+	IG_UseMemberIf(Config::STATUS_BAR, Byte1Option, optionHideStatusBar);
+	IG_UseMemberIf(Config::Input::DEVICE_HOTSWAP, Byte1Option, optionNotifyInputDeviceChange);
+	Byte1Option optionEmuOrientation;
+	Byte1Option optionMenuOrientation;
+	Byte1Option optionShowBundledGames;
+	IG_UseMemberIf(Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, Byte1Option, optionKeepBluetoothActive);
+	IG_UseMemberIf(Config::Input::BLUETOOTH, Byte1Option, optionShowBluetoothScan);
+	IG_UseMemberIf(Config::envIsAndroid, Byte1Option, optionSustainedPerformanceMode);
 	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
 	bool showHiddenFilesInPicker_{};

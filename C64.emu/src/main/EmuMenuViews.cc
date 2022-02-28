@@ -224,7 +224,7 @@ class CustomAudioOptionView : public AudioOptionView
 	MultiChoiceMenuItem reSidSampling
 	{
 		"ReSID Sampling", &defaultFace(),
-		optionReSidSampling,
+		optionReSidSampling.val,
 		reSidSamplingItem
 	};
 
@@ -277,7 +277,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem defaultC64Model
 	{
 		"C64 Model", &defaultFace(),
-		optionC64Model,
+		optionC64Model.val,
 		defaultC64ModelItem
 	};
 
@@ -293,7 +293,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem defaultDTVModel
 	{
 		"DTV Model", &defaultFace(),
-		optionDTVModel,
+		optionDTVModel.val,
 		defaultDTVModelItem
 	};
 
@@ -308,7 +308,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem defaultC128Model
 	{
 		"C128 Model", &defaultFace(),
-		optionC128Model,
+		optionC128Model.val,
 		defaultC128ModelItem
 	};
 
@@ -330,7 +330,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem defaultSuperCPUModel
 	{
 		"C64 SuperCPU Model", &defaultFace(),
-		optionSuperCPUModel,
+		optionSuperCPUModel.val,
 		defaultSuperCPUModelItem
 	};
 
@@ -350,7 +350,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem defaultCBM2Model
 	{
 		"CBM-II 6x0 Model", &defaultFace(),
-		optionCBM2Model - 2,
+		optionCBM2Model.val - 2,
 		defaultCBM2ModelItem
 	};
 
@@ -363,7 +363,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem defaultCBM5x0Model
 	{
 		"CBM-II 5x0 Model", &defaultFace(),
-		optionCBM5x0Model,
+		optionCBM5x0Model.val,
 		defaultCBM5x0ModelItem
 	};
 
@@ -386,7 +386,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem defaultPetModel
 	{
 		"PET Model", &defaultFace(),
-		optionPETModel,
+		optionPETModel.val,
 		defaultPETModelItem
 	};
 
@@ -403,7 +403,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem defaultPlus4Model
 	{
 		"Plus/4 Model", &defaultFace(),
-		optionPlus4Model,
+		optionPlus4Model.val,
 		defaultPlus4ModelItem
 	};
 
@@ -417,7 +417,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem defaultVIC20Model
 	{
 		"VIC-20 Model", &defaultFace(),
-		optionVIC20Model,
+		optionVIC20Model.val,
 		defaultVIC20ModelItem
 	};
 

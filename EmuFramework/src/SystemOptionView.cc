@@ -98,18 +98,18 @@ BiosSelectMenu::BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS
 	assert(biosPathStr);
 }
 
-TextMenuItem::SelectDelegate SystemOptionView::setAutoSaveStateDel(int val)
+TextMenuItem::SelectDelegate SystemOptionView::setAutoSaveStateDel()
 {
-	return [this, val]()
+	return [this](TextMenuItem &item)
 	{
-		app().autoSaveStateOption() = val;
-		logMsg("set auto-savestate:%u", val);
+		app().autoSaveStateOption() = item.id();
+		logMsg("set auto-savestate:%u", item.id());
 	};
 }
 
-TextMenuItem::SelectDelegate SystemOptionView::setFastForwardSpeedDel(int val)
+TextMenuItem::SelectDelegate SystemOptionView::setFastForwardSpeedDel()
 {
-	return [this, val]() { app().fastForwardSpeedOption() = val; };
+	return [this](TextMenuItem &item) { app().fastForwardSpeedOption() = item.id(); };
 }
 
 static auto makePathMenuEntryStr(IG::ApplicationContext ctx, std::string_view savePath)
@@ -140,24 +140,15 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"System Options", attach, item},
 	autoSaveStateItem
 	{
-		{"Off",       &defaultFace(), setAutoSaveStateDel(0)},
-		{"Game Exit", &defaultFace(), setAutoSaveStateDel(1)},
-		{"15mins",    &defaultFace(), setAutoSaveStateDel(15)},
-		{"30mins",    &defaultFace(), setAutoSaveStateDel(30)}
+		{"Off",       &defaultFace(), setAutoSaveStateDel(), 0},
+		{"Game Exit", &defaultFace(), setAutoSaveStateDel(), 1},
+		{"15mins",    &defaultFace(), setAutoSaveStateDel(), 15},
+		{"30mins",    &defaultFace(), setAutoSaveStateDel(), 30},
 	},
 	autoSaveState
 	{
 		"Auto-save State", &defaultFace(),
-		[this]()
-		{
-			switch(app().autoSaveStateOption().val)
-			{
-				default: return 0;
-				case 1: return 1;
-				case 15: return 2;
-				case 30: return 3;
-			}
-		}(),
+		(MenuItem::Id)app().autoSaveStateOption().val,
 		autoSaveStateItem
 	},
 	confirmAutoLoadState
@@ -260,39 +251,29 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fastForwardSpeedItem
 	{
-		{"2x", &defaultFace(), setFastForwardSpeedDel(2)},
-		{"3x", &defaultFace(), setFastForwardSpeedDel(3)},
-		{"4x", &defaultFace(), setFastForwardSpeedDel(4)},
-		{"5x", &defaultFace(), setFastForwardSpeedDel(5)},
-		{"6x", &defaultFace(), setFastForwardSpeedDel(6)},
-		{"7x", &defaultFace(), setFastForwardSpeedDel(7)},
+		{"2x", &defaultFace(), setFastForwardSpeedDel(), 2},
+		{"3x", &defaultFace(), setFastForwardSpeedDel(), 3},
+		{"4x", &defaultFace(), setFastForwardSpeedDel(), 4},
+		{"5x", &defaultFace(), setFastForwardSpeedDel(), 5},
+		{"6x", &defaultFace(), setFastForwardSpeedDel(), 6},
+		{"7x", &defaultFace(), setFastForwardSpeedDel(), 7},
 	},
 	fastForwardSpeed
 	{
 		"Fast Forward Speed", &defaultFace(),
-		[this]() -> int
-		{
-			auto &optionFastForwardSpeed = app().fastForwardSpeedOption();
-			if(optionFastForwardSpeed >= MIN_FAST_FORWARD_SPEED && optionFastForwardSpeed <= 7)
-			{
-				return optionFastForwardSpeed - MIN_FAST_FORWARD_SPEED;
-			}
-			return 0;
-		}(),
+		(MenuItem::Id)app().fastForwardSpeedOption().val,
 		fastForwardSpeedItem
-	}
-	#if defined __ANDROID__
-	,performanceMode
+	},
+	performanceMode
 	{
 		"Performance Mode", &defaultFace(),
-		(bool)optionSustainedPerformanceMode,
+		(bool)app().sustainedPerformanceModeOption(),
 		"Normal", "Sustained",
 		[this](BoolMenuItem &item)
 		{
-			optionSustainedPerformanceMode = item.flipBoolValue(*this);
+			app().sustainedPerformanceModeOption() = item.flipBoolValue(*this);
 		}
 	}
-	#endif
 {
 	if(!customMenu)
 	{
@@ -308,10 +289,8 @@ void SystemOptionView::loadStockItems()
 	savePath.setName(makePathMenuEntryStr(appContext(), EmuSystem::userSaveDirectory()));
 	item.emplace_back(&savePath);
 	item.emplace_back(&fastForwardSpeed);
-	#ifdef __ANDROID__
-	if(!optionSustainedPerformanceMode.isConst)
+	if(used(performanceMode))
 		item.emplace_back(&performanceMode);
-	#endif
 }
 
 void SystemOptionView::onSavePathChange(std::string_view path)
