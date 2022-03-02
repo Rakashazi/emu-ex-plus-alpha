@@ -18,6 +18,7 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
+#include "Palette.hh"
 #include "internal.hh"
 #include <resample/resamplerinfo.h>
 

@@ -13,338 +13,353 @@
 	You should have received a copy of the GNU General Public License
 	along with GBC.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <main/Palette.hh>
+#include "Palette.hh"
 #include <imagine/util/string.h>
+#include <array>
 
 namespace EmuEx
 {
 
 #define PACK15_4(c0, c1, c2, c3) {c0, c1, c2, c3}
 
-static GBPalette const p005 = {
+constexpr GBPalette p005 = {
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000)
 };
 
-static GBPalette const p006 = {
+constexpr GBPalette p006 = {
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000)
 };
 
-static GBPalette const p007 = {
+constexpr GBPalette p007 = {
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0xFF0000, 0x000000)
 };
 
-static GBPalette const p008 = {
+constexpr GBPalette p008 = {
 	PACK15_4(0xA59CFF, 0xFFFF00, 0x006300, 0x000000),
 	PACK15_4(0xA59CFF, 0xFFFF00, 0x006300, 0x000000),
 	PACK15_4(0xA59CFF, 0xFFFF00, 0x006300, 0x000000)
 };
 
-static GBPalette const p012 = {
+constexpr GBPalette p012 = {
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000)
 };
 
-static GBPalette const p013 = {
+constexpr GBPalette p013 = {
 	PACK15_4(0x000000, 0x008484, 0xFFDE00, 0xFFFFFF),
 	PACK15_4(0x000000, 0x008484, 0xFFDE00, 0xFFFFFF),
 	PACK15_4(0x000000, 0x008484, 0xFFDE00, 0xFFFFFF)
 };
 
-static GBPalette const p016 = {
+constexpr GBPalette p016 = {
 	PACK15_4(0xFFFFFF, 0xA5A5A5, 0x525252, 0x000000),
 	PACK15_4(0xFFFFFF, 0xA5A5A5, 0x525252, 0x000000),
 	PACK15_4(0xFFFFFF, 0xA5A5A5, 0x525252, 0x000000)
 };
 
-static GBPalette const p017 = {
+constexpr GBPalette p017 = {
 	PACK15_4(0xFFFFA5, 0xFF9494, 0x9494FF, 0x000000),
 	PACK15_4(0xFFFFA5, 0xFF9494, 0x9494FF, 0x000000),
 	PACK15_4(0xFFFFA5, 0xFF9494, 0x9494FF, 0x000000)
 };
 
-static GBPalette const p01B = {
+constexpr GBPalette p01B = {
 	PACK15_4(0xFFFFFF, 0xFFCE00, 0x9C6300, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFCE00, 0x9C6300, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFCE00, 0x9C6300, 0x000000)
 };
 
-static GBPalette const p100 = {
+constexpr GBPalette p100 = {
 	PACK15_4(0xFFFFFF, 0xADAD84, 0x42737B, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF7300, 0x944200, 0x000000),
 	PACK15_4(0xFFFFFF, 0xADAD84, 0x42737B, 0x000000)
 };
 
-static GBPalette const p10B = {
+constexpr GBPalette p10B = {
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static GBPalette const p10D = {
+constexpr GBPalette p10D = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000)
 };
 
-static GBPalette const p110 = {
+constexpr GBPalette p110 = {
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static GBPalette const p11C = {
+constexpr GBPalette p11C = {
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x0063C5, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x0063C5, 0x000000)
 };
 
-static GBPalette const p20B = {
+constexpr GBPalette p20B = {
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static GBPalette const p20C = {
+constexpr GBPalette p20C = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFC542, 0xFFD600, 0x943A00, 0x4A0000)
 };
 
-static GBPalette const p300 = {
+constexpr GBPalette p300 = {
 	PACK15_4(0xFFFFFF, 0xADAD84, 0x42737B, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF7300, 0x944200, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF7300, 0x944200, 0x000000)
 };
 
-static GBPalette const p304 = {
+constexpr GBPalette p304 = {
 	PACK15_4(0xFFFFFF, 0x7BFF00, 0xB57300, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static GBPalette const p305 = {
+constexpr GBPalette p305 = {
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static GBPalette const p306 = {
+constexpr GBPalette p306 = {
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static GBPalette const p308 = {
+constexpr GBPalette p308 = {
 	PACK15_4(0xA59CFF, 0xFFFF00, 0x006300, 0x000000),
 	PACK15_4(0xFF6352, 0xD60000, 0x630000, 0x000000),
 	PACK15_4(0xFF6352, 0xD60000, 0x630000, 0x000000)
 };
 
-static GBPalette const p30A = {
+constexpr GBPalette p30A = {
 	PACK15_4(0xB5B5FF, 0xFFFF94, 0xAD5A42, 0x000000),
 	PACK15_4(0x000000, 0xFFFFFF, 0xFF8484, 0x943A3A),
 	PACK15_4(0x000000, 0xFFFFFF, 0xFF8484, 0x943A3A)
 };
 
-static GBPalette const p30C = {
+constexpr GBPalette p30C = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFC542, 0xFFD600, 0x943A00, 0x4A0000),
 	PACK15_4(0xFFC542, 0xFFD600, 0x943A00, 0x4A0000)
 };
 
-static GBPalette const p30D = {
+constexpr GBPalette p30D = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static GBPalette const p30E = {
+constexpr GBPalette p30E = {
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static GBPalette const p30F = {
+constexpr GBPalette p30F = {
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static GBPalette const p312 = {
+constexpr GBPalette p312 = {
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000)
 };
 
-static GBPalette const p319 = {
+constexpr GBPalette p319 = {
 	PACK15_4(0xFFE6C5, 0xCE9C84, 0x846B29, 0x5A3108),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000)
 };
 
-static GBPalette const p31C = {
+constexpr GBPalette p31C = {
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x0063C5, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static GBPalette const p405 = {
+constexpr GBPalette p405 = {
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x52FF00, 0xFF4200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x5ABDFF, 0xFF0000, 0x0000FF)
 };
 
-static GBPalette const p406 = {
+constexpr GBPalette p406 = {
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF9C00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0x5ABDFF, 0xFF0000, 0x0000FF )
 };
 
-static GBPalette const p407 = {
+constexpr GBPalette p407 = {
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0xFF0000, 0x000000),
 	PACK15_4(0xFFFFFF, 0x5ABDFF, 0xFF0000, 0x0000FF)
 };
 
-static GBPalette const p500 = {
+constexpr GBPalette p500 = {
 	PACK15_4(0xFFFFFF, 0xADAD84, 0x42737B, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF7300, 0x944200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x5ABDFF, 0xFF0000, 0x0000FF)
 };
 
-static GBPalette const p501 = {
+constexpr GBPalette p501 = {
 	PACK15_4(0xFFFF9C, 0x94B5FF, 0x639473, 0x003A3A),
 	PACK15_4(0xFFC542, 0xFFD600, 0x943A00, 0x4A0000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static GBPalette const p502 = {
+constexpr GBPalette p502 = {
 	PACK15_4(0x6BFF00, 0xFFFFFF, 0xFF524A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFFFFF, 0x63A5FF, 0x0000FF),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000)
 };
 
-static GBPalette const p503 = {
+constexpr GBPalette p503 = {
 	PACK15_4(0x52DE00, 0xFF8400, 0xFFFF00, 0xFFFFFF),
 	PACK15_4(0xFFFFFF, 0xFFFFFF, 0x63A5FF, 0x0000FF),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000)
 };
 
-static GBPalette const p508 = {
+constexpr GBPalette p508 = {
 	PACK15_4(0xA59CFF, 0xFFFF00, 0x006300, 0x000000),
 	PACK15_4(0xFF6352, 0xD60000, 0x630000, 0x000000),
 	PACK15_4(0x0000FF, 0xFFFFFF, 0xFFFF7B, 0x0084FF)
 };
 
-static GBPalette const p509 = {
+constexpr GBPalette p509 = {
 	PACK15_4(0xFFFFCE, 0x63EFEF, 0x9C8431, 0x5A5A5A),
 	PACK15_4(0xFFFFFF, 0xFF7300, 0x944200, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static GBPalette const p50B = {
+constexpr GBPalette p50B = {
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFFF7B, 0x0084FF, 0xFF0000)
 };
 
-static GBPalette const p50C = {
+constexpr GBPalette p50C = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFC542, 0xFFD600, 0x943A00, 0x4A0000),
 	PACK15_4(0xFFFFFF, 0x5ABDFF, 0xFF0000, 0x0000FF)
 };
 
-static GBPalette const p50D = {
+constexpr GBPalette p50D = {
 	PACK15_4(0xFFFFFF, 0x8C8CDE, 0x52528C, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000)
 };
 
-static GBPalette const p50E = {
+constexpr GBPalette p50E = {
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static GBPalette const p50F = {
+constexpr GBPalette p50F = {
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000)
 };
 
-static GBPalette const p510 = {
+constexpr GBPalette p510 = {
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static GBPalette const p511 = {
+constexpr GBPalette p511 = {
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x00FF00, 0x318400, 0x004A00),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static GBPalette const p512 = {
+constexpr GBPalette p512 = {
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static GBPalette const p514 = {
+constexpr GBPalette p514 = {
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFF00, 0xFF0000, 0x630000, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000)
 };
 
-static GBPalette const p515 = {
+constexpr GBPalette p515 = {
 	PACK15_4(0xFFFFFF, 0xADAD84, 0x42737B, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFFAD63, 0x843100, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-static GBPalette const p518 = {
+constexpr GBPalette p518 = {
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000)
 };
 
-static GBPalette const p51A = {
+constexpr GBPalette p51A = {
 	PACK15_4(0xFFFFFF, 0xFFFF00, 0x7B4A00, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000),
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x008400, 0x000000)
 };
 
-static GBPalette const p51C = {
+constexpr GBPalette p51C = {
 	PACK15_4(0xFFFFFF, 0x7BFF31, 0x0063C5, 0x000000),
 	PACK15_4(0xFFFFFF, 0xFF8484, 0x943A3A, 0x000000),
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-struct GbcPaletteEntry { std::string_view title; GBPalette const &p; };
-
-static GbcPaletteEntry const gbcDirPalettes[] = {
-	{ "GBC - Blue", p518 },
-	{ "GBC - Brown", p012 },
-	{ "GBC - Dark Blue", p50D },
-	{ "GBC - Dark Brown", p319 },
-	{ "GBC - Dark Green", p31C },
-	{ "GBC - Grayscale", p016 },
-	{ "GBC - Green", p005 },
-	{ "GBC - Inverted", p013 },
-	{ "GBC - Orange", p007 },
-	{ "GBC - Pastel Mix", p017 },
-	{ "GBC - Red", p510 },
-	{ "GBC - Yellow", p51A },
+constexpr GBPalette originalPal = {
+	{0xD7E894, 0xAEC440, 0x527F39, 0x204631},
+	{0xD7E894, 0xAEC440, 0x527F39, 0x204631},
+	{0xD7E894, 0xAEC440, 0x527F39, 0x204631},
 };
 
-static GbcPaletteEntry const gbcTitlePalettes[] = {
+constexpr std::array<GBPalette, gbNumPalettes> gbcDirPalettes
+{
+	originalPal, // Original Green-scale
+	p012, // Brown
+	p510, // Red
+	p319, // Dark Brown
+	p017, // Pastel Mix
+	p007, // Orange
+	p51A, // Yellow
+	p518, // Blue
+	p50D, // Dark Blue
+	p016, // Grayscale
+	p005, // Green
+	p31C, // Dark Green
+	p013, // Inverted
+};
+
+std::span<const GBPalette, gbNumPalettes> gbPalettes()
+{
+	return gbcDirPalettes;
+}
+
+struct GbcPaletteEntry { std::string_view title; GBPalette const &p; };
+
+constexpr GbcPaletteEntry gbcTitlePalettes[]
+{
 	{ "ALLEY WAY", p008 },
 	{ "ASTEROIDS/MISCMD", p30E },
 	{ "BA.TOSHINDEN", p50F },

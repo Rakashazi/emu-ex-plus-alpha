@@ -82,14 +82,14 @@ static uint_least32_t makeOutputColor(uint_least32_t rgb888)
 
 void applyGBPalette()
 {
-	unsigned idx = optionGBPal;
-	assert(idx < std::size(gbPal));
+	size_t idx = optionGBPal;
+	assert(idx < gbPalettes().size());
 	bool useBuiltin = optionUseBuiltinGBPalette && gameBuiltinPalette;
 	if(useBuiltin)
 		logMsg("using built-in game palette");
 	else
-		logMsg("using palette index %d", idx);
-	const GBPalette &pal = useBuiltin ? *gameBuiltinPalette : gbPal[idx];
+		logMsg("using palette index:%zu", idx);
+	const GBPalette &pal = useBuiltin ? *gameBuiltinPalette : gbPalettes()[idx];
 	iterateTimes(4, i)
 		gbEmu.setDmgPaletteColor(0, i, makeOutputColor(pal.bg[i]));
 	iterateTimes(4, i)

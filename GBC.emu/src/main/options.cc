@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include "internal.hh"
+#include "Palette.hh"
 
 namespace EmuEx
 {
@@ -35,7 +36,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
-Byte1Option optionGBPal{CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<std::size(gbPal)-1>};
+Byte1Option optionGBPal{CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<gbNumPalettes-1>};
 Byte1Option optionUseBuiltinGBPalette{CFGKEY_USE_BUILTIN_GB_PAL, 1};
 Byte1Option optionReportAsGba{CFGKEY_REPORT_AS_GBA, 0};
 Byte1Option optionAudioResampler{CFGKEY_AUDIO_RESAMPLER, 1};
