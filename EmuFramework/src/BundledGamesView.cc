@@ -38,7 +38,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 		}
 	}
 {
-	auto &info = EmuSystem::bundledGameInfo(0);
+	auto &info = system().bundledGameInfo(0);
 	game[0] = {info.displayName, &defaultFace(),
 		[this, &info](const Input::Event &e)
 		{
@@ -56,7 +56,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 		}};
 }
 
-[[gnu::weak]] const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx)
+[[gnu::weak]] const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx) const
 {
 	static const BundledGameInfo info[]
 	{

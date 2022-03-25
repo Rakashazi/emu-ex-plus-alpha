@@ -41,7 +41,7 @@ struct TurboInput
 	constexpr TurboInput() {}
 	void addEvent(unsigned action);
 	void removeEvent(unsigned action);
-	void update(EmuApp *);
+	void update(EmuApp &);
 };
 
 }

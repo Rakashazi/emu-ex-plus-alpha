@@ -5,6 +5,7 @@
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include "internal.hh"
 #include <sys/stat.h>
 #include <snes9x.h>
@@ -135,6 +136,7 @@ const char *S9xGetFilename(const char *ex)
 #endif
 {
 	bool isRomDir{};
+	auto &sys = EmuEx::gSystem();
 	#ifndef SNES9X_VERSION_1_4
 	if(dirtype == ROMFILENAME_DIR)
 	{
@@ -142,9 +144,9 @@ const char *S9xGetFilename(const char *ex)
 	}
 	#endif
 	if(isRomDir)
-		globalPath = EmuSystem::contentSaveFilePath(appCtx, ex);
+		globalPath = sys.contentSaveFilePath(ex);
 	else
-		globalPath = EmuSystem::contentSaveFilePath(appCtx, ex);
+		globalPath = sys.contentSaveFilePath(ex);
 	//logMsg("built s9x path:%s", globalPath.c_str());
 	return globalPath.c_str();
 }
@@ -156,6 +158,7 @@ const char *S9xGetFullFilename(const char *name)
 #endif
 {
 	bool isRomDir{};
+	auto &sys = EmuEx::gSystem();
 	#ifndef SNES9X_VERSION_1_4
 	if(dirtype == ROMFILENAME_DIR)
 	{
@@ -163,9 +166,9 @@ const char *S9xGetFullFilename(const char *name)
 	}
 	#endif
 	if(isRomDir)
-		globalPath = EmuSystem::contentDirectory(appCtx, name);
+		globalPath = sys.contentDirectory(name);
 	else
-		globalPath = EmuSystem::contentSavePath(appCtx, name);
+		globalPath = sys.contentSavePath(name);
 	//logMsg("built s9x path:%s", globalPath.c_str());
 	return globalPath.c_str();
 }
@@ -288,18 +291,18 @@ void S9xCloseSnapshotFile(STREAM file)
 
 FILE *fopenHelper(const char* filename, const char* mode)
 {
-	return IG::FileUtils::fopenUri(appCtx, filename, mode);
+	return IG::FileUtils::fopenUri(EmuEx::gAppContext(), filename, mode);
 }
 
 void removeFileHelper(const char* filename)
 {
-	EmuEx::appCtx.removeFileUri(filename);
+	EmuEx::gAppContext().removeFileUri(filename);
 }
 
 gzFile gzopenHelper(const char *filename, const char *mode)
 {
 	unsigned openFlags = IG::stringContains(mode, 'w') ? IG::IO::OPEN_CREATE : 0;
-	return gzdopen(appCtx.openFileUriFd(filename, openFlags | IG::IO::OPEN_TEST).release(), mode);
+	return gzdopen(gAppContext().openFileUriFd(filename, openFlags | IG::IO::OPEN_TEST).release(), mode);
 }
 
 // from logger.h

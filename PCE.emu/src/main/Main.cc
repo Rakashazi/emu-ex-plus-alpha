@@ -45,7 +45,7 @@ alignas(8) static uint32_t pixBuff[vidBufferX*vidBufferY]{};
 static IG::Pixmap mSurfacePix;
 std::array<uint16, 5> inputBuff{}; // 5 gamepad buffers
 static bool prevUsing263Lines = false;
-IG::ApplicationContext appCtx{};
+bool EmuApp::needsGlobalInstance = true;
 
 bool hasHuCardExtension(std::string_view name)
 {
@@ -62,12 +62,12 @@ static bool hasPCEWithCDExtension(std::string_view name)
 	return hasHuCardExtension(name) || hasCDExtension(name);
 }
 
-const char *EmuSystem::shortSystemName()
+const char *EmuSystem::shortSystemName() const
 {
 	return "PCE-TG16";
 }
 
-const char *EmuSystem::systemName()
+const char *EmuSystem::systemName() const
 {
 	return "PC Engine (TurboGrafx-16)";
 }
@@ -75,9 +75,9 @@ const char *EmuSystem::systemName()
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasHuCardExtension;
 
-void EmuSystem::saveBackupMem(IG::ApplicationContext ctx) // for manually saving when not closing game
+void EmuSystem::saveBackupMem() // for manually saving when not closing game
 {
-	if(gameIsRunning())
+	if(hasContent())
 	{
 		logMsg("saving backup memory");
 		// TODO: fix iOS permissions if needed
@@ -95,12 +95,12 @@ static char saveSlotCharPCE(int slot)
 	}
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.{}.nc{}", name, md5_context::asciistr(MDFNGameInfo->MD5, 0), saveSlotCharPCE(slot));
 }
 
-void EmuSystem::closeSystem(IG::ApplicationContext ctx)
+void EmuSystem::closeSystem()
 {
 	emuSys->CloseGame();
 	if(CDInterfaces.size())
@@ -138,7 +138,7 @@ static void writeCDMD5()
 
 unsigned EmuSystem::multiresVideoBaseX() { return 512; }
 
-void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	emuSys->name = std::string{EmuSystem::contentName()};
 	auto unloadCD = IG::scopeGuard(
@@ -157,7 +157,7 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreatePara
 		{
 			throwMissingContentDirError();
 		}
-		if(sysCardPath.empty() || !ctx.fileUriExists(sysCardPath))
+		if(sysCardPath.empty() || !appContext().fileUriExists(sysCardPath))
 		{
 			throw std::runtime_error("No System Card Set");
 		}
@@ -244,7 +244,7 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 
 void EmuSystem::reset(ResetMode mode)
 {
-	assert(gameIsRunning());
+	assert(hasContent());
 	MDFN_IEN_PCE_FAST::PCE_Power();
 }
 
@@ -271,11 +271,6 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 	view.setBackgroundGradient(navViewGrad);
-}
-
-void EmuSystem::onInit(IG::ApplicationContext ctx)
-{
-	appCtx = ctx;
 }
 
 }

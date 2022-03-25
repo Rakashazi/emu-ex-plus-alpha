@@ -73,7 +73,7 @@ void vsyncarch_refresh_frequency_changed(double rate)
 {
 	logMsg("system frame rate:%.4f", rate);
 	systemFrameRate = rate;
-	EmuApp::get(appContext).configFrameTime();
+	EmuEx::gApp().configFrameTime();
 }
 
 static bool isValidPixelFormat(IG::PixelFormat fmt)

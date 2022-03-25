@@ -15,6 +15,7 @@
 
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include "private.hh"
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
@@ -25,35 +26,37 @@ namespace EmuEx
 StateSlotView::StateSlotView(ViewAttachParams attach):
 	TableView{"State Slot", attach, stateSlot}
 {
+	auto ctx = appContext();
+	auto &sys = system();
+	bool hasContent = sys.hasContent();
 	for(auto &s : stateSlot)
 	{
 		int slot = std::distance(stateSlot, &s) - 1;
-		if(EmuSystem::gameIsRunning())
+		if(hasContent)
 		{
-			auto ctx = appContext();
-			auto saveStr = EmuSystem::statePath(ctx, slot);
+			auto saveStr = sys.statePath(slot);
 			auto modTimeStr = ctx.fileUriFormatLastWriteTimeLocal(saveStr);
 			bool fileExists = modTimeStr.size();
 			auto str = [&]()
 			{
 				if(fileExists)
-					return fmt::format("{} ({})", stateNameStr(slot), modTimeStr);
+					return fmt::format("{} ({})", sys.stateSlotName(slot), modTimeStr);
 				else
-					return fmt::format("{}", stateNameStr(slot));
+					return fmt::format("{}", sys.stateSlotName(slot));
 			};
 			s = {str(), &defaultFace(), nullptr};
 			s.setActive(fileExists);
 		}
 		else
 		{
-			s = {fmt::format("{}", stateNameStr(slot)), &defaultFace(), nullptr};
+			s = {fmt::format("{}", sys.stateSlotName(slot)), &defaultFace(), nullptr};
 			s.setActive(false);
 		}
 		s.setOnSelect(
-			[slot](View &view)
+			[&sys, slot](View &view)
 			{
-				EmuSystem::saveStateSlot = slot;
-				logMsg("set state slot:%d", EmuSystem::saveStateSlot);
+				sys.setStateSlot(slot);
+				logMsg("set state slot:%d", sys.stateSlot());
 				view.dismiss();
 			});
 	}

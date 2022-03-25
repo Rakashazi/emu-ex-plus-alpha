@@ -106,6 +106,7 @@ protected:
 	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time);
 	TextMenuItem::SelectDelegate setZoomDel();
 	TextMenuItem::SelectDelegate setViewportZoomDel();
+	TextMenuItem::SelectDelegate setFrameIntervalDel();
 	TextMenuItem::SelectDelegate setImgEffectDel();
 	TextMenuItem::SelectDelegate setOverlayEffectDel();
 	TextMenuItem::SelectDelegate setOverlayEffectLevelDel();

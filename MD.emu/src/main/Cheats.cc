@@ -389,12 +389,13 @@ void updateCheats()
 	applyCheats();
 }
 
-void writeCheatFile(IG::ApplicationContext ctx)
+void writeCheatFile(EmuSystem &sys)
 {
 	if(!cheatsModified)
 		return;
 
-	auto path = EmuSystem::contentSaveFilePath(ctx, ".pat");
+	auto ctx = sys.appContext();
+	auto path = sys.contentSaveFilePath(".pat");
 
 	if(!cheatList.size())
 	{
@@ -430,10 +431,10 @@ void writeCheatFile(IG::ApplicationContext ctx)
 	cheatsModified = false;
 }
 
-void readCheatFile(IG::ApplicationContext ctx)
+void readCheatFile(EmuSystem &sys)
 {
-	auto path = EmuSystem::contentSaveFilePath(ctx, ".pat");
-	auto file = ctx.openFileUri(path, IO::AccessHint::ALL, IO::OPEN_TEST);
+	auto path = sys.contentSaveFilePath(".pat");
+	auto file = sys.appContext().openFileUri(path, IO::AccessHint::ALL, IO::OPEN_TEST);
 	if(!file)
 	{
 		return;

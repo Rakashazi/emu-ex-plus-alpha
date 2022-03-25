@@ -7,7 +7,6 @@
 namespace EmuEx
 {
 
-extern IG::ApplicationContext appCtx;
 extern Byte1Option optionNGPLanguage;
 extern uint8_t inputBuff;
 

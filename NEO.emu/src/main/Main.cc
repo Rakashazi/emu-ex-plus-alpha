@@ -50,12 +50,7 @@ extern "C"
 		//logMsg("getting conf item %s", name);
 		static CONF_ITEM conf{};
 		std::string_view name{nameStr};
-		if(name == "rompath")
-		{
-			strncpy(rompathConfItem.data.dt_str.str, EmuSystem::contentDirectory().data(), sizeof(rompathConfItem.data.dt_str.str));
-			return &rompathConfItem;
-		}
-		else if(name == "dump")
+		if(name == "dump")
 		{
 			static CONF_ITEM dump{};
 			return &dump;
@@ -79,9 +74,18 @@ extern "C"
 		return &conf;
 	}
 
-	const char *get_gngeo_dir(void)
+	const char *get_gngeo_dir(void *contextPtr)
 	{
-		return EmuEx::EmuSystem::contentSaveDirectoryPtr();
+		auto &sys = EmuEx::EmuApp::get(*(IG::ApplicationContext*)contextPtr).system();
+		return sys.contentSaveDirectoryPtr();
+	}
+
+	PathArray get_rom_path(void *contextPtr)
+	{
+		auto &sys = EmuEx::EmuApp::get(*(IG::ApplicationContext*)contextPtr).system();
+		PathArray path;
+		strncpy(path.data, sys.contentDirectory().data(), sizeof(path));
+		return path;
 	}
 }
 
@@ -102,12 +106,12 @@ static const int FBResX = 352;
 static constexpr IG::Pixmap srcPix{{{304, 224}, pixFmt}, screenBuff + (16*FBResX) + (24), {FBResX, IG::Pixmap::Units::PIXEL}};
 static EmuSystem::OnLoadProgressDelegate onLoadProgress{};
 
-const char *EmuSystem::shortSystemName()
+const char *EmuSystem::shortSystemName() const
 {
 	return "NeoGeo";
 }
 
-const char *EmuSystem::systemName()
+const char *EmuSystem::systemName() const
 {
 	return "Neo Geo";
 }
@@ -122,19 +126,20 @@ EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasNeoGeoExtensi
 
 void EmuSystem::reset(ResetMode mode)
 {
-	assert(gameIsRunning());
+	assert(hasContent());
 	neogeo_reset();
 	cpu_z80_init();
 	YM2610Reset();
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotCharUpper(slot));
 }
 
-void EmuSystem::saveState(IG::ApplicationContext ctx, IG::CStringView path)
+void EmuSystem::saveState(IG::CStringView path)
 {
+	auto ctx = appContext();
 	if(!save_stateWithName(&ctx, path))
 		return EmuSystem::throwFileWriteError();
 }
@@ -146,27 +151,27 @@ void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 		return EmuSystem::throwFileReadError();
 }
 
-static auto nvramPath(IG::ApplicationContext ctx)
+static auto nvramPath(EmuSystem &sys)
 {
-	return EmuSystem::contentSaveFilePath(ctx, ".nv");
+	return sys.contentSaveFilePath(".nv");
 }
 
-static auto memcardPath(IG::ApplicationContext ctx)
+static auto memcardPath(EmuSystem &sys)
 {
-	return EmuSystem::contentSavePath(ctx, "memcard");
+	return sys.contentSavePath("memcard");
 }
 
-void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
+void EmuSystem::saveBackupMem()
 {
-	if(!gameIsRunning())
+	if(!hasContent())
 		return;
-	FileUtils::writeToUri(ctx, nvramPath(ctx), {memory.sram, 0x10000});
-	FileUtils::writeToUri(ctx, memcardPath(ctx), {memory.memcard, 0x800});
+	FileUtils::writeToUri(appContext(), nvramPath(*this), {memory.sram, 0x10000});
+	FileUtils::writeToUri(appContext(), memcardPath(*this), {memory.memcard, 0x800});
 }
 
-void EmuSystem::closeSystem(IG::ApplicationContext ctx)
+void EmuSystem::closeSystem()
 {
-	saveBackupMem(ctx);
+	saveBackupMem();
 	close_game();
 }
 
@@ -179,7 +184,7 @@ static auto openGngeoDataIO(IG::ApplicationContext ctx, IG::CStringView filename
 	#endif
 }
 
-void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgressFunc)
+void EmuSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgressFunc)
 {
 	if(contentDirectory().empty())
 	{
@@ -187,6 +192,7 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams
 	}
 	onLoadProgress = onLoadProgressFunc;
 	auto resetOnLoadProgress = IG::scopeGuard([&](){ onLoadProgress = {}; });
+	auto ctx = appContext();
 	ROM_DEF *drv = res_load_drv(&ctx, contentName().data());
 	if(!drv)
 	{
@@ -194,7 +200,7 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams
 	}
 	auto freeDrv = IG::scopeGuard([&](){ free(drv); });
 	logMsg("rom set %s, %s", drv->name, drv->longname);
-	auto gnoFilename = EmuSystem::contentSaveFilePath(ctx, ".gno");
+	auto gnoFilename = EmuSystem::contentSaveFilePath(".gno");
 	if(optionCreateAndUseCache && ctx.fileUriExists(gnoFilename))
 	{
 		logMsg("loading .gno file");
@@ -219,7 +225,7 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams
 		}
 	}
 	EmuSystem::setContentDisplayName(drv->longname);
-	setTimerIntOption();
+	setTimerIntOption(*this);
 	neogeo_frame_counter = 0;
 	neogeo_frame_counter_speed = 8;
 	fc = 0;
@@ -232,7 +238,7 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
 	conf.sample_rate = std::round(rate * ((60./1.001) * frameTime.count()));
-	if(gameIsRunning())
+	if(hasContent())
 	{
 		logMsg("setting YM2610 rate to %d", conf.sample_rate);
 		YM2610ChangeSamplerate(conf.sample_rate);
@@ -259,11 +265,12 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	}
 }
 
-FS::FileString EmuSystem::contentDisplayNameForPath(IG::ApplicationContext ctx, IG::CStringView path)
+FS::FileString EmuSystem::contentDisplayNameForPath(IG::CStringView path)
 {
-	auto contentName = contentDisplayNameForPathDefaultImpl(ctx, path);
+	auto contentName = contentDisplayNameForPathDefaultImpl(path);
 	if(contentName.empty())
 		return {};
+	auto ctx = appContext();
 	ROM_DEF *drv = res_load_drv(&ctx, contentName.data());
 	if(!drv)
 		return contentName;
@@ -284,7 +291,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(IG::ApplicationContext ctx)
+void EmuSystem::onInit()
 {
 	visible_area.x = 0;//16;
 	visible_area.y = 16;
@@ -299,7 +306,7 @@ void EmuSystem::onInit(IG::ApplicationContext ctx)
 	strcpy(rompathConfItem.data.dt_str.str, ".");
 	if(!Config::envIsAndroid)
 	{
-		IG::formatTo(datafilePath, "{}/gngeo_data.zip", ctx.assetPath());
+		IG::formatTo(datafilePath, "{}/gngeo_data.zip", appContext().assetPath());
 	}
 }
 
@@ -375,13 +382,15 @@ CLINK void screen_update(void *emuTaskCtxPtr, void *emuVideoPtr)
 void open_nvram(void *contextPtr, char *name)
 {
 	auto &ctx = *((IG::ApplicationContext*)contextPtr);
-	IG::FileUtils::readFromUri(ctx, EmuEx::nvramPath(ctx), {memory.sram, 0x10000});
+	auto &sys = EmuEx::EmuApp::get(ctx).system();
+	IG::FileUtils::readFromUri(ctx, EmuEx::nvramPath(sys), {memory.sram, 0x10000});
 }
 
 void open_memcard(void *contextPtr, char *name)
 {
 	auto &ctx = *((IG::ApplicationContext*)contextPtr);
-	IG::FileUtils::readFromUri(ctx, EmuEx::memcardPath(ctx), {memory.memcard, 0x800});
+	auto &sys = EmuEx::EmuApp::get(ctx).system();
+	IG::FileUtils::readFromUri(ctx, EmuEx::memcardPath(sys), {memory.memcard, 0x800});
 }
 
 void gn_init_pbar(unsigned action, int size)

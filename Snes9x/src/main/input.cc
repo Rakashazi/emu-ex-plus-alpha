@@ -147,14 +147,14 @@ void EmuSystem::clearInputBuffers(EmuInputView &view)
 	mousePointerId = Input::NULL_POINTER_ID;
 }
 
-void setupSNESInput(VController &vCtrl)
+void setupSNESInput(EmuSystem &sys, VController &vCtrl)
 {
 	#ifndef SNES9X_VERSION_1_4
 	int inputSetup = snesInputPort;
 	if(inputSetup == SNES_AUTO_INPUT)
 	{
 		inputSetup = SNES_JOYPAD;
-		if(EmuSystem::gameIsRunning() && !strncmp((const char *) Memory.NSRTHeader + 24, "NSRT", 4))
+		if(sys.hasContent() && !strncmp((const char *) Memory.NSRTHeader + 24, "NSRT", 4))
 		{
 			switch (Memory.NSRTHeader[29])
 			{

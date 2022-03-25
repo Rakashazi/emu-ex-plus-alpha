@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuVideoLayer.hh>
+#include <emuframework/EmuSystem.hh>
 #include <imagine/input/Input.hh>
 #include <algorithm>
 
@@ -23,9 +24,10 @@ namespace EmuEx
 
 EmuView::EmuView() {}
 
-EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer):
+EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer, EmuSystem &sys):
 	View{attach},
-	layer{layer}
+	layer{layer},
+	sysPtr{&sys}
 {}
 
 void EmuView::prepareDraw()
@@ -38,7 +40,7 @@ void EmuView::prepareDraw()
 void EmuView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
-	if(layer)
+	if(layer && system().isStarted())
 	{
 		layer->draw(cmds, projP);
 	}
@@ -61,7 +63,7 @@ void EmuView::place()
 {
 	if(layer)
 	{
-		layer->place(viewRect(), projP, inputView);
+		layer->place(viewRect(), projP, inputView, system());
 	}
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	if(audioStatsText.compile(renderer(), projP))

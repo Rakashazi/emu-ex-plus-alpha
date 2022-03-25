@@ -92,7 +92,7 @@ class CustomVideoOptionView : public VideoOptionView
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			optionFullGbcSaturation = item.flipBoolValue(*this);
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				gbEmu.refreshPalettes();
 			}
@@ -117,7 +117,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		(bool)optionUseBuiltinGBPalette,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionUseBuiltinGBPalette = item.flipBoolValue(*this);
 			applyGBPalette();
 		}
@@ -129,7 +129,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		(bool)optionReportAsGba,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionReportAsGba = item.flipBoolValue(*this);
 			app().promptSystemReloadDueToSetOption(attachParams(), e);
 		}
@@ -159,7 +159,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		"Console Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				pushAndShow(makeView<ConsoleOptionView>(), e);
 			}

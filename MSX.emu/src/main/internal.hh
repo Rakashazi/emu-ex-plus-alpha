@@ -34,16 +34,14 @@ extern unsigned activeBoardType;
 extern BoardInfo boardInfo;
 extern bool fdcActive;
 extern Mixer *mixer;
-extern IG::ApplicationContext appCtx;
 
-void installFirmwareFiles(IG::ApplicationContext);
 FS::PathString makeMachineBasePath(IG::ApplicationContext, FS::PathString customPath);
 bool hasMSXTapeExtension(std::string_view name);
 bool hasMSXDiskExtension(std::string_view name);
 bool hasMSXROMExtension(std::string_view name);
 bool insertROM(EmuApp &, const char *name, unsigned slot = 0);
 bool insertDisk(EmuApp &, const char *name, unsigned slot = 0);
-FS::PathString machineBasePath(IG::ApplicationContext app);
+FS::PathString machineBasePath(EmuSystem &);
 void setupVKeyboardMap(EmuApp &, unsigned boardType);
 bool setDefaultMachineName(const char *name);
 const char *currentMachineName();

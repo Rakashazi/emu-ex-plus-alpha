@@ -12,6 +12,7 @@ namespace EmuEx
 {
 
 class EmuApp;
+class EmuSystem;
 
 enum class PaddleRegionMode : uint8_t
 {
@@ -35,7 +36,7 @@ extern std::optional<OSystem> osystem;
 extern Controller::Type autoDetectedInput1;
 
 const char *optionVideoSystemToStr();
-void setRuntimeTVPhosphor(int val, int blend);
+void setRuntimeTVPhosphor(EmuSystem &, int val, int blend);
 void setControllerType(EmuApp &, Console &console, Controller::Type type);
 Controller::Type limitToSupportedControllerTypes(Controller::Type type);
 const char *controllerTypeStr(Controller::Type type);

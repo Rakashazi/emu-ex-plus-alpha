@@ -17,10 +17,12 @@
 
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/base/baseDefs.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/audio/SampleFormat.hh>
 #include <imagine/util/rectangle2.h>
 #include <emuframework/config.hh>
+#include <emuframework/EmuTiming.hh>
 #include <optional>
 #include <string>
 
@@ -109,11 +111,11 @@ public:
 	};
 
 	using OnLoadProgressDelegate = IG::DelegateFunc<bool(int pos, int max, const char *label)>;
-
 	using NameFilterFunc = bool(*)(std::string_view name);
-	static State state;
-	static int saveStateSlot;
-	static unsigned aspectRatioX, aspectRatioY;
+	enum VideoSystem { VIDSYS_NATIVE_NTSC, VIDSYS_PAL };
+	enum ResetMode { RESET_HARD, RESET_SOFT };
+
+	// Static system configuration
 	static const unsigned maxPlayers;
 	static const AspectRatioInfo aspectRatioInfo[];
 	static const unsigned aspectRatioInfos;
@@ -128,16 +130,9 @@ public:
 	static bool inputHasShortBtnTexture;
 	static bool hasBundledGames;
 	static bool hasPALVideoSystem;
-	enum VideoSystem { VIDSYS_NATIVE_NTSC, VIDSYS_PAL };
-	static IG::FloatSeconds frameTimeNative;
-	static IG::FloatSeconds frameTimePAL;
 	static bool canRenderRGB565;
 	static bool canRenderRGBA8888;
-	static double audioFramesPerVideoFrameFloat;
-	static double currentAudioFramesPerVideoFrame;
-	static uint32_t audioFramesPerVideoFrame;
 	static bool hasResetModes;
-	enum ResetMode { RESET_HARD, RESET_SOFT };
 	static bool handlesArchiveFiles;
 	static bool handlesGenericIO;
 	static bool hasCheats;
@@ -148,140 +143,156 @@ public:
 	static NameFilterFunc defaultFsFilter;
 	static NameFilterFunc defaultBenchmarkFsFilter;
 	static const char *creditsViewStr;
-	static bool sessionOptionsSet;
 	static constexpr unsigned MAX_CENTER_BTNS = 2;
 	static constexpr unsigned MAX_FACE_BTNS = 8;
 	static std::array<int, MAX_FACE_BTNS> vControllerImageMap;
 
-	static void onInit(IG::ApplicationContext);
-	static bool isActive() { return state == State::ACTIVE; }
-	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
-	static bool isPaused() { return state == State::PAUSED; }
-	static void loadState(EmuApp &, IG::CStringView uri);
-	static void loadState(IG::CStringView path);
-	static void saveState(IG::ApplicationContext, IG::CStringView uri);
-	static void saveState(IG::CStringView path);
-	static bool stateExists(IG::ApplicationContext, int slot);
-	static const char *systemName();
-	static const char *shortSystemName();
-	static const BundledGameInfo &bundledGameInfo(unsigned idx);
-	static auto contentDirectory() { return contentDirectory_; }
-	static FS::PathString contentDirectory(IG::ApplicationContext, std::string_view name);
-	static auto contentLocation() { return contentLocation_; }
-	static const char *contentLocationPtr() { return contentLocation_.data(); }
-	static FS::FileString contentName() { return contentName_; }
-	static FS::FileString contentFileName();
-	static std::string contentDisplayName();
-	static void setContentDisplayName(std::string_view name);
-	static FS::FileString contentDisplayNameForPathDefaultImpl(IG::ApplicationContext, IG::CStringView path);
-	static FS::FileString contentDisplayNameForPath(IG::ApplicationContext, IG::CStringView path);
-	static void setInitialLoadPath(IG::CStringView path);
-	static FS::PathString fallbackSaveDirectory(IG::ApplicationContext, bool create = false);
-	static FS::PathString contentSaveDirectory();
-	static FS::PathString contentSavePath(IG::ApplicationContext, std::string_view name);
-	static const char *contentSaveDirectoryPtr() { return contentSaveDirectory_.data(); }
-	static FS::PathString contentSaveFilePath(IG::ApplicationContext, std::string_view ext);
-	static FS::PathString userSaveDirectory();
-	static void setUserSaveDirectory(IG::ApplicationContext, IG::CStringView path);
-	static FS::PathString firmwarePath();
-	static void setFirmwarePath(std::string_view path);
-	static FS::FileString stateFilename(int slot, std::string_view name = EmuSystem::contentName_);
-	static FS::PathString statePath(IG::ApplicationContext, std::string_view filename, std::string_view basePath = contentSaveDirectory());
-	static FS::PathString statePath(IG::ApplicationContext, int slot, std::string_view basePath = contentSaveDirectory());
-	static void clearGamePaths();
-	static char saveSlotChar(int slot);
-	static char saveSlotCharUpper(int slot);
-	static void saveBackupMem(IG::ApplicationContext);
-	static void savePathChanged();
-	static void reset(ResetMode mode);
-	static void reset(EmuApp &, ResetMode mode);
-	static void initOptions(EmuApp &);
-	static void onOptionsLoaded(IG::ApplicationContext);
-	static void writeConfig(IO &io);
-	static bool readConfig(IO &io, unsigned key, unsigned readSize);
-	static bool resetSessionOptions(EmuApp &);
-	static void sessionOptionSet();
-	static void onSessionOptionsLoaded(EmuApp &);
-	static void writeSessionConfig(IO &io);
-	static bool readSessionConfig(IO &io, unsigned key, unsigned readSize);
-	static void createWithMedia(IG::ApplicationContext, GenericIO, IG::CStringView path,
+	EmuSystem(IG::ApplicationContext ctx): appCtx{ctx} {}
+	IG::ApplicationContext appContext() const { return appCtx; }
+	void onInit();
+	bool isActive() const { return state == State::ACTIVE; }
+	bool isStarted() const { return state == State::ACTIVE || state == State::PAUSED; }
+	bool isPaused() const { return state == State::PAUSED; }
+	void loadState(EmuApp &, IG::CStringView uri);
+	void loadState(IG::CStringView path);
+	void saveState(IG::CStringView path);
+	bool stateExists(int slot) const;
+	static std::string_view stateSlotName(int slot);
+	std::string_view stateSlotName() { return stateSlotName(stateSlot()); }
+	int stateSlot() const { return saveStateSlot; }
+	void setStateSlot(int slot) { saveStateSlot = slot; }
+	void decStateSlot() { if(--saveStateSlot < -1) saveStateSlot = 9; }
+	void incStateSlot() { if(++saveStateSlot > 9) saveStateSlot = -1; }
+	const char *systemName() const;
+	const char *shortSystemName() const;
+	const BundledGameInfo &bundledGameInfo(unsigned idx) const;
+	auto contentDirectory() const { return contentDirectory_; }
+	FS::PathString contentDirectory(std::string_view name) const;
+	auto contentLocation() const { return contentLocation_; }
+	const char *contentLocationPtr() { return contentLocation_.data(); }
+	FS::FileString contentName() const { return contentName_; }
+	FS::FileString contentFileName() const;
+	std::string contentDisplayName() const;
+	void setContentDisplayName(std::string_view name);
+	FS::FileString contentDisplayNameForPathDefaultImpl(IG::CStringView path);
+	FS::FileString contentDisplayNameForPath(IG::CStringView path);
+	void setInitialLoadPath(IG::CStringView path);
+	FS::PathString fallbackSaveDirectory(bool create = false);
+	FS::PathString contentSaveDirectory() const;
+	FS::PathString contentSavePath(std::string_view name);
+	const char *contentSaveDirectoryPtr() { return contentSaveDirectory_.data(); }
+	FS::PathString contentSaveFilePath(std::string_view ext);
+	FS::PathString userSaveDirectory() const;
+	void setUserSaveDirectory(IG::CStringView path);
+	FS::PathString firmwarePath() const;
+	void setFirmwarePath(std::string_view path);
+	FS::FileString stateFilename(int slot, std::string_view name) const;
+	FS::FileString stateFilename(int slot) const { return stateFilename(slot, contentName_); }
+	FS::PathString statePath(std::string_view filename, std::string_view basePath) const;
+	FS::PathString statePath(std::string_view filename) const;
+	FS::PathString statePath(int slot, std::string_view basePath) const;
+	FS::PathString statePath(int slot) const;
+	void clearGamePaths();
+	char saveSlotChar(int slot) const;
+	char saveSlotCharUpper(int slot) const;
+	void saveBackupMem();
+	void savePathChanged();
+	void reset(ResetMode mode);
+	void reset(EmuApp &, ResetMode mode);
+	void initOptions(EmuApp &);
+	void onOptionsLoaded();
+	void writeConfig(IO &io);
+	bool readConfig(IO &io, unsigned key, unsigned readSize);
+	bool resetSessionOptions(EmuApp &);
+	void sessionOptionSet();
+	void resetSessionOptionsSet() { sessionOptionsSet = false; }
+	bool sessionOptionsAreSet() const { return sessionOptionsSet; }
+	void onSessionOptionsLoaded(EmuApp &);
+	void writeSessionConfig(IO &io);
+	bool readSessionConfig(IO &io, unsigned key, unsigned readSize);
+	void createWithMedia(GenericIO, IG::CStringView path,
 		std::string_view displayName, EmuSystemCreateParams, OnLoadProgressDelegate);
-	static void loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
-	static void loadGame(IG::ApplicationContext, IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
-	static FS::PathString willLoadGameFromPath(IG::ApplicationContext, std::string_view path, std::string_view displayName);
-	static void loadGameFromPath(IG::ApplicationContext, IG::CStringView path, std::string_view displayName,
+	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
+	FS::PathString willLoadContentFromPath(std::string_view path, std::string_view displayName);
+	void loadContentFromPath(IG::CStringView path, std::string_view displayName,
 		EmuSystemCreateParams, OnLoadProgressDelegate);
-	static void loadGameFromFile(IG::ApplicationContext, GenericIO, IG::CStringView path, std::string_view displayName,
+	void loadContentFromFile(GenericIO, IG::CStringView path, std::string_view displayName,
 		EmuSystemCreateParams, OnLoadProgressDelegate);
-	[[gnu::hot]] static void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
-	static void renderFramebuffer(EmuVideo &);
-	static bool shouldFastForward();
-	static void onPrepareAudio(EmuAudio &);
-	static bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
-	static bool vidSysIsPAL();
-	static uint32_t updateAudioFramesPerVideoFrame();
-	static double frameRate();
-	static double frameRate(VideoSystem system);
-	static IG::FloatSeconds frameTime();
-	static IG::FloatSeconds frameTime(VideoSystem system);
+	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
+	void renderFramebuffer(EmuVideo &);
+	bool shouldFastForward();
+	void onPrepareAudio(EmuAudio &);
+	bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
+	bool vidSysIsPAL();
+	uint32_t updateAudioFramesPerVideoFrame();
+	double frameRate();
+	double frameRate(VideoSystem system);
+	IG::FloatSeconds frameTime();
+	IG::FloatSeconds frameTime(VideoSystem system);
 	static IG::FloatSeconds defaultFrameTime(VideoSystem system);
 	static bool frameTimeIsValid(VideoSystem system, IG::FloatSeconds time);
-	static bool setFrameTime(VideoSystem system, IG::FloatSeconds time);
-	static unsigned multiresVideoBaseX();
-	static unsigned multiresVideoBaseY();
-	static double videoAspectRatioScale();
-	static void configAudioRate(IG::FloatSeconds frameTime, uint32_t rate);
-	static void configAudioPlayback(EmuAudio &, uint32_t rate);
-	static void configFrameTime(uint32_t rate);
-	static void clearInputBuffers(EmuInputView &view);
-	static void handleInputAction(EmuApp *, IG::Input::Action state, unsigned emuKey);
-	static void handleInputAction(EmuApp *, IG::Input::Action state, unsigned emuKey, uint32_t metaState);
-	static unsigned translateInputAction(unsigned input, bool &turbo);
-	static unsigned translateInputAction(unsigned input)
+	bool setFrameTime(VideoSystem system, IG::FloatSeconds time);
+	unsigned multiresVideoBaseX();
+	unsigned multiresVideoBaseY();
+	double videoAspectRatioScale();
+	void configAudioRate(IG::FloatSeconds frameTime, uint32_t rate);
+	void configAudioPlayback(EmuAudio &, uint32_t rate);
+	void configFrameTime(uint32_t rate);
+	void clearInputBuffers(EmuInputView &view);
+	void handleInputAction(EmuApp *, IG::Input::Action state, unsigned emuKey);
+	void handleInputAction(EmuApp *, IG::Input::Action state, unsigned emuKey, uint32_t metaState);
+	unsigned translateInputAction(unsigned input, bool &turbo);
+	unsigned translateInputAction(unsigned input)
 	{
 		bool turbo;
 		return translateInputAction(input, turbo);
 	}
-	static bool onPointerInputStart(const Input::MotionEvent &, IG::Input::DragTrackerState, IG::WindowRect gameRect);
-	static bool onPointerInputUpdate(const Input::MotionEvent &, IG::Input::DragTrackerState current, IG::Input::DragTrackerState previous, IG::WindowRect gameRect);
-	static bool onPointerInputEnd(const Input::MotionEvent &, IG::Input::DragTrackerState, IG::WindowRect gameRect);
-	static void onVKeyboardShown(VControllerKeyboard &, bool shown);
+	bool onPointerInputStart(const Input::MotionEvent &, IG::Input::DragTrackerState, IG::WindowRect gameRect);
+	bool onPointerInputUpdate(const Input::MotionEvent &, IG::Input::DragTrackerState current, IG::Input::DragTrackerState previous, IG::WindowRect gameRect);
+	bool onPointerInputEnd(const Input::MotionEvent &, IG::Input::DragTrackerState, IG::WindowRect gameRect);
+	void onVKeyboardShown(VControllerKeyboard &, bool shown);
 	static bool inputHasTriggers();
-	static void setStartFrameTime(IG::FrameTime time);
-	static EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
-	static void setSpeedMultiplier(EmuAudio &, uint8_t speed);
-	static IG::Time benchmark(EmuVideo &video);
-	static bool gameIsRunning();
-	static void resetFrameTime();
-	static void pause(EmuApp &);
-	static void start(EmuApp &);
-	static void closeSystem(IG::ApplicationContext ctx);
-	static void closeRuntimeSystem(EmuApp &, bool allowAutosaveState = 1);
+	void setStartFrameTime(IG::FrameTime time);
+	EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
+	void setSpeedMultiplier(EmuAudio &, uint8_t speed);
+	IG::Time benchmark(EmuVideo &video);
+	bool hasContent() const;
+	void resetFrameTime();
+	void pause(EmuApp &);
+	void start(EmuApp &);
+	void closeSystem();
+	void closeRuntimeSystem(EmuApp &, bool allowAutosaveState = 1);
 	static void throwFileReadError();
 	static void throwFileWriteError();
 	static void throwMissingContentDirError();
 
 protected:
-	static FS::PathString contentDirectory_; // full directory path of content on disk, if any
-	static FS::PathString contentLocation_; // full path or URI to content
-	static FS::FileString contentFileName_; // name + extension of content, inside archive if any
-	static FS::FileString contentName_; // name of content from the original location without extension
-	static std::string contentDisplayName_; // more descriptive content name set by system
-	static FS::PathString contentSaveDirectory_;
-	static FS::PathString userSaveDirectory_;
-	static FS::PathString firmwarePath_;
+	IG::ApplicationContext appCtx{};
+	EmuTiming emuTiming{};
+	IG::FloatSeconds frameTimeNative{1./60.};
+	IG::FloatSeconds frameTimePAL{1./50.};
+	double audioFramesPerVideoFrameFloat{};
+	double currentAudioFramesPerVideoFrame{};
+	uint32_t audioFramesPerVideoFrame{};
+	int saveStateSlot{};
+	State state{};
+	bool sessionOptionsSet{};
+	FS::PathString contentDirectory_{}; // full directory path of content on disk, if any
+	FS::PathString contentLocation_{}; // full path or URI to content
+	FS::FileString contentFileName_{}; // name + extension of content, inside archive if any
+	FS::FileString contentName_{}; // name of content from the original location without extension
+	std::string contentDisplayName_{}; // more descriptive content name set by system
+	FS::PathString contentSaveDirectory_{};
+	FS::PathString userSaveDirectory_{};
+	FS::PathString firmwarePath_{};
 
-	static void setupContentUriPaths(IG::ApplicationContext, IG::CStringView uri, std::string_view displayName);
-	static void setupContentFilePaths(IG::ApplicationContext, IG::CStringView filePath, std::string_view displayName);
-	static void updateContentSaveDirectory(IG::ApplicationContext);
-	static void closeAndSetupNew(IG::ApplicationContext, IG::CStringView path, std::string_view displayName);
+	void setupContentUriPaths(IG::CStringView uri, std::string_view displayName);
+	void setupContentFilePaths(IG::CStringView filePath, std::string_view displayName);
+	void updateContentSaveDirectory();
+	void closeAndSetupNew(IG::CStringView path, std::string_view displayName);
 };
 
-static const char *stateNameStr(int slot)
-{
-	assert(slot >= -1 && slot < 10);
-	static const char *str[] = { "Auto", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
-	return str[slot+1];
-}
+// Global instance access if required by the emulated system, valid if EmuApp::needsGlobalInstance initialized to true
+EmuSystem &gSystem();
 
 }

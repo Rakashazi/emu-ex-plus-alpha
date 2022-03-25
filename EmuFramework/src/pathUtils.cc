@@ -59,19 +59,19 @@ void flattenSubDirectories(ApplicationContext ctx, std::vector<FS::PathString> s
 	}
 }
 
-void updateLegacySavePathOnStoragePath(ApplicationContext ctx)
+void updateLegacySavePathOnStoragePath(ApplicationContext ctx, EmuSystem &sys)
 {
 	try
 	{
 		auto storagePath = ctx.storagePath();
-		auto oldSavePath = FS::uriString(storagePath, "Game Data", EmuSystem::shortSystemName());
+		auto oldSavePath = FS::uriString(storagePath, "Game Data", sys.shortSystemName());
 		auto oldSaveSubDirs = subDirectoryStrings(ctx, oldSavePath);
 		if(oldSaveSubDirs.empty())
 		{
 			logMsg("no legacy save folders in:%s", oldSavePath.data());
 			return;
 		}
-		auto newSavePath = FS::createDirectoryUriSegments(ctx, storagePath, "EmuEx", EmuSystem::shortSystemName(), "saves");
+		auto newSavePath = FS::createDirectoryUriSegments(ctx, storagePath, "EmuEx", sys.shortSystemName(), "saves");
 		flattenSubDirectories(ctx, std::move(oldSaveSubDirs), newSavePath);
 		ctx.removeDirectoryUri(oldSavePath);
 	}

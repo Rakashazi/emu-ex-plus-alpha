@@ -138,7 +138,7 @@ private:
 	void reloadMachineItem()
 	{
 		msxMachineItem.clear();
-		msxMachineName = machinesNames(appContext(), machineBasePath(appContext()));
+		msxMachineName = machinesNames(appContext(), machineBasePath(system()));
 		for(const auto &name : msxMachineName)
 		{
 			msxMachineItem.emplace_back(name, &defaultFace(),
@@ -189,7 +189,7 @@ private:
 		msxMachine.compile(renderer(), projP);
 		if(!pathIsSet)
 		{
-			app().postMessage(4, false, fmt::format("Using fallback path:\n{}", machineBasePath(appContext())));
+			app().postMessage(4, false, fmt::format("Using fallback path:\n{}", machineBasePath(system())));
 		}
 		return true;
 	}
@@ -201,7 +201,7 @@ public:
 		reloadMachineItem();
 		item.emplace_back(&skipFdcAccess);
 		item.emplace_back(&msxMachine);
-		machineFilePath.setName(machinePathMenuEntryStr(EmuSystem::firmwarePath()));
+		machineFilePath.setName(machinePathMenuEntryStr(system().firmwarePath()));
 		item.emplace_back(&machineFilePath);
 	}
 };
@@ -506,7 +506,7 @@ private:
 			{
 				pushAndShow(makeView<MsxIOControlView>(), e);
 			}
-			else if(EmuSystem::gameIsRunning() && activeBoardType != BOARD_MSX)
+			else if(system().hasContent() && activeBoardType != BOARD_MSX)
 			{
 				app().postMessage(2, false, "Only used in MSX mode");
 			}
@@ -543,7 +543,7 @@ private:
 	void reloadMachineItem()
 	{
 		msxMachineItem.clear();
-		msxMachineName = machinesNames(appContext(), machineBasePath(appContext()));
+		msxMachineName = machinesNames(appContext(), machineBasePath(system()));
 		for(const auto &name : msxMachineName)
 		{
 			msxMachineItem.emplace_back(name, &defaultFace(),
@@ -565,7 +565,7 @@ private:
 						auto machineName = currentMachineName();
 						optionSessionMachineNameStr = machineName;
 						msxMachine.setSelected(machineIndex(msxMachineName, machineName));
-						EmuSystem::sessionOptionSet();
+						system().sessionOptionSet();
 						dismissPrevious();
 					});
 				app().pushAndShowModalView(std::move(ynAlertView), e);
@@ -593,7 +593,7 @@ public:
 	void onShow()
 	{
 		EmuSystemActionsView::onShow();
-		msxIOControl.setActive(EmuSystem::gameIsRunning() && activeBoardType == BOARD_MSX);
+		msxIOControl.setActive(system().hasContent() && activeBoardType == BOARD_MSX);
 		msxMachine.setSelected(machineIndex(msxMachineName, currentMachineName()));
 	}
 };

@@ -71,7 +71,7 @@ void FCEUI_Emulate(EmuEx::EmuVideo *video, int skip, EmuEx::EmuAudio *audio)
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode)
 {
 	logMsg("opening file:%s mode:%s", fn, mode);
-	return IG::FileUtils::fopenUri(EmuEx::appCtx, fn, mode);
+	return IG::FileUtils::fopenUri(EmuEx::gAppContext(), fn, mode);
 }
 
 void FCEU_printf(const char *format, ...)
@@ -211,6 +211,7 @@ void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC
 int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 {
 	using namespace EmuEx;
+	auto appCtx = EmuEx::gAppContext();
 	if(fdsBiosPath.empty())
 	{
 		throw std::runtime_error{"No FDS BIOS set"};
@@ -334,20 +335,21 @@ void EncodeGG(char *str, int a, int v, int c)
 std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 {
 	using namespace EmuEx;
+	auto &sys = EmuEx::gSystem();
 	switch(type)
 	{
 		case FCEUMKF_SAV:
-			return std::string{EmuSystem::contentSaveFilePath(appCtx, ".sav")};
+			return std::string{sys.contentSaveFilePath(".sav")};
 		case FCEUMKF_CHEAT:
-			return std::string{EmuSystem::contentSaveFilePath(appCtx, ".cht")};
+			return std::string{sys.contentSaveFilePath(".cht")};
 		case FCEUMKF_IPS:
-			return std::string{EmuSystem::contentSaveFilePath(appCtx, ".ips")};
+			return std::string{sys.contentSaveFilePath(".ips")};
 		case FCEUMKF_GGROM:
-			return std::string{EmuSystem::contentSavePath(appCtx, "gg.rom")};
+			return std::string{sys.contentSavePath("gg.rom")};
 		case FCEUMKF_FDS:
-			return std::string{EmuSystem::contentSaveFilePath(appCtx, ".fds.sav")};
+			return std::string{sys.contentSaveFilePath(".fds.sav")};
 		case FCEUMKF_PALETTE:
-			return std::string{EmuSystem::contentSaveFilePath(appCtx, ".pal")};
+			return std::string{sys.contentSaveFilePath(".pal")};
 		case FCEUMKF_MOVIE:
 		case FCEUMKF_STATE:
 		case FCEUMKF_RESUMESTATE:

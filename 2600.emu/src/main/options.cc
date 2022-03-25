@@ -73,7 +73,7 @@ void EmuSystem::initOptions(EmuApp &app)
 bool EmuSystem::resetSessionOptions(EmuApp &app)
 {
 	optionTVPhosphor.reset();
-	setRuntimeTVPhosphor(optionTVPhosphor, optionTVPhosphorBlend);
+	setRuntimeTVPhosphor(*this, optionTVPhosphor, optionTVPhosphorBlend);
 	optionVideoSystem.reset();
 	optionInputPort1.reset();
 	optionPaddleDigitalSensitivity.reset();
@@ -140,9 +140,9 @@ const char *optionVideoSystemToStr()
 	}
 }
 
-void setRuntimeTVPhosphor(int val, int blend)
+void setRuntimeTVPhosphor(EmuSystem &sys, int val, int blend)
 {
-	if(!EmuSystem::gameIsRunning() || !osystem->hasConsole())
+	if(!sys.hasContent() || !osystem->hasConsole())
 	{
 		return;
 	}

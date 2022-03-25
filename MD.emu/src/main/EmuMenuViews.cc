@@ -37,7 +37,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		(bool)option6BtnPad,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			option6BtnPad = item.flipBoolValue(*this);
 			setupMDInput(app());
 		}
@@ -73,7 +73,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	{
 		return [this, port1, port2]()
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionInputPort1 = mdInputPortDev[0] = port1;
 			optionInputPort2 = mdInputPortDev[1] = port2;
 			setupMDInput(app());
@@ -105,7 +105,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	void setVideoSystem(int val, Input::Event e)
 	{
-		EmuSystem::sessionOptionSet();
+		system().sessionOptionSet();
 		optionVideoSystem = val;
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
@@ -145,7 +145,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	void setRegion(int val, Input::Event e)
 	{
-		EmuSystem::sessionOptionSet();
+		system().sessionOptionSet();
 		optionRegion = val;
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
@@ -180,7 +180,7 @@ private:
 		"Console Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				pushAndShow(makeView<ConsoleOptionView>(), e);
 			}

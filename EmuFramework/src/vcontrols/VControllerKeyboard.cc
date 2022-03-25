@@ -141,11 +141,11 @@ bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, const Input
 		}
 		else if(e.pushed())
 		{
-			EmuSystem::handleInputAction(&v.app(), Input::Action::PUSHED, currentKey());
+			v.system().handleInputAction(&v.app(), Input::Action::PUSHED, currentKey());
 		}
 		else
 		{
-			EmuSystem::handleInputAction(&v.app(), Input::Action::RELEASED, currentKey());
+			v.system().handleInputAction(&v.app(), Input::Action::RELEASED, currentKey());
 		}
 		return true;
 	}

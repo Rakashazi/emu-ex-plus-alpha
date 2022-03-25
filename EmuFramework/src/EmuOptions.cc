@@ -31,73 +31,6 @@
 namespace EmuEx
 {
 
-template<class T>
-bool optionFrameTimeIsValid(T val)
-{
-	return !val || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_NATIVE_NTSC, IG::FloatSeconds(val));
-}
-
-template<class T>
-bool optionFrameTimePALIsValid(T val)
-{
-	return !val || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_PAL, IG::FloatSeconds(val));
-}
-
-constexpr bool optionAspectRatioIsValid(double val)
-{
-	return val == 0. || (val >= 0.1 && val <= 10.);
-}
-
-DoubleOption optionAspectRatio{CFGKEY_GAME_ASPECT_RATIO, (double)EmuSystem::aspectRatioInfo[0], 0, optionAspectRatioIsValid};
-
-Byte1Option optionImgFilter(CFGKEY_GAME_IMG_FILTER, 1, 0);
-Byte1Option optionImgEffect(CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<lastImageEffectIdValue>);
-Byte1Option optionOverlayEffect(CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL>);
-Byte1Option optionOverlayEffectLevel(CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>);
-
-constexpr bool imageEffectPixelFormatIsValid(uint8_t val)
-{
-	switch(val)
-	{
-		case IG::PIXEL_RGB565:
-		case IG::PIXEL_RGBA8888:
-			return true;
-	}
-	return false;
-}
-
-Byte1Option optionImageEffectPixelFormat(CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid);
-
-Byte1Option optionVideoImageBuffers{CFGKEY_VIDEO_IMAGE_BUFFERS, 0, 0,
-	optionIsValidWithMax<2>};
-
-bool isValidOption2DO(_2DOrigin val)
-{
-	return val.isValid() && val != C2DO;
-}
-bool isValidOption2DOCenterBtn(_2DOrigin val)
-{
-	return val.isValid() && !val.onYCenter();
-}
-
-Byte1Option optionFrameInterval
-	{CFGKEY_FRAME_INTERVAL,	1, !Config::envIsIOS, optionIsValidWithMinMax<1, 4>};
-Byte1Option optionSkipLateFrames{CFGKEY_SKIP_LATE_FRAMES, 1, 0};
-DoubleOption optionFrameRate{CFGKEY_FRAME_RATE, 0, 0, optionFrameTimeIsValid};
-DoubleOption optionFrameRatePAL{CFGKEY_FRAME_RATE_PAL, 1./50., !EmuSystem::hasPALVideoSystem, optionFrameTimePALIsValid};
-
-bool optionImageZoomIsValid(uint8_t val)
-{
-	return val == optionImageZoomIntegerOnly || val == optionImageZoomIntegerOnlyY
-		|| (val >= 10 && val <= 100);
-}
-Byte1Option optionImageZoom
-		(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid);
-Byte1Option optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<50, 100>);
-Byte1Option optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 1, 0};
-
-Byte1Option optionTextureBufferMode{CFGKEY_TEXTURE_BUFFER_MODE, 0};
-
 void EmuApp::initOptions(IG::ApplicationContext ctx)
 {
 	optionSoundRate.initDefault(audioManager().nativeRate());
@@ -196,7 +129,7 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 		optionFrameRate.isConst = true;
 	}
 
-	EmuSystem::initOptions(*this);
+	system().initOptions(*this);
 }
 
 void EmuApp::applyFontSize(Window &win)
@@ -255,7 +188,7 @@ void EmuApp::readRecentContent(IG::ApplicationContext ctx, IO &io, unsigned read
 		if(!bytesRead)
 			continue; // don't add empty paths
 		readSize -= len;
-		auto displayName = EmuSystem::contentDisplayNameForPath(ctx, path);
+		auto displayName = system().contentDisplayNameForPath(path);
 		if(displayName.empty())
 		{
 			logMsg("skipping missing recent content:%s", path.data());
@@ -272,7 +205,28 @@ void EmuApp::readRecentContent(IG::ApplicationContext ctx, IO &io, unsigned read
 	}
 }
 
-uint8_t currentFrameInterval()
+void EmuApp::setFrameTime(EmuSystem::VideoSystem system, IG::FloatSeconds time)
+{
+	frameTimeOption(system) = time.count();
+}
+
+IG::FloatSeconds EmuApp::frameTime(EmuSystem::VideoSystem system, IG::FloatSeconds fallback) const
+{
+	auto &opt = frameTimeOption(system);
+	return opt.val ? IG::FloatSeconds(opt.val) : fallback;
+}
+
+bool EmuApp::frameTimeIsConst(EmuSystem::VideoSystem system) const
+{
+	return frameTimeOption(system).isConst;
+}
+
+void EmuApp::setFrameInterval(int val)
+{
+	optionFrameInterval = val;
+};
+
+int EmuApp::frameInterval() const
 {
 	if constexpr(Config::SCREEN_FRAME_INTERVAL)
 		return optionFrameInterval;
@@ -280,41 +234,60 @@ uint8_t currentFrameInterval()
 		return 1;
 }
 
-IG::PixelFormat EmuApp::imageEffectPixelFormat() const
+IG::PixelFormat EmuApp::videoEffectPixelFormat() const
 {
 	if(optionImageEffectPixelFormat)
 		return (IG::PixelFormatID)optionImageEffectPixelFormat.val;
 	return windowPixelFormat();
 }
 
-void EmuApp::setVideoZoom(uint8_t val)
+bool EmuApp::setVideoZoom(uint8_t val)
 {
+	if(!optionImageZoom.isValidVal(val))
+		return false;
 	optionImageZoom = val;
 	logMsg("set video zoom: %d", int(optionImageZoom));
+	emuVideoLayer.setZoom(val);
 	viewController().placeEmuViews();
 	viewController().postDrawToEmuWindows();
+	return true;
 }
 
-void EmuApp::setViewportZoom(uint8_t val)
+bool EmuApp::setViewportZoom(uint8_t val)
 {
+	if(!optionViewportZoom.isValidVal(val))
+		return false;
 	optionViewportZoom = val;
 	logMsg("set viewport zoom: %d", int(optionViewportZoom));
 	viewController().startMainViewportAnimation();
+	return true;
 }
 
-void EmuApp::setOverlayEffectLevel(EmuVideoLayer &videoLayer, uint8_t val)
+bool EmuApp::setOverlayEffectLevel(EmuVideoLayer &videoLayer, uint8_t val)
 {
+	if(!optionOverlayEffectLevel.isValidVal(val))
+		return false;
 	optionOverlayEffectLevel = val;
 	videoLayer.setOverlayIntensity(val/100.);
 	viewController().postDrawToEmuWindows();
+	return true;
 }
 
-void EmuApp::setVideoAspectRatio(double val)
+bool EmuApp::setVideoAspectRatio(double ratio)
 {
-	optionAspectRatio = val;
-	logMsg("set aspect ratio: %.2f", val);
+	if(!optionAspectRatio.isValidVal(ratio))
+		return false;
+	optionAspectRatio = ratio;
+	logMsg("set aspect ratio:%.2f", ratio);
+	emuVideoLayer.setAspectRatio(ratio);
 	viewController().placeEmuViews();
 	viewController().postDrawToEmuWindows();
+	return true;
+}
+
+double EmuApp::videoAspectRatio() const
+{
+	return optionAspectRatio;
 }
 
 void EmuApp::setShowsTitleBar(bool on)

@@ -178,9 +178,7 @@ void EmuApp::saveConfigFile(IO &io)
 		#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 		optionNotifyInputDeviceChange,
 		#endif
-		#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 		optionFrameInterval,
-		#endif
 		optionSkipLateFrames,
 		optionFrameRate,
 		optionFrameRatePAL,
@@ -369,9 +367,9 @@ void EmuApp::saveConfigFile(IO &io)
 	}
 
 	writeStringOptionValue(io, CFGKEY_LAST_DIR, contentSearchPath());
-	writeStringOptionValue(io, CFGKEY_SAVE_PATH, EmuSystem::userSaveDirectory());
+	writeStringOptionValue(io, CFGKEY_SAVE_PATH, system().userSaveDirectory());
 
-	EmuSystem::writeConfig(io);
+	system().writeConfig(io);
 }
 
 EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
@@ -416,7 +414,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 			{
 				default:
 				{
-					if(EmuSystem::readConfig(io, key, size))
+					if(system().readConfig(io, key, size))
 					{
 						break;
 					}
@@ -430,9 +428,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_SOUND_RATE: optionSoundRate.readFromIO(io, size);
 				bcase CFGKEY_AUTO_SAVE_STATE: optionAutoSaveState.readFromIO(io, size);
 				bcase CFGKEY_CONFIRM_AUTO_LOAD_STATE: optionConfirmAutoLoadState.readFromIO(io, size);
-				#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-				bcase CFGKEY_FRAME_INTERVAL: optionFrameInterval.readFromIO(io, size);
-				#endif
+				bcase CFGKEY_FRAME_INTERVAL:
+					doIfUsed(optionFrameInterval, [&](auto &opt){ opt.readFromIO(io, size); });
 				bcase CFGKEY_SKIP_LATE_FRAMES: optionSkipLateFrames.readFromIO(io, size);
 				bcase CFGKEY_FRAME_RATE: optionFrameRate.readFromIO(io, size);
 				bcase CFGKEY_FRAME_RATE_PAL: optionFrameRatePAL.readFromIO(io, size);
@@ -517,7 +514,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 								logWarn("not restoring save dir due to storage permission restriction");
 								return;
 							}
-							EmuSystem::setUserSaveDirectory(ctx, path);
+							system().setUserSaveDirectory(path);
 						});
 				bcase CFGKEY_SHOW_BUNDLED_GAMES:
 				{

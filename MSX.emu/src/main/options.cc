@@ -187,7 +187,7 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 		default: return 0;
 		bcase CFGKEY_DEFAULT_MACHINE_NAME: readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){optionDefaultMachineNameStr = path;});
 		bcase CFGKEY_SKIP_FDC_ACCESS: optionSkipFdcAccess.readFromIO(io, readSize);
-		bcase CFGKEY_MACHINE_FILE_PATH: readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){setFirmwarePath(path);});
+		bcase CFGKEY_MACHINE_FILE_PATH: readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){setFirmwarePath(path);});
 		bcase CFGKEY_MIXER_PSG_VOLUME: optionMixerPSGVolume.readFromIO(io, readSize);
 		bcase CFGKEY_MIXER_SCC_VOLUME: optionMixerSCCVolume.readFromIO(io, readSize);
 		bcase CFGKEY_MIXER_MSX_MUSIC_VOLUME: optionMixerMSXMUSICVolume.readFromIO(io, readSize);
@@ -232,7 +232,7 @@ void EmuSystem::writeConfig(IO &io)
 	optionMixerPCMPan.writeWithKeyIfNotDefault(io);
 }
 
-void EmuSystem::onOptionsLoaded(IG::ApplicationContext app)
+void EmuSystem::onOptionsLoaded()
 {
 	mixerEnableChannelType(mixer, MIXER_CHANNEL_PSG, mixerEnableOption(MIXER_CHANNEL_PSG));
 	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_PSG, mixerVolumeOption(MIXER_CHANNEL_PSG));

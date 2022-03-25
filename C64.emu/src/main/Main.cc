@@ -78,21 +78,21 @@ static bool c64IsInit = false, c64FailedInit = false;
 FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3]{};
 VicePlugin plugin{};
 ViceSystem currSystem = VICE_SYSTEM_C64;
-IG::ApplicationContext appContext{};
 IG::PixelFormat pixFmt{};
 
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::handlesGenericIO = false;
+bool EmuApp::needsGlobalInstance = true;
 
 static void execC64Frame();
 
-const char *EmuSystem::shortSystemName()
+const char *EmuSystem::shortSystemName() const
 {
 	return "C64";
 }
 
-const char *EmuSystem::systemName()
+const char *EmuSystem::systemName() const
 {
 	return "Commodore 64";
 }
@@ -252,11 +252,11 @@ EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasC64Extension;
 
 void EmuSystem::reset(ResetMode mode)
 {
-	assert(gameIsRunning());
+	assert(hasContent());
 	plugin.machine_trigger_reset(mode == RESET_HARD ? MACHINE_RESET_MODE_HARD : MACHINE_RESET_MODE_SOFT);
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.{}.vsf", name, saveSlotChar(slot));
 }
@@ -312,9 +312,9 @@ void EmuSystem::loadState(IG::CStringView path)
 		return throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem(IG::ApplicationContext)
+void EmuSystem::saveBackupMem()
 {
-	if(gameIsRunning())
+	if(hasContent())
 	{
 		// nothing to do for now
 	}
@@ -322,13 +322,13 @@ void EmuSystem::saveBackupMem(IG::ApplicationContext)
 
 bool EmuSystem::vidSysIsPAL() { return sysIsPal(); }
 
-void EmuSystem::closeSystem(IG::ApplicationContext ctx)
+void EmuSystem::closeSystem()
 {
-	if(!gameIsRunning())
+	if(!hasContent())
 	{
 		return;
 	}
-	saveBackupMem(ctx);
+	saveBackupMem();
 	plugin.vsync_set_warp_mode(0);
 	if(intResource("REU"))
 	{
@@ -353,7 +353,7 @@ static const char *mainROMFilename(ViceSystem system)
 	}
 }
 
-static void throwC64FirmwareError(IG::ApplicationContext ctx)
+static void throwC64FirmwareError()
 {
 	throw std::runtime_error{fmt::format("System files missing, please set them in Options➔System➔VICE System File Path")};
 }
@@ -431,11 +431,11 @@ static FS::PathString vic20ExtraCartPath(IG::ApplicationContext ctx, std::string
 	return {};
 }
 
-void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
+void EmuSystem::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
 {
-	if(!initC64(EmuApp::get(ctx)))
+	if(!initC64(EmuApp::get(appContext())))
 	{
-		throwC64FirmwareError(ctx);
+		throwC64FirmwareError();
 	}
 	applyInitialOptionResources();
 	bool shouldAutostart = !(params.systemFlags & SYSTEM_FLAG_NO_AUTOSTART) && optionAutostartOnLaunch;
@@ -445,7 +445,7 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams
 		if(IG::stringEndsWithAny(contentFileName(), ".prg", ".PRG"))
 		{
 			// needed to store AutostartPrgDisk.d64
-			fallbackSaveDirectory(ctx, true);
+			fallbackSaveDirectory(true);
 		}
 		if(plugin.autostart_autodetect(contentLocation().data(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 		{
@@ -479,7 +479,7 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams
 			}
 			if(currSystem == VICE_SYSTEM_VIC20 && contentDirectory().size()) // check if the cart is part of a *-x000.prg pair
 			{
-				auto extraCartPath = vic20ExtraCartPath(ctx, contentFileName(), contentDirectory());
+				auto extraCartPath = vic20ExtraCartPath(appContext(), contentFileName(), contentDirectory());
 				if(extraCartPath.size())
 				{
 					logMsg("loading extra cart image:%s", extraCartPath.data());
@@ -550,20 +550,21 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-static FS::PathString autostartPrgDiskImagePath(IG::ApplicationContext ctx)
+static FS::PathString autostartPrgDiskImagePath(EmuSystem &sys)
 {
-	return FS::pathString(EmuSystem::fallbackSaveDirectory(ctx), "AutostartPrgDisk.d64");
+	return FS::pathString(sys.fallbackSaveDirectory(), "AutostartPrgDisk.d64");
 }
 
 void EmuApp::onMainWindowCreated(ViewAttachParams attach, const Input::Event &e)
 {
-	sysFilePath[0] = EmuSystem::firmwarePath();
+	sysFilePath[0] = system().firmwarePath();
 	plugin.init();
 	updateKeyboardMapping();
 	setSysModel(optionDefaultModel(currSystem));
 	auto ctx = attach.appContext();
-	FS::remove(autostartPrgDiskImagePath(ctx));
-	plugin.resources_set_string("AutostartPrgDiskImage", autostartPrgDiskImagePath(ctx).data());
+	auto prgDiskPath = autostartPrgDiskImagePath(system());
+	FS::remove(prgDiskPath);
+	plugin.resources_set_string("AutostartPrgDiskImage", prgDiskPath.data());
 }
 
 void EmuSystem::onPrepareAudio(EmuAudio &audio)
@@ -581,7 +582,7 @@ bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	return false;
 }
 
-void EmuSystem::onInit(IG::ApplicationContext ctx)
+void EmuSystem::onInit()
 {
 	IG::makeDetachedThread(
 		[]()
@@ -590,19 +591,18 @@ void EmuSystem::onInit(IG::ApplicationContext ctx)
 			logMsg("starting maincpu_mainloop()");
 			plugin.maincpu_mainloop();
 		});
-	appContext = ctx; // saved for sysfile_* functions
 
 	if constexpr(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
 	{
-		sysFilePath[1] = ctx.assetPath();
-		sysFilePath[2] = FS::pathString(ctx.assetPath(), "C64.emu.zip");
+		sysFilePath[1] = appContext().assetPath();
+		sysFilePath[2] = FS::pathString(appContext().assetPath(), "C64.emu.zip");
 		sysFilePath[3] = "~/.local/share/C64.emu";
 		sysFilePath[4] = "/usr/share/games/vice";
 	}
 	else
 	{
-		sysFilePath[1] = FS::pathString(ctx.storagePath(), "C64.emu");
-		sysFilePath[2] = FS::pathString(ctx.storagePath(), "C64.emu.zip");
+		sysFilePath[1] = FS::pathString(appContext().storagePath(), "C64.emu");
+		sysFilePath[2] = FS::pathString(appContext().storagePath(), "C64.emu.zip");
 	}
 
 	// higher quality ReSID sampling modes take orders of magnitude more CPU power,

@@ -42,6 +42,7 @@ using namespace IG;
 class EmuSystemTask;
 class EmuViewController;
 class EmuAudio;
+class EmuSystem;
 struct WindowData;
 
 class EmuMenuViewStack : public ViewStack
@@ -60,7 +61,7 @@ class EmuViewController final: public ViewController, public EmuAppHelper<EmuVie
 public:
 	EmuViewController();
 	EmuViewController(ViewAttachParams,
-		VController &, EmuVideoLayer &, EmuSystemTask &, EmuAudio &);
+		VController &, EmuVideoLayer &, EmuSystemTask &, EmuAudio &, EmuSystem &);
 	void pushAndShow(std::unique_ptr<View>, const Input::Event &, bool needsNavView, bool isModal = false) final;
 	using ViewController::pushAndShow;
 	void pushAndShowModal(std::unique_ptr<View>, const Input::Event &, bool needsNavView);

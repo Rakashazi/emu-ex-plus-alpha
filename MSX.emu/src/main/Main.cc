@@ -65,6 +65,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobe
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor BlueMSX file loading code
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::canRenderRGBA8888 = false;
+bool EmuApp::needsGlobalInstance = true;
 BoardInfo boardInfo{};
 Mixer *mixer{};
 FS::FileString cartName[2]{};
@@ -73,28 +74,21 @@ static FS::FileString tapeName{};
 static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
 static const char saveStateVersion[] = "blueMSX - state  v 8";
-IG::ApplicationContext appCtx{};
-
-#if defined CONFIG_BASE_ANDROID || defined CONFIG_ENV_WEBOS || defined CONFIG_BASE_IOS || defined CONFIG_MACHINE_IS_PANDORA
-static const bool checkForMachineFolderOnStart = true;
-#else
-static const bool checkForMachineFolderOnStart = false;
-#endif
 
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
-FS::PathString machineBasePath(IG::ApplicationContext ctx)
+FS::PathString machineBasePath(EmuSystem &sys)
 {
-	if(EmuSystem::firmwarePath().empty())
+	if(sys.firmwarePath().empty())
 	{
 		if constexpr(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
-			return ctx.assetPath();
+			return sys.appContext().assetPath();
 		else
-			return IG::format<FS::PathString>("{}/MSX.emu", ctx.storagePath());
+			return IG::format<FS::PathString>("{}/MSX.emu", sys.appContext().storagePath());
 	}
 	else
 	{
-		return EmuSystem::firmwarePath();
+		return sys.firmwarePath();
 	}
 }
 
@@ -118,12 +112,12 @@ static bool hasMSXExtension(std::string_view name)
 	return hasMSXROMExtension(name) || hasMSXDiskExtension(name);
 }
 
-const char *EmuSystem::shortSystemName()
+const char *EmuSystem::shortSystemName() const
 {
 	return "MSX";
 }
 
-const char *EmuSystem::systemName()
+const char *EmuSystem::systemName() const
 {
 	return "MSX";
 }
@@ -395,8 +389,8 @@ static FS::FileString getFirstMediaFilenameInArchive(IG::ApplicationContext ctx,
 
 bool insertROM(EmuApp &app, const char *name, unsigned slot)
 {
-	assert(EmuSystem::contentDirectory().size());
-	auto path = EmuSystem::contentDirectory(app.appContext(), name);
+	assert(app.system().contentDirectory().size());
+	auto path = app.system().contentDirectory(name);
 	FS::FileString fileInZipName{};
 	if(EmuApp::hasArchiveExtension(path))
 	{
@@ -418,8 +412,8 @@ bool insertROM(EmuApp &app, const char *name, unsigned slot)
 
 bool insertDisk(EmuApp &app, const char *name, unsigned slot)
 {
-	assert(EmuSystem::contentDirectory().size());
-	auto path = EmuSystem::contentDirectory(app.appContext(), name);
+	assert(app.system().contentDirectory().size());
+	auto path = app.system().contentDirectory(name);
 	FS::FileString fileInZipName{};
 	if(EmuApp::hasArchiveExtension(path))
 	{
@@ -441,7 +435,7 @@ bool insertDisk(EmuApp &app, const char *name, unsigned slot)
 
 void EmuSystem::reset(EmuApp &app, ResetMode mode)
 {
-	assert(gameIsRunning());
+	assert(hasContent());
 	fdcActive = 0;
 	if(mode == RESET_HARD)
 	{
@@ -466,7 +460,7 @@ void EmuSystem::reset(EmuApp &app, ResetMode mode)
 	}
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotCharUpper(slot));
 }
@@ -517,7 +511,7 @@ static void saveBlueMSXState(const char *filename)
 	zipEndWrite();
 }
 
-void EmuSystem::saveState(IG::ApplicationContext ctx, IG::CStringView path)
+void EmuSystem::saveState(IG::CStringView path)
 {
 	return saveBlueMSXState(path);
 }
@@ -598,20 +592,20 @@ void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 	return loadBlueMSXState(app, path);
 }
 
-void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
+void EmuSystem::saveBackupMem()
 {
-	if(gameIsRunning())
+	if(hasContent())
 	{
 		// TODO: add BlueMSX API to flush volatile data
 	}
 }
 
-void EmuSystem::closeSystem(IG::ApplicationContext)
+void EmuSystem::closeSystem()
 {
 	destroyMachine();
 }
 
-void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	if(contentDirectory().empty())
 	{
@@ -624,6 +618,7 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams
 	const char *fileInZipNamePtr{};
 	const char *mediaNamePtr = mediaFilename.data();
 	bool loadDiskAsHD = false;
+	auto ctx = appContext();
 	if(EmuApp::hasArchiveExtension(mediaFilename))
 	{
 		fileInZipName = getFirstMediaFilenameInArchive(ctx, mediaPath);
@@ -758,13 +753,11 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(IG::ApplicationContext ctx)
+void EmuSystem::onInit()
 {
 	/*mediaDbCreateRomdb();
 	mediaDbAddFromXmlFile("msxromdb.xml");
 	mediaDbAddFromXmlFile("msxsysromdb.xml");*/
-
-	appCtx = ctx;
 
 	// must create the mixer first since mainInitCommon() will access it
 	mixer = mixerCreate();

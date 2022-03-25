@@ -133,15 +133,13 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			[this](View &view)
 			{
 				app().setAudioOutputAPI(Audio::Api::DEFAULT);
-				auto &audioManager = app().audioManager();
-				api.setSelected((MenuItem::Id)audioManager.makeValidAPI());
+				api.setSelected((MenuItem::Id)app().audioManager().makeValidAPI());
 				view.dismiss();
 				return false;
 			});
 		{
 			auto &audioManager = app().audioManager();
-			auto descs = audioManager.audioAPIs();
-			for(auto desc: descs)
+			for(auto desc: audioManager.audioAPIs())
 			{
 				apiItem.emplace_back(desc.name, &defaultFace(),
 					[this](TextMenuItem &item)

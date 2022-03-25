@@ -94,6 +94,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 			if(vController->keyInput(keyEv))
 				return true;
 			auto &emuApp = app();
+			auto &sys = emuApp.system();
 			auto &devData = inputDevData(*keyEv.device());
 			const auto &actionTable = devData.actionTable;
 			if(!actionTable.size()) [[unlikely]]
@@ -153,7 +154,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 							static auto doSaveState =
 								[](EmuApp &app, bool notify)
 								{
-									if(app.saveStateWithSlot(EmuSystem::saveStateSlot) && notify)
+									if(app.saveStateWithSlot(app.system().stateSlot()) && notify)
 									{
 										app.postMessage("State Saved");
 									}
@@ -187,27 +188,22 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 						if(isPushed)
 						{
 							emuApp.syncEmulationThread();
-							emuApp.loadStateWithSlot(EmuSystem::saveStateSlot);
+							emuApp.loadStateWithSlot(sys.stateSlot());
 							return true;
 						}
 
 						bcase guiKeyIdxDecStateSlot:
 						if(isPushed)
 						{
-							EmuSystem::saveStateSlot--;
-							if(EmuSystem::saveStateSlot < -1)
-								EmuSystem::saveStateSlot = 9;
-							emuApp.postMessage(1, false, fmt::format("State Slot: {}", stateNameStr(EmuSystem::saveStateSlot)));
+							sys.decStateSlot();
+							emuApp.postMessage(1, false, fmt::format("State Slot: {}", sys.stateSlotName()));
 						}
 
 						bcase guiKeyIdxIncStateSlot:
 						if(isPushed)
 						{
-							auto prevSlot = EmuSystem::saveStateSlot;
-							EmuSystem::saveStateSlot++;
-							if(EmuSystem::saveStateSlot > 9)
-								EmuSystem::saveStateSlot = -1;
-							emuApp.postMessage(1, false, fmt::format("State Slot: {}", stateNameStr(EmuSystem::saveStateSlot)));
+							sys.incStateSlot();
+							emuApp.postMessage(1, false, fmt::format("State Slot: {}", sys.stateSlotName()));
 						}
 
 						bcase guiKeyIdxGameScreenshot:
@@ -243,7 +239,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 							}
 							//logMsg("action %d, %d", emuKey, state);
 							bool turbo;
-							unsigned sysAction = EmuSystem::translateInputAction(action, turbo);
+							unsigned sysAction = sys.translateInputAction(action, turbo);
 							//logMsg("action %d -> %d, pushed %d", action, sysAction, keyEv.state() == Input::PUSHED);
 							if(turbo)
 							{
@@ -256,7 +252,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 									emuApp.removeTurboInputEvent(sysAction);
 								}
 							}
-							EmuSystem::handleInputAction(&emuApp, keyEv.state(), sysAction, keyEv.metaKeyBits());
+							sys.handleInputAction(&emuApp, keyEv.state(), sysAction, keyEv.metaKeyBits());
 						}
 					}
 				}

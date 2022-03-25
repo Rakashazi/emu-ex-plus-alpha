@@ -241,7 +241,7 @@ void boardTimerRemove(BoardTimer* timer)
 
 const char* boardGetBaseDirectory()
 {
-	return EmuSystem::contentSaveDirectoryPtr();
+	return EmuEx::gSystem().contentSaveDirectoryPtr();
 }
 
 void boardOnBreakpoint(UInt16 pc) { }

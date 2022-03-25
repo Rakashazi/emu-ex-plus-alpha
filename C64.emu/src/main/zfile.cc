@@ -30,6 +30,7 @@ using namespace EmuEx;
 
 CLINK FILE *zfile_fopen(const char *path, const char *mode)
 {
+	auto appContext = gAppContext();
 	if(EmuApp::hasArchiveExtension(appContext.fileUriDisplayName(path)))
 	{
 		if(IG::stringContains(mode, 'w'))

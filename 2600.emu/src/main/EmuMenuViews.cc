@@ -82,10 +82,10 @@ class CustomVideoOptionView : public VideoOptionView
 
 	TextMenuItem::SelectDelegate setTVPhosphorBlendDel()
 	{
-		return [](TextMenuItem &item)
+		return [this](TextMenuItem &item)
 		{
 			optionTVPhosphorBlend = item.id();
-			setRuntimeTVPhosphor(optionTVPhosphor, item.id());
+			setRuntimeTVPhosphor(system(), optionTVPhosphor, item.id());
 		};
 	}
 
@@ -155,11 +155,11 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	TextMenuItem::SelectDelegate setTVPhosphorDel()
 	{
-		return [](TextMenuItem &item)
+		return [this](TextMenuItem &item)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionTVPhosphor = item.id();
-			setRuntimeTVPhosphor(item.id(), optionTVPhosphorBlend);
+			setRuntimeTVPhosphor(system(), item.id(), optionTVPhosphorBlend);
 		};
 	}
 
@@ -167,7 +167,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	{
 		return [this](TextMenuItem &item, const Input::Event &e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionVideoSystem = item.id();
 			app().promptSystemReloadDueToSetOption(attachParams(), e);
 		};
@@ -202,7 +202,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	{
 		return [this](TextMenuItem &item)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionInputPort1 = item.id();
 			if(osystem->hasConsole())
 			{
@@ -230,7 +230,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	{
 		return [this](TextMenuItem &item)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			updatePaddlesRegionMode(app(), (PaddleRegionMode)item.id());
 		};
 	}
@@ -276,7 +276,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	void setDPaddleSensitivity(uint8_t val)
 	{
-		EmuSystem::sessionOptionSet();
+		system().sessionOptionSet();
 		optionPaddleDigitalSensitivity = val;
 		Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
 	}
@@ -369,7 +369,7 @@ private:
 		"Console Switches", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				pushAndShow(makeView<VCSSwitchesView>(), e);
 			}
@@ -381,7 +381,7 @@ private:
 		"Console Options", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				pushAndShow(makeView<ConsoleOptionView>(), e);
 			}

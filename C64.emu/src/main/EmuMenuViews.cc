@@ -157,7 +157,7 @@ class CustomVideoOptionView : public VideoOptionView
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			optionCropNormalBorders = item.flipBoolValue(*this);
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				resetCanvasSourcePixmap(activeCanvas);
 			}
@@ -473,7 +473,7 @@ public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
-		systemFilePath.setName(makeSysPathMenuEntryStr(EmuSystem::firmwarePath()));
+		systemFilePath.setName(makeSysPathMenuEntryStr(system().firmwarePath()));
 		item.emplace_back(&systemFilePath);
 		item.emplace_back(&defaultsHeading);
 		item.emplace_back(&defaultC64Model);
@@ -1022,11 +1022,11 @@ public:
 	}
 };
 
-class Vic20MemoryExpansionsView : public TableView
+class Vic20MemoryExpansionsView : public TableView, public EmuAppHelper<Vic20MemoryExpansionsView>
 {
 	void setRamBlock(const char *name, bool on)
 	{
-		EmuSystem::sessionOptionSet();
+		system().sessionOptionSet();
 		setIntResource(name, on);
 	}
 
@@ -1135,7 +1135,7 @@ class MachineOptionView : public TableView, public EmuAppHelper<MachineOptionVie
 		(bool)optionAutostartWarp,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionAutostartWarp = item.flipBoolValue(*this);
 			setAutostartWarp(optionAutostartWarp);
 		}
@@ -1147,7 +1147,7 @@ class MachineOptionView : public TableView, public EmuAppHelper<MachineOptionVie
 		(bool)optionAutostartTDE,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionAutostartTDE = item.flipBoolValue(*this);
 			setAutostartTDE(optionAutostartTDE);
 		}
@@ -1159,7 +1159,7 @@ class MachineOptionView : public TableView, public EmuAppHelper<MachineOptionVie
 		(bool)optionAutostartBasicLoad,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionAutostartBasicLoad = item.flipBoolValue(*this);
 			setAutostartBasicLoad(optionAutostartBasicLoad);
 		}
@@ -1171,7 +1171,7 @@ class MachineOptionView : public TableView, public EmuAppHelper<MachineOptionVie
 		(bool)optionDriveTrueEmulation,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionDriveTrueEmulation = item.flipBoolValue(*this);
 			setDriveTrueEmulation(optionDriveTrueEmulation);
 		}
@@ -1220,7 +1220,7 @@ class MachineOptionView : public TableView, public EmuAppHelper<MachineOptionVie
 		"Ram Expansion Module", &defaultFace(),
 		[this]()
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			if(!intResource("REU"))
 				return 0;
 			switch (intResource("REUsize"))
@@ -1257,9 +1257,9 @@ public:
 		{
 			int val = baseVal + i;
 			modelItem.emplace_back(plugin.modelStr[i], &defaultFace(),
-				[val]()
+				[this, val]()
 				{
-					EmuSystem::sessionOptionSet();
+					system().sessionOptionSet();
 					optionModel = val;
 					setSysModel(val);
 				});
@@ -1275,18 +1275,18 @@ public:
 		menuItem.emplace_back(&autostartWarp);
 		menuItem.emplace_back(&videoHeader);
 		paletteItem.emplace_back("Internal", &defaultFace(),
-			[](Input::Event)
+			[this](Input::Event)
 			{
-				EmuSystem::sessionOptionSet();
+				system().sessionOptionSet();
 				setPaletteResources({});
 				logMsg("set internal palette");
 			});
 		for(const auto &name : paletteName)
 		{
 			paletteItem.emplace_back(IG::stringWithoutDotExtension(name), &defaultFace(),
-				[name = name.data()](Input::Event)
+				[this, name = name.data()](Input::Event)
 				{
-					EmuSystem::sessionOptionSet();
+					system().sessionOptionSet();
 					setPaletteResources(name);
 					logMsg("set palette:%s", name);
 				});
@@ -1318,7 +1318,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		"Machine Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				pushAndShow(makeView<MachineOptionView>(), e);
 			}
@@ -1336,7 +1336,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 			multiChoiceView->appendItem("NTSC w/ True Drive Emu",
 				[this]()
 				{
-					EmuSystem::sessionOptionSet();
+					system().sessionOptionSet();
 					optionDriveTrueEmulation = 1;
 					optionModel = defaultNTSCModel[currSystem];
 					app().reloadGame();
@@ -1344,7 +1344,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 			multiChoiceView->appendItem("NTSC",
 				[this]()
 				{
-					EmuSystem::sessionOptionSet();
+					system().sessionOptionSet();
 					optionDriveTrueEmulation = 0;
 					optionModel = defaultNTSCModel[currSystem];
 					app().reloadGame();
@@ -1352,7 +1352,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 			multiChoiceView->appendItem("PAL w/ True Drive Emu",
 				[this]()
 				{
-					EmuSystem::sessionOptionSet();
+					system().sessionOptionSet();
 					optionDriveTrueEmulation = 1;
 					optionModel = defaultPALModel[currSystem];
 					app().reloadGame();
@@ -1360,7 +1360,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 			multiChoiceView->appendItem("PAL",
 				[this]()
 				{
-					EmuSystem::sessionOptionSet();
+					system().sessionOptionSet();
 					optionDriveTrueEmulation = 0;
 					optionModel = defaultPALModel[currSystem];
 					app().reloadGame();
@@ -1375,7 +1375,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 			"Normal", &defaultFace(),
 			[this]()
 			{
-				EmuSystem::sessionOptionSet();
+				system().sessionOptionSet();
 				setJoystickMode(JoystickMode::NORMAL);
 			},
 		},
@@ -1383,7 +1383,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 			"Swapped", &defaultFace(),
 			[this]()
 			{
-				EmuSystem::sessionOptionSet();
+				system().sessionOptionSet();
 				setJoystickMode(JoystickMode::SWAPPED);
 			},
 		},
@@ -1391,7 +1391,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 			"Keyboard Cursor", &defaultFace(),
 			[this]()
 			{
-				EmuSystem::sessionOptionSet();
+				system().sessionOptionSet();
 				setJoystickMode(JoystickMode::KEYBOARD);
 			},
 		},
@@ -1420,7 +1420,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		(bool)optionAutostartOnLaunch,
 		[this](BoolMenuItem &item)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionAutostartOnLaunch = item.flipBoolValue(*this);
 		}
 	};
@@ -1446,8 +1446,8 @@ public:
 	void onShow() final
 	{
 		EmuSystemActionsView::onShow();
-		c64IOControl.setActive(EmuSystem::gameIsRunning());
-		options.setActive(EmuSystem::gameIsRunning());
+		c64IOControl.setActive(system().hasContent());
+		options.setActive(system().hasContent());
 		warpMode.setBoolValue(*plugin.warp_mode_enabled);
 	}
 };

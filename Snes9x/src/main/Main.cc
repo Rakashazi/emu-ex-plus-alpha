@@ -31,7 +31,6 @@ constexpr auto srcPixFmt = IG::PIXEL_FMT_RGB565;
 #else
 #error "incompatible PIXEL_FORMAT value"
 #endif
-IG::ApplicationContext appCtx{};
 static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
 static constexpr auto SNES_HEIGHT_480i = SNES_HEIGHT * 2;
@@ -40,6 +39,7 @@ bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::canRenderRGBA8888 = false;
+bool EmuApp::needsGlobalInstance = true;
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
@@ -48,9 +48,9 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
-const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx)
+const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx) const
 {
-	static const BundledGameInfo info[]
+	static constexpr BundledGameInfo info[]
 	{
 		{"Bio Worm", "Bio Worm.7z"}
 	};
@@ -58,12 +58,12 @@ const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx)
 	return info[0];
 }
 
-const char *EmuSystem::shortSystemName()
+const char *EmuSystem::shortSystemName() const
 {
 	return "SFC-SNES";
 }
 
-const char *EmuSystem::systemName()
+const char *EmuSystem::systemName() const
 {
 	return "Super Famicom (SNES)";
 }
@@ -76,7 +76,7 @@ void EmuSystem::renderFramebuffer(EmuVideo &video)
 
 void EmuSystem::reset(ResetMode mode)
 {
-	assert(gameIsRunning());
+	assert(hasContent());
 	if(mode == RESET_HARD)
 	{
 		S9xReset();
@@ -93,21 +93,21 @@ void EmuSystem::reset(ResetMode mode)
 #define FREEZE_EXT "s96"
 #endif
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}." FREEZE_EXT, name, saveSlotCharUpper(slot));
 }
 
 #undef FREEZE_EXT
 
-static FS::PathString sramFilename(IG::ApplicationContext ctx)
+static FS::PathString sramFilename(EmuSystem &sys)
 {
-	return EmuSystem::contentSaveFilePath(ctx, ".srm");
+	return sys.contentSaveFilePath(".srm");
 }
 
-static FS::PathString cheatsFilename(IG::ApplicationContext ctx)
+static FS::PathString cheatsFilename(EmuSystem &sys)
 {
-	return EmuSystem::contentSaveFilePath(ctx, ".cht");
+	return sys.contentSaveFilePath(".cht");
 }
 
 void EmuSystem::saveState(IG::CStringView path)
@@ -126,17 +126,17 @@ void EmuSystem::loadState(IG::CStringView path)
 		return throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
+void EmuSystem::saveBackupMem()
 {
-	if(gameIsRunning())
+	if(hasContent())
 	{
 		if(Memory.SRAMSize)
 		{
 			logMsg("saving backup memory");
-			auto saveStr = sramFilename(ctx);
+			auto saveStr = sramFilename(*this);
 			Memory.SaveSRAM(saveStr.data());
 		}
-		auto cheatsStr = cheatsFilename(ctx);
+		auto cheatsStr = cheatsFilename(*this);
 		if(!numCheats())
 			logMsg("no cheats present, removing .cht file if present");
 		else
@@ -145,16 +145,16 @@ void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
 	}
 }
 
-void EmuSystem::closeSystem(IG::ApplicationContext ctx)
+void EmuSystem::closeSystem()
 {
-	saveBackupMem(ctx);
+	saveBackupMem();
 }
 
 bool EmuSystem::vidSysIsPAL() { return Settings.PAL; }
 unsigned EmuSystem::multiresVideoBaseX() { return 256; }
 unsigned EmuSystem::multiresVideoBaseY() { return 239; }
 
-void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto size = io.size();
 	if(size > CMemory::MAX_ROM_SIZE + 512)
@@ -187,8 +187,8 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreatePara
 	{
 		throw std::runtime_error("Error loading game");
 	}
-	setupSNESInput(EmuApp::get(ctx).defaultVController());
-	auto saveStr = sramFilename(ctx);
+	setupSNESInput(*this, EmuApp::get(appContext()).defaultVController());
+	auto saveStr = sramFilename(*this);
 	Memory.LoadSRAM(saveStr.data());
 	IPPU.RenderThisFrame = TRUE;
 }
@@ -280,9 +280,8 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(IG::ApplicationContext ctx)
+void EmuSystem::onInit()
 {
-	appCtx = ctx;
 	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
 	#ifndef SNES9X_VERSION_1_4
 	GFX.Screen = screenBuff;
@@ -338,5 +337,5 @@ bool8 S9xContinueUpdate(int width, int height)
 
 void S9xAutoSaveSRAM (void)
 {
-	EmuEx::EmuSystem::saveBackupMem(EmuEx::appCtx);
+	EmuEx::gSystem().saveBackupMem();
 }

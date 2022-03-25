@@ -131,7 +131,7 @@ void EmuMainMenuView::onShow()
 	TableView::onShow();
 	logMsg("refreshing main menu state");
 	recentGames.setActive(app().recentContent().size());
-	systemActions.setActive(EmuSystem::gameIsRunning());
+	systemActions.setActive(system().hasContent());
 	#ifdef CONFIG_BLUETOOTH
 	bluetoothDisconnect.setActive(Bluetooth::devsConnected(appContext()));
 	#endif
@@ -189,7 +189,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"System Actions", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(!EmuSystem::gameIsRunning())
+			if(!system().hasContent())
 				return;
 			pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::SYSTEM_ACTIONS), e);
 		}

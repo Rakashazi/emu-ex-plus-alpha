@@ -127,10 +127,10 @@ const char *externalPaletteName()
 	return stringResource(paletteFileResStr.data());
 }
 
-void EmuSystem::onOptionsLoaded(IG::ApplicationContext ctx)
+void EmuSystem::onOptionsLoaded()
 {
 	currSystem = (ViceSystem)optionViceSystem.val;
-	plugin = loadVicePlugin(currSystem, ctx.libPath().data());
+	plugin = loadVicePlugin(currSystem, appContext().libPath().data());
 	if(!plugin)
 	{
 		throw std::runtime_error(fmt::format("Error loading plugin for system {}", VicePlugin::systemName(currSystem)));
@@ -283,7 +283,7 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 		bcase CFGKEY_CROP_NORMAL_BORDERS: optionCropNormalBorders.readFromIO(io, readSize);
 		bcase CFGKEY_SID_ENGINE: optionSidEngine.readFromIO(io, readSize);
 		bcase CFGKEY_SYSTEM_FILE_PATH:
-			readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){setFirmwarePath(path);});
+			readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){setFirmwarePath(path);});
 		bcase CFGKEY_RESID_SAMPLING: optionReSidSampling.readFromIO(io, readSize);
 	}
 	return 1;

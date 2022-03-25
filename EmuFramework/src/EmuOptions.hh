@@ -69,27 +69,7 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	// 256+ is reserved
 };
 
-extern Byte1Option optionImgFilter;
-extern DoubleOption optionAspectRatio;
-extern Byte1Option optionImgEffect;
-extern Byte1Option optionImageEffectPixelFormat;
-extern Byte1Option optionOverlayEffect;
-extern Byte1Option optionOverlayEffectLevel;
-
-extern Byte1Option optionFrameInterval;
-extern Byte1Option optionSkipLateFrames;
-extern DoubleOption optionFrameRate;
-extern DoubleOption optionFrameRatePAL;
-extern DoubleOption optionRefreshRateOverride;
-
 static const unsigned optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY = 254;
-extern Byte1Option optionImageZoom;
-extern Byte1Option optionViewportZoom;
-extern Byte1Option optionShowOnSecondScreen;
-
-extern Byte1Option optionTextureBufferMode;
-
-extern Byte1Option optionVideoImageBuffers;
 
 static const char *optionSavePathDefaultToken = ":DEFAULT:";
 

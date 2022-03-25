@@ -29,50 +29,7 @@
 namespace EmuEx
 {
 
-struct RelPtr  // for Android trackball
-{
-	int x = 0, y = 0;
-	unsigned xAction = 0, yAction = 0;
-};
-static RelPtr relPtr{};
-
-static void processRelPtr(EmuApp &app, const Input::MotionEvent &e)
-{
-	using namespace IG::Input;
-	if(relPtr.x != 0 && sign(relPtr.x) != sign(e.pos().x))
-	{
-		//logMsg("reversed trackball X direction");
-		relPtr.x = e.pos().x;
-		EmuSystem::handleInputAction(&app, Action::RELEASED, relPtr.xAction);
-	}
-	else
-		relPtr.x += e.pos().x;
-
-	if(e.pos().x)
-	{
-		relPtr.xAction = EmuSystem::translateInputAction(e.pos().x > 0 ? Controls::systemKeyMapStart+1 : Controls::systemKeyMapStart+3);
-		EmuSystem::handleInputAction(&app, Action::PUSHED, relPtr.xAction);
-	}
-
-	if(relPtr.y != 0 && sign(relPtr.y) != sign(e.pos().y))
-	{
-		//logMsg("reversed trackball Y direction");
-		relPtr.y = e.pos().y;
-		EmuSystem::handleInputAction(&app, Action::RELEASED, relPtr.yAction);
-	}
-	else
-		relPtr.y += e.pos().y;
-
-	if(e.pos().y)
-	{
-		relPtr.yAction = EmuSystem::translateInputAction(e.pos().y > 0 ? Controls::systemKeyMapStart+2 : Controls::systemKeyMapStart);
-		EmuSystem::handleInputAction(&app, Action::PUSHED, relPtr.yAction);
-	}
-
-	//logMsg("trackball event %d,%d, rel ptr %d,%d", e.x, e.y, relPtr.x, relPtr.y);
-}
-
-void TurboInput::update(EmuApp *app)
+void TurboInput::update(EmuApp &app)
 {
 	static const unsigned turboFrames = 4;
 
@@ -83,12 +40,12 @@ void TurboInput::update(EmuApp *app)
 			if(clock == 0)
 			{
 				//logMsg("turbo push for player %d, action %d", e.player, e.action);
-				EmuSystem::handleInputAction(app, Input::Action::PUSHED, e.action);
+				app.system().handleInputAction(&app, Input::Action::PUSHED, e.action);
 			}
 			else if(clock == turboFrames/2)
 			{
 				//logMsg("turbo release for player %d, action %d", e.player, e.action);
-				EmuSystem::handleInputAction(app, Input::Action::RELEASED, e.action);
+				app.system().handleInputAction(&app, Input::Action::RELEASED, e.action);
 			}
 		}
 	}
@@ -504,7 +461,7 @@ void EmuApp::applyEnabledFaceButtons(std::span<const std::pair<int, bool>> apply
 		if(!vController.hasWindow())
 			return;
 		vController.place();
-		EmuSystem::clearInputBuffers(emuViewController->inputView());
+		system().clearInputBuffers(emuViewController->inputView());
 	}
 }
 

@@ -13,9 +13,9 @@ extern const unsigned gamepadKeys;
 
 namespace EmuEx
 {
+
 class EmuApp;
 
-extern IG::ApplicationContext appCtx;
 extern Byte1Option optionArcadeCard;
 extern Byte1Option option6BtnPad;
 extern FS::PathString sysCardPath;
@@ -23,6 +23,7 @@ extern std::array<uint16, 5> inputBuff;
 
 void set6ButtonPadEnabled(EmuApp &, bool);
 bool hasHuCardExtension(std::string_view name);
+
 }
 
 namespace MDFN_IEN_PCE_FAST

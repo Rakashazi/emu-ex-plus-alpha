@@ -133,7 +133,7 @@ void VController::inputAction(Input::Action action, unsigned vBtn)
 {
 	if(isInKeyboardMode())
 	{
-		EmuSystem::handleInputAction(&app(), action, kb.translateInput(vBtn));
+		system().handleInputAction(&app(), action, kb.translateInput(vBtn));
 	}
 	else
 	{
@@ -151,7 +151,7 @@ void VController::inputAction(Input::Action action, unsigned vBtn)
 				app().removeTurboInputEvent(keyCode);
 			}
 		}
-		EmuSystem::handleInputAction(&app(), action, keyCode);
+		system().handleInputAction(&app(), action, keyCode);
 	}
 }
 
@@ -195,7 +195,7 @@ void VController::toggleKeyboard()
 	logMsg("toggling keyboard");
 	resetInput();
 	kbMode ^= true;
-	EmuSystem::onVKeyboardShown(kb, kbMode);
+	system().onVKeyboardShown(kb, kbMode);
 }
 
 std::array<int, 2> VController::findGamepadElements(IG::WP pos)
@@ -306,7 +306,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 			currElems = newElems;
 			if(!elementsArePushed)
 			{
-				elementsArePushed |= EmuSystem::onPointerInputStart(e, dragState, gameRect);
+				elementsArePushed |= system().onPointerInputStart(e, dragState, gameRect);
 			}
 		},
 		[&](Input::DragTrackerState dragState, Input::DragTrackerState prevDragState, auto &currElems)
@@ -315,13 +315,13 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 			currElems = newElems;
 			if(!elementsArePushed)
 			{
-				elementsArePushed |= EmuSystem::onPointerInputUpdate(e, dragState, prevDragState, gameRect);
+				elementsArePushed |= system().onPointerInputUpdate(e, dragState, prevDragState, gameRect);
 			}
 		},
 		[&](Input::DragTrackerState dragState, auto &currElems)
 		{
 			applyInputActions(currElems, nullElems);
-			elementsArePushed |= EmuSystem::onPointerInputEnd(e, dragState, gameRect);
+			elementsArePushed |= system().onPointerInputEnd(e, dragState, gameRect);
 		});
 	 if(!elementsArePushed && !gamepadControlsVisible() && shouldShowOnTouchInput()
 			&& !isInKeyboardMode() && e.isTouch() && e.pushed()) [[unlikely]]

@@ -300,7 +300,7 @@ void EmuVideo::updateNeedsFence()
 	needsFence = singleBuffer && renderer().maxSwapChainImages() > 2;
 }
 
-void EmuVideo::setTextureBufferMode(Gfx::TextureBufferMode mode)
+void EmuVideo::setTextureBufferMode(EmuSystem &sys, Gfx::TextureBufferMode mode)
 {
 	mode = renderer().makeValidTextureBufferMode(mode);
 	if(bufferMode == mode)
@@ -308,7 +308,7 @@ void EmuVideo::setTextureBufferMode(Gfx::TextureBufferMode mode)
 	bufferMode = mode;
 	if(renderFmt == IG::PIXEL_RGBA8888 || renderFmt == IG::PIXEL_BGRA8888)
 	{
-		if(setRenderPixelFormat(IG::PIXEL_RGBA8888, colSpace)) // re-apply format for possible RGB/BGR change
+		if(setRenderPixelFormat(sys, IG::PIXEL_RGBA8888, colSpace)) // re-apply format for possible RGB/BGR change
 			return;
 	}
 	resetImage(renderFmt);
@@ -343,7 +343,7 @@ void EmuVideo::setCompatTextureSampler(const Gfx::TextureSampler &compatTexSampl
 	vidImg.setCompatTextureSampler(compatTexSampler);
 }
 
-bool EmuVideo::setRenderPixelFormat(IG::PixelFormat fmt, Gfx::ColorSpace colorSpace)
+bool EmuVideo::setRenderPixelFormat(EmuSystem &sys, IG::PixelFormat fmt, Gfx::ColorSpace colorSpace)
 {
 	if(colorSpace != colSpace)
 	{
@@ -364,7 +364,7 @@ bool EmuVideo::setRenderPixelFormat(IG::PixelFormat fmt, Gfx::ColorSpace colorSp
 	logMsg("setting render pixel format:%s", fmt.name());
 	renderFmt = fmt;
 	auto oldPixDesc = deleteImage();
-	if(!EmuSystem::onVideoRenderFormatChange(*this, fmt) && oldPixDesc.w())
+	if(!sys.onVideoRenderFormatChange(*this, fmt) && oldPixDesc.w())
 	{
 		setFormat({oldPixDesc.size(), fmt});
 	}

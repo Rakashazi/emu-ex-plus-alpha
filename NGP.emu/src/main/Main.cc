@@ -39,7 +39,6 @@ static const unsigned vidBufferX = 160, vidBufferY = 152;
 alignas(8) static uint32_t pixBuff[vidBufferX*vidBufferY]{};
 static IG::Pixmap mSurfacePix;
 uint8_t inputBuff{};
-IG::ApplicationContext appCtx{};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
@@ -47,20 +46,21 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 		return IG::stringEndsWithAny(name, ".ngc", ".ngp", ".npc", ".NGC", ".NGP", ".NPC");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
+bool EmuApp::needsGlobalInstance = true;
 
-const char *EmuSystem::shortSystemName()
+const char *EmuSystem::shortSystemName() const
 {
 	return "NGP";
 }
 
-const char *EmuSystem::systemName()
+const char *EmuSystem::systemName() const
 {
 	return "Neo Geo Pocket";
 }
 
 void EmuSystem::reset(ResetMode mode)
 {
-	assert(gameIsRunning());
+	assert(hasContent());
 	MDFN_IEN_NGP::reset();
 }
 
@@ -74,7 +74,7 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.{}.nc{}", name, md5_context::asciistr(MDFNGameInfo->MD5, 0), saveSlotChar(slot));
 }
@@ -91,23 +91,23 @@ void EmuSystem::loadState(IG::CStringView path)
 		throwFileReadError();
 }
 
-static FS::PathString saveFilename(IG::ApplicationContext ctx)
+static FS::PathString saveFilename(EmuSystem &sys)
 {
-	return EmuSystem::contentSaveFilePath(ctx, ".ngf");
+	return sys.contentSaveFilePath(".ngf");
 }
 
-void EmuSystem::saveBackupMem(IG::ApplicationContext)
+void EmuSystem::saveBackupMem()
 {
 	logMsg("saving flash");
 	MDFN_IEN_NGP::FLASH_SaveNV();
 }
 
-void EmuSystem::closeSystem(IG::ApplicationContext)
+void EmuSystem::closeSystem()
 {
 	emuSys->CloseGame();
 }
 
-void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	emuSys->name = std::string{EmuSystem::contentName()};
 	static constexpr size_t maxRomSize = 0x400000;
@@ -131,7 +131,7 @@ void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
 	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
-	if(!gameIsRunning())
+	if(!hasContent())
 		return false;
 	EmulateSpecStruct espec{};
 	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
@@ -185,11 +185,6 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(IG::ApplicationContext ctx)
-{
-	appCtx = ctx;
-}
-
 }
 
 namespace MDFN_IEN_NGP
@@ -198,8 +193,8 @@ namespace MDFN_IEN_NGP
 bool system_io_flash_read(uint8_t* buffer, uint32_t len)
 {
 	using namespace EmuEx;
-	auto saveStr = saveFilename(appCtx);
-	return IG::FileUtils::readFromUri(appCtx, saveStr, {buffer, len}) > 0;
+	auto saveStr = saveFilename(gSystem());
+	return IG::FileUtils::readFromUri(gAppContext(), saveStr, {buffer, len}) > 0;
 }
 
 void system_io_flash_write(uint8_t* buffer, uint32 len)
@@ -207,9 +202,9 @@ void system_io_flash_write(uint8_t* buffer, uint32 len)
 	using namespace EmuEx;
 	if(!len)
 		return;
-	auto saveStr = saveFilename(appCtx);
+	auto saveStr = saveFilename(gSystem());
 	logMsg("writing flash %s", saveStr.data());
-	IG::FileUtils::writeToUri(appCtx, saveStr, {buffer, len}) != -1;
+	IG::FileUtils::writeToUri(gAppContext(), saveStr, {buffer, len}) != -1;
 }
 
 }

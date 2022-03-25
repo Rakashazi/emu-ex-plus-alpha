@@ -33,25 +33,26 @@ namespace EmuEx
 EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
 	video{video} {}
 
-void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView)
+void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView, EmuSystem &sys)
 {
-	if(EmuSystem::gameIsRunning())
+	if(sys.hasContent())
 	{
 		float viewportAspectRatio = viewportRect.xSize()/(float)viewportRect.ySize();
+		auto zoom = zoom_;
 		// compute the video rectangle in pixel coordinates
-		if(((unsigned)optionImageZoom == optionImageZoomIntegerOnly || (unsigned)optionImageZoom == optionImageZoomIntegerOnlyY)
+		if((zoom == optionImageZoomIntegerOnly || zoom == optionImageZoomIntegerOnlyY)
 			&& video.size().x)
 		{
 			unsigned gameX = video.size().x, gameY = video.size().y;
 
 			// Halve pixel sizes if image has mixed low/high-res content so scaling is based on lower res,
 			// this prevents jumping between two screen sizes in games like Seiken Densetsu 3 on SNES
-			if(EmuSystem::multiresVideoBaseX() && gameX > EmuSystem::multiresVideoBaseX())
+			if(sys.multiresVideoBaseX() && gameX > sys.multiresVideoBaseX())
 			{
 				logMsg("halving X size for multires content");
 				gameX /= 2;
 			}
-			if(EmuSystem::multiresVideoBaseY() && gameY > EmuSystem::multiresVideoBaseY())
+			if(sys.multiresVideoBaseY() && gameY > sys.multiresVideoBaseY())
 			{
 				logMsg("halving Y size for multires content");
 				gameY /= 2;
@@ -93,14 +94,14 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		}
 
 		// compute the video rectangle in world coordinates for sub-pixel placement
-		if((unsigned)optionImageZoom <= 100 || (unsigned)optionImageZoom == optionImageZoomIntegerOnlyY)
+		if(zoom <= 100 || zoom == optionImageZoomIntegerOnlyY)
 		{
-			auto aR = optionAspectRatio.val;
-			if(EmuSystem::videoAspectRatioScale())
+			auto aR = aspectRatio();
+			if(sys.videoAspectRatioScale())
 			{
-				aR *= EmuSystem::videoAspectRatioScale();
+				aR *= sys.videoAspectRatioScale();
 			}
-			if((unsigned)optionImageZoom == optionImageZoomIntegerOnlyY)
+			if(zoom == optionImageZoomIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height
 				float width = projP.unprojectYSize(gameRect_.ySize()) * (float)aR;
@@ -127,19 +128,19 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 
 		// determine whether to generate the final coordinates from pixels or world units
 		bool getXCoordinateFromPixels = 0, getYCoordinateFromPixels = 0;
-		if((unsigned)optionImageZoom == optionImageZoomIntegerOnlyY)
+		if(zoom == optionImageZoomIntegerOnlyY)
 		{
 			getYCoordinateFromPixels = 1;
 		}
-		else if((unsigned)optionImageZoom == optionImageZoomIntegerOnly)
+		else if(zoom == optionImageZoomIntegerOnly)
 		{
 			getXCoordinateFromPixels = getYCoordinateFromPixels = 1;
 		}
 
 		// apply sub-pixel zoom
-		if(optionImageZoom.val < 100)
+		if(zoom < 100)
 		{
-			auto scaler = (float(optionImageZoom.val) / 100.f);
+			auto scaler = zoom / 100.f;
 			gameRectG.x *= scaler;
 			gameRectG.y *= scaler;
 			gameRectG.x2 *= scaler;
@@ -207,8 +208,6 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 
 void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP)
 {
-	if(!EmuSystem::isStarted())
-		return;
 	using namespace IG::Gfx;
 	bool replaceMode = true;
 	if(brightness != 1.f)
@@ -249,14 +248,14 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	vidImgOverlay.draw(cmds);
 }
 
-void EmuVideoLayer::setFormat(IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace colorSpace)
+void EmuVideoLayer::setFormat(EmuSystem &sys, IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace colorSpace)
 {
 	colSpace = colorSpace;
 	if(EmuSystem::canRenderRGBA8888 && colorSpace == Gfx::ColorSpace::SRGB)
 	{
 		videoFmt = IG::PIXEL_RGBA8888;
 	}
-	if(!video.setRenderPixelFormat(videoFmt, videoColorSpace(videoFmt)))
+	if(!video.setRenderPixelFormat(sys, videoFmt, videoColorSpace(videoFmt)))
 	{
 		setEffectFormat(effectFmt);
 		updateConvertColorSpaceEffect();
@@ -265,6 +264,7 @@ void EmuVideoLayer::setFormat(IG::PixelFormat videoFmt, IG::PixelFormat effectFm
 
 void EmuVideoLayer::setOverlay(int effect)
 {
+	userOverlayEffectId = effect;
 	vidImgOverlay.setEffect(video.renderer(), effect);
 	placeOverlay();
 }
@@ -284,7 +284,7 @@ void EmuVideoLayer::setEffectFormat(IG::PixelFormat fmt)
 	userEffect.setFormat(renderer(), fmt, colorSpace(), *texSampler);
 }
 
-void EmuVideoLayer::setEffect(ImageEffectId effect, IG::PixelFormat fmt)
+void EmuVideoLayer::setEffect(EmuSystem &sys, ImageEffectId effect, IG::PixelFormat fmt)
 {
 	if(userEffectId == effect)
 		return;
@@ -294,14 +294,14 @@ void EmuVideoLayer::setEffect(ImageEffectId effect, IG::PixelFormat fmt)
 		userEffect = {};
 		buildEffectChain();
 		logMsg("deleted user effect");
-		video.setRenderPixelFormat(video.renderPixelFormat(), videoColorSpace(video.renderPixelFormat()));
+		video.setRenderPixelFormat(sys, video.renderPixelFormat(), videoColorSpace(video.renderPixelFormat()));
 		updateConvertColorSpaceEffect();
 	}
 	else
 	{
 		userEffect = {renderer(), effect, fmt, colorSpace(), *texSampler, video.size()};
 		buildEffectChain();
-		video.setRenderPixelFormat(video.renderPixelFormat(), Gfx::ColorSpace::LINEAR);
+		video.setRenderPixelFormat(sys, video.renderPixelFormat(), Gfx::ColorSpace::LINEAR);
 	}
 }
 
@@ -328,7 +328,7 @@ void EmuVideoLayer::onVideoFormatChanged(IG::PixelFormat effectFmt)
 		updateEffectImageSize();
 		updateSprite();
 	}
-	setOverlay(optionOverlayEffect);
+	setOverlay(userOverlayEffectId);
 }
 
 Gfx::Renderer &EmuVideoLayer::renderer()

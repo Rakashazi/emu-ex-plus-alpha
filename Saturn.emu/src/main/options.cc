@@ -74,7 +74,7 @@ void EmuSystem::initOptions(EmuApp &app)
 	app.setDefaultVControlsButtonStagger(3);
 }
 
-void EmuSystem::onOptionsLoaded(IG::ApplicationContext)
+void EmuSystem::onOptionsLoaded()
 {
 	yinit.sh2coretype = optionSH2Core;
 }

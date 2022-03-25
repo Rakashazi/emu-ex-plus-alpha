@@ -58,7 +58,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobe
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
-IG::ApplicationContext appCtx{};
+bool EmuApp::needsGlobalInstance = true;
 unsigned fceuCheats = 0;
 ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
 unsigned autoDetectedRegion = 0;
@@ -90,22 +90,12 @@ static bool hasNESExtension(std::string_view name)
 	return hasROMExtension(name) || hasFDSExtension(name);
 }
 
-const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx)
-{
-	static const BundledGameInfo info[]
-	{
-		{ "Test Game", "game.7z" }
-	};
-
-	return info[0];
-}
-
-const char *EmuSystem::shortSystemName()
+const char *EmuSystem::shortSystemName() const
 {
 	return "FC-NES";
 }
 
-const char *EmuSystem::systemName()
+const char *EmuSystem::systemName() const
 {
 	return "Famicom (Nintendo Entertainment System)";
 }
@@ -115,7 +105,7 @@ EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasNESExtension;
 
 void EmuSystem::reset(ResetMode mode)
 {
-	assert(gameIsRunning());
+	assert(hasContent());
 	if(mode == RESET_HARD)
 		FCEUI_PowerNES();
 	else
@@ -132,7 +122,7 @@ static char saveSlotCharNES(int slot)
 	}
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.fc{}", name, saveSlotCharNES(slot));
 }
@@ -149,9 +139,9 @@ void EmuSystem::loadState(IG::CStringView path)
 		EmuSystem::throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
+void EmuSystem::saveBackupMem()
 {
-	if(gameIsRunning())
+	if(hasContent())
 	{
 		logMsg("saving backup memory if needed");
 		if(isFDS)
@@ -162,7 +152,7 @@ void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
 	}
 }
 
-void EmuSystem::closeSystem(IG::ApplicationContext ctx)
+void EmuSystem::closeSystem()
 {
 	FCEUI_CloseGame();
 	fceuCheats = 0;
@@ -330,7 +320,7 @@ void setRegion(int region, int defaultRegion, int detectedRegion)
 	}
 }
 
-void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto ioStream = new EmuFileIO(io);
 	auto file = new FCEUFILE();
@@ -440,9 +430,8 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(IG::ApplicationContext ctx)
+void EmuSystem::onInit()
 {
-	appCtx = ctx;
 	backupSavestates = 0;
 	if(!FCEUI_Initialize())
 	{

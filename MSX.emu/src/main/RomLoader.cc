@@ -27,7 +27,11 @@ extern "C"
 	#include <blueMSX/Memory/RomLoader.h>
 }
 
-using namespace IG;
+namespace EmuEx
+{
+IG::ApplicationContext gAppContext();
+}
+
 using namespace EmuEx;
 
 static UInt8 *fileToMallocBuffer(IO &file, int *size)
@@ -54,6 +58,8 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 	}
 	else
 	{
+		auto &sys = gSystem();
+		auto appCtx = sys.appContext();
 		if(filename[0] == '/' || IG::isUri(filename)) // try to load absolute path directly
 		{
 			auto file = appCtx.openFileUri(filename, IO::AccessHint::ALL, IO::OPEN_TEST);
@@ -66,7 +72,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 		}
 		// relative path, try firmware directory
 		{
-			auto file = appCtx.openFileUri(FS::uriString(machineBasePath(appCtx), filename), IO::AccessHint::ALL, IO::OPEN_TEST);
+			auto file = appCtx.openFileUri(FS::uriString(machineBasePath(sys), filename), IO::AccessHint::ALL, IO::OPEN_TEST);
 			if(file)
 			{
 				return fileToMallocBuffer(file, size);
@@ -87,7 +93,9 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 
 CLINK FILE *openMachineIni(const char *path, const char *mode)
 {
-	auto filePathInFirmwarePath = FS::uriString(machineBasePath(appCtx), path);
+	auto &sys = gSystem();
+	auto appCtx = sys.appContext();
+	auto filePathInFirmwarePath = FS::uriString(machineBasePath(sys), path);
 	auto file = appCtx.openFileUri(filePathInFirmwarePath, IO::AccessHint::ALL, IO::OPEN_TEST);
 	if(file)
 	{

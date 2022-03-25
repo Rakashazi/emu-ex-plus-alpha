@@ -33,7 +33,6 @@ static constexpr uint8_t SYSTEM_FLAG_NO_AUTOSTART = IG::bit(0);
 
 extern VicePlugin plugin;
 extern ViceSystem currSystem;
-extern IG::ApplicationContext appContext;
 extern FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3];
 extern const char *sysFileDir;
 extern EmuAudio *audioPtr;

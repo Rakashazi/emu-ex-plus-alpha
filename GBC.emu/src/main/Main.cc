@@ -51,22 +51,12 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
-const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx)
-{
-	static const BundledGameInfo info[]
-	{
-		{ "Test Game", "game.gb"	}
-	};
-
-	return info[0];
-}
-
-const char *EmuSystem::shortSystemName()
+const char *EmuSystem::shortSystemName() const
 {
 	return "GB";
 }
 
-const char *EmuSystem::systemName()
+const char *EmuSystem::systemName() const
 {
 	return "Game Boy";
 }
@@ -98,9 +88,10 @@ void applyGBPalette()
 		gbEmu.setDmgPaletteColor(2, i, makeOutputColor(pal.sp2[i]));
 }
 
-void EmuSystem::onOptionsLoaded(IG::ApplicationContext ctx)
+void EmuSystem::onOptionsLoaded()
 {
 	gbEmu.setInputGetter(&gbcInput);
+	auto ctx = appContext();
 	gbEmu.setStreamDelegates(
 		[ctx](std::string_view basePath, std::string_view filename) -> IG::IFStream
 		{
@@ -114,18 +105,18 @@ void EmuSystem::onOptionsLoaded(IG::ApplicationContext ctx)
 
 void EmuSystem::reset(ResetMode mode)
 {
-	assert(gameIsRunning());
+	assert(hasContent());
 	gbEmu.reset();
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}.gqs", name, saveSlotCharUpper(slot));
 }
 
-void EmuSystem::saveState(IG::ApplicationContext ctx, IG::CStringView path)
+void EmuSystem::saveState(IG::CStringView path)
 {
-	IG::OFStream stream{ctx.openFileUri(path, IO::OPEN_CREATE)};
+	IG::OFStream stream{appContext().openFileUri(path, IO::OPEN_CREATE)};
 	if(!gbEmu.saveState(frameBuffer, gambatte::lcd_hres, stream))
 		throwFileWriteError();
 }
@@ -137,22 +128,22 @@ void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 		throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem(IG::ApplicationContext ctx)
+void EmuSystem::saveBackupMem()
 {
 	logMsg("saving battery");
 	gbEmu.saveSavedata();
-	writeCheatFile(ctx);
+	writeCheatFile(*this);
 }
 
 void EmuSystem::savePathChanged()
 {
-	if(gameIsRunning())
+	if(hasContent())
 		gbEmu.setSaveDir(std::string{contentSaveDirectory()});
 }
 
-void EmuSystem::closeSystem(IG::ApplicationContext ctx)
+void EmuSystem::closeSystem()
 {
-	saveBackupMem(ctx);
+	saveBackupMem();
 	cheatList.clear();
 	cheatsModified = false;
 	gameBuiltinPalette = nullptr;
@@ -160,7 +151,7 @@ void EmuSystem::closeSystem(IG::ApplicationContext ctx)
 	totalSamples = 0;
 }
 
-void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	gbEmu.setSaveDir(std::string{contentSaveDirectory()});
 	auto buff = io.buffer();
@@ -180,8 +171,8 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreatePara
 			logMsg("game %s has built-in palette", gbEmu.romTitle().c_str());
 		applyGBPalette();
 	}
-	readCheatFile(ctx);
-	applyCheats();
+	readCheatFile(*this);
+	applyCheats(*this);
 }
 
 bool EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)

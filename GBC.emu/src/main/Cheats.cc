@@ -47,9 +47,9 @@ static bool strIsGSCode(const char *str)
 			&hex, &hex, &hex, &hex, &hex, &hex, &hex, &hex) == 8;
 }
 
-void applyCheats()
+void applyCheats(EmuSystem &sys)
 {
-	if(EmuSystem::gameIsRunning())
+	if(sys.hasContent())
 	{
 		std::string ggCodeStr, gsCodeStr;
 		for(auto &e : cheatList)
@@ -70,12 +70,13 @@ void applyCheats()
 	}
 }
 
-void writeCheatFile(IG::ApplicationContext ctx)
+void writeCheatFile(EmuSystem &sys)
 {
 	if(!cheatsModified)
 		return;
 
-	auto path = EmuSystem::contentSaveFilePath(ctx, ".gbcht");
+	auto ctx = sys.appContext();
+	auto path = sys.contentSaveFilePath(".gbcht");
 
 	if(!cheatList.size())
 	{
@@ -107,10 +108,10 @@ void writeCheatFile(IG::ApplicationContext ctx)
 	cheatsModified = 0;
 }
 
-void readCheatFile(IG::ApplicationContext ctx)
+void readCheatFile(EmuSystem &sys)
 {
-	auto path = EmuSystem::contentSaveFilePath(ctx, ".gbcht");
-	auto file = ctx.openFileUri(path, IO::AccessHint::ALL, IO::OPEN_TEST);
+	auto path = sys.contentSaveFilePath(".gbcht");
+	auto file = sys.appContext().openFileUri(path, IO::AccessHint::ALL, IO::OPEN_TEST);
 	if(!file)
 	{
 		return;
@@ -166,7 +167,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 			IG::eraseFirst(cheatList, *cheat);
 			cheatsModified = 1;
 			onCheatListChanged();
-			applyCheats();
+			applyCheats(system());
 			dismiss();
 			return true;
 		},
@@ -191,7 +192,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 					}
 					cheat->code = IG::stringToUpper<decltype(cheat->code)>(str);
 					cheatsModified = 1;
-					applyCheats();
+					applyCheats(app.system());
 					ggCode.set2ndName(str);
 					ggCode.compile(renderer(), projP);
 					postDraw();
@@ -258,7 +259,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						cheatList.push_back(c);
 						logMsg("added new cheat, %zu total", cheatList.size());
 						cheatsModified = 1;
-						applyCheats();
+						applyCheats(system());
 						onCheatListChanged();
 						view.dismiss();
 						app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
@@ -328,7 +329,7 @@ void EmuCheatsView::loadCheatItems()
 				auto &c = cheatList[cIdx];
 				c.toggleOn();
 				cheatsModified = 1;
-				applyCheats();
+				applyCheats(system());
 			});
 		logMsg("added cheat %s : %s", thisCheat.name.data(), thisCheat.code.data());
 		++it;

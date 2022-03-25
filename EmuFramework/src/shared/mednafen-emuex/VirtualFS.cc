@@ -20,7 +20,7 @@
 
 namespace EmuEx
 {
-extern IG::ApplicationContext appCtx;
+IG::ApplicationContext gAppContext();
 }
 
 namespace Mednafen
@@ -36,7 +36,7 @@ VirtualFS::~VirtualFS() {}
 void VirtualFS::get_file_path_components(const std::string &file_path, std::string* dir_path_out, std::string* file_base_out, std::string *file_ext_out)
 {
 	auto dir = std::string{IG::FS::dirnameUri(file_path)};
-	auto fileBase = std::string{EmuEx::appCtx.fileUriDisplayName(file_path)};
+	auto fileBase = std::string{EmuEx::gAppContext().fileUriDisplayName(file_path)};
 	std::string fileExt{};
 	auto dotPos = fileBase.rfind('.');
 	if(dotPos != std::string::npos)

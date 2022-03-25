@@ -114,13 +114,13 @@ int close_game(void) {
     return true;
 }
 
-bool load_game_config(char *rom_name) {
+bool load_game_config(void *contextPtr, char *rom_name) {
 	const char *gpath;
 	char *drconf;
 #ifdef EMBEDDED_FS
     gpath=ROOTPATH"conf/";
 #else
-    gpath=get_gngeo_dir();
+    gpath=get_gngeo_dir(contextPtr);
 #endif
 	cf_reset_to_default();
 	cf_open_file(NULL); /* Reset possible previous setting */
@@ -147,7 +147,7 @@ bool load_game_config(char *rom_name) {
 int init_game(void *contextPtr, char *rom_name, char romerror[1024]) {
 	//logMsg("AAA Blitter %s effect %s\n",CF_STR(cf_get_item_by_name("blitter")),CF_STR(cf_get_item_by_name("effect")));
 
-	load_game_config(rom_name);
+	load_game_config(contextPtr, rom_name);
 	/* reinit screen if necessary */
 	//screen_change_blitter_and_effect(NULL,NULL);
 	reset_frame_skip();

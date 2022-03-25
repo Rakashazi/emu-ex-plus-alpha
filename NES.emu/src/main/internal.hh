@@ -12,8 +12,8 @@ namespace EmuEx
 {
 
 class EmuAudio;
+class EmuSystem;
 
-extern IG::ApplicationContext appCtx;
 extern FS::PathString fdsBiosPath;
 extern Byte1Option optionFourScore;
 extern SByte1Option optionInputPort1;

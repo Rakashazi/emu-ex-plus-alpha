@@ -118,6 +118,7 @@ std::string MDFN_GetSettingS(const char *name)
 
 std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 {
+	using namespace EmuEx;
 	switch(type)
 	{
 		case MDFNMKF_STATE:
@@ -129,15 +130,15 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 			ext += md5_context::asciistr(MDFNGameInfo->MD5, 0);
 			ext += '.';
 			ext += cd1;
-			auto path = EmuEx::EmuSystem::contentSaveFilePath(EmuEx::appCtx, ext);
+			auto path = EmuEx::gSystem().contentSaveFilePath(ext);
 			if(type == MDFNMKF_SAV) logMsg("save path:%s", path.c_str());
 			return std::string{path};
 		}
 		case MDFNMKF_FIRMWARE:
 		{
 			// pce-specific
-			logMsg("system card path:%s", EmuEx::sysCardPath.data());
-			return std::string(EmuEx::sysCardPath);
+			logMsg("system card path:%s", sysCardPath.data());
+			return std::string(sysCardPath);
 		}
 		default:
 			bug_unreachable("type == %d", type);

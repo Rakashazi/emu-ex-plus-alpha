@@ -106,12 +106,12 @@ void OSystem::setFrameTime(double frameTime, int rate)
 
 FilesystemNode OSystem::stateDir() const
 {
-	return FilesystemNode{std::string{EmuEx::EmuSystem::contentSaveDirectory()}};
+	return FilesystemNode{std::string{appPtr->system().contentSaveDirectory()}};
 }
 
 FilesystemNode OSystem::nvramDir(std::string_view name) const
 {
-	return FilesystemNode{std::string{EmuEx::EmuSystem::contentSaveFilePath(appPtr->appContext(), name)}};
+	return FilesystemNode{std::string{appPtr->system().contentSaveFilePath(name)}};
 }
 
 EmuEx::EmuApp &OSystem::app()

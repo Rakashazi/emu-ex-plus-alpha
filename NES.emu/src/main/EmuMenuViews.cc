@@ -40,7 +40,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		(bool)optionFourScore,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionFourScore = item.flipBoolValue(*this);
 			setupNESFourScore();
 		}
@@ -73,9 +73,9 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	TextMenuItem::SelectDelegate setInputPortsDel()
 	{
-		return [](TextMenuItem &item)
+		return [this](TextMenuItem &item)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			auto [port1, port2] = unpackInputEnums(item.id());
 			optionInputPort1 = (int)port1;
 			optionInputPort2 = (int)port2;
@@ -111,7 +111,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	void setVideoSystem(int val, Input::Event e)
 	{
-		EmuSystem::sessionOptionSet();
+		system().sessionOptionSet();
 		optionVideoSystem = val;
 		setRegion(val, optionDefaultVideoSystem.val, autoDetectedRegion);
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
@@ -132,7 +132,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 				ynAlertView->setOnYes(
 					[this, &item]()
 					{
-						EmuSystem::sessionOptionSet();
+						system().sessionOptionSet();
 						optionCompatibleFrameskip = item.flipBoolValue(*this);
 					});
 				app().pushAndShowModalView(std::move(ynAlertView), e);
@@ -173,11 +173,11 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	{
 		return [this, startLine, lines]()
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionStartVideoLine = startLine;
 			optionVisibleVideoLines = lines;
 			updateVideoPixmap(app().video(), optionHorizontalVideoCrop, optionVisibleVideoLines);
-			EmuSystem::renderFramebuffer(app().video());
+			system().renderFramebuffer(app().video());
 		};
 	}
 
@@ -187,11 +187,11 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		(bool)optionHorizontalVideoCrop,
 		[this](BoolMenuItem &item)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionHorizontalVideoCrop = item.flipBoolValue(*this);
 			updateVideoPixmap(app().video(), optionHorizontalVideoCrop, optionVisibleVideoLines);
 			app().viewController().placeEmuViews();
-			EmuSystem::renderFramebuffer(app().video());
+			system().renderFramebuffer(app().video());
 		}
 	};
 
@@ -565,7 +565,7 @@ private:
 		{}, &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			if(EmuSystem::gameIsRunning() && isFDS)
+			if(system().hasContent() && isFDS)
 			{
 				pushAndShow(makeView<FDSControlView>(), e);
 			}
@@ -592,7 +592,7 @@ private:
 		"Console Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				pushAndShow(makeView<ConsoleOptionView>(), e);
 			}

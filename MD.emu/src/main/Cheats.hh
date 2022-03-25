@@ -69,8 +69,8 @@ void applyCheats();
 void clearCheats();
 void updateCheats(); // clears and applies cheats
 void clearCheatList();
-void writeCheatFile(IG::ApplicationContext);
-void readCheatFile(IG::ApplicationContext);
+void writeCheatFile(EmuSystem &);
+void readCheatFile(EmuSystem &);
 void RAMCheatUpdate();
 
 static constexpr size_t maxCheats = 100;

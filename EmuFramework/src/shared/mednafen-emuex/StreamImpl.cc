@@ -23,7 +23,7 @@
 
 namespace EmuEx
 {
-extern IG::ApplicationContext appCtx;
+IG::ApplicationContext gAppContext();
 }
 
 namespace Mednafen
@@ -56,7 +56,7 @@ static std::pair<uint32_t, uint8_t> modeToAttribs(uint32 mode)
 
 FileStream::FileStream(const std::string& path, const uint32 mode, const int do_lock, const uint32 buffer_size)
 try:
-	io{EmuEx::appCtx.openFileUri(path, IG::IO::AccessHint::SEQUENTIAL, modeToAttribs(mode).first)},
+	io{EmuEx::gAppContext().openFileUri(path, IG::IO::AccessHint::SEQUENTIAL, modeToAttribs(mode).first)},
 	attribs{modeToAttribs(mode).second}
 {
 	assert(!do_lock);

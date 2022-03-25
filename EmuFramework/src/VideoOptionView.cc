@@ -173,24 +173,24 @@ public:
 	}
 };
 
-static auto makeFrameRateStr()
+static auto makeFrameRateStr(EmuSystem &sys)
 {
 	return fmt::format("Frame Rate: {:.2f}Hz",
-		EmuSystem::frameRate(EmuSystem::VIDSYS_NATIVE_NTSC));
+		sys.frameRate(EmuSystem::VIDSYS_NATIVE_NTSC));
 }
 
-static auto makeFrameRatePALStr()
+static auto makeFrameRatePALStr(EmuSystem &sys)
 {
 	return fmt::format("Frame Rate (PAL): {:.2f}Hz",
-		EmuSystem::frameRate(EmuSystem::VIDSYS_PAL));
+		sys.frameRate(EmuSystem::VIDSYS_PAL));
 }
 
-static TextMenuItem::SelectDelegate setFrameIntervalDel()
+TextMenuItem::SelectDelegate VideoOptionView::setFrameIntervalDel()
 {
-	return [](TextMenuItem &item)
+	return [this](TextMenuItem &item)
 	{
-		optionFrameInterval = item.id();
-		logMsg("set frame interval: %d", int(optionFrameInterval));
+		app().setFrameInterval(item.id());
+		logMsg("set frame interval:%d", item.id());
 	};
 }
 
@@ -198,10 +198,10 @@ TextMenuItem::SelectDelegate VideoOptionView::setImgEffectDel()
 {
 	return [this](TextMenuItem &item)
 	{
-		optionImgEffect = item.id();
+		app().videoEffectOption() = item.id();
 		if(emuVideo().image())
 		{
-			videoLayer->setEffect((ImageEffectId)item.id(), app().imageEffectPixelFormat());
+			videoLayer->setEffect(system(), (ImageEffectId)item.id(), app().videoEffectPixelFormat());
 			app().viewController().postDrawToEmuWindows();
 		}
 	};
@@ -211,7 +211,7 @@ TextMenuItem::SelectDelegate VideoOptionView::setOverlayEffectDel()
 {
 	return [this](TextMenuItem &item)
 	{
-		optionOverlayEffect = item.id();
+		app().overlayEffectOption() = item.id();
 		videoLayer->setOverlay(item.id());
 		app().viewController().postDrawToEmuWindows();
 	};
@@ -221,8 +221,8 @@ TextMenuItem::SelectDelegate VideoOptionView::setImgEffectPixelFormatDel()
 {
 	return [this](TextMenuItem &item)
 	{
-		optionImageEffectPixelFormat = item.id();
-		videoLayer->setEffectFormat(app().imageEffectPixelFormat());
+		app().videoEffectPixelFormatOption() = item.id();
+		videoLayer->setEffectFormat(app().videoEffectPixelFormat());
 		app().viewController().postDrawToEmuWindows();
 	};
 }
@@ -255,7 +255,7 @@ TextMenuItem::SelectDelegate VideoOptionView::setImageBuffersDel()
 {
 	return [this](TextMenuItem &item)
 	{
-		optionVideoImageBuffers = item.id();
+		app().videoImageBuffersOption() = item.id();
 		emuVideo().setImageBuffers(item.id());
 	};
 }
@@ -290,16 +290,16 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	frameInterval
 	{
 		"Target Frame Rate", &defaultFace(),
-		(MenuItem::Id)optionFrameInterval.val,
+		(MenuItem::Id)app().frameInterval(),
 		frameIntervalItem
 	},
 	dropLateFrames
 	{
 		"Skip Late Frames", &defaultFace(),
-		(bool)optionSkipLateFrames,
+		(bool)app().shouldSkipLateFrames(),
 		[this](BoolMenuItem &item)
 		{
-			optionSkipLateFrames.val = item.flipBoolValue(*this);
+			app().setShouldSkipLateFrames(item.flipBoolValue(*this));
 		}
 	},
 	frameRate
@@ -327,7 +327,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			if(idx == EmuSystem::aspectRatioInfos)
 			{
-				t.setString(fmt::format("{:.2f}", optionAspectRatio.val));
+				t.setString(fmt::format("{:.2f}", app().videoAspectRatio()));
 				return true;
 			}
 			return false;
@@ -348,9 +348,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 10 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(optionImageZoom.isValidVal(val))
+						if(app.setVideoZoom(val))
 						{
-							app.setVideoZoom(val);
 							zoom.setSelected(std::size(zoomItem) - 1, *this);
 							dismissPrevious();
 							return true;
@@ -370,14 +369,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Content Zoom", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			if(optionImageZoom <= 100)
+			if(app().videoZoom() <= 100)
 			{
-				t.setString(fmt::format("{}%", optionImageZoom.val));
+				t.setString(fmt::format("{}%", app().videoZoom()));
 				return true;
 			}
 			return false;
 		},
-		(MenuItem::Id)optionImageZoom.val,
+		(MenuItem::Id)app().videoZoom(),
 		zoomItem
 	},
 	viewportZoomItem
@@ -391,9 +390,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 50 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(optionViewportZoom.isValidVal(val))
+						if(app.setViewportZoom(val))
 						{
-							app.setViewportZoom(val);
 							viewportZoom.setSelected(std::size(viewportZoomItem) - 1, *this);
 							dismissPrevious();
 							return true;
@@ -413,21 +411,21 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"App Zoom", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", optionViewportZoom.val));
+			t.setString(fmt::format("{}%", app().viewportZoom()));
 			return true;
 		},
-		(MenuItem::Id)optionViewportZoom.val,
+		(MenuItem::Id)app().viewportZoom(),
 		viewportZoomItem
 	},
 	imgFilter
 	{
 		"Image Interpolation", &defaultFace(),
-		(bool)optionImgFilter,
+		(bool)app().videoFilterOption(),
 		"None", "Linear",
 		[this](BoolMenuItem &item)
 		{
-			optionImgFilter.val = item.flipBoolValue(*this);
-			videoLayer->setLinearFilter(optionImgFilter);
+			app().videoFilterOption().val = item.flipBoolValue(*this);
+			videoLayer->setLinearFilter(app().videoFilterOption());
 			app().viewController().postDrawToEmuWindows();
 		}
 	},
@@ -441,7 +439,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	imgEffect
 	{
 		"Image Effect", &defaultFace(),
-		(MenuItem::Id)optionImgEffect.val,
+		(MenuItem::Id)app().videoEffectOption().val,
 		imgEffectItem
 	},
 	overlayEffectItem
@@ -456,7 +454,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	overlayEffect
 	{
 		"Overlay Effect", &defaultFace(),
-		(MenuItem::Id)optionOverlayEffect.val,
+		(MenuItem::Id)app().overlayEffectOption().val,
 		overlayEffectItem
 	},
 	overlayEffectLevelItem
@@ -471,9 +469,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(optionOverlayEffectLevel.isValidVal(val))
+						if(app.setOverlayEffectLevel(*videoLayer, val))
 						{
-							app.setOverlayEffectLevel(*videoLayer, val);
 							overlayEffectLevel.setSelected(std::size(overlayEffectLevelItem) - 1, *this);
 							dismissPrevious();
 							return true;
@@ -493,10 +490,10 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Overlay Effect Level", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", optionOverlayEffectLevel.val));
+			t.setString(fmt::format("{}%", app().overlayEffectLevel()));
 			return true;
 		},
-		(MenuItem::Id)optionOverlayEffectLevel.val,
+		(MenuItem::Id)app().overlayEffectLevel(),
 		overlayEffectLevelItem
 	},
 	imgEffectPixelFormatItem
@@ -512,13 +509,13 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			if(idx == 0)
 			{
-				t.setString(app().imageEffectPixelFormat().name());
+				t.setString(app().videoEffectPixelFormat().name());
 				return true;
 			}
 			else
 				return false;
 		},
-		(MenuItem::Id)optionImageEffectPixelFormat.val,
+		(MenuItem::Id)app().videoEffectPixelFormatOption().val,
 		imgEffectPixelFormatItem
 	},
 	windowPixelFormat
@@ -552,13 +549,13 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	showOnSecondScreen
 	{
 		"External Screen", &defaultFace(),
-		(bool)optionShowOnSecondScreen,
+		(bool)app().showOnSecondScreenOption(),
 		"OS Managed", "Emu Content",
 		[this](BoolMenuItem &item)
 		{
-			optionShowOnSecondScreen = item.flipBoolValue(*this);
+			app().showOnSecondScreenOption() = item.flipBoolValue(*this);
 			if(appContext().screens().size() > 1)
-				app().viewController().setEmuViewOnExtraWindow(optionShowOnSecondScreen, *appContext().screens()[1]);
+				app().viewController().setEmuViewOnExtraWindow(app().showOnSecondScreenOption(), *appContext().screens()[1]);
 		}
 	},
 	#endif
@@ -576,7 +573,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			t.setString(emuVideo().imageBuffers() == 1 ? "1" : "2");
 			return true;
 		},
-		(MenuItem::Id)optionVideoImageBuffers.val,
+		(MenuItem::Id)app().videoImageBuffersOption().val,
 		imageBuffersItem
 	},
 	renderPixelFormatItem
@@ -639,9 +636,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				[this](EmuApp &app, auto val)
 				{
 					double ratio = val.first / val.second;
-					if(optionAspectRatio.isValidVal(ratio))
+					if(app.setVideoAspectRatio(ratio))
 					{
-						app.setVideoAspectRatio(ratio);
 						if(auto idx = aspectRatioValueIndex(ratio);
 							idx != -1)
 						{
@@ -662,7 +658,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				});
 			return false;
 		});
-	if(auto idx = aspectRatioValueIndex(optionAspectRatio);
+	if(auto idx = aspectRatioValueIndex(app().videoAspectRatio());
 		idx != -1)
 	{
 		aspectRatio.setSelected(idx, *this);
@@ -670,9 +666,9 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	textureBufferModeItem.emplace_back("Auto (Set optimal mode)", &defaultFace(),
 		[this](View &view)
 		{
-			optionTextureBufferMode = 0;
+			app().textureBufferModeOption() = 0;
 			auto defaultMode = renderer().makeValidTextureBufferMode();
-			emuVideo().setTextureBufferMode(defaultMode);
+			emuVideo().setTextureBufferMode(system(), defaultMode);
 			textureBufferMode.setSelected(IG::findIndex(renderer().textureBufferModes(), defaultMode) + 1);
 			view.dismiss();
 			return false;
@@ -684,11 +680,11 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			textureBufferModeItem.emplace_back(desc.name, &defaultFace(),
 				[this, mode = desc.mode]()
 				{
-					optionTextureBufferMode = (uint8_t)mode;
-					emuVideo().setTextureBufferMode(mode);
+					app().textureBufferModeOption() = (uint8_t)mode;
+					emuVideo().setTextureBufferMode(system(), mode);
 				});
 		}
-		textureBufferMode.setSelected(IG::findIndex(descs, renderer().makeValidTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val)) + 1);
+		textureBufferMode.setSelected(IG::findIndex(descs, renderer().makeValidTextureBufferMode((Gfx::TextureBufferMode)app().textureBufferModeOption().val)) + 1);
 	}
 	if(!customMenu)
 	{
@@ -701,14 +697,14 @@ void VideoOptionView::loadStockItems()
 	if(used(frameInterval))
 		item.emplace_back(&frameInterval);
 	item.emplace_back(&dropLateFrames);
-	if(!optionFrameRate.isConst)
+	if(!app().frameTimeIsConst(EmuSystem::VIDSYS_NATIVE_NTSC))
 	{
-		frameRate.setName(makeFrameRateStr());
+		frameRate.setName(makeFrameRateStr(system()));
 		item.emplace_back(&frameRate);
 	}
-	if(!optionFrameRatePAL.isConst)
+	if(!app().frameTimeIsConst(EmuSystem::VIDSYS_PAL))
 	{
-		frameRatePAL.setName(makeFrameRatePALStr());
+		frameRatePAL.setName(makeFrameRatePALStr(system()));
 		item.emplace_back(&frameRatePAL);
 	}
 	item.emplace_back(&visualsHeading);
@@ -729,7 +725,7 @@ void VideoOptionView::loadStockItems()
 	if(EmuSystem::canRenderRGBA8888)
 		item.emplace_back(&renderPixelFormat);
 	item.emplace_back(&imgEffectPixelFormat);
-	if(!optionVideoImageBuffers.isConst)
+	if(!app().videoImageBuffersOption().isConst)
 		item.emplace_back(&imageBuffers);
 	if(IG::used(presentationTime) && renderer().supportsPresentationTime())
 		item.emplace_back(&presentationTime);
@@ -737,7 +733,7 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&secondDisplay);
 	#endif
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
-	if(!optionShowOnSecondScreen.isConst)
+	if(!app().showOnSecondScreenOption().isConst)
 	{
 		item.emplace_back(&showOnSecondScreen);
 	}
@@ -756,21 +752,21 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::Float
 	{
 		wantedTime = app().viewController().emuWindowScreen()->frameTime();
 	}
-	if(!EmuSystem::setFrameTime(vidSys, wantedTime))
+	if(!system().setFrameTime(vidSys, wantedTime))
 	{
 		app().postMessage(4, true, fmt::format("{:.2f}Hz not in valid range", 1. / wantedTime.count()));
 		return false;
 	}
-	EmuSystem::configFrameTime(app().soundRate());
+	system().configFrameTime(app().soundRate());
 	if(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC)
 	{
-		optionFrameRate = time.count();
-		frameRate.compile(makeFrameRateStr(), renderer(), projP);
+		app().setFrameTime(EmuSystem::VIDSYS_NATIVE_NTSC, time);
+		frameRate.compile(makeFrameRateStr(system()), renderer(), projP);
 	}
 	else
 	{
-		optionFrameRatePAL = time.count();
-		frameRatePAL.compile(makeFrameRatePALStr(), renderer(), projP);
+		app().setFrameTime(EmuSystem::VIDSYS_PAL, time);
+		frameRatePAL.compile(makeFrameRatePALStr(system()), renderer(), projP);
 	}
 	return true;
 }

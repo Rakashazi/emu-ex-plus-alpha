@@ -31,7 +31,7 @@ void open_memcard(void *contextPtr, char *name);
 void list_game(void);
 int close_game(void);
 
-const char *get_gngeo_dir(void);
+const char *get_gngeo_dir(void *contextPtr);
 void chomp(char *str);
 char *my_fgets(char *s, int size, FILE *stream);
 

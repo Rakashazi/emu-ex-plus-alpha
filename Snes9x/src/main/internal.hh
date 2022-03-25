@@ -16,6 +16,7 @@ namespace EmuEx
 {
 
 class VController;
+class EmuSystem;
 
 #ifdef SNES9X_VERSION_1_4
 constexpr bool IS_SNES9X_VERSION_1_4 = true;
@@ -23,7 +24,6 @@ constexpr bool IS_SNES9X_VERSION_1_4 = true;
 constexpr bool IS_SNES9X_VERSION_1_4 = false;
 #endif
 
-extern IG::ApplicationContext appCtx;
 extern Byte1Option optionMultitap;
 extern SByte1Option optionInputPort;
 extern Byte1Option optionVideoSystem;
@@ -47,7 +47,7 @@ extern int snesActiveInputPort;
 static const int &snesActiveInputPort = snesInputPort;
 #endif
 
-void setupSNESInput(VController &);
+void setupSNESInput(EmuSystem &, VController &);
 void setSuperFXSpeedMultiplier(unsigned val);
 
 uint32_t numCheats();

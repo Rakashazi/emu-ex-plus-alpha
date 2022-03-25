@@ -25,6 +25,11 @@
 #include "internal.hh"
 #include <cstdlib>
 
+namespace EmuEx
+{
+IG::ApplicationContext gAppContext();
+}
+
 using namespace EmuEx;
 
 static struct archive *writeArch{};
@@ -36,7 +41,7 @@ void zipCacheReadOnlyZip(const char* zipName)
 	if(zipName && strlen(zipName))
 	{
 		logMsg("setting cached read zip archive:%s", zipName);
-		cachedZipIt = {appCtx.openFileUri(zipName)};
+		cachedZipIt = {EmuEx::gAppContext().openFileUri(zipName)};
 		cachedZipName = zipName;
 	}
 	else
@@ -83,7 +88,7 @@ void* zipLoadFile(const char* zipName, const char* fileName, int* size)
 		}
 		else
 		{
-			auto it = FS::ArchiveIterator{appCtx.openFileUri(zipName)};
+			auto it = FS::ArchiveIterator{EmuEx::gAppContext().openFileUri(zipName)};
 			return loadFromArchiveIt(it, zipName, fileName, size);
 		}
 	}
@@ -99,7 +104,7 @@ bool zipStartWrite(const char *fileName)
 	assert(!writeArch);
 	writeArch = archive_write_new();
 	archive_write_set_format_zip(writeArch);
-	int fd = appCtx.openFileUriFd(fileName, IO::OPEN_CREATE | IO::OPEN_TEST).release();
+	int fd = EmuEx::gAppContext().openFileUriFd(fileName, IO::OPEN_CREATE | IO::OPEN_TEST).release();
 	if(archive_write_open_fd(writeArch, fd) != ARCHIVE_OK)
 	{
 		archive_write_free(writeArch);
@@ -143,5 +148,5 @@ void zipEndWrite()
 
 FILE *fopenHelper(const char* filename, const char* mode)
 {
-	return FileUtils::fopenUri(appCtx, filename, mode);
+	return FileUtils::fopenUri(EmuEx::gAppContext(), filename, mode);
 }

@@ -81,4 +81,11 @@ ROM_DEF *dr_check_zip(void *contextPtr, const char *filename);
 char *dr_gno_romname(char *filename);
 int dr_open_gno(void *contextPtr, char *filename, char romerror[1024]);
 
+struct PathArray
+{
+	char data[4096];
+};
+
+struct PathArray get_rom_path(void *contextPtr);
+
 #endif

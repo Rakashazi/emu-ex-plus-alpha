@@ -78,11 +78,11 @@ Byte1Option optionStartVideoLine{CFGKEY_START_VIDEO_LINE, 8, false, isSupportedS
 Byte1Option optionVisibleVideoLines{CFGKEY_VISIBLE_VIDEO_LINES, 224, false, isSupportedLineCount};
 Byte1Option optionHorizontalVideoCrop{CFGKEY_HORIZONTAL_VIDEO_CROP, 0};
 
-void EmuSystem::onOptionsLoaded(IG::ApplicationContext ctx)
+void EmuSystem::onOptionsLoaded()
 {
 	FCEUI_SetSoundQuality(optionSoundQuality);
 	FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
-	setDefaultPalette(ctx, defaultPalettePath);
+	setDefaultPalette(appContext(), defaultPalettePath);
 }
 
 void EmuSystem::onSessionOptionsLoaded(EmuApp &app)

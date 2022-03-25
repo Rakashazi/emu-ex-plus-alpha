@@ -26,10 +26,6 @@
 #endif
 #define CREDITS_INFO_STRING "Built : " __DATE__ "\n" PLATFORM_INFO_STR "\n\n"
 
-#if defined CONFIG_INPUT_POINTING_DEVICES
-#define CONFIG_EMUFRAMEWORK_VCONTROLS
-#endif
-
 #if defined CONFIG_INPUT_KEYBOARD_DEVICES
 #define CONFIG_INPUT_ICADE
 #endif
@@ -37,6 +33,11 @@
 
 namespace EmuEx
 {
+
+#if defined CONFIG_INPUT_POINTING_DEVICES
+#define CONFIG_EMUFRAMEWORK_VCONTROLS
+#endif
+constexpr bool VCONTROLS = Config::Input::POINTING_DEVICES;
 
 #if defined __ANDROID__ || \
 	defined CONFIG_BASE_IOS || \

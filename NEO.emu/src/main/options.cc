@@ -59,14 +59,14 @@ Byte1Option optionTimerInt{CFGKEY_TIMER_INT, 2};
 Byte1Option optionCreateAndUseCache{CFGKEY_CREATE_USE_CACHE, 0};
 Byte1Option optionStrictROMChecking{CFGKEY_STRICT_ROM_CHECKING, 0};
 
-void setTimerIntOption()
+void setTimerIntOption(EmuSystem &sys)
 {
 	switch(optionTimerInt)
 	{
 		bcase 0: conf.raster = 0;
 		bcase 1: conf.raster = 1;
 		bcase 2:
-			bool needsTimer = EmuSystem::gameIsRunning() && IG::stringContainsAny(EmuSystem::contentDisplayName(),
+			bool needsTimer = sys.hasContent() && IG::stringContainsAny(sys.contentDisplayName(),
 				"Sidekicks 2", "Sidekicks 3", "Ultimate 11", "Neo-Geo Cup", "Spin Master", "Neo Turf Masters");
 			if(needsTimer) logMsg("auto enabled timer interrupt");
 			conf.raster = needsTimer;
@@ -79,16 +79,16 @@ void EmuSystem::initOptions(EmuApp &app)
 	app.setDefaultVControlsButtonStagger(5);
 }
 
-void EmuSystem::onOptionsLoaded(IG::ApplicationContext)
+void EmuSystem::onOptionsLoaded()
 {
 	conf.system = (SYSTEM)optionBIOSType.val;
 	conf.country = (COUNTRY)optionMVSCountry.val;
 }
 
-bool EmuSystem::resetSessionOptions(EmuApp &)
+bool EmuSystem::resetSessionOptions(EmuApp &app)
 {
 	optionTimerInt.reset();
-	setTimerIntOption();
+	setTimerIntOption(app.system());
 	return true;
 }
 

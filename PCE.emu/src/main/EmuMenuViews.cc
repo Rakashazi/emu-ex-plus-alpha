@@ -32,7 +32,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		(bool)option6BtnPad,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			option6BtnPad = item.flipBoolValue(*this);
 			set6ButtonPadEnabled(app(), option6BtnPad);
 		}
@@ -44,7 +44,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		(bool)optionArcadeCard,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionArcadeCard = item.flipBoolValue(*this);
 			app().promptSystemReloadDueToSetOption(attachParams(), e);
 		}

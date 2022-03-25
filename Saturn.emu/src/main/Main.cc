@@ -182,7 +182,7 @@ yabauseinit_struct yinit
 	CART_NONE,
 	REGION_AUTODETECT,
 	biosPath.data(),
-	EmuSystem::contentLocationPtr(),
+	{},
 	bupPath.data(),
 	mpegPath,
 	cartPath,
@@ -195,12 +195,12 @@ yabauseinit_struct yinit
 	0
 };
 
-const char *EmuSystem::shortSystemName()
+const char *EmuSystem::shortSystemName() const
 {
 	return "SS";
 }
 
-const char *EmuSystem::systemName()
+const char *EmuSystem::systemName() const
 {
 	return "Sega Saturn";
 }
@@ -249,12 +249,12 @@ CLINK int OSDChangeCore(int coreid)
 void EmuSystem::reset(ResetMode mode)
 {
 	logMsg("resetting system");
-	assert(gameIsRunning());
+	assert(hasContent());
 	//Cs2ChangeCDCore(CDCORE_DUMMY, yinit.cdpath);
 	YabauseReset();
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}.yss", name, saveSlotCharUpper(slot));
 }
@@ -271,9 +271,9 @@ void EmuSystem::loadState(IG::CStringView path)
 		throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem(IG::ApplicationContext)
+void EmuSystem::saveBackupMem()
 {
-	if(gameIsRunning())
+	if(hasContent())
 	{
 		logMsg("saving backup memory");
 		T123Save(BupRam, 0x10000, 1, bupPath.data());
@@ -282,7 +282,7 @@ void EmuSystem::saveBackupMem(IG::ApplicationContext)
 
 static bool yabauseIsInit = 0;
 
-void EmuSystem::closeSystem(IG::ApplicationContext)
+void EmuSystem::closeSystem()
 {
 	if(yabauseIsInit)
 	{
@@ -291,9 +291,9 @@ void EmuSystem::closeSystem(IG::ApplicationContext)
 	}
 }
 
-void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	bupPath = contentSavePath(ctx, "bkram.bin");
+	bupPath = contentSavePath("bkram.bin");
 	if(YabauseInit(&yinit) != 0)
 	{
 		logErr("YabauseInit failed");
@@ -334,6 +334,11 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 	view.setBackgroundGradient(navViewGrad);
+}
+
+void EmuSystem::onInit()
+{
+	yinit.cdpath = contentLocationPtr();
 }
 
 }

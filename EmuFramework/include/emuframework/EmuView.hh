@@ -26,12 +26,13 @@ namespace EmuEx
 using namespace IG;
 class EmuInputView;
 class EmuVideoLayer;
+class EmuSystem;
 
 class EmuView : public View
 {
 public:
 	EmuView();
-	EmuView(ViewAttachParams attach, EmuVideoLayer *layer);
+	EmuView(ViewAttachParams, EmuVideoLayer *, EmuSystem &);
 	void place() final;
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &cmds) final;
@@ -41,10 +42,12 @@ public:
 	void updateAudioStats(unsigned underruns, unsigned overruns, unsigned callbacks, double avgCallbackFrames, unsigned frames);
 	void clearAudioStats();
 	EmuVideoLayer *videoLayer() const { return layer; }
+	EmuSystem &system() { return *sysPtr; }
 
 private:
 	EmuVideoLayer *layer{};
 	EmuInputView *inputView{};
+	EmuSystem *sysPtr{};
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	Gfx::Text audioStatsText{};
 	Gfx::GCRect audioStatsRect{};

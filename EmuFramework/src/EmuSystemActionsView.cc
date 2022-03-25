@@ -34,25 +34,25 @@ namespace EmuEx
 class ResetAlertView : public BaseAlertView, public EmuAppHelper<ResetAlertView>
 {
 public:
-	ResetAlertView(ViewAttachParams attach, IG::utf16String label):
+	ResetAlertView(ViewAttachParams attach, IG::utf16String label, EmuSystem &sys):
 		BaseAlertView{attach, std::move(label), items},
 		items
 		{
 			TextMenuItem
 			{
 				"Soft Reset", &defaultFace(),
-				[this]()
+				[this, &sys]()
 				{
-					EmuSystem::reset(app(), EmuSystem::RESET_SOFT);
+					sys.reset(app(), EmuSystem::RESET_SOFT);
 					app().viewController().showEmulation();
 				}
 			},
 			TextMenuItem
 			{
 				"Hard Reset", &defaultFace(),
-				[this]()
+				[this, &sys]()
 				{
-					EmuSystem::reset(app(), EmuSystem::RESET_HARD);
+					sys.reset(app(), EmuSystem::RESET_HARD);
 					app().viewController().showEmulation();
 				}
 			},
@@ -63,26 +63,26 @@ protected:
 	std::array<TextMenuItem, 3> items;
 };
 
-static auto makeStateSlotStr(int slot)
+static auto makeStateSlotStr(EmuSystem &sys, int slot)
 {
-	return fmt::format("State Slot ({})", EmuSystem::saveSlotChar(slot));
+	return fmt::format("State Slot ({})", sys.saveSlotChar(slot));
 }
 
 void EmuSystemActionsView::onShow()
 {
 	TableView::onShow();
 	logMsg("refreshing action menu state");
-	cheats.setActive(EmuSystem::gameIsRunning());
-	reset.setActive(EmuSystem::gameIsRunning());
-	saveState.setActive(EmuSystem::gameIsRunning());
-	loadState.setActive(EmuSystem::gameIsRunning() && EmuSystem::stateExists(appContext(), EmuSystem::saveStateSlot));
-	stateSlot.compile(makeStateSlotStr(EmuSystem::saveStateSlot), renderer(), projP);
-	screenshot.setActive(EmuSystem::gameIsRunning());
+	cheats.setActive(system().hasContent());
+	reset.setActive(system().hasContent());
+	saveState.setActive(system().hasContent());
+	loadState.setActive(system().hasContent() && system().stateExists(system().stateSlot()));
+	stateSlot.compile(makeStateSlotStr(system(), system().stateSlot()), renderer(), projP);
+	screenshot.setActive(system().hasContent());
 	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
-	addLauncherIcon.setActive(EmuSystem::gameIsRunning());
+	addLauncherIcon.setActive(system().hasContent());
 	#endif
 	resetSessionOptions.setActive(app().hasSavedSessionOptions());
-	close.setActive(EmuSystem::gameIsRunning());
+	close.setActive(system().hasContent());
 }
 
 void EmuSystemActionsView::loadStandardItems()
@@ -94,7 +94,7 @@ void EmuSystemActionsView::loadStandardItems()
 	item.emplace_back(&reset);
 	item.emplace_back(&loadState);
 	item.emplace_back(&saveState);
-	stateSlot.setName(makeStateSlotStr(EmuSystem::saveStateSlot));
+	stateSlot.setName(makeStateSlotStr(system(), system().stateSlot()));
 	item.emplace_back(&stateSlot);
 	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	item.emplace_back(&addLauncherIcon);
@@ -111,7 +111,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		"Cheats", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::LIST_CHEATS), e);
 			}
@@ -122,11 +122,11 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		"Reset", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				if(EmuSystem::hasResetModes)
 				{
-					pushAndShowModal(makeView<ResetAlertView>("Really reset?"), e);
+					pushAndShowModal(makeView<ResetAlertView>("Really reset?", system()), e);
 				}
 				else
 				{
@@ -134,7 +134,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 					ynAlertView->setOnYes(
 						[this]()
 						{
-							EmuSystem::reset(app(), EmuSystem::RESET_SOFT);
+							system().reset(app(), EmuSystem::RESET_SOFT);
 							app().viewController().showEmulation();
 						});
 					pushAndShowModal(std::move(ynAlertView), e);
@@ -147,13 +147,13 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		"Load State", &defaultFace(),
 		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
-			if(item.active() && EmuSystem::gameIsRunning())
+			if(item.active() && system().hasContent())
 			{
 				auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(), "Really load state?");
 				ynAlertView->setOnYes(
 					[this]()
 					{
-						if(app().loadStateWithSlot(EmuSystem::saveStateSlot))
+						if(app().loadStateWithSlot(system().stateSlot()))
 							app().viewController().showEmulation();
 					});
 				pushAndShowModal(std::move(ynAlertView), e);
@@ -165,12 +165,12 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		"Save State", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				static auto doSaveState =
 					[](EmuApp &app)
 					{
-						if(app.saveStateWithSlot(EmuSystem::saveStateSlot))
+						if(app.saveStateWithSlot(app.system().stateSlot()))
 							app.viewController().showEmulation();
 					};
 				if(app().shouldOverwriteExistingState())
@@ -204,17 +204,17 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		"Add Game Shortcut to Launcher", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
-				if(EmuSystem::contentDirectory().empty())
+				if(system().contentDirectory().empty())
 				{
 					// shortcuts to bundled games not yet supported
 					return;
 				}
-				app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Shortcut Name", EmuSystem::contentDisplayName(),
+				app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Shortcut Name", system().contentDisplayName(),
 					[this](EmuApp &app, auto str)
 					{
-						appContext().addLauncherIcon(str, EmuSystem::contentLocation());
+						appContext().addLauncherIcon(str, app.system().contentLocation());
 						app.postMessage(2, false, fmt::format("Added shortcut:\n{}", str));
 						return true;
 					});
@@ -231,9 +231,9 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		"Screenshot Next Frame", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(!EmuSystem::gameIsRunning())
+			if(!system().hasContent())
 				return;
-			auto pathName = appContext().fileUriDisplayName(EmuSystem::contentSaveDirectory());
+			auto pathName = appContext().fileUriDisplayName(system().contentSaveDirectory());
 			if(pathName.empty())
 			{
 				app().postMessage("Save path isn't valid");
@@ -244,7 +244,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				[this]()
 				{
 					app().video().takeGameScreenshot();
-					EmuSystem::runFrame({}, &app().video(), nullptr);
+					system().runFrame({}, &app().video(), nullptr);
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
 		}

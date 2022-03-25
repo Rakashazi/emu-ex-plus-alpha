@@ -1195,7 +1195,8 @@ bool dr_load_bios(void *contextPtr, GAME_ROMS *r, char romerror[1024]) {
 	struct PKZIP *pz;
 	struct ZFILE *z;
 	unsigned int size;
-	char *rpath = CF_STR(cf_get_item_by_name("rompath"));
+	struct PathArray pArr = get_rom_path(contextPtr);
+	char *rpath = pArr.data;
 	const char *romfile;
 
 	logMsg("opening neogeo.zip");
@@ -1494,7 +1495,8 @@ error1:
 
 int dr_load_game(void *contextPtr, char *name, char romerror[1024]) {
 	//GAME_ROMS rom;
-	char *rpath = CF_STR(cf_get_item_by_name("rompath"));
+	struct PathArray pArr = get_rom_path(contextPtr);
+	char *rpath = pArr.data;
 	int rc;
 	logMsg("Loading %s/%s\n", rpath, name);
 	memory.bksw_handler = 0;

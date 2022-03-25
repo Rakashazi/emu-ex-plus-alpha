@@ -21,6 +21,7 @@ namespace EmuEx
 {
 
 class EmuApp;
+class EmuSystem;
 
 // Easier access to the EmuApp object for any class that provides an appContext() function
 template <class T>
@@ -31,6 +32,11 @@ public:
 	{
 		auto &application = static_cast<const T*>(this)->appContext().application();
 		return static_cast<EmuApp&>(application);
+	}
+
+	EmuSystem &system() const
+	{
+		return app().system();
 	}
 };
 

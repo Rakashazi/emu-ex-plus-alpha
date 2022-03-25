@@ -59,9 +59,9 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		(bool)optionMultitap,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionMultitap = item.flipBoolValue(*this);
-			setupSNESInput(app().defaultVController());
+			setupSNESInput(system(), app().defaultVController());
 		}
 	};
 
@@ -86,10 +86,10 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	{
 		return [this](TextMenuItem &item)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionInputPort = item.id();
 			snesInputPort = item.id();
-			setupSNESInput(app().defaultVController());
+			setupSNESInput(system(), app().defaultVController());
 		};
 	}
 
@@ -110,7 +110,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	void setVideoSystem(int val, Input::Event e)
 	{
-		EmuSystem::sessionOptionSet();
+		system().sessionOptionSet();
 		optionVideoSystem = val;
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
@@ -123,7 +123,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		(bool)optionAllowExtendedVideoLines,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionAllowExtendedVideoLines = item.flipBoolValue(*this);
 		}
 	};
@@ -137,7 +137,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		(bool)!optionBlockInvalidVRAMAccess,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionBlockInvalidVRAMAccess = !item.flipBoolValue(*this);
 			PPU.BlockInvalidVRAMAccess = optionBlockInvalidVRAMAccess;
 		}
@@ -149,7 +149,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		(bool)optionSeparateEchoBuffer,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
+			system().sessionOptionSet();
 			optionSeparateEchoBuffer = item.flipBoolValue(*this);
 			SNES::dsp.spc_dsp.separateEchoBuffer = optionSeparateEchoBuffer;
 		}
@@ -157,7 +157,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	void setSuperFXClock(unsigned val)
 	{
-		EmuSystem::sessionOptionSet();
+		system().sessionOptionSet();
 		optionSuperFXClockMultiplier = val;
 		setSuperFXSpeedMultiplier(optionSuperFXClockMultiplier);
 	}
@@ -242,7 +242,7 @@ private:
 		"Console Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				pushAndShow(makeView<ConsoleOptionView>(), e);
 			}

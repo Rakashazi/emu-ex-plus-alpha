@@ -179,7 +179,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 				[this](const Input::Event &e)
 				{
 					auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
-					auto userSavePath = EmuSystem::userSaveDirectory();
+					auto userSavePath = system().userSaveDirectory();
 					fPicker->setPath(userSavePath.size() && userSavePath != optionSavePathDefaultToken ? userSavePath
 						: app().contentSearchPath(), e);
 					fPicker->setOnSelectPath(
@@ -190,7 +190,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 								app().postErrorMessage("This folder lacks write access");
 								return;
 							}
-							EmuSystem::setUserSaveDirectory(appContext(), path);
+							system().setUserSaveDirectory(path);
 							onSavePathChange(path);
 							dismissPrevious();
 							picker.dismiss();
@@ -200,14 +200,14 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 			multiChoiceView->appendItem("Same As Content",
 				[this](View &view)
 				{
-					EmuSystem::setUserSaveDirectory(appContext(), "");
+					system().setUserSaveDirectory("");
 					onSavePathChange("");
 					view.dismiss();
 				});
 			multiChoiceView->appendItem("App Folder",
 				[this](View &view)
 				{
-					EmuSystem::setUserSaveDirectory(appContext(), optionSavePathDefaultToken);
+					system().setUserSaveDirectory(optionSavePathDefaultToken);
 					onSavePathChange(optionSavePathDefaultToken);
 					view.dismiss();
 				});
@@ -215,7 +215,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 				[this](View &view, const Input::Event &e)
 				{
 					auto ynAlertView = makeView<YesNoAlertView>(
-						fmt::format("Please select the \"Game Data/{}\" folder from an old version of the app to use its existing saves and convert it to a regular save path (this is only needed once)", EmuSystem::shortSystemName()));
+						fmt::format("Please select the \"Game Data/{}\" folder from an old version of the app to use its existing saves and convert it to a regular save path (this is only needed once)", system().shortSystemName()));
 					ynAlertView->setOnYes(
 						[this](const Input::Event &e)
 						{
@@ -230,13 +230,13 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 										app().postErrorMessage("This folder lacks write access");
 										return;
 									}
-									if(ctx.fileUriDisplayName(path) != EmuSystem::shortSystemName())
+									if(ctx.fileUriDisplayName(path) != system().shortSystemName())
 									{
-										app().postErrorMessage(fmt::format("Please select the {} folder", EmuSystem::shortSystemName()));
+										app().postErrorMessage(fmt::format("Please select the {} folder", system().shortSystemName()));
 										return;
 									}
 									EmuApp::updateLegacySavePath(ctx, path);
-									EmuSystem::setUserSaveDirectory(appContext(), path);
+									system().setUserSaveDirectory(path);
 									onSavePathChange(path);
 									dismissPrevious();
 									picker.dismiss();
@@ -286,7 +286,7 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&autoSaveState);
 	item.emplace_back(&confirmAutoLoadState);
 	item.emplace_back(&confirmOverwriteState);
-	savePath.setName(makePathMenuEntryStr(appContext(), EmuSystem::userSaveDirectory()));
+	savePath.setName(makePathMenuEntryStr(appContext(), system().userSaveDirectory()));
 	item.emplace_back(&savePath);
 	item.emplace_back(&fastForwardSpeed);
 	if(used(performanceMode))
@@ -297,7 +297,7 @@ void SystemOptionView::onSavePathChange(std::string_view path)
 {
 	if(path == optionSavePathDefaultToken)
 	{
-		app().postMessage(4, false, fmt::format("App Folder:\n{}", EmuSystem::fallbackSaveDirectory(appContext())));
+		app().postMessage(4, false, fmt::format("App Folder:\n{}", system().fallbackSaveDirectory()));
 	}
 	savePath.compile(makePathMenuEntryStr(appContext(), path), renderer(), projP);
 }

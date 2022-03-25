@@ -39,20 +39,20 @@ extern "C"
 namespace EmuEx
 {
 
-class ConsoleOptionView : public TableView
+class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
 {
 	TextMenuItem timerItem[3]
 	{
-		{"Off", &defaultFace(), [](){ setTimerInt(0); }},
-		{"On", &defaultFace(), [](){ setTimerInt(1); }},
-		{"Auto", &defaultFace(), [](){ setTimerInt(2); }},
+		{"Off",  &defaultFace(), [this](){ setTimerInt(0); }},
+		{"On",   &defaultFace(), [this](){ setTimerInt(1); }},
+		{"Auto", &defaultFace(), [this](){ setTimerInt(2); }},
 	};
 
-	static void setTimerInt(int val)
+	void setTimerInt(int val)
 	{
-		EmuSystem::sessionOptionSet();
+		system().sessionOptionSet();
 		optionTimerInt = val;
-		setTimerIntOption();
+		setTimerIntOption(system());
 	}
 
 	MultiChoiceMenuItem timer
@@ -614,7 +614,7 @@ private:
 		"Unibios Switches", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				if(item.active())
 				{
@@ -633,7 +633,7 @@ private:
 		"Console Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			if(EmuSystem::gameIsRunning())
+			if(system().hasContent())
 			{
 				pushAndShow(makeView<ConsoleOptionView>(), e);
 			}
@@ -652,7 +652,7 @@ public:
 	{
 		EmuSystemActionsView::onShow();
 		bool isUnibios = conf.system >= SYS_UNIBIOS && conf.system <= SYS_UNIBIOS_LAST;
-		unibiosSwitches.setActive(EmuSystem::gameIsRunning() && isUnibios);
+		unibiosSwitches.setActive(system().hasContent() && isUnibios);
 	}
 };
 

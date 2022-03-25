@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "EmuTiming.hh"
+#include <emuframework/EmuTiming.hh>
 #include <imagine/util/utility.h>
 #include <imagine/logger/logger.h>
 #include <cmath>

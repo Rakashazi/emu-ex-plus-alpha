@@ -28,7 +28,7 @@
 
 namespace EmuEx
 {
-extern IG::ApplicationContext appCtx;
+IG::ApplicationContext gAppContext();
 }
 
 namespace Mednafen
@@ -51,7 +51,7 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, const std::string& path, const std::vector<Fi
 	{
 		try
 		{
-			for(auto &entry : IG::FS::ArchiveIterator{EmuEx::appCtx.openFileUri(path)})
+			for(auto &entry : IG::FS::ArchiveIterator{EmuEx::gAppContext().openFileUri(path)})
 			{
 				if(entry.type() == IG::FS::file_type::directory)
 				{
@@ -88,7 +88,7 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, std::unique_ptr<Stream> str):
 extern int openFdHelper(const char *file, int oflag, mode_t mode)
 {
 	auto openFlags = (oflag & O_CREAT) ? IG::IO::OPEN_CREATE : 0;
-	return EmuEx::appCtx.openFileUriFd(file, openFlags | IG::IO::OPEN_TEST).release();
+	return EmuEx::gAppContext().openFileUriFd(file, openFlags | IG::IO::OPEN_TEST).release();
 }
 
 }

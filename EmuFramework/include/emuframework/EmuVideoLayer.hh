@@ -26,25 +26,30 @@ namespace EmuEx
 
 class EmuInputView;
 class EmuVideo;
+class EmuSystem;
 class VController;
 
 class EmuVideoLayer
 {
 public:
 	EmuVideoLayer(EmuVideo &video);
-	void place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView);
+	void place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView, EmuSystem &sys);
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
-	void setFormat(IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace);
+	void setFormat(EmuSystem &, IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace);
 	void setOverlay(int effect);
 	void setOverlayIntensity(float intensity);
-	void setEffect(ImageEffectId, IG::PixelFormat);
+	void setEffect(EmuSystem &, ImageEffectId, IG::PixelFormat);
 	void setEffectFormat(IG::PixelFormat);
 	void setLinearFilter(bool on);
 	void setBrightness(float b);
+	void setAspectRatio(double ratio) { aspectRatio_ = ratio; }
+	auto aspectRatio() { return aspectRatio_; }
 	void onVideoFormatChanged(IG::PixelFormat effectFmt);
 	EmuVideo &emuVideo() const { return video; }
 	Gfx::ColorSpace colorSpace() const { return colSpace; }
 	bool srgbColorSpace() const { return colSpace == Gfx::ColorSpace::SRGB; }
+	void setZoom(uint8_t val) { zoom_ = val; }
+	auto zoom() const { return zoom_; }
 
 	const IG::WindowRect &gameRect() const
 	{
@@ -60,10 +65,13 @@ private:
 	Gfx::Sprite disp{};
 	IG::WindowRect gameRect_{};
 	Gfx::GCRect gameRectG{};
+	double aspectRatio_ = 1.;
 	float brightness = 1.f;
 	float brightnessSrgb = 1.f;
 	ImageEffectId userEffectId{};
+	int userOverlayEffectId{};
 	Gfx::ColorSpace colSpace{};
+	uint8_t zoom_{100};
 
 	void placeOverlay();
 	void updateEffectImageSize();

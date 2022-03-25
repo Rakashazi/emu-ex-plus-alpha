@@ -108,8 +108,10 @@ public:
 		END
 	};
 
+	// Static app configuration
 	static bool autoSaveStateDefault;
 	static bool hasIcon;
+	static bool needsGlobalInstance;
 
 	EmuApp(IG::ApplicationInitParams, IG::ApplicationContext &);
 
@@ -189,17 +191,7 @@ public:
 	void skipFrames(EmuSystemTaskContext, uint32_t frames, EmuAudio *);
 	bool skipForwardFrames(EmuSystemTaskContext, uint32_t frames);
 	IG::Audio::Manager &audioManager();
-	bool setWindowDrawableConfig(Gfx::DrawableConfig);
-	Gfx::DrawableConfig windowDrawableConfig() const;
-	IG::PixelFormat windowPixelFormat() const;
-	void setRenderPixelFormat(std::optional<IG::PixelFormat>);
-	IG::PixelFormat renderPixelFormat() const;
-	IG::PixelFormat imageEffectPixelFormat() const;
 	void renderSystemFramebuffer(EmuVideo &);
-	void setVideoZoom(uint8_t val);
-	void setViewportZoom(uint8_t val);
-	void setOverlayEffectLevel(EmuVideoLayer &, uint8_t val);
-	void setVideoAspectRatio(double val);
 	bool writeScreenshot(IG::Pixmap, IG::CStringView path);
 	std::pair<int, FS::PathString> makeNextScreenshotFilename();
 	bool mogaManagerIsActive() const;
@@ -218,6 +210,11 @@ public:
 	void setShowHiddenFilesInPicker(bool on){ showHiddenFilesInPicker_ = on; };
 	auto &customKeyConfigList() { return customKeyConfigs; };
 	auto &savedInputDeviceList() { return savedInputDevs; };
+	Gfx::Viewport makeViewport(const IG::Window &win) const;
+	EmuSystem &system() { return emuSystem; }
+	const EmuSystem &system() const { return emuSystem; }
+	IG::ApplicationContext appContext() const;
+	static EmuApp &get(IG::ApplicationContext);
 
 	// Audio Options
 	void setAudioOutputAPI(IG::Audio::Api);
@@ -236,6 +233,36 @@ public:
 	bool addSoundBuffersOnUnderrun() const { return optionAddSoundBuffersOnUnderrun; }
 	void setSoundDuringFastForwardEnabled(bool on);
 	bool soundDuringFastForwardIsEnabled() const;
+
+	// Video Options
+	bool setWindowDrawableConfig(Gfx::DrawableConfig);
+	Gfx::DrawableConfig windowDrawableConfig() const;
+	IG::PixelFormat windowPixelFormat() const;
+	void setRenderPixelFormat(std::optional<IG::PixelFormat>);
+	IG::PixelFormat renderPixelFormat() const;
+	bool setVideoAspectRatio(double val);
+	double videoAspectRatio() const;
+	auto &videoFilterOption() { return optionImgFilter; }
+	auto &videoEffectOption() { return optionImgEffect; }
+	IG::PixelFormat videoEffectPixelFormat() const;
+	auto &videoEffectPixelFormatOption() { return optionImageEffectPixelFormat; }
+	auto &overlayEffectOption() { return optionOverlayEffect; }
+	bool setOverlayEffectLevel(EmuVideoLayer &, uint8_t val);
+	uint8_t overlayEffectLevel() { return optionOverlayEffectLevel; }
+	void setFrameTime(EmuSystem::VideoSystem system, IG::FloatSeconds time);
+	IG::FloatSeconds frameTime(EmuSystem::VideoSystem, IG::FloatSeconds fallback) const;
+	bool frameTimeIsConst(EmuSystem::VideoSystem) const;
+	void setFrameInterval(int);
+	int frameInterval() const;
+	void setShouldSkipLateFrames(bool on) { optionSkipLateFrames = on; }
+	bool shouldSkipLateFrames() const { return optionSkipLateFrames; }
+	bool setVideoZoom(uint8_t val);
+	uint8_t videoZoom() const { return optionImageZoom; }
+	bool setViewportZoom(uint8_t val);
+	uint8_t viewportZoom() { return optionViewportZoom; }
+	auto &showOnSecondScreenOption() { return optionShowOnSecondScreen; }
+	auto &textureBufferModeOption() { return optionTextureBufferMode; }
+	auto &videoImageBuffersOption() { return optionVideoImageBuffers; }
 
 	// System Options
 	auto &autoSaveStateOption() { return optionAutoSaveState; }
@@ -273,9 +300,6 @@ public:
 	// Input Options
 	auto &notifyInputDeviceChangeOption() { return optionNotifyInputDeviceChange; }
 	auto &keepBluetoothActiveOption() { return optionKeepBluetoothActive; }
-
-	IG::ApplicationContext appContext() const;
-	static EmuApp &get(IG::ApplicationContext);
 
 	void postMessage(auto msg)
 	{
@@ -368,6 +392,7 @@ public:
 	}
 
 protected:
+	EmuSystem emuSystem;
 	IG::FontManager fontManager;
 	mutable Gfx::Renderer renderer;
 	ViewManager viewManager{};
@@ -377,9 +402,7 @@ protected:
 	EmuVideoLayer emuVideoLayer;
 	EmuSystemTask emuSystemTask;
 	mutable Gfx::PixmapTexture assetBuffImg[(unsigned)AssetID::END]{};
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	VController vController;
-	#endif
+	IG_UseMemberIf(VCONTROLS, VController, vController);
 	std::optional<EmuViewController> emuViewController{};
 	IG::Timer autoSaveStateTimer;
 	DelegateFunc<void ()> onUpdateInputDevices_{};
@@ -396,6 +419,9 @@ protected:
 	#endif
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr){};
 	RecentContentList recentContentList{};
+	DoubleOption optionAspectRatio;
+	DoubleOption optionFrameRate;
+	DoubleOption optionFrameRatePAL;
 	Byte4Option optionSoundRate;
 	Byte2Option optionFontSize;
 	Byte1Option optionPauseUnfocused;
@@ -422,6 +448,18 @@ protected:
 	IG_UseMemberIf(Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, Byte1Option, optionKeepBluetoothActive);
 	IG_UseMemberIf(Config::Input::BLUETOOTH, Byte1Option, optionShowBluetoothScan);
 	IG_UseMemberIf(Config::envIsAndroid, Byte1Option, optionSustainedPerformanceMode);
+	Byte1Option optionImgFilter;
+	Byte1Option optionImgEffect;
+	Byte1Option optionImageEffectPixelFormat;
+	Byte1Option optionOverlayEffect;
+	Byte1Option optionOverlayEffectLevel;
+	IG_UseMemberIf(Config::SCREEN_FRAME_INTERVAL, Byte1Option, optionFrameInterval);
+	Byte1Option optionSkipLateFrames;
+	Byte1Option optionImageZoom;
+	Byte1Option optionViewportZoom;
+	Byte1Option optionShowOnSecondScreen;
+	Byte1Option optionTextureBufferMode;
+	Byte1Option optionVideoImageBuffers;
 	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
 	bool showHiddenFilesInPicker_{};
@@ -474,6 +512,25 @@ protected:
 	std::optional<IG::PixelFormat> windowDrawablePixelFormatOption() const;
 	std::optional<Gfx::ColorSpace> windowDrawableColorSpaceOption() const;
 	FS::PathString sessionConfigPath();
+
+	const DoubleOption &frameTimeOption(EmuSystem::VideoSystem system) const
+	{
+		switch(system)
+		{
+			default:
+			case EmuSystem::VIDSYS_NATIVE_NTSC: return optionFrameRate;
+			case EmuSystem::VIDSYS_PAL: return optionFrameRatePAL;
+		}
+	}
+
+	DoubleOption &frameTimeOption(EmuSystem::VideoSystem system)
+	{
+		return const_cast<DoubleOption&>(std::as_const(*this).frameTimeOption(system));
+	}
 };
+
+// Global instance access if required by the emulated system, valid if EmuApp::needsGlobalInstance initialized to true
+EmuApp &gApp();
+IG::ApplicationContext gAppContext();
 
 }

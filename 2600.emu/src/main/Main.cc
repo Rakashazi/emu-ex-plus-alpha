@@ -43,7 +43,6 @@ namespace EmuEx
 {
 
 static constexpr uint MAX_ROM_SIZE = 512 * 1024;
-IG::ApplicationContext appCtx{};
 std::optional<OSystem> osystem{};
 Properties defaultGameProps{};
 bool p1DiffB = true, p2DiffB = true, vcsColor = true;
@@ -58,33 +57,24 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 		return IG::stringEndsWithAny(name, ".a26", ".bin", ".A26", ".BIN");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = EmuSystem::defaultFsFilter;
+bool EmuApp::needsGlobalInstance = true;
 
-const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
-{
-	static const BundledGameInfo info[]
-	{
-		{ "Test Game", "game.bin"	}
-	};
-
-	return info[0];
-}
-
-const char *EmuSystem::shortSystemName()
+const char *EmuSystem::shortSystemName() const
 {
 	return "2600";
 }
 
-const char *EmuSystem::systemName()
+const char *EmuSystem::systemName() const
 {
 	return "Atari 2600";
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotChar(slot));
 }
 
-void EmuSystem::closeSystem(IG::ApplicationContext)
+void EmuSystem::closeSystem()
 {
 	osystem->deleteConsole();
 }
@@ -103,7 +93,7 @@ bool EmuSystem::vidSysIsPAL()
 	return osystem->hasConsole() && osystem->console().timing() != ConsoleTiming::ntsc;
 }
 
-void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto &os = *osystem;
 	if(io.size() > MAX_ROM_SIZE)
@@ -137,7 +127,7 @@ void EmuSystem::loadGame(IG::ApplicationContext ctx, IO &io, EmuSystemCreatePara
 	os.makeConsole(cartridge, props, contentFileName().data());
 	auto &console = os.console();
 	autoDetectedInput1 = limitToSupportedControllerTypes(console.leftController().type());
-	setControllerType(EmuApp::get(ctx), console, (Controller::Type)optionInputPort1.val);
+	setControllerType(EmuApp::get(appContext()), console, (Controller::Type)optionInputPort1.val);
 	Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
 	console.initializeVideo();
 	console.initializeAudio();
@@ -186,7 +176,7 @@ void EmuSystem::renderFramebuffer(EmuVideo &video)
 
 void EmuSystem::reset(ResetMode mode)
 {
-	assert(gameIsRunning());
+	assert(hasContent());
 	if(mode == RESET_HARD)
 	{
 		osystem->console().system().reset();
@@ -251,10 +241,9 @@ bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	return false;
 }
 
-void EmuSystem::onInit(IG::ApplicationContext ctx)
+void EmuSystem::onInit()
 {
-	appCtx = ctx;
-	auto &app = EmuApp::get(ctx);
+	auto &app = EmuApp::get(appContext());
 	osystem.emplace(app);
 	Paddles::setDigitalSensitivity(5);
 	Paddles::setMouseSensitivity(7);

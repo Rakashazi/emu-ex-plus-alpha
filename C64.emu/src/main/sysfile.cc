@@ -82,7 +82,7 @@ static ArchiveIO archiveIOForSysFile(IG::CStringView archivePath, std::string_vi
 {
 	try
 	{
-		for(auto &entry : FS::ArchiveIterator{appContext.openFileUri(archivePath)})
+		for(auto &entry : FS::ArchiveIterator{gAppContext().openFileUri(archivePath)})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -125,6 +125,7 @@ static AssetIO assetIOForSysFile(IG::ApplicationContext ctx, std::string_view sy
 std::vector<std::string> systemFilesWithExtension(const char *ext)
 {
 	logMsg("looking for system files with extension:%s", ext);
+	auto appContext = gAppContext();
 	std::vector<std::string> filenames{};
 	try
 	{
@@ -190,6 +191,7 @@ CLINK int sysfile_init(const char *emu_id)
 CLINK FILE *sysfile_open(const char *name, const char *subPath, char **complete_path_return, const char *open_mode)
 {
 	logMsg("sysfile open:%s subPath:%s", name, subPath);
+	auto appContext = gAppContext();
 	for(const auto &basePath : sysFilePath)
 	{
 		if(basePath.empty())
@@ -234,6 +236,7 @@ CLINK FILE *sysfile_open(const char *name, const char *subPath, char **complete_
 CLINK int sysfile_locate(const char *name, const char *subPath, char **complete_path_return)
 {
 	logMsg("sysfile locate:%s subPath:%s", name, subPath);
+	auto appContext = gAppContext();
 	for(const auto &basePath : sysFilePath)
 	{
 		if(basePath.empty())
@@ -280,6 +283,7 @@ CLINK int sysfile_locate(const char *name, const char *subPath, char **complete_
 CLINK int sysfile_load(const char *name, const char *subPath, uint8_t *dest, int minsize, int maxsize)
 {
 	logMsg("sysfile load:%s subPath:%s", name, subPath);
+	auto appContext = gAppContext();
 	for(const auto &basePath : sysFilePath)
 	{
 		if(basePath.empty())
@@ -321,5 +325,5 @@ CLINK int sysfile_load(const char *name, const char *subPath, uint8_t *dest, int
 
 CLINK char *archdep_default_rtc_file_name(void)
 {
-	return strdup(FS::pathString(appContext.supportPath(), "vice.rtc").data());
+	return strdup(FS::pathString(gAppContext().supportPath(), "vice.rtc").data());
 }

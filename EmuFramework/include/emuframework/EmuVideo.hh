@@ -32,6 +32,7 @@ namespace EmuEx
 
 using namespace IG;
 class EmuVideo;
+class EmuSystem;
 
 class [[nodiscard]] EmuVideoImage
 {
@@ -81,12 +82,12 @@ public:
 	bool formatIsEqual(IG::PixmapDesc desc) const;
 	void setOnFrameFinished(FrameFinishedDelegate del);
 	void setOnFormatChanged(FormatChangedDelegate del);
-	void setTextureBufferMode(Gfx::TextureBufferMode mode);
+	void setTextureBufferMode(EmuSystem &, Gfx::TextureBufferMode mode);
 	void setImageBuffers(int num);
 	int imageBuffers() const;
 	void setCompatTextureSampler(const Gfx::TextureSampler &);
 	constexpr auto colorSpace() const { return colSpace; }
-	bool setRenderPixelFormat(IG::PixelFormat, Gfx::ColorSpace);
+	bool setRenderPixelFormat(EmuSystem &, IG::PixelFormat, Gfx::ColorSpace);
 	IG::PixelFormat renderPixelFormat() const;
 	IG::PixelFormat internalRenderPixelFormat() const;
 
