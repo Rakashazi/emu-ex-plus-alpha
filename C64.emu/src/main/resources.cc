@@ -51,6 +51,16 @@ void resetIntResource(const char *name)
 	setIntResource(name, val);
 }
 
+int defaultIntResource(const char *name)
+{
+	int val;
+	if(plugin.resources_get_default_value(name, &val) < 0)
+	{
+		return 0;
+	}
+	return val;
+}
+
 const char *stringResource(const char *name)
 {
 	const char *val{};

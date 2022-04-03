@@ -60,14 +60,15 @@ struct DrawableConfig
 	IG::PixelFormat pixelFormat{};
 	ColorSpace colorSpace{};
 	constexpr bool operator ==(const DrawableConfig&) const = default;
+	explicit constexpr operator bool() const { return (bool)pixelFormat || (bool)colorSpace; }
 };
 
 struct DrawableConfigDesc
 {
-	const char *name;
-	DrawableConfig config;
-
+	const char *name{};
+	DrawableConfig config{};
 	constexpr bool operator ==(const DrawableConfig &c) const { return config == c; }
+	explicit constexpr operator bool() const { return (bool)config; }
 };
 
 class Renderer : public RendererImpl

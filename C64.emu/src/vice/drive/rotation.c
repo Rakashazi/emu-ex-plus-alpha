@@ -372,7 +372,7 @@ static void rotation_1541_gcr(drive_t *dptr, CLOCK ref_cycles)
 
     if (dptr->read_write_mode) {
         /* emulate the number of reference clocks requested */
-        while (ref_cycles > 0) {
+        while ((int64_t)ref_cycles > 0) {
             /* calculate how much cycles can we do in one single pass */
             todo = 1;
             delta = count_new_bitcell - rptr->accum;
@@ -488,7 +488,7 @@ static void rotation_1541_gcr(drive_t *dptr, CLOCK ref_cycles)
         }
     } else {
         /* emulate the number of reference clocks requested */
-        while (ref_cycles > 0) {
+        while ((int64_t)ref_cycles > 0) {
             /* calculate how much cycles can we do in one single pass */
             todo = 1;
             delta = count_new_bitcell - rptr->accum;
@@ -574,7 +574,7 @@ static void rotation_1541_gcr_cycle(drive_t *dptr)
     cpu_cycles = *(dptr->clk) - rptr->rotation_last_clk;
     rptr->rotation_last_clk = *(dptr->clk);
     /* modulo, at least one revolution, but not more than two */
-    while (cpu_cycles > one_rotation * 2) {
+    while ((int64_t)cpu_cycles > (int64_t)one_rotation * 2) {
         cpu_cycles -= one_rotation;
     }
 
@@ -589,7 +589,7 @@ static void rotation_1541_gcr_cycle(drive_t *dptr)
     ref_cycles += ref_advance_cycles;
 
     /* run simulation if at least 1 R cycle has elapsed */
-    if (ref_cycles > 0) {
+    if ((int64_t)ref_cycles > 0) {
         if (ref_cycles > rptr->ref_advance) {
             /* run simulation without the extra reference cycles already simmulated */
             ref_cycles -= rptr->ref_advance;
@@ -945,7 +945,7 @@ static void rotation_1541_p64_cycle(drive_t *dptr)
     cpu_cycles = *(dptr->clk) - rptr->rotation_last_clk;
     rptr->rotation_last_clk = *(dptr->clk);
     /* modulo, at least one revolution, but not more than two */
-    while (cpu_cycles > one_rotation * 2) {
+    while ((int64_t)cpu_cycles > (int64_t)one_rotation * 2) {
         cpu_cycles -= one_rotation;
     }
 
@@ -1001,7 +1001,7 @@ static void rotation_1541_simple(drive_t *dptr)
     tmp /= dptr->rpm;
     rpmscale = (unsigned long)(tmp);
 
-    while (delta > 0) {
+    while ((int64_t)delta > 0) {
         tdelta = delta > 1000 ? 1000 : delta;
         delta -= tdelta;
         rptr->accum += rot_speed_bps[rptr->frequency][rptr->speed_zone] * tdelta;

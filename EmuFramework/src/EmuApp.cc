@@ -496,6 +496,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 	initOptions(ctx);
 	auto appConfig = loadConfigFile(ctx);
 	system().onOptionsLoaded();
+	loadSystemOptions();
 	updateLegacySavePathOnStoragePath(ctx, system());
 	auto launchGame = parseCommandArgs(initParams.commandArgs());
 	if(launchGame)
@@ -534,6 +535,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			audioManager().endSession();
 
 			saveConfigFile(ctx);
+			saveSystemOptions();
 
 			#ifdef CONFIG_BLUETOOTH
 			if(bta && (!backgrounded || (backgrounded && !optionKeepBluetoothActive)))
@@ -1130,11 +1132,7 @@ void EmuApp::loadSessionOptions()
 {
 	if(!system().resetSessionOptions(*this))
 		return;
-	auto configFilePath = sessionConfigPath();
-	auto configBuff = FileUtils::bufferFromUri(appContext(), configFilePath, IO::OPEN_TEST);
-	if(!configBuff)
-		return;
-	readConfigKeys(std::move(configBuff),
+	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), IO::OPEN_TEST),
 		[this](uint16_t key, uint16_t size, IO &io)
 		{
 			switch(key)
@@ -1147,8 +1145,55 @@ void EmuApp::loadSessionOptions()
 					}
 				}
 			}
+		}))
+	{
+		system().onSessionOptionsLoaded(*this);
+	}
+}
+
+void EmuApp::loadSystemOptions()
+{
+	auto configName = system().configName();
+	if(configName.empty())
+		return;
+	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), IO::OPEN_TEST),
+		[this](uint16_t key, uint16_t size, IO &io)
+		{
+			if(!system().readCoreConfig(io, key, size))
+			{
+				logMsg("skipping unknown system config key:%u", (unsigned)key);
+			}
 		});
-	system().onSessionOptionsLoaded(*this);
+}
+
+void EmuApp::saveSystemOptions()
+{
+	auto configName = system().configName();
+	if(configName.empty())
+		return;
+	try
+	{
+		auto configFilePath = FS::pathString(appContext().supportPath(), configName);
+		auto configFile = FileIO::create(configFilePath);
+		saveSystemOptions(configFile);
+		if(configFile.size() == 1)
+		{
+			// delete file if only header was written
+			configFile = {};
+			FS::remove(configFilePath);
+			logMsg("deleted empty system config file");
+		}
+	}
+	catch(...)
+	{
+		logErr("error writing system config file");
+	}
+}
+
+void EmuApp::saveSystemOptions(IO &configFile)
+{
+	writeConfigHeader(configFile);
+	system().writeCoreConfig(configFile);
 }
 
 void EmuApp::syncEmulationThread()

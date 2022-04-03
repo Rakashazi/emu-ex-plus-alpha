@@ -77,7 +77,7 @@ EmuAudio *audioPtr{};
 static bool c64IsInit = false, c64FailedInit = false;
 FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3]{};
 VicePlugin plugin{};
-ViceSystem currSystem = VICE_SYSTEM_C64;
+ViceSystem currSystem{};
 IG::PixelFormat pixFmt{};
 
 bool EmuSystem::hasPALVideoSystem = true;
@@ -199,11 +199,6 @@ static void applyInitialOptionResources()
 	setBorderMode(optionBorderMode);
 	setSidEngine(optionSidEngine);
 	setReSidSampling(optionReSidSampling);
-	// default drive setup
-	resetIntResource("Drive8Type");
-	setIntResource("Drive9Type", DRIVE_TYPE_NONE);
-	setIntResource("Drive10Type", DRIVE_TYPE_NONE);
-	setIntResource("Drive11Type", DRIVE_TYPE_NONE);
 }
 
 int systemCartType(ViceSystem system)
@@ -560,7 +555,7 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, const Input::Event &e)
 	sysFilePath[0] = system().firmwarePath();
 	plugin.init();
 	updateKeyboardMapping();
-	setSysModel(optionDefaultModel(currSystem));
+	setSysModel(optionDefaultModel);
 	auto ctx = attach.appContext();
 	auto prgDiskPath = autostartPrgDiskImagePath(system());
 	FS::remove(prgDiskPath);

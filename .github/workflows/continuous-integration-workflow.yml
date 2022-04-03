@@ -33,24 +33,7 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y autoconf
-        sudo apt-get install -y automake
-        sudo apt-get install -y autopoint
-        sudo apt-get install -y bash
-        sudo apt-get install -y binutils-arm-linux-gnueabi
-        sudo apt-get install -y clang
-        sudo apt-get install -y file
-        sudo apt-get install -y gawk
-        sudo apt-get install -y gettext
-        sudo apt-get install -y git
-        sudo apt-get install -y libtool
-        sudo apt-get install -y libtool-bin
-        sudo apt-get install -y llvm 
-        sudo apt-get install -y make
-        sudo apt-get install -y nasm
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y pkg-config
-        sudo apt-get install -y unzip
+        sudo apt-get install -y --no-install-recommends autoconf automake autopoint bash binutils-arm-linux-gnueabi clang file gawk gettext git libtool libtool-bin llvm make nasm openjdk-8-jdk pkg-config unzip
         sudo apt-get upgrade -y
         echo y | sdkmanager "cmake;3.18.1"
         

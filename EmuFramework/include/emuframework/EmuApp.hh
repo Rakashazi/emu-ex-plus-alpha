@@ -512,6 +512,9 @@ protected:
 	std::optional<IG::PixelFormat> windowDrawablePixelFormatOption() const;
 	std::optional<Gfx::ColorSpace> windowDrawableColorSpaceOption() const;
 	FS::PathString sessionConfigPath();
+	void loadSystemOptions();
+	void saveSystemOptions();
+	void saveSystemOptions(IO &);
 
 	const DoubleOption &frameTimeOption(EmuSystem::VideoSystem system) const
 	{

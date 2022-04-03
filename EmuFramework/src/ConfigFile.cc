@@ -402,12 +402,9 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 		}
 	}
 	#endif
-	auto configBuff = FileUtils::bufferFromPath(configFilePath, IO::OPEN_TEST);
-	if(!configBuff)
-		return {};
 	ConfigParams appConfig{};
 	Gfx::DrawableConfig pendingWindowDrawableConf{};
-	readConfigKeys(std::move(configBuff),
+	readConfigKeys(FileUtils::bufferFromPath(configFilePath, IO::OPEN_TEST),
 		[&](uint16_t key, uint16_t size, IO &io)
 		{
 			switch(key)
@@ -659,9 +656,12 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 		});
 
 	// apply any pending read options
-	if(pendingWindowDrawableConf.colorSpace != Gfx::ColorSpace{} && pendingWindowDrawableConf.pixelFormat != IG::PIXEL_RGBA8888)
-		pendingWindowDrawableConf.colorSpace = {};
-	windowDrawableConf = pendingWindowDrawableConf;
+	if(pendingWindowDrawableConf)
+	{
+		if(pendingWindowDrawableConf.colorSpace != Gfx::ColorSpace{} && pendingWindowDrawableConf.pixelFormat != IG::PIXEL_RGBA8888)
+			pendingWindowDrawableConf.colorSpace = {};
+		windowDrawableConf = pendingWindowDrawableConf;
+	}
 
 	return appConfig;
 }

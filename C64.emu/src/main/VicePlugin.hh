@@ -25,6 +25,8 @@ extern "C"
 }
 
 #include <imagine/base/sharedLibrary.hh>
+#include <span>
+#include <string_view>
 
 struct keyboard_conv_t;
 
@@ -48,8 +50,8 @@ struct VicePlugin
 	IG::SharedLibraryRef libHandle{};
 	uint16_t (*joystick_value)[JOYPORT_MAX_PORTS]{};
 	int *warp_mode_enabled{};
-	int models = 0;
-	const char **modelStr{};
+	std::span<const std::string_view> modelNames{};
+	std::string_view configName{};
 	const char *borderModeStr{""};
 	int (*model_get_)(){};
 	void (*model_set_)(int model){};
@@ -62,6 +64,7 @@ struct VicePlugin
 	int (*machine_read_snapshot_)(const char *name, int event_mode){};
 	void (*machine_set_restore_key_)(int v){};
 	void (*machine_trigger_reset_)(const unsigned int mode){};
+	struct drive_type_info_s *(*machine_drive_get_type_info_list_)(){};
 	void (*interrupt_maincpu_trigger_trap_)(void (*trap_func_)(uint16_t, void *data), void *data){};
 	int (*init_main_)(){};
 	void (*maincpu_mainloop_)(){};
@@ -94,11 +97,14 @@ struct VicePlugin
 	void (*keyboard_key_released_)(signed long key, int mod){};
 	void (*keyboard_key_clear_)(void){};
 	void (*vsync_set_warp_mode_)(int val){};
+	int8_t defaultModelId{};
+	int8_t modelIdBase;
 
 	void init();
 	void deinit();
 	static bool hasSystemLib(ViceSystem system, const char *libBasePath);
 	static const char *systemName(ViceSystem system);
+	int8_t modelIdLimit() const { return modelIdBase + modelNames.size(); }
 	int model_get();
 	void model_set(int model);
 	int resources_get_string(const char *name, const char **value_return);
@@ -110,6 +116,7 @@ struct VicePlugin
 	int machine_read_snapshot(const char *name, int event_mode);
 	void machine_set_restore_key(int v);
 	void machine_trigger_reset(const unsigned int mode);
+	struct drive_type_info_s *machine_drive_get_type_info_list();
 	void interrupt_maincpu_trigger_trap(void trap_func(uint16_t, void *data), void *data);
 	int init_main();
 	void maincpu_mainloop();
@@ -147,108 +154,6 @@ struct VicePlugin
 	{
 		return libHandle;
 	}
-};
-
-static const char *c64ModelStr[]
-{
-	"C64 PAL",
-	"C64C PAL",
-	"C64 old PAL",
-	"C64 NTSC",
-	"C64C NTSC",
-	"C64 old NTSC",
-	"Drean",
-	"C64 SX PAL",
-	"C64 SX NTSC",
-	"Japanese",
-	"C64 GS",
-	"PET64 PAL",
-	"PET64 NTSC",
-	"MAX Machine",
-};
-
-static const char *dtvModelStr[]
-{
-	"DTV v2 PAL",
-	"DTV v2 NTSC",
-	"DTV v3 PAL",
-	"DTV v3 NTSC",
-	"Hummer NTSC",
-};
-
-static const char *c128ModelStr[]
-{
-	"C128 PAL",
-	"C128DCR PAL",
-	"C128 NTSC",
-	"C128DCR NTSC",
-};
-
-static const char *superCPUModelStr[]
-{
-	"C64 PAL",
-	"C64C PAL",
-	"C64 old PAL",
-	"C64 NTSC",
-	"C64C NTSC",
-	"C64 old NTSC",
-	"Drean",
-	"C64 SX PAL",
-	"C64 SX NTSC",
-	"Japanese",
-	"C64 GS",
-};
-
-static const char *cbm2ModelStr[]
-{
-	"CBM 610 PAL",
-	"CBM 610 NTSC",
-	"CBM 620 PAL",
-	"CBM 620 NTSC",
-	"CBM 620+ (1M) PAL",
-	"CBM 620+ (1M) NTSC",
-	"CBM 710 NTSC",
-	"CBM 720 NTSC",
-	"CBM 720+ (1M) NTSC",
-};
-
-static const char *cbm5x0ModelStr[]
-{
-	"CBM 510 PAL",
-	"CBM 510 NTSC",
-};
-
-static const char *petModelStr[]
-{
-	"PET 2001-8N",
-	"PET 3008",
-	"PET 3016",
-	"PET 3032",
-	"PET 3032B",
-	"PET 4016",
-	"PET 4032",
-	"PET 4032B",
-	"PET 8032",
-	"PET 8096",
-	"PET 8296",
-	"SuperPET",
-};
-
-static const char *plus4ModelStr[]
-{
-	"C16/116 PAL",
-	"C16/116 NTSC",
-	"Plus4 PAL",
-	"Plus4 NTSC",
-	"V364 NTSC",
-	"C232 NTSC",
-};
-
-static const char *vic20ModelStr[]
-{
-	"VIC20 PAL",
-	"VIC20 NTSC",
-	"VIC21",
 };
 
 VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath);

@@ -126,15 +126,17 @@ template <class T>
 struct Option
 {
 public:
-	bool (&validator)(T v);
+	bool (*validator)(T v);
 	T val{};
 	T defaultVal{};
-	const uint16_t KEY;
+	uint16_t KEY;
 	bool isConst{};
 	static constexpr size_t SIZE = sizeof(T);
 
+	constexpr Option() = default;
+
 	constexpr Option(uint16_t key, T defaultVal = {}, bool isConst = false,
-		bool (&validator)(T v) = optionIsAlwaysValid):
+		bool (*validator)(T v) = optionIsAlwaysValid):
 		validator{validator},
 		val{defaultVal},
 		defaultVal{defaultVal},

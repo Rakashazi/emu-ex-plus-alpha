@@ -27,6 +27,7 @@ extern "C"
 	#include "petmodel.h"
 	#include "plus4model.h"
 	#include "vic20model.h"
+	#include "drive.h"
 	#include "vicii.h"
 	#include "sid/sid.h"
 	#include "sid/sid-resources.h"
@@ -50,6 +51,9 @@ enum
 	CFGKEY_MODEL = 276, CFGKEY_AUTOSTART_BASIC_LOAD = 277,
 	CFGKEY_VIC20_RAM_EXPANSIONS = 278, CFGKEY_AUTOSTART_ON_LOAD = 279,
 	CFGKEY_PALETTE_NAME = 280, CFGKEY_C64_RAM_EXPANSION_MODULE = 281,
+	CFGKEY_DEFAULT_MODEL = 282, CFGKEY_DEFAULT_PALETTE_NAME = 283,
+	CFGKEY_DRIVE8_TYPE = 284, CFGKEY_DRIVE9_TYPE = 285,
+	CFGKEY_DRIVE10_TYPE = 286, CFGKEY_DRIVE11_TYPE = 287,
 };
 
 const char *EmuSystem::configFilename = "C64Emu.config";
@@ -66,26 +70,8 @@ Byte1Option optionAutostartTDE(CFGKEY_AUTOSTART_TDE, 0);
 Byte1Option optionAutostartBasicLoad(CFGKEY_AUTOSTART_BASIC_LOAD, 0);
 Byte1Option optionViceSystem(CFGKEY_VICE_SYSTEM, VICE_SYSTEM_C64, false,
 	optionIsValidWithMax<VicePlugin::SYSTEMS-1, uint8_t>);
-SByte1Option optionModel(CFGKEY_MODEL, -1, false,
-	optionIsValidWithMinMax<-1, 50, int8_t>);
-Byte1Option optionC64Model(CFGKEY_C64_MODEL, C64MODEL_C64_NTSC, false,
-	optionIsValidWithMax<C64MODEL_NUM-1, uint8_t>);
-Byte1Option optionDTVModel(CFGKEY_DTV_MODEL, DTVMODEL_V3_NTSC, false,
-	optionIsValidWithMax<DTVMODEL_NUM-1, uint8_t>);
-Byte1Option optionC128Model(CFGKEY_C128_MODEL, C128MODEL_C128_NTSC, false,
-	optionIsValidWithMax<C128MODEL_NUM-1, uint8_t>);
-Byte1Option optionSuperCPUModel(CFGKEY_SUPER_CPU_MODEL, C64MODEL_C64_NTSC, false,
-	optionIsValidWithMax<std::size(superCPUModelStr)-1, uint8_t>);
-Byte1Option optionCBM2Model(CFGKEY_CBM2_MODEL, CBM2MODEL_610_NTSC, false,
-	optionIsValidWithMinMax<CBM2MODEL_610_PAL, CBM2MODEL_720PLUS_NTSC, uint8_t>);
-Byte1Option optionCBM5x0Model(CFGKEY_CBM5x0_MODEL, CBM2MODEL_510_NTSC, false,
-	optionIsValidWithMinMax<CBM2MODEL_510_PAL, CBM2MODEL_510_NTSC, uint8_t>);
-Byte1Option optionPETModel(CFGKEY_PET_MODEL, PETMODEL_8032, false,
-	optionIsValidWithMax<PETMODEL_NUM-1, uint8_t>);
-Byte1Option optionPlus4Model(CFGKEY_PLUS4_MODEL, PLUS4MODEL_PLUS4_NTSC, false,
-	optionIsValidWithMax<PLUS4MODEL_NUM-1, uint8_t>);
-Byte1Option optionVIC20Model(CFGKEY_VIC20_MODEL, VIC20MODEL_VIC20_NTSC, false,
-	optionIsValidWithMax<VIC20MODEL_NUM-1, uint8_t>);
+SByte1Option optionModel{};
+SByte1Option optionDefaultModel{};
 Byte1Option optionBorderMode(CFGKEY_BORDER_MODE, VICII_NORMAL_BORDERS);
 Byte1Option optionSidEngine(CFGKEY_SID_ENGINE, SID_ENGINE_RESID, false,
 	optionIsValidWithMax<1, uint8_t>);
@@ -101,6 +87,8 @@ Byte1Option optionVic20RamExpansions(CFGKEY_VIC20_RAM_EXPANSIONS, 0);
 // C64 specific
 Byte2Option optionC64RamExpansionModule(CFGKEY_C64_RAM_EXPANSION_MODULE, 0);
 
+std::string defaultPaletteName{};
+
 static std::array<char, 21> externalPaletteResStr{};
 static std::array<char, 17> paletteFileResStr{};
 
@@ -108,11 +96,13 @@ void setPaletteResources(const char *palName)
 {
 	if(palName && strlen(palName))
 	{
+		logMsg("setting external palette:%s", palName);
 		setStringResource(paletteFileResStr.data(), palName);
 		setIntResource(externalPaletteResStr.data(), 1);
 	}
 	else
 	{
+		logMsg("setting internal palette");
 		setIntResource(externalPaletteResStr.data(), 0);
 	}
 }
@@ -127,6 +117,24 @@ const char *externalPaletteName()
 	return stringResource(paletteFileResStr.data());
 }
 
+const char *paletteName()
+{
+	if(usingExternalPalette())
+		return externalPaletteName();
+	else
+		return "";
+}
+
+FS::FileString EmuSystem::configName() const
+{
+	return FS::FileString{plugin.configName};
+}
+
+static bool modelIdIsValid(int8_t id)
+{
+	return id >= plugin.modelIdBase && id < plugin.modelIdLimit();
+}
+
 void EmuSystem::onOptionsLoaded()
 {
 	currSystem = (ViceSystem)optionViceSystem.val;
@@ -137,6 +145,8 @@ void EmuSystem::onOptionsLoaded()
 	}
 	IG::formatTo(externalPaletteResStr, "{}ExternalPalette", videoChipStr());
 	IG::formatTo(paletteFileResStr, "{}PaletteFile", videoChipStr());
+	optionDefaultModel = {CFGKEY_DEFAULT_MODEL, plugin.defaultModelId, false, modelIdIsValid};
+	optionModel = {CFGKEY_MODEL, -1, false, modelIdIsValid};
 }
 
 void applySessionOptions()
@@ -144,7 +154,7 @@ void applySessionOptions()
 	if((int)optionModel == -1)
 	{
 		logMsg("using default model");
-		setSysModel(optionDefaultModel(currSystem));
+		setSysModel(optionDefaultModel);
 	}
 	else
 	{
@@ -180,10 +190,6 @@ void applySessionOptions()
 
 void EmuSystem::onSessionOptionsLoaded(EmuApp &)
 {
-	if(optionModel >= plugin.models)
-	{
-		optionModel.reset();
-	}
 	applySessionOptions();
 }
 
@@ -198,7 +204,12 @@ bool EmuSystem::resetSessionOptions(EmuApp &app)
 	optionAutostartOnLaunch.reset();
 	optionVic20RamExpansions.reset();
 	optionC64RamExpansionModule.reset();
-	setPaletteResources({});
+	setPaletteResources(defaultPaletteName.c_str());
+	// default drive setup
+	setIntResource("Drive8Type", defaultIntResource("Drive8Type"));
+	setIntResource("Drive9Type", DRIVE_TYPE_NONE);
+	setIntResource("Drive10Type", DRIVE_TYPE_NONE);
+	setIntResource("Drive11Type", DRIVE_TYPE_NONE);
 	onSessionOptionsLoaded(app);
 	return true;
 }
@@ -210,10 +221,6 @@ bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 		default: return 0;
 		bcase CFGKEY_MODEL:
 			optionModel.readFromIO(io, readSize);
-			if(optionModel >= plugin.models)
-			{
-				optionModel.reset();
-			}
 		bcase CFGKEY_DRIVE_TRUE_EMULATION: optionDriveTrueEmulation.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_WARP: optionAutostartWarp.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_TDE: optionAutostartTDE.readFromIO(io, readSize);
@@ -223,7 +230,21 @@ bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 		bcase CFGKEY_VIC20_RAM_EXPANSIONS: optionVic20RamExpansions.readFromIO(io, readSize);
 		bcase CFGKEY_C64_RAM_EXPANSION_MODULE: optionC64RamExpansionModule.readFromIO(io, readSize);
 		bcase CFGKEY_PALETTE_NAME:
-			readStringOptionValue<FS::FileString>(io, readSize, [](auto &name){setPaletteResources(name.data());});
+			readStringOptionValue<FS::FileString>(io, readSize, [](auto &name)
+			{
+				if(name == "internal")
+					setPaletteResources({});
+				else
+					setPaletteResources(name.data());
+			});
+		bcase CFGKEY_DRIVE8_TYPE:
+			readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive8Type", type); });
+		bcase CFGKEY_DRIVE9_TYPE:
+			readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive9Type", type); });
+		bcase CFGKEY_DRIVE10_TYPE:
+			readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive10Type", type); });
+		bcase CFGKEY_DRIVE11_TYPE:
+			readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive11Type", type); });
 	}
 	return 1;
 }
@@ -258,9 +279,32 @@ void EmuSystem::writeSessionConfig(IO &io)
 			optionC64RamExpansionModule.writeWithKeyIfNotDefault(io);
 		}
 	}
-	if(usingExternalPalette())
+	auto palName = paletteName();
+	if(palName != defaultPaletteName)
 	{
-		writeStringOptionValue(io, CFGKEY_PALETTE_NAME, externalPaletteName());
+		if(!strlen(palName))
+			palName = "internal";
+		writeStringOptionValue(io, CFGKEY_PALETTE_NAME, palName);
+	}
+	if(auto driveType = intResource("Drive8Type");
+		driveType != defaultIntResource("Drive8Type"))
+	{
+		writeOptionValue(io, CFGKEY_DRIVE8_TYPE, (uint16_t)driveType);
+	}
+	if(auto driveType = intResource("Drive9Type");
+		driveType != DRIVE_TYPE_NONE)
+	{
+		writeOptionValue(io, CFGKEY_DRIVE9_TYPE, (uint16_t)driveType);
+	}
+	if(auto driveType = intResource("Drive10Type");
+		driveType != DRIVE_TYPE_NONE)
+	{
+		writeOptionValue(io, CFGKEY_DRIVE10_TYPE, (uint16_t)driveType);
+	}
+	if(auto driveType = intResource("Drive11Type");
+		driveType != DRIVE_TYPE_NONE)
+	{
+		writeOptionValue(io, CFGKEY_DRIVE11_TYPE, (uint16_t)driveType);
 	}
 }
 
@@ -270,15 +314,6 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 	{
 		default: return 0;
 		bcase CFGKEY_VICE_SYSTEM: optionViceSystem.readFromIO(io, readSize);
-		bcase CFGKEY_C64_MODEL: optionC64Model.readFromIO(io, readSize);
-		bcase CFGKEY_DTV_MODEL: optionDTVModel.readFromIO(io, readSize);
-		bcase CFGKEY_C128_MODEL: optionC128Model.readFromIO(io, readSize);
-		bcase CFGKEY_SUPER_CPU_MODEL: optionSuperCPUModel.readFromIO(io, readSize);
-		bcase CFGKEY_CBM2_MODEL: optionCBM2Model.readFromIO(io, readSize);
-		bcase CFGKEY_CBM5x0_MODEL: optionCBM5x0Model.readFromIO(io, readSize);
-		bcase CFGKEY_PET_MODEL: optionPETModel.readFromIO(io, readSize);
-		bcase CFGKEY_PLUS4_MODEL: optionPlus4Model.readFromIO(io, readSize);
-		bcase CFGKEY_VIC20_MODEL: optionVIC20Model.readFromIO(io, readSize);
 		bcase CFGKEY_BORDER_MODE: optionBorderMode.readFromIO(io, readSize);
 		bcase CFGKEY_CROP_NORMAL_BORDERS: optionCropNormalBorders.readFromIO(io, readSize);
 		bcase CFGKEY_SID_ENGINE: optionSidEngine.readFromIO(io, readSize);
@@ -289,18 +324,21 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 	return 1;
 }
 
+bool EmuSystem::readCoreConfig(IO &io, unsigned key, unsigned readSize)
+{
+	switch(key)
+	{
+		default: return false;
+		bcase CFGKEY_DEFAULT_MODEL: optionDefaultModel.readFromIO(io, readSize);
+		bcase CFGKEY_DEFAULT_PALETTE_NAME:
+			readStringOptionValue<FS::FileString>(io, readSize, [&](auto &name){defaultPaletteName = name;});
+	}
+	return true;
+}
+
 void EmuSystem::writeConfig(IO &io)
 {
 	optionViceSystem.writeWithKeyIfNotDefault(io);
-	optionC64Model.writeWithKeyIfNotDefault(io);
-	optionDTVModel.writeWithKeyIfNotDefault(io);
-	optionC128Model.writeWithKeyIfNotDefault(io);
-	optionSuperCPUModel.writeWithKeyIfNotDefault(io);
-	optionCBM2Model.writeWithKeyIfNotDefault(io);
-	optionCBM5x0Model.writeWithKeyIfNotDefault(io);
-	optionPETModel.writeWithKeyIfNotDefault(io);
-	optionPlus4Model.writeWithKeyIfNotDefault(io);
-	optionVIC20Model.writeWithKeyIfNotDefault(io);
 	optionBorderMode.writeWithKeyIfNotDefault(io);
 	optionCropNormalBorders.writeWithKeyIfNotDefault(io);
 	optionSidEngine.writeWithKeyIfNotDefault(io);
@@ -308,67 +346,15 @@ void EmuSystem::writeConfig(IO &io)
 	writeStringOptionValue(io, CFGKEY_SYSTEM_FILE_PATH, firmwarePath());
 }
 
-int optionDefaultModel(ViceSystem system)
+void EmuSystem::writeCoreConfig(IO &io)
 {
-	switch(system)
-	{
-		case VICE_SYSTEM_C64: return optionC64Model;
-		case VICE_SYSTEM_C64SC: return optionC64Model;
-		case VICE_SYSTEM_C64DTV: return optionDTVModel;
-		case VICE_SYSTEM_C128: return optionC128Model;
-		case VICE_SYSTEM_SUPER_CPU: return optionSuperCPUModel;
-		case VICE_SYSTEM_CBM2: return optionCBM2Model;
-		case VICE_SYSTEM_CBM5X0: return optionCBM5x0Model;
-		case VICE_SYSTEM_PET: return optionPETModel;
-		case VICE_SYSTEM_PLUS4: return optionPlus4Model;
-		case VICE_SYSTEM_VIC20: return optionVIC20Model;
-	}
-	return 0;
+	optionDefaultModel.writeWithKeyIfNotDefault(io);
+	writeStringOptionValue(io, CFGKEY_DEFAULT_PALETTE_NAME, defaultPaletteName);
 }
 
-void setDefaultC64Model(int model)
+void setDefaultModel(int model)
 {
-	optionC64Model = model;
-}
-
-void setDefaultDTVModel(int model)
-{
-	optionDTVModel = model;
-}
-
-void setDefaultC128Model(int model)
-{
-	optionC128Model = model;
-}
-
-void setDefaultSuperCPUModel(int model)
-{
-	optionSuperCPUModel = model;
-}
-
-void setDefaultCBM2Model(int model)
-{
-	optionCBM2Model = model;
-}
-
-void setDefaultCBM5x0Model(int model)
-{
-	optionCBM5x0Model = model;
-}
-
-void setDefaultPETModel(int model)
-{
-	optionPETModel = model;
-}
-
-void setDefaultPlus4Model(int model)
-{
-	optionPlus4Model = model;
-}
-
-void setDefaultVIC20Model(int model)
-{
-	optionVIC20Model = model;
+	optionDefaultModel = model;
 }
 
 }

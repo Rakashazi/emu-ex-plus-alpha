@@ -7,6 +7,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <vector>
 #include <string>
+#include <string_view>
 
 namespace EmuEx
 {
@@ -48,15 +49,7 @@ extern Byte1Option optionAutostartTDE;
 extern Byte1Option optionAutostartBasicLoad;
 extern Byte1Option optionViceSystem;
 extern SByte1Option optionModel;
-extern Byte1Option optionC64Model;
-extern Byte1Option optionDTVModel;
-extern Byte1Option optionC128Model;
-extern Byte1Option optionSuperCPUModel;
-extern Byte1Option optionCBM2Model;
-extern Byte1Option optionCBM5x0Model;
-extern Byte1Option optionPETModel;
-extern Byte1Option optionPlus4Model;
-extern Byte1Option optionVIC20Model;
+extern SByte1Option optionDefaultModel;
 extern Byte1Option optionBorderMode;
 extern Byte1Option optionSidEngine;
 extern Byte1Option optionReSidSampling;
@@ -64,10 +57,12 @@ extern Byte1Option optionSwapJoystickPorts;
 extern Byte1Option optionAutostartOnLaunch;
 extern Byte1Option optionVic20RamExpansions;
 extern Byte2Option optionC64RamExpansionModule;
+extern std::string defaultPaletteName;
 
 int intResource(const char *name);
 void setIntResource(const char *name, int val);
 void resetIntResource(const char *name);
+int defaultIntResource(const char *name);
 const char *stringResource(const char *name);
 void setStringResource(const char *name, const char *val);
 void setBorderMode(int mode);
@@ -81,19 +76,10 @@ void setAutostartBasicLoad(bool on);
 bool autostartBasicLoad();
 void setSysModel(int model);
 int sysModel();
-void setDefaultC64Model(int model);
-void setDefaultDTVModel(int model);
-void setDefaultC128Model(int model);
-void setDefaultSuperCPUModel(int model);
-void setDefaultCBM2Model(int model);
-void setDefaultCBM5x0Model(int model);
-void setDefaultPETModel(int model);
-void setDefaultPlus4Model(int model);
-void setDefaultVIC20Model(int model);
+void setDefaultModel(int model);
 bool hasC64DiskExtension(std::string_view name);
 bool hasC64TapeExtension(std::string_view name);
 bool hasC64CartExtension(std::string_view name);
-int optionDefaultModel(ViceSystem system);
 void applySessionOptions();
 int systemCartType(ViceSystem system);
 std::vector<std::string> systemFilesWithExtension(const char *ext);
@@ -101,6 +87,7 @@ const char *videoChipStr();
 void setPaletteResources(const char *palName);
 bool usingExternalPalette();
 const char *externalPaletteName();
+const char *paletteName();
 void setJoystickMode(JoystickMode);
 bool currSystemIsC64();
 bool currSystemIsC64Or128();

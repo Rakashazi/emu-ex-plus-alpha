@@ -524,6 +524,8 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] void EmuSystem::initOptions(EmuApp &) {}
 
+[[gnu::weak]] FS::FileString EmuSystem::configName() const { return {}; }
+
 [[gnu::weak]] void EmuSystem::onOptionsLoaded() {}
 
 [[gnu::weak]] void EmuSystem::saveBackupMem() {}
@@ -557,7 +559,11 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] void EmuSystem::writeConfig(IO &io) {}
 
+[[gnu::weak]] void EmuSystem::writeCoreConfig(IO &io) {}
+
 [[gnu::weak]] bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize) { return false; }
+
+[[gnu::weak]] bool EmuSystem::readCoreConfig(IO &io, unsigned key, unsigned readSize) { return false; }
 
 [[gnu::weak]] bool EmuSystem::resetSessionOptions(EmuApp &) { return false; }
 

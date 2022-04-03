@@ -71,6 +71,7 @@ VICE_API int machine_write_snapshot(const char *name, int save_roms,
                                   int save_disks, int even_mode);
 VICE_API int machine_read_snapshot(const char *name, int even_mode);
 //VICE_API void machine_shutdown(void); // TODO: not used currently
+VICE_API struct drive_type_info_s *machine_drive_get_type_info_list(void);
 
 VICE_API void maincpu_mainloop(void);
 

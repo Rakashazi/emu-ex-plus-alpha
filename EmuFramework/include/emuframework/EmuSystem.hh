@@ -200,9 +200,12 @@ public:
 	void reset(ResetMode mode);
 	void reset(EmuApp &, ResetMode mode);
 	void initOptions(EmuApp &);
+	FS::FileString configName() const;
 	void onOptionsLoaded();
 	void writeConfig(IO &io);
+	void writeCoreConfig(IO &io);
 	bool readConfig(IO &io, unsigned key, unsigned readSize);
+	bool readCoreConfig(IO &io, unsigned key, unsigned readSize);
 	bool resetSessionOptions(EmuApp &);
 	void sessionOptionSet();
 	void resetSessionOptionsSet() { sessionOptionsSet = false; }

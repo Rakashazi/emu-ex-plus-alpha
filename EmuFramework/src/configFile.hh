@@ -26,6 +26,9 @@ using namespace IG;
 template<class ON_KEY>
 static bool readConfigKeys(MapIO io, ON_KEY onKey)
 {
+	if(!io)
+		return false;
+
 	auto configSize = io.size();
 	if(configSize < 4)
 	{

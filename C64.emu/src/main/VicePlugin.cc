@@ -23,6 +23,13 @@
 
 extern "C"
 {
+	#include "c64model.h"
+	#include "c64dtvmodel.h"
+	#include "c128model.h"
+	#include "cbm2model.h"
+	#include "petmodel.h"
+	#include "plus4model.h"
+	#include "vic20model.h"
 	#include "cartridge.h"
 	#include "resources.h"
 }
@@ -55,13 +62,120 @@ constexpr const char *libName[]
 	"libvic.so",
 };
 
+constexpr std::string_view c64ModelStr[]
+{
+	"C64 PAL",
+	"C64C PAL",
+	"C64 old PAL",
+	"C64 NTSC",
+	"C64C NTSC",
+	"C64 old NTSC",
+	"Drean",
+	"C64 SX PAL",
+	"C64 SX NTSC",
+	"Japanese",
+	"C64 GS",
+	"PET64 PAL",
+	"PET64 NTSC",
+	"MAX Machine",
+};
+
+constexpr std::string_view dtvModelStr[]
+{
+	"DTV v2 PAL",
+	"DTV v2 NTSC",
+	"DTV v3 PAL",
+	"DTV v3 NTSC",
+	"Hummer NTSC",
+};
+
+constexpr std::string_view c128ModelStr[]
+{
+	"C128 PAL",
+	"C128D PAL",
+	"C128DCR PAL",
+	"C128 NTSC",
+	"C128D NTSC",
+	"C128DCR NTSC",
+};
+
+constexpr std::string_view superCPUModelStr[]
+{
+	"C64 PAL",
+	"C64C PAL",
+	"C64 old PAL",
+	"C64 NTSC",
+	"C64C NTSC",
+	"C64 old NTSC",
+	"Drean",
+	"C64 SX PAL",
+	"C64 SX NTSC",
+	"Japanese",
+	"C64 GS",
+};
+
+constexpr std::string_view cbm2ModelStr[]
+{
+	"CBM 610 PAL",
+	"CBM 610 NTSC",
+	"CBM 620 PAL",
+	"CBM 620 NTSC",
+	"CBM 620+ (1M) PAL",
+	"CBM 620+ (1M) NTSC",
+	"CBM 710 NTSC",
+	"CBM 720 NTSC",
+	"CBM 720+ (1M) NTSC",
+};
+
+constexpr std::string_view cbm5x0ModelStr[]
+{
+	"CBM 510 PAL",
+	"CBM 510 NTSC",
+};
+
+constexpr std::string_view petModelStr[]
+{
+	"PET 2001-8N",
+	"PET 3008",
+	"PET 3016",
+	"PET 3032",
+	"PET 3032B",
+	"PET 4016",
+	"PET 4032",
+	"PET 4032B",
+	"PET 8032",
+	"PET 8096",
+	"PET 8296",
+	"SuperPET",
+};
+
+constexpr std::string_view plus4ModelStr[]
+{
+	"C16/116 PAL",
+	"C16/116 NTSC",
+	"Plus4 PAL",
+	"Plus4 NTSC",
+	"V364 NTSC",
+	"C232 NTSC",
+};
+
+constexpr std::string_view vic20ModelStr[]
+{
+	"VIC-20 PAL",
+	"VIC-20 NTSC",
+	"VIC-21",
+	"VIC-1001",
+};
+
 struct PluginConfig
 {
-	unsigned models;
-	const char **modelStr;
-	const char *getModelFuncName;
-	const char *setModelFuncName;
-	const char *borderModeStr;
+	std::span<const std::string_view> modelNames;
+	std::string_view configName{};
+	const char *getModelFuncName{};
+	const char *setModelFuncName{};
+	const char *borderModeStr{};
+	int8_t defaultModelId{};
+	int8_t modelIdBase{};
 };
 
 static IG::PathString makePluginLibPath(const char *libName, const char *libBasePath)
@@ -187,6 +301,11 @@ void VicePlugin::machine_trigger_reset(const unsigned int mode)
 {
 	if(machine_trigger_reset_)
 		machine_trigger_reset_(mode);
+}
+
+struct drive_type_info_s *VicePlugin::machine_drive_get_type_info_list()
+{
+	return machine_drive_get_type_info_list_();
 }
 
 void VicePlugin::interrupt_maincpu_trigger_trap(void trap_func(uint16_t, void *data), void *data)
@@ -405,6 +524,7 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 	loadSymbolCheck(plugin.machine_read_snapshot_, lib, "machine_read_snapshot");
 	loadSymbolCheck(plugin.machine_set_restore_key_, lib, "machine_set_restore_key");
 	loadSymbolCheck(plugin.machine_trigger_reset_, lib, "machine_trigger_reset");
+	loadSymbolCheck(plugin.machine_drive_get_type_info_list_, lib, "machine_drive_get_type_info_list");
 	loadSymbolCheck(plugin.interrupt_maincpu_trigger_trap_, lib, "interrupt_maincpu_trigger_trap");
 	loadSymbolCheck(plugin.init_main_, lib, "init_main");
 	assert(plugin.init_main_);
@@ -485,87 +605,99 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 
 VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 {
-	constexpr PluginConfig pluginConf[]
+	static constexpr PluginConfig pluginConf[]
 	{
 		// C64
 		{
-			std::size(c64ModelStr),
 			c64ModelStr,
+			"c64.config",
 			"c64model_get",
 			"c64model_set",
-			"VICIIBorderMode"
+			"VICIIBorderMode",
+			C64MODEL_C64_NTSC
 		},
 		// C64 (accurate)
 		{
-			std::size(c64ModelStr),
 			c64ModelStr,
+			"c64sc.config",
 			"c64model_get",
 			"c64model_set",
-			"VICIIBorderMode"
+			"VICIIBorderMode",
+			C64MODEL_C64_NTSC
 		},
 		// DTV
 		{
-			std::size(dtvModelStr),
 			dtvModelStr,
+			"c64dtv.config",
 			"dtvmodel_get",
 			"dtvmodel_set",
-			"VICIIBorderMode"
+			"VICIIBorderMode",
+			DTVMODEL_V3_NTSC
 		},
 		// C128
 		{
-			std::size(c128ModelStr),
 			c128ModelStr,
+			"c128.config",
 			"c128model_get",
 			"c128model_set",
-			"VICIIBorderMode"
+			"VICIIBorderMode",
+			C128MODEL_C128_NTSC
 		},
 		// C64 Super CPU
 		{
-			std::size(superCPUModelStr),
 			superCPUModelStr,
+			"scpu64.config",
 			"c64model_get",
 			"c64model_set",
-			"VICIIBorderMode"
+			"VICIIBorderMode",
+			C64MODEL_C64_NTSC
 		},
 		// CBM-II 6x0
 		{
-			std::size(cbm2ModelStr),
 			cbm2ModelStr,
+			"cbm2.config",
 			"cbm2model_get",
 			"cbm2model_set",
-			{}
+			{},
+			CBM2MODEL_610_NTSC,
+			CBM2MODEL_610_PAL
 		},
 		// CBM-II 5x0
 		{
-			std::size(cbm5x0ModelStr),
 			cbm5x0ModelStr,
+			"cbm5x0.config",
 			"cbm2model_get",
 			"cbm2model_set",
-			"VICIIBorderMode"
+			"VICIIBorderMode",
+			CBM2MODEL_510_NTSC,
+			CBM2MODEL_510_PAL
 		},
 		// PET
 		{
-			std::size(petModelStr),
 			petModelStr,
+			"pet.config",
 			"petmodel_get",
 			"petmodel_set",
-			{}
+			{},
+			PETMODEL_8032
 		},
 		// PLUS4
 		{
-			std::size(plus4ModelStr),
 			plus4ModelStr,
+			"plus4.config",
 			"plus4model_get",
 			"plus4model_set",
-			"TEDBorderMode"
+			"TEDBorderMode",
+			PLUS4MODEL_PLUS4_NTSC
 		},
 		// VIC20
 		{
-			std::size(vic20ModelStr),
 			vic20ModelStr,
+			"vic20.config",
 			"vic20model_get",
 			"vic20model_set",
-			"VICBorderMode"
+			"VICBorderMode",
+			VIC20MODEL_VIC20_NTSC
 		},
 	};
 	auto libPath = makePluginLibPath(libName[system], libBasePath);
@@ -577,13 +709,15 @@ VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 	}
 	auto plugin = commonVicePlugin(lib, system);
 	auto &conf = pluginConf[system];
-	plugin.models = conf.models;
-	plugin.modelStr = conf.modelStr;
 	loadSymbolCheck(plugin.model_get_, lib, conf.getModelFuncName);
 	loadSymbolCheck(plugin.model_set_, lib, conf.setModelFuncName);
-	plugin.borderModeStr = conf.borderModeStr;
 	//logMsg("getModel() address:%p", plugin.model_get_);
 	//logMsg("setModel() address:%p", plugin.model_set_);
+	plugin.modelNames = conf.modelNames;
+	plugin.configName = conf.configName;
+	plugin.defaultModelId = conf.defaultModelId;
+	plugin.modelIdBase = conf.modelIdBase;
+	plugin.borderModeStr = conf.borderModeStr;
 	plugin.libHandle = lib;
 	return plugin;
 }

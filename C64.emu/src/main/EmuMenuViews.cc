@@ -48,7 +48,7 @@ extern "C"
 namespace EmuEx
 {
 
-static constexpr const char *driveMenuPrefix[4]
+constexpr std::string_view driveMenuPrefix[4]
 {
 	"Disk 8",
 	"Disk 9",
@@ -56,7 +56,7 @@ static constexpr const char *driveMenuPrefix[4]
 	"Disk 11",
 };
 
-static constexpr const char *driveResName[4]
+constexpr const char *driveResName[4]
 {
 	"Drive8Type",
 	"Drive9Type",
@@ -64,35 +64,13 @@ static constexpr const char *driveResName[4]
 	"Drive11Type",
 };
 
-static constexpr int driveTypeVal[18]
-{
-	DRIVE_TYPE_NONE,
-	DRIVE_TYPE_1540,
-	DRIVE_TYPE_1541,
-	DRIVE_TYPE_1541II,
-	DRIVE_TYPE_1551,
-	DRIVE_TYPE_1570,
-	DRIVE_TYPE_1571,
-	DRIVE_TYPE_1571CR,
-	DRIVE_TYPE_1581,
-	DRIVE_TYPE_2000,
-	DRIVE_TYPE_4000,
-	DRIVE_TYPE_2031,
-	DRIVE_TYPE_2040,
-	DRIVE_TYPE_3040,
-	DRIVE_TYPE_4040,
-	DRIVE_TYPE_1001,
-	DRIVE_TYPE_8050,
-	DRIVE_TYPE_8250
-};
-
-static const char *insertEjectMenuStr[]
+constexpr std::string_view insertEjectMenuStr[]
 {
 	"Insert File",
 	"Eject"
 };
 
-static int defaultNTSCModel[]
+constexpr int defaultNTSCModel[]
 {
 	C64MODEL_C64_NTSC,
 	C64MODEL_C64_NTSC,
@@ -106,7 +84,7 @@ static int defaultNTSCModel[]
 	VIC20MODEL_VIC20_NTSC
 };
 
-static int defaultPALModel[]
+constexpr int defaultPALModel[]
 {
 	C64MODEL_C64_PAL,
 	C64MODEL_C64_PAL,
@@ -120,32 +98,18 @@ static int defaultPALModel[]
 	VIC20MODEL_VIC20_PAL
 };
 
+constexpr size_t maxModels = std::max({C64MODEL_NUM, DTVMODEL_NUM, C128MODEL_NUM,
+	CBM2MODEL_NUM, PETMODEL_NUM, PLUS4MODEL_NUM, VIC20MODEL_NUM});
+
 static int tapeCounter = 0;
 
-static constexpr const char *driveTypeStr(int type)
+static std::span<const drive_type_info_t> driveInfoList()
 {
-	switch(type)
-	{
-		case DRIVE_TYPE_NONE: return "None";
-		case DRIVE_TYPE_1540: return "1540";
-		case DRIVE_TYPE_1541: return "1541";
-		case DRIVE_TYPE_1541II: return "1541-II";
-		case DRIVE_TYPE_1551: return "1551";
-		case DRIVE_TYPE_1570: return "1570";
-		case DRIVE_TYPE_1571: return "1571";
-		case DRIVE_TYPE_1571CR: return "1571CR";
-		case DRIVE_TYPE_1581: return "1581";
-		case DRIVE_TYPE_2000: return "2000";
-		case DRIVE_TYPE_4000: return "4000";
-		case DRIVE_TYPE_2031: return "2031";
-		case DRIVE_TYPE_2040: return "2040";
-		case DRIVE_TYPE_3040: return "3040";
-		case DRIVE_TYPE_4040: return "4040";
-		case DRIVE_TYPE_1001: return "1001";
-		case DRIVE_TYPE_8050: return "8050";
-		case DRIVE_TYPE_8250: return "8250";
-	}
-	return "?";
+	auto infoList = plugin.machine_drive_get_type_info_list();
+	size_t size{};
+	for(auto l = infoList; l->name != nullptr; l++)
+		size++;
+	return {infoList, size};
 }
 
 class CustomVideoOptionView : public VideoOptionView
@@ -179,13 +143,45 @@ class CustomVideoOptionView : public VideoOptionView
 		borderModeItem
 	};
 
+	std::vector<std::string> paletteName{};
+	std::vector<TextMenuItem> paletteItem{};
+
+	MultiChoiceMenuItem defaultPalette
+	{
+		"Default Palette", &defaultFace(),
+		[this]()
+		{
+			if(defaultPaletteName.empty())
+				return 0;
+			else
+				return IG::findIndex(paletteName, defaultPaletteName) + 1;
+		}(),
+		paletteItem
+	};
+
 public:
-	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
+	CustomVideoOptionView(ViewAttachParams attach):
+		VideoOptionView{attach, true},
+		paletteName{systemFilesWithExtension(".vpl")}
 	{
 		loadStockItems();
 		item.emplace_back(&systemSpecificHeading);
 		item.emplace_back(&cropNormalBorders);
 		item.emplace_back(&borderMode);
+		paletteItem.emplace_back("Internal", &defaultFace(),
+			[this](Input::Event)
+			{
+				defaultPaletteName.clear();
+			});
+		for(const auto &name : paletteName)
+		{
+			paletteItem.emplace_back(IG::stringWithoutDotExtension(name), &defaultFace(),
+				[this, name = name.data()](Input::Event)
+				{
+					defaultPaletteName = name;
+				});
+		}
+		item.emplace_back(&defaultPalette);
 	}
 };
 
@@ -251,174 +247,13 @@ public:
 
 class CustomSystemOptionView : public SystemOptionView
 {
-	TextHeadingMenuItem defaultsHeading
-	{
-		"Default Boot Options", &defaultBoldFace()
-	};
+	StaticArrayList<TextMenuItem, maxModels> defaultModelItem{};
 
-	TextMenuItem defaultC64ModelItem[14]
+	MultiChoiceMenuItem defaultModel
 	{
-		{c64ModelStr[0], &defaultFace(), [](){ setDefaultC64Model(0); }},
-		{c64ModelStr[1], &defaultFace(), [](){ setDefaultC64Model(1); }},
-		{c64ModelStr[2], &defaultFace(), [](){ setDefaultC64Model(2); }},
-		{c64ModelStr[3], &defaultFace(), [](){ setDefaultC64Model(3); }},
-		{c64ModelStr[4], &defaultFace(), [](){ setDefaultC64Model(4); }},
-		{c64ModelStr[5], &defaultFace(), [](){ setDefaultC64Model(5); }},
-		{c64ModelStr[6], &defaultFace(), [](){ setDefaultC64Model(6); }},
-		{c64ModelStr[7], &defaultFace(), [](){ setDefaultC64Model(7); }},
-		{c64ModelStr[8], &defaultFace(), [](){ setDefaultC64Model(8); }},
-		{c64ModelStr[9], &defaultFace(), [](){ setDefaultC64Model(9); }},
-		{c64ModelStr[10], &defaultFace(), [](){ setDefaultC64Model(10); }},
-		{c64ModelStr[11], &defaultFace(), [](){ setDefaultC64Model(11); }},
-		{c64ModelStr[12], &defaultFace(), [](){ setDefaultC64Model(12); }},
-		{c64ModelStr[13], &defaultFace(), [](){ setDefaultC64Model(13); }},
-	};
-
-	MultiChoiceMenuItem defaultC64Model
-	{
-		"C64 Model", &defaultFace(),
-		optionC64Model.val,
-		defaultC64ModelItem
-	};
-
-	TextMenuItem defaultDTVModelItem[5]
-	{
-		{dtvModelStr[0], &defaultFace(), [](){ setDefaultDTVModel(0); }},
-		{dtvModelStr[1], &defaultFace(), [](){ setDefaultDTVModel(1); }},
-		{dtvModelStr[2], &defaultFace(), [](){ setDefaultDTVModel(2); }},
-		{dtvModelStr[3], &defaultFace(), [](){ setDefaultDTVModel(3); }},
-		{dtvModelStr[4], &defaultFace(), [](){ setDefaultDTVModel(4); }},
-	};
-
-	MultiChoiceMenuItem defaultDTVModel
-	{
-		"DTV Model", &defaultFace(),
-		optionDTVModel.val,
-		defaultDTVModelItem
-	};
-
-	TextMenuItem defaultC128ModelItem[4]
-	{
-		{c128ModelStr[0], &defaultFace(), [](){ setDefaultC128Model(0); }},
-		{c128ModelStr[1], &defaultFace(), [](){ setDefaultC128Model(1); }},
-		{c128ModelStr[2], &defaultFace(), [](){ setDefaultC128Model(2); }},
-		{c128ModelStr[3], &defaultFace(), [](){ setDefaultC128Model(3); }},
-	};
-
-	MultiChoiceMenuItem defaultC128Model
-	{
-		"C128 Model", &defaultFace(),
-		optionC128Model.val,
-		defaultC128ModelItem
-	};
-
-	TextMenuItem defaultSuperCPUModelItem[11]
-	{
-		{superCPUModelStr[0], &defaultFace(), [](){ setDefaultSuperCPUModel(0); }},
-		{superCPUModelStr[1], &defaultFace(), [](){ setDefaultSuperCPUModel(1); }},
-		{superCPUModelStr[2], &defaultFace(), [](){ setDefaultSuperCPUModel(2); }},
-		{superCPUModelStr[3], &defaultFace(), [](){ setDefaultSuperCPUModel(3); }},
-		{superCPUModelStr[4], &defaultFace(), [](){ setDefaultSuperCPUModel(4); }},
-		{superCPUModelStr[5], &defaultFace(), [](){ setDefaultSuperCPUModel(5); }},
-		{superCPUModelStr[6], &defaultFace(), [](){ setDefaultSuperCPUModel(6); }},
-		{superCPUModelStr[7], &defaultFace(), [](){ setDefaultSuperCPUModel(7); }},
-		{superCPUModelStr[8], &defaultFace(), [](){ setDefaultSuperCPUModel(8); }},
-		{superCPUModelStr[9], &defaultFace(), [](){ setDefaultSuperCPUModel(9); }},
-		{superCPUModelStr[10], &defaultFace(), [](){ setDefaultSuperCPUModel(10); }},
-	};
-
-	MultiChoiceMenuItem defaultSuperCPUModel
-	{
-		"C64 SuperCPU Model", &defaultFace(),
-		optionSuperCPUModel.val,
-		defaultSuperCPUModelItem
-	};
-
-	TextMenuItem defaultCBM2ModelItem[9]
-	{
-		{cbm2ModelStr[0], &defaultFace(), [](){ setDefaultCBM2Model(2); }},
-		{cbm2ModelStr[1], &defaultFace(), [](){ setDefaultCBM2Model(3); }},
-		{cbm2ModelStr[2], &defaultFace(), [](){ setDefaultCBM2Model(4); }},
-		{cbm2ModelStr[3], &defaultFace(), [](){ setDefaultCBM2Model(5); }},
-		{cbm2ModelStr[4], &defaultFace(), [](){ setDefaultCBM2Model(6); }},
-		{cbm2ModelStr[5], &defaultFace(), [](){ setDefaultCBM2Model(7); }},
-		{cbm2ModelStr[6], &defaultFace(), [](){ setDefaultCBM2Model(8); }},
-		{cbm2ModelStr[7], &defaultFace(), [](){ setDefaultCBM2Model(9); }},
-		{cbm2ModelStr[8], &defaultFace(), [](){ setDefaultCBM2Model(10); }},
-	};
-
-	MultiChoiceMenuItem defaultCBM2Model
-	{
-		"CBM-II 6x0 Model", &defaultFace(),
-		optionCBM2Model.val - 2,
-		defaultCBM2ModelItem
-	};
-
-	TextMenuItem defaultCBM5x0ModelItem[2]
-	{
-		{cbm5x0ModelStr[0], &defaultFace(), [](){ setDefaultCBM5x0Model(0); }},
-		{cbm5x0ModelStr[1], &defaultFace(), [](){ setDefaultCBM5x0Model(1); }},
-	};
-
-	MultiChoiceMenuItem defaultCBM5x0Model
-	{
-		"CBM-II 5x0 Model", &defaultFace(),
-		optionCBM5x0Model.val,
-		defaultCBM5x0ModelItem
-	};
-
-	TextMenuItem defaultPETModelItem[12]
-	{
-		{petModelStr[0], &defaultFace(), [](){ setDefaultPETModel(0); }},
-		{petModelStr[1], &defaultFace(), [](){ setDefaultPETModel(1); }},
-		{petModelStr[2], &defaultFace(), [](){ setDefaultPETModel(2); }},
-		{petModelStr[3], &defaultFace(), [](){ setDefaultPETModel(3); }},
-		{petModelStr[4], &defaultFace(), [](){ setDefaultPETModel(4); }},
-		{petModelStr[5], &defaultFace(), [](){ setDefaultPETModel(5); }},
-		{petModelStr[6], &defaultFace(), [](){ setDefaultPETModel(6); }},
-		{petModelStr[7], &defaultFace(), [](){ setDefaultPETModel(7); }},
-		{petModelStr[8], &defaultFace(), [](){ setDefaultPETModel(8); }},
-		{petModelStr[9], &defaultFace(), [](){ setDefaultPETModel(9); }},
-		{petModelStr[10], &defaultFace(), [](){ setDefaultPETModel(10); }},
-		{petModelStr[11], &defaultFace(), [](){ setDefaultPETModel(11); }},
-	};
-
-	MultiChoiceMenuItem defaultPetModel
-	{
-		"PET Model", &defaultFace(),
-		optionPETModel.val,
-		defaultPETModelItem
-	};
-
-	TextMenuItem defaultPlus4ModelItem[6]
-	{
-		{plus4ModelStr[0], &defaultFace(), [](){ setDefaultPlus4Model(0); }},
-		{plus4ModelStr[1], &defaultFace(), [](){ setDefaultPlus4Model(1); }},
-		{plus4ModelStr[2], &defaultFace(), [](){ setDefaultPlus4Model(2); }},
-		{plus4ModelStr[3], &defaultFace(), [](){ setDefaultPlus4Model(3); }},
-		{plus4ModelStr[4], &defaultFace(), [](){ setDefaultPlus4Model(4); }},
-		{plus4ModelStr[5], &defaultFace(), [](){ setDefaultPlus4Model(5); }},
-	};
-
-	MultiChoiceMenuItem defaultPlus4Model
-	{
-		"Plus/4 Model", &defaultFace(),
-		optionPlus4Model.val,
-		defaultPlus4ModelItem
-	};
-
-	TextMenuItem defaultVIC20ModelItem[3]
-	{
-		{vic20ModelStr[0], &defaultFace(), [](){ setDefaultVIC20Model(0); }},
-		{vic20ModelStr[1], &defaultFace(), [](){ setDefaultVIC20Model(1); }},
-		{vic20ModelStr[2], &defaultFace(), [](){ setDefaultVIC20Model(2); }},
-	};
-
-	MultiChoiceMenuItem defaultVIC20Model
-	{
-		"VIC-20 Model", &defaultFace(),
-		optionVIC20Model.val,
-		defaultVIC20ModelItem
+		"Default Model", &defaultFace(),
+		(MenuItem::Id)optionDefaultModel.val,
+		defaultModelItem
 	};
 
 	TextMenuItem systemFilePath
@@ -470,21 +305,29 @@ class CustomSystemOptionView : public SystemOptionView
 	}
 
 public:
-	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomSystemOptionView(ViewAttachParams attach):
+		SystemOptionView{attach, true},
+		defaultModelItem
+		{
+			[this]()
+			{
+				decltype(defaultModelItem) items{};
+				for(auto i = plugin.modelIdBase;
+					auto &name : plugin.modelNames)
+				{
+					items.emplace_back(name, &defaultFace(), [this](TextMenuItem &item)
+					{
+						setDefaultModel(item.id());
+					}, i++);
+				}
+				return items;
+			}()
+		}
 	{
 		loadStockItems();
 		systemFilePath.setName(makeSysPathMenuEntryStr(system().firmwarePath()));
 		item.emplace_back(&systemFilePath);
-		item.emplace_back(&defaultsHeading);
-		item.emplace_back(&defaultC64Model);
-		item.emplace_back(&defaultDTVModel);
-		item.emplace_back(&defaultC128Model);
-		item.emplace_back(&defaultSuperCPUModel);
-		item.emplace_back(&defaultCBM2Model);
-		item.emplace_back(&defaultCBM5x0Model);
-		item.emplace_back(&defaultPetModel);
-		item.emplace_back(&defaultPlus4Model);
-		item.emplace_back(&defaultVIC20Model);
+		item.emplace_back(&defaultModel);
 	}
 };
 
@@ -807,135 +650,18 @@ private:
 		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 3); }},
 	};
 
-	bool setDriveType(bool isActive, unsigned slot, int type)
-	{
-		assumeExpr(slot < 4);
-		if(!isActive)
-		{
-			app().postMessage(3, true, fmt::format("Cannot use on {}", VicePlugin::systemName(currSystem)));
-			return false;
-		}
-		setIntResource(driveResName[slot], type);
-		onDiskMediaChange(slot);
-		return true;
-	}
-
 	unsigned currDriveTypeSlot = 0;
 
-	TextMenuItem driveTypeItem[18]
-	{
-		{
-			driveTypeStr(DRIVE_TYPE_NONE), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_NONE); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_1540), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1540); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_1541), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1541); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_1541II), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1541II); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_1551), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1551); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_1570), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1570); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_1571), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1571); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_1571CR), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1571CR); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_1581), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1581); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_2000), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_2000); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_4000), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_4000); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_2031), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_2031); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_2040), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_2040); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_3040), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_3040); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_4040), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_4040); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_1001), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1001); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_8050), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_8050); },
-		},
-		{
-			driveTypeStr(DRIVE_TYPE_8250), &defaultFace(),
-			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_8250); },
-		}
-	};
-
-	static int driveTypeMenuIdx(int type)
-	{
-		switch(type)
-		{
-			default:
-			case DRIVE_TYPE_NONE: return 0;
-			case DRIVE_TYPE_1540: return 1;
-			case DRIVE_TYPE_1541: return 2;
-			case DRIVE_TYPE_1541II: return 3;
-			case DRIVE_TYPE_1551: return 4;
-			case DRIVE_TYPE_1570: return 5;
-			case DRIVE_TYPE_1571: return 6;
-			case DRIVE_TYPE_1571CR: return 7;
-			case DRIVE_TYPE_1581: return 8;
-			case DRIVE_TYPE_2000: return 9;
-			case DRIVE_TYPE_4000: return 10;
-			case DRIVE_TYPE_2031: return 11;
-			case DRIVE_TYPE_2040: return 12;
-			case DRIVE_TYPE_3040: return 13;
-			case DRIVE_TYPE_4040: return 14;
-			case DRIVE_TYPE_1001: return 15;
-			case DRIVE_TYPE_8050: return 16;
-			case DRIVE_TYPE_8250: return 17;
-		}
-	}
+	StaticArrayList<TextMenuItem, 18> driveTypeItem{};
 
 	MultiChoiceMenuItem drive8Type
 	{
 		"Drive 8 Type", &defaultFace(),
-		driveTypeMenuIdx(intResource(driveResName[0])),
+		(MenuItem::Id)intResource(driveResName[0]),
 		driveTypeItem,
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 		{
 			currDriveTypeSlot = 0;
-			iterateTimes(std::size(driveTypeItem), i)
-			{
-				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
-			}
 			item.defaultOnSelect(view, e);
 		}
 	};
@@ -943,15 +669,11 @@ private:
 	MultiChoiceMenuItem drive9Type
 	{
 		"Drive 9 Type", &defaultFace(),
-		driveTypeMenuIdx(intResource(driveResName[1])),
+		(MenuItem::Id)intResource(driveResName[1]),
 		driveTypeItem,
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 		{
 			currDriveTypeSlot = 1;
-			iterateTimes(std::size(driveTypeItem), i)
-			{
-				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
-			}
 			item.defaultOnSelect(view, e);
 		}
 	};
@@ -959,15 +681,11 @@ private:
 	MultiChoiceMenuItem drive10Type
 	{
 		"Drive 10 Type", &defaultFace(),
-		driveTypeMenuIdx(intResource(driveResName[2])),
+		(MenuItem::Id)intResource(driveResName[2]),
 		driveTypeItem,
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 		{
 			currDriveTypeSlot = 2;
-			iterateTimes(std::size(driveTypeItem), i)
-			{
-				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
-			}
 			item.defaultOnSelect(view, e);
 		}
 	};
@@ -975,15 +693,11 @@ private:
 	MultiChoiceMenuItem drive11Type
 	{
 		"Drive 11 Type", &defaultFace(),
-		driveTypeMenuIdx(intResource(driveResName[3])),
+		(MenuItem::Id)intResource(driveResName[3]),
 		driveTypeItem,
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 		{
 			currDriveTypeSlot = 3;
-			iterateTimes(std::size(driveTypeItem), i)
-			{
-				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
-			}
 			item.defaultOnSelect(view, e);
 		}
 	};
@@ -999,6 +713,25 @@ public:
 			"System & Media",
 			attach,
 			item
+		},
+		driveTypeItem
+		{
+			[this]()
+			{
+				decltype(driveTypeItem) items{};
+				for(const auto &entry : driveInfoList())
+				{
+					items.emplace_back(entry.name, &defaultFace(), [this](TextMenuItem &item)
+					{
+						auto slot = currDriveTypeSlot;
+						assumeExpr(slot < 4);
+						system().sessionOptionSet();
+						setIntResource(driveResName[slot], item.id());
+						onDiskMediaChange(slot);
+					}, entry.id);
+				}
+				return items;
+			}()
 		}
 	{
 		if(plugin.cartridge_attach_image_)
@@ -1102,21 +835,12 @@ public:
 
 class MachineOptionView : public TableView, public EmuAppHelper<MachineOptionView>
 {
-	std::vector<TextMenuItem> modelItem{};
+	StaticArrayList<TextMenuItem, maxModels> modelItem{};
 
 	MultiChoiceMenuItem model
 	{
 		"Model", &defaultFace(),
-		[]()
-		{
-			auto modelVal = sysModel();
-			auto baseVal = currSystem == VICE_SYSTEM_CBM2 ? 2 : 0;
-			if(modelVal < baseVal || modelVal >= plugin.models + baseVal)
-			{
-				return baseVal;
-			}
-			return modelVal;
-		}(),
+		(MenuItem::Id)sysModel(),
 		modelItem
 	};
 
@@ -1249,21 +973,26 @@ public:
 			attach,
 			menuItem
 		},
+		modelItem
+		{
+			[this]()
+			{
+				decltype(modelItem) items{};
+				for(auto i = plugin.modelIdBase;
+					auto &name : plugin.modelNames)
+				{
+					items.emplace_back(name, &defaultFace(), [this](TextMenuItem &item)
+					{
+						system().sessionOptionSet();
+						optionModel = item.id();
+						setSysModel(item.id());
+					}, i++);
+				}
+				return items;
+			}()
+		},
 		paletteName{systemFilesWithExtension(".vpl")}
 	{
-		modelItem.reserve(plugin.models);
-		auto baseVal = currSystem == VICE_SYSTEM_CBM2 ? 2 : 0;
-		iterateTimes(plugin.models, i)
-		{
-			int val = baseVal + i;
-			modelItem.emplace_back(plugin.modelStr[i], &defaultFace(),
-				[this, val]()
-				{
-					system().sessionOptionSet();
-					optionModel = val;
-					setSysModel(val);
-				});
-		}
 		menuItem.emplace_back(&model);
 		if(currSystem == VICE_SYSTEM_VIC20)
 		{
