@@ -558,7 +558,7 @@ static void system_frame_md(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo
   }
   while (++line < bitmap.viewport.h);
 
-  if(!do_skip)
+  if(emuVideo)
   {
   	emuVideo->startFrameWithAltFormat(taskCtx, pixmap);
   }
@@ -937,7 +937,7 @@ static void system_frame_sms(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVide
   }
   while (++line < bitmap.viewport.h);
 
-  if(!do_skip)
+  if(emuVideo)
   {
   	emuVideo->startFrameWithAltFormat(taskCtx, pixmap);
   }
