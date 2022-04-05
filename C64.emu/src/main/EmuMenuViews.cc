@@ -256,12 +256,39 @@ class CustomSystemOptionView : public SystemOptionView
 		defaultModelItem
 	};
 
+public:
+	CustomSystemOptionView(ViewAttachParams attach):
+		SystemOptionView{attach, true},
+		defaultModelItem
+		{
+			[this]()
+			{
+				decltype(defaultModelItem) items{};
+				for(auto i = plugin.modelIdBase;
+					auto &name : plugin.modelNames)
+				{
+					items.emplace_back(name, &defaultFace(), [this](TextMenuItem &item)
+					{
+						setDefaultModel(item.id());
+					}, i++);
+				}
+				return items;
+			}()
+		}
+	{
+		loadStockItems();
+		item.emplace_back(&defaultModel);
+	}
+};
+
+class CustomFilePathOptionView : public FilePathOptionView
+{
 	TextMenuItem systemFilePath
 	{
-		{}, &defaultFace(),
+		sysPathMenuEntryStr(system().firmwarePath()), &defaultFace(),
 		[this](Input::Event e)
 		{
-			auto view = makeFirmwarePathMenu("VICE System File Path", true, 1);
+			auto view = makeFirmwarePathMenu("VICE System Files", true, 1);
 			view->appendItem("Download VICE System Files",
 				[this](Input::Event e)
 				{
@@ -285,7 +312,7 @@ class CustomSystemOptionView : public SystemOptionView
 			app().postErrorMessage("Path is missing DRIVES folder");
 			return false;
 		}
-		systemFilePath.compile(makeSysPathMenuEntryStr(path), renderer(), projP);
+		systemFilePath.compile(sysPathMenuEntryStr(path), renderer(), projP);
 		sysFilePath[0] = path;
 		if(!path.size())
 		{
@@ -299,35 +326,16 @@ class CustomSystemOptionView : public SystemOptionView
 		return true;
 	}
 
-	std::string makeSysPathMenuEntryStr(IG::CStringView path)
+	std::string sysPathMenuEntryStr(IG::CStringView path)
 	{
-		return fmt::format("VICE System File Path: {}", path.size() ? appContext().fileUriDisplayName(path) : "");
+		return fmt::format("VICE System Files: {}", path.size() ? appContext().fileUriDisplayName(path) : "");
 	}
 
 public:
-	CustomSystemOptionView(ViewAttachParams attach):
-		SystemOptionView{attach, true},
-		defaultModelItem
-		{
-			[this]()
-			{
-				decltype(defaultModelItem) items{};
-				for(auto i = plugin.modelIdBase;
-					auto &name : plugin.modelNames)
-				{
-					items.emplace_back(name, &defaultFace(), [this](TextMenuItem &item)
-					{
-						setDefaultModel(item.id());
-					}, i++);
-				}
-				return items;
-			}()
-		}
+	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
 	{
 		loadStockItems();
-		systemFilePath.setName(makeSysPathMenuEntryStr(system().firmwarePath()));
 		item.emplace_back(&systemFilePath);
-		item.emplace_back(&defaultModel);
 	}
 };
 
@@ -1392,6 +1400,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::VIDEO_OPTIONS: return std::make_unique<CustomVideoOptionView>(attach);
 		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
+		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		default: return nullptr;
 	}
 }

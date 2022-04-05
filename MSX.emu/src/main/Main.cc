@@ -285,7 +285,7 @@ static bool createBoardFromLoadGame(EmuApp &app)
 
 static void throwMachineInitError(std::string_view machineName)
 {
-	throw std::runtime_error(fmt::format("Error loading machine files for\n\"{}\",\nplease check Options➔System➔BIOS Path",
+	throw std::runtime_error(fmt::format("Error loading machine files for\n\"{}\",\nplease check Options➔File Paths➔BIOS",
 		machineName));
 }
 

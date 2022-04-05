@@ -350,7 +350,7 @@ static const char *mainROMFilename(ViceSystem system)
 
 static void throwC64FirmwareError()
 {
-	throw std::runtime_error{fmt::format("System files missing, please set them in Options➔System➔VICE System File Path")};
+	throw std::runtime_error{fmt::format("System files missing, please set them in Options➔File Paths➔VICE System Files")};
 }
 
 static bool initC64(EmuApp &app)

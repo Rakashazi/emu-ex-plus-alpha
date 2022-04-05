@@ -441,11 +441,11 @@ public:
 	}
 };
 
-class CustomSystemOptionView : public SystemOptionView
+class CustomFilePathOptionView : public FilePathOptionView
 {
 	TextMenuItem fdsBiosPath
 	{
-		{}, &defaultFace(),
+		biosMenuEntryStr(appContext().fileUriDisplayName(EmuEx::fdsBiosPath)), &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("Disk System BIOS", &EmuEx::fdsBiosPath,
@@ -465,10 +465,9 @@ class CustomSystemOptionView : public SystemOptionView
 	}
 
 public:
-	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
 	{
 		loadStockItems();
-		fdsBiosPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(EmuEx::fdsBiosPath)));
 		item.emplace_back(&fdsBiosPath);
 	}
 };
@@ -621,7 +620,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		case ViewID::VIDEO_OPTIONS: return std::make_unique<CustomVideoOptionView>(attach);
 		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
-		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
+		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;

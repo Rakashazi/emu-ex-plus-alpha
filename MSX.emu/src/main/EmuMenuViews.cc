@@ -161,17 +161,29 @@ private:
 		}
 	};
 
-	auto machinePathMenuEntryStr(IG::CStringView path)
+public:
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
-		return fmt::format("BIOS Path: {}", path.size() ? appContext().fileUriDisplayName(path) : "");
+		loadStockItems();
+		reloadMachineItem();
+		item.emplace_back(&skipFdcAccess);
+		item.emplace_back(&msxMachine);
+	}
+};
+
+class CustomFilePathOptionView : public FilePathOptionView
+{
+	std::string machinePathMenuEntryStr(IG::CStringView path) const
+	{
+		return fmt::format("BIOS: {}", path.size() ? appContext().fileUriDisplayName(path) : "");
 	}
 
 	TextMenuItem machineFilePath
 	{
-		{}, &defaultFace(),
+		machinePathMenuEntryStr(system().firmwarePath()), &defaultFace(),
 		[this](Input::Event e)
 		{
-			pushAndShowFirmwarePathMenu("BIOS Path", e);
+			pushAndShowFirmwarePathMenu("BIOS", e);
 			postDraw();
 		}
 	};
@@ -185,8 +197,6 @@ private:
 			return false;
 		}
 		machineFilePath.compile(machinePathMenuEntryStr(path), renderer(), projP);
-		reloadMachineItem();
-		msxMachine.compile(renderer(), projP);
 		if(!pathIsSet)
 		{
 			app().postMessage(4, false, fmt::format("Using fallback path:\n{}", machineBasePath(system())));
@@ -195,13 +205,9 @@ private:
 	}
 
 public:
-	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
 	{
 		loadStockItems();
-		reloadMachineItem();
-		item.emplace_back(&skipFdcAccess);
-		item.emplace_back(&msxMachine);
-		machineFilePath.setName(machinePathMenuEntryStr(system().firmwarePath()));
 		item.emplace_back(&machineFilePath);
 	}
 };
@@ -863,6 +869,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
+		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		default: return nullptr;
 	}
 }

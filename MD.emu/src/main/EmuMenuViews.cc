@@ -237,6 +237,16 @@ class CustomSystemOptionView : public SystemOptionView
 		}
 	};
 
+public:
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	{
+		loadStockItems();
+		item.emplace_back(&bigEndianSram);
+	}
+};
+
+class CustomFilePathOptionView : public FilePathOptionView
+{
 	#ifndef NO_SCD
 	static constexpr std::string_view biosHeadingStr[3]
 	{
@@ -303,11 +313,10 @@ class CustomSystemOptionView : public SystemOptionView
 	}
 	#endif
 
-public:
-	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	public:
+	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
 	{
 		loadStockItems();
-		item.emplace_back(&bigEndianSram);
 		#ifndef NO_SCD
 		cdBiosPathInit();
 		#endif
@@ -321,6 +330,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
+		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;

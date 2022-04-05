@@ -87,11 +87,11 @@ public:
 	}
 };
 
-class CustomSystemOptionView : public SystemOptionView
+class CustomFilePathOptionView : public FilePathOptionView
 {
 	TextMenuItem sysCardPath
 	{
-		{}, &defaultFace(),
+		biosMenuEntryStr(appContext().fileUriDisplayName(EmuEx::sysCardPath)), &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("System Card", &EmuEx::sysCardPath,
@@ -111,10 +111,9 @@ class CustomSystemOptionView : public SystemOptionView
 	}
 
 public:
-	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
 	{
 		loadStockItems();
-		sysCardPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(EmuEx::sysCardPath)));
 		item.emplace_back(&sysCardPath);
 	}
 };
@@ -124,7 +123,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 	switch(id)
 	{
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
-		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
+		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		default: return nullptr;
 	}
 }

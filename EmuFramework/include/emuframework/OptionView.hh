@@ -47,7 +47,7 @@ public:
 	OptionCategoryView(ViewAttachParams attach, EmuAudio &audio, EmuVideoLayer &videoLayer);
 
 protected:
-	TextMenuItem subConfig[5];
+	TextMenuItem subConfig[6];
 };
 
 class VideoOptionView : public TableView, public EmuAppHelper<VideoOptionView>
@@ -157,20 +157,31 @@ protected:
 	MultiChoiceMenuItem autoSaveState;
 	BoolMenuItem confirmAutoLoadState;
 	BoolMenuItem confirmOverwriteState;
-	TextMenuItem savePath;
 	static constexpr unsigned MIN_FAST_FORWARD_SPEED = 2;
 	TextMenuItem fastForwardSpeedItem[6];
 	MultiChoiceMenuItem fastForwardSpeed;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
 	StaticArrayList<MenuItem*, 24> item{};
 
+	TextMenuItem::SelectDelegate setAutoSaveStateDel();
+	TextMenuItem::SelectDelegate setFastForwardSpeedDel();
+};
+
+class FilePathOptionView : public TableView, public EmuAppHelper<SystemOptionView>
+{
+public:
+	FilePathOptionView(ViewAttachParams attach, bool customMenu = false);
+	void loadStockItems();
+
+protected:
+	TextMenuItem savePath;
+	StaticArrayList<MenuItem*, 6> item{};
+
 	void onSavePathChange(std::string_view path);
 	virtual bool onFirmwarePathChange(IG::CStringView path, bool isDir);
 	std::unique_ptr<TextTableView> makeFirmwarePathMenu(IG::utf16String name, bool allowFiles = false, unsigned extraItemsHint = 0);
 	void pushAndShowFirmwarePathMenu(IG::utf16String name, const Input::Event &, bool allowFiles = false);
 	void pushAndShowFirmwareFilePathMenu(IG::utf16String name, const Input::Event &);
-	TextMenuItem::SelectDelegate setAutoSaveStateDel();
-	TextMenuItem::SelectDelegate setFastForwardSpeedDel();
 };
 
 class GUIOptionView : public TableView, public EmuAppHelper<GUIOptionView>

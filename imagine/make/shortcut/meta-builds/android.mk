@@ -6,7 +6,7 @@ include $(buildSysPath)/setAndroidNDKPath.mk
 .PHONY: all
 all : android-bundle
 
-BUNDLETOOL_PATH ?= $(IMAGINE_PATH)/tools/bundletool-all-1.8.2.jar
+BUNDLETOOL_PATH ?= $(IMAGINE_PATH)/tools/bundletool-all-1.9.1.jar
 BUNDLETOOL := java -jar $(BUNDLETOOL_PATH)
 
 # Code signing parameters used when generating APKs from the app bundle

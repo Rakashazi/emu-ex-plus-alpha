@@ -112,9 +112,9 @@ TextMenuItem::SelectDelegate SystemOptionView::setFastForwardSpeedDel()
 	return [this](TextMenuItem &item) { app().fastForwardSpeedOption() = item.id(); };
 }
 
-static auto makePathMenuEntryStr(IG::ApplicationContext ctx, std::string_view savePath)
+static auto savesMenuEntryStr(IG::ApplicationContext ctx, std::string_view savePath)
 {
-	return fmt::format("Save Path: {}", savePathStrToDescStr(ctx, savePath));
+	return fmt::format("Saves: {}", savePathStrToDescStr(ctx, savePath));
 }
 
 static bool hasWriteAccessToDir(IG::ApplicationContext ctx, IG::CStringView path)
@@ -169,12 +169,56 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 			app().confirmOverwriteStateOption() = item.flipBoolValue(*this);
 		}
 	},
+	fastForwardSpeedItem
+	{
+		{"2x", &defaultFace(), setFastForwardSpeedDel(), 2},
+		{"3x", &defaultFace(), setFastForwardSpeedDel(), 3},
+		{"4x", &defaultFace(), setFastForwardSpeedDel(), 4},
+		{"5x", &defaultFace(), setFastForwardSpeedDel(), 5},
+		{"6x", &defaultFace(), setFastForwardSpeedDel(), 6},
+		{"7x", &defaultFace(), setFastForwardSpeedDel(), 7},
+	},
+	fastForwardSpeed
+	{
+		"Fast Forward Speed", &defaultFace(),
+		(MenuItem::Id)app().fastForwardSpeedOption().val,
+		fastForwardSpeedItem
+	},
+	performanceMode
+	{
+		"Performance Mode", &defaultFace(),
+		(bool)app().sustainedPerformanceModeOption(),
+		"Normal", "Sustained",
+		[this](BoolMenuItem &item)
+		{
+			app().sustainedPerformanceModeOption() = item.flipBoolValue(*this);
+		}
+	}
+{
+	if(!customMenu)
+	{
+		loadStockItems();
+	}
+}
+
+void SystemOptionView::loadStockItems()
+{
+	item.emplace_back(&autoSaveState);
+	item.emplace_back(&confirmAutoLoadState);
+	item.emplace_back(&confirmOverwriteState);
+	item.emplace_back(&fastForwardSpeed);
+	if(used(performanceMode))
+		item.emplace_back(&performanceMode);
+}
+
+FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu):
+	TableView{"File Path Options", attach, item},
 	savePath
 	{
-		{}, &defaultFace(),
-		[this](TextMenuItem &, View &view, const Input::Event &e)
+		savesMenuEntryStr(appContext(), system().userSaveDirectory()), &defaultFace(),
+		[this](const Input::Event &e)
 		{
-			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 4);
+			auto multiChoiceView = makeViewWithName<TextTableView>("Saves", 4);
 			multiChoiceView->appendItem("Select Folder",
 				[this](const Input::Event &e)
 				{
@@ -248,31 +292,6 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 			pushAndShow(std::move(multiChoiceView), e);
 			postDraw();
 		}
-	},
-	fastForwardSpeedItem
-	{
-		{"2x", &defaultFace(), setFastForwardSpeedDel(), 2},
-		{"3x", &defaultFace(), setFastForwardSpeedDel(), 3},
-		{"4x", &defaultFace(), setFastForwardSpeedDel(), 4},
-		{"5x", &defaultFace(), setFastForwardSpeedDel(), 5},
-		{"6x", &defaultFace(), setFastForwardSpeedDel(), 6},
-		{"7x", &defaultFace(), setFastForwardSpeedDel(), 7},
-	},
-	fastForwardSpeed
-	{
-		"Fast Forward Speed", &defaultFace(),
-		(MenuItem::Id)app().fastForwardSpeedOption().val,
-		fastForwardSpeedItem
-	},
-	performanceMode
-	{
-		"Performance Mode", &defaultFace(),
-		(bool)app().sustainedPerformanceModeOption(),
-		"Normal", "Sustained",
-		[this](BoolMenuItem &item)
-		{
-			app().sustainedPerformanceModeOption() = item.flipBoolValue(*this);
-		}
 	}
 {
 	if(!customMenu)
@@ -281,30 +300,23 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	}
 }
 
-void SystemOptionView::loadStockItems()
+void FilePathOptionView::loadStockItems()
 {
-	item.emplace_back(&autoSaveState);
-	item.emplace_back(&confirmAutoLoadState);
-	item.emplace_back(&confirmOverwriteState);
-	savePath.setName(makePathMenuEntryStr(appContext(), system().userSaveDirectory()));
 	item.emplace_back(&savePath);
-	item.emplace_back(&fastForwardSpeed);
-	if(used(performanceMode))
-		item.emplace_back(&performanceMode);
 }
 
-void SystemOptionView::onSavePathChange(std::string_view path)
+void FilePathOptionView::onSavePathChange(std::string_view path)
 {
 	if(path == optionSavePathDefaultToken)
 	{
 		app().postMessage(4, false, fmt::format("App Folder:\n{}", system().fallbackSaveDirectory()));
 	}
-	savePath.compile(makePathMenuEntryStr(appContext(), path), renderer(), projP);
+	savePath.compile(savesMenuEntryStr(appContext(), path), renderer(), projP);
 }
 
-bool SystemOptionView::onFirmwarePathChange(IG::CStringView path, bool isDir) { return true; }
+bool FilePathOptionView::onFirmwarePathChange(IG::CStringView path, bool isDir) { return true; }
 
-std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16String name, bool allowFiles, unsigned extraItemsHint)
+std::unique_ptr<TextTableView> FilePathOptionView::makeFirmwarePathMenu(IG::utf16String name, bool allowFiles, unsigned extraItemsHint)
 {
 	unsigned items = (allowFiles ? 3 : 2) + extraItemsHint;
 	auto multiChoiceView = std::make_unique<TextTableView>(std::move(name), attachParams(), items);
@@ -361,12 +373,12 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16S
 	return multiChoiceView;
 }
 
-void SystemOptionView::pushAndShowFirmwarePathMenu(IG::utf16String name, const Input::Event &e, bool allowFiles)
+void FilePathOptionView::pushAndShowFirmwarePathMenu(IG::utf16String name, const Input::Event &e, bool allowFiles)
 {
 	pushAndShow(makeFirmwarePathMenu(std::move(name), allowFiles), e);
 }
 
-void SystemOptionView::pushAndShowFirmwareFilePathMenu(IG::utf16String name, const Input::Event &e)
+void FilePathOptionView::pushAndShowFirmwareFilePathMenu(IG::utf16String name, const Input::Event &e)
 {
 	pushAndShowFirmwarePathMenu(std::move(name), e, true);
 }

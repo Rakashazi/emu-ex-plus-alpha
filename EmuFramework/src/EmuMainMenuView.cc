@@ -401,6 +401,13 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 			}
 		},
 		{
+			"File Paths", &defaultFace(),
+			[this](const Input::Event &e)
+			{
+				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::FILE_PATH_OPTIONS), e);
+			}
+		},
+		{
 			"GUI", &defaultFace(),
 			[this](const Input::Event &e)
 			{
@@ -434,6 +441,7 @@ std::unique_ptr<View> EmuApp::makeView(ViewAttachParams attach, ViewID id)
 		case ViewID::VIDEO_OPTIONS: return std::make_unique<VideoOptionView>(attach);
 		case ViewID::AUDIO_OPTIONS: return std::make_unique<AudioOptionView>(attach);
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<SystemOptionView>(attach);
+		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<FilePathOptionView>(attach);
 		case ViewID::GUI_OPTIONS: return std::make_unique<GUIOptionView>(attach);
 		default:
 			bug_unreachable("Tried to make non-existing view ID:%d", (int)id);
