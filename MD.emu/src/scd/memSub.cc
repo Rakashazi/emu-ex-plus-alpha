@@ -1,6 +1,7 @@
 #include <scd/scd.h>
 #include "pcm.h"
 #include "mem.hh"
+#include <emuframework/EmuSystem.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
 #include <imagine/util/mayAliasInt.h>
@@ -623,6 +624,7 @@ void bramWrite8(unsigned address, unsigned data)
 	logMsg("BRAM write8 %X = %X", address, data);
 	unsigned a = (address>>1)&0x1fff;
 	bram[a] = data;
+	EmuEx::gSystem().onBackupMemoryWritten();
 }
 
 void bramWrite16(unsigned address, unsigned data)
@@ -632,6 +634,7 @@ void bramWrite16(unsigned address, unsigned data)
 	unsigned a = (address>>1)&0x1fff;
 	bram[a++] = data;
 	bram[a] = data >> 8;
+	EmuEx::gSystem().onBackupMemoryWritten();
 }
 
 // Undefined

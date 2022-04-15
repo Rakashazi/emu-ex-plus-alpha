@@ -95,11 +95,11 @@ void EmuSystem::onOptionsLoaded()
 	gbEmu.setStreamDelegates(
 		[ctx](std::string_view basePath, std::string_view filename) -> IG::IFStream
 		{
-			return {ctx.openFileUri(FS::uriString(basePath, filename), IO::AccessHint::ALL, IO::OPEN_TEST)};
+			return {ctx.openFileUri(FS::uriString(basePath, filename), IO::AccessHint::ALL, IO::TEST_BIT)};
 		},
 		[ctx](std::string_view basePath, std::string_view filename) -> IG::OFStream
 		{
-			return {ctx.openFileUri(FS::uriString(basePath, filename), IO::OPEN_CREATE | IO::OPEN_TEST)};
+			return {ctx.openFileUri(FS::uriString(basePath, filename), IO::OPEN_NEW | IO::TEST_BIT)};
 		});
 }
 
@@ -116,7 +116,7 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 
 void EmuSystem::saveState(IG::CStringView path)
 {
-	IG::OFStream stream{appContext().openFileUri(path, IO::OPEN_CREATE)};
+	IG::OFStream stream{appContext().openFileUri(path, IO::OPEN_NEW)};
 	if(!gbEmu.saveState(frameBuffer, gambatte::lcd_hres, stream))
 		throwFileWriteError();
 }
@@ -128,11 +128,12 @@ void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 		throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem()
+void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
-	logMsg("saving battery");
+	if(!hasContent())
+		return;
+	logMsg("saving backup memory");
 	gbEmu.saveSavedata();
-	writeCheatFile(*this);
 }
 
 void EmuSystem::savePathChanged()
@@ -143,9 +144,7 @@ void EmuSystem::savePathChanged()
 
 void EmuSystem::closeSystem()
 {
-	saveBackupMem();
 	cheatList.clear();
-	cheatsModified = false;
 	gameBuiltinPalette = nullptr;
 	totalFrames = 0;
 	totalSamples = 0;

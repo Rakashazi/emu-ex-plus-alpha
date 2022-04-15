@@ -171,7 +171,7 @@ struct AppleGameDevice : public Device
 		auto time = IG::steadyClockTimestamp();
 		pushState[key] = pressed;
 		ctx.endIdleByUserActivity();
-		Event event{Map::APPLE_GAME_CONTROLLER, key, sysKey, pressed ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+		KeyEvent event{Map::APPLE_GAME_CONTROLLER, key, sysKey, pressed ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 		if(repeatable)
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		else

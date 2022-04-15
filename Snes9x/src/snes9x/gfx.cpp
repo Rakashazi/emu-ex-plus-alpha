@@ -248,23 +248,6 @@ void S9xEndScreenRefresh (void)
 		}
 	}
 #endif
-
-	if (CPU.SRAMModified)
-	{
-		if (!CPU.AutoSaveTimer)
-		{
-			if (!(CPU.AutoSaveTimer = Settings.AutoSaveDelay * Memory.ROMFramesPerSecond))
-				CPU.SRAMModified = FALSE;
-		}
-		else
-		{
-			if (!--CPU.AutoSaveTimer)
-			{
-				S9xAutoSaveSRAM();
-				CPU.SRAMModified = FALSE;
-			}
-		}
-	}
 }
 
 void RenderLine (uint8 C)

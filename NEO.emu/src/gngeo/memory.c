@@ -495,6 +495,7 @@ void mem68k_store_sram_byte(Uint32 addr, Uint8 data) {
 	 */
 	addr &= 0xFFFF;
 	memory.sram[addr] = data;
+	sramWritten();
 }
 
 void mem68k_store_sram_word(Uint32 addr, Uint16 data) {
@@ -508,6 +509,7 @@ void mem68k_store_sram_word(Uint32 addr, Uint16 data) {
 	addr &= 0xFFFF;
 	memory.sram[addr] = data >> 8;
 	memory.sram[addr + 1] = data & 0xff;
+	sramWritten();
 }
 
 LONG_STORE(mem68k_store_sram)
@@ -801,10 +803,12 @@ void mem68k_store_setting_long(Uint32 addr, Uint32 data) {
 void mem68k_store_memcrd_byte(Uint32 addr, Uint8 data) {
 	addr &= 0xFFF;
 	memory.memcard[addr >> 1] = data;
+	memcardWritten();
 }
 void mem68k_store_memcrd_word(Uint32 addr, Uint16 data) {
 	addr &= 0xFFF;
 	memory.memcard[addr >> 1] = data & 0xff;
+	memcardWritten();
 }
 void mem68k_store_memcrd_long(Uint32 addr, Uint32 data) {
 }

@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/eventLoopDefs.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 #include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <android/looper.h>
 #include <memory>

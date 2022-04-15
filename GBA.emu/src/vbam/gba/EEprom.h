@@ -2,6 +2,7 @@
 #define EEPROM_H
 
 #include "../common/Types.h"
+#include <imagine/util/memory/Buffer.hh>
 
 #ifdef __LIBRETRO__
 extern void eepromSaveGame(uint8_t*& data);
@@ -11,7 +12,7 @@ extern void eepromSaveGame(gzFile _gzFile);
 extern void eepromReadGame(gzFile _gzFile, int version);
 extern void eepromReadGameSkip(gzFile _gzFile, int version);
 #endif
-extern uint8_t eepromData[0x2000];
+extern IG::ByteBuffer eepromData;
 extern int eepromRead(uint32_t address);
 extern void eepromWrite(uint32_t address, uint8_t value, int cpuDmaCount);
 extern void eepromInit();

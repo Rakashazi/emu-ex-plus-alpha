@@ -54,6 +54,7 @@ bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::canRenderRGB565 = RENDER_BPP == 16;
 bool EmuSystem::canRenderRGBA8888 = RENDER_BPP == 32;
+bool EmuApp::needsGlobalInstance = true;
 int8 mdInputPortDev[2]{-1, -1};
 static unsigned autoDetectedVidSysPAL = 0;
 
@@ -175,7 +176,7 @@ static bool sramHasContent(std::span<uint8> sram)
 	return false;
 }
 
-void EmuSystem::saveBackupMem()
+void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
 	if(!hasContent())
 		return;
@@ -184,7 +185,7 @@ void EmuSystem::saveBackupMem()
 	{
 		logMsg("saving BRAM");
 		auto saveStr = bramSaveFilename(*this);
-		auto bramFile = appContext().openFileUri(saveStr, IO::OPEN_CREATE | IO::OPEN_TEST);
+		auto bramFile = appContext().openFileUri(saveStr, IO::OPEN_NEW | IO::TEST_BIT);
 		if(!bramFile)
 			logMsg("error creating bram file");
 		else
@@ -233,12 +234,10 @@ void EmuSystem::saveBackupMem()
 			appContext().removeFileUri(saveStr);
 		}
 	}
-	writeCheatFile(*this);
 }
 
 void EmuSystem::closeSystem()
 {
-	saveBackupMem();
 	#ifndef NO_SCD
 	if(sCD.isActive)
 	{
@@ -450,7 +449,7 @@ void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	if(sCD.isActive)
 	{
 		auto saveStr = bramSaveFilename(*this);
-		auto bramFile = appContext().openFileUri(saveStr, IO::AccessHint::ALL, IO::OPEN_TEST);
+		auto bramFile = appContext().openFileUri(saveStr, IO::AccessHint::ALL, IO::TEST_BIT);
 		if(!bramFile)
 		{
 			logMsg("no BRAM on disk, formatting");

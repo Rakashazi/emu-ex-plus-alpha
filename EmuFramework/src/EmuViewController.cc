@@ -433,7 +433,6 @@ void EmuViewController::showEmulation()
 	if(emuView.window() != emuInputView.window())
 		emuInputView.postDraw();
 	app().resetInput();
-	popup.clear();
 	emuInputView.resetInput();
 	startEmulation();
 	placeEmuViews();
@@ -939,7 +938,7 @@ void EmuViewController::handleOpenFileCommand(IG::CStringView path)
 	auto name = appContext().fileUriDisplayName(path);
 	if(name.empty())
 	{
-		logMsg("path doesn't exists:%s", path.data());
+		appPtr->postErrorMessage(fmt::format("Can't access path name for:\n{}", path));
 		return;
 	}
 	if(!IG::isUri(path) && FS::status(path).type() == FS::file_type::directory)

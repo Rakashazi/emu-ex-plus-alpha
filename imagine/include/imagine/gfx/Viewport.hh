@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 #include <compare>
 
 namespace IG

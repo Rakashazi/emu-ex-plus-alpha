@@ -206,6 +206,8 @@ void setGameSpecificSettings(GBASys &gba, int romSize)
 		if (flashSize == SIZE_FLASH512 || flashSize == SIZE_FLASH1M)
 			flashSetSize(flashSize);
 	}
+	if(saveType != GBA_SAVE_NONE)
+		logMsg("save size:%d bytes", saveType == GBA_SAVE_FLASH || saveType == GBA_SAVE_SRAM ? flashSize : eepromSize);
 	if(detectedRtcGame && (unsigned)optionRtcEmulation == RTC_EMU_AUTO)
 	{
 		rtcEnable(true);
@@ -216,4 +218,29 @@ void setGameSpecificSettings(GBASys &gba, int romSize)
 		logMsg("forcing RTC:%s", rtcOn ? "on" : "off");
 		rtcEnable(rtcOn);
 	}
+}
+
+size_t saveMemorySize()
+{
+	if(!saveType || saveType == GBA_SAVE_NONE)
+		return 0;
+  if (saveType == GBA_SAVE_FLASH) {
+  	return flashSize;
+  } else if (saveType == GBA_SAVE_SRAM) {
+  	return 0x8000;
+  }
+  // save eeprom type
+  return eepromSize;
+}
+
+void setSaveMemory(IG::ByteBuffer buff)
+{
+  if(!saveType || saveType == GBA_SAVE_NONE)
+    return;
+	assert(buff.size() == saveMemorySize());
+  if (saveType == GBA_SAVE_FLASH || saveType == GBA_SAVE_SRAM) {
+  	flashSaveMemory = std::move(buff);
+  } else { // save eeprom type
+  	eepromData = std::move(buff);
+  }
 }

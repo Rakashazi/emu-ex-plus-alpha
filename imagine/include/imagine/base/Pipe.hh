@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/io/PosixIO.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 #include <imagine/util/concepts.hh>
 #include <imagine/util/utility.h>
 #include <array>

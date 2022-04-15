@@ -21,7 +21,6 @@ extern bool detectedRtcGame;
 
 void setRTC(unsigned mode);
 void readCheatFile(EmuSystem &);
-void writeCheatFile(EmuSystem &);
 
 }
 

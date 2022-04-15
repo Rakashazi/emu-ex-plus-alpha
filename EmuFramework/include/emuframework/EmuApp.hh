@@ -41,7 +41,7 @@
 #include <imagine/data-type/image/PixmapReader.hh>
 #include <imagine/data-type/image/PixmapWriter.hh>
 #include <imagine/font/Font.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <cstring>
 #include <optional>
@@ -327,6 +327,46 @@ public:
 		postMessage(secs, true, std::move(msg));
 	}
 
+	template <same_as<const char*> T>
+	static std::pair<T, int> scanValue(const char *str)
+	{
+		return {str, strlen(str) ? 1 : 0};
+	}
+
+	template <integral T>
+	static std::pair<T, int> scanValue(const char *str)
+	{
+		int val;
+		int items = sscanf(str, "%d", &val);
+		return {val, items};
+	}
+
+	template <floating_point T>
+	static std::pair<T, int> scanValue(const char *str)
+	{
+		double val;
+		double denom;
+		int items = sscanf(str, "%lf /%lf", &val, &denom);
+		if(items > 1 && denom > 0)
+		{
+			val /= denom;
+		}
+		return {val, items};
+	}
+
+	template <same_as<std::pair<double, double>> T>
+	static std::pair<T, int> scanValue(const char *str)
+	{
+		// special case for getting a fraction
+		T val{};
+		int items = sscanf(str, "%lf /%lf", &val.first, &val.second);
+		if(!val.second)
+		{
+			val.second = 1.;
+		}
+		return {val, items};
+	}
+
 	template<class T>
 	void pushAndShowNewCollectValueInputView(ViewAttachParams attach, const Input::Event &e,
 	IG::CStringView msgText, IG::CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
@@ -339,42 +379,8 @@ public:
 					view.dismiss();
 					return false;
 				}
-				T val;
-				int items = 0;
-				if constexpr(std::is_same_v<T, const char*>)
-				{
-					val = str;
-					if(strlen(str))
-						items = 1;
-				}
-				else if constexpr(std::is_integral_v<T>)
-				{
-					items = sscanf(str, "%d", &val);
-				}
-				else if constexpr(std::is_floating_point_v<T>)
-				{
-					double denom;
-					items = sscanf(str, "%lf /%lf", &val, &denom);
-					if(items > 1 && denom > 0)
-					{
-						val /= denom;
-					}
-				}
-				else if constexpr(std::is_same_v<T, std::pair<double, double>>)
-				{
-					// special case for getting a fraction
-					val = {};
-					items = sscanf(str, "%lf /%lf", &val.first, &val.second);
-					if(!val.second)
-					{
-						val.second = 1.;
-					}
-				}
-				else
-				{
-					static_assert(IG::dependentFalseValue<T>, "can't collect value of this type");
-				}
 				auto &app = get(view.appContext());
+				auto [val, items] = scanValue<T>(str);
 				if(items <= 0)
 				{
 					app.postErrorMessage("Enter a value");

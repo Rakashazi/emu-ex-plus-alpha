@@ -105,11 +105,6 @@ static FS::PathString sramFilename(EmuSystem &sys)
 	return sys.contentSaveFilePath(".srm");
 }
 
-static FS::PathString cheatsFilename(EmuSystem &sys)
-{
-	return sys.contentSaveFilePath(".cht");
-}
-
 void EmuSystem::saveState(IG::CStringView path)
 {
 	if(!S9xFreezeGame(path))
@@ -126,28 +121,16 @@ void EmuSystem::loadState(IG::CStringView path)
 		return throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem()
+void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
-	if(hasContent())
+	if(!hasContent())
+		return;
+	if(Memory.SRAMSize)
 	{
-		if(Memory.SRAMSize)
-		{
-			logMsg("saving backup memory");
-			auto saveStr = sramFilename(*this);
-			Memory.SaveSRAM(saveStr.data());
-		}
-		auto cheatsStr = cheatsFilename(*this);
-		if(!numCheats())
-			logMsg("no cheats present, removing .cht file if present");
-		else
-			logMsg("saving %u cheat(s)", numCheats());
-		S9xSaveCheatFile(cheatsStr.data());
+		logMsg("saving backup memory");
+		auto saveStr = sramFilename(*this);
+		Memory.SaveSRAM(saveStr.data());
 	}
-}
-
-void EmuSystem::closeSystem()
-{
-	saveBackupMem();
 }
 
 bool EmuSystem::vidSysIsPAL() { return Settings.PAL; }
@@ -334,8 +317,3 @@ bool8 S9xContinueUpdate(int width, int height)
 	return S9xDeinitUpdate(width, height);
 }
 #endif
-
-void S9xAutoSaveSRAM (void)
-{
-	EmuEx::gSystem().saveBackupMem();
-}

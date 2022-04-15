@@ -158,7 +158,7 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 			IG::PIXEL_FMT_A8
 		},
 		glyphData.startOfCharInPixData,
-		{(uint32_t)glyphData.metrics.xAdvance, IG::Pixmap::BYTE_UNITS}
+		{glyphData.metrics.xAdvance, IG::Pixmap::Units::BYTE}
 	};
 	return {{pix, glyphData.pixData}, glyphData.metrics};
 }

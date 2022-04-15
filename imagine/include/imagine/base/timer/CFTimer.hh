@@ -17,7 +17,7 @@
 
 #include <imagine/base/timerDefs.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 #include <CoreFoundation/CoreFoundation.h>
 #include <memory>
 

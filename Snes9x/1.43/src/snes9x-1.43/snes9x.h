@@ -228,8 +228,6 @@ struct SCPUState{
     long   MemSpeed;
     long   MemSpeedx2;
     long   FastROMSpeed;
-    uint32 AutoSaveTimer;
-    bool8  SRAMModified;
     uint32 NMITriggerPoint;
     bool8  BRKTriggered;
     bool8  TriedInterleavedMode2;

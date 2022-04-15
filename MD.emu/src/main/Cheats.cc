@@ -37,7 +37,6 @@ namespace EmuEx
 StaticArrayList<MdCheat, maxCheats> cheatList;
 StaticArrayList<MdCheat*, maxCheats> romCheatList;
 StaticArrayList<MdCheat*, maxCheats> ramCheatList;
-bool cheatsModified = 0;
 static const char *INPUT_CODE_8BIT_STR = "Input xxx-xxx-xxx (GG) or xxxxxx:xx (AR) code";
 static const char *INPUT_CODE_16BIT_STR = "Input xxxx-xxxx (GG) or xxxxxx:xxxx (AR) code";
 
@@ -391,9 +390,6 @@ void updateCheats()
 
 void writeCheatFile(EmuSystem &sys)
 {
-	if(!cheatsModified)
-		return;
-
 	auto ctx = sys.appContext();
 	auto path = sys.contentSaveFilePath(".pat");
 
@@ -401,11 +397,10 @@ void writeCheatFile(EmuSystem &sys)
 	{
 		logMsg("deleting cheats file %s", path.data());
 		ctx.removeFileUri(path);
-		cheatsModified = false;
 		return;
 	}
 
-	auto file = ctx.openFileUri(path, IO::OPEN_CREATE | IO::OPEN_TEST);
+	auto file = ctx.openFileUri(path, IO::OPEN_NEW | IO::TEST_BIT);
 	if(!file)
 	{
 		logMsg("error creating cheats file %s", path.data());
@@ -428,13 +423,12 @@ void writeCheatFile(EmuSystem &sys)
 			file.write("ON\n", strlen("ON\n"));
 		}
 	}
-	cheatsModified = false;
 }
 
 void readCheatFile(EmuSystem &sys)
 {
 	auto path = sys.contentSaveFilePath(".pat");
-	auto file = sys.appContext().openFileUri(path, IO::AccessHint::ALL, IO::OPEN_TEST);
+	auto file = sys.appContext().openFileUri(path, IO::AccessHint::ALL, IO::TEST_BIT);
 	if(!file)
 	{
 		return;
@@ -519,9 +513,9 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 		[this](TextMenuItem &, View &, Input::Event)
 		{
 			IG::eraseFirst(cheatList, *cheat);
-			cheatsModified = 1;
 			onCheatListChanged();
 			updateCheats();
+			writeCheatFile(system());
 			dismiss();
 			return true;
 		},
@@ -545,8 +539,8 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 						postDraw();
 						return false;
 					}
-					cheatsModified = 1;
 					updateCheats();
+					writeCheatFile(system());
 					code.set2ndName(str);
 					code.compile(renderer(), projP);
 					postDraw();
@@ -565,7 +559,7 @@ const char *EmuEditCheatView::cheatNameString() const
 void EmuEditCheatView::renamed(const char *str)
 {
 	cheat->name = str;
-	cheatsModified = 1;
+	writeCheatFile(system());
 }
 
 void EmuEditCheatListView::loadCheatItems()
@@ -634,9 +628,9 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						c.name = "Unnamed Cheat";
 						cheatList.push_back(c);
 						logMsg("added new cheat, %zu total", cheatList.size());
-						cheatsModified = 1;
 						updateCheats();
 						onCheatListChanged();
+						writeCheatFile(system());
 						view.dismiss();
 						app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[this](CollectTextInputView &view, const char *str)
@@ -686,8 +680,8 @@ void EmuCheatsView::loadCheatItems()
 				item.flipBoolValue(*this);
 				auto &c = cheatList[cIdx];
 				c.toggleOn();
-				cheatsModified = 1;
 				updateCheats();
+				writeCheatFile(system());
 			});
 		logMsg("added cheat %s : %s", thisCheat.name.data(), thisCheat.code.data());
 		++it;

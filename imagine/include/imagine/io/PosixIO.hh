@@ -38,10 +38,13 @@ public:
 	using IO::buffer;
 	using IO::get;
 
+	using MapFlags = uint8_t;
+	static constexpr MapFlags MAP_WRITE = bit(0);
+	static constexpr MapFlags MAP_POPULATE_PAGES = bit(1);
+
 	constexpr PosixIO() = default;
 	PosixIO(UniqueFileDescriptor fd):fd_{std::move(fd)} {}
 	PosixIO(IG::CStringView path, OpenFlags oFlags = {});
-	static PosixIO create(IG::CStringView path, OpenFlags oFlags = {});
 	UniqueFileDescriptor releaseFd();
 	int fd() const;
 	ssize_t read(void *buff, size_t bytes) final;
@@ -54,9 +57,12 @@ public:
 	bool eof() final;
 	void advise(off_t offset, size_t bytes, Advice advice) final;
 	explicit operator bool() const final;
+	IOBuffer releaseBuffer();
+	IOBuffer mapRange(off_t start, size_t size, MapFlags);
+	static IOBuffer byteBufferFromMmap(void *data, size_t size);
 
 protected:
-	IG::UniqueFileDescriptor fd_{};
+	UniqueFileDescriptor fd_{};
 };
 
 }

@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 
 namespace IG::Gfx
 {

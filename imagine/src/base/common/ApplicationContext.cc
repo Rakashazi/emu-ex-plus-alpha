@@ -463,14 +463,14 @@ namespace IG::FileUtils
 
 ssize_t writeToUri(ApplicationContext ctx, IG::CStringView uri, std::span<const unsigned char> src)
 {
-	auto f = ctx.openFileUri(uri, IO::OPEN_CREATE | IO::OPEN_TEST);
+	auto f = ctx.openFileUri(uri, IO::OPEN_NEW | IO::TEST_BIT);
 	return f.write(src.data(), src.size());
 }
 
 ssize_t readFromUri(ApplicationContext ctx, IG::CStringView uri, std::span<unsigned char> dest,
 	IO::AccessHint accessHint)
 {
-	auto f = ctx.openFileUri(uri, accessHint, IO::OPEN_TEST);
+	auto f = ctx.openFileUri(uri, accessHint, IO::TEST_BIT);
 	return f.read(dest.data(), dest.size());
 }
 
@@ -502,14 +502,16 @@ std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext
 	}
 }
 
-IG::ByteBuffer bufferFromUri(ApplicationContext ctx, IG::CStringView uri, unsigned openFlags, size_t sizeLimit)
+IOBuffer bufferFromUri(ApplicationContext ctx, CStringView uri, IO::OpenFlags openFlags, size_t sizeLimit)
 {
+	if(!sizeLimit) [[unlikely]]
+		return {};
 	auto file = ctx.openFileUri(uri, IO::AccessHint::ALL, openFlags);
 	if(!file)
 		return {};
-	if(file.size() > sizeLimit)
+	else if(file.size() > sizeLimit)
 	{
-		if(openFlags & IO::OPEN_TEST)
+		if(openFlags & IO::TEST_BIT)
 			return {};
 		else
 			throw std::runtime_error(fmt::format("{} exceeds {} byte limit", uri.data(), sizeLimit));
@@ -517,12 +519,30 @@ IG::ByteBuffer bufferFromUri(ApplicationContext ctx, IG::CStringView uri, unsign
 	return file.buffer(IODefs::BufferMode::RELEASE);
 }
 
+IOBuffer rwBufferFromUri(ApplicationContext ctx, CStringView uri, IO::OpenFlags extraOFlags, size_t size, uint8_t initValue)
+{
+	if(!size) [[unlikely]]
+		return {};
+	auto file = ctx.openFileUri(uri, IO::AccessHint::RANDOM, IO::OPEN_RW | extraOFlags);
+	if(!file) [[unlikely]]
+		return {};
+	auto fileSize = file.size();
+	if(fileSize != size)
+		file.truncate(size);
+	auto buff = file.buffer(IODefs::BufferMode::RELEASE);
+	if(initValue && fileSize < size)
+	{
+		std::fill(&buff[fileSize], &buff[size], initValue);
+	}
+	return buff;
+}
+
 FILE *fopenUri(ApplicationContext ctx, IG::CStringView path, IG::CStringView mode)
 {
 	if(IG::isUri(path))
 	{
-		int openFlags = IG::stringContains(mode, 'w') ? IO::OPEN_CREATE : 0;
-		return GenericIO{ctx.openFileUri(path, openFlags | IO::OPEN_TEST)}.moveToFileStream(mode);
+		int openFlags = IG::stringContains(mode, 'w') ? IO::OPEN_NEW : 0;
+		return GenericIO{ctx.openFileUri(path, openFlags | IO::TEST_BIT)}.moveToFileStream(mode);
 	}
 	else
 	{

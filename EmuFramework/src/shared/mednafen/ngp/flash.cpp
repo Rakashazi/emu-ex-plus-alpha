@@ -22,6 +22,7 @@
 #include "neopop.h"
 #include "flash.h"
 #include "mem.h"
+#include <emuframework/EmuSystem.hh>
 
 namespace MDFN_IEN_NGP
 {
@@ -219,6 +220,7 @@ MDFN_FASTCALL void flash_write(uint32 start_address, uint16 length)
 	memory_flash_command = false;
 
 //	system_debug_message("flash write: %06X, %d bytes", start_address, length);
+	EmuEx::gSystem().onBackupMemoryWritten();
 
 	for (i = 0; i < block_count; i++)
 	{

@@ -404,7 +404,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 	#endif
 	ConfigParams appConfig{};
 	Gfx::DrawableConfig pendingWindowDrawableConf{};
-	readConfigKeys(FileUtils::bufferFromPath(configFilePath, IO::OPEN_TEST),
+	readConfigKeys(FileUtils::bufferFromPath(configFilePath, IO::TEST_BIT),
 		[&](uint16_t key, uint16_t size, IO &io)
 		{
 			switch(key)
@@ -671,7 +671,7 @@ void EmuApp::saveConfigFile(IG::ApplicationContext ctx)
 	auto configFilePath = FS::pathString(ctx.supportPath(), "config");
 	try
 	{
-		saveConfigFile(FileIO::create(configFilePath));
+		saveConfigFile(FileIO{configFilePath, IO::OPEN_NEW});
 	}
 	catch(...)
 	{

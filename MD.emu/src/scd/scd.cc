@@ -29,7 +29,7 @@ void scd_interruptSubCpu(unsigned irq)
 
 void dumpPRG(const char *n)
 {
-	auto f = IG::FileIO::create(n, IG::IO::OPEN_TEST);
+	auto f = IG::FileIO{n, IG::IO::OPEN_NEW | IG::IO::TEST_BIT};
 	f.write(sCD.prg.b, sizeof(sCD.prg.b));
 }
 

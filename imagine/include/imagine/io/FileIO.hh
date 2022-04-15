@@ -30,9 +30,6 @@ class FileIO: public PosixFileIO
 {
 public:
 	using PosixFileIO::PosixFileIO;
-
-	[[nodiscard]]
-	static FileIO create(IG::CStringView path, IO::OpenFlags oFlags = {});
 };
 
 #ifdef __ANDROID__
@@ -69,8 +66,9 @@ ssize_t readFromUri(ApplicationContext, CStringView uri, std::span<unsigned char
 	IO::AccessHint accessHint = IO::AccessHint::ALL);
 std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext, IG::CStringView uri,
 	std::span<unsigned char> dest, bool(*nameMatchFunc)(std::string_view), IO::AccessHint accessHint = IO::AccessHint::ALL);
-IG::ByteBuffer bufferFromPath(CStringView path, IO::OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
-IG::ByteBuffer bufferFromUri(ApplicationContext, CStringView uri, IO::OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
+IOBuffer bufferFromPath(CStringView path, IO::OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
+IOBuffer bufferFromUri(ApplicationContext, CStringView uri, IO::OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
+IOBuffer rwBufferFromUri(ApplicationContext, CStringView uri, IO::OpenFlags extraOFlags, size_t size, uint8_t initValue = 0);
 FILE *fopenUri(ApplicationContext, CStringView path, CStringView mode);
 
 }

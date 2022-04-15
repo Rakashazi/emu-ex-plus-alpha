@@ -96,6 +96,7 @@
 #include "spc7110.h"
 #include "obc1.h"
 #include "seta.h"
+#include <emuframework/EmuSystem.hh>
 
 extern "C"
 {
@@ -367,7 +368,7 @@ INLINE void S9xSetByte (uint8 Byte, uint32 Address)
 		{
 			*(Memory.SRAM + ((((Address&0xFF0000)>>1)|(Address&0x7FFF))& Memory.SRAMMask))=Byte;
 //			*(Memory.SRAM + (Address & Memory.SRAMMask)) = Byte;
-			CPU.SRAMModified = TRUE;
+			EmuEx::gSystem().onBackupMemoryWritten();
 		}
 		return;
 		
@@ -376,13 +377,13 @@ INLINE void S9xSetByte (uint8 Byte, uint32 Address)
 		{
 			*(Memory.SRAM + (((Address & 0x7fff) - 0x6000 +
 				((Address & 0xf0000) >> 3)) & Memory.SRAMMask)) = Byte;
-			CPU.SRAMModified = TRUE;
+			EmuEx::gSystem().onBackupMemoryWritten();
 		}
 		return;
 		
     case CMemory::MAP_BWRAM:
 		*(Memory.BWRAM + ((Address & 0x7fff) - 0x6000)) = Byte;
-		CPU.SRAMModified = TRUE;
+		EmuEx::gSystem().onBackupMemoryWritten();
 		return;
 		
     case CMemory::MAP_DEBUG:
@@ -508,7 +509,7 @@ INLINE void S9xSetWord (uint16 Word, uint32 Address)
 
 //			*(Memory.SRAM + (Address & Memory.SRAMMask)) = (uint8) Word;
 //			*(Memory.SRAM + ((Address + 1) & Memory.SRAMMask)) = Word >> 8;
-			CPU.SRAMModified = TRUE;
+			EmuEx::gSystem().onBackupMemoryWritten();
 		}
 		return;
 		
@@ -523,7 +524,7 @@ INLINE void S9xSetWord (uint16 Word, uint32 Address)
 			*(Memory.SRAM + 
 				(((((Address + 1) & 0x7fff) - 0x6000 +
 				(((Address + 1) & 0xf0000) >> 3)) & Memory.SRAMMask))) = (uint8) (Word >> 8);
-			CPU.SRAMModified = TRUE;
+			EmuEx::gSystem().onBackupMemoryWritten();
 		}
 		return;
 		
@@ -534,7 +535,7 @@ INLINE void S9xSetWord (uint16 Word, uint32 Address)
 		*(Memory.BWRAM + ((Address & 0x7fff) - 0x6000)) = (uint8) Word;
 		*(Memory.BWRAM + (((Address + 1) & 0x7fff) - 0x6000)) = (uint8) (Word >> 8);
 #endif
-		CPU.SRAMModified = TRUE;
+		EmuEx::gSystem().onBackupMemoryWritten();
 		return;
 		
     case CMemory::MAP_DEBUG:

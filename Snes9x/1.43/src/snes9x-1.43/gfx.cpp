@@ -877,22 +877,6 @@ void S9xEndScreenRefresh ()
 	}
     }
 #endif
-    if (CPU.SRAMModified)
-    {
-	if (!CPU.AutoSaveTimer)
-	{
-	    if (!(CPU.AutoSaveTimer = Settings.AutoSaveDelay * Memory.ROMFramesPerSecond))
-		CPU.SRAMModified = FALSE;
-	}
-	else
-	{
-	    if (!--CPU.AutoSaveTimer)
-	    {
-		S9xAutoSaveSRAM ();
-		CPU.SRAMModified = FALSE;
-	    }
-	}
-    }
 }
 
 void S9xSetInfoString (const char *string)

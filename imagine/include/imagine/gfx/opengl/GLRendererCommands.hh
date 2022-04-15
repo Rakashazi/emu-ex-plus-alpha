@@ -21,7 +21,7 @@
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/thread/Semaphore.hh>
 #include "GLSLProgram.hh"
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 
 namespace IG
 {

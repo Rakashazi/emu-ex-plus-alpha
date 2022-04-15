@@ -18,6 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <emuframework/EmuSystem.hh>
 #include "types.h"
 #include "x6502.h"
 #include "fceu.h"
@@ -635,6 +636,7 @@ static DECLFW(FDSWrite) {
 					if (mapperFDS_diskaddr < mapperFDS_blocklen) {
 						fds_disk() = V;
 						DiskWritten = 1;
+						EmuEx::gSystem().onBackupMemoryWritten();
 						switch (mapperFDS_diskaddr) {
 							case 13: mapperFDS_filesize = V; break;
 							case 14:
@@ -651,6 +653,7 @@ static DECLFW(FDSWrite) {
 					if (mapperFDS_diskaddr < mapperFDS_blocklen) {
 						fds_disk() = V;
 					DiskWritten = 1;
+					EmuEx::gSystem().onBackupMemoryWritten();
 						mapperFDS_diskaddr++;
 					}
 					break;

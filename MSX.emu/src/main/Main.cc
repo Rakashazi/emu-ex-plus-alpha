@@ -592,14 +592,6 @@ void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 	return loadBlueMSXState(app, path);
 }
 
-void EmuSystem::saveBackupMem()
-{
-	if(hasContent())
-	{
-		// TODO: add BlueMSX API to flush volatile data
-	}
-}
-
 void EmuSystem::closeSystem()
 {
 	destroyMachine();

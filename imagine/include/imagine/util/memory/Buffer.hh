@@ -85,15 +85,15 @@ public:
 		return {reinterpret_cast<const char*>(data_.get()), size()};
 	}
 
-	constexpr T *data() const
-	{
-		return data_.get();
-	}
+	constexpr T *data() const { return data_.get(); }
 
 	constexpr size_t size() const
 	{
 		return data_.get_deleter().size;
 	}
+
+	constexpr T& operator[] (size_t idx) { return data()[idx]; }
+	constexpr const T& operator[] (size_t idx) const { return data()[idx]; }
 
 	constexpr explicit operator bool() const
 	{

@@ -206,30 +206,30 @@ namespace FileUtils
 
 ssize_t writeToPath(IG::CStringView path, std::span<const unsigned char> src)
 {
-	auto f = FileIO::create(path, IO::OPEN_TEST);
+	auto f = FileIO{path, IO::OPEN_NEW | IO::TEST_BIT};
 	return f.write(src.data(), src.size());
 }
 
 ssize_t writeToPath(IG::CStringView path, IO &io)
 {
-	auto f = FileIO::create(path, IO::OPEN_TEST);
+	auto f = FileIO{path, IO::OPEN_NEW | IO::TEST_BIT};
 	return io.send(f, nullptr, io.size());
 }
 
 ssize_t readFromPath(IG::CStringView path, std::span<unsigned char> dest, IO::AccessHint accessHint)
 {
-	FileIO f{path, accessHint, IO::OPEN_TEST};
+	FileIO f{path, accessHint, IO::TEST_BIT};
 	return f.read(dest.data(), dest.size());
 }
 
-IG::ByteBuffer bufferFromPath(IG::CStringView path, IO::OpenFlags openFlags, size_t sizeLimit)
+IOBuffer bufferFromPath(IG::CStringView path, IO::OpenFlags openFlags, size_t sizeLimit)
 {
 	FileIO file{path, IO::AccessHint::ALL, openFlags};
 	if(!file)
 		return {};
 	if(file.size() > sizeLimit)
 	{
-		if(openFlags & IO::OPEN_TEST)
+		if(openFlags & IO::TEST_BIT)
 			return {};
 		else
 			throw std::runtime_error(fmt::format("{} exceeds {} byte limit", path.data(), sizeLimit));

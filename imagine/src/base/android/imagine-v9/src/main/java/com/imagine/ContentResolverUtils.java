@@ -29,21 +29,22 @@ final class ContentResolverUtils
 	private static final String logTag = "ContentResolverUtils";
 
 	// File open flags, keep in sync with IO.hh
-	static final int OPEN_READ = 1;
-	static final int OPEN_WRITE = 1 << 1;
-	static final int OPEN_KEEP_EXISTING = 1 << 3;
+	static final int READ_BIT = 1;
+	static final int WRITE_BIT = 1 << 1;
+	static final int CREATE_BIT = 1 << 2;
+	static final int TRUNCATE_BIT = 1 << 3;
 
 	static String fileOpenFlagsString(int flags)
 	{
-		final int usedFlags = OPEN_READ | OPEN_WRITE | OPEN_KEEP_EXISTING;
+		final int usedFlags = READ_BIT | WRITE_BIT | TRUNCATE_BIT;
 		switch(flags & usedFlags)
 		{
 			default:
-			case OPEN_READ: return "r";
-			case OPEN_WRITE|OPEN_KEEP_EXISTING: return "w";
-			case OPEN_READ|OPEN_WRITE|OPEN_KEEP_EXISTING: return "rw";
-			case OPEN_WRITE: return "wt";
-			case OPEN_READ|OPEN_WRITE: return "rwt";
+			case READ_BIT: return "r";
+			case WRITE_BIT: return "w";
+			case READ_BIT|WRITE_BIT: return "rw";
+			case WRITE_BIT|TRUNCATE_BIT: return "wt";
+			case READ_BIT|WRITE_BIT|TRUNCATE_BIT: return "rwt";
 		}
 	}
 
@@ -56,7 +57,7 @@ final class ContentResolverUtils
 		}
 		catch(Exception e)
 		{
-			if(android.os.Build.VERSION.SDK_INT >= 21 && (flags & OPEN_WRITE) != 0)
+			if(android.os.Build.VERSION.SDK_INT >= 21 && (flags & CREATE_BIT) != 0)
 			{
 				// no existing file, try creating it in the document part of the URI path
 				final Uri dirUri = documentUriDir(uriStr);

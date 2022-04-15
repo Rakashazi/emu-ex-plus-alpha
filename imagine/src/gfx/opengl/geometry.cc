@@ -17,6 +17,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Vertex.hh>
 #include <imagine/util/edge.h>
+#include <imagine/util/typeTraits.hh>
 #include <imagine/logger/logger.h>
 #include "internalDefs.hh"
 

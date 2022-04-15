@@ -50,10 +50,8 @@ struct GbcCheat
 };
 
 static constexpr size_t maxCheats = 255;
-extern bool cheatsModified;
 extern StaticArrayList<GbcCheat, maxCheats> cheatList;
 void applyCheats(EmuSystem &);
 void readCheatFile(EmuSystem &);
-void writeCheatFile(EmuSystem &);
 
 }

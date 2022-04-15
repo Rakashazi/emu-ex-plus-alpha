@@ -145,8 +145,6 @@ struct SCPUState
 	uint8	WhichEvent;
 	int32	NextEvent;
 	bool8	WaitingForInterrupt;
-	uint32	AutoSaveTimer;
-	bool8	SRAMModified;
 	void (*exec)();
 };
 

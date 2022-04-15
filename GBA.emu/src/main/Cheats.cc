@@ -23,10 +23,11 @@
 #include <imagine/logger/logger.h>
 #include <gba/Cheats.h>
 #include <gba/GBA.h>
-static bool cheatsModified = false;
 
 namespace EmuEx
 {
+
+static void writeCheatFile(EmuSystem &);
 
 EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
@@ -49,9 +50,9 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		},
 		[this](TextMenuItem &item, View &parent, Input::Event e)
 		{
-			cheatsModified = true;
 			cheatsDelete(gGba.cpu, idx, true);
 			onCheatListChanged();
+			writeCheatFile(system());
 			dismiss();
 			return true;
 		},
@@ -77,9 +78,9 @@ const char *EmuEditCheatView::cheatNameString() const
 
 void EmuEditCheatView::renamed(const char *str)
 {
-	cheatsModified = true;
 	auto &cheat = cheatsList[idx];
 	strncpy(cheat.desc, str, sizeof(cheat.desc));
+	writeCheatFile(system());
 }
 
 void EmuEditCheatListView::loadCheatItems()
@@ -127,9 +128,9 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 					app().postMessage(true, "Invalid format");
 					return true;
 				}
-				cheatsModified = true;
 				cheatsDisable(gGba.cpu, cheatsList.size()-1);
 				onCheatListChanged();
+				writeCheatFile(system());
 				view.dismiss();
 				app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 					[this](CollectTextInputView &view, const char *str)
@@ -203,12 +204,12 @@ void EmuCheatsView::loadCheatItems()
 		cheat.emplace_back(c.desc, &defaultFace(), c.enabled,
 			[this, idx = std::distance(cheatsList.data(), &c)](BoolMenuItem &item, Input::Event e)
 			{
-				cheatsModified = true;
 				bool on = item.flipBoolValue(*this);
 				if(on)
 					cheatsEnable(idx);
 				else
 					cheatsDisable(gGba.cpu, idx);
+				writeCheatFile(system());
 			});
 	}
 }
@@ -220,19 +221,15 @@ EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 
 void writeCheatFile(EmuSystem &sys)
 {
-	if(!cheatsModified)
-		return;
 	auto ctx = sys.appContext();
 	auto filename = sys.contentSaveFilePath(".clt");
-	if(!cheatsList.size())
+	if(cheatsList.empty())
 	{
 		logMsg("deleting cheats file %s", filename.data());
 		ctx.removeFileUri(filename);
-		cheatsModified = false;
 		return;
 	}
 	cheatsSaveCheatList(ctx, filename.data());
-	cheatsModified = false;
 }
 
 void readCheatFile(EmuSystem &sys)

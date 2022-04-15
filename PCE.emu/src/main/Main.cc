@@ -75,14 +75,12 @@ const char *EmuSystem::systemName() const
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasHuCardExtension;
 
-void EmuSystem::saveBackupMem() // for manually saving when not closing game
+void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
-	if(hasContent())
-	{
-		logMsg("saving backup memory");
-		// TODO: fix iOS permissions if needed
-		MDFN_IEN_PCE_FAST::HuC_SaveNV();
-	}
+	if(!hasContent())
+		return;
+	logMsg("saving backup memory");
+	MDFN_IEN_PCE_FAST::HuC_SaveNV();
 }
 
 static char saveSlotCharPCE(int slot)

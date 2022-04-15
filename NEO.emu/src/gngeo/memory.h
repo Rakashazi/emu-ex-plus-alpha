@@ -269,4 +269,7 @@ extern Uint32 (*mem68k_fetch_bksw_long)(Uint32);
 extern void (*mem68k_store_bksw_byte)(Uint32,Uint8);
 extern void (*mem68k_store_bksw_word)(Uint32,Uint16);
 extern void (*mem68k_store_bksw_long)(Uint32,Uint32);
+
+void sramWritten();
+void memcardWritten();
 #endif

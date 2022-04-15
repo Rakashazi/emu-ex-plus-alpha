@@ -57,8 +57,6 @@ static void S9xSoftResetCPU (void)
 	CPU.WhichEvent = HC_RENDER_EVENT;
 	CPU.NextEvent  = Timings.RenderPos;
 	CPU.WaitingForInterrupt = FALSE;
-	CPU.AutoSaveTimer = 0;
-	CPU.SRAMModified = FALSE;
 
 	Registers.PBPC = 0;
 	Registers.PB = 0;

@@ -307,14 +307,6 @@ void EmuSystem::loadState(IG::CStringView path)
 		return throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem()
-{
-	if(hasContent())
-	{
-		// nothing to do for now
-	}
-}
-
 bool EmuSystem::vidSysIsPAL() { return sysIsPal(); }
 
 void EmuSystem::closeSystem()
@@ -323,7 +315,6 @@ void EmuSystem::closeSystem()
 	{
 		return;
 	}
-	saveBackupMem();
 	plugin.vsync_set_warp_mode(0);
 	if(intResource("REU"))
 	{

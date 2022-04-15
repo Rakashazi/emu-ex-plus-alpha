@@ -26,6 +26,23 @@
 namespace IG
 {
 
+class IOBuffer : public ByteBuffer
+{
+public:
+	using ByteBuffer::ByteBuffer;
+	using Flags = uint8_t;
+
+	static constexpr Flags MAPPED_FILE_BIT = bit(0);
+
+	constexpr IOBuffer(std::span<uint8_t> span, Flags flags, DeleterFunc deleter = [](const uint8_t*, size_t){}):
+		ByteBuffer{span, deleter}, flags{flags} {}
+
+	constexpr bool isMappedFile() const { return flags & MAPPED_FILE_BIT; }
+
+protected:
+	Flags flags{};
+};
+
 template <class IO>
 class IOUtils
 {
@@ -36,7 +53,7 @@ public:
 	bool rewind();
 	off_t tell();
 	ssize_t send(IO &output, off_t *srcOffset, size_t bytes);
-	IG::ByteBuffer buffer(IODefs::BufferMode mode = IODefs::BufferMode::DIRECT);
+	IOBuffer buffer(IODefs::BufferMode mode = IODefs::BufferMode::DIRECT);
 
 	template <class T, bool useOffset = false>
 	T getImpl(off_t offset = 0)
@@ -108,21 +125,22 @@ public:
 	using SeekMode = IODefs::SeekMode;
 	using OpenFlags = IODefs::OpenFlags;
 
-	// allow reading file, default if OPEN_WRITE isn't present
-	static constexpr OpenFlags OPEN_READ = IG::bit(0);
+	// allow reading file
+	static constexpr OpenFlags READ_BIT = IG::bit(0);
 	// allow modifying file
-	static constexpr OpenFlags OPEN_WRITE = IG::bit(1);
-	// create a new file, clobbering any existing one,
-	// if OPEN_CREATE_NEW isn't present, only existing files are opened
-	// for reading/writing/appending
-	static constexpr OpenFlags OPEN_CREATE_NEW = IG::bit(2);
-	static constexpr OpenFlags OPEN_CREATE = OPEN_WRITE | OPEN_CREATE_NEW;
-	// if using OPEN_CREATE, don't overwrite a file that already exists
-	static constexpr OpenFlags OPEN_KEEP_EXISTING = IG::bit(3);
+	static constexpr OpenFlags WRITE_BIT = IG::bit(1);
+	// create a new file if it doesn't already exist
+	static constexpr OpenFlags CREATE_BIT = IG::bit(2);
+	// if using WRITE_BIT/READ_WRITE_BIT, truncate any existing file to 0 bytes
+	static constexpr OpenFlags TRUNCATE_BIT = IG::bit(3);
 	// return from constructor without throwing exception if opening fails,
 	// used to avoid redundant FS::exists() tests when searching for a file to open
-	static constexpr OpenFlags OPEN_TEST = IG::bit(4);
+	static constexpr OpenFlags TEST_BIT = IG::bit(4);
 	static constexpr OpenFlags OPEN_FLAGS_BITS = 5;
+
+	// common flag combinations
+	static constexpr OpenFlags OPEN_NEW = WRITE_BIT | CREATE_BIT | TRUNCATE_BIT;
+	static constexpr OpenFlags OPEN_RW = READ_BIT | WRITE_BIT | CREATE_BIT;
 
 	constexpr IO() = default;
 	virtual ~IO() = default;

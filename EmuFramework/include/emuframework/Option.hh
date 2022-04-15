@@ -18,7 +18,7 @@
 #include <imagine/io/IO.hh>
 #include <imagine/util/concepts.hh>
 #include <imagine/util/optional.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 #include <imagine/logger/logger.h>
 #include <array>
 #include <cstring>

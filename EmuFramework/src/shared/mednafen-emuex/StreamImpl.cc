@@ -38,19 +38,19 @@ static std::pair<uint32_t, uint8_t> modeToAttribs(uint32 mode)
 			throw MDFN_Error(0, _("Unknown FileStream mode."));
 
 		case FileStream::MODE_READ:
-			return {IO::OPEN_READ, Stream::ATTRIBUTE_READABLE};
+			return {IO::READ_BIT, Stream::ATTRIBUTE_READABLE};
 
 		case FileStream::MODE_READ_WRITE:
-			return {IO::OPEN_READ | IO::OPEN_WRITE | IO::OPEN_CREATE, Stream::ATTRIBUTE_READABLE | Stream::ATTRIBUTE_WRITEABLE};
+			return {IO::OPEN_RW, Stream::ATTRIBUTE_READABLE | Stream::ATTRIBUTE_WRITEABLE};
 
 		case FileStream::MODE_WRITE:
-			return {IO::OPEN_WRITE | IO::OPEN_CREATE, Stream::ATTRIBUTE_WRITEABLE};
+			return {IO::OPEN_NEW, Stream::ATTRIBUTE_WRITEABLE};
 
 		case FileStream::MODE_WRITE_INPLACE:
-			return {IO::OPEN_WRITE | IO::OPEN_CREATE | IO::OPEN_KEEP_EXISTING, Stream::ATTRIBUTE_WRITEABLE};
+			return {IO::WRITE_BIT | IO::CREATE_BIT, Stream::ATTRIBUTE_WRITEABLE};
 
 		case FileStream::MODE_WRITE_SAFE:
-			return {IO::OPEN_WRITE, Stream::ATTRIBUTE_WRITEABLE};
+			return {IO::WRITE_BIT, Stream::ATTRIBUTE_WRITEABLE};
 	}
 }
 

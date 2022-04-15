@@ -63,7 +63,7 @@ constexpr std::array<memoryMap, 256> gbaMap
 	memoryMap{dummyArr, 0, nullptr, nullptr, nullptr},
 	memoryMap{gGba.mem.rom, 0x1FFFFFF, nullptr, nullptr, nullptr},
 	memoryMap{dummyArr, 0 , eepromRead32, eepromRead32, eepromRead32},
-	memoryMap{flashSaveMemory, 0xFFFF , flashRead32, flashRead32, flashRead32},
+	memoryMap{dummyArr, 0xFFFF , flashRead32, flashRead32, flashRead32},
 	PP_DUMMY_MAP_REPEAT(241)
 };
 
@@ -77,6 +77,7 @@ bool cpuSramEnabled = true;
 bool cpuFlashEnabled = true;
 bool cpuEEPROMEnabled = true;
 bool cpuEEPROMSensorEnabled = false;
+bool saveMemoryIsMappedFile = false;
 
 #ifdef PROFILING
 int profilingTicks = 0;
@@ -857,7 +858,7 @@ static bool CPUWriteState(GBASys &gba, gzFile gzFile)
 
 bool CPUWriteState(IG::ApplicationContext ctx, GBASys &gba, const char* file)
 {
-  gzFile gzFile = utilGzOpen(ctx.openFileUriFd(file, IG::IO::OPEN_CREATE).release(), "wb");
+  gzFile gzFile = utilGzOpen(ctx.openFileUriFd(file, IG::IO::OPEN_NEW | IG::IO::TEST_BIT).release(), "wb");
 
   if (gzFile == NULL) {
     systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"), file);
@@ -1093,6 +1094,8 @@ bool CPUExportEepromFile(const char* fileName)
 
 bool CPUWriteBatteryFile(IG::ApplicationContext ctx, GBASys &gba, const char* fileName)
 {
+  if(saveMemoryIsMappedFile)
+    return false;
   if ((saveType) && (saveType != GBA_SAVE_NONE)) {
     FILE* file = IG::FileUtils::fopenUri(ctx, fileName, "wb");
 
@@ -1105,18 +1108,18 @@ bool CPUWriteBatteryFile(IG::ApplicationContext ctx, GBASys &gba, const char* fi
     // only save if Flash/Sram in use or EEprom in use
     if (!eepromInUse) {
     	if (saveType == GBA_SAVE_FLASH) { // save flash type
-        if (fwrite(flashSaveMemory, 1, flashSize, file) != (size_t)flashSize) {
+        if (fwrite(flashSaveMemory.data(), 1, flashSize, file) != (size_t)flashSize) {
           fclose(file);
           return false;
         }
     	} else if (saveType == GBA_SAVE_SRAM) { // save sram type
-        if (fwrite(flashSaveMemory, 1, 0x8000, file) != 0x8000) {
+        if (fwrite(flashSaveMemory.data(), 1, 0x8000, file) != 0x8000) {
           fclose(file);
           return false;
         }
       }
     } else { // save eeprom type
-      if (fwrite(eepromData, 1, eepromSize, file) != (size_t)eepromSize) {
+      if (fwrite(eepromData.data(), 1, eepromSize, file) != (size_t)eepromSize) {
         fclose(file);
         return false;
       }
@@ -1175,7 +1178,7 @@ bool CPUReadGSASnapshot(GBASys &gba, const char* fileName)
   }
   fseek(file, 12, SEEK_CUR); // skip some flags
   if (saveSize >= 65536) {
-    if (fread(flashSaveMemory, 1, saveSize, file) != (size_t)saveSize) {
+    if (fread(flashSaveMemory.data(), 1, saveSize, file) != (size_t)saveSize) {
       fclose(file);
       return false;
     }
@@ -1239,7 +1242,7 @@ bool CPUReadGSASPSnapshot(GBASys &gba, const char* fileName)
   }
 
   // Read up to 128k save
-  FREAD_UNCHECKED(flashSaveMemory, 1, FLASH_128K_SZ, file);
+  FREAD_UNCHECKED(flashSaveMemory.data(), 1, FLASH_128K_SZ, file);
 
   fclose(file);
   CPUReset(gba);
@@ -1291,7 +1294,7 @@ bool CPUWriteGSASnapshot(GBASys &gba, const char* fileName,
   temp[0x12] = rom[0xbd]; // complement check
   temp[0x13] = rom[0xb0]; // maker
   temp[0x14] = 1; // 1 save ?
-  memcpy(&temp[0x1c], flashSaveMemory, saveSize); // copy save
+  memcpy(&temp[0x1c], flashSaveMemory.data(), saveSize); // copy save
   fwrite(temp, 1, totalSize, file); // write save + header
   uint32_t crc = 0;
 
@@ -1320,7 +1323,7 @@ bool CPUImportEepromFile(GBASys &gba, const char* fileName)
   long size = ftell(file);
   fseek(file, 0, SEEK_SET);
   if (size == 512 || size == 0x2000) {
-    if (fread(eepromData, 1, size, file) != (size_t)size) {
+    if (fread(eepromData.data(), 1, size, file) != (size_t)size) {
       fclose(file);
       return false;
     }
@@ -1353,31 +1356,12 @@ bool CPUImportEepromFile(GBASys &gba, const char* fileName)
 
 bool CPUReadBatteryFile(IG::ApplicationContext ctx, GBASys &gba, const char* fileName)
 {
-	auto buff = IG::FileUtils::bufferFromUri(ctx, fileName, IG::IO::OPEN_TEST, 0x20000);
-  if (!buff)
+  auto buff = IG::FileUtils::rwBufferFromUri(ctx, fileName, IG::IO::TEST_BIT, saveMemorySize(), 0xFF);
+  if(!buff)
     return false;
-
-  // check file size to know what we should read
-  auto size = buff.size();
-  systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
-
-  switch (size)
-  {
-  	case 512:
-  	case 0x2000:
-  		IG::copy_n(buff.data(), size, eepromData);
-  		logMsg("loaded saved eeprom");
-  		return true;
-  	case 0x8000:
-  	case 0x10000:
-  	case 0x20000:
-  		IG::copy_n(buff.data(), size, flashSaveMemory);
-  		if (size != 0x8000)
-  			flashSetSize(size);
-  		logMsg("loaded saved flash");
-  		return true;
-  }
-  return false;
+  saveMemoryIsMappedFile = buff.isMappedFile();
+  setSaveMemory(std::move(buff));
+  return true;
 }
 
 #if 0
@@ -1527,6 +1511,10 @@ void CPUCleanUp()
 #endif //NO_DEBUGGER
 
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
+
+  flashSaveMemory = {};
+  eepromData = {};
+  saveMemoryIsMappedFile = false;
 
   emulating = 0;
 }

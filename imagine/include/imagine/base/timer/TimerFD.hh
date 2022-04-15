@@ -18,7 +18,7 @@
 #include <imagine/base/timerDefs.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 #include <time.h>
 #include <memory>
 

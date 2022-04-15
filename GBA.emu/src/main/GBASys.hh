@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 #include <imagine/util/utility.h>
 
 constexpr int layerSettings = 0xff00;

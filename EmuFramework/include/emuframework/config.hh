@@ -48,9 +48,6 @@ constexpr bool VCONTROLS_GAMEPAD = true;
 constexpr bool VCONTROLS_GAMEPAD = false;
 #endif
 
-#if defined CONFIG_BASE_X11 || defined __ANDROID__ || defined CONFIG_BASE_IOS
-#define EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-#endif
 constexpr bool HAS_MULTIPLE_WINDOW_PIXEL_FORMATS = Config::envIsLinux || Config::envIsAndroid || Config::envIsIOS;
 
 #ifdef __ANDROID__

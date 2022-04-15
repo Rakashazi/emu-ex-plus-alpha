@@ -387,7 +387,7 @@ PixmapImage PixmapReader::load(const char *name) const
 		logErr("suffix doesn't match PNG image");
 		return {};
 	}
-	return load(FileIO{name, IO::AccessHint::ALL, IO::OPEN_TEST});
+	return load(FileIO{name, IO::AccessHint::ALL, IO::TEST_BIT});
 }
 
 PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const
@@ -397,7 +397,7 @@ PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const
 
 bool PixmapWriter::writeToFile(IG::Pixmap pix, const char *path) const
 {
-	auto fp = FileIO::create(path, IO::OPEN_TEST);
+	auto fp = FileIO{path, IO::OPEN_NEW | IO::TEST_BIT};
 	if(!fp)
 	{
 		return false;

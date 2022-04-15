@@ -21,6 +21,7 @@
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <fceu/driver.h>
+#include <fceu/cheat.h>
 
 void EncodeGG(char *str, int a, int v, int c);
 
@@ -82,6 +83,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 			FCEUI_DelCheat(idx);
 			fceuCheats--;
 			onCheatListChanged();
+			FCEU_FlushGameCheats(nullptr, 0, false);
 			dismiss();
 			return true;
 		},
@@ -268,6 +270,7 @@ void EmuEditCheatView::syncCheat(const char *newName)
 			logWarn("error setting cheat %d", idx);
 		}
 	}
+	FCEU_FlushGameCheats(nullptr, 0, false);
 }
 
 const char *EmuEditCheatView::cheatNameString() const
@@ -346,6 +349,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						fceuCheats++;
 						FCEUI_ToggleCheat(fceuCheats-1);
 						logMsg("added new cheat, %d total", fceuCheats);
+						FCEU_FlushGameCheats(nullptr, 0, false);
 						view.dismiss();
 						app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[this](CollectTextInputView &view, const char *str)
@@ -354,6 +358,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 								{
 									FCEUI_SetCheat(fceuCheats-1, str, UNCHANGED_VAL, UNCHANGED_VAL, UNCHANGED_VAL, -1, 1);
 									onCheatListChanged();
+									FCEU_FlushGameCheats(nullptr, 0, false);
 									view.dismiss();
 								}
 								else
@@ -391,6 +396,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						FCEUI_ToggleCheat(fceuCheats-1);
 						logMsg("added new cheat, %d total", fceuCheats);
 						onCheatListChanged();
+						FCEU_FlushGameCheats(nullptr, 0, false);
 						auto editCheatView = makeView<EmuEditCheatView>(fceuCheats-1, [this](){ onCheatListChanged(); });
 						view.dismiss();
 						pushAndShow(std::move(editCheatView), {});
@@ -440,6 +446,7 @@ void EmuCheatsView::loadCheatItems()
 				}
 				item.flipBoolValue(*this);
 				FCEUI_ToggleCheat(c);
+				FCEU_FlushGameCheats(nullptr, 0, false);
 			});
 	}
 }

@@ -23,7 +23,7 @@
 #include <imagine/gfx/TextureSampler.hh>
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/RendererTask.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 #include <memory>
 #ifdef CONFIG_BASE_GL_PLATFORM_EGL
 #include <EGL/egl.h>

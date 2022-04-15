@@ -14,8 +14,10 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuSystem.hh>
-#include <imagine/fs/FSUtils.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/fs/FSUtils.hh>
+#include <imagine/io/FileIO.hh>
+#include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
 #include <vector>
 
@@ -78,6 +80,27 @@ void updateLegacySavePathOnStoragePath(ApplicationContext ctx, EmuSystem &sys)
 	catch(...)
 	{
 		return;
+	}
+}
+
+bool hasWriteAccessToDir(IG::CStringView path)
+{
+	// on Android test file creation since
+	// access() can still claim emulated storage is writable
+	// even though parts are locked-down by the OS (like on 4.4+)
+	if constexpr(Config::envIsAndroid)
+	{
+		if(IG::isUri(path))
+			return true;
+		auto testFilePath = FS::pathString(path, ".safe-to-delete-me");
+		PosixIO testFile{testFilePath, IO::OPEN_NEW | IO::TEST_BIT};
+		auto removeTestFile = IG::scopeGuard([&]() { if(testFile) FS::remove(testFilePath); });
+		return (bool)testFile;
+	}
+	else
+	{
+		assert(!IG::isUri(path));
+		return FS::access(path, FS::acc::w);
 	}
 }
 

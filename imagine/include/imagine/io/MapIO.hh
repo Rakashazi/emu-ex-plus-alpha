@@ -37,9 +37,9 @@ public:
 	using IO::get;
 
 	constexpr MapIO() = default;
-	MapIO(IG::ByteBuffer buff);
-	MapIO(IG::derived_from<IO> auto &&io): MapIO{io.buffer(IO::BufferMode::RELEASE)} {}
-	MapIO(IG::derived_from<IO> auto &io): MapIO{io.buffer(IO::BufferMode::DIRECT)} {}
+	MapIO(IOBuffer);
+	MapIO(derived_from<IO> auto &&io): MapIO{io.buffer(IO::BufferMode::RELEASE)} {}
+	MapIO(derived_from<IO> auto &io): MapIO{io.buffer(IO::BufferMode::DIRECT)} {}
 	ssize_t read(void *buff, size_t bytes) final;
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset) final;
 	std::span<uint8_t> map() final;
@@ -51,11 +51,11 @@ public:
 	#if defined __linux__ || defined __APPLE__
 	void advise(off_t offset, size_t bytes, Advice advice) final;
 	#endif
-	IG::ByteBuffer releaseBuffer();
+	IOBuffer releaseBuffer();
 
 protected:
 	uint8_t *currPos{};
-	IG::ByteBuffer buff{};
+	IOBuffer buff{};
 
 	uint8_t *data() const;
 	uint8_t *dataEnd() const;

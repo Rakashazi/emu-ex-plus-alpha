@@ -253,7 +253,7 @@ void handleKeyEvent(ApplicationContext ctx, UIEvent *event)
 	}
 }
 
-std::string Event::keyString(ApplicationContext) const
+std::string KeyEvent::keyString(ApplicationContext) const
 {
 	return {}; // TODO
 }

@@ -16,9 +16,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/rectangle2.h>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gui/ScrollView.hh>
+#include <imagine/util/rectangle2.h>
+#include <imagine/util/typeTraits.hh>
 #include <iterator>
 
 namespace IG::Input

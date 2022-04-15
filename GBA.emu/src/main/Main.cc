@@ -28,6 +28,7 @@
 #include <vbam/common/SoundDriver.h>
 #include <vbam/common/Patch.h>
 #include <vbam/Util.h>
+#include <sys/mman.h>
 
 namespace EmuEx
 {
@@ -88,22 +89,27 @@ void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 		return throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem()
+void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
-	if(hasContent())
+	if(!hasContent() || saveType == GBA_SAVE_NONE)
+		return;
+	if(saveMemoryIsMappedFile)
 	{
-		if(saveType != GBA_SAVE_NONE)
-		 logMsg("saving backup memory");
+		logMsg("flushing backup memory");
+		ByteBuffer &saveData = eepromInUse ? eepromData : flashSaveMemory;
+		msync(saveData.data(), saveData.size(), MS_SYNC);
+	}
+	else
+	{
+		logMsg("saving backup memory");
 		auto saveStr = EmuSystem::contentSaveFilePath(".sav");
 		CPUWriteBatteryFile(appContext(), gGba, saveStr.data());
-		writeCheatFile(*this);
 	}
 }
 
 void EmuSystem::closeSystem()
 {
 	assert(hasContent());
-	saveBackupMem();
 	CPUCleanUp();
 	detectedRtcGame = 0;
 	cheatsList.clear();

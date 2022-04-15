@@ -6,6 +6,8 @@
 #include <memory.h>
 #include <stdio.h>
 #include <string.h>
+#include <imagine/util/algorithm.h>
+#include <imagine/logger/logger.h>
 
 #define FLASH_READ_ARRAY 0
 #define FLASH_CMD_1 1
@@ -18,7 +20,7 @@
 #define FLASH_PROGRAM 8
 #define FLASH_SETBANK 9
 
-uint8_t flashSaveMemory[SIZE_FLASH1M];
+IG::ByteBuffer flashSaveMemory{};
 
 int flashState = FLASH_READ_ARRAY;
 int flashReadState = FLASH_READ_ARRAY;
@@ -29,7 +31,8 @@ int flashBank = 0;
 
 void flashInit()
 {
-    memset(flashSaveMemory, 0xff, sizeof(flashSaveMemory));
+    flashSaveMemory = SIZE_FLASH1M;
+    memset(flashSaveMemory.data(), 0xff, flashSaveMemory.size());
 }
 
 void flashReset()
@@ -52,7 +55,7 @@ void flashSetSize(int size)
     // Added to make 64k saves compatible with 128k ones
     // (allow wrongfuly set 64k saves to work for Pokemon games)
     if ((size == SIZE_FLASH1M) && (flashSize == SIZE_FLASH512))
-        memcpy((uint8_t*)(flashSaveMemory + SIZE_FLASH512), (uint8_t*)(flashSaveMemory), SIZE_FLASH512);
+        memcpy((uint8_t*)(flashSaveMemory.data() + SIZE_FLASH512), (uint8_t*)(flashSaveMemory.data()), SIZE_FLASH512);
     flashSize = size;
 }
 
@@ -178,7 +181,7 @@ void flashWrite(uint32_t address, uint8_t byte)
             flashReadState = FLASH_ERASE_COMPLETE;
         } else if (byte == 0x10) {
             // CHIP ERASE
-            memset(flashSaveMemory, 0xff, flashSize);
+            memset(flashSaveMemory.data(), 0xff, flashSize);
             systemSaveUpdateCounter = SYSTEM_SAVE_UPDATED;
             flashReadState = FLASH_ERASE_COMPLETE;
         } else {
@@ -213,13 +216,17 @@ void flashWrite(uint32_t address, uint8_t byte)
     }
 }
 
-constexpr variable_desc flashSaveData3[] = {
+static auto flashSaveData3(uint8_t *flashSaveMemory, int &flashSize)
+{
+  return std::array<variable_desc, 6>
+  {{
     { &flashState, sizeof(int) },
     { &flashReadState, sizeof(int) },
     { &flashSize, sizeof(int) },
     { &flashBank, sizeof(int) },
     { &flashSaveMemory[0], SIZE_FLASH1M },
     { NULL, 0 }
+  }};
 };
 
 #ifdef __LIBRETRO__
@@ -234,48 +241,66 @@ void flashReadGame(const uint8_t*& data, int)
 }
 
 #else // !__LIBRETRO__
-constexpr variable_desc flashSaveData[] = {
+static auto flashSaveData(uint8_t *flashSaveMemory)
+{
+  return std::array<variable_desc, 4>
+  {{
     { &flashState, sizeof(int) },
     { &flashReadState, sizeof(int) },
     { &flashSaveMemory[0], SIZE_FLASH512 },
     { NULL, 0 }
-};
+  }};
+}
 
-constexpr variable_desc flashSaveData2[] = {
+static auto flashSaveData2(uint8_t *flashSaveMemory, int &flashSize)
+{
+  return std::array<variable_desc, 5>
+  {{
     { &flashState, sizeof(int) },
     { &flashReadState, sizeof(int) },
     { &flashSize, sizeof(int) },
     { &flashSaveMemory[0], SIZE_FLASH1M },
     { NULL, 0 }
+  }};
 };
 
 void flashSaveGame(gzFile gzFile)
 {
-    utilWriteData(gzFile, flashSaveData3);
+    uint8_t flashSaveMemoryTemp[SIZE_FLASH1M]{};
+    IG::copy_n(flashSaveMemory.data(), flashSaveMemory.size(), flashSaveMemoryTemp);
+    utilWriteData(gzFile, flashSaveData3(flashSaveMemoryTemp, flashSize).data());
 }
 
 void flashReadGame(gzFile gzFile, int version)
 {
+    uint8_t flashSaveMemoryTemp[SIZE_FLASH1M]{};
+    int flashSizeTemp = flashSize;
     if (version < SAVE_GAME_VERSION_5)
-        utilReadData(gzFile, flashSaveData);
+        utilReadData(gzFile, flashSaveData(flashSaveMemoryTemp).data());
     else if (version < SAVE_GAME_VERSION_7) {
-        utilReadData(gzFile, flashSaveData2);
+        utilReadData(gzFile, flashSaveData2(flashSaveMemoryTemp, flashSizeTemp).data());
         flashBank = 0;
-        flashSetSize(flashSize);
     } else {
-        utilReadData(gzFile, flashSaveData3);
+        utilReadData(gzFile, flashSaveData3(flashSaveMemoryTemp, flashSizeTemp).data());
     }
+    if(flashSizeTemp != flashSize)
+    {
+        logWarn("expected flash size:%d but got %d from state", flashSize, flashSizeTemp);
+    }
+    IG::copy_n(flashSaveMemoryTemp, flashSaveMemory.size(), flashSaveMemory.data());
 }
 
 void flashReadGameSkip(gzFile gzFile, int version)
 {
     // skip the flash data in a save game
+    uint8_t flashSaveMemoryTemp[SIZE_FLASH1M]{};
+    int flashSizeTemp{};
     if (version < SAVE_GAME_VERSION_5)
-        utilReadDataSkip(gzFile, flashSaveData);
+        utilReadDataSkip(gzFile, flashSaveData(flashSaveMemoryTemp).data());
     else if (version < SAVE_GAME_VERSION_7) {
-        utilReadDataSkip(gzFile, flashSaveData2);
+        utilReadDataSkip(gzFile, flashSaveData2(flashSaveMemoryTemp, flashSizeTemp).data());
     } else {
-        utilReadDataSkip(gzFile, flashSaveData3);
+        utilReadDataSkip(gzFile, flashSaveData3(flashSaveMemoryTemp, flashSizeTemp).data());
     }
 }
 #endif

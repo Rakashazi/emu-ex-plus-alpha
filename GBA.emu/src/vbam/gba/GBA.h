@@ -7,6 +7,7 @@
 #include "../Util.h"
 #include "../NLS.h"
 #include <imagine/util/mayAliasInt.h>
+#include <imagine/util/memory/Buffer.hh>
 #include <array>
 #include <cstring>
 
@@ -133,6 +134,7 @@ extern bool cpuSramEnabled;
 extern bool cpuFlashEnabled;
 extern bool cpuEEPROMEnabled;
 extern bool cpuEEPROMSensorEnabled;
+extern bool saveMemoryIsMappedFile;
 
 #ifdef BKPT_SUPPORT
 extern uint8_t freezeWorkRAM[0x40000];
@@ -194,6 +196,9 @@ void SetSaveDotCodeFile(const char* szFile);
 
 // Updates romSize and realloc rom pointer if needed after soft-patching
 void gbaUpdateRomSize(int size);
+
+void setSaveMemory(IG::ByteBuffer buff);
+size_t saveMemorySize();
 
 #define R13_IRQ  18
 #define R14_IRQ  19

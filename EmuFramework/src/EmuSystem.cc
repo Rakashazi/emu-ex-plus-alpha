@@ -233,6 +233,7 @@ void EmuSystem::closeRuntimeSystem(EmuApp &app, bool allowAutosaveState)
 			app.saveAutoState();
 		app.saveSessionOptions();
 		logMsg("closing game:%s", contentName_.data());
+		flushBackupMemory();
 		closeSystem();
 		app.cancelAutoSaveStateTimer();
 		state = State::OFF;
@@ -520,6 +521,33 @@ bool EmuSystem::inputHasTriggers()
 	return inputLTriggerIndex != -1 && inputRTriggerIndex != -1;
 }
 
+void EmuSystem::flushBackupMemory(BackupMemoryDirtyFlags flags)
+{
+	onFlushBackupMemory(flags);
+	backupMemoryDirtyFlags = 0;
+	backupMemoryCounter = 0;
+}
+
+void EmuSystem::onBackupMemoryWritten(BackupMemoryDirtyFlags flags)
+{
+	backupMemoryDirtyFlags |= flags;
+	backupMemoryCounter = 127;
+}
+
+bool EmuSystem::updateBackupMemoryCounter()
+{
+	if(backupMemoryCounter) [[unlikely]]
+	{
+		backupMemoryCounter--;
+		if(!backupMemoryCounter)
+		{
+			flushBackupMemory(backupMemoryDirtyFlags);
+			return true;
+		}
+	}
+	return false;
+}
+
 [[gnu::weak]] void EmuSystem::onInit() {}
 
 [[gnu::weak]] void EmuSystem::initOptions(EmuApp &) {}
@@ -528,7 +556,7 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] void EmuSystem::onOptionsLoaded() {}
 
-[[gnu::weak]] void EmuSystem::saveBackupMem() {}
+[[gnu::weak]] void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags) {}
 
 [[gnu::weak]] void EmuSystem::savePathChanged() {}
 
@@ -599,6 +627,8 @@ bool EmuSystem::inputHasTriggers()
 }
 
 [[gnu::weak]] void EmuSystem::onVKeyboardShown(VControllerKeyboard &, bool shown) {}
+
+[[gnu::weak]] void EmuSystem::closeSystem() {}
 
 EmuSystem &gSystem() { return gApp().system(); }
 

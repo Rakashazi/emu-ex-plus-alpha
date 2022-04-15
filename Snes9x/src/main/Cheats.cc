@@ -166,6 +166,20 @@ static bool addCheat(const char *cheatStr)
 	#endif
 }
 
+static FS::PathString cheatsFilename(EmuSystem &sys)
+{
+	return sys.contentSaveFilePath(".cht");
+}
+
+static void writeCheatsFile(EmuSystem &sys)
+{
+	if(!numCheats())
+		logMsg("no cheats present, removing .cht file if present");
+	else
+		logMsg("saving %u cheat(s)", numCheats());
+	S9xSaveCheatFile(cheatsFilename(sys).data());
+}
+
 EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
@@ -191,6 +205,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		{
 			deleteCheat(idx);
 			onCheatListChanged();
+			writeCheatsFile(system());
 			dismiss();
 			return true;
 		},
@@ -224,6 +239,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 					{
 						enableCheat(idx);
 					}
+					writeCheatsFile(system());
 					addr.set2ndName(addrStr);
 					addr.compile(renderer(), projP);
 					postDraw();
@@ -258,6 +274,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 					{
 						enableCheat(idx);
 					}
+					writeCheatsFile(system());
 					value.set2ndName(valueStr);
 					value.compile(renderer(), projP);
 					postDraw();
@@ -313,6 +330,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 						{
 							enableCheat(idx);
 						}
+						writeCheatsFile(system());
 						saved.set2ndName(savedStr);
 						saved.compile(renderer(), projP);
 						postDraw();
@@ -349,6 +367,7 @@ const char *EmuEditCheatView::cheatNameString() const
 void EmuEditCheatView::renamed(const char *str)
 {
 	setCheatName(idx, str);
+	writeCheatsFile(system());
 }
 
 void EmuEditCheatListView::loadCheatItems()
@@ -408,6 +427,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						setCheatName(idx, "Unnamed Cheat");
 						logMsg("added new cheat, %d total", numCheats());
 						onCheatListChanged();
+						writeCheatsFile(system());
 						view.dismiss();
 						app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[this, idx](CollectTextInputView &view, const char *str)
@@ -416,6 +436,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 								{
 									setCheatName(idx, str);
 									onCheatListChanged();
+									writeCheatsFile(system());
 									view.dismiss();
 								}
 								else

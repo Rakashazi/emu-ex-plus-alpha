@@ -513,7 +513,6 @@ void applySoundFormat(EmulateSpecStruct *espec)
 
 static MDFN_COLD void CloseGame(void)
 {
- HuC_SaveNV();
  Cleanup();
 }
 

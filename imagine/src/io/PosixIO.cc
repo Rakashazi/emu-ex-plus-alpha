@@ -23,22 +23,27 @@
 #include <cstring>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/mman.h>
 #include <system_error>
 
 namespace IG
 {
 
-static IG::StaticString<5> flagsString(uint32_t openFlags)
+#if !defined __linux__
+constexpr int MAP_POPULATE = 0;
+#endif
+
+static IG::StaticString<5> flagsString(IO::OpenFlags openFlags)
 {
 	IG::StaticString<5> logFlagsStr{};
-	if(openFlags & IO::OPEN_READ || !(openFlags & IO::OPEN_WRITE)) logFlagsStr += 'r';
-	if(openFlags & IO::OPEN_WRITE) logFlagsStr += 'w';
-	if(openFlags & IO::OPEN_CREATE_NEW) logFlagsStr += 'c';
-	if(openFlags & IO::OPEN_KEEP_EXISTING) logFlagsStr += 't';
+	if(openFlags & IO::READ_BIT) logFlagsStr += 'r';
+	if(openFlags & IO::WRITE_BIT) logFlagsStr += 'w';
+	if(openFlags & IO::CREATE_BIT) logFlagsStr += 'c';
+	if(openFlags & IO::TRUNCATE_BIT) logFlagsStr += 't';
 	return logFlagsStr;
 }
 
-PosixIO::PosixIO(IG::CStringView path, uint32_t openFlags)
+PosixIO::PosixIO(IG::CStringView path, OpenFlags openFlags)
 {
 	// validate flags
 	assert(openFlags < IG::bit(OPEN_FLAGS_BITS+1));
@@ -48,9 +53,9 @@ PosixIO::PosixIO(IG::CStringView path, uint32_t openFlags)
 	mode_t openMode{};
 
 	// setup flags
-	if(openFlags & OPEN_WRITE)
+	if(openFlags & WRITE_BIT)
 	{
-		if(openFlags & OPEN_READ)
+		if(openFlags & READ_BIT)
 		{
 			flags |= O_RDWR;
 		}
@@ -63,11 +68,11 @@ PosixIO::PosixIO(IG::CStringView path, uint32_t openFlags)
 	{
 		flags |= O_RDONLY;
 	}
-	if(openFlags & OPEN_CREATE_NEW)
+	if(openFlags & CREATE_BIT)
 	{
 		flags |= O_CREAT;
 		openMode = defaultOpenMode;
-		if(!(openFlags & OPEN_KEEP_EXISTING))
+		if(openFlags & TRUNCATE_BIT)
 		{
 			flags |= O_TRUNC;
 		}
@@ -77,19 +82,13 @@ PosixIO::PosixIO(IG::CStringView path, uint32_t openFlags)
 	{
 		if constexpr(Config::DEBUG_BUILD)
 			logErr("error opening file (%s) @ %s:%s", flagsString(openFlags).data(), path.data(), strerror(errno));
-		if(openFlags & IO::OPEN_TEST)
+		if(openFlags & IO::TEST_BIT)
 			return;
 		else
 			throw std::system_error{errno, std::system_category(), path};
 	}
 	if constexpr(Config::DEBUG_BUILD)
 		logMsg("opened file (%s) fd %d @ %s", flagsString(openFlags).data(), (int)fd_, path.data());
-}
-
-PosixIO PosixIO::create(IG::CStringView path, uint32_t mode)
-{
-	mode |= OPEN_CREATE;
-	return {path, mode};
 }
 
 ssize_t PosixIO::read(void *buff, size_t bytes)
@@ -201,6 +200,46 @@ void PosixIO::advise(off_t offset, size_t bytes, Advice advice)
 PosixIO::operator bool() const
 {
 	return fd_ != -1;
+}
+
+IOBuffer PosixIO::releaseBuffer()
+{
+	return mapRange(0, size(), MAP_WRITE);
+}
+
+IOBuffer PosixIO::mapRange(off_t start, size_t size, MapFlags mapFlags)
+{
+	int flags = MAP_SHARED;
+	if(mapFlags & MAP_POPULATE_PAGES)
+		flags |= MAP_POPULATE;
+	int prot = PROT_READ;
+	if(mapFlags & MAP_WRITE)
+		prot |= PROT_WRITE;
+	void *data = mmap(nullptr, size, prot, flags, fd(), start);
+	if(data == MAP_FAILED)
+	{
+		logErr("mmap fd:%d @ %zu (%zu bytes) failed", fd(), (size_t)start, size);
+		return {};
+	}
+	logMsg("mapped fd:%d @ %zu to %p (%zu bytes)", fd(), (size_t)start, data, size);
+	return byteBufferFromMmap(data, size);
+}
+
+IOBuffer PosixIO::byteBufferFromMmap(void *data, size_t size)
+{
+	return
+	{
+		{(uint8_t*)data, size}, IOBuffer::MAPPED_FILE_BIT,
+		[](const uint8_t *ptr, size_t size)
+		{
+			logMsg("unmapping:%p (%zu bytes)", ptr, size);
+			if(munmap((void*)ptr, size) == -1)
+			{
+				if(Config::DEBUG_BUILD)
+					logErr("munmap(%p, %zu) error:%s", ptr, size, strerror(errno));
+			}
+		}
+	};
 }
 
 UniqueFileDescriptor PosixIO::releaseFd()

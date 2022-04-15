@@ -120,36 +120,36 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			app().audioManager().setSoloMix(!item.flipBoolValue(*this));
 		}
 	},
-	api
+	apiItem
 	{
-		"Audio Driver", &defaultFace(),
-		0,
-		apiItem
-	}
-{
-	if(IG::used(apiItem))
-	{
-		apiItem.emplace_back("Auto", &defaultFace(),
-			[this](View &view)
+		[this]()
+		{
+			ApiItemContainer items{};
+			items.emplace_back("Auto", &defaultFace(), [this](View &view)
 			{
 				app().setAudioOutputAPI(Audio::Api::DEFAULT);
-				api.setSelected((MenuItem::Id)app().audioManager().makeValidAPI());
+				doIfUsed(api, [&](auto &api){ api.setSelected((MenuItem::Id)app().audioManager().makeValidAPI()); });
 				view.dismiss();
 				return false;
 			});
-		{
 			auto &audioManager = app().audioManager();
 			for(auto desc: audioManager.audioAPIs())
 			{
-				apiItem.emplace_back(desc.name, &defaultFace(),
-					[this](TextMenuItem &item)
-					{
-						app().setAudioOutputAPI((Audio::Api)item.id());
-					}, (MenuItem::Id)desc.api);
+				items.emplace_back(desc.name, &defaultFace(), [this](TextMenuItem &item)
+				{
+					app().setAudioOutputAPI((Audio::Api)item.id());
+				}, (MenuItem::Id)desc.api);
 			}
-			api.setSelected((MenuItem::Id)audioManager.makeValidAPI(app().audioOutputAPI()));
-		}
+			return items;
+		}()
+	},
+	api
+	{
+		"Audio Driver", &defaultFace(),
+		(MenuItem::Id)app().audioManager().makeValidAPI(app().audioOutputAPI()),
+		apiItem
 	}
+{
 	if(!customMenu)
 	{
 		loadStockItems();
@@ -186,10 +186,13 @@ void AudioOptionView::loadStockItems()
 	{
 		item.emplace_back(&audioSoloMix);
 	}
-	if(apiItem.size() > 2)
+	doIfUsed(apiItem, [&](auto &apiItem)
 	{
-		item.emplace_back(&api);
-	}
+		if(apiItem.size() > 2)
+		{
+			item.emplace_back(&api);
+		}
+	});
 }
 
 TextMenuItem::SelectDelegate AudioOptionView::setRateDel()

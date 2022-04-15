@@ -17,7 +17,7 @@
 
 #include <imagine/gui/viewDefs.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 #include <optional>
 
 namespace IG

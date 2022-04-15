@@ -662,23 +662,26 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 		inputDevData(dev).devConf.iCadeMode(),
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			#ifdef CONFIG_BASE_IOS
-			confirmICadeMode(e);
-			#else
-			if(!item.boolValue())
+			if constexpr(Config::envIsIOS)
 			{
-				auto ynAlertView = makeView<YesNoAlertView>(
-					"This mode allows input from an iCade-compatible Bluetooth device, don't enable if this isn't an iCade", "Enable", "Cancel");
-				ynAlertView->setOnYes(
-					[this](const Input::Event &e)
-					{
-						confirmICadeMode();
-					});
-				pushAndShowModal(std::move(ynAlertView), e);
+				confirmICadeMode();
 			}
 			else
-				confirmICadeMode();
-			#endif
+			{
+				if(!item.boolValue())
+				{
+					auto ynAlertView = makeView<YesNoAlertView>(
+						"This mode allows input from an iCade-compatible Bluetooth device, don't enable if this isn't an iCade", "Enable", "Cancel");
+					ynAlertView->setOnYes(
+						[this](const Input::Event &e)
+						{
+							confirmICadeMode();
+						});
+					pushAndShowModal(std::move(ynAlertView), e);
+				}
+				else
+					confirmICadeMode();
+			}
 		}
 	},
 	#endif

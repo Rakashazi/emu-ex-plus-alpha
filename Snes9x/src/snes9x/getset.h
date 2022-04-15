@@ -16,6 +16,7 @@
 #include "seta.h"
 #include "bsx.h"
 #include "msu1.h"
+#include <emuframework/EmuSystem.hh>
 
 static void addCyclesInMemoryAccessImpl(SCPUState &CPU, int32 speed)
 {
@@ -357,7 +358,7 @@ inline void S9xSetByte (uint8 Byte, uint32 Address)
 			if (Memory.SRAMMask)
 			{
 				*(Memory.SRAM + ((((Address & 0xff0000) >> 1) | (Address & 0x7fff)) & Memory.SRAMMask)) = Byte;
-				CPU.SRAMModified = TRUE;
+				EmuEx::gSystem().onBackupMemoryWritten();
 			}
 
 			addCyclesInMemoryAccess;
@@ -367,7 +368,7 @@ inline void S9xSetByte (uint8 Byte, uint32 Address)
 			if (Multi.sramMaskB)
 			{
 				*(Multi.sramB + ((((Address & 0xff0000) >> 1) | (Address & 0x7fff)) & Multi.sramMaskB)) = Byte;
-				CPU.SRAMModified = TRUE;
+				EmuEx::gSystem().onBackupMemoryWritten();
 			}
 
 			addCyclesInMemoryAccess;
@@ -377,7 +378,7 @@ inline void S9xSetByte (uint8 Byte, uint32 Address)
 			if (Memory.SRAMMask)
 			{
 				*(Memory.SRAM + (((Address & 0x7fff) - 0x6000 + ((Address & 0x1f0000) >> 3)) & Memory.SRAMMask)) = Byte;
-				CPU.SRAMModified = TRUE;
+				EmuEx::gSystem().onBackupMemoryWritten();
 			}
 
 			addCyclesInMemoryAccess;
@@ -385,7 +386,7 @@ inline void S9xSetByte (uint8 Byte, uint32 Address)
 
 		case CMemory::MAP_BWRAM:
 			*(Memory.BWRAM + ((Address & 0x7fff) - 0x6000)) = Byte;
-			CPU.SRAMModified = TRUE;
+			EmuEx::gSystem().onBackupMemoryWritten();
 			addCyclesInMemoryAccess;
 			return;
 
@@ -536,7 +537,7 @@ inline void S9xSetWord (uint16 Word, uint32 Address, enum s9xwrap_t w = WRAP_NON
 					*(Memory.SRAM + (((((Address + 1) & 0xff0000) >> 1) | ((Address + 1) & 0x7fff)) & Memory.SRAMMask)) = Word >> 8;
 				}
 
-				CPU.SRAMModified = TRUE;
+				EmuEx::gSystem().onBackupMemoryWritten();
 			}
 
 			addCyclesInMemoryAccess_x2;
@@ -553,7 +554,7 @@ inline void S9xSetWord (uint16 Word, uint32 Address, enum s9xwrap_t w = WRAP_NON
 					*(Multi.sramB + (((((Address + 1) & 0xff0000) >> 1) | ((Address + 1) & 0x7fff)) & Multi.sramMaskB)) = Word >> 8;
 				}
 
-				CPU.SRAMModified = TRUE;
+				EmuEx::gSystem().onBackupMemoryWritten();
 			}
 
 			addCyclesInMemoryAccess_x2;
@@ -570,7 +571,7 @@ inline void S9xSetWord (uint16 Word, uint32 Address, enum s9xwrap_t w = WRAP_NON
 					*(Memory.SRAM + ((((Address + 1) & 0x7fff) - 0x6000 + (((Address + 1) & 0x1f0000) >> 3)) & Memory.SRAMMask)) = Word >> 8;
 				}
 
-				CPU.SRAMModified = TRUE;
+				EmuEx::gSystem().onBackupMemoryWritten();
 			}
 
 			addCyclesInMemoryAccess_x2;
@@ -578,7 +579,7 @@ inline void S9xSetWord (uint16 Word, uint32 Address, enum s9xwrap_t w = WRAP_NON
 
 		case CMemory::MAP_BWRAM:
 			WRITE_WORD(Memory.BWRAM + ((Address & 0x7fff) - 0x6000), Word);
-			CPU.SRAMModified = TRUE;
+			EmuEx::gSystem().onBackupMemoryWritten();
 			addCyclesInMemoryAccess_x2;
 			return;
 

@@ -483,7 +483,8 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		{
 			if(android.os.Build.VERSION.SDK_INT >= 21 && path.charAt(0) != '/')
 			{
-				int fd = ContentResolverUtils.openUriFd(getContentResolver(), path, ContentResolverUtils.OPEN_WRITE);
+				int fd = ContentResolverUtils.openUriFd(getContentResolver(), path,
+					ContentResolverUtils.WRITE_BIT | ContentResolverUtils.CREATE_BIT);
 				ParcelFileDescriptor pfd = ParcelFileDescriptor.adoptFd(fd);
 				ParcelFileDescriptor.AutoCloseOutputStream output = new ParcelFileDescriptor.AutoCloseOutputStream(pfd);
 				success = bitmap.compress(Bitmap.CompressFormat.PNG, 100, output);

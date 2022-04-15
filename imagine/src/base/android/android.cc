@@ -262,7 +262,7 @@ UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject base
 	{
 		if constexpr(Config::DEBUG_BUILD)
 			logErr("error opening URI:%s", uri.data());
-		if(openFlags & IO::OPEN_TEST)
+		if(openFlags & IO::TEST_BIT)
 			return -1;
 		else
 			throw std::system_error{ENOENT, std::system_category(), uri};

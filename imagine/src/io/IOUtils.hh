@@ -82,7 +82,7 @@ ssize_t IOUtils<IO>::send(IO &output, off_t *srcOffset, size_t bytes)
 	return totalBytesWritten;
 }
 
-static IG::ByteBuffer makeBufferCopy(auto &io)
+static IOBuffer makeBufferCopy(auto &io)
 {
 	auto size = io.size();
 	auto buff = std::make_unique<uint8_t[]>(size);
@@ -94,7 +94,7 @@ static IG::ByteBuffer makeBufferCopy(auto &io)
 }
 
 template <class IO>
-IG::ByteBuffer IOUtils<IO>::buffer(IODefs::BufferMode mode)
+IOBuffer IOUtils<IO>::buffer(IODefs::BufferMode mode)
 {
 	auto &io = *static_cast<IO*>(this);
 	if(mode == ::IG::IO::BufferMode::RELEASE)
@@ -110,7 +110,7 @@ IG::ByteBuffer IOUtils<IO>::buffer(IODefs::BufferMode mode)
 	{
 		auto map = io.map();
 		if(map.data())
-			return {map};
+			return {map, IOBuffer::MAPPED_FILE_BIT};
 	}
 	return makeBufferCopy(io);
 }

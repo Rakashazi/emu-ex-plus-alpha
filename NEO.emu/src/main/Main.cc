@@ -97,6 +97,7 @@ namespace EmuEx
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGngeo Team\ncode.google.com/p/gngeo";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 bool EmuSystem::canRenderRGBA8888 = false;
+bool EmuApp::needsGlobalInstance = true;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static uint16_t screenBuff[352*256] __attribute__ ((aligned (8))){};
 static GN_Surface sdlSurf;
@@ -161,17 +162,18 @@ static auto memcardPath(EmuSystem &sys)
 	return sys.contentSavePath("memcard");
 }
 
-void EmuSystem::saveBackupMem()
+void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags flags)
 {
 	if(!hasContent())
 		return;
-	FileUtils::writeToUri(appContext(), nvramPath(*this), {memory.sram, 0x10000});
-	FileUtils::writeToUri(appContext(), memcardPath(*this), {memory.memcard, 0x800});
+	if(flags & SRAM_DIRTY_BIT)
+		FileUtils::writeToUri(appContext(), nvramPath(*this), {memory.sram, 0x10000});
+	if(flags & MEMCARD_DIRTY_BIT)
+		FileUtils::writeToUri(appContext(), memcardPath(*this), {memory.memcard, 0x800});
 }
 
 void EmuSystem::closeSystem()
 {
-	saveBackupMem();
 	close_game();
 }
 
@@ -391,6 +393,16 @@ void open_memcard(void *contextPtr, char *name)
 	auto &ctx = *((IG::ApplicationContext*)contextPtr);
 	auto &sys = EmuEx::EmuApp::get(ctx).system();
 	IG::FileUtils::readFromUri(ctx, EmuEx::memcardPath(sys), {memory.memcard, 0x800});
+}
+
+void sramWritten()
+{
+	EmuEx::gSystem().onBackupMemoryWritten(SRAM_DIRTY_BIT);
+}
+
+void memcardWritten()
+{
+	EmuEx::gSystem().onBackupMemoryWritten(MEMCARD_DIRTY_BIT);
 }
 
 void gn_init_pbar(unsigned action, int size)

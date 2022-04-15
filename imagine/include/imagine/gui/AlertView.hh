@@ -19,6 +19,7 @@
 #include <imagine/gui/View.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
+#include <imagine/util/typeTraits.hh>
 #include <utility>
 
 namespace IG

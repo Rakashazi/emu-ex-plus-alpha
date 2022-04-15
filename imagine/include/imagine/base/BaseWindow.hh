@@ -21,7 +21,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/Point2D.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/used.hh>
 #include <memory>
 
 namespace IG

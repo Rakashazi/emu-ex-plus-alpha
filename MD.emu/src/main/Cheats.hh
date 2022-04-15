@@ -77,7 +77,6 @@ static constexpr size_t maxCheats = 100;
 extern StaticArrayList<MdCheat, maxCheats> cheatList;
 extern StaticArrayList<MdCheat*, maxCheats> romCheatList;
 extern StaticArrayList<MdCheat*, maxCheats> ramCheatList;
-extern bool cheatsModified;
 
 }
 

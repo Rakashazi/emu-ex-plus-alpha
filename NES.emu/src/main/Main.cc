@@ -30,7 +30,7 @@
 #include <fceu/ppu.h>
 #include <fceu/fds.h>
 #include <fceu/input.h>
-#include <fceu/cheat.h>
+#include <fceu/cart.h>
 #include <fceu/video.h>
 #include <fceu/sound.h>
 #include <fceu/palette.h>
@@ -139,16 +139,17 @@ void EmuSystem::loadState(IG::CStringView path)
 		EmuSystem::throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem()
+void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
-	if(hasContent())
+	if(!hasContent())
+		return;
+	if(isFDS)
 	{
-		logMsg("saving backup memory if needed");
-		if(isFDS)
-			FCEU_FDSWriteModifiedDisk();
-		else
-			GameInterface(GI_WRITESAVE);
-		FCEU_FlushGameCheats(nullptr, 0, false);
+		FCEU_FDSWriteModifiedDisk();
+	}
+	else if(currCartInfo->battery && currCartInfo->SaveGame[0])
+	{
+		GameInterface(GI_WRITESAVE);
 	}
 }
 
@@ -196,7 +197,7 @@ void setDefaultPalette(IG::ApplicationContext ctx, IG::CStringView palPath)
 	}
 	else
 	{
-		auto io = ctx.openFileUri(palPath, IO::AccessHint::ALL, IO::OPEN_TEST);
+		auto io = ctx.openFileUri(palPath, IO::AccessHint::ALL, IO::TEST_BIT);
 		if(!io)
 			return;
 		setDefaultPalette(io);

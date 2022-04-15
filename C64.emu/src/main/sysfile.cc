@@ -111,7 +111,7 @@ static ArchiveIO archiveIOForSysFile(IG::CStringView archivePath, std::string_vi
 static AssetIO assetIOForSysFile(IG::ApplicationContext ctx, std::string_view sysFileName, std::string_view subPath, char **complete_path_return)
 {
 	auto fullPath = FS::pathString(subPath, sysFileName);
-	auto file = ctx.openAsset(fullPath, IO::AccessHint::ALL, IO::OPEN_TEST);
+	auto file = ctx.openAsset(fullPath, IO::AccessHint::ALL, IO::TEST_BIT);
 	if(!file)
 		return {};
 	if(complete_path_return)
@@ -306,7 +306,7 @@ CLINK int sysfile_load(const char *name, const char *subPath, uint8_t *dest, int
 		}
 		else
 		{
-			auto file = appContext.openFileUri(FS::uriString(basePath, subPath, name), IO::AccessHint::ALL, IO::OPEN_TEST);
+			auto file = appContext.openFileUri(FS::uriString(basePath, subPath, name), IO::AccessHint::ALL, IO::TEST_BIT);
 			if(!file)
 				continue;
 			//logMsg("loading system file: %s", complete_path);

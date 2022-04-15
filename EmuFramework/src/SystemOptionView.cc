@@ -21,9 +21,8 @@
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/io/FileIO.hh>
 #include <imagine/util/format.hh>
-#include <imagine/util/ScopeGuard.hh>
+#include "pathUtils.hh"
 
 namespace EmuEx
 {
@@ -115,25 +114,6 @@ TextMenuItem::SelectDelegate SystemOptionView::setFastForwardSpeedDel()
 static auto savesMenuEntryStr(IG::ApplicationContext ctx, std::string_view savePath)
 {
 	return fmt::format("Saves: {}", savePathStrToDescStr(ctx, savePath));
-}
-
-static bool hasWriteAccessToDir(IG::ApplicationContext ctx, IG::CStringView path)
-{
-	// on Android test file creation since
-	// access() can still claim emulated storage is writable
-	// even though parts are locked-down by the OS (like on 4.4+)
-	if constexpr(Config::envIsAndroid)
-	{
-		auto testFilePath = FS::uriString(path, ".safe-to-delete-me");
-		auto testFile = ctx.openFileUri(testFilePath, IO::OPEN_CREATE | IO::OPEN_TEST);
-		auto removeTestFile = IG::scopeGuard([&]() { if(testFile) ctx.removeFileUri(testFilePath); });
-		return (bool)testFile;
-	}
-	else
-	{
-		assert(!IG::isUri(path));
-		return FS::access(path, FS::acc::w);
-	}
 }
 
 SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
@@ -229,7 +209,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 					fPicker->setOnSelectPath(
 						[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 						{
-							if(!hasWriteAccessToDir(appContext(), path))
+							if(!hasWriteAccessToDir(path))
 							{
 								app().postErrorMessage("This folder lacks write access");
 								return;
@@ -269,7 +249,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 								[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 								{
 									auto ctx = appContext();
-									if(!hasWriteAccessToDir(ctx, path))
+									if(!hasWriteAccessToDir(path))
 									{
 										app().postErrorMessage("This folder lacks write access");
 										return;

@@ -444,7 +444,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 		},
 		[&](const Input::MotionEvent &motionEv)
 		{
-			if(!motionEv.isAbsolute())
+			if(!cells_ || !motionEv.isAbsolute())
 				return false;
 			if(!pointIsInView(motionEv.pos()) || !(motionEv.mapKey() & Input::Pointer::LBUTTON))
 			{

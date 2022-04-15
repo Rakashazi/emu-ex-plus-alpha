@@ -29,6 +29,7 @@
 #include <mednafen/cdrom/CDInterface.h>
 #include <mednafen/mempatcher.h>
 #include <mednafen/compress/GZFileStream.h>
+#include <emuframework/EmuSystem.hh>
 
 #include "huc.h"
 
@@ -67,7 +68,10 @@ static DECLFR(SaveRAMRead)
 static DECLFW(SaveRAMWrite)
 {
  if((!PCE_IsCD || PCECD_IsBRAMEnabled()) && (A & 8191) < 2048)
+ {
   SaveRAM[A & 2047] = V;
+  EmuEx::gSystem().onBackupMemoryWritten();
+ }
 }
 
 static DECLFR(HuCRead)

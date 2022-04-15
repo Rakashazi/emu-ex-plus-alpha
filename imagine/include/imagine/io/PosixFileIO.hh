@@ -44,7 +44,6 @@ public:
 	explicit operator IO*();
 	operator IO&();
 	operator GenericIO();
-	static MapIO makePosixMapIO(IO::AccessHint access, int fd);
 	ssize_t read(void *buff, size_t bytes);
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
 	std::span<uint8_t> map();
@@ -56,13 +55,13 @@ public:
 	bool eof();
 	void advise(off_t offset, size_t bytes, IO::Advice advice);
 	explicit operator bool() const;
-	IG::ByteBuffer releaseBuffer();
+	IOBuffer releaseBuffer();
 	UniqueFileDescriptor releaseFd();
 
 protected:
 	std::variant<PosixIO, MapIO> ioImpl{};
 
-	void tryMmap(int fd, IO::AccessHint access, IO::OpenFlags);
+	void tryMmap(IO::AccessHint access, IO::OpenFlags);
 };
 
 }

@@ -56,7 +56,7 @@ public:
 	bool eof() final;
 	explicit operator bool() const final;
 	void advise(off_t offset, size_t bytes, Advice advice) final;
-	IG::ByteBuffer releaseBuffer();
+	IOBuffer releaseBuffer();
 
 protected:
 	struct AAssetDeleter

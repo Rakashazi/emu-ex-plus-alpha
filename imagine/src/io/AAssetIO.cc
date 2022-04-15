@@ -43,7 +43,7 @@ AAssetIO::AAssetIO(ApplicationContext ctx, IG::CStringView name, AccessHint acce
 	if(!asset) [[unlikely]]
 	{
 		logErr("error in AAssetManager_open(%s, %s)", name.data(), accessHintStr(access));
-		if(openFlags & OPEN_TEST)
+		if(openFlags & TEST_BIT)
 			return;
 		else
 			throw std::runtime_error{fmt::format("Error opening asset: {}", name)};
@@ -136,17 +136,17 @@ bool AAssetIO::makeMapIO()
 		return false;
 	}
 	auto size = AAsset_getLength(asset.get());
-	mapIO = {IG::ByteBuffer{{(uint8_t*)buff, (size_t)size}}};
+	mapIO = {IOBuffer{{(uint8_t*)buff, (size_t)size}}};
 	return true;
 }
 
-IG::ByteBuffer AAssetIO::releaseBuffer()
+IOBuffer AAssetIO::releaseBuffer()
 {
 	if(!makeMapIO())
 		return {};
 	auto map = mapIO.map();
 	logMsg("releasing asset:%p with buffer:%p (%zu bytes)", asset.get(), map.data(), map.size());
-	return {map,
+	return {map, 0,
 		[asset = asset.release()](const uint8_t *ptr, size_t)
 		{
 			logMsg("closing released asset:%p", asset);

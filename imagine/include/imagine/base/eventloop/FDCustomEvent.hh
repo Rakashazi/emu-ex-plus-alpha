@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/EventLoop.hh>
-#include <imagine/util/concepts.hh>
+#include <imagine/util/used.hh>
 #include <imagine/util/utility.h>
 
 namespace IG

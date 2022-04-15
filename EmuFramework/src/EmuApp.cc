@@ -242,17 +242,19 @@ public:
 Gfx::PixmapTexture &EmuApp::asset(AssetID assetID) const
 {
 	assumeExpr(assetID < AssetID::END);
-	auto assetIdx = (unsigned)assetID;
+	auto assetIdx = (size_t)assetID;
 	auto &res = assetBuffImg[assetIdx];
 	if(!res)
 	{
-		auto img = pixmapReader.loadAsset(assetFilename[assetIdx]);
-		if(!img)
+		try
 		{
-			logErr("couldn't load %s", assetFilename[assetIdx]);
-			return res;
+			res = renderer.makePixmapTexture(pixmapReader.loadAsset(assetFilename[assetIdx]),
+				&renderer.get(View::imageCommonTextureSampler));
 		}
-		res = renderer.makePixmapTexture(img, &renderer.get(View::imageCommonTextureSampler));
+		catch(...)
+		{
+			logErr("error loading asset:%s", assetFilename[assetIdx]);
+		}
 	}
 	return res;
 }
@@ -280,7 +282,7 @@ static void suspendEmulation(EmuApp &app)
 	if(!app.system().hasContent())
 		return;
 	app.saveAutoState();
-	app.system().saveBackupMem();
+	app.system().flushBackupMemory();
 }
 
 void EmuApp::exitGame(bool allowAutosaveState)
@@ -726,6 +728,10 @@ void launchSystem(EmuApp &app, bool tryAutoState)
 			return;
 		}
 	}
+	if(!hasWriteAccessToDir(app.system().contentSaveDirectory()))
+	{
+		app.postErrorMessage(8, "Save folder inaccessible, please set it in Options➔File Paths➔Saves");
+	}
 	app.viewController().showEmulation();
 }
 
@@ -1106,7 +1112,7 @@ void EmuApp::saveSessionOptions()
 	try
 	{
 		auto ctx = appContext();
-		auto configFile = ctx.openFileUri(configFilePath, IO::OPEN_CREATE);
+		auto configFile = ctx.openFileUri(configFilePath, IO::OPEN_NEW);
 		writeConfigHeader(configFile);
 		system().writeSessionConfig(configFile);
 		system().resetSessionOptionsSet();
@@ -1132,7 +1138,7 @@ void EmuApp::loadSessionOptions()
 {
 	if(!system().resetSessionOptions(*this))
 		return;
-	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), IO::OPEN_TEST),
+	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), IO::TEST_BIT),
 		[this](uint16_t key, uint16_t size, IO &io)
 		{
 			switch(key)
@@ -1156,7 +1162,7 @@ void EmuApp::loadSystemOptions()
 	auto configName = system().configName();
 	if(configName.empty())
 		return;
-	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), IO::OPEN_TEST),
+	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), IO::TEST_BIT),
 		[this](uint16_t key, uint16_t size, IO &io)
 		{
 			if(!system().readCoreConfig(io, key, size))
@@ -1174,7 +1180,7 @@ void EmuApp::saveSystemOptions()
 	try
 	{
 		auto configFilePath = FS::pathString(appContext().supportPath(), configName);
-		auto configFile = FileIO::create(configFilePath);
+		auto configFile = FileIO{configFilePath, IO::OPEN_NEW};
 		saveSystemOptions(configFile);
 		if(configFile.size() == 1)
 		{
@@ -1253,6 +1259,7 @@ void EmuApp::runFrames(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *
 	}
 	runTurboInputEvents();
 	system().runFrame(taskCtx, video, audio);
+	system().updateBackupMemoryCounter();
 }
 
 void EmuApp::skipFrames(EmuSystemTaskContext taskCtx, uint32_t frames, EmuAudio *audio)
@@ -1414,7 +1421,7 @@ void EmuApp::setAudioOutputAPI(IG::Audio::Api api)
 IG::Audio::Api EmuApp::audioOutputAPI() const
 {
 	if(IG::used(optionAudioAPI))
-		return (IG::Audio::Api)optionAudioAPI.val;
+		return (IG::Audio::Api)(uint8_t)optionAudioAPI;
 	else
 		return IG::Audio::Api::DEFAULT;
 }

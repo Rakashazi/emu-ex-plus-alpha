@@ -230,15 +230,6 @@ static MDFN_COLD void Load(GameFile* gf)
 
 static MDFN_COLD void CloseGame(void)
 {
- try
- {
-  FLASH_SaveNV();
- }
- catch(std::exception &e)
- {
-  MDFND_OutputNotice(MDFN_NOTICE_ERROR, e.what());
- }
-
  Cleanup();
 }
 

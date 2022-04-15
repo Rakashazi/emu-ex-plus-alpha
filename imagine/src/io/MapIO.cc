@@ -27,7 +27,7 @@
 namespace IG
 {
 
-MapIO::MapIO(IG::ByteBuffer buff):
+MapIO::MapIO(IOBuffer buff):
 	currPos{buff.data()},
 	buff{std::move(buff)} {}
 
@@ -121,7 +121,7 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 }
 #endif
 
-IG::ByteBuffer MapIO::releaseBuffer()
+IOBuffer MapIO::releaseBuffer()
 {
 	logMsg("releasing buffer:%p (%zu bytes)", buff.data(), buff.size());
 	return std::move(buff);

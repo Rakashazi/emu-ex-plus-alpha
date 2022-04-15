@@ -271,7 +271,7 @@ void EmuSystem::loadState(IG::CStringView path)
 		throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem()
+void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
 	if(hasContent())
 	{

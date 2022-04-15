@@ -29,7 +29,8 @@ namespace EmuEx
 
 extern gambatte::GB gbEmu;
 StaticArrayList<GbcCheat, maxCheats> cheatList;
-bool cheatsModified = 0;
+
+static void writeCheatFile(EmuSystem &);
 
 static bool strIsGGCode(const char *str)
 {
@@ -72,9 +73,6 @@ void applyCheats(EmuSystem &sys)
 
 void writeCheatFile(EmuSystem &sys)
 {
-	if(!cheatsModified)
-		return;
-
 	auto ctx = sys.appContext();
 	auto path = sys.contentSaveFilePath(".gbcht");
 
@@ -82,11 +80,10 @@ void writeCheatFile(EmuSystem &sys)
 	{
 		logMsg("deleting cheats file %s", path.data());
 		ctx.removeFileUri(path);
-		cheatsModified = 0;
 		return;
 	}
 
-	auto file = ctx.openFileUri(path, IO::OPEN_CREATE | IO::OPEN_TEST);
+	auto file = ctx.openFileUri(path, IO::OPEN_NEW | IO::TEST_BIT);
 	if(!file)
 	{
 		logMsg("error creating cheats file %s", path.data());
@@ -105,13 +102,12 @@ void writeCheatFile(EmuSystem &sys)
 		file.write((uint8_t)e.code.size());
 		file.write(e.code.data(), e.code.size());
 	}
-	cheatsModified = 0;
 }
 
 void readCheatFile(EmuSystem &sys)
 {
 	auto path = sys.contentSaveFilePath(".gbcht");
-	auto file = sys.appContext().openFileUri(path, IO::AccessHint::ALL, IO::OPEN_TEST);
+	auto file = sys.appContext().openFileUri(path, IO::AccessHint::ALL, IO::TEST_BIT);
 	if(!file)
 	{
 		return;
@@ -165,8 +161,8 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 		[this](TextMenuItem &, View &, Input::Event)
 		{
 			IG::eraseFirst(cheatList, *cheat);
-			cheatsModified = 1;
 			onCheatListChanged();
+			writeCheatFile(system());
 			applyCheats(system());
 			dismiss();
 			return true;
@@ -191,7 +187,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 						return false;
 					}
 					cheat->code = IG::stringToUpper<decltype(cheat->code)>(str);
-					cheatsModified = 1;
+					writeCheatFile(system());
 					applyCheats(app.system());
 					ggCode.set2ndName(str);
 					ggCode.compile(renderer(), projP);
@@ -211,7 +207,7 @@ const char *EmuEditCheatView::cheatNameString() const
 void EmuEditCheatView::renamed(const char *str)
 {
 	cheat->name = str;
-	cheatsModified = 1;
+	writeCheatFile(system());
 }
 
 EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
@@ -258,9 +254,9 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						c.name = "Unnamed Cheat";
 						cheatList.push_back(c);
 						logMsg("added new cheat, %zu total", cheatList.size());
-						cheatsModified = 1;
 						applyCheats(system());
 						onCheatListChanged();
+						writeCheatFile(system());
 						view.dismiss();
 						app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[this](CollectTextInputView &view, const char *str)
@@ -328,7 +324,7 @@ void EmuCheatsView::loadCheatItems()
 				item.flipBoolValue(*this);
 				auto &c = cheatList[cIdx];
 				c.toggleOn();
-				cheatsModified = 1;
+				writeCheatFile(system());
 				applyCheats(system());
 			});
 		logMsg("added cheat %s : %s", thisCheat.name.data(), thisCheat.code.data());

@@ -98,31 +98,32 @@ const char *S9xGetFilenameInc(const char *e)
 
 const char *S9xGetSnapshotDirectory(const char *name)
 {
-	globalPath = EmuSystem::contentSaveFilePath(appCtx, name);
+	globalPath = EmuEx::gSystem().contentSaveFilePath(name);
 	return globalPath.c_str();
 }
 
 extern "C" char* osd_GetPackDir()
 {
+	auto &sys = EmuEx::gSystem();
 	if(!strncmp((char*)&Memory.ROM [0xffc0], "SUPER POWER LEAG 4   ", 21))
 	{
-		globalPath = EmuSystem::contentSaveFilePath(appCtx, "SPL4-SP7");
+		globalPath = sys.contentSaveFilePath("SPL4-SP7");
 	}
 	else if(!strncmp((char*)&Memory.ROM [0xffc0], "MOMOTETSU HAPPY      ",21))
 	{
-		globalPath = EmuSystem::contentSaveFilePath(appCtx, "SMHT-SP7");
+		globalPath = sys.contentSaveFilePath("SMHT-SP7");
 	}
 	else if(!strncmp((char*)&Memory.ROM [0xffc0], "HU TENGAI MAKYO ZERO ", 21))
 	{
-		globalPath = EmuSystem::contentSaveFilePath(appCtx, "FEOEZSP7");
+		globalPath = sys.contentSaveFilePath("FEOEZSP7");
 	}
 	else if(!strncmp((char*)&Memory.ROM [0xffc0], "JUMP TENGAIMAKYO ZERO",21))
 	{
-		globalPath = EmuSystem::contentSaveFilePath(appCtx, "SJUMPSP7");
+		globalPath = sys.contentSaveFilePath("SJUMPSP7");
 	}
 	else
 	{
-		globalPath = EmuSystem::contentSaveFilePath(appCtx, "MISC-SP7");
+		globalPath = sys.contentSaveFilePath("MISC-SP7");
 	}
 	return globalPath.data();
 }
@@ -301,8 +302,8 @@ void removeFileHelper(const char* filename)
 
 gzFile gzopenHelper(const char *filename, const char *mode)
 {
-	unsigned openFlags = IG::stringContains(mode, 'w') ? IG::IO::OPEN_CREATE : 0;
-	return gzdopen(gAppContext().openFileUriFd(filename, openFlags | IG::IO::OPEN_TEST).release(), mode);
+	unsigned openFlags = IG::stringContains(mode, 'w') ? IG::IO::OPEN_NEW : 0;
+	return gzdopen(gAppContext().openFileUriFd(filename, openFlags | IG::IO::TEST_BIT).release(), mode);
 }
 
 // from logger.h

@@ -21,7 +21,6 @@
 #include <imagine/time/Time.hh>
 #include <imagine/audio/SampleFormat.hh>
 #include <imagine/util/rectangle2.h>
-#include <emuframework/config.hh>
 #include <emuframework/EmuTiming.hh>
 #include <optional>
 #include <string>
@@ -112,6 +111,7 @@ public:
 
 	using OnLoadProgressDelegate = IG::DelegateFunc<bool(int pos, int max, const char *label)>;
 	using NameFilterFunc = bool(*)(std::string_view name);
+	using BackupMemoryDirtyFlags = uint8_t;
 	enum VideoSystem { VIDSYS_NATIVE_NTSC, VIDSYS_PAL };
 	enum ResetMode { RESET_HARD, RESET_SOFT };
 
@@ -195,7 +195,10 @@ public:
 	void clearGamePaths();
 	char saveSlotChar(int slot) const;
 	char saveSlotCharUpper(int slot) const;
-	void saveBackupMem();
+	void flushBackupMemory(BackupMemoryDirtyFlags flags = 0xFF);
+	void onFlushBackupMemory(BackupMemoryDirtyFlags);
+	void onBackupMemoryWritten(BackupMemoryDirtyFlags flags = 0xFF);
+	bool updateBackupMemoryCounter();
 	void savePathChanged();
 	void reset(ResetMode mode);
 	void reset(EmuApp &, ResetMode mode);
@@ -280,6 +283,8 @@ protected:
 	int saveStateSlot{};
 	State state{};
 	bool sessionOptionsSet{};
+	BackupMemoryDirtyFlags backupMemoryDirtyFlags{};
+	int8_t backupMemoryCounter{};
 	FS::PathString contentDirectory_{}; // full directory path of content on disk, if any
 	FS::PathString contentLocation_{}; // full path or URI to content
 	FS::FileString contentFileName_{}; // name + extension of content, inside archive if any
