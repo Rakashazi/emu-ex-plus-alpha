@@ -467,11 +467,12 @@ static BMAPPING bmap[] = {
 	{ "81-01-31-C", BMC810131C_Init, 0 },
 	{ "8-IN-1", BMC8IN1_Init, 0 },
 	{ "80013-B", BMC80013B_Init, 0 },
+	{ "WS", BMCWS_Init, 0 },
 	{ "HPxx", BMCHPxx_Init, 0 },
 	{ "MINDKIDS", MINDKIDS_Init, BMCFLAG_256KCHRR },
 	{ "FNS", FNS_Init, BMCFLAG_16KCHRR },
-	{ "BS-400R", BS400R_Init, 0 },
-	{ "BS-4040R", BS4040R_Init, 0 },
+	{ "BS-400R", Mapper422_Init, 0 },
+	{ "BS-4040R", Mapper422_Init, 0 },
 
 	{ 0, 0, 0 }
 };
@@ -568,11 +569,6 @@ static void UNIFGI(GI h) {
 		if (UNIFCart.Power)
 			UNIFCart.Power();
 		if (UNIFchrrama) memset(UNIFchrrama, 0, 8192);
-		break;
-	case GI_WRITESAVE:
-		{
-			FCEU_SaveGameSave(&UNIFCart);
-		}
 		break;
 	case GI_CLOSE:
 		FCEU_SaveGameSave(&UNIFCart);

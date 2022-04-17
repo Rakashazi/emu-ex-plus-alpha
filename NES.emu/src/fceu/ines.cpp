@@ -101,11 +101,6 @@ void iNESGI(GI h) { //bbit edited: removed static keyword
 	case GI_POWER:
 		iNES_ExecPower();
 		break;
-	case GI_WRITESAVE:
-	{
-		FCEU_SaveGameSave(&iNESCart);
-	}
-	break;
 	case GI_CLOSE:
 	{
 		FCEU_SaveGameSave(&iNESCart);
@@ -524,7 +519,7 @@ BMAPPINGLocal bmap[] = {
 	{"SIMBPLE BMC PIRATE C", 60, BMCD1038_Init},
 	{"20-in-1 KAISER Rev. A",61, Mapper61_Init},
 	{"700-in-1",			 62, Mapper62_Init},
-//	{"",					 63, Mapper63_Init},
+	{"",					 63, Mapper63_Init},
 	{"TENGEN RAMBO1",		 64, Mapper64_Init},
 	{"IREM-H3001",			 65, Mapper65_Init},
 	{"MHROM",				 66, MHROM_Init},
@@ -717,7 +712,11 @@ BMAPPINGLocal bmap[] = {
 	{"DRAGON BALL PIRATE",	253, Mapper253_Init},
 	{"",					254, Mapper254_Init},
 //	{"",					255, Mapper255_Init},	// No good dumps for this mapper
+	{"860224C",    282, Mapper282_Init},
 	{"HP898F",    319, Mapper319_Init},
+	{"42 to 80,000 (970630C)",    380, Mapper380_Init},
+	{"9999999-in-1",    414, Mapper414_Init},
+	{"BS-400R/BS-4040",    422, Mapper422_Init},
 
 //-------- Mappers 256-511 is the Supplementary Multilingual Plane ----------
 //-------- Mappers 512-767 is the Supplementary Ideographic Plane -----------
@@ -736,6 +735,7 @@ BMAPPINGLocal bmap[] = {
 	{"810544-CA-1",		    261, BMC810544CA1_Init},
 	{"SMD132/SMD133",		268, SMD132_SMD133_Init},
 	{"COOLBOY",		        268, COOLBOY_Init},
+	{"WS",    332, BMCWS_Init},
 
 	{"Impact Soft MMC3 Flash Board",	406, Mapper406_Init },
 

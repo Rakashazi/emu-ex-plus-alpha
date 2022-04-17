@@ -147,9 +147,9 @@ void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 	{
 		FCEU_FDSWriteModifiedDisk();
 	}
-	else if(currCartInfo->battery && currCartInfo->SaveGame[0])
+	else
 	{
-		GameInterface(GI_WRITESAVE);
+		FCEU_SaveGameSave(currCartInfo);
 	}
 }
 
