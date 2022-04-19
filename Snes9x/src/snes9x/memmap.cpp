@@ -2446,7 +2446,7 @@ void CMemory::InitROM (void)
 	if (HiROM)
     {
 		if (Settings.BS)
-		  { /* Do nothing */ }
+		  /* Do nothing */;
 		else
 		if (Settings.SPC7110)
 			Map_SPC7110HiROMMap();
@@ -2462,7 +2462,7 @@ void CMemory::InitROM (void)
     else
     {
 		if (Settings.BS)
-		  { /* Do nothing */ }
+		  /* Do nothing */;
 		else
 		if (Settings.SETA && Settings.SETA != ST_018)
 			Map_SetaDSPLoROMMap();
@@ -2827,9 +2827,6 @@ void CMemory::map_WRAM (void)
 void CMemory::map_LoROMSRAM (void)
 {
         uint32 hi;
-
-        if (SRAMSize == 0)
-            return;
 
         if (ROMSize > 11 || SRAMSize > 5)
             hi = 0x7fff;

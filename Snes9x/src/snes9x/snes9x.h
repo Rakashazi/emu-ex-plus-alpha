@@ -62,8 +62,6 @@ void removeFileHelper(const char *filename);
 #define SNES_HEIGHT_EXTENDED		239
 #define MAX_SNES_WIDTH				(SNES_WIDTH * 2)
 #define MAX_SNES_HEIGHT				(SNES_HEIGHT_EXTENDED * 2)
-#define IMAGE_WIDTH					(Settings.SupportHiRes ? MAX_SNES_WIDTH : SNES_WIDTH)
-#define IMAGE_HEIGHT				(Settings.SupportHiRes ? MAX_SNES_HEIGHT : SNES_HEIGHT_EXTENDED)
 
 #define	NTSC_MASTER_CLOCK			21477272.727272 // 21477272 + 8/11 exact
 #define	PAL_MASTER_CLOCK			21281370.0
@@ -249,7 +247,6 @@ struct SSettings
 	static const int32	DynamicRateLimit = 5; /* Multiplied by 1000 */
 	static const int32	InterpolationMethod = 2;
 
-	static const bool8	SupportHiRes = 1;
 	static const bool8	Transparency = 1;
 	uint8	BG_Forced = 0;
 	static const bool8	DisableGraphicWindows = 0;
@@ -309,8 +306,6 @@ struct SSettings
 	static const int32	AutoSaveDelay = 30;
 	static const bool8	DontSaveOopsSnapshot = 1;
 	static const bool8	UpAndDown = 0;
-
-	static const bool8	OpenGLEnable = 1;
 
   static const bool8  SeparateEchoBuffer = 0;
 	uint32	SuperFXClockMultiplier = 100;

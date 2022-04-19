@@ -33,8 +33,8 @@ constexpr auto srcPixFmt = IG::PIXEL_FMT_RGB565;
 #endif
 static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
-static constexpr auto SNES_HEIGHT_480i = SNES_HEIGHT * 2;
-static constexpr auto SNES_HEIGHT_EXTENDED_480i = SNES_HEIGHT_EXTENDED * 2;
+constexpr auto SNES_HEIGHT_480i = SNES_HEIGHT * 2;
+constexpr auto SNES_HEIGHT_EXTENDED_480i = SNES_HEIGHT_EXTENDED * 2;
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
@@ -265,10 +265,8 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 
 void EmuSystem::onInit()
 {
+	#ifdef SNES9X_VERSION_1_4
 	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
-	#ifndef SNES9X_VERSION_1_4
-	GFX.Screen = screenBuff;
-	#else
 	GFX.Screen = (uint8*)screenBuff;
 	#endif
 	Memory.Init();
@@ -302,7 +300,7 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 		bool is480i = height >= SNES_HEIGHT_480i;
 		height = is480i ? SNES_HEIGHT_480i : SNES_HEIGHT;
 	}
-	IG::Pixmap srcPix{{{width, height}, srcPixFmt}, GFX.Screen};
+	IG::Pixmap srcPix{{{width, height}, srcPixFmt}, GFX.Screen, {(int)GFX.Pitch, Pixmap::Units::BYTE}};
 	emuVideo->startFrameWithFormat(emuSysTask, srcPix);
 	#ifndef SNES9X_VERSION_1_4
 	memset(GFX.ZBuffer, 0, GFX.ScreenSize);

@@ -32,16 +32,19 @@ struct SLineMatrixData
 
 struct SGFX
 {
+	typedef void (*Callback)(void *);
+
+	static constexpr uint32 Pitch = sizeof(uint16) * MAX_SNES_WIDTH;
+	static constexpr uint32 RealPPL = MAX_SNES_WIDTH; // true PPL of Screen buffer
+	static constexpr uint32 ScreenSize =  MAX_SNES_WIDTH * MAX_SNES_HEIGHT;
+	uint16 ScreenBuffer[MAX_SNES_WIDTH * (MAX_SNES_HEIGHT + 64)];
 	uint16	*Screen;
 	uint16	*SubScreen;
 	uint8	*ZBuffer;
 	uint8	*SubZBuffer;
-	static constexpr uint32	Pitch = MAX_SNES_WIDTH * 2;
-	static constexpr uint32	ScreenSize = Pitch / 2 * SNES_HEIGHT_EXTENDED * (Settings.SupportHiRes ? 2 : 1);
 	uint16	*S;
 	uint8	*DB;
 	uint16	*ZERO;
-	uint32	RealPPL;			// true PPL of Screen buffer
 	uint32	PPL;				// number of pixels on each of Screen buffer
 	uint32	LinesPerTile;		// number of lines in 1 tile (4 or 8 due to interlace)
 	const uint16	*ScreenColors;		// screen colors for rendering main
@@ -87,6 +90,9 @@ struct SGFX
 	static const char	*InfoString;
 	static uint32	InfoStringTimeout;
 	static char	FrameDisplayString[256];
+
+	Callback EndScreenRefreshCallback;
+	void *EndScreenRefreshCallbackData;
 
 	SLineData		LineData[240];
 	SLineMatrixData	LineMatrixData[240];
@@ -203,6 +209,7 @@ struct COLOR_SUB
 
 void S9xStartScreenRefresh (void);
 void S9xEndScreenRefresh (void);
+void S9xSetEndScreenRefreshCallback(SGFX::Callback cb, void *data);
 void S9xBuildDirectColourMaps (void);
 void RenderLine (uint8);
 void S9xComputeClipWindows (void);

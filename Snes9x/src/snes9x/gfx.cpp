@@ -46,12 +46,12 @@ bool8 S9xGraphicsInit (void)
 {
 	S9xInitTileRenderer();
 
-	GFX.RealPPL = GFX.Pitch >> 1;
 	IPPU.OBJChanged = TRUE;
 	Settings.BG_Forced = 0;
 	S9xFixColourBrightness();
 	S9xBuildDirectColourMaps();
 
+	GFX.Screen = &GFX.ScreenBuffer[GFX.RealPPL * 32];
 	GFX.ZERO = (uint16 *) calloc(sizeof(uint16), 0x10000);
 
 	GFX.SubScreen  = (uint16 *) calloc(GFX.ScreenSize, sizeof(uint16));
@@ -95,6 +95,9 @@ bool8 S9xGraphicsInit (void)
 		}
 	}
 
+	GFX.EndScreenRefreshCallback = NULL;
+	GFX.EndScreenRefreshCallbackData = NULL;
+
 	return (TRUE);
 }
 
@@ -104,6 +107,9 @@ void S9xGraphicsDeinit (void)
 	if (GFX.SubScreen)  { free(GFX.SubScreen);  GFX.SubScreen  = NULL; }
 	if (GFX.ZBuffer)    { free(GFX.ZBuffer);    GFX.ZBuffer    = NULL; }
 	if (GFX.SubZBuffer) { free(GFX.SubZBuffer); GFX.SubZBuffer = NULL; }
+
+	GFX.EndScreenRefreshCallback = NULL;
+	GFX.EndScreenRefreshCallbackData = NULL;
 }
 
 void S9xGraphicsScreenResize (void)
@@ -114,26 +120,18 @@ void S9xGraphicsScreenResize (void)
 	IPPU.InterlaceOBJ = Memory.FillRAM[0x2133] & 2;
 	IPPU.PseudoHires = Memory.FillRAM[0x2133] & 8;
 		
-	if (Settings.SupportHiRes && (PPU.BGMode == 5 || PPU.BGMode == 6 || IPPU.PseudoHires))
+	if (PPU.BGMode == 5 || PPU.BGMode == 6 || IPPU.PseudoHires)
 	{
-		GFX.RealPPL = GFX.Pitch >> 1;
 		IPPU.DoubleWidthPixels = TRUE;
 		IPPU.RenderedScreenWidth = SNES_WIDTH << 1;
 	}
 	else
 	{
-		#ifdef USE_OPENGL
-		if (Settings.OpenGLEnable)
-			GFX.RealPPL = SNES_WIDTH;
-		else
-		#endif
-			GFX.RealPPL = GFX.Pitch >> 1;
-
 		IPPU.DoubleWidthPixels = FALSE;
 		IPPU.RenderedScreenWidth = SNES_WIDTH;
 	}
 
-	if (Settings.SupportHiRes && IPPU.Interlace)
+	if (IPPU.Interlace)
 	{
 		GFX.PPL = GFX.RealPPL << 1;
 		IPPU.DoubleHeightPixels = TRUE;
@@ -183,7 +181,7 @@ void S9xStartScreenRefresh (void)
 		IPPU.PreviousLine = IPPU.CurrentLine = 0;
 	}
 
-	if (++IPPU.FrameCount % Memory.ROMFramesPerSecond == 0)
+	if (++IPPU.FrameCount == (uint32)Memory.ROMFramesPerSecond)
 	{
 		IPPU.DisplayedRenderedFrameCount = IPPU.RenderedFramesCount;
 		IPPU.RenderedFramesCount = 0;
@@ -248,6 +246,15 @@ void S9xEndScreenRefresh (void)
 		}
 	}
 #endif
+
+	if (GFX.EndScreenRefreshCallback)
+		GFX.EndScreenRefreshCallback(GFX.EndScreenRefreshCallbackData);
+}
+
+void S9xSetEndScreenRefreshCallback(const SGFX::Callback cb, void *const data)
+{
+	GFX.EndScreenRefreshCallback = cb;
+	GFX.EndScreenRefreshCallbackData = data;
 }
 
 void RenderLine (uint8 C)
@@ -443,55 +450,31 @@ void S9xUpdateScreen (void)
 			PPU.RecomputeClipWindows = FALSE;
 		}
 
-		if (Settings.SupportHiRes)
+		if (!IPPU.DoubleWidthPixels && (PPU.BGMode == 5 || PPU.BGMode == 6 || IPPU.PseudoHires))
 		{
-			if (!IPPU.DoubleWidthPixels && (PPU.BGMode == 5 || PPU.BGMode == 6 || IPPU.PseudoHires))
+			// Have to back out of the regular speed hack
+			for (uint32 y = 0; y < GFX.StartY; y++)
 			{
-				#ifdef USE_OPENGL
-				if (Settings.OpenGLEnable && GFX.RealPPL == 256)
-				{
-					// Have to back out of the speed up hack where the low res.
-					// SNES image was rendered into a 256x239 sized buffer,
-					// ignoring the true, larger size of the buffer.
-					GFX.RealPPL = GFX.Pitch >> 1;
+				uint16	*p = GFX.Screen + y * GFX.PPL + 255;
+				uint16	*q = GFX.Screen + y * GFX.PPL + 510;
 
-					for (int32 y = (int32) GFX.StartY - 1; y >= 0; y--)
-					{
-						uint16	*p = GFX.Screen + y * GFX.PPL     + 255;
-						uint16	*q = GFX.Screen + y * GFX.RealPPL + 510;
-
-						for (int x = 255; x >= 0; x--, p--, q -= 2)
-							*q = *(q + 1) = *p;
-					}
-
-					GFX.PPL = GFX.RealPPL; // = GFX.Pitch >> 1 above
-				}
-				else
-				#endif
-				// Have to back out of the regular speed hack
-				for (uint32 y = 0; y < GFX.StartY; y++)
-				{
-					uint16	*p = GFX.Screen + y * GFX.PPL + 255;
-					uint16	*q = GFX.Screen + y * GFX.PPL + 510;
-
-					for (int x = 255; x >= 0; x--, p--, q -= 2)
-						*q = *(q + 1) = *p;
-				}
-
-				IPPU.DoubleWidthPixels = TRUE;
-				IPPU.RenderedScreenWidth = 512;
+				for (int x = 255; x >= 0; x--, p--, q -= 2)
+					*q = *(q + 1) = *p;
 			}
 
-			if (!IPPU.DoubleHeightPixels && IPPU.Interlace && (PPU.BGMode == 5 || PPU.BGMode == 6))
-			{
-				IPPU.DoubleHeightPixels = TRUE;
-				IPPU.RenderedScreenHeight = PPU.ScreenHeight << 1;
-				GFX.PPL = GFX.RealPPL << 1;
-				GFX.DoInterlace = 2;
+			IPPU.DoubleWidthPixels = TRUE;
+			IPPU.RenderedScreenWidth = 512;
+		}
 
-				for (int32 y = (int32) GFX.StartY - 2; y >= 0; y--)
-					memmove(GFX.Screen + (y + 1) * GFX.PPL, GFX.Screen + y * GFX.RealPPL, GFX.PPL * sizeof(uint16));
-			}
+		if (!IPPU.DoubleHeightPixels && IPPU.Interlace && (PPU.BGMode == 5 || PPU.BGMode == 6))
+		{
+			IPPU.DoubleHeightPixels = TRUE;
+			IPPU.RenderedScreenHeight = PPU.ScreenHeight << 1;
+			GFX.PPL = GFX.RealPPL << 1;
+			GFX.DoInterlace = 2;
+
+			for (int32 y = (int32) GFX.StartY - 2; y >= 0; y--)
+				memmove(GFX.Screen + (y + 1) * GFX.PPL, GFX.Screen + y * GFX.RealPPL, GFX.PPL * sizeof(uint16));
 		}
 
 		if ((Memory.FillRAM[0x2130] & 0x30) != 0x30 && (Memory.FillRAM[0x2131] & 0x3f))
