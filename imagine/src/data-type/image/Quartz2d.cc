@@ -28,12 +28,12 @@
 namespace IG::Data
 {
 
-uint32_t Quartz2dImage::width()
+int Quartz2dImage::width()
 {
 	return CGImageGetWidth(img.get());
 }
 
-uint32_t Quartz2dImage::height()
+int Quartz2dImage::height()
 {
 	return CGImageGetHeight(img.get());
 }

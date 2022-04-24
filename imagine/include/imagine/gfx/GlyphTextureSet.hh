@@ -50,13 +50,13 @@ public:
 	GlyphTextureSet(Renderer &, IG::Font, IG::FontSettings);
 	IG::FontSettings fontSettings() const;
 	bool setFontSettings(Renderer &r, IG::FontSettings set);
-	unsigned precache(Renderer &r, std::string_view string);
-	unsigned precacheAlphaNum(Renderer &r)
+	int precache(Renderer &r, std::string_view string);
+	int precacheAlphaNum(Renderer &r)
 	{
 		return precache(r, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 	}
 	GlyphEntry *glyphEntry(Renderer &r, int c, bool allowCache = true);
-	uint32_t nominalHeight() const;
+	int nominalHeight() const;
 	void freeCaches(uint32_t rangeToFreeBits);
 	void freeCaches() { freeCaches(~0); }
 
@@ -65,7 +65,7 @@ private:
 	IG::VMemArray<GlyphEntry> glyphTable{};
 	IG::FontSettings settings{};
 	IG::FontSize faceSize{};
-	uint32_t nominalHeight_ = 0;
+	int nominalHeight_ = 0;
 	uint32_t usedGlyphTableBits = 0;
 
 	void calcNominalHeight(Renderer &r);

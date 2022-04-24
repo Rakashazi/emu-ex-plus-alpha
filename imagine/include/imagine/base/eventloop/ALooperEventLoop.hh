@@ -39,8 +39,8 @@ public:
 	constexpr ALooperFDEventSource() = default;
 	ALooperFDEventSource(MaybeUniqueFileDescriptor fd) : ALooperFDEventSource{nullptr, std::move(fd)} {}
 	ALooperFDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd);
-	ALooperFDEventSource(ALooperFDEventSource &&o);
-	ALooperFDEventSource &operator=(ALooperFDEventSource &&o);
+	ALooperFDEventSource(ALooperFDEventSource &&o) noexcept;
+	ALooperFDEventSource &operator=(ALooperFDEventSource &&o) noexcept;
 	~ALooperFDEventSource();
 
 protected:

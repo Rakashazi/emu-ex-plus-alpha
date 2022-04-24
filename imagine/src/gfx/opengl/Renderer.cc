@@ -302,7 +302,7 @@ bool Renderer::supportsPresentationTime() const
 	#endif
 }
 
-unsigned Renderer::maxSwapChainImages() const
+int Renderer::maxSwapChainImages() const
 {
 	#ifdef __ANDROID__
 	if(appContext().androidSDK() < 18)

@@ -18,7 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <errno.h>
+#include <cerrno>
 #include <cassert>
 #include <cstring>
 #include <algorithm>
@@ -35,7 +35,7 @@ CLINK ssize_t fd_writeAll(int filedes, const void *buffer, size_t size)
 			return -1;
 		written += ret;
 	}
-	return size;
+	return (ssize_t)size;
 }
 
 CLINK off_t fd_size(int fd)
@@ -58,7 +58,7 @@ CLINK const char* fd_seekModeToStr(int mode)
 		case SEEK_END : return "END";
 		case SEEK_CUR : return "CUR";
 	}
-	return NULL;
+	return {};
 }
 
 CLINK void fd_setNonblock(int fd, bool on)
@@ -101,21 +101,4 @@ CLINK int fd_bytesReadable(int fd)
 CLINK int fd_isValid(int fd)
 {
 	return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
-}
-
-CLINK void fd_skipAvailableData(int fd)
-{
-	int bytesToSkip = fd_bytesReadable(fd);
-	logMsg("skipping %d bytes", bytesToSkip);
-	char dummy[8];
-	while(bytesToSkip)
-	{
-		int ret = read(fd, dummy, std::min((size_t)bytesToSkip, sizeof dummy));
-		if(ret < 0)
-		{
-			logMsg("error in read()");
-			return;
-		}
-		bytesToSkip -= ret;
-	}
 }

@@ -30,12 +30,12 @@ RingBuffer::RingBuffer(SizeType size)
 	init(adjustVMemAllocSize(size));
 }
 
-RingBuffer::RingBuffer(RingBuffer &&o)
+RingBuffer::RingBuffer(RingBuffer &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-RingBuffer &RingBuffer::operator=(RingBuffer &&o)
+RingBuffer &RingBuffer::operator=(RingBuffer &&o) noexcept
 {
 	deinit();
 	buff = std::exchange(o.buff, {});
@@ -54,7 +54,7 @@ RingBuffer::~RingBuffer()
 void RingBuffer::init(SizeType size)
 {
 	assert(!buff);
-	logMsg("allocating with capacity:%u", size);
+	logMsg("allocating with capacity:%zu", size);
 	buff = (char*)allocMirroredBuffer(size);
 	if(!buff)
 	{
@@ -103,7 +103,7 @@ void RingBuffer::setMinCapacity(SizeType capacity)
 	char *oldBuff{};
 	if(oldSize)
 	{
-		logMsg("copying %u bytes due to capacity change", oldSize);
+		logMsg("copying %zu bytes due to capacity change", oldSize);
 		oldBuff = buff;
 		buff = nullptr;
 	}

@@ -426,12 +426,12 @@ OnExit::OnExit(ResumeDelegate del, ApplicationContext ctx, int priority): del{de
 	ctx.addOnExit(del, priority);
 }
 
-OnExit::OnExit(OnExit &&o)
+OnExit::OnExit(OnExit &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-OnExit &OnExit::operator=(OnExit &&o)
+OnExit &OnExit::operator=(OnExit &&o) noexcept
 {
 	reset();
 	del = std::exchange(o.del, {});

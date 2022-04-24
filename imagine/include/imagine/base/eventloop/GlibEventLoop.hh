@@ -35,8 +35,8 @@ class GlibFDSource
 public:
 	constexpr GlibFDSource() = default;
 	GlibFDSource(GSource *, int fd, GIOCondition events, GMainContext *, gpointer &tagOut);
-	GlibFDSource(GlibFDSource &&o);
-	GlibFDSource &operator=(GlibFDSource &&o);
+	GlibFDSource(GlibFDSource &&o) noexcept;
+	GlibFDSource &operator=(GlibFDSource &&o) noexcept;
 	~GlibFDSource();
 	operator PollEventGSource *() const { return static_cast<PollEventGSource*>(src); }
 

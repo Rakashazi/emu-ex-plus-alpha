@@ -24,7 +24,7 @@
 namespace IG::Input
 {
 
-template <IG::floating_point T, uint32_t D>
+template <IG::floating_point T, size_t D>
 class IntegratingVelocityTracker
 {
 public:
@@ -71,7 +71,7 @@ public:
 		}
 	}
 
-	T velocity(uint32_t idx) const { return vel[idx]; }
+	T velocity(size_t idx) const { return vel[idx]; }
 
 protected:
 	TimeType updateTime{};
@@ -80,7 +80,7 @@ protected:
 	uint8_t degree{};
 };
 
-template <class T, uint32_t D>
+template <class T, size_t D>
 using VelocityTracker = IntegratingVelocityTracker<T, D>;
 
 }

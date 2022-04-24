@@ -44,8 +44,8 @@ public:
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();
-	uint32_t width();
-	uint32_t height();
+	int width();
+	int height();
 	IG::PixelFormat pixelFormat();
 
 protected:

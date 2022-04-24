@@ -66,7 +66,7 @@ void Screen::runOnFrameDelegates(FrameTime timestamp)
 	}
 }
 
-uint32_t Screen::onFrameDelegates() const
+size_t Screen::onFrameDelegates() const
 {
 	return onFrameDelegate.size();
 }

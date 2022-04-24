@@ -27,8 +27,6 @@
 namespace IG
 {
 
-BasicViewController::BasicViewController() {}
-
 void BasicViewController::push(std::unique_ptr<View> v, const Input::Event &e)
 {
 	if(view)
@@ -97,8 +95,6 @@ void BasicViewController::draw(Gfx::RendererCommands &cmds)
 		return;
 	view->draw(cmds);
 }
-
-ViewStack::ViewStack() {}
 
 void ViewStack::setNavView(std::unique_ptr<NavView> navView)
 {
@@ -281,7 +277,7 @@ void ViewStack::pop()
 	}
 }
 
-void ViewStack::popViews(int num)
+void ViewStack::popViews(size_t num)
 {
 	auto win = view.size() ? &top().window() : nullptr;
 	iterateTimes(num, i)
@@ -405,19 +401,19 @@ void ViewStack::dismissView(int idx, bool refreshLayout)
 	if(idx < 0)
 	{
 		// negative index is treated as an offset from the current size
-		idx = size() + idx;
+		idx = (int)size() + idx;
 	}
 	if(idx == 0)
 	{
 		logWarn("not dismissing root view");
 		return;
 	}
-	if(idx < 0 || idx >= size())
+	if(idx < 0 || idx >= (int)size())
 	{
 		logWarn("view dismiss index out of range:%d", idx);
 		return;
 	}
-	if(idx == size() - 1)
+	if(idx == (int)size() - 1)
 	{
 		// topmost view case
 		if(refreshLayout)
@@ -458,7 +454,7 @@ void ViewStack::showNavLeftBtn()
 	}
 }
 
-int ViewStack::size() const
+size_t ViewStack::size() const
 {
 	return view.size();
 }

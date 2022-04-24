@@ -226,7 +226,7 @@ int8_t *GLStateCache::getClientCap(GLenum cap)
 	{
 		GLCAP_CASE(GL_TEXTURE_COORD_ARRAY);
 		GLCAP_CASE(GL_COLOR_ARRAY);
-	default: return 0;
+	default: return {};
 	}
 	#undef GLCAP_CASE
 }

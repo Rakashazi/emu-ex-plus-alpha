@@ -83,7 +83,7 @@ public:
 		AXIS_BITS_STICK_2 = AXIS_BIT_Z | AXIS_BIT_RZ,
 		AXIS_BITS_HAT = AXIS_BIT_HAT_X | AXIS_BIT_HAT_Y;
 
-	Device();
+	Device() = default;
 	Device(int id, Map map, TypeBits, std::string name);
 	virtual ~Device() = default;
 
@@ -129,6 +129,7 @@ public:
 	bool operator ==(Device const& rhs) const = default;
 
 	virtual void setICadeMode(bool on);
+	[[nodiscard]]
 	virtual bool iCadeMode() const;
 	void setJoystickAxisAsDpadBits(uint32_t axisMask);
 	uint32_t joystickAxisAsDpadBits();

@@ -55,7 +55,7 @@ public:
 	float spaceWidth() const;
 	GlyphTextureSet *face() const;
 	uint16_t currentLines() const;
-	unsigned stringSize() const;
+	size_t stringSize() const;
 	bool isVisible() const;
 	std::u16string_view stringView() const;
 	std::u16string string() const;

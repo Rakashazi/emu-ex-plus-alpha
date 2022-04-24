@@ -35,13 +35,13 @@ void LGradient::setTranslucent(ColorComp a)
 	g.setColorTranslucent(a);
 }
 
-void LGradient::setColorStop(ColorComp r, ColorComp g, ColorComp b, uint32_t i)
+void LGradient::setColorStop(ColorComp r, ColorComp g, ColorComp b, size_t i)
 {
 	this->g.setColorRGBV(r, g, b, i*2);
 	this->g.setColorRGBV(r, g, b, (i*2)+1);
 }
 
-void LGradient::setTranslucentStop(ColorComp a, uint32_t i)
+void LGradient::setTranslucentStop(ColorComp a, size_t i)
 {
 	g.setColorTranslucentV(a, i*2);
 	g.setColorTranslucentV(a, (i*2)+1);
@@ -49,7 +49,7 @@ void LGradient::setTranslucentStop(ColorComp a, uint32_t i)
 
 void LGradient::setPos(std::span<const LGradientStopDesc> stops, float x, float y, float x2, float y2)
 {
-	if(stops.size() != stops_)
+	if(stops.size() != (size_t)stops_)
 	{
 		assert(stops.size() >= 2);
 		stops_ = stops.size();
@@ -59,7 +59,7 @@ void LGradient::setPos(std::span<const LGradientStopDesc> stops, float x, float 
 		{
 			stopPos[i] = stops[i].pos;
 		}
-		g = {thickness, stopPos, (uint32_t)stops.size()};
+		g = {thickness, {stopPos, stops.size()}};
 	}
 
 	ColVertex *v = g.v().data();
@@ -79,7 +79,7 @@ void LGradient::setPos(std::span<const LGradientStopDesc> stops, GCRect d)
 	 setPos(stops, d.x, d.y2, d.x2, d.y);
 }
 
-uint32_t LGradient::stops() const
+int LGradient::stops() const
 {
 	return stops_;
 }

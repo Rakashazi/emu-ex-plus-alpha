@@ -60,7 +60,7 @@ void GLDrawable::restoreCaches()
 
 // GLContext
 
-static EAGLRenderingAPI majorVersionToAPI(uint32_t version)
+static EAGLRenderingAPI majorVersionToAPI(int version)
 {
 	switch(version)
 	{
@@ -177,7 +177,7 @@ bool GLManager::hasCurrentDrawable()
 
 GLDisplay GLManager::display() const { return {}; }
 
-std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext, GLBufferConfigAttributes attr, GL::API, unsigned) const
+std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext, GLBufferConfigAttributes attr, GL::API, int) const
 {
 	GLBufferConfig conf;
 	if(attr.pixelFormat == PIXEL_RGB565)
@@ -237,7 +237,7 @@ NativeWindowFormat GLManager::nativeWindowFormat(ApplicationContext, GLBufferCon
 	return {};
 }
 
-bool GLBufferConfig::maySupportGLES(GLDisplay, unsigned majorVersion) const
+bool GLBufferConfig::maySupportGLES(GLDisplay, int majorVersion) const
 {
 	return majorVersion >= 1 && majorVersion <= 3;
 }

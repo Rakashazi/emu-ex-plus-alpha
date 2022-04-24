@@ -23,7 +23,7 @@
 namespace IG::Audio
 {
 
-static constexpr uint32_t defaultOutputBufferFrames = 192; // default used in Google Oboe library
+static constexpr int defaultOutputBufferFrames = 192; // default used in Google Oboe library
 static constexpr int AUDIOFOCUS_GAIN = 1;
 static constexpr int STREAM_MUSIC = 3;
 
@@ -46,9 +46,9 @@ SampleFormat Manager::nativeSampleFormat() const
 	return ctx.androidSDK() >= 21 ? SampleFormats::f32 : SampleFormats::i16;
 }
 
-uint32_t Manager::nativeRate() const
+int Manager::nativeRate() const
 {
-	uint32_t rate = 44100;
+	int rate = 44100;
 	if(ctx.androidSDK() >= 17)
 	{
 		auto env = ctx.mainThreadJniEnv();
@@ -153,7 +153,7 @@ Api Manager::makeValidAPI(Api api) const
 	}
 }
 
-uint32_t AndroidManager::nativeOutputFramesPerBuffer() const
+int AndroidManager::nativeOutputFramesPerBuffer() const
 {
 	if(ctx.androidSDK() >= 17)
 	{
@@ -204,7 +204,7 @@ bool AndroidManager::hasStreamUsage() const
 	return ctx.androidSDK() >= 28;
 }
 
-unsigned AndroidManager::defaultOutputBuffers() const
+int AndroidManager::defaultOutputBuffers() const
 {
 	return ctx.androidSDK() >= 18 ? 1 : 2;
 }

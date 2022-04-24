@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/time/Time.hh>
+#include <imagine/util/concepts.hh>
 #include "SampleFormat.hh"
 #include <compare>
 #include <cmath>
@@ -25,9 +26,9 @@ namespace IG::Audio
 
 struct Format
 {
-	uint32_t rate{};
+	int rate{};
 	SampleFormat sample{};
-	uint8_t channels{};
+	int8_t channels{};
 
 	constexpr bool operator ==(Format const& rhs) const = default;
 
@@ -36,44 +37,44 @@ struct Format
 		return rate != 0 && sample && channels != 0;
 	}
 
-	constexpr uint32_t bytesPerFrame() const
+	constexpr auto bytesPerFrame() const
 	{
 		return sample.bytes() * channels;
 	}
 
-	constexpr uint32_t framesToBytes(uint32_t frames) const
+	constexpr auto framesToBytes(Arithmetic auto frames) const
 	{
 		return frames * bytesPerFrame();
 	}
 
-	constexpr uint32_t bytesToFrames(uint32_t bytes) const
+	constexpr auto bytesToFrames(Arithmetic auto bytes) const
 	{
 		return bytes / bytesPerFrame();
 	}
 
-	template<class T = IG::FloatSeconds>
-	constexpr T framesToTime(uint32_t frames) const
+	template<class T = FloatSeconds>
+	constexpr T framesToTime(Arithmetic auto frames) const
 	{
-		return T{IG::FloatSeconds{(double)frames / rate}};
+		return T{FloatSeconds{(double)frames / rate}};
 	}
 
-	template<class T = IG::FloatSeconds>
-	constexpr T bytesToTime(uint32_t bytes) const
+	template<class T = FloatSeconds>
+	constexpr T bytesToTime(Arithmetic auto bytes) const
 	{
 		return framesToTime(bytesToFrames(bytes));
 	}
 
-	constexpr uint32_t timeToFrames(IG::ChronoDuration auto time) const
+	constexpr auto timeToFrames(ChronoDuration auto time) const
 	{
-		return std::ceil(std::chrono::duration_cast<IG::FloatSeconds>(time).count() * rate);
+		return std::ceil(std::chrono::duration_cast<FloatSeconds>(time).count() * rate);
 	}
 
-	constexpr uint32_t timeToBytes(IG::ChronoDuration auto time) const
+	constexpr auto timeToBytes(ChronoDuration auto time) const
 	{
 		return framesToBytes(timeToFrames(time));
 	}
 
-	void *copyFrames(void *dest, const void *src, unsigned frames, Format srcFormat, float volume = 1.f) const;
+	void *copyFrames(void *dest, const void *src, size_t frames, Format srcFormat, float volume = 1.f) const;
 };
 
 }

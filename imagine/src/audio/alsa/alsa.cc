@@ -69,15 +69,11 @@ static bool recoverPCM(snd_pcm_t *handle)
 			snd_pcm_resume(handle);
 			return true;
 		case SND_PCM_STATE_PREPARED:
-			return true;
 		case SND_PCM_STATE_SETUP:
 			return true;
 	}
 	return false;
 }
-
-
-ALSAOutputStream::ALSAOutputStream() {}
 
 ALSAOutputStream::~ALSAOutputStream()
 {
@@ -102,9 +98,9 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 		logErr("Playback open error: %s", snd_strerror(err));
 		return {EINVAL};
 	}
-	auto closePcm = IG::scopeGuard([this](){ snd_pcm_close(pcmHnd); pcmHnd = 0; });
+	auto closePcm = IG::scopeGuard([this](){ snd_pcm_close(pcmHnd); pcmHnd = {}; });
 	logMsg("Stream parameters: %iHz, %s, %i channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(format.sample)), format.channels);
-	bool allowMmap = 1;
+	bool allowMmap = true;
 	int err = -1;
 	auto wantedLatency = config.wantedLatencyHint().count() ? config.wantedLatencyHint() : IG::Microseconds{10000};
 	if(allowMmap)
@@ -140,7 +136,7 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 			auto waitForEvent =
 				[](snd_pcm_t *handle, struct pollfd *ufds, unsigned int count, std::atomic_bool &quitFlag)
 				{
-					while(1)
+					while(true)
 					{
 						poll(ufds, count, -1);
 						if(quitFlag)
@@ -161,7 +157,7 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 						logMsg("got other events:0x%X", revents);
 					}
 				};
-			while(1)
+			while(true)
 			{
 				if(int err = waitForEvent(pcmHnd, ufds.get(), count, quitFlag);
 					err < 0)
@@ -333,7 +329,7 @@ int ALSAOutputStream::setupPcm(Format format, snd_pcm_access_t access, IG::Micro
 	}
 	else
 	{
-		logMsg("buffer size %u, period size %u, mmap %d", (uint32_t)bufferSize, (uint32_t)periodSize, useMmap);
+		logMsg("buffer size %d, period size %d, mmap %d", (int)bufferSize, (int)periodSize, useMmap);
 		return 0;
 	}
 }

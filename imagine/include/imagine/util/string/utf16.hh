@@ -32,6 +32,7 @@ class utf16String : public std::u16string
 {
 public:
 	using std::u16string::u16string;
+	using std::u16string::operator=;
 	utf16String(IG::convertible_to<std::u16string> auto &&s):std::u16string{IG_forward(s)} {}
 	utf16String(std::u16string_view s):std::u16string{s} {}
 

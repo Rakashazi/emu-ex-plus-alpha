@@ -349,8 +349,6 @@ static const char *openPandoraButtonName(Key b)
 }
 #endif
 
-Device::Device() {}
-
 Device::Device(int id, Map map, uint8_t type, std::string name):
 	name_{std::move(name)}, id_{id}, typeBits_{type}, map_{map} {}
 
@@ -586,7 +584,7 @@ bool Axis::update(float pos, Map map, Time time, const Device &dev, Window &win,
 AxisKeyEmu::UpdateKeys AxisKeyEmu::update(float pos)
 {
 	UpdateKeys keys;
-	int8_t newState = (pos <= limit.first) ? -1 :
+	auto newState = (pos <= limit.first) ? -1 :
 		(pos >= limit.second) ? 1 :
 		0;
 	if(newState != state)
@@ -600,7 +598,7 @@ AxisKeyEmu::UpdateKeys AxisKeyEmu::update(float pos)
 		keys.pushed = newStateHigh ? key.second : newStateLow ? key.first : 0;
 		keys.sysPushed = newStateHigh ? sysKey.second : newStateLow ? sysKey.first : 0;
 		keys.updated = true;
-		state = newState;
+		state = (int8_t)newState;
 	}
 	return keys;
 }

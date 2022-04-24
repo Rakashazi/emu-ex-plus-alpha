@@ -166,7 +166,7 @@ void GLTask::TaskContext::markSemaphoreNotified()
 	*semaphoreNeedsNotifyPtr = false;
 }
 
-static GLContextAttributes makeGLContextAttributes(unsigned majorVersion, unsigned minorVersion)
+static GLContextAttributes makeGLContextAttributes(int majorVersion, int minorVersion)
 {
 	GLContextAttributes glAttr{majorVersion, minorVersion, glAPI};
 	if(Config::DEBUG_BUILD)
@@ -177,7 +177,7 @@ static GLContextAttributes makeGLContextAttributes(unsigned majorVersion, unsign
 }
 
 static GLContext makeVersionedGLContext(GLManager &mgr, GLBufferConfig config,
-	unsigned majorVersion, unsigned minorVersion)
+	int majorVersion, int minorVersion)
 {
 	auto glAttr = makeGLContextAttributes(majorVersion, minorVersion);
 	IG::ErrorCode ec{};

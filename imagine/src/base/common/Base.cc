@@ -128,7 +128,7 @@ uint32_t FrameParams::elapsedFrames(FrameTime timestamp, FrameTime lastTimestamp
 	assumeExpr(timestamp >= lastTimestamp);
 	assumeExpr(frameTime.count() > 0);
 	FrameTime diff = timestamp - lastTimestamp;
-	uint32_t elapsed = std::round(FloatSeconds(diff) / frameTime);
+	auto elapsed = (uint32_t)std::round(FloatSeconds(diff) / frameTime);
 	return std::max(elapsed, 1u);
 }
 

@@ -68,10 +68,10 @@ public:
 	void glcVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer);
 	#endif
 	void setCachedProjectionMatrix(Mat4 projectionMat);
-	void setupVertexArrayPointers(const char *v, int numV, unsigned stride,
-		unsigned textureOffset, unsigned colorOffset, unsigned posOffset, bool hasTexture, bool hasColor);
-	void setupShaderVertexArrayPointers(const char *v, int numV, unsigned stride, unsigned id,
-		unsigned textureOffset, unsigned colorOffset, unsigned posOffset, bool hasTexture, bool hasColor);
+	void setupVertexArrayPointers(const char *v, int numV, int stride,
+		int textureOffset, int colorOffset, int posOffset, bool hasTexture, bool hasColor);
+	void setupShaderVertexArrayPointers(const char *v, int numV, int stride, int id,
+		int textureOffset, int colorOffset, int posOffset, bool hasTexture, bool hasColor);
 	void setProgram(NativeProgramBundle program, Mat4 modelMat);
 	void setProgram(NativeProgramBundle program, const Mat4 *modelMat);
 
@@ -95,7 +95,7 @@ protected:
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	NativeProgramBundle currProgram{};
 	Mat4 modelMat{}, projectionMat{};
-	uint32_t currentVtxArrayPointerID = 0;
+	int currentVtxArrayPointerID = 0;
 	#endif
 	GLStateCache glState{};
 	Color vColor{}; // color when using shader pipeline

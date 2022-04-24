@@ -39,7 +39,7 @@ static std::errc convertCharCode(const char** sourceStart, uint32_t &c)
 	}
 	else
 	{
-		c = **sourceStart;
+		c = (unsigned char)**sourceStart;
 		if(c == '\0')
 			return std::errc::result_out_of_range;
 		*sourceStart += 1;
@@ -52,7 +52,7 @@ std::u16string makeUTF16String(std::string_view strView)
 	if(!strView.size())
 		return {};
 	std::u16string u16String{};
-	unsigned utf16Len = 0;
+	size_t utf16Len = 0;
 	const char *s = strView.data();
 	uint32_t c = 0;
 	while(!(bool)convertCharCode(&s, c))

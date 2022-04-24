@@ -53,7 +53,7 @@ protected:
 class AlertView : public BaseAlertView
 {
 public:
-	AlertView(ViewAttachParams attach, IG::utf16String label, unsigned menuItems);
+	AlertView(ViewAttachParams attach, IG::utf16String label, size_t menuItems);
 	void setItem(size_t idx, IG::utf16String name, TextMenuItem::SelectDelegate del);
 
 protected:

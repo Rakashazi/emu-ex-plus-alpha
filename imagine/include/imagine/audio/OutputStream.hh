@@ -26,7 +26,7 @@
 namespace IG::Audio
 {
 
-using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, unsigned frames)>;
+using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, size_t frames)>;
 
 class OutputStreamConfig
 {

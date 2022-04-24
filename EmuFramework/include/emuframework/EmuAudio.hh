@@ -48,8 +48,8 @@ public:
 	void stop();
 	void close();
 	void flush();
-	void writeFrames(const void *samples, uint32_t framesToWrite);
-	void setRate(uint32_t rate);
+	void writeFrames(const void *samples, size_t framesToWrite);
+	void setRate(int rate);
 	void setStereo(bool on);
 	void setSpeedMultiplier(uint8_t speed);
 	void setAddSoundBuffersOnUnderrun(bool on);
@@ -62,20 +62,20 @@ protected:
 	const IG::Audio::Manager *audioManagerPtr{};
 	IG::RingBuffer rBuff{};
 	IG::Time lastUnderrunTime{};
-	uint32_t targetBufferFillBytes = 0;
-	uint32_t bufferIncrementBytes = 0;
-	uint32_t rate{};
+	size_t targetBufferFillBytes{};
+	size_t bufferIncrementBytes{};
+	int rate{};
 	float volume = 1.0;
 	std::atomic<AudioWriteState> audioWriteState = AudioWriteState::BUFFER;
 	bool addSoundBuffersOnUnderrun = false;
 	uint8_t speedMultiplier = 1;
-	uint8_t channels = 2;
+	int8_t channels = 2;
 
-	uint32_t framesFree() const;
-	uint32_t framesWritten() const;
-	uint32_t framesCapacity() const;
-	bool shouldStartAudioWrites(uint32_t bytesToWrite = 0) const;
-	void resizeAudioBuffer(uint32_t targetBufferFillBytes);
+	size_t framesFree() const;
+	size_t framesWritten() const;
+	size_t framesCapacity() const;
+	bool shouldStartAudioWrites(size_t bytesToWrite = 0) const;
+	void resizeAudioBuffer(size_t targetBufferFillBytes);
 	const IG::Audio::Manager &audioManager() const;
 };
 

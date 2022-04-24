@@ -244,12 +244,12 @@ bool PixmapBufferTexture::isExternal() const
 	return Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL && directTex->isExternal();
 }
 
-static std::array<GLTextureStorage::BufferInfo, 2> makeSystemMemoryPixelBuffer(unsigned bytes, void *oldBuffer, bool singleBuffer)
+static std::array<GLTextureStorage::BufferInfo, 2> makeSystemMemoryPixelBuffer(size_t bytes, void *oldBuffer, bool singleBuffer)
 {
 	std::free(oldBuffer);
-	unsigned fullBytes = singleBuffer ? bytes : bytes * 2;
+	auto fullBytes = singleBuffer ? bytes : bytes * 2;
 	auto bufferPtr = (char*)std::malloc(fullBytes);
-	logMsg("allocated system memory pixel buffer with buffers:%u size:%u data:%p", singleBuffer ? 1 : 2, bytes, bufferPtr);
+	logMsg("allocated system memory pixel buffer with buffers:%u size:%zu data:%p", singleBuffer ? 1 : 2, bytes, bufferPtr);
 	return {bufferPtr, singleBuffer ? nullptr : bufferPtr + bytes};
 }
 
@@ -269,12 +269,12 @@ GLTextureStorage::~GLTextureStorage()
 	deinit();
 }
 
-GLTextureStorage::GLTextureStorage(GLTextureStorage &&o)
+GLTextureStorage::GLTextureStorage(GLTextureStorage &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-GLTextureStorage &GLTextureStorage::operator=(GLTextureStorage &&o)
+GLTextureStorage &GLTextureStorage::operator=(GLTextureStorage &&o) noexcept
 {
 	deinit();
 	TextureBufferStorage::operator=(std::move(o));
@@ -288,13 +288,13 @@ void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool si
 {
 	if(singleBuffer)
 		bufferIdx = SINGLE_BUFFER_VALUE;
-	const unsigned bufferBytes = desc.bytes();
+	const auto bufferBytes = desc.bytes();
 	auto &r = renderer();
 	if(usePBO)
 	{
 		assert(hasPersistentBufferMapping(r));
-		char *bufferPtr;
-		const unsigned fullBufferBytes = singleBuffer ? bufferBytes : bufferBytes * 2;
+		char *bufferPtr{};
+		const auto fullBufferBytes = singleBuffer ? bufferBytes : bufferBytes * 2;
 		task().runSync(
 			[=, &r, &bufferPtr, &pbo = pbo](GLTask::TaskContext ctx)
 			{
@@ -330,7 +330,9 @@ void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool si
 			if(singleBuffer)
 				buffer[1] = {nullptr};
 			else
+			{
 				buffer[1] = {bufferPtr + bufferBytes, (void *)(uintptr_t)bufferBytes};
+			}
 		}
 		else // fallback to system memory if PBO fails
 			buffer = makeSystemMemoryPixelBuffer(bufferBytes, nullptr, singleBuffer);
@@ -441,7 +443,7 @@ void GLTextureStorage::deinit()
 #ifdef __ANDROID__
 static const char *rendererGLStr(Renderer &r)
 {
-	const char *str;
+	const char *str= "";
 	r.task().runSync(
 		[&str]()
 		{

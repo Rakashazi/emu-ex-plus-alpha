@@ -281,7 +281,7 @@ IG::Time EmuSystem::benchmark(EmuVideo &video)
 	return after-now;
 }
 
-void EmuSystem::configFrameTime(uint32_t rate)
+void EmuSystem::configFrameTime(int rate)
 {
 	auto fTime = frameTime();
 	configAudioRate(fTime, rate);
@@ -291,13 +291,13 @@ void EmuSystem::configFrameTime(uint32_t rate)
 	emuTiming.setFrameTime(fTime);
 }
 
-void EmuSystem::configAudioPlayback(EmuAudio &emuAudio, uint32_t rate)
+void EmuSystem::configAudioPlayback(EmuAudio &emuAudio, int rate)
 {
 	configFrameTime(rate);
 	emuAudio.setRate(rate);
 }
 
-uint32_t EmuSystem::updateAudioFramesPerVideoFrame()
+int EmuSystem::updateAudioFramesPerVideoFrame()
 {
 	assumeExpr(currentAudioFramesPerVideoFrame < audioFramesPerVideoFrameFloat + 1.);
 	double wholeFrames;

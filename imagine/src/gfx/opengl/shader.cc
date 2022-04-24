@@ -241,7 +241,7 @@ Program::operator bool() const
 
 int Program::uniformLocation(const char *uniformName)
 {
-	GLint loc;
+	GLint loc{};
 	task().runSync(
 		[program = (GLuint)program_, &loc, uniformName]()
 		{

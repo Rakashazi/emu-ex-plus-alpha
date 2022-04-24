@@ -40,7 +40,7 @@ void Pixmap::write(Pixmap pixmap)
 		auto srcData = pixmap.data();
 		auto destData = data();
 		auto destPitch = pitch;
-		uint32_t lineBytes = format().pixelBytes(pixmap.w());
+		auto lineBytes = format().pixelBytes(pixmap.w());
 		iterateTimes(pixmap.h(), i)
 		{
 			memcpy(destData, srcData, lineBytes);
@@ -245,7 +245,7 @@ void Pixmap::clear(WP pos, WP size)
 	}
 	else
 	{
-		uint32_t lineBytes = format().pixelBytes(size.x);
+		auto lineBytes = format().pixelBytes(size.x);
 		iterateTimes(size.y, i)
 		{
 			std::fill_n(destData, lineBytes, 0);

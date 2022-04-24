@@ -32,7 +32,7 @@ namespace EmuEx
 class EmuSystem;
 
 std::vector<FS::PathString> subDirectoryStrings(IG::ApplicationContext, IG::CStringView path);
-void flattenSubDirectories(IG::ApplicationContext, std::vector<FS::PathString> subDirs, IG::CStringView outPath);
+void flattenSubDirectories(IG::ApplicationContext, const std::vector<FS::PathString> &subDirs, IG::CStringView outPath);
 void updateLegacySavePathOnStoragePath(IG::ApplicationContext, EmuSystem &);
 bool hasWriteAccessToDir(IG::CStringView path);
 

@@ -95,12 +95,12 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 	err = setFormat(config.pixmapDesc(), config.colorSpace(), config.compatSampler());
 }
 
-SurfaceTextureStorage::SurfaceTextureStorage(SurfaceTextureStorage &&o)
+SurfaceTextureStorage::SurfaceTextureStorage(SurfaceTextureStorage &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-SurfaceTextureStorage &SurfaceTextureStorage::operator=(SurfaceTextureStorage &&o)
+SurfaceTextureStorage &SurfaceTextureStorage::operator=(SurfaceTextureStorage &&o) noexcept
 {
 	deinit();
 	TextureBufferStorage::operator=(std::move(o));

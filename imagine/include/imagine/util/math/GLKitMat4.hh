@@ -18,7 +18,7 @@ public:
 			v{&v0, &v1, &v2, &v3}
 		{}
 
-		T &operator [](unsigned i)
+		T &operator [](size_t i)
 		{
 			return *v[i];
 		}

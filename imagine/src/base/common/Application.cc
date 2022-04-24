@@ -20,7 +20,7 @@
 namespace IG
 {
 
-const char copyright[] = "Imagine is Copyright 2010-2022 Robert Broglia";
+const char *copyright = "Imagine is Copyright 2010-2022 Robert Broglia";
 
 BaseApplication::BaseApplication(ApplicationContext ctx)
 {

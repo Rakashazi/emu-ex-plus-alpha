@@ -86,15 +86,15 @@ bool KeyEvent::isDefaultConfirmButton(uint32_t swapped) const
 		case Map::WII_CC:
 		case Map::ICONTROLPAD:
 		case Map::ZEEMOTE:
-			return swapped ? isDefaultCancelButton(0) : sysKey_ == Keycode::GAME_A;
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return swapped ? isDefaultCancelButton(0) : sysKey_ == Keycode::GAME_A;
+		case Map::PS3PAD:
 		#endif
-		case Map::ICADE: return swapped ? isDefaultCancelButton(0) : sysKey_ == Keycode::GAME_A;
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return swapped ? isDefaultCancelButton(0) : sysKey_ == Keycode::GAME_A;
+		case Map::APPLE_GAME_CONTROLLER:
 		#endif
+		case Map::ICADE:
+			return swapped ? isDefaultCancelButton(0) : sysKey_ == Keycode::GAME_A;
 		case Map::SYSTEM:
 			switch(device()->subtype())
 			{
@@ -124,17 +124,17 @@ bool KeyEvent::isDefaultCancelButton(uint32_t swapped) const
 		case Map::WII_CC:
 		case Map::ICONTROLPAD:
 		case Map::ZEEMOTE:
-			return swapped ? isDefaultConfirmButton(0) : sysKey_ == Keycode::GAME_B;
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return swapped ? isDefaultConfirmButton(0) : sysKey_ == Keycode::GAME_B;
-		#endif
-		case Map::ICADE: return swapped ? isDefaultConfirmButton(0) : sysKey_ == Keycode::GAME_B;
-		#ifdef CONFIG_INPUT_MOUSE_DEVICES
-		case Map::POINTER: return button == Pointer::DOWN_BUTTON;
+		case Map::PS3PAD:
 		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return swapped ? isDefaultConfirmButton(0) : sysKey_ == Keycode::GAME_B;
+		case Map::APPLE_GAME_CONTROLLER:
+		#endif
+		case Map::ICADE:
+			return swapped ? isDefaultConfirmButton(0) : sysKey_ == Keycode::GAME_B;
+		#ifdef CONFIG_INPUT_MOUSE_DEVICES
+		case Map::POINTER: return button == Pointer::DOWN_BUTTON;
 		#endif
 		case Map::SYSTEM:
 			switch(device()->subtype())
@@ -288,7 +288,7 @@ bool KeyEvent::isDefaultPageUpButton() const
 		case Map::WIIMOTE: return button == Input::Wiimote::PLUS;
 		case Map::WII_CC: return button == Input::WiiCC::L;
 		case Map::ICONTROLPAD: return button == Input::iControlPad::L;
-		case Map::ZEEMOTE: return 0;
+		case Map::ZEEMOTE: return false;
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
 		case Map::PS3PAD: return button == Input::PS3::L1;
@@ -320,7 +320,7 @@ bool KeyEvent::isDefaultPageDownButton() const
 		case Map::WIIMOTE: return button == Input::Wiimote::MINUS;
 		case Map::WII_CC: return button == Input::WiiCC::R;
 		case Map::ICONTROLPAD: return button == Input::iControlPad::R;
-		case Map::ZEEMOTE: return 0;
+		case Map::ZEEMOTE: return false;
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
 		case Map::PS3PAD: return button == Input::PS3::R1;

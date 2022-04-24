@@ -22,11 +22,13 @@ namespace IG
 class GeneralErrorCategory final : public std::error_category
 {
 public:
+	[[nodiscard]]
 	const char* name() const noexcept final
 	{
 		return "general";
 	}
 
+	[[nodiscard]]
 	std::string message(int condition) const final
 	{
 		// TODO
@@ -35,8 +37,6 @@ public:
 };
 
 static GeneralErrorCategory generalErrorCategory{};
-
-ErrorCode::ErrorCode() {}
 
 ErrorCode::ErrorCode(int code): std::error_code{code, generalErrorCategory} {}
 

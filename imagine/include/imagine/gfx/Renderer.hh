@@ -94,7 +94,7 @@ public:
 	bool supportsSyncFences() const;
 	void setPresentationTime(Window &, IG::FrameTime time) const;
 	bool supportsPresentationTime() const;
-	unsigned maxSwapChainImages() const;
+	int maxSwapChainImages() const;
 	void setCorrectnessChecks(bool on);
 	std::vector<DrawableConfigDesc> supportedDrawableConfigs() const;
 	bool hasBgraFormat(TextureBufferMode) const;

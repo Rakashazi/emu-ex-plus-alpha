@@ -43,6 +43,7 @@ ifeq ($(origin CC), default)
  RANLIB := $(AR) s
  STRIP := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-strip
  OBJDUMP := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-objdump
+ CLANG_TIDY := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang-tidy
  toolchainEnvParams += STRIP="$(STRIP)" OBJDUMP="$(OBJDUMP)"
 else
  # TODO: user-defined compiler

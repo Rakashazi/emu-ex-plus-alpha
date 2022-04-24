@@ -55,31 +55,31 @@ class GLContextAttributes
 public:
 	constexpr GLContextAttributes() = default;
 
-	constexpr GLContextAttributes(uint32_t majorVer, uint32_t minorVer, GL::API api)
+	constexpr GLContextAttributes(int majorVer, int minorVer, GL::API api)
 	{
 		setMajorVersion(majorVer);
 		setMinorVersion(minorVer);
 		setOpenGLESAPI(api == GL::API::OPENGL_ES);
 	}
 
-	constexpr void setMajorVersion(uint32_t majorVer)
+	constexpr void setMajorVersion(int majorVer)
 	{
 		if(!majorVer)
 			majorVer = 1;
 		this->majorVer = majorVer;
 	}
 
-	constexpr uint32_t majorVersion() const
+	constexpr int majorVersion() const
 	{
 		return majorVer;
 	}
 
-	constexpr void setMinorVersion(uint32_t minorVer)
+	constexpr void setMinorVersion(int minorVer)
 	{
 		this->minorVer = minorVer;
 	}
 
-	constexpr uint32_t minorVersion() const
+	constexpr int minorVersion() const
 	{
 		return minorVer;
 	}
@@ -115,8 +115,8 @@ public:
 	}
 
 private:
-	uint32_t majorVer{1};
-	uint32_t minorVer{};
+	int majorVer{1};
+	int minorVer{};
 	bool glesAPI{};
 	bool debug_{};
 	bool noError_{};
@@ -198,7 +198,7 @@ public:
 	GLManager(NativeDisplayConnection, GL::API);
 	GLDisplay display() const;
 	GLDisplay getDefaultDisplay(NativeDisplayConnection) const;
-	std::optional<GLBufferConfig> makeBufferConfig(ApplicationContext, GLBufferConfigAttributes, GL::API, unsigned majorVersion = 0) const;
+	std::optional<GLBufferConfig> makeBufferConfig(ApplicationContext, GLBufferConfigAttributes, GL::API, int majorVersion = 0) const;
 	NativeWindowFormat nativeWindowFormat(ApplicationContext, GLBufferConfig) const;
 	GLContext makeContext(GLContextAttributes, GLBufferConfig, NativeGLContext shareContext, IG::ErrorCode &);
 	GLContext makeContext(GLContextAttributes, GLBufferConfig, IG::ErrorCode &);

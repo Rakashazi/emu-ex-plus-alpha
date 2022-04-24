@@ -27,16 +27,16 @@ static int16_t clamp16FromFloat(float x)
 	return IG::clampFromFloat<int16_t>(x);
 }
 
-static float *convertI16SamplesToFloat(float * __restrict__ dest, unsigned samples, const int16_t * __restrict__ src, float volume)
+static float *convertI16SamplesToFloat(float * __restrict__ dest, size_t samples, const int16_t * __restrict__ src, float volume)
 {
 	return transformN(src, samples, dest,
 		[=](int16_t s)
 		{
-			return (s / 32768.f) * volume;
+			return ((float)s / 32768.f) * volume;
 		});
 }
 
-static int16_t *convertFloatSamplesToI16(int16_t * __restrict__ dest, unsigned samples, const float * __restrict__ src, float volume)
+static int16_t *convertFloatSamplesToI16(int16_t * __restrict__ dest, size_t samples, const float * __restrict__ src, float volume)
 {
 	return transformN(src, samples, dest,
 		[=](float s)
@@ -45,7 +45,7 @@ static int16_t *convertFloatSamplesToI16(int16_t * __restrict__ dest, unsigned s
 		});
 }
 
-static int16_t *copyI16Samples(int16_t * __restrict__ dest, unsigned samples, const int16_t * __restrict__ src, float volume)
+static int16_t *copyI16Samples(int16_t * __restrict__ dest, size_t samples, const int16_t * __restrict__ src, float volume)
 {
 	if(volume == 1.f)
 	{
@@ -56,12 +56,12 @@ static int16_t *copyI16Samples(int16_t * __restrict__ dest, unsigned samples, co
 		return transformN(src, samples, dest,
 			[=](int16_t s)
 			{
-				return clamp16FromFloat((s / 32768.f) * volume);
+				return clamp16FromFloat(((float)s / 32768.f) * volume);
 			});
 	}
 }
 
-static float *copyFloatSamples(float * __restrict__ dest, unsigned samples, const float * __restrict__ src, float volume)
+static float *copyFloatSamples(float * __restrict__ dest, size_t samples, const float * __restrict__ src, float volume)
 {
 	if(volume == 1.f)
 	{
@@ -77,10 +77,10 @@ static float *copyFloatSamples(float * __restrict__ dest, unsigned samples, cons
 	}
 }
 
-void *Format::copyFrames(void * __restrict__ dest, const void * __restrict__ src, unsigned frames, Format srcFormat, float volume) const
+void *Format::copyFrames(void * __restrict__ dest, const void * __restrict__ src, size_t frames, Format srcFormat, float volume) const
 {
 	assumeExpr(channels == srcFormat.channels);
-	unsigned samples = frames * channels;
+	auto samples = frames * channels;
 	switch(sample.bytes())
 	{
 		case 2:

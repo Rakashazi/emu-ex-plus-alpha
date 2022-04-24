@@ -432,7 +432,7 @@ void genericMultiplayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsi
 {
 	iterateTimes(EmuSystem::maxPlayers, i)
 	{
-		if(player && i == player)
+		if(player && (unsigned)i == player)
 		{
 			//logMsg("moving to player %d map", i);
 			std::copy_n(&key[category[startCategory].configOffset], category[startCategory].keys, &key[category[i+startCategory].configOffset]);

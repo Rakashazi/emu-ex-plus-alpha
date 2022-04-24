@@ -95,7 +95,7 @@ public:
 	void set(CommonTextureSampler sampler) { setCommonTextureSampler(sampler); }
 	void setViewport(Viewport v);
 	Viewport viewport() const;
-	void vertexBufferData(const void *v, uint32_t size);
+	void vertexBufferData(const void *v, size_t size);
 	void bindTempVertexBuffer();
 	void flush();
 
@@ -126,8 +126,8 @@ public:
 	// rendering
 
 	void clear();
-	void drawPrimitives(Primitive mode, uint32_t start, uint32_t count);
-	void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint32_t count);
+	void drawPrimitives(Primitive mode, int start, int count);
+	void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, int count);
 
 private:
 	void setCommonProgram(CommonProgram program, const Mat4 *modelMat);

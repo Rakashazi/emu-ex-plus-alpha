@@ -36,8 +36,8 @@ public:
 	void readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
-	uint32_t width();
-	uint32_t height();
+	int width();
+	int height();
 	const IG::PixelFormat pixelFormat();
 	explicit operator bool() const;
 

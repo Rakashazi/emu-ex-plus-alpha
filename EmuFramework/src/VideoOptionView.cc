@@ -323,7 +323,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	aspectRatio
 	{
 		"Aspect Ratio", &defaultFace(),
-		[this](uint32_t idx, Gfx::Text &t)
+		[this](auto idx, Gfx::Text &t)
 		{
 			if(idx == EmuSystem::aspectRatioInfos)
 			{
@@ -367,7 +367,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	zoom
 	{
 		"Content Zoom", &defaultFace(),
-		[this](uint32_t idx, Gfx::Text &t)
+		[this](auto idx, Gfx::Text &t)
 		{
 			if(app().videoZoom() <= 100)
 			{
@@ -409,7 +409,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	viewportZoom
 	{
 		"App Zoom", &defaultFace(),
-		[this](uint32_t idx, Gfx::Text &t)
+		[this](auto idx, Gfx::Text &t)
 		{
 			t.setString(fmt::format("{}%", app().viewportZoom()));
 			return true;
@@ -488,7 +488,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	overlayEffectLevel
 	{
 		"Overlay Effect Level", &defaultFace(),
-		[this](uint32_t idx, Gfx::Text &t)
+		[this](auto idx, Gfx::Text &t)
 		{
 			t.setString(fmt::format("{}%", app().overlayEffectLevel()));
 			return true;

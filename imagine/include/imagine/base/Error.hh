@@ -23,7 +23,7 @@ namespace IG
 class ErrorCode : public std::error_code
 {
 public:
-	ErrorCode();
+	ErrorCode() = default;
 	ErrorCode(int code);
 };
 

@@ -239,8 +239,8 @@ public:
 	constexpr OnExit() = default;
 	constexpr OnExit(ApplicationContext ctx):ctx{ctx} {}
 	OnExit(ExitDelegate, ApplicationContext, int priority = APP_ON_EXIT_PRIORITY);
-	OnExit(OnExit &&);
-	OnExit &operator=(OnExit &&);
+	OnExit(OnExit &&) noexcept;
+	OnExit &operator=(OnExit &&) noexcept;
 	~OnExit();
 	void reset();
 	ApplicationContext appContext() const;

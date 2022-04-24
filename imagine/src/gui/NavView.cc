@@ -292,7 +292,7 @@ void BasicNavView::place()
 		Gfx::GCRect scaledRect{-rect.size() / 3.f, rect.size() / 3.f};
 		rightSpr.setPos(scaledRect);
 	}
-	bg.setPos({gradientStops.get(), bg.stops()}, projP.unProjectRect(viewRect_));
+	bg.setPos({gradientStops.get(), (size_t)bg.stops()}, projP.unProjectRect(viewRect_));
 }
 
 void BasicNavView::showLeftBtn(bool show)

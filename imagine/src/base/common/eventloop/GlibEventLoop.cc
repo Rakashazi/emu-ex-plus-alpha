@@ -43,12 +43,12 @@ void GlibFDSource::deinit()
 	src = {};
 }
 
-GlibFDSource::GlibFDSource(GlibFDSource &&o)
+GlibFDSource::GlibFDSource(GlibFDSource &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-GlibFDSource &GlibFDSource::operator=(GlibFDSource &&o)
+GlibFDSource &GlibFDSource::operator=(GlibFDSource &&o) noexcept
 {
 	deinit();
 	src = std::exchange(o.src, {});

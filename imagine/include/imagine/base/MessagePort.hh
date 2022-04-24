@@ -41,13 +41,13 @@ public:
 		public:
 			constexpr Iterator(IO *io): io{io}
 			{
-				if(!io)
-					return;
 				this->operator++();
 			}
 
 			Iterator operator++()
 			{
+				if(!io) [[unlikely]]
+					return *this;
 				msg = io->get<MsgType>();
 				if(!msg)
 				{
@@ -68,8 +68,8 @@ public:
 			}
 
 		private:
-			IO *io;
-			MsgType msg;
+			IO *io{};
+			MsgType msg{};
 		};
 
 		constexpr Messages(IO &io): io{io} {}

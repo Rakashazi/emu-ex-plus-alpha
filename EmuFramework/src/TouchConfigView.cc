@@ -422,7 +422,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	size
 	{
 		"Button Size", &defaultFace(),
-		[this](uint32_t idx, Gfx::Text &t)
+		[this](auto idx, Gfx::Text &t)
 		{
 			t.setString(fmt::format("{:.2f}", vController().buttonSize() / 100.));
 			return true;

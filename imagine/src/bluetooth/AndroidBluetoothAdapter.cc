@@ -19,7 +19,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/jni.hh>
-#include <errno.h>
+#include <cerrno>
 #include "../base/android/android.hh"
 #include "utils.hh"
 

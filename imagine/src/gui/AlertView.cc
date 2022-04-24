@@ -130,7 +130,7 @@ void BaseAlertView::setLabel(IG::utf16String label)
 	text.setString(std::move(label));
 }
 
-AlertView::AlertView(ViewAttachParams attach, IG::utf16String label, unsigned menuItems):
+AlertView::AlertView(ViewAttachParams attach, IG::utf16String label, size_t menuItems):
 	BaseAlertView{attach, std::move(label), item},
 	item{menuItems}
 {}

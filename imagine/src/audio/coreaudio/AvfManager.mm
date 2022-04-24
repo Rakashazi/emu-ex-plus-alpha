@@ -50,7 +50,7 @@ SampleFormat Manager::nativeSampleFormat() const
 	return SampleFormats::f32;
 }
 
-uint32_t Manager::nativeRate() const
+int Manager::nativeRate() const
 {
 	return 44100;
 }

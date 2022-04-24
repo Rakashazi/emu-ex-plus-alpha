@@ -65,11 +65,11 @@ void TableView::prepareDraw()
 {
 	if(!yCellSize)
 		return;
-	int cells_ = items(*this);
+	ssize_t cells_ = items(*this);
 	if(!cells_)
 		return;
-	int startYCell = std::min(scrollOffset() / yCellSize, cells_);
-	size_t endYCell = std::clamp(startYCell + visibleCells, 0, cells_);
+	int startYCell = std::min(scrollOffset() / yCellSize, (int)cells_);
+	size_t endYCell = std::clamp(startYCell + visibleCells, 0, (int)cells_);
 	if(startYCell < 0)
 	{
 		// skip non-existent cells
@@ -83,14 +83,14 @@ void TableView::prepareDraw()
 
 void TableView::draw(Gfx::RendererCommands &cmds)
 {
-	int cells_ = items(*this);
+	ssize_t cells_ = items(*this);
 	if(!cells_)
 		return;
 	using namespace IG::Gfx;
 	auto y = viewRect().yPos(LT2DO);
 	auto x = viewRect().xPos(LT2DO);
-	int startYCell = std::min(scrollOffset() / yCellSize, cells_);
-	size_t endYCell = std::clamp(startYCell + visibleCells, 0, cells_);
+	int startYCell = std::min(scrollOffset() / yCellSize, (int)cells_);
+	size_t endYCell = std::clamp(startYCell + visibleCells, 0, (int)cells_);
 	if(startYCell < 0)
 	{
 		// skip non-existent cells
@@ -313,7 +313,7 @@ int TableView::prevSelectableElement(int start, int items)
 
 bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 {
-	int cells_ = items(*this);
+	ssize_t cells_ = items(*this);
 	return visit(overloaded
 	{
 		[&](const Input::KeyEvent &keyEv)
@@ -423,7 +423,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 				if(selected == -1)
 					selected = cells_ - 1;
 				else
-					selected = std::clamp(selected - visibleCells, 0, cells_ - 1);
+					selected = std::clamp(selected - visibleCells, 0, (int)cells_ - 1);
 				logMsg("selected %d", selected);
 				postDraw();
 				movedSelected = true;
@@ -434,7 +434,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 				if(selected == -1)
 					selected = 0;
 				else
-					selected = std::clamp(selected + visibleCells, 0, cells_ - 1);
+					selected = std::clamp(selected + visibleCells, 0, (int)cells_ - 1);
 				logMsg("selected %d", selected);
 				postDraw();
 				movedSelected = true;

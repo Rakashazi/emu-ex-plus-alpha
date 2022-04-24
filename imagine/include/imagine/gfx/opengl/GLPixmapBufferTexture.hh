@@ -57,20 +57,16 @@ public:
 		void *bufferOffset{}; // offset into PBO, same as data if no PBO
 
 		constexpr BufferInfo() = default;
-
 		constexpr BufferInfo(void *data, void *bufferOffset):
-			data{data}, bufferOffset{bufferOffset}
-		{}
-
+			data{data}, bufferOffset{bufferOffset} {}
 		constexpr BufferInfo(void *data):
-			data{data}, bufferOffset{data}
-		{}
+			data{data}, bufferOffset{data} {}
 	};
 
 	GLTextureStorage(RendererTask &rTask, TextureConfig config, bool usePBO, bool singleBuffer, IG::ErrorCode *errorPtr = {});
 	~GLTextureStorage() final;
-	GLTextureStorage(GLTextureStorage &&o);
-	GLTextureStorage &operator=(GLTextureStorage &&o);
+	GLTextureStorage(GLTextureStorage &&o) noexcept;
+	GLTextureStorage &operator=(GLTextureStorage &&o) noexcept;
 	IG::ErrorCode setFormat(IG::PixmapDesc, ColorSpace, const TextureSampler *compatSampler) final;
 	void writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags = 0) final;
 	LockedTextureBuffer lock(uint32_t bufferFlags = 0) final;

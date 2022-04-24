@@ -115,12 +115,12 @@ GLTextureSampler::GLTextureSampler(RendererTask &rTask, TextureSamplerConfig con
 	}
 }
 
-TextureSampler::TextureSampler(TextureSampler &&o)
+TextureSampler::TextureSampler(TextureSampler &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-TextureSampler &TextureSampler::operator=(TextureSampler &&o)
+TextureSampler &TextureSampler::operator=(TextureSampler &&o) noexcept
 {
 	deinit();
 	GLTextureSampler::operator=(o);

@@ -15,7 +15,7 @@
 
 #define LOGTAG "Screen"
 #include <unistd.h>
-#include <errno.h>
+#include <cerrno>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>

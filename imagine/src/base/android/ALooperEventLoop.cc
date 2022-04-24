@@ -38,12 +38,12 @@ ALooperFDEventSource::ALooperFDEventSource(const char *debugLabel, MaybeUniqueFi
 	fd_{std::move(fd)}
 {}
 
-ALooperFDEventSource::ALooperFDEventSource(ALooperFDEventSource &&o)
+ALooperFDEventSource::ALooperFDEventSource(ALooperFDEventSource &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-ALooperFDEventSource &ALooperFDEventSource::operator=(ALooperFDEventSource &&o)
+ALooperFDEventSource &ALooperFDEventSource::operator=(ALooperFDEventSource &&o) noexcept
 {
 	deinit();
 	info = std::move(o.info);

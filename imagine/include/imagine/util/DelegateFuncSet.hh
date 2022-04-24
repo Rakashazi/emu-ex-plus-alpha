@@ -51,17 +51,18 @@ public:
 		return find(del, delegate) != delegate.end();
 	}
 
-	unsigned size() const
+	auto size() const
 	{
 		return delegate.size();
 	}
 
 	void runAll(IG::Callable<bool, Delegate> auto &&exec, bool skipRemovedDelegates = false)
 	{
-		if(!size())
+		auto delegatesSize = size();
+		if(!delegatesSize)
 			return;
-		DelegateEntry delegateCopy[delegate.size()];
-		std::copy(delegate.begin(), delegate.end(), delegateCopy);
+		DelegateEntry delegateCopy[delegatesSize];
+		std::copy_n(delegate.begin(), delegatesSize, delegateCopy);
 		for(auto &d : delegateCopy)
 		{
 			if(skipRemovedDelegates && !contains(d.del))
@@ -79,9 +80,9 @@ protected:
 	struct DelegateEntry
 	{
 		Delegate del{};
-		int priority = 0;
+		int priority{};
 
-		constexpr DelegateEntry() {}
+		constexpr DelegateEntry() = default;
 		constexpr DelegateEntry(Delegate del, int priority):
 			del{del}, priority{priority} {}
 		bool operator==(const DelegateEntry &rhs) const { return del == rhs.del; }

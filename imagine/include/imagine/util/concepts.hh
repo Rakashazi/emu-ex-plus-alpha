@@ -52,6 +52,9 @@ concept unsigned_integral = integral<T> && !signed_integral<T>;
 template <class T>
 concept floating_point = std::is_floating_point_v<T>;
 
+template <class T>
+concept Arithmetic = std::is_arithmetic_v<T>;
+
 template<class Derived, class Base>
 concept derived_from =
 	std::is_base_of_v<Base, Derived> &&

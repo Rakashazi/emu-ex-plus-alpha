@@ -88,12 +88,12 @@ static void png_ioReader(png_structp pngPtr, png_bytep data, png_size_t length)
 	}
 }
 
-uint32_t PngImage::width()
+int PngImage::width()
 {
 	return png_get_image_width(png, info);
 }
 
-uint32_t PngImage::height()
+int PngImage::height()
 {
 	return png_get_image_height(png, info);
 }

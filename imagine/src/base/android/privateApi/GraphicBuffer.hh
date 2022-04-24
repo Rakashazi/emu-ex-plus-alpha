@@ -35,8 +35,8 @@ public:
 	GraphicBuffer();
 	GraphicBuffer(IG::PixmapDesc desc, uint32_t usage);
 	GraphicBuffer(uint32_t w, uint32_t h, uint32_t format, uint32_t usage);
-	GraphicBuffer(GraphicBuffer &&o);
-	GraphicBuffer &operator=(GraphicBuffer &&o);
+	GraphicBuffer(GraphicBuffer &&o) noexcept;
+	GraphicBuffer &operator=(GraphicBuffer &&o) noexcept;
 	~GraphicBuffer();
 	bool lock(uint32_t usage, void **outAddr);
 	bool lock(uint32_t usage, IG::WindowRect rect, void **outAddr);

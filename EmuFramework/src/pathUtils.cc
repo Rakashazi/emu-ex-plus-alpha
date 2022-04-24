@@ -41,7 +41,7 @@ std::vector<FS::PathString> subDirectoryStrings(ApplicationContext ctx, CStringV
 	return subDirs;
 }
 
-void flattenSubDirectories(ApplicationContext ctx, std::vector<FS::PathString> subDirs, CStringView outPath)
+void flattenSubDirectories(ApplicationContext ctx, const std::vector<FS::PathString> &subDirs, CStringView outPath)
 {
 	for(const auto &subDir : subDirs)
 	{
@@ -74,7 +74,7 @@ void updateLegacySavePathOnStoragePath(ApplicationContext ctx, EmuSystem &sys)
 			return;
 		}
 		auto newSavePath = FS::createDirectoryUriSegments(ctx, storagePath, "EmuEx", sys.shortSystemName(), "saves");
-		flattenSubDirectories(ctx, std::move(oldSaveSubDirs), newSavePath);
+		flattenSubDirectories(ctx, oldSaveSubDirs, newSavePath);
 		ctx.removeDirectoryUri(oldSavePath);
 	}
 	catch(...)

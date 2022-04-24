@@ -454,7 +454,7 @@ const char *EGLManager::errorString(EGLint error)
 	return "Unknown error";
 }
 
-int EGLManager::makeRenderableType(GL::API api, unsigned majorVersion)
+int EGLManager::makeRenderableType(GL::API api, int majorVersion)
 {
 	if(api == GL::API::OPENGL)
 	{
@@ -566,7 +566,7 @@ EGLint EGLBufferConfig::renderableTypeBits(GLDisplay display) const
 	return bits;
 }
 
-bool EGLBufferConfig::maySupportGLES(GLDisplay display, unsigned majorVersion) const
+bool EGLBufferConfig::maySupportGLES(GLDisplay display, int majorVersion) const
 {
 	switch(majorVersion)
 	{

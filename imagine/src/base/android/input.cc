@@ -128,7 +128,7 @@ static const char *keyEventActionStr(uint32_t action)
 static int32_t AMotionEvent_getActionButtonCompat(const AInputEvent* event, int32_t sdkVersion)
 {
 	static const bool ptrIs64Bits = sizeof(void*) == 8;
-	const int32_t *asIntPtr = (const int32_t *)event;
+	auto asIntPtr = (const int32_t *)event;
 	switch(sdkVersion)
 	{
 		case 23 ... 28: return asIntPtr[ptrIs64Bits ? 5  : 4];
@@ -214,7 +214,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 						return false;
 					}
 					auto src = isFromSource(source, AINPUT_SOURCE_MOUSE) ? Input::Source::MOUSE : Input::Source::TOUCHSCREEN;
-					uint32_t actionPIdx = actionBits >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+					int actionPIdx = actionBits >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
 					auto pointers = AMotionEvent_getPointerCount(event);
 					uint32_t metaState = AMotionEvent_getMetaState(event);
 					assumeExpr(pointers >= 1);

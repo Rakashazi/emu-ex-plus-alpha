@@ -13,7 +13,7 @@ namespace IG::Gfx
 
 struct TextureSizeSupport
 {
-	uint32_t maxXSize{}, maxYSize{};
+	int maxXSize{}, maxYSize{};
 	bool nonPow2 = Config::Gfx::OPENGL_ES >= 2;
 	bool nonPow2CanMipmap{};
 	bool nonPow2CanRepeat{};
@@ -22,7 +22,7 @@ struct TextureSizeSupport
 
 	IG::PixmapDesc makePixmapDescWithSupportedSize(IG::PixmapDesc desc) const;
 	IG::WP makeSupportedSize(IG::WP size) const;
-	bool supportsMipmaps(uint32_t imageX, uint32_t imageY) const;
+	bool supportsMipmaps(int imageX, int imageY) const;
 };
 
 }

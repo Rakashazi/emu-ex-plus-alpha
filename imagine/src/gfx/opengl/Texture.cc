@@ -251,12 +251,12 @@ Texture::Texture(RendererTask &r, IG::Data::PixmapSource img, const TextureSampl
 	err = loadImageSource(*static_cast<Texture*>(this), img, makeMipmaps);
 }
 
-Texture::Texture(Texture &&o)
+Texture::Texture(Texture &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-Texture &Texture::operator=(Texture &&o)
+Texture &Texture::operator=(Texture &&o) noexcept
 {
 	deinit();
 	GLTexture::operator=(o);
@@ -403,7 +403,7 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace
 					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat),
 					glImageFormatToString(format), glDataTypeToString(dataType),
 					desc.format() == IG::PIXEL_BGRA8888 && internalFormat != GL_BGRA ? "write format:BGRA" : "");
-				uint32_t w = desc.w(), h = desc.h();
+				int w = desc.w(), h = desc.h();
 				iterateTimes(levels, i)
 				{
 					runGLChecked(
@@ -411,8 +411,8 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace
 						{
 							glTexImage2D(GL_TEXTURE_2D, i, internalFormat, w, h, 0, format, dataType, nullptr);
 						}, "glTexImage2D()");
-					w = std::max(1u, (w / 2));
-					h = std::max(1u, (h / 2));
+					w = std::max(1, (w / 2));
+					h = std::max(1, (h / 2));
 				}
 				setSwizzleForFormatInGL(r, desc.format(), texName);
 				if(remakeTexName)
@@ -528,7 +528,7 @@ LockedTextureBuffer Texture::lock(uint8_t level, IG::WindowRect rect, uint32_t b
 	}
 	assumeExpr(rect.x2  <= size(level).x);
 	assumeExpr(rect.y2 <= size(level).y);
-	const unsigned bufferBytes = pixDesc.format().pixelBytes(rect.xSize() * rect.ySize());
+	const auto bufferBytes = pixDesc.format().pixelBytes(rect.xSize() * rect.ySize());
 	char *data;
 	if(bufferFlags & BUFFER_FLAG_CLEARED)
 		data = (char*)std::calloc(1, bufferBytes);
@@ -603,11 +603,11 @@ void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 IG::WP Texture::size(uint8_t level) const
 {
 	assert(levels_);
-	uint32_t w = pixDesc.w(), h = pixDesc.h();
+	int w = pixDesc.w(), h = pixDesc.h();
 	iterateTimes(level, i)
 	{
-		w = std::max(1u, (w / 2));
-		h = std::max(1u, (h / 2));
+		w = std::max(1, (w / 2));
+		h = std::max(1, (h / 2));
 	}
 	return {(int)w, (int)h};
 }
@@ -969,7 +969,7 @@ IG::WP TextureSizeSupport::makeSupportedSize(IG::WP size) const
 	return supportedSize;
 }
 
-bool TextureSizeSupport::supportsMipmaps(uint32_t imageX, uint32_t imageY) const
+bool TextureSizeSupport::supportsMipmaps(int imageX, int imageY) const
 {
 	return imageX && imageY &&
 		(nonPow2CanMipmap || (IG::isPowerOf2(imageX) && IG::isPowerOf2(imageY)));

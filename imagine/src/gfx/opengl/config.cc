@@ -490,10 +490,9 @@ void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs
 
 void GLRenderer::checkFullExtensionString(const char *fullExtStr)
 {
-	char fullExtStrTemp[strlen(fullExtStr)+1];
-	strcpy(fullExtStrTemp, fullExtStr);
+	std::string fullExtStrTemp{fullExtStr};
 	char *savePtr;
-	auto extStr = strtok_r(fullExtStrTemp, " ", &savePtr);
+	auto extStr = strtok_r(fullExtStrTemp.data(), " ", &savePtr);
 	bool useFBOFuncs = false;
 	while(extStr)
 	{

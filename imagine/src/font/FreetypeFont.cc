@@ -222,7 +222,6 @@ FreetypeFaceData::FreetypeFaceData(FT_Library library, GenericIO file):
 	if(!file)
 		return;
 	streamRecPtr->size = file.size();
-	auto fileOffset =	file.tell();
 	streamRecPtr->pos = file.tell();
 	streamRecPtr->descriptor.pointer = file.release();
 	streamRecPtr->read = [](FT_Stream stream, unsigned long offset,
@@ -415,7 +414,7 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 		ec = std::errc::no_such_file_or_directory;
 		return {};
 	}
-	uint32_t newSlot = f.size();
+	auto newSlot = f.size();
 	ec = loadIntoNextSlot(fontPath);
 	if((bool)ec)
 		return {};

@@ -28,7 +28,7 @@ class BasicViewController : public ViewController
 public:
 	using RemoveViewDelegate = DelegateFunc<void ()>;
 
-	BasicViewController();
+	constexpr BasicViewController() = default;
 	RemoveViewDelegate &onRemoveView() { return removeViewDel; }
 	void push(std::unique_ptr<View>, const Input::Event &);
 	void pushAndShow(std::unique_ptr<View>, const Input::Event &, bool needsNavView, bool isModal) override;
@@ -51,7 +51,7 @@ protected:
 class ViewStack : public ViewController
 {
 public:
-	ViewStack();
+	constexpr ViewStack() = default;
 	void setNavView(std::unique_ptr<NavView> nav);
 	NavView *navView() const;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
@@ -83,7 +83,7 @@ public:
 	void dismissView(int idx, bool refreshLayout = true) override;
 	void showNavView(bool show);
 	void setShowNavViewBackButton(bool show);
-	int size() const;
+	size_t size() const;
 	bool viewHasFocus() const;
 	bool hasModalView() const;
 	void popModalViews();
@@ -110,7 +110,7 @@ protected:
 	void showNavLeftBtn();
 	bool topNeedsNavView() const;
 	bool navViewIsActive() const;
-	void popViews(int num);
+	void popViews(size_t num);
 };
 
 }

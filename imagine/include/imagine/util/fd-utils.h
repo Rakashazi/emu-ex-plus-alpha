@@ -10,4 +10,3 @@ CLINK void fd_setNonblock(int fd, bool on);
 CLINK bool fd_getNonblock(int fd);
 CLINK int fd_bytesReadable(int fd);
 CLINK int fd_isValid(int fd);
-CLINK void fd_skipAvailableData(int fd);

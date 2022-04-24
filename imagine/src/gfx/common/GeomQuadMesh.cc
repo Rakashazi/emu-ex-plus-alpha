@@ -21,21 +21,21 @@
 namespace IG::Gfx
 {
 
-GeomQuadMesh::GeomQuadMesh(const VertexPos *x, uint32_t xVals, const VertexPos *y, uint32_t yVals, VertexColor color)
+GeomQuadMesh::GeomQuadMesh(std::span<const VertexPos> x, std::span<const VertexPos> y, VertexColor color)
 {
-	if(xVals < 2 || yVals < 2)
+	if(x.size() < 2 || y.size() < 2)
 		return;
-	verts = xVals * yVals;
-	int quads = (xVals - 1) * (yVals - 1);
+	verts = x.size() * y.size();
+	int quads = (x.size() - 1) * (y.size() - 1);
 	idxs = quads*6;
 	//logMsg("mesh with %d verts, %d idxs, %d quads", verts, idxs, quads);
 	vMem = std::make_unique<char[]>((sizeof(ColVertex) * verts) + (sizeof(VertexIndex) * idxs));
-	this->xVals = xVals;
+	xVals = x.size();
 	i = (VertexIndex*)(vMem.get() + (sizeof(ColVertex) * verts));
 
 	/*ColVertex *currV = v;
-	iterateTimes(yVals, yIdx)
-		iterateTimes(xVals, xIdx)
+	iterateTimes(y.size(), yIdx)
+		iterateTimes(x.size(), xIdx)
 		{
 			*currV = ColVertex(x[xIdx], y[yIdx], color);
 			logMsg("vert %f,%f", currV->x, currV->y);
@@ -45,8 +45,8 @@ GeomQuadMesh::GeomQuadMesh(const VertexPos *x, uint32_t xVals, const VertexPos *
 	VertexIndex *currI = i;
 	quads = 0;
 	auto vArr = v();
-	iterateTimes(yVals-1, yIdx)
-		iterateTimes(xVals-1, xIdx)
+	iterateTimes(y.size()-1, yIdx)
+		iterateTimes(x.size()-1, xIdx)
 		{
 			// Triangle 1, LB LT RT
 			currI[0] = vArr.flatOffset(yIdx, xIdx);
@@ -91,13 +91,13 @@ void GeomQuadMesh::setColorTranslucent(ColorComp a)
 	}
 }
 
-void GeomQuadMesh::setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint32_t i)
+void GeomQuadMesh::setColorRGBV(ColorComp r, ColorComp g, ColorComp b, size_t i)
 {
 	auto vPtr = v().data();
 	vPtr[i].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, VertexColorPixelFormat.a(vPtr[i].color));
 }
 
-void GeomQuadMesh::setColorTranslucentV(ColorComp a, uint32_t i)
+void GeomQuadMesh::setColorTranslucentV(ColorComp a, size_t i)
 {
 	// swap for tri strip
 	auto vPtr = v().data();
@@ -106,7 +106,7 @@ void GeomQuadMesh::setColorTranslucentV(ColorComp a, uint32_t i)
 
 void GeomQuadMesh::setPos(float x, float y, float x2, float y2)
 {
-	uint32_t yVals = verts/xVals;
+	auto yVals = verts/xVals;
 	auto vPtr = v().data();
 	iterateTimes(yVals, yIdx)
 		iterateTimes(xVals, xIdx)
@@ -121,7 +121,7 @@ void GeomQuadMesh::setPos(float x, float y, float x2, float y2)
 
 ArrayView2<ColVertex> GeomQuadMesh::v() const
 {
-	return {(ColVertex*)vMem.get(), xVals};
+	return {(ColVertex*)vMem.get(), (size_t)xVals};
 }
 
 }

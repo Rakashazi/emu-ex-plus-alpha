@@ -26,7 +26,7 @@ namespace IG::Audio
 class ALSAOutputStream : public OutputStream
 {
 public:
-	ALSAOutputStream();
+	constexpr ALSAOutputStream() = default;
 	~ALSAOutputStream();
 	IG::ErrorCode open(OutputStreamConfig config) final;
 	void play() final;

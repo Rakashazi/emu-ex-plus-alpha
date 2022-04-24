@@ -29,8 +29,8 @@ class SurfaceTextureStorage final: public TextureBufferStorage
 {
 public:
 	SurfaceTextureStorage(RendererTask &, TextureConfig config, bool singleBuffered, IG::ErrorCode *errorPtr);
-	SurfaceTextureStorage(SurfaceTextureStorage &&o);
-	SurfaceTextureStorage &operator=(SurfaceTextureStorage &&o);
+	SurfaceTextureStorage(SurfaceTextureStorage &&o) noexcept;
+	SurfaceTextureStorage &operator=(SurfaceTextureStorage &&o) noexcept;
 	~SurfaceTextureStorage() final;
 	IG::ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler) final;
 	LockedTextureBuffer lock(uint32_t bufferFlags) final;

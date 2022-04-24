@@ -211,7 +211,7 @@ SyncFence RendererTask::addSyncFence()
 {
 	if(!r->support.hasSyncFences())
 		return {}; // no-op
-	GLsync sync;
+	GLsync sync{};
 	runSync(
 		[&support = r->support, &sync](TaskContext ctx)
 		{

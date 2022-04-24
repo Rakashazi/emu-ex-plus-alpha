@@ -497,7 +497,7 @@ Viewport RendererCommands::viewport() const
 	return currViewport;
 }
 
-void RendererCommands::vertexBufferData(const void *v, uint32_t size)
+void RendererCommands::vertexBufferData(const void *v, size_t size)
 {
 	if(renderer().support.hasVBOFuncs)
 	{
@@ -505,7 +505,7 @@ void RendererCommands::vertexBufferData(const void *v, uint32_t size)
 	}
 }
 
-void RendererCommands::drawPrimitives(Primitive mode, uint32_t start, uint32_t count)
+void RendererCommands::drawPrimitives(Primitive mode, int start, int count)
 {
 	runGLCheckedVerbose([&]()
 	{
@@ -513,7 +513,7 @@ void RendererCommands::drawPrimitives(Primitive mode, uint32_t start, uint32_t c
 	}, "glDrawArrays()");
 }
 
-void RendererCommands::drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint32_t count)
+void RendererCommands::drawPrimitiveElements(Primitive mode, const VertexIndex *idx, int count)
 {
 	runGLCheckedVerbose([&]()
 	{

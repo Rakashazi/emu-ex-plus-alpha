@@ -31,8 +31,8 @@ public:
 	AndroidManager(ApplicationContext);
 	bool hasFloatFormat() const;
 	bool hasStreamUsage() const;
-	unsigned defaultOutputBuffers() const;
-	uint32_t nativeOutputFramesPerBuffer() const;
+	int defaultOutputBuffers() const;
+	int nativeOutputFramesPerBuffer() const;
 
 protected:
 	ApplicationContext ctx;

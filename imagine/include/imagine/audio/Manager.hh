@@ -40,7 +40,7 @@ class Manager : public ManagerImpl
 public:
 	using ManagerImpl::ManagerImpl;
 	SampleFormat nativeSampleFormat() const;
-	uint32_t nativeRate() const;
+	int nativeRate() const;
 	Format nativeFormat() const;
 	void setSoloMix(std::optional<bool>);
 	bool soloMix() const;

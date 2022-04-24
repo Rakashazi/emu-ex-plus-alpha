@@ -26,8 +26,6 @@
 namespace IG
 {
 
-ToastView::ToastView() {}
-
 ToastView::ToastView(ViewAttachParams attach): View{attach},
 	unpostTimer
 	{

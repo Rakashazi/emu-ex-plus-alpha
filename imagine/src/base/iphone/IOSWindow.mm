@@ -159,7 +159,7 @@ void IOSWindow::updateContentRect(int width, int height, uint32_t softOrientatio
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
-	uint32_t dpi = 163 * pointScale;
+	int dpi = 163 * pointScale;
 	#if !defined __ARM_ARCH_6K__
 	if(isIPad)
 	{

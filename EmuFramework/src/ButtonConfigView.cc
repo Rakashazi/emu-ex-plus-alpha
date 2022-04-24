@@ -34,9 +34,9 @@ public:
 	struct Context
 	{
 		Input::Key mapKey;
-		unsigned keyToSet;
+		int keyToSet;
 		const KeyCategory *conflictCat{};
-		unsigned conflictKey;
+		int conflictKey;
 	};
 
 	Context ctx;
@@ -215,7 +215,7 @@ void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &cmds, floa
 	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, Gfx::color(Gfx::ColorName::YELLOW));
 }
 
-static std::pair<const KeyCategory *, unsigned> findCategoryAndKeyInConfig(EmuApp &app, Input::Key key,
+static std::pair<const KeyCategory *, int> findCategoryAndKeyInConfig(EmuApp &app, Input::Key key,
 	InputDeviceConfig &devConf, const KeyCategory *skipCat, int skipIdx_)
 {
 	for(auto &cat : app.inputControlCategories())

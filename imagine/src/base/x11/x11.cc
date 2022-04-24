@@ -114,7 +114,7 @@ static void fileURLToPath(char *url)
 	{
 		pathStart = strchr(pathStart + 1, '/');
 	}
-	assert(pathStart != NULL);
+	assert(pathStart);
 
 	// strip trailing new line junk at the end, needed for Nautilus
 	char *pathEnd = &pathStart[strlen(pathStart)-1];
@@ -296,7 +296,7 @@ void initXScreens(ApplicationContext ctx, Display *dpy)
 FDEventSource XApplication::makeXDisplayConnection(EventLoop loop)
 {
 	XInitThreads();
-	auto xDisplay = XOpenDisplay(0);
+	auto xDisplay = XOpenDisplay({});
 	if(!xDisplay)
 	{
 		logErr("couldn't open display");

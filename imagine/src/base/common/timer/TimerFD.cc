@@ -19,7 +19,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
 #include <unistd.h>
-#include <errno.h>
+#include <cerrno>
 #include <cstring>
 
 #if __has_include(<sys/timerfd.h>) && (!defined __ANDROID__ || ANDROID_MIN_API >= 19)
@@ -86,7 +86,7 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, int flags, EventLoop l
 			{
 				//logMsg("callback ready for fd:%d", fd);
 				uint64_t timesFired;
-				int ret = ::read(fd, &timesFired, 8);
+				auto ret = ::read(fd, &timesFired, 8);
 				if(ret == -1)
 				{
 					if(Config::DEBUG_BUILD && errno != EAGAIN)
@@ -110,10 +110,10 @@ void Timer::run(Time time, Time repeatTime, bool isAbsTime, EventLoop loop, Call
 {
 	if(callback)
 		setCallback(callback);
-	int seconds = time.count() / 1000000000;
-	long leftoverNs = time.count() % 1000000000;
-	int repeatSeconds = repeatTime.count() / 1000000000;
-	long repeatLeftoverNs = repeatTime.count() % 1000000000;
+	time_t seconds = time.count() / 1000000000l;
+	long leftoverNs = time.count() % 1000000000l;
+	time_t repeatSeconds = repeatTime.count() / 1000000000l;
+	long repeatLeftoverNs = repeatTime.count() % 1000000000l;
 	if(Config::DEBUG_BUILD)
 	{
 		IG::FloatSeconds relTime = isAbsTime ? time - IG::steadyClockTimestamp() : time;

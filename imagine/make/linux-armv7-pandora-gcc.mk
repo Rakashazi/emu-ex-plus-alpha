@@ -25,7 +25,7 @@ targetDir ?= target/$(buildName)
 staticLibcxx := 1
 include $(buildSysPath)/linux-gcc.mk
 
-CFLAGS_WARN += -Wno-register
+CFLAGS_WARN += -Wno-register -Wno-psabi
 # fix warning from old DBUS & libpng headers
 CXXFLAGS_LANG += -Wno-literal-suffix
 

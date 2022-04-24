@@ -47,11 +47,11 @@ static void setupVertexArrayPointers(RendererCommands &cmds, const Vtx *v, int n
 		Vtx::hasTexture, Vtx::hasColor);
 }
 
-void GLRendererCommands::setupVertexArrayPointers(const char *v, int numV, unsigned stride,
-	unsigned textureOffset, unsigned colorOffset, unsigned posOffset,
+void GLRendererCommands::setupVertexArrayPointers(const char *v, int numV, int stride,
+	int textureOffset, int colorOffset, int posOffset,
 	bool hasTexture, bool hasColor)
 {
-	if(r->support.hasVBOFuncs && v != 0) // turn off VBO when rendering from memory
+	if(r->support.hasVBOFuncs && v) // turn off VBO when rendering from memory
 	{
 		//logMsg("un-binding VBO");
 		bindGLArrayBuffer(0);
@@ -91,9 +91,8 @@ static void setupShaderVertexArrayPointers(RendererCommands &cmds, const Vtx *v,
 		Vtx::hasTexture, Vtx::hasColor);
 }
 
-void GLRendererCommands::setupShaderVertexArrayPointers(const char *v, int numV, unsigned stride, unsigned id,
-	unsigned textureOffset, unsigned colorOffset, unsigned posOffset,
-	bool hasTexture, bool hasColor)
+void GLRendererCommands::setupShaderVertexArrayPointers(const char *v, int numV, int stride, int id,
+	int textureOffset, int colorOffset, int posOffset, bool hasTexture, bool hasColor)
 {
 	if(currentVtxArrayPointerID != id)
 	{

@@ -473,7 +473,7 @@ void EmuApp::updateLegacySavePath(IG::ApplicationContext ctx, IG::CStringView pa
 		logMsg("no legacy save folders in:%s", path.data());
 		return;
 	}
-	flattenSubDirectories(ctx, std::move(oldSaveSubDirs), path);
+	flattenSubDirectories(ctx, oldSaveSubDirs, path);
 }
 
 void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::ApplicationContext ctx)

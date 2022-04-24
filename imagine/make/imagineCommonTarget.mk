@@ -16,11 +16,15 @@ DEP := $(OBJ:.o=.d)
 
 LDFLAGS += $(LDLIBS)
 
-.PHONY: cppcheck
+.PHONY: clang-tidy-cxx clang-tidy-c
 
-cppcheck: $(CXX_SRC) $(C_SRC)
-	cppcheck $^ $(CPPFLAGS) -D__GNUC__ -DCHAR_BIT=8
-#--check-config
+clangTidyChecks := performance-*
+
+clang-tidy-cxx: $(CXX_SRC)
+	@$(CLANG_TIDY) -checks=$(clangTidyChecks) $^ -- $(CPPFLAGS) $(CXXFLAGS)
+
+clang-tidy-c: $(C_SRC)
+	@$(CLANG_TIDY) -checks=$(clangTidyChecks) $^ -- $(CPPFLAGS) $(CFLAGS)
 
 .PHONY: cppflags cflags cxxflags objcflags asmflags ldflags
 

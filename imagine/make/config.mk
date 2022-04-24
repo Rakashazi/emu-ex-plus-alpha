@@ -22,6 +22,7 @@ projectPath ?= $(firstMakefileDir)
 
 LN ?= ln
 RANLIB ?= ranlib
+CLANG_TIDY ?= clang-tidy
 
 toolchainEnvParams = CC="$(CC)" CXX="$(CXX)" AR="$(AR)" RANLIB="$(RANLIB)"
 

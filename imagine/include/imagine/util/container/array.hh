@@ -22,7 +22,7 @@
 namespace IG
 {
 
-template <unsigned SIZE>
+template <size_t SIZE>
 using ByteArray = std::array<uint8_t, SIZE>;
 
 // simple 2D view into an array

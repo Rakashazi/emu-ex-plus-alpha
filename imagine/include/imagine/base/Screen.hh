@@ -48,7 +48,7 @@ public:
 	bool addOnFrame(OnFrameDelegate, int priority = 0);
 	bool removeOnFrame(OnFrameDelegate);
 	bool containsOnFrame(OnFrameDelegate) const;
-	uint32_t onFrameDelegates() const;
+	size_t onFrameDelegates() const;
 	FrameParams makeFrameParams(FrameTime timestamp) const;
 	bool frameRateIsReliable() const;
 	double frameRate() const;

@@ -54,7 +54,7 @@ static float xSizeOfChar(Renderer &r, GlyphTextureSet *face_, int c, float space
 		return 0;
 
 	GlyphEntry *gly = face_->glyphEntry(r, c);
-	if(gly != NULL)
+	if(gly)
 		return projP.unprojectXSize(gly->metrics.xAdvance);
 	else
 		return 0;
@@ -90,7 +90,7 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 
 	int spaceSizeI = mGly->metrics.xSize/2;
 	spaceSize = projP.unprojectXSize(spaceSizeI);
-	uint32_t nominalHeightPixels = mGly->metrics.ySize + gGly->metrics.ySize/2;
+	int nominalHeightPixels = mGly->metrics.ySize + gGly->metrics.ySize/2;
 	nominalHeight_ = projP.alignYToPixel(projP.unprojectYSize(IG::makeEvenRoundedUp(nominalHeightPixels)));
 	//int maxLineSizeI = Gfx::toIXSize(maxLineSize);
 	//logMsg("max line size %f", maxLineSize);
@@ -98,10 +98,10 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 	lines = 1;
 	lineInfo.clear();
 	float xLineSize = 0, maxXLineSize = 0;
-	uint32_t prevC = 0;
+	int prevC = 0;
 	float textBlockSize = 0;
-	uint32_t textBlockIdx = 0, currLineIdx = 0;
-	uint32_t charIdx = 0, charsInLine = 0;
+	int textBlockIdx = 0, currLineIdx = 0;
+	int charIdx = 0, charsInLine = 0;
 	for(auto c : textStr)
 	{
 		auto cSize = xSizeOfChar(r, face_, c, spaceSize, projP);
@@ -137,7 +137,7 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 				// Line has more than 1 block and is too big, needs text break
 				//logMsg("new line %d with text break @ char %d, %d chars in line", lines+1, charIdx, charsInLine);
 				xLineSize -= textBlockSize;
-				uint32_t charsInNextLine = (charIdx - textBlockIdx) + 1;
+				int charsInNextLine = (charIdx - textBlockIdx) + 1;
 				lineInfo.emplace_back(xLineSize, charsInLine - charsInNextLine);
 				maxXLineSize = std::max(xLineSize, maxXLineSize);
 				xLineSize = textBlockSize;
@@ -195,7 +195,7 @@ void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, Pro
 		{
 			// Get line info (1 line case doesn't use per-line info)
 			float xLineSize = span.size;
-			uint32_t charsToDraw = span.chars;
+			auto charsToDraw = span.chars;
 			xPos = startingXPos(xLineSize);
 			//logMsg("line %d, %d chars", l, charsToDraw);
 			drawSpan(cmds, xPos, yPos, projP, std::u16string_view{s, charsToDraw}, vArr);
@@ -297,7 +297,7 @@ uint16_t Text::currentLines() const
 	return lines;
 }
 
-unsigned Text::stringSize() const
+size_t Text::stringSize() const
 {
 	return textStr.size();
 }

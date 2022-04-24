@@ -27,7 +27,7 @@ namespace IG
 class ToastView : public View
 {
 public:
-	ToastView();
+	ToastView() = default;
 	ToastView(ViewAttachParams attach);
 	void setFace(Gfx::GlyphTextureSet &face);
 	void clear();

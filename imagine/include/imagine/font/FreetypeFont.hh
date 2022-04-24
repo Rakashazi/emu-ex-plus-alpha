@@ -51,7 +51,7 @@ protected:
 	void deinit();
 };
 
-static constexpr uint32_t MAX_FREETYPE_SLOTS = Config::envIsLinux ? 4 : 2;
+static constexpr size_t MAX_FREETYPE_SLOTS = Config::envIsLinux ? 4 : 2;
 
 class FreetypeFontSize
 {

@@ -34,7 +34,7 @@ struct GlyphRenderData
 	void *startOfCharInPixData{};
 };
 
-static void renderTextIntoBuffer(NSString *str, void *buff, uint32_t xSize, uint32_t ySize,
+static void renderTextIntoBuffer(NSString *str, void *buff, int xSize, int ySize,
 		CGColorSpaceRef colorSpace, CGColorRef textColor, UIFont *font)
 {
 	auto context = CGBitmapContextCreate(buff, xSize, ySize, 8, xSize, colorSpace, kCGImageAlphaOnly);
@@ -68,18 +68,18 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, CGColorS
 	}
 	ec = (std::errc)0;
 	//logMsg("char %c size %f:%f", idx, size.width, size.height);
-	uint32_t cXFullSize = size.width;
-	uint32_t cYFullSize = size.height;
+	int cXFullSize = size.width;
+	int cYFullSize = size.height;
 
 	// render char into buffer
-	uint32_t bufferSize = cXFullSize * cYFullSize;
+	auto bufferSize = cXFullSize * cYFullSize;
 	auto pixBuffer = (char*)std::calloc(1, bufferSize);
 	renderTextIntoBuffer(str, pixBuffer, size.width, size.height,
 		grayColorSpace, textColor, fontSize.font());
 
 	// measure real bounds
-	auto pixView = IG::ArrayView2<char>{pixBuffer, cXFullSize};
-	uint32_t minX = cXFullSize, maxX = 0, minY = cYFullSize, maxY = 0;
+	auto pixView = IG::ArrayView2<char>{pixBuffer, (size_t)cXFullSize};
+	int minX = cXFullSize, maxX = 0, minY = cYFullSize, maxY = 0;
 	iterateTimes(cYFullSize, y)
 		iterateTimes(cXFullSize, x)
 		{

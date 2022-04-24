@@ -19,7 +19,7 @@
 #include <imagine/logger/logger.h>
 #include <cstring>
 #include <fcntl.h>
-#include <errno.h>
+#include <cerrno>
 
 namespace IG
 {

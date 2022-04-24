@@ -33,7 +33,7 @@ public:
 	void setICadeMode(bool on) final;
 	bool iCadeMode() const final;
 	auto &jsAxes() { return axis; }
-	void update(AndroidInputDevice);
+	void update(const AndroidInputDevice&);
 
 protected:
 	static constexpr uint32_t MAX_AXES = 14;

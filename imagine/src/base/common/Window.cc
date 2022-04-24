@@ -562,19 +562,19 @@ IG::Point2D<float> Window::sizeScaledMM() const
 
 int Window::widthMMInPixels(float mm) const
 {
-	return std::round(mm * (mmToPixelScaler.x));
+	return (int)std::round(mm * (mmToPixelScaler.x));
 }
 
 int Window::heightMMInPixels(float mm) const
 {
-	return std::round(mm * (mmToPixelScaler.y));
+	return (int)std::round(mm * (mmToPixelScaler.y));
 }
 
 int Window::widthScaledMMInPixels(float mm) const
 {
 	if constexpr(Config::envIsAndroid)
 	{
-		return std::round(mm * (smmPixelScaler().x));
+		return (int)std::round(mm * (smmPixelScaler().x));
 	}
 	return widthMMInPixels(mm);
 }
@@ -583,7 +583,7 @@ int Window::heightScaledMMInPixels(float mm) const
 {
 	if constexpr(Config::envIsAndroid)
 	{
-		return std::round(mm * (smmPixelScaler().y));
+		return (int)std::round(mm * (smmPixelScaler().y));
 	}
 	return heightMMInPixels(mm);
 }

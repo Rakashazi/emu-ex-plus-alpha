@@ -369,7 +369,7 @@ int MultiChoiceMenuItem::idxOfId(IdInt id)
 	iterateTimes(items_(*this), i)
 	{
 		if(item_(*this, i).id() == id)
-			return i;
+			return (int)i;
 	}
 	return -1;
 }

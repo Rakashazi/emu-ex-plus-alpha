@@ -32,7 +32,7 @@ bool GLManager::bindAPI(GL::API api)
 	return api == GL::API::OPENGL_ES;
 }
 
-std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext ctx, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion) const
+std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext ctx, GLBufferConfigAttributes attr, GL::API api, int majorVersion) const
 {
 	if(majorVersion > 2 && ctx.androidSDK() < 18)
 	{

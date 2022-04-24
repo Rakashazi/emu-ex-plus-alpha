@@ -20,7 +20,7 @@
 #ifdef __APPLE__
 #include <imagine/util/string/apple.h>
 #endif
-#include <errno.h>
+#include <cerrno>
 #include <sys/stat.h>
 #include <cstdlib>
 #include <cstring>

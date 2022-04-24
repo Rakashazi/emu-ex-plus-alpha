@@ -64,8 +64,8 @@ public:
 	using TextureImpl::TextureImpl;
 	Texture(RendererTask &, TextureConfig, IG::ErrorCode *errorPtr = nullptr);
 	Texture(RendererTask &, IG::Data::PixmapSource, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
-	Texture(Texture &&o);
-	Texture &operator=(Texture &&o);
+	Texture(Texture &&o) noexcept;
+	Texture &operator=(Texture &&o) noexcept;
 	static uint8_t bestAlignment(IG::Pixmap pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();

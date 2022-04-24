@@ -115,7 +115,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 	auto &name = name_;
 	if(IG::isBitMaskSet(src, (int)AINPUT_SOURCE_GAMEPAD))
 	{
-		bool isGamepad = 1;
+		bool isGamepad = true;
 		if(Config::MACHINE_IS_GENERIC_ARMV7 && IG::stringContains(name, "-zeus"))
 		{
 			logMsg("detected Xperia Play gamepad");
@@ -128,7 +128,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 			// but has only special function keys
 			logMsg("ignoring extra device bits");
 			src = 0;
-			isGamepad = 0;
+			isGamepad = false;
 		}
 		else if(name == "Sony PLAYSTATION(R)3 Controller")
 		{
@@ -254,7 +254,7 @@ bool AndroidInputDevice::iCadeMode() const
 	return iCadeMode_;
 }
 
-void AndroidInputDevice::update(AndroidInputDevice other)
+void AndroidInputDevice::update(const AndroidInputDevice &other)
 {
 	name_ = other.name_;
 	typeBits_ = other.typeBits_;
@@ -502,7 +502,6 @@ void AndroidApplication::updateInputConfig(AConfiguration *config)
 {
 	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
 	auto navState = AConfiguration_getNavHidden(config);
-	auto keyboard = AConfiguration_getKeyboard(config);
 	//trackballNav = AConfiguration_getNavigation(config) == ACONFIGURATION_NAVIGATION_TRACKBALL;
 	logMsg("config change, keyboard: %s, navigation: %s", Input::hardKeyboardNavStateToStr(hardKeyboardState), Input::hardKeyboardNavStateToStr(navState));
 	setHardKeyboardState(hasXperiaPlayGamepad() ? navState : hardKeyboardState);

@@ -26,7 +26,7 @@
 #include <imagine/logger/logger.h>
 #include <android/choreographer.h>
 #include <unistd.h>
-#include <errno.h>
+#include <cerrno>
 
 namespace IG
 {

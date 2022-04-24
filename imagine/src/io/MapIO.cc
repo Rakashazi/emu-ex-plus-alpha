@@ -17,7 +17,7 @@
 #include <imagine/io/MapIO.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
-#include <errno.h>
+#include <cerrno>
 #include <cstring>
 #if defined __linux__ || defined __APPLE__
 #include <sys/mman.h>
@@ -60,7 +60,7 @@ ssize_t MapIO::write(const void *buff, size_t bytes)
 
 off_t MapIO::seek(off_t offset, IO::SeekMode mode)
 {
-	auto newPos = (uint8_t*)transformOffsetToAbsolute(mode, offset, (off_t)data(), (off_t)dataEnd(), (off_t)currPos);
+	auto newPos = transformOffsetToAbsolute(mode, offset, data(), dataEnd(), currPos);
 	if(newPos < data() || newPos > dataEnd())
 	{
 		logErr("illegal seek position");
@@ -106,7 +106,7 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 	{
 		bytes = size() - offset;
 	}
-	void *srcAddr = (void*)((uintptr_t)data() + offset);
+	auto srcAddr = data() + offset;
 	void *pageSrcAddr = (void*)roundDownToPageSize((uintptr_t)srcAddr);
 	bytes += (uintptr_t)srcAddr - (uintptr_t)pageSrcAddr; // add extra bytes from rounding down to page size
 	int mAdv = adviceToMAdv(advice);

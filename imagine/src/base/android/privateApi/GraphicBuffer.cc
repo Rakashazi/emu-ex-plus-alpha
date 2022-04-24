@@ -96,12 +96,12 @@ GraphicBuffer::GraphicBuffer(uint32_t w, uint32_t h, uint32_t f, uint32_t reqUsa
 	usage = reqUsage;
 }
 
-GraphicBuffer::GraphicBuffer(GraphicBuffer &&o)
+GraphicBuffer::GraphicBuffer(GraphicBuffer &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-GraphicBuffer &GraphicBuffer::operator=(GraphicBuffer &&o)
+GraphicBuffer &GraphicBuffer::operator=(GraphicBuffer &&o) noexcept
 {
 	deinit();
 	android_native_buffer_t::operator=(o);

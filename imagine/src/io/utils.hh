@@ -7,7 +7,7 @@
 namespace IG
 {
 
-static off_t transformOffsetToAbsolute(IO::SeekMode mode, off_t offset, off_t startPos, off_t endPos, off_t currentPos)
+inline auto transformOffsetToAbsolute(IO::SeekMode mode, auto offset, auto startPos, auto endPos, auto currentPos)
 {
 	switch(mode)
 	{
@@ -19,11 +19,11 @@ static off_t transformOffsetToAbsolute(IO::SeekMode mode, off_t offset, off_t st
 			return offset + currentPos;
 		default:
 			bug_unreachable("IO::SeekMode == %d", (int)mode);
-			return 0;
+			return decltype(offset + startPos){};
 	}
 }
 
-static const char *accessHintStr(IO::AccessHint access)
+inline const char *accessHintStr(IO::AccessHint access)
 {
 	switch(access)
 	{
@@ -37,7 +37,7 @@ static const char *accessHintStr(IO::AccessHint access)
 	}
 }
 
-static const char *adviceStr(IO::Advice advice)
+inline const char *adviceStr(IO::Advice advice)
 {
 	switch(advice)
 	{

@@ -77,7 +77,7 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 		return {EINVAL};
 	}
 	auto format = config.format();
-	logMsg("creating stream %dHz, %d channels, %u frames/buffer", format.rate, format.channels, bufferFrames);
+	logMsg("creating stream %dHz, %d channels, %d frames/buffer", format.rate, format.channels, bufferFrames);
 	SLDataLocator_AndroidSimpleBufferQueue buffQLoc{SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, outputBuffers};
 	SLDataFormat_PCM slFormat
 	{
@@ -146,7 +146,7 @@ void OpenSLESOutputStream::play()
 		result == SL_RESULT_SUCCESS)
 	{
 		logMsg("started playback");
-		isPlaying_ = 1;
+		isPlaying_ = true;
 		if(!bufferQueued)
 		{
 			doBufferCallback(slBuffQI);
@@ -169,7 +169,7 @@ void OpenSLESOutputStream::pause()
 	{
 		logWarn("SetPlayState(SL_PLAYSTATE_PAUSED) returned 0x%X", (uint32_t)result);
 	}
-	isPlaying_ = 0;
+	isPlaying_ = false;
 }
 
 void OpenSLESOutputStream::close()

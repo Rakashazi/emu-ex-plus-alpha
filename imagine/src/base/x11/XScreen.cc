@@ -29,7 +29,7 @@ namespace IG
 XScreen::XScreen(ApplicationContext ctx, InitParams params):
 	frameTimer{ctx.application().makeFrameTimer(*static_cast<Screen*>(this))}
 {
-	::Screen *xScreen = (::Screen*)params.xScreen;
+	auto *xScreen = (::Screen*)params.xScreen;
 	assert(xScreen);
 	this->xScreen = xScreen;
 	xMM = WidthMMOfScreen(xScreen);
@@ -146,7 +146,7 @@ void Screen::setFrameRate(double rate)
 	}
 	else
 	{
-		auto time = rate ? IG::FloatSeconds(1. / rate) : frameTime();
+		auto time = (bool)rate ? IG::FloatSeconds(1. / rate) : frameTime();
 		frameTimer.setFrameTime(time);
 	}
 }

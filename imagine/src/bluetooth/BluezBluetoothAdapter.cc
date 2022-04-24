@@ -25,7 +25,7 @@
 #include <bluetooth/hidp.h>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/algorithm.h>
-#include <errno.h>
+#include <cerrno>
 
 #ifdef __ANDROID__
 // Bluez dlsym functions

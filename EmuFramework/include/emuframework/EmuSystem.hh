@@ -230,7 +230,7 @@ public:
 	void onPrepareAudio(EmuAudio &);
 	bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
 	bool vidSysIsPAL();
-	uint32_t updateAudioFramesPerVideoFrame();
+	int updateAudioFramesPerVideoFrame();
 	double frameRate();
 	double frameRate(VideoSystem system);
 	IG::FloatSeconds frameTime();
@@ -242,8 +242,8 @@ public:
 	unsigned multiresVideoBaseY();
 	double videoAspectRatioScale();
 	void configAudioRate(IG::FloatSeconds frameTime, uint32_t rate);
-	void configAudioPlayback(EmuAudio &, uint32_t rate);
-	void configFrameTime(uint32_t rate);
+	void configAudioPlayback(EmuAudio &, int rate);
+	void configFrameTime(int rate);
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, IG::Input::Action state, unsigned emuKey);
 	void handleInputAction(EmuApp *, IG::Input::Action state, unsigned emuKey, uint32_t metaState);
@@ -279,7 +279,7 @@ protected:
 	IG::FloatSeconds frameTimePAL{1./50.};
 	double audioFramesPerVideoFrameFloat{};
 	double currentAudioFramesPerVideoFrame{};
-	uint32_t audioFramesPerVideoFrame{};
+	int audioFramesPerVideoFrame{};
 	int saveStateSlot{};
 	State state{};
 	bool sessionOptionsSet{};

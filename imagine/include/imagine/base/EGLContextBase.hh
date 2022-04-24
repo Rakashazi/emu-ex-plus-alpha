@@ -51,7 +51,7 @@ struct EGLBufferConfig
 	constexpr operator EGLConfig() const { return glConfig; }
 	constexpr bool operator ==(EGLBufferConfig const&) const = default;
 	EGLint renderableTypeBits(GLDisplay display) const;
-	bool maySupportGLES(GLDisplay display, unsigned majorVersion) const;
+	bool maySupportGLES(GLDisplay display, int majorVersion) const;
 };
 
 class EGLDisplayConnection
@@ -128,7 +128,7 @@ class EGLManager
 public:
 	constexpr EGLManager() = default;
 	static const char *errorString(EGLint error);
-	static int makeRenderableType(GL::API, unsigned majorVersion);
+	static int makeRenderableType(GL::API, int majorVersion);
 	explicit operator bool() const { return (bool)dpy; }
 
 protected:

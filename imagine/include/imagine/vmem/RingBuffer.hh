@@ -24,12 +24,12 @@ namespace IG
 class RingBuffer
 {
 public:
-	using SizeType = uint32_t;
+	using SizeType = size_t;
 
 	constexpr RingBuffer() = default;
 	RingBuffer(SizeType size);
-	RingBuffer(RingBuffer &&o);
-	RingBuffer &operator=(RingBuffer &&o);
+	RingBuffer(RingBuffer &&o) noexcept;
+	RingBuffer &operator=(RingBuffer &&o) noexcept;
 	~RingBuffer();
 	void clear();
 	SizeType freeSpace() const;

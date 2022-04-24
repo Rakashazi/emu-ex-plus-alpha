@@ -87,7 +87,7 @@ void FSPicker::place()
 
 void FSPicker::changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, const Input::Event &e)
 {
-	setPath(path, rootInfo, e);
+	setPath(path, std::move(rootInfo), e);
 	place();
 	postDraw();
 }
@@ -250,7 +250,7 @@ void FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInfo, const In
 
 void FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInfo)
 {
-	return setPath(path, rootInfo, appContext().defaultInputEvent());
+	return setPath(path, std::move(rootInfo), appContext().defaultInputEvent());
 }
 
 void FSPicker::setPath(IG::CStringView path, const Input::Event &e)
@@ -434,7 +434,7 @@ void FSPicker::startDirectoryListThread(CStringView path)
 		postDraw();
 	});
 	dirListEvent.cancel();
-	dirListThread.reset([this](WorkThread::Context ctx, std::string path)
+	dirListThread.reset([this](WorkThread::Context ctx, const std::string &path)
 	{
 		listDirectory(path, ctx.stop);
 		if(ctx.stop.isQuitting()) [[unlikely]]

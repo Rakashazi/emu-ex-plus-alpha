@@ -37,14 +37,12 @@ struct XInputDevice : public Input::Device
 {
 	bool iCadeMode_ = false;
 
-	XInputDevice();
+	XInputDevice() = default;
 	XInputDevice(TypeBits, std::string name);
 	XInputDevice(XIDeviceInfo, bool isPointingDevice, bool isPowerButton);
 	void setICadeMode(bool on) final;
 	bool iCadeMode() const final;
 };
-
-XInputDevice::XInputDevice() {}
 
 XInputDevice::XInputDevice(TypeBits typeBits, std::string name):
 	Device{0, Input::Map::SYSTEM, typeBits, std::move(name)} {}
@@ -446,9 +444,9 @@ bool Device::anyTypeBitsPresent(ApplicationContext, TypeBits typeBits)
 	// TODO
 	if(typeBits & TYPE_BIT_KEYBOARD)
 	{
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
 }
 
 std::string KeyEvent::keyString(ApplicationContext ctx) const

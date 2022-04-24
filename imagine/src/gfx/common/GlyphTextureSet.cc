@@ -27,20 +27,20 @@ namespace IG::Gfx
 
 static constexpr char firstDrawableAsciiChar = '!';
 static constexpr char lastDrawableAsciiChar = '~';
-static constexpr uint32_t numDrawableAsciiChars = (lastDrawableAsciiChar - firstDrawableAsciiChar) + 1;
+static constexpr int numDrawableAsciiChars = (lastDrawableAsciiChar - firstDrawableAsciiChar) + 1;
 
 // definitions for the Unicode Basic Multilingual Plane (BMP)
-static constexpr uint32_t unicodeBmpChars = 0xFFFE;
+static constexpr int unicodeBmpChars = 0xFFFE;
 
 // location & size of the surrogate/private chars
-static constexpr uint32_t unicodeBmpPrivateStart = 0xD800, unicodeBmpPrivateEnd = 0xF8FF;
-static constexpr uint32_t unicodeBmpPrivateChars = 0x2100;
+static constexpr int unicodeBmpPrivateStart = 0xD800, unicodeBmpPrivateEnd = 0xF8FF;
+static constexpr int unicodeBmpPrivateChars = 0x2100;
 
-static constexpr uint32_t unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPrivateChars;
+static constexpr int unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPrivateChars;
 
-static constexpr uint32_t glyphTableEntries = GlyphTextureSet::supportsUnicode ? unicodeBmpUsedChars : numDrawableAsciiChars;
+static constexpr int glyphTableEntries = GlyphTextureSet::supportsUnicode ? unicodeBmpUsedChars : numDrawableAsciiChars;
 
-static std::errc mapCharToTable(uint32_t c, uint32_t &tableIdx);
+static std::errc mapCharToTable(int c, int &tableIdx);
 
 static int charIsDrawableAscii(int c)
 {
@@ -85,7 +85,7 @@ void GlyphTextureSet::freeCaches(uint32_t purgeBits)
 			int firstChar = i << 11;
 			iterateTimesFromStart(2048, firstChar, c)
 			{
-				uint32_t tableIdx;
+				int tableIdx;
 				if((bool)mapCharToTable(c, tableIdx))
 				{
 					//logMsg( "%c not a known drawable character, skipping", c);
@@ -115,7 +115,7 @@ GlyphTextureSet::GlyphTextureSet(Renderer &r, IG::Font font, IG::FontSettings se
 	}
 }
 
-uint32_t GlyphTextureSet::nominalHeight() const
+int GlyphTextureSet::nominalHeight() const
 {
 	return nominalHeight_;
 }
@@ -177,7 +177,7 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 	return {};
 }
 
-static std::errc mapCharToTable(uint32_t c, uint32_t &tableIdx)
+static std::errc mapCharToTable(int c, int &tableIdx)
 {
 	if(GlyphTextureSet::supportsUnicode)
 	{
@@ -215,13 +215,13 @@ static std::errc mapCharToTable(uint32_t c, uint32_t &tableIdx)
 }
 
 // TODO: update for unicode
-unsigned GlyphTextureSet::precache(Renderer &r, std::string_view string)
+int GlyphTextureSet::precache(Renderer &r, std::string_view string)
 {
 	assert(settings);
-	unsigned glyphsCached = 0;
+	int glyphsCached = 0;
 	for(auto c : string)
 	{
-		uint32_t tableIdx;
+		int tableIdx;
 		if((bool)mapCharToTable(c, tableIdx))
 		{
 			//logMsg( "%c not a known drawable character, skipping", c);
@@ -242,7 +242,7 @@ unsigned GlyphTextureSet::precache(Renderer &r, std::string_view string)
 GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c, bool allowCache)
 {
 	assert(settings);
-	uint32_t tableIdx;
+	int tableIdx;
 	if((bool)mapCharToTable(c, tableIdx))
 		return nullptr;
 	assert(tableIdx < glyphTableEntries);

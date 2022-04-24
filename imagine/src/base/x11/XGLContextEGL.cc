@@ -51,7 +51,7 @@ bool GLManager::bindAPI(GL::API api)
 		return eglBindAPI(EGL_OPENGL_API);
 }
 
-std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion) const
+std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext, GLBufferConfigAttributes attr, GL::API api, int majorVersion) const
 {
 	auto renderableType = makeRenderableType(api, majorVersion);
 	return chooseConfig(display(), renderableType, attr);

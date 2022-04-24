@@ -90,7 +90,7 @@ struct GLBufferConfig
 	bool useRGB565 = false;
 
 	NativeWindowFormat windowFormat(ApplicationContext, GLDisplay display) const;
-	bool maySupportGLES(GLDisplay, unsigned majorVersion) const;
+	bool maySupportGLES(GLDisplay, int majorVersion) const;
 	constexpr bool operator ==(GLBufferConfig const&) const = default;
 };
 

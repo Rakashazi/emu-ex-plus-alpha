@@ -71,7 +71,7 @@ bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 
 				if(keyEv.mapKey() == Input::Keycode::BACK_SPACE)
 				{
-					int len = str.size();
+					auto len = str.size();
 					if(len > 0)
 					{
 						str.pop_back();
