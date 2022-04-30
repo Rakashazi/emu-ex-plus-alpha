@@ -25,12 +25,12 @@ CFTimer::CFTimer(const char *debugLabel, CallbackDelegate c):
 	info{std::make_unique<CFTimerInfo>(CFTimerInfo{c, {}})}
 {}
 
-CFTimer::CFTimer(CFTimer &&o)
+CFTimer::CFTimer(CFTimer &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-CFTimer &CFTimer::operator=(CFTimer &&o)
+CFTimer &CFTimer::operator=(CFTimer &&o) noexcept
 {
 	deinit();
 	timer = std::exchange(o.timer, {});

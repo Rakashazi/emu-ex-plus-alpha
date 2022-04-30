@@ -40,12 +40,12 @@ public:
 		resize(size);
 	}
 
-	VMemArray(VMemArray &&o)
+	VMemArray(VMemArray &&o) noexcept
 	{
 		*this = std::move(o);
 	}
 
-	VMemArray &operator=(VMemArray &&o)
+	VMemArray &operator=(VMemArray &&o) noexcept
 	{
 		freeStorage();
 		data_ = std::exchange(o.data_, {});

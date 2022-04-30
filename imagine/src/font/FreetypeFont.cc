@@ -291,7 +291,7 @@ Font FontManager::makeSystem() const
 Font FontManager::makeBoldSystem() const
 {
 	#ifdef CONFIG_PACKAGE_FONTCONFIG
-	return {library.get(), false};
+	return {library.get(), FontWeight::BOLD};
 	#else
 	return makeFromAsset("Vera.ttf");
 	#endif
@@ -302,21 +302,20 @@ Font FontManager::makeFromAsset(const char *name, const char *appName) const
 	return {library.get(), ctx.openAsset(name, IO::AccessHint::ALL, 0, appName)};
 }
 
-FreetypeFont::FreetypeFont(FreetypeFont &&o)
+FreetypeFaceData::FreetypeFaceData(FreetypeFaceData &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-FreetypeFont &FreetypeFont::operator=(FreetypeFont &&o)
+FreetypeFaceData &FreetypeFaceData::operator=(FreetypeFaceData &&o) noexcept
 {
 	deinit();
-	library = o.library;
-	f = std::exchange(o.f, {});
-	isBold = o.isBold;
+	face = std::exchange(o.face, {});
+	streamRecPtr = std::move(o.streamRecPtr);
 	return *this;
 }
 
-FreetypeFont::~FreetypeFont()
+FreetypeFaceData::~FreetypeFaceData()
 {
 	deinit();
 }
@@ -326,18 +325,15 @@ Font::operator bool() const
 	return f.size();
 }
 
-void FreetypeFont::deinit()
+void FreetypeFaceData::deinit()
 {
-	for(auto &e : f)
+	if(face)
 	{
-		if(e.face)
-		{
-			FT_Done_Face(e.face);
-		}
-		if(e.streamRecPtr->descriptor.pointer)
-		{
-			delete (IO*)e.streamRecPtr->descriptor.pointer;
-		}
+		FT_Done_Face(face);
+	}
+	if(streamRecPtr && streamRecPtr->descriptor.pointer)
+	{
+		delete (IO*)streamRecPtr->descriptor.pointer;
 	}
 }
 
@@ -407,7 +403,7 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 		ec = std::errc::no_space_on_device;
 		return {};
 	}
-	auto fontPath = fontPathContainingChar(idx, isBold ? FC_WEIGHT_BOLD : FC_WEIGHT_MEDIUM);
+	auto fontPath = fontPathContainingChar(idx, weight == FontWeight::BOLD ? FC_WEIGHT_BOLD : FC_WEIGHT_MEDIUM);
 	if(fontPath.empty())
 	{
 		logErr("no font file found for char %c (0x%X)", idx, idx);
@@ -486,12 +482,12 @@ FreetypeFontSize::~FreetypeFontSize()
 	deinit();
 }
 
-FreetypeFontSize::FreetypeFontSize(FreetypeFontSize &&o)
+FreetypeFontSize::FreetypeFontSize(FreetypeFontSize &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-FreetypeFontSize &FreetypeFontSize::operator=(FreetypeFontSize &&o)
+FreetypeFontSize &FreetypeFontSize::operator=(FreetypeFontSize &&o) noexcept
 {
 	deinit();
 	settings = o.settings;
@@ -522,12 +518,12 @@ void FreetypeFontSize::deinit()
 	}
 }
 
-FreetypeGlyphImage::FreetypeGlyphImage(FreetypeGlyphImage &&o)
+FreetypeGlyphImage::FreetypeGlyphImage(FreetypeGlyphImage &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-FreetypeGlyphImage &FreetypeGlyphImage::operator=(FreetypeGlyphImage &&o)
+FreetypeGlyphImage &FreetypeGlyphImage::operator=(FreetypeGlyphImage &&o) noexcept
 {
 	deinit();
 	library = o.library;

@@ -342,12 +342,12 @@ PixmapImage::operator bool() const
 	return info;
 }
 
-PngImage::PngImage(PngImage &&o)
+PngImage::PngImage(PngImage &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-PngImage &PngImage::operator=(PngImage &&o)
+PngImage &PngImage::operator=(PngImage &&o) noexcept
 {
 	freeImageData();
 	png = std::exchange(o.png, {});

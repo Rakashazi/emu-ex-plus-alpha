@@ -371,7 +371,7 @@ bool EmuVideoLayer::updateConvertColorSpaceEffect()
 		buildEffectChain();
 		return true;
 	}
-	else if(userEffect && userEffectId == ImageEffectId::DIRECT)
+	else if(!needsConversion && userEffect && userEffectId == ImageEffectId::DIRECT)
 	{
 		userEffect = {};
 		logMsg("deleted sRGB conversion effect");

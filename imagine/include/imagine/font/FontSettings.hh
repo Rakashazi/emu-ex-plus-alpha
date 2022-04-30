@@ -21,6 +21,12 @@
 namespace IG
 {
 
+enum class FontWeight : uint8_t
+{
+	NORMAL,
+	BOLD,
+};
+
 class FontSettings
 {
 public:

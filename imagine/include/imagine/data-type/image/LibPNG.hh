@@ -37,8 +37,8 @@ class PngImage
 public:
 	constexpr PngImage() = default;
 	PngImage(GenericIO io);
-	PngImage(PngImage &&o);
-	PngImage &operator=(PngImage &&o);
+	PngImage(PngImage &&o) noexcept;
+	PngImage &operator=(PngImage &&o) noexcept;
 	~PngImage();
 	std::errc readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();

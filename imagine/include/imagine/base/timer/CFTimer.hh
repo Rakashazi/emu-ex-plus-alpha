@@ -38,8 +38,8 @@ public:
 	constexpr CFTimer() = default;
 	CFTimer(CallbackDelegate c) : CFTimer{nullptr, c} {}
 	CFTimer(const char *debugLabel, CallbackDelegate c);
-	CFTimer(CFTimer &&o);
-	CFTimer &operator=(CFTimer &&o);
+	CFTimer(CFTimer &&o) noexcept;
+	CFTimer &operator=(CFTimer &&o) noexcept;
 	~CFTimer();
 
 protected:

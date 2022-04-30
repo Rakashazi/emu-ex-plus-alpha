@@ -36,12 +36,12 @@ public:
 		assert(ret == KERN_SUCCESS);
 	}
 
-	MachSemaphore(MachSemaphore &&o)
+	MachSemaphore(MachSemaphore &&o) noexcept
 	{
 		*this = std::move(o);
 	}
 
-	MachSemaphore &operator=(MachSemaphore &&o)
+	MachSemaphore &operator=(MachSemaphore &&o) noexcept
 	{
 		deinit();
 		sem = std::exchange(o.sem, {});

@@ -2,7 +2,7 @@ name: Mark issues and pull requests as stale
 
 on:
   schedule:
-  - cron: '0 1 * * 0'
+  - cron: '0 1 * * Mon,Thu,Sat'
 
 jobs:
   stale:
@@ -22,3 +22,4 @@ jobs:
         stale-pr-label: 'no-pr-activity'
         days-before-issue-close: 5
         days-before-pr-close: 5
+        operations-per-run: 60

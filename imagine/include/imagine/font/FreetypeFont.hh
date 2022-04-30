@@ -40,8 +40,8 @@ public:
 	constexpr FreetypeGlyphImage() = default;
 	constexpr FreetypeGlyphImage(FT_Library library, FT_Bitmap bitmap):
 		library{library}, bitmap{bitmap} {}
-	FreetypeGlyphImage(FreetypeGlyphImage &&o);
-	FreetypeGlyphImage &operator=(FreetypeGlyphImage &&o);
+	FreetypeGlyphImage(FreetypeGlyphImage &&o) noexcept;
+	FreetypeGlyphImage &operator=(FreetypeGlyphImage &&o) noexcept;
 	~FreetypeGlyphImage();
 
 protected:
@@ -60,8 +60,8 @@ public:
 
 	constexpr FreetypeFontSize() = default;
 	FreetypeFontSize(FontSettings settings);
-	FreetypeFontSize(FreetypeFontSize &&o);
-	FreetypeFontSize &operator=(FreetypeFontSize &&o);
+	FreetypeFontSize(FreetypeFontSize &&o) noexcept;
+	FreetypeFontSize &operator=(FreetypeFontSize &&o) noexcept;
 	~FreetypeFontSize();
 
 	FTSizeArray &sizeArray();
@@ -81,6 +81,12 @@ struct FreetypeFaceData
 
 	constexpr FreetypeFaceData() = default;
 	FreetypeFaceData(FT_Library, GenericIO file);
+	FreetypeFaceData(FreetypeFaceData &&) noexcept;
+	FreetypeFaceData &operator=(FreetypeFaceData &&) noexcept;
+	~FreetypeFaceData();
+
+protected:
+	void deinit();
 };
 
 class FreetypeFont
@@ -93,23 +99,19 @@ public:
 	};
 
 	constexpr FreetypeFont() = default;
-	constexpr FreetypeFont(FT_Library library, bool isBold = false):
-		library{library}, isBold{isBold} {}
+	constexpr FreetypeFont(FT_Library library, FontWeight weight = {}):
+		library{library}, weight{weight} {}
 	FreetypeFont(FT_Library, GenericIO);
 	FreetypeFont(FT_Library, const char *path);
-	FreetypeFont(FreetypeFont &&o);
-	FreetypeFont &operator=(FreetypeFont &&o);
-	~FreetypeFont();
 
 protected:
 	FT_Library library{};
 	StaticArrayList<FreetypeFaceData, MAX_FREETYPE_SLOTS> f{};
-	bool isBold{};
+	FontWeight weight{};
 
 	std::errc loadIntoNextSlot(GenericIO io);
 	std::errc loadIntoNextSlot(IG::CStringView name);
 	GlyphRenderData makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::errc &ec);
-	void deinit();
 };
 
 class FreetypeFontManager

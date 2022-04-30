@@ -56,7 +56,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 
 	TextMenuItem inputPortsItem[4]
 	{
-		{"Auto",      &defaultFace(), setInputPortsDel(-1, -1)},
+		{"Auto",      &defaultFace(), setInputPortsDel(-1, -1), -1},
 		{"Gamepads",  &defaultFace(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_MD_GAMEPAD), SYSTEM_MD_GAMEPAD},
 		{"Menacer",   &defaultFace(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_MENACER),    SYSTEM_MENACER},
 		{"Justifier", &defaultFace(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_JUSTIFIER),  SYSTEM_JUSTIFIER},

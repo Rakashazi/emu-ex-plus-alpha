@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
+#include <imagine/font/FontSettings.hh>
 #include <CoreFoundation/CFBase.h>
 #include <CoreGraphics/CGColor.h>
 #ifdef __OBJC__
@@ -34,8 +35,8 @@ public:
 	constexpr UIKitGlyphImage() = default;
 	constexpr UIKitGlyphImage(IG::Pixmap pixmap, void *pixData):
 		pixmap_{pixmap}, pixData_{pixData} {}
-	UIKitGlyphImage(UIKitGlyphImage &&o);
-	UIKitGlyphImage &operator=(UIKitGlyphImage &&o);
+	UIKitGlyphImage(UIKitGlyphImage &&o) noexcept;
+	UIKitGlyphImage &operator=(UIKitGlyphImage &&o) noexcept;
 	~UIKitGlyphImage();
 
 protected:
@@ -49,13 +50,13 @@ class UIKitFont
 {
 public:
 	constexpr UIKitFont() = default;
-	constexpr UIKitFont(CGColorSpaceRef grayColorSpace, CGColorRef textColor, bool isBold = false):
-		grayColorSpace{grayColorSpace}, textColor{textColor}, isBold{isBold} {}
+	constexpr UIKitFont(CGColorSpaceRef grayColorSpace, CGColorRef textColor, FontWeight weight = {}):
+		grayColorSpace{grayColorSpace}, textColor{textColor}, weight{weight} {}
 
 protected:
 	CGColorSpaceRef grayColorSpace{};
 	CGColorRef textColor{};
-	bool isBold{};
+	FontWeight weight{};
 };
 
 class UIKitFontSize
@@ -63,8 +64,8 @@ class UIKitFontSize
 public:
 	constexpr UIKitFontSize() = default;
 	constexpr UIKitFontSize(void *font): font_{font} {}
-	UIKitFontSize(UIKitFontSize &&o);
-	UIKitFontSize &operator=(UIKitFontSize &&o);
+	UIKitFontSize(UIKitFontSize &&o) noexcept;
+	UIKitFontSize &operator=(UIKitFontSize &&o) noexcept;
 	~UIKitFontSize();
 	#ifdef __OBJC__
 	UIFont *font() { assert(font_); return (__bridge UIFont*)font_; }

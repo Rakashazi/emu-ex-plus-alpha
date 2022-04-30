@@ -43,8 +43,8 @@ public:
 	constexpr CFFDEventSource() = default;
 	CFFDEventSource(MaybeUniqueFileDescriptor fd) : CFFDEventSource{nullptr, std::move(fd)} {}
 	CFFDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd);
-	CFFDEventSource(CFFDEventSource &&o);
-	CFFDEventSource &operator=(CFFDEventSource &&o);
+	CFFDEventSource(CFFDEventSource &&o) noexcept;
+	CFFDEventSource &operator=(CFFDEventSource &&o) noexcept;
 	~CFFDEventSource();
 
 protected:

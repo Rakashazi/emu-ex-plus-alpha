@@ -68,6 +68,9 @@ do
 		--app-ext-storage)
 			usesAppExtStorage=1
 		;;
+		--debug)
+			debuggable=1
+		;;
 		# special actions
 		-v | --verbose)
 			verbose=1
@@ -144,6 +147,11 @@ fi
 if [ $usesAppExtStorage ]
 then
 	applicationOutput="$applicationOutput android:hasFragileUserData=\"true\""
+fi
+
+if [ $debuggable ]
+then
+	applicationOutput="$applicationOutput android:debuggable=\"true\""
 fi
 
 if [ ! $versionCode ]

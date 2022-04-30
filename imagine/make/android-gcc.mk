@@ -54,8 +54,6 @@ else
  $(error user-defined compiler not yet supported)
 endif
 
-CFLAGS_OPTIMIZE_DEBUG_DEFAULT ?= -O2
-
 ifneq ($(config_compiler),clang)
  $(error config_compiler must be set to clang)
 endif

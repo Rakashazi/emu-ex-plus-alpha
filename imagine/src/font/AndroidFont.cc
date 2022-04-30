@@ -77,7 +77,7 @@ Font FontManager::makeSystem() const
 
 Font FontManager::makeBoldSystem() const
 {
-	return {*this};
+	return {*this, FontWeight::BOLD};
 }
 
 std::pair<jobject, GlyphMetrics> AndroidFontManager::makeBitmap(JNIEnv *env, int idx, AndroidFontSize &size) const
@@ -98,9 +98,9 @@ GlyphMetrics AndroidFontManager::makeMetrics(JNIEnv *env, int idx, AndroidFontSi
 	return metrics;
 }
 
-jobject AndroidFontManager::makePaint(JNIEnv *env, int pixelHeight, bool isBold) const
+jobject AndroidFontManager::makePaint(JNIEnv *env, int pixelHeight, FontWeight weight) const
 {
-	return jMakePaint(env, renderer, pixelHeight, isBold);
+	return jMakePaint(env, renderer, pixelHeight, weight == FontWeight::BOLD);
 }
 
 Font::operator bool() const
@@ -145,7 +145,7 @@ FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 {
 	auto &mgr = manager();
 	auto env = mgr.app().thisThreadJniEnv();
-	auto paint = mgr.makePaint(env, settings.pixelHeight(), isBold);
+	auto paint = mgr.makePaint(env, settings.pixelHeight(), weight);
 	if(!paint)
 	{
 		ec = std::errc::invalid_argument;

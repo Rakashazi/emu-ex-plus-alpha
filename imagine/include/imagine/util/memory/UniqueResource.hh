@@ -30,12 +30,12 @@ public:
 	constexpr UniqueResource(T r, Deleter del = {}):
 		r{r}, del{del} {}
 
-	UniqueResource(UniqueResource &&o)
+	UniqueResource(UniqueResource &&o) noexcept
 	{
 		*this = std::move(o);
 	}
 
-	UniqueResource &operator=(UniqueResource &&o)
+	UniqueResource &operator=(UniqueResource &&o) noexcept
 	{
 		reset();
 		r = o.release();

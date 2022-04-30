@@ -136,7 +136,7 @@ Font FontManager::makeSystem() const
 
 Font FontManager::makeBoldSystem() const
 {
-	return {grayColorSpace, textColor, true};
+	return {grayColorSpace, textColor, FontWeight::BOLD};
 }
 
 Font::operator bool() const
@@ -181,18 +181,18 @@ FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 		return {};
 	}	
 	ec = (std::errc)0;
-	if(isBold)
+	if(weight == FontWeight::BOLD)
 		return {(void*)CFBridgingRetain([UIFont boldSystemFontOfSize:(CGFloat)settings.pixelHeight()])};
 	else
 		return {(void*)CFBridgingRetain([UIFont systemFontOfSize:(CGFloat)settings.pixelHeight()])};
 }
 
-UIKitFontSize::UIKitFontSize(UIKitFontSize &&o)
+UIKitFontSize::UIKitFontSize(UIKitFontSize &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-UIKitFontSize &UIKitFontSize::operator=(UIKitFontSize &&o)
+UIKitFontSize &UIKitFontSize::operator=(UIKitFontSize &&o) noexcept
 {
 	deinit();
 	font_ = std::exchange(o.font_, {});
@@ -211,12 +211,12 @@ void UIKitFontSize::deinit()
 	CFRelease(font_);
 }
 
-UIKitGlyphImage::UIKitGlyphImage(UIKitGlyphImage &&o)
+UIKitGlyphImage::UIKitGlyphImage(UIKitGlyphImage &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-UIKitGlyphImage &UIKitGlyphImage::operator=(UIKitGlyphImage &&o)
+UIKitGlyphImage &UIKitGlyphImage::operator=(UIKitGlyphImage &&o) noexcept
 {
 	deinit();
 	pixmap_ = o.pixmap_;

@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
+#include <imagine/font/FontSettings.hh>
 #include <imagine/util/jni.hh>
 #include <utility>
 
@@ -43,14 +44,14 @@ class AndroidFont
 {
 public:
 	constexpr AndroidFont() = default;
-	constexpr AndroidFont(const FontManager &manager, bool isBold = false):
+	constexpr AndroidFont(const FontManager &manager, FontWeight weight = {}):
 		managerPtr{&manager},
-		isBold{isBold}
+		weight{weight}
 	{}
 
 protected:
 	const FontManager *managerPtr{};
-	bool isBold{};
+	FontWeight weight{};
 
 	constexpr const FontManager &manager() const { return *managerPtr; }
 };
@@ -72,7 +73,7 @@ public:
 	AndroidFontManager(ApplicationContext);
 	std::pair<jobject, GlyphMetrics> makeBitmap(JNIEnv*, int idx, AndroidFontSize &) const;
 	GlyphMetrics makeMetrics(JNIEnv*, int idx, AndroidFontSize &) const;
-	jobject makePaint(JNIEnv*, int pixelHeight, bool isBold) const;
+	jobject makePaint(JNIEnv*, int pixelHeight, FontWeight) const;
 	constexpr Application &app() const { return *appPtr; }
 	constexpr JNI::InstMethod<void()> recycleBitmapMethod() const { return jRecycleBitmap; }
 

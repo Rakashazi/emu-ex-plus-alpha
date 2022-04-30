@@ -62,12 +62,12 @@ CFFDEventSource::CFFDEventSource(const char *debugLabel, MaybeUniqueFileDescript
 		eventCallback, &ctx);
 }
 
-CFFDEventSource::CFFDEventSource(CFFDEventSource &&o)
+CFFDEventSource::CFFDEventSource(CFFDEventSource &&o) noexcept
 {
 	*this = std::move(o);
 }
 
-CFFDEventSource &CFFDEventSource::operator=(CFFDEventSource &&o)
+CFFDEventSource &CFFDEventSource::operator=(CFFDEventSource &&o) noexcept
 {
 	deinit();
 	info = std::move(o.info);

@@ -132,12 +132,12 @@ public:
 			this->setstate(std::ios::failbit);
 	}
 
-	StreamBase(StreamBase&& o)
+	StreamBase(StreamBase&& o) noexcept
 	{
 		*this = std::move(o);
 	}
 
-	StreamBase& operator=(StreamBase&& o)
+	StreamBase& operator=(StreamBase&& o) noexcept
 	{
 		StdStream::operator=(std::move(o));
 		streamBuf = std::move(o.streamBuf);

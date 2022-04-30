@@ -58,6 +58,11 @@ const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx) const
 	return info[0];
 }
 
+static IG::Pixmap snesPixmapView(IG::WP size)
+{
+	return {{size, srcPixFmt}, GFX.Screen, {(int)GFX.Pitch, Pixmap::Units::BYTE}};
+}
+
 const char *EmuSystem::shortSystemName() const
 {
 	return "SFC-SNES";
@@ -70,8 +75,7 @@ const char *EmuSystem::systemName() const
 
 void EmuSystem::renderFramebuffer(EmuVideo &video)
 {
-	IG::Pixmap srcPix{{video.image().size(), srcPixFmt}, GFX.Screen};
-	video.startFrameWithFormat({}, srcPix);
+	video.startFrameWithFormat({}, snesPixmapView(video.image().size()));
 }
 
 void EmuSystem::reset(ResetMode mode)
@@ -300,8 +304,7 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 		bool is480i = height >= SNES_HEIGHT_480i;
 		height = is480i ? SNES_HEIGHT_480i : SNES_HEIGHT;
 	}
-	IG::Pixmap srcPix{{{width, height}, srcPixFmt}, GFX.Screen, {(int)GFX.Pitch, Pixmap::Units::BYTE}};
-	emuVideo->startFrameWithFormat(emuSysTask, srcPix);
+	emuVideo->startFrameWithFormat(emuSysTask, snesPixmapView({width, height}));
 	#ifndef SNES9X_VERSION_1_4
 	memset(GFX.ZBuffer, 0, GFX.ScreenSize);
 	memset(GFX.SubZBuffer, 0, GFX.ScreenSize);
