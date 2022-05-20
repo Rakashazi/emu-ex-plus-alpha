@@ -1756,7 +1756,7 @@ namespace EmuEx
 void emulateSound(EmuAudio *audio);
 }
 
-int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, EmuEx::EmuAudio *audio, int skip) {
+int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::NesSystem &sys, EmuEx::EmuVideo *video, EmuEx::EmuAudio *audio, int skip) {
 	if ((newppu) && (GameInfo->type != GIT_NSF)) {
 		int FCEUX_PPU_Loop(int skip);
 		return FCEUX_PPU_Loop(skip);
@@ -1768,7 +1768,7 @@ int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, Em
 		X6502_Run(scanlines_per_frame * (256 + 85));
 		ppudead--;
 		if(!skip)
-			FCEUPPU_FrameReady(taskCtx, video, nullptr);
+			FCEUPPU_FrameReady(taskCtx, sys, video, nullptr);
 	} else {
 		X6502_Run(256 + 85);
 		PPU_status |= 0x80;
@@ -1878,7 +1878,7 @@ int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, Em
 					emulateSound(audio);
 				}
 			}
-			FCEUPPU_FrameReady(taskCtx, video, XBuf);
+			FCEUPPU_FrameReady(taskCtx, sys, video, XBuf);
 			DMC_7bit = 0;
 
 			if (MMC5Hack) MMC5_hb(scanline);
@@ -1907,7 +1907,7 @@ int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo *video, Em
 	}
 }
 
-int (*PPU_MASTER)(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, EmuEx::EmuAudio *, int skip) = FCEUPPU_Loop;
+int (*PPU_MASTER)(EmuEx::EmuSystemTaskContext, EmuEx::NesSystem &, EmuEx::EmuVideo *, EmuEx::EmuAudio *, int skip) = FCEUPPU_Loop;
 
 static uint16 TempAddrT, RefreshAddrT;
 

@@ -20,7 +20,7 @@
 #include <vbam/Util.h>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 struct GameSettings
 {
@@ -155,7 +155,10 @@ static void resetGameSettings()
 	eepromSize = SIZE_EEPROM_512;
 }
 
-void setGameSpecificSettings(GBASys &gba, int romSize)
+namespace EmuEx
+{
+
+void GbaSystem::setGameSpecificSettings(GBASys &gba, int romSize)
 {
 	using namespace EmuEx;
 	bool mirroringEnable{};
@@ -208,16 +211,18 @@ void setGameSpecificSettings(GBASys &gba, int romSize)
 	}
 	if(saveType != GBA_SAVE_NONE)
 		logMsg("save size:%d bytes", saveType == GBA_SAVE_FLASH || saveType == GBA_SAVE_SRAM ? flashSize : eepromSize);
-	if(detectedRtcGame && (unsigned)optionRtcEmulation == RTC_EMU_AUTO)
+	if(detectedRtcGame && (RtcMode)optionRtcEmulation.val == RtcMode::AUTO)
 	{
 		rtcEnable(true);
 	}
 	else
 	{
-		bool rtcOn = (unsigned)optionRtcEmulation == RTC_EMU_ON;
+		bool rtcOn = (RtcMode)optionRtcEmulation.val == RtcMode::ON;
 		logMsg("forcing RTC:%s", rtcOn ? "on" : "off");
 		rtcEnable(rtcOn);
 	}
+}
+
 }
 
 size_t saveMemorySize()

@@ -14,10 +14,8 @@
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
-#include <emuframework/EmuAudio.hh>
-#include <emuframework/EmuVideo.hh>
+#include <emuframework/EmuSystemInlines.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/io/FileIO.hh>
@@ -25,7 +23,6 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
-#include "internal.hh"
 
 // TODO: remove when namespace code is complete
 #ifdef __APPLE__
@@ -68,8 +65,6 @@ bool EmuSystem::canRenderRGBA8888 = false;
 bool EmuApp::needsGlobalInstance = true;
 BoardInfo boardInfo{};
 Mixer *mixer{};
-FS::FileString cartName[2]{};
-FS::FileString diskName[2]{};
 static FS::FileString tapeName{};
 static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
@@ -125,7 +120,7 @@ const char *EmuSystem::systemName() const
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMSXExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMSXExtension;
 
-static void insertMedia(EmuApp &app)
+void MsxSystem::insertMedia(EmuApp &app)
 {
 	iterateTimes(2, i)
 	{
@@ -180,7 +175,7 @@ static bool msxIsInit()
 	return boardInfo.run != 0;
 }
 
-static void clearAllMediaNames()
+void MsxSystem::clearAllMediaNames()
 {
 	cartName[0].clear();
 	cartName[1].clear();
@@ -205,7 +200,7 @@ static void ejectMedia()
 	diskChange(diskGetHdDriveId(1, 1), 0, 0);
 }
 
-static void destroyBoard(bool clearMediaNames = true)
+void MsxSystem::destroyBoard(bool clearMediaNames)
 {
 	if(!machine)
 		return;
@@ -239,7 +234,7 @@ static const char *boardTypeToStr(BoardType type)
 	}
 }
 
-static bool createBoard(EmuApp &app)
+bool MsxSystem::createBoard(EmuApp &app)
 {
 	// TODO: 50hz mode
 	assert(machine);
@@ -270,7 +265,7 @@ static bool createBoard(EmuApp &app)
 	}
 }
 
-static bool createBoardFromLoadGame(EmuApp &app)
+bool MsxSystem::createBoardFromLoadGame(EmuApp &app)
 {
 	destroyBoard(false);
 	if(!createBoard(app))
@@ -307,7 +302,7 @@ static bool initMachine(std::string_view machineName)
 	return true;
 }
 
-static void destroyMachine(bool clearMediaNames = true)
+void MsxSystem::destroyMachine(bool clearMediaNames)
 {
 	if(!machine)
 		return;
@@ -323,7 +318,7 @@ const char *currentMachineName()
 	return machine->name;
 }
 
-void setCurrentMachineName(EmuApp &app, std::string_view machineName, bool insertMediaFiles)
+void MsxSystem::setCurrentMachineName(EmuApp &app, std::string_view machineName, bool insertMediaFiles)
 {
 	if(machine && machine->name == machineName)
 	{
@@ -433,11 +428,11 @@ bool insertDisk(EmuApp &app, const char *name, unsigned slot)
 	return true;
 }
 
-void EmuSystem::reset(EmuApp &app, ResetMode mode)
+void MsxSystem::reset(EmuApp &app, ResetMode mode)
 {
 	assert(hasContent());
 	fdcActive = 0;
-	if(mode == RESET_HARD)
+	if(mode == ResetMode::HARD)
 	{
 		boardInfo.destroy();
 		if(!createBoard(app))
@@ -460,12 +455,12 @@ void EmuSystem::reset(EmuApp &app, ResetMode mode)
 	}
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
+FS::FileString MsxSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotCharUpper(slot));
 }
 
-static void saveBlueMSXState(const char *filename)
+void MsxSystem::saveBlueMSXState(const char *filename)
 {
 	if(!zipStartWrite(filename))
 	{
@@ -511,7 +506,7 @@ static void saveBlueMSXState(const char *filename)
 	zipEndWrite();
 }
 
-void EmuSystem::saveState(IG::CStringView path)
+void MsxSystem::saveState(IG::CStringView path)
 {
 	return saveBlueMSXState(path);
 }
@@ -529,7 +524,7 @@ static FS::FileString saveStateGetFileString(SaveState* state, const char* tagNa
 	return {};
 }
 
-static void loadBlueMSXState(EmuApp &app, const char *filename)
+void MsxSystem::loadBlueMSXState(EmuApp &app, const char *filename)
 {
 	logMsg("loading state %s", filename);
 	assert(machine);
@@ -587,17 +582,17 @@ static void loadBlueMSXState(EmuApp &app, const char *filename)
 	logMsg("state loaded with machine:%s", machine->name);
 }
 
-void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
+void MsxSystem::loadState(EmuApp &app, IG::CStringView path)
 {
 	return loadBlueMSXState(app, path);
 }
 
-void EmuSystem::closeSystem()
+void MsxSystem::closeSystem()
 {
 	destroyMachine();
 }
 
-void EmuSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
+void MsxSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	if(contentDirectory().empty())
 	{
@@ -636,7 +631,7 @@ void EmuSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 
 	// create machine
 	auto &app = EmuApp::get(ctx);
-	auto destroyMachineOnReturn = IG::scopeGuard([](){ destroyMachine(); });
+	auto destroyMachineOnReturn = IG::scopeGuard([&](){ destroyMachine(); });
 	if(optionSessionMachineNameStr.size()) // try machine from session config first
 	{
 		setCurrentMachineName(app, optionSessionMachineNameStr, false);
@@ -687,10 +682,10 @@ void EmuSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 	destroyMachineOnReturn.cancel();
 }
 
-void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
+void MsxSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
 	assumeExpr(rate == 44100);// TODO: not all sound chips handle non-44100Hz sample rate
-	unsigned mixRate = std::round(rate * (59.924 * frameTime.count()));
+	int mixRate = std::round(rate * (59.924 * frameTime.count()));
 	mixerSetSampleRate(mixer, mixRate);
 	logMsg("set mixer rate %d", (int)mixerGetSampleRate(mixer));
 }
@@ -711,12 +706,12 @@ static void commitUnchangedVideoFrame()
 	}
 }
 
-void EmuSystem::renderFramebuffer(EmuVideo &video)
+void MsxSystem::renderFramebuffer(EmuVideo &video)
 {
 	video.startFrameWithFormat({}, frameBufferPixmap());
 }
 
-void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
+void MsxSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	emuSysTask = taskCtx;
 	emuVideo = video;
@@ -726,7 +721,7 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	commitUnchangedVideoFrame(); // runs if emuVideo wasn't unset in emulation of this frame
 }
 
-bool EmuSystem::shouldFastForward()
+bool MsxSystem::shouldFastForward() const
 {
 	// fast-forward during floppy access
 	return fdcActive;
@@ -743,31 +738,6 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 	view.setBackgroundGradient(navViewGrad);
-}
-
-void EmuSystem::onInit()
-{
-	/*mediaDbCreateRomdb();
-	mediaDbAddFromXmlFile("msxromdb.xml");
-	mediaDbAddFromXmlFile("msxsysromdb.xml");*/
-
-	// must create the mixer first since mainInitCommon() will access it
-	mixer = mixerCreate();
-	assert(mixer);
-
-	// Init general emu
-	langInit();
-	videoManagerReset();
-	tapeSetReadOnly(1);
-	mediaDbSetDefaultRomType(ROM_UNKNOWN);
-
-	// Init Mixer
-	mixerSetMasterVolume(mixer, 100);
-	mixerSetStereo(mixer, 1);
-	mixerEnableMaster(mixer, 1);
-	int logFrequency = 50;
-	int frequency = (int)(3579545 * ::pow(2.0, (logFrequency - 50) / 15.0515));
-	mixerSetBoardFrequencyFixed(frequency);
 }
 
 }

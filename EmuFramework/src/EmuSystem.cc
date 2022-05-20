@@ -75,7 +75,7 @@ EmuFrameTimeInfo EmuSystem::advanceFramesWithTime(IG::FrameTime time)
 	return emuTiming.advanceFramesWithTime(time);
 }
 
-void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, uint8_t speed)
+void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, int8_t speed)
 {
 	emuTiming.setSpeedMultiplier(speed);
 	emuAudio.setSpeedMultiplier(speed);
@@ -318,15 +318,15 @@ double EmuSystem::frameRate(VideoSystem system)
 
 IG::FloatSeconds EmuSystem::frameTime()
 {
-	return frameTime(vidSysIsPAL() ? VIDSYS_PAL : VIDSYS_NATIVE_NTSC);
+	return frameTime(videoSystem());
 }
 
 IG::FloatSeconds EmuSystem::frameTime(VideoSystem system)
 {
 	switch(system)
 	{
-		case VIDSYS_NATIVE_NTSC: return frameTimeNative;
-		case VIDSYS_PAL: return frameTimePAL;
+		case VideoSystem::NATIVE_NTSC: return frameTimeNative;
+		case VideoSystem::PAL: return frameTimePAL;
 	}
 	return {};
 }
@@ -335,8 +335,8 @@ IG::FloatSeconds EmuSystem::defaultFrameTime(VideoSystem system)
 {
 	switch(system)
 	{
-		case VIDSYS_NATIVE_NTSC: return IG::FloatSeconds{1./60.};
-		case VIDSYS_PAL: return IG::FloatSeconds{1./50.};
+		case VideoSystem::NATIVE_NTSC: return IG::FloatSeconds{1./60.};
+		case VideoSystem::PAL: return IG::FloatSeconds{1./50.};
 	}
 	return {};
 }
@@ -346,8 +346,8 @@ bool EmuSystem::frameTimeIsValid(VideoSystem system, IG::FloatSeconds time)
 	auto rate = 1. / time.count(); // convert to frames per second
 	switch(system)
 	{
-		case VIDSYS_NATIVE_NTSC: return rate >= 55 && rate <= 65;
-		case VIDSYS_PAL: return rate >= 45 && rate <= 65;
+		case VideoSystem::NATIVE_NTSC: return rate >= 55 && rate <= 65;
+		case VideoSystem::PAL: return rate >= 45 && rate <= 65;
 	}
 	return false;
 }
@@ -358,8 +358,8 @@ bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 		return false;
 	switch(system)
 	{
-		bcase VIDSYS_NATIVE_NTSC: frameTimeNative = time;
-		bcase VIDSYS_PAL: frameTimePAL = time;
+		bcase VideoSystem::NATIVE_NTSC: frameTimeNative = time;
+		bcase VideoSystem::PAL: frameTimePAL = time;
 	}
 	return true;
 }
@@ -478,7 +478,7 @@ void EmuSystem::setContentDisplayName(std::string_view name)
 	contentDisplayName_ = name;
 }
 
-FS::FileString EmuSystem::contentDisplayNameForPathDefaultImpl(IG::CStringView path)
+FS::FileString EmuSystem::contentDisplayNameForPathDefaultImpl(IG::CStringView path) const
 {
 	return IG::stringWithoutDotExtension<FS::FileString>(appContext().fileUriDisplayName(path));
 }
@@ -547,88 +547,6 @@ bool EmuSystem::updateBackupMemoryCounter()
 	}
 	return false;
 }
-
-[[gnu::weak]] void EmuSystem::onInit() {}
-
-[[gnu::weak]] void EmuSystem::initOptions(EmuApp &) {}
-
-[[gnu::weak]] FS::FileString EmuSystem::configName() const { return {}; }
-
-[[gnu::weak]] void EmuSystem::onOptionsLoaded() {}
-
-[[gnu::weak]] void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags) {}
-
-[[gnu::weak]] void EmuSystem::savePathChanged() {}
-
-[[gnu::weak]] unsigned EmuSystem::multiresVideoBaseX() { return 0; }
-
-[[gnu::weak]] unsigned EmuSystem::multiresVideoBaseY() { return 0; }
-
-[[gnu::weak]] double EmuSystem::videoAspectRatioScale() { return 0; }
-
-[[gnu::weak]] bool EmuSystem::vidSysIsPAL() { return false; }
-
-[[gnu::weak]] bool EmuSystem::onPointerInputStart(const Input::MotionEvent &, Input::DragTrackerState, IG::WindowRect) { return false; }
-
-[[gnu::weak]] bool EmuSystem::onPointerInputUpdate(const Input::MotionEvent &, Input::DragTrackerState, Input::DragTrackerState, IG::WindowRect) { return false; }
-
-[[gnu::weak]] bool EmuSystem::onPointerInputEnd(const Input::MotionEvent &, Input::DragTrackerState, IG::WindowRect) { return false; }
-
-[[gnu::weak]] void EmuSystem::onPrepareAudio(EmuAudio &) {}
-
-[[gnu::weak]] bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat) { return false; }
-
-[[gnu::weak]] FS::FileString EmuSystem::contentDisplayNameForPath(IG::CStringView path)
-{
-	return contentDisplayNameForPathDefaultImpl(path);
-}
-
-[[gnu::weak]] bool EmuSystem::shouldFastForward() { return false; }
-
-[[gnu::weak]] void EmuSystem::writeConfig(IO &io) {}
-
-[[gnu::weak]] void EmuSystem::writeCoreConfig(IO &io) {}
-
-[[gnu::weak]] bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize) { return false; }
-
-[[gnu::weak]] bool EmuSystem::readCoreConfig(IO &io, unsigned key, unsigned readSize) { return false; }
-
-[[gnu::weak]] bool EmuSystem::resetSessionOptions(EmuApp &) { return false; }
-
-[[gnu::weak]] void EmuSystem::onSessionOptionsLoaded(EmuApp &) {}
-
-[[gnu::weak]] void EmuSystem::writeSessionConfig(IO &io) {}
-
-[[gnu::weak]] bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize) { return false; }
-
-[[gnu::weak]] void EmuSystem::reset(EmuApp &, ResetMode mode)
-{
-	reset(mode);
-}
-
-[[gnu::weak]] void EmuSystem::loadState(EmuApp &, IG::CStringView path)
-{
-	loadState(path);
-}
-
-[[gnu::weak]] void EmuSystem::renderFramebuffer(EmuVideo &video)
-{
-	video.clear();
-}
-
-[[gnu::weak]] void EmuSystem::handleInputAction(EmuApp *app, Input::Action state, unsigned emuKey)
-{
-	handleInputAction(app, state, emuKey, 0);
-}
-
-[[gnu::weak]] void EmuSystem::handleInputAction(EmuApp *app, Input::Action state, unsigned emuKey, uint32_t metaState)
-{
-	handleInputAction(app, state, emuKey);
-}
-
-[[gnu::weak]] void EmuSystem::onVKeyboardShown(VControllerKeyboard &, bool shown) {}
-
-[[gnu::weak]] void EmuSystem::closeSystem() {}
 
 EmuSystem &gSystem() { return gApp().system(); }
 

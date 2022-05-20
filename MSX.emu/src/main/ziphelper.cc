@@ -22,7 +22,7 @@
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
 #include "ziphelper.h"
-#include "internal.hh"
+#include "MainSystem.hh"
 #include <cstdlib>
 
 namespace EmuEx

@@ -6,7 +6,7 @@
 #include <imagine/util/string.h>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 #include <sys/stat.h>
 #include <snes9x.h>
 #ifndef SNES9X_VERSION_1_4

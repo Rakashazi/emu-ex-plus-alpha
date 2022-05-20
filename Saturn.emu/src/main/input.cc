@@ -15,7 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 namespace EmuEx
 {
@@ -56,9 +56,10 @@ int EmuSystem::inputLTriggerIndex = 6;
 int EmuSystem::inputRTriggerIndex = 7;
 const unsigned EmuSystem::maxPlayers = 2;
 
-void updateVControllerMapping(unsigned player, VController::Map &map)
+VController::Map SaturnSystem::vControllerMap(int player)
 {
 	unsigned playerOffset = player ? Controls::gamepadKeys : 0;
+	VController::Map map{};
 	map[VController::F_ELEM] = ssKeyIdxA + playerOffset;
 	map[VController::F_ELEM+1] = ssKeyIdxB + playerOffset;
 	map[VController::F_ELEM+2] = ssKeyIdxC + playerOffset;
@@ -78,9 +79,10 @@ void updateVControllerMapping(unsigned player, VController::Map &map)
 	map[VController::D_ELEM+6] = ssKeyIdxLeftDown + playerOffset;
 	map[VController::D_ELEM+7] = ssKeyIdxDown + playerOffset;
 	map[VController::D_ELEM+8] = ssKeyIdxRightDown + playerOffset;
+	return map;
 }
 
-unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
+unsigned SaturnSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	switch(input)
@@ -102,17 +104,17 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 	}
 }
 
-void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
+void SaturnSystem::handleInputAction(EmuApp *, InputAction a)
 {
 	unsigned player = 0;
-	if(emuKey > ssKeyIdxLastGamepad)
+	if(a.key > ssKeyIdxLastGamepad)
 	{
 		player = 1;
-		emuKey -= Controls::gamepadKeys;
+		a.key -= Controls::gamepadKeys;
 	}
 	PerPad_struct *p = (player == 1) ? pad[1] : pad[0];
-	bool pushed = action == Input::Action::PUSHED;
-	switch(emuKey)
+	bool pushed = a.state == Input::Action::PUSHED;
+	switch(a.key)
 	{
 		bcase ssKeyIdxUp: if(pushed) PerPadUpPressed(p); else PerPadUpReleased(p);
 		bcase ssKeyIdxRight: if(pushed) PerPadRightPressed(p); else PerPadRightReleased(p);
@@ -141,11 +143,11 @@ void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKe
 		case ssKeyIdxC: if(pushed) PerPadCPressed(p); else PerPadCReleased(p);
 		bcase ssKeyIdxL: if(pushed) PerPadLTriggerPressed(p); else PerPadLTriggerReleased(p);
 		bcase ssKeyIdxR: if(pushed) PerPadRTriggerPressed(p); else PerPadRTriggerReleased(p);
-		bdefault: bug_unreachable("input == %d", emuKey);
+		bdefault: bug_unreachable("input == %d", a.key);
 	}
 }
 
-void EmuSystem::clearInputBuffers(EmuInputView &)
+void SaturnSystem::clearInputBuffers(EmuInputView &)
 {
 	PerPortReset();
 	pad[0] = PerPadAdd(&PORTDATA1);

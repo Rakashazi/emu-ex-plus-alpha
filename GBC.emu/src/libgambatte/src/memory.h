@@ -118,6 +118,7 @@ public:
 	void setGameGenie(std::string const &codes) { cart_.setGameGenie(codes); }
 	void setGameShark(std::string const &codes) { interrupter_.setGameShark(codes); }
 	void updateInput();
+	void setColorConversionFlags(unsigned flags) { lcd_.setColorConversionFlags(flags); }
 
 private:
 	Cartridge cart_;

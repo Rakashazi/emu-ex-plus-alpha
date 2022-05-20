@@ -19,25 +19,28 @@
 // TODO: Some Stella types collide with MacTypes.h
 #define Debugger DebuggerMac
 #include <emuframework/OptionView.hh>
-#include <emuframework/EmuApp.hh>
-#include <emuframework/EmuAppHelper.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #undef Debugger
-#include "internal.hh"
+#include "MainApp.hh"
 #include <imagine/util/format.hh>
 
 namespace EmuEx
 {
 
-class CustomAudioOptionView : public AudioOptionView
+template <class T>
+using MainAppHelper = EmuAppHelper<T, MainApp>;
+
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
 {
+	using MainAppHelper<CustomAudioOptionView>::system;
+
 	TextMenuItem::SelectDelegate setResampleQualityDel()
 	{
-		return [](TextMenuItem &item)
+		return [this](TextMenuItem &item)
 		{
 			logMsg("set resampling quality:%d", item.id());
-			optionAudioResampleQuality = item.id();
-			osystem->soundEmuEx().setResampleQuality((AudioSettings::ResamplingQuality)item.id());
+			system().optionAudioResampleQuality = item.id();
+			system().osystem.soundEmuEx().setResampleQuality((AudioSettings::ResamplingQuality)item.id());
 		};
 	}
 
@@ -51,7 +54,7 @@ class CustomAudioOptionView : public AudioOptionView
 	MultiChoiceMenuItem resampleQuality
 	{
 		"Resampling Quality", &defaultFace(),
-		(MenuItem::Id)optionAudioResampleQuality.val,
+		(MenuItem::Id)system().optionAudioResampleQuality.val,
 		resampleQualityItem
 	};
 
@@ -63,8 +66,10 @@ public:
 	}
 };
 
-class CustomVideoOptionView : public VideoOptionView
+class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<CustomVideoOptionView>
 {
+	using MainAppHelper<CustomVideoOptionView>::system;
+
 	TextMenuItem tvPhosphorBlendItem[4]
 	{
 		{"70%",  &defaultFace(), setTVPhosphorBlendDel(), 70},
@@ -76,7 +81,7 @@ class CustomVideoOptionView : public VideoOptionView
 	MultiChoiceMenuItem tvPhosphorBlend
 	{
 		"TV Phosphor Blending", &defaultFace(),
-		(MenuItem::Id)optionTVPhosphorBlend.val,
+		(MenuItem::Id)system().optionTVPhosphorBlend.val,
 		tvPhosphorBlendItem
 	};
 
@@ -84,8 +89,8 @@ class CustomVideoOptionView : public VideoOptionView
 	{
 		return [this](TextMenuItem &item)
 		{
-			optionTVPhosphorBlend = item.id();
-			setRuntimeTVPhosphor(system(), optionTVPhosphor, item.id());
+			system().optionTVPhosphorBlend = item.id();
+			system().setRuntimeTVPhosphor(system().optionTVPhosphor, item.id());
 		};
 	}
 
@@ -98,7 +103,7 @@ public:
 	}
 };
 
-class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
+class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
 {
 	TextMenuItem tvPhosphorItem[3]
 	{
@@ -112,16 +117,16 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		"Simulate TV Phosphor", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 2 && osystem->hasConsole())
+			if(idx == 2 && system().osystem.hasConsole())
 			{
-				bool phospherInUse = osystem->console().properties().get(PropType::Display_Phosphor) == "YES";
+				bool phospherInUse = system().osystem.console().properties().get(PropType::Display_Phosphor) == "YES";
 				t.setString(phospherInUse ? "On" : "Off");
 				return true;
 			}
 			else
 				return false;
 		},
-		(MenuItem::Id)optionTVPhosphor.val,
+		(MenuItem::Id)system().optionTVPhosphor.val,
 		tvPhosphorItem
 	};
 
@@ -141,15 +146,15 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		"Video System", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 0 && osystem->hasConsole())
+			if(idx == 0 && system().osystem.hasConsole())
 			{
-				t.setString(osystem->console().about().DisplayFormat.c_str());
+				t.setString(system().osystem.console().about().DisplayFormat.c_str());
 				return true;
 			}
 			else
 				return false;
 		},
-		(MenuItem::Id)optionVideoSystem.val,
+		(MenuItem::Id)system().optionVideoSystem.val,
 		videoSystemItem
 	};
 
@@ -158,8 +163,8 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		return [this](TextMenuItem &item)
 		{
 			system().sessionOptionSet();
-			optionTVPhosphor = item.id();
-			setRuntimeTVPhosphor(system(), item.id(), optionTVPhosphorBlend);
+			system().optionTVPhosphor = item.id();
+			system().setRuntimeTVPhosphor(item.id(), system().optionTVPhosphorBlend);
 		};
 	}
 
@@ -168,7 +173,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		return [this](TextMenuItem &item, const Input::Event &e)
 		{
 			system().sessionOptionSet();
-			optionVideoSystem = item.id();
+			system().optionVideoSystem = item.id();
 			app().promptSystemReloadDueToSetOption(attachParams(), e);
 		};
 	}
@@ -184,17 +189,17 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports", &defaultFace(),
-		[](int idx, Gfx::Text &t)
+		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 0 && osystem->hasConsole())
+			if(idx == 0 && system().osystem.hasConsole())
 			{
-				t.setString(controllerTypeStr(osystem->console().leftController().type()));
+				t.setString(controllerTypeStr(system().osystem.console().leftController().type()));
 				return true;
 			}
 			else
 				return false;
 		},
-		(MenuItem::Id)optionInputPort1.val,
+		(MenuItem::Id)system().optionInputPort1.val,
 		inputPortsItem
 	};
 
@@ -203,10 +208,10 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		return [this](TextMenuItem &item)
 		{
 			system().sessionOptionSet();
-			optionInputPort1 = item.id();
-			if(osystem->hasConsole())
+			system().optionInputPort1 = item.id();
+			if(system().osystem.hasConsole())
 			{
-				setControllerType(app(), osystem->console(), (Controller::Type)item.id());
+				system().setControllerType(app(), system().osystem.console(), (Controller::Type)item.id());
 			}
 		};
 	}
@@ -222,7 +227,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	MultiChoiceMenuItem aPaddleRegion
 	{
 		"Analog Paddle Region", &defaultFace(),
-		(MenuItem::Id)optionPaddleAnalogRegion.val,
+		(MenuItem::Id)system().optionPaddleAnalogRegion.val,
 		aPaddleRegionItem
 	};
 
@@ -231,7 +236,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		return [this](TextMenuItem &item)
 		{
 			system().sessionOptionSet();
-			updatePaddlesRegionMode(app(), (PaddleRegionMode)item.id());
+			system().updatePaddlesRegionMode(app(), (PaddleRegionMode)item.id());
 		};
 	}
 
@@ -244,7 +249,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 1 to 20", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(optionPaddleDigitalSensitivity.isValidVal(val))
+						if(system().optionPaddleDigitalSensitivity.isValidVal(val))
 						{
 							setDPaddleSensitivity(val);
 							dPaddleSensitivity.setSelected(std::size(dPaddleSensitivityItem) - 1, *this);
@@ -267,18 +272,18 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		"Digital Paddle Sensitivity", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}", optionPaddleDigitalSensitivity.val));
+			t.setString(fmt::format("{}", system().optionPaddleDigitalSensitivity.val));
 			return true;
 		},
-		(MenuItem::Id)optionPaddleDigitalSensitivity.val,
+		(MenuItem::Id)system().optionPaddleDigitalSensitivity.val,
 		dPaddleSensitivityItem
 	};
 
 	void setDPaddleSensitivity(uint8_t val)
 	{
 		system().sessionOptionSet();
-		optionPaddleDigitalSensitivity = val;
-		Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
+		system().optionPaddleDigitalSensitivity = val;
+		Paddles::setDigitalSensitivity(system().optionPaddleDigitalSensitivity);
 	}
 
 	std::array<MenuItem*, 5> menuItem
@@ -301,37 +306,37 @@ public:
 	{}
 };
 
-class VCSSwitchesView : public TableView
+class VCSSwitchesView : public TableView, public MainAppHelper<VCSSwitchesView>
 {
 	BoolMenuItem diff1
 	{
 		"Left (P1) Difficulty", &defaultFace(),
-		p1DiffB,
+		system().p1DiffB,
 		"A", "B",
 		[this](BoolMenuItem &item)
 		{
-			p1DiffB = item.flipBoolValue(*this);
+			system().p1DiffB = item.flipBoolValue(*this);
 		}
 	};
 
 	BoolMenuItem diff2
 	{
 		"Right (P2) Difficulty", &defaultFace(),
-		p2DiffB,
+		system().p2DiffB,
 		"A", "B",
 		[this](BoolMenuItem &item)
 		{
-			p2DiffB = item.flipBoolValue(*this);
+			system().p2DiffB = item.flipBoolValue(*this);
 		}
 	};
 
 	BoolMenuItem color
 	{
 		"Color", &defaultFace(),
-		vcsColor,
+		system().vcsColor,
 		[this](BoolMenuItem &item)
 		{
-			vcsColor = item.flipBoolValue(*this);
+			system().vcsColor = item.flipBoolValue(*this);
 		}
 	};
 
@@ -354,9 +359,9 @@ public:
 
 	void onShow() final
 	{
-		diff1.setBoolValue(p1DiffB, *this);
-		diff2.setBoolValue(p2DiffB, *this);
-		color.setBoolValue(vcsColor, *this);
+		diff1.setBoolValue(system().p1DiffB, *this);
+		diff2.setBoolValue(system().p2DiffB, *this);
+		color.setBoolValue(system().vcsColor, *this);
 	}
 
 };

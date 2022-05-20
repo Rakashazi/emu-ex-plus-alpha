@@ -43,7 +43,7 @@ public:
 				"Soft Reset", &defaultFace(),
 				[this, &sys]()
 				{
-					sys.reset(app(), EmuSystem::RESET_SOFT);
+					sys.reset(app(), EmuSystem::ResetMode::SOFT);
 					app().viewController().showEmulation();
 				}
 			},
@@ -52,7 +52,7 @@ public:
 				"Hard Reset", &defaultFace(),
 				[this, &sys]()
 				{
-					sys.reset(app(), EmuSystem::RESET_HARD);
+					sys.reset(app(), EmuSystem::ResetMode::HARD);
 					app().viewController().showEmulation();
 				}
 			},
@@ -134,7 +134,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 					ynAlertView->setOnYes(
 						[this]()
 						{
-							system().reset(app(), EmuSystem::RESET_SOFT);
+							system().reset(app(), EmuSystem::ResetMode::SOFT);
 							app().viewController().showEmulation();
 						});
 					pushAndShowModal(std::move(ynAlertView), e);

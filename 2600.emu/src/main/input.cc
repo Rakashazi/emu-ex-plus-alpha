@@ -20,7 +20,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
 #undef Debugger
-#include "internal.hh"
+#include "MainSystem.hh"
 #include <imagine/util/math/space.hh>
 
 namespace EmuEx
@@ -69,13 +69,10 @@ const uint EmuSystem::inputFaceBtns = 4;
 const uint EmuSystem::inputCenterBtns = 2;
 bool EmuSystem::inputHasShortBtnTexture = true;
 const uint EmuSystem::maxPlayers = 2;
-static std::array<Event::Type, 2> jsFireMap{Event::LeftJoystickFire, Event::RightJoystickFire};
-static std::array<Event::Type, 2> jsLeftMap{Event::LeftJoystickLeft, Event::RightJoystickLeft};
-static std::array<Event::Type, 2> jsRightMap{Event::LeftJoystickRight, Event::RightJoystickRight};
 
-void EmuSystem::clearInputBuffers(EmuInputView &)
+void A2600System::clearInputBuffers(EmuInputView &)
 {
-	Event &ev = osystem->eventHandler().event();
+	Event &ev = osystem.eventHandler().event();
 	ev.clear();
 
 	ev.set(Event::ConsoleLeftDiffB, p1DiffB);
@@ -86,9 +83,10 @@ void EmuSystem::clearInputBuffers(EmuInputView &)
 	ev.set(Event::ConsoleBlackWhite, !vcsColor);
 }
 
-void updateVControllerMapping(uint player, VController::Map &map)
+VController::Map A2600System::vControllerMap(int player)
 {
 	uint playerShift = player ? 7 : 0;
+	VController::Map map{};
 	map[VController::F_ELEM] = jsFireMap[player];
 	map[VController::F_ELEM+1] = jsFireMap[player] | VController::TURBO_BIT;
 	map[VController::F_ELEM+2] = Event::LeftJoystickFire5 + playerShift;
@@ -109,9 +107,10 @@ void updateVControllerMapping(uint player, VController::Map &map)
 	map[VController::D_ELEM+7] = Event::LeftJoystickDown + playerShift; // down
 	map[VController::D_ELEM+8] = ((uint)Event::LeftJoystickDown + playerShift)
 																	| (((uint)Event::LeftJoystickRight + playerShift) << 8);
+	return map;
 }
 
-static void updateJoytickMapping(EmuApp &app, Controller::Type type)
+void A2600System::updateJoytickMapping(EmuApp &app, Controller::Type type)
 {
 	if(type == Controller::Type::Paddles)
 	{
@@ -128,7 +127,7 @@ static void updateJoytickMapping(EmuApp &app, Controller::Type type)
 	app.updateVControllerMapping();
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+uint A2600System::translateInputAction(uint input, bool &turbo)
 {
 	turbo = 0;
 	switch(input)
@@ -173,17 +172,18 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, uint emuKey)
+void A2600System::handleInputAction(EmuApp *app, InputAction a)
 {
-	auto &ev = osystem->eventHandler().event();
-	uint event1 = emuKey & 0xFF;
+	auto &ev = osystem.eventHandler().event();
+	uint event1 = a.key & 0xFF;
+	bool isPushed = a.state == Input::Action::PUSHED;
 
 	//logMsg("got key %d", emuKey);
 
 	switch(event1)
 	{
 		bcase Event::Combo1:
-			if(action != Input::Action::PUSHED)
+			if(!isPushed)
 				break;
 			p1DiffB ^= true;
 			if(app)
@@ -193,7 +193,7 @@ void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, uint emuKey
 			ev.set(Event::ConsoleLeftDiffB, p1DiffB);
 			ev.set(Event::ConsoleLeftDiffA, !p1DiffB);
 		bcase Event::Combo2:
-			if(action != Input::Action::PUSHED)
+			if(!isPushed)
 				break;
 			p2DiffB ^= true;
 			if(app)
@@ -203,7 +203,7 @@ void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, uint emuKey
 			ev.set(Event::ConsoleRightDiffB, p2DiffB);
 			ev.set(Event::ConsoleRightDiffA, !p2DiffB);
 		bcase Event::Combo3:
-			if(action != Input::Action::PUSHED)
+			if(!isPushed)
 				break;
 			vcsColor ^= true;
 			if(app)
@@ -213,13 +213,13 @@ void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, uint emuKey
 			ev.set(Event::ConsoleColor, vcsColor);
 			ev.set(Event::ConsoleBlackWhite, !vcsColor);
 		bcase Event::LeftKeyboard1 ... Event::RightKeyboardPound:
-			ev.set(Event::Type(event1), action == Input::Action::PUSHED);
+			ev.set(Event::Type(event1), isPushed);
 		bdefault:
-			ev.set(Event::Type(event1), action == Input::Action::PUSHED);
-			uint event2 = emuKey >> 8;
+			ev.set(Event::Type(event1), isPushed);
+			uint event2 = a.key >> 8;
 			if(event2) // extra event for diagonals
 			{
-				ev.set(Event::Type(event2), action == Input::Action::PUSHED);
+				ev.set(Event::Type(event2), isPushed);
 			}
 	}
 }
@@ -236,13 +236,13 @@ static void updateDPadForPaddles(EmuApp &app, Console &console, PaddleRegionMode
 	}
 }
 
-void updatePaddlesRegionMode(EmuApp &app, PaddleRegionMode mode)
+void A2600System::updatePaddlesRegionMode(EmuApp &app, PaddleRegionMode mode)
 {
 	optionPaddleAnalogRegion = (uint8_t)mode;
-	updateDPadForPaddles(app, osystem->console(), mode);
+	updateDPadForPaddles(app, osystem.console(), mode);
 }
 
-void setControllerType(EmuApp &app, Console &console, Controller::Type type)
+void A2600System::setControllerType(EmuApp &app, Console &console, Controller::Type type)
 {
 	if(type == Controller::Type::Unknown)
 		type = autoDetectedInput1;
@@ -297,12 +297,12 @@ const char *controllerTypeStr(Controller::Type type)
 	}
 }
 
-static bool updatePaddle(Input::DragTrackerState dragState)
+bool A2600System::updatePaddle(Input::DragTrackerState dragState)
 {
 	auto regionMode = (PaddleRegionMode)optionPaddleAnalogRegion.val;
 	if(regionMode == PaddleRegionMode::OFF)
 		return false;
-	auto &app = osystem->app();
+	auto &app = osystem.app();
 	int regionXStart = 0;
 	int regionXEnd = app.viewController().inputView().viewRect().size().x;
 	if(regionMode == PaddleRegionMode::LEFT)
@@ -316,14 +316,14 @@ static bool updatePaddle(Input::DragTrackerState dragState)
 	auto pos = IG::remap(dragState.pos().x, regionXStart, regionXEnd, -32768 / 2, 32767 / 2);
 	pos = std::clamp(pos, -32768, 32767);
 	auto evType = app.defaultVController().inputPlayer() == 0 ? Event::LeftPaddleAAnalog : Event::LeftPaddleBAnalog;
-	osystem->eventHandler().event().set(evType, pos);
+	osystem.eventHandler().event().set(evType, pos);
 	//logMsg("set paddle position:%d", pos);
 	return true;
 }
 
-bool EmuSystem::onPointerInputStart(const Input::MotionEvent &, Input::DragTrackerState dragState, IG::WindowRect)
+bool A2600System::onPointerInputStart(const Input::MotionEvent &, Input::DragTrackerState dragState, IG::WindowRect)
 {
-	switch(osystem->console().leftController().type())
+	switch(osystem.console().leftController().type())
 	{
 		case Controller::Type::Paddles:
 		{
@@ -334,10 +334,10 @@ bool EmuSystem::onPointerInputStart(const Input::MotionEvent &, Input::DragTrack
 	}
 }
 
-bool EmuSystem::onPointerInputUpdate(const Input::MotionEvent &, Input::DragTrackerState dragState,
+bool A2600System::onPointerInputUpdate(const Input::MotionEvent &, Input::DragTrackerState dragState,
 	Input::DragTrackerState, IG::WindowRect)
 {
-	switch(osystem->console().leftController().type())
+	switch(osystem.console().leftController().type())
 	{
 		case Controller::Type::Paddles:
 		{

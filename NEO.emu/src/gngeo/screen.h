@@ -38,7 +38,7 @@ LIST* create_blitter_list(void);
 int screen_init();
 int screen_reinit(void);
 int screen_resize(int w, int h);
-void screen_update(void *emuTaskPtr, void *emuVideoPtr);
+void screen_update(void *emuTaskPtr, void *neoSystemPtr, void *emuVideoPtr);
 void screen_close();
 
 void screen_fullscreen();

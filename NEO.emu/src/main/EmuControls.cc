@@ -15,7 +15,7 @@
 
 #include <imagine/util/preprocessor/repeat.h>
 #include <emuframework/EmuInput.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 namespace EmuEx::Controls
 {

@@ -19,7 +19,7 @@
 #include <imagine/util/string.h>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 extern "C"
 {

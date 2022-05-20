@@ -107,12 +107,12 @@ constexpr bool imageEffectPixelFormatIsValid(uint8_t val)
 
 constexpr bool optionFrameTimeIsValid(auto val)
 {
-	return !val || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_NATIVE_NTSC, IG::FloatSeconds(val));
+	return !val || EmuSystem::frameTimeIsValid(VideoSystem::NATIVE_NTSC, IG::FloatSeconds(val));
 }
 
 constexpr bool optionFrameTimePALIsValid(auto val)
 {
-	return !val || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_PAL, IG::FloatSeconds(val));
+	return !val || EmuSystem::frameTimeIsValid(VideoSystem::PAL, IG::FloatSeconds(val));
 }
 
 constexpr bool optionImageZoomIsValid(uint8_t val)
@@ -121,9 +121,8 @@ constexpr bool optionImageZoomIsValid(uint8_t val)
 		|| (val >= 10 && val <= 100);
 }
 
-EmuApp::EmuApp(IG::ApplicationInitParams initParams, IG::ApplicationContext &ctx):
+EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	Application{initParams},
-	emuSystem{ctx},
 	fontManager{ctx},
 	renderer{ctx},
 	audioManager_{ctx},
@@ -198,8 +197,24 @@ EmuApp::EmuApp(IG::ApplicationInitParams initParams, IG::ApplicationContext &ctx
 	optionTextureBufferMode{CFGKEY_TEXTURE_BUFFER_MODE, 0},
 	optionVideoImageBuffers{CFGKEY_VIDEO_IMAGE_BUFFERS, 0, 0,optionIsValidWithMax<2>}
 {
-	emuSystem.onInit();
-	mainInitCommon(initParams, ctx);
+	if(ctx.registerInstance(initParams))
+	{
+		ctx.exit();
+		return;
+	}
+	if(needsGlobalInstance)
+		gAppPtr = this;
+	ctx.setAcceptIPC(true);
+	ctx.setOnInterProcessMessage(
+		[this](IG::ApplicationContext, const char *path)
+		{
+			logMsg("got IPC path:%s", path);
+			if(emuViewController)
+				viewController().handleOpenFileCommand(path);
+			else
+				system().setInitialLoadPath(path);
+		});
+	initOptions(ctx);
 }
 
 class ExitConfirmAlertView : public AlertView
@@ -311,7 +326,7 @@ IG::Audio::Manager &EmuApp::audioManager()
 
 IG::ApplicationContext EmuApp::appContext() const
 {
-	return emuSystem.appContext();
+	return system().appContext();
 }
 
 void EmuApp::showSystemActionsViewFromSystem(ViewAttachParams attach, const Input::Event &e)
@@ -445,7 +460,6 @@ static IG::Microseconds makeWantedAudioLatencyUSecs(uint8_t buffers, IG::FloatSe
 
 void EmuApp::prepareAudio()
 {
-	system().onPrepareAudio(audio());
 	system().configAudioPlayback(audio(), optionSoundRate);
 }
 
@@ -478,24 +492,6 @@ void EmuApp::updateLegacySavePath(IG::ApplicationContext ctx, IG::CStringView pa
 
 void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::ApplicationContext ctx)
 {
-	if(ctx.registerInstance(initParams))
-	{
-		ctx.exit();
-		return;
-	}
-	if(needsGlobalInstance)
-		gAppPtr = this;
-	ctx.setAcceptIPC(true);
-	ctx.setOnInterProcessMessage(
-		[this](IG::ApplicationContext, const char *path)
-		{
-			logMsg("got IPC path:%s", path);
-			if(emuViewController)
-				viewController().handleOpenFileCommand(path);
-			else
-				system().setInitialLoadPath(path);
-		});
-	initOptions(ctx);
 	auto appConfig = loadConfigFile(ctx);
 	system().onOptionsLoaded();
 	loadSystemOptions();
@@ -874,8 +870,6 @@ void EmuApp::printScreenshotResult(int num, bool success)
 	}
 }
 
-[[gnu::weak]] bool EmuApp::willCreateSystem(ViewAttachParams attach, const Input::Event &) { return true; }
-
 void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, std::string_view displayName,
 	const Input::Event &e, EmuSystemCreateParams params, ViewAttachParams attachParams,
 	CreateSystemCompleteDelegate onComplete)
@@ -1114,7 +1108,7 @@ void EmuApp::saveSessionOptions()
 		auto ctx = appContext();
 		auto configFile = ctx.openFileUri(configFilePath, IO::OPEN_NEW);
 		writeConfigHeader(configFile);
-		system().writeSessionConfig(configFile);
+		system().writeConfig(ConfigType::SESSION, configFile);
 		system().resetSessionOptionsSet();
 		if(configFile.size() == 1)
 		{
@@ -1145,7 +1139,7 @@ void EmuApp::loadSessionOptions()
 			{
 				default:
 				{
-					if(!system().readSessionConfig(io, key, size))
+					if(!system().readConfig(ConfigType::SESSION, io, key, size))
 					{
 						logMsg("skipping unknown key %u", (unsigned)key);
 					}
@@ -1165,7 +1159,7 @@ void EmuApp::loadSystemOptions()
 	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), IO::TEST_BIT),
 		[this](uint16_t key, uint16_t size, IO &io)
 		{
-			if(!system().readCoreConfig(io, key, size))
+			if(!system().readConfig(ConfigType::CORE, io, key, size))
 			{
 				logMsg("skipping unknown system config key:%u", (unsigned)key);
 			}
@@ -1199,7 +1193,7 @@ void EmuApp::saveSystemOptions()
 void EmuApp::saveSystemOptions(IO &configFile)
 {
 	writeConfigHeader(configFile);
-	system().writeCoreConfig(configFile);
+	system().writeConfig(ConfigType::CORE, configFile);
 }
 
 void EmuApp::syncEmulationThread()
@@ -1449,15 +1443,5 @@ EmuApp &EmuApp::get(IG::ApplicationContext ctx)
 EmuApp &gApp() { return *gAppPtr; }
 
 IG::ApplicationContext gAppContext() { return gApp().appContext(); }
-
-}
-
-namespace IG
-{
-
-void ApplicationContext::onInit(ApplicationInitParams initParams)
-{
-	initApplication<EmuEx::EmuApp>(initParams, *this);
-}
 
 }

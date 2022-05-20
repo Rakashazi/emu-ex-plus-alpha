@@ -53,7 +53,7 @@ void EmuTiming::reset()
 	startFrameTime = {};
 }
 
-void EmuTiming::setSpeedMultiplier(uint8_t newSpeed)
+void EmuTiming::setSpeedMultiplier(int8_t newSpeed)
 {
 	if(speed == newSpeed)
 		return;

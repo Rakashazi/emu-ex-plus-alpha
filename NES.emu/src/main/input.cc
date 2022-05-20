@@ -16,7 +16,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
 #include <imagine/util/math/space.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 #include <fceu/fceu.h>
 
 namespace EmuEx
@@ -47,11 +47,8 @@ const unsigned EmuSystem::inputFaceBtns = 2;
 const unsigned EmuSystem::inputCenterBtns = 2;
 const unsigned EmuSystem::maxPlayers = 4;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0};
-static uint32 padData = 0;
-uint32 zapperData[3]{};
-bool usingZapper = false;
 
-void connectNESInput(int port, ESI type)
+void NesSystem::connectNESInput(int port, ESI type)
 {
 	assert(GameInfo);
 	if(type == SI_GAMEPAD)
@@ -70,11 +67,11 @@ void connectNESInput(int port, ESI type)
 	}
 }
 
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-void updateVControllerMapping(unsigned player, VController::Map &map)
+VController::Map NesSystem::vControllerMap(int player)
 {
 	using namespace IG;
 	unsigned playerMask = player << 8;
+	VController::Map map{};
 	map[VController::F_ELEM] = bit(1) | playerMask;
 	map[VController::F_ELEM+1] = bit(0) | playerMask;
 
@@ -89,10 +86,10 @@ void updateVControllerMapping(unsigned player, VController::Map &map)
 	map[VController::D_ELEM+6] = bit(5) | bit(6) | playerMask;
 	map[VController::D_ELEM+7] = bit(5) | playerMask;
 	map[VController::D_ELEM+8] = bit(5) | bit(7) | playerMask;
+	return map;
 }
-#endif
 
-static unsigned playerInputShift(unsigned player)
+static unsigned playerInputShift(int player)
 {
 	switch(player)
 	{
@@ -103,12 +100,11 @@ static unsigned playerInputShift(unsigned player)
 	return 0;
 }
 
-unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
+unsigned NesSystem::translateInputAction(unsigned input, bool &turbo)
 {
-	using namespace IG;
 	turbo = 0;
 	assert(input >= nesKeyIdxUp);
-	unsigned player = (input - nesKeyIdxUp) / Controls::gamepadKeys;
+	int player = (input - nesKeyIdxUp) / Controls::gamepadKeys;
 	unsigned playerMask = player << 8;
 	input -= Controls::gamepadKeys * player;
 	switch(input)
@@ -133,19 +129,20 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
+void NesSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	unsigned player = emuKey >> 8;
-	auto key = emuKey & 0xFF;
-	if(GameInfo->type==GIT_VSUNI) // TODO: make coin insert separate key
+	int player = a.key >> 8;
+	auto key = a.key & 0xFF;
+	bool isPushed = a.state == Input::Action::PUSHED;
+	if(GameInfo->type == GIT_VSUNI) // TODO: make coin insert separate key
 	{
-		if(action == Input::Action::PUSHED && key == IG::bit(3))
+		if(isPushed && key == IG::bit(3))
 			FCEUI_VSUniCoin();
 	}
-	padData = IG::setOrClearBits(padData, key << playerInputShift(player), action == Input::Action::PUSHED);
+	padData = IG::setOrClearBits(padData, key << playerInputShift(player), isPushed);
 }
 
-bool EmuSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
+bool NesSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
 {
 	if(!usingZapper)
 		return false;
@@ -169,7 +166,7 @@ bool EmuSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrac
 	return true;
 }
 
-bool EmuSystem::onPointerInputEnd(const Input::MotionEvent &, Input::DragTrackerState, IG::WindowRect)
+bool NesSystem::onPointerInputEnd(const Input::MotionEvent &, Input::DragTrackerState, IG::WindowRect)
 {
 	if(!usingZapper)
 		return false;
@@ -177,7 +174,7 @@ bool EmuSystem::onPointerInputEnd(const Input::MotionEvent &, Input::DragTracker
 	return true;
 }
 
-void EmuSystem::clearInputBuffers(EmuInputView &)
+void NesSystem::clearInputBuffers(EmuInputView &)
 {
 	IG::fill(zapperData);
 	padData = {};

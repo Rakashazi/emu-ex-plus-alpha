@@ -17,12 +17,15 @@
 
 #include <meta.h>
 #include <imagine/config/version.h>
+#include <main/MainApp.hh>
 
 const char *const IG::ApplicationContext::applicationName{CONFIG_APP_NAME};
 const char *const IG::ApplicationContext::applicationId{CONFIG_APP_ID};
 
 namespace EmuEx
 {
+
+class EmuSystem;
 
 std::u16string_view appViewTitle()
 {
@@ -36,6 +39,28 @@ bool hasGooglePlayStoreFeatures()
 	#else
 	return false;
 	#endif
+}
+
+EmuSystem &EmuApp::system() { return static_cast<MainApp*>(this)->system(); }
+
+const EmuSystem &EmuApp::system() const { return static_cast<const MainApp*>(this)->system(); }
+
+bool EmuApp::willCreateSystem(ViewAttachParams attach, const Input::Event &e)
+{
+	if(&MainApp::willCreateSystem != &EmuApp::willCreateSystem)
+		return static_cast<MainApp*>(this)->willCreateSystem(attach, e);
+	return true;
+}
+
+}
+
+namespace IG
+{
+
+void ApplicationContext::onInit(ApplicationInitParams initParams)
+{
+	auto &app = initApplication<EmuEx::MainApp>(initParams, *this);
+	app.mainInitCommon(initParams, *this);
 }
 
 }

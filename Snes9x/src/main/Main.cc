@@ -1,9 +1,6 @@
 #define LOGTAG "main"
-#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuSystemInlines.hh>
 #include <emuframework/EmuAppInlines.hh>
-#include <emuframework/EmuAudio.hh>
-#include <emuframework/EmuVideo.hh>
-#include "internal.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
@@ -14,11 +11,8 @@
 #include <snapshot.h>
 #include <cheats.h>
 #ifndef SNES9X_VERSION_1_4
-#include <apu/apu.h>
 #include <apu/bapu/snes/snes.hpp>
-#include <controls.h>
 #else
-#include <apu.h>
 #include <soundux.h>
 #endif
 
@@ -73,15 +67,15 @@ const char *EmuSystem::systemName() const
 	return "Super Famicom (SNES)";
 }
 
-void EmuSystem::renderFramebuffer(EmuVideo &video)
+void Snes9xSystem::renderFramebuffer(EmuVideo &video)
 {
 	video.startFrameWithFormat({}, snesPixmapView(video.image().size()));
 }
 
-void EmuSystem::reset(ResetMode mode)
+void Snes9xSystem::reset(EmuApp &, ResetMode mode)
 {
 	assert(hasContent());
-	if(mode == RESET_HARD)
+	if(mode == ResetMode::HARD)
 	{
 		S9xReset();
 	}
@@ -97,7 +91,7 @@ void EmuSystem::reset(ResetMode mode)
 #define FREEZE_EXT "s96"
 #endif
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
+FS::FileString Snes9xSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}." FREEZE_EXT, name, saveSlotCharUpper(slot));
 }
@@ -109,13 +103,13 @@ static FS::PathString sramFilename(EmuSystem &sys)
 	return sys.contentSaveFilePath(".srm");
 }
 
-void EmuSystem::saveState(IG::CStringView path)
+void Snes9xSystem::saveState(IG::CStringView path)
 {
 	if(!S9xFreezeGame(path))
 		return throwFileWriteError();
 }
 
-void EmuSystem::loadState(IG::CStringView path)
+void Snes9xSystem::loadState(EmuApp &, IG::CStringView path)
 {
 	if(S9xUnfreezeGame(path))
 	{
@@ -125,7 +119,7 @@ void EmuSystem::loadState(IG::CStringView path)
 		return throwFileReadError();
 }
 
-void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void Snes9xSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
 	if(!hasContent())
 		return;
@@ -137,11 +131,10 @@ void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 	}
 }
 
-bool EmuSystem::vidSysIsPAL() { return Settings.PAL; }
-unsigned EmuSystem::multiresVideoBaseX() { return 256; }
-unsigned EmuSystem::multiresVideoBaseY() { return 239; }
+VideoSystem Snes9xSystem::videoSystem() const { return Settings.PAL ? VideoSystem::PAL : VideoSystem::NATIVE_NTSC; }
+WP Snes9xSystem::multiresVideoBaseSize() const { return {256, 239}; }
 
-void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto size = io.size();
 	if(size > CMemory::MAX_ROM_SIZE + 512)
@@ -153,7 +146,7 @@ void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	#endif
 	Memory.HeaderCount = 0;
 	strncpy(Memory.ROMFilename, contentFileName().data(), sizeof(Memory.ROMFilename));
-	auto forceVideoSystemSettings = []() -> std::pair<bool, bool> // ForceNTSC, ForcePAL
+	auto forceVideoSystemSettings = [&]() -> std::pair<bool, bool> // ForceNTSC, ForcePAL
 	{
 		switch(optionVideoSystem.val)
 		{
@@ -174,17 +167,17 @@ void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	{
 		throw std::runtime_error("Error loading game");
 	}
-	setupSNESInput(*this, EmuApp::get(appContext()).defaultVController());
+	setupSNESInput(EmuApp::get(appContext()).defaultVController());
 	auto saveStr = sramFilename(*this);
 	Memory.LoadSRAM(saveStr.data());
 	IPPU.RenderThisFrame = TRUE;
 }
 
-void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
+void Snes9xSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
 	constexpr double ntscFrameRate = 21477272. / 357366.;
 	constexpr double palFrameRate = 21281370. / 425568.;
-	const double systemFrameRate = vidSysIsPAL() ? palFrameRate : ntscFrameRate;
+	const double systemFrameRate = videoSystem() == VideoSystem::PAL ? palFrameRate : ntscFrameRate;
 	Settings.SoundPlaybackRate = std::round(rate * (systemFrameRate * frameTime.count()));
 	#ifndef SNES9X_VERSION_1_4
 	S9xUpdateDynamicRate(0, 10);
@@ -208,7 +201,7 @@ static void mixSamples(uint32_t samples, EmuAudio *audio)
 	}
 }
 
-void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
+void Snes9xSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	if(snesActiveInputPort != SNES_JOYPAD)
 	{
@@ -267,27 +260,6 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit()
-{
-	#ifdef SNES9X_VERSION_1_4
-	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
-	GFX.Screen = (uint8*)screenBuff;
-	#endif
-	Memory.Init();
-	S9xGraphicsInit();
-	S9xInitAPU();
-	assert(Settings.Stereo == TRUE);
-	#ifndef SNES9X_VERSION_1_4
-	S9xInitSound(0);
-	S9xUnmapAllControls();
-	S9xCheatsEnable();
-	#else
-	S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
-	assert(Settings.H_Max == SNES_CYCLES_PER_SCANLINE);
-	assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
-	#endif
-}
-
 }
 
 #ifndef SNES9X_VERSION_1_4
@@ -297,9 +269,10 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 #endif
 {
 	using namespace EmuEx;
+	auto &sys = gSnes9xSystem();
 	assumeExpr(emuVideo);
 	if((height == SNES_HEIGHT_EXTENDED || height == SNES_HEIGHT_EXTENDED_480i)
-		&& !optionAllowExtendedVideoLines)
+		&& !sys.optionAllowExtendedVideoLines)
 	{
 		bool is480i = height >= SNES_HEIGHT_480i;
 		height = is480i ? SNES_HEIGHT_480i : SNES_HEIGHT;

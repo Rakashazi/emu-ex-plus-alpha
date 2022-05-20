@@ -14,11 +14,8 @@
 	along with NEO.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuSystemInlines.hh>
 #include <emuframework/EmuAppInlines.hh>
-#include <emuframework/EmuAudio.hh>
-#include <emuframework/EmuVideo.hh>
-#include "internal.hh"
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
@@ -89,7 +86,7 @@ extern "C"
 	}
 }
 
-CLINK void main_frame(void *emuTaskPtr, void *emuVideoPtr);
+CLINK void main_frame(void *emuTaskPtr, void *neoSystemPtr, void *emuVideoPtr);
 
 namespace EmuEx
 {
@@ -98,14 +95,26 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobe
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 bool EmuSystem::canRenderRGBA8888 = false;
 bool EmuApp::needsGlobalInstance = true;
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-static uint16_t screenBuff[352*256] __attribute__ ((aligned (8))){};
-static GN_Surface sdlSurf;
-static FS::PathString datafilePath{};
-static const int FBResX = 352;
-// start image on y 16, x 24, size 304x224, 48 pixel padding on the right
-static constexpr IG::Pixmap srcPix{{{304, 224}, pixFmt}, screenBuff + (16*FBResX) + (24), {FBResX, IG::Pixmap::Units::PIXEL}};
-static EmuSystem::OnLoadProgressDelegate onLoadProgress{};
+
+NeoSystem::NeoSystem(ApplicationContext ctx):
+	EmuSystem{ctx}
+{
+	visible_area.x = 0;//16;
+	visible_area.y = 16;
+	visible_area.w = 304;//320;
+	visible_area.h = 224;
+	sdlSurf.pitch = FBResX*2;
+	sdlSurf.w = FBResX;
+	sdlSurf.pixels = screenBuff;
+	buffer = &sdlSurf;
+	conf.sound = 1;
+	conf.sample_rate = 44100; // must be initialized to any valid value for YM2610Init()
+	strcpy(rompathConfItem.data.dt_str.str, ".");
+	if(!Config::envIsAndroid)
+	{
+		IG::formatTo(datafilePath, "{}/gngeo_data.zip", appContext().assetPath());
+	}
+}
 
 const char *EmuSystem::shortSystemName() const
 {
@@ -125,7 +134,7 @@ static bool hasNeoGeoExtension(std::string_view name)
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasNeoGeoExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasNeoGeoExtension;
 
-void EmuSystem::reset(ResetMode mode)
+void NeoSystem::reset(EmuApp &, ResetMode mode)
 {
 	assert(hasContent());
 	neogeo_reset();
@@ -133,19 +142,19 @@ void EmuSystem::reset(ResetMode mode)
 	YM2610Reset();
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
+FS::FileString NeoSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotCharUpper(slot));
 }
 
-void EmuSystem::saveState(IG::CStringView path)
+void NeoSystem::saveState(IG::CStringView path)
 {
 	auto ctx = appContext();
 	if(!save_stateWithName(&ctx, path))
 		return EmuSystem::throwFileWriteError();
 }
 
-void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
+void NeoSystem::loadState(EmuApp &app, IG::CStringView path)
 {
 	auto ctx = app.appContext();
 	if(!load_stateWithName(&ctx, path))
@@ -162,7 +171,7 @@ static auto memcardPath(EmuSystem &sys)
 	return sys.contentSavePath("memcard");
 }
 
-void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags flags)
+void NeoSystem::onFlushBackupMemory(BackupMemoryDirtyFlags flags)
 {
 	if(!hasContent())
 		return;
@@ -172,7 +181,7 @@ void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags flags)
 		FileUtils::writeToUri(appContext(), memcardPath(*this), {memory.memcard, 0x800});
 }
 
-void EmuSystem::closeSystem()
+void NeoSystem::closeSystem()
 {
 	close_game();
 }
@@ -182,11 +191,11 @@ static auto openGngeoDataIO(IG::ApplicationContext ctx, IG::CStringView filename
 	#ifdef __ANDROID__
 	return ctx.openAsset(filename, IO::AccessHint::ALL);
 	#else
-	return FS::fileFromArchive(datafilePath, filename);
+	return FS::fileFromArchive(static_cast<NeoApp&>(ctx.application()).system().datafilePath, filename);
 	#endif
 }
 
-void EmuSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgressFunc)
+void NeoSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgressFunc)
 {
 	if(contentDirectory().empty())
 	{
@@ -227,7 +236,7 @@ void EmuSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate 
 		}
 	}
 	EmuSystem::setContentDisplayName(drv->longname);
-	setTimerIntOption(*this);
+	setTimerIntOption();
 	neogeo_frame_counter = 0;
 	neogeo_frame_counter_speed = 8;
 	fc = 0;
@@ -237,7 +246,7 @@ void EmuSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate 
 	memory.memcard[3] = memory.memcard[3] & 0x3;
 }
 
-void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
+void NeoSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
 	conf.sample_rate = std::round(rate * ((60./1.001) * frameTime.count()));
 	if(hasContent())
@@ -247,17 +256,17 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	}
 }
 
-void EmuSystem::renderFramebuffer(EmuVideo &video)
+void NeoSystem::renderFramebuffer(EmuVideo &video)
 {
-	video.startFrameWithFormat({}, srcPix);
+	video.startFrameWithFormat({}, videoPixmap());
 }
 
-void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
+void NeoSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	//logMsg("run frame %d", (int)processGfx);
 	if(video)
 		IG::fill(screenBuff, (uint16_t)current_pc_pal[4095]);
-	main_frame(&taskCtx, video);
+	main_frame(&taskCtx, this, video);
 	auto audioFrames = updateAudioFramesPerVideoFrame();
 	Uint16 audioBuff[audioFrames * 2];
 	YM2610Update_stream(audioFrames, audioBuff);
@@ -267,7 +276,7 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	}
 }
 
-FS::FileString EmuSystem::contentDisplayNameForPath(IG::CStringView path)
+FS::FileString NeoSystem::contentDisplayNameForPath(IG::CStringView path) const
 {
 	auto contentName = contentDisplayNameForPathDefaultImpl(path);
 	if(contentName.empty())
@@ -293,32 +302,13 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit()
-{
-	visible_area.x = 0;//16;
-	visible_area.y = 16;
-	visible_area.w = 304;//320;
-	visible_area.h = 224;
-	sdlSurf.pitch = FBResX*2;
-	sdlSurf.w = FBResX;
-	sdlSurf.pixels = screenBuff;
-	buffer = &sdlSurf;
-	conf.sound = 1;
-	conf.sample_rate = 44100; // must be initialized to any valid value for YM2610Init()
-	strcpy(rompathConfItem.data.dt_str.str, ".");
-	if(!Config::envIsAndroid)
-	{
-		IG::formatTo(datafilePath, "{}/gngeo_data.zip", appContext().assetPath());
-	}
 }
 
-}
-
-using namespace IG;
+using namespace EmuEx;
 
 CLINK int gn_strictROMChecking()
 {
-	return EmuEx::optionStrictROMChecking;
+	return static_cast<NeoSystem&>(gSystem()).optionStrictROMChecking;
 }
 
 CLINK ROM_DEF *res_load_drv(void *contextPtr, const char *name)
@@ -366,14 +356,14 @@ CLINK void *res_load_data(void *contextPtr, const char *name)
 	return buffer;
 }
 
-CLINK void screen_update(void *emuTaskCtxPtr, void *emuVideoPtr)
+CLINK void screen_update(void *emuTaskCtxPtr, void *neoSystemPtr, void *emuVideoPtr)
 {
-	auto taskCtxPtr = (EmuEx::EmuSystemTaskContext*)emuTaskCtxPtr;
-	auto emuVideo = (EmuEx::EmuVideo*)emuVideoPtr;
+	auto taskCtxPtr = (EmuSystemTaskContext*)emuTaskCtxPtr;
+	auto emuVideo = (EmuVideo*)emuVideoPtr;
 	if(emuVideo) [[likely]]
 	{
 		//logMsg("screen render");
-		emuVideo->startFrameWithFormat(*taskCtxPtr, EmuEx::srcPix);
+		emuVideo->startFrameWithFormat(*taskCtxPtr, ((NeoSystem*)neoSystemPtr)->videoPixmap());
 	}
 	else
 	{
@@ -407,8 +397,9 @@ void memcardWritten()
 
 void gn_init_pbar(unsigned action, int size)
 {
+	auto &sys = static_cast<NeoSystem&>(gSystem());
 	logMsg("init pbar %d, %d", action, size);
-	if(EmuEx::onLoadProgress)
+	if(sys.onLoadProgress)
 	{
 		auto actionString = [](unsigned action)
 		{
@@ -420,15 +411,16 @@ void gn_init_pbar(unsigned action, int size)
 				case PBAR_ACTION_SAVEGNO: { return "Building Cache...\n(may take a while)"; };
 			}
 		};
-		EmuEx::onLoadProgress(0, size, actionString(action));
+		sys.onLoadProgress(0, size, actionString(action));
 	}
 }
 
 void gn_update_pbar(int pos)
 {
+	auto &sys = static_cast<NeoSystem&>(gSystem());
 	logMsg("update pbar %d", pos);
-	if(EmuEx::onLoadProgress)
+	if(sys.onLoadProgress)
 	{
-		EmuEx::onLoadProgress(pos, 0, nullptr);
+		sys.onLoadProgress(pos, 0, nullptr);
 	}
 }

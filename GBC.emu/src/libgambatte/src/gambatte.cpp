@@ -63,7 +63,7 @@ GB::~GB() {
 
 std::ptrdiff_t GB::runFor(gambatte::uint_least32_t *const videoBuf, std::ptrdiff_t const pitch,
                           gambatte::uint_least32_t *const soundBuf, std::size_t &samples,
-													IG::DelegateFunc<void()> videoFrameCallback) {
+													gambatte::VideoFrameDelegate videoFrameCallback) {
 	if (!p_->cpu.loaded()) {
 		samples = 0;
 		return -1;
@@ -145,6 +145,10 @@ void GB::setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32) {
 
 void GB::refreshPalettes() {
 	p_->cpu.refreshPalettes();
+}
+
+void GB::setColorConversionFlags(unsigned flags) {
+	p_->cpu.setColorConversionFlags(flags);
 }
 
 bool GB::loadState(std::string const &filepath) {

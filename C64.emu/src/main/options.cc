@@ -15,7 +15,7 @@
 
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 #include <imagine/util/format.hh>
 
 extern "C"
@@ -28,33 +28,10 @@ extern "C"
 	#include "plus4model.h"
 	#include "vic20model.h"
 	#include "drive.h"
-	#include "vicii.h"
-	#include "sid/sid.h"
-	#include "sid/sid-resources.h"
 }
 
 namespace EmuEx
 {
-
-enum
-{
-	CFGKEY_DRIVE_TRUE_EMULATION = 256, CFGKEY_AUTOSTART_WARP = 257,
-	CFGKEY_AUTOSTART_TDE = 258, CFGKEY_C64_MODEL = 259,
-	CFGKEY_BORDER_MODE = 260, CFGKEY_SWAP_JOYSTICK_PORTS = 261,
-	CFGKEY_SID_ENGINE = 262, CFGKEY_CROP_NORMAL_BORDERS = 263,
-	CFGKEY_SYSTEM_FILE_PATH = 264, CFGKEY_DTV_MODEL = 265,
-	CFGKEY_C128_MODEL = 266, CFGKEY_SUPER_CPU_MODEL = 267,
-	CFGKEY_CBM2_MODEL = 268, CFGKEY_CBM5x0_MODEL = 269,
-	CFGKEY_PET_MODEL = 270, CFGKEY_PLUS4_MODEL = 271,
-	CFGKEY_VIC20_MODEL = 272, CFGKEY_VICE_SYSTEM = 273,
-	CFGKEY_VIRTUAL_DEVICE_TRAPS = 274, CFGKEY_RESID_SAMPLING = 275,
-	CFGKEY_MODEL = 276, CFGKEY_AUTOSTART_BASIC_LOAD = 277,
-	CFGKEY_VIC20_RAM_EXPANSIONS = 278, CFGKEY_AUTOSTART_ON_LOAD = 279,
-	CFGKEY_PALETTE_NAME = 280, CFGKEY_C64_RAM_EXPANSION_MODULE = 281,
-	CFGKEY_DEFAULT_MODEL = 282, CFGKEY_DEFAULT_PALETTE_NAME = 283,
-	CFGKEY_DRIVE8_TYPE = 284, CFGKEY_DRIVE9_TYPE = 285,
-	CFGKEY_DRIVE10_TYPE = 286, CFGKEY_DRIVE11_TYPE = 287,
-};
 
 const char *EmuSystem::configFilename = "C64Emu.config";
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
@@ -63,36 +40,8 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
-Byte1Option optionDriveTrueEmulation(CFGKEY_DRIVE_TRUE_EMULATION, 0);
-Byte1Option optionCropNormalBorders(CFGKEY_CROP_NORMAL_BORDERS, 1);
-Byte1Option optionAutostartWarp(CFGKEY_AUTOSTART_WARP, 1);
-Byte1Option optionAutostartTDE(CFGKEY_AUTOSTART_TDE, 0);
-Byte1Option optionAutostartBasicLoad(CFGKEY_AUTOSTART_BASIC_LOAD, 0);
-Byte1Option optionViceSystem(CFGKEY_VICE_SYSTEM, VICE_SYSTEM_C64, false,
-	optionIsValidWithMax<VicePlugin::SYSTEMS-1, uint8_t>);
-SByte1Option optionModel{};
-SByte1Option optionDefaultModel{};
-Byte1Option optionBorderMode(CFGKEY_BORDER_MODE, VICII_NORMAL_BORDERS);
-Byte1Option optionSidEngine(CFGKEY_SID_ENGINE, SID_ENGINE_RESID, false,
-	optionIsValidWithMax<1, uint8_t>);
-Byte1Option optionReSidSampling(CFGKEY_RESID_SAMPLING, SID_RESID_SAMPLING_INTERPOLATION, false,
-	optionIsValidWithMax<3, uint8_t>);
-Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, JoystickMode::NORMAL, false,
-	optionIsValidWithMax<JoystickMode::KEYBOARD>);
-Byte1Option optionAutostartOnLaunch(CFGKEY_AUTOSTART_ON_LOAD, 1);
 
-// VIC-20 specific
-Byte1Option optionVic20RamExpansions(CFGKEY_VIC20_RAM_EXPANSIONS, 0);
-
-// C64 specific
-Byte2Option optionC64RamExpansionModule(CFGKEY_C64_RAM_EXPANSION_MODULE, 0);
-
-std::string defaultPaletteName{};
-
-static std::array<char, 21> externalPaletteResStr{};
-static std::array<char, 17> paletteFileResStr{};
-
-void setPaletteResources(const char *palName)
+void C64System::setPaletteResources(const char *palName)
 {
 	if(palName && strlen(palName))
 	{
@@ -107,17 +56,17 @@ void setPaletteResources(const char *palName)
 	}
 }
 
-bool usingExternalPalette()
+bool C64System::usingExternalPalette() const
 {
 	return intResource(externalPaletteResStr.data());
 }
 
-const char *externalPaletteName()
+const char *C64System::externalPaletteName() const
 {
 	return stringResource(paletteFileResStr.data());
 }
 
-const char *paletteName()
+const char *C64System::paletteName() const
 {
 	if(usingExternalPalette())
 		return externalPaletteName();
@@ -125,17 +74,18 @@ const char *paletteName()
 		return "";
 }
 
-FS::FileString EmuSystem::configName() const
+FS::FileString C64System::configName() const
 {
 	return FS::FileString{plugin.configName};
 }
 
 static bool modelIdIsValid(int8_t id)
 {
+	auto &plugin = gC64System().plugin;
 	return id >= plugin.modelIdBase && id < plugin.modelIdLimit();
 }
 
-void EmuSystem::onOptionsLoaded()
+void C64System::onOptionsLoaded()
 {
 	currSystem = (ViceSystem)optionViceSystem.val;
 	plugin = loadVicePlugin(currSystem, appContext().libPath().data());
@@ -145,11 +95,11 @@ void EmuSystem::onOptionsLoaded()
 	}
 	IG::formatTo(externalPaletteResStr, "{}ExternalPalette", videoChipStr());
 	IG::formatTo(paletteFileResStr, "{}PaletteFile", videoChipStr());
-	optionDefaultModel = {CFGKEY_DEFAULT_MODEL, plugin.defaultModelId, false, modelIdIsValid};
-	optionModel = {CFGKEY_MODEL, -1, false, modelIdIsValid};
+	optionDefaultModel = SByte1Option{CFGKEY_DEFAULT_MODEL, plugin.defaultModelId, false, modelIdIsValid};
+	optionModel = SByte1Option{CFGKEY_MODEL, -1, false, modelIdIsValid};
 }
 
-void applySessionOptions()
+void C64System::applySessionOptions()
 {
 	if((int)optionModel == -1)
 	{
@@ -164,7 +114,7 @@ void applySessionOptions()
 	setAutostartWarp(optionAutostartWarp);
 	setAutostartTDE(optionAutostartTDE);
 	setAutostartBasicLoad(optionAutostartBasicLoad);
-	if(currSystem == VICE_SYSTEM_VIC20)
+	if(currSystem == ViceSystem::VIC20)
 	{
 		uint8_t blocks = optionVic20RamExpansions;
 		if(blocks & BLOCK_0)
@@ -188,12 +138,12 @@ void applySessionOptions()
 	}
 }
 
-void EmuSystem::onSessionOptionsLoaded(EmuApp &)
+void C64System::onSessionOptionsLoaded(EmuApp &)
 {
 	applySessionOptions();
 }
 
-bool EmuSystem::resetSessionOptions(EmuApp &app)
+bool C64System::resetSessionOptions(EmuApp &app)
 {
 	optionModel.reset();
 	optionDriveTrueEmulation.reset();
@@ -214,145 +164,142 @@ bool EmuSystem::resetSessionOptions(EmuApp &app)
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
+bool C64System::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
 {
-	switch(key)
+	if(type == ConfigType::MAIN)
 	{
-		default: return 0;
-		bcase CFGKEY_MODEL:
-			optionModel.readFromIO(io, readSize);
-		bcase CFGKEY_DRIVE_TRUE_EMULATION: optionDriveTrueEmulation.readFromIO(io, readSize);
-		bcase CFGKEY_AUTOSTART_WARP: optionAutostartWarp.readFromIO(io, readSize);
-		bcase CFGKEY_AUTOSTART_TDE: optionAutostartTDE.readFromIO(io, readSize);
-		bcase CFGKEY_AUTOSTART_BASIC_LOAD: optionAutostartBasicLoad.readFromIO(io, readSize);
-		bcase CFGKEY_SWAP_JOYSTICK_PORTS: optionSwapJoystickPorts.readFromIO(io, readSize);
-		bcase CFGKEY_AUTOSTART_ON_LOAD: optionAutostartOnLaunch.readFromIO(io, readSize);
-		bcase CFGKEY_VIC20_RAM_EXPANSIONS: optionVic20RamExpansions.readFromIO(io, readSize);
-		bcase CFGKEY_C64_RAM_EXPANSION_MODULE: optionC64RamExpansionModule.readFromIO(io, readSize);
-		bcase CFGKEY_PALETTE_NAME:
-			readStringOptionValue<FS::FileString>(io, readSize, [](auto &name)
+		switch(key)
+		{
+			case CFGKEY_VICE_SYSTEM: return optionViceSystem.readFromIO(io, readSize);
+			case CFGKEY_BORDER_MODE: return optionBorderMode.readFromIO(io, readSize);
+			case CFGKEY_CROP_NORMAL_BORDERS: return optionCropNormalBorders.readFromIO(io, readSize);
+			case CFGKEY_SID_ENGINE: return optionSidEngine.readFromIO(io, readSize);
+			case CFGKEY_SYSTEM_FILE_PATH:
+				return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){setFirmwarePath(path);});
+			case CFGKEY_RESID_SAMPLING: return optionReSidSampling.readFromIO(io, readSize);
+		}
+	}
+	else if(type == ConfigType::CORE)
+	{
+		switch(key)
+		{
+			case CFGKEY_DEFAULT_MODEL: return optionDefaultModel.readFromIO(io, readSize);
+			case CFGKEY_DEFAULT_PALETTE_NAME:
+				return readStringOptionValue<FS::FileString>(io, readSize, [&](auto &name){defaultPaletteName = name;});
+		}
+	}
+	else if(type == ConfigType::SESSION)
+	{
+		switch(key)
+		{
+			case CFGKEY_MODEL:
+				return optionModel.readFromIO(io, readSize);
+			case CFGKEY_DRIVE_TRUE_EMULATION: return optionDriveTrueEmulation.readFromIO(io, readSize);
+			case CFGKEY_AUTOSTART_WARP: return optionAutostartWarp.readFromIO(io, readSize);
+			case CFGKEY_AUTOSTART_TDE: return optionAutostartTDE.readFromIO(io, readSize);
+			case CFGKEY_AUTOSTART_BASIC_LOAD: return optionAutostartBasicLoad.readFromIO(io, readSize);
+			case CFGKEY_SWAP_JOYSTICK_PORTS: return optionSwapJoystickPorts.readFromIO(io, readSize);
+			case CFGKEY_AUTOSTART_ON_LOAD: return optionAutostartOnLaunch.readFromIO(io, readSize);
+			case CFGKEY_VIC20_RAM_EXPANSIONS: return optionVic20RamExpansions.readFromIO(io, readSize);
+			case CFGKEY_C64_RAM_EXPANSION_MODULE: return optionC64RamExpansionModule.readFromIO(io, readSize);
+			case CFGKEY_PALETTE_NAME:
+				return readStringOptionValue<FS::FileString>(io, readSize, [&](auto &name)
+				{
+					if(name == "internal")
+						setPaletteResources({});
+					else
+						setPaletteResources(name.data());
+				});
+			case CFGKEY_DRIVE8_TYPE:
+				return readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive8Type", type); });
+			case CFGKEY_DRIVE9_TYPE:
+				return readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive9Type", type); });
+			case CFGKEY_DRIVE10_TYPE:
+				return readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive10Type", type); });
+			case CFGKEY_DRIVE11_TYPE:
+				return readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive11Type", type); });
+		}
+	}
+	return false;
+}
+
+void C64System::writeConfig(ConfigType type, IO &io)
+{
+	if(type == ConfigType::MAIN)
+	{
+		optionViceSystem.writeWithKeyIfNotDefault(io);
+		optionBorderMode.writeWithKeyIfNotDefault(io);
+		optionCropNormalBorders.writeWithKeyIfNotDefault(io);
+		optionSidEngine.writeWithKeyIfNotDefault(io);
+		optionReSidSampling.writeWithKeyIfNotDefault(io);
+		writeStringOptionValue(io, CFGKEY_SYSTEM_FILE_PATH, firmwarePath());
+	}
+	else if(type == ConfigType::CORE)
+	{
+		optionDefaultModel.writeWithKeyIfNotDefault(io);
+		writeStringOptionValue(io, CFGKEY_DEFAULT_PALETTE_NAME, defaultPaletteName);
+	}
+	else if(type == ConfigType::SESSION)
+	{
+		optionModel.writeWithKeyIfNotDefault(io);
+		optionDriveTrueEmulation.writeWithKeyIfNotDefault(io);
+		optionAutostartWarp.writeWithKeyIfNotDefault(io);
+		optionAutostartTDE.writeWithKeyIfNotDefault(io);
+		optionAutostartBasicLoad.writeWithKeyIfNotDefault(io);
+		optionSwapJoystickPorts.writeWithKeyIfNotDefault(io);
+		optionAutostartOnLaunch.writeWithKeyIfNotDefault(io);
+		if(currSystem == ViceSystem::VIC20) // save RAM expansion settings
+		{
+			uint8_t blocks = (intResource("RamBlock0") ? BLOCK_0 : 0);
+			if((int)optionModel != VIC20MODEL_VIC21)
 			{
-				if(name == "internal")
-					setPaletteResources({});
-				else
-					setPaletteResources(name.data());
-			});
-		bcase CFGKEY_DRIVE8_TYPE:
-			readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive8Type", type); });
-		bcase CFGKEY_DRIVE9_TYPE:
-			readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive9Type", type); });
-		bcase CFGKEY_DRIVE10_TYPE:
-			readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive10Type", type); });
-		bcase CFGKEY_DRIVE11_TYPE:
-			readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive11Type", type); });
-	}
-	return 1;
-}
-
-void EmuSystem::writeSessionConfig(IO &io)
-{
-	optionModel.writeWithKeyIfNotDefault(io);
-	optionDriveTrueEmulation.writeWithKeyIfNotDefault(io);
-	optionAutostartWarp.writeWithKeyIfNotDefault(io);
-	optionAutostartTDE.writeWithKeyIfNotDefault(io);
-	optionAutostartBasicLoad.writeWithKeyIfNotDefault(io);
-	optionSwapJoystickPorts.writeWithKeyIfNotDefault(io);
-	optionAutostartOnLaunch.writeWithKeyIfNotDefault(io);
-	if(currSystem == VICE_SYSTEM_VIC20) // save RAM expansion settings
-	{
-		uint8_t blocks = (intResource("RamBlock0") ? BLOCK_0 : 0);
-		if((int)optionModel != VIC20MODEL_VIC21)
-		{
-			blocks |= (intResource("RamBlock1") ? BLOCK_1 : 0);
-			blocks |= (intResource("RamBlock2") ? BLOCK_2 : 0);
+				blocks |= (intResource("RamBlock1") ? BLOCK_1 : 0);
+				blocks |= (intResource("RamBlock2") ? BLOCK_2 : 0);
+			}
+			blocks |= (intResource("RamBlock3") ? BLOCK_3 : 0);
+			blocks |= (intResource("RamBlock5") ? BLOCK_5 : 0);
+			optionVic20RamExpansions = blocks;
+			optionVic20RamExpansions.writeWithKeyIfNotDefault(io);
 		}
-		blocks |= (intResource("RamBlock3") ? BLOCK_3 : 0);
-		blocks |= (intResource("RamBlock5") ? BLOCK_5 : 0);
-		optionVic20RamExpansions = blocks;
-		optionVic20RamExpansions.writeWithKeyIfNotDefault(io);
-	}
-	if(currSystemIsC64Or128())
-	{
-		if(intResource("REU"))
+		if(currSystemIsC64Or128())
 		{
-			optionC64RamExpansionModule = intResource("REUsize");
-			optionC64RamExpansionModule.writeWithKeyIfNotDefault(io);
+			if(intResource("REU"))
+			{
+				optionC64RamExpansionModule = intResource("REUsize");
+				optionC64RamExpansionModule.writeWithKeyIfNotDefault(io);
+			}
+		}
+		auto palName = paletteName();
+		if(palName != defaultPaletteName)
+		{
+			if(!strlen(palName))
+				palName = "internal";
+			writeStringOptionValue(io, CFGKEY_PALETTE_NAME, palName);
+		}
+		if(auto driveType = intResource("Drive8Type");
+			driveType != defaultIntResource("Drive8Type"))
+		{
+			writeOptionValue(io, CFGKEY_DRIVE8_TYPE, (uint16_t)driveType);
+		}
+		if(auto driveType = intResource("Drive9Type");
+			driveType != DRIVE_TYPE_NONE)
+		{
+			writeOptionValue(io, CFGKEY_DRIVE9_TYPE, (uint16_t)driveType);
+		}
+		if(auto driveType = intResource("Drive10Type");
+			driveType != DRIVE_TYPE_NONE)
+		{
+			writeOptionValue(io, CFGKEY_DRIVE10_TYPE, (uint16_t)driveType);
+		}
+		if(auto driveType = intResource("Drive11Type");
+			driveType != DRIVE_TYPE_NONE)
+		{
+			writeOptionValue(io, CFGKEY_DRIVE11_TYPE, (uint16_t)driveType);
 		}
 	}
-	auto palName = paletteName();
-	if(palName != defaultPaletteName)
-	{
-		if(!strlen(palName))
-			palName = "internal";
-		writeStringOptionValue(io, CFGKEY_PALETTE_NAME, palName);
-	}
-	if(auto driveType = intResource("Drive8Type");
-		driveType != defaultIntResource("Drive8Type"))
-	{
-		writeOptionValue(io, CFGKEY_DRIVE8_TYPE, (uint16_t)driveType);
-	}
-	if(auto driveType = intResource("Drive9Type");
-		driveType != DRIVE_TYPE_NONE)
-	{
-		writeOptionValue(io, CFGKEY_DRIVE9_TYPE, (uint16_t)driveType);
-	}
-	if(auto driveType = intResource("Drive10Type");
-		driveType != DRIVE_TYPE_NONE)
-	{
-		writeOptionValue(io, CFGKEY_DRIVE10_TYPE, (uint16_t)driveType);
-	}
-	if(auto driveType = intResource("Drive11Type");
-		driveType != DRIVE_TYPE_NONE)
-	{
-		writeOptionValue(io, CFGKEY_DRIVE11_TYPE, (uint16_t)driveType);
-	}
 }
 
-bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
-{
-	switch(key)
-	{
-		default: return 0;
-		bcase CFGKEY_VICE_SYSTEM: optionViceSystem.readFromIO(io, readSize);
-		bcase CFGKEY_BORDER_MODE: optionBorderMode.readFromIO(io, readSize);
-		bcase CFGKEY_CROP_NORMAL_BORDERS: optionCropNormalBorders.readFromIO(io, readSize);
-		bcase CFGKEY_SID_ENGINE: optionSidEngine.readFromIO(io, readSize);
-		bcase CFGKEY_SYSTEM_FILE_PATH:
-			readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){setFirmwarePath(path);});
-		bcase CFGKEY_RESID_SAMPLING: optionReSidSampling.readFromIO(io, readSize);
-	}
-	return 1;
-}
-
-bool EmuSystem::readCoreConfig(IO &io, unsigned key, unsigned readSize)
-{
-	switch(key)
-	{
-		default: return false;
-		bcase CFGKEY_DEFAULT_MODEL: optionDefaultModel.readFromIO(io, readSize);
-		bcase CFGKEY_DEFAULT_PALETTE_NAME:
-			readStringOptionValue<FS::FileString>(io, readSize, [&](auto &name){defaultPaletteName = name;});
-	}
-	return true;
-}
-
-void EmuSystem::writeConfig(IO &io)
-{
-	optionViceSystem.writeWithKeyIfNotDefault(io);
-	optionBorderMode.writeWithKeyIfNotDefault(io);
-	optionCropNormalBorders.writeWithKeyIfNotDefault(io);
-	optionSidEngine.writeWithKeyIfNotDefault(io);
-	optionReSidSampling.writeWithKeyIfNotDefault(io);
-	writeStringOptionValue(io, CFGKEY_SYSTEM_FILE_PATH, firmwarePath());
-}
-
-void EmuSystem::writeCoreConfig(IO &io)
-{
-	optionDefaultModel.writeWithKeyIfNotDefault(io);
-	writeStringOptionValue(io, CFGKEY_DEFAULT_PALETTE_NAME, defaultPaletteName);
-}
-
-void setDefaultModel(int model)
+void C64System::setDefaultModel(int model)
 {
 	optionDefaultModel = model;
 }

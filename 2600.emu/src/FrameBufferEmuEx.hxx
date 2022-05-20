@@ -80,7 +80,7 @@ public:
 
 	void showTextMessage(const string& message,
 		MessagePosition position = MessagePosition::BottomCenter,
-		bool force = false);
+		bool force = false) const;
 
 	void showGaugeMessage(const string& message, const string& valueText,
 		float value, float minValue = 0.F, float maxValue = 100.F) {}

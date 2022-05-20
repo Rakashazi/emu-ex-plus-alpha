@@ -18,9 +18,8 @@
 #include <imagine/logger/logger.h>
 #include <assert.h>
 #include <string.h>
-#include <emuframework/EmuApp.hh>
 #include <emuframework/Option.hh>
-#include "internal.hh"
+#include "MainApp.hh"
 
 extern "C"
 {

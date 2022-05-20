@@ -29,9 +29,15 @@
 namespace IG::FS
 {
 
-class directory_iterator : public std::iterator<std::input_iterator_tag, directory_entry>
+class directory_iterator
 {
 public:
+	using iterator_category = std::input_iterator_tag;
+	using value_type = directory_entry;
+	using difference_type = ptrdiff_t;
+	using pointer = value_type*;
+	using reference = value_type&;
+
 	constexpr directory_iterator() = default;
 	directory_iterator(IG::CStringView path);
 	directory_iterator(const directory_iterator&) = default;

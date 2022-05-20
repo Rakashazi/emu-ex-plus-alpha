@@ -15,7 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 namespace EmuEx
 {
@@ -50,10 +50,10 @@ const unsigned EmuSystem::maxPlayers = 5;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{2, 1, 0, 3, 4, 5};
 unsigned playerBit = 13;
 
-void updateVControllerMapping(unsigned player, VController::Map &map)
+VController::Map PceSystem::vControllerMap(int player)
 {
-	using namespace IG;
 	unsigned playerMask = player << playerBit;
+	VController::Map map{};
 	map[VController::F_ELEM] = bit(8) | playerMask;
 	map[VController::F_ELEM+1] = bit(1) | playerMask;
 	map[VController::F_ELEM+2] = bit(0) | playerMask;
@@ -72,9 +72,10 @@ void updateVControllerMapping(unsigned player, VController::Map &map)
 	map[VController::D_ELEM+6] = bit(6) | bit(7) | playerMask;
 	map[VController::D_ELEM+7] = bit(6) | playerMask;
 	map[VController::D_ELEM+8] = bit(6) | bit(5) | playerMask;
+	return map;
 }
 
-unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
+unsigned PceSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	assert(input >= pceKeyIdxUp);
@@ -107,14 +108,14 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
+void PceSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	auto player = emuKey >> playerBit;
-	assert(player < maxPlayers);
-	inputBuff[player] = IG::setOrClearBits(inputBuff[player], (uint16)emuKey, action == Input::Action::PUSHED);
+	auto player = a.key >> playerBit;
+	assumeExpr(player < maxPlayers);
+	inputBuff[player] = IG::setOrClearBits(inputBuff[player], (uint16)a.key, a.state == Input::Action::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers(EmuInputView &)
+void PceSystem::clearInputBuffers(EmuInputView &)
 {
 	inputBuff = {};
 	if(option6BtnPad)

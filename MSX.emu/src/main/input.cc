@@ -13,9 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include "internal.hh"
+#include "MainApp.hh"
 
 extern "C"
 {
@@ -121,13 +120,14 @@ void setupVKeyboardMap(EmuApp &app, unsigned boardType)
 	app.updateKeyboardMapping();
 }
 
-VController::KbMap updateVControllerKeyboardMapping(unsigned mode)
+VController::KbMap MsxSystem::vControllerKeyboardMap(unsigned mode)
 {
 	return mode ? kbToEventMap2 : kbToEventMap;
 }
 
-void updateVControllerMapping(unsigned player, VController::Map &map)
+VController::Map MsxSystem::vControllerMap(int player)
 {
+	VController::Map map{};
 	if(machine && machine->board.type == BOARD_COLECO)
 	{
 		unsigned playerShift = player ? 12 : 0;
@@ -155,9 +155,10 @@ void updateVControllerMapping(unsigned player, VController::Map &map)
 	map[VController::D_ELEM+6] = down | (left << 8);
 	map[VController::D_ELEM+7] = down;
 	map[VController::D_ELEM+8] = down | (right << 8);
+	return map;
 }
 
-unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
+unsigned MsxSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	switch(input)
@@ -201,27 +202,28 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(EmuApp *appPtr, Input::Action action, unsigned emuKey)
+void MsxSystem::handleInputAction(EmuApp *appPtr, InputAction a)
 {
-	auto event1 = emuKey & 0xFF;
+	auto event1 = a.key & 0xFF;
+	bool isPushed = a.state == Input::Action::PUSHED;
 	if(event1 == EC_KEYCOUNT)
 	{
-		if(appPtr && action == Input::Action::PUSHED)
+		if(appPtr && isPushed)
 			appPtr->toggleKeyboard();
 	}
 	else
 	{
 		assert(event1 < EC_KEYCOUNT);
-		eventMap[event1] = action == Input::Action::PUSHED;
-		auto event2 = emuKey >> 8;
+		eventMap[event1] = isPushed;
+		auto event2 = a.key >> 8;
 		if(event2) // extra event for diagonals
 		{
-			eventMap[event2] = action == Input::Action::PUSHED;
+			eventMap[event2] = isPushed;
 		}
 	}
 }
 
-void EmuSystem::clearInputBuffers(EmuInputView &)
+void MsxSystem::clearInputBuffers(EmuInputView &)
 {
 	IG::fill(eventMap);
 }

@@ -15,7 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 namespace EmuEx
 {
@@ -43,11 +43,12 @@ const unsigned EmuSystem::inputFaceBtns = 2;
 const unsigned EmuSystem::inputCenterBtns = 1;
 const unsigned EmuSystem::maxPlayers = 1;
 
-static const unsigned ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,
+constexpr unsigned ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,
 		ctrlABit = 0x10, ctrlBBit = 0x20, ctrlOptionBit = 0x40;
 
-void updateVControllerMapping(unsigned player, VController::Map &map)
+VController::Map NgpSystem::vControllerMap(int player)
 {
+	VController::Map map{};
 	map[VController::F_ELEM] = ctrlABit;
 	map[VController::F_ELEM+1] = ctrlBBit;
 
@@ -61,9 +62,10 @@ void updateVControllerMapping(unsigned player, VController::Map &map)
 	map[VController::D_ELEM+6] = ctrlDownBit | ctrlLeftBit;
 	map[VController::D_ELEM+7] = ctrlDownBit;
 	map[VController::D_ELEM+8] = ctrlDownBit | ctrlRightBit;
+	return map;
 }
 
-unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
+unsigned NgpSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	switch(input)
@@ -86,12 +88,12 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
+void NgpSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	inputBuff = IG::setOrClearBits(inputBuff, (uint8_t)emuKey, action == Input::Action::PUSHED);
+	inputBuff = IG::setOrClearBits(inputBuff, (uint8_t)a.key, a.state == Input::Action::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers(EmuInputView &)
+void NgpSystem::clearInputBuffers(EmuInputView &)
 {
 	inputBuff = {};
 }

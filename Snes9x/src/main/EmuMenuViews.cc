@@ -7,22 +7,27 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
-#include "internal.hh"
+#include "MainApp.hh"
 #include <snes9x.h>
 #include <imagine/util/format.hh>
 
 namespace EmuEx
 {
 
+template <class T>
+using MainAppHelper = EmuAppHelper<T, MainApp>;
+
 constexpr bool HAS_NSRT = !IS_SNES9X_VERSION_1_4;
 
 #ifndef SNES9X_VERSION_1_4
-class CustomAudioOptionView : public AudioOptionView
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
 {
+	using MainAppHelper<CustomAudioOptionView>::system;
+
 	void setDSPInterpolation(uint8_t val)
 	{
 		logMsg("set DSP interpolation:%u", val);
-		optionAudioDSPInterpolation = val;
+		system().optionAudioDSPInterpolation = val;
 		SNES::dsp.spc_dsp.interpolation = val;
 	}
 
@@ -38,7 +43,7 @@ class CustomAudioOptionView : public AudioOptionView
 	MultiChoiceMenuItem dspInterpolation
 	{
 		"DSP Interpolation", &defaultFace(),
-		optionAudioDSPInterpolation.val,
+		system().optionAudioDSPInterpolation.val,
 		dspInterpolationItem
 	};
 
@@ -51,17 +56,17 @@ public:
 };
 #endif
 
-class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
+class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem multitap
 	{
 		"5-Player Adapter", &defaultFace(),
-		(bool)optionMultitap,
+		(bool)system().optionMultitap,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			optionMultitap = item.flipBoolValue(*this);
-			setupSNESInput(system(), app().defaultVController());
+			system().optionMultitap = item.flipBoolValue(*this);
+			system().setupSNESInput(app().defaultVController());
 		}
 	};
 
@@ -78,7 +83,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports", &defaultFace(),
-		(MenuItem::Id)snesInputPort,
+		(MenuItem::Id)system().snesInputPort,
 		inputPortsItem
 	};
 
@@ -87,9 +92,9 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		return [this](TextMenuItem &item)
 		{
 			system().sessionOptionSet();
-			optionInputPort = item.id();
-			snesInputPort = item.id();
-			setupSNESInput(system(), app().defaultVController());
+			system().optionInputPort = item.id();
+			system().snesInputPort = item.id();
+			system().setupSNESInput(app().defaultVController());
 		};
 	}
 
@@ -104,14 +109,14 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	MultiChoiceMenuItem videoSystem
 	{
 		"System", &defaultFace(),
-		optionVideoSystem.val,
+		system().optionVideoSystem.val,
 		videoSystemItem
 	};
 
 	void setVideoSystem(int val, Input::Event e)
 	{
 		system().sessionOptionSet();
-		optionVideoSystem = val;
+		system().optionVideoSystem = val;
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
@@ -120,11 +125,11 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	BoolMenuItem allowExtendedLines
 	{
 		"Allow Extended 239/478 Lines", &defaultFace(),
-		(bool)optionAllowExtendedVideoLines,
+		(bool)system().optionAllowExtendedVideoLines,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			optionAllowExtendedVideoLines = item.flipBoolValue(*this);
+			system().optionAllowExtendedVideoLines = item.flipBoolValue(*this);
 		}
 	};
 
@@ -134,32 +139,32 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	BoolMenuItem blockInvalidVRAMAccess
 	{
 		"Allow Invalid VRAM Access", &defaultFace(),
-		(bool)!optionBlockInvalidVRAMAccess,
+		(bool)!system().optionBlockInvalidVRAMAccess,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			optionBlockInvalidVRAMAccess = !item.flipBoolValue(*this);
-			PPU.BlockInvalidVRAMAccess = optionBlockInvalidVRAMAccess;
+			system().optionBlockInvalidVRAMAccess = !item.flipBoolValue(*this);
+			PPU.BlockInvalidVRAMAccess = system().optionBlockInvalidVRAMAccess;
 		}
 	};
 
 	BoolMenuItem separateEchoBuffer
 	{
 		"Separate Echo Buffer From Ram", &defaultFace(),
-		(bool)optionSeparateEchoBuffer,
+		(bool)system().optionSeparateEchoBuffer,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			optionSeparateEchoBuffer = item.flipBoolValue(*this);
-			SNES::dsp.spc_dsp.separateEchoBuffer = optionSeparateEchoBuffer;
+			system().optionSeparateEchoBuffer = item.flipBoolValue(*this);
+			SNES::dsp.spc_dsp.separateEchoBuffer = system().optionSeparateEchoBuffer;
 		}
 	};
 
 	void setSuperFXClock(unsigned val)
 	{
 		system().sessionOptionSet();
-		optionSuperFXClockMultiplier = val;
-		setSuperFXSpeedMultiplier(optionSuperFXClockMultiplier);
+		system().optionSuperFXClockMultiplier = val;
+		setSuperFXSpeedMultiplier(system().optionSuperFXClockMultiplier);
 	}
 
 	TextMenuItem superFXClockItem[2]
@@ -171,7 +176,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 5 to 250", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(optionSuperFXClockMultiplier.isValidVal(val))
+						if(system().optionSuperFXClockMultiplier.isValidVal(val))
 						{
 							setSuperFXClock(val);
 							superFXClock.setSelected(std::size(superFXClockItem) - 1, *this);
@@ -194,12 +199,12 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		"SuperFX Clock Multiplier", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", optionSuperFXClockMultiplier.val));
+			t.setString(fmt::format("{}%", system().optionSuperFXClockMultiplier.val));
 			return true;
 		},
-		[]()
+		[this]()
 		{
-			if(optionSuperFXClockMultiplier.val == 100)
+			if(system().optionSuperFXClockMultiplier.val == 100)
 				return 0;
 			else
 				return 1;

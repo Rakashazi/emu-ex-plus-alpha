@@ -14,11 +14,8 @@
 	along with GBA.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
-#include <emuframework/EmuAudio.hh>
-#include <emuframework/EmuVideo.hh>
-#include "internal.hh"
+#include <emuframework/EmuSystemInlines.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #include <vbam/gba/GBA.h>
@@ -66,30 +63,30 @@ const char *EmuSystem::systemName() const
 	return "Game Boy Advance";
 }
 
-void EmuSystem::reset(ResetMode mode)
+void GbaSystem::reset(EmuApp &, ResetMode mode)
 {
 	assert(hasContent());
 	CPUReset(gGba);
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
+FS::FileString GbaSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}{}.sgm", name, saveSlotChar(slot));
 }
 
-void EmuSystem::saveState(IG::CStringView path)
+void GbaSystem::saveState(IG::CStringView path)
 {
 	if(!CPUWriteState(appContext(), gGba, path))
 		return throwFileWriteError();
 }
 
-void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
+void GbaSystem::loadState(EmuApp &app, IG::CStringView path)
 {
 	if(!CPUReadState(app.appContext(), gGba, path))
 		return throwFileReadError();
 }
 
-void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void GbaSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
 	if(!hasContent() || saveType == GBA_SAVE_NONE)
 		return;
@@ -107,7 +104,7 @@ void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 	}
 }
 
-void EmuSystem::closeSystem()
+void GbaSystem::closeSystem()
 {
 	assert(hasContent());
 	CPUCleanUp();
@@ -147,7 +144,7 @@ static void applyGamePatches(EmuSystem &sys, uint8_t *rom, int &romSize)
 	}
 }
 
-void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void GbaSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	int size = CPULoadRomWithIO(gGba, io);
 	if(!size)
@@ -163,7 +160,7 @@ void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	readCheatFile(*this);
 }
 
-bool EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
+bool GbaSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
 	logMsg("updating system color maps");
 	video.setFormat({lcdSize, fmt});
@@ -176,17 +173,17 @@ bool EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 	return true;
 }
 
-void EmuSystem::renderFramebuffer(EmuVideo &video)
+void GbaSystem::renderFramebuffer(EmuVideo &video)
 {
 	systemDrawScreen({}, video);
 }
 
-void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
+void GbaSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	CPULoop(gGba, taskCtx, video, audio);
 }
 
-void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
+void GbaSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
 	double mixRate = std::round(rate * (59.7275 * frameTime.count()));
 	logMsg("set audio rate:%d, mix rate:%d", rate, (int)mixRate);

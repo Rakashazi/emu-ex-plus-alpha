@@ -15,7 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 namespace EmuEx
 {
@@ -46,9 +46,10 @@ const unsigned EmuSystem::maxPlayers = 1;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0};
 GbcInput gbcInput{};
 
-void updateVControllerMapping(unsigned player, VController::Map &map)
+VController::Map GbcSystem::vControllerMap(int player)
 {
 	using namespace gambatte;
+	VController::Map map;
 	map[VController::F_ELEM] = InputGetter::B;
 	map[VController::F_ELEM+1] = InputGetter::A;
 
@@ -63,9 +64,10 @@ void updateVControllerMapping(unsigned player, VController::Map &map)
 	map[VController::D_ELEM+6] = InputGetter::DOWN | InputGetter::LEFT;
 	map[VController::D_ELEM+7] = InputGetter::DOWN;
 	map[VController::D_ELEM+8] = InputGetter::DOWN | InputGetter::RIGHT;
+	return map;
 }
 
-unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
+unsigned GbcSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	using namespace gambatte;
 	turbo = 0;
@@ -90,12 +92,12 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
+void GbcSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	gbcInput.bits = IG::setOrClearBits(gbcInput.bits, emuKey, action == Input::Action::PUSHED);
+	gbcInput.bits = IG::setOrClearBits(gbcInput.bits, a.key, a.state == Input::Action::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers(EmuInputView &)
+void GbcSystem::clearInputBuffers(EmuInputView &)
 {
 	gbcInput.bits = 0;
 }

@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <iterator>
 #include <span>
+#include <algorithm>
 
 namespace IG
 {

@@ -40,12 +40,12 @@ void TurboInput::update(EmuApp &app)
 			if(clock == 0)
 			{
 				//logMsg("turbo push for player %d, action %d", e.player, e.action);
-				app.system().handleInputAction(&app, Input::Action::PUSHED, e.action);
+				app.system().handleInputAction(&app, {e.action, Input::Action::PUSHED});
 			}
 			else if(clock == turboFrames/2)
 			{
 				//logMsg("turbo release for player %d, action %d", e.player, e.action);
-				app.system().handleInputAction(&app, Input::Action::RELEASED, e.action);
+				app.system().handleInputAction(&app, {e.action, Input::Action::RELEASED});
 			}
 		}
 	}

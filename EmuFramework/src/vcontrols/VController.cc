@@ -133,7 +133,7 @@ void VController::inputAction(Input::Action action, unsigned vBtn)
 {
 	if(isInKeyboardMode())
 	{
-		system().handleInputAction(&app(), action, kb.translateInput(vBtn));
+		system().handleInputAction(&app(), {kb.translateInput(vBtn), action});
 	}
 	else
 	{
@@ -151,7 +151,7 @@ void VController::inputAction(Input::Action action, unsigned vBtn)
 				app().removeTurboInputEvent(keyCode);
 			}
 		}
-		system().handleInputAction(&app(), action, keyCode);
+		system().handleInputAction(&app(), {keyCode, action});
 	}
 }
 
@@ -249,7 +249,7 @@ int VController::keyboardKeyFromPointer(const Input::MotionEvent &e)
 		if(!e.pushed())
 			return -1;
 		logMsg("switch kb mode");
-		kb.setMode(renderer(), kb.mode() ^ true);
+		kb.setMode(system(), renderer(), kb.mode() ^ true);
 		resetInput();
 	}
 	else
@@ -517,15 +517,13 @@ uint8_t VController::inputPlayer() const
 
 void VController::updateMapping()
 {
-	updateVControllerMapping(inputPlayer(), map);
+	map = system().vControllerMap(inputPlayer());
 }
 
 void VController::updateKeyboardMapping()
 {
-	kb.updateKeyboardMapping();
+	kb.updateKeyboardMapping(system());
 }
-
-[[gnu::weak]] VController::KbMap updateVControllerKeyboardMapping(unsigned mode) { return {}; }
 
 void VController::setMenuImage(Gfx::TextureSpan img)
 {

@@ -14,11 +14,8 @@
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuApp.hh>
-#include <emuframework/EmuInput.hh>
-#include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuAppInlines.hh>
-#include "internal.hh"
+#include <emuframework/EmuSystemInlines.hh>
 #include "system.h"
 #include "loadrom.h"
 #include "md_cart.h"
@@ -55,8 +52,6 @@ bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::canRenderRGB565 = RENDER_BPP == 16;
 bool EmuSystem::canRenderRGBA8888 = RENDER_BPP == 32;
 bool EmuApp::needsGlobalInstance = true;
-int8 mdInputPortDev[2]{-1, -1};
-static unsigned autoDetectedVidSysPAL = 0;
 
 static bool hasBinExtension(std::string_view name)
 {
@@ -99,7 +94,7 @@ const char *EmuSystem::systemName() const
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMDWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMDExtension;
 
-void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
+void MdSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	//logMsg("frame start");
 	RAMCheatUpdate();
@@ -115,14 +110,14 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	//logMsg("frame end");
 }
 
-void EmuSystem::renderFramebuffer(EmuVideo &video)
+void MdSystem::renderFramebuffer(EmuVideo &video)
 {
 	video.startFrameWithAltFormat({}, framebufferRenderFormatPixmap());
 }
 
-bool EmuSystem::vidSysIsPAL() { return vdp_pal; }
+VideoSystem MdSystem::videoSystem() const { return vdp_pal ? VideoSystem::PAL : VideoSystem::NATIVE_NTSC; }
 
-void EmuSystem::reset(ResetMode mode)
+void MdSystem::reset(EmuApp &, ResetMode mode)
 {
 	assert(hasContent());
 	#ifndef NO_SCD
@@ -133,7 +128,7 @@ void EmuSystem::reset(ResetMode mode)
 		gen_reset(0);
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
+FS::FileString MdSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}.gp", name, saveSlotChar(slot));
 }
@@ -150,7 +145,7 @@ static FS::PathString bramSaveFilename(EmuSystem &sys)
 
 static const unsigned maxSaveStateSize = STATE_SIZE+4;
 
-void EmuSystem::saveState(IG::CStringView path)
+void MdSystem::saveState(IG::CStringView path)
 {
 	auto stateData = std::make_unique<uint8_t[]>(maxSaveStateSize);
 	logMsg("saving state data");
@@ -161,7 +156,7 @@ void EmuSystem::saveState(IG::CStringView path)
 	logMsg("wrote %zu byte state", size);
 }
 
-void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
+void MdSystem::loadState(EmuApp &app, IG::CStringView path)
 {
 	state_load(FileUtils::bufferFromUri(app.appContext(), path).data());
 }
@@ -176,7 +171,7 @@ static bool sramHasContent(std::span<uint8> sram)
 	return false;
 }
 
-void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void MdSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
 	if(!hasContent())
 		return;
@@ -236,7 +231,7 @@ void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 	}
 }
 
-void EmuSystem::closeSystem()
+void MdSystem::closeSystem()
 {
 	#ifndef NO_SCD
 	if(sCD.isActive)
@@ -273,11 +268,11 @@ static void setupSMSInput()
 	input.system[0] = input.system[1] =  SYSTEM_MS_GAMEPAD;
 }
 
-void setupMDInput(EmuApp &app)
+void MdSystem::setupMDInput(EmuApp &app)
 {
 	static constexpr std::pair<int, bool> enable6Btn[]{{3, true}, {4, true}, {5, true}};
 	static constexpr std::pair<int, bool> disable6Btn[]{{3, false}, {4, false}, {5, false}};
-	if(!app.system().hasContent())
+	if(!hasContent())
 	{
 		app.applyEnabledFaceButtons(option6BtnPad ? enable6Btn : disable6Btn);
 		return;
@@ -368,7 +363,7 @@ FS::PathString EmuSystem::willLoadContentFromPath(std::string_view path, std::st
 	return FS::PathString{path};
 }
 
-void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	#ifndef NO_SCD
 	using namespace Mednafen;
@@ -434,7 +429,7 @@ void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	{
 		vdp_pal = 1;
 	}
-	if(vidSysIsPAL())
+	if(videoSystem() == VideoSystem::PAL)
 		logMsg("using PAL timing");
 
 	system_init();
@@ -510,7 +505,7 @@ void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	applyCheats();
 }
 
-void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
+void MdSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
 	audio_init(rate, 1. / frameTime.count());
 	if(hasContent())
@@ -518,7 +513,7 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	logMsg("md sound buffer size %d", snd.buffer_size);
 }
 
-bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
+bool MdSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
 	setFramebufferRenderFormat(fmt);
 	return false;

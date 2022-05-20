@@ -19,6 +19,7 @@
 
 #include "Console.hxx"
 #include "FrameBuffer.hxx"
+#include "OSystem.hxx"
 
 #include "PaletteHandler.hxx"
 

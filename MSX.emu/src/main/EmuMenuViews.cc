@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuApp.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
@@ -22,7 +21,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/AssetFS.hh>
 #include <imagine/util/format.hh>
-#include "internal.hh"
+#include "MainApp.hh"
 
 extern "C"
 {
@@ -31,6 +30,9 @@ extern "C"
 
 namespace EmuEx
 {
+
+template <class T>
+using MainAppHelper = EmuAppHelper<T, MainApp>;
 
 static std::vector<FS::FileString> machinesNames(IG::ApplicationContext ctx, std::string_view basePath)
 {
@@ -104,9 +106,10 @@ static int machineIndex(std::vector<FS::FileString> &name, FS::FileString search
 	}
 }
 
-class CustomSystemOptionView : public SystemOptionView
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
 {
-private:
+	using MainAppHelper<CustomSystemOptionView>::system;
+
 	std::vector<FS::FileString> msxMachineName{};
 	std::vector<TextMenuItem> msxMachineItem{};
 
@@ -142,13 +145,13 @@ private:
 		for(const auto &name : msxMachineName)
 		{
 			msxMachineItem.emplace_back(name, &defaultFace(),
-			[name = name.data()](Input::Event)
+			[this, name = name.data()](Input::Event)
 			{
-				setDefaultMachineName(name);
+				system().setDefaultMachineName(name);
 				logMsg("set machine type: %s", name);
 			});
 		}
-		msxMachine.setSelected(machineIndex(msxMachineName, optionDefaultMachineNameStr));
+		msxMachine.setSelected(machineIndex(msxMachineName, system().optionDefaultMachineNameStr));
 	}
 
 	BoolMenuItem skipFdcAccess
@@ -230,7 +233,7 @@ public:
 
 static const char *insertEjectDiskMenuStr[] {"Insert File", "Eject"};
 
-class MsxIOControlView : public TableView, public EmuAppHelper<MsxIOControlView>
+class MsxIOControlView : public TableView, public MainAppHelper<MsxIOControlView>
 {
 public:
 	static const char *hdSlotPrefix[4];
@@ -315,12 +318,12 @@ public:
 
 	void updateROMText(int slot)
 	{
-		romSlot[slot].setName(fmt::format("{} {}", romSlotPrefix[slot], cartName[slot]));
+		romSlot[slot].setName(fmt::format("{} {}", romSlotPrefix[slot], system().cartName[slot]));
 	}
 
 	void onROMMediaChange(std::string_view name, int slot)
 	{
-		cartName[slot] = name;
+		system().cartName[slot] = name;
 		updateROMText(slot);
 		romSlot[slot].compile(renderer(), projP);
 		updateHDStatusFromCartSlot(slot);
@@ -397,12 +400,12 @@ public:
 
 	void updateDiskText(int slot)
 	{
-		diskSlot[slot].setName(fmt::format("{} {}", diskSlotPrefix[slot], diskName[slot]));
+		diskSlot[slot].setName(fmt::format("{} {}", diskSlotPrefix[slot], system().diskName[slot]));
 	}
 
 	void onDiskMediaChange(std::string_view name, int slot)
 	{
-		diskName[slot] = name;
+		system().diskName[slot] = name;
 		updateDiskText(slot);
 		diskSlot[slot].compile(renderer(), projP);
 	}
@@ -427,7 +430,7 @@ public:
 
 	void onSelectDisk(Input::Event e, uint8_t slot)
 	{
-		if(diskName[slot].size())
+		if(system().diskName[slot].size())
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Disk Drive", std::size(insertEjectDiskMenuStr));
 			multiChoiceView->appendItem(insertEjectDiskMenuStr[0],
@@ -500,8 +503,11 @@ const char *MsxIOControlView::romSlotPrefix[2] {"ROM1:", "ROM2:"};
 const char *MsxIOControlView::diskSlotPrefix[2] {"Disk1:", "Disk2:"};
 const char *MsxIOControlView::hdSlotPrefix[4] {"IDE1-M:", "IDE1-S:", "IDE2-M:", "IDE2-S:"};
 
-class CustomSystemActionsView : public EmuSystemActionsView
+class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelper<CustomSystemActionsView>
 {
+	using MainAppHelper<CustomSystemActionsView>::system;
+	using MainAppHelper<CustomSystemActionsView>::app;
+
 private:
 	TextMenuItem msxIOControl
 	{
@@ -512,7 +518,7 @@ private:
 			{
 				pushAndShow(makeView<MsxIOControlView>(), e);
 			}
-			else if(system().hasContent() && activeBoardType != BOARD_MSX)
+			else if(system().hasContent() && system().activeBoardType != BOARD_MSX)
 			{
 				app().postMessage(2, false, "Only used in MSX mode");
 			}
@@ -561,7 +567,7 @@ private:
 					{
 						try
 						{
-							setCurrentMachineName(app(), name);
+							system().setCurrentMachineName(app(), name);
 						}
 						catch(std::exception &err)
 						{
@@ -569,7 +575,7 @@ private:
 							return;
 						}
 						auto machineName = currentMachineName();
-						optionSessionMachineNameStr = machineName;
+						system().optionSessionMachineNameStr = machineName;
 						msxMachine.setSelected(machineIndex(msxMachineName, machineName));
 						system().sessionOptionSet();
 						dismissPrevious();
@@ -599,7 +605,7 @@ public:
 	void onShow()
 	{
 		EmuSystemActionsView::onShow();
-		msxIOControl.setActive(system().hasContent() && activeBoardType == BOARD_MSX);
+		msxIOControl.setActive(system().hasContent() && system().activeBoardType == BOARD_MSX);
 		msxMachine.setSelected(machineIndex(msxMachineName, currentMachineName()));
 	}
 };
@@ -615,7 +621,7 @@ static const MixerAudioType channelType[]
 	MIXER_CHANNEL_PCM,
 };
 
-class SoundMixerView : public TableView, public EmuAppHelper<SoundMixerView>
+class SoundMixerView : public TableView, public MainAppHelper<SoundMixerView>
 {
 public:
 	SoundMixerView(ViewAttachParams attach):

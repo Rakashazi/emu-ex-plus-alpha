@@ -17,7 +17,7 @@
 #include <array>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FS.hh>
@@ -32,8 +32,6 @@ extern "C"
 
 namespace EmuEx
 {
-
-const char *sysFileDir{};
 
 static int loadSysFile(IO &file, const char *name, uint8_t *dest, int minsize, int maxsize)
 {
@@ -122,7 +120,7 @@ static AssetIO assetIOForSysFile(IG::ApplicationContext ctx, std::string_view sy
 	return file;
 }
 
-std::vector<std::string> systemFilesWithExtension(const char *ext)
+std::vector<std::string> C64System::systemFilesWithExtension(const char *ext) const
 {
 	logMsg("looking for system files with extension:%s", ext);
 	auto appContext = gAppContext();
@@ -184,7 +182,7 @@ using namespace EmuEx;
 
 CLINK int sysfile_init(const char *emu_id)
 {
-	sysFileDir = emu_id;
+	static_cast<C64System&>(gSystem()).sysFileDir = emu_id;
 	return 0;
 }
 
@@ -192,6 +190,7 @@ CLINK FILE *sysfile_open(const char *name, const char *subPath, char **complete_
 {
 	logMsg("sysfile open:%s subPath:%s", name, subPath);
 	auto appContext = gAppContext();
+	auto &sysFilePath = static_cast<C64System&>(gSystem()).sysFilePath;
 	for(const auto &basePath : sysFilePath)
 	{
 		if(basePath.empty())
@@ -237,6 +236,7 @@ CLINK int sysfile_locate(const char *name, const char *subPath, char **complete_
 {
 	logMsg("sysfile locate:%s subPath:%s", name, subPath);
 	auto appContext = gAppContext();
+	auto &sysFilePath = static_cast<C64System&>(gSystem()).sysFilePath;
 	for(const auto &basePath : sysFilePath)
 	{
 		if(basePath.empty())
@@ -284,6 +284,7 @@ CLINK int sysfile_load(const char *name, const char *subPath, uint8_t *dest, int
 {
 	logMsg("sysfile load:%s subPath:%s", name, subPath);
 	auto appContext = gAppContext();
+	auto &sysFilePath = static_cast<C64System&>(gSystem()).sysFilePath;
 	for(const auto &basePath : sysFilePath)
 	{
 		if(basePath.empty())

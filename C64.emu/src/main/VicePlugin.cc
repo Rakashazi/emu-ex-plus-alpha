@@ -217,19 +217,19 @@ void VicePlugin::deinit()
 
 bool VicePlugin::hasSystemLib(ViceSystem system, const char *libBasePath)
 {
-	if(system < VICE_SYSTEM_C64 || system > VICE_SYSTEM_VIC20)
+	if(system < ViceSystem::C64 || system > ViceSystem::VIC20)
 		return false;
-	return IG::FS::exists(makePluginLibPath(libName[system], libBasePath));
+	return IG::FS::exists(makePluginLibPath(libName[IG::to_underlying(system)], libBasePath));
 }
 
 const char *VicePlugin::systemName(ViceSystem system)
 {
-	if(system < VICE_SYSTEM_C64 || system > VICE_SYSTEM_VIC20)
+	if(system < ViceSystem::C64 || system > ViceSystem::VIC20)
 		return "";
-	return systemNameStr[system];
+	return systemNameStr[IG::to_underlying(system)];
 }
 
-int VicePlugin::model_get()
+int VicePlugin::model_get() const
 {
 	if(model_get_)
 		return model_get_();
@@ -242,7 +242,7 @@ void VicePlugin::model_set(int model)
 		return model_set_(model);
 }
 
-int VicePlugin::resources_get_string(const char *name, const char **value_return)
+int VicePlugin::resources_get_string(const char *name, const char **value_return) const
 {
 	if(resources_get_string_)
 		return resources_get_string_(name, value_return);
@@ -256,7 +256,7 @@ int VicePlugin::resources_set_string(const char *name, const char *value)
 	return -1;
 }
 
-int VicePlugin::resources_get_int(const char *name, int *value_return)
+int VicePlugin::resources_get_int(const char *name, int *value_return) const
 {
 	if(resources_get_int_)
 		return resources_get_int_(name, value_return);
@@ -270,7 +270,7 @@ int VicePlugin::resources_set_int(const char *name, int value)
 	return -1;
 }
 
-int VicePlugin::resources_get_default_value(const char *name, void *value_return)
+int VicePlugin::resources_get_default_value(const char *name, void *value_return) const
 {
 	if(resources_get_default_value_)
 		return resources_get_default_value_(name, value_return);
@@ -529,12 +529,12 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 	loadSymbolCheck(plugin.init_main_, lib, "init_main");
 	assert(plugin.init_main_);
 	loadSymbolCheck(plugin.maincpu_mainloop_, lib, "maincpu_mainloop");
-	if(system == VICE_SYSTEM_PET)
+	if(system == ViceSystem::PET)
 	{
 		loadSymbolCheck(plugin.autostart_autodetect_, lib, "autostart_autodetect");
 		// no cart system
 	}
-	else if(system == VICE_SYSTEM_PLUS4)
+	else if(system == ViceSystem::PLUS4)
 	{
 		loadSymbolCheck(plugin.autostart_autodetect_, lib, "autostart_autodetect");
 		plugin.cart_getid_slotmain_ =
@@ -550,7 +550,7 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 		loadSymbolCheck(plugin.cartridge_attach_image_, lib, "cartridge_attach_image");
 		loadSymbolCheck(plugin.cartridge_detach_image_, lib, "cartridge_detach_image");
 	}
-	else if(system == VICE_SYSTEM_CBM2 || system == VICE_SYSTEM_CBM5X0)
+	else if(system == ViceSystem::CBM2 || system == ViceSystem::CBM5X0)
 	{
 		plugin.cart_getid_slotmain_ =
 			[]()
@@ -560,7 +560,7 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 		loadSymbolCheck(plugin.cartridge_attach_image_, lib, "cartridge_attach_image");
 		loadSymbolCheck(plugin.cartridge_detach_image_, lib, "cartridge_detach_image");
 	}
-	else if(system == VICE_SYSTEM_VIC20)
+	else if(system == ViceSystem::VIC20)
 	{
 		loadSymbolCheck(plugin.autostart_autodetect_, lib, "autostart_autodetect");
 		plugin.cart_getid_slotmain_ =
@@ -575,7 +575,7 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 	else
 	{
 		loadSymbolCheck(plugin.autostart_autodetect_, lib, "autostart_autodetect");
-		if(system != VICE_SYSTEM_C64DTV)
+		if(system != ViceSystem::C64DTV)
 			loadSymbolCheck(plugin.cart_getid_slotmain_, lib, "cart_getid_slotmain");
 		loadSymbolCheck(plugin.cartridge_get_file_name_, lib, "cartridge_get_file_name");
 		loadSymbolCheck(plugin.cartridge_attach_image_, lib, "cartridge_attach_image");
@@ -700,7 +700,7 @@ VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 			VIC20MODEL_VIC20_NTSC
 		},
 	};
-	auto libPath = makePluginLibPath(libName[system], libBasePath);
+	auto libPath = makePluginLibPath(libName[IG::to_underlying(system)], libBasePath);
 	logMsg("loading VICE plugin:%s", libPath.data());
 	auto lib = IG::openSharedLibrary(libPath.data(), IG::RESOLVE_ALL_SYMBOLS_FLAG);
 	if(!lib)
@@ -708,7 +708,7 @@ VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 		return {};
 	}
 	auto plugin = commonVicePlugin(lib, system);
-	auto &conf = pluginConf[system];
+	auto &conf = pluginConf[IG::to_underlying(system)];
 	loadSymbolCheck(plugin.model_get_, lib, conf.getModelFuncName);
 	loadSymbolCheck(plugin.model_set_, lib, conf.setModelFuncName);
 	//logMsg("getModel() address:%p", plugin.model_get_);

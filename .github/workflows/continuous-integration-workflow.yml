@@ -58,13 +58,6 @@ jobs:
         cd imagine/make/gradle/app/
         patch -p 1 -i 01-change-signing-to-debug.patch
         rm 01-change-signing-to-debug.patch
-  
-    - name: Patch android.mk
-      run: |
-        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
-        cd imagine/make/shortcut/meta-builds
-        patch -p 1 -i 02-change-bundle-to-apk.patch
-        rm 02-change-bundle-to-apk.patch
         
     - name: Run script
       run: |
@@ -83,7 +76,7 @@ jobs:
       if: ${{ matrix.image == '2600.emu' }}
       run: |
         cd 2600.emu
-        make -f android-release.mk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j2
 
     - name: Copy 2600.emu artifact
       if: ${{ matrix.image == '2600.emu' }}
@@ -101,7 +94,7 @@ jobs:
       if: ${{ matrix.image == 'C64.emu' }}
       run: |        
         cd C64.emu
-        make -f android-release.mk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j2
 
     - name: Copy C64.emu artifact
       if: ${{ matrix.image == 'C64.emu' }}
@@ -119,7 +112,7 @@ jobs:
       if: ${{ matrix.image == 'GBA.emu' }}
       run: |        
         cd GBA.emu
-        make -f android-release.mk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j2
 
     - name: Copy GBA.emu artifact
       if: ${{ matrix.image == 'GBA.emu' }}
@@ -137,7 +130,7 @@ jobs:
       if: ${{ matrix.image == 'GBC.emu' }}
       run: |        
         cd GBC.emu
-        make -f android-release.mk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j2
 
     - name: Copy GBC.emu artifact
       if: ${{ matrix.image == 'GBC.emu' }}
@@ -155,7 +148,7 @@ jobs:
       if: ${{ matrix.image == 'MD.emu' }}
       run: |        
         cd MD.emu
-        make -f android-release.mk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j2
 
     - name: Copy MD.emu artifact
       if: ${{ matrix.image == 'MD.emu' }}
@@ -173,7 +166,7 @@ jobs:
       if: ${{ matrix.image == 'MSX.emu' }}
       run: |        
         cd MSX.emu
-        make -f android-release.mk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j2
 
     - name: Copy MSX.emu artifact
       if: ${{ matrix.image == 'MSX.emu' }}
@@ -191,7 +184,7 @@ jobs:
       if: ${{ matrix.image == 'NEO.emu' }}
       run: |        
         cd NEO.emu
-        make -f android-release.mk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j2
 
     - name: Copy NEO.emu artifact
       if: ${{ matrix.image == 'NEO.emu' }}
@@ -209,7 +202,7 @@ jobs:
       if: ${{ matrix.image == 'NES.emu' }}
       run: |        
         cd NES.emu
-        make -f android-release.mk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j2
 
     - name: Copy NES.emu artifact
       if: ${{ matrix.image == 'NES.emu' }}
@@ -227,7 +220,7 @@ jobs:
       if: ${{ matrix.image == 'NGP.emu' }}
       run: |        
         cd NGP.emu
-        make -f android-release.mk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j2
 
     - name: Copy NGP.emu artifact
       if: ${{ matrix.image == 'NGP.emu' }}
@@ -245,7 +238,7 @@ jobs:
       if: ${{ matrix.image == 'PCE.emu' }}
       run: |        
         cd PCE.emu
-        make -f android-release.mk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j2
 
     - name: Copy PCE.emu artifact
       if: ${{ matrix.image == 'PCE.emu' }}
@@ -263,7 +256,7 @@ jobs:
       if: ${{ matrix.image == 'Snes9x' }}
       run: |        
         cd Snes9x
-        make -f android-release.mk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j2
 
     - name: Copy Snes9x artifact
       if: ${{ matrix.image == 'Snes9x' }}

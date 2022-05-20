@@ -17,20 +17,23 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
-#include "internal.hh"
+#include "MainApp.hh"
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/RTC.h>
 
 namespace EmuEx
 {
 
-class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
+template <class T>
+using MainAppHelper = EmuAppHelper<T, MainApp>;
+
+class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
 {
 	TextMenuItem rtcItem[3]
 	{
-		{"Auto", &defaultFace(), [this](){ setRTCEmulation(RTC_EMU_AUTO); }},
-		{"Off",  &defaultFace(), [this](){ setRTCEmulation(RTC_EMU_OFF); }},
-		{"On",   &defaultFace(), [this](){ setRTCEmulation(RTC_EMU_ON); }},
+		{"Auto", &defaultFace(), [this](){ setRTCEmulation(RtcMode::AUTO); }},
+		{"Off",  &defaultFace(), [this](){ setRTCEmulation(RtcMode::OFF); }},
+		{"On",   &defaultFace(), [this](){ setRTCEmulation(RtcMode::ON); }},
 	};
 
 	MultiChoiceMenuItem rtc
@@ -45,15 +48,15 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 			}
 			return false;
 		},
-		optionRtcEmulation.val,
+		system().optionRtcEmulation.val,
 		rtcItem
 	};
 
-	void setRTCEmulation(unsigned val)
+	void setRTCEmulation(RtcMode val)
 	{
 		system().sessionOptionSet();
-		optionRtcEmulation = val;
-		setRTC(val);
+		system().optionRtcEmulation = to_underlying(val);
+		system().setRTC(val);
 	}
 
 	std::array<MenuItem*, 1> menuItem

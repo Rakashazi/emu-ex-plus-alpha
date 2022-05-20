@@ -16,7 +16,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
 #include <imagine/util/math/space.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 #include "input.h"
 #include "system.h"
 
@@ -54,12 +54,12 @@ const char *EmuSystem::inputCenterBtnName = "Mode/Start";
 const unsigned EmuSystem::inputFaceBtns = 6;
 const unsigned EmuSystem::inputCenterBtns = 2;
 const unsigned EmuSystem::maxPlayers = 4;
-unsigned playerIdxMap[4]{};
-static constexpr int gunDevIdx = 4;
+constexpr int gunDevIdx = 4;
 
-void updateVControllerMapping(unsigned player, VController::Map &map)
+VController::Map MdSystem::vControllerMap(int player)
 {
 	unsigned playerMask = player << 30;
+	VController::Map map{};
 	map[VController::F_ELEM] = INPUT_A | playerMask;
 	map[VController::F_ELEM+1] = INPUT_B | playerMask;
 	map[VController::F_ELEM+2] = INPUT_C | playerMask;
@@ -78,9 +78,10 @@ void updateVControllerMapping(unsigned player, VController::Map &map)
 	map[VController::D_ELEM+6] = INPUT_DOWN | INPUT_LEFT | playerMask;
 	map[VController::D_ELEM+7] = INPUT_DOWN | playerMask;
 	map[VController::D_ELEM+8] = INPUT_DOWN | INPUT_RIGHT | playerMask;
+	return map;
 }
 
-unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
+unsigned MdSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	assert(input >= mdKeyIdxUp);
@@ -116,15 +117,15 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
+void MdSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	auto player = emuKey >> 30; // player is encoded in upper 2 bits of input code
+	auto player = a.key >> 30; // player is encoded in upper 2 bits of input code
 	assert(player <= 4);
 	uint16 &padData = input.pad[playerIdxMap[player]];
-	padData = IG::setOrClearBits(padData, (uint16)emuKey, action == Input::Action::PUSHED);
+	padData = IG::setOrClearBits(padData, (uint16)a.key, a.state == Input::Action::PUSHED);
 }
 
-bool EmuSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
+bool MdSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
 {
 	if(input.dev[gunDevIdx] != DEVICE_LIGHTGUN)
 		return false;
@@ -139,7 +140,7 @@ bool EmuSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrac
 	return true;
 }
 
-bool EmuSystem::onPointerInputEnd(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect)
+bool MdSystem::onPointerInputEnd(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect)
 {
 	if(input.dev[gunDevIdx] != DEVICE_LIGHTGUN)
 		return false;
@@ -147,7 +148,7 @@ bool EmuSystem::onPointerInputEnd(const Input::MotionEvent &e, Input::DragTracke
 	return true;
 }
 
-void EmuSystem::clearInputBuffers(EmuInputView &)
+void MdSystem::clearInputBuffers(EmuInputView &)
 {
 	IG::fill(input.pad);
 	for(auto &analog : input.analog)

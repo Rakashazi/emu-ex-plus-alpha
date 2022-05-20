@@ -224,7 +224,7 @@ void FCEU_FDSSelect(void)
 	FCEU_DispMessage("Disk %d Side %c Selected", 0, SelectDisk >> 1, (SelectDisk & 1) ? 'B' : 'A');
 }
 
-void FCEU_FDSSetDisk(uint8 side)
+void FCEU_FDSSetDisk(uint8 side, EmuEx::NesSystem &sys)
 {
 	if(side >= TotalSides)
 		return;
@@ -233,7 +233,7 @@ void FCEU_FDSSetDisk(uint8 side)
 	{
 		FCEU_FDSInsert();
 		for(int i = 0; i < 60; i++)
-			FCEUI_Emulate(nullptr, false, nullptr); // wait 1 second in emu time for disk eject
+			FCEUI_Emulate(sys, nullptr, false, nullptr); // wait 1 second in emu time for disk eject
 	}
 
 	while(SelectDisk != side)

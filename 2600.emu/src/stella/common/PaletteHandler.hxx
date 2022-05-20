@@ -19,9 +19,11 @@
 #define PALETTE_HANDLER_HXX
 
 #include "bspf.hxx"
-#include "OSystem.hxx"
 #include "ConsoleTiming.hxx"
 #include "EventHandlerConstants.hxx"
+
+class OSystem;
+class Settings;
 
 class PaletteHandler
 {

@@ -14,7 +14,7 @@
 	along with Saturn.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 extern "C"
 {
@@ -68,33 +68,32 @@ bool EmuSystem::hasSound = !(Config::envIsAndroid || Config::envIsIOS);
 int EmuSystem::forcedSoundRate = 44100;
 bool EmuSystem::constFrameRate = true;
 
-void EmuSystem::initOptions(EmuApp &app)
-{
-	app.setDefaultVControlsButtonSpacing(100);
-	app.setDefaultVControlsButtonStagger(3);
-}
-
-void EmuSystem::onOptionsLoaded()
+void SaturnSystem::onOptionsLoaded()
 {
 	yinit.sh2coretype = optionSH2Core;
 }
 
-bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
+bool SaturnSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
 {
-	switch(key)
+	if(type == ConfigType::MAIN)
 	{
-		default: return 0;
-		bcase CFGKEY_BIOS_PATH:
-			readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){biosPath = path;});
-		bcase CFGKEY_SH2_CORE: optionSH2Core.readFromIO(io, readSize);
+		switch(key)
+		{
+			case CFGKEY_BIOS_PATH:
+				return readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){biosPath = path;});
+			case CFGKEY_SH2_CORE: return optionSH2Core.readFromIO(io, readSize);
+		}
 	}
-	return 1;
+	return false;
 }
 
-void EmuSystem::writeConfig(IO &io)
+void SaturnSystem::writeConfig(ConfigType type, IO &io)
 {
-	writeStringOptionValue(io, CFGKEY_BIOS_PATH, biosPath);
-	optionSH2Core.writeWithKeyIfNotDefault(io);
+	if(type == ConfigType::MAIN)
+	{
+		writeStringOptionValue(io, CFGKEY_BIOS_PATH, biosPath);
+		optionSH2Core.writeWithKeyIfNotDefault(io);
+	}
 }
 
 }

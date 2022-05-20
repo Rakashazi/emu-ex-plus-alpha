@@ -51,9 +51,9 @@ inline std::optional<T> readOptionValue(IO &io, size_t bytesToRead)
 }
 
 template <class T>
-inline std::optional<T> readOptionValue(IO &io, size_t bytesToRead, auto &&func)
+inline bool readOptionValue(IO &io, size_t bytesToRead, auto &&func)
 {
-	return IG::doOptionally(readOptionValue<T>(io, bytesToRead), std::forward<decltype(func)>(func));
+	return (bool)IG::doOptionally(readOptionValue<T>(io, bytesToRead), std::forward<decltype(func)>(func));
 }
 
 template <IG::Container T>
@@ -76,9 +76,9 @@ inline std::optional<T> readStringOptionValue(IO &io, size_t bytesToRead)
 }
 
 template <IG::Container T>
-inline void readStringOptionValue(IO &io, size_t bytesToRead, auto &&func)
+inline bool readStringOptionValue(IO &io, size_t bytesToRead, auto &&func)
 {
-	IG::doOptionally(readStringOptionValue<T>(io, bytesToRead), std::forward<decltype(func)>(func));
+	return (bool)IG::doOptionally(readStringOptionValue<T>(io, bytesToRead), std::forward<decltype(func)>(func));
 }
 
 inline void writeOptionValueHeader(IO &io, uint16_t key, uint16_t optSize)

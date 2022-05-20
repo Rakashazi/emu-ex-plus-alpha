@@ -37,71 +37,28 @@
 OSystem::OSystem(EmuEx::EmuApp &app):
 	appPtr{&app}
 {
-	mySettings = std::make_unique<Settings>();
-	mySettings->setValue(AudioSettings::SETTING_PRESET, static_cast<int>(AudioSettings::Preset::custom));
-	mySettings->setValue(AudioSettings::SETTING_FRAGMENT_SIZE, 128);
-	mySettings->setValue(AudioSettings::SETTING_BUFFER_SIZE, 0);
-	mySettings->setValue(AudioSettings::SETTING_HEADROOM, 0);
-	mySettings->setValue(AudioSettings::SETTING_VOLUME, 100);
-	myAudioSettings = std::make_unique<AudioSettings>(*mySettings);
-	myRandom = std::make_unique<Random>(uInt32(TimerManager::getTicks()));
-	myFrameBuffer = std::make_unique<FrameBuffer>(*this);
-	myEventHandler = std::make_unique<EventHandler>(*this);
-	myPropSet = std::make_unique<PropertiesSet>();
-	myStateManager = std::make_unique<StateManager>(*this);
-	mySound = std::make_unique<SoundEmuEx>(*this);
-}
-
-EventHandler& OSystem::eventHandler() const
-{
-	return *myEventHandler;
-}
-
-Random& OSystem::random() const
-{
-	return *myRandom;
-}
-
-FrameBuffer& OSystem::frameBuffer() const
-{
-	return *myFrameBuffer;
-}
-
-Sound& OSystem::sound() const
-{
-	return *mySound;
-}
-
-Settings& OSystem::settings() const
-{
-	return *mySettings;
-}
-
-PropertiesSet& OSystem::propSet() const
-{
-	return *myPropSet;
-}
-
-StateManager& OSystem::state() const
-{
-	return *myStateManager;
+	mySettings.setValue(AudioSettings::SETTING_PRESET, static_cast<int>(AudioSettings::Preset::custom));
+	mySettings.setValue(AudioSettings::SETTING_FRAGMENT_SIZE, 128);
+	mySettings.setValue(AudioSettings::SETTING_BUFFER_SIZE, 0);
+	mySettings.setValue(AudioSettings::SETTING_HEADROOM, 0);
+	mySettings.setValue(AudioSettings::SETTING_VOLUME, 100);
 }
 
 void OSystem::makeConsole(unique_ptr<Cartridge>& cart, const Properties& props, const char *gamePath)
 {
 	myRomFile = FilesystemNode{gamePath};
-	myConsole = std::make_unique<Console>(*this, cart, props, *myAudioSettings);
+	myConsole.emplace(*this, cart, props, myAudioSettings);
 	myConsole->riot().update();
 }
 
 void OSystem::deleteConsole()
 {
-	myConsole = {};
+	myConsole.reset();
 }
 
-void OSystem::setFrameTime(double frameTime, int rate)
+void OSystem::setFrameTime(double frameTime, int rate, AudioSettings::ResamplingQuality resampleQ)
 {
-	mySound->setFrameTime(*this, frameTime, rate);
+	mySound.setFrameTime(*this, frameTime, rate, resampleQ);
 }
 
 FilesystemNode OSystem::stateDir() const

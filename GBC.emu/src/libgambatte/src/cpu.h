@@ -75,6 +75,7 @@ public:
 	}
 
 	void refreshPalettes() { mem_.refreshPalettes(); }
+	void setColorConversionFlags(unsigned flags) { mem_.setColorConversionFlags(flags); }
 
 	void setGameGenie(std::string const &codes) { mem_.setGameGenie(codes); }
 	void setGameShark(std::string const &codes) { mem_.setGameShark(codes); }

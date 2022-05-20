@@ -30,6 +30,8 @@ namespace gambatte {
 
 enum { BG_PALETTE = 0, SP1_PALETTE = 1, SP2_PALETTE = 2 };
 
+using VideoFrameDelegate = IG::DelegateFuncS<sizeof(void*)*3, void()>;
+
 class GB {
 public:
 	GB();
@@ -84,7 +86,7 @@ public:
 	  */
 	std::ptrdiff_t runFor(gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
 	                      gambatte::uint_least32_t *audioBuf, std::size_t &samples,
-	                      IG::DelegateFunc<void()> videoFrameCallback);
+												gambatte::VideoFrameDelegate videoFrameCallback);
 
 	/**
 	  * Reset to initial state.
@@ -99,6 +101,7 @@ public:
 	void setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32);
 
 	void refreshPalettes();
+	void setColorConversionFlags(unsigned flags);
 
 	/** Sets the callback used for getting input state. */
 	void setInputGetter(InputGetter *getInput);

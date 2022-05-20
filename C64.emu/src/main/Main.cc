@@ -14,16 +14,10 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuApp.hh>
-#include <emuframework/EmuAudio.hh>
-#include <emuframework/EmuVideo.hh>
-#include <emuframework/EmuInput.hh>
 #include <emuframework/EmuAppInlines.hh>
-#include "internal.hh"
-#include <imagine/thread/Thread.hh>
+#include <emuframework/EmuSystemInlines.hh>
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/gui/AlertView.hh>
-#include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include <sys/time.h>
@@ -72,20 +66,10 @@ namespace EmuEx
 {
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
-std::binary_semaphore execSem{0}, execDoneSem{0};
-EmuAudio *audioPtr{};
-static bool c64IsInit = false, c64FailedInit = false;
-FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3]{};
-VicePlugin plugin{};
-ViceSystem currSystem{};
-IG::PixelFormat pixFmt{};
-
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::handlesGenericIO = false;
 bool EmuApp::needsGlobalInstance = true;
-
-static void execC64Frame();
 
 const char *EmuSystem::shortSystemName() const
 {
@@ -97,101 +81,96 @@ const char *EmuSystem::systemName() const
 	return "Commodore 64";
 }
 
-static bool sysIsPal()
-{
-	switch(intResource("MachineVideoStandard"))
-	{
-		case MACHINE_SYNC_PAL:
-		case MACHINE_SYNC_PALN:
-			return true;
-		default: return false;
-	}
-}
-
-static void setModel(int model)
+void C64System::setModel(int model)
 {
 	logMsg("setting model id:%d", model);
 	plugin.model_set(model);
 }
 
-int sysModel()
+int C64System::sysModel() const
 {
 	return plugin.model_get();
 }
 
-void setSysModel(int model)
+void C64System::setSysModel(int model)
 {
 	setModel(model);
 }
 
-const char *videoChipStr()
+const char *C64System::videoChipStr() const
 {
-	switch (currSystem)
+	switch(currSystem)
 	{
-		case VICE_SYSTEM_VIC20:
+		case ViceSystem::VIC20:
 		return "VIC";
 
-		case VICE_SYSTEM_C64:
-		case VICE_SYSTEM_C64SC:
-		case VICE_SYSTEM_SUPER_CPU:
-		case VICE_SYSTEM_C64DTV:
-		case VICE_SYSTEM_C128:
-		case VICE_SYSTEM_CBM5X0:
+		case ViceSystem::C64:
+		case ViceSystem::C64SC:
+		case ViceSystem::SUPER_CPU:
+		case ViceSystem::C64DTV:
+		case ViceSystem::C128:
+		case ViceSystem::CBM5X0:
 		return "VICII";
 
-		case VICE_SYSTEM_PLUS4:
+		case ViceSystem::PLUS4:
 		return "TED";
 
-		case VICE_SYSTEM_PET:
-		case VICE_SYSTEM_CBM2:
+		case ViceSystem::PET:
+		case ViceSystem::CBM2:
 		return "Crtc";
 	}
 	return "";
 }
 
-bool currSystemIsC64()
+bool C64System::currSystemIsC64() const
 {
-	switch (currSystem)
+	switch(currSystem)
 	{
-		case VICE_SYSTEM_C64:
-		case VICE_SYSTEM_C64SC:
-		case VICE_SYSTEM_SUPER_CPU:
-		case VICE_SYSTEM_C64DTV:
+		case ViceSystem::C64:
+		case ViceSystem::C64SC:
+		case ViceSystem::SUPER_CPU:
+		case ViceSystem::C64DTV:
 			return true;
 		default:
 			return false;
 	}
 }
 
-bool currSystemIsC64Or128()
+bool C64System::currSystemIsC64Or128() const
 {
-	return currSystemIsC64() || currSystem == VICE_SYSTEM_C128;
+	return currSystemIsC64() || currSystem == ViceSystem::C128;
 }
 
-void setRuntimeReuSize(int size)
+void C64System::setRuntimeReuSize(int size)
 {
 	 // REU may be in use mid-frame so use a trap & wait 2 frames
+	struct ReuTrapData
+	{
+		C64System &sys;
+		int size;
+	};
+	ReuTrapData reuData{*this, size};
 	plugin.interrupt_maincpu_trigger_trap(
 		[](uint16_t, void *data)
 		{
-			auto size = (uintptr_t)data;
-			if(size)
+			auto &reuData = *(ReuTrapData*)data;
+			if(reuData.size)
 			{
-				logMsg("enabling REU size:%d", (int)size);
-				setIntResource("REUsize", size);
-				setIntResource("REU", 1);
+				logMsg("enabling REU size:%d", reuData.size);
+				reuData.sys.setIntResource("REUsize", reuData.size);
+				reuData.sys.setIntResource("REU", 1);
 			}
 			else
 			{
 				logMsg("disabling REU");
-				setIntResource("REU", 0);
+				reuData.sys.setIntResource("REU", 0);
 			}
-		}, (void*)(uintptr_t)size);
+		}, (void*)&reuData);
 	execC64Frame();
 	execC64Frame();
 }
 
-static void applyInitialOptionResources()
+void C64System::applyInitialOptionResources()
 {
 	setIntResource("JoyPort1Device", JOYPORT_ID_JOYSTICK);
 	setIntResource("JoyPort2Device", JOYPORT_ID_JOYSTICK);
@@ -205,12 +184,12 @@ int systemCartType(ViceSystem system)
 {
 	switch(system)
 	{
-		case VICE_SYSTEM_CBM2:
-		case VICE_SYSTEM_CBM5X0:
+		case ViceSystem::CBM2:
+		case ViceSystem::CBM5X0:
 			return CARTRIDGE_CBM2_8KB_1000;
-		case VICE_SYSTEM_PLUS4:
+		case ViceSystem::PLUS4:
 			return CARTRIDGE_PLUS4_DETECT;
-		case VICE_SYSTEM_VIC20:
+		case ViceSystem::VIC20:
 			return CARTRIDGE_VIC20_DETECT;
 		default:
 			return CARTRIDGE_CRT;
@@ -245,19 +224,20 @@ static bool hasC64Extension(std::string_view name)
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasC64Extension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasC64Extension;
 
-void EmuSystem::reset(ResetMode mode)
+void C64System::reset(EmuApp &, ResetMode mode)
 {
 	assert(hasContent());
-	plugin.machine_trigger_reset(mode == RESET_HARD ? MACHINE_RESET_MODE_HARD : MACHINE_RESET_MODE_SOFT);
+	plugin.machine_trigger_reset(mode == ResetMode::HARD ? MACHINE_RESET_MODE_HARD : MACHINE_RESET_MODE_SOFT);
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
+FS::FileString C64System::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.{}.vsf", name, saveSlotChar(slot));
 }
 
 struct SnapshotTrapData
 {
+	VicePlugin &plugin;
 	const char *pathStr{};
 	bool hasError = true;
 };
@@ -266,7 +246,7 @@ static void loadSnapshotTrap(uint16_t, void *data)
 {
 	auto snapData = (SnapshotTrapData*)data;
 	logMsg("loading state: %s", snapData->pathStr);
-	if(plugin.machine_read_snapshot(snapData->pathStr, 0) < 0)
+	if(snapData->plugin.machine_read_snapshot(snapData->pathStr, 0) < 0)
 		snapData->hasError = true;
 	else
 		snapData->hasError = false;
@@ -276,25 +256,25 @@ static void saveSnapshotTrap(uint16_t, void *data)
 {
 	auto snapData = (SnapshotTrapData*)data;
 	logMsg("saving state: %s", snapData->pathStr);
-	if(plugin.machine_write_snapshot(snapData->pathStr, 1, 1, 0) < 0)
+	if(snapData->plugin.machine_write_snapshot(snapData->pathStr, 1, 1, 0) < 0)
 		snapData->hasError = true;
 	else
 		snapData->hasError = false;
 }
 
-void EmuSystem::saveState(IG::CStringView path)
+void C64System::saveState(IG::CStringView path)
 {
-	SnapshotTrapData data{.pathStr{path}};
+	SnapshotTrapData data{.plugin{plugin}, .pathStr{path}};
 	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 	execC64Frame(); // execute cpu trap
 	if(data.hasError)
 		throwFileWriteError();
 }
 
-void EmuSystem::loadState(IG::CStringView path)
+void C64System::loadState(EmuApp &, IG::CStringView path)
 {
 	plugin.vsync_set_warp_mode(0);
-	SnapshotTrapData data{.pathStr{path}};
+	SnapshotTrapData data{.plugin{plugin}, .pathStr{path}};
 	execC64Frame(); // run extra frame in case C64 was just started
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	execC64Frame(); // execute cpu trap, snapshot load may cause reboot from a C64 model change
@@ -307,9 +287,18 @@ void EmuSystem::loadState(IG::CStringView path)
 		return throwFileReadError();
 }
 
-bool EmuSystem::vidSysIsPAL() { return sysIsPal(); }
+VideoSystem C64System::videoSystem() const
+{
+	switch(intResource("MachineVideoStandard"))
+	{
+		case MACHINE_SYNC_PAL:
+		case MACHINE_SYNC_PALN:
+			return VideoSystem::PAL;
+		default: return VideoSystem::NATIVE_NTSC;
+	}
+}
 
-void EmuSystem::closeSystem()
+void C64System::closeSystem()
 {
 	if(!hasContent())
 	{
@@ -333,8 +322,8 @@ static const char *mainROMFilename(ViceSystem system)
 {
 	switch(system)
 	{
-		case VICE_SYSTEM_PET: return "kernal-4.901465-22.bin";
-		case VICE_SYSTEM_SUPER_CPU: return "scpu64";
+		case ViceSystem::PET: return "kernal-4.901465-22.bin";
+		case ViceSystem::SUPER_CPU: return "scpu64";
 		default: return "kernal";
 	}
 }
@@ -344,7 +333,7 @@ static void throwC64FirmwareError()
 	throw std::runtime_error{fmt::format("System files missing, please set them in Options➔File Paths➔VICE System Files")};
 }
 
-static bool initC64(EmuApp &app)
+bool C64System::initC64(EmuApp &app)
 {
 	if(c64IsInit)
 		return true;
@@ -363,9 +352,9 @@ static bool initC64(EmuApp &app)
 	return true;
 }
 
-bool EmuApp::willCreateSystem(ViewAttachParams attach, const Input::Event &e)
+bool C64App::willCreateSystem(ViewAttachParams attach, const Input::Event &e)
 {
-	if(!c64FailedInit)
+	if(!system().c64FailedInit)
 		return true;
 	pushAndShowNewYesNoAlertView(attach, e,
 		"A previous system file load failed, you must restart the app to run any C64 software",
@@ -417,7 +406,7 @@ static FS::PathString vic20ExtraCartPath(IG::ApplicationContext ctx, std::string
 	return {};
 }
 
-void EmuSystem::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
+void C64System::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
 {
 	if(!initC64(EmuApp::get(appContext())))
 	{
@@ -463,7 +452,7 @@ void EmuSystem::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDe
 			{
 				EmuSystem::throwFileReadError();
 			}
-			if(currSystem == VICE_SYSTEM_VIC20 && contentDirectory().size()) // check if the cart is part of a *-x000.prg pair
+			if(currSystem == ViceSystem::VIC20 && contentDirectory().size()) // check if the cart is part of a *-x000.prg pair
 			{
 				auto extraCartPath = vic20ExtraCartPath(appContext(), contentFileName(), contentDirectory());
 				if(extraCartPath.size())
@@ -481,7 +470,7 @@ void EmuSystem::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDe
 	}
 }
 
-static void execC64Frame()
+void C64System::execC64Frame()
 {
 	startCanvasRunningFrame();
 	// signal C64 thread to execute one frame and wait for it to finish
@@ -489,7 +478,7 @@ static void execC64Frame()
 	execDoneSem.acquire();
 }
 
-void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
+void C64System::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	audioPtr = audio;
 	setCanvasSkipFrame(!video);
@@ -501,12 +490,12 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	audioPtr = {};
 }
 
-void EmuSystem::renderFramebuffer(EmuVideo &video)
+void C64System::renderFramebuffer(EmuVideo &video)
 {
 	video.startFrameWithFormat({}, canvasSrcPix);
 }
 
-void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
+void C64System::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
 	logMsg("set audio rate %d", rate);
 	int mixRate = std::round(rate * (systemFrameRate * frameTime.count()));
@@ -518,7 +507,7 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	}
 }
 
-bool EmuSystem::shouldFastForward()
+bool C64System::shouldFastForward() const
 {
 	return *plugin.warp_mode_enabled;
 }
@@ -543,22 +532,18 @@ static FS::PathString autostartPrgDiskImagePath(EmuSystem &sys)
 
 void EmuApp::onMainWindowCreated(ViewAttachParams attach, const Input::Event &e)
 {
-	sysFilePath[0] = system().firmwarePath();
-	plugin.init();
+	auto &sys = static_cast<C64System&>(system());
+	sys.sysFilePath[0] = sys.firmwarePath();
+	sys.plugin.init();
 	updateKeyboardMapping();
-	setSysModel(optionDefaultModel);
+	sys.setSysModel(sys.optionDefaultModel);
 	auto ctx = attach.appContext();
 	auto prgDiskPath = autostartPrgDiskImagePath(system());
 	FS::remove(prgDiskPath);
-	plugin.resources_set_string("AutostartPrgDiskImage", prgDiskPath.data());
+	sys.plugin.resources_set_string("AutostartPrgDiskImage", prgDiskPath.data());
 }
 
-void EmuSystem::onPrepareAudio(EmuAudio &audio)
-{
-	audio.setStereo(false);
-}
-
-bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
+bool C64System::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
 	pixFmt = fmt;
 	if(activeCanvas)
@@ -566,40 +551,6 @@ bool EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 		updateCanvasPixelFormat(activeCanvas, fmt);
 	}
 	return false;
-}
-
-void EmuSystem::onInit()
-{
-	IG::makeDetachedThread(
-		[]()
-		{
-			execSem.acquire();
-			logMsg("starting maincpu_mainloop()");
-			plugin.maincpu_mainloop();
-		});
-
-	if constexpr(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
-	{
-		sysFilePath[1] = appContext().assetPath();
-		sysFilePath[2] = FS::pathString(appContext().assetPath(), "C64.emu.zip");
-		sysFilePath[3] = "~/.local/share/C64.emu";
-		sysFilePath[4] = "/usr/share/games/vice";
-	}
-	else
-	{
-		sysFilePath[1] = FS::pathString(appContext().storagePath(), "C64.emu");
-		sysFilePath[2] = FS::pathString(appContext().storagePath(), "C64.emu.zip");
-	}
-
-	// higher quality ReSID sampling modes take orders of magnitude more CPU power,
-	// set some reasonable defaults based on CPU type
-	#if defined __x86_64__
-	optionReSidSampling.initDefault(SID_RESID_SAMPLING_RESAMPLING);
-	#elif defined __aarch64__
-	optionReSidSampling.initDefault(SID_RESID_SAMPLING_INTERPOLATION);
-	#else
-	optionReSidSampling.initDefault(SID_RESID_SAMPLING_FAST);
-	#endif
 }
 
 }

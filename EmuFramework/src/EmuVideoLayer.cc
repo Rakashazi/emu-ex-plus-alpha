@@ -43,16 +43,17 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		if((zoom == optionImageZoomIntegerOnly || zoom == optionImageZoomIntegerOnlyY)
 			&& video.size().x)
 		{
-			unsigned gameX = video.size().x, gameY = video.size().y;
+			int gameX = video.size().x, gameY = video.size().y;
 
 			// Halve pixel sizes if image has mixed low/high-res content so scaling is based on lower res,
 			// this prevents jumping between two screen sizes in games like Seiken Densetsu 3 on SNES
-			if(sys.multiresVideoBaseX() && gameX > sys.multiresVideoBaseX())
+			auto multiresVideoBaseSize = sys.multiresVideoBaseSize();
+			if(multiresVideoBaseSize.x && gameX > multiresVideoBaseSize.x)
 			{
 				logMsg("halving X size for multires content");
 				gameX /= 2;
 			}
-			if(sys.multiresVideoBaseY() && gameY > sys.multiresVideoBaseY())
+			if(multiresVideoBaseSize.y && gameY > multiresVideoBaseSize.y)
 			{
 				logMsg("halving Y size for multires content");
 				gameY /= 2;
@@ -74,15 +75,15 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 				gameAR = float(gameX) / float(gameY);
 			}
 
-			unsigned scaleFactor;
+			int scaleFactor;
 			if(gameAR > viewportAspectRatio)//Gfx::proj.aspectRatio)
 			{
-				scaleFactor = std::max(1U, viewportRect.xSize() / gameX);
+				scaleFactor = std::max(1, viewportRect.xSize() / gameX);
 				logMsg("using x scale factor %d", scaleFactor);
 			}
 			else
 			{
-				scaleFactor = std::max(1U, viewportRect.ySize() / gameY);
+				scaleFactor = std::max(1, viewportRect.ySize() / gameY);
 				logMsg("using y scale factor %d", scaleFactor);
 			}
 

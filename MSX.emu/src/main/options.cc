@@ -13,8 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuApp.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 namespace EmuEx
 {
@@ -58,11 +57,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 int EmuSystem::forcedSoundRate = 44100;
-static constexpr const char *optionMachineNameDefault = "MSX2";
-IG::StaticString<128> optionDefaultMachineNameStr{optionMachineNameDefault};
-IG::StaticString<128> optionSessionMachineNameStr{};
 Byte1Option optionSkipFdcAccess{CFGKEY_SKIP_FDC_ACCESS, 1};
-unsigned activeBoardType = BOARD_MSX;
 
 Byte1Option optionMixerPSGVolume{CFGKEY_MIXER_PSG_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
 Byte1Option optionMixerSCCVolume{CFGKEY_MIXER_SCC_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
@@ -159,80 +154,81 @@ uint8_t setMixerPanOption(MixerAudioType type, int pan)
 	return pan;
 }
 
-bool EmuSystem::resetSessionOptions(EmuApp &)
+bool MsxSystem::resetSessionOptions(EmuApp &)
 {
 	optionSessionMachineNameStr.clear();
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
+bool MsxSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
 {
-	switch(key)
+	if(type == ConfigType::MAIN)
 	{
-		default: return 0;
-		bcase CFGKEY_SESSION_MACHINE_NAME: readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){optionSessionMachineNameStr = path;});
+		switch(key)
+		{
+			case CFGKEY_DEFAULT_MACHINE_NAME: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){optionDefaultMachineNameStr = path;});
+			case CFGKEY_SKIP_FDC_ACCESS: return optionSkipFdcAccess.readFromIO(io, readSize);
+			case CFGKEY_MACHINE_FILE_PATH: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){setFirmwarePath(path);});
+			case CFGKEY_MIXER_PSG_VOLUME: return optionMixerPSGVolume.readFromIO(io, readSize);
+			case CFGKEY_MIXER_SCC_VOLUME: return optionMixerSCCVolume.readFromIO(io, readSize);
+			case CFGKEY_MIXER_MSX_MUSIC_VOLUME: return optionMixerMSXMUSICVolume.readFromIO(io, readSize);
+			case CFGKEY_MIXER_MSX_AUDIO_VOLUME: return optionMixerMSXAUDIOVolume.readFromIO(io, readSize);
+			case CFGKEY_MIXER_MOON_SOUND_VOLUME: return optionMixerMoonSoundVolume.readFromIO(io, readSize);
+			case CFGKEY_MIXER_YAMAHA_SFG_VOLUME: return optionMixerYamahaSFGVolume.readFromIO(io, readSize);
+			case CFGKEY_MIXER_PCM_VOLUME: return optionMixerPCMVolume.readFromIO(io, readSize);
+			case CFGKEY_MIXER_PSG_PAN: return optionMixerPSGPan.readFromIO(io, readSize);
+			case CFGKEY_MIXER_SCC_PAN: return optionMixerSCCPan.readFromIO(io, readSize);
+			case CFGKEY_MIXER_MSX_MUSIC_PAN: return optionMixerMSXMUSICPan.readFromIO(io, readSize);
+			case CFGKEY_MIXER_MSX_AUDIO_PAN: return optionMixerMSXAUDIOPan.readFromIO(io, readSize);
+			case CFGKEY_MIXER_MOON_SOUND_PAN: return optionMixerMoonSoundPan.readFromIO(io, readSize);
+			case CFGKEY_MIXER_YAMAHA_SFG_PAN: return optionMixerYamahaSFGPan.readFromIO(io, readSize);
+			case CFGKEY_MIXER_PCM_PAN: return optionMixerPCMPan.readFromIO(io, readSize);
+		}
 	}
-	return 1;
-}
-
-void EmuSystem::writeSessionConfig(IO &io)
-{
-	writeStringOptionValue(io, CFGKEY_SESSION_MACHINE_NAME, optionSessionMachineNameStr);
-}
-
-bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
-{
-	switch(key)
+	else if(type == ConfigType::SESSION)
 	{
-		default: return 0;
-		bcase CFGKEY_DEFAULT_MACHINE_NAME: readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){optionDefaultMachineNameStr = path;});
-		bcase CFGKEY_SKIP_FDC_ACCESS: optionSkipFdcAccess.readFromIO(io, readSize);
-		bcase CFGKEY_MACHINE_FILE_PATH: readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){setFirmwarePath(path);});
-		bcase CFGKEY_MIXER_PSG_VOLUME: optionMixerPSGVolume.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_SCC_VOLUME: optionMixerSCCVolume.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_MSX_MUSIC_VOLUME: optionMixerMSXMUSICVolume.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_MSX_AUDIO_VOLUME: optionMixerMSXAUDIOVolume.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_MOON_SOUND_VOLUME: optionMixerMoonSoundVolume.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_YAMAHA_SFG_VOLUME: optionMixerYamahaSFGVolume.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_PCM_VOLUME: optionMixerPCMVolume.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_PSG_PAN: optionMixerPSGPan.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_SCC_PAN: optionMixerSCCPan.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_MSX_MUSIC_PAN: optionMixerMSXMUSICPan.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_MSX_AUDIO_PAN: optionMixerMSXAUDIOPan.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_MOON_SOUND_PAN: optionMixerMoonSoundPan.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_YAMAHA_SFG_PAN: optionMixerYamahaSFGPan.readFromIO(io, readSize);
-		bcase CFGKEY_MIXER_PCM_PAN: optionMixerPCMPan.readFromIO(io, readSize);
+		switch(key)
+		{
+			case CFGKEY_SESSION_MACHINE_NAME: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){optionSessionMachineNameStr = path;});
+		}
 	}
-	return 1;
+	return false;
 }
 
-void EmuSystem::writeConfig(IO &io)
+void MsxSystem::writeConfig(ConfigType type, IO &io)
 {
-	if(optionDefaultMachineNameStr != optionMachineNameDefault)
+	if(type == ConfigType::MAIN)
 	{
-		writeStringOptionValue(io, CFGKEY_DEFAULT_MACHINE_NAME, optionDefaultMachineNameStr);
+		if(optionDefaultMachineNameStr != optionMachineNameDefault)
+		{
+			writeStringOptionValue(io, CFGKEY_DEFAULT_MACHINE_NAME, optionDefaultMachineNameStr);
+		}
+		optionSkipFdcAccess.writeWithKeyIfNotDefault(io);
+		writeStringOptionValue(io, CFGKEY_MACHINE_FILE_PATH, firmwarePath());
+
+		optionMixerPSGVolume.writeWithKeyIfNotDefault(io);
+		optionMixerSCCVolume.writeWithKeyIfNotDefault(io);
+		optionMixerMSXMUSICVolume.writeWithKeyIfNotDefault(io);
+		optionMixerMSXAUDIOVolume.writeWithKeyIfNotDefault(io);
+		optionMixerMoonSoundVolume.writeWithKeyIfNotDefault(io);
+		optionMixerYamahaSFGVolume.writeWithKeyIfNotDefault(io);
+		optionMixerPCMVolume.writeWithKeyIfNotDefault(io);
+
+		optionMixerPSGPan.writeWithKeyIfNotDefault(io);
+		optionMixerSCCPan.writeWithKeyIfNotDefault(io);
+		optionMixerMSXMUSICPan.writeWithKeyIfNotDefault(io);
+		optionMixerMSXAUDIOPan.writeWithKeyIfNotDefault(io);
+		optionMixerMoonSoundPan.writeWithKeyIfNotDefault(io);
+		optionMixerYamahaSFGPan.writeWithKeyIfNotDefault(io);
+		optionMixerPCMPan.writeWithKeyIfNotDefault(io);
 	}
-	optionSkipFdcAccess.writeWithKeyIfNotDefault(io);
-	writeStringOptionValue(io, CFGKEY_MACHINE_FILE_PATH, firmwarePath());
-
-	optionMixerPSGVolume.writeWithKeyIfNotDefault(io);
-	optionMixerSCCVolume.writeWithKeyIfNotDefault(io);
-	optionMixerMSXMUSICVolume.writeWithKeyIfNotDefault(io);
-	optionMixerMSXAUDIOVolume.writeWithKeyIfNotDefault(io);
-	optionMixerMoonSoundVolume.writeWithKeyIfNotDefault(io);
-	optionMixerYamahaSFGVolume.writeWithKeyIfNotDefault(io);
-	optionMixerPCMVolume.writeWithKeyIfNotDefault(io);
-
-	optionMixerPSGPan.writeWithKeyIfNotDefault(io);
-	optionMixerSCCPan.writeWithKeyIfNotDefault(io);
-	optionMixerMSXMUSICPan.writeWithKeyIfNotDefault(io);
-	optionMixerMSXAUDIOPan.writeWithKeyIfNotDefault(io);
-	optionMixerMoonSoundPan.writeWithKeyIfNotDefault(io);
-	optionMixerYamahaSFGPan.writeWithKeyIfNotDefault(io);
-	optionMixerPCMPan.writeWithKeyIfNotDefault(io);
+	else if(type == ConfigType::SESSION)
+	{
+		writeStringOptionValue(io, CFGKEY_SESSION_MACHINE_NAME, optionSessionMachineNameStr);
+	}
 }
 
-void EmuSystem::onOptionsLoaded()
+void MsxSystem::onOptionsLoaded()
 {
 	mixerEnableChannelType(mixer, MIXER_CHANNEL_PSG, mixerEnableOption(MIXER_CHANNEL_PSG));
 	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_PSG, mixerVolumeOption(MIXER_CHANNEL_PSG));
@@ -263,7 +259,7 @@ void EmuSystem::onOptionsLoaded()
 	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_PCM, optionMixerPCMPan);
 }
 
-bool setDefaultMachineName(const char *name)
+bool MsxSystem::setDefaultMachineName(std::string_view name)
 {
 	if(name == optionDefaultMachineNameStr)
 		return false;

@@ -32,14 +32,14 @@ public:
 	EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
 	void setFrameTime(IG::FloatSeconds time);
 	void reset();
-	void setSpeedMultiplier(uint8_t newSpeed);
+	void setSpeedMultiplier(int8_t newSpeed);
 
 protected:
 	IG::FloatSeconds timePerVideoFrame{};
 	IG::FloatSeconds timePerVideoFrameScaled{};
 	IG::FrameTime startFrameTime{};
 	uint32_t lastFrame = 0;
-	uint8_t speed = 1;
+	int8_t speed = 1;
 
 	void updateScaledFrameTime();
 };

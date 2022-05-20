@@ -15,15 +15,10 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Option.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 namespace EmuEx
 {
-
-enum
-{
-	CFGKEY_NGPKEY_LANGUAGE = 269,
-};
 
 const char *EmuSystem::configFilename = "NgpEmu.config";
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
@@ -33,21 +28,24 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 
-Byte1Option optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
-
-bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
+bool NgpSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
 {
-	switch(key)
+	if(type == ConfigType::MAIN)
 	{
-		default: return 0;
-		bcase CFGKEY_NGPKEY_LANGUAGE: optionNGPLanguage.readFromIO(io, readSize);
+		switch(key)
+		{
+			case CFGKEY_NGPKEY_LANGUAGE: return optionNGPLanguage.readFromIO(io, readSize);
+		}
 	}
-	return 1;
+	return false;
 }
 
-void EmuSystem::writeConfig(IO &io)
+void NgpSystem::writeConfig(ConfigType type, IO &io)
 {
-	optionNGPLanguage.writeWithKeyIfNotDefault(io);
+	if(type == ConfigType::MAIN)
+	{
+		optionNGPLanguage.writeWithKeyIfNotDefault(io);
+	}
 }
 
 }

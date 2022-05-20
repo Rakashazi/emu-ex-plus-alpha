@@ -76,8 +76,8 @@ extern unsigned int neogeo_frame_counter_speed;
 void init_video(void);
 void debug_draw_tile(unsigned int tileno,int sx,int sy,int zx,int zy,
 		     int color,int xflip,int yflip,unsigned char *bmp);
-void draw_screen_scanline(int start_line, int end_line, int refresh, void *emuTaskPtr, void *emuVideoPtr);
-void draw_screen(void *emuTaskPtr, void *emuVideoPtr);
+void draw_screen_scanline(int start_line, int end_line, int refresh, void *emuTaskPtr, void *neoSystemPtr, void *emuVideoPtr);
+void draw_screen(void *emuTaskPtr, void *neoSystemPtr, void *emuVideoPtr);
 // void show_cache(void);
 int init_sprite_cache(Uint32 size,Uint32 bsize);
 void free_sprite_cache(void);

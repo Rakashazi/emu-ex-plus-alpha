@@ -176,13 +176,13 @@ public:
 static auto makeFrameRateStr(EmuSystem &sys)
 {
 	return fmt::format("Frame Rate: {:.2f}Hz",
-		sys.frameRate(EmuSystem::VIDSYS_NATIVE_NTSC));
+		sys.frameRate(VideoSystem::NATIVE_NTSC));
 }
 
 static auto makeFrameRatePALStr(EmuSystem &sys)
 {
 	return fmt::format("Frame Rate (PAL): {:.2f}Hz",
-		sys.frameRate(EmuSystem::VIDSYS_PAL));
+		sys.frameRate(VideoSystem::PAL));
 }
 
 TextMenuItem::SelectDelegate VideoOptionView::setFrameIntervalDel()
@@ -307,7 +307,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{}, &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_NATIVE_NTSC, e);
+			pushAndShowFrameRateSelectMenu(VideoSystem::NATIVE_NTSC, e);
 			postDraw();
 		}
 	},
@@ -316,7 +316,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{}, &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_PAL, e);
+			pushAndShowFrameRateSelectMenu(VideoSystem::PAL, e);
 			postDraw();
 		}
 	},
@@ -697,12 +697,12 @@ void VideoOptionView::loadStockItems()
 	if(used(frameInterval))
 		item.emplace_back(&frameInterval);
 	item.emplace_back(&dropLateFrames);
-	if(!app().frameTimeIsConst(EmuSystem::VIDSYS_NATIVE_NTSC))
+	if(!app().frameTimeIsConst(VideoSystem::NATIVE_NTSC))
 	{
 		frameRate.setName(makeFrameRateStr(system()));
 		item.emplace_back(&frameRate);
 	}
-	if(!app().frameTimeIsConst(EmuSystem::VIDSYS_PAL))
+	if(!app().frameTimeIsConst(VideoSystem::PAL))
 	{
 		frameRatePAL.setName(makeFrameRatePALStr(system()));
 		item.emplace_back(&frameRatePAL);
@@ -745,7 +745,7 @@ void VideoOptionView::setEmuVideoLayer(EmuVideoLayer &videoLayer_)
 	videoLayer = &videoLayer_;
 }
 
-bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time)
+bool VideoOptionView::onFrameTimeChange(VideoSystem vidSys, IG::FloatSeconds time)
 {
 	auto wantedTime = time;
 	if(!time.count())
@@ -758,20 +758,20 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::Float
 		return false;
 	}
 	system().configFrameTime(app().soundRate());
-	if(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC)
+	if(vidSys == VideoSystem::NATIVE_NTSC)
 	{
-		app().setFrameTime(EmuSystem::VIDSYS_NATIVE_NTSC, time);
+		app().setFrameTime(VideoSystem::NATIVE_NTSC, time);
 		frameRate.compile(makeFrameRateStr(system()), renderer(), projP);
 	}
 	else
 	{
-		app().setFrameTime(EmuSystem::VIDSYS_PAL, time);
+		app().setFrameTime(VideoSystem::PAL, time);
 		frameRatePAL.compile(makeFrameRatePALStr(system()), renderer(), projP);
 	}
 	return true;
 }
 
-void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, const Input::Event &e)
+void VideoOptionView::pushAndShowFrameRateSelectMenu(VideoSystem vidSys, const Input::Event &e)
 {
 	const bool includeFrameRateDetection = !Config::envIsIOS;
 	auto multiChoiceView = makeViewWithName<TextTableView>("Frame Rate", includeFrameRateDetection ? 4 : 3);
@@ -823,7 +823,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 		multiChoiceView->appendItem("Detect screen's rate and set",
 			[this, vidSys](const Input::Event &e)
 			{
-				window().setIntendedFrameRate(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC ? 60. : 50.);
+				window().setIntendedFrameRate(vidSys == VideoSystem::NATIVE_NTSC ? 60. : 50.);
 				auto frView = makeView<DetectFrameRateView>();
 				frView->onDetectFrameTime =
 					[this, vidSys](IG::FloatSeconds frameTime)

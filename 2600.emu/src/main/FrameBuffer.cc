@@ -28,7 +28,7 @@ FrameBuffer::FrameBuffer(OSystem& osystem):
 	myPaletteHandler.loadConfig(osystem.settings());
 }
 
-void FrameBuffer::showTextMessage(const string& message, MessagePosition, bool)
+void FrameBuffer::showTextMessage(const string& message, MessagePosition, bool) const
 {
 	appPtr->postMessage(3, false, message.c_str());
 }

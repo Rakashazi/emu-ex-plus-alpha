@@ -101,7 +101,7 @@ int VControllerKeyboard::getInput(IG::WP c) const
 	return idx;
 }
 
-int VControllerKeyboard::translateInput(unsigned idx) const
+unsigned VControllerKeyboard::translateInput(unsigned idx) const
 {
 	assumeExpr(idx < VKEY_COLS * KEY_ROWS);
 	return table[0][idx];
@@ -136,16 +136,16 @@ bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, const Input
 			if(!e.pushed() || e.repeated())
 				return false;
 			logMsg("switch kb mode");
-			setMode(r, mode() ^ true);
+			setMode(v.system(), r, mode() ^ true);
 			v.resetInput();
 		}
 		else if(e.pushed())
 		{
-			v.system().handleInputAction(&v.app(), Input::Action::PUSHED, currentKey());
+			v.system().handleInputAction(&v.app(), {currentKey(), Input::Action::PUSHED});
 		}
 		else
 		{
-			v.system().handleInputAction(&v.app(), Input::Action::RELEASED, currentKey());
+			v.system().handleInputAction(&v.app(), {currentKey(), Input::Action::RELEASED});
 		}
 		return true;
 	}
@@ -247,11 +247,11 @@ unsigned VControllerKeyboard::currentKey() const
 	return currentKey(selected.x, selected.y);
 }
 
-void VControllerKeyboard::setMode(Gfx::Renderer &r, int mode)
+void VControllerKeyboard::setMode(EmuSystem &sys, Gfx::Renderer &r, int mode)
 {
 	mode_ = mode;
 	updateImg(r);
-	updateKeyboardMapping();
+	updateKeyboardMapping(sys);
 }
 
 void VControllerKeyboard::applyMap(KbMap map)
@@ -328,9 +328,9 @@ void VControllerKeyboard::applyMap(KbMap map)
 	}*/
 }
 
-void VControllerKeyboard::updateKeyboardMapping()
+void VControllerKeyboard::updateKeyboardMapping(EmuSystem &sys)
 {
-	auto map = updateVControllerKeyboardMapping(mode());
+	auto map = sys.vControllerKeyboardMap(mode());
 	applyMap(map);
 }
 

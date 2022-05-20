@@ -30,18 +30,18 @@ extern "C"
 
 struct keyboard_conv_t;
 
-enum ViceSystem
+enum class ViceSystem: uint8_t
 {
-	VICE_SYSTEM_C64 = 0,
-	VICE_SYSTEM_C64SC = 1,
-	VICE_SYSTEM_C64DTV = 2,
-	VICE_SYSTEM_C128 = 3,
-	VICE_SYSTEM_SUPER_CPU = 4,
-	VICE_SYSTEM_CBM2 = 5,
-	VICE_SYSTEM_CBM5X0 = 6,
-	VICE_SYSTEM_PET = 7,
-	VICE_SYSTEM_PLUS4 = 8,
-	VICE_SYSTEM_VIC20 = 9
+	C64 = 0,
+	C64SC = 1,
+	C64DTV = 2,
+	C128 = 3,
+	SUPER_CPU = 4,
+	CBM2 = 5,
+	CBM5X0 = 6,
+	PET = 7,
+	PLUS4 = 8,
+	VIC20 = 9
 };
 
 struct VicePlugin
@@ -105,13 +105,13 @@ struct VicePlugin
 	static bool hasSystemLib(ViceSystem system, const char *libBasePath);
 	static const char *systemName(ViceSystem system);
 	int8_t modelIdLimit() const { return modelIdBase + modelNames.size(); }
-	int model_get();
+	int model_get() const;
 	void model_set(int model);
-	int resources_get_string(const char *name, const char **value_return);
+	int resources_get_string(const char *name, const char **value_return) const;
 	int resources_set_string(const char *name, const char *value);
-	int resources_get_int(const char *name, int *value_return);
+	int resources_get_int(const char *name, int *value_return) const;
 	int resources_set_int(const char *name, int value);
-	int resources_get_default_value(const char *name, void *value_return);
+	int resources_get_default_value(const char *name, void *value_return) const;
 	int machine_write_snapshot(const char *name, int save_roms, int save_disks, int even_mode);
 	int machine_read_snapshot(const char *name, int event_mode);
 	void machine_set_restore_key(int v);

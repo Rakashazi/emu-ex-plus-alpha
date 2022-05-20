@@ -115,7 +115,7 @@ public:
 	static bool needsGlobalInstance;
 
 	EmuApp(IG::ApplicationInitParams, IG::ApplicationContext &);
-
+	void mainInitCommon(IG::ApplicationInitParams, IG::ApplicationContext);
 	bool willCreateSystem(ViewAttachParams, const Input::Event &);
 	void createSystemWithMedia(GenericIO, IG::CStringView path, std::string_view displayName,
 		const Input::Event &, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
@@ -211,11 +211,11 @@ public:
 	void setShowHiddenFilesInPicker(bool on){ showHiddenFilesInPicker_ = on; };
 	auto &customKeyConfigList() { return customKeyConfigs; };
 	auto &savedInputDeviceList() { return savedInputDevs; };
-	Gfx::Viewport makeViewport(const IG::Window &win) const;
-	EmuSystem &system() { return emuSystem; }
-	const EmuSystem &system() const { return emuSystem; }
-	IG::ApplicationContext appContext() const;
-	static EmuApp &get(IG::ApplicationContext);
+	Gfx::Viewport makeViewport(const Window &win) const;
+	EmuSystem &system();
+	const EmuSystem &system() const;
+	ApplicationContext appContext() const;
+	static EmuApp &get(ApplicationContext);
 
 	// Audio Options
 	void setAudioOutputAPI(IG::Audio::Api);
@@ -250,9 +250,9 @@ public:
 	auto &overlayEffectOption() { return optionOverlayEffect; }
 	bool setOverlayEffectLevel(EmuVideoLayer &, uint8_t val);
 	uint8_t overlayEffectLevel() { return optionOverlayEffectLevel; }
-	void setFrameTime(EmuSystem::VideoSystem system, IG::FloatSeconds time);
-	IG::FloatSeconds frameTime(EmuSystem::VideoSystem, IG::FloatSeconds fallback) const;
-	bool frameTimeIsConst(EmuSystem::VideoSystem) const;
+	void setFrameTime(VideoSystem system, IG::FloatSeconds time);
+	FloatSeconds frameTime(VideoSystem, IG::FloatSeconds fallback) const;
+	bool frameTimeIsConst(VideoSystem) const;
 	void setFrameInterval(int);
 	int frameInterval() const;
 	void setShouldSkipLateFrames(bool on) { optionSkipLateFrames = on; }
@@ -369,7 +369,7 @@ public:
 
 	template<class T>
 	void pushAndShowNewCollectValueInputView(ViewAttachParams attach, const Input::Event &e,
-	IG::CStringView msgText, IG::CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
+		IG::CStringView msgText, IG::CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
 	{
 		pushAndShowNewCollectTextInputView(attach, e, msgText, initialContent,
 			[collectedValueFunc](CollectTextInputView &view, const char *str)
@@ -399,7 +399,6 @@ public:
 	}
 
 protected:
-	EmuSystem emuSystem;
 	IG::FontManager fontManager;
 	mutable Gfx::Renderer renderer;
 	ViewManager viewManager{};
@@ -508,7 +507,6 @@ protected:
 		Gfx::DrawableConfig windowDrawableConf{};
 	};
 
-	void mainInitCommon(IG::ApplicationInitParams, IG::ApplicationContext);
 	Gfx::PixmapTexture *collectTextCloseAsset() const;
 	ConfigParams loadConfigFile(IG::ApplicationContext);
 	void saveConfigFile(IG::ApplicationContext);
@@ -523,17 +521,17 @@ protected:
 	void saveSystemOptions();
 	void saveSystemOptions(IO &);
 
-	const DoubleOption &frameTimeOption(EmuSystem::VideoSystem system) const
+	const DoubleOption &frameTimeOption(VideoSystem system) const
 	{
 		switch(system)
 		{
 			default:
-			case EmuSystem::VIDSYS_NATIVE_NTSC: return optionFrameRate;
-			case EmuSystem::VIDSYS_PAL: return optionFrameRatePAL;
+			case VideoSystem::NATIVE_NTSC: return optionFrameRate;
+			case VideoSystem::PAL: return optionFrameRatePAL;
 		}
 	}
 
-	DoubleOption &frameTimeOption(EmuSystem::VideoSystem system)
+	DoubleOption &frameTimeOption(VideoSystem system)
 	{
 		return const_cast<DoubleOption&>(std::as_const(*this).frameTimeOption(system));
 	}

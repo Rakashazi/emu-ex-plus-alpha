@@ -102,8 +102,8 @@ protected:
 	TextHeadingMenuItem systemSpecificHeading;
 	StaticArrayList<MenuItem*, 31> item{};
 
-	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem, const Input::Event &);
-	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time);
+	void pushAndShowFrameRateSelectMenu(VideoSystem, const Input::Event &);
+	bool onFrameTimeChange(VideoSystem vidSys, IG::FloatSeconds time);
 	TextMenuItem::SelectDelegate setZoomDel();
 	TextMenuItem::SelectDelegate setViewportZoomDel();
 	TextMenuItem::SelectDelegate setFrameIntervalDel();

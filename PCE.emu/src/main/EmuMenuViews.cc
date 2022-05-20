@@ -13,39 +13,41 @@
 	You should have received a copy of the GNU General Public License
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuApp.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuInput.hh>
-#include "internal.hh"
+#include "MainApp.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 
 namespace EmuEx
 {
 
-class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
+template <class T>
+using MainAppHelper = EmuAppHelper<T, MainApp>;
+
+class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem sixButtonPad
 	{
 		"6-button Gamepad", &defaultFace(),
-		(bool)option6BtnPad,
+		(bool)system().option6BtnPad,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			option6BtnPad = item.flipBoolValue(*this);
-			set6ButtonPadEnabled(app(), option6BtnPad);
+			system().option6BtnPad = item.flipBoolValue(*this);
+			set6ButtonPadEnabled(app(), system().option6BtnPad);
 		}
 	};
 
 	BoolMenuItem arcadeCard
 	{
 		"Arcade Card", &defaultFace(),
-		(bool)optionArcadeCard,
+		(bool)system().optionArcadeCard,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			optionArcadeCard = item.flipBoolValue(*this);
+			system().optionArcadeCard = item.flipBoolValue(*this);
 			app().promptSystemReloadDueToSetOption(attachParams(), e);
 		}
 	};
@@ -87,17 +89,19 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<ConsoleOptionView>
 {
+	using MainAppHelper<ConsoleOptionView>::system;
+
 	TextMenuItem sysCardPath
 	{
-		biosMenuEntryStr(appContext().fileUriDisplayName(EmuEx::sysCardPath)), &defaultFace(),
+		biosMenuEntryStr(appContext().fileUriDisplayName(system().sysCardPath)), &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("System Card", &EmuEx::sysCardPath,
+			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("System Card", &system().sysCardPath,
 				[this](std::string_view displayName)
 				{
-					logMsg("set bios %s", EmuEx::sysCardPath.data());
+					logMsg("set bios %s", system().sysCardPath.data());
 					sysCardPath.compile(biosMenuEntryStr(displayName), renderer(), projP);
 				},
 				hasHuCardExtension);

@@ -17,8 +17,7 @@
 #include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <emuframework/Option.hh>
-#include <emuframework/EmuSystem.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 #include <mednafen/hash/md5.h>
 #include <mednafen/general.h>
 
@@ -84,7 +83,7 @@ bool MDFN_GetSettingB(const char *name)
 	if("cheats" == nameV)
 		return 0;
 	if(EMU_MODULE".arcadecard" == nameV)
-		return EmuEx::optionArcadeCard;
+		return static_cast<EmuEx::PceSystem&>(EmuEx::gSystem()).optionArcadeCard;
 	if(EMU_MODULE".forcesgx" == nameV)
 		return 0;
 	if(EMU_MODULE".nospritelimit" == nameV)
@@ -113,7 +112,7 @@ std::string MDFN_GetSettingS(const char *name)
 		return {};
 	}
 	bug_unreachable("unhandled settingS %s", name);
-	return 0;
+	return {};
 }
 
 std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
@@ -137,12 +136,13 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 		case MDFNMKF_FIRMWARE:
 		{
 			// pce-specific
-			logMsg("system card path:%s", sysCardPath.data());
-			return std::string(sysCardPath);
+			auto &sys = static_cast<EmuEx::PceSystem&>(EmuEx::gSystem());
+			logMsg("system card path:%s", sys.sysCardPath.data());
+			return std::string{sys.sysCardPath};
 		}
 		default:
 			bug_unreachable("type == %d", type);
-			return 0;
+			return {};
 	}
 }
 

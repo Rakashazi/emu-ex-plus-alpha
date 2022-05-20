@@ -15,7 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 extern "C"
 {
@@ -160,8 +160,6 @@ const unsigned EmuSystem::inputCenterBtns = 2;
 bool EmuSystem::inputHasKeyboard = true;
 const unsigned EmuSystem::maxPlayers = 2;
 
-static bool ctrlLock = false;
-
 static constexpr uint8_t KEY_MODE_SHIFT = 28;
 static constexpr uint8_t KB_MODE = 0;
 static constexpr uint8_t JS_MODE = 1;
@@ -206,7 +204,7 @@ static bool isEmuKeyInKeyboardRange(uint32_t emuKey)
 	return emuKey >= c64KeyFirstKeyboardKey && emuKey <= c64KeyLastKeyboardKey;
 }
 
-VController::KbMap updateVControllerKeyboardMapping(unsigned mode)
+VController::KbMap C64System::vControllerKeyboardMap(unsigned mode)
 {
 	static constexpr VController::KbMap kbToEventMap =
 	{
@@ -227,9 +225,10 @@ VController::KbMap updateVControllerKeyboardMapping(unsigned mode)
 	return mode ? kbToEventMap2 : kbToEventMap;
 }
 
-void updateVControllerMapping(unsigned player, VController::Map &map)
+VController::Map C64System::vControllerMap(int player)
 {
 	const unsigned p2Bit = player ? JS_P2_BIT : 0;
+	VController::Map map{};
 	map[VController::F_ELEM] = JS_FIRE | p2Bit;
 	map[VController::F_ELEM+1] = JS_FIRE | p2Bit | VController::TURBO_BIT;
 
@@ -244,6 +243,7 @@ void updateVControllerMapping(unsigned player, VController::Map &map)
 	map[VController::D_ELEM+6] = JS_SW | p2Bit;
 	map[VController::D_ELEM+7] = JS_S | p2Bit;
 	map[VController::D_ELEM+8] = JS_SE | p2Bit;
+	return map;
 }
 
 static unsigned shiftKeycodeSymbolic(unsigned keycode)
@@ -299,7 +299,7 @@ static unsigned shiftKeycode(unsigned keycode, bool positional)
 	return positional ? shiftKeycodePositional(keycode) : shiftKeycodeSymbolic(keycode);
 }
 
-unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
+unsigned C64System::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	switch(input)
@@ -341,78 +341,78 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 	return 0;
 }
 
-static void handleKeyboardInput(unsigned key, Input::Action action, uint32_t metaState = {}, bool positionalShift = {})
+void C64System::handleKeyboardInput(InputAction a, bool positionalShift)
 {
 	//logMsg("key:%u %d", key, (int)action);
 	int mod{};
-	if(metaState & Input::Meta::SHIFT)
+	if(a.metaState & Input::Meta::SHIFT)
 	{
 		mod |= KBD_MOD_LSHIFT;
-		key = shiftKeycode(key, positionalShift);
+		a.key = shiftKeycode(a.key, positionalShift);
 	}
-	if(metaState & Input::Meta::CAPS_LOCK)
+	if(a.metaState & Input::Meta::CAPS_LOCK)
 	{
 		mod |= KBD_MOD_SHIFTLOCK;
 	}
-	if(action == Input::Action::PUSHED)
-		plugin.keyboard_key_pressed(key, mod);
+	if(a.state == Input::Action::PUSHED)
+		plugin.keyboard_key_pressed(a.key, mod);
 	else
-		plugin.keyboard_key_released(key, mod);
+		plugin.keyboard_key_released(a.key, mod);
 }
 
-void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, unsigned emuKey, uint32_t metaState)
+void C64System::handleInputAction(EmuApp *app, InputAction a)
 {
 	bool positionalShift{};
 	if(app)
 	{
 		if(app->defaultVController().keyboard().shiftIsActive())
 		{
-			metaState |= Input::Meta::SHIFT;
+			a.metaState |= Input::Meta::SHIFT;
 			positionalShift = true;
 		}
 	}
-	switch(emuKey >> KEY_MODE_SHIFT)
+	switch(a.key >> KEY_MODE_SHIFT)
 	{
 		bcase JS_MODE:
 		{
-			auto key = emuKey & 0x1F;
+			auto key = a.key & 0x1F;
 			if(optionSwapJoystickPorts == JoystickMode::KEYBOARD)
 			{
 				if(key & JS_E)
-					handleKeyboardInput(c64KeyKbRight, action, metaState, positionalShift);
+					handleKeyboardInput({c64KeyKbRight, a.state, a.metaState}, positionalShift);
 				else if(key & JS_W)
-					handleKeyboardInput(c64KeyKbLeft, action, metaState, positionalShift);
+					handleKeyboardInput({c64KeyKbLeft, a.state, a.metaState}, positionalShift);
 				if(key & JS_N)
-					handleKeyboardInput(c64KeyKbUp, action, metaState, positionalShift);
+					handleKeyboardInput({c64KeyKbUp, a.state, a.metaState}, positionalShift);
 				else if(key & JS_S)
-					handleKeyboardInput(c64KeyKbDown, action, metaState, positionalShift);
+					handleKeyboardInput({c64KeyKbDown, a.state, a.metaState}, positionalShift);
 				if(key & JS_FIRE)
-					handleKeyboardInput(c64KeyPound, action, metaState, positionalShift);
+					handleKeyboardInput({c64KeyPound, a.state, a.metaState}, positionalShift);
 			}
 			else
 			{
 				auto &joystick_value = *plugin.joystick_value;
-				auto player = (emuKey & IG::bit(5)) ? 1 : 0;
+				auto player = (a.key & IG::bit(5)) ? 1 : 0;
 				if(optionSwapJoystickPorts == JoystickMode::SWAPPED)
 				{
 					player = (player == 1) ? 0 : 1;
 				}
 				//logMsg("js %X p %d", key, player);
-				joystick_value[player] = IG::setOrClearBits(joystick_value[player], (uint16_t)key, action == Input::Action::PUSHED);
+				joystick_value[player] = IG::setOrClearBits(joystick_value[player], (uint16_t)key, a.state == Input::Action::PUSHED);
 			}
 		}
 		bcase KB_MODE:
 		{
-			auto key = emuKey & CODE_MASK;
-			handleKeyboardInput(key, action, metaState, positionalShift);
+			auto key = a.key & CODE_MASK;
+			handleKeyboardInput({key, a.state, a.metaState}, positionalShift);
 		}
 		bcase EX_MODE:
 		{
-			switch(emuKey)
+			switch(a.key)
 			{
 				bcase KBEX_SWAP_JS_PORTS:
 				{
-					if(action == Input::Action::PUSHED && optionSwapJoystickPorts != JoystickMode::KEYBOARD)
+					if(a.state == Input::Action::PUSHED && optionSwapJoystickPorts != JoystickMode::KEYBOARD)
 					{
 						EmuSystem::sessionOptionSet();
 						if(optionSwapJoystickPorts == JoystickMode::SWAPPED)
@@ -426,24 +426,24 @@ void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, unsigned em
 				}
 				bcase KBEX_TOGGLE_VKEYBOARD:
 				{
-					if(app && action == Input::Action::PUSHED)
+					if(app && a.state == Input::Action::PUSHED)
 						app->toggleKeyboard();
 				}
 				bcase KBEX_POS_SHIFT_LOCK:
 				{
-					if(app && action == Input::Action::PUSHED)
+					if(app && a.state == Input::Action::PUSHED)
 					{
 						bool active = app->defaultVController().keyboard().toggleShiftActive();
 						//logMsg("positional shift:%d", active);
-						handleKeyboardInput(c64KeyLeftShift, active ? Input::Action::PUSHED : Input::Action::RELEASED);
+						handleKeyboardInput({c64KeyLeftShift, active ? Input::Action::PUSHED : Input::Action::RELEASED});
 					}
 				}
 				bcase KBEX_CTRL_LOCK:
 				{
-					if(action == Input::Action::PUSHED)
+					if(a.state == Input::Action::PUSHED)
 					{
 						ctrlLock ^= true;
-						handleKeyboardInput(c64KeyCtrl, ctrlLock ? Input::Action::PUSHED : Input::Action::RELEASED);
+						handleKeyboardInput({c64KeyCtrl, ctrlLock ? Input::Action::PUSHED : Input::Action::RELEASED});
 					}
 				}
 				bcase KBEX_RESTORE:
@@ -452,7 +452,7 @@ void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, unsigned em
 					{
 						logMsg("pushed restore key");
 						app->syncEmulationThread();
-						plugin.machine_set_restore_key(action == Input::Action::PUSHED);
+						plugin.machine_set_restore_key(a.state == Input::Action::PUSHED);
 					}
 				}
 			}
@@ -460,7 +460,7 @@ void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, unsigned em
 	}
 }
 
-void EmuSystem::clearInputBuffers(EmuInputView &inputView)
+void C64System::clearInputBuffers(EmuInputView &inputView)
 {
 	ctrlLock = false;
 	auto &joystick_value = *plugin.joystick_value;
@@ -468,24 +468,24 @@ void EmuSystem::clearInputBuffers(EmuInputView &inputView)
 	plugin.keyboard_key_clear();
 }
 
-void EmuSystem::onVKeyboardShown(VControllerKeyboard &kb, bool shown)
+void C64System::onVKeyboardShown(VControllerKeyboard &kb, bool shown)
 {
 	if(!shown)
 	{
 		if(ctrlLock)
 		{
 			ctrlLock = false;
-			handleKeyboardInput(c64KeyCtrl, Input::Action::RELEASED);
+			handleKeyboardInput({c64KeyCtrl, Input::Action::RELEASED});
 		}
 		if(kb.shiftIsActive())
 		{
 			kb.setShiftActive(false);
-			handleKeyboardInput(c64KeyLeftShift, Input::Action::RELEASED);
+			handleKeyboardInput({c64KeyLeftShift, Input::Action::RELEASED});
 		}
 	}
 }
 
-void setJoystickMode(JoystickMode mode)
+void C64System::setJoystickMode(JoystickMode mode)
 {
 	optionSwapJoystickPorts = mode;
 	if(mode == JoystickMode::KEYBOARD)

@@ -99,7 +99,7 @@ static void printFeatures(DrawContextSupport support)
 	{
 		featuresStr.append(" [PBOs]");
 	}
-	if(support.glMapBufferRange)
+	if(!Config::Gfx::OPENGL_ES || (Config::Gfx::OPENGL_ES && support.glMapBufferRange))
 	{
 		featuresStr.append(" [Map Buffer Range]");
 	}

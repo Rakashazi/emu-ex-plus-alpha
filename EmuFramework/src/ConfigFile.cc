@@ -369,7 +369,7 @@ void EmuApp::saveConfigFile(IO &io)
 	writeStringOptionValue(io, CFGKEY_LAST_DIR, contentSearchPath());
 	writeStringOptionValue(io, CFGKEY_SAVE_PATH, system().userSaveDirectory());
 
-	system().writeConfig(io);
+	system().writeConfig(ConfigType::MAIN, io);
 }
 
 EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
@@ -411,7 +411,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 			{
 				default:
 				{
-					if(system().readConfig(io, key, size))
+					if(system().readConfig(ConfigType::MAIN, io, key, size))
 					{
 						break;
 					}
@@ -419,7 +419,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					{
 						break;
 					}
-					logMsg("skipping unknown key %u", (unsigned)key);
+					logMsg("skipping key %u", (unsigned)key);
 				}
 				bcase CFGKEY_SOUND: optionSound.readFromIO(io, size);
 				bcase CFGKEY_SOUND_RATE: optionSoundRate.readFromIO(io, size);

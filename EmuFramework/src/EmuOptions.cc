@@ -128,8 +128,6 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	{
 		optionFrameRate.isConst = true;
 	}
-
-	system().initOptions(*this);
 }
 
 void EmuApp::applyFontSize(Window &win)
@@ -205,18 +203,18 @@ void EmuApp::readRecentContent(IG::ApplicationContext ctx, IO &io, unsigned read
 	}
 }
 
-void EmuApp::setFrameTime(EmuSystem::VideoSystem system, IG::FloatSeconds time)
+void EmuApp::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 {
 	frameTimeOption(system) = time.count();
 }
 
-IG::FloatSeconds EmuApp::frameTime(EmuSystem::VideoSystem system, IG::FloatSeconds fallback) const
+IG::FloatSeconds EmuApp::frameTime(VideoSystem system, IG::FloatSeconds fallback) const
 {
 	auto &opt = frameTimeOption(system);
 	return opt.val ? IG::FloatSeconds(opt.val) : fallback;
 }
 
-bool EmuApp::frameTimeIsConst(EmuSystem::VideoSystem system) const
+bool EmuApp::frameTimeIsConst(VideoSystem system) const
 {
 	return frameTimeOption(system).isConst;
 }

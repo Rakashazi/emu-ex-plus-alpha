@@ -18,6 +18,7 @@
 namespace EmuEx
 {
 class EmuVideo;
+class EmuSystem;
 }
 
 namespace Mednafen
@@ -397,8 +398,11 @@ struct EmulateSpecStruct
 	// Skip rendering this frame if true.  Set by the driver code.
 	int skip = false;
 
-	// Calls MDFND_commitVideoFrame upon drawing a frame if non-null. Set by the driver code.
+	// EmuSystem state. Set by the driver code.
 	EmuEx::EmuSystemTaskContext taskCtx{};
+	EmuEx::EmuSystem *sys{};
+
+	// Calls MDFND_commitVideoFrame upon drawing a frame if non-null. Set by the driver code.
 	EmuEx::EmuVideo *video{};
 
 	//

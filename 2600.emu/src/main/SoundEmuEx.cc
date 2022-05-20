@@ -18,8 +18,8 @@
 #include <stella/common/AudioQueue.hxx>
 #include <stella/common/audio/SimpleResampler.hxx>
 #include <stella/common/audio/LanczosResampler.hxx>
+#include <OSystem.hxx>
 #include <SoundEmuEx.hh>
-#include "internal.hh"
 // TODO: Some Stella types collide with MacTypes.h
 #define Debugger DebuggerMac
 #include <emuframework/EmuSystem.hh>
@@ -82,11 +82,11 @@ void SoundEmuEx::configForVideoFrameRate(double frameRate)
 	logMsg("set sound rate:%.2f resampler type:%d", tiaSoundRate, (int)resampleQuality);
 }
 
-void SoundEmuEx::setFrameTime(OSystem &osystem, double frameTime, unsigned int soundRate)
+void SoundEmuEx::setFrameTime(OSystem &osystem, double frameTime, int soundRate, AudioSettings::ResamplingQuality resampleQ)
 {
 	this->soundRate = soundRate;
 	this->frameTime = frameTime;
-	resampleQuality = (AudioSettings::ResamplingQuality)optionAudioResampleQuality.val;
+	resampleQuality = resampleQ;
 	if(!audioQueue)
 	{
 		logWarn("called setFrameTime() without audio queue");

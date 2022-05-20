@@ -14,17 +14,12 @@
 	along with GBA.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/RTC.h>
 
 namespace EmuEx
 {
-
-enum
-{
-	CFGKEY_RTC_EMULATION = 256
-};
 
 const char *EmuSystem::configFilename = "GbaEmu.config";
 const AspectRatioInfo EmuSystem::aspectRatioInfo[]
@@ -33,41 +28,45 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
-Byte1Option optionRtcEmulation(CFGKEY_RTC_EMULATION, RTC_EMU_AUTO, 0, optionIsValidWithMax<2>);
 
-bool EmuSystem::resetSessionOptions(EmuApp &)
+bool GbaSystem::resetSessionOptions(EmuApp &)
 {
 	optionRtcEmulation.reset();
-	setRTC(optionRtcEmulation);
+	setRTC((RtcMode)optionRtcEmulation.val);
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
+bool GbaSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
 {
-	switch(key)
+	if(type == ConfigType::SESSION)
 	{
-		default: return 0;
-		bcase CFGKEY_RTC_EMULATION: optionRtcEmulation.readFromIO(io, readSize);
+		switch(key)
+		{
+			case CFGKEY_RTC_EMULATION: return optionRtcEmulation.readFromIO(io, readSize);
+		}
 	}
-	return 1;
+	return false;
 }
 
-void EmuSystem::writeSessionConfig(IO &io)
+void GbaSystem::writeConfig(ConfigType type, IO &io)
 {
-	optionRtcEmulation.writeWithKeyIfNotDefault(io);
+	if(type == ConfigType::SESSION)
+	{
+		optionRtcEmulation.writeWithKeyIfNotDefault(io);
+	}
 }
 
-void setRTC(unsigned mode)
+void GbaSystem::setRTC(RtcMode mode)
 {
-	if(detectedRtcGame && mode == RTC_EMU_AUTO)
+	if(detectedRtcGame && mode == RtcMode::AUTO)
 	{
 		logMsg("automatically enabling RTC");
 		rtcEnable(true);
 	}
 	else
 	{
-		logMsg("%s RTC", mode == RTC_EMU_ON ? "enabled" : "disabled");
-		rtcEnable(mode == RTC_EMU_ON);
+		logMsg("%s RTC", mode == RtcMode::ON ? "enabled" : "disabled");
+		rtcEnable(mode == RtcMode::ON);
 	}
 }
 

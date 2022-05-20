@@ -14,22 +14,26 @@
 	along with NGP.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/OptionView.hh>
-#include <emuframework/EmuApp.hh>
-#include "internal.hh"
+#include "MainApp.hh"
 
 namespace EmuEx
 {
 
-class CustomSystemOptionView : public SystemOptionView
+template <class T>
+using MainAppHelper = EmuAppHelper<T, MainApp>;
+
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
 {
+	using MainAppHelper<CustomSystemOptionView>::system;
+
 	BoolMenuItem ngpLanguage
 	{
 		"NGP Language", &defaultFace(),
-		(bool)optionNGPLanguage.val,
+		(bool)system().optionNGPLanguage.val,
 		"Japanese", "English",
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			optionNGPLanguage = item.flipBoolValue(*this);
+			system().optionNGPLanguage = item.flipBoolValue(*this);
 		}
 	};
 

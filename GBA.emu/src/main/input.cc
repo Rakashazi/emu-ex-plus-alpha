@@ -15,7 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 #include <vbam/gba/GBA.h>
 
 namespace EmuEx
@@ -63,9 +63,10 @@ static const unsigned A = bit(0), B = bit(1),
 
 }
 
-void updateVControllerMapping(unsigned player, VController::Map &map)
+VController::Map GbaSystem::vControllerMap(int player)
 {
 	using namespace GbaKeyStatus;
+	VController::Map map{};
 	map[VController::F_ELEM] = B;
 	map[VController::F_ELEM+1] = A;
 	map[VController::F_ELEM+2] = L;
@@ -82,9 +83,10 @@ void updateVControllerMapping(unsigned player, VController::Map &map)
 	map[VController::D_ELEM+6] = DOWN | LEFT;
 	map[VController::D_ELEM+7] = DOWN;
 	map[VController::D_ELEM+8] = DOWN | RIGHT;
+	return map;
 }
 
-unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
+unsigned GbaSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	using namespace GbaKeyStatus;
 	turbo = 0;
@@ -113,12 +115,12 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
+void GbaSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	P1 = IG::setOrClearBits(P1, (uint16_t)emuKey, action != Input::Action::PUSHED);
+	P1 = IG::setOrClearBits(P1, (uint16_t)a.key, a.state != Input::Action::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers(EmuInputView &)
+void GbaSystem::clearInputBuffers(EmuInputView &)
 {
 	P1 = 0x03FF;
 }

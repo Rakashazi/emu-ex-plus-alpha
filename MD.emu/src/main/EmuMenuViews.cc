@@ -13,12 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuApp.hh>
-#include <emuframework/EmuAppHelper.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
-#include "internal.hh"
+#include "MainApp.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
@@ -29,28 +27,31 @@
 namespace EmuEx
 {
 
-class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
+template <class T>
+using MainAppHelper = EmuAppHelper<T, MainApp>;
+
+class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem sixButtonPad
 	{
 		"6-button Gamepad", &defaultFace(),
-		(bool)option6BtnPad,
+		(bool)system().option6BtnPad,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			option6BtnPad = item.flipBoolValue(*this);
-			setupMDInput(app());
+			system().option6BtnPad = item.flipBoolValue(*this);
+			system().setupMDInput(app());
 		}
 	};
 
 	BoolMenuItem multitap
 	{
 		"4-Player Adapter", &defaultFace(),
-		(bool)optionMultiTap,
+		(bool)system().optionMultiTap,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			optionMultiTap = item.flipBoolValue(*this);
-			setupMDInput(app());
+			system().optionMultiTap = item.flipBoolValue(*this);
+			system().setupMDInput(app());
 		}
 	};
 
@@ -65,7 +66,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports", &defaultFace(),
-		(MenuItem::Id)mdInputPortDev[1],
+		(MenuItem::Id)system().mdInputPortDev[1],
 		inputPortsItem
 	};
 
@@ -74,9 +75,9 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		return [this, port1, port2]()
 		{
 			system().sessionOptionSet();
-			optionInputPort1 = mdInputPortDev[0] = port1;
-			optionInputPort2 = mdInputPortDev[1] = port2;
-			setupMDInput(app());
+			system().optionInputPort1 = system().mdInputPortDev[0] = port1;
+			system().optionInputPort2 = system().mdInputPortDev[1] = port2;
+			system().setupMDInput(app());
 		};
 	}
 
@@ -99,14 +100,14 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 			}
 			return false;
 		},
-		optionVideoSystem.val,
+		system().optionVideoSystem.val,
 		videoSystemItem
 	};
 
 	void setVideoSystem(int val, Input::Event e)
 	{
 		system().sessionOptionSet();
-		optionVideoSystem = val;
+		system().optionVideoSystem = val;
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
@@ -146,7 +147,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	void setRegion(int val, Input::Event e)
 	{
 		system().sessionOptionSet();
-		optionRegion = val;
+		system().optionRegion = val;
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
@@ -195,16 +196,18 @@ public:
 	}
 };
 
-class CustomAudioOptionView : public AudioOptionView
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<ConsoleOptionView>
 {
+	using MainAppHelper<ConsoleOptionView>::system;
+
 	BoolMenuItem smsFM
 	{
 		"MarkIII FM Sound Unit", &defaultFace(),
-		(bool)optionSmsFM,
+		(bool)system().optionSmsFM,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			optionSmsFM = item.flipBoolValue(*this);
-			config_ym2413_enabled = optionSmsFM;
+			system().optionSmsFM = item.flipBoolValue(*this);
+			config_ym2413_enabled = system().optionSmsFM;
 		}
 	};
 
@@ -216,12 +219,15 @@ public:
 	}
 };
 
-class CustomSystemOptionView : public SystemOptionView
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<ConsoleOptionView>
 {
+	using MainAppHelper<ConsoleOptionView>::app;
+	using MainAppHelper<ConsoleOptionView>::system;
+
 	BoolMenuItem bigEndianSram
 	{
 		"Use Big-Endian SRAM", &defaultFace(),
-		(bool)optionBigEndianSram,
+		(bool)system().optionBigEndianSram,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>(
@@ -231,7 +237,7 @@ class CustomSystemOptionView : public SystemOptionView
 			ynAlertView->setOnYes(
 				[this, &item]()
 				{
-					optionBigEndianSram = item.flipBoolValue(*this);
+					system().optionBigEndianSram = item.flipBoolValue(*this);
 				});
 			app().pushAndShowModalView(std::move(ynAlertView), e);
 		}
@@ -245,8 +251,10 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<ConsoleOptionView>
 {
+	using MainAppHelper<ConsoleOptionView>::system;
+
 	#ifndef NO_SCD
 	static constexpr std::string_view biosHeadingStr[3]
 	{
@@ -265,13 +273,13 @@ class CustomFilePathOptionView : public FilePathOptionView
 		}
 	}
 
-	static FS::PathString &regionCodeToStrBuffer(int region)
+	FS::PathString &regionCodeToStrBuffer(int region)
 	{
 		switch(region)
 		{
-			default: return cdBiosUSAPath;
-			case REGION_JAPAN_NTSC: return cdBiosJpnPath;
-			case REGION_EUROPE: return cdBiosEurPath;
+			default: return system().cdBiosUSAPath;
+			case REGION_JAPAN_NTSC: return system().cdBiosJpnPath;
+			case REGION_EUROPE: return system().cdBiosEurPath;
 		}
 	}
 

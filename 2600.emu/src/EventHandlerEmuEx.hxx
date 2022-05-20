@@ -25,6 +25,7 @@ public:
 
 	EventHandler(OSystem& osystem) {}
 	Event& event() { return myEvent; }
+	const Event& event() const { return myEvent; }
 	void allowAllDirections(bool allow) {}
 	EventHandlerState state() const { return EventHandlerState::EMULATION; }
 	bool inTIAMode() const { return true; }

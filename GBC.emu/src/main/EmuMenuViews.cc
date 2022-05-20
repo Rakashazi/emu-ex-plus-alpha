@@ -14,27 +14,32 @@
 	along with GBC.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuAppHelper.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
 #include "Palette.hh"
-#include "internal.hh"
+#include "MainApp.hh"
 #include <resample/resamplerinfo.h>
 
 namespace EmuEx
 {
 
+template <class T>
+using MainAppHelper = EmuAppHelper<T, MainApp>;
+
 static constexpr unsigned MAX_RESAMPLERS = 4;
 
-class CustomAudioOptionView : public AudioOptionView
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
 {
+	using MainAppHelper<CustomAudioOptionView>::app;
+	using MainAppHelper<CustomAudioOptionView>::system;
+
 	StaticArrayList<TextMenuItem, MAX_RESAMPLERS> resamplerItem{};
 
 	MultiChoiceMenuItem resampler
 	{
 		"Resampler", &defaultFace(),
-		optionAudioResampler.val,
+		system().optionAudioResampler.val,
 		resamplerItem
 	};
 
@@ -51,7 +56,7 @@ public:
 			resamplerItem.emplace_back(r.desc, &defaultFace(),
 				[this, i]()
 				{
-					optionAudioResampler = i;
+					system().optionAudioResampler = i;
 					app().configFrameTime();
 				});
 		}
@@ -59,42 +64,53 @@ public:
 	}
 };
 
-class CustomVideoOptionView : public VideoOptionView
+class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<CustomVideoOptionView>
 {
+	using MainAppHelper<CustomVideoOptionView>::system;
+
+	TextMenuItem::SelectDelegate setGbPaletteDel()
+	{
+		return [this](TextMenuItem &item)
+		{
+			system().optionGBPal = item.id();
+			system().applyGBPalette();
+		};
+	}
+
 	TextMenuItem gbPaletteItem[13]
 	{
-		{"Original", &defaultFace(), [](){ optionGBPal = 0; applyGBPalette(); }},
-		{"Brown", &defaultFace(), [](){ optionGBPal = 1; applyGBPalette(); }},
-		{"Red", &defaultFace(), [](){ optionGBPal = 2; applyGBPalette(); }},
-		{"Dark Brown", &defaultFace(), [](){ optionGBPal = 3; applyGBPalette(); }},
-		{"Pastel", &defaultFace(), [](){ optionGBPal = 4; applyGBPalette(); }},
-		{"Orange", &defaultFace(), [](){ optionGBPal = 5; applyGBPalette(); }},
-		{"Yellow", &defaultFace(), [](){ optionGBPal = 6; applyGBPalette(); }},
-		{"Blue", &defaultFace(), [](){ optionGBPal = 7; applyGBPalette(); }},
-		{"Dark Blue", &defaultFace(), [](){ optionGBPal = 8; applyGBPalette(); }},
-		{"Gray", &defaultFace(), [](){ optionGBPal = 9; applyGBPalette(); }},
-		{"Green", &defaultFace(), [](){ optionGBPal = 10; applyGBPalette(); }},
-		{"Dark Green", &defaultFace(), [](){ optionGBPal = 11; applyGBPalette(); }},
-		{"Reverse", &defaultFace(), [](){ optionGBPal = 12; applyGBPalette(); }},
+		{"Original",   &defaultFace(), setGbPaletteDel(), 0},
+		{"Brown",      &defaultFace(), setGbPaletteDel(), 1},
+		{"Red",        &defaultFace(), setGbPaletteDel(), 2},
+		{"Dark Brown", &defaultFace(), setGbPaletteDel(), 3},
+		{"Pastel",     &defaultFace(), setGbPaletteDel(), 4},
+		{"Orange",     &defaultFace(), setGbPaletteDel(), 5},
+		{"Yellow",     &defaultFace(), setGbPaletteDel(), 6},
+		{"Blue",       &defaultFace(), setGbPaletteDel(), 7},
+		{"Dark Blue",  &defaultFace(), setGbPaletteDel(), 8},
+		{"Gray",       &defaultFace(), setGbPaletteDel(), 9},
+		{"Green",      &defaultFace(), setGbPaletteDel(), 10},
+		{"Dark Green", &defaultFace(), setGbPaletteDel(), 11},
+		{"Reverse",    &defaultFace(), setGbPaletteDel(), 12},
 	};
 
 	MultiChoiceMenuItem gbPalette
 	{
 		"GB Palette", &defaultFace(),
-		optionGBPal.val,
+		system().optionGBPal.val,
 		gbPaletteItem
 	};
 
 	BoolMenuItem fullSaturation
 	{
 		"Saturated GBC Colors", &defaultFace(),
-		(bool)optionFullGbcSaturation,
+		(bool)system().optionFullGbcSaturation,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			optionFullGbcSaturation = item.flipBoolValue(*this);
+			system().optionFullGbcSaturation = item.flipBoolValue(*this);
 			if(system().hasContent())
 			{
-				gbEmu.refreshPalettes();
+				system().refreshPalettes();
 			}
 		}
 	};
@@ -109,28 +125,28 @@ public:
 	}
 };
 
-class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
+class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem useBuiltinGBPalette
 	{
 		"Use Built-in GB Palettes", &defaultFace(),
-		(bool)optionUseBuiltinGBPalette,
+		(bool)system().optionUseBuiltinGBPalette,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			optionUseBuiltinGBPalette = item.flipBoolValue(*this);
-			applyGBPalette();
+			system().optionUseBuiltinGBPalette = item.flipBoolValue(*this);
+			system().applyGBPalette();
 		}
 	};
 
 	BoolMenuItem reportAsGba
 	{
 		"Report Hardware as GBA", &defaultFace(),
-		(bool)optionReportAsGba,
+		(bool)system().optionReportAsGba,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			optionReportAsGba = item.flipBoolValue(*this);
+			system().optionReportAsGba = item.flipBoolValue(*this);
 			app().promptSystemReloadDueToSetOption(attachParams(), e);
 		}
 	};

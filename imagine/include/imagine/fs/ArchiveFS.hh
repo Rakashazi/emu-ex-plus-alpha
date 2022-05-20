@@ -25,9 +25,15 @@
 namespace IG::FS
 {
 
-class ArchiveIterator : public std::iterator<std::input_iterator_tag, IG::ArchiveEntry>
+class ArchiveIterator
 {
 public:
+	using iterator_category = std::input_iterator_tag;
+	using value_type = ArchiveEntry;
+	using difference_type = ptrdiff_t;
+	using pointer = value_type*;
+	using reference = value_type&;
+
 	constexpr ArchiveIterator() = default;
 	ArchiveIterator(IG::CStringView path);
 	ArchiveIterator(IG::GenericIO io);

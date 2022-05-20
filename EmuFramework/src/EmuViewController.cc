@@ -680,8 +680,8 @@ bool EmuViewController::allWindowsAreFocused() const
 void EmuViewController::applyFrameRates(bool updateFrameTime)
 {
 	auto screenFrameTime = emuView.window().screen()->frameTime();
-	system().setFrameTime(EmuSystem::VIDSYS_NATIVE_NTSC, app().frameTime(EmuSystem::VIDSYS_NATIVE_NTSC, screenFrameTime));
-	system().setFrameTime(EmuSystem::VIDSYS_PAL, app().frameTime(EmuSystem::VIDSYS_PAL, screenFrameTime));
+	system().setFrameTime(VideoSystem::NATIVE_NTSC, app().frameTime(VideoSystem::NATIVE_NTSC, screenFrameTime));
+	system().setFrameTime(VideoSystem::PAL, app().frameTime(VideoSystem::PAL, screenFrameTime));
 	if(updateFrameTime)
 		system().configFrameTime(app().soundRate());
 }

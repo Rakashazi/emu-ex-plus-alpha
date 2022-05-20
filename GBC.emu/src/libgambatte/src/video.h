@@ -146,6 +146,7 @@ public:
 	void update(unsigned long cycleCounter);
 	bool isCgb() const { return ppu_.cgb(); }
 	bool isDoubleSpeed() const { return ppu_.lyCounter().isDoubleSpeed(); }
+	void setColorConversionFlags(unsigned flags) { colorConvFlags = flags; }
 
 private:
 	enum Event { event_mem,
@@ -214,6 +215,7 @@ private:
 	scoped_ptr<OsdElement> osdElement_;
 	#endif
 	unsigned char statReg_;
+	unsigned colorConvFlags{};
 
 	static void setDmgPalette(unsigned long palette[],
 	                          unsigned long const dmgColors[],

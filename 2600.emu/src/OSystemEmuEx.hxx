@@ -5,27 +5,28 @@
 class Cartridge;
 class CheatManager;
 class CommandMenu;
-class Console;
 class Debugger;
-class EventHandler;
-class FrameBuffer;
 class Launcher;
 class Menu;
 class Properties;
-class Random;
 class Sound;
 class VideoDialog;
 
 #include <stella/common/bspf.hxx>
 #include <stella/common/StateManager.hxx>
 #include <stella/common/AudioSettings.hxx>
-#include <stella/common/audio/Resampler.hxx>
+#include <stella/common/TimerManager.hxx>
 #include <stella/emucore/PropsSet.hxx>
 #include <stella/emucore/Console.hxx>
 #include <stella/emucore/FSNode.hxx>
 #include <stella/emucore/FrameBufferConstants.hxx>
 #include <stella/emucore/EventHandlerConstants.hxx>
 #include <stella/emucore/Settings.hxx>
+#include <stella/emucore/Random.hxx>
+#include <SoundEmuEx.hh>
+#include <EventHandler.hxx>
+#include <FrameBuffer.hxx>
+#include <optional>
 
 namespace EmuEx
 {
@@ -33,29 +34,34 @@ class EmuAudio;
 class EmuApp;
 }
 
-class SoundEmuEx;
-
 class OSystem
 {
 	friend class EventHandler;
 
 public:
 	OSystem(EmuEx::EmuApp &);
-	EventHandler& eventHandler() const;
-	FrameBuffer& frameBuffer() const;
-	Sound& sound() const;
-	Settings& settings() const;
-	Random& random() const;
-	PropertiesSet& propSet() const;
-	StateManager& state() const;
+	EventHandler& eventHandler() { return myEventHandler; }
+	const EventHandler& eventHandler() const { return myEventHandler; }
+	Random& random() { return myRandom; }
+	const Random& random() const { return myRandom; }
+	FrameBuffer& frameBuffer() { return myFrameBuffer; }
+	const FrameBuffer& frameBuffer() const { return myFrameBuffer; }
+	Sound& sound() { return mySound; }
+	const Sound& sound() const { return mySound; }
+	Settings& settings() { return mySettings; }
+	const Settings& settings() const { return mySettings; }
+	PropertiesSet& propSet() { return myPropSet; }
+	const PropertiesSet& propSet() const { return myPropSet; }
+	StateManager& state() { return myStateManager; }
+	const StateManager& state() const { return myStateManager; }
+	SoundEmuEx &soundEmuEx() { return mySound; }
+	const SoundEmuEx &soundEmuEx() const { return mySound; }
+	Console& console() { return *myConsole; }
+	const Console& console() const { return *myConsole; }
+	bool hasConsole() const { return (bool)myConsole; }
 	void makeConsole(unique_ptr<Cartridge>& cart, const Properties& props, const char *gamePath);
 	void deleteConsole();
-	void setFrameTime(double frameTime, int rate);
-	SoundEmuEx &soundEmuEx() const { return *mySound; }
-
-	Console& console() const { return *myConsole; }
-
-	bool hasConsole() const { return myConsole != nullptr; }
+	void setFrameTime(double frameTime, int rate, AudioSettings::ResamplingQuality);
 
 	#ifdef DEBUGGER_SUPPORT
 	void createDebugger(Console& console);
@@ -80,14 +86,14 @@ public:
 
 protected:
 	EmuEx::EmuApp *appPtr{};
-	std::unique_ptr<Console> myConsole{};
-	std::unique_ptr<StateManager> myStateManager{};
-	std::unique_ptr<Random> myRandom{};
-	std::unique_ptr<EventHandler> myEventHandler{};
-	std::unique_ptr<FrameBuffer> myFrameBuffer{};
-	std::unique_ptr<PropertiesSet> myPropSet{};
-	std::unique_ptr<Settings> mySettings{};
-	std::unique_ptr<SoundEmuEx> mySound{};
-	std::unique_ptr<AudioSettings> myAudioSettings{};
+	std::optional<Console> myConsole{};
+	Settings mySettings{};
+	AudioSettings myAudioSettings{mySettings};
+	Random myRandom{uInt32(TimerManager::getTicks())};
+	FrameBuffer myFrameBuffer{*this};
+	EventHandler myEventHandler{*this};
+	PropertiesSet myPropSet{};
+	StateManager myStateManager{*this};
+	SoundEmuEx mySound{*this};
 	FilesystemNode myRomFile{};
 };

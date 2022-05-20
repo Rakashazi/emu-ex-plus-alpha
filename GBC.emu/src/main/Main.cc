@@ -14,34 +14,19 @@
 	along with GBC.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
-#include <emuframework/EmuAudio.hh>
-#include <emuframework/EmuVideo.hh>
+#include <emuframework/EmuSystemInlines.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/fs/FS.hh>
-#include <gambatte.h>
-#include <libgambatte/src/video/lcddef.h>
 #include <resample/resampler.h>
 #include <resample/resamplerinfo.h>
 #include <main/Cheats.hh>
-#include <main/Palette.hh>
-#include "internal.hh"
 
 namespace EmuEx
 {
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\n\nPortions (c) the\nGambatte Team\ngambatte.sourceforge.net";
-gambatte::GB gbEmu;
-static Resampler *resampler{};
-static uint8_t activeResampler = 1;
-static uint32_t totalFrames = 0;
-static uint64_t totalSamples = 0;
-alignas(8) static uint_least32_t frameBuffer[gambatte::lcd_hres * gambatte::lcd_vres];
-static constexpr IG::WP lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
-static bool useBgrOrder{};
-static const GBPalette *gameBuiltinPalette{};
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::canRenderRGB565 = false;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
@@ -50,6 +35,7 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 		return IG::stringEndsWithAny(name, ".gb", ".gbc", ".GB", ".GBC");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
+constexpr IG::WP lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
 
 const char *EmuSystem::shortSystemName() const
 {
@@ -61,7 +47,7 @@ const char *EmuSystem::systemName() const
 	return "Game Boy";
 }
 
-static uint_least32_t makeOutputColor(uint_least32_t rgb888)
+uint_least32_t GbcSystem::makeOutputColor(uint_least32_t rgb888) const
 {
 	unsigned b = rgb888       & 0xFF;
 	unsigned g = rgb888 >>  8 & 0xFF;
@@ -70,7 +56,7 @@ static uint_least32_t makeOutputColor(uint_least32_t rgb888)
 	return desc.build(r, g, b, 0u);
 }
 
-void applyGBPalette()
+void GbcSystem::applyGBPalette()
 {
 	size_t idx = optionGBPal;
 	assert(idx < gbPalettes().size());
@@ -88,47 +74,32 @@ void applyGBPalette()
 		gbEmu.setDmgPaletteColor(2, i, makeOutputColor(pal.sp2[i]));
 }
 
-void EmuSystem::onOptionsLoaded()
-{
-	gbEmu.setInputGetter(&gbcInput);
-	auto ctx = appContext();
-	gbEmu.setStreamDelegates(
-		[ctx](std::string_view basePath, std::string_view filename) -> IG::IFStream
-		{
-			return {ctx.openFileUri(FS::uriString(basePath, filename), IO::AccessHint::ALL, IO::TEST_BIT)};
-		},
-		[ctx](std::string_view basePath, std::string_view filename) -> IG::OFStream
-		{
-			return {ctx.openFileUri(FS::uriString(basePath, filename), IO::OPEN_NEW | IO::TEST_BIT)};
-		});
-}
-
-void EmuSystem::reset(ResetMode mode)
+void GbcSystem::reset(EmuApp &, ResetMode mode)
 {
 	assert(hasContent());
 	gbEmu.reset();
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
+FS::FileString GbcSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}.gqs", name, saveSlotCharUpper(slot));
 }
 
-void EmuSystem::saveState(IG::CStringView path)
+void GbcSystem::saveState(IG::CStringView path)
 {
 	IG::OFStream stream{appContext().openFileUri(path, IO::OPEN_NEW)};
 	if(!gbEmu.saveState(frameBuffer, gambatte::lcd_hres, stream))
 		throwFileWriteError();
 }
 
-void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
+void GbcSystem::loadState(EmuApp &app, IG::CStringView path)
 {
 	IG::IFStream stream{app.appContext().openFileUri(path, IO::AccessHint::ALL)};
 	if(!gbEmu.loadState(stream))
 		throwFileReadError();
 }
 
-void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void GbcSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
 	if(!hasContent())
 		return;
@@ -136,13 +107,13 @@ void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 	gbEmu.saveSavedata();
 }
 
-void EmuSystem::savePathChanged()
+void GbcSystem::savePathChanged()
 {
 	if(hasContent())
 		gbEmu.setSaveDir(std::string{contentSaveDirectory()});
 }
 
-void EmuSystem::closeSystem()
+void GbcSystem::closeSystem()
 {
 	cheatList.clear();
 	gameBuiltinPalette = nullptr;
@@ -150,7 +121,7 @@ void EmuSystem::closeSystem()
 	totalSamples = 0;
 }
 
-void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void GbcSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	gbEmu.setSaveDir(std::string{contentSaveDirectory()});
 	auto buff = io.buffer();
@@ -171,10 +142,10 @@ void EmuSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 		applyGBPalette();
 	}
 	readCheatFile(*this);
-	applyCheats(*this);
+	applyCheats();
 }
 
-bool EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
+bool GbcSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
 	video.setFormat({lcdSize, fmt});
 	auto isBgrOrder = fmt == IG::PIXEL_BGRA8888;
@@ -188,11 +159,11 @@ bool EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 				return (srcPixel & 0xFF000000) | ((srcPixel & 0xFF0000) >> 16) | (srcPixel & 0x00FF00) | ((srcPixel & 0x0000FF) << 16);
 			});
 	}
-	gbEmu.refreshPalettes();
+	refreshPalettes();
 	return true;
 }
 
-void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
+void GbcSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
 	long outputRate = std::round(rate * (59.7275 * frameTime.count()));
 	long inputRate = 2097152;
@@ -201,14 +172,13 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	if(!resampler || optionAudioResampler != activeResampler || resampler->outRate() != outputRate)
 	{
 		logMsg("setting up resampler %d for input rate %ldHz", (int)optionAudioResampler, inputRate);
-		delete resampler;
-		resampler = ResamplerInfo::get(optionAudioResampler).create(inputRate, outputRate, 35112 + 2064);
+		resampler.reset(ResamplerInfo::get(optionAudioResampler).create(inputRate, outputRate, 35112 + 2064));
 		activeResampler = optionAudioResampler;
 	}
 }
 
-static size_t runUntilVideoFrame(gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
-	EmuAudio *audio, DelegateFunc<void()> videoFrameCallback)
+size_t GbcSystem::runUntilVideoFrame(gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
+	EmuAudio *audio, gambatte::VideoFrameDelegate videoFrameCallback)
 {
 	size_t samplesEmulated = 0;
 	constexpr unsigned samplesPerRun = 2064;
@@ -231,16 +201,16 @@ static size_t runUntilVideoFrame(gambatte::uint_least32_t *videoBuf, std::ptrdif
 	return samplesEmulated;
 }
 
-static void renderVideo(const EmuSystemTaskContext &taskCtx, EmuVideo &video)
+void GbcSystem::renderVideo(const EmuSystemTaskContext &taskCtx, EmuVideo &video)
 {
 	auto fmt = video.renderPixelFormat() == IG::PIXEL_FMT_BGRA8888 ? IG::PIXEL_FMT_BGRA8888 : IG::PIXEL_FMT_RGBA8888;
 	IG::Pixmap frameBufferPix{{lcdSize, fmt}, frameBuffer};
 	video.startFrameWithAltFormat(taskCtx, frameBufferPix);
 }
 
-void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
+void GbcSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	auto incFrameCountOnReturn = IG::scopeGuard([](){ totalFrames++; });
+	auto incFrameCountOnReturn = IG::scopeGuard([&](){ totalFrames++; });
 	auto currentFrame = totalSamples / 35112;
 	if(totalFrames < currentFrame)
 	{
@@ -252,7 +222,7 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	if(video)
 	{
 		totalSamples += runUntilVideoFrame(frameBuffer, gambatte::lcd_hres, audio,
-			[&taskCtx, video]()
+			[this, &taskCtx, video]()
 			{
 				renderVideo(taskCtx, *video);
 			});
@@ -263,7 +233,7 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	}
 }
 
-void EmuSystem::renderFramebuffer(EmuVideo &video)
+void GbcSystem::renderFramebuffer(EmuVideo &video)
 {
 	renderVideo({}, video);
 }
@@ -281,15 +251,33 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
+void GbcSystem::updateColorConversionFlags()
+{
+	unsigned flags{};
+	if(optionFullGbcSaturation)
+		flags |= COLOR_CONVERSION_SATURATED_BIT;
+	if(useBgrOrder)
+		flags |= COLOR_CONVERSION_BGR_BIT;
+	gbEmu.setColorConversionFlags(flags);
 }
 
-uint_least32_t gbcToRgb32(unsigned const bgr15)
+void GbcSystem::refreshPalettes()
+{
+	updateColorConversionFlags();
+	if(!hasContent())
+		return;
+	gbEmu.refreshPalettes();
+}
+
+}
+
+uint_least32_t gbcToRgb32(unsigned const bgr15, unsigned flags)
 {
 	unsigned r = bgr15       & 0x1F;
 	unsigned g = bgr15 >>  5 & 0x1F;
 	unsigned b = bgr15 >> 10 & 0x1F;
 	unsigned outR, outG, outB;
-	if(EmuEx::optionFullGbcSaturation)
+	if(flags & EmuEx::COLOR_CONVERSION_SATURATED_BIT)
 	{
 		outR = (r * 255 + 15) / 31;
 		outG = (g * 255 + 15) / 31;
@@ -301,6 +289,6 @@ uint_least32_t gbcToRgb32(unsigned const bgr15)
 		outG = (g * 3 + b) << 1;
 		outB = (r * 3 + g * 2 + b * 11) >> 1;
 	}
-	auto desc = EmuEx::useBgrOrder ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
+	auto desc = (flags & EmuEx::COLOR_CONVERSION_BGR_BIT) ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
 	return desc.build(outR, outG, outB, 0u);
 }

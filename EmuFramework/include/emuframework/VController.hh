@@ -57,7 +57,7 @@ struct VControllerLayoutPosition
 	_2DOrigin origin{LT2DO};
 	VControllerState state{};
 
-	constexpr VControllerLayoutPosition() {}
+	constexpr VControllerLayoutPosition() = default;
 	constexpr VControllerLayoutPosition(_2DOrigin origin, IG::WP pos, VControllerState state = {}):
 		pos{pos}, origin{origin}, state{state} {}
 };
@@ -65,7 +65,7 @@ struct VControllerLayoutPosition
 class VControllerDPad
 {
 public:
-	constexpr VControllerDPad() {}
+	constexpr VControllerDPad() = default;
 	void setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, float texHeight);
 	void draw(Gfx::RendererCommands &cmds) const;
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::ProjectionPlane);
@@ -102,13 +102,13 @@ public:
 	using KeyTable = std::array<std::array<unsigned, VKEY_COLS>, KEY_ROWS>;
 	using KbMap = std::array<unsigned, KEY_ROWS * KEY_COLS>;
 
-	constexpr VControllerKeyboard() {}
+	constexpr VControllerKeyboard() = default;
 	void updateImg(Gfx::Renderer &r);
 	void setImg(Gfx::Renderer &r, Gfx::TextureSpan img);
 	void place(float btnSize, float yOffset, Gfx::ProjectionPlane);
 	void draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPlane) const;
 	int getInput(IG::WP c) const;
-	int translateInput(unsigned idx) const;
+	unsigned translateInput(unsigned idx) const;
 	bool keyInput(VController &v, Gfx::Renderer &r, const Input::KeyEvent &e);
 	[[nodiscard]] IG::WindowRect selectKey(unsigned x, unsigned y);
 	void selectKeyRel(int x, int y);
@@ -117,9 +117,9 @@ public:
 	unsigned currentKey() const;
 	unsigned currentKey(int x, int y) const;
 	int mode() const { return mode_; }
-	void setMode(Gfx::Renderer &r, int mode);
+	void setMode(EmuSystem &, Gfx::Renderer &r, int mode);
 	void applyMap(KbMap map);
-	void updateKeyboardMapping();
+	void updateKeyboardMapping(EmuSystem &);
 	void setShiftActive(bool);
 	bool toggleShiftActive();
 	bool shiftIsActive() const;
@@ -138,7 +138,7 @@ protected:
 class VControllerButton
 {
 public:
-	constexpr VControllerButton() {}
+	constexpr VControllerButton() = default;
 	void setPos(IG::WP pos, Gfx::ProjectionPlane, _2DOrigin = C2DO);
 	void setSize(IG::WP size, IG::WP extendedSize = {});
 	void setImage(Gfx::TextureSpan img, float aspectRatio = 1.f);
@@ -402,8 +402,5 @@ static constexpr unsigned VCTRL_LAYOUT_DPAD_IDX = 0,
 	VCTRL_LAYOUT_FF_IDX = 4,
 	VCTRL_LAYOUT_L_IDX = 5,
 	VCTRL_LAYOUT_R_IDX = 6;
-
-void updateVControllerMapping(unsigned player, VController::Map &map);
-VController::KbMap updateVControllerKeyboardMapping(unsigned mode);
 
 }

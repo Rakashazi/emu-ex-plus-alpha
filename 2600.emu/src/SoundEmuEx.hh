@@ -15,11 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <stella/common/AudioSettings.hxx>
+#include <stella/common/audio/Resampler.hxx>
 #include <stella/emucore/Sound.hxx>
-#include <OSystem.hxx>
 
+class OSystem;
 class AudioQueue;
-class Resampler;
 class EmulationTiming;
 
 namespace EmuEx
@@ -38,7 +39,7 @@ public:
 	SoundEmuEx& operator=(SoundEmuEx&&) = delete;
 	void open(shared_ptr<AudioQueue> audioQueue, EmulationTiming* emulationTiming);
 	void close() final;
-	void setFrameTime(OSystem &osystem, double frameTime, unsigned int soundRate);
+	void setFrameTime(OSystem &osystem, double frameTime, int soundRate, AudioSettings::ResamplingQuality);
 	void setResampleQuality(AudioSettings::ResamplingQuality quality);
 	void setEmuAudio(EmuEx::EmuAudio *audio);
 	void updateRate(OSystem &osystem);

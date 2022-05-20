@@ -23,7 +23,7 @@
 
 using namespace gambatte;
 
-uint_least32_t gbcToRgb32(unsigned const bgr15);
+uint_least32_t gbcToRgb32(unsigned const bgr15, unsigned flags);
 
 namespace {
 
@@ -64,10 +64,10 @@ bool isHdmaPeriod(LyCounter const &lyCounter,
 }
 
 void doCgbColorChange(unsigned char *pdata,
-		unsigned long *palette, unsigned index, unsigned data) {
+		unsigned long *palette, unsigned index, unsigned data, unsigned flags) {
 	pdata[index] = data;
 	index /= 2;
-	palette[index] = gbcToRgb32(pdata[index * 2] | pdata[index * 2 + 1] * 0x100l);
+	palette[index] = gbcToRgb32(pdata[index * 2] | pdata[index * 2 + 1] * 0x100l, flags);
 }
 
 } // unnamed namespace.
@@ -155,8 +155,8 @@ void LCD::loadState(SaveState const &state, unsigned char const *const oamram) {
 void LCD::refreshPalettes() {
 	if (ppu_.cgb()) {
 		for (int i = 0; i < max_num_palettes * num_palette_entries; ++i) {
-			ppu_.bgPalette()[i] = gbcToRgb32( bgpData_[2 * i] |  bgpData_[2 * i + 1] * 0x100l);
-			ppu_.spPalette()[i] = gbcToRgb32(objpData_[2 * i] | objpData_[2 * i + 1] * 0x100l);
+			ppu_.bgPalette()[i] = gbcToRgb32( bgpData_[2 * i] |  bgpData_[2 * i + 1] * 0x100l, colorConvFlags);
+			ppu_.spPalette()[i] = gbcToRgb32(objpData_[2 * i] | objpData_[2 * i + 1] * 0x100l, colorConvFlags);
 		}
 	} else {
 		setDmgPalette(ppu_.bgPalette(), dmgColorsRgb32_[0],  bgpData_[0]);
@@ -341,14 +341,14 @@ bool LCD::cgbpAccessible(unsigned long const cc) {
 void LCD::doCgbBgColorChange(unsigned index, unsigned data, unsigned long cc) {
 	if (cgbpAccessible(cc)) {
 		update(cc);
-		doCgbColorChange(bgpData_, ppu_.bgPalette(), index, data);
+		doCgbColorChange(bgpData_, ppu_.bgPalette(), index, data, colorConvFlags);
 	}
 }
 
 void LCD::doCgbSpColorChange(unsigned index, unsigned data, unsigned long cc) {
 	if (cgbpAccessible(cc)) {
 		update(cc);
-		doCgbColorChange(objpData_, ppu_.spPalette(), index, data);
+		doCgbColorChange(objpData_, ppu_.spPalette(), index, data, colorConvFlags);
 	}
 }
 

@@ -125,7 +125,7 @@ protected:
 	IG::OnExit onExit{};
 	bool showingEmulation{};
 	IG::WindowFrameTimeSource winFrameTimeSrc{};
-	uint8_t targetFastForwardSpeed{};
+	int8_t targetFastForwardSpeed{};
 	IG_UseMemberIf(Config::envIsAndroid, bool, usePresentationTime_){true};
 
 	void initViews(ViewAttachParams attach);

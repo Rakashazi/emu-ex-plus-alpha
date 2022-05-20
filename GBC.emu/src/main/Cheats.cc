@@ -21,13 +21,13 @@
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
+#include "MainSystem.hh"
 #include <main/Cheats.hh>
 #include <gambatte.h>
 
 namespace EmuEx
 {
 
-extern gambatte::GB gbEmu;
 StaticArrayList<GbcCheat, maxCheats> cheatList;
 
 static void writeCheatFile(EmuSystem &);
@@ -48,27 +48,26 @@ static bool strIsGSCode(const char *str)
 			&hex, &hex, &hex, &hex, &hex, &hex, &hex, &hex) == 8;
 }
 
-void applyCheats(EmuSystem &sys)
+void GbcSystem::applyCheats()
 {
-	if(sys.hasContent())
+	if(!hasContent())
+		return;
+	std::string ggCodeStr, gsCodeStr;
+	for(auto &e : cheatList)
 	{
-		std::string ggCodeStr, gsCodeStr;
-		for(auto &e : cheatList)
-		{
-			if(!e.isOn())
-				continue;
-			std::string &codeStr = IG::stringContains(e.code, "-") ? ggCodeStr : gsCodeStr;
-			if(codeStr.size())
-				codeStr += ";";
-			codeStr += e.code;
-		}
-		gbEmu.setGameGenie(ggCodeStr);
-		gbEmu.setGameShark(gsCodeStr);
-		if(ggCodeStr.size())
-			logMsg("set GG codes: %s", ggCodeStr.c_str());
-		if(gsCodeStr.size())
-			logMsg("set GS codes: %s", gsCodeStr.c_str());
+		if(!e.isOn())
+			continue;
+		std::string &codeStr = IG::stringContains(e.code, "-") ? ggCodeStr : gsCodeStr;
+		if(codeStr.size())
+			codeStr += ";";
+		codeStr += e.code;
 	}
+	gbEmu.setGameGenie(ggCodeStr);
+	gbEmu.setGameShark(gsCodeStr);
+	if(ggCodeStr.size())
+		logMsg("set GG codes: %s", ggCodeStr.c_str());
+	if(gsCodeStr.size())
+		logMsg("set GS codes: %s", gsCodeStr.c_str());
 }
 
 void writeCheatFile(EmuSystem &sys)
@@ -163,7 +162,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 			IG::eraseFirst(cheatList, *cheat);
 			onCheatListChanged();
 			writeCheatFile(system());
-			applyCheats(system());
+			static_cast<GbcSystem&>(system()).applyCheats();
 			dismiss();
 			return true;
 		},
@@ -188,7 +187,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 					}
 					cheat->code = IG::stringToUpper<decltype(cheat->code)>(str);
 					writeCheatFile(system());
-					applyCheats(app.system());
+					static_cast<GbcSystem&>(app.system()).applyCheats();
 					ggCode.set2ndName(str);
 					ggCode.compile(renderer(), projP);
 					postDraw();
@@ -254,7 +253,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						c.name = "Unnamed Cheat";
 						cheatList.push_back(c);
 						logMsg("added new cheat, %zu total", cheatList.size());
-						applyCheats(system());
+						static_cast<GbcSystem&>(system()).applyCheats();
 						onCheatListChanged();
 						writeCheatFile(system());
 						view.dismiss();
@@ -325,7 +324,7 @@ void EmuCheatsView::loadCheatItems()
 				auto &c = cheatList[cIdx];
 				c.toggleOn();
 				writeCheatFile(system());
-				applyCheats(system());
+				static_cast<GbcSystem&>(system()).applyCheats();
 			});
 		logMsg("added cheat %s : %s", thisCheat.name.data(), thisCheat.code.data());
 		++it;

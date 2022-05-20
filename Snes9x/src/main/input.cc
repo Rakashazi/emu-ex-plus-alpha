@@ -4,7 +4,7 @@
 #include <imagine/input/DragTracker.hh>
 #include <imagine/util/math/space.hh>
 #include <imagine/base/Window.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 #include <snes9x.h>
 #include <memmap.h>
 #include <display.h>
@@ -48,22 +48,11 @@ int EmuSystem::inputLTriggerIndex = 5;
 int EmuSystem::inputRTriggerIndex = 2;
 const unsigned EmuSystem::maxPlayers = 5;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0, 5, 3, 2, 4};
-static int snesPointerX = 0, snesPointerY = 0, snesPointerBtns = 0, snesMouseClick = 0;
-static int snesMouseX = 0, snesMouseY = 0;
-unsigned doubleClickFrames, rightClickFrames;
-static Input::PointerId mousePointerId{Input::NULL_POINTER_ID};
-static bool dragWithButton = false; // true to start next mouse drag with a button held
-#ifndef SNES9X_VERSION_1_4
-int snesInputPort = SNES_AUTO_INPUT;
-int snesActiveInputPort = SNES_JOYPAD;
-#else
-int snesInputPort = SNES_JOYPAD;
-static uint16 joypadData[5]{};
-#endif
 
-void updateVControllerMapping(unsigned player, VController::Map &map)
+VController::Map Snes9xSystem::vControllerMap(int player)
 {
 	unsigned playerMask = player << 29;
+	VController::Map map{};
 	map[VController::F_ELEM] = SNES_B_MASK | playerMask;
 	map[VController::F_ELEM+1] = SNES_A_MASK | playerMask;
 	map[VController::F_ELEM+2] = SNES_TR_MASK | playerMask;
@@ -82,9 +71,10 @@ void updateVControllerMapping(unsigned player, VController::Map &map)
 	map[VController::D_ELEM+6] = SNES_DOWN_MASK | SNES_LEFT_MASK | playerMask;
 	map[VController::D_ELEM+7] = SNES_DOWN_MASK | playerMask;
 	map[VController::D_ELEM+8] = SNES_DOWN_MASK | SNES_RIGHT_MASK | playerMask;
+	return map;
 }
 
-unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
+unsigned Snes9xSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	assert(input >= s9xKeyIdxUp);
@@ -123,19 +113,19 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 #ifdef SNES9X_VERSION_1_4
 static uint16 *S9xGetJoypadBits(unsigned idx)
 {
-	return &joypadData[idx];
+	return &gSnes9xSystem().joypadData[idx];
 }
 #endif
 
-void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
+void Snes9xSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	auto player = emuKey >> 29; // player is encoded in upper 3 bits of input code
+	auto player = a.key >> 29; // player is encoded in upper 3 bits of input code
 	assert(player < maxPlayers);
 	auto &padData = *S9xGetJoypadBits(player);
-	padData = IG::setOrClearBits(padData, (uint16)(emuKey & 0xFFFF), action == Input::Action::PUSHED);
+	padData = IG::setOrClearBits(padData, (uint16)(a.key & 0xFFFF), a.state == Input::Action::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers(EmuInputView &view)
+void Snes9xSystem::clearInputBuffers(EmuInputView &view)
 {
 	iterateTimes((unsigned)maxPlayers, p)
 	{
@@ -147,14 +137,14 @@ void EmuSystem::clearInputBuffers(EmuInputView &view)
 	mousePointerId = Input::NULL_POINTER_ID;
 }
 
-void setupSNESInput(EmuSystem &sys, VController &vCtrl)
+void Snes9xSystem::setupSNESInput(VController &vCtrl)
 {
 	#ifndef SNES9X_VERSION_1_4
 	int inputSetup = snesInputPort;
 	if(inputSetup == SNES_AUTO_INPUT)
 	{
 		inputSetup = SNES_JOYPAD;
-		if(sys.hasContent() && !strncmp((const char *) Memory.NSRTHeader + 24, "NSRT", 4))
+		if(hasContent() && !strncmp((const char *) Memory.NSRTHeader + 24, "NSRT", 4))
 		{
 			switch (Memory.NSRTHeader[29])
 			{
@@ -285,7 +275,7 @@ void setupSNESInput(EmuSystem &sys, VController &vCtrl)
 	#endif
 }
 
-bool EmuSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
+bool Snes9xSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
 {
 	switch(snesActiveInputPort)
 	{
@@ -340,7 +330,7 @@ bool EmuSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrac
 	return false;
 }
 
-bool EmuSystem::onPointerInputUpdate(const Input::MotionEvent &e, Input::DragTrackerState dragState,
+bool Snes9xSystem::onPointerInputUpdate(const Input::MotionEvent &e, Input::DragTrackerState dragState,
 	Input::DragTrackerState prevDragState, IG::WindowRect gameRect)
 {
 	switch(snesActiveInputPort)
@@ -385,7 +375,7 @@ bool EmuSystem::onPointerInputUpdate(const Input::MotionEvent &e, Input::DragTra
 	return false;
 }
 
-bool EmuSystem::onPointerInputEnd(const Input::MotionEvent &e, Input::DragTrackerState dragState, IG::WindowRect)
+bool Snes9xSystem::onPointerInputEnd(const Input::MotionEvent &e, Input::DragTrackerState dragState, IG::WindowRect)
 {
 	switch(snesActiveInputPort)
 	{
@@ -436,18 +426,18 @@ CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons)
 {
     if (which == 1)
     	return 0;
-
+    auto &sys = gSnes9xSystem();
     //logMsg("reading mouse %d: %d %d %d, prev %d %d", which1_0_to_1, snesPointerX, snesPointerY, snesPointerBtns, IPPU.PrevMouseX[which1_0_to_1], IPPU.PrevMouseY[which1_0_to_1]);
-    x = snesMouseX;
-    y = snesMouseY;
-    buttons = snesPointerBtns;
+    x = sys.snesMouseX;
+    y = sys.snesMouseY;
+    buttons = sys.snesPointerBtns;
 
-    if(snesMouseClick)
-    	snesMouseClick--;
-    if(snesMouseClick == 1)
+    if(sys.snesMouseClick)
+    	sys.snesMouseClick--;
+    if(sys.snesMouseClick == 1)
     {
     	//logDMsg("ending click");
-    	snesPointerBtns = 0;
+    	sys.snesPointerBtns = 0;
     }
 
     return 1;
@@ -456,9 +446,10 @@ CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons)
 CLINK bool8 S9xReadSuperScopePosition(int &x, int &y, uint32 &buttons)
 {
 	//logMsg("reading super scope: %d %d %d", snesPointerX, snesPointerY, snesPointerBtns);
-	x = snesPointerX;
-	y = snesPointerY;
-	buttons = snesPointerBtns;
+	auto &sys = gSnes9xSystem();
+	x = sys.snesPointerX;
+	y = sys.snesPointerY;
+	buttons = sys.snesPointerBtns;
 	return 1;
 }
 
@@ -467,7 +458,7 @@ CLINK uint32 S9xReadJoypad(int which)
 {
 	assert(which < 5);
 	//logMsg("reading joypad %d", which);
-	return 0x80000000 | joypadData[which];
+	return 0x80000000 | gSnes9xSystem().joypadData[which];
 }
 
 bool JustifierOffscreen()

@@ -20,7 +20,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 #include <string.h>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 extern "C"
 {

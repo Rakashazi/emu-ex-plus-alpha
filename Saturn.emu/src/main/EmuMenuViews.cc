@@ -13,15 +13,17 @@
 	You should have received a copy of the GNU General Public License
 	along with Saturn.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuApp.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuMainMenuView.hh>
-#include "internal.hh"
+#include "MainApp.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 
 namespace EmuEx
 {
+
+template <class T>
+using MainAppHelper = EmuAppHelper<T, MainApp>;
 
 static constexpr unsigned MAX_SH2_CORES = 4;
 

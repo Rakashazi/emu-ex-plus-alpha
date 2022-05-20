@@ -18,7 +18,7 @@
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
 #include "EmuCheatViews.hh"
-#include "internal.hh"
+#include "MainApp.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
@@ -32,17 +32,20 @@ extern int pal_emulation;
 namespace EmuEx
 {
 
-class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
+template <class T>
+using MainAppHelper = EmuAppHelper<T, MainApp>;
+
+class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem fourScore
 	{
 		"4-Player Adapter", &defaultFace(),
-		(bool)optionFourScore,
+		(bool)system().optionFourScore,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			optionFourScore = item.flipBoolValue(*this);
-			setupNESFourScore();
+			system().optionFourScore = item.flipBoolValue(*this);
+			system().setupNESFourScore();
 		}
 	};
 
@@ -67,7 +70,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports", &defaultFace(),
-		(MenuItem::Id)packInputEnums(nesInputPortDev[0], nesInputPortDev[1]),
+		(MenuItem::Id)packInputEnums(system().nesInputPortDev[0], system().nesInputPortDev[1]),
 		inputPortsItem
 	};
 
@@ -77,11 +80,11 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		{
 			system().sessionOptionSet();
 			auto [port1, port2] = unpackInputEnums(item.id());
-			optionInputPort1 = (int)port1;
-			optionInputPort2 = (int)port2;
-			nesInputPortDev[0] = port1;
-			nesInputPortDev[1] = port2;
-			setupNESInputPorts();
+			system().optionInputPort1 = (int)port1;
+			system().optionInputPort2 = (int)port2;
+			system().nesInputPortDev[0] = port1;
+			system().nesInputPortDev[1] = port2;
+			system().setupNESInputPorts();
 		};
 	}
 
@@ -105,22 +108,22 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 			}
 			return false;
 		},
-		optionVideoSystem.val,
+		system().optionVideoSystem.val,
 		videoSystemItem
 	};
 
 	void setVideoSystem(int val, Input::Event e)
 	{
 		system().sessionOptionSet();
-		optionVideoSystem = val;
-		setRegion(val, optionDefaultVideoSystem.val, autoDetectedRegion);
+		system().optionVideoSystem = val;
+		setRegion(val, system().optionDefaultVideoSystem.val, system().autoDetectedRegion);
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
 	BoolMenuItem compatibleFrameskip
 	{
 		"Frameskip Mode", &defaultFace(),
-		(bool)optionCompatibleFrameskip,
+		(bool)system().optionCompatibleFrameskip,
 		"Fast", "Compatible",
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -133,13 +136,13 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 					[this, &item]()
 					{
 						system().sessionOptionSet();
-						optionCompatibleFrameskip = item.flipBoolValue(*this);
+						system().optionCompatibleFrameskip = item.flipBoolValue(*this);
 					});
 				app().pushAndShowModalView(std::move(ynAlertView), e);
 			}
 			else
 			{
-				optionCompatibleFrameskip = item.flipBoolValue(*this);
+				system().optionCompatibleFrameskip = item.flipBoolValue(*this);
 			}
 		}
 	};
@@ -157,12 +160,12 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	MultiChoiceMenuItem visibleVideoLines
 	{
 		"Visible Lines", &defaultFace(),
-		[]()
+		[this]()
 		{
-			switch(optionVisibleVideoLines.val)
+			switch(system().optionVisibleVideoLines.val)
 			{
 				default: return 0;
-				case 232: return optionStartVideoLine == 8 ? 1 : 2;
+				case 232: return system().optionStartVideoLine == 8 ? 1 : 2;
 				case 240: return 3;
 			}
 		}(),
@@ -174,9 +177,9 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		return [this, startLine, lines]()
 		{
 			system().sessionOptionSet();
-			optionStartVideoLine = startLine;
-			optionVisibleVideoLines = lines;
-			updateVideoPixmap(app().video(), optionHorizontalVideoCrop, optionVisibleVideoLines);
+			system().optionStartVideoLine = startLine;
+			system().optionVisibleVideoLines = lines;
+			system().updateVideoPixmap(app().video(), system().optionHorizontalVideoCrop, system().optionVisibleVideoLines);
 			system().renderFramebuffer(app().video());
 		};
 	}
@@ -184,12 +187,12 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 	BoolMenuItem horizontalVideoCrop
 	{
 		"Crop 8 Pixels On Sides", &defaultFace(),
-		(bool)optionHorizontalVideoCrop,
+		(bool)system().optionHorizontalVideoCrop,
 		[this](BoolMenuItem &item)
 		{
 			system().sessionOptionSet();
-			optionHorizontalVideoCrop = item.flipBoolValue(*this);
-			updateVideoPixmap(app().video(), optionHorizontalVideoCrop, optionVisibleVideoLines);
+			system().optionHorizontalVideoCrop = item.flipBoolValue(*this);
+			system().updateVideoPixmap(app().video(), system().optionHorizontalVideoCrop, system().optionVisibleVideoLines);
 			app().viewController().placeEmuViews();
 			system().renderFramebuffer(app().video());
 		}
@@ -217,31 +220,34 @@ public:
 	{}
 };
 
-class CustomVideoOptionView : public VideoOptionView
+class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<CustomVideoOptionView>
 {
+	using  MainAppHelper<CustomVideoOptionView>::app;
+	using  MainAppHelper<CustomVideoOptionView>::system;
+
 	BoolMenuItem spriteLimit
 	{
 		"Sprite Limit", &defaultFace(),
-		(bool)optionSpriteLimit,
+		(bool)system().optionSpriteLimit,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			optionSpriteLimit = item.flipBoolValue(*this);
-			FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
+			system().optionSpriteLimit = item.flipBoolValue(*this);
+			FCEUI_DisableSpriteLimitation(!system().optionSpriteLimit);
 		}
 	};
 
 	TextMenuItem videoSystemItem[4]
 	{
-		{"Auto", &defaultFace(), [this](){ optionDefaultVideoSystem = 0; }},
-		{"NTSC", &defaultFace(), [this](){ optionDefaultVideoSystem = 1; }},
-		{"PAL", &defaultFace(), [this](){ optionDefaultVideoSystem = 2; }},
-		{"Dendy", &defaultFace(), [this](){ optionDefaultVideoSystem = 3; }},
+		{"Auto", &defaultFace(), [this](){ system().optionDefaultVideoSystem = 0; }},
+		{"NTSC", &defaultFace(), [this](){ system().optionDefaultVideoSystem = 1; }},
+		{"PAL", &defaultFace(), [this](){ system().optionDefaultVideoSystem = 2; }},
+		{"Dendy", &defaultFace(), [this](){ system().optionDefaultVideoSystem = 3; }},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
 		"Default Video System", &defaultFace(),
-		optionDefaultVideoSystem.val,
+		system().optionDefaultVideoSystem.val,
 		videoSystemItem
 	};
 
@@ -249,13 +255,13 @@ class CustomVideoOptionView : public VideoOptionView
 	static constexpr const char *wavebeamPalPath = "Wavebeam.pal";
 	static constexpr const char *classicPalPath = "Classic (FBX).pal";
 
-	static void setPalette(IG::ApplicationContext ctx, IG::CStringView palPath)
+	void setPalette(IG::ApplicationContext ctx, IG::CStringView palPath)
 	{
 		if(palPath.size())
-			defaultPalettePath = palPath;
+			system().defaultPalettePath = palPath;
 		else
-			defaultPalettePath = {};
-		setDefaultPalette(ctx, palPath);
+			system().defaultPalettePath = {};
+		system().setDefaultPalette(ctx, palPath);
 		auto &app = EmuApp::get(ctx);
 		app.renderSystemFramebuffer(app.video());
 	}
@@ -299,20 +305,20 @@ class CustomVideoOptionView : public VideoOptionView
 		{
 			if(idx == defaultPaletteCustomFileIdx())
 			{
-				t.setString(IG::stringWithoutDotExtension(appContext().fileUriDisplayName(defaultPalettePath)));
+				t.setString(IG::stringWithoutDotExtension(appContext().fileUriDisplayName(system().defaultPalettePath)));
 				return true;
 			}
 			return false;
 		},
 		[this]()
 		{
-			if(defaultPalettePath.empty())
+			if(system().defaultPalettePath.empty())
 				return 0;
-			if(defaultPalettePath == firebrandXPalPath)
+			if(system().defaultPalettePath == firebrandXPalPath)
 				return 1;
-			else if(defaultPalettePath == wavebeamPalPath)
+			else if(system().defaultPalettePath == wavebeamPalPath)
 				return 2;
-			else if(defaultPalettePath == classicPalPath)
+			else if(system().defaultPalettePath == classicPalPath)
 				return 3;
 			else
 				return (int)defaultPaletteCustomFileIdx();
@@ -331,25 +337,27 @@ public:
 	}
 };
 
-class CustomAudioOptionView : public AudioOptionView
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
 {
-	static void setQuality(int quaility)
+	using MainAppHelper<CustomAudioOptionView>::system;
+
+	void setQuality(int quaility)
 	{
-		optionSoundQuality = quaility;
+		system().optionSoundQuality = quaility;
 		FCEUI_SetSoundQuality(quaility);
 	}
 
 	TextMenuItem qualityItem[3]
 	{
-		{"Normal", &defaultFace(), [](){ setQuality(0); }},
-		{"High", &defaultFace(), []() { setQuality(1); }},
-		{"Highest", &defaultFace(), []() { setQuality(2); }}
+		{"Normal", &defaultFace(), [this](){ setQuality(0); }},
+		{"High", &defaultFace(), [this]() { setQuality(1); }},
+		{"Highest", &defaultFace(), [this]() { setQuality(2); }}
 	};
 
 	MultiChoiceMenuItem quality
 	{
 		"Emulation Quality", &defaultFace(),
-		optionSoundQuality.val,
+		system().optionSoundQuality.val,
 		qualityItem
 	};
 
@@ -472,7 +480,7 @@ public:
 	}
 };
 
-class FDSControlView : public TableView
+class FDSControlView : public TableView, public MainAppHelper<FDSControlView>
 {
 private:
 	static constexpr unsigned DISK_SIDES = 4;
@@ -480,33 +488,33 @@ private:
 	{
 		{
 			"Set Disk 1 Side A", &defaultFace(),
-			[](View &view, Input::Event e)
+			[this](View &view, Input::Event e)
 			{
-				FCEU_FDSSetDisk(0);
+				FCEU_FDSSetDisk(0, system());
 				view.dismiss();
 			}
 		},
 		{
 			"Set Disk 1 Side B", &defaultFace(),
-			[](View &view, Input::Event e)
+			[this](View &view, Input::Event e)
 			{
-				FCEU_FDSSetDisk(1);
+				FCEU_FDSSetDisk(1, system());
 				view.dismiss();
 			}
 		},
 		{
 			"Set Disk 2 Side A", &defaultFace(),
-			[](View &view, Input::Event e)
+			[this](View &view, Input::Event e)
 			{
-				FCEU_FDSSetDisk(2);
+				FCEU_FDSSetDisk(2, system());
 				view.dismiss();
 			}
 		},
 		{
 			"Set Disk 2 Side B", &defaultFace(),
-			[](View &view, Input::Event e)
+			[this](View &view, Input::Event e)
 			{
-				FCEU_FDSSetDisk(3);
+				FCEU_FDSSetDisk(3, system());
 				view.dismiss();
 			}
 		}

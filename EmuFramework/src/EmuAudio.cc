@@ -340,7 +340,7 @@ void EmuAudio::setStereo(bool on)
 	stop();
 }
 
-void EmuAudio::setSpeedMultiplier(uint8_t speed)
+void EmuAudio::setSpeedMultiplier(int8_t speed)
 {
 	speedMultiplier = speed ? speed : 1;
 }
@@ -350,7 +350,7 @@ void EmuAudio::setAddSoundBuffersOnUnderrun(bool on)
 	addSoundBuffersOnUnderrun = on;
 }
 
-void EmuAudio::setVolume(uint8_t vol)
+void EmuAudio::setVolume(int8_t vol)
 {
 	if(vol == 100)
 	{

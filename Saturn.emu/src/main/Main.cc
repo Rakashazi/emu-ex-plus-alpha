@@ -14,11 +14,8 @@
 	along with Saturn.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuSystemInlines.hh>
 #include <emuframework/EmuAppInlines.hh>
-#include <emuframework/EmuAudio.hh>
-#include <emuframework/EmuVideo.hh>
-#include "internal.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
@@ -246,7 +243,7 @@ CLINK int OSDChangeCore(int coreid)
 	return 0;
 }
 
-void EmuSystem::reset(ResetMode mode)
+void SaturnSystem::reset(EmuApp &, ResetMode mode)
 {
 	logMsg("resetting system");
 	assert(hasContent());
@@ -254,24 +251,24 @@ void EmuSystem::reset(ResetMode mode)
 	YabauseReset();
 }
 
-FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
+FS::FileString SaturnSystem::stateFilename(int slot, std::string_view name) const
 {
 	return IG::format<FS::FileString>("{}.0{}.yss", name, saveSlotCharUpper(slot));
 }
 
-void EmuSystem::saveState(IG::CStringView path)
+void SaturnSystem::saveState(IG::CStringView path)
 {
 	if(YabSaveState(path) != 0)
 		throwFileWriteError();
 }
 
-void EmuSystem::loadState(IG::CStringView path)
+void SaturnSystem::loadState(EmuApp &, IG::CStringView path)
 {
 	if(YabLoadState(path) != 0)
 		throwFileReadError();
 }
 
-void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void SaturnSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 {
 	if(hasContent())
 	{
@@ -282,7 +279,7 @@ void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 
 static bool yabauseIsInit = 0;
 
-void EmuSystem::closeSystem()
+void SaturnSystem::closeSystem()
 {
 	if(yabauseIsInit)
 	{
@@ -291,7 +288,7 @@ void EmuSystem::closeSystem()
 	}
 }
 
-void EmuSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
+void SaturnSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	bupPath = contentSavePath("bkram.bin");
 	if(YabauseInit(&yinit) != 0)
@@ -308,12 +305,12 @@ void EmuSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 	ScspSetFrameAccurate(1);
 }
 
-void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
+void SaturnSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
 	// TODO: use frameTime
 }
 
-void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
+void SaturnSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	emuSysTask = taskCtx;
 	emuVideo = video;
@@ -334,11 +331,6 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 	view.setBackgroundGradient(navViewGrad);
-}
-
-void EmuSystem::onInit()
-{
-	yinit.cdpath = contentLocationPtr();
 }
 
 }

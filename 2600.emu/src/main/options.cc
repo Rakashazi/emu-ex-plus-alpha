@@ -13,25 +13,14 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <OSystem.hxx>
 // TODO: Some Stella types collide with MacTypes.h
 #define Debugger DebuggerMac
 #include <emuframework/EmuApp.hh>
 #undef Debugger
-#include "internal.hh"
+#include "MainSystem.hh"
 
 namespace EmuEx
 {
-
-static bool optionIsValidControllerType(uint8_t val);
-
-enum
-{
-	CFGKEY_2600_TV_PHOSPHOR = 270, CFGKEY_VIDEO_SYSTEM = 271,
-	CFGKEY_2600_TV_PHOSPHOR_BLEND = 272, CFGKEY_AUDIO_RESAMPLE_QUALITY = 273,
-	CFGKEY_INPUT_PORT_1 = 274, CFGKEY_INPUT_PORT_2 = 275,
-	CFGKEY_PADDLE_DIGITAL_SENSITIVITY = 276, CFGKEY_PADDLE_ANALOG_REGION = 277,
-};
 
 const char *EmuSystem::configFilename = "2600emu.config";
 const AspectRatioInfo EmuSystem::aspectRatioInfo[]
@@ -40,95 +29,66 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
-Byte1Option optionTVPhosphor{CFGKEY_2600_TV_PHOSPHOR, TV_PHOSPHOR_AUTO, false, optionIsValidWithMax<2>};
-Byte1Option optionTVPhosphorBlend{CFGKEY_2600_TV_PHOSPHOR_BLEND, 80, false, optionIsValidWithMax<100>};
-Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<6>};
-Byte1Option optionAudioResampleQuality{CFGKEY_AUDIO_RESAMPLE_QUALITY,
-	(uint8_t)AudioSettings::DEFAULT_RESAMPLING_QUALITY, false,
-	optionIsValidWithMinMax<(uint8_t)AudioSettings::ResamplingQuality::nearestNeightbour, (uint8_t)AudioSettings::ResamplingQuality::lanczos_3>};
-Byte1Option optionInputPort1{CFGKEY_INPUT_PORT_1, 0, false, optionIsValidControllerType};
-Byte1Option optionPaddleDigitalSensitivity{CFGKEY_PADDLE_DIGITAL_SENSITIVITY, 1, false,
-	optionIsValidWithMinMax<1, 20>};
-Byte1Option optionPaddleAnalogRegion{CFGKEY_PADDLE_ANALOG_REGION, 1, false,
-	optionIsValidWithMax<3>};
 
-static bool optionIsValidControllerType(uint8_t val)
-{
-	switch((Controller::Type)val)
-	{
-		case Controller::Type::Unknown:
-		case Controller::Type::Joystick:
-		case Controller::Type::Genesis:
-			return true;
-		default:
-			return false;
-	}
-}
-
-void EmuSystem::initOptions(EmuApp &app)
-{
-	app.setDefaultVControlsButtonStagger(5);
-}
-
-bool EmuSystem::resetSessionOptions(EmuApp &app)
+bool A2600System::resetSessionOptions(EmuApp &app)
 {
 	optionTVPhosphor.reset();
-	setRuntimeTVPhosphor(*this, optionTVPhosphor, optionTVPhosphorBlend);
+	setRuntimeTVPhosphor(optionTVPhosphor, optionTVPhosphorBlend);
 	optionVideoSystem.reset();
 	optionInputPort1.reset();
 	optionPaddleDigitalSensitivity.reset();
 	optionPaddleAnalogRegion.reset();
-	if(osystem->hasConsole())
+	if(osystem.hasConsole())
 	{
-		setControllerType(app, osystem->console(), (Controller::Type)optionInputPort1.val);
+		setControllerType(app, osystem.console(), (Controller::Type)optionInputPort1.val);
 	}
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+bool A2600System::readConfig(ConfigType type, IO &io, uint key, size_t readSize)
 {
-	switch(key)
+	if(type == ConfigType::MAIN)
 	{
-		default: return 0;
-		bcase CFGKEY_2600_TV_PHOSPHOR: optionTVPhosphor.readFromIO(io, readSize);
-		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
-		bcase CFGKEY_INPUT_PORT_1: optionInputPort1.readFromIO(io, readSize);
-		bcase CFGKEY_PADDLE_DIGITAL_SENSITIVITY: optionPaddleDigitalSensitivity.readFromIO(io, readSize);
-		bcase CFGKEY_PADDLE_ANALOG_REGION: optionPaddleAnalogRegion.readFromIO(io, readSize);
+		switch(key)
+		{
+			case CFGKEY_2600_TV_PHOSPHOR_BLEND: return optionTVPhosphorBlend.readFromIO(io, readSize);
+			case CFGKEY_AUDIO_RESAMPLE_QUALITY: return optionAudioResampleQuality.readFromIO(io, readSize);
+		}
 	}
-	return 1;
-}
-
-void EmuSystem::writeSessionConfig(IO &io)
-{
-	optionTVPhosphor.writeWithKeyIfNotDefault(io);
-	optionTVPhosphorBlend.writeWithKeyIfNotDefault(io);
-	optionVideoSystem.writeWithKeyIfNotDefault(io);
-	optionInputPort1.writeWithKeyIfNotDefault(io);
-	optionPaddleDigitalSensitivity.writeWithKeyIfNotDefault(io);
-	optionPaddleAnalogRegion.writeWithKeyIfNotDefault(io);
-}
-
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
-{
-	switch(key)
+	else if(type == ConfigType::SESSION)
 	{
-		default: return 0;
-		bcase CFGKEY_2600_TV_PHOSPHOR_BLEND: optionTVPhosphorBlend.readFromIO(io, readSize);
-		bcase CFGKEY_AUDIO_RESAMPLE_QUALITY: optionAudioResampleQuality.readFromIO(io, readSize);
+		switch(key)
+		{
+			case CFGKEY_2600_TV_PHOSPHOR: return optionTVPhosphor.readFromIO(io, readSize);
+			case CFGKEY_VIDEO_SYSTEM: return optionVideoSystem.readFromIO(io, readSize);
+			case CFGKEY_INPUT_PORT_1: return optionInputPort1.readFromIO(io, readSize);
+			case CFGKEY_PADDLE_DIGITAL_SENSITIVITY: return optionPaddleDigitalSensitivity.readFromIO(io, readSize);
+			case CFGKEY_PADDLE_ANALOG_REGION: return optionPaddleAnalogRegion.readFromIO(io, readSize);
+		}
 	}
-	return 1;
+	return false;
 }
 
-void EmuSystem::writeConfig(IO &io)
+void A2600System::writeConfig(ConfigType type, IO &io)
 {
-	optionTVPhosphorBlend.writeWithKeyIfNotDefault(io);
-	optionAudioResampleQuality.writeWithKeyIfNotDefault(io);
+	if(type == ConfigType::MAIN)
+	{
+		optionTVPhosphorBlend.writeWithKeyIfNotDefault(io);
+		optionAudioResampleQuality.writeWithKeyIfNotDefault(io);
+	}
+	else if(type == ConfigType::SESSION)
+	{
+		optionTVPhosphor.writeWithKeyIfNotDefault(io);
+		optionVideoSystem.writeWithKeyIfNotDefault(io);
+		optionInputPort1.writeWithKeyIfNotDefault(io);
+		optionPaddleDigitalSensitivity.writeWithKeyIfNotDefault(io);
+		optionPaddleAnalogRegion.writeWithKeyIfNotDefault(io);
+	}
 }
 
-const char *optionVideoSystemToStr()
+const char *optionVideoSystemToStr(uint8_t sysIdx)
 {
-	switch((int)optionVideoSystem)
+	switch(sysIdx)
 	{
 		case 1: return "NTSC";
 		case 2: return "PAL";
@@ -140,9 +100,9 @@ const char *optionVideoSystemToStr()
 	}
 }
 
-void setRuntimeTVPhosphor(EmuSystem &sys, int val, int blend)
+void A2600System::setRuntimeTVPhosphor(int val, int blend)
 {
-	if(!sys.hasContent() || !osystem->hasConsole())
+	if(!hasContent() || !osystem.hasConsole())
 	{
 		return;
 	}
@@ -157,7 +117,7 @@ void setRuntimeTVPhosphor(EmuSystem &sys, int val, int blend)
 		usePhosphor = val;
 	}
 	logMsg("Phosphor effect %s", usePhosphor ? "on" : "off");
-	auto props = osystem->console().properties();
+	auto props = osystem.console().properties();
 	if(usePhosphor)
 	{
 		props.set(PropType::Display_Phosphor, "Yes");
@@ -166,8 +126,8 @@ void setRuntimeTVPhosphor(EmuSystem &sys, int val, int blend)
 	{
 		props.set(PropType::Display_Phosphor, "No");
 	}
-	osystem->console().setProperties(props);
-	osystem->frameBuffer().tiaSurface().enablePhosphor(usePhosphor, blend);
+	osystem.console().setProperties(props);
+	osystem.frameBuffer().tiaSurface().enablePhosphor(usePhosphor, blend);
 }
 
 }

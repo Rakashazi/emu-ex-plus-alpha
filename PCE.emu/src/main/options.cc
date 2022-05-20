@@ -15,20 +15,12 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include "internal.hh"
+#include "MainSystem.hh"
 
 namespace EmuEx
 {
 
-enum
-{
-	CFGKEY_SYSCARD_PATH = 275, CFGKEY_ARCADE_CARD = 276,
-	CFGKEY_6_BTN_PAD = 277
-};
-
 const char *EmuSystem::configFilename = "PceEmu.config";
-Byte1Option optionArcadeCard{CFGKEY_ARCADE_CARD, 1};
-Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};
 
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -38,12 +30,12 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 
-void EmuSystem::onSessionOptionsLoaded(EmuApp &app)
+void PceSystem::onSessionOptionsLoaded(EmuApp &app)
 {
 	set6ButtonPadEnabled(app, option6BtnPad);
 }
 
-bool EmuSystem::resetSessionOptions(EmuApp &app)
+bool PceSystem::resetSessionOptions(EmuApp &app)
 {
 	optionArcadeCard.reset();
 	option6BtnPad.reset();
@@ -51,37 +43,38 @@ bool EmuSystem::resetSessionOptions(EmuApp &app)
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
+bool PceSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
 {
-	switch(key)
+	if(type == ConfigType::MAIN)
 	{
-		default: return 0;
-		bcase CFGKEY_ARCADE_CARD: optionArcadeCard.readFromIO(io, readSize);
-		bcase CFGKEY_6_BTN_PAD: option6BtnPad.readFromIO(io, readSize);
+		switch(key)
+		{
+			case CFGKEY_SYSCARD_PATH:
+				return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){sysCardPath = path;});
+		}
 	}
-	return 1;
-}
-
-void EmuSystem::writeSessionConfig(IO &io)
-{
-	optionArcadeCard.writeWithKeyIfNotDefault(io);
-	option6BtnPad.writeWithKeyIfNotDefault(io);
-}
-
-bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
-{
-	switch(key)
+	else if(type == ConfigType::SESSION)
 	{
-		default: return 0;
-		bcase CFGKEY_SYSCARD_PATH:
-			readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){sysCardPath = path;});
+		switch(key)
+		{
+			case CFGKEY_ARCADE_CARD: return optionArcadeCard.readFromIO(io, readSize);
+			case CFGKEY_6_BTN_PAD: return option6BtnPad.readFromIO(io, readSize);
+		}
 	}
-	return 1;
+	return false;
 }
 
-void EmuSystem::writeConfig(IO &io)
+void PceSystem::writeConfig(ConfigType type, IO &io)
 {
-	writeStringOptionValue(io, CFGKEY_SYSCARD_PATH, sysCardPath);
+	if(type == ConfigType::MAIN)
+	{
+		writeStringOptionValue(io, CFGKEY_SYSCARD_PATH, sysCardPath);
+	}
+	else if(type == ConfigType::SESSION)
+	{
+		optionArcadeCard.writeWithKeyIfNotDefault(io);
+		option6BtnPad.writeWithKeyIfNotDefault(io);
+	}
 }
 
 }

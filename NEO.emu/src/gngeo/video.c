@@ -415,7 +415,7 @@ static __inline__ void draw_fix_char(unsigned char *buf, int start, int end) {
 	if (start != 0 && end != 0) GN_SetClipRect(buffer, NULL);
 }
 
-void draw_screen(void *emuTaskPtr, void *emuVideoPtr) {
+void draw_screen(void *emuTaskPtr, void *neoSystemPtr, void *emuVideoPtr) {
 	int sx = 0, sy = 0, oy = 0, my = 0, zx = 1, rzy = 1;
 	unsigned int offs, i, count;
 	unsigned int tileno, tileatr, t1, t2, t3;
@@ -663,10 +663,10 @@ void draw_screen(void *emuTaskPtr, void *emuVideoPtr) {
 		SDL_textout(buffer, visible_area.x+8, visible_area.y, fps_str);*/
 
 
-	screen_update(emuTaskPtr, emuVideoPtr);
+	screen_update(emuTaskPtr, neoSystemPtr, emuVideoPtr);
 }
 
-void draw_screen_scanline(int start_line, int end_line, int refresh, void *emuTaskCtxPtr, void *emuVideoPtr) {
+void draw_screen_scanline(int start_line, int end_line, int refresh, void *emuTaskCtxPtr, void *neoSystemPtr, void *emuVideoPtr) {
 	int sx = 0, sy = 0, my = 0, zx = 1, zy = 1;
 	int offs, count, y;
 	int tileno, tileatr;
@@ -847,7 +847,7 @@ void draw_screen_scanline(int start_line, int end_line, int refresh, void *emuTa
 		}
 		if (conf.show_fps)
 			SDL_textout(buffer, visible_area.x, visible_area.y, fps_str);*/
-		screen_update(emuTaskCtxPtr, emuVideoPtr);
+		screen_update(emuTaskCtxPtr, neoSystemPtr, emuVideoPtr);
 	}
 }
 
