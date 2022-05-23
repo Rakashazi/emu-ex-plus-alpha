@@ -18,6 +18,7 @@
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
+#include <imagine/gui/AlertView.hh>
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/RTC.h>
 
@@ -59,9 +60,69 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		system().setRTC(val);
 	}
 
-	std::array<MenuItem*, 1> menuItem
+	TextMenuItem saveTypeItem[7]
 	{
-		&rtc
+		{"Auto",            &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_AUTO)},
+		{"EEPROM",          &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_EEPROM)},
+		{"SRAM",            &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_SRAM)},
+		{"Flash (64K)",     &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_FLASH, SIZE_FLASH512)},
+		{"Flash (128K)",    &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_FLASH, SIZE_FLASH1M)},
+		{"EEPROM + Sensor", &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_EEPROM_SENSOR)},
+		{"None",            &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_NONE)},
+	};
+
+	MultiChoiceMenuItem saveType
+	{
+		"Save Type", &defaultFace(),
+		[this](int idx, Gfx::Text &t)
+		{
+			if(idx == 0)
+			{
+				t.setString(saveTypeStr(system().detectedSaveType, system().detectedSaveSize));
+				return true;
+			}
+			return false;
+		},
+		(MenuItem::Id)system().optionSaveTypeOverride.val,
+		saveTypeItem
+	};
+
+	TextMenuItem::SelectDelegate setSaveTypeDel()
+	{
+		return [this](TextMenuItem &item, const Input::Event &e)
+		{
+			if(system().optionSaveTypeOverride == (uint32_t)item.id())
+				return true;
+			static auto setSaveTypeOption = [](GbaApp &app, uint32_t optVal, ViewAttachParams attach, const Input::Event &e)
+			{
+				app.system().sessionOptionSet();
+				app.system().optionSaveTypeOverride = optVal;
+				app.promptSystemReloadDueToSetOption(attach, e);
+			};
+			if(saveMemoryHasContent())
+			{
+				auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(),
+					"Really change save type? Existing data in .sav file may be lost so please make a backup before proceeding.");
+				ynAlertView->setOnYes(
+					[this, optVal = item.id()](const Input::Event &e)
+					{
+						setSaveTypeOption(app(), optVal, attachParams(), e);
+					});
+				pushAndShowModal(std::move(ynAlertView), e);
+				return false;
+			}
+			else
+			{
+				setSaveTypeOption(app(), item.id(), attachParams(), e);
+				return true;
+			}
+		};
+	}
+
+	std::array<MenuItem*, 2> menuItem
+	{
+		&rtc,
+		&saveType
 	};
 
 public:

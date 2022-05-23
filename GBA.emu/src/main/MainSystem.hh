@@ -2,6 +2,7 @@
 
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
+#include <vbam/gba/GBA.h>
 
 namespace IG
 {
@@ -17,21 +18,38 @@ enum class RtcMode : uint8_t {AUTO, OFF, ON};
 
 enum
 {
-	CFGKEY_RTC_EMULATION = 256
+	CFGKEY_RTC_EMULATION = 256, CFGKEY_SAVE_TYPE_OVERRIDE = 257
 };
 
 void readCheatFile(EmuSystem &);
+void setSaveType(int type, int size);
+const char *saveTypeStr(int type, int size);
+bool saveMemoryHasContent();
+
+constexpr uint32_t packSaveTypeOverride(int type, int size = 0) { return (type << 24) | (size & 0xFFFFFF); }
+constexpr std::pair<int, int> unpackSaveTypeOverride(uint32_t val) { return {val >> 24, val & 0xFFFFFF}; }
+
+constexpr bool optionSaveTypeOverrideIsValid(uint32_t val)
+{
+	auto [type, size] = unpackSaveTypeOverride(val);
+	return type >= GBA_SAVE_AUTO && type <= GBA_SAVE_NONE;
+}
 
 class GbaSystem final: public EmuSystem
 {
 public:
 	Byte1Option optionRtcEmulation{CFGKEY_RTC_EMULATION, to_underlying(RtcMode::AUTO), 0, optionIsValidWithMax<2>};
+	Byte4Option optionSaveTypeOverride{CFGKEY_SAVE_TYPE_OVERRIDE, GBA_SAVE_AUTO, 0, optionSaveTypeOverrideIsValid};
+	int detectedSaveSize{};
+	uint8_t detectedSaveType{};
 	bool detectedRtcGame{};
 
 	GbaSystem(ApplicationContext ctx):
 		EmuSystem{ctx} {}
 	void setGameSpecificSettings(GBASys &gba, int romSize);
 	void setRTC(RtcMode mode);
+	std::pair<int, int> saveTypeOverride() { return unpackSaveTypeOverride(optionSaveTypeOverride.val); }
+	void setSaveTypeOverride(int type, int size) { optionSaveTypeOverride = packSaveTypeOverride(type, size); };
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);

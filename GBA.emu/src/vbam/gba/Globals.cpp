@@ -10,7 +10,6 @@ bool useBios = false;
 bool skipBios = false;
 bool cpuIsMultiBoot = false;
 bool parseDebug = true;
-int cpuSaveType = 0;
 #ifdef USE_CHEATS
 bool cheatsEnabled = false;
 #endif

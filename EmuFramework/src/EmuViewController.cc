@@ -946,7 +946,7 @@ void EmuViewController::handleOpenFileCommand(IG::CStringView path)
 		logMsg("changing to dir %s from external command", path.data());
 		showUI(false);
 		popToRoot();
-		appPtr->setContentSearchPath({path.data(), {}});
+		appPtr->setContentSearchPath(path);
 		pushAndShow(
 			EmuFilePicker::makeForLoading(viewStack.top().attachParams(), appContext().defaultInputEvent()),
 			appContext().defaultInputEvent(),

@@ -70,7 +70,6 @@ static const bool cpuDisableSfx = 0;
 extern bool cpuIsMultiBoot;
 extern bool parseDebug;
 static const bool speedHack = 1;
-extern int cpuSaveType;
 constexpr int customBackdropColor = -1;
 #ifdef USE_CHEATS
 extern bool cheatsEnabled;

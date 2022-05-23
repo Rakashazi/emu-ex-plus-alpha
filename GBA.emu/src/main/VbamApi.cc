@@ -33,7 +33,7 @@ struct GameSettings
 	bool useBios;
 };
 
-constexpr GameSettings setting[]
+constexpr GameSettings settings[]
 {
 #include "gba-over.inc"
 };
@@ -132,85 +132,107 @@ void soundPause() {}
 void soundResume() {}
 void soundShutdown() {}
 
-static const char *saveTypeStr(int s)
+namespace EmuEx
 {
-	switch(s)
+
+const char *saveTypeStr(int type, int size)
+{
+	switch(type)
 	{
 		case GBA_SAVE_AUTO: return "Auto";
 		case GBA_SAVE_EEPROM: return "EEPROM";
 		case GBA_SAVE_SRAM: return "SRAM";
-		case GBA_SAVE_FLASH: return "Flash";
-		case GBA_SAVE_EEPROM_SENSOR: return "EEPROM+Sensor";
+		case GBA_SAVE_FLASH: return size == SIZE_FLASH1M ? "Flash (128K)" : "Flash (64K)";
+		case GBA_SAVE_EEPROM_SENSOR: return "EEPROM + Sensor";
 		case GBA_SAVE_NONE: return "None";
 	}
 	return "Unknown";
+}
+
+bool saveMemoryHasContent()
+{
+	auto hasContent = [](std::span<uint8_t> mem)
+	{
+		for(auto v : mem)
+		{
+			if(v != 0xFF)
+				return true;
+		}
+		return false;
+	};
+	switch(saveType)
+	{
+		case GBA_SAVE_EEPROM:
+		case GBA_SAVE_EEPROM_SENSOR:
+			return hasContent(eepromData);
+		case GBA_SAVE_SRAM:
+		case GBA_SAVE_FLASH:
+			return hasContent(flashSaveMemory);
+	}
+	return false;
 }
 
 static void resetGameSettings()
 {
 	//agbPrintEnable(0);
 	rtcEnable(0);
-	cpuSaveType = GBA_SAVE_AUTO;
 	flashSize = SIZE_FLASH512;
 	eepromSize = SIZE_EEPROM_512;
 }
 
-namespace EmuEx
+void setSaveType(int type, int size)
 {
+	assert(type != GBA_SAVE_AUTO);
+	saveType = type;
+	switch(type)
+	{
+		case GBA_SAVE_EEPROM:
+		case GBA_SAVE_EEPROM_SENSOR:
+			eepromSize = size == SIZE_EEPROM_8K ? SIZE_EEPROM_8K : SIZE_EEPROM_512;
+			break;
+		case GBA_SAVE_SRAM:
+			flashSize = SIZE_SRAM;
+			break;
+		case GBA_SAVE_FLASH:
+			flashSize = size == SIZE_FLASH1M ? SIZE_FLASH1M : SIZE_FLASH512;
+			break;
+	}
+}
 
 void GbaSystem::setGameSpecificSettings(GBASys &gba, int romSize)
 {
 	using namespace EmuEx;
-	bool mirroringEnable{};
 	resetGameSettings();
 	logMsg("game id:%c%c%c%c", gba.mem.rom[0xac], gba.mem.rom[0xad], gba.mem.rom[0xae], gba.mem.rom[0xaf]);
-	for(auto e : setting)
+	GameSettings foundSettings{};
+	if(auto it = find_if(settings, [&](auto &s){ return equal_n(s.gameID, 4, &gba.mem.rom[0xac]); });
+		it != std::end(settings))
 	{
-		if(IG::equal_n(e.gameID, 4, &gba.mem.rom[0xac]))
-		{
-			logMsg("loading settings for:%s", e.gameName);
-			if(e.rtcEnabled)
-			{
-				logMsg("uses RTC");
-				detectedRtcGame = 1;
-			}
-			if(e.saveType > 0)
-			{
-				logMsg("uses save type:%s", saveTypeStr(e.saveType));
-				cpuSaveType = e.saveType;
-				if(e.saveType == GBA_SAVE_SRAM)
-					flashSize = SIZE_SRAM;
-			}
-			if(e.saveSize > 0)
-			{
-				logMsg("uses save size:%d", e.saveSize);
-				if(e.saveType == GBA_SAVE_FLASH && e.saveSize == SIZE_FLASH1M)
-					flashSize = SIZE_FLASH1M;
-				else if((e.saveType == GBA_SAVE_EEPROM || e.saveType == GBA_SAVE_EEPROM_SENSOR) && e.saveSize == SIZE_EEPROM_8K)
-					eepromSize = SIZE_EEPROM_8K;
-			}
-			if(e.mirroringEnabled)
-			{
-				logMsg("uses mirroring");
-				mirroringEnable = e.mirroringEnabled;
-			}
-			break;
-		}
+		foundSettings = *it;
+		logMsg("found settings for:%s save type:%s save size:%d rtc:%d mirroring:%d",
+			it->gameName, saveTypeStr(it->saveType, it->saveSize), it->saveSize, it->rtcEnabled, it->mirroringEnabled);
 	}
-	doMirroring(gba, mirroringEnable);
-	if(cpuSaveType == GBA_SAVE_AUTO)
+	detectedRtcGame = foundSettings.rtcEnabled;
+	detectedSaveType = foundSettings.saveType;
+	detectedSaveSize = foundSettings.saveSize;
+	doMirroring(gba, foundSettings.mirroringEnabled);
+	if(detectedSaveType == GBA_SAVE_AUTO)
 	{
 		utilGBAFindSave(gba.mem.rom, romSize);
-		logMsg("save type found from rom scan:%s", saveTypeStr(saveType));
+		detectedSaveType = saveType;
+		detectedSaveSize = saveType == GBA_SAVE_FLASH ? flashSize : 0;
+		logMsg("save type found from rom scan:%s", saveTypeStr(detectedSaveType, detectedSaveSize));
+	}
+	if(auto [type, size] = saveTypeOverride();
+		type != GBA_SAVE_AUTO)
+	{
+		setSaveType(type, size);
+		logMsg("save type override:%s", saveTypeStr(type, size));
 	}
 	else
 	{
-		saveType = cpuSaveType;
-		if (flashSize == SIZE_FLASH512 || flashSize == SIZE_FLASH1M)
-			flashSetSize(flashSize);
+		setSaveType(detectedSaveType, detectedSaveSize);
 	}
-	if(saveType != GBA_SAVE_NONE)
-		logMsg("save size:%d bytes", saveType == GBA_SAVE_FLASH || saveType == GBA_SAVE_SRAM ? flashSize : eepromSize);
 	if(detectedRtcGame && (RtcMode)optionRtcEmulation.val == RtcMode::AUTO)
 	{
 		rtcEnable(true);
@@ -234,7 +256,7 @@ size_t saveMemorySize()
   } else if (saveType == GBA_SAVE_SRAM) {
   	return 0x8000;
   }
-  // save eeprom type
+  // eeprom case
   return eepromSize;
 }
 
@@ -245,7 +267,7 @@ void setSaveMemory(IG::ByteBuffer buff)
 	assert(buff.size() == saveMemorySize());
   if (saveType == GBA_SAVE_FLASH || saveType == GBA_SAVE_SRAM) {
   	flashSaveMemory = std::move(buff);
-  } else { // save eeprom type
+  } else { // eeprom case
   	eepromData = std::move(buff);
   }
 }

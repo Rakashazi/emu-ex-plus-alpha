@@ -33,6 +33,7 @@ bool GbaSystem::resetSessionOptions(EmuApp &)
 {
 	optionRtcEmulation.reset();
 	setRTC((RtcMode)optionRtcEmulation.val);
+	optionSaveTypeOverride.reset();
 	return true;
 }
 
@@ -43,6 +44,7 @@ bool GbaSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSiz
 		switch(key)
 		{
 			case CFGKEY_RTC_EMULATION: return optionRtcEmulation.readFromIO(io, readSize);
+			case CFGKEY_SAVE_TYPE_OVERRIDE: return optionSaveTypeOverride.readFromIO(io, readSize);
 		}
 	}
 	return false;
@@ -53,6 +55,7 @@ void GbaSystem::writeConfig(ConfigType type, IO &io)
 	if(type == ConfigType::SESSION)
 	{
 		optionRtcEmulation.writeWithKeyIfNotDefault(io);
+		optionSaveTypeOverride.writeWithKeyIfNotDefault(io);
 	}
 }
 

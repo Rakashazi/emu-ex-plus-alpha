@@ -215,6 +215,7 @@ void PceSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 		}
 	}
 	espec.taskCtx = taskCtx;
+	espec.sys = this;
 	espec.video = video;
 	espec.skip = !video;
 	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
