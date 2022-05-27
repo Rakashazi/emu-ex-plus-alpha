@@ -235,7 +235,12 @@ VideoSystem NesSystem::videoSystem() const
 
 double NesSystem::videoAspectRatioScale() const
 {
-	return optionHorizontalVideoCrop ? 0.9375 : 0.;
+	double horizontalCropScaler = 240. / 256.; // cropped width / full pixel width
+	double baseLines = 224.;
+	assumeExpr(optionVisibleVideoLines != 0);
+	double lineAspectScaler = baseLines / optionVisibleVideoLines;
+	return (optionCorrectLineAspect ? lineAspectScaler : 1.)
+		* (optionHorizontalVideoCrop ? horizontalCropScaler : 1.);
 }
 
 void NesSystem::setupNESInputPorts()

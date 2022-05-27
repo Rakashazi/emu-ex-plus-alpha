@@ -25,7 +25,7 @@ enum
 	CFGKEY_DEFAULT_VIDEO_SYSTEM = 278, CFGKEY_COMPATIBLE_FRAMESKIP = 279,
 	CFGKEY_DEFAULT_SOUND_LOW_PASS_FILTER = 280, CFGKEY_SWAP_DUTY_CYCLES = 281,
 	CFGKEY_START_VIDEO_LINE = 282, CFGKEY_VISIBLE_VIDEO_LINES = 283,
-	CFGKEY_HORIZONTAL_VIDEO_CROP = 284,
+	CFGKEY_HORIZONTAL_VIDEO_CROP = 284, CFGKEY_CORRECT_LINE_ASPECT = 285,
 };
 
 extern FS::PathString fdsBiosPath;
@@ -78,9 +78,12 @@ public:
 	Byte1Option optionSpriteLimit{CFGKEY_SPRITE_LIMIT, 1};
 	Byte1Option optionSoundQuality{CFGKEY_SOUND_QUALITY, 0, false, optionIsValidWithMax<2>};
 	Byte1Option optionCompatibleFrameskip{CFGKEY_COMPATIBLE_FRAMESKIP, 0};
+	Byte1Option optionDefaultStartVideoLine{CFGKEY_START_VIDEO_LINE, 8, false, isSupportedStartingLine};
+	Byte1Option optionDefaultVisibleVideoLines{CFGKEY_VISIBLE_VIDEO_LINES, 224, false, isSupportedLineCount};
 	Byte1Option optionStartVideoLine{CFGKEY_START_VIDEO_LINE, 8, false, isSupportedStartingLine};
 	Byte1Option optionVisibleVideoLines{CFGKEY_VISIBLE_VIDEO_LINES, 224, false, isSupportedLineCount};
 	Byte1Option optionHorizontalVideoCrop{CFGKEY_HORIZONTAL_VIDEO_CROP, 0};
+	Byte1Option optionCorrectLineAspect{CFGKEY_CORRECT_LINE_ASPECT, 0};
 	FS::PathString defaultPalettePath{};
 
 	NesSystem(ApplicationContext ctx):

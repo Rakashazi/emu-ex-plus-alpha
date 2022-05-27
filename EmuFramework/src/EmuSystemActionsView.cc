@@ -70,6 +70,8 @@ static auto makeStateSlotStr(EmuSystem &sys, int slot)
 
 void EmuSystemActionsView::onShow()
 {
+	if(app().viewController().isShowingEmulation())
+		return;
 	TableView::onShow();
 	logMsg("refreshing action menu state");
 	cheats.setActive(system().hasContent());

@@ -465,6 +465,23 @@ void EmuApp::applyEnabledFaceButtons(std::span<const std::pair<int, bool>> apply
 	}
 }
 
+void EmuApp::applyEnabledCenterButtons(std::span<const std::pair<int, bool>> applyEnableMap)
+{
+	if constexpr(VCONTROLS_GAMEPAD)
+	{
+		auto &vController = defaultVController();
+		auto &btnGroup = vController.gamePad().centerButtons();
+		for(auto [idx, enabled] : applyEnableMap)
+		{
+			btnGroup.buttons()[idx].setEnabled(enabled);
+		}
+		if(!vController.hasWindow())
+			return;
+		vController.place();
+		system().clearInputBuffers(emuViewController->inputView());
+	}
+}
+
 void EmuApp::updateKeyboardMapping()
 {
 	defaultVController().updateKeyboardMapping();

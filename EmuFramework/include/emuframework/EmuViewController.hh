@@ -109,6 +109,7 @@ public:
 	void writeConfig(IO &io);
 	IG::ApplicationContext appContext() const;
 	EmuSystemTask &emuTask() { return *systemTaskPtr; }
+	bool isShowingEmulation() const { return showingEmulation; }
 
 protected:
 	static constexpr bool HAS_USE_RENDER_TIME = Config::envIsLinux

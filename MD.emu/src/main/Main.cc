@@ -270,11 +270,24 @@ static void setupSMSInput()
 
 void MdSystem::setupMDInput(EmuApp &app)
 {
-	static constexpr std::pair<int, bool> enable6Btn[]{{3, true}, {4, true}, {5, true}};
-	static constexpr std::pair<int, bool> disable6Btn[]{{3, false}, {4, false}, {5, false}};
+	static constexpr std::pair<int, bool> setMd6BGamepad[]
+	{
+		{0, true}, {1, true}, {2, true}, {3, true}, {4, true}, {5, true}
+	};
+	static constexpr std::pair<int, bool> setMdGamepad[]
+	{
+		{0, true}, {1, true}, {2, true}, {3, false}, {4, false}, {5, false}
+	};
+	static constexpr std::pair<int, bool> setM3Gamepad[]
+	{
+		{0, false}, {1, true}, {2, true}, {3, false}, {4, false}, {5, false}
+	};
+	static constexpr std::pair<int, bool> enableModeBtn[]{{0, true}};
+	static constexpr std::pair<int, bool> disableModeBtn[]{{0, false}};
 	if(!hasContent())
 	{
-		app.applyEnabledFaceButtons(option6BtnPad ? enable6Btn : disable6Btn);
+		app.applyEnabledFaceButtons(option6BtnPad ? setMd6BGamepad : setMdGamepad);
+		app.applyEnabledCenterButtons(option6BtnPad ? enableModeBtn : disableModeBtn);
 		return;
 	}
 
@@ -290,7 +303,8 @@ void MdSystem::setupMDInput(EmuApp &app)
 	{
 		setupSMSInput();
 		io_init();
-		app.applyEnabledFaceButtons(disable6Btn);
+		app.applyEnabledFaceButtons(setM3Gamepad);
+		app.applyEnabledCenterButtons(disableModeBtn);
 		return;
 	}
 
@@ -330,7 +344,8 @@ void MdSystem::setupMDInput(EmuApp &app)
 	}
 
 	io_init();
-	app.applyEnabledFaceButtons(option6BtnPad ? enable6Btn : disable6Btn);
+	app.applyEnabledFaceButtons(option6BtnPad ? setMd6BGamepad : setMdGamepad);
+	app.applyEnabledCenterButtons(option6BtnPad ? enableModeBtn : disableModeBtn);
 }
 
 static unsigned detectISORegion(uint8 bootSector[0x800])

@@ -36,6 +36,8 @@ void NesSystem::onOptionsLoaded()
 	FCEUI_SetSoundQuality(optionSoundQuality);
 	FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
 	setDefaultPalette(appContext(), defaultPalettePath);
+	optionStartVideoLine.defaultVal = optionDefaultStartVideoLine;
+	optionVisibleVideoLines.defaultVal = optionDefaultVisibleVideoLines;
 }
 
 void NesSystem::onSessionOptionsLoaded(EmuApp &app)
@@ -80,6 +82,9 @@ bool NesSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSiz
 				return readOptionValue<bool>(io, readSize, [](auto &val){FCEUI_SetLowPass(val);});
 			case CFGKEY_SWAP_DUTY_CYCLES:
 				return readOptionValue<bool>(io, readSize, [](auto &val){swapDuty = val;});
+			case CFGKEY_START_VIDEO_LINE: return optionDefaultStartVideoLine.readFromIO(io, readSize);
+			case CFGKEY_VISIBLE_VIDEO_LINES: return optionDefaultVisibleVideoLines.readFromIO(io, readSize);
+			case CFGKEY_CORRECT_LINE_ASPECT: return optionCorrectLineAspect.readFromIO(io, readSize);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -112,6 +117,9 @@ void NesSystem::writeConfig(ConfigType type, IO &io)
 			writeOptionValue(io, CFGKEY_SWAP_DUTY_CYCLES, swapDuty);
 		if(FSettings.lowpass)
 			writeOptionValue(io, CFGKEY_DEFAULT_SOUND_LOW_PASS_FILTER, (bool)FSettings.lowpass);
+		optionDefaultStartVideoLine.writeWithKeyIfNotDefault(io);
+		optionDefaultVisibleVideoLines.writeWithKeyIfNotDefault(io);
+		optionCorrectLineAspect.writeWithKeyIfNotDefault(io);
 	}
 	else if(type == ConfigType::SESSION)
 	{

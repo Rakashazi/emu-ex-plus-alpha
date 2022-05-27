@@ -181,6 +181,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 			system().optionVisibleVideoLines = lines;
 			system().updateVideoPixmap(app().video(), system().optionHorizontalVideoCrop, system().optionVisibleVideoLines);
 			system().renderFramebuffer(app().video());
+			app().viewController().placeEmuViews();
 		};
 	}
 
@@ -193,8 +194,8 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 			system().sessionOptionSet();
 			system().optionHorizontalVideoCrop = item.flipBoolValue(*this);
 			system().updateVideoPixmap(app().video(), system().optionHorizontalVideoCrop, system().optionVisibleVideoLines);
-			app().viewController().placeEmuViews();
 			system().renderFramebuffer(app().video());
+			app().viewController().placeEmuViews();
 		}
 	};
 
@@ -326,6 +327,51 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 		defaultPalItem
 	};
 
+	TextMenuItem visibleVideoLinesItem[4]
+	{
+		{"8+224", &defaultFace(), setVisibleVideoLinesDel(8, 224)},
+		{"8+232", &defaultFace(), setVisibleVideoLinesDel(8, 232)},
+		{"0+232", &defaultFace(), setVisibleVideoLinesDel(0, 232)},
+		{"0+240", &defaultFace(), setVisibleVideoLinesDel(0, 240)},
+	};
+
+	MultiChoiceMenuItem visibleVideoLines
+	{
+		"Default Visible Lines", &defaultFace(),
+		[this]()
+		{
+			switch(system().optionDefaultVisibleVideoLines.val)
+			{
+				default: return 0;
+				case 232: return system().optionDefaultStartVideoLine == 8 ? 1 : 2;
+				case 240: return 3;
+			}
+		}(),
+		visibleVideoLinesItem
+	};
+
+	TextMenuItem::SelectDelegate setVisibleVideoLinesDel(uint8_t startLine, uint8_t lines)
+	{
+		return [this, startLine, lines]()
+		{
+			system().optionDefaultStartVideoLine = startLine;
+			system().optionDefaultVisibleVideoLines = lines;
+			system().optionStartVideoLine.defaultVal = startLine;
+			system().optionVisibleVideoLines.defaultVal = lines;
+		};
+	}
+
+	BoolMenuItem correctLineAspect
+	{
+		"Correct Line Aspect Ratio", &defaultFace(),
+		(bool)system().optionCorrectLineAspect,
+		[this](BoolMenuItem &item)
+		{
+			system().optionCorrectLineAspect = item.flipBoolValue(*this);
+			app().viewController().placeEmuViews();
+		}
+	};
+
 public:
 	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
@@ -334,6 +380,8 @@ public:
 		item.emplace_back(&defaultPal);
 		item.emplace_back(&videoSystem);
 		item.emplace_back(&spriteLimit);
+		item.emplace_back(&visibleVideoLines);
+		item.emplace_back(&correctLineAspect);
 	}
 };
 
@@ -584,14 +632,13 @@ private:
 	void refreshFDSItem()
 	{
 		fdsControl.setActive(isFDS);
-		char diskLabel[sizeof("FDS Control (Disk 1:A)")+2]{};
 		if(!isFDS)
-			strcpy(diskLabel, "FDS Control");
+			fdsControl.compile("FDS Control", renderer(), projP);
 		else if(!FCEU_FDSInserted())
-			strcpy(diskLabel, "FDS Control (No Disk)");
+			fdsControl.compile("FDS Control (No Disk)", renderer(), projP);
 		else
-			sprintf(diskLabel, "FDS Control (Disk %d:%c)", (FCEU_FDSCurrentSide()>>1)+1, (FCEU_FDSCurrentSide() & 1)? 'B' : 'A');
-		fdsControl.compile(diskLabel, renderer(), projP);
+			fdsControl.compile(fmt::format("FDS Control (Disk {}:{})", (FCEU_FDSCurrentSide() >> 1) + 1, (FCEU_FDSCurrentSide() & 1) ? 'B' : 'A'),
+				renderer(), projP);
 	}
 
 	TextMenuItem options

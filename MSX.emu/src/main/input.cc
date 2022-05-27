@@ -118,6 +118,7 @@ void setupVKeyboardMap(EmuApp &app, unsigned boardType)
 		kbToEventMap2[23] = EC_3 | (EC_LSHIFT << 8);
 	}
 	app.updateKeyboardMapping();
+	app.updateVControllerMapping();
 }
 
 VController::KbMap MsxSystem::vControllerKeyboardMap(unsigned mode)

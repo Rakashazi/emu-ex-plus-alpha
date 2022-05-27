@@ -178,6 +178,7 @@ public:
 	void startAutoSaveStateTimer();
 	void configFrameTime();
 	void applyEnabledFaceButtons(std::span<const std::pair<int, bool>> applyEnableMap);
+	void applyEnabledCenterButtons(std::span<const std::pair<int, bool>> applyEnableMap);
 	void updateKeyboardMapping();
 	void toggleKeyboard();
 	void updateVControllerMapping();
