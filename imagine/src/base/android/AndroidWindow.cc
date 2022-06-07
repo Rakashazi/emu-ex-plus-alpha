@@ -157,8 +157,7 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate onInit_
 	nPixelFormat = config.format() ? config.format() : toAHardwareBufferFormat(ctx.defaultWindowPixelFormat());
 	// default to screen's size
 	updateSize({screen.width(), screen.height()});
-	contentRect.x2 = width();
-	contentRect.y2 = height();
+	contentRect = {{0, 0}, {width(), height()}};
 	onInit = onInit_;
 }
 
@@ -183,20 +182,14 @@ void Window::show()
 	postDraw();
 }
 
-IG::WindowRect Window::contentBounds() const
+WindowRect Window::contentBounds() const
 {
-	return contentRect;
+	return contentRect.value();
 }
 
 bool Window::hasSurface() const
 {
 	return nWin;
-}
-
-void AndroidWindow::updateContentRect(const IG::WindowRect &rect)
-{
-	contentRect = rect;
-	surfaceChangeFlags |= WindowSurfaceChange::CONTENT_RECT_RESIZED;
 }
 
 bool Window::operator ==(Window const &rhs) const
@@ -215,6 +208,7 @@ void AndroidWindow::setNativeWindow(ApplicationContext ctx, ANativeWindow *nWind
 	if(nWin)
 	{
 		nWin = nullptr;
+		contentRect.cancel();
 		thisWindow.dispatchSurfaceDestroyed();
 	}
 	if(!nWindow)
@@ -331,13 +325,25 @@ void AndroidWindow::systemRequestsRedraw(bool sync)
 	}
 }
 
-void AndroidWindow::setContentRect(const IG::WindowRect &rect, const IG::Point2D<int> &winSize)
+void AndroidWindow::setContentRect(WindowRect rect, WP winSize)
 {
 	logMsg("content rect changed: %d:%d:%d:%d in %dx%d",
 		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
-	updateContentRect(rect);
 	auto &win = *static_cast<Window*>(this);
-	win.updateSize(winSize);
+	if(win.updateSize(winSize))
+	{
+		contentRect = rect;
+		surfaceChangeFlags |= WindowSurfaceChange::CONTENT_RECT_RESIZED;
+	}
+	else
+	{
+		contentRect.start(*static_cast<Window*>(this), contentRect.value(), rect, Milliseconds{165},
+			[](auto &win, auto newRect)
+			{
+				win.surfaceChangeFlags |= WindowSurfaceChange::CONTENT_RECT_RESIZED;
+				win.postDraw();
+			});
+	}
 	win.postDraw();
 }
 

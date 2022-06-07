@@ -34,7 +34,6 @@ public:
 	float wHalf() const { return rect.x2; }
 	float hHalf() const { return rect.y2; }
 	GCRect bounds() const { return rect; }
-	void updateMMSize(Viewport v);
 	float width() const;
 	float height() const;
 	GP size() const;
@@ -57,8 +56,6 @@ public:
 	float alignXToPixel(float x) const;
 	float alignYToPixel(float y) const;
 	IG::Point2D<float> alignToPixel(IG::Point2D<float> p) const;
-	float xMMSize(float mm) const;
-	float yMMSize(float mm) const;
 	Mat4 makeTranslate(IG::Point2D<float> p) const;
 	Mat4 makeTranslate() const;
 	void loadTranslate(Gfx::RendererCommands &cmds, float x, float y) const;
@@ -66,13 +63,12 @@ public:
 	void resetTransforms(Gfx::RendererCommands &cmds) const;
 
 private:
-	Viewport viewport_;
-	GCRect rect;
+	Viewport viewport_{};
+	GCRect rect{};
 	float w{}, h{};
-	float focal{},
-		xToPixScale{}, yToPixScale{}, // screen -> projection space at focal z
-		pixToXScale{}, pixToYScale{}, // projection -> screen space at focal z
-		mmToXScale{}, mmToYScale{};   // MM of screen -> projection space at focal z
+	float focal{};
+	float xToPixScale{}, yToPixScale{}; // screen -> projection space at focal z
+	float pixToXScale{}, pixToYScale{}; // projection -> screen space at focal z
 };
 
 }

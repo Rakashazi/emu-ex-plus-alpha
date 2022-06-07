@@ -51,6 +51,5 @@ void runBenchmarkOneShot(EmuApp &, EmuVideo &);
 void onSelectFileFromPicker(EmuApp &, GenericIO, IG::CStringView path, std::string_view displayName,
 	const Input::Event &, EmuSystemCreateParams, ViewAttachParams);
 void launchSystem(EmuApp &, bool tryAutoState);
-Gfx::Projection updateProjection(Gfx::Viewport viewport);
 
 }

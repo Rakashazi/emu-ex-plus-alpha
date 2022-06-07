@@ -195,7 +195,8 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<50, 100>),
 	optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 1, 0},
 	optionTextureBufferMode{CFGKEY_TEXTURE_BUFFER_MODE, 0},
-	optionVideoImageBuffers{CFGKEY_VIDEO_IMAGE_BUFFERS, 0, 0,optionIsValidWithMax<2>}
+	optionVideoImageBuffers{CFGKEY_VIDEO_IMAGE_BUFFERS, 0, 0, optionIsValidWithMax<2>},
+	layoutBehindSystemUI{ctx.hasTranslucentSysUI()}
 {
 	if(ctx.registerInstance(initParams))
 	{
@@ -575,7 +576,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			win.makeAppData<WindowData>();
 			auto &winData = windowData(win);
 			applyFontSize(win);
-			winData.projection = updateProjection(makeViewport(win));
+			winData.updateWindowViewport(win, makeViewport(win));
 			win.setAcceptDnd(true);
 			renderer.setWindowValidOrientations(win, optionMenuOrientation);
 			updateInputDevices(ctx);
@@ -680,27 +681,23 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 		});
 }
 
-Gfx::Projection updateProjection(Gfx::Viewport viewport)
-{
-	return {viewport, Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.)};
-}
-
 Gfx::Viewport EmuApp::makeViewport(const IG::Window &win) const
 {
+	IG::WindowRect viewRect = layoutBehindSystemUI ? win.bounds() : win.contentBounds();
 	if((int)optionViewportZoom != 100)
 	{
-		auto viewRect = win.contentBounds();
-		IG::WP viewCenter {(int)viewRect.xSize()/2, (int)viewRect.ySize()/2};
+		IG::WP viewCenter{viewRect.xSize() / 2, viewRect.ySize() / 2};
 		viewRect -= viewCenter;
-		viewRect.x = viewRect.x * optionViewportZoom/100.;
-		viewRect.y = viewRect.y * optionViewportZoom/100.;
-		viewRect.x2 = viewRect.x2 * optionViewportZoom/100.;
-		viewRect.y2 = viewRect.y2 * optionViewportZoom/100.;
+		viewRect *= optionViewportZoom/100.;
 		viewRect += viewCenter;
-		return Gfx::Viewport::makeFromWindow(win, viewRect);
 	}
-	else
-		return Gfx::Viewport::makeFromWindow(win);
+	return Gfx::Viewport::makeFromWindow(win, viewRect);
+}
+
+void WindowData::updateWindowViewport(const IG::Window &win, Gfx::Viewport viewport)
+{
+	projection = {viewport, Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.)};
+	contentRect = viewport.bounds().intersection(win.contentBounds());
 }
 
 void EmuApp::dispatchOnMainMenuItemOptionChanged()

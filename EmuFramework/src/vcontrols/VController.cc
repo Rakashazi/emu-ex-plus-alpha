@@ -59,16 +59,6 @@ VController::VController(IG::ApplicationContext ctx, int faceButtons, int center
 	alpha{DEFAULT_ALPHA}
 {}
 
-float VController::xMMSize(float mm) const
-{
-	return windowData().projection.plane().xMMSize(mm);
-}
-
-float VController::yMMSize(float mm) const
-{
-	return windowData().projection.plane().yMMSize(mm);
-}
-
 int VController::xMMSizeToPixel(const IG::Window &win, float mm) const
 {
 	return win.widthMMInPixels(mm);
@@ -94,12 +84,12 @@ void VController::setImg(Gfx::Texture &pics)
 
 void VController::setMenuBtnPos(IG::WP pos)
 {
-	menuBtn.setPos(pos, windowData().projection.plane());
+	menuBtn.setPos(pos, windowData().contentBounds(), windowData().projection.plane());
 }
 
 void VController::setFFBtnPos(IG::WP pos)
 {
-	ffBtn.setPos(pos, windowData().projection.plane());
+	ffBtn.setPos(pos, windowData().contentBounds(), windowData().projection.plane());
 }
 
 void VController::setButtonSize(unsigned gamepadBtnSizeInPixels, unsigned uiBtnSizeInPixels, Gfx::ProjectionPlane projP)
@@ -184,7 +174,7 @@ void VController::place()
 	auto &layoutPos = layoutPosition()[winData.viewport().isPortrait() ? 1 : 0];
 	iterateTimes(numElements(), i)
 	{
-		setPos(i, layoutToPixelPos(layoutPos[i], winData.viewport()));
+		setPos(i, layoutToPixelPos(layoutPos[i], winData.contentBounds()));
 		setState(i, layoutPos[i].state);
 	}
 	dragTracker.setDragStartPixels(window().widthMMInPixels(1.));
@@ -415,13 +405,13 @@ void VController::setPos(int elemIdx, IG::WP pos)
 	{
 		switch(elemIdx)
 		{
-			bcase 0: gp.dPad().setPos(pos, windowData().projection.plane());
-			bcase 1: gp.centerButtons().setPos(pos, windowData().projection.plane());
-			bcase 2: gp.faceButtons().setPos(pos, windowData().projection.plane());
+			bcase 0: gp.dPad().setPos(pos, windowData().contentBounds(), windowData().projection.plane());
+			bcase 1: gp.centerButtons().setPos(pos, windowData().contentBounds(), windowData().projection.plane());
+			bcase 2: gp.faceButtons().setPos(pos, windowData().contentBounds(), windowData().projection.plane());
 			bcase 3: setMenuBtnPos(pos);
 			bcase 4: setFFBtnPos(pos);
-			bcase 5: gp.lTrigger().setPos(pos, windowData().projection.plane());
-			bcase 6: gp.rTrigger().setPos(pos, windowData().projection.plane());
+			bcase 5: gp.lTrigger().setPos(pos, windowData().contentBounds(), windowData().projection.plane());
+			bcase 6: gp.rTrigger().setPos(pos, windowData().contentBounds(), windowData().projection.plane());
 			bdefault: bug_unreachable("elemIdx == %d", elemIdx);
 		}
 	}
@@ -610,11 +600,6 @@ bool VController::setButtonSize(std::optional<uint16_t> mm100xOpt, bool placeEle
 uint16_t VController::buttonSize() const
 {
 	return btnSize;
-}
-
-float VController::buttonGCSize() const
-{
-	return xMMSize(buttonSize() / 100.f);
 }
 
 int VController::buttonPixelSize(const IG::Window &win) const
@@ -1057,11 +1042,11 @@ VControllerLayoutPosition VController::pixelToLayoutPos(IG::WP pos, IG::WP size,
 	return {origin, {x, y}};
 }
 
-IG::WP VController::layoutToPixelPos(VControllerLayoutPosition lPos, Gfx::Viewport viewport)
+IG::WP VController::layoutToPixelPos(VControllerLayoutPosition lPos, IG::WindowRect viewBounds)
 {
-	int x = (lPos.origin.xScaler() == 0) ? lPos.pos.x + viewport.width()/2 :
-		(lPos.origin.xScaler() == 1) ? lPos.pos.x + viewport.width() : lPos.pos.x;
-	int y = lPos.origin.adjustY(lPos.pos.y, (int)viewport.height(), LT2DO);
+	int x = (lPos.origin.xScaler() == 0) ? lPos.pos.x + viewBounds.xSize() / 2 :
+		(lPos.origin.xScaler() == 1) ? lPos.pos.x + viewBounds.xSize() : lPos.pos.x;
+	int y = lPos.origin.adjustY(lPos.pos.y, viewBounds.ySize(), LT2DO);
 	return {x, y};
 }
 

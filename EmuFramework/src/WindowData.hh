@@ -16,19 +16,21 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/Projection.hh>
-#include <imagine/gfx/AnimatedViewport.hh>
 
 namespace EmuEx
 {
 
 struct WindowData
 {
-	Gfx::Viewport viewport() const { return projection.plane().viewport(); }
 	Gfx::Projection projection{};
-	Gfx::AnimatedViewport animatedViewport{};
-	bool hasEmuView = false;
-	bool hasPopup = false;
-	bool focused = true;
+	IG::WindowRect contentRect{};
+	bool hasEmuView{};
+	bool hasPopup{};
+	bool focused{};
+
+	Gfx::Viewport viewport() const { return projection.plane().viewport(); }
+	IG::WindowRect contentBounds() const { return contentRect; }
+	void updateWindowViewport(const IG::Window &win, Gfx::Viewport viewport);
 };
 
 WindowData &windowData(const IG::Window &win);

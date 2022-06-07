@@ -231,6 +231,15 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		"In Emu", &defaultFace(),
 		(MenuItem::Id)app().emuOrientation(),
 		emuOrientationItem
+	},
+	layoutBehindSystemUI
+	{
+		"Display Behind OS UI", &defaultFace(),
+		app().doesLayoutBehindSystemUI(),
+		[this](BoolMenuItem &item)
+		{
+			app().setLayoutBehindSystemUI(item.flipBoolValue(*this));
+		}
 	}
 {
 	if(!customMenu)
@@ -271,6 +280,10 @@ void GUIOptionView::loadStockItems()
 	if(used(statusBar))
 	{
 		item.emplace_back(&statusBar);
+	}
+	if(used(layoutBehindSystemUI) && appContext().hasTranslucentSysUI())
+	{
+		item.emplace_back(&layoutBehindSystemUI);
 	}
 	if(EmuSystem::hasBundledGames)
 	{

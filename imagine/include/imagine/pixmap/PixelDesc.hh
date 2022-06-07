@@ -66,6 +66,16 @@ public:
 		return {(uint8_t)r(pixel), (uint8_t)g(pixel), (uint8_t)b(pixel), (uint8_t)a(pixel)};
 	}
 
+	constexpr float aNorm(uint32_t pixel) const { return a(pixel) / float(1 << aBits); }
+	constexpr float rNorm(uint32_t pixel) const { return r(pixel) / float(1 << rBits); }
+	constexpr float gNorm(uint32_t pixel) const { return g(pixel) / float(1 << gBits); }
+	constexpr float bNorm(uint32_t pixel) const { return b(pixel) / float(1 << bBits); }
+
+	constexpr std::array<float, 4> rgbaNorm(uint32_t pixel) const
+	{
+		return {rNorm(pixel), gNorm(pixel), bNorm(pixel), aNorm(pixel)};
+	}
+
 	constexpr int offsetBytes(int x, int y, int pitch) const
 	{
 		return (y * pitch) + pixelBytes(x);

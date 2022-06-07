@@ -41,6 +41,7 @@ public:
 	void setPos(std::span<const LGradientStopDesc> stops, GCRect d);
 	int stops() const;
 	explicit operator bool() const;
+	const GeomQuadMesh &mesh() const { return g; }
 
 protected:
 	GeomQuadMesh g{};

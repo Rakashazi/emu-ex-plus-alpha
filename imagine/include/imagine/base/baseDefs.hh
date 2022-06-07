@@ -99,6 +99,12 @@ static constexpr bool NAVIGATION_BAR = true;
 static constexpr bool NAVIGATION_BAR = false;
 #endif
 
+#if defined __ANDROID__
+constexpr bool TRANSLUCENT_SYSTEM_UI = true;
+#else
+constexpr bool TRANSLUCENT_SYSTEM_UI = false;
+#endif
+
 }
 
 namespace IG::Input
@@ -149,10 +155,8 @@ struct WindowSurfaceChange
 	};
 
 	static constexpr uint8_t SURFACE_RESIZED = IG::bit(0),
-		CONTENT_RECT_RESIZED = IG::bit(1),
-		CUSTOM_VIEWPORT_RESIZED = IG::bit(2);
-	static constexpr uint8_t RESIZE_BITS =
-		SURFACE_RESIZED | CONTENT_RECT_RESIZED | CUSTOM_VIEWPORT_RESIZED;
+		CONTENT_RECT_RESIZED = IG::bit(1);
+	static constexpr uint8_t RESIZE_BITS = SURFACE_RESIZED | CONTENT_RECT_RESIZED;
 
 	constexpr WindowSurfaceChange(Action action, uint8_t flags = 0):
 		action_{action}, flags{flags}
@@ -170,7 +174,6 @@ struct WindowSurfaceChange
 
 	constexpr bool surfaceResized() const { return flags & SURFACE_RESIZED; }
 	constexpr bool contentRectResized() const { return flags & CONTENT_RECT_RESIZED; }
-	constexpr bool customViewportResized() const { return flags & CUSTOM_VIEWPORT_RESIZED; }
 
 protected:
 	Action action_{};

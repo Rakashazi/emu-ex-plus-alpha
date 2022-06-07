@@ -19,6 +19,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>
@@ -113,9 +114,10 @@ NavView *ViewStack::navView() const
 	return nav.get();
 }
 
-void ViewStack::place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP)
+void ViewStack::place(WindowRect viewRect, WindowRect displayRect, Gfx::ProjectionPlane projP)
 {
-	viewRect = rect;
+	this->viewRect = viewRect;
+	this->displayRect = displayRect;
 	this->projP = projP;
 	place();
 }
@@ -127,20 +129,29 @@ void ViewStack::place()
 	top().waitForDrawFinished();
 	assert(viewRect.xSize() && viewRect.ySize());
 	customViewRect = viewRect;
+	customDisplayRect = displayRect;
 	if(navViewIsActive())
 	{
 		nav->setTitle(std::u16string{top().name()});
-		auto navRect = IG::makeWindowRectRel(viewRect.pos(LT2DO), {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->titleFace()->nominalHeight()*(double)1.75))});
-		nav->setViewRect(navRect, projP);
+		auto navRect = makeWindowRectRel(viewRect.pos(LT2DO), {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->titleFace()->nominalHeight()*(double)1.75))});
+		WindowRect navDisplayRect{displayRect.pos(LT2DO), {displayRect.xPos(RC2DO), navRect.yPos(CB2DO)}};
+		nav->setViewRect(navRect, navDisplayRect, projP);
 		nav->place();
 		customViewRect.y += nav->viewRect().ySize();
+		customDisplayRect.y += nav->displayRect().ySize();
 	}
 	else
 	{
 		navViewHasFocus = false;
 	}
-	top().setViewRect(customViewRect, projP);
+	top().setViewRect(customViewRect, customDisplayRect, projP);
 	top().place();
+	if(customDisplayRect.y2 > customViewRect.y2) // add a basic gradient in the OS navigation bar area
+	{
+		bottomGradient.setPos({customViewRect.pos(LB2DO), customDisplayRect.pos(RB2DO)}, projP);
+		bottomGradient.setColor(Gfx::VertexColorPixelFormat.build(0., 0., 0., 0.), EDGE_TL | EDGE_TR);
+		bottomGradient.setColor(Gfx::VertexColorPixelFormat.build(0., 0., 0., 1.), EDGE_BL | EDGE_BR);
+	}
 }
 
 bool ViewStack::inputEvent(const Input::Event &e)
@@ -220,6 +231,14 @@ void ViewStack::draw(Gfx::RendererCommands &cmds)
 	top().draw(cmds);
 	if(navViewIsActive())
 		nav->draw(cmds);
+	if(customDisplayRect.y2 > customViewRect.y2)
+	{
+		using namespace Gfx;
+		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.set(ColorName::WHITE);
+		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+		bottomGradient.draw(cmds);
+	}
 }
 
 void ViewStack::push(std::unique_ptr<View> v, const Input::Event &e)

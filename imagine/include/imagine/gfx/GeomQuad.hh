@@ -94,9 +94,7 @@ public:
 		}
 	}
 
-	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges = EDGE_AI);
-	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges = EDGE_AI);
-	void setColorAlpha(ColorComp a, uint32_t edges = EDGE_AI);
+	void setColor(VertexColor, uint32_t edges = EDGE_AI);
 	void draw(RendererCommands &r) const;
 	static void draw(RendererCommands &cmds, IG::WindowRect b, ProjectionPlane proj);
 	static void draw(RendererCommands &cmds, GCRect d);

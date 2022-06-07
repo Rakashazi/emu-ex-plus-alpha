@@ -151,11 +151,11 @@ void NavView::place()
 {
 	text.compile(renderer(), projP);
 	auto &textRect = control[1].rect;
-	textRect.setPosRel(viewRect_.pos(LT2DO), viewRect_.size(), LT2DO);
-	control[0].rect.setPosRel(viewRect_.pos(LT2DO), viewRect_.ySize(), LT2DO);
+	textRect.setPosRel(viewRect().pos(LT2DO), viewRect().size(), LT2DO);
+	control[0].rect.setPosRel(viewRect().pos(LT2DO), viewRect().ySize(), LT2DO);
 	if(control[0].isActive)
 		textRect.x += control[0].rect.xSize();
-	control[2].rect.setPosRel(viewRect_.pos(RT2DO), viewRect_.ySize(), RT2DO);
+	control[2].rect.setPosRel(viewRect().pos(RT2DO), viewRect().ySize(), RT2DO);
 	if(control[2].isActive)
 		textRect.x2 -= control[2].rect.xSize();
 }
@@ -173,6 +173,11 @@ Gfx::GlyphTextureSet *NavView::titleFace()
 bool NavView::hasButtons() const
 {
 	return control[0].isActive || control[2].isActive;
+}
+
+Gfx::VertexColor NavView::separatorColor() const
+{
+	return Gfx::VertexColorPixelFormat.build(.25, .25, .25, 1.);
 }
 
 // BasicNavView
@@ -222,6 +227,12 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 	{
 		cmds.setBlendMode(0);
 		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+		if(viewRect().y > displayRect().y)
+		{
+			cmds.setColor(VertexColorPixelFormat.rgbaNorm(bg.mesh().v().data()->color));
+			topBg.draw(cmds);
+		}
+		cmds.set(ColorName::WHITE);
 		bg.draw(cmds);
 	}
 	if(selected != -1 && control[selected].isActive)
@@ -235,7 +246,7 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	if(centerTitle)
 	{
-		text.draw(cmds, projP.alignToPixel(projP.unProjectRect(viewRect_).pos(C2DO)), C2DO, projP);
+		text.draw(cmds, projP.alignToPixel(projP.unProjectRect(viewRect()).pos(C2DO)), C2DO, projP);
 	}
 	else
 	{
@@ -292,7 +303,11 @@ void BasicNavView::place()
 		Gfx::GCRect scaledRect{-rect.size() / 3.f, rect.size() / 3.f};
 		rightSpr.setPos(scaledRect);
 	}
-	bg.setPos({gradientStops.get(), (size_t)bg.stops()}, projP.unProjectRect(viewRect_));
+	bg.setPos({gradientStops.get(), (size_t)bg.stops()}, projP.unProjectRect(viewRect()));
+	if(viewRect().y > displayRect().y)
+	{
+		topBg.setPos({displayRect().pos(LT2DO), viewRect().pos(RT2DO)}, projP);
+	}
 }
 
 void BasicNavView::showLeftBtn(bool show)

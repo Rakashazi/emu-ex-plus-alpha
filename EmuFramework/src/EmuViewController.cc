@@ -65,6 +65,11 @@ public:
 	}
 };
 
+static void setViewRect(auto &&view, WindowData &data)
+{
+	view.setViewRect(data.contentBounds(), data.viewport().bounds(), data.projection.plane());
+}
+
 EmuViewController::EmuViewController() {}
 
 EmuViewController::EmuViewController(ViewAttachParams viewAttach,
@@ -143,13 +148,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 			rendererTask().updateDrawableForSurfaceChange(win, change);
 			if(change.resized())
 			{
-				updateWindowViewport(win, change);
-				if(winData.hasEmuView)
-				{
-					emuView.setViewRect(winData.viewport().bounds(), winData.projection.plane());
-				}
-				emuInputView.setViewRect(winData.viewport().bounds(), winData.projection.plane());
-				placeElements();
+				updateMainWindowViewport(win, app().makeViewport(win));
 			}
 		});
 
@@ -403,7 +402,7 @@ void EmuViewController::moveEmuViewToWindow(IG::Window &win)
 	auto &winData = windowData(win);
 	winData.hasEmuView = true;
 	emuView.setWindow(&win);
-	emuView.setViewRect(winData.viewport().bounds(), winData.projection.plane());
+	setViewRect(emuView, winData);
 }
 
 void EmuViewController::configureAppForEmulation(bool running)
@@ -479,13 +478,13 @@ void EmuViewController::placeElements()
 	//logMsg("placing app elements");
 	{
 		auto &winData = windowData(popup.window());
-		popup.setViewRect(winData.viewport().bounds(), winData.projection.plane());
+		setViewRect(popup, winData);
 		popup.place();
 	}
 	auto &winData = mainWindowData();
-	emuView.manager().setTableXIndentToDefault(inputView().window(), winData.projection.plane());
+	emuView.manager().setTableXIndentToDefault(mainWindow(), winData.projection.plane());
 	placeEmuViews();
-	viewStack.place(winData.viewport().bounds(), winData.projection.plane());
+	viewStack.place(winData.contentBounds(), winData.viewport().bounds(), winData.projection.plane());
 }
 
 static bool hasExtraWindow(IG::ApplicationContext ctx)
@@ -538,7 +537,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 					moveOnFrame(mainWindow(), win);
 					applyFrameRates();
 				}
-				extraWinData.projection = updateProjection(app().makeViewport(win));
+				extraWinData.updateWindowViewport(win, app().makeViewport(win));
 				moveEmuViewToWindow(win);
 				emuView.setLayoutInputView(nullptr);
 
@@ -550,8 +549,8 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 						if(change.resized())
 						{
 							logMsg("view resize for extra window");
-							winData.projection = updateProjection(app().makeViewport(win));
-							emuView.setViewRect(winData.viewport().bounds(), winData.projection.plane());
+							winData.updateWindowViewport(win, app().makeViewport(win));
+							setViewRect(emuView, winData);
 							emuView.place();
 						}
 					});
@@ -630,36 +629,16 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 	}
 }
 
-void EmuViewController::startViewportAnimation(IG::Window &win)
+void EmuViewController::updateMainWindowViewport(IG::Window &win, Gfx::Viewport viewport)
 {
 	auto &winData = windowData(win);
-	auto oldViewport = winData.viewport();
-	auto newViewport = app().makeViewport(win);
-	winData.animatedViewport.start(win, oldViewport, newViewport);
-	win.postDraw();
-}
-
-void EmuViewController::startMainViewportAnimation()
-{
-	startViewportAnimation(mainWindow());
-}
-
-void EmuViewController::updateWindowViewport(IG::Window &win, IG::Window::SurfaceChange change)
-{
-	auto &winData = windowData(win);
-	if(change.surfaceResized())
+	winData.updateWindowViewport(win, viewport);
+	if(winData.hasEmuView)
 	{
-		winData.animatedViewport.finish();
-		winData.projection = updateProjection(app().makeViewport(win));
+		setViewRect(emuView, winData);
 	}
-	else if(change.contentRectResized())
-	{
-		startViewportAnimation(win);
-	}
-	else if(change.customViewportResized())
-	{
-		winData.projection = updateProjection(winData.animatedViewport.viewport());
-	}
+	setViewRect(emuInputView, winData);
+	placeElements();
 }
 
 void EmuViewController::updateEmuAudioStats(unsigned underruns, unsigned overruns, unsigned callbacks, double avgCallbackFrames, unsigned frames)

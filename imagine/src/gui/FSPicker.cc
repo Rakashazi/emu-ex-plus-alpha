@@ -39,20 +39,19 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 	msgText{face_ ? face_ : &defaultFace()},
 	mode_{mode}
 {
-	const Gfx::LGradientStopDesc fsNavViewGrad[]
-	{
-		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-		{ .03, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build(.35 * .4, .35 * .4, .35 * .4, 1.) },
-		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	};
 	auto nav = makeView<BasicNavView>
 		(
 			&face(),
 			isSingleDirectoryMode() ? nullptr : backRes,
 			closeRes
 		);
+	const Gfx::LGradientStopDesc fsNavViewGrad[]
+	{
+		{ .0, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
+		{ .3, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
+		{ .97, Gfx::VertexColorPixelFormat.build(.35 * .4, .35 * .4, .35 * .4, 1.) },
+		{ 1., nav->separatorColor() },
+	};
 	nav->setBackgroundGradient(fsNavViewGrad);
 	nav->setCenterTitle(false);
 	nav->setOnPushLeftBtn(
@@ -79,7 +78,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 
 void FSPicker::place()
 {
-	controller.place(viewRect(), projP);
+	controller.place(viewRect(), displayRect(), projP);
 	if(dirListThread.isWorking())
 		return;
 	msgText.compile(renderer(), projP);

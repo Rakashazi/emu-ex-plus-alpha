@@ -71,7 +71,7 @@ public:
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::ProjectionPlane);
 	int getInput(IG::WP c) const;
 	IG::WindowRect bounds() const;
-	void setPos(IG::WP pos, Gfx::ProjectionPlane);
+	void setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::ProjectionPlane);
 	void setSize(Gfx::Renderer &r, unsigned sizeInPixels, Gfx::ProjectionPlane);
 	void setDeadzone(Gfx::Renderer &r, int newDeadzone, Gfx::ProjectionPlane);
 	void setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity, Gfx::ProjectionPlane);
@@ -139,7 +139,7 @@ class VControllerButton
 {
 public:
 	constexpr VControllerButton() = default;
-	void setPos(IG::WP pos, Gfx::ProjectionPlane, _2DOrigin = C2DO);
+	void setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::ProjectionPlane, _2DOrigin = C2DO);
 	void setSize(IG::WP size, IG::WP extendedSize = {});
 	void setImage(Gfx::TextureSpan img, float aspectRatio = 1.f);
 	void setState(VControllerState state);
@@ -172,7 +172,7 @@ public:
 	VControllerButtonGroup(int size);
 	std::vector<VControllerButton> &buttons();
 	const std::vector<VControllerButton> &buttons() const;
-	void setPos(IG::WP pos, Gfx::ProjectionPlane);
+	void setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::ProjectionPlane);
 	void setState(VControllerState state);
 	void setButtonSize(IG::WP size, IG::WP extendedSize = {});
 	void setStaggerType(uint8_t);
@@ -247,8 +247,6 @@ public:
 	using VControllerLayoutPositionArr = std::array<std::array<VControllerLayoutPosition, 7>, 2>;
 
 	VController(IG::ApplicationContext, int faceButtons, int centerButtons);
-	float xMMSize(float mm) const;
-	float yMMSize(float mm) const;
 	int xMMSizeToPixel(const IG::Window &win, float mm) const;
 	int yMMSizeToPixel(const IG::Window &win, float mm) const;
 	void setInputPlayer(uint8_t player);
@@ -298,7 +296,6 @@ public:
 	void setFace(const Gfx::GlyphTextureSet &face);
 	bool setButtonSize(std::optional<uint16_t> mm100xOpt, bool placeElements = true);
 	uint16_t buttonSize() const;
-	float buttonGCSize() const;
 	int buttonPixelSize(const IG::Window &) const;
 	bool setButtonXPadding(std::optional<uint16_t> opt, bool placeElements = true);
 	uint16_t buttonXPadding() const;
@@ -336,7 +333,7 @@ public:
 	unsigned serializedLayoutPositionsSize() const;
 	void configure(IG::Window &, Gfx::Renderer &, const Gfx::GlyphTextureSet &face);
 	static VControllerLayoutPosition pixelToLayoutPos(IG::WP pos, IG::WP size, IG::WindowRect viewBounds);
-	static IG::WP layoutToPixelPos(VControllerLayoutPosition, Gfx::Viewport);
+	static IG::WP layoutToPixelPos(VControllerLayoutPosition, IG::WindowRect viewBounds);
 	void resetPositions();
 	void resetOptions();
 	void resetAllOptions();

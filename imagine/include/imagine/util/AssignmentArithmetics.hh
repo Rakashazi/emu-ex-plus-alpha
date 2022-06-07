@@ -22,59 +22,59 @@ template <class T>
 class AssignmentAdds
 {
 public:
-	constexpr friend T& operator+=(T &a, const T &b)
+	constexpr friend T& operator+=(T &a, auto &&b)
 	{
 		a = a + b;
 		return a;
 	}
 
-	constexpr bool operator ==(AssignmentAdds<T> const& rhs) const = default;
+	constexpr bool operator ==(AssignmentAdds const& rhs) const = default;
 };
 
 template <class T>
 class AssignmentSubtracts
 {
 public:
-	constexpr friend T& operator-=(T &a, const T &b)
+	constexpr friend T& operator-=(T &a, auto &&b)
 	{
 		a = a - b;
 		return a;
 	}
 
-	constexpr bool operator ==(AssignmentSubtracts<T> const& rhs) const = default;
+	constexpr bool operator ==(AssignmentSubtracts const& rhs) const = default;
 };
 
 template <class T>
 class AssignmentMultiplies
 {
 public:
-	constexpr friend T& operator*=(T &a, const T &b)
+	constexpr friend T& operator*=(T &a, auto &&b)
 	{
 		a = a * b;
 		return a;
 	}
 
-	constexpr bool operator ==(AssignmentMultiplies<T> const& rhs) const = default;
+	constexpr bool operator ==(AssignmentMultiplies const& rhs) const = default;
 };
 
 template <class T>
 class AssignmentDivides
 {
 public:
-	constexpr friend T& operator/=(T &a, const T &b)
+	constexpr friend T& operator/=(T &a, auto &&b)
 	{
 		a = a / b;
 		return a;
 	}
 
-	constexpr bool operator ==(AssignmentDivides<T> const& rhs) const = default;
+	constexpr bool operator ==(AssignmentDivides const& rhs) const = default;
 };
 
 template <class T>
 class AssignmentArithmetics : public AssignmentAdds<T>, public AssignmentSubtracts<T>, public AssignmentMultiplies<T>, public AssignmentDivides<T>
 {
 public:
-	constexpr bool operator ==(AssignmentArithmetics<T> const& rhs) const = default;
+	constexpr bool operator ==(AssignmentArithmetics const& rhs) const = default;
 };
 
 }

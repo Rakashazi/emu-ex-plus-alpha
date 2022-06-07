@@ -44,6 +44,7 @@ public:
 	virtual void showRightBtn(bool show) = 0;
 	Gfx::GlyphTextureSet *titleFace();
 	bool hasButtons() const;
+	Gfx::VertexColor separatorColor() const;
 
 protected:
 	struct Control
@@ -78,6 +79,7 @@ protected:
 	std::unique_ptr<Gfx::LGradientStopDesc[]> gradientStops{};
 	Gfx::Sprite leftSpr{}, rightSpr{};
 	Gfx::LGradient bg{};
+	Gfx::GeomRect topBg{};
 	bool centerTitle = true;
 	bool rotateLeftBtn{};
 };

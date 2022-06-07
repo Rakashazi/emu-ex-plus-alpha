@@ -213,7 +213,8 @@ protected:
 	MultiChoiceMenuItem menuOrientation;
 	TextMenuItem emuOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
 	MultiChoiceMenuItem emuOrientation;
-	StaticArrayList<MenuItem*, 21> item{};
+	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, BoolMenuItem, layoutBehindSystemUI);
+	StaticArrayList<MenuItem*, 22> item{};
 
 	TextMenuItem::SelectDelegate setFontSizeDel();
 	TextMenuItem::SelectDelegate setMenuOrientationDel();

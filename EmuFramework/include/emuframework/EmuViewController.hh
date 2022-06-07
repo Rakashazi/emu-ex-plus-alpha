@@ -77,7 +77,7 @@ public:
 	void placeEmuViews();
 	void placeElements();
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &screen);
-	void startMainViewportAnimation();
+	void updateMainWindowViewport(IG::Window &, Gfx::Viewport);
 	void updateEmuAudioStats(unsigned underruns, unsigned overruns, unsigned callbacks, double avgCallbackFrames, unsigned frames);
 	void clearEmuAudioStats();
 	void closeSystem(bool allowAutosaveState = true);
@@ -141,8 +141,6 @@ protected:
 	void pauseEmulation();
 	void configureAppForEmulation(bool running);
 	void configureWindowForEmulation(IG::Window &win, bool running);
-	void startViewportAnimation(IG::Window &win);
-	void updateWindowViewport(IG::Window &win, IG::WindowSurfaceChange change);
 	void drawMainWindow(IG::Window &win, Gfx::RendererCommands &cmds, bool hasEmuView, bool hasPopup);
 	void movePopupToWindow(IG::Window &win);
 	void moveEmuViewToWindow(IG::Window &win);

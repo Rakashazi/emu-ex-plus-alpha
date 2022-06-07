@@ -296,11 +296,6 @@ void Window::drawNow(bool needsSync)
 	draw(needsSync);
 }
 
-void Window::setNeedsCustomViewportResize(bool needsResize)
-{
-	surfaceChangeFlags = setOrClearBits(surfaceChangeFlags, SurfaceChange::CUSTOM_VIEWPORT_RESIZED, needsResize);
-}
-
 bool Window::dispatchInputEvent(Input::Event event)
 {
 	bool handled = onInputEvent.callCopy(*this, event);

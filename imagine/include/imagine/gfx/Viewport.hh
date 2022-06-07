@@ -41,8 +41,6 @@ public:
 	int height() const { return h; }
 	float aspectRatio() const { return (float)width() / (float)height(); }
 	float realAspectRatio() const { return (float)realWidth() / (float)realHeight(); }
-	float widthMM() const { return wMM; }
-	float heightMM() const { return hMM; }
 
 	bool isPortrait() const
 	{
@@ -81,7 +79,6 @@ public:
 private:
 	IG::WindowRect rect;
 	int w{}, h{};
-	float wMM{}, hMM{};
 	IG::Rect2<int> relYFlipViewport;
 	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation,
 		VIEW_ROTATE_0, softOrientation_){VIEW_ROTATE_0};

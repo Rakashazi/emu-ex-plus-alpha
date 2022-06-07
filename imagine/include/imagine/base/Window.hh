@@ -47,7 +47,6 @@ public:
 	void setAcceptDnd(bool on);
 	void setTitle(const char *name);
 	bool setNeedsDraw(bool needsDraw);
-	void setNeedsCustomViewportResize(bool needsResize);
 	bool needsDraw() const;
 	void postDraw(uint8_t priority = 0);
 	void unpostDraw();

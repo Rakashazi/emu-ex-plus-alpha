@@ -89,7 +89,8 @@ public:
 	virtual void setFocus(bool focused);
 	virtual std::u16string_view name() const;
 
-	void setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP);
+	void setViewRect(WindowRect viewRect, WindowRect displayRect, Gfx::ProjectionPlane);
+	void setViewRect(WindowRect viewRect, Gfx::ProjectionPlane);
 	void setViewRect(Gfx::ProjectionPlane projP);
 	void postDraw();
 	Window &window() const;
@@ -116,7 +117,8 @@ public:
 	void setController(ViewController *c, const Input::Event &e);
 	void setController(ViewController *c);
 	ViewController *controller() const;
-	IG::WindowRect viewRect() const;
+	WindowRect viewRect() const { return viewRect_; }
+	WindowRect displayRect() const { return displayRect_; }
 	Gfx::ProjectionPlane projection() const;
 	bool pointIsInView(IG::WP pos);
 	void waitForDrawFinished();
@@ -146,6 +148,7 @@ protected:
 	ViewController *controller_{};
 	DismissDelegate dismissDel{};
 	IG::WindowRect viewRect_{};
+	IG::WindowRect displayRect_{};
 	Gfx::ProjectionPlane projP{};
 };
 

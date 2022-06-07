@@ -54,7 +54,7 @@ public:
 	constexpr ViewStack() = default;
 	void setNavView(std::unique_ptr<NavView> nav);
 	NavView *navView() const;
-	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
+	void place(WindowRect viewRect, WindowRect displayRect, Gfx::ProjectionPlane);
 	void place();
 	bool inputEvent(const Input::Event &) override;
 	bool moveFocusToNextView(const Input::Event &, _2DOrigin direction) override;
@@ -100,8 +100,10 @@ protected:
 	std::vector<ViewEntry> view{};
 	std::unique_ptr<NavView> nav{};
 	//ViewController *nextController{};
-	IG::WindowRect viewRect{}, customViewRect{};
+	WindowRect viewRect{}, customViewRect{};
+	WindowRect displayRect{}, customDisplayRect{};
 	Gfx::ProjectionPlane projP{};
+	Gfx::ColQuad bottomGradient{};
 	bool showNavBackBtn = true;
 	bool showNavView_ = true;
 	bool navViewHasFocus = false;

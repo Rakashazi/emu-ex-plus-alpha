@@ -93,10 +93,10 @@ void VControllerDPad::setSize(Gfx::Renderer &r, unsigned sizeInPixels, Gfx::Proj
 	}
 }
 
-void VControllerDPad::setPos(IG::WP pos, Gfx::ProjectionPlane projP)
+void VControllerDPad::setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::ProjectionPlane projP)
 {
 	padBaseArea.setPos(pos, C2DO);
-	padBaseArea.fitIn(projP.viewport().bounds());
+	padBaseArea.fitIn(viewBounds);
 	padBase = projP.unProjectRect(padBaseArea);
 	spr.setPos(padBase);
 	//logMsg("set dpad pos %d:%d:%d:%d, %f:%f:%f:%f", padBaseArea.x, padBaseArea.y, padBaseArea.x2, padBaseArea.y2,

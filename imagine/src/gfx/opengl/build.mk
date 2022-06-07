@@ -29,8 +29,7 @@ endif
 
 include $(IMAGINE_PATH)/make/package/opengl.mk
 
-SRC += gfx/common/AnimatedViewport.cc \
- gfx/common/GeomQuad.cc \
+SRC += gfx/common/GeomQuad.cc \
  gfx/common/GeomQuadMesh.cc \
  gfx/common/GfxLGradient.cc \
  gfx/common/GfxText.cc \

@@ -21,6 +21,7 @@
 #include <emuframework/VController.hh>
 #include "private.hh"
 #include "privateInput.hh"
+#include "WindowData.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/base/Screen.hh>
@@ -257,7 +258,9 @@ bool EmuApp::setViewportZoom(uint8_t val)
 		return false;
 	optionViewportZoom = val;
 	logMsg("set viewport zoom: %d", int(optionViewportZoom));
-	viewController().startMainViewportAnimation();
+	auto &win = appContext().mainWindow();
+	viewController().updateMainWindowViewport(win, makeViewport(win));
+	viewController().postDrawToEmuWindows();
 	return true;
 }
 
@@ -342,6 +345,14 @@ void EmuApp::setShowsBluetoothScanItems(bool on)
 {
 	optionShowBluetoothScan = on;
 	dispatchOnMainMenuItemOptionChanged();
+}
+
+void EmuApp::setLayoutBehindSystemUI(bool on)
+{
+	layoutBehindSystemUI = on;
+	auto &win = appContext().mainWindow();
+	viewController().updateMainWindowViewport(win, makeViewport(win));
+	viewController().postDrawToEmuWindows();
 }
 
 }

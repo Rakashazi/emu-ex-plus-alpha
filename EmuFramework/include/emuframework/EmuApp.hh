@@ -298,6 +298,8 @@ public:
 	auto &notificationIconOption() { return optionNotificationIcon; }
 	void setShowsBluetoothScanItems(bool on);
 	bool showsBluetoothScanItems() const { return optionShowBluetoothScan; }
+	void setLayoutBehindSystemUI(bool);
+	bool doesLayoutBehindSystemUI() const { return layoutBehindSystemUI; };
 
 	// Input Options
 	auto &notifyInputDeviceChangeOption() { return optionNotifyInputDeviceChange; }
@@ -470,6 +472,7 @@ protected:
 	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
 	bool showHiddenFilesInPicker_{};
+	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, bool, layoutBehindSystemUI){};
 
 	class ConfigParams
 	{

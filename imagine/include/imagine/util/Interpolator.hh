@@ -37,40 +37,48 @@ enum class InterpolatorType : uint8_t
 	EASEOUTEXPO,
 };
 
-template <class T, class Time = std::chrono::nanoseconds, InterpolatorType INTERPOLATOR_TYPE = InterpolatorType::UNSET>
+template <class T>
+concept FloatScalable =
+	requires(T &&v, float scale)
+	{
+		v * scale;
+		v / scale;
+	};
+
+template <FloatScalable T, class Time = std::chrono::nanoseconds,
+		InterpolatorType INTERPOLATOR_TYPE = InterpolatorType::UNSET>
 class Interpolator
 {
 public:
 	constexpr Interpolator() = default;
 
-	constexpr Interpolator(T start, T dest, InterpolatorType type, Time startTime, Time destTime):
-		startTime{startTime},
-		destTime{destTime},
+	constexpr Interpolator(T start, T end, InterpolatorType type, Time startTime, Time endTime):
+		startTime_{startTime},
+		endTime_{endTime},
 		startVal{start},
-		destVal{dest},
-		startDestValSize{destVal - startVal},
-		type{type}
-	{}
+		endVal{end},
+		endValDiff{endVal - startVal},
+		type{type} {}
 
 	bool update(Time currentTime, T &val) const
 	{
-		if(currentTime >= destTime)
+		if(currentTime >= endTime_)
 		{
-			val = destVal;
+			val = endVal;
 			return false;
 		}
 		else
 		{
-			float t = (float)(currentTime - startTime).count();
-			float d = (float)(destTime - startTime).count();
-			float b = startVal;
-			float c = startDestValSize;
+			float t = (float)(currentTime - startTime_).count();
+			float d = (float)(endTime_ - startTime_).count();
+			auto b = startVal;
+			auto c = endValDiff;
 			val = getFormula(type, t, b, d, c);
 			return true;
 		}
 	}
 
-	static float getFormula(InterpolatorType type, float t, float b, float d, float c)
+	static T getFormula(InterpolatorType type, float t, T b, float d, T c)
 	{
 		float t1;
 		switch(type)
@@ -143,17 +151,16 @@ public:
 		}
 	}
 
-	Time duration() const
-	{
-		return destTime - startTime;
-	}
+	constexpr Time duration() const { return endTime_ - startTime_; }
+	constexpr Time startTime() const { return startTime_; }
+	constexpr Time endTime() const { return endTime_; }
 
 protected:
-	Time startTime{};
-	Time destTime{};
+	Time startTime_{};
+	Time endTime_{};
 	T startVal{};
-	T destVal{};
-	T startDestValSize{};
+	T endVal{};
+	T endValDiff{};
 	IG_UseMemberIfOrConstant(INTERPOLATOR_TYPE == InterpolatorType::UNSET,
 		InterpolatorType, INTERPOLATOR_TYPE, type){InterpolatorType::LINEAR};
 };
@@ -164,30 +171,28 @@ class InterpolatorValue : public Interpolator<T, Time, INTERPOLATOR_TYPE>
 public:
 	struct AbsoluteTimeInit{};
 	using InterpolatorBase = Interpolator<T, Time, INTERPOLATOR_TYPE>;
+	T val{};
 
 	constexpr InterpolatorValue() = default;
 
-	constexpr InterpolatorValue(T start, T dest, InterpolatorType type,
-		IG::ChronoDuration auto startTime, IG::ChronoDuration auto duration):
-		InterpolatorValue{start, dest, type, startTime, startTime + duration, AbsoluteTimeInit{}}
-	{}
+	constexpr InterpolatorValue(T start, T end, InterpolatorType type,
+		ChronoDuration auto startTime, ChronoDuration auto duration):
+		InterpolatorValue{start, end, type, startTime, startTime + duration, AbsoluteTimeInit{}} {}
 
-	constexpr InterpolatorValue(T start, T dest, InterpolatorType type,
-		IG::ChronoDuration auto startTime, IG::ChronoDuration auto destTime,
+	constexpr InterpolatorValue(T start, T end, InterpolatorType type,
+		ChronoDuration auto startTime, ChronoDuration auto endTime,
 		struct AbsoluteTimeInit):
-		InterpolatorBase{start, dest, type,
+		InterpolatorBase{start, end, type,
 			std::chrono::duration_cast<Time>(startTime),
-			std::chrono::duration_cast<Time>(destTime)},
-		val{start}
-	{}
+			std::chrono::duration_cast<Time>(endTime)},
+		val{start} {}
 
-	constexpr InterpolatorValue(T dest):
-		InterpolatorValue{dest, dest, {}, Time{}, Time{}}
-	{}
+	constexpr InterpolatorValue(T end):
+		InterpolatorValue{end, end, {}, Time{}, Time{}} {}
 
 	InterpolatorValue reverse() const
 	{
-		return {destVal, startVal, type, startTime, destTime};
+		return {endVal, startVal, type, startTime, endTime};
 	}
 
 	bool update(Time time)
@@ -202,21 +207,20 @@ public:
 
 	bool isFinished() const
 	{
-		return val == destVal;
+		return val == endVal;
 	}
 
 	void finish()
 	{
-		val = destVal;
+		val = endVal;
 	}
 
 protected:
-	T val{};
 	using InterpolatorBase::startTime;
-	using InterpolatorBase::destTime;
+	using InterpolatorBase::endTime;
 	using InterpolatorBase::type;
 	using InterpolatorBase::startVal;
-	using InterpolatorBase::destVal;
+	using InterpolatorBase::endVal;
 	using InterpolatorBase::duration;
 };
 

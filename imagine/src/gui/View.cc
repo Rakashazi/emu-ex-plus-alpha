@@ -119,14 +119,13 @@ float ViewManager::tableXIndent() const
 	return tableXIndent_;
 }
 
-void ViewManager::setTableXIndentMM(float indentMM, Gfx::ProjectionPlane projP)
+void ViewManager::setTableXIndentMM(float indentMM, const Window &win, Gfx::ProjectionPlane projP)
 {
-	auto indentGC = projP.xMMSize(indentMM);
-	if(!IG::valIsWithinStretch(indentGC, tableXIndent(), 0.001f))
+	auto oldIndent = std::exchange(tableXIndent_, projP.unprojectXSize(win.widthMMInPixels(indentMM)));
+	if(!IG::valIsWithinStretch(tableXIndent_, oldIndent, 0.001f))
 	{
-		logDMsg("setting X indent:%.2fmm (%f as coordinate)", indentMM, indentGC);
+		logDMsg("setting X indent:%.2fmm (%f as coordinate)", indentMM, tableXIndent_);
 	}
-	tableXIndent_ = projP.xMMSize(indentMM);
 }
 
 float ViewManager::defaultTableXIndentMM(const Window &win)
@@ -140,7 +139,7 @@ float ViewManager::defaultTableXIndentMM(const Window &win)
 
 void ViewManager::setTableXIndentToDefault(const Window &win, Gfx::ProjectionPlane projP)
 {
-	setTableXIndentMM(defaultTableXIndentMM(win), projP);
+	setTableXIndentMM(defaultTableXIndentMM(win), win, projP);
 }
 
 void View::pushAndShow(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView, bool isModal)
@@ -211,13 +210,19 @@ void View::prepareDraw() {}
 
 void View::setFocus(bool) {}
 
-void View::setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP)
+void View::setViewRect(WindowRect viewRect, WindowRect displayRect, Gfx::ProjectionPlane projP)
 {
-	this->viewRect_ = rect;
+	this->viewRect_ = viewRect;
+	this->displayRect_ = displayRect;
 	this->projP = projP;
 }
 
-void View::setViewRect( Gfx::ProjectionPlane projP)
+void View::setViewRect(WindowRect viewRect, Gfx::ProjectionPlane projP)
+{
+	setViewRect(viewRect, viewRect, projP);
+}
+
+void View::setViewRect(Gfx::ProjectionPlane projP)
 {
 	setViewRect(projP.viewport().bounds(), projP);
 }
@@ -323,11 +328,6 @@ void View::setController(ViewController *c)
 ViewController *View::controller() const
 {
 	return controller_;
-}
-
-IG::WindowRect View::viewRect() const
-{
-	return viewRect_;
 }
 
 Gfx::ProjectionPlane View::projection() const

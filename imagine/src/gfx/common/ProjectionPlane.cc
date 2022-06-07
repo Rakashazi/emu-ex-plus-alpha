@@ -46,13 +46,6 @@ Viewport ProjectionPlane::viewport() const
 	return viewport_;
 }
 
-void ProjectionPlane::updateMMSize(Viewport v)
-{
-	mmToXScale = w/(float)v.widthMM();
-	mmToYScale = h/(float)v.heightMM();
-	//logMsg("projector to mm %fx%f", (double)mmToXScale, (double)mmToYScale);
-}
-
 ProjectionPlane ProjectionPlane::makeWithMatrix(Viewport viewport, Mat4 mat)
 {
 	ProjectionPlane p;
@@ -72,7 +65,6 @@ ProjectionPlane ProjectionPlane::makeWithMatrix(Viewport viewport, Mat4 mat)
 	p.pixToYScale = p.h / (float)viewport.height();
 	p.xToPixScale = (float)viewport.width() / p.w;
 	p.yToPixScale = (float)viewport.height() / p.h;
-	p.updateMMSize(viewport);
 	logMsg("made with size %fx%f, to pix %fx%f, to view %fx%f",
 		(double)p.w, (double)p.h, (double)p.xToPixScale, (double)p.yToPixScale, (double)p.pixToXScale, (double)p.pixToYScale);
 	return p;
@@ -192,8 +184,5 @@ IG::Point2D<float> ProjectionPlane::alignToPixel(IG::Point2D<float> p) const
 {
 	return {alignXToPixel(p.x), alignYToPixel(p.y)};
 }
-
-float ProjectionPlane::xMMSize(float mm) const { return mm * mmToXScale; }
-float ProjectionPlane::yMMSize(float mm) const { return mm * mmToYScale; }
 
 }

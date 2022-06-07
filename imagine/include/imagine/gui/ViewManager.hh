@@ -50,7 +50,7 @@ public:
 	void setNeedsBackControl(std::optional<bool>);
 	std::optional<bool> needsBackControlOption() const;
 	float tableXIndent() const;
-	void setTableXIndentMM(float indentMM, Gfx::ProjectionPlane);
+	void setTableXIndentMM(float indentMM, const Window &, Gfx::ProjectionPlane);
 	float defaultTableXIndentMM(const Window &);
 	void setTableXIndentToDefault(const Window &, Gfx::ProjectionPlane);
 

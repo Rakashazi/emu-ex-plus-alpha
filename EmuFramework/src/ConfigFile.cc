@@ -220,6 +220,8 @@ void EmuApp::saveConfigFile(IO &io)
 		if(mogaManagerPtr)
 			writeOptionValue(io, CFGKEY_MOGA_INPUT_SYSTEM, true);
 	}
+	if(appContext().hasTranslucentSysUI() && !doesLayoutBehindSystemUI())
+		writeOptionValue(io, CFGKEY_LAYOUT_BEHIND_SYSTEM_UI, false);
 	vController.writeConfig(io);
 	viewController().writeConfig(io);
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
@@ -468,6 +470,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_IDLE_DISPLAY_POWER_SAVE: optionIdleDisplayPowerSave.readFromIO(io, size);
 				bcase CFGKEY_HIDE_STATUS_BAR:
 					doIfUsed(optionHideStatusBar, [&](auto &opt){ opt.readFromIO(io, size); });
+				bcase CFGKEY_LAYOUT_BEHIND_SYSTEM_UI:
+					if(ctx.hasTranslucentSysUI()) readOptionValue<bool>(io, size, [&](bool on){ layoutBehindSystemUI = on; });
 				bcase CFGKEY_CONFIRM_OVERWRITE_STATE: optionConfirmOverwriteState.readFromIO(io, size);
 				bcase CFGKEY_FAST_FORWARD_SPEED: optionFastForwardSpeed.readFromIO(io, size);
 				#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
