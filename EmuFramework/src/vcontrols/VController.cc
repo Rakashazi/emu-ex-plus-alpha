@@ -82,16 +82,6 @@ void VController::setImg(Gfx::Texture &pics)
 	}
 }
 
-void VController::setMenuBtnPos(IG::WP pos)
-{
-	menuBtn.setPos(pos, windowData().contentBounds(), windowData().projection.plane());
-}
-
-void VController::setFFBtnPos(IG::WP pos)
-{
-	ffBtn.setPos(pos, windowData().contentBounds(), windowData().projection.plane());
-}
-
 void VController::setButtonSize(unsigned gamepadBtnSizeInPixels, unsigned uiBtnSizeInPixels, Gfx::ProjectionPlane projP)
 {
 	if(EmuSystem::inputHasKeyboard)
@@ -401,30 +391,31 @@ IG::WindowRect VController::bounds(int elemIdx) const
 
 void VController::setPos(int elemIdx, IG::WP pos)
 {
+	auto contentBounds = windowData().contentBounds();
+	auto bounds = allowButtonsPastContentBounds() ? windowData().viewport().bounds() : contentBounds;
+	auto projP = windowData().projection.plane();
 	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		switch(elemIdx)
 		{
-			bcase 0: gp.dPad().setPos(pos, windowData().contentBounds(), windowData().projection.plane());
-			bcase 1: gp.centerButtons().setPos(pos, windowData().contentBounds(), windowData().projection.plane());
-			bcase 2: gp.faceButtons().setPos(pos, windowData().contentBounds(), windowData().projection.plane());
-			bcase 3: setMenuBtnPos(pos);
-			bcase 4: setFFBtnPos(pos);
-			bcase 5: gp.lTrigger().setPos(pos, windowData().contentBounds(), windowData().projection.plane());
-			bcase 6: gp.rTrigger().setPos(pos, windowData().contentBounds(), windowData().projection.plane());
-			bdefault: bug_unreachable("elemIdx == %d", elemIdx);
+			case 0: return gp.dPad().setPos(pos, bounds, projP);
+			case 1: return gp.centerButtons().setPos(pos, bounds, projP);
+			case 2: return gp.faceButtons().setPos(pos, bounds, projP);
+			case 3: return menuBtn.setPos(pos, contentBounds, projP);
+			case 4: return ffBtn.setPos(pos, contentBounds, projP);
+			case 5: return gp.lTrigger().setPos(pos, bounds, projP);
+			case 6: return gp.rTrigger().setPos(pos, bounds, projP);
+			default: return bug_unreachable("elemIdx == %d", elemIdx);
 		}
 	}
 	else
 	{
 		switch(elemIdx)
 		{
-			bcase 0:
-			bcase 1:
-			bcase 2:
-			bcase 3: setMenuBtnPos(pos);
-			bcase 4: setFFBtnPos(pos);
-			bdefault: bug_unreachable("elemIdx == %d", elemIdx);
+			case 0 ... 2: return;
+			case 3: return menuBtn.setPos(pos, contentBounds, projP);
+			case 4: return ffBtn.setPos(pos, contentBounds, projP);
+			default: return bug_unreachable("elemIdx == %d", elemIdx);
 		}
 	}
 }
@@ -846,6 +837,7 @@ bool VController::readConfig(IO &io, unsigned key, unsigned size)
 		bcase CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES: setBoundingAreaVisible(readOptionValue<bool>(io, size), false);
 		bcase CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH: setShowOnTouchInput(readOptionValue<bool>(io, size));
 		bcase CFGKEY_VCONTROLLER_LAYOUT_POS: readSerializedLayoutPositions(io, size);
+		bcase CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS: readOptionValue<bool>(io, size, [&](bool on){ allowButtonsPastContentBounds_ = on; });
 	}
 	return true;
 }
@@ -880,6 +872,8 @@ void VController::writeConfig(IO &io) const
 			writeOptionValue(io, CFGKEY_TOUCH_CONTROL_DISPLAY, gamepadControlsVisibility());
 		if(vibrateOnTouchInput())
 			writeOptionValue(io, CFGKEY_TOUCH_CONTROL_VIRBRATE, vibrateOnTouchInput());
+		if(allowButtonsPastContentBounds_)
+			writeOptionValue(io, CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS, true);
 	}
 	if(layoutPositionChanged())
 	{
@@ -1006,6 +1000,7 @@ void VController::resetAllOptions()
 	boundingAreaVisible_ = false;
 	vibrateOnTouchInput_ = false;
 	showOnTouchInput_ = true;
+	allowButtonsPastContentBounds_ = false;
 	resetOptions();
 	setButtonAlpha(DEFAULT_ALPHA);
 	updateAutoOnScreenControlVisible();

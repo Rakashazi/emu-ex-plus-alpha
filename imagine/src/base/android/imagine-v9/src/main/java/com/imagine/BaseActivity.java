@@ -34,6 +34,7 @@ import android.view.WindowManager;
 import android.view.Display;
 import android.view.InputDevice;
 import android.view.Gravity;
+import android.view.DisplayCutout;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
@@ -76,13 +77,24 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	private static final int REQUEST_BT_ON = 2;
 	private static final int REQUEST_OPEN_DOCUMENT = 3;
 
-	boolean hasPermanentMenuKey()
+	int deviceFlags()
 	{
+		// keep in sync with AndroidApplication.hh
+		final int PERMANENT_MENU_KEY_BIT = 1;
+		final int DISPLAY_CUTOUT_BIT = 1 << 1;
+		int flags = 0;
 		if(android.os.Build.VERSION.SDK_INT >= 14)
 		{
-			return ViewConfiguration.get(this).hasPermanentMenuKey();
+			if(ViewConfiguration.get(this).hasPermanentMenuKey())
+				flags |= PERMANENT_MENU_KEY_BIT;
 		}
-		return true;
+		if(android.os.Build.VERSION.SDK_INT >= 28)
+		{
+			DisplayCutout cutout = defaultDpy.getCutout();
+			if(cutout != null)
+				flags |= DISPLAY_CUTOUT_BIT;
+		}
+		return flags;
 	}
 		
 	int sigHash()

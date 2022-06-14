@@ -63,7 +63,7 @@ void EmuView::place()
 {
 	if(layer)
 	{
-		layer->place(viewRect(), projP, inputView, system());
+		layer->place(viewRect(), displayRect(), projP, inputView, system());
 	}
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	if(audioStatsText.compile(renderer(), projP))

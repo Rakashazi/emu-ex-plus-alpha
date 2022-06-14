@@ -33,11 +33,11 @@ namespace EmuEx
 EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
 	video{video} {}
 
-void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView, EmuSystem &sys)
+void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, Gfx::ProjectionPlane projP, EmuInputView *inputView, EmuSystem &sys)
 {
 	if(sys.hasContent())
 	{
-		float viewportAspectRatio = viewportRect.xSize()/(float)viewportRect.ySize();
+		float viewportAspectRatio = displayRect.xSize()/(float)displayRect.ySize();
 		auto zoom = zoom_;
 		// compute the video rectangle in pixel coordinates
 		if((zoom == optionImageZoomIntegerOnly || zoom == optionImageZoomIntegerOnlyY)
@@ -78,12 +78,12 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 			int scaleFactor;
 			if(gameAR > viewportAspectRatio)//Gfx::proj.aspectRatio)
 			{
-				scaleFactor = std::max(1, viewportRect.xSize() / gameX);
+				scaleFactor = std::max(1, displayRect.xSize() / gameX);
 				logMsg("using x scale factor %d", scaleFactor);
 			}
 			else
 			{
-				scaleFactor = std::max(1, viewportRect.ySize() / gameY);
+				scaleFactor = std::max(1, displayRect.ySize() / gameY);
 				logMsg("using y scale factor %d", scaleFactor);
 			}
 
@@ -91,7 +91,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 			gameRect_.y = 0;
 			gameRect_.x2 = gameX * scaleFactor;
 			gameRect_.y2 = gameY * scaleFactor;
-			gameRect_.setPos({(int)viewportRect.xCenter() - gameRect_.x2/2, (int)viewportRect.yCenter() - gameRect_.y2/2});
+			gameRect_.setPos({(int)displayRect.xCenter() - gameRect_.x2/2, (int)displayRect.yCenter() - gameRect_.y2/2});
 		}
 
 		// compute the video rectangle in world coordinates for sub-pixel placement
@@ -156,20 +156,21 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 			auto &vController = *inputView->activeVController();
 			auto padding = vController.bounds(3).ySize(); // adding menu button-sized padding
 			auto paddingG = projP.unProjectRect(vController.bounds(3)).ySize();
+			auto viewBoundsG = projP.unProjectRect(viewRect);
 			auto &layoutPos = vController.layoutPosition()[inputView->window().isPortrait() ? 1 : 0];
 			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
 			{
 				layoutDirection = -1;
-				gameRectG.setYPos(projP.bounds().y + paddingG, CB2DO);
-				gameRect_.setYPos(viewportRect.y2 - padding, CB2DO);
+				gameRectG.setYPos(viewBoundsG.y + paddingG, CB2DO);
+				gameRect_.setYPos(viewRect.y2 - padding, CB2DO);
 			}
 			else if(!(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onBottom() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
 				&& !(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom()))
 			{
 				// move controls to top if d-pad & face button aren't on opposite Y quadrants
 				layoutDirection = 1;
-				gameRectG.setYPos(projP.bounds().y2 - paddingG, CT2DO);
-				gameRect_.setYPos(viewportRect.y + padding, CT2DO);
+				gameRectG.setYPos(viewBoundsG.y2 - paddingG, CT2DO);
+				gameRect_.setYPos(viewRect.y + padding, CT2DO);
 			}
 		}
 		#endif

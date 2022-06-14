@@ -316,6 +316,9 @@ public:
 			{std::min(x2, r.x2), std::min(y2, r.y2)}
 		};
 	}
+
+	[[nodiscard]] constexpr Rect2 xRect() const { return {{x, 0}, {x2, 0}}; }
+	[[nodiscard]] constexpr Rect2 yRect() const { return {{0, y}, {0, y2}}; }
 };
 
 template<class T>

@@ -20,6 +20,7 @@
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/algorithm.h>
@@ -87,8 +88,11 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 	if(!cells_)
 		return;
 	using namespace IG::Gfx;
-	auto y = displayRect().yPos(LT2DO);
-	auto x = displayRect().xPos(LT2DO);
+	auto visibleRect = viewRect() + WindowRect{{}, {0, displayRect().y2 - viewRect().y2}};
+	cmds.setClipRect(renderer().makeClipRect(window(), visibleRect));
+	cmds.setClipTest(true);
+	auto y = viewRect().yPos(LT2DO);
+	auto x = viewRect().xPos(LT2DO);
 	int startYCell = std::min(scrollOffset() / yCellSize, (int)cells_);
 	size_t endYCell = std::clamp(startYCell + visibleCells, 0, (int)cells_);
 	if(startYCell < 0)
@@ -97,7 +101,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 		y += -startYCell * yCellSize;
 		startYCell = 0;
 	}
-	//logMsg("draw cells [%d,%d)", startYCell, endYCell);
+	//logMsg("draw cells [%d,%d)", startYCell, (int)endYCell);
 	y -= scrollOffset() % yCellSize;
 
 	// draw separators
@@ -127,7 +131,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 					color = headingColor;
 				}
 				vRectIdx.emplace_back(makeRectIndexArray(vRect.size()));
-				auto rect = IG::makeWindowRectRel({x, y-1}, {displayRect().xSize(), ySize});
+				auto rect = IG::makeWindowRectRel({x, y-1}, {viewRect().xSize(), ySize});
 				vRect.emplace_back(makeColVertArray(projP.unProjectRect(rect), color));
 			}
 			y += yCellSize;
@@ -153,13 +157,12 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 			cmds.setColor(.2, .71, .9, 1./3.);
 		else
 			cmds.setColor(.2 / 3., .71 / 3., .9 / 3., 1./3.);
-		auto rect = IG::makeWindowRectRel({x, selectedCellY}, {displayRect().xSize(), yCellSize-1});
+		auto rect = IG::makeWindowRectRel({x, selectedCellY}, {viewRect().xSize(), yCellSize-1});
 		GeomRect::draw(cmds, rect, projP);
 	}
 
 	// draw elements
 	y = yStart;
-	x = viewRect().xPos(LT2DO);
 	auto xIndent = manager().tableXIndent();
 	for(size_t i = startYCell; i < endYCell; i++)
 	{
@@ -167,6 +170,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 		drawElement(cmds, i, item(*this, i), projP.unProjectRect(rect), xIndent);
 		y += yCellSize;
 	}
+	cmds.setClipTest(false);
 }
 
 void TableView::place()

@@ -68,6 +68,10 @@ class View
 public:
 	using DismissDelegate = DelegateFunc<bool (View &view)>;
 	static constexpr auto imageCommonTextureSampler = ViewDefs::imageCommonTextureSampler;
+	enum class Direction: uint8_t
+	{
+		TOP, RIGHT, BOTTOM, LEFT
+	};
 
 	constexpr View() = default;
 
@@ -119,7 +123,9 @@ public:
 	ViewController *controller() const;
 	WindowRect viewRect() const { return viewRect_; }
 	WindowRect displayRect() const { return displayRect_; }
-	Gfx::ProjectionPlane projection() const;
+	WindowRect displayInsetRect(Direction) const;
+	static WindowRect displayInsetRect(Direction, WindowRect viewRect, WindowRect displayRect);
+	Gfx::ProjectionPlane projection() const { return projP; }
 	bool pointIsInView(IG::WP pos);
 	void waitForDrawFinished();
 

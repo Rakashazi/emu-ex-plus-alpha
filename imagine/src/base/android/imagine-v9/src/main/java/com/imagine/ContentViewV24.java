@@ -17,6 +17,7 @@ package com.imagine;
 
 import android.view.View;
 import android.view.WindowInsets;
+import android.view.DisplayCutout;
 import android.graphics.Rect;
 import android.content.Context;
 import android.app.Activity;
@@ -57,6 +58,16 @@ final class ContentViewV24 extends ContentViewV16Base
 			newContentRect.left += rootInsets.getSystemWindowInsetLeft();
 			newContentRect.right -= rootInsets.getSystemWindowInsetRight();
 			newContentRect.bottom -= rootInsets.getSystemWindowInsetBottom();
+		}
+		else if(android.os.Build.VERSION.SDK_INT > 28)
+		{
+			DisplayCutout cutout = rootInsets.getDisplayCutout();
+			if(cutout != null)
+			{
+				newContentRect.left += cutout.getSafeInsetLeft();
+				newContentRect.right -= cutout.getSafeInsetRight();
+				newContentRect.bottom -= cutout.getSafeInsetBottom();
+			}
 		}
 		if(nativeUserData != 0 && (!contentRect.equals(newContentRect) || newWindowWidth != windowWidth || newWindowHeight != windowHeight))
 		{

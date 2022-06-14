@@ -105,6 +105,12 @@ constexpr bool TRANSLUCENT_SYSTEM_UI = true;
 constexpr bool TRANSLUCENT_SYSTEM_UI = false;
 #endif
 
+#if defined __ANDROID__
+constexpr bool DISPLAY_CUTOUT = true;
+#else
+constexpr bool DISPLAY_CUTOUT = false;
+#endif
+
 }
 
 namespace IG::Input

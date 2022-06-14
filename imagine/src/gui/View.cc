@@ -330,9 +330,22 @@ ViewController *View::controller() const
 	return controller_;
 }
 
-Gfx::ProjectionPlane View::projection() const
+WindowRect View::displayInsetRect(Direction d) const
 {
-	return projP;
+	return displayInsetRect(d, viewRect(), displayRect());
+}
+
+WindowRect View::displayInsetRect(Direction d, WindowRect viewRect, WindowRect displayRect)
+{
+	switch(d)
+	{
+		case Direction::TOP: return {displayRect.pos(LT2DO), {displayRect.x2, viewRect.y}};
+		case Direction::RIGHT: return {{viewRect.x2, displayRect.y}, displayRect.pos(RB2DO)};
+		case Direction::BOTTOM: return {{displayRect.x, viewRect.y2}, displayRect.pos(RB2DO)};
+		case Direction::LEFT: return {displayRect.pos(LT2DO), {viewRect.x, displayRect.y2}};
+	}
+	bug_unreachable("Direction == %d", (int)d);
+	return {};
 }
 
 bool View::pointIsInView(IG::WP pos)

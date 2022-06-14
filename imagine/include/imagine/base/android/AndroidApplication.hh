@@ -56,7 +56,7 @@ public:
 	AndroidApplication(ApplicationInitParams);
 	void onWindowFocusChanged(ApplicationContext, int focused);
 	JNIEnv* thisThreadJniEnv() const;
-	bool hasHardwareNavButtons() const;
+	bool hasHardwareNavButtons() const { return deviceFlags & PERMANENT_MENU_KEY_BIT; }
 	constexpr JNI::InstMethod<void()> recycleBitmapMethod() const { return jRecycle; }
 	jobject makeFontRenderer(JNIEnv *, jobject baseActivity);
 	void setStatusBarHidden(JNIEnv *, jobject baseActivity, bool hidden);
@@ -72,6 +72,7 @@ public:
 	void setIdleDisplayPowerSave(JNIEnv *, jobject baseActivity, bool on);
 	void endIdleByUserActivity(ApplicationContext);
 	void setSysUIStyle(JNIEnv *, jobject baseActivity, int32_t androidSDK, uint32_t flags);
+	bool hasDisplayCutout() const { return deviceFlags & DISPLAY_CUTOUT_BIT; }
 	bool hasFocus() const;
 	void addNotification(JNIEnv *, jobject baseActivity, const char *onShow, const char *title, const char *message);
 	void removePostedNotifications(JNIEnv *, jobject baseActivity);
@@ -109,6 +110,10 @@ public:
 	bool hasMultipleInputDeviceSupport() const;
 
 private:
+	using DeviceFlags = uint8_t;
+	static constexpr DeviceFlags PERMANENT_MENU_KEY_BIT = bit(0);
+	static constexpr DeviceFlags DISPLAY_CUTOUT_BIT = bit(1);
+
 	JNI::UniqueGlobalRef displayListenerHelper{};
 	JNI::InstMethod<void()> jRecycle{};
 	JNI::InstMethod<void(jint)> jSetUIVisibility{};
@@ -144,7 +149,7 @@ private:
 	SurfaceRotation osRotation{};
 	bool osAnimatesRotation{};
 	bool aHasFocus{true};
-	bool hasPermanentMenuKey{true};
+	DeviceFlags deviceFlags{PERMANENT_MENU_KEY_BIT};
 	bool keepScreenOn{};
 	bool trackballNav{};
 

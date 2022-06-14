@@ -449,11 +449,6 @@ AAssetManager *AndroidApplicationContext::aAssetManager() const
 	return act->assetManager;
 }
 
-bool AndroidApplication::hasHardwareNavButtons() const
-{
-	return hasPermanentMenuKey;
-}
-
 bool ApplicationContext::hasHardwareNavButtons() const
 {
 	return application().hasHardwareNavButtons();
@@ -653,15 +648,17 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 
 	if(androidSDK >= 14)
 	{
-		JNI::InstMethod<jboolean()> jHasPermanentMenuKey{env, baseActivityClass, "hasPermanentMenuKey", "()Z"};
-		hasPermanentMenuKey = jHasPermanentMenuKey(env, baseActivity);
-		if(hasPermanentMenuKey)
+		JNI::InstMethod<jint()> jDeviceFlags{env, baseActivityClass, "deviceFlags", "()I"};
+		deviceFlags = jDeviceFlags(env, baseActivity);
+		if(deviceFlags & PERMANENT_MENU_KEY_BIT)
 		{
 			logMsg("device has hardware nav/menu keys");
 		}
+		if(deviceFlags & DISPLAY_CUTOUT_BIT)
+		{
+			logMsg("device has display cutout");
+		}
 	}
-	else
-		hasPermanentMenuKey = 1;
 
 	/*if(unloadNativeLibOnDestroy)
 	{
@@ -814,6 +811,8 @@ bool ApplicationContext::hasTranslucentSysUI() const
 {
 	return androidSDK() >= 19;
 }
+
+bool ApplicationContext::hasDisplayCutout() const { return application().hasDisplayCutout(); }
 
 bool AndroidApplication::hasFocus() const
 {

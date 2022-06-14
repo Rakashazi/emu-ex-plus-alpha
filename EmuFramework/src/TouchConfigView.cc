@@ -638,6 +638,16 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 		(int)layoutPosArr(vCtrl, window())[4].state,
 		ffStateItem
 	},
+	allowButtonsPastContentBounds
+	{
+		"Allow Buttons In Display Cutout Area", &defaultFace(),
+		vController().allowButtonsPastContentBounds(),
+		[this](BoolMenuItem &item)
+		{
+			vController().setAllowButtonsPastContentBounds(item.flipBoolValue(*this));
+			vController().place();
+		}
+	},
 	resetControls
 	{
 		"Reset Position & Spacing Options", &defaultFace(),
@@ -694,6 +704,10 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	}
 	item.emplace_back(&size);
 	item.emplace_back(&btnPlace);
+	if(used(allowButtonsPastContentBounds) && appContext().hasDisplayCutout())
+	{
+		item.emplace_back(&allowButtonsPastContentBounds);
+	}
 	item.emplace_back(&btnTogglesHeading);
 	auto &layoutPos = layoutPosArr(vCtrl, window());
 	{

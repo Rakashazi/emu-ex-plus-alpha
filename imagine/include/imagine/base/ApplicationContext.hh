@@ -192,6 +192,7 @@ public:
 	void setSystemOrientation(Orientation);
 	Orientation defaultSystemOrientations() const;
 	Orientation validateOrientationMask(Orientation oMask) const;
+	bool hasDisplayCutout() const;
 
 	// Sensors
 	void setDeviceOrientationChangeSensor(bool on);

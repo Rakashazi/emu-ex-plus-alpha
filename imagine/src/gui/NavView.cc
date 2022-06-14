@@ -303,10 +303,10 @@ void BasicNavView::place()
 		Gfx::GCRect scaledRect{-rect.size() / 3.f, rect.size() / 3.f};
 		rightSpr.setPos(scaledRect);
 	}
-	bg.setPos({gradientStops.get(), (size_t)bg.stops()}, projP.unProjectRect(viewRect()));
+	bg.setPos({gradientStops.get(), (size_t)bg.stops()}, projP.unProjectRect(displayRect().xRect() + viewRect().yRect()));
 	if(viewRect().y > displayRect().y)
 	{
-		topBg.setPos({displayRect().pos(LT2DO), viewRect().pos(RT2DO)}, projP);
+		topBg.setPos(displayInsetRect(Direction::TOP), projP);
 	}
 }
 

@@ -60,6 +60,8 @@ ifdef imagineLibExt
  android_makefileOpts += imagineLibExt=$(imagineLibExt)
 endif
 
+xmlDecl := <?xml version="1.0" encoding="utf-8"?>
+
 # metadata
 
 android_manifestXml := $(android_targetPath)/src/main/AndroidManifest.xml
@@ -136,7 +138,7 @@ ifneq ($(wildcard $(resPath)/icons/adaptive-icon-bg.png),)
 android_drawableIconV26Path := $(android_resPath)/mipmap-anydpi-v26/icon.xml
 $(android_drawableIconV26Path) :
 	@mkdir -p $(@D)
-	printf '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n\t<background android:drawable="@mipmap/icon_bg" />\n\t<foreground android:drawable="@mipmap/icon_fg" />\n</adaptive-icon>' > $@
+	printf '$(xmlDecl)\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n\t<background android:drawable="@mipmap/icon_bg" />\n\t<foreground android:drawable="@mipmap/icon_fg" />\n</adaptive-icon>' > $@
 
 android_drawableIconBgPath := $(android_resPath)/mipmap-xhdpi/icon_bg.png
 $(android_drawableIconBgPath) :
@@ -175,7 +177,7 @@ ifdef android_drawableXhdpiOuyaIconPath
 $(android_drawableXhdpiOuyaIconPath) :
 	@mkdir -p $(@D)
 	ln -rs $(resPath)/icons/ouya_icon.png $@
-	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/ouya_icon"/>\n' > $(@D)/ouya.xml
+	printf '$(xmlDecl)\n<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/ouya_icon"/>\n' > $(@D)/ouya.xml
 endif
 
 ifneq ($(wildcard $(resPath)/icons/tv-banner.png),)
@@ -204,9 +206,15 @@ endif
 
 android_styles21Xml := $(android_resPath)/values-v21/styles.xml
 
+android_MaterialTheme := android:Theme.Material.NoActionBar.TranslucentDecor
+android_HoloTheme := android:Theme.Holo.NoActionBar.TranslucentDecor
+android_LegacyHoloTheme := android:Theme.Holo.NoActionBar
+android_LegacyTheme := android:Theme.NoTitleBar
+android_ShortEdgesItem := <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+
 $(android_styles21Xml) :
 	@mkdir -p $(@D)
-	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n\t<style name="AppTheme" parent="android:Theme.Material.NoActionBar.TranslucentDecor"/>\n</resources>\n' > $@
+	printf '$(xmlDecl)\n<resources>\n\t<style name="AppTheme" parent="$(android_MaterialTheme)">\n\t\t$(android_ShortEdgesItem)\n\t</style>\n</resources>\n' > $@
 
 android_stylesXmlFiles += $(android_styles21Xml)
 
@@ -216,7 +224,7 @@ android_styles19Xml := $(android_resPath)/values-v19/styles.xml
 
 $(android_styles19Xml) :
 	@mkdir -p $(@D)
-	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n\t<style name="AppTheme" parent="android:Theme.Holo.NoActionBar.TranslucentDecor"/>\n</resources>\n' > $@
+	printf '$(xmlDecl)\n<resources>\n\t<style name="AppTheme" parent="$(android_HoloTheme)"/>\n</resources>\n' > $@
 
 android_stylesXmlFiles += $(android_styles19Xml)
 
@@ -228,7 +236,7 @@ android_styles11Xml := $(android_resPath)/values-v11/styles.xml
 
 $(android_styles11Xml) :
 	@mkdir -p $(@D)
-	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n\t<style name="AppTheme" parent="android:Theme.Holo.NoActionBar"/>\n</resources>\n' > $@
+	printf '$(xmlDecl)\n<resources>\n\t<style name="AppTheme" parent="$(android_LegacyHoloTheme)"/>\n</resources>\n' > $@
 
 android_stylesXmlFiles += $(android_styles11Xml)
 
@@ -240,7 +248,7 @@ android_stylesXml := $(android_resPath)/values/styles.xml
 
 $(android_stylesXml) :
 	@mkdir -p $(@D)
-	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n\t<style name="AppTheme" parent="android:Theme.NoTitleBar"/>\n</resources>\n' > $@
+	printf '$(xmlDecl)\n<resources>\n\t<style name="AppTheme" parent="$(android_LegacyTheme)"/>\n</resources>\n' > $@
 
 android_stylesXmlFiles += $(android_stylesXml)
 
@@ -250,7 +258,7 @@ android_stringsXml := $(android_resPath)/values/strings.xml
 
 $(android_stringsXml) : $(projectPath)/metadata/conf.mk
 	@mkdir -p $(@D)
-	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n\t<string name="app_name">$(android_metadata_name)</string>\n</resources>\n' > $@
+	printf '$(xmlDecl)\n<resources>\n\t<string name="app_name">$(android_metadata_name)</string>\n</resources>\n' > $@
 
 gradleSrcPath = $(IMAGINE_PATH)/make/gradle
 

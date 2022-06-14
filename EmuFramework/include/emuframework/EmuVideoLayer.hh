@@ -33,7 +33,7 @@ class EmuVideoLayer
 {
 public:
 	EmuVideoLayer(EmuVideo &video);
-	void place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView, EmuSystem &sys);
+	void place(IG::WindowRect viewRect, IG::WindowRect displayRect, Gfx::ProjectionPlane projP, EmuInputView *inputView, EmuSystem &sys);
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
 	void setFormat(EmuSystem &, IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace);
 	void setOverlay(int effect);

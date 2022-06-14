@@ -73,6 +73,7 @@ protected:
 	MultiChoiceMenuItem menuState;
 	TextMenuItem ffStateItem[3];
 	MultiChoiceMenuItem ffState;
+	IG_UseMemberIf(Config::DISPLAY_CUTOUT, BoolMenuItem, allowButtonsPastContentBounds);
 	TextMenuItem resetControls;
 	TextMenuItem resetAllControls;
 	TextHeadingMenuItem btnTogglesHeading;

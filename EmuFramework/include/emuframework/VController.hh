@@ -255,8 +255,6 @@ public:
 	void updateKeyboardMapping();
 	bool hasTriggers() const;
 	void setImg(Gfx::Texture &pics);
-	void setMenuBtnPos(IG::WP pos);
-	void setFFBtnPos(IG::WP pos);
 	void inputAction(Input::Action action, unsigned vBtn);
 	void resetInput();
 	void place();
@@ -345,6 +343,8 @@ public:
 	bool gamepadDPadIsEnabled() const { return !(gamepadDisabledFlags & GAMEPAD_DPAD_BIT); }
 	bool gamepadButtonsAreEnabled() const { return !(gamepadDisabledFlags & GAMEPAD_BUTTONS_BIT); }
 	bool gamepadIsActive() const;
+	bool allowButtonsPastContentBounds() { return allowButtonsPastContentBounds_; }
+	bool setAllowButtonsPastContentBounds(bool on) { return allowButtonsPastContentBounds_ = on; }
 
 private:
 	static constexpr uint8_t GAMEPAD_DPAD_BIT = IG::bit(0);
@@ -385,6 +385,7 @@ private:
 	uint8_t gamepadDisabledFlags{};
 	bool kbMode{};
 	uint8_t alpha{};
+	IG_UseMemberIf(Config::DISPLAY_CUTOUT, bool, allowButtonsPastContentBounds_){};
 	IG_UseMemberIf(Config::BASE_SUPPORTS_VIBRATOR, bool, vibrateOnTouchInput_){};
 
 	std::array<int, 2> findGamepadElements(IG::WP pos);

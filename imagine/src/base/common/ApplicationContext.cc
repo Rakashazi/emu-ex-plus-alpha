@@ -403,6 +403,8 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 
 [[gnu::weak]] void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate) {}
 
+[[gnu::weak]] bool ApplicationContext::hasDisplayCutout() const { return false; }
+
 [[gnu::weak]] bool ApplicationContext::usesPermission(Permission) const { return false; }
 
 [[gnu::weak]] bool ApplicationContext::permissionIsRestricted(Permission p) const { return false; }
