@@ -112,6 +112,7 @@ public:
 	static constexpr uint32_t IMPL_FLAG_START = bit(2);
 	static constexpr uint32_t USER_FLAG_START = bit(16);
 	static constexpr uint32_t DEFAULT_FLAGS = SELECTABLE_FLAG | ACTIVE_FLAG;
+	static constexpr Id DEFAULT_ID = static_cast<Id>(std::numeric_limits<IdInt>::min());
 
 	constexpr MenuItem() = default;
 	constexpr MenuItem(IdInt id): id_{id} {}

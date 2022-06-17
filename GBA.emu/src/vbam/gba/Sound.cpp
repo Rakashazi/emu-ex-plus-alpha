@@ -55,6 +55,8 @@ private:
 	blip_time_t last_time;
 	int last_amp;
 	int shift;
+public:
+	bool soundInterpolation = true; // true if PCM should have low-pass filtering
 };
 
 class Gba_Pcm_Fifo {
@@ -81,14 +83,12 @@ class GbaSound
 {
 public:
 	int soundSampleRate = 44100;
-	bool  soundInterpolation = true;
-	float soundFiltering = 0.5f;
 	int   soundTicks{};
 
-	static constexpr float soundVolume = 1.0f;
 	int soundEnableFlag = 0x3ff; // emulator channels enabled
-	float soundFiltering_ = -1;
-	static constexpr float soundVolume_ = soundVolume;
+	float soundFiltering_ = 0.5f; // 0.0 = none, 1.0 = max
+	float soundVolume_ = 1.0f;
+	float gbApuSoundVolume_ = 1.0f;
 
 	Gba_Pcm_Fifo     pcm[2]{};
 	Gb_Apu          gb_apu{};
@@ -103,12 +103,10 @@ static auto &gb_apu = gbaSound.gb_apu;
 static auto &stereo_buffer = gbaSound.stereo_buffer;
 static auto &pcm_synth = gbaSound.pcm_synth;
 static auto &soundEnableFlag = gbaSound.soundEnableFlag;
-static auto &soundVolume = gbaSound.soundVolume;
 static auto &soundVolume_ = gbaSound.soundVolume_;
+static auto &gbApuSoundVolume_ = gbaSound.gbApuSoundVolume_;
 static auto &soundSampleRate = gbaSound.soundSampleRate;
 static auto &soundFiltering_ = gbaSound.soundFiltering_;
-float &soundFiltering = gbaSound.soundFiltering;
-bool &soundInterpolation = gbaSound.soundInterpolation;
 int &soundTicks = gbaSound.soundTicks;
 #define ioMem gba.mem.ioMem.b
 
@@ -286,7 +284,7 @@ static void apply_volume(GBASys &gba, bool apu_only = false)
 	//if ( gb_apu )
 	{
 		static float const apu_vols[4] = { 0.25f, 0.5f, 1.0f, 0.25f };
-		gb_apu.volume(soundVolume_ * apu_vols [ioMem[SGCNT0_H] & 3]);
+		gb_apu.volume(gbApuSoundVolume_ * apu_vols [ioMem[SGCNT0_H] & 3]);
 	}
 
 	if (!apu_only) {
@@ -380,18 +378,14 @@ void flush_samples(Multi_Buffer * buffer, EmuEx::EmuAudio *audio)
         systemOnWriteDataToSoundBuffer(soundFinalWave, soundBufferLen);
     }
 #endif
-	size_t samples = buffer->samples_avail();
-	uint16_t soundFinalWave[1800];
-	samples = std::min((size_t)samples, std::size(soundFinalWave) / 2);
-	buffer->read_samples( (blip_sample_t*) soundFinalWave, samples );
+	std::array<uint16_t, 1800> soundFinalWave;
+	auto samples = buffer->read_samples((blip_sample_t*)soundFinalWave.data(), soundFinalWave.size());
 	if(audio) [[likely]]
-		systemOnWriteDataToSoundBuffer(audio, soundFinalWave, samples * 2);
+		systemOnWriteDataToSoundBuffer(audio, soundFinalWave.data(), samples);
 }
 
 static void apply_filtering()
 {
-	soundFiltering_ = soundFiltering;
-
 	int const base_freq = (int)(32768 - soundFiltering_ * 16384);
 	int const nyquist = stereo_buffer.sample_rate() / 2;
 
@@ -511,9 +505,22 @@ void soundResume()
 }
 #endif
 
-float soundGetVolume()
+void soundSetVolume(GBASys &gba, float volume, bool gbVol)
 {
-	return soundVolume;
+	volume = std::clamp(volume, 0.f, 1.f);
+	if(gbVol)
+		gbApuSoundVolume_ = volume;
+	else
+		soundVolume_ = volume;
+	apply_volume(gba);
+}
+
+float soundGetVolume(GBASys &, bool gbVol)
+{
+	if(gbVol)
+		return gbApuSoundVolume_;
+	else
+		return soundVolume_;
 }
 
 void soundSetEnable(GBASys &gba, int channels)
@@ -522,9 +529,31 @@ void soundSetEnable(GBASys &gba, int channels)
 	apply_muting(gba);
 }
 
-int soundGetEnable()
+int soundGetEnable(GBASys &)
 {
 	return (soundEnableFlag & 0x30f);
+}
+
+void soundSetFiltering(GBASys &, float level)
+{
+	soundFiltering_ = std::clamp(level, 0.f, 1.f);
+	apply_filtering();
+}
+
+float soundGetFiltering(GBASys &)
+{
+	return soundFiltering_;
+}
+
+void soundSetInterpolation(GBASys &, bool on)
+{
+	gbaSound.pcm[0].pcm.soundInterpolation = on;
+	gbaSound.pcm[1].pcm.soundInterpolation = on;
+}
+
+bool soundGetInterpolation(GBASys &)
+{
+	return gbaSound.pcm[0].pcm.soundInterpolation;
 }
 
 void soundReset(GBASys &gba)

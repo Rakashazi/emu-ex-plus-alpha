@@ -345,23 +345,16 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 10 to 100", "",
+				app().pushAndShowNewCollectValueRangeInputView<int, 10, 100>(attachParams(), e, "Input 10 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(app.setVideoZoom(val))
-						{
-							zoom.setSelected(std::size(zoomItem) - 1, *this);
-							dismissPrevious();
-							return true;
-						}
-						else
-						{
-							app.postErrorMessage("Value not in range");
-							return false;
-						}
+						app.setVideoZoom(val);
+						zoom.setSelected((MenuItem::Id)val, *this);
+						dismissPrevious();
+						return true;
 					});
 				return false;
-			}
+			}, MenuItem::DEFAULT_ID
 		},
 	},
 	zoom
@@ -387,23 +380,16 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 50 to 100", "",
+				app().pushAndShowNewCollectValueRangeInputView<int, 50, 100>(attachParams(), e, "Input 50 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(app.setViewportZoom(val))
-						{
-							viewportZoom.setSelected(std::size(viewportZoomItem) - 1, *this);
-							dismissPrevious();
-							return true;
-						}
-						else
-						{
-							app.postErrorMessage("Value not in range");
-							return false;
-						}
+						app.setViewportZoom(val);
+						viewportZoom.setSelected((MenuItem::Id)val, *this);
+						dismissPrevious();
+						return true;
 					});
 				return false;
-			}
+			}, MenuItem::DEFAULT_ID
 		},
 	},
 	viewportZoom
@@ -466,23 +452,16 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
+				app().pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(app.setOverlayEffectLevel(*videoLayer, val))
-						{
-							overlayEffectLevel.setSelected(std::size(overlayEffectLevelItem) - 1, *this);
-							dismissPrevious();
-							return true;
-						}
-						else
-						{
-							app.postErrorMessage("Value not in range");
-							return false;
-						}
+						app.setOverlayEffectLevel(*videoLayer, val);
+						overlayEffectLevel.setSelected((MenuItem::Id)val, *this);
+						dismissPrevious();
+						return true;
 					});
 				return false;
-			}
+			}, MenuItem::DEFAULT_ID
 		},
 	},
 	overlayEffectLevel

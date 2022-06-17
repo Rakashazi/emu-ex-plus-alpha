@@ -194,7 +194,7 @@ void setSaveType(int type, int size)
 			flashSize = SIZE_SRAM;
 			break;
 		case GBA_SAVE_FLASH:
-			flashSize = size == SIZE_FLASH1M ? SIZE_FLASH1M : SIZE_FLASH512;
+			flashSetSize(size == SIZE_FLASH1M ? SIZE_FLASH1M : SIZE_FLASH512);
 			break;
 	}
 }
@@ -233,18 +233,8 @@ void GbaSystem::setGameSpecificSettings(GBASys &gba, int romSize)
 	{
 		setSaveType(detectedSaveType, detectedSaveSize);
 	}
-	if(detectedRtcGame && (RtcMode)optionRtcEmulation.val == RtcMode::AUTO)
-	{
-		rtcEnable(true);
-	}
-	else
-	{
-		bool rtcOn = (RtcMode)optionRtcEmulation.val == RtcMode::ON;
-		logMsg("forcing RTC:%s", rtcOn ? "on" : "off");
-		rtcEnable(rtcOn);
-	}
+	setRTC((RtcMode)optionRtcEmulation.val);
 }
-
 }
 
 size_t saveMemorySize()

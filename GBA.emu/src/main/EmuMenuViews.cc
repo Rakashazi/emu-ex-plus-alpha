@@ -19,8 +19,10 @@
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
 #include <imagine/gui/AlertView.hh>
+#include <imagine/util/format.hh>
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/RTC.h>
+#include <vbam/gba/Sound.h>
 
 namespace EmuEx
 {
@@ -158,11 +160,173 @@ public:
 	}
 };
 
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
+{
+	using MainAppHelper<CustomAudioOptionView>::system;
+	using MainAppHelper<CustomAudioOptionView>::app;
+
+	TextHeadingMenuItem mixer{"Mixer", &defaultBoldFace()};
+
+	using VolumeChoiceItemArr = std::array<TextMenuItem, 3>;
+
+	VolumeChoiceItemArr volumeLevelChoiceItems(bool gbVol)
+	{
+		return
+		{
+			TextMenuItem
+			{
+				"Default", &defaultFace(),
+				[this, gbVol]() { soundSetVolume(gGba, 1.f, gbVol); },
+				100
+			},
+			TextMenuItem
+			{
+				"Off", &defaultFace(),
+				[this, gbVol]() { soundSetVolume(gGba, 0, gbVol); },
+				0
+			},
+			TextMenuItem
+			{
+				"Custom Value", &defaultFace(),
+				[this, gbVol](Input::Event e)
+				{
+					app().pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
+						[this, gbVol](EmuApp &app, auto val)
+						{
+							soundSetVolume(gGba, val / 100.f, gbVol);
+							size_t idx = gbVol ? 1 : 0;
+							volumeLevel[idx].setSelected((MenuItem::Id)val, *this);
+							dismissPrevious();
+							return true;
+						});
+					return false;
+				}, MenuItem::DEFAULT_ID
+			}
+		};
+	}
+
+	std::array<VolumeChoiceItemArr, 2> volumeLevelItem
+	{
+		volumeLevelChoiceItems(false),
+		volumeLevelChoiceItems(true),
+	};
+
+	MultiChoiceMenuItem volumeLevelMenuItem(bool gbVol)
+	{
+		return
+		{
+			gbVol ? "GB APU Volume" : "PCM Volume", &defaultFace(),
+			[this, gbVol](size_t idx, Gfx::Text &t)
+			{
+				t.setString(fmt::format("{}%", soundVolumeAsInt(gGba, gbVol)));
+				return true;
+			},
+			(MenuItem::Id)soundVolumeAsInt(gGba, gbVol),
+			volumeLevelItem[gbVol ? 1 : 0]
+		};
+	}
+
+	std::array<MultiChoiceMenuItem, 2> volumeLevel
+	{
+		volumeLevelMenuItem(false),
+		volumeLevelMenuItem(true),
+	};
+
+	BoolMenuItem channelEnableItem(auto &&name, int mask)
+	{
+		return
+		{
+			IG_forward(name), &defaultFace(),
+			bool(soundGetEnable(gGba) & mask),
+			[this, mask](BoolMenuItem &item)
+			{
+				soundSetEnable(gGba, setOrClearBits(soundGetEnable(gGba), mask, item.flipBoolValue(*this)));
+			}
+		};
+	}
+
+	std::array<BoolMenuItem, 6> channelEnable
+	{
+		channelEnableItem("PCM #1", 0x100),
+		channelEnableItem("PCM #2", 0x200),
+		channelEnableItem("Pulse #1", 0x1),
+		channelEnableItem("Pulse #2", 0x2),
+		channelEnableItem("Wave", 0x4),
+		channelEnableItem("Noise", 0x8),
+	};
+
+	std::array<TextMenuItem, 2> filteringItem
+	{
+		TextMenuItem
+		{
+			"Default", &defaultFace(),
+			[this]() { soundSetFiltering(gGba, .5f); },
+			50
+		},
+		TextMenuItem
+		{
+			"Custom Value", &defaultFace(),
+			[this](Input::Event e)
+			{
+				app().pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
+					[this](EmuApp &app, auto val)
+					{
+						soundSetFiltering(gGba, val / 100.f);
+						filtering.setSelected((MenuItem::Id)val, *this);
+						dismissPrevious();
+						return true;
+					});
+				return false;
+			}, MenuItem::DEFAULT_ID
+		}
+	};
+
+	MultiChoiceMenuItem filtering
+	{
+		"Filtering Level", &defaultFace(),
+		[this](size_t idx, Gfx::Text &t)
+		{
+			t.setString(fmt::format("{}%", soundFilteringAsInt(gGba)));
+			return true;
+		},
+		(MenuItem::Id)soundFilteringAsInt(gGba),
+		filteringItem
+	};
+
+	BoolMenuItem interpolation
+	{
+		"Interpolation", &defaultFace(),
+		soundGetInterpolation(gGba),
+		[this](BoolMenuItem &item)
+		{
+			soundSetInterpolation(gGba, item.flipBoolValue(*this));
+		}
+	};
+
+public:
+	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	{
+		loadStockItems();
+		item.emplace_back(&filtering);
+		item.emplace_back(&interpolation);
+		item.emplace_back(&mixer);
+		item.emplace_back(&volumeLevel[0]);
+		item.emplace_back(&channelEnable[0]);
+		item.emplace_back(&channelEnable[1]);
+		item.emplace_back(&volumeLevel[1]);
+		item.emplace_back(&channelEnable[2]);
+		item.emplace_back(&channelEnable[3]);
+		item.emplace_back(&channelEnable[4]);
+		item.emplace_back(&channelEnable[5]);
+	}
+};
+
 std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
 		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;

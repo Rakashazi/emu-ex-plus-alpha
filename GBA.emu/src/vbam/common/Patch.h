@@ -4,14 +4,9 @@
 #include "../Util.h"
 #include "Types.h"
 
-namespace IG
-{
-class ApplicationContext;
-}
-
-bool applyPatch(IG::ApplicationContext ctx, const char *patchname, uint8_t** rom, int *size);
-bool patchApplyIPS(IG::ApplicationContext ctx, const char *patchname, uint8_t** rom, int *size);
-bool patchApplyUPS(IG::ApplicationContext ctx, const char *patchname, uint8_t** rom, int *size);
-bool patchApplyPPF(IG::ApplicationContext ctx, const char *patchname, uint8_t** rom, int *size);
+bool applyPatch(const char *patchname, uint8_t **rom, int *size);
+bool patchApplyIPS(FILE* f, uint8_t** rom, int *size);
+bool patchApplyUPS(FILE* f, uint8_t** rom, int *size);
+bool patchApplyPPF(FILE* f, uint8_t** rom, int *size);
 
 #endif // PATCH_H

@@ -17,6 +17,7 @@
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuSystemInlines.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/format.hh>
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/GBAGfx.h>
@@ -30,7 +31,6 @@
 namespace EmuEx
 {
 
-bool detectedRtcGame = 0;
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 bool EmuSystem::hasBundledGames = true;
 bool EmuSystem::hasCheats = true;
@@ -112,34 +112,35 @@ void GbaSystem::closeSystem()
 	cheatsList.clear();
 }
 
-static void applyGamePatches(EmuSystem &sys, uint8_t *rom, int &romSize)
+void GbaSystem::applyGamePatches(uint8_t *rom, int &romSize)
 {
-	auto ctx = sys.appContext();
-	if(auto patchStr = sys.contentSaveFilePath(".ips");
-		ctx.fileUriExists(patchStr))
+	auto ctx = appContext();
+	// The patchApply* functions are responsible for closing the FILE
+	if(auto f = IG::FileUtils::fopenUri(ctx, contentSaveFilePath(".ips"), "rb");
+		f)
 	{
-		logMsg("applying IPS patch: %s", patchStr.data());
-		if(!patchApplyIPS(ctx, patchStr.data(), &rom, &romSize))
+		logMsg("applying IPS patch");
+		if(!patchApplyIPS(f, &rom, &romSize))
 		{
-			throw std::runtime_error("Error applying IPS patch");
+			throw std::runtime_error(fmt::format("Error applying IPS patch in:\n{}", contentSaveDirectory()));
 		}
 	}
-	else if(auto patchStr = sys.contentSaveFilePath(".ups");
-		ctx.fileUriExists(patchStr))
+	else if(auto f = IG::FileUtils::fopenUri(ctx, contentSaveFilePath(".ups"), "rb");
+		f)
 	{
-		logMsg("applying UPS patch: %s", patchStr.data());
-		if(!patchApplyUPS(ctx, patchStr.data(), &rom, &romSize))
+		logMsg("applying UPS patch");
+		if(!patchApplyUPS(f, &rom, &romSize))
 		{
-			throw std::runtime_error("Error applying UPS patch");
+			throw std::runtime_error(fmt::format("Error applying UPS patch in:\n{}", contentSaveDirectory()));
 		}
 	}
-	else if(auto patchStr = sys.contentSaveFilePath(".ppf");
-		ctx.fileUriExists(patchStr))
+	else if(auto f = IG::FileUtils::fopenUri(ctx, contentSaveFilePath(".ppf"), "rb");
+		f)
 	{
-		logMsg("applying UPS patch: %s", patchStr.data());
-		if(!patchApplyPPF(ctx, patchStr.data(), &rom, &romSize))
+		logMsg("applying UPS patch");
+		if(!patchApplyPPF(f, &rom, &romSize))
 		{
-			throw std::runtime_error("Error applying PPF patch");
+			throw std::runtime_error(fmt::format("Error applying PPF patch in:\n{}", contentSaveDirectory()));
 		}
 	}
 }
@@ -152,7 +153,7 @@ void GbaSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 		throwFileReadError();
 	}
 	setGameSpecificSettings(gGba, size);
-	applyGamePatches(*this, gGba.mem.rom, size);
+	applyGamePatches(gGba.mem.rom, size);
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
 	auto saveStr = EmuSystem::contentSaveFilePath(".sav");
@@ -226,7 +227,8 @@ void systemOnWriteDataToSoundBuffer(EmuEx::EmuAudio *audio, const uint16_t *fina
 {
 	if(audio)
 	{
-		//logMsg("%d audio frames", audio->format().bytesToFrames(length));
-		audio->writeFrames(finalWave, audio->format().bytesToFrames(length));
+		int frames = length >> 1; // stereo samples
+		//logMsg("%d audio frames", frames);
+		audio->writeFrames(finalWave, frames);
 	}
 }

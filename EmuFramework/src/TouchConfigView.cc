@@ -405,7 +405,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 						int scaledIntVal = val * 100.0;
 						if(vController().setButtonSize(scaledIntVal))
 						{
-							size.setSelected(std::size(sizeItem) - 1, *this);
+							size.setSelected((MenuItem::Id)scaledIntVal, *this);
 							dismissPrevious();
 							return true;
 						}
@@ -416,7 +416,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 						}
 					});
 				return false;
-			}
+			}, MenuItem::DEFAULT_ID
 		},
 	},
 	size

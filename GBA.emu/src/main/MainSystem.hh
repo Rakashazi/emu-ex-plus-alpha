@@ -18,13 +18,17 @@ enum class RtcMode : uint8_t {AUTO, OFF, ON};
 
 enum
 {
-	CFGKEY_RTC_EMULATION = 256, CFGKEY_SAVE_TYPE_OVERRIDE = 257
+	CFGKEY_RTC_EMULATION = 256, CFGKEY_SAVE_TYPE_OVERRIDE = 257,
+	CFGKEY_PCM_VOLUME = 258, CFGKEY_GB_APU_VOLUME = 259,
+	CFGKEY_SOUND_FILTERING = 260, CFGKEY_SOUND_INTERPOLATION = 261,
 };
 
 void readCheatFile(EmuSystem &);
 void setSaveType(int type, int size);
 const char *saveTypeStr(int type, int size);
 bool saveMemoryHasContent();
+int soundVolumeAsInt(GBASys &, bool gbVol);
+int soundFilteringAsInt(GBASys &);
 
 constexpr uint32_t packSaveTypeOverride(int type, int size = 0) { return (type << 24) | (size & 0xFFFFFF); }
 constexpr std::pair<int, int> unpackSaveTypeOverride(uint32_t val) { return {val >> 24, val & 0xFFFFFF}; }
@@ -72,6 +76,9 @@ public:
 	void closeSystem();
 	bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
 	void renderFramebuffer(EmuVideo &);
+
+private:
+	void applyGamePatches(uint8_t *rom, int &romSize);
 };
 
 using MainSystem = GbaSystem;

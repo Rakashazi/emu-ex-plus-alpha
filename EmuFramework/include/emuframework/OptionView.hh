@@ -139,7 +139,7 @@ protected:
 	using ApiItemContainer = StaticArrayList<TextMenuItem, MAX_APIS + 1>;
 	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, ApiItemContainer, apiItem);
 	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, MultiChoiceMenuItem, api);
-	StaticArrayList<MenuItem*, 17> item{};
+	StaticArrayList<MenuItem*, 22> item{};
 
 	TextMenuItem::SelectDelegate setRateDel();
 	TextMenuItem::SelectDelegate setBuffersDel();

@@ -8,7 +8,7 @@ CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT ?= -Ofast
 CFLAGS_OPTIMIZE_RELEASE_DEFAULT ?= $(CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT) $(CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT)
 CFLAGS_CODEGEN += -pipe -fvisibility=hidden
 CFLAGS_LANG = -fno-common
-CXXFLAGS_LANG = -std=gnu++2b $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxThreadSafeStatics),,-fno-threadsafe-statics)
+CXXFLAGS_LANG = -std=gnu++2b $(if $(cxxThreadSafeStatics),,-fno-threadsafe-statics)
 
 ifeq ($(ENV), ios)
  ifeq ($(SUBARCH), armv7)

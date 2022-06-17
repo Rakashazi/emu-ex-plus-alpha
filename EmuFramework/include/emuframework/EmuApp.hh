@@ -401,6 +401,25 @@ public:
 			});
 	}
 
+	template<class T, T low, T high>
+	void pushAndShowNewCollectValueRangeInputView(ViewAttachParams attach, const Input::Event &e,
+			IG::CStringView msgText, IG::CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
+	{
+		pushAndShowNewCollectValueInputView<int>(attach, e, msgText, initialContent,
+			[collectedValueFunc](EmuApp &app, auto val)
+			{
+				if(val >= low && val <= high)
+				{
+					return collectedValueFunc(app, val);
+				}
+				else
+				{
+					app.postErrorMessage("Value not in range");
+					return false;
+				}
+			});
+	}
+
 protected:
 	IG::FontManager fontManager;
 	mutable Gfx::Renderer renderer;

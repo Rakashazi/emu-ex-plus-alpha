@@ -88,7 +88,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			if(ViewConfiguration.get(this).hasPermanentMenuKey())
 				flags |= PERMANENT_MENU_KEY_BIT;
 		}
-		if(android.os.Build.VERSION.SDK_INT >= 28)
+		if(android.os.Build.VERSION.SDK_INT >= 29)
 		{
 			DisplayCutout cutout = defaultDpy.getCutout();
 			if(cutout != null)

@@ -228,9 +228,9 @@ public:
 	void setInitialLoadPath(IG::CStringView path);
 	FS::PathString fallbackSaveDirectory(bool create = false);
 	FS::PathString contentSaveDirectory() const;
-	FS::PathString contentSavePath(std::string_view name);
+	FS::PathString contentSavePath(std::string_view name) const;
 	const char *contentSaveDirectoryPtr() { return contentSaveDirectory_.data(); }
-	FS::PathString contentSaveFilePath(std::string_view ext);
+	FS::PathString contentSaveFilePath(std::string_view ext) const;
 	FS::PathString userSaveDirectory() const;
 	void setUserSaveDirectory(IG::CStringView path);
 	FS::PathString firmwarePath() const;

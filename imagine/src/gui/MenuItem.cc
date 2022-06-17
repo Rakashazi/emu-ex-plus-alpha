@@ -366,12 +366,18 @@ void MultiChoiceMenuItem::updateDisplayString()
 
 int MultiChoiceMenuItem::idxOfId(IdInt id)
 {
-	iterateTimes(items_(*this), i)
+	auto items = items_(*this);
+	Id lastId{};
+	iterateTimes(items, i)
 	{
-		if(item_(*this, i).id() == id)
+		lastId = item_(*this, i).id();
+		if(lastId == id)
 			return (int)i;
 	}
-	return -1;
+	if(lastId == DEFAULT_ID) // special case to simplify uses where the last menu item represents a custom value
+		return items - 1;
+	else
+		return -1;
 }
 
 }

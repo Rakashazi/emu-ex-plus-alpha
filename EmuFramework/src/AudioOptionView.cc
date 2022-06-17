@@ -50,23 +50,16 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
+				app().pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(app.setSoundVolume(val))
-						{
-							soundVolume.setSelected(std::size(soundVolumeItem) - 1, *this);
-							dismissPrevious();
-							return true;
-						}
-						else
-						{
-							app.postErrorMessage("Value not in range");
-							return false;
-						}
+						app.setSoundVolume(val);
+						soundVolume.setSelected((MenuItem::Id)val, *this);
+						dismissPrevious();
+						return true;
 					});
 				return false;
-			}
+			}, MenuItem::DEFAULT_ID
 		},
 	},
 	soundVolume

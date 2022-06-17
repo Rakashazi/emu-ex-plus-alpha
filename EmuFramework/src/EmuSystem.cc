@@ -170,12 +170,12 @@ FS::PathString EmuSystem::contentSaveDirectory() const
 	return contentSaveDirectory_;
 }
 
-FS::PathString EmuSystem::contentSavePath(std::string_view name)
+FS::PathString EmuSystem::contentSavePath(std::string_view name) const
 {
 	return FS::uriString(contentSaveDirectory(), name);
 }
 
-FS::PathString EmuSystem::contentSaveFilePath(std::string_view ext)
+FS::PathString EmuSystem::contentSaveFilePath(std::string_view ext) const
 {
 	return FS::uriString(contentSaveDirectory(), contentName().append(ext));
 }

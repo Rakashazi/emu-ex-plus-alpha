@@ -116,8 +116,6 @@ public:
 	virtual void fflush() = 0;
 
 	virtual void truncate(s32 length) = 0;
-
-	virtual bool isMemStream() { return false; }
 };
 
 //todo - handle read-only specially?
@@ -261,8 +259,6 @@ public:
 	}
 
 	virtual int size() { return (int)len; }
-
-	bool isMemStream() { return true; }
 };
 
 class EMUFILE_FILE : public EMUFILE {

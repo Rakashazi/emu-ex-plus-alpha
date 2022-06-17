@@ -114,6 +114,7 @@ ifdef hasSCD
  cdrom/l-ec.cpp \
  cdrom/CDUtility.cpp \
  cdrom/CDAccess_Image.cpp \
+ cdrom/CDAccess_CCD.cpp \
  cdrom/CDAccess.cpp \
  hash/crc.cpp \
  string/string.cpp \

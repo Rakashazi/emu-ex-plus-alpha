@@ -7,9 +7,6 @@
 
 #include "Patch.h"
 
-#include <imagine/base/ApplicationContext.hh>
-#include <imagine/io/FileIO.hh>
-
 #if defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/param.h>
 #include "BSD.h"
@@ -148,10 +145,9 @@ static uLong computePatchCRC(FILE* f, unsigned int size)
   return crc;
 }
 
-bool patchApplyIPS(IG::ApplicationContext ctx, const char *patchname, uint8_t **r, int *s)
+bool patchApplyIPS(FILE* f, uint8_t **r, int *s)
 {
   // from the IPS spec at http://zerosoft.zophar.net/ips.htm
-  FILE *f = IG::FileUtils::fopenUri(ctx, patchname, "rb");
   if (!f)
     return false;
 
@@ -209,11 +205,10 @@ bool patchApplyIPS(IG::ApplicationContext ctx, const char *patchname, uint8_t **
   return result;
 }
 
-bool patchApplyUPS(IG::ApplicationContext ctx, const char *patchname, uint8_t **rom, int *size)
+bool patchApplyUPS(FILE* f, uint8_t **rom, int *size)
 {
 	int64_t srcCRC, dstCRC, patchCRC;
 
-  FILE *f = IG::FileUtils::fopenUri(ctx, patchname, "rb");
   if (!f)
     return false;
 
@@ -299,11 +294,10 @@ bool patchApplyUPS(IG::ApplicationContext ctx, const char *patchname, uint8_t **
   return true;
 }
 
-static bool patchApplyBPS(IG::ApplicationContext ctx, const char* patchname, uint8_t** rom, int* size)
+static bool patchApplyBPS(FILE* f, uint8_t** rom, int* size)
 {
     int64_t srcCRC, dstCRC, patchCRC;
 
-    FILE* f = IG::FileUtils::fopenUri(ctx, patchname, "rb");
     if (!f)
         return false;
 
@@ -574,9 +568,8 @@ static bool patchApplyPPF3(FILE* f, uint8_t** rom, int* size)
   return (count == 0);
 }
 
-bool patchApplyPPF(IG::ApplicationContext ctx, const char *patchname, uint8_t** rom, int *size)
+bool patchApplyPPF(FILE* f, uint8_t** rom, int *size)
 {
-  FILE *f = IG::FileUtils::fopenUri(ctx, patchname, "rb");
   if (!f)
     return false;
 
@@ -601,7 +594,8 @@ bool patchApplyPPF(IG::ApplicationContext ctx, const char *patchname, uint8_t** 
 
 #endif
 
-bool applyPatch(IG::ApplicationContext ctx, const char *patchname, uint8_t** rom, int *size)
+#if 0
+bool applyPatch(const char* patchname, uint8_t** rom, int* size)
 {
 #ifndef __LIBRETRO__
   if (strlen(patchname) < 5)
@@ -610,13 +604,14 @@ bool applyPatch(IG::ApplicationContext ctx, const char *patchname, uint8_t** rom
   if (p == NULL)
     return false;
   if (strcasecmp(p, ".ips") == 0)
-    return patchApplyIPS(ctx, patchname, rom, size);
+    return patchApplyIPS(patchname, rom, size);
   if (strcasecmp(p, ".ups") == 0)
-    return patchApplyUPS(ctx, patchname, rom, size);
+    return patchApplyUPS(patchname, rom, size);
   if (strcasecmp(p, ".bps") == 0)
-    return patchApplyBPS(ctx, patchname, rom, size);
+    return patchApplyBPS(patchname, rom, size);
   if (strcasecmp(p, ".ppf") == 0)
-    return patchApplyPPF(ctx, patchname, rom, size);
+    return patchApplyPPF(patchname, rom, size);
 #endif
   return false;
 }
+#endif

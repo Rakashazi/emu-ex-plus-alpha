@@ -103,6 +103,13 @@ inline void writeOptionValue(IO &io, uint16_t key, const std::optional<T> &val)
 	writeOptionValue(io, key, *val);
 }
 
+inline void writeOptionValueIfNotDefault(IO &io, uint16_t key, const auto &val, const auto &defaultVal)
+{
+	if(val == defaultVal)
+		return;
+	writeOptionValue(io, key, val);
+}
+
 inline void writeStringOptionValue(IO &io, uint16_t key, std::string_view view)
 {
 	if(!view.size())

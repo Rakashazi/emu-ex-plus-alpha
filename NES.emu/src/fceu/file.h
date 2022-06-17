@@ -57,11 +57,11 @@ struct FCEUFILE {
 	//guarantees that the file contains a memorystream, and returns it for your convenience
 	EMUFILE_MEMORY* EnsureMemorystream() {
 
-		if(stream->isMemStream())
-			return (EMUFILE_MEMORY*)(stream);
+		EMUFILE_MEMORY* ret = dynamic_cast<EMUFILE_MEMORY*>(stream);
+		if(ret) return ret;
 
 		//nope, we need to create it: copy the contents
-		EMUFILE_MEMORY *ret = new EMUFILE_MEMORY(size);
+		ret = new EMUFILE_MEMORY(size);
 		stream->fread(ret->buf(),size);
 		delete stream;
 		stream = ret;

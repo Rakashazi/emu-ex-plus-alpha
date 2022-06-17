@@ -60,7 +60,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 						int scaledIntVal = val * 1000.0;
 						if(app.setFontSize(scaledIntVal))
 						{
-							fontSize.setSelected(std::size(fontSizeItem) - 1, *this);
+							fontSize.setSelected((MenuItem::Id)scaledIntVal, *this);
 							dismissPrevious();
 							return true;
 						}
@@ -71,7 +71,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 						}
 					});
 				return false;
-			}
+			}, MenuItem::DEFAULT_ID
 		},
 	},
 	fontSize

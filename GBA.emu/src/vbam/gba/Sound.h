@@ -21,8 +21,8 @@ bool soundInit();
 void soundSetThrottle(unsigned short throttle);
 
 // Manages sound volume, where 1.0 is normal
-void soundSetVolume(float);
-float soundGetVolume();
+void soundSetVolume(GBASys &, float vol, bool gbVol);
+float soundGetVolume(GBASys &, bool gbVol);
 
 // Manages muting bitmask. The bits control the following channels:
 // 0x001 Pulse 1
@@ -31,8 +31,8 @@ float soundGetVolume();
 // 0x008 Noise
 // 0x100 PCM 1
 // 0x200 PCM 2
-void soundSetEnable(int mask);
-int  soundGetEnable();
+void soundSetEnable(GBASys &, int mask);
+int  soundGetEnable(GBASys &);
 
 // Pauses/resumes system sound output
 void soundPause();
@@ -47,10 +47,10 @@ void soundShutdown();
 long soundGetSampleRate();
 void soundSetSampleRate(GBASys &gba, long sampleRate);
 
-// Sound settings
-extern bool &soundInterpolation; // 1 if PCM should have low-pass filtering
-extern float &soundFiltering;    // 0.0 = none, 1.0 = max
-
+void soundSetFiltering(GBASys &, float level);
+float soundGetFiltering(GBASys &);
+void soundSetInterpolation(GBASys &, bool on);
+bool soundGetInterpolation(GBASys &);
 
 //// GBA sound emulation
 
