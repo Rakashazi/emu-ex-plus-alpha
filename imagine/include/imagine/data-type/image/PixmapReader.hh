@@ -26,11 +26,10 @@
 #endif
 
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/pixmap/Pixmap.hh>
 
 namespace IG
 {
-class Pixmap;
-class ApplicationContext;
 class GenericIO;
 }
 
@@ -43,8 +42,8 @@ class PixmapImage: public PixmapImageImpl
 {
 public:
 	using PixmapImageImpl::PixmapImageImpl;
-	void write(IG::Pixmap dest);
-	IG::Pixmap pixmapView();
+	void write(MutablePixmapView dest);
+	PixmapView pixmapView();
 	explicit operator bool() const;
 	operator PixmapSource();
 };

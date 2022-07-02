@@ -31,21 +31,21 @@ namespace EmuEx
 
 void TurboInput::update(EmuApp &app)
 {
-	static const unsigned turboFrames = 4;
+	static const int turboFrames = 4;
 
 	for(auto e : activeAction)
 	{
-		if(e.action)
+		if(e)
 		{
 			if(clock == 0)
 			{
 				//logMsg("turbo push for player %d, action %d", e.player, e.action);
-				app.system().handleInputAction(&app, {e.action, Input::Action::PUSHED});
+				app.system().handleInputAction(&app, {e, Input::Action::PUSHED});
 			}
 			else if(clock == turboFrames/2)
 			{
 				//logMsg("turbo release for player %d, action %d", e.player, e.action);
-				app.system().handleInputAction(&app, {e.action, Input::Action::RELEASED});
+				app.system().handleInputAction(&app, {e, Input::Action::RELEASED});
 			}
 		}
 	}
@@ -133,78 +133,62 @@ const KeyConfig &KeyConfig::defaultConfigForDevice(const Input::Device &dev)
 		default: return defaultConfigsForDevice(dev)[0];
 		case Input::Map::SYSTEM:
 		{
-			#if defined __ANDROID__ || defined CONFIG_BASE_X11
-			unsigned confs = 0;
-			auto conf = defaultConfigsForDevice(dev, confs);
-			iterateTimes(confs, i)
+			if constexpr(Config::envIsAndroid || Config::envIsLinux)
 			{
-				// Look for the first config to match the device subtype
-				if(dev.subtype() == conf[i].devSubtype)
+				for(const auto &c : defaultConfigsForDevice(dev))
 				{
-					return conf[i];
+					// Look for the first config to match the device subtype
+					if(dev.subtype() == c.devSubtype)
+					{
+						return c;
+					}
 				}
 			}
-			#endif
 			return defaultConfigsForDevice(dev)[0];
 		}
 	}
 }
 
-const KeyConfig *KeyConfig::defaultConfigsForInputMap(Input::Map map, unsigned &size)
+std::span<const KeyConfig> KeyConfig::defaultConfigsForInputMap(Input::Map map)
 {
 	switch(map)
 	{
-		default: return nullptr;
+		default: return {};
 		case Input::Map::SYSTEM:
-			size = Controls::defaultKeyProfiles;
-			return Controls::defaultKeyProfile;
+			return {Controls::defaultKeyProfile, Controls::defaultKeyProfiles};
 		#ifdef CONFIG_BLUETOOTH
 		case Input::Map::WIIMOTE:
-			size = Controls::defaultWiimoteProfiles;
-			return Controls::defaultWiimoteProfile;
+			return {Controls::defaultWiimoteProfile, Controls::defaultWiimoteProfiles};
 		case Input::Map::WII_CC:
-			size = Controls::defaultWiiCCProfiles;
-			return Controls::defaultWiiCCProfile;
+			return {Controls::defaultWiiCCProfile, Controls::defaultWiiCCProfiles};
 		case Input::Map::ICONTROLPAD:
-			size = Controls::defaultIControlPadProfiles;
-			return Controls::defaultIControlPadProfile;
+			return {Controls::defaultIControlPadProfile, Controls::defaultIControlPadProfiles};
 		case Input::Map::ZEEMOTE:
-			size = Controls::defaultZeemoteProfiles;
-			return Controls::defaultZeemoteProfile;
+			return {Controls::defaultZeemoteProfile, Controls::defaultZeemoteProfiles};
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
 		case Input::Map::PS3PAD:
-			size = Controls::defaultPS3Profiles;
-			return Controls::defaultPS3Profile;
+			return {Controls::defaultPS3Profile, Controls::defaultPS3Profiles};
 		#endif
 		#ifdef CONFIG_INPUT_ICADE
 		case Input::Map::ICADE:
-			size = Controls::defaultICadeProfiles;
-			return Controls::defaultICadeProfile;
+			return {Controls::defaultICadeProfile, Controls::defaultICadeProfiles};
 		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case Input::Map::APPLE_GAME_CONTROLLER:
-			size = Controls::defaultAppleGCProfiles;
-			return Controls::defaultAppleGCProfile;
+			return {Controls::defaultAppleGCProfile, Controls::defaultAppleGCProfiles};
 		#endif
 	}
 }
 
-const KeyConfig *KeyConfig::defaultConfigsForDevice(const Input::Device &dev, unsigned &size)
+std::span<const KeyConfig> KeyConfig::defaultConfigsForDevice(const Input::Device &dev)
 {
-	auto conf = defaultConfigsForInputMap(dev.map(), size);
-	if(!conf)
+	auto conf = defaultConfigsForInputMap(dev.map());
+	if(!conf.data())
 	{
 		bug_unreachable("device map:%d missing default configs", (int)dev.map());
-		return nullptr;
 	}
 	return conf;
-}
-
-const KeyConfig *KeyConfig::defaultConfigsForDevice(const Input::Device &dev)
-{
-	unsigned size;
-	return defaultConfigsForDevice(dev, size);
 }
 
 // InputDeviceConfig
@@ -413,7 +397,7 @@ void InputDeviceConfig::buildKeyMap()
 namespace Controls
 {
 
-void generic2PlayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned startCategory)
+void generic2PlayerTranspose(KeyConfig::KeyArray &key, int player, int startCategory)
 {
 	if(player == 0)
 	{
@@ -428,11 +412,11 @@ void generic2PlayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned
 	}
 }
 
-void genericMultiplayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned startCategory)
+void genericMultiplayerTranspose(KeyConfig::KeyArray &key, int player, int startCategory)
 {
 	iterateTimes(EmuSystem::maxPlayers, i)
 	{
-		if(player && (unsigned)i == player)
+		if(player && i == player)
 		{
 			//logMsg("moving to player %d map", i);
 			std::copy_n(&key[category[startCategory].configOffset], category[startCategory].keys, &key[category[i+startCategory].configOffset]);
@@ -461,7 +445,7 @@ void EmuApp::applyEnabledFaceButtons(std::span<const std::pair<int, bool>> apply
 		if(!vController.hasWindow())
 			return;
 		vController.place();
-		system().clearInputBuffers(emuViewController->inputView());
+		system().clearInputBuffers(viewController().inputView());
 	}
 }
 
@@ -478,7 +462,7 @@ void EmuApp::applyEnabledCenterButtons(std::span<const std::pair<int, bool>> app
 		if(!vController.hasWindow())
 			return;
 		vController.place();
-		system().clearInputBuffers(emuViewController->inputView());
+		system().clearInputBuffers(viewController().inputView());
 	}
 }
 
@@ -502,7 +486,7 @@ void TurboInput::addEvent(unsigned action)
 	Action *slot = IG::find_if(activeAction, [](Action a){ return a == 0; });
 	if(slot != activeAction.end())
 	{
-		slot->action = action;
+		*slot = action;
 		logMsg("added turbo event action %d", action);
 	}
 }
@@ -511,9 +495,9 @@ void TurboInput::removeEvent(unsigned action)
 {
 	for(auto &e : activeAction)
 	{
-		if(e.action == action)
+		if(e == action)
 		{
-			e.action = 0;
+			e = 0;
 			logMsg("removed turbo event action %d", action);
 		}
 	}

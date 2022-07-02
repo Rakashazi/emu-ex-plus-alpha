@@ -37,11 +37,11 @@ float orientationRadians(Orientation o)
 {
 	switch(o)
 	{
-		case VIEW_ROTATE_0: return Gfx::angleFromDegree(0.);
-		case VIEW_ROTATE_90: return Gfx::angleFromDegree(-90.);
-		case VIEW_ROTATE_180: return Gfx::angleFromDegree(-180.);
-		case VIEW_ROTATE_270: return Gfx::angleFromDegree(90.);
-		default: bug_unreachable("o == %d", o); return 0.;
+		case VIEW_ROTATE_0: return radians(0.);
+		case VIEW_ROTATE_90: return radians(-90.);
+		case VIEW_ROTATE_180: return radians(-180.);
+		case VIEW_ROTATE_270: return radians(90.);
+		default: bug_unreachable("o == %d", o);
 	}
 }
 

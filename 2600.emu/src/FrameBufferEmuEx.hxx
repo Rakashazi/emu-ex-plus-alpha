@@ -8,17 +8,12 @@
 #include <stella/emucore/EventHandlerConstants.hxx>
 #include <stella/common/PaletteHandler.hxx>
 #include <stella/common/VideoModeHandler.hxx>
-#include <imagine/pixmap/PixelFormat.hh>
+#include <imagine/pixmap/Pixmap.hh>
 #include <array>
 
 class Console;
 class OSystem;
 class TIA;
-
-namespace IG
-{
-class Pixmap;
-}
 
 namespace EmuEx
 {
@@ -56,7 +51,7 @@ public:
 
 	FrameBuffer(OSystem& osystem);
 
-	void render(IG::Pixmap pix, TIA &tia);
+	void render(IG::MutablePixmapView pix, TIA &tia);
 
 	FrameBuffer &tiaSurface() { return *this; }
 
@@ -116,5 +111,5 @@ private:
 
 	std::array<uInt8, 3> getRGBPhosphorTriple(uInt32 c, uInt32 p) const;
 	template <int outputBits>
-	void renderOutput(IG::Pixmap pix, TIA &tia);
+	void renderOutput(IG::MutablePixmapView pix, TIA &tia);
 };

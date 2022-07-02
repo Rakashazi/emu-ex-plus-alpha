@@ -25,6 +25,7 @@
 #include <imagine/util/string/StaticString.hh>
 #include <string>
 #include <memory>
+#include <span>
 
 namespace IG::Input
 {
@@ -87,10 +88,9 @@ struct KeyConfig
 		return key_;
 	}
 
-	static const KeyConfig *defaultConfigsForInputMap(Input::Map map, unsigned &size);
+	static std::span<const KeyConfig> defaultConfigsForInputMap(Input::Map map);
 	static const KeyConfig &defaultConfigForDevice(const Input::Device &dev);
-	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev, unsigned &size);
-	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev);
+	static std::span<const KeyConfig> defaultConfigsForDevice(const Input::Device &dev);
 };
 
 struct InputDeviceSavedConfig
@@ -155,7 +155,7 @@ extern const unsigned defaultPS3Profiles;
 void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player);
 
 // common transpose behavior
-void generic2PlayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned startCategory);
-void genericMultiplayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned startCategory);
+void generic2PlayerTranspose(KeyConfig::KeyArray &key, int player, int startCategory);
+void genericMultiplayerTranspose(KeyConfig::KeyArray &key, int player, int startCategory);
 
 }

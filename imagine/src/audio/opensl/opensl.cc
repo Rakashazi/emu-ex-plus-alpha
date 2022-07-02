@@ -82,7 +82,7 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 	SLDataFormat_PCM slFormat
 	{
 		SL_DATAFORMAT_PCM, (SLuint32)format.channels, (SLuint32)format.rate * 1000, // as milliHz
-		format.sample.bits(), format.sample.bits(),
+		(SLuint32)format.sample.bits(), (SLuint32)format.sample.bits(),
 		format.channels == 1 ? SL_SPEAKER_FRONT_CENTER : SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
 		SL_BYTEORDER_LITTLEENDIAN
 	};

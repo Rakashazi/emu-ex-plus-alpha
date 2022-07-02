@@ -52,8 +52,8 @@ void VControllerKeyboard::place(float btnSize, float yOffset, Gfx::ProjectionPla
 	boundGC.setPos({0., projP.bounds().y + yOffset}, CB2DO);
 	spr.setPos(boundGC);
 	bound = projP.projectRect(boundGC);
-	keyXSize = std::max(bound.xSize() / VKEY_COLS, 1u);
-	keyYSize = std::max(bound.ySize() / KEY_ROWS, 1u);
+	keyXSize = std::max(bound.xSize() / VKEY_COLS, 1);
+	keyYSize = std::max(bound.ySize() / KEY_ROWS, 1);
 	logMsg("key size %dx%d", keyXSize, keyYSize);
 }
 
@@ -94,14 +94,14 @@ int VControllerKeyboard::getInput(IG::WP c) const
 	if(!bound.overlaps(c))
 		return -1;
 	int relX = c.x - bound.x, relY = c.y - bound.y;
-	unsigned row = std::min(relY/keyYSize, 3u);
-	unsigned col = std::min(relX/keyXSize, 19u);
-	unsigned idx = col + (row * VKEY_COLS);
+	int row = std::min(relY/keyYSize, 3);
+	int col = std::min(relX/keyXSize, 19);
+	int idx = col + (row * VKEY_COLS);
 	//logMsg("pointer %d,%d key @ %d,%d, idx %d", relX, relY, row, col, idx);
 	return idx;
 }
 
-unsigned VControllerKeyboard::translateInput(unsigned idx) const
+unsigned VControllerKeyboard::translateInput(int idx) const
 {
 	assumeExpr(idx < VKEY_COLS * KEY_ROWS);
 	return table[0][idx];

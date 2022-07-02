@@ -52,10 +52,10 @@ public:
 
 	NeoSystem(ApplicationContext ctx);
 	void setTimerIntOption();
-	Pixmap videoPixmap()
+	PixmapView videoPixmap()
 	{
 		// start image on y 16, x 24, size 304x224, 48 pixel padding on the right
-		return {{{304, 224}, pixFmt}, screenBuff + (16*FBResX) + (24), {FBResX, IG::Pixmap::Units::PIXEL}};
+		return {{{304, 224}, pixFmt}, screenBuff + (16*FBResX) + (24), {FBResX, IG::PixmapView::Units::PIXEL}};
 	}
 
 	// required API functions

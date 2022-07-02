@@ -93,7 +93,7 @@ static const char *glDataTypeToString(int format)
 		case GL_UNSIGNED_SHORT_5_6_5: return "S565";
 		case GL_UNSIGNED_SHORT_5_5_5_1: return "S5551";
 		case GL_UNSIGNED_SHORT_4_4_4_4: return "S4444";
-		default: bug_unreachable("fortmat == %d", format); return NULL;
+		default: bug_unreachable("fortmat == %d", format);
 	}
 }
 
@@ -133,7 +133,7 @@ static const char *glImageFormatToString(int format)
 		case GL_LUMINANCE_ALPHA: return "LUMINANCE_ALPHA";
 		#endif
 		case GL_ALPHA: return "ALPHA";
-		default: bug_unreachable("format == %d", format); return NULL;
+		default: bug_unreachable("format == %d", format);
 	}
 }
 

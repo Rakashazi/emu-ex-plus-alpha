@@ -18,8 +18,8 @@
 namespace EmuEx::Controls
 {
 
-static constexpr unsigned gameActionKeys = 10;
-static constexpr unsigned systemKeyMapStart = gameActionKeys;
+static constexpr int gameActionKeys = 10;
+static constexpr int systemKeyMapStart = gameActionKeys;
 typedef unsigned GameActionKeyArray[gameActionKeys];
 
 static const char *gameActionName[gameActionKeys] =

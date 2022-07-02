@@ -17,6 +17,7 @@
 
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/Program.hh>
+#include <imagine/util/enum.hh>
 #include <optional>
 
 namespace EmuEx
@@ -24,15 +25,11 @@ namespace EmuEx
 
 using namespace IG;
 
-enum class ImageEffectId : uint8_t
-{
-	DIRECT = 0,
-	HQ2X = 1,
-	SCALE2X = 2,
-	PRESCALE2X = 3,
-};
-
-static constexpr int lastImageEffectIdValue = (int)ImageEffectId::PRESCALE2X;
+WISE_ENUM_CLASS((ImageEffectId, uint8_t),
+	(DIRECT, 0),
+	(HQ2X, 1),
+	(SCALE2X, 2),
+	(PRESCALE2X, 3));
 
 class VideoImageEffect
 {

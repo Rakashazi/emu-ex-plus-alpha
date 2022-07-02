@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/Error.hh>
+#include <imagine/base/Viewport.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
@@ -36,10 +37,9 @@ class RendererCommands;
 class SyncFence;
 class Texture;
 
-using GP = FP;
 using GCRect = IG::CoordinateRect<float, true, true>;
 
-static GCRect makeGCRectRel(GP p, GP size)
+static GCRect makeGCRectRel(FP p, FP size)
 {
 	return GCRect::makeRel(p, size);
 }
@@ -194,6 +194,12 @@ static constexpr Color color(ColorName c)
 		case ColorName::BLACK: return color(0.f, 0.f, 0.f);
 		default: return color(0.f, 0.f, 0.f, 0.f);
 	}
+}
+
+// converts to a relative rectangle in OpenGL coordinate system
+constexpr Rect2<int> asYUpRelRect(Viewport v)
+{
+	return {{v.realBounds().x, v.originBounds().ySize() - v.realBounds().y2}, {v.realWidth(), v.realHeight()}};
 }
 
 }

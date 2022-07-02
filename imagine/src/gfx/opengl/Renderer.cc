@@ -20,6 +20,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Viewport.hh>
 #include "internalDefs.hh"
 
 namespace IG::Gfx
@@ -128,13 +129,13 @@ bool GLRenderer::attachWindow(Window &win, GLBufferConfig bufferConfig, GLColorS
 				{
 					const float orientationDiffTable[4][4]
 					{
-						{0, angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90)},
-						{angleFromDegree(-90), 0, angleFromDegree(90), angleFromDegree(-180)},
-						{angleFromDegree(-180), angleFromDegree(-90), 0, angleFromDegree(90)},
-						{angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90), 0},
+						{0, radians(90.), radians(-180.), radians(-90.)},
+						{radians(-90.), 0, radians(90.), radians(-180.)},
+						{radians(-180.), radians(-90.), 0, radians(90.)},
+						{radians(90.), radians(-180.), radians(-90.), 0},
 					};
 					auto rotAngle = orientationDiffTable[oldO][newO];
-					logMsg("animating from %d degrees", (int)angleToDegree(rotAngle));
+					logMsg("animating from %d degrees", (int)degrees(rotAngle));
 					static_cast<Renderer*>(this)->animateProjectionMatrixRotation(win, rotAngle, 0.);
 				});
 		}
@@ -208,6 +209,11 @@ bool Renderer::setDrawableConfig(Window &win, DrawableConfig config)
 	}
 	win.setFormat(config.pixelFormat);
 	return makeWindowDrawable(mainTask, win, *bufferConfig, (GLColorSpace)config.colorSpace);
+}
+
+void Renderer::setDefaultViewport(Window &win, Viewport v)
+{
+	winData(win).viewportRect = asYUpRelRect(v);
 }
 
 bool Renderer::canRenderToMultiplePixelFormats() const

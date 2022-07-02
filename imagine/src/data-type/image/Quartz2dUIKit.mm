@@ -23,7 +23,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 namespace IG::Data
 {
 
-bool PixmapWriter::writeToFile(IG::Pixmap srcPix, const char *path) const
+bool PixmapWriter::writeToFile(PixmapView srcPix, const char *path) const
 {
 	IG::MemPixmap tempMemPix{{srcPix.size(), IG::PIXEL_FMT_RGB888}};
 	auto pix = tempMemPix.view();

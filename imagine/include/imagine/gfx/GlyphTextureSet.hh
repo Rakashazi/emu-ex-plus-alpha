@@ -35,8 +35,8 @@ static constexpr auto glyphCommonTextureSampler = CommonTextureSampler::NO_MIP_C
 
 struct GlyphEntry
 {
-	Gfx::PixmapTexture glyph_{};
-	IG::GlyphMetrics metrics{};
+	PixmapTexture glyph_{};
+	GlyphMetrics metrics{};
 
 	constexpr const Gfx::PixmapTexture &glyph() const { return glyph_; }
 };
@@ -47,9 +47,9 @@ public:
 	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
 
 	constexpr GlyphTextureSet() = default;
-	GlyphTextureSet(Renderer &, IG::Font, IG::FontSettings);
-	IG::FontSettings fontSettings() const;
-	bool setFontSettings(Renderer &r, IG::FontSettings set);
+	GlyphTextureSet(Renderer &, Font, FontSettings settings = {});
+	FontSettings fontSettings() const;
+	bool setFontSettings(Renderer &r, FontSettings set);
 	int precache(Renderer &r, std::string_view string);
 	int precacheAlphaNum(Renderer &r)
 	{
@@ -61,10 +61,10 @@ public:
 	void freeCaches() { freeCaches(~0); }
 
 private:
-	IG::Font font{};
-	IG::VMemArray<GlyphEntry> glyphTable{};
-	IG::FontSettings settings{};
-	IG::FontSize faceSize{};
+	Font font{};
+	VMemArray<GlyphEntry> glyphTable{};
+	FontSettings settings{};
+	FontSize faceSize{};
 	int nominalHeight_ = 0;
 	uint32_t usedGlyphTableBits = 0;
 

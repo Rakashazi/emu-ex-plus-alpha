@@ -17,6 +17,7 @@
 
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/Texture.hh>
+#include <imagine/util/enum.hh>
 
 namespace IG::Gfx
 {
@@ -28,30 +29,27 @@ namespace EmuEx
 
 using namespace IG;
 
+WISE_ENUM_CLASS((ImageOverlayId, uint8_t),
+	(SCANLINES, 1),
+	(SCANLINES_2, 2),
+	(CRT, 10),
+	(CRT_RGB, 20),
+	(CRT_RGB_2, 21));
+
 class VideoImageOverlay
 {
 public:
-	enum
-	{
-		NO_EFFECT = 0,
-		SCANLINES = 1, SCANLINES_2 = 2,
-		CRT = 10,
-		CRT_RGB = 20, CRT_RGB_2,
-
-		MAX_EFFECT_VAL = CRT_RGB_2
-	};
-
-	constexpr	VideoImageOverlay() {}
-	void setEffect(Gfx::Renderer &r, unsigned effect);
+	constexpr	VideoImageOverlay() = default;
+	void setEffect(Gfx::Renderer &, ImageOverlayId);
 	void setIntensity(float intensity);
-	void place(const Gfx::Sprite &disp, unsigned lines);
+	void place(const Gfx::Sprite &disp, int lines);
 	void draw(Gfx::RendererCommands &cmds);
 
 private:
 	Gfx::Texture img{};
 	Gfx::Sprite spr{};
 	float intensity = 0.25;
-	unsigned effect = NO_EFFECT;
+	ImageOverlayId overlayId{};
 };
 
 }

@@ -25,9 +25,9 @@ namespace EmuEx
 
 struct AudioStats
 {
-	constexpr AudioStats() {}
-	unsigned underruns = 0;
-	unsigned overruns = 0;
+	constexpr AudioStats() = default;
+	int underruns{};
+	int overruns{};
 	std::atomic_uint callbacks{};
 	std::atomic_uint callbackBytes{};
 
@@ -90,24 +90,24 @@ bool EmuAudio::shouldStartAudioWrites(size_t bytesToWrite) const
 }
 
 template<typename T>
-static void simpleResample(T * __restrict__ dest, unsigned destFrames, const T * __restrict__ src, unsigned srcFrames)
+static void simpleResample(T * __restrict__ dest, size_t destFrames, const T * __restrict__ src, size_t srcFrames)
 {
 	if(!destFrames)
 		return;
 	float ratio = (float)srcFrames/(float)destFrames;
 	iterateTimes(destFrames, i)
 	{
-		unsigned srcPos = round(i * ratio);
+		size_t srcPos = round(i * ratio);
 		if(srcPos > srcFrames) [[unlikely]]
 		{
-			logMsg("resample pos %u too high", srcPos);
+			logMsg("resample pos %zu too high", srcPos);
 			srcPos = srcFrames-1;
 		}
 		dest[i] = src[srcPos];
 	}
 }
 
-static void simpleResample(void *dest, unsigned destFrames, const void *src, unsigned srcFrames, IG::Audio::Format format)
+static void simpleResample(void *dest, size_t destFrames, const void *src, size_t srcFrames, IG::Audio::Format format)
 {
 	if(format.channels == 1)
 	{

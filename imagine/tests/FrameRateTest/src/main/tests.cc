@@ -294,7 +294,7 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &scr
 	DrawTest::frameUpdateTest(rendererTask, screen, frameTime);
 	rendererTask.clientWaitSync(std::exchange(presentFence, {}));
 	auto lockedBuff = texture.lock();
-	IG::Pixmap pix = lockedBuff.pixmap();
+	auto pix = lockedBuff.pixmap();
 	if(flash)
 	{
 		uint16_t writeColor;

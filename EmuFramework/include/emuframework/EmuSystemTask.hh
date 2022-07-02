@@ -45,7 +45,7 @@ public:
 			{
 				EmuVideo *video;
 				EmuAudio *audio;
-				uint8_t frames;
+				int8_t frames;
 				bool skipForward;
 			} run;
 		} args{};
@@ -54,7 +54,7 @@ public:
 		constexpr CommandMessage() {}
 		constexpr CommandMessage(Command command, std::binary_semaphore *semPtr = nullptr):
 			semPtr{semPtr}, command{command} {}
-		constexpr CommandMessage(Command command, EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward = false):
+		constexpr CommandMessage(Command command, EmuVideo *video, EmuAudio *audio, int8_t frames, bool skipForward = false):
 			args{video, audio, frames, skipForward}, command{command} {}
 		explicit operator bool() const { return command != Command::UNSET; }
 		void setReplySemaphore(std::binary_semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
@@ -64,7 +64,7 @@ public:
 	void start();
 	void pause();
 	void stop();
-	void runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward, bool runSync);
+	void runFrame(EmuVideo *video, EmuAudio *audio, int8_t frames, bool skipForward, bool runSync);
 	void sendVideoFormatChangedReply(EmuVideo &video, std::binary_semaphore *frameFinishedSemPtr);
 	void sendFrameFinishedReply(EmuVideo &video, std::binary_semaphore *frameFinishedSemPtr);
 	void sendScreenshotReply(int num, bool success);

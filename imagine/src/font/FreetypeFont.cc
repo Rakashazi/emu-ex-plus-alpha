@@ -545,13 +545,13 @@ void FreetypeGlyphImage::deinit()
 	}
 }
 
-IG::Pixmap IG::GlyphImage::pixmap()
+PixmapView IG::GlyphImage::pixmap()
 {
 	return
 		{
 			{{(int)bitmap.width, (int)bitmap.rows}, IG::PIXEL_FMT_A8},
 			bitmap.buffer,
-			{bitmap.pitch, IG::Pixmap::Units::BYTE}
+			{bitmap.pitch, PixmapView::Units::BYTE}
 		};
 }
 

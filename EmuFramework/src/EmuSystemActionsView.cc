@@ -44,7 +44,7 @@ public:
 				[this, &sys]()
 				{
 					sys.reset(app(), EmuSystem::ResetMode::SOFT);
-					app().viewController().showEmulation();
+					app().showEmulation();
 				}
 			},
 			TextMenuItem
@@ -53,7 +53,7 @@ public:
 				[this, &sys]()
 				{
 					sys.reset(app(), EmuSystem::ResetMode::HARD);
-					app().viewController().showEmulation();
+					app().showEmulation();
 				}
 			},
 			TextMenuItem{"Cancel", &defaultFace(), [](){}}
@@ -80,9 +80,7 @@ void EmuSystemActionsView::onShow()
 	loadState.setActive(system().hasContent() && system().stateExists(system().stateSlot()));
 	stateSlot.compile(makeStateSlotStr(system(), system().stateSlot()), renderer(), projP);
 	screenshot.setActive(system().hasContent());
-	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
-	addLauncherIcon.setActive(system().hasContent());
-	#endif
+	doIfUsed(addLauncherIcon, [&](auto &mItem){ mItem.setActive(system().hasContent()); });
 	resetSessionOptions.setActive(app().hasSavedSessionOptions());
 	close.setActive(system().hasContent());
 }
@@ -98,9 +96,8 @@ void EmuSystemActionsView::loadStandardItems()
 	item.emplace_back(&saveState);
 	stateSlot.setName(makeStateSlotStr(system(), system().stateSlot()));
 	item.emplace_back(&stateSlot);
-	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
-	item.emplace_back(&addLauncherIcon);
-	#endif
+	if(used(addLauncherIcon))
+		item.emplace_back(&addLauncherIcon);
 	item.emplace_back(&screenshot);
 	item.emplace_back(&resetSessionOptions);
 	item.emplace_back(&close);
@@ -137,7 +134,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 						[this]()
 						{
 							system().reset(app(), EmuSystem::ResetMode::SOFT);
-							app().viewController().showEmulation();
+							app().showEmulation();
 						});
 					pushAndShowModal(std::move(ynAlertView), e);
 				}
@@ -156,7 +153,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 					[this]()
 					{
 						if(app().loadStateWithSlot(system().stateSlot()))
-							app().viewController().showEmulation();
+							app().showEmulation();
 					});
 				pushAndShowModal(std::move(ynAlertView), e);
 			}
@@ -173,7 +170,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 					[](EmuApp &app)
 					{
 						if(app.saveStateWithSlot(app.system().stateSlot()))
-							app.viewController().showEmulation();
+							app.showEmulation();
 					};
 				if(app().shouldOverwriteExistingState())
 				{
@@ -200,7 +197,6 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			pushAndShow(makeView<StateSlotView>(), e);
 		}
 	},
-	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	addLauncherIcon
 	{
 		"Add Game Shortcut to Launcher", &defaultFace(),
@@ -227,7 +223,6 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			}
 		}
 	},
-	#endif
 	screenshot
 	{
 		"Screenshot Next Frame", &defaultFace(),
@@ -278,7 +273,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			ynAlertView->setOnYes(
 				[this]()
 				{
-					app().viewController().closeSystem(true); // pops any System Actions views in stack
+					app().closeSystem(true); // pops any System Actions views in stack
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
 		}

@@ -37,7 +37,6 @@ static const SampleFormat &alsaFormatToPcm(snd_pcm_format_t format)
 		case SND_PCM_FORMAT_U8: return SampleFormats::i8;
 		default:
 			bug_unreachable("format == %d", format);
-			return SampleFormats::none;
 	}
 }
 
@@ -50,7 +49,6 @@ static snd_pcm_format_t pcmFormatToAlsa(const SampleFormat &format)
 		case 1 : return SND_PCM_FORMAT_U8;
 		default:
 			bug_unreachable("bytes == %d", format.bytes());
-			return (snd_pcm_format_t)0;
 	}
 }
 

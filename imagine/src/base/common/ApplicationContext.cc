@@ -423,6 +423,11 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 
 [[gnu::weak]] bool ApplicationContext::packageIsInstalled(IG::CStringView name) const { return false; }
 
+[[gnu::weak]] int32_t ApplicationContext::androidSDK() const
+{
+	bug_unreachable("Invalid platform-specific function");
+}
+
 OnExit::OnExit(ResumeDelegate del, ApplicationContext ctx, int priority): del{del}, ctx{ctx}
 {
 	ctx.addOnExit(del, priority);

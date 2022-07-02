@@ -105,7 +105,7 @@ EmuVideoImage EmuVideo::startFrame(EmuSystemTaskContext taskCtx)
 	return {taskCtx, *this, lockedTex};
 }
 
-void EmuVideo::startFrame(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
+void EmuVideo::startFrame(EmuSystemTaskContext taskCtx, IG::PixmapView pix)
 {
 	finishFrame(taskCtx, pix);
 }
@@ -116,13 +116,13 @@ EmuVideoImage EmuVideo::startFrameWithFormat(EmuSystemTaskContext taskCtx, IG::P
 	return startFrame(taskCtx);
 }
 
-void EmuVideo::startFrameWithFormat(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
+void EmuVideo::startFrameWithFormat(EmuSystemTaskContext taskCtx, IG::PixmapView pix)
 {
-	setFormat(pix, taskCtx);
+	setFormat(pix.desc(), taskCtx);
 	startFrame(taskCtx, pix);
 }
 
-void EmuVideo::startFrameWithAltFormat(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
+void EmuVideo::startFrameWithAltFormat(EmuSystemTaskContext taskCtx, IG::PixmapView pix)
 {
 	auto destFmt = renderPixelFormat();
 	assumeExpr(isValidRenderFormat(pix.format()));
@@ -169,7 +169,7 @@ void EmuVideo::finishFrame(EmuSystemTaskContext taskCtx, Gfx::LockedTextureBuffe
 	postFrameFinished(taskCtx);
 }
 
-void EmuVideo::finishFrame(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
+void EmuVideo::finishFrame(EmuSystemTaskContext taskCtx, IG::PixmapView pix)
 {
 	if(screenshotNextFrame) [[unlikely]]
 	{
@@ -200,7 +200,7 @@ void EmuVideo::takeGameScreenshot()
 	screenshotNextFrame = true;
 }
 
-void EmuVideo::doScreenshot(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
+void EmuVideo::doScreenshot(EmuSystemTaskContext taskCtx, IG::PixmapView pix)
 {
 	screenshotNextFrame = false;
 	auto [screenshotNum, path] = app().makeNextScreenshotFilename();
@@ -231,11 +231,10 @@ void EmuVideo::doScreenshot(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
 
 bool EmuVideo::isExternalTexture() const
 {
-	#ifdef __ANDROID__
-	return vidImg.isExternal();
-	#else
-	return false;
-	#endif
+	if constexpr(Config::envIsAndroid)
+		return vidImg.isExternal();
+	else
+		return false;
 }
 
 Gfx::PixmapBufferTexture &EmuVideo::image()
@@ -256,7 +255,7 @@ IG::ApplicationContext EmuVideo::appContext() const
 EmuVideoImage::EmuVideoImage(EmuSystemTaskContext taskCtx, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff):
 	taskCtx{taskCtx}, emuVideo{&vid}, texBuff{texBuff} {}
 
-IG::Pixmap EmuVideoImage::pixmap() const
+IG::MutablePixmapView EmuVideoImage::pixmap() const
 {
 	return texBuff.pixmap();
 }

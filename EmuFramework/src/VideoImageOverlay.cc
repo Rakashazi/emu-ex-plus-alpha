@@ -24,22 +24,11 @@ namespace EmuEx
 {
 
 #define CONV_COL(x) 0, x
-alignas(2) static uint8_t scanlinePixmapBuff[] = { CONV_COL(0x00), CONV_COL(0xff) };
-alignas(8) static uint8_t diagonalPixmapBuff[] =
-{
-		CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00),
-		CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00),
-		CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00),
-		CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff),
-		CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00),
-		CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00),
-		CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00),
-		CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff),
-};
+alignas(2) constexpr uint8_t scanlinePixmapBuff[]{ CONV_COL(0x00), CONV_COL(0xff) };
 #undef CONV_COL
 
 #define CONV_COL(x) 31, x
-alignas(8) static uint8_t crtPixmapBuff[] =
+alignas(8) constexpr uint8_t crtPixmapBuff[]
 {
 		CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00),
 		CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff),
@@ -52,37 +41,39 @@ alignas(8) static uint8_t crtPixmapBuff[] =
 };
 #undef CONV_COL
 
-//#define CONV_COL(r,g,b) ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
-#define CONV_COL(r,g,b) unsigned((r << 24) | (g << 16) | (b << 8) | 127)
-alignas(8) static uint32_t crtRgbPixmapBuff[] =
+#define CONV_COL(r,g,b) IG::PIXEL_DESC_RGBA8888_NATIVE.build(r, g, b, 0xff)
+alignas(8) constexpr uint32_t crtRgbPixmapBuff[]
 {
 		CONV_COL(0xcc,0,0x32), CONV_COL(0xff,0,0), CONV_COL(0xcb,0x33,0), CONV_COL(0x98,0x66,0), CONV_COL(0x65,0x99,0), CONV_COL(0x32,0xcc,0), CONV_COL(0,0xff,0), CONV_COL(0,0xcb,0x33), CONV_COL(0,0x98,0x66), CONV_COL(0,0x65,0x99), CONV_COL(0,0x32,0xcc), CONV_COL(0,0,0xff), CONV_COL(0x33,0,0xcb), CONV_COL(0x66,0,0x98), CONV_COL(0x99,0,0x65), CONV_COL(0xcb,0,0x33),
 		CONV_COL(0,0x98,0x66), CONV_COL(0,0x65,0x99), CONV_COL(0,0x32,0xcc), CONV_COL(0,0,0xff), CONV_COL(0x33,0,0xcb), CONV_COL(0x66,0,0x98), CONV_COL(0x99,0,0x65), CONV_COL(0xcb,0,0x33), CONV_COL(0xcc,0,0x32), CONV_COL(0xff,0,0), CONV_COL(0xcb,0x33,0), CONV_COL(0x98,0x66,0), CONV_COL(0x65,0x99,0), CONV_COL(0x32,0xcc,0), CONV_COL(0,0xff,0), CONV_COL(0,0xcb,0x33),
-		/*CONV_COL(0xFF,0,0), CONV_COL(0,0xFF,0), CONV_COL(0,0xFF,0), CONV_COL(0,0xFF,0), CONV_COL(0,0,0xFF), CONV_COL(0,0,0xFF), CONV_COL(0,0,0xFF), CONV_COL(0xFF,0,0),
-		CONV_COL(0,0,0xFF), CONV_COL(0,0,0xFF), CONV_COL(0,0,0xFF), CONV_COL(0xFF,0,0), CONV_COL(0xFF,0,0), CONV_COL(0,0xFF,0), CONV_COL(0,0xFF,0), CONV_COL(0,0xFF,0),*/
 };
 #undef CONV_COL
 
-void VideoImageOverlay::setEffect(Gfx::Renderer &r, unsigned effect_)
+void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id)
 {
-	if(effect == effect_)
+	if(overlayId == id)
 		return;
-	effect = effect_;
-	IG::Pixmap pix;
-	switch(effect_)
+	overlayId = id;
+	auto pix = [&]() -> IG::MutablePixmapView
 	{
-		bcase SCANLINES ... SCANLINES_2:
-			pix = {{{1, 2}, IG::PIXEL_IA88}, scanlinePixmapBuff};
-		bcase CRT:
-			pix = {{{8, 8}, IG::PIXEL_IA88}, crtPixmapBuff};
-		bcase CRT_RGB ... CRT_RGB_2:
-			pix = {{{16, 2}, IG::PIXEL_RGBA8888}, crtRgbPixmapBuff};
-		bdefault: // turn off effect
-			spr = {};
-			img = {};
-			return;
+		switch(id)
+		{
+			case ImageOverlayId::SCANLINES ... ImageOverlayId::SCANLINES_2:
+				return {{{1, 2}, IG::PIXEL_IA88}, scanlinePixmapBuff};
+			case ImageOverlayId::CRT:
+				return {{{8, 8}, IG::PIXEL_IA88}, crtPixmapBuff};
+			case ImageOverlayId::CRT_RGB ... ImageOverlayId::CRT_RGB_2:
+				return {{{16, 2}, IG::PIXEL_RGBA8888}, crtRgbPixmapBuff};
+		}
+		return {};
+	}();
+	if(!pix) // turn off effect
+	{
+		spr = {};
+		img = {};
+		return;
 	}
-	Gfx::TextureConfig texConf{pix, &r.make(Gfx::CommonTextureSampler::NEAREST_MIP_REPEAT)};
+	Gfx::TextureConfig texConf{pix.desc(), &r.make(Gfx::CommonTextureSampler::NEAREST_MIP_REPEAT)};
 	texConf.setWillGenerateMipmaps(true);
 	img = r.makeTexture(texConf);
 	img.write(0, pix, {});
@@ -96,7 +87,7 @@ void VideoImageOverlay::setIntensity(float i)
 	intensity = i;
 }
 
-void VideoImageOverlay::place(const Gfx::Sprite &disp, unsigned lines)
+void VideoImageOverlay::place(const Gfx::Sprite &disp, int lines)
 {
 	if(!spr.image())
 		return;
@@ -104,19 +95,23 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, unsigned lines)
 	//logMsg("placing overlay with %u lines in image", lines);
 	spr.setPos(disp);
 	auto width = lines*(EmuSystem::aspectRatioInfo[0].aspect.x/(float)EmuSystem::aspectRatioInfo[0].aspect.y);
-	switch(effect)
+	spr.setImg([&]() -> TextureSpan
 	{
-		bcase SCANLINES:
-			spr.setImg({&img, {{}, {1.0f, (float)lines}}});
-		bcase SCANLINES_2:
-			spr.setImg({&img, {{}, {1.0f, lines*2.f}}});
-		bcase CRT:
-			spr.setImg({&img, {{}, {width/2.f, lines/2.f}}});
-		bcase CRT_RGB:
-			spr.setImg({&img, {{}, {width/2.f, (float)lines}}});
-		bcase CRT_RGB_2:
-			spr.setImg({&img, {{}, {width/2.f, lines*2.f}}});
-	}
+		switch(overlayId)
+		{
+			case ImageOverlayId::SCANLINES:
+				return {&img, {{}, {1.0f, (float)lines}}};
+			case ImageOverlayId::SCANLINES_2:
+				return {&img, {{}, {1.0f, lines*2.f}}};
+			case ImageOverlayId::CRT:
+				return {&img, {{}, {width/2.f, lines/2.f}}};
+			case ImageOverlayId::CRT_RGB:
+				return {&img, {{}, {width/2.f, (float)lines}}};
+			case ImageOverlayId::CRT_RGB_2:
+				return {&img, {{}, {width/2.f, lines*2.f}}};
+		}
+		bug_unreachable("invalid overlayId:%d", to_underlying(overlayId));
+	}());
 }
 
 void VideoImageOverlay::draw(Gfx::RendererCommands &cmds)

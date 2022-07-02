@@ -28,11 +28,6 @@
 #include <assert.h>
 #include <imagine/util/mayAliasInt.h>
 
-namespace IG
-{
-class Pixmap;
-}
-
 template <unsigned S>
 union RamU
 {
@@ -168,8 +163,5 @@ extern void vdp_test_w(unsigned int data);
 #else
 	extern int vdp_68k_irq_ack(M68KCPU &m68ki_cpu, int int_level);
 #endif
-
-IG::Pixmap framebufferPixmap();
-IG::Pixmap framebufferRenderFormatPixmap();
 
 #endif /* _VDP_H_ */

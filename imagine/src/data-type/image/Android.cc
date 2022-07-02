@@ -77,7 +77,7 @@ PixmapImage PixmapReader::loadAsset(const char *name, const char *) const
 	return makePixmapImage(env, bitmap, jRecycleBitmap);
 }
 
-BitmapFactoryImage::BitmapFactoryImage(JNI::LockedLocalBitmap lockedBitmap, Pixmap pix):
+BitmapFactoryImage::BitmapFactoryImage(JNI::LockedLocalBitmap lockedBitmap, PixmapView pix):
 	lockedBitmap{std::move(lockedBitmap)}, pixmap_{pix} {}
 
 PixmapImage::operator bool() const
@@ -85,13 +85,13 @@ PixmapImage::operator bool() const
 	return (bool)lockedBitmap;
 }
 
-void PixmapImage::write(Pixmap dest)
+void PixmapImage::write(MutablePixmapView dest)
 {
 	assumeExpr(dest.format() == pixmap_.format());
 	dest.write(pixmap_, {});
 }
 
-Pixmap PixmapImage::pixmapView()
+PixmapView PixmapImage::pixmapView()
 {
 	return pixmap_;
 }
@@ -111,7 +111,7 @@ BitmapWriter::BitmapWriter(ApplicationContext ctx):
 	jWritePNG = {env, baseActivityCls, "writePNG", "(Landroid/graphics/Bitmap;Ljava/lang/String;)Z"};
 }
 
-bool PixmapWriter::writeToFile(Pixmap pix, const char *path) const
+bool PixmapWriter::writeToFile(PixmapView pix, const char *path) const
 {
 	auto env = app().thisThreadJniEnv();
 	auto aFormat = pix.format().id() == PIXEL_RGB565 ? ANDROID_BITMAP_FORMAT_RGB_565 : ANDROID_BITMAP_FORMAT_RGBA_8888;

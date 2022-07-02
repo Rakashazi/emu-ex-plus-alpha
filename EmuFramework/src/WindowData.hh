@@ -16,23 +16,52 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/Projection.hh>
+#include <emuframework/EmuViewController.hh>
 
 namespace EmuEx
 {
+
+class EmuView;
+class ToastView;
 
 struct WindowData
 {
 	Gfx::Projection projection{};
 	IG::WindowRect contentRect{};
-	bool hasEmuView{};
-	bool hasPopup{};
+	bool hasEmuView{true};
+	bool hasPopup{true};
 	bool focused{};
 
-	Gfx::Viewport viewport() const { return projection.plane().viewport(); }
-	IG::WindowRect contentBounds() const { return contentRect; }
-	void updateWindowViewport(const IG::Window &win, Gfx::Viewport viewport);
+	auto windowBounds() const { return projection.plane().windowBounds(); }
+	auto contentBounds() const { return contentRect; }
+	void updateWindowViewport(const IG::Window &win, IG::Viewport viewport);
+
+	void applyViewRect(auto &view)
+	{
+		view.setViewRect(contentBounds(), windowBounds(), projection.plane());
+	}
 };
 
-WindowData &windowData(const IG::Window &win);
+struct MainWindowData : public WindowData
+{
+	EmuViewController viewController;
+
+	MainWindowData(ViewAttachParams attach, VController &vCtrl, EmuVideoLayer &layer, EmuSystem &system):
+		viewController{attach, vCtrl, layer, system} {}
+};
+
+inline auto &windowData(const IG::Window &win)
+{
+	auto data = win.appData<WindowData>();
+	assumeExpr(data);
+	return *data;
+}
+
+inline auto &mainWindowData(const IG::Window &win)
+{
+	auto data = win.appData<MainWindowData>();
+	assumeExpr(data);
+	return *data;
+}
 
 }

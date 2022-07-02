@@ -43,7 +43,7 @@ class GLLockedTextureBuffer
 {
 public:
 	constexpr GLLockedTextureBuffer() = default;
-	constexpr GLLockedTextureBuffer(void *bufferOffset, IG::Pixmap pix, IG::WindowRect srcDirtyRect,
+	constexpr GLLockedTextureBuffer(void *bufferOffset, MutablePixmapView pix, IG::WindowRect srcDirtyRect,
 		uint16_t lockedLevel, bool shouldFreeBuffer, GLuint pbo = 0):
 		bufferOffset_{bufferOffset}, pix{pix}, srcDirtyRect{srcDirtyRect}, pbo_{pbo},
 		lockedLevel{lockedLevel}, shouldFreeBuffer_{shouldFreeBuffer}
@@ -55,7 +55,7 @@ public:
 
 protected:
 	void *bufferOffset_{};
-	IG::Pixmap pix{};
+	MutablePixmapView pix{};
 	IG::WindowRect srcDirtyRect{};
 	GLuint pbo_ = 0;
 	uint16_t lockedLevel = 0;
@@ -76,7 +76,7 @@ public:
 protected:
 	RendererTask *rTask{};
 	TextureRef texName_{};
-	IG::PixmapDesc pixDesc{};
+	PixmapDesc pixDesc{};
 	uint8_t levels_{};
 	IG_UseMemberIfOrConstant(Config::Gfx::OPENGL_SHADER_PIPELINE,
 		TextureType, TextureType::T2D_4, type_){TextureType::UNSET};
@@ -85,13 +85,13 @@ protected:
 	TextureConfig baseInit(RendererTask &r, TextureConfig config);
 	void deinit();
 	bool canUseMipmaps(const Renderer &r) const;
-	void updateFormatInfo(IG::PixmapDesc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
+	void updateFormatInfo(PixmapDesc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
 	static void setSwizzleForFormatInGL(const Renderer &r, IG::PixelFormatID format, GLuint tex);
 	static void setSamplerParamsInGL(const Renderer &r, SamplerParams params, GLenum target = GL_TEXTURE_2D);
 	void updateLevelsForMipmapGeneration();
 	GLenum target() const;
 	#ifdef __ANDROID__
-	void initWithEGLImage(EGLImageKHR, IG::PixmapDesc, SamplerParams, bool isMutable);
+	void initWithEGLImage(EGLImageKHR, PixmapDesc, SamplerParams, bool isMutable);
 	void updateWithEGLImage(EGLImageKHR eglImg);
 	#endif
 };

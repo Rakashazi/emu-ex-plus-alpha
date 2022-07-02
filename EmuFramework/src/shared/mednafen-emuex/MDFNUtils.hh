@@ -16,7 +16,7 @@
 #include <imagine/pixmap/Pixmap.hh>
 #include <mednafen/video/surface.h>
 
-static Mednafen::MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
+static Mednafen::MDFN_Surface pixmapToMDFNSurface(IG::MutablePixmapView pix)
 {
 	using namespace Mednafen;
 	MDFN_PixelFormat fmt =

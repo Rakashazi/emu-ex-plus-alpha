@@ -61,9 +61,7 @@ private:
 	InputDeviceSavedConfigContainer *savedInputDevsPtr{};
 	TextMenuItem deleteDeviceConfig{};
 	TextMenuItem deleteProfile{};
-	#ifdef __ANDROID__
-	TextMenuItem rescanOSDevices{};
-	#endif
+	IG_UseMemberIf(Config::envIsAndroid, TextMenuItem, rescanOSDevices);
 	TextMenuItem identDevice{};
 	TextMenuItem generalOptions{};
 	TextHeadingMenuItem deviceListHeading{};

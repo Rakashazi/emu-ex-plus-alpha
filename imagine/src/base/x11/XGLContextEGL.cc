@@ -96,15 +96,13 @@ bool GLManager::hasBufferConfig(GLBufferConfigAttributes attrs) const
 		};
 	switch(attrs.pixelFormat.id())
 	{
-		default:
-			bug_unreachable("format id == %d", attrs.pixelFormat.id());
-			return false;
 		case PIXEL_RGB565: return
 			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) == 16 &&
 			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 5;
 		case PIXEL_RGBA8888: return
 			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) >= 24 &&
 			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 8;
+		default: bug_unreachable("format id == %d", attrs.pixelFormat.id());
 	}
 }
 

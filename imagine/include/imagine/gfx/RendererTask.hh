@@ -35,6 +35,7 @@ class RendererTask : public RendererTaskImpl
 public:
 	using RendererTaskImpl::RendererTaskImpl;
 	void updateDrawableForSurfaceChange(Window &, WindowSurfaceChange);
+	void setDefaultViewport(Window &win, Viewport v);
 	void releaseShaderCompiler();
 	void flush();
 	void setDebugOutput(bool on);
@@ -50,10 +51,9 @@ public:
 	// Run a delegate for drawing on the renderer thread
 	// Returns true if the window's contents were presented synchronously
 	bool draw(Window &win, WindowDrawParams winParams, DrawParams params,
-		const Viewport &viewport, const Mat4 &projMat,
-		IG::invocable<Window &, RendererCommands &> auto &&f)
+		const Mat4 &projMat, IG::invocable<Window &, RendererCommands &> auto &&f)
 	{
-		return RendererTaskImpl::draw(win, winParams, params, viewport, projMat, IG_forward(f));
+		return RendererTaskImpl::draw(win, winParams, params, projMat, IG_forward(f));
 	}
 
 	// synchronization
@@ -64,4 +64,5 @@ public:
 	void waitSync(SyncFence fence);
 	void awaitPending();
 };
+
 }

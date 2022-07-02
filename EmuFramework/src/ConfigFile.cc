@@ -26,8 +26,8 @@
 namespace EmuEx
 {
 
-static constexpr unsigned KEY_CONFIGS_HARD_LIMIT = 256;
-static constexpr unsigned INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
+static constexpr int KEY_CONFIGS_HARD_LIMIT = 256;
+static constexpr int INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
 
 static bool windowPixelFormatIsValid(uint8_t val)
 {
@@ -223,7 +223,8 @@ void EmuApp::saveConfigFile(IO &io)
 	if(appContext().hasTranslucentSysUI() && !doesLayoutBehindSystemUI())
 		writeOptionValue(io, CFGKEY_LAYOUT_BEHIND_SYSTEM_UI, false);
 	vController.writeConfig(io);
-	viewController().writeConfig(io);
+	if(IG::used(usePresentationTime_) && !usePresentationTime_)
+		writeOptionValue(io, CFGKEY_RENDERER_PRESENTATION_TIME, false);
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 	if(!BluetoothAdapter::scanCacheUsage())
 		writeOptionValue(io, CFGKEY_BLUETOOTH_SCAN_CACHE, false);
@@ -237,7 +238,7 @@ void EmuApp::saveConfigFile(IO &io)
 		std::fill_n(writeCategories, customKeyConfigs.size(), 0);
 		// compute total size
 		static_assert(sizeof(KeyConfig::name) <= 255, "key config name array is too large");
-		unsigned bytes = 2; // config key size
+		size_t bytes = 2; // config key size
 		bytes += 1; // number of configs
 		for(uint8_t configs = 0; auto &ePtr : customKeyConfigs)
 		{
@@ -276,7 +277,7 @@ void EmuApp::saveConfigFile(IO &io)
 			bug_unreachable("excessive key config size, should not happen");
 		}
 		// write to config file
-		logMsg("saving %d key configs, %d bytes", (int)customKeyConfigs.size(), bytes);
+		logMsg("saving %d key configs, %zu bytes", (int)customKeyConfigs.size(), bytes);
 		io.write(uint16_t(bytes));
 		io.write((uint16_t)CFGKEY_INPUT_KEY_CONFIGS);
 		io.write((uint8_t)customKeyConfigs.size());
@@ -525,7 +526,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_WINDOW_PIXEL_FORMAT: pendingWindowDrawableConf.pixelFormat = readOptionValue<IG::PixelFormat>(io, size, windowPixelFormatIsValid).value_or(IG::PixelFormat{});
 				bcase CFGKEY_VIDEO_COLOR_SPACE: pendingWindowDrawableConf.colorSpace = readOptionValue<Gfx::ColorSpace>(io, size, colorSpaceIsValid).value_or(Gfx::ColorSpace{});
 				bcase CFGKEY_SHOW_HIDDEN_FILES: setShowHiddenFilesInPicker(readOptionValue<bool>(io, size).value_or(false));
-				bcase CFGKEY_RENDERER_PRESENTATION_TIME: appConfig.setRendererPresentationTime(readOptionValue<bool>(io, size).value_or(true));
+				bcase CFGKEY_RENDERER_PRESENTATION_TIME: setUsePresentationTime(readOptionValue<bool>(io, size).value_or(true));
 				bcase CFGKEY_INPUT_KEY_CONFIGS:
 				{
 					if(!readKeyConfig(customKeyConfigs, io, size, inputControlCategories()))
@@ -627,14 +628,12 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 
 							if(!devConf.keyConf) // check built-in configs after user-defined ones
 							{
-								unsigned defaultConfs = 0;
-								auto defaultConf = KeyConfig::defaultConfigsForInputMap(keyConfMap, defaultConfs);
-								iterateTimes(defaultConfs, c)
+								for(const auto &conf : KeyConfig::defaultConfigsForInputMap(keyConfMap))
 								{
-									if(defaultConf[c].name == keyConfName)
+									if(conf.name == keyConfName)
 									{
 										logMsg("found referenced built-in key config %s while reading input device config", keyConfName);
-										devConf.keyConf = &defaultConf[c];
+										devConf.keyConf = &conf;
 										break;
 									}
 								}

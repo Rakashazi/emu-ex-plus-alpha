@@ -152,7 +152,7 @@ bool GbcSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 	if(isBgrOrder != useBgrOrder)
 	{
 		useBgrOrder = isBgrOrder;
-		IG::Pixmap frameBufferPix{{lcdSize, IG::PIXEL_RGBA8888}, frameBuffer};
+		IG::MutablePixmapView frameBufferPix{{lcdSize, IG::PIXEL_RGBA8888}, frameBuffer};
 		frameBufferPix.transformInPlace(
 			[](uint32_t srcPixel) // swap red/blue values
 			{
@@ -204,7 +204,7 @@ size_t GbcSystem::runUntilVideoFrame(gambatte::uint_least32_t *videoBuf, std::pt
 void GbcSystem::renderVideo(const EmuSystemTaskContext &taskCtx, EmuVideo &video)
 {
 	auto fmt = video.renderPixelFormat() == IG::PIXEL_FMT_BGRA8888 ? IG::PIXEL_FMT_BGRA8888 : IG::PIXEL_FMT_RGBA8888;
-	IG::Pixmap frameBufferPix{{lcdSize, fmt}, frameBuffer};
+	IG::PixmapView frameBufferPix{{lcdSize, fmt}, frameBuffer};
 	video.startFrameWithAltFormat(taskCtx, frameBufferPix);
 }
 

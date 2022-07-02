@@ -39,15 +39,15 @@ public:
 
 	using PixmapBufferTextureImpl::PixmapBufferTextureImpl;
 	PixmapBufferTexture(RendererTask &, TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false, IG::ErrorCode *errorPtr = nullptr);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace c = {}, const TextureSampler *compatSampler = {});
-	void write(IG::Pixmap pixmap, uint32_t writeFlags = 0);
-	void writeAligned(IG::Pixmap pixmap, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
+	IG::ErrorCode setFormat(PixmapDesc desc, ColorSpace c = {}, const TextureSampler *compatSampler = {});
+	void write(PixmapView pixmap, uint32_t writeFlags = 0);
+	void writeAligned(PixmapView pixmap, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear();
 	LockedTextureBuffer lock(uint32_t bufferFlags = 0);
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
 	IG::WP size() const;
-	IG::PixmapDesc pixmapDesc() const;
-	IG::PixmapDesc usedPixmapDesc() const;
+	PixmapDesc pixmapDesc() const;
+	PixmapDesc usedPixmapDesc() const;
 	void setCompatTextureSampler(const TextureSampler &compatSampler);
 	bool compileDefaultProgram(uint32_t mode) const;
 	explicit operator bool() const;

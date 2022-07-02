@@ -45,7 +45,7 @@ public:
 	void makeGlyphs(Renderer &r);
 	bool compile(Renderer &r, ProjectionPlane projP);
 	void draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, ProjectionPlane projP) const;
-	void draw(RendererCommands &cmds, GP p, _2DOrigin o, ProjectionPlane projP) const;
+	void draw(RendererCommands &cmds, FP p, _2DOrigin o, ProjectionPlane projP) const;
 	void setMaxLineSize(float size);
 	void setMaxLines(uint16_t lines);
 	float width() const;

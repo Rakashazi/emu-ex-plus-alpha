@@ -17,7 +17,7 @@ class NgpSystem final: public EmuSystem
 public:
 	Byte1Option optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
 	uint8_t inputBuff{};
-	IG::Pixmap mSurfacePix{};
+	IG::MutablePixmapView mSurfacePix{};
 	static constexpr int vidBufferX = 160, vidBufferY = 152;
 	alignas(8) uint32_t pixBuff[vidBufferX*vidBufferY]{};
 

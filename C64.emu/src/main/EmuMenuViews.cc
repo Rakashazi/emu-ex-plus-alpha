@@ -386,7 +386,7 @@ private:
 		[this]()
 		{
 			system().plugin.datasette_control(0, DATASETTE_CONTROL_STOP);
-			app().showEmuation();
+			app().showEmulation();
 		}
 	};
 
@@ -396,7 +396,7 @@ private:
 		[this]()
 		{
 			system().plugin.datasette_control(0, DATASETTE_CONTROL_START);
-			app().showEmuation();
+			app().showEmulation();
 		}
 	};
 
@@ -406,7 +406,7 @@ private:
 		[this]()
 		{
 			system().plugin.datasette_control(0, DATASETTE_CONTROL_FORWARD);
-			app().showEmuation();
+			app().showEmulation();
 		}
 	};
 
@@ -416,7 +416,7 @@ private:
 		[this]()
 		{
 			system().plugin.datasette_control(0, DATASETTE_CONTROL_REWIND);
-			app().showEmuation();
+			app().showEmulation();
 		}
 	};
 
@@ -426,7 +426,7 @@ private:
 		[this]()
 		{
 			system().plugin.datasette_control(0, DATASETTE_CONTROL_RECORD);
-			app().showEmuation();
+			app().showEmulation();
 		}
 	};
 
@@ -1106,7 +1106,7 @@ class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelpe
 					system().sessionOptionSet();
 					system().optionDriveTrueEmulation = 1;
 					system().optionModel = defaultNTSCModel[to_underlying(system().currSystem)];
-					app().reloadGame();
+					app().reloadSystem();
 				});
 			multiChoiceView->appendItem("NTSC",
 				[this]()
@@ -1114,7 +1114,7 @@ class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelpe
 					system().sessionOptionSet();
 					system().optionDriveTrueEmulation = 0;
 					system().optionModel = defaultNTSCModel[to_underlying(system().currSystem)];
-					app().reloadGame();
+					app().reloadSystem();
 				});
 			multiChoiceView->appendItem("PAL w/ True Drive Emu",
 				[this]()
@@ -1122,7 +1122,7 @@ class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelpe
 					system().sessionOptionSet();
 					system().optionDriveTrueEmulation = 1;
 					system().optionModel = defaultPALModel[to_underlying(system().currSystem)];
-					app().reloadGame();
+					app().reloadSystem();
 				});
 			multiChoiceView->appendItem("PAL",
 				[this]()
@@ -1130,7 +1130,7 @@ class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelpe
 					system().sessionOptionSet();
 					system().optionDriveTrueEmulation = 0;
 					system().optionModel = defaultPALModel[to_underlying(system().currSystem)];
-					app().reloadGame();
+					app().reloadSystem();
 				});
 			pushAndShow(std::move(multiChoiceView), e);
 		}

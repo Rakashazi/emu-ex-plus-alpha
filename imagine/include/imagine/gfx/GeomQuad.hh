@@ -23,7 +23,7 @@ static constexpr auto mapQuadUV(std::array<Vtx, 4> v, FRect rect)
 }
 
 template<class Vtx>
-static constexpr std::array<Vtx, 4> mapQuadPos(std::array<Vtx, 4> v, GP bl, GP tl, GP tr, GP br)
+static constexpr std::array<Vtx, 4> mapQuadPos(std::array<Vtx, 4> v, FP bl, FP tl, FP tr, FP br)
 {
 	v[0].x = bl.x; v[0].y = bl.y;
 	v[1].x = tl.x; v[1].y = tl.y;
@@ -44,7 +44,7 @@ class QuadGeneric
 public:
 	constexpr QuadGeneric() = default;
 
-	constexpr QuadGeneric(GP bl, GP tl, GP tr, GP br)
+	constexpr QuadGeneric(FP bl, FP tl, FP tr, FP br)
 	{
 		setPos(bl, tl, tr, br);
 	}
@@ -60,7 +60,7 @@ public:
 		setUV(uvRect);
 	}
 
-	constexpr void setPos(GP bl, GP tl, GP tr, GP br)
+	constexpr void setPos(FP bl, FP tl, FP tr, FP br)
 	{
 		v = mapQuadPos(v, bl, tl, tr, br);
 	}

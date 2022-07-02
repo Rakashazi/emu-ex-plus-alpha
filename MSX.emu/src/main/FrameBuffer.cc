@@ -75,7 +75,7 @@ public:
 		pix = {makePixmapDesc(), data};
 	}
 
-	IG::Pixmap pixmap() const
+	IG::PixmapView pixmap() const
 	{
 		assumeExpr(pix.format() == pixFmt);
 		return pix;
@@ -93,7 +93,7 @@ public:
 	}
 
 protected:
-	IG::Pixmap pix{{{}, pixFmt}, {}};
+	IG::MutablePixmapView pix{{{}, pixFmt}};
 	int maxWidth = 1;
 	int lines = 1;
 	int currentLine = 0;
@@ -107,7 +107,7 @@ protected:
 
 static FrameBufferImpl fb{};
 
-IG::Pixmap frameBufferPixmap()
+IG::PixmapView frameBufferPixmap()
 {
 	auto fbPix = fb.pixmap();
 	return fbPix.subView({0, 8}, {(int)fbPix.w(), (int)fbPix.h() - 16});

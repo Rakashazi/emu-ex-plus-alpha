@@ -160,8 +160,8 @@ public:
 	static NameFilterFunc defaultFsFilter;
 	static NameFilterFunc defaultBenchmarkFsFilter;
 	static const char *creditsViewStr;
-	static constexpr unsigned MAX_CENTER_BTNS = 2;
-	static constexpr unsigned MAX_FACE_BTNS = 8;
+	static constexpr int MAX_CENTER_BTNS = 2;
+	static constexpr int MAX_FACE_BTNS = 8;
 	static std::array<int, MAX_FACE_BTNS> vControllerImageMap;
 
 	EmuSystem(IG::ApplicationContext ctx): appCtx{ctx} {}
@@ -312,6 +312,10 @@ protected:
 	void setupContentFilePaths(IG::CStringView filePath, std::string_view displayName);
 	void updateContentSaveDirectory();
 	void closeAndSetupNew(IG::CStringView path, std::string_view displayName);
+
+public:
+	IG::OnFrameDelegate onFrameUpdate{};
+	int8_t targetFastForwardSpeed{};
 };
 
 // Global instance access if required by the emulated system, valid if EmuApp::needsGlobalInstance initialized to true

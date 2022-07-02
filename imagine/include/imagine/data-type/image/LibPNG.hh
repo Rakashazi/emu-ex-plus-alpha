@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/pixmap/Pixmap.hh>
 #include <system_error>
 
 struct png_struct_def;
@@ -25,8 +26,6 @@ struct png_info_def;
 namespace IG
 {
 class GenericIO;
-class PixelFormat;
-class Pixmap;
 }
 
 namespace IG::Data
@@ -40,7 +39,7 @@ public:
 	PngImage(PngImage &&o) noexcept;
 	PngImage &operator=(PngImage &&o) noexcept;
 	~PngImage();
-	std::errc readImage(IG::Pixmap dest);
+	std::errc readImage(PixmapView dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();

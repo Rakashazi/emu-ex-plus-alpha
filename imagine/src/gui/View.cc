@@ -224,7 +224,7 @@ void View::setViewRect(WindowRect viewRect, Gfx::ProjectionPlane projP)
 
 void View::setViewRect(Gfx::ProjectionPlane projP)
 {
-	setViewRect(projP.viewport().bounds(), projP);
+	setViewRect(projP.windowBounds(), projP);
 }
 
 void View::postDraw()
@@ -345,7 +345,6 @@ WindowRect View::displayInsetRect(Direction d, WindowRect viewRect, WindowRect d
 		case Direction::LEFT: return {displayRect.pos(LT2DO), {viewRect.x, displayRect.y2}};
 	}
 	bug_unreachable("Direction == %d", (int)d);
-	return {};
 }
 
 bool View::pointIsInView(IG::WP pos)

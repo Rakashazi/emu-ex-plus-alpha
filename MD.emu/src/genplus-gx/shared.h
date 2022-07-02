@@ -12,7 +12,6 @@
 #include "system.h"
 #include "genesis.h"
 #include "vdp_ctrl.h"
-#include "vdp_render.h"
 #include "mem68k.h"
 #include "memz80.h"
 #include "membnk.h"

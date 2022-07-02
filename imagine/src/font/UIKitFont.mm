@@ -151,14 +151,14 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 	{
 		return {};
 	}
-	IG::Pixmap pix
+	PixmapView pix
 	{
 		{
 			{glyphData.metrics.xSize, glyphData.metrics.ySize},
 			IG::PIXEL_FMT_A8
 		},
 		glyphData.startOfCharInPixData,
-		{glyphData.metrics.xAdvance, IG::Pixmap::Units::BYTE}
+		{glyphData.metrics.xAdvance, PixmapView::Units::BYTE}
 	};
 	return {{pix, glyphData.pixData}, glyphData.metrics};
 }
@@ -237,7 +237,7 @@ void UIKitGlyphImage::deinit()
 	}
 }
 
-IG::Pixmap GlyphImage::pixmap()
+PixmapView GlyphImage::pixmap()
 {
 	return pixmap_;
 }

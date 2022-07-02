@@ -20,7 +20,6 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/FilePicker.hh>
 #include "EmuOptions.hh"
-#include "private.hh"
 #include "privateInput.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -62,7 +61,7 @@ void EmuInputView::resetInput()
 
 void EmuInputView::updateFastforward()
 {
-	app().viewController().setFastForwardSpeed(ffToggleActive ? app().fastForwardSpeedOption().val : 0);
+	app().setFastForwardSpeed(ffToggleActive ? app().fastForwardSpeedOption().val : 0);
 }
 
 bool EmuInputView::inputEvent(const Input::Event &e)
@@ -172,12 +171,12 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 									[this]()
 									{
 										doSaveState(app(), false);
-										app().viewController().showEmulation();
+										app().showEmulation();
 									});
 								ynAlertView->setOnNo(
 									[this]()
 									{
-										app().viewController().showEmulation();
+										app().showEmulation();
 									});
 								pushAndShowModal(std::move(ynAlertView), e);
 							}

@@ -75,7 +75,7 @@ protected:
 	IG_UseMemberIf(Config::envIsAndroid, IG::Point2D<float>, smmToPixelScaler){};
 	bool drawNeeded{};
 	DrawPhase drawPhase{DrawPhase::READY};
-	uint8_t drawEventPriority_{};
+	int8_t drawEventPriority_{};
 	// all windows need an initial onSurfaceChange call
 	uint8_t surfaceChangeFlags{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
 	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, softOrientation_){VIEW_ROTATE_0};

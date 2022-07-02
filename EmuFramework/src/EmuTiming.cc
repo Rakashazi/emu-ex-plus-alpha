@@ -35,7 +35,7 @@ EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(IG::FrameTime time)
 	assumeExpr(time > startFrameTime);
 	auto timeTotal = time - startFrameTime;
 	uint32_t now = std::round(IG::FloatSeconds(timeTotal) / timePerVideoFrameScaled);
-	auto elapsedFrames = now - lastFrame;
+	int elapsedFrames = now - lastFrame;
 	lastFrame = now;
 	return {elapsedFrames, std::chrono::duration_cast<IG::FrameTime>(now * timePerVideoFrameScaled) + startFrameTime};
 }

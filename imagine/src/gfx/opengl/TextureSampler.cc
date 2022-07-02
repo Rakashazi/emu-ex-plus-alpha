@@ -62,7 +62,7 @@ static uint16_t makeMinFilter(bool linearFiltering, MipFilterMode mipFiltering)
 		case MIP_FILTER_NONE: return linearFiltering ? GL_LINEAR : GL_NEAREST;
 		case MIP_FILTER_NEAREST: return linearFiltering ? GL_LINEAR_MIPMAP_NEAREST : GL_NEAREST_MIPMAP_NEAREST;
 		case MIP_FILTER_LINEAR: return linearFiltering ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
-		default: bug_unreachable("mipFiltering == %d", (int)mipFiltering); return 0;
+		default: bug_unreachable("mipFiltering == %d", (int)mipFiltering);
 	}
 }
 

@@ -160,10 +160,10 @@ AndroidFontSize::AndroidFontSize(JNI::UniqueGlobalRef paint):
 	paint_{std::move(paint)}
 {}
 
-AndroidGlyphImage::AndroidGlyphImage(JNI::LockedLocalBitmap lockedBitmap, IG::Pixmap pixmap):
+AndroidGlyphImage::AndroidGlyphImage(JNI::LockedLocalBitmap lockedBitmap, PixmapView pixmap):
 	lockedBitmap{std::move(lockedBitmap)},	pixmap_{pixmap} {}
 
-IG::Pixmap GlyphImage::pixmap()
+PixmapView GlyphImage::pixmap()
 {
 	return pixmap_;
 }

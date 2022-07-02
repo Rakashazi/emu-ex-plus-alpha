@@ -97,7 +97,7 @@ void EmuSystemTask::stop()
 	app().flushMainThreadMessages();
 }
 
-void EmuSystemTask::runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward, bool runSync)
+void EmuSystemTask::runFrame(EmuVideo *video, EmuAudio *audio, int8_t frames, bool skipForward, bool runSync)
 {
 	assumeExpr(frames);
 	if(!taskThread.joinable()) [[unlikely]]

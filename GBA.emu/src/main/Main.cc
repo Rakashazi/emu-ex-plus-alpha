@@ -209,7 +209,7 @@ void systemDrawScreen(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo &vide
 {
 	using namespace EmuEx;
 	auto img = video.startFrame(taskCtx);
-	IG::Pixmap framePix{{lcdSize, IG::PIXEL_RGB565}, gGba.lcd.pix};
+	IG::PixmapView framePix{{lcdSize, IG::PIXEL_RGB565}, gGba.lcd.pix};
 	assumeExpr(img.pixmap().size() == framePix.size());
 	if(img.pixmap().format() == IG::PIXEL_FMT_RGB565)
 	{

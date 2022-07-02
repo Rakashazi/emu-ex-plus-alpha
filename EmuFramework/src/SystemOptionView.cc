@@ -296,9 +296,9 @@ void FilePathOptionView::onSavePathChange(std::string_view path)
 
 bool FilePathOptionView::onFirmwarePathChange(IG::CStringView path, bool isDir) { return true; }
 
-std::unique_ptr<TextTableView> FilePathOptionView::makeFirmwarePathMenu(IG::utf16String name, bool allowFiles, unsigned extraItemsHint)
+std::unique_ptr<TextTableView> FilePathOptionView::makeFirmwarePathMenu(IG::utf16String name, bool allowFiles, int extraItemsHint)
 {
-	unsigned items = (allowFiles ? 3 : 2) + extraItemsHint;
+	int items = (allowFiles ? 3 : 2) + extraItemsHint;
 	auto multiChoiceView = std::make_unique<TextTableView>(std::move(name), attachParams(), items);
 	multiChoiceView->appendItem("Select Folder",
 		[this](const Input::Event &e)

@@ -33,11 +33,11 @@ class BitmapFactoryImage
 {
 public:
 	constexpr BitmapFactoryImage() = default;
-	BitmapFactoryImage(JNI::LockedLocalBitmap, Pixmap);
+	BitmapFactoryImage(JNI::LockedLocalBitmap, PixmapView);
 
 protected:
 	JNI::LockedLocalBitmap lockedBitmap{};
-	Pixmap pixmap_{};
+	PixmapView pixmap_{};
 };
 
 using PixmapImageImpl = BitmapFactoryImage;

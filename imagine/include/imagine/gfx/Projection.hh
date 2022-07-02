@@ -19,6 +19,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/gfx/Mat4.hh>
+#include <imagine/base/Viewport.hh>
 
 namespace IG::Gfx
 {

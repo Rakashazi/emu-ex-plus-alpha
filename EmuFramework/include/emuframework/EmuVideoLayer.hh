@@ -36,7 +36,7 @@ public:
 	void place(IG::WindowRect viewRect, IG::WindowRect displayRect, Gfx::ProjectionPlane projP, EmuInputView *inputView, EmuSystem &sys);
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
 	void setFormat(EmuSystem &, IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace);
-	void setOverlay(int effect);
+	void setOverlay(ImageOverlayId id);
 	void setOverlayIntensity(float intensity);
 	void setEffect(EmuSystem &, ImageEffectId, IG::PixelFormat);
 	void setEffectFormat(IG::PixelFormat);
@@ -69,7 +69,7 @@ private:
 	float brightness = 1.f;
 	float brightnessSrgb = 1.f;
 	ImageEffectId userEffectId{};
-	int userOverlayEffectId{};
+	ImageOverlayId userOverlayEffectId{};
 	Gfx::ColorSpace colSpace{};
 	uint8_t zoom_{100};
 

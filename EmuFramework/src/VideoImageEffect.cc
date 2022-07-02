@@ -232,8 +232,7 @@ Gfx::Texture &VideoImageEffect::renderTarget()
 
 void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, const Gfx::TextureSpan span)
 {
-	auto viewport = Gfx::Viewport::makeFromRect({{}, renderTargetImgSize});
-	cmds.setViewport(viewport);
+	cmds.setViewport(renderTargetImgSize);
 	cmds.set(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 	Gfx::Sprite spr{{{-1., -1.}, {1., 1.}}, {span.texture(), {{0., 1.}, {1., 0.}}}};
 	spr.draw(cmds);

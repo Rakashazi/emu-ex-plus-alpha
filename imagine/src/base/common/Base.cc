@@ -19,6 +19,7 @@
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Thread.hh>
+#include <imagine/util/math/Point2D.hh>
 #include <imagine/logger/logger.h>
 #include <cstdlib>
 #include <cstring>
@@ -53,13 +54,8 @@ const char *orientationToStr(Orientation o)
 		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_270: return "0/90/270";
 		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270: return "0/90/180/270";
 		case VIEW_ROTATE_90 | VIEW_ROTATE_270: return "90/270";
-		default: bug_unreachable("o == %d", o); return "";
+		default: bug_unreachable("o == %d", o);
 	}
-}
-
-bool orientationIsSideways(Orientation o)
-{
-	return o == VIEW_ROTATE_90 || o == VIEW_ROTATE_270;
 }
 
 FDEventSource::FDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd, EventLoop loop, PollEventDelegate callback, uint32_t events):
@@ -169,6 +165,22 @@ ThreadId thisThreadId()
 	pthread_threadid_np(nullptr, &id);
 	return id;
 	#endif
+}
+
+WRect Viewport::relRect(WP pos, WP size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
+{
+	// adjust to the requested origin on the screen
+	auto newX = LT2DO.adjustX(pos.x, width(), screenOrigin.invertYIfCartesian());
+	auto newY = LT2DO.adjustY(pos.y, height(), screenOrigin.invertYIfCartesian());
+	WRect rect;
+	rect.setPosRel({newX, newY}, size, posOrigin);
+	return rect;
+}
+
+WRect Viewport::relRectBestFit(WP pos, float aspectRatio, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
+{
+	auto size = sizesWithRatioBestFit(aspectRatio, width(), height());
+	return relRect(pos, size, posOrigin, screenOrigin);
 }
 
 }

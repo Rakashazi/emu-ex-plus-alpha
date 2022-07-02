@@ -255,12 +255,12 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 		{
 			cmds.setClipRect(renderer().makeClipRect(window(), textRect));
 			cmds.setClipTest(true);
-			text.draw(cmds, projP.alignToPixel(projP.unProjectRect(textRect).pos(RC2DO) - GP{xIndent, 0}), RC2DO, projP);
+			text.draw(cmds, projP.alignToPixel(projP.unProjectRect(textRect).pos(RC2DO) - FP{xIndent, 0}), RC2DO, projP);
 			cmds.setClipTest(false);
 		}
 		else
 		{
-			text.draw(cmds, projP.alignToPixel(projP.unProjectRect(textRect).pos(LC2DO) + GP{xIndent, 0}), LC2DO, projP);
+			text.draw(cmds, projP.alignToPixel(projP.unProjectRect(textRect).pos(LC2DO) + FP{xIndent, 0}), LC2DO, projP);
 		}
 	}
 	if(control[0].isActive)
@@ -271,7 +271,7 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 		cmds.set(imageCommonTextureSampler);
 		auto trans = projP.makeTranslate(projP.unProjectRect(control[0].rect).pos(C2DO));
 		if(rotateLeftBtn)
-			trans = trans.rollRotate(angleFromDegree(90));
+			trans = trans.rollRotate(radians(90.f));
 		leftSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, trans);
 		leftSpr.draw(cmds);
 	}

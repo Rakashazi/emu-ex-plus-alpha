@@ -25,10 +25,11 @@
 #include <imagine/data-type/image/Quartz2d.hh>
 #endif
 
+#include <imagine/pixmap/Pixmap.hh>
+
 namespace IG
 {
 class ApplicationContext;
-class Pixmap;
 }
 
 namespace IG::Data
@@ -38,7 +39,7 @@ class PixmapWriter final: public PixmapWriterImpl
 {
 public:
 	using PixmapWriterImpl::PixmapWriterImpl;
-	bool writeToFile(IG::Pixmap, const char *path) const;
+	bool writeToFile(PixmapView, const char *path) const;
 };
 
 }

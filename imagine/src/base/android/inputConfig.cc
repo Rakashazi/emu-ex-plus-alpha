@@ -507,7 +507,7 @@ void AndroidApplication::updateInputConfig(AConfiguration *config)
 	setHardKeyboardState(hasXperiaPlayGamepad() ? navState : hardKeyboardState);
 }
 
-void AndroidApplicationContext::enumInputDevices() const
+void ApplicationContext::enumInputDevices() const
 {
 	application().enumInputDevices(mainThreadJniEnv(), baseActivityObject(), true);
 }

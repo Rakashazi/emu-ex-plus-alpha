@@ -77,7 +77,7 @@ static bool isValidPixelFormat(IG::PixelFormat fmt)
 	return fmt == IG::PIXEL_FMT_RGB565 || fmt == IG::PIXEL_FMT_RGBA8888 || fmt == IG::PIXEL_FMT_BGRA8888;
 }
 
-static IG::Pixmap makePixmapView(const struct video_canvas_s *c)
+static IG::PixmapView pixmapView(const struct video_canvas_s *c)
 {
 	IG::PixelFormat fmt{(IG::PixelFormatID)c->pixelFormat};
 	assumeExpr(isValidPixelFormat(fmt));
@@ -140,7 +140,7 @@ void video_canvas_refresh(struct video_canvas_s *c, unsigned int xs, unsigned in
 	w *= c->videoconfig->scalex;
 	yi *= c->videoconfig->scaley;
 	h *= c->videoconfig->scaley;
-	auto pixView = makePixmapView(c);
+	auto pixView = pixmapView(c);
 
 	w = std::min((int)w, pixView.w());
 	h = std::min((int)h, pixView.h());
@@ -170,11 +170,11 @@ void C64System::resetCanvasSourcePixmap(struct video_canvas_s *c)
 		}
 		int width = 320+(xBorderSize*2 - startX*2);
 		int widthPadding = startX*2;
-		canvasSrcPix = makePixmapView(c).subView({startX, startY}, {width, height});
+		canvasSrcPix = pixmapView(c).subView({startX, startY}, {width, height});
 	}
 	else
 	{
-		canvasSrcPix = makePixmapView(c);
+		canvasSrcPix = pixmapView(c);
 	}
 }
 

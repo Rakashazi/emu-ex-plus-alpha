@@ -19,7 +19,6 @@ inline auto transformOffsetToAbsolute(IO::SeekMode mode, auto offset, auto start
 			return offset + currentPos;
 		default:
 			bug_unreachable("IO::SeekMode == %d", (int)mode);
-			return decltype(offset + startPos){};
 	}
 }
 
@@ -33,7 +32,6 @@ inline const char *accessHintStr(IO::AccessHint access)
 		case IO::AccessHint::ALL: return "All";
 		default:
 			bug_unreachable("IO::AccessHint == %d", (int)access);
-			return "";
 	}
 }
 
@@ -47,7 +45,6 @@ inline const char *adviceStr(IO::Advice advice)
 		case IO::Advice::WILLNEED: return "Will Need";
 		default:
 			bug_unreachable("IO::Advice == %d", (int)advice);
-			return "";
 	}
 }
 

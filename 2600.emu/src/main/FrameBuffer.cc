@@ -107,9 +107,9 @@ uInt32 FrameBuffer::getRGBPhosphor32(const uInt32 c, const uInt32 p) const
 }
 
 template <int outputBits>
-void FrameBuffer::renderOutput(IG::Pixmap pix, TIA &tia)
+void FrameBuffer::renderOutput(IG::MutablePixmapView pix, TIA &tia)
 {
-	IG::Pixmap framePix{{{(int)tia.width(), (int)tia.height()}, IG::PIXEL_I8}, tia.frameBuffer()};
+	IG::PixmapView framePix{{{(int)tia.width(), (int)tia.height()}, IG::PIXEL_I8}, tia.frameBuffer()};
 	assumeExpr(pix.size() == framePix.size());
 	assumeExpr(pix.format().bytesPerPixel() == outputBits / 8);
 	assumeExpr(framePix.format().bytesPerPixel() == 1);
@@ -145,7 +145,7 @@ void FrameBuffer::renderOutput(IG::Pixmap pix, TIA &tia)
 	}
 }
 
-void FrameBuffer::render(IG::Pixmap pix, TIA &tia)
+void FrameBuffer::render(IG::MutablePixmapView pix, TIA &tia)
 {
 	if(format == IG::PIXEL_RGB565)
 	{

@@ -55,7 +55,7 @@
 #define assumeExpr(E) ((void)(__builtin_expect(!(E), 0) ? __builtin_unreachable(), 0 : 0))
 #define bug_unreachable(msg, ...) __builtin_unreachable()
 #else
-CLINK void bug_doExit(const char *msg, ...)  __attribute__ ((format (printf, 1, 2)));
+CLINK void bug_doExit(const char *msg, ...)  __attribute__ ((format (printf, 1, 2), noreturn));
 #define assumeExpr(E) assert(E)
 #define bug_unreachable(msg, ...) bug_doExit("bug: " msg " @" __FILE__ ", line:%d , func:%s", ## __VA_ARGS__, __LINE__, __PRETTY_FUNCTION__)
 #endif

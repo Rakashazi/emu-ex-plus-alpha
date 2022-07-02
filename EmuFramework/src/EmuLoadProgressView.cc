@@ -37,7 +37,7 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::E
 					bcase EmuSystem::LoadProgress::FAILED:
 					{
 						assumeExpr(msg.intArg3 > 0);
-						unsigned len = msg.intArg3;
+						int len = msg.intArg3;
 						char errorStr[len + 1];
 						msgs.getExtraData(errorStr, len);
 						errorStr[len] = 0;
@@ -54,7 +54,7 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::E
 						auto originalEvent = this->originalEvent;
 						auto &app = this->app();
 						app.popModalViews();
-						app.viewController().onSystemCreated();
+						app.onSystemCreated();
 						onComplete(originalEvent);
 						return;
 					}
@@ -73,7 +73,7 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::E
 							}
 							bdefault: // custom string
 							{
-								unsigned len = msg.intArg3;
+								int len = msg.intArg3;
 								char labelStr[len + 1];
 								msgs.getExtraData(labelStr, len);
 								labelStr[len] = 0;
@@ -133,7 +133,7 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 		cmds.setCommonProgram(CommonProgram::NO_TEX);
 		cmds.setColor(.0, .0, .75);
 		float barHeight = text.height()*1.5;
-		auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - GP{0.f, barHeight/2.f},
+		auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - FP{0.f, barHeight/2.f},
 			{IG::remap((float)pos, 0.f, (float)max, 0.f, projP.width()), barHeight});
 		GeomRect::draw(cmds, bar);
 	}

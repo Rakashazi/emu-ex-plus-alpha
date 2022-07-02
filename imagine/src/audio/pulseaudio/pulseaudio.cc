@@ -36,7 +36,6 @@ static pa_sample_format_t pcmFormatToPA(const SampleFormat &format)
 		case 1 : return PA_SAMPLE_U8;
 		default:
 			bug_unreachable("bytes == %d", format.bytes());
-			return (pa_sample_format_t)0;
 	}
 }
 

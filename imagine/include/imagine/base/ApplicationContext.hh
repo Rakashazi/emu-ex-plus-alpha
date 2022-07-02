@@ -212,6 +212,7 @@ public:
 
 	// Input
 	const InputDeviceContainer &inputDevices() const;
+	void enumInputDevices() const;
 	void setHintKeyRepeat(bool on);
 	Input::Event defaultInputEvent() const;
 	std::optional<bool> swappedConfirmKeysOption() const;
@@ -232,6 +233,9 @@ public:
 	void exit(int returnVal);
 	void exit() { exit(0); }
 	void exitWithMessage(int exitVal, const char *msg);
+
+	// Platform-specific
+	int32_t androidSDK() const;
 };
 
 class OnExit

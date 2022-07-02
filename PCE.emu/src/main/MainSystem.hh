@@ -32,7 +32,7 @@ public:
 	std::array<uint16, 5> inputBuff{}; // 5 gamepad buffers
 	static constexpr int vidBufferX = 512, vidBufferY = 242;
 	alignas(8) uint32_t pixBuff[vidBufferX*vidBufferY]{};
-	IG::Pixmap mSurfacePix{};
+	IG::MutablePixmapView mSurfacePix{};
 	bool prevUsing263Lines{};
 	std::vector<CDInterface *> CDInterfaces;
 	FS::PathString sysCardPath{};

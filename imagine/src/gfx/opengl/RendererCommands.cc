@@ -20,6 +20,7 @@
 #include <imagine/gfx/Program.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/base/Viewport.hh>
 #include <imagine/logger/logger.h>
 #include "internalDefs.hh"
 #include "utils.hh"
@@ -30,12 +31,16 @@ namespace IG::Gfx
 static constexpr bool useGLCache = true;
 
 GLRendererCommands::GLRendererCommands(RendererTask &rTask, Window *winPtr, Drawable drawable,
-	GLDisplay glDpy, const GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr):
+	Rect2<int> viewport, GLDisplay glDpy, const GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr):
 	rTask{&rTask}, r{&rTask.renderer()}, drawCompleteSemPtr{drawCompleteSemPtr},
-	winPtr{winPtr}, glDpy{glDpy}, glContextPtr{&glCtx}, drawable{drawable}
+	winPtr{winPtr}, glDpy{glDpy}, glContextPtr{&glCtx}, drawable{drawable},
+	winViewport{viewport}
 {
 	assumeExpr(drawable);
-	setCurrentDrawable(drawable);
+	if(setCurrentDrawable(drawable) && viewport.x2)
+	{
+		setViewport(viewport);
+	}
 }
 
 void GLRendererCommands::discardTemporaryData() {}
@@ -49,7 +54,7 @@ void GLRendererCommands::bindGLArrayBuffer(GLuint vbo)
 	arrayBufferIsSet = true;
 }
 
-void GLRendererCommands::setCurrentDrawable(Drawable drawable)
+bool GLRendererCommands::setCurrentDrawable(Drawable drawable)
 {
 	auto &glCtx = glContext();
 	assert(glCtx);
@@ -57,7 +62,9 @@ void GLRendererCommands::setCurrentDrawable(Drawable drawable)
 	if(!GLManager::hasCurrentDrawable(drawable))
 	{
 		glCtx.setCurrentDrawable(drawable);
+		return true;
 	}
+	return false;
 }
 
 void GLRendererCommands::present(Drawable win)
@@ -482,19 +489,22 @@ void RendererCommands::setCommonTextureSampler(CommonTextureSampler sampler)
 	setTextureSampler(samplerObj);
 }
 
-void RendererCommands::setViewport(Viewport v)
+void GLRendererCommands::setViewport(Rect2<int> v)
 {
 	rTask->verifyCurrentContext();
-	auto inGLFormat = v.inGLFormat();
-	//logMsg("set GL viewport %d:%d:%d:%d", inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
-	assert(inGLFormat.x2 && inGLFormat.y2);
-	glViewport(inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
-	currViewport = v;
+	//logMsg("set GL viewport %d:%d:%d:%d", v.x, v.y, v.x2, v.y2);
+	assert(v.x2 && v.y2);
+	glViewport(v.x, v.y, v.x2, v.y2);
 }
 
-Viewport RendererCommands::viewport() const
+void RendererCommands::setViewport(Viewport v)
 {
-	return currViewport;
+	GLRendererCommands::setViewport(asYUpRelRect(v));
+}
+
+void RendererCommands::restoreViewport()
+{
+	GLRendererCommands::setViewport(winViewport);
 }
 
 void RendererCommands::vertexBufferData(const void *v, size_t size)

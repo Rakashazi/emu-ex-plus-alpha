@@ -19,7 +19,6 @@
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VController.hh>
-#include "private.hh"
 #include "privateInput.hh"
 #include "WindowData.hh"
 #include <imagine/base/ApplicationContext.hh>
@@ -133,15 +132,21 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 
 void EmuApp::applyFontSize(Window &win)
 {
+	auto settings = fontSettings(win);
+	logMsg("setting up font with pixel height:%d", settings.pixelHeight());
+	viewManager.defaultFace().setFontSettings(renderer, settings);
+	viewManager.defaultBoldFace().setFontSettings(renderer, settings);
+}
+
+IG::FontSettings EmuApp::fontSettings(Window &win) const
+{
 	float size = optionFontSize / 1000.;
-	logMsg("setting up font size %f", (double)size);
-	viewManager.defaultFace().setFontSettings(renderer, IG::FontSettings(win.heightScaledMMInPixels(size)));
-	viewManager.defaultBoldFace().setFontSettings(renderer, IG::FontSettings(win.heightScaledMMInPixels(size)));
+	return {win.heightScaledMMInPixels(size)};
 }
 
 void EmuApp::writeRecentContent(IO &io)
 {
-	unsigned strSizes = 0;
+	size_t strSizes = 0;
 	for(const auto &e : recentContentList)
 	{
 		strSizes += 2;
@@ -157,14 +162,14 @@ void EmuApp::writeRecentContent(IO &io)
 	}
 }
 
-void EmuApp::readRecentContent(IG::ApplicationContext ctx, IO &io, unsigned readSize_)
+void EmuApp::readRecentContent(IG::ApplicationContext ctx, IO &io, size_t readSize_)
 {
-	int readSize = readSize_;
+	auto readSize = readSize_;
 	while(readSize && !recentContentList.isFull())
 	{
 		if(readSize < 2)
 		{
-			logMsg("expected string length but only %d bytes left", readSize);
+			logMsg("expected string length but only %zu bytes left", readSize);
 			break;
 		}
 
@@ -173,7 +178,7 @@ void EmuApp::readRecentContent(IG::ApplicationContext ctx, IO &io, unsigned read
 
 		if(len > readSize)
 		{
-			logMsg("string length %d longer than %d bytes left", len, readSize);
+			logMsg("string length %d longer than %zu bytes left", len, readSize);
 			break;
 		}
 
@@ -200,7 +205,7 @@ void EmuApp::readRecentContent(IG::ApplicationContext ctx, IO &io, unsigned read
 
 	if(readSize)
 	{
-		logMsg("skipping excess %d bytes", readSize);
+		logMsg("skipping excess %zu bytes", readSize);
 	}
 }
 
@@ -259,7 +264,7 @@ bool EmuApp::setViewportZoom(uint8_t val)
 	optionViewportZoom = val;
 	logMsg("set viewport zoom: %d", int(optionViewportZoom));
 	auto &win = appContext().mainWindow();
-	viewController().updateMainWindowViewport(win, makeViewport(win));
+	viewController().updateMainWindowViewport(win, makeViewport(win), renderer.task());
 	viewController().postDrawToEmuWindows();
 	return true;
 }
@@ -351,7 +356,7 @@ void EmuApp::setLayoutBehindSystemUI(bool on)
 {
 	layoutBehindSystemUI = on;
 	auto &win = appContext().mainWindow();
-	viewController().updateMainWindowViewport(win, makeViewport(win));
+	viewController().updateMainWindowViewport(win, makeViewport(win), renderer.task());
 	viewController().postDrawToEmuWindows();
 }
 

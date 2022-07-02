@@ -28,33 +28,29 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	{
 		"Bundled Content",
 		attach,
-		[this](const TableView &)
+		game
+	},
+	game
+	{
 		{
-			return 1;
-		},
-		[this](const TableView &, size_t idx) -> MenuItem&
-		{
-			return game[0];
-		}
-	}
-{
-	auto &info = system().bundledGameInfo(0);
-	game[0] = {info.displayName, &defaultFace(),
-		[this, &info](const Input::Event &e)
-		{
-			auto file = appContext().openAsset(info.assetName, IO::AccessHint::ALL, IO::TEST_BIT);
-			if(!file)
+			system().bundledGameInfo(0).displayName, &defaultFace(),
+			[this](const Input::Event &e)
 			{
-				logErr("error opening bundled game asset: %s", info.assetName);
-				return;
-			}
-			app().createSystemWithMedia(std::move(file), info.assetName, info.assetName, e, {}, attachParams(),
-				[this](const Input::Event &e)
+				auto &info = system().bundledGameInfo(0);
+				auto file = appContext().openAsset(info.assetName, IO::AccessHint::ALL, IO::TEST_BIT);
+				if(!file)
 				{
-					app().launchSystemWithResumePrompt(e);
-				});
-		}};
-}
+					logErr("error opening bundled game asset: %s", info.assetName);
+					return;
+				}
+				app().createSystemWithMedia(std::move(file), info.assetName, info.assetName, e, {}, attachParams(),
+					[this](const Input::Event &e)
+					{
+						app().launchSystemWithResumePrompt(e);
+					});
+			}
+		}
+	} {}
 
 [[gnu::weak]] const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx) const
 {

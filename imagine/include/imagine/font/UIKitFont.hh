@@ -33,14 +33,14 @@ class UIKitGlyphImage
 {
 public:
 	constexpr UIKitGlyphImage() = default;
-	constexpr UIKitGlyphImage(IG::Pixmap pixmap, void *pixData):
+	constexpr UIKitGlyphImage(PixmapView pixmap, void *pixData):
 		pixmap_{pixmap}, pixData_{pixData} {}
 	UIKitGlyphImage(UIKitGlyphImage &&o) noexcept;
 	UIKitGlyphImage &operator=(UIKitGlyphImage &&o) noexcept;
 	~UIKitGlyphImage();
 
 protected:
-	IG::Pixmap pixmap_{};
+	PixmapView pixmap_{};
 	void *pixData_{};
 
 	void deinit();

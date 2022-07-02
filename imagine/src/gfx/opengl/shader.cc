@@ -450,7 +450,6 @@ NativeProgramBundle GLRenderer::commonProgramBundle(CommonProgram program) const
 		#endif
 		case CommonProgram::NO_TEX: return commonProgram.noTex;
 		default: bug_unreachable("program:%d", (int)program);
-			return commonProgram.noTex;
 	}
 }
 
@@ -492,7 +491,6 @@ bool Renderer::makeCommonProgram(CommonProgram program)
 			return linkCommonProgram(rTask, commonProgram.noTex, noTexFragShaderSrc, false, "color shaded");
 		default:
 			bug_unreachable("program:%d", (int)program);
-			return false;
 	}
 	#else
 	return false;

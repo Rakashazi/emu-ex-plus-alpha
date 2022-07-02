@@ -17,14 +17,9 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/pixmap/Pixmap.hh>
 #include <CoreGraphics/CGImage.h>
 #include <memory>
-
-namespace IG
-{
-class PixelFormat;
-class Pixmap;
-}
 
 namespace IG::Data
 {
@@ -33,7 +28,7 @@ class Quartz2dImage
 {
 public:
 	Quartz2dImage(CStringView path);
-	void readImage(IG::Pixmap dest);
+	void readImage(MutablePixmapView dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	int width();

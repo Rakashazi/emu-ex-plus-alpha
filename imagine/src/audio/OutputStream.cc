@@ -57,7 +57,6 @@ std::unique_ptr<OutputStream> Manager::makeOutputStream(Api api) const
 		#endif
 		default:
 			bug_unreachable("audio API should always be valid");
-			return nullptr;
 	}
 }
 

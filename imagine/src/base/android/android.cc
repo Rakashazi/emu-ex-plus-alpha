@@ -112,7 +112,7 @@ IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat)
 	}
 }
 
-IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFormat format)
+MutablePixmapView makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFormat format)
 {
 	AndroidBitmapInfo info;
 	auto res = AndroidBitmap_getInfo(env, bitmap, &info);
@@ -127,7 +127,7 @@ IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFo
 		// use format from bitmap info
 		format = makePixelFormatFromAndroidFormat(info.format);
 	}
-	return {{{(int)info.width, (int)info.height}, format}, pixels, {(int)info.stride, IG::Pixmap::Units::BYTE}};
+	return {{{(int)info.width, (int)info.height}, format}, pixels, {(int)info.stride, MutablePixmapView::Units::BYTE}};
 }
 
 void ApplicationContext::exit(int returnVal)
@@ -454,7 +454,7 @@ bool ApplicationContext::hasHardwareNavButtons() const
 	return application().hasHardwareNavButtons();
 }
 
-int32_t AndroidApplicationContext::androidSDK() const
+int32_t ApplicationContext::androidSDK() const
 {
 	#ifdef ANDROID_COMPAT_API
 	static_assert(__ANDROID_API__ <= 19, "Compiling with ANDROID_COMPAT_API and API higher than 19");
@@ -821,7 +821,7 @@ bool AndroidApplication::hasFocus() const
 
 SustainedPerformanceType AndroidApplicationContext::sustainedPerformanceModeType() const
 {
-	int sdk = androidSDK();
+	int sdk = static_cast<const ApplicationContext*>(this)->androidSDK();
 	if(sdk >= 24)
 	{
 		return SustainedPerformanceType::DEVICE;

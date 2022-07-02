@@ -37,9 +37,9 @@ class EmuSystem;
 class [[nodiscard]] EmuVideoImage
 {
 public:
-	constexpr EmuVideoImage() {}
+	constexpr EmuVideoImage() = default;
 	EmuVideoImage(EmuSystemTaskContext taskCtx, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff);
-	IG::Pixmap pixmap() const;
+	IG::MutablePixmapView pixmap() const;
 	explicit operator bool() const;
 	void endFrame();
 
@@ -55,7 +55,7 @@ public:
 	using FrameFinishedDelegate = DelegateFunc<void (EmuVideo &)>;
 	using FormatChangedDelegate = DelegateFunc<void (EmuVideo &)>;
 
-	constexpr EmuVideo() {}
+	constexpr EmuVideo() = default;
 	void setRendererTask(Gfx::RendererTask &);
 	bool hasRendererTask() const;
 	bool setFormat(IG::PixmapDesc desc, EmuSystemTaskContext task = {});
@@ -63,13 +63,13 @@ public:
 	void resetImage(IG::PixelFormat newFmt = {});
 	IG::PixmapDesc deleteImage();
 	EmuVideoImage startFrame(EmuSystemTaskContext);
-	void startFrame(EmuSystemTaskContext, IG::Pixmap pix);
+	void startFrame(EmuSystemTaskContext, IG::PixmapView pix);
 	EmuVideoImage startFrameWithFormat(EmuSystemTaskContext, IG::PixmapDesc desc);
-	void startFrameWithFormat(EmuSystemTaskContext, IG::Pixmap pix);
-	void startFrameWithAltFormat(EmuSystemTaskContext, IG::Pixmap pix);
+	void startFrameWithFormat(EmuSystemTaskContext, IG::PixmapView pix);
+	void startFrameWithAltFormat(EmuSystemTaskContext, IG::PixmapView pix);
 	void startUnchangedFrame(EmuSystemTaskContext);
 	void finishFrame(EmuSystemTaskContext, Gfx::LockedTextureBuffer texBuff);
-	void finishFrame(EmuSystemTaskContext, IG::Pixmap pix);
+	void finishFrame(EmuSystemTaskContext, IG::PixmapView pix);
 	void dispatchFrameFinished();
 	bool addFence(Gfx::RendererCommands &cmds);
 	void clear();
@@ -105,7 +105,7 @@ protected:
 	bool needsFence{};
 	Gfx::ColorSpace colSpace{};
 
-	void doScreenshot(EmuSystemTaskContext, IG::Pixmap pix);
+	void doScreenshot(EmuSystemTaskContext, IG::PixmapView pix);
 	void postFrameFinished(EmuSystemTaskContext);
 	void syncImageAccess();
 	void updateNeedsFence();

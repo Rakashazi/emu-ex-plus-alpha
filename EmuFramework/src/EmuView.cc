@@ -85,7 +85,7 @@ void EmuView::setLayoutInputView(EmuInputView *view)
 	inputView = view;
 }
 
-void EmuView::updateAudioStats(unsigned underruns, unsigned overruns, unsigned callbacks, double avgCallbackFrames, unsigned frames)
+void EmuView::updateAudioStats(int underruns, int overruns, int callbacks, double avgCallbackFrames, int frames)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	audioStatsText.setString(fmt::format("Underruns:{}\nOverruns:{}\nCallbacks per second:{}\nFrames per callback:{:.2f}\nTotal frames:{}",

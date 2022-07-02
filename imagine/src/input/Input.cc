@@ -379,6 +379,8 @@ uint8_t BaseApplication::keyEventFlags() const
 	return swappedConfirmKeys();
 }
 
+[[gnu::weak]] void ApplicationContext::enumInputDevices() const {}
+
 bool ApplicationContext::keyInputIsPresent() const
 {
 	return Input::Device::anyTypeBitsPresent(*this, Input::Device::TYPE_BIT_KEYBOARD | Input::Device::TYPE_BIT_GAMEPAD);

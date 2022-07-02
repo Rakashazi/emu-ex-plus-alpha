@@ -35,7 +35,7 @@ static constexpr const char *ctrlStateStr[]
 	"Off", "On", "Hidden"
 };
 
-static constexpr unsigned touchCtrlSizeMenuVal[10]
+static constexpr int touchCtrlSizeMenuVal[10]
 {
 	650,
 	700,
@@ -49,17 +49,17 @@ static constexpr unsigned touchCtrlSizeMenuVal[10]
 	1500,
 };
 
-static constexpr unsigned touchDpadDeadzoneMenuVal[3]
+static constexpr int touchDpadDeadzoneMenuVal[3]
 {
 	100, 135, 160
 };
 
-static constexpr unsigned touchDpadDiagonalSensitivityMenuVal[5]
+static constexpr int touchDpadDiagonalSensitivityMenuVal[5]
 {
 	1000, 1500, 1750, 2000, 2500
 };
 
-static constexpr unsigned touchCtrlBtnSpaceMenuVal[4]
+static constexpr int touchCtrlBtnSpaceMenuVal[4]
 {
 	100, 200, 300, 400
 };
@@ -69,7 +69,7 @@ static constexpr const char *touchCtrlExtraBtnSizeMenuName[4]
 	"None", "Gap only", "10%", "25%"
 };
 
-static constexpr unsigned touchCtrlExtraBtnSizeMenuVal[4]
+static constexpr int touchCtrlExtraBtnSizeMenuVal[4]
 {
 	0, 1, 200, 500
 };
@@ -325,7 +325,7 @@ void TouchConfigView::refreshTouchConfigMenu()
 	touchCtrl.setSelected((int)vController().gamepadControlsVisibility(), *this);
 	if(EmuSystem::maxPlayers > 1)
 		pointerInput.setSelected((int)vController().inputPlayer(), *this);
-	size.setSelected(IG::findIndex(touchCtrlSizeMenuVal, (unsigned)vController().buttonSize(), std::size(sizeItem) - 1), *this);
+	size.setSelected(IG::findIndex(touchCtrlSizeMenuVal, (size_t)vController().buttonSize(), std::size(sizeItem) - 1), *this);
 	dPadState.setSelected((int)layoutPos[0].state, *this);
 	faceBtnState.setSelected((int)layoutPos[2].state, *this);
 	centerBtnState.setSelected((int)layoutPos[1].state, *this);
@@ -427,7 +427,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 			t.setString(fmt::format("{:.2f}", vController().buttonSize() / 100.));
 			return true;
 		},
-		IG::findIndex(touchCtrlSizeMenuVal, (unsigned)vController().buttonSize(), std::size(sizeItem) - 1),
+		IG::findIndex(touchCtrlSizeMenuVal, (size_t)vController().buttonSize(), std::size(sizeItem) - 1),
 		sizeItem
 	},
 	deadzoneItem

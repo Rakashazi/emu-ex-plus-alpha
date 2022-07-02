@@ -421,6 +421,7 @@ public:
 };
 
 using WindowRect = CoordinateRect<int, true, false>;
+using WRect = WindowRect;
 using WP = IP;
 using IRect = Rect2<int>;
 using FRect = Rect2<float>;

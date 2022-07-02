@@ -24,13 +24,8 @@
 #ifndef _RENDER_H_
 #define _RENDER_H_
 
+#include <imagine/pixmap/Pixmap.hh>
 #include <type_traits>
-
-namespace IG
-{
-class Pixmap;
-class PixelFormat;
-}
 
 static constexpr unsigned RENDER_BPP = 32;
 using Pixel = std::conditional_t<RENDER_BPP == 32, uint32_t, uint16_t>;
@@ -42,10 +37,10 @@ extern uint16 spr_col;
 /* Function prototypes */
 extern void render_init(void);
 extern void render_reset(void);
-extern void render_line(int line, IG::Pixmap pix);
+extern void render_line(int line, IG::MutablePixmapView pix);
 extern void blank_line(int line, int offset, int width);
-extern void remap_line(int line, IG::Pixmap pix);
-extern void remapPixmap(IG::Pixmap dest, IG::Pixmap src);
+extern void remap_line(int line, IG::MutablePixmapView pix);
+extern void remapPixmap(IG::MutablePixmapView dest, IG::PixmapView src);
 extern void window_clip(unsigned int data, unsigned int sw);
 extern void render_bg_m4(int line, int width);
 extern void render_bg_m5(int line, int width);
@@ -65,6 +60,8 @@ extern void color_update_m4(int index, unsigned int data);
 extern void color_update_m5(int index, unsigned int data);
 void setFramebufferRenderFormat(IG::PixelFormat);
 IG::PixelFormat framebufferRenderFormat();
+IG::MutablePixmapView framebufferPixmap();
+IG::MutablePixmapView framebufferRenderFormatPixmap();
 
 /* Function pointers */
 extern void (*render_bg)(int line, int width);

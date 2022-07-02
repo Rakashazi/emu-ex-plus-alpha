@@ -80,7 +80,7 @@ static uint8_t makeUnpackAlignment(uintptr_t addr)
 	return map[addr & 7];
 }
 
-static uint8_t unpackAlignForAddrAndPitch(void *srcAddr, uint32_t pitch)
+static uint8_t unpackAlignForAddrAndPitch(const void *srcAddr, uint32_t pitch)
 {
 	uint8_t alignmentForAddr = makeUnpackAlignment((uintptr_t)srcAddr);
 	uint8_t alignmentForPitch = makeUnpackAlignment(pitch);
@@ -113,7 +113,7 @@ static GLenum makeGLDataType(IG::PixelFormatID format)
 			return GL_UNSIGNED_SHORT_5_5_5_1;
 		case PIXEL_RGBA4444:
 			return GL_UNSIGNED_SHORT_4_4_4_4;
-		default: bug_unreachable("format == %d", format); return 0;
+		default: bug_unreachable("format == %d", format);
 	}
 }
 
@@ -137,7 +137,7 @@ static GLenum makeGLFormat(const Renderer &r, IG::PixelFormatID format)
 		case PIXEL_BGRA8888:
 			assert(r.support.hasBGRPixels);
 			return GL_BGRA;
-		default: bug_unreachable("format == %d", format); return 0;
+		default: bug_unreachable("format == %d", format);
 	}
 }
 
@@ -167,7 +167,7 @@ static GLenum makeGLSizedInternalFormat(const Renderer &r, IG::PixelFormatID for
 			return r.support.luminanceAlphaInternalFormat;
 		case PIXEL_A8:
 			return r.support.alphaInternalFormat;
-		default: bug_unreachable("format == %d", format); return 0;
+		default: bug_unreachable("format == %d", format);
 	}
 }
 
@@ -184,7 +184,7 @@ static TextureType typeForPixelFormat(PixelFormatID format)
 		TextureType::T2D_4;
 }
 
-static TextureConfig configWithLoadedImagePixmap(IG::PixmapDesc desc, bool makeMipmaps, const TextureSampler *compatSampler)
+static TextureConfig configWithLoadedImagePixmap(PixmapDesc desc, bool makeMipmaps, const TextureSampler *compatSampler)
 {
 	TextureConfig config{desc};
 	config.setWillGenerateMipmaps(makeMipmaps);
@@ -213,7 +213,7 @@ static IG::ErrorCode loadImageSource(Texture &texture, IG::Data::PixmapSource im
 	return {};
 }
 
-IG::Pixmap LockedTextureBuffer::pixmap() const
+MutablePixmapView LockedTextureBuffer::pixmap() const
 {
 	return pix;
 }
@@ -243,7 +243,7 @@ Texture::Texture(RendererTask &r, IG::Data::PixmapSource img, const TextureSampl
 {
 	IG::ErrorCode err;
 	auto setError = IG::scopeGuard([&](){ if(err && errorPtr) [[unlikely]] { *errorPtr = err; } });
-	if(err = init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps, compatSampler));
+	if(err = init(r, configWithLoadedImagePixmap(img.pixmapView().desc(), makeMipmaps, compatSampler));
 		err) [[unlikely]]
 	{
 		return;
@@ -299,7 +299,7 @@ void GLTexture::deinit()
 		});
 }
 
-uint8_t Texture::bestAlignment(IG::Pixmap p)
+uint8_t Texture::bestAlignment(PixmapView p)
 {
 	return unpackAlignForAddrAndPitch(p.data(), p.pitchBytes());
 }
@@ -345,7 +345,7 @@ uint8_t Texture::levels() const
 	return levels_;
 }
 
-IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
+IG::ErrorCode Texture::setFormat(PixmapDesc desc, uint8_t levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
 	assumeExpr(desc.w());
 	assumeExpr(desc.h());
@@ -432,7 +432,7 @@ void GLTexture::bindTex(RendererCommands &cmds) const
 	cmds.glcBindTexture(target(), texName_);
 }
 
-void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint8_t assumeAlign, uint32_t writeFlags)
+void Texture::writeAligned(uint8_t level, PixmapView pixmap, IG::WP destPos, uint8_t assumeAlign, uint32_t writeFlags)
 {
 	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
 	if(!texName_) [[unlikely]]
@@ -498,7 +498,7 @@ void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uin
 	}
 }
 
-void Texture::write(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t commitFlags)
+void Texture::write(uint8_t level, PixmapView pixmap, IG::WP destPos, uint32_t commitFlags)
 {
 	writeAligned(level, pixmap, destPos, bestAlignment(pixmap), commitFlags);
 }
@@ -539,7 +539,7 @@ LockedTextureBuffer Texture::lock(uint8_t level, IG::WindowRect rect, uint32_t b
 		logErr("failed allocating %u bytes for pixel buffer", bufferBytes);
 		return {};
 	}
-	IG::Pixmap pix{{rect.size(), pixDesc.format()}, data};
+	MutablePixmapView pix{{rect.size(), pixDesc.format()}, data};
 	return {data, pix, rect, level, true};
 }
 
@@ -612,7 +612,7 @@ IG::WP Texture::size(uint8_t level) const
 	return {(int)w, (int)h};
 }
 
-IG::PixmapDesc Texture::pixmapDesc() const
+PixmapDesc Texture::pixmapDesc() const
 {
 	return pixDesc;
 }
@@ -643,7 +643,6 @@ static CommonProgram commonProgramForMode(TextureType type, uint32_t mode)
 				#endif
 				default:
 					bug_unreachable("no default program for texture type:%d", (int)type);
-					return CommonProgram::TEX_REPLACE;
 			}
 		case IMG_MODE_MODULATE:
 			switch(type)
@@ -656,11 +655,9 @@ static CommonProgram commonProgramForMode(TextureType type, uint32_t mode)
 				#endif
 				default:
 					bug_unreachable("no default program for texture type:%d", (int)type);
-					return CommonProgram::TEX;
 			}
 		default:
 			bug_unreachable("no default program for texture mode:%d", mode);
-			return CommonProgram::TEX;
 	}
 }
 
@@ -758,7 +755,7 @@ void GLTexture::setSamplerParamsInGL(const Renderer &r, SamplerParams params, GL
 	GLTextureSampler::setTexParamsInGL(target, params);
 }
 
-void GLTexture::updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum target)
+void GLTexture::updateFormatInfo(PixmapDesc desc, uint8_t levels, GLenum target)
 {
 	assert(levels);
 	levels_ = levels;
@@ -772,7 +769,7 @@ void GLTexture::updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum tar
 }
 
 #ifdef __ANDROID__
-void GLTexture::initWithEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams, bool isMutable)
+void GLTexture::initWithEGLImage(EGLImageKHR eglImg, PixmapDesc desc, SamplerParams samplerParams, bool isMutable)
 {
 	auto &r = rTask->renderer();
 	if(r.support.hasEGLTextureStorage() && !isMutable)
@@ -870,7 +867,7 @@ PixmapTexture::PixmapTexture(RendererTask &r, IG::Data::PixmapSource img, const 
 {
 	IG::ErrorCode err;
 	auto setError = IG::scopeGuard([&](){ if(err && errorPtr) [[unlikely]] { *errorPtr = err; } });
-	if(err = GLPixmapTexture::init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps, compatSampler));
+	if(err = GLPixmapTexture::init(r, configWithLoadedImagePixmap(img.pixmapView().desc(), makeMipmaps, compatSampler));
 		err) [[unlikely]]
 	{
 		return;
@@ -889,9 +886,9 @@ IG::ErrorCode GLPixmapTexture::init(RendererTask &r, TextureConfig config)
 	return {};
 }
 
-IG::ErrorCode PixmapTexture::setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
+IG::ErrorCode PixmapTexture::setFormat(PixmapDesc desc, uint8_t levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
-	IG::PixmapDesc fullPixDesc = renderer().support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
+	PixmapDesc fullPixDesc = renderer().support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
 	if(auto err = Texture::setFormat(fullPixDesc, levels, colorSpace, compatSampler);
 		err) [[unlikely]]
 	{
@@ -908,7 +905,7 @@ FRect PixmapTexture::uvBounds() const
 	return {{}, uv};
 }
 
-IG::PixmapDesc PixmapTexture::usedPixmapDesc() const
+PixmapDesc PixmapTexture::usedPixmapDesc() const
 {
 	return {usedSize, pixmapDesc().format()};
 }
@@ -927,21 +924,21 @@ void GLPixmapTexture::updateUsedPixmapSize(IG::WP usedSize_, IG::WP fullSize)
 	assumeExpr(uv.y >= 0);
 }
 
-void GLPixmapTexture::updateFormatInfo(IG::WP usedSize, IG::PixmapDesc desc, uint8_t levels, GLenum target)
+void GLPixmapTexture::updateFormatInfo(IG::WP usedSize, PixmapDesc desc, uint8_t levels, GLenum target)
 {
 	updateUsedPixmapSize(usedSize, desc.size());
 	GLTexture::updateFormatInfo(desc, levels, target);
 }
 
 #ifdef __ANDROID__
-void GLPixmapTexture::initWithEGLImage(IG::WP usedSize, EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams, bool isMutable)
+void GLPixmapTexture::initWithEGLImage(IG::WP usedSize, EGLImageKHR eglImg, PixmapDesc desc, SamplerParams samplerParams, bool isMutable)
 {
 	updateUsedPixmapSize(usedSize, desc.size());
 	GLTexture::initWithEGLImage(eglImg, desc, samplerParams, isMutable);
 }
 #endif
 
-IG::PixmapDesc TextureSizeSupport::makePixmapDescWithSupportedSize(IG::PixmapDesc desc) const
+PixmapDesc TextureSizeSupport::makePixmapDescWithSupportedSize(PixmapDesc desc) const
 {
 	return desc.makeNewSize(makeSupportedSize(desc.size()));
 }

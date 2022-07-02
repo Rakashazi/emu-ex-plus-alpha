@@ -24,7 +24,7 @@ static GLenum textureTargetToGet(GLenum target)
 	switch(target)
 	{
 		case GL_TEXTURE_2D: return GL_TEXTURE_BINDING_2D;
-		default: bug_unreachable("target == %d", target); return 0;
+		default: bug_unreachable("target == %d", target);
 	}
 }
 

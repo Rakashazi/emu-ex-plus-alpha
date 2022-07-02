@@ -32,8 +32,8 @@ public:
 	virtual ~TextureBufferStorage() = default;
 	TextureBufferStorage &operator=(TextureBufferStorage &&o) = default;
 	LockedTextureBuffer makeLockedBuffer(void *data, int pitchBytes, uint32_t bufferFlags);
-	virtual IG::ErrorCode setFormat(IG::PixmapDesc, ColorSpace, const TextureSampler *compatSampler) = 0;
-	virtual void writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags = 0);
+	virtual IG::ErrorCode setFormat(PixmapDesc, ColorSpace, const TextureSampler *compatSampler) = 0;
+	virtual void writeAligned(PixmapView pixmap, uint8_t assumeAlign, uint32_t writeFlags = 0);
 	virtual LockedTextureBuffer lock(uint32_t bufferFlags = 0) = 0;
 	virtual void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0) = 0;
 	virtual void setCompatTextureSampler(const TextureSampler &compatSampler);
@@ -67,8 +67,8 @@ public:
 	~GLTextureStorage() final;
 	GLTextureStorage(GLTextureStorage &&o) noexcept;
 	GLTextureStorage &operator=(GLTextureStorage &&o) noexcept;
-	IG::ErrorCode setFormat(IG::PixmapDesc, ColorSpace, const TextureSampler *compatSampler) final;
-	void writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags = 0) final;
+	IG::ErrorCode setFormat(PixmapDesc, ColorSpace, const TextureSampler *compatSampler) final;
+	void writeAligned(PixmapView pixmap, uint8_t assumeAlign, uint32_t writeFlags = 0) final;
 	LockedTextureBuffer lock(uint32_t bufferFlags = 0) final;
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0) final;
 	bool isSingleBuffered() const;
@@ -79,7 +79,7 @@ protected:
 	uint8_t bufferIdx{};
 	static constexpr uint8_t SINGLE_BUFFER_VALUE = 2;
 
-	void initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool singleBuffer);
+	void initPixelBuffer(PixmapDesc desc, bool usePBO, bool singleBuffer);
 	BufferInfo currentBuffer() const;
 	void swapBuffer();
 	void deinit();

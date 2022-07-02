@@ -22,6 +22,7 @@
  ****************************************************************************************/
 
 #include "shared.h"
+#include "vdp_render.h"
 #include <imagine/pixmap/Pixmap.hh>
 
 #ifdef NGC
@@ -3702,7 +3703,7 @@ void render_reset(void)
 /* Line rendering functions                                                 */
 /*--------------------------------------------------------------------------*/
 
-void render_line(int line, IG::Pixmap pix)
+void render_line(int line, IG::MutablePixmapView pix)
 {
   int width = bitmap.viewport.w;
 
@@ -3759,7 +3760,7 @@ void blank_line(int line, int offset, int width)
   //remap_line(line);
 }
 
-void remap_line(int line, IG::Pixmap pix)
+void remap_line(int line, IG::MutablePixmapView pix)
 {
   /* Line width */
   int x_offset = bitmap.viewport.x;

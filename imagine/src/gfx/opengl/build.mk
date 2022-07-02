@@ -50,8 +50,7 @@ SRC += gfx/common/GeomQuad.cc \
  gfx/opengl/sync.cc \
  gfx/opengl/Texture.cc \
  gfx/opengl/TextureSampler.cc \
- gfx/opengl/transforms.cc \
- gfx/opengl/Viewport.cc
+ gfx/opengl/transforms.cc
 
 ifeq ($(ENV), ios)
  SRC +=  gfx/opengl/ios/drawable.mm

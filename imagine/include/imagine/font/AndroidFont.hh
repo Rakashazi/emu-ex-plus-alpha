@@ -33,11 +33,11 @@ class AndroidGlyphImage
 {
 public:
 	constexpr AndroidGlyphImage() = default;
-	AndroidGlyphImage(JNI::LockedLocalBitmap, IG::Pixmap);
+	AndroidGlyphImage(JNI::LockedLocalBitmap, PixmapView);
 
 protected:
 	JNI::LockedLocalBitmap lockedBitmap{};
-	IG::Pixmap pixmap_{};
+	PixmapView pixmap_{};
 };
 
 class AndroidFont

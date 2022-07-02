@@ -90,16 +90,17 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 			win.setOnSurfaceChange(
 				[this](IG::Window &win, IG::Window::SurfaceChange change)
 				{
-					auto &winData = windowData(win);
-					renderer.task().updateDrawableForSurfaceChange(win, change);
 					if(change.resized())
 					{
-						auto viewport = Gfx::Viewport::makeFromWindow(win);
+						auto viewport = win.viewport();
+						renderer.setDefaultViewport(win, viewport);
+						auto &winData = windowData(win);
 						winData.proj = {viewport, Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.)};
-						winData.testRectWin = viewport.rectWithRatioBestFitFromViewport(0, 0, 4./3., C2DO, C2DO);
+						winData.testRectWin = viewport.relRectBestFit({}, 4./3., C2DO, C2DO);
 						winData.testRect = winData.proj.plane().unProjectRect(winData.testRectWin);
 						placeElements(win);
 					}
+					renderer.task().updateDrawableForSurfaceChange(win, change);
 				});
 
 			ctx.addOnResume(
@@ -150,7 +151,7 @@ void FrameRateTestApplication::setPickerHandlers(IG::Window &win)
 		[&task = renderer.task()](IG::Window &win, IG::Window::DrawParams params)
 		{
 			auto &winData = windowData(win);
-			return task.draw(win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
+			return task.draw(win, params, {}, winData.proj.matrix(),
 				[&picker = winData.picker](IG::Window &win, Gfx::RendererCommands &cmds)
 				{
 					cmds.clear();
@@ -204,7 +205,7 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 		{
 			auto &winData = windowData(win);
 			auto xIndent = viewManager.tableXIndent();
-			return task.draw(win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
+			return task.draw(win, params, {}, winData.proj.matrix(),
 				[rect = winData.testRectWin, &activeTest = windowData(win).activeTest, xIndent]
 				(IG::Window &win, Gfx::RendererCommands &cmds)
 				{

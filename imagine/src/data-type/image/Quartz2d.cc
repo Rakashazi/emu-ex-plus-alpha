@@ -76,7 +76,7 @@ bool Quartz2dImage::hasAlphaChannel()
 		|| info == kCGImageAlphaLast || info == kCGImageAlphaFirst;
 }
 
-void Quartz2dImage::readImage(IG::Pixmap dest)
+void Quartz2dImage::readImage(MutablePixmapView dest)
 {
 	assert(dest.format() == pixelFormat());
 	int height = this->height();
@@ -100,19 +100,19 @@ PixmapImage::operator bool() const
 	return (bool)img;
 }
 
-void PixmapImage::write(IG::Pixmap dest)
+void PixmapImage::write(MutablePixmapView dest)
 {
 	readImage(dest);
 }
 
-IG::Pixmap PixmapImage::pixmapView()
+PixmapView PixmapImage::pixmapView()
 {
-	return {{{(int)width(), (int)height()}, pixelFormat()}, {}};
+	return PixmapView{{{(int)width(), (int)height()}, pixelFormat()}};
 }
 
 PixmapImage::operator PixmapSource()
 {
-	return {[this](IG::Pixmap dest){ return write(dest); }, pixmapView()};
+	return {[this](MutablePixmapView dest){ return write(dest); }, pixmapView()};
 }
 
 PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const

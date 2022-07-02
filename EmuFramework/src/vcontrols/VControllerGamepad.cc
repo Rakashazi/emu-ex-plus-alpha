@@ -47,7 +47,7 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, Gfx::ProjectionPla
 										: IG::isOdd(input) ? IG::PIXEL_DESC_RGB565.build(1., 1., 1., 1.)
 										: IG::PIXEL_DESC_RGB565.build(0., 1., 0., 1.);
 			}
-		mapImg = r.makePixmapTexture({mapPix, &r.make(View::imageCommonTextureSampler)});
+		mapImg = r.makePixmapTexture({mapPix.desc(), &r.make(View::imageCommonTextureSampler)});
 		mapImg.write(0, mapPix, {});
 		mapSpr = {{}, mapImg};
 		mapSpr.setPos(padArea, projP);
@@ -78,7 +78,7 @@ IG::WindowRect VControllerDPad::bounds() const
 	return padBaseArea;
 }
 
-void VControllerDPad::setSize(Gfx::Renderer &r, unsigned sizeInPixels, Gfx::ProjectionPlane projP)
+void VControllerDPad::setSize(Gfx::Renderer &r, int sizeInPixels, Gfx::ProjectionPlane projP)
 {
 	//logMsg("set dpad pixel size: %d", sizeInPixels);
 	btnSizePixels = sizeInPixels;
@@ -212,7 +212,6 @@ static FRect faceButtonCoordinates(int slot, float texHeight)
 		case 7: return {{33./64., 182.f/texHeight}, {1., 213.f/texHeight}};
 	}
 	bug_unreachable("invalid slot:%d", slot);
-	return {};
 }
 
 void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::Texture &pics)

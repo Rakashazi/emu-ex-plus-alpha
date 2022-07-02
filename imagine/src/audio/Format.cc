@@ -96,7 +96,6 @@ void *Format::copyFrames(void * __restrict__ dest, const void * __restrict__ src
 			else
 			{
 				bug_unreachable("unimplemented conversion");
-				return dest;
 			}
 		}
 		case 4:
@@ -112,13 +111,11 @@ void *Format::copyFrames(void * __restrict__ dest, const void * __restrict__ src
 			else
 			{
 				bug_unreachable("unimplemented conversion");
-				return dest;
 			}
 		}
 		default:
 		{
 			bug_unreachable("unimplemented conversion");
-			return dest;
 		}
 	}
 }

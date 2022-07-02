@@ -202,7 +202,7 @@ bool PngImage::hasAlphaChannel()
 				( png_get_valid(png, info, PNG_INFO_tRNS) ) ) ? 1 : 0;
 }
 
-void PngImage::setTransforms(IG::PixelFormat outFormat, png_infop transInfo)
+void PngImage::setTransforms(PixelFormat outFormat, png_infop transInfo)
 {
 	int addingAlphaChannel = 0;
 	
@@ -275,7 +275,7 @@ void PngImage::setTransforms(IG::PixelFormat outFormat, png_infop transInfo)
 	png_read_update_info(png, info);
 }
 
-std::errc PngImage::readImage(IG::Pixmap dest)
+std::errc PngImage::readImage(PixmapView dest)
 {
 	int height = this->height();
 	int width = this->width();
@@ -286,7 +286,7 @@ std::errc PngImage::readImage(IG::Pixmap dest)
 		logErr("error allocating png transform info");
 		return std::errc::not_enough_memory;
 	}
-	IG::scopeGuard(
+	scopeGuard(
 		[&]()
 		{
 			png_infopp pngInfopAddr = &transInfo;
@@ -360,19 +360,19 @@ PngImage::~PngImage()
 	freeImageData();
 }
 
-void PixmapImage::write(IG::Pixmap dest)
+void PixmapImage::write(MutablePixmapView dest)
 {
 	readImage(dest);
 }
 
-IG::Pixmap PixmapImage::pixmapView()
+PixmapView PixmapImage::pixmapView()
 {
-	return {{{(int)width(), (int)height()}, pixelFormat()}, {}};
+	return PixmapView{{{width(), height()}, pixelFormat()}};
 }
 
 PixmapImage::operator PixmapSource()
 {
-	return {[this](IG::Pixmap dest){ return write(dest); }, pixmapView()};
+	return {[this](MutablePixmapView dest){ return write(dest); }, pixmapView()};
 }
 
 PixmapImage PixmapReader::load(GenericIO io) const
@@ -395,7 +395,7 @@ PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const
 	return load(appContext().openAsset(name, IO::AccessHint::ALL, 0, appName));
 }
 
-bool PixmapWriter::writeToFile(IG::Pixmap pix, const char *path) const
+bool PixmapWriter::writeToFile(PixmapView pix, const char *path) const
 {
 	auto fp = FileIO{path, IO::OPEN_NEW | IO::TEST_BIT};
 	if(!fp)
@@ -441,7 +441,7 @@ bool PixmapWriter::writeToFile(IG::Pixmap pix, const char *path) const
 		PNG_FILTER_TYPE_DEFAULT);
 	png_write_info(pngPtr, infoPtr);
 	{
-		IG::MemPixmap tempMemPix{{pix.size(), IG::PIXEL_FMT_RGB888}};
+		MemPixmap tempMemPix{{pix.size(), PIXEL_FMT_RGB888}};
 		auto tempPix = tempMemPix.view();
 		tempPix.writeConverted(pix);
 		int rowBytes = png_get_rowbytes(pngPtr, infoPtr);

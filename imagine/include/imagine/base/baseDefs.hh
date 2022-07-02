@@ -135,7 +135,7 @@ static constexpr Orientation VIEW_ROTATE_ALL = VIEW_ROTATE_0 | VIEW_ROTATE_90 | 
 static constexpr Orientation VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_270;
 
 const char *orientationToStr(Orientation o);
-bool orientationIsSideways(Orientation o);
+constexpr bool orientationIsSideways(Orientation o){ return o == VIEW_ROTATE_90 || o == VIEW_ROTATE_270; }
 
 static constexpr int APP_ON_EXIT_PRIORITY = 0;
 static constexpr int RENDERER_TASK_ON_EXIT_PRIORITY = 200;

@@ -24,12 +24,6 @@ struct AAssetManager;
 
 namespace IG
 {
-class PixelFormat;
-class Pixmap;
-}
-
-namespace IG
-{
 
 class Application;
 
@@ -52,7 +46,6 @@ public:
 	Application &application() const;
 	JNIEnv *mainThreadJniEnv() const;
 	JNIEnv *thisThreadJniEnv() const;
-	int32_t androidSDK() const;
 	jobject baseActivityObject() const;
 	AAssetManager *aAssetManager() const;
 	std::string androidBuildDevice() const;
@@ -61,16 +54,11 @@ public:
 	bool apkSignatureIsConsistent() const;
 
 	// Input system functions
-	void enumInputDevices() const;
 	bool hasTrackball() const;
 
 protected:
 	ANativeActivity *act{};
 };
-
-IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat);
-IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFormat format);
-
 
 using ApplicationContextImpl = AndroidApplicationContext;
 

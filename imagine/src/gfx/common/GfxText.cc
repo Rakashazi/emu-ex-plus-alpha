@@ -178,7 +178,7 @@ void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, Pro
 	xPos = o.adjustX(xPos, xSize, LT2DO);
 	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
 	yPos = o.adjustY(yPos, projP.alignYToPixel(ySize/2.f), ySize, LT2DO);
-	if(IG::isOdd(projP.viewport().height()))
+	if(IG::isOdd(projP.windowBounds().ySize()))
 		yPos = projP.alignYToPixel(yPos);
 	yPos -= nominalHeight_ - yLineStart;
 	float xOrig = xPos;
@@ -213,7 +213,7 @@ void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, Pro
 	}
 }
 
-void Text::draw(RendererCommands &cmds, GP p, _2DOrigin o, ProjectionPlane projP) const
+void Text::draw(RendererCommands &cmds, FP p, _2DOrigin o, ProjectionPlane projP) const
 {
 	draw(cmds, p.x, p.y, o, projP);
 }

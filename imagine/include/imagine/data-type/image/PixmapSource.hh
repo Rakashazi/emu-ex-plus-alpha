@@ -24,18 +24,18 @@ namespace IG::Data
 class PixmapSource
 {
 public:
-	using WriteDelegate = DelegateFunc<void(IG::Pixmap dest)>;
+	using WriteDelegate = DelegateFunc<void(MutablePixmapView dest)>;
 
 	constexpr PixmapSource() = default;
-	constexpr PixmapSource(IG::Pixmap pix):pix{pix} {}
-	constexpr PixmapSource(WriteDelegate del, IG::Pixmap pix):
+	constexpr PixmapSource(PixmapView pix):pix{pix} {}
+	constexpr PixmapSource(WriteDelegate del, PixmapView pix):
 		writeDel{del}, pix{pix} {}
-	constexpr void write(IG::Pixmap dest) { writeDel(dest); }
-	constexpr IG::Pixmap pixmapView() { return pix; }
+	constexpr void write(MutablePixmapView dest) { writeDel(dest); }
+	constexpr PixmapView pixmapView() { return pix; }
 
 protected:
 	WriteDelegate writeDel{};
-	IG::Pixmap pix{};
+	PixmapView pix{};
 };
 
 }

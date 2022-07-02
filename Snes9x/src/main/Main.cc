@@ -52,9 +52,9 @@ const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx) const
 	return info[0];
 }
 
-static IG::Pixmap snesPixmapView(IG::WP size)
+static IG::PixmapView snesPixmapView(IG::WP size)
 {
-	return {{size, srcPixFmt}, GFX.Screen, {(int)GFX.Pitch, Pixmap::Units::BYTE}};
+	return {{size, srcPixFmt}, GFX.Screen, {(int)GFX.Pitch, PixmapView::Units::BYTE}};
 }
 
 const char *EmuSystem::shortSystemName() const

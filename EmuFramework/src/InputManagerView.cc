@@ -180,14 +180,13 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 			pushAndShow(std::move(multiChoiceView), e);
 		}
 	},
-	#ifdef __ANDROID__
 	rescanOSDevices
 	{
 		"Re-scan OS Input Devices", &defaultFace(),
 		[this](const Input::Event &e)
 		{
 			appContext().enumInputDevices();
-			unsigned devices = 0;
+			int devices = 0;
 			for(auto &e : appContext().inputDevices())
 			{
 				if(e->map() == Input::Map::SYSTEM || e->map() == Input::Map::ICADE)
@@ -196,7 +195,6 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 			app().postMessage(2, false, fmt::format("{} OS devices present", devices));
 		}
 	},
-	#endif
 	identDevice
 	{
 		"Auto-detect Device To Setup", &defaultFace(),
@@ -257,12 +255,11 @@ void InputManagerView::loadItems()
 	item.emplace_back(&generalOptions);
 	item.emplace_back(&deleteDeviceConfig);
 	item.emplace_back(&deleteProfile);
-	#ifdef __ANDROID__
-	if(appContext().androidSDK() >= 12 && appContext().androidSDK() < 16)
+	doIfUsed(rescanOSDevices, [&](auto &mItem)
 	{
-		item.emplace_back(&rescanOSDevices);
-	}
-	#endif
+		if(appContext().androidSDK() >= 12 && appContext().androidSDK() < 16)
+			item.emplace_back(&mItem);
+	});
 	item.emplace_back(&deviceListHeading);
 	inputDevName.clear();
 	inputDevName.reserve(appContext().inputDevices().size());
@@ -492,14 +489,11 @@ public:
 					});
 			}
 		}
-		unsigned defaultConfs = 0;
-		auto defaultConf = KeyConfig::defaultConfigsForDevice(dev, defaultConfs);
-		iterateTimes(defaultConfs, c)
+		for(const auto &conf : KeyConfig::defaultConfigsForDevice(dev))
 		{
-			auto &conf = KeyConfig::defaultConfigsForDevice(dev)[c];
-			if(selectedName == defaultConf[c].name)
+			if(selectedName == conf.name)
 				activeItem = textItem.size();
-			textItem.emplace_back(defaultConf[c].name, &defaultFace(),
+			textItem.emplace_back(conf.name, &defaultFace(),
 				[this, &conf](const Input::Event &e)
 				{
 					auto del = onProfileChange;
@@ -510,13 +504,13 @@ public:
 	}
 };
 
-static unsigned playerConfToMenuIdx(unsigned player)
+static int playerConfToMenuIdx(int player)
 {
 	if(player == InputDeviceConfig::PLAYER_MULTI)
 		return 0;
 	else
 	{
-		assert(player < EmuSystem::maxPlayers);
+		assert(player < (int)EmuSystem::maxPlayers);
 		return player + 1;
 	}
 }
@@ -646,7 +640,6 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 					if(!conf)
 					{
 						bug_unreachable("confirmed deletion of a read-only key config, should never happen");
-						return;
 					}
 					logMsg("deleting profile: %s", conf->name.data());
 					removeKeyConfFromAllDevices(savedInputDevs(), conf, appContext());

@@ -91,7 +91,7 @@ public:
 	const char *sysFileDir{};
 	VicePlugin plugin{};
 	std::string defaultPaletteName{};
-	Pixmap canvasSrcPix{};
+	IG::PixmapView canvasSrcPix{};
 	PixelFormat pixFmt{};
 	ViceSystem currSystem{};
 	std::atomic_bool runningFrame{};

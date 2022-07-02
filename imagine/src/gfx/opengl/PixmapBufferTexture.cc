@@ -140,7 +140,7 @@ IG::ErrorCode GLPixmapBufferTexture::initWithSurfaceTexture(RendererTask &r, Tex
 }
 #endif
 
-IG::ErrorCode PixmapBufferTexture::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
+IG::ErrorCode PixmapBufferTexture::setFormat(PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
 	if(!directTex) [[unlikely]]
 		return {EINVAL};
@@ -149,13 +149,13 @@ IG::ErrorCode PixmapBufferTexture::setFormat(IG::PixmapDesc desc, ColorSpace col
 	return directTex->setFormat(desc, colorSpace, compatSampler);
 }
 
-void PixmapBufferTexture::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags)
+void PixmapBufferTexture::writeAligned(PixmapView pixmap, uint8_t assumeAlign, uint32_t writeFlags)
 {
 	assumeExpr(directTex);
 	return directTex->writeAligned(pixmap, assumeAlign, writeFlags);
 }
 
-void PixmapBufferTexture::write(IG::Pixmap pixmap, uint32_t writeFlags)
+void PixmapBufferTexture::write(PixmapView pixmap, uint32_t writeFlags)
 {
 	writeAligned(pixmap, Texture::bestAlignment(pixmap), writeFlags);
 }
@@ -191,14 +191,14 @@ IG::WP PixmapBufferTexture::size() const
 	return directTex->size(0);
 }
 
-IG::PixmapDesc PixmapBufferTexture::pixmapDesc() const
+PixmapDesc PixmapBufferTexture::pixmapDesc() const
 {
 	if(!directTex) [[unlikely]]
 		return {};
 	return directTex->pixmapDesc();
 }
 
-IG::PixmapDesc PixmapBufferTexture::usedPixmapDesc() const
+PixmapDesc PixmapBufferTexture::usedPixmapDesc() const
 {
 	if(!directTex) [[unlikely]]
 		return {};
@@ -284,7 +284,7 @@ GLTextureStorage &GLTextureStorage::operator=(GLTextureStorage &&o) noexcept
 	return *this;
 }
 
-void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool singleBuffer)
+void GLTextureStorage::initPixelBuffer(PixmapDesc desc, bool usePBO, bool singleBuffer)
 {
 	if(singleBuffer)
 		bufferIdx = SINGLE_BUFFER_VALUE;
@@ -368,7 +368,7 @@ bool GLTextureStorage::isSingleBuffered() const
 	return bufferIdx == SINGLE_BUFFER_VALUE;
 }
 
-IG::ErrorCode GLTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
+IG::ErrorCode GLTextureStorage::setFormat(PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
 	initPixelBuffer(desc, pbo, isSingleBuffered());
 	return PixmapTexture::setFormat(desc, 1, colorSpace, compatSampler);
@@ -378,7 +378,7 @@ LockedTextureBuffer GLTextureStorage::lock(uint32_t bufferFlags)
 {
 	auto bufferInfo = currentBuffer();
 	IG::WindowRect fullRect{{}, size(0)};
-	IG::Pixmap pix{{fullRect.size(), pixmapDesc().format()}, bufferInfo.data};
+	MutablePixmapView pix{{fullRect.size(), pixmapDesc().format()}, bufferInfo.data};
 	if(bufferFlags & Texture::BUFFER_FLAG_CLEARED)
 		pix.clear();
 	return {bufferInfo.bufferOffset, pix, fullRect, 0, false, pbo};
@@ -390,7 +390,7 @@ void GLTextureStorage::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 	swapBuffer();
 }
 
-void GLTextureStorage::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags)
+void GLTextureStorage::writeAligned(PixmapView pixmap, uint8_t assumeAlign, uint32_t writeFlags)
 {
 	if(!texName()) [[unlikely]]
 	{
@@ -496,7 +496,7 @@ static bool hasHardwareBuffer(Renderer &r)
 LockedTextureBuffer TextureBufferStorage::makeLockedBuffer(void *data, int pitchBytes, uint32_t bufferFlags)
 {
 	IG::WindowRect fullRect{{}, size(0)};
-	IG::Pixmap pix{pixmapDesc(), data, {pitchBytes, IG::Pixmap::Units::BYTE}};
+	MutablePixmapView pix{pixmapDesc(), data, {pitchBytes, MutablePixmapView::Units::BYTE}};
 	if(bufferFlags & Texture::BUFFER_FLAG_CLEARED)
 		pix.clear();
 	return {nullptr, pix, fullRect, 0, false};
@@ -507,7 +507,7 @@ void TextureBufferStorage::setCompatTextureSampler(const TextureSampler &compatS
 	Texture::setCompatTextureSampler(compatSampler);
 }
 
-void TextureBufferStorage::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags)
+void TextureBufferStorage::writeAligned(PixmapView pixmap, uint8_t assumeAlign, uint32_t writeFlags)
 {
 	if(!texName()) [[unlikely]]
 	{

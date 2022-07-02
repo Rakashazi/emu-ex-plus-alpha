@@ -190,7 +190,7 @@ std::array<int, 2> VControllerButtonGroup::findButtonIndices(IG::WP windowPos) c
 	std::array<int, 2> btnOut{-1, -1};
 	if(state() == VControllerState::OFF)
 		return btnOut;
-	for(unsigned count = 0; auto &b : buttons())
+	for(size_t count = 0; auto &b : buttons())
 	{
 		if(b.isEnabled() && b.realBounds().overlaps(windowPos))
 		{

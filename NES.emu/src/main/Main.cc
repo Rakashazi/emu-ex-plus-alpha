@@ -375,7 +375,7 @@ void NesSystem::renderVideo(EmuSystemTaskContext taskCtx, EmuVideo &video, uint8
 {
 	auto img = video.startFrame(taskCtx);
 	auto pix = img.pixmap();
-	IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
+	IG::PixmapView ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
 	int xStart = pix.w() == 256 ? 0 : 8;
 	int yStart = optionStartVideoLine;
 	auto ppuPixRegion = ppuPix.subView({xStart, yStart}, pix.size());

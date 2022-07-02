@@ -21,17 +21,23 @@
 namespace IG
 {
 
-class MemPixmap : public PixmapDesc
+class MemPixmap
 {
 public:
 	constexpr MemPixmap() = default;
-	MemPixmap(PixmapDesc format);
-	explicit operator bool() const;
-	Pixmap view() const;
-	Pixmap subView(WP pos, WP size) const;
+
+	MemPixmap(PixmapDesc desc):
+		buffer{new uint8_t[desc.bytes()]},
+		desc_{desc} {}
+
+	explicit operator bool() const { return (bool)buffer; }
+	MutablePixmapView view() const { return {desc(), buffer.get()}; }
+	MutablePixmapView subView(WP pos, WP size) const { return view().subView(pos, size); }
+	PixmapDesc desc() const { return desc_; }
 
 protected:
 	std::unique_ptr<uint8_t[]> buffer{};
+	PixmapDesc desc_{};
 };
 
 }

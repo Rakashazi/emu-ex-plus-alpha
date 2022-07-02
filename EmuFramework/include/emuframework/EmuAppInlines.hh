@@ -27,12 +27,12 @@ namespace EmuEx
 
 class EmuSystem;
 
-std::u16string_view appViewTitle()
+std::u16string_view EmuApp::mainViewName()
 {
 	return u"" CONFIG_APP_NAME " " IMAGINE_VERSION;
 }
 
-bool hasGooglePlayStoreFeatures()
+bool EmuApp::hasGooglePlayStoreFeatures()
 {
 	#if defined __ANDROID__ && defined CONFIG_GOOGLE_PLAY_STORE
 	return true;

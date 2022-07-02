@@ -82,13 +82,13 @@ void VController::setImg(Gfx::Texture &pics)
 	}
 }
 
-void VController::setButtonSize(unsigned gamepadBtnSizeInPixels, unsigned uiBtnSizeInPixels, Gfx::ProjectionPlane projP)
+void VController::setButtonSize(int gamepadBtnSizeInPixels, int uiBtnSizeInPixels, Gfx::ProjectionPlane projP)
 {
 	if(EmuSystem::inputHasKeyboard)
 		kb.place(projP.unprojectYSize(gamepadBtnSizeInPixels), projP.unprojectYSize(gamepadBtnSizeInPixels * .75), projP);
 	if constexpr(VCONTROLS_GAMEPAD)
 	{
-		IG::WP size{(int)gamepadBtnSizeInPixels, (int)gamepadBtnSizeInPixels};
+		IG::WP size{gamepadBtnSizeInPixels, gamepadBtnSizeInPixels};
 		IG::WP extraFaceBtnSize
 		{
 			int(gamepadBtnSizeInPixels * (buttonXPadding() / 1000.f)),
@@ -97,7 +97,7 @@ void VController::setButtonSize(unsigned gamepadBtnSizeInPixels, unsigned uiBtnS
 		gp.setFaceButtonSize(renderer(), size, extraFaceBtnSize, projP);
 		gp.centerButtons().setButtonSize(size, extraFaceBtnSize);
 	}
-	IG::WP size = {(int)uiBtnSizeInPixels, (int)uiBtnSizeInPixels};
+	IG::WP size = {uiBtnSizeInPixels, uiBtnSizeInPixels};
 	if(menuBtn.bounds().size() != size)
 		logMsg("set UI button size:%d", size.x);
 	menuBtn.setSize(size);
@@ -161,7 +161,7 @@ void VController::place()
 		gp.setBoundingAreaVisible(renderer(), boundingAreaVisible(), winData.projection.plane());
 	}
 	applyButtonSize();
-	auto &layoutPos = layoutPosition()[winData.viewport().isPortrait() ? 1 : 0];
+	auto &layoutPos = layoutPosition()[window().isPortrait() ? 1 : 0];
 	iterateTimes(numElements(), i)
 	{
 		setPos(i, layoutToPixelPos(layoutPos[i], winData.contentBounds()));
@@ -372,7 +372,7 @@ IG::WindowRect VController::bounds(int elemIdx) const
 			case 4: return ffBtn.bounds();
 			case 5: return gp.lTrigger().bounds();
 			case 6: return gp.rTrigger().bounds();
-			default: bug_unreachable("elemIdx == %d", elemIdx); return {};
+			default: bug_unreachable("elemIdx == %d", elemIdx);
 		}
 	}
 	else
@@ -384,7 +384,7 @@ IG::WindowRect VController::bounds(int elemIdx) const
 			case 2: return {};
 			case 3: return menuBtn.bounds();
 			case 4: return ffBtn.bounds();
-			default: bug_unreachable("elemIdx == %d", elemIdx); return {};
+			default: bug_unreachable("elemIdx == %d", elemIdx);
 		}
 	}
 }
@@ -392,7 +392,7 @@ IG::WindowRect VController::bounds(int elemIdx) const
 void VController::setPos(int elemIdx, IG::WP pos)
 {
 	auto contentBounds = windowData().contentBounds();
-	auto bounds = allowButtonsPastContentBounds() ? windowData().viewport().bounds() : contentBounds;
+	auto bounds = allowButtonsPastContentBounds() ? windowData().windowBounds() : contentBounds;
 	auto projP = windowData().projection.plane();
 	if constexpr(VCONTROLS_GAMEPAD)
 	{
@@ -405,7 +405,7 @@ void VController::setPos(int elemIdx, IG::WP pos)
 			case 4: return ffBtn.setPos(pos, contentBounds, projP);
 			case 5: return gp.lTrigger().setPos(pos, bounds, projP);
 			case 6: return gp.rTrigger().setPos(pos, bounds, projP);
-			default: return bug_unreachable("elemIdx == %d", elemIdx);
+			default: bug_unreachable("elemIdx == %d", elemIdx);
 		}
 	}
 	else
@@ -415,7 +415,7 @@ void VController::setPos(int elemIdx, IG::WP pos)
 			case 0 ... 2: return;
 			case 3: return menuBtn.setPos(pos, contentBounds, projP);
 			case 4: return ffBtn.setPos(pos, contentBounds, projP);
-			default: return bug_unreachable("elemIdx == %d", elemIdx);
+			default: bug_unreachable("elemIdx == %d", elemIdx);
 		}
 	}
 }
@@ -463,7 +463,7 @@ VControllerState VController::state(int elemIdx) const
 			case 4: return ffBtn.state();
 			case 5: return gp.lTrigger().state();
 			case 6: return gp.rTrigger().state();
-			default: bug_unreachable("elemIdx == %d", elemIdx); return VControllerState::OFF;
+			default: bug_unreachable("elemIdx == %d", elemIdx);
 		}
 	}
 	else
@@ -475,7 +475,7 @@ VControllerState VController::state(int elemIdx) const
 			case 2: return VControllerState::OFF;
 			case 3: return menuBtn.state();
 			case 4: return ffBtn.state();
-			default: bug_unreachable("elemIdx == %d", elemIdx); return VControllerState::OFF;
+			default: bug_unreachable("elemIdx == %d", elemIdx);
 		}
 	}
 }
@@ -523,13 +523,13 @@ void VController::setKeyboardImage(Gfx::TextureSpan img)
 
 bool VController::menuHitTest(IG::WP pos)
 {
-	auto &layoutPos = layoutPosition()[windowData().viewport().isPortrait() ? 1 : 0];
+	auto &layoutPos = layoutPosition()[window().isPortrait() ? 1 : 0];
 	return layoutPos[VCTRL_LAYOUT_MENU_IDX].state != VControllerState::OFF && menuBtn.realBounds().overlaps(pos);
 }
 
 bool VController::fastForwardHitTest(IG::WP pos)
 {
-	auto &layoutPos = layoutPosition()[windowData().viewport().isPortrait() ? 1 : 0];
+	auto &layoutPos = layoutPosition()[window().isPortrait() ? 1 : 0];
 	return layoutPos[VCTRL_LAYOUT_FF_IDX].state != VControllerState::OFF && ffBtn.realBounds().overlaps(pos);
 }
 
@@ -819,7 +819,7 @@ bool VController::updateAutoOnScreenControlVisible()
 	return false;
 }
 
-bool VController::readConfig(IO &io, unsigned key, unsigned size)
+bool VController::readConfig(IO &io, unsigned key, size_t size)
 {
 	switch(key)
 	{
@@ -889,11 +889,11 @@ void VController::writeConfig(IO &io) const
 	}
 }
 
-void VController::readSerializedLayoutPositions(IO &io, unsigned size)
+void VController::readSerializedLayoutPositions(IO &io, size_t size)
 {
 	if(size < serializedLayoutPositionsSize())
 	{
-		logErr("expected layout position size:%u, got size:%u", serializedLayoutPositionsSize(), size);
+		logErr("expected layout position size:%zu, got size:%zu", serializedLayoutPositionsSize(), size);
 		return;
 	}
 	for(auto &posArr : layoutPosition())
@@ -921,9 +921,9 @@ void VController::readSerializedLayoutPositions(IO &io, unsigned size)
 	}
 }
 
-unsigned VController::serializedLayoutPositionsSize() const
+size_t VController::serializedLayoutPositionsSize() const
 {
-	unsigned positions = std::size(layoutPosition()[0]) * std::size(layoutPosition());
+	auto positions = std::size(layoutPosition()[0]) * std::size(layoutPosition());
 	return positions * sizeof(VControllerLayoutPositionSerialized);
 }
 

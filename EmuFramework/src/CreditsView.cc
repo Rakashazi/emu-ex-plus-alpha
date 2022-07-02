@@ -15,7 +15,7 @@
 
 #define LOGTAG "CreditsView"
 #include <emuframework/CreditsView.hh>
-#include "private.hh"
+#include <emuframework/EmuApp.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -84,7 +84,7 @@ CreditsView::~CreditsView()
 
 std::u16string_view CreditsView::name() const
 {
-	return appViewTitle();
+	return EmuApp::mainViewName();
 }
 
 }

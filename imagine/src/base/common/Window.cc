@@ -22,11 +22,12 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
+#include <limits>
 
 namespace IG
 {
 
-static constexpr uint8_t MAX_DRAW_EVENT_PRIORITY = 0xFF;
+constexpr int8_t MAX_DRAW_EVENT_PRIORITY = std::numeric_limits<int8_t>::max();
 
 static auto defaultOnSurfaceChange = [](Window &, Window::SurfaceChange){};
 static auto defaultOnDraw = [](Window &, Window::DrawParams){ return true; };
@@ -192,6 +193,12 @@ bool Window::removeOnFrame(OnFrameDelegate del, FrameTimeSource clock)
 	}
 }
 
+bool Window::moveOnFrame(Window &srcWin, OnFrameDelegate del, FrameTimeSource src)
+{
+	srcWin.removeOnFrame(del, src);
+	return addOnFrame(del, src);
+}
+
 void Window::resetAppData()
 {
 	appDataPtr.reset();
@@ -239,7 +246,7 @@ bool Window::needsDraw() const
 	return drawNeeded;
 }
 
-void Window::postDraw(uint8_t priority)
+void Window::postDraw(int8_t priority)
 {
 	if(priority < drawEventPriority())
 	{
@@ -267,7 +274,7 @@ void Window::postFrameReady()
 		drawEvent.notify();
 }
 
-void Window::postDrawToMainThread(uint8_t priority)
+void Window::postDrawToMainThread(int8_t priority)
 {
 	appContext().runOnMainThread(
 		[this, priority](ApplicationContext)
@@ -281,12 +288,12 @@ void Window::postFrameReadyToMainThread()
 	postFrameReady();
 }
 
-uint8_t Window::setDrawEventPriority(uint8_t priority)
+int8_t Window::setDrawEventPriority(int8_t priority)
 {
 	return std::exchange(drawEventPriority_, priority);
 }
 
-uint8_t Window::drawEventPriority() const
+int8_t Window::drawEventPriority() const
 {
 	return drawEventPriority_;
 }
@@ -611,6 +618,16 @@ IG::Point2D<int> Window::transformInputPos(IG::Point2D<int> srcPos) const
 	if(yPointerTransform == PointerMode::INVERT)
 		pos.y = height() - pos.y;
 	return pos;
+}
+
+Viewport Window::viewport(WindowRect rect) const
+{
+	return {bounds(), rect, softOrientation()};
+}
+
+Viewport Window::viewport() const
+{
+	return {bounds(), softOrientation()};
 }
 
 Screen &WindowConfig::screen(ApplicationContext ctx) const

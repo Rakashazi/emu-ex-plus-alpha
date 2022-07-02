@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/pixmap/PixelFormat.hh>
+#include <imagine/pixmap/Pixmap.hh>
 #include <jni.h>
 
 namespace IG
@@ -57,5 +57,8 @@ static bool surfaceRotationIsStraight(SurfaceRotation o)
 {
 	return o == SURFACE_ROTATION_0 || o == SURFACE_ROTATION_180;
 }
+
+PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat);
+MutablePixmapView makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, PixelFormat format);
 
 }

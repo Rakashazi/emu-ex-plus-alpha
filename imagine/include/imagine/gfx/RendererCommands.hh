@@ -23,6 +23,11 @@
 #include <imagine/gfx/opengl/GLRendererCommands.hh>
 #endif
 
+namespace IG
+{
+class Viewport;
+}
+
 namespace IG::Gfx
 {
 
@@ -94,7 +99,7 @@ public:
 	void setCommonTextureSampler(CommonTextureSampler sampler);
 	void set(CommonTextureSampler sampler) { setCommonTextureSampler(sampler); }
 	void setViewport(Viewport v);
-	Viewport viewport() const;
+	void restoreViewport();
 	void vertexBufferData(const void *v, size_t size);
 	void bindTempVertexBuffer();
 	void flush();

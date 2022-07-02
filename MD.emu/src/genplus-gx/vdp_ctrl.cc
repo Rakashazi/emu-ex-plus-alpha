@@ -22,6 +22,7 @@
  ****************************************************************************************/
 
 #include "shared.h"
+#include "vdp_render.h"
 #include "hvc.h"
 #include <imagine/logger/logger.h>
 #include <imagine/pixmap/Pixmap.hh>
@@ -2621,17 +2622,17 @@ static void vdp_dma_fill(unsigned int data, int length)
   while (--length);
 }
 
-static IG::Pixmap framebufferPixmap(IG::PixelFormat fmt)
+static IG::MutablePixmapView framebufferPixmap(IG::PixelFormat fmt)
 {
 	return {{{bitmap.viewport.w, bitmap.viewport.h}, fmt}, frameBufferData};
 }
 
-IG::Pixmap framebufferPixmap()
+IG::MutablePixmapView framebufferPixmap()
 {
 	return framebufferPixmap(fbPixelFormat);
 }
 
-IG::Pixmap framebufferRenderFormatPixmap()
+IG::MutablePixmapView framebufferRenderFormatPixmap()
 {
 	return framebufferPixmap(framebufferRenderFormat());
 }

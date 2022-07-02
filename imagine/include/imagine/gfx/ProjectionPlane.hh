@@ -17,8 +17,12 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/Viewport.hh>
 #include <imagine/util/rectangle2.h>
+
+namespace IG
+{
+class Viewport;
+}
 
 namespace IG::Gfx
 {
@@ -36,9 +40,9 @@ public:
 	GCRect bounds() const { return rect; }
 	float width() const;
 	float height() const;
-	GP size() const;
+	FP size() const;
 	float focalZ() const;
-	Viewport viewport() const;
+	WindowRect windowBounds() const { return winBounds; }
 	float unprojectXSize(float x) const;
 	float unprojectYSize(float y) const;
 	float unprojectX(float x) const;
@@ -47,23 +51,23 @@ public:
 	float projectYSize(float y) const;
 	float projectX(float x) const;
 	float projectY(float y) const;
-	float unprojectXSize(IG::WindowRect r) const { return unprojectXSize(r.xSize()); }
-	float unprojectYSize(IG::WindowRect r) const { return unprojectYSize(r.ySize()); }
-	GP unprojectSize(IG::WindowRect r) const { return {unprojectXSize(r), unprojectYSize(r)}; }
+	float unprojectXSize(WindowRect r) const { return unprojectXSize(r.xSize()); }
+	float unprojectYSize(WindowRect r) const { return unprojectYSize(r.ySize()); }
+	FP unprojectSize(WindowRect r) const { return {unprojectXSize(r), unprojectYSize(r)}; }
 	GCRect unProjectRect(int x, int y, int x2, int y2) const;
-	GCRect unProjectRect(IG::WindowRect src) const;
+	GCRect unProjectRect(WindowRect src) const;
 	IG::WindowRect projectRect(GCRect src) const;
 	float alignXToPixel(float x) const;
 	float alignYToPixel(float y) const;
-	IG::Point2D<float> alignToPixel(IG::Point2D<float> p) const;
-	Mat4 makeTranslate(IG::Point2D<float> p) const;
+	FP alignToPixel(FP p) const;
+	Mat4 makeTranslate(FP p) const;
 	Mat4 makeTranslate() const;
-	void loadTranslate(Gfx::RendererCommands &cmds, float x, float y) const;
-	void loadTranslate(Gfx::RendererCommands &cmds, GP p) const;
-	void resetTransforms(Gfx::RendererCommands &cmds) const;
+	void loadTranslate(RendererCommands &cmds, float x, float y) const;
+	void loadTranslate(RendererCommands &cmds, FP p) const;
+	void resetTransforms(RendererCommands &cmds) const;
 
 private:
-	Viewport viewport_{};
+	WindowRect winBounds{};
 	GCRect rect{};
 	float w{}, h{};
 	float focal{};

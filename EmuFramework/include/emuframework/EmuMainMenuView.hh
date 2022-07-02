@@ -40,8 +40,8 @@ public:
 	void loadStandardItems();
 	void setAudioVideo(EmuAudio &audio, EmuVideoLayer &videoLayer);
 
-	static constexpr unsigned STANDARD_ITEMS = 15;
-	static constexpr unsigned MAX_SYSTEM_ITEMS = 5;
+	static constexpr int STANDARD_ITEMS = 15;
+	static constexpr int MAX_SYSTEM_ITEMS = 5;
 
 protected:
 	EmuAudio *audio{};

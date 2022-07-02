@@ -22,7 +22,7 @@ namespace EmuEx
 
 struct EmuFrameTimeInfo
 {
-	uint32_t advanced;
+	int advanced;
 	IG::FrameTime presentTime;
 };
 

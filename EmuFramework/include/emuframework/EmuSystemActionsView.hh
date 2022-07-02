@@ -20,10 +20,6 @@
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/container/ArrayList.hh>
 
-#if defined __ANDROID__
-#define CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
-#endif
-
 namespace EmuEx
 {
 
@@ -36,8 +32,8 @@ public:
 	void onShow() override;
 	void loadStandardItems();
 
-	static constexpr unsigned STANDARD_ITEMS = 9;
-	static constexpr unsigned MAX_SYSTEM_ITEMS = 6;
+	static constexpr int STANDARD_ITEMS = 9;
+	static constexpr int MAX_SYSTEM_ITEMS = 6;
 
 protected:
 	TextMenuItem cheats;
@@ -45,9 +41,7 @@ protected:
 	TextMenuItem loadState;
 	TextMenuItem saveState;
 	TextMenuItem stateSlot;
-	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
-	TextMenuItem addLauncherIcon;
-	#endif
+	IG_UseMemberIf(Config::envIsAndroid, TextMenuItem, addLauncherIcon);
 	TextMenuItem screenshot;
 	TextMenuItem resetSessionOptions;
 	TextMenuItem close;

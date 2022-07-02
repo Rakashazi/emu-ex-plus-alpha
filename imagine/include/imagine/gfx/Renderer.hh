@@ -36,6 +36,7 @@ class PixmapSource;
 namespace IG
 {
 class Window;
+class Viewport;
 }
 
 namespace IG::Gfx
@@ -86,6 +87,7 @@ public:
 	bool attachWindow(Window &, DrawableConfig c = {});
 	void detachWindow(Window &);
 	bool setDrawableConfig(Window &, DrawableConfig);
+	void setDefaultViewport(Window &, Viewport);
 	bool canRenderToMultiplePixelFormats() const;
 	NativeWindowFormat nativeWindowFormat() const;
 	void setWindowValidOrientations(Window &win, Orientation validO);

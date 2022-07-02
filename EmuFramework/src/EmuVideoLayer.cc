@@ -115,7 +115,7 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 			}
 			else
 			{
-				Gfx::GP size = projP.size();
+				auto size = projP.size();
 				if(aR)
 				{
 					size = IG::sizesWithRatioBestFit((float)aR, size.x, size.y);
@@ -221,7 +221,6 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	cmds.setBlendMode(0);
 	if(effects.size())
 	{
-		auto prevViewport = cmds.viewport();
 		cmds.setClipTest(false);
 		cmds.setDither(false);
 		TextureSpan srcTex = video.image();
@@ -236,7 +235,7 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 		}
 		cmds.setDefaultRenderTarget();
 		cmds.setDither(true);
-		cmds.setViewport(prevViewport);
+		cmds.restoreViewport();
 	}
 	disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 	bool srgbFrameBufferWrite = srgbColorSpace();
@@ -264,10 +263,10 @@ void EmuVideoLayer::setFormat(EmuSystem &sys, IG::PixelFormat videoFmt, IG::Pixe
 	}
 }
 
-void EmuVideoLayer::setOverlay(int effect)
+void EmuVideoLayer::setOverlay(ImageOverlayId id)
 {
-	userOverlayEffectId = effect;
-	vidImgOverlay.setEffect(video.renderer(), effect);
+	userOverlayEffectId = id;
+	vidImgOverlay.setEffect(video.renderer(), id);
 	placeOverlay();
 }
 

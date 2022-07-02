@@ -495,7 +495,7 @@ char EmuSystem::saveSlotChar(int slot) const
 	{
 		case -1: return 'a';
 		case 0 ... 9: return '0' + slot;
-		default: bug_unreachable("slot == %d", slot); return 0;
+		default: bug_unreachable("slot == %d", slot);
 	}
 }
 
@@ -505,7 +505,7 @@ char EmuSystem::saveSlotCharUpper(int slot) const
 	{
 		case -1: return 'A';
 		case 0 ... 9: return '0' + slot;
-		default: bug_unreachable("slot == %d", slot); return 0;
+		default: bug_unreachable("slot == %d", slot);
 	}
 }
 

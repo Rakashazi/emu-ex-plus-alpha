@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/opengl/GLStateCache.hh>
 #include <imagine/gfx/Mat4.hh>
-#include <imagine/gfx/Viewport.hh>
 #include <imagine/thread/Semaphore.hh>
 #include "GLSLProgram.hh"
 #include <imagine/util/used.hh>
@@ -40,8 +39,8 @@ class GLRendererCommands
 {
 public:
 	constexpr GLRendererCommands() = default;
-	GLRendererCommands(RendererTask &rTask, Window *winPtr, Drawable drawable, GLDisplay glDpy,
-		const GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr);
+	GLRendererCommands(RendererTask &rTask, Window *winPtr, Drawable drawable, Rect2<int> viewport,
+		GLDisplay glDpy, const GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr);
 	void discardTemporaryData();
 	void bindGLArrayBuffer(GLuint vbo);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -76,7 +75,8 @@ public:
 	void setProgram(NativeProgramBundle program, const Mat4 *modelMat);
 
 protected:
-	void setCurrentDrawable(Drawable win);
+	bool setCurrentDrawable(Drawable win);
+	void setViewport(Rect2<int> v);
 	void present(Drawable win);
 	void doPresent();
 	void notifyDrawComplete();
@@ -90,7 +90,7 @@ protected:
 	[[no_unique_address]] GLDisplay glDpy{};
 	const GLContext *glContextPtr{};
 	Drawable drawable{};
-	Viewport currViewport{};
+	Rect2<int> winViewport{};
 	GLuint currSamplerName{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	NativeProgramBundle currProgram{};

@@ -58,7 +58,7 @@ public:
 	void setEmuVideoLayer(EmuVideoLayer &videoLayer);
 
 protected:
-	static constexpr unsigned MAX_ASPECT_RATIO_ITEMS = 5;
+	static constexpr int MAX_ASPECT_RATIO_ITEMS = 5;
 	EmuVideoLayer *videoLayer{};
 
 	StaticArrayList<TextMenuItem, 5> textureBufferModeItem{};
@@ -124,7 +124,7 @@ public:
 	void loadStockItems();
 
 protected:
-	static constexpr unsigned MAX_APIS = 2;
+	static constexpr int MAX_APIS = 2;
 
 	BoolMenuItem snd;
 	BoolMenuItem soundDuringFastForward;
@@ -157,7 +157,7 @@ protected:
 	MultiChoiceMenuItem autoSaveState;
 	BoolMenuItem confirmAutoLoadState;
 	BoolMenuItem confirmOverwriteState;
-	static constexpr unsigned MIN_FAST_FORWARD_SPEED = 2;
+	static constexpr int MIN_FAST_FORWARD_SPEED = 2;
 	TextMenuItem fastForwardSpeedItem[6];
 	MultiChoiceMenuItem fastForwardSpeed;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
@@ -179,7 +179,7 @@ protected:
 
 	void onSavePathChange(std::string_view path);
 	virtual bool onFirmwarePathChange(IG::CStringView path, bool isDir);
-	std::unique_ptr<TextTableView> makeFirmwarePathMenu(IG::utf16String name, bool allowFiles = false, unsigned extraItemsHint = 0);
+	std::unique_ptr<TextTableView> makeFirmwarePathMenu(IG::utf16String name, bool allowFiles = false, int extraItemsHint = 0);
 	void pushAndShowFirmwarePathMenu(IG::utf16String name, const Input::Event &, bool allowFiles = false);
 	void pushAndShowFirmwareFilePathMenu(IG::utf16String name, const Input::Event &);
 };

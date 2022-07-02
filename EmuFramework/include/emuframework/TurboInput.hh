@@ -24,19 +24,10 @@ class EmuApp;
 
 struct TurboInput
 {
-	struct Action
-	{
-		constexpr Action() {}
-		unsigned action = 0;
-
-		bool operator ==(unsigned rhs) const
-		{
-			return action == rhs;
-		}
-	};
+	using Action = unsigned;
 
 	std::array<Action, 5> activeAction{};
-	unsigned clock = 0;
+	int clock = 0;
 
 	constexpr TurboInput() {}
 	void addEvent(unsigned action);

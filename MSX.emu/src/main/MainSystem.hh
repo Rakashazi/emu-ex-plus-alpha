@@ -19,7 +19,7 @@ extern Machine *machine;
 
 bool zipStartWrite(const char *fileName);
 void zipEndWrite();
-IG::Pixmap frameBufferPixmap();
+IG::PixmapView frameBufferPixmap();
 HdType boardGetHdType(int hdIndex);
 
 namespace EmuEx

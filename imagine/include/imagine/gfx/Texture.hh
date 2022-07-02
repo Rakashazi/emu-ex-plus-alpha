@@ -23,12 +23,8 @@
 #include <imagine/gfx/opengl/GLTexture.hh>
 #endif
 
+#include <imagine/pixmap/Pixmap.hh>
 #include <utility>
-
-namespace IG
-{
-class Pixmap;
-}
 
 namespace IG::Data
 {
@@ -48,7 +44,7 @@ class LockedTextureBuffer: public LockedTextureBufferImpl
 {
 public:
 	using LockedTextureBufferImpl::LockedTextureBufferImpl;
-	IG::Pixmap pixmap() const;
+	MutablePixmapView pixmap() const;
 	IG::WindowRect sourceDirtyRect() const;
 	explicit operator bool() const;
 };
@@ -66,19 +62,19 @@ public:
 	Texture(RendererTask &, IG::Data::PixmapSource, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
 	Texture(Texture &&o) noexcept;
 	Texture &operator=(Texture &&o) noexcept;
-	static uint8_t bestAlignment(IG::Pixmap pixmap);
+	static uint8_t bestAlignment(PixmapView pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
 	uint8_t levels() const;
-	IG::ErrorCode setFormat(IG::PixmapDesc, uint8_t levels, ColorSpace c = {}, const TextureSampler *compatSampler = {});
-	void write(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t writeFlags = 0);
-	void writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
+	IG::ErrorCode setFormat(PixmapDesc, uint8_t levels, ColorSpace c = {}, const TextureSampler *compatSampler = {});
+	void write(uint8_t level, PixmapView pixmap, IG::WP destPos, uint32_t writeFlags = 0);
+	void writeAligned(uint8_t level, PixmapView pixmap, IG::WP destPos, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear(uint8_t level);
 	LockedTextureBuffer lock(uint8_t level, uint32_t bufferFlags = 0);
 	LockedTextureBuffer lock(uint8_t level, IG::WindowRect rect, uint32_t bufferFlags = 0);
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
 	IG::WP size(uint8_t level) const;
-	IG::PixmapDesc pixmapDesc() const;
+	PixmapDesc pixmapDesc() const;
 	void setCompatTextureSampler(const TextureSampler &compatSampler);
 	bool compileDefaultProgram(uint32_t mode) const;
 	bool compileDefaultProgramOneShot(uint32_t mode) const;

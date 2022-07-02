@@ -24,6 +24,7 @@
 #include <imagine/util/algorithm.h>
 #include <emuframework/EmuApp.hh>
 #include "shared.h"
+#include "vdp_render.h"
 #include "Fir_Resampler.h"
 #include "eq.h"
 #include "assert.h"

@@ -30,7 +30,7 @@ public:
 	BundledGamesView(ViewAttachParams attach);
 
 private:
-	TextMenuItem game[1]{};
+	TextMenuItem game[1];
 };
 
 }

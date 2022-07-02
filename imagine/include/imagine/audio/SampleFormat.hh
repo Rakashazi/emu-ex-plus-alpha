@@ -29,12 +29,12 @@ public:
 		bytesWithFlags{(uint8_t)((bytes & BYTES_MASK) | (isFloat ? IS_FLOAT_BIT : 0))}
 	{}
 
-	constexpr uint8_t bytes() const
+	constexpr int bytes() const
 	{
 		return bytesWithFlags & BYTES_MASK;
 	}
 
-	constexpr uint8_t bits() const
+	constexpr int bits() const
 	{
 		return bytes() * 8;
 	}

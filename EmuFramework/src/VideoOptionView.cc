@@ -20,7 +20,6 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/VideoImageEffect.hh>
 #include "EmuOptions.hh"
-#include "private.hh"
 #include <imagine/base/Screen.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
@@ -41,8 +40,8 @@ public:
 	IG::FrameTime totalFrameTime{};
 	IG::FrameTime lastFrameTimestamp{};
 	Gfx::Text fpsText;
-	unsigned allTotalFrames = 0;
-	unsigned callbacks = 0;
+	int allTotalFrames{};
+	int callbacks{};
 	std::vector<IG::FrameTime> frameTimeSample{};
 	bool useRenderTaskTime = false;
 
@@ -90,7 +89,7 @@ public:
 
 	bool runFrameTimeDetection(IG::FrameTime timestampDiff, double slack)
 	{
-		const unsigned framesToTime = frameTimeSample.capacity() * 10;
+		const int framesToTime = frameTimeSample.capacity() * 10;
 		allTotalFrames++;
 		frameTimeSample.emplace_back(timestampDiff);
 		if(frameTimeSample.size() == frameTimeSample.capacity())
@@ -158,7 +157,7 @@ public:
 		detectFrameRate =
 			[this](IG::FrameParams params)
 			{
-				const unsigned callbacksToSkip = 10;
+				const int callbacksToSkip = 10;
 				callbacks++;
 				if(callbacks < callbacksToSkip)
 				{
@@ -212,7 +211,7 @@ TextMenuItem::SelectDelegate VideoOptionView::setOverlayEffectDel()
 	return [this](TextMenuItem &item)
 	{
 		app().overlayEffectOption() = item.id();
-		videoLayer->setOverlay(item.id());
+		videoLayer->setOverlay((ImageOverlayId)item.id());
 		app().viewController().postDrawToEmuWindows();
 	};
 }
@@ -417,10 +416,10 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	imgEffectItem
 	{
-		{"Off",         &defaultFace(), setImgEffectDel(), (uint8_t)ImageEffectId::DIRECT},
-		{"hq2x",        &defaultFace(), setImgEffectDel(), (uint8_t)ImageEffectId::HQ2X},
-		{"Scale2x",     &defaultFace(), setImgEffectDel(), (uint8_t)ImageEffectId::SCALE2X},
-		{"Prescale 2x", &defaultFace(), setImgEffectDel(), (uint8_t)ImageEffectId::PRESCALE2X}
+		{"Off",         &defaultFace(), setImgEffectDel(), to_underlying(ImageEffectId::DIRECT)},
+		{"hq2x",        &defaultFace(), setImgEffectDel(), to_underlying(ImageEffectId::HQ2X)},
+		{"Scale2x",     &defaultFace(), setImgEffectDel(), to_underlying(ImageEffectId::SCALE2X)},
+		{"Prescale 2x", &defaultFace(), setImgEffectDel(), to_underlying(ImageEffectId::PRESCALE2X)}
 	},
 	imgEffect
 	{
@@ -431,11 +430,11 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	overlayEffectItem
 	{
 		{"Off",          &defaultFace(), setOverlayEffectDel(), 0},
-		{"Scanlines",    &defaultFace(), setOverlayEffectDel(), VideoImageOverlay::SCANLINES},
-		{"Scanlines 2x", &defaultFace(), setOverlayEffectDel(), VideoImageOverlay::SCANLINES_2},
-		{"CRT Mask",     &defaultFace(), setOverlayEffectDel(), VideoImageOverlay::CRT},
-		{"CRT",          &defaultFace(), setOverlayEffectDel(), VideoImageOverlay::CRT_RGB},
-		{"CRT 2x",       &defaultFace(), setOverlayEffectDel(), VideoImageOverlay::CRT_RGB_2}
+		{"Scanlines",    &defaultFace(), setOverlayEffectDel(), to_underlying(ImageOverlayId::SCANLINES)},
+		{"Scanlines 2x", &defaultFace(), setOverlayEffectDel(), to_underlying(ImageOverlayId::SCANLINES_2)},
+		{"CRT Mask",     &defaultFace(), setOverlayEffectDel(), to_underlying(ImageOverlayId::CRT)},
+		{"CRT",          &defaultFace(), setOverlayEffectDel(), to_underlying(ImageOverlayId::CRT_RGB)},
+		{"CRT 2x",       &defaultFace(), setOverlayEffectDel(), to_underlying(ImageOverlayId::CRT_RGB_2)}
 	},
 	overlayEffect
 	{
@@ -520,7 +519,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		false,
 		[this](BoolMenuItem &item)
 		{
-			app().viewController().setEmuViewOnExtraWindow(item.flipBoolValue(*this), appContext().mainScreen());
+			app().setEmuViewOnExtraWindow(item.flipBoolValue(*this), appContext().mainScreen());
 		}
 	},
 	#endif
@@ -534,7 +533,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			app().showOnSecondScreenOption() = item.flipBoolValue(*this);
 			if(appContext().screens().size() > 1)
-				app().viewController().setEmuViewOnExtraWindow(app().showOnSecondScreenOption(), *appContext().screens()[1]);
+				app().setEmuViewOnExtraWindow(app().showOnSecondScreenOption(), *appContext().screens()[1]);
 		}
 	},
 	#endif
@@ -579,10 +578,10 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	presentationTime
 	{
 		"Reduce Compositor Lag", &defaultFace(),
-		app().viewController().usePresentationTime(),
+		app().usePresentationTime(),
 		[this](BoolMenuItem &item)
 		{
-			app().viewController().setUsePresentationTime(item.flipBoolValue(*this));
+			app().setUsePresentationTime(item.flipBoolValue(*this));
 		}
 	},
 	visualsHeading{"Visuals", &defaultBoldFace()},
@@ -759,14 +758,12 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(VideoSystem vidSys, const I
 		{
 			if(!app().viewController().emuWindowScreen()->frameRateIsReliable())
 			{
-				#ifdef __ANDROID__
-				if(appContext().androidSDK() <= 10)
+				if(Config::envIsAndroid && appContext().androidSDK() <= 10)
 				{
 					app().postErrorMessage("Many Android 2.3 devices mis-report their refresh rate, "
 						"using the detected or default rate may give better results");
 				}
 				else
-				#endif
 				{
 					app().postErrorMessage("Reported rate potentially unreliable, "
 						"using the detected or default rate may give better results");
