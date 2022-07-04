@@ -339,7 +339,6 @@ constexpr RomListEntry romlist[]
 	{ "mslug3", 0 },
 	{ "mslug3b6", 0 },
 	{ "mslug3h", 0 },
-	{ "mslug3n", 0 },
 	{ "mslug4", 0 },
 	{ "mslug5", 1 },
 	{ "mslug5h", 1 },
@@ -507,7 +506,7 @@ public:
 			{
 				if(entry.type() == FS::file_type::directory)
 					return true;
-				if(entry.name().size() > 12) // MAME filenames follow 8.3 convention
+				if(entry.name().size() > 13) // MAME filenames follow 8.3 convention but names may have 9 characters
 					return true;
 				fileList += entry.name();
 				return true;

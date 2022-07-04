@@ -66,7 +66,7 @@ static bool hasFDSExtension(std::string_view name)
 
 static bool hasROMExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".nes", ".unf", ".NES", ".UNF");
+	return IG::stringEndsWithAny(name, ".nes", ".unf", ".unif", ".NES", ".UNF", ".UNIF");
 }
 
 static bool hasNESExtension(std::string_view name)
@@ -199,7 +199,7 @@ void NesSystem::cacheUsingZapper()
 			return;
 		}
 	}
-	usingZapper = false;
+	usingZapper = GameInfo->inputfc == SIFC_SHADOW;
 }
 
 static const char* fceuInputToStr(int input)
@@ -254,6 +254,18 @@ void NesSystem::setupNESInputPorts()
 		else
 			connectNESInput(i, nesInputPortDev[i]);
 		logMsg("attached %s to port %d%s", fceuInputToStr(joyports[i].type), i, nesInputPortDev[i] == SI_UNSET ? " (auto)" : "");
+	}
+	if(GameInfo->inputfc == SIFC_HYPERSHOT)
+	{
+		FCEUI_SetInputFC(SIFC_HYPERSHOT, &fcExtData, 0);
+	}
+	else if(GameInfo->inputfc == SIFC_SHADOW)
+	{
+		FCEUI_SetInputFC(SIFC_SHADOW, &zapperData, 0);
+	}
+	else
+	{
+		FCEUI_SetInputFC(SIFC_NONE, nullptr, 0);
 	}
 	cacheUsingZapper();
 	setupNESFourScore();

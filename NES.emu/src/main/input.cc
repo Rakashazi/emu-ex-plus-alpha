@@ -139,6 +139,16 @@ void NesSystem::handleInputAction(EmuApp *, InputAction a)
 		if(isPushed && key == IG::bit(3))
 			FCEUI_VSUniCoin();
 	}
+	else if(GameInfo->inputfc == SIFC_HYPERSHOT)
+	{
+		if(auto hsKey = key & 0x3;
+			hsKey)
+		{
+			hsKey = hsKey == 0x3 ? 0x3 : hsKey ^ 0x3; // swap the 2 bits
+			auto hsPlayerInputShift = player == 1 ? 3 : 1;
+			fcExtData = IG::setOrClearBits(fcExtData, hsKey << hsPlayerInputShift, isPushed);
+		}
+	}
 	padData = IG::setOrClearBits(padData, key << playerInputShift(player), isPushed);
 }
 
@@ -178,6 +188,7 @@ void NesSystem::clearInputBuffers(EmuInputView &)
 {
 	IG::fill(zapperData);
 	padData = {};
+	fcExtData = {};
 }
 
 }

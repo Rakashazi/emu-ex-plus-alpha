@@ -61,6 +61,7 @@ public:
 	ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
 	uint32 padData{};
 	uint32 zapperData[3]{};
+	uint8_t fcExtData{};
 	bool usingZapper{};
 	uint8_t autoDetectedRegion{};
 	IG::PixelFormat pixFmt{};

@@ -833,7 +833,6 @@ struct roms_init_func {
 	{ "garoubl", init_garoubl},
 	{ "mslug3", init_mslug3},
 	{ "mslug3h", init_mslug3h},
-	{ "mslug3n", init_mslug3h},
 	{ "mslug3b6", init_mslug3b6},
 	{ "kof2000", init_kof2000},
 	{ "kof2000n", init_kof2000n},
