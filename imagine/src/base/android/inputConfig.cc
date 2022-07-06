@@ -315,6 +315,8 @@ bool hasGetAxisValue()
 namespace IG
 {
 
+int32_t (*AMotionEvent_getActionButton_)(const AInputEvent* motion_event){};
+
 static bool isXperiaPlayDeviceStr(std::string_view str)
 {
 	return IG::stringContains(str, "R800") || str == "zeus";
@@ -335,14 +337,21 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 			// load AMotionEvent_getAxisValue dynamically
 			if(!loadSymbol(AMotionEvent_getAxisValueFunc, {}, "AMotionEvent_getAxisValue"))
 			{
-				logWarn("AMotionEvent_getAxisValue not found even though using SDK level >= 12");
+				bug_unreachable("AMotionEvent_getAxisValue not found even though using SDK level >= 12");
 			}
 			if(androidSDK >= 14)
 			{
 				if(!loadSymbol(AMotionEvent_getButtonStateFunc, {}, "AMotionEvent_getButtonState"))
 				{
-					logWarn("AMotionEvent_getButtonState not found even though using SDK level >= 14");
+					bug_unreachable("AMotionEvent_getButtonState not found even though using SDK level >= 14");
 				}
+			}
+		}
+		if(androidSDK >= 33)
+		{
+			if(!loadSymbol(AMotionEvent_getActionButton_, {}, "AMotionEvent_getActionButton"))
+			{
+				bug_unreachable("AMotionEvent_getActionButton not found even though using SDK level >= 33");
 			}
 		}
 

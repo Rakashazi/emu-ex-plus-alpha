@@ -70,13 +70,14 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		}
 	};
 
-	TextMenuItem inputPortsItem[HAS_NSRT ? 4 : 3]
+	TextMenuItem inputPortsItem[HAS_NSRT ? 5 : 4]
 	{
 		#ifndef SNES9X_VERSION_1_4
 		{"Auto (NSRT)", &defaultFace(), setInputPortsDel(), SNES_AUTO_INPUT},
 		#endif
 		{"Gamepads",    &defaultFace(), setInputPortsDel(), SNES_JOYPAD},
 		{"Superscope",  &defaultFace(), setInputPortsDel(), SNES_SUPERSCOPE},
+		{"Justifier",   &defaultFace(), setInputPortsDel(), SNES_JUSTIFIER},
 		{"Mouse",       &defaultFace(), setInputPortsDel(), SNES_MOUSE_SWAPPED},
 	};
 

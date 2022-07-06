@@ -115,6 +115,7 @@ EvdevInputDevice::EvdevInputDevice(int id, int fd, TypeBits typeBits, std::strin
 	Device{id, Map::SYSTEM, typeBits, std::move(name)},
 	fd{fd}
 {
+	subtype_ = Device::Subtype::GENERIC_GAMEPAD;
 	if(setupJoystickBits())
 		typeBits_ |= Device::TYPE_BIT_JOYSTICK;
 }

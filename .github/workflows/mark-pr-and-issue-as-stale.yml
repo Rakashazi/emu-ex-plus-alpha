@@ -20,6 +20,6 @@ jobs:
         stale-pr-message: 'This pull request has been automatically marked as stale because it has not had recent activity.'
         stale-issue-label: 'no-issue-activity'
         stale-pr-label: 'no-pr-activity'
-        days-before-issue-close: 5
-        days-before-pr-close: 5
+        days-before-issue-close: 3
+        days-before-pr-close: 3
         operations-per-run: 60

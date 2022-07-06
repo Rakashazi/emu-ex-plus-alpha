@@ -9,8 +9,6 @@
 #include <memmap.h>
 #include <display.h>
 
-void DoGunLatch (int, int);
-
 namespace EmuEx
 {
 
@@ -48,6 +46,17 @@ int EmuSystem::inputLTriggerIndex = 5;
 int EmuSystem::inputRTriggerIndex = 2;
 const unsigned EmuSystem::maxPlayers = 5;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0, 5, 3, 2, 4};
+
+// from controls.cpp
+#define SUPERSCOPE_FIRE			0x80
+#define SUPERSCOPE_CURSOR		0x40
+#define SUPERSCOPE_TURBO		0x20
+#define SUPERSCOPE_PAUSE		0x10
+#define SUPERSCOPE_OFFSCREEN	0x02
+
+#define JUSTIFIER_TRIGGER		0x80
+#define JUSTIFIER_START			0x20
+#define JUSTIFIER_SELECT		0x08
 
 VController::Map Snes9xSystem::vControllerMap(int player)
 {
@@ -131,6 +140,7 @@ void Snes9xSystem::clearInputBuffers(EmuInputView &view)
 	{
 		*S9xGetJoypadBits(p) = 0;
 	}
+	snesMouseClick = 0;
 	snesPointerBtns = 0;
 	doubleClickFrames = 0;
 	dragWithButton = false;
@@ -181,7 +191,7 @@ void Snes9xSystem::setupSNESInput(VController &vCtrl)
 				break;
 
 				case 0x05:	// Justifier - Must ask user...
-				//S9xSetController(1, CTL_JUSTIFIER,  1, 0, 0, 0);
+				inputSetup = SNES_JUSTIFIER;
 				break;
 
 				case 0x20:	// Pad or Mouse in Port 0
@@ -224,6 +234,12 @@ void Snes9xSystem::setupSNESInput(VController &vCtrl)
 		S9xSetController(1, CTL_SUPERSCOPE, 0, 0, 0, 0);
 		logMsg("setting superscope input");
 	}
+	else if(inputSetup == SNES_JUSTIFIER)
+	{
+		S9xSetController(0, CTL_JOYPAD, 0, 0, 0, 0);
+		S9xSetController(1, CTL_JUSTIFIER, 0, 0, 0, 0);
+		logMsg("setting justifier input");
+	}
 	else // Joypad
 	{
 		if(optionMultitap)
@@ -239,7 +255,7 @@ void Snes9xSystem::setupSNESInput(VController &vCtrl)
 		}
 	}
 	snesActiveInputPort = inputSetup;
-	vCtrl.setGamepadIsEnabled(inputSetup == SNES_JOYPAD);
+	vCtrl.setGamepadIsEnabled(inputSetup == SNES_JOYPAD || inputSetup == SNES_JUSTIFIER);
 	#else
 	Settings.MultiPlayer5Master = Settings.MultiPlayer5 = 0;
 	Settings.MouseMaster = Settings.Mouse = 0;
@@ -265,14 +281,30 @@ void Snes9xSystem::setupSNESInput(VController &vCtrl)
 			Settings.SuperScopeMaster = Settings.SuperScope = 1;
 			Settings.ControllerOption = IPPU.Controller = SNES_SUPERSCOPE;
 		}
+		else if(snesInputPort == SNES_JUSTIFIER)
+		{
+			logMsg("connected justifier");
+			Settings.Justifier = 1;
+			Settings.ControllerOption = IPPU.Controller = SNES_JUSTIFIER;
+		}
 		else
 		{
 			logMsg("connected joypads");
 			IPPU.Controller = SNES_JOYPAD;
 		}
 	}
-	vCtrl.setGamepadIsEnabled(IPPU.Controller == SNES_JOYPAD || IPPU.Controller == SNES_MULTIPLAYER5);
+	vCtrl.setGamepadIsEnabled(IPPU.Controller == SNES_JOYPAD || IPPU.Controller == SNES_MULTIPLAYER5
+		|| IPPU.Controller == SNES_JUSTIFIER);
 	#endif
+}
+
+WP Snes9xSystem::updateAbsolutePointerPosition(IG::WindowRect gameRect, WP pos)
+{
+	int xRel = pos.x - gameRect.x, yRel = pos.y - gameRect.y;
+	snesPointerX = IG::remap(xRel, 0, gameRect.xSize(), 0, 256);
+	snesPointerY = IG::remap(yRel, 0, gameRect.ySize(), 0, 224);
+	//logMsg("updated pointer position:%d,%d (%d,%d in window)", snesPointerX, snesPointerY, pos.x, pos.y);
+	return {snesPointerX, snesPointerY};
 }
 
 bool Snes9xSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
@@ -281,32 +313,52 @@ bool Snes9xSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragT
 	{
 		case SNES_SUPERSCOPE:
 		{
+			snesMouseClick = 1;
 			if(gameRect.overlaps(e.pos()))
 			{
-				int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
-				snesPointerX = IG::remap(xRel, 0, gameRect.xSize(), 0, 256);
-				snesPointerY = IG::remap(yRel, 0, gameRect.ySize(), 0, 224);
-				//logMsg("mouse moved to @ %d,%d, on SNES %d,%d", e.x, e.y, snesPointerX, snesPointerY);
+				updateAbsolutePointerPosition(gameRect, e.pos());
 				if(e.pushed())
 				{
-					snesPointerBtns = 1;
 					#ifndef SNES9X_VERSION_1_4
-					*S9xGetSuperscopeBits() = 0x80;
+					*S9xGetSuperscopeBits() = SUPERSCOPE_FIRE;
+					#else
+					snesPointerBtns = 1;
 					#endif
 				}
 			}
 			else
 			{
-				snesPointerBtns = 2;
 				#ifndef SNES9X_VERSION_1_4
-				*S9xGetSuperscopeBits() = 0x40;
+				*S9xGetSuperscopeBits() = SUPERSCOPE_CURSOR;
+				#else
+				snesPointerBtns = 2;
 				#endif
 			}
-			#ifndef SNES9X_VERSION_1_4
-			S9xGetSuperscopePosBits()[0] = snesPointerX;
-			S9xGetSuperscopePosBits()[1] = snesPointerY;
-			DoGunLatch(snesPointerX, snesPointerY);
-			#endif
+			return true;
+		}
+		case SNES_JUSTIFIER:
+		{
+			if(gameRect.overlaps(e.pos()))
+			{
+				snesMouseClick = 1;
+				updateAbsolutePointerPosition(gameRect, e.pos());
+				if(e.pushed())
+				{
+					#ifndef SNES9X_VERSION_1_4
+					*S9xGetJustifierBits() = JUSTIFIER_TRIGGER;
+					#else
+					snesPointerBtns = 1;
+					#endif
+				}
+			}
+			else
+			{
+				#ifndef SNES9X_VERSION_1_4
+				*S9xGetJustifierBits() = JUSTIFIER_TRIGGER;
+				#else
+				snesPointerBtns = 1;
+				#endif
+			}
 			return true;
 		}
 		case SNES_MOUSE_SWAPPED:
@@ -381,9 +433,21 @@ bool Snes9xSystem::onPointerInputEnd(const Input::MotionEvent &e, Input::DragTra
 	{
 		case SNES_SUPERSCOPE:
 		{
-			snesPointerBtns = 0;
+			snesMouseClick = 0;
 			#ifndef SNES9X_VERSION_1_4
-			*S9xGetSuperscopeBits() = 0;
+			*S9xGetSuperscopeBits() = SUPERSCOPE_OFFSCREEN;
+			#else
+			snesPointerBtns = 0;
+			#endif
+			return true;
+		}
+		case SNES_JUSTIFIER:
+		{
+			snesMouseClick = 0;
+			#ifndef SNES9X_VERSION_1_4
+			*S9xGetJustifierBits() = 0;
+			#else
+			snesPointerBtns = 0;
 			#endif
 			return true;
 		}
@@ -443,6 +507,7 @@ CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons)
     return 1;
 }
 
+#ifdef SNES9X_VERSION_1_4
 CLINK bool8 S9xReadSuperScopePosition(int &x, int &y, uint32 &buttons)
 {
 	//logMsg("reading super scope: %d %d %d", snesPointerX, snesPointerY, snesPointerBtns);
@@ -453,7 +518,6 @@ CLINK bool8 S9xReadSuperScopePosition(int &x, int &y, uint32 &buttons)
 	return 1;
 }
 
-#ifdef SNES9X_VERSION_1_4
 CLINK uint32 S9xReadJoypad(int which)
 {
 	assert(which < 5);
@@ -463,11 +527,12 @@ CLINK uint32 S9xReadJoypad(int which)
 
 bool JustifierOffscreen()
 {
-	return false;
+	return !gSnes9xSystem().snesMouseClick;
 }
 
-void JustifierButtons(uint32& justifiers) { }
-
-static bool usingMouse() { return IPPU.Controller == SNES_MOUSE_SWAPPED; }
-static bool usingGun() { return IPPU.Controller == SNES_SUPERSCOPE; }
+void JustifierButtons(uint32& justifiers)
+{
+	if(gSnes9xSystem().snesPointerBtns)
+		justifiers |= 0x00100;
+}
 #endif

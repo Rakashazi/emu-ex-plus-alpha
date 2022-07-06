@@ -2867,6 +2867,7 @@ void S9xSetJoypadLatch (bool latch)
 						UpdatePolledMouse(i);
 					break;
 
+#if 0
 				case SUPERSCOPE:
 					if (superscope.next_buttons & SUPERSCOPE_FIRE)
 					{
@@ -2889,6 +2890,7 @@ void S9xSetJoypadLatch (bool latch)
 					do_polling(i);
 					break;
 
+#endif
 				case TWO_JUSTIFIERS:
 					do_polling(TWO_JUSTIFIERS);
 					// fall through
@@ -3199,6 +3201,7 @@ void S9xControlEOF (void)
 					S9xDrawCrosshair(S9xGetCrosshair(c->img), c->fg, c->bg, mouse[i - MOUSE0].cur_x, mouse[i - MOUSE0].cur_y);
 				break;
 
+#if 0
 			case SUPERSCOPE:
 				if (n == 1 && !(superscope.phys_buttons & SUPERSCOPE_OFFSCREEN))
 				{
@@ -3253,6 +3256,7 @@ void S9xControlEOF (void)
 				}
 
 				break;
+#endif
 
 			default:
 				break;
@@ -3778,12 +3782,12 @@ int16 *S9xGetMousePosBits(unsigned idx)
 	return &mouse[idx].cur_x;
 }
 
-int16 *S9xGetSuperscopePosBits()
-{
-	return &superscope.x;
-}
-
 uint8 *S9xGetSuperscopeBits()
 {
-	return &superscope.next_buttons;
+	return &superscope.read_buttons;
+}
+
+uint8 *S9xGetJustifierBits()
+{
+	return &justifier.buttons;
 }

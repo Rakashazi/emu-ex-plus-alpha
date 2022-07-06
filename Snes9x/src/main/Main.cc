@@ -209,23 +209,24 @@ void Snes9xSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAu
 			doubleClickFrames--;
 		if(rightClickFrames)
 			rightClickFrames--;
-
 		#ifndef SNES9X_VERSION_1_4
-		switch(snesActiveInputPort)
+		if(snesActiveInputPort == SNES_MOUSE_SWAPPED)
 		{
-			bcase SNES_MOUSE_SWAPPED:
-			{
-				int x,y;
-				uint32 buttons;
-				S9xReadMousePosition(0, x, y, buttons);
-				*S9xGetMouseBits(0) &= ~(0x40 | 0x80);
-				if(buttons == 1)
-					*S9xGetMouseBits(0) |= 0x40;
-				else if(buttons == 2)
-					*S9xGetMouseBits(0) |= 0x80;
-				S9xGetMousePosBits(0)[0] = x;
-				S9xGetMousePosBits(0)[1] = y;
-			}
+			int x,y;
+			uint32 buttons;
+			S9xReadMousePosition(0, x, y, buttons);
+			*S9xGetMouseBits(0) &= ~(0x40 | 0x80);
+			if(buttons == 1)
+				*S9xGetMouseBits(0) |= 0x40;
+			else if(buttons == 2)
+				*S9xGetMouseBits(0) |= 0x80;
+			S9xGetMousePosBits(0)[0] = x;
+			S9xGetMousePosBits(0)[1] = y;
+		}
+		else // light gun
+		{
+			if(snesMouseClick)
+				DoGunLatch(snesPointerX, snesPointerY);
 		}
 		#endif
 	}

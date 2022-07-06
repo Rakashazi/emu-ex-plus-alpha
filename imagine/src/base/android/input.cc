@@ -26,6 +26,8 @@
 namespace IG
 {
 
+extern int32_t (*AMotionEvent_getActionButton_)(const AInputEvent* motion_event);
+
 static const char* aInputSourceToStr(uint32_t source);
 
 Input::AndroidInputDevice *AndroidApplication::inputDeviceForId(int id) const
@@ -124,16 +126,21 @@ static const char *keyEventActionStr(uint32_t action)
 }
 
 // Implementation of missing NDK function equivalent of MotionEvent.getActionButton()
-// by accessing mActionButton data directly using known offsets
+// by accessing mActionButton data directly using known offsets,
+// or by calling user-set function pointer when SDK >= 33
 static int32_t AMotionEvent_getActionButtonCompat(const AInputEvent* event, int32_t sdkVersion)
 {
+	if(sdkVersion >= 33)
+	{
+		return AMotionEvent_getActionButton_(event);
+	}
 	static const bool ptrIs64Bits = sizeof(void*) == 8;
 	auto asIntPtr = (const int32_t *)event;
 	switch(sdkVersion)
 	{
 		case 23 ... 28: return asIntPtr[ptrIs64Bits ? 5  : 4];
 		case 29:        return asIntPtr[ptrIs64Bits ? 6  : 5];
-		case 30 ... 31: return asIntPtr[ptrIs64Bits ? 15 : 14];
+		case 30 ... 32: return asIntPtr[ptrIs64Bits ? 15 : 14];
 	}
 	return AMOTION_EVENT_BUTTON_PRIMARY; // can't determine button, fall back to primary
 }

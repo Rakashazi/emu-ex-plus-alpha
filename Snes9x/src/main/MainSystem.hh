@@ -44,6 +44,7 @@ constexpr int SNES_AUTO_INPUT = -1;
 constexpr int SNES_JOYPAD = CTL_JOYPAD;
 constexpr int SNES_MOUSE_SWAPPED = CTL_MOUSE;
 constexpr int SNES_SUPERSCOPE = CTL_SUPERSCOPE;
+constexpr int SNES_JUSTIFIER = CTL_JUSTIFIER;
 #endif
 
 class Snes9xSystem final: public EmuSystem
@@ -66,7 +67,7 @@ public:
 	Input::PointerId mousePointerId{Input::NULL_POINTER_ID};
 	bool dragWithButton{}; // true to start next mouse drag with a button held
 	Byte1Option optionMultitap{CFGKEY_MULTITAP, 0};
-	SByte1Option optionInputPort{CFGKEY_INPUT_PORT, inputPortMinVal, false, optionIsValidWithMinMax<inputPortMinVal, 3>};
+	SByte1Option optionInputPort{CFGKEY_INPUT_PORT, inputPortMinVal, false, optionIsValidWithMinMax<inputPortMinVal, SNES_JUSTIFIER>};
 	Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<3>};
 	Byte1Option optionAllowExtendedVideoLines{CFGKEY_ALLOW_EXTENDED_VIDEO_LINES, 0};
 	#ifndef SNES9X_VERSION_1_4
@@ -129,6 +130,7 @@ public:
 
 protected:
 	void applyInputPortOption(int portVal, VController &vCtrl);
+	WP updateAbsolutePointerPosition(IG::WindowRect gameRect, WP pos);
 };
 
 using MainSystem = Snes9xSystem;
@@ -146,7 +148,8 @@ uint16 *S9xGetJoypadBits(unsigned idx);
 uint8 *S9xGetMouseBits(unsigned idx);
 uint8 *S9xGetMouseDeltaBits(unsigned idx);
 int16 *S9xGetMousePosBits(unsigned idx);
-int16 *S9xGetSuperscopePosBits();
 uint8 *S9xGetSuperscopeBits();
+uint8 *S9xGetJustifierBits();
 CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons);
+void DoGunLatch (int, int);
 #endif

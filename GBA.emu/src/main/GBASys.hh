@@ -345,8 +345,10 @@ constexpr unsigned cpuBitsSet[256] =
 		4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
 };
 
-//#define VBAM_USE_SWITICKS
-//#define VBAM_USE_IRQTICKS
+#ifndef __arm__
+#define VBAM_USE_SWITICKS
+#define VBAM_USE_IRQTICKS
+#endif
 #define VBAM_USE_CPU_PREFETCH
 #define VBAM_USE_DELAYED_CPU_FLAGS
 

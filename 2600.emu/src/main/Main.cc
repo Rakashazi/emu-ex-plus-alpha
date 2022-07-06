@@ -23,6 +23,7 @@
 #include <stella/emucore/Switches.hxx>
 #include <stella/emucore/PropsSet.hxx>
 #include <stella/emucore/M6532.hxx>
+#include <stella/emucore/DispatchResult.hxx>
 #include <stella/common/StateManager.hxx>
 #include <stella/common/AudioSettings.hxx>
 #include <OSystem.hxx>
@@ -153,7 +154,11 @@ void A2600System::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAud
 	console.switches().update();
 	console.riot().update();
 	auto &tia = console.tia();
-	tia.update(0xFFFFFFFF);
+	static constexpr uInt64 maxCyclesPerFrame = 32768;
+	DispatchResult res;
+	tia.update(res, maxCyclesPerFrame);
+	if(res.getCycles() > maxCyclesPerFrame)
+		logWarn("frame ran %u cycles", (unsigned)res.getCycles());
 	tia.renderToFrameBuffer();
 	if(video)
 	{
