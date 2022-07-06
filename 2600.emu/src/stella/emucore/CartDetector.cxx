@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -54,12 +54,12 @@ Bankswitch::Type CartDetector::autodetectType(const ByteBuffer& image, size_t si
   else if(size == 8_KB)
   {
     // First check for *potential* F8
-    uInt8 signature[2][3] = {
+    static constexpr uInt8 signature[2][3] = {
       { 0x8D, 0xF9, 0x1F },  // STA $1FF9
       { 0x8D, 0xF9, 0xFF }   // STA $FFF9
     };
-    bool f8 = searchForBytes(image, size, signature[0], 3, 2) ||
-              searchForBytes(image, size, signature[1], 3, 2);
+    const bool f8 = searchForBytes(image, size, signature[0], 3, 2) ||
+                    searchForBytes(image, size, signature[1], 3, 2);
 
     if(isProbablySC(image, size))
       type = Bankswitch::Type::_F8SC;
@@ -75,6 +75,8 @@ Bankswitch::Type CartDetector::autodetectType(const ByteBuffer& image, size_t si
       type = Bankswitch::Type::_3F;
     else if(isProbablyUA(image, size))
       type = Bankswitch::Type::_UA;
+    else if(isProbably0FA0(image, size))
+      type = Bankswitch::Type::_0FA0;
     else if(isProbablyFE(image, size) && !f8)
       type = Bankswitch::Type::_FE;
     else if(isProbably0840(image, size))
@@ -309,7 +311,7 @@ bool CartDetector::isProbablyARM(const ByteBuffer& image, size_t size)
 {
   // ARM code contains the following 'loader' patterns in the first 1K
   // Thanks to Thomas Jentzsch of AtariAge for this advice
-  uInt8 signature[2][4] = {
+  static constexpr uInt8 signature[2][4] = {
     { 0xA0, 0xC1, 0x1F, 0xE0 },
     { 0x00, 0x80, 0x02, 0xE0 }
   };
@@ -324,7 +326,7 @@ bool CartDetector::isProbably0840(const ByteBuffer& image, size_t size)
 {
   // 0840 cart bankswitching is triggered by accessing addresses 0x0800
   // or 0x0840 at least twice
-  uInt8 signature1[3][3] = {
+  static constexpr uInt8 signature1[3][3] = {
     { 0xAD, 0x00, 0x08 },  // LDA $0800
     { 0xAD, 0x40, 0x08 },  // LDA $0840
     { 0x2C, 0x00, 0x08 }   // BIT $0800
@@ -333,12 +335,31 @@ bool CartDetector::isProbably0840(const ByteBuffer& image, size_t size)
     if(searchForBytes(image, size, signature1[i], 3, 2))
       return true;
 
-  uInt8 signature2[2][4] = {
+  static constexpr uInt8 signature2[2][4] = {
     { 0x0C, 0x00, 0x08, 0x4C },  // NOP $0800; JMP ...
     { 0x0C, 0xFF, 0x0F, 0x4C }   // NOP $0FFF; JMP ...
   };
   for(uInt32 i = 0; i < 2; ++i)
     if(searchForBytes(image, size, signature2[i], 4, 2))
+      return true;
+
+  return false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool CartDetector::isProbably0FA0(const ByteBuffer& image, size_t size)
+{
+  // Other Brazilian (Fotomania) ROM's bankswitching switches to bank 1 by
+  // accessing address 0xFC0 using 'BIT $FC0', 'BIT $FC0' or 'STA $FC0'
+  // Also a game (Motocross) using 'BIT $EFC0' has been found
+  static constexpr uInt8 signature[4][3] = {
+    { 0x2C, 0xC0, 0x0F },  // BIT $FC0  (H.E.R.O., Kung-Fu Master)
+    { 0x8D, 0xC0, 0x0F },  // STA $FC0  (Pole Position, Subterranea)
+    { 0xAD, 0xC0, 0x0F },  // LDA $FC0  (Front Line, Zaxxon)
+    { 0x2C, 0xC0, 0xEF }   // BIT $EFC0 (Motocross)
+  };
+  for(uInt32 i = 0; i < 4; ++i)
+    if(searchForBytes(image, size, signature[i], 3))
       return true;
 
   return false;
@@ -353,8 +374,8 @@ bool CartDetector::isProbably3E(const ByteBuffer& image, size_t size)
   // We expect the latter will be present at least 2 times, since there
   // are at least two banks
 
-  uInt8 signature1[] = { 0x85, 0x3E };  // STA $3E
-  uInt8 signature2[] = { 0x85, 0x3F };  // STA $3F
+  static constexpr uInt8 signature1[] = { 0x85, 0x3E };  // STA $3E
+  static constexpr uInt8 signature2[] = { 0x85, 0x3F };  // STA $3F
   return searchForBytes(image, size, signature1, 2)
     && searchForBytes(image, size, signature2, 2, 2);
 }
@@ -363,7 +384,7 @@ bool CartDetector::isProbably3E(const ByteBuffer& image, size_t size)
 bool CartDetector::isProbably3EX(const ByteBuffer& image, size_t size)
 {
   // 3EX cart have at least 2 occurrences of the string "3EX"
-  uInt8 _3EX[] = { '3', 'E', 'X'};
+  static constexpr uInt8 _3EX[] = { '3', 'E', 'X' };
   return searchForBytes(image, size, _3EX, 3, 2);
 }
 
@@ -371,7 +392,7 @@ bool CartDetector::isProbably3EX(const ByteBuffer& image, size_t size)
 bool CartDetector::isProbably3EPlus(const ByteBuffer& image, size_t size)
 {
   // 3E+ cart is identified key 'TJ3E' in the ROM
-  uInt8 tj3e[] = { 'T', 'J', '3', 'E' };
+  static constexpr uInt8 tj3e[] = { 'T', 'J', '3', 'E' };
   return searchForBytes(image, size, tj3e, 4);
 }
 
@@ -382,7 +403,7 @@ bool CartDetector::isProbably3F(const ByteBuffer& image, size_t size)
   // in address 3F using 'STA $3F'
   // We expect it will be present at least 2 times, since there are
   // at least two banks
-  uInt8 signature[] = { 0x85, 0x3F };  // STA $3F
+  static constexpr uInt8 signature[] = { 0x85, 0x3F };  // STA $3F
   return searchForBytes(image, size, signature, 2, 2);
 }
 
@@ -410,7 +431,7 @@ bool CartDetector::isProbably4KSC(const ByteBuffer& image, size_t size)
   // We check if the first 256 bytes are identical *and* if there's
   // an "SC" signature for one of our larger SC types at 1FFA.
 
-  uInt8 first = image[0];
+  const uInt8 first = image[0];
   for(uInt32 i = 1; i < 256; ++i)
       if(image[i] != first)
         return false;
@@ -427,8 +448,8 @@ bool CartDetector::isProbablyBF(const ByteBuffer& image, size_t size,
 {
   // BF carts store strings 'BFBF' and 'BFSC' starting at address $FFF8
   // This signature is attributed to "RevEng" of AtariAge
-  uInt8 bf[]   = { 'B', 'F', 'B', 'F' };
-  uInt8 bfsc[] = { 'B', 'F', 'S', 'C' };
+  static constexpr uInt8 bf[]   = { 'B', 'F', 'B', 'F' };
+  static constexpr uInt8 bfsc[] = { 'B', 'F', 'S', 'C' };
   if(searchForBytes(image.get()+size-8, 8, bf, 4))
   {
     type = Bankswitch::Type::_BF;
@@ -449,7 +470,7 @@ bool CartDetector::isProbablyBUS(const ByteBuffer& image, size_t size)
   // BUS ARM code has 2 occurrences of the string BUS
   // Note: all Harmony/Melody custom drivers also contain the value
   // 0x10adab1e (LOADABLE) if needed for future improvement
-  uInt8 bus[] = { 'B', 'U', 'S'};
+  static constexpr uInt8 bus[] = { 'B', 'U', 'S' };
   return searchForBytes(image, size, bus, 3, 2);
 }
 
@@ -459,8 +480,8 @@ bool CartDetector::isProbablyCDF(const ByteBuffer& image, size_t size)
   // CDF ARM code has 3 occurrences of the string CDF
   // Note: all Harmony/Melody custom drivers also contain the value
   // 0x10adab1e (LOADABLE) if needed for future improvement
-  uInt8 cdf[] = { 'C', 'D', 'F' };
-  uInt8 cdfjplus[] = { 'P', 'L', 'U', 'S', 'C', 'D', 'F', 'J' };
+  static constexpr uInt8 cdf[] = { 'C', 'D', 'F' };
+  static constexpr uInt8 cdfjplus[] = { 'P', 'L', 'U', 'S', 'C', 'D', 'F', 'J' };
   return (searchForBytes(image, size, cdf, 3, 3) ||
           searchForBytes(image, size, cdfjplus, 8, 1));
 }
@@ -468,7 +489,7 @@ bool CartDetector::isProbablyCDF(const ByteBuffer& image, size_t size)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartDetector::isProbablyCTY(const ByteBuffer& image, size_t size)
 {
-  uInt8 lenin[] = { 'L', 'E', 'N', 'I', 'N' };
+  static constexpr uInt8 lenin[] = { 'L', 'E', 'N', 'I', 'N' };
   return searchForBytes(image, size, lenin, 5);
 }
 
@@ -477,7 +498,7 @@ bool CartDetector::isProbablyCV(const ByteBuffer& image, size_t size)
 {
   // CV RAM access occurs at addresses $f3ff and $f400
   // These signatures are attributed to the MESS project
-  uInt8 signature[2][3] = {
+  static constexpr uInt8 signature[2][3] = {
     { 0x9D, 0xFF, 0xF3 },  // STA $F3FF.X
     { 0x99, 0x00, 0xF4 }   // STA $F400.Y
   };
@@ -494,8 +515,8 @@ bool CartDetector::isProbablyDF(const ByteBuffer& image, size_t size,
 
   // DF carts store strings 'DFDF' and 'DFSC' starting at address $FFF8
   // This signature is attributed to "RevEng" of AtariAge
-  uInt8 df[]   = { 'D', 'F', 'D', 'F' };
-  uInt8 dfsc[] = { 'D', 'F', 'S', 'C' };
+  static constexpr uInt8 df[]   = { 'D', 'F', 'D', 'F' };
+  static constexpr uInt8 dfsc[] = { 'D', 'F', 'S', 'C' };
   if(searchForBytes(image.get()+size-8, 8, df, 4))
   {
     type = Bankswitch::Type::_DF;
@@ -516,7 +537,7 @@ bool CartDetector::isProbablyDPCplus(const ByteBuffer& image, size_t size)
   // DPC+ ARM code has 2 occurrences of the string DPC+
   // Note: all Harmony/Melody custom drivers also contain the value
   // 0x10adab1e (LOADABLE) if needed for future improvement
-  uInt8 dpcp[] = { 'D', 'P', 'C', '+' };
+  static constexpr uInt8 dpcp[] = { 'D', 'P', 'C', '+' };
   return searchForBytes(image, size, dpcp, 4, 2);
 }
 
@@ -529,7 +550,7 @@ bool CartDetector::isProbablyE0(const ByteBuffer& image, size_t size)
   // search for only certain known signatures
   // Thanks to "stella@casperkitty.com" for this advice
   // These signatures are attributed to the MESS project
-  uInt8 signature[8][3] = {
+  static constexpr uInt8 signature[8][3] = {
     { 0x8D, 0xE0, 0x1F },  // STA $1FE0
     { 0x8D, 0xE0, 0x5F },  // STA $5FE0
     { 0x8D, 0xE9, 0xFF },  // STA $FFE9
@@ -555,7 +576,7 @@ bool CartDetector::isProbablyE7(const ByteBuffer& image, size_t size)
   // search for only certain known signatures
   // Thanks to "stella@casperkitty.com" for this advice
   // These signatures are attributed to the MESS project
-  uInt8 signature[7][3] = {
+  static constexpr uInt8 signature[7][3] = {
     { 0xAD, 0xE2, 0xFF },  // LDA $FFE2
     { 0xAD, 0xE5, 0xFF },  // LDA $FFE5
     { 0xAD, 0xE5, 0x1F },  // LDA $1FE5
@@ -578,7 +599,7 @@ bool CartDetector::isProbablyE78K(const ByteBuffer& image, size_t size)
   // $FE4 to $FE6 using absolute non-indexed addressing
   // To eliminate false positives (and speed up processing), we
   // search for only certain known signatures
-  uInt8 signature[3][3] = {
+  static constexpr uInt8 signature[3][3] = {
     { 0xAD, 0xE4, 0xFF },  // LDA $FFE4
     { 0xAD, 0xE5, 0xFF },  // LDA $FFE5
     { 0xAD, 0xE6, 0xFF },  // LDA $FFE6
@@ -596,8 +617,8 @@ bool CartDetector::isProbablyEF(const ByteBuffer& image, size_t size,
 {
   // Newer EF carts store strings 'EFEF' and 'EFSC' starting at address $FFF8
   // This signature is attributed to "RevEng" of AtariAge
-  uInt8 efef[] = { 'E', 'F', 'E', 'F' };
-  uInt8 efsc[] = { 'E', 'F', 'S', 'C' };
+  static constexpr uInt8 efef[] = { 'E', 'F', 'E', 'F' };
+  static constexpr uInt8 efsc[] = { 'E', 'F', 'S', 'C' };
   if(searchForBytes(image.get()+size-8, 8, efef, 4))
   {
     type = Bankswitch::Type::_EF;
@@ -613,7 +634,7 @@ bool CartDetector::isProbablyEF(const ByteBuffer& image, size_t size,
   // 0xFE0 to 0xFEF, usually with either a NOP or LDA
   // It's likely that the code will switch to bank 0, so that's what is tested
   bool isEF = false;
-  uInt8 signature[4][3] = {
+  static constexpr uInt8 signature[4][3] = {
     { 0x0C, 0xE0, 0xFF },  // NOP $FFE0
     { 0xAD, 0xE0, 0xFF },  // LDA $FFE0
     { 0x0C, 0xE0, 0x1F },  // NOP $1FE0
@@ -658,7 +679,7 @@ bool CartDetector::isProbablyFA2(const ByteBuffer& image, size_t)
 bool CartDetector::isProbablyFC(const ByteBuffer& image, size_t size)
 {
   // FC bankswitching uses consecutive writes to 3 hotspots
-  uInt8 signature[3][6] = {
+  static constexpr uInt8 signature[3][6] = {
     { 0x8d, 0xf8, 0x1f, 0x4a, 0x4a, 0x8d }, // STA $1FF8, LSR, LSR, STA... Power Play Arcade Menus, 3-D Ghost Attack
     { 0x8d, 0xf8, 0xff, 0x8d, 0xfc, 0xff }, // STA $FFF8, STA $FFFC        Surf's Up (4K)
     { 0x8c, 0xf9, 0xff, 0xad, 0xfc, 0xff }  // STY $FFF9, LDA $FFFC        3-D Havoc
@@ -676,7 +697,7 @@ bool CartDetector::isProbablyFE(const ByteBuffer& image, size_t size)
   // FE bankswitching is very weird, but always seems to include a
   // 'JSR $xxxx'
   // These signatures are attributed to the MESS project
-  uInt8 signature[4][5] = {
+  static constexpr uInt8 signature[4][5] = {
     { 0x20, 0x00, 0xD0, 0xC6, 0xC5 },  // JSR $D000; DEC $C5
     { 0x20, 0xC3, 0xF8, 0xA5, 0x82 },  // JSR $F8C3; LDA $82
     { 0xD0, 0xFB, 0x20, 0x73, 0xFE },  // BNE $FB; JSR $FE73
@@ -693,7 +714,7 @@ bool CartDetector::isProbablyFE(const ByteBuffer& image, size_t size)
 bool CartDetector::isProbablyMDM(const ByteBuffer& image, size_t size)
 {
   // MDM cart is identified key 'MDMC' in the first 8K of ROM
-  uInt8 mdmc[] = { 'M', 'D', 'M', 'C' };
+  static constexpr uInt8 mdmc[] = { 'M', 'D', 'M', 'C' };
   return searchForBytes(image, std::min<size_t>(size, 8_KB), mdmc, 4);
 }
 
@@ -701,8 +722,8 @@ bool CartDetector::isProbablyMDM(const ByteBuffer& image, size_t size)
 bool CartDetector::isProbablyMVC(const ByteBuffer& image, size_t size)
 {
   // MVC version 0
-  uInt8 sig[] = { 'M', 'V', 'C', 0 };
-  int sigSize = sizeof(sig);
+  static constexpr uInt8 sig[] = { 'M', 'V', 'C', 0 };
+  constexpr int sigSize = sizeof(sig);
   return searchForBytes(image, std::min<size_t>(size, sigSize+1), sig, sigSize);
 }
 
@@ -723,7 +744,7 @@ size_t CartDetector::isProbablyMVC(const FilesystemNode& rom)
     uInt8 image[frameSize];
     s.getByteArray(image, frameSize);
 
-    uInt8 sig[] = { 'M', 'V', 'C', 0 };  // MVC version 0
+    static constexpr uInt8 sig[] = { 'M', 'V', 'C', 0 };  // MVC version 0
     return searchForBytes(image, frameSize, sig, 4) ? frameSize : 0;
   }
   return 0;
@@ -733,7 +754,7 @@ size_t CartDetector::isProbablyMVC(const FilesystemNode& rom)
 bool CartDetector::isProbablySB(const ByteBuffer& image, size_t size)
 {
   // SB cart bankswitching switches banks by accessing address 0x0800
-  uInt8 signature[2][3] = {
+  static constexpr uInt8 signature[2][3] = {
     { 0xBD, 0x00, 0x08 },  // LDA $0800,x
     { 0xAD, 0x00, 0x08 }   // LDA $0800
   };
@@ -747,7 +768,7 @@ bool CartDetector::isProbablySB(const ByteBuffer& image, size_t size)
 bool CartDetector::isProbablyTVBoy(const ByteBuffer& image, size_t size)
 {
   // TV Boy cart bankswitching switches banks by accessing addresses 0x1800..$187F
-  uInt8 signature[5] = {0x91, 0x82, 0x6c, 0xfc, 0xff};  // STA ($82),Y; JMP ($FFFC)
+  static constexpr uInt8 signature[5] = { 0x91, 0x82, 0x6c, 0xfc, 0xff };  // STA ($82),Y; JMP ($FFFC)
   return searchForBytes(image, size, signature, 5);
 }
 
@@ -755,24 +776,18 @@ bool CartDetector::isProbablyTVBoy(const ByteBuffer& image, size_t size)
 bool CartDetector::isProbablyUA(const ByteBuffer& image, size_t size)
 {
   // UA cart bankswitching switches to bank 1 by accessing address 0x240
-  // using 'STA $240' or 'LDA $240'
-  // Similar Brazilian (Digivison) cart bankswitching switches to bank 1 by accessing address 0x2C0
+  // using 'STA $240' or 'LDA $240'.
+  // Brazilian (Digivison) cart bankswitching switches to bank 1 by accessing address 0x2C0
   // using 'BIT $2C0', 'STA $2C0' or 'LDA $2C0'
-  // Other Brazilian (Atari Mania) ROM's bankswitching switches to bank 1 by accessing address 0xFC0
-  // using 'BIT $FA0', 'BIT $FC0' or 'STA $FC0'
-  // Also a game (Motocross) using 'BIT $EFC0' has been found
-  uInt8 signature[9][3] = {
+  static constexpr uInt8 signature[6][3] = {
     { 0x8D, 0x40, 0x02 },  // STA $240 (Funky Fish, Pleiades)
     { 0xAD, 0x40, 0x02 },  // LDA $240 (???)
     { 0xBD, 0x1F, 0x02 },  // LDA $21F,X (Gingerbread Man)
     { 0x2C, 0xC0, 0x02 },  // BIT $2C0 (Time Pilot)
     { 0x8D, 0xC0, 0x02 },  // STA $2C0 (Fathom, Vanguard)
     { 0xAD, 0xC0, 0x02 },  // LDA $2C0 (Mickey)
-    { 0x2C, 0xC0, 0x0F },  // BIT $FC0 (H.E.R.O., Kung-Fu Master)
-    { 0x8d, 0xC0, 0x0F },  // STA $FC0 (Pole Position)
-    { 0x2C, 0xC0, 0xEF }   // BIT $EFC0 (Motocross)
   };
-  for(uInt32 i = 0; i < 9; ++i)
+  for(uInt32 i = 0; i < 6; ++i)
     if(searchForBytes(image, size, signature[i], 3))
       return true;
 
@@ -783,7 +798,7 @@ bool CartDetector::isProbablyUA(const ByteBuffer& image, size_t size)
 bool CartDetector::isProbablyWD(const ByteBuffer& image, size_t size)
 {
   // WD cart bankswitching switches banks by accessing address 0x30..0x3f
-  uInt8 signature[1][3] = {
+  static constexpr uInt8 signature[1][3] = {
     { 0xA5, 0x39, 0x4C }  // LDA $39, JMP
   };
   return searchForBytes(image, size, signature[0], 3);
@@ -793,7 +808,7 @@ bool CartDetector::isProbablyWD(const ByteBuffer& image, size_t size)
 bool CartDetector::isProbablyX07(const ByteBuffer& image, size_t size)
 {
   // X07 bankswitching switches to bank 0, 1, 2, etc by accessing address 0x08xd
-  uInt8 signature[6][3] = {
+  static constexpr uInt8 signature[6][3] = {
     { 0xAD, 0x0D, 0x08 },  // LDA $080D
     { 0xAD, 0x1D, 0x08 },  // LDA $081D
     { 0xAD, 0x2D, 0x08 },  // LDA $082D
@@ -812,7 +827,7 @@ bool CartDetector::isProbablyX07(const ByteBuffer& image, size_t size)
 bool CartDetector::isProbablyPlusROM(const ByteBuffer& image, size_t size)
 {
   // PlusCart uses this pattern to detect a PlusROM
-  uInt8 signature[3] = {0x8d, 0xf0, 0x1f};  // STA $1FF0
+  static constexpr uInt8 signature[3] = { 0x8d, 0xf0, 0x1f };  // STA $1FF0
 
   return searchForBytes(image, size, signature, 3);
 }

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -146,19 +146,21 @@ class TimerManager
 
     struct Timer
     {
-      explicit Timer(TimerId tid = 0) : id(tid) { }
+      explicit Timer(TimerId tid = 0) : id{tid} { }
       Timer(Timer&& r) noexcept;
-      Timer& operator=(Timer&& r) noexcept;
 
       Timer(TimerId id, Timestamp next, Duration period, const TFunction& func) noexcept;
 
       // Never called
+      Timer() = default;
+      ~Timer() = default;
       Timer(Timer const& r) = delete;
       Timer& operator=(Timer const& r) = delete;
+      Timer& operator=(Timer&& r) = delete;
 
       TimerId id{0};
       Timestamp next;
-      Duration period;
+      Duration period{0};
       TFunction handler;
 
       // You must be holding the 'sync' lock to assign waitCond
@@ -204,6 +206,13 @@ class TimerManager
 
     // Valid IDs are guaranteed not to be this value
     static TimerId constexpr no_timer = TimerId(0);
+
+  private:
+    // Following constructors and assignment operators not supported
+    TimerManager(const TimerManager&) = delete;
+    TimerManager(TimerManager&&) = delete;
+    TimerManager& operator=(const TimerManager&) = delete;
+    TimerManager& operator=(TimerManager&&) = delete;
 };
 
 #endif // TIMERTHREAD_H

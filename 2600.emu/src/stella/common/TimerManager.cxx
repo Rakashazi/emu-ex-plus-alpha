@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -62,15 +62,15 @@ TimerManager::TimerId TimerManager::addTimer(
 
   // Assign an ID and insert it into function storage
   auto id = nextId++;
-  auto iter = active.emplace(id, Timer(id, Clock::now() + Duration(msDelay),
+  const auto iter = active.emplace(id, Timer(id, Clock::now() + Duration(msDelay),
       Duration(msPeriod), func));
 
   // Insert a reference to the Timer into ordering queue
-  Queue::iterator place = queue.emplace(iter.first->second);
+  const Queue::iterator place = queue.emplace(iter.first->second);
 
   // We need to notify the timer thread only if we inserted
   // this timer into the front of the timer queue
-  bool needNotify = (place == queue.begin());
+  const bool needNotify = (place == queue.begin());
 
   lock.unlock();
 
@@ -84,7 +84,7 @@ TimerManager::TimerId TimerManager::addTimer(
 bool TimerManager::clear(TimerId id)
 {
   ScopedLock lock(sync);
-  auto i = active.find(id);
+  const auto i = active.find(id);
   return destroy_impl(lock, i, true);
 }
 
@@ -131,9 +131,9 @@ void TimerManager::timerThreadWorker()
       continue;
     }
 
-    auto queueHead = queue.begin();
+    const auto queueHead = queue.begin();
     Timer& timer = *queueHead;
-    auto now = Clock::now();
+    const auto now = Clock::now();
     if (now >= timer.next)
     {
       queue.erase(queueHead);
@@ -181,8 +181,7 @@ void TimerManager::timerThreadWorker()
     else
     {
       // Wait until the timer is ready or a timer creation notifies
-      Timestamp next = timer.next;
-      wakeUp.wait_until(lock, next);
+      wakeUp.wait_until(lock, timer.next);
     }
   }
 }
@@ -232,20 +231,20 @@ bool TimerManager::destroy_impl(ScopedLock& lock, TimerMap::iterator i,
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 TimerManager::Timer::Timer(Timer&& r) noexcept
-  : id(r.id),
-    next(r.next),
-    period(r.period),
-    handler(std::move(r.handler)),
-    running(r.running)
+  : id{r.id},
+    next{r.next},
+    period{r.period},
+    handler{std::move(r.handler)},
+    running{r.running}
 {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 TimerManager::Timer::Timer(TimerId tid, Timestamp tnext, Duration tperiod,
                            const TFunction& func) noexcept
-  : id(tid),
-    next(tnext),
-    period(tperiod),
-    handler(func)
+  : id{tid },
+    next{tnext},
+    period{tperiod},
+    handler{func}
 {
 }

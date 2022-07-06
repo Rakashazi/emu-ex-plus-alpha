@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -400,10 +400,10 @@ class FBSurface
 
     /**
       Check if the given character is a whitespace.
-      @param s      Character to check
+      @param c      Character to check
       @return       True if whitespace character
     */
-    bool isWhiteSpace(const char s) const;
+    bool isWhiteSpace(const char c) const;
 
   protected:
     uInt32* myPixels{nullptr};  // NOTE: MUST be set in child classes

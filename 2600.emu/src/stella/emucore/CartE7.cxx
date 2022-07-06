@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -46,7 +46,7 @@ void CartridgeE7::reset()
   initializeRAM(myRAM.data(), myRAM.size());
 
   initializeStartBank(0);
-  uInt32 ramBank = randomStartBank() ?
+  const uInt32 ramBank = randomStartBank() ?
     mySystem->randGenerator().next() % 4 : 0;
 
   // Install some default banks for the RAM and first segment
@@ -136,7 +136,7 @@ void CartridgeE7::checkSwitchBank(uInt16 address)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 CartridgeE7::peek(uInt16 address)
 {
-  uInt16 peekAddress = address;
+  const uInt16 peekAddress = address;
   address &= 0x0FFF;
 
   // Switch banks if necessary
@@ -159,7 +159,7 @@ uInt8 CartridgeE7::peek(uInt16 address)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeE7::poke(uInt16 address, uInt8 value)
 {
-  uInt16 pokeAddress = address;
+  const uInt16 pokeAddress = address;
   address &= 0x0FFF;
 
   // Switch banks if necessary
@@ -216,7 +216,7 @@ void CartridgeE7::bankRAM(uInt16 bank)
 
   // Remember what bank we're in
   myCurrentRAM = bank;
-  uInt16 offset = bank << 8; // * RAM_BANK_SIZE (256)
+  const uInt16 offset = bank << 8; // * RAM_BANK_SIZE (256)
 
   // Setup the page access methods for the current bank
   // Set the page accessing method for the 256 bytes of RAM reading pages
@@ -238,7 +238,7 @@ bool CartridgeE7::bank(uInt16 bank, uInt16)
   // Setup the page access methods for the current bank
   if(bank != myRAMBank)
   {
-    uInt16 offset = bank << 11; // * BANK_SIZE (2048)
+    const uInt16 offset = bank << 11; // * BANK_SIZE (2048)
 
     // Map ROM image into first segment
     setAccess(0x1000, BANK_SIZE, offset, myImage.get(), offset, System::PageAccessType::READ);
@@ -339,7 +339,7 @@ bool CartridgeE7::load(Serializer& in)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeE7::romBankCount() const
 {
-  return uInt16(mySize >> 11);
+  return static_cast<uInt16>(mySize >> 11);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

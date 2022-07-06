@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -35,13 +35,17 @@ void MindLink::update()
   if(!myMouseEnabled)
     return;
 
-  myMindlinkPos = BSPF::clamp((myMindlinkPos & ~CALIBRATE_FLAG) +
+  myMindlinkPos = BSPF::clamp((myMindlinkPos & ~TRIGGER_VALUE) +
                               myEvent.get(Event::MouseAxisXMove) * MOUSE_SENSITIVITY,
                               MIN_POS, MAX_POS);
-
+  // Additional option for trigger (NOT existing in orginal hardware!)
   if(myEvent.get(Event::MouseButtonLeftValue) ||
      myEvent.get(Event::MouseButtonRightValue))
-    myMindlinkPos = CALIBRATE_FLAG; // flag starts game & calibates
+    myMindlinkPos = myMindlinkPos | TRIGGER_VALUE; // starts game, calibration and reverse
+
+//#ifdef DEBUG_BUILD
+//  cerr << std::hex << myMindlinkPos << endl;
+//#endif
 
   myMindlinkShift = 1; // start transfer with least significant bit
   nextMindlinkBit();

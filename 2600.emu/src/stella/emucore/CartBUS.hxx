@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,10 +19,6 @@
 #define CARTRIDGE_BUS_HXX
 
 class System;
-
-#ifdef DEBUGGER_SUPPORT
-  #include "CartBUSWidget.hxx"
-#endif
 
 #include "bspf.hxx"
 #include "CartARM.hxx"
@@ -43,7 +39,16 @@ class System;
 class CartridgeBUS : public CartridgeARM
 {
   friend class CartridgeBUSWidget;
+  friend class CartridgeBUSInfoWidget;
   friend class CartridgeRamBUSWidget;
+  
+  enum class BUSSubtype {
+    BUS0, // very old demos when BUS was in flux, not supported in Stella
+    BUS1, // draconian_20161102.bin
+    BUS2, // 128bus_20170120.bin, 128chronocolour_20170101.bin, parrot_20161231_NTSC.bin
+    BUS3  // rpg_20170616_NTSC.bin
+  };
+
 
   public:
     /**
@@ -132,7 +137,7 @@ class CartridgeBUS : public CartridgeARM
 
       @return The name of the object
     */
-    string name() const override { return "CartridgeBUS"; }
+    string name() const override;
 
     uInt8 busOverdrive(uInt16 address);
 
@@ -146,7 +151,7 @@ class CartridgeBUS : public CartridgeARM
 
     @return The internal RAM size
   */
-  uInt32 internalRamSize() const override { return uInt32(myRAM.size()); }
+  uInt32 internalRamSize() const override { return static_cast<uInt32>(myRAM.size()); }
 
   /**
     Read a byte from cart internal RAM.
@@ -162,12 +167,13 @@ class CartridgeBUS : public CartridgeARM
       of the cart.
     */
     CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
-        const GUI::Font& nfont, int x, int y, int w, int h) override
-    {
-      return new CartridgeBUSWidget(boss, lfont, nfont, x, y, w, h, *this);
-    }
-  #endif
+                                 const GUI::Font& nfont, int x, int y, int w, int h) override;
+  
+    CartDebugWidget* infoWidget(GuiObject* boss, const GUI::Font& lfont,
+                                const GUI::Font& nfont, int x, int y, int w, int h) override;
 
+  #endif
+  
   public:
     /**
       Get the byte at the specified address.
@@ -213,7 +219,8 @@ class CartridgeBUS : public CartridgeARM
     void setDatastreamPointer(uInt8 index, uInt32 value);
 
     uInt32 getDatastreamIncrement(uInt8 index) const;
-
+    void setDatastreamIncrement(uInt8 index, uInt32 value);
+  
     uInt32 getAddressMap(uInt8 index) const;
     void setAddressMap(uInt8 index, uInt32 value);
 
@@ -222,6 +229,8 @@ class CartridgeBUS : public CartridgeARM
     uInt32 getWaveform(uInt8 index) const;
     uInt32 getWaveformSize(uInt8 index) const;
     uInt32 getSample();
+    void setupVersion();
+    uInt32 scanBUSDriver(uInt32 value);
 
   private:
     // The 32K ROM image of the cartridge
@@ -260,6 +269,18 @@ class CartridgeBUS : public CartridgeARM
 
     // ARM cycle count from when the last callFunction() occurred
     uInt64 myARMCycles{0};
+  
+    // Pointer to the array of datastream pointers
+    uInt16 myDatastreamBase{0}; // was DSxPTR
+
+    // Pointer to the array of datastream increments
+    uInt16 myDatastreamIncrementBase{0};  // was DSxINC
+  
+    // Pointer to the array of datastream maps
+    uInt16 myDatastreamMapBase{0};  // was DSMAPS
+  
+    // Pointer to the beginning of the waveform data block
+    uInt16 myWaveformBase{0}; // was WAVEFORM
 
     // The music mode counters
     std::array<uInt32, 3> myMusicCounters{0};
@@ -281,6 +302,9 @@ class CartridgeBUS : public CartridgeARM
     uInt8 myMode{0};
 
     uInt8 myFastJumpActive{false};
+  
+  // BUS subtype
+  BUSSubtype myBUSSubtype{BUSSubtype::BUS1};
 
   private:
     // Following constructors and assignment operators not supported

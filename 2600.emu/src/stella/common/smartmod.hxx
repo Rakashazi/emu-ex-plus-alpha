@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,63 +22,63 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<unsigned base>
-uInt8 smartmod(uInt8 x)
+constexpr uInt8 smartmod(uInt8 x)
 {
   return x % base;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-inline uInt8 smartmod<2>(uInt8 x)
+inline constexpr uInt8 smartmod<2>(uInt8 x)
 {
   return x & 0x01;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-inline uInt8 smartmod<4>(uInt8 x)
+inline constexpr uInt8 smartmod<4>(uInt8 x)
 {
   return x & 0x03;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-inline uInt8 smartmod<8>(uInt8 x)
+inline constexpr uInt8 smartmod<8>(uInt8 x)
 {
   return x & 0x07;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-inline uInt8 smartmod<16>(uInt8 x)
+inline constexpr uInt8 smartmod<16>(uInt8 x)
 {
   return x & 0x0F;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-inline uInt8 smartmod<32>(uInt8 x)
+inline constexpr uInt8 smartmod<32>(uInt8 x)
 {
   return x & 0x1F;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-inline uInt8 smartmod<64>(uInt8 x)
+inline constexpr uInt8 smartmod<64>(uInt8 x)
 {
   return x & 0x3F;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-inline uInt8 smartmod<128>(uInt8 x)
+inline constexpr uInt8 smartmod<128>(uInt8 x)
 {
   return x & 0x7F;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-inline uInt8 smartmod<256>(uInt8 x)
+inline constexpr uInt8 smartmod<256>(uInt8 x)
 {
   return x & 0xFF;
 }

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -31,11 +31,11 @@ class AnalogReadout : public Serializable
     };
 
     struct Connection {
-      ConnectionType type;
-      uInt32 resistance;
+      ConnectionType type{ConnectionType::ground};
+      uInt32 resistance{0};
 
       bool save(Serializer& out) const;
-      bool load(Serializer& in);
+      bool load(const Serializer& in);
 
       friend bool operator==(const AnalogReadout::Connection& c1, const AnalogReadout::Connection& c2);
     };
@@ -61,11 +61,17 @@ class AnalogReadout : public Serializable
 
   public:
 
-    static Connection connectToGround(uInt32 resistance = 0);
+    static constexpr Connection connectToGround(uInt32 resistance = 0) {
+      return Connection{ConnectionType::ground, resistance};
+    }
 
-    static Connection connectToVcc(uInt32 resistance = 0);
+    static constexpr Connection connectToVcc(uInt32 resistance = 0) {
+      return Connection{ConnectionType::vcc, resistance};
+    }
 
-    static Connection disconnect();
+    static constexpr Connection disconnect() {
+      return Connection{ConnectionType::disconnected, 0};
+    }
 
   private:
 

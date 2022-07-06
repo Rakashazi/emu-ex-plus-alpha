@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -63,7 +63,7 @@ bool Properties::save(KeyValueRepository& repo) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Properties::set(PropType key, const string& value)
 {
-  size_t pos = static_cast<size_t>(key);
+  const size_t pos = static_cast<size_t>(key);
   if(pos < myProperties.size())
   {
     myProperties[pos] = value;
@@ -95,7 +95,7 @@ void Properties::set(PropType key, const string& value)
 
       case PropType::Display_PPBlend:
       {
-        int blend = BSPF::stringToInt(myProperties[pos]);
+        const int blend = BSPF::stringToInt(myProperties[pos]);
         if(blend < 0 || blend > 100)
           myProperties[pos] = ourDefaultProperties[pos];
         break;
@@ -162,6 +162,8 @@ void Properties::print() const
        << get(PropType::Cart_Sound)             << "|"
        << get(PropType::Cart_StartBank)         << "|"
        << get(PropType::Cart_Type)              << "|"
+       << get(PropType::Cart_Highscore)         << "|"
+       << get(PropType::Cart_Url)               << "|"
        << get(PropType::Console_LeftDiff)       << "|"
        << get(PropType::Console_RightDiff)      << "|"
        << get(PropType::Console_TVType)         << "|"
@@ -179,16 +181,14 @@ void Properties::print() const
        << get(PropType::Display_Format)         << "|"
        << get(PropType::Display_VCenter)        << "|"
        << get(PropType::Display_Phosphor)       << "|"
-       << get(PropType::Display_PPBlend)        << "|"
-       << get(PropType::Cart_Highscore)         << "|"
-       << get(PropType::Cart_Url)
+       << get(PropType::Display_PPBlend)
        << endl;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Properties::reset(PropType key)
 {
-  size_t pos = static_cast<size_t>(key);
+  const size_t pos = static_cast<size_t>(key);
 
   myProperties[pos] = ourDefaultProperties[pos];
 }
@@ -223,6 +223,8 @@ void Properties::printHeader()
        << "Cart_Sound|"
        << "Cart_StartBank|"
        << "Cart_Type|"
+       << "Cart_Highscore|"
+       << "Cart_Url|"
        << "Console_LeftDiff|"
        << "Console_RightDiff|"
        << "Console_TVType|"
@@ -240,9 +242,7 @@ void Properties::printHeader()
        << "Display_Format|"
        << "Display_VCenter|"
        << "Display_Phosphor|"
-       << "Display_PPBlend|"
-       << "Cart_Highscore|"
-       << "Cart_Url"
+       << "Display_PPBlend"
        << endl;
 }
 
@@ -258,6 +258,8 @@ std::array<string, Properties::NUM_PROPS> Properties::ourDefaultProperties =
   "MONO",   // Cart.Sound
   "AUTO",   // Cart.StartBank
   "AUTO",   // Cart.Type
+  "",       // Cart.Highscore
+  "",       // Cart.Url
   "B",      // Console.LeftDiff
   "B",      // Console.RightDiff
   "COLOR",  // Console.TVType
@@ -275,9 +277,7 @@ std::array<string, Properties::NUM_PROPS> Properties::ourDefaultProperties =
   "AUTO",   // Display.Format
   "0",      // Display.VCenter
   "NO",     // Display.Phosphor
-  "0",      // Display.PPBlend
-  "",       // Cart.Highscore
-  ""        // Cart.Url
+  "0"       // Display.PPBlend
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -292,6 +292,8 @@ std::array<string, Properties::NUM_PROPS> Properties::ourPropertyNames =
   "Cart.Sound",
   "Cart.StartBank",
   "Cart.Type",
+  "Cart.Highscore",
+  "Cart.Url",
   "Console.LeftDiff",
   "Console.RightDiff",
   "Console.TVType",
@@ -309,7 +311,5 @@ std::array<string, Properties::NUM_PROPS> Properties::ourPropertyNames =
   "Display.Format",
   "Display.VCenter",
   "Display.Phosphor",
-  "Display.PPBlend",
-  "Cart.Highscore",
-  "Cart.Url"
+  "Display.PPBlend"
 };

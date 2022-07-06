@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -90,6 +90,11 @@ class CartDetector
       Returns true if the image is probably a 0840 bankswitching cartridge
     */
     static bool isProbably0840(const ByteBuffer& image, size_t size);
+
+    /**
+      Returns true if the image is probably a BRazilian bankswitching cartridge
+    */
+    static bool isProbably0FA0(const ByteBuffer& image, size_t size);
 
     /**
       Returns true if the image is probably a 3E bankswitching cartridge

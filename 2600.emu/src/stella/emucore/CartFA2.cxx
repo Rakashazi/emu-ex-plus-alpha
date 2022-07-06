@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -81,7 +81,7 @@ bool CartridgeFA2::poke(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeFA2::setNVRamFile(const string& nvramfile)
 {
-	myFlashFile = nvramfile + "_flash.dat";
+  myFlashFile = nvramfile + "_flash.dat";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -143,7 +143,7 @@ uInt8 CartridgeFA2::ramReadWrite()
       }
     }
     // Bit 6 is 1, busy
-    return myImage[myCurrentSegOffset[0]  + 0xFF4] | 0x40;
+    return myImage[myCurrentSegOffset[0] + 0xFF4] | 0x40;
   }
   else
   {

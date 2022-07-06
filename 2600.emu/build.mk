@@ -17,6 +17,7 @@ stellaSrc := AtariVox.cxx \
 Bankswitch.cxx \
 Booster.cxx \
 Cart0840.cxx \
+Cart0FA0.cxx \
 Cart2K.cxx \
 Cart3E.cxx \
 Cart3EPlus.cxx \

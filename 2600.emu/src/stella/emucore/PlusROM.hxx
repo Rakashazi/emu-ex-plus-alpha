@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -122,6 +122,33 @@ class PlusROM : public Serializable
     void reset();
 
     /**
+      Retrieve host.
+
+      @return The host string
+    */
+    const string& getHost() const { return myHost; }
+
+    /**
+      Retrieve path.
+
+      @return The path string
+    */
+    const string& getPath() const { return myPath; }
+
+    /**
+      Retrieve send data.
+
+      @return The send data
+    */
+    ByteArray getSend() const;
+    /**
+      Retrieve receive data.
+
+      @return The receive data
+    */
+    ByteArray getReceive() const;
+
+    /**
       Set the callback for displaying messages
     */
     void setMessageCallback(const Cartridge::messageCallback& callback)
@@ -152,7 +179,7 @@ class PlusROM : public Serializable
     string myPath;
 
     std::array<uInt8, 256> myRxBuffer, myTxBuffer;
-    uInt8 myRxReadPos, myRxWritePos, myTxPos;
+    uInt8 myRxReadPos{0}, myRxWritePos{0}, myTxPos{0};
 
     std::deque<shared_ptr<PlusROMRequest>> myPendingRequests;
 

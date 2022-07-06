@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -153,7 +153,6 @@ void Ball::setInvertedPhaseClock(bool enable)
   myUseInvertedPhaseClock = enable;
 }
 
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Ball::startMovement()
 {
@@ -163,7 +162,7 @@ void Ball::startMovement()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Ball::nextLine()
 {
-  // Reevalute the collision mask in order to properly account for collisions during
+  // Re-evaluate the collision mask in order to properly account for collisions during
   // hblank. Usually, this will be taken care off in the next tick, but there is no
   // next tick before hblank ends.
   mySignalActive = myIsRendering && myRenderCounter >= 0;

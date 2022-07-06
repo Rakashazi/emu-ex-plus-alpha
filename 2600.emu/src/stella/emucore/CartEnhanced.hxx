@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -87,7 +87,7 @@ class CartridgeEnhanced : public Cartridge
 
       @param segment  The segment to get the bank for
     */
-    uInt16 getSegmentBank(uInt16 segment = 0) const;
+    uInt16 getSegmentBank(uInt16 segment = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -98,6 +98,11 @@ class CartridgeEnhanced : public Cartridge
       Query the number of RAM 'banks' supported by the cartridge.
     */
     uInt16 ramBankCount() const override;
+
+    /**
+      Get the number of segments supported by the cartridge.
+    */
+    uInt16 segmentCount() const override { return myBankSegs; }
 
     /**
       Check if the segment at that address contains a RAM bank
@@ -188,7 +193,7 @@ class CartridgeEnhanced : public Cartridge
     uInt16 myBankShift{BANK_SHIFT};             // default 12 (-> one 4K segment)
 
     // The size of a bank's segment
-    uInt16 myBankSize{uInt16(4_KB)};
+    uInt16 myBankSize{static_cast<uInt16>(4_KB)};
 
     // The mask for a bank segment
     uInt16 myBankMask{ROM_MASK};

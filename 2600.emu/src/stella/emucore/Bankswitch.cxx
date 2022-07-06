@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -26,7 +26,7 @@ string Bankswitch::typeToName(Bankswitch::Type type)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Bankswitch::Type Bankswitch::nameToType(const string& name)
 {
-  auto it = ourNameToTypes.find(name);
+  const auto it = ourNameToTypes.find(name);
   if(it != ourNameToTypes.end())
     return it->second;
 
@@ -43,10 +43,10 @@ string Bankswitch::typeToDesc(Bankswitch::Type type)
 Bankswitch::Type Bankswitch::typeFromExtension(const FilesystemNode& file)
 {
   const string& name = file.getPath();
-  string::size_type idx = name.find_last_of('.');
+  const string::size_type idx = name.find_last_of('.');
   if(idx != string::npos)
   {
-    auto it = ourExtensions.find(name.c_str() + idx + 1);
+    const auto it = ourExtensions.find(name.c_str() + idx + 1);
     if(it != ourExtensions.end())
       return it->second;
   }
@@ -57,11 +57,11 @@ Bankswitch::Type Bankswitch::typeFromExtension(const FilesystemNode& file)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Bankswitch::isValidRomName(const string& name, string& ext)
 {
-  string::size_type idx = name.find_last_of('.');
+  const string::size_type idx = name.find_last_of('.');
   if(idx != string::npos)
   {
     const char* const e = name.c_str() + idx + 1;
-    auto it = ourExtensions.find(e);
+    const auto it = ourExtensions.find(e);
     if(it != ourExtensions.end())
     {
       ext = e;
@@ -95,7 +95,8 @@ bool Bankswitch::isValidRomName(const string& name)
 const std::array<Bankswitch::Description, static_cast<int>(Bankswitch::Type::NumSchemes)>
 Bankswitch::BSList = {{
   { "AUTO"    , "Auto-detect"                 },
-  { "0840"    , "0840 (8K ECONObank)"         },
+  { "0840"    , "0840 (8K EconoBanking)"      },
+  { "0FA0"    , "0FA0 (8K Fotomania)"         },
   { "2IN1"    , "2IN1 Multicart (4-64K)"      },
   { "4IN1"    , "4IN1 Multicart (8-64K)"      },
   { "8IN1"    , "8IN1 Multicart (16-64K)"     },
@@ -167,6 +168,8 @@ Bankswitch::ExtensionMap Bankswitch::ourExtensions = {
   // All bankswitch types (those that UnoCart and HarmonyCart support have the same name)
   { "084"   , Bankswitch::Type::_0840   },
   { "0840"  , Bankswitch::Type::_0840   },
+  { "0FA"   , Bankswitch::Type::_0FA0   },
+  { "0FA0"  , Bankswitch::Type::_0FA0   },
   { "2N1"   , Bankswitch::Type::_2IN1   },
   { "4N1"   , Bankswitch::Type::_4IN1   },
   { "8N1"   , Bankswitch::Type::_8IN1   },
@@ -241,6 +244,7 @@ Bankswitch::ExtensionMap Bankswitch::ourExtensions = {
 Bankswitch::NameToTypeMap Bankswitch::ourNameToTypes = {
   { "AUTO"    , Bankswitch::Type::_AUTO   },
   { "0840"    , Bankswitch::Type::_0840   },
+  { "0FA0"    , Bankswitch::Type::_0FA0   },
   { "2IN1"    , Bankswitch::Type::_2IN1   },
   { "4IN1"    , Bankswitch::Type::_4IN1   },
   { "8IN1"    , Bankswitch::Type::_8IN1   },

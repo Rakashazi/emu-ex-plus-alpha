@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -174,11 +174,11 @@ uInt8 CartridgeEnhanced::peek(uInt16 address)
   address &= ROM_MASK;
 
   // Write port is e.g. at 0xF000 - 0xF07F (128 bytes)
-  if(address < myReadOffset + myRamSize && address >= myReadOffset)
+  if(address >= myWriteOffset && address < myWriteOffset + myRamSize)
   {
     // This is a read access to a write port!
     // Reading from the write port triggers an unwanted write
-    return peekRAM(myRAM[address], peekAddress);
+    return peekRAM(myRAM[address - myWriteOffset], peekAddress);
   }
 
   return myImage[romAddressSegmentOffset(peekAddress) + (peekAddress & myBankMask)];
@@ -243,21 +243,13 @@ bool CartridgeEnhanced::bank(uInt16 bank, uInt16 segment)
     // Remember what bank is in this segment
     const uInt32 bankOffset = myCurrentSegOffset[segment] = romBank << myBankShift;
     const uInt16 hotspot = this->hotspot();
-    uInt16 hotSpotAddr;
-    uInt16 plusROMAddr;
+    const uInt16 hotSpotAddr = (hotspot & 0x1000) ? (hotspot & ~System::PAGE_MASK) : 0xFFFF;
+    const uInt16 plusROMAddr = (myPlusROM->isValid()) ? (0x1FF0 & ~System::PAGE_MASK) : 0xFFFF;
+
     // Skip extra RAM; if existing it is only mapped into first segment
     const uInt16 fromAddr = (ROM_OFFSET + segmentOffset + (segment == 0 ? myRomOffset : 0)) & ~System::PAGE_MASK;
     // for ROMs < 4_KB, the whole address space will be mapped.
     const uInt16 toAddr   = (ROM_OFFSET + segmentOffset + (mySize < 4_KB ? 4_KB : myBankSize)) & ~System::PAGE_MASK;
-
-    if(hotspot & 0x1000)
-      hotSpotAddr = (hotspot & ~System::PAGE_MASK);
-    else
-      hotSpotAddr = 0xFFFF; // none
-    if(myPlusROM->isValid())
-      plusROMAddr = (0x1FF0 & ~System::PAGE_MASK);
-    else
-      plusROMAddr = 0xFFFF; // none
 
     System::PageAccess access(this, System::PageAccessType::READ);
     // Setup the page access methods for the current bank
@@ -335,7 +327,7 @@ uInt16 CartridgeEnhanced::getSegmentBank(uInt16 segment) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeEnhanced::romBankCount() const
 {
-  return uInt16(mySize >> myBankShift);
+  return static_cast<uInt16>(mySize >> myBankShift);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -365,6 +357,7 @@ bool CartridgeEnhanced::patch(uInt16 address, uInt8 value)
       // However, the patch command is special in that ignores such
       // cart restrictions
       myRAM[address & myRamMask] = value;
+      mySystem->poke(address, value); // keep RIOT RAM in sync
     }
     else
       myImage[romAddressSegmentOffset(address) + (address & myBankMask)] = value;

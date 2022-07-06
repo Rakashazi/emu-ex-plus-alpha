@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -44,9 +44,7 @@ void FrameManager::onReset()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FrameManager::onNextLine()
 {
-  Int32 jitter;
-
-  State previousState = myState;
+  const State previousState = myState;
   ++myLineInState;
 
   switch (myState)
@@ -66,11 +64,13 @@ void FrameManager::onNextLine()
       break;
 
     case State::waitForFrameStart:
-      jitter =
+    {
+      const Int32 jitter =
         (myJitterEnabled && myTotalFrames > Metrics::initialGarbageFrames) ? myJitterEmulation.jitter() : 0;
 
       if (myLineInState >= (myYStart + jitter)) setState(State::frame);
       break;
+    }
 
     case State::frame:
       if (myLineInState >= myHeight)
@@ -114,10 +114,16 @@ void FrameManager::setAdjustVSize(Int32 adjustVSize)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FrameManager::onSetVsync()
+void FrameManager::onSetVsync(uInt64 cycles)
 {
-  if (myState == State::waitForVsyncEnd) setState(State::waitForFrameStart);
-  else setState(State::waitForVsyncEnd);
+  if (myState == State::waitForVsyncEnd) {
+    myVsyncEnd = cycles;
+    setState(State::waitForFrameStart);
+  }
+  else {
+    myVsyncStart = cycles;
+    setState(State::waitForVsyncEnd);
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -133,7 +139,8 @@ void FrameManager::setState(FrameManager::State state)
       notifyFrameComplete();
 
       if (myTotalFrames > Metrics::initialGarbageFrames)
-        myJitterEmulation.frameComplete(myCurrentFrameFinalLines);
+        myJitterEmulation.frameComplete(myCurrentFrameFinalLines,
+            static_cast<Int32>(myVsyncEnd - myVsyncStart));
 
       notifyFrameStart();
 
@@ -192,7 +199,7 @@ bool FrameManager::onLoad(Serializer& in)
 {
   if (!myJitterEmulation.load(in)) return false;
 
-  myState = State(in.getInt());
+  myState = static_cast<State>(in.getInt());
   myLineInState = in.getInt();
   myVsyncLines = in.getInt();
   myY = in.getInt();
@@ -213,8 +220,8 @@ bool FrameManager::onLoad(Serializer& in)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FrameManager::recalculateMetrics() {
-  Int32 ystartBase;
-  Int32 baseHeight;
+  Int32 ystartBase = 0;
+  Int32 baseHeight = 0;
 
   switch (layout())
   {

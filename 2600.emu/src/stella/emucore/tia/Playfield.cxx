@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -41,6 +41,8 @@ void Playfield::reset()
   myColorLeft = myColorRight = 0;
   myColorP0 = myColorP1 = 0;
   myColorMode = ColorMode::normal;
+  myScoreGlitch = false;
+  myScoreHaste = 0;
   myDebugEnabled = false;
 
   collision = 0;
@@ -107,6 +109,7 @@ void Playfield::ctrlpf(uInt8 value)
 
   myReflected = reflected;
   myColorMode = colorMode;
+  myScoreHaste = (myColorMode == ColorMode::score && myScoreGlitch) ? 1 : 0;
   applyColors();
 }
 
@@ -150,6 +153,13 @@ void Playfield::setColorP1(uInt8 color)
 
   myColorP1 = color;
   applyColors();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Playfield::setScoreGlitch(bool enable)
+{
+  myScoreGlitch = enable;
+  myScoreHaste = (myColorMode == ColorMode::score && myScoreGlitch) ? 1 : 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -222,10 +232,10 @@ void Playfield::applyColors()
 uInt8 Playfield::getColor() const
 {
   if (!myDebugEnabled)
-    return myX < TIAConstants::H_PIXEL / 2 ? myColorLeft : myColorRight;
+    return myX < static_cast<uInt16>(TIAConstants::H_PIXEL / 2 - myScoreHaste) ? myColorLeft : myColorRight;
   else
   {
-    if (myX < TIAConstants::H_PIXEL / 2)
+    if (myX < static_cast<uInt16>(TIAConstants::H_PIXEL / 2 - myScoreHaste))
     {
       // left side:
       if(myX < 16)
@@ -245,13 +255,13 @@ uInt8 Playfield::getColor() const
       }
       else
       {
-        if(myX >= TIAConstants::H_PIXEL - 16)
-          return myDebugColor - 2;  // PF0
-        if(myX >= TIAConstants::H_PIXEL - 48)
+        if(myX < TIAConstants::H_PIXEL / 2 + 32)
+          return myDebugColor - 2;  // PF2
+        if(myX < TIAConstants::H_PIXEL / 2 + 64)
           return myDebugColor;      // PF1
       }
     }
-    return myDebugColor + 2;        // PF2
+    return myDebugColor + 2;        // PF2/PF0
   }
 }
 
@@ -281,6 +291,7 @@ bool Playfield::save(Serializer& out) const
     out.putBool(myDebugEnabled);
 
     out.putByte(uInt8(myColorMode));
+    out.putBool(myScoreGlitch);
 
     out.putInt(myPattern);
     out.putInt(myEffectivePattern);
@@ -321,7 +332,9 @@ bool Playfield::load(Serializer& in)
     myDebugColor = in.getByte();
     myDebugEnabled = in.getBool();
 
-    myColorMode = ColorMode(in.getByte());
+    myColorMode = static_cast<ColorMode>(in.getByte());
+    myScoreGlitch = in.getBool();
+    myScoreHaste = myColorMode == ColorMode::score && myScoreGlitch ? 1 : 0;
 
     myPattern = in.getInt();
     myEffectivePattern = in.getInt();

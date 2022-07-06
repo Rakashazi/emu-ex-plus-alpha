@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -86,7 +86,7 @@ void CartridgeCTY::install(System& system)
   mySystem = &system;
 
   // Map all RAM accesses to call peek and poke
-  System::PageAccess access(this, System::PageAccessType::READ);
+  const System::PageAccess access(this, System::PageAccessType::READ);
   for(uInt16 addr = 0x1000; addr < 0x1080; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
@@ -97,9 +97,9 @@ void CartridgeCTY::install(System& system)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 CartridgeCTY::peek(uInt16 address)
 {
-  uInt16 peekAddress = address;
+  const uInt16 peekAddress = address;
   address &= 0x0FFF;
-  uInt8 peekValue = myImage[myBankOffset + address];
+  const uInt8 peekValue = myImage[myBankOffset + address];
 
   // In debugger/bank-locked mode, we ignore all hotspots and in general
   // anything that can change the internal state of the cart
@@ -190,7 +190,7 @@ uInt8 CartridgeCTY::peek(uInt16 address)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeCTY::poke(uInt16 address, uInt8 value)
 {
-  uInt16 pokeAddress = address;
+  const uInt16 pokeAddress = address;
   address &= 0x0FFF;
 
   if(address < 0x0040)  // Write port is at $1000 - $103F (64 bytes)
@@ -359,7 +359,7 @@ bool CartridgeCTY::load(Serializer& in)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeCTY::setNVRamFile(const string& nvramfile)
 {
-	myEEPROMFile = nvramfile + "_eeprom.dat";
+  myEEPROMFile = nvramfile + "_eeprom.dat";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -389,7 +389,7 @@ uInt8 CartridgeCTY::ramReadWrite()
   {
     // Opcode and value in form of XXXXYYYY (from myOperationType), where:
     //    XXXX = index and YYYY = operation
-    uInt8 index = myOperationType >> 4;
+    const uInt8 index = myOperationType >> 4;
     switch(myOperationType & 0xf)
     {
       case 1:  // Load tune (index = tune)
@@ -420,6 +420,9 @@ uInt8 CartridgeCTY::ramReadWrite()
         // Add 1 s delay for write
         myRamAccessTimeout = TimerManager::getTicks() + 1000000;
         wipeAllScores();
+        break;
+
+      default:  // satisfy compiler
         break;
     }
     // Bit 6 is 1, busy
@@ -489,7 +492,7 @@ void CartridgeCTY::updateTune()
 //  b       NewAddress
 
   myTunePosition += 1;
-  uInt16 songPosition = (myTunePosition - 1) *3;
+  const uInt16 songPosition = (myTunePosition - 1) *3;
 
   uInt8 note = myFrequencyImage[songPosition + 0];
   if (note)
@@ -556,7 +559,7 @@ void CartridgeCTY::saveScore(uInt8 index)
     catch(...)
     {
       // Maybe add logging here that save failed?
-      cerr << name() << ": ERROR saving score table " << int(index) << endl;
+      cerr << name() << ": ERROR saving score table " << static_cast<int>(index) << endl;
     }
   }
 }
@@ -585,13 +588,13 @@ void CartridgeCTY::wipeAllScores()
 inline void CartridgeCTY::updateMusicModeDataFetchers()
 {
   // Calculate the number of cycles since the last update
-  uInt32 cycles = uInt32(mySystem->cycles() - myAudioCycles);
+  const uInt32 cycles = static_cast<uInt32>(mySystem->cycles() - myAudioCycles);
   myAudioCycles = mySystem->cycles();
 
   // Calculate the number of CTY OSC clocks since the last update
-  double clocks = ((20000.0 * cycles) / myClockRate) + myFractionalClocks;
-  uInt32 wholeClocks = uInt32(clocks);
-  myFractionalClocks = clocks - double(wholeClocks);
+  const double clocks = ((20000.0 * cycles) / myClockRate) + myFractionalClocks;
+  const uInt32 wholeClocks = static_cast<uInt32>(clocks);
+  myFractionalClocks = clocks - static_cast<double>(wholeClocks);
 
   // Let's update counters and flags of the music mode data fetchers
   if(wholeClocks > 0)

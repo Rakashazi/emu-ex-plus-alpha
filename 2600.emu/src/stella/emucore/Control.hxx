@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -318,6 +318,13 @@ class Controller : public Serializable
     static void setMouseSensitivity(int sensitivity);
 
     /**
+      Set auto fire state.
+
+      @param enable The new autofire state
+    */
+    static void setAutoFire(bool enable);
+
+    /**
       Sets the auto fire rate. 0 disables auto fire.
 
       @param rate   Auto fire rate (0..30/25) in Hz
@@ -359,12 +366,12 @@ class Controller : public Serializable
     /**
       Checks for the next auto fire event.
 
-      @param pressed  True if the fire button is current pressed
+      @param pressed  True if the fire button is currently pressed
       @return  The result of the auto fire event check
     */
     inline bool getAutoFireState(bool pressed)
     {
-      if(AUTO_FIRE_RATE && pressed)
+      if(AUTO_FIRE && AUTO_FIRE_RATE && pressed)
       {
         myFireDelay -= AUTO_FIRE_RATE;
         if(myFireDelay <= 0)
@@ -383,7 +390,7 @@ class Controller : public Serializable
     */
     inline bool getAutoFireStateP1(bool pressed)
     {
-      if(AUTO_FIRE_RATE && pressed)
+      if(AUTO_FIRE && AUTO_FIRE_RATE && pressed)
       {
         myFireDelayP1 -= AUTO_FIRE_RATE;
         if(myFireDelayP1 <= 0)
@@ -418,7 +425,10 @@ class Controller : public Serializable
 
     static int MOUSE_SENSITIVITY;
 
-    /// Defines the speed of the auto fire
+    /// Defines the state of auto fire
+    static bool AUTO_FIRE;
+
+    /// Defines the speed of auto fire
     static int AUTO_FIRE_RATE;
 
     /// Delay[frames] until the next fire event

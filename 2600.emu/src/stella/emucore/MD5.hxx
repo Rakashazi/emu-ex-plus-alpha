@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -33,28 +33,21 @@ namespace MD5 {
     Based on the size of data we currently use, this may never
     actually happen.
 
-    @param buffer The message to compute the digest of
-    @param length The length of the message
-    @return The message-digest
+    @param buffer  The message to compute the digest of
+    @param length  The length of the message
+
+    @return   The message-digest
   */
   string hash(const ByteBuffer& buffer, size_t length);
   string hash(const uInt8* buffer, size_t length);
   /**
     Dito.
 
-    @param buffer The message to compute the digest of
-    @return The message - digest
+    @param buffer  The message to compute the digest of
+
+    @return   The message - digest
   */
   string hash(const string& buffer);
-
-  /**
-    Get the MD5 Message-Digest of the file contained in 'node'.
-    The digest consists of 32 hexadecimal digits.
-
-    @param node The file node to compute the digest of
-    @return The message-digest
-  */
-  string hash(const FilesystemNode& node);
 
 }  // Namespace MD5
 

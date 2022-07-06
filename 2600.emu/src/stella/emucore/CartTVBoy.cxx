@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -43,7 +43,7 @@ bool CartridgeTVBoy::bank(uInt16 bank, uInt16)
 {
   if(myBankingDisabled) return false;
 
-  bool banked = CartridgeEnhanced::bank(bank);
+  const bool banked = CartridgeEnhanced::bank(bank);
 
   // Any bankswitching locks further bankswitching, we check for bank 0
   // to avoid locking on cart init.

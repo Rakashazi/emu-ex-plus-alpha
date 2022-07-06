@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -42,7 +42,7 @@ void AnalogReadout::vblank(uInt8 value, uInt64 timestamp)
 {
   updateCharge(timestamp);
 
-  bool oldIsDumped = myIsDumped;
+  const bool oldIsDumped = myIsDumped;
 
   if (value & 0x80) {
     myIsDumped = true;
@@ -58,13 +58,14 @@ uInt8 AnalogReadout::inpt(uInt64 timestamp)
 {
   updateCharge(timestamp);
 
-  bool state = myIsDumped ? false : myU > myUThresh;
+  const bool state = myIsDumped ? false : myU > myUThresh;
 
   return state ? 0x80 : 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void AnalogReadout::update(Connection connection, uInt64 timestamp, ConsoleTiming consoleTiming)
+void AnalogReadout::update(Connection connection, uInt64 timestamp,
+                           ConsoleTiming consoleTiming)
 {
   if (consoleTiming != myConsoleTiming) {
     setConsoleTiming(consoleTiming);
@@ -151,7 +152,7 @@ bool AnalogReadout::load(Serializer& in)
     myConnection.load(in);
     myTimestamp = in.getLong();
 
-    myConsoleTiming = ConsoleTiming(in.getInt());
+    myConsoleTiming = static_cast<ConsoleTiming>(in.getInt());
     myClockFreq = in.getDouble();
 
     myIsDumped = in.getBool();
@@ -165,21 +166,7 @@ bool AnalogReadout::load(Serializer& in)
   return true;
 }
 
-AnalogReadout::Connection AnalogReadout::connectToGround(uInt32 resistance)
-{
-  return Connection{ConnectionType::ground, resistance};
-}
-
-AnalogReadout::Connection AnalogReadout::connectToVcc(uInt32 resistance)
-{
-  return Connection{ConnectionType::vcc, resistance};
-}
-
-AnalogReadout::Connection AnalogReadout::disconnect()
-{
-  return Connection{ConnectionType::disconnected, 0};
-}
-
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool AnalogReadout::Connection::save(Serializer& out) const
 {
   try
@@ -196,11 +183,12 @@ bool AnalogReadout::Connection::save(Serializer& out) const
   return true;
 }
 
-bool AnalogReadout::Connection::load(Serializer& in)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool AnalogReadout::Connection::load(const Serializer& in)
 {
   try
   {
-    type = ConnectionType(in.getInt());
+    type = static_cast<ConnectionType>(in.getInt());
     resistance = in.getInt();
   }
   catch(...)
@@ -212,7 +200,9 @@ bool AnalogReadout::Connection::load(Serializer& in)
   return true;
 }
 
-bool operator==(const AnalogReadout::Connection& c1, const AnalogReadout::Connection& c2)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool operator==(const AnalogReadout::Connection& c1,
+                const AnalogReadout::Connection& c2)
 {
   if (c1.type == AnalogReadout::ConnectionType::disconnected)
     return c2.type == AnalogReadout::ConnectionType::disconnected;
@@ -220,7 +210,9 @@ bool operator==(const AnalogReadout::Connection& c1, const AnalogReadout::Connec
   return c1.type == c2.type && c1.resistance == c2.resistance;
 }
 
-bool operator!=(const AnalogReadout::Connection& c1, const AnalogReadout::Connection& c2)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool operator!=(const AnalogReadout::Connection& c1,
+                const AnalogReadout::Connection& c2)
 {
   return !(c1 == c2);
 }

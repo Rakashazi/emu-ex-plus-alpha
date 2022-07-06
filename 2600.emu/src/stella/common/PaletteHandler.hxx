@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -148,19 +148,19 @@ class PaletteHandler
       Convert RGB adjustables from/to 100% scale
     */
     static constexpr float scaleRGBFrom100(float x) { return x / 50.F; }
-    static constexpr uInt32 scaleRGBTo100(float x) { return uInt32(50.0001F * (x - 0.F)); }
+    static constexpr uInt32 scaleRGBTo100(float x) { return static_cast<uInt32>(50.0001F * (x - 0.F)); }
 
     /**
       Convert angles
     */
     static constexpr float scaleFromAngles(float x) { return x / 10.F; }
-    static constexpr Int32 scaleToAngles(float x) { return uInt32(10.F * x); }
+    static constexpr Int32 scaleToAngles(float x) { return static_cast<uInt32>(10.F * x); }
 
     /**
       Convert adjustables from/to 100% scale
     */
     static constexpr float scaleFrom100(float x) { return (x / 50.F) - 1.F; }
-    static constexpr uInt32 scaleTo100(float x)  { return uInt32(50.0001F * (x + 1.F)); }
+    static constexpr uInt32 scaleTo100(float x)  { return static_cast<uInt32>(50.0001F * (x + 1.F)); }
 
     /**
       Check for 'Custom' palette only adjustables

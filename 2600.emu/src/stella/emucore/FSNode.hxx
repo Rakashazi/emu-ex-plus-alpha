@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -72,6 +72,7 @@ class FilesystemNode
      * getPath()) will always return false or raise an assertion.
      */
     FilesystemNode() = default;
+    ~FilesystemNode() = default;
 
     /**
      * Create a new FilesystemNode referring to the specified path. This is
@@ -89,6 +90,8 @@ class FilesystemNode
      */
     FilesystemNode(const FilesystemNode&) = default;
     FilesystemNode& operator=(const FilesystemNode&) = default;
+    FilesystemNode& operator=(FilesystemNode&&) = default;
+    FilesystemNode(FilesystemNode&&) = default;
 
     /**
      * Compare the name of this node to the name of another, testing for
@@ -241,6 +244,13 @@ class FilesystemNode
     bool rename(const string& newfile);
 
     /**
+     * Get the size of the current node path.
+     *
+     * @return  Size (in bytes) of the current node path.
+     */
+    size_t getSize() const;
+
+    /**
      * Read data (binary format) into the given buffer.
      *
      * @param buffer  The buffer to contain the data (allocated in this method).
@@ -326,9 +336,9 @@ class AbstractFSNode
      */
     AbstractFSNode() = default;
     AbstractFSNode(const AbstractFSNode&) = default;
-//    AbstractFSNode(AbstractFSNode&&) = default;
+    AbstractFSNode(AbstractFSNode&&) = delete;
     AbstractFSNode& operator=(const AbstractFSNode&) = default;
-//    AbstractFSNode& operator=(AbstractFSNode&&) = default;
+    AbstractFSNode& operator=(AbstractFSNode&&) = delete;
     virtual ~AbstractFSNode() = default;
 
     /*
@@ -434,6 +444,13 @@ class AbstractFSNode
      * @return bool true if the node was renamed, false otherwise.
      */
     virtual bool rename(const string& newfile) = 0;
+
+    /**
+     * Get the size of the current node path.
+     *
+     * @return  Size (in bytes) of the current node path.
+     */
+    virtual size_t getSize() const { return 0; }
 
     /**
      * Read data (binary format) into the given buffer.

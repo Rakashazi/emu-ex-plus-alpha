@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -128,7 +128,7 @@ void StateManager::toggleRecordMode()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void StateManager::toggleTimeMachine()
 {
-  bool devSettings = myOSystem.settings().getBool("dev.settings");
+  const bool devSettings = myOSystem.settings().getBool("dev.settings");
 
   myActiveMode = myActiveMode == Mode::TimeMachine ? Mode::Off : Mode::TimeMachine;
   if(myActiveMode == Mode::TimeMachine)
@@ -256,7 +256,7 @@ void StateManager::saveState(int slot)
         << ".st" << slot;
 
     // Make sure the file can be opened for writing
-    Serializer out(buf.str());
+    Serializer out(buf.str(), Serializer::Mode::ReadWriteTrunc);
     if(!out)
     {
       buf.str("");

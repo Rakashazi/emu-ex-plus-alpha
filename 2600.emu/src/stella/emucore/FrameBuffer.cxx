@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -80,9 +80,9 @@ void FrameBuffer::initialize()
   // Get desktop resolution and supported renderers
   myBackend->queryHardware(myFullscreenDisplays, myWindowedDisplays, myRenderers);
 
-  int numDisplays = int(myWindowedDisplays.size());
+  const size_t numDisplays = myWindowedDisplays.size();
 
-  for(int display = 0; display < numDisplays; ++display)
+  for(size_t display = 0; display < numDisplays; ++display)
   {
     uInt32 query_w = myWindowedDisplays[display].w, query_h = myWindowedDisplays[display].h;
 
@@ -128,8 +128,8 @@ void FrameBuffer::initialize()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 int FrameBuffer::displayId(BufferType bufferType) const
 {
-  const int maxDisplay = int(myWindowedDisplays.size()) - 1;
-  int display;
+  const int maxDisplay = static_cast<int>(myWindowedDisplays.size()) - 1;
+  int display = 0;
 
   if(bufferType == myBufferType)
     display = myBackend->getCurrentDisplayIndex();
@@ -169,7 +169,7 @@ void FrameBuffer::setupFonts()
   }
   else
   {
-    const int NUM_FONTS = 7;
+    constexpr int NUM_FONTS = 7;
     FontDesc FONT_DESC[NUM_FONTS] = {GUI::consoleDesc, GUI::consoleMediumDesc, GUI::stellaMediumDesc,
       GUI::stellaLargeDesc, GUI::stella12x24tDesc, GUI::stella14x28tDesc, GUI::stella16x32tDesc};
     const string& dialogFont = myOSystem.settings().getString("dialogfont");
@@ -193,8 +193,8 @@ void FrameBuffer::setupFonts()
     // Determine minimal zoom level based on the default font
     //  So what fits with default font should fit for any font.
     //  However, we have to make sure all Dialogs are sized using the fontsize.
-    int zoom_h = (fd.height * 4 * 2) / GUI::stellaMediumDesc.height;
-    int zoom_w = (fd.maxwidth * 4 * 2) / GUI::stellaMediumDesc.maxwidth;
+    const int zoom_h = (fd.height * 4 * 2) / GUI::stellaMediumDesc.height;
+    const int zoom_w = (fd.maxwidth * 4 * 2) / GUI::stellaMediumDesc.maxwidth;
     // round to 25% steps, >= 200%
     myTIAMinZoom = std::max(std::max(zoom_w, zoom_h) / 4.F, 2.F);
   }
@@ -253,7 +253,7 @@ FBInitStatus FrameBuffer::createDisplay(const string& title, BufferType type,
   // If the WINDOWED_SUPPORT macro is defined, we treat the system as the
   // former type; if not, as the latter type
 
-  int display = displayId();
+  const int display = displayId();
 #ifdef WINDOWED_SUPPORT
   // We assume that a desktop of at least minimum acceptable size means that
   // we're running on a 'large' system, and the window size requirements
@@ -312,7 +312,28 @@ FBInitStatus FrameBuffer::createDisplay(const string& title, BufferType type,
 
   // Initialize video subsystem
   string pre_about = myBackend->about();
-  FBInitStatus status = applyVideoMode();
+  const FBInitStatus status = applyVideoMode();
+
+  // Only set phosphor once when ROM is started
+  if(myOSystem.eventHandler().inTIAMode())
+  {
+    // Phosphor mode can be enabled either globally or per-ROM
+    int p_blend = 0;
+    bool enable = false;
+
+    if(myOSystem.settings().getString("tv.phosphor") == "always")
+    {
+      p_blend = myOSystem.settings().getInt("tv.phosblend");
+      enable = true;
+    }
+    else
+    {
+      p_blend = BSPF::stringToInt(myOSystem.console().properties().get(PropType::Display_PPBlend));
+      enable = myOSystem.console().properties().get(PropType::Display_Phosphor) == "YES";
+    }
+    myTIASurface->enablePhosphor(enable, p_blend);
+  }
+
   if(status != FBInitStatus::Success)
     return status;
 
@@ -343,12 +364,12 @@ void FrameBuffer::update(UpdateMode mode)
   //  - at the bottom of ::update(), to actually draw them (this must come
   //    last, since they are always drawn on top of everything else).
 
-  bool forceRedraw = mode & UpdateMode::REDRAW;
+  const bool forceRedraw = mode & UpdateMode::REDRAW;
   bool redraw = forceRedraw;
 
   // Forced render without draw required if messages or dialogs were closed
   // Note: For dialogs only relevant when two or more dialogs were stacked
-  bool rerender = (mode & (UpdateMode::REDRAW | UpdateMode::RERENDER))
+  const bool rerender = (mode & (UpdateMode::REDRAW | UpdateMode::RERENDER))
     || myPendingRender;
   myPendingRender = false;
 
@@ -366,7 +387,7 @@ void FrameBuffer::update(UpdateMode mode)
 
       if(myPausedCount-- <= 0)
       {
-        myPausedCount = uInt32(7 * myOSystem.frameRate());
+        myPausedCount = static_cast<uInt32>(7 * myOSystem.frameRate());
         showTextMessage("Paused", MessagePosition::MiddleCenter);
         myTIASurface->render(shade);
       }
@@ -486,14 +507,14 @@ void FrameBuffer::update(UpdateMode mode)
       if(--frames <= 0)
       {
         RewindManager& r = myOSystem.state().rewindManager();
-        uInt64 prevCycles = r.getCurrentCycles();
+        const uInt64 prevCycles = r.getCurrentCycles();
 
         success = r.unwindStates(1);
 
         // Determine playback speed, the faster the more the states are apart
-        Int64 frameCycles = 76 * std::max<Int32>(myOSystem.console().tia().scanlinesLastFrame(), 240);
-        Int64 intervalFrames = r.getInterval() / frameCycles;
-        Int64 stateFrames = (r.getCurrentCycles() - prevCycles) / frameCycles;
+        const Int64 frameCycles = 76 * std::max<Int32>(myOSystem.console().tia().scanlinesLastFrame(), 240);
+        const Int64 intervalFrames = r.getInterval() / frameCycles;
+        const Int64 stateFrames = (r.getCurrentCycles() - prevCycles) / frameCycles;
 
         //frames = intervalFrames + std::sqrt(std::max(stateFrames - intervalFrames, 0));
         frames = std::round(std::sqrt(stateFrames));
@@ -595,7 +616,7 @@ void FrameBuffer::createMessage(const string& message, MessagePosition position,
   const int fontHeight = font().getFontHeight();
   const int VBORDER = fontHeight / 4;
 
-  myMsg.counter = uInt32(myOSystem.frameRate()) * 2; // Show message for 2 seconds
+  myMsg.counter = std::min(uInt32(myOSystem.frameRate()) * 2, 120u); // Show message for 2 seconds
   if(myMsg.counter == 0)
     myMsg.counter = 120;
 
@@ -667,7 +688,8 @@ void FrameBuffer::drawFrameStats(float framesPerSecond)
 {
 #ifdef GUI_SUPPORT
   const ConsoleInfo& info = myOSystem.console().about();
-  int xPos = 2, yPos = 0;
+  constexpr int xPos = 2;
+  int yPos = 0;
   const GUI::Font& f = hidpiEnabled() ? infoFont() : font();
   const int dy = f.getFontHeight() + 2;
 
@@ -676,7 +698,7 @@ void FrameBuffer::drawFrameStats(float framesPerSecond)
   myStatsMsg.surface->invalidate();
 
   // draw scanlines
-  ColorId color = myOSystem.console().tia().frameBufferScanlinesLastFrame() !=
+  const ColorId color = myOSystem.console().tia().frameBufferScanlinesLastFrame() !=
     myLastScanlines ? kDbgColorRed : myStatsMsg.color;
 
   ss
@@ -867,12 +889,8 @@ inline bool FrameBuffer::drawMessage()
       // draw tickmark in the middle of the bar
       for(int i = 1; i < NUM_TICKMARKS; ++i)
       {
-        ColorId color;
-        int xt = x + swidth * i / NUM_TICKMARKS;
-        if(bwidth < xt - x)
-          color = kCheckColor; // kSliderColor;
-        else
-          color = kSliderBGColor;
+        const int xt = x + swidth * i / NUM_TICKMARKS;
+        const ColorId color = (bwidth < xt - x) ? kCheckColor : kSliderBGColor;
         myMsg.surface->vLine(xt, y + bheight / 2, y + bheight - 1, color);
       }
       // draw value text
@@ -895,7 +913,7 @@ inline bool FrameBuffer::drawMessage()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FrameBuffer::setPauseDelay()
 {
-  myPausedCount = uInt32(2 * myOSystem.frameRate());
+  myPausedCount = static_cast<uInt32>(2 * myOSystem.frameRate());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -926,12 +944,12 @@ void FrameBuffer::resetSurfaces()
 void FrameBuffer::setTIAPalette(const PaletteArray& rgb_palette)
 {
   // Create a TIA palette from the raw RGB data
-  PaletteArray tia_palette;
+  PaletteArray tia_palette = {0};
   for(int i = 0; i < 256; ++i)
   {
-    uInt8 r = (rgb_palette[i] >> 16) & 0xff;
-    uInt8 g = (rgb_palette[i] >> 8) & 0xff;
-    uInt8 b = rgb_palette[i] & 0xff;
+    const uInt8 r = (rgb_palette[i] >> 16) & 0xff;
+    const uInt8 g = (rgb_palette[i] >> 8) & 0xff;
+    const uInt8 b =  rgb_palette[i] & 0xff;
 
     tia_palette[i] = mapRGB(r, g, b);
   }
@@ -1076,7 +1094,7 @@ void FrameBuffer::setFullscreen(bool enable)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FrameBuffer::toggleFullscreen(bool toggle)
 {
-  EventHandlerState state = myOSystem.eventHandler().state();
+  const EventHandlerState state = myOSystem.eventHandler().state();
 
   switch(state)
   {
@@ -1151,8 +1169,8 @@ void FrameBuffer::changeOverscan(int direction)
 {
   if (fullScreen())
   {
-    int oldOverscan = myOSystem.settings().getInt("tia.fs_overscan");
-    int overscan = BSPF::clamp(oldOverscan + direction, 0, 10);
+    const int oldOverscan = myOSystem.settings().getInt("tia.fs_overscan");
+    const int overscan = BSPF::clamp(oldOverscan + direction, 0, 10);
 
     if (overscan != oldOverscan)
     {
@@ -1216,7 +1234,7 @@ FBInitStatus FrameBuffer::applyVideoMode()
 {
   // Update display size, in case windowed/fullscreen mode has changed
   const Settings& s = myOSystem.settings();
-  int display = displayId();
+  const int display = displayId();
 
   if(s.getBool("fullscreen"))
     myVidModeHandler.setDisplaySize(myFullscreenDisplays[display], display);
@@ -1233,7 +1251,7 @@ FBInitStatus FrameBuffer::applyVideoMode()
   // Changing the video mode can take some time, during which the last
   // sound played may get 'stuck'
   // So we mute the sound until the operation completes
-  bool oldMuteState = myOSystem.sound().mute(true);
+  const bool oldMuteState = myOSystem.sound().mute(true);
   FBInitStatus status = FBInitStatus::FailNotSupported;
 
   if(myBackend->setVideoMode(mode,
@@ -1274,14 +1292,14 @@ FBInitStatus FrameBuffer::applyVideoMode()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 float FrameBuffer::maxWindowZoom() const
 {
-  int display = displayId(BufferType::Emulator);
+  const int display = displayId(BufferType::Emulator);
   float multiplier = 1;
 
   for(;;)
   {
     // Figure out the zoomed size of the window
-    uInt32 width  = TIAConstants::viewableWidth * multiplier;
-    uInt32 height = TIAConstants::viewableHeight * multiplier;
+    const uInt32 width  = TIAConstants::viewableWidth * multiplier;
+    const uInt32 height = TIAConstants::viewableHeight * multiplier;
 
     if((width > myAbsDesktopSize[display].w) || (height > myAbsDesktopSize[display].h))
       break;
@@ -1336,15 +1354,15 @@ bool FrameBuffer::grabMouseAllowed()
 {
   // Allow grabbing mouse in emulation (if enabled) and emulating a controller
   // that always uses the mouse
-  bool emulation =
+  const bool emulation =
     myOSystem.eventHandler().state() == EventHandlerState::EMULATION;
-  bool analog = myOSystem.hasConsole() ?
+  const bool analog = myOSystem.hasConsole() ?
     (myOSystem.console().leftController().isAnalog() ||
      myOSystem.console().rightController().isAnalog()) : false;
-  bool usesLightgun = emulation && myOSystem.hasConsole() ?
+  const bool usesLightgun = emulation && myOSystem.hasConsole() ?
     myOSystem.console().leftController().type() == Controller::Type::Lightgun ||
     myOSystem.console().rightController().type() == Controller::Type::Lightgun : false;
-  bool alwaysUseMouse = BSPF::equalsIgnoreCase("always", myOSystem.settings().getString("usemouse"));
+  const bool alwaysUseMouse = BSPF::equalsIgnoreCase("always", myOSystem.settings().getString("usemouse"));
 
   // Disable grab while cursor is shown in emulation
   bool cursorHidden = !(myOSystem.settings().getInt("cursor") & 1);

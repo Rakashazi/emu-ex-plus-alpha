@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -48,14 +48,14 @@ class PlusROMRequest {
   public:
 
     struct Destination {
-      Destination(string _host, string _path) : host(_host), path(_path) {}
+      Destination(string _host, string _path) : host{_host}, path{_path} {}
 
       string host;
       string path;
     };
 
     struct PlusStoreId {
-      PlusStoreId(string _nick, string _id) : nick(_nick), id(_id) {}
+      PlusStoreId(string _nick, string _id) : nick{_nick}, id{_id} {}
 
       string nick;
       string id;
@@ -70,10 +70,11 @@ class PlusROMRequest {
 
   public:
 
-    PlusROMRequest(Destination destination, PlusStoreId id, const uInt8* request, uInt8 requestSize)
-      : myDestination(destination), myId(id), myRequestSize(requestSize)
+    PlusROMRequest(Destination destination, PlusStoreId id, const uInt8* request,
+                   uInt8 requestSize)
+      : myState{State::created}, myDestination{destination},
+        myId{id}, myRequestSize{requestSize}
     {
-      myState = State::created;
       memcpy(myRequest.data(), request, myRequestSize);
     }
 
@@ -152,8 +153,18 @@ class PlusROMRequest {
       myState = State::done;
     }
 
-    State getState() {
+    State getState() const {
       return myState;
+    }
+
+    const Destination& getDestination() const
+    {
+      return myDestination;
+    }
+
+    const PlusStoreId& getPlusStoreId() const
+    {
+      return myId;
     }
 
     std::pair<size_t, const uInt8*> getResponse() {
@@ -167,13 +178,13 @@ class PlusROMRequest {
   #endif
 
   private:
-    std::atomic<State> myState;
+    std::atomic<State> myState{State::failed};
 
     Destination myDestination;
     PlusStoreId myId;
 
     std::array<uInt8, 256> myRequest;
-    uInt8 myRequestSize;
+    uInt8 myRequestSize{0};
 
     string myResponse;
 
@@ -186,9 +197,11 @@ class PlusROMRequest {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PlusROM::PlusROM(const Settings& settings, const Cartridge& cart)
-  : mySettings(settings),
-    myCart(cart)
+  : mySettings{settings},
+    myCart{cart}
 {
+  myRxBuffer.fill(0);
+  myTxBuffer.fill(0);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -221,7 +234,7 @@ bool PlusROM::initialize(const ByteBuffer& image, size_t size)
     return myIsPlusROM = false;  // Invalid host
 
   myHost = host;
-  myPath = "/" + path;
+  myPath = path;
 
   reset();
 
@@ -261,6 +274,9 @@ bool PlusROM::peekHotspot(uInt16 address, uInt8& value)
       receive();
       value = myRxWritePos - myRxReadPos;
       return true;
+
+    default:  // satisfy compiler
+      break;
   }
 #endif
   return false;
@@ -293,6 +309,9 @@ bool PlusROM::pokeHotspot(uInt16 address, uInt8 value)
 
     case RECEIVE_BUFFER_SIZE: // Get number of unread bytes in Rx buffer
       receive();
+      break;
+
+    default:  // satisfy compiler
       break;
   }
 #endif
@@ -398,7 +417,7 @@ void PlusROM::send()
   {
     const string nick = mySettings.getString("plusroms.nick");
     auto request = make_shared<PlusROMRequest>(
-      PlusROMRequest::Destination(myHost, myPath),
+      PlusROMRequest::Destination(myHost, "/" + myPath),
       PlusROMRequest::PlusStoreId(nick, id),
       myTxBuffer.data(),
       myTxPos
@@ -409,9 +428,10 @@ void PlusROM::send()
     // We push to the back in order to avoid reverse_iterator in receive()
     myPendingRequests.push_back(request);
 
-    // The lambda will retain a copy of the shared_ptr that is alive as long as the
-    // thread is running. Thus, the request can only be destructed once the thread has
-    // finished, and we can safely evict it from the deque at any time.
+    // The lambda will retain a copy of the shared_ptr that is alive as long
+    // as the thread is running. Thus, the request can only be destructed once
+    // the thread has finished, and we can safely evict it from the deque at
+    // any time.
     std::thread thread([=]() {
       request->execute();
       switch(request->getState())
@@ -440,8 +460,8 @@ void PlusROM::receive()
 #if defined(HTTP_LIB_SUPPORT)
   auto iter = myPendingRequests.begin();
 
-  while (iter != myPendingRequests.end()) {
-    switch ((*iter)->getState()) {
+  while(iter != myPendingRequests.end()) {
+    switch((*iter)->getState()) {
       case PlusROMRequest::State::failed:
         myMsgCallback("PlusROM data receiving failed!");
         // Request has failed? -> remove it and start over
@@ -454,9 +474,9 @@ void PlusROM::receive()
         myMsgCallback("PlusROM data received successfully");
         // Request has finished sucessfully? -> consume the response, remove it
         // and start over
-        auto [responseSize, response] = (*iter)->getResponse();
+        const auto [responseSize, response] = (*iter)->getResponse();
 
-        for (uInt8 i = 0; i < responseSize; i++)
+        for(uInt8 i = 0; i < responseSize; i++)
           myRxBuffer[myRxWritePos++] = response[i];
 
         myPendingRequests.erase(iter);
@@ -469,4 +489,26 @@ void PlusROM::receive()
     }
   }
 #endif
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ByteArray PlusROM::getSend() const
+{
+  ByteArray arr;
+
+  for(int i = 0; i < myTxPos; ++i)
+    arr.push_back(myTxBuffer[i]);
+
+  return arr;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ByteArray PlusROM::getReceive() const
+{
+  ByteArray arr;
+
+  for(uInt8 i = myRxReadPos; i != myRxWritePos; ++i)
+    arr.push_back(myRxBuffer[i]);
+
+  return arr;
 }

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -67,8 +67,9 @@ bool GlobalKeyHandler::handleEvent(const Event::Type event, bool pressed, bool r
       if(pressed && !repeated)
       {
         const int direction = (event == Event::PreviousSettingGroup ? -1 : +1);
-        Group group = Group(BSPF::clampw(int(getGroup()) + direction,
-                            0, int(Group::NUM_GROUPS) - 1));
+        const Group group = static_cast<Group>(
+            BSPF::clampw(static_cast<int>(getGroup()) + direction,
+            0, static_cast<int>(Group::NUM_GROUPS) - 1));
         const std::map<Group, GroupData> GroupMap = {
           {Group::AV,    {Setting::START_AV_ADJ,    "Audio & Video"}},
           {Group::INPUT, {Setting::START_INPUT_ADJ, "Input Devices & Ports"}},
@@ -137,7 +138,10 @@ bool GlobalKeyHandler::handleEvent(const Event::Type event, bool pressed, bool r
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void GlobalKeyHandler::setSetting(const Setting setting)
 {
-  mySetting = setting;
+  if(setting == Setting::ZOOM && myOSystem.frameBuffer().fullScreen())
+    mySetting = Setting::FS_ASPECT;
+  else
+    mySetting = setting;
   mySettingActive = true;
 }
 
@@ -193,19 +197,24 @@ bool GlobalKeyHandler::isTrackball(const Controller& controller) const
 bool GlobalKeyHandler::skipAVSetting() const
 {
   const bool isFullScreen = myOSystem.frameBuffer().fullScreen();
+  const bool isFsStretch = isFullScreen &&
+    myOSystem.settings().getBool("tia.fs_stretch");
   const bool isCustomPalette =
     myOSystem.settings().getString("palette") == PaletteHandler::SETTING_CUSTOM;
   const bool isCustomFilter =
-    myOSystem.settings().getInt("tv.filter") == int(NTSCFilter::Preset::CUSTOM);
+    myOSystem.settings().getInt("tv.filter") == static_cast<int>(NTSCFilter::Preset::CUSTOM);
   const bool hasScanlines =
     myOSystem.settings().getInt("tv.scanlines") > 0;
   const bool isSoftwareRenderer =
     myOSystem.settings().getString("video") == "software";
 
   return (mySetting == Setting::OVERSCAN && !isFullScreen)
+    || (mySetting == Setting::ZOOM && isFullScreen)
 #ifdef ADAPTABLE_REFRESH_SUPPORT
     || (mySetting == Setting::ADAPT_REFRESH && !isFullScreen)
 #endif
+    || (mySetting == Setting::FS_ASPECT && !isFullScreen)
+    || (mySetting == Setting::ASPECT_RATIO && isFsStretch)
     || (mySetting >= Setting::PALETTE_PHASE
       && mySetting <= Setting::PALETTE_BLUE_SHIFT
       && !isCustomPalette)
@@ -283,25 +292,25 @@ const GlobalKeyHandler::Function GlobalKeyHandler::cycleSetting(int direction)
     switch(getGroup())
     {
       case Group::AV:
-        mySetting =
-          Setting(BSPF::clampw(int(mySetting) + direction,
-            int(Setting::START_AV_ADJ), int(Setting::END_AV_ADJ)));
+        mySetting = static_cast<Setting>(
+            BSPF::clampw(static_cast<int>(mySetting) + direction,
+            static_cast<int>(Setting::START_AV_ADJ), static_cast<int>(Setting::END_AV_ADJ)));
         // skip currently non-relevant adjustments
         skip = skipAVSetting();
         break;
 
       case Group::INPUT:
-        mySetting =
-          Setting(BSPF::clampw(int(mySetting) + direction,
-            int(Setting::START_INPUT_ADJ), int(Setting::END_INPUT_ADJ)));
+        mySetting = static_cast<Setting>(
+            BSPF::clampw(static_cast<int>(mySetting) + direction,
+            static_cast<int>(Setting::START_INPUT_ADJ), static_cast<int>(Setting::END_INPUT_ADJ)));
         // skip currently non-relevant adjustments
         skip = skipInputSetting();
         break;
 
       case Group::DEBUG:
-        mySetting =
-          Setting(BSPF::clampw(int(mySetting) + direction,
-            int(Setting::START_DEBUG_ADJ), int(Setting::END_DEBUG_ADJ)));
+        mySetting = static_cast<Setting>(
+            BSPF::clampw(static_cast<int>(mySetting) + direction,
+            static_cast<int>(Setting::START_DEBUG_ADJ), static_cast<int>(Setting::END_DEBUG_ADJ)));
         // skip currently non-relevant adjustments
         skip = skipDebugSetting();
         break;
@@ -328,6 +337,7 @@ GlobalKeyHandler::SettingData GlobalKeyHandler::getSettingData(const Setting set
     {Setting::VOLUME,                 {true,  std::bind(&Sound::adjustVolume, &myOSystem.sound(), _1)}},
     {Setting::ZOOM,                   {false, std::bind(&FrameBuffer::switchVideoMode, &myOSystem.frameBuffer(), _1)}}, // always repeating
     {Setting::FULLSCREEN,             {false, std::bind(&FrameBuffer::toggleFullscreen, &myOSystem.frameBuffer(), _1)}}, // always repeating
+    {Setting::FS_ASPECT,              {false, std::bind(&FrameBuffer::switchVideoMode, &myOSystem.frameBuffer(), _1)}}, // always repeating
   #ifdef ADAPTABLE_REFRESH_SUPPORT
     {Setting::ADAPT_REFRESH,          {false, std::bind(&FrameBuffer::toggleAdaptRefresh, &myOSystem.frameBuffer(), _1)}}, // always repeating
   #endif
@@ -366,15 +376,15 @@ GlobalKeyHandler::SettingData GlobalKeyHandler::getSettingData(const Setting set
     // NTSC filter adjustables
     {Setting::NTSC_PRESET,            {false, std::bind(&TIASurface::changeNTSC, &myOSystem.frameBuffer().tiaSurface(), _1)}},
     {Setting::NTSC_SHARPNESS,         {true,  std::bind(&TIASurface::changeNTSCAdjustable, &myOSystem.frameBuffer().tiaSurface(),
-                                              int(NTSCFilter::Adjustables::SHARPNESS), _1)}},
+                                              static_cast<int>(NTSCFilter::Adjustables::SHARPNESS), _1)}},
     {Setting::NTSC_RESOLUTION,        {true,  std::bind(&TIASurface::changeNTSCAdjustable, &myOSystem.frameBuffer().tiaSurface(),
-                                              int(NTSCFilter::Adjustables::RESOLUTION), _1)}},
+                                              static_cast<int>(NTSCFilter::Adjustables::RESOLUTION), _1)}},
     {Setting::NTSC_ARTIFACTS,         {true,  std::bind(&TIASurface::changeNTSCAdjustable, &myOSystem.frameBuffer().tiaSurface(),
-                                              int(NTSCFilter::Adjustables::ARTIFACTS), _1)}},
+                                              static_cast<int>(NTSCFilter::Adjustables::ARTIFACTS), _1)}},
     {Setting::NTSC_FRINGING,          {true,  std::bind(&TIASurface::changeNTSCAdjustable, &myOSystem.frameBuffer().tiaSurface(),
-                                              int(NTSCFilter::Adjustables::FRINGING), _1)}},
+                                              static_cast<int>(NTSCFilter::Adjustables::FRINGING), _1)}},
     {Setting::NTSC_BLEEDING,          {true,  std::bind(&TIASurface::changeNTSCAdjustable, &myOSystem.frameBuffer().tiaSurface(),
-                                              int(NTSCFilter::Adjustables::BLEEDING), _1)}},
+                                              static_cast<int>(NTSCFilter::Adjustables::BLEEDING), _1)}},
     // Other TV effects adjustables
     {Setting::PHOSPHOR,               {true,  std::bind(&Console::changePhosphor, &myOSystem.console(), _1)}},
     {Setting::SCANLINES,              {true,  std::bind(&TIASurface::changeScanlineIntensity, &myOSystem.frameBuffer().tiaSurface(), _1)}},
@@ -426,7 +436,8 @@ GlobalKeyHandler::SettingData GlobalKeyHandler::getSettingData(const Setting set
     {Setting::ALL_CX,                 {false, std::bind(&Console::toggleCollisions, &myOSystem.console(), _1)}}, // debug, not persisted
     {Setting::FIXED_COL,              {false, std::bind(&Console::toggleFixedColors, &myOSystem.console(), _1)}}, // debug, not persisted
     {Setting::COLOR_LOSS,             {false, std::bind(&Console::toggleColorLoss, &myOSystem.console(), _1)}},
-    {Setting::JITTER,                 {true,  std::bind(&Console::changeJitter, &myOSystem.console(), _1)}},
+    {Setting::JITTER_SENSE,           {true,  std::bind(&Console::changeJitterSense, &myOSystem.console(), _1)}},
+    {Setting::JITTER_REC,             {true,  std::bind(&Console::changeJitterRecovery, &myOSystem.console(), _1)}},
     // *** Following functions are not used when cycling settings, but for "direct only" hotkeys ***
     {Setting::STATE,                  {true,  std::bind(&StateManager::changeState, &myOSystem.state(), _1)}}, // temporary, not persisted
     {Setting::PALETTE_ATTRIBUTE,      {true,  std::bind(&PaletteHandler::changeCurrentAdjustable, &myOSystem.frameBuffer().tiaSurface().paletteHandler(), _1)}},
@@ -439,7 +450,7 @@ GlobalKeyHandler::SettingData GlobalKeyHandler::getSettingData(const Setting set
     return result->second;
   else
   {
-    cerr << "Error: setting " << int(setting) << " missing in SettingMap!" << endl;
+    cerr << "Error: setting " << static_cast<int>(setting) << " missing in SettingMap!" << endl;
     return SettingMap.find(Setting::VOLUME)->second; // default function!
   }
 }

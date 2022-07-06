@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -29,8 +29,7 @@
   Cartridge class used for UA Limited's 8K bankswitched games.  There
   are two 4K banks, which are switched by accessing $0220 (bank 0) and
   $0240 (bank 1).  Similar addresses are used by Brazilian carts, e.g.
-  $02A0, $02C0 and $0FA0, $0FC0.  The code accepts further potential
-  hotspot addresses.
+  $02A0 and $02C0.  The code accepts further potential hotspot addresses.
 
   @author  Bradford W. Mott, Thomas Jentzsch
 */

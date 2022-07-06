@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -28,7 +28,7 @@ CartridgeAR::CartridgeAR(const ByteBuffer& image, size_t size,
 {
   // Create a load image buffer and copy the given image
   myLoadImages = make_unique<uInt8[]>(mySize);
-  myNumberOfLoadImages = uInt8(mySize / LOAD_SIZE);
+  myNumberOfLoadImages = static_cast<uInt8>(mySize / LOAD_SIZE);
   std::copy_n(image.get(), size, myLoadImages.get());
 
   // Add header if image doesn't include it
@@ -75,7 +75,7 @@ void CartridgeAR::install(System& system)
   mySystem = &system;
 
   // Map all of the accesses to call peek and poke (we don't yet indicate RAM areas)
-  System::PageAccess access(this, System::PageAccessType::READ);
+  const System::PageAccess access(this, System::PageAccessType::READ);
   for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
@@ -94,7 +94,7 @@ uInt8 CartridgeAR::peek(uInt16 addr)
   if(((addr & 0x1FFF) == 0x1850) && (myImageOffset[1] == RAM_SIZE))
   {
     // Get load that's being accessed (BIOS places load number at 0x80)
-    uInt8 load = mySystem->peek(0x0080);
+    const uInt8 load = mySystem->peek(0x0080);
 
     // Read the specified load into RAM
     loadIntoRAM(load);
@@ -113,7 +113,7 @@ uInt8 CartridgeAR::peek(uInt16 addr)
   // Is the data hold register being set?
   if(!(addr & 0x0F00) && (!myWriteEnabled || !myWritePending))
   {
-    myDataHoldRegister = uInt8(addr);  // FIXME - check cast here
+    myDataHoldRegister = static_cast<uInt8>(addr);  // FIXME - check cast here
     myNumberOfDistinctAccesses = mySystem->m6502().distinctAccesses();
     myWritePending = true;
   }
@@ -160,7 +160,7 @@ bool CartridgeAR::poke(uInt16 addr, uInt8)
   // Is the data hold register being set?
   if(!(addr & 0x0F00) && (!myWriteEnabled || !myWritePending))
   {
-    myDataHoldRegister = uInt8(addr);  // FIXME - check cast here
+    myDataHoldRegister = static_cast<uInt8>(addr);  // FIXME - check cast here
     myNumberOfDistinctAccesses = mySystem->m6502().distinctAccesses();
     myWritePending = true;
   }
@@ -277,7 +277,7 @@ void CartridgeAR::initializeROM()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 CartridgeAR::checksum(uInt8* s, uInt16 length)
+uInt8 CartridgeAR::checksum(const uInt8* s, uInt16 length)
 {
   uInt8 sum = 0;
 
@@ -316,8 +316,8 @@ void CartridgeAR::loadIntoRAM(uInt8 load)
       {
         uInt32 bank = myHeader[16 + j] & 0b00011;
         uInt32 page = (myHeader[16 + j] & 0b11100) >> 2;
-        uInt8* src = myLoadImages.get() + (image * LOAD_SIZE) + (j * 256);
-        uInt8 sum = checksum(src, 256) + myHeader[16 + j] + myHeader[64 + j];
+        const uInt8* const src = myLoadImages.get() + (image * LOAD_SIZE) + (j * 256);
+        const uInt8 sum = checksum(src, 256) + myHeader[16 + j] + myHeader[64 + j];
 
         if(!invalidPageChecksumSeen && (sum != 0x55))
         {
@@ -355,7 +355,7 @@ void CartridgeAR::loadIntoRAM(uInt8 load)
 bool CartridgeAR::bank(uInt16 bank, uInt16)
 {
   if(!hotspotsLocked())
-    return bankConfiguration(uInt8(bank));
+    return bankConfiguration(static_cast<uInt8>(bank));
   else
     return false;
 }

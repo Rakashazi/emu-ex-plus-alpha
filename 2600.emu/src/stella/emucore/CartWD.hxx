@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -176,7 +176,18 @@ class CartridgeWD : public CartridgeEnhanced
     struct BankOrg {
       uInt8 zero{0}, one{0}, two{0}, three{0};
     };
-    static const std::array<BankOrg, 8> ourBankOrg;
+    static constexpr std::array<BankOrg, 8> ourBankOrg = {{
+                       //             0 1 2 3 4 5 6 7
+      { 0, 0, 1, 3 },  // Bank 0,  8  2 1 - 1 - - - -
+      { 0, 1, 2, 3 },  // Bank 1,  9  1 1 1 1 - - - -
+      { 4, 5, 6, 7 },  // Bank 2, 10  - - - - 1 1 1 1
+      { 7, 4, 2, 3 },  // Bank 3, 11  - - 1 1 1 - - 1
+      { 0, 0, 6, 7 },  // Bank 4, 12  2 - - - - - 1 1
+      { 0, 1, 7, 6 },  // Bank 5, 13  1 1 - - - - 1 1
+      { 2, 3, 4, 5 },  // Bank 6, 14  - - 1 1 1 1 - -
+      { 6, 0, 5, 1 }   // Bank 7, 15  1 1 - - - 1 1 -
+                       // count       7 4 3 4 3 3 4 4
+    }};
 
   private:
     // log(ROM bank segment size) / log(2)

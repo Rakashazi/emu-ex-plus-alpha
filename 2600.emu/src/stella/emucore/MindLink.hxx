@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -104,15 +104,19 @@ class MindLink : public Controller
   private:
     void nextMindlinkBit();
 
-    // Range of valid values
-    static constexpr int MIN_POS = 0x2700;
-    static constexpr int MAX_POS = 0x3e00;
-    static constexpr int CALIBRATE_FLAG = 0x8000; // this causes a left side calibration
+    // Range of valid values:
+    // Telepathy:           >= 0x6500 for trigger
+    // Bionic Breakthrough:
+    //   06-22-84: >= 0x6100 & < 0x0c00 trigger calibration)
+    //   other:  : >= 0x4e00 triggers calibration
+    static constexpr int MIN_POS = 0x0b00;
+    static constexpr int MAX_POS = 0x6500;
+    static constexpr int TRIGGER_VALUE = 0x8000; // mouse button support
 
   private:
     // Position value in Mindlink controller
     // Gets transferred bitwise (16 bits)
-    int myMindlinkPos{MIN_POS};
+    int myMindlinkPos{0x2a00};
 
     // Which bit to transfer next
     int myMindlinkShift{1};

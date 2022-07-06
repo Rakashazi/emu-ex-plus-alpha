@@ -8,7 +8,7 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -81,7 +81,7 @@ void M6502::reset()
   icycles = 0;
 
   // Load PC from the reset vector
-  PC = uInt16(mySystem->peek(0xfffc)) | (uInt16(mySystem->peek(0xfffd)) << 8);
+  PC = static_cast<uInt16>(mySystem->peek(0xfffc)) | (static_cast<uInt16>(mySystem->peek(0xfffd)) << 8);
 
   myLastAddress = myLastPeekAddress = myLastPokeAddress = myLastPeekBaseAddress = myLastPokeBaseAddress;
   myLastSrcAddressS = myLastSrcAddressA =
@@ -114,7 +114,7 @@ inline uInt8 M6502::peek(uInt16 address, Device::AccessFlags flags)
   mySystem->incrementCycles(SYSTEM_CYCLES_PER_CPU);
   icycles += SYSTEM_CYCLES_PER_CPU;
   myFlags = flags;
-  uInt8 result = mySystem->peek(address, flags);
+  const uInt8 result = mySystem->peek(address, flags);
   myLastPeekAddress = address;
 
 #ifdef DEBUGGER_SUPPORT
@@ -122,7 +122,7 @@ inline uInt8 M6502::peek(uInt16 address, Device::AccessFlags flags)
      && (myGhostReadsTrap || flags != DISASM_NONE))
   {
     myLastPeekBaseAddress = myDebugger->getBaseAddress(myLastPeekAddress, true); // mirror handling
-    int cond = evalCondTraps();
+    const int cond = evalCondTraps();
     if(cond > -1)
     {
       myJustHitReadTrapFlag = true;
@@ -158,7 +158,7 @@ inline void M6502::poke(uInt16 address, uInt8 value, Device::AccessFlags flags)
   if(myWriteTraps.isInitialized() && myWriteTraps.isSet(address))
   {
     myLastPokeBaseAddress = myDebugger->getBaseAddress(myLastPokeAddress, false); // mirror handling
-    int cond = evalCondTraps();
+    const int cond = evalCondTraps();
     if(cond > -1)
     {
       myJustHitWriteTrapFlag = true;
@@ -227,7 +227,7 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
   M6532& riot = mySystem->m6532();
 #endif
 
-  uInt64 previousCycles = mySystem->cycles();
+  const uInt64 previousCycles = mySystem->cycles();
   uInt64 currentCycles = 0;
 
   // Loop until execution is stopped or a fatal error occurs
@@ -240,7 +240,7 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
       if (myLastBreakCycle != mySystem->cycles()) {
         if(myJustHitReadTrapFlag || myJustHitWriteTrapFlag)
         {
-          bool read = myJustHitReadTrapFlag;
+          const bool read = myJustHitReadTrapFlag;
           myJustHitReadTrapFlag = myJustHitWriteTrapFlag = false;
 
           myLastBreakCycle = mySystem->cycles();
@@ -258,7 +258,7 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
 
         if(myBreakPoints.isInitialized())
         {
-          uInt8 bank = mySystem->cart().getBank(PC);
+          const uInt8 bank = mySystem->cart().getBank(PC);
 
           if(myBreakPoints.check(PC, bank))
           {
@@ -277,7 +277,8 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
               {
                 ostringstream msg;
 
-                msg << "BP: $" << Common::Base::HEX4 << PC << ", bank #" << std::dec << int(bank);
+                msg << "BP: $" << Common::Base::HEX4 << PC << ", bank #"
+                    << std::dec << static_cast<int>(bank);
                 result.setDebugger(currentCycles, msg.str(), "Breakpoint");
                 return;
               }
@@ -285,7 +286,7 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
           }
         }
 
-        int cond = evalCondBreaks();
+        const int cond = evalCondBreaks();
         if(cond > -1)
         {
           ostringstream msg;
@@ -306,7 +307,7 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
         }
       }
 
-      int cond = evalCondSaveStates();
+      const int cond = evalCondSaveStates();
       if(cond > -1)
       {
         ostringstream msg;
@@ -326,7 +327,7 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
 
         icycles = 0;
     #ifdef DEBUGGER_SUPPORT
-        uInt16 oldPC = PC;
+        const uInt16 oldPC = PC;
     #endif
 
         // Fetch instruction at the program counter
@@ -345,7 +346,7 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
     #ifdef DEBUGGER_SUPPORT
         if(myReadFromWritePortBreak)
         {
-          uInt16 rwpAddr = mySystem->cart().getIllegalRAMReadAccess();
+          const uInt16 rwpAddr = mySystem->cart().getIllegalRAMReadAccess();
           if(rwpAddr)
           {
             ostringstream msg;
@@ -357,7 +358,7 @@ inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
 
         if (myWriteToReadPortBreak)
         {
-          uInt16 wrpAddr = mySystem->cart().getIllegalRAMWriteAccess();
+          const uInt16 wrpAddr = mySystem->cart().getIllegalRAMWriteAccess();
           if (wrpAddr)
           {
             ostringstream msg;
@@ -433,7 +434,7 @@ void M6502::interruptHandler()
     mySystem->poke(0x0100 + SP--, PS() & (~0x10));
     D = false;
     I = true;
-    PC = uInt16(mySystem->peek(0xFFFE)) | (uInt16(mySystem->peek(0xFFFF)) << 8);
+    PC = static_cast<uInt16>(mySystem->peek(0xFFFE)) | (static_cast<uInt16>(mySystem->peek(0xFFFF)) << 8);
   }
   else if(myExecutionStatus & NonmaskableInterruptBit)
   {
@@ -442,7 +443,7 @@ void M6502::interruptHandler()
     mySystem->poke(0x0100 + SP--, (PC - 1) & 0x00ff);
     mySystem->poke(0x0100 + SP--, PS() & (~0x10));
     D = false;
-    PC = uInt16(mySystem->peek(0xFFFA)) | (uInt16(mySystem->peek(0xFFFB)) << 8);
+    PC = static_cast<uInt16>(mySystem->peek(0xFFFA)) | (static_cast<uInt16>(mySystem->peek(0xFFFB)) << 8);
   }
 
   // Clear the interrupt bits in myExecutionStatus
@@ -563,7 +564,7 @@ uInt32 M6502::addCondBreak(Expression* e, const string& name, bool oneShot)
 
   updateStepStateByInstruction();
 
-  return uInt32(myCondBreaks.size() - 1);
+  return static_cast<uInt32>(myCondBreaks.size() - 1);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -604,7 +605,7 @@ uInt32 M6502::addCondSaveState(Expression* e, const string& name)
 
   updateStepStateByInstruction();
 
-  return uInt32(myCondSaveStates.size() - 1);
+  return static_cast<uInt32>(myCondSaveStates.size() - 1);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -645,7 +646,7 @@ uInt32 M6502::addCondTrap(Expression* e, const string& name)
 
   updateStepStateByInstruction();
 
-  return uInt32(myTrapConds.size() - 1);
+  return static_cast<uInt32>(myTrapConds.size() - 1);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

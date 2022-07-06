@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -27,7 +27,10 @@
 #include "repository/KeyValueRepositoryPropertyFile.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PropertiesSet::PropertiesSet() : myRepository{make_shared<CompositeKeyValueRepositoryNoop>()} {}
+PropertiesSet::PropertiesSet()
+  : myRepository{make_shared<CompositeKeyValueRepositoryNoop>()}
+{
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void PropertiesSet::setRepository(shared_ptr<CompositeKeyValueRepository> repository)
@@ -60,7 +63,7 @@ bool PropertiesSet::getMD5(const string& md5, Properties& properties,
     }
     else  // Search temp list
     {
-      auto tmp = myTempProps.find(md5);
+      const auto tmp = myTempProps.find(md5);
       if(tmp != myTempProps.end())
       {
         properties = tmp->second;
@@ -75,15 +78,15 @@ bool PropertiesSet::getMD5(const string& md5, Properties& properties,
     int low = 0, high = DEF_PROPS_SIZE - 1;
     while(low <= high)
     {
-      int i = (low + high) / 2;
-      int cmp = BSPF::compareIgnoreCase(md5,
+      const int i = (low + high) / 2;
+      const int cmp = BSPF::compareIgnoreCase(md5,
           DefProps[i][static_cast<uInt8>(PropType::Cart_MD5)]);
 
       if(cmp == 0)  // found it
       {
         for(uInt8 p = 0; p < static_cast<uInt8>(PropType::NumTypes); ++p)
           if(DefProps[i][p][0] != 0)
-            properties.set(PropType(p), DefProps[i][p]);
+            properties.set(PropType{p}, DefProps[i][p]);
 
         found = true;
         break;
@@ -130,7 +133,7 @@ void PropertiesSet::insert(const Properties& properties, bool save)
   if (save) {
     properties.save(*myRepository->get(md5));
   } else {
-    auto ret = myTempProps.emplace(md5, properties);
+    const auto ret = myTempProps.emplace(md5, properties);
     if(ret.second == false)
     {
       // Remove old item and insert again
@@ -199,7 +202,7 @@ void PropertiesSet::print() const
     properties.setDefaults();
     for(uInt8 p = 0; p < static_cast<uInt8>(PropType::NumTypes); ++p)
       if(DefProps[i][p][0] != 0)
-        properties.set(PropType(p), DefProps[i][p]);
+        properties.set(PropType{p}, DefProps[i][p]);
 
     list.emplace(DefProps[i][static_cast<uInt8>(PropType::Cart_MD5)], properties);
   }

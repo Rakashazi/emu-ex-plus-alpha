@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -188,11 +188,6 @@ class Console : public Serializable, public ConsoleIO
     EmulationTiming& emulationTiming() { return myEmulationTiming; }
 
     /**
-      Retrieve the current game's refresh rate, or 0 if no game.
-    */
-    int refreshRate() const;
-
-    /**
       Toggle left and right controller ports swapping
     */
     void toggleSwapPorts(bool toggle = true);
@@ -363,9 +358,14 @@ class Console : public Serializable, public ConsoleIO
     void toggleJitter(bool toggle = true) const;
 
     /**
+      Changes the TIA 'scanline jitter' sensitivity.
+    */
+    void changeJitterSense(int direction = +1) const;
+
+    /**
       Changes the TIA 'scanline jitter' revcovery rate.
     */
-    void changeJitter(int direction = +1) const;
+    void changeJitterRecovery(int direction = +1) const;
 
     /**
      * Update vcenter
@@ -377,6 +377,11 @@ class Console : public Serializable, public ConsoleIO
       the current display format.
     */
     void setTIAProperties();
+
+    /**
+      Toggle autofire for all controllers
+    */
+    void toggleAutoFire(bool toggle = true);
 
     /**
       Change the autofire speed for all controllers

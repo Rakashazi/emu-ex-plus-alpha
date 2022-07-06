@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -72,13 +72,13 @@ void AbstractFrameManager::setVblank(bool vblank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void AbstractFrameManager::setVsync(bool vsync)
+void AbstractFrameManager::setVsync(bool vsync, uInt64 cycles)
 {
   if (vsync == myVsync) return;
 
   myVsync = vsync;
 
-  onSetVsync();
+  onSetVsync(cycles);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -143,7 +143,7 @@ bool AbstractFrameManager::load(Serializer& in)
     myCurrentFrameFinalLines = in.getInt();
     myPreviousFrameFinalLines = in.getInt();
     myTotalFrames = in.getInt();
-    myLayout = FrameLayout(in.getInt());
+    myLayout = static_cast<FrameLayout>(in.getInt());
 
     return onLoad(in);
   }

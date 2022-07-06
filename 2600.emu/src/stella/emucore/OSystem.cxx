@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -272,9 +272,9 @@ void OSystem::saveConfig()
 void OSystem::setConfigPaths()
 {
   // Make sure all required directories actually exist
-  auto buildDirIfRequired = [](FilesystemNode& path,
-                               const FilesystemNode& initialPath,
-                               const string& pathToAppend = EmptyString)
+  const auto buildDirIfRequired = [](FilesystemNode& path,
+                                     const FilesystemNode& initialPath,
+                                     const string& pathToAppend = EmptyString)
   {
     path = initialPath;
     if(pathToAppend != EmptyString)
@@ -341,7 +341,7 @@ bool OSystem::checkUserPalette(bool outputError) const
   try
   {
     ByteBuffer palette;
-    size_t size = paletteFile().read(palette);
+    const size_t size = paletteFile().read(palette);
 
     // Make sure the contains enough data for the NTSC, PAL and SECAM palettes
     // This means 128 colours each for NTSC and PAL, at 3 bytes per pixel
@@ -517,21 +517,30 @@ string OSystem::createConsole(const FilesystemNode& rom, const string& md5sum,
       myFrameBuffer->showTextMessage(msg.str());
     }
     // Check for first PlusROM start
-    if(myConsole->cartridge().isPlusROM() &&
-       settings().getString("plusroms.fixedid") == EmptyString)
+    if(myConsole->cartridge().isPlusROM())
     {
-      // Make sure there always is an id
-      constexpr int ID_LEN = 32;
-      const char* HEX_DIGITS = "0123456789ABCDEF";
-      char id_chr[ID_LEN] = {0};
-      Random rnd;
+      if(settings().getString("plusroms.fixedid") == EmptyString)
+      {
+        // Make sure there always is an id
+        constexpr int ID_LEN = 32;
+        const char* HEX_DIGITS = "0123456789ABCDEF";
+        char id_chr[ID_LEN] = { 0 };
+        Random rnd;
 
-      for(char& c: id_chr)
-        c = HEX_DIGITS[rnd.next() % 16];
+        for(char& c : id_chr)
+          c = HEX_DIGITS[rnd.next() % 16];
 
-      settings().setValue("plusroms.fixedid", string(id_chr, ID_LEN));
+        settings().setValue("plusroms.fixedid", string(id_chr, ID_LEN));
 
-      myEventHandler->changeStateByEvent(Event::PlusRomsSetupMode);
+        myEventHandler->changeStateByEvent(Event::PlusRomsSetupMode);
+      }
+
+      string id = settings().getString("plusroms.id");
+
+      if(id == EmptyString)
+        id = settings().getString("plusroms.fixedid");
+
+      Logger::info("PlusROM Nick: " + settings().getString("plusroms.nick") + ", ID: " + id);
     }
   }
 
@@ -578,7 +587,18 @@ bool OSystem::createLauncher(const string& startdir)
 #endif
 
   myLauncherUsed = myLauncherUsed || status;
+  myLauncherLostFocus = !status;
   return status;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool OSystem::launcherLostFocus()
+{
+  if(myLauncherLostFocus)
+    return true;
+
+  myLauncherLostFocus = true;
+  return false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -629,7 +649,7 @@ unique_ptr<Console> OSystem::openConsole(const FilesystemNode& romfile, string& 
     myPropSet->getMD5(md5, props);
 
     // Local helper method
-    auto CMDLINE_PROPS_UPDATE = [&](const string& name, PropType prop)
+    const auto CMDLINE_PROPS_UPDATE = [&](const string& name, PropType prop)
     {
       const string& s = mySettings->getString(name);
       if(s != "") props.set(prop, s);
@@ -733,26 +753,69 @@ ByteBuffer OSystem::openROM(const FilesystemNode& rom, string& md5, size_t& size
   // but also adds a properties entry if the one for the ROM doesn't
   // contain a valid name
 
-  // First check if this is a 'streaming' ROM (one where we only read
-  // a portion of the file)
-  size_t sizeToRead = CartDetector::isProbablyMVC(rom);
+  ByteBuffer image = openROM(rom, size, true);  // handle error message here
+  if(image)
+  {
+    // If we get to this point, we know we have a valid file to open
+    // Now we make sure that the file has a valid properties entry
+    // To save time, only generate an MD5 if we really need one
+    if(md5 == "")
+      md5 = MD5::hash(image, size);
 
-  // Next check if rom is a valid size
-  // TODO: We should check if ROM is < Cart::maxSize(), but only
-  //       if it's not a ZIP file (that size should be higher; still TBD)
+    // Make sure to load a per-ROM properties entry, if one exists
+    myPropSet->loadPerROM(rom, md5);
+  }
 
+  return image;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string OSystem::getROMMD5(const FilesystemNode& rom) const
+{
+  size_t size = 0;
+  const ByteBuffer image = openROM(rom, size, false);  // ignore error message
+
+  return image ? MD5::hash(image, size) : EmptyString;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ByteBuffer OSystem::openROM(const FilesystemNode& rom, size_t& size,
+                            bool showErrorMessage) const
+{
+  // First check if this is a valid ROM filename
+  const bool isValidROM = rom.isFile() && Bankswitch::isValidRomName(rom);
+  if(!isValidROM && showErrorMessage)
+    throw runtime_error("Unrecognized ROM file type");
+
+  // Next check for a proper file size
+  // Streaming ROMs read only a portion of the file
+  // Otherwise the size to read is 0 (meaning read the entire file)
+  const size_t sizeToRead = CartDetector::isProbablyMVC(rom);
+  const bool isStreaming = sizeToRead > 0;
+
+  // Make sure we only read up to the maximum supported cart size
+  const bool isValidSize = isValidROM && (isStreaming ||
+                           rom.getSize() <= Cartridge::maxSize());
+  if(!isValidSize)
+  {
+    if(showErrorMessage)
+      throw runtime_error("ROM file too large");
+    else
+      return nullptr;
+  }
+
+  // Now we can try to open the file
   ByteBuffer image;
-  if((size = rom.read(image, sizeToRead)) == 0)
-    return nullptr;
-
-  // If we get to this point, we know we have a valid file to open
-  // Now we make sure that the file has a valid properties entry
-  // To save time, only generate an MD5 if we really need one
-  if(md5 == "")
-    md5 = MD5::hash(image, size);
-
-  // Make sure to load a per-ROM properties entry, if one exists
-  myPropSet->loadPerROM(rom, md5);
+  try
+  {
+    if((size = rom.read(image, sizeToRead)) == 0)
+      return nullptr;
+  }
+  catch(const runtime_error&)
+  {
+    if(showErrorMessage)  // If caller wants error messages, pass it back
+      throw;
+  }
 
   return image;
 }
@@ -789,7 +852,7 @@ double OSystem::dispatchEmulation(EmulationWorker& emulationWorker)
   DispatchResult dispatchResult;
 
   // Check whether we have a frame pending for rendering...
-  bool framePending = tia.newFramePending();
+  const bool framePending = tia.newFramePending();
   // ... and copy it to the frame buffer. It is important to do this before
   // the worker is started to avoid racing.
   if (framePending) {
@@ -812,7 +875,7 @@ double OSystem::dispatchEmulation(EmulationWorker& emulationWorker)
   if (framePending) myFrameBuffer->updateInEmulationMode(myFpsMeter.fps());
 
   // Stop the worker and wait until it has finished
-  uInt64 totalCycles = emulationWorker.stop();
+  const uInt64 totalCycles = emulationWorker.stop();
 
   // Handle the dispatch result
   switch (dispatchResult.getStatus()) {
@@ -865,7 +928,7 @@ void OSystem::mainLoop()
 
   for(;;)
   {
-    bool wasEmulation = myEventHandler->state() == EventHandlerState::EMULATION;
+    const bool wasEmulation = myEventHandler->state() == EventHandlerState::EMULATION;
 
     myEventHandler->poll(TimerManager::getTicks());
     if(myQuitLoop) break;  // Exit if the user wants to quit
@@ -894,12 +957,12 @@ void OSystem::mainLoop()
       myFrameBuffer->update();
     }
 
-    duration<double> timeslice(timesliceSeconds);
+    const duration<double> timeslice(timesliceSeconds);
     virtualTime += duration_cast<high_resolution_clock::duration>(timeslice);
-    time_point<high_resolution_clock> now = high_resolution_clock::now();
+    const time_point<high_resolution_clock> now = high_resolution_clock::now();
 
     // We allow 6507 time to lag behind by one frame max
-    double maxLag = myConsole
+    const double maxLag = myConsole
       ? (
         static_cast<double>(myConsole->emulationTiming().cyclesPerFrame()) /
         static_cast<double>(myConsole->emulationTiming().cyclesPerSecond())

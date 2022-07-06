@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // This file is derived from the RSA Data Security, Inc. MD5 Message-Digest
@@ -76,11 +76,11 @@ struct MD5_CTX
 #define S44 21
 
 static void MD5Init(MD5_CTX*);
-static void MD5Update(MD5_CTX*, const uInt8*, uInt32);
+static void MD5Update(MD5_CTX*, const uInt8* const, uInt32);
 static void MD5Final(uInt8[16], MD5_CTX*);
-static void MD5Transform(uInt32 [4], const uInt8 [64]);
-static void Encode(uInt8*, uInt32*, uInt32);
-static void Decode(uInt32*, const uInt8*, uInt32);
+static void MD5Transform(uInt32[4], const uInt8[64]);
+static void Encode(uInt8*, const uInt32* const, uInt32);
+static void Decode(uInt32*, const uInt8* const, uInt32);
 
 static uInt8 PADDING[64] = {
   0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -134,26 +134,24 @@ static void MD5Init(MD5_CTX* context)
 // MD5 block update operation. Continues an MD5 message-digest
 // operation, processing another message block, and updating the
 // context.
-static void MD5Update(MD5_CTX* context, const uInt8* input,
+static void MD5Update(MD5_CTX* context, const uInt8* const input,
     uInt32 inputLen)
 {
-  uInt32 i, index, partLen;
+  uInt32 i = 0;
 
   /* Compute number of bytes mod 64 */
-  index = uInt32((context->count[0] >> 3) & 0x3F);
+  uInt32 index = static_cast<uInt32>((context->count[0] >> 3) & 0x3F);
 
   /* Update number of bits */
-  if ((context->count[0] += (uInt32(inputLen) << 3))
-   < (uInt32(inputLen) << 3))
+  if ((context->count[0] += (inputLen << 3)) < (inputLen << 3))
     context->count[1]++;
-  context->count[1] += (uInt32(inputLen) >> 29);
+  context->count[1] += (inputLen >> 29);
 
-  partLen = 64 - index;
+  const uInt32 partLen = 64 - index;
 
   /* Transform as many times as possible. */
   if (inputLen >= partLen) {
-    memcpy (const_cast<POINTER>(&context->buffer[index]),
-            const_cast<POINTER>(input), partLen);
+    memcpy (&context->buffer[index], input, partLen);
     MD5Transform (context->state, context->buffer);
 
     for (i = partLen; i + 63 < inputLen; i += 64)
@@ -165,8 +163,7 @@ static void MD5Update(MD5_CTX* context, const uInt8* input,
     i = 0;
 
   /* Buffer remaining input */
-  memcpy(const_cast<POINTER>(&context->buffer[index]),
-         const_cast<POINTER>(&input[i]), inputLen-i);
+  memcpy(&context->buffer[index], &input[i], inputLen-i);
 }
 
 // MD5 finalization. Ends an MD5 message-digest operation, writing the
@@ -174,14 +171,13 @@ static void MD5Update(MD5_CTX* context, const uInt8* input,
 static void MD5Final(uInt8 digest[16], MD5_CTX* context)
 {
   uInt8 bits[8];
-  uInt32 index, padLen;
 
   /* Save number of bits */
   Encode (bits, context->count, 8);
 
   /* Pad out to 56 mod 64. */
-  index = uInt32((context->count[0] >> 3) & 0x3f);
-  padLen = (index < 56) ? (56 - index) : (120 - index);
+  const uInt32 index = static_cast<uInt32>((context->count[0] >> 3) & 0x3f);
+  const uInt32 padLen = (index < 56) ? (56 - index) : (120 - index);
   MD5Update (context, PADDING, padLen);
 
   /* Append length (before padding) */
@@ -283,29 +279,28 @@ static void MD5Transform(uInt32 state[4], const uInt8 block[64])
 
 // Encodes input (uInt32) into output (uInt8). Assumes len is
 // a multiple of 4.
-static void Encode(uInt8* output, uInt32* input, uInt32 len)
+static void Encode(uInt8* output, const uInt32* const input, uInt32 len)
 {
-  uInt32 i, j;
-
-  for (i = 0, j = 0; j < len; ++i, j += 4) {
-    output[j]   = uInt8(input[i] & 0xff);
-    output[j+1] = uInt8((input[i] >> 8) & 0xff);
-    output[j+2] = uInt8((input[i] >> 16) & 0xff);
-    output[j+3] = uInt8((input[i] >> 24) & 0xff);
+  for (uInt32 i = 0, j = 0; j < len; ++i, j += 4) {
+    output[j]   = static_cast<uInt8>(input[i] & 0xff);
+    output[j+1] = static_cast<uInt8>((input[i] >> 8) & 0xff);
+    output[j+2] = static_cast<uInt8>((input[i] >> 16) & 0xff);
+    output[j+3] = static_cast<uInt8>((input[i] >> 24) & 0xff);
   }
 }
 
 // Decodes input (uInt8) into output (uInt32). Assumes len is
 // a multiple of 4.
-static void Decode(uInt32* output, const uInt8* input, uInt32 len)
+static void Decode(uInt32* output, const uInt8* const input, uInt32 len)
 {
-  uInt32 i, j;
-
-  for (i = 0, j = 0; j < len; ++i, j += 4)
-    output[i] = (uInt32(input[j])) | ((uInt32(input[j+1])) << 8) |
-    ((uInt32(input[j+2])) << 16) | ((uInt32(input[j+3])) << 24);
+  for (uInt32 i = 0, j = 0; j < len; ++i, j += 4)
+    output[i] =  (static_cast<uInt32>(input[j]))
+              | ((static_cast<uInt32>(input[j+1])) << 8)
+              | ((static_cast<uInt32>(input[j+2])) << 16)
+              | ((static_cast<uInt32>(input[j+3])) << 24);
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 string hash(const string& buffer)
 {
   std::vector<uint8_t> vec(buffer.begin(), buffer.end());
@@ -322,10 +317,10 @@ string hash(const ByteBuffer& buffer, size_t length)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 string hash(const uInt8* buffer, size_t length)
 {
-  char hex[] = "0123456789abcdef";
-  MD5_CTX context;
-  uInt8 md5[16];
-  uInt32 len32 = static_cast<uInt32>(length);  // Always use 32-bit for now
+  static constexpr char hex[] = "0123456789abcdef";
+  MD5_CTX context{};
+  uInt8 md5[16] = {0};
+  const uInt32 len32 = static_cast<uInt32>(length);  // Always use 32-bit for now
 
   MD5Init(&context);
   MD5Update(&context, buffer, len32);
@@ -339,24 +334,6 @@ string hash(const uInt8* buffer, size_t length)
   }
 
   return result;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-string hash(const FilesystemNode& node)
-{
-  ByteBuffer image;
-  size_t size = 0;
-  try
-  {
-    size = node.read(image);
-  }
-  catch(...)
-  {
-    return EmptyString;
-  }
-
-  const string& md5 = hash(image, size);
-  return md5;
 }
 
 }  // Namespace MD5

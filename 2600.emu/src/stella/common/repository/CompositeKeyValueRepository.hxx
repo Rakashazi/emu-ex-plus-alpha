@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -28,6 +28,7 @@ class CompositeKeyValueRepositoryAtomic;
 class CompositeKeyValueRepository
 {
   public:
+    CompositeKeyValueRepository() = default;
 
     virtual ~CompositeKeyValueRepository() = default;
 
@@ -38,6 +39,13 @@ class CompositeKeyValueRepository
     virtual void remove(const string& key) = 0;
 
     virtual CompositeKeyValueRepositoryAtomic* atomic() { return nullptr; }
+
+  private:
+    // Following constructors and assignment operators not supported
+    CompositeKeyValueRepository(const CompositeKeyValueRepository&) = delete;
+    CompositeKeyValueRepository(CompositeKeyValueRepository&&) = delete;
+    CompositeKeyValueRepository& operator=(const CompositeKeyValueRepository&) = delete;
+    CompositeKeyValueRepository& operator=(CompositeKeyValueRepository&&) = delete;
 };
 
 class CompositeKeyValueRepositoryAtomic : public CompositeKeyValueRepository
@@ -55,7 +63,7 @@ class CompositeKeyValueRepositoryAtomic : public CompositeKeyValueRepository
 
     virtual bool has(const string& key1, const string& key2);
 
-    virtual void remove(const string& key1, const string key2);
+    virtual void remove(const string& key1, const string& key2);
 
     CompositeKeyValueRepositoryAtomic* atomic() override { return this; }
 };

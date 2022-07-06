@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -43,6 +43,9 @@ void AudioChannel::phase0()
 
       case 0x03:
         myPulseCounterHold = !myNoiseCounterBit4;
+        break;
+
+      default:  // not possible, but silence the compiler
         break;
     }
 
@@ -84,7 +87,6 @@ uInt8 AudioChannel::phase1()
           (((myPulseCounter & 0x02) ? 1 : 0) ^ (myPulseCounter & 0x01)) &&
           (myPulseCounter != 0x0a) &&
           (myAudc & 0x03);
-
         break;
 
       case 0x01:
@@ -97,6 +99,9 @@ uInt8 AudioChannel::phase1()
 
       case 0x03:
         pulseFeedback = !((myPulseCounter & 0x02) || !(myPulseCounter & 0x0e));
+        break;
+
+      default:
         break;
     }
 

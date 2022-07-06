@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -34,7 +34,7 @@ class FrameManager: public AbstractFrameManager {
       frameSizePAL = 312,
       baseHeightNTSC = 228, // 217..239
       baseHeightPAL = 274, // 260..288
-      maxHeight = uInt32(baseHeightPAL * 1.05 + 0.5), // 288
+      maxHeight = static_cast<uInt32>(baseHeightPAL * 1.05 + 0.5), // 288
       maxLinesVsync = 50,
       initialGarbageFrames = TIAConstants::initialGarbageFrames,
       ystartNTSC = 23,
@@ -47,8 +47,9 @@ class FrameManager: public AbstractFrameManager {
     FrameManager();
 
   public:
+    void setJitterSensitivity(uInt8 sensitivity) override { myJitterEmulation.setSensitivity(sensitivity); }
 
-    void setJitterFactor(uInt8 factor) override { myJitterEmulation.setJitterFactor(factor); }
+    void setJitterRecovery(uInt8 factor) override { myJitterEmulation.setRecovery(factor); }
 
     bool jitterEnabled() const override { return myJitterEnabled; }
 
@@ -78,7 +79,7 @@ class FrameManager: public AbstractFrameManager {
 
     void setLayout(FrameLayout mode) override { layout(mode); }
 
-    void onSetVsync() override;
+    void onSetVsync(uInt64 cycles) override;
 
     void onNextLine() override;
 
@@ -122,6 +123,8 @@ class FrameManager: public AbstractFrameManager {
     Int32 myMaxVcenter{0};
     Int32 myVSizeAdjust{0};
 
+    uInt64 myVsyncStart{0};
+    uInt64 myVsyncEnd{0};
     bool myJitterEnabled{false};
 
     JitterEmulation myJitterEmulation;

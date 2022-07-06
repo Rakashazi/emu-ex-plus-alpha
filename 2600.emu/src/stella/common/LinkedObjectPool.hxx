@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -82,7 +82,10 @@ class LinkedObjectPool
       iter it = myCurrent;
       uInt32 idx = 1;
 
-      while(it-- != myList.begin()) ++idx;
+      while(it != myList.begin()) {
+        ++idx;
+        --it;
+      }
       return idx;
     }
 
@@ -227,7 +230,8 @@ class LinkedObjectPool
       active list.
     */
     void removeToLast() {
-      myPool.splice(myPool.end(), myList, std::next(myCurrent, 1), myList.end());
+      if(currentIsValid())
+        myPool.splice(myPool.end(), myList, std::next(myCurrent, 1), myList.end());
     }
 
     /**
@@ -256,9 +260,9 @@ class LinkedObjectPool
 
     uInt32 capacity() const { return myCapacity; }
 
-    uInt32 size() const { return uInt32(myList.size()); }
-    bool empty() const  { return size() == 0;           }
-    bool full() const   { return size() >= capacity();  }
+    uInt32 size() const { return static_cast<uInt32>(myList.size()); }
+    bool empty() const  { return size() == 0; }
+    bool full() const   { return size() >= capacity(); }
 
     friend ostream& operator<<(ostream& os, const LinkedObjectPool<T>& p) {
       for(const auto& i: p.myList)

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -90,6 +90,11 @@ class Playfield : public Serializable
     void setColorP1(uInt8 color);
 
     /**
+      Set score mode color glitch.
+    */
+    void setScoreGlitch(bool enable);
+
+    /**
       Set the color used in "debug colors" mode.
      */
     void setDebugColor(uInt8 color);
@@ -144,7 +149,7 @@ class Playfield : public Serializable
   private:
 
     /**
-      Playfield mode.
+      Playfield color mode.
      */
     enum class ColorMode: uInt8 {normal, score};
 
@@ -197,9 +202,19 @@ class Playfield : public Serializable
     bool myDebugEnabled{false};
 
     /**
-     * Plafield mode.
+     * Playfield color mode.
      */
     ColorMode myColorMode{ColorMode::normal};
+
+    /**
+     * Score mode color glitch.
+     */
+    bool myScoreGlitch{false};
+
+    /**
+     * Score mode color switch haste.
+     */
+    uInt8 myScoreHaste{0};
 
     /**
       Pattern derifed from PF0, PF1, PF2
@@ -256,7 +271,7 @@ void Playfield::tick(uInt32 x)
   myX = x;
 
   // Reflected flag is updated only at x = 0 or x = 79
-  if (myX == TIAConstants::H_PIXEL / 2 || myX == 0) myRefp = myReflected;
+  if (myX == TIAConstants::H_PIXEL / 2-1 || myX == 0) myRefp = myReflected;
 
   if (x & 0x03) return;
 
@@ -264,7 +279,7 @@ void Playfield::tick(uInt32 x)
 
   if (myEffectivePattern == 0) {
       currentPixel = 0;
-  } else if (x < TIAConstants::H_PIXEL / 2) {
+  } else if (x < TIAConstants::H_PIXEL / 2 - 1) {
       currentPixel = myEffectivePattern & (1 << (x >> 2));
   } else if (myRefp) {
       currentPixel = myEffectivePattern & (1 << (39 - (x >> 2)));

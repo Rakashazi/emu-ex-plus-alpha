@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -105,7 +105,7 @@ bool Controller::load(Serializer& in)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 string Controller::getName(const Type type)
 {
-  static const std::array<string, int(Controller::Type::LastType)> NAMES =
+  static constexpr std::array<const char*, static_cast<int>(Controller::Type::LastType)> NAMES =
   {
     "Unknown",
     "Amiga mouse", "Atari mouse", "AtariVox", "Booster Grip", "CompuMate",
@@ -114,13 +114,13 @@ string Controller::getName(const Type type)
     "Light Gun", "QuadTari"
   };
 
-  return NAMES[int(type)];
+  return NAMES[static_cast<int>(type)];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 string Controller::getPropName(const Type type)
 {
-  static const std::array<string, int(Controller::Type::LastType)> PROP_NAMES =
+  static constexpr std::array<const char*, int(Controller::Type::LastType)> PROP_NAMES =
   {
     "AUTO",
     "AMIGAMOUSE", "ATARIMOUSE", "ATARIVOX", "BOOSTERGRIP", "COMPUMATE",
@@ -129,7 +129,7 @@ string Controller::getPropName(const Type type)
     "LIGHTGUN", "QUADTARI"
   };
 
-  return PROP_NAMES[int(type)];
+  return PROP_NAMES[static_cast<int>(type)];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -137,9 +137,9 @@ Controller::Type Controller::getType(const string& propName)
 {
   for(int i = 0; i < static_cast<int>(Type::LastType); ++i)
   {
-    if(BSPF::equalsIgnoreCase(propName, getPropName(Type(i))))
+    if (BSPF::equalsIgnoreCase(propName, getPropName(Type{i})))
     {
-      return Type(i);
+      return Type{i};
     }
   }
   // special case
@@ -177,11 +177,16 @@ int Controller::analogDeadZoneValue(int deadZone)
   return deadZone * std::round(32768 / 2. / MAX_DIGITAL_DEADZONE);
 }
 
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Controller::setMouseSensitivity(int sensitivity)
 {
   MOUSE_SENSITIVITY = BSPF::clamp(sensitivity, MIN_MOUSE_SENSE, MAX_MOUSE_SENSE);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Controller::setAutoFire(bool enable)
+{
+  AUTO_FIRE = enable;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -195,4 +200,5 @@ void Controller::setAutoFireRate(int rate, bool isNTSC)
 int Controller::DIGITAL_DEAD_ZONE = 3200;
 int Controller::ANALOG_DEAD_ZONE = 0;
 int Controller::MOUSE_SENSITIVITY = -1;
+bool Controller::AUTO_FIRE = false;
 int Controller::AUTO_FIRE_RATE = 0;

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -47,7 +47,7 @@ string Base::toString(int value, Common::Base::Fmt outputBase)
 
     case Base::Fmt::_10:    // base 10: 3 or 5 bytes (depending on value)
       if(value > -0x100 && value < 0x100)
-        std::snprintf(vToS_buf, 5, "%3d", Int16(value));
+        std::snprintf(vToS_buf, 5, "%3d", static_cast<Int16>(value));
       else
         std::snprintf(vToS_buf, 6, "%5d", value);
       break;

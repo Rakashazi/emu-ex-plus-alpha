@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -24,7 +24,7 @@ namespace {
   constexpr float CLIPPING_FACTOR = 0.75;
   constexpr float HIGH_PASS_CUT_OFF = 10;
 
-  uInt32 reducedDenominator(uInt32 n, uInt32 d)
+  constexpr uInt32 reducedDenominator(uInt32 n, uInt32 d)
   {
     for (uInt32 i = std::min(n ,d); i > 1; --i) {
       if ((n % i == 0) && (d % i == 0)) {
@@ -98,7 +98,7 @@ void LanczosResampler::precomputeKernels()
   for (uInt32 i = 0; i < myPrecomputedKernelCount; ++i) {
     float* kernel = myPrecomputedKernels.get() + myKernelSize * i;
     // The kernel is normalized such to be evaluate on time * formatFrom.sampleRate
-    float center =
+    const float center =
       static_cast<float>(timeIndex) / static_cast<float>(myFormatTo.sampleRate);
 
     for (uInt32 j = 0; j < 2 * myKernelParameter; ++j) {
@@ -143,12 +143,12 @@ void LanczosResampler::fillFragment(float* fragment, uInt32 length)
   const uInt32 outputSamples = myFormatTo.stereo ? (length >> 1) : length;
 
   for (uInt32 i = 0; i < outputSamples; ++i) {
-    float* kernel = myPrecomputedKernels.get() + (myCurrentKernelIndex * myKernelSize);
+    const float* kernel = myPrecomputedKernels.get() + (myCurrentKernelIndex * myKernelSize);
     myCurrentKernelIndex = (myCurrentKernelIndex + 1) % myPrecomputedKernelCount;
 
     if (myFormatFrom.stereo) {
-      float sampleL = myBufferL->convoluteWith(kernel);
-      float sampleR = myBufferR->convoluteWith(kernel);
+      const float sampleL = myBufferL->convoluteWith(kernel);
+      const float sampleR = myBufferR->convoluteWith(kernel);
 
       if (myFormatTo.stereo) {
         fragment[2*i] = sampleL;
@@ -157,7 +157,7 @@ void LanczosResampler::fillFragment(float* fragment, uInt32 length)
       else
         fragment[i] = (sampleL + sampleR) / 2.F;
     } else {
-      float sample = myBuffer->convoluteWith(kernel);
+      const float sample = myBuffer->convoluteWith(kernel);
 
       if (myFormatTo.stereo)
         fragment[2*i] = fragment[2*i + 1] = sample;
@@ -167,7 +167,7 @@ void LanczosResampler::fillFragment(float* fragment, uInt32 length)
 
     myTimeIndex += myFormatFrom.sampleRate;
 
-    uInt32 samplesToShift = myTimeIndex / myFormatTo.sampleRate;
+    const uInt32 samplesToShift = myTimeIndex / myFormatTo.sampleRate;
     if (samplesToShift == 0) continue;
 
     myTimeIndex %= myFormatTo.sampleRate;

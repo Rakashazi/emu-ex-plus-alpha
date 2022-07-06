@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -44,7 +44,7 @@ class CartridgeAR : public Cartridge
   friend class CartridgeARWidget;
 
   public:
-    static constexpr uInt32 BANK_SIZE = uInt32(2_KB);
+    static constexpr uInt32 BANK_SIZE = static_cast<uInt32>(2_KB);
     static constexpr uInt32 RAM_SIZE = 3 * BANK_SIZE;
     static constexpr uInt32 LOAD_SIZE = 8448;
 
@@ -187,7 +187,7 @@ class CartridgeAR : public Cartridge
     bool bankConfiguration(uInt8 configuration);
 
     // Compute the sum of the array of bytes
-    uInt8 checksum(uInt8* s, uInt16 length);
+    uInt8 checksum(const uInt8* s, uInt16 length);
 
     // Load the specified load into SC RAM
     void loadIntoRAM(uInt8 load);

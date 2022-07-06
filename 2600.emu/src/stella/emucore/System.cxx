@@ -8,7 +8,7 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -36,7 +36,7 @@ System::System(Random& random, M6502& m6502, M6532& m6532,
     myCart{mCart}
 {
   // Initialize page access table
-  PageAccess access(&myNullDevice, System::PageAccessType::READ);
+  const PageAccess access(&myNullDevice, System::PageAccessType::READ);
   myPageAccessTable.fill(access);
   myPageIsDirtyTable.fill(false);
 
@@ -82,8 +82,8 @@ void System::consoleChanged(ConsoleTiming timing)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool System::isPageDirty(uInt16 start_addr, uInt16 end_addr) const
 {
-  uInt16 start_page = (start_addr & ADDRESS_MASK) >> PAGE_SHIFT;
-  uInt16 end_page = (end_addr & ADDRESS_MASK) >> PAGE_SHIFT;
+  const uInt16 start_page = (start_addr & ADDRESS_MASK) >> PAGE_SHIFT;
+  const uInt16 end_page = (end_addr & ADDRESS_MASK) >> PAGE_SHIFT;
 
   for(uInt16 page = start_page; page <= end_page; ++page)
     if(myPageIsDirtyTable[page])
@@ -120,11 +120,9 @@ uInt8 System::peek(uInt16 addr, Device::AccessFlags flags)
 #endif
 
   // See if this page uses direct accessing or not
-  uInt8 result;
-  if(access.directPeekBase)
-    result = *(access.directPeekBase + (addr & PAGE_MASK));
-  else
-    result = access.device->peek(addr);
+  const uInt8 result = access.directPeekBase
+      ? *(access.directPeekBase + (addr & PAGE_MASK))
+      : access.device->peek(addr);
 
 #ifdef DEBUGGER_SUPPORT
   if(!myDataBusLocked)
@@ -137,7 +135,7 @@ uInt8 System::peek(uInt16 addr, Device::AccessFlags flags)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void System::poke(uInt16 addr, uInt8 value, Device::AccessFlags flags)
 {
-  uInt16 page = (addr & ADDRESS_MASK) >> PAGE_SHIFT;
+  const uInt16 page = (addr & ADDRESS_MASK) >> PAGE_SHIFT;
   const PageAccess& access = myPageAccessTable[page];
 
 #ifdef DEBUGGER_SUPPORT

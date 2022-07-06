@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,9 +22,9 @@ Genesis::Genesis(Jack jack, const Event& event, const System& system)
   : Joystick(jack, event, system, Controller::Type::Genesis)
 {
   if(myJack == Jack::Left)
-    myButtonCEvent   = Event::LeftJoystickFire5;
+    myButtonCEvent = Event::LeftJoystickFire5;
   else
-    myButtonCEvent   = Event::RightJoystickFire5;
+    myButtonCEvent = Event::RightJoystickFire5;
 
   setPin(AnalogPin::Five, AnalogReadout::connectToVcc());
   setPin(AnalogPin::Nine, AnalogReadout::connectToVcc());

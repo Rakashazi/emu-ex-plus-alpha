@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -104,7 +104,8 @@ void TIA::setFrameManager(AbstractFrameManager* frameManager)
   );
 
   myFrameManager->enableJitter(myEnableJitter);
-  myFrameManager->setJitterFactor(myJitterFactor);
+  myFrameManager->setJitterSensitivity(myJitterSensitivity);
+  myFrameManager->setJitterRecovery(myJitterRecovery);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -209,7 +210,7 @@ void TIA::reset()
   {
     for(uInt32 i = 0; i < 0x4000; ++i)
     {
-      uInt16 address = mySystem->randGenerator().next() & 0x3F;
+      const uInt16 address = mySystem->randGenerator().next() & 0x3F;
 
       if(address <= 0x2F)
       {
@@ -234,7 +235,7 @@ void TIA::installDelegate(System& system, Device& device)
   mySystem = &system;
 
   // All accesses are to the given device
-  System::PageAccess access(&device, System::PageAccessType::READWRITE);
+  const System::PageAccess access(&device, System::PageAccessType::READWRITE);
 
   // Map all peek/poke to mirrors of TIA address space to this class
   // That is, all mirrors of ($00 - $3F) in the lower 4K of the 2600
@@ -348,7 +349,7 @@ bool TIA::load(Serializer& in)
     if(!myInput0.load(in)) return false;
     if(!myInput1.load(in)) return false;
 
-    myHstate = HState(in.getInt());
+    myHstate = static_cast<HState>(in.getInt());
 
     myHctr = in.getInt();
     myHctrDelta = in.getInt();
@@ -364,7 +365,7 @@ bool TIA::load(Serializer& in)
 
     myLinesSinceChange = in.getInt();
 
-    myPriority = Priority(in.getInt());
+    myPriority = static_cast<Priority>(in.getInt());
 
     mySubClock = in.getByte();
     myLastCycle = in.getLong();
@@ -544,7 +545,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
       break;
 
     case VSYNC:
-      myFrameManager->setVsync(value & 0x02);
+      myFrameManager->setVsync(value & 0x02, mySystem->cycles());
       myShadowRegisters[address] = value;
       break;
 
@@ -565,7 +566,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
       myAudio.channel0().audv(value);
       myShadowRegisters[address] = value;
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::AUD);
     #endif
@@ -577,7 +578,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
       myAudio.channel1().audv(value);
       myShadowRegisters[address] = value;
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::AUD);
     #endif
@@ -589,7 +590,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
       myAudio.channel0().audf(value);
       myShadowRegisters[address] = value;
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::AUD);
     #endif
@@ -601,7 +602,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
       myAudio.channel1().audf(value);
       myShadowRegisters[address] = value;
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::AUD);
     #endif
@@ -613,7 +614,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
       myAudio.channel0().audc(value);
       myShadowRegisters[address] = value;
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::AUD);
     #endif
@@ -625,7 +626,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
       myAudio.channel1().audc(value);
       myShadowRegisters[address] = value;
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::AUD);
     #endif
@@ -647,7 +648,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
         myShadowRegisters[address] = value;
       }
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::BCOL);
     #endif
@@ -662,7 +663,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
       myPlayer0.setColor(value);
       myShadowRegisters[address] = value;
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::COL);
     #endif
@@ -677,7 +678,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
       myPlayer1.setColor(value);
       myShadowRegisters[address] = value;
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::COL);
     #endif
@@ -706,7 +707,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
         myShadowRegisters[address] = value;
       }
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::PCOL);
     #endif
@@ -717,7 +718,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
     {
       myDelayQueue.push(PF0, value, myPFBitsDelay);
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::PGFX);
     #endif
@@ -728,7 +729,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
     {
       myDelayQueue.push(PF1, value, myPFBitsDelay);
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::PGFX);
     #endif
@@ -739,7 +740,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
     {
       myDelayQueue.push(PF2, value, myPFBitsDelay);
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::PGFX);
     #endif
@@ -807,7 +808,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
       myDelayQueue.push(GRP0, value, Delay::grp);
       myDelayQueue.push(DummyRegisters::shuffleP1, 0, myPlSwapDelay);
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::GFX);
     #endif
@@ -820,7 +821,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
       myDelayQueue.push(DummyRegisters::shuffleP0, 0, myPlSwapDelay);
       myDelayQueue.push(DummyRegisters::shuffleBL, 0, Delay::shuffleBall);
     #ifdef DEBUGGER_SUPPORT
-      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      const uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
         mySystem->setAccessFlags(dataAddr, Device::GFX);
     #endif
@@ -917,7 +918,7 @@ bool TIA::saveDisplay(Serializer& out) const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool TIA::loadDisplay(Serializer& in)
+bool TIA::loadDisplay(const Serializer& in)
 {
   try
   {
@@ -957,6 +958,9 @@ void TIA::applyDeveloperSettings()
     setPFColorDelay(custom
                     ? mySettings.getBool("dev.tia.delaypfcolor")
                     : BSPF::equalsIgnoreCase("quickstep", mySettings.getString("dev.tia.type")));
+    setPFScoreGlitch(custom
+                     ? mySettings.getBool("dev.tia.pfscoreglitch")
+                     : BSPF::equalsIgnoreCase("matchie", mySettings.getString("dev.tia.type")));
     setBKColorDelay(custom
                     ? mySettings.getBool("dev.tia.delaybkcolor")
                     : BSPF::equalsIgnoreCase("indy500", mySettings.getString("dev.tia.type")));
@@ -972,6 +976,7 @@ void TIA::applyDeveloperSettings()
     setBlInvertedPhaseClock(false);
     setPFBitsDelay(false);
     setPFColorDelay(false);
+    myPlayfield.setScoreGlitch(false);
     setBKColorDelay(false);
     setPlSwapDelay(false);
     setBlSwapDelay(false);
@@ -981,7 +986,8 @@ void TIA::applyDeveloperSettings()
   myTIAPinsDriven = devSettings ? mySettings.getBool("dev.tiadriven") : false;
 
   myEnableJitter = mySettings.getBool(devSettings ? "dev.tv.jitter" : "plr.tv.jitter");
-  myJitterFactor = mySettings.getInt(devSettings ? "dev.tv.jitter_recovery" : "plr.tv.jitter_recovery");
+  myJitterSensitivity = mySettings.getInt(devSettings ? "dev.tv.jitter_sense" : "plr.tv.jitter_sense");
+  myJitterRecovery = mySettings.getInt(devSettings ? "dev.tv.jitter_recovery" : "plr.tv.jitter_recovery");
 
   if(myFrameManager)
     enableColorLoss(mySettings.getBool(devSettings ? "dev.colorloss" : "plr.colorloss"));
@@ -1025,7 +1031,7 @@ void TIA::update(uInt64 maxCycles)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool TIA::enableColorLoss(bool enabled)
 {
-  bool allowColorLoss = myTimingProvider() == ConsoleTiming::pal;
+  const bool allowColorLoss = myTimingProvider() == ConsoleTiming::pal;
 
   if(allowColorLoss && enabled)
   {
@@ -1051,7 +1057,7 @@ bool TIA::enableColorLoss(bool enabled)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool TIA::electronBeamPos(uInt32& x, uInt32& y) const
 {
-  uInt8 clocks = clocksThisLine();
+  const uInt8 clocks = clocksThisLine();
 
   x = (clocks < TIAConstants::H_BLANK_CLOCKS) ? 0 : clocks - TIAConstants::H_BLANK_CLOCKS;
   y = myFrameManager->getY();
@@ -1062,7 +1068,7 @@ bool TIA::electronBeamPos(uInt32& x, uInt32& y) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool TIA::toggleBit(TIABit b, uInt8 mode)
 {
-  uInt8 mask;
+  uInt8 mask = 0;
 
   switch (mode) {
     case 0:
@@ -1097,7 +1103,7 @@ bool TIA::toggleBit(TIABit b, uInt8 mode)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool TIA::toggleBits(bool toggle)
 {
-  toggleBit(TIABit(0xFF), toggle
+  toggleBit(static_cast<TIABit>(0xFF), toggle
                           ? mySpriteEnabledBits > 0 ? 0 : 1
                           : mySpriteEnabledBits);
 
@@ -1107,7 +1113,7 @@ bool TIA::toggleBits(bool toggle)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool TIA::toggleCollision(TIABit b, uInt8 mode)
 {
-  uInt8 mask;
+  uInt8 mask = 0;
 
   switch (mode) {
     case 0:
@@ -1142,7 +1148,7 @@ bool TIA::toggleCollision(TIABit b, uInt8 mode)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool TIA::toggleCollisions(bool toggle)
 {
-  toggleCollision(TIABit(0xFF), toggle
+  toggleCollision(static_cast<TIABit>(0xFF), toggle
                                 ? myCollisionsEnabledBits > 0 ? 0 : 1
                                 : myCollisionsEnabledBits);
 
@@ -1152,7 +1158,7 @@ bool TIA::toggleCollisions(bool toggle)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool TIA::enableFixedColors(bool enable)
 {
-  int timing = myTimingProvider() == ConsoleTiming::ntsc ? 0
+  const int timing = myTimingProvider() == ConsoleTiming::ntsc ? 0
     : myTimingProvider() == ConsoleTiming::pal ? 1 : 2;
 
   myMissile0.setDebugColor(myFixedColorPalette[timing][FixedObject::M0]);
@@ -1223,6 +1229,8 @@ bool TIA::setFixedColorPalette(const string& colors)
         myFixedColorPalette[2][i] = FixedColor::SECAM_PURPLE;
         myFixedColorNames[i] = "Purple";
         break;
+      default:
+        break;
     }
   }
   myFixedColorPalette[0][TIA::BK] = FixedColor::NTSC_GREY;
@@ -1276,11 +1284,19 @@ bool TIA::toggleJitter(uInt8 mode)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TIA::setJitterSensitivity(Int32 sensitivity)
+{
+  myJitterSensitivity = sensitivity;
+
+  if (myFrameManager) myFrameManager->setJitterSensitivity(sensitivity);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIA::setJitterRecoveryFactor(Int32 factor)
 {
-  myJitterFactor = factor;
+  myJitterRecovery = factor;
 
-  if (myFrameManager) myFrameManager->setJitterFactor(myJitterFactor);
+  if (myFrameManager) myFrameManager->setJitterRecovery(myJitterRecovery);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1295,7 +1311,7 @@ shared_ptr<DelayQueueIterator> TIA::delayQueueIterator() const
 TIA& TIA::updateScanline()
 {
   // Update frame by one scanline at a time
-  uInt32 line = scanlines();
+  const uInt32 line = scanlines();
   while (line == scanlines() && mySystem->m6502().execute(1));
 
   return *this;
@@ -1324,7 +1340,8 @@ void TIA::updateEmulation()
   if (mySubClock > TIAConstants::CYCLE_CLOCKS - 1)
     throw runtime_error("subclock exceeds range");
 
-  const uInt32 cyclesToRun = TIAConstants::CYCLE_CLOCKS * uInt32(systemCycles - myLastCycle) + mySubClock;
+  const uInt32 cyclesToRun = TIAConstants::CYCLE_CLOCKS *
+      static_cast<uInt32>(systemCycles - myLastCycle) + mySubClock;
 
   mySubClock = 0;
   myLastCycle = systemCycles;
@@ -1436,7 +1453,7 @@ void TIA::tickMovement()
 
   if ((myHctr & 0x03) == 0) {
     const bool hblank = myHstate == HState::blank;
-    uInt8 movementCounter = myMovementClock > 15 ? 0 : myMovementClock;
+    const uInt8 movementCounter = myMovementClock > 15 ? 0 : myMovementClock;
 
     myMissile0.movementTick(movementCounter, myHctr, hblank);
     myMissile1.movementTick(movementCounter, myHctr, hblank);
@@ -1472,9 +1489,13 @@ void TIA::tickHblank()
     case TIAConstants::H_BLANK_CLOCKS + 7:
       if (myExtendedHblank) myHstate = HState::frame;
       break;
+
+    default:
+      break;
   }
 
-  if (myExtendedHblank && myHctr > TIAConstants::H_BLANK_CLOCKS - 1) myPlayfield.tick(myHctr - TIAConstants::H_BLANK_CLOCKS - myHctrDelta);
+  if (myExtendedHblank && myHctr > TIAConstants::H_BLANK_CLOCKS - 1)
+    myPlayfield.tick(myHctr - TIAConstants::H_BLANK_CLOCKS - myHctrDelta);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1662,6 +1683,12 @@ void TIA::setPFColorDelay(bool delayed)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TIA::setPFScoreGlitch(bool enable)
+{
+  myPlayfield.setScoreGlitch(enable);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIA::setBKColorDelay(bool delayed)
 {
   myBKColorDelay = delayed ? 1 : 0;
@@ -1828,7 +1855,7 @@ void TIA::delayedWrite(uInt8 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIA::updateAnalogReadout(uInt8 idx)
 {
-  AnalogReadout::Connection connection;
+  AnalogReadout::Connection connection{};
   switch (idx) {
     case 0:
       connection = myConsole.leftController().read(Controller::AnalogPin::Nine);
@@ -2026,7 +2053,7 @@ void TIA::toggleCollBLPF()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIA::updateDumpPorts(uInt8 value)
 {
-  bool newIsDumped = value & 0x80;
+  const bool newIsDumped = value & 0x80;
 
   if(myArePortsDumped != newIsDumped)
   {

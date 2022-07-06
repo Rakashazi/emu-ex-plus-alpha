@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -54,8 +54,9 @@ Keyboard::Keyboard(Jack jack, const Event& event, const System& system)
   }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Keyboard::ColumnState Keyboard::processColumn(const Event::Type buttons[]) {
-  constexpr DigitalPin signals[] =
+  static constexpr DigitalPin signals[] =
     {DigitalPin::One, DigitalPin::Two, DigitalPin::Three, DigitalPin::Four};
 
   for (uInt8 i = 0; i < 4; i++)
@@ -67,6 +68,7 @@ Keyboard::ColumnState Keyboard::processColumn(const Event::Type buttons[]) {
   return ColumnState::notConnected;
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AnalogReadout::Connection Keyboard::columnStateToAnalogSignal(ColumnState state) const {
   switch (state) {
     case ColumnState::gnd:
@@ -83,7 +85,6 @@ AnalogReadout::Connection Keyboard::columnStateToAnalogSignal(ColumnState state)
   }
 }
 
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Keyboard::write(DigitalPin pin, bool value)
 {
@@ -93,9 +94,9 @@ void Keyboard::write(DigitalPin pin, bool value)
   const Event::Type col1[] = {myTwoEvent, myFiveEvent, myEightEvent, myZeroEvent};
   const Event::Type col2[] = {myThreeEvent, mySixEvent, myNineEvent, myPoundEvent};
 
-  ColumnState stateCol0 = processColumn(col0);
-  ColumnState stateCol1 = processColumn(col1);
-  ColumnState stateCol2 = processColumn(col2);
+  const ColumnState stateCol0 = processColumn(col0);
+  const ColumnState stateCol1 = processColumn(col1);
+  const ColumnState stateCol2 = processColumn(col2);
 
   setPin(DigitalPin::Six, stateCol2 == ColumnState::gnd ? 0 : 1);
   setPin(AnalogPin::Five, columnStateToAnalogSignal(stateCol1));

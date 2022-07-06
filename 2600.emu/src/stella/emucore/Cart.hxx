@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,7 +18,6 @@
 #ifndef CARTRIDGE_HXX
 #define CARTRIDGE_HXX
 
-class Cartridge;
 class Properties;
 class FilesystemNode;
 class CartDebugWidget;
@@ -190,9 +189,10 @@ class Cartridge : public Device
       Determine the bank's origin
 
       @param bank  The bank to query
+      @param PC    The current PC
       @return  The origin of the bank
     */
-    uInt16 bankOrigin(uInt16 bank) const;
+    uInt16 bankOrigin(uInt16 bank, uInt16 PC = 0) const;
   #endif
 
   public:
@@ -226,6 +226,13 @@ class Cartridge : public Device
     virtual uInt16 getBank(uInt16 address = 0) const { return 0; }
 
     /**
+      Get the current bank for a bank segment.
+
+      @param segment  The segment to get the bank for
+    */
+    virtual uInt16 getSegmentBank(uInt16 segment = 0) const { return getBank(); }
+
+    /**
       Query the number of ROM 'banks' supported by the cartridge.  Note that
       this information is cart-specific, where each cart basically defines
       what a 'bank' is.
@@ -246,6 +253,11 @@ class Cartridge : public Device
       what a 'bank' is.
     */
     virtual uInt16 ramBankCount() const { return 0; }
+
+    /**
+      Get the number of segments supported by the cartridge.
+    */
+    virtual uInt16 segmentCount() const { return 1; }
 
     /**
       Get the size of a bank.
@@ -411,7 +423,7 @@ class Cartridge : public Device
     uInt16 myRamWriteAccess{0};
 
     // Total size of ROM access area (might include RAM too)
-    uInt32 myAccessSize;
+    uInt32 myAccessSize{0};
 
     // Callback to output messages
     messageCallback myMsgCallback{nullptr};

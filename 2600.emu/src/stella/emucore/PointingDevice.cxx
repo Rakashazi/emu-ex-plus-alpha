@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -39,7 +39,7 @@ PointingDevice::PointingDevice(Jack jack, const Event& event,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 PointingDevice::read()
 {
-  int scanline = mySystem.tia().scanlines();
+  const int scanline = mySystem.tia().scanlines();
 
   // Loop over all missed changes
   while(myScanCountH < scanline)
@@ -64,7 +64,7 @@ uInt8 PointingDevice::read()
   myCountH &= 0b11;
   myCountV &= 0b11;
 
-  uInt8 portA = ioPortA(myCountH, myCountV, myTrackBallLeft, myTrackBallDown);
+  const uInt8 portA = ioPortA(myCountH, myCountV, myTrackBallLeft, myTrackBallDown);
 
   setPin(DigitalPin::One,   portA & 0b0001);
   setPin(DigitalPin::Two,   portA & 0b0010);
@@ -119,8 +119,8 @@ void PointingDevice::updateDirection(int counter, float& counterRemainder,
     bool& trackBallDir, int& trackBallLines, int& scanCount, int& firstScanOffset)
 {
   // Apply sensitivity and calculate remainder
-  float fTrackBallCount = counter * mySensitivity * TB_SENSITIVITY + counterRemainder;
-  int trackBallCount = int(std::lround(fTrackBallCount));
+  const float fTrackBallCount = counter * mySensitivity * TB_SENSITIVITY + counterRemainder;
+  int trackBallCount = static_cast<int>(std::lround(fTrackBallCount));
   counterRemainder = fTrackBallCount - trackBallCount;
 
   if(trackBallCount)

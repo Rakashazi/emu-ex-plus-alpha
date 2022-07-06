@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -25,9 +25,10 @@ Driving::Driving(Jack jack, const Event& event, const System& system, bool altma
   {
     if(!altmap)
     {
-      myCCWEvent  = Event::LeftJoystickLeft;
-      myCWEvent   = Event::LeftJoystickRight;
-      myFireEvent = Event::LeftJoystickFire;
+      myCCWEvent    = Event::LeftDrivingCCW;
+      myCWEvent     = Event::LeftDrivingCW;
+      myFireEvent   = Event::LeftDrivingFire;
+      myAnalogEvent = Event::LeftDrivingAnalog;
     }
     else
     {
@@ -42,9 +43,10 @@ Driving::Driving(Jack jack, const Event& event, const System& system, bool altma
   {
     if(!altmap)
     {
-      myCCWEvent  = Event::RightJoystickLeft;
-      myCWEvent   = Event::RightJoystickRight;
-      myFireEvent = Event::RightJoystickFire;
+      myCCWEvent    = Event::RightDrivingCCW;
+      myCWEvent     = Event::RightDrivingCW;
+      myFireEvent   = Event::RightDrivingFire;
+      myAnalogEvent = Event::RightDrivingAnalog;
     }
     else
     {
@@ -66,7 +68,7 @@ void Driving::update()
 {
   updateButtons();
 
-  updateDigitalAxes();
+  updateControllerAxes();
   updateMouseAxes();
   updateStelladaptorAxes();
 
@@ -74,7 +76,7 @@ void Driving::update()
   static constexpr std::array<uInt8, 4> graytable = { 0x03, 0x01, 0x00, 0x02 };
 
   // Determine which bits are set
-  uInt8 gray = graytable[myGrayIndex];
+  const uInt8 gray = graytable[myGrayIndex];
   setPin(DigitalPin::One, (gray & 0x1) != 0);
   setPin(DigitalPin::Two, (gray & 0x2) != 0);
 }
@@ -108,28 +110,41 @@ void Driving::updateMouseButtons(bool& firePressed)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Driving::updateDigitalAxes()
+void Driving::updateControllerAxes()
 {
   // Digital events (from keyboard or joystick hats & buttons)
-  int d_axis = myEvent.get(myXAxisValue);
+  const int d_axis = myEvent.get(myXAxisValue);
 
   if(myEvent.get(myCCWEvent) != 0 || d_axis < -16384)
-    --myCounter;
+    myCounterHires -= 64;
   else if(myEvent.get(myCWEvent) != 0 || d_axis > 16384)
-    ++myCounter;
+    myCounterHires += 64;
+
+  // Analog events (from joystick axes)
+  const int a_axis = myEvent.get(myAnalogEvent);
+
+  if( abs(a_axis) > Controller::analogDeadZone())
+  {
+    /* a_axis is in -2^15 to +2^15-1; adding 1 when non-negative and
+       dividing by 2^9 gives us -2^6 to +2^6, which gives us the same
+       range as digital inputs.
+    */
+    myCounterHires += (a_axis/512) + (a_axis >= 0);
+  }
 
   // Only consider the lower-most bits (corresponding to pins 1 & 2)
-  myGrayIndex = Int32(myCounter * SENSITIVITY / 4.0F) & 0b11;
+  myGrayIndex = static_cast<Int32>((myCounterHires / 256.0F) * SENSITIVITY) & 0b11;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Driving::updateMouseAxes()
 {
-  #define MJ_Threshold 2
+  static constexpr int MJ_Threshold = 2;
+
   // Mouse motion and button events
   if(myControlID > -1)
   {
-    int m_axis = myEvent.get(Event::MouseAxisXMove);
+    const int m_axis = myEvent.get(Event::MouseAxisXMove);
     if(m_axis < -MJ_Threshold)
       --myCounter;
     else if(m_axis > MJ_Threshold)
@@ -141,7 +156,7 @@ void Driving::updateMouseAxes()
     // mapped to a separate driving controller
     if(myControlIDX > -1)
     {
-      int m_axis = myEvent.get(Event::MouseAxisXMove);
+      const int m_axis = myEvent.get(Event::MouseAxisXMove);
       if(m_axis < -MJ_Threshold)
         --myCounter;
       else if(m_axis > MJ_Threshold)
@@ -149,7 +164,7 @@ void Driving::updateMouseAxes()
     }
     if(myControlIDY > -1)
     {
-      int m_axis = myEvent.get(Event::MouseAxisYMove);
+      const int m_axis = myEvent.get(Event::MouseAxisYMove);
       if(m_axis < -MJ_Threshold)
         --myCounter;
       else if(m_axis > MJ_Threshold)
@@ -161,9 +176,10 @@ void Driving::updateMouseAxes()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Driving::updateStelladaptorAxes()
 {
-  #define SA_Threshold 4096
+  static constexpr int SA_Threshold = 4096;
+
   // Stelladaptor is the only controller that should set this
-  int yaxis = myEvent.get(myYAxisValue);
+  const int yaxis = myEvent.get(myYAxisValue);
 
   // Only overwrite gray code when Stelladaptor input has changed
   // (that means real changes, not just analog signal jitter)
@@ -227,4 +243,4 @@ void Driving::setSensitivity(int sensitivity)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-float Driving::SENSITIVITY = 1.0;
+float Driving::SENSITIVITY = 1.0F;

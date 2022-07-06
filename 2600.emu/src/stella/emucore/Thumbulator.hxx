@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -70,6 +70,7 @@ class Thumbulator
       DPCplus   // cartridges of type DPC+
     };
     enum class ChipType {
+      AUTO = -1,
       LPC2101,    // Harmony (includes LPC2103)
       LPC2104_OC, // Dev cart overclocked (includes LPC2105)
       LPC2104,    // Dev cart (includes LPC2105)
@@ -80,6 +81,7 @@ class Thumbulator
       mode0, mode1, mode2, modeX
     };
     struct ChipPropsType {
+      string name;
       double MHz;
       uInt32 flashCycles;
       uInt32 flashBanks;
@@ -114,7 +116,7 @@ class Thumbulator
     void enableCycleCount(bool enable) { _countCycles = enable; }
     const Stats& stats() const { return _stats; }
     uInt32 cycles() const { return _totalCycles; }
-    ChipPropsType setChipType(ChipType type);
+    ChipPropsType setChipType(ChipType type = ChipType::AUTO);
     void setMamMode(MamModeType mode) { mamcr = mode; }
     void lockMamMode(bool lock) { _lockMamcr = lock; }
     MamModeType mamMode() const { return static_cast<MamModeType>(mamcr); }
@@ -212,10 +214,10 @@ class Thumbulator
   #endif
     const std::array<ChipPropsType, uInt32(ChipType::numTypes)> ChipProps =
     {{
-      { 70.0, 4, 1 }, // LPC2101_02_03
-      { 70.0, 4, 2 }, // LPC2104_05_06 Overclocked
-      { 60.0, 3, 2 }, // LPC2104_05_06
-      { 60.0, 3, 1 }, // LPC2132..
+      { "LPC2101..3",    70.0, 4, 1 }, // LPC2101_02_03
+      { "LPC2104..6 OC", 70.0, 4, 2 }, // LPC2104_05_06 Overclocked
+      { "LPC2104..6",    60.0, 3, 2 }, // LPC2104_05_06
+      { "LPC213x",       60.0, 3, 1 }, // LPC2132..
     }};
 
   private:
@@ -226,7 +228,9 @@ class Thumbulator
     uInt32 read16(uInt32 addr);
     uInt32 read32(uInt32 addr);
   #ifndef UNSAFE_OPTIMIZATIONS
-    bool isProtected(uInt32 addr);
+    bool isInvalidROM(uInt32 addr);
+    bool isInvalidRAM(uInt32 addr);
+    bool isProtectedRAM(uInt32 addr);
   #endif
     void write16(uInt32 addr, uInt32 data);
     void write32(uInt32 addr, uInt32 data);
@@ -261,6 +265,7 @@ class Thumbulator
     void incNCycles(uInt32 addr, AccessType = AccessType::data);
     void incICycles(uInt32 m = 1);
   #endif
+    bool searchPattern(uInt32 pattern, uInt32 repeats = 1) const;
 
   private:
     const uInt16* rom{nullptr};
@@ -275,7 +280,7 @@ class Thumbulator
     MamModeType mamcr{MamModeType::mode0};
     bool handler_mode{false};
     uInt32 systick_ctrl{0}, systick_reload{0}, systick_count{0}, systick_calibrate{0};
-    ChipType _chipType{ChipType::LPC2101};
+    ChipType _chipType{ChipType::AUTO};
     ConsoleTiming _consoleTiming{ConsoleTiming::ntsc};
     double _MHz{70.0};
     uInt32 _flashCycles{4};

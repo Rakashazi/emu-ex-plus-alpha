@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -28,7 +28,7 @@
 class GlobalKeyHandler
 {
   public:
-    GlobalKeyHandler(OSystem& osystem);
+    explicit GlobalKeyHandler(OSystem& osystem);
 
   public:
     enum class Setting
@@ -38,6 +38,7 @@ class GlobalKeyHandler
       VOLUME,
       ZOOM,
       FULLSCREEN,
+      FS_ASPECT,
     #ifdef ADAPTABLE_REFRESH_SUPPORT
       ADAPT_REFRESH,
     #endif
@@ -117,7 +118,8 @@ class GlobalKeyHandler
       ALL_CX,
       FIXED_COL,
       COLOR_LOSS,
-      JITTER,
+      JITTER_SENSE,
+      JITTER_REC,
       // *** Only used via direct hotkeys ***
       STATE,
       PALETTE_ATTRIBUTE,
@@ -130,7 +132,7 @@ class GlobalKeyHandler
       START_INPUT_ADJ = DIGITAL_DEADZONE,
       END_INPUT_ADJ = MOUSE_RANGE,
       START_DEBUG_ADJ = DEVELOPER,
-      END_DEBUG_ADJ = JITTER,
+      END_DEBUG_ADJ = JITTER_REC,
     };
 
   public:
@@ -152,7 +154,7 @@ class GlobalKeyHandler
     struct GroupData
     {
       Setting start{Setting::NONE};
-      string  name{EmptyString};
+      string  name;
     };
 
     struct SettingData

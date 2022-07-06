@@ -15,50 +15,41 @@
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //============================================================================
 
-#ifndef CARTRIDGEX07_HXX
-#define CARTRIDGEX07_HXX
-
-class System;
+#ifndef CARTRIDGEBR_HXX
+#define CARTRIDGEBR_HXX
 
 #include "bspf.hxx"
 #include "CartEnhanced.hxx"
+#include "System.hxx"
 #ifdef DEBUGGER_SUPPORT
-  #include "CartX07Widget.hxx"
+#include "Cart0FA0Widget.hxx"
 #endif
 
 /**
-  Bankswitching method as defined/created by John Payson (aka Supercat)
-  and Fred Quimby (aka batari).
+  Cartridge class used for some brazilian 8K bankswitched games. There
+  are two 4K banks, which are switched by accessing
+  (address & $16A0) = $06a0 (bank 0) and = $06c0 (bank 1).
+  Actual addresses used by these carts are e.g. $0FA0, $0FC0 and $EFC0.
+  The code accepts further potential hotspot addresses.
 
-  This bankswitching method has 16 4K banks that can be accessed at
-  addresses $1000 to $1FFF. The bankswitching hotspots are all below
-  $1000. X07 uses two types of hotspots:
-
-  0 1xxx nnnn 1101 -- Switch to bank nnnn
-  0 0xxx 0nxx xxxx -- If in bank 111x, switch to bank 111n.
-                      In any other bank, do not switch.
-
-  Note that the latter will hit on almost any TIA access.
-
-  @author  Eckhard Stolberg, Thomas Jentzsch
+  @author  Thomas Jentzsch
 */
-class CartridgeX07 : public CartridgeEnhanced
+class Cartridge0FA0 : public CartridgeEnhanced
 {
-  friend class CartridgeX07Widget;
+  friend class Cartridge0FA0Widget;
 
   public:
     /**
       Create a new cartridge using the specified image
 
-      @param image     Pointer to the ROM image
-      @param size      The size of the ROM image
-      @param md5       The md5sum of the ROM image
-      @param settings  A reference to the various settings (read-only)
-      @param bsSize    The size specified by the bankswitching scheme
+      @param image         Pointer to the ROM image
+      @param size          The size of the ROM image
+      @param md5           The md5sum of the ROM image
+      @param settings      A reference to the various settings (read-only)
     */
-    CartridgeX07(const ByteBuffer& image, size_t size, const string& md5,
-                 const Settings& settings, size_t bsSize = 64_KB);
-    ~CartridgeX07() override = default;
+    Cartridge0FA0(const ByteBuffer& image, size_t size, const string& md5,
+      const Settings& settings);
+    ~Cartridge0FA0() override = default;
 
   public:
     /**
@@ -74,7 +65,9 @@ class CartridgeX07 : public CartridgeEnhanced
 
       @return The name of the object
     */
-    string name() const override { return "CartridgeX07"; }
+    string name() const override {
+      return "Cartridge0FA0";
+    }
 
   #ifdef DEBUGGER_SUPPORT
     /**
@@ -82,9 +75,9 @@ class CartridgeX07 : public CartridgeEnhanced
       of the cart.
     */
     CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
-        const GUI::Font& nfont, int x, int y, int w, int h) override
+      const GUI::Font& nfont, int x, int y, int w, int h) override
     {
-      return new CartridgeX07Widget(boss, lfont, nfont, x, y, w, h, *this);
+      return new Cartridge0FA0Widget(boss, lfont, nfont, x, y, w, h, *this);
     }
   #endif
 
@@ -106,15 +99,29 @@ class CartridgeX07 : public CartridgeEnhanced
     bool poke(uInt16 address, uInt8 value) override;
 
   private:
+    /**
+      Checks if startup bank randomization is enabled.  For this scheme,
+      randomization is not supported (see above).
+    */
+    bool randomStartBank() const override { return false; }
+
     bool checkSwitchBank(uInt16 address, uInt8 value = 0) override;
+
+    uInt16 hotspot() const override { return 0x06a0; }
+
+    uInt16 getStartBank() const override { return 1; }
+
+  private:
+    // Previous Device's page access
+    System::PageAccess myHotSpotPageAccess;
 
   private:
     // Following constructors and assignment operators not supported
-    CartridgeX07() = delete;
-    CartridgeX07(const CartridgeX07&) = delete;
-    CartridgeX07(CartridgeX07&&) = delete;
-    CartridgeX07& operator=(const CartridgeX07&) = delete;
-    CartridgeX07& operator=(CartridgeX07&&) = delete;
+    Cartridge0FA0() = delete;
+    Cartridge0FA0(const Cartridge0FA0&) = delete;
+    Cartridge0FA0(Cartridge0FA0&&) = delete;
+    Cartridge0FA0& operator=(const Cartridge0FA0&) = delete;
+    Cartridge0FA0& operator=(Cartridge0FA0&&) = delete;
 };
 
 #endif

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -57,21 +57,21 @@ void AtariNTSC::generateKernels()
   const uInt8* ptr = myRGBPalette.data();
   for(size_t entry = 0; entry < myRGBPalette.size() / 3; ++entry)
   {
-    float r = (*ptr++) / 255.F * rgb_unit + rgb_offset,
-          g = (*ptr++) / 255.F * rgb_unit + rgb_offset,
-          b = (*ptr++) / 255.F * rgb_unit + rgb_offset;
+    const float r = (*ptr++) / 255.F * rgb_unit + rgb_offset,
+                g = (*ptr++) / 255.F * rgb_unit + rgb_offset,
+                b = (*ptr++) / 255.F * rgb_unit + rgb_offset;
     float y, i, q;  RGB_TO_YIQ( r, g, b, y, i, q );
 
     // Generate kernel
     int ir, ig, ib;  YIQ_TO_RGB( y, i, q, myImpl.to_rgb.data(), ir, ig, ib );
-    uInt32 rgb = PACK_RGB( ir, ig, ib );
+    const uInt32 rgb = PACK_RGB( ir, ig, ib );
 
     uInt32* kernel = myColorTable[entry].data();
     genKernel(myImpl, y, i, q, kernel);
 
     for ( uInt32 c = 0; c < rgb_kernel_size / 2; ++c )
     {
-      uInt32 error = rgb -
+      const uInt32 error = rgb -
           kernel [c    ] - kernel [(c+10)%14+14] -
           kernel [c + 7] - kernel [c + 3    +14];
       kernel [c + 3 + 14] += error;
@@ -100,8 +100,9 @@ void AtariNTSC::enableThreading(bool enable)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void AtariNTSC::render(const uInt8* atari_in, const uInt32 in_width, const uInt32 in_height,
-  void* rgb_out, const uInt32 out_pitch, uInt32* rgb_in)
+void AtariNTSC::render(const uInt8* atari_in, const uInt32 in_width,
+                       const uInt32 in_height, void* rgb_out,
+                       const uInt32 out_pitch, uInt32* rgb_in)
 {
   // Spawn the threads...
   for(uInt32 i = 0; i < myWorkerThreads; ++i)
@@ -208,7 +209,7 @@ void AtariNTSC::renderWithPhosphorThread(const uInt8* atari_in, const uInt32 in_
   const uInt32 yStart = in_height * threadNum / numThreads;
   const uInt32 yEnd = in_height * (threadNum + 1) / numThreads;
   uInt32 bufofs = AtariNTSC::outWidth(in_width) * yStart;
-  uInt32* out = static_cast<uInt32*>(rgb_out);
+  const uInt32* out = static_cast<uInt32*>(rgb_out);
   atari_in += in_width * yStart;
   rgb_out = static_cast<char*>(rgb_out) + out_pitch * yStart;
 
@@ -361,7 +362,7 @@ void AtariNTSC::init(init_t& impl, const Setup& setup)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void AtariNTSC::initFilters(init_t& impl, const Setup& setup)
 {
-  std::array<float, kernel_size * 2> kernels;
+  std::array<float, kernel_size * 2> kernels{0};
 
   /* generate luma (y) filter using sinc kernel */
   {
@@ -369,7 +370,7 @@ void AtariNTSC::initFilters(init_t& impl, const Setup& setup)
     float const rolloff = 1 + setup.sharpness * 0.032F;
     constexpr float maxh = 32;
     float const pow_a_n = powf( rolloff, maxh );
-    float sum;
+
     /* quadratic mapping to reduce negative (blurring) range */
     float to_angle = setup.resolution + 1;
     to_angle = BSPF::PI_f / maxh * luma_cutoff * (to_angle * to_angle + 1.F);
@@ -377,26 +378,26 @@ void AtariNTSC::initFilters(init_t& impl, const Setup& setup)
     kernels [kernel_size * 3 / 2] = maxh; /* default center value */
     for ( int i = 0; i < kernel_half * 2 + 1; i++ )
     {
-      int x = i - kernel_half;
-      float angle = x * to_angle;
+      const int x = i - kernel_half;
+      const float angle = x * to_angle;
       /* instability occurs at center point with rolloff very close to 1.0 */
       if ( x || pow_a_n > 1.056F || pow_a_n < 0.981F )
       {
-        float rolloff_cos_a = rolloff * cosf( angle );
-        float num = 1 - rolloff_cos_a -
+        const float rolloff_cos_a = rolloff * cosf( angle );
+        const float num = 1 - rolloff_cos_a -
             pow_a_n * cosf( maxh * angle ) +
             pow_a_n * rolloff * cosf( (maxh - 1) * angle );
-        float den = 1 - rolloff_cos_a - rolloff_cos_a + rolloff * rolloff;
+        const float den = 1 - rolloff_cos_a - rolloff_cos_a + rolloff * rolloff;
         float dsf = num / den;
         kernels [kernel_size * 3 / 2 - kernel_half + i] = dsf - 0.5F;
       }
     }
 
     /* apply blackman window and find sum */
-    sum = 0;
+    float sum = 0;
     for ( int i = 0; i < kernel_half * 2 + 1; i++ )
     {
-      float x = BSPF::PI_f * 2 / (kernel_half * 2) * i;
+      const float x = BSPF::PI_f * 2 / (kernel_half * 2) * i;
       float blackman = 0.42F - 0.5F * cosf( x ) + 0.08F * cosf( x * 2 );
       sum += (kernels [kernel_size * 3 / 2 - kernel_half + i] *= blackman);
     }
@@ -405,7 +406,7 @@ void AtariNTSC::initFilters(init_t& impl, const Setup& setup)
     sum = 1.0F / sum;
     for ( int i = 0; i < kernel_half * 2 + 1; i++ )
     {
-      int x = kernel_size * 3 / 2 - kernel_half + i;
+      const int x = kernel_size * 3 / 2 - kernel_half + i;
       kernels [x] *= sum;
     }
   }
@@ -454,7 +455,7 @@ void AtariNTSC::initFilters(init_t& impl, const Setup& setup)
     weight -= 1.0F / rescale_in;
     for ( int i = 0; i < kernel_size * 2; i++ )
     {
-      float cur = kernels [i];
+      const float cur = kernels [i];
       float m = cur * weight;
       *out++ = m + remain;
       remain = cur - m;
@@ -498,13 +499,12 @@ void AtariNTSC::genKernel(init_t& impl, float y, float i, float q, uInt32* out)
       float const yc3 = (y - qq) * pixel->kernel [3];
 
       float const* k = &impl.kernel [pixel->offset];
-      int n;
       ++pixel;
-      for ( n = rgb_kernel_size; n; --n )
+      for ( int n = rgb_kernel_size; n; --n )
       {
-        float fi = k[0]*ic0 + k[2]*ic2;
-        float fq = k[1]*qc1 + k[3]*qc3;
-        float fy = k[kernel_size+0]*yc0 + k[kernel_size+1]*yc1 +
+        const float fi = k[0]*ic0 + k[2]*ic2;
+        const float fq = k[1]*qc1 + k[3]*qc3;
+        const float fy = k[kernel_size+0]*yc0 + k[kernel_size+1]*yc1 +
                   k[kernel_size+2]*yc2 + k[kernel_size+3]*yc3 + rgb_offset;
         if ( k < &impl.kernel [kernel_size * 2 * (rescale_out - 1)] )
           k += kernel_size * 2 - 1;
@@ -522,27 +522,8 @@ void AtariNTSC::genKernel(init_t& impl, float y, float i, float q, uInt32* out)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const AtariNTSC::Setup AtariNTSC::TV_Composite = {
-  0.0F, 0.15F, 0.0F, 0.0F, 0.0F
-};
-const AtariNTSC::Setup AtariNTSC::TV_SVideo = {
-  0.0F, 0.45F, -1.0F, -1.0F, 0.0F
-};
-const AtariNTSC::Setup AtariNTSC::TV_RGB = {
-  0.2F, 0.70F, -1.0F, -1.0F, -1.0F
-};
-const AtariNTSC::Setup AtariNTSC::TV_Bad = {
-  0.2F, 0.1F, 0.5F, 0.5F, 0.5F
-};
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const std::array<AtariNTSC::pixel_info_t, AtariNTSC::alignment_count>
 AtariNTSC::atari_ntsc_pixels = { {
   { PIXEL_OFFSET1(-4, -9), PIXEL_OFFSET2(-4), { 1, 1, 1, 1            } },
   { PIXEL_OFFSET1( 0, -5), PIXEL_OFFSET2( 0), {            1, 1, 1, 1 } }
 } };
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const std::array<float, 6> AtariNTSC::default_decoder = {
-  0.9563F, 0.6210F, -0.2721F, -0.6474F, -1.1070F, 1.7046F
-};

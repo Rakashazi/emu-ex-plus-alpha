@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -32,38 +32,38 @@ Joystick::Joystick(Jack jack, const Event& event, const System& system,
   {
     if(!altmap)
     {
-      myUpEvent = Event::LeftJoystickUp;
-      myDownEvent = Event::LeftJoystickDown;
-      myLeftEvent = Event::LeftJoystickLeft;
+      myUpEvent    = Event::LeftJoystickUp;
+      myDownEvent  = Event::LeftJoystickDown;
+      myLeftEvent  = Event::LeftJoystickLeft;
       myRightEvent = Event::LeftJoystickRight;
-      myFireEvent = Event::LeftJoystickFire;
+      myFireEvent  = Event::LeftJoystickFire;
     }
     else
     {
-      myUpEvent = Event::QTJoystickThreeUp;
-      myDownEvent = Event::QTJoystickThreeDown;
-      myLeftEvent = Event::QTJoystickThreeLeft;
+      myUpEvent    = Event::QTJoystickThreeUp;
+      myDownEvent  = Event::QTJoystickThreeDown;
+      myLeftEvent  = Event::QTJoystickThreeLeft;
       myRightEvent = Event::QTJoystickThreeRight;
-      myFireEvent = Event::QTJoystickThreeFire;
+      myFireEvent  = Event::QTJoystickThreeFire;
     }
   }
   else
   {
     if(!altmap)
     {
-      myUpEvent = Event::RightJoystickUp;
-      myDownEvent = Event::RightJoystickDown;
-      myLeftEvent = Event::RightJoystickLeft;
+      myUpEvent    = Event::RightJoystickUp;
+      myDownEvent  = Event::RightJoystickDown;
+      myLeftEvent  = Event::RightJoystickLeft;
       myRightEvent = Event::RightJoystickRight;
-      myFireEvent = Event::RightJoystickFire;
+      myFireEvent  = Event::RightJoystickFire;
     }
     else
     {
-      myUpEvent = Event::QTJoystickFourUp;
-      myDownEvent = Event::QTJoystickFourDown;
-      myLeftEvent = Event::QTJoystickFourLeft;
+      myUpEvent    = Event::QTJoystickFourUp;
+      myDownEvent  = Event::QTJoystickFourDown;
+      myLeftEvent  = Event::QTJoystickFourLeft;
       myRightEvent = Event::QTJoystickFourRight;
-      myFireEvent = Event::QTJoystickFourFire;
+      myFireEvent  = Event::QTJoystickFourFire;
     }
   }
 }
@@ -115,9 +115,9 @@ void Joystick::updateMouseAxes()
   if(myControlID > -1)
   {
     // The following code was taken from z26
-    #define MJ_Threshold 2
-    int mousex = myEvent.get(Event::MouseAxisXMove),
-        mousey = myEvent.get(Event::MouseAxisYMove);
+    static constexpr int MJ_Threshold = 2;
+    const int mousex = myEvent.get(Event::MouseAxisXMove),
+              mousey = myEvent.get(Event::MouseAxisYMove);
 
     if(mousex || mousey)
     {

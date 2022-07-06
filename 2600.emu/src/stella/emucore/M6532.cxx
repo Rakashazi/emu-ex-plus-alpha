@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -91,7 +91,7 @@ void M6532::update()
   Controller& rport = myConsole.rightController();
 
   // Get current PA7 state
-  bool prevPA7 = lport.getPin(Controller::DigitalPin::Four);
+  const bool prevPA7 = lport.getPin(Controller::DigitalPin::Four);
 
   // Update entire port state
   lport.update();
@@ -99,7 +99,7 @@ void M6532::update()
   myConsole.switches().update();
 
   // Get new PA7 state
-  bool currPA7 = lport.getPin(Controller::DigitalPin::Four);
+  const bool currPA7 = lport.getPin(Controller::DigitalPin::Four);
 
   // PA7 Flag is set on active transition in appropriate direction
   if((!myEdgeDetectPositive && prevPA7 && !currPA7) ||
@@ -110,8 +110,8 @@ void M6532::update()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6532::updateEmulation()
 {
-  uInt32 cycles = uInt32(mySystem->cycles() - myLastCycle);
-  uInt32 subTimer = mySubTimer;
+  uInt32 cycles = static_cast<uInt32>(mySystem->cycles() - myLastCycle);
+  const uInt32 subTimer = mySubTimer;
 
   // Guard against further state changes if the debugger alread forwarded emulation
   // state (in particular myWrappedThisCycle)
@@ -122,7 +122,7 @@ void M6532::updateEmulation()
 
   if ((myInterruptFlag & TimerBit) == 0)
   {
-    uInt32 timerTicks = (cycles + subTimer) / myDivider;
+    const uInt32 timerTicks = (cycles + subTimer) / myDivider;
 
     if(timerTicks > myTimer)
     {
@@ -164,7 +164,7 @@ void M6532::installDelegate(System& system, Device& device)
   mySystem = &system;
 
   // All accesses are to the given device
-  System::PageAccess access(&device, System::PageAccessType::READWRITE);
+  const System::PageAccess access(&device, System::PageAccessType::READWRITE);
 
   // Map all peek/poke to mirrors of RIOT address space to this class
   // That is, all mirrors of ZP RAM ($80 - $FF) and IO ($280 - $29F) in the
@@ -194,8 +194,8 @@ uInt8 M6532::peek(uInt16 addr)
   {
     case 0x00:    // SWCHA - Port A I/O Register (Joystick)
     {
-      uInt8 value = (myConsole.leftController().read() << 4) |
-                     myConsole.rightController().read();
+      const uInt8 value = (myConsole.leftController().read() << 4) |
+                           myConsole.rightController().read();
 
       // Each pin is high (1) by default and will only go low (0) if either
       //  (a) External device drives the pin low
@@ -235,7 +235,7 @@ uInt8 M6532::peek(uInt16 addr)
     case 0x07:
     {
       // PA7 Flag is always cleared after accessing TIMINT
-      uInt8 result = myInterruptFlag;
+      const uInt8 result = myInterruptFlag;
       myInterruptFlag &= ~PA7Bit;
     #ifdef DEBUGGER_SUPPORT
       myTimReadCycles += 7;
@@ -308,6 +308,9 @@ bool M6532::poke(uInt16 addr, uInt8 value)
         myDDRB = value;
         break;
       }
+
+      default:  // satisfy compiler
+        break;
     }
   }
   return true;
@@ -349,7 +352,7 @@ void M6532::setPinState(bool swcha)
   Controller& lport = myConsole.leftController();
   Controller& rport = myConsole.rightController();
 
-  uInt8 ioport = myOutA | ~myDDRA;
+  const uInt8 ioport = myOutA | ~myDDRA;
 
   lport.write(Controller::DigitalPin::One,   ioport & 0b00010000);
   lport.write(Controller::DigitalPin::Two,   ioport & 0b00100000);
@@ -469,7 +472,7 @@ Int32 M6532::intimClocks()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt32 M6532::timerClocks() const
 {
-  return uInt32(mySystem->cycles() - mySetTimerCycle);
+  return static_cast<uInt32>(mySystem->cycles() - mySetTimerCycle);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

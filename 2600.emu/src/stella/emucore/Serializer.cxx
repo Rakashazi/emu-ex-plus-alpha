@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -102,10 +102,10 @@ void Serializer::rewind()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 size_t Serializer::size()
 {
-  std::streampos oldPos = myStream->tellp();
+  const std::streampos oldPos = myStream->tellp();
 
   myStream->seekp(0, std::ios::end);
-  size_t s = myStream->tellp();
+  const size_t s = myStream->tellp();
   myStream->seekp(oldPos);
 
   return s;
@@ -177,7 +177,7 @@ double Serializer::getDouble() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 string Serializer::getString() const
 {
-  int len = getInt();
+  const int len = getInt();
   string str;
   str.resize(len);
   myStream->read(&str[0], len);
@@ -242,7 +242,7 @@ void Serializer::putDouble(double value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Serializer::putString(const string& str)
 {
-  uInt32 len = uInt32(str.length());
+  const uInt32 len = static_cast<uInt32>(str.length());
   putInt(len);
   myStream->write(str.data(), len);
 }

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -49,8 +49,8 @@ void SimpleResampler::fillFragment(float* fragment, uInt32 length)
   // For the following math, remember that myTimeIndex = time * myFormatFrom.sampleRate * myFormatTo.sampleRate
   for (uInt32 i = 0; i < outputSamples; ++i) {
     if (myFormatFrom.stereo) {
-      float sampleL = static_cast<float>(myCurrentFragment[2*myFragmentIndex]) / static_cast<float>(0x7fff);
-      float sampleR = static_cast<float>(myCurrentFragment[2*myFragmentIndex + 1]) / static_cast<float>(0x7fff);
+      const float sampleL = static_cast<float>(myCurrentFragment[2*myFragmentIndex]) / static_cast<float>(0x7fff);
+      const float sampleR = static_cast<float>(myCurrentFragment[2*myFragmentIndex + 1]) / static_cast<float>(0x7fff);
 
       if (myFormatTo.stereo) {
         fragment[2*i] = sampleL;
@@ -59,7 +59,7 @@ void SimpleResampler::fillFragment(float* fragment, uInt32 length)
       else
         fragment[i] = (sampleL + sampleR) / 2.F;
     } else {
-      float sample = static_cast<float>(myCurrentFragment[myFragmentIndex] / static_cast<float>(0x7fff));
+      const float sample = static_cast<float>(myCurrentFragment[myFragmentIndex] / static_cast<float>(0x7fff));
 
       if (myFormatTo.stereo)
         fragment[2*i] = fragment[2*i + 1] = sample;

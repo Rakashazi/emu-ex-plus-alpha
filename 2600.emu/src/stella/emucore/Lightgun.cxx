@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -55,7 +55,7 @@ Lightgun::Lightgun(Jack jack, const Event& event, const System& system,
   else if (romMd5 == "2559948f39b91682934ea99d90ede631" ||
            romMd5 == "e75ab446017448045b152eea78bf7910")
   {
-    // Booby is Hungry
+    // Bobby is Hungry
     myOfsX = -21;
     myOfsY = 5;
   }
@@ -89,21 +89,21 @@ bool Lightgun::read(DigitalPin pin)
       if (rect.w() == 0 || rect.h() == 0)
         return false;
 
-      TIA& tia = mySystem.tia();
+      const TIA& tia = mySystem.tia();
       // scale mouse coordinates into TIA coordinates
-      Int32 xMouse = (myEvent.get(Event::MouseAxisXValue) - rect.x())
-        * tia.width() / rect.w();
-      Int32 yMouse = (myEvent.get(Event::MouseAxisYValue) - rect.y())
-        * tia.height() / rect.h();
+      const Int32 xMouse = (myEvent.get(Event::MouseAxisXValue) - rect.x())
+          * tia.width() / rect.w();
+      const Int32 yMouse = (myEvent.get(Event::MouseAxisYValue) - rect.y())
+          * tia.height() / rect.h();
 
       // get adjusted TIA coordinates
       Int32 xTia = tia.clocksThisLine() - TIAConstants::H_BLANK_CLOCKS + myOfsX;
-      Int32 yTia = tia.scanlines() - tia.startLine() + myOfsY;
+      const Int32 yTia = tia.scanlines() - tia.startLine() + myOfsY;
 
       if (xTia < 0)
         xTia += TIAConstants::H_CLOCKS;
 
-      bool enable = !((xTia - xMouse) >= 0 && (xTia - xMouse) < 15 && (yTia - yMouse) >= 0);
+      const bool enable = !((xTia - xMouse) >= 0 && (xTia - xMouse) < 15 && (yTia - yMouse) >= 0);
 
       return enable;
     }

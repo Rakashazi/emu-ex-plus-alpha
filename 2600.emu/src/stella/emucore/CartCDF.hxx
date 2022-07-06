@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -29,7 +29,7 @@ class System;
   CDFJ bankswitching for Atari games using ARM/C code.
   There are two variants supported:
   1) CDF/CDFJ - initial scheme with 32K ROM and 8K RAM
-  2) CDFJ+ - support for larger ROM sizes (64/128/256/512K) and RAM sizes (16/32K)
+  2) CDFJ+ - adds support for larger ROM sizes (64/128/256/512K) and RAM sizes (16/32K)
 
   Features:
   32 fast fetchers
@@ -39,8 +39,14 @@ class System;
   7 banks (4K) of atari code
   4K display data (16K and 32K available with CDFJ+)
 
-  Note that for CDFJ+, the same driver is used for all RAM/RAM combinations.
-  It is left to the programmer to ensure that only the available RAM/ROM on the target device is used.
+  Note that for CDFJ+ the programmer must ensure that only the available RAM/ROM on the target
+  device is used. There are 2 versions of the driver, with minor changes  due to hardware.
+    1) 32K ROM and 8K RAM - compatible with 48-Pin LPC210X Family (Harmony, Harmony Encore, Melody)
+    2) 64/128/256/512K ROM and16/32K RAM - compatible with 64-Pin LPC213X Family
+
+  The CDFJ+ driver can be modified to also override LDX # and LDY # for fast fetcher use.
+  Additionally an offset can be set for the Fast Fetchers - if the offset was set to $80 then
+  LDA #$85 would do a fast fetch of datastream 5.
 
   Bankswitching Note:
   CDF/CDFJ uses $FFF5 through $FFFB (initial bank 6)
@@ -51,6 +57,7 @@ class System;
   @authors: Darrell Spice Jr, Chris Walton, Fred Quimby, John Champeau
             Thomas Jentzsch, Stephen Anthony, Bradford W. Mott
 */
+
 class CartridgeCDF : public CartridgeARM
 {
   friend class CartridgeCDFWidget;
@@ -165,7 +172,7 @@ class CartridgeCDF : public CartridgeARM
 
       @return The internal RAM size
     */
-    uInt32 internalRamSize() const override { return uInt32(myRAM.size()); }
+    uInt32 internalRamSize() const override { return static_cast<uInt32>(myRAM.size()); }
 
     /**
       Read a byte from cart internal RAM.
@@ -253,6 +260,8 @@ class CartridgeCDF : public CartridgeARM
     uInt32 getSample();
     void setupVersion();
 
+    uInt32 scanCDFDriver(uInt32 value);
+
     /**
       Answer whether this is a PlusROM cart.  Note that until the
       initialize method has been called, this will always return false.
@@ -262,6 +271,9 @@ class CartridgeCDF : public CartridgeARM
     bool isPlusROM() const override { return myPlusROM->isValid(); }
 
   private:
+    static constexpr uInt8  COMMSTREAM = 0x20, JUMPSTREAM_BASE = 0x21;
+    static constexpr uInt16 LDAXY_OVERRIDE_INACTIVE = 0xFFFF;
+
     // The ROM image of the cartridge
     ByteBuffer myImage{nullptr};
 
@@ -330,8 +342,22 @@ class CartridgeCDF : public CartridgeARM
     // F- = 3 Voice Music
     uInt8 myMode{0xFF};
 
-    // set to address of #value if last byte peeked was A9 (LDA #)
-    uInt16 myLDAimmediateOperandAddress{0};
+    // set to address of #value if last byte peeked was A9 (LDA #),
+    // or for CDFJ+ variations if A0 (LDY #) or A2 (LDX #)
+    uInt16 myLDAXYimmediateOperandAddress{LDAXY_OVERRIDE_INACTIVE};
+
+    // Some CDFJ+ drivers also override LDX # and/or LDY # for fast fetcher
+    // use. These flag if this has been done.
+    bool myLDXenabled{false};
+    bool myLDYenabled{false};
+
+    // Some CDFJ+ drivers allow setting a fetcher base offset to allow
+    // immediate load of specific ranges. This is the location within the RAM
+    // copy of the CDFJ+ driver of the offset.
+    // ex. if 16, immedate lda #>=16 <=51 will trigger a FASTFETCH
+    // default is 0 so lda #>=0 <=35 will trigger a FASTFETCH
+    //
+    uInt16 myFastFetcherOffset{0};
 
     // set to address of the JMP operand if last byte peeked was 4C
     // *and* the next two bytes in ROM are 00 00

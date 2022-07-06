@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -67,7 +67,7 @@ class AbstractFrameManager : public Serializable
     /**
      * Called by TIA on VSYNC writes.
      */
-    void setVsync(bool vsync);
+    void setVsync(bool vsync, uInt64 cycles);
 
     /**
      * Should the TIA render its frame? This is buffered in a flag for
@@ -124,9 +124,14 @@ class AbstractFrameManager : public Serializable
     // autodetect).
 
     /**
+    * The jitter sensitivity determines jitter simulation sensitivity to unstable video signals.
+    */
+    virtual void setJitterSensitivity(uInt8 sensitivity) {}
+
+    /**
      * The jitter factor determines the time jitter simulation takes to recover.
      */
-    virtual void setJitterFactor(uInt8 factor) {}
+    virtual void setJitterRecovery(uInt8 factor) {}
 
     /**
      * Is jitter simulation enabled?
@@ -207,7 +212,7 @@ class AbstractFrameManager : public Serializable
     /**
      * Called if vsync changes.
      */
-    virtual void onSetVsync() {}
+    virtual void onSetVsync(uInt64 cycles) {}
 
     /**
      * Called if the next line is signalled, after the internal bookkeeping has

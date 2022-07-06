@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -38,14 +38,13 @@ class Bankswitch
   public:
     // Currently supported bankswitch schemes
     enum class Type {
-      _AUTO,  _0840,   _2IN1,  _4IN1,  _8IN1,  _16IN1, _32IN1,
-      _64IN1, _128IN1, _2K,    _3E,    _3EX,   _3EP,   _3F,
-      _4A50,  _4K,     _4KSC,  _AR,    _BF,    _BFSC,  _BUS,
-      _CDF,   _CM,     _CTY,   _CV,    _DF,    _DFSC,  _DPC,
-      _DPCP,  _E0,     _E7,    _EF,    _EFSC,  _F0,    _F4,
-      _F4SC,  _F6,     _F6SC,  _F8,    _F8SC,  _FA,    _FA2,
-      _FC,    _FE,     _MDM,   _MVC,   _SB,    _TVBOY, _UA,
-      _UASW,  _WD,     _WDSW,  _X07,
+      _AUTO,  _0840,   _0FA0, _2IN1, _4IN1, _8IN1, _16IN1, _32IN1,
+      _64IN1, _128IN1, _2K,   _3E,   _3EX,  _3EP,  _3F,    _4A50,
+      _4K,    _4KSC,   _AR,   _BF,   _BFSC, _BUS,  _CDF,   _CM,
+      _CTY,   _CV,     _DF,   _DFSC, _DPC,  _DPCP, _E0,    _E7,
+      _EF,    _EFSC,   _F0,   _F4,   _F4SC, _F6,   _F6SC,  _F8,
+      _F8SC,  _FA,     _FA2,  _FC,   _FE,   _MDM,  _MVC,  _SB,
+      _TVBOY, _UA,     _UASW, _WD,   _WDSW, _X07,
     #ifdef CUSTOM_ARM
       _CUSTOM,
     #endif
@@ -55,8 +54,8 @@ class Bankswitch
     // Info about the various bankswitch schemes, useful for displaying
     // in GUI dropdown boxes, etc
     struct Description {
-      const char* const name;
-      const char* const desc;
+      const char* const name{nullptr};
+      const char* const desc{nullptr};
     };
     static const std::array<Description, static_cast<int>(Type::NumSchemes)> BSList;
 

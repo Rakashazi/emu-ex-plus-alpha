@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -27,7 +27,7 @@ HighPass::HighPass(float cutOffFrequency, float frequency)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 float HighPass::apply(float valueIn)
 {
-  float valueOut = myAlpha * (myLastValueOut + valueIn - myLastValueIn);
+  const float valueOut = myAlpha * (myLastValueOut + valueIn - myLastValueIn);
 
   myLastValueIn = valueIn;
   myLastValueOut = valueOut;

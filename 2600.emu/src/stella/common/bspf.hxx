@@ -8,7 +8,7 @@
 //  BB  BB  SS  SS  PP      FF
 //  BBBBB    SSSS   PP      FF
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -90,7 +90,7 @@ using DWordBuffer = std::unique_ptr<uInt32[]>;  // NOLINT
 // We use KB a lot; let's make a literal for it
 constexpr size_t operator "" _KB(unsigned long long size)
 {
-   return static_cast<size_t>(size * 1024);
+  return static_cast<size_t>(size * 1024);
 }
 
 // Output contents of a vector
@@ -135,7 +135,7 @@ namespace BSPF
   #endif
 
   // Get next power of two greater than or equal to the given value
-  inline size_t nextPowerOfTwo(size_t size) {
+  inline constexpr size_t nextPowerOfTwo(size_t size) {
     if(size < 2) return 1;
     size_t power2 = 1;
     while(power2 < size)
@@ -145,7 +145,7 @@ namespace BSPF
 
   // Get next multiple of the given value
   // Note that this only works when multiple is a power of two
-  inline size_t nextMultipleOf(size_t size, size_t multiple) {
+  inline constexpr size_t nextMultipleOf(size_t size, size_t multiple) {
     return (size + multiple - 1) & ~(multiple - 1);
   }
 
@@ -242,9 +242,9 @@ namespace BSPF
   // starting from 'startpos' in the first string
   static size_t findIgnoreCase(string_view s1, string_view s2, size_t startpos = 0)
   {
-    auto pos = std::search(s1.cbegin()+startpos, s1.cend(),
+    const auto pos = std::search(s1.cbegin()+startpos, s1.cend(),
       s2.cbegin(), s2.cend(), [](char ch1, char ch2) {
-        return toupper(uInt8(ch1)) == toupper(uInt8(ch2));
+        return toupper(static_cast<uInt8>(ch1)) == toupper(static_cast<uInt8>(ch2));
       });
     return pos == s1.cend() ? string::npos : pos - (s1.cbegin()+startpos);
   }
@@ -265,7 +265,7 @@ namespace BSPF
       size_t pos = 1;
       for(uInt32 j = 1; j < s2.size(); ++j)
       {
-        size_t found = findIgnoreCase(s1, s2.substr(j, 1), pos);
+        const size_t found = findIgnoreCase(s1, s2.substr(j, 1), pos);
         if(found == string::npos)
           return false;
         pos += found + 1;
@@ -282,7 +282,7 @@ namespace BSPF
   inline bool matchesCamelCase(const string_view s1, const string_view s2)
   {
     // skip leading '_' for matching
-    uInt32 ofs = (s1[0] == '_' && s2[0] == '_') ? 1 : 0;
+    const uInt32 ofs = (s1[0] == '_' && s2[0] == '_') ? 1 : 0;
 
     if(startsWithIgnoreCase(s1.substr(ofs), s2.substr(ofs, 1)))
     {
@@ -292,7 +292,7 @@ namespace BSPF
       {
         if(std::isupper(s2[j]))
         {
-          size_t found = s1.find_first_of(s2[j], pos + ofs);
+          const size_t found = s1.find_first_of(s2[j], pos + ofs);
 
           if(found == string::npos)
             return false;
@@ -306,7 +306,7 @@ namespace BSPF
         }
         else
         {
-          size_t found = findIgnoreCase(s1, s2.substr(j, 1), pos + ofs);
+          const size_t found = findIgnoreCase(s1, s2.substr(j, 1), pos + ofs);
 
           if(found == string::npos)
             return false;
@@ -335,7 +335,7 @@ namespace BSPF
   // Trim leading and trailing whitespace from a string
   inline string trim(const string& str)
   {
-    string::size_type first = str.find_first_not_of(' ');
+    const auto first = str.find_first_not_of(' ');
     return (first == string::npos) ? EmptyString :
             str.substr(first, str.find_last_not_of(' ')-first+1);
   }
@@ -344,8 +344,7 @@ namespace BSPF
   // Equivalent to the C-style localtime() function, but is thread-safe
   inline std::tm localTime()
   {
-    std::time_t currtime;
-    std::time(&currtime);
+    const auto currtime = std::time(nullptr);
     std::tm tm_snapshot;
   #if (defined BSPF_WINDOWS || defined __WIN32__) && (!defined __GNUG__ || defined __MINGW32__)
     localtime_s(&tm_snapshot, &currtime);
@@ -355,39 +354,9 @@ namespace BSPF
     return tm_snapshot;
   }
 
-  // Coverity complains if 'getenv' is used unrestricted
-  inline string getenv(const string& env_var)
+  inline bool isWhiteSpace(const char c)
   {
-  #if (defined BSPF_WINDOWS || defined __WIN32__) && !defined __GNUG__
-    char* buf = nullptr;
-    size_t sz = 0;
-    if(_dupenv_s(&buf, &sz, env_var.c_str()) == 0 && buf != nullptr)
-    {
-      string val(buf);
-      free(buf);
-      return val;
-    }
-    return EmptyString;
-  #else
-    try {
-      const char* val = std::getenv(env_var.c_str());
-      return val ? string(val) : EmptyString;
-    }
-    catch(...) {
-      return EmptyString;
-    }
-  #endif
-  }
-
-  inline bool isWhiteSpace(const char s)
-  {
-    const string WHITESPACES = " ,.;:+-*&/\\'";
-
-    for(size_t i = 0; i < WHITESPACES.length(); ++i)
-      if(s == WHITESPACES[i])
-        return true;
-
-    return false;
+    return string(" ,.;:+-*&/\\'").find(c) != string::npos;
   }
 } // namespace BSPF
 

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,12 +19,12 @@
 #include "Settings.hxx"
 
 namespace {
-  uInt32 lboundInt(int x, int defaultValue)
+  constexpr uInt32 lboundInt(int x, int defaultValue)
   {
     return x <= 0 ? defaultValue : x;
   }
 
-  AudioSettings::Preset normalizedPreset(int numericPreset)
+  constexpr AudioSettings::Preset normalizedPreset(int numericPreset)
   {
     return (
       numericPreset >= static_cast<int>(AudioSettings::Preset::custom) &&
@@ -32,7 +32,7 @@ namespace {
     ) ? static_cast<AudioSettings::Preset>(numericPreset) : AudioSettings::DEFAULT_PRESET;
   }
 
-  AudioSettings::ResamplingQuality normalizeResamplingQuality(int numericResamplingQuality)
+  constexpr AudioSettings::ResamplingQuality normalizeResamplingQuality(int numericResamplingQuality)
   {
     return (
       numericResamplingQuality >= static_cast<int>(AudioSettings::ResamplingQuality::nearestNeightbour) &&
@@ -52,7 +52,7 @@ AudioSettings::AudioSettings(Settings& settings)
 void AudioSettings::normalize(Settings& settings)
 {
   int settingPreset = settings.getInt(SETTING_PRESET);
-  Preset preset = normalizedPreset(settingPreset);
+  const Preset preset = normalizedPreset(settingPreset);
   if (static_cast<int>(preset) != settingPreset) settings.setValue(SETTING_PRESET, static_cast<int>(DEFAULT_PRESET));
 
   switch (settings.getInt(SETTING_SAMPLE_RATE)) {
@@ -87,7 +87,7 @@ void AudioSettings::normalize(Settings& settings)
   if (settingHeadroom < 0 || settingHeadroom > MAX_HEADROOM) settings.setValue(SETTING_HEADROOM, DEFAULT_HEADROOM);
 
   int settingResamplingQuality = settings.getInt(SETTING_RESAMPLING_QUALITY);
-  ResamplingQuality resamplingQuality = normalizeResamplingQuality(settingResamplingQuality);
+  const ResamplingQuality resamplingQuality = normalizeResamplingQuality(settingResamplingQuality);
   if (static_cast<int>(resamplingQuality) != settingResamplingQuality)
     settings.setValue(SETTING_RESAMPLING_QUALITY, static_cast<int>(DEFAULT_RESAMPLING_QUALITY));
 

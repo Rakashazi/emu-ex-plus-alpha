@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -16,28 +16,10 @@
 //============================================================================
 
 #include "FrameLayoutDetector.hxx"
-#include "TIAConstants.hxx"
-
-/**
- * Misc. numeric constants used in the algorithm.
- */
-enum Metrics: uInt32 {
-  // ideal frame heights
-  frameLinesNTSC            = 262,
-  frameLinesPAL             = 312,
-
-  // number of scanlines to wait for vsync to start and stop (exceeding ideal frame height)
-  waitForVsync              = 100,
-
-  // tolerance window around ideal frame size for TV mode detection
-  tvModeDetectionTolerance  = 20,
-
-  // these frames will not be considered for detection
-  initialGarbageFrames      = TIAConstants::initialGarbageFrames
-};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-FrameLayout FrameLayoutDetector::detectedLayout() const{
+FrameLayout FrameLayoutDetector::detectedLayout() const
+{
   // We choose the mode that was detected for the majority of frames.
   return myPalFrames > myNtscFrames ? FrameLayout::pal : FrameLayout::ntsc;
 }
@@ -57,7 +39,7 @@ void FrameLayoutDetector::onReset()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FrameLayoutDetector::onSetVsync()
+void FrameLayoutDetector::onSetVsync(uInt64)
 {
   if (myVsync)
     setState(State::waitForVsyncEnd);
@@ -123,8 +105,8 @@ void FrameLayoutDetector::finalizeFrame()
   // Calculate the delta between scanline count and the sweet spot for the respective
   // frame layouts
   const uInt32
-    deltaNTSC = abs(Int32(myCurrentFrameFinalLines) - Int32(frameLinesNTSC)),
-    deltaPAL =  abs(Int32(myCurrentFrameFinalLines) - Int32(frameLinesPAL));
+    deltaNTSC = abs(static_cast<Int32>(myCurrentFrameFinalLines) - static_cast<Int32>(frameLinesNTSC)),
+    deltaPAL =  abs(static_cast<Int32>(myCurrentFrameFinalLines) - static_cast<Int32>(frameLinesPAL));
 
   // Does the scanline count fall into one of our tolerance windows? -> use it
   if (std::min(deltaNTSC, deltaPAL) <= Metrics::tvModeDetectionTolerance)

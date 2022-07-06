@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -25,6 +25,9 @@
 #include "PaletteHandler.hxx"
 #include "Joystick.hxx"
 #include "Paddles.hxx"
+#ifdef GUI_SUPPORT
+  #include "JitterEmulation.hxx"
+#endif
 
 #ifdef DEBUGGER_SUPPORT
   #include "DebuggerDialog.hxx"
@@ -113,6 +116,7 @@ Settings::Settings()
   setPermanent("combomap", "");
   setPermanent("joydeadzone", "13");
   setPermanent("joyallow4", "false");
+  setPermanent("autofire", "0");
   setPermanent("autofirerate", "0");
   setPermanent("usemouse", "analog");
   setPermanent("grabmouse", "true");
@@ -153,8 +157,16 @@ Settings::Settings()
   setPermanent("launcherfont", "medium");
   setPermanent("launcherroms", "true");
   setPermanent("launchersubdirs", "false");
+  setPermanent("launcherextensions", "false");
+  setPermanent("launcherbuttons", "false");
   setPermanent("romviewer", "1");
   setPermanent("lastrom", "");
+  setPermanent("favorites", "true");
+  setPermanent("_favoriteroms", "");  // internal only
+  setPermanent("_recentroms", "");    // internal only
+  setPermanent("maxrecentroms", "20");
+  setPermanent("_popularroms", "");   // internal only
+  setPermanent("altsorting", "false");
 
   // UI-related options
 #ifdef DEBUGGER_SUPPORT
@@ -175,6 +187,8 @@ Settings::Settings()
   setPermanent("dialogfont", "medium");
   setPermanent("dialogpos", 0);
   setPermanent("confirmexit", false);
+  setPermanent("autopause", false);
+
 
   // Misc options
   setPermanent("loglevel", int(Logger::Level::INFO));
@@ -214,7 +228,10 @@ Settings::Settings()
   setPermanent("plr.tiarandom", "false");
   setPermanent("plr.colorloss", "false");
   setPermanent("plr.tv.jitter", "true");
-  setPermanent("plr.tv.jitter_recovery", "10");
+#ifdef GUI_SUPPORT
+  setPermanent("plr.tv.jitter_sense", JitterEmulation::PLR_SENSITIVITY);
+  setPermanent("plr.tv.jitter_recovery", JitterEmulation::PLR_RECOVERY);
+#endif
   setPermanent("plr.debugcolors", "false");
   setPermanent("plr.console", "2600"); // 7800
   setPermanent("plr.timemachine", true);
@@ -234,7 +251,10 @@ Settings::Settings()
   setPermanent("dev.tiarandom", "true");
   setPermanent("dev.colorloss", "true");
   setPermanent("dev.tv.jitter", "true");
-  setPermanent("dev.tv.jitter_recovery", "2");
+#ifdef GUI_SUPPORT
+  setPermanent("dev.tv.jitter_sense", JitterEmulation::DEV_SENSITIVITY);
+  setPermanent("dev.tv.jitter_recovery", JitterEmulation::DEV_RECOVERY);
+#endif
   setPermanent("dev.debugcolors", "false");
   setPermanent("dev.tiadriven", "true");
   setPermanent("dev.console", "2600"); // 7800
@@ -244,6 +264,7 @@ Settings::Settings()
   setPermanent("dev.tia.blinvphase", "true");
   setPermanent("dev.tia.delaypfbits", "true");
   setPermanent("dev.tia.delaypfcolor", "true");
+  setPermanent("dev.tia.pfscoreglitch", "true");
   setPermanent("dev.tia.delaybkcolor", "true");
   setPermanent("dev.tia.delayplswap", "true");
   setPermanent("dev.tia.delayblswap", "true");
@@ -297,17 +318,13 @@ void Settings::save()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Settings::validate()
 {
-  string s;
-  int i;
-  float f;
-
-  f = getFloat("speed");
+  float f = getFloat("speed");
   if (f <= 0) setValue("speed", "1.0");
 
-  i = getInt("tia.vsizeadjust");
+  int i = getInt("tia.vsizeadjust");
   if(i < -5 || i > 5)  setValue("tia.vsizeadjust", 0);
 
-  s = getString("tia.dbgcolors");
+  string s = getString("tia.dbgcolors");
   sort(s.begin(), s.end());
   if(s != "bgopry")  setValue("tia.dbgcolors", "roygpb");
 
@@ -328,8 +345,15 @@ void Settings::validate()
   i = getInt("tv.filter");
   if(i < 0 || i > 5)  setValue("tv.filter", "0");
 
+#ifdef GUI_SUPPORT
+  i = getInt("dev.tv.jitter_sense");
+  if(i < JitterEmulation::MIN_SENSITIVITY || i > JitterEmulation::MAX_SENSITIVITY)
+    setValue("dev.tv.jitter_sense", JitterEmulation::DEV_SENSITIVITY);
+
   i = getInt("dev.tv.jitter_recovery");
-  if(i < 1 || i > 20) setValue("dev.tv.jitter_recovery", "2");
+  if(i < JitterEmulation::MIN_RECOVERY || i > JitterEmulation::MAX_RECOVERY)
+    setValue("dev.tv.jitter_recovery", JitterEmulation::DEV_RECOVERY);
+#endif
 
   int size = getInt("dev.tm.size");
   if(size < 20 || size > 1000)
@@ -347,8 +371,14 @@ void Settings::validate()
   i = getInt("dev.tm.horizon");
   if(i < 0 || i > 6) setValue("dev.tm.horizon", 1);*/
 
+#ifdef GUI_SUPPORT
+  i = getInt("plr.tv.jitter_sense");
+  if(i < JitterEmulation::MIN_SENSITIVITY || i > JitterEmulation::MAX_SENSITIVITY)
+    setValue("plr.tv.jitter_sense", JitterEmulation::PLR_SENSITIVITY);
+
   i = getInt("plr.tv.jitter_recovery");
-  if(i < 1 || i > 20) setValue("plr.tv.jitter_recovery", "10");
+  if(i < 1 || i > 20) setValue("plr.tv.jitter_recovery", JitterEmulation::PLR_RECOVERY);
+#endif
 
   size = getInt("plr.tm.size");
   if(size < 20 || size > 1000)
@@ -430,7 +460,7 @@ void Settings::validate()
   if(i < 0) setValue("romviewer", "0");
 
   i = getInt("loglevel");
-  if(i < int(Logger::Level::MIN) || i > int(Logger::Level::MAX))
+  if(i < static_cast<int>(Logger::Level::MIN) || i > static_cast<int>(Logger::Level::MAX))
     setValue("loglevel", int(Logger::Level::INFO));
 }
 
@@ -549,6 +579,7 @@ void Settings::usage() const
     << "  -tsense         <1-20>       Sensitivity of mouse emulated trackball movement\n"
     << "  -dcsense        <1-20>       Sensitivity of digital emulated driving controller\n"
     << "                                movement\n"
+    << "  -autofire     <1|0>          Enable fire button autofire\n"
     << "  -autofirerate <0-30>         Set fire button's autofire rate (0 means off)\n"
     << "  -saport       <lr|rl>        How to assign virtual ports to multiple\n"
     << "                                Stelladaptor/2600-daptors\n"
@@ -577,7 +608,8 @@ void Settings::usage() const
     << "                                entry\n"
     << endl
     << "  -exitlauncher <0|1>          On exiting a ROM, go back to the ROM launcher\n"
-    << "  -launcherpos  <XxY>          Sets the window position in windowed EOM launcher mode\n"
+    << "  -launcherpos  <XxY>          Sets the window position in windowed launcher\n"
+    << "                                mode\n"
     << "  -launcherdisplay <number>    Sets the display for the ROM launcher\n"
     << "  -launcherres  <WxH>          The resolution to use in ROM launcher mode\n"
     << "  -launcherfont <small|        Use the specified font in the ROM launcher\n"
@@ -587,13 +619,18 @@ void Settings::usage() const
     << "                 large16>\n"
     << "  -romviewer    <float>        Show ROM info viewer at given zoom level in ROM\n"
     << "                                launcher (use 0 for off)\n"
-    << "  -launcherroms    <1|0>       Show only ROMs in the launcher (vs. all files)\n"
-    << "  -launchersubdirs <0|1>       Show files from subdirectories too\n"
-    << "  -romdir          <dir>       Set the path where the ROM launcher will start\n"
-    << "  -followlauncher  <0|1>       Default ROM path follows launcher navigation\n"
-    << "  -userdir         <dir>       Set the path to save user files to\n"
-    << "  -saveuserdir     <0|1>       Update user path when navigating in browser\n"
-    << "  -lastrom      <name>         Last played ROM, automatically selected in\n"
+    << "  -launcherroms       <1|0>    Show only ROMs in the launcher (vs. all files)\n"
+    << "  -launchersubdirs    <0|1>    Show files from subdirectories too\n"
+    << "  -launcherextensions <0|1>    Display file extensions in launcher\n"
+    << "  -launcherbuttons    <0|1>    Display bottom buttons in launcher\n"
+    << "  -favorites          <0|1>    Enable virtual favorite directories in launcher\n"
+    << "  -altsorting         <0|1>    Alternative sorting in virtual folders\n"
+    << "  -maxrecentroms      <number> Number of ROMs tracked in 'Recently played'\n"
+    << "  -romdir             <dir>    Set the path where the ROM launcher will start\n"
+    << "  -followlauncher     <0|1>    Default ROM path follows launcher navigation\n"
+    << "  -userdir            <dir>    Set the path to save user files to\n"
+    << "  -saveuserdir        <0|1>    Update user path when navigating in browser\n"
+    << "  -lastrom            <name>   Last played ROM, automatically selected in\n"
     << "                                launcher\n"
     << "  -romloadcount <number>       Number of ROM to load next from multicard\n"
     << "  -uipalette    <standard|     Selects GUI theme\n"
@@ -607,6 +644,7 @@ void Settings::usage() const
     << "                 large16>\n"
     << "  -dialogpos    <0..4>         Display all dialogs at given positions\n"
     << "  -confirmexit  <0|1>          Display a confirm dialog when exiting emulation\n"
+    << "  -autopause    <0|1>          Pause/continue emulation when focus is lost/gained\n"
     << "  -listdelay    <delay>        Time to wait between keypresses in list widgets\n"
     << "                                (300-1000)\n"
     << "  -mwheel       <lines>        Number of lines the mouse wheel will scroll in\n"
@@ -697,6 +735,7 @@ void Settings::usage() const
     << "  -plr.debugcolors  <1|0>          Enable debug colors\n"
     << "  -plr.colorloss    <1|0>          Enable PAL color-loss effect\n"
     << "  -plr.tv.jitter    <1|0>          Enable TV jitter effect\n"
+    << "  -plr.tv.jitter_sense <1-10>      Set TV jitter effect sensitivity\n"
     << "  -plr.tv.jitter_recovery <1-20>   Set recovery time for TV jitter effect\n"
     << "  -plr.extaccess    <1|0>          Enable messages for external access\n"
     << endl
@@ -713,8 +752,9 @@ void Settings::usage() const
     << "  -dev.debugcolors  <1|0>          Enable debug colors\n"
     << "  -dev.colorloss    <1|0>          Enable PAL color-loss effect\n"
     << "  -dev.tv.jitter    <1|0>          Enable TV jitter effect\n"
+    << "  -dev.tv.jitter_sense <1-10>      Set TV jitter effect sensitivity\n"
     << "  -dev.tv.jitter_recovery <1-20>   Set recovery time for TV jitter effect\n"
-    << "  -dev.tiadriven    <1|0>          Drive unused TIA pins randomly on a\n"
+    << "  -dev.tiadriven    <1|0>          Drive unqused TIA pins randomly on a\n"
     << "                                    read/peek\n"
 #ifdef DEBUGGER_SUPPORT
     << "  -dev.rwportbreak       <1|0>     Debugger breaks on reads from write ports\n"
@@ -733,17 +773,18 @@ void Settings::usage() const
     << "  -dev.tia.type <standard|custom|  Selects a TIA type\n"
     << "                 koolaidman|\n"
     << "                 cosmicark|pesco|\n"
-    << "                 quickstep|\n"
+    << "                 quickstep|matchie|\n"
     << "                 indy500|heman|>\n"
-    << "  -dev.tia.plinvphase   <1|0>      Enable inverted HMOVE clock phase for players\n"
-    << "  -dev.tia.msinvphase   <1|0>      Enable inverted HMOVE clock phase for\n"
+    << "  -dev.tia.plinvphase    <1|0>      Enable inverted HMOVE clock phase for players\n"
+    << "  -dev.tia.msinvphase    <1|0>      Enable inverted HMOVE clock phase for\n"
     << "                                    missiles\n"
-    << "  -dev.tia.blinvphase   <1|0>      Enable inverted HMOVE clock phase for ball\n"
-    << "  -dev.tia.delaypfbits  <1|0>      Enable extra delay cycle for PF bits access\n"
-    << "  -dev.tia.delaypfcolor <1|0>      Enable extra delay cycle for PF color\n"
-    << "  -dev.tia.delaybkcolor <1|0>      Enable extra delay cycle for background color\n"
-    << "  -dev.tia.delayplswap  <1|0>      Enable extra delay cycle for VDELP0/1 swap\n"
-    << "  -dev.tia.delayblswap  <1|0>      Enable extra delay cycle for VDELBL swap\n"
+    << "  -dev.tia.blinvphase    <1|0>      Enable inverted HMOVE clock phase for ball\n"
+    << "  -dev.tia.delaypfbits   <1|0>      Enable extra delay cycle for PF bits access\n"
+    << "  -dev.tia.delaypfcolor  <1|0>      Enable extra delay cycle for PF color\n"
+    << "  -dev.tia.pfscoreglitch <1|0>      Enable PF score mode color glitch\n"
+    << "  -dev.tia.delaybkcolor  <1|0>      Enable extra delay cycle for background color\n"
+    << "  -dev.tia.delayplswap   <1|0>      Enable extra delay cycle for VDELP0/1 swap\n"
+    << "  -dev.tia.delayblswap   <1|0>      Enable extra delay cycle for VDELBL swap\n"
     << endl << std::flush;
 }
 

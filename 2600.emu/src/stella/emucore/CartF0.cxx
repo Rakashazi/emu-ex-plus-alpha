@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -32,7 +32,7 @@ bool CartridgeF0::checkSwitchBank(uInt16 address, uInt8)
   if(address == 0x1FF0)
   {
     // Switch to next bank
-    uInt8 nextBank = ((getBank()) + 1) & 0x0F;
+    const uInt8 nextBank = ((getBank()) + 1) & 0x0F;
     bank(nextBank);
     return true;
   }

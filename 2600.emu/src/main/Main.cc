@@ -108,6 +108,7 @@ void A2600System::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDeleg
 	FilesystemNode fsNode{contentFileName().data()};
 	auto &settings = os.settings();
 	settings.setValue("romloadcount", 0);
+	settings.setValue("plr.tv.jitter", false);
 	auto cartridge = CartCreator::create(fsNode, image, size, md5, romType, settings);
 	cartridge->setMessageCallback([](const string& msg){ logMsg("%s", msg.c_str()); });
 	if((int)optionTVPhosphor != TV_PHOSPHOR_AUTO)

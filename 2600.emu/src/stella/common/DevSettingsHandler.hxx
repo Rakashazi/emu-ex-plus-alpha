@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -36,7 +36,7 @@ class DevSettingsHandler
       numSets
     };
 
-    DevSettingsHandler(OSystem& osystem);
+    explicit DevSettingsHandler(OSystem& osystem);
 
     void loadSettings(SettingsSet set);
     void saveSettings(SettingsSet set);
@@ -55,6 +55,7 @@ class DevSettingsHandler
     std::array<string, numSets> myRandomizeCPU;
     std::array<bool, numSets>   myColorLoss;
     std::array<bool, numSets>   myTVJitter;
+    std::array<int, numSets>    myTVJitterSense;
     std::array<int, numSets>    myTVJitterRec;
     std::array<bool, numSets>   myDebugColors;
     std::array<bool, numSets>   myUndrivenPins;
@@ -70,6 +71,7 @@ class DevSettingsHandler
     std::array<bool, numSets>   myBlInvPhase;
     std::array<bool, numSets>   myPFBits;
     std::array<bool, numSets>   myPFColor;
+    std::array<bool, numSets>   myPFScore;
     std::array<bool, numSets>   myBKColor;
     std::array<bool, numSets>   myPlSwap;
     std::array<bool, numSets>   myBlSwap;

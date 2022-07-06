@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,7 +22,7 @@
 namespace {
   constexpr uInt32 AUDIO_HALF_FRAMES_PER_FRAGMENT = 1;
 
-  uInt32 discreteDivCeil(uInt32 n, uInt32 d)
+  constexpr uInt32 discreteDivCeil(uInt32 n, uInt32 d)
   {
     return n / d + ((n % d == 0) ? 0 : 1);
   }
@@ -171,12 +171,12 @@ void EmulationTiming::recalculate()
 
   switch (myConsoleTiming) {
     case ConsoleTiming::ntsc:
-      myAudioSampleRate = uInt32(round(mySpeedFactor * 262 * 76 * 60) / 38);
+      myAudioSampleRate = static_cast<uInt32>(round(mySpeedFactor * 262 * 76 * 60) / 38);
       break;
 
     case ConsoleTiming::pal:
     case ConsoleTiming::secam:
-      myAudioSampleRate = uInt32(round(mySpeedFactor * 312 * 76 * 50) / 38);
+      myAudioSampleRate = static_cast<uInt32>(round(mySpeedFactor * 312 * 76 * 50) / 38);
       break;
 
     default:
@@ -186,9 +186,9 @@ void EmulationTiming::recalculate()
   myCyclesPerSecond = myAudioSampleRate * 38;
 
   myCyclesPerFrame = 76 * myLinesPerFrame;
-  myMaxCyclesPerTimeslice = uInt32(round(mySpeedFactor * myCyclesPerFrame * 2));
-  myMinCyclesPerTimeslice = uInt32(round(mySpeedFactor * myCyclesPerFrame / 2));
-  myAudioFragmentSize = uInt32(round((mySpeedFactor * AUDIO_HALF_FRAMES_PER_FRAGMENT * myLinesPerFrame) / 2.));
+  myMaxCyclesPerTimeslice = static_cast<uInt32>(round(mySpeedFactor * myCyclesPerFrame * 2));
+  myMinCyclesPerTimeslice = static_cast<uInt32>(round(mySpeedFactor * myCyclesPerFrame / 2));
+  myAudioFragmentSize = static_cast<uInt32>(round((mySpeedFactor * AUDIO_HALF_FRAMES_PER_FRAGMENT * myLinesPerFrame) / 2.));
 
   myPrebufferFragmentCount = discreteDivCeil(
     myPlaybackPeriod * myAudioSampleRate,

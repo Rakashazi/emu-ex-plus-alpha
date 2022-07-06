@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -30,16 +30,22 @@
   @author  Rob Bairos
 */
 
-#define LO_JUMP_BYTE(X) ((X) & 0xff)
-#define HI_JUMP_BYTE(X) ((((X) & 0xff00) >> 8) | 0x10)
+namespace {
+  static constexpr uInt8 LO_JUMP_BYTE(uInt16 b) {
+    return b & 0xff;
+  }
+  static constexpr uInt8 HI_JUMP_BYTE(uInt16 b) {
+    return ((b & 0xff00) >> 8) | 0x10;
+  }
 
-#define COLOR_BLUE      0x9A
-// #define COLOR_WHITE     0x0E
+  static constexpr uInt8 COLOR_BLUE = 0x9A;
+  // static constexpr uInt8 COLOR_WHITE = 0x0E;
 
-#define OSD_FRAMES      180
-#define BACK_SECONDS    10
+  static constexpr uInt8 OSD_FRAMES = 180;
+  static constexpr int BACK_SECONDS = 10;
 
-#define TITLE_CYCLES    1000000
+  static constexpr int TITLE_CYCLES = 1000000;
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
@@ -48,7 +54,7 @@
 class StreamReader : public Serializable
 {
   public:
-    StreamReader() = default;
+    StreamReader() { myBuffer1.fill(0);  myBuffer2.fill(0); }
 
     bool open(const string& path) {
       myFile = Serializer(path, Serializer::Mode::ReadOnly);
@@ -83,7 +89,7 @@ class StreamReader : public Serializable
     }
 
     void swapField(bool index, bool odd) {
-      uInt8* offset = index ? myBuffer1 : myBuffer2;
+      uInt8* offset = index ? myBuffer1.data() : myBuffer2.data();
 
       myVersion  = offset + VERSION_DATA_OFFSET;
       myFrame    = offset + FRAME_DATA_OFFSET;
@@ -100,15 +106,15 @@ class StreamReader : public Serializable
     bool readField(uInt32 fnum, bool index) {
       if(myFile)
       {
-        size_t offset = ((fnum + 0) * CartridgeMVC::MVC_FIELD_PAD_SIZE);
+        const size_t offset = ((fnum + 0) * CartridgeMVC::MVC_FIELD_PAD_SIZE);
 
         if(offset + CartridgeMVC::MVC_FIELD_PAD_SIZE < myFileSize)
         {
           myFile.setPosition(offset);
           if(index)
-            myFile.getByteArray(myBuffer1, CartridgeMVC::MVC_FIELD_SIZE);
+            myFile.getByteArray(myBuffer1.data(), myBuffer1.size());
           else
-            myFile.getByteArray(myBuffer2, CartridgeMVC::MVC_FIELD_SIZE);
+            myFile.getByteArray(myBuffer2.data(), myBuffer2.size());
 
           return true;
         }
@@ -118,8 +124,8 @@ class StreamReader : public Serializable
 
     uInt8 readVersion() { return *myVersion++; }
     uInt8 readFrame()   { return *myFrame++;   }
-    uInt8 readColor() { return *myColor++; }
-    uInt8 readColorBK() { return *myColorBK++;   }
+    uInt8 readColor()   { return *myColor++;   }
+    uInt8 readColorBK() { return *myColorBK++; }
 
     uInt8 readGraph() {
       return myGraphOverride ? *myGraphOverride++ : *myGraph++;
@@ -136,8 +142,8 @@ class StreamReader : public Serializable
     bool save(Serializer& out) const override {
       try
       {
-        out.putByteArray(myBuffer1, CartridgeMVC::MVC_FIELD_SIZE);
-        out.putByteArray(myBuffer2, CartridgeMVC::MVC_FIELD_SIZE);
+        out.putByteArray(myBuffer1.data(), myBuffer1.size());
+        out.putByteArray(myBuffer2.data(), myBuffer2.size());
 
       #if 0  // FIXME - determine whether we need to load/save this
         const uInt8*  myAudio
@@ -160,8 +166,8 @@ class StreamReader : public Serializable
     bool load(Serializer& in) override {
       try
       {
-        in.getByteArray(myBuffer1, CartridgeMVC::MVC_FIELD_SIZE);
-        in.getByteArray(myBuffer2, CartridgeMVC::MVC_FIELD_SIZE);
+        in.getByteArray(myBuffer1.data(), myBuffer1.size());
+        in.getByteArray(myBuffer2.data(), myBuffer2.size());
 
       #if 0  // FIXME - determine whether we need to load/save this
         const uInt8*  myAudio
@@ -203,8 +209,8 @@ class StreamReader : public Serializable
     const uInt8*  myVersion{nullptr};
     const uInt8*  myFrame{nullptr};
 
-    uInt8 myBuffer1[CartridgeMVC::MVC_FIELD_SIZE];
-    uInt8 myBuffer2[CartridgeMVC::MVC_FIELD_SIZE];
+    std::array<uInt8, CartridgeMVC::MVC_FIELD_SIZE> myBuffer1;
+    std::array<uInt8, CartridgeMVC::MVC_FIELD_SIZE> myBuffer2;
 
     Serializer myFile;
     size_t myFileSize{0};
@@ -292,66 +298,51 @@ class MovieInputs : public Serializable
   Various kernel, OSD and scale definitions
   @author  Rob Bairos
 */
-
-#define TIMECODE_HEIGHT     12
-#define MAX_LEVEL           11
-#define DEFAULT_LEVEL       6
-#define BLANK_LINE_SIZE   (30+3+37-1) // 70-1
-
+static constexpr uInt8
+  TIMECODE_HEIGHT = 12,
+  MAX_LEVEL       = 11,
+  DEFAULT_LEVEL   = 6,
+  BLANK_LINE_SIZE = (30+3+37-1); // 70-1
 
 // Automatically generated
 // Several not used
-// #define addr_kernel_48 0x800
-#define addr_transport_direction 0x880
-#define addr_transport_buttons 0x894
-#define addr_right_line 0x948
-#define addr_set_gdata6 0x948
-#define addr_set_aud_right 0x94e
-#define addr_set_gdata9 0x950
-#define addr_set_gcol9 0x954
-#define addr_set_gcol6 0x956
-#define addr_set_gdata5 0x95a
-#define addr_set_gcol5 0x95e
-#define addr_set_gdata8 0x962
-#define addr_set_colubk_r 0x966
-#define addr_set_gcol7 0x96a
-#define addr_set_gdata7 0x96e
-#define addr_set_gcol8 0x972
-// #define addr_left_line 0x980
-#define addr_set_gdata1 0x982
-#define addr_set_gcol1 0x988
-#define addr_set_aud_left 0x98c
-#define addr_set_gdata4 0x990
-#define addr_set_gcol4 0x992
-#define addr_set_gdata0 0x994
-#define addr_set_gcol0 0x998
-#define addr_set_gdata3 0x99c
-#define addr_set_colupf_l 0x9a0
-#define addr_set_gcol2 0x9a4
-#define addr_set_gdata2 0x9a8
-#define addr_set_gcol3 0x9ac
-#define addr_pick_continue 0x9be
-// #define addr_main_start 0xa00
-// #define addr_aud_bank_setup 0xa0c
-// #define addr_tg0 0xa24
-// #define addr_title_again 0xa3b
-// #define addr_wait_cnt 0xa77
-#define addr_end_lines 0xa80
-#define addr_set_aud_endlines 0xa80
-#define addr_set_overscan_size 0xa9a
-#define addr_set_vblank_size 0xab0
-#define addr_pick_extra_lines 0xab9
-#define addr_pick_transport 0xac6
-// #define addr_wait_lines 0xac9
-// #define addr_transport_done1 0xada
-// #define addr_draw_title 0xb00
-#define addr_title_loop 0xb50
-// #define addr_black_bar 0xb52
-// #define addr_animate_bar1 0xb58
-// #define addr_animate_bar_again1 0xb5a
-// #define addr_animate_dex1 0xb65
-#define addr_audio_bank 0xb80
-// #define addr_reset_loop 0xbfa
+static constexpr uInt16
+  addr_transport_direction  = 0x880,
+  addr_transport_buttons    = 0x894,
+  addr_right_line           = 0x948,
+  addr_set_gdata6           = 0x948,
+  addr_set_aud_right        = 0x94e,
+  addr_set_gdata9           = 0x950,
+  addr_set_gcol9            = 0x954,
+  addr_set_gcol6            = 0x956,
+  addr_set_gdata5           = 0x95a,
+  addr_set_gcol5            = 0x95e,
+  addr_set_gdata8           = 0x962,
+  addr_set_colubk_r         = 0x966,
+  addr_set_gcol7            = 0x96a,
+  addr_set_gdata7           = 0x96e,
+  addr_set_gcol8            = 0x972,
+  addr_set_gdata1           = 0x982,
+  addr_set_gcol1            = 0x988,
+  addr_set_aud_left         = 0x98c,
+  addr_set_gdata4           = 0x990,
+  addr_set_gcol4            = 0x992,
+  addr_set_gdata0           = 0x994,
+  addr_set_gcol0            = 0x998,
+  addr_set_gdata3           = 0x99c,
+  addr_set_colupf_l         = 0x9a0,
+  addr_set_gcol2            = 0x9a4,
+  addr_set_gdata2           = 0x9a8,
+  addr_set_gcol3            = 0x9ac,
+  addr_pick_continue        = 0x9be,
+  addr_end_lines            = 0xa80,
+  addr_set_aud_endlines     = 0xa80,
+  addr_set_overscan_size    = 0xa9a,
+  addr_set_vblank_size      = 0xab0,
+  addr_pick_extra_lines     = 0xab9,
+  addr_pick_transport       = 0xac6,
+  addr_title_loop           = 0xb50,
+  addr_audio_bank           = 0xb80;
 
 // scale adjustments, automatically generated
 static constexpr uInt8 scale0[16] = {
@@ -399,7 +390,7 @@ static constexpr uInt8 shiftBright[16 + MAX_LEVEL - 1] = {
 };
 
 // Compiled kernel
-static constexpr unsigned char kernelROM[] = {
+static constexpr uInt8 kernelROM[] = {
  133, 2, 185, 50, 248, 133, 27, 185, 62, 248, 133, 28, 185, 74, 248, 133,
  27, 185, 86, 248, 133, 135, 185, 98, 248, 190, 110, 248, 132, 136, 164, 135,
  132, 28, 133, 27, 134, 28, 134, 27, 164, 136, 102, 137, 176, 210, 136, 16,
@@ -745,7 +736,7 @@ static constexpr uInt8 levelBarsOddData[] = {
 class MovieCart : public Serializable
 {
   public:
-    MovieCart() = default;
+    MovieCart() { myROM.fill(0); }
 
     bool init(const string& path);
     bool process(uInt16 address);
@@ -803,7 +794,7 @@ class MovieCart : public Serializable
     void updateTransport();
 
     // data
-    uInt8 myROM[1024];
+    std::array<uInt8, 1_KB> myROM;
 
     // title screen state
     int        myTitleCycles{0};
@@ -848,7 +839,7 @@ class MovieCart : public Serializable
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool MovieCart::init(const string& path)
 {
-  memcpy(myROM, kernelROM, 1024);
+  std::copy_n(kernelROM, 1_KB, myROM.data());
 
   myTitleCycles = 0;
   myTitleState = TitleState::Display;
@@ -911,7 +902,7 @@ void MovieCart::updateTransport()
   {
     if(myBufferIndex)
     {
-      uInt8 temp = ~(myA10_Count & 0x1e) & 0x1e;
+      const uInt8 temp = ~(myA10_Count & 0x1e) & 0x1e;
 
       if (temp == myDirectionValue)
         myInputs.updateDirection(temp);
@@ -920,7 +911,7 @@ void MovieCart::updateTransport()
     }
     else
     {
-      uInt8 temp = ~(myA10_Count & 0x17) & 0x17;
+      const uInt8 temp = ~(myA10_Count & 0x17) & 0x17;
 
       if(temp == myButtonsValue)
         myInputs.updateTransport(temp);
@@ -942,7 +933,7 @@ void MovieCart::updateTransport()
     return;
   }
 
-  uInt8 lastMainMode = myMode;
+  const uInt8 lastMainMode = myMode;
 
   if(myInputs.up && !myLastInputs.up)
   {
@@ -1244,7 +1235,7 @@ void MovieCart::fill_addr_blank_lines()
   // frame number
   myStream.readFrame();
   myStream.readFrame();
-  uInt8 v = myStream.readFrame();
+  const uInt8 v = myStream.readFrame();
 
   // make sure we're in sync with frame data
   myOdd = (v & 1);
@@ -1367,7 +1358,7 @@ void MovieCart::runStateMachine()
                if(myLines == 22)
                   myStream.blankPartialLines(true);
             }
-        }  
+        }
 
         if(myLines >= 1)
         {
@@ -1420,11 +1411,11 @@ void MovieCart::runStateMachine()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool MovieCart::process(uInt16 address)
 {
-  bool a12 = (address & (1 << 12)) ? 1:0;
-  bool a11 = (address & (1 << 11)) ? 1:0;
+  const bool a12 = (address & (1 << 12)) ? 1:0;
+  const bool a11 = (address & (1 << 11)) ? 1:0;
 
   // count a10 pulses
-  bool a10i = (address & (1 << 10));
+  const bool a10i = (address & (1 << 10));
   if(a10i && !myA10)
     myA10_Count++;
   myA10 = a10i;
@@ -1463,7 +1454,7 @@ bool MovieCart::save(Serializer& out) const
 {
   try
   {
-    out.putByteArray(myROM, 1024);
+    out.putByteArray(myROM.data(), myROM.size());
 
     // title screen state
     out.putInt(myTitleCycles);
@@ -1517,7 +1508,7 @@ bool MovieCart::load(Serializer& in)
 {
   try
   {
-    in.getByteArray(myROM, 1024);
+    in.getByteArray(myROM.data(), myROM.size());
 
     // title screen state
     myTitleCycles = in.getInt();
@@ -1571,13 +1562,11 @@ CartridgeMVC::CartridgeMVC(const string& path, size_t size,
                            const string& md5, const Settings& settings,
                            size_t bsSize)
   : Cartridge(settings, md5),
+    myImage{make_unique<uInt8[]>(bsSize)},  // not used
     mySize{bsSize},
+    myMovie{make_unique<MovieCart>()},
     myPath{path}
 {
-  myMovie = make_unique<MovieCart>();
-
-  // not used
-  myImage = make_unique<uInt8[]>(mySize);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1591,7 +1580,7 @@ void CartridgeMVC::install(System& system)
   mySystem = &system;
 
   // Map all of the accesses to call peek and poke
-  System::PageAccess access(this, System::PageAccessType::READWRITE);
+  const System::PageAccess access(this, System::PageAccessType::READWRITE);
   for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 }

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -28,7 +28,7 @@ class KeyValueRepositoryAtomic;
 class KeyValueRepository
 {
   public:
-
+    KeyValueRepository() = default;
     virtual ~KeyValueRepository() = default;
 
     virtual std::map<string, Variant> load() = 0;
@@ -36,6 +36,13 @@ class KeyValueRepository
     virtual bool save(const std::map<string, Variant>& values) = 0;
 
     virtual KeyValueRepositoryAtomic* atomic() { return nullptr; }
+
+  private:
+    // Following constructors and assignment operators not supported
+    KeyValueRepository(const KeyValueRepository&) = delete;
+    KeyValueRepository(KeyValueRepository&&) = delete;
+    KeyValueRepository& operator=(const KeyValueRepository&) = delete;
+    KeyValueRepository& operator=(KeyValueRepository&&) = delete;
 };
 
 class KeyValueRepositoryAtomic : public KeyValueRepository {

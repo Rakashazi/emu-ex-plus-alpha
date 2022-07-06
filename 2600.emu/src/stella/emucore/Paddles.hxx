@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -206,20 +206,26 @@ class Paddles : public Controller
 
     AnalogReadout::Connection getReadOut(int lastAxis, int& newAxis, int center);
 
+    void updateA();
+    void updateB();
+
     /**
       Update the axes pin state according to the events currently set.
     */
-    bool updateAnalogAxes();
+    bool updateAnalogAxesA();
+    bool updateAnalogAxesB();
 
     /**
       Update the entire state according to mouse events currently set.
     */
-    void updateMouse(bool& firePressedA, bool& firePressedB);
+    void updateMouseA(bool& firePressedA);
+    void updateMouseB(bool& firePressedB);
 
     /**
       Update the axes pin state according to the keyboard events currently set.
     */
-    void updateDigitalAxes();
+    void updateDigitalAxesA();
+    void updateDigitalAxesB();
 
   private:
     // Following constructors and assignment operators not supported

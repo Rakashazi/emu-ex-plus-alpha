@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -37,7 +37,7 @@ void Cartridge3E::install(System& system)
 {
   CartridgeEnhanced::install(system);
 
-  System::PageAccess access(this, System::PageAccessType::WRITE);
+  const System::PageAccess access(this, System::PageAccessType::WRITE);
 
   // The hotspots ($3E and $3F) are in TIA address space, so we claim it here
   for(uInt16 addr = 0x00; addr < 0x40; addr += System::PAGE_SIZE)
@@ -65,7 +65,7 @@ bool Cartridge3E::checkSwitchBank(uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 Cartridge3E::peek(uInt16 address)
 {
-  uInt16 peekAddress = address;
+  const uInt16 peekAddress = address;
   address &= ROM_MASK;
 
   if(address < 0x0040)  // TIA access
@@ -77,7 +77,7 @@ uInt8 Cartridge3E::peek(uInt16 address)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge3E::poke(uInt16 address, uInt8 value)
 {
-  uInt16 pokeAddress = address;
+  const uInt16 pokeAddress = address;
   address &= ROM_MASK;
 
   if(address < 0x0040)  // TIA access

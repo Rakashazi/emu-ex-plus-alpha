@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -41,10 +41,12 @@ void FilesystemNode::setPath(const string& path)
   // Is this potentially a ZIP archive?
 #if defined(ZIP_SUPPORT)
   if (BSPF::containsIgnoreCase(path, ".zip"))
-    _realNode = FilesystemNodeFactory::create(path, FilesystemNodeFactory::Type::ZIP);
+    _realNode = FilesystemNodeFactory::create(path,
+        FilesystemNodeFactory::Type::ZIP);
   else
 #endif
-    _realNode = FilesystemNodeFactory::create(path, FilesystemNodeFactory::Type::SYSTEM);
+    _realNode = FilesystemNodeFactory::create(path,
+        FilesystemNodeFactory::Type::SYSTEM);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -78,14 +80,13 @@ bool FilesystemNode::getAllChildren(FSList& fslist, ListMode mode,
   {
     // Sort only once at the end
   #if defined(ZIP_SUPPORT)
-    // before sorting, replace single file ZIP archive names with contained file names
-    //  because they are displayed using their contained file names
+    // before sorting, replace single file ZIP archive names with contained
+    // file names because they are displayed using their contained file names
     for(auto& i : fslist)
     {
       if(BSPF::endsWithIgnoreCase(i.getPath(), ".zip"))
       {
         FilesystemNodeZIP zipNode(i.getPath());
-
         i.setName(zipNode.getName());
       }
     }
@@ -108,8 +109,8 @@ bool FilesystemNode::getAllChildren(FSList& fslist, ListMode mode,
       if(BSPF::endsWithIgnoreCase(i.getPath(), ".zip"))
       {
         // Force ZIP c'tor to be called
-        AbstractFSNodePtr ptr = FilesystemNodeFactory::create(i.getPath(),
-                                                              FilesystemNodeFactory::Type::ZIP);
+        AbstractFSNodePtr ptr = FilesystemNodeFactory::create(
+            i.getPath(), FilesystemNodeFactory::Type::ZIP);
         FilesystemNode zipNode(ptr);
         i = zipNode;
       }
@@ -143,14 +144,13 @@ bool FilesystemNode::getChildren(FSList& fslist, ListMode mode,
       return false;
 
   #if defined(ZIP_SUPPORT)
-    // before sorting, replace single file ZIP archive names with contained file names
-    //  because they are displayed using their contained file names
+    // before sorting, replace single file ZIP archive names with contained
+    // file names because they are displayed using their contained file names
     for(auto& i : tmp)
     {
       if(BSPF::endsWithIgnoreCase(i->getPath(), ".zip"))
       {
         FilesystemNodeZIP node(i->getPath());
-
         i->setName(node.getName());
       }
     }
@@ -171,7 +171,7 @@ bool FilesystemNode::getChildren(FSList& fslist, ListMode mode,
   if (includeParentDirectory && hasParent())
   {
     FilesystemNode parent = getParent();
-    parent.setName(" [..]");
+    parent.setName("..");
     fslist.emplace_back(parent);
   }
 
@@ -185,8 +185,8 @@ bool FilesystemNode::getChildren(FSList& fslist, ListMode mode,
     if (BSPF::endsWithIgnoreCase(i->getPath(), ".zip"))
     {
       // Force ZIP c'tor to be called
-      AbstractFSNodePtr ptr = FilesystemNodeFactory::create(i->getPath(),
-                                                            FilesystemNodeFactory::Type::ZIP);
+      AbstractFSNodePtr ptr = FilesystemNodeFactory::create(
+          i->getPath(), FilesystemNodeFactory::Type::ZIP);
       FilesystemNode zipNode(ptr);
 
       if(filter(zipNode))
@@ -204,10 +204,6 @@ bool FilesystemNode::getChildren(FSList& fslist, ListMode mode,
     else
   #endif
     {
-      // Make directories stand out
-      if(i->isDirectory())
-        i->setName(" [" + i->getName() + "]");
-
       FilesystemNode node(i);
 
       if(includeChildDirectories)
@@ -276,7 +272,7 @@ string FilesystemNode::getPathWithExt(const string& ext) const
 
   string s = _realNode->getPath();
 
-  size_t pos = s.find_last_of('.');
+  const size_t pos = s.find_last_of('.');
   return (pos != string::npos) ? s.replace(pos, string::npos, ext) : s + ext;
 }
 
@@ -333,6 +329,12 @@ bool FilesystemNode::rename(const string& newfile)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+size_t FilesystemNode::getSize() const
+{
+  return (_realNode && _realNode->exists()) ? _realNode->getSize() : 0;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 size_t FilesystemNode::read(ByteBuffer& buffer, size_t size) const
 {
   size_t sizeRead = 0;
@@ -355,8 +357,8 @@ size_t FilesystemNode::read(ByteBuffer& buffer, size_t size) const
 
     if (sizeRead == 0)
       throw runtime_error("Zero-byte file");
-    else if (size != 0)
-      sizeRead = size;
+    else if (size > 0)  // If a requested size to read is provided, honour it
+      sizeRead = std::min(sizeRead, size);
 
     buffer = make_unique<uInt8[]>(sizeRead);
     in.read(reinterpret_cast<char*>(buffer.get()), sizeRead);

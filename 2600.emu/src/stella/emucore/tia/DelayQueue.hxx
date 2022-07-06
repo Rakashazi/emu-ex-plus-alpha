@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -79,12 +79,12 @@ void DelayQueue<length, capacity>::push(uInt8 address, uInt8 value, uInt8 delay)
   if (delay >= length)
     throw runtime_error("delay exceeds queue length");
 
-  uInt8 currentIndex = myIndices[address];
+  const uInt8 currentIndex = myIndices[address];
 
   if (currentIndex < length)
     myMembers[currentIndex].remove(address);
 
-  uInt8 index = smartmod<length>(myIndex + delay);
+  const uInt8 index = smartmod<length>(myIndex + delay);
   myMembers[index].push(address, value);
 
   myIndices[address] = index;

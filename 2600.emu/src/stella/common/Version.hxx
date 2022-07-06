@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,7 +18,7 @@
 #ifndef VERSION_HXX
 #define VERSION_HXX
 
-#define STELLA_VERSION "6.6"
-#define STELLA_BUILD "7053"
+#define STELLA_VERSION "6.7"
+#define STELLA_BUILD "7293"
 
 #endif

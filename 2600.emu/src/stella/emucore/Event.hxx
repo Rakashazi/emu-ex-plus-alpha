@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -62,6 +62,9 @@ class Event
       RightKeyboard7, RightKeyboard8, RightKeyboard9,
       RightKeyboardStar, RightKeyboard0, RightKeyboardPound,
 
+      LeftDrivingCCW, LeftDrivingCW, LeftDrivingFire, LeftDrivingAnalog,
+      RightDrivingCCW, RightDrivingCW, RightDrivingFire, RightDrivingAnalog,
+
       CompuMateFunc, CompuMateShift,
       CompuMate0, CompuMate1, CompuMate2, CompuMate3, CompuMate4,
       CompuMate5, CompuMate6, CompuMate7, CompuMate8, CompuMate9,
@@ -113,7 +116,8 @@ class Event
       ScanlinesDecrease, ScanlinesIncrease,
       PreviousScanlineMask, NextScanlineMask,
       PhosphorDecrease, PhosphorIncrease, TogglePhosphor, ToggleInter,
-      ToggleDeveloperSet, JitterDecrease, JitterIncrease, ToggleJitter,
+      ToggleDeveloperSet, JitterRecDecrease, JitterRecIncrease,
+      JitterSenseDecrease, JitterSenseIncrease, ToggleJitter,
 
       VolumeDecrease, VolumeIncrease, SoundToggle,
 
@@ -128,7 +132,7 @@ class Event
       // add new (after Version 4) events from here to avoid that user remapped events get overwritten
       PreviousSettingGroup, NextSettingGroup,
       TogglePlayBackMode,
-      DecreaseAutoFire, IncreaseAutoFire,
+      ToggleAutoFire, DecreaseAutoFire, IncreaseAutoFire,
       DecreaseSpeed, IncreaseSpeed,
 
       QTJoystickThreeUp, QTJoystickThreeDown, QTJoystickThreeLeft, QTJoystickThreeRight,
@@ -180,14 +184,14 @@ class Event
     enum Group
     {
       Menu, Emulation,
-      Misc, AudioVideo, States, Console, Joystick, Paddles, Keyboard,
+      Misc, AudioVideo, States, Console, Joystick, Paddles, Driving, Keyboard,
       Devices,
       Debug, Combo,
       LastGroup
     };
 
     // Event list version, update only if the id of existing(!) event types changed
-    static constexpr Int32 VERSION = 5;
+    static constexpr Int32 VERSION = 6;
 
     using EventSet = std::set<Event::Type>;
 
@@ -237,6 +241,8 @@ class Event
         case Event::LeftPaddleBAnalog:
         case Event::RightPaddleAAnalog:
         case Event::RightPaddleBAnalog:
+        case Event::LeftDrivingAnalog:
+        case Event::RightDrivingAnalog:
           return true;
         default:
           return false;
@@ -316,6 +322,18 @@ static const Event::EventSet RightKeyboardEvents = {
   Event::RightKeyboard4, Event::RightKeyboard5, Event::RightKeyboard6,
   Event::RightKeyboard7, Event::RightKeyboard8, Event::RightKeyboard9,
   Event::RightKeyboardStar, Event::RightKeyboard0, Event::RightKeyboardPound,
+};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+static const Event::EventSet LeftDrivingEvents = {
+  Event::LeftDrivingAnalog, Event::LeftDrivingCCW,
+  Event::LeftDrivingCW, Event::LeftDrivingFire,
+};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+static const Event::EventSet RightDrivingEvents = {
+  Event::RightDrivingAnalog, Event::RightDrivingCCW,
+  Event::RightDrivingCW, Event::RightDrivingFire,
 };
 
 #endif

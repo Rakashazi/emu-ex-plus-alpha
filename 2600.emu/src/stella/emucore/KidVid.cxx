@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -212,7 +212,7 @@ void KidVid::setNextSong()
   {
     myBeep = (ourSongPositions[myFilePointer] & 0x80) ? false : true;
 
-    uInt8 temp = ourSongPositions[myFilePointer] & 0x7f;
+    const uInt8 temp = ourSongPositions[myFilePointer] & 0x7f;
     mySharedData = (temp < 10);
     mySongCounter = ourSongStart[temp+1] - ourSongStart[temp];
 

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -30,12 +30,12 @@
 Cartridge::Cartridge(const Settings& settings, const string& md5)
   : mySettings{settings}
 {
-  auto to_uInt32 = [](const string& s, uInt32 pos) {
+  const auto to_uInt32 = [](const string& s, uInt32 pos) {
     return uInt32(std::stoul(s.substr(pos, 8), nullptr, 16));
   };
 
-  uInt32 seed = to_uInt32(md5, 0)  ^ to_uInt32(md5, 8) ^
-                to_uInt32(md5, 16) ^ to_uInt32(md5, 24);
+  const uInt32 seed = to_uInt32(md5, 0)  ^ to_uInt32(md5, 8) ^
+                      to_uInt32(md5, 16) ^ to_uInt32(md5, 24);
   Random rand(seed);
   for(uInt32 i = 0; i < 256; ++i)
     myRWPRandomValues[i] = rand.next();
@@ -77,7 +77,7 @@ bool Cartridge::saveROM(const FilesystemNode& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge::bankChanged()
 {
-  bool changed = myBankChanged;
+  const bool changed = myBankChanged;
   myBankChanged = false;
   return changed;
 }
@@ -132,16 +132,14 @@ void Cartridge::pokeRAM(uInt8& dest, uInt16 address, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Cartridge::createRomAccessArrays(size_t size)
 {
-  myAccessSize = uInt32(size);
-#ifdef DEBUGGER_SUPPORT
+  myAccessSize = static_cast<uInt32>(size);
+
+  // Always create ROM access base even if DEBUGGER_SUPPORT is disabled,
+  // since other parts of the code depend on it existing
   myRomAccessBase = make_unique<Device::AccessFlags[]>(size);
   std::fill_n(myRomAccessBase.get(), size, Device::ROW);
   myRomAccessCounter = make_unique<Device::AccessCounter[]>(size * 2);
   std::fill_n(myRomAccessCounter.get(), size * 2, 0);
-#else
-  myRomAccessBase = nullptr;
-  myRomAccessCounter = nullptr;
-#endif
 }
 
 #ifdef DEBUGGER_SUPPORT
@@ -153,8 +151,8 @@ string Cartridge::getAccessCounters() const
 
   for(uInt16 bank = 0; bank < romBankCount(); ++bank)
   {
-    uInt16 origin = bankOrigin(bank);
-    uInt16 bankSize = this->bankSize(bank);
+    const uInt16 origin = bankOrigin(bank);
+    const uInt16 bankSize = this->bankSize(bank);
 
     out << "Bank " << Common::Base::toString(bank, Common::Base::Fmt::_10_8) << " / 0.."
       << Common::Base::toString(romBankCount() - 1, Common::Base::Fmt::_10_8) << " reads:\n";
@@ -180,26 +178,27 @@ string Cartridge::getAccessCounters() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 Cartridge::bankOrigin(uInt16 bank) const
+uInt16 Cartridge::bankOrigin(uInt16 bank, uInt16 PC) const
 {
-  // isolate the high 3 address bits, count them and
-  // select the most frequent to define the bank origin
+  // Isolate the high 3 address bits, count them, include the PC if provided
+  // and select the most frequent to define the bank origin
   // TODO: origin for banks smaller than 4K
-  const int intervals = 0x8000 / 0x100;
-  uInt32 offset = bank * bankSize();
+  constexpr int intervals = 0x8000 / 0x100;
+  const uInt32 offset = bank * bankSize();
   //uInt16 addrMask = (4_KB - 1) & ~(bankSize(bank) - 1);
   //int addrShift = 0;
   std::array<uInt16, intervals> count; // up to 128 256 byte interval origins
-
 
   //if(addrMask)
   //  addrShift = log(addrMask) / log(2);
   //addrMask;
 
   count.fill(0);
+  if(PC)
+    count[PC >> 13]++;
   for(uInt16 addr = 0x0000; addr < bankSize(bank); ++addr)
   {
-    Device::AccessFlags flags = myRomAccessBase[offset + addr];
+    const Device::AccessFlags flags = myRomAccessBase[offset + addr];
     // only count really accessed addresses
     if(flags & ~Device::ROW)
     {
@@ -233,14 +232,14 @@ void Cartridge::initializeRAM(uInt8* arr, size_t size, uInt8 val) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 Cartridge::initializeStartBank(uInt16 defaultBank)
 {
-  int propsBank = myStartBankFromPropsFunc();
+  const int propsBank = myStartBankFromPropsFunc();
 
   if(randomStartBank())
     return myStartBank = mySystem->randGenerator().next() % romBankCount();
   else if(propsBank >= 0)
     return myStartBank = BSPF::clamp(propsBank, 0, romBankCount() - 1);
   else
-    return myStartBank = BSPF::clamp(int(defaultBank), 0, romBankCount() - 1);
+    return myStartBank = BSPF::clamp(static_cast<int>(defaultBank), 0, romBankCount() - 1);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

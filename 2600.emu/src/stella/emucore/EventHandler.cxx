@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -113,6 +113,7 @@ void EventHandler::initialize()
   Controller::setMouseSensitivity(myOSystem.settings().getInt("msense"));
   PointingDevice::setSensitivity(myOSystem.settings().getInt("tsense"));
   Driving::setSensitivity(myOSystem.settings().getInt("dcsense"));
+  Controller::setAutoFire(myOSystem.settings().getBool("autofire"));
   Controller::setAutoFireRate(myOSystem.settings().getInt("autofirerate"));
 
 #ifdef GUI_SUPPORT
@@ -163,8 +164,7 @@ void EventHandler::reset(EventHandlerState state)
 void EventHandler::addPhysicalJoystick(const PhysicalJoystickPtr& joy)
 {
 #ifdef JOYSTICK_SUPPORT
-  int ID = myPJoyHandler->add(joy);
-  if(ID < 0)
+  if(myPJoyHandler->add(joy) < 0)
     return;
 
   setActionMappings(EventMode::kEmulationMode);
@@ -336,10 +336,10 @@ void EventHandler::handleMouseButtonEvent(MouseButton b, bool pressed,
     switch(b)
     {
       case MouseButton::LEFT:
-        myEvent.set(Event::MouseButtonLeftValue, int(pressed));
+        myEvent.set(Event::MouseButtonLeftValue, static_cast<int>(pressed));
         break;
       case MouseButton::RIGHT:
-        myEvent.set(Event::MouseButtonRightValue, int(pressed));
+        myEvent.set(Event::MouseButtonRightValue, static_cast<int>(pressed));
         break;
       default:
         return;
@@ -361,20 +361,30 @@ void EventHandler::handleSystemEvent(SystemEvent e, int, int)
       // Force full render update
       myOSystem.frameBuffer().update(FrameBuffer::UpdateMode::RERENDER);
       break;
-#ifdef BSPF_UNIX
-    case SystemEvent::WINDOW_FOCUS_GAINED:
-      // Used to handle Alt-x key combos; sometimes the key associated with
-      // Alt gets 'stuck'  and is passed to the core for processing
-      if(myPKeyHandler->altKeyCount() > 0)
-        myPKeyHandler->altKeyCount() = 2;
-      break;
-#endif
 #if 0
     case SystemEvent::WINDOW_MINIMIZED:
       if(myState == EventHandlerState::EMULATION)
         enterMenuMode(EventHandlerState::OPTIONSMENU);
       break;
 #endif
+
+    case SystemEvent::WINDOW_FOCUS_GAINED:
+  #ifdef BSPF_UNIX
+      // Used to handle Alt-x key combos; sometimes the key associated with
+      // Alt gets 'stuck'  and is passed to the core for processing
+      if(myPKeyHandler->altKeyCount() > 0)
+        myPKeyHandler->altKeyCount() = 2;
+  #endif
+      if(myOSystem.settings().getBool("autopause") && myState == EventHandlerState::PAUSE)
+        setState(EventHandlerState::EMULATION);
+      break;
+
+    case SystemEvent::WINDOW_FOCUS_LOST:
+      if(myOSystem.settings().getBool("autopause") && myState == EventHandlerState::EMULATION
+          && myOSystem.launcherLostFocus())
+        setState(EventHandlerState::PAUSE);
+      break;
+
     default:  // handle other events as testing requires
       // cerr << "handleSystemEvent: " << e << endl;
       break;
@@ -966,23 +976,39 @@ void EventHandler::handleEvent(Event::Type event, Int32 value, bool repeated)
       if(pressed && !repeated)
       {
         myOSystem.console().toggleJitter();
-        myGlobalKeyHandler->setSetting(GlobalKeyHandler::Setting::JITTER);
+        myGlobalKeyHandler->setSetting(GlobalKeyHandler::Setting::JITTER_SENSE);
       }
       return;
 
-    case Event::JitterDecrease:
+    case Event::JitterSenseDecrease:
       if(pressed)
       {
-        myOSystem.console().changeJitter(-1);
-        myGlobalKeyHandler->setSetting(GlobalKeyHandler::Setting::JITTER);
+        myOSystem.console().changeJitterSense(-1);
+        myGlobalKeyHandler->setSetting(GlobalKeyHandler::Setting::JITTER_SENSE);
       }
       return;
 
-    case Event::JitterIncrease:
+    case Event::JitterSenseIncrease:
       if(pressed)
       {
-        myOSystem.console().changeJitter(+1);
-        myGlobalKeyHandler->setSetting(GlobalKeyHandler::Setting::JITTER);
+        myOSystem.console().changeJitterSense(+1);
+        myGlobalKeyHandler->setSetting(GlobalKeyHandler::Setting::JITTER_SENSE);
+      }
+      return;
+
+    case Event::JitterRecDecrease:
+      if(pressed)
+      {
+        myOSystem.console().changeJitterRecovery(-1);
+        myGlobalKeyHandler->setSetting(GlobalKeyHandler::Setting::JITTER_REC);
+      }
+      return;
+
+    case Event::JitterRecIncrease:
+      if(pressed)
+      {
+        myOSystem.console().changeJitterRecovery(+1);
+        myGlobalKeyHandler->setSetting(GlobalKeyHandler::Setting::JITTER_REC);
       }
       return;
 
@@ -1097,6 +1123,14 @@ void EventHandler::handleEvent(Event::Type event, Int32 value, bool repeated)
       {
         myPJoyHandler->changeDigitalPaddleSensitivity(+1);
         myGlobalKeyHandler->setSetting(GlobalKeyHandler::Setting::DIGITAL_SENSITIVITY);
+      }
+      return;
+
+    case Event::ToggleAutoFire:
+      if(pressed && !repeated)
+      {
+        myOSystem.console().toggleAutoFire();
+        myGlobalKeyHandler->setSetting(GlobalKeyHandler::Setting::AUTO_FIRE);
       }
       return;
 
@@ -1549,6 +1583,8 @@ void EventHandler::handleEvent(Event::Type event, Int32 value, bool repeated)
         saveJoyMapping();
         if (myState != EventHandlerState::LAUNCHER)
           exitEmulation();
+        else
+          exitLauncher();
         myOSystem.quit();
       }
       return;
@@ -1577,10 +1613,13 @@ void EventHandler::handleEvent(Event::Type event, Int32 value, bool repeated)
     case Event::Combo14:
     case Event::Combo15:
     case Event::Combo16:
-      for(int i = 0, combo = event - Event::Combo1; i < EVENTS_PER_COMBO; ++i)
+    {
+      const int combo = event - Event::Combo1;
+      for(int i = 0; i < EVENTS_PER_COMBO; ++i)
         if(myComboTable[combo][i] != Event::NoType)
           handleEvent(myComboTable[combo][i], pressed, repeated);
       return;
+    }
 
     ////////////////////////////////////////////////////////////////////////
     // Events which relate to switches()
@@ -1933,7 +1972,7 @@ void EventHandler::setComboMap()
   }
 
   // Erase the 'combo' array
-  auto ERASE_ALL = [&]() {
+  const auto ERASE_ALL = [&]() {
     for(int i = 0; i < COMBO_SIZE; ++i)
       for(int j = 0; j < EVENTS_PER_COMBO; ++j)
         myComboTable[i][j] = Event::NoType;
@@ -2057,7 +2096,7 @@ bool EventHandler::addJoyHatMapping(Event::Type event, EventMode mode,
                                     bool updateMenus)
 {
 #ifdef JOYSTICK_SUPPORT
-  bool mapped = myPJoyHandler->addJoyHatMapping(event, mode, stick, button, hat, dir);
+  const bool mapped = myPJoyHandler->addJoyHatMapping(event, mode, stick, button, hat, dir);
   if (mapped && updateMenus)
     setActionMappings(mode);
 
@@ -2130,7 +2169,7 @@ void EventHandler::saveComboMapping()
 
     for(int j = 0; j < EVENTS_PER_COMBO; ++j)
     {
-      int event = myComboTable[i][j];
+      const int event = myComboTable[i][j];
 
       // skip all NoType events
       if(event != Event::NoType)
@@ -2202,6 +2241,9 @@ StringList EventHandler::getActionList(Event::Group group) const
 
     case Event::Group::Keyboard:
       return getActionList(KeyboardEvents);
+
+    case Event::Group::Driving:
+      return getActionList(DrivingEvents);
 
     case Event::Group::Devices:
       return getActionList(DevicesEvents);
@@ -2275,7 +2317,7 @@ StringList EventHandler::getComboListForEvent(Event::Type event) const
   ostringstream buf;
   if(event >= Event::Combo1 && event <= Event::Combo16)
   {
-    int combo = event - Event::Combo1;
+    const int combo = event - Event::Combo1;
     for(uInt32 i = 0; i < EVENTS_PER_COMBO; ++i)
     {
       const Event::Type e = myComboTable[combo][i];
@@ -2305,7 +2347,7 @@ void EventHandler::setComboListForEvent(Event::Type event, const StringList& eve
     const int combo = event - Event::Combo1;
     for(uInt32 i = 0; i < EVENTS_PER_COMBO; ++i)
     {
-      uInt32 idx = BSPF::stringToInt(events[i]);
+      const uInt32 idx = BSPF::stringToInt(events[i]);
       if(idx < ourEmulActionList.size())
         myComboTable[combo][i] = EventHandler::ourEmulActionList[idx].event;
       else
@@ -2375,6 +2417,9 @@ int EventHandler::getActionListIndex(int idx, Event::Group group) const
     case Event::Group::Keyboard:
       return getEmulActionListIndex(idx, KeyboardEvents);
 
+    case Event::Group::Driving:
+      return getEmulActionListIndex(idx, DrivingEvents);
+
     case Event::Group::Devices:
       return getEmulActionListIndex(idx, DevicesEvents);
 
@@ -2396,14 +2441,14 @@ Event::Type EventHandler::eventAtIndex(int idx, Event::Group group) const
 
   if(group == Event::Group::Menu)
   {
-    if(index < 0 || index >= int(ourMenuActionList.size()))
+    if(index < 0 || index >= static_cast<int>(ourMenuActionList.size()))
       return Event::NoType;
     else
       return ourMenuActionList[index].event;
   }
   else
   {
-    if(index < 0 || index >= int(ourEmulActionList.size()))
+    if(index < 0 || index >= static_cast<int>(ourEmulActionList.size()))
       return Event::NoType;
     else
       return ourEmulActionList[index].event;
@@ -2417,14 +2462,14 @@ string EventHandler::actionAtIndex(int idx, Event::Group group) const
 
   if(group == Event::Group::Menu)
   {
-    if(index < 0 || index >= int(ourMenuActionList.size()))
+    if(index < 0 || index >= static_cast<int>(ourMenuActionList.size()))
       return EmptyString;
     else
       return ourMenuActionList[index].action;
   }
   else
   {
-    if(index < 0 || index >= int(ourEmulActionList.size()))
+    if(index < 0 || index >= static_cast<int>(ourEmulActionList.size()))
       return EmptyString;
     else
       return ourEmulActionList[index].action;
@@ -2438,14 +2483,14 @@ string EventHandler::keyAtIndex(int idx, Event::Group group) const
 
   if(group == Event::Group::Menu)
   {
-    if(index < 0 || index >= int(ourMenuActionList.size()))
+    if(index < 0 || index >= static_cast<int>(ourMenuActionList.size()))
       return EmptyString;
     else
       return ourMenuActionList[index].key;
   }
   else
   {
-    if(index < 0 || index >= int(ourEmulActionList.size()))
+    if(index < 0 || index >= static_cast<int>(ourEmulActionList.size()))
       return EmptyString;
     else
       return ourEmulActionList[index].key;
@@ -2479,7 +2524,7 @@ void EventHandler::setMouseControllerMode(const string& enable)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void EventHandler::changeMouseControllerMode(int direction)
 {
-  const int NUM_MODES = 3;
+  constexpr int NUM_MODES = 3;
   const string MODES[NUM_MODES] = {"always", "analog", "never"};
   const string MSG[NUM_MODES] = {"all", "analog", "no"};
   string usemouse = myOSystem.settings().getString("usemouse");
@@ -2553,7 +2598,7 @@ bool EventHandler::enterDebugMode()
   myOSystem.debugger().setStartState();
   setState(EventHandlerState::DEBUGGER);
 
-  FBInitStatus fbstatus = myOSystem.createFrameBuffer();
+  const FBInitStatus fbstatus = myOSystem.createFrameBuffer();
   if(fbstatus != FBInitStatus::Success)
   {
     myOSystem.debugger().setQuitState();
@@ -2707,6 +2752,14 @@ void EventHandler::setState(EventHandlerState state)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void EventHandler::exitLauncher()
+{
+#ifdef GUI_SUPPORT
+  myOSystem.launcher().quit();
+#endif
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void EventHandler::exitEmulation(bool checkLauncher)
 {
   const string saveOnExit = myOSystem.settings().getString("saveonexit");
@@ -2776,7 +2829,15 @@ EventHandler::EmulActionList EventHandler::ourEmulActionList = { {
   { Event::ToggleContSnapshots,     "Save continuous snapsh. (as defined)",  "" },
   { Event::ToggleContSnapshotsFrame,"Save continuous snapsh. (every frame)", "" },
 #endif
+  // Global keys:
+  { Event::PreviousSettingGroup,    "Select previous setting group",         "" },
+  { Event::NextSettingGroup,        "Select next setting group",             "" },
+  { Event::PreviousSetting,         "Select previous setting",               "" },
+  { Event::NextSetting,             "Select next setting",                   "" },
+  { Event::SettingDecrease,         "Decrease current setting",              "" },
+  { Event::SettingIncrease,         "Increase current setting",              "" },
 
+  // Controllers:
   { Event::LeftJoystickUp,          "Left Joystick Up",                      "" },
   { Event::LeftJoystickDown,        "Left Joystick Down",                    "" },
   { Event::LeftJoystickLeft,        "Left Joystick Left",                    "" },
@@ -2855,22 +2916,34 @@ EventHandler::EmulActionList EventHandler::ourEmulActionList = { {
   { Event::RightKeyboardStar,       "Right Keyboard *",                      "" },
   { Event::RightKeyboard0,          "Right Keyboard 0",                      "" },
   { Event::RightKeyboardPound,      "Right Keyboard #",                      "" },
+
+  { Event::LeftDrivingAnalog,       "Left Driving Analog",                   "" },
+  { Event::LeftDrivingCCW,          "Left Driving Turn Left",                "" },
+  { Event::LeftDrivingCW,           "Left Driving Turn Right",               "" },
+  { Event::LeftDrivingFire,         "Left Driving Fire",                     "" },
+
+  { Event::RightDrivingAnalog,      "Right Driving Analog",                  "" },
+  { Event::RightDrivingCCW,         "Right Driving Turn Left",               "" },
+  { Event::RightDrivingCW,          "Right Driving Turn Right",              "" },
+  { Event::RightDrivingFire,        "Right Driving Fire",                    "" },
+
   // Video
+  { Event::ToggleInter,             "Toggle display interpolation",          "" },
+  { Event::VidmodeDecrease,         "Previous zoom level",                   "" },
+  { Event::VidmodeIncrease,         "Next zoom level",                       "" },
   { Event::ToggleFullScreen,        "Toggle fullscreen",                     "" },
 #ifdef ADAPTABLE_REFRESH_SUPPORT
   { Event::ToggleAdaptRefresh,      "Toggle fullscreen refresh rate adapt",  "" },
 #endif
   { Event::OverscanDecrease,        "Decrease overscan in fullscreen mode",  "" },
   { Event::OverscanIncrease,        "Increase overscan in fullscreen mode",  "" },
-  { Event::VidmodeDecrease,         "Previous zoom level",                   "" },
-  { Event::VidmodeIncrease,         "Next zoom level",                       "" },
   { Event::ToggleCorrectAspectRatio,"Toggle aspect ratio correct scaling",   "" },
   { Event::VSizeAdjustDecrease,     "Decrease vertical display size",        "" },
   { Event::VSizeAdjustIncrease,     "Increase vertical display size",        "" },
   { Event::VCenterDecrease,         "Move display up",                       "" },
   { Event::VCenterIncrease,         "Move display down",                     "" },
-  { Event::FormatDecrease,          "Decrease display format",               "" },
-  { Event::FormatIncrease,          "Increase display format",               "" },
+  { Event::FormatDecrease,          "Decrease TV format",                    "" },
+  { Event::FormatIncrease,          "Increase TV format",                    "" },
     // Palette settings
   { Event::PaletteDecrease,         "Switch to previous palette",            "" },
   { Event::PaletteIncrease,         "Switch to next palette",                "" },
@@ -2878,7 +2951,6 @@ EventHandler::EmulActionList EventHandler::ourEmulActionList = { {
   { Event::NextPaletteAttribute,    "Select next palette attribute",         "" },
   { Event::PaletteAttributeDecrease,"Decrease selected palette attribute",   "" },
   { Event::PaletteAttributeIncrease,"Increase selected palette attribute",   "" },
-  { Event::ToggleInter,             "Toggle display interpolation",          "" },
   // Blargg TV effects:
   { Event::VidmodeStd,              "Disable TV effects",                    "" },
   { Event::VidmodeRGB,              "Select 'RGB' preset",                   "" },
@@ -2900,15 +2972,72 @@ EventHandler::EmulActionList EventHandler::ourEmulActionList = { {
   { Event::ScanlinesIncrease,       "Increase scanlines",                    "" },
   { Event::PreviousScanlineMask,    "Switch to previous scanline mask",      "" },
   { Event::NextScanlineMask,        "Switch to next scanline mask",          "" },
+  // Audio
+  { Event::SoundToggle,             "Toggle sound",                          "" },
+  { Event::VolumeDecrease,          "Decrease volume",                       "" },
+  { Event::VolumeIncrease,          "Increase volume",                       "" },
 
-  { Event::PreviousSettingGroup,    "Select previous setting group",         "" },
-  { Event::NextSettingGroup,        "Select next setting group",             "" },
-  { Event::PreviousSetting,         "Select previous setting",               "" },
-  { Event::NextSetting,             "Select next setting",                   "" },
-  { Event::SettingDecrease,         "Decrease current setting",              "" },
-  { Event::SettingIncrease,         "Increase current setting",              "" },
+  // Devices & Ports:
+  { Event::DecreaseDeadzone,        "Decrease digital dead zone",            "" },
+  { Event::IncreaseDeadzone,        "Increase digital dead zone",            "" },
+  { Event::DecAnalogDeadzone,       "Decrease analog dead zone",             "" },
+  { Event::IncAnalogDeadzone,       "Increase analog dead zone",             "" },
+  { Event::DecAnalogSense,          "Decrease analog paddle sensitivity",    "" },
+  { Event::IncAnalogSense,          "Increase analog paddle sensitivity",    "" },
+  { Event::DecAnalogLinear,         "Decrease analog paddle linearity",      "" },
+  { Event::IncAnalogLinear,         "Increase analog paddle linearity",      "" },
+  { Event::DecDejtterAveraging,     "Decrease paddle dejitter averaging",    "" },
+  { Event::IncDejtterAveraging,     "Increase paddle dejitter averaging",    "" },
+  { Event::DecDejtterReaction,      "Decrease paddle dejitter reaction",     "" },
+  { Event::IncDejtterReaction,      "Increase paddle dejitter reaction",     "" },
+  { Event::DecDigitalSense,         "Decrease digital paddle sensitivity",   "" },
+  { Event::IncDigitalSense,         "Increase digital paddle sensitivity",   "" },
+  { Event::ToggleAutoFire,          "Toggle auto fire",                      "" },
+  { Event::DecreaseAutoFire,        "Decrease auto fire speed",              "" },
+  { Event::IncreaseAutoFire,        "Increase auto fire speed",              "" },
+  { Event::ToggleFourDirections,    "Toggle allow four joystick directions", "" },
+  { Event::ToggleKeyCombos,         "Toggle use of modifier key combos",     "" },
+  { Event::ToggleSAPortOrder,       "Swap Stelladaptor port ordering",       "" },
+  // Devices & Ports related properties
+  { Event::PreviousLeftPort,        "Select previous left controller",       "" },
+  { Event::NextLeftPort,            "Select next left controller",           "" },
+  { Event::PreviousRightPort,       "Select previous right controller",      "" },
+  { Event::NextRightPort,           "Select next right controller",          "" },
+  { Event::ToggleSwapPorts,         "Toggle swap ports",                     "" },
+  { Event::ToggleSwapPaddles,       "Toggle swap paddles",                   "" },
 
-  // Developer keys:
+  // Mouse
+  { Event::PrevMouseAsController,   "Select previous mouse controls",        "" },
+  { Event::NextMouseAsController,   "Select next mouse controls",            "" },
+  { Event::DecMousePaddleSense,     "Decrease mouse paddle sensitivity",     "" },
+  { Event::IncMousePaddleSense,     "Increase mouse paddle sensitivity",     "" },
+  { Event::DecMouseTrackballSense,  "Decrease mouse trackball sensitivity",  "" },
+  { Event::IncMouseTrackballSense,  "Increase mouse trackball sensitivity",  "" },
+  { Event::DecreaseDrivingSense,    "Decrease driving sensitivity",          "" },
+  { Event::IncreaseDrivingSense,    "Increase driving sensitivity",          "" },
+  { Event::PreviousCursorVisbility, "Select prev. cursor visibility mode",   "" },
+  { Event::NextCursorVisbility,     "Select next cursor visibility mode",    "" },
+  { Event::ToggleGrabMouse,         "Toggle grab mouse",                     "" },
+  // Mouse related properties
+  { Event::PreviousMouseControl,    "Select previous mouse emulation mode",  "" },
+  { Event::NextMouseControl,        "Select next mouse emulation mode",      "" },
+  { Event::DecreaseMouseAxesRange,  "Decrease mouse axes range",             "" },
+  { Event::IncreaseMouseAxesRange,  "Increase mouse axes range",             "" },
+
+  // Time Machine
+  { Event::ToggleTimeMachine,       "Toggle 'Time Machine' mode",            "" },
+  { Event::TimeMachineMode,         "Toggle 'Time Machine' UI",              "" },
+  { Event::RewindPause,             "Rewind one state & enter Pause mode",   "" },
+  { Event::Rewind1Menu,             "Rewind one state & enter TM UI",        "" },
+  { Event::Rewind10Menu,            "Rewind 10 states & enter TM UI",        "" },
+  { Event::RewindAllMenu,           "Rewind all states & enter TM UI",       "" },
+  { Event::UnwindPause,             "Unwind one state & enter Pause mode",   "" },
+  { Event::Unwind1Menu,             "Unwind one state & enter TM UI",        "" },
+  { Event::Unwind10Menu,            "Unwind 10 states & enter TM UI",        "" },
+  { Event::UnwindAllMenu,           "Unwind all states & enter TM UI",       "" },
+  { Event::TogglePlayBackMode,      "Toggle 'Time Machine' playback mode",   "" },
+
+  // Developer:
   { Event::ToggleDeveloperSet,      "Toggle developer settings sets",        "" },
   { Event::ToggleFrameStats,        "Toggle frame stats",                    "" },
   { Event::ToggleP0Bit,             "Toggle TIA Player0 object",             "" },
@@ -2928,66 +3057,12 @@ EventHandler::EmulActionList EventHandler::ourEmulActionList = { {
   { Event::ToggleFixedColors,       "Toggle TIA 'Fixed Debug Colors' mode",  "" },
   { Event::ToggleColorLoss,         "Toggle PAL color-loss effect",          "" },
   { Event::ToggleJitter,            "Toggle TV scanline 'Jitter' effect",    "" },
-  { Event::JitterDecrease,          "Decrease TV 'Jitter' roll",             "" },
-  { Event::JitterIncrease,          "Increase TV 'Jitter' roll",             "" },
-  // Other keys:
-  { Event::SoundToggle,             "Toggle sound",                          "" },
-  { Event::VolumeDecrease,          "Decrease volume",                       "" },
-  { Event::VolumeIncrease,          "Increase volume",                       "" },
+  { Event::JitterSenseDecrease,     "Decrease TV 'Jitter' sensitivity",      "" },
+  { Event::JitterSenseIncrease,     "Increase TV 'Jitter' sensitivity",      "" },
+  { Event::JitterRecDecrease,       "Decrease TV 'Jitter' roll",             "" },
+  { Event::JitterRecIncrease,       "Increase TV 'Jitter' roll",             "" },
 
-  { Event::DecreaseDeadzone,        "Decrease digital dead zone",            "" },
-  { Event::IncreaseDeadzone,        "Increase digital dead zone",            "" },
-  { Event::DecAnalogDeadzone,       "Decrease analog dead zone",             "" },
-  { Event::IncAnalogDeadzone,       "Increase analog dead zone",             "" },
-  { Event::DecAnalogSense,          "Decrease analog paddle sensitivity",    "" },
-  { Event::IncAnalogSense,          "Increase analog paddle sensitivity",    "" },
-  { Event::DecAnalogLinear,         "Decrease analog paddle linearity",      "" },
-  { Event::IncAnalogLinear,         "Increase analog paddle linearity",      "" },
-  { Event::DecDejtterAveraging,     "Decrease paddle dejitter averaging",    "" },
-  { Event::IncDejtterAveraging,     "Increase paddle dejitter averaging",    "" },
-  { Event::DecDejtterReaction,      "Decrease paddle dejitter reaction",     "" },
-  { Event::IncDejtterReaction,      "Increase paddle dejitter reaction",     "" },
-  { Event::DecDigitalSense,         "Decrease digital paddle sensitivity",   "" },
-  { Event::IncDigitalSense,         "Increase digital paddle sensitivity",   "" },
-  { Event::DecreaseAutoFire,        "Decrease auto fire speed",              "" },
-  { Event::IncreaseAutoFire,        "Increase auto fire speed",              "" },
-  { Event::ToggleFourDirections,    "Toggle allow four joystick directions", "" },
-  { Event::ToggleKeyCombos,         "Toggle use of modifier key combos",     "" },
-  { Event::ToggleSAPortOrder,       "Swap Stelladaptor port ordering",       "" },
-  { Event::PrevMouseAsController,   "Select previous mouse controls",        "" },
-  { Event::NextMouseAsController,   "Select next mouse controls",            "" },
-  { Event::DecMousePaddleSense,     "Decrease mouse paddle sensitivity",     "" },
-  { Event::IncMousePaddleSense,     "Increase mouse paddle sensitivity",     "" },
-  { Event::DecMouseTrackballSense,  "Decrease mouse trackball sensitivity",  "" },
-  { Event::IncMouseTrackballSense,  "Increase mouse trackball sensitivity",  "" },
-  { Event::DecreaseDrivingSense,    "Decrease driving sensitivity",          "" },
-  { Event::IncreaseDrivingSense,    "Increase driving sensitivity",          "" },
-  { Event::PreviousCursorVisbility, "Select prev. cursor visibility mode",   "" },
-  { Event::NextCursorVisbility,     "Select next cursor visibility mode",    "" },
-  { Event::ToggleGrabMouse,         "Toggle grab mouse",                     "" },
-  { Event::PreviousLeftPort,        "Select previous left controller",       "" },
-  { Event::NextLeftPort,            "Select next left controller",           "" },
-  { Event::PreviousRightPort,       "Select previous right controller",      "" },
-  { Event::NextRightPort,           "Select next right controller",          "" },
-  { Event::ToggleSwapPorts,         "Toggle swap ports",                     "" },
-  { Event::ToggleSwapPaddles,       "Toggle swap paddles",                   "" },
-  { Event::PreviousMouseControl,    "Select previous mouse emulation mode",  "" },
-  { Event::NextMouseControl,        "Select next mouse emulation mode",      "" },
-  { Event::DecreaseMouseAxesRange,  "Decrease mouse axes range",             "" },
-  { Event::IncreaseMouseAxesRange,  "Increase mouse axes range",             "" },
-
-  { Event::ToggleTimeMachine,       "Toggle 'Time Machine' mode",            "" },
-  { Event::TimeMachineMode,         "Toggle 'Time Machine' UI",              "" },
-  { Event::RewindPause,             "Rewind one state & enter Pause mode",   "" },
-  { Event::Rewind1Menu,             "Rewind one state & enter TM UI",        "" },
-  { Event::Rewind10Menu,            "Rewind 10 states & enter TM UI",        "" },
-  { Event::RewindAllMenu,           "Rewind all states & enter TM UI",       "" },
-  { Event::UnwindPause,             "Unwind one state & enter Pause mode",   "" },
-  { Event::Unwind1Menu,             "Unwind one state & enter TM UI",        "" },
-  { Event::Unwind10Menu,            "Unwind 10 states & enter TM UI",        "" },
-  { Event::UnwindAllMenu,           "Unwind all states & enter TM UI",       "" },
-  { Event::TogglePlayBackMode,      "Toggle 'Time Machine' playback mode",   "" },
-
+  // Combo
   { Event::Combo1,                  "Combo 1",                               "" },
   { Event::Combo2,                  "Combo 2",                               "" },
   { Event::Combo3,                  "Combo 3",                               "" },
@@ -3125,6 +3200,12 @@ const Event::EventSet EventHandler::KeyboardEvents = {
   Event::RightKeyboardStar, Event::RightKeyboard0, Event::RightKeyboardPound,
 };
 
+const Event::EventSet EventHandler::DrivingEvents = {
+  Event::LeftDrivingAnalog, Event::LeftDrivingCCW, Event::LeftDrivingCW,
+  Event::LeftDrivingFire, Event::RightDrivingAnalog, Event::RightDrivingCCW,
+  Event::RightDrivingCW, Event::RightDrivingFire,
+};
+
 const Event::EventSet EventHandler::DevicesEvents = {
   Event::DecreaseDeadzone, Event::IncreaseDeadzone,
   Event::DecAnalogDeadzone, Event::IncAnalogDeadzone,
@@ -3133,7 +3214,7 @@ const Event::EventSet EventHandler::DevicesEvents = {
   Event::DecDejtterAveraging, Event::IncDejtterAveraging,
   Event::DecDejtterReaction, Event::IncDejtterReaction,
   Event::DecDigitalSense, Event::IncDigitalSense,
-  Event::DecreaseAutoFire, Event::IncreaseAutoFire,
+  Event::ToggleAutoFire, Event::DecreaseAutoFire, Event::IncreaseAutoFire,
   Event::ToggleFourDirections, Event::ToggleKeyCombos, Event::ToggleSAPortOrder,
   Event::PrevMouseAsController, Event::NextMouseAsController,
   Event::DecMousePaddleSense, Event::IncMousePaddleSense,
@@ -3167,5 +3248,6 @@ const Event::EventSet EventHandler::DebugEvents = {
   Event::ToggleBLCollision, Event::ToggleBLBit, Event::TogglePFCollision, Event::TogglePFBit,
   Event::ToggleCollisions, Event::ToggleBits, Event::ToggleFixedColors,
   Event::ToggleColorLoss,
-  Event::ToggleJitter, Event::JitterDecrease,Event::JitterIncrease,
+  Event::ToggleJitter, Event::JitterSenseDecrease,Event::JitterSenseIncrease,
+  Event::JitterRecDecrease,Event::JitterRecIncrease,
 };

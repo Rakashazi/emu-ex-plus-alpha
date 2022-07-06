@@ -16,62 +16,58 @@
 //============================================================================
 
 #include "System.hxx"
-#include "CartUA.hxx"
+#include "Cart0FA0.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeUA::CartridgeUA(const ByteBuffer& image, size_t size,
-                         const string& md5, const Settings& settings,
-                         bool swapHotspots)
-  : CartridgeEnhanced(image, size, md5, settings, 8_KB),
-    mySwappedHotspots{swapHotspots}
+Cartridge0FA0::Cartridge0FA0(const ByteBuffer& image, size_t size,
+    const string& md5, const Settings& settings)
+  : CartridgeEnhanced(image, size, md5, settings, 8_KB)
 {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeUA::install(System& system)
+void Cartridge0FA0::install(System& system)
 {
   CartridgeEnhanced::install(system);
 
   // Get the page accessing methods for the hot spots since they overlap
   // areas within the TIA we'll need to forward requests to the TIA
-  myHotSpotPageAccess[0] = mySystem->getPageAccess(0x0220);
-  myHotSpotPageAccess[1] = mySystem->getPageAccess(0x0220 | 0x80);
+  myHotSpotPageAccess = mySystem->getPageAccess(0x06a0);
 
   // Set the page accessing methods for the hot spots
   const System::PageAccess access(this, System::PageAccessType::READ);
   // Map all potential addresses
-  // - A11, A10 and A8 are not connected to RIOT
-  // - A9 is the fixed part of the hotspot address
-  // - A7 is used by Brazilian carts
+  // - A11 and A8 are not connected to RIOT
+  // - A10, A9 and A7 are the fixed part of the hotspot address
   // - A6 and A5 determine bank
   for(uInt16 a11 = 0; a11 <= 1; ++a11)
-    for(uInt16 a10 = 0; a10 <= 1; ++a10)
-      for(uInt16 a8 = 0; a8 <= 1; ++a8)
-        for(uInt16 a7 = 0; a7 <= 1; ++a7)
-        {
-          const uInt16 addr = (a11 << 11) + (a10 << 10) + (a8 << 8) + (a7 << 7);
+  {
+    for(uInt16 a8 = 0; a8 <= 1; ++a8)
+    {
+      const uInt16 addr = (a11 << 11) + (a8 << 8);
 
-          mySystem->setPageAccess(0x0220 | addr, access);
-          mySystem->setPageAccess(0x0240 | addr, access);
-        }
+      mySystem->setPageAccess(0x06a0 | addr, access);
+      mySystem->setPageAccess(0x06c0 | addr, access);
+    }
+  }
   // Install pages for the startup bank
   bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeUA::checkSwitchBank(uInt16 address, uInt8)
+bool Cartridge0FA0::checkSwitchBank(uInt16 address, uInt8)
 {
   // Switch banks if necessary
-  switch(address & 0x1260)
+  switch(address & 0x16e0)
   {
-    case 0x0220:
+    case 0x06a0:
       // Set the current bank to the lower 4k bank
-      bank(mySwappedHotspots ? 1 : 0);
+      bank(0);
       return true;
 
-    case 0x0240:
+    case 0x06c0:
       // Set the current bank to the upper 4k bank
-      bank(mySwappedHotspots ? 0 : 1);
+      bank(1);
       return true;
 
     default:
@@ -81,7 +77,7 @@ bool CartridgeUA::checkSwitchBank(uInt16 address, uInt8)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 CartridgeUA::peek(uInt16 address)
+uInt8 Cartridge0FA0::peek(uInt16 address)
 {
   address &= myBankMask;
 
@@ -89,12 +85,11 @@ uInt8 CartridgeUA::peek(uInt16 address)
 
   // Because of the way accessing is set up, we will only get here
   // when doing a TIA read
-  const int hotspot = ((address & 0x80) >> 7);
-  return myHotSpotPageAccess[hotspot].device->peek(address);
+  return myHotSpotPageAccess.device->peek(address);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeUA::poke(uInt16 address, uInt8 value)
+bool Cartridge0FA0::poke(uInt16 address, uInt8 value)
 {
   address &= myBankMask;
 
@@ -104,8 +99,7 @@ bool CartridgeUA::poke(uInt16 address, uInt8 value)
   // doing a write to TIA or cart; we ignore the cart write
   if (!(address & 0x1000))
   {
-    const int hotspot = ((address & 0x80) >> 7);
-    myHotSpotPageAccess[hotspot].device->poke(address, value);
+    myHotSpotPageAccess.device->poke(address, value);
   }
 
   return false;

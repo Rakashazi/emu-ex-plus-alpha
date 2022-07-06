@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,7 +18,7 @@
 #ifndef STATE_MANAGER_HXX
 #define STATE_MANAGER_HXX
 
-#define STATE_HEADER "06050301state"
+#define STATE_HEADER "06070000state"
 
 class OSystem;
 class RewindManager;
@@ -173,9 +173,11 @@ class StateManager
     // MD5 of the currently active ROM (either in movie or rewind mode)
     string myMD5;
 
+#if 0
     // Serializer classes used to save/load the eventstream
     Serializer myMovieWriter;
     Serializer myMovieReader;
+#endif
 
     // Stored savestates to be later rewound
     unique_ptr<RewindManager> myRewindManager;

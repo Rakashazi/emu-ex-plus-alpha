@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -55,6 +55,13 @@ class TrakBall : public PointingDevice
 
     // 50% of Atari and Amiga mouse
     static constexpr float trackballSensitivity = 0.4F;
+
+  private:
+    // Following constructors and assignment operators not supported
+    TrakBall(const TrakBall&) = delete;
+    TrakBall(TrakBall&&) = delete;
+    TrakBall& operator=(const TrakBall&) = delete;
+    TrakBall& operator=(TrakBall&&) = delete;
 };
 
 #endif // TRAKBALL_HXX

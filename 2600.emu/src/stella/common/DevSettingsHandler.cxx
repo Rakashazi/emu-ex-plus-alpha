@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -28,14 +28,14 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 DevSettingsHandler::DevSettingsHandler(OSystem& osystem)
-  : myOSystem(osystem)
+  : myOSystem{osystem}
 {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void DevSettingsHandler::loadSettings(SettingsSet set)
 {
-  bool devSettings = set == SettingsSet::developer;
+  const bool devSettings = set == SettingsSet::developer;
   const string& prefix = devSettings ? "dev." : "plr.";
   const Settings& settings = myOSystem.settings();
 
@@ -67,6 +67,7 @@ void DevSettingsHandler::loadSettings(SettingsSet set)
   myBlInvPhase[set] = devSettings ? settings.getBool("dev.tia.blinvphase") : false;
   myPFBits[set] = devSettings ? settings.getBool("dev.tia.delaypfbits") : false;
   myPFColor[set] = devSettings ? settings.getBool("dev.tia.delaypfcolor") : false;
+  myPFScore[set] = devSettings ? settings.getBool("dev.tia.pfscoreglitch") : false;
   myBKColor[set] = devSettings ? settings.getBool("dev.tia.delaybkcolor") : false;
   myPlSwap[set] = devSettings ? settings.getBool("dev.tia.delayplswap") : false;
   myBlSwap[set] = devSettings ? settings.getBool("dev.tia.delayblswap") : false;
@@ -77,6 +78,7 @@ void DevSettingsHandler::loadSettings(SettingsSet set)
   myColorLoss[set] = settings.getBool(prefix + "colorloss");
   // Jitter
   myTVJitter[set] = settings.getBool(prefix + "tv.jitter");
+  myTVJitterSense[set] = settings.getInt(prefix + "tv.jitter_sense");
   myTVJitterRec[set] = settings.getInt(prefix + "tv.jitter_recovery");
 
   // States
@@ -90,7 +92,7 @@ void DevSettingsHandler::loadSettings(SettingsSet set)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void DevSettingsHandler::saveSettings(SettingsSet set)
 {
-  bool devSettings = set == SettingsSet::developer;
+  const bool devSettings = set == SettingsSet::developer;
   const string& prefix = devSettings ? "dev." : "plr.";
   Settings& settings = myOSystem.settings();
 
@@ -134,6 +136,7 @@ void DevSettingsHandler::saveSettings(SettingsSet set)
       settings.setValue("dev.tia.blinvphase", myBlInvPhase[set]);
       settings.setValue("dev.tia.delaypfbits", myPFBits[set]);
       settings.setValue("dev.tia.delaypfcolor", myPFColor[set]);
+      settings.setValue("dev.tia.pfscoreglitch", myPFScore[set]);
       settings.setValue("dev.tia.delaybkcolor", myBKColor[set]);
       settings.setValue("dev.tia.delayplswap", myPlSwap[set]);
       settings.setValue("dev.tia.delayblswap", myBlSwap[set]);
@@ -146,6 +149,7 @@ void DevSettingsHandler::saveSettings(SettingsSet set)
   settings.setValue(prefix + "colorloss", myColorLoss[set]);
   // Jitter
   settings.setValue(prefix + "tv.jitter", myTVJitter[set]);
+  settings.setValue(prefix + "tv.jitter_sense", myTVJitterSense[set]);
   settings.setValue(prefix + "tv.jitter_recovery", myTVJitterRec[set]);
 
   // States
@@ -187,6 +191,7 @@ void DevSettingsHandler::applySettings(SettingsSet set)
     myOSystem.console().tia().setBlInvertedPhaseClock(myBlInvPhase[set]);
     myOSystem.console().tia().setPFBitsDelay(myPFBits[set]);
     myOSystem.console().tia().setPFColorDelay(myPFColor[set]);
+    myOSystem.console().tia().setPFScoreGlitch(myPFScore[set]);
     myOSystem.console().tia().setBKColorDelay(myBKColor[set]);
     myOSystem.console().tia().setPlSwapDelay(myPlSwap[set]);
     myOSystem.console().tia().setBlSwapDelay(myBlSwap[set]);
@@ -197,6 +202,7 @@ void DevSettingsHandler::applySettings(SettingsSet set)
   {
     // TV Jitter
     myOSystem.console().tia().toggleJitter(myTVJitter[set] ? 1 : 0);
+    myOSystem.console().tia().setJitterSensitivity(myTVJitterSense[set]);
     myOSystem.console().tia().setJitterRecoveryFactor(myTVJitterRec[set]);
     // PAL color loss
     myOSystem.console().enableColorLoss(myColorLoss[set]);
@@ -217,7 +223,7 @@ void DevSettingsHandler::handleEnableDebugColors(bool enable)
 {
   if(myOSystem.hasConsole())
   {
-    bool fixed = myOSystem.console().tia().usingFixedColors();
+    const bool fixed = myOSystem.console().tia().usingFixedColors();
     if(fixed != enable)
       myOSystem.console().tia().toggleFixedColors();
   }

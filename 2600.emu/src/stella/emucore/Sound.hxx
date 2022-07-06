@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -37,7 +37,7 @@ class Sound
       Create a new sound object.  The open method must be invoked before
       using the object.
     */
-    Sound(OSystem& osystem) : myOSystem(osystem) { }
+    Sound(OSystem& osystem) : myOSystem{osystem} { }
     virtual ~Sound() = default;
 
   public:

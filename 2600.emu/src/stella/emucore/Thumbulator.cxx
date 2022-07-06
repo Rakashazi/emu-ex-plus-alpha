@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -213,13 +213,13 @@ void Thumbulator::updateTimer(uInt32 cycles)
   if(T0TCR & 1) // bit 0 controls timer on/off
   {
     T0TC += static_cast<uInt32>(cycles * timing_factor);
-    tim0Total = 0;
+    tim0Total = tim0Start = 0;
   }
 #endif
   if(T1TCR & 1) // bit 0 controls timer on/off
   {
     T1TC += static_cast<uInt32>(cycles * timing_factor);
-    tim1Total = 0;
+    tim1Total = tim1Start = 0;
   }
 }
 
@@ -289,7 +289,7 @@ void Thumbulator::dump_regs()
 uInt32 Thumbulator::fetch16(uInt32 addr)
 {
 #ifndef UNSAFE_OPTIMIZATIONS
-  uInt32 data;
+  uInt32 data = 0;
 
 #ifdef THUMB_CYCLE_COUNT
   _pipeIdx = (_pipeIdx+1) % 3;
@@ -340,6 +340,9 @@ uInt32 Thumbulator::fetch16(uInt32 addr)
       data = CONV_RAMROM(ram[addr]);
       DO_DBUG(statusMsg << "fetch16(" << Base::HEX8 << addr << ")=" << Base::HEX4 << data << endl);
       return data;
+
+    default:  // reserved
+      break;
   }
   return fatalError("fetch16", addr, "abort");
 #else
@@ -353,11 +356,6 @@ uInt32 Thumbulator::fetch16(uInt32 addr)
 void Thumbulator::write16(uInt32 addr, uInt32 data)
 {
 #ifndef UNSAFE_OPTIMIZATIONS
-  if((addr > 0x40007fff) && (addr < 0x50000000))
-    fatalError("write16", addr, "abort - out of range");
-
-  if (isProtected(addr)) fatalError("write16", addr, "to driver area");
-
   if(addr & 1)
     fatalError("write16", addr, "abort - misaligned");
 #endif
@@ -370,6 +368,12 @@ void Thumbulator::write16(uInt32 addr, uInt32 data)
   switch(addr & 0xF0000000)
   {
     case 0x40000000: //RAM
+#ifndef UNSAFE_OPTIMIZATIONS
+      if(isInvalidRAM(addr))
+        fatalError("write16", addr, "abort - out of range");
+      if(isProtectedRAM(addr))
+        fatalError("write16", addr, "to driver area");
+#endif
       addr &= RAMADDMASK;
       addr >>= 1;
       ram[addr] = CONV_DATA(data);
@@ -399,8 +403,6 @@ void Thumbulator::write32(uInt32 addr, uInt32 data)
 #ifndef UNSAFE_OPTIMIZATIONS
   if(addr & 3)
     fatalError("write32", addr, "abort - misaligned");
-
-  if (isProtected(addr)) fatalError("write32", addr, "to driver area");
 #endif
   DO_DBUG(statusMsg << "write32(" << Base::HEX8 << addr << "," << Base::HEX8 << data << ")" << endl);
 
@@ -471,7 +473,7 @@ void Thumbulator::write32(uInt32 addr, uInt32 data)
 
         case 0xE000E010:
         {
-          uInt32 old = systick_ctrl;
+          const uInt32 old = systick_ctrl;
           systick_ctrl = data & 0x00010007;
           if(((old & 1) == 0) && (systick_ctrl & 1))
           {
@@ -546,27 +548,61 @@ void Thumbulator::write32(uInt32 addr, uInt32 data)
 
 #ifndef UNSAFE_OPTIMIZATIONS
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool Thumbulator::isProtected(uInt32 addr)
+bool Thumbulator::isInvalidROM(uInt32 addr)
 {
+  const uInt32 romStart = configuration == ConfigureFor::DPCplus ? 0xc00 : 0x750; // was 0x800
+
+  return addr < romStart || addr >= romSize; // CDFJ+ allows ROM sizes larger than 32 KB
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool Thumbulator::isInvalidRAM(uInt32 addr)
+{
+  // Note: addr is already checked for RAM (0x4xxxxxxx)
+  switch(romSize) // CDFJ+ allows more than 8 KB RAM depending on ROM sizes
+  {
+    case 64_KB:
+    case 128_KB:
+      return addr > 0x40003fff; // 16 KB
+
+    case 256_KB:
+    case 512_KB:
+      return addr > 0x40007fff; // 32 KB
+
+    default: // assuming 32 KB
+      return addr > 0x40001fff; // 8 KB
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool Thumbulator::isProtectedRAM(uInt32 addr)
+{
+  // Protected is within the driver RAM.
+  // For CDF variations parts of the driver RAM are reused to hold the
+  // datastream information, so are not write protected.
+  // Additionally for CDFJ+ the Fast Fetcher offset is not write protected.
+
   if (addr < 0x40000000) return false;
   addr -= 0x40000000;
 
-  switch (configuration) {
+  switch(configuration) {
     case ConfigureFor::DPCplus:
       return (addr < 0x0c00) && (addr > 0x0028);
 
     case ConfigureFor::CDF:
-      return  (addr < 0x0800) && (addr > 0x0028) && !((addr >= 0x06e0) && (addr < (0x0e60 + 284)));
+      return (addr < 0x0800) && (addr > 0x0028) && !((addr >= 0x06e0) && (addr < (0x0e60 + 284)));
 
     case ConfigureFor::CDF1:
-      return  (addr < 0x0800) && (addr > 0x0028) && !((addr >= 0x00a0) && (addr < (0x00a0 + 284)));
+      return (addr < 0x0800) && (addr > 0x0028) && !((addr >= 0x00a0) && (addr < (0x00a0 + 284)));
 
     case ConfigureFor::CDFJ:
+      return (addr < 0x0800) && (addr > 0x0028) && !((addr >= 0x0098) && (addr < (0x0098 + 292)));
+
     case ConfigureFor::CDFJplus:
-      return  (addr < 0x0800) && (addr > 0x0028) && !((addr >= 0x0098) && (addr < (0x0098 + 292)));
+      return (addr < 0x0800) && (addr > 0x0028) && !((addr >= 0x0098) && (addr < (0x0098 + 292))) && addr != 0x3E0;
 
     case ConfigureFor::BUS:
-      return  (addr < 0x06d8) && (addr > 0x0028);
+      return (addr < 0x06d8) && (addr > 0x0028);
   }
 
   return false;
@@ -576,12 +612,8 @@ bool Thumbulator::isProtected(uInt32 addr)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt32 Thumbulator::read16(uInt32 addr)
 {
-  uInt32 data;
+  uInt32 data = 0;
 #ifndef UNSAFE_OPTIMIZATIONS
-  if((addr > 0x40007fff) && (addr < 0x50000000))
-    fatalError("read16", addr, "abort - out of range");
-  else if((addr > 0x0007ffff) && (addr < 0x10000000))
-    fatalError("read16", addr, "abort - out of range");
   if(addr & 1)
     fatalError("read16", addr, "abort - misaligned");
 #endif
@@ -592,6 +624,10 @@ uInt32 Thumbulator::read16(uInt32 addr)
   switch(addr & 0xF0000000)
   {
     case 0x00000000: //ROM
+#ifndef UNSAFE_OPTIMIZATIONS
+      if(isInvalidROM(addr))
+        fatalError("read16", addr, "abort - out of range");
+#endif
       addr &= ROMADDMASK;
       addr >>= 1;
       data = CONV_RAMROM(rom[addr]);
@@ -599,6 +635,10 @@ uInt32 Thumbulator::read16(uInt32 addr)
       return data;
 
     case 0x40000000: //RAM
+#ifndef UNSAFE_OPTIMIZATIONS
+      if(isInvalidRAM(addr))
+        fatalError("read16", addr, "abort - out of range");
+#endif
       addr &= RAMADDMASK;
       addr >>= 1;
       data = CONV_RAMROM(ram[addr]);
@@ -630,13 +670,26 @@ uInt32 Thumbulator::read32(uInt32 addr)
     fatalError("read32", addr, "abort - misaligned");
 #endif
 
-  uInt32 data;
+  uInt32 data = 0;
   switch(addr & 0xF0000000)
   {
     case 0x00000000: //ROM
-    case 0x40000000: //RAM
+#ifndef UNSAFE_OPTIMIZATIONS
+      if(isInvalidROM(addr))
+        fatalError("read32", addr, "abort - out of range");
+#endif
       data = read16(addr+0);
       data |= (uInt32(read16(addr+2))) << 16;
+      DO_DBUG(statusMsg << "read32(" << Base::HEX8 << addr << ")=" << Base::HEX8 << data << endl);
+      return data;
+
+    case 0x40000000: //RAM
+#ifndef UNSAFE_OPTIMIZATIONS
+      if(isInvalidRAM(addr))
+        fatalError("read32", addr, "abort - out of range");
+#endif
+      data = read16(addr+0);
+      data |= (static_cast<uInt32>(read16(addr+2))) << 16;
       DO_DBUG(statusMsg << "read32(" << Base::HEX8 << addr << ")=" << Base::HEX8 << data << endl);
       return data;
 
@@ -792,11 +845,9 @@ void Thumbulator::do_cflag(uInt32 a, uInt32 b, uInt32 c)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Thumbulator::do_vflag(uInt32 a, uInt32 b, uInt32 c)
 {
-  uInt32 rc, rd;
-
-  rc = (a & 0x7FFFFFFF) + (b & 0x7FFFFFFF) + c; //carry in
+  uInt32 rc = (a & 0x7FFFFFFF) + (b & 0x7FFFFFFF) + c; //carry in
   rc >>= 31; //carry in in lsbit
-  rd = (rc & 1) + ((a >> 31) & 1) + ((b >> 31) & 1); //carry out
+  uInt32 rd = (rc & 1) + ((a >> 31) & 1) + ((b >> 31) & 1); //carry out
   rd >>= 1; //carry out in lsbit
   rc = (rc^rd) & 1; //if carry in != carry out then signed overflow
   if(rc)
@@ -1048,7 +1099,7 @@ int Thumbulator::execute()
 
   pc = read_register(15);
 
-  uInt32 instructionPtr = pc - 2;
+  const uInt32 instructionPtr = pc - 2;
   inst = fetch16(instructionPtr);
 
   pc += 2;
@@ -2931,6 +2982,20 @@ int Thumbulator::reset()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Thumbulator::ChipPropsType Thumbulator::setChipType(ChipType type)
 {
+  if(type == ChipType::AUTO)
+  {
+    if(_chipType != ChipType::AUTO)
+      type = _chipType;
+    else if(searchPattern(0x3016E5C0, 3)) // alternate bus location (standard = 0x3015E5C0)
+      type = ChipType::LPC213x;
+    else if(romSize <= 0x8000)            // LPC2104.. is always > 32K
+      type = ChipType::LPC2101;
+    else if(searchPattern(0x1026E3A0))    // 70 MHz pattern (60 MHZ = 0x1025E3A0)
+      type = ChipType::LPC2104_OC;
+    else
+      type = ChipType::LPC2104;
+  }
+
   ChipPropsType props = ChipProps[static_cast<uInt32>(type)];
 
   _chipType = type;
@@ -3164,8 +3229,7 @@ void Thumbulator::incSCycles(uInt32 addr, AccessType accessType)
   ++_stats.sCylces;
 #endif
 
-  uInt32 cycles;
-
+  uInt32 cycles = 0;
 
   if(addr & 0xC0000000) // RAM, peripherals
     cycles = 1;
@@ -3228,7 +3292,7 @@ void Thumbulator::incNCycles(uInt32 addr, AccessType accessType)
   ++_stats.nCylces;
 #endif
 
-  uInt32 cycles;
+  uInt32 cycles = 0;
 
   if(addr & 0xC0000000) // RAM, peripherals
     cycles = 1;
@@ -3283,3 +3347,21 @@ void Thumbulator::incICycles(uInt32 m)
 }
 
 #endif // THUMB_CYCLE_COUNT
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool Thumbulator::searchPattern(uInt32 pattern, uInt32 repeats) const
+{
+  // Note: The pattern is defined in 1-0-3-2 byte order!
+  const uInt16 patternLo = pattern >> 16;
+  const uInt16 patternHi = pattern & 0xffff;
+  uInt32 count = 0;
+
+  // The pattern is always aligned to 4
+  for(uInt32 i = 0; i < romSize/2 - 2; i += 2)
+  {
+    if(rom[i] == patternLo && rom[i + 1] == patternHi)
+      if(++count == repeats)
+        return true;
+  }
+  return false;
+}

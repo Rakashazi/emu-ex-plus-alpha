@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -63,7 +63,7 @@ void RewindManager::setup()
 
   // calc interval growth factor for compression
   // this factor defines the backward horizon
-  const double MAX_FACTOR = 1E8;
+  constexpr double MAX_FACTOR = 1E8;
   double minFactor = 0, maxFactor = MAX_FACTOR;
   myFactor = 1;
 
@@ -82,7 +82,7 @@ void RewindManager::setup()
       interval *= myFactor;
       cycleSum += interval;
     }
-    double diff = cycleSum - myHorizon;
+    const double diff = cycleSum - myHorizon;
 
     // exit loop if result is close enough
     if(std::abs(diff) < myHorizon * 1E-5)
@@ -102,7 +102,7 @@ bool RewindManager::addState(const string& message, bool timeMachine)
   if(timeMachine && myStateList.currentIsValid())
   {
     // check if the current state has the right interval from the last state
-    RewindState& lastState = myStateList.current();
+    const RewindState& lastState = myStateList.current();
     uInt32 interval = myInterval;
 
     // adjust frame timed intervals to actual scanlines (vs 262)
@@ -145,7 +145,7 @@ bool RewindManager::addState(const string& message, bool timeMachine)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt32 RewindManager::rewindStates(uInt32 numStates)
 {
-  uInt64 startCycles = myOSystem.console().tia().cycles();
+  const uInt64 startCycles = myOSystem.console().tia().cycles();
   uInt32 i;
   string message;
 
@@ -185,7 +185,7 @@ uInt32 RewindManager::rewindStates(uInt32 numStates)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt32 RewindManager::unwindStates(uInt32 numStates)
 {
-  uInt64 startCycles = myOSystem.console().tia().cycles();
+  const uInt64 startCycles = myOSystem.console().tia().cycles();
   uInt32 i;
   string message;
 
@@ -243,9 +243,9 @@ string RewindManager::saveAllStates()
     if (!out)
       return "Can't save to all states file";
 
-    uInt32 curIdx = getCurrentIdx();
+    const uInt32 curIdx = getCurrentIdx();
     rewindStates(MAX_BUF_SIZE);
-    uInt32 numStates = uInt32(cyclesList().size());
+    uInt32 numStates = static_cast<uInt32>(cyclesList().size());
 
     // Save header
     buf.str("");
@@ -256,8 +256,7 @@ string RewindManager::saveAllStates()
     {
       RewindState& state = myStateList.current();
       Serializer& s = state.data;
-      uInt32 stateSize = uInt32(s.size());
-      unique_ptr<uInt8[]> buffer = make_unique<uInt8[]>(stateSize);
+      const uInt32 stateSize = static_cast<uInt32>(s.size());
 
       out.putInt(stateSize);
 
@@ -265,8 +264,9 @@ string RewindManager::saveAllStates()
       s.rewind();
 
       // Save state
-      s.getByteArray(buffer.get(), stateSize);
-      out.putByteArray(buffer.get(), stateSize);
+      ByteArray buffer(stateSize);
+      s.getByteArray(buffer.data(), stateSize);
+      out.putByteArray(buffer.data(), stateSize);
       out.putString(state.message);
       out.putLong(state.cycles);
 
@@ -301,7 +301,7 @@ string RewindManager::loadAllStates()
       return "Can't load from all states file";
 
     clear();
-    uInt32 numStates;
+    uInt32 numStates = 0;
 
     // Load header
     buf.str("");
@@ -315,8 +315,7 @@ string RewindManager::loadAllStates()
       if (myStateList.full())
         compressStates();
 
-      uInt32 stateSize = in.getInt();
-      unique_ptr<uInt8[]> buffer = make_unique<uInt8[]>(stateSize);
+      const uInt32 stateSize = in.getInt();
 
       // Add new state at the end of the list (queue adds at end)
       // This updates the 'current' iterator inside the list
@@ -328,8 +327,9 @@ string RewindManager::loadAllStates()
       s.rewind();
 
       // Fill new state with saved values
-      in.getByteArray(buffer.get(), stateSize);
-      s.putByteArray(buffer.get(), stateSize);
+      ByteArray buffer(stateSize);
+      in.getByteArray(buffer.data(), stateSize);
+      s.putByteArray(buffer.data(), stateSize);
       state.message = in.getString();
       state.cycles = in.getLong();
     }
@@ -366,9 +366,9 @@ void RewindManager::compressStates()
     {
       expectedCycles *= myFactor;
 
-      uInt64 prevCycles = myStateList.previous(it)->cycles;
-      uInt64 nextCycles = myStateList.next(it)->cycles;
-      double error = expectedCycles / (nextCycles - prevCycles);
+      const uInt64 prevCycles = myStateList.previous(it)->cycles;
+      const uInt64 nextCycles = myStateList.next(it)->cycles;
+      const double error = expectedCycles / (nextCycles - prevCycles);
 
       if(error > maxError)
       {
@@ -390,7 +390,7 @@ string RewindManager::loadState(Int64 startCycles, uInt32 numStates)
   myStateManager.loadState(s);
   myOSystem.console().tia().loadDisplay(s);
 
-  Int64 diff = startCycles - state.cycles;
+  const Int64 diff = startCycles - state.cycles;
   stringstream message;
 
   message << (diff >= 0 ? "Rewind" : "Unwind") << " " << getUnitString(diff);
@@ -418,11 +418,11 @@ string RewindManager::getUnitString(Int64 cycles)
     "cycle", "scanline", "frame", "second", "minute"
   };
   const std::array<Int64, NUM_UNITS+1> UNIT_CYCLES = {
-    1, 76, 76 * scanlines, freq, freq * 60, Int64(1) << 62
+    1, 76, 76 * scanlines, freq, freq * 60, Int64{1} << 62
   };
 
   stringstream result;
-  Int32 i;
+  Int32 i = 0;
 
   cycles = std::abs(cycles);
 
@@ -433,7 +433,7 @@ string RewindManager::getUnitString(Int64 cycles)
     if(cycles == 0 || (cycles < UNIT_CYCLES[i + 1] * 2 && cycles % UNIT_CYCLES[i + 1] != 0))
       break;
   }
-  result << cycles / UNIT_CYCLES[i] << " " << UNIT_NAMES[i];
+  result << (cycles / UNIT_CYCLES[i]) << " " << UNIT_NAMES[i];
   if(cycles / UNIT_CYCLES[i] != 1)
     result << "s";
 
@@ -466,7 +466,7 @@ IntArray RewindManager::cyclesList() const
 {
   IntArray arr;
 
-  uInt64 firstCycle = getFirstCycles();
+  const uInt64 firstCycle = getFirstCycles();
   for(auto it = myStateList.cbegin(); it != myStateList.cend(); ++it)
     arr.push_back(uInt32(it->cycles - firstCycle));
 

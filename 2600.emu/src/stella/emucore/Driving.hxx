@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -94,6 +94,9 @@ class Driving : public Controller
     // Counter to iterate through the gray codes
     Int32 myCounter{0};
 
+    // Higher resolution counter for analog (non-Stelladaptor) inputs
+    uInt32 myCounterHires{0};
+
     // Index into the gray code table
     uInt32 myGrayIndex{0};
 
@@ -103,8 +106,8 @@ class Driving : public Controller
 
     // Pre-compute the events we care about based on given port
     // This will eliminate test for left or right port in update()
-    Event::Type myCWEvent, myCCWEvent, myFireEvent,
-                myXAxisValue, myYAxisValue;
+    Event::Type myCWEvent{}, myCCWEvent{}, myFireEvent{}, myAnalogEvent{},
+                myXAxisValue{}, myYAxisValue{};
 
     // Controller to emulate in normal mouse axis mode
     int myControlID{-1};
@@ -129,9 +132,9 @@ class Driving : public Controller
 
     /**
       Update the axes pin states according to the keyboard
-      or joystick hats & buttons events currently set.
+      or joystick events currently set.
     */
-    void updateDigitalAxes();
+    void updateControllerAxes();
 
     /**
       Update the axes pin states according to the Stelladaptor axes value

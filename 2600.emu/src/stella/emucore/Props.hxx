@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -31,6 +31,8 @@ enum class PropType : uInt8 {
   Cart_Sound,
   Cart_StartBank,
   Cart_Type,
+  Cart_Highscore,
+  Cart_Url,
   Console_LeftDiff,
   Console_RightDiff,
   Console_TVType,
@@ -49,8 +51,6 @@ enum class PropType : uInt8 {
   Display_VCenter,
   Display_Phosphor,
   Display_PPBlend,
-  Cart_Highscore,
-  Cart_Url,
   NumTypes
 };
 
@@ -74,6 +74,7 @@ class Properties
       new properties object does not claim ownership of the defaults.
     */
     Properties();
+    ~Properties() = default;
 
     /**
       Creates a properties list by copying another one
@@ -95,7 +96,7 @@ class Properties
       @return     The value of the property
     */
     const string& get(PropType key) const {
-      uInt8 pos = static_cast<uInt8>(key);
+      const uInt8 pos = static_cast<uInt8>(key);
       return pos < static_cast<uInt8>(PropType::NumTypes) ? myProperties[pos] : EmptyString;
     }
 
@@ -184,6 +185,11 @@ class Properties
 
     // The text strings associated with each property type
     static std::array<string, NUM_PROPS> ourPropertyNames;
+
+  private:
+    // Following constructors and assignment operators not supported
+    Properties(Properties&&) = delete;
+    Properties& operator=(Properties&&) = delete;
 };
 
 #endif

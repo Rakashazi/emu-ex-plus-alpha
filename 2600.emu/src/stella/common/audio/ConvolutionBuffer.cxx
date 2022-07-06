@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -33,7 +33,7 @@ void ConvolutionBuffer::shift(float nextValue)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-float ConvolutionBuffer::convoluteWith(float* kernel) const
+float ConvolutionBuffer::convoluteWith(const float* const kernel) const
 {
   float result = 0.F;
 

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -62,7 +62,7 @@ ProfilingRunner::ProfilingRunner(int argc, char* argv[])
     ProfilingRun& run(profilingRuns[i-2]);
 
     string arg = argv[i];
-    size_t splitPoint = arg.find_first_of(':');
+    const size_t splitPoint = arg.find_first_of(':');
 
     run.romFile = splitPoint == string::npos ? arg : arg.substr(0, splitPoint);
 
@@ -81,7 +81,7 @@ bool ProfilingRunner::run()
 {
   cout << "Profiling Stella..." << endl;
 
-  for (ProfilingRun& run : profilingRuns) {
+  for (const ProfilingRun& run : profilingRuns) {
     cout << endl << "running " << run.romFile << " for " << run.runtime << " seconds..." << endl;
 
     if (!runOne(run)) return false;
@@ -91,6 +91,9 @@ bool ProfilingRunner::run()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// FIXME
+// Warning	C6262	Function uses '301164' bytes of stack : exceeds / analyze :
+//                stacksize '16384'.  Consider moving some data to heap.
 bool ProfilingRunner::runOne(const ProfilingRun& run)
 {
   FilesystemNode imageFile(run.romFile);
@@ -101,7 +104,7 @@ bool ProfilingRunner::runOne(const ProfilingRun& run)
   }
 
   ByteBuffer image;
-  size_t size = imageFile.read(image);
+  const size_t size = imageFile.read(image);
   if (size == 0) {
     cout << "ERROR: unable to read " << run.romFile << endl;
     return false;
@@ -141,7 +144,7 @@ bool ProfilingRunner::runOne(const ProfilingRun& run)
   (cout << "detecting frame layout... ").flush();
   for(int i = 0; i < 60; ++i) tia.update();
 
-  FrameLayout frameLayout = frameLayoutDetector.detectedLayout();
+  const FrameLayout frameLayout = frameLayoutDetector.detectedLayout();
   ConsoleTiming consoleTiming = ConsoleTiming::ntsc;
 
   switch (frameLayout) {
@@ -164,9 +167,9 @@ bool ProfilingRunner::runOne(const ProfilingRun& run)
 
   system.reset();
 
-  EmulationTiming emulationTiming(frameLayout, consoleTiming);
+  const EmulationTiming emulationTiming(frameLayout, consoleTiming);
   uInt64 cycles = 0;
-  uInt64 cyclesTarget = uInt64(run.runtime) * emulationTiming.cyclesPerSecond();
+  const uInt64 cyclesTarget = static_cast<uInt64>(run.runtime) * emulationTiming.cyclesPerSecond();
 
   DispatchResult dispatchResult;
   dispatchResult.setOk(0);
@@ -174,7 +177,7 @@ bool ProfilingRunner::runOne(const ProfilingRun& run)
   uInt32 percent = 0;
   (cout << "0%").flush();
 
-  time_point<high_resolution_clock> tp = high_resolution_clock::now();
+  const time_point<high_resolution_clock> tp = high_resolution_clock::now();
 
   while (cycles < cyclesTarget && dispatchResult.getStatus() == DispatchResult::Status::ok) {
     tia.update(dispatchResult);
@@ -182,13 +185,13 @@ bool ProfilingRunner::runOne(const ProfilingRun& run)
 
     if (tia.newFramePending()) tia.renderToFrameBuffer();
 
-    uInt32 percentNow = uInt32(std::min((100 * cycles) / cyclesTarget, static_cast<uInt64>(100)));
+    const uInt32 percentNow = uInt32(std::min((100 * cycles) / cyclesTarget, static_cast<uInt64>(100)));
     updateProgress(percent, percentNow);
 
     percent = percentNow;
   }
 
-  double realtimeUsed = duration_cast<duration<double>>(high_resolution_clock::now () - tp).count();
+  const double realtimeUsed = duration_cast<duration<double>>(high_resolution_clock::now () - tp).count();
 
   if (dispatchResult.getStatus() != DispatchResult::Status::ok) {
     cout << endl << "ERROR: emulation failed after " << cycles << " cycles";

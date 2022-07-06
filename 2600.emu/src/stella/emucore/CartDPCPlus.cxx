@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -55,7 +55,7 @@ CartridgeDPCPlus::CartridgeDPCPlus(const ByteBuffer& image, size_t size,
        static_cast<uInt32>(32_KB),
       0x00000C00,
       0x00000C08,
-      0x40001FDC,
+      0x40001FFC,
        devSettings ? settings.getBool("dev.thumb.trapfatal") : false,
        devSettings ? static_cast<double>(
           settings.getFloat("dev.thumb.cyclefactor")) : 1.0,
@@ -78,7 +78,7 @@ CartridgeDPCPlus::CartridgeDPCPlus(const ByteBuffer& image, size_t size,
      myDriverMD5 == "8dd73b44fd11c488326ce507cbeb19d1" )
     myFractionalLowMask = 0x0F0000;
 
-  setInitialState();
+  this->setInitialState();
 
   myPlusROM = make_unique<PlusROM>(mySettings, *this);
 
@@ -136,7 +136,7 @@ void CartridgeDPCPlus::install(System& system)
   mySystem = &system;
 
   // Map all of the accesses to call peek and poke
-  System::PageAccess access(this, System::PageAccessType::READ);
+  const System::PageAccess access(this, System::PageAccessType::READ);
   for(uInt16 addr = 0x1000; addr < 0x1080; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
@@ -165,13 +165,13 @@ inline void CartridgeDPCPlus::priorClockRandomNumberGenerator()
 inline void CartridgeDPCPlus::updateMusicModeDataFetchers()
 {
   // Calculate the number of cycles since the last update
-  uInt32 cycles = uInt32(mySystem->cycles() - myAudioCycles);
+  const uInt32 cycles = static_cast<uInt32>(mySystem->cycles() - myAudioCycles);
   myAudioCycles = mySystem->cycles();
 
   // Calculate the number of DPC+ OSC clocks since the last update
-  double clocks = ((20000.0 * cycles) / myClockRate) + myFractionalClocks;
-  uInt32 wholeClocks = uInt32(clocks);
-  myFractionalClocks = clocks - double(wholeClocks);
+  const double clocks = ((20000.0 * cycles) / myClockRate) + myFractionalClocks;
+  const uInt32 wholeClocks = static_cast<uInt32>(clocks);
+  myFractionalClocks = clocks - static_cast<double>(wholeClocks);
 
   // Let's update counters and flags of the music mode data fetchers
   if(wholeClocks > 0)
@@ -183,7 +183,7 @@ inline void CartridgeDPCPlus::updateMusicModeDataFetchers()
 inline void CartridgeDPCPlus::callFunction(uInt8 value)
 {
   // myParameter
-  uInt16 ROMdata = (myParameter[1] << 8) + myParameter[0];
+  const uInt16 ROMdata = (myParameter[1] << 8) + myParameter[0];
   switch (value)
   {
     case 0: // Parameter Pointer reset
@@ -204,7 +204,7 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
               // time for Stella as ARM code "runs in zero 6507 cycles".
     case 255: // call without IRQ driven audio
       try {
-        uInt32 cycles = uInt32(mySystem->cycles() - myARMCycles);
+        uInt32 cycles = static_cast<uInt32>(mySystem->cycles() - myARMCycles);
 
         myARMCycles = mySystem->cycles();
         myThumbEmulator->run(cycles, value == 254);
@@ -235,8 +235,7 @@ uInt8 CartridgeDPCPlus::peek(uInt16 address)
 
   address &= 0x0FFF;
 
-  uInt8 peekvalue = myProgramImage[myBankOffset + address];
-  uInt8 flag;
+  const uInt8 peekvalue = myProgramImage[myBankOffset + address];
 
   // In debugger/bank-locked mode, we ignore all hotspots and in general
   // anything that can change the internal state of the cart
@@ -257,11 +256,11 @@ uInt8 CartridgeDPCPlus::peek(uInt16 address)
     uInt8 result = 0;
 
     // Get the index of the data fetcher that's being accessed
-    uInt32 index = address & 0x07;
-    uInt32 function = (address >> 3) & 0x07;
+    const uInt32 index = address & 0x07;
+    const uInt32 function = (address >> 3) & 0x07;
 
     // Update flag for selected data fetcher
-    flag = (((myTops[index]-(myCounters[index] & 0x00ff)) & 0xFF) > ((myTops[index]-myBottoms[index]) & 0xFF)) ? 0xFF : 0;
+    const uInt8 flag = (((myTops[index]-(myCounters[index] & 0x00ff)) & 0xFF) > ((myTops[index]-myBottoms[index]) & 0xFF)) ? 0xFF : 0;
 
     switch(function)
     {
@@ -298,11 +297,12 @@ uInt8 CartridgeDPCPlus::peek(uInt16 address)
 
             // using myDisplayImage[] instead of myProgramImage[] because waveforms
             // can be modified during runtime.
-            uInt32 i = myDisplayImage[(myMusicWaveforms[0] << 5) + (myMusicCounters[0] >> 27)] +
-                       myDisplayImage[(myMusicWaveforms[1] << 5) + (myMusicCounters[1] >> 27)] +
-                       myDisplayImage[(myMusicWaveforms[2] << 5) + (myMusicCounters[2] >> 27)];
+            const uInt32 i =
+                myDisplayImage[(myMusicWaveforms[0] << 5) + (myMusicCounters[0] >> 27)] +
+                myDisplayImage[(myMusicWaveforms[1] << 5) + (myMusicCounters[1] >> 27)] +
+                myDisplayImage[(myMusicWaveforms[2] << 5) + (myMusicCounters[2] >> 27)];
 
-            result = uInt8(i);
+            result = static_cast<uInt8>(i);
             break;
           }
 
@@ -429,20 +429,21 @@ bool CartridgeDPCPlus::poke(uInt16 address, uInt8 value)
   if((address >= 0x0028) && (address < 0x0080))
   {
     // Get the index of the data fetcher that's being accessed
-    uInt32 index = address & 0x07;
-    uInt32 function = ((address - 0x28) >> 3) & 0x0f;
+    const uInt32 index = address & 0x07;
+    const uInt32 function = ((address - 0x28) >> 3) & 0x0f;
 
     switch(function)
     {
       // DFxFRACLOW - fractional data pointer low byte
       case 0x00:
         myFractionalCounters[index] =
-          (myFractionalCounters[index] & myFractionalLowMask) | (uInt16(value) << 8);
+          (myFractionalCounters[index] & myFractionalLowMask) | (static_cast<uInt16>(value) << 8);
         break;
 
       // DFxFRACHI - fractional data pointer high byte
       case 0x01:
-        myFractionalCounters[index] = ((uInt16(value) & 0x0F) << 16) | (myFractionalCounters[index] & 0x00ffff);
+        myFractionalCounters[index] = ((static_cast<uInt16>(value) & 0x0F) << 16) |
+                                       (myFractionalCounters[index] & 0x00ffff);
         break;
 
       //DFxFRACINC - Fractional Increment amount
@@ -508,7 +509,7 @@ bool CartridgeDPCPlus::poke(uInt16 address, uInt8 value)
       // DFxHI - data pointer high byte
       case 0x08:
       {
-        myCounters[index] = ((uInt16(value) & 0x0F) << 8) | (myCounters[index] & 0x00ff);
+        myCounters[index] = ((static_cast<uInt16>(value) & 0x0F) << 8) | (myCounters[index] & 0x00ff);
         break;
       }
 

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -208,7 +208,7 @@ class TIA : public Device
       and eliminate having to save approx. 50K to normal state files.
     */
     bool saveDisplay(Serializer& out) const;
-    bool loadDisplay(Serializer& in);
+    bool loadDisplay(const Serializer& in);
 
     /**
       This method should be called at an interval corresponding to the
@@ -326,7 +326,7 @@ class TIA : public Device
     /**
       Answers the total system cycles from the start of the emulation.
     */
-    uInt64 cycles() const { return uInt64(mySystem->cycles()); }
+    uInt64 cycles() const { return mySystem->cycles(); }
 
   #ifdef DEBUGGER_SUPPORT
     /**
@@ -338,7 +338,7 @@ class TIA : public Device
       Answers the system cycles from the start of the current frame.
     */
     uInt32 frameCycles() const {
-      return uInt32(mySystem->cycles() - myCyclesAtFrameStart);
+      return static_cast<uInt32>(mySystem->cycles() - myCyclesAtFrameStart);
     }
 
     /**
@@ -441,6 +441,7 @@ class TIA : public Device
       @return  Whether the mode was enabled or disabled
     */
     bool toggleJitter(uInt8 mode = 2);
+    void setJitterSensitivity(Int32 sensitivity);
     void setJitterRecoveryFactor(Int32 factor);
 
     /**
@@ -456,6 +457,13 @@ class TIA : public Device
       @param delayed   Wether to enable delayed playfield colors
     */
     void setPFColorDelay(bool delayed);
+
+    /**
+      Enables/disables score mode playfield color glitch
+
+      @param enable   Wether to enable color glitch
+    */
+    void setPFScoreGlitch(bool enable);
 
     /**
       Enables/disables delayed background colors.
@@ -519,7 +527,7 @@ class TIA : public Device
       Get the current x value.
     */
     uInt8 getPosition() const {
-      uInt8 realHctr = myHctr - myHctrDelta;
+      const uInt8 realHctr = myHctr - myHctrDelta;
 
       return (realHctr < TIAConstants::H_BLANK_CLOCKS) ? 0 : (realHctr - TIAConstants::H_BLANK_CLOCKS);
     }
@@ -970,7 +978,8 @@ class TIA : public Device
      * The frame manager can change during our lifetime, so we buffer those two.
      */
     bool myEnableJitter{false};
-    uInt8 myJitterFactor{0};
+    uInt8 myJitterSensitivity{0};
+    uInt8 myJitterRecovery{0};
 
     static constexpr uInt16
       TIA_SIZE = 0x40, TIA_MASK = TIA_SIZE - 1,

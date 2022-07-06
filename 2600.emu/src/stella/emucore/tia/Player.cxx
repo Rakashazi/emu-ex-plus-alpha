@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2022 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -109,7 +109,7 @@ void Player::nusiz(uInt8 value, bool hblank)
   // decode and rendering.
 
   if (myIsRendering) {
-    Int8 delta = myRenderCounter - Count::renderCounterOffset;
+    const Int8 delta = myRenderCounter - Count::renderCounterOffset;
 
     switch ((myDivider << 4) | myDividerPending) {
       case 0x12:
@@ -288,7 +288,7 @@ uInt8 Player::getRespClock() const
       return (myCounter + TIAConstants::H_PIXEL - 5) % TIAConstants::H_PIXEL;
 
     case 2:
-      return (myCounter + TIAConstants::H_PIXEL - 9) % TIAConstants::H_PIXEL;
+      return (myCounter + TIAConstants::H_PIXEL - 8) % TIAConstants::H_PIXEL;
 
     case 4:
       return (myCounter + TIAConstants::H_PIXEL - 12) % TIAConstants::H_PIXEL;
