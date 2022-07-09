@@ -165,6 +165,8 @@ protected:
 	uint8_t enumId_{};
 	Map map_{Map::UNKNOWN};
 	Subtype subtype_{};
+
+	void updateGamepadSubtype(std::string_view name, uint32_t vendorProductId);
 };
 
 class Axis

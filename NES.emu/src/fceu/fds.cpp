@@ -232,8 +232,8 @@ void FCEU_FDSSetDisk(uint8 side, EmuEx::NesSystem &sys)
 	if(FCEU_FDSInserted())
 	{
 		FCEU_FDSInsert();
-		for(int i = 0; i < 60; i++)
-			FCEUI_Emulate(sys, nullptr, false, nullptr); // wait 1 second in emu time for disk eject
+		for(int i = 0; i < 120; i++)
+			FCEUI_Emulate(sys, nullptr, false, nullptr); // wait 2 seconds in emu time for disk eject
 	}
 
 	while(SelectDisk != side)

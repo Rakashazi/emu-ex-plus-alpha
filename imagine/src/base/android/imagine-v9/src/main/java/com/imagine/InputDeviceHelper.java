@@ -76,6 +76,17 @@ final class InputDeviceHelper
 		return bits;
 	}
 
+	static int vendorProductId(InputDevice dev)
+	{
+		int vendorProductId = 0;
+		if(android.os.Build.VERSION.SDK_INT >= 19)
+		{
+			Log.e(logTag, dev.getName() + " vendor:" + dev.getVendorId() + " product:" + dev.getProductId());
+			vendorProductId = ((dev.getVendorId() & 0xFFFF) << 16) | (dev.getProductId() & 0xFFFF);
+		}
+		return vendorProductId;
+	}
+
 	static void enumInputDevices(BaseActivity act, long nativeUserData)
 	{
 		int[] idArr = InputDevice.getDeviceIds();
@@ -85,7 +96,7 @@ final class InputDeviceHelper
 			if(!shouldHandleDevice(dev))
 				continue;
 			act.inputDeviceEnumerated(nativeUserData, id, dev, dev.getName(), dev.getSources(), dev.getKeyboardType(),
-				axisBits(dev), isPowerButtonName(dev.getName()));
+				axisBits(dev), vendorProductId(dev), isPowerButtonName(dev.getName()));
 		}
 	}
 }

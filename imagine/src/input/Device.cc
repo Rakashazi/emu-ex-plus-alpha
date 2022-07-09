@@ -26,6 +26,7 @@
 #ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 #include "apple/AppleGameDevice.hh"
 #endif
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 
 namespace IG::Input
@@ -436,6 +437,70 @@ DeviceTypeBits Device::typeBits() const
 void Device::setICadeMode(bool on)
 {
 	logWarn("setICadeMode called but unimplemented");
+}
+
+static DeviceSubtype gamepadSubtype(std::string_view name)
+{
+	if(name == "Sony PLAYSTATION(R)3 Controller")
+	{
+		logMsg("detected PS3 gamepad");
+		return Device::Subtype::PS3_CONTROLLER;
+	}
+	else if(name == "OUYA Game Controller")
+	{
+		logMsg("detected OUYA gamepad");
+		return Device::Subtype::OUYA_CONTROLLER;
+	}
+	else if(IG::stringContains(name, "NVIDIA Controller"))
+	{
+		logMsg("detected NVidia Shield gamepad");
+		return Device::Subtype::NVIDIA_SHIELD;
+	}
+	else if(name == "Xbox 360 Wireless Receiver")
+	{
+		logMsg("detected wireless 360 gamepad");
+		return Device::Subtype::XBOX_360_CONTROLLER;
+	}
+	else if(name == "8Bitdo SF30 Pro")
+	{
+		logMsg("detected 8Bitdo SF30 Pro");
+		return Device::Subtype::_8BITDO_SF30_PRO;
+	}
+	else if(name == "8BitDo SN30 Pro+")
+	{
+		logMsg("detected 8BitDo SN30 Pro+");
+		return Device::Subtype::_8BITDO_SN30_PRO_PLUS;
+	}
+	else if(name == "8BitDo M30 gamepad")
+	{
+		logMsg("detected 8BitDo M30 gamepad");
+		return Device::Subtype::_8BITDO_M30_GAMEPAD;
+	}
+	return {};
+}
+
+static std::string_view gamepadName(uint32_t vendorProductId)
+{
+	if(vendorProductId == 0x054c05c4) // DualShock 4
+	{
+		logMsg("detected DualShock 4 gamepad");
+		return "DualShock 4";
+	}
+	return {};
+}
+
+void Device::updateGamepadSubtype(std::string_view name, uint32_t vendorProductId)
+{
+	if(auto updatedSubtype = gamepadSubtype(name);
+		updatedSubtype != DeviceSubtype::NONE)
+	{
+		subtype_ = updatedSubtype;
+	}
+	if(auto updatedName = gamepadName(vendorProductId);
+		updatedName.size())
+	{
+		name_ = updatedName;
+	}
 }
 
 static std::pair<Key, Key> joystickKeys(AxisId axisId)

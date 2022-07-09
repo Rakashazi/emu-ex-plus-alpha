@@ -26,7 +26,8 @@ class AndroidInputDevice : public Device
 public:
 	AndroidInputDevice(int osId, TypeBits, std::string name);
 	AndroidInputDevice(JNIEnv* env, jobject aDev, int osId, int src,
-		std::string name, int kbType, uint32_t axisBits, bool isPowerButton);
+		std::string name, int kbType, uint32_t axisBits,
+		uint32_t vendorProductId, bool isPowerButton);
 	bool operator ==(AndroidInputDevice const& rhs) const;
 	void setTypeBits(TypeBits);
 	std::span<Axis> motionAxes() final;

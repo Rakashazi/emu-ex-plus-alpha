@@ -111,11 +111,12 @@ static constexpr bool isBitSetInArray(const T (&arr)[S], unsigned int bit)
 
 EvdevInputDevice::EvdevInputDevice() {}
 
-EvdevInputDevice::EvdevInputDevice(int id, int fd, TypeBits typeBits, std::string name):
+EvdevInputDevice::EvdevInputDevice(int id, int fd, TypeBits typeBits, std::string name, uint32_t vendorProductId):
 	Device{id, Map::SYSTEM, typeBits, std::move(name)},
 	fd{fd}
 {
 	subtype_ = Device::Subtype::GENERIC_GAMEPAD;
+	updateGamepadSubtype(name, vendorProductId);
 	if(setupJoystickBits())
 		typeBits_ |= Device::TYPE_BIT_JOYSTICK;
 }
@@ -310,7 +311,13 @@ static bool processDevNode(LinuxApplication &app, IG::CStringView path, int id, 
 	{
 		logWarn("unable to get device name");
 	}
-	auto evDev = std::make_unique<EvdevInputDevice>(id, fd, Device::TYPE_BIT_GAMEPAD, nameStr.data());
+	struct input_id devInfo{};
+	if(ioctl(fd, EVIOCGID, &devInfo) < 0)
+	{
+		logWarn("unable to get device info");
+	}
+	auto vendorProductId = ((devInfo.vendor & 0xFFFF) << 16) | (devInfo.product & 0xFFFF);
+	auto evDev = std::make_unique<EvdevInputDevice>(id, fd, Device::TYPE_BIT_GAMEPAD, nameStr.data(), vendorProductId);
 	fd_setNonblock(fd, 1);
 	evDev->addPollEvent(app);
 	app.addInputDevice(std::move(evDev), notify);

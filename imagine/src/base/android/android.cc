@@ -586,14 +586,15 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				}
 			},
 			{
-				"inputDeviceEnumerated", "(JILandroid/view/InputDevice;Ljava/lang/String;IIIZ)V",
+				"inputDeviceEnumerated", "(JILandroid/view/InputDevice;Ljava/lang/String;IIIIZ)V",
 				(void*)
-				+[](JNIEnv* env, jobject, jlong nUserData, jint devID, jobject jDev, jstring jName, jint src, jint kbType, jint jsAxisBits, jboolean isPowerButton)
+				+[](JNIEnv* env, jobject, jlong nUserData, jint devID, jobject jDev, jstring jName, jint src,
+					jint kbType, jint jsAxisBits, jint vendorProductId, jboolean isPowerButton)
 				{
 					auto &app = *((AndroidApplication*)nUserData);
 					const char *name = env->GetStringUTFChars(jName, nullptr);
 					Input::AndroidInputDevice sysDev{env, jDev, devID, src,
-						name, kbType, (uint32_t)jsAxisBits, (bool)isPowerButton};
+						name, kbType, (uint32_t)jsAxisBits, (uint32_t)vendorProductId, (bool)isPowerButton};
 					env->ReleaseStringUTFChars(jName, name);
 					auto devPtr = app.updateAndroidInputDevice(std::move(sysDev), false);
 					// check for special device IDs

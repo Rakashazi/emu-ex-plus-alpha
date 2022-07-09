@@ -90,7 +90,8 @@ AndroidInputDevice::AndroidInputDevice(int osId, TypeBits typeBits, std::string 
 {}
 
 AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
-	int osId, int src, std::string devName, int kbType, uint32_t jsAxisBits, bool isPowerButton):
+	int osId, int src, std::string devName, int kbType, uint32_t jsAxisBits,
+	uint32_t vendorProductId, bool isPowerButton):
 	Device{osId, Map::SYSTEM, Device::TYPE_BIT_KEY_MISC, std::move(devName)}
 {
 	if(osId == -1)
@@ -130,45 +131,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 			src = 0;
 			isGamepad = false;
 		}
-		else if(name == "Sony PLAYSTATION(R)3 Controller")
-		{
-			logMsg("detected PS3 gamepad");
-			subtype_ = Device::Subtype::PS3_CONTROLLER;
-		}
-		else if(name == "OUYA Game Controller")
-		{
-			logMsg("detected OUYA gamepad");
-			subtype_ = Device::Subtype::OUYA_CONTROLLER;
-		}
-		else if(IG::stringContains(name, "NVIDIA Controller"))
-		{
-			logMsg("detected NVidia Shield gamepad");
-			subtype_ = Device::Subtype::NVIDIA_SHIELD;
-		}
-		else if(name == "Xbox 360 Wireless Receiver")
-		{
-			logMsg("detected wireless 360 gamepad");
-			subtype_ = Device::Subtype::XBOX_360_CONTROLLER;
-		}
-		else if(name == "8Bitdo SF30 Pro")
-		{
-			logMsg("detected 8Bitdo SF30 Pro");
-			subtype_ = Device::Subtype::_8BITDO_SF30_PRO;
-		}
-		else if(name == "8BitDo SN30 Pro+")
-		{
-			logMsg("detected 8BitDo SN30 Pro+");
-			subtype_ = Device::Subtype::_8BITDO_SN30_PRO_PLUS;
-		}
-		else if(name == "8BitDo M30 gamepad")
-		{
-			logMsg("detected 8BitDo M30 gamepad");
-			subtype_ = Device::Subtype::_8BITDO_M30_GAMEPAD;
-		}
-		else
-		{
-			logMsg("detected a gamepad");
-		}
+		updateGamepadSubtype(name, vendorProductId);
 		if(isGamepad)
 		{
 			typeBits_ |= Device::TYPE_BIT_GAMEPAD;
@@ -369,10 +332,10 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 			JNINativeMethod method[]
 			{
 				{
-					"deviceChanged", "(JIILandroid/view/InputDevice;Ljava/lang/String;III)V",
-					(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jint, jobject, jstring, jint, jint, jint))
-					([](JNIEnv* env, jobject thiz, jlong nUserData, jint change, jint devID, jobject jDev,
-							jstring jName, jint src, jint kbType, jint jsAxisBits)
+					"deviceChanged", "(JIILandroid/view/InputDevice;Ljava/lang/String;IIII)V",
+					(void*)
+					+[](JNIEnv* env, jobject thiz, jlong nUserData, jint change, jint devID, jobject jDev,
+						jstring jName, jint src, jint kbType, jint jsAxisBits, jint vendorProductId)
 					{
 						auto &app = *((AndroidApplication*)nUserData);
 						if(change == Input::DEVICE_REMOVED)
@@ -383,11 +346,11 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 						{
 							const char *name = env->GetStringUTFChars(jName, nullptr);
 							Input::AndroidInputDevice sysDev{env, jDev, devID,
-								src, name, kbType, (uint32_t)jsAxisBits, false};
+								src, name, kbType, (uint32_t)jsAxisBits, (uint32_t)vendorProductId, false};
 							env->ReleaseStringUTFChars(jName, name);
 							app.updateAndroidInputDevice(std::move(sysDev), true);
 						}
-					})
+					}
 				}
 			};
 			env->RegisterNatives(inputDeviceListenerHelperCls, method, std::size(method));

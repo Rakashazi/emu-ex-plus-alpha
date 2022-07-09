@@ -66,7 +66,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		float refreshRate, int rotation, DisplayMetrics metrics);
 	static native void inputDeviceEnumerated(long nativeUserData,
 		int devID, InputDevice dev, String name, int src, int kbType,
-		int jsAxisBits, boolean isPowerButton);
+		int jsAxisBits, int vendorProductId, boolean isPowerButton);
 	static native void uriPicked(long nativeUserData, String uri, String name);
 	static native boolean uriFileListed(long nativeUserData, String uri, String name, boolean isDir);
 	private static final int commonUILayoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN

@@ -32,7 +32,7 @@ class EvdevInputDevice : public Device
 {
 public:
 	EvdevInputDevice();
-	EvdevInputDevice(int id, int fd, TypeBits, std::string name);
+	EvdevInputDevice(int id, int fd, TypeBits, std::string name, uint32_t vendorProductId);
 	~EvdevInputDevice();
 	void processInputEvents(LinuxApplication &app, input_event *event, uint32_t events);
 	bool setupJoystickBits();
