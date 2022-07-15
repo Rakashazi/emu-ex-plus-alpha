@@ -28,9 +28,7 @@ CXXABI_SRC := abort_message.cpp \
  stdlib_new_delete.cpp \
  stdlib_stdexcept.cpp \
  stdlib_typeinfo.cpp
-
 CXXABI_OBJ := $(addprefix $(objDir)/,$(CXXABI_SRC:.cpp=.o))
-OBJ := $(CXXABI_OBJ)
 
 all : $(outputLibFile) $(outputLibcxxabiFile)
 
@@ -48,18 +46,18 @@ $(libcxxSrcDir)/CMakeLists.txt : | $(libcxxSrcArchive)
 	@mkdir -p $(tempDir)
 	tar -mxJf $| -C $(tempDir)
 
-$(outputLibcxxabiFile) : $(OBJ)
+# build libc++abi after libc++ and use its build headers
+$(CXXABI_OBJ) : $(outputLibFile)
+$(CXXABI_OBJ) : CPPFLAGS += -DHAVE___CXA_THREAD_ATEXIT_IMPL -D_LIBCPP_DISABLE_EXTERN_TEMPLATE -D_LIBCPP_BUILDING_LIBRARY -D_LIBCXXABI_BUILDING_LIBRARY -nostdinc++ -I$(libcxxSrcDir)/src -I$(buildDir)/include/c++/v1
+
+$(outputLibcxxabiFile) : $(CXXABI_OBJ)
 	@echo "Archiving libc++abi..."
 	@mkdir -p `dirname $@`
-	$(AR) cr $@ $(OBJ)
+	$(AR) rcs $@ $^
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libc++..."
 	$(MAKE) -C $(<D)
-
-# build libc++abi after libc++ and use its build headers
-$(CXXABI_OBJ) : $(outputLibFile)
-$(CXXABI_OBJ) : CPPFLAGS += -DHAVE___CXA_THREAD_ATEXIT_IMPL -D_LIBCPP_DISABLE_EXTERN_TEMPLATE -D_LIBCPP_BUILDING_LIBRARY -D_LIBCXXABI_BUILDING_LIBRARY -nostdinc++ -I$(libcxxSrcDir)/src -I$(buildDir)/include/c++/v1
 
 $(makeFile) : $(libcxxSrcDir)/CMakeLists.txt
 	@echo "Configuring libc++..."
