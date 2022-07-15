@@ -36,7 +36,7 @@ all : $(outputLibFile) $(outputLibcxxabiFile)
 
 install : $(outputLibFile) $(outputLibcxxabiFile)
 	@echo "Installing libc++ to: $(installDir)"
-	@mkdir -p $(installIncludeDir)
+	@mkdir -p $(installIncludeDir) $(installDir)/lib
 	cp $(outputLibFile) $(outputLibcxxabiFile) $(installDir)/lib/
 	cp -r $(buildDir)/include/c++/v1/* $(installIncludeDir)/
 	cp -r $(libcxxabiSrcDir)/include/* $(installIncludeDir)/
