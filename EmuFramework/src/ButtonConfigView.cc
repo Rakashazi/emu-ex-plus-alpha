@@ -169,7 +169,7 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
-	cmds.setBlendMode(0);
+	cmds.set(BlendMode::OFF);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	cmds.setColor(.4, .4, .4, 1.);
 	GeomRect::draw(cmds, viewRect(), projP);
@@ -226,7 +226,7 @@ static std::pair<const KeyCategory *, int> findCategoryAndKeyInConfig(EmuApp &ap
 		{
 			skipIdx = skipIdx_;
 		}
-		iterateTimes(cat.keys, k)
+		for(auto k : iotaCount(cat.keys))
 		{
 			if((int)k != skipIdx && keyPtr[k] == key)
 			{
@@ -312,7 +312,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 					if(!conf)
 						return;
 					conf->unbindCategory(*cat);
-					iterateTimes(cat->keys, i)
+					for(auto i : iotaCount(cat->keys))
 					{
 						btn[i].set2ndName(devConf->device().keyName(devConf->keyConf().key(*cat)[i]));
 						btn[i].compile2nd(renderer(), projP);
@@ -328,7 +328,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 	devConf = &devConf_;
 	auto keyConfig = devConf_.keyConf();
 	btn = std::make_unique<BtnConfigMenuItem[]>(cat->keys);
-	iterateTimes(cat->keys, i)
+	for(int i : iotaCount(cat->keys))
 	{
 		auto key = keyConfig.key(*cat)[i];
 		btn[i] =

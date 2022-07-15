@@ -1,4 +1,6 @@
 makefilesToRun='
+	src/libcxx/android-arm64.mk
+
 	src/libogg/android-arm64.mk
 	
 	src/libvorbis/android-arm64.mk

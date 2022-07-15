@@ -162,7 +162,7 @@ void VController::place()
 	}
 	applyButtonSize();
 	auto &layoutPos = layoutPosition()[window().isPortrait() ? 1 : 0];
-	iterateTimes(numElements(), i)
+	for(auto i : iotaCount(numElements()))
 	{
 		setPos(i, layoutToPixelPos(layoutPos[i], winData.contentBounds()));
 		setState(i, layoutPos[i].state);
@@ -330,7 +330,7 @@ void VController::draw(Gfx::RendererCommands &cmds, bool activeFF, bool showHidd
 	if(alpha == 0.f) [[unlikely]]
 		return;
 	auto projP = windowData().projection.plane();
-	cmds.setBlendMode(Gfx::BLEND_MODE_ALPHA);
+	cmds.set(Gfx::BlendMode::ALPHA);
 	Gfx::Color whiteCol{1., 1., 1., alpha};
 	cmds.setColor(whiteCol);
 	if(isInKeyboardMode())

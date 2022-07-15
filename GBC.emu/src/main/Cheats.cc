@@ -57,9 +57,9 @@ void GbcSystem::applyCheats()
 	{
 		if(!e.isOn())
 			continue;
-		std::string &codeStr = IG::stringContains(e.code, "-") ? ggCodeStr : gsCodeStr;
+		std::string &codeStr = std::string_view{e.code}.contains('-') ? ggCodeStr : gsCodeStr;
 		if(codeStr.size())
-			codeStr += ";";
+			codeStr += ';';
 		codeStr += e.code;
 	}
 	gbEmu.setGameGenie(ggCodeStr);
@@ -120,7 +120,7 @@ void readCheatFile(EmuSystem &sys)
 		return;
 	}
 	auto size = file.get<uint16_t>();
-	iterateTimes(size, i)
+	for(auto i : iotaCount(size))
 	{
 		if(cheatList.isFull())
 		{
@@ -287,11 +287,11 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 
 void EmuEditCheatListView::loadCheatItems()
 {
-	unsigned cheats = cheatList.size();
+	auto cheats = cheatList.size();
 	cheat.clear();
 	cheat.reserve(cheats);
 	auto it = cheatList.begin();
-	iterateTimes(cheats, c)
+	for(auto c : iotaCount(cheats))
 	{
 		auto &thisCheat = *it;
 		cheat.emplace_back(thisCheat.name, &defaultFace(),
@@ -314,7 +314,7 @@ void EmuCheatsView::loadCheatItems()
 	cheat.clear();
 	cheat.reserve(cheats);
 	auto it = cheatList.begin();
-	iterateTimes(cheats, cIdx)
+	for(auto cIdx : iotaCount(cheats))
 	{
 		auto &thisCheat = *it;
 		cheat.emplace_back(thisCheat.name, &defaultFace(), thisCheat.isOn(),

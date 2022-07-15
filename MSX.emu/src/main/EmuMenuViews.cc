@@ -21,6 +21,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/AssetFS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include "MainApp.hh"
 
 extern "C"
@@ -478,19 +479,19 @@ public:
 			}
 		}
 	{
-		iterateTimes(2, slot)
+		for(auto slot : iotaCount(2))
 		{
 			updateROMText(slot);
 			romSlot[slot].setActive((int)slot < boardInfo.cartridgeCount);
 			item.emplace_back(&romSlot[slot]);
 		}
-		iterateTimes(2, slot)
+		for(auto slot : iotaCount(2))
 		{
 			updateDiskText(slot);
 			diskSlot[slot].setActive((int)slot < boardInfo.diskdriveCount);
 			item.emplace_back(&diskSlot[slot]);
 		}
-		iterateTimes(4, slot)
+		for(auto slot : iotaCount(4))
 		{
 			updateHDText(slot);
 			hdSlot[slot].setActive(boardGetHdType(slot/2) == HD_SUNRISEIDE);

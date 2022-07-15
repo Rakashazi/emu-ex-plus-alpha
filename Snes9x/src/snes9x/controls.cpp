@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <ctype.h>
 
+#define Debugger MacTypes_Debugger
 #include "snes9x.h"
 #include "memmap.h"
 #include "apu/apu.h"
@@ -23,6 +24,7 @@
 #ifdef NETPLAY_SUPPORT
 #include "netplay.h"
 #endif
+#undef Debugger
 
 #define fprintf(file, format, ...) S9xPrintfError(format, ##__VA_ARGS__)
 

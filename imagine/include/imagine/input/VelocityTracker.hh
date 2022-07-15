@@ -16,15 +16,15 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/algorithm.h>
-#include <imagine/util/concepts.hh>
+#include <imagine/util/ranges.hh>
+#include <concepts>
 #include <chrono>
 #include <array>
 
 namespace IG::Input
 {
 
-template <IG::floating_point T, size_t D>
+template <std::floating_point T, size_t D>
 class IntegratingVelocityTracker
 {
 public:
@@ -45,13 +45,13 @@ public:
 		T dt = (time - updateTime).count() * (T)0.000000001;
 		updateTime = time;
 		ValArray vel_;
-		iterateTimes(D, i)
+		for(auto i : iotaCount(D))
 		{
 			vel_[i] = (pos_[i] - pos[i]) / dt;
 		}
 		if(degree == 0)
 		{
-			iterateTimes(D, i)
+			for(auto i : iotaCount(D))
 			{
 				vel[i] = vel_[i];
 			}
@@ -60,12 +60,12 @@ public:
 		else
 		{
 			T alpha = dt / (FILTER_TIME_CONSTANT + dt);
-			iterateTimes(D, i)
+			for(auto i : iotaCount(D))
 			{
 				vel[i] += (vel_[i] - vel[i]) * alpha;
 			}
 		}
-		iterateTimes(D, i)
+		for(auto i : iotaCount(D))
 		{
 			pos[i] = pos_[i];
 		}

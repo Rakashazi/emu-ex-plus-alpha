@@ -74,7 +74,7 @@ bool IdentInputDeviceView::inputEvent(const Input::Event &e)
 void IdentInputDeviceView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
-	cmds.setBlendMode(0);
+	cmds.set(BlendMode::OFF);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	cmds.setColor(.4, .4, .4, 1.);
 	GeomRect::draw(cmds, viewRect(), projP);

@@ -21,6 +21,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/utility.h>
+#include <concepts>
 
 namespace IG
 {
@@ -55,22 +56,22 @@ public:
 	RendererCommands makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
 		bool notifyWindowAfterPresent, Window &win, Mat4 projMat);
 
-	void run(IG::invocable auto &&f, bool awaitReply = false) { GLTask::run(IG_forward(f), awaitReply); }
+	void run(std::invocable auto &&f, bool awaitReply = false) { GLTask::run(IG_forward(f), awaitReply); }
 
 	bool draw(Window &win, WindowDrawParams winParams, DrawParams params,
-		const Mat4 &projMat, IG::invocable<Window &, RendererCommands &> auto &&f)
+		const Mat4 &projMat, std::invocable<Window &, RendererCommands &> auto &&f)
 	{
 		doPreDraw(win, winParams, params);
-		assert(params.asyncMode() != DrawAsyncMode::AUTO); // doPreDraw() should set mode
-		bool manageSemaphore = params.asyncMode() == DrawAsyncMode::PRESENT;
-		bool notifyWindowAfterPresent = params.asyncMode() != DrawAsyncMode::NONE;
-		bool awaitReply = params.asyncMode() != DrawAsyncMode::FULL;
+		assert(params.asyncMode != DrawAsyncMode::AUTO); // doPreDraw() should set mode
+		bool manageSemaphore = params.asyncMode == DrawAsyncMode::PRESENT;
+		bool notifyWindowAfterPresent = params.asyncMode != DrawAsyncMode::NONE;
+		bool awaitReply = params.asyncMode != DrawAsyncMode::FULL;
 		GLTask::run([=, this, &win, &projMat](TaskContext ctx)
 			{
 				auto cmds = makeRendererCommands(ctx, manageSemaphore, notifyWindowAfterPresent, win, projMat);
 				f(win, cmds);
 			}, awaitReply);
-		return params.asyncMode() == DrawAsyncMode::NONE;
+		return params.asyncMode == DrawAsyncMode::NONE;
 	}
 
 	// for iOS EAGLView renderbuffer management

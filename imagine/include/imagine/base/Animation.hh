@@ -17,6 +17,7 @@
 
 #include <imagine/base/baseDefs.hh>
 #include <imagine/util/Interpolator.hh>
+#include <concepts>
 
 namespace IG
 {
@@ -38,7 +39,7 @@ public:
 		return *this;
 	}
 
-	void start(Clock &c, T begin, T end, FrameTime duration, invocable<Clock &, T> auto &&onUpdate)
+	void start(Clock &c, T begin, T end, FrameTime duration, std::invocable<Clock &, T> auto &&onUpdate)
 	{
 		cancel();
 		clock = &c;
@@ -70,14 +71,14 @@ public:
 	void finish()
 	{
 		cancel();
-		animator.finish();
-		animate({animator.endTime(), 0});
+		animate(FrameParams{animator.endTime(), FloatSeconds{}});
 	}
 
 	bool isFinished() const { return animator.isFinished(); }
 
 	void cancel()
 	{
+		animator.finish();
 		if(animate)
 		{
 			assert(clock);

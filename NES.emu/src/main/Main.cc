@@ -191,9 +191,9 @@ void NesSystem::setDefaultPalette(IG::ApplicationContext ctx, IG::CStringView pa
 void NesSystem::cacheUsingZapper()
 {
 	assert(GameInfo);
-	iterateTimes(2, i)
+	for(const auto &p : joyports)
 	{
-		if(joyports[i].type == SI_ZAPPER)
+		if(p.type == SI_ZAPPER)
 		{
 			usingZapper = true;
 			return;
@@ -247,7 +247,7 @@ void NesSystem::setupNESInputPorts()
 {
 	if(!GameInfo)
 		return;
-	iterateTimes(2, i)
+	for(auto i : iotaCount(2))
 	{
 		if(nesInputPortDev[i] == SI_UNSET) // user didn't specify device, go with auto settings
 			connectNESInput(i, GameInfo->input[i] == SI_UNSET ? SI_GAMEPAD : GameInfo->input[i]);

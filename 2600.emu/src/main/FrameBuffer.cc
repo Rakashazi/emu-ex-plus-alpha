@@ -62,7 +62,7 @@ void FrameBuffer::setTIAPalette(const PaletteArray& palette)
 {
 	logMsg("setTIAPalette");
 	auto desc32 = format == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
-	iterateTimes(256, i)
+	for(auto i : IG::iotaCount(256))
 	{
 		uint8_t r = (palette[i] >> 16) & 0xff;
 		uint8_t g = (palette[i] >> 8) & 0xff;

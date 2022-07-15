@@ -19,7 +19,6 @@
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/string.h>
 #include "AndroidInputDevice.hh"
 #include <android/configuration.h>
 #include <android/input.h>
@@ -117,13 +116,13 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 	if(IG::isBitMaskSet(src, (int)AINPUT_SOURCE_GAMEPAD))
 	{
 		bool isGamepad = true;
-		if(Config::MACHINE_IS_GENERIC_ARMV7 && IG::stringContains(name, "-zeus"))
+		if(Config::MACHINE_IS_GENERIC_ARMV7 && name.contains("-zeus"))
 		{
 			logMsg("detected Xperia Play gamepad");
 			subtype_ = Device::Subtype::XPERIA_PLAY;
 		}
 		else if((Config::MACHINE_IS_GENERIC_ARMV7 && name == "sii9234_rcp")
-			|| IG::stringContains(name, "MHLRCP" ) || IG::stringContains(name, "Button Jack"))
+			|| name.contains("MHLRCP" ) || name.contains("Button Jack"))
 		{
 			// sii9234_rcp on Samsung devices like Galaxy S2, may claim to be a gamepad & full keyboard
 			// but has only special function keys
@@ -282,7 +281,7 @@ int32_t (*AMotionEvent_getActionButton_)(const AInputEvent* motion_event){};
 
 static bool isXperiaPlayDeviceStr(std::string_view str)
 {
-	return IG::stringContains(str, "R800") || str == "zeus";
+	return str.contains("R800") || str == "zeus";
 }
 
 bool AndroidApplication::hasMultipleInputDeviceSupport() const

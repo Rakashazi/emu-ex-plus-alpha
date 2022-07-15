@@ -173,7 +173,7 @@ int audioUpdateAll(int16 *sb)
 	{
 		auto cddaPtr = (int32*)cddaBuff;
 		auto cddaResampledPtr = (int32*)cddaRemsampledBuff;
-		iterateTimes(size, i)
+		for(auto i : IG::iotaCount(size))
 		{
 			unsigned samplePos = round(i * cddaRatio);
 			if(samplePos > cddaFrames)

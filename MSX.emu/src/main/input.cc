@@ -113,7 +113,7 @@ void setupVKeyboardMap(EmuApp &app, unsigned boardType)
 {
 	if(boardType != BOARD_COLECO)
 	{
-		iterateTimes(10, i) // 1 - 0
+		for(auto i : iotaCount(10)) // 1 - 0
 			kbToEventMap2[10 + i] = EC_1 + i;
 		kbToEventMap2[23] = EC_3 | (EC_LSHIFT << 8);
 	}
@@ -132,7 +132,7 @@ VController::Map MsxSystem::vControllerMap(int player)
 	if(machine && machine->board.type == BOARD_COLECO)
 	{
 		unsigned playerShift = player ? 12 : 0;
-		iterateTimes(9, i) // 1 - 9
+		for(auto i : iotaCount(9)) // 1 - 9
 			kbToEventMap2[10 + i] = EC_COLECO1_1 + i + playerShift;
 		kbToEventMap2[19] = EC_COLECO1_0 + playerShift;
 		kbToEventMap2[23] = EC_COLECO1_HASH + playerShift;

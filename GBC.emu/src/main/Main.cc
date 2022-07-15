@@ -28,7 +28,6 @@ namespace EmuEx
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\n\nPortions (c) the\nGambatte Team\ngambatte.sourceforge.net";
 bool EmuSystem::hasCheats = true;
-bool EmuSystem::canRenderRGB565 = false;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
@@ -66,11 +65,11 @@ void GbcSystem::applyGBPalette()
 	else
 		logMsg("using palette index:%zu", idx);
 	const GBPalette &pal = useBuiltin ? *gameBuiltinPalette : gbPalettes()[idx];
-	iterateTimes(4, i)
+	for(auto i : iotaCount(4))
 		gbEmu.setDmgPaletteColor(0, i, makeOutputColor(pal.bg[i]));
-	iterateTimes(4, i)
+	for(auto i : iotaCount(4))
 		gbEmu.setDmgPaletteColor(1, i, makeOutputColor(pal.sp1[i]));
-	iterateTimes(4, i)
+	for(auto i : iotaCount(4))
 		gbEmu.setDmgPaletteColor(2, i, makeOutputColor(pal.sp2[i]));
 }
 

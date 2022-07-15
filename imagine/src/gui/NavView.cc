@@ -50,7 +50,7 @@ bool NavView::selectNextLeftButton()
 	if(selected == -1)
 		selected = 1;
 	int elem = IG::wrapMinMax(selected - 1, 0, controls);
-	iterateTimes(controls, i)
+	for(auto i : iotaCount(controls))
 	{
 		if(control[elem].isActive)
 		{
@@ -68,7 +68,7 @@ bool NavView::selectNextRightButton()
 	if(selected == -1)
 		selected = controls - 2;
 	int elem = IG::wrapMinMax(selected + 1, 0, controls);
-	iterateTimes(controls, i)
+	for(auto i : iotaCount(controls))
 	{
 		if(control[elem].isActive)
 		{
@@ -191,13 +191,13 @@ BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, 
 	if(backRes)
 	{
 		leftSpr.setImg(backRes);
-		compiled |= leftSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
+		compiled |= leftSpr.compileDefaultProgram(Gfx::EnvMode::MODULATE);
 		control[0].isActive = true;
 	}
 	if(closeRes)
 	{
 		rightSpr.setImg(closeRes);
-		compiled |= rightSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
+		compiled |= rightSpr.compileDefaultProgram(Gfx::EnvMode::MODULATE);
 		control[2].isActive = true;
 	}
 	if(compiled)
@@ -207,7 +207,7 @@ BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, 
 void BasicNavView::setBackImage(Gfx::TextureSpan img)
 {
 	leftSpr.setImg(img);
-	if(leftSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
+	if(leftSpr.compileDefaultProgram(Gfx::EnvMode::MODULATE))
 		renderer().autoReleaseShaderCompiler();
 	control[0].isActive = leftSpr.image();
 }
@@ -225,7 +225,7 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 	auto const &textRect = control[1].rect;
 	if(bg)
 	{
-		cmds.setBlendMode(0);
+		cmds.set(BlendMode::OFF);
 		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 		if(viewRect().y > displayRect().y)
 		{
@@ -237,7 +237,7 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 	}
 	if(selected != -1 && control[selected].isActive)
 	{
-		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.set(BlendMode::ALPHA);
 		cmds.setColor(.2, .71, .9, 1./3.);
 		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 		GeomRect::draw(cmds, control[selected].rect, projP);
@@ -266,22 +266,22 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 	if(control[0].isActive)
 	{
 		assumeExpr(leftSpr.image());
-		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.set(BlendMode::ALPHA);
 		cmds.set(ColorName::WHITE);
 		cmds.set(imageCommonTextureSampler);
 		auto trans = projP.makeTranslate(projP.unProjectRect(control[0].rect).pos(C2DO));
 		if(rotateLeftBtn)
 			trans = trans.rollRotate(radians(90.f));
-		leftSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, trans);
+		leftSpr.setCommonProgram(cmds, EnvMode::MODULATE, trans);
 		leftSpr.draw(cmds);
 	}
 	if(control[2].isActive)
 	{
 		assumeExpr(rightSpr.image());
-		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.set(BlendMode::ALPHA);
 		cmds.set(ColorName::WHITE);
 		cmds.set(imageCommonTextureSampler);
-		rightSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(control[2].rect).pos(C2DO)));
+		rightSpr.setCommonProgram(cmds, EnvMode::MODULATE, projP.makeTranslate(projP.unProjectRect(control[2].rect).pos(C2DO)));
 		rightSpr.draw(cmds);
 	}
 }

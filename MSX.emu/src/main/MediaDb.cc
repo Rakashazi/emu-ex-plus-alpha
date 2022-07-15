@@ -38,7 +38,7 @@ extern "C" {
 }
 
 #include <string.h>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include <imagine/logger/logger.h>
 // throw_exception.hpp, Boost 1.50
 #define UUID_AA15E74A856F11E08B8D93F24824019B
@@ -558,7 +558,7 @@ extern "C" MediaType* mediaDbLookupRom(const void *buffer, int size)
 		for(auto e : romDB)
 		{
 			int match = 0;
-			iterateTimes(5, i)
+			for(auto i : IG::iotaCount(5))
 			{
 					if(digest[i] != e.digest[i])
 						break;

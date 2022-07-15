@@ -485,14 +485,14 @@ void C64System::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	execC64Frame();
 	if(video)
 	{
-		video->startFrameWithFormat(taskCtx, canvasSrcPix);
+		video->startFrameWithAltFormat(taskCtx, canvasSrcPix);
 	}
 	audioPtr = {};
 }
 
 void C64System::renderFramebuffer(EmuVideo &video)
 {
-	video.startFrameWithFormat({}, canvasSrcPix);
+	video.startFrameWithAltFormat({}, canvasSrcPix);
 }
 
 void C64System::configAudioRate(IG::FloatSeconds frameTime, int rate)
@@ -544,6 +544,8 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, const Input::Event &e)
 
 bool C64System::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
+	if(fmt == IG::PIXEL_FMT_RGB565)
+		fmt = IG::PIXEL_FMT_RGBA8888; // internally render in 32bpp
 	pixFmt = fmt;
 	if(activeCanvas)
 	{

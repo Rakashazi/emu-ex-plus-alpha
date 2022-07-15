@@ -74,7 +74,7 @@ public:
 private:
 	jobject socket{}, outStream{};
 	ApplicationContext ctx{};
-	std::binary_semaphore connectSem{};
+	std::binary_semaphore connectSem{0};
 	FDEventSource fdSrc{};
 	int nativeFd = -1;
 	uint32_t channel = 0;

@@ -92,7 +92,7 @@ void InputDeviceData::buildKeyMap(const Input::Device &d)
 	{
 		Controls::transposeKeysForPlayer(key, devConf.player());
 	}
-	iterateTimes(MAX_KEY_CONFIG_KEYS, k)
+	for(auto k : iotaCount(MAX_KEY_CONFIG_KEYS))
 	{
 		//logMsg("mapping key %d to %u %s", k, key[k], d.keyName(key[k]));
 		assert(key[k] < totalKeys);
@@ -195,7 +195,7 @@ std::span<const KeyConfig> KeyConfig::defaultConfigsForDevice(const Input::Devic
 
 static IG::StaticString<16> uniqueCustomConfigName(KeyConfigContainer &customKeyConfigs)
 {
-	iterateTimes(99, i) // Try up to "Custom 99"
+	for(auto i : iotaCount(100)) // Try up to "Custom 99"
 	{
 		auto name = IG::format<IG::StaticString<16>>("Custom {}", i+1);
 		// Check if this name is free
@@ -414,7 +414,7 @@ void generic2PlayerTranspose(KeyConfig::KeyArray &key, int player, int startCate
 
 void genericMultiplayerTranspose(KeyConfig::KeyArray &key, int player, int startCategory)
 {
-	iterateTimes(EmuSystem::maxPlayers, i)
+	for(int i : iotaCount(EmuSystem::maxPlayers))
 	{
 		if(player && i == player)
 		{

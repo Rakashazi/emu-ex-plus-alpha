@@ -19,6 +19,7 @@
 #include <imagine/pixmap/PixmapDesc.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include <imagine/util/container/array.hh>
 #include <imagine/util/concepts.hh>
 #include <cstring>
@@ -156,7 +157,7 @@ public:
 			auto destData = data();
 			auto destPitch = pitch;
 			auto lineBytes = format().pixelBytes(pixmap.w());
-			iterateTimes(pixmap.h(), i)
+			for(auto i : iotaCount(pixmap.h()))
 			{
 				memcpy(destData, srcData, lineBytes);
 				srcData += pixmap.pitchBytes();
@@ -232,7 +233,7 @@ public:
 		else
 		{
 			auto lineBytes = format().pixelBytes(size.x);
-			iterateTimes(size.y, i)
+			for(auto i : iotaCount(size.y))
 			{
 				std::fill_n(destData, lineBytes, 0);
 				destData += pitch;
@@ -271,7 +272,7 @@ public:
 		{
 			auto dataPitchPixels = pitchPixels();
 			auto width = w();
-			iterateTimes(h(), y)
+			for(auto y : iotaCount(h()))
 			{
 				auto lineData = data;
 				transformNOverlapped(lineData, width, lineData,
@@ -338,7 +339,7 @@ protected:
 		else
 		{
 			auto destPitchPixels = pitchPixels();
-			iterateTimes(pixmap.h(), h)
+			for(auto h : iotaCount(pixmap.h()))
 			{
 				auto destLineData = destData;
 				auto srcLineData = srcData;

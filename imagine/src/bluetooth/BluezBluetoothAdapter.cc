@@ -24,7 +24,7 @@
 #include <bluetooth/rfcomm.h>
 #include <bluetooth/hidp.h>
 #include <imagine/util/fd-utils.h>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include <cerrno>
 
 #ifdef __ANDROID__
@@ -158,7 +158,7 @@ IG::ErrorCode BluezBluetoothAdapter::doScan(const OnScanDeviceClassDelegate &onD
 	}
 	else
 		sendBTScanStatusDelegate(SCAN_PROCESSING, devices);
-	iterateTimes(devices, i)
+	for(auto i : iotaCount(devices))
 	{
 		if(!onDeviceClass(*this, deviceInfo[i].dev_class))
 		{

@@ -22,6 +22,5 @@ struct video_canvas_s
 	bool created;
 	bool skipFrame;
 	uint8_t pixelFormat;
-	int8_t bpp;
 };
 typedef struct video_canvas_s video_canvas_t;

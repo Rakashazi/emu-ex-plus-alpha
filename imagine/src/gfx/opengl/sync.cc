@@ -16,7 +16,6 @@
 #define LOGTAG "GLSync"
 #include <imagine/gfx/SyncFence.hh>
 #include <imagine/gfx/opengl/GLRenderer.hh>
-#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <cstring>
 
@@ -63,12 +62,12 @@ void GLRenderer::setupEglFenceSync(std::string_view eglExtenstionStr)
 		return;
 	#if defined CONFIG_BASE_GL_PLATFORM_EGL && defined CONFIG_GFX_OPENGL_ES
 	// check for fence sync via EGL extensions
-	if(IG::stringContains(eglExtenstionStr, "EGL_KHR_fence_sync"))
+	if(eglExtenstionStr.contains("EGL_KHR_fence_sync"))
 	{
 		glManager.loadSymbol(support.eglCreateSync, "eglCreateSyncKHR");
 		glManager.loadSymbol(support.eglDestroySync, "eglDestroySyncKHR");
 		glManager.loadSymbol(support.eglClientWaitSync, "eglClientWaitSyncKHR");
-		/*if(IG::stringContains(eglExtenstionStr, "EGL_KHR_wait_sync"))
+		/*if(eglExtenstionStr.contains("EGL_KHR_wait_sync"))
 		{
 			glManager.loadSymbol(support.eglWaitSync, "eglWaitSyncKHR");
 		}*/

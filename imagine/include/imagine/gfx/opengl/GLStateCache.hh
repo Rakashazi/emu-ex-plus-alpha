@@ -54,11 +54,6 @@ public:
 
 	static bool verifyState;
 
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	GLenum matrixModeState = -1;
-	void matrixMode(GLenum mode);
-	#endif
-
 	GLBindTextureState bindTextureState;
 	GLuint *getBindTextureState(GLenum target);
 	void bindTexture(GLenum target, GLuint texture);

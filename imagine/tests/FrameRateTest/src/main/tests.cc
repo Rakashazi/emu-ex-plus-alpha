@@ -180,7 +180,7 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, floa
 	if(cpuStatsText.isVisible())
 	{
 		cmds.setCommonProgram(CommonProgram::NO_TEX);
-		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.set(BlendMode::ALPHA);
 		cmds.setColor(0., 0., 0., .7);
 		GeomRect::draw(cmds, cpuStatsRect);
 		cmds.setColor(1., 1., 1., 1.);
@@ -191,7 +191,7 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, floa
 	if(frameStatsText.isVisible())
 	{
 		cmds.setCommonProgram(CommonProgram::NO_TEX);
-		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.set(BlendMode::ALPHA);
 		cmds.setColor(0., 0., 0., .7);
 		GeomRect::draw(cmds, frameStatsRect);
 		cmds.setColor(1., 1., 1., 1.);
@@ -251,8 +251,8 @@ void DrawTest::initTest(IG::ApplicationContext app, Gfx::Renderer &r, IG::WP pix
 	assert(lockedBuff);
 	memset(lockedBuff.pixmap().data(), 0xFF, lockedBuff.pixmap().bytes());
 	texture.unlock(lockedBuff);
-	texture.compileDefaultProgram(IMG_MODE_REPLACE);
-	texture.compileDefaultProgram(IMG_MODE_MODULATE);
+	texture.compileDefaultProgram(EnvMode::REPLACE);
+	texture.compileDefaultProgram(EnvMode::MODULATE);
 	sprite = {{}, texture};
 }
 
@@ -272,9 +272,9 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.clear();
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);
-	cmds.setBlendMode(BLEND_MODE_OFF);
+	cmds.set(BlendMode::OFF);
 	cmds.set(CommonTextureSampler::NO_MIP_CLAMP);
-	sprite.setCommonProgram(cmds, IMG_MODE_MODULATE);
+	sprite.setCommonProgram(cmds, EnvMode::MODULATE);
 	if(flash)
 	{
 		if(!droppedFrames)
@@ -304,7 +304,7 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &scr
 			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .7, .0, 1.);
 		else
 			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .0, .0, 1.);
-		iterateTimes(pix.w() * pix.h(), i)
+		for(auto i : iotaCount(pix.w() * pix.h()))
 		{
 			((uint16_t*)pix.data())[i] = writeColor;
 		}
@@ -322,9 +322,9 @@ void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.clear();
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);
-	cmds.setBlendMode(BLEND_MODE_OFF);
+	cmds.set(BlendMode::OFF);
 	cmds.set(CommonTextureSampler::NO_MIP_CLAMP);
-	sprite.setCommonProgram(cmds, IMG_MODE_REPLACE);
+	sprite.setCommonProgram(cmds, EnvMode::REPLACE);
 	sprite.draw(cmds);
 }
 

@@ -7,6 +7,7 @@
 
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include <imagine/io/FileIO.hh>
 
 SegaCD sCD;
@@ -242,13 +243,13 @@ void scd_memmap()
 	mm68k.memory_map[0xa1].write16  = mainGateWrite16;
 
 	// SRAM cart setup
-	iterateTimes(2, i)
+	for(auto i : IG::iotaCount(2))
 	{
 		mm68k.memory_map[0x60 + i].base    = 0;
 		mm68k.memory_map[0x60 + i].read8   = sramCartRead8;
 		mm68k.memory_map[0x60 + i].read16  = sramCartRead16;
 	}
-	iterateTimes(2, i)
+	for(auto i : IG::iotaCount(2))
 	{
 		mm68k.memory_map[0x60 + i].write8   = m68k_unused_8_w;
 		mm68k.memory_map[0x60 + i].write16  = m68k_unused_16_w;

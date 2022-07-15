@@ -71,7 +71,7 @@ void VControllerButton::draw(Gfx::RendererCommands &cmds, std::optional<Gfx::Col
 	if(col)
 		cmds.setColor(*col);
 	cmds.set(View::imageCommonTextureSampler);
-	spr.setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
+	spr.setCommonProgram(cmds, Gfx::EnvMode::MODULATE);
 	spr.draw(cmds);
 }
 
@@ -219,7 +219,7 @@ void VControllerButtonGroup::draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPl
 	}
 	//cmds.setCommonProgram(Gfx::CommonProgram::NO_TEX);
 	//Gfx::GeomRect::draw(cmds, bounds(), projP);
-	btns[0].sprite().setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
+	btns[0].sprite().setCommonProgram(cmds, Gfx::EnvMode::MODULATE);
 	for(auto &b : btns)
 	{
 		if(!b.isEnabled())

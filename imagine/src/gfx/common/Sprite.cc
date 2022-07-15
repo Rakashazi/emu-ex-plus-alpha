@@ -54,7 +54,7 @@ void SpriteBase<BaseRect>::draw(RendererCommands &cmds) const
 }
 
 template<class BaseRect>
-bool SpriteBase<BaseRect>::compileDefaultProgram(uint32_t mode)
+bool SpriteBase<BaseRect>::compileDefaultProgram(EnvMode mode)
 {
 	if(img)
 		return img->compileDefaultProgram(mode);
@@ -63,7 +63,7 @@ bool SpriteBase<BaseRect>::compileDefaultProgram(uint32_t mode)
 }
 
 template<class BaseRect>
-bool SpriteBase<BaseRect>::compileDefaultProgramOneShot(uint32_t mode)
+bool SpriteBase<BaseRect>::compileDefaultProgramOneShot(EnvMode mode)
 {
 	if(img)
 		return img->compileDefaultProgramOneShot(mode);
@@ -72,14 +72,14 @@ bool SpriteBase<BaseRect>::compileDefaultProgramOneShot(uint32_t mode)
 }
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setCommonProgram(RendererCommands &cmds, uint32_t mode, const Mat4 *modelMat) const
+void SpriteBase<BaseRect>::setCommonProgram(RendererCommands &cmds, EnvMode mode, const Mat4 *modelMat) const
 {
 	if(img)
 		img->useDefaultProgram(cmds, mode, modelMat);
 }
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setCommonProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const
+void SpriteBase<BaseRect>::setCommonProgram(RendererCommands &cmds, EnvMode mode, Mat4 modelMat) const
 {
 	setCommonProgram(cmds, mode, &modelMat);
 }

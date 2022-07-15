@@ -215,9 +215,10 @@ public:
 		val = endVal;
 	}
 
-protected:
 	using InterpolatorBase::startTime;
 	using InterpolatorBase::endTime;
+
+protected:
 	using InterpolatorBase::type;
 	using InterpolatorBase::startVal;
 	using InterpolatorBase::endVal;

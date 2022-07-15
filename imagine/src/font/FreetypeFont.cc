@@ -187,9 +187,9 @@ static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Library libr
 		assert(bitmap.num_grays == 2); // only handle 2 gray levels for now
 		//logMsg("new bitmap has %d gray levels", convBitmap.num_grays);
 		// scale 1-bit values to 8-bit range
-		iterateTimes(bitmap.rows, y)
+		for(auto y : iotaCount(bitmap.rows))
 		{
-			iterateTimes(bitmap.width, x)
+			for(auto x : iotaCount(bitmap.width))
 			{
 				if(bitmap.buffer[(y * bitmap.pitch) + x] != 0)
 					bitmap.buffer[(y * bitmap.pitch) + x] = 0xFF;
@@ -374,7 +374,7 @@ std::errc FreetypeFont::loadIntoNextSlot(IG::CStringView name)
 
 FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::errc &ec)
 {
-	iterateTimes(f.size(), i)
+	for(auto i : iotaCount(f.size()))
 	{
 		auto &font = f[i];
 		if(!font.face)
@@ -390,7 +390,7 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 		auto data = makeGlyphRenderDataWithFace(library, font.face, idx, keepPixData, ec);
 		if((bool)ec)
 		{
-			logMsg("glyph 0x%X not found in slot %d", idx, i);
+			logMsg("glyph 0x%X not found in slot %zu", idx, i);
 			continue;
 		}
 		return data;
@@ -459,7 +459,7 @@ FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 {
 	FontSize size{settings};
 	// create FT_Size objects for slots in use
-	iterateTimes(f.size(), i)
+	for(auto i : iotaCount(f.size()))
 	{
 		if(!f[i].face)
 		{
@@ -507,12 +507,12 @@ FontSettings FreetypeFontSize::fontSettings() const
 
 void FreetypeFontSize::deinit()
 {
-	iterateTimes(std::size(ftSize), i)
+	for(auto &s : ftSize)
 	{
-		if(ftSize[i])
+		if(s)
 		{
 			//logMsg("freeing size %p", ftSize[i]);
-			auto error = FT_Done_Size(ftSize[i]);
+			auto error = FT_Done_Size(s);
 			assert(!error);
 		}
 	}

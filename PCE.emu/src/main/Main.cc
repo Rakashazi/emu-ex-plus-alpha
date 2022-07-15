@@ -169,7 +169,7 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 		emuSys->Load(&gf);
 	}
 	//logMsg("%d input ports", MDFNGameInfo->InputInfo->InputPorts);
-	iterateTimes(5, i)
+	for(auto i : iotaCount(5))
 	{
 		emuSys->SetInput(i, "gamepad", (uint8*)&inputBuff[i]);
 	}
@@ -275,7 +275,7 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 	if(multiResOutputWidth == 1024)
 	{
 		// scale 256x4, 341x3 + 1x4, 512x2
-		iterateTimes(pixHeight, h)
+		for(auto h : IG::iotaCount(pixHeight))
 		{
 			auto srcPixAddr = (Pixel*)srcPix.pixel({0,(int)h});
 			int width = lineWidth[h];
@@ -285,7 +285,7 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 					bug_unreachable("width == %d", width);
 				bcase 256:
 				{
-					iterateTimes(256, w)
+					for(auto w : IG::iotaCount(256))
 					{
 						*destPixAddr++ = *srcPixAddr;
 						*destPixAddr++ = *srcPixAddr;
@@ -295,7 +295,7 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 				}
 				bcase 341:
 				{
-					iterateTimes(340, w)
+					for(auto w : IG::iotaCount(340))
 					{
 						*destPixAddr++ = *srcPixAddr;
 						*destPixAddr++ = *srcPixAddr;
@@ -308,7 +308,7 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 				}
 				bcase 512:
 				{
-					iterateTimes(512, w)
+					for(auto w : IG::iotaCount(512))
 					{
 						*destPixAddr++ = *srcPixAddr;
 						*destPixAddr++ = *srcPixAddr++;
@@ -320,7 +320,7 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 	}
 	else // 512 width
 	{
-		iterateTimes(pixHeight, h)
+		for(auto h : IG::iotaCount(pixHeight))
 		{
 			auto srcPixAddr = (Pixel*)srcPix.pixel({0,(int)h});
 			int width = lineWidth[h];
@@ -330,7 +330,7 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 					bug_unreachable("width == %d", width);
 				bcase 256:
 				{
-					iterateTimes(256, w)
+					for(auto w : IG::iotaCount(256))
 					{
 						*destPixAddr++ = *srcPixAddr;
 						*destPixAddr++ = *srcPixAddr++;

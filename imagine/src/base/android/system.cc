@@ -113,7 +113,7 @@ void NoopThread::start()
 			sem.release();
 			while(run)
 			{
-				iterateTimes(16, i)
+				for(auto i : iotaCount(16))
 				{
 					asm("nop");
 				}

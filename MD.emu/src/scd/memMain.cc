@@ -1,6 +1,6 @@
 #include <scd/scd.h>
 #include <imagine/logger/logger.h>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include "shared.h"
 #include "mem.hh"
 
@@ -598,7 +598,7 @@ void updateMainCpuSramMap(SegaCD &sCD, unsigned bcramReg)
 	if(bcramReg&1)
 	{
 		logMsg("set SRAM read/write");
-		iterateTimes(2, i)
+		for(auto i : IG::iotaCount(2))
 		{
 			mm68k.memory_map[0x60 + i].write8   = sramCartWrite8;
 			mm68k.memory_map[0x60 + i].write16  = sramCartWrite16;
@@ -607,7 +607,7 @@ void updateMainCpuSramMap(SegaCD &sCD, unsigned bcramReg)
 	else
 	{
 		logMsg("set SRAM read-only");
-		iterateTimes(2, i)
+		for(auto i : IG::iotaCount(2))
 		{
 			mm68k.memory_map[0x60 + i].write8   = m68k_unused_8_w;
 			mm68k.memory_map[0x60 + i].write16  = m68k_unused_16_w;

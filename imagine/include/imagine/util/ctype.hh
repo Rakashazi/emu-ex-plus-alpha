@@ -15,70 +15,70 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/concepts.hh>
+#include <concepts>
 
 namespace IG
 {
 
-constexpr bool isalpha(integral auto c)
+constexpr bool isalpha(std::integral auto c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
 
-constexpr int isblank(integral auto c)
+constexpr int isblank(std::integral auto c)
 {
 	return c == ' ' || c == '\t';
 }
 
-constexpr int iscntrl(integral auto c)
+constexpr int iscntrl(std::integral auto c)
 {
 	return static_cast<unsigned>(c) < ' ' || c == 0x7f;
 }
 
 /** Returns true if `ch` is in `[0-9]`. */
-constexpr int isdigit(integral auto c)
+constexpr int isdigit(std::integral auto c)
 {
 	return c >= '0' && c <= '9';
 }
 
-constexpr int isgraph(integral auto c)
+constexpr int isgraph(std::integral auto c)
 {
 	return c >= '!' && c <= '~';
 }
 
-constexpr int islower(integral auto c)
+constexpr int islower(std::integral auto c)
 {
 	return c >= 'a' && c <= 'z';
 }
 
-constexpr int isprint(integral auto c)
+constexpr int isprint(std::integral auto c)
 {
 	return c >= ' ' && c <= '~';
 }
 
-constexpr int isspace(integral auto c)
+constexpr int isspace(std::integral auto c)
 {
 	return c == ' ' || (c >= '\t' && c <= '\r');
 }
 
-constexpr int isupper(integral auto c)
+constexpr int isupper(std::integral auto c)
 {
 	return c >= 'A' && c <= 'Z';
 }
 
-constexpr int isxdigit(integral auto c)
+constexpr int isxdigit(std::integral auto c)
 {
 	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
-constexpr int tolower(integral auto c)
+constexpr int tolower(std::integral auto c)
 {
 	if(c >= 'A' && c <= 'Z')
 		return c | 0x20;
 	return c;
 }
 
-constexpr int toupper(integral auto c)
+constexpr int toupper(std::integral auto c)
 {
 	if(c >= 'a' && c <= 'z')
 		return c ^ 0x20;
@@ -86,12 +86,12 @@ constexpr int toupper(integral auto c)
 }
 
 /** Returns true if `ch` is less than 0x80. */
-constexpr int isascii(integral auto c)
+constexpr int isascii(std::integral auto c)
 {
 	return static_cast<unsigned>(c) < 0x80;
 }
 
-constexpr int toascii(integral auto c)
+constexpr int toascii(std::integral auto c)
 {
 	return c & 0x7f;
 }

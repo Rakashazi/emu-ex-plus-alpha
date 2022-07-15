@@ -29,7 +29,7 @@ void VControllerKeyboard::updateImg(Gfx::Renderer &r)
 		spr.setUVBounds({{0., .5}, {texXEnd, 1.}});
 	else
 		spr.setUVBounds({{}, {texXEnd, .5}});
-	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
+	spr.compileDefaultProgramOneShot(Gfx::EnvMode::MODULATE);
 }
 
 void VControllerKeyboard::setImg(Gfx::Renderer &r, Gfx::TextureSpan img)
@@ -63,7 +63,7 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPlane
 		cmds.set(View::imageCommonTextureSampler);
 	else
 		cmds.set(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
-	spr.setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
+	spr.setCommonProgram(cmds, Gfx::EnvMode::MODULATE);
 	spr.draw(cmds);
 	if(selected.x != -1)
 	{
@@ -219,14 +219,14 @@ void VControllerKeyboard::unselectKey()
 IG::WindowRect VControllerKeyboard::extendKeySelection(IG::WindowRect selected)
 {
 	auto key = currentKey(selected.x, selected.y);
-	iterateTimes(selected.x, i)
+	for(auto i : iotaCount(selected.x))
 	{
 		if(table[selected.y][selected.x - 1] == key)
 			selected.x--;
 		else
 			break;
 	}
-	iterateTimes((VKEY_COLS - 1) - selected.x2, i)
+	for(auto i : iotaCount((VKEY_COLS - 1) - selected.x2))
 	{
 		if(table[selected.y][selected.x2 + 1] == key)
 			selected.x2++;
@@ -260,7 +260,7 @@ void VControllerKeyboard::applyMap(KbMap map)
 	// 1st row
 	auto *__restrict tablePtr = &table[0][0];
 	auto *__restrict mapPtr = &map[0];
-	iterateTimes(10, i)
+	for(auto i : iotaCount(10))
 	{
 		tablePtr[0] = *mapPtr;
 		tablePtr[1] = *mapPtr;
@@ -272,7 +272,7 @@ void VControllerKeyboard::applyMap(KbMap map)
 	if(mode_ == 0)
 	{
 		tablePtr = &table[1][1];
-		iterateTimes(9, i)
+		for(auto i : iotaCount(9))
 		{
 			tablePtr[0] = *mapPtr;
 			tablePtr[1] = *mapPtr;
@@ -283,7 +283,7 @@ void VControllerKeyboard::applyMap(KbMap map)
 	else
 	{
 		tablePtr = &table[1][0];
-		iterateTimes(10, i)
+		for(auto i : iotaCount(10))
 		{
 			tablePtr[0] = *mapPtr;
 			tablePtr[1] = *mapPtr;
@@ -296,7 +296,7 @@ void VControllerKeyboard::applyMap(KbMap map)
 	table[2][0] = table[2][1] = table[2][2] = *mapPtr;
 	mapPtr++;
 	tablePtr = &table[2][3];
-	iterateTimes(7, i)
+	for(auto i : iotaCount(7))
 	{
 		tablePtr[0] = *mapPtr;
 		tablePtr[1] = *mapPtr;
@@ -309,7 +309,7 @@ void VControllerKeyboard::applyMap(KbMap map)
 	table[3][3] = table[3][4] = table[3][5] = VController::CHANGE_KEYBOARD_MODE;
 	tablePtr = &table[3][6];
 	mapPtr = &map[33];
-	iterateTimes(8, i)
+	for(auto i : iotaCount(8))
 	{
 		*tablePtr++ = *mapPtr;
 	}

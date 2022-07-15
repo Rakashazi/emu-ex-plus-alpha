@@ -42,7 +42,7 @@ constexpr bool optionSaveTypeOverrideIsValid(uint32_t val)
 class GbaSystem final: public EmuSystem
 {
 public:
-	Byte1Option optionRtcEmulation{CFGKEY_RTC_EMULATION, to_underlying(RtcMode::AUTO), 0, optionIsValidWithMax<2>};
+	Byte1Option optionRtcEmulation{CFGKEY_RTC_EMULATION, std::to_underlying(RtcMode::AUTO), 0, optionIsValidWithMax<2>};
 	Byte4Option optionSaveTypeOverride{CFGKEY_SAVE_TYPE_OVERRIDE, GBA_SAVE_AUTO, 0, optionSaveTypeOverrideIsValid};
 	int detectedSaveSize{};
 	uint8_t detectedSaveType{};

@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/GfxLGradient.hh>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include <imagine/util/math/space.hh>
 
 namespace IG::Gfx
@@ -55,7 +55,7 @@ void LGradient::setPos(std::span<const LGradientStopDesc> stops, float x, float 
 		stops_ = stops.size();
 		VertexPos thickness[2]{x, x2};
 		VertexPos stopPos[stops.size()];
-		iterateTimes(stops.size(), i)
+		for(auto i : iotaCount(stops.size()))
 		{
 			stopPos[i] = stops[i].pos;
 		}
@@ -63,7 +63,7 @@ void LGradient::setPos(std::span<const LGradientStopDesc> stops, float x, float 
 	}
 
 	ColVertex *v = g.v().data();
-	iterateTimes(stops.size(), i)
+	for(auto i : iotaCount(stops.size()))
 	{
 		v[i*2].x = x;
 		v[i*2].y = v[(i*2)+1].y = IG::remap(stops[i].pos, 0.f, 1.f, y, y2);

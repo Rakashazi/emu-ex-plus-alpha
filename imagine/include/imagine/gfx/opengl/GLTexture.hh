@@ -44,11 +44,12 @@ class GLLockedTextureBuffer
 public:
 	constexpr GLLockedTextureBuffer() = default;
 	constexpr GLLockedTextureBuffer(void *bufferOffset, MutablePixmapView pix, IG::WindowRect srcDirtyRect,
-		uint16_t lockedLevel, bool shouldFreeBuffer, GLuint pbo = 0):
-		bufferOffset_{bufferOffset}, pix{pix}, srcDirtyRect{srcDirtyRect}, pbo_{pbo},
-		lockedLevel{lockedLevel}, shouldFreeBuffer_{shouldFreeBuffer}
+		int lockedLevel, bool shouldFreeBuffer, GLuint pbo = 0):
+		bufferOffset_{bufferOffset}, pix{pix},
+		lockedLevel{(int8_t)lockedLevel}, shouldFreeBuffer_{shouldFreeBuffer},
+		srcDirtyRect{srcDirtyRect}, pbo_{pbo}
 	{}
-	uint16_t level() const { return lockedLevel; }
+	int level() const { return lockedLevel; }
 	GLuint pbo() const { return pbo_; }
 	bool shouldFreeBuffer() const { return shouldFreeBuffer_; }
 	void *bufferOffset() const { return bufferOffset_; }
@@ -56,10 +57,10 @@ public:
 protected:
 	void *bufferOffset_{};
 	MutablePixmapView pix{};
+	int8_t lockedLevel{};
+	bool shouldFreeBuffer_{};
 	IG::WindowRect srcDirtyRect{};
 	GLuint pbo_ = 0;
-	uint16_t lockedLevel = 0;
-	bool shouldFreeBuffer_ = false;
 };
 
 using LockedTextureBufferImpl = GLLockedTextureBuffer;
@@ -77,7 +78,7 @@ protected:
 	RendererTask *rTask{};
 	TextureRef texName_{};
 	PixmapDesc pixDesc{};
-	uint8_t levels_{};
+	int8_t levels_{};
 	IG_UseMemberIfOrConstant(Config::Gfx::OPENGL_SHADER_PIPELINE,
 		TextureType, TextureType::T2D_4, type_){TextureType::UNSET};
 
@@ -85,7 +86,7 @@ protected:
 	TextureConfig baseInit(RendererTask &r, TextureConfig config);
 	void deinit();
 	bool canUseMipmaps(const Renderer &r) const;
-	void updateFormatInfo(PixmapDesc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
+	void updateFormatInfo(PixmapDesc, int8_t levels, GLenum target = GL_TEXTURE_2D);
 	static void setSwizzleForFormatInGL(const Renderer &r, IG::PixelFormatID format, GLuint tex);
 	static void setSamplerParamsInGL(const Renderer &r, SamplerParams params, GLenum target = GL_TEXTURE_2D);
 	void updateLevelsForMipmapGeneration();

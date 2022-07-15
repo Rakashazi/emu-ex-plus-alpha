@@ -174,7 +174,7 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 				{
 					if(d.elem == -1)
 					{
-						iterateTimes(vController().numElements(), i)
+						for(auto i : iotaCount(vController().numElements()))
 						{
 							if(vController().state(i) == VControllerState::OFF || !vController().bounds(i).contains(e.pos()))
 								continue;

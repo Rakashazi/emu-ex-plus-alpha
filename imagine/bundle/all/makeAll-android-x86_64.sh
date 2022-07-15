@@ -1,4 +1,6 @@
 makefilesToRun='
+	src/libcxx/android-x86_64.mk
+
 	src/libogg/android-x86_64.mk
 	
 	src/libvorbis/android-x86_64.mk

@@ -62,14 +62,23 @@ include $(buildSysPath)/clang.mk
 CFLAGS_TARGET += -target $(clangTarget)
 
 # libc++
-STDCXXLIB = -static-libstdc++
+android_useExternalLibcxx := 1
+ifdef android_useExternalLibcxx
+ ifneq ($(pkgName),libcxx) # check we aren't building lib++ itself
+  STDCXXLIB = -nostdlib++ -lc++ -lc++abi $(android_cxxSupportLibs)
+  CPPFLAGS += -nostdinc++ -I$(IMAGINE_SDK_PLATFORM_PATH)/include/c++/v1
+  android_staticLibcxxName := libc++.a
+ endif
+else
+ STDCXXLIB = -static-libstdc++
+ android_staticLibcxxName := libc++_static.a
+endif
 
 ifdef ANDROID_APK_SIGNATURE_HASH
  CPPFLAGS += -DANDROID_APK_SIGNATURE_HASH=$(ANDROID_APK_SIGNATURE_HASH)
 endif
 
 CFLAGS_TARGET += $(android_cpuFlags) -no-canonical-prefixes
-CFLAGS_CODEGEN += -ffunction-sections -fdata-sections
 ASMFLAGS ?= $(CFLAGS_TARGET) -Wa,--noexecstack
 ifdef android_ndkLinkSysroot
  LDFLAGS_SYSTEM += --sysroot=$(android_ndkLinkSysroot)
@@ -82,9 +91,9 @@ LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID
 LDFLAGS_SYSTEM += -s \
 -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel,--fatal-warnings \
--Wl,--exclude-libs,libgcc.a,--exclude-libs,libgcc_real.a -Wl,--exclude-libs,libatomic.a
+-Wl,--exclude-libs,libgcc.a,--exclude-libs,libgcc_real.a -Wl,--exclude-libs,libatomic.a,--lto-whole-program-visibility
 
 # Don't include public libc++ symbols in main shared object file unless other linked objects need them  
 ifndef cxxStdLibLinkedObjects
- LDFLAGS_SYSTEM += -Wl,--exclude-libs,libc++abi.a,--exclude-libs,libc++_static.a
+ LDFLAGS_SYSTEM += -Wl,--exclude-libs,libc++abi.a,--exclude-libs,$(android_staticLibcxxName)
 endif

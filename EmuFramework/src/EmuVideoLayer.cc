@@ -218,10 +218,9 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 		cmds.setColor(c, c, c);
 		replaceMode = false;
 	}
-	cmds.setBlendMode(0);
+	cmds.set(BlendMode::OFF);
 	if(effects.size())
 	{
-		cmds.setClipTest(false);
 		cmds.setDither(false);
 		TextureSpan srcTex = video.image();
 		for(auto &ePtr : effects)
@@ -237,7 +236,7 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 		cmds.setDither(true);
 		cmds.restoreViewport();
 	}
-	disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
+	disp.setCommonProgram(cmds, replaceMode ? EnvMode::REPLACE : EnvMode::MODULATE, projP.makeTranslate());
 	bool srgbFrameBufferWrite = srgbColorSpace();
 	cmds.setTextureSampler(*texSampler);
 	if(srgbFrameBufferWrite)
@@ -394,8 +393,8 @@ void EmuVideoLayer::updateSprite()
 		disp.setImg(video.image());
 		video.setCompatTextureSampler(*texSampler);
 	}
-	disp.compileDefaultProgramOneShot(Gfx::IMG_MODE_REPLACE);
-	disp.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
+	disp.compileDefaultProgramOneShot(Gfx::EnvMode::REPLACE);
+	disp.compileDefaultProgramOneShot(Gfx::EnvMode::MODULATE);
 }
 
 void EmuVideoLayer::logOutputFormat()

@@ -19,7 +19,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/util/bitset.hh>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include "../input/PackedInputAccess.hh"
 #include <algorithm>
 
@@ -204,7 +204,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 			if(inputBufferPos == 6)
 			{
 				auto time = IG::steadyClockTimestamp();
-				iterateTimes(4, i)
+				for(auto i : iotaCount(4))
 				{
 					if(axis[i].update(inputBuffer[i], Input::Map::ICONTROLPAD, time, *this, ctx.mainWindow()))
 						ctx.endIdleByUserActivity();

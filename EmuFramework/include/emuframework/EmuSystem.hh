@@ -147,7 +147,6 @@ public:
 	static bool inputHasShortBtnTexture;
 	static bool hasBundledGames;
 	static bool hasPALVideoSystem;
-	static bool canRenderRGB565;
 	static bool canRenderRGBA8888;
 	static bool hasResetModes;
 	static bool handlesArchiveFiles;

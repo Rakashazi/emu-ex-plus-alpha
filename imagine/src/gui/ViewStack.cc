@@ -234,7 +234,7 @@ void ViewStack::draw(Gfx::RendererCommands &cmds)
 	if(customDisplayRect.y2 > customViewRect.y2)
 	{
 		using namespace Gfx;
-		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.set(BlendMode::ALPHA);
 		cmds.set(ColorName::WHITE);
 		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 		bottomGradient.draw(cmds);
@@ -299,7 +299,7 @@ void ViewStack::pop()
 void ViewStack::popViews(size_t num)
 {
 	auto win = view.size() ? &top().window() : nullptr;
-	iterateTimes(num, i)
+	for(auto i : iotaCount(num))
 	{
 		pop();
 	}

@@ -17,14 +17,14 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/thread/Semaphore.hh>
-#include <imagine/util/concepts.hh>
 #include <imagine/util/utility.h>
+#include <concepts>
 #include <thread>
 
 namespace IG
 {
 
-static std::thread makeThreadSync(IG::invocable<std::binary_semaphore&> auto &&f)
+static std::thread makeThreadSync(std::invocable<std::binary_semaphore&> auto &&f)
 {
 	std::binary_semaphore sem{0};
 	if constexpr(std::is_copy_constructible_v<decltype(f)>)
@@ -53,13 +53,13 @@ static std::thread makeThreadSync(IG::invocable<std::binary_semaphore&> auto &&f
 	}
 }
 
-static void makeDetachedThread(IG::invocable auto &&f)
+static void makeDetachedThread(std::invocable auto &&f)
 {
 	std::thread t{IG_forward(f)};
 	t.detach();
 }
 
-static void makeDetachedThreadSync(IG::invocable<std::binary_semaphore&> auto &&f)
+static void makeDetachedThreadSync(std::invocable<std::binary_semaphore&> auto &&f)
 {
 	std::binary_semaphore sem{0};
 	if constexpr(std::is_copy_constructible_v<decltype(f)>)

@@ -774,7 +774,7 @@ public:
 			updateROMText();
 			item.emplace_back(&romSlot);
 		}
-		iterateTimes(4, slot)
+		for(auto slot : iotaCount(4))
 		{
 			updateDiskText(slot);
 			item.emplace_back(&diskSlot[slot]);
@@ -1105,7 +1105,7 @@ class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelpe
 				{
 					system().sessionOptionSet();
 					system().optionDriveTrueEmulation = 1;
-					system().optionModel = defaultNTSCModel[to_underlying(system().currSystem)];
+					system().optionModel = defaultNTSCModel[std::to_underlying(system().currSystem)];
 					app().reloadSystem();
 				});
 			multiChoiceView->appendItem("NTSC",
@@ -1113,7 +1113,7 @@ class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelpe
 				{
 					system().sessionOptionSet();
 					system().optionDriveTrueEmulation = 0;
-					system().optionModel = defaultNTSCModel[to_underlying(system().currSystem)];
+					system().optionModel = defaultNTSCModel[std::to_underlying(system().currSystem)];
 					app().reloadSystem();
 				});
 			multiChoiceView->appendItem("PAL w/ True Drive Emu",
@@ -1121,7 +1121,7 @@ class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelpe
 				{
 					system().sessionOptionSet();
 					system().optionDriveTrueEmulation = 1;
-					system().optionModel = defaultPALModel[to_underlying(system().currSystem)];
+					system().optionModel = defaultPALModel[std::to_underlying(system().currSystem)];
 					app().reloadSystem();
 				});
 			multiChoiceView->appendItem("PAL",
@@ -1129,7 +1129,7 @@ class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelpe
 				{
 					system().sessionOptionSet();
 					system().optionDriveTrueEmulation = 0;
-					system().optionModel = defaultPALModel[to_underlying(system().currSystem)];
+					system().optionModel = defaultPALModel[std::to_underlying(system().currSystem)];
 					app().reloadSystem();
 				});
 			pushAndShow(std::move(multiChoiceView), e);
@@ -1230,7 +1230,7 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomSy
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>(item, VicePlugin::SYSTEMS);
-			iterateTimes(VicePlugin::SYSTEMS, i)
+			for(auto i : iotaCount(VicePlugin::SYSTEMS))
 			{
 				multiChoiceView->appendItem(VicePlugin::systemName((ViceSystem)i),
 					[this, i](View &view, Input::Event e)

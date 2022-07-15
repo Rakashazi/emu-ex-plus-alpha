@@ -210,7 +210,7 @@ void PixmapBufferTexture::setCompatTextureSampler(const TextureSampler &compatSa
 	return directTex->setCompatTextureSampler(compatSampler);
 }
 
-bool PixmapBufferTexture::compileDefaultProgram(uint32_t mode) const
+bool PixmapBufferTexture::compileDefaultProgram(EnvMode mode) const
 {
 	assumeExpr(directTex);
 	return directTex->compileDefaultProgram(mode);

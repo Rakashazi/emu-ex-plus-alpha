@@ -79,7 +79,7 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id)
 	img.write(0, pix, {});
 	img.generateMipmaps();
 	spr = {{}, img};
-	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
+	spr.compileDefaultProgramOneShot(Gfx::EnvMode::MODULATE);
 }
 
 void VideoImageOverlay::setIntensity(float i)
@@ -110,7 +110,7 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, int lines)
 			case ImageOverlayId::CRT_RGB_2:
 				return {&img, {{}, {width/2.f, lines*2.f}}};
 		}
-		bug_unreachable("invalid overlayId:%d", to_underlying(overlayId));
+		bug_unreachable("invalid overlayId:%d", std::to_underlying(overlayId));
 	}());
 }
 
@@ -121,8 +121,8 @@ void VideoImageOverlay::draw(Gfx::RendererCommands &cmds)
 	using namespace IG::Gfx;
 	cmds.set(CommonTextureSampler::NEAREST_MIP_REPEAT);
 	cmds.setColor(1., 1., 1., intensity);
-	cmds.setBlendMode(BLEND_MODE_ALPHA);
-	spr.setCommonProgram(cmds, IMG_MODE_MODULATE);
+	cmds.set(BlendMode::ALPHA);
+	spr.setCommonProgram(cmds, EnvMode::MODULATE);
 	spr.draw(cmds);
 }
 

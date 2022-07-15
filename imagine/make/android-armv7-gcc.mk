@@ -14,6 +14,7 @@ android_cpuFlags ?= $(armv7CPUFlags)
 android_armv7State ?= -mthumb
 android_armState := $(android_armv7State)
 android_cpuFlags += $(android_armv7State)
+android_cxxSupportLibs := -landroid_support
 ASMFLAGS = --noexecstack -EL -mfloat-abi=softfp -march=armv7-a
 LDFLAGS_SYSTEM += -Wl,--fix-cortex-a8
 

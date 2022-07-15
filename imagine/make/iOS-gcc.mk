@@ -38,7 +38,6 @@ CXX := $(firstword $(wildcard $(CCTOOLS_TOOCHAIN_PATH)/bin/*-clang++))
 LD := $(CXX)
 iosSimulatorSDKsPath := $(CCTOOLS_TOOCHAIN_PATH)/SDK
 iosSDKsPath := $(CCTOOLS_TOOCHAIN_PATH)/SDK
-CPPFLAGS += -I$(firstword $(wildcard $(iosSDKsPath)/iPhoneOS*.sdk/usr/include/c++))
 else
 XCODE_PATH := $(shell xcode-select --print-path)
 iosSimulatorSDKsPath := $(XCODE_PATH)/Platforms/iPhoneSimulator.platform/Developer/SDKs
@@ -83,6 +82,23 @@ else
  LDFLAGS_SYSTEM += -Wl,-x,-dead_strip_dylibs
 endif
 LDFLAGS += -Wl,-no_pie
+
+# libc++
+ios_useExternalLibcxx := 1
+ifdef ios_useExternalLibcxx
+ ifneq ($(pkgName),libcxx) # check we aren't building lib++ itself
+  STDCXXLIB = -nostdlib++ -lc++ -lc++abi
+  CPPFLAGS += -nostdinc++ -I$(IMAGINE_SDK_PLATFORM_PATH)/include/c++/v1 -D_LIBCPP_DISABLE_AVAILABILITY
+ else
+  CPPFLAGS += -stdlib=libc++
+ endif
+else
+ STDCXXLIB = -stdlib=libc++
+ CXXFLAGS_LANG += -stdlib=libc++ -D_LIBCPP_DISABLE_AVAILABILITY
+ ifdef CCTOOLS_TOOCHAIN_PATH
+  CPPFLAGS += -I$(firstword $(wildcard $(iosSDKsPath)/iPhoneOS*.sdk/usr/include/c++))
+ endif
+endif
 
 # clang SVN doesn't seem to handle ASM properly so use as directly
 AS := as

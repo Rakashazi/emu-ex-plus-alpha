@@ -74,7 +74,7 @@ void vsyncarch_refresh_frequency_changed(double rate)
 
 static bool isValidPixelFormat(IG::PixelFormat fmt)
 {
-	return fmt == IG::PIXEL_FMT_RGB565 || fmt == IG::PIXEL_FMT_RGBA8888 || fmt == IG::PIXEL_FMT_BGRA8888;
+	return fmt == IG::PIXEL_FMT_RGBA8888 || fmt == IG::PIXEL_FMT_BGRA8888;
 }
 
 static IG::PixmapView pixmapView(const struct video_canvas_s *c)
@@ -87,14 +87,13 @@ static IG::PixmapView pixmapView(const struct video_canvas_s *c)
 static IG::PixelDesc pixelDesc(IG::PixelFormat fmt)
 {
 	assumeExpr(isValidPixelFormat(fmt));
-	return fmt == IG::PIXEL_FMT_RGB565 ? fmt.desc() : fmt.desc().nativeOrder();
+	return fmt.desc().nativeOrder();
 }
 
 static void updateInternalPixelFormat(struct video_canvas_s *c, IG::PixelFormat fmt)
 {
 	assumeExpr(isValidPixelFormat(fmt));
 	c->pixelFormat = fmt;
-	c->bpp = pixelDesc(fmt).bitsPerPixel();
 }
 
 void video_arch_canvas_init(struct video_canvas_s *c)
@@ -112,7 +111,7 @@ int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 	const auto pDesc = pixelDesc(fmt);
 	auto colorTables = &c->videoconfig->color_tables;
 	auto &plugin = c64Sys(c).plugin;
-	iterateTimes(256, i)
+	for(auto i : IG::iotaCount(256))
 	{
 		plugin.video_render_setrawrgb(colorTables, i, pDesc.build(i/255., 0., 0., 0.), pDesc.build(0., i/255., 0., 0.), pDesc.build(0., 0., i/255., 0.));
 	}
@@ -121,11 +120,11 @@ int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 	if(palette)
 	{
 		c->palette = palette;
-		iterateTimes(palette->num_entries, i)
+		for(auto i : iotaCount(palette->num_entries))
 		{
 			auto col = pDesc.build(palette->entries[i].red/255., palette->entries[i].green/255., palette->entries[i].blue/255., 0.);
-			logMsg("set color %d to %X (%d bpp)", i, col, c->bpp);
-			plugin.video_render_setphysicalcolor(c->videoconfig, i, col, c->bpp);
+			logMsg("set color %d to %X", i, col);
+			plugin.video_render_setphysicalcolor(c->videoconfig, i, col, 32);
 		}
 	}
 

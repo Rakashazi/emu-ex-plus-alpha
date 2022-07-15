@@ -183,9 +183,9 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionShowBluetoothScan{CFGKEY_SHOW_BLUETOOTH_SCAN, 1},
 	optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 0},
 	optionImgFilter{CFGKEY_GAME_IMG_FILTER, 1, 0},
-	optionImgEffect{CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<to_underlying(lastEnum<ImageEffectId>)>},
+	optionImgEffect{CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<std::to_underlying(lastEnum<ImageEffectId>)>},
 	optionImageEffectPixelFormat{CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid},
-	optionOverlayEffect{CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<to_underlying(lastEnum<ImageOverlayId>)>},
+	optionOverlayEffect{CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<std::to_underlying(lastEnum<ImageOverlayId>)>},
 	optionOverlayEffectLevel{CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>},
 	optionFrameInterval{CFGKEY_FRAME_INTERVAL,	1, !Config::envIsIOS, optionIsValidWithMinMax<1, 4, uint8_t>},
 	optionSkipLateFrames{CFGKEY_SKIP_LATE_FRAMES, 1, 0},
@@ -255,7 +255,7 @@ public:
 
 Gfx::PixmapTexture &EmuApp::asset(AssetID assetID) const
 {
-	auto assetIdx = to_underlying(assetID);
+	auto assetIdx = std::to_underlying(assetID);
 	assumeExpr(assetIdx < wise_enum::size<AssetID>);
 	auto &res = assetBuffImg[assetIdx];
 	if(!res)
@@ -1514,7 +1514,7 @@ void EmuApp::runFrames(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *
 void EmuApp::skipFrames(EmuSystemTaskContext taskCtx, int frames, EmuAudio *audio)
 {
 	assert(system().hasContent());
-	iterateTimes(frames, i)
+	for(auto i : iotaCount(frames))
 	{
 		runTurboInputEvents();
 		system().runFrame(taskCtx, nullptr, audio);
@@ -1523,7 +1523,7 @@ void EmuApp::skipFrames(EmuSystemTaskContext taskCtx, int frames, EmuAudio *audi
 
 bool EmuApp::skipForwardFrames(EmuSystemTaskContext taskCtx, int frames)
 {
-	iterateTimes(frames, i)
+	for(auto i : iotaCount(frames))
 	{
 		skipFrames(taskCtx, 1, nullptr);
 		if(!system().shouldFastForward())
@@ -1545,7 +1545,7 @@ std::pair<int, FS::PathString> EmuApp::makeNextScreenshotFilename()
 	static constexpr int maxNum = 999;
 	auto ctx = appContext();
 	auto basePath = system().contentSavePath(system().contentName());
-	iterateTimes(maxNum, i)
+	for(auto i : iotaCount(maxNum))
 	{
 		auto str = IG::format<FS::PathString>("{}.{:03d}.png", basePath, i);
 		if(!ctx.fileUriExists(str))

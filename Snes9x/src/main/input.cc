@@ -136,7 +136,7 @@ void Snes9xSystem::handleInputAction(EmuApp *, InputAction a)
 
 void Snes9xSystem::clearInputBuffers(EmuInputView &view)
 {
-	iterateTimes((unsigned)maxPlayers, p)
+	for(auto p : iotaCount(maxPlayers))
 	{
 		*S9xGetJoypadBits(p) = 0;
 	}

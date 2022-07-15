@@ -23,7 +23,7 @@ namespace IG
 {
 
 template <class T, class T2>
-static Point2D<T> sizesWithRatioBestFit(T2 destAspectRatio, T x, T y)
+constexpr Point2D<T> sizesWithRatioBestFit(T2 destAspectRatio, T x, T y)
 {
 	auto sourceAspectRatio = (T2)x/(T2)y;
 	T xSize = 0, ySize = 0;
@@ -44,19 +44,19 @@ static Point2D<T> sizesWithRatioBestFit(T2 destAspectRatio, T x, T y)
 }
 
 template <class T, class T2>
-static constexpr Point2D<T> makeFromXWithRatio(T x, T2 r)
+constexpr Point2D<T> makeFromXWithRatio(T x, T2 r)
 {
 	return {x, x / r};
 }
 
 template <class T, class T2>
-static constexpr Point2D<T> makeFromYWithRatio(T y, T2 r)
+constexpr Point2D<T> makeFromYWithRatio(T y, T2 r)
 {
 	return {y * r, y};
 }
 
 template <class T>
-static Point2D<T> rotateAboutAxis(T rads, const Point2D<T> &v)
+constexpr Point2D<T> rotateAboutAxis(T rads, const Point2D<T> &v)
 {
 	auto temp = v;
 	rotateAboutAxis(rads, temp.x, temp.y);

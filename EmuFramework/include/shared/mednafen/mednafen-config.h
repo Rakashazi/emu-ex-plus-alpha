@@ -269,3 +269,6 @@
 #endif
 
 #define MDFN_DISABLE_PICPIE_ERRWARN
+
+// Don't export mpcdec symbols
+#define MPC_API

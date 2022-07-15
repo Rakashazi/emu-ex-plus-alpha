@@ -57,7 +57,7 @@ class CustomSystemOptionView : public SystemOptionView
 		"SH2", &defaultFace(),
 		[]() -> int
 		{
-			iterateTimes(std::min(SH2Cores, MAX_SH2_CORES), i)
+			for(auto i : iotaCount(std::min(SH2Cores, MAX_SH2_CORES)))
 			{
 				if(SH2CoreList[i]->id == yinit.sh2coretype)
 					return i;
@@ -73,7 +73,7 @@ public:
 		loadStockItems();
 		if(SH2Cores > 1)
 		{
-			iterateTimes(std::min(SH2Cores, MAX_SH2_CORES), i)
+			for(auto i : iotaCount(std::min(SH2Cores, MAX_SH2_CORES)))
 			{
 				int id = SH2CoreList[i]->id;
 				sh2CoreItem.emplace_back(SH2CoreList[i]->Name, &defaultFace(),

@@ -19,7 +19,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/util/bitset.hh>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include "../input/PackedInputAccess.hh"
 
 namespace IG
@@ -516,7 +516,7 @@ void Wiimote::processClassicButtons(const uint8_t *packet, Input::Time time)
 	auto ccData = &packet[4];
 	int stickPos[4];
 	decodeCCSticks(ccData, stickPos[0], stickPos[1], stickPos[2], stickPos[3]);
-	iterateTimes(4, i)
+	for(auto i : iotaCount(4))
 	{
 		if(axis[i].update(stickPos[i], Map::WII_CC, time, *this, ctx.mainWindow()))
 			ctx.endIdleByUserActivity();
@@ -542,7 +542,7 @@ void Wiimote::processProButtons(const uint8_t *packet, Input::Time time)
 	const uint8_t *proData = &packet[4];
 	int stickPos[4];
 	decodeProSticks(proData, stickPos[0], stickPos[1], stickPos[2], stickPos[3]);
-	iterateTimes(4, i)
+	for(auto i : iotaCount(4))
 	{
 		if(axis[i].update(stickPos[i], Map::WII_CC, time, *this, ctx.mainWindow()))
 			ctx.endIdleByUserActivity();
@@ -566,7 +566,7 @@ void Wiimote::processNunchukButtons(const uint8_t *packet, Input::Time time)
 {
 	using namespace IG::Input;
 	const uint8_t *nunData = &packet[4];
-	iterateTimes(2, i)
+	for(auto i : iotaCount(2))
 	{
 		if(axis[i].update(int(nunData[i]) - 127, Map::WIIMOTE, time, *this, ctx.mainWindow()))
 			ctx.endIdleByUserActivity();

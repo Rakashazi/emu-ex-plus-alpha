@@ -53,9 +53,15 @@ protected:
 	static void closeAAssetDir(AAssetDir *);
 };
 
-class AAssetIterator : public std::iterator<std::input_iterator_tag, AAssetDirectory>
+class AAssetIterator
 {
 public:
+	using iterator_category = std::input_iterator_tag;
+	using value_type = AAssetDirectory;
+	using difference_type = ptrdiff_t;
+	using pointer = value_type*;
+	using reference = value_type&;
+
 	constexpr AAssetIterator() = default;
 	AAssetIterator(AAssetManager *, IG::CStringView path);
 	AAssetIterator(const AAssetIterator&) = default;

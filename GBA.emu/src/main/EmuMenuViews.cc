@@ -58,7 +58,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	void setRTCEmulation(RtcMode val)
 	{
 		system().sessionOptionSet();
-		system().optionRtcEmulation = to_underlying(val);
+		system().optionRtcEmulation = std::to_underlying(val);
 		system().setRTC(val);
 	}
 

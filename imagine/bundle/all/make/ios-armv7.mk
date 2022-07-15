@@ -5,11 +5,10 @@ ifeq ($(ios_armv7State),-marm)
  LTO_MODE := off
 endif
 
+RELEASE := 1
 tempDir = /tmp/imagine-bundle/$(pkgName)
 buildDir = $(tempDir)/build/ios-armv7
-objDir := $(buildDir)
-
-RELEASE := 1
+buildPath = $(buildDir)
 include $(IMAGINE_PATH)/make/iOS-armv7-gcc.mk
 
 installDir = $(IMAGINE_SDK_PATH)/$(IMAGINE_SDK_PLATFORM)

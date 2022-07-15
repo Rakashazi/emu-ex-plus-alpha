@@ -6,7 +6,7 @@
 
 #include <EGL/egl.h>
 #include <imagine/logger/logger.h>
-#include <imagine/util/algorithm.h>
+#include <span>
 
 #ifndef EGL_CONTEXT_MAJOR_VERSION_KHR
 #define EGL_CONTEXT_MAJOR_VERSION_KHR 0x3098
@@ -116,9 +116,9 @@ static void printEGLConfs(EGLDisplay display)
 	EGLint num = 0;
 	eglGetConfigs(display, conf, std::size(conf), &num);
 	logMsg("EGLDisplay has %d configs:", num);
-	iterateTimes(num, i)
+	for(auto c : std::span<EGLConfig>{conf, (size_t)num})
 	{
-		printEGLConf(display, conf[i]);
+		printEGLConf(display, c);
 	}
 }
 
@@ -128,9 +128,9 @@ static void printEGLConfsWithAttr(EGLDisplay display, const EGLint *attr)
 	EGLint num = 0;
 	eglChooseConfig(display, attr, conf, std::size(conf), &num);
 	logMsg("got %d configs", num);
-	iterateTimes(num, i)
+	for(auto c : std::span<EGLConfig>{conf, (size_t)num})
 	{
-		printEGLConf(display, conf[i]);
+		printEGLConf(display, c);
 	}
 }
 

@@ -20,7 +20,6 @@
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
 #include "xlibutils.h"
 #include <X11/XKBlib.h>
@@ -167,8 +166,8 @@ void XApplication::initXInput2()
 
 static bool isPowerButtonName(std::string_view name)
 {
-	return IG::stringContains(name, "Power Button")
-		|| (Config::MACHINE_IS_PANDORA && IG::stringContains(name, "power-button"));
+	return name.contains("Power Button")
+		|| (Config::MACHINE_IS_PANDORA && name.contains("power-button"));
 }
 
 void XApplication::addXInputDevice(XIDeviceInfo xDevInfo, bool notify, bool isPointingDevice)

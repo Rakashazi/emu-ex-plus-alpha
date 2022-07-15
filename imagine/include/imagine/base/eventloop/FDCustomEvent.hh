@@ -39,7 +39,7 @@ public:
 
 	void attach(EventLoop loop, PollEventDelegate del);
 
-	static constexpr PollEventDelegate makeDelegate(IG::invocable auto &&f)
+	static constexpr PollEventDelegate makeDelegate(std::invocable auto &&f)
 	{
 		return [=](int fd, int)
 		{
@@ -53,9 +53,9 @@ public:
 
 	void attach(auto &&f) { attach({}, IG_forward(f)); }
 
-	void attach(EventLoop loop, IG::invocable auto &&f)	{ attach(loop, makeDelegate(IG_forward(f))); }
+	void attach(EventLoop loop, std::invocable auto &&f)	{ attach(loop, makeDelegate(IG_forward(f))); }
 
-	void setCallback(IG::invocable auto &&f)
+	void setCallback(std::invocable auto &&f)
 	{
 		fdSrc.setCallback(makeDelegate(IG_forward(f)));
 	}

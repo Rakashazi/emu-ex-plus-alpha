@@ -18,7 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/utility.h>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 
 namespace IG
 {
@@ -213,7 +213,7 @@ public:
 static void sprintBTAddr(char *addrStr, bd_addr_t &addr)
 {
 	strcpy(addrStr, "");
-	iterateTimes(6, i)
+	for(auto i : iotaCount(6))
 	{
 		if(i != 0)
 			strcat(addrStr, ":");
@@ -409,7 +409,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 				{
 					uint32_t responses = scanResponses = packet[2];
 					logMsg("got HCI_EVENT_INQUIRY_RESULT, %d responses", responses);
-					iterateTimes(responses, i)
+					for(auto i : iotaCount(responses))
 					{
 						bd_addr_t addr;
 						bt_flip_addr(addr, &packet[3+i*6]);

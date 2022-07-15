@@ -219,33 +219,42 @@ void RendererCommands::setBlendFunc(BlendFunc s, BlendFunc d)
 	glcBlendFunc((GLenum)s, (GLenum)d);
 }
 
-void RendererCommands::setBlendMode(uint32_t mode)
+void RendererCommands::setBlendMode(BlendMode mode)
 {
-	rTask->verifyCurrentContext();
-	switch(mode)
+	if(mode == BlendMode::OFF)
 	{
-		bcase BLEND_MODE_OFF:
-			setBlend(false);
-		bcase BLEND_MODE_ALPHA:
-			setBlendFunc(BlendFunc::SRC_ALPHA, BlendFunc::ONE_MINUS_SRC_ALPHA); // general blending
-			//setBlendFunc(BlendFunc::ONE, BlendFunc::ONE_MINUS_SRC_ALPHA); // for premultiplied alpha
-			setBlend(true);
-		bcase BLEND_MODE_INTENSITY:
-			setBlendFunc(BlendFunc::SRC_ALPHA, BlendFunc::ONE);
-			setBlend(true);
+		setBlend(false);
+		return;
 	}
+	auto [srcFunc, destFunc] = [&]() -> std::pair<BlendFunc, BlendFunc>
+	{
+		switch(mode)
+		{
+			case BlendMode::ALPHA: return {BlendFunc::SRC_ALPHA, BlendFunc::ONE_MINUS_SRC_ALPHA};
+			case BlendMode::PREMULT_ALPHA: return{BlendFunc::ONE, BlendFunc::ONE_MINUS_SRC_ALPHA};
+			case BlendMode::INTENSITY: return{BlendFunc::SRC_ALPHA, BlendFunc::ONE};
+			case BlendMode::OFF: break;
+		}
+		bug_unreachable("invalid blend mode:%d", std::to_underlying(mode));
+	}();
+	setBlendFunc(srcFunc, destFunc);
+	setBlend(true);
 }
 
-void RendererCommands::setBlendEquation(uint32_t mode)
+void RendererCommands::setBlendEquation(BlendEquation mode)
 {
 	rTask->verifyCurrentContext();
-	#if !defined CONFIG_GFX_OPENGL_ES \
-		|| (defined CONFIG_BASE_IOS || defined __ANDROID__)
-	glcBlendEquation(mode == BLEND_EQ_ADD ? GL_FUNC_ADD :
-		mode == BLEND_EQ_SUB ? GL_FUNC_SUBTRACT :
-		mode == BLEND_EQ_RSUB ? GL_FUNC_REVERSE_SUBTRACT :
-		GL_FUNC_ADD);
-	#endif
+	auto glMode = [&]()
+	{
+		switch(mode)
+		{
+			case BlendEquation::ADD: return GL_FUNC_ADD;
+			case BlendEquation::SUB: return GL_FUNC_SUBTRACT;
+			case BlendEquation::RSUB: return GL_FUNC_REVERSE_SUBTRACT;
+		}
+		bug_unreachable("invalid BlendEquation:%d", std::to_underlying(mode));
+	}();
+	glcBlendEquation(glMode);
 }
 
 void RendererCommands::setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
@@ -275,53 +284,6 @@ void RendererCommands::setZTest(bool on)
 	else
 	{
 		glcDisable(GL_DEPTH_TEST);
-	}
-}
-
-void RendererCommands::setZBlend(bool on)
-{
-	rTask->verifyCurrentContext();
-	//	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	//	if(support.useFixedFunctionPipeline)
-	//	{
-	//		if(on)
-	//		{
-	//			#ifndef CONFIG_GFX_OPENGL_ES
-	//			glFogi(GL_FOG_MODE, GL_LINEAR);
-	//			#else
-	//			glFogf(GL_FOG_MODE, GL_LINEAR);
-	//			#endif
-	//			glFogf(GL_FOG_DENSITY, 0.1f);
-	//			glHint(GL_FOG_HINT, GL_DONT_CARE);
-	//			glFogf(GL_FOG_START, proj.zRange/2.0);
-	//			glFogf(GL_FOG_END, proj.zRange);
-	//			glcEnable(GL_FOG);
-	//		}
-	//		else
-	//		{
-	//			glcDisable(GL_FOG);
-	//		}
-	//	}
-	//	#endif
-	if(!renderer().support.useFixedFunctionPipeline)
-	{
-		bug_unreachable("TODO");
-	}
-}
-
-void RendererCommands::setZBlendColor(ColorComp r, ColorComp g, ColorComp b)
-{
-	rTask->verifyCurrentContext();
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(renderer().support.useFixedFunctionPipeline)
-	{
-		GLfloat c[4] = {r, g, b, 1.0f};
-		glFogfv(GL_FOG_COLOR, c);
-	}
-	#endif
-	if(!renderer().support.useFixedFunctionPipeline)
-	{
-		bug_unreachable("TODO");
 	}
 }
 
@@ -378,7 +340,7 @@ Color RendererCommands::color() const
 	return vColor;
 }
 
-void RendererCommands::setImgMode(uint32_t mode)
+void RendererCommands::setImgMode(EnvMode mode)
 {
 	rTask->verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -386,10 +348,10 @@ void RendererCommands::setImgMode(uint32_t mode)
 	{
 		switch(mode)
 		{
-			bcase IMG_MODE_REPLACE: glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-			bcase IMG_MODE_MODULATE: glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-			bcase IMG_MODE_ADD: glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD);
-			bcase IMG_MODE_BLEND: glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
+			case EnvMode::REPLACE: return glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+			case EnvMode::MODULATE: return glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+			case EnvMode::ADD: return glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD);
+			case EnvMode::BLEND: return glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
 		}
 		return;
 	}
@@ -424,14 +386,14 @@ void RendererCommands::setSrgbFramebufferWrite(bool on)
 		glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
-void RendererCommands::setVisibleGeomFace(uint32_t sides)
+void RendererCommands::setVisibleGeomFace(Faces sides)
 {
 	rTask->verifyCurrentContext();
-	if(sides == BOTH_FACES)
+	if(sides == Faces::BOTH)
 	{
 		glcDisable(GL_CULL_FACE);
 	}
-	else if(sides == FRONT_FACES)
+	else if(sides == Faces::FRONT)
 	{
 		glcEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT); // our order is reversed from OpenGL
@@ -590,11 +552,6 @@ void RendererCommands::uniformF(int uniformLocation, float v1, float v2)
 {
 	glUniform2f(uniformLocation, v1, v2);
 }
-
-#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-void GLRendererCommands::glcMatrixMode(GLenum mode)
-{ if(useGLCache) glState.matrixMode(mode); else glMatrixMode(mode); }
-#endif
 
 void GLRendererCommands::glcBindTexture(GLenum target, GLuint texture)
 { if(useGLCache) glState.bindTexture(target, texture); else glBindTexture(target, texture); }

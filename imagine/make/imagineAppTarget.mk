@@ -10,10 +10,6 @@ ifeq ($(ENV), android)
  target := lib$(android_metadata_soName).so
 endif
 
-ifdef STDCXXINC
- CPPFLAGS += $(STDCXXINC)
-endif
-
 LDFLAGS += $(STDCXXLIB)
 
 $(OBJ) : $(genConfigH) $(genMetaH)

@@ -120,7 +120,7 @@ void PceSystem::clearInputBuffers(EmuInputView &)
 	inputBuff = {};
 	if(option6BtnPad)
 	{
-		iterateTimes(2, i)
+		for(auto i : iotaCount(2))
 			inputBuff[i] = IG::bit(12);
 	}
 }

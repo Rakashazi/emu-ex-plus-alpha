@@ -15,13 +15,13 @@
 
 #pragma once
 
-#include <imagine/util/concepts.hh>
+#include <concepts>
 #include <utility>
 
 namespace IG
 {
 
-template <class T, IG::invocable<T> Deleter, T NULL_VALUE = T()>
+template <class T, std::invocable<T> Deleter, T NULL_VALUE = T()>
 class UniqueResource
 {
 public:

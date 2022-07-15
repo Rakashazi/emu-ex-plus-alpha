@@ -24,8 +24,8 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/SyncFence.hh>
 #include <imagine/base/baseDefs.hh>
-#include <imagine/util/concepts.hh>
 #include <imagine/util/utility.h>
+#include <concepts>
 
 namespace IG::Gfx
 {
@@ -43,7 +43,7 @@ public:
 	explicit operator bool() const;
 
 	// Run a delegate on the renderer thread
-	void run(IG::invocable auto &&f, bool awaitReply = false)
+	void run(std::invocable auto &&f, bool awaitReply = false)
 	{
 		RendererTaskImpl::run(IG_forward(f), awaitReply);
 	}
@@ -51,7 +51,7 @@ public:
 	// Run a delegate for drawing on the renderer thread
 	// Returns true if the window's contents were presented synchronously
 	bool draw(Window &win, WindowDrawParams winParams, DrawParams params,
-		const Mat4 &projMat, IG::invocable<Window &, RendererCommands &> auto &&f)
+		const Mat4 &projMat, std::invocable<Window &, RendererCommands &> auto &&f)
 	{
 		return RendererTaskImpl::draw(win, winParams, params, projMat, IG_forward(f));
 	}

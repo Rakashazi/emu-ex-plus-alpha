@@ -122,7 +122,7 @@ EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMSXExtension;
 
 void MsxSystem::insertMedia(EmuApp &app)
 {
-	iterateTimes(2, i)
+	for(auto i : iotaCount(2))
 	{
 		switch(currentRomType[i])
 		{
@@ -147,7 +147,7 @@ void MsxSystem::insertMedia(EmuApp &app)
 		}
 	}
 
-	iterateTimes(2, i)
+	for(auto i : iotaCount(2))
 	{
 		if(diskName[i].empty())
 			continue;
@@ -158,7 +158,7 @@ void MsxSystem::insertMedia(EmuApp &app)
 		}
 	}
 
-	iterateTimes(4, i)
+	for(auto i: iotaCount(4))
 	{
 		if(hdName[i].empty())
 			continue;

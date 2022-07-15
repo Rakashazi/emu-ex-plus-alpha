@@ -110,7 +110,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 					isPushed ? "pushed" : "released", keyEv.device()->keyName(keyEv.key()),
 					keyEv.device()->name()));
 			}
-			iterateTimes(InputDeviceData::maxKeyActions, i)
+			for(auto i : iotaCount(InputDeviceData::maxKeyActions))
 			{
 				auto action = actionGroup[i];
 				if(action != 0)

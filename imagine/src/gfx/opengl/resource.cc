@@ -81,25 +81,25 @@ static TextureSamplerConfig commonTextureSamplerConfig(CommonTextureSampler samp
 			return conf;
 		case CommonTextureSampler::NEAREST_MIP_CLAMP:
 			conf.setDebugLabel("CommonNearestMipClamp");
-			conf.setMipFilter(MIP_FILTER_NEAREST);
+			conf.setMipFilter(MipFilter::NEAREST);
 			return conf;
 		case CommonTextureSampler::NO_MIP_CLAMP:
 			conf.setDebugLabel("CommonNoMipClamp");
-			conf.setMipFilter(MIP_FILTER_NONE);
+			conf.setMipFilter(MipFilter::NONE);
 			return conf;
 		case CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP:
 			conf.setDebugLabel("CommonNoLinearNoMipClamp");
 			conf.setLinearFilter(false);
-			conf.setMipFilter(MIP_FILTER_NONE);
+			conf.setMipFilter(MipFilter::NONE);
 			return conf;
 		case CommonTextureSampler::REPEAT:
 			conf.setDebugLabel("CommonRepeat");
-			conf.setWrapMode(WRAP_REPEAT);
+			conf.setWrapMode(WrapMode::REPEAT);
 			return conf;
 		case CommonTextureSampler::NEAREST_MIP_REPEAT:
 			conf.setDebugLabel("CommonNearestMipRepeat");
-			conf.setMipFilter(MIP_FILTER_NEAREST);
-			conf.setWrapMode(WRAP_REPEAT);
+			conf.setMipFilter(MipFilter::NEAREST);
+			conf.setWrapMode(WrapMode::REPEAT);
 			return conf;
 		default: bug_unreachable("sampler:%d", (int)sampler);
 	}

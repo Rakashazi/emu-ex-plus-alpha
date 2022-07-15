@@ -185,7 +185,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, IG::CStringV
 			if(manager().needsBackControl() && closeRes)
 			{
 				cancelSpr = {{{-.5, -.5}, {.5, .5}}, closeRes};
-				if(cancelSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
+				if(cancelSpr.compileDefaultProgram(Gfx::EnvMode::MODULATE))
 					renderer().autoReleaseShaderCompiler();
 			}
 		});
@@ -279,9 +279,9 @@ void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 			if(cancelSpr.image())
 			{
 				cmds.set(ColorName::WHITE);
-				cmds.setBlendMode(BLEND_MODE_ALPHA);
+				cmds.set(BlendMode::ALPHA);
 				cmds.set(imageCommonTextureSampler);
-				cancelSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate());
+				cancelSpr.setCommonProgram(cmds, EnvMode::MODULATE, projP.makeTranslate());
 				cancelSpr.draw(cmds);
 			}
 		});

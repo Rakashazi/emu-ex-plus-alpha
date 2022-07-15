@@ -11,7 +11,7 @@
 #include "cd_file.h"
 #include "cd_sys.h"
 #include <imagine/logger/logger.h>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include <imagine/util/mayAliasInt.h>
 #include <assert.h>
 #include <string.h>
@@ -42,7 +42,7 @@ int Load_ISO(Mednafen::CDAccess *cd)
 	unsigned currLBA = 0;
 	sCD.cddaLBA = 0;
 	sCD.cddaDataLeftover = 0;
-	iterateTimes(99, i)
+	for(auto i : IG::iotaCount(100))
 	{
 		if(i+1 > toc.last_track)
 			break;
@@ -130,7 +130,7 @@ int readCDDA(void *dest, unsigned size)
 		// apply fader
 		{
 			auto sample = (int16*)dest;
-			iterateTimes(size*2, i)
+			for(auto i : IG::iotaCount(size*2))
 			{
 				sample[i] = (sample[i] * sCD.volume) / 1024;
 			}

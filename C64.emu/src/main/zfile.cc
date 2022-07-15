@@ -33,7 +33,7 @@ CLINK FILE *zfile_fopen(const char *path, const char *mode)
 	auto appContext = gAppContext();
 	if(EmuApp::hasArchiveExtension(appContext.fileUriDisplayName(path)))
 	{
-		if(IG::stringContains(mode, 'w'))
+		if(std::string_view{mode}.contains('w'))
 		{
 			logErr("opening archive %s with write mode not supported", path);
 			return nullptr;

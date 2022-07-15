@@ -38,8 +38,8 @@ public:
 
 	constexpr MapIO() = default;
 	MapIO(IOBuffer);
-	MapIO(derived_from<IO> auto &&io): MapIO{io.buffer(IO::BufferMode::RELEASE)} {}
-	MapIO(derived_from<IO> auto &io): MapIO{io.buffer(IO::BufferMode::DIRECT)} {}
+	MapIO(std::derived_from<IO> auto &&io): MapIO{io.buffer(IO::BufferMode::RELEASE)} {}
+	MapIO(std::derived_from<IO> auto &io): MapIO{io.buffer(IO::BufferMode::DIRECT)} {}
 	ssize_t read(void *buff, size_t bytes) final;
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset) final;
 	std::span<uint8_t> map() final;

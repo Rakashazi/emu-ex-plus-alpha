@@ -1,12 +1,12 @@
 #pragma once
 
-#include <imagine/util/concepts.hh>
+#include <concepts>
 #include <utility>
 
 namespace IG
 {
 
-template <IG::invocable F>
+template <std::invocable F>
 class ScopeGuard
 {
 	F func;

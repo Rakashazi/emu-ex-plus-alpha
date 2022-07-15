@@ -15,43 +15,43 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/concepts.hh>
+#include <concepts>
 #include <bit>
 
 namespace IG
 {
 
-constexpr static int ctz(unsigned int x)
+constexpr int ctz(unsigned int x)
 {
 	return __builtin_ctz(x);
 }
 
-constexpr static int ctz(unsigned long x)
+constexpr int ctz(unsigned long x)
 {
 	return __builtin_ctzl(x);
 }
 
-constexpr static int ctz(unsigned long long x)
+constexpr int ctz(unsigned long long x)
 {
 	return __builtin_ctzll(x);
 }
 
-constexpr static int clz(unsigned int x)
+constexpr int clz(unsigned int x)
 {
 	return __builtin_clz(x);
 }
 
-constexpr static int clz(unsigned long x)
+constexpr int clz(unsigned long x)
 {
 	return __builtin_clzl(x);
 }
 
-constexpr static int clz(unsigned long long x)
+constexpr int clz(unsigned long long x)
 {
 	return __builtin_clzll(x);
 }
 
-constexpr static int fls(unsigned_integral auto x)
+constexpr int fls(std::unsigned_integral auto x)
 {
 	return x ? sizeof(x) * 8 - clz(x) : 0;
 }

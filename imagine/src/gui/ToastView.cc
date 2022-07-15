@@ -106,7 +106,7 @@ void ToastView::draw(Gfx::RendererCommands &cmds)
 	if(!text.isVisible())
 		return;
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
-	cmds.setBlendMode(BLEND_MODE_ALPHA);
+	cmds.set(BlendMode::ALPHA);
 	if(error)
 		cmds.setColor(1., 0, 0, .7);
 	else

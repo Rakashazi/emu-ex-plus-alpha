@@ -127,7 +127,7 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 		return;
 	using namespace IG::Gfx;
 	projP.resetTransforms(cmds);
-	cmds.setBlendMode(0);
+	cmds.set(BlendMode::OFF);
 	if(max)
 	{
 		cmds.setCommonProgram(CommonProgram::NO_TEX);

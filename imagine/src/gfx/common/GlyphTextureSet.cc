@@ -77,13 +77,13 @@ void GlyphTextureSet::freeCaches(uint32_t purgeBits)
 		return;
 	}
 	auto tableBits = usedGlyphTableBits;
-	iterateTimes(32, i)
+	for(auto i : iotaCount(32))
 	{
 		if((tableBits & 1) && (purgeBits & 1))
 		{
 			logMsg("purging glyphs from table range %d/31", i);
 			int firstChar = i << 11;
-			iterateTimesFromStart(2048, firstChar, c)
+			for(auto c : std::views::iota(firstChar, 2048))
 			{
 				int tableIdx;
 				if((bool)mapCharToTable(c, tableIdx))

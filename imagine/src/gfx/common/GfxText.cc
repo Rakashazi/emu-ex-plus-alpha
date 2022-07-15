@@ -169,7 +169,7 @@ void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, Pro
 	if(!hasText()) [[unlikely]]
 		return;
 	//logMsg("drawing with origin: %s,%s", o.toString(o.x), o.toString(o.y));
-	cmds.setBlendMode(BLEND_MODE_ALPHA);
+	cmds.set(BlendMode::ALPHA);
 	cmds.set(glyphCommonTextureSampler);
 	std::array<TexVertex, 4> vArr;
 	cmds.bindTempVertexBuffer();

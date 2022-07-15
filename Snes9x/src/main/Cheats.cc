@@ -157,7 +157,7 @@ static bool addCheat(const char *cheatStr)
 	}
 	else if(!S9xGoldFingerToRaw(cheatStr, address, sram, numBytes, bytes))
 	{
-		iterateTimes(numBytes, i)
+		for(auto i : iotaCount(numBytes))
 			S9xAddCheat(false, true, address + i, bytes[i]);
 		// TODO: handle cheat names for multiple codes added at once
 		return true;
@@ -372,10 +372,10 @@ void EmuEditCheatView::renamed(const char *str)
 
 void EmuEditCheatListView::loadCheatItems()
 {
-	unsigned cheats = numCheats();
+	auto cheats = numCheats();
 	cheat.clear();
 	cheat.reserve(cheats);
-	iterateTimes(cheats, c)
+	for(auto c : iotaCount(cheats))
 	{
 		cheat.emplace_back(cheatName(c), &defaultFace(),
 			[this, c](TextMenuItem &, View &, Input::Event e)
@@ -465,10 +465,10 @@ EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 
 void EmuCheatsView::loadCheatItems()
 {
-	unsigned cheats = numCheats();
+	auto cheats = numCheats();
 	cheat.clear();
 	cheat.reserve(cheats);
-	iterateTimes(cheats, c)
+	for(auto c : iotaCount(cheats))
 	{
 		cheat.emplace_back(cheatName(c), &defaultFace(), cheatIsEnabled(c),
 			[this, c](BoolMenuItem &item, View &, Input::Event e)

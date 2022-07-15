@@ -105,7 +105,7 @@ public:
 	Byte1Option optionAutostartWarp{CFGKEY_AUTOSTART_WARP, 1};
 	Byte1Option optionAutostartTDE{CFGKEY_AUTOSTART_TDE, 0};
 	Byte1Option optionAutostartBasicLoad{CFGKEY_AUTOSTART_BASIC_LOAD, 0};
-	Byte1Option optionViceSystem{CFGKEY_VICE_SYSTEM, to_underlying(ViceSystem::C64), false,
+	Byte1Option optionViceSystem{CFGKEY_VICE_SYSTEM, std::to_underlying(ViceSystem::C64), false,
 		optionIsValidWithMax<VicePlugin::SYSTEMS-1, uint8_t>};
 	SByte1Option optionModel{};
 	SByte1Option optionDefaultModel{};

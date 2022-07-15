@@ -20,6 +20,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/util/math/Point2D.hh>
+#include <imagine/util/ranges.hh>
 #include <imagine/logger/logger.h>
 #include <cstdlib>
 #include <cstring>
@@ -230,7 +231,7 @@ static void logBacktrace()
 	void *arr[10];
 	auto size = backtrace(arr, 10);
 	char **backtraceStrings = backtrace_symbols(arr, size);
-	iterateTimes(size, i)
+	for(auto i : IG::iotaCount(size))
 		logger_printf(LOG_E, "%s\n", backtraceStrings[i]);
 }
 #endif

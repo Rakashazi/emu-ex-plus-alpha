@@ -18,7 +18,7 @@
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include <algorithm>
 #include "../input/PackedInputAccess.hh"
 
@@ -155,7 +155,7 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 				}
 				bcase RID_8BA_2A_JS_REPORT:
 					//logMsg("got analog report %d %d", (int8_t)inputBuffer[4], (int8_t)inputBuffer[5]);
-					iterateTimes(2, i)
+				for(auto i : iotaCount(2))
 					{
 						if(axis[i].update((int8_t)inputBuffer[4+i], Input::Map::ZEEMOTE, time, *this, ctx.mainWindow()))
 							ctx.endIdleByUserActivity();
@@ -187,13 +187,13 @@ void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time)
 {
 	using namespace IG::Input;
 	uint8_t btnPush[4] {0};
-	iterateTimes(4, i)
+	for(auto i : iotaCount(4))
 	{
 		if(btnData[i] >= 4)
 			break;
 		btnPush[btnData[i]] = 1;
 	}
-	iterateTimes(4, i)
+	for(auto i : iotaCount(4))
 	{
 		if(prevBtnPush[i] != btnPush[i])
 		{

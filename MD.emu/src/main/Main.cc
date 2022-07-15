@@ -49,7 +49,6 @@ namespace EmuEx
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
-bool EmuSystem::canRenderRGB565 = RENDER_BPP == 16;
 bool EmuSystem::canRenderRGBA8888 = RENDER_BPP == 32;
 bool EmuApp::needsGlobalInstance = true;
 
@@ -296,7 +295,7 @@ void MdSystem::setupMDInput(EmuApp &app)
 	playerIdxMap[1] = 4;
 
 	unsigned mdPad = option6BtnPad ? DEVICE_PAD6B : DEVICE_PAD3B;
-	iterateTimes(4, i)
+	for(auto i : iotaCount(4))
 		config.input[i].padtype = mdPad;
 
 	if(system_hw == SYSTEM_PBC)
@@ -325,7 +324,7 @@ void MdSystem::setupMDInput(EmuApp &app)
 	}
 	else
 	{
-		iterateTimes(2, i)
+		for(auto i : iotaCount(2))
 		{
 			if(mdInputPortDev[i] == -1) // user didn't specify device, go with auto settings
 			{
@@ -448,7 +447,7 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 		logMsg("using PAL timing");
 
 	system_init();
-	iterateTimes(2, i)
+	for(auto i : iotaCount(2))
 	{
 		if(old_system[i] != -1)
 			old_system[i] = input.system[i]; // store input ports set by game

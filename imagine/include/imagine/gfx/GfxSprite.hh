@@ -45,10 +45,10 @@ public:
 	void setImg(TextureSpan span);
 	void setUVBounds(FRect uvBounds);
 	void draw(RendererCommands &r) const;
-	bool compileDefaultProgram(uint32_t mode);
-	bool compileDefaultProgramOneShot(uint32_t mode);
-	void setCommonProgram(RendererCommands &cmds, uint32_t mode, const Mat4 *modelMat = {}) const;
-	void setCommonProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const;
+	bool compileDefaultProgram(EnvMode mode);
+	bool compileDefaultProgramOneShot(EnvMode mode);
+	void setCommonProgram(RendererCommands &cmds, EnvMode mode, const Mat4 *modelMat = {}) const;
+	void setCommonProgram(RendererCommands &cmds, EnvMode mode, Mat4 modelMat) const;
 	const Texture *image() const;
 
 private:

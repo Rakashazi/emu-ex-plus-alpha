@@ -37,7 +37,7 @@ struct VertexInfo
 };
 
 template <class T>
-concept Vertex = IG::derived_from<T, VertexInfo>;
+concept Vertex = std::derived_from<T, VertexInfo>;
 
 struct Vertex2D : public VertexInfo
 {

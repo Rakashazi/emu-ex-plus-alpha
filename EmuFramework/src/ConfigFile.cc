@@ -85,7 +85,7 @@ static bool readKeyConfig(KeyConfigContainer &customKeyConfigs,
 			return false;
 		}
 
-		iterateTimes(categories, i)
+		for(auto i : iotaCount(categories))
 		{
 			if(!size)
 				return false;
@@ -116,7 +116,7 @@ static bool readKeyConfig(KeyConfigContainer &customKeyConfigs,
 			// verify keys
 			{
 				const auto keyMax = Input::KeyEvent::mapNumKeys(keyConf.map);
-				iterateTimes(cat.keys, i)
+				for(auto i : iotaCount(cat.keys))
 				{
 					if(key[i] >= keyMax)
 					{
@@ -251,7 +251,7 @@ void EmuApp::saveConfigFile(IO &io)
 			{
 				bool write{};
 				const auto key = e.key(cat);
-				iterateTimes(cat.keys, k)
+				for(auto k : iotaCount(cat.keys))
 				{
 					if(key[k]) // check if category has any keys defined
 					{
@@ -640,8 +640,15 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 							}
 						}
 
-						logMsg("read input device config %s, id %d", devConf.name.data(), devConf.enumId);
-						savedInputDevs.emplace_back(std::make_unique<InputDeviceSavedConfig>(devConf));
+						if(!IG::containsIf(savedInputDevs, [&](const auto &confPtr){ return *confPtr == devConf;}))
+						{
+							logMsg("read input device config:%s, id:%d", devConf.name.data(), devConf.enumId);
+							savedInputDevs.emplace_back(std::make_unique<InputDeviceSavedConfig>(devConf));
+						}
+						else
+						{
+							logMsg("ignoring duplicate input device config:%s, id:%d", devConf.name.data(), devConf.enumId);
+						}
 
 						if(savedInputDevs.size() == INPUT_DEVICE_CONFIGS_HARD_LIMIT)
 						{

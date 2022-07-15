@@ -17,23 +17,23 @@
 
 #include <imagine/util/bit.hh>
 #include <imagine/util/utility.h>
-#include <imagine/util/concepts.hh>
+#include <concepts>
 #include <cmath>
 
 namespace IG
 {
 
-static auto roundUpPowOf2(unsigned_integral auto x)
+constexpr auto roundUpPowOf2(std::unsigned_integral auto x)
 {
 	return 1 << fls(x - 1);
 }
 
-static auto roundDownPowOf2(unsigned_integral auto x)
+constexpr auto roundDownPowOf2(std::unsigned_integral auto x)
 {
 	return 1 << (fls(x) - 1);
 }
 
-constexpr static auto pow(integral auto base, integral auto exp)
+constexpr auto pow(std::integral auto base, std::integral auto exp)
 {
 	decltype(base) result = 1;
 	while(exp)
@@ -48,53 +48,53 @@ constexpr static auto pow(integral auto base, integral auto exp)
 	return result;
 }
 
-constexpr static bool isEven(integral auto x)
+constexpr bool isEven(std::integral auto x)
 {
 	return x % 2 == 0;
 }
 
-constexpr static bool isOdd(integral auto x)
+constexpr bool isOdd(std::integral auto x)
 {
 	return !isEven(x);
 }
 
-constexpr static auto makeEvenRoundedUp(integral auto x)
+constexpr auto makeEvenRoundedUp(std::integral auto x)
 {
 	return isEven(x) ? x : x+1;
 }
 
-constexpr static auto makeEvenRoundedDown(integral auto x)
+constexpr auto makeEvenRoundedDown(std::integral auto x)
 {
 	return isEven(x) ? x : x-1;
 }
 
-static constexpr bool isPowerOf2(integral auto x)
+constexpr bool isPowerOf2(std::integral auto x)
 {
 	return x && !( (x-1) & x );
 	// return ((x != 0) && ((x & (~x + 1)) == x)); // alternate method
 }
 
-static auto alignRoundedUp(unsigned_integral auto addr, unsigned int align)
+constexpr auto alignRoundedUp(std::unsigned_integral auto addr, unsigned int align)
 {
 	assumeExpr(isPowerOf2(align));
 	return (addr+(align-1)) & ~(align-1);
 }
 
 // divide integer rounding-upwards
-constexpr static auto divRoundUp(integral auto x, integral auto y)
+constexpr auto divRoundUp(std::integral auto x, std::integral auto y)
 {
 	return (x + (y - 1)) / y;
 }
 
 // divide rounding to closest integer
-constexpr static auto divRoundClosest(unsigned_integral auto x, unsigned_integral auto y)
+constexpr auto divRoundClosest(std::unsigned_integral auto x, std::unsigned_integral auto y)
 {
 	return (x > 0) ?
 	 (x + (y / 2)) / y :
 	 (x - (y / 2)) / y;
 }
 
-constexpr static auto divRoundClosest(floating_point auto x, floating_point auto y)
+constexpr auto divRoundClosest(std::floating_point auto x, std::floating_point auto y)
 {
 	return std::round(x / y);
 }

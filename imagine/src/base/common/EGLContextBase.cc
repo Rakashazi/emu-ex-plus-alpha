@@ -397,13 +397,13 @@ IG::ErrorCode EGLManager::initDisplay(EGLDisplay display)
 	}
 	int eglVersion = 10 * major + minor;
 	std::string_view extStr{eglQueryString(display, EGL_EXTENSIONS)};
-	supportsSurfaceless = eglVersion >= 15 || IG::stringContains(extStr, "EGL_KHR_surfaceless_context");
-	supportsNoConfig = IG::stringContains(extStr, "EGL_KHR_no_config_context");
-	supportsNoError = IG::stringContains(extStr, "EGL_KHR_create_context_no_error");
-	supportsSrgbColorSpace = eglVersion >= 15 || IG::stringContains(extStr, "EGL_KHR_gl_colorspace");
+	supportsSurfaceless = eglVersion >= 15 || extStr.contains("EGL_KHR_surfaceless_context");
+	supportsNoConfig = extStr.contains("EGL_KHR_no_config_context");
+	supportsNoError = extStr.contains("EGL_KHR_create_context_no_error");
+	supportsSrgbColorSpace = eglVersion >= 15 || extStr.contains("EGL_KHR_gl_colorspace");
 	if constexpr(Config::envIsLinux)
 	{
-		supportsTripleBufferSurfaces = IG::stringContains(extStr, "EGL_NV_triple_buffer");
+		supportsTripleBufferSurfaces = extStr.contains("EGL_NV_triple_buffer");
 	}
 	logFeatures();
 	return {};

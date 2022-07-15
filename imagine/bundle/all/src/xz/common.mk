@@ -36,6 +36,7 @@ $(xzSrcDir)/configure : | $(xzSrcArchive)
 $(outputLibFile) : $(makeFile)
 	@echo "Building xz..."
 	ac_cv_c_bigendian=$(cpuIsBigEndian) \
+	gl_cv_cc_visibility=no \
 	$(MAKE) -C $(<D)
 
 $(makeFile) : $(xzSrcDir)/configure
@@ -45,6 +46,7 @@ $(makeFile) : $(xzSrcDir)/configure
 	CFLAGS="$(CPPFLAGS) $(CFLAGS)" \
 	LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
 	ac_cv_c_bigendian=$(cpuIsBigEndian) \
+	gl_cv_cc_visibility=no \
 	$(xzSrcDir)/configure \
 	--prefix='$$$${pcfiledir}/../..' \
 	--enable-encoders=lzma1,lzma2 \

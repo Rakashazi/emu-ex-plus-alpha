@@ -41,7 +41,6 @@ namespace EmuEx
 [[gnu::weak]] int EmuSystem::inputRTriggerIndex = -1;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
-[[gnu::weak]] bool EmuSystem::canRenderRGB565 = true;
 [[gnu::weak]] bool EmuSystem::canRenderRGBA8888 = true;
 [[gnu::weak]] bool EmuSystem::hasResetModes = false;
 [[gnu::weak]] bool EmuSystem::handlesArchiveFiles = false;
@@ -273,7 +272,7 @@ void EmuSystem::start(EmuApp &app)
 IG::Time EmuSystem::benchmark(EmuVideo &video)
 {
 	auto now = IG::steadyClockTimestamp();
-	iterateTimes(180, i)
+	for(auto i : iotaCount(180))
 	{
 		runFrame({}, &video, nullptr);
 	}

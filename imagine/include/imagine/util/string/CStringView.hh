@@ -18,6 +18,7 @@
 #include <string>
 #include <string_view>
 #include <imagine/util/concepts.hh>
+#include <imagine/util/utility.h>
 
 namespace IG
 {
@@ -39,6 +40,7 @@ public:
 	constexpr bool empty() const { return !size(); }
 	constexpr operator const char *() const { return str; }
 	constexpr operator std::string_view() const { return {str, size()}; }
+	constexpr bool contains(auto &&s) const { return static_cast<std::string_view>(*this).contains(IG_forward(s)); }
 
 protected:
 	const char *str;

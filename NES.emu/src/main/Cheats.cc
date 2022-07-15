@@ -285,10 +285,10 @@ void EmuEditCheatView::renamed(const char *str)
 
 void EmuEditCheatListView::loadCheatItems()
 {
-	unsigned cheats = fceuCheats;
+	auto cheats = fceuCheats;
 	cheat.clear();
 	cheat.reserve(cheats);
-	iterateTimes(cheats, c)
+	for(auto c : iotaCount(cheats))
 	{
 		const char *name = cheatName(c);
 		cheat.emplace_back(name ? name : "Corrupt Cheat", &defaultFace(),
@@ -420,10 +420,10 @@ EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 
 void EmuCheatsView::loadCheatItems()
 {
-	unsigned cheats = fceuCheats;
+	auto cheats = fceuCheats;
 	cheat.clear();
 	cheat.reserve(cheats);
-	iterateTimes(cheats, c)
+	for(auto c : iotaCount(cheats))
 	{
 		char *name;
 		int status = 0;

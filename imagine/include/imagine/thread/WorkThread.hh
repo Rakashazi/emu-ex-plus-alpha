@@ -15,8 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/concepts.hh>
 #include <imagine/util/utility.h>
+#include <concepts>
 #include <thread>
 #include <atomic>
 
@@ -53,7 +53,7 @@ public:
 	WorkThread() {}
 
 	WorkThread(auto &&f, auto &&...args)
-		requires IG::invocable<decltype(f), Context, decltype(args)...>:
+		requires std::invocable<decltype(f), Context, decltype(args)...>:
 		working{true},
 		thread{makeThread(IG_forward(f), IG_forward(args)...)} {}
 
@@ -67,7 +67,7 @@ public:
 	bool isWorking() const { return working.load(std::memory_order::relaxed); }
 
 	void reset(auto &&f, auto &&...args)
-		requires IG::invocable<decltype(f), Context, decltype(args)...>
+		requires std::invocable<decltype(f), Context, decltype(args)...>
 	{
 		stop(ThreadStop::QUIT);
 		threadStop.reset();

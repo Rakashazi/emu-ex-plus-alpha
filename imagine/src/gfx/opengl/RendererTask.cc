@@ -112,13 +112,13 @@ void GLRendererTask::doPreDraw(Window &win, WindowDrawParams winParams, DrawPara
 		return;
 	}
 	assumeExpr(winData(win).drawable);
-	if(params.asyncMode() == DrawAsyncMode::AUTO)
+	if(params.asyncMode == DrawAsyncMode::AUTO)
 	{
-		params.setAsyncMode(DrawAsyncMode::PRESENT);
+		params.asyncMode = DrawAsyncMode::PRESENT;
 	}
 	if(winParams.needsSync()) [[unlikely]]
 	{
-		params.setAsyncMode(DrawAsyncMode::NONE);
+		params.asyncMode = DrawAsyncMode::NONE;
 	}
 }
 

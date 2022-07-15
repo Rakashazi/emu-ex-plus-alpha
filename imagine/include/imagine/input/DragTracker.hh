@@ -19,6 +19,7 @@
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/algorithm.h>
+#include <concepts>
 
 namespace IG::Input
 {
@@ -75,9 +76,9 @@ public:
 	constexpr DragTracker() = default;
 
 	bool inputEvent(const MotionEvent &e,
-		IG::invocable<DragTrackerState, UserData&> auto &&onDown,
-		IG::invocable<DragTrackerState, DragTrackerState, UserData&> auto &&onMove,
-		IG::invocable<DragTrackerState, UserData&> auto &&onUp)
+		std::invocable<DragTrackerState, UserData&> auto &&onDown,
+		std::invocable<DragTrackerState, DragTrackerState, UserData&> auto &&onMove,
+		std::invocable<DragTrackerState, UserData&> auto &&onUp)
 	{
 		if(!e.isAbsolute())
 			return false;

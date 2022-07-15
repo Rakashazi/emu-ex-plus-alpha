@@ -132,7 +132,7 @@
 #include <math.h>
 
 #include "shared.h"
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 
 /* compiler dependence */
 #ifndef INLINE
@@ -2212,9 +2212,9 @@ int YM2612Restore(unsigned char *state, bool hasExcessData, unsigned ptrSize)
 
   /* restore internal state */
   int bufferptr = 0;
-  iterateTimes(6, c)
+  for(auto c : IG::iotaCount(6))
   {
-  	iterateTimes(4, s)
+		for(auto s : IG::iotaCount(4))
 		{
   		if(hasExcessData)
   		{
@@ -2349,9 +2349,9 @@ int YM2612SaveContext(unsigned char *state)
   int bufferptr = 0;
 
   /* save YM2612 context */
-  iterateTimes(6, c)
+  for(auto c : IG::iotaCount(6))
   {
-  	iterateTimes(4, s)
+		for(auto s : IG::iotaCount(4))
 		{
   		save_param(&ym2612.CH[c].SLOT[s].KSR, 1);
   		save_param(&ym2612.CH[c].SLOT[s].ar, 4);

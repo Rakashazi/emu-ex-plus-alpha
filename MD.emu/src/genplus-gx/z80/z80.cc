@@ -124,7 +124,7 @@
 
 #include <imagine/logger/logger.h>
 #include <genplus-config.h>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include <string.h>
 
 #include "z80.h"
@@ -3492,7 +3492,7 @@ void Z80CPU::staticInit()
 		}
 	}
 
-	iterateTimes(256, i)
+	for(auto i : IG::iotaCount(256))
 	{
 		int p = 0;
 		if( i&0x01 ) ++p;

@@ -140,7 +140,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 		}
 		if(vRect.size())
 		{
-			cmds.setBlendMode(0);
+			cmds.set(BlendMode::OFF);
 			cmds.set(ColorName::WHITE);
 			drawQuads(cmds, &vRect[0], vRect.size(), &vRectIdx[0], vRectIdx.size());
 		}
@@ -152,7 +152,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 	// draw selected rectangle
 	if(selectedCellY != INT_MAX)
 	{
-		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.set(BlendMode::ALPHA);
 		if(hasFocus)
 			cmds.setColor(.2, .71, .9, 1./3.);
 		else
@@ -176,7 +176,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 void TableView::place()
 {
 	auto cells_ = items(*this);
-	iterateTimes(cells_, i)
+	for(auto i : iotaCount(cells_))
 	{
 		//logMsg("compile item %d", i);
 		item(*this, i).compile(renderer(), projP);
@@ -291,7 +291,7 @@ IG::WindowRect TableView::focusRect()
 int TableView::nextSelectableElement(int start, int items)
 {
 	int elem = wrapMinMax(start, 0, items);
-	iterateTimes(items, i)
+	for(auto i : iotaCount(items))
 	{
 		if(elementIsSelectable(item(*this, elem)))
 		{
@@ -305,7 +305,7 @@ int TableView::nextSelectableElement(int start, int items)
 int TableView::prevSelectableElement(int start, int items)
 {
 	int elem = wrapMinMax(start, 0, items);
-	iterateTimes(items, i)
+	for(auto i : iotaCount(items))
 	{
 		if(elementIsSelectable(item(*this, elem)))
 		{

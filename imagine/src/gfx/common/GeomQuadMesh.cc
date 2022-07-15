@@ -16,7 +16,7 @@
 #include <imagine/gfx/GeomQuadMesh.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/space.hh>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 
 namespace IG::Gfx
 {
@@ -45,8 +45,8 @@ GeomQuadMesh::GeomQuadMesh(std::span<const VertexPos> x, std::span<const VertexP
 	VertexIndex *currI = i;
 	quads = 0;
 	auto vArr = v();
-	iterateTimes(y.size()-1, yIdx)
-		iterateTimes(x.size()-1, xIdx)
+	for(auto yIdx : iotaCount(y.size()-1))
+		for(auto xIdx : iotaCount(x.size()-1))
 		{
 			// Triangle 1, LB LT RT
 			currI[0] = vArr.flatOffset(yIdx, xIdx);
@@ -76,7 +76,7 @@ void GeomQuadMesh::draw(RendererCommands &cmds) const
 void GeomQuadMesh::setColorRGB(ColorComp r, ColorComp g, ColorComp b)
 {
 	auto vPtr = v().data();
-	iterateTimes(verts, i)
+	for(auto i : iotaCount(verts))
 	{
 		vPtr[i].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, VertexColorPixelFormat.a(vPtr[i].color));
 	}
@@ -85,7 +85,7 @@ void GeomQuadMesh::setColorRGB(ColorComp r, ColorComp g, ColorComp b)
 void GeomQuadMesh::setColorTranslucent(ColorComp a)
 {
 	auto vPtr = v().data();
-	iterateTimes(verts, i)
+	for(auto i : iotaCount(verts))
 	{
 		vPtr[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(vPtr[i].color), VertexColorPixelFormat.g(vPtr[i].color), VertexColorPixelFormat.b(vPtr[i].color), (uint32_t)a);
 	}
@@ -108,8 +108,8 @@ void GeomQuadMesh::setPos(float x, float y, float x2, float y2)
 {
 	auto yVals = verts/xVals;
 	auto vPtr = v().data();
-	iterateTimes(yVals, yIdx)
-		iterateTimes(xVals, xIdx)
+	for(auto yIdx : iotaCount(yVals))
+		for(auto xIdx : iotaCount(xVals))
 		{
 			vPtr->x = yIdx == 0 ? IG::remap((float)xIdx, 0.f, float(xVals-1), x, x2)
 					: (vPtr-xVals)->x;

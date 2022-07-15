@@ -302,7 +302,7 @@ void removeFileHelper(const char* filename)
 
 gzFile gzopenHelper(const char *filename, const char *mode)
 {
-	unsigned openFlags = IG::stringContains(mode, 'w') ? IG::IO::OPEN_NEW : 0;
+	unsigned openFlags = std::string_view{mode}.contains('w') ? IG::IO::OPEN_NEW : 0;
 	return gzdopen(gAppContext().openFileUriFd(filename, openFlags | IG::IO::TEST_BIT).release(), mode);
 }
 

@@ -52,37 +52,37 @@ public:
 			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, i, v, e); }
 		} {}
 
-	constexpr MenuItemSelectDelegate(IG::invocable<Item &, const Input::Event &> auto &&f):
+	constexpr MenuItemSelectDelegate(std::invocable<Item &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
 			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, i, e); }
 		} {}
 
-	constexpr MenuItemSelectDelegate(IG::invocable<View &, const Input::Event &> auto &&f):
+	constexpr MenuItemSelectDelegate(std::invocable<View &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
 			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, v, e); }
 		} {}
 
-	constexpr MenuItemSelectDelegate(IG::invocable<Item &> auto &&f):
+	constexpr MenuItemSelectDelegate(std::invocable<Item &> auto &&f):
 		DelegateFuncBase
 		{
 			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, i); }
 		} {}
 
-	constexpr MenuItemSelectDelegate(IG::invocable<View &> auto &&f):
+	constexpr MenuItemSelectDelegate(std::invocable<View &> auto &&f):
 		DelegateFuncBase
 		{
 			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, v); }
 		} {}
 
-	constexpr MenuItemSelectDelegate(IG::invocable<const Input::Event &> auto &&f):
+	constexpr MenuItemSelectDelegate(std::invocable<const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
 			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, e); }
 		} {}
 
-	constexpr MenuItemSelectDelegate(IG::invocable auto &&f):
+	constexpr MenuItemSelectDelegate(std::invocable auto &&f):
 		DelegateFuncBase
 		{
 			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f); }

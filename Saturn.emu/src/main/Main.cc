@@ -142,7 +142,6 @@ namespace EmuEx
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nYabause Team\nyabause.org";
 bool EmuSystem::handlesGenericIO = false;
-bool EmuSystem::canRenderRGB565 = false;
 static EmuSystemTaskContext emuSysTask{};
 static EmuAudio *emuAudio{};
 static EmuVideo *emuVideo{};
@@ -338,7 +337,7 @@ static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32
 {
 	//logMsg("got %d audio frames to write", frames);
 	s16 sample[frames*2];
-	iterateTimes(frames, i)
+	for(auto i : IG::iotaCount(frames))
 	{
 		mergeSamplesToStereo(leftchanbuffer[i], rightchanbuffer[i], &sample[i*2]);
 	}

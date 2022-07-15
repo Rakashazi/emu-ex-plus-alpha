@@ -21,7 +21,6 @@
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
-#include <imagine/util/concepts.hh>
 #include <optional>
 #include <stdexcept>
 
@@ -44,33 +43,19 @@ static GCRect makeGCRectRel(FP p, FP size)
 	return GCRect::makeRel(p, size);
 }
 
-static auto pixelToTexC(IG::integral auto pixel, IG::integral auto total)
-{
-	return pixel / (float)total;
-}
+enum class WrapMode: uint8_t { REPEAT, CLAMP };
 
-enum WrapMode
-{
-	WRAP_REPEAT,
-	WRAP_CLAMP
-};
+enum class MipFilter: uint8_t { NONE, NEAREST, LINEAR };
 
-enum MipFilterMode
-{
-	MIP_FILTER_NONE,
-	MIP_FILTER_NEAREST,
-	MIP_FILTER_LINEAR,
-};
+enum class BlendMode: uint8_t { OFF, ALPHA, PREMULT_ALPHA, INTENSITY };
 
-enum { BLEND_MODE_OFF = 0, BLEND_MODE_ALPHA, BLEND_MODE_INTENSITY };
+enum class EnvMode: uint8_t { MODULATE, BLEND, REPLACE, ADD };
 
-enum { IMG_MODE_MODULATE = 0, IMG_MODE_BLEND, IMG_MODE_REPLACE, IMG_MODE_ADD };
+enum class BlendEquation: uint8_t { ADD, SUB, RSUB };
 
-enum { BLEND_EQ_ADD, BLEND_EQ_SUB, BLEND_EQ_RSUB };
+enum class Faces: uint8_t { BOTH, FRONT, BACK };
 
-enum { BOTH_FACES, FRONT_FACES, BACK_FACES };
-
-enum class ColorName
+enum class ColorName: uint8_t
 {
 	RED,
 	GREEN,
@@ -82,9 +67,7 @@ enum class ColorName
 	BLACK
 };
 
-enum TransformTargetEnum { TARGET_WORLD, TARGET_TEXTURE };
-
-enum class CommonProgram
+enum class CommonProgram: uint8_t
 {
 	// color replacement shaders
 	TEX_REPLACE,
@@ -98,7 +81,7 @@ enum class CommonProgram
 	NO_TEX
 };
 
-enum class CommonTextureSampler
+enum class CommonTextureSampler: uint8_t
 {
 	CLAMP,
 	NEAREST_MIP_CLAMP,
@@ -137,26 +120,12 @@ enum class DrawAsyncMode : uint8_t
 	AUTO, NONE, PRESENT, FULL
 };
 
-class DrawParams
+struct DrawParams
 {
-public:
-	constexpr DrawParams() = default;
-	constexpr DrawParams(DrawAsyncMode asyncMode):
-		asyncMode_{asyncMode}
-	{}
-
-	void setAsyncMode(DrawAsyncMode mode)
-	{
-		asyncMode_ = mode;
-	}
-
-	DrawAsyncMode asyncMode() const { return asyncMode_; }
-
-private:
-	DrawAsyncMode asyncMode_ = DrawAsyncMode::AUTO;
+	DrawAsyncMode asyncMode{DrawAsyncMode::AUTO};
 };
 
-static constexpr Color color(float r, float g, float b, float a = 1.f)
+constexpr Color color(float r, float g, float b, float a = 1.f)
 {
 	if constexpr(std::is_floating_point_v<ColorComp>)
 	{
@@ -168,7 +137,7 @@ static constexpr Color color(float r, float g, float b, float a = 1.f)
 	}
 }
 
-static constexpr Color color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
+constexpr Color color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
 {
 	if constexpr(std::is_floating_point_v<ColorComp>)
 	{
@@ -180,7 +149,7 @@ static constexpr Color color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
 	}
 }
 
-static constexpr Color color(ColorName c)
+constexpr Color color(ColorName c)
 {
 	switch(c)
 	{

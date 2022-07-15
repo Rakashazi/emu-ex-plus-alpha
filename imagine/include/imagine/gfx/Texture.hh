@@ -65,22 +65,22 @@ public:
 	static uint8_t bestAlignment(PixmapView pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
-	uint8_t levels() const;
-	IG::ErrorCode setFormat(PixmapDesc, uint8_t levels, ColorSpace c = {}, const TextureSampler *compatSampler = {});
-	void write(uint8_t level, PixmapView pixmap, IG::WP destPos, uint32_t writeFlags = 0);
-	void writeAligned(uint8_t level, PixmapView pixmap, IG::WP destPos, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
-	void clear(uint8_t level);
-	LockedTextureBuffer lock(uint8_t level, uint32_t bufferFlags = 0);
-	LockedTextureBuffer lock(uint8_t level, IG::WindowRect rect, uint32_t bufferFlags = 0);
+	int levels() const;
+	IG::ErrorCode setFormat(PixmapDesc, int levels, ColorSpace c = {}, const TextureSampler *compatSampler = {});
+	void write(int level, PixmapView pixmap, IG::WP destPos, uint32_t writeFlags = 0);
+	void writeAligned(int level, PixmapView pixmap, IG::WP destPos, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
+	void clear(int level);
+	LockedTextureBuffer lock(int level, uint32_t bufferFlags = 0);
+	LockedTextureBuffer lock(int level, IG::WindowRect rect, uint32_t bufferFlags = 0);
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
-	IG::WP size(uint8_t level) const;
+	IG::WP size(int level) const;
 	PixmapDesc pixmapDesc() const;
 	void setCompatTextureSampler(const TextureSampler &compatSampler);
-	bool compileDefaultProgram(uint32_t mode) const;
-	bool compileDefaultProgramOneShot(uint32_t mode) const;
-	void useDefaultProgram(RendererCommands &cmds, uint32_t mode, const Mat4 *modelMat) const;
-	void useDefaultProgram(RendererCommands &cmds, uint32_t mode) const { useDefaultProgram(cmds, mode, nullptr); }
-	void useDefaultProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const;
+	bool compileDefaultProgram(EnvMode mode) const;
+	bool compileDefaultProgramOneShot(EnvMode mode) const;
+	void useDefaultProgram(RendererCommands &cmds, EnvMode mode, const Mat4 *modelMat) const;
+	void useDefaultProgram(RendererCommands &cmds, EnvMode mode) const { useDefaultProgram(cmds, mode, nullptr); }
+	void useDefaultProgram(RendererCommands &cmds, EnvMode mode, Mat4 modelMat) const;
 	explicit operator bool() const;
 	Renderer &renderer() const;
 	RendererTask &task() const;

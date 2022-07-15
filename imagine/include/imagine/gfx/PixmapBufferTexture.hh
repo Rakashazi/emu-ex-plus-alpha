@@ -49,7 +49,7 @@ public:
 	PixmapDesc pixmapDesc() const;
 	PixmapDesc usedPixmapDesc() const;
 	void setCompatTextureSampler(const TextureSampler &compatSampler);
-	bool compileDefaultProgram(uint32_t mode) const;
+	bool compileDefaultProgram(EnvMode mode) const;
 	explicit operator bool() const;
 	Renderer &renderer() const;
 	operator TextureSpan() const;

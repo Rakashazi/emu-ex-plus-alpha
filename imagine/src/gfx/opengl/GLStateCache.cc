@@ -28,20 +28,6 @@ static GLenum textureTargetToGet(GLenum target)
 	}
 }
 
-#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-void GLStateCache::matrixMode(GLenum mode)
-{
-	if(mode != matrixModeState)
-	{
-		runGLCheckedVerbose([&]()
-		{
-			glMatrixMode(mode);
-		}, "glMatrixMode()");
-		matrixModeState = mode;
-	}
-}
-#endif
-
 GLuint *GLStateCache::getBindTextureState(GLenum target)
 {
 	#define GLTARGET_CASE(target) case target: return &bindTextureState.target ## _state

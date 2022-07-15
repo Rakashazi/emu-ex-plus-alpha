@@ -105,7 +105,7 @@ void BaseAlertView::prepareDraw()
 void BaseAlertView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
-	cmds.setBlendMode(BLEND_MODE_ALPHA);
+	cmds.set(BlendMode::ALPHA);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	cmds.setColor(.4, .4, .4, .8);
 	GeomRect::draw(cmds, labelFrame);

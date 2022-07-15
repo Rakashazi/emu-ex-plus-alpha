@@ -512,14 +512,13 @@ void GLRenderer::useCommonProgram(RendererCommands &cmds, CommonProgram program,
 			bcase CommonProgram::TEX_REPLACE:
 			bcase CommonProgram::TEX_ALPHA_REPLACE:
 				cmds.glcEnable(GL_TEXTURE_2D);
-				cmds.setImgMode(IMG_MODE_REPLACE);
+				cmds.setImgMode(EnvMode::REPLACE);
 			bcase CommonProgram::TEX:
 			bcase CommonProgram::TEX_ALPHA:
 				cmds.glcEnable(GL_TEXTURE_2D);
-				cmds.setImgMode(IMG_MODE_MODULATE);
+				cmds.setImgMode(EnvMode::MODULATE);
 			bcase CommonProgram::NO_TEX:
 				cmds.glcDisable(GL_TEXTURE_2D);
-				cmds.setImgMode(IMG_MODE_MODULATE);
 			bdefault: bug_unreachable("program:%d", (int)program);
 		}
 		if(modelMat)

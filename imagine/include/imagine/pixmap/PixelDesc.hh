@@ -3,7 +3,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/math/math.hh>
-#include <imagine/util/concepts.hh>
+#include <concepts>
 #include <bit>
 #include <array>
 
@@ -29,8 +29,8 @@ public:
 		bytesPerPixel_{bytesPerPixel}
 	{}
 
-	constexpr uint32_t build(IG::floating_point auto r_, IG::floating_point auto g_, IG::floating_point auto b_,
-		IG::floating_point auto a_) const
+	constexpr uint32_t build(std::floating_point auto r_, std::floating_point auto g_, std::floating_point auto b_,
+		std::floating_point auto a_) const
 	{
 		return build(IG::clampFromFloat<uint32_t>(r_, rBits),
 			IG::clampFromFloat<uint32_t>(g_, gBits),
@@ -38,8 +38,8 @@ public:
 			IG::clampFromFloat<uint32_t>(a_, aBits));
 	}
 
-	constexpr uint32_t build(IG::integral auto r_, IG::integral auto g_, IG::integral auto b_,
-		IG::integral auto a_) const
+	constexpr uint32_t build(std::integral auto r_, std::integral auto g_, std::integral auto b_,
+		std::integral auto a_) const
 	{
 		auto r = (uint32_t)r_;
 		auto g = (uint32_t)g_;

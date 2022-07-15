@@ -29,9 +29,9 @@ void GLRenderer::setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat) const
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(support.useFixedFunctionPipeline)
 	{
-		cmds.glcMatrixMode(GL_PROJECTION);
+		glMatrixMode(GL_PROJECTION);
 		glLoadMatrixf(&mat[0][0]);
-		cmds.glcMatrixMode(GL_MODELVIEW);
+		glMatrixMode(GL_MODELVIEW);
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -68,21 +68,6 @@ void Renderer::animateProjectionMatrixRotation(Window &win, float srcAngle, floa
 			win.postDraw();
 			return didUpdate;
 		});
-}
-
-void RendererCommands::setTransformTarget(TransformTargetEnum target)
-{
-	rTask->verifyCurrentContext();
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(renderer().support.useFixedFunctionPipeline)
-		glcMatrixMode(target == TARGET_TEXTURE ? GL_TEXTURE : GL_MODELVIEW);
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(!renderer().support.useFixedFunctionPipeline)
-	{
-		bug_unreachable("TODO");
-	}
-	#endif
 }
 
 void RendererCommands::loadTransform(Mat4 mat)

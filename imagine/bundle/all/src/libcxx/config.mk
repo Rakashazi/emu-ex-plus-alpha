@@ -1,2 +1,2 @@
-LTO_MODE ?= lto-fat
+LTO_MODE ?= lto
 pkgName := libcxx

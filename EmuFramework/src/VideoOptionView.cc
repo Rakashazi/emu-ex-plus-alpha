@@ -261,7 +261,7 @@ TextMenuItem::SelectDelegate VideoOptionView::setImageBuffersDel()
 
 static int aspectRatioValueIndex(double val)
 {
-	iterateTimes(EmuSystem::aspectRatioInfos, i)
+	for(auto i : iotaCount(EmuSystem::aspectRatioInfos))
 	{
 		if(val == (double)EmuSystem::aspectRatioInfo[i])
 		{
@@ -416,10 +416,10 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	imgEffectItem
 	{
-		{"Off",         &defaultFace(), setImgEffectDel(), to_underlying(ImageEffectId::DIRECT)},
-		{"hq2x",        &defaultFace(), setImgEffectDel(), to_underlying(ImageEffectId::HQ2X)},
-		{"Scale2x",     &defaultFace(), setImgEffectDel(), to_underlying(ImageEffectId::SCALE2X)},
-		{"Prescale 2x", &defaultFace(), setImgEffectDel(), to_underlying(ImageEffectId::PRESCALE2X)}
+		{"Off",         &defaultFace(), setImgEffectDel(), std::to_underlying(ImageEffectId::DIRECT)},
+		{"hq2x",        &defaultFace(), setImgEffectDel(), std::to_underlying(ImageEffectId::HQ2X)},
+		{"Scale2x",     &defaultFace(), setImgEffectDel(), std::to_underlying(ImageEffectId::SCALE2X)},
+		{"Prescale 2x", &defaultFace(), setImgEffectDel(), std::to_underlying(ImageEffectId::PRESCALE2X)}
 	},
 	imgEffect
 	{
@@ -430,11 +430,11 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	overlayEffectItem
 	{
 		{"Off",          &defaultFace(), setOverlayEffectDel(), 0},
-		{"Scanlines",    &defaultFace(), setOverlayEffectDel(), to_underlying(ImageOverlayId::SCANLINES)},
-		{"Scanlines 2x", &defaultFace(), setOverlayEffectDel(), to_underlying(ImageOverlayId::SCANLINES_2)},
-		{"CRT Mask",     &defaultFace(), setOverlayEffectDel(), to_underlying(ImageOverlayId::CRT)},
-		{"CRT",          &defaultFace(), setOverlayEffectDel(), to_underlying(ImageOverlayId::CRT_RGB)},
-		{"CRT 2x",       &defaultFace(), setOverlayEffectDel(), to_underlying(ImageOverlayId::CRT_RGB_2)}
+		{"Scanlines",    &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::SCANLINES)},
+		{"Scanlines 2x", &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::SCANLINES_2)},
+		{"CRT Mask",     &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT)},
+		{"CRT",          &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT_RGB)},
+		{"CRT 2x",       &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT_RGB_2)}
 	},
 	overlayEffect
 	{
@@ -598,7 +598,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		}
 		windowPixelFormat.setSelected(IG::findIndex(descs, app().windowDrawableConfig()) + 1);
 	}
-	iterateTimes(EmuSystem::aspectRatioInfos, i)
+	for(auto i : iotaCount(EmuSystem::aspectRatioInfos))
 	{
 		aspectRatioItem.emplace_back(EmuSystem::aspectRatioInfo[i].name, &defaultFace(),
 			[this, i]()

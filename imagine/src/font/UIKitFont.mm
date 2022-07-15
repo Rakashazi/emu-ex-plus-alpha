@@ -80,8 +80,8 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, CGColorS
 	// measure real bounds
 	auto pixView = IG::ArrayView2<char>{pixBuffer, (size_t)cXFullSize};
 	int minX = cXFullSize, maxX = 0, minY = cYFullSize, maxY = 0;
-	iterateTimes(cYFullSize, y)
-		iterateTimes(cXFullSize, x)
+	for(auto y : iotaCount(cYFullSize))
+		for(auto x : iotaCount(cXFullSize))
 		{
 			if(pixView[y][x])
 			{

@@ -25,15 +25,9 @@ namespace IG
 {
 
 [[nodiscard]]
-constexpr bool stringContains(std::string_view sv, auto &&toFind)
-{
-	return sv.find(IG_forward(toFind)) != std::string_view::npos;
-}
-
-[[nodiscard]]
 constexpr bool stringContainsAny(std::string_view sv, auto &&...substrs)
 {
-	return (stringContains(sv, IG_forward(substrs)) || ...);
+	return (sv.contains(IG_forward(substrs)) || ...);
 }
 
 [[nodiscard]]

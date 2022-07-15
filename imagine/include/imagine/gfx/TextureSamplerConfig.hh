@@ -52,12 +52,12 @@ public:
 		return magLinearFiltering;
 	}
 
-	void setMipFilter(MipFilterMode filter)
+	void setMipFilter(MipFilter filter)
 	{
 		mipFiltering = filter;
 	}
 
-	MipFilterMode mipFilter() const
+	MipFilter mipFilter() const
 	{
 		return mipFiltering;
 	}
@@ -101,17 +101,17 @@ public:
 	{
 		TextureSamplerConfig config;
 		config.setLinearFilter(true);
-		config.setMipFilter(MIP_FILTER_NONE);
-		config.setWrapMode(WRAP_CLAMP);
+		config.setMipFilter(MipFilter::NONE);
+		config.setWrapMode(WrapMode::CLAMP);
 		return config;
 	}
 
 private:
 	bool minLinearFiltering = true;
 	bool magLinearFiltering = true;
-	MipFilterMode mipFiltering = MIP_FILTER_LINEAR;
-	WrapMode xWrapMode_ = WRAP_CLAMP;
-	WrapMode yWrapMode_ = WRAP_CLAMP;
+	MipFilter mipFiltering = MipFilter::LINEAR;
+	WrapMode xWrapMode_ = WrapMode::CLAMP;
+	WrapMode yWrapMode_ = WrapMode::CLAMP;
 	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, label){};
 };
 

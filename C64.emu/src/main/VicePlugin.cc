@@ -219,14 +219,14 @@ bool VicePlugin::hasSystemLib(ViceSystem system, const char *libBasePath)
 {
 	if(system < ViceSystem::C64 || system > ViceSystem::VIC20)
 		return false;
-	return IG::FS::exists(makePluginLibPath(libName[IG::to_underlying(system)], libBasePath));
+	return IG::FS::exists(makePluginLibPath(libName[std::to_underlying(system)], libBasePath));
 }
 
 const char *VicePlugin::systemName(ViceSystem system)
 {
 	if(system < ViceSystem::C64 || system > ViceSystem::VIC20)
 		return "";
-	return systemNameStr[IG::to_underlying(system)];
+	return systemNameStr[std::to_underlying(system)];
 }
 
 int VicePlugin::model_get() const
@@ -700,7 +700,7 @@ VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 			VIC20MODEL_VIC20_NTSC
 		},
 	};
-	auto libPath = makePluginLibPath(libName[IG::to_underlying(system)], libBasePath);
+	auto libPath = makePluginLibPath(libName[std::to_underlying(system)], libBasePath);
 	logMsg("loading VICE plugin:%s", libPath.data());
 	auto lib = IG::openSharedLibrary(libPath.data(), IG::RESOLVE_ALL_SYMBOLS_FLAG);
 	if(!lib)
@@ -708,7 +708,7 @@ VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 		return {};
 	}
 	auto plugin = commonVicePlugin(lib, system);
-	auto &conf = pluginConf[IG::to_underlying(system)];
+	auto &conf = pluginConf[std::to_underlying(system)];
 	loadSymbolCheck(plugin.model_get_, lib, conf.getModelFuncName);
 	loadSymbolCheck(plugin.model_set_, lib, conf.setModelFuncName);
 	//logMsg("getModel() address:%p", plugin.model_get_);

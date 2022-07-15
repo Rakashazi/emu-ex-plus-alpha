@@ -68,7 +68,7 @@ ScrollView::ScrollView(ViewAttachParams attach):
 				//logMsg("animating over-scroll");
 				int clip = offset < 0 ? 0 : offsetMax;
 				int sign = offset < 0 ? 1 : -1;
-				iterateTimes(frames, i)
+				for(auto i : iotaCount(frames))
 				{
 					int vel = std::abs((clip - offset) * overScrollVelScale);
 					offset += sign * std::max(1, vel);
@@ -153,7 +153,7 @@ void ScrollView::drawScrollContent(Gfx::RendererCommands &cmds)
 	if(contentIsBiggerThanView && (allowScrollWholeArea_ || dragTracker.isDragging()))
 	{
 		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
-		cmds.setBlendMode(0);
+		cmds.set(BlendMode::OFF);
 		if(scrollWholeArea_)
 		{
 			if(dragTracker.isDragging())

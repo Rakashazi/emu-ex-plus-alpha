@@ -1,1 +1,0 @@
-../../make/ios-armv7s.mk

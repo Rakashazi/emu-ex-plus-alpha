@@ -15,8 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/string/CStringView.hh>
-#include <imagine/util/string.h>
 #include <imagine/util/utility.h>
 #include <string_view>
 
@@ -25,7 +23,7 @@ namespace IG
 
 static constexpr bool isUri(std::string_view str)
 {
-	return IG::stringContains(str, "://");
+	return str.contains("://");
 }
 
 static constexpr bool isUnreservedUriChar(char c)

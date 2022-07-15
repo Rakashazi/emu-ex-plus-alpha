@@ -27,7 +27,6 @@
 #endif
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
-#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <cstring>
 
@@ -548,7 +547,7 @@ FILE *fopenUri(ApplicationContext ctx, IG::CStringView path, IG::CStringView mod
 {
 	if(IG::isUri(path))
 	{
-		int openFlags = IG::stringContains(mode, 'w') ? IO::OPEN_NEW : 0;
+		int openFlags = mode.contains('w') ? IO::OPEN_NEW : 0;
 		return GenericIO{ctx.openFileUri(path, openFlags | IO::TEST_BIT)}.moveToFileStream(mode);
 	}
 	else

@@ -27,7 +27,7 @@ namespace EmuEx
 template <class T>
 using MainAppHelper = EmuAppHelper<T, MainApp>;
 
-static constexpr unsigned MAX_RESAMPLERS = 4;
+static constexpr size_t MAX_RESAMPLERS = 4;
 
 class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
 {
@@ -48,11 +48,11 @@ public:
 	{
 		loadStockItems();
 		logMsg("%d resamplers", (int)ResamplerInfo::num());
-		auto resamplers = std::min((unsigned)ResamplerInfo::num(), MAX_RESAMPLERS);
-		iterateTimes(resamplers, i)
+		auto resamplers = std::min(ResamplerInfo::num(), MAX_RESAMPLERS);
+		for(auto i : iotaCount(resamplers))
 		{
 			ResamplerInfo r = ResamplerInfo::get(i);
-			logMsg("%d %s", i, r.desc);
+			logMsg("%zu %s", i, r.desc);
 			resamplerItem.emplace_back(r.desc, &defaultFace(),
 				[this, i]()
 				{

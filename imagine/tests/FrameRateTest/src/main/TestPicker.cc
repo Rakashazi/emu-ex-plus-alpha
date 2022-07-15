@@ -56,7 +56,7 @@ void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 	testEntry.reserve(tests);
 	testParam.clear();
 	testParam.reserve(tests);
-	iterateTimes(tests, i)
+	for(auto i : iotaCount(tests))
 	{
 		testEntry.emplace_back(&defaultFace(),
 			[this, i](IG::DualTextMenuItem &, IG::View &, IG::Input::Event e)

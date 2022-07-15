@@ -21,7 +21,6 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/mayAliasInt.h>
-#include <imagine/util/ranges.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
@@ -30,6 +29,7 @@
 #include "loadrom.h"
 #include "md_cart.h"
 #include "genesis.h"
+#include <ranges>
 
 namespace EmuEx
 {
@@ -86,7 +86,7 @@ unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &
 
 		static const char ggvalidchars[] = "ABCDEFGHJKLMNPRSTVWXYZ0123456789";
 
-		iterateTimes(8, i)
+		for(auto i : iotaCount(8))
 		{
 			if(i == 4) string++;
 			auto p = strchr(ggvalidchars, *string++);
@@ -153,7 +153,7 @@ unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &
 		}
 
 		// decode 8-bit data
-		iterateTimes(2, i)
+		for(auto i : iotaCount(2))
 		{
 			auto p = strchr(arvalidchars, *string++);
 			if(!p) return 0;
@@ -162,7 +162,7 @@ unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &
 		}
 
 		// decode 16-bit address (low 12-bits)
-		iterateTimes(3, i)
+		for(auto i : iotaCount(3))
 		{
 			if(i==1) string++; // skip separator
 			auto p = strchr (arvalidchars, *string++);
@@ -187,7 +187,7 @@ unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &
 
 		// decode reference 8-bit data
 		uint8 ref = 0;
-		iterateTimes(2, i)
+		for(auto i : iotaCount(2))
 		{
 			string++; // skip separator and 2nd digit
 			auto p = strchr (arvalidchars, *string++);
@@ -214,7 +214,7 @@ unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &
 			if(strlen(string) < 11) return 0;
 
 			// decode 24-bit address
-			iterateTimes(6, i)
+			for(auto i : iotaCount(6))
 			{
 				auto p = strchr(arvalidchars, *string++);
 				if(!p) return 0;
@@ -224,7 +224,7 @@ unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &
 
 			// decode 16-bit data
 			string++;
-			iterateTimes(4, i)
+			for(auto i : iotaCount(4))
 			{
 				auto p = strchr(arvalidchars, *string++);
 				if(!p) return 0;
@@ -249,7 +249,7 @@ unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &
 
 			// decode 16-bit address
 			string+=2;
-			iterateTimes(4, i)
+			for(auto i : iotaCount(4))
 			{
 				auto p = strchr(arvalidchars, *string++);
 				if(!p) return 0;
@@ -265,7 +265,7 @@ unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &
 
 			// decode 8-bit data
 			string++;
-			iterateTimes(2, i)
+			for(auto i : iotaCount(2))
 			{
 				auto p = strchr(arvalidchars, *string++);
 				if(!p) return 0;
@@ -344,7 +344,7 @@ void clearCheats()
 
 	//logMsg("reversing applied cheats");
   // disable cheats in reversed order in case the same address is used by multiple patches
-  for(auto &e : IG::makeReverseRange(cheatList))
+  for(auto &e : std::views::reverse(cheatList))
   {
     if(e.isApplied())
     {
@@ -564,11 +564,11 @@ void EmuEditCheatView::renamed(const char *str)
 
 void EmuEditCheatListView::loadCheatItems()
 {
-	unsigned cheats = cheatList.size();
+	auto cheats = cheatList.size();
 	cheat.clear();
 	cheat.reserve(cheats);
 	auto it = cheatList.begin();
-	iterateTimes(cheats, c)
+	for(auto c : iotaCount(cheats))
 	{
 		auto &thisCheat = *it;
 		cheat.emplace_back(thisCheat.name, &defaultFace(),
@@ -667,11 +667,11 @@ EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 
 void EmuCheatsView::loadCheatItems()
 {
-	unsigned cheats = cheatList.size();
+	auto cheats = cheatList.size();
 	cheat.clear();
 	cheat.reserve(cheats);
 	auto it = cheatList.begin();
-	iterateTimes(cheats, cIdx)
+	for(auto cIdx : iotaCount(cheats))
 	{
 		auto &thisCheat = *it;
 		cheat.emplace_back(thisCheat.name, &defaultFace(), thisCheat.isOn(),

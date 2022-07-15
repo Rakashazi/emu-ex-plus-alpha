@@ -179,7 +179,7 @@ public:
 	using IOUtilsBase::get;
 
 	constexpr GenericIO() = default;
-	GenericIO(IG::derived_from<IO> auto io): io{std::make_unique<decltype(io)>(std::move(io))} {}
+	GenericIO(std::derived_from<IO> auto io): io{std::make_unique<decltype(io)>(std::move(io))} {}
 	GenericIO(std::unique_ptr<IO> io);
 	explicit operator IO*();
 	operator IO&();

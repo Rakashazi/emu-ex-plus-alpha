@@ -95,7 +95,7 @@ static void simpleResample(T * __restrict__ dest, size_t destFrames, const T * _
 	if(!destFrames)
 		return;
 	float ratio = (float)srcFrames/(float)destFrames;
-	iterateTimes(destFrames, i)
+	for(auto i : iotaCount(destFrames))
 	{
 		size_t srcPos = round(i * ratio);
 		if(srcPos > srcFrames) [[unlikely]]

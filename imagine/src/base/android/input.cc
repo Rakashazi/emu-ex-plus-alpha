@@ -19,9 +19,10 @@
 #include <imagine/base/Application.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/ranges.hh>
 #include "AndroidInputDevice.hh"
 #include <android/input.h>
+#include <ranges>
 
 namespace IG
 {
@@ -221,7 +222,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 						return false;
 					}
 					auto src = isFromSource(source, AINPUT_SOURCE_MOUSE) ? Input::Source::MOUSE : Input::Source::TOUCHSCREEN;
-					int actionPIdx = actionBits >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+					size_t actionPIdx = actionBits >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
 					auto pointers = AMotionEvent_getPointerCount(event);
 					uint32_t metaState = AMotionEvent_getMetaState(event);
 					assumeExpr(pointers >= 1);
@@ -231,7 +232,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 						auto action = touchEventAction(actionCode);
 						//logMsg("touch motion event: id:%d (%s) action:%s pointers:%d:%d",
 						//	devId, dev->name().data(), actionStr(action), (int)pointers, actionPIdx);
-						iterateTimes(pointers, i)
+						for(auto i : iotaCount(pointers))
 						{
 							auto pAction = action;
 							// a pointer not performing the action just needs its position updated
@@ -298,7 +299,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 					else
 					{
 						// no getAxisValue, can only use 2 axis values (X and Y)
-						iterateTimes(std::min((uint32_t)dev->jsAxes().size(), 2u), i)
+						for(auto i : iotaCount(std::min(dev->jsAxes().size(), 2uz)))
 						{
 							auto pos = i ? AMotionEvent_getY(event, 0) : AMotionEvent_getX(event, 0);
 							dev->jsAxes()[i].update(pos, Map::SYSTEM, time, *dev, win, true);
@@ -314,7 +315,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 				}
 			}
 		}
-		bcase AINPUT_EVENT_TYPE_KEY:
+		case AINPUT_EVENT_TYPE_KEY:
 		{
 			auto keyCode = AKeyEvent_getKeyCode(event);
 			auto [dev, devID] = inputDeviceForEvent(event);

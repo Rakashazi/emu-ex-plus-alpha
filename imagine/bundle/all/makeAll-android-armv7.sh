@@ -1,4 +1,6 @@
 makefilesToRun='
+	src/libcxx/android-armv7.mk
+
 	src/libogg/android-armv7.mk
 	
 	src/tremor/android-armv7.mk

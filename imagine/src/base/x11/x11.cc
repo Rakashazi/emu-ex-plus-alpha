@@ -21,6 +21,7 @@
 #include <imagine/base/Window.hh>
 #include "xdnd.hh"
 #include "xlibutils.h"
+#include <imagine/util/ranges.hh>
 
 static constexpr char ASCII_LF = 0xA;
 static constexpr char ASCII_CR = 0xD;
@@ -284,7 +285,7 @@ void initXScreens(ApplicationContext ctx, Display *dpy)
 	ctx.application().addScreen(ctx, std::make_unique<Screen>(ctx, Screen::InitParams{ScreenOfDisplay(dpy, defaultScreenIdx)}), false);
 	if constexpr(Config::BASE_MULTI_SCREEN)
 	{
-		iterateTimes(ScreenCount(dpy), i)
+		for(auto i : iotaCount(ScreenCount(dpy)))
 		{
 			if((int)i == defaultScreenIdx)
 				continue;

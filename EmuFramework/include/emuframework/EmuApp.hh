@@ -348,13 +348,13 @@ public:
 		postMessage(secs, true, std::move(msg));
 	}
 
-	template <same_as<const char*> T>
+	template <std::same_as<const char*> T>
 	static std::pair<T, int> scanValue(const char *str)
 	{
 		return {str, strlen(str) ? 1 : 0};
 	}
 
-	template <integral T>
+	template <std::integral T>
 	static std::pair<T, int> scanValue(const char *str)
 	{
 		int val;
@@ -362,7 +362,7 @@ public:
 		return {val, items};
 	}
 
-	template <floating_point T>
+	template <std::floating_point T>
 	static std::pair<T, int> scanValue(const char *str)
 	{
 		double val;
@@ -375,7 +375,7 @@ public:
 		return {val, items};
 	}
 
-	template <same_as<std::pair<double, double>> T>
+	template <std::same_as<std::pair<double, double>> T>
 	static std::pair<T, int> scanValue(const char *str)
 	{
 		// special case for getting a fraction

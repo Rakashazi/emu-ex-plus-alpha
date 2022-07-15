@@ -18,7 +18,6 @@
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/util/string.h>
 #include <imagine/util/format.hh>
 #include <imagine/fs/FS.hh>
 #include "internalDefs.hh"
@@ -324,7 +323,7 @@ void GLRenderer::setupMemoryBarrier()
 void GLRenderer::setupPresentationTime(std::string_view eglExtenstionStr)
 {
 	#ifdef __ANDROID__
-	if(IG::stringContains(eglExtenstionStr, "EGL_ANDROID_presentation_time"))
+	if(eglExtenstionStr.contains("EGL_ANDROID_presentation_time"))
 	{
 		glManager.loadSymbol(support.eglPresentationTimeANDROID, "eglPresentationTimeANDROID");
 	}
@@ -582,13 +581,13 @@ void Renderer::configureRenderer()
 				if(Config::DEBUG_BUILD)
 				{
 					logMsgNoBreak("extensions: ");
-					iterateTimes(numExtensions, i)
+					for(auto i : iotaCount(numExtensions))
 					{
 						logger_printf(LOG_M, "%s ", (const char*)glGetStringi(GL_EXTENSIONS, i));
 					}
 					logger_printf(LOG_M, "\n");
 				}
-				iterateTimes(numExtensions, i)
+				for(auto i : iotaCount(numExtensions))
 				{
 					checkExtensionString((const char*)glGetStringi(GL_EXTENSIONS, i), useFBOFuncs);
 				}

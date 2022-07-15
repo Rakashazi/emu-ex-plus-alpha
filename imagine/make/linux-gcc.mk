@@ -24,7 +24,6 @@ else
 endif
 
 CPPFLAGS += -D_GNU_SOURCE
-CFLAGS_CODEGEN += -ffunction-sections -fdata-sections
 ifndef PROFILE
  OPTIMIZE_LDFLAGS = -s
 endif

@@ -19,7 +19,6 @@
 #include <imagine/util/bitset.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/fd-utils.h>
-#include <imagine/util/string.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
@@ -127,11 +126,10 @@ EvdevInputDevice::~EvdevInputDevice()
 	::close(fd);
 }
 
-void EvdevInputDevice::processInputEvents(LinuxApplication &app, input_event *event, uint32_t events)
+void EvdevInputDevice::processInputEvents(LinuxApplication &app, std::span<const input_event> events)
 {
-	iterateTimes(events, i)
+	for(auto &ev : events)
 	{
-		auto &ev = event[i];
 		//logMsg("got event type %d, code %d, value %d", ev.type, ev.code, ev.value);
 		Time time = IG::Seconds{ev.time.tv_sec} + IG::Microseconds{ev.time.tv_usec};
 		switch(ev.type)
@@ -228,7 +226,7 @@ void EvdevInputDevice::addPollEvent(LinuxApplication &app)
 				{
 					uint32_t events = len / sizeof(struct input_event);
 					//logMsg("read %d bytes from input fd %d, %d events", len, this->fd, events);
-					processInputEvents(app, event, events);
+					processInputEvents(app, {event, events});
 				}
 				if(len == -1 && errno != EAGAIN)
 				{
@@ -395,7 +393,7 @@ void LinuxApplication::initEvdev(EventLoop loop)
 		for(auto &entry : FS::directory_iterator{DEV_NODE_PATH})
 		{
 			auto filename = entry.name();
-			if(entry.type() != FS::file_type::character || !IG::stringContains(filename, "event"))
+			if(entry.type() != FS::file_type::character || !filename.contains("event"))
 				continue;
 			uint32_t id;
 			if(!Input::processDevNodeName(filename, id))

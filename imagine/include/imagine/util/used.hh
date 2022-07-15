@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/concepts.hh>
+#include <concepts>
 
 namespace IG
 {
@@ -46,7 +46,7 @@ struct UnusedType
 	constexpr UnusedType(auto && ...) {}
 
 	constexpr operator T() const { return {}; };
-	constexpr operator bool() const requires (!IG::same_as<T, bool>) { return false; };
+	constexpr operator bool() const requires (!std::same_as<T, bool>) { return false; };
 
 	// can take address of object, but always returns nullptr
 	constexpr T* operator &() const { return nullptr; };

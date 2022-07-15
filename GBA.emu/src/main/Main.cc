@@ -19,6 +19,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/GBAGfx.h>
 #include <vbam/gba/Sound.h>

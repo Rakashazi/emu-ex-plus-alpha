@@ -26,7 +26,6 @@
 #ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 #include "apple/AppleGameDevice.hh"
 #endif
-#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 
 namespace IG::Input
@@ -451,7 +450,7 @@ static DeviceSubtype gamepadSubtype(std::string_view name)
 		logMsg("detected OUYA gamepad");
 		return Device::Subtype::OUYA_CONTROLLER;
 	}
-	else if(IG::stringContains(name, "NVIDIA Controller"))
+	else if(name.contains("NVIDIA Controller"))
 	{
 		logMsg("detected NVidia Shield gamepad");
 		return Device::Subtype::NVIDIA_SHIELD;

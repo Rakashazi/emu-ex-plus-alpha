@@ -340,12 +340,12 @@ bool Texture::generateMipmaps()
 	return true;
 }
 
-uint8_t Texture::levels() const
+int Texture::levels() const
 {
 	return levels_;
 }
 
-IG::ErrorCode Texture::setFormat(PixmapDesc desc, uint8_t levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
+IG::ErrorCode Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
 	assumeExpr(desc.w());
 	assumeExpr(desc.h());
@@ -404,7 +404,7 @@ IG::ErrorCode Texture::setFormat(PixmapDesc desc, uint8_t levels, ColorSpace col
 					glImageFormatToString(format), glDataTypeToString(dataType),
 					desc.format() == IG::PIXEL_BGRA8888 && internalFormat != GL_BGRA ? "write format:BGRA" : "");
 				int w = desc.w(), h = desc.h();
-				iterateTimes(levels, i)
+				for(auto i : iotaCount(levels))
 				{
 					runGLChecked(
 						[&]()
@@ -432,7 +432,7 @@ void GLTexture::bindTex(RendererCommands &cmds) const
 	cmds.glcBindTexture(target(), texName_);
 }
 
-void Texture::writeAligned(uint8_t level, PixmapView pixmap, IG::WP destPos, uint8_t assumeAlign, uint32_t writeFlags)
+void Texture::writeAligned(int level, PixmapView pixmap, IG::WP destPos, uint8_t assumeAlign, uint32_t writeFlags)
 {
 	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
 	if(!texName_) [[unlikely]]
@@ -498,12 +498,12 @@ void Texture::writeAligned(uint8_t level, PixmapView pixmap, IG::WP destPos, uin
 	}
 }
 
-void Texture::write(uint8_t level, PixmapView pixmap, IG::WP destPos, uint32_t commitFlags)
+void Texture::write(int level, PixmapView pixmap, IG::WP destPos, uint32_t commitFlags)
 {
 	writeAligned(level, pixmap, destPos, bestAlignment(pixmap), commitFlags);
 }
 
-void Texture::clear(uint8_t level)
+void Texture::clear(int level)
 {
 	auto lockBuff = lock(level, BUFFER_FLAG_CLEARED);
 	if(!lockBuff) [[unlikely]]
@@ -514,12 +514,12 @@ void Texture::clear(uint8_t level)
 	unlock(lockBuff);
 }
 
-LockedTextureBuffer Texture::lock(uint8_t level, uint32_t bufferFlags)
+LockedTextureBuffer Texture::lock(int level, uint32_t bufferFlags)
 {
 	return lock(level, {{}, size(level)}, bufferFlags);
 }
 
-LockedTextureBuffer Texture::lock(uint8_t level, IG::WindowRect rect, uint32_t bufferFlags)
+LockedTextureBuffer Texture::lock(int level, IG::WindowRect rect, uint32_t bufferFlags)
 {
 	if(!texName_) [[unlikely]]
 	{
@@ -600,11 +600,11 @@ void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 		});
 }
 
-IG::WP Texture::size(uint8_t level) const
+IG::WP Texture::size(int level) const
 {
 	assert(levels_);
 	int w = pixDesc.w(), h = pixDesc.h();
-	iterateTimes(level, i)
+	for(auto i : iotaCount(level))
 	{
 		w = std::max(1, (w / 2));
 		h = std::max(1, (h / 2));
@@ -628,11 +628,11 @@ void Texture::setCompatTextureSampler(const TextureSampler &compatSampler)
 		});
 }
 
-static CommonProgram commonProgramForMode(TextureType type, uint32_t mode)
+static CommonProgram commonProgramForMode(TextureType type, EnvMode mode)
 {
 	switch(mode)
 	{
-		case IMG_MODE_REPLACE:
+		case EnvMode::REPLACE:
 			switch(type)
 			{
 				case TextureType::T2D_1 : return CommonProgram::TEX_ALPHA_REPLACE;
@@ -642,9 +642,9 @@ static CommonProgram commonProgramForMode(TextureType type, uint32_t mode)
 				case TextureType::T2D_EXTERNAL : return CommonProgram::TEX_EXTERNAL_REPLACE;
 				#endif
 				default:
-					bug_unreachable("no default program for texture type:%d", (int)type);
+					bug_unreachable("no default program for texture type:%d", std::to_underlying(type));
 			}
-		case IMG_MODE_MODULATE:
+		case EnvMode::MODULATE:
 			switch(type)
 			{
 				case TextureType::T2D_1 : return CommonProgram::TEX_ALPHA;
@@ -657,16 +657,16 @@ static CommonProgram commonProgramForMode(TextureType type, uint32_t mode)
 					bug_unreachable("no default program for texture type:%d", (int)type);
 			}
 		default:
-			bug_unreachable("no default program for texture mode:%d", mode);
+			bug_unreachable("no default program for texture mode:%d", std::to_underlying(mode));
 	}
 }
 
-bool Texture::compileDefaultProgram(uint32_t mode) const
+bool Texture::compileDefaultProgram(EnvMode mode) const
 {
 	return renderer().makeCommonProgram(commonProgramForMode(type_, mode));
 }
 
-bool Texture::compileDefaultProgramOneShot(uint32_t mode) const
+bool Texture::compileDefaultProgramOneShot(EnvMode mode) const
 {
 	auto compiled = compileDefaultProgram(mode);
 	if(compiled)
@@ -674,12 +674,12 @@ bool Texture::compileDefaultProgramOneShot(uint32_t mode) const
 	return compiled;
 }
 
-void Texture::useDefaultProgram(RendererCommands &cmds, uint32_t mode, const Mat4 *modelMat) const
+void Texture::useDefaultProgram(RendererCommands &cmds, EnvMode mode, const Mat4 *modelMat) const
 {
 	renderer().useCommonProgram(cmds, commonProgramForMode(type_, mode), modelMat);
 }
 
-void Texture::useDefaultProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const
+void Texture::useDefaultProgram(RendererCommands &cmds, EnvMode mode, Mat4 modelMat) const
 {
 	useDefaultProgram(cmds, mode, &modelMat);
 }
@@ -755,7 +755,7 @@ void GLTexture::setSamplerParamsInGL(const Renderer &r, SamplerParams params, GL
 	GLTextureSampler::setTexParamsInGL(target, params);
 }
 
-void GLTexture::updateFormatInfo(PixmapDesc desc, uint8_t levels, GLenum target)
+void GLTexture::updateFormatInfo(PixmapDesc desc, int8_t levels, GLenum target)
 {
 	assert(levels);
 	levels_ = levels;
@@ -886,7 +886,7 @@ IG::ErrorCode GLPixmapTexture::init(RendererTask &r, TextureConfig config)
 	return {};
 }
 
-IG::ErrorCode PixmapTexture::setFormat(PixmapDesc desc, uint8_t levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
+IG::ErrorCode PixmapTexture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
 	PixmapDesc fullPixDesc = renderer().support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
 	if(auto err = Texture::setFormat(fullPixDesc, levels, colorSpace, compatSampler);
@@ -918,8 +918,8 @@ PixmapTexture::operator TextureSpan() const
 void GLPixmapTexture::updateUsedPixmapSize(IG::WP usedSize_, IG::WP fullSize)
 {
 	usedSize = usedSize_;
-	uv.x = pixelToTexC(usedSize_.x, fullSize.x);
-	uv.y = pixelToTexC(usedSize_.y, fullSize.y);
+	uv.x = usedSize_.x / (float)fullSize.x;
+	uv.y = usedSize_.y / (float)fullSize.y;
 	assumeExpr(uv.x >= 0);
 	assumeExpr(uv.y >= 0);
 }

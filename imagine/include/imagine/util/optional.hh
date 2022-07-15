@@ -15,14 +15,14 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/concepts.hh>
+#include <concepts>
 #include <optional>
 
 namespace IG
 {
 
 template <class T>
-constexpr auto doOptionally(const std::optional<T> &optionalValue, invocable<T&> auto &&func)
+constexpr auto doOptionally(const std::optional<T> &optionalValue, std::invocable<T&> auto &&func)
 {
 	if(optionalValue)
 	{

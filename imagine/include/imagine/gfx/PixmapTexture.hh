@@ -45,7 +45,7 @@ public:
 	using PixmapTextureImpl::PixmapTextureImpl;
 	PixmapTexture(RendererTask &, TextureConfig, IG::ErrorCode *errorPtr = nullptr);
 	PixmapTexture(RendererTask &, IG::Data::PixmapSource, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace c = {}, const TextureSampler *compatSampler = {});
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, int levels, ColorSpace c = {}, const TextureSampler *compatSampler = {});
 	FRect uvBounds() const;
 	IG::PixmapDesc usedPixmapDesc() const;
 	operator TextureSpan() const;
