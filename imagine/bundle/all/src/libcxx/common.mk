@@ -9,6 +9,13 @@ outputLibFile := $(buildDir)/lib/libc++.a
 outputLibcxxabiFile := $(buildDir)/lib/libc++abi.a
 installIncludeDir := $(installDir)/include/c++/v1
 
+# Extract libc++ before setting VPATH
+ifeq ($(wildcard $(libcxxabiSrcDir)/src),)
+ $(info Extracting libc++...)
+ $(shell mkdir -p $(tempDir))
+ $(shell tar -mxJf $(libcxxSrcArchive) -C $(tempDir))
+endif
+
 VPATH += $(libcxxabiSrcDir)/src
 CXXABI_SRC := abort_message.cpp \
  cxa_aux_runtime.cpp \
@@ -41,13 +48,8 @@ install : $(outputLibFile) $(outputLibcxxabiFile)
 
 .PHONY : all install
 
-$(libcxxSrcDir)/CMakeLists.txt : | $(libcxxSrcArchive)
-	@echo "Extracting libc++..."
-	@mkdir -p $(tempDir)
-	tar -mxJf $| -C $(tempDir)
-
 # build libc++abi after libc++ and use its build headers
-$(CXXABI_OBJ) : $(outputLibFile)
+$(CXXABI_OBJ) : | $(outputLibFile)
 $(CXXABI_OBJ) : CPPFLAGS += -DHAVE___CXA_THREAD_ATEXIT_IMPL -D_LIBCPP_DISABLE_EXTERN_TEMPLATE -D_LIBCPP_BUILDING_LIBRARY -D_LIBCXXABI_BUILDING_LIBRARY -nostdinc++ -I$(libcxxSrcDir)/src -I$(buildDir)/include/c++/v1
 
 $(outputLibcxxabiFile) : $(CXXABI_OBJ)
