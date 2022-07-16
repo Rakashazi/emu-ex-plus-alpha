@@ -35,7 +35,7 @@ public:
 	FrameAnimation &operator=(T v) noexcept
 	{
 		cancel();
-		animator.val = v;
+		animator = v;
 		return *this;
 	}
 

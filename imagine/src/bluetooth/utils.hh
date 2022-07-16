@@ -2,6 +2,7 @@
 
 #include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/util/format.hh>
+#include <cctype>
 
 namespace IG
 {

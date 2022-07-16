@@ -28,6 +28,7 @@
 #endif
 #include <string>
 #include <cassert>
+#include <cctype>
 
 namespace IG::Gfx
 {

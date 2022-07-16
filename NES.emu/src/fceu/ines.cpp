@@ -717,6 +717,7 @@ BMAPPINGLocal bmap[] = {
 	{"42 to 80,000 (970630C)",    380, Mapper380_Init},
 	{"9999999-in-1",    414, Mapper414_Init},
 	{"BS-400R/BS-4040",    422, Mapper422_Init},
+	{"DS-9-27",    452, Mapper452_Init},
 
 //-------- Mappers 256-511 is the Supplementary Multilingual Plane ----------
 //-------- Mappers 512-767 is the Supplementary Ideographic Plane -----------

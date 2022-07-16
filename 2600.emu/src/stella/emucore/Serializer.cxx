@@ -45,16 +45,6 @@ Serializer::Serializer(const string& filename, Mode m)
   }
   else
   {
-    // When using fstreams, we need to manually create the file first
-    // if we want to use it in read/write mode, since it won't be created
-    // if it doesn't already exist
-    // However, if it *does* exist, we don't want to overwrite it
-    // So we open in write and append mode - the write creates the file
-    // when necessary, and the append doesn't delete any data if it
-    // already exists
-    fstream temp(filename, ios::out | ios::app);
-    temp.close();
-
     ios_base::openmode stream_mode = ios::in | ios::out | ios::binary;
     if(m == Mode::ReadWriteTrunc)
       stream_mode |= ios::trunc;

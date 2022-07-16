@@ -1115,19 +1115,7 @@ bool CheckBackupSaveStateExist()
 	string filename = GetBackupFileName(); //Get backup savestate filename
 
 	//Check if this filename exists
-	fstream test;
-	test.open(filename.c_str(),fstream::in);
-
-	if (test.fail())
-	{
-		test.close();
-		return false;
-	}
-	else
-	{
-		test.close();
-		return true;
-	}
+	return CheckFileExists(filename.c_str());
 }
 
 void BackupLoadState()
