@@ -16,7 +16,6 @@ struct GBAMem
 {
 	union IoMem
 	{
-		constexpr IoMem(): b{0} {}
 		uint8_t b[0x400] __attribute__ ((aligned(4)));
 		struct
 		{
@@ -186,11 +185,11 @@ struct GBAMem
 		}
 	};
 
-	uint8_t bios[0x4000] __attribute__ ((aligned(4))){};
+	uint8_t bios[0x4000] __attribute__ ((aligned(4)));
 	IoMem ioMem;
-	uint8_t internalRAM[0x8000] __attribute__ ((aligned(4))){};
-	uint8_t workRAM[0x40000] __attribute__ ((aligned(4))){};
-	uint8_t rom[0x2000000] __attribute__ ((aligned(4))){};
+	uint8_t internalRAM[0x8000] __attribute__ ((aligned(4)));
+	uint8_t workRAM[0x40000] __attribute__ ((aligned(4)));
+	uint8_t rom[0x2000000] __attribute__ ((aligned(4)));
 };
 
 struct GBADMA
@@ -646,7 +645,7 @@ struct GBASys
 	GBALCD lcd{};
 	GBATimers timers{};
 	GBADMA dma{};
-	GBAMem mem{};
+	GBAMem mem;
 };
 
 extern GBASys gGba;
