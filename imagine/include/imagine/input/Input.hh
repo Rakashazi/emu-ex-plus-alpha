@@ -174,12 +174,10 @@ class Event : public EventVariant
 public:
 	using EventVariant::EventVariant;
 
-	constexpr auto &asVariant() { return static_cast<EventVariant&>(*this); }
-	constexpr auto &asVariant() const { return static_cast<const EventVariant&>(*this); }
-	constexpr auto motionEvent() { return std::get_if<MotionEvent>(&asVariant()); }
-	constexpr auto motionEvent() const { return std::get_if<MotionEvent>(&asVariant()); }
-	constexpr auto keyEvent() { return std::get_if<KeyEvent>(&asVariant()); }
-	constexpr auto keyEvent() const { return std::get_if<KeyEvent>(&asVariant()); }
+	constexpr auto motionEvent() { return std::get_if<MotionEvent>(this); }
+	constexpr auto motionEvent() const { return std::get_if<MotionEvent>(this); }
+	constexpr auto keyEvent() { return std::get_if<KeyEvent>(this); }
+	constexpr auto keyEvent() const { return std::get_if<KeyEvent>(this); }
 	constexpr auto &asMotionEvent() { return *motionEvent(); }
 	constexpr auto &asMotionEvent() const { return *motionEvent(); }
 	constexpr auto &asKeyEvent() { return *keyEvent(); }

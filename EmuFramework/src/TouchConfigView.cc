@@ -215,7 +215,7 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 				});
 			return true;
 		}
-	}, e.asVariant());
+	}, e);
 }
 
 void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)

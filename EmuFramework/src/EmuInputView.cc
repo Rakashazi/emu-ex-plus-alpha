@@ -262,7 +262,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 				|| keyEv.isGamepad() // consume all gamepad events
 				|| devData.devConf.shouldConsumeUnboundKeys();
 		}
-	}, e.asVariant());
+	}, e);
 }
 
 }

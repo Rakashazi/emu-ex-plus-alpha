@@ -45,11 +45,11 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A/B/L/R";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
-const unsigned EmuSystem::inputFaceBtns = 4;
-const unsigned EmuSystem::inputCenterBtns = 2;
+const int EmuSystem::inputFaceBtns = 4;
+const int EmuSystem::inputCenterBtns = 2;
 int EmuSystem::inputLTriggerIndex = 2;
 int EmuSystem::inputRTriggerIndex = 3;
-const unsigned EmuSystem::maxPlayers = 1;
+const int EmuSystem::maxPlayers = 1;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0, 2, 3};
 
 namespace GbaKeyStatus

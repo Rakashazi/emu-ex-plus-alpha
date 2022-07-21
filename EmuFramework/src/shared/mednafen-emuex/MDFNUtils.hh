@@ -14,9 +14,17 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/pixmap/Pixmap.hh>
+#include <imagine/fs/FSDefs.hh>
+#include <imagine/util/format.hh>
 #include <mednafen/video/surface.h>
+#include <mednafen/hash/md5.h>
+#include <mednafen/git.h>
+#include <string_view>
 
-static Mednafen::MDFN_Surface pixmapToMDFNSurface(IG::MutablePixmapView pix)
+namespace EmuEx
+{
+
+inline Mednafen::MDFN_Surface pixmapToMDFNSurface(IG::MutablePixmapView pix)
 {
 	using namespace Mednafen;
 	MDFN_PixelFormat fmt =
@@ -29,8 +37,24 @@ static Mednafen::MDFN_Surface pixmapToMDFNSurface(IG::MutablePixmapView pix)
 				case IG::PIXEL_RGB565: return MDFN_PixelFormat::RGB16_565;
 				default:
 					bug_unreachable("format id == %d", pix.format().id());
-					return MDFN_PixelFormat::ABGR32_8888;
 			};
 		}();
 	return {pix.data(), (uint32)pix.w(), (uint32)pix.h(), (uint32)pix.pitchPixels(), fmt};
+}
+
+inline FS::FileString stateFilenameMDFN(const Mednafen::MDFNGI &gameInfo, int slot, std::string_view name)
+{
+	auto saveSlotChar = [](int slot) -> char
+	{
+		switch(slot)
+		{
+			case -1: return 'q';
+			case 0 ... 9: return '0' + slot;
+			default: bug_unreachable("slot == %d", slot);
+		}
+	};
+	return IG::format<FS::FileString>("{}.{}.nc{}",
+		name, Mednafen::md5_context::asciistr(gameInfo.MD5, 0), saveSlotChar(slot));
+}
+
 }

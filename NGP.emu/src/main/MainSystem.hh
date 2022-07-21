@@ -38,6 +38,7 @@ public:
 	unsigned translateInputAction(unsigned input, bool &turbo);
 	VController::Map vControllerMap(int player);
 	void configAudioRate(FloatSeconds frameTime, int rate);
+	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions
 	void closeSystem();
@@ -49,10 +50,14 @@ using MainSystem = NgpSystem;
 
 }
 
+namespace Mednafen
+{
+class MDFN_PixelFormat;
+}
+
 namespace MDFN_IEN_NGP
 {
-void applyVideoFormat(Mednafen::EmulateSpecStruct *);
-void applySoundFormat(Mednafen::EmulateSpecStruct *);
+void applyVideoFormat(Mednafen::MDFN_PixelFormat);
 }
 
 extern Mednafen::MDFNGI EmulatedNGP;

@@ -21,12 +21,16 @@ namespace EmuEx
 {
 
 const char *EmuSystem::configFilename = "NgpEmu.config";
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+
+std::span<const AspectRatioInfo> NgpSystem::aspectRatioInfos()
 {
-		{"20:19 (Original)", 20, 19},
+	static constexpr AspectRatioInfo aspectRatioInfo[]
+	{
+		{"20:19 (Original)", {20, 19}},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+	};
+	return aspectRatioInfo;
+}
 
 bool NgpSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
 {

@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <variant>
+#include <utility>
 
 namespace IG
 {
@@ -24,10 +25,10 @@ template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 // Use a switch statement to implement visit() for better code generation,
-// TODO: remove when clang/gcc implement a similar optimization,
-// currently GCC 11 & Clang 13 use a function jump table that prevents inline optimization
-template<class ...VTypes, class Variant = std::variant<VTypes...>, auto vSize = std::variant_size_v<Variant>>
-constexpr decltype(auto) visit(auto &&func, Variant &v)
+// TODO: remove when clang implements a similar optimization,
+// currently Clang 14's libc++ uses a function jump table that prevents inline optimization
+template<class... VTypes, class Variant = std::variant<VTypes...>, auto vSize = std::variant_size_v<Variant>>
+constexpr decltype(auto) visitVariant(auto &&func, Variant &v)
 	requires (vSize <= 16)
 {
 	#define VISIT_CASE(i) case i: \
@@ -55,6 +56,25 @@ constexpr decltype(auto) visit(auto &&func, Variant &v)
 	}
 	#undef VISIT_CASE
 	__builtin_unreachable();
+}
+
+template <class... VTypes>
+constexpr decltype(auto) asVariant(std::variant<VTypes...> &v) noexcept { return v; }
+
+template <class... VTypes>
+constexpr decltype(auto) asVariant(const std::variant<VTypes...> &v) noexcept { return v; }
+
+template <class... VTypes>
+constexpr decltype(auto) asVariant(std::variant<VTypes...> &&v) noexcept { return std::move(v); }
+
+template <class... VTypes>
+constexpr decltype(auto) asVariant(const std::variant<VTypes...> &&v) noexcept { return std::move(v); }
+
+// visit a std::variant or object derived from std::variant
+constexpr decltype(auto) visit(auto &&func, auto &v)
+{
+  return visitVariant(std::forward<decltype(func)>(func),
+    asVariant(std::forward<decltype(v)>(v)));
 }
 
 }

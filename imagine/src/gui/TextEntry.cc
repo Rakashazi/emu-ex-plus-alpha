@@ -109,7 +109,7 @@ bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 			}
 			return false;
 		}
-	}, e.asVariant());
+	}, e);
 }
 
 void TextEntry::prepareDraw(Gfx::Renderer &r)
@@ -234,7 +234,7 @@ bool CollectTextInputView::inputEvent(const Input::Event &e)
 		{
 			[&](const Input::MotionEvent &e) { return cancelBtn.overlaps(e.pos()); },
 			[&](const Input::KeyEvent &e)	{ return e.pushed(Input::DefaultKey::CANCEL); }
-		}, e.asVariant()))
+		}, e))
 	{
 		dismiss();
 		return true;

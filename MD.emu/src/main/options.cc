@@ -21,12 +21,16 @@ namespace EmuEx
 {
 
 const char *EmuSystem::configFilename = "MdEmu.config";
-const AspectRatioInfo EmuSystem::aspectRatioInfo[]
+
+std::span<const AspectRatioInfo> MdSystem::aspectRatioInfos()
 {
-		{"4:3 (Original)", 4, 3},
+	static constexpr AspectRatioInfo aspectRatioInfo[]
+	{
+		{"4:3 (Original)", {4, 3}},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+	};
+	return aspectRatioInfo;
+}
 
 void MdSystem::onOptionsLoaded()
 {

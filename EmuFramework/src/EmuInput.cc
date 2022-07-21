@@ -532,3 +532,10 @@ bool InputDeviceSavedConfig::matchesDevice(const Input::Device &dev) const
 }
 
 }
+
+namespace EmuEx::Controls
+{
+
+[[gnu::weak]] void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player) {}
+
+}

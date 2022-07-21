@@ -55,18 +55,22 @@ static bool OptionSH2CoreIsValid(uint8_t val)
 
 const char *EmuSystem::configFilename = "SaturnEmu.config";
 Byte1Option optionSH2Core{CFGKEY_SH2_CORE, (uint8_t)defaultSH2CoreID, false, OptionSH2CoreIsValid};
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
-{
-		{"4:3 (Original)", 4, 3},
-		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 unsigned SH2Cores = std::size(SH2CoreList) - 1;
 bool EmuApp::hasIcon = false;
 bool EmuApp::autoSaveStateDefault = false;
 bool EmuSystem::hasSound = !(Config::envIsAndroid || Config::envIsIOS);
 int EmuSystem::forcedSoundRate = 44100;
 bool EmuSystem::constFrameRate = true;
+
+std::span<const AspectRatioInfo> SaturnSystem::aspectRatioInfos()
+{
+	static constexpr AspectRatioInfo aspectRatioInfo[]
+	{
+		{"4:3 (Original)", {4, 3}},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+	};
+	return aspectRatioInfo;
+}
 
 void SaturnSystem::onOptionsLoaded()
 {

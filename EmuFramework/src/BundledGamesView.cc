@@ -52,7 +52,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 		}
 	} {}
 
-[[gnu::weak]] const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx) const
+[[gnu::weak]] const BundledGameInfo &EmuSystem::bundledGameInfo(int idx) const
 {
 	static const BundledGameInfo info[]
 	{

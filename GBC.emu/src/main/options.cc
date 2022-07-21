@@ -21,12 +21,16 @@ namespace EmuEx
 {
 
 const char *EmuSystem::configFilename = "GbcEmu.config";
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+
+std::span<const AspectRatioInfo> GbcSystem::aspectRatioInfos()
 {
-		{"10:9 (Original)", 10, 9},
+	static constexpr AspectRatioInfo aspectRatioInfo[]
+	{
+		{"10:9 (Original)", {10, 9}},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+	};
+	return aspectRatioInfo;
+}
 
 void GbcSystem::onOptionsLoaded()
 {

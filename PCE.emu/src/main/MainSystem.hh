@@ -56,6 +56,7 @@ public:
 	unsigned translateInputAction(unsigned input, bool &turbo);
 	VController::Map vControllerMap(int player);
 	void configAudioRate(FloatSeconds frameTime, int rate);
+	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions
 	void closeSystem();
@@ -72,8 +73,7 @@ using MainSystem = PceSystem;
 
 namespace MDFN_IEN_PCE_FAST
 {
-void applyVideoFormat(Mednafen::EmulateSpecStruct *);
-void applySoundFormat(Mednafen::EmulateSpecStruct *);
+void applySoundFormat(double rate);
 extern vce_t vce;
 }
 

@@ -173,7 +173,7 @@ static void UpdatePlaybackRate(void)
     /*if (Settings.SoundInputRate == 0)
         Settings.SoundInputRate = APU_DEFAULT_INPUT_RATE;*/
 
-    double time_ratio = (double)Settings.SoundInputRate * spc::timing_hack_numerator / (Settings.SoundPlaybackRate * spc::timing_hack_denominator);
+    double time_ratio = Settings.SoundInputRate / (double)Settings.SoundPlaybackRate;
 
     if (Settings.DynamicRateControl)
     {

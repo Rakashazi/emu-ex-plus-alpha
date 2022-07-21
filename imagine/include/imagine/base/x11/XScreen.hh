@@ -21,6 +21,7 @@
 #include <imagine/base/SimpleFrameTimer.hh>
 #include <imagine/base/linux/DRMFrameTimer.hh>
 #include <imagine/base/linux/FBDevFrameTimer.hh>
+#include <imagine/base/FrameTimerInterface.hh>
 #include <utility>
 #include <compare>
 #include <memory>
@@ -32,10 +33,10 @@ class ApplicationContext;
 
 using FrameTimerVariant = std::variant<DRMFrameTimer, FBDevFrameTimer, SimpleFrameTimer>;
 
-class FrameTimer : public FrameTimerVariantWrapper<FrameTimerVariant>
+class FrameTimer : public FrameTimerInterface<FrameTimerVariant>
 {
 public:
-	using FrameTimerVariantWrapper::FrameTimerVariantWrapper;
+	using FrameTimerInterface::FrameTimerInterface;
 };
 
 class XScreen
@@ -60,7 +61,7 @@ public:
 protected:
 	void *xScreen{};
 	FrameTimer frameTimer;
-	float xMM = 0, yMM = 0;
+	float xMM{}, yMM{};
 	IG::FloatSeconds frameTime_{};
 	bool reliableFrameTime = true;
 };

@@ -51,9 +51,9 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A/B/C";
 const char *EmuSystem::inputCenterBtnName = "Mode/Start";
-const unsigned EmuSystem::inputFaceBtns = 6;
-const unsigned EmuSystem::inputCenterBtns = 2;
-const unsigned EmuSystem::maxPlayers = 4;
+const int EmuSystem::inputFaceBtns = 6;
+const int EmuSystem::inputCenterBtns = 2;
+const int EmuSystem::maxPlayers = 4;
 constexpr int gunDevIdx = 4;
 
 VController::Map MdSystem::vControllerMap(int player)

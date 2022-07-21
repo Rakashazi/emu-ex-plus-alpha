@@ -23,12 +23,16 @@ namespace EmuEx
 {
 
 const char *EmuSystem::configFilename = "GbaEmu.config";
-const AspectRatioInfo EmuSystem::aspectRatioInfo[]
+
+std::span<const AspectRatioInfo> GbaSystem::aspectRatioInfos()
 {
-		{"3:2 (Original)", 3, 2},
+	static constexpr AspectRatioInfo aspectRatioInfo[]
+	{
+		{"3:2 (Original)", {3, 2}},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+	};
+	return aspectRatioInfo;
+}
 
 bool GbaSystem::resetSessionOptions(EmuApp &)
 {

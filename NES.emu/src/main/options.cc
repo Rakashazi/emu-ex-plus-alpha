@@ -22,14 +22,18 @@ namespace EmuEx
 {
 
 const char *EmuSystem::configFilename = "NesEmu.config";
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
-{
-		{"4:3 (Original)", 4, 3},
-		{"8:7", 8, 7},
-		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 FS::PathString fdsBiosPath{};
+
+std::span<const AspectRatioInfo> NesSystem::aspectRatioInfos()
+{
+	static constexpr AspectRatioInfo aspectRatioInfo[]
+	{
+		{"4:3 (Original)", {4, 3}},
+		{"8:7", {8, 7}},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+	};
+	return aspectRatioInfo;
+}
 
 void NesSystem::onOptionsLoaded()
 {

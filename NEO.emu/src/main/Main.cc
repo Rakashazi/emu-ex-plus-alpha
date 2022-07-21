@@ -94,6 +94,7 @@ namespace EmuEx
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGngeo Team\ncode.google.com/p/gngeo";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 bool EmuSystem::canRenderRGBA8888 = false;
+double EmuSystem::staticFrameTime = 264. / 15625.; // ~59.18Hz
 bool EmuApp::needsGlobalInstance = true;
 
 NeoSystem::NeoSystem(ApplicationContext ctx):
@@ -248,7 +249,7 @@ void NeoSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate 
 
 void NeoSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
-	conf.sample_rate = std::round(rate * ((60./1.001) * frameTime.count()));
+	conf.sample_rate = std::round(rate / staticFrameTime * frameTime.count());
 	if(hasContent())
 	{
 		logMsg("setting YM2610 rate to %d", conf.sample_rate);

@@ -34,6 +34,9 @@ namespace EmuEx
 {
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+static constexpr double masterClockFrac = 21477272.727273 / 3.;
+static constexpr double staticFrameTimeWith262Lines = (455. * 262.) / masterClockFrac; // ~60.05Hz
+double EmuSystem::staticFrameTime = (455. * 263.) / masterClockFrac; //~59.82Hz
 bool EmuApp::needsGlobalInstance = true;
 
 bool hasHuCardExtension(std::string_view name)
@@ -72,19 +75,9 @@ void PceSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 	MDFN_IEN_PCE_FAST::HuC_SaveNV();
 }
 
-static char saveSlotCharPCE(int slot)
-{
-	switch(slot)
-	{
-		case -1: return 'q';
-		case 0 ... 9: return '0' + slot;
-		default: bug_unreachable("slot == %d", slot); return 0;
-	}
-}
-
 FS::FileString PceSystem::stateFilename(int slot, std::string_view name) const
 {
-	return IG::format<FS::FileString>("{}.{}.nc{}", name, md5_context::asciistr(MDFNGameInfo->MD5, 0), saveSlotCharPCE(slot));
+	return stateFilenameMDFN(*MDFNGameInfo, slot, name);
 }
 
 void PceSystem::closeSystem()
@@ -179,24 +172,18 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 bool PceSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
 	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
-	EmulateSpecStruct espec{};
-	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
-	espec.surface = &mSurface;
-	MDFN_IEN_PCE_FAST::applyVideoFormat(&espec);
+	MDFN_IEN_PCE_FAST::VDC_SetPixelFormat(pixmapToMDFNSurface(mSurfacePix).format, nullptr, 0);
 	return false;
 }
 
 void PceSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
-	EmulateSpecStruct espec{};
 	const bool using263Lines = vce.CR & 0x04;
 	prevUsing263Lines = using263Lines;
-	const double rateWith263Lines = 7159090.90909090 / 455 / 263;
-	const double rateWith262Lines = 7159090.90909090 / 455 / 262;
-	double systemFrameRate = using263Lines ? rateWith263Lines : rateWith262Lines;
-	espec.SoundRate = std::round(rate * (systemFrameRate * frameTime.count()));
-	logMsg("emu sound rate:%f, 263 lines:%d", (double)espec.SoundRate, using263Lines);
-	MDFN_IEN_PCE_FAST::applySoundFormat(&espec);
+	auto systemFrameTime = using263Lines ? staticFrameTime : staticFrameTimeWith262Lines;
+	auto soundRate = std::round(rate / systemFrameTime * frameTime.count());
+	logMsg("emu sound rate:%f, 263 lines:%d", soundRate, using263Lines);
+	MDFN_IEN_PCE_FAST::applySoundFormat(soundRate);
 }
 
 void PceSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)

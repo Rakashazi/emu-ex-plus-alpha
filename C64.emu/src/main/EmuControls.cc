@@ -24,7 +24,7 @@ static const unsigned gamepadKeys = 11;
 static const unsigned kbKeys = 88;
 const unsigned systemTotalKeys = gameActionKeys + gamepadKeys*2 + kbKeys;
 
-void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player)
+void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player)
 {
 	generic2PlayerTranspose(key, player, 1);
 }

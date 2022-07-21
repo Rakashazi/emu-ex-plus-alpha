@@ -31,6 +31,8 @@ constexpr auto SNES_HEIGHT_480i = SNES_HEIGHT * 2;
 constexpr auto SNES_HEIGHT_EXTENDED_480i = SNES_HEIGHT_EXTENDED * 2;
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
+double EmuSystem::staticFrameTime = 357366. / 21477272.; // ~60.098Hz
+double EmuSystem::staticPalFrameTime = 425568. / 21281370.; // ~50.00Hz
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::canRenderRGBA8888 = false;
 bool EmuApp::needsGlobalInstance = true;
@@ -42,7 +44,7 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
-const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx) const
+const BundledGameInfo &EmuSystem::bundledGameInfo(int idx) const
 {
 	static constexpr BundledGameInfo info[]
 	{
@@ -175,16 +177,19 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 
 void Snes9xSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
-	constexpr double ntscFrameRate = 21477272. / 357366.;
-	constexpr double palFrameRate = 21281370. / 425568.;
-	const double systemFrameRate = videoSystem() == VideoSystem::PAL ? palFrameRate : ntscFrameRate;
-	Settings.SoundPlaybackRate = std::round(rate * (systemFrameRate * frameTime.count()));
+	const double systemFrameTime = videoSystem() == VideoSystem::PAL ? staticPalFrameTime : staticFrameTime;
 	#ifndef SNES9X_VERSION_1_4
+	Settings.SoundPlaybackRate = rate;
+	Settings.SoundInputRate = frameTime.count() / systemFrameTime * 32040.;
 	S9xUpdateDynamicRate(0, 10);
+	logMsg("sound input rate:%.2f from system frame rate:%f",
+		Settings.SoundInputRate, 1. / systemFrameTime);
 	#else
+	Settings.SoundPlaybackRate = std::round(rate / systemFrameTime * frameTime.count());
 	S9xSetPlaybackRate(Settings.SoundPlaybackRate);
+	logMsg("sound playback rate:%u from system frame rate:%f",
+		Settings.SoundPlaybackRate, 1. / systemFrameTime);
 	#endif
-	logMsg("sound rate:%d from system frame rate:%f", Settings.SoundPlaybackRate, systemFrameRate);
 }
 
 static void mixSamples(uint32_t samples, EmuAudio *audio)

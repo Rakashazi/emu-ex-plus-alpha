@@ -261,9 +261,9 @@ TextMenuItem::SelectDelegate VideoOptionView::setImageBuffersDel()
 
 static int aspectRatioValueIndex(double val)
 {
-	for(auto i : iotaCount(EmuSystem::aspectRatioInfos))
+	for(auto i : iotaCount(EmuSystem::aspectRatioInfos().size()))
 	{
-		if(val == (double)EmuSystem::aspectRatioInfo[i])
+		if(val == (double)EmuSystem::aspectRatioInfos()[i])
 		{
 			return i;
 		}
@@ -324,14 +324,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Aspect Ratio", &defaultFace(),
 		[this](auto idx, Gfx::Text &t)
 		{
-			if(idx == EmuSystem::aspectRatioInfos)
+			if(idx == EmuSystem::aspectRatioInfos().size())
 			{
 				t.setString(fmt::format("{:.2f}", app().videoAspectRatio()));
 				return true;
 			}
 			return false;
 		},
-		(int)EmuSystem::aspectRatioInfos,
+		(int)EmuSystem::aspectRatioInfos().size(),
 		aspectRatioItem
 	},
 	zoomItem
@@ -598,12 +598,12 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		}
 		windowPixelFormat.setSelected(IG::findIndex(descs, app().windowDrawableConfig()) + 1);
 	}
-	for(auto i : iotaCount(EmuSystem::aspectRatioInfos))
+	for(const auto &i : EmuSystem::aspectRatioInfos())
 	{
-		aspectRatioItem.emplace_back(EmuSystem::aspectRatioInfo[i].name, &defaultFace(),
-			[this, i]()
+		aspectRatioItem.emplace_back(i.name, &defaultFace(),
+			[this, aspect = i.aspect]()
 			{
-				app().setVideoAspectRatio((double)EmuSystem::aspectRatioInfo[i]);
+				app().setVideoAspectRatio(aspect.ratio<double>());
 			});
 	}
 	aspectRatioItem.emplace_back("Custom Value", &defaultFace(),

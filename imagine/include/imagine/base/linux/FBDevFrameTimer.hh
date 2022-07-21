@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/FrameTimer.hh>
 #include <imagine/base/EventLoop.hh>
 #include <semaphore>
 #include <thread>
@@ -25,13 +24,14 @@ namespace IG
 
 class Screen;
 
-class FBDevFrameTimer : public FrameTimerI
+class FBDevFrameTimer
 {
 public:
 	FBDevFrameTimer(Screen &screen, EventLoop loop = {});
-	~FBDevFrameTimer() final;
-	void scheduleVSync() final;
-	void cancel() final;
+	~FBDevFrameTimer();
+	void scheduleVSync();
+	void cancel();
+	void setFrameTime(FloatSeconds) {}
 	static bool testSupport();
 
 	explicit operator bool() const

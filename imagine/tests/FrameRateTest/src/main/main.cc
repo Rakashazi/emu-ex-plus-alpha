@@ -247,7 +247,7 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 					}
 					return false;
 				}
-			}, e.asVariant());
+			}, e);
 		});
 }
 

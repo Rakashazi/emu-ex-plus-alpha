@@ -494,18 +494,13 @@ static MDFN_COLD void LoadCD(std::vector<CDInterface*> *CDInterfaces)
  }
 }
 
-void applyVideoFormat(EmulateSpecStruct *espec)
-{
-	VDC_SetPixelFormat(espec->surface->format, espec->CustomPalette, espec->CustomPaletteNumEntries);
-}
-
-void applySoundFormat(EmulateSpecStruct *espec)
+void applySoundFormat(double rate)
 {
 	if(!sbuf)
 		return;
 	for(int y = 0; y < 2; y++)
 	{
-		sbuf[y].set_sample_rate(espec->SoundRate ? espec->SoundRate : 44100, 50);
+		sbuf[y].set_sample_rate(rate ? rate : 44100, 50);
 		sbuf[y].clock_rate(PCE_MASTER_CLOCK / 3.);
 		sbuf[y].bass_freq(10);
 	}

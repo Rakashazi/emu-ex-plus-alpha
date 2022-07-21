@@ -23,8 +23,6 @@ const unsigned categories = 2;
 static const unsigned gamepadKeys = 14;
 const unsigned systemTotalKeys = gameActionKeys + gamepadKeys;
 
-void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player) {}
-
 static const char *gamepadName[gamepadKeys] =
 {
 	"Up",

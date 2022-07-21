@@ -40,7 +40,7 @@ enum
 	CFGKEY_PADDLE_DIGITAL_SENSITIVITY = 276, CFGKEY_PADDLE_ANALOG_REGION = 277,
 };
 
-static constexpr uint TV_PHOSPHOR_AUTO = 2;
+static constexpr int TV_PHOSPHOR_AUTO = 2;
 
 inline bool optionIsValidControllerType(uint8_t val)
 {
@@ -106,6 +106,7 @@ public:
 	unsigned translateInputAction(unsigned input, bool &turbo);
 	VController::Map vControllerMap(int player);
 	void configAudioRate(FloatSeconds frameTime, int rate);
+	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions
 	void closeSystem();

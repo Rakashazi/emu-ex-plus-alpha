@@ -22,40 +22,15 @@
 namespace IG
 {
 
-class FrameTimerI
-{
-public:
-	virtual ~FrameTimerI() = default;
-	virtual void scheduleVSync() = 0;
-	virtual void cancel();
-	virtual void setFrameTime(IG::FloatSeconds rate);
-};
-
 template <class VariantBase>
-class FrameTimerVariantWrapper : public VariantBase
+class FrameTimerInterface : public VariantBase
 {
 public:
 	using VariantBase::VariantBase;
 
-	constexpr VariantBase &asVariant()
-	{
-		return static_cast<VariantBase&>(*this);
-	}
-
-	constexpr void scheduleVSync()
-	{
-		IG::visit([](auto &e){ e.scheduleVSync(); }, asVariant());
-	}
-
-	constexpr void cancel()
-	{
-		IG::visit([](auto &e){ e.cancel(); }, asVariant());
-	}
-
-	constexpr void setFrameTime(IG::FloatSeconds rate)
-	{
-		IG::visit([&](auto &e){ e.setFrameTime(rate); }, asVariant());
-	}
+	void scheduleVSync() { visit([](auto &e){ e.scheduleVSync(); }, *this); }
+	void cancel() { visit([](auto &e){ e.cancel(); }, *this); }
+	void setFrameTime(FloatSeconds rate) { visit([&](auto &e){ e.setFrameTime(rate); }, *this); }
 };
 
 }

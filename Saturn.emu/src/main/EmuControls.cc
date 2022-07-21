@@ -23,7 +23,7 @@ namespace EmuEx::Controls
 const unsigned categories = 3;
 const unsigned systemTotalKeys = gameActionKeys + gamepadKeys*2;
 
-void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player)
+void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player)
 {
 	generic2PlayerTranspose(key, player, 1);
 }

@@ -23,12 +23,16 @@ namespace EmuEx
 {
 
 const char *EmuSystem::configFilename = "2600emu.config";
-const AspectRatioInfo EmuSystem::aspectRatioInfo[]
+
+std::span<const AspectRatioInfo> A2600System::aspectRatioInfos()
 {
-		{"4:3 (Original)", 4, 3},
-		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+	static constexpr AspectRatioInfo aspectRatioInfo[]
+	{
+			{"4:3 (Original)", {4, 3}},
+			EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+	};
+	return aspectRatioInfo;
+}
 
 bool A2600System::resetSessionOptions(EmuApp &app)
 {
@@ -45,7 +49,7 @@ bool A2600System::resetSessionOptions(EmuApp &app)
 	return true;
 }
 
-bool A2600System::readConfig(ConfigType type, IO &io, uint key, size_t readSize)
+bool A2600System::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{

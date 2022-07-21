@@ -16,6 +16,7 @@
 #endif
 
 #include <stdio.h>
+#include <math.h>
 #include "2610intf.h"
 #include "../emu.h"
 #include "../memory.h"
@@ -53,7 +54,7 @@ static void TimerHandler(int c, int count, float stepTime)
 		}
 	} else {			/* Start FM Timer */
 		//logMsg("fm timer @ %d", count);
-		AudioTime timeSec = (AudioTime) count * stepTime;
+		AudioTime timeSec = (AudioTime) roundf(count * stepTime);
 		//Uint32 timeSec = count * (Uint32)(stepTime*(1<<TIMER_SH));
 		
 		if (Timer[c] == 0) {

@@ -50,12 +50,6 @@ static bool panOptionIsValid(uint8_t val)
 }
 
 const char *EmuSystem::configFilename = "MsxEmu.config";
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
-{
-		{"4:3 (Original)", 4, 3},
-		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 int EmuSystem::forcedSoundRate = 44100;
 Byte1Option optionSkipFdcAccess{CFGKEY_SKIP_FDC_ACCESS, 1};
 
@@ -74,6 +68,16 @@ Byte1Option optionMixerMSXAUDIOPan{CFGKEY_MIXER_MSX_AUDIO_PAN, 50, false, panOpt
 Byte1Option optionMixerMoonSoundPan{CFGKEY_MIXER_MOON_SOUND_PAN, 50, false, panOptionIsValid};
 Byte1Option optionMixerYamahaSFGPan{CFGKEY_MIXER_YAMAHA_SFG_PAN, 50, false, panOptionIsValid};
 Byte1Option optionMixerPCMPan{CFGKEY_MIXER_PCM_PAN, 50, false, panOptionIsValid};
+
+std::span<const AspectRatioInfo> MsxSystem::aspectRatioInfos()
+{
+	static constexpr AspectRatioInfo aspectRatioInfo[]
+	{
+		{"4:3 (Original)", {4, 3}},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+	};
+	return aspectRatioInfo;
+}
 
 static Byte1Option &optionMixerVolume(MixerAudioType type)
 {

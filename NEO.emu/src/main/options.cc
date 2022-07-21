@@ -26,13 +26,17 @@ namespace EmuEx
 {
 
 const char *EmuSystem::configFilename = "NeoEmu.config";
-const AspectRatioInfo EmuSystem::aspectRatioInfo[]
-{
-		{"4:3 (Original)", 4, 3},
-		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 bool EmuApp::autoSaveStateDefault = false;
+
+std::span<const AspectRatioInfo> NeoSystem::aspectRatioInfos()
+{
+	static constexpr AspectRatioInfo aspectRatioInfo[]
+	{
+		{"4:3 (Original)", {4, 3}},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+	};
+	return aspectRatioInfo;
+}
 
 void NeoSystem::setTimerIntOption()
 {

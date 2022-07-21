@@ -22,13 +22,16 @@ namespace EmuEx
 
 const char *EmuSystem::configFilename = "PceEmu.config";
 
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+std::span<const AspectRatioInfo> PceSystem::aspectRatioInfos()
 {
-		{"4:3 (Original)", 4, 3},
-		{"8:7", 8, 7},
+	static constexpr AspectRatioInfo aspectRatioInfo[]
+	{
+		{"4:3 (Original)", {4, 3}},
+		{"8:7", {8, 7}},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+	};
+	return aspectRatioInfo;
+}
 
 void PceSystem::onSessionOptionsLoaded(EmuApp &app)
 {

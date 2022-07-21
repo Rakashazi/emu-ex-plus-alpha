@@ -117,6 +117,7 @@ public:
 	unsigned translateInputAction(unsigned input, bool &turbo);
 	VController::Map vControllerMap(int player);
 	void configAudioRate(FloatSeconds frameTime, int rate);
+	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions
 	void closeSystem();

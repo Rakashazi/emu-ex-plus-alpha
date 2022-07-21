@@ -32,6 +32,8 @@
 namespace IG
 {
 
+class Screen;
+
 enum class ActivityState : uint8_t
 {
 	PAUSED,

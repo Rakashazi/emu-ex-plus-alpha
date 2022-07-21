@@ -28,6 +28,7 @@ namespace EmuEx
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\n\nPortions (c) the\nGambatte Team\ngambatte.sourceforge.net";
 bool EmuSystem::hasCheats = true;
+double EmuSystem::staticFrameTime = 70224. / 4194304.; // ~59.7275Hz
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
@@ -164,8 +165,8 @@ bool GbcSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 
 void GbcSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
-	long outputRate = std::round(rate * (59.7275 * frameTime.count()));
-	long inputRate = 2097152;
+	long outputRate = rate;
+	long inputRate = frameTime.count() / staticFrameTime * 2097152.;
 	if(optionAudioResampler >= ResamplerInfo::num())
 		optionAudioResampler = std::min((int)ResamplerInfo::num(), 1);
 	if(!resampler || optionAudioResampler != activeResampler || resampler->outRate() != outputRate)

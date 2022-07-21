@@ -41,6 +41,8 @@ namespace EmuEx
 [[gnu::weak]] int EmuSystem::inputRTriggerIndex = -1;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
+[[gnu::weak]] double EmuSystem::staticFrameTime = 1. / 60.;
+[[gnu::weak]] double EmuSystem::staticPalFrameTime = 1. / 50.;
 [[gnu::weak]] bool EmuSystem::canRenderRGBA8888 = true;
 [[gnu::weak]] bool EmuSystem::hasResetModes = false;
 [[gnu::weak]] bool EmuSystem::handlesArchiveFiles = false;
@@ -304,38 +306,32 @@ int EmuSystem::updateAudioFramesPerVideoFrame()
 	return wholeFrames;
 }
 
-double EmuSystem::frameRate()
+double EmuSystem::frameRate() const
 {
-	double time = frameTime().count();
-	return time ? 1. / time : 0.;
+	return frameRate(videoSystem());
 }
 
-double EmuSystem::frameRate(VideoSystem system)
+double EmuSystem::frameRate(VideoSystem system) const
 {
 	return 1. / frameTime(system).count();
 }
 
-IG::FloatSeconds EmuSystem::frameTime()
+IG::FloatSeconds EmuSystem::frameTime() const
 {
 	return frameTime(videoSystem());
 }
 
-IG::FloatSeconds EmuSystem::frameTime(VideoSystem system)
+IG::FloatSeconds EmuSystem::frameTime(VideoSystem system) const
 {
-	switch(system)
-	{
-		case VideoSystem::NATIVE_NTSC: return frameTimeNative;
-		case VideoSystem::PAL: return frameTimePAL;
-	}
-	return {};
+	return frameTimeVar(system);
 }
 
 IG::FloatSeconds EmuSystem::defaultFrameTime(VideoSystem system)
 {
 	switch(system)
 	{
-		case VideoSystem::NATIVE_NTSC: return IG::FloatSeconds{1./60.};
-		case VideoSystem::PAL: return IG::FloatSeconds{1./50.};
+		case VideoSystem::NATIVE_NTSC: return IG::FloatSeconds{staticFrameTime};
+		case VideoSystem::PAL: return IG::FloatSeconds{staticPalFrameTime};
 	}
 	return {};
 }
@@ -345,8 +341,10 @@ bool EmuSystem::frameTimeIsValid(VideoSystem system, IG::FloatSeconds time)
 	auto rate = 1. / time.count(); // convert to frames per second
 	switch(system)
 	{
-		case VideoSystem::NATIVE_NTSC: return rate >= 55 && rate <= 65;
-		case VideoSystem::PAL: return rate >= 45 && rate <= 65;
+		case VideoSystem::NATIVE_NTSC:
+			return rate >= 55. && rate <= ((1. / staticFrameTime) + 5.);
+		case VideoSystem::PAL:
+			return rate >= 45. && rate <= ((1. / staticPalFrameTime) + 15.);
 	}
 	return false;
 }
@@ -355,11 +353,7 @@ bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 {
 	if(!frameTimeIsValid(system, time))
 		return false;
-	switch(system)
-	{
-		bcase VideoSystem::NATIVE_NTSC: frameTimeNative = time;
-		bcase VideoSystem::PAL: frameTimePAL = time;
-	}
+	frameTimeVar(system) = time;
 	return true;
 }
 

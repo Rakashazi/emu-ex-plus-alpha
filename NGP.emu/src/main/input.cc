@@ -39,9 +39,9 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Option";
-const unsigned EmuSystem::inputFaceBtns = 2;
-const unsigned EmuSystem::inputCenterBtns = 1;
-const unsigned EmuSystem::maxPlayers = 1;
+const int EmuSystem::inputFaceBtns = 2;
+const int EmuSystem::inputCenterBtns = 1;
+const int EmuSystem::maxPlayers = 1;
 
 constexpr unsigned ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,
 		ctrlABit = 0x10, ctrlBBit = 0x20, ctrlOptionBit = 0x40;

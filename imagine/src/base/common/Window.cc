@@ -312,7 +312,7 @@ bool Window::dispatchInputEvent(Input::Event event)
 			return handled || (e.isAbsolute() && contentBounds().overlaps(e.pos()));
 		},
 		[&](const Input::KeyEvent &e) { return handled; }
-	}, event.asVariant());
+	}, event);
 }
 
 bool Window::dispatchRepeatableKeyInputEvent(Input::KeyEvent event)

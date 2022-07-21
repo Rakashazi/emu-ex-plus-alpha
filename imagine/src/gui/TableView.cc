@@ -490,7 +490,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 			}
 			return true;
 		}
-	}, e.asVariant());
+	}, e);
 }
 
 void TableView::drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const

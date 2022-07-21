@@ -69,14 +69,9 @@ int32 ngpc_soundTS = 0;
 //static int32 main_timeaccum;
 static int32 z80_runtime;
 
-void applyVideoFormat(EmulateSpecStruct *espec)
+void applyVideoFormat(Mednafen::MDFN_PixelFormat format)
 {
-	NGPGfx->set_pixel_format(espec->surface->format);
-}
-
-void applySoundFormat(EmulateSpecStruct *espec)
-{
-	MDFNNGPC_SetSoundRate(espec->SoundRate);
+	NGPGfx->set_pixel_format(format);
 }
 
 static void Emulate(EmulateSpecStruct *espec)

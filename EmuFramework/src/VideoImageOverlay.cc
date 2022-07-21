@@ -94,7 +94,7 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, int lines)
 	using namespace IG::Gfx;
 	//logMsg("placing overlay with %u lines in image", lines);
 	spr.setPos(disp);
-	auto width = lines*(EmuSystem::aspectRatioInfo[0].aspect.x/(float)EmuSystem::aspectRatioInfo[0].aspect.y);
+	auto width = lines*(EmuSystem::aspectRatioInfos()[0].aspect.x/(float)EmuSystem::aspectRatioInfos()[0].aspect.y);
 	spr.setImg([&]() -> TextureSpan
 	{
 		switch(overlayId)

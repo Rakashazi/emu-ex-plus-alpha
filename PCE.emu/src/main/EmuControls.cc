@@ -23,7 +23,7 @@ const unsigned categories = 6;
 extern const unsigned gamepadKeys = 18;
 const unsigned systemTotalKeys = gameActionKeys + gamepadKeys*5;
 
-void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player)
+void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player)
 {
 	genericMultiplayerTranspose(key, player, 1);
 }

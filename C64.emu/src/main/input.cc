@@ -155,10 +155,10 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "JS Buttons";
 const char *EmuSystem::inputCenterBtnName = "F1/KB";
-const unsigned EmuSystem::inputFaceBtns = 2;
-const unsigned EmuSystem::inputCenterBtns = 2;
+const int EmuSystem::inputFaceBtns = 2;
+const int EmuSystem::inputCenterBtns = 2;
 bool EmuSystem::inputHasKeyboard = true;
-const unsigned EmuSystem::maxPlayers = 2;
+const int EmuSystem::maxPlayers = 2;
 
 static constexpr uint8_t KEY_MODE_SHIFT = 28;
 static constexpr uint8_t KB_MODE = 0;

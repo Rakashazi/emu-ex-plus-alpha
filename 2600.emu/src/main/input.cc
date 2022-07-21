@@ -65,10 +65,10 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "JS Buttons";
 const char *EmuSystem::inputCenterBtnName = "Select/Reset";
-const uint EmuSystem::inputFaceBtns = 4;
-const uint EmuSystem::inputCenterBtns = 2;
+const int EmuSystem::inputFaceBtns = 4;
+const int EmuSystem::inputCenterBtns = 2;
 bool EmuSystem::inputHasShortBtnTexture = true;
-const uint EmuSystem::maxPlayers = 2;
+const int EmuSystem::maxPlayers = 2;
 
 void A2600System::clearInputBuffers(EmuInputView &)
 {
@@ -85,7 +85,7 @@ void A2600System::clearInputBuffers(EmuInputView &)
 
 VController::Map A2600System::vControllerMap(int player)
 {
-	uint playerShift = player ? 7 : 0;
+	int playerShift = player ? 7 : 0;
 	VController::Map map{};
 	map[VController::F_ELEM] = jsFireMap[player];
 	map[VController::F_ELEM+1] = jsFireMap[player] | VController::TURBO_BIT;
@@ -95,18 +95,18 @@ VController::Map A2600System::vControllerMap(int player)
 	map[VController::C_ELEM] = Event::ConsoleSelect;
 	map[VController::C_ELEM+1] = Event::ConsoleReset;
 
-	map[VController::D_ELEM] = (((uint)Event::LeftJoystickUp) + playerShift)
-																| (((uint)Event::LeftJoystickLeft + playerShift) << 8);
+	map[VController::D_ELEM] = (Event::LeftJoystickUp + playerShift)
+																| ((Event::LeftJoystickLeft + playerShift) << 8);
 	map[VController::D_ELEM+1] = Event::LeftJoystickUp + playerShift; // up
-	map[VController::D_ELEM+2] = ((uint)Event::LeftJoystickUp  + playerShift)
-																	| (((uint)Event::LeftJoystickRight + playerShift) << 8);
+	map[VController::D_ELEM+2] = (Event::LeftJoystickUp  + playerShift)
+																	| ((Event::LeftJoystickRight + playerShift) << 8);
 	map[VController::D_ELEM+3] = jsLeftMap[player]; // left
 	map[VController::D_ELEM+5] = jsRightMap[player]; // right
-	map[VController::D_ELEM+6] = ((uint)Event::LeftJoystickDown + playerShift)
-																	| (((uint)Event::LeftJoystickLeft + playerShift) << 8);
+	map[VController::D_ELEM+6] = (Event::LeftJoystickDown + playerShift)
+																	| ((Event::LeftJoystickLeft + playerShift) << 8);
 	map[VController::D_ELEM+7] = Event::LeftJoystickDown + playerShift; // down
-	map[VController::D_ELEM+8] = ((uint)Event::LeftJoystickDown + playerShift)
-																	| (((uint)Event::LeftJoystickRight + playerShift) << 8);
+	map[VController::D_ELEM+8] = (Event::LeftJoystickDown + playerShift)
+																	| ((Event::LeftJoystickRight + playerShift) << 8);
 	return map;
 }
 
@@ -127,7 +127,7 @@ void A2600System::updateJoytickMapping(EmuApp &app, Controller::Type type)
 	app.updateVControllerMapping();
 }
 
-uint A2600System::translateInputAction(uint input, bool &turbo)
+unsigned A2600System::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	switch(input)
@@ -175,7 +175,7 @@ uint A2600System::translateInputAction(uint input, bool &turbo)
 void A2600System::handleInputAction(EmuApp *app, InputAction a)
 {
 	auto &ev = osystem.eventHandler().event();
-	uint event1 = a.key & 0xFF;
+	auto event1 = a.key & 0xFF;
 	bool isPushed = a.state == Input::Action::PUSHED;
 
 	//logMsg("got key %d", emuKey);
@@ -216,7 +216,7 @@ void A2600System::handleInputAction(EmuApp *app, InputAction a)
 			ev.set(Event::Type(event1), isPushed);
 		bdefault:
 			ev.set(Event::Type(event1), isPushed);
-			uint event2 = a.key >> 8;
+			auto event2 = a.key >> 8;
 			if(event2) // extra event for diagonals
 			{
 				ev.set(Event::Type(event2), isPushed);

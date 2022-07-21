@@ -25,6 +25,7 @@
 #include <emuframework/VController.hh>
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace IG
 {
@@ -56,13 +57,13 @@ class VControllerKeyboard;
 
 struct AspectRatioInfo
 {
-	constexpr AspectRatioInfo(const char *name, unsigned n, unsigned d): name(name), aspect{n, d} {}
+	std::string_view name{};
+	IG::Point2D<int8_t> aspect{};
+
 	constexpr explicit operator double() const { return aspect.ratio<double>(); }
-	const char *name;
-	Point2D<unsigned> aspect;
 };
 
-#define EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT {"1:1", 1, 1}, {"Full Screen", 0, 1}
+#define EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT {"1:1", {1, 1}}, {"Full Screen", {0, 1}}
 
 struct BundledGameInfo
 {
@@ -133,20 +134,20 @@ public:
 	enum class ResetMode: uint8_t { HARD, SOFT };
 
 	// Static system configuration
-	static const unsigned maxPlayers;
-	static const AspectRatioInfo aspectRatioInfo[];
-	static const unsigned aspectRatioInfos;
+	static const int maxPlayers;
 	static const char *configFilename;
 	static const char *inputFaceBtnName;
 	static const char *inputCenterBtnName;
-	static const unsigned inputCenterBtns;
-	static const unsigned inputFaceBtns;
+	static const int inputCenterBtns;
+	static const int inputFaceBtns;
 	static int inputLTriggerIndex;
 	static int inputRTriggerIndex;
 	static bool inputHasKeyboard;
 	static bool inputHasShortBtnTexture;
 	static bool hasBundledGames;
 	static bool hasPALVideoSystem;
+	static double staticFrameTime;
+	static double staticPalFrameTime;
 	static bool canRenderRGBA8888;
 	static bool hasResetModes;
 	static bool handlesArchiveFiles;
@@ -179,6 +180,7 @@ public:
 	unsigned translateInputAction(unsigned input, bool &turbo);
 	VController::Map vControllerMap(int player);
 	void configAudioRate(FloatSeconds frameTime, int rate);
+	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional sub-class API functions
 	void closeSystem();
@@ -214,7 +216,7 @@ public:
 	void incStateSlot() { if(++saveStateSlot > 9) saveStateSlot = -1; }
 	const char *systemName() const;
 	const char *shortSystemName() const;
-	const BundledGameInfo &bundledGameInfo(unsigned idx) const;
+	const BundledGameInfo &bundledGameInfo(int idx) const;
 	auto contentDirectory() const { return contentDirectory_; }
 	FS::PathString contentDirectory(std::string_view name) const;
 	auto contentLocation() const { return contentLocation_; }
@@ -256,10 +258,10 @@ public:
 	void loadContentFromFile(GenericIO, IG::CStringView path, std::string_view displayName,
 		EmuSystemCreateParams, OnLoadProgressDelegate);
 	int updateAudioFramesPerVideoFrame();
-	double frameRate();
-	double frameRate(VideoSystem system);
-	FloatSeconds frameTime();
-	FloatSeconds frameTime(VideoSystem system);
+	double frameRate() const;
+	double frameRate(VideoSystem) const;
+	FloatSeconds frameTime() const;
+	FloatSeconds frameTime(VideoSystem) const;
 	static FloatSeconds defaultFrameTime(VideoSystem system);
 	static bool frameTimeIsValid(VideoSystem system, IG::FloatSeconds time);
 	bool setFrameTime(VideoSystem system, IG::FloatSeconds time);
@@ -311,6 +313,18 @@ protected:
 	void setupContentFilePaths(IG::CStringView filePath, std::string_view displayName);
 	void updateContentSaveDirectory();
 	void closeAndSetupNew(IG::CStringView path, std::string_view displayName);
+
+	static auto &frameTimeVar(auto &self, VideoSystem system)
+	{
+		switch(system)
+		{
+			case VideoSystem::NATIVE_NTSC: return self.frameTimeNative;
+			case VideoSystem::PAL: return self.frameTimePAL;
+		}
+		__builtin_unreachable();
+	}
+	auto &frameTimeVar(VideoSystem system) { return frameTimeVar(*this, system); }
+	auto &frameTimeVar(VideoSystem system) const { return frameTimeVar(*this, system); }
 
 public:
 	IG::OnFrameDelegate onFrameUpdate{};

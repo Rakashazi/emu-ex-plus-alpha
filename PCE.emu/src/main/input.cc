@@ -44,9 +44,9 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "I/II";
 const char *EmuSystem::inputCenterBtnName = "Select/Run";
-const unsigned EmuSystem::inputFaceBtns = 6;
-const unsigned EmuSystem::inputCenterBtns = 2;
-const unsigned EmuSystem::maxPlayers = 5;
+const int EmuSystem::inputFaceBtns = 6;
+const int EmuSystem::inputCenterBtns = 2;
+const int EmuSystem::maxPlayers = 5;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{2, 1, 0, 3, 4, 5};
 unsigned playerBit = 13;
 

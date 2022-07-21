@@ -25,7 +25,7 @@ static constexpr unsigned switchKeys = 5;
 static constexpr unsigned keyboardKeys = 12;
 const unsigned systemTotalKeys = gameActionKeys + joystickKeys*2 + switchKeys + keyboardKeys*2;
 
-void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player)
+void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player)
 {
 	generic2PlayerTranspose(key, player, 1);
 }

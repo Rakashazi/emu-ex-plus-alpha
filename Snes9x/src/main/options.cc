@@ -18,13 +18,16 @@ bool EmuSystem::hasBundledGames = true;
 const char *EmuSystem::configFilename = "Snes9xP.config";
 #endif
 
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+std::span<const AspectRatioInfo> Snes9xSystem::aspectRatioInfos()
 {
-		{"4:3 (Original)", 4, 3},
-		{"8:7", 8, 7},
+	static constexpr AspectRatioInfo aspectRatioInfo[]
+	{
+		{"4:3 (Original)", {4, 3}},
+		{"8:7", {8, 7}},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+	};
+	return aspectRatioInfo;
+}
 
 #ifndef SNES9X_VERSION_1_4
 void setSuperFXSpeedMultiplier(unsigned val)

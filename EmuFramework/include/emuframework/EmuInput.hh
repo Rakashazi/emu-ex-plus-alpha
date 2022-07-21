@@ -152,7 +152,7 @@ extern const unsigned defaultAppleGCProfiles;
 extern const KeyConfig defaultPS3Profile[];
 extern const unsigned defaultPS3Profiles;
 
-void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player);
+void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player);
 
 // common transpose behavior
 void generic2PlayerTranspose(KeyConfig::KeyArray &key, int player, int startCategory);

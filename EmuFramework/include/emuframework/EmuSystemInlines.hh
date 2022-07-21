@@ -200,6 +200,11 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 	static_cast<MainSystem*>(this)->configAudioRate(frameTime, rate);
 }
 
+std::span<const AspectRatioInfo> EmuSystem::aspectRatioInfos()
+{
+	return MainSystem::aspectRatioInfos();
+}
+
 void EmuSystem::loadContent(IO &io, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadDel)
 {
 	static_cast<MainSystem*>(this)->loadContent(io, params, onLoadDel);

@@ -50,6 +50,8 @@ namespace EmuEx
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
+double EmuSystem::staticFrameTime = 16777215./ 1008307711.; // ~60.099Hz
+double EmuSystem::staticPalFrameTime = 16777215. / 838977920.; // ~50.00Hz
 bool EmuSystem::hasResetModes = true;
 bool EmuApp::needsGlobalInstance = true;
 unsigned fceuCheats = 0;
@@ -353,10 +355,8 @@ bool NesSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 
 void NesSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
-	constexpr double ntscFrameRate = 21477272.0 / 357366.0;
-	constexpr double palFrameRate = 21281370.0 / 425568.0;
-	double systemFrameRate = videoSystem() == VideoSystem::PAL ? palFrameRate : ntscFrameRate;
-	double mixRate = std::round(rate * (systemFrameRate * frameTime.count()));
+	const double systemFrameTime = videoSystem() == VideoSystem::PAL ? staticPalFrameTime : staticFrameTime;
+	double mixRate = std::round(rate / systemFrameTime * frameTime.count());
 	FCEUI_Sound(mixRate);
 	logMsg("set NES audio rate %d", FSettings.SndRate);
 }

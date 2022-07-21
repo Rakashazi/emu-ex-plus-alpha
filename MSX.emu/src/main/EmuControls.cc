@@ -25,7 +25,7 @@ static const unsigned colecoNumericKeys = 12;
 static const unsigned kbKeys = 93;
 const unsigned systemTotalKeys = gameActionKeys + joystickKeys*2 + colecoNumericKeys*2 + kbKeys;
 
-void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player)
+void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player)
 {
 	generic2PlayerTranspose(key, player, 1);
 	generic2PlayerTranspose(key, player, 3);

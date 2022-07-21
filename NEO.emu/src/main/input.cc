@@ -50,9 +50,9 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A/B/C/D";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
-const unsigned EmuSystem::inputFaceBtns = 4;
-const unsigned EmuSystem::inputCenterBtns = 2;
-const unsigned EmuSystem::maxPlayers = 2;
+const int EmuSystem::inputFaceBtns = 4;
+const int EmuSystem::inputCenterBtns = 2;
+const int EmuSystem::maxPlayers = 2;
 
 namespace NGKey
 {

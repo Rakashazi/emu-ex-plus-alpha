@@ -50,11 +50,11 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A-Z";
 const char *EmuSystem::inputCenterBtnName = "Start";
-const unsigned EmuSystem::inputFaceBtns = 8;
-const unsigned EmuSystem::inputCenterBtns = 1;
+const int EmuSystem::inputFaceBtns = 8;
+const int EmuSystem::inputCenterBtns = 1;
 int EmuSystem::inputLTriggerIndex = 6;
 int EmuSystem::inputRTriggerIndex = 7;
-const unsigned EmuSystem::maxPlayers = 2;
+const int EmuSystem::maxPlayers = 2;
 
 VController::Map SaturnSystem::vControllerMap(int player)
 {

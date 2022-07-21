@@ -139,7 +139,7 @@ bool NavView::inputEvent(const Input::Event &e)
 			}
 			return false;
 		}
-	}, e.asVariant());
+	}, e);
 }
 
 void NavView::prepareDraw()

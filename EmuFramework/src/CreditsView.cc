@@ -69,7 +69,7 @@ bool CreditsView::inputEvent(const Input::Event &e)
 		{
 			[&](const Input::MotionEvent &e) { return viewRect().overlaps(e.pos()) && e.released(); },
 			[&](const Input::KeyEvent &e) { return e.pushed(Input::DefaultKey::CANCEL); }
-		}, e.asVariant()))
+		}, e))
 	{
 		dismiss();
 		return true;

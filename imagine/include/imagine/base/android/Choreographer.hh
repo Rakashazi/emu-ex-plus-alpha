@@ -60,13 +60,15 @@ protected:
 };
 
 template <class ChoreographerBase>
-class ChoreographerFrameTimer final : public FrameTimerI
+class ChoreographerFrameTimer final
 {
 public:
 	ChoreographerFrameTimer(ChoreographerBase &choreographer):
 		choreographerPtr{&choreographer}
 	{}
-	void scheduleVSync() final { choreographerPtr->scheduleVSync(); }
+	void scheduleVSync() { choreographerPtr->scheduleVSync(); }
+	void cancel() {}
+	void setFrameTime(FloatSeconds) {}
 
 protected:
 	ChoreographerBase *choreographerPtr{};

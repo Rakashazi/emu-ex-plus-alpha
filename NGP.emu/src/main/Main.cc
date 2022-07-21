@@ -22,17 +22,18 @@
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <mednafen/state-driver.h>
-#include <mednafen/hash/md5.h>
 #include <mednafen/MemoryStream.h>
 #include <mednafen/ngp/neopop.h>
 #include <mednafen/ngp/flash.h>
+#include <mednafen/ngp/sound.h>
 #include <mednafen-emuex/MDFNUtils.hh>
 
 namespace EmuEx
 {
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nNeoPop Team\nwww.nih.at";
-
+// TODO: Mednafen/Neopop timing is based on 199 lines/frame, verify if this is correct
+double EmuSystem::staticFrameTime = (199. * 515.) / 6144000.; //~59.95Hz
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
@@ -57,19 +58,9 @@ void NgpSystem::reset(EmuApp &, ResetMode mode)
 	MDFN_IEN_NGP::reset();
 }
 
-static char saveSlotChar(int slot)
-{
-	switch(slot)
-	{
-		case -1: return 'q';
-		case 0 ... 9: return '0' + slot;
-		default: bug_unreachable("slot == %d", slot); return 0;
-	}
-}
-
 FS::FileString NgpSystem::stateFilename(int slot, std::string_view name) const
 {
-	return IG::format<FS::FileString>("{}.{}.nc{}", name, md5_context::asciistr(MDFNGameInfo->MD5, 0), saveSlotChar(slot));
+	return stateFilenameMDFN(*MDFNGameInfo, slot, name);
 }
 
 void NgpSystem::saveState(IG::CStringView path)
@@ -115,10 +106,7 @@ void NgpSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 		std::string{contentName()}};
 	emuSys->Load(&gf);
 	emuSys->SetInput(0, "gamepad", (uint8*)&inputBuff);
-	EmulateSpecStruct espec{};
-	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
-	espec.surface = &mSurface;
-	MDFN_IEN_NGP::applyVideoFormat(&espec);
+	MDFN_IEN_NGP::applyVideoFormat(pixmapToMDFNSurface(mSurfacePix).format);
 }
 
 bool NgpSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
@@ -126,20 +114,15 @@ bool NgpSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
 	if(!hasContent())
 		return false;
-	EmulateSpecStruct espec{};
-	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
-	espec.surface = &mSurface;
-	MDFN_IEN_NGP::applyVideoFormat(&espec);
+	MDFN_IEN_NGP::applyVideoFormat(pixmapToMDFNSurface(mSurfacePix).format);
 	return false;
 }
 
 void NgpSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
-	EmulateSpecStruct espec{};
-	static constexpr double ngpFrameRate = 59.95;
-	espec.SoundRate = std::round(rate * (ngpFrameRate * frameTime.count()));
-	logMsg("emu sound rate:%f", (double)espec.SoundRate);
-	MDFN_IEN_NGP::applySoundFormat(&espec);
+	auto soundRate = std::round(rate / staticFrameTime * frameTime.count());
+	logMsg("emu sound rate:%f", soundRate);
+	MDFN_IEN_NGP::MDFNNGPC_SetSoundRate(soundRate);
 }
 
 void NgpSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)

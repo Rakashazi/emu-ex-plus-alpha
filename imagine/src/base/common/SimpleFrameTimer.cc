@@ -22,10 +22,6 @@
 namespace IG
 {
 
-void FrameTimerI::cancel() {}
-
-void FrameTimerI::setFrameTime(IG::FloatSeconds rate) {}
-
 SimpleFrameTimer::SimpleFrameTimer(Screen &screen, EventLoop loop):
 	timer
 	{

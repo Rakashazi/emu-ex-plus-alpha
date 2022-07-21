@@ -49,6 +49,8 @@ namespace EmuEx
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
+double EmuSystem::staticFrameTime = (262. * (double)MCYCLES_PER_LINE) / 53693175.; // ~59.92Hz
+double EmuSystem::staticPalFrameTime = (313. * (double)MCYCLES_PER_LINE) / 53203424.; // ~49.70Hz
 bool EmuSystem::canRenderRGBA8888 = RENDER_BPP == 32;
 bool EmuApp::needsGlobalInstance = true;
 

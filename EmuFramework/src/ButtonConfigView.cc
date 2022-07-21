@@ -163,7 +163,7 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 			}
 			return false;
 		}
-	}, e.asVariant());
+	}, e);
 }
 
 void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
