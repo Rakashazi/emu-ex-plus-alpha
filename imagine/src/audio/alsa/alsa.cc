@@ -14,15 +14,16 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "ALSA"
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <memory>
 #include <imagine/audio/alsa/ALSAOutputStream.hh>
+#include <imagine/audio/OutputStream.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/thread/Thread.hh>
 #include "alsautils.h"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <memory>
 
 namespace IG::Audio
 {
@@ -85,9 +86,9 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 		logMsg("already open");
 		return {};
 	}
-	auto format = config.format();;
+	auto format = config.format;
 	pcmFormat = format;
-	onSamplesNeeded = config.onSamplesNeeded();
+	onSamplesNeeded = config.onSamplesNeeded;
 	const char* name = "default";
 	logMsg("Opening playback device: %s", name);
 	if(int err = snd_pcm_open(&pcmHnd, name, SND_PCM_STREAM_PLAYBACK, 0);
@@ -100,7 +101,7 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 	logMsg("Stream parameters: %iHz, %s, %i channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(format.sample)), format.channels);
 	bool allowMmap = true;
 	int err = -1;
-	auto wantedLatency = config.wantedLatencyHint().count() ? config.wantedLatencyHint() : IG::Microseconds{10000};
+	auto wantedLatency = config.wantedLatencyHint.count() ? config.wantedLatencyHint : IG::Microseconds{10000};
 	if(allowMmap)
 	{
 		err = setupPcm(format, SND_PCM_ACCESS_MMAP_INTERLEAVED, wantedLatency);
@@ -224,7 +225,7 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 				}
 			}
 		});
-	if(config.startPlaying())
+	if(config.startPlaying)
 		play();
 	return {};
 }

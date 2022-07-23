@@ -39,7 +39,7 @@ public:
 		class Iterator
 		{
 		public:
-			constexpr Iterator(IO *io): io{io}
+			constexpr Iterator(PosixIO *io): io{io}
 			{
 				this->operator++();
 			}
@@ -68,11 +68,11 @@ public:
 			}
 
 		private:
-			IO *io{};
+			PosixIO *io{};
 			MsgType msg{};
 		};
 
-		constexpr Messages(IO &io): io{io} {}
+		constexpr Messages(PosixIO &io): io{io} {}
 
 		Iterator begin() { return Iterator{&io}; }
 		Iterator end() { return Iterator{nullptr}; }
@@ -89,7 +89,7 @@ public:
 		}
 
 	protected:
-		IO &io;
+		PosixIO &io;
 	};
 
 	static constexpr size_t MSG_SIZE = sizeof(MsgType);

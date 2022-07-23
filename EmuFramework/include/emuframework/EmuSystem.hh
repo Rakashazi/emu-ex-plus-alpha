@@ -32,7 +32,8 @@ namespace IG
 class ApplicationContext;
 class PixelFormat;
 class IO;
-class GenericIO;
+class FileIO;
+class MapIO;
 }
 
 namespace IG::Input
@@ -172,8 +173,8 @@ public:
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	void loadState(EmuApp &, CStringView uri);
 	void saveState(CStringView path);
-	bool readConfig(ConfigType, IO &io, unsigned key, size_t readSize);
-	void writeConfig(ConfigType, IO &);
+	bool readConfig(ConfigType, MapIO &io, unsigned key, size_t readSize);
+	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);
@@ -250,12 +251,12 @@ public:
 	void sessionOptionSet();
 	void resetSessionOptionsSet() { sessionOptionsSet = false; }
 	bool sessionOptionsAreSet() const { return sessionOptionsSet; }
-	void createWithMedia(GenericIO, IG::CStringView path,
+	void createWithMedia(IG::IO, IG::CStringView path,
 		std::string_view displayName, EmuSystemCreateParams, OnLoadProgressDelegate);
 	FS::PathString willLoadContentFromPath(std::string_view path, std::string_view displayName);
 	void loadContentFromPath(IG::CStringView path, std::string_view displayName,
 		EmuSystemCreateParams, OnLoadProgressDelegate);
-	void loadContentFromFile(GenericIO, IG::CStringView path, std::string_view displayName,
+	void loadContentFromFile(IG::IO, IG::CStringView path, std::string_view displayName,
 		EmuSystemCreateParams, OnLoadProgressDelegate);
 	int updateAudioFramesPerVideoFrame();
 	double frameRate() const;

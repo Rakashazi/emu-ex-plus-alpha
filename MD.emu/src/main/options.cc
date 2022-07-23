@@ -57,7 +57,7 @@ bool MdSystem::resetSessionOptions(EmuApp &app)
 	return true;
 }
 
-bool MdSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool MdSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{
@@ -87,7 +87,7 @@ bool MdSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize
 	return false;
 }
 
-void MdSystem::writeConfig(ConfigType type, IO &io)
+void MdSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{

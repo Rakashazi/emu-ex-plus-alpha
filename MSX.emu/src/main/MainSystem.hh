@@ -81,8 +81,8 @@ public:
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	void loadState(EmuApp &, CStringView uri);
 	void saveState(CStringView path);
-	bool readConfig(ConfigType, IO &io, unsigned key, size_t readSize);
-	void writeConfig(ConfigType, IO &);
+	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
+	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);

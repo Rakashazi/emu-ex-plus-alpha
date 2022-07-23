@@ -15,16 +15,20 @@
 
 #define LOGTAG "ArchIO"
 #include <imagine/io/ArchiveIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
+#include "IOUtils.hh"
 #include <archive.h>
 #include <archive_entry.h>
 
 namespace IG
 {
+
+template class IOUtils<ArchiveIO>;
 
 static FS::file_type makeEntryType(int type)
 {
@@ -42,7 +46,13 @@ static FS::file_type makeEntryType(int type)
 	return file_type::unknown;
 }
 
-static constexpr size_t bufferedIoSize = 32 * 1024;
+constexpr size_t bufferedIoSize = 32 * 1024;
+
+struct ArchiveControlBlock
+{
+	ArchiveControlBlock(IO io): io{std::move(io)} {}
+	IO io;
+};
 
 struct ArchiveControlBlockWithBuffer : public ArchiveControlBlock
 {
@@ -57,17 +67,25 @@ static void setReadSupport(struct archive *arch)
 	archive_read_support_format_zip(arch);
 }
 
-ArchiveEntry::ArchiveEntry(IG::CStringView path)
+ArchiveEntry::ArchiveEntry() = default;
+
+ArchiveEntry::~ArchiveEntry() = default;
+
+ArchiveEntry::ArchiveEntry(ArchiveEntry&&) = default;
+
+ArchiveEntry &ArchiveEntry::operator=(ArchiveEntry &&) = default;
+
+ArchiveEntry::ArchiveEntry(CStringView path)
 {
-	init(FileIO{path, IO::AccessHint::SEQUENTIAL});
+	init(FileIO{path, IOAccessHint::SEQUENTIAL});
 }
 
-ArchiveEntry::ArchiveEntry(GenericIO io)
+ArchiveEntry::ArchiveEntry(IO io)
 {
 	init(std::move(io));
 }
 
-void ArchiveEntry::init(GenericIO io)
+void ArchiveEntry::init(IO io)
 {
 	UniqueArchive newArch{archive_read_new()};
 	setReadSupport(newArch.get());
@@ -76,7 +94,7 @@ void ArchiveEntry::init(GenericIO io)
 		{
 			//logMsg("seek %lld %d", (long long)offset, whence);
 			auto &a = *((ArchiveControlBlock*)data);
-			auto newPos = a.io.seek(offset, (IODefs::SeekMode)whence);
+			auto newPos = a.io.seek(offset, (IOSeekMode)whence);
 			if(newPos == -1)
 			{
 				logErr("error seeking to %llu", (long long)newPos);
@@ -267,7 +285,7 @@ ssize_t ArchiveIO::write(const void* buff, size_t bytes)
 	return -1;
 }
 
-off_t ArchiveIO::seek(off_t offset, IO::SeekMode mode)
+off_t ArchiveIO::seek(off_t offset, IOSeekMode mode)
 {
 	if(!*this) [[unlikely]]
 	{

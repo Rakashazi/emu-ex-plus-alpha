@@ -20,6 +20,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <string>

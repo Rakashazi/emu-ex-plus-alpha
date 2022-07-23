@@ -15,6 +15,7 @@
 
 #define LOGTAG "CoreAudio"
 #include <imagine/audio/coreaudio/CAOutputStream.hh>
+#include <imagine/audio/OutputStream.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
@@ -81,7 +82,7 @@ IG::ErrorCode CAOutputStream::open(OutputStreamConfig config)
 		logWarn("audio unit already open");
 		return {};
 	}
-	auto format = config.format();
+	auto format = config.format;
 	AudioFormatFlags formatFlags = format.sample.isFloat() ? kAudioFormatFlagIsFloat : kLinearPCMFormatFlagIsSignedInteger;
 	streamFormat.mSampleRate = format.rate;
 	streamFormat.mFormatID = kAudioFormatLinearPCM;
@@ -99,10 +100,10 @@ IG::ErrorCode CAOutputStream::open(OutputStreamConfig config)
 		logErr("error %d setting stream format", (int)err);
 		return {EINVAL};
 	}
-	onSamplesNeeded = config.onSamplesNeeded();
+	onSamplesNeeded = config.onSamplesNeeded;
 	AudioUnitInitialize(outputUnit);
 	isOpen_ = true;
-	if(config.startPlaying())
+	if(config.startPlaying)
 		play();
 	return {};
 }

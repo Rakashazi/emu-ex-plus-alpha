@@ -15,8 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-#include <imagine/io/IO.hh>
+#include <imagine/io/IOUtils.hh>
 #include <imagine/util/string/CStringView.hh>
 #include <memory>
 
@@ -32,21 +31,20 @@ namespace IG
 {
 
 class ArchiveIO;
-class MapIO;
+class IO;
 
 // data used by libarchive callbacks allocated in its own memory block
-struct ArchiveControlBlock
-{
-	ArchiveControlBlock(GenericIO io): io{std::move(io)} {}
-	GenericIO io;
-};
+struct ArchiveControlBlock;
 
 class ArchiveEntry
 {
 public:
-	constexpr ArchiveEntry() = default;
-	ArchiveEntry(IG::CStringView path);
-	ArchiveEntry(GenericIO io);
+	ArchiveEntry();
+	~ArchiveEntry();
+	ArchiveEntry(CStringView path);
+	explicit ArchiveEntry(IO);
+	ArchiveEntry(ArchiveEntry&&);
+	ArchiveEntry &operator=(ArchiveEntry&&);
 	std::string_view name() const;
 	FS::file_type type() const;
 	size_t size() const;
@@ -72,35 +70,34 @@ protected:
 	struct archive_entry *ptr{};
 	std::unique_ptr<ArchiveControlBlock> ctrlBlock{};
 
-	void init(GenericIO io);
+	void init(IO);
 	static void freeArchive(struct archive *);
 };
 
-class ArchiveIO final : public IO
+class ArchiveIO final : public IOUtils<ArchiveIO>
 {
 public:
-	using IO::read;
-	using IO::readAtPos;
-	using IO::write;
-	using IO::seek;
-	using IO::seekS;
-	using IO::seekE;
-	using IO::seekC;
-	using IO::tell;
-	using IO::send;
-	using IO::buffer;
-	using IO::get;
+	using IOUtilsBase = IOUtils<ArchiveIO>;
+	using IOUtilsBase::write;
+	using IOUtilsBase::seekS;
+	using IOUtilsBase::seekE;
+	using IOUtilsBase::seekC;
+	using IOUtilsBase::tell;
+	using IOUtilsBase::send;
+	using IOUtilsBase::buffer;
+	using IOUtilsBase::get;
+	using IOUtilsBase::toFileStream;
 
 	constexpr ArchiveIO() = default;
 	ArchiveIO(ArchiveEntry entry);
 	ArchiveEntry releaseArchive();
 	std::string_view name() const;
-	ssize_t read(void *buff, size_t bytes) final;
-	ssize_t write(const void *buff, size_t bytes) final;
-	off_t seek(off_t offset, SeekMode mode) final;
-	size_t size() final;
-	bool eof() final;
-	explicit operator bool() const final;
+	ssize_t read(void *buff, size_t bytes);
+	ssize_t write(const void *buff, size_t bytes);
+	off_t seek(off_t offset, SeekMode mode);
+	size_t size();
+	bool eof();
+	explicit operator bool() const;
 
 protected:
 	ArchiveEntry entry{};

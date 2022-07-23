@@ -41,8 +41,7 @@ public:
 	};
 
 	constexpr EmuAudio(const IG::Audio::Manager &audioManager):
-		audioManagerPtr{&audioManager}
-	{}
+		audioManagerPtr{&audioManager} {}
 	void open(IG::Audio::Api);
 	void start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bufferIncrementUSecs);
 	void stop();
@@ -58,7 +57,7 @@ public:
 	explicit operator bool() const;
 
 protected:
-	std::unique_ptr<IG::Audio::OutputStream> audioStream{};
+	IG::Audio::OutputStream audioStream{};
 	const IG::Audio::Manager *audioManagerPtr{};
 	IG::RingBuffer rBuff{};
 	IG::Time lastUnderrunTime{};

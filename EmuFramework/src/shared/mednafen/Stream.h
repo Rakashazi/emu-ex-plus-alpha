@@ -108,7 +108,7 @@ class Stream
 				// exceptions thrown caught and logged.
 
  virtual bool isMemoryStream();
- virtual void advise(off_t offset, size_t bytes, IG::IO::Advice advice);
+ virtual void advise(off_t offset, size_t bytes, IG::IOAdvice advice);
 
  //
  // Utility functions(TODO):

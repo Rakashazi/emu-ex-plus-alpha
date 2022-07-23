@@ -18,7 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/ArchiveFS.hh>
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 #include "MainSystem.hh"
@@ -240,7 +240,7 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 	}
 	else
 	{
-		auto io = appCtx.openFileUri(fdsBiosPath, IO::AccessHint::ALL);
+		auto io = appCtx.openFileUri(fdsBiosPath, IOAccessHint::ALL);
 		if(io.size() != size)
 		{
 			throw std::runtime_error{"Incompatible FDS BIOS"};

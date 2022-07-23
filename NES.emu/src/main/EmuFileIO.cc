@@ -15,6 +15,7 @@
 
 #include "EmuFileIO.hh"
 #include <imagine/io/api/stdio.hh>
+#include <imagine/io/IO.hh>
 
 namespace EmuEx
 {
@@ -28,10 +29,7 @@ EmuFileIO::EmuFileIO(IG::IO &srcIO):
 	}
 }
 
-void EmuFileIO::truncate(s32 length)
-{
-	io.truncate(length);
-}
+void EmuFileIO::truncate(s32 length) {}
 
 int EmuFileIO::fgetc()
 {

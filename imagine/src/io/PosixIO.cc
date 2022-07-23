@@ -18,8 +18,10 @@
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/utility.h>
 #include <imagine/util/string/StaticString.hh>
+#include <imagine/config/defs.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
+#include "IOUtils.hh"
 #include <cstring>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -29,33 +31,43 @@
 namespace IG
 {
 
+template class IOUtils<PosixIO>;
+
 #if !defined __linux__
 constexpr int MAP_POPULATE = 0;
 #endif
 
-static IG::StaticString<5> flagsString(IO::OpenFlags openFlags)
+static auto flagsString(FileOpenFlags openFlags)
 {
 	IG::StaticString<5> logFlagsStr{};
-	if(openFlags & IO::READ_BIT) logFlagsStr += 'r';
-	if(openFlags & IO::WRITE_BIT) logFlagsStr += 'w';
-	if(openFlags & IO::CREATE_BIT) logFlagsStr += 'c';
-	if(openFlags & IO::TRUNCATE_BIT) logFlagsStr += 't';
+	if(openFlags & FILE_READ_BIT) logFlagsStr += 'r';
+	if(openFlags & FILE_WRITE_BIT) logFlagsStr += 'w';
+	if(openFlags & FILE_CREATE_BIT) logFlagsStr += 'c';
+	if(openFlags & FILE_TRUNCATE_BIT) logFlagsStr += 't';
+	return logFlagsStr;
+}
+
+static auto protectionFlagsString(int flags)
+{
+	IG::StaticString<3> logFlagsStr{};
+	if(flags & PROT_READ) logFlagsStr += 'r';
+	if(flags & PROT_WRITE) logFlagsStr += 'w';
 	return logFlagsStr;
 }
 
 PosixIO::PosixIO(IG::CStringView path, OpenFlags openFlags)
 {
 	// validate flags
-	assert(openFlags < IG::bit(OPEN_FLAGS_BITS+1));
+	assert(openFlags < IG::bit(FILE_OPEN_FLAGS_BITS+1));
 
 	constexpr mode_t defaultOpenMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 	int flags = 0;
 	mode_t openMode{};
 
 	// setup flags
-	if(openFlags & WRITE_BIT)
+	if(openFlags & FILE_WRITE_BIT)
 	{
-		if(openFlags & READ_BIT)
+		if(openFlags & FILE_READ_BIT)
 		{
 			flags |= O_RDWR;
 		}
@@ -68,11 +80,11 @@ PosixIO::PosixIO(IG::CStringView path, OpenFlags openFlags)
 	{
 		flags |= O_RDONLY;
 	}
-	if(openFlags & CREATE_BIT)
+	if(openFlags & FILE_CREATE_BIT)
 	{
 		flags |= O_CREAT;
 		openMode = defaultOpenMode;
-		if(openFlags & TRUNCATE_BIT)
+		if(openFlags & FILE_TRUNCATE_BIT)
 		{
 			flags |= O_TRUNC;
 		}
@@ -82,18 +94,18 @@ PosixIO::PosixIO(IG::CStringView path, OpenFlags openFlags)
 	{
 		if constexpr(Config::DEBUG_BUILD)
 			logErr("error opening file (%s) @ %s:%s", flagsString(openFlags).data(), path.data(), strerror(errno));
-		if(openFlags & IO::TEST_BIT)
+		if(openFlags & FILE_TEST_BIT)
 			return;
 		else
 			throw std::system_error{errno, std::system_category(), path};
 	}
 	if constexpr(Config::DEBUG_BUILD)
-		logMsg("opened file (%s) fd %d @ %s", flagsString(openFlags).data(), (int)fd_, path.data());
+		logMsg("opened (%s) fd:%d @ %s", flagsString(openFlags).data(), fd(), path.data());
 }
 
 ssize_t PosixIO::read(void *buff, size_t bytes)
 {
-	auto bytesRead = ::read(fd_, buff, bytes);
+	auto bytesRead = ::read(fd(), buff, bytes);
 	if(bytesRead == -1) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD && errno != EAGAIN)
@@ -108,7 +120,7 @@ ssize_t PosixIO::read(void *buff, size_t bytes)
 
 ssize_t PosixIO::readAtPos(void *buff, size_t bytes, off_t offset)
 {
-	auto bytesRead = ::pread(fd_, buff, bytes, offset);
+	auto bytesRead = ::pread(fd(), buff, bytes, offset);
 	if(bytesRead == -1) [[unlikely]]
 	{
 		logErr("error reading %zu bytes at offset %lld", bytes, (long long)offset);
@@ -118,7 +130,7 @@ ssize_t PosixIO::readAtPos(void *buff, size_t bytes, off_t offset)
 
 ssize_t PosixIO::write(const void *buff, size_t bytes)
 {
-	auto bytesWritten = ::write(fd_, buff, bytes);
+	auto bytesWritten = ::write(fd(), buff, bytes);
 	if(bytesWritten == -1)
 	{
 		logErr("error writing %zu bytes", bytes);
@@ -129,7 +141,7 @@ ssize_t PosixIO::write(const void *buff, size_t bytes)
 bool PosixIO::truncate(off_t offset)
 {
 	logMsg("truncating at offset %lld", (long long)offset);
-	if(ftruncate(fd_, offset) == -1) [[unlikely]]
+	if(ftruncate(fd(), offset) == -1) [[unlikely]]
 	{
 		logErr("truncate failed");
 		return false;
@@ -137,9 +149,9 @@ bool PosixIO::truncate(off_t offset)
 	return true;
 }
 
-off_t PosixIO::seek(off_t offset, IO::SeekMode mode)
+off_t PosixIO::seek(off_t offset, SeekMode mode)
 {
-	auto newPos = lseek(fd_, offset, (int)mode);
+	auto newPos = lseek(fd(), offset, (int)mode);
 	if(newPos == -1) [[unlikely]]
 	{
 		logErr("seek to offset %lld failed", (long long)offset);
@@ -150,15 +162,15 @@ off_t PosixIO::seek(off_t offset, IO::SeekMode mode)
 
 void PosixIO::sync()
 {
-	fsync(fd_);
+	fsync(fd());
 }
 
 size_t PosixIO::size()
 {
-	auto s = fd_size(fd_);
+	auto s = fd_size(fd());
 	if(s == 0)
 	{
-		logMsg("fd:%d is empty or a stream", fd_.get());
+		logMsg("fd:%d is empty or a stream", fd());
 	}
 	return s;
 }
@@ -169,14 +181,14 @@ bool PosixIO::eof()
 }
 
 #if _XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112L
-static int adviceToFAdv(IO::Advice advice)
+static int adviceToFAdv(IOAdvice advice)
 {
 	switch(advice)
 	{
 		default: return POSIX_FADV_NORMAL;
-		case IO::Advice::SEQUENTIAL: return POSIX_FADV_SEQUENTIAL;
-		case IO::Advice::RANDOM: return POSIX_FADV_RANDOM;
-		case IO::Advice::WILLNEED: return POSIX_FADV_WILLNEED;
+		case IOAdvice::SEQUENTIAL: return POSIX_FADV_SEQUENTIAL;
+		case IOAdvice::RANDOM: return POSIX_FADV_RANDOM;
+		case IOAdvice::WILLNEED: return POSIX_FADV_WILLNEED;
 	}
 }
 #endif
@@ -185,11 +197,11 @@ void PosixIO::advise(off_t offset, size_t bytes, Advice advice)
 {
 	#ifdef __APPLE__
 	if(advice == Advice::SEQUENTIAL || advice == Advice::WILLNEED)
-		fcntl(fd_, F_RDAHEAD, 1);
+		fcntl(fd(), F_RDAHEAD, 1);
 	#else
 		#if _XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112L
 		int fAdv =  adviceToFAdv(advice);
-		if(posix_fadvise(fd_, offset, bytes, fAdv) != 0)
+		if(posix_fadvise(fd(), offset, bytes, fAdv) != 0)
 		{
 			logMsg("fadvise for offset 0x%llX with size %zu failed", (unsigned long long)offset, bytes);
 		}
@@ -204,7 +216,15 @@ PosixIO::operator bool() const
 
 IOBuffer PosixIO::releaseBuffer()
 {
-	return mapRange(0, size(), MAP_WRITE);
+	auto flags = fcntl(fd(), F_GETFL);
+	if(flags == -1) [[unlikely]]
+	{
+		if(Config::DEBUG_BUILD)
+			logErr("fcntl(%d) failed:%s", fd(), strerror(errno));
+		flags = 0;
+	}
+	bool isWritable = (flags & O_WRONLY) || (flags & O_RDWR);
+	return mapRange(0, size(), isWritable ? MAP_WRITE : 0);
 }
 
 IOBuffer PosixIO::mapRange(off_t start, size_t size, MapFlags mapFlags)
@@ -216,12 +236,12 @@ IOBuffer PosixIO::mapRange(off_t start, size_t size, MapFlags mapFlags)
 	if(mapFlags & MAP_WRITE)
 		prot |= PROT_WRITE;
 	void *data = mmap(nullptr, size, prot, flags, fd(), start);
-	if(data == MAP_FAILED)
+	if(data == MAP_FAILED) [[unlikely]]
 	{
-		logErr("mmap fd:%d @ %zu (%zu bytes) failed", fd(), (size_t)start, size);
+		logErr("mmap (%s) fd:%d @ %zu (%zu bytes) failed", protectionFlagsString(prot).data(), fd(), (size_t)start, size);
 		return {};
 	}
-	logMsg("mapped fd:%d @ %zu to %p (%zu bytes)", fd(), (size_t)start, data, size);
+	logMsg("mapped (%s) fd:%d @ %zu to %p (%zu bytes)", protectionFlagsString(prot).data(), fd(), (size_t)start, data, size);
 	return byteBufferFromMmap(data, size);
 }
 

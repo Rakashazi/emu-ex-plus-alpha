@@ -56,11 +56,11 @@ public:
 		gbEmu.setStreamDelegates(
 			[ctx](std::string_view basePath, std::string_view filename) -> IG::IFStream
 			{
-				return {ctx.openFileUri(FS::uriString(basePath, filename), IO::AccessHint::ALL, IO::TEST_BIT)};
+				return {ctx.openFileUri(FS::uriString(basePath, filename), IOAccessHint::ALL, FILE_TEST_BIT)};
 			},
 			[ctx](std::string_view basePath, std::string_view filename) -> IG::OFStream
 			{
-				return {ctx.openFileUri(FS::uriString(basePath, filename), IO::OPEN_NEW | IO::TEST_BIT)};
+				return {ctx.openFileUri(FS::uriString(basePath, filename), FILE_OPEN_NEW | FILE_TEST_BIT)};
 			});
 	}
 	void applyGBPalette();
@@ -73,8 +73,8 @@ public:
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	void loadState(EmuApp &, CStringView uri);
 	void saveState(CStringView path);
-	bool readConfig(ConfigType, IO &io, unsigned key, size_t readSize);
-	void writeConfig(ConfigType, IO &);
+	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
+	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);

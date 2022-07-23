@@ -17,7 +17,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <imagine/fs/ArchiveFS.hh>
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
@@ -104,7 +104,7 @@ bool zipStartWrite(const char *fileName)
 	assert(!writeArch);
 	writeArch = archive_write_new();
 	archive_write_set_format_zip(writeArch);
-	int fd = EmuEx::gAppContext().openFileUriFd(fileName, IO::OPEN_NEW | IO::TEST_BIT).release();
+	int fd = EmuEx::gAppContext().openFileUriFd(fileName, FILE_OPEN_NEW | FILE_TEST_BIT).release();
 	if(archive_write_open_fd(writeArch, fd) != ARCHIVE_OK)
 	{
 		archive_write_free(writeArch);

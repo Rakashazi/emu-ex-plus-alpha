@@ -25,7 +25,7 @@ struct png_info_def;
 
 namespace IG
 {
-class GenericIO;
+class IO;
 }
 
 namespace IG::Data
@@ -35,7 +35,7 @@ class PngImage
 {
 public:
 	constexpr PngImage() = default;
-	PngImage(GenericIO io);
+	PngImage(IO);
 	PngImage(PngImage &&o) noexcept;
 	PngImage &operator=(PngImage &&o) noexcept;
 	~PngImage();

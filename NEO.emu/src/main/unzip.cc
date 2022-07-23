@@ -15,6 +15,7 @@
 
 #define LOGTAG "unzip"
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FS.hh>
@@ -141,6 +142,6 @@ struct PKZIP *open_rom_zip(void *contextPtr, char *romPath, char *name)
 gzFile gzopenHelper(void *contextPtr, const char *filename, const char *mode)
 {
 	auto &ctx = *((IG::ApplicationContext*)contextPtr);
-	unsigned openFlags = std::string_view{mode}.contains('w') ? IG::IO::OPEN_NEW : 0;
-	return gzdopen(ctx.openFileUriFd(filename, openFlags | IG::IO::TEST_BIT).release(), mode);
+	unsigned openFlags = std::string_view{mode}.contains('w') ? IG::FILE_OPEN_NEW : 0;
+	return gzdopen(ctx.openFileUriFd(filename, openFlags | IG::FILE_TEST_BIT).release(), mode);
 }

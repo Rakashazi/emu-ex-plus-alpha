@@ -51,8 +51,7 @@
 namespace IG
 {
 class BluetoothAdapter;
-class IO;
-class GenericIO;
+class FileIO;
 class BasicNavView;
 }
 
@@ -117,7 +116,7 @@ public:
 	EmuApp(IG::ApplicationInitParams, IG::ApplicationContext &);
 	void mainInitCommon(IG::ApplicationInitParams, IG::ApplicationContext);
 	static void onCustomizeNavView(NavView &v);
-	void createSystemWithMedia(GenericIO, IG::CStringView path, std::string_view displayName,
+	void createSystemWithMedia(IG::IO, IG::CStringView path, std::string_view displayName,
 		const Input::Event &, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
 	void closeSystem(bool allowAutosaveState = true);
 	void reloadSystem(EmuSystemCreateParams params = {});
@@ -211,8 +210,8 @@ public:
 	void addRecentContent(std::string_view path, std::string_view name);
 	void addCurrentContentToRecent();
 	RecentContentList &recentContent() { return recentContentList; };
-	void writeRecentContent(IO &);
-	void readRecentContent(IG::ApplicationContext, IO &, size_t readSize_);
+	void writeRecentContent(FileIO &);
+	void readRecentContent(IG::ApplicationContext, MapIO &, size_t readSize_);
 	bool showHiddenFilesInPicker(){ return showHiddenFilesInPicker_; };
 	void setShowHiddenFilesInPicker(bool on){ showHiddenFilesInPicker_ = on; };
 	auto &customKeyConfigList() { return customKeyConfigs; };
@@ -223,7 +222,7 @@ public:
 	IG::Window::FrameTimeSource windowFrameClockSource() const { return winFrameTimeSrc; }
 	static std::u16string_view mainViewName();
 	void runBenchmarkOneShot(EmuVideo &);
-	void onSelectFileFromPicker(IG::GenericIO, IG::CStringView path, std::string_view displayName,
+	void onSelectFileFromPicker(IG::IO, IG::CStringView path, std::string_view displayName,
 		const Input::Event &, EmuSystemCreateParams, ViewAttachParams);
 	void handleOpenFileCommand(IG::CStringView path);
 	static bool hasGooglePlayStoreFeatures();
@@ -543,7 +542,7 @@ protected:
 	Gfx::PixmapTexture *collectTextCloseAsset() const;
 	ConfigParams loadConfigFile(IG::ApplicationContext);
 	void saveConfigFile(IG::ApplicationContext);
-	void saveConfigFile(IO &);
+	void saveConfigFile(FileIO &);
 	void initOptions(IG::ApplicationContext);
 	std::optional<IG::PixelFormat> renderPixelFormatOption() const;
 	void applyRenderPixelFormat();
@@ -552,7 +551,7 @@ protected:
 	FS::PathString sessionConfigPath();
 	void loadSystemOptions();
 	void saveSystemOptions();
-	void saveSystemOptions(IO &);
+	void saveSystemOptions(FileIO &);
 	bool allWindowsAreFocused() const;
 	void configureSecondaryScreens();
 	void addOnFrameDelayed();

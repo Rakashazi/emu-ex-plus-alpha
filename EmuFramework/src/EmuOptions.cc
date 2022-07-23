@@ -26,6 +26,8 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/FileIO.hh>
+#include <imagine/io/MapIO.hh>
 #include <imagine/util/format.hh>
 
 namespace EmuEx
@@ -144,7 +146,7 @@ IG::FontSettings EmuApp::fontSettings(Window &win) const
 	return {win.heightScaledMMInPixels(size)};
 }
 
-void EmuApp::writeRecentContent(IO &io)
+void EmuApp::writeRecentContent(FileIO &io)
 {
 	size_t strSizes = 0;
 	for(const auto &e : recentContentList)
@@ -162,7 +164,7 @@ void EmuApp::writeRecentContent(IO &io)
 	}
 }
 
-void EmuApp::readRecentContent(IG::ApplicationContext ctx, IO &io, size_t readSize_)
+void EmuApp::readRecentContent(IG::ApplicationContext ctx, MapIO &io, size_t readSize_)
 {
 	auto readSize = readSize_;
 	while(readSize && !recentContentList.isFull())

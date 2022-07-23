@@ -163,7 +163,7 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool use
 
 	auto vShader = makeEffectVertexShader(r,
 		ctx.openAsset(IG::format<FS::PathString>("shaders/{}{}", fallbackStr, desc.vShaderFilename),
-			IO::AccessHint::ALL).buffer().stringView());
+			IOAccessHint::ALL).buffer().stringView());
 	if(!vShader)
 	{
 		throw std::runtime_error{"GPU rejected shader (vertex compile error)"};
@@ -171,7 +171,7 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool use
 
 	auto fShader = makeEffectFragmentShader(r,
 		ctx.openAsset(IG::format<FS::PathString>("shaders/{}{}", fallbackStr, desc.fShaderFilename),
-		IO::AccessHint::ALL).buffer().stringView());
+		IOAccessHint::ALL).buffer().stringView());
 	if(!fShader)
 	{
 		throw std::runtime_error{"GPU rejected shader (fragment compile error)"};

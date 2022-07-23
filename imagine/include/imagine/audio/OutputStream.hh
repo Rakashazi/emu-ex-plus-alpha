@@ -16,78 +16,88 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+
+#if defined __ANDROID__
+#include <imagine/audio/opensl/OpenSLESOutputStream.hh>
+#include <imagine/audio/android/AAudioOutputStream.hh>
+#elif defined __APPLE__
+#include <imagine/audio/coreaudio/CAOutputStream.hh>
+#else
+	#ifdef CONFIG_AUDIO_PULSEAUDIO
+	#include <imagine/audio/pulseaudio/PAOutputStream.hh>
+	#endif
+	#ifdef CONFIG_AUDIO_ALSA
+	#include <imagine/audio/alsa/ALSAOutputStream.hh>
+	#endif
+#endif
+
 #include <imagine/audio/defs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/audio/Format.hh>
-#include <imagine/util/DelegateFunc.hh>
-#include <imagine/base/Error.hh>
-#include <memory>
+#include <variant>
 
 namespace IG::Audio
 {
 
-using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, size_t frames)>;
+class Manager;
 
-class OutputStreamConfig
+struct OutputStreamConfig
 {
 public:
+	Format format{};
+	OnSamplesNeededDelegate onSamplesNeeded{};
+	Microseconds wantedLatencyHint{20000};
+	bool startPlaying = true;
+
 	constexpr OutputStreamConfig() = default;
 	constexpr OutputStreamConfig(Format format, OnSamplesNeededDelegate onSamplesNeeded = nullptr):
-		format_{format}, onSamplesNeeded_{onSamplesNeeded} {}
-
-	constexpr Format format() const
-	{
-		return format_;
-	}
-
-	constexpr void setOnSamplesNeeded(OnSamplesNeededDelegate del)
-	{
-		onSamplesNeeded_ = del;
-	}
-
-	constexpr OnSamplesNeededDelegate onSamplesNeeded() const
-	{
-		return onSamplesNeeded_;
-	}
-
-	constexpr void setWantedLatencyHint(IG::Microseconds uSecs)
-	{
-		wantedLatency = uSecs;
-	}
-
-	constexpr IG::Microseconds wantedLatencyHint() const
-	{
-		return wantedLatency;
-	}
-
-	constexpr void setStartPlaying(bool on)
-	{
-		startPlaying_ = on;
-	}
-
-	constexpr bool startPlaying()
-	{
-		return startPlaying_;
-	}
-
-protected:
-	Format format_{};
-	OnSamplesNeededDelegate onSamplesNeeded_{};
-	IG::Microseconds wantedLatency{20000};
-	bool startPlaying_ = true;
+		format{format}, onSamplesNeeded{onSamplesNeeded} {}
 };
 
-class OutputStream
+class NullOutputStream
 {
 public:
-	virtual ~OutputStream() = default;
-	virtual IG::ErrorCode open(OutputStreamConfig config) = 0;
-	virtual void play() = 0;
-	virtual void pause() = 0;
-	virtual void close() = 0;
-	virtual void flush() = 0;
-	virtual bool isOpen() = 0;
-	virtual bool isPlaying() = 0;
+	ErrorCode open(OutputStreamConfig config) { return {}; }
+	void play() {}
+	void pause() {}
+	void close() {}
+	void flush() {}
+	bool isOpen() { return false; }
+	bool isPlaying() { return false; }
+};
+
+#if defined __ANDROID__
+using OutputStreamVariant = std::variant<AAudioOutputStream, OpenSLESOutputStream, NullOutputStream>;
+#elif defined __APPLE__
+using OutputStreamVariant = std::variant<CAOutputStream, NullOutputStream>;
+#else
+	using OutputStreamVariant = std::variant<
+	#ifdef CONFIG_AUDIO_PULSEAUDIO
+	PAOutputStream,
+	#endif
+	#ifdef CONFIG_AUDIO_ALSA
+	ALSAOutputStream,
+	#endif
+	NullOutputStream>;
+#endif
+
+class OutputStream : public OutputStreamVariant
+{
+public:
+	using OutputStreamVariant::OutputStreamVariant;
+	using OutputStreamVariant::operator=;
+
+	constexpr OutputStream(): OutputStreamVariant{std::in_place_type<NullOutputStream>} {}
+	void setApi(const Manager &, Api api = Api::DEFAULT);
+	ErrorCode open(OutputStreamConfig config);
+	void play();
+	void pause();
+	void close();
+	void flush();
+	bool isOpen();
+	bool isPlaying();
+	void reset();
+	explicit constexpr operator bool() const { return !std::holds_alternative<NullOutputStream>(*this); }
 };
 
 }

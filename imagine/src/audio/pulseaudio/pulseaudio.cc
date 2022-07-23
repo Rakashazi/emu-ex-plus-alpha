@@ -15,6 +15,7 @@
 
 #define LOGTAG "PulseAudio"
 #include <imagine/audio/pulseaudio/PAOutputStream.hh>
+#include <imagine/audio/OutputStream.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <pulse/pulseaudio.h>
@@ -123,9 +124,9 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 	{
 		return {EINVAL};
 	}
-	auto format = config.format();
+	auto format = config.format;
 	pcmFormat = format;
-	onSamplesNeeded = config.onSamplesNeeded();
+	onSamplesNeeded = config.onSamplesNeeded;
 	pa_sample_spec spec{};
 	spec.format = pcmFormatToPA(format.sample);
 	spec.rate = format.rate;
@@ -177,7 +178,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 				logWarn("error writing %d bytes", (int)bytes);
 			}
 		}, this);
-	const auto wantedLatency = config.wantedLatencyHint().count() ? config.wantedLatencyHint() : IG::Microseconds{10000};
+	const auto wantedLatency = config.wantedLatencyHint.count() ? config.wantedLatencyHint : IG::Microseconds{10000};
 	pa_buffer_attr bufferAttr{};
 	bufferAttr.maxlength = -1;
 	bufferAttr.tlength = format.timeToBytes(wantedLatency);
@@ -200,7 +201,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 		return {EINVAL};
 	}
 	auto serverAttr = pa_stream_get_buffer_attr(stream);
-	if(config.startPlaying())
+	if(config.startPlaying)
 	{
 		// uncorked by default
 		isCorked = false;

@@ -73,7 +73,7 @@ class FileStream : public Stream
  uint64 readAtPos(void *data, uint64 count, uint64 pos) override;
  virtual void write(const void *data, uint64 count) override;
  virtual void truncate(uint64 length) override;
- void advise(off_t offset, size_t bytes, IG::IO::Advice advice) override;
+ void advise(off_t offset, size_t bytes, IG::IOAdvice advice) override;
  virtual void seek(int64 offset, int whence) override;
  virtual uint64 tell(void) override;
  virtual uint64 size(void) override;

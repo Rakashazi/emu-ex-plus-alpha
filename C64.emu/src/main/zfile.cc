@@ -14,7 +14,7 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/fs/ArchiveFS.hh>
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 #include <emuframework/EmuApp.hh>
@@ -49,7 +49,7 @@ CLINK FILE *zfile_fopen(const char *path, const char *mode)
 				if(EmuSystem::defaultFsFilter(entry.name()))
 				{
 					logMsg("archive file entry:%s", entry.name().data());
-					return GenericIO{MapIO{entry.moveIO()}}.moveToFileStream(mode);
+					return MapIO{entry.moveIO()}.toFileStream(mode);
 				}
 			}
 			logErr("no recognized file extensions in archive:%s", path);

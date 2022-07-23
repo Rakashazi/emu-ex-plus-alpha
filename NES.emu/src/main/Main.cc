@@ -18,7 +18,7 @@
 #include <emuframework/EmuSystemInlines.hh>
 #include "EmuFileIO.hh"
 #include <imagine/fs/FS.hh>
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include <fceu/driver.h>
@@ -176,14 +176,14 @@ void NesSystem::setDefaultPalette(IG::ApplicationContext ctx, IG::CStringView pa
 	if(palPath[0] != '/' && !IG::isUri(palPath))
 	{
 		// load as asset
-		auto io = ctx.openAsset(FS::pathString("palette", palPath), IO::AccessHint::ALL);
+		IO io = ctx.openAsset(FS::pathString("palette", palPath), IO::AccessHint::ALL);
 		if(!io)
 			return;
 		setDefaultPalette(io);
 	}
 	else
 	{
-		auto io = ctx.openFileUri(palPath, IO::AccessHint::ALL, IO::TEST_BIT);
+		IO io = ctx.openFileUri(palPath, IO::AccessHint::ALL, FILE_TEST_BIT);
 		if(!io)
 			return;
 		setDefaultPalette(io);

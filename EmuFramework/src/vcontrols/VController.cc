@@ -22,6 +22,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
@@ -819,7 +820,7 @@ bool VController::updateAutoOnScreenControlVisible()
 	return false;
 }
 
-bool VController::readConfig(IO &io, unsigned key, size_t size)
+bool VController::readConfig(MapIO &io, unsigned key, size_t size)
 {
 	switch(key)
 	{
@@ -842,7 +843,7 @@ bool VController::readConfig(IO &io, unsigned key, size_t size)
 	return true;
 }
 
-void VController::writeConfig(IO &io) const
+void VController::writeConfig(FileIO &io) const
 {
 	if constexpr(VCONTROLS_GAMEPAD)
 	{
@@ -889,7 +890,7 @@ void VController::writeConfig(IO &io) const
 	}
 }
 
-void VController::readSerializedLayoutPositions(IO &io, size_t size)
+void VController::readSerializedLayoutPositions(MapIO &io, size_t size)
 {
 	if(size < serializedLayoutPositionsSize())
 	{

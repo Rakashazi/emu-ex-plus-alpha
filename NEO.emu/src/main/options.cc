@@ -65,7 +65,7 @@ bool NeoSystem::resetSessionOptions(EmuApp &app)
 	return true;
 }
 
-bool NeoSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool NeoSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{
@@ -88,7 +88,7 @@ bool NeoSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSiz
 	return false;
 }
 
-void NeoSystem::writeConfig(ConfigType type, IO &io)
+void NeoSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{

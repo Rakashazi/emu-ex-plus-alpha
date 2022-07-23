@@ -18,7 +18,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 #include "MainSystem.hh"
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
@@ -33,7 +33,7 @@ extern "C"
 namespace EmuEx
 {
 
-static int loadSysFile(IO &file, const char *name, uint8_t *dest, int minsize, int maxsize)
+static int loadSysFile(Readable auto &file, const char *name, uint8_t *dest, int minsize, int maxsize)
 {
 	//logMsg("loading system file: %s", complete_path);
 	ssize_t rsize = file.size();
@@ -109,7 +109,7 @@ static ArchiveIO archiveIOForSysFile(IG::CStringView archivePath, std::string_vi
 static AssetIO assetIOForSysFile(IG::ApplicationContext ctx, std::string_view sysFileName, std::string_view subPath, char **complete_path_return)
 {
 	auto fullPath = FS::pathString(subPath, sysFileName);
-	auto file = ctx.openAsset(fullPath, IO::AccessHint::ALL, IO::TEST_BIT);
+	auto file = ctx.openAsset(fullPath, IOAccessHint::ALL, FILE_TEST_BIT);
 	if(!file)
 		return {};
 	if(complete_path_return)
@@ -204,7 +204,7 @@ CLINK FILE *sysfile_open(const char *name, const char *subPath, char **complete_
 			if(!io)
 				continue;
 			// Uncompress file into memory and wrap in FILE
-			return GenericIO{MapIO{std::move(io)}}.moveToFileStream(open_mode);
+			return MapIO{std::move(io)}.toFileStream(open_mode);
 		}
 		else
 		{
@@ -225,7 +225,7 @@ CLINK FILE *sysfile_open(const char *name, const char *subPath, char **complete_
 		auto io = assetIOForSysFile(appContext, name, subPath, complete_path_return);
 		if(io)
 		{
-			return GenericIO{std::move(io)}.moveToFileStream(open_mode);
+			return io.toFileStream(open_mode);
 		}
 	}
 	logErr("can't open %s in system paths", name);
@@ -307,7 +307,7 @@ CLINK int sysfile_load(const char *name, const char *subPath, uint8_t *dest, int
 		}
 		else
 		{
-			auto file = appContext.openFileUri(FS::uriString(basePath, subPath, name), IO::AccessHint::ALL, IO::TEST_BIT);
+			auto file = appContext.openFileUri(FS::uriString(basePath, subPath, name), IOAccessHint::ALL, FILE_TEST_BIT);
 			if(!file)
 				continue;
 			//logMsg("loading system file: %s", complete_path);

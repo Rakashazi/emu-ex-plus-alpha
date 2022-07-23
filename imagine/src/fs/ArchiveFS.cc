@@ -15,6 +15,7 @@
 
 #define LOGTAG "ArchFS"
 #include <imagine/fs/ArchiveFS.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string.h>
 
@@ -40,7 +41,7 @@ ArchiveIterator::ArchiveIterator(IG::CStringView path):
 	impl{makeArchiveEntryPtr(path)}
 {}
 
-ArchiveIterator::ArchiveIterator(IG::GenericIO io):
+ArchiveIterator::ArchiveIterator(IG::IO io):
 	impl{makeArchiveEntryPtr(std::move(io))}
 {}
 
@@ -96,7 +97,7 @@ IG::ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view file
 	return fileFromArchiveGeneric(archivePath, filePath);
 }
 
-IG::ArchiveIO fileFromArchive(IG::GenericIO io, std::string_view filePath)
+IG::ArchiveIO fileFromArchive(IG::IO io, std::string_view filePath)
 {
 	return fileFromArchiveGeneric(std::move(io), filePath);
 }

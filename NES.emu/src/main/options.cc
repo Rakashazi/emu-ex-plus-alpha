@@ -69,7 +69,7 @@ bool NesSystem::resetSessionOptions(EmuApp &app)
 	return true;
 }
 
-bool NesSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool NesSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{
@@ -108,7 +108,7 @@ bool NesSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSiz
 	return false;
 }
 
-void NesSystem::writeConfig(ConfigType type, IO &io)
+void NesSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{

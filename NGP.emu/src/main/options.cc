@@ -32,7 +32,7 @@ std::span<const AspectRatioInfo> NgpSystem::aspectRatioInfos()
 	return aspectRatioInfo;
 }
 
-bool NgpSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool NgpSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{
@@ -44,7 +44,7 @@ bool NgpSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSiz
 	return false;
 }
 
-void NgpSystem::writeConfig(ConfigType type, IO &io)
+void NgpSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{

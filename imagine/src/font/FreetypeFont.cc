@@ -18,6 +18,7 @@
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/io/IO.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
@@ -216,14 +217,14 @@ static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Library libr
 	return {metrics, bitmap};
 }
 
-FreetypeFaceData::FreetypeFaceData(FT_Library library, GenericIO file):
+FreetypeFaceData::FreetypeFaceData(FT_Library library, IO file):
 	streamRecPtr{std::make_unique<FT_StreamRec>()}
 {
 	if(!file)
 		return;
 	streamRecPtr->size = file.size();
 	streamRecPtr->pos = file.tell();
-	streamRecPtr->descriptor.pointer = file.release();
+	streamRecPtr->descriptor.pointer = std::make_unique<IO>(std::move(file)).release();
 	streamRecPtr->read = [](FT_Stream stream, unsigned long offset,
 		unsigned char* buffer, unsigned long count) -> unsigned long
 		{
@@ -255,7 +256,7 @@ FreetypeFaceData::FreetypeFaceData(FT_Library library, GenericIO file):
 	}
 }
 
-FreetypeFont::FreetypeFont(FT_Library library, GenericIO io):
+FreetypeFont::FreetypeFont(FT_Library library, IO io):
 	library{library}
 {
 	loadIntoNextSlot(std::move(io));
@@ -264,10 +265,10 @@ FreetypeFont::FreetypeFont(FT_Library library, GenericIO io):
 FreetypeFont::FreetypeFont(FT_Library library, const char *name):
 	library{library}
 {
-	loadIntoNextSlot(FileIO{name, IO::AccessHint::ALL});
+	loadIntoNextSlot(FileIO{name, IOAccessHint::ALL});
 }
 
-Font FontManager::makeFromFile(GenericIO io) const
+Font FontManager::makeFromFile(IO io) const
 {
 	return {library.get(), std::move(io)};
 }
@@ -299,7 +300,7 @@ Font FontManager::makeBoldSystem() const
 
 Font FontManager::makeFromAsset(const char *name, const char *appName) const
 {
-	return {library.get(), ctx.openAsset(name, IO::AccessHint::ALL, 0, appName)};
+	return {library.get(), ctx.openAsset(name, IOAccessHint::ALL, 0, appName)};
 }
 
 FreetypeFaceData::FreetypeFaceData(FreetypeFaceData &&o) noexcept
@@ -337,7 +338,7 @@ void FreetypeFaceData::deinit()
 	}
 }
 
-std::errc FreetypeFont::loadIntoNextSlot(GenericIO io)
+std::errc FreetypeFont::loadIntoNextSlot(IO io)
 {
 	if(f.isFull())
 		return std::errc::no_space_on_device;
@@ -357,8 +358,7 @@ std::errc FreetypeFont::loadIntoNextSlot(IG::CStringView name)
 		return std::errc::no_space_on_device;
 	try
 	{
-		FileIO io{name, IO::AccessHint::ALL};
-		if(auto ec = loadIntoNextSlot(io);
+		if(auto ec = loadIntoNextSlot(FileIO{name, IOAccessHint::ALL});
 			(bool)ec)
 		{
 			return ec;

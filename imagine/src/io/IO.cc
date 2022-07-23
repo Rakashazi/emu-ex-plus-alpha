@@ -17,6 +17,7 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
 #include "IOUtils.hh"
 
@@ -24,252 +25,101 @@ namespace IG
 {
 
 template class IOUtils<IO>;
-template class IOUtils<GenericIO>;
 
-std::span<uint8_t> IO::map() { return {}; };
+ssize_t IO::read(void *buff, size_t bytes) { return visit([&](auto &io){ return io.read(buff, bytes); }, *this); }
+ssize_t IO::write(const void *buff, size_t bytes) { return visit([&](auto &io){ return io.write(buff, bytes); }, *this); }
+off_t IO::seek(off_t offset, IOSeekMode mode) { return visit([&](auto &io){ return io.seek(offset, mode); }, *this); }
+size_t IO::size() { return visit([&](auto &io){ return io.size(); }, *this); }
+bool IO::eof() { return visit([&](auto &io){ return io.eof(); }, *this); }
+IO::operator bool() const { return visit([&](auto &io){ return (bool)io; }, *this); }
 
-bool IO::truncate(off_t offset) { return false; };
+std::span<uint8_t> IO::map()
+{
+	return visit([&](auto &io)
+	{
+		if constexpr(requires {io.map();})
+			return io.map();
+		else
+			return std::span<uint8_t>{};
+	}, *this);
+};
 
-void IO::sync() {}
+bool IO::truncate(off_t offset)
+{
+	return visit([&](auto &io)
+	{
+		if constexpr(requires {io.truncate(offset);})
+			return io.truncate(offset);
+		else
+			return false;
+	}, *this);
+};
 
-void IO::advise(off_t offset, size_t bytes, Advice advice) {}
+void IO::sync()
+{
+	visit([&](auto &io)
+	{
+		if constexpr(requires {io.sync();})
+			io.sync();
+	}, *this);
+}
+
+void IO::advise(off_t offset, size_t bytes, Advice advice)
+{
+	return visit([&](auto &io)
+	{
+		if constexpr(requires {io.advise(offset, bytes, advice);})
+			return io.advise(offset, bytes, advice);
+	}, *this);
+}
 
 ssize_t IO::readAtPos(void *buff, size_t bytes, off_t offset)
 {
-	auto savedOffset = tell();
-	seekS(offset);
-	auto bytesRead = read(buff, bytes);
-	seekS(savedOffset);
-	return bytesRead;
-}
-
-GenericIO::GenericIO(std::unique_ptr<IO> io): io{std::move(io)} {}
-
-GenericIO::operator IO*()
-{
-	return io.get();
-}
-
-GenericIO::operator IO&()
-{
-	return *io;
-}
-
-IO *GenericIO::release()
-{
-	return io.release();
-}
-
-FILE *GenericIO::moveToFileStream(const char *opentype)
-{
-	if(!*io)
+	return visit([&](auto &io)
 	{
-		return nullptr;
-	}
-	#if defined __ANDROID__ || __APPLE__
-	auto f = funopen(release(),
-		[](void *cookie, char *buf, int size)
-		{
-			auto &io = *(IO*)cookie;
-			return (int)io.read(buf, size);
-		},
-		[](void *cookie, const char *buf, int size)
-		{
-			auto &io = *(IO*)cookie;
-			return (int)io.write(buf, size);
-		},
-		[](void *cookie, fpos_t offset, int whence)
-		{
-			auto &io = *(IO*)cookie;
-			return (fpos_t)io.seek(offset, (IODefs::SeekMode)whence);
-		},
-		[](void *cookie)
-		{
-			delete (IO*)cookie;
-			return 0;
-		});
-	#else
-	cookie_io_functions_t funcs
-	{
-		.read =
-			[](void *cookie, char *buf, size_t size)
-			{
-				auto &io = *(IO*)cookie;
-				return (ssize_t)io.read(buf, size);
-			},
-		.write =
-			[](void *cookie, const char *buf, size_t size)
-			{
-				auto &io = *(IO*)cookie;
-				auto bytesWritten = io.write(buf, size);
-				if(bytesWritten == -1)
-				{
-					bytesWritten = 0; // needs to return 0 for error
-				}
-				return (ssize_t)bytesWritten;
-			},
-		.seek =
-			[](void *cookie, off64_t *position, int whence)
-			{
-				auto &io = *(IO*)cookie;
-				auto newPos = io.seek(*position, (IODefs::SeekMode)whence);
-				if(newPos == -1)
-				{
-					return -1;
-				}
-				*position = newPos;
-				return 0;
-			},
-		.close =
-			[](void *cookie)
-			{
-				delete (IO*)cookie;
-				return 0;
-			}
-	};
-	auto f = fopencookie(release(), opentype, funcs);
-	#endif
-	assert(f);
-	return f;
+		if constexpr(requires {io.readAtPos(buff, bytes, offset);})
+			return io.readAtPos(buff, bytes, offset);
+		else
+			return readAtPosGeneric(buff, bytes, offset);
+	}, *this);
 }
 
-ssize_t GenericIO::read(void *buff, size_t bytes)
-{
-	if(!io) [[unlikely]]
-		return -1;
-	return io->read(buff, bytes);
 }
 
-ssize_t GenericIO::readAtPos(void *buff, size_t bytes, off_t offset)
-{
-	if(!io) [[unlikely]]
-		return -1;
-	return io->readAtPos(buff, bytes, offset);
-}
-
-std::span<uint8_t> GenericIO::map()
-{
-	if(io)
-		return io->map();
-	else
-		return {};
-}
-
-ssize_t GenericIO::write(const void *buff, size_t bytes)
-{
-	if(!io) [[unlikely]]
-		return -1;
-	return io->write(buff, bytes);
-}
-
-bool GenericIO::truncate(off_t offset)
-{
-	return io ? io->truncate(offset) : false;
-}
-
-off_t GenericIO::seek(off_t offset, IO::SeekMode mode)
-{
-	if(!io) [[unlikely]]
-		return -1;
-	return io->seek(offset, mode);
-}
-
-void GenericIO::sync()
-{
-	if(io)
-		io->sync();
-}
-
-size_t GenericIO::size()
-{
-	return io ? io->size() : 0;
-}
-
-bool GenericIO::eof()
-{
-	return io ? io->eof() : false;
-}
-
-void GenericIO::advise(off_t offset, size_t bytes, IO::Advice advice)
-{
-	if(io)
-		io->advise(offset, bytes, advice);
-}
-
-GenericIO::operator bool() const
-{
-	return io && *io;
-}
-
-namespace FileUtils
+namespace IG::FileUtils
 {
 
-ssize_t writeToPath(IG::CStringView path, std::span<const unsigned char> src)
+ssize_t writeToPath(CStringView path, std::span<const unsigned char> src)
 {
-	auto f = FileIO{path, IO::OPEN_NEW | IO::TEST_BIT};
+	auto f = FileIO{path, FILE_OPEN_NEW | FILE_TEST_BIT};
 	return f.write(src.data(), src.size());
 }
 
-ssize_t writeToPath(IG::CStringView path, IO &io)
+ssize_t writeToPath(CStringView path, IO &io)
 {
-	auto f = FileIO{path, IO::OPEN_NEW | IO::TEST_BIT};
+	auto f = FileIO{path, FILE_OPEN_NEW | FILE_TEST_BIT};
 	return io.send(f, nullptr, io.size());
 }
 
-ssize_t readFromPath(IG::CStringView path, std::span<unsigned char> dest, IO::AccessHint accessHint)
+ssize_t readFromPath(CStringView path, std::span<unsigned char> dest, IO::AccessHint accessHint)
 {
-	FileIO f{path, accessHint, IO::TEST_BIT};
+	FileIO f{path, accessHint, FILE_TEST_BIT};
 	return f.read(dest.data(), dest.size());
 }
 
-IOBuffer bufferFromPath(IG::CStringView path, IO::OpenFlags openFlags, size_t sizeLimit)
+IOBuffer bufferFromPath(CStringView path, FileOpenFlags openFlags, size_t sizeLimit)
 {
-	FileIO file{path, IO::AccessHint::ALL, openFlags};
+	FileIO file{path, IOAccessHint::ALL, openFlags};
 	if(!file)
 		return {};
 	if(file.size() > sizeLimit)
 	{
-		if(openFlags & IO::TEST_BIT)
+		if(openFlags & FILE_TEST_BIT)
 			return {};
 		else
 			throw std::runtime_error(fmt::format("{} exceeds {} byte limit", path.data(), sizeLimit));
 	}
-	return file.buffer(IODefs::BufferMode::RELEASE);
-}
-
-}
-
-int fgetc(IO &io)
-{
-	char byte;
-	return io.read(&byte, 1) == 1 ? byte : EOF;
-}
-
-size_t fread(void *ptr, size_t size, size_t nmemb, IO &io)
-{
-	auto bytesRead = io.read(ptr, (size * nmemb));
-	return bytesRead > 0 ? bytesRead / size : 0;
-}
-
-size_t fwrite(const void* ptr, size_t size, size_t nmemb, IO &io)
-{
-	auto bytesWritten = io.write(ptr, (size * nmemb));
-	return bytesWritten > 0 ? bytesWritten / size : 0;
-}
-
-long ftell(IO &io)
-{
-	return io.tell();
-}
-
-int fseek(IO &io, long offset, int whence)
-{
-	return io.seek(offset, (IODefs::SeekMode)whence) == -1 ? -1 : 0;
-}
-
-int fclose(IO &stream)
-{
-	return 0;
+	return file.buffer(IOBufferMode::RELEASE);
 }
 
 }

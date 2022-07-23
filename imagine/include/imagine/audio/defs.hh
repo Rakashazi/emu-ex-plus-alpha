@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/util/DelegateFunc.hh>
 
 namespace IG::Audio
 {
@@ -46,5 +47,9 @@ struct ApiDesc
 
 	constexpr bool operator ==(Api api_) const { return api == api_; }
 };
+
+using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, size_t frames)>;
+
+struct OutputStreamConfig;
 
 }

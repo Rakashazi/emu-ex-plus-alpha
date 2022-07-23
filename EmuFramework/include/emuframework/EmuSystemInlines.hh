@@ -18,6 +18,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuVideo.hh>
 #include <main/MainSystem.hh>
+#include <imagine/io/IO.hh>
 
 namespace EmuEx
 {
@@ -117,12 +118,12 @@ bool EmuSystem::shouldFastForward() const
 	return {};
 }
 
-void EmuSystem::writeConfig(ConfigType type, IO &io)
+void EmuSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	static_cast<MainSystem*>(this)->writeConfig(type, io);
 }
 
-bool EmuSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool EmuSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	return static_cast<MainSystem*>(this)->readConfig(type, io, key, readSize);
 }

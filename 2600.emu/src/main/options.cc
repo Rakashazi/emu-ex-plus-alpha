@@ -49,7 +49,7 @@ bool A2600System::resetSessionOptions(EmuApp &app)
 	return true;
 }
 
-bool A2600System::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool A2600System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{
@@ -73,7 +73,7 @@ bool A2600System::readConfig(ConfigType type, IO &io, unsigned key, size_t readS
 	return false;
 }
 
-void A2600System::writeConfig(ConfigType type, IO &io)
+void A2600System::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{

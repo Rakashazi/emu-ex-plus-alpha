@@ -42,7 +42,7 @@ bool GbaSystem::resetSessionOptions(EmuApp &)
 	return true;
 }
 
-bool GbaSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool GbaSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{
@@ -65,7 +65,7 @@ bool GbaSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSiz
 	return false;
 }
 
-void GbaSystem::writeConfig(ConfigType type, IO &io)
+void GbaSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{

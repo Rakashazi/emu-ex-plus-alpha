@@ -164,7 +164,7 @@ bool MsxSystem::resetSessionOptions(EmuApp &)
 	return true;
 }
 
-bool MsxSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool MsxSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{
@@ -199,7 +199,7 @@ bool MsxSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSiz
 	return false;
 }
 
-void MsxSystem::writeConfig(ConfigType type, IO &io)
+void MsxSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{

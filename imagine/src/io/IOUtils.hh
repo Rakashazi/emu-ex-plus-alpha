@@ -24,19 +24,19 @@ namespace IG
 template <class IO>
 off_t IOUtils<IO>::seekS(off_t offset)
 {
-	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::SET);
+	return static_cast<IO*>(this)->seek(offset, IOSeekMode::SET);
 }
 
 template <class IO>
 off_t IOUtils<IO>::seekE(off_t offset)
 {
-	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::END);
+	return static_cast<IO*>(this)->seek(offset, IOSeekMode::END);
 }
 
 template <class IO>
 off_t IOUtils<IO>::seekC(off_t offset)
 {
-	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::CUR);
+	return static_cast<IO*>(this)->seek(offset, IOSeekMode::CUR);
 }
 
 template <class IO>
@@ -51,37 +51,6 @@ off_t IOUtils<IO>::tell()
 	return static_cast<IO*>(this)->seekC(0);
 }
 
-template <class IO>
-ssize_t IOUtils<IO>::send(IO &output, off_t *srcOffset, size_t bytes)
-{
-	if(srcOffset)
-	{
-		seekS(*srcOffset);
-	}
-	ssize_t bytesToWrite = bytes;
-	ssize_t totalBytesWritten = 0;
-	while(bytesToWrite)
-	{
-		std::array<char, 4096> buff;
-		ssize_t bytes = std::min((ssize_t)sizeof(buff), bytesToWrite);
-		ssize_t bytesRead = static_cast<IO*>(this)->read(buff.data(), bytes);
-		if(bytesRead == 0)
-			break;
-		if(bytesRead == -1)
-		{
-			return -1;
-		}
-		ssize_t bytesWritten = output.write(buff.data(), bytes);
-		if(bytesWritten == -1)
-		{
-			return -1;
-		}
-		totalBytesWritten += bytesWritten;
-		bytesToWrite -= bytes;
-	}
-	return totalBytesWritten;
-}
-
 static IOBuffer makeBufferCopy(auto &io)
 {
 	auto size = io.size();
@@ -94,10 +63,10 @@ static IOBuffer makeBufferCopy(auto &io)
 }
 
 template <class IO>
-IOBuffer IOUtils<IO>::buffer(IODefs::BufferMode mode)
+IOBuffer IOUtils<IO>::buffer(IOBufferMode mode)
 {
 	auto &io = *static_cast<IO*>(this);
-	if(mode == ::IG::IO::BufferMode::RELEASE)
+	if(mode == IOBufferMode::RELEASE)
 	{
 		if constexpr(requires {io.releaseBuffer();})
 		{
@@ -106,13 +75,103 @@ IOBuffer IOUtils<IO>::buffer(IODefs::BufferMode mode)
 				return buff;
 		}
 	}
-	else // mode == IO::BufferMode::DIRECT
+	else // mode == IOBufferMode::DIRECT
 	{
-		auto map = io.map();
-		if(map.data())
-			return {map, IOBuffer::MAPPED_FILE_BIT};
+		if constexpr(requires {io.map();})
+		{
+			auto map = io.map();
+			if(map.data())
+				return {map, IOBuffer::MAPPED_FILE_BIT};
+		}
 	}
 	return makeBufferCopy(io);
+}
+
+template <class IO>
+ssize_t IOUtils<IO>::readAtPosGeneric(void *buff, size_t bytes, off_t offset)
+{
+	auto &io = *static_cast<IO*>(this);
+	auto savedOffset = io.tell();
+	io.seekS(offset);
+	auto bytesRead = io.read(buff, bytes);
+	io.seekS(savedOffset);
+	return bytesRead;
+}
+
+template <class IO>
+FILE *IOUtils<IO>::toFileStream(const char *opentype)
+{
+	auto &io = *static_cast<IO*>(this);
+	if(!io)
+	{
+		return nullptr;
+	}
+	auto ioPtr = std::make_unique<IO>(std::move(io));
+	#if defined __ANDROID__ || __APPLE__
+	auto f = funopen(ioPtr.release(),
+		[](void *cookie, char *buf, int size)
+		{
+			auto &io = *(IO*)cookie;
+			return (int)io.read(buf, size);
+		},
+		[](void *cookie, const char *buf, int size)
+		{
+			auto &io = *(IO*)cookie;
+			return (int)io.write(buf, size);
+		},
+		[](void *cookie, fpos_t offset, int whence)
+		{
+			auto &io = *(IO*)cookie;
+			return (fpos_t)io.seek(offset, (IOSeekMode)whence);
+		},
+		[](void *cookie)
+		{
+			delete (IO*)cookie;
+			return 0;
+		});
+	#else
+	cookie_io_functions_t funcs
+	{
+		.read =
+			[](void *cookie, char *buf, size_t size)
+			{
+				auto &io = *(IO*)cookie;
+				return (ssize_t)io.read(buf, size);
+			},
+		.write =
+			[](void *cookie, const char *buf, size_t size)
+			{
+				auto &io = *(IO*)cookie;
+				auto bytesWritten = io.write(buf, size);
+				if(bytesWritten == -1)
+				{
+					bytesWritten = 0; // needs to return 0 for error
+				}
+				return (ssize_t)bytesWritten;
+			},
+		.seek =
+			[](void *cookie, off64_t *position, int whence)
+			{
+				auto &io = *(IO*)cookie;
+				auto newPos = io.seek(*position, (IOSeekMode)whence);
+				if(newPos == -1)
+				{
+					return -1;
+				}
+				*position = newPos;
+				return 0;
+			},
+		.close =
+			[](void *cookie)
+			{
+				delete (IO*)cookie;
+				return 0;
+			}
+	};
+	auto f = fopencookie(ioPtr.release(), opentype, funcs);
+	#endif
+	assert(f);
+	return f;
 }
 
 }

@@ -168,7 +168,7 @@ bool C64System::resetSessionOptions(EmuApp &app)
 	return true;
 }
 
-bool C64System::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{
@@ -227,7 +227,7 @@ bool C64System::readConfig(ConfigType type, IO &io, unsigned key, size_t readSiz
 	return false;
 }
 
-void C64System::writeConfig(ConfigType type, IO &io)
+void C64System::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{

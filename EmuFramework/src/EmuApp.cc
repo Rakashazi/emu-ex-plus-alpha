@@ -30,7 +30,7 @@
 #include <imagine/base/Application.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/ArchiveFS.hh>
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gui/ToastView.hh>
@@ -909,7 +909,7 @@ void EmuApp::launchSystem(bool tryAutoState)
 	showEmulation();
 }
 
-void EmuApp::onSelectFileFromPicker(GenericIO io, IG::CStringView path, std::string_view displayName,
+void EmuApp::onSelectFileFromPicker(IO io, IG::CStringView path, std::string_view displayName,
 	const Input::Event &e, EmuSystemCreateParams params, ViewAttachParams attachParams)
 {
 	createSystemWithMedia(std::move(io), path, displayName, e, params, attachParams,
@@ -1123,7 +1123,7 @@ void EmuApp::printScreenshotResult(int num, bool success)
 	}
 }
 
-void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, std::string_view displayName,
+void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view displayName,
 	const Input::Event &e, EmuSystemCreateParams params, ViewAttachParams attachParams,
 	CreateSystemCompleteDelegate onComplete)
 {
@@ -1368,7 +1368,7 @@ void EmuApp::saveSessionOptions()
 	try
 	{
 		auto ctx = appContext();
-		auto configFile = ctx.openFileUri(configFilePath, IO::OPEN_NEW);
+		auto configFile = ctx.openFileUri(configFilePath, FILE_OPEN_NEW);
 		writeConfigHeader(configFile);
 		system().writeConfig(ConfigType::SESSION, configFile);
 		system().resetSessionOptionsSet();
@@ -1394,8 +1394,8 @@ void EmuApp::loadSessionOptions()
 {
 	if(!system().resetSessionOptions(*this))
 		return;
-	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), IO::TEST_BIT),
-		[this](uint16_t key, uint16_t size, IO &io)
+	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), FILE_TEST_BIT),
+		[this](uint16_t key, uint16_t size, auto &io)
 		{
 			switch(key)
 			{
@@ -1418,8 +1418,8 @@ void EmuApp::loadSystemOptions()
 	auto configName = system().configName();
 	if(configName.empty())
 		return;
-	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), IO::TEST_BIT),
-		[this](uint16_t key, uint16_t size, IO &io)
+	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), FILE_TEST_BIT),
+		[this](uint16_t key, uint16_t size, auto &io)
 		{
 			if(!system().readConfig(ConfigType::CORE, io, key, size))
 			{
@@ -1436,7 +1436,7 @@ void EmuApp::saveSystemOptions()
 	try
 	{
 		auto configFilePath = FS::pathString(appContext().supportPath(), configName);
-		auto configFile = FileIO{configFilePath, IO::OPEN_NEW};
+		auto configFile = FileIO{configFilePath, FILE_OPEN_NEW};
 		saveSystemOptions(configFile);
 		if(configFile.size() == 1)
 		{
@@ -1452,7 +1452,7 @@ void EmuApp::saveSystemOptions()
 	}
 }
 
-void EmuApp::saveSystemOptions(IO &configFile)
+void EmuApp::saveSystemOptions(FileIO &configFile)
 {
 	writeConfigHeader(configFile);
 	system().writeConfig(ConfigType::CORE, configFile);

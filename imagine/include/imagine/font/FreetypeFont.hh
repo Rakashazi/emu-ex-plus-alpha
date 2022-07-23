@@ -32,7 +32,7 @@ namespace IG
 {
 
 class ApplicationContext;
-class GenericIO;
+class IO;
 
 class FreetypeGlyphImage
 {
@@ -80,7 +80,7 @@ struct FreetypeFaceData
 	std::unique_ptr<FT_StreamRec> streamRecPtr{};
 
 	constexpr FreetypeFaceData() = default;
-	FreetypeFaceData(FT_Library, GenericIO file);
+	FreetypeFaceData(FT_Library, IO);
 	FreetypeFaceData(FreetypeFaceData &&) noexcept;
 	FreetypeFaceData &operator=(FreetypeFaceData &&) noexcept;
 	~FreetypeFaceData();
@@ -101,7 +101,7 @@ public:
 	constexpr FreetypeFont() = default;
 	constexpr FreetypeFont(FT_Library library, FontWeight weight = {}):
 		library{library}, weight{weight} {}
-	FreetypeFont(FT_Library, GenericIO);
+	FreetypeFont(FT_Library, IO);
 	FreetypeFont(FT_Library, const char *path);
 
 protected:
@@ -109,7 +109,7 @@ protected:
 	StaticArrayList<FreetypeFaceData, MAX_FREETYPE_SLOTS> f{};
 	FontWeight weight{};
 
-	std::errc loadIntoNextSlot(GenericIO io);
+	std::errc loadIntoNextSlot(IO);
 	std::errc loadIntoNextSlot(IG::CStringView name);
 	GlyphRenderData makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::errc &ec);
 };

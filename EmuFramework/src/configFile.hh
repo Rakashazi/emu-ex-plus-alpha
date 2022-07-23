@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/io/MapIO.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
@@ -89,7 +90,7 @@ static bool readConfigKeys(MapIO io, ON_KEY onKey)
 	return true;
 }
 
-static void writeConfigHeader(IO &io)
+static void writeConfigHeader(FileIO &io)
 {
 	uint8_t blockHeaderSize = 2;
 	io.write(blockHeaderSize);

@@ -123,8 +123,6 @@ class DeviceChange;
 namespace IG
 {
 
-class GenericIO;
-
 using OnFrameDelegate = DelegateFunc<bool (FrameParams params)>;
 
 // orientation

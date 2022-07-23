@@ -16,6 +16,7 @@
 #include "RecentGameView.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/IO.hh>
 
 namespace EmuEx
 {

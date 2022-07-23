@@ -28,7 +28,8 @@ namespace IG
 {
 class Window;
 class ApplicationContext;
-class IO;
+class FileIO;
+class MapIO;
 }
 
 namespace IG::Gfx
@@ -324,9 +325,9 @@ public:
 	static bool visibilityIsValid(VControllerVisibility);
 	void setPhysicalControlsPresent(bool);
 	bool updateAutoOnScreenControlVisible();
-	bool readConfig(IO &, unsigned key, size_t size);
-	void writeConfig(IO &) const;
-	void readSerializedLayoutPositions(IO &, size_t size);
+	bool readConfig(MapIO &, unsigned key, size_t size);
+	void writeConfig(FileIO &) const;
+	void readSerializedLayoutPositions(MapIO &, size_t size);
 	size_t serializedLayoutPositionsSize() const;
 	void configure(IG::Window &, Gfx::Renderer &, const Gfx::GlyphTextureSet &face);
 	static VControllerLayoutPosition pixelToLayoutPos(IG::WP pos, IG::WP size, IG::WindowRect viewBounds);

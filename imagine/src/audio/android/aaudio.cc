@@ -15,6 +15,7 @@
 
 #define LOGTAG "AAudio"
 #include <imagine/audio/android/AAudioOutputStream.hh>
+#include <imagine/audio/OutputStream.hh>
 #include <imagine/audio/Manager.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/logger/logger.h>
@@ -160,8 +161,8 @@ IG::ErrorCode AAudioOutputStream::open(OutputStreamConfig config)
 		logWarn("stream already open");
 		return {};
 	}
-	bool lowLatencyMode = config.wantedLatencyHint() < IG::Microseconds{20000};
-	auto format = config.format();
+	bool lowLatencyMode = config.wantedLatencyHint < Microseconds{20000};
+	auto format = config.format;
 	if(format.sample != SampleFormats::i16 && format.sample != SampleFormats::f32)
 	{
 		logErr("only i16 and f32 sample formats are supported");
@@ -169,7 +170,7 @@ IG::ErrorCode AAudioOutputStream::open(OutputStreamConfig config)
 	}
 	logMsg("creating stream %dHz, %d channels, low-latency:%s", format.rate, format.channels,
 		lowLatencyMode ? "y" : "n");
-	onSamplesNeeded = config.onSamplesNeeded();
+	onSamplesNeeded = config.onSamplesNeeded;
 	setBuilderData(builder, format, lowLatencyMode);
 	if(auto res = AAudioStreamBuilder_openStream(builder, &stream);
 		res != AAUDIO_OK)
@@ -177,7 +178,7 @@ IG::ErrorCode AAudioOutputStream::open(OutputStreamConfig config)
 		logErr("error:%s creating stream", streamResultStr(res));
 		return {EINVAL};
 	}
-	if(config.startPlaying())
+	if(config.startPlaying)
 		play();
 	return {};
 }

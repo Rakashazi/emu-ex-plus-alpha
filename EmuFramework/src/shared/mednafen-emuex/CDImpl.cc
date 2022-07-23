@@ -137,7 +137,7 @@ void CDAccess_Image::HintReadSector(int32 lba, int32 count)
 				if(ct->SubchannelMode)
 				 SeekPos += 96 * (lba - ct->LBA);
 
-				ct->fp->advise(SeekPos, 2352 * count, IG::IO::Advice::WILLNEED);
+				ct->fp->advise(SeekPos, 2352 * count, IG::IOAdvice::WILLNEED);
 			}
 		}
 	 }
@@ -155,7 +155,7 @@ int CDAccess_CCD::Read_Sector(uint8 *buf, int32 lba, uint32 size)
 
 void CDAccess_CCD::HintReadSector(int32 lba, int32 count)
 {
- img_stream->advise(lba * 2352, 2352 * count, IG::IO::Advice::WILLNEED);
+ img_stream->advise(lba * 2352, 2352 * count, IG::IOAdvice::WILLNEED);
 }
 
 }

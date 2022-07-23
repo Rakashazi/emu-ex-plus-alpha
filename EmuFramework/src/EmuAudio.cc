@@ -144,7 +144,7 @@ void EmuAudio::resizeAudioBuffer(size_t targetBufferFillBytes)
 void EmuAudio::open(IG::Audio::Api api)
 {
 	close();
-	audioStream = audioManager().makeOutputStream(api);
+	audioStream.setApi(audioManager(), api);
 }
 
 void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bufferIncrementUSecs)
@@ -158,7 +158,7 @@ void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bu
 	auto inputFormat = format();
 	targetBufferFillBytes = inputFormat.timeToBytes(targetBufferFillUSecs);
 	bufferIncrementBytes = inputFormat.timeToBytes(bufferIncrementUSecs);
-	if(!audioStream->isOpen())
+	if(!audioStream.isOpen())
 	{
 		resizeAudioBuffer(targetBufferFillBytes);
 		audioWriteState = AudioWriteState::BUFFER;
@@ -209,9 +209,9 @@ void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bu
 				}
 			}
 		};
-		outputConf.setWantedLatencyHint({});
+		outputConf.wantedLatencyHint = {};
 		startAudioStats(inputFormat);
-		audioStream->open(outputConf);
+		audioStream.open(outputConf);
 	}
 	else
 	{
@@ -226,7 +226,7 @@ void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bu
 		{
 			audioWriteState = AudioWriteState::BUFFER;
 		}
-		audioStream->play();
+		audioStream.play();
 	}
 }
 
@@ -235,7 +235,7 @@ void EmuAudio::stop()
 	stopAudioStats();
 	audioWriteState = AudioWriteState::BUFFER;
 	if(audioStream)
-		audioStream->close();
+		audioStream.close();
 	rBuff.clear();
 }
 
@@ -253,7 +253,7 @@ void EmuAudio::flush()
 	stopAudioStats();
 	audioWriteState = AudioWriteState::BUFFER;
 	if(audioStream)
-		audioStream->flush();
+		audioStream.flush();
 	rBuff.clear();
 }
 

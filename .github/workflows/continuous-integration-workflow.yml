@@ -51,13 +51,6 @@ jobs:
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-
-    - name: Patch build.gradle
-      run: |
-        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
-        cd imagine/make/gradle/app/
-        patch -p 1 -i 01-change-signing-to-debug.patch
-        rm 01-change-signing-to-debug.patch
         
     - name: Run script
       run: |

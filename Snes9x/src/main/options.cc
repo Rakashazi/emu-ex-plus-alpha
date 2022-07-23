@@ -53,7 +53,7 @@ void Snes9xSystem::onOptionsLoaded()
 	#endif
 }
 
-bool Snes9xSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool Snes9xSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{
@@ -82,7 +82,7 @@ bool Snes9xSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t read
 	return false;
 }
 
-void Snes9xSystem::writeConfig(ConfigType type, IO &io)
+void Snes9xSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{

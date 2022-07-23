@@ -16,7 +16,7 @@
 #include <emuframework/BundledGamesView.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/base/ApplicationContext.hh>
 
@@ -37,7 +37,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 			[this](const Input::Event &e)
 			{
 				auto &info = system().bundledGameInfo(0);
-				auto file = appContext().openAsset(info.assetName, IO::AccessHint::ALL, IO::TEST_BIT);
+				auto file = appContext().openAsset(info.assetName, IOAccessHint::ALL, FILE_TEST_BIT);
 				if(!file)
 				{
 					logErr("error opening bundled game asset: %s", info.assetName);

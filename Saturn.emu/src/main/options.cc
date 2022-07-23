@@ -77,7 +77,7 @@ void SaturnSystem::onOptionsLoaded()
 	yinit.sh2coretype = optionSH2Core;
 }
 
-bool SaturnSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool SaturnSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{
@@ -91,7 +91,7 @@ bool SaturnSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t read
 	return false;
 }
 
-void SaturnSystem::writeConfig(ConfigType type, IO &io)
+void SaturnSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{

@@ -82,7 +82,7 @@ public:
 	void createDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
 	FrameTimer makeFrameTimer(Screen &);
 	bool requestPermission(ApplicationContext, Permission);
-	UniqueFileDescriptor openFileUriFd(JNIEnv *, jobject baseActivity, IG::CStringView uri, IODefs::OpenFlags oFlags = {}) const;
+	UniqueFileDescriptor openFileUriFd(JNIEnv *, jobject baseActivity, CStringView uri, FileOpenFlags oFlags = {}) const;
 	bool fileUriExists(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
 	FS::FileString fileUriDisplayName(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;

@@ -18,6 +18,11 @@
 #include <fceu/emufile.h>
 #include <imagine/io/MapIO.hh>
 
+namespace IG
+{
+class IO;
+}
+
 namespace EmuEx
 {
 
@@ -27,10 +32,8 @@ protected:
 
 public:
 
-	EmuFileIO(IG::IO &io);
-
-	~EmuFileIO() {
-	}
+	EmuFileIO(IG::IO &);
+	~EmuFileIO() = default;
 
 	FILE *get_fp() {
 		return nullptr;

@@ -77,7 +77,7 @@ void PceSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 
 FS::FileString PceSystem::stateFilename(int slot, std::string_view name) const
 {
-	return stateFilenameMDFN(*MDFNGameInfo, slot, name);
+	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'q');
 }
 
 void PceSystem::closeSystem()

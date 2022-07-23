@@ -26,14 +26,11 @@
 
 #include <imagine/audio/Format.hh>
 #include <imagine/audio/defs.hh>
-#include <memory>
 #include <vector>
 #include <optional>
 
 namespace IG::Audio
 {
-class OutputStreamConfig;
-class OutputStream;
 
 class Manager : public ManagerImpl
 {
@@ -65,7 +62,6 @@ public:
 	std::vector<ApiDesc> audioAPIs() const;
 	Api makeValidAPI(Api api = Api::DEFAULT) const;
 	OutputStreamConfig makeNativeOutputStreamConfig() const;
-	std::unique_ptr<OutputStream> makeOutputStream(Api api = Api::DEFAULT) const;
 };
 
 }

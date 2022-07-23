@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/io/IO.hh>
+#include <imagine/io/ioDefs.hh>
 #include <imagine/util/memory/UniqueFileStream.hh>
 
 namespace IG
@@ -45,7 +45,7 @@ public:
 			[](void *cookie, fpos_t offset, int whence)
 			{
 				auto &s = *(FileStream*)cookie;
-				return (fpos_t)s.io.seek(offset, (IODefs::SeekMode)whence);
+				return (fpos_t)s.io.seek(offset, (IOSeekMode)whence);
 			},
 			nullptr)};
 		#else
@@ -72,7 +72,7 @@ public:
 				[](void *cookie, off64_t *position, int whence)
 				{
 					auto &s = *(FileStream*)cookie;
-					auto newPos = s.io.seek(*position, (IODefs::SeekMode)whence);
+					auto newPos = s.io.seek(*position, (IOSeekMode)whence);
 					if(newPos == -1)
 					{
 						return -1;

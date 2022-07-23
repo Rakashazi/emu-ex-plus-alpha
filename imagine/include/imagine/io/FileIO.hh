@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
 #include <imagine/io/PosixFileIO.hh>
 #ifdef __ANDROID__
 #include <imagine/io/AAssetIO.hh>
@@ -45,6 +44,7 @@ public:
 };
 
 class ApplicationContext;
+class IO;
 
 }
 
@@ -56,19 +56,19 @@ class PathString;
 namespace IG::FileUtils
 {
 
-static constexpr size_t defaultBufferReadSizeLimit = 0x2000000; // 32 Megabytes
+constexpr size_t defaultBufferReadSizeLimit = 0x2000000; // 32 Megabytes
 
 ssize_t writeToPath(CStringView path, std::span<const unsigned char> src);
 ssize_t writeToPath(CStringView path, IO &io);
 ssize_t writeToUri(ApplicationContext ctx, CStringView uri, std::span<const unsigned char> src);
-ssize_t readFromPath(IG::CStringView path, std::span<unsigned char> dest, IO::AccessHint accessHint = IO::AccessHint::ALL);
+ssize_t readFromPath(CStringView path, std::span<unsigned char> dest, IOAccessHint accessHint = IOAccessHint::ALL);
 ssize_t readFromUri(ApplicationContext, CStringView uri, std::span<unsigned char> dest,
-	IO::AccessHint accessHint = IO::AccessHint::ALL);
-std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext, IG::CStringView uri,
-	std::span<unsigned char> dest, bool(*nameMatchFunc)(std::string_view), IO::AccessHint accessHint = IO::AccessHint::ALL);
-IOBuffer bufferFromPath(CStringView path, IO::OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
-IOBuffer bufferFromUri(ApplicationContext, CStringView uri, IO::OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
-IOBuffer rwBufferFromUri(ApplicationContext, CStringView uri, IO::OpenFlags extraOFlags, size_t size, uint8_t initValue = 0);
+	IOAccessHint accessHint = IOAccessHint::ALL);
+std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext, CStringView uri,
+	std::span<unsigned char> dest, bool(*nameMatchFunc)(std::string_view), IOAccessHint accessHint = IOAccessHint::ALL);
+IOBuffer bufferFromPath(CStringView path, FileOpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
+IOBuffer bufferFromUri(ApplicationContext, CStringView uri, FileOpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
+IOBuffer rwBufferFromUri(ApplicationContext, CStringView uri, FileOpenFlags extraOFlags, size_t size, uint8_t initValue = 0);
 FILE *fopenUri(ApplicationContext, CStringView path, CStringView mode);
 
 }

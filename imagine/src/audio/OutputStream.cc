@@ -16,49 +16,45 @@
 #define LOGTAG "Audio"
 #include <imagine/audio/defs.hh>
 #include <imagine/audio/Manager.hh>
+#include <imagine/audio/OutputStream.hh>
 #include <imagine/base/ApplicationContext.hh>
-
-#if defined __ANDROID__
-#include <imagine/audio/opensl/OpenSLESOutputStream.hh>
-#include <imagine/audio/android/AAudioOutputStream.hh>
-#elif defined __APPLE__
-#include <imagine/audio/coreaudio/CAOutputStream.hh>
-#else
-	#ifdef CONFIG_AUDIO_PULSEAUDIO
-	#include <imagine/audio/pulseaudio/PAOutputStream.hh>
-	#endif
-	#ifdef CONFIG_AUDIO_ALSA
-	#include <imagine/audio/alsa/ALSAOutputStream.hh>
-	#endif
-#endif
-
 #include <imagine/util/utility.h>
+#include <imagine/util/variant.hh>
 
 namespace IG::Audio
 {
 
-std::unique_ptr<OutputStream> Manager::makeOutputStream(Api api) const
+void OutputStream::setApi(const Manager &mgr, Api api)
 {
-	api = makeValidAPI(api);
+	api = mgr.makeValidAPI(api);
 	switch(api)
 	{
 		#ifdef CONFIG_AUDIO_PULSEAUDIO
-		case Api::PULSEAUDIO: return std::make_unique<PAOutputStream>();
+		case Api::PULSEAUDIO: emplace<PAOutputStream>(); return;
 		#endif
 		#ifdef CONFIG_AUDIO_ALSA
-		case Api::ALSA: return std::make_unique<ALSAOutputStream>();
+		case Api::ALSA: emplace<ALSAOutputStream>(); return;
 		#endif
 		#ifdef __ANDROID__
-		case Api::OPENSL_ES: return std::make_unique<OpenSLESOutputStream>(*this);
-		case Api::AAUDIO: return std::make_unique<AAudioOutputStream>(*this);
+		case Api::OPENSL_ES: emplace<OpenSLESOutputStream>(mgr); return;
+		case Api::AAUDIO: emplace<AAudioOutputStream>(mgr); return;
 		#endif
 		#ifdef __APPLE__
-		case Api::COREAUDIO: return std::make_unique<CAOutputStream>();
+		case Api::COREAUDIO: emplace<CAOutputStream>(); return;
 		#endif
 		default:
 			bug_unreachable("audio API should always be valid");
 	}
 }
+
+ErrorCode OutputStream::open(OutputStreamConfig config) { return visit([&](auto &v){ return v.open(config); }, *this); }
+void OutputStream::play() { visit([&](auto &v){ v.play(); }, *this); }
+void OutputStream::pause() { visit([&](auto &v){ v.pause(); }, *this); }
+void OutputStream::close() { visit([&](auto &v){ v.close(); }, *this); }
+void OutputStream::flush() { visit([&](auto &v){ v.flush(); }, *this); }
+bool OutputStream::isOpen() { return visit([&](auto &v){ return v.isOpen(); }, *this); }
+bool OutputStream::isPlaying() { return visit([&](auto &v){ return v.isPlaying(); }, *this); }
+void OutputStream::reset() { emplace<NullOutputStream>(); }
 
 OutputStreamConfig Manager::makeNativeOutputStreamConfig() const
 {

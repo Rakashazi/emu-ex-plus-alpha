@@ -21,6 +21,7 @@
 #include <imagine/util/ScopeGuard.hh>
 #include "MainApp.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 

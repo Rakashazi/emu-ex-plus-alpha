@@ -45,7 +45,7 @@ bool GbcSystem::resetSessionOptions(EmuApp &)
 	return true;
 }
 
-bool GbcSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSize)
+bool GbcSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
 {
 	if(type == ConfigType::MAIN)
 	{
@@ -67,7 +67,7 @@ bool GbcSystem::readConfig(ConfigType type, IO &io, unsigned key, size_t readSiz
 	return false;
 }
 
-void GbcSystem::writeConfig(ConfigType type, IO &io)
+void GbcSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{

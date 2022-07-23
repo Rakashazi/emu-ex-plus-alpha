@@ -42,13 +42,13 @@ inline Mednafen::MDFN_Surface pixmapToMDFNSurface(IG::MutablePixmapView pix)
 	return {pix.data(), (uint32)pix.w(), (uint32)pix.h(), (uint32)pix.pitchPixels(), fmt};
 }
 
-inline FS::FileString stateFilenameMDFN(const Mednafen::MDFNGI &gameInfo, int slot, std::string_view name)
+inline FS::FileString stateFilenameMDFN(const Mednafen::MDFNGI &gameInfo, int slot, std::string_view name, char autoChar)
 {
-	auto saveSlotChar = [](int slot) -> char
+	auto saveSlotChar = [&](int slot) -> char
 	{
 		switch(slot)
 		{
-			case -1: return 'q';
+			case -1: return autoChar;
 			case 0 ... 9: return '0' + slot;
 			default: bug_unreachable("slot == %d", slot);
 		}

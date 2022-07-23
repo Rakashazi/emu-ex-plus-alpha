@@ -34,7 +34,7 @@
 namespace IG
 {
 
-class GenericIO;
+class IO;
 
 namespace Data
 {
@@ -71,7 +71,7 @@ class FontManager : public FontManagerImpl
 {
 public:
 	using FontManagerImpl::FontManagerImpl;
-	Font makeFromFile(GenericIO io) const;
+	Font makeFromFile(IO) const;
 	Font makeFromFile(const char *name) const;
 	Font makeSystem() const;
 	Font makeBoldSystem() const;

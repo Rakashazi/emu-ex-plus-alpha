@@ -34,7 +34,7 @@ IG::ApplicationContext gAppContext();
 
 using namespace EmuEx;
 
-static UInt8 *fileToMallocBuffer(IO &file, int *size)
+static UInt8 *fileToMallocBuffer(Readable auto &file, int *size)
 {
 	int fileSize = file.size();
 	auto buff = (UInt8*)malloc(fileSize);
@@ -62,7 +62,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 		auto appCtx = sys.appContext();
 		if(filename[0] == '/' || IG::isUri(filename)) // try to load absolute path directly
 		{
-			auto file = appCtx.openFileUri(filename, IO::AccessHint::ALL, IO::TEST_BIT);
+			auto file = appCtx.openFileUri(filename, IOAccessHint::ALL, FILE_TEST_BIT);
 			if(file)
 			{
 				return fileToMallocBuffer(file, size);
@@ -72,7 +72,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 		}
 		// relative path, try firmware directory
 		{
-			auto file = appCtx.openFileUri(FS::uriString(machineBasePath(sys), filename), IO::AccessHint::ALL, IO::TEST_BIT);
+			auto file = appCtx.openFileUri(FS::uriString(machineBasePath(sys), filename), IOAccessHint::ALL, FILE_TEST_BIT);
 			if(file)
 			{
 				return fileToMallocBuffer(file, size);
@@ -80,7 +80,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 		}
 		// fallback to app assets
 		{
-			auto file = appCtx.openAsset(filename, IO::AccessHint::ALL, IO::TEST_BIT);
+			auto file = appCtx.openAsset(filename, IOAccessHint::ALL, FILE_TEST_BIT);
 			if(file)
 			{
 				return fileToMallocBuffer(file, size);
@@ -96,15 +96,15 @@ CLINK FILE *openMachineIni(const char *path, const char *mode)
 	auto &sys = gSystem();
 	auto appCtx = sys.appContext();
 	auto filePathInFirmwarePath = FS::uriString(machineBasePath(sys), path);
-	auto file = appCtx.openFileUri(filePathInFirmwarePath, IO::AccessHint::ALL, IO::TEST_BIT);
+	auto file = appCtx.openFileUri(filePathInFirmwarePath, IOAccessHint::ALL, FILE_TEST_BIT);
 	if(file)
 	{
-		return GenericIO{std::move(file)}.moveToFileStream(mode);
+		return file.toFileStream(mode);
 	}
-	auto assetFile = appCtx.openAsset(path, IO::AccessHint::ALL, IO::TEST_BIT);
+	auto assetFile = appCtx.openAsset(path, IOAccessHint::ALL, FILE_TEST_BIT);
 	if(assetFile)
 	{
-		return GenericIO{std::move(assetFile)}.moveToFileStream(mode);
+		return assetFile.toFileStream(mode);
 	}
 	return {};
 }

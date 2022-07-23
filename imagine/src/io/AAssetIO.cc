@@ -19,6 +19,7 @@
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
+#include "IOUtils.hh"
 #include <android/asset_manager.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -26,14 +27,16 @@
 namespace IG
 {
 
-static int accessHintToAAssetMode(IO::AccessHint advice)
+template class IOUtils<AAssetIO>;
+
+static int accessHintToAAssetMode(IOAccessHint advice)
 {
 	switch(advice)
 	{
 		default: return AASSET_MODE_UNKNOWN;
-		case IO::AccessHint::SEQUENTIAL: return AASSET_MODE_STREAMING;
-		case IO::AccessHint::RANDOM: return AASSET_MODE_RANDOM;
-		case IO::AccessHint::ALL: return AASSET_MODE_BUFFER;
+		case IOAccessHint::SEQUENTIAL: return AASSET_MODE_STREAMING;
+		case IOAccessHint::RANDOM: return AASSET_MODE_RANDOM;
+		case IOAccessHint::ALL: return AASSET_MODE_BUFFER;
 	}
 }
 
@@ -43,13 +46,13 @@ AAssetIO::AAssetIO(ApplicationContext ctx, IG::CStringView name, AccessHint acce
 	if(!asset) [[unlikely]]
 	{
 		logErr("error in AAssetManager_open(%s, %s)", name.data(), accessHintStr(access));
-		if(openFlags & TEST_BIT)
+		if(openFlags & FILE_TEST_BIT)
 			return;
 		else
 			throw std::runtime_error{fmt::format("Error opening asset: {}", name)};
 	}
 	logMsg("opened asset:%p name:%s access:%s", asset.get(), name.data(), accessHintStr(access));
-	if(access == IO::AccessHint::ALL)
+	if(access == IOAccessHint::ALL)
 		makeMapIO();
 }
 
@@ -70,7 +73,7 @@ ssize_t AAssetIO::readAtPos(void *buff, size_t bytes, off_t offset)
 	if(mapIO)
 		return mapIO.readAtPos(buff, bytes, offset);
 	else
-		return IO::readAtPos(buff, bytes, offset);
+		return readAtPosGeneric(buff, bytes, offset);
 }
 
 std::span<uint8_t> AAssetIO::map()
@@ -86,7 +89,7 @@ ssize_t AAssetIO::write(const void *buff, size_t bytes)
 	return -1;
 }
 
-off_t AAssetIO::seek(off_t offset, IO::SeekMode mode)
+off_t AAssetIO::seek(off_t offset, IOSeekMode mode)
 {
 	if(mapIO)
 		return mapIO.seek(offset, mode);
@@ -119,7 +122,7 @@ AAssetIO::operator bool() const
 
 void AAssetIO::advise(off_t offset, size_t bytes, Advice advice)
 {
-	if(offset == 0 && bytes == 0 && advice == IO::Advice::WILLNEED)
+	if(offset == 0 && bytes == 0 && advice == IOAdvice::WILLNEED)
 	makeMapIO();
 	if(mapIO)
 		mapIO.advise(offset, bytes, advice);

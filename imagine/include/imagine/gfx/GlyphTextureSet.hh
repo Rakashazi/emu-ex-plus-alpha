@@ -21,11 +21,6 @@
 #include <imagine/util/container/VMemArray.hh>
 #include <system_error>
 
-namespace IG
-{
-class GenericIO;
-}
-
 namespace IG::Gfx
 {
 

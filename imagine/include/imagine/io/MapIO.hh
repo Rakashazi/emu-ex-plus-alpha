@@ -15,42 +15,38 @@
 
 #pragma once
 
-#include <imagine/config/defs.hh>
-#include <imagine/io/IO.hh>
+#include <imagine/io/IOUtils.hh>
 
 namespace IG
 {
 
-class MapIO final : public IO
+class MapIO final : public IOUtils<MapIO>
 {
 public:
-	using IO::read;
-	using IO::readAtPos;
-	using IO::write;
-	using IO::seek;
-	using IO::seekS;
-	using IO::seekE;
-	using IO::seekC;
-	using IO::tell;
-	using IO::send;
-	using IO::buffer;
-	using IO::get;
+	using IOUtilsBase = IOUtils<MapIO>;
+	using IOUtilsBase::write;
+	using IOUtilsBase::seekS;
+	using IOUtilsBase::seekE;
+	using IOUtilsBase::seekC;
+	using IOUtilsBase::tell;
+	using IOUtilsBase::send;
+	using IOUtilsBase::buffer;
+	using IOUtilsBase::get;
+	using IOUtilsBase::toFileStream;
 
 	constexpr MapIO() = default;
 	MapIO(IOBuffer);
-	MapIO(std::derived_from<IO> auto &&io): MapIO{io.buffer(IO::BufferMode::RELEASE)} {}
-	MapIO(std::derived_from<IO> auto &io): MapIO{io.buffer(IO::BufferMode::DIRECT)} {}
-	ssize_t read(void *buff, size_t bytes) final;
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset) final;
-	std::span<uint8_t> map() final;
-	ssize_t write(const void *buff, size_t bytes) final;
-	off_t seek(off_t offset, IO::SeekMode mode) final;
-	size_t size() final;
-	bool eof() final;
-	explicit operator bool() const final;
-	#if defined __linux__ || defined __APPLE__
-	void advise(off_t offset, size_t bytes, Advice advice) final;
-	#endif
+	explicit MapIO(Readable auto &&io): MapIO{io.buffer(BufferMode::RELEASE)} {}
+	explicit MapIO(Readable auto &io): MapIO{io.buffer(BufferMode::DIRECT)} {}
+	ssize_t read(void *buff, size_t bytes);
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
+	std::span<uint8_t> map();
+	ssize_t write(const void *buff, size_t bytes);
+	off_t seek(off_t offset, SeekMode mode);
+	size_t size();
+	bool eof();
+	explicit operator bool() const;
+	void advise(off_t offset, size_t bytes, Advice advice);
 	IOBuffer releaseBuffer();
 
 protected:

@@ -23,6 +23,8 @@
 namespace IG
 {
 
+class IO;
+
 class PosixFileIO : public IOUtils<PosixFileIO>
 {
 public:
@@ -35,33 +37,32 @@ public:
 	using IOUtilsBase::send;
 	using IOUtilsBase::buffer;
 	using IOUtilsBase::get;
+	using IOUtilsBase::toFileStream;
 
 	constexpr PosixFileIO() = default;
-	PosixFileIO(UniqueFileDescriptor fd, IO::AccessHint access, IO::OpenFlags);
-	PosixFileIO(UniqueFileDescriptor fd, IO::OpenFlags);
-	PosixFileIO(IG::CStringView path, IO::AccessHint access, IO::OpenFlags oFlags = {});
-	PosixFileIO(IG::CStringView path, IO::OpenFlags oFlags = {});
-	explicit operator IO*();
-	operator IO&();
-	operator GenericIO();
+	PosixFileIO(UniqueFileDescriptor fd, AccessHint access, OpenFlags);
+	PosixFileIO(UniqueFileDescriptor fd, OpenFlags);
+	PosixFileIO(CStringView path, AccessHint access, OpenFlags oFlags = {});
+	PosixFileIO(CStringView path, OpenFlags oFlags = {});
 	ssize_t read(void *buff, size_t bytes);
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
 	std::span<uint8_t> map();
 	ssize_t write(const void *buff, size_t bytes);
 	bool truncate(off_t offset);
-	off_t seek(off_t offset, IO::SeekMode mode);
+	off_t seek(off_t offset, SeekMode mode);
 	void sync();
 	size_t size();
 	bool eof();
-	void advise(off_t offset, size_t bytes, IO::Advice advice);
+	void advise(off_t offset, size_t bytes, Advice advice);
 	explicit operator bool() const;
 	IOBuffer releaseBuffer();
 	UniqueFileDescriptor releaseFd();
+	operator IO();
 
 protected:
 	std::variant<PosixIO, MapIO> ioImpl{};
 
-	void tryMmap(IO::AccessHint access, IO::OpenFlags);
+	void tryMmap(AccessHint access, OpenFlags);
 };
 
 }

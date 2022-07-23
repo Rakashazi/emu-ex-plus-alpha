@@ -400,7 +400,7 @@ void writeCheatFile(EmuSystem &sys)
 		return;
 	}
 
-	auto file = ctx.openFileUri(path, IO::OPEN_NEW | IO::TEST_BIT);
+	auto file = ctx.openFileUri(path, FILE_OPEN_NEW | FILE_TEST_BIT);
 	if(!file)
 	{
 		logMsg("error creating cheats file %s", path.data());
@@ -428,7 +428,7 @@ void writeCheatFile(EmuSystem &sys)
 void readCheatFile(EmuSystem &sys)
 {
 	auto path = sys.contentSaveFilePath(".pat");
-	auto file = sys.appContext().openFileUri(path, IO::AccessHint::ALL, IO::TEST_BIT);
+	auto file = sys.appContext().openFileUri(path, IOAccessHint::ALL, FILE_TEST_BIT);
 	if(!file)
 	{
 		return;

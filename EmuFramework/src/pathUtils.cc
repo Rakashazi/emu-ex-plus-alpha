@@ -93,7 +93,7 @@ bool hasWriteAccessToDir(IG::CStringView path)
 		if(IG::isUri(path))
 			return true;
 		auto testFilePath = FS::pathString(path, ".safe-to-delete-me");
-		PosixIO testFile{testFilePath, IO::OPEN_NEW | IO::TEST_BIT};
+		PosixIO testFile{testFilePath, FILE_OPEN_NEW | FILE_TEST_BIT};
 		auto removeTestFile = IG::scopeGuard([&]() { if(testFile) FS::remove(testFilePath); });
 		return (bool)testFile;
 	}

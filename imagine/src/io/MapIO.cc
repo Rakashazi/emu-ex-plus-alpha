@@ -15,8 +15,10 @@
 
 #define LOGTAG "MapIO"
 #include <imagine/io/MapIO.hh>
+#include <imagine/config/defs.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
+#include "IOUtils.hh"
 #include <cerrno>
 #include <cstring>
 #if defined __linux__ || defined __APPLE__
@@ -26,6 +28,8 @@
 
 namespace IG
 {
+
+template class IOUtils<MapIO>;
 
 MapIO::MapIO(IOBuffer buff):
 	currPos{buff.data()},
@@ -58,7 +62,7 @@ ssize_t MapIO::write(const void *buff, size_t bytes)
 	return -1;
 }
 
-off_t MapIO::seek(off_t offset, IO::SeekMode mode)
+off_t MapIO::seek(off_t offset, IOSeekMode mode)
 {
 	auto newPos = transformOffsetToAbsolute(mode, offset, data(), dataEnd(), currPos);
 	if(newPos < data() || newPos > dataEnd())
@@ -85,14 +89,14 @@ MapIO::operator bool() const
 	return data();
 }
 
-static int adviceToMAdv(IO::Advice advice)
+static int adviceToMAdv(IOAdvice advice)
 {
 	switch(advice)
 	{
 		default: return MADV_NORMAL;
-		case IO::Advice::SEQUENTIAL: return MADV_SEQUENTIAL;
-		case IO::Advice::RANDOM: return MADV_RANDOM;
-		case IO::Advice::WILLNEED: return MADV_WILLNEED;
+		case IOAdvice::SEQUENTIAL: return MADV_SEQUENTIAL;
+		case IOAdvice::RANDOM: return MADV_RANDOM;
+		case IOAdvice::WILLNEED: return MADV_WILLNEED;
 	}
 }
 

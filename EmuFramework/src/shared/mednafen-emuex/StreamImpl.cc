@@ -38,25 +38,25 @@ static std::pair<uint32_t, uint8_t> modeToAttribs(uint32 mode)
 			throw MDFN_Error(0, _("Unknown FileStream mode."));
 
 		case FileStream::MODE_READ:
-			return {IO::READ_BIT, Stream::ATTRIBUTE_READABLE};
+			return {FILE_READ_BIT, Stream::ATTRIBUTE_READABLE};
 
 		case FileStream::MODE_READ_WRITE:
-			return {IO::OPEN_RW, Stream::ATTRIBUTE_READABLE | Stream::ATTRIBUTE_WRITEABLE};
+			return {FILE_OPEN_RW, Stream::ATTRIBUTE_READABLE | Stream::ATTRIBUTE_WRITEABLE};
 
 		case FileStream::MODE_WRITE:
-			return {IO::OPEN_NEW, Stream::ATTRIBUTE_WRITEABLE};
+			return {FILE_OPEN_NEW, Stream::ATTRIBUTE_WRITEABLE};
 
 		case FileStream::MODE_WRITE_INPLACE:
-			return {IO::WRITE_BIT | IO::CREATE_BIT, Stream::ATTRIBUTE_WRITEABLE};
+			return {FILE_WRITE_BIT | FILE_CREATE_BIT, Stream::ATTRIBUTE_WRITEABLE};
 
 		case FileStream::MODE_WRITE_SAFE:
-			return {IO::WRITE_BIT, Stream::ATTRIBUTE_WRITEABLE};
+			return {FILE_WRITE_BIT, Stream::ATTRIBUTE_WRITEABLE};
 	}
 }
 
 FileStream::FileStream(const std::string& path, const uint32 mode, const int do_lock, const uint32 buffer_size)
 try:
-	io{EmuEx::gAppContext().openFileUri(path, IG::IO::AccessHint::SEQUENTIAL, modeToAttribs(mode).first)},
+	io{EmuEx::gAppContext().openFileUri(path, IG::IOAccessHint::SEQUENTIAL, modeToAttribs(mode).first)},
 	attribs{modeToAttribs(mode).second}
 {
 	assert(!do_lock);
@@ -125,7 +125,7 @@ void FileStream::truncate(uint64 length)
 
 void FileStream::seek(int64 offset, int whence)
 {
-	io.seek(offset, (IG::IO::SeekMode)whence);
+	io.seek(offset, (IG::IOSeekMode)whence);
 }
 
 void FileStream::flush(void) {}
@@ -152,7 +152,7 @@ void FileStream::close(void)
 	io = {};
 }
 
-void FileStream::advise(off_t offset, size_t bytes, IG::IO::Advice advice)
+void FileStream::advise(off_t offset, size_t bytes, IG::IOAdvice advice)
 {
 	io.advise(offset, bytes, advice);
 }
@@ -189,6 +189,6 @@ uint64 Stream::readAtPos(void *data, uint64 count, uint64 pos)
 
 bool Stream::isMemoryStream() { return false; }
 
-void Stream::advise(off_t offset, size_t bytes, IG::IO::Advice advice) {}
+void Stream::advise(off_t offset, size_t bytes, IG::IOAdvice advice) {}
 
 }

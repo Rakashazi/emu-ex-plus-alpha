@@ -15,15 +15,17 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/io/IO.hh>
+#include <imagine/io/ioDefs.hh>
 #include <streambuf>
 #include <istream>
 #include <ostream>
+#include <memory>
 
 namespace IG
 {
 
 class FileIO;
+class IO;
 
 // templates for using IO types with standard C++ stream-based IO
 
@@ -90,14 +92,14 @@ public:
 		return bytesWritten;
 	}
 
-	static IODefs::SeekMode seekMode(std::ios::seekdir way)
+	static IOSeekMode seekMode(std::ios::seekdir way)
 	{
 		switch(way)
 		{
 			default:
-			case std::ios::beg: return IODefs::SeekMode::SET;
-			case std::ios::cur: return IODefs::SeekMode::CUR;
-			case std::ios::end: return IODefs::SeekMode::END;
+			case std::ios::beg: return IOSeekMode::SET;
+			case std::ios::cur: return IOSeekMode::CUR;
+			case std::ios::end: return IOSeekMode::END;
 		}
 	}
 
@@ -184,10 +186,10 @@ using OFStream = OStream<FileIO>;
 
 using FStream = IOStream<FileIO>;
 
-using GenericIStream = IStream<GenericIO>;
+using GenericIStream = IStream<IO>;
 
-using GenericOStream = OStream<GenericIO>;
+using GenericOStream = OStream<IO>;
 
-using GenericIOStream = OStream<GenericIO>;
+using GenericIOStream = OStream<IO>;
 
 }

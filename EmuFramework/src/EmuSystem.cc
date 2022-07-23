@@ -22,7 +22,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
@@ -374,7 +374,7 @@ void EmuSystem::closeAndSetupNew(IG::CStringView path, std::string_view displayN
 	app.loadSessionOptions();
 }
 
-void EmuSystem::createWithMedia(GenericIO io, IG::CStringView path, std::string_view displayName,
+void EmuSystem::createWithMedia(IO io, IG::CStringView path, std::string_view displayName,
 	EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	if(io)
@@ -389,18 +389,19 @@ void EmuSystem::loadContentFromPath(IG::CStringView pathStr, std::string_view di
 	if(!handlesGenericIO)
 	{
 		closeAndSetupNew(path, displayName);
-		loadContent(FileIO{}, params, onLoadProgress);
+		IO nullIO{};
+		loadContent(nullIO, params, onLoadProgress);
 		return;
 	}
 	logMsg("load from %s:%s", IG::isUri(path) ? "uri" : "path", path.data());
-	loadContentFromFile(appContext().openFileUri(path, IO::AccessHint::SEQUENTIAL), path, displayName, params, onLoadProgress);
+	loadContentFromFile(appContext().openFileUri(path, IOAccessHint::SEQUENTIAL), path, displayName, params, onLoadProgress);
 }
 
-void EmuSystem::loadContentFromFile(GenericIO file, IG::CStringView path, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadContentFromFile(IO file, IG::CStringView path, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	if(EmuApp::hasArchiveExtension(displayName))
 	{
-		ArchiveIO io{};
+		IO io{};
 		FS::FileString originalName{};
 		for(auto &entry : FS::ArchiveIterator{std::move(file)})
 		{

@@ -87,7 +87,7 @@ FS::FileString GbcSystem::stateFilename(int slot, std::string_view name) const
 
 void GbcSystem::saveState(IG::CStringView path)
 {
-	IG::OFStream stream{appContext().openFileUri(path, IO::OPEN_NEW)};
+	IG::OFStream stream{appContext().openFileUri(path, FILE_OPEN_NEW)};
 	if(!gbEmu.saveState(frameBuffer, gambatte::lcd_hres, stream))
 		throwFileWriteError();
 }

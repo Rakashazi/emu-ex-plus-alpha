@@ -58,7 +58,7 @@ void initCPUFreqStatus()
 	const char *cpuFreqPath = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq";
 	try
 	{
-		cpuFreqFile = {cpuFreqPath, IG::IO::AccessHint::NORMAL};
+		cpuFreqFile = {cpuFreqPath, IG::IOAccessHint::NORMAL};
 	}
 	catch(...)
 	{
