@@ -144,7 +144,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	vibrationManager_{ctx},
 	optionAspectRatio{CFGKEY_GAME_ASPECT_RATIO, (double)EmuSystem::aspectRatioInfos()[0], 0, optionAspectRatioIsValid},
 	optionFrameRate{CFGKEY_FRAME_RATE, 0, 0, optionFrameTimeIsValid},
-	optionFrameRatePAL{CFGKEY_FRAME_RATE_PAL, 1./50., !EmuSystem::hasPALVideoSystem, optionFrameTimePALIsValid},
+	optionFrameRatePAL{CFGKEY_FRAME_RATE_PAL, 0, !EmuSystem::hasPALVideoSystem, optionFrameTimePALIsValid},
 	optionSoundRate{CFGKEY_SOUND_RATE, 48000, false, isValidSoundRate},
 	optionFontSize{CFGKEY_FONT_Y_SIZE,
 		Config::MACHINE_IS_PANDORA ? 6500 :
@@ -1697,11 +1697,33 @@ void EmuApp::configureAppForEmulation(bool running)
 	appContext().setHintKeyRepeat(!running);
 }
 
+FloatSeconds EmuApp::bestFrameTimeForScreen(VideoSystem system) const
+{
+	auto &screen = *mainWindowData().viewController.emuWindowScreen();
+	auto frameTime = screen.frameTime();
+	auto defaultFrameRate = 1. / EmuSystem::defaultFrameTime(system).count();
+	if(Config::envIsAndroid && appContext().androidSDK() >= 30) // supports setting frame rate dynamically
+	{
+		for(auto rate : screen.supportedFrameRates(appContext()))
+		{
+			static constexpr double stretchFrameRate = 4.; // accept rates +/- this value
+			auto rateDiff = rate - defaultFrameRate;
+			while(rateDiff >= stretchFrameRate)
+				rateDiff -= defaultFrameRate;
+			if(std::abs(rateDiff) <= 3)
+			{
+				logMsg("updated best frame rate:%.2f", rate);
+				frameTime = FloatSeconds{1. / rate};
+			}
+		}
+	}
+	return frameTime;
+}
+
 void EmuApp::applyFrameRates(bool updateFrameTime)
 {
-	auto screenFrameTime = viewController().emuWindow().screen()->frameTime();
-	system().setFrameTime(VideoSystem::NATIVE_NTSC, frameTime(VideoSystem::NATIVE_NTSC, screenFrameTime));
-	system().setFrameTime(VideoSystem::PAL, frameTime(VideoSystem::PAL, screenFrameTime));
+	system().setFrameTime(VideoSystem::NATIVE_NTSC, frameTime(VideoSystem::NATIVE_NTSC));
+	system().setFrameTime(VideoSystem::PAL, frameTime(VideoSystem::PAL));
 	if(updateFrameTime)
 		system().configFrameTime(soundRate());
 }

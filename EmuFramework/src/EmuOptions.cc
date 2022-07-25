@@ -211,15 +211,28 @@ void EmuApp::readRecentContent(IG::ApplicationContext ctx, MapIO &io, size_t rea
 	}
 }
 
-void EmuApp::setFrameTime(VideoSystem system, IG::FloatSeconds time)
+std::pair<IG::FloatSeconds, bool> EmuApp::setFrameTime(VideoSystem vidSys, IG::FloatSeconds time)
 {
-	frameTimeOption(system) = time.count();
+	auto wantedTime = time;
+	if(!time.count())
+	{
+		wantedTime = bestFrameTimeForScreen(vidSys);
+	}
+	if(!system().setFrameTime(vidSys, wantedTime))
+	{
+		return {wantedTime, false};
+	}
+	system().configFrameTime(soundRate());
+	frameTimeOption(vidSys) = time.count();
+	return {wantedTime, true};
 }
 
-IG::FloatSeconds EmuApp::frameTime(VideoSystem system, IG::FloatSeconds fallback) const
+IG::FloatSeconds EmuApp::frameTime(VideoSystem system) const
 {
 	auto &opt = frameTimeOption(system);
-	return opt.val ? IG::FloatSeconds(opt.val) : fallback;
+	if(opt.val)
+		return IG::FloatSeconds(opt.val);
+	return bestFrameTimeForScreen(system);
 }
 
 bool EmuApp::frameTimeIsConst(VideoSystem system) const

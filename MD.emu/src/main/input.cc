@@ -54,7 +54,6 @@ const char *EmuSystem::inputCenterBtnName = "Mode/Start";
 const int EmuSystem::inputFaceBtns = 6;
 const int EmuSystem::inputCenterBtns = 2;
 const int EmuSystem::maxPlayers = 4;
-constexpr int gunDevIdx = 4;
 
 VController::Map MdSystem::vControllerMap(int player)
 {

@@ -34,6 +34,7 @@ public:
 	int8 mdInputPortDev[2]{-1, -1};
 	int autoDetectedVidSysPAL{};
 	int playerIdxMap[4]{};
+	int gunDevIdx{};
 	Byte1Option optionBigEndianSram{CFGKEY_BIG_ENDIAN_SRAM, 0};
 	Byte1Option optionSmsFM{CFGKEY_SMS_FM, 1};
 	Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};

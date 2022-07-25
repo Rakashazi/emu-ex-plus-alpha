@@ -58,9 +58,11 @@ std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0, 5
 #define JUSTIFIER_START			0x20
 #define JUSTIFIER_SELECT		0x08
 
+constexpr unsigned playerBitShift = 28; // player is encoded in 3 bits, last bit of input code is reserved
+
 VController::Map Snes9xSystem::vControllerMap(int player)
 {
-	unsigned playerMask = player << 29;
+	unsigned playerMask = player << playerBitShift;
 	VController::Map map{};
 	map[VController::F_ELEM] = SNES_B_MASK | playerMask;
 	map[VController::F_ELEM+1] = SNES_A_MASK | playerMask;
@@ -88,7 +90,7 @@ unsigned Snes9xSystem::translateInputAction(unsigned input, bool &turbo)
 	turbo = 0;
 	assert(input >= s9xKeyIdxUp);
 	unsigned player = (input - s9xKeyIdxUp) / Controls::gamepadKeys;
-	unsigned playerMask = player << 29;
+	unsigned playerMask = player << playerBitShift;
 	input -= Controls::gamepadKeys * player;
 	switch(input)
 	{
@@ -116,7 +118,6 @@ unsigned Snes9xSystem::translateInputAction(unsigned input, bool &turbo)
 		case s9xKeyIdxR: return SNES_TR_MASK | playerMask;
 		default: bug_unreachable("input == %d", input);
 	}
-	return 0;
 }
 
 #ifdef SNES9X_VERSION_1_4
@@ -128,7 +129,7 @@ static uint16 *S9xGetJoypadBits(unsigned idx)
 
 void Snes9xSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	auto player = a.key >> 29; // player is encoded in upper 3 bits of input code
+	auto player = a.key >> playerBitShift;
 	assert(player < maxPlayers);
 	auto &padData = *S9xGetJoypadBits(player);
 	padData = IG::setOrClearBits(padData, (uint16)(a.key & 0xFFFF), a.state == Input::Action::PUSHED);

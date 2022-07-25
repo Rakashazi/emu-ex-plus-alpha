@@ -195,6 +195,7 @@ public:
 	void runFrames(EmuSystemTaskContext, EmuVideo *, EmuAudio *, int frames, bool skipForward);
 	void skipFrames(EmuSystemTaskContext, int frames, EmuAudio *);
 	bool skipForwardFrames(EmuSystemTaskContext, int frames);
+	FloatSeconds bestFrameTimeForScreen(VideoSystem system) const;
 	void applyFrameRates(bool updateFrameTime = true);
 	IG::Audio::Manager &audioManager();
 	void renderSystemFramebuffer(EmuVideo &);
@@ -265,8 +266,8 @@ public:
 	auto &overlayEffectOption() { return optionOverlayEffect; }
 	bool setOverlayEffectLevel(EmuVideoLayer &, uint8_t val);
 	uint8_t overlayEffectLevel() { return optionOverlayEffectLevel; }
-	void setFrameTime(VideoSystem system, IG::FloatSeconds time);
-	FloatSeconds frameTime(VideoSystem, IG::FloatSeconds fallback) const;
+	std::pair<IG::FloatSeconds, bool> setFrameTime(VideoSystem system, IG::FloatSeconds time);
+	FloatSeconds frameTime(VideoSystem) const;
 	bool frameTimeIsConst(VideoSystem) const;
 	void setFrameInterval(int);
 	int frameInterval() const;

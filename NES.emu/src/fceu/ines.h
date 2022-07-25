@@ -207,6 +207,7 @@ void Mapper119_Init(CartInfo *);
 void Mapper120_Init(CartInfo *);
 void Mapper121_Init(CartInfo *);
 void Mapper125_Init(CartInfo *);
+void Mapper126_Init(CartInfo *);
 void Mapper134_Init(CartInfo *);
 void Mapper140_Init(CartInfo *);
 void Mapper144_Init(CartInfo *);
@@ -300,6 +301,7 @@ void Mapper406_Init(CartInfo *);
 void Mapper414_Init(CartInfo *);
 void Mapper422_Init(CartInfo *);
 void Mapper452_Init(CartInfo *);
+void Mapper534_Init(CartInfo *);
 
 typedef struct {
 	const char *name;

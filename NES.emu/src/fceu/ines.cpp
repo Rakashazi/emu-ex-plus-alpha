@@ -582,7 +582,7 @@ BMAPPINGLocal bmap[] = {
 	{"MMC3 PIRATE H2288",	123, UNLH2288_Init},
 //	{"",					124, Mapper124_Init},
 	{"FDS LH32",			125, LH32_Init},
-//	{"",					126, Mapper126_Init},
+	{"PowerJoy 84-in-1 PJ-008", 126, Mapper126_Init},
 //	{"",					127, Mapper127_Init},
 //	{"",					128, Mapper128_Init},
 //	{"",					129, Mapper129_Init},
@@ -718,6 +718,7 @@ BMAPPINGLocal bmap[] = {
 	{"9999999-in-1",    414, Mapper414_Init},
 	{"BS-400R/BS-4040",    422, Mapper422_Init},
 	{"DS-9-27",    452, Mapper452_Init},
+	{"NJ064",    452, Mapper534_Init},
 
 //-------- Mappers 256-511 is the Supplementary Multilingual Plane ----------
 //-------- Mappers 512-767 is the Supplementary Ideographic Plane -----------

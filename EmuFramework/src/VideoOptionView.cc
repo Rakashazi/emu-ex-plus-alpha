@@ -675,12 +675,9 @@ void VideoOptionView::loadStockItems()
 	if(used(frameInterval))
 		item.emplace_back(&frameInterval);
 	item.emplace_back(&dropLateFrames);
-	if(!app().frameTimeIsConst(VideoSystem::NATIVE_NTSC))
-	{
-		frameRate.setName(makeFrameRateStr(system()));
-		item.emplace_back(&frameRate);
-	}
-	if(!app().frameTimeIsConst(VideoSystem::PAL))
+	frameRate.setName(makeFrameRateStr(system()));
+	item.emplace_back(&frameRate);
+	if(EmuSystem::hasPALVideoSystem)
 	{
 		frameRatePAL.setName(makeFrameRatePALStr(system()));
 		item.emplace_back(&frameRatePAL);
@@ -725,25 +722,18 @@ void VideoOptionView::setEmuVideoLayer(EmuVideoLayer &videoLayer_)
 
 bool VideoOptionView::onFrameTimeChange(VideoSystem vidSys, IG::FloatSeconds time)
 {
-	auto wantedTime = time;
-	if(!time.count())
+	if(auto [effectiveFrameTime, isValid] = app().setFrameTime(vidSys, time);
+		!isValid)
 	{
-		wantedTime = app().viewController().emuWindowScreen()->frameTime();
-	}
-	if(!system().setFrameTime(vidSys, wantedTime))
-	{
-		app().postMessage(4, true, fmt::format("{:.2f}Hz not in valid range", 1. / wantedTime.count()));
+		app().postMessage(4, true, fmt::format("{:.2f}Hz not in valid range", 1. / effectiveFrameTime.count()));
 		return false;
 	}
-	system().configFrameTime(app().soundRate());
 	if(vidSys == VideoSystem::NATIVE_NTSC)
 	{
-		app().setFrameTime(VideoSystem::NATIVE_NTSC, time);
 		frameRate.compile(makeFrameRateStr(system()), renderer(), projP);
 	}
 	else
 	{
-		app().setFrameTime(VideoSystem::PAL, time);
 		frameRatePAL.compile(makeFrameRatePALStr(system()), renderer(), projP);
 	}
 	return true;
@@ -753,7 +743,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(VideoSystem vidSys, const I
 {
 	const bool includeFrameRateDetection = !Config::envIsIOS;
 	auto multiChoiceView = makeViewWithName<TextTableView>("Frame Rate", includeFrameRateDetection ? 4 : 3);
-	multiChoiceView->appendItem("Set with screen's reported rate",
+	multiChoiceView->appendItem("Set screen's reported rate",
 		[this, vidSys](View &view)
 		{
 			if(!app().viewController().emuWindowScreen()->frameRateIsReliable())
@@ -772,7 +762,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(VideoSystem vidSys, const I
 			if(onFrameTimeChange(vidSys, {}))
 				view.dismiss();
 		});
-	multiChoiceView->appendItem("Set default rate",
+	multiChoiceView->appendItem("Set emulated system's rate",
 		[this, vidSys](View &view)
 		{
 			onFrameTimeChange(vidSys, EmuSystem::defaultFrameTime(vidSys));
@@ -799,7 +789,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(VideoSystem vidSys, const I
 		multiChoiceView->appendItem("Detect screen's rate and set",
 			[this, vidSys](const Input::Event &e)
 			{
-				window().setIntendedFrameRate(vidSys == VideoSystem::NATIVE_NTSC ? 60. : 50.);
+				window().setIntendedFrameRate(1. / EmuSystem::defaultFrameTime(vidSys).count());
 				auto frView = makeView<DetectFrameRateView>();
 				frView->onDetectFrameTime =
 					[this, vidSys](IG::FloatSeconds frameTime)

@@ -255,6 +255,7 @@ const char *mdInputSystemToStr(uint8 system)
 		case SYSTEM_MENACER: return "menacer";
 		case SYSTEM_JUSTIFIER: return "justifier";
 		case SYSTEM_TEAMPLAYER: return "team-player";
+		case SYSTEM_LIGHTPHASER: return "light-phaser";
 		default : return "unknown";
 	}
 }
@@ -266,7 +267,10 @@ static bool inputPortWasAutoSetByGame(unsigned port)
 
 static void setupSMSInput()
 {
-	input.system[0] = input.system[1] =  SYSTEM_MS_GAMEPAD;
+	// first port may be set in rom loading code
+	if(!input.system[0])
+		input.system[0] = SYSTEM_MS_GAMEPAD;
+	input.system[1] = SYSTEM_MS_GAMEPAD;
 }
 
 void MdSystem::setupMDInput(EmuApp &app)
@@ -295,6 +299,8 @@ void MdSystem::setupMDInput(EmuApp &app)
 	IG::fill(playerIdxMap);
 	playerIdxMap[0] = 0;
 	playerIdxMap[1] = 4;
+	gunDevIdx = 4;
+	app.defaultVController().setGamepadIsEnabled(true);
 
 	unsigned mdPad = option6BtnPad ? DEVICE_PAD6B : DEVICE_PAD3B;
 	for(auto i : iotaCount(4))
@@ -306,6 +312,12 @@ void MdSystem::setupMDInput(EmuApp &app)
 		io_init();
 		app.applyEnabledFaceButtons(setM3Gamepad);
 		app.applyEnabledCenterButtons(disableModeBtn);
+		for(auto i : iotaCount(2))
+		{
+			logMsg("attached %s to port %d", mdInputSystemToStr(input.system[i]), i);
+		}
+		gunDevIdx = 0;
+		app.defaultVController().setGamepadIsEnabled(input.dev[0] != DEVICE_LIGHTGUN);
 		return;
 	}
 

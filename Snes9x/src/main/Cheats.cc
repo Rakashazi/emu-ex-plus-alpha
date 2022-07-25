@@ -478,6 +478,7 @@ void EmuCheatsView::loadCheatItems()
 					enableCheat(c);
 				else
 					disableCheat(c);
+				writeCheatsFile(system());
 			});
 	}
 }
