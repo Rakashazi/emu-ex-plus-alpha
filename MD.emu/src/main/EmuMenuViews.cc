@@ -40,7 +40,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			system().sessionOptionSet();
 			system().option6BtnPad = item.flipBoolValue(*this);
-			system().setupMDInput(app());
+			system().setupInput(app());
 		}
 	};
 
@@ -51,9 +51,19 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().optionMultiTap = item.flipBoolValue(*this);
-			system().setupMDInput(app());
+			system().setupInput(app());
 		}
 	};
+
+	constexpr const char *inputSystemName(int system)
+	{
+		switch(system)
+		{
+			case SYSTEM_MENACER: return "Menacer";
+			case SYSTEM_JUSTIFIER: return "Justifier";
+		}
+		return "Gamepad";
+	}
 
 	TextMenuItem inputPortsItem[4]
 	{
@@ -66,6 +76,11 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports", &defaultFace(),
+		[this](int idx, Gfx::Text &t)
+		{
+			t.setString(inputSystemName(input.system[1]));
+			return true;
+		},
 		(MenuItem::Id)system().mdInputPortDev[1],
 		inputPortsItem
 	};
@@ -77,7 +92,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 			system().sessionOptionSet();
 			system().optionInputPort1 = system().mdInputPortDev[0] = port1;
 			system().optionInputPort2 = system().mdInputPortDev[1] = port2;
-			system().setupMDInput(app());
+			system().setupInput(app());
 		};
 	}
 

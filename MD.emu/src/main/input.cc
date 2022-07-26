@@ -19,6 +19,9 @@
 #include "MainSystem.hh"
 #include "input.h"
 #include "system.h"
+#include "loadrom.h"
+#include "md_cart.h"
+#include "io_ctrl.h"
 
 namespace EmuEx
 {
@@ -55,19 +58,36 @@ const int EmuSystem::inputFaceBtns = 6;
 const int EmuSystem::inputCenterBtns = 2;
 const int EmuSystem::maxPlayers = 4;
 
+constexpr std::pair<int, bool> setMd6BGamepad[]
+{
+	{0, true}, {1, true}, {2, true}, {3, true}, {4, true}, {5, true}
+};
+constexpr std::pair<int, bool> setMdGamepad[]
+{
+	{0, true}, {1, true}, {2, true}, {3, false}, {4, false}, {5, false}
+};
+constexpr std::pair<int, bool> setM3Gamepad[]
+{
+	{0, false}, {1, true}, {2, true}, {3, false}, {4, false}, {5, false}
+};
+constexpr std::pair<int, bool> enableModeBtn[]{{0, true}};
+constexpr std::pair<int, bool> disableModeBtn[]{{0, false}};
+
 VController::Map MdSystem::vControllerMap(int player)
 {
 	unsigned playerMask = player << 30;
+	unsigned playMaskAlt = input.system[1] == SYSTEM_MENACER ? 1 << 30 : playerMask;
+	unsigned playMaskAlt2 = input.system[1] == SYSTEM_JUSTIFIER ? 1 << 30 : playerMask;
 	VController::Map map{};
 	map[VController::F_ELEM] = INPUT_A | playerMask;
-	map[VController::F_ELEM+1] = INPUT_B | playerMask;
-	map[VController::F_ELEM+2] = INPUT_C | playerMask;
+	map[VController::F_ELEM+1] = INPUT_B | playMaskAlt;
+	map[VController::F_ELEM+2] = INPUT_C | playMaskAlt;
 	map[VController::F_ELEM+3] = INPUT_X | playerMask;
 	map[VController::F_ELEM+4] = INPUT_Y | playerMask;
 	map[VController::F_ELEM+5] = INPUT_Z | playerMask;
 
 	map[VController::C_ELEM] = INPUT_MODE | playerMask;
-	map[VController::C_ELEM+1] = INPUT_START | playerMask;
+	map[VController::C_ELEM+1] = INPUT_START | playMaskAlt2;
 
 	map[VController::D_ELEM] = INPUT_UP | INPUT_LEFT | playerMask;
 	map[VController::D_ELEM+1] = INPUT_UP | playerMask;
@@ -124,18 +144,37 @@ void MdSystem::handleInputAction(EmuApp *, InputAction a)
 	padData = IG::setOrClearBits(padData, (uint16)a.key, a.state == Input::Action::PUSHED);
 }
 
+static void updateGunPos(IG::WindowRect gameRect, const Input::MotionEvent &e, int idx)
+{
+	if(gameRect.overlaps(e.pos()))
+	{
+		int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
+		input.analog[idx][0] = IG::remap(xRel, 0, gameRect.xSize(), 0, bitmap.viewport.w);
+		input.analog[idx][1] = IG::remap(yRel, 0, gameRect.ySize(), 0, bitmap.viewport.h);
+	}
+	else
+	{
+		// offscreen
+		input.analog[idx][0] = input.analog[idx][1] = -1000;
+	}
+}
+
 bool MdSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
 {
 	if(input.dev[gunDevIdx] != DEVICE_LIGHTGUN)
 		return false;
-	if(gameRect.overlaps(e.pos()))
-	{
-		int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
-		input.analog[gunDevIdx][0] = IG::remap(xRel, 0, gameRect.xSize(), 0, bitmap.viewport.w);
-		input.analog[gunDevIdx][1] = IG::remap(yRel, 0, gameRect.ySize(), 0, bitmap.viewport.h);
-	}
+	updateGunPos(gameRect, e, gunDevIdx);
 	input.pad[gunDevIdx] |= INPUT_A;
 	logMsg("gun pushed @ %d,%d, on MD %d,%d", e.pos().x, e.pos().y, input.analog[gunDevIdx][0], input.analog[gunDevIdx][1]);
+	return true;
+}
+
+bool MdSystem::onPointerInputUpdate(const Input::MotionEvent &e, Input::DragTrackerState dragState,
+	Input::DragTrackerState prevDragState, IG::WindowRect gameRect)
+{
+	if(input.dev[gunDevIdx] != DEVICE_LIGHTGUN)
+		return false;
+	updateGunPos(gameRect, e, gunDevIdx);
 	return true;
 }
 
@@ -155,5 +194,122 @@ void MdSystem::clearInputBuffers(EmuInputView &)
 		IG::fill(analog);
 	}
 }
+
+const char *mdInputSystemToStr(uint8 system)
+{
+	switch(system)
+	{
+		case NO_SYSTEM: return "unconnected";
+		case SYSTEM_MD_GAMEPAD: return "gamepad";
+		case SYSTEM_MS_GAMEPAD: return "sms gamepad";
+		case SYSTEM_MOUSE: return "mouse";
+		case SYSTEM_MENACER: return "menacer";
+		case SYSTEM_JUSTIFIER: return "justifier";
+		case SYSTEM_TEAMPLAYER: return "team-player";
+		case SYSTEM_LIGHTPHASER: return "light-phaser";
+		default : return "unknown";
+	}
+}
+
+static bool inputPortWasAutoSetByGame(unsigned port)
+{
+	return old_system[port] != -1;
+}
+
+void MdSystem::setupSmsInput(EmuApp &app)
+{
+	// first port may be set in rom loading code
+	if(!input.system[0])
+		input.system[0] = SYSTEM_MS_GAMEPAD;
+	input.system[1] = SYSTEM_MS_GAMEPAD;
+	io_init();
+	app.applyEnabledFaceButtons(setM3Gamepad);
+	app.applyEnabledCenterButtons(disableModeBtn);
+	for(auto i : iotaCount(2))
+	{
+		logMsg("attached %s to port %d", mdInputSystemToStr(input.system[i]), i);
+	}
+	gunDevIdx = 0;
+	auto &vCtrl = app.defaultVController();
+	if(input.dev[0] == DEVICE_LIGHTGUN && vCtrl.inputPlayer() != 1)
+	{
+		savedVControllerPlayer = vCtrl.inputPlayer();
+		vCtrl.setInputPlayer(1);
+	}
+}
+
+void MdSystem::setupMdInput(EmuApp &app)
+{
+	if(cart.special & HW_J_CART)
+	{
+		input.system[0] = input.system[1] = SYSTEM_MD_GAMEPAD;
+		playerIdxMap[2] = 5;
+		playerIdxMap[3] = 6;
+	}
+	else if(optionMultiTap)
+	{
+		input.system[0] = SYSTEM_TEAMPLAYER;
+		input.system[1] = 0;
+
+		playerIdxMap[1] = 1;
+		playerIdxMap[2] = 2;
+		playerIdxMap[3] = 3;
+	}
+	else
+	{
+		for(auto i : iotaCount(2))
+		{
+			if(mdInputPortDev[i] == -1) // user didn't specify device, go with auto settings
+			{
+				if(!inputPortWasAutoSetByGame(i))
+					input.system[i] = SYSTEM_MD_GAMEPAD;
+				else
+				{
+					logMsg("input port %d set by game detection", i);
+					input.system[i] = old_system[i];
+				}
+			}
+			else
+				input.system[i] = mdInputPortDev[i];
+			logMsg("attached %s to port %d%s", mdInputSystemToStr(input.system[i]), i, mdInputPortDev[i] == -1 ? " (auto)" : "");
+		}
+	}
+	io_init();
+	gunDevIdx = 4;
+	app.applyEnabledFaceButtons(option6BtnPad ? setMd6BGamepad : setMdGamepad);
+	app.applyEnabledCenterButtons(option6BtnPad ? enableModeBtn : disableModeBtn);
+}
+
+void MdSystem::setupInput(EmuApp &app)
+{
+	if(!hasContent())
+	{
+		app.applyEnabledFaceButtons(option6BtnPad ? setMd6BGamepad : setMdGamepad);
+		app.applyEnabledCenterButtons(option6BtnPad ? enableModeBtn : disableModeBtn);
+		return;
+	}
+	if(savedVControllerPlayer != -1)
+	{
+		app.defaultVController().setInputPlayer(std::exchange(savedVControllerPlayer, -1));
+	}
+	IG::fill(playerIdxMap);
+	playerIdxMap[0] = 0;
+	playerIdxMap[1] = 4;
+
+	unsigned mdPad = option6BtnPad ? DEVICE_PAD6B : DEVICE_PAD3B;
+	for(auto i : iotaCount(4))
+		config.input[i].padtype = mdPad;
+
+	if(system_hw == SYSTEM_PBC)
+	{
+		setupSmsInput(app);
+	}
+	else
+	{
+		setupMdInput(app);
+	}
+	app.updateVControllerMapping();
+}
+
 
 }

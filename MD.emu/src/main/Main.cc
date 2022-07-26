@@ -241,124 +241,8 @@ void MdSystem::closeSystem()
 	}
 	#endif
 	old_system[0] = old_system[1] = -1;
+	input.system[0] = input.system[1] = NO_SYSTEM;
 	clearCheatList();
-}
-
-const char *mdInputSystemToStr(uint8 system)
-{
-	switch(system)
-	{
-		case NO_SYSTEM: return "unconnected";
-		case SYSTEM_MD_GAMEPAD: return "gamepad";
-		case SYSTEM_MS_GAMEPAD: return "sms gamepad";
-		case SYSTEM_MOUSE: return "mouse";
-		case SYSTEM_MENACER: return "menacer";
-		case SYSTEM_JUSTIFIER: return "justifier";
-		case SYSTEM_TEAMPLAYER: return "team-player";
-		case SYSTEM_LIGHTPHASER: return "light-phaser";
-		default : return "unknown";
-	}
-}
-
-static bool inputPortWasAutoSetByGame(unsigned port)
-{
-	return old_system[port] != -1;
-}
-
-static void setupSMSInput()
-{
-	// first port may be set in rom loading code
-	if(!input.system[0])
-		input.system[0] = SYSTEM_MS_GAMEPAD;
-	input.system[1] = SYSTEM_MS_GAMEPAD;
-}
-
-void MdSystem::setupMDInput(EmuApp &app)
-{
-	static constexpr std::pair<int, bool> setMd6BGamepad[]
-	{
-		{0, true}, {1, true}, {2, true}, {3, true}, {4, true}, {5, true}
-	};
-	static constexpr std::pair<int, bool> setMdGamepad[]
-	{
-		{0, true}, {1, true}, {2, true}, {3, false}, {4, false}, {5, false}
-	};
-	static constexpr std::pair<int, bool> setM3Gamepad[]
-	{
-		{0, false}, {1, true}, {2, true}, {3, false}, {4, false}, {5, false}
-	};
-	static constexpr std::pair<int, bool> enableModeBtn[]{{0, true}};
-	static constexpr std::pair<int, bool> disableModeBtn[]{{0, false}};
-	if(!hasContent())
-	{
-		app.applyEnabledFaceButtons(option6BtnPad ? setMd6BGamepad : setMdGamepad);
-		app.applyEnabledCenterButtons(option6BtnPad ? enableModeBtn : disableModeBtn);
-		return;
-	}
-
-	IG::fill(playerIdxMap);
-	playerIdxMap[0] = 0;
-	playerIdxMap[1] = 4;
-	gunDevIdx = 4;
-	app.defaultVController().setGamepadIsEnabled(true);
-
-	unsigned mdPad = option6BtnPad ? DEVICE_PAD6B : DEVICE_PAD3B;
-	for(auto i : iotaCount(4))
-		config.input[i].padtype = mdPad;
-
-	if(system_hw == SYSTEM_PBC)
-	{
-		setupSMSInput();
-		io_init();
-		app.applyEnabledFaceButtons(setM3Gamepad);
-		app.applyEnabledCenterButtons(disableModeBtn);
-		for(auto i : iotaCount(2))
-		{
-			logMsg("attached %s to port %d", mdInputSystemToStr(input.system[i]), i);
-		}
-		gunDevIdx = 0;
-		app.defaultVController().setGamepadIsEnabled(input.dev[0] != DEVICE_LIGHTGUN);
-		return;
-	}
-
-	if(cart.special & HW_J_CART)
-	{
-		input.system[0] = input.system[1] = SYSTEM_MD_GAMEPAD;
-		playerIdxMap[2] = 5;
-		playerIdxMap[3] = 6;
-	}
-	else if(optionMultiTap)
-	{
-		input.system[0] = SYSTEM_TEAMPLAYER;
-		input.system[1] = 0;
-
-		playerIdxMap[1] = 1;
-		playerIdxMap[2] = 2;
-		playerIdxMap[3] = 3;
-	}
-	else
-	{
-		for(auto i : iotaCount(2))
-		{
-			if(mdInputPortDev[i] == -1) // user didn't specify device, go with auto settings
-			{
-				if(!inputPortWasAutoSetByGame(i))
-					input.system[i] = SYSTEM_MD_GAMEPAD;
-				else
-				{
-					logMsg("input port %d set by game detection", i);
-					input.system[i] = old_system[i];
-				}
-			}
-			else
-				input.system[i] = mdInputPortDev[i];
-			logMsg("attached %s to port %d%s", mdInputSystemToStr(input.system[i]), i, mdInputPortDev[i] == -1 ? " (auto)" : "");
-		}
-	}
-
-	io_init();
-	app.applyEnabledFaceButtons(option6BtnPad ? setMd6BGamepad : setMdGamepad);
-	app.applyEnabledCenterButtons(option6BtnPad ? enableModeBtn : disableModeBtn);
 }
 
 static unsigned detectISORegion(uint8 bootSector[0x800])
@@ -466,7 +350,7 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 		if(old_system[i] != -1)
 			old_system[i] = input.system[i]; // store input ports set by game
 	}
-	setupMDInput(EmuApp::get(appContext()));
+	setupInput(EmuApp::get(appContext()));
 
 	#ifndef NO_SCD
 	if(sCD.isActive)

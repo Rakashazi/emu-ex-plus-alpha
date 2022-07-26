@@ -31,10 +31,11 @@ bool hasMDExtension(std::string_view name);
 class MdSystem final: public EmuSystem
 {
 public:
-	int8 mdInputPortDev[2]{-1, -1};
-	int autoDetectedVidSysPAL{};
 	int playerIdxMap[4]{};
 	int gunDevIdx{};
+	int8_t mdInputPortDev[2]{-1, -1};
+	int8_t autoDetectedVidSysPAL{};
+	int8_t savedVControllerPlayer = -1;
 	Byte1Option optionBigEndianSram{CFGKEY_BIG_ENDIAN_SRAM, 0};
 	Byte1Option optionSmsFM{CFGKEY_SMS_FM, 1};
 	Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};
@@ -49,7 +50,7 @@ public:
 
 	MdSystem(ApplicationContext ctx):
 		EmuSystem{ctx} {}
-	void setupMDInput(EmuApp &);
+	void setupInput(EmuApp &);
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -76,8 +77,14 @@ public:
 	void onOptionsLoaded();
 	void onSessionOptionsLoaded(EmuApp &);
 	bool onPointerInputStart(const Input::MotionEvent &, Input::DragTrackerState, IG::WindowRect gameRect);
+	bool onPointerInputUpdate(const Input::MotionEvent &, Input::DragTrackerState dragState,
+		Input::DragTrackerState prevDragState, IG::WindowRect gameRect);
 	bool onPointerInputEnd(const Input::MotionEvent &, Input::DragTrackerState, IG::WindowRect gameRect);
 	VideoSystem videoSystem() const;
+
+private:
+	void setupSmsInput(EmuApp &);
+	void setupMdInput(EmuApp &);
 };
 
 using MainSystem = MdSystem;

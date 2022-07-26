@@ -42,7 +42,7 @@ void MdSystem::onSessionOptionsLoaded(EmuApp &app)
 	config.region_detect = optionRegion;
 	mdInputPortDev[0] = optionInputPort1;
 	mdInputPortDev[1] = optionInputPort2;
-	setupMDInput(app);
+	setupInput(app);
 }
 
 bool MdSystem::resetSessionOptions(EmuApp &app)
