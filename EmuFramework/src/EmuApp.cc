@@ -156,7 +156,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionAutoSaveState{CFGKEY_AUTO_SAVE_STATE, 1},
 	optionConfirmAutoLoadState{CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1},
 	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
-	optionFastForwardSpeed{CFGKEY_FAST_FORWARD_SPEED, 4, false, optionIsValidWithMinMax<2, 7>},
+	optionFastForwardSpeed{CFGKEY_FAST_FORWARD_SPEED, 4, false, optionIsValidWithMinMax<1, 7>},
 	optionSound{CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS},
 	optionSoundVolume{CFGKEY_SOUND_VOLUME,
 		100, false, optionIsValidWithMinMax<0, 100, uint8_t>},
@@ -1330,7 +1330,7 @@ void EmuApp::resetInput()
 	setFastForwardSpeed(0);
 }
 
-void EmuApp::setFastForwardSpeed(int speed)
+void EmuApp::setFastForwardSpeed(float speed)
 {
 	bool active = speed > 1;
 	system().targetFastForwardSpeed = speed;

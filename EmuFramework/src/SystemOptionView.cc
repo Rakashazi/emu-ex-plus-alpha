@@ -151,12 +151,14 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fastForwardSpeedItem
 	{
-		{"2x", &defaultFace(), setFastForwardSpeedDel(), 2},
-		{"3x", &defaultFace(), setFastForwardSpeedDel(), 3},
-		{"4x", &defaultFace(), setFastForwardSpeedDel(), 4},
-		{"5x", &defaultFace(), setFastForwardSpeedDel(), 5},
-		{"6x", &defaultFace(), setFastForwardSpeedDel(), 6},
-		{"7x", &defaultFace(), setFastForwardSpeedDel(), 7},
+		{"1.25x", &defaultFace(), setFastForwardSpeedDel(), 1.25},
+		{"1.5x", &defaultFace(), setFastForwardSpeedDel(), 1.5},
+		{"2x", &defaultFace(), setFastForwardSpeedDel(), 2.0},
+		{"3x", &defaultFace(), setFastForwardSpeedDel(), 3.0},
+		{"4x", &defaultFace(), setFastForwardSpeedDel(), 4.0},
+		{"5x", &defaultFace(), setFastForwardSpeedDel(), 5.0},
+		{"6x", &defaultFace(), setFastForwardSpeedDel(), 6.0},
+		{"7x", &defaultFace(), setFastForwardSpeedDel(), 7.0},
 	},
 	fastForwardSpeed
 	{

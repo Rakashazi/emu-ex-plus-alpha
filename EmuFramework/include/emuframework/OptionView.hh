@@ -157,8 +157,8 @@ protected:
 	MultiChoiceMenuItem autoSaveState;
 	BoolMenuItem confirmAutoLoadState;
 	BoolMenuItem confirmOverwriteState;
-	static constexpr int MIN_FAST_FORWARD_SPEED = 2;
-	TextMenuItem fastForwardSpeedItem[6];
+	static constexpr int MIN_FAST_FORWARD_SPEED = 1;
+	TextMenuItem fastForwardSpeedItem[8];
 	MultiChoiceMenuItem fastForwardSpeed;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
 	StaticArrayList<MenuItem*, 24> item{};

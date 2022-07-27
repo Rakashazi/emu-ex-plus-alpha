@@ -166,7 +166,7 @@ public:
 	void removeTurboInputEvent(unsigned action);
 	void runTurboInputEvents();
 	void resetInput();
-	void setFastForwardSpeed(int speed);
+	void setFastForwardSpeed(float speed);
 	void saveSessionOptions();
 	void loadSessionOptions();
 	bool hasSavedSessionOptions();
