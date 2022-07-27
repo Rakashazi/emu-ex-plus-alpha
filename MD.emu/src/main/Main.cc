@@ -70,7 +70,7 @@ bool hasMDExtension(std::string_view name)
 
 static bool hasMDCDExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".cue", ".iso", ".CUE", ".ISO");
+	return IG::stringEndsWithAny(name, ".cue", ".iso", ".chd", ".CUE", ".ISO", ".CHD");
 }
 
 static bool hasMDWithCDExtension(std::string_view name)

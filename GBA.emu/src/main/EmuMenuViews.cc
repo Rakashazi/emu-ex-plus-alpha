@@ -255,7 +255,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 		channelEnableItem("Noise", 0x8),
 	};
 
-	std::array<TextMenuItem, 2> filteringItem
+	std::array<TextMenuItem, 2> filteringLevelItem
 	{
 		TextMenuItem
 		{
@@ -272,7 +272,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 					[this](EmuApp &app, auto val)
 					{
 						soundSetFiltering(gGba, val / 100.f);
-						filtering.setSelected((MenuItem::Id)val, *this);
+						filteringLevel.setSelected((MenuItem::Id)val, *this);
 						dismissPrevious();
 						return true;
 					});
@@ -281,7 +281,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 		}
 	};
 
-	MultiChoiceMenuItem filtering
+	MultiChoiceMenuItem filteringLevel
 	{
 		"Filtering Level", &defaultFace(),
 		[this](size_t idx, Gfx::Text &t)
@@ -290,12 +290,12 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 			return true;
 		},
 		(MenuItem::Id)soundFilteringAsInt(gGba),
-		filteringItem
+		filteringLevelItem
 	};
 
-	BoolMenuItem interpolation
+	BoolMenuItem filtering
 	{
-		"Interpolation", &defaultFace(),
+		"Filtering", &defaultFace(),
 		soundGetInterpolation(gGba),
 		[this](BoolMenuItem &item)
 		{
@@ -308,7 +308,7 @@ public:
 	{
 		loadStockItems();
 		item.emplace_back(&filtering);
-		item.emplace_back(&interpolation);
+		item.emplace_back(&filteringLevel);
 		item.emplace_back(&mixer);
 		item.emplace_back(&volumeLevel[0]);
 		item.emplace_back(&channelEnable[0]);

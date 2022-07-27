@@ -9,7 +9,6 @@ CPPFLAGS += -DHAVE_ZLIB_H \
 -DNO_PNG \
 -DNO_LINK \
 -DNO_DEBUGGER \
--DBLIP_BUFFER_FAST=1 \
 -I$(projectPath)/src \
 -I$(projectPath)/src/vbam
 

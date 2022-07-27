@@ -23,6 +23,7 @@
 #include "CDAccess.h"
 #include "CDAccess_Image.h"
 #include "CDAccess_CCD.h"
+#include "CDAccess_CHD.h"
 
 namespace Mednafen
 {
@@ -43,6 +44,9 @@ CDAccess* CDAccess_Open(VirtualFS* vfs, const std::string& path, bool image_memc
   ret = new CDAccess_CCD(vfs, path, image_memcache);
  else
  #endif
+ if(vfs->test_ext(path, ".chd"))
+  ret = new CDAccess_CHD(path, image_memcache);
+ else
   ret = new CDAccess_Image(vfs, path, image_memcache);
 
  return ret;

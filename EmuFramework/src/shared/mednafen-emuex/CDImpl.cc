@@ -17,6 +17,7 @@
 #include <mednafen/cdrom/CDAccess.h>
 #include <mednafen/cdrom/CDAccess_Image.h>
 #include <mednafen/cdrom/CDAccess_CCD.h>
+#include <mednafen/cdrom/CDAccess_CHD.h>
 
 namespace Mednafen
 {
@@ -74,10 +75,10 @@ void CDAccess_Image::ImageOpenBinary(VirtualFS* vfs, const std::string& path, bo
 	GenerateTOC();
 }
 
-int CDAccess_Image::Read_Sector(uint8 *buf, int32 lba, uint32 size)
+static int readSector(auto &cdAccess, uint8 *buf, int32 lba, uint32 size)
 {
 	uint8 data[2352 + 96]{};
-	int format = Read_Raw_Sector(data, lba);
+	int format = cdAccess.Read_Raw_Sector(data, lba);
 	switch(format)
 	{
 		case DI_FORMAT_AUDIO:
@@ -106,6 +107,11 @@ int CDAccess_Image::Read_Sector(uint8 *buf, int32 lba, uint32 size)
 		break;
 	}
 	return format;
+}
+
+int CDAccess_Image::Read_Sector(uint8 *buf, int32 lba, uint32 size)
+{
+	return readSector(*this, buf, lba, size);
 }
 
 void CDAccess_Image::HintReadSector(int32 lba, int32 count)
@@ -156,6 +162,11 @@ int CDAccess_CCD::Read_Sector(uint8 *buf, int32 lba, uint32 size)
 void CDAccess_CCD::HintReadSector(int32 lba, int32 count)
 {
  img_stream->advise(lba * 2352, 2352 * count, IG::IOAdvice::WILLNEED);
+}
+
+int CDAccess_CHD::Read_Sector(uint8 *buf, int32 lba, uint32 size)
+{
+	return readSector(*this, buf, lba, size);
 }
 
 }

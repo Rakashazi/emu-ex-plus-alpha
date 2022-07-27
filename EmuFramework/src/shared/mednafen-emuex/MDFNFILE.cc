@@ -91,4 +91,9 @@ extern int openFdHelper(const char *file, int oflag, mode_t mode)
 	return EmuEx::gAppContext().openFileUriFd(file, openFlags | IG::FILE_TEST_BIT).release();
 }
 
+extern FILE *fopenHelper(const char* filename, const char* mode)
+{
+	return IG::FileUtils::fopenUri(EmuEx::gAppContext(), filename, mode);
+}
+
 }

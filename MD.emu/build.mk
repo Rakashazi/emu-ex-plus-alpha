@@ -75,6 +75,8 @@ ifneq ($(SUBARCH), armv6)
 endif
 
 ifdef hasSCD
+ include $(EMUFRAMEWORK_PATH)/make/mednafenCommon.mk
+
  SRC += scd/scd.cc \
  scd/LC89510.cc \
  scd/cd_sys.cc \
@@ -82,53 +84,15 @@ ifdef hasSCD
  scd/pcm.cc \
  scd/cd_file.cc \
  scd/memMain.cc \
- scd/memSub.cc
+ scd/memSub.cc \
+ $(MDFN_CDROM_STANDALONE_SRC)
 
- CPPFLAGS += -I$(EMUFRAMEWORK_PATH)/include/shared/mednafen -I$(EMUFRAMEWORK_PATH)/src/shared
- VPATH += $(EMUFRAMEWORK_PATH)/src/shared/mednafen $(EMUFRAMEWORK_PATH)/src/shared/mednafen-emuex
- CPPFLAGS += -DHAVE_MKDIR \
- -DHAVE_CONFIG_H \
- -DMDFN_CD_SUPPORTS_BINARY_IMAGES \
- -DMDFN_CD_NO_CCD \
- -DHAVE_LIBSNDFILE \
- -DPSS_STYLE=1
+ VPATH += $(EMUFRAMEWORK_PATH)/src/shared
 
- SRC += MDFNApi.cc \
- CDImpl.cc \
- error.cpp \
- endian.cpp \
- MemoryStream.cpp \
- NativeVFS.cpp \
- Stream.cpp \
- StreamImpl.cc \
- VirtualFS.cpp \
- cdrom/CDAFReader.cpp \
- cdrom/CDAFReader_FLAC.cpp \
- cdrom/CDAFReader_MPC.cpp \
- cdrom/CDAFReader_PCM.cpp \
- cdrom/CDAFReader_Vorbis.cpp \
- cdrom/lec.cpp \
- cdrom/recover-raw.cpp \
- cdrom/galois.cpp \
- cdrom/crc32.cpp \
- cdrom/l-ec.cpp \
- cdrom/CDUtility.cpp \
- cdrom/CDAccess_Image.cpp \
- cdrom/CDAccess_CCD.cpp \
- cdrom/CDAccess.cpp \
- hash/crc.cpp \
- string/string.cpp \
- mpcdec/huffman.c \
- mpcdec/mpc_decoder.c \
- mpcdec/mpc_reader.c \
- mpcdec/requant.c \
- mpcdec/streaminfo.c \
- mpcdec/synth_filter.c \
- mpcdec/mpc_bits_reader.c \
- mpcdec/mpc_demux.c \
- mpcdec/crc32.c
+ CPPFLAGS += $(MDFN_COMMON_CPPFLAGS) \
+  $(MDFN_CDROM_CPPFLAGS) \
+  -DMDFN_CD_NO_CCD
 
- cxxExceptions := 1
  include $(IMAGINE_PATH)/make/package/libvorbis.mk
  include $(IMAGINE_PATH)/make/package/flac.mk
 else

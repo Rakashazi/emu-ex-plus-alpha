@@ -46,7 +46,7 @@ bool hasHuCardExtension(std::string_view name)
 
 static bool hasCDExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".toc", ".cue", ".ccd", ".TOC", ".CUE", ".CCD");
+	return IG::stringEndsWithAny(name, ".toc", ".cue", ".ccd", ".chd", ".TOC", ".CUE", ".CCD", ".CHD");
 }
 
 static bool hasPCEWithCDExtension(std::string_view name)
