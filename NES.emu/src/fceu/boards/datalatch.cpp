@@ -587,7 +587,7 @@ void BMCK3046_Init(CartInfo *info) {
 
 static void Mapper429_Sync(void) {
 	setprg32(0x8000, latche >>2);
-	setchr8(latche &3);
+	setchr8(latche);
 }
 
 static void Mapper429_Reset(void) {
