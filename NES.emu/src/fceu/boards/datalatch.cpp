@@ -19,7 +19,7 @@
  */
 
 #include "mapinc.h"
-#include "../ines.h"
+#include "../fds_apu.h"
 
 static uint8 latche, latcheinit, bus_conflict;
 static uint16 addrreg0, addrreg1;
@@ -28,7 +28,7 @@ static uint32 WRAMSIZE;
 static void (*WSync)(void);
 
 static DECLFW(LatchWrite) {
-//	FCEU_printf("bs %04x %02x\n",A,V);
+/*	FCEU_printf("bs %04x %02x\n",A,V); */
 	if (bus_conflict)
 		latche = V & CartBR(A);
 	else
@@ -68,63 +68,21 @@ static void Latch_Init(CartInfo *info, void (*proc)(void), uint8 init, uint16 ad
 	info->Power = LatchPower;
 	info->Close = LatchClose;
 	GameStateRestore = StateRestore;
-	if(info->ines2)
-		if(info->battery_wram_size + info->wram_size > 0)
-			wram = 1;
-	if (wram)
-	{
-		if(info->ines2)
-		{
-			//I would like to do it in this way, but FCEUX is woefully inadequate
-			//for instance if WRAMSIZE is large, the cheat pointers may get overwritten. and it's just a giant mess.
-			//WRAMSIZE = info->battery_wram_size + info->wram_size;
-			//WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-			//if(!info->wram_size && !info->battery_wram_size) {}
-			//else if(info->wram_size && !info->battery_wram_size)
-			//	SetupCartPRGMapping(0x10, WRAM, info->wram_size, 1);
-			//else if(!info->wram_size && info->battery_wram_size)
-			//{
-			//	SetupCartPRGMapping(0x10, WRAM, info->battery_wram_size, 1);
-			//	info->SaveGame[0] = WRAM;
-			//	info->SaveGameLen[0] = info->battery_wram_size;
-			//} else {
-			//	//well, this is annoying
-			//	SetupCartPRGMapping(0x10, WRAM, info->wram_size, 1);
-			//	SetupCartPRGMapping(0x11, WRAM, info->battery_wram_size, 1); //? ? ? there probably isnt even a way to select this
-			//	info->SaveGame[0] = WRAM + info->wram_size;
-			//	info->SaveGameLen[0] = info->battery_wram_size;
-			//}
-			
-			//this is more likely the only practical scenario
-			WRAMSIZE = 8192;
-			WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-			SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-			SetReadHandler(0x6000, 0x7FFF, CartBR);
-			SetWriteHandler(0x6000, 0x7FFF, CartBW);
-			setprg8r(0x10, 0x6000, 0);
-			if(info->battery_wram_size)
-			{
-				info->SaveGame[0] = WRAM;
-				info->SaveGameLen[0] = 8192;
-			}
+	if (wram) {
+		WRAMSIZE = 8192;
+		WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+		SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+		if (info->battery) {
+			info->SaveGame[0] = WRAM;
+			info->SaveGameLen[0] = WRAMSIZE;
 		}
-		else
-		{
-			WRAMSIZE = 8192;
-			WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-			SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-			if (info->battery) {
-				info->SaveGame[0] = WRAM;
-				info->SaveGameLen[0] = WRAMSIZE;
-			}
-			AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-		}
-		
+		AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 	}
 	AddExState(&latche, 1, 0, "LATC");
+	AddExState(&bus_conflict, 1, 0, "BUSC");
 }
 
-//------------------ Map 0 ---------------------------
+/*------------------ Map 0 ---------------------------*/
 
 #ifdef DEBUG_MAPPER
 static DECLFW(NROMWrite) {
@@ -134,9 +92,9 @@ static DECLFW(NROMWrite) {
 #endif
 
 static void NROMPower(void) {
-	setprg8r(0x10, 0x6000, 0);	// Famili BASIC (v3.0) need it (uses only 4KB), FP-BASIC uses 8KB
-	setprg16(0x8000, ~1);
-	setprg16(0xC000, ~0);
+	setprg8r(0x10, 0x6000, 0);	/* Famili BASIC (v3.0) need it (uses only 4KB), FP-BASIC uses 8KB */
+	setprg16(0x8000, 0);
+	setprg16(0xC000, 1);
 	setchr8(0);
 
 	SetReadHandler(0x6000, 0x7FFF, CartBR);
@@ -145,7 +103,7 @@ static void NROMPower(void) {
 
 	FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
 
-#ifdef DEBUG_MAPPER
+	#ifdef DEBUG_MAPPER
 	SetWriteHandler(0x4020, 0xFFFF, NROMWrite);
 	#endif
 }
@@ -164,40 +122,36 @@ void NROM_Init(CartInfo *info) {
 	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 }
 
-//------------------ Map 2 ---------------------------
+/*------------------ Map 2 ---------------------------*/
 
 static void UNROMSync(void) {
-//	static uint32 mirror_in_use = 0;
-//	if (PRGsize[0] <= 128 * 1024) {
-//		setprg16(0x8000, latche & 0x7);
-//		if (latche & 8) mirror_in_use = 1;
-//		if (mirror_in_use)
-//			setmirror(((latche >> 3) & 1) ^ 1);	// Higway Star Hacked mapper, disabled till new mapper defined
-//	} else
+	setprg8r(0x10, 0x6000, 0);
 	setprg16(0x8000, latche);
 	setprg16(0xc000, ~0);
 	setchr8(0);
 }
 
 void UNROM_Init(CartInfo *info) {
-	Latch_Init(info, UNROMSync, 0, 0x8000, 0xFFFF, 0, info->ines2 && info->submapper == 2);
+	/* By default, do not emulate bus conflicts except when explicitly told by a NES 2.0 header to do so. */
+	Latch_Init(info, UNROMSync, 0, 0x8000, 0xFFFF, 1, info->iNES2 && info->submapper == 2);
 }
 
-//------------------ Map 3 ---------------------------
+/*------------------ Map 3 ---------------------------*/
 
 static void CNROMSync(void) {
 	setchr8(latche);
 	setprg32(0x8000, 0);
-	setprg8r(0x10, 0x6000, 0);	// Hayauchy IGO uses 2Kb or RAM
+	setprg8r(0x10, 0x6000, 0);	/* Hayauchy IGO uses 2Kb or RAM */
 }
 
 void CNROM_Init(CartInfo *info) {
-	Latch_Init(info, CNROMSync, 0, 0x8000, 0xFFFF, 1, info->ines2 && info->submapper == 2);
+	/* By default, do not emulate bus conflicts except when explicitly told by a NES 2.0 header to do so. */
+	Latch_Init(info, CNROMSync, 0, 0x8000, 0xFFFF, 1, info->iNES2 && info->submapper == 2);
 }
 
-//------------------ Map 7 ---------------------------
+/*------------------ Map 7 ---------------------------*/
 
-static void ANROMSync() {
+static void ANROMSync(void) {
 	setprg32(0x8000, latche & 0xF);
 	setmirror(MI_0 + ((latche >> 4) & 1));
 	setchr8(0);
@@ -207,9 +161,9 @@ void ANROM_Init(CartInfo *info) {
 	Latch_Init(info, ANROMSync, 0, 0x4020, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 8 ---------------------------
+/*------------------ Map 8 ---------------------------*/
 
-static void M8Sync() {
+static void M8Sync(void) {
 	setprg16(0x8000, latche >> 3);
 	setprg16(0xc000, 1);
 	setchr8(latche & 3);
@@ -219,7 +173,7 @@ void Mapper8_Init(CartInfo *info) {
 	Latch_Init(info, M8Sync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 11 ---------------------------
+/*------------------ Map 11 ---------------------------*/
 
 static void M11Sync(void) {
 	setprg32(0x8000, latche & 0xF);
@@ -234,7 +188,7 @@ void Mapper144_Init(CartInfo *info) {
 	Latch_Init(info, M11Sync, 0, 0x8001, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 13 ---------------------------
+/*------------------ Map 13 ---------------------------*/
 
 static void CPROMSync(void) {
 	setchr4(0x0000, 0);
@@ -246,21 +200,23 @@ void CPROM_Init(CartInfo *info) {
 	Latch_Init(info, CPROMSync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 29 ---------------------------	//Used by Glider, http://www.retrousb.com/product_info.php?cPath=30&products_id=58
+/*------------------ Map 29 ---------------------------*/
+/* added 2019-5-23
+ * Mapper 28, used by homebrew game Glider
+ * https://wiki.nesdev.com/w/index.php/INES_Mapper_029 */
 
-static void M29Sync() {
-	setprg16(0x8000, (latche & 0x1C) >> 2);
+static void M29Sync(void) {
+	setprg16(0x8000, (latche >> 2) & 7);
 	setprg16(0xc000, ~0);
 	setchr8r(0, latche & 3);
 	setprg8r(0x10, 0x6000, 0);
 }
 
 void Mapper29_Init(CartInfo *info) {
-	Latch_Init(info, M29Sync, 0, 0x8000, 0xFFFF, 1, 0);
+	Latch_Init(info, M29Sync, 0x0000, 0x6000, 0xFFFF, 1, 0);
 }
 
-
-//------------------ Map 38 ---------------------------
+/*------------------ Map 38 ---------------------------*/
 
 static void M38Sync(void) {
 	setprg32(0x8000, latche & 3);
@@ -271,7 +227,7 @@ void Mapper38_Init(CartInfo *info) {
 	Latch_Init(info, M38Sync, 0, 0x7000, 0x7FFF, 0, 0);
 }
 
-//------------------ Map 66 ---------------------------
+/*------------------ Map 66 ---------------------------*/
 
 static void MHROMSync(void) {
 	setprg32(0x8000, latche >> 4);
@@ -282,9 +238,9 @@ void MHROM_Init(CartInfo *info) {
 	Latch_Init(info, MHROMSync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 70 ---------------------------
+/*------------------ Map 70 ---------------------------*/
 
-static void M70Sync() {
+static void M70Sync(void) {
 	setprg16(0x8000, latche >> 4);
 	setprg16(0xc000, ~0);
 	setchr8(latche & 0xf);
@@ -294,9 +250,9 @@ void Mapper70_Init(CartInfo *info) {
 	Latch_Init(info, M70Sync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 78 ---------------------------
+/*------------------ Map 78 ---------------------------*/
 /* Should be two separate emulation functions for this "mapper".  Sigh.  URGE TO KILL RISING. */
-static void M78Sync() {
+static void M78Sync(void) {
 	setprg16(0x8000, (latche & 7));
 	setprg16(0xc000, ~0);
 	setchr8(latche >> 4);
@@ -307,7 +263,7 @@ void Mapper78_Init(CartInfo *info) {
 	Latch_Init(info, M78Sync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 86 ---------------------------
+/*------------------ Map 86 ---------------------------*/
 
 static void M86Sync(void) {
 	setprg32(0x8000, (latche >> 4) & 3);
@@ -318,7 +274,7 @@ void Mapper86_Init(CartInfo *info) {
 	Latch_Init(info, M86Sync, ~0, 0x6000, 0x6FFF, 0, 0);
 }
 
-//------------------ Map 87 ---------------------------
+/*------------------ Map 87 ---------------------------*/
 
 static void M87Sync(void) {
 	setprg32(0x8000, 0);
@@ -329,7 +285,7 @@ void Mapper87_Init(CartInfo *info) {
 	Latch_Init(info, M87Sync, ~0, 0x6000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 89 ---------------------------
+/*------------------ Map 89 ---------------------------*/
 
 static void M89Sync(void) {
 	setprg16(0x8000, (latche >> 4) & 7);
@@ -342,7 +298,7 @@ void Mapper89_Init(CartInfo *info) {
 	Latch_Init(info, M89Sync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 93 ---------------------------
+/*------------------ Map 93 ---------------------------*/
 
 static void SSUNROMSync(void) {
 	setprg16(0x8000, latche >> 4);
@@ -354,7 +310,7 @@ void SUNSOFT_UNROM_Init(CartInfo *info) {
 	Latch_Init(info, SSUNROMSync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 94 ---------------------------
+/*------------------ Map 94 ---------------------------*/
 
 static void M94Sync(void) {
 	setprg16(0x8000, latche >> 2);
@@ -366,7 +322,7 @@ void Mapper94_Init(CartInfo *info) {
 	Latch_Init(info, M94Sync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 97 ---------------------------
+/*------------------ Map 97 ---------------------------*/
 
 static void M97Sync(void) {
 	setchr8(0);
@@ -385,7 +341,7 @@ void Mapper97_Init(CartInfo *info) {
 	Latch_Init(info, M97Sync, ~0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 101 ---------------------------
+/*------------------ Map 101 ---------------------------*/
 
 static void M101Sync(void) {
 	setprg32(0x8000, 0);
@@ -396,7 +352,7 @@ void Mapper101_Init(CartInfo *info) {
 	Latch_Init(info, M101Sync, ~0, 0x6000, 0x7FFF, 0, 0);
 }
 
-//------------------ Map 107 ---------------------------
+/*------------------ Map 107 ---------------------------*/
 
 static void M107Sync(void) {
 	setprg32(0x8000, (latche >> 1) & 3);
@@ -407,27 +363,27 @@ void Mapper107_Init(CartInfo *info) {
 	Latch_Init(info, M107Sync, ~0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 113 ---------------------------
+/*------------------ Map 113 ---------------------------*/
 
 static void M113Sync(void) {
 	setprg32(0x8000, (latche >> 3) & 7);
 	setchr8(((latche >> 3) & 8) | (latche & 7));
-//	setmirror(latche>>7); // only for HES 6in1
+/*	setmirror(latche>>7);*/ /* only for HES 6in1 */
 }
 
 void Mapper113_Init(CartInfo *info) {
 	Latch_Init(info, M113Sync, 0, 0x4100, 0x7FFF, 0, 0);
 }
 
-//------------------ Map 140 ---------------------------
+/*------------------ Map 140 ---------------------------*/
 
 void Mapper140_Init(CartInfo *info) {
 	Latch_Init(info, MHROMSync, 0, 0x6000, 0x7FFF, 0, 0);
 }
 
-//------------------ Map 152 ---------------------------
+/*------------------ Map 152 ---------------------------*/
 
-static void M152Sync() {
+static void M152Sync(void) {
 	setprg16(0x8000, (latche >> 4) & 7);
 	setprg16(0xc000, ~0);
 	setchr8(latche & 0xf);
@@ -438,7 +394,7 @@ void Mapper152_Init(CartInfo *info) {
 	Latch_Init(info, M152Sync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 180 ---------------------------
+/*------------------ Map 180 ---------------------------*/
 
 static void M180Sync(void) {
 	setprg16(0x8000, 0);
@@ -450,7 +406,7 @@ void Mapper180_Init(CartInfo *info) {
 	Latch_Init(info, M180Sync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 184 ---------------------------
+/*------------------ Map 184 ---------------------------*/
 
 static void M184Sync(void) {
 	setchr4(0x0000, latche);
@@ -462,7 +418,7 @@ void Mapper184_Init(CartInfo *info) {
 	Latch_Init(info, M184Sync, 0, 0x6000, 0x7FFF, 0, 0);
 }
 
-//------------------ Map 203 ---------------------------
+/*------------------ Map 203 ---------------------------*/
 
 static void M203Sync(void) {
 	setprg16(0x8000, (latche >> 2) & 3);
@@ -474,7 +430,7 @@ void Mapper203_Init(CartInfo *info) {
 	Latch_Init(info, M203Sync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ Map 240 ---------------------------
+/*------------------ Map 240 ---------------------------*/
 
 static void M240Sync(void) {
 	setprg8r(0x10, 0x6000, 0);
@@ -486,15 +442,16 @@ void Mapper240_Init(CartInfo *info) {
 	Latch_Init(info, M240Sync, 0, 0x4020, 0x5FFF, 1, 0);
 }
 
-//------------------ Map 241 ---------------------------
-// Mapper 7 mostly, but with SRAM or maybe prot circuit
-// figure out, which games do need 5xxx area reading
+/*------------------ Map 241 ---------------------------*/
+/* Mapper 7 mostly, but with SRAM or maybe prot circuit
+ * figure out, which games do need 5xxx area reading
+ */
 
 static void M241Sync(void) {
 	setchr8(0);
 	setprg8r(0x10, 0x6000, 0);
 	if (latche & 0x80)
-		setprg32(0x8000, latche | 8);	// no 241 actually, but why not afterall?
+		setprg32(0x8000, latche | 8);	/* no 241 actually, but why not afterall? */
 	else
 		setprg32(0x8000, latche);
 }
@@ -503,19 +460,88 @@ void Mapper241_Init(CartInfo *info) {
 	Latch_Init(info, M241Sync, 0, 0x8000, 0xFFFF, 1, 0);
 }
 
-//------------------ A65AS ---------------------------
+/*------------------ Map 271 ---------------------------*/
 
-// actually, there is two cart in one... First have extra mirroring
-// mode (one screen) and 32K bankswitching, second one have only
-// 16 bankswitching mode and normal mirroring... But there is no any
-// correlations between modes and they can be used in one mapper code.
+static void M271Sync(void) {
+	setchr8(latche & 0x0F);
+	setprg32(0x8000, latche >> 4);
+	setmirror((latche >> 5) & 1);
+}
 
+void Mapper271_Init(CartInfo *info) {
+	Latch_Init(info, M271Sync, 0, 0x8000, 0xFFFF, 0, 0);
+}
+
+/*------------------ Map 381 ---------------------------*/
+/* 2-in-1 High Standard Game (BC-019), reset-based */
+static uint8 reset = 0;
+static void M381Sync(void) {
+	setprg16(0x8000, ((latche & 0x10) >> 4) | ((latche & 7) << 1) | (reset << 4));
+	setprg16(0xC000, 15 | (reset << 4));
+	setchr8(0);
+}
+
+static void M381Reset(void) {
+	reset ^= 1;
+	M381Sync();
+}
+
+void Mapper381_Init(CartInfo *info) {
+	info->Reset = M381Reset;
+	Latch_Init(info, M381Sync, 0, 0x8000, 0xFFFF, 1, 0);
+	AddExState(&reset, 1, 0, "RST0");
+}
+
+/*------------------ Map 538 ---------------------------*/
+/* NES 2.0 Mapper 538 denotes the 60-1064-16L PCB, used for a
+ * bootleg cartridge conversion named Super Soccer Champion
+ * of the Konami FDS game Exciting Soccer.
+ */
+static uint8 M538Banks[16] = { 0, 1, 2, 1, 3, 1, 4, 1, 5, 5, 1, 1, 6, 6, 7, 7 };
+static void M538Sync(void) {
+	setprg8(0x6000, (latche >> 1) | 8);
+	setprg8(0x8000, M538Banks[latche & 15]);
+	setprg8(0xA000, 14);
+	setprg8(0xC000, 7);
+	setprg8(0xE000, 15);
+	setchr8(0);
+	setmirror(1);
+}
+
+static void M538Power(void) {
+	FDSSoundPower();
+	LatchPower();
+}
+
+void Mapper538_Init(CartInfo *info) {
+	Latch_Init(info, M538Sync, 0, 0xC000, 0xCFFF, 1, 0);
+	info->Power = M538Power;
+}
+
+/* ------------------ A65AS --------------------------- */
+
+/* actually, there is two cart in one... First have extra mirroring
+ * mode (one screen) and 32K bankswitching, second one have only
+ * 16 bankswitching mode and normal mirroring... But there is no any
+ * correlations between modes and they can be used in one mapper code.
+ *
+ * Submapper 0 - 3-in-1 (N068)
+ * Submapper 0 - 3-in-1 (N080)
+ * Submapper 1 - 4-in-1 (JY-066)
+ */
+
+static int A65ASsubmapper;
 static void BMCA65ASSync(void) {
 	if (latche & 0x40)
 		setprg32(0x8000, (latche >> 1) & 0x0F);
 	else {
-		setprg16(0x8000, ((latche & 0x30) >> 1) | (latche & 7));
-		setprg16(0xC000, ((latche & 0x30) >> 1) | 7);
+		if (A65ASsubmapper == 1) {
+			setprg16(0x8000, ((latche & 0x30) >> 1) | (latche & 7));
+			setprg16(0xC000, ((latche & 0x30) >> 1) | 7);
+		} else {
+			setprg16(0x8000, latche & 0x0F);
+			setprg16(0xC000, latche & 0x0F | 7);
+		}
 	}
 	setchr8(0);
 	if (latche & 0x80)
@@ -525,11 +551,12 @@ static void BMCA65ASSync(void) {
 }
 
 void BMCA65AS_Init(CartInfo *info) {
+	A65ASsubmapper = info->submapper;
 	Latch_Init(info, BMCA65ASSync, 0, 0x8000, 0xFFFF, 0, 0);
 }
 
-//------------------ BMC-11160 ---------------------------
-// Simple BMC discrete mapper by TXC
+/*------------------ BMC-11160 ---------------------------*/
+/* Simple BMC discrete mapper by TXC */
 
 static void BMC11160Sync(void) {
 	uint32 bank = (latche >> 4) & 7;
@@ -540,4 +567,54 @@ static void BMC11160Sync(void) {
 
 void BMC11160_Init(CartInfo *info) {
 	Latch_Init(info, BMC11160Sync, 0, 0x8000, 0xFFFF, 0, 0);
+}
+
+/*------------------ BMC-K-3046 ---------------------------*/
+/* NES 2.0 mapper 336 is used for an 11-in-1 multicart
+ * http://wiki.nesdev.com/w/index.php/NES_2.0_Mapper_336 */
+
+static void BMCK3046Sync(void) {
+	setprg16(0x8000, latche);
+	setprg16(0xC000, latche | 0x07);
+	setchr8(0);
+}
+
+void BMCK3046_Init(CartInfo *info) {
+	Latch_Init(info, BMCK3046Sync, 0, 0x8000, 0xFFFF, 0, 0);
+}
+
+/* Mapper 429: LIKO BBG-235-8-1B/Milowork FCFC1 */
+
+static void Mapper429_Sync(void) {
+	setprg32(0x8000, latche >>2);
+	setchr8(latche &3);
+}
+
+static void Mapper429_Reset(void) {
+	latche = 4; /* Initial CHR bank 0, initial PRG bank 1 */
+	Mapper429_Sync();
+}
+
+void Mapper429_Init(CartInfo *info) {
+	info->Reset = Mapper429_Reset;
+	Latch_Init(info, Mapper429_Sync, 0, 0x8000, 0xFFFF, 0, 0);
+}
+
+/*------------------ Mapper 415 ---------------------------*/
+
+static void Mapper415_Sync(void) {
+	setprg8(0x6000, latche & 0x0F);
+	setprg32(0x8000, ~0);
+	setchr8(0);
+	setmirror(((latche >> 4) & 1) ^ 1);
+}
+
+static void M415Power(void) {
+	LatchPower();
+	SetReadHandler(0x6000, 0x7FFF, CartBR);
+}
+
+void Mapper415_Init(CartInfo *info) {
+	Latch_Init(info, Mapper415_Sync, 0, 0x8000, 0xFFFF, 0, 0);
+	info->Power = M415Power;
 }

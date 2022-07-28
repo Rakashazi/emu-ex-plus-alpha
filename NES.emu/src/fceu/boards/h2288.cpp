@@ -28,7 +28,7 @@ static void H2288PW(uint32 A, uint8 V) {
 		uint8 bank = (EXPREGS[0] & 5) | ((EXPREGS[0] & 8) >> 2) | ((EXPREGS[0] & 0x20) >> 2);
 		if (EXPREGS[0] & 2)
 			setprg32(0x8000, bank >> 1);
-		else{
+		else {
 			setprg16(0x8000, bank);
 			setprg16(0xC000, bank);
 		}
@@ -56,7 +56,7 @@ static DECLFW(H2288WriteLo) {
 static void H2288Power(void) {
 	EXPREGS[0] = EXPREGS[1] = 0;
 	GenMMC3Power();
-//	SetReadHandler(0x5000,0x5FFF,H2288Read);
+/*	SetReadHandler(0x5000,0x5FFF,H2288Read); */
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
 	SetWriteHandler(0x5000, 0x5FFF, H2288WriteLo);
 	SetWriteHandler(0x8000, 0x9FFF, H2288WriteHi);

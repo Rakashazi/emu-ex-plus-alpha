@@ -40,28 +40,33 @@ static void Sync(void) {
 	setchr8(0);
 }
 
-//static DECLFW(SSSNROMWrite)
-//{
-//	CartBW(A,V);
-//}
+#if 0
+ static DECLFW(SSSNROMWrite)
+{
+	CartBW(A,V);
+}
+#endif
 
 static DECLFW(SSSNROMWrite) {
-//	FCEU_printf("write %04x %02x\n",A,V);
-//	regs[A&7] = V;
+#if 0
+	FCEU_printf("write %04x %02x\n",A,V);
+	regs[A&7] = V;
+#endif
 }
 
 static DECLFR(SSSNROMRead) {
-//	FCEU_printf("read %04x\n",A);
+/*	FCEU_printf("read %04x\n",A); */
 	switch (A & 7) {
-	case 0: return regs[0] = 0xff; // clear all exceptions
-	case 2: return 0xc0;	// DIP selftest + freeplay
-	case 3: return 0x00;	// 0, 1 - attract
-							// 2
-							// 4    - menu
-							// 8    - self check and game casette check
-							// 10   - lock?
-							// 20   - game title & count display
-	case 7: return 0x22;	// TV type, key not turned, relay B
+	case 0: return regs[0] = 0xff; /* clear all exceptions */
+	case 2: return 0xc0;	/* DIP selftest + freeplay */
+	case 3: return 0x00;	/* 0, 1 - attract 
+							 * 2
+							 * 4    - menu
+							 * 8    - self check and game casette check
+							 * 10   - lock?
+							 * 20   - game title & count display
+							 */
+	case 7: return 0x22;	/* TV type, key not turned, relay B */
 	default: return 0;
 	}
 }
@@ -70,8 +75,7 @@ static void SSSNROMPower(void) {
 	regs[0] = regs[1] = regs[2] = regs[3] = regs[4] = regs[5] = regs[6] = 0;
 	regs[7] = 0xff;
 	Sync();
-	FCEU_MemoryRand(WRAM, WRAMSIZE, true);
-//	SetWriteHandler(0x0000,0x1FFF,SSSNROMRamWrite);
+/*	SetWriteHandler(0x0000,0x1FFF,SSSNROMRamWrite); */
 	SetReadHandler(0x0800, 0x1FFF, CartBR);
 	SetWriteHandler(0x0800, 0x1FFF, CartBW);
 	SetReadHandler(0x5000, 0x5FFF, SSSNROMRead);
@@ -93,7 +97,7 @@ static void SSSNROMClose(void) {
 }
 
 static void SSSNROMIRQHook(void) {
-//	X6502_IRQBegin(FCEU_IQEXT);
+/*	X6502_IRQBegin(FCEU_IQEXT); */
 }
 
 static void StateRestore(int version) {

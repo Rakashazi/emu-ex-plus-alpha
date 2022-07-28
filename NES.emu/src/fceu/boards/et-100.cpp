@@ -41,7 +41,7 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static uint8 *CHRRAM;
+static uint8 *CHRRAM = NULL;
 static uint32 CHRRAMSize;
 
 static void BMC1024CA1PW(uint32 A, uint8 V) {
@@ -83,6 +83,7 @@ static void BMC1024CA1Power(void) {
 }
 
 static void BMC1024CA1Close(void) {
+	GenMMC3Close();
 	if (CHRRAM)
 		FCEU_gfree(CHRRAM);
 	CHRRAM = NULL;

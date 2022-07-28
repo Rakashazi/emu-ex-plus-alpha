@@ -18,36 +18,40 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+ /* Updated 6-27-19 */
+
 #include "mapinc.h"
 
-static uint16 addrlatch;
-static uint8 datalatch, hw_mode;
+static uint8 datalatch, addrlatch, lock, hw_mode;
 
 static SFORMAT StateRegs[] =
 {
-	{ &addrlatch, 2, "ADRL" },
+	{ &addrlatch, 1, "ADRL" },
 	{ &datalatch, 1, "DATL" },
-	{ &hw_mode, 1, "HWMO" },
+	{ &hw_mode,   1, "HWMO" },
+	{ &lock,      1, "LOCK" },
 	{ 0 }
 };
 
 static void Sync(void) {
-	uint8 prg = (addrlatch & 7);
+	uint8 prg = (addrlatch & 0x3F);
 	setchr8(datalatch);
-	if(addrlatch & 0x80) {
+	if (addrlatch & 0x80) {
 		setprg16(0x8000,prg);
 		setprg16(0xC000,prg);
 	} else {
 		setprg32(0x8000,prg >> 1);
 	}
-	setmirror(MI_V);
+	setmirror(((datalatch >> 7) & 1) ^ 1);
 }
 
 static DECLFW(EH8813AWrite) {
-	if((addrlatch & 0x100) == 0) {
-		addrlatch = A & 0x1FF;
-		datalatch = V & 0xF;
+	if (lock == 0) {
+		addrlatch = A & 0xFF;
+		datalatch = V & 0xFC;
+		lock = (A & 0x100) >> 8;
 	}
+	datalatch = (datalatch & ~0x03) | (V & 0x03);
 	Sync();
 }
 
@@ -56,16 +60,16 @@ static DECLFR(EH8813ARead) {
 		A= (A & 0xFFF0) + hw_mode;
 	return CartBR(A);
 }
-	
+
 static void EH8813APower(void) {
-	addrlatch = datalatch = hw_mode = 0;
+	addrlatch = datalatch = hw_mode = lock = 0;
 	Sync();
 	SetReadHandler(0x8000, 0xFFFF, EH8813ARead);
 	SetWriteHandler(0x8000, 0xFFFF, EH8813AWrite);
 }
 
 static void EH8813AReset(void) {
-	addrlatch = datalatch = 0;
+	addrlatch = datalatch = lock = 0;
 	hw_mode = (hw_mode + 1) & 0xF;
 	FCEU_printf("Hardware Switch is %01X\n", hw_mode);
 	Sync();

@@ -3,6 +3,7 @@
  * Copyright notice for this file:
  *  Copyright (C) 2005 CaH4e3
  *  Copyright (C) 2009 qeed
+ *  Copyright (C) 2019 Libretro Team
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,15 +18,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- *
- * BMC 42-in-1 "reset switch" + "select switch"
- *
+ */
+
+/* Updated 2019-07-12
+ * Mapper 226 - Updated and combine UNIF Ghostbusters63in1 board (1.5 MB carts), different bank order
+ * - some 1MB carts can switch game lists using Select
  */
 
 #include "mapinc.h"
 
-static uint8 isresetbased = 0;
+static uint8 reorder_banks = 0;
 static uint8 latche[2], reset;
+static uint8 banks[4] = { 0, 0, 1, 2 };
 static SFORMAT StateRegs[] =
 {
 	{ &reset, 1, "RST" },
@@ -34,14 +38,16 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	uint8 bank;
-	if (isresetbased)
-		bank = (latche[0] & 0x1f) | (reset << 5) | ((latche[1] & 1) << 6);
-	else
-		bank = (latche[0] & 0x1f) | ((latche[0] & 0x80) >> 2) | ((latche[1] & 1) << 6);
+	uint8 bank = 0;
+	uint8 base = ((latche[0] & 0x80) >> 7) | ((latche[1] & 1) << 1);
+
+	if (reorder_banks) /* for 1536 KB prg roms */
+		base = banks[base];
+	bank = (base << 5) | (latche[0] & 0x1f);
+
 	if (!(latche[0] & 0x20))
 		setprg32(0x8000, bank >> 1);
-	else{
+	else {
 		setprg16(0x8000, bank);
 		setprg16(0xC000, bank);
 	}
@@ -55,7 +61,7 @@ static DECLFW(M226Write) {
 }
 
 static void M226Power(void) {
-	latche[0] = latche[1] = reset = 0;
+	latche[0] = latche[1] = 0;
 	Sync();
 	SetWriteHandler(0x8000, 0xFFFF, M226Write);
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
@@ -65,22 +71,16 @@ static void StateRestore(int version) {
 	Sync();
 }
 
-void Mapper226_Init(CartInfo *info) {
-	isresetbased = 0;
-	info->Power = M226Power;
-	AddExState(&StateRegs, ~0, 0, 0);
-	GameStateRestore = StateRestore;
-}
-
-static void M233Reset(void) {
-	reset ^= 1;
+static void M226Reset(void) {
+	latche[0] = latche[1] = 0;
 	Sync();
 }
 
-void Mapper233_Init(CartInfo *info) {
-	isresetbased = 1;
+void Mapper226_Init(CartInfo *info) {
+	/* 1536KiB PRG roms have different bank order */
+	reorder_banks = ((info->PRGRomSize / 1024) == 1536) ? 1 : 0;
 	info->Power = M226Power;
-	info->Reset = M233Reset;
+	info->Reset = M226Reset;
 	AddExState(&StateRegs, ~0, 0, 0);
 	GameStateRestore = StateRestore;
 }

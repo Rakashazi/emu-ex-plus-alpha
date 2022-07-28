@@ -31,16 +31,33 @@ static int16 IRQCount, IRQLatch;
 static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
 
+/* TODO: Clean this up. State variables are expanded for
+ * big-endian compatibility when saving and loading states */
 static SFORMAT StateRegs[] =
 {
-	{ reg, 16, "REGS" },
+	{ &reg[0], 1, "REG0" },
+	{ &reg[1], 1, "REG1" },
+	{ &reg[2], 1, "REG2" },
+	{ &reg[3], 1, "REG3" },
+	{ &reg[4], 1, "REG4" },
+	{ &reg[5], 1, "REG5" },
+	{ &reg[6], 1, "REG6" },
+	{ &reg[7], 1, "REG7" },
+	{ &reg[8], 1, "REG8" },
+	{ &reg[9], 1, "REG9" },
+	{ &reg[10], 1, "REGA" },
+	{ &reg[11], 1, "REGB" },
+	{ &reg[12], 1, "REGC" },
+	{ &reg[13], 1, "REGD" },
+	{ &reg[14], 1, "REGE" },
+	{ &reg[15], 1, "REGF" },
 	{ &IRQa, 1, "IRQA" },
-	{ &IRQCount, 2, "IRQC" },
-	{ &IRQLatch, 2, "IRQL" },	// need for Famicom Jump II - Saikyou no 7 Nin (J) [!]
+	{ &IRQCount, 2 | FCEUSTATE_RLSB, "IRQC" },
+	{ &IRQLatch, 2 | FCEUSTATE_RLSB, "IRQL" },	/* need for Famicom Jump II - Saikyou no 7 Nin (J) [!] */
 	{ 0 }
 };
 
-// x24C0x interface
+/* x24C0x interface */
 
 #define X24C0X_STANDBY		0
 #define X24C0X_ADDRESS		1
@@ -84,12 +101,12 @@ static SFORMAT x24c02StateRegs[] =
 	{ 0 }
 };
 
-static void x24c01_init() {
+static void x24c01_init(void) {
 	x24c01_addr = x24c01_word = x24c01_latch = x24c01_bitcount = x24c01_sda = x24c01_scl = 0;
 	x24c01_state = X24C0X_STANDBY;
 }
 
-static void x24c02_init() {
+static void x24c02_init(void) {
 	x24c02_addr = x24c02_word = x24c02_latch = x24c02_bitcount = x24c02_sda = x24c02_scl = 0;
 	x24c02_state = X24C0X_STANDBY;
 }
@@ -99,14 +116,14 @@ static void x24c01_write(uint8 data) {
 	uint8 sda = (data >> 6) & 1;
 
 	if(x24c01_scl && scl) {
-		if(x24c01_sda && !sda) {			// START
+		if(x24c01_sda && !sda) {			/* START */
 			x24c01_state = X24C0X_ADDRESS;
 			x24c01_bitcount = 0;
 			x24c01_addr = 0;
-		} else if(!x24c01_sda && sda) {		//STOP
+		} else if(!x24c01_sda && sda) {		/* STOP */
 			x24c01_state = X24C0X_STANDBY;
 		}
-	} else if(!x24c01_scl && scl) {			// RISING EDGE
+	} else if(!x24c01_scl && scl) {			/* RISING EDGE */
 		switch(x24c01_state) {
 		case X24C0X_ADDRESS:
 			if(x24c01_bitcount < 7) {
@@ -114,19 +131,19 @@ static void x24c01_write(uint8 data) {
 				x24c01_addr |= sda;
 			} else {
 				x24c01_word = x24c01_addr;
-				if(sda) 					// READ COMMAND
+				if(sda) 					/* READ COMMAND */
 					x24c01_state = X24C0X_READ;
-				 else 						// WRITE COMMAND
+				 else 						/* WRITE COMMAND */
 					x24c01_state = X24C0X_WRITE;
 			}
 			x24c01_bitcount++;
 			break;
 		case X24C0X_READ:
-			if (x24c01_bitcount == 8) {		// ACK
+			if (x24c01_bitcount == 8) {		/*  ACK */
 				x24c01_out = 0;
 				x24c01_latch = x24c0x_data[x24c01_word];
 				x24c01_bitcount = 0;
-			} else {						// REAL OUTPUT
+			} else {						/* REAL OUTPUT */
 				x24c01_out = x24c01_latch >> 7;
 				x24c01_latch <<= 1;
 				x24c01_bitcount++;
@@ -137,11 +154,11 @@ static void x24c01_write(uint8 data) {
 			}
 			break;
 		case X24C0X_WRITE:
-			if (x24c01_bitcount == 8) {		// ACK
+			if (x24c01_bitcount == 8) {		/* ACK */
 				x24c01_out = 0;
 				x24c01_latch = 0;
 				x24c01_bitcount = 0;
-			} else {						// REAL INPUT
+			} else {						/* REAL INPUT */
 				x24c01_latch <<= 1;
 				x24c01_latch |= sda;
 				x24c01_bitcount++;
@@ -164,35 +181,35 @@ static void x24c02_write(uint8 data) {
 	uint8 sda = (data >> 6) & 1;
 
 	if (x24c02_scl && scl) {
-		if (x24c02_sda && !sda) {			// START
+		if (x24c02_sda && !sda) {			/* START */
 			x24c02_state = X24C0X_ADDRESS;
 			x24c02_bitcount = 0;
 			x24c02_addr = 0;
-		} else if (!x24c02_sda && sda) {	//STOP
+		} else if (!x24c02_sda && sda) {	/* STOP */
 			x24c02_state = X24C0X_STANDBY;
 		}
-	} else if (!x24c02_scl && scl) {		// RISING EDGE
+	} else if (!x24c02_scl && scl) {		/* RISING EDGE */
 		switch (x24c02_state) {
 		case X24C0X_ADDRESS:
 			if (x24c02_bitcount < 7) {
 				x24c02_addr <<= 1;
 				x24c02_addr |= sda;
 			} else {
-				if (sda)					// READ COMMAND
+				if (sda)					/* READ COMMAND */
 					x24c02_state = X24C0X_READ;
-				else						// WRITE COMMAND
+				else						/* WRITE COMMAND */
 					x24c02_state = X24C0X_WORD;
 			}
 			x24c02_bitcount++;
 			break;
 		case X24C0X_WORD:
-			if (x24c02_bitcount == 8) {		// ACK
+			if (x24c02_bitcount == 8) {		/* ACK */
 				x24c02_word = 0;
 				x24c02_out = 0;
-			} else {						// WORD ADDRESS INPUT
+			} else {						/* WORD ADDRESS INPUT */
 				x24c02_word <<= 1;
 				x24c02_word |= sda;
-				if (x24c02_bitcount == 16) {// END OF ADDRESS INPUT
+				if (x24c02_bitcount == 16) { /* END OF ADDRESS INPUT */
 					x24c02_bitcount = 7;
 					x24c02_state = X24C0X_WRITE;
 				}
@@ -200,11 +217,11 @@ static void x24c02_write(uint8 data) {
 			x24c02_bitcount++;
 			break;
 		case X24C0X_READ:
-			if (x24c02_bitcount == 8) {		// ACK
+			if (x24c02_bitcount == 8) {		/* ACK */
 				x24c02_out = 0;
 				x24c02_latch = x24c0x_data[x24c02_word|0x100];
 				x24c02_bitcount = 0;
-			} else {						// REAL OUTPUT
+			} else {						/* REAL OUTPUT */
 				x24c02_out = x24c02_latch >> 7;
 				x24c02_latch <<= 1;
 				x24c02_bitcount++;
@@ -215,11 +232,11 @@ static void x24c02_write(uint8 data) {
 			}
 			break;
 		case X24C0X_WRITE:
-			if (x24c02_bitcount == 8) {		// ACK
+			if (x24c02_bitcount == 8) {		/* ACK */
 				x24c02_out = 0;
 				x24c02_latch = 0;
 				x24c02_bitcount = 0;
-			} else {						// REAL INPUT
+			} else {						/* REAL INPUT */
 				x24c02_latch <<= 1;
 				x24c02_latch |= sda;
 				x24c02_bitcount++;
@@ -232,11 +249,10 @@ static void x24c02_write(uint8 data) {
 			break;
 		}
 	}
+
 	x24c02_sda = sda;
 	x24c02_scl = scl;
 }
-
-//
 
 static void SyncMirror(void) {
 	switch (reg[9] & 3) {
@@ -272,18 +288,23 @@ static DECLFW(BandaiWrite) {
 		case 0x0A: X6502_IRQEnd(FCEU_IQEXT); IRQa = V & 1; IRQCount = IRQLatch; break;
 		case 0x0B: IRQLatch &= 0xFF00; IRQLatch |= V; break;
 		case 0x0C: IRQLatch &= 0xFF; IRQLatch |= V << 8; break;
-		case 0x0D: if(x24c02) x24c02_write(V); else x24c01_write(V); break;
+		case 0x0D:
+			if (x24c02)
+				x24c02_write(V);
+			else
+				x24c01_write(V);
+			break;
 		}
 }
 
 static DECLFR(BandaiRead) {
-	if(x24c02)
+	if (x24c02)
 		return (X.DB & 0xEF) | (x24c02_out << 4);
 	else
 		return (X.DB & 0xEF) | (x24c01_out << 4);
 }
 
-static void BandaiIRQHook(int a) {
+static void FP_FASTAPASS(1) BandaiIRQHook(int a) {
 	if (IRQa) {
 		IRQCount -= a;
 		if (IRQCount < 0) {
@@ -296,7 +317,7 @@ static void BandaiIRQHook(int a) {
 
 static void BandaiPower(void) {
 	IRQa = 0;
-	if(x24c02)
+	if (x24c02)
 		x24c02_init();
 	else
 		x24c01_init();
@@ -320,9 +341,9 @@ void Mapper16_Init(CartInfo *info) {
 	info->SaveGame[0] = x24c0x_data + 256;
 	info->SaveGameLen[0] = 256;
 	AddExState(x24c0x_data, 256, 0, "DATA");
-	AddExState(&x24c02StateRegs, ~0, 0, 0);
 
 	GameStateRestore = StateRestore;
+	AddExState(&x24c02StateRegs, ~0, 0, 0);
 	AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -336,18 +357,19 @@ void Mapper159_Init(CartInfo *info) {
 	info->SaveGame[0] = x24c0x_data;
 	info->SaveGameLen[0] = 128;
 	AddExState(x24c0x_data, 128, 0, "DATA");
-	AddExState(&x24c01StateRegs, ~0, 0, 0);
 
 	GameStateRestore = StateRestore;
+	AddExState(&x24c01StateRegs, ~0, 0, 0);
 	AddExState(&StateRegs, ~0, 0, 0);
 }
 
-// Famicom jump 2:
-// 0-7: Lower bit of data selects which 256KB PRG block is in use.
-// This seems to be a hack on the developers' part, so I'll make emulation
-// of it a hack(I think the current PRG block would depend on whatever the
-// lowest bit of the CHR bank switching register that corresponds to the
-// last CHR address read).
+/* Famicom jump 2:
+ * 0-7: Lower bit of data selects which 256KB PRG block is in use.
+ * This seems to be a hack on the developers' part, so I'll make emulation
+ * of it a hack(I think the current PRG block would depend on whatever the
+ * lowest bit of the CHR bank switching register that corresponds to the
+ * last CHR address read).
+ */
 
 static void M153Power(void) {
 	Sync();
@@ -386,14 +408,14 @@ void Mapper153_Init(CartInfo *info) {
 	AddExState(&StateRegs, ~0, 0, 0);
 }
 
-// Datach Barcode Battler
+/* Datach Barcode Battler */
 
 static uint8 BarcodeData[256];
 static int BarcodeReadPos;
 static int BarcodeCycleCount;
 static uint32 BarcodeOut;
 
-// #define INTERL2OF5
+/* #define INTERL2OF5 */
 
 int FCEUI_DatachSet(uint8 *rcode) {
 	int prefix_parity_type[10][6] = {
@@ -430,46 +452,48 @@ int FCEUI_DatachSet(uint8 *rcode) {
 	}
 	if (len != 13 && len != 12 && len != 8 && len != 7) return(0);
 
-#define BS(x) BarcodeData[tmp_p] = x; tmp_p++
+	#define BS(x) BarcodeData[tmp_p] = x; tmp_p++
 
-	for (j = 0; j < 32; j++) { // delay before sending a code
+	for (j = 0; j < 32; j++) { /* delay before sending a code */
 		BS(0x00);
 	}
 
 #ifdef INTERL2OF5
 	
-	BS(1); BS(1); BS(0); BS(0); // 1
-	BS(1); BS(1); BS(0); BS(0); // 1
-	BS(1); BS(1); BS(0); BS(0); // 1
-	BS(1); BS(1); BS(0); BS(0); // 1 
-	BS(1); BS(1); BS(0); BS(0); // 1
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0 
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0
-	BS(1);        BS(0); BS(0); // 0 cs
-	BS(1); BS(1); BS(0); BS(0); // 1
+	BS(1); BS(1); BS(0); BS(0); /* 1 */
+	BS(1); BS(1); BS(0); BS(0); /* 1 */
+	BS(1); BS(1); BS(0); BS(0); /* 1 */
+	BS(1); BS(1); BS(0); BS(0); /* 1 */
+	BS(1); BS(1); BS(0); BS(0); /* 1 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 */
+	BS(1);        BS(0); BS(0); /* 0 cs */
+	BS(1); BS(1); BS(0); BS(0); /* 1 */
 
 #else
-	// Left guard bars
+	/* Left guard bars */
 	BS(1); BS(0); BS(1);
+
 	if (len == 13 || len == 12) {
+
 		for (i = 0; i < 6; i++)
 			if (prefix_parity_type[code[0]][i]) {
 				for (j = 0; j < 7; j++) {
@@ -479,19 +503,21 @@ int FCEUI_DatachSet(uint8 *rcode) {
 				for (j = 0; j < 7; j++) {
 					BS(data_left_odd[code[i + 1]][j]);
 				}
-		// Center guard bars
+
+		/* Center guard bars */
 		BS(0); BS(1); BS(0); BS(1); BS(0);
+
 		for (i = 7; i < 12; i++)
 			for (j = 0; j < 7; j++) {
 				BS(data_right[code[i]][j]);
 			}
-		// Calc and write down the control code if not assigned, instead, send code as is
-		// Battle Rush uses modified type of codes with different control code calculation
+		/* Calc and write down the control code if not assigned, instead, send code as is
+		   Battle Rush uses modified type of codes with different control code calculation */
 		if (len == 12) {
 			for (i = 0; i < 12; i++)
 				csum += code[i] * ((i & 1) ? 3 : 1);
 			csum = (10 - (csum % 10)) % 10;
-			rcode[12] = csum + 0x30;	// update check code to the input string as well
+			rcode[12] = csum + 0x30;	/* update check code to the input string as well */
 			rcode[13] = 0;
 			code[12] = csum;
 		} 
@@ -499,12 +525,15 @@ int FCEUI_DatachSet(uint8 *rcode) {
 			BS(data_right[code[12]][j]);
 		}
 	} else if (len == 8 || len == 7) {
-		for (i = 0; i < 4; i++)
+		for (i = 0; i < 4; i++) {
 			for (j = 0; j < 7; j++) {
 				BS(data_left_odd[code[i]][j]);
 			}
-		// Center guard bars
+		}
+
+		/* Center guard bars */
 		BS(0); BS(1); BS(0); BS(1); BS(0);
+
 		for (i = 4; i < 7; i++)
 			for (j = 0; j < 7; j++) {
 				BS(data_right[code[i]][j]);
@@ -513,19 +542,21 @@ int FCEUI_DatachSet(uint8 *rcode) {
 		for (i = 0; i < 7; i++)
 			csum += (i & 1) ? code[i] : (code[i] * 3);
 		csum = (10 - (csum % 10)) % 10;
-		rcode[7] = csum + 0x30;	// update check code to the input string as well
+		rcode[7] = csum + 0x30;	/* update check code to the input string as well */
 		rcode[8] = 0;
 		for (j = 0; j < 7; j++) {
 			BS(data_right[csum][j]);
 		}
 	}
-	// Right guard bars
+
+	/* Right guard bars */
 	BS(1); BS(0); BS(1);
 #endif
 
 	for (j = 0; j < 32; j++) {
 		BS(0x00);
 	}
+
 	BS(0xFF);
 
 	#undef BS
@@ -546,7 +577,7 @@ static void BarcodeSync(void) {
 static DECLFW(BarcodeWrite) {
 	A &= 0x0F;
 	switch (A) {
-	case 0x00: reg[0] = (V & 8) << 2; x24c01_write(reg[0xD] | reg[0]); break;		// extra EEPROM x24C01 used in Battle Rush mini-cart
+	case 0x00: reg[0] = (V & 8) << 2; x24c01_write(reg[0xD] | reg[0]); break;		/* extra EEPROM x24C01 used in Battle Rush mini-cart */
 	case 0x08: 
 	case 0x09: reg[A] = V; BarcodeSync(); break;
 	case 0x0A: X6502_IRQEnd(FCEU_IQEXT); IRQa = V & 1; IRQCount = IRQLatch; break;
@@ -556,7 +587,7 @@ static DECLFW(BarcodeWrite) {
 	}
 }
 
-static void BarcodeIRQHook(int a) {
+static void FP_FASTAPASS(1) BarcodeIRQHook(int a) {
 	BandaiIRQHook(a);
 
 	BarcodeCycleCount += a;
@@ -601,11 +632,9 @@ void Mapper157_Init(CartInfo *info) {
 	info->battery = 1;
 	info->SaveGame[0] = x24c0x_data;
 	info->SaveGameLen[0] = 512;
+	GameStateRestore = StateRestore;
 	AddExState(x24c0x_data, 512, 0, "DATA");
 	AddExState(&x24c01StateRegs, ~0, 0, 0);
 	AddExState(&x24c02StateRegs, ~0, 0, 0);
-
-	GameStateRestore = StateRestore;
-	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

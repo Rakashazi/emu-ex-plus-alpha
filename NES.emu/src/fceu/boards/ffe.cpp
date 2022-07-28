@@ -105,7 +105,7 @@ static void FFEPower(void) {
 	FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
 }
 
-static void FFEIRQHook(int a) {
+static void FP_FASTAPASS(1) FFEIRQHook(int a) {
 	if (IRQa) {
 		IRQCount += a;
 		if (IRQCount >= 0x10000) {
@@ -116,8 +116,7 @@ static void FFEIRQHook(int a) {
 	}
 }
 
-static void FFEClose(void)
-{
+static void FFEClose(void) {
 	if (WRAM)
 		FCEU_gfree(WRAM);
 	WRAM = NULL;

@@ -28,8 +28,10 @@
 
 static void UNLBMW8544PW(uint32 A, uint8 V) {
 	if(A == 0x8000)
-		setprg8(A,EXPREGS[0] & 0x1F);	// the real hardware has this bank overrided with it's own register,
-	else								// but MMC3 prg swap still works and you can actually change bank C000 at the same time if use 0x46 cmd
+		setprg8(A,EXPREGS[0] & 0x1F);	/* the real hardware has this bank overrided with it's own register,
+										 * but MMC3 prg swap still works and you can actually change bank C000 at the same time if use 0x46 cmd
+										 */
+	else
 		setprg8(A,V);
 }
 
@@ -54,12 +56,12 @@ static DECLFR(UNLBMW8544ProtRead) {
 	if(!fceuindbg) {
 		if(!(A & 1)) {
 			if((EXPREGS[0] & 0xE0) == 0xC0) {
-				EXPREGS[1] = ARead[0x6a](0x6a);	// program can latch some data from the BUS, but I can't say how exactly,
-			} else {							// without more euipment and skills ;) probably here we can try to get any write
-				EXPREGS[2] = ARead[0xff](0xff);	// before the read operation
+				EXPREGS[1] = ARead[0x6a](0x6a);	/* program can latch some data from the BUS, but I can't say how exactly, */
+			} else {							/* without more equipment and skills ;) probably here we can try to get any write */
+				EXPREGS[2] = ARead[0xff](0xff);	/* before the read operation */
 			}
-			FixMMC3CHR(MMC3_cmd & 0x7F);		// there are more different behaviour of the board isn't used by game itself, so unimplemented here and
-		}										// actually will break the current logic ;)
+			FixMMC3CHR(MMC3_cmd & 0x7F);		/* there are more different behaviour of the board that's not used by game itself, so unimplemented here and */
+		}										/* actually will break the current logic ;) */
 	}
 	return 0;
 }

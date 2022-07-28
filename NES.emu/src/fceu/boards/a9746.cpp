@@ -21,55 +21,85 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static DECLFW(UNLA9746Write) {
-//   FCEU_printf("write raw %04x:%02x\n",A,V);
-	switch (A & 0xE003) {
-	case 0x8000: EXPREGS[1] = V; EXPREGS[0] = 0; break;
-	case 0x8002: EXPREGS[0] = V; EXPREGS[1] = 0; break;
-	case 0x8001:
-	{
-		uint8 bits_rev = ((V & 0x20) >> 5) | ((V & 0x10) >> 3) | ((V & 0x08) >> 1) | ((V & 0x04) << 1);
-		switch (EXPREGS[0]) {
-		case 0x26: setprg8(0x8000, bits_rev); break;
-		case 0x25: setprg8(0xA000, bits_rev); break;
-		case 0x24: setprg8(0xC000, bits_rev); break;
-		case 0x23: setprg8(0xE000, bits_rev); break;
+static void UNLA9746PWrap(uint32 A, uint8 V) {
+	setprg8(A, EXPREGS[1] <<4 | V &0x0F);
+}
+
+static void UNLA9746CWrap(uint32 A, uint8 V) {
+	setchr1(A, EXPREGS[1] <<7 | V &0x7F);
+}
+
+static DECLFW(UNLA9746WriteOuter) {
+	switch(A &1) {
+		case 0: EXPREGS[1] =EXPREGS[1] &~1 | V >>3 &1; break;
+		case 1: EXPREGS[1] =EXPREGS[1] &~2 | V >>4 &2; break;
+	}
+	FixMMC3PRG(MMC3_cmd);
+	FixMMC3CHR(MMC3_cmd);
+}
+
+static DECLFW(UNLA9746WriteASIC) {
+	int index;
+	
+	if (A &1)
+	{ 	/* Register data */
+		if (~EXPREGS[0] &0x20)
+		{	/* Scrambled mode inactive */
+			MMC3_CMDWrite(A, V);
 		}
-		switch (EXPREGS[1]) {
-		case 0x0a:
-		case 0x08: EXPREGS[2] = (V << 4); break;
-		case 0x09: setchr1(0x0000, EXPREGS[2] | (V >> 1)); break;
-		case 0x0b: setchr1(0x0400, EXPREGS[2] | (V >> 1) | 1);  break;
-		case 0x0c:
-		case 0x0e: EXPREGS[2] = (V << 4);  break;
-		case 0x0d: setchr1(0x0800, EXPREGS[2] | (V >> 1));  break;
-		case 0x0f: setchr1(0x0c00, EXPREGS[2] | (V >> 1) | 1);  break;
-		case 0x10:
-		case 0x12: EXPREGS[2] = (V << 4);  break;
-		case 0x11: setchr1(0x1000, EXPREGS[2] | (V >> 1)); break;
-		case 0x14:
-		case 0x16: EXPREGS[2] = (V << 4);  break;
-		case 0x15: setchr1(0x1400, EXPREGS[2] | (V >> 1));  break;
-		case 0x18:
-		case 0x1a: EXPREGS[2] = (V << 4);  break;
-		case 0x19: setchr1(0x1800, EXPREGS[2] | (V >> 1));  break;
-		case 0x1c:
-		case 0x1e: EXPREGS[2] = (V << 4);  break;
-		case 0x1d: setchr1(0x1c00, EXPREGS[2] | (V >> 1));  break;
+		else
+		{	/* Scrambled mode active */
+			if (MMC3_cmd >=0x08 && MMC3_cmd <=0x1F)
+			{	/* Scrambled CHR register */
+				index = (MMC3_cmd -8) >>2;
+				if (MMC3_cmd &1)
+				{	/* LSB nibble */
+					DRegBuf[index] &=~0x0F;
+					DRegBuf[index] |=V >>1 &0x0F;
+				}
+				else
+				{	/* MSB nibble */
+					DRegBuf[index] &=~0xF0;
+					DRegBuf[index] |=V <<4 &0xF0;
+				}
+				FixMMC3CHR(MMC3_cmd);
+			}
+			else
+			if (MMC3_cmd >=0x25 && MMC3_cmd <=0x26)
+			{	/* Scrambled PRG register */
+				DRegBuf[6 | MMC3_cmd &1] =V >>5 &1 | V >>3 &2 | V >>1 &4 | V <<1 &8;
+				FixMMC3PRG(MMC3_cmd);
+			}
 		}
 	}
-	break;
+	else
+	{	/* Register index */
+		MMC3_CMDWrite(A, V);
+		if (A &2) EXPREGS[0] =V;
 	}
 }
 
 static void UNLA9746Power(void) {
 	GenMMC3Power();
-	SetWriteHandler(0x8000, 0xbfff, UNLA9746Write);
+	SetWriteHandler(0x5000, 0x5FFF, UNLA9746WriteOuter);
+	SetWriteHandler(0x8000, 0xBFFF, UNLA9746WriteASIC);
+	EXPREGS[0] = 0;
+	EXPREGS[1] = 3;
+	MMC3RegReset();
+}
+
+static void UNLA9746Reset(void) {
+	EXPREGS[0] = 0;
+	EXPREGS[1] = 3;
+	MMC3RegReset();
 }
 
 void UNLA9746_Init(CartInfo *info) {
-	GenMMC3_Init(info, 128, 256, 0, 0);
+	GenMMC3_Init(info, 128, 128, 0, 0);
+	pwrap = UNLA9746PWrap;
+	cwrap = UNLA9746CWrap;
 	info->Power = UNLA9746Power;
-	AddExState(EXPREGS, 6, 0, "EXPR");
+	info->Reset = UNLA9746Reset;
+	AddExState(EXPREGS, 2, 0, "EXPR");
 }
 

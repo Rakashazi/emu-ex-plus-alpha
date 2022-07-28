@@ -40,10 +40,10 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
+	int i;
 	setprg32(0x8000, prg_reg >> 2);
 	if (!prg_mode)
 		setprg8(0xC000, prg_reg);
-	int i;
 	for (i = 0; i < 8; i++)
 		setchr1(i << 10, chr_reg[i]);
 	switch (mirr) {
@@ -55,7 +55,7 @@ static void Sync(void) {
 }
 
 static DECLFW(UNLCITYFIGHTWrite) {
-	//FCEU_printf("%04x %02x",A,V);
+	/* FCEU_printf("%04x %02x",A,V); */
 	switch (A & 0xF00C) {
 	case 0x9000: prg_reg = V & 0xC; mirr = V & 3; break;
 	case 0x9004:

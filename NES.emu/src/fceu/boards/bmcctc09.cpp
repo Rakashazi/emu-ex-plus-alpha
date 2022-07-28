@@ -1,7 +1,6 @@
-/* FCE Ultra - NES/Famicom Emulator
+/* FCEUmm - NES/Famicom Emulator
  *
- * Copyright notice for this file:
- *  Copyright (C) 2007 CaH4e3
+ * Copyright (C) 2019 Libretro Team
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,52 +16,59 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
- * FDS Conversion
- *
- * Bubble Bobble CHR-ROM version
- *
  */
+
+/* NES 2.0 mapper 335 is used for a 10-in-1 multicart.
+ * Its UNIF board name is BMC-CTC-09.
+ * http://wiki.nesdev.com/w/index.php/NES_2.0_Mapper_335 */
 
 #include "mapinc.h"
 
-static uint8 reg, chr;
+#define PRG 0
+#define CHR 1
+
+static uint8 regs[2];
 
 static SFORMAT StateRegs[] =
 {
-	{ &reg, 1, "REG" },
-	{ &chr, 1, "CHR" },
+	{ regs, 2, "REGS" },
 	{ 0 }
 };
 
 static void Sync(void) {
-	setprg8(0x6000, reg & 3);
-	setprg32(0x8000, ~0);
-	setchr8(chr & 3);
+	if (regs[PRG] & 0x10) {
+		setprg16(0x8000, ((regs[PRG] & 0x07) << 1) | ((regs[PRG] >> 3) & 1));
+		setprg16(0xC000, ((regs[PRG] & 0x07) << 1) | ((regs[PRG] >> 3) & 1));
+	} else
+		setprg32(0x8000, regs[PRG] & 0x07);
+
+	setchr8(regs[CHR] & 0x0F);
+	setmirror(((regs[PRG] >> 5) & 1) ^ 1);
 }
 
-static DECLFW(UNLBBWrite) {
-	if ((A & 0x9000) == 0x8000)
-		reg = chr = V;
-	else
-		chr = V & 1;	/* hacky hacky, ProWres simplified FDS conversion 2-in-1 mapper */
+static DECLFW(WritePRG) {
+	regs[PRG] = V;
 	Sync();
 }
 
-static void UNLBBPower(void) {
-	chr = 0;
-	reg = ~0;
+static DECLFW(WriteCHR) {
+	regs[CHR] = V;
 	Sync();
-	SetReadHandler(0x6000, 0x7FFF, CartBR);
+}
+
+static void BMCCTC09Power(void) {
+	Sync();
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, UNLBBWrite);
+	SetWriteHandler(0x8000, 0xBFFF, WriteCHR);
+	SetWriteHandler(0xC000, 0xFFFF, WritePRG);
 }
 
 static void StateRestore(int version) {
 	Sync();
 }
 
-void UNLBB_Init(CartInfo *info) {
-	info->Power = UNLBBPower;
+void BMCCTC09_Init(CartInfo *info) {
+	info->Power = BMCCTC09Power;
 	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

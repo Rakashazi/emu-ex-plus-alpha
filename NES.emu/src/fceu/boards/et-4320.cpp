@@ -90,6 +90,7 @@ static void BMC810131C_Power(void) {
 }
 
 static void BMC810131C_Close(void) {
+	GenMMC3Close();
 	if (CHRRAM)
 		FCEU_gfree(CHRRAM);
 	CHRRAM = NULL;

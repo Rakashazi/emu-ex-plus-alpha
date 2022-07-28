@@ -20,11 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#define sync syncUnistd // name collision with unistd.h
 #include "mapinc.h"
 #include "mmc3.h"
-#undef sync
-#define FP_FASTAPASS(x)
 
 void 	(*sync)(void);
 static uint8	allowExtendedMirroring;
@@ -451,10 +448,10 @@ void JYASIC_init (CartInfo *info)
    GameStateRestore = JYASIC_restore;
 
    /* WRAM is present only in iNES mapper 35, or in mappers with numbers above 255 that require NES 2.0, which explicitly denotes WRAM size */
-   if (info->ines2)
-      WRAMSIZE =info->wram_size + info->battery_wram_size;
+   if (info->iNES2)
+      WRAMSIZE =info->PRGRamSize + info->PRGRamSaveSize;
    else
-      WRAMSIZE =GameInfo->mappernum ==35? 8192: 0;
+      WRAMSIZE =info->mapper ==35? 8192: 0;
 
    if (WRAMSIZE)
    {

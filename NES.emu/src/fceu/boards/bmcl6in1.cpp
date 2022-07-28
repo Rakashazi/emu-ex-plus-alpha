@@ -1,7 +1,7 @@
-/* FCE Ultra - NES/Famicom Emulator
+/* FCEUmm - NES/Famicom Emulator
  *
  * Copyright notice for this file:
- *  Copyright (C) 2008 CaH4e3
+ *  Copyright (C) 2019 Libretro Team
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,51 +18,57 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/* M-022 MMC3 based 830118C T-106 4M + 4M */
+/* NES 2.0 Mapper 345
+ * BMC-L6IN1
+ * New Star 6-in-1 Game Cartridge
+ * https://wiki.nesdev.com/w/index.php/NES_2.0_Mapper_345
+ */
 
 #include "mapinc.h"
 #include "mmc3.h"
 
-static void BMC830118CCW(uint32 A, uint8 V) {
-	setchr1(A, (V & 0x7F) | ((EXPREGS[0] & 0x0c) << 5));
+static void BMCL6IN1CW(uint32 A, uint8 V) {
+	setchr8(V);
 }
 
-static void BMC830118CPW(uint32 A, uint8 V) {
-	if ((EXPREGS[0] & 0x0C) == 0x0C) {
-		if (A == 0x8000) {
-			setprg8(A, (V & 0x0F) | ((EXPREGS[0] & 0x0c) << 2));
-			setprg8(0xC000, (V & 0x0F) | 0x32);
-		} else if (A == 0xA000) {
-			setprg8(A, (V & 0x0F) | ((EXPREGS[0] & 0x0c) << 2));
-			setprg8(0xE000, (V & 0x0F) | 0x32);
-		}
-	} else {
-		setprg8(A, (V & 0x0F) | ((EXPREGS[0] & 0x0c) << 2));
+static void BMCL6IN1PW(uint32 A, uint8 V) {
+	if (EXPREGS[0] & 0x0C)
+		setprg8(A, (V & 0x0F) | (EXPREGS[0] & 0xC0) >> 2);
+	else
+		setprg32(0x8000, ((EXPREGS[0] & 0xC0) >> 4) | (EXPREGS[0] & 0x03));
+}
+
+static void BMCL6IN1MW(uint8 V) {
+	if (EXPREGS[0] & 0x20)
+		setmirror(MI_0 + ((EXPREGS[0] & 0x10) >> 1));
+	else {
+		A000B = V;
+		setmirror((V & 1) ^ 1);
 	}
 }
 
-static DECLFW(BMC830118CLoWrite) {
+static DECLFW(BMCL6IN1Write) {
 	EXPREGS[0] = V;
 	FixMMC3PRG(MMC3_cmd);
 	FixMMC3CHR(MMC3_cmd);
 }
 
-static void BMC830118CReset(void) {
+static void BMCL6IN1Reset(void) {
 	EXPREGS[0] = 0;
 	MMC3RegReset();
 }
 
-static void BMC830118CPower(void) {
-	EXPREGS[0] = 0;
+static void BMCL6IN1Power(void) {
 	GenMMC3Power();
-	SetWriteHandler(0x6800, 0x68FF, BMC830118CLoWrite);
+	SetWriteHandler(0x6000, 0x7FFF, BMCL6IN1Write);
 }
 
-void BMC830118C_Init(CartInfo *info) {
-	GenMMC3_Init(info, 128, 128, 8, 0);
-	pwrap = BMC830118CPW;
-	cwrap = BMC830118CCW;
-	info->Power = BMC830118CPower;
-	info->Reset = BMC830118CReset;
+void BMCL6IN1_Init(CartInfo *info) {
+	GenMMC3_Init(info, 512, 0, 1, 0);
+	pwrap = BMCL6IN1PW;
+	cwrap = BMCL6IN1CW;
+	mwrap = BMCL6IN1MW;
+	info->Power = BMCL6IN1Power;
+	info->Reset = BMCL6IN1Reset;
 	AddExState(EXPREGS, 1, 0, "EXPR");
 }
