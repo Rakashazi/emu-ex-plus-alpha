@@ -16,80 +16,72 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * FDS Conversion
+ *
  */
 
 #include "mapinc.h"
 
-static uint8 reg[4], IRQa;
-static int16 IRQCount, IRQPause;
-
-static int16 Count = 0x0000;
+static uint8 reg;
+static uint8 *WRAM = NULL;
+static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] =
 {
-	{ reg, 4, "REGS" },
-	{ &IRQa, 1, "IRQA" },
-	{ &IRQCount, 2, "IRQC" },
+	{ &reg, 1, "REGS" },
 	{ 0 }
 };
 
 static void Sync(void) {
-	setprg32(0x8000, 0);
+	setprg8r(0x10, 0x6000, 0);
+	setprg32(0x8000, reg & 1);
 	setchr8(0);
 }
 
-/* #define Count 0x1800 */
-#define Pause 0x010
-
-static DECLFW(UNL3DBlockWrite) {
+static DECLFW(UNLKS7012Write) {
+/*	FCEU_printf("bs %04x %02x\n",A,V); */
 	switch (A) {
-/* 4800 32 */
-/* 4900 37 */
-/* 4a00 01 */
-/* 4e00 18 */
-	case 0x4800: reg[0] = V; break;
-	case 0x4900: reg[1] = V; break;
-	case 0x4a00: reg[2] = V; break;
-	case 0x4e00: reg[3] = V; IRQCount = Count; IRQPause = Pause; IRQa = 1; X6502_IRQEnd(FCEU_IQEXT); break;
+	case 0xE0A0: reg = 0; Sync(); break;
+	case 0xEE36: reg = 1; Sync(); break;
 	}
 }
 
-static void UNL3DBlockPower(void) {
+static void UNLKS7012Power(void) {
+	reg = ~0;
 	Sync();
+	SetReadHandler(0x6000, 0x7FFF, CartBR);
+	SetWriteHandler(0x6000, 0x7FFF, CartBW);
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetWriteHandler(0x4800, 0x4E00, UNL3DBlockWrite);
+	SetWriteHandler(0x8000, 0xFFFF, UNLKS7012Write);
+	FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
 }
 
-static void UNL3DBlockReset(void) {
-	Count += 0x10;
-	FCEU_printf("Count=%04x\n", Count);
-}
-
-static void FP_FASTAPASS(1) UNL3DBlockIRQHook(int a) {
-	if (IRQa) {
-		if (IRQCount > 0) {
-			IRQCount -= a;
-		} else {
-			if (IRQPause > 0) {
-				IRQPause -= a;
-				X6502_IRQBegin(FCEU_IQEXT);
-			} else {
-				IRQCount = Count;
-				IRQPause = Pause;
-				X6502_IRQEnd(FCEU_IQEXT);
-			}
-		}
-	}
+static void UNLKS7012Reset(void) {
+	reg = ~0;
+	Sync();
 }
 
 static void StateRestore(int version) {
 	Sync();
 }
 
-void UNL3DBlock_Init(CartInfo *info) {
-	info->Power = UNL3DBlockPower;
-	info->Reset = UNL3DBlockReset;
-	MapIRQHook = UNL3DBlockIRQHook;
+static void UNLKS7012Close(void) {
+	if (WRAM)
+		FCEU_gfree(WRAM);
+	WRAM = NULL;
+}
+
+void UNLKS7012_Init(CartInfo *info) {
+	info->Power = UNLKS7012Power;
+	info->Reset = UNLKS7012Reset;
+	info->Close = UNLKS7012Close;
+
+	WRAMSIZE = 8192;
+	WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+	SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+
 	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

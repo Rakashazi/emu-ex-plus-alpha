@@ -90,7 +90,7 @@ static void StateRestore(int version)
 
 void Mapper380_Init(CartInfo *info)
 {
-   isKN35A = info->ines2 && info->submapper == 1;
+   isKN35A = info->iNES2 && info->submapper == 1;
    info->Power = M380Power;
    info->Reset = M380Reset;
    GameStateRestore = StateRestore;

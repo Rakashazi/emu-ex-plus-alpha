@@ -1,7 +1,7 @@
-/* FCE Ultra - NES/Famicom Emulator
+/* FCEUmm - NES/Famicom Emulator
  *
  * Copyright notice for this file:
- *  Copyright (C) 2005 CaH4e3
+ *  Copyright (C) 2022
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,34 +16,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- *
- * SL12 Protected 3-in-1 mapper hardware (VRC2, MMC3, MMC1)
- * the same as 603-5052 board (TODO: add reading registers, merge)
- *
- * Contra Fighter prot board
  */
 
 #include "mapinc.h"
 #include "mmc3.h"
 
-static const uint8 lut[4] = { 0x00, 0x02, 0x02, 0x03 };
-
-static DECLFW(UNL6035052ProtWrite) {
-	EXPREGS[0] = lut[V & 3];
+static void Mapper456_PRGWrap(uint32 A, uint8 V) {
+	setprg8(A, V &0x0F | EXPREGS[0] <<4);
 }
 
-static DECLFR(UNL6035052ProtRead) {
-	return EXPREGS[0];
+static void Mapper456_CHRWrap(uint32 A, uint8 V) {
+	setchr1(A, V &0x7F | EXPREGS[0] <<7);
 }
 
-static void UNL6035052Power(void) {
+static DECLFW(Mapper456_Write) {
+	if (A &0x100) {
+		EXPREGS[0] =V;
+		FixMMC3PRG(MMC3_cmd);
+		FixMMC3CHR(MMC3_cmd);
+	}
+}
+
+static void Mapper456_Reset(void) {
+	EXPREGS[0] =0;
+	MMC3RegReset();
+}
+
+static void Mapper456_Power(void) {
+	EXPREGS[0] =0;
 	GenMMC3Power();
-	SetWriteHandler(0x4020, 0x7FFF, UNL6035052ProtWrite);
-	SetReadHandler(0x4020, 0x7FFF, UNL6035052ProtRead);
+	SetWriteHandler(0x4020, 0x5FFF, Mapper456_Write);
 }
 
-void UNL6035052_Init(CartInfo *info) {
-	GenMMC3_Init(info, 128, 256, 0, 0);
-	info->Power = UNL6035052Power;
-	AddExState(EXPREGS, 6, 0, "EXPR");
+void Mapper456_Init(CartInfo *info) {
+	GenMMC3_Init(info, 128, 128, 8, 0);
+	cwrap = Mapper456_CHRWrap;
+	pwrap = Mapper456_PRGWrap;
+	info->Power = Mapper456_Power;
+	info->Reset = Mapper456_Reset;
+	AddExState(EXPREGS, 1, 0, "EXPR");
 }

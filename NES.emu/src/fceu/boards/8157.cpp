@@ -36,13 +36,9 @@ static void Sync(void) {
 	uint32 base = ((cmdreg & 0x060) | ((cmdreg & 0x100) >> 1)) >> 2;
 	uint32 bank = (cmdreg & 0x01C) >> 2;
 	uint32 lbank = (cmdreg & 0x200) ? 7 : ((cmdreg & 0x80) ? bank : 0);
-	if (PRGptr[1]) {
-		setprg16r(base >> 3, 0x8000, bank);        // for versions with split ROMs
-		setprg16r(base >> 3, 0xC000, lbank);
-	} else {
-		setprg16(0x8000, base | bank);
-		setprg16(0xC000, base | lbank);
-	}
+
+	setprg16(0x8000, base | bank);
+	setprg16(0xC000, base | lbank);
 	setmirror(((cmdreg & 2) >> 1) ^ 1);
 }
 
