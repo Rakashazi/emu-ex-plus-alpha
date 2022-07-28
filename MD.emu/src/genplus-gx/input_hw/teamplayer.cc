@@ -2,21 +2,37 @@
  *  Genesis Plus
  *  Team Player support
  *
- *  Copyright Eke-Eke (2007-2011)
-*
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  Copyright (C) 2007-2014  Eke-Eke (Genesis Plus GX)
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  Redistribution and use of this code or any derivative works are permitted
+ *  provided that the following conditions are met:
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *   - Redistributions may not be sold, nor may they be used in a commercial
+ *     product or activity.
+ *
+ *   - Redistributions that are modified from the original source must include the
+ *     complete source code, including the source code for all components used by a
+ *     binary built from the modified sources. However, as a special exception, the
+ *     source code distributed need not include anything that is normally distributed
+ *     (in either source or binary form) with the major components (compiler, kernel,
+ *     and so on) of the operating system on which the executable runs, unless that
+ *     component itself accompanies the executable.
+ *
+ *   - Redistributions must reproduce the above copyright notice, this list of
+ *     conditions and the following disclaimer in the documentation and/or other
+ *     materials provided with the distribution.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************************/
 
@@ -64,25 +80,27 @@ void teamplayer_reset(int port)
   teamplayer[port].Counter = 0;
 }
 
-static inline unsigned int teamplayer_read(int port)
+INLINE unsigned int teamplayer_read(int port)
 {
   unsigned int counter = teamplayer[port].Counter;
 
   /* acquisition sequence */
   switch (counter)
   {
-    case 0: /* initial state: TH = 1, TR = 1 -> RLDU = 0011 */
+    case 0: /* initial state: xxx0011 */
     {
-      return 0x73;
+      /* TL should match TR */
+      return ((teamplayer[port].State & 0x20) >> 1) | 0x03;
     }
 
-    case 1: /* start request: TH = 0, TR = 1 -> RLDU = 1111 */
+    case 1: /* start request: xxx1111 */
     {
-      return 0x3F; 
+      /* TL should match TR */
+      return ((teamplayer[port].State & 0x20) >> 1) | 0x0F;
     }
 
     case 2:
-    case 3: /* ack request: TH=0, TR=0/1 -> RLDU = 0000 */
+    case 3: /* ack request: xxx0000 */
     {
       /* TL should match TR */
       return ((teamplayer[port].State & 0x20) >> 1);
@@ -91,7 +109,7 @@ static inline unsigned int teamplayer_read(int port)
     case 4:
     case 5:
     case 6:
-    case 7: /* PAD type */
+    case 7: /* PAD type: xxx0000 (3B), xxx0001 (6B) or xxx1111 (NC)*/
     {
       unsigned int retval = input.dev[(port << 2) + (counter - 4)];
 
@@ -99,7 +117,7 @@ static inline unsigned int teamplayer_read(int port)
       return (((teamplayer[port].State & 0x20) >> 1) | retval);
     }
 
-    default: /* PAD status */
+    default: /* PAD status: xxxRLDU -> xxxSACB -> xxxMXYZ */
     {
       unsigned int retval = 0x0F;
 
@@ -115,28 +133,27 @@ static inline unsigned int teamplayer_read(int port)
   }
 }
 
-static inline void teamplayer_write(int port, unsigned char data, unsigned char mask)
+INLINE void teamplayer_write(int port, unsigned char data, unsigned char mask)
 {
   /* update bits set as output only */
   unsigned int state = (teamplayer[port].State & ~mask) | (data & mask);
 
-  /* TH & TR handshaking */
-  if ((teamplayer[port].State ^ state) & 0x60)
+  /* check if TH is HIGH */
+  if (state & 0x40) 
   {
-    if (state & 0x40) 
-    {
-      /* TH high -> reset counter */
-      teamplayer[port].Counter = 0;
-    }
-    else
-    {
-      /* increment counter */
-      teamplayer[port].Counter++;
-    }
-
-    /* update internal state */
-    teamplayer[port].State = state;
+    /* reset counter */
+    teamplayer[port].Counter = 0;
   }
+
+  /* TH & TR handshaking */
+  else if ((teamplayer[port].State ^ state) & 0x60)
+  {
+    /* increment counter */
+    teamplayer[port].Counter++;
+  }
+
+  /* update internal state */
+  teamplayer[port].State = state;
 }
 
 unsigned char teamplayer_1_read(void)

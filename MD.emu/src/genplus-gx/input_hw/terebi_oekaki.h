@@ -1,8 +1,8 @@
 /***************************************************************************************
  *  Genesis Plus
- *  Sega Light Phaser, Menacer & Konami Justifiers support
+ *  Terebi Oekaki graphic board support
  *
- *  Copyright (C) 2007-2013  Eke-Eke (Genesis Plus GX)
+ *  Copyright (C) 2011  Eke-Eke (Genesis Plus GX)
  *
  *  Redistribution and use of this code or any derivative works are permitted
  *  provided that the following conditions are met:
@@ -36,16 +36,12 @@
  *
  ****************************************************************************************/
 
-#ifndef _LIGHTGUN_H_
-#define _LIGHTGUN_H_
+#ifndef _TEREBI_H_
+#define _TEREBI_H_
 
-/* Input devices port handlers */
-extern void lightgun_reset(int index);
-extern void lightgun_refresh(int port);
-extern unsigned char phaser_1_read(void);
-extern unsigned char phaser_2_read(void);
-extern unsigned char menacer_read(void);
-extern unsigned char justifier_read(void);
-extern void justifier_write(unsigned char data, unsigned char mask);
+/* Function prototypes */
+extern void terebi_oekaki_reset(void);
+extern unsigned short terebi_oekaki_read(void);
+extern void terebi_oekaki_write(unsigned char data);
 
 #endif

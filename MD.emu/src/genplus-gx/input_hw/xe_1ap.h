@@ -1,8 +1,8 @@
 /***************************************************************************************
  *  Genesis Plus
- *  Sega Light Phaser, Menacer & Konami Justifiers support
+ *  XE-1AP analog controller support
  *
- *  Copyright (C) 2007-2013  Eke-Eke (Genesis Plus GX)
+ *  Copyright (C) 2011-2015  Eke-Eke (Genesis Plus GX)
  *
  *  Redistribution and use of this code or any derivative works are permitted
  *  provided that the following conditions are met:
@@ -36,16 +36,14 @@
  *
  ****************************************************************************************/
 
-#ifndef _LIGHTGUN_H_
-#define _LIGHTGUN_H_
+#ifndef _XE_1APH_
+#define _XE_1APH_
 
-/* Input devices port handlers */
-extern void lightgun_reset(int index);
-extern void lightgun_refresh(int port);
-extern unsigned char phaser_1_read(void);
-extern unsigned char phaser_2_read(void);
-extern unsigned char menacer_read(void);
-extern unsigned char justifier_read(void);
-extern void justifier_write(unsigned char data, unsigned char mask);
+/* Function prototypes */
+extern void xe_1ap_reset(int index);
+extern unsigned char xe_1ap_1_read(void);
+extern unsigned char xe_1ap_2_read(void);
+extern void xe_1ap_1_write(unsigned char data, unsigned char mask);
+extern void xe_1ap_2_write(unsigned char data, unsigned char mask);
 
 #endif
