@@ -57,9 +57,8 @@ static void M246Power(void) {
 	FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
 }
 
-static void M246Close(void)
-{
-	if(WRAM)
+static void M246Close(void) {
+	if (WRAM)
 		FCEU_gfree(WRAM);
 	WRAM = NULL;
 }

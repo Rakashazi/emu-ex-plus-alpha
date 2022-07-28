@@ -1,7 +1,7 @@
-/* FCE Ultra - NES/Famicom Emulator
+/* FCEUmm - NES/Famicom Emulator
  *
  * Copyright notice for this file:
- *  Copyright (C) 2005 CaH4e3
+ *  Copyright (C) 2020
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,29 +16,50 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ *
  */
 
 #include "mapinc.h"
 #include "mmc3.h"
 
-static void M189PW(uint32 A, uint8 V) {
-	setprg32(0x8000, EXPREGS[0] & 7);
+static uint8 dipswitch;
+
+static void M334PW(uint32 A, uint8 V) {
+    setprg32(0x8000, EXPREGS[0] >> 1);
 }
 
-static DECLFW(M189Write) {
-	EXPREGS[0] = V | (V >> 4);	/* actually, there is a two versions of 189 mapper with hi or lo bits bankswitching. */
-	FixMMC3PRG(MMC3_cmd);
+static DECLFW(M334Write) {
+    if (!(A & 1)) {
+        EXPREGS[0] = V;
+        FixMMC3PRG(MMC3_cmd);
+    }
 }
 
-static void M189Power(void) {
-	EXPREGS[0] = EXPREGS[1] = 0;
+static DECLFR(M334Read) {
+    if (A & 2)
+        return ((X.DB & 0xFE) | (dipswitch & 1));
+    return X.DB;
+}
+
+static void M334Reset(void) {
+    dipswitch++;
+	EXPREGS[0] = 0;
+	MMC3RegReset();
+}
+
+static void M334Power(void) {
+    dipswitch = 0;
+	EXPREGS[0] = 0;
 	GenMMC3Power();
-	SetWriteHandler(0x4120, 0x7FFF, M189Write);
+    SetReadHandler(0x6000, 0x7FFF, M334Read);
+	SetWriteHandler(0x6000, 0x7FFF, M334Write);
 }
 
-void Mapper189_Init(CartInfo *info) {
-	GenMMC3_Init(info, 256, 256, 0, 0);
-	pwrap = M189PW;
-	info->Power = M189Power;
-	AddExState(EXPREGS, 2, 0, "EXPR");
+void Mapper334_Init(CartInfo *info) {
+	GenMMC3_Init(info, 32, 32, 0, 0);
+	pwrap = M334PW;
+	info->Power = M334Power;
+	info->Reset = M334Reset;
+	AddExState(EXPREGS, 1, 0, "EXPR");
 }

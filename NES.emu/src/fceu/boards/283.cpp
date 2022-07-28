@@ -1,7 +1,7 @@
 /* FCE Ultra - NES/Famicom Emulator
  *
  * Copyright notice for this file:
- *  Copyright (C) 2012 CaH4e3
+ *  Copyright (C) 2007 CaH4e3
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,60 +20,44 @@
 
 #include "mapinc.h"
 
-static uint8 bank, preg;
+static uint8 reg, mirr;
 static SFORMAT StateRegs[] =
 {
-	{ &bank, 1, "BANK" },
-	{ &preg, 1, "PREG" },
+	{ &reg, 1, "REGS" },
+	{ &mirr, 1, "MIRR" },
 	{ 0 }
 };
 
 static void Sync(void) {
-	if (bank & 0x40) {
-		setprg32(0x8000, (bank & 0xE) | (preg & 1));
-		setchr8(((bank & 0xE) << 2) | ((preg >> 4) & 7));
-	} else {
-		setprg32(0x8000, bank & 0xF);
-		setchr8(((bank & 0xF) << 2) | ((preg >> 4) & 3));
-	}
-	setmirror((bank >> 7) ^ 1);
+	setprg8(0x6000, (ROM_size == 17) ? 32 : 31); /* FIXME: Verify these */
+	setprg32(0x8000, reg);
+	setchr8(0);
 }
 
-DECLFR(M234ReadBank) {
-	uint8 r = CartBR(A);
-	if (!bank) {
-		bank = r;
-		Sync();
-	}
-	return r;
-}
-
-DECLFR(M234ReadPreg) {
-	uint8 r = CartBR(A);
-	preg = r;
-	Sync();
-	return r;
-}
-
-static void M234Reset(void) {
-	bank = preg = 0;
+static DECLFW(M283Write) {
+	reg = V;
 	Sync();
 }
 
-static void M234Power(void) {
-	M234Reset();
+static void M283Power(void) {
+	reg = 0;
+	Sync();
+	SetReadHandler(0x6000, 0x7FFF, CartBR);
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetReadHandler(0xFF80, 0xFF9F, M234ReadBank);
-	SetReadHandler(0xFFE8, 0xFFF7, M234ReadPreg);
+	SetWriteHandler(0x8000, 0xFFFF, M283Write);
+}
+
+static void M283Reset(void) {
+	reg = 0;
 }
 
 static void StateRestore(int version) {
 	Sync();
 }
 
-void Mapper234_Init(CartInfo *info) {
-	info->Power = M234Power;
-	info->Reset = M234Reset;
-	AddExState(&StateRegs, ~0, 0, 0);
+void Mapper283_Init(CartInfo *info) {
+	info->Reset = M283Reset;
+	info->Power = M283Power;
 	GameStateRestore = StateRestore;
+	AddExState(&StateRegs, ~0, 0, 0);
 }

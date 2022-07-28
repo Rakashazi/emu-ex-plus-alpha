@@ -31,9 +31,9 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
+	int x;
 	setchr2(0x0000, DRegs[0]);
 	setchr2(0x0800, DRegs[1]);
-	int x;
 	for (x = 0; x < 4; x++)
 		setchr1(0x1000 + (x << 10), DRegs[2 + x]);
 	setprg8(0x8000, DRegs[6]);

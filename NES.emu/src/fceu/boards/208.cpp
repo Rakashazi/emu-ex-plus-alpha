@@ -2,6 +2,7 @@
  *
  * Copyright notice for this file:
  *  Copyright (C) 2005 CaH4e3
+ *  Copyright (C) 2022
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +18,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
+ 
+ /* 2022-2-14
+  * - add support for submapper 1, Mortal Kombat (JJ-01) (Ch) [!]
+  * - add mirroring
+  */
 
 #include "mapinc.h"
 #include "mmc3.h"
 
-static uint8 lut[256] = {
+static uint8 submapper;
+
+static const uint8 lut[256] = {
 	0x59, 0x59, 0x59, 0x59, 0x59, 0x59, 0x59, 0x59, 0x59, 0x49, 0x19, 0x09, 0x59, 0x49, 0x19, 0x09,
 	0x59, 0x59, 0x59, 0x59, 0x59, 0x59, 0x59, 0x59, 0x51, 0x41, 0x11, 0x01, 0x51, 0x41, 0x11, 0x01,
 	0x59, 0x59, 0x59, 0x59, 0x59, 0x59, 0x59, 0x59, 0x59, 0x49, 0x19, 0x09, 0x59, 0x49, 0x19, 0x09,
@@ -41,11 +49,21 @@ static uint8 lut[256] = {
 };
 
 static void M208PW(uint32 A, uint8 V) {
-	setprg32(0x8000, EXPREGS[5]);
+	if (submapper == 1)
+		setprg32(0x8000, DRegBuf[6] >> 2);
+	else
+		setprg32(0x8000, (EXPREGS[5] & 0x1) | ((EXPREGS[5] >> 3) & 0x2));
+}
+
+static void M208MW(uint8 V) {
+	if (submapper == 1)
+		setmirror((V & 1) ^ 1);
+	else
+		setmirror(((EXPREGS[5] >> 5) & 1) ^ 1);
 }
 
 static DECLFW(M208Write) {
-	EXPREGS[5] = (V & 0x1) | ((V >> 3) & 0x2);
+	EXPREGS[5] = V;
 	FixMMC3PRG(MMC3_cmd);
 }
 
@@ -61,7 +79,7 @@ static DECLFR(M208ProtRead) {
 }
 
 static void M208Power(void) {
-	EXPREGS[5] = 3;
+	EXPREGS[5] = 0x11;
 	GenMMC3Power();
 	SetWriteHandler(0x4800, 0x4fff, M208Write);
 	SetWriteHandler(0x6800, 0x6fff, M208Write);
@@ -73,6 +91,8 @@ static void M208Power(void) {
 void Mapper208_Init(CartInfo *info) {
 	GenMMC3_Init(info, 128, 256, 0, 0);
 	pwrap = M208PW;
+	mwrap = M208MW;
 	info->Power = M208Power;
 	AddExState(EXPREGS, 6, 0, "EXPR");
+	submapper = info->submapper;
 }

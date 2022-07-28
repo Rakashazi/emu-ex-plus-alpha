@@ -32,25 +32,26 @@ static SFORMAT StateRegs[] =
 	{ 0 }
 };
 
-//   on    off
-//1  0x0F, 0xF0 - Bird Week
-//2  0x33, 0x00 - B-Wings
-//3  0x11, 0x00 - Mighty Bomb Jack
-//4  0x22, 0x20 - Sansuu 1 Nen, Sansuu 2 Nen
-//5  0xFF, 0x00 - Sansuu 3 Nen
-//6  0x21, 0x13 - Spy vs Spy
-//7  0x20, 0x21 - Seicross
+/*   on    off
+1  0x0F, 0xF0 - Bird Week
+2  0x33, 0x00 - B-Wings
+3  0x11, 0x00 - Mighty Bomb Jack
+4  0x22, 0x20 - Sansuu 1 Nen, Sansuu 2 Nen
+5  0xFF, 0x00 - Sansuu 3 Nen
+6  0x21, 0x13 - Spy vs Spy
+7  0x20, 0x21 - Seicross
+*/
 
 static void Sync185(void) {
-	// little dirty eh? ;_)
-	if ((datareg & 3) && (datareg != 0x13)) // 1, 2, 3, 4, 5, 6
+	/* little dirty eh? ;_) */
+	if ((datareg & 3) && (datareg != 0x13))	/* 1, 2, 3, 4, 5, 6 */
 		setchr8(0);
 	else
 		setchr8r(0x10, 0);
 }
 
 static void Sync181(void) {
-	if (!(datareg & 1))                   // 7
+	if (!(datareg & 1))	/* 7 */
 		setchr8(0);
 	else
 		setchr8r(0x10, 0);
@@ -81,12 +82,12 @@ static void MRestore(int version) {
 }
 
 void Mapper185_Init(CartInfo *info) {
+	int x;
 	Sync = Sync185;
 	info->Power = MPower;
 	info->Close = MClose;
 	GameStateRestore = MRestore;
 	DummyCHR = (uint8*)FCEU_gmalloc(8192);
-	int x;
 	for (x = 0; x < 8192; x++)
 		DummyCHR[x] = 0xff;
 	SetupCartCHRMapping(0x10, DummyCHR, 8192, 0);
@@ -94,12 +95,12 @@ void Mapper185_Init(CartInfo *info) {
 }
 
 void Mapper181_Init(CartInfo *info) {
+	int x;
 	Sync = Sync181;
 	info->Power = MPower;
 	info->Close = MClose;
 	GameStateRestore = MRestore;
 	DummyCHR = (uint8*)FCEU_gmalloc(8192);
-	int x;
 	for (x = 0; x < 8192; x++)
 		DummyCHR[x] = 0xff;
 	SetupCartCHRMapping(0x10, DummyCHR, 8192, 0);

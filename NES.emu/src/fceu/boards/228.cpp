@@ -39,8 +39,8 @@ static void Sync(void) {
 	prgh += ((areg >> 5) & 1) ^ 1;
 
 	setmirror(((areg >> 13) & 1) ^ 1);
-	setprg16(0x8000,prgl);
-	setprg16(0xc000,prgh);
+	setprg16(0x8000, prgl);
+	setprg16(0xc000, prgh);
 	setchr8(((vreg & 0x3) | ((areg & 0xF) << 2)));
 }
 
@@ -67,8 +67,8 @@ static void M228Reset(void) {
 
 static void M228Power(void) {
 	M228Reset();
-	SetReadHandler(0x5000,0x5FFF,M228RamRead);
-	SetWriteHandler(0x5000,0x5FFF,M228RamWrite);
+	SetReadHandler(0x5000, 0x5FFF, M228RamRead);
+	SetWriteHandler(0x5000, 0x5FFF, M228RamWrite);
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
 	SetWriteHandler(0x8000, 0xFFFF, M228Write);
 }

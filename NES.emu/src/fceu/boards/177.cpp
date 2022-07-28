@@ -59,6 +59,11 @@ static void M177Close(void) {
 	WRAM = NULL;
 }
 
+static void M177Reset(void) {
+	reg = 0;
+	Sync();
+}
+
 static void StateRestore(int version) {
 	Sync();
 }
@@ -66,6 +71,7 @@ static void StateRestore(int version) {
 void Mapper177_Init(CartInfo *info) {
 	info->Power = M177Power;
 	info->Close = M177Close;
+	info->Reset = M177Reset;
 	GameStateRestore = StateRestore;
 
 	WRAMSIZE = 8192;

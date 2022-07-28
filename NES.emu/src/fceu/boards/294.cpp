@@ -1,7 +1,7 @@
 /* FCE Ultra - NES/Famicom Emulator
  *
  * Copyright notice for this file:
- *  Copyright (C) 2011 CaH4e3
+ *  Copyright (C) 2022 NewRisingSun
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,47 +16,46 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
  */
 
 #include "mapinc.h"
 
-static uint8 reg;
+static uint8 latch;
 
-static SFORMAT StateRegs[] =
-{
-	{ &reg, 1, "REGS" },
-	{ 0 }
-};
-
-static void Sync(void) {
-	setprg16(0x8000, 0);
-	setprg16(0xc000, ~0);
+static void Mapper294_sync (void) {
+	setprg16(0x8000, latch);
+	setprg16(0xC000, latch |7);
 	setchr8(0);
+	setmirror(latch &0x80? MI_H: MI_V);
 }
 
-static DECLFW(M170ProtW) {
-	reg = V << 1 & 0x80;
+static DECLFW(Mapper294_writeInnerBank) {
+	latch =latch &~7 | V&7;
+	Mapper294_sync();
 }
 
-static DECLFR(M170ProtR) {
-	return reg | (X.DB & 0x7F);
+static DECLFW(Mapper294_writeOuterBank) {
+	if (A &0x100) {
+		latch =latch &7 | V <<3;
+		Mapper294_sync();
+	}
 }
 
-static void M170Power(void) {
-	Sync();
-	SetWriteHandler(0x6502, 0x6502, M170ProtW);
-	SetWriteHandler(0x7000, 0x7000, M170ProtW);
-	SetReadHandler(0x7001, 0x7001, M170ProtR);
-	SetReadHandler(0x7777, 0x7777, M170ProtR);
+static void Mapper294_reset(void) {
+	latch =0;
+	Mapper294_sync();
+}
+
+static void Mapper294_power(void) {
+	Mapper294_reset();
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetWriteHandler(0x8000, 0xFFFF, Mapper294_writeInnerBank);
+	SetWriteHandler(0x4020, 0x7FFF, Mapper294_writeOuterBank);
 }
 
-static void StateRestore(int version) {
-	Sync();
-}
-
-void Mapper170_Init(CartInfo *info) {
-	info->Power = M170Power;
-	GameStateRestore = StateRestore;
-	AddExState(&StateRegs, ~0, 0, 0);
+void Mapper294_Init(CartInfo *info) {
+	info->Power = Mapper294_power;
+	info->Reset = Mapper294_reset;
+	AddExState(&latch, 1, 0, "LATC");
 }

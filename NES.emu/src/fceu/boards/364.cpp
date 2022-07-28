@@ -1,7 +1,7 @@
 /* FCE Ultra - NES/Famicom Emulator
  *
  * Copyright notice for this file:
- *  Copyright (C) 2011 CaH4e3
+ *  Copyright (C) 2022
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,47 +16,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
  */
 
 #include "mapinc.h"
+#include "mmc3.h"
 
-static uint8 reg;
-
-static SFORMAT StateRegs[] =
-{
-	{ &reg, 1, "REGS" },
-	{ 0 }
-};
-
-static void Sync(void) {
-	setprg16(0x8000, 0);
-	setprg16(0xc000, ~0);
-	setchr8(0);
+static void M364CW(uint32 A, uint8 V) {
+	V &= (EXPREGS[0] & 0x20) ? 0x7F : 0xFF;
+	setchr1(A, V | ((EXPREGS[0] << 4) & 0x100));
 }
 
-static DECLFW(M170ProtW) {
-	reg = V << 1 & 0x80;
+static void M364PW(uint32 A, uint8 V) {
+	V &= (EXPREGS[0] & 0x20) ? 0x0F : 0x1F;
+	setprg8(A, V | ((EXPREGS[0] >> 1) & 0x20));
 }
 
-static DECLFR(M170ProtR) {
-	return reg | (X.DB & 0x7F);
+static DECLFW(M364Write) {
+	EXPREGS[0] = V;
+	FixMMC3PRG(MMC3_cmd);
+	FixMMC3CHR(MMC3_cmd);
 }
 
-static void M170Power(void) {
-	Sync();
-	SetWriteHandler(0x6502, 0x6502, M170ProtW);
-	SetWriteHandler(0x7000, 0x7000, M170ProtW);
-	SetReadHandler(0x7001, 0x7001, M170ProtR);
-	SetReadHandler(0x7777, 0x7777, M170ProtR);
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
+static void M364Power(void) {
+	EXPREGS[0] = 0;
+	GenMMC3Power();
+	SetWriteHandler(0x7000, 0x7FFF, M364Write);
 }
 
-static void StateRestore(int version) {
-	Sync();
+static void M364Reset(void) {
+	EXPREGS[0] = 0;
+	MMC3RegReset();
 }
 
-void Mapper170_Init(CartInfo *info) {
-	info->Power = M170Power;
-	GameStateRestore = StateRestore;
-	AddExState(&StateRegs, ~0, 0, 0);
+void Mapper364_Init(CartInfo *info) {
+	GenMMC3_Init(info, 512, 512, 8, 0);
+	pwrap = M364PW;
+	cwrap = M364CW;
+	info->Power = M364Power;
+	AddExState(EXPREGS, 1, 0, "EXPR");
 }

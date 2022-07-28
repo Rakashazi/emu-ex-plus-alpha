@@ -29,11 +29,12 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-//	uint32 bbank = (bank & 0x18) >> 1;
-	uint32 bbank = ((bank & 0x10) >> 2) | (bank & 8);	// some dumps have bbanks swapped, if swap commands,
-														// then all roms can be played, but with some swapped
-														// games in menu. if not, some dumps are unplayable
-														// make hard dump for both cart types to check
+/*	uint32 bbank = (bank & 0x18) >> 1; */
+	uint32 bbank = ((bank & 0x10) >> 2) | (bank & 8);	/* some dumps have bbanks swapped, if swap commands,
+														 * then all roms can be played, but with some swapped
+														 * games in menu. if not, some dumps are unplayable
+														 * make hard dump for both cart types to check
+														 */
 	setprg16(0x8000, bbank | (preg & 3));
 	setprg16(0xC000, bbank | 3);
 	setchr8(0);

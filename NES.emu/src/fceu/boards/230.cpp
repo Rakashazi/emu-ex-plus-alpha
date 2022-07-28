@@ -33,7 +33,7 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	if(reset) {
+	if (reset) {
 		setprg16(0x8000, latche & 7);
 		setprg16(0xC000, 7);
 		setmirror(MI_V);

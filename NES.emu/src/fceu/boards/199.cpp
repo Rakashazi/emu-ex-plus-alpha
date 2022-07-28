@@ -44,7 +44,7 @@ static void M199CW(uint32 A, uint8 V) {
 }
 
 static void M199MW(uint8 V) {
-//	FCEU_printf("%02x\n",V);
+/*	FCEU_printf("%02x\n",V); */
 	switch (V & 3) {
 	case 0: setmirror(MI_V); break;
 	case 1: setmirror(MI_H); break;
@@ -75,6 +75,7 @@ static void M199Power(void) {
 }
 
 static void M199Close(void) {
+	GenMMC3Close();
 	if (CHRRAM)
 		FCEU_gfree(CHRRAM);
 	CHRRAM = NULL;
