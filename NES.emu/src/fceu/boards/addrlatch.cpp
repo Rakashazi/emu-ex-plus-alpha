@@ -757,3 +757,57 @@ static void M435Sync(void) {
 void Mapper435_Init(CartInfo *info) {
 	Latch_Init(info, M435Sync, NULL, 0x0000, 0x8000, 0xFFFF, 1);
 }
+
+/*------------------ Map 459 ---------------------------*/
+static void M459Sync(void) {
+	int p =latche >>5;
+	int c =latche &0x03 | latche >>2 &0x04 | latche >>4 &0x08;
+	if (latche &0x04) {
+		setprg32(0x8000, p);
+	} else {
+		setprg16(0x8000, p <<1);
+		setprg16(0xC000, p <<1 |7);
+	}
+	setchr8(c &(latche &0x08? 0x0F: 0x08));
+	setmirror(latche &0x100? MI_H: MI_V);
+}
+
+void Mapper459_Init(CartInfo *info) {
+	Latch_Init(info, M459Sync, NULL, 0x0000, 0x8000, 0xFFFF, 1);
+}
+
+/*------------------ Map 461 ---------------------------*/
+static void M461Sync(void) {
+	int p =latche <<1 | latche >>5 &1;
+	int c =latche >>8;
+	if (latche &0x10) {
+		setprg16(0x8000, p);
+		setprg16(0xC000, p);
+	} else {
+		setprg32(0x8000, p >>1);
+	}
+	setchr8(c);
+	setmirror(latche &0x80? MI_H: MI_V);
+}
+
+void Mapper461_Init(CartInfo *info) {
+	Latch_Init(info, M461Sync, NULL, 0x0000, 0x8000, 0xFFFF, 1);
+}
+
+/*------------------ Map 464 ---------------------------*/
+static void M464Sync(void) {
+	int p =latche >>7;
+	int c =latche &0x1F;
+	if (latche &0x40) {
+		setprg32(0x8000, p >> 1);
+	} else {
+		setprg16(0x8000, p);
+		setprg16(0xC000, p);
+	}
+	setchr8(c);
+	setmirror(latche &0x20? MI_H: MI_V);
+}
+
+void Mapper464_Init(CartInfo *info) {
+	Latch_Init(info, M464Sync, NULL, 0x0000, 0x8000, 0xFFFF, 1);
+}
