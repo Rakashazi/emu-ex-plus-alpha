@@ -100,7 +100,7 @@ static void sync () {
 			setprg32(0x8000, (MMC1_reg[3] &prgAND | prgOR &~prgAND) >>1);
 	}
 	
-	chrAND =reg[2] &0x10? 0x1F: reg[2] &0x20? 0x7F: 0xFF;
+	chrAND =reg[2] &0x10 && ~reg[2] &0x20? 0x1F: reg[2] &0x20? 0x7F: 0xFF;
 	chrOR  =reg[0] <<1;
 	if (reg[2] &0x01)  /* CHR RAM mode */
 		setchr8r(0x10, 0);
@@ -265,6 +265,11 @@ static DECLFW(writeReg) {
 	sync();
 }
 
+static DECLFW(writeFDSMirroring) {
+	MMC3_mirroring =V >>3 &1;
+	sync();
+}
+
 static void Mapper351_power(void) {
 	int i;
 	for (i =0; i <4; i++) reg[i] =0;
@@ -281,6 +286,7 @@ static void Mapper351_power(void) {
 	SetReadHandler(0x6000, 0xFFFF, CartBR);
 	SetReadHandler(0x5000, 0x5FFF, readDIP);
 	SetWriteHandler(0x5000, 0x5FFF, writeReg);
+	SetWriteHandler(0x4025, 0x4025, writeFDSMirroring);
 	applyMode();
 	sync();
 }
