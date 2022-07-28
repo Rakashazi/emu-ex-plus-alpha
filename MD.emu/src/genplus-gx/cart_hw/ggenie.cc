@@ -1,33 +1,49 @@
 /****************************************************************************
  *  Genesis Plus
- *  Game Genie Hardware emulation
+ *  Game Genie hardware support
  *
- *  Copyright (C) 2009  Eke-Eke (GCN/Wii port)
+ *  Copyright (C) 2009-2021  Eke-Eke (Genesis Plus GX)
  *
  *  Based on documentation from Charles McDonald
  *  (http://cgfm2.emuviews.com/txt/genie.txt)
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  Redistribution and use of this code or any derivative works are permitted
+ *  provided that the following conditions are met:
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *   - Redistributions may not be sold, nor may they be used in a commercial
+ *     product or activity.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- ***************************************************************************/
+ *   - Redistributions that are modified from the original source must include the
+ *     complete source code, including the source code for all components used by a
+ *     binary built from the modified sources. However, as a special exception, the
+ *     source code distributed need not include anything that is normally distributed
+ *     (in either source or binary form) with the major components (compiler, kernel,
+ *     and so on) of the operating system on which the executable runs, unless that
+ *     component itself accompanies the executable.
+ *
+ *   - Redistributions must reproduce the above copyright notice, this list of
+ *     conditions and the following disclaimer in the documentation and/or other
+ *     materials provided with the distribution.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************************/
 
 #include "shared.h"
 
 static struct
 {
   uint8 enabled;
-  uint8 *rom;
   uint16 regs[0x20];
   uint16 old[6];
   uint16 data[6];
@@ -42,45 +58,28 @@ static void ggenie_write_regs(unsigned int offset, unsigned int data);
 
 void ggenie_init(void)
 {
-  memset(&ggenie,0,sizeof(ggenie));
+  ggenie.enabled = 0;
 
-  /* Open Game Genie ROM */
-  FILE *f = fopen(GG_ROM,"rb");
-  if (!f) return;
-
-  /* Store Game Genie ROM above cartridge ROM + SRAM */
-  if (cart.romsize > 0x600000)
+  /* Try to load Game Genie ROM file (32KB) */
+  if (load_archive(GG_ROM, cart.lockrom, 0x8000, NULL) > 0)
   {
-	  fclose(f);
-	  return;
-  }
-  ggenie.rom = cart.rom + 0x600000;
-
-  /* Load ROM */
-  int i = 0;
-  while (i < 0x8000)
-  {
-    fread(ggenie.rom+i,0x1000,1,f);
-    i += 0x1000;
-  }
-  fclose(f);
-
 #ifdef LSB_FIRST
-  /* Byteswap ROM */
-  uint8 temp;
-  for(i = 0; i < 0x8000; i += 2)
-  {
-    temp = ggenie.rom[i];
-    ggenie.rom[i] = ggenie.rom[i+1];
-    ggenie.rom[i+1] = temp;
-  }
+    int i;
+    for (i=0; i<0x8000; i+=2)
+    {
+      /* Byteswap ROM */
+      uint8 temp = cart.lockrom[i];
+      cart.lockrom[i] = cart.lockrom[i+1];
+      cart.lockrom[i+1] = temp;
+    }
 #endif
 
-  /* $0000-$7fff mirrored into $8000-$ffff */
-  memcpy(ggenie.rom+0x8000,ggenie.rom,0x8000);
+    /* $0000-$7fff mirrored into $8000-$ffff */
+    memcpy(cart.lockrom + 0x8000, cart.lockrom, 0x8000);
 
-  /* set flag */
-  ggenie.enabled = 1;
+    /* Game Genie hardware is enabled */
+    ggenie.enabled = 1;
+  }
 }
 
 void ggenie_shutdown(void)
@@ -109,14 +108,14 @@ void ggenie_reset(int hard)
     }
 
     /* Game Genie ROM is mapped at $000000-$007fff */
-    mm68k.memory_map[0].base = ggenie.rom;
+    m68k.memory_map[0].base = cart.lockrom;
 
     /* Internal registers are mapped at $000000-$00001f */
-    mm68k.memory_map[0].write8   = ggenie_write_byte;
-    mm68k.memory_map[0].write16  = ggenie_write_word;
+    m68k.memory_map[0].write8   = ggenie_write_byte;
+    m68k.memory_map[0].write16  = ggenie_write_word;
 
     /* Disable registers reads */
-    mm68k.memory_map[0].read16 = NULL;
+    m68k.memory_map[0].read16 = NULL;
   }
 }
 
@@ -132,8 +131,8 @@ void ggenie_switch(int enable)
       if (ggenie.regs[0] & (1 << i))
       {
         /* save old value and patch ROM if enabled */
-        ggenie.old[i] = *(uint16a *)(cart.rom + ggenie.addr[i]);
-        *(uint16a *)(cart.rom + ggenie.addr[i]) = ggenie.data[i];
+        ggenie.old[i] = *(uint16 *)(cart.rom + ggenie.addr[i]);
+        *(uint16 *)(cart.rom + ggenie.addr[i]) = ggenie.data[i];
       }
     }
   }
@@ -146,7 +145,7 @@ void ggenie_switch(int enable)
       if (ggenie.regs[0] & (1 << i))
       {
         /* restore original ROM value */
-        *(uint16a *)(cart.rom + ggenie.addr[i]) = ggenie.old[i];
+        *(uint16 *)(cart.rom + ggenie.addr[i]) = ggenie.old[i];
       }
     }
   }
@@ -203,24 +202,24 @@ static void ggenie_write_regs(unsigned int offset, unsigned int data)
     if (data & 0x400)
     {
       /* $0000-$7ffff reads mapped to Cartridge ROM */
-      mm68k.memory_map[0].base = cart.rom;
-      mm68k.memory_map[0].read8 = NULL;
-      mm68k.memory_map[0].read16 = NULL;
+      m68k.memory_map[0].base = cart.rom;
+      m68k.memory_map[0].read8 = NULL; 
+      m68k.memory_map[0].read16 = NULL; 
     }
     else
     {
       /* $0000-$7ffff reads mapped to Game Genie ROM */
-      mm68k.memory_map[0].base = ggenie.rom;
-      mm68k.memory_map[0].read8 = NULL;
-      mm68k.memory_map[0].read16 = NULL;
+      m68k.memory_map[0].base = cart.lockrom;
+      m68k.memory_map[0].read8 = NULL; 
+      m68k.memory_map[0].read16 = NULL; 
 
       /* READ_ENABLE bit */
       if (data & 0x200)
       {
         /* $0000-$7ffff reads mapped to Game Genie Registers */
         /* code doing this should execute in RAM so we don't need to modify base address */
-        mm68k.memory_map[0].read8 = ggenie_read_byte;
-        mm68k.memory_map[0].read16 = ggenie_read_word;
+        m68k.memory_map[0].read8 = ggenie_read_byte; 
+        m68k.memory_map[0].read16 = ggenie_read_word; 
       }
     }
 
@@ -245,8 +244,8 @@ static void ggenie_write_regs(unsigned int offset, unsigned int data)
       ggenie.data[5] = ggenie.regs[19];
 
       /* disable internal registers */
-      mm68k.memory_map[0].write8   = m68k_unused_8_w;
-      mm68k.memory_map[0].write16  = m68k_unused_16_w;
+      m68k.memory_map[0].write8   = m68k_unused_8_w;
+      m68k.memory_map[0].write16  = m68k_unused_16_w;
 
       /* patch ROM when GG program exits (LOCK bit set) */
       /* this is done here to handle patched program reads faster & more easily */
@@ -255,8 +254,8 @@ static void ggenie_write_regs(unsigned int offset, unsigned int data)
     }
     else
     {
-      mm68k.memory_map[0].write8   = ggenie_write_byte;
-      mm68k.memory_map[0].write16  = ggenie_write_word;
+      m68k.memory_map[0].write8   = ggenie_write_byte;
+      m68k.memory_map[0].write16  = ggenie_write_word;
     }
   }
 
