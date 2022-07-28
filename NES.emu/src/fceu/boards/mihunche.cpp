@@ -34,7 +34,7 @@ static void Sync(void) {
 		setchr4(0x0000, latche & 1);
 		setchr4(0x1000, latche & 1);
 	} else {
-		setchr8(latche & 1);    // actually, my bad, overdumped roms, the real CHR size if 8K
+		setchr8(latche & 1);    /* actually, my bad, overdumped roms, the real CHR size if 8K */
 	}
 	setmirror(MI_0 + (latche & 1));
 }
@@ -54,7 +54,7 @@ static void UNLCC21Power(void) {
 	Sync();
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
 	SetWriteHandler(0x8001, 0xFFFF, UNLCC21Write1);
-	SetWriteHandler(0x8000, 0x8000, UNLCC21Write2); // another one many-in-1 mapper, there is a lot of similar carts with little different wirings
+	SetWriteHandler(0x8000, 0x8000, UNLCC21Write2); /* another one many-in-1 mapper, there is a lot of similar carts with little different wirings */
 }
 
 static void StateRestore(int version) {

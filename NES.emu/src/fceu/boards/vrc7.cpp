@@ -19,18 +19,15 @@
  */
 
 #include "mapinc.h"
+#include "emu2413.h"
 
+static int32 dwave = 0;
+static OPLL *VRC7Sound = NULL;
 static uint8 vrc7idx, preg[3], creg[8], mirr;
 static uint8 IRQLatch, IRQa, IRQd;
 static int32 IRQCount, CycleCount;
 static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
-
-#include "emu2413.h"
-
-static int32 dwave = 0;
-static OPLL *VRC7Sound = NULL;
-static OPLL **VRC7Sound_saveptr = &VRC7Sound;
 
 static SFORMAT StateRegs[] =
 {
@@ -43,11 +40,10 @@ static SFORMAT StateRegs[] =
 	{ &IRQLatch, 1, "IRQL" },
 	{ &IRQCount, 4, "IRQC" },
 	{ &CycleCount, 4, "CYCC" },
-	{ (void**)VRC7Sound_saveptr, sizeof(*VRC7Sound) | FCEUSTATE_INDIRECT, "VRC7"  },
-	{0}
+	{ 0 }
 };
 
-// VRC7 Sound
+/* VRC7 Sound */
 
 void DoVRC7Sound(void) {
 	int32 z, a;
@@ -86,12 +82,12 @@ static void VRC7SKill(void) {
 static void VRC7_ESI(void) {
 	GameExpSound.RChange = VRC7SC;
 	GameExpSound.Kill = VRC7SKill;
-	VRC7Sound = OPLL_new(3579545, FSettings.SndRate ? FSettings.SndRate : 48000);
+	VRC7Sound = OPLL_new(3579545, FSettings.SndRate ? FSettings.SndRate : 44100);
 	OPLL_reset(VRC7Sound);
 	OPLL_reset(VRC7Sound);
 }
 
-// VRC7 Sound
+/* VRC7 Sound */
 
 static void Sync(void) {
 	uint8 i;
@@ -119,7 +115,7 @@ static DECLFW(VRC7SW) {
 }
 
 static DECLFW(VRC7Write) {
-	A |= (A & 8) << 1;  // another two-in-oooone
+	A |= (A & 8) << 1;	/* another two-in-oooone */
 	if (A >= 0xA000 && A <= 0xDFFF) {
 		A &= 0xF010;
 		creg[((A >> 4) & 1) | ((A - 0xA000) >> 11)] = V;
@@ -156,8 +152,7 @@ static void VRC7Power(void) {
 	FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
 }
 
-static void VRC7Close(void)
-{
+static void VRC7Close(void) {
 	if (WRAM)
 		FCEU_gfree(WRAM);
 	WRAM = NULL;
@@ -166,7 +161,7 @@ static void VRC7Close(void)
 static void VRC7IRQHook(int a) {
 	if (IRQa) {
 		CycleCount += a * 3;
-		while(CycleCount >= 341) {
+		while (CycleCount >= 341) {
 			CycleCount -= 341;
 			IRQCount++;
 			if (IRQCount == 0x100) {
@@ -179,6 +174,10 @@ static void VRC7IRQHook(int a) {
 
 static void StateRestore(int version) {
 	Sync();
+
+#ifndef GEKKO
+	OPLL_forceRefresh(VRC7Sound);
+#endif
 }
 
 void Mapper85_Init(CartInfo *info) {
@@ -196,6 +195,31 @@ void Mapper85_Init(CartInfo *info) {
 	GameStateRestore = StateRestore;
 	VRC7_ESI();
 	AddExState(&StateRegs, ~0, 0, 0);
+
+/* Ignoring these sound state files for Wii since it causes states unable to load */
+#ifndef GEKKO
+	/* Sound states */
+	AddExState(&VRC7Sound->adr, sizeof(VRC7Sound->adr), 0, "ADDR");
+	AddExState(&VRC7Sound->out, sizeof(VRC7Sound->out), 0, "OUT0");
+	AddExState(&VRC7Sound->realstep, sizeof(VRC7Sound->realstep), 0, "RTIM");
+	AddExState(&VRC7Sound->oplltime, sizeof(VRC7Sound->oplltime), 0, "TIME");
+	AddExState(&VRC7Sound->opllstep, sizeof(VRC7Sound->opllstep), 0, "STEP");
+	AddExState(&VRC7Sound->prev, sizeof(VRC7Sound->prev), 0, "PREV");
+	AddExState(&VRC7Sound->next, sizeof(VRC7Sound->next), 0, "NEXT");
+	AddExState(&VRC7Sound->LowFreq, sizeof(VRC7Sound->LowFreq), 0, "LFQ0");
+	AddExState(&VRC7Sound->HiFreq, sizeof(VRC7Sound->HiFreq), 0, "HFQ0");
+	AddExState(&VRC7Sound->InstVol, sizeof(VRC7Sound->InstVol), 0, "VOLI");
+	AddExState(&VRC7Sound->CustInst, sizeof(VRC7Sound->CustInst), 0, "CUSI");
+	AddExState(&VRC7Sound->slot_on_flag, sizeof(VRC7Sound->slot_on_flag), 0, "FLAG");
+	AddExState(&VRC7Sound->pm_phase, sizeof(VRC7Sound->pm_phase), 0, "PMPH");
+	AddExState(&VRC7Sound->lfo_pm, sizeof(VRC7Sound->lfo_pm), 0, "PLFO");
+	AddExState(&VRC7Sound->am_phase, sizeof(VRC7Sound->am_phase), 0, "AMPH");
+	AddExState(&VRC7Sound->lfo_am, sizeof(VRC7Sound->lfo_am), 0, "ALFO");
+	AddExState(&VRC7Sound->patch_number, sizeof(VRC7Sound->patch_number), 0, "PNUM");
+	AddExState(&VRC7Sound->key_status, sizeof(VRC7Sound->key_status), 0, "KET");
+	AddExState(&VRC7Sound->mask, sizeof(VRC7Sound->mask), 0, "MASK");
+	AddExState((uint8 *)VRC7Sound->slot, sizeof(VRC7Sound->slot), 0, "SLOT");
+#endif
 }
 
 void NSFVRC7_Init(void) {

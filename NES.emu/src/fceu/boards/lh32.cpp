@@ -17,11 +17,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
- * FDS Conversion
+ * FDS Conversion - Monty no Doki Doki Daisassō, Monty on the Run, cartridge code LH32
  *
  */
 
 #include "mapinc.h"
+#include "../fds_apu.h"
 
 static uint8 reg;
 static uint8 *WRAM = NULL;
@@ -48,6 +49,7 @@ static DECLFW(LH32Write) {
 }
 
 static void LH32Power(void) {
+	FDSSoundPower();
 	Sync();
 	SetReadHandler(0x6000, 0xFFFF, CartBR);
 	SetWriteHandler(0xC000, 0xDFFF, CartBW);

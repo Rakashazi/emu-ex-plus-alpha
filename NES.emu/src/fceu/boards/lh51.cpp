@@ -1,7 +1,7 @@
-/* FCE Ultra - NES/Famicom Emulator
+/* FCEUmm - NES/Famicom Emulator
  *
  * Copyright notice for this file:
- *  Copyright (C) 2007 CaH4e3
+ *  Copyright (C) 2019 Libretro Team
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,76 +16,56 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- *
- * FDS Conversion - Nazo no Murasamejō
- *
+ */
+
+/* FDS Conversion
+ * NES 2.0 Mapper 309 is used for Whirlwind Manu's ROM cartridge conversion
+ * of game 愛戦士ニコル (Ai Senshi Nicol, cartridge code LH51).
+ * Its UNIF board name is UNL-LH51.
+ * https://wiki.nesdev.com/w/index.php/NES_2.0_Mapper_309
  */
 
 #include "mapinc.h"
 #include "../fds_apu.h"
 
-static uint8 reg, IRQa;
-static int32 IRQCount;
+static uint8 reg, mirr;
 static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] =
 {
 	{ &reg, 1, "REG" },
-	{ &IRQa, 1, "IRQA" },
-	{ &IRQCount, 4, "IRQC" },
+	{ &mirr, 1, "MIRR" },
 	{ 0 }
 };
 
 static void Sync(void) {
 	setchr8(0);
-	setprg8(0x6000, reg);
-	setprg8(0x8000, 0xc);
-	setprg4(0xa000, (0xd << 1));
-	setprg2(0xb000, (0xd << 2) + 2);
-	setprg2r(0x10, 0xb800, 4);
-	setprg2r(0x10, 0xc000, 5);
-	setprg2r(0x10, 0xc800, 6);
-	setprg2r(0x10, 0xd000, 7);
-	setprg2(0xd800, (0xe << 2) + 3);
-	setprg8(0xe000, 0xf);
+	setprg8r(0x10, 0x6000, 0);
+	setprg8(0x8000, reg & 0x0F);
+	setprg8(0xA000, 13);
+	setprg8(0xC000, 14);
+	setprg8(0xE000, 15);
+	setmirror(((mirr >> 3) & 1) ^ 1);
 }
 
-static DECLFW(LH53RamWrite) {
-	WRAM[(A - 0xB800) & 0x1FFF] = V;
-}
-
-static DECLFW(LH53Write) {
-	reg = V;
-	Sync();
-}
-
-static DECLFW(LH53IRQaWrite) {
-	IRQa = V & 2;
-	IRQCount = 0;
-	if (!IRQa)
-		X6502_IRQEnd(FCEU_IQEXT);
-}
-
-static void FP_FASTAPASS(1) LH53IRQ(int a) {
-	if (IRQa) {
-		IRQCount += a;
-		if (IRQCount > 7560)
-			X6502_IRQBegin(FCEU_IQEXT);
+static DECLFW(LH51Write) {
+	switch (A & 0xF000) {
+	case 0x8000: reg = V; Sync(); break;
+	case 0xF000: mirr = V; Sync(); break;
 	}
 }
 
-static void LH53Power(void) {
+static void LH51Power(void) {
 	FDSSoundPower();
 	Sync();
 	SetReadHandler(0x6000, 0xFFFF, CartBR);
-	SetWriteHandler(0xB800, 0xD7FF, LH53RamWrite);
-	SetWriteHandler(0xE000, 0xEFFF, LH53IRQaWrite);
-	SetWriteHandler(0xF000, 0xFFFF, LH53Write);
+	SetWriteHandler(0x6000, 0x7FFF, CartBW);
+	SetWriteHandler(0x8000, 0xFFFF, LH51Write);
 	FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
 }
 
-static void LH53Close(void) {
+static void LH51Close(void) {
 	if (WRAM)
 		FCEU_gfree(WRAM);
 	WRAM = NULL;
@@ -95,10 +75,9 @@ static void StateRestore(int version) {
 	Sync();
 }
 
-void LH53_Init(CartInfo *info) {
-	info->Power = LH53Power;
-	info->Close = LH53Close;
-	MapIRQHook = LH53IRQ;
+void LH51_Init(CartInfo *info) {
+	info->Power = LH51Power;
+	info->Close = LH51Close;
 	GameStateRestore = StateRestore;
 
 	WRAMSIZE = 8192;

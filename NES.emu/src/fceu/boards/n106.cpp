@@ -48,7 +48,7 @@ static void DoNamcoSound(int32 *Wave, int Count);
 static void DoNamcoSoundHQ(void);
 static void SyncHQ(int32 ts);
 
-static int is210;        /* Lesser mapper. */
+static int is210;	/* Lesser mapper. */
 
 static uint8 PRG[3];
 static uint8 CHR[8];
@@ -57,22 +57,13 @@ static SFORMAT N106_StateRegs[] = {
 	{ PRG, 3, "PRG" },
 	{ CHR, 8, "CHR" },
 	{ NTAPage, 4, "NTA" },
-	{ &gorfus, 1, "GORF" },
-	{ &dopol, 1, "DOPO" },
+	{ &IRQCount, 2 | FCEUSTATE_RLSB, "IRQC" },
+	{ &IRQa, 1, "IRQA" },
+	{ &dopol, 1, "GORF" },
+	{ &gorfus, 1, "DOPO" },
 	{ &gorko, 1, "GORK" },
 	{ 0 }
 };
-
-static void SyncMirror()
-{
-	switch(gorko) {
-	case 0: setmirror(MI_0); break;
-	case 1: setmirror(MI_V); break;
-	case 2: setmirror(MI_H); break;
-	case 3: setmirror(MI_0); break;
-	}
-	
-}
 
 static void SyncPRG(void) {
 	setprg8(0x8000, PRG[0]);
@@ -81,13 +72,22 @@ static void SyncPRG(void) {
 	setprg8(0xe000, 0x3F);
 }
 
-static void NamcoIRQHook(int a) {
+static void SyncMirror() {
+	switch(gorko) {
+	case 0: setmirror(MI_0); break;
+	case 1: setmirror(MI_V); break;
+	case 2: setmirror(MI_H); break;
+	case 3: setmirror(MI_0); break;
+	}
+}
+
+static void FP_FASTAPASS(1) NamcoIRQHook(int a) {
 	if (IRQa) {
 		IRQCount += a;
 		if (IRQCount >= 0x7FFF) {
 			X6502_IRQBegin(FCEU_IQEXT);
 			IRQa = 0;
-			IRQCount = 0x7FFF; //7FFF;
+			IRQCount = 0x7FFF;
 		}
 	}
 }
@@ -111,11 +111,11 @@ static DECLFR(Namco_Read5800) {
 	return(IRQCount >> 8);
 }
 
-static void DoNTARAMROM(int w, uint8 V) {
+static void FASTAPASS(2) DoNTARAMROM(int w, uint8 V) {
 	NTAPage[w] = V;
 	if (V >= 0xE0)
 		setntamem(NTARAM + ((V & 1) << 10), 1, w);
-	else{
+	else {
 		V &= CHRmask1[0];
 		setntamem(CHRptr[0] + (V << 10), 0, w);
 	}
@@ -127,11 +127,9 @@ static void FixNTAR(void) {
 		DoNTARAMROM(x, NTAPage[x]);
 }
 
-static void DoCHRRAMROM(int x, uint8 V) {
+static void FASTAPASS(2) DoCHRRAMROM(int x, uint8 V) {
 	CHR[x] = V;
 	if (!is210 && !((gorfus >> ((x >> 2) + 6)) & 1) && (V >= 0xE0)) {
-//		printf("BLAHAHA: %d, %02x\n",x,V);
-//		setchr1r(0x10,x<<10,V&7);
 	} else
 		setchr1(x << 10, V);
 }
@@ -157,9 +155,9 @@ static void FixCache(int a, int V) {
 	case 0x02: FreqCache[w] &= ~0x0000FF00; FreqCache[w] |= V << 8; break;
 	case 0x04:
 		FreqCache[w] &= ~0x00030000; FreqCache[w] |= (V & 3) << 16;
-// something wrong here http://www.romhacking.net/forum/index.php?topic=21907.msg306903#msg306903
-//		LengthCache[w] = (8 - ((V >> 2) & 7)) << 2;
-// fix be like in https://github.com/SourMesen/Mesen/blob/cda0a0bdcb5525480784f4b8c71de6fc7273b570/Core/Namco163Audio.h#L61
+		/* something wrong here http://www.romhacking.net/forum/index.php?topic=21907.msg306903#msg306903 */
+		/* LengthCache[w] = (8 - ((V >> 2) & 7)) << 2; */
+		/* fix be like in https://github.com/SourMesen/Mesen/blob/cda0a0bdcb5525480784f4b8c71de6fc7273b570/Core/Namco163Audio.h#L61 */
 		LengthCache[w] = 256 - (V & 0xFC);
 		break;
 	case 0x07: EnvCache[w] = (double)(V & 0xF) * 576716; break;
@@ -196,12 +194,13 @@ static DECLFW(Mapper19_write) {
 			X6502_IRQEnd(FCEU_IQEXT);
 			break;
 		case 0xE000:
+			gorko = V & 0xC0;
 			PRG[0] = V & 0x3F;
-			if(is210) {
-				gorko = V>>6;
+			SyncPRG();
+			if (is210) {
+				gorko = V >> 6;
 				SyncMirror();
 			}
-			SyncPRG();
 			break;
 		case 0xE800:
 			gorfus = V & 0xC0;
@@ -244,7 +243,29 @@ static int32 CVBC;
 
 #define TOINDEX        (16 + 1)
 
-// 16:15
+static SFORMAT N106_SStateRegs[] =
+{
+	{ &PlayIndex[0], 4 | FCEUSTATE_RLSB, "IDX0" },
+	{ &PlayIndex[1], 4 | FCEUSTATE_RLSB, "IDX1" },
+	{ &PlayIndex[2], 4 | FCEUSTATE_RLSB, "IDX2" },
+	{ &PlayIndex[3], 4 | FCEUSTATE_RLSB, "IDX3" },
+	{ &PlayIndex[4], 4 | FCEUSTATE_RLSB, "IDX4" },
+	{ &PlayIndex[5], 4 | FCEUSTATE_RLSB, "IDX5" },
+	{ &PlayIndex[6], 4 | FCEUSTATE_RLSB, "IDX6" },
+	{ &PlayIndex[7], 4 | FCEUSTATE_RLSB, "IDX7" },
+	{ &vcount[0], 4 | FCEUSTATE_RLSB, "VCT0" },
+	{ &vcount[1], 4 | FCEUSTATE_RLSB, "VCT1" },
+	{ &vcount[2], 4 | FCEUSTATE_RLSB, "VCT2" },
+	{ &vcount[3], 4 | FCEUSTATE_RLSB, "VCT3" },
+	{ &vcount[4], 4 | FCEUSTATE_RLSB, "VCT4" },
+	{ &vcount[5], 4 | FCEUSTATE_RLSB, "VCT5" },
+	{ &vcount[6], 4 | FCEUSTATE_RLSB, "VCT6" },
+	{ &vcount[7], 4 | FCEUSTATE_RLSB, "VCT7" },
+	{ &CVBC, 4 | FCEUSTATE_RLSB, "BC00" },
+	{ 0 }
+};
+
+/* 16:15 */
 static void SyncHQ(int32 ts) {
 	CVBC = ts;
 }
@@ -315,9 +336,8 @@ static void DoNamcoSound(int32 *Wave, int Count) {
 			envelope = EnvCache[P];
 			lengo = LengthCache[P];
 
-			if (!freq) { /*printf("Ack");*/
+			if (!freq)
 				continue;
-			}
 
 			{
 				int c = ((IRAM[0x7F] >> 4) & 7) + 1;
@@ -350,11 +370,11 @@ static void DoNamcoSound(int32 *Wave, int Count) {
 }
 
 static void Mapper19_StateRestore(int version) {
+	int x;
 	SyncPRG();
 	SyncMirror();
 	FixNTAR();
 	FixCRR();
-	int x;
 	for (x = 0x40; x < 0x80; x++)
 		FixCache(x, IRAM[x]);
 }
@@ -403,8 +423,8 @@ static void N106_Power(void) {
 	FixCRR();
 
 	if (!battery) {
-		FCEU_MemoryRand(WRAM, sizeof(WRAM), true);
-		FCEU_MemoryRand(IRAM, sizeof(IRAM), true);
+		FCEU_dwmemset(WRAM, 0, 8192);
+		FCEU_dwmemset(IRAM, 0, 128);
 	}
 	for (x = 0x40; x < 0x80; x++)
 		FixCache(x, IRAM[x]);
@@ -422,11 +442,10 @@ void Mapper19_Init(CartInfo *info) {
 	if (FSettings.SndRate)
 		Mapper19_ESI();
 
-	FCEU_MemoryRand(WRAM, sizeof(WRAM), true);
-	FCEU_MemoryRand(IRAM, sizeof(IRAM), true);
 	AddExState(WRAM, 8192, 0, "WRAM");
 	AddExState(IRAM, 128, 0, "IRAM");
 	AddExState(N106_StateRegs, ~0, 0, 0);
+	AddExState(N106_SStateRegs, ~0, 0, 0);
 
 	if (info->battery) {
 		info->SaveGame[0] = WRAM;
@@ -445,7 +464,6 @@ void Mapper210_Init(CartInfo *info) {
 	is210 = 1;
 	GameStateRestore = Mapper210_StateRestore;
 	info->Power = N106_Power;
-	FCEU_MemoryRand(WRAM, sizeof(WRAM), true);
 	AddExState(WRAM, 8192, 0, "WRAM");
 	AddExState(N106_StateRegs, ~0, 0, 0);
 }

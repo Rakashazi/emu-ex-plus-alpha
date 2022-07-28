@@ -24,8 +24,8 @@
 #include "mapinc.h"
 
 static uint8 preg;
-static uint8 IRQx;	//autoenable
-static uint8 IRQm;	//mode
+static uint8 IRQx;	/* autoenable */
+static uint8 IRQm;	/* mode */
 static uint8 IRQa;
 static uint16 IRQReload, IRQCount;
 static uint8 *WRAM = NULL;
@@ -90,7 +90,7 @@ static void M73IRQHook(int a) {
 				IRQCount |= temp;
 			}
 		} else {
-			//16 bit mode
+			/* 16 bit mode */
 			if (IRQCount == 0xFFFF) {
 				IRQCount = IRQReload;
 				X6502_IRQBegin(FCEU_IQEXT);
@@ -109,8 +109,7 @@ static void M73Power(void) {
 	FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
 }
 
-static void M73Close(void)
-{
+static void M73Close(void) {
 	if (WRAM)
 		FCEU_gfree(WRAM);
 	WRAM = NULL;

@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// T-227-1, 820632, MMC3 based, multimenu, 60000in1 (0010) dip switches
+/* T-227-1, 820632, MMC3 based, multimenu, 60000in1 (0010) dip switches */
 
 #include "mapinc.h"
 #include "mmc3.h"

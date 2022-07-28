@@ -1,7 +1,7 @@
 /* FCE Ultra - NES/Famicom Emulator
  *
  * Copyright notice for this file:
- *  Copyright (C) 2002 Xodnizel
+ *  Copyright (C) 2011 CaH4e3
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,61 +16,62 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * Just another pirate cart with pirate mapper, instead of original MMC1
+ * Kaiser Highway Star
+ *
  */
 
 #include "mapinc.h"
 
-static uint8 cmd0, cmd1;
+static uint8 reg, mirr;
+
 static SFORMAT StateRegs[] =
 {
-	{ &cmd0, 1, "L1" },
-	{ &cmd1, 1, "L2" },
+	{ &reg, 1, "REGS" },
+	{ &mirr, 1, "MIRR" },
 	{ 0 }
 };
 
 static void Sync(void) {
+	setprg16(0x8000, reg);
+	setprg16(0xc000, ~0);
+	setmirror(mirr);
 	setchr8(0);
-	setprg8(0x6000, (((cmd0 & 0xF) << 4) | 0xF) + 4);
-	if (cmd0 & 0x10) {
-			setprg16(0x8000, (((cmd0 & 0xF) << 3) | (cmd1 & 7)) + 2);
-			setprg16(0xc000, (((cmd0 & 0xF) << 3) | 7) + 2);
-	} else
-		setprg32(0x8000, 0);
-	setmirror(((cmd0 & 0x20) >> 5) ^ 1);
 }
 
-static DECLFW(SuperWriteLo) {
-	if (!(cmd0 & 0x10)) {
-		cmd0 = V;
-		Sync();
-	}
-}
-
-static DECLFW(SuperWriteHi) {
-	cmd1 = V;
+static DECLFW(UNLKS7013BLoWrite) {
+	reg = V;
 	Sync();
 }
 
-static void SuperPower(void) {
-	SetWriteHandler(0x6000, 0x7FFF, SuperWriteLo);
-	SetWriteHandler(0x8000, 0xFFFF, SuperWriteHi);
-	SetReadHandler(0x6000, 0xFFFF, CartBR);
-	cmd0 = cmd1 = 0;
+static DECLFW(UNLKS7013BHiWrite) {
+	mirr = (V & 1) ^ 1;
 	Sync();
 }
 
-static void SuperReset(void) {
-	cmd0 = cmd1 = 0;
+static void UNLKS7013BPower(void) {
+	reg = 0;
+	mirr = 0;
+	Sync();
+	SetWriteHandler(0x6000, 0x7FFF, UNLKS7013BLoWrite);
+	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetWriteHandler(0x8000, 0xFFFF, UNLKS7013BHiWrite);
+}
+
+static void UNLKS7013BReset(void) {
+	reg = 0;
 	Sync();
 }
 
-static void SuperRestore(int version) {
+static void StateRestore(int version) {
 	Sync();
 }
 
-void Supervision16_Init(CartInfo *info) {
-	info->Power = SuperPower;
-	info->Reset = SuperReset;
-	GameStateRestore = SuperRestore;
+void UNLKS7013B_Init(CartInfo *info) {
+	info->Power = UNLKS7013BPower;
+	info->Reset = UNLKS7013BReset;
+
+	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -18,9 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  * 700in1 and 400in1 carts
- *
+ * 1000-in-1
  */
-
 
 #include "mapinc.h"
 
@@ -28,8 +27,8 @@ static uint16 cmd, bank;
 
 static SFORMAT StateRegs[] =
 {
-	{ &cmd, 2, "CMD" },
-	{ &bank, 2, "BANK" },
+	{ &cmd, 2 | FCEUSTATE_RLSB, "CMD" },
+	{ &bank, 2 | FCEUSTATE_RLSB, "BANK" },
 	{ 0 }
 };
 
@@ -38,15 +37,15 @@ static void Sync(void) {
 	setchr8(0);
 	if (cmd & 2) {
 		if (cmd & 0x100) {
-			setprg16(0x8000, ((cmd & 0xfc) >> 2) | bank);
-			setprg16(0xC000, ((cmd & 0xfc) >> 2) | 7);
+			setprg16(0x8000, ((cmd & 0x200) >> 3) | ((cmd & 0xfc) >> 2) | bank);
+			setprg16(0xC000, ((cmd & 0x200) >> 3) | ((cmd & 0xfc) >> 2) | 7);
 		} else {
-			setprg16(0x8000, ((cmd & 0xfc) >> 2) | (bank & 6));
-			setprg16(0xC000, ((cmd & 0xfc) >> 2) | ((bank & 6) | 1));
+			setprg16(0x8000, ((cmd & 0x200) >> 3) | ((cmd & 0xfc) >> 2) | (bank & 6));
+			setprg16(0xC000, ((cmd & 0x200) >> 3) | ((cmd & 0xfc) >> 2) | ((bank & 6) | 1));
 		}
 	} else {
-		setprg16(0x8000, ((cmd & 0xfc) >> 2) | bank);
-		setprg16(0xC000, ((cmd & 0xfc) >> 2) | bank);
+		setprg16(0x8000, ((cmd & 0x200) >> 3) | ((cmd & 0xfc) >> 2) | bank);
+		setprg16(0xC000, ((cmd & 0x200) >> 3) | ((cmd & 0xfc) >> 2) | bank);
 	}
 }
 
@@ -81,6 +80,7 @@ static void UNLN625092Reset(void) {
 	bank = 0;
 	ass++;
 	FCEU_printf("%04x\n", ass);
+	Sync();
 }
 
 static void StateRestore(int version) {

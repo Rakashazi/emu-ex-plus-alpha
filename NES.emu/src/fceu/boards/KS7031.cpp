@@ -1,7 +1,7 @@
 /* FCE Ultra - NES/Famicom Emulator
  *
  * Copyright notice for this file:
- *  Copyright (C) 2002 Xodnizel
+ *  Copyright (C) 2012 CaH4e3
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,61 +16,67 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * FDS Conversion - dracula ii - noroi no fuuin [u][!]
+ *
  */
 
 #include "mapinc.h"
+#include "fds_apu.h"
 
-static uint8 cmd0, cmd1;
+static uint8 reg[4];
+
 static SFORMAT StateRegs[] =
 {
-	{ &cmd0, 1, "L1" },
-	{ &cmd1, 1, "L2" },
+	{ reg, 4, "REGS" },
 	{ 0 }
 };
 
 static void Sync(void) {
+	setprg2(0x6000, reg[0]);
+	setprg2(0x6800, reg[1]);
+	setprg2(0x7000, reg[2]);
+	setprg2(0x7800, reg[3]);
+
+	setprg2(0x8000, 15);
+	setprg2(0x8800, 14);
+	setprg2(0x9000, 13);
+	setprg2(0x9800, 12);
+	setprg2(0xa000, 11);
+	setprg2(0xa800, 10);
+	setprg2(0xb000, 9);
+	setprg2(0xb800, 8);
+
+	setprg2(0xc000, 7);
+	setprg2(0xc800, 6);
+	setprg2(0xd000, 5);
+	setprg2(0xd800, 4);
+	setprg2(0xe000, 3);
+	setprg2(0xe800, 2);
+	setprg2(0xf000, 1);
+	setprg2(0xf800, 0);
+
 	setchr8(0);
-	setprg8(0x6000, (((cmd0 & 0xF) << 4) | 0xF) + 4);
-	if (cmd0 & 0x10) {
-			setprg16(0x8000, (((cmd0 & 0xF) << 3) | (cmd1 & 7)) + 2);
-			setprg16(0xc000, (((cmd0 & 0xF) << 3) | 7) + 2);
-	} else
-		setprg32(0x8000, 0);
-	setmirror(((cmd0 & 0x20) >> 5) ^ 1);
 }
 
-static DECLFW(SuperWriteLo) {
-	if (!(cmd0 & 0x10)) {
-		cmd0 = V;
-		Sync();
-	}
-}
-
-static DECLFW(SuperWriteHi) {
-	cmd1 = V;
+static DECLFW(UNLKS7031Write) {
+	reg[(A >> 11) & 3] = V;
 	Sync();
 }
 
-static void SuperPower(void) {
-	SetWriteHandler(0x6000, 0x7FFF, SuperWriteLo);
-	SetWriteHandler(0x8000, 0xFFFF, SuperWriteHi);
+static void UNLKS7031Power(void) {
+	FDSSoundPower();
+	Sync();
 	SetReadHandler(0x6000, 0xFFFF, CartBR);
-	cmd0 = cmd1 = 0;
+	SetWriteHandler(0x8000, 0xffff, UNLKS7031Write);
+}
+
+static void StateRestore(int version) {
 	Sync();
 }
 
-static void SuperReset(void) {
-	cmd0 = cmd1 = 0;
-	Sync();
-}
-
-static void SuperRestore(int version) {
-	Sync();
-}
-
-void Supervision16_Init(CartInfo *info) {
-	info->Power = SuperPower;
-	info->Reset = SuperReset;
-	GameStateRestore = SuperRestore;
+void UNLKS7031_Init(CartInfo *info) {
+	info->Power = UNLKS7031Power;
+	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

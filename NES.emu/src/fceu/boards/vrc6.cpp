@@ -44,16 +44,33 @@ static SFORMAT StateRegs[] =
 };
 
 static void(*sfun[3]) (void);
+
 static uint8 vpsg1[8];
 static uint8 vpsg2[4];
 static int32 cvbc[3];
 static int32 vcount[3];
-static int32 dcount[2];
+static int32 dcount[3];
+static int32 phaseacc;
 
 static SFORMAT SStateRegs[] =
 {
 	{ vpsg1, 8, "PSG1" },
 	{ vpsg2, 4, "PSG2" },
+
+/* Ignoring these sound state files for Wii since it causes states unable to load */
+#ifndef GEKKO
+	/* rw - 2018-11-28 Added */
+	{ &cvbc[0], 4 | FCEUSTATE_RLSB, "BC01" },
+	{ &cvbc[1], 4 | FCEUSTATE_RLSB, "BC02" },
+	{ &cvbc[2], 4 | FCEUSTATE_RLSB, "BC03" },
+	{ &dcount[0], 4 | FCEUSTATE_RLSB, "DCT0" },
+	{ &dcount[1], 4 | FCEUSTATE_RLSB, "DCT1" },
+	{ &dcount[2], 4 | FCEUSTATE_RLSB, "DCT2" },
+	{ &vcount[0], 4 | FCEUSTATE_RLSB, "VCT0" },
+	{ &vcount[1], 4 | FCEUSTATE_RLSB, "VCT1" },
+	{ &vcount[2], 4 | FCEUSTATE_RLSB, "VCT2" },
+	{ &phaseacc, 4 | FCEUSTATE_RLSB, "ACCU" },
+#endif
 	{ 0 }
 };
 
@@ -133,7 +150,7 @@ static void VRC6Power(void) {
 static void VRC6IRQHook(int a) {
 	if (IRQa) {
 		CycleCount += a * 3;
-		while(CycleCount >= 341) {
+		while (CycleCount >= 341) {
 			CycleCount -= 341;
 			IRQCount++;
 			if (IRQCount == 0x100) {
@@ -144,8 +161,7 @@ static void VRC6IRQHook(int a) {
 	}
 }
 
-static void VRC6Close(void)
-{
+static void VRC6Close(void) {
 	if (WRAM)
 		FCEU_gfree(WRAM);
 	WRAM = NULL;
@@ -155,7 +171,7 @@ static void StateRestore(int version) {
 	Sync();
 }
 
-// VRC6 Sound
+/* VRC6 Sound */
 
 static void DoSQV1(void);
 static void DoSQV2(void);
@@ -178,15 +194,20 @@ static INLINE void DoSQV(int x) {
 		} else {
 			int32 thresh = (vpsg1[x << 2] >> 4) & 7;
 			int32 freq = ((vpsg1[(x << 2) | 0x1] | ((vpsg1[(x << 2) | 0x2] & 15) << 8)) + 1) << 17;
+			int32 dc = dcount[x];
+			int32 vc = vcount[x];
+
 			for (V = start; V < end; V++) {
-				if (dcount[x] > thresh)
+				if (dc > thresh)
 					Wave[V >> 4] += amp;
-				vcount[x] -= nesincsize;
-				while (vcount[x] <= 0) {
-					vcount[x] += freq;
-					dcount[x] = (dcount[x] + 1) & 15;
+				vc -= nesincsize;
+				while (vc <= 0) {
+					vc += freq;
+					dc = (dc + 1) & 15;
 				}
 			}
+			vcount[x] = vc;
+			dcount[x] = dc;
 		}
 	}
 }
@@ -209,29 +230,26 @@ static void DoSawV(void) {
 	cvbc[2] = end;
 
 	if (vpsg2[2] & 0x80) {
-		static int32 saw1phaseacc = 0;
 		uint32 freq3;
-		static uint8 b3 = 0;
-		static int32 phaseacc = 0;
 		static uint32 duff = 0;
 
 		freq3 = (vpsg2[1] + ((vpsg2[2] & 15) << 8) + 1);
 
 		for (V = start; V < end; V++) {
-			saw1phaseacc -= nesincsize;
-			if (saw1phaseacc <= 0) {
+			vcount[2] -= nesincsize;
+			if (vcount[2] <= 0) {
 				int32 t;
  rea:
 				t = freq3;
 				t <<= 18;
-				saw1phaseacc += t;
+				vcount[2] += t;
 				phaseacc += vpsg2[0] & 0x3f;
-				b3++;
-				if (b3 == 7) {
-					b3 = 0;
+				dcount[2]++;
+				if (dcount[2] == 7) {
+					dcount[2] = 0;
 					phaseacc = 0;
 				}
-				if (saw1phaseacc <= 0)
+				if (vcount[2] <= 0)
 					goto rea;
 				duff = (((phaseacc >> 3) & 0x1f) << 4) * 6 / 8;
 			}
@@ -250,15 +268,20 @@ static INLINE void DoSQVHQ(int x) {
 				WaveHi[V] += amp;
 		} else {
 			int32 thresh = (vpsg1[x << 2] >> 4) & 7;
+			int32 dc = dcount[x];
+			int32 vc = vcount[x];
+
 			for (V = cvbc[x]; V < (int)SOUNDTS; V++) {
-				if (dcount[x] > thresh)
+				if (dc > thresh)
 					WaveHi[V] += amp;
-				vcount[x]--;
-				if (vcount[x] <= 0) {
-					vcount[x] = (vpsg1[(x << 2) | 0x1] | ((vpsg1[(x << 2) | 0x2] & 15) << 8)) + 1;
-					dcount[x] = (dcount[x] + 1) & 15;
+				vc--;
+				if (vc <= 0) {
+					vc = (vpsg1[(x << 2) | 0x1] | ((vpsg1[(x << 2) | 0x2] & 15) << 8)) + 1;
+					dc = (dc + 1) & 15;
 				}
 			}
+			dcount[x] = dc;
+			vcount[x] = vc;
 		}
 	}
 	cvbc[x] = SOUNDTS;
@@ -273,8 +296,6 @@ static void DoSQV2HQ(void) {
 }
 
 static void DoSawVHQ(void) {
-	static uint8 b3 = 0;
-	static int32 phaseacc = 0;
 	int32 V;
 
 	if (vpsg2[2] & 0x80) {
@@ -284,9 +305,9 @@ static void DoSawVHQ(void) {
 			if (vcount[2] <= 0) {
 				vcount[2] = (vpsg2[1] + ((vpsg2[2] & 15) << 8) + 1) << 1;
 				phaseacc += vpsg2[0] & 0x3f;
-				b3++;
-				if (b3 == 7) {
-					b3 = 0;
+				dcount[2]++;
+				if (dcount[2] == 7) {
+					dcount[2] = 0;
 					phaseacc = 0;
 				}
 			}
@@ -294,7 +315,6 @@ static void DoSawVHQ(void) {
 	}
 	cvbc[2] = SOUNDTS;
 }
-
 
 void VRC6Sound(int Count) {
 	int x;
@@ -323,6 +343,7 @@ static void VRC6_ESI(void) {
 	GameExpSound.HiFill = VRC6SoundHQ;
 	GameExpSound.HiSync = VRC6SyncHQ;
 
+	phaseacc = 0;
 	memset(cvbc, 0, sizeof(cvbc));
 	memset(vcount, 0, sizeof(vcount));
 	memset(dcount, 0, sizeof(dcount));
@@ -338,10 +359,9 @@ static void VRC6_ESI(void) {
 		}
 	} else
 		memset(sfun, 0, sizeof(sfun));
-	AddExState(&SStateRegs, ~0, 0, 0);
 }
 
-// VRC6 Sound
+/* VRC6 Sound */
 
 void Mapper24_Init(CartInfo *info) {
 	is26 = 0;
@@ -350,6 +370,7 @@ void Mapper24_Init(CartInfo *info) {
 	VRC6_ESI();
 	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
+	AddExState(&SStateRegs, ~0, 0, 0);
 }
 
 void Mapper26_Init(CartInfo *info) {
@@ -368,11 +389,12 @@ void Mapper26_Init(CartInfo *info) {
 		info->SaveGame[0] = WRAM;
 		info->SaveGameLen[0] = WRAMSIZE;
 	}
-
 	AddExState(&StateRegs, ~0, 0, 0);
+	AddExState(&SStateRegs, ~0, 0, 0);
 }
 
 void NSFVRC6_Init(void) {
 	VRC6_ESI();
 	SetWriteHandler(0x8000, 0xbfff, VRC6SW);
+	AddExState(&SStateRegs, ~0, 0, 0);
 }

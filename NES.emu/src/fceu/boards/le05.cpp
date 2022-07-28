@@ -56,7 +56,12 @@ static void LE05Power(void) {
 	SetWriteHandler(0x8000, 0xFFFF, LE05Write);
 }
 
+static void StateRestore(int version) {
+	Sync();
+}
+
 void LE05_Init(CartInfo *info) {
 	info->Power = LE05Power;
+	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -28,21 +28,17 @@
 #include "mmc3.h"
 
 uint8 MMC3_cmd;
-uint8 kt_extra;
-uint8 *WRAM;
-uint32 WRAMSIZE;
-uint8 *CHRRAM;
-uint32 CHRRAMSIZE;
+static uint8 *WRAM;
+static uint32 WRAMSIZE;
+static uint8 *CHRRAM;
+static uint32 CHRRAMSIZE;
 uint8 DRegBuf[8];
 uint8 EXPREGS[8];	/* For bootleg games, mostly. */
 uint8 A000B, A001B;
 uint8 mmc3opts = 0;
 
-#undef IRQCount
-#undef IRQLatch
-#undef IRQa
-uint8 IRQCount, IRQLatch, IRQa;
-uint8 IRQReload;
+static uint8 IRQCount, IRQLatch, IRQa;
+static uint8 IRQReload;
 
 static SFORMAT MMC3_StateRegs[] =
 {
@@ -69,9 +65,10 @@ void FixMMC3CHR(int V);
 
 void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery);
 
-// ----------------------------------------------------------------------
-// ------------------------- Generic MM3 Code ---------------------------
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+ * ------------------------- Generic MM3 Code ---------------------------
+ * ----------------------------------------------------------------------
+ */
 
 void FixMMC3PRG(int V) {
 	if (V & 0x40) {
@@ -113,15 +110,12 @@ void MMC3RegReset(void) {
 	DRegBuf[6] = 0;
 	DRegBuf[7] = 1;
 
-// KT-008 boards hack 2-in-1, TODO assign to new ines mapper, most dump of KT-boards on the net are mapper 4, so need database or goodnes fix support
-	kt_extra = 0;
-
 	FixMMC3PRG(0);
 	FixMMC3CHR(0);
 }
 
 DECLFW(MMC3_CMDWrite) {
-//	FCEU_printf("bs %04x %02x\n",A,V);
+/*	FCEU_printf("bs %04x %02x\n",A,V); */
 	switch (A & 0xE001) {
 	case 0x8000:
 		if ((V & 0x40) != (MMC3_cmd & 0x40))
@@ -177,30 +171,12 @@ DECLFW(MMC3_CMDWrite) {
 }
 
 DECLFW(MMC3_IRQWrite) {
-//	FCEU_printf("%04x:%04x\n",A,V);
+/*	FCEU_printf("%04x:%04x\n",A,V); */
 	switch (A & 0xE001) {
 	case 0xC000: IRQLatch = V; break;
 	case 0xC001: IRQReload = 1; break;
 	case 0xE000: X6502_IRQEnd(FCEU_IQEXT); IRQa = 0; break;
 	case 0xE001: IRQa = 1; break;
-	}
-}
-
-// KT-008 boards hack 2-in-1, TODO assign to new ines mapper, most dump of KT-boards on the net are mapper 4, so need database or goodnes fix support
-DECLFW(KT008HackWrite) {
-//	FCEU_printf("%04x:%04x\n",A,V);
-	switch (A & 3) {
-	case 0: {
-			if (V == 0x27)			// FF Xn hack! one more mapper in one
-				kt_extra = 0;
-			else
-				kt_extra = V;
-			FixMMC3PRG(MMC3_cmd);
-			break;
-	}
-	case 1: break;	// unk
-	case 2: break;	// unk
-	case 3: break;	// unk
 	}
 }
 
@@ -238,14 +214,14 @@ void GenMMC3Restore(int version) {
 }
 
 static void GENCWRAP(uint32 A, uint8 V) {
-	setchr1(A, V);			// Business Wars NEEDS THIS for 8K CHR-RAM
+	setchr1(A, V);			/* Business Wars NEEDS THIS for 8K CHR-RAM */
 }
 
 static void GENPWRAP(uint32 A, uint8 V) {
-// [NJ102] Mo Dao Jie (C) has 1024Mb MMC3 BOARD, maybe something other will be broken
-// also HengGe BBC-2x boards enables this mode as default board mode at boot up
-	setprg8(A, (V & 0x7F) | ((kt_extra & 4) << 4));
-// KT-008 boards hack 2-in-1, TODO assign to new ines mapper, most dump of KT-boards on the net are mapper 4, so need database or goodnes fix support
+   /* [NJ102] Mo Dao Jie (C) has 1024Mb MMC3 BOARD, maybe something other will be broken
+    * also HengGe BBC-2x boards enables this mode as default board mode at boot up
+    */
+   setprg8(A, (V & 0x7F));
 }
 
 static void GENMWRAP(uint8 V) {
@@ -272,9 +248,6 @@ void GenMMC3Power(void) {
 	SetWriteHandler(0xC000, 0xFFFF, MMC3_IRQWrite);
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
 
-// KT-008 boards hack 2-in-1, TODO assign to new ines mapper, most dump of KT-boards on the net are mapper 4, so need database or goodnes fix support
-	SetWriteHandler(0x5000,0x5FFF, KT008HackWrite);
-
 	A001B = A000B = 0;
 	setmirror(1);
 	if (mmc3opts & 1) {
@@ -283,20 +256,20 @@ void GenMMC3Power(void) {
 			SetReadHandler(0x7000, 0x7FFF, MAWRAMMMC6);
 			SetWriteHandler(0x7000, 0x7FFF, MBWRAMMMC6);
 		} else {
-			FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
+         FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
 			SetWriteHandler(0x6000, 0x6000 + ((WRAMSIZE - 1) & 0x1fff), CartBW);
 			SetReadHandler(0x6000, 0x6000 + ((WRAMSIZE - 1) & 0x1fff), CartBR);
 			setprg8r(0x10, 0x6000, 0);
 		}
 		if (!(mmc3opts & 2))
-			FCEU_MemoryRand(WRAM, WRAMSIZE, true);
+			FCEU_dwmemset(WRAM, 0, WRAMSIZE);
 	}
 	MMC3RegReset();
 	if (CHRRAM)
-		FCEU_MemoryRand(CHRRAM, CHRRAMSIZE, true);
+		FCEU_dwmemset(CHRRAM, 0, CHRRAMSIZE);
 }
 
-static void GenMMC3Close(void) {
+void GenMMC3Close(void) {
 	if (CHRRAM)
 		FCEU_gfree(CHRRAM);
 	if (WRAM)
@@ -328,30 +301,29 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery) {
 		info->SaveGameLen[0] = WRAMSIZE;
 	}
 
-// KT-008 boards hack 2-in-1, TODO assign to new ines mapper, most dump of KT-boards on the net are mapper 4, so need database or goodnes fix support
-	AddExState(&kt_extra, 1, 0, "KTEX");
 	AddExState(MMC3_StateRegs, ~0, 0, 0);
 
 	info->Power = GenMMC3Power;
 	info->Reset = MMC3RegReset;
 	info->Close = GenMMC3Close;
 
-	if (info->CRC32 == 0x5104833e)		// Kick Master
+	if (info->CRC32 == 0x5104833e)		/* Kick Master */
 		GameHBIRQHook = MMC3_hb_KickMasterHack;
-	else if (info->CRC32 == 0x5a6860f1 || info->CRC32 == 0xae280e20)// Shougi Meikan '92/'93
+	else if (info->CRC32 == 0x5a6860f1 || info->CRC32 == 0xae280e20) /* Shougi Meikan '92/'93 */
 		GameHBIRQHook = MMC3_hb_KickMasterHack;
-	else if (info->CRC32 == 0xfcd772eb)	// PAL Star Wars, similar problem as Kick Master.
+	else if (info->CRC32 == 0xfcd772eb)	/* PAL Star Wars, similar problem as Kick Master. */
 		GameHBIRQHook = MMC3_hb_PALStarWarsHack;
 	else
 		GameHBIRQHook = MMC3_hb;
 	GameStateRestore = GenMMC3Restore;
 }
 
-// ----------------------------------------------------------------------
-// -------------------------- MMC3 Based Code ---------------------------
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+ * -------------------------- MMC3 Based Code ---------------------------
+ *  ----------------------------------------------------------------------
+ */
 
-// ---------------------------- Mapper 4 --------------------------------
+/* ---------------------------- Mapper 4 -------------------------------- */
 
 static int hackm4 = 0;	/* For Karnov, maybe others.  BLAH.  Stupid iNES format.*/
 
@@ -368,12 +340,15 @@ void Mapper4_Init(CartInfo *info) {
 		FCEU_printf("Low-G-Man can not work normally in the iNES format.\nThis game has been recognized by its CRC32 value, and the appropriate changes will be made so it will run.\nIf you wish to hack this game, you should use the UNIF format for your hack.\n\n");
 		ws = 0;
 	}
+	if (info->CRC32 == 0x97b6cb19)
+		isRevB = 0;
+
 	GenMMC3_Init(info, 512, 256, ws, info->battery);
 	info->Power = M4Power;
 	hackm4 = info->mirror;
 }
 
-// ---------------------------- Mapper 12 -------------------------------
+/* ---------------------------- Mapper 12 ------------------------------- */
 
 static void M12CW(uint32 A, uint8 V) {
 	setchr1(A, (EXPREGS[(A & 0x1000) >> 12] << 8) + V);
@@ -390,7 +365,7 @@ static DECLFR(M12Read) {
 
 static void M12Power(void) {
 	EXPREGS[0] = EXPREGS[1] = 0;
-	EXPREGS[2] = 1; // chinese is default
+	EXPREGS[2] = 1; /* chinese is default */
 	GenMMC3Power();
 	SetWriteHandler(0x4100, 0x5FFF, M12Write);
 	SetReadHandler(0x4100, 0x5FFF, M12Read);
@@ -412,7 +387,7 @@ void Mapper12_Init(CartInfo *info) {
 	AddExState(EXPREGS, 2, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 37 -------------------------------
+/* ---------------------------- Mapper 37 ------------------------------- */
 
 static void M37PW(uint32 A, uint8 V) {
 	if (EXPREGS[0] != 2)
@@ -456,7 +431,7 @@ void Mapper37_Init(CartInfo *info) {
 	AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 44 -------------------------------
+/* ---------------------------- Mapper 44 ------------------------------- */
 
 static void M44PW(uint32 A, uint8 V) {
 	uint32 NV = V;
@@ -496,30 +471,36 @@ void Mapper44_Init(CartInfo *info) {
 	AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 45 -------------------------------
+/* ---------------------------- Mapper 45 ------------------------------- */
 
 static void M45CW(uint32 A, uint8 V) {
-	if (!UNIFchrrama) {
-		uint32 NV = V;
-		if (EXPREGS[2] & 8)
-			NV &= (1 << ((EXPREGS[2] & 7) + 1)) - 1;
-		else
-		if (EXPREGS[2])
-			NV &= 0;	// hack ;( don't know exactly how it should be
-		NV |= EXPREGS[0] | ((EXPREGS[2] & 0xF0) << 4);
-		setchr1(A, NV);
-	} else
-//		setchr8(0);		// i don't know what cart need this, but a new one need other lol
+	if (CHRsize[0] ==8192)
 		setchr1(A, V);
+	else {
+		int chrAND =0xFF >>(~EXPREGS[2] &0xF);
+		int chrOR  =EXPREGS[0] | EXPREGS[2] <<4 &0xF00;
+		setchr1(A, V &chrAND | chrOR &~chrAND);
+	}
+}
+
+static DECLFR(M45ReadOB) {
+	return X.DB;
 }
 
 static void M45PW(uint32 A, uint8 V) {
-	uint32 MV = V & ((EXPREGS[3] & 0x3F) ^ 0x3F);
-	MV |= EXPREGS[1];
-	if(UNIFchrrama)
-		MV |= ((EXPREGS[2] & 0x40) << 2);
-	setprg8(A, MV);
-//	FCEU_printf("1:%02x 2:%02x 3:%02x A=%04x V=%03x\n",EXPREGS[1],EXPREGS[2],EXPREGS[3],A,MV);
+	int prgAND =~EXPREGS[3] &0x3F;
+	int prgOR  =EXPREGS[1] | EXPREGS[2] <<2 &0x300;
+	setprg8(A, V &prgAND | prgOR &~prgAND);
+
+	/* Some multicarts select between five different menus by connecting one of the higher address lines to PRG /CE.
+	   The menu code selects between menus by checking which of the higher address lines disables PRG-ROM when set. */
+	if (PRGsize[0] <0x200000 && EXPREGS[5] ==1 && EXPREGS[1] &0x80 ||
+	    PRGsize[0] <0x200000 && EXPREGS[5] ==2 && EXPREGS[2] &0x40 ||
+	    PRGsize[0] <0x100000 && EXPREGS[5] ==3 && EXPREGS[1] &0x40 ||
+	    PRGsize[0] <0x100000 && EXPREGS[5] ==4 && EXPREGS[2] &0x20)
+		SetReadHandler(0x8000, 0xFFFF, M45ReadOB);
+	else
+		SetReadHandler(0x8000, 0xFFFF, CartBR);
 }
 
 static DECLFW(M45Write) {
@@ -542,7 +523,8 @@ static DECLFR(M45Read) {
 }
 
 static void M45Reset(void) {
-	EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = EXPREGS[4] = 0;
+	EXPREGS[0] = EXPREGS[1] = EXPREGS[3] = EXPREGS[4] = 0;
+	EXPREGS[2] = 0x0F;
 	EXPREGS[5]++;
 	EXPREGS[5] &= 7;
 	MMC3RegReset();
@@ -550,8 +532,9 @@ static void M45Reset(void) {
 
 static void M45Power(void) {
 	GenMMC3Power();
-	EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = EXPREGS[4] = EXPREGS[5] = 0;
-	SetWriteHandler(0x5000, 0x7FFF, M45Write);
+	EXPREGS[0] = EXPREGS[1] = EXPREGS[3] = EXPREGS[4] = EXPREGS[5] = 0;
+	EXPREGS[2] = 0x0F;
+	SetWriteHandler(0x6000, 0x7FFF, M45Write);
 	SetReadHandler(0x5000, 0x5FFF, M45Read);
 }
 
@@ -564,7 +547,7 @@ void Mapper45_Init(CartInfo *info) {
 	AddExState(EXPREGS, 5, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 47 -------------------------------
+/* ---------------------------- Mapper 47 ------------------------------- */
 
 static void M47PW(uint32 A, uint8 V) {
 	V &= 0xF;
@@ -589,7 +572,7 @@ static void M47Power(void) {
 	EXPREGS[0] = 0;
 	GenMMC3Power();
 	SetWriteHandler(0x6000, 0x7FFF, M47Write);
-//	SetReadHandler(0x6000,0x7FFF,0);
+/*	SetReadHandler(0x6000,0x7FFF,0); */
 }
 
 void Mapper47_Init(CartInfo *info) {
@@ -600,7 +583,13 @@ void Mapper47_Init(CartInfo *info) {
 	AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 49 -------------------------------
+/* ---------------------------- Mapper 49 ------------------------------- */
+/* -------------------- BMC-STREETFIGTER-GAME4IN1 ----------------------- */
+/* added 6-24-19:
+ * BMC-STREETFIGTER-GAME4IN1 - Sic. $6000 set to $41 rather than $00 on power-up.
+ */
+
+static uint8 isUNIF = 0;
 
 static void M49PW(uint32 A, uint8 V) {
 	if (EXPREGS[0] & 1) {
@@ -608,7 +597,7 @@ static void M49PW(uint32 A, uint8 V) {
 		V |= (EXPREGS[0] & 0xC0) >> 2;
 		setprg8(A, V);
 	} else
-		setprg32(0x8000, (EXPREGS[0] >> 4) & 3);
+		setprg32(0x8000, (EXPREGS[0] >> 4) & 15);
 }
 
 static void M49CW(uint32 A, uint8 V) {
@@ -627,11 +616,12 @@ static DECLFW(M49Write) {
 }
 
 static void M49Reset(void) {
-	EXPREGS[0] = 0;
+	EXPREGS[0] = isUNIF ? 0x41 : 0;
 	MMC3RegReset();
 }
 
 static void M49Power(void) {
+	EXPREGS[0] = isUNIF ? 0x41 : 0;
 	M49Reset();
 	GenMMC3Power();
 	SetWriteHandler(0x6000, 0x7FFF, M49Write);
@@ -639,6 +629,7 @@ static void M49Power(void) {
 }
 
 void Mapper49_Init(CartInfo *info) {
+	isUNIF = 0;
 	GenMMC3_Init(info, 512, 256, 0, 0);
 	cwrap = M49CW;
 	pwrap = M49PW;
@@ -647,7 +638,17 @@ void Mapper49_Init(CartInfo *info) {
 	AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 52 -------------------------------
+void BMCSFGAME4IN1_Init(CartInfo *info) {
+	isUNIF = 1;
+	GenMMC3_Init(info, 512, 512, 0, 0);
+	cwrap = M49CW;
+	pwrap = M49PW;
+	info->Reset = M49Reset;
+	info->Power = M49Power;
+	AddExState(EXPREGS, 1, 0, "EXPR");
+}
+
+/* ---------------------------- Mapper 52 ------------------------------- */
 static void M52PW(uint32 A, uint8 V) {
 	uint32 mask = 0x1F ^ ((EXPREGS[0] & 8) << 1);
 	uint32 bank = ((EXPREGS[0] & 6) | ((EXPREGS[0] >> 3) & EXPREGS[0] & 1)) << 4;
@@ -656,8 +657,8 @@ static void M52PW(uint32 A, uint8 V) {
 
 static void M52CW(uint32 A, uint8 V) {
 	uint32 mask = 0xFF ^ ((EXPREGS[0] & 0x40) << 1);
-//	uint32 bank = (((EXPREGS[0]>>3)&4)|((EXPREGS[0]>>1)&2)|((EXPREGS[0]>>6)&(EXPREGS[0]>>4)&1))<<7;
-	uint32 bank = (((EXPREGS[0] >> 4) & 2) | (EXPREGS[0] & 4) | ((EXPREGS[0] >> 6) & (EXPREGS[0] >> 4) & 1)) << 7;	// actually 256K CHR banks index bits is inverted!
+/*	uint32 bank = (((EXPREGS[0]>>3)&4)|((EXPREGS[0]>>1)&2)|((EXPREGS[0]>>6)&(EXPREGS[0]>>4)&1))<<7; */
+	uint32 bank = (((EXPREGS[0] >> 4) & 2) | (EXPREGS[0] & 4) | ((EXPREGS[0] >> 6) & (EXPREGS[0] >> 4) & 1)) << 7;	/* actually 256K CHR banks index bits is inverted! */
 	setchr1(A, bank | (V & mask));
 }
 
@@ -692,7 +693,7 @@ void Mapper52_Init(CartInfo *info) {
 	AddExState(EXPREGS, 2, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 76 -------------------------------
+/* ---------------------------- Mapper 76 ------------------------------- */
 
 static void M76CW(uint32 A, uint8 V) {
 	if (A >= 0x1000)
@@ -704,10 +705,10 @@ void Mapper76_Init(CartInfo *info) {
 	cwrap = M76CW;
 }
 
-// ---------------------------- Mapper 74 -------------------------------
+/* ---------------------------- Mapper 74 ------------------------------- */
 
 static void M74CW(uint32 A, uint8 V) {
-	if ((V == 8) || (V == 9))	//Di 4 Ci - Ji Qi Ren Dai Zhan (As).nes, Ji Jia Zhan Shi (As).nes
+	if ((V == 8) || (V == 9))	/* Di 4 Ci - Ji Qi Ren Dai Zhan (As).nes, Ji Jia Zhan Shi (As).nes */
 		setchr1r(0x10, A, V);
 	else
 		setchr1r(0, A, V);
@@ -722,20 +723,26 @@ void Mapper74_Init(CartInfo *info) {
 	AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
 }
 
-// ---------------------------- Mapper 114 ------------------------------
+/* ---------------------------- Mapper 114 ------------------------------ */
 
-static uint8 cmdin;
+static uint8 cmdin, type_Boogerman = 0;
+uint8 boogerman_perm[8] = { 0, 2, 5, 3, 6, 1, 7, 4 };
 uint8 m114_perm[8] = { 0, 3, 1, 5, 6, 7, 2, 4 };
 
 static void M114PWRAP(uint32 A, uint8 V) {
 	if (EXPREGS[0] & 0x80) {
-//		FCEU_printf("8000-C000:%02X\n",EXPREGS[0]&0xF);
-		setprg16(0x8000, EXPREGS[0] & 0xF);
-		setprg16(0xC000, EXPREGS[0] & 0xF);
-	} else {
-//		FCEU_printf("%04X:%02X\n",A,V&0x3F);
-		setprg8(A, V & 0x3F);
-	}
+		if (EXPREGS[0] & 0x20)
+			setprg32(0x8000, (EXPREGS[0] & 0x0F) >> 1);
+		else {
+			setprg16(0x8000, (EXPREGS[0] & 0x0F));
+			setprg16(0xC000, (EXPREGS[0] & 0x0F));
+		}
+	} else
+		setprg8(A, V);
+}
+
+static void M114CWRAP(uint32 A, uint8 V) {
+	setchr1(A, (uint32)V | ((EXPREGS[1] & 1) << 8));
 }
 
 static DECLFW(M114Write) {
@@ -750,40 +757,62 @@ static DECLFW(M114Write) {
 	}
 }
 
+static DECLFW(BoogermanWrite) {
+	switch (A & 0xE001) {
+	case 0x8001: if (!cmdin) break; MMC3_CMDWrite(0x8001, V); cmdin = 0; break;
+	case 0xA000: MMC3_CMDWrite(0x8000, (V & 0xC0) | (boogerman_perm[V & 7])); cmdin = 1; break;
+	case 0xA001: IRQReload = 1; break;
+	case 0xC000: MMC3_CMDWrite(0xA000, V); break;
+	case 0xC001: IRQLatch = V; break;
+	case 0xE000: X6502_IRQEnd(FCEU_IQEXT); IRQa = 0; break;
+	case 0xE001: IRQa = 1; break;
+	}
+}
+
 static DECLFW(M114ExWrite) {
 	if (A <= 0x7FFF) {
-		EXPREGS[0] = V;
+		if (A & 1)
+			EXPREGS[1] = V;
+		else
+			EXPREGS[0] = V;
 		FixMMC3PRG(MMC3_cmd);
 	}
 }
 
 static void M114Power(void) {
+	EXPREGS[0] = EXPREGS[1] = 0;
 	GenMMC3Power();
+	SetWriteHandler(0x6000, 0x7FFF, M114ExWrite);
 	SetWriteHandler(0x8000, 0xFFFF, M114Write);
-	SetWriteHandler(0x5000, 0x7FFF, M114ExWrite);
+	if (type_Boogerman)
+		SetWriteHandler(0x8000, 0xFFFF, BoogermanWrite);
 }
 
 static void M114Reset(void) {
-	EXPREGS[0] = 0;
+	EXPREGS[0] = EXPREGS[1] = 0;
 	MMC3RegReset();
 }
 
 void Mapper114_Init(CartInfo *info) {
 	isRevB = 0;
+	/* Use NES 2.0 submapper to identify scrambling pattern, otherwise CRC32 for Boogerman and test rom */
+	type_Boogerman = info->iNES2? (info->submapper ==1): (info->CRC32 ==0x80eb1839 || info->CRC32 ==0x071e4ee8);
+
 	GenMMC3_Init(info, 256, 256, 0, 0);
 	pwrap = M114PWRAP;
+	cwrap = M114CWRAP;
 	info->Power = M114Power;
 	info->Reset = M114Reset;
 	AddExState(EXPREGS, 1, 0, "EXPR");
 	AddExState(&cmdin, 1, 0, "CMDI");
 }
 
-// ---------------------------- Mapper 115 KN-658 board ------------------------------
+/* ---------------------------- Mapper 115 KN-658 board ------------------------------ */
 
 static void M115PW(uint32 A, uint8 V) {
 	if (EXPREGS[0] & 0x80) {
 		if (EXPREGS[0] & 0x20)
-			setprg32(0x8000, (EXPREGS[0] & 0x0F) >> 1);	// real hardware tests, info 100% now lol
+			setprg32(0x8000, (EXPREGS[0] & 0x0F) >> 1);	/* real hardware tests, info 100% now lol */
 		else {
 			setprg16(0x8000, (EXPREGS[0] & 0x0F));
 			setprg16(0xC000, (EXPREGS[0] & 0x0F));
@@ -798,7 +827,7 @@ static void M115CW(uint32 A, uint8 V) {
 
 static DECLFW(M115Write) {
 	if (A == 0x5080)
-		EXPREGS[2] = V;	// Extra prot hardware 2-in-1 mode
+		EXPREGS[2] = V;	/* Extra prot hardware 2-in-1 mode */
 	else if (A == 0x6000)
 		EXPREGS[0] = V;
 	else if (A == 0x6001)
@@ -824,12 +853,12 @@ void Mapper115_Init(CartInfo *info) {
 	AddExState(EXPREGS, 3, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 118 ------------------------------
+/* ---------------------------- Mapper 118 ------------------------------ */
 
 static uint8 PPUCHRBus;
 static uint8 TKSMIR[8];
 
-static void TKSPPU(uint32 A) {
+static void FP_FASTAPASS(1) TKSPPU(uint32 A) {
 	A &= 0x1FFF;
 	A >>= 10;
 	PPUCHRBus = A;
@@ -843,7 +872,7 @@ static void TKSWRAP(uint32 A, uint8 V) {
 		setmirror(MI_0 + (V >> 7));
 }
 
-// ---------------------------- Mapper 119 ------------------------------
+/* ---------------------------- Mapper 119 ------------------------------ */
 
 static void TQWRAP(uint32 A, uint8 V) {
 	setchr1r((V & 0x40) >> 2, A, V & 0x3F);
@@ -855,46 +884,10 @@ void Mapper119_Init(CartInfo *info) {
 	CHRRAMSIZE = 8192;
 	CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
 	SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
-	AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
+   AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
 }
 
-// ---------------------------- Mapper 134 ------------------------------
-
-static void M134PW(uint32 A, uint8 V) {
-	setprg8(A, (V & 0x1F) | ((EXPREGS[0] & 2) << 4));
-}
-
-static void M134CW(uint32 A, uint8 V) {
-	setchr1(A, (V & 0xFF) | ((EXPREGS[0] & 0x20) << 3));
-}
-
-static DECLFW(M134Write) {
-	EXPREGS[0] = V;
-	FixMMC3CHR(MMC3_cmd);
-	FixMMC3PRG(MMC3_cmd);
-}
-
-static void M134Power(void) {
-	EXPREGS[0] = 0;
-	GenMMC3Power();
-	SetWriteHandler(0x6001, 0x6001, M134Write);
-}
-
-static void M134Reset(void) {
-	EXPREGS[0] = 0;
-	MMC3RegReset();
-}
-
-void Mapper134_Init(CartInfo *info) {
-	GenMMC3_Init(info, 256, 256, 0, 0);
-	pwrap = M134PW;
-	cwrap = M134CW;
-	info->Power = M134Power;
-	info->Reset = M134Reset;
-	AddExState(EXPREGS, 4, 0, "EXPR");
-}
-
-// ---------------------------- Mapper 165 ------------------------------
+/* ---------------------------- Mapper 165 ------------------------------ */
 
 static void M165CW(uint32 A, uint8 V) {
 	if (V == 0)
@@ -924,7 +917,7 @@ static void M165CWM(uint32 A, uint8 V) {
 		M165PPUFE();
 }
 
-static void M165PPU(uint32 A) {
+static void FP_FASTAPASS(1) M165PPU(uint32 A) {
 	if ((A & 0x1FF0) == 0x1FD0) {
 		EXPREGS[0] = 0xFD;
 		M165PPUFD();
@@ -951,7 +944,7 @@ void Mapper165_Init(CartInfo *info) {
 	AddExState(EXPREGS, 4, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 191 ------------------------------
+/* ---------------------------- Mapper 191 ------------------------------ */
 
 static void M191CW(uint32 A, uint8 V) {
 	setchr1r((V & 0x80) >> 3, A, V);
@@ -966,11 +959,12 @@ void Mapper191_Init(CartInfo *info) {
 	AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
 }
 
-// ---------------------------- Mapper 192 -------------------------------
+/* ---------------------------- Mapper 192 ------------------------------- */
 
 static void M192CW(uint32 A, uint8 V) {
-	//Ying Lie Qun Xia Zhuan (Chinese),
-	//You Ling Xing Dong (China) (Unl) [this will be mistakenly headered as m074 sometimes]
+	/* Ying Lie Qun Xia Zhuan (Chinese),
+	* You Ling Xing Dong (China) (Unl) [this will be mistakenly headered as m074 sometimes]
+	*/
 	if ((V == 8) || (V == 9) || (V == 0xA) || (V == 0xB))
 		setchr1r(0x10, A, V);
 	else
@@ -986,10 +980,10 @@ void Mapper192_Init(CartInfo *info) {
 	AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
 }
 
-// ---------------------------- Mapper 194 -------------------------------
+/* ---------------------------- Mapper 194 ------------------------------- */
 
 static void M194CW(uint32 A, uint8 V) {
-	if (V <= 1)	//Dai-2-Ji - Super Robot Taisen (As).nes
+	if (V <= 1)	/* Dai-2-Ji - Super Robot Taisen (As).nes */
 		setchr1r(0x10, A, V);
 	else
 		setchr1r(0, A, V);
@@ -1004,9 +998,9 @@ void Mapper194_Init(CartInfo *info) {
 	AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
 }
 
-// ---------------------------- Mapper 195 -------------------------------
+/* ---------------------------- Mapper 195 ------------------------------- */
 static void M195CW(uint32 A, uint8 V) {
-	if (V <= 3)	// Crystalis (c).nes, Captain Tsubasa Vol 2 - Super Striker (C)
+	if (V <= 3)	/* Crystalis (c).nes, Captain Tsubasa Vol 2 - Super Striker (C) */
 		setchr1r(0x10, A, V);
 	else
 		setchr1r(0, A, V);
@@ -1029,11 +1023,12 @@ void Mapper195_Init(CartInfo *info) {
 	AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
 }
 
-// ---------------------------- Mapper 196 -------------------------------
-// MMC3 board with optional command address line connection, allows to
-// make three-four different wirings to IRQ address lines and separately to
-// CMD address line, Mali Boss additionally check if wiring are correct for
-// game
+/* ---------------------------- Mapper 196 ------------------------------- */
+/* MMC3 board with optional command address line connection, allows to
+ * make three-four different wirings to IRQ address lines and separately to
+ * CMD address line, Mali Boss additionally check if wiring are correct for
+ * game
+ */
 
 static void M196PW(uint32 A, uint8 V) {
 	if (EXPREGS[0])
@@ -1043,18 +1038,16 @@ static void M196PW(uint32 A, uint8 V) {
 }
 
 static DECLFW(Mapper196Write) {
-	if (A >= 0xC000) {
-		A = (A & 0xFFFE) | ((A >> 2) & 1) | ((A >> 3) & 1);
+	A =A &0xF000 | (!!(A &0xE) ^(A &1));
+	if (A >= 0xC000)
 		MMC3_IRQWrite(A, V);
-	} else {
-		A = (A & 0xFFFE) | ((A >> 2) & 1) | ((A >> 3) & 1) | ((A >> 1) & 1);
+	else
 		MMC3_CMDWrite(A, V);
-	}
 }
 
 static DECLFW(Mapper196WriteLo) {
-	EXPREGS[0] = 1;						// hacky
-	EXPREGS[1] = (V & 0xf) | (V >> 4);	// this is the same as 189 mapper, but with addr permutations
+	EXPREGS[0] = 1;
+	EXPREGS[1] = (V & 0xf) | (V >> 4);
 	FixMMC3PRG(MMC3_cmd);
 }
 
@@ -1071,10 +1064,11 @@ void Mapper196_Init(CartInfo *info) {
 	info->Power = Mapper196Power;
 }
 
-// ---------------------------- Mali Splash Bomb----------------------------
-// The same board as for 196 mapper games, but with additional data bit swap
-// Also, it is impossible to work on the combined 196 mapper source with
-// all data bits merged, because it's using one of them as 8000 reg...
+/* ---------------------------- Mali Splash Bomb---------------------------- */
+/* The same board as for 196 mapper games, but with additional data bit swap
+ * Also, it is impossible to work on the combined 196 mapper source with
+ * all data bits merged, because it's using one of them as 8000 reg...
+ */
 
 static void UNLMaliSBPW(uint32 A, uint8 V) {
 	setprg8(A, (V & 3) | ((V & 8) >> 1) | ((V & 4) << 1));
@@ -1106,7 +1100,7 @@ void UNLMaliSB_Init(CartInfo *info) {
 	info->Power = UNLMaliSBPower;
 }
 
-// ---------------------------- Mapper 197 -------------------------------
+/* ---------------------------- Mapper 197 ------------------------------- */
 
 static void M197CW(uint32 A, uint8 V) {
 	if (A == 0x0000)
@@ -1122,10 +1116,10 @@ void Mapper197_Init(CartInfo *info) {
 	cwrap = M197CW;
 }
 
-// ---------------------------- Mapper 198 -------------------------------
+/* ---------------------------- Mapper 198 ------------------------------- */
 
 static void M198PW(uint32 A, uint8 V) {
-	if (V >= 0x50)	// Tenchi o Kurau II - Shokatsu Koumei Den (J) (C).nes
+	if (V >= 0x50)	/* Tenchi o Kurau II - Shokatsu Koumei Den (J) (C).nes */
 		setprg8(A, V & 0x4F);
 	else
 		setprg8(A, V);
@@ -1137,20 +1131,74 @@ void Mapper198_Init(CartInfo *info) {
 	info->Power = M195Power;
 }
 
-// ---------------------------- Mapper 205 ------------------------------
-// GN-45 BOARD
+/* ---------------------------- Mapper 205 ------------------------------ */
+/* UNIF boardname BMC-JC-016-2
+https://wiki.nesdev.com/w/index.php/INES_Mapper_205 */
 
 static void M205PW(uint32 A, uint8 V) {
-// GN-30A - начальная маска должна быть 1F + аппаратный переключатель на шине адреса
-	setprg8(A, (V & 0x0f) | EXPREGS[0]);
+	uint8 bank = V & ((EXPREGS[0] & 0x02) ? 0x0F : 0x1F);
+	setprg8(A, EXPREGS[0] << 4 | bank);
 }
 
 static void M205CW(uint32 A, uint8 V) {
-// GN-30A - начальная маска должна быть FF
-	setchr1(A, (V & 0x7F) | (EXPREGS[0] << 3));
+	uint8 bank = V & ((EXPREGS[0] & 0x02) ? 0x7F : 0xFF);
+	setchr1(A, (EXPREGS[0] << 7) | bank);
 }
 
 static DECLFW(M205Write0) {
+	if (EXPREGS[1] == 0) {
+		EXPREGS[0] = V & 0x03;
+		EXPREGS[1] = A & 0x80;
+		FixMMC3PRG(MMC3_cmd);
+		FixMMC3CHR(MMC3_cmd);
+	} else
+		CartBW(A, V);
+}
+
+static DECLFW(M205Write1) {
+	if (EXPREGS[1] == 0) {
+		EXPREGS[0] = V & 0xF0;
+		FixMMC3PRG(MMC3_cmd);
+		FixMMC3CHR(MMC3_cmd);
+	} else
+		CartBW(A, V);
+}
+
+static void M205Reset(void) {
+	EXPREGS[0] = EXPREGS[1] = 0;
+	MMC3RegReset();
+}
+
+static void M205Power(void) {
+	EXPREGS[0] = EXPREGS[1] = 0;
+	GenMMC3Power();
+	SetWriteHandler(0x6000, 0x6fff, M205Write0);
+	SetWriteHandler(0x7000, 0x7fff, M205Write1);	/* OK-411 boards, the same logic, but data latched, 2-in-1 frankenstein */
+}
+
+void Mapper205_Init(CartInfo *info) {
+	GenMMC3_Init(info, 256, 128, 8, 0);
+	pwrap = M205PW;
+	cwrap = M205CW;
+	info->Power = M205Power;
+	info->Reset = M205Reset;
+	AddExState(EXPREGS, 1, 0, "EXPR");
+}
+
+/* --------------------------- GN-45 BOARD ------------------------------ */
+
+/* Mapper 361 and 366, previously assigned as Mapper 205 */
+static void GN45PW(uint32 A, uint8 V) {
+/* GN-30A - \ED\E0\F7\E0\EB\FC\ED\E0\FF \EC\E0\F1\EA\E0 \E4\EE\EB\E6\ED\E0 \E1\FB\F2\FC 1F + \E0\EF\EF\E0\F0\E0\F2\ED\FB\E9 \EF\E5\F0\E5\EA\EB\FE\F7\E0\F2\E5\EB\FC \ED\E0 \F8\E8\ED\E5 \E0\E4\F0\E5\F1\E0 */
+	setprg8(A, (V & 0x0f) | EXPREGS[0]);
+}
+
+static void GN45CW(uint32 A, uint8 V) {
+/* GN-30A - \ED\E0\F7\E0\EB\FC\ED\E0\FF \EC\E0\F1\EA\E0 \E4\EE\EB\E6\ED\E0 \E1\FB\F2\FC FF */
+	setchr1(A, (V & 0x7F) | (EXPREGS[0] << 3));
+}
+
+static DECLFW(GN45Write0) {
 	if (EXPREGS[2] == 0) {
 		EXPREGS[0] = A & 0x30;
 		EXPREGS[2] = A & 0x80;
@@ -1160,7 +1208,7 @@ static DECLFW(M205Write0) {
 		CartBW(A, V);
 }
 
-static DECLFW(M205Write1) {
+static DECLFW(GN45Write1) {
 	if (EXPREGS[2] == 0) {
 		EXPREGS[0] = V & 0x30;
 		FixMMC3PRG(MMC3_cmd);
@@ -1169,30 +1217,30 @@ static DECLFW(M205Write1) {
 		CartBW(A, V);
 }
 
-static void M205Reset(void) {
+static void GN45Reset(void) {
 	EXPREGS[0] = EXPREGS[2] = 0;
 	MMC3RegReset();
 }
 
-static void M205Power(void) {
+static void GN45Power(void) {
 	GenMMC3Power();
-	SetWriteHandler(0x6000, 0x6fff, M205Write0);
-	SetWriteHandler(0x7000, 0x7fff, M205Write1);	// OK-411 boards, the same logic, but data latched, 2-in-1 frankenstein
+	SetWriteHandler(0x6000, 0x6fff, GN45Write0);
+	SetWriteHandler(0x7000, 0x7fff, GN45Write1);	/* OK-411 boards, the same logic, but data latched, 2-in-1 frankenstein */
 }
 
-void Mapper205_Init(CartInfo *info) {
+void GN45_Init(CartInfo *info) {
 	GenMMC3_Init(info, 128, 128, 8, 0);
-	pwrap = M205PW;
-	cwrap = M205CW;
-	info->Power = M205Power;
-	info->Reset = M205Reset;
+	pwrap = GN45PW;
+	cwrap = GN45CW;
+	info->Power = GN45Power;
+	info->Reset = GN45Reset;
 	AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 245 ------------------------------
+/* ---------------------------- Mapper 245 ------------------------------ */
 
 static void M245CW(uint32 A, uint8 V) {
-	if (!UNIFchrrama)	// Yong Zhe Dou E Long - Dragon Quest VI (As).nes NEEDS THIS for RAM cart
+	if (!UNIFchrrama)	/* Yong Zhe Dou E Long - Dragon Quest VI (As).nes NEEDS THIS for RAM cart */
 		setchr1(A, V & 7);
 	EXPREGS[0] = V;
 	FixMMC3PRG(MMC3_cmd);
@@ -1215,7 +1263,7 @@ void Mapper245_Init(CartInfo *info) {
 	AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 249 ------------------------------
+/* ---------------------------- Mapper 249 ------------------------------ */
 
 static void M249PW(uint32 A, uint8 V) {
 	if (EXPREGS[0] & 0x2) {
@@ -1255,7 +1303,7 @@ void Mapper249_Init(CartInfo *info) {
 	AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
-// ---------------------------- Mapper 250 ------------------------------
+/* ---------------------------- Mapper 250 ------------------------------ */
 
 static DECLFW(M250Write) {
 	MMC3_CMDWrite((A & 0xE000) | ((A & 0x400) >> 10), A & 0xFF);
@@ -1276,7 +1324,7 @@ void Mapper250_Init(CartInfo *info) {
 	info->Power = M250_Power;
 }
 
-// ---------------------------- Mapper 254 ------------------------------
+/* ---------------------------- Mapper 254 ------------------------------ */
 
 static DECLFR(MR254WRAM) {
 	if (EXPREGS[0])
@@ -1305,7 +1353,7 @@ void Mapper254_Init(CartInfo *info) {
 	AddExState(EXPREGS, 2, 0, "EXPR");
 }
 
-// ---------------------------- UNIF Boards -----------------------------
+/* ---------------------------- UNIF Boards ----------------------------- */
 
 void TBROM_Init(CartInfo *info) {
 	GenMMC3_Init(info, 64, 64, 0, 0);
@@ -1357,36 +1405,9 @@ void TQROM_Init(CartInfo *info) {
 	CHRRAMSIZE = 8192;
 	CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
 	SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
-	AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
+   AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
 }
 
 void HKROM_Init(CartInfo *info) {
 	GenMMC3_Init(info, 512, 512, 1, info->battery);
-}
-
-// -------------------------------- iNES 2.0 ----------------------------
-
-// ---------------------------- Mapper 406 ------------------------------
-
-static DECLFW(M406CMDWrite) {
-	MMC3_CMDWrite((A & 0xFFFE) | ((A & 2) >> 1), V);
-}
-
-static DECLFW(M406IRQWrite) {
-	MMC3_IRQWrite((A & 0xFFFE) | ((A & 2) >> 1), V);
-}
-
-static DECLFW(M406Write) {
-}
-
-static void M406_Power(void) {
-	GenMMC3Power();
-	// TODO : FLASH
-	SetWriteHandler(0x8000, 0xBFFF, M406CMDWrite);
-	SetWriteHandler(0xC000, 0xFFFF, M406IRQWrite);
-}
-
-void Mapper406_Init(CartInfo *info) {
-	GenMMC3_Init(info, 512, 256, 0, 0);
-	info->Power = M406_Power;
 }

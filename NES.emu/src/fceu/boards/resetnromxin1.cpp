@@ -1,7 +1,7 @@
-/* FCE Ultra - NES/Famicom Emulator
+/* FCEUmm - NES/Famicom Emulator
  *
  * Copyright notice for this file:
- *  Copyright (C) 2005 CaH4e3
+ *  Copyright (C) 2019 Libretro Team
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,71 +18,58 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/* NES 2.0 Mapper 343
+ * BMC-RESETNROM-XIN1
+ * - Sheng Tian 2-in-1(Unl,ResetBase)[p1] - Kung Fu (Spartan X), Super Mario Bros (alt)
+ * - Sheng Tian 2-in-1(Unl,ResetBase)[p2] - B-Wings, Twin-bee
+ *
+ * BMC-KS106C
+ * - Kaiser 4-in-1(Unl,KS106C)[p1] - B-Wings, Kung Fu, 1942, SMB1 (wrong mirroring)
+ */
+
 #include "mapinc.h"
 
-static uint8 is167, regs[4];
+static uint8 gameblock, limit;
 
 static SFORMAT StateRegs[] =
 {
-	{ regs, 4, "DREG" },
+	{ &gameblock, 1, "GAME" },
 	{ 0 }
 };
 
 static void Sync(void) {
-	int base, bank;
-	base = ((regs[0] ^ regs[1]) & 0x10) << 1;
-	bank = (regs[2] ^ regs[3]) & 0x1f;
-
-	if (regs[1] & 0x08) {
-		bank &= 0xFE;
-		if (is167) {
-			setprg16(0x8000, base + bank + 1);
-			setprg16(0xC000, base + bank + 0);
-		} else {
-			setprg16(0x8000, base + bank + 0);
-			setprg16(0xC000, base + bank + 1);
-		}
-	} else {
-		if (regs[1] & 0x04) {
-			setprg16(0x8000, 0x1F);
-			setprg16(0xC000, base + bank);
-		} else {
-			setprg16(0x8000, base + bank);
-			if (is167)
-				setprg16(0xC000, 0x20);
-			else
-				setprg16(0xC000, 0x07);
-		}
-	}
-	setchr8(0);
+	setchr8(gameblock);
+	setprg32(0x8000, gameblock);
 }
 
-static DECLFW(M166Write) {
-	regs[(A >> 13) & 0x03] = V;
-	Sync();
-}
-
-static void M166Power(void) {
-	regs[0] = regs[1] = regs[2] = regs[3] = 0;
+static void BMCRESETNROMXIN1Power(void) {
+	gameblock = 0;
 	Sync();
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, M166Write);
+}
+
+static void BMCRESETNROMXIN1Reset(void) {
+	gameblock++;
+	gameblock &= limit;
+	Sync();
 }
 
 static void StateRestore(int version) {
 	Sync();
 }
 
-void Mapper166_Init(CartInfo *info) {
-	is167 = 0;
-	info->Power = M166Power;
+void BMCRESETNROMXIN1_Init(CartInfo *info) {
+	limit = 0x01;
+	info->Power = BMCRESETNROMXIN1Power;
+	info->Reset = BMCRESETNROMXIN1Reset;
 	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }
 
-void Mapper167_Init(CartInfo *info) {
-	is167 = 1;
-	info->Power = M166Power;
+void BMCKS106C_Init(CartInfo *info) {
+	limit = 0x03;
+	info->Power = BMCRESETNROMXIN1Power;
+	info->Reset = BMCRESETNROMXIN1Reset;
 	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

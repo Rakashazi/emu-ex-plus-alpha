@@ -18,10 +18,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/* Mapper 64 - 	Tengen 800032 Rambo-1
+ * Mapper 158 -	Tengen 800037 (Alien Syndrome Unl)
+*/
+
 #include "mapinc.h"
 
 static uint8 cmd, mirr, regs[11];
 static uint8 rmode, IRQmode, IRQCount, IRQa, IRQLatch;
+
+static void (*cwrap)(uint32 A, uint8 V);
+static int _isM158;
 
 static SFORMAT StateRegs[] = {
 	{ regs, 11, "REGS" },
@@ -35,7 +42,7 @@ static SFORMAT StateRegs[] = {
 	{ 0 }
 };
 
-static void M64IRQHook(int a) {
+static void FP_FASTAPASS(1) RAMBO1IRQHook(int a) {
 	static int32 smallcount;
 	if (IRQmode) {
 		smallcount += a;
@@ -48,7 +55,7 @@ static void M64IRQHook(int a) {
 	}
 }
 
-static void M64HBHook(void) {
+static void RAMBO1HBHook(void) {
 	if ((!IRQmode) && (scanline != 240)) {
 		rmode = 0;
 		IRQCount--;
@@ -63,28 +70,37 @@ static void M64HBHook(void) {
 
 static void Sync(void) {
 	if (cmd & 0x20) {
-		setchr1(0x0000, regs[0]);
-		setchr1(0x0400, regs[8]);
-		setchr1(0x0800, regs[1]);
-		setchr1(0x0C00, regs[9]);
+		cwrap(0x0000, regs[0]);
+		cwrap(0x0400, regs[8]);
+		cwrap(0x0800, regs[1]);
+		cwrap(0x0C00, regs[9]);
 	} else {
-		setchr2(0x0000, regs[0] >> 1);
-		setchr2(0x0800, regs[1] >> 1);
+		cwrap(0x0000, (regs[0] & 0xFE));
+		cwrap(0x0400, (regs[0] & 0xFE) | 1);
+		cwrap(0x0800, (regs[1] & 0xFE));
+		cwrap(0x0C00, (regs[1] & 0xFE) | 1);
 	}
-	setchr1(0x1000, regs[2]);
-	setchr1(0x1400, regs[3]);
-	setchr1(0x1800, regs[4]);
-	setchr1(0x1C00, regs[5]);
+	cwrap(0x1000, regs[2]);
+	cwrap(0x1400, regs[3]);
+	cwrap(0x1800, regs[4]);
+	cwrap(0x1C00, regs[5]);
 	setprg8(0x8000, regs[6]);
 	setprg8(0xA000, regs[7]);
 	setprg8(0xC000, regs[10]);
 	setprg8(0xE000, ~0);
-	setmirror(mirr);
+	if (!_isM158)
+		setmirror(mirr);
 }
 
-static DECLFW(M64Write) {
+
+static DECLFW(RAMBO1_Write) {
 	switch (A & 0xF001) {
-	case 0xA000: mirr = (V & 1) ^ 1; Sync(); break;\
+	case 0xA000:
+		if (!_isM158) {
+			mirr = (V & 1) ^ 1;
+			Sync();
+		}
+		break;
 	case 0x8000: cmd = V; break;
 	case 0x8001:
 		if ((cmd & 0xF) < 10)
@@ -117,23 +133,59 @@ static DECLFW(M64Write) {
 	}
 }
 
-static void M64Power(void) {
+static void RAMBO1Power(void) {
 	cmd = mirr = 0;
 	regs[0] = regs[1] = regs[2] = regs[3] = regs[4] = regs[5] = ~0;
 	regs[6] = regs[7] = regs[8] = regs[9] = regs[10] = ~0;
 	Sync();
+	if (!_isM158) setmirror(1);
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, M64Write);
+	SetWriteHandler(0x8000, 0xFFFF, RAMBO1_Write);
 }
 
 static void StateRestore(int version) {
 	Sync();
 }
 
-void Mapper64_Init(CartInfo *info) {
-	info->Power = M64Power;
-	GameHBIRQHook = M64HBHook;
-	MapIRQHook = M64IRQHook;
+static void RAMBO1_Init(CartInfo *info) {
+	info->Power = RAMBO1Power;
+	GameHBIRQHook = RAMBO1HBHook;
+	MapIRQHook = RAMBO1IRQHook;
 	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
+}
+
+static void M64CWRAP(uint32 A, uint8 V) {
+	setchr1(A, V);
+}
+
+void Mapper64_Init(CartInfo *info) {
+	_isM158 = 0;
+	cwrap = M64CWRAP;
+	RAMBO1_Init(info);
+}
+
+static uint8 M158MIR[8];
+static uint8 PPUCHRBus;
+
+static void FP_FASTAPASS(1) M158PPU(uint32 A) {
+	A &= 0x1FFF;
+	A >>= 10;
+	PPUCHRBus = A;
+	setmirror(MI_0 + M158MIR[A]);
+}
+
+static void M158CWRAP(uint32 A, uint8 V) {
+	M158MIR[A >> 10] = (V >> 7) & 1;
+	setchr1(A, V);
+	if (PPUCHRBus == (A >> 10))
+		setmirror(MI_0 + ((V >> 7) & 1));
+}
+
+void Mapper158_Init(CartInfo *info) {
+	_isM158 = 1;
+	cwrap = M158CWRAP;
+	PPU_hook = M158PPU;
+	RAMBO1_Init(info);
+	AddExState(&PPUCHRBus, 1, 0, "PPUC");
 }

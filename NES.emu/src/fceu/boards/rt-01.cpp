@@ -24,18 +24,19 @@
  * 
  */
 
+#include <stdlib.h>
 #include "mapinc.h"
 
-extern u64 xoroshiro128plus_next(); // deterministic random
-
 static DECLFR(UNLRT01Read) {
-//	u16 i, prot_areas[2][2] = {
-//		{ 0x8E80, 0x8EFF },
-//		{ 0xFE80, 0xFEFF },
-//	};
+#if 0
+	u16 i, prot_areas[2][2] = {
+		{ 0x8E80, 0x8EFF },
+		{ 0xFE80, 0xFEFF },
+	};
+#endif
 	if(((A >= 0xCE80) && (A < 0xCF00)) ||
 	   ((A >= 0xFE80) && (A < 0xFF00))) {
-		return 0xF2 | (xoroshiro128plus_next() & 0x0D);
+		return 0xF2 | (rand() & 0x0D);
 	} else
 		return CartBR(A);
 }
