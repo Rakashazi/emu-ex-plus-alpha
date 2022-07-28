@@ -32,7 +32,7 @@ static void BMC8IN1CW(uint32 A, uint8 V) {
 }
 
 static void BMC8IN1PW(uint32 A, uint8 V) {
-	if(EXPREGS[0] & 0x10) {		// MMC3 mode
+	if(EXPREGS[0] & 0x10) {		/* MMC3 mode */
 		setprg8(A, ((EXPREGS[0] & 0xC) << 2) | (V & 0xF));
 	} else {
 		setprg32(0x8000, EXPREGS[0] & 0xF);

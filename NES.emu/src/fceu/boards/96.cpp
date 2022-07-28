@@ -18,6 +18,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * Oeka-kids board
+ *
+ * I might want to add some code to the mapper 96 PPU hook function
+ * to not change CHR banks if the attribute table is being accessed,
+ * if I make emulation a little more accurate in the future.
+ *
  */
 
 #include "mapinc.h"
@@ -43,7 +50,7 @@ static DECLFW(M96Write) {
 	Sync();
 }
 
-static void M96Hook(uint32 A) {
+static void FP_FASTAPASS(1) M96Hook(uint32 A) {
 	if ((A & 0x3000) == 0x2000) {
 		ppulatch = (A >> 8) & 3;
 		Sync();

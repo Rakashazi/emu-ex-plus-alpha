@@ -73,12 +73,12 @@ static void Sync(void) {
 }
 
 static DECLFW(M80RamWrite) {
-	if(wram_enable == 0xA3)
+	if (wram_enable == 0xA3)
 		wram[A & 0xFF] = V;
 }
 
 static DECLFR(M80RamRead) {
-	if(wram_enable == 0xA3)
+	if (wram_enable == 0xA3)
 		return wram[A & 0xFF];
 	else
 		return 0xFF;
@@ -121,7 +121,7 @@ static DECLFW(M95Write) {
 	}
 }
 
-static void MExMirrPPU(uint32 A) {
+static void FP_FASTAPASS(1) MExMirrPPU(uint32 A) {
 	static int8 lastmirr = -1, curmirr;
 	if (A < 0x2000) {
 		lastppu = A >> 10;

@@ -21,27 +21,25 @@
 
 #include "mapinc.h"
 
-static uint8 prg_reg;
-static uint8 chr_reg;
+static uint8 regs[2];
 static uint8 hrd_flag;
 
 static SFORMAT StateRegs[] =
 {
 	{ &hrd_flag, 1, "DPSW" },
-	{ &prg_reg, 1, "PRG" },
-	{ &chr_reg, 1, "CHR" },
+	{ regs, 2, "REGS" },
 	{ 0 }
 };
 
 static void Sync(void) {
-	if (prg_reg & 0x80)
-		setprg32(0x8000, prg_reg >> 6);
-	else{
-		setprg16(0x8000, (prg_reg >> 5) & 3);
-		setprg16(0xC000, (prg_reg >> 5) & 3);
+	if (regs[1] & 0x10)
+		setprg32(0x8000, (regs[1] >> 6) & 3);
+	else {
+		setprg16(0x8000, (regs[1] >> 5) & 7);
+		setprg16(0xC000, (regs[1] >> 5) & 7);
 	}
-	setmirror((prg_reg & 8) >> 3);
-	setchr8((chr_reg & 3) | (prg_reg & 7) | ((prg_reg & 0x10) >> 1));
+	setmirror((regs[1] & 8) >> 3 ^ 1);
+	setchr8((regs[0] & 7) | (regs[1] & 7) | ((regs[0] & 0x40) >> 3));
 }
 
 static DECLFR(M57Read) {
@@ -49,27 +47,27 @@ static DECLFR(M57Read) {
 }
 
 static DECLFW(M57Write) {
-	if ((A & 0x8800) == 0x8800)
-		prg_reg = V;
-	else
-		chr_reg = V;
-	Sync();
+	switch (A & 0x8800) {
+		case 0x8000: regs[0] = V; Sync(); break;
+		case 0x8800: regs[1] = V; Sync(); break;
+	}
 }
 
 static void M57Power(void) {
-	prg_reg = 0;
-	chr_reg = 0;
-	hrd_flag = 0;
+	regs[1] = regs[0] = 0; /* Always reset to menu */
+	hrd_flag = 1; /* YH-xxx "Olympic" multicarts disable the menu after one selection */
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
 	SetWriteHandler(0x8000, 0xFFFF, M57Write);
 	SetReadHandler(0x6000, 0x6000, M57Read);
 	Sync();
 }
 
-static void M57Reset() {
+static void M57Reset(void) {
+	regs[1] = regs[0] = 0; /* Always reset to menu */
 	hrd_flag++;
 	hrd_flag &= 3;
 	FCEU_printf("Select Register = %02x\n", hrd_flag);
+	Sync();
 }
 
 static void StateRestore(int version) {

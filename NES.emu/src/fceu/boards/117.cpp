@@ -35,11 +35,11 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
+	int i;
 	setprg8(0x8000, prgreg[0]);
 	setprg8(0xa000, prgreg[1]);
 	setprg8(0xc000, prgreg[2]);
 	setprg8(0xe000, prgreg[3]);
-	int i;
 	for (i = 0; i < 8; i++)
 		setchr1(i << 10, chrreg[i]);
 	setmirror(mirror ^ 1);

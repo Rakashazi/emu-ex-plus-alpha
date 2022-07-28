@@ -16,6 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * DIS23C01 DAOU ROM CONTROLLER, Korea
+ * Metal Force (K)
+ * Buzz and Waldog (K)
+ * General's Son (K)
+ *
  */
 
 #include "mapinc.h"
@@ -86,7 +92,7 @@ static void M156Power(void) {
 	SetReadHandler(0x6000, 0xFFFF, CartBR);
 	SetWriteHandler(0x6000, 0x7FFF, CartBW);
 	SetWriteHandler(0xC000, 0xCFFF, M156Write);
-	FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
+        FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
 }
 
 static void M156Close(void) {

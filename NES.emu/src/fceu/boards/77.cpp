@@ -22,7 +22,7 @@
 
 static uint8 latche;
 
-static uint8 *CHRRAM=NULL;
+static uint8 *CHRRAM = NULL;
 static uint32 CHRRAMSIZE;
 
 static SFORMAT StateRegs[] =
@@ -50,8 +50,7 @@ static void M77Power(void) {
 	SetWriteHandler(0x8000, 0xFFFF, M77Write);
 }
 
-static void M77Close(void)
-{
+static void M77Close(void) {
 	if (CHRRAM)
 		FCEU_gfree(CHRRAM);
 	CHRRAM = NULL;

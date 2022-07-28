@@ -35,29 +35,45 @@
 
 #include "mapinc.h"
 
-static uint8 mode;
-static uint8 vrc2_chr[8], vrc2_prg[2], vrc2_mirr;
-static uint8 mmc3_regs[10], mmc3_ctrl, mmc3_mirr;
-static uint8 IRQCount, IRQLatch, IRQa;
-static uint8 IRQReload;
-static uint8 mmc1_regs[4], mmc1_buffer, mmc1_shift;
+static uint8 vrc2_chr[8]   = { 0 };
+static uint8 vrc2_prg[2]   = { 0 };
+static uint8 vrc2_mirr     = 0;
+
+static uint8 mmc3_regs[10] = { 0 };
+static uint8 mmc3_ctrl     = 0;
+static uint8 mmc3_mirr     = 0;
+
+static uint8 mmc1_regs[4]  = { 0 };
+static uint8 mmc1_buffer   = 0;
+static uint8 mmc1_shift    = 0;
+
+static uint8 IRQCount      = 0;
+static uint8 IRQLatch      = 0;
+static uint8 IRQa          = 0;
+static uint8 IRQReload     = 0;
+static uint8 mode          = 0;
+
+static uint32 isHuang2     = 0;
+
+extern uint32 ROM_size;
+extern uint32 VROM_size;
 
 static SFORMAT StateRegs[] =
 {
-	{ &mode, 1, "MODE" },
-	{ vrc2_chr, 8, "VRCC" },
-	{ vrc2_prg, 2, "VRCP" },
-	{ &vrc2_mirr, 1, "VRCM" },
-	{ mmc3_regs, 10, "M3RG" },
-	{ &mmc3_ctrl, 1, "M3CT" },
-	{ &mmc3_mirr, 1, "M3MR" },
-	{ &IRQReload, 1, "IRQR" },
-	{ &IRQCount, 1, "IRQC" },
-	{ &IRQLatch, 1, "IRQL" },
-	{ &IRQa, 1, "IRQA" },
-	{ mmc1_regs, 4, "M1RG" },
+	{ &mode,        1, "MODE" },
+	{ vrc2_chr,     8, "VRCC" },
+	{ vrc2_prg,     2, "VRCP" },
+	{ &vrc2_mirr,   1, "VRCM" },
+	{ mmc3_regs,   10, "M3RG" },
+	{ &mmc3_ctrl,   1, "M3CT" },
+	{ &mmc3_mirr,   1, "M3MR" },
+	{ &IRQReload,   1, "IRQR" },
+	{ &IRQCount,    1, "IRQC" },
+	{ &IRQLatch,    1, "IRQL" },
+	{ &IRQa,        1, "IRQA" },
+	{ mmc1_regs,    4, "M1RG" },
 	{ &mmc1_buffer, 1, "M1BF" },
-	{ &mmc1_shift, 1, "M1MR" },
+	{ &mmc1_shift,  1, "M1MR" },
 	{ 0 }
 };
 
@@ -83,6 +99,8 @@ static void SyncPRG(void) {
 	{
 		uint8 bank = mmc1_regs[3] & 0xF;
 		if (mmc1_regs[0] & 8) {
+			if (isHuang2)
+				bank >>= 1;
 			if (mmc1_regs[0] & 4) {
 				setprg16(0x8000, bank);
 				setprg16(0xC000, 0x0F);
@@ -92,8 +110,8 @@ static void SyncPRG(void) {
 			}
 		} else
 			setprg32(0x8000, bank >> 1);
+		}
 		break;
-	}
 	}
 }
 
@@ -163,15 +181,16 @@ static void Sync(void) {
 }
 
 static DECLFW(UNLSL12ModeWrite) {
-//  FCEU_printf("%04X:%02X\n",A,V);
+/*  FCEU_printf("%04X:%02X\n",A,V); */
 	if ((A & 0x4100) == 0x4100) {
 		mode = V;
-		if (A & 1) {	// hacky hacky, there are two configuration modes on SOMARI HUANG-1 PCBs
-						// Solder pads with P1/P2 shorted called SOMARI P,
-						// Solder pads with W1/W2 shorted called SOMARI W
-						// Both identical 3-in-1 but W wanted MMC1 registers
-						// to be reset when switch to MMC1 mode P one - doesn't
-						// There is issue with W version of Somari at starting copyrights
+		if (A & 1) {	/* hacky hacky, there are two configuration modes on SOMARI HUANG-1 PCBs
+						 * Solder pads with P1/P2 shorted called SOMARI P,
+						 * Solder pads with W1/W2 shorted called SOMARI W
+						 * Both identical 3-in-1 but W wanted MMC1 registers
+						 * to be reset when switch to MMC1 mode P one - doesn't
+						 * There is issue with W version of Somari at starting copyrights
+						 */
 			mmc1_regs[0] = 0xc;
 			mmc1_regs[3] = 0;
 			mmc1_buffer = 0;
@@ -182,7 +201,7 @@ static DECLFW(UNLSL12ModeWrite) {
 }
 
 static DECLFW(UNLSL12Write) {
-//  FCEU_printf("%04X:%02X\n",A,V);
+/*  FCEU_printf("%04X:%02X\n",A,V); */
 	switch (mode & 3) {
 	case 0: {
 		if ((A >= 0xB000) && (A <= 0xE003)) {
@@ -249,10 +268,10 @@ static DECLFW(UNLSL12Write) {
 				mmc1_regs[n] = mmc1_buffer;
 				mmc1_buffer = mmc1_shift = 0;
 				switch (n) {
-				case 0: SyncMIR(); [[fallthrough]];
-				case 2: SyncCHR(); [[fallthrough]];
+				case 0: SyncMIR(); break;
+				case 2: SyncCHR(); break;
 				case 3:
-				case 1: SyncPRG();
+				case 1: SyncPRG(); break;
 				}
 			}
 		}
@@ -285,7 +304,7 @@ static void UNLSL12Power(void) {
 	vrc2_chr[0] = ~0;
 	vrc2_chr[1] = ~0;
 	vrc2_chr[2] = ~0;
-	vrc2_chr[3] = ~0; // W conf. of Somari wanted CHR3 has to be set to BB bank (or similar), but doesn't do that directly
+	vrc2_chr[3] = ~0;	/* W conf. of Somari wanted CHR3 has to be set to BB bank (or similar), but doesn't do that directly */
 	vrc2_chr[4] = 4;
 	vrc2_chr[5] = 5;
 	vrc2_chr[6] = 6;
@@ -321,4 +340,7 @@ void UNLSL12_Init(CartInfo *info) {
 	GameHBIRQHook = UNLSL12HBIRQ;
 	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
+	/* PRG 128K and CHR 128K is Huang-2 */
+	if (ROM_size == 8 && VROM_size == 16)
+		isHuang2 = 1;
 }

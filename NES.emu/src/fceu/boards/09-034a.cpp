@@ -44,7 +44,7 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	setprg8r(1, 0x6000, prg);
+	setprg8(0x6000, 4 | prg);
 	setprg32(0x8000, 0);
 	setchr8(0);
 }
@@ -73,10 +73,10 @@ static void UNLSMB2JPower(void) {
 	SetWriteHandler(0x4027, 0x4027, UNLSMB2JWrite1);
 }
 
-static void UNLSMB2JIRQHook(int a) {
+static void FP_FASTAPASS(1) UNLSMB2JIRQHook(int a) {
 	if (IRQa)
 	{
-		if (IRQCount < 5750)	// completely by guess
+		if (IRQCount < 5750)    /* completely by guess */
 			IRQCount += a;
 		else {
 			IRQa = 0;

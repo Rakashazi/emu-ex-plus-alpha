@@ -21,7 +21,6 @@
 #include "mapinc.h"
 
 static uint8 preg, mirr;
-static int hardmirr;
 
 static SFORMAT StateRegs[] =
 {
@@ -34,15 +33,13 @@ static void Sync(void) {
 	setprg16(0x8000, preg);
 	setprg16(0xC000, ~0);
 	setchr8(0);
-	if(mirr)
+	if (mirr)
 		setmirror(mirr);
-	else
-		setmirror(hardmirr); // restore hardwired mirroring
 }
 
 static DECLFW(M71Write) {
 	if ((A & 0xF000) == 0x9000)
-		mirr = MI_0 + ((V >> 4) & 1);   // 2-in-1, some carts are normal hardwire V/H mirror, some uses mapper selectable 0/1 mirror
+		mirr = MI_0 + ((V >> 4) & 1);	/* 2-in-1, some carts are normal hardwire V/H mirror, some uses mapper selectable 0/1 mirror */
 	else
 		preg = V;
 	Sync();
@@ -61,7 +58,6 @@ static void StateRestore(int version) {
 }
 
 void Mapper71_Init(CartInfo *info) {
-	hardmirr = info->mirror;
 	info->Power = M71Power;
 	GameStateRestore = StateRestore;
 

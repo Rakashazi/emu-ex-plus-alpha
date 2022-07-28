@@ -35,7 +35,7 @@ static void Sync(void) {
 	setchr8((latch >> 2) & 1);
 	setprg8r(0x10, 0x6000, 0);
 	setprg32(0x8000, 0);
-	setprg8(0x8000, latch & 4);        /* Special for VS Gumshoe */
+	setprg8(0x8000, latch & 4);			/* Special for VS Gumshoe */
 }
 
 static DECLFW(M99Write) {
@@ -54,8 +54,7 @@ static void M99Power(void) {
 	FCEU_CheatAddRAM(WRAMSIZE >> 10, 0x6000, WRAM);
 }
 
-static void M99Close(void)
-{
+static void M99Close(void) {
 	if (WRAM)
 		FCEU_gfree(WRAM);
 	WRAM = NULL;

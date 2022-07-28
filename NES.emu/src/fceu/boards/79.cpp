@@ -35,19 +35,18 @@ static void Sync(void) {
 }
 
 static DECLFW(M79Write) {
-	if ((A < 0x8000) && ((A ^ 0x4100) == 0)) {
+	if (A & 0x100) {
 		preg = (V >> 3) & 1;
+		creg = V & 7;
+		Sync();
 	}
-	creg = V & 7;
-	Sync();
 }
 
 static void M79Power(void) {
-	preg = ~0;
+	preg = 0;
 	Sync();
-	SetWriteHandler(0x4100, 0x5FFF, M79Write);
-	SetWriteHandler(0x8000, 0xFFFF, M79Write);
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetWriteHandler(0x4100, 0x5FFF, M79Write);
 }
 
 static void StateRestore(int version) {

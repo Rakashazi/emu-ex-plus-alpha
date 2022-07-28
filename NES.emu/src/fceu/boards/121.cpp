@@ -45,7 +45,7 @@ static void Sync() {
 }
 
 static void M121CW(uint32 A, uint8 V) {
-	if (PRGsize[0] == CHRsize[0]) {	// A9713 multigame extension hack!
+	if (PRGsize[0] == CHRsize[0]) {	/* A9713 multigame extension hack! */
 		setchr1(A, V | ((EXPREGS[3] & 0x80) << 1));
 	} else {
 		if ((A & 0x1000) == ((MMC3_cmd & 0x80) << 5))
@@ -56,38 +56,34 @@ static void M121CW(uint32 A, uint8 V) {
 }
 
 static void M121PW(uint32 A, uint8 V) {
+	setprg8(A, (V & 0x1F) | ((EXPREGS[3] & 0x80) >> 2));
 	if (EXPREGS[5] & 0x3F) {
-//		FCEU_printf("prot banks: %02x %02x %02x %02x\n",V,EXPREGS[2],EXPREGS[1],EXPREGS[0]);
-		setprg8(A, (V & 0x1F) | ((EXPREGS[3] & 0x80) >> 2));
 		setprg8(0xE000, (EXPREGS[0]) | ((EXPREGS[3] & 0x80) >> 2));
 		setprg8(0xC000, (EXPREGS[1]) | ((EXPREGS[3] & 0x80) >> 2));
 		setprg8(0xA000, (EXPREGS[2]) | ((EXPREGS[3] & 0x80) >> 2));
-	} else {
-//		FCEU_printf("gen banks: %04x %02x\n",A,V);
-		setprg8(A, (V & 0x1F) | ((EXPREGS[3] & 0x80) >> 2));
 	}
 }
 
 static DECLFW(M121Write) {
-//	FCEU_printf("write: %04x:%04x\n",A&0xE003,V);
+/*	FCEU_printf("write: %04x:%04x\n",A&0xE003,V); */
 	switch (A & 0xE003) {
 	case 0x8000:
-//		EXPREGS[5] = 0;
-//		FCEU_printf("gen: %02x\n",V);
+/*		EXPREGS[5] = 0; */
+/*		FCEU_printf("gen: %02x\n",V); */
 		MMC3_CMDWrite(A, V);
 		FixMMC3PRG(MMC3_cmd);
 		break;
 	case 0x8001:
 		EXPREGS[6] = ((V & 1) << 5) | ((V & 2) << 3) | ((V & 4) << 1) | ((V & 8) >> 1) | ((V & 0x10) >> 3) | ((V & 0x20) >> 5);
-//		FCEU_printf("bank: %02x (%02x)\n",V,EXPREGS[6]);
+/*		FCEU_printf("bank: %02x (%02x)\n",V,EXPREGS[6]); */
 		if (!EXPREGS[7]) Sync();
 		MMC3_CMDWrite(A, V);
 		FixMMC3PRG(MMC3_cmd);
 		break;
 	case 0x8003:
 		EXPREGS[5] = V;
-//		EXPREGS[7] = 0;
-//		FCEU_printf("prot: %02x\n",EXPREGS[5]);
+/*		EXPREGS[7] = 0; */
+/*		FCEU_printf("prot: %02x\n",EXPREGS[5]); */
 		Sync();
 		MMC3_CMDWrite(0x8000, V);
 		FixMMC3PRG(MMC3_cmd);
@@ -97,17 +93,17 @@ static DECLFW(M121Write) {
 
 static uint8 prot_array[16] = { 0x83, 0x83, 0x42, 0x00 };
 static DECLFW(M121LoWrite) {
-	EXPREGS[4] = prot_array[V & 3];	// 0x100 bit in address seems to be switch arrays 0, 2, 2, 3 (Contra Fighter)
-	if ((A & 0x5180) == 0x5180) {	// A9713 multigame extension
+	EXPREGS[4] = prot_array[V & 3];	/* 0x100 bit in address seems to be switch arrays 0, 2, 2, 3 (Contra Fighter) */
+	if ((A & 0x5180) == 0x5180) {	/* A9713 multigame extension */
 		EXPREGS[3] = V;
 		FixMMC3PRG(MMC3_cmd);
 		FixMMC3CHR(MMC3_cmd);
 	}
-//	FCEU_printf("write: %04x:%04x\n",A,V);
+/*	FCEU_printf("write: %04x:%04x\n",A,V); */
 }
 
 static DECLFR(M121Read) {
-//	FCEU_printf("read:  %04x->\n",A,EXPREGS[0]);
+/*	FCEU_printf("read:  %04x->\n",A,EXPREGS[0]); */
 	return EXPREGS[4];
 }
 

@@ -16,9 +16,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * FDS Conversion - Doki Doki Panic
+ *
  */
 
 #include "mapinc.h"
+#include "../fds_apu.h"
 
 static uint8 reg0, reg1, reg2;
 static uint8 *WRAM = NULL;
@@ -77,6 +81,7 @@ static DECLFW(M103Write2) {
 }
 
 static void M103Power(void) {
+	FDSSoundPower();
 	reg0 = reg1 = 0; reg2 = 0;
 	Sync();
 	SetReadHandler(0x6000, 0x7FFF, CartBR);

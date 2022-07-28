@@ -16,6 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * FDS Conversion
+ *
+ * Meikyuu Jin Dababa
+ * Bubble Bobble Kaiser
+ *
  */
 
 #include "mapinc.h"
@@ -43,8 +49,8 @@ static void M108Power(void) {
 	Sync();
 	SetReadHandler(0x6000, 0x7FFF, CartBR);
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetWriteHandler(0x8000, 0x8FFF, M108Write); // regular 108
-	SetWriteHandler(0xF000, 0xFFFF, M108Write); // simplified Kaiser BB Hack
+	SetWriteHandler(0x8000, 0x8FFF, M108Write);	/* regular 108 */
+	SetWriteHandler(0xF000, 0xFFFF, M108Write);	/* simplified Kaiser BB Hack */
 }
 
 static void StateRestore(int version) {

@@ -51,8 +51,8 @@ static void Sync(void) {
 
 static DECLFW(M33Write) {
 	A &= 0xF003;
-	switch(A) {
-	case 0x8000: regs[0] = V & 0x3F; if(!is48) mirr = ((V >> 6) & 1) ^ 1; Sync(); break;
+	switch (A) {
+	case 0x8000: regs[0] = V & 0x3F; if (!is48) mirr = ((V >> 6) & 1) ^ 1; Sync(); break;
 	case 0x8001: regs[1] = V & 0x3F; Sync(); break;
 	case 0x8002: regs[2] = V; Sync(); break;
 	case 0x8003: regs[3] = V; Sync(); break;

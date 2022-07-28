@@ -78,7 +78,7 @@ static void M106Close(void) {
 	WRAM = NULL;
 }
 
-void M106CpuHook(int a) {
+void FP_FASTAPASS(1) M106CpuHook(int a) {
 	if (IRQa) {
 		IRQCount += a;
 		if (IRQCount > 0x10000) {

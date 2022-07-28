@@ -2,7 +2,6 @@
  *
  * Copyright notice for this file:
  *  Copyright (C) 2012 CaH4e3
- *  Copyright (C) 2002 Xodnizel
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,13 +81,13 @@ static void M67Power(void) {
 	SetWriteHandler(0x8000, 0xFFFF, M67Write);
 }
 
-void M67IRQ(int a) {
+void FP_FASTAPASS(1) M67IRQ(int a) {
 	if (IRQa) {
 		IRQCount -= a;
 		if (IRQCount <= 0) {
 			X6502_IRQBegin(FCEU_IQEXT);
 			IRQa = 0;
-			IRQCount = -1;
+			IRQCount = 0xFFFF;
 		}
 	}
 }

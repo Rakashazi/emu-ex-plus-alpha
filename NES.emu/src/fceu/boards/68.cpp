@@ -73,7 +73,7 @@ static void Sync(void) {
 	setchr2(0x1800, chr_reg[3]);
 	setprg8r(0x10, 0x6000, 0);
 	setprg16r((PRGptr[1]) ? kogame : 0, 0x8000, prg_reg);
-	setprg16(0xC000, ~0);
+	setprg16(0xC000, 0x07);
 }
 
 static DECLFR(M68Read) {
