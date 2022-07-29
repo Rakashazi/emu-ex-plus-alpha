@@ -271,7 +271,7 @@ public:
 	static bool inputHasTriggers();
 	void setStartFrameTime(IG::FrameTime time);
 	EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
-	void setSpeedMultiplier(EmuAudio &, int8_t speed);
+	void setSpeedMultiplier(EmuAudio &, double speed);
 	IG::Time benchmark(EmuVideo &video);
 	bool hasContent() const;
 	void resetFrameTime();
@@ -329,7 +329,7 @@ protected:
 
 public:
 	IG::OnFrameDelegate onFrameUpdate{};
-	int8_t targetFastForwardSpeed{};
+	double targetFastForwardSpeed{};
 };
 
 // Global instance access if required by the emulated system, valid if EmuApp::needsGlobalInstance initialized to true

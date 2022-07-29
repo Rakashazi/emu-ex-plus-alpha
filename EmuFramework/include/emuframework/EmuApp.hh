@@ -166,7 +166,7 @@ public:
 	void removeTurboInputEvent(unsigned action);
 	void runTurboInputEvents();
 	void resetInput();
-	void setFastForwardSpeed(int speed);
+	void setFastForwardSpeed(double speed);
 	void saveSessionOptions();
 	void loadSessionOptions();
 	bool hasSavedSessionOptions();
@@ -288,6 +288,7 @@ public:
 	auto &confirmAutoLoadStateOption() { return optionConfirmAutoLoadState; }
 	auto &confirmOverwriteStateOption() { return optionConfirmOverwriteState; }
 	auto &fastForwardSpeedOption() { return optionFastForwardSpeed; }
+	double fastForwardSpeedAsDouble() { return optionFastForwardSpeed.val / 100.; }
 	auto &sustainedPerformanceModeOption() { return optionSustainedPerformanceMode; }
 
 	// GUI Options
@@ -473,7 +474,7 @@ protected:
 	Byte1Option optionAutoSaveState;
 	Byte1Option optionConfirmAutoLoadState;
 	Byte1Option optionConfirmOverwriteState;
-	Byte1Option optionFastForwardSpeed;
+	Byte2Option optionFastForwardSpeed;
 	Byte1Option optionSound;
 	Byte1Option optionSoundVolume;
 	Byte1Option optionSoundBuffers;

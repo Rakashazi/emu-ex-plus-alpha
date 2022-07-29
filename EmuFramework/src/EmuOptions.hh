@@ -74,4 +74,6 @@ static const unsigned optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOn
 
 static const char *optionSavePathDefaultToken = ":DEFAULT:";
 
+constexpr double MAX_FAST_FORWARD_SPEED = 20.;
+
 }

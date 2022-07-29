@@ -61,7 +61,7 @@ void EmuInputView::resetInput()
 
 void EmuInputView::updateFastforward()
 {
-	app().setFastForwardSpeed(ffToggleActive ? app().fastForwardSpeedOption().val : 0);
+	app().setFastForwardSpeed(ffToggleActive ? app().fastForwardSpeedAsDouble() : 0.);
 }
 
 bool EmuInputView::inputEvent(const Input::Event &e)

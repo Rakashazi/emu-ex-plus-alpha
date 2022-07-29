@@ -151,16 +151,46 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fastForwardSpeedItem
 	{
-		{"2x", &defaultFace(), setFastForwardSpeedDel(), 2},
-		{"3x", &defaultFace(), setFastForwardSpeedDel(), 3},
-		{"4x", &defaultFace(), setFastForwardSpeedDel(), 4},
-		{"5x", &defaultFace(), setFastForwardSpeedDel(), 5},
-		{"6x", &defaultFace(), setFastForwardSpeedDel(), 6},
-		{"7x", &defaultFace(), setFastForwardSpeedDel(), 7},
+		{"1.25x", &defaultFace(), setFastForwardSpeedDel(), 125},
+		{"1.5x",  &defaultFace(), setFastForwardSpeedDel(), 150},
+		{"2x",    &defaultFace(), setFastForwardSpeedDel(), 200},
+		{"3x",    &defaultFace(), setFastForwardSpeedDel(), 300},
+		{"4x",    &defaultFace(), setFastForwardSpeedDel(), 400},
+		{"5x",    &defaultFace(), setFastForwardSpeedDel(), 500},
+		{"6x",    &defaultFace(), setFastForwardSpeedDel(), 600},
+		{"7x",    &defaultFace(), setFastForwardSpeedDel(), 700},
+		{"Custom Value", &defaultFace(),
+			[this](const Input::Event &e)
+			{
+				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 1.0 to 20.0", "",
+					[this](EmuApp &app, auto val)
+					{
+						if(val >= 1.0 && val <= MAX_FAST_FORWARD_SPEED)
+						{
+							auto valAsInt = std::round(val * 100.);
+							app.fastForwardSpeedOption() = valAsInt;
+							fastForwardSpeed.setSelected((MenuItem::Id)valAsInt, *this);
+							dismissPrevious();
+							return true;
+						}
+						else
+						{
+							app.postErrorMessage("Value not in range");
+							return false;
+						}
+					});
+				return false;
+			}, MenuItem::DEFAULT_ID
+		},
 	},
 	fastForwardSpeed
 	{
 		"Fast Forward Speed", &defaultFace(),
+		[this](size_t idx, Gfx::Text &t)
+		{
+			t.setString(fmt::format("{:.2f}x", app().fastForwardSpeedAsDouble()));
+			return true;
+		},
 		(MenuItem::Id)app().fastForwardSpeedOption().val,
 		fastForwardSpeedItem
 	},

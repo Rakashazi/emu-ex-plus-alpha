@@ -264,7 +264,7 @@ void EmuAudio::writeFrames(const void *samples, size_t framesToWrite)
 	switch(audioWriteState)
 	{
 		case AudioWriteState::MULTI_UNDERRUN:
-			if(speedMultiplier == 1 && addSoundBuffersOnUnderrun &&
+			if(speedMultiplier == 1. && addSoundBuffersOnUnderrun &&
 				inputFormat.bytesToTime(rBuff.capacity()).count() <= 1.) // hard cap buffer increase to 1 sec
 			{
 				logWarn("increasing buffer size due to multiple underruns within a short time");
@@ -279,7 +279,7 @@ void EmuAudio::writeFrames(const void *samples, size_t framesToWrite)
 		break;
 	}
 	const size_t sampleFrames = framesToWrite;
-	if(speedMultiplier > 1) [[unlikely]]
+	if(speedMultiplier > 1.) [[unlikely]]
 	{
 		framesToWrite = std::ceil((double)framesToWrite / speedMultiplier);
 		framesToWrite = std::max(framesToWrite, 1zu);
@@ -340,9 +340,9 @@ void EmuAudio::setStereo(bool on)
 	stop();
 }
 
-void EmuAudio::setSpeedMultiplier(int8_t speed)
+void EmuAudio::setSpeedMultiplier(double speed)
 {
-	speedMultiplier = speed ? speed : 1;
+	speedMultiplier = speed ? speed : 1.;
 }
 
 void EmuAudio::setAddSoundBuffersOnUnderrun(bool on)

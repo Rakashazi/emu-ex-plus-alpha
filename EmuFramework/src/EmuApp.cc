@@ -156,7 +156,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionAutoSaveState{CFGKEY_AUTO_SAVE_STATE, 1},
 	optionConfirmAutoLoadState{CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1},
 	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
-	optionFastForwardSpeed{CFGKEY_FAST_FORWARD_SPEED, 4, false, optionIsValidWithMinMax<2, 7>},
+	optionFastForwardSpeed{CFGKEY_FAST_FORWARD_SPEED, 400, false, optionIsValidWithMinMax<100, int(MAX_FAST_FORWARD_SPEED * 100.)>},
 	optionSound{CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS},
 	optionSoundVolume{CFGKEY_SOUND_VOLUME,
 		100, false, optionIsValidWithMinMax<0, 100, uint8_t>},
@@ -659,16 +659,16 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						// for skipping loading on disk-based computers
 						fastForwarding = true;
 						skipForward = true;
-						sys.setSpeedMultiplier(audio, 8);
+						sys.setSpeedMultiplier(audio, 8.);
 					}
-					else if(sys.targetFastForwardSpeed > 1) [[unlikely]]
+					else if(sys.targetFastForwardSpeed > 1.) [[unlikely]]
 					{
 						fastForwarding = true;
 						sys.setSpeedMultiplier(audio, sys.targetFastForwardSpeed);
 					}
 					else
 					{
-						sys.setSpeedMultiplier(audio, 1);
+						sys.setSpeedMultiplier(audio, 1.);
 					}
 					auto frameInfo = sys.advanceFramesWithTime(params.timestamp());
 					if(!frameInfo.advanced)
@@ -1330,9 +1330,9 @@ void EmuApp::resetInput()
 	setFastForwardSpeed(0);
 }
 
-void EmuApp::setFastForwardSpeed(int speed)
+void EmuApp::setFastForwardSpeed(double speed)
 {
-	bool active = speed > 1;
+	bool active = speed > 1.;
 	system().targetFastForwardSpeed = speed;
 	emuAudio.setAddSoundBuffersOnUnderrun(active ? addSoundBuffersOnUnderrun() : false);
 	auto vol = (active && !soundDuringFastForwardIsEnabled()) ? 0 : soundVolume();
@@ -1499,7 +1499,7 @@ void EmuApp::runFrames(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *
 		else
 		{
 			// restore normal speed when skip ends
-			system().setSpeedMultiplier(*audio, 1);
+			system().setSpeedMultiplier(*audio, 1.);
 		}
 	}
 	else

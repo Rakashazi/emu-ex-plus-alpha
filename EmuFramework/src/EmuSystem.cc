@@ -76,7 +76,7 @@ EmuFrameTimeInfo EmuSystem::advanceFramesWithTime(IG::FrameTime time)
 	return emuTiming.advanceFramesWithTime(time);
 }
 
-void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, int8_t speed)
+void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, double speed)
 {
 	emuTiming.setSpeedMultiplier(speed);
 	emuAudio.setSpeedMultiplier(speed);

@@ -50,7 +50,7 @@ public:
 	void writeFrames(const void *samples, size_t framesToWrite);
 	void setRate(int rate);
 	void setStereo(bool on);
-	void setSpeedMultiplier(int8_t speed);
+	void setSpeedMultiplier(double speed);
 	void setAddSoundBuffersOnUnderrun(bool on);
 	void setVolume(int8_t vol);
 	IG::Audio::Format format() const;
@@ -61,13 +61,13 @@ protected:
 	const IG::Audio::Manager *audioManagerPtr{};
 	IG::RingBuffer rBuff{};
 	IG::Time lastUnderrunTime{};
+	double speedMultiplier = 1.;
 	size_t targetBufferFillBytes{};
 	size_t bufferIncrementBytes{};
 	int rate{};
 	float volume = 1.0;
 	std::atomic<AudioWriteState> audioWriteState = AudioWriteState::BUFFER;
 	bool addSoundBuffersOnUnderrun = false;
-	int8_t speedMultiplier = 1;
 	int8_t channels = 2;
 
 	size_t framesFree() const;
