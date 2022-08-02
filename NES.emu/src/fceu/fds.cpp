@@ -99,6 +99,7 @@ static uint8  mapperFDS_diskaccess;	// disk needs to be accessed at least once b
 #define fds_disk() (diskdata[InDisk][mapperFDS_blockstart + mapperFDS_diskaddr])
 #define mapperFDS_diskinsert (InDisk != 255)
 
+void setDiskIsAccessing(bool);
 
 #define DC_INC    1
 
@@ -169,6 +170,7 @@ static void FDSInit(void) {
 	mapperFDS_blocklen = 0;
 	mapperFDS_diskaddr = 0;
 	mapperFDS_diskaccess = 0;
+	setDiskIsAccessing(false);
 }
 
 void FCEU_FDSInsert(void)
@@ -703,6 +705,11 @@ static DECLFW(FDSWrite) {
 				mapperFDS_blocklen = 0;
 				mapperFDS_diskaddr = 0;
 				DiskSeekIRQ = 150;
+				setDiskIsAccessing(false);
+			}
+			else if (V & 0x80)
+			{
+				setDiskIsAccessing(true);
 			}
 			if (V & 0x40) { // turn on motor
 				DiskSeekIRQ = 150;

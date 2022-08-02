@@ -89,6 +89,8 @@ bool NesSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_START_VIDEO_LINE: return optionDefaultStartVideoLine.readFromIO(io, readSize);
 			case CFGKEY_VISIBLE_VIDEO_LINES: return optionDefaultVisibleVideoLines.readFromIO(io, readSize);
 			case CFGKEY_CORRECT_LINE_ASPECT: return optionCorrectLineAspect.readFromIO(io, readSize);
+			case CFGKEY_FF_DURING_FDS_ACCESS:
+				return readOptionValue<bool>(io, readSize, [&](auto &val){fastForwardDuringFdsAccess = val;});
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -124,6 +126,8 @@ void NesSystem::writeConfig(ConfigType type, FileIO &io)
 		optionDefaultStartVideoLine.writeWithKeyIfNotDefault(io);
 		optionDefaultVisibleVideoLines.writeWithKeyIfNotDefault(io);
 		optionCorrectLineAspect.writeWithKeyIfNotDefault(io);
+		if(!fastForwardDuringFdsAccess)
+			writeOptionValue(io, CFGKEY_FF_DURING_FDS_ACCESS, (bool)fastForwardDuringFdsAccess);
 	}
 	else if(type == ConfigType::SESSION)
 	{

@@ -143,6 +143,7 @@ void NesSystem::closeSystem()
 {
 	FCEUI_CloseGame();
 	fceuCheats = 0;
+	fdsIsAccessing = false;
 }
 
 void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b)
@@ -415,6 +416,11 @@ void NesSystem::renderFramebuffer(EmuVideo &video)
 	renderVideo({}, video, XBuf);
 }
 
+bool NesSystem::shouldFastForward() const
+{
+	return fdsIsAccessing;
+}
+
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
@@ -457,4 +463,19 @@ void FCEUPPU_FrameReady(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::NesSystem &s
 		return;
 	}
 	sys.renderVideo(taskCtx, *video, buf);
+}
+
+void setDiskIsAccessing(bool on)
+{
+	using namespace EmuEx;
+	auto &sys = static_cast<NesSystem&>(gSystem());
+	if(sys.fastForwardDuringFdsAccess)
+	{
+		if(on && !sys.fdsIsAccessing) logDMsg("FDS access started");
+		sys.fdsIsAccessing = on;
+	}
+	else
+	{
+		sys.fdsIsAccessing = false;
+	}
 }

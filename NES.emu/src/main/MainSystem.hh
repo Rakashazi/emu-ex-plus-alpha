@@ -26,6 +26,7 @@ enum
 	CFGKEY_DEFAULT_SOUND_LOW_PASS_FILTER = 280, CFGKEY_SWAP_DUTY_CYCLES = 281,
 	CFGKEY_START_VIDEO_LINE = 282, CFGKEY_VISIBLE_VIDEO_LINES = 283,
 	CFGKEY_HORIZONTAL_VIDEO_CROP = 284, CFGKEY_CORRECT_LINE_ASPECT = 285,
+	CFGKEY_FF_DURING_FDS_ACCESS = 286
 };
 
 extern FS::PathString fdsBiosPath;
@@ -71,6 +72,8 @@ public:
 		uint16_t col16[256];
 		uint32_t col32[256];
 	} nativeCol;
+	bool fastForwardDuringFdsAccess = true;
+	bool fdsIsAccessing{};
 	Byte1Option optionFourScore{CFGKEY_FOUR_SCORE, 0};
 	SByte1Option optionInputPort1{CFGKEY_INPUT_PORT_1, -1, false, optionIsValidWithMinMax<-1, 2>};
 	SByte1Option optionInputPort2{CFGKEY_INPUT_PORT_2, -1, false, optionIsValidWithMinMax<-1, 2>};
@@ -131,6 +134,7 @@ public:
 	VideoSystem videoSystem() const;
 	double videoAspectRatioScale() const;
 	bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
+	bool shouldFastForward() const;
 
 private:
 	void cacheUsingZapper();
