@@ -17,9 +17,13 @@
 
 #include <imagine/audio/defs.hh>
 #include <imagine/audio/Format.hh>
-#include <imagine/base/Error.hh>
 #include <alsa/asoundlib.h>
 #include <atomic>
+
+namespace IG
+{
+class ErrorCode;
+}
 
 namespace IG::Audio
 {

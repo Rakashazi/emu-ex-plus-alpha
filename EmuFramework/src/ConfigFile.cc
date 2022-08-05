@@ -294,7 +294,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionEmuOrientation,
 		optionMenuOrientation,
 		optionConfirmOverwriteState,
-		optionFastForwardSpeed,
+		optionFastSlowModeSpeed,
 		#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 		optionNotifyInputDeviceChange,
 		#endif
@@ -594,7 +594,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_LAYOUT_BEHIND_SYSTEM_UI:
 					if(ctx.hasTranslucentSysUI()) readOptionValue<bool>(io, size, [&](bool on){ layoutBehindSystemUI = on; });
 				bcase CFGKEY_CONFIRM_OVERWRITE_STATE: optionConfirmOverwriteState.readFromIO(io, size);
-				bcase CFGKEY_FAST_FORWARD_SPEED: optionFastForwardSpeed.readFromIO(io, size);
+				bcase CFGKEY_FAST_SLOW_MODE_SPEED: optionFastSlowModeSpeed.readFromIO(io, size);
 				#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 				bcase CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: optionNotifyInputDeviceChange.readFromIO(io, size);
 				#endif

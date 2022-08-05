@@ -17,10 +17,11 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/base/Error.hh>
 
 namespace IG
 {
+
+class ErrorCode;
 
 class Wiimote final: public BluetoothInputDevice
 {

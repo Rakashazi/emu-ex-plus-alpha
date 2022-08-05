@@ -1,8 +1,8 @@
 #pragma once
 
+#include "libhardware.h"
 #include <stdint.h>
 
-#include "libhardware.h"
 
 #ifdef __cplusplus
 extern "C" {

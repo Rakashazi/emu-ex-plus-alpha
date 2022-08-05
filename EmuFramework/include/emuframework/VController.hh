@@ -19,7 +19,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/GfxSprite.hh>
-#include <imagine/gfx/PixmapTexture.hh>
+#include <imagine/gfx/Texture.hh>
 #include <vector>
 #include <span>
 #include <optional>
@@ -81,7 +81,7 @@ public:
 protected:
 	Gfx::Sprite spr{};
 	Gfx::Sprite mapSpr{};
-	Gfx::PixmapTexture mapImg{};
+	Gfx::Texture mapImg{};
 	Gfx::GCRect padBase{};
 	IG::WindowRect padBaseArea{}, padArea{};
 	int deadzone{};

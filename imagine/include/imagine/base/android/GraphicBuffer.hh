@@ -16,12 +16,15 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/rectangle2.h>
+#include <imagine/pixmap/PixmapDesc.hh>
 #include "gralloc.h"
 #include <EGL/egl.h>
 #include <string_view>
 
 // Wrapper for ANativeWindowBuffer (android_native_buffer_t)
 // similar to GraphicBuffer class in Android frameworks
+
+struct android_native_buffer_t;
 
 namespace IG
 {
@@ -33,13 +36,13 @@ class GraphicBuffer : public android_native_buffer_t
 {
 public:
 	GraphicBuffer();
-	GraphicBuffer(IG::PixmapDesc desc, uint32_t usage);
+	GraphicBuffer(PixmapDesc desc, uint32_t usage);
 	GraphicBuffer(uint32_t w, uint32_t h, uint32_t format, uint32_t usage);
 	GraphicBuffer(GraphicBuffer &&o) noexcept;
 	GraphicBuffer &operator=(GraphicBuffer &&o) noexcept;
 	~GraphicBuffer();
 	bool lock(uint32_t usage, void **outAddr);
-	bool lock(uint32_t usage, IG::WindowRect rect, void **outAddr);
+	bool lock(uint32_t usage, WindowRect rect, void **outAddr);
 	void unlock();
 	explicit operator bool() const;
 	uint32_t pitch();

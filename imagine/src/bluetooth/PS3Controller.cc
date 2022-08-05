@@ -16,6 +16,7 @@
 #define LOGTAG "PS3Ctrl"
 #include <imagine/bluetooth/PS3Controller.hh>
 #include <imagine/base/Application.hh>
+#include <imagine/base/Error.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/util/bitset.hh>

@@ -15,6 +15,7 @@
 
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/data-type/image/PixmapSource.hh>
+#include <imagine/logger/logger.h>
 
 namespace IG::Gfx
 {
@@ -25,16 +26,6 @@ Texture Renderer::makeTexture(TextureConfig config)
 }
 
 Texture Renderer::makeTexture(IG::Data::PixmapSource img, const TextureSampler *compatSampler, bool makeMipmaps)
-{
-	return {task(), img, compatSampler, makeMipmaps};
-}
-
-PixmapTexture Renderer::makePixmapTexture(TextureConfig config)
-{
-	return {task(), config};
-}
-
-PixmapTexture Renderer::makePixmapTexture(IG::Data::PixmapSource img, const TextureSampler *compatSampler, bool makeMipmaps)
 {
 	return {task(), img, compatSampler, makeMipmaps};
 }
@@ -111,6 +102,16 @@ const TextureSampler &Renderer::makeCommonTextureSampler(CommonTextureSampler sa
 	if(!samplerObj)
 		samplerObj = makeTextureSampler(commonTextureSamplerConfig(sampler));
 	return samplerObj;
+}
+
+void destroyGLBuffer(RendererTask &task, NativeBuffer buff)
+{
+	logMsg("deleting GL buffer:%u", buff);
+	task.run(
+		[buff]()
+		{
+			glDeleteBuffers(1, &buff);
+		});
 }
 
 }

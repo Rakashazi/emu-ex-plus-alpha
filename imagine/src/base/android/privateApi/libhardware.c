@@ -17,7 +17,7 @@
 #include <imagine/logger/logger.h>
 #include <assert.h>
 #include <dlfcn.h>
-#include "libhardware.h"
+#include <imagine/base/android/libhardware.h>
 
 typedef int (*hw_get_moduleProto)(const char *id, const struct hw_module_t **module);
 

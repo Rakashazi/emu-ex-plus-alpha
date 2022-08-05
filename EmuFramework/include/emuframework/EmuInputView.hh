@@ -43,7 +43,7 @@ private:
 	EmuVideoLayer *videoLayer{};
 	bool ffToggleActive{};
 
-	void updateFastforward();
+	void updateRunSpeed();
 };
 
 }

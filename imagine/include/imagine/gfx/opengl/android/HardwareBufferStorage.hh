@@ -15,22 +15,22 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/PixmapBufferTexture.hh>
-#include "../../../base/android/HardwareBuffer.hh"
-#include "../../../base/android/privateApi/GraphicBuffer.hh"
+#include <imagine/gfx/Texture.hh>
+#include <imagine/base/android/HardwareBuffer.hh>
+#include <imagine/base/android/GraphicBuffer.hh>
 #include "egl.hh"
 
 namespace IG::Gfx
 {
 
 template<class Buffer>
-class HardwareSingleBufferStorage final: public TextureBufferStorage
+class HardwareSingleBufferStorage final: public Texture
 {
 public:
-	HardwareSingleBufferStorage(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler) final;
-	LockedTextureBuffer lock(uint32_t bufferFlags) final;
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
+	HardwareSingleBufferStorage(RendererTask &, TextureConfig config);
+	ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler);
+	LockedTextureBuffer lock(uint32_t bufferFlags);
+	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags);
 
 protected:
 	Buffer buffer{};
@@ -38,13 +38,13 @@ protected:
 };
 
 template<class Buffer>
-class HardwareBufferStorage final: public TextureBufferStorage
+class HardwareBufferStorage final: public Texture
 {
 public:
-	HardwareBufferStorage(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler) final;
-	LockedTextureBuffer lock(uint32_t bufferFlags) final;
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
+	HardwareBufferStorage(RendererTask &, TextureConfig config);
+	ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler);
+	LockedTextureBuffer lock(uint32_t bufferFlags);
+	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags);
 
 protected:
 	struct EGLImageDeleter

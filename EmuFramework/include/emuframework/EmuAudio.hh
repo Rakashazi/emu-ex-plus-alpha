@@ -66,6 +66,7 @@ protected:
 	size_t bufferIncrementBytes{};
 	int rate{};
 	float volume = 1.0;
+	float requestedVolume = 1.0;
 	std::atomic<AudioWriteState> audioWriteState = AudioWriteState::BUFFER;
 	bool addSoundBuffersOnUnderrun = false;
 	int8_t channels = 2;

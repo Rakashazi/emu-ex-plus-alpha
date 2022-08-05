@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/PixmapTexture.hh>
+#include <imagine/gfx/Texture.hh>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/GLPixmapBufferTexture.hh>
@@ -27,7 +27,7 @@ namespace IG::Gfx
 class Renderer;
 class RendererTask;
 
-// A limited 1-level version of PixmapTexture with dedicated pixel buffer for frequent data transfer
+// A limited 1-level version of Texture with dedicated pixel buffer for frequent data transfer
 
 class PixmapBufferTexture: public PixmapBufferTextureImpl
 {
@@ -38,16 +38,15 @@ public:
 	static constexpr uint32_t BUFFER_FLAG_CLEARED = Texture::BUFFER_FLAG_CLEARED;
 
 	using PixmapBufferTextureImpl::PixmapBufferTextureImpl;
-	PixmapBufferTexture(RendererTask &, TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false, IG::ErrorCode *errorPtr = nullptr);
-	IG::ErrorCode setFormat(PixmapDesc desc, ColorSpace c = {}, const TextureSampler *compatSampler = {});
+	PixmapBufferTexture(RendererTask &, TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false);
+	ErrorCode setFormat(PixmapDesc desc, ColorSpace c = {}, const TextureSampler *compatSampler = {});
 	void write(PixmapView pixmap, uint32_t writeFlags = 0);
-	void writeAligned(PixmapView pixmap, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
+	void writeAligned(PixmapView pixmap, int assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear();
 	LockedTextureBuffer lock(uint32_t bufferFlags = 0);
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
 	IG::WP size() const;
 	PixmapDesc pixmapDesc() const;
-	PixmapDesc usedPixmapDesc() const;
 	void setCompatTextureSampler(const TextureSampler &compatSampler);
 	bool compileDefaultProgram(EnvMode mode) const;
 	explicit operator bool() const;

@@ -93,9 +93,9 @@ public:
 	{}
 };
 
-class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<ConsoleOptionView>
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
 {
-	using MainAppHelper<ConsoleOptionView>::system;
+	using MainAppHelper<CustomSystemOptionView>::system;
 
 	TextMenuItem::SelectDelegate setRegionDel()
 	{
@@ -179,9 +179,9 @@ public:
 	}
 };
 
-class EmuGUIOptionView : public GUIOptionView, public MainAppHelper<ConsoleOptionView>
+class EmuGUIOptionView : public GUIOptionView, public MainAppHelper<EmuGUIOptionView>
 {
-	using MainAppHelper<ConsoleOptionView>::system;
+	using MainAppHelper<EmuGUIOptionView>::system;
 
 	BoolMenuItem listAll
 	{

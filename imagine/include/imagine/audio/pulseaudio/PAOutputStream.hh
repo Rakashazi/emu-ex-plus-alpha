@@ -17,7 +17,6 @@
 
 #include <imagine/audio/defs.hh>
 #include <imagine/audio/Format.hh>
-#include <imagine/base/Error.hh>
 
 struct pa_context;
 struct pa_stream;
@@ -27,6 +26,11 @@ struct pa_glib_mainloop;
 struct pa_threaded_mainloop;
 #endif
 
+namespace IG
+{
+class ErrorCode;
+}
+
 namespace IG::Audio
 {
 
@@ -35,7 +39,7 @@ class PAOutputStream
 public:
 	PAOutputStream();
 	~PAOutputStream();
-	IG::ErrorCode open(OutputStreamConfig config);
+	ErrorCode open(OutputStreamConfig config);
 	void play();
 	void pause();
 	void close();

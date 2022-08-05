@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include "BluetoothAdapter.hh"
 #include <imagine/base/EventLoop.hh>
-#include <imagine/base/Error.hh>
 #include <jni.h>
 #include <semaphore>
 
@@ -26,6 +25,7 @@ namespace IG
 {
 
 struct SocketStatusMessage;
+class ErrorCode;
 
 class AndroidBluetoothAdapter : public BluetoothAdapter
 {

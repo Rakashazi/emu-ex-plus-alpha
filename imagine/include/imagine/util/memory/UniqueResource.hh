@@ -27,8 +27,14 @@ class UniqueResource
 public:
 	constexpr UniqueResource() = default;
 
-	constexpr UniqueResource(T r, Deleter del = {}):
+	constexpr UniqueResource(T r, Deleter del):
 		r{r}, del{del} {}
+
+	constexpr UniqueResource(T r):
+		r{r} {}
+
+	constexpr UniqueResource(Deleter del):
+		del{del} {}
 
 	UniqueResource(UniqueResource &&o) noexcept
 	{
@@ -58,6 +64,8 @@ public:
 			return;
 		del(release());
 	}
+
+	constexpr T &get() { return r; }
 
 	constexpr const T &get() const { return r; }
 

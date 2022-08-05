@@ -97,8 +97,8 @@ static void simpleResample(T * __restrict__ dest, size_t destFrames, const T * _
 	float ratio = (float)srcFrames/(float)destFrames;
 	for(auto i : iotaCount(destFrames))
 	{
-		size_t srcPos = round(i * ratio);
-		if(srcPos > srcFrames) [[unlikely]]
+		size_t srcPos = std::floor((float)i * ratio);
+		if(srcPos >= srcFrames) [[unlikely]]
 		{
 			logMsg("resample pos %zu too high", srcPos);
 			srcPos = srcFrames-1;
@@ -279,7 +279,7 @@ void EmuAudio::writeFrames(const void *samples, size_t framesToWrite)
 		break;
 	}
 	const size_t sampleFrames = framesToWrite;
-	if(speedMultiplier > 1.) [[unlikely]]
+	if(speedMultiplier != 1.) [[unlikely]]
 	{
 		framesToWrite = std::ceil((double)framesToWrite / speedMultiplier);
 		framesToWrite = std::max(framesToWrite, 1zu);
@@ -288,7 +288,7 @@ void EmuAudio::writeFrames(const void *samples, size_t framesToWrite)
 	auto freeBytes = rBuff.freeSpace();
 	if(bytes <= freeBytes)
 	{
-		if(sampleFrames > framesToWrite)
+		if(sampleFrames != framesToWrite)
 		{
 			simpleResample(rBuff.writeAddr(), framesToWrite, samples, sampleFrames, inputFormat);
 			rBuff.commitWrite(bytes);
@@ -342,7 +342,16 @@ void EmuAudio::setStereo(bool on)
 
 void EmuAudio::setSpeedMultiplier(double speed)
 {
-	speedMultiplier = speed ? speed : 1.;
+	assumeExpr(speed > 0.);
+	speedMultiplier = speed;
+	if(speedMultiplier > 1.)
+	{
+		volume = requestedVolume * .5f;
+	}
+	else
+	{
+		volume = requestedVolume;
+	}
 }
 
 void EmuAudio::setAddSoundBuffersOnUnderrun(bool on)
@@ -354,12 +363,12 @@ void EmuAudio::setVolume(int8_t vol)
 {
 	if(vol == 100)
 	{
-		volume = 1.f;
+		requestedVolume = volume = 1.f;
 	}
 	else
 	{
 		assumeExpr(vol < 100);
-		volume = vol / 100.f;
+		requestedVolume = volume = vol / 100.f;
 	}
 }
 

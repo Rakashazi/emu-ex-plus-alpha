@@ -21,7 +21,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/WindowConfig.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/base/glDefs.hh>
 #include <EGL/egl.h>
 #include <optional>
@@ -36,6 +35,7 @@ class GLDisplay;
 class GLDrawable;
 class GLContextAttributes;
 class GLBufferConfigAttributes;
+class ErrorCode;
 
 using NativeGLDrawable = EGLSurface;
 using NativeGLContext = EGLContext;

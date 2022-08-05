@@ -103,11 +103,6 @@ void GLManager::resetCurrentContext() const
 	display().resetCurrentContext();
 }
 
-}
-
-namespace IG
-{
-
 FrameTime FrameParams::presentTime() const
 {
 	return timestamp_ + std::chrono::duration_cast<FrameTime>(frameTime_);
@@ -186,33 +181,6 @@ WRect Viewport::relRectBestFit(WP pos, float aspectRatio, _2DOrigin posOrigin, _
 
 }
 
-#if defined(__has_feature)
-	#if __has_feature(address_sanitizer) && defined CONFIG_BASE_CUSTOM_NEW_DELETE
-	#undef CONFIG_BASE_NO_CUSTOM_NEW_DELETE
-	#warning "cannot use custom new/delete with address sanitizer"
-	#endif
-#endif
-
-#ifdef CONFIG_BASE_CUSTOM_NEW_DELETE
-
-void* operator new (std::size_t size)
-#ifdef __EXCEPTIONS
-	throw (std::bad_alloc)
-#endif
-{ return std::malloc(size); }
-
-void* operator new[] (std::size_t size)
-#ifdef __EXCEPTIONS
-	throw (std::bad_alloc)
-#endif
-{ return std::malloc(size); }
-
-void operator delete (void *o) noexcept { std::free(o); }
-void operator delete[] (void *o) noexcept { std::free(o); }
-
-#endif
-
-#ifdef __EXCEPTIONS
 namespace __gnu_cxx
 {
 
@@ -223,7 +191,6 @@ void __verbose_terminate_handler()
 }
 
 }
-#endif
 
 #ifndef __ANDROID__
 static void logBacktrace()

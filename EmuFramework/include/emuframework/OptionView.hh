@@ -127,7 +127,7 @@ protected:
 	static constexpr int MAX_APIS = 2;
 
 	BoolMenuItem snd;
-	BoolMenuItem soundDuringFastForward;
+	BoolMenuItem soundDuringFastSlowMode;
 	TextMenuItem soundVolumeItem[4];
 	MultiChoiceMenuItem soundVolume;
 	TextMenuItem soundBuffersItem[7];
@@ -157,16 +157,16 @@ protected:
 	MultiChoiceMenuItem autoSaveState;
 	BoolMenuItem confirmAutoLoadState;
 	BoolMenuItem confirmOverwriteState;
-	TextMenuItem fastForwardSpeedItem[9];
-	MultiChoiceMenuItem fastForwardSpeed;
+	TextMenuItem fastSlowModeSpeedItem[8];
+	MultiChoiceMenuItem fastSlowModeSpeed;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
 	StaticArrayList<MenuItem*, 24> item{};
 
 	TextMenuItem::SelectDelegate setAutoSaveStateDel();
-	TextMenuItem::SelectDelegate setFastForwardSpeedDel();
+	TextMenuItem::SelectDelegate setFastSlowModeSpeedDel();
 };
 
-class FilePathOptionView : public TableView, public EmuAppHelper<SystemOptionView>
+class FilePathOptionView : public TableView, public EmuAppHelper<FilePathOptionView>
 {
 public:
 	FilePathOptionView(ViewAttachParams attach, bool customMenu = false);

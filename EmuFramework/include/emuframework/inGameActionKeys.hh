@@ -30,10 +30,10 @@ static const char *gameActionName[gameActionKeys] =
 	"Load State",
 	"Decrement State Slot",
 	"Increment State Slot",
-	"Fast-forward",
+	"Fast/Slow Mode",
 	"Take Screenshot",
 	"Open Menu",
-	"Toggle Fast-forward",
+	"Toggle Fast/Slow Mode",
 };
 
 }

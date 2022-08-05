@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/font/Font.hh>
-#include <imagine/gfx/PixmapTexture.hh>
+#include <imagine/gfx/Texture.hh>
 #include <imagine/util/container/VMemArray.hh>
 #include <system_error>
 
@@ -30,10 +30,10 @@ static constexpr auto glyphCommonTextureSampler = CommonTextureSampler::NO_MIP_C
 
 struct GlyphEntry
 {
-	PixmapTexture glyph_{};
+	Texture glyph_{};
 	GlyphMetrics metrics{};
 
-	constexpr const Gfx::PixmapTexture &glyph() const { return glyph_; }
+	constexpr const Texture &glyph() const { return glyph_; }
 };
 
 class GlyphTextureSet

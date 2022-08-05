@@ -55,19 +55,17 @@ void EmuTiming::reset()
 
 void EmuTiming::setSpeedMultiplier(double newSpeed)
 {
+	assumeExpr(newSpeed > 0.);
 	if(speed == newSpeed)
 		return;
-	speed = newSpeed ? newSpeed : 1.;
+	speed = newSpeed;
 	updateScaledFrameTime();
 	reset();
 }
 
 void EmuTiming::updateScaledFrameTime()
 {
-	if(speed > 1.)
-		timePerVideoFrameScaled = timePerVideoFrame / speed;
-	else
-		timePerVideoFrameScaled = timePerVideoFrame;
+	timePerVideoFrameScaled = timePerVideoFrame / speed;
 }
 
 }

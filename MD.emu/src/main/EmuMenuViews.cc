@@ -211,9 +211,9 @@ public:
 	}
 };
 
-class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<ConsoleOptionView>
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
 {
-	using MainAppHelper<ConsoleOptionView>::system;
+	using MainAppHelper<CustomAudioOptionView>::system;
 
 	BoolMenuItem smsFM
 	{
@@ -234,10 +234,10 @@ public:
 	}
 };
 
-class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<ConsoleOptionView>
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
 {
-	using MainAppHelper<ConsoleOptionView>::app;
-	using MainAppHelper<ConsoleOptionView>::system;
+	using MainAppHelper<CustomSystemOptionView>::app;
+	using MainAppHelper<CustomSystemOptionView>::system;
 
 	BoolMenuItem bigEndianSram
 	{
@@ -266,9 +266,9 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<ConsoleOptionView>
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
 {
-	using MainAppHelper<ConsoleOptionView>::system;
+	using MainAppHelper<CustomFilePathOptionView>::system;
 
 	#ifndef NO_SCD
 	static constexpr std::string_view biosHeadingStr[3]

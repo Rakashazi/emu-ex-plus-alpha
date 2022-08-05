@@ -38,7 +38,7 @@ void EmuVideo::resetImage(IG::PixelFormat newFmt)
 
 IG::PixmapDesc EmuVideo::deleteImage()
 {
-	auto desc = vidImg.usedPixmapDesc();
+	auto desc = vidImg.pixmapDesc();
 	vidImg = {};
 	return desc;
 }
@@ -276,12 +276,12 @@ IG::WP EmuVideo::size() const
 	if(!vidImg)
 		return {1, 1};
 	else
-		return vidImg.usedPixmapDesc().size();
+		return vidImg.pixmapDesc().size();
 }
 
 bool EmuVideo::formatIsEqual(IG::PixmapDesc desc) const
 {
-	return vidImg && desc == vidImg.usedPixmapDesc();
+	return vidImg && desc == vidImg.pixmapDesc();
 }
 
 void EmuVideo::setOnFrameFinished(FrameFinishedDelegate del)

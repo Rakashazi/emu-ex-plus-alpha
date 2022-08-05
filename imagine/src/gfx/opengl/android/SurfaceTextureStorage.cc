@@ -14,9 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "SurfaceTexStorage"
-#include "SurfaceTextureStorage.hh"
+#include <imagine/gfx/opengl/android/SurfaceTextureStorage.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/Renderer.hh>
+#include <imagine/base/Error.hh>
 #include "../../../base/android/android.hh"
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
@@ -25,31 +26,21 @@
 namespace IG::Gfx
 {
 
-SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig config, bool makeSingleBuffered, IG::ErrorCode *errorPtr):
-	TextureBufferStorage{r}
+SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig config, bool makeSingleBuffered):
+	Texture{r}
 {
-	IG::ErrorCode err{};
-	auto setErrorPtr = IG::scopeGuard(
-		[&]()
-		{
-			if(err && errorPtr) [[unlikely]]
-			{
-				*errorPtr = err;
-			}
-		});
 	config = baseInit(r, config);
 	if(!renderer().support.hasExternalEGLImages) [[unlikely]]
 	{
 		logErr("can't init without OES_EGL_image_external extension");
-		err = {ENOTSUP};
-		return;
+		throw Error{ENOTSUP};
 	}
 	SamplerParams samplerParams = config.compatSampler() ? config.compatSampler()->samplerParams() : SamplerParams{};
 	task().runSync(
 		[=, this](GLTask::TaskContext ctx)
 		{
 			auto env = task().appContext().thisThreadJniEnv();
-			glGenTextures(1, &texName_);
+			glGenTextures(1, &texName_.get());
 			auto surfaceTex = makeSurfaceTexture(renderer().appContext(), env, texName_, makeSingleBuffered);
 			singleBuffered = makeSingleBuffered;
 			if(!surfaceTex && makeSingleBuffered)
@@ -68,31 +59,30 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 	if(!surfaceTex) [[unlikely]]
 	{
 		logErr("SurfaceTexture ctor failed");
-		err = {EINVAL};
-		return;
+		throw Error{EINVAL};
 	}
 	logMsg("made%sSurfaceTexture with texture:0x%X",
-		singleBuffered ? " " : " buffered ", texName_);
+		singleBuffered ? " " : " buffered ", texName());
 	auto env = r.appContext().mainThreadJniEnv();
 	auto localSurface = makeSurface(env, surfaceTex);
 	if(!localSurface) [[unlikely]]
 	{
 		logErr("Surface ctor failed");
-		err = {EINVAL};
-		deinit();
-		return;
+		throw Error{EINVAL};
 	}
 	surface = env->NewGlobalRef(localSurface);
 	nativeWin = ANativeWindow_fromSurface(env, localSurface);
 	if(!nativeWin) [[unlikely]]
 	{
 		logErr("ANativeWindow_fromSurface failed");
-		err = {EINVAL};
-		deinit();
-		return;
+		throw Error{EINVAL};
 	}
 	logMsg("native window:%p from Surface:%p%s", nativeWin, localSurface, singleBuffered ? " (single-buffered)" : "");
-	err = setFormat(config.pixmapDesc(), config.colorSpace(), config.compatSampler());
+	auto err = setFormat(config.pixmapDesc(), config.colorSpace(), config.compatSampler());
+	if(err) [[unlikely]]
+	{
+		throw Error{err};
+	}
 }
 
 SurfaceTextureStorage::SurfaceTextureStorage(SurfaceTextureStorage &&o) noexcept
@@ -103,7 +93,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(SurfaceTextureStorage &&o) noexcept
 SurfaceTextureStorage &SurfaceTextureStorage::operator=(SurfaceTextureStorage &&o) noexcept
 {
 	deinit();
-	TextureBufferStorage::operator=(std::move(o));
+	Texture::operator=(std::move(o));
 	surfaceTex = std::exchange(o.surfaceTex, {});
 	surface = std::exchange(o.surface, {});
 	nativeWin = std::exchange(o.nativeWin, {});
@@ -151,7 +141,7 @@ IG::ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace c
 		logErr("ANativeWindow_setBuffersGeometry failed");
 		return {EINVAL};
 	}
-	updateFormatInfo(desc.size(), desc, 1, GL_TEXTURE_EXTERNAL_OES);
+	updateFormatInfo(desc, 1, GL_TEXTURE_EXTERNAL_OES);
 	bpp = desc.format().bytesPerPixel();
 	return {};
 }
@@ -189,7 +179,7 @@ LockedTextureBuffer SurfaceTextureStorage::lock(uint32_t bufferFlags)
 	rect.y2 = aRect.bottom;*/
 	//buff.data = (char*)winBuffer.bits + (aRect.top * buff.pitch + aRect.left * bpp);
 	//logMsg("locked buffer %p with pitch %d", winBuffer.bits, winBuffer.stride * bpp);
-	return makeLockedBuffer(winBuffer.bits, (uint32_t)winBuffer.stride * bpp, bufferFlags);
+	return lockedBuffer(winBuffer.bits, (uint32_t)winBuffer.stride * bpp, bufferFlags);
 }
 
 void SurfaceTextureStorage::unlock(LockedTextureBuffer, uint32_t)
@@ -212,7 +202,7 @@ void SurfaceTextureStorage::setCompatTextureSampler(const TextureSampler &compat
 	if(renderer().support.hasSamplerObjects)
 		return;
 	task().run(
-		[&r = std::as_const(renderer()), texName = texName_, params = compatSampler.samplerParams()]()
+		[&r = std::as_const(renderer()), texName = texName(), params = compatSampler.samplerParams()]()
 		{
 			GLTextureSampler::setTexParamsInGL(texName, GL_TEXTURE_EXTERNAL_OES, params);
 		});

@@ -21,13 +21,14 @@
 #include <bluetooth/l2cap.h>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/Pipe.hh>
-#include <imagine/base/Error.hh>
 #ifdef CONFIG_BLUETOOTH_SERVER
 #include <imagine/util/container/ArrayList.hh>
 #endif
 
 namespace IG
 {
+
+class ErrorCode;
 
 class BluetoothPendingSocket
 {

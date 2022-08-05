@@ -17,11 +17,15 @@
 
 #include <imagine/audio/defs.hh>
 #include <imagine/audio/Format.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/base/CustomEvent.hh>
 
 typedef struct AAudioStreamStruct AAudioStream;
 typedef struct AAudioStreamBuilderStruct AAudioStreamBuilder;
+
+namespace IG
+{
+class ErrorCode;
+}
 
 namespace IG::Audio
 {

@@ -18,12 +18,13 @@
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
+#include <imagine/base/Error.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
 #ifdef __ANDROID__
-#include "android/HardwareBufferStorage.hh"
-#include "android/SurfaceTextureStorage.hh"
+#include <imagine/gfx/opengl/android/HardwareBufferStorage.hh>
+#include <imagine/gfx/opengl/android/SurfaceTextureStorage.hh>
 #endif
 #include <imagine/logger/logger.h>
 #include <cstdlib>
@@ -64,35 +65,31 @@
 namespace IG::Gfx
 {
 
-PixmapBufferTexture::PixmapBufferTexture(RendererTask &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer, IG::ErrorCode *errorPtr)
+PixmapBufferTexture::PixmapBufferTexture(RendererTask &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer)
 {
 	mode = r.renderer().makeValidTextureBufferMode(mode);
-	IG::ErrorCode err = init(r, config, mode, singleBuffer);
-	if(err && mode != TextureBufferMode::SYSTEM_MEMORY) [[unlikely]]
+	try
 	{
-		logErr("falling back to system memory");
-		err = init(r, config, TextureBufferMode::SYSTEM_MEMORY, singleBuffer);
+		if(mode == TextureBufferMode::SYSTEM_MEMORY)
+			initWithSystemMemory(r, config, singleBuffer);
+		else if(mode == TextureBufferMode::PBO)
+			initWithPixelBuffer(r, config, singleBuffer);
+		else if(Config::envIsAndroid && mode == TextureBufferMode::ANDROID_HARDWARE_BUFFER)
+			initWithHardwareBuffer(r, config, singleBuffer);
+		else if(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL && mode == TextureBufferMode::ANDROID_SURFACE_TEXTURE)
+			initWithSurfaceTexture(r, config, singleBuffer);
+		else
+			bug_unreachable("mode == %d", std::to_underlying(mode));
 	}
-	if(err && errorPtr) [[unlikely]]
+	catch(std::exception &)
 	{
-		*errorPtr = err;
-	}
-}
-
-IG::ErrorCode GLPixmapBufferTexture::init(RendererTask &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer)
-{
-	switch(mode)
-	{
-		default:
-			return initWithPixelBuffer(r, config, false, singleBuffer);
-		case TextureBufferMode::PBO:
-			return initWithPixelBuffer(r, config, true, singleBuffer);
-		#ifdef __ANDROID__
-		case TextureBufferMode::ANDROID_HARDWARE_BUFFER:
-			return initWithHardwareBuffer(r, config, singleBuffer);
-		case TextureBufferMode::ANDROID_SURFACE_TEXTURE:
-			return initWithSurfaceTexture(r, config, singleBuffer);
-		#endif
+		if(mode != TextureBufferMode::SYSTEM_MEMORY)
+		{
+			logErr("falling back to system memory");
+			initWithSystemMemory(r, config, singleBuffer);
+		}
+		else
+			throw;
 	}
 }
 
@@ -101,58 +98,71 @@ static bool hasPersistentBufferMapping(const Renderer &r)
 	return r.support.hasImmutableBufferStorage();
 }
 
-IG::ErrorCode GLPixmapBufferTexture::initWithPixelBuffer(RendererTask &r, TextureConfig config, bool usePBO, bool singleBuffer)
+void GLPixmapBufferTexture::initWithSystemMemory(RendererTask &r, TextureConfig config, bool singleBuffer)
 {
-	IG::ErrorCode err;
-	directTex = std::make_unique<GLTextureStorage>(r, config, usePBO, singleBuffer, &err);
-	return err;
+	directTex.emplace<GLSystemMemoryStorage>(r, config, singleBuffer);
+}
+
+void GLPixmapBufferTexture::initWithPixelBuffer(RendererTask &r, TextureConfig config, bool singleBuffer)
+{
+	directTex.emplace<GLPixelBufferStorage>(r, config, singleBuffer);
 }
 
 #ifdef __ANDROID__
-IG::ErrorCode GLPixmapBufferTexture::initWithHardwareBuffer(RendererTask &r, TextureConfig config, bool singleBuffer)
+void GLPixmapBufferTexture::initWithHardwareBuffer(RendererTask &r, TextureConfig config, bool singleBuffer)
 {
-	IG::ErrorCode err{};
 	auto androidSDK = r.appContext().androidSDK();
 	if(androidSDK >= 26)
 	{
 		if(singleBuffer)
-			directTex = std::make_unique<AHardwareSingleBufferStorage>(r, config, &err);
+			directTex.emplace<AHardwareSingleBufferStorage>(r, config);
 		else
-			directTex = std::make_unique<AHardwareBufferStorage>(r, config, &err);
+			directTex.emplace<AHardwareBufferStorage>(r, config);
 	}
 	else
 	{
 		if(singleBuffer)
-			directTex = std::make_unique<GraphicSingleBufferStorage>(r, config, &err);
+			directTex.emplace<GraphicSingleBufferStorage>(r, config);
 		else
-			directTex = std::make_unique<GraphicBufferStorage>(r, config, &err);
+			directTex.emplace<GraphicBufferStorage>(r, config);
 	}
-	return err;
-}
-
-IG::ErrorCode GLPixmapBufferTexture::initWithSurfaceTexture(RendererTask &r, TextureConfig config, bool singleBuffer)
-{
-	if(!Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL)
-		return {ENOTSUP};
-	IG::ErrorCode err{};
-	directTex = std::make_unique<SurfaceTextureStorage>(r, config, singleBuffer, &err);
-	return err;
 }
 #endif
 
-IG::ErrorCode PixmapBufferTexture::setFormat(PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
+#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
+void GLPixmapBufferTexture::initWithSurfaceTexture(RendererTask &r, TextureConfig config, bool singleBuffer)
 {
-	if(!directTex) [[unlikely]]
-		return {EINVAL};
-	if(Config::DEBUG_BUILD && directTex->pixmapDesc() == desc)
+	assert(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL);
+	directTex.emplace<SurfaceTextureStorage>(r, config, singleBuffer);
+}
+#endif
+
+ErrorCode PixmapBufferTexture::setFormat(PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
+{
+	if(Config::DEBUG_BUILD && pixmapDesc() == desc)
 		logWarn("resizing with same dimensions %dx%d, should optimize caller code", desc.w(), desc.h());
-	return directTex->setFormat(desc, colorSpace, compatSampler);
+	return visit([&](auto &t){ return t.setFormat(desc, colorSpace, compatSampler); }, directTex);
 }
 
-void PixmapBufferTexture::writeAligned(PixmapView pixmap, uint8_t assumeAlign, uint32_t writeFlags)
+void PixmapBufferTexture::writeAligned(PixmapView pixmap, int assumeAlign, uint32_t writeFlags)
 {
-	assumeExpr(directTex);
-	return directTex->writeAligned(pixmap, assumeAlign, writeFlags);
+	visit([&](auto &t)
+	{
+		if constexpr(requires {t.writeAligned(pixmap, assumeAlign, writeFlags);})
+		{
+			t.writeAligned(pixmap, assumeAlign, writeFlags);
+		}
+		else
+		{
+			auto lockBuff = lock();
+			if(!lockBuff) [[unlikely]]
+			{
+				return;
+			}
+			lockBuff.pixmap().write(pixmap, {});
+			unlock(lockBuff);
+		}
+	}, directTex);
 }
 
 void PixmapBufferTexture::write(PixmapView pixmap, uint32_t writeFlags)
@@ -173,230 +183,98 @@ void PixmapBufferTexture::clear()
 
 LockedTextureBuffer PixmapBufferTexture::lock(uint32_t bufferFlags)
 {
-	assumeExpr(directTex);
-	return directTex->lock(bufferFlags);
+	return visit([&](auto &t){ return t.lock(bufferFlags); }, directTex);
 }
 
 void PixmapBufferTexture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 {
-	if(!lockBuff) [[unlikely]]
-		return;
-	directTex->unlock(lockBuff, writeFlags);
+	visit([&](auto &t){ t.unlock(lockBuff, writeFlags); }, directTex);
 }
 
 IG::WP PixmapBufferTexture::size() const
 {
-	if(!directTex) [[unlikely]]
-		return {};
-	return directTex->size(0);
+	return visit([&](auto &t){ return t.size(0); }, directTex);
 }
 
 PixmapDesc PixmapBufferTexture::pixmapDesc() const
 {
-	if(!directTex) [[unlikely]]
-		return {};
-	return directTex->pixmapDesc();
-}
-
-PixmapDesc PixmapBufferTexture::usedPixmapDesc() const
-{
-	if(!directTex) [[unlikely]]
-		return {};
-	return directTex->usedPixmapDesc();
+	return visit([&](auto &t){ return t.pixmapDesc(); }, directTex);
 }
 
 void PixmapBufferTexture::setCompatTextureSampler(const TextureSampler &compatSampler)
 {
-	return directTex->setCompatTextureSampler(compatSampler);
+	visit([&](auto &t){ t.setCompatTextureSampler(compatSampler); }, directTex);
 }
 
 bool PixmapBufferTexture::compileDefaultProgram(EnvMode mode) const
 {
-	assumeExpr(directTex);
-	return directTex->compileDefaultProgram(mode);
+	return visit([&](auto &t){ return t.compileDefaultProgram(mode); }, directTex);
 }
 
 PixmapBufferTexture::operator bool() const
 {
-	return directTex && (bool)*directTex;
+	return visit([&](auto &t){ return (bool)t; }, directTex);
 }
 
 Renderer &PixmapBufferTexture::renderer() const
 {
-	return directTex->renderer();
+	return visit([&](auto &t) -> Renderer&{ return t.renderer(); }, directTex);
 }
 
 PixmapBufferTexture::operator TextureSpan() const
 {
-	if(!directTex) [[unlikely]]
-		return {};
-	return (TextureSpan)*directTex;
+	return visit([&](auto &t) -> TextureSpan{ return t; }, directTex);
 }
 
 PixmapBufferTexture::operator const Texture&() const
 {
-	assumeExpr(directTex);
-	return *directTex;
+	return visit([&](auto &t)-> const Texture&{ return t; }, directTex);
 }
 
 bool PixmapBufferTexture::isExternal() const
 {
-	return Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL && directTex->isExternal();
+	return Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL &&
+		visit([&](auto &t){ return t.target() == GL_TEXTURE_EXTERNAL_OES; }, directTex);
 }
 
-static std::array<GLTextureStorage::BufferInfo, 2> makeSystemMemoryPixelBuffer(size_t bytes, void *oldBuffer, bool singleBuffer)
+template<class Impl, class BufferInfo>
+ErrorCode GLTextureStorage<Impl, BufferInfo>::setFormat(PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
-	std::free(oldBuffer);
-	auto fullBytes = singleBuffer ? bytes : bytes * 2;
-	auto bufferPtr = (char*)std::malloc(fullBytes);
-	logMsg("allocated system memory pixel buffer with buffers:%u size:%zu data:%p", singleBuffer ? 1 : 2, bytes, bufferPtr);
-	return {bufferPtr, singleBuffer ? nullptr : bufferPtr + bytes};
+	static_cast<Impl*>(this)->initBuffer(desc, isSingleBuffered());
+	return Texture::setFormat(desc, 1, colorSpace, compatSampler);
 }
 
-GLTextureStorage::GLTextureStorage(RendererTask &r, TextureConfig config, bool usePBO, bool singleBuffer, IG::ErrorCode *errorPtr):
-	TextureBufferStorage{r}
+template<class Impl, class BufferInfo>
+LockedTextureBuffer GLTextureStorage<Impl, BufferInfo>::lock(uint32_t bufferFlags)
 {
-	initPixelBuffer(config.pixmapDesc(), usePBO, singleBuffer);
-	auto err = GLPixmapTexture::init(r, config);
-	if(err && errorPtr) [[unlikely]]
+	if(!texName()) [[unlikely]]
 	{
-		*errorPtr = err;
+		logErr("called lock when uninitialized");
+		return {};
 	}
-}
-
-GLTextureStorage::~GLTextureStorage()
-{
-	deinit();
-}
-
-GLTextureStorage::GLTextureStorage(GLTextureStorage &&o) noexcept
-{
-	*this = std::move(o);
-}
-
-GLTextureStorage &GLTextureStorage::operator=(GLTextureStorage &&o) noexcept
-{
-	deinit();
-	TextureBufferStorage::operator=(std::move(o));
-	buffer = std::exchange(o.buffer, {});
-	pbo = std::exchange(o.pbo, {});
-	bufferIdx = std::exchange(o.bufferIdx, {});
-	return *this;
-}
-
-void GLTextureStorage::initPixelBuffer(PixmapDesc desc, bool usePBO, bool singleBuffer)
-{
-	if(singleBuffer)
-		bufferIdx = SINGLE_BUFFER_VALUE;
-	const auto bufferBytes = desc.bytes();
-	auto &r = renderer();
-	if(usePBO)
-	{
-		assert(hasPersistentBufferMapping(r));
-		char *bufferPtr{};
-		const auto fullBufferBytes = singleBuffer ? bufferBytes : bufferBytes * 2;
-		task().runSync(
-			[=, &r, &bufferPtr, &pbo = pbo](GLTask::TaskContext ctx)
-			{
-				if(pbo)
-				{
-					glDeleteBuffers(1, &pbo);
-					pbo = 0;
-				}
-				GLuint newPbo;
-				glGenBuffers(1, &newPbo);
-				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, newPbo);
-				r.support.glBufferStorage(GL_PIXEL_UNPACK_BUFFER, fullBufferBytes, nullptr,
-					GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
-				bufferPtr = (char*)r.support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, fullBufferBytes,
-					GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-				if(!bufferPtr) [[unlikely]]
-				{
-					logErr("PBO:%u mapping failed", newPbo);
-					ctx.notifySemaphore();
-					glDeleteBuffers(1, &newPbo);
-				}
-				else
-				{
-					pbo = newPbo;
-					ctx.notifySemaphore();
-					glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-				}
-			});
-		if(bufferPtr)
-		{
-			logMsg("allocated PBO:%u with buffers:%u size:%u data:%p", pbo, singleBuffer ? 1 : 2, bufferBytes, bufferPtr);
-			buffer[0] = {bufferPtr, nullptr};
-			if(singleBuffer)
-				buffer[1] = {nullptr};
-			else
-			{
-				buffer[1] = {bufferPtr + bufferBytes, (void *)(uintptr_t)bufferBytes};
-			}
-		}
-		else // fallback to system memory if PBO fails
-			buffer = makeSystemMemoryPixelBuffer(bufferBytes, nullptr, singleBuffer);
-	}
-	else
-	{
-		task().awaitPending();
-		buffer = makeSystemMemoryPixelBuffer(bufferBytes, buffer[0].data, singleBuffer);
-	}
-}
-
-GLTextureStorage::BufferInfo GLTextureStorage::currentBuffer() const
-{
-	if(isSingleBuffered())
-	{
-		return buffer[0];
-	}
-	else
-	{
-		return buffer[bufferIdx];
-	}
-}
-
-void GLTextureStorage::swapBuffer()
-{
-	if(isSingleBuffered())
-		return;
-	bufferIdx = (bufferIdx + 1) % 2;
-}
-
-bool GLTextureStorage::isSingleBuffered() const
-{
-	return bufferIdx == SINGLE_BUFFER_VALUE;
-}
-
-IG::ErrorCode GLTextureStorage::setFormat(PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
-{
-	initPixelBuffer(desc, pbo, isSingleBuffered());
-	return PixmapTexture::setFormat(desc, 1, colorSpace, compatSampler);
-}
-
-LockedTextureBuffer GLTextureStorage::lock(uint32_t bufferFlags)
-{
 	auto bufferInfo = currentBuffer();
 	IG::WindowRect fullRect{{}, size(0)};
 	MutablePixmapView pix{{fullRect.size(), pixmapDesc().format()}, bufferInfo.data};
 	if(bufferFlags & Texture::BUFFER_FLAG_CLEARED)
 		pix.clear();
-	return {bufferInfo.bufferOffset, pix, fullRect, 0, false, pbo};
+	GLuint pbo{};
+	if constexpr(requires {static_cast<Impl*>(this)->pbo();})
+	{
+		pbo = static_cast<Impl*>(this)->pbo();
+	}
+	return {bufferInfo.dataStoreOffset(), pix, fullRect, 0, false, pbo};
 }
 
-void GLTextureStorage::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
+template<class Impl, class BufferInfo>
+void GLTextureStorage<Impl, BufferInfo>::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 {
 	Texture::unlock(lockBuff, writeFlags);
 	swapBuffer();
 }
 
-void GLTextureStorage::writeAligned(PixmapView pixmap, uint8_t assumeAlign, uint32_t writeFlags)
+template<class Impl, class BufferInfo>
+void GLTextureStorage<Impl, BufferInfo>::writeAligned(PixmapView pixmap, int assumeAlign, uint32_t writeFlags)
 {
-	if(!texName()) [[unlikely]]
-	{
-		logErr("called writeAligned() on uninitialized texture");
-		return;
-	}
 	if(renderer().support.hasUnpackRowLength || !pixmap.isPadded())
 	{
 		Texture::writeAligned(0, pixmap, {}, assumeAlign, writeFlags);
@@ -413,32 +291,84 @@ void GLTextureStorage::writeAligned(PixmapView pixmap, uint8_t assumeAlign, uint
 	}
 }
 
-void GLTextureStorage::deinit()
+GLSystemMemoryStorage::GLSystemMemoryStorage(RendererTask &rTask, TextureConfig config, bool singleBuffer):
+	GLTextureStorage{rTask, config, singleBuffer}
 {
-	if(pbo)
-	{
-		assert(renderer().support.hasPBOFuncs);
-		if(rTask && task())
-		{
-			logMsg("deleting PBO:%u", pbo);
-			task().run(
-				[pbo = std::exchange(pbo, 0)]()
-				{
-					glDeleteBuffers(1, &pbo);
-				});
-		}
-	}
-	else
-	{
-		if(rTask && task())
-		{
-			task().awaitPending();
-		}
-		std::free(buffer[0].data);
-	}
-	buffer = {};
-	bufferIdx = 0;
+	initBuffer(config.pixmapDesc(), singleBuffer);
 }
+
+void GLSystemMemoryStorage::initBuffer(PixmapDesc desc, bool singleBuffer)
+{
+	task().awaitPending();
+	auto bytes = desc.bytes();
+	auto fullBytes = singleBuffer ? bytes : bytes * 2;
+	storage = std::make_unique<char[]>(fullBytes);
+	logMsg("allocated system memory with buffers:%d size:%d data:%p", singleBuffer ? 1 : 2, bytes, storage.get());
+	info[0] = {storage.get()};
+	info[1] = {singleBuffer ? nullptr : storage.get() + bytes};
+}
+
+GLPixelBufferStorage::GLPixelBufferStorage(RendererTask &rTask, TextureConfig config, bool singleBuffer):
+	GLTextureStorage{rTask, config, singleBuffer},
+	pixelBuff{GLBufferDeleter{&rTask}}
+{
+	initBuffer(config.pixmapDesc(), singleBuffer);
+}
+
+void GLPixelBufferStorage::initBuffer(PixmapDesc desc, bool singleBuffer)
+{
+	const auto bufferBytes = desc.bytes();
+	auto &r = renderer();
+	assert(hasPersistentBufferMapping(r));
+	char *bufferPtr{};
+	const auto fullBufferBytes = singleBuffer ? bufferBytes : bufferBytes * 2;
+	task().runSync(
+		[=, &r, &bufferPtr, &pbo = pixelBuff.get()](GLTask::TaskContext ctx)
+		{
+			if(pbo)
+			{
+				glDeleteBuffers(1, &pbo);
+				pbo = 0;
+			}
+			GLuint newPbo;
+			glGenBuffers(1, &newPbo);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, newPbo);
+			r.support.glBufferStorage(GL_PIXEL_UNPACK_BUFFER, fullBufferBytes, nullptr,
+				GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
+			bufferPtr = (char*)r.support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, fullBufferBytes,
+				GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+			if(!bufferPtr) [[unlikely]]
+			{
+				logErr("PBO:%u mapping failed", newPbo);
+				ctx.notifySemaphore();
+				glDeleteBuffers(1, &newPbo);
+			}
+			else
+			{
+				pbo = newPbo;
+				ctx.notifySemaphore();
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+			}
+		});
+	if(bufferPtr)
+	{
+		logMsg("allocated PBO:%u with buffers:%u size:%u data:%p", pixelBuff.get(), singleBuffer ? 1 : 2, bufferBytes, bufferPtr);
+		info[0] = {bufferPtr, nullptr};
+		if(singleBuffer)
+			info[1] = {nullptr};
+		else
+		{
+			info[1] = {bufferPtr + bufferBytes, (void *)(uintptr_t)bufferBytes};
+		}
+	}
+	else [[unlikely]]
+	{
+		throw Error{ENOMEM};
+	}
+}
+
+template class GLTextureStorage<GLSystemMemoryStorage, GLSystemMemoryBufferInfo>;
+template class GLTextureStorage<GLPixelBufferStorage, GLPixelBufferInfo>;
 
 #ifdef __ANDROID__
 static const char *rendererGLStr(Renderer &r)
@@ -492,41 +422,6 @@ static bool hasHardwareBuffer(Renderer &r)
 	return GraphicBuffer::testSupport();
 }
 #endif
-
-LockedTextureBuffer TextureBufferStorage::makeLockedBuffer(void *data, int pitchBytes, uint32_t bufferFlags)
-{
-	IG::WindowRect fullRect{{}, size(0)};
-	MutablePixmapView pix{pixmapDesc(), data, {pitchBytes, MutablePixmapView::Units::BYTE}};
-	if(bufferFlags & Texture::BUFFER_FLAG_CLEARED)
-		pix.clear();
-	return {nullptr, pix, fullRect, 0, false};
-}
-
-void TextureBufferStorage::setCompatTextureSampler(const TextureSampler &compatSampler)
-{
-	Texture::setCompatTextureSampler(compatSampler);
-}
-
-void TextureBufferStorage::writeAligned(PixmapView pixmap, uint8_t assumeAlign, uint32_t writeFlags)
-{
-	if(!texName()) [[unlikely]]
-	{
-		logErr("called writeAligned() on uninitialized texture");
-		return;
-	}
-	auto lockBuff = lock();
-	if(!lockBuff) [[unlikely]]
-	{
-		return;
-	}
-	lockBuff.pixmap().write(pixmap, {});
-	unlock(lockBuff);
-}
-
-bool TextureBufferStorage::isExternal() const
-{
-	return Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL && target() == GL_TEXTURE_EXTERNAL_OES;
-}
 
 std::vector<TextureBufferModeDesc> Renderer::textureBufferModes()
 {

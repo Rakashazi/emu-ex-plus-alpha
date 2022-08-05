@@ -24,7 +24,7 @@
 #include "utils.hh"
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"
-#include "android/egl.hh"
+#include <imagine/gfx/opengl/android/egl.hh>
 #endif
 #include <string>
 #include <cassert>

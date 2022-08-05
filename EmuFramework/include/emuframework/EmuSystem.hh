@@ -329,7 +329,7 @@ protected:
 
 public:
 	IG::OnFrameDelegate onFrameUpdate{};
-	double targetFastForwardSpeed{};
+	double targetSpeed{1.};
 };
 
 // Global instance access if required by the emulated system, valid if EmuApp::needsGlobalInstance initialized to true

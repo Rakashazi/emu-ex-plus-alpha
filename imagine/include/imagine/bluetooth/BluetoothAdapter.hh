@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/bluetooth/config.hh>
 #include <imagine/util/DelegateFunc.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/input/Device.hh>
 #include <array>
@@ -28,6 +27,7 @@ namespace IG
 {
 
 class BluetoothPendingSocket;
+class ErrorCode;
 
 using BluetoothAddrString = std::array<char, 18>;
 

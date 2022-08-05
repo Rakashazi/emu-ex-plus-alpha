@@ -16,8 +16,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/audio/defs.hh>
-#include <imagine/base/Error.hh>
 #include <AudioUnit/AudioUnit.h>
+
+namespace IG
+{
+class ErrorCode;
+}
 
 namespace IG::Audio
 {

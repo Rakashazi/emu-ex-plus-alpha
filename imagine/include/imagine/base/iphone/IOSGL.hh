@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/iphone/config.h>
 #include <imagine/base/iphone/IOSWindow.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/util/memory/UniqueCFObject.hh>
 #include <compare>
 #include <type_traits>
@@ -34,6 +33,7 @@ namespace IG
 class GLDisplay;
 class GLContext;
 class GLContextAttributes;
+class ErrorCode;
 
 class GLManagerImpl
 {

@@ -16,6 +16,7 @@
 #define LOGTAG "Bluez"
 #include <imagine/bluetooth/BluezBluetoothAdapter.hh>
 #include <imagine/thread/Thread.hh>
+#include <imagine/base/Error.hh>
 #include <imagine/logger/logger.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>

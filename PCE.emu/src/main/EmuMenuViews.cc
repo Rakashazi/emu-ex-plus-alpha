@@ -89,9 +89,9 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<ConsoleOptionView>
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
 {
-	using MainAppHelper<ConsoleOptionView>::system;
+	using MainAppHelper<CustomFilePathOptionView>::system;
 
 	TextMenuItem sysCardPath
 	{

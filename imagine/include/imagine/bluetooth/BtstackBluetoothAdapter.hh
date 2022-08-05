@@ -17,11 +17,12 @@
 
 #include <imagine/config/defs.hh>
 #include "BluetoothAdapter.hh"
-#include <imagine/base/Error.hh>
 #import <btstack/btstack.h>
 
 namespace IG
 {
+
+class ErrorCode;
 
 class BtstackBluetoothAdapter : public BluetoothAdapter
 {

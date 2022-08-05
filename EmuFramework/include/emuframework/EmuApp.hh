@@ -166,7 +166,7 @@ public:
 	void removeTurboInputEvent(unsigned action);
 	void runTurboInputEvents();
 	void resetInput();
-	void setFastForwardSpeed(double speed);
+	void setRunSpeed(double speed);
 	void saveSessionOptions();
 	void loadSessionOptions();
 	bool hasSavedSessionOptions();
@@ -185,7 +185,7 @@ public:
 	void updateKeyboardMapping();
 	void toggleKeyboard();
 	void updateVControllerMapping();
-	Gfx::PixmapTexture &asset(AssetID) const;
+	Gfx::Texture &asset(AssetID) const;
 	void updateInputDevices(IG::ApplicationContext);
 	void setOnUpdateInputDevices(DelegateFunc<void ()>);
 	VController &defaultVController();
@@ -248,8 +248,8 @@ public:
 	bool soundIsEnabled() const;
 	void setAddSoundBuffersOnUnderrun(bool on);
 	bool addSoundBuffersOnUnderrun() const { return optionAddSoundBuffersOnUnderrun; }
-	void setSoundDuringFastForwardEnabled(bool on);
-	bool soundDuringFastForwardIsEnabled() const;
+	void setSoundDuringFastSlowModeEnabled(bool on);
+	bool soundDuringFastSlowModeIsEnabled() const;
 
 	// Video Options
 	bool setWindowDrawableConfig(Gfx::DrawableConfig);
@@ -287,8 +287,8 @@ public:
 	auto &autoSaveStateOption() { return optionAutoSaveState; }
 	auto &confirmAutoLoadStateOption() { return optionConfirmAutoLoadState; }
 	auto &confirmOverwriteStateOption() { return optionConfirmOverwriteState; }
-	auto &fastForwardSpeedOption() { return optionFastForwardSpeed; }
-	double fastForwardSpeedAsDouble() { return optionFastForwardSpeed.val / 100.; }
+	auto &fastSlowModeSpeedOption() { return optionFastSlowModeSpeed; }
+	double fastSlowModeSpeedAsDouble() { return optionFastSlowModeSpeed.val / 100.; }
 	auto &sustainedPerformanceModeOption() { return optionSustainedPerformanceMode; }
 
 	// GUI Options
@@ -448,7 +448,7 @@ protected:
 	EmuVideo emuVideo{};
 	EmuVideoLayer emuVideoLayer;
 	EmuSystemTask emuSystemTask;
-	mutable Gfx::PixmapTexture assetBuffImg[wise_enum::size<AssetID>]{};
+	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetID>]{};
 	IG_UseMemberIf(VCONTROLS, VController, vController);
 	IG::Timer autoSaveStateTimer;
 	DelegateFunc<void ()> onUpdateInputDevices_{};
@@ -474,7 +474,7 @@ protected:
 	Byte1Option optionAutoSaveState;
 	Byte1Option optionConfirmAutoLoadState;
 	Byte1Option optionConfirmOverwriteState;
-	Byte2Option optionFastForwardSpeed;
+	Byte2Option optionFastSlowModeSpeed;
 	Byte1Option optionSound;
 	Byte1Option optionSoundVolume;
 	Byte1Option optionSoundBuffers;
@@ -541,7 +541,7 @@ protected:
 
 	bool willCreateSystem(ViewAttachParams, const Input::Event &);
 	void onMainWindowCreated(ViewAttachParams, const Input::Event &);
-	Gfx::PixmapTexture *collectTextCloseAsset() const;
+	Gfx::Texture *collectTextCloseAsset() const;
 	ConfigParams loadConfigFile(IG::ApplicationContext);
 	void saveConfigFile(IG::ApplicationContext);
 	void saveConfigFile(FileIO &);

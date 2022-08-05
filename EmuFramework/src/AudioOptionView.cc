@@ -33,13 +33,13 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			app().setSoundEnabled(item.flipBoolValue(*this));
 		}
 	},
-	soundDuringFastForward
+	soundDuringFastSlowMode
 	{
-		"Sound During Fast Forward", &defaultFace(),
-		app().soundDuringFastForwardIsEnabled(),
+		"Sound During Fast/Slow Mode", &defaultFace(),
+		app().soundDuringFastSlowModeIsEnabled(),
 		[this](BoolMenuItem &item)
 		{
-			app().setSoundDuringFastForwardEnabled(item.flipBoolValue(*this));
+			app().setSoundDuringFastSlowModeEnabled(item.flipBoolValue(*this));
 		}
 	},
 	soundVolumeItem
@@ -152,7 +152,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 void AudioOptionView::loadStockItems()
 {
 	item.emplace_back(&snd);
-	item.emplace_back(&soundDuringFastForward);
+	item.emplace_back(&soundDuringFastSlowMode);
 	item.emplace_back(&soundVolume);
 	if(app().canChangeSoundRate())
 	{

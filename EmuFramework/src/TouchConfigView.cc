@@ -634,7 +634,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	},
 	ffState
 	{
-		"Fast-forward Button", &defaultFace(),
+		"Fast/Slow Mode Button", &defaultFace(),
 		(int)layoutPosArr(vCtrl, window())[4].state,
 		ffStateItem
 	},

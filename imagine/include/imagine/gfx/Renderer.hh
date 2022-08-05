@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/PixmapTexture.hh>
+#include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 
@@ -118,8 +118,6 @@ public:
 
 	Texture makeTexture(TextureConfig);
 	Texture makeTexture(IG::Data::PixmapSource, const TextureSampler *compatSampler = {}, bool makeMipmaps = true);
-	PixmapTexture makePixmapTexture(TextureConfig);
-	PixmapTexture makePixmapTexture(IG::Data::PixmapSource, const TextureSampler *compatSampler = {}, bool makeMipmaps = true);
 	PixmapBufferTexture makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false);
 	std::vector<TextureBufferModeDesc> textureBufferModes();
 	TextureBufferMode makeValidTextureBufferMode(TextureBufferMode mode = {});

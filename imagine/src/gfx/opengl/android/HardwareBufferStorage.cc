@@ -14,9 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "HardwareBuffStorage"
-#include "HardwareBufferStorage.hh"
-#include "egl.hh"
+#include <imagine/gfx/opengl/android/HardwareBufferStorage.hh>
+#include <imagine/gfx/opengl/android/egl.hh>
 #include <imagine/gfx/Renderer.hh>
+#include <imagine/base/Error.hh>
 #include <imagine/logger/logger.h>
 #include <android/hardware_buffer.h>
 
@@ -27,14 +28,14 @@ static constexpr uint32_t allocateUsage = AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN 
 static constexpr uint32_t lockUsage = AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN;
 
 template<class Buffer>
-HardwareSingleBufferStorage<Buffer>::HardwareSingleBufferStorage(RendererTask &r, TextureConfig config, IG::ErrorCode *errorPtr):
-	TextureBufferStorage{r}
+HardwareSingleBufferStorage<Buffer>::HardwareSingleBufferStorage(RendererTask &r, TextureConfig config):
+	Texture{r}
 {
 	config = baseInit(r, config);
 	auto err = setFormat(config.pixmapDesc(), config.colorSpace(), config.compatSampler());
-	if(err && errorPtr) [[unlikely]]
+	if(err) [[unlikely]]
 	{
-		*errorPtr = err;
+		throw Error{err};
 	}
 }
 
@@ -57,7 +58,7 @@ IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc
 		logErr("error creating EGL image");
 		return {EINVAL};
 	}
-	initWithEGLImage(desc.size(), eglImg, desc, compatSampler ? compatSampler->samplerParams() : SamplerParams{}, false);
+	initWithEGLImage(eglImg, desc, compatSampler ? compatSampler->samplerParams() : SamplerParams{}, false);
 	eglDestroyImageKHR(dpy, eglImg);
 	return {};
 }
@@ -71,7 +72,7 @@ LockedTextureBuffer HardwareSingleBufferStorage<Buffer>::lock(uint32_t bufferFla
 		logErr("error locking");
 		return {};
 	}
-	return makeLockedBuffer(data, pitchBytes, bufferFlags);
+	return lockedBuffer(data, pitchBytes, bufferFlags);
 }
 
 template<class Buffer>
@@ -81,14 +82,14 @@ void HardwareSingleBufferStorage<Buffer>::unlock(LockedTextureBuffer, uint32_t)
 }
 
 template<class Buffer>
-HardwareBufferStorage<Buffer>::HardwareBufferStorage(RendererTask &r, TextureConfig config, IG::ErrorCode *errorPtr):
-	TextureBufferStorage{r}
+HardwareBufferStorage<Buffer>::HardwareBufferStorage(RendererTask &r, TextureConfig config):
+	Texture{r}
 {
 	config = baseInit(r, config);
 	auto err = setFormat(config.pixmapDesc(), config.colorSpace(), config.compatSampler());
-	if(err && errorPtr) [[unlikely]]
+	if(err) [[unlikely]]
 	{
-		*errorPtr = err;
+		throw Error{err};
 	}
 }
 
@@ -114,7 +115,7 @@ IG::ErrorCode HardwareBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc, Colo
 			return {EINVAL};
 		}
 	}
-	initWithEGLImage(desc.size(), {}, desc, compatSampler ? compatSampler->samplerParams() : SamplerParams{}, true);
+	initWithEGLImage({}, desc, compatSampler ? compatSampler->samplerParams() : SamplerParams{}, true);
 	return {};
 }
 
@@ -128,7 +129,7 @@ LockedTextureBuffer HardwareBufferStorage<Buffer>::lock(uint32_t bufferFlags)
 		logErr("error locking");
 		return {};
 	}
-	return makeLockedBuffer(data, pitchBytes, bufferFlags);
+	return lockedBuffer(data, pitchBytes, bufferFlags);
 }
 
 template<class Buffer>

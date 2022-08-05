@@ -47,8 +47,8 @@ namespace EmuEx
 {
 
 constexpr uint8_t OPTION_SOUND_ENABLED_FLAG = IG::bit(0);
-constexpr uint8_t OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG = IG::bit(1);
-constexpr uint8_t OPTION_SOUND_DEFAULT_FLAGS = OPTION_SOUND_ENABLED_FLAG | OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG;
+constexpr uint8_t OPTION_SOUND_DURING_FAST_SLOW_MODE_ENABLED_FLAG = IG::bit(1);
+constexpr uint8_t OPTION_SOUND_DEFAULT_FLAGS = OPTION_SOUND_ENABLED_FLAG | OPTION_SOUND_DURING_FAST_SLOW_MODE_ENABLED_FLAG;
 static EmuApp *gAppPtr{};
 [[gnu::weak]] bool EmuApp::hasIcon = true;
 [[gnu::weak]] bool EmuApp::autoSaveStateDefault = true;
@@ -156,7 +156,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionAutoSaveState{CFGKEY_AUTO_SAVE_STATE, 1},
 	optionConfirmAutoLoadState{CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1},
 	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
-	optionFastForwardSpeed{CFGKEY_FAST_FORWARD_SPEED, 400, false, optionIsValidWithMinMax<100, int(MAX_FAST_FORWARD_SPEED * 100.)>},
+	optionFastSlowModeSpeed{CFGKEY_FAST_SLOW_MODE_SPEED, 800, false, optionIsValidWithMinMax<int(MIN_RUN_SPEED * 100.), int(MAX_RUN_SPEED * 100.)>},
 	optionSound{CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS},
 	optionSoundVolume{CFGKEY_SOUND_VOLUME,
 		100, false, optionIsValidWithMinMax<0, 100, uint8_t>},
@@ -253,7 +253,7 @@ public:
 	}
 };
 
-Gfx::PixmapTexture &EmuApp::asset(AssetID assetID) const
+Gfx::Texture &EmuApp::asset(AssetID assetID) const
 {
 	auto assetIdx = std::to_underlying(assetID);
 	assumeExpr(assetIdx < wise_enum::size<AssetID>);
@@ -262,7 +262,7 @@ Gfx::PixmapTexture &EmuApp::asset(AssetID assetID) const
 	{
 		try
 		{
-			res = renderer.makePixmapTexture(pixmapReader.loadAsset(assetFilename[assetIdx]),
+			res = renderer.makeTexture(pixmapReader.loadAsset(assetFilename[assetIdx]),
 				&renderer.get(View::imageCommonTextureSampler));
 		}
 		catch(...)
@@ -273,7 +273,7 @@ Gfx::PixmapTexture &EmuApp::asset(AssetID assetID) const
 	return res;
 }
 
-Gfx::PixmapTexture *EmuApp::collectTextCloseAsset() const
+Gfx::Texture *EmuApp::collectTextCloseAsset() const
 {
 	return Config::envIsAndroid ? nullptr : &asset(AssetID::CLOSE);
 }
@@ -651,31 +651,27 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			system().onFrameUpdate = [this, &viewController = winData.viewController](IG::FrameParams params)
 				{
 					bool skipForward = false;
-					bool fastForwarding = false;
+					bool altSpeed = false;
 					auto &audio = this->audio();
 					auto &sys = system();
 					if(sys.shouldFastForward()) [[unlikely]]
 					{
 						// for skipping loading on disk-based computers
-						fastForwarding = true;
+						altSpeed = true;
 						skipForward = true;
 						sys.setSpeedMultiplier(audio, 8.);
 					}
-					else if(sys.targetFastForwardSpeed > 1.) [[unlikely]]
-					{
-						fastForwarding = true;
-						sys.setSpeedMultiplier(audio, sys.targetFastForwardSpeed);
-					}
 					else
 					{
-						sys.setSpeedMultiplier(audio, 1.);
+						altSpeed = sys.targetSpeed != 1.;
+						sys.setSpeedMultiplier(audio, sys.targetSpeed);
 					}
 					auto frameInfo = sys.advanceFramesWithTime(params.timestamp());
 					if(!frameInfo.advanced)
 					{
 						return true;
 					}
-					if(!shouldSkipLateFrames() && !fastForwarding)
+					if(!shouldSkipLateFrames() && !altSpeed)
 					{
 						frameInfo.advanced = frameInterval();
 					}
@@ -997,7 +993,7 @@ void EmuApp::pauseEmulation()
 	video().setOnFrameFinished([](EmuVideo &){});
 	emuSystemTask.pause();
 	system().pause(*this);
-	setFastForwardSpeed(0);
+	setRunSpeed(1.);
 	emuVideoLayer.setBrightness(.75f);
 	viewController().emuWindow().setDrawEventPriority();
 	removeOnFrame();
@@ -1327,15 +1323,16 @@ void EmuApp::runTurboInputEvents()
 void EmuApp::resetInput()
 {
 	turboActions = {};
-	setFastForwardSpeed(0);
+	setRunSpeed(1.);
 }
 
-void EmuApp::setFastForwardSpeed(double speed)
+void EmuApp::setRunSpeed(double speed)
 {
-	bool active = speed > 1.;
-	system().targetFastForwardSpeed = speed;
+	assumeExpr(speed > 0.);
+	bool active = speed != 1.;
+	system().targetSpeed = speed;
 	emuAudio.setAddSoundBuffersOnUnderrun(active ? addSoundBuffersOnUnderrun() : false);
-	auto vol = (active && !soundDuringFastForwardIsEnabled()) ? 0 : soundVolume();
+	auto vol = (active && !soundDuringFastSlowModeIsEnabled()) ? 0 : soundVolume();
 	emuAudio.setVolume(vol);
 }
 
@@ -1651,14 +1648,14 @@ void EmuApp::setAddSoundBuffersOnUnderrun(bool on)
 	audio().setAddSoundBuffersOnUnderrun(on);
 }
 
-bool EmuApp::soundDuringFastForwardIsEnabled() const
+bool EmuApp::soundDuringFastSlowModeIsEnabled() const
 {
-	return optionSound & OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG;
+	return optionSound & OPTION_SOUND_DURING_FAST_SLOW_MODE_ENABLED_FLAG;
 }
 
-void EmuApp::setSoundDuringFastForwardEnabled(bool on)
+void EmuApp::setSoundDuringFastSlowModeEnabled(bool on)
 {
-	optionSound = IG::setOrClearBits(optionSound.val, OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG, on);
+	optionSound = IG::setOrClearBits(optionSound.val, OPTION_SOUND_DURING_FAST_SLOW_MODE_ENABLED_FLAG, on);
 }
 
 void EmuApp::setAudioOutputAPI(IG::Audio::Api api)

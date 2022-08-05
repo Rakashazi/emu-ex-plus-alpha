@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "HardwareBuff"
-#include "HardwareBuffer.hh"
+#include <imagine/base/android/HardwareBuffer.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/pixmap/PixmapDesc.hh>
 #include "android.hh"

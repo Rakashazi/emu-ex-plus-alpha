@@ -106,9 +106,9 @@ TextMenuItem::SelectDelegate SystemOptionView::setAutoSaveStateDel()
 	};
 }
 
-TextMenuItem::SelectDelegate SystemOptionView::setFastForwardSpeedDel()
+TextMenuItem::SelectDelegate SystemOptionView::setFastSlowModeSpeedDel()
 {
-	return [this](TextMenuItem &item) { app().fastForwardSpeedOption() = item.id(); };
+	return [this](TextMenuItem &item) { app().fastSlowModeSpeedOption() = item.id(); };
 }
 
 static auto savesMenuEntryStr(IG::ApplicationContext ctx, std::string_view savePath)
@@ -149,27 +149,26 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 			app().confirmOverwriteStateOption() = item.flipBoolValue(*this);
 		}
 	},
-	fastForwardSpeedItem
+	fastSlowModeSpeedItem
 	{
-		{"1.25x", &defaultFace(), setFastForwardSpeedDel(), 125},
-		{"1.5x",  &defaultFace(), setFastForwardSpeedDel(), 150},
-		{"2x",    &defaultFace(), setFastForwardSpeedDel(), 200},
-		{"3x",    &defaultFace(), setFastForwardSpeedDel(), 300},
-		{"4x",    &defaultFace(), setFastForwardSpeedDel(), 400},
-		{"5x",    &defaultFace(), setFastForwardSpeedDel(), 500},
-		{"6x",    &defaultFace(), setFastForwardSpeedDel(), 600},
-		{"7x",    &defaultFace(), setFastForwardSpeedDel(), 700},
+		{"0.25x", &defaultFace(), setFastSlowModeSpeedDel(), 25},
+		{"0.50x", &defaultFace(), setFastSlowModeSpeedDel(), 50},
+		{"1.5x",  &defaultFace(), setFastSlowModeSpeedDel(), 150},
+		{"2x",    &defaultFace(), setFastSlowModeSpeedDel(), 200},
+		{"4x",    &defaultFace(), setFastSlowModeSpeedDel(), 400},
+		{"8x",    &defaultFace(), setFastSlowModeSpeedDel(), 800},
+		{"16x",   &defaultFace(), setFastSlowModeSpeedDel(), 1600},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 1.0 to 20.0", "",
+				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 0.05 to 20.0", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(val >= 1.0 && val <= MAX_FAST_FORWARD_SPEED)
+						if(val >= MIN_RUN_SPEED && val <= MAX_RUN_SPEED)
 						{
 							auto valAsInt = std::round(val * 100.);
-							app.fastForwardSpeedOption() = valAsInt;
-							fastForwardSpeed.setSelected((MenuItem::Id)valAsInt, *this);
+							app.fastSlowModeSpeedOption() = valAsInt;
+							fastSlowModeSpeed.setSelected((MenuItem::Id)valAsInt, *this);
 							dismissPrevious();
 							return true;
 						}
@@ -183,16 +182,16 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 			}, MenuItem::DEFAULT_ID
 		},
 	},
-	fastForwardSpeed
+	fastSlowModeSpeed
 	{
-		"Fast Forward Speed", &defaultFace(),
+		"Fast/Slow Mode Speed", &defaultFace(),
 		[this](size_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{:.2f}x", app().fastForwardSpeedAsDouble()));
+			t.setString(fmt::format("{:.2f}x", app().fastSlowModeSpeedAsDouble()));
 			return true;
 		},
-		(MenuItem::Id)app().fastForwardSpeedOption().val,
-		fastForwardSpeedItem
+		(MenuItem::Id)app().fastSlowModeSpeedOption().val,
+		fastSlowModeSpeedItem
 	},
 	performanceMode
 	{
@@ -216,7 +215,7 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&autoSaveState);
 	item.emplace_back(&confirmAutoLoadState);
 	item.emplace_back(&confirmOverwriteState);
-	item.emplace_back(&fastForwardSpeed);
+	item.emplace_back(&fastSlowModeSpeed);
 	if(used(performanceMode))
 		item.emplace_back(&performanceMode);
 }

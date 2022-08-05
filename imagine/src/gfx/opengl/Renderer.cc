@@ -21,6 +21,7 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Viewport.hh>
+#include <imagine/base/Error.hh>
 #include "internalDefs.hh"
 
 namespace IG::Gfx

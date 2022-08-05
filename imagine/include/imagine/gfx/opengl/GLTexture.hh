@@ -21,6 +21,7 @@
 #include "GLTextureSampler.hh"
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/used.hh>
+#include <imagine/util/memory/UniqueResource.hh>
 #ifdef __ANDROID__
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -33,6 +34,7 @@ class Renderer;
 class RendererTask;
 class RendererCommands;
 class TextureSampler;
+class LockedTextureBuffer;
 
 enum class TextureType : uint8_t
 {
@@ -65,36 +67,51 @@ protected:
 
 using LockedTextureBufferImpl = GLLockedTextureBuffer;
 
+void destroyGLTextureRef(RendererTask &, TextureRef);
+
+struct GLTextureRefDeleter
+{
+	RendererTask *rTaskPtr{};
+
+	void operator()(TextureRef s) const
+	{
+		destroyGLTextureRef(*rTaskPtr, s);
+	}
+};
+using UniqueGLTextureRef = UniqueResource<TextureRef, GLTextureRefDeleter>;
+
 class GLTexture
 {
 public:
 	constexpr GLTexture() = default;
-	constexpr GLTexture(RendererTask &rTask):rTask{&rTask} {}
-	~GLTexture();
+	constexpr GLTexture(RendererTask &rTask):
+		texName_{GLTextureRefDeleter{&rTask}} {}
 	GLuint texName() const;
 	void bindTex(RendererCommands &cmds) const;
+	GLenum target() const;
 
 protected:
-	RendererTask *rTask{};
-	TextureRef texName_{};
+	UniqueGLTextureRef texName_{};
 	PixmapDesc pixDesc{};
 	int8_t levels_{};
 	IG_UseMemberIfOrConstant(Config::Gfx::OPENGL_SHADER_PIPELINE,
 		TextureType, TextureType::T2D_4, type_){TextureType::UNSET};
 
-	IG::ErrorCode init(RendererTask &r, TextureConfig config);
+	void init(RendererTask &r, TextureConfig config);
 	TextureConfig baseInit(RendererTask &r, TextureConfig config);
-	void deinit();
 	bool canUseMipmaps(const Renderer &r) const;
 	void updateFormatInfo(PixmapDesc, int8_t levels, GLenum target = GL_TEXTURE_2D);
 	static void setSwizzleForFormatInGL(const Renderer &r, IG::PixelFormatID format, GLuint tex);
 	static void setSamplerParamsInGL(const Renderer &r, SamplerParams params, GLenum target = GL_TEXTURE_2D);
 	void updateLevelsForMipmapGeneration();
-	GLenum target() const;
 	#ifdef __ANDROID__
 	void initWithEGLImage(EGLImageKHR, PixmapDesc, SamplerParams, bool isMutable);
 	void updateWithEGLImage(EGLImageKHR eglImg);
 	#endif
+	LockedTextureBuffer lockedBuffer(void *data, int pitchBytes, uint32_t bufferFlags);
+	RendererTask *taskPtr() const;
+	Renderer &renderer() const;
+	RendererTask &task() const;
 };
 
 using TextureImpl = GLTexture;

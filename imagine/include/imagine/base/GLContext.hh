@@ -28,7 +28,6 @@
 #endif
 
 #include <imagine/pixmap/PixelFormat.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/base/glDefs.hh>
 #include <imagine/util/concepts.hh>
 #include <optional>
@@ -40,6 +39,7 @@ namespace IG
 class Window;
 class GLDisplay;
 class ApplicationContext;
+class ErrorCode;
 
 class GLBufferConfigAttributes
 {

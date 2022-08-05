@@ -15,7 +15,7 @@
 
 #define LOGTAG "GraphicBuff"
 #include "../android.hh"
-#include "GraphicBuffer.hh"
+#include <imagine/base/android/GraphicBuffer.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/pixmap/PixmapDesc.hh>
 #include <imagine/logger/logger.h>

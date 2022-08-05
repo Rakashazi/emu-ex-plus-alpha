@@ -19,6 +19,7 @@
 #include <imagine/bluetooth/Zeemote.hh>
 #include <imagine/bluetooth/IControlPad.hh>
 #include <imagine/base/Application.hh>
+#include <imagine/base/Error.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Timer.hh>
 #ifdef CONFIG_BLUETOOTH_SERVER

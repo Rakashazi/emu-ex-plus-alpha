@@ -15,8 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/PixmapTexture.hh>
+#ifdef __ANDROID__
+#include <imagine/gfx/opengl/android/HardwareBufferStorage.hh>
+#include <imagine/gfx/opengl/android/SurfaceTextureStorage.hh>
+#endif
+#include <imagine/gfx/Texture.hh>
 #include <memory>
+#include <variant>
 
 namespace IG::Gfx
 {
@@ -24,66 +29,91 @@ namespace IG::Gfx
 class RendererTask;
 class PixmapBufferTexture;
 
-class TextureBufferStorage : public PixmapTexture
+template<class Impl, class BufferInfo>
+class GLTextureStorage: public Texture
 {
 public:
-	using PixmapTexture::PixmapTexture;
-	constexpr TextureBufferStorage() = default;
-	virtual ~TextureBufferStorage() = default;
-	TextureBufferStorage &operator=(TextureBufferStorage &&o) = default;
-	LockedTextureBuffer makeLockedBuffer(void *data, int pitchBytes, uint32_t bufferFlags);
-	virtual IG::ErrorCode setFormat(PixmapDesc, ColorSpace, const TextureSampler *compatSampler) = 0;
-	virtual void writeAligned(PixmapView pixmap, uint8_t assumeAlign, uint32_t writeFlags = 0);
-	virtual LockedTextureBuffer lock(uint32_t bufferFlags = 0) = 0;
-	virtual void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0) = 0;
-	virtual void setCompatTextureSampler(const TextureSampler &compatSampler);
-	bool isExternal() const;
+	constexpr GLTextureStorage() = default;
+
+	GLTextureStorage(RendererTask &rTask, TextureConfig config, bool singleBuffer):
+		Texture{rTask, config},
+		bufferIdx{singleBuffer ? SINGLE_BUFFER_VALUE : (int8_t)0} {}
+
+	ErrorCode setFormat(PixmapDesc, ColorSpace, const TextureSampler *compatSampler);
+	void writeAligned(PixmapView pixmap, int assumeAlign, uint32_t writeFlags = 0);
+	LockedTextureBuffer lock(uint32_t bufferFlags = 0);
+	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
+	bool isSingleBuffered() const { return bufferIdx == SINGLE_BUFFER_VALUE; }
 
 protected:
-	using PixmapTexture::setFormat;
-	using Texture::clear;
-	using Texture::write;
-	using Texture::writeAligned;
-	using Texture::lock;
-	using Texture::generateMipmaps;
-};
+	int8_t bufferIdx{};
+	std::array<BufferInfo, 2> info{};
+	static constexpr int8_t SINGLE_BUFFER_VALUE = 2;
 
-class GLTextureStorage final: public TextureBufferStorage
-{
-public:
-	struct BufferInfo
+	BufferInfo currentBuffer() const
 	{
-		void *data{};
-		void *bufferOffset{}; // offset into PBO, same as data if no PBO
+		return isSingleBuffered() ? info[0] : info[bufferIdx];
+	}
 
-		constexpr BufferInfo() = default;
-		constexpr BufferInfo(void *data, void *bufferOffset):
-			data{data}, bufferOffset{bufferOffset} {}
-		constexpr BufferInfo(void *data):
-			data{data}, bufferOffset{data} {}
-	};
-
-	GLTextureStorage(RendererTask &rTask, TextureConfig config, bool usePBO, bool singleBuffer, IG::ErrorCode *errorPtr = {});
-	~GLTextureStorage() final;
-	GLTextureStorage(GLTextureStorage &&o) noexcept;
-	GLTextureStorage &operator=(GLTextureStorage &&o) noexcept;
-	IG::ErrorCode setFormat(PixmapDesc, ColorSpace, const TextureSampler *compatSampler) final;
-	void writeAligned(PixmapView pixmap, uint8_t assumeAlign, uint32_t writeFlags = 0) final;
-	LockedTextureBuffer lock(uint32_t bufferFlags = 0) final;
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0) final;
-	bool isSingleBuffered() const;
-
-protected:
-	std::array<BufferInfo, 2> buffer{};
-	GLuint pbo = 0;
-	uint8_t bufferIdx{};
-	static constexpr uint8_t SINGLE_BUFFER_VALUE = 2;
-
-	void initPixelBuffer(PixmapDesc desc, bool usePBO, bool singleBuffer);
-	BufferInfo currentBuffer() const;
-	void swapBuffer();
-	void deinit();
+	void swapBuffer()
+	{
+		if(isSingleBuffered())
+			return;
+		bufferIdx = (bufferIdx + 1) % 2;
+	}
 };
+
+struct GLSystemMemoryBufferInfo
+{
+	void *data{};
+
+	void *dataStoreOffset() const { return data; }
+};
+
+class GLSystemMemoryStorage final: public GLTextureStorage<GLSystemMemoryStorage, GLSystemMemoryBufferInfo>
+{
+public:
+	constexpr GLSystemMemoryStorage() = default;
+	GLSystemMemoryStorage(RendererTask &rTask, TextureConfig config, bool singleBuffer);
+	void initBuffer(PixmapDesc desc, bool singleBuffer);
+
+private:
+	std::unique_ptr<char[]> storage{};
+};
+
+struct GLPixelBufferInfo
+{
+	void *data{};
+	void *pboDataOffset{};
+
+	void *dataStoreOffset() const { return pboDataOffset; }
+};
+
+class GLPixelBufferStorage final: public GLTextureStorage<GLPixelBufferStorage, GLPixelBufferInfo>
+{
+public:
+	constexpr GLPixelBufferStorage() = default;
+	GLPixelBufferStorage(RendererTask &rTask, TextureConfig config, bool singleBuffer);
+	void initBuffer(PixmapDesc desc, bool singleBuffer);
+	GLuint pbo() const { return pixelBuff.get(); }
+
+private:
+	UniqueGLBuffer pixelBuff{};
+};
+
+using GLPixmapBufferTextureVariant = std::variant<
+	GLSystemMemoryStorage,
+	GLPixelBufferStorage
+	#ifdef __ANDROID__
+	, AHardwareSingleBufferStorage
+	, GraphicSingleBufferStorage
+	, AHardwareBufferStorage
+	, GraphicBufferStorage
+	#endif
+	#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
+	, SurfaceTextureStorage
+	#endif
+	>;
 
 class GLPixmapBufferTexture
 {
@@ -91,12 +121,12 @@ public:
 	constexpr GLPixmapBufferTexture() = default;
 
 protected:
-	std::unique_ptr<TextureBufferStorage> directTex{};
+	GLPixmapBufferTextureVariant directTex{};
 
-	IG::ErrorCode init(RendererTask &rTask, TextureConfig config, TextureBufferMode mode, bool singleBuffer);
-	IG::ErrorCode initWithPixelBuffer(RendererTask &rTask, TextureConfig config, bool usePBO = false, bool singleBuffer = false);
-	IG::ErrorCode initWithHardwareBuffer(RendererTask &rTask, TextureConfig config, bool singleBuffer = false);
-	IG::ErrorCode initWithSurfaceTexture(RendererTask &rTask, TextureConfig config, bool singleBuffer = false);
+	void initWithSystemMemory(RendererTask &rTask, TextureConfig config, bool singleBuffer = false);
+	void initWithPixelBuffer(RendererTask &rTask, TextureConfig config,  bool singleBuffer = false);
+	void initWithHardwareBuffer(RendererTask &rTask, TextureConfig config, bool singleBuffer = false);
+	void initWithSurfaceTexture(RendererTask &rTask, TextureConfig config, bool singleBuffer = false);
 };
 
 using PixmapBufferTextureImpl = GLPixmapBufferTexture;

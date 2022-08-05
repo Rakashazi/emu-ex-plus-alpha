@@ -16,6 +16,7 @@
 #define LOGTAG "Wiimote"
 #include <imagine/bluetooth/Wiimote.hh>
 #include <imagine/base/Application.hh>
+#include <imagine/base/Error.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/util/bitset.hh>

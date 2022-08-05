@@ -34,6 +34,7 @@
 #include <imagine/audio/defs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/audio/Format.hh>
+#include <imagine/base/Error.hh>
 #include <variant>
 
 namespace IG::Audio

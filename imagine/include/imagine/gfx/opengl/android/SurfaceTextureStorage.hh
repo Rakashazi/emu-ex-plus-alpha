@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/PixmapBufferTexture.hh>
+#include <imagine/gfx/Texture.hh>
 #include <jni.h>
 
 struct ANativeWindow;
@@ -25,17 +25,17 @@ namespace IG::Gfx
 
 class Renderer;
 
-class SurfaceTextureStorage final: public TextureBufferStorage
+class SurfaceTextureStorage final: public Texture
 {
 public:
-	SurfaceTextureStorage(RendererTask &, TextureConfig config, bool singleBuffered, IG::ErrorCode *errorPtr);
+	SurfaceTextureStorage(RendererTask &, TextureConfig config, bool singleBuffered);
 	SurfaceTextureStorage(SurfaceTextureStorage &&o) noexcept;
 	SurfaceTextureStorage &operator=(SurfaceTextureStorage &&o) noexcept;
-	~SurfaceTextureStorage() final;
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler) final;
-	LockedTextureBuffer lock(uint32_t bufferFlags) final;
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
-	void setCompatTextureSampler(const TextureSampler &compatSampler) final;
+	~SurfaceTextureStorage();
+	ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler);
+	LockedTextureBuffer lock(uint32_t bufferFlags);
+	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags);
+	void setCompatTextureSampler(const TextureSampler &compatSampler);
 
 protected:
 	jobject surfaceTex{};

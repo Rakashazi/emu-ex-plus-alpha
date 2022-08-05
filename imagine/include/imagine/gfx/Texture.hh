@@ -58,17 +58,15 @@ public:
 	static constexpr uint32_t BUFFER_FLAG_CLEARED = IG::bit(0);
 
 	using TextureImpl::TextureImpl;
-	Texture(RendererTask &, TextureConfig, IG::ErrorCode *errorPtr = nullptr);
-	Texture(RendererTask &, IG::Data::PixmapSource, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
-	Texture(Texture &&o) noexcept;
-	Texture &operator=(Texture &&o) noexcept;
-	static uint8_t bestAlignment(PixmapView pixmap);
+	Texture(RendererTask &, TextureConfig);
+	Texture(RendererTask &, IG::Data::PixmapSource, const TextureSampler *compatSampler, bool makeMipmaps);
+	static int bestAlignment(PixmapView pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
 	int levels() const;
-	IG::ErrorCode setFormat(PixmapDesc, int levels, ColorSpace c = {}, const TextureSampler *compatSampler = {});
+	ErrorCode setFormat(PixmapDesc, int levels, ColorSpace c = {}, const TextureSampler *compatSampler = {});
 	void write(int level, PixmapView pixmap, IG::WP destPos, uint32_t writeFlags = 0);
-	void writeAligned(int level, PixmapView pixmap, IG::WP destPos, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
+	void writeAligned(int level, PixmapView pixmap, IG::WP destPos, int assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear(int level);
 	LockedTextureBuffer lock(int level, uint32_t bufferFlags = 0);
 	LockedTextureBuffer lock(int level, IG::WindowRect rect, uint32_t bufferFlags = 0);

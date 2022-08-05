@@ -19,10 +19,13 @@
 #include "glIncludes.h"
 #include "defs.hh"
 #include <imagine/base/GLContext.hh>
+#include <imagine/util/memory/UniqueResource.hh>
 #include <array>
 
 namespace IG::Gfx
 {
+
+class RendererTask;
 
 using VertexPos = GLfloat;
 using ColorComp = GLfloat;
@@ -66,5 +69,20 @@ enum class ColorSpace : uint8_t
 	LINEAR = (uint8_t)GLColorSpace::LINEAR,
 	SRGB = (uint8_t)GLColorSpace::SRGB,
 };
+
+using NativeBuffer = GLuint;
+
+void destroyGLBuffer(RendererTask &, NativeBuffer);
+
+struct GLBufferDeleter
+{
+	RendererTask *rTask{};
+
+	void operator()(NativeBuffer s) const
+	{
+		destroyGLBuffer(*rTask, s);
+	}
+};
+using UniqueGLBuffer = UniqueResource<NativeBuffer, GLBufferDeleter>;
 
 }

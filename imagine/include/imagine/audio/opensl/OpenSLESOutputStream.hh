@@ -16,10 +16,14 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/audio/defs.hh>
-#include <imagine/base/Error.hh>
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 #include <memory>
+
+namespace IG
+{
+class ErrorCode;
+}
 
 namespace IG::Audio
 {

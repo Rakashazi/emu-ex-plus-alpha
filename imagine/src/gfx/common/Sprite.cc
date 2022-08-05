@@ -46,7 +46,7 @@ void SpriteBase<BaseRect>::setUVBounds(FRect uvBounds)
 template<class BaseRect>
 void SpriteBase<BaseRect>::draw(RendererCommands &cmds) const
 {
-	if(img) [[likely]]
+	if(img && *img) [[likely]]
 	{
 		cmds.setTexture(*img);
 		BaseRect::draw(cmds);

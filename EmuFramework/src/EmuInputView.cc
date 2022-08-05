@@ -59,9 +59,9 @@ void EmuInputView::resetInput()
 	ffToggleActive = false;
 }
 
-void EmuInputView::updateFastforward()
+void EmuInputView::updateRunSpeed()
 {
-	app().setFastForwardSpeed(ffToggleActive ? app().fastForwardSpeedAsDouble() : 0.);
+	app().setRunSpeed(ffToggleActive ? app().fastSlowModeSpeedAsDouble() : 1.);
 }
 
 bool EmuInputView::inputEvent(const Input::Event &e)
@@ -80,7 +80,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 			else if(motionEv.pushed() && vController->fastForwardHitTest(motionEv.pos()))
 			{
 				ffToggleActive ^= true;
-				updateFastforward();
+				updateRunSpeed();
 			}
 			else
 			{
@@ -126,7 +126,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 							if(isRepeated)
 								continue;
 							ffToggleActive = keyEv.pushed();
-							updateFastforward();
+							updateRunSpeed();
 							logMsg("fast-forward state:%d", ffToggleActive);
 						}
 
@@ -218,7 +218,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 							if(keyEv.repeated())
 								continue;
 							ffToggleActive = !ffToggleActive;
-							updateFastforward();
+							updateRunSpeed();
 							logMsg("fast-forward state:%d", ffToggleActive);
 						}
 

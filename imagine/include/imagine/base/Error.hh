@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <system_error>
+#include <exception>
 
 namespace IG
 {
@@ -25,6 +26,16 @@ class ErrorCode : public std::error_code
 public:
 	ErrorCode() = default;
 	ErrorCode(int code);
+};
+
+class Error final: public std::exception
+{
+public:
+	ErrorCode code{};
+
+	Error() = default;
+	Error(ErrorCode code): code{code} {}
+	const char* what() const noexcept final { return ""; }
 };
 
 }
