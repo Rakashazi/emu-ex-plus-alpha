@@ -332,16 +332,6 @@ FileIO ApplicationContext::openFileUri(CStringView uri, FileOpenFlags openFlags)
 	forEachInDirectory(uri, del);
 }
 
-Orientation ApplicationContext::validateOrientationMask(Orientation oMask) const
-{
-	if(!(oMask & VIEW_ROTATE_ALL))
-	{
-		// use default when none of the orientation bits are set
-		oMask = defaultSystemOrientations();
-	}
-	return oMask;
-}
-
 const InputDeviceContainer &ApplicationContext::inputDevices() const
 {
 	return application().inputDevices();
@@ -397,9 +387,9 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 
 [[gnu::weak]] void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate) {}
 
-[[gnu::weak]] void ApplicationContext::setSystemOrientation(Orientation) {}
+[[gnu::weak]] void ApplicationContext::setSystemOrientation(Rotation) {}
 
-[[gnu::weak]] Orientation ApplicationContext::defaultSystemOrientations() const { return VIEW_ROTATE_ALL; }
+[[gnu::weak]] OrientationMask ApplicationContext::defaultSystemOrientations() const { return OrientationMask::ALL_BITS; }
 
 [[gnu::weak]] void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate) {}
 

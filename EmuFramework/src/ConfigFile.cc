@@ -342,6 +342,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 	}
 	if(appContext().hasTranslucentSysUI() && !doesLayoutBehindSystemUI())
 		writeOptionValue(io, CFGKEY_LAYOUT_BEHIND_SYSTEM_UI, false);
+	if(contentRotation_ != Rotation::ANY)
+		writeOptionValue(io, CFGKEY_CONTENT_ROTATION, contentRotation_);
 	vController.writeConfig(io);
 	if(IG::used(usePresentationTime_) && !usePresentationTime_)
 		writeOptionValue(io, CFGKEY_RENDERER_PRESENTATION_TIME, false);
@@ -647,6 +649,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_VIDEO_COLOR_SPACE: pendingWindowDrawableConf.colorSpace = readOptionValue<Gfx::ColorSpace>(io, size, colorSpaceIsValid).value_or(Gfx::ColorSpace{});
 				bcase CFGKEY_SHOW_HIDDEN_FILES: setShowHiddenFilesInPicker(readOptionValue<bool>(io, size).value_or(false));
 				bcase CFGKEY_RENDERER_PRESENTATION_TIME: setUsePresentationTime(readOptionValue<bool>(io, size).value_or(true));
+				bcase CFGKEY_CONTENT_ROTATION: readOptionValue<IG::Rotation>(io, size, [&](auto &r){ if((int)r <= 4) contentRotation_ = r; });
 				bcase CFGKEY_INPUT_KEY_CONFIGS:
 				{
 					if(!readKeyConfig(customKeyConfigs, io, size, inputControlCategories()))

@@ -43,20 +43,22 @@
 namespace IG
 {
 
-const char *orientationToStr(Orientation o)
+std::string_view asString(OrientationMask o)
 {
+	using enum OrientationMask;
 	switch(o)
 	{
-		case VIEW_ROTATE_AUTO: return "Auto";
-		case VIEW_ROTATE_0: return "0";
-		case VIEW_ROTATE_90: return "90";
-		case VIEW_ROTATE_180: return "180";
-		case VIEW_ROTATE_270: return "270";
-		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_270: return "0/90/270";
-		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270: return "0/90/180/270";
-		case VIEW_ROTATE_90 | VIEW_ROTATE_270: return "90/270";
-		default: bug_unreachable("o == %d", o);
+		case UNSET: return "Unset";
+		case PORTRAIT_BIT: return "Portrait";
+		case LANDSCAPE_RIGHT_BIT: return "Landscape Right";
+		case PORTRAIT_UPSIDE_DOWN_BIT: return "Portrait Upside-Down";
+		case LANDSCAPE_LEFT_BIT: return "Landscape Left";
+		case ALL_LANDSCAPE_BITS: return "Either Landscape";
+		case ALL_PORTRAIT_BITS: return "Either Portrait";
+		case ALL_BUT_UPSIDE_DOWN_BITS: return "All But Upside-Down";
+		case ALL_BITS: return "All";
 	}
+	return "Unknown";
 }
 
 FDEventSource::FDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd, EventLoop loop, PollEventDelegate callback, uint32_t events):

@@ -74,6 +74,8 @@ protected:
 	MultiChoiceMenuItem zoom;
 	TextMenuItem viewportZoomItem[4];
 	MultiChoiceMenuItem viewportZoom;
+	TextMenuItem contentRotationItem[5];
+	MultiChoiceMenuItem contentRotation;
 	BoolMenuItem imgFilter;
 	TextMenuItem imgEffectItem[4];
 	MultiChoiceMenuItem imgEffect;
@@ -100,12 +102,13 @@ protected:
 	TextHeadingMenuItem screenShapeHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 31> item{};
+	StaticArrayList<MenuItem*, 32> item{};
 
 	void pushAndShowFrameRateSelectMenu(VideoSystem, const Input::Event &);
 	bool onFrameTimeChange(VideoSystem vidSys, IG::FloatSeconds time);
 	TextMenuItem::SelectDelegate setZoomDel();
 	TextMenuItem::SelectDelegate setViewportZoomDel();
+	TextMenuItem::SelectDelegate setContentRotationDel();
 	TextMenuItem::SelectDelegate setFrameIntervalDel();
 	TextMenuItem::SelectDelegate setImgEffectDel();
 	TextMenuItem::SelectDelegate setOverlayEffectDel();
@@ -208,9 +211,9 @@ protected:
 	BoolMenuItem showBluetoothScan;
 	BoolMenuItem showHiddenFiles;
 	TextHeadingMenuItem orientationHeading;
-	TextMenuItem menuOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
+	TextMenuItem menuOrientationItem[5];
 	MultiChoiceMenuItem menuOrientation;
-	TextMenuItem emuOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
+	TextMenuItem emuOrientationItem[5];
 	MultiChoiceMenuItem emuOrientation;
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, BoolMenuItem, layoutBehindSystemUI);
 	StaticArrayList<MenuItem*, 22> item{};

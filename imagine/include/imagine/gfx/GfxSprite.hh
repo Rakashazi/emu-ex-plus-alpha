@@ -42,8 +42,8 @@ public:
 	{}
 
 	void setImg(const Texture *img);
-	void setImg(TextureSpan span);
-	void setUVBounds(FRect uvBounds);
+	void setImg(TextureSpan span, Rotation r = Rotation::UP);
+	void setUVBounds(FRect uvBounds, Rotation r = Rotation::UP);
 	void draw(RendererCommands &r) const;
 	bool compileDefaultProgram(EnvMode mode);
 	bool compileDefaultProgramOneShot(EnvMode mode);

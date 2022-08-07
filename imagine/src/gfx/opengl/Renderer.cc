@@ -112,21 +112,21 @@ bool GLRenderer::attachWindow(Window &win, GLBufferConfig bufferConfig, GLColorS
 	{
 		if(!Config::SYSTEM_ROTATES_WINDOWS)
 		{
-			rData.projAngleM = orientationRadians(win.softOrientation());
+			rData.projAngleM = rotationRadians(win.softOrientation());
 			win.appContext().setOnDeviceOrientationChanged(
-				[this, &win](ApplicationContext, Orientation newO)
+				[this, &win](ApplicationContext, Rotation newO)
 				{
 					auto oldWinO = win.softOrientation();
 					if(win.requestOrientationChange(newO))
 					{
-						static_cast<Renderer*>(this)->animateProjectionMatrixRotation(win, orientationRadians(oldWinO), orientationRadians(newO));
+						static_cast<Renderer*>(this)->animateProjectionMatrixRotation(win, rotationRadians(oldWinO), rotationRadians(newO));
 					}
 				});
 		}
 		else if(Config::SYSTEM_ROTATES_WINDOWS && !win.appContext().systemAnimatesWindowRotation())
 		{
 			win.appContext().setOnSystemOrientationChanged(
-				[this, &win](ApplicationContext, Orientation oldO, Orientation newO) // TODO: parameters need proper type definitions in API
+				[this, &win](ApplicationContext, Rotation oldO, Rotation newO)
 				{
 					const float orientationDiffTable[4][4]
 					{
@@ -135,7 +135,7 @@ bool GLRenderer::attachWindow(Window &win, GLBufferConfig bufferConfig, GLColorS
 						{radians(-180.), radians(-90.), 0, radians(90.)},
 						{radians(90.), radians(-180.), radians(-90.), 0},
 					};
-					auto rotAngle = orientationDiffTable[oldO][newO];
+					auto rotAngle = orientationDiffTable[std::to_underlying(oldO)][std::to_underlying(newO)];
 					logMsg("animating from %d degrees", (int)degrees(rotAngle));
 					static_cast<Renderer*>(this)->animateProjectionMatrixRotation(win, rotAngle, 0.);
 				});
@@ -248,22 +248,22 @@ ClipRect Renderer::makeClipRect(const Window &win, IG::WindowRect rect)
 	{
 		switch(win.softOrientation())
 		{
-			bcase VIEW_ROTATE_0:
+			default:
 				//x += win.viewport.rect.x;
 				y = win.height() - (y + h);
-			bcase VIEW_ROTATE_90:
+			bcase Rotation::RIGHT:
 				//x += win.viewport.rect.y;
 				//y = win.width() - (y + h /*+ (win.w - win.viewport.rect.x2)*/);
 				std::swap(x, y);
 				std::swap(w, h);
 				x = (win.realWidth() - x) - w;
 				y = (win.realHeight() - y) - h;
-			bcase VIEW_ROTATE_270:
+			bcase Rotation::LEFT:
 				//x += win.viewport.rect.y;
 				//y += win.viewport.rect.x;
 				std::swap(x, y);
 				std::swap(w, h);
-			bcase VIEW_ROTATE_180:
+			bcase Rotation::DOWN:
 				x = (win.realWidth() - x) - w;
 				//y = win.height() - (y + h);
 				//std::swap(x, y);

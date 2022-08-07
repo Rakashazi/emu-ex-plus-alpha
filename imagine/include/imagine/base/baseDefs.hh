@@ -20,6 +20,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/string/CStringView.hh>
+#include <imagine/util/enum.hh>
 #include <vector>
 #include <memory>
 
@@ -125,15 +126,32 @@ namespace IG
 
 using OnFrameDelegate = DelegateFunc<bool (FrameParams params)>;
 
-// orientation
-using Orientation = uint8_t;
-static constexpr Orientation VIEW_ROTATE_0 = bit(0), VIEW_ROTATE_90 = bit(1), VIEW_ROTATE_180 = bit(2), VIEW_ROTATE_270 = bit(3);
-static constexpr Orientation VIEW_ROTATE_AUTO = bit(5);
-static constexpr Orientation VIEW_ROTATE_ALL = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270;
-static constexpr Orientation VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_270;
 
-const char *orientationToStr(Orientation o);
-constexpr bool orientationIsSideways(Orientation o){ return o == VIEW_ROTATE_90 || o == VIEW_ROTATE_270; }
+enum class OrientationMask: uint8_t
+{
+	UNSET,
+	PORTRAIT_BIT = bit(0),
+	LANDSCAPE_RIGHT_BIT = bit(1),
+	PORTRAIT_UPSIDE_DOWN_BIT = bit(2),
+	LANDSCAPE_LEFT_BIT = bit(3),
+	ALL_LANDSCAPE_BITS = LANDSCAPE_RIGHT_BIT | LANDSCAPE_LEFT_BIT,
+	ALL_PORTRAIT_BITS = PORTRAIT_BIT | PORTRAIT_UPSIDE_DOWN_BIT,
+	ALL_BUT_UPSIDE_DOWN_BITS = PORTRAIT_BIT | LANDSCAPE_RIGHT_BIT | LANDSCAPE_LEFT_BIT,
+	ALL_BITS = PORTRAIT_BIT | LANDSCAPE_RIGHT_BIT | PORTRAIT_UPSIDE_DOWN_BIT | LANDSCAPE_LEFT_BIT,
+};
+
+IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(OrientationMask);
+
+std::string_view asString(OrientationMask);
+
+WISE_ENUM_CLASS((Rotation, uint8_t),
+	UP,
+	RIGHT,
+	DOWN,
+	LEFT,
+	ANY);
+
+constexpr bool isSideways(Rotation r) { return r == Rotation::LEFT || r == Rotation::RIGHT; }
 
 static constexpr int APP_ON_EXIT_PRIORITY = 0;
 static constexpr int RENDERER_TASK_ON_EXIT_PRIORITY = 200;
@@ -229,8 +247,8 @@ using InterProcessMessageDelegate = DelegateFunc<void (ApplicationContext, IG::C
 using ResumeDelegate = DelegateFunc<bool (ApplicationContext, bool focused)>;
 using FreeCachesDelegate = DelegateFunc<void (ApplicationContext, bool running)>;
 using ExitDelegate = DelegateFunc<bool (ApplicationContext, bool backgrounded)>;
-using DeviceOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation newOrientation)>;
-using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation oldOrientation, Orientation newOrientation)>;
+using DeviceOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Rotation newRotation)>;
+using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Rotation oldRotation, Rotation newRotation)>;
 using ScreenChangeDelegate = DelegateFunc<void (ApplicationContext, Screen &s, ScreenChange)>;
 using SystemDocumentPickerDelegate = DelegateFunc<void(IG::CStringView uri, IG::CStringView displayName)>;
 using TextFieldDelegate = DelegateFunc<void (const char *str)>;

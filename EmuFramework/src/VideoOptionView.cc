@@ -402,6 +402,20 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		(MenuItem::Id)app().viewportZoom(),
 		viewportZoomItem
 	},
+	contentRotationItem
+	{
+		{"Auto",        &defaultFace(), setContentRotationDel(), std::to_underlying(Rotation::ANY)},
+		{"Standard",    &defaultFace(), setContentRotationDel(), std::to_underlying(Rotation::UP)},
+		{"90° Right",   &defaultFace(), setContentRotationDel(), std::to_underlying(Rotation::RIGHT)},
+		{"Upside Down", &defaultFace(), setContentRotationDel(), std::to_underlying(Rotation::DOWN)},
+		{"90° Left",    &defaultFace(), setContentRotationDel(), std::to_underlying(Rotation::LEFT)},
+	},
+	contentRotation
+	{
+		"Content Rotation", &defaultFace(),
+		(MenuItem::Id)app().contentRotation(),
+		contentRotationItem
+	},
 	imgFilter
 	{
 		"Image Interpolation", &defaultFace(),
@@ -691,6 +705,7 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&zoom);
 	item.emplace_back(&viewportZoom);
 	item.emplace_back(&aspectRatio);
+	item.emplace_back(&contentRotation);
 	item.emplace_back(&advancedHeading);
 	item.emplace_back(&textureBufferMode);
 	if(windowPixelFormatItem.size() > 2)
@@ -818,6 +833,11 @@ TextMenuItem::SelectDelegate VideoOptionView::setZoomDel()
 TextMenuItem::SelectDelegate VideoOptionView::setViewportZoomDel()
 {
 	return [this](TextMenuItem &item) { app().setViewportZoom(item.id()); };
+}
+
+TextMenuItem::SelectDelegate VideoOptionView::setContentRotationDel()
+{
+	return [this](TextMenuItem &item) { app().setContentRotation((IG::Rotation)item.id()); };
 }
 
 TextMenuItem::SelectDelegate VideoOptionView::setOverlayEffectLevelDel()

@@ -28,19 +28,19 @@ void SpriteBase<BaseRect>::setImg(const Texture *newImg)
 }
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setImg(TextureSpan span)
+void SpriteBase<BaseRect>::setImg(TextureSpan span, Rotation r)
 {
 	setImg(span.texture());
-	setUVBounds(span.uvBounds());
+	setUVBounds(span.uvBounds(), r);
 }
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setUVBounds(FRect uvBounds)
+void SpriteBase<BaseRect>::setUVBounds(FRect uvBounds, Rotation r)
 {
 	if(!uvBounds.xSize())
 		logWarn("setting Empty UV bounds");
 	//logMsg("setting UV bounds:%f:%f:%f:%f", (double)uvBounds.x, (double)uvBounds.y, (double)uvBounds.x2, (double)uvBounds.y2);
-	BaseRect::setUV(uvBounds);
+	BaseRect::setUV(uvBounds, r);
 }
 
 template<class BaseRect>

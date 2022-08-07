@@ -282,6 +282,9 @@ public:
 	auto &videoImageBuffersOption() { return optionVideoImageBuffers; }
 	void setUsePresentationTime(bool on) { usePresentationTime_ = on; }
 	bool usePresentationTime() const { return usePresentationTime_; }
+	void setContentRotation(IG::Rotation);
+	IG::Rotation contentRotation() const { return contentRotation_; }
+	void updateContentRotation();
 
 	// System Options
 	auto &autoSaveStateOption() { return optionAutoSaveState; }
@@ -308,10 +311,10 @@ public:
 	Tristate lowProfileOSNavMode() const { return (Tristate)(uint8_t)optionLowProfileOSNav; }
 	Tristate hideOSNavMode() const { return (Tristate)(uint8_t)optionHideOSNav; }
 	Tristate hideStatusBarMode() const { return (Tristate)(uint8_t)optionHideStatusBar; }
-	void setEmuOrientation(Orientation);
-	void setMenuOrientation(Orientation);
-	Orientation emuOrientation() const { return optionEmuOrientation; }
-	Orientation menuOrientation() const { return optionMenuOrientation; }
+	void setEmuOrientation(OrientationMask);
+	void setMenuOrientation(OrientationMask);
+	OrientationMask emuOrientation() const { return (OrientationMask)optionEmuOrientation.val; }
+	OrientationMask menuOrientation() const { return (OrientationMask)optionMenuOrientation.val; }
 	void setShowsBundledGames(bool);
 	bool showsBundledGames() const { return optionShowBundledGames; }
 	auto &notificationIconOption() { return optionNotificationIcon; }
@@ -508,6 +511,7 @@ protected:
 	Byte1Option optionVideoImageBuffers;
 	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
+	IG::Rotation contentRotation_{IG::Rotation::ANY};
 	bool showHiddenFilesInPicker_{};
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, bool, layoutBehindSystemUI){};
 	IG::WindowFrameTimeSource winFrameTimeSrc{};

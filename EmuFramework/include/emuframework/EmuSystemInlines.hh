@@ -223,4 +223,11 @@ VController::KbMap EmuSystem::vControllerKeyboardMap(unsigned mode)
 	return {};
 }
 
+IG::Rotation EmuSystem::contentRotation() const
+{
+	if(&MainSystem::contentRotation != &EmuSystem::contentRotation)
+		return static_cast<const MainSystem*>(this)->contentRotation();
+	return {};
+}
+
 }

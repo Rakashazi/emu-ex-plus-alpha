@@ -97,21 +97,21 @@ IG::Point2D<float> Window::pixelSizeAsScaledMM(IG::Point2D<int> size)
 	return {((float)size.x / densityDPI) * 25.4f, ((float)size.y / densityDPI) * 25.4f};
 }
 
-bool Window::setValidOrientations(Orientation oMask)
+bool Window::setValidOrientations(OrientationMask oMask)
 {
-	logMsg("requested orientation change to %s", orientationToStr(oMask));
-	auto maskToOrientation = [](Orientation oMask)
+	logMsg("requested orientation change to %s", asString(oMask).data());
+	auto maskToOrientation = [](OrientationMask oMask)
 		{
 			switch(oMask)
 			{
 				default: return -1; // SCREEN_ORIENTATION_UNSPECIFIED
-				case VIEW_ROTATE_0: return 1; // SCREEN_ORIENTATION_PORTRAIT
-				case VIEW_ROTATE_90: return 0; // SCREEN_ORIENTATION_LANDSCAPE
-				case VIEW_ROTATE_180: return 9; // SCREEN_ORIENTATION_REVERSE_PORTRAIT
-				case VIEW_ROTATE_270: return 8; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
-				case VIEW_ROTATE_90 | VIEW_ROTATE_270: return 6; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-				case VIEW_ROTATE_0 | VIEW_ROTATE_180: return 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
-				case VIEW_ROTATE_ALL: return 10; // SCREEN_ORIENTATION_FULL_SENSOR
+				case OrientationMask::PORTRAIT_BIT: return 1; // SCREEN_ORIENTATION_PORTRAIT
+				case OrientationMask::LANDSCAPE_RIGHT_BIT: return 0; // SCREEN_ORIENTATION_LANDSCAPE
+				case OrientationMask::PORTRAIT_UPSIDE_DOWN_BIT: return 9; // SCREEN_ORIENTATION_REVERSE_PORTRAIT
+				case OrientationMask::LANDSCAPE_LEFT_BIT: return 8; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+				case OrientationMask::ALL_LANDSCAPE_BITS: return 6; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+				case OrientationMask::ALL_PORTRAIT_BITS: return 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
+				case OrientationMask::ALL_BITS: return 10; // SCREEN_ORIENTATION_FULL_SENSOR
 			}
 		};
 	int toSet = maskToOrientation(oMask);
@@ -119,7 +119,7 @@ bool Window::setValidOrientations(Orientation oMask)
 	return true;
 }
 
-bool Window::requestOrientationChange(Orientation o)
+bool Window::requestOrientationChange(Rotation o)
 {
 	// no-op, OS manages orientation changes
 	return false;

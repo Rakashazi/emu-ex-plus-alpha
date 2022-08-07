@@ -77,9 +77,6 @@ struct EmuSystemCreateParams
 	uint8_t systemFlags;
 };
 
-enum { STATE_RESULT_OK, STATE_RESULT_NO_FILE, STATE_RESULT_NO_FILE_ACCESS, STATE_RESULT_IO_ERROR,
-	STATE_RESULT_INVALID_DATA, STATE_RESULT_OTHER_ERROR };
-
 enum class ConfigType : uint8_t
 {
 	MAIN, SESSION, CORE
@@ -203,6 +200,7 @@ public:
 	void savePathChanged();
 	bool shouldFastForward() const;
 	FS::FileString contentDisplayNameForPath(CStringView path) const;
+	IG::Rotation contentRotation() const;
 
 	ApplicationContext appContext() const { return appCtx; }
 	bool isActive() const { return state == State::ACTIVE; }

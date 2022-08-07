@@ -189,9 +189,8 @@ public:
 	void setSysUIStyle(uint32_t flags);
 	bool hasTranslucentSysUI() const;
 	bool hasHardwareNavButtons() const;
-	void setSystemOrientation(Orientation);
-	Orientation defaultSystemOrientations() const;
-	Orientation validateOrientationMask(Orientation oMask) const;
+	void setSystemOrientation(Rotation);
+	OrientationMask defaultSystemOrientations() const;
 	bool hasDisplayCutout() const;
 
 	// Sensors

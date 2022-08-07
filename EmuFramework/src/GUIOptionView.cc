@@ -24,8 +24,8 @@ namespace EmuEx
 {
 
 static constexpr bool USE_MOBILE_ORIENTATION_NAMES = Config::envIsAndroid || Config::envIsIOS;
-static const char *landscapeName = USE_MOBILE_ORIENTATION_NAMES ? "Landscape" : "90 Left";
-static const char *landscape2Name = USE_MOBILE_ORIENTATION_NAMES ? "Landscape 2" : "90 Right";
+static const char *landscapeName = USE_MOBILE_ORIENTATION_NAMES ? "Landscape" : "90° Left";
+static const char *landscape2Name = USE_MOBILE_ORIENTATION_NAMES ? "Landscape 2" : "90° Right";
 static const char *portraitName = USE_MOBILE_ORIENTATION_NAMES ? "Portrait" : "Standard";
 static const char *portrait2Name = USE_MOBILE_ORIENTATION_NAMES ? "Portrait 2" : "Upside Down";
 
@@ -202,13 +202,11 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	menuOrientationItem
 	{
-		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", &defaultFace(), setMenuOrientationDel(), IG::VIEW_ROTATE_AUTO},
-		#endif
-		{landscapeName,  &defaultFace(), setMenuOrientationDel(), IG::VIEW_ROTATE_90},
-		{landscape2Name, &defaultFace(), setMenuOrientationDel(), IG::VIEW_ROTATE_270},
-		{portraitName,   &defaultFace(), setMenuOrientationDel(), IG::VIEW_ROTATE_0},
-		{portrait2Name,  &defaultFace(), setMenuOrientationDel(), IG::VIEW_ROTATE_180},
+		{"Auto",         &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::UNSET},
+		{landscapeName,  &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::LANDSCAPE_RIGHT_BIT},
+		{landscape2Name, &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::LANDSCAPE_LEFT_BIT},
+		{portraitName,   &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::PORTRAIT_BIT},
+		{portrait2Name,  &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::PORTRAIT_UPSIDE_DOWN_BIT},
 	},
 	menuOrientation
 	{
@@ -218,13 +216,11 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	emuOrientationItem
 	{
-		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", &defaultFace(), setEmuOrientationDel(), IG::VIEW_ROTATE_AUTO},
-		#endif
-		{landscapeName,  &defaultFace(), setEmuOrientationDel(), IG::VIEW_ROTATE_90},
-		{landscape2Name, &defaultFace(), setEmuOrientationDel(), IG::VIEW_ROTATE_270},
-		{portraitName,   &defaultFace(), setEmuOrientationDel(), IG::VIEW_ROTATE_0},
-		{portrait2Name,  &defaultFace(), setEmuOrientationDel(), IG::VIEW_ROTATE_180},
+		{"Auto",         &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::UNSET},
+		{landscapeName,  &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::LANDSCAPE_RIGHT_BIT},
+		{landscape2Name, &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::LANDSCAPE_LEFT_BIT},
+		{portraitName,   &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::PORTRAIT_BIT},
+		{portrait2Name,  &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::PORTRAIT_UPSIDE_DOWN_BIT},
 	},
 	emuOrientation
 	{
@@ -300,12 +296,12 @@ void GUIOptionView::loadStockItems()
 
 TextMenuItem::SelectDelegate GUIOptionView::setMenuOrientationDel()
 {
-	return [this](TextMenuItem &item) { app().setMenuOrientation(item.id()); };
+	return [this](TextMenuItem &item) { app().setMenuOrientation((OrientationMask)item.id()); };
 }
 
 TextMenuItem::SelectDelegate GUIOptionView::setEmuOrientationDel()
 {
-	return [this](TextMenuItem &item) { app().setEmuOrientation(item.id()); };
+	return [this](TextMenuItem &item) { app().setEmuOrientation((OrientationMask)item.id()); };
 }
 
 TextMenuItem::SelectDelegate GUIOptionView::setFontSizeDel()

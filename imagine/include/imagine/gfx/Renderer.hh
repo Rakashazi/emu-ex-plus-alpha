@@ -90,7 +90,7 @@ public:
 	void setDefaultViewport(Window &, Viewport);
 	bool canRenderToMultiplePixelFormats() const;
 	NativeWindowFormat nativeWindowFormat() const;
-	void setWindowValidOrientations(Window &win, Orientation validO);
+	void setWindowValidOrientations(Window &, OrientationMask);
 	void animateProjectionMatrixRotation(Window &win, float srcAngle, float destAngle);
 	static ClipRect makeClipRect(const Window &win, IG::WindowRect rect);
 	bool supportsSyncFences() const;

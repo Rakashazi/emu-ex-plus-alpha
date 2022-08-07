@@ -87,14 +87,14 @@ void VideoImageOverlay::setIntensity(float i)
 	intensity = i;
 }
 
-void VideoImageOverlay::place(const Gfx::Sprite &disp, int lines)
+void VideoImageOverlay::place(const Gfx::Sprite &disp, int lines, IG::Rotation r)
 {
 	if(!spr.image())
 		return;
 	using namespace IG::Gfx;
 	//logMsg("placing overlay with %u lines in image", lines);
 	spr.setPos(disp);
-	auto width = lines*(EmuSystem::aspectRatioInfos()[0].aspect.x/(float)EmuSystem::aspectRatioInfos()[0].aspect.y);
+	auto width = lines * EmuSystem::aspectRatioInfos()[0].aspect.ratio<float>();
 	spr.setImg([&]() -> TextureSpan
 	{
 		switch(overlayId)
@@ -111,7 +111,7 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, int lines)
 				return {&img, {{}, {width/2.f, lines*2.f}}};
 		}
 		bug_unreachable("invalid overlayId:%d", std::to_underlying(overlayId));
-	}());
+	}(), r);
 }
 
 void VideoImageOverlay::draw(Gfx::RendererCommands &cmds)

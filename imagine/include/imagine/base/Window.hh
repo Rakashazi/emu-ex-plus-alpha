@@ -142,10 +142,9 @@ public:
 	// content in these bounds isn't blocked by system overlays and receives pointer input
 	IG::WindowRect contentBounds() const;
 
-	Orientation softOrientation() const;
-	Orientation validSoftOrientations() const;
-	bool requestOrientationChange(Orientation o);
-	bool setValidOrientations(Orientation oMask);
+	Rotation softOrientation() const;
+	bool requestOrientationChange(Rotation o);
+	bool setValidOrientations(OrientationMask);
 
 	bool updateSize(IG::Point2D<int> surfaceSize);
 	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM);

@@ -33,6 +33,6 @@ static constexpr GLuint VATTR_POS = 0, VATTR_TEX_UV = 1, VATTR_COLOR = 2;
 static constexpr GL::API glAPI =
 	Config::Gfx::OPENGL_ES ? GL::API::OPENGL_ES : GL::API::OPENGL;
 
-float orientationRadians(Orientation o);
+float rotationRadians(Rotation o);
 
 }

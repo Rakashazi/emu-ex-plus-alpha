@@ -167,7 +167,7 @@ constexpr Color color(ColorName c)
 // converts to a relative rectangle in OpenGL coordinate system
 constexpr Rect2<int> asYUpRelRect(Viewport v)
 {
-	return {{v.realBounds().x, v.originBounds().ySize() - v.realBounds().y2}, {v.realWidth(), v.realHeight()}};
+	return {{v.realBounds().x, v.realOriginBounds().ySize() - v.realBounds().y2}, {v.realWidth(), v.realHeight()}};
 }
 
 }

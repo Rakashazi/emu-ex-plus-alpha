@@ -66,8 +66,7 @@ BaseWindow::BaseWindow(ApplicationContext ctx, WindowConfig config):
 	onFocusChange{config.onFocusChange() ? config.onFocusChange() : defaultOnFocusChange},
 	onDragDrop{config.onDragDrop() ? config.onDragDrop() : defaultOnDragDrop},
 	onDismissRequest{config.onDismissRequest() ? config.onDismissRequest() : defaultOnDismissRequest},
-	onDismiss{config.onDismiss() ? config.onDismiss() : defaultOnDismiss},
-	validSoftOrientations_{ctx.defaultSystemOrientations()}
+	onDismiss{config.onDismiss() ? config.onDismiss() : defaultOnDismiss}
 {
 	attachDrawEvent();
 }
@@ -397,7 +396,7 @@ void Window::draw(bool needsSync)
 
 bool Window::updateSize(IG::Point2D<int> surfaceSize)
 {
-	if(orientationIsSideways(softOrientation_))
+	if(isSideways(softOrientation_))
 		std::swap(surfaceSize.x, surfaceSize.y);
 	auto oldSize = std::exchange(winSizePixels, surfaceSize);
 	if(oldSize == winSizePixels)
@@ -420,7 +419,7 @@ bool Window::updateSize(IG::Point2D<int> surfaceSize)
 bool Window::updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<float> surfaceSizeSMM)
 {
 	bool changed = false;
-	if(orientationIsSideways(softOrientation_))
+	if(isSideways(softOrientation_))
 		std::swap(surfaceSizeMM.x, surfaceSizeMM.y);
 	auto oldSizeMM = std::exchange(winSizeMM, surfaceSizeMM);
 	if(oldSizeMM != winSizeMM)
@@ -430,14 +429,14 @@ bool Window::updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<fl
 	if constexpr(Config::envIsAndroid)
 	{
 		assert(surfaceSizeSMM.x && surfaceSizeSMM.y);
-		if(orientationIsSideways(softOrientation_))
+		if(isSideways(softOrientation_))
 			std::swap(surfaceSizeSMM.x, surfaceSizeSMM.y);
 		auto oldSizeSMM = std::exchange(winSizeSMM, surfaceSizeSMM);
 		if(oldSizeSMM != sizeScaledMM())
 			changed = true;
 		smmToPixelScaler = pixelSizeFloat / sizeScaledMM();
 	}
-	if(softOrientation_ == VIEW_ROTATE_0)
+	if(softOrientation_ == Rotation::UP)
 	{
 		logMsg("updated window size:%dx%d (%.2fx%.2fmm, scaled %.2fx%.2fmm)",
 			width(), height(), sizeMM().x, sizeMM().y, sizeScaledMM().x, sizeScaledMM().y);
@@ -465,37 +464,25 @@ bool Window::updatePhysicalSizeWithCurrentSize()
 }
 
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
-bool Window::setValidOrientations(Orientation oMask)
+bool Window::setValidOrientations(OrientationMask oMask)
 {
-	oMask = appContext().validateOrientationMask(oMask);
-	validSoftOrientations_ = oMask;
-	if(validSoftOrientations_ & setSoftOrientation)
-		return requestOrientationChange(setSoftOrientation);
-	if(!(validSoftOrientations_ & softOrientation_))
-	{
-		if(validSoftOrientations_ & VIEW_ROTATE_0)
-			return requestOrientationChange(VIEW_ROTATE_0);
-		else if(validSoftOrientations_ & VIEW_ROTATE_90)
-			return requestOrientationChange(VIEW_ROTATE_90);
-		else if(validSoftOrientations_ & VIEW_ROTATE_180)
-			return requestOrientationChange(VIEW_ROTATE_180);
-		else if(validSoftOrientations_ & VIEW_ROTATE_270)
-			return requestOrientationChange(VIEW_ROTATE_270);
-		else
-		{
-			bug_unreachable("bad orientation mask: 0x%X", oMask);
-		}
-	}
-	return false;
+	if(std::to_underlying(oMask & OrientationMask::PORTRAIT_BIT))
+		return requestOrientationChange(Rotation::UP);
+	else if(std::to_underlying(oMask & OrientationMask::LANDSCAPE_RIGHT_BIT))
+		return requestOrientationChange(Rotation::RIGHT);
+	else if(std::to_underlying(oMask & OrientationMask::PORTRAIT_UPSIDE_DOWN_BIT))
+		return requestOrientationChange(Rotation::DOWN);
+	else if(std::to_underlying(oMask & OrientationMask::LANDSCAPE_LEFT_BIT))
+		return requestOrientationChange(Rotation::LEFT);
+	else
+		return requestOrientationChange(Rotation::UP);
 }
 
-bool Window::requestOrientationChange(Orientation o)
+bool Window::requestOrientationChange(Rotation o)
 {
-	assert(o == VIEW_ROTATE_0 || o == VIEW_ROTATE_90 || o == VIEW_ROTATE_180 || o == VIEW_ROTATE_270);
-	setSoftOrientation = o;
-	if((validSoftOrientations_ & o) && softOrientation_ != o)
+	if(softOrientation_ != o)
 	{
-		logMsg("setting orientation %s", orientationToStr(o));
+		logMsg("setting orientation %s", wise_enum::to_string(o).data());
 		int savedRealWidth = realWidth();
 		int savedRealHeight = realHeight();
 		softOrientation_ = o;
@@ -509,14 +496,9 @@ bool Window::requestOrientationChange(Orientation o)
 }
 #endif
 
-Orientation Window::softOrientation() const
+Rotation Window::softOrientation() const
 {
 	return softOrientation_;
-}
-
-Orientation Window::validSoftOrientations() const
-{
-	return validSoftOrientations_;
 }
 
 void Window::dismiss()
@@ -526,9 +508,9 @@ void Window::dismiss()
 	application().moveOutWindow(*this);
 }
 
-int Window::realWidth() const { return orientationIsSideways(softOrientation()) ? height() : width(); }
+int Window::realWidth() const { return isSideways(softOrientation()) ? height() : width(); }
 
-int Window::realHeight() const { return orientationIsSideways(softOrientation()) ? width() : height(); }
+int Window::realHeight() const { return isSideways(softOrientation()) ? width() : height(); }
 
 int Window::width() const { return winSizePixels.x; }
 
@@ -603,9 +585,9 @@ IG::WindowRect Window::bounds() const
 IG::Point2D<int> Window::transformInputPos(IG::Point2D<int> srcPos) const
 {
 	enum class PointerMode {NORMAL, INVERT};
-	const auto xPointerTransform = softOrientation() == VIEW_ROTATE_0 || softOrientation() == VIEW_ROTATE_90 ? PointerMode::NORMAL : PointerMode::INVERT;
-	const auto yPointerTransform = softOrientation() == VIEW_ROTATE_0 || softOrientation() == VIEW_ROTATE_270 ? PointerMode::NORMAL : PointerMode::INVERT;
-	const auto pointerAxis = softOrientation() == VIEW_ROTATE_0 || softOrientation() == VIEW_ROTATE_180 ? PointerMode::NORMAL : PointerMode::INVERT;
+	const auto xPointerTransform = softOrientation() == Rotation::UP || softOrientation() == Rotation::RIGHT ? PointerMode::NORMAL : PointerMode::INVERT;
+	const auto yPointerTransform = softOrientation() == Rotation::UP || softOrientation() == Rotation::LEFT ? PointerMode::NORMAL : PointerMode::INVERT;
+	const auto pointerAxis = softOrientation() == Rotation::UP || softOrientation() == Rotation::DOWN ? PointerMode::NORMAL : PointerMode::INVERT;
 
 	IG::Point2D<int> pos;
 	// x,y axis is swapped first

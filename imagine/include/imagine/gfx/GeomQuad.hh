@@ -1,6 +1,7 @@
 #pragma once
 
 #include <imagine/config/defs.hh>
+#include <imagine/base/baseDefs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Vertex.hh>
 #include <imagine/util/rectangle2.h>
@@ -13,12 +14,38 @@ class RendererCommands;
 class ProjectionPlane;
 
 template<class Vtx>
-static constexpr auto mapQuadUV(std::array<Vtx, 4> v, FRect rect)
+static constexpr auto mapQuadUV(std::array<Vtx, 4> v, FRect rect, Rotation r = Rotation::UP)
 {
-	v[0].u = rect.x;  v[0].v = rect.y2; //BL
-	v[1].u = rect.x;  v[1].v = rect.y;  //TL
-	v[2].u = rect.x2; v[2].v = rect.y2; //BR
-	v[3].u = rect.x2; v[3].v = rect.y;  //TR
+	bool rotate = false;
+	if(r == Rotation::DOWN)
+	{
+		std::swap(rect.x, rect.x2);
+		std::swap(rect.y, rect.y2);
+	}
+	else if(r == Rotation::RIGHT)
+	{
+		rotate = true;
+	}
+	else if(r == Rotation::LEFT)
+	{
+		std::swap(rect.x, rect.x2);
+		std::swap(rect.y, rect.y2);
+		rotate = true;
+	}
+	if(rotate)
+	{
+		v[0].u = rect.x;  v[0].v = rect.y;  //BL
+		v[1].u = rect.x2; v[1].v = rect.y;  //TL
+		v[2].u = rect.x;  v[2].v = rect.y2; //BR
+		v[3].u = rect.x2; v[3].v = rect.y2; //TR
+	}
+	else
+	{
+		v[0].u = rect.x;  v[0].v = rect.y2; //BL
+		v[1].u = rect.x;  v[1].v = rect.y;  //TL
+		v[2].u = rect.x2; v[2].v = rect.y2; //BR
+		v[3].u = rect.x2; v[3].v = rect.y;  //TR
+	}
 	return v;
 }
 
@@ -82,7 +109,7 @@ public:
 	void setPos(IG::WindowRect b, ProjectionPlane proj);
 	void setPosRel(float x, float y, float xSize, float ySize);
 
-	constexpr void setUV(FRect rect)
+	constexpr void setUV(FRect rect, Rotation r = Rotation::UP)
 	{
 		if constexpr(!Vtx::hasTexture)
 		{
@@ -90,7 +117,7 @@ public:
 		}
 		else
 		{
-			v = mapQuadUV(v, rect);
+			v = mapQuadUV(v, rect, r);
 		}
 	}
 

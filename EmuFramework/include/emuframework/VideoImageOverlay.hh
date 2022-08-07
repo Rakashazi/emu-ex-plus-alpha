@@ -42,7 +42,7 @@ public:
 	constexpr	VideoImageOverlay() = default;
 	void setEffect(Gfx::Renderer &, ImageOverlayId);
 	void setIntensity(float intensity);
-	void place(const Gfx::Sprite &disp, int lines);
+	void place(const Gfx::Sprite &, int lines, IG::Rotation);
 	void draw(Gfx::RendererCommands &cmds);
 
 private:

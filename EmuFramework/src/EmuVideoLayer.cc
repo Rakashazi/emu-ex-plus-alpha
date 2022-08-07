@@ -39,11 +39,14 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 	{
 		float viewportAspectRatio = displayRect.xSize()/(float)displayRect.ySize();
 		auto zoom = zoom_;
+		auto contentSize = video.size();
+		if(isSideways(rotation))
+			std::swap(contentSize.x, contentSize.y);
 		// compute the video rectangle in pixel coordinates
 		if((zoom == optionImageZoomIntegerOnly || zoom == optionImageZoomIntegerOnlyY)
-			&& video.size().x)
+			&& contentSize.x)
 		{
-			int gameX = video.size().x, gameY = video.size().y;
+			int gameX = contentSize.x, gameY = contentSize.y;
 
 			// Halve pixel sizes if image has mixed low/high-res content so scaling is based on lower res,
 			// this prevents jumping between two screen sizes in games like Seiken Densetsu 3 on SNES
@@ -102,6 +105,8 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 			{
 				aR *= sys.videoAspectRatioScale();
 			}
+			if(isSideways(rotation))
+				aR = 1. / aR;
 			if(zoom == optionImageZoomIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height
@@ -276,7 +281,7 @@ void EmuVideoLayer::setOverlayIntensity(float intensity)
 
 void EmuVideoLayer::placeOverlay()
 {
-	vidImgOverlay.place(disp, video.size().y);
+	vidImgOverlay.place(disp, video.size().y, rotation);
 }
 
 void EmuVideoLayer::setEffectFormat(IG::PixelFormat fmt)
@@ -329,6 +334,13 @@ void EmuVideoLayer::onVideoFormatChanged(IG::PixelFormat effectFmt)
 		updateSprite();
 	}
 	setOverlay(userOverlayEffectId);
+}
+
+void EmuVideoLayer::setRotation(IG::Rotation r)
+{
+	rotation = r;
+	disp.setUVBounds({{0.f, 0.f}, {1.f, 1.f}}, r);
+	placeOverlay();
 }
 
 Gfx::Renderer &EmuVideoLayer::renderer()
@@ -385,12 +397,12 @@ void EmuVideoLayer::updateSprite()
 {
 	if(effects.size())
 	{
-		disp.setImg(effects.back()->renderTarget());
+		disp.setImg(effects.back()->renderTarget(), rotation);
 		video.setCompatTextureSampler(renderer().make(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP));
 	}
 	else
 	{
-		disp.setImg(video.image());
+		disp.setImg(video.image(), rotation);
 		video.setCompatTextureSampler(*texSampler);
 	}
 	disp.compileDefaultProgramOneShot(Gfx::EnvMode::REPLACE);

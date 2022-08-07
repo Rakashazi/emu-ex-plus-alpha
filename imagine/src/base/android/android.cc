@@ -495,8 +495,19 @@ SurfaceRotation AndroidApplication::currentRotation() const
 void AndroidApplication::setCurrentRotation(ApplicationContext ctx, SurfaceRotation rotation, bool notify)
 {
 	auto oldRotation = std::exchange(osRotation, rotation);
+	auto asRotation = [](SurfaceRotation r)
+	{
+		switch(r)
+		{
+			case SURFACE_ROTATION_0: return Rotation::UP;
+			case SURFACE_ROTATION_90: return Rotation::RIGHT;
+			case SURFACE_ROTATION_180: return Rotation::DOWN;
+			case SURFACE_ROTATION_270: return Rotation::LEFT;
+		}
+		bug_unreachable("SurfaceRotation == %d", r);
+	};
 	if(notify && onSystemOrientationChanged)
-		onSystemOrientationChanged(ctx, oldRotation, rotation);
+		onSystemOrientationChanged(ctx, asRotation(oldRotation), asRotation(rotation));
 }
 
 SurfaceRotation AndroidApplication::mainDisplayRotation(JNIEnv *env, jobject baseActivity) const

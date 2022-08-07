@@ -29,22 +29,24 @@ class Viewport
 {
 public:
 	constexpr Viewport() = default;
-	constexpr Viewport(WRect originRect, WRect rect, Orientation softOrientation = VIEW_ROTATE_0):
-		originRect{originRect}, rect{rect}, softOrientation_{softOrientation} {}
-	constexpr Viewport(WRect rect, Orientation softOrientation = VIEW_ROTATE_0):
+	constexpr Viewport(WRect originRect, WRect rect, Rotation softOrientation = Rotation::UP):
+		originRect{originRect}, rect{rect}, softRotation_{softOrientation} {}
+	constexpr Viewport(WRect rect, Rotation softOrientation = Rotation::UP):
 		Viewport{rect, rect, softOrientation} {}
 	constexpr Viewport(WP size):
 		Viewport{{{}, size}} {}
-	constexpr WRect realBounds() const { return orientationIsSideways(softOrientation_) ? bounds().makeInverted() : bounds(); }
+	constexpr WRect realBounds() const { return isSideways() ? bounds().makeInverted() : bounds(); }
 	constexpr WRect bounds() const { return rect; }
+	constexpr WRect realOriginBounds() const { return isSideways() ? originBounds().makeInverted() : originBounds(); }
 	constexpr WRect originBounds() const { return originRect; }
-	constexpr int realWidth() const { return orientationIsSideways(softOrientation_) ? height() : width(); }
-	constexpr int realHeight() const { return orientationIsSideways(softOrientation_) ? width() : height(); }
+	constexpr int realWidth() const { return isSideways() ? height() : width(); }
+	constexpr int realHeight() const { return isSideways() ? width() : height(); }
 	constexpr int width() const { return rect.xSize(); }
 	constexpr int height() const { return rect.ySize(); }
 	constexpr float aspectRatio() const { return (float)width() / (float)height(); }
 	constexpr float realAspectRatio() const { return (float)realWidth() / (float)realHeight(); }
 	constexpr bool isPortrait() const { return width() < height(); }
+	constexpr bool isSideways() const { return IG::isSideways(softRotation_); }
 	constexpr bool operator==(Viewport const &) const = default;
 	WRect relRect(WP pos, WP size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
 	WRect relRectBestFit(WP pos, float aspectRatio, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
@@ -52,8 +54,8 @@ public:
 private:
 	WRect originRect{};
 	WRect rect{};
-	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation,
-		VIEW_ROTATE_0, softOrientation_){VIEW_ROTATE_0};
+	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Rotation,
+		Rotation::UP, softRotation_){Rotation::UP};
 };
 
 }

@@ -78,15 +78,6 @@ constexpr bool isValidSoundRate(uint32_t rate)
 	return false;
 }
 
-constexpr bool optionOrientationIsValid(uint8_t val)
-{
-	return val == IG::VIEW_ROTATE_AUTO ||
-		val == IG::VIEW_ROTATE_0 ||
-		val == IG::VIEW_ROTATE_90 ||
-		val == IG::VIEW_ROTATE_180 ||
-		val == IG::VIEW_ROTATE_270;
-}
-
 constexpr bool optionAspectRatioIsValid(double val)
 {
 	return val == 0. || (val >= 0.1 && val <= 10.);
@@ -172,12 +163,8 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionHideOSNav{CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid},
 	optionHideStatusBar{CFGKEY_HIDE_STATUS_BAR, 1, !Config::envIsAndroid && !Config::envIsIOS},
 	optionNotifyInputDeviceChange{CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Config::Input::DEVICE_HOTSWAP, !Config::Input::DEVICE_HOTSWAP},
-	optionEmuOrientation{CFGKEY_GAME_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS) ? IG::VIEW_ROTATE_AUTO : IG::VIEW_ROTATE_0,
-		false, optionOrientationIsValid},
-	optionMenuOrientation{CFGKEY_MENU_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS) ? IG::VIEW_ROTATE_AUTO : IG::VIEW_ROTATE_0,
-		false, optionOrientationIsValid},
+	optionEmuOrientation{CFGKEY_GAME_ORIENTATION, 0, false, optionIsValidWithMax<std::to_underlying(IG::OrientationMask::ALL_BITS)>},
+	optionMenuOrientation{CFGKEY_MENU_ORIENTATION, 0, false, optionIsValidWithMax<std::to_underlying(IG::OrientationMask::ALL_BITS)>},
 	optionShowBundledGames{CFGKEY_SHOW_BUNDLED_GAMES, 1},
 	optionKeepBluetoothActive{CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0},
 	optionShowBluetoothScan{CFGKEY_SHOW_BLUETOOTH_SCAN, 1},
@@ -602,7 +589,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			auto &winData = win.makeAppData<MainWindowData>(viewAttach, vController, emuVideoLayer, system());
 			winData.updateWindowViewport(win, makeViewport(win));
 			win.setAcceptDnd(true);
-			renderer.setWindowValidOrientations(win, optionMenuOrientation);
+			renderer.setWindowValidOrientations(win, menuOrientation());
 			updateInputDevices(ctx);
 			vController.configure(win, renderer, viewManager.defaultFace());
 			vController.setMenuImage(asset(AssetID::MENU));
@@ -1084,6 +1071,7 @@ void EmuApp::reloadSystem(EmuSystemCreateParams params)
 void EmuApp::onSystemCreated()
 {
 	prepareAudio();
+	updateContentRotation();
 	viewController().onSystemCreated();
 }
 
@@ -1138,14 +1126,13 @@ void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view
 	auto &msgPort = loadProgressView->messagePort();
 	pushAndShowModalView(std::move(loadProgressView), e);
 	auto ctx = attachParams.window().appContext();
-	auto &sys = system();
 	IG::makeDetachedThread(
-		[&sys, ctx, io{std::move(io)}, pathStr = FS::PathString{path}, nameStr = FS::FileString{displayName}, &msgPort, params]() mutable
+		[this, io{std::move(io)}, pathStr = FS::PathString{path}, nameStr = FS::FileString{displayName}, &msgPort, params]() mutable
 		{
 			logMsg("starting loader thread");
 			try
 			{
-				sys.createWithMedia(std::move(io), pathStr, nameStr, params,
+				system().createWithMedia(std::move(io), pathStr, nameStr, params,
 					[&msgPort](int pos, int max, const char *label)
 					{
 						int len = label ? std::string_view{label}.size() : -1;
@@ -1165,7 +1152,7 @@ void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view
 			}
 			catch(std::exception &err)
 			{
-				sys.clearGamePaths();
+				system().clearGamePaths();
 				std::string_view errStr{err.what()};
 				int len = errStr.size();
 				assert(len);

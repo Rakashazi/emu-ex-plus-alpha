@@ -284,6 +284,22 @@ bool EmuApp::setViewportZoom(uint8_t val)
 	return true;
 }
 
+void EmuApp::setContentRotation(IG::Rotation r)
+{
+	contentRotation_ = r;
+	updateContentRotation();
+	viewController().placeEmuViews();
+	viewController().postDrawToEmuWindows();
+}
+
+void EmuApp::updateContentRotation()
+{
+	if(contentRotation_ == Rotation::ANY)
+		emuVideoLayer.setRotation(system().contentRotation());
+	else
+		emuVideoLayer.setRotation(contentRotation_);
+}
+
 bool EmuApp::setOverlayEffectLevel(EmuVideoLayer &videoLayer, uint8_t val)
 {
 	if(!optionOverlayEffectLevel.isValidVal(val))
@@ -342,17 +358,17 @@ void EmuApp::setHideStatusBarMode(Tristate mode)
 	applyOSNavStyle(appContext(), false);
 }
 
-void EmuApp::setEmuOrientation(Orientation o)
+void EmuApp::setEmuOrientation(OrientationMask o)
 {
-	optionEmuOrientation = o;
-	logMsg("set game orientation: %s", orientationToStr(int(optionEmuOrientation)));
+	optionEmuOrientation = std::to_underlying(o);
+	logMsg("set game orientation: %s", asString(o).data());
 }
 
-void EmuApp::setMenuOrientation(Orientation o)
+void EmuApp::setMenuOrientation(OrientationMask o)
 {
-	optionMenuOrientation = o;
-	renderer.setWindowValidOrientations(appContext().mainWindow(), optionMenuOrientation);
-	logMsg("set menu orientation: %s", IG::orientationToStr(int(optionMenuOrientation)));
+	optionMenuOrientation = std::to_underlying(o);
+	renderer.setWindowValidOrientations(appContext().mainWindow(), o);
+	logMsg("set menu orientation: %s", asString(o).data());
 }
 
 void EmuApp::setShowsBundledGames(bool on)

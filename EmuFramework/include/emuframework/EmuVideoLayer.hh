@@ -50,6 +50,7 @@ public:
 	bool srgbColorSpace() const { return colSpace == Gfx::ColorSpace::SRGB; }
 	void setZoom(uint8_t val) { zoom_ = val; }
 	auto zoom() const { return zoom_; }
+	void setRotation(IG::Rotation);
 
 	const IG::WindowRect &gameRect() const
 	{
@@ -72,6 +73,7 @@ private:
 	ImageOverlayId userOverlayEffectId{};
 	Gfx::ColorSpace colSpace{};
 	uint8_t zoom_{100};
+	IG::Rotation rotation{};
 
 	void placeOverlay();
 	void updateEffectImageSize();

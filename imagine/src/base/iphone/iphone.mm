@@ -352,14 +352,14 @@ bool ApplicationContext::hasTranslucentSysUI() const
 	return hasAtLeastIOS7();
 }
 
-UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint32_t orientation)
+UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(Rotation orientation)
 {
 	switch(orientation)
 	{
 		default: return UIInterfaceOrientationPortrait;
-		case VIEW_ROTATE_270: return UIInterfaceOrientationLandscapeLeft;
-		case VIEW_ROTATE_90: return UIInterfaceOrientationLandscapeRight;
-		case VIEW_ROTATE_180: return UIInterfaceOrientationPortraitUpsideDown;
+		case Rotation::LEFT: return UIInterfaceOrientationLandscapeLeft;
+		case Rotation::RIGHT: return UIInterfaceOrientationLandscapeRight;
+		case Rotation::DOWN: return UIInterfaceOrientationPortraitUpsideDown;
 	}
 }
 
@@ -407,7 +407,7 @@ void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedD
 
 }
 
-void ApplicationContext::setSystemOrientation(Orientation o)
+void ApplicationContext::setSystemOrientation(Rotation o)
 {
 	logMsg("setting system orientation %s", orientationToStr(o));
 	auto sharedApp = uiApp();

@@ -33,16 +33,17 @@
 namespace IG::Gfx
 {
 
-float orientationRadians(Orientation o)
+float rotationRadians(Rotation r)
 {
-	switch(o)
+	switch(r)
 	{
-		case VIEW_ROTATE_0: return radians(0.);
-		case VIEW_ROTATE_90: return radians(-90.);
-		case VIEW_ROTATE_180: return radians(-180.);
-		case VIEW_ROTATE_270: return radians(90.);
-		default: bug_unreachable("o == %d", o);
+		case Rotation::ANY:
+		case Rotation::UP: return radians(0.);
+		case Rotation::RIGHT: return radians(-90.);
+		case Rotation::DOWN: return radians(-180.);
+		case Rotation::LEFT: return radians(90.);
 	}
+	bug_unreachable("Rotation == %d", std::to_underlying(r));
 }
 
 static void printFeatures(DrawContextSupport support)
@@ -669,25 +670,15 @@ RendererTask &Renderer::task()
 	return mainTask;
 }
 
-static void updateSensorStateForWindowOrientations(Window &win)
-{
-	// activate orientation sensor if doing rotation in software and the main window
-	// has multiple valid orientations
-	if(Config::SYSTEM_ROTATES_WINDOWS || !win.isMainWindow())
-		return;
-	win.appContext().setDeviceOrientationChangeSensor(std::popcount(win.validSoftOrientations()) > 1);
-}
-
-void Renderer::setWindowValidOrientations(Window &win, Orientation validO)
+void Renderer::setWindowValidOrientations(Window &win, OrientationMask validO)
 {
 	if(!win.isMainWindow())
 		return;
 	auto oldWinO = win.softOrientation();
 	if(win.setValidOrientations(validO) && !Config::SYSTEM_ROTATES_WINDOWS)
 	{
-		animateProjectionMatrixRotation(win, orientationRadians(oldWinO), orientationRadians(win.softOrientation()));
+		animateProjectionMatrixRotation(win, rotationRadians(oldWinO), rotationRadians(win.softOrientation()));
 	}
-	updateSensorStateForWindowOrientations(win);
 }
 
 void GLRenderer::addEventHandlers(ApplicationContext ctx, RendererTask &task)
