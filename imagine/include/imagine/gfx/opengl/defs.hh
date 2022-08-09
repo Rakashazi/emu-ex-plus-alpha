@@ -17,12 +17,6 @@
 
 #include <imagine/config/defs.hh>
 
-#if defined __APPLE__ && !defined __ARM_ARCH_6K__
-#define CONFIG_GFX_MATH_GLKIT
-#else
-#define CONFIG_GFX_MATH_GLM
-#endif
-
 namespace Config
 {
 	namespace Gfx

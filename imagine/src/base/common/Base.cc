@@ -49,14 +49,14 @@ std::string_view asString(OrientationMask o)
 	switch(o)
 	{
 		case UNSET: return "Unset";
-		case PORTRAIT_BIT: return "Portrait";
-		case LANDSCAPE_RIGHT_BIT: return "Landscape Right";
-		case PORTRAIT_UPSIDE_DOWN_BIT: return "Portrait Upside-Down";
-		case LANDSCAPE_LEFT_BIT: return "Landscape Left";
-		case ALL_LANDSCAPE_BITS: return "Either Landscape";
-		case ALL_PORTRAIT_BITS: return "Either Portrait";
-		case ALL_BUT_UPSIDE_DOWN_BITS: return "All But Upside-Down";
-		case ALL_BITS: return "All";
+		case PORTRAIT: return "Portrait";
+		case LANDSCAPE_RIGHT: return "Landscape Right";
+		case PORTRAIT_UPSIDE_DOWN: return "Portrait Upside-Down";
+		case LANDSCAPE_LEFT: return "Landscape Left";
+		case ALL_LANDSCAPE: return "Either Landscape";
+		case ALL_PORTRAIT: return "Either Portrait";
+		case ALL_BUT_UPSIDE_DOWN: return "All But Upside-Down";
+		case ALL: return "All";
 	}
 	return "Unknown";
 }
@@ -95,9 +95,9 @@ void *loadSymbol(SharedLibraryRef lib, const char *name)
 	return dlsym(lib, name);
 }
 
-GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec)
+GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config)
 {
-	return makeContext(attr, config, {}, ec);
+	return makeContext(attr, config, {});
 }
 
 void GLManager::resetCurrentContext() const
@@ -179,17 +179,6 @@ WRect Viewport::relRectBestFit(WP pos, float aspectRatio, _2DOrigin posOrigin, _
 {
 	auto size = sizesWithRatioBestFit(aspectRatio, width(), height());
 	return relRect(pos, size, posOrigin, screenOrigin);
-}
-
-}
-
-namespace __gnu_cxx
-{
-
-void __verbose_terminate_handler()
-{
-	logErr("terminated by uncaught exception");
-  abort();
 }
 
 }

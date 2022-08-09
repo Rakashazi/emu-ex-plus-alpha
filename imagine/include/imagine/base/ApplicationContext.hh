@@ -88,7 +88,7 @@ public:
 	T &initApplication(auto &&... args)
 	{
 		auto appStoragePtr = ::operator new(sizeof(T)); // allocate the storage
-		setApplicationPtr((Application*)appStoragePtr); // point the context to the storage
+		setApplicationPtr((T*)appStoragePtr); // point the context to the storage
 		return *(new(appStoragePtr) T(IG_forward(args)...)); // construct the application with the storage
 	}
 
@@ -163,7 +163,7 @@ public:
 	FS::PathLocation sharedStoragePathLocation() const;
 	std::vector<FS::PathLocation> rootFileLocations() const;
 	FS::RootPathInfo rootPathInfo(std::string_view path) const;
-	AssetIO openAsset(CStringView name, IOAccessHint access, FileOpenFlags oFlags = {}, const char *appName = applicationName) const;
+	AssetIO openAsset(CStringView name, IOAccessHint access, OpenFlagsMask oFlags = {}, const char *appName = applicationName) const;
 	FS::AssetDirectoryIterator openAssetDirectory(IG::CStringView path, const char *appName = applicationName);
 
 	// path/file access using OS-specific URIs such as those in the Android Storage Access Framework,
@@ -173,9 +173,9 @@ public:
 	bool hasSystemDocumentPicker() const;
 	void showSystemDocumentPicker(SystemDocumentPickerDelegate);
 	void showSystemCreateDocumentPicker(SystemDocumentPickerDelegate);
-	FileIO openFileUri(CStringView uri, IOAccessHint, FileOpenFlags oFlags = {}) const;
-	FileIO openFileUri(CStringView uri, FileOpenFlags oFlags = {}) const;
-	UniqueFileDescriptor openFileUriFd(CStringView uri, FileOpenFlags oFlags = {}) const;
+	FileIO openFileUri(CStringView uri, IOAccessHint, OpenFlagsMask oFlags = {}) const;
+	FileIO openFileUri(CStringView uri, OpenFlagsMask oFlags = {}) const;
+	UniqueFileDescriptor openFileUriFd(CStringView uri, OpenFlagsMask oFlags = {}) const;
 	bool fileUriExists(IG::CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const;
 	FS::FileString fileUriDisplayName(IG::CStringView uri) const;

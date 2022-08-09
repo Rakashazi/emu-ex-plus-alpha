@@ -31,8 +31,6 @@ namespace IG
 
 class ApplicationContext;
 
-enum SurfaceRotation : uint8_t;
-
 using FrameTimerVariant = std::variant<NativeChoreographerFrameTimer, JavaChoreographerFrameTimer, SimpleFrameTimer>;
 
 class FrameTimer : public FrameTimerInterface<FrameTimerVariant>
@@ -51,7 +49,7 @@ public:
 		jobject metrics;
 		int id;
 		float refreshRate;
-		SurfaceRotation rotation;
+		Rotation rotation;
 	};
 
 	AndroidScreen(ApplicationContext, InitParams);

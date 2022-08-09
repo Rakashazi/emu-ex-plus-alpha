@@ -200,11 +200,11 @@ public:
 	GLDisplay getDefaultDisplay(NativeDisplayConnection) const;
 	std::optional<GLBufferConfig> makeBufferConfig(ApplicationContext, GLBufferConfigAttributes, GL::API, int majorVersion = 0) const;
 	NativeWindowFormat nativeWindowFormat(ApplicationContext, GLBufferConfig) const;
-	GLContext makeContext(GLContextAttributes, GLBufferConfig, NativeGLContext shareContext, IG::ErrorCode &);
-	GLContext makeContext(GLContextAttributes, GLBufferConfig, IG::ErrorCode &);
+	GLContext makeContext(GLContextAttributes, GLBufferConfig, NativeGLContext shareContext);
+	GLContext makeContext(GLContextAttributes, GLBufferConfig);
 	static NativeGLContext currentContext();
 	void resetCurrentContext() const;
-	GLDrawable makeDrawable(Window &, GLDrawableAttributes, IG::ErrorCode &) const;
+	GLDrawable makeDrawable(Window &, GLDrawableAttributes) const;
 	static bool hasCurrentDrawable(NativeGLDrawable);
 	static bool hasCurrentDrawable();
 	static void *procAddress(const char *funcName);

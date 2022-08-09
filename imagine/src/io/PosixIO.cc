@@ -37,13 +37,13 @@ template class IOUtils<PosixIO>;
 constexpr int MAP_POPULATE = 0;
 #endif
 
-static auto flagsString(FileOpenFlags openFlags)
+static auto flagsString(OpenFlagsMask openFlags)
 {
 	IG::StaticString<5> logFlagsStr{};
-	if(openFlags & FILE_READ_BIT) logFlagsStr += 'r';
-	if(openFlags & FILE_WRITE_BIT) logFlagsStr += 'w';
-	if(openFlags & FILE_CREATE_BIT) logFlagsStr += 'c';
-	if(openFlags & FILE_TRUNCATE_BIT) logFlagsStr += 't';
+	if(to_underlying(openFlags & OpenFlagsMask::READ)) logFlagsStr += 'r';
+	if(to_underlying(openFlags & OpenFlagsMask::WRITE)) logFlagsStr += 'w';
+	if(to_underlying(openFlags & OpenFlagsMask::CREATE)) logFlagsStr += 'c';
+	if(to_underlying(openFlags & OpenFlagsMask::TRUNCATE)) logFlagsStr += 't';
 	return logFlagsStr;
 }
 
@@ -55,19 +55,16 @@ static auto protectionFlagsString(int flags)
 	return logFlagsStr;
 }
 
-PosixIO::PosixIO(IG::CStringView path, OpenFlags openFlags)
+PosixIO::PosixIO(IG::CStringView path, OpenFlagsMask openFlags)
 {
-	// validate flags
-	assert(openFlags < IG::bit(FILE_OPEN_FLAGS_BITS+1));
-
 	constexpr mode_t defaultOpenMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 	int flags = 0;
 	mode_t openMode{};
 
 	// setup flags
-	if(openFlags & FILE_WRITE_BIT)
+	if(to_underlying(openFlags & OpenFlagsMask::WRITE))
 	{
-		if(openFlags & FILE_READ_BIT)
+		if(to_underlying(openFlags & OpenFlagsMask::READ))
 		{
 			flags |= O_RDWR;
 		}
@@ -80,11 +77,11 @@ PosixIO::PosixIO(IG::CStringView path, OpenFlags openFlags)
 	{
 		flags |= O_RDONLY;
 	}
-	if(openFlags & FILE_CREATE_BIT)
+	if(to_underlying(openFlags & OpenFlagsMask::CREATE))
 	{
 		flags |= O_CREAT;
 		openMode = defaultOpenMode;
-		if(openFlags & FILE_TRUNCATE_BIT)
+		if(to_underlying(openFlags & OpenFlagsMask::TRUNCATE))
 		{
 			flags |= O_TRUNC;
 		}
@@ -94,7 +91,7 @@ PosixIO::PosixIO(IG::CStringView path, OpenFlags openFlags)
 	{
 		if constexpr(Config::DEBUG_BUILD)
 			logErr("error opening file (%s) @ %s:%s", flagsString(openFlags).data(), path.data(), strerror(errno));
-		if(openFlags & FILE_TEST_BIT)
+		if(to_underlying(openFlags & OpenFlagsMask::TEST))
 			return;
 		else
 			throw std::system_error{errno, std::system_category(), path};

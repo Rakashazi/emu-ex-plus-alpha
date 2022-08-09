@@ -81,17 +81,6 @@ AndroidApplication::AndroidApplication(ApplicationInitParams initParams):
 	}
 }
 
-void AndroidApplicationContext::setApplicationPtr(Application *appPtr)
-{
-	act->instance = appPtr;
-}
-
-Application &AndroidApplicationContext::application() const
-{
-	assert(act->instance);
-	return *static_cast<Application*>(act->instance);
-}
-
 IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat)
 {
 	switch(androidFormat)
@@ -190,18 +179,29 @@ FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
 	return {path, "Storage Media", "Media"};
 }
 
+FS::PathString AndroidApplication::externalMediaPath(JNIEnv *env, jobject baseActivity) const
+{
+	JNI::InstMethod<jstring()> extMediaDir{env, baseActivity, "extMediaDir", "()Ljava/lang/String;"};
+	return FS::PathString{JNI::StringChars{env, extMediaDir(env, baseActivity)}};
+}
+
+FS::PathLocation AndroidApplicationContext::externalMediaPathLocation() const
+{
+	auto path = application().externalMediaPath(thisThreadJniEnv(), baseActivityObject());
+	return {path, "App Media Folder", "Media"};
+}
+
 std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
 {
 	if(androidSDK() >= 30)
 	{
-		return {}; // only use scoped storage on Android 11+ so no file paths are useful
+		// When using scoped storage on Android 11+, provide the app's media directory since it's
+		// the only file location that's globally readable/writable
+		return {externalMediaPathLocation()};
 	}
 	if(androidSDK() < 14)
 	{
-		return
-			{
-				sharedStoragePathLocation(),
-			};
+		return {sharedStoragePathLocation()};
 	}
 	else if(androidSDK() < 24)
 	{
@@ -255,14 +255,14 @@ FS::PathString ApplicationContext::libPath(const char *) const
 	return {};
 }
 
-UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject baseActivity, CStringView uri, FileOpenFlags openFlags) const
+UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject baseActivity, CStringView uri, OpenFlagsMask openFlags) const
 {
-	int fd = openUriFd(env, baseActivity, env->NewStringUTF(uri), openFlags);
+	int fd = openUriFd(env, baseActivity, env->NewStringUTF(uri), (jint)openFlags);
 	if(fd == -1)
 	{
 		if constexpr(Config::DEBUG_BUILD)
 			logErr("error opening URI:%s", uri.data());
-		if(openFlags & FILE_TEST_BIT)
+		if(to_underlying(openFlags & OpenFlagsMask::TEST))
 			return -1;
 		else
 			throw std::system_error{ENOENT, std::system_category(), uri};
@@ -271,14 +271,14 @@ UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject base
 	return fd;
 }
 
-FileIO ApplicationContext::openFileUri(CStringView uri, IOAccessHint access, FileOpenFlags openFlags) const
+FileIO ApplicationContext::openFileUri(CStringView uri, IOAccessHint access, OpenFlagsMask openFlags) const
 {
 	if(androidSDK() < 19 || !IG::isUri(uri))
 		return {uri, access, openFlags};
 	return {application().openFileUriFd(thisThreadJniEnv(), baseActivityObject(), uri, openFlags), access, openFlags};
 }
 
-UniqueFileDescriptor ApplicationContext::openFileUriFd(CStringView uri, FileOpenFlags openFlags) const
+UniqueFileDescriptor ApplicationContext::openFileUriFd(CStringView uri, OpenFlagsMask openFlags) const
 {
 	if(androidSDK() < 19 || !IG::isUri(uri))
 		return PosixIO{uri, openFlags}.releaseFd();
@@ -410,7 +410,7 @@ static jstring permissionToJString(JNIEnv *env, Permission p)
 
 bool ApplicationContext::usesPermission(Permission p) const
 {
-	if(androidSDK() < 23)
+	if(androidSDK() < 23 || androidSDK() >= 30)
 		return false;
 	return true;
 }
@@ -487,32 +487,26 @@ void AndroidApplication::setRequestedOrientation(JNIEnv *env, jobject baseActivi
 	jSetRequestedOrientation(env, baseActivity, orientation);
 }
 
-SurfaceRotation AndroidApplication::currentRotation() const
+Rotation AndroidApplication::currentRotation() const
 {
 	return osRotation;
 }
 
-void AndroidApplication::setCurrentRotation(ApplicationContext ctx, SurfaceRotation rotation, bool notify)
+void AndroidApplication::setCurrentRotation(ApplicationContext ctx, Rotation rotation, bool notify)
 {
 	auto oldRotation = std::exchange(osRotation, rotation);
-	auto asRotation = [](SurfaceRotation r)
-	{
-		switch(r)
-		{
-			case SURFACE_ROTATION_0: return Rotation::UP;
-			case SURFACE_ROTATION_90: return Rotation::RIGHT;
-			case SURFACE_ROTATION_180: return Rotation::DOWN;
-			case SURFACE_ROTATION_270: return Rotation::LEFT;
-		}
-		bug_unreachable("SurfaceRotation == %d", r);
-	};
 	if(notify && onSystemOrientationChanged)
-		onSystemOrientationChanged(ctx, asRotation(oldRotation), asRotation(rotation));
+		onSystemOrientationChanged(ctx, oldRotation, rotation);
 }
 
-SurfaceRotation AndroidApplication::mainDisplayRotation(JNIEnv *env, jobject baseActivity) const
+Rotation AndroidApplication::mainDisplayRotation(JNIEnv *env, jobject baseActivity) const
 {
-	return (SurfaceRotation)jMainDisplayRotation(env, baseActivity);
+	// verify Surface.ROTATION_* maps to Rotation
+	static_assert(to_underlying(Rotation::UP) == 0);
+	static_assert(to_underlying(Rotation::RIGHT) == 1);
+	static_assert(to_underlying(Rotation::DOWN) == 2);
+	static_assert(to_underlying(Rotation::LEFT) == 3);
+	return (Rotation)jMainDisplayRotation(env, baseActivity);
 }
 
 jobject AndroidApplication::makeFontRenderer(JNIEnv *env, jobject baseActivity)
@@ -586,7 +580,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 					if(!screen)
 					{
 						app.addScreen(ctx, std::make_unique<Screen>(ctx,
-							Screen::InitParams{env, disp, metrics, id, refreshRate, (SurfaceRotation)rotation}), false);
+							Screen::InitParams{env, disp, metrics, id, refreshRate, (Rotation)rotation}), false);
 						return;
 					}
 					else

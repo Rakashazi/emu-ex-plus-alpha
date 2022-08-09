@@ -47,17 +47,6 @@ void releaseSurface(JNIEnv *env, jobject surface);
 uint32_t toAHardwareBufferFormat(IG::PixelFormatID);
 const char *aHardwareBufferFormatStr(uint32_t format);
 
-enum SurfaceRotation : uint8_t
-{
-	SURFACE_ROTATION_0 = 0, SURFACE_ROTATION_90 = 1,
-	SURFACE_ROTATION_180 = 2, SURFACE_ROTATION_270 = 3
-};
-
-static bool surfaceRotationIsStraight(SurfaceRotation o)
-{
-	return o == SURFACE_ROTATION_0 || o == SURFACE_ROTATION_180;
-}
-
 PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat);
 MutablePixmapView makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, PixelFormat format);
 

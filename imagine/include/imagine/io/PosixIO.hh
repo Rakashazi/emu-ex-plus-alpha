@@ -42,7 +42,7 @@ public:
 
 	constexpr PosixIO() = default;
 	PosixIO(UniqueFileDescriptor fd):fd_{std::move(fd)} {}
-	PosixIO(CStringView path, OpenFlags oFlags = {});
+	PosixIO(CStringView path, OpenFlagsMask oFlags = {});
 	UniqueFileDescriptor releaseFd();
 	int fd() const;
 	ssize_t read(void *buff, size_t bytes);

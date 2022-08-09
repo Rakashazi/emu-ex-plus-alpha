@@ -84,16 +84,6 @@ XApplication::~XApplication()
 	XCloseDisplay(dpy);
 }
 
-void XApplicationContext::setApplicationPtr(Application *appPtr_)
-{
-	appPtr = appPtr_;
-}
-
-Application &XApplicationContext::application() const
-{
-	return *static_cast<Application*>(appPtr);
-}
-
 static std::array<char, 2> charToStringArr(char c)
 {
 	return {c, '\0'};
@@ -304,7 +294,7 @@ FDEventSource XApplication::makeXDisplayConnection(EventLoop loop)
 		return {};
 	}
 	dpy = xDisplay;
-	ApplicationContext appCtx{*this};
+	ApplicationContext appCtx{static_cast<Application&>(*this)};
 	initXScreens(appCtx, xDisplay);
 	initInputSystem();
 	FDEventSource x11Src{"XServer", ConnectionNumber(xDisplay)};

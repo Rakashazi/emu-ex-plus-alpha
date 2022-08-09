@@ -52,7 +52,7 @@ public:
 	using BaseWindow::BaseWindow;
 	~IOSWindow();
 	#ifdef __OBJC__
-	void updateContentRect(int width, int height, uint32_t softOrientation);
+	void updateContentRect(int width, int height, Rotation softOrientation);
 	UIWindow *uiWin() const { return (__bridge UIWindow*)uiWin_; }
 	UIApplication *uiApp() const;
 	#endif

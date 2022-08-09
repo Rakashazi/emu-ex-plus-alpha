@@ -52,6 +52,7 @@ import android.content.pm.ShortcutInfo;
 import android.content.ContentResolver;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.File;
 import android.util.Log;
 import android.provider.DocumentsContract;
 
@@ -164,12 +165,23 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	{
 		return getCacheDir().getAbsolutePath();
 	}
-	
+
+	String extMediaDir()
+	{
+		File[] dirs = getExternalMediaDirs();
+		for(File d: dirs)
+		{
+			if(d != null)
+				return d.getAbsolutePath();
+		}
+		return "";
+	}
+
 	static String extStorageDir()
 	{
 		return Environment.getExternalStorageDirectory().getAbsolutePath();
 	}
-	
+
 	static String devName()
 	{
 		return android.os.Build.DEVICE;

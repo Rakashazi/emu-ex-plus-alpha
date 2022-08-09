@@ -56,11 +56,11 @@ public:
 		gbEmu.setStreamDelegates(
 			[ctx](std::string_view basePath, std::string_view filename) -> IG::IFStream
 			{
-				return {ctx.openFileUri(FS::uriString(basePath, filename), IOAccessHint::ALL, FILE_TEST_BIT)};
+				return {ctx.openFileUri(FS::uriString(basePath, filename), IOAccessHint::ALL, OpenFlagsMask::TEST)};
 			},
 			[ctx](std::string_view basePath, std::string_view filename) -> IG::OFStream
 			{
-				return {ctx.openFileUri(FS::uriString(basePath, filename), FILE_OPEN_NEW | FILE_TEST_BIT)};
+				return {ctx.openFileUri(FS::uriString(basePath, filename), OpenFlagsMask::NEW | OpenFlagsMask::TEST)};
 			});
 	}
 	void applyGBPalette();

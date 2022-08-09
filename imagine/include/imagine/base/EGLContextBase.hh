@@ -72,7 +72,7 @@ class EGLDrawable
 {
 public:
 	constexpr EGLDrawable() = default;
-	EGLDrawable(EGLDisplay, Window &, EGLConfig, const EGLint *surfaceAttr, IG::ErrorCode &);
+	EGLDrawable(EGLDisplay, Window &, EGLConfig, const EGLint *surfaceAttr);
 	operator EGLSurface() const { return surface.get(); }
 	bool operator ==(EGLDrawable const&) const = default;
 	explicit operator bool() const { return (bool)surface; }
@@ -99,7 +99,7 @@ class EGLContextBase
 {
 public:
 	constexpr EGLContextBase() = default;
-	EGLContextBase(EGLDisplay, GLContextAttributes, EGLConfig, EGLContext shareContext, bool savePBuffConfig, IG::ErrorCode &);
+	EGLContextBase(EGLDisplay, GLContextAttributes, EGLConfig, EGLContext shareContext, bool savePBuffConfig);
 	operator EGLContext() const { return context.get(); }
 	bool operator ==(EGLContextBase const&) const = default;
 	explicit operator bool() const { return (bool)context; }

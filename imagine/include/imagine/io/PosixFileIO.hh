@@ -40,10 +40,10 @@ public:
 	using IOUtilsBase::toFileStream;
 
 	constexpr PosixFileIO() = default;
-	PosixFileIO(UniqueFileDescriptor fd, AccessHint access, OpenFlags);
-	PosixFileIO(UniqueFileDescriptor fd, OpenFlags);
-	PosixFileIO(CStringView path, AccessHint access, OpenFlags oFlags = {});
-	PosixFileIO(CStringView path, OpenFlags oFlags = {});
+	PosixFileIO(UniqueFileDescriptor fd, AccessHint access, OpenFlagsMask);
+	PosixFileIO(UniqueFileDescriptor fd, OpenFlagsMask);
+	PosixFileIO(CStringView path, AccessHint access, OpenFlagsMask oFlags = {});
+	PosixFileIO(CStringView path, OpenFlagsMask oFlags = {});
 	ssize_t read(void *buff, size_t bytes);
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
 	std::span<uint8_t> map();
@@ -62,7 +62,7 @@ public:
 protected:
 	std::variant<PosixIO, MapIO> ioImpl{};
 
-	void tryMmap(AccessHint access, OpenFlags);
+	void tryMmap(AccessHint access, OpenFlagsMask);
 };
 
 }

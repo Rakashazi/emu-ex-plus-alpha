@@ -104,7 +104,7 @@ bool zipStartWrite(const char *fileName)
 	assert(!writeArch);
 	writeArch = archive_write_new();
 	archive_write_set_format_zip(writeArch);
-	int fd = EmuEx::gAppContext().openFileUriFd(fileName, FILE_OPEN_NEW | FILE_TEST_BIT).release();
+	int fd = EmuEx::gAppContext().openFileUriFd(fileName, OpenFlagsMask::NEW | OpenFlagsMask::TEST).release();
 	if(archive_write_open_fd(writeArch, fd) != ARCHIVE_OK)
 	{
 		archive_write_free(writeArch);

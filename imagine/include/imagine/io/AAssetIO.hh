@@ -45,7 +45,7 @@ public:
 	using IOUtilsBase::toFileStream;
 
 	constexpr AAssetIO() = default;
-	AAssetIO(ApplicationContext, CStringView name, AccessHint, OpenFlags oFlags = {});
+	AAssetIO(ApplicationContext, CStringView name, AccessHint, OpenFlagsMask oFlags = {});
 	ssize_t read(void *buff, size_t bytes);
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
 	std::span<uint8_t> map();

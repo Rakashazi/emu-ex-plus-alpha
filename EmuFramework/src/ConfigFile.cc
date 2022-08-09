@@ -529,7 +529,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 	#endif
 	ConfigParams appConfig{};
 	Gfx::DrawableConfig pendingWindowDrawableConf{};
-	readConfigKeys(FileUtils::bufferFromPath(configFilePath, FILE_TEST_BIT),
+	readConfigKeys(FileUtils::bufferFromPath(configFilePath, OpenFlagsMask::TEST),
 		[&](uint16_t key, uint16_t size, auto &io)
 		{
 			switch(key)
@@ -556,16 +556,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_FRAME_RATE: optionFrameRate.readFromIO(io, size);
 				bcase CFGKEY_FRAME_RATE_PAL: optionFrameRatePAL.readFromIO(io, size);
 				bcase CFGKEY_LAST_DIR:
-					readStringOptionValue<FS::PathString>(io, size,
-						[&](auto &path)
-						{
-							if(ctx.permissionIsRestricted(IG::Permission::WRITE_EXT_STORAGE) && path[0] == '/')
-							{
-								logWarn("not restoring content dir due to storage permission restriction");
-								return;
-							}
-							setContentSearchPath(path);
-						});
+					readStringOptionValue<FS::PathString>(io, size, [&](auto &path) { setContentSearchPath(path); });
 				bcase CFGKEY_FONT_Y_SIZE: optionFontSize.readFromIO(io, size);
 				bcase CFGKEY_GAME_ORIENTATION: optionEmuOrientation.readFromIO(io, size);
 				bcase CFGKEY_MENU_ORIENTATION: optionMenuOrientation.readFromIO(io, size);
@@ -630,16 +621,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_AUDIO_API: optionAudioAPI.readFromIO(io, size);
 				#endif
 				bcase CFGKEY_SAVE_PATH:
-					readStringOptionValue<FS::PathString>(io, size,
-						[&](auto &path)
-						{
-							if(ctx.permissionIsRestricted(IG::Permission::WRITE_EXT_STORAGE) && path[0] == '/')
-							{
-								logWarn("not restoring save dir due to storage permission restriction");
-								return;
-							}
-							system().setUserSaveDirectory(path);
-						});
+					readStringOptionValue<FS::PathString>(io, size, [&](auto &path) { system().setUserSaveDirectory(path); });
 				bcase CFGKEY_SHOW_BUNDLED_GAMES:
 				{
 					if(EmuSystem::hasBundledGames)
@@ -690,7 +672,7 @@ void EmuApp::saveConfigFile(IG::ApplicationContext ctx)
 	auto configFilePath = FS::pathString(ctx.supportPath(), "config");
 	try
 	{
-		FileIO file{configFilePath, FILE_OPEN_NEW};
+		FileIO file{configFilePath, OpenFlagsMask::NEW};
 		saveConfigFile(file);
 	}
 	catch(...)

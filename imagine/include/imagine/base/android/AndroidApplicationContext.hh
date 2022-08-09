@@ -16,6 +16,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/fs/FSDefs.hh>
+#include <android/native_activity.h>
 #include <jni.h>
 #include <array>
 
@@ -34,16 +36,14 @@ enum class SustainedPerformanceType
 	NOOP
 };
 
-enum SurfaceRotation : uint8_t;
-
 class AndroidApplicationContext
 {
 public:
 	constexpr AndroidApplicationContext() = default;
 	constexpr AndroidApplicationContext(ANativeActivity *act):act{act} {}
 	constexpr ANativeActivity *aNativeActivityPtr() const { return act; }
-	void setApplicationPtr(Application*);
-	Application &application() const;
+	void setApplicationPtr(auto *appPtr) { act->instance = appPtr; }
+	Application &application() const { return *static_cast<Application*>(act->instance); }
 	JNIEnv *mainThreadJniEnv() const;
 	JNIEnv *thisThreadJniEnv() const;
 	jobject baseActivityObject() const;
@@ -52,6 +52,7 @@ public:
 	SustainedPerformanceType sustainedPerformanceModeType() const;
 	void setSustainedPerformanceMode(bool on);
 	bool apkSignatureIsConsistent() const;
+	FS::PathLocation externalMediaPathLocation() const;
 
 	// Input system functions
 	bool hasTrackball() const;

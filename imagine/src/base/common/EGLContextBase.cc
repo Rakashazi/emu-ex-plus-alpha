@@ -158,7 +158,7 @@ static EGLSurface createWindowSurface(EGLDisplay display, EGLConfig config, Nati
 	return eglCreateWindowSurface(display, config, (EGLNativeWindowType)nativeWin, surfaceAttr);
 }
 
-EGLDrawable::EGLDrawable(EGLDisplay display, Window &win, EGLConfig config, const EGLint *surfaceAttr, IG::ErrorCode &ec):
+EGLDrawable::EGLDrawable(EGLDisplay display, Window &win, EGLConfig config, const EGLint *surfaceAttr):
 	surface
 	{
 		createWindowSurface(display, config, win.nativeObject(), surfaceAttr),
@@ -169,7 +169,7 @@ EGLDrawable::EGLDrawable(EGLDisplay display, Window &win, EGLConfig config, cons
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("eglCreateWindowSurface returned:%s", GLManager::errorString(eglGetError()));
-		ec = {EINVAL};
+		throw Error{EINVAL};
 	}
 }
 
@@ -194,7 +194,7 @@ GLDisplay GLDrawable::display() const
 // GLContext
 
 EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGLConfig config,
-	EGLContext shareContext, bool savePBuffConfig, IG::ErrorCode &ec):
+	EGLContext shareContext, bool savePBuffConfig):
 	context{eglCreateContext(display, config, shareContext, &glContextAttrsToEGLAttrs(attr)[0]), {display}}
 {
 	if(!context)
@@ -209,8 +209,7 @@ EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGL
 		{
 			if(Config::DEBUG_BUILD)
 				logErr("error creating context: 0x%X", (int)eglGetError());
-			ec = {EINVAL};
-			return;
+			throw Error{EINVAL};
 		}
 	}
 	if(savePBuffConfig)
@@ -410,7 +409,7 @@ IG::ErrorCode EGLManager::initDisplay(EGLDisplay display)
 	return {};
 }
 
-GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config, NativeGLContext shareContext, IG::ErrorCode &ec)
+GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config, NativeGLContext shareContext)
 {
 	if(hasNoConfigContext())
 		config = EGL_NO_CONFIG_KHR;
@@ -421,7 +420,7 @@ GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config
 	// Ignore surfaceless context support when using GL versions below 3.0 due to possible driver issues,
 	// such as on Tegra 3 GPUs
 	bool savePBuffConfig = attr.majorVersion() <= 2 || !supportsSurfaceless;
-	GLContext ctx{display(), attr, config, shareContext, savePBuffConfig, ec};
+	GLContext ctx{display(), attr, config, shareContext, savePBuffConfig};
 	if(!ctx)
 		return {};
 	if(savePBuffConfig)
@@ -487,7 +486,7 @@ static bool supportsColorSpace(GLDisplay dpy, GLBufferConfig conf, GLColorSpace 
 	return false;
 }
 
-GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes attr, IG::ErrorCode &ec) const
+GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes attr) const
 {
 	auto dpy = display();
 	EGLSurfaceAttrList attrList{};
@@ -505,11 +504,7 @@ GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes attr, IG::E
 		attrList.push_back(EGL_GL_COLORSPACE_SRGB);
 	}
 	attrList.push_back(EGL_NONE);
-	GLDrawable drawable{dpy, win, attr.bufferConfig(), attrList.data(), ec};
-	if(ec)
-	{
-		return {};
-	}
+	GLDrawable drawable{dpy, win, attr.bufferConfig(), attrList.data()};
 	logMsg("made surface:%p %s", (EGLSurface)drawable,
 		useSrgbColorSpace ? "(SRGB color space)" : "");
 	return drawable;

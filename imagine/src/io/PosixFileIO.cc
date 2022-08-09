@@ -45,30 +45,30 @@ static void applyAccessHint(PosixFileIO &io, IOAccessHint access, bool isMapped)
 	}
 }
 
-PosixFileIO::PosixFileIO(UniqueFileDescriptor fd_, IOAccessHint access, FileOpenFlags openFlags):
+PosixFileIO::PosixFileIO(UniqueFileDescriptor fd_, IOAccessHint access, OpenFlagsMask openFlags):
 	ioImpl{std::in_place_type<PosixIO>, std::move(fd_)}
 {
 	tryMmap(access, openFlags);
 }
 
-PosixFileIO::PosixFileIO(UniqueFileDescriptor fd, FileOpenFlags openFlags):
+PosixFileIO::PosixFileIO(UniqueFileDescriptor fd, OpenFlagsMask openFlags):
 	PosixFileIO{std::move(fd), IOAccessHint::NORMAL, openFlags} {}
 
-PosixFileIO::PosixFileIO(IG::CStringView path, IOAccessHint access, FileOpenFlags openFlags):
+PosixFileIO::PosixFileIO(IG::CStringView path, IOAccessHint access, OpenFlagsMask openFlags):
 	ioImpl{std::in_place_type<PosixIO>, path, openFlags}
 {
 	tryMmap(access, openFlags);
 }
 
-PosixFileIO::PosixFileIO(IG::CStringView path, FileOpenFlags openFlags):
+PosixFileIO::PosixFileIO(IG::CStringView path, OpenFlagsMask openFlags):
 	PosixFileIO{path, IOAccessHint::NORMAL, openFlags} {}
 
-void PosixFileIO::tryMmap(IOAccessHint access, FileOpenFlags openFlags)
+void PosixFileIO::tryMmap(IOAccessHint access, OpenFlagsMask openFlags)
 {
 	assumeExpr(std::holds_alternative<PosixIO>(ioImpl));
 	auto &io = *std::get_if<PosixIO>(&ioImpl);
 	// try to open as memory map only if read-only
-	if(openFlags & FILE_WRITE_BIT || !io)
+	if(to_underlying(openFlags & OpenFlagsMask::WRITE) || !io)
 		return;
 	size_t size = io.size();
 	if(!size) [[unlikely]]

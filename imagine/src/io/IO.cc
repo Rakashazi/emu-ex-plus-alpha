@@ -91,30 +91,30 @@ namespace IG::FileUtils
 
 ssize_t writeToPath(CStringView path, std::span<const unsigned char> src)
 {
-	auto f = FileIO{path, FILE_OPEN_NEW | FILE_TEST_BIT};
+	auto f = FileIO{path, OpenFlagsMask::NEW | OpenFlagsMask::TEST};
 	return f.write(src.data(), src.size());
 }
 
 ssize_t writeToPath(CStringView path, IO &io)
 {
-	auto f = FileIO{path, FILE_OPEN_NEW | FILE_TEST_BIT};
+	auto f = FileIO{path, OpenFlagsMask::NEW | OpenFlagsMask::TEST};
 	return io.send(f, nullptr, io.size());
 }
 
 ssize_t readFromPath(CStringView path, std::span<unsigned char> dest, IO::AccessHint accessHint)
 {
-	FileIO f{path, accessHint, FILE_TEST_BIT};
+	FileIO f{path, accessHint, OpenFlagsMask::TEST};
 	return f.read(dest.data(), dest.size());
 }
 
-IOBuffer bufferFromPath(CStringView path, FileOpenFlags openFlags, size_t sizeLimit)
+IOBuffer bufferFromPath(CStringView path, OpenFlagsMask openFlags, size_t sizeLimit)
 {
 	FileIO file{path, IOAccessHint::ALL, openFlags};
 	if(!file)
 		return {};
 	if(file.size() > sizeLimit)
 	{
-		if(openFlags & FILE_TEST_BIT)
+		if(to_underlying(openFlags & OpenFlagsMask::TEST))
 			return {};
 		else
 			throw std::runtime_error(fmt::format("{} exceeds {} byte limit", path.data(), sizeLimit));

@@ -54,7 +54,7 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass b
 						return;
 					}
 					app.addScreen(ctx, std::make_unique<Screen>(ctx,
-						Screen::InitParams{env, disp, metrics, id, refreshRate, SURFACE_ROTATION_0}), true);
+						Screen::InitParams{env, disp, metrics, id, refreshRate, Rotation::UP}), true);
 				}
 			},
 			{
@@ -123,7 +123,7 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 		id_ = 0;
 		logMsg("init main display with starting rotation:%d", (int)rotation);
 		ctx.application().setCurrentRotation(ctx, rotation);
-		isStraightRotation = surfaceRotationIsStraight(rotation);
+		isStraightRotation = !isSideways(rotation);
 	}
 	else
 	{

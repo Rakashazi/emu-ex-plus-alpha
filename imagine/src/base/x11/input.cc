@@ -232,22 +232,11 @@ void XApplication::initInputSystem()
 	::XIDeviceInfo *device = XIQueryDevice(dpy, XIAllDevices, &devices);
 	for(auto &d : std::span<::XIDeviceInfo>{device, (size_t)devices})
 	{
-		if(d.use == XIMasterPointer || d.use == XISlaveKeyboard)
-		{
-			/*logMsg("Device %s (id: %d) %s paired to id %d",
-				d.name, d.deviceid, xInputDeviceTypeToStr(d.use), d.attachment);*/
-		}
-		switch(d.use)
-		{
-			bcase XIMasterPointer:
-			{
-				addXInputDevice({d}, false, true);
-			}
-			bcase XISlaveKeyboard:
-			{
-				addXInputDevice({d}, false, false);
-			}
-		}
+		if(d.use != XIMasterPointer && d.use != XISlaveKeyboard)
+			continue;
+		/*logMsg("Device %s (id: %d) %s paired to id %d",
+			d.name, d.deviceid, xInputDeviceTypeToStr(d.use), d.attachment);*/
+		addXInputDevice({d}, false, d.use == XIMasterPointer);
 	}
 	XIFreeDeviceInfo(device);
 

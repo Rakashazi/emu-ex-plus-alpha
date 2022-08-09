@@ -34,14 +34,14 @@ namespace IG
 {
 
 #ifndef CONFIG_GFX_SOFT_ORIENTATION
-static Orientation validO = UIInterfaceOrientationMaskAllButUpsideDown;
+static unsigned validO = UIInterfaceOrientationMaskAllButUpsideDown;
 #endif
 
 #ifndef CONFIG_BASE_IOS_RETINA_SCALE
 constexpr CGFloat IOSWindow::pointScale;
 #endif
 
-UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(Orientation orientation);
+UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(Rotation orientation);
 
 const char *uiInterfaceOrientationToStr(UIInterfaceOrientation o)
 {
@@ -56,22 +56,21 @@ const char *uiInterfaceOrientationToStr(UIInterfaceOrientation o)
 }
 
 #ifndef CONFIG_GFX_SOFT_ORIENTATION
-static Orientation defaultValidOrientationMask()
+static auto defaultValidOrientationMask()
 {
 	return isIPad ? UIInterfaceOrientationMaskAll : UIInterfaceOrientationMaskAllButUpsideDown;
 }
 
-bool Window::setValidOrientations(Orientation oMask)
+bool Window::setValidOrientations(OrientationMask oMask)
 {
-	oMask = appContext().validateOrientationMask(oMask);
 	validO = 0;
-	if(oMask & VIEW_ROTATE_0)
+	if(to_underlying(oMask & OrientationMask::PORTRAIT))
 		validO |= UIInterfaceOrientationMaskPortrait;
-	if(oMask & VIEW_ROTATE_90)
+	if(to_underlying(oMask & OrientationMask::LANDSCAPE_LEFT))
 		validO |= UIInterfaceOrientationMaskLandscapeLeft;
-	if(oMask & VIEW_ROTATE_180)
+	if(to_underlying(oMask & OrientationMask::PORTRAIT_UPSIDE_DOWN))
 		validO |= UIInterfaceOrientationMaskPortraitUpsideDown;
-	if(oMask & VIEW_ROTATE_270)
+	if(to_underlying(oMask & OrientationMask::LANDSCAPE_RIGHT))
 		validO |= UIInterfaceOrientationMaskLandscapeRight;
 	auto currO = [uiApp() statusBarOrientation];
 	logMsg("set valid orientation mask 0x%X, current orientation: %s", validO, uiInterfaceOrientationToStr(currO));
@@ -87,7 +86,7 @@ bool Window::setValidOrientations(Orientation oMask)
 	return true;
 }
 
-bool Window::requestOrientationChange(Orientation o)
+bool Window::requestOrientationChange(Rotation o)
 {
 	// no-op, OS manages orientation changes
 	return false;
@@ -121,7 +120,7 @@ IG::WindowRect Window::contentBounds() const
 	return contentRect;
 }
 
-void IOSWindow::updateContentRect(int width, int height, uint32_t softOrientation)
+void IOSWindow::updateContentRect(int width, int height, Rotation softOrientation)
 {
 	contentRect.x = contentRect.y = 0;
 	contentRect.x2 = width;
@@ -134,9 +133,8 @@ void IOSWindow::updateContentRect(int width, int height, uint32_t softOrientatio
 		CGFloat statusBarHeight;
 		if(!Config::SYSTEM_ROTATES_WINDOWS)
 		{
-			bool isSideways = softOrientation == VIEW_ROTATE_90 || softOrientation == VIEW_ROTATE_270;
-			statusBarHeight = (isSideways ? sharedApp.statusBarFrame.size.width : sharedApp.statusBarFrame.size.height) * pointScale;
-			bool statusBarBeginsOnWindowOrigin = softOrientation == VIEW_ROTATE_0 || softOrientation == VIEW_ROTATE_270;
+			statusBarHeight = (isSideways(softOrientation) ? sharedApp.statusBarFrame.size.width : sharedApp.statusBarFrame.size.height) * pointScale;
+			bool statusBarBeginsOnWindowOrigin = softOrientation == Rotation::UP || softOrientation == Rotation::LEFT;
 			if(statusBarBeginsOnWindowOrigin)
 				contentRect.y = statusBarHeight;
 			else

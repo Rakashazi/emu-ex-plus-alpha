@@ -48,7 +48,7 @@ Serializer::Serializer(const string& filename, Mode m)
     ios_base::openmode stream_mode = ios::in | ios::out | ios::binary;
     if(m == Mode::ReadWriteTrunc)
       stream_mode |= ios::trunc;
-    auto str = make_unique<IG::FStream>(EmuEx::gAppContext().openFileUri(filename, IG::FILE_OPEN_NEW), stream_mode);
+    auto str = make_unique<IG::FStream>(EmuEx::gAppContext().openFileUri(filename, IG::OpenFlagsMask::NEW), stream_mode);
     if(str && str->is_open())
     {
       myStream = std::move(str);

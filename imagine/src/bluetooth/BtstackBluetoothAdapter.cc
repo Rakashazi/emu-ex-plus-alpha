@@ -15,6 +15,7 @@
 
 #define LOGTAG "BTstack"
 #include <imagine/bluetooth/BtstackBluetoothAdapter.hh>
+#include <imagine/base/Error.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/utility.h>

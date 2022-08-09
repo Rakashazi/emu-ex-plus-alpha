@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/math/GLMMat4.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/glm/geometric.hpp>
 #include <imagine/glm/gtc/matrix_transform.hpp>
 #include <imagine/glm/gtc/matrix_inverse.hpp>
@@ -40,59 +40,49 @@ namespace glm
 	}
 }
 
-GLMMat4 GLMMat4::translate(GLMVec3 translation) const
+namespace IG::Gfx
 {
-	return glm::translate(m, translation.vec());
+
+Mat4 Mat4::translate(Vec3 translation) const
+{
+	return glm::translate(*this, translation);
 }
 
-GLMMat4 GLMMat4::makeTranslate(GLMVec3 translation)
+Mat4 Mat4::makeTranslate(Vec3 translation)
 {
-	return glm::translate(glm::identity<glm::mat4>(), translation.vec());
+	return glm::translate(glm::identity<glm::mat4>(), translation);
 }
 
-GLMMat4 GLMMat4::makePerspectiveFovRH(float fovy, float aspect, float znear, float zfar)
+Mat4 Mat4::makePerspectiveFovRH(float fovy, float aspect, float znear, float zfar)
 {
 	return glm::perspective(fovy, aspect, znear, zfar);
 }
 
-GLMMat4 GLMMat4::scale(GLMVec3 factors) const
+Mat4 Mat4::scale(Vec3 factors) const
 {
-	return glm::scale(m, factors.vec());
+	return glm::scale(*this, factors);
 }
 
-GLMMat4 GLMMat4::rotate(float angle, GLMVec3 axis) const
+Mat4 Mat4::rotate(float angle, Vec3 axis) const
 {
-	return glm::rotate(m, angle, axis.vec());
+	return glm::rotate(*this, angle, axis);
 }
 
-GLMMat4 GLMMat4::invert() const
+Mat4 Mat4::invert() const
 {
-	return glm::inverse(m);
+	return glm::inverse(*this);
 }
 
-GLMMat4 GLMMat4::mult(GLMMat4 mat) const
-{
-	return m * mat.m;
-}
-
-GLMVec4 GLMMat4::mult(GLMVec4 vec) const
-{
-	return m * vec.vec();
-}
-
-GLMVec3 GLMMat4::project(IG::Rect2<int> viewport, GLMVec3 obj) const
+Vec3 Mat4::project(Rect2<int> viewport, Vec3 obj) const
 {
 	glm::ivec4 viewportVec {viewport.x, viewport.y, viewport.x2, viewport.y2};
-	return glm::project(obj.vec(), {}, m, viewportVec);
+	return glm::project(obj, {}, *this, viewportVec);
 }
 
-GLMVec3 GLMMat4::unproject(IG::Rect2<int> viewport, GLMVec3 win, GLMMat4 inverse) const
+Vec3 Mat4::unproject(Rect2<int> viewport, Vec3 win, Mat4 inverse) const
 {
 	glm::ivec4 viewportVec {viewport.x, viewport.y, viewport.x2, viewport.y2};
-	return glm::unProjectWithInverse(win.vec(), inverse.m, viewportVec);
+	return glm::unProjectWithInverse(win, inverse, viewportVec);
 }
 
-bool GLMMat4::operator ==(GLMMat4 const &rhs) const
-{
-	return m == rhs.m;
 }

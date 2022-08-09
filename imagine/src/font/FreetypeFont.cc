@@ -300,7 +300,7 @@ Font FontManager::makeBoldSystem() const
 
 Font FontManager::makeFromAsset(const char *name, const char *appName) const
 {
-	return {library.get(), ctx.openAsset(name, IOAccessHint::ALL, 0, appName)};
+	return {library.get(), ctx.openAsset(name, IOAccessHint::ALL, {}, appName)};
 }
 
 FreetypeFaceData::FreetypeFaceData(FreetypeFaceData &&o) noexcept

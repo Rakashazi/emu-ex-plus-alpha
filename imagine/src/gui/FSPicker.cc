@@ -319,30 +319,6 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 
 	int customItems = 1 + Config::envIsLinux + appContext().hasSystemPathPicker() + appContext().hasSystemDocumentPicker();
 	auto view = makeView<FileLocationsTextTableView>(appContext().rootFileLocations(), customItems);
-	for(auto &loc : view->locations())
-	{
-		view->appendItem(loc.description,
-			[this, &loc](View &view, const Input::Event &e)
-			{
-				auto ctx = appContext();
-				if(ctx.usesPermission(Permission::WRITE_EXT_STORAGE))
-				{
-					if(!ctx.requestPermission(Permission::WRITE_EXT_STORAGE))
-						return;
-				}
-				changeDirByInput(loc.root.path, loc.root.info, e);
-				view.dismiss();
-			});
-	}
-	if(Config::envIsLinux)
-	{
-		view->appendItem("Root Filesystem",
-			[this](View &view, const Input::Event &e)
-			{
-				changeDirByInput("/", {}, e);
-				view.dismiss();
-			});
-	}
 	if(appContext().hasSystemPathPicker())
 	{
 		view->appendItem("Browse For Folder",
@@ -369,6 +345,30 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 					{
 						onSelectPath_.callCopy(*this, uri, displayName, appContext().defaultInputEvent());
 					});
+			});
+	}
+	for(auto &loc : view->locations())
+	{
+		view->appendItem(loc.description,
+			[this, &loc](View &view, const Input::Event &e)
+			{
+				auto ctx = appContext();
+				if(ctx.usesPermission(Permission::WRITE_EXT_STORAGE))
+				{
+					if(!ctx.requestPermission(Permission::WRITE_EXT_STORAGE))
+						return;
+				}
+				changeDirByInput(loc.root.path, loc.root.info, e);
+				view.dismiss();
+			});
+	}
+	if(Config::envIsLinux)
+	{
+		view->appendItem("Root Filesystem",
+			[this](View &view, const Input::Event &e)
+			{
+				changeDirByInput("/", {}, e);
+				view.dismiss();
 			});
 	}
 	view->appendItem("Custom Path",

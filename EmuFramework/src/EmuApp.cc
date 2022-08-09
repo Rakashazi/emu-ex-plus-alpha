@@ -163,8 +163,8 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionHideOSNav{CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid},
 	optionHideStatusBar{CFGKEY_HIDE_STATUS_BAR, 1, !Config::envIsAndroid && !Config::envIsIOS},
 	optionNotifyInputDeviceChange{CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Config::Input::DEVICE_HOTSWAP, !Config::Input::DEVICE_HOTSWAP},
-	optionEmuOrientation{CFGKEY_GAME_ORIENTATION, 0, false, optionIsValidWithMax<std::to_underlying(IG::OrientationMask::ALL_BITS)>},
-	optionMenuOrientation{CFGKEY_MENU_ORIENTATION, 0, false, optionIsValidWithMax<std::to_underlying(IG::OrientationMask::ALL_BITS)>},
+	optionEmuOrientation{CFGKEY_GAME_ORIENTATION, 0, false, optionIsValidWithMax<std::to_underlying(IG::OrientationMask::ALL)>},
+	optionMenuOrientation{CFGKEY_MENU_ORIENTATION, 0, false, optionIsValidWithMax<std::to_underlying(IG::OrientationMask::ALL)>},
 	optionShowBundledGames{CFGKEY_SHOW_BUNDLED_GAMES, 1},
 	optionKeepBluetoothActive{CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0},
 	optionShowBluetoothScan{CFGKEY_SHOW_BLUETOOTH_SCAN, 1},
@@ -1352,7 +1352,7 @@ void EmuApp::saveSessionOptions()
 	try
 	{
 		auto ctx = appContext();
-		auto configFile = ctx.openFileUri(configFilePath, FILE_OPEN_NEW);
+		auto configFile = ctx.openFileUri(configFilePath, OpenFlagsMask::NEW);
 		writeConfigHeader(configFile);
 		system().writeConfig(ConfigType::SESSION, configFile);
 		system().resetSessionOptionsSet();
@@ -1378,7 +1378,7 @@ void EmuApp::loadSessionOptions()
 {
 	if(!system().resetSessionOptions(*this))
 		return;
-	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), FILE_TEST_BIT),
+	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), OpenFlagsMask::TEST),
 		[this](uint16_t key, uint16_t size, auto &io)
 		{
 			switch(key)
@@ -1402,7 +1402,7 @@ void EmuApp::loadSystemOptions()
 	auto configName = system().configName();
 	if(configName.empty())
 		return;
-	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), FILE_TEST_BIT),
+	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), OpenFlagsMask::TEST),
 		[this](uint16_t key, uint16_t size, auto &io)
 		{
 			if(!system().readConfig(ConfigType::CORE, io, key, size))
@@ -1420,7 +1420,7 @@ void EmuApp::saveSystemOptions()
 	try
 	{
 		auto configFilePath = FS::pathString(appContext().supportPath(), configName);
-		auto configFile = FileIO{configFilePath, FILE_OPEN_NEW};
+		auto configFile = FileIO{configFilePath, OpenFlagsMask::NEW};
 		saveSystemOptions(configFile);
 		if(configFile.size() == 1)
 		{

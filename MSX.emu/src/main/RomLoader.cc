@@ -62,7 +62,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 		auto appCtx = sys.appContext();
 		if(filename[0] == '/' || IG::isUri(filename)) // try to load absolute path directly
 		{
-			auto file = appCtx.openFileUri(filename, IOAccessHint::ALL, FILE_TEST_BIT);
+			auto file = appCtx.openFileUri(filename, IOAccessHint::ALL, OpenFlagsMask::TEST);
 			if(file)
 			{
 				return fileToMallocBuffer(file, size);
@@ -72,7 +72,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 		}
 		// relative path, try firmware directory
 		{
-			auto file = appCtx.openFileUri(FS::uriString(machineBasePath(sys), filename), IOAccessHint::ALL, FILE_TEST_BIT);
+			auto file = appCtx.openFileUri(FS::uriString(machineBasePath(sys), filename), IOAccessHint::ALL, OpenFlagsMask::TEST);
 			if(file)
 			{
 				return fileToMallocBuffer(file, size);
@@ -80,7 +80,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 		}
 		// fallback to app assets
 		{
-			auto file = appCtx.openAsset(filename, IOAccessHint::ALL, FILE_TEST_BIT);
+			auto file = appCtx.openAsset(filename, IOAccessHint::ALL, OpenFlagsMask::TEST);
 			if(file)
 			{
 				return fileToMallocBuffer(file, size);
@@ -96,12 +96,12 @@ CLINK FILE *openMachineIni(const char *path, const char *mode)
 	auto &sys = gSystem();
 	auto appCtx = sys.appContext();
 	auto filePathInFirmwarePath = FS::uriString(machineBasePath(sys), path);
-	auto file = appCtx.openFileUri(filePathInFirmwarePath, IOAccessHint::ALL, FILE_TEST_BIT);
+	auto file = appCtx.openFileUri(filePathInFirmwarePath, IOAccessHint::ALL, OpenFlagsMask::TEST);
 	if(file)
 	{
 		return file.toFileStream(mode);
 	}
-	auto assetFile = appCtx.openAsset(path, IOAccessHint::ALL, FILE_TEST_BIT);
+	auto assetFile = appCtx.openAsset(path, IOAccessHint::ALL, OpenFlagsMask::TEST);
 	if(assetFile)
 	{
 		return assetFile.toFileStream(mode);

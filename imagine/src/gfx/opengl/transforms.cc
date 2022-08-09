@@ -84,7 +84,7 @@ void RendererCommands::loadTransform(Mat4 mat)
 	modelMat = mat;
 	if(currProgram.program) [[likely]]
 	{
-		auto mvpMat = projectionMat.mult(mat);
+		auto mvpMat = projectionMat * mat;
 		glUniformMatrix4fv(currProgram.mvpUniform, 1, GL_FALSE, &mvpMat[0][0]);
 	}
 	#endif

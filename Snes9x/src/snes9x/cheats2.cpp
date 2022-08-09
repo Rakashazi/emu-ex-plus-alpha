@@ -138,7 +138,7 @@ static inline void S9xSetByteFree (uint8 Byte, uint32 Address)
         if (Memory.SRAMMask)
         {
             *(Memory.SRAM + ((((Address & 0xff0000) >> 1) | (Address & 0x7fff)) & Memory.SRAMMask)) = Byte;
-            EmuEx::gSystem().onBackupMemoryWritten();
+            notifyBackupMemoryWritten();
         }
 
         return;
@@ -147,7 +147,7 @@ static inline void S9xSetByteFree (uint8 Byte, uint32 Address)
         if (Multi.sramMaskB)
         {
             *(Multi.sramB + ((((Address & 0xff0000) >> 1) | (Address & 0x7fff)) & Multi.sramMaskB)) = Byte;
-            EmuEx::gSystem().onBackupMemoryWritten();
+            notifyBackupMemoryWritten();
         }
 
         return;
@@ -156,13 +156,13 @@ static inline void S9xSetByteFree (uint8 Byte, uint32 Address)
         if (Memory.SRAMMask)
         {
             *(Memory.SRAM + (((Address & 0x7fff) - 0x6000 + ((Address & 0x1f0000) >> 3)) & Memory.SRAMMask)) = Byte;
-            EmuEx::gSystem().onBackupMemoryWritten();
+            notifyBackupMemoryWritten();
         }
         return;
 
     case CMemory::MAP_BWRAM:
         *(Memory.BWRAM + ((Address & 0x7fff) - 0x6000)) = Byte;
-        EmuEx::gSystem().onBackupMemoryWritten();
+        notifyBackupMemoryWritten();
         return;
 
     case CMemory::MAP_SA1RAM:

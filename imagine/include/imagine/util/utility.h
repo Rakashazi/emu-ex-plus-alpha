@@ -66,6 +66,8 @@ CLINK void bug_doExit(const char *msg, ...)  __attribute__ ((format (printf, 1, 
 namespace IG
 {
 
+using std::to_underlying;
+
 static constexpr char hexDigitChar(int value, bool uppercase = true)
 {
 	switch(value)

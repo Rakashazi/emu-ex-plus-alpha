@@ -212,15 +212,15 @@ using namespace IG;
 }
 #endif
 
-static Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
+static Rotation iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	switch(orientation)
 	{
-		case UIDeviceOrientationPortrait: return VIEW_ROTATE_0;
-		case UIDeviceOrientationLandscapeLeft: return VIEW_ROTATE_90;
-		case UIDeviceOrientationLandscapeRight: return VIEW_ROTATE_270;
-		case UIDeviceOrientationPortraitUpsideDown: return VIEW_ROTATE_180;
-		default : return 0; // TODO: handle Face-up/down
+		case UIDeviceOrientationPortrait: return Rotation::UP;
+		case UIDeviceOrientationLandscapeLeft: return Rotation::LEFT;
+		case UIDeviceOrientationLandscapeRight: return Rotation::RIGHT;
+		case UIDeviceOrientationPortraitUpsideDown: return Rotation::DOWN;
+		default : return Rotation::ANY; // TODO: handle Face-up/down
 	}
 }
 
@@ -393,7 +393,7 @@ void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedD
 		                               ^(NSNotification *note)
 		                               {
 		                              	auto o = iOSOrientationToGfx([[UIDevice currentDevice] orientation]);
-		                              	if(o)
+		                              	if(o != Rotation::ANY)
 		                              	{
 		                              		onOrientationChanged(*this, o);
 		                              	}
@@ -409,7 +409,7 @@ void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedD
 
 void ApplicationContext::setSystemOrientation(Rotation o)
 {
-	logMsg("setting system orientation %s", orientationToStr(o));
+	logMsg("setting system orientation %s", wise_enum::to_string(o).data());
 	auto sharedApp = uiApp();
 	[sharedApp setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
 	if(deviceWindow())
@@ -420,9 +420,9 @@ void ApplicationContext::setSystemOrientation(Rotation o)
 	}
 }
 
-Orientation ApplicationContext::defaultSystemOrientations() const
+OrientationMask ApplicationContext::defaultSystemOrientations() const
 {
-	return isIPad ? VIEW_ROTATE_ALL : VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN;
+	return isIPad ? OrientationMask::ALL : OrientationMask::ALL_BUT_UPSIDE_DOWN;
 }
 
 void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)

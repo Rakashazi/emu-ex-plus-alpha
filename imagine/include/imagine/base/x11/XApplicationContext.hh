@@ -20,19 +20,18 @@
 namespace IG
 {
 
-class XApplication;
 class Application;
 
 class XApplicationContext
 {
 public:
 	constexpr XApplicationContext() = default;
-	constexpr XApplicationContext(XApplication &app):appPtr{&app} {}
-	void setApplicationPtr(Application*);
-	Application &application() const;
+	constexpr XApplicationContext(Application &app):appPtr{&app} {}
+	void setApplicationPtr(auto *appPtr_) { appPtr = appPtr_; }
+	Application &application() const { return *static_cast<Application*>(appPtr); }
 
 protected:
-	XApplication *appPtr{};
+	Application *appPtr{};
 };
 
 using ApplicationContextImpl = XApplicationContext;

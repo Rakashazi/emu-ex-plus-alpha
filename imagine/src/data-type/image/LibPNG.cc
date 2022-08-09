@@ -388,17 +388,17 @@ PixmapImage PixmapReader::load(const char *name) const
 		logErr("suffix doesn't match PNG image");
 		return {};
 	}
-	return load(FileIO{name, IOAccessHint::ALL, FILE_TEST_BIT});
+	return load(FileIO{name, IOAccessHint::ALL, OpenFlagsMask::TEST});
 }
 
 PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const
 {
-	return load(appContext().openAsset(name, IOAccessHint::ALL, 0, appName));
+	return load(appContext().openAsset(name, IOAccessHint::ALL, {}, appName));
 }
 
 bool PixmapWriter::writeToFile(PixmapView pix, const char *path) const
 {
-	FileIO fp{path, FILE_OPEN_NEW | FILE_TEST_BIT};
+	FileIO fp{path, OpenFlagsMask::NEW | OpenFlagsMask::TEST};
 	if(!fp)
 	{
 		return false;

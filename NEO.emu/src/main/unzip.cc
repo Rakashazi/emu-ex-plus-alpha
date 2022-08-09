@@ -142,6 +142,6 @@ struct PKZIP *open_rom_zip(void *contextPtr, char *romPath, char *name)
 gzFile gzopenHelper(void *contextPtr, const char *filename, const char *mode)
 {
 	auto &ctx = *((IG::ApplicationContext*)contextPtr);
-	unsigned openFlags = std::string_view{mode}.contains('w') ? IG::FILE_OPEN_NEW : 0;
-	return gzdopen(ctx.openFileUriFd(filename, openFlags | IG::FILE_TEST_BIT).release(), mode);
+	auto openFlags = std::string_view{mode}.contains('w') ? IG::OpenFlagsMask::NEW : IG::OpenFlagsMask{};
+	return gzdopen(ctx.openFileUriFd(filename, openFlags | IG::OpenFlagsMask::TEST).release(), mode);
 }

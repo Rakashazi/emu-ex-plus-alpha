@@ -41,8 +41,6 @@ namespace IG
 class ApplicationContext;
 class FrameTimer;
 
-enum SurfaceRotation : uint8_t;
-
 struct ApplicationInitParams
 {
 	ANativeActivity *nActivity;
@@ -63,10 +61,11 @@ public:
 	std::string androidBuildDevice(JNIEnv *env, jclass baseActivityClass) const;
 	Window *deviceWindow() const;
 	FS::PathString sharedStoragePath(JNIEnv *, jclass baseActivityClass) const;
+	FS::PathString externalMediaPath(JNIEnv *, jobject baseActivity) const;
 	void setRequestedOrientation(JNIEnv *, jobject baseActivity, int orientation);
-	SurfaceRotation currentRotation() const;
-	void setCurrentRotation(ApplicationContext, SurfaceRotation, bool notify = false);
-	SurfaceRotation mainDisplayRotation(JNIEnv *, jobject baseActivity) const;
+	Rotation currentRotation() const;
+	void setCurrentRotation(ApplicationContext, Rotation, bool notify = false);
+	Rotation mainDisplayRotation(JNIEnv *, jobject baseActivity) const;
 	void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del);
 	bool systemAnimatesWindowRotation() const;
 	void setIdleDisplayPowerSave(JNIEnv *, jobject baseActivity, bool on);
@@ -82,7 +81,7 @@ public:
 	void createDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
 	FrameTimer makeFrameTimer(Screen &);
 	bool requestPermission(ApplicationContext, Permission);
-	UniqueFileDescriptor openFileUriFd(JNIEnv *, jobject baseActivity, CStringView uri, FileOpenFlags oFlags = {}) const;
+	UniqueFileDescriptor openFileUriFd(JNIEnv *, jobject baseActivity, CStringView uri, OpenFlagsMask oFlags = {}) const;
 	bool fileUriExists(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
 	FS::FileString fileUriDisplayName(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
@@ -146,7 +145,7 @@ private:
 	int aHardKeyboardState{};
 	int aKeyboardType{};
 	int mostRecentKeyEventDevID{-1};
-	SurfaceRotation osRotation{};
+	Rotation osRotation{};
 	bool osAnimatesRotation{};
 	bool aHasFocus{true};
 	DeviceFlags deviceFlags{PERMANENT_MENU_KEY_BIT};

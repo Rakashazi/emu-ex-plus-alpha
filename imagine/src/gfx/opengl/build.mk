@@ -34,6 +34,7 @@ SRC += gfx/common/GeomQuad.cc \
  gfx/common/GfxLGradient.cc \
  gfx/common/GfxText.cc \
  gfx/common/GlyphTextureSet.cc \
+ gfx/common/Mat4.cc \
  gfx/common/ProjectionPlane.cc \
  gfx/common/Sprite.cc \
  gfx/opengl/config.cc \
@@ -54,15 +55,6 @@ SRC += gfx/common/GeomQuad.cc \
 
 ifeq ($(ENV), ios)
  SRC +=  gfx/opengl/ios/drawable.mm
- ifneq ($(SUBARCH), armv6)
-  include $(imagineSrcDir)/util/math/GLKit.mk
- else
-  include $(imagineSrcDir)/util/math/GLM.mk
- endif
-else ifeq ($(ENV), macosx)
- include $(imagineSrcDir)/util/math/GLKit.mk
-else
- include $(imagineSrcDir)/util/math/GLM.mk
 endif
 
 ifeq ($(ENV), android)

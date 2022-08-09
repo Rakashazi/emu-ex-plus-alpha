@@ -33,7 +33,6 @@ namespace IG
 class GLDisplay;
 class GLContext;
 class GLContextAttributes;
-class ErrorCode;
 
 class GLManagerImpl
 {
@@ -55,7 +54,7 @@ class IOSGLContext
 {
 public:
 	constexpr IOSGLContext() = default;
-	IOSGLContext(GLContextAttributes, NativeGLContext shareContext, IG::ErrorCode &);
+	IOSGLContext(GLContextAttributes, NativeGLContext shareContext);
 	operator NativeGLContext() const { return context_.get(); }
 	#ifdef __OBJC__
 	EAGLContext *context() const { return (__bridge EAGLContext*)context_.get(); }

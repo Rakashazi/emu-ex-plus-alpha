@@ -152,9 +152,11 @@ bool GLRenderer::makeWindowDrawable(RendererTask &task, Window &win, GLBufferCon
 	task.destroyDrawable(rData.drawable);
 	GLDrawableAttributes attr{bufferConfig};
 	attr.setColorSpace(colorSpace);
-	IG::ErrorCode ec{};
-	rData.drawable = glManager.makeDrawable(win, attr, ec);
-	if(ec) [[unlikely]]
+	try
+	{
+		rData.drawable = glManager.makeDrawable(win, attr);
+	}
+	catch(...)
 	{
 		return false;
 	}

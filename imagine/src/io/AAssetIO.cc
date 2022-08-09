@@ -40,13 +40,13 @@ static int accessHintToAAssetMode(IOAccessHint advice)
 	}
 }
 
-AAssetIO::AAssetIO(ApplicationContext ctx, IG::CStringView name, AccessHint access, OpenFlags openFlags):
+AAssetIO::AAssetIO(ApplicationContext ctx, IG::CStringView name, AccessHint access, OpenFlagsMask openFlags):
 	asset{AAssetManager_open(ctx.aAssetManager(), name, accessHintToAAssetMode(access))}
 {
 	if(!asset) [[unlikely]]
 	{
 		logErr("error in AAssetManager_open(%s, %s)", name.data(), accessHintStr(access));
-		if(openFlags & FILE_TEST_BIT)
+		if(to_underlying(openFlags & OpenFlagsMask::TEST))
 			return;
 		else
 			throw std::runtime_error{fmt::format("Error opening asset: {}", name)};

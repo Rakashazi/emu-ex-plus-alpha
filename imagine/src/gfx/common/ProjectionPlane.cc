@@ -51,8 +51,8 @@ ProjectionPlane ProjectionPlane::makeWithMatrix(Viewport viewport, Mat4 mat)
 	//logMsg("Lower-left projection point %d,%d -> %f %f %f", viewport.bounds().x, viewport.bounds().y, (double)lowerLeft.v.x, (double)lowerLeft.v.y, (double)lowerLeft.v.z);
 	auto upperRight = mat.unproject(asYUpRelRect(viewport), {(float)viewport.bounds().x2, (float)viewport.bounds().y2, .5}, matInv);
 	//logMsg("Upper-right projection point %d,%d -> %f %f %f", viewport.bounds().x2, viewport.bounds().y2, (double)upperRight.v.x, (double)upperRight.v.y, (double)upperRight.v.z);
-	p.w = upperRight.x() - lowerLeft.x(), p.h = upperRight.y() - lowerLeft.y();
-	p.focal = upperRight.z();
+	p.w = upperRight.x - lowerLeft.x, p.h = upperRight.y - lowerLeft.y;
+	p.focal = upperRight.z;
 	p.rect.x = -p.w/2.f;
 	p.rect.y = -p.h/2.f;
 	p.rect.x2 = p.w/2.f;

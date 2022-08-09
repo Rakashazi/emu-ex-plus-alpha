@@ -466,13 +466,13 @@ bool Window::updatePhysicalSizeWithCurrentSize()
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
 bool Window::setValidOrientations(OrientationMask oMask)
 {
-	if(std::to_underlying(oMask & OrientationMask::PORTRAIT_BIT))
+	if(to_underlying(oMask & OrientationMask::PORTRAIT))
 		return requestOrientationChange(Rotation::UP);
-	else if(std::to_underlying(oMask & OrientationMask::LANDSCAPE_RIGHT_BIT))
+	else if(to_underlying(oMask & OrientationMask::LANDSCAPE_RIGHT))
 		return requestOrientationChange(Rotation::RIGHT);
-	else if(std::to_underlying(oMask & OrientationMask::PORTRAIT_UPSIDE_DOWN_BIT))
+	else if(to_underlying(oMask & OrientationMask::PORTRAIT_UPSIDE_DOWN))
 		return requestOrientationChange(Rotation::DOWN);
-	else if(std::to_underlying(oMask & OrientationMask::LANDSCAPE_LEFT_BIT))
+	else if(to_underlying(oMask & OrientationMask::LANDSCAPE_LEFT))
 		return requestOrientationChange(Rotation::LEFT);
 	else
 		return requestOrientationChange(Rotation::UP);

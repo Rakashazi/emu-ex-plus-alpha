@@ -49,7 +49,6 @@ public:
 	using Advice = IOAdvice;
 	using BufferMode = IOBufferMode;
 	using SeekMode = IOSeekMode;
-	using OpenFlags = FileOpenFlags;
 
 	off_t seekS(off_t offset);
 	off_t seekE(off_t offset);

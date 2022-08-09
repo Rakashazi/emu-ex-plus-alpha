@@ -184,7 +184,7 @@ void NesSystem::setDefaultPalette(IG::ApplicationContext ctx, IG::CStringView pa
 	}
 	else
 	{
-		IO io = ctx.openFileUri(palPath, IO::AccessHint::ALL, FILE_TEST_BIT);
+		IO io = ctx.openFileUri(palPath, IO::AccessHint::ALL, OpenFlagsMask::TEST);
 		if(!io)
 			return;
 		setDefaultPalette(io);

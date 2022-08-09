@@ -249,7 +249,7 @@ FS::RootPathInfo ApplicationContext::rootPathInfo(std::string_view path) const
 	return nearestPtr->root.info;
 }
 
-AssetIO ApplicationContext::openAsset(IG::CStringView name, IOAccessHint hint, FileOpenFlags openFlags, const char *appName) const
+AssetIO ApplicationContext::openAsset(IG::CStringView name, IOAccessHint hint, OpenFlagsMask openFlags, const char *appName) const
 {
 	#ifdef __ANDROID__
 	return {*this, name, hint, openFlags};
@@ -277,17 +277,17 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(IG::CStringVie
 
 [[gnu::weak]] void ApplicationContext::showSystemCreateDocumentPicker(SystemDocumentPickerDelegate) {}
 
-[[gnu::weak]] FileIO ApplicationContext::openFileUri(CStringView uri, IOAccessHint access, FileOpenFlags openFlags) const
+[[gnu::weak]] FileIO ApplicationContext::openFileUri(CStringView uri, IOAccessHint access, OpenFlagsMask openFlags) const
 {
 	return {uri, access, openFlags};
 }
 
-FileIO ApplicationContext::openFileUri(CStringView uri, FileOpenFlags openFlags) const
+FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlagsMask openFlags) const
 {
 	return openFileUri(uri, IOAccessHint::NORMAL, openFlags);
 }
 
-[[gnu::weak]] UniqueFileDescriptor ApplicationContext::openFileUriFd(CStringView uri, FileOpenFlags openFlags) const
+[[gnu::weak]] UniqueFileDescriptor ApplicationContext::openFileUriFd(CStringView uri, OpenFlagsMask openFlags) const
 {
 	return PosixIO{uri, openFlags}.releaseFd();
 }
@@ -389,7 +389,7 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 
 [[gnu::weak]] void ApplicationContext::setSystemOrientation(Rotation) {}
 
-[[gnu::weak]] OrientationMask ApplicationContext::defaultSystemOrientations() const { return OrientationMask::ALL_BITS; }
+[[gnu::weak]] OrientationMask ApplicationContext::defaultSystemOrientations() const { return OrientationMask::ALL; }
 
 [[gnu::weak]] void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate) {}
 
@@ -460,14 +460,14 @@ namespace IG::FileUtils
 
 ssize_t writeToUri(ApplicationContext ctx, IG::CStringView uri, std::span<const unsigned char> src)
 {
-	auto f = ctx.openFileUri(uri, FILE_OPEN_NEW | FILE_TEST_BIT);
+	auto f = ctx.openFileUri(uri, OpenFlagsMask::NEW | OpenFlagsMask::TEST);
 	return f.write(src.data(), src.size());
 }
 
 ssize_t readFromUri(ApplicationContext ctx, IG::CStringView uri, std::span<unsigned char> dest,
 	IOAccessHint accessHint)
 {
-	auto f = ctx.openFileUri(uri, accessHint, FILE_TEST_BIT);
+	auto f = ctx.openFileUri(uri, accessHint, OpenFlagsMask::TEST);
 	return f.read(dest.data(), dest.size());
 }
 
@@ -499,7 +499,7 @@ std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext
 	}
 }
 
-IOBuffer bufferFromUri(ApplicationContext ctx, CStringView uri, FileOpenFlags openFlags, size_t sizeLimit)
+IOBuffer bufferFromUri(ApplicationContext ctx, CStringView uri, OpenFlagsMask openFlags, size_t sizeLimit)
 {
 	if(!sizeLimit) [[unlikely]]
 		return {};
@@ -508,7 +508,7 @@ IOBuffer bufferFromUri(ApplicationContext ctx, CStringView uri, FileOpenFlags op
 		return {};
 	else if(file.size() > sizeLimit)
 	{
-		if(openFlags & FILE_TEST_BIT)
+		if(to_underlying(openFlags & OpenFlagsMask::TEST))
 			return {};
 		else
 			throw std::runtime_error(fmt::format("{} exceeds {} byte limit", uri.data(), sizeLimit));
@@ -516,11 +516,11 @@ IOBuffer bufferFromUri(ApplicationContext ctx, CStringView uri, FileOpenFlags op
 	return file.buffer(IOBufferMode::RELEASE);
 }
 
-IOBuffer rwBufferFromUri(ApplicationContext ctx, CStringView uri, FileOpenFlags extraOFlags, size_t size, uint8_t initValue)
+IOBuffer rwBufferFromUri(ApplicationContext ctx, CStringView uri, OpenFlagsMask extraOFlags, size_t size, uint8_t initValue)
 {
 	if(!size) [[unlikely]]
 		return {};
-	auto file = ctx.openFileUri(uri, IOAccessHint::RANDOM, FILE_OPEN_RW | extraOFlags);
+	auto file = ctx.openFileUri(uri, IOAccessHint::RANDOM, OpenFlagsMask::CREATE_RW | extraOFlags);
 	if(!file) [[unlikely]]
 		return {};
 	auto fileSize = file.size();
@@ -538,8 +538,8 @@ FILE *fopenUri(ApplicationContext ctx, IG::CStringView path, IG::CStringView mod
 {
 	if(IG::isUri(path))
 	{
-		int openFlags = mode.contains('w') ? FILE_OPEN_NEW : 0;
-		return ctx.openFileUri(path, openFlags | FILE_TEST_BIT).toFileStream(mode);
+		auto openFlags = mode.contains('w') ? OpenFlagsMask::NEW : OpenFlagsMask{};
+		return ctx.openFileUri(path, openFlags | OpenFlagsMask::TEST).toFileStream(mode);
 	}
 	else
 	{

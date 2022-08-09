@@ -203,10 +203,10 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	menuOrientationItem
 	{
 		{"Auto",         &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::UNSET},
-		{landscapeName,  &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::LANDSCAPE_RIGHT_BIT},
-		{landscape2Name, &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::LANDSCAPE_LEFT_BIT},
-		{portraitName,   &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::PORTRAIT_BIT},
-		{portrait2Name,  &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::PORTRAIT_UPSIDE_DOWN_BIT},
+		{landscapeName,  &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::LANDSCAPE_RIGHT},
+		{landscape2Name, &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::LANDSCAPE_LEFT},
+		{portraitName,   &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::PORTRAIT},
+		{portrait2Name,  &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::PORTRAIT_UPSIDE_DOWN},
 	},
 	menuOrientation
 	{
@@ -217,10 +217,10 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	emuOrientationItem
 	{
 		{"Auto",         &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::UNSET},
-		{landscapeName,  &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::LANDSCAPE_RIGHT_BIT},
-		{landscape2Name, &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::LANDSCAPE_LEFT_BIT},
-		{portraitName,   &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::PORTRAIT_BIT},
-		{portrait2Name,  &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::PORTRAIT_UPSIDE_DOWN_BIT},
+		{landscapeName,  &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::LANDSCAPE_RIGHT},
+		{landscape2Name, &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::LANDSCAPE_LEFT},
+		{portraitName,   &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::PORTRAIT},
+		{portrait2Name,  &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::PORTRAIT_UPSIDE_DOWN},
 	},
 	emuOrientation
 	{

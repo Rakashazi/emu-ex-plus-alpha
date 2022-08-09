@@ -181,8 +181,14 @@ static GLContext makeVersionedGLContext(GLManager &mgr, GLBufferConfig config,
 	int majorVersion, int minorVersion)
 {
 	auto glAttr = makeGLContextAttributes(majorVersion, minorVersion);
-	IG::ErrorCode ec{};
-	return mgr.makeContext(glAttr, config, ec);
+	try
+	{
+		return mgr.makeContext(glAttr, config);
+	}
+	catch(...)
+	{
+		return {};
+	}
 }
 
 GLContext GLTask::makeGLContext(GLManager &mgr, GLBufferConfig bufferConf)

@@ -53,7 +53,6 @@ public:
 	using Advice = IOAdvice;
 	using BufferMode = IOBufferMode;
 	using SeekMode = IOSeekMode;
-	using OpenFlags = FileOpenFlags;
 
 	// reading
 	ssize_t read(void *buff, size_t bytes);

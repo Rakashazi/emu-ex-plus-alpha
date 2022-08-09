@@ -302,8 +302,8 @@ void removeFileHelper(const char* filename)
 
 gzFile gzopenHelper(const char *filename, const char *mode)
 {
-	unsigned openFlags = std::string_view{mode}.contains('w') ? IG::FILE_OPEN_NEW : 0;
-	return gzdopen(gAppContext().openFileUriFd(filename, openFlags | IG::FILE_TEST_BIT).release(), mode);
+	auto openFlags = std::string_view{mode}.contains('w') ? IG::OpenFlagsMask::NEW : IG::OpenFlagsMask{};
+	return gzdopen(gAppContext().openFileUriFd(filename, openFlags | IG::OpenFlagsMask::TEST).release(), mode);
 }
 
 // from logger.h
@@ -315,3 +315,8 @@ bool8 S9xDoScreenshot(int, int) { return 1; }
 // from gfx.h
 void S9xSyncSpeed() {}
 bool8 S9xInitUpdate() { return 1; }
+
+void notifyBackupMemoryWritten()
+{
+	EmuEx::gSystem().onBackupMemoryWritten();
+}

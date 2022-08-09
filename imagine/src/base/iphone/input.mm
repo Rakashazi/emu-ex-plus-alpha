@@ -108,30 +108,30 @@ static bool hardwareKBAttached = false;
 using GSEventIsHardwareKeyboardAttachedProto = BOOL(*)();
 static GSEventIsHardwareKeyboardAttachedProto GSEventIsHardwareKeyboardAttached{};
 
-static CGAffineTransform makeTransformForOrientation(Orientation orientation)
+static CGAffineTransform makeTransformForOrientation(Rotation orientation)
 {
 	switch(orientation)
 	{
 		default: return CGAffineTransformIdentity;
-		case VIEW_ROTATE_270: return CGAffineTransformMakeRotation(3*M_PI / 2.0);
-		case VIEW_ROTATE_90: return CGAffineTransformMakeRotation(M_PI / 2.0);
-		case VIEW_ROTATE_180: return CGAffineTransformMakeRotation(M_PI);
+		case Rotation::LEFT: return CGAffineTransformMakeRotation(3 * M_PI / 2.0);
+		case Rotation::RIGHT: return CGAffineTransformMakeRotation(M_PI / 2.0);
+		case Rotation::DOWN: return CGAffineTransformMakeRotation(M_PI);
 	}
 }
 
 static CGRect toCGRect(const Window &win, const IG::WindowRect &rect)
 {
 	int x = rect.x, y = rect.y;
-	if(win.softOrientation() == VIEW_ROTATE_90 || win.softOrientation() == VIEW_ROTATE_270)
+	if(win.softOrientation() == Rotation::RIGHT || win.softOrientation() == Rotation::LEFT)
 	{
 		std::swap(x, y);
 	}
-	if(win.softOrientation() == VIEW_ROTATE_90)
+	if(win.softOrientation() == Rotation::RIGHT)
 	{
 		x = (win.height() - x) - rect.ySize();
 	}
 	int x2 = rect.xSize(), y2 = rect.ySize();
-	if(win.softOrientation() == VIEW_ROTATE_90 || win.softOrientation() == VIEW_ROTATE_270)
+	if(win.softOrientation() == Rotation::RIGHT || win.softOrientation() == Rotation::LEFT)
 		std::swap(x2, y2);
 	logMsg("made CGRect %f,%f size %f,%f", x / win.pointScale, y / win.pointScale,
 			x2 / win.pointScale, y2 / win.pointScale);
