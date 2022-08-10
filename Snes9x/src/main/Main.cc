@@ -180,7 +180,7 @@ void Snes9xSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 	const double systemFrameTime = videoSystem() == VideoSystem::PAL ? staticPalFrameTime : staticFrameTime;
 	#ifndef SNES9X_VERSION_1_4
 	Settings.SoundPlaybackRate = rate;
-	Settings.SoundInputRate = frameTime.count() / systemFrameTime * 32040.;
+	Settings.SoundInputRate = systemFrameTime / frameTime.count() * 32040.;
 	S9xUpdateDynamicRate(0, 10);
 	logMsg("sound input rate:%.2f from system frame rate:%f",
 		Settings.SoundInputRate, 1. / systemFrameTime);
@@ -192,16 +192,16 @@ void Snes9xSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 	#endif
 }
 
-static void mixSamples(uint32_t samples, EmuAudio *audio)
+static void mixSamples(int samples, EmuAudio *audio)
 {
 	if(!samples) [[unlikely]]
 		return;
 	assumeExpr(samples % 2 == 0);
-	int16_t audioBuff[samples];
+	int16_t audioBuff[1800];
 	S9xMixSamples((uint8*)audioBuff, samples);
 	if(audio)
 	{
-		//logMsg("%d frames", frames);
+		//logMsg("%d frames", samples / 2);
 		audio->writeFrames(audioBuff, samples / 2);
 	}
 }

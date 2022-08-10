@@ -166,7 +166,7 @@ bool GbcSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 void GbcSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
 	long outputRate = rate;
-	long inputRate = frameTime.count() / staticFrameTime * 2097152.;
+	long inputRate = staticFrameTime / frameTime.count() * 2097152.;
 	if(optionAudioResampler >= ResamplerInfo::num())
 		optionAudioResampler = std::min((int)ResamplerInfo::num(), 1);
 	if(!resampler || optionAudioResampler != activeResampler || resampler->outRate() != outputRate)

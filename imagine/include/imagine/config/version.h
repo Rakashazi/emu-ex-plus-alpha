@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define IMAGINE_VERSION_BASE "1.5.60"
+#define IMAGINE_VERSION_BASE "1.5.61"
 
 #ifdef NDEBUG
 #define IMAGINE_VERSION IMAGINE_VERSION_BASE
