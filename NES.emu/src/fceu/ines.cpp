@@ -215,6 +215,7 @@ static void SetInput(void) {
 		{0x5112dc21,	SI_UNSET,		SI_ZAPPER,		SIFC_NONE		},	// Wild Gunman
 		{0xaf4010ea,	SI_GAMEPAD,		SI_POWERPADB,	SIFC_UNSET		},	// World Class Track Meet
 		{0x67b126b9,	SI_GAMEPAD,		SI_GAMEPAD,		SIFC_FAMINETSYS },	// Famicom Network System
+		{0xb3cc4d26,	SI_GAMEPAD,		SI_UNSET,		SIFC_SHADOW		},	// 2-in-1 Uzi Lightgun (MGC-002)
 		{0x00000000,	SI_UNSET,		SI_UNSET,		SIFC_UNSET		}
 	};
 	int x = 0;
@@ -485,7 +486,7 @@ BMAPPINGLocal bmap[] = {
 	{"Konami VRC2/VRC4 D",	 25, Mapper25_Init},
 	{"Konami VRC6 Rev. B",	 26, Mapper26_Init},
 	{"CC-21 MI HUN CHE",	 27, UNLCC21_Init},		// Former dupe for VRC2/VRC4 mapper, redefined with crc to mihunche boards
-	{"",					 28, Mapper28_Init},
+	{"Action 53",			 28, Mapper28_Init},
 	{"RET-CUFROM",			 29, Mapper29_Init},
 	{"UNROM 512",			 30, UNROM512_Init},
 	{"infiniteneslives-NSF", 31, Mapper31_Init},
@@ -513,10 +514,10 @@ BMAPPINGLocal bmap[] = {
 	{"SUPERVISION 16-in-1",	 53, Supervision16_Init},
 //	{"",					 54, Mapper54_Init},
 //	{"",					 55, Mapper55_Init},
-//	{"",					 56, Mapper56_Init},
+	{"UNLKS202",			 56, UNLKS202_Init},
 	{"SIMBPLE BMC PIRATE A", 57, Mapper57_Init},
 	{"SIMBPLE BMC PIRATE B", 58, BMCGK192_Init},
-	{"",					 59, Mapper59_Init},	// Check this out
+	{"BMC T3H53/D1038",	 59, BMCD1038_Init},
 	{"SIMBPLE BMC PIRATE C", 60, BMCD1038_Init},
 	{"20-in-1 KAISER Rev. A",61, Mapper61_Init},
 	{"700-in-1",			 62, Mapper62_Init},
@@ -615,7 +616,7 @@ BMAPPINGLocal bmap[] = {
 	{"",					155, Mapper155_Init},
 	{"",					156, Mapper156_Init},
 	{"BANDAI BARCODE",		157, Mapper157_Init},
-//	{"",					158, Mapper158_Init},
+	{"TENGEN 800037",		158, Mapper158_Init},
 	{"BANDAI 24C01",		159, Mapper159_Init},	// Different type of EEPROM on the  bandai board
 	{"SA009",				160, SA009_Init},
 //	{"",					161, Mapper161_Init},
@@ -629,8 +630,8 @@ BMAPPINGLocal bmap[] = {
 //	{"",					169, Mapper169_Init},
 	{"",					170, Mapper170_Init},
 	{"",					171, Mapper171_Init},
-	{"",					172, Mapper172_Init},
-	{"",					173, Mapper173_Init},
+	{"Super Mega P-4070",	172, Mapper172_Init},
+	{"Idea-Tek ET.xx",		173, Mapper173_Init},
 //	{"",					174, Mapper174_Init},
 	{"",					175, Mapper175_Init},
 	{"BMCFK23C",			176, BMCFK23C_Init},	// zero 26-may-2012 - well, i have some WXN junk games that use 176 for instance ????. i dont know what game uses this BMCFK23C as mapper 176. we'll have to make a note when we find it.
@@ -658,30 +659,30 @@ BMAPPINGLocal bmap[] = {
 	{"TW MMC3+VRAM Rev. E",	198, Mapper198_Init},
 	{"",					199, Mapper199_Init},
 	{"",					200, Mapper200_Init},
-	{"",					201, Mapper201_Init},
+	{"21-in-1",				201, Mapper201_Init},
 	{"",					202, Mapper202_Init},
 	{"",					203, Mapper203_Init},
 	{"",					204, Mapper204_Init},
-	{"",					205, Mapper205_Init},
+	{"BMC 15-in-1/3-in-1",		205, Mapper205_Init},
 	{"NAMCOT 108 Rev. C",	206, Mapper206_Init},	// Deprecated, Used to be "DEIROM" whatever it means, but actually simple version of MMC3
 	{"TAITO X1-005 Rev. B",	207, Mapper207_Init},
 	{"",					208, Mapper208_Init},
-	{"",					209, Mapper209_Init},
+	{"HUMMER/JY BOARD",	209, Mapper209_Init},
 	{"",					210, Mapper210_Init},
-	{"",					211, Mapper211_Init},
+	{"HUMMER/JY BOARD",	211, Mapper211_Init},
 	{"",					212, Mapper212_Init},
 	{"",					213, Mapper213_Init},
 	{"",					214, Mapper214_Init},
-	{"",					215, UNL8237_Init},
+	{"UNL-8237",			215, UNL8237_Init},
 	{"",					216, Mapper216_Init},
 	{"",					217, Mapper217_Init},	// Redefined to a new Discrete BMC mapper
-//	{"",					218, Mapper218_Init},
+	{"Magic Floor",		218, Mapper218_Init},
 	{"UNLA9746",			219, UNLA9746_Init},
 	{"Debug Mapper",		220, QTAi_Init},
 	{"UNLN625092",			221, UNLN625092_Init},
 	{"",					222, Mapper222_Init},
 //	{"",					223, Mapper223_Init},
-//	{"",					224, Mapper224_Init},
+	{"KT-008",				224, MINDKIDS_Init},
 	{"",					225, Mapper225_Init},
 	{"BMC 22+20-in-1",		226, Mapper226_Init},
 	{"",					227, Mapper227_Init},
@@ -692,14 +693,14 @@ BMAPPINGLocal bmap[] = {
 	{"BMC QUATTRO",			232, Mapper232_Init},
 	{"BMC 22+20-in-1 RST",	233, Mapper233_Init},
 	{"BMC MAXI",			234, Mapper234_Init},
-	{"",					235, Mapper235_Init},
-//	{"",					236, Mapper236_Init},
-//	{"",					237, Mapper237_Init},
+	{"Golden Game",		235, Mapper235_Init},
+	{"Realtec 8031/8155/8099/8106",	236, Mapper236_Init},
+	{"Teletubbies / Y2K",	237, Mapper237_Init},
 	{"UNL6035052",			238, UNL6035052_Init},
 //	{"",					239, Mapper239_Init},
 	{"",					240, Mapper240_Init},
 	{"",					241, Mapper241_Init},
-	{"",					242, Mapper242_Init},
+	{"43272",				242, Mapper242_Init},
 	{"S74LS374NA",			243, S74LS374NA_Init},
 	{"DECATHLON",			244, Mapper244_Init},
 	{"",					245, Mapper245_Init},
@@ -713,13 +714,6 @@ BMAPPINGLocal bmap[] = {
 	{"DRAGON BALL PIRATE",	253, Mapper253_Init},
 	{"",					254, Mapper254_Init},
 //	{"",					255, Mapper255_Init},	// No good dumps for this mapper
-	{"860224C",    282, Mapper282_Init},
-	{"HP898F",    319, Mapper319_Init},
-	{"42 to 80,000 (970630C)",    380, Mapper380_Init},
-	{"9999999-in-1",    414, Mapper414_Init},
-	{"BS-400R/BS-4040",    422, Mapper422_Init},
-	{"DS-9-27",    452, Mapper452_Init},
-	{"NJ064",    452, Mapper534_Init},
 
 //-------- Mappers 256-511 is the Supplementary Multilingual Plane ----------
 //-------- Mappers 512-767 is the Supplementary Ideographic Plane -----------
@@ -738,10 +732,17 @@ BMAPPINGLocal bmap[] = {
 	{"810544-CA-1",		    261, BMC810544CA1_Init},
 	{"SMD132/SMD133",		268, SMD132_SMD133_Init},
 	{"COOLBOY",		        268, COOLBOY_Init},
+	{"860224C",    282, Mapper282_Init},
+	{"HP898F",    319, Mapper319_Init},
 	{"WS",    332, BMCWS_Init},
 
+	{"42 to 80,000 (970630C)",    380, Mapper380_Init},
 	{"Impact Soft MMC3 Flash Board",	406, Mapper406_Init },
 
+	{"9999999-in-1",    414, Mapper414_Init},
+	{"BS-400R/BS-4040",    422, Mapper422_Init},
+	{"DS-9-27",    452, Mapper452_Init},
+	{"NJ064",    452, Mapper534_Init},
 	{"KONAMI QTAi Board",	547, QTAi_Init },
 
 	{"",					0, NULL}
