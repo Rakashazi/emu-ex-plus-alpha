@@ -518,7 +518,7 @@ BMAPPINGLocal bmap[] = {
 	{"SIMBPLE BMC PIRATE A", 57, Mapper57_Init},
 	{"SIMBPLE BMC PIRATE B", 58, BMCGK192_Init},
 	{"BMC T3H53/D1038",	 59, BMCD1038_Init},
-	{"SIMBPLE BMC PIRATE C", 60, BMCD1038_Init},
+	{"SIMBPLE BMC PIRATE C", 60, Mapper60_Init},
 	{"20-in-1 KAISER Rev. A",61, Mapper61_Init},
 	{"700-in-1",			 62, Mapper62_Init},
 	{"",					 63, Mapper63_Init},
