@@ -574,7 +574,7 @@ BMAPPINGLocal bmap[] = {
 	{"HACKER/SACHEN BOARD",	113, Mapper113_Init},
 	{"MMC3 SG PROT. A",		114, Mapper114_Init},
 	{"MMC3 PIRATE A",		115, Mapper115_Init},
-	{"MMC1/MMC3/VRC PIRATE",116, Mapper116_Init},
+	{"MMC1/MMC3/VRC PIRATE",116, UNLSL12_Init},
 	{"FUTURE MEDIA BOARD",	117, Mapper117_Init},
 	{"TSKROM",				118, TKSROM_Init},
 	{"NES-TQROM",			119, Mapper119_Init},
@@ -671,7 +671,7 @@ BMAPPINGLocal bmap[] = {
 	{"",					210, Mapper210_Init},
 	{"HUMMER/JY BOARD",	211, Mapper211_Init},
 	{"",					212, Mapper212_Init},
-	{"",					213, Mapper213_Init},
+	{"",					213, Mapper58_Init},	// in mapper 58
 	{"",					214, Mapper214_Init},
 	{"UNL-8237",			215, UNL8237_Init},
 	{"",					216, Mapper216_Init},
@@ -682,7 +682,7 @@ BMAPPINGLocal bmap[] = {
 	{"UNLN625092",			221, UNLN625092_Init},
 	{"",					222, Mapper222_Init},
 //	{"",					223, Mapper223_Init},
-	{"KT-008",				224, Mapper224_Init},
+	{"KT-008",				224, Mapper224_Init},	// The KT-008 board contains the MINDKIDS chipset
 	{"",					225, Mapper225_Init},
 	{"BMC 22+20-in-1",		226, Mapper226_Init},
 	{"",					227, Mapper227_Init},
@@ -736,7 +736,7 @@ BMAPPINGLocal bmap[] = {
 	{"T-262",                    265, BMCT262_Init},
 	{"CITYFIGHT",                266, UNLCITYFIGHT_Init},
 	{"8-in-1 JY-119",            267, Mapper267_Init},
-	{"COOLBOY/MINDKIDS",	      268, Mapper268_Init},
+	{"COOLBOY/MINDKIDS",	      268, Mapper268_Init},	// Submapper distinguishes between COOLBOY and MINDKIDS
 	{"Games Xplosion 121-in-1",  269, Mapper269_Init},
 	{"MGC-026",                  271, Mapper271_Init},
 	{"Akumajō Special: Boku Dracula-kun", 272, Mapper272_Init},
@@ -810,7 +810,7 @@ BMAPPINGLocal bmap[] = {
 	{"YY860606C",                358, Mapper358_Init},
 	{"SB-5013/GCL8050/841242C",  359, Mapper359_Init},
 	{"Bitcorp 31-in-1",          360, Mapper360_Init},
-	{"OK-411",                   361, GN45_Init}, /* OK-411 is emulated together with GN-45 */
+	{"OK-411",                   361, GN45_Init},	// OK-411 is emulated together with GN-45
 	{"JY830832C",                364, Mapper364_Init},
 	{"GN-45",                    366, GN45_Init},
 	{"Yung-08",                  368, Mapper368_Init},
