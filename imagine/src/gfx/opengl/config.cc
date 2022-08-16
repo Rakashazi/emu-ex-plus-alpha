@@ -128,14 +128,12 @@ static void printFeatures(DrawContextSupport support)
 		featuresStr.append(" [Presentation Time]");
 	}
 	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(!support.useFixedFunctionPipeline)
 	{
 		featuresStr.append(" [GLSL:");
 		featuresStr.append((const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
 		featuresStr.append("]");
 	}
-	#endif
 
 	logMsg("features:%s", featuresStr.c_str());
 }
@@ -677,22 +675,22 @@ void Renderer::setWindowValidOrientations(Window &win, OrientationMask validO)
 	auto oldWinO = win.softOrientation();
 	if(win.setValidOrientations(validO) && !Config::SYSTEM_ROTATES_WINDOWS)
 	{
-		animateProjectionMatrixRotation(win, rotationRadians(oldWinO), rotationRadians(win.softOrientation()));
+		animateWindowRotation(win, rotationRadians(oldWinO), rotationRadians(win.softOrientation()));
 	}
 }
 
 void GLRenderer::addEventHandlers(ApplicationContext ctx, RendererTask &task)
 {
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	releaseShaderCompilerEvent.attach(
-		[&task, ctx]()
+	if(!support.useFixedFunctionPipeline)
+	{
+		releaseShaderCompilerEvent.attach([&task, ctx]()
 		{
 			if(!ctx.isRunning())
 				return;
 			logMsg("automatically releasing shader compiler");
 			task.releaseShaderCompiler();
 		});
-	#endif
+	}
 	if constexpr(Config::envIsIOS)
 		task.setIOSDrawableDelegates();
 }

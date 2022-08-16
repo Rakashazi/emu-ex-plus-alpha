@@ -22,48 +22,26 @@
 namespace IG::Gfx
 {
 
-float ProjectionPlane::width() const
+ProjectionPlane::ProjectionPlane(Viewport viewport, Mat4 mat)
 {
-	return w;
-}
-
-float ProjectionPlane::height() const
-{
-	return h;
-}
-
-FP ProjectionPlane::size() const
-{
-	return {w, h};
-}
-
-float ProjectionPlane::focalZ() const
-{
-	return focal;
-}
-
-ProjectionPlane ProjectionPlane::makeWithMatrix(Viewport viewport, Mat4 mat)
-{
-	ProjectionPlane p;
 	auto matInv = mat.invert();
-	p.winBounds = viewport.bounds();
+	winBounds = viewport.bounds();
 	auto lowerLeft = mat.unproject(asYUpRelRect(viewport), {(float)viewport.bounds().x, (float)viewport.bounds().y, .5}, matInv);
 	//logMsg("Lower-left projection point %d,%d -> %f %f %f", viewport.bounds().x, viewport.bounds().y, (double)lowerLeft.v.x, (double)lowerLeft.v.y, (double)lowerLeft.v.z);
 	auto upperRight = mat.unproject(asYUpRelRect(viewport), {(float)viewport.bounds().x2, (float)viewport.bounds().y2, .5}, matInv);
 	//logMsg("Upper-right projection point %d,%d -> %f %f %f", viewport.bounds().x2, viewport.bounds().y2, (double)upperRight.v.x, (double)upperRight.v.y, (double)upperRight.v.z);
-	p.w = upperRight.x - lowerLeft.x, p.h = upperRight.y - lowerLeft.y;
-	p.focal = upperRight.z;
-	p.rect.x = -p.w/2.f;
-	p.rect.y = -p.h/2.f;
-	p.rect.x2 = p.w/2.f;
-	p.rect.y2 = p.h/2.f;
-	p.pixToXScale = p.w / (float)viewport.width();
-	p.pixToYScale = p.h / (float)viewport.height();
-	p.xToPixScale = (float)viewport.width() / p.w;
-	p.yToPixScale = (float)viewport.height() / p.h;
+	w = upperRight.x - lowerLeft.x, h = upperRight.y - lowerLeft.y;
+	focal = upperRight.z;
+	rect.x = -w/2.f;
+	rect.y = -h/2.f;
+	rect.x2 = w/2.f;
+	rect.y2 = h/2.f;
+	pixToXScale = w / (float)viewport.width();
+	pixToYScale = h / (float)viewport.height();
+	xToPixScale = (float)viewport.width() / w;
+	yToPixScale = (float)viewport.height() / h;
 	logMsg("made with size %fx%f, to pix %fx%f, to view %fx%f",
-		(double)p.w, (double)p.h, (double)p.xToPixScale, (double)p.yToPixScale, (double)p.pixToXScale, (double)p.pixToYScale);
-	return p;
+		(double)w, (double)h, (double)xToPixScale, (double)yToPixScale, (double)pixToXScale, (double)pixToYScale);
 }
 
 Mat4 ProjectionPlane::makeTranslate(IG::Point2D<float> p) const
@@ -74,21 +52,6 @@ Mat4 ProjectionPlane::makeTranslate(IG::Point2D<float> p) const
 Mat4 ProjectionPlane::makeTranslate() const
 {
 	return Mat4::makeTranslate({0.f, 0.f, focal});
-}
-
-void ProjectionPlane::loadTranslate(Gfx::RendererCommands &cmds, float x, float y) const
-{
-	cmds.loadTranslate(x, y, focal);
-}
-
-void ProjectionPlane::loadTranslate(Gfx::RendererCommands &cmds, FP p) const
-{
-	loadTranslate(cmds, p.x, p.y);
-}
-
-void ProjectionPlane::resetTransforms(Gfx::RendererCommands &cmds) const
-{
-	loadTranslate(cmds, 0., 0.);
 }
 
 float ProjectionPlane::unprojectXSize(float x) const

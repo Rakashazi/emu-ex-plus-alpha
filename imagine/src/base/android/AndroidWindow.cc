@@ -341,7 +341,7 @@ void AndroidWindow::setContentRect(WindowRect rect, WP winSize)
 			[](auto &win, auto newRect)
 			{
 				win.surfaceChangeFlags |= WindowSurfaceChange::CONTENT_RECT_RESIZED;
-				win.postDraw();
+				win.setNeedsDraw(true);
 			});
 	}
 	win.postDraw();

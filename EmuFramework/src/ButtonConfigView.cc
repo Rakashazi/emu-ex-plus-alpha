@@ -169,8 +169,9 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
+	auto &basicEffect = cmds.basicEffect();
 	cmds.set(BlendMode::OFF);
-	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+	basicEffect.disableTexture(cmds);
 	cmds.setColor(.4, .4, .4, 1.);
 	GeomRect::draw(cmds, viewRect(), projP);
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
@@ -183,7 +184,7 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
 	#endif
 
 	cmds.set(ColorName::WHITE);
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+	basicEffect.enableAlphaTexture(cmds);
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{

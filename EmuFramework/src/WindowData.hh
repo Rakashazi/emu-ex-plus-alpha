@@ -34,7 +34,7 @@ struct WindowData
 
 	auto windowBounds() const { return projection.plane().windowBounds(); }
 	auto contentBounds() const { return contentRect; }
-	void updateWindowViewport(const IG::Window &win, IG::Viewport viewport);
+	void updateWindowViewport(const IG::Window &, IG::Viewport, const IG::Gfx::Renderer &);
 
 	void applyViewRect(auto &view)
 	{

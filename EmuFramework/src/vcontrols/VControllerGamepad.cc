@@ -29,7 +29,6 @@ namespace EmuEx
 void VControllerDPad::setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, float texHeight)
 {
 	spr = {{{-.5, -.5}, {.5, .5}}, {&dpadR, {{}, {1., 64.f/texHeight}}}};
-	spr.compileDefaultProgramOneShot(Gfx::EnvMode::MODULATE);
 }
 
 void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, Gfx::ProjectionPlane projP)
@@ -115,7 +114,7 @@ void VControllerDPad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::Pro
 	visualizeBounds = on;
 	if(!on)
 	{
-		if(mapSpr.image())
+		if(mapSpr.hasTexture())
 		{
 			logMsg("deallocating bounding box display resources");
 			mapSpr = {};
@@ -130,13 +129,11 @@ void VControllerDPad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::Pro
 
 void VControllerDPad::draw(Gfx::RendererCommands &cmds) const
 {
+	cmds.basicEffect().enableTexture(cmds);
 	cmds.set(View::imageCommonTextureSampler);
-	spr.setCommonProgram(cmds, Gfx::EnvMode::MODULATE);
 	spr.draw(cmds);
-
 	if(visualizeBounds)
 	{
-		mapSpr.setCommonProgram(cmds, Gfx::EnvMode::MODULATE);
 		mapSpr.draw(cmds);
 	}
 }
@@ -216,7 +213,6 @@ static FRect faceButtonCoordinates(int slot, float texHeight)
 
 void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::Texture &pics)
 {
-	pics.compileDefaultProgramOneShot(Gfx::EnvMode::MODULATE);
 	float h = EmuSystem::inputFaceBtns == 2 || EmuSystem::inputHasShortBtnTexture ? 128. : 256.;
 	dp.setImg(r, pics, h);
 	centerBtns.buttons()[0].setImage({&pics, {{0., 65.f/h}, {32./64., 81.f/h}}}, 2.f);

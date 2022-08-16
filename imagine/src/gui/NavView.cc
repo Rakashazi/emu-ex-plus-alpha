@@ -190,26 +190,20 @@ BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, 
 	bool compiled = false;
 	if(backRes)
 	{
-		leftSpr.setImg(backRes);
-		compiled |= leftSpr.compileDefaultProgram(Gfx::EnvMode::MODULATE);
+		leftSpr.set(backRes);
 		control[0].isActive = true;
 	}
 	if(closeRes)
 	{
-		rightSpr.setImg(closeRes);
-		compiled |= rightSpr.compileDefaultProgram(Gfx::EnvMode::MODULATE);
+		rightSpr.set(closeRes);
 		control[2].isActive = true;
 	}
-	if(compiled)
-		renderer().autoReleaseShaderCompiler();
 }
 
 void BasicNavView::setBackImage(Gfx::TextureSpan img)
 {
-	leftSpr.setImg(img);
-	if(leftSpr.compileDefaultProgram(Gfx::EnvMode::MODULATE))
-		renderer().autoReleaseShaderCompiler();
-	control[0].isActive = leftSpr.image();
+	leftSpr.set(img);
+	control[0].isActive = leftSpr.hasTexture();
 }
 
 void BasicNavView::setBackgroundGradient(std::span<const Gfx::LGradientStopDesc> gradStops)
@@ -223,10 +217,11 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
 	auto const &textRect = control[1].rect;
+	auto &basicEffect = cmds.basicEffect();
 	if(bg)
 	{
 		cmds.set(BlendMode::OFF);
-		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+		basicEffect.disableTexture(cmds);
 		if(viewRect().y > displayRect().y)
 		{
 			cmds.setColor(VertexColorPixelFormat.rgbaNorm(bg.mesh().v().data()->color));
@@ -239,11 +234,11 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 	{
 		cmds.set(BlendMode::ALPHA);
 		cmds.setColor(.2, .71, .9, 1./3.);
-		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+		basicEffect.disableTexture(cmds);
 		GeomRect::draw(cmds, control[selected].rect, projP);
 	}
 	cmds.set(ColorName::WHITE);
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+	basicEffect.enableAlphaTexture(cmds);
 	if(centerTitle)
 	{
 		text.draw(cmds, projP.alignToPixel(projP.unProjectRect(viewRect()).pos(C2DO)), C2DO, projP);
@@ -265,25 +260,26 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 	}
 	if(control[0].isActive)
 	{
-		assumeExpr(leftSpr.image());
+		assumeExpr(leftSpr.hasTexture());
 		cmds.set(BlendMode::ALPHA);
 		cmds.set(ColorName::WHITE);
 		cmds.set(imageCommonTextureSampler);
 		auto trans = projP.makeTranslate(projP.unProjectRect(control[0].rect).pos(C2DO));
 		if(rotateLeftBtn)
 			trans = trans.rollRotate(radians(90.f));
-		leftSpr.setCommonProgram(cmds, EnvMode::MODULATE, trans);
-		leftSpr.draw(cmds);
+		basicEffect.setModelView(cmds, trans);
+		leftSpr.draw(cmds, basicEffect);
 	}
 	if(control[2].isActive)
 	{
-		assumeExpr(rightSpr.image());
+		assumeExpr(rightSpr.hasTexture());
 		cmds.set(BlendMode::ALPHA);
 		cmds.set(ColorName::WHITE);
 		cmds.set(imageCommonTextureSampler);
-		rightSpr.setCommonProgram(cmds, EnvMode::MODULATE, projP.makeTranslate(projP.unProjectRect(control[2].rect).pos(C2DO)));
-		rightSpr.draw(cmds);
+		basicEffect.setModelView(cmds, projP.makeTranslate(projP.unProjectRect(control[2].rect).pos(C2DO)));
+		rightSpr.draw(cmds, basicEffect);
 	}
+	basicEffect.setModelView(cmds, projP.makeTranslate());
 }
 
 void BasicNavView::place()
@@ -291,13 +287,13 @@ void BasicNavView::place()
 	using namespace IG::Gfx;
 	auto &r = renderer();
 	NavView::place();
-	if(leftSpr.image())
+	if(leftSpr.hasTexture())
 	{
 		auto rect = projP.unProjectRect(control[0].rect);
 		Gfx::GCRect scaledRect{-rect.size() / 3.f, rect.size() / 3.f};
 		leftSpr.setPos(scaledRect);
 	}
-	if(rightSpr.image())
+	if(rightSpr.hasTexture())
 	{
 		auto rect = projP.unProjectRect(control[2].rect);
 		Gfx::GCRect scaledRect{-rect.size() / 3.f, rect.size() / 3.f};
@@ -312,7 +308,7 @@ void BasicNavView::place()
 
 void BasicNavView::showLeftBtn(bool show)
 {
-	control[0].isActive = show && leftSpr.image();
+	control[0].isActive = show && leftSpr.hasTexture();
 	if(!show && selected == 0)
 	{
 		if(control[2].isActive)
@@ -324,7 +320,7 @@ void BasicNavView::showLeftBtn(bool show)
 
 void BasicNavView::showRightBtn(bool show)
 {
-	control[2].isActive = show && rightSpr.image();
+	control[2].isActive = show && rightSpr.hasTexture();
 	if(!show && selected == 1)
 	{
 		if(control[0].isActive)

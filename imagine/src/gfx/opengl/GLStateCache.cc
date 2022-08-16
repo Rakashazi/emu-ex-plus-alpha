@@ -210,6 +210,7 @@ int8_t *GLStateCache::getClientCap(GLenum cap)
 	#define GLCAP_CASE(cap) case cap: return &clientStateCap.cap ## _state
 	switch(cap)
 	{
+		GLCAP_CASE(GL_VERTEX_ARRAY);
 		GLCAP_CASE(GL_TEXTURE_COORD_ARRAY);
 		GLCAP_CASE(GL_COLOR_ARRAY);
 	default: return {};
@@ -306,28 +307,6 @@ void GLStateCache::texEnvi(GLenum target, GLenum pname, GLint param)
 		{
 			glTexEnvi(target, pname, param);
 		}, "glTexEnvi()");
-	}
-}
-
-void GLStateCache::texEnvfv(GLenum target, GLenum pname, const GLfloat *params)
-{
-	if(target == GL_TEXTURE_ENV && pname == GL_TEXTURE_ENV_COLOR)
-	{
-		if(std::memcmp(params, GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state, sizeof(GLfloat)*4))
-		{
-			std::memcpy(GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state, params, sizeof(GLfloat)*4);
-			runGLCheckedVerbose([&]()
-			{
-				glTexEnvfv(target, pname, params);
-			}, "glTexEnvfv()");
-		}
-	}
-	else // cases we don't handle
-	{
-		runGLCheckedVerbose([&]()
-		{
-			glTexEnvfv(target, pname, params);
-		}, "glTexEnvfv()");
 	}
 }
 

@@ -51,9 +51,9 @@ public:
 	// Run a delegate for drawing on the renderer thread
 	// Returns true if the window's contents were presented synchronously
 	bool draw(Window &win, WindowDrawParams winParams, DrawParams params,
-		const Mat4 &projMat, std::invocable<Window &, RendererCommands &> auto &&f)
+		std::invocable<Window &, RendererCommands &> auto &&f)
 	{
-		return RendererTaskImpl::draw(win, winParams, params, projMat, IG_forward(f));
+		return RendererTaskImpl::draw(win, winParams, params, IG_forward(f));
 	}
 
 	// synchronization

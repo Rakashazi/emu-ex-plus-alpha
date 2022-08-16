@@ -216,13 +216,9 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP)
 {
 	using namespace IG::Gfx;
-	bool replaceMode = true;
-	if(brightness != 1.f)
-	{
-		auto c = srgbColorSpace() ? brightnessSrgb : brightness;
-		cmds.setColor(c, c, c);
-		replaceMode = false;
-	}
+	bool srgbOutput = srgbColorSpace();
+	auto c = srgbOutput ? brightnessSrgb : brightness;
+	cmds.setColor(c, c, c);
 	cmds.set(BlendMode::OFF);
 	if(effects.size())
 	{
@@ -241,13 +237,11 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 		cmds.setDither(true);
 		cmds.restoreViewport();
 	}
-	disp.setCommonProgram(cmds, replaceMode ? EnvMode::REPLACE : EnvMode::MODULATE, projP.makeTranslate());
-	bool srgbFrameBufferWrite = srgbColorSpace();
 	cmds.setTextureSampler(*texSampler);
-	if(srgbFrameBufferWrite)
+	if(srgbOutput)
 		cmds.setSrgbFramebufferWrite(true);
-	disp.draw(cmds);
-	if(srgbFrameBufferWrite)
+	disp.draw(cmds, cmds.basicEffect());
+	if(srgbOutput)
 		cmds.setSrgbFramebufferWrite(false);
 	video.addFence(cmds);
 	vidImgOverlay.draw(cmds);
@@ -397,16 +391,14 @@ void EmuVideoLayer::updateSprite()
 {
 	if(effects.size())
 	{
-		disp.setImg(effects.back()->renderTarget(), rotation);
+		disp.set(effects.back()->renderTarget(), rotation);
 		video.setCompatTextureSampler(renderer().make(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP));
 	}
 	else
 	{
-		disp.setImg(video.image(), rotation);
+		disp.set(video.image(), rotation);
 		video.setCompatTextureSampler(*texSampler);
 	}
-	disp.compileDefaultProgramOneShot(Gfx::EnvMode::REPLACE);
-	disp.compileDefaultProgramOneShot(Gfx::EnvMode::MODULATE);
 }
 
 void EmuVideoLayer::logOutputFormat()

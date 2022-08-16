@@ -121,9 +121,9 @@ void setupVKeyboardMap(EmuApp &app, unsigned boardType)
 	app.updateVControllerMapping();
 }
 
-VController::KbMap MsxSystem::vControllerKeyboardMap(unsigned mode)
+VController::KbMap MsxSystem::vControllerKeyboardMap(VControllerKbMode mode)
 {
-	return mode ? kbToEventMap2 : kbToEventMap;
+	return mode == VControllerKbMode::LAYOUT_2 ? kbToEventMap2 : kbToEventMap;
 }
 
 VController::Map MsxSystem::vControllerMap(int player)

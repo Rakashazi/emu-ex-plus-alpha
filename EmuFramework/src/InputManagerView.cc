@@ -74,12 +74,13 @@ bool IdentInputDeviceView::inputEvent(const Input::Event &e)
 void IdentInputDeviceView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
+	auto &basicEffect = cmds.basicEffect();
 	cmds.set(BlendMode::OFF);
-	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+	basicEffect.disableTexture(cmds);
 	cmds.setColor(.4, .4, .4, 1.);
 	GeomRect::draw(cmds, viewRect(), projP);
 	cmds.set(ColorName::WHITE);
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+	basicEffect.enableAlphaTexture(cmds);
 	text.draw(cmds, 0, 0, C2DO, projP);
 }
 

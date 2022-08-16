@@ -311,7 +311,7 @@ void EmuViewController::updateMainWindowViewport(IG::Window &win, IG::Viewport v
 {
 	auto &winData = windowData(win);
 	task.setDefaultViewport(win, viewport);
-	winData.updateWindowViewport(win, viewport);
+	winData.updateWindowViewport(win, viewport, task.renderer());
 	if(winData.hasEmuView)
 	{
 		winData.applyViewRect(emuView);
@@ -325,7 +325,7 @@ void EmuViewController::updateExtraWindowViewport(IG::Window &win, IG::Viewport 
 	logMsg("view resize for extra window");
 	task.setDefaultViewport(win, viewport);
 	auto &winData = windowData(win);
-	winData.updateWindowViewport(win, viewport);
+	winData.updateWindowViewport(win, viewport, task.renderer());
 	winData.applyViewRect(emuView);
 	emuView.place();
 }
@@ -395,11 +395,12 @@ void EmuViewController::prepareDraw()
 
 bool EmuViewController::drawMainWindow(IG::Window &win, IG::WindowDrawParams params, Gfx::RendererTask &task)
 {
-	auto &winData = windowData(win);
-	return task.draw(win, params, {}, winData.projection.matrix(),
-		[this, &winData](IG::Window &win, Gfx::RendererCommands &cmds)
+	return task.draw(win, params, {},
+		[this](IG::Window &win, Gfx::RendererCommands &cmds)
 	{
 		cmds.clear();
+		auto &winData = windowData(win);
+		cmds.basicEffect().setModelViewProjection(cmds, winData.projection);
 		if(showingEmulation)
 		{
 			if(winData.hasEmuView)
@@ -425,11 +426,12 @@ bool EmuViewController::drawMainWindow(IG::Window &win, IG::WindowDrawParams par
 
 bool EmuViewController::drawExtraWindow(IG::Window &win, IG::WindowDrawParams params, Gfx::RendererTask &task)
 {
-	auto &winData = windowData(win);
-	return task.draw(win, params, {}, winData.projection.matrix(),
-		[this, &winData](IG::Window &win, Gfx::RendererCommands &cmds)
+	return task.draw(win, params, {},
+		[this](IG::Window &win, Gfx::RendererCommands &cmds)
 	{
 		cmds.clear();
+		auto &winData = windowData(win);
+		cmds.basicEffect().setModelViewProjection(cmds, winData.projection);
 		emuView.draw(cmds);
 		if(winData.hasPopup)
 		{

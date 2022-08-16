@@ -204,7 +204,7 @@ static bool isEmuKeyInKeyboardRange(uint32_t emuKey)
 	return emuKey >= c64KeyFirstKeyboardKey && emuKey <= c64KeyLastKeyboardKey;
 }
 
-VController::KbMap C64System::vControllerKeyboardMap(unsigned mode)
+VController::KbMap C64System::vControllerKeyboardMap(VControllerKbMode mode)
 {
 	static constexpr VController::KbMap kbToEventMap =
 	{
@@ -222,7 +222,7 @@ VController::KbMap C64System::vControllerKeyboardMap(unsigned mode)
 		KBEX_NONE, KBEX_NONE, KBEX_NONE, c64KeySpace, c64KeySpace, c64KeySpace, c64KeySpace, KBEX_CTRL_LOCK, KBEX_CTRL_LOCK, c64KeyReturn
 	};
 
-	return mode ? kbToEventMap2 : kbToEventMap;
+	return mode == VControllerKbMode::LAYOUT_2 ? kbToEventMap2 : kbToEventMap;
 }
 
 VController::Map C64System::vControllerMap(int player)

@@ -116,6 +116,60 @@ typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum source,GLenum type,GLuint id,G
 	#ifndef GL_STREAM_DRAW
 	#define GL_STREAM_DRAW GL_DYNAMIC_DRAW
 	#endif
+
+#define GL_CONSTANT_COLOR                 0x8001
+#define GL_ONE_MINUS_CONSTANT_COLOR       0x8002
+#define GL_CONSTANT_ALPHA                 0x8003
+#define GL_ONE_MINUS_CONSTANT_ALPHA       0x8004
+#define GL_FRAGMENT_SHADER                0x8B30
+#define GL_VERTEX_SHADER                  0x8B31
+#define GL_LINK_STATUS                    0x8B82
+#define GL_COMPILE_STATUS                 0x8B81
+#define GL_SHADING_LANGUAGE_VERSION       0x8B8C
+typedef void (GL_APIENTRY  *GLDEBUGPROCKHR)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
+#define GL_DEBUG_OUTPUT_KHR 0x92E0
+
+// dummy ES 2.0 functions
+namespace IG::Gfx
+{
+inline void glEnableVertexAttribArray(GLuint index) {}
+inline void glReleaseShaderCompiler() {}
+inline GLuint glCreateProgram(void) { return 0; }
+inline GLuint glCreateShader(GLenum type) { return 0; }
+inline void glDeleteProgram(GLuint program) {}
+inline void glDeleteShader(GLuint shader) {}
+inline void glShaderSource(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length) {}
+inline void glCompileShader(GLuint shader) {}
+inline void glAttachShader(GLuint program, GLuint shader) {}
+inline void glDetachShader(GLuint program, GLuint shader) {}
+inline void glLinkProgram(GLuint program) {}
+inline void glUseProgram(GLuint program) {}
+inline GLint glGetUniformLocation(GLuint program, const GLchar *name) { return -1; }
+inline void glBindAttribLocation(GLuint program, GLuint index, const GLchar *name) {}
+inline void glGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog) {}
+inline void glGetShaderiv(GLuint shader, GLenum pname, GLint *params) { *params = 0; }
+inline void glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog) {}
+inline void glGetProgramiv(GLuint program, GLenum pname, GLint *params) { *params = 0; }
+inline void glUniform1f(GLint location, GLfloat v0) {}
+inline void glUniform1fv(GLint location, GLsizei count, const GLfloat *value) {}
+inline void glUniform1i(GLint location, GLint v0) {}
+inline void glUniform1iv(GLint location, GLsizei count, const GLint *value) {}
+inline void glUniform2f(GLint location, GLfloat v0, GLfloat v1) {}
+inline void glUniform2fv(GLint location, GLsizei count, const GLfloat *value) {}
+inline void glUniform2i(GLint location, GLint v0, GLint v1) {}
+inline void glUniform2iv(GLint location, GLsizei count, const GLint *value) {}
+inline void glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2) {}
+inline void glUniform3fv(GLint location, GLsizei count, const GLfloat *value) {}
+inline void glUniform3i(GLint location, GLint v0, GLint v1, GLint v2) {}
+inline void glUniform3iv(GLint location, GLsizei count, const GLint *value) {}
+inline void glUniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) {}
+inline void glUniform4fv(GLint location, GLsizei count, const GLfloat *value) {}
+inline void glUniform4i(GLint location, GLint v0, GLint v1, GLint v2, GLint v3) {}
+inline void glUniform4iv(GLint location, GLsizei count, const GLint *value) {}
+inline void glUniformMatrix2fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) {}
+inline void glUniformMatrix3fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) {}
+inline void glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) {}
+}
 #endif
 
 #ifndef GL_APIENTRY

@@ -186,7 +186,7 @@ public:
 	bool onPointerInputUpdate(const Input::MotionEvent &, Input::DragTrackerState current, Input::DragTrackerState previous, WindowRect gameRect);
 	bool onPointerInputEnd(const Input::MotionEvent &, Input::DragTrackerState, WindowRect gameRect);
 	void onVKeyboardShown(VControllerKeyboard &, bool shown);
-	VController::KbMap vControllerKeyboardMap(unsigned mode);
+	VController::KbMap vControllerKeyboardMap(VControllerKbMode mode);
 	VideoSystem videoSystem() const;
 	void renderFramebuffer(EmuVideo &);
 	WP multiresVideoBaseSize() const;

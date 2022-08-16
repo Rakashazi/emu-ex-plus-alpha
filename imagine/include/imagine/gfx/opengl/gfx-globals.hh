@@ -85,4 +85,10 @@ struct GLBufferDeleter
 };
 using UniqueGLBuffer = UniqueResource<NativeBuffer, GLBufferDeleter>;
 
+struct TextureBinding
+{
+	TextureRef name{};
+	GLenum target{};
+};
+
 }

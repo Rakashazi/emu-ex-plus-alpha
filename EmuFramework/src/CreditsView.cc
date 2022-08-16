@@ -51,7 +51,7 @@ void CreditsView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
 	cmds.setColor(1., 1., 1., fade);
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
+	cmds.basicEffect().enableAlphaTexture(cmds);
 	auto textRect = viewRect();
 	if(IG::isOdd(textRect.ySize()))
 		textRect.y2--;

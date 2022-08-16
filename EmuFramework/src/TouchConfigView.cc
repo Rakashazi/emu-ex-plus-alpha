@@ -221,10 +221,10 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
-	projP.resetTransforms(cmds);
 	vController().draw(cmds, false, true, .75);
 	cmds.setColor(.5, .5, .5);
-	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+	auto &basicEffect = cmds.basicEffect();
+	basicEffect.disableTexture(cmds);
 	float lineSize = projP.unprojectYSize(1);
 	GeomRect::draw(cmds, Gfx::GCRect{{-projP.wHalf(), -lineSize/2.f},
 		{projP.wHalf(), lineSize/2.f}});
@@ -238,7 +238,7 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
 		GeomRect::draw(cmds, Gfx::makeGCRectRel({-text.width()/2.f - text.spaceWidth(), -text.height()/2.f - text.spaceWidth()},
 			{text.width() + text.spaceWidth()*2.f, text.height() + text.spaceWidth()*2.f}));
 		cmds.setColor(1., 1., 1., textFade);
-		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+		basicEffect.enableAlphaTexture(cmds);
 		text.draw(cmds, projP.unProjectRect(viewRect()).pos(C2DO), C2DO, projP);
 	}
 }
@@ -305,7 +305,6 @@ TextMenuItem::SelectDelegate TouchConfigView::setAlphaDel(uint8_t val)
 
 void TouchConfigView::draw(Gfx::RendererCommands &cmds)
 {
-	projP.resetTransforms(cmds);
 	vController().draw(cmds, false, true, .75);
 	TableView::draw(cmds);
 }

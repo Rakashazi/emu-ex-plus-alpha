@@ -27,32 +27,26 @@ namespace IG::Gfx
 class Texture;
 class RendererCommands;
 class Mat4;
+class BasicEffect;
 
 template<class BaseRect>
 class SpriteBase : public BaseRect
 {
 public:
 	constexpr SpriteBase():
-		BaseRect{{}, FRect{{}, {1., 1.}}}
-	{}
+		BaseRect{{}, FRect{{}, {1., 1.}}} {}
 
-	constexpr SpriteBase(GCRect pos, TextureSpan span = {}):
-		BaseRect{pos, span.uvBounds()},
-		img{span.texture()}
-	{}
-
-	void setImg(const Texture *img);
-	void setImg(TextureSpan span, Rotation r = Rotation::UP);
+	SpriteBase(GCRect pos, TextureSpan span = {});
+	void set(const Texture *);
+	void set(TextureSpan, Rotation r = Rotation::UP);
 	void setUVBounds(FRect uvBounds, Rotation r = Rotation::UP);
-	void draw(RendererCommands &r) const;
-	bool compileDefaultProgram(EnvMode mode);
-	bool compileDefaultProgramOneShot(EnvMode mode);
-	void setCommonProgram(RendererCommands &cmds, EnvMode mode, const Mat4 *modelMat = {}) const;
-	void setCommonProgram(RendererCommands &cmds, EnvMode mode, Mat4 modelMat) const;
-	const Texture *image() const;
+	void draw(RendererCommands &) const;
+	void draw(RendererCommands &, BasicEffect &) const;
+	TextureBinding textureBinding() const { return texBinding; }
+	bool hasTexture() const { return texBinding.name; }
 
 private:
-	const Texture *img{};
+	TextureBinding texBinding{};
 };
 
 using Sprite = SpriteBase<TexRect>;

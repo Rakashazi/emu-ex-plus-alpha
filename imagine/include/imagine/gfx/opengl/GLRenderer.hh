@@ -23,6 +23,7 @@
 #include <imagine/gfx/TextureSampler.hh>
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/BasicEffect.hh>
 #include <imagine/util/used.hh>
 #include <memory>
 #ifdef CONFIG_BASE_GL_PLATFORM_EGL
@@ -151,21 +152,6 @@ public:
 	void setGLDebugOutput(bool on);
 };
 
-struct GLCommonPrograms
-{
-	// color replacement
-	NativeProgramBundle texReplace{};
-	NativeProgramBundle texAlphaReplace{};
-	// color modulation
-	NativeProgramBundle tex{};
-	NativeProgramBundle texAlpha{};
-	// no texture
-	NativeProgramBundle noTex{};
-	// external textures
-	IG_UseMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, NativeProgramBundle, texExternalReplace){};
-	IG_UseMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, NativeProgramBundle, texExternal){};
-};
-
 struct GLCommonSamplers
 {
 	TextureSampler clamp{};
@@ -182,14 +168,11 @@ public:
 	DrawContextSupport support{};
 	[[no_unique_address]] GLManager glManager;
 	RendererTask mainTask;
-	GLCommonPrograms commonProgram{};
+	BasicEffect basicEffect_{};
 	GLCommonSamplers commonSampler{};
 	CustomEvent releaseShaderCompilerEvent{CustomEvent::NullInit{}};
-	IG_UseMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader_){};
 
 	GLRenderer(ApplicationContext);
-	void setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat) const;
-	void useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat) const;
 	GLDisplay glDisplay() const;
 	bool makeWindowDrawable(RendererTask &task, Window &, GLBufferConfig, GLColorSpace);
 
@@ -217,9 +200,9 @@ protected:
 	void setupPresentationTime(std::string_view eglExtenstionStr);
 	void checkExtensionString(std::string_view extStr, bool &useFBOFuncs);
 	void checkFullExtensionString(const char *fullExtStr);
-	NativeProgramBundle commonProgramBundle(CommonProgram program) const;
 	bool attachWindow(Window &, GLBufferConfig, GLColorSpace);
 	NativeWindowFormat nativeWindowFormat(GLBufferConfig) const;
+	bool initBasicEffect();
 };
 
 using RendererImpl = GLRenderer;

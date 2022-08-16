@@ -48,7 +48,6 @@ public:
 	IG::WP size() const;
 	PixmapDesc pixmapDesc() const;
 	void setCompatTextureSampler(const TextureSampler &compatSampler);
-	bool compileDefaultProgram(EnvMode mode) const;
 	explicit operator bool() const;
 	Renderer &renderer() const;
 	operator TextureSpan() const;

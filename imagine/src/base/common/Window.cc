@@ -353,6 +353,12 @@ void Window::dispatchSurfaceDestroyed()
 	onSurfaceChange.callCopy(*this, SurfaceChange::Action::DESTROYED);
 }
 
+void Window::signalSurfaceChanged(uint8_t flags)
+{
+	surfaceChangeFlags |= flags;
+	postDraw();
+}
+
 void Window::dispatchOnDraw(bool needsSync)
 {
 	if(!needsDraw() || drawPhase == DrawPhase::DRAW)

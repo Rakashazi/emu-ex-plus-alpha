@@ -68,7 +68,7 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 		{
 			renderer.initMainTask(&win);
 			viewManager = {renderer};
-			Gfx::GlyphTextureSet defaultFace{renderer, fontManager.makeSystem(), win.heightScaledMMInPixels(3.5)};
+			Gfx::GlyphTextureSet defaultFace{renderer, fontManager.makeSystem(), win.heightScaledMMInPixels(2.5)};
 			defaultFace.precacheAlphaNum(renderer);
 			defaultFace.precache(renderer, ":.%()");
 			viewManager.setDefaultFace(std::move(defaultFace));
@@ -92,10 +92,11 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 				{
 					if(change.resized())
 					{
-						auto viewport = win.viewport();
-						renderer.setDefaultViewport(win, viewport);
+						auto viewport = win.viewport(win.contentBounds());
+						renderer.task().setDefaultViewport(win, viewport);
 						auto &winData = windowData(win);
-						winData.proj = {viewport, Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.)};
+						winData.proj = renderer.projection(win, viewport,
+							Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.));
 						winData.testRectWin = viewport.relRectBestFit({}, 4./3., C2DO, C2DO);
 						winData.testRect = winData.proj.plane().unProjectRect(winData.testRectWin);
 						placeElements(win);
@@ -150,15 +151,16 @@ void FrameRateTestApplication::setPickerHandlers(IG::Window &win)
 	win.setOnDraw(
 		[&task = renderer.task()](IG::Window &win, IG::Window::DrawParams params)
 		{
-			auto &winData = windowData(win);
-			return task.draw(win, params, {}, winData.proj.matrix(),
-				[&picker = winData.picker](IG::Window &win, Gfx::RendererCommands &cmds)
-				{
-					cmds.clear();
-					picker.draw(cmds);
-					cmds.setClipTest(false);
-					cmds.present();
-				});
+			return task.draw(win, params, {}, [](IG::Window &win, Gfx::RendererCommands &cmds)
+			{
+				cmds.clear();
+				auto &winData = windowData(win);
+				auto &picker = winData.picker;
+				cmds.basicEffect().setModelViewProjection(cmds, winData.proj);
+				picker.draw(cmds);
+				cmds.setClipTest(false);
+				cmds.present();
+			});
 		});
 	win.setOnInputEvent(
 		[this](IG::Window &win, const Input::Event &e)
@@ -203,17 +205,18 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 	win.setOnDraw(
 		[this, &task = renderer.task()](IG::Window &win, IG::Window::DrawParams params)
 		{
-			auto &winData = windowData(win);
 			auto xIndent = viewManager.tableXIndent();
-			return task.draw(win, params, {}, winData.proj.matrix(),
-				[rect = winData.testRectWin, &activeTest = windowData(win).activeTest, xIndent]
-				(IG::Window &win, Gfx::RendererCommands &cmds)
-				{
-					activeTest->draw(cmds, cmds.renderer().makeClipRect(win, rect), xIndent);
-					activeTest->lastFramePresentTime.atWinPresent = IG::steadyClockTimestamp();
-					activeTest->presentFence = cmds.clientWaitSyncReset(activeTest->presentFence);
-					cmds.present();
-				});
+			return task.draw(win, params, {}, [xIndent](IG::Window &win, Gfx::RendererCommands &cmds)
+			{
+				auto &winData = windowData(win);
+				auto &activeTest = winData.activeTest;
+				auto rect = winData.testRectWin;
+				cmds.basicEffect().setModelViewProjection(cmds, winData.proj);
+				activeTest->draw(cmds, cmds.renderer().makeClipRect(win, rect), xIndent);
+				activeTest->lastFramePresentTime.atWinPresent = IG::steadyClockTimestamp();
+				activeTest->presentFence = cmds.clientWaitSyncReset(activeTest->presentFence);
+				cmds.present();
+			});
 		});
 	win.setOnInputEvent(
 		[this](IG::Window &win, const Input::Event &e)

@@ -66,20 +66,6 @@ enum class ColorName: uint8_t
 	BLACK
 };
 
-enum class CommonProgram: uint8_t
-{
-	// color replacement shaders
-	TEX_REPLACE,
-	TEX_ALPHA_REPLACE,
-	TEX_EXTERNAL_REPLACE,
-
-	// color modulation shaders
-	TEX,
-	TEX_ALPHA,
-	TEX_EXTERNAL,
-	NO_TEX
-};
-
 enum class CommonTextureSampler: uint8_t
 {
 	CLAMP,
@@ -88,6 +74,11 @@ enum class CommonTextureSampler: uint8_t
 	NO_LINEAR_NO_MIP_CLAMP,
 	REPEAT,
 	NEAREST_MIP_REPEAT
+};
+
+enum class TextureType : uint8_t
+{
+	UNSET, T2D_1, T2D_2, T2D_4, T2D_EXTERNAL
 };
 
 class TextureSpan

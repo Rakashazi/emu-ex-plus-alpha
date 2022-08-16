@@ -81,7 +81,6 @@ static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, std::string_view s
 	std::string_view shaderSrc[]
 	{
 		"#define TEXTURE texture\n",
-		"FRAGCOLOR_DEF\n",
 		"uniform sampler2D TEX;\n",
 		src
 	};
@@ -176,26 +175,28 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool use
 	{
 		throw std::runtime_error{"GPU rejected shader (fragment compile error)"};
 	}
-
-	prog = {r.task(), vShader, fShader, false, true};
+	Gfx::UniformLocationDesc uniformDescs[]
+	{
+		{"srcTexelDelta", &srcTexelDeltaU},
+		{"srcTexelHalfDelta", &srcTexelHalfDeltaU},
+		{"srcPixels", &srcPixelsU},
+	};
+	prog = {r.task(), vShader, fShader, Gfx::ProgramFlagsMask::HAS_TEXTURE, uniformDescs};
 	if(!prog)
 	{
 		throw std::runtime_error{"GPU rejected shader (link error)"};
 	}
-	srcTexelDeltaU = prog.uniformLocation("srcTexelDelta");
-	srcTexelHalfDeltaU = prog.uniformLocation("srcTexelHalfDelta");
-	srcPixelsU = prog.uniformLocation("srcPixels");
 	updateProgramUniforms(r);
 }
 
 void VideoImageEffect::updateProgramUniforms(Gfx::Renderer &r)
 {
 	if(srcTexelDeltaU != -1)
-		r.uniformF(prog, srcTexelDeltaU, 1.0f / (float)inputImgSize.x, 1.0f / (float)inputImgSize.y);
+		prog.uniform(srcTexelDeltaU, 1.0f / (float)inputImgSize.x, 1.0f / (float)inputImgSize.y);
 	if(srcTexelHalfDeltaU != -1)
-		r.uniformF(prog, srcTexelHalfDeltaU, 0.5f * (1.0f / (float)inputImgSize.x), 0.5f * (1.0f / (float)inputImgSize.y));
+		prog.uniform(srcTexelHalfDeltaU, 0.5f * (1.0f / (float)inputImgSize.x), 0.5f * (1.0f / (float)inputImgSize.y));
 	if(srcPixelsU != -1)
-		r.uniformF(prog, srcPixelsU, inputImgSize.x, inputImgSize.y);
+		prog.uniform(srcPixelsU, (float)inputImgSize.x, (float)inputImgSize.y);
 }
 
 void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size, const Gfx::TextureSampler &compatTexSampler)

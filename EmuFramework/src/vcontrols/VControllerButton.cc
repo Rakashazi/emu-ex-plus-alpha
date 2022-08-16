@@ -16,6 +16,7 @@
 #define LOGTAG "VControllerButton"
 #include <emuframework/VController.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/BasicEffect.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/logger/logger.h>
 
@@ -40,7 +41,7 @@ void VControllerButton::setSize(IG::WP size, IG::WP extendedSize)
 
 void VControllerButton::setImage(Gfx::TextureSpan img, float aR)
 {
-	spr.setImg(img);
+	spr.set(img);
 	aspectRatio = aR;
 }
 
@@ -71,8 +72,7 @@ void VControllerButton::draw(Gfx::RendererCommands &cmds, std::optional<Gfx::Col
 	if(col)
 		cmds.setColor(*col);
 	cmds.set(View::imageCommonTextureSampler);
-	spr.setCommonProgram(cmds, Gfx::EnvMode::MODULATE);
-	spr.draw(cmds);
+	spr.draw(cmds, cmds.basicEffect());
 }
 
 VControllerButtonGroup::VControllerButtonGroup(int size):
@@ -206,10 +206,10 @@ void VControllerButtonGroup::draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPl
 {
 	if(!VController::shouldDraw(state(), showHidden))
 		return;
-	cmds.set(View::imageCommonTextureSampler);
+	auto &basicEffect = cmds.basicEffect();
 	if(showBoundingArea)
 	{
-		cmds.setCommonProgram(Gfx::CommonProgram::NO_TEX);
+		basicEffect.disableTexture(cmds);
 		for(const auto &b : btns)
 		{
 			if(!b.isEnabled())
@@ -217,9 +217,10 @@ void VControllerButtonGroup::draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPl
 			Gfx::GeomRect::draw(cmds, b.realBounds(), projP);
 		}
 	}
-	//cmds.setCommonProgram(Gfx::CommonProgram::NO_TEX);
+	//basicEffect.disableTexture(cmds);
 	//Gfx::GeomRect::draw(cmds, bounds(), projP);
-	btns[0].sprite().setCommonProgram(cmds, Gfx::EnvMode::MODULATE);
+	basicEffect.enableTexture(cmds);
+	cmds.set(View::imageCommonTextureSampler);
 	for(auto &b : btns)
 	{
 		if(!b.isEnabled())

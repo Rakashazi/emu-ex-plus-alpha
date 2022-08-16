@@ -16,6 +16,7 @@
 #define LOGTAG "GLRenderer"
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/Projection.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>
@@ -88,6 +89,10 @@ void Renderer::initMainTask(Window *initialWindow, DrawableConfig drawableConfig
 	}
 	addEventHandlers(ctx, mainTask);
 	configureRenderer();
+	if(!initBasicEffect()) [[unlikely]]
+	{
+		throw std::runtime_error("Renderer error creating basic shader program");
+	}
 }
 
 NativeWindowFormat GLRenderer::nativeWindowFormat(GLBufferConfig bufferConfig) const
@@ -119,7 +124,7 @@ bool GLRenderer::attachWindow(Window &win, GLBufferConfig bufferConfig, GLColorS
 					auto oldWinO = win.softOrientation();
 					if(win.requestOrientationChange(newO))
 					{
-						static_cast<Renderer*>(this)->animateProjectionMatrixRotation(win, rotationRadians(oldWinO), rotationRadians(newO));
+						static_cast<Renderer*>(this)->animateWindowRotation(win, rotationRadians(oldWinO), rotationRadians(newO));
 					}
 				});
 		}
@@ -137,7 +142,7 @@ bool GLRenderer::attachWindow(Window &win, GLBufferConfig bufferConfig, GLColorS
 					};
 					auto rotAngle = orientationDiffTable[std::to_underlying(oldO)][std::to_underlying(newO)];
 					logMsg("animating from %d degrees", (int)degrees(rotAngle));
-					static_cast<Renderer*>(this)->animateProjectionMatrixRotation(win, rotAngle, 0.);
+					static_cast<Renderer*>(this)->animateWindowRotation(win, rotAngle, 0.);
 				});
 		}
 	}
@@ -226,16 +231,14 @@ bool Renderer::canRenderToMultiplePixelFormats() const
 
 void Renderer::releaseShaderCompiler()
 {
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	task().releaseShaderCompiler();
-	#endif
+	if(!support.useFixedFunctionPipeline)
+		task().releaseShaderCompiler();
 }
 
 void Renderer::autoReleaseShaderCompiler()
 {
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	releaseShaderCompilerEvent.notify();
-	#endif
+	if(!support.useFixedFunctionPipeline)
+		releaseShaderCompilerEvent.notify();
 }
 
 ClipRect Renderer::makeClipRect(const Window &win, IG::WindowRect rect)
@@ -358,6 +361,12 @@ GLRendererWindowData &winData(Window &win)
 	return *win.rendererData<GLRendererWindowData>();
 }
 
+const GLRendererWindowData &winData(const Window &win)
+{
+	assumeExpr(win.rendererData<GLRendererWindowData>());
+	return *win.rendererData<GLRendererWindowData>();
+}
+
 GLDisplay GLRenderer::glDisplay() const
 {
 	return glManager.display();
@@ -406,6 +415,85 @@ bool Renderer::hasBgraFormat(TextureBufferMode mode) const
 		return false;
 	}
 	return true;
+}
+
+bool GLRenderer::initBasicEffect()
+{
+	if(support.useFixedFunctionPipeline)
+		return true;
+	auto &rTask = mainTask;
+
+	std::string_view basicEffectVertShaderSrc =
+R"(in vec4 pos;
+in vec4 color;
+in vec2 texUV;
+out vec4 colorOut;
+out vec2 texUVOut;
+uniform mat4 modelView;
+uniform mat4 proj;
+void main() {
+	colorOut = color;
+	texUVOut = texUV;
+	gl_Position = proj * modelView * pos;
+})";
+
+	std::string_view basicEffectFragShaderSrc =
+R"(in mediump vec4 colorOut;
+in lowp vec2 texUVOut;
+uniform sampler2D tex;
+uniform lowp int textureMode;
+void main() {
+	if(textureMode == 1)
+	{
+		FRAGCOLOR = colorOut * texture(tex, texUVOut);
+	}
+	else if(textureMode == 2)
+	{
+		FRAGCOLOR.rgb = colorOut.rgb;
+		FRAGCOLOR.a = colorOut.a * texture(tex, texUVOut).a;
+	}
+	else
+	{
+		FRAGCOLOR = colorOut;
+	}
+})";
+
+	UniformLocationDesc uniformDescs[]
+	{
+		{"modelView", &basicEffect_.modelViewUniform},
+		{"proj", &basicEffect_.projUniform},
+		{"textureMode", &basicEffect_.textureModeUniform},
+	};
+	Program newProg{rTask,
+		Shader{rTask, {&basicEffectVertShaderSrc, 1}, ShaderType::VERTEX, Shader::CompileMode::COMPAT},
+		Shader{rTask, {&basicEffectFragShaderSrc, 1}, ShaderType::FRAGMENT, Shader::CompileMode::COMPAT},
+		ProgramFlagsMask::HAS_COLOR | ProgramFlagsMask::HAS_TEXTURE, uniformDescs};
+	if(!newProg) [[unlikely]]
+		return false;
+	basicEffect_.program = newProg.release();
+	releaseShaderCompilerEvent.notify();
+	return true;
+}
+
+BasicEffect &Renderer::basicEffect()
+{
+	return basicEffect_;
+}
+
+void Renderer::animateWindowRotation(Window &win, float srcAngle, float destAngle)
+{
+	winData(win).projAngleM = {srcAngle, destAngle, {}, steadyClockTimestamp(), Milliseconds{165}};
+	win.addOnFrame([this, &win](FrameParams params)
+	{
+		win.signalSurfaceChanged(WindowSurfaceChange::CONTENT_RECT_RESIZED);
+		bool didUpdate = winData(win).projAngleM.update(params.timestamp());
+		return didUpdate;
+	});
+}
+
+Projection Renderer::projection(const Window &win, Viewport viewport, Mat4 matrix) const
+{
+	return {viewport, matrix, winData(win).projAngleM};
 }
 
 }

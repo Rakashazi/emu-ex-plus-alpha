@@ -174,28 +174,28 @@ void TestFramework::prepareDraw(Gfx::Renderer &r)
 void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, float xIndent)
 {
 	using namespace IG::Gfx;
-	cmds.loadTransform(projP.makeTranslate());
 	drawTest(cmds, bounds);
 	cmds.setClipTest(false);
+	auto &basicEffect = cmds.basicEffect();
 	if(cpuStatsText.isVisible())
 	{
-		cmds.setCommonProgram(CommonProgram::NO_TEX);
+		basicEffect.disableTexture(cmds);
 		cmds.set(BlendMode::ALPHA);
 		cmds.setColor(0., 0., 0., .7);
 		GeomRect::draw(cmds, cpuStatsRect);
 		cmds.setColor(1., 1., 1., 1.);
-		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+		basicEffect.enableAlphaTexture(cmds);
 		cpuStatsText.draw(cmds, projP.alignXToPixel(cpuStatsRect.x + xIndent),
 			projP.alignYToPixel(cpuStatsRect.yCenter()), LC2DO, projP);
 	}
 	if(frameStatsText.isVisible())
 	{
-		cmds.setCommonProgram(CommonProgram::NO_TEX);
+		basicEffect.disableTexture(cmds);
 		cmds.set(BlendMode::ALPHA);
 		cmds.setColor(0., 0., 0., .7);
 		GeomRect::draw(cmds, frameStatsRect);
 		cmds.setColor(1., 1., 1., 1.);
-		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+		basicEffect.enableAlphaTexture(cmds);
 		frameStatsText.draw(cmds, projP.alignXToPixel(frameStatsRect.x + xIndent),
 			projP.alignYToPixel(frameStatsRect.yCenter()), LC2DO, projP);
 	}
@@ -251,8 +251,6 @@ void DrawTest::initTest(IG::ApplicationContext app, Gfx::Renderer &r, IG::WP pix
 	assert(lockedBuff);
 	memset(lockedBuff.pixmap().data(), 0xFF, lockedBuff.pixmap().bytes());
 	texture.unlock(lockedBuff);
-	texture.compileDefaultProgram(EnvMode::REPLACE);
-	texture.compileDefaultProgram(EnvMode::MODULATE);
 	sprite = {{}, texture};
 }
 
@@ -274,7 +272,6 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.setClipRect(bounds);
 	cmds.set(BlendMode::OFF);
 	cmds.set(CommonTextureSampler::NO_MIP_CLAMP);
-	sprite.setCommonProgram(cmds, EnvMode::MODULATE);
 	if(flash)
 	{
 		if(!droppedFrames)
@@ -286,7 +283,7 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	}
 	else
 		cmds.setColor(0., 0., 0., 1.);
-	sprite.draw(cmds);
+	sprite.draw(cmds, cmds.basicEffect());
 }
 
 void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime)
@@ -324,8 +321,7 @@ void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.setClipRect(bounds);
 	cmds.set(BlendMode::OFF);
 	cmds.set(CommonTextureSampler::NO_MIP_CLAMP);
-	sprite.setCommonProgram(cmds, EnvMode::REPLACE);
-	sprite.draw(cmds);
+	sprite.draw(cmds, cmds.basicEffect());
 }
 
 }

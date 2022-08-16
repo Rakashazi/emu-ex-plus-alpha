@@ -17,6 +17,7 @@
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
+#include <imagine/gfx/BasicEffect.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
@@ -39,7 +40,7 @@ void BaseTextMenuItem::draw(Gfx::RendererCommands &cmds, float xPos, float yPos,
 	{
 		cmds.setColor(color);
 	}
-	cmds.setCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
+	cmds.basicEffect().enableAlphaTexture(cmds);
 	if(align.isXCentered())
 		xPos += xSize/2;
 	else
@@ -120,7 +121,7 @@ void BaseDualTextMenuItem::prepareDraw(Gfx::Renderer &r)
 void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, float xPos, float yPos, float xSize, float ySize,
 	float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
-	cmds.setCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
+	cmds.basicEffect().enableAlphaTexture(cmds);
 	cmds.setColor(color);
 	t2.draw(cmds, (xPos + xSize) - xIndent, yPos, RC2DO, projP);
 }

@@ -209,7 +209,7 @@ public:
 	void onOptionsLoaded();
 	void onSessionOptionsLoaded(EmuApp &);
 	bool resetSessionOptions(EmuApp &);
-	VController::KbMap vControllerKeyboardMap(unsigned mode);
+	VController::KbMap vControllerKeyboardMap(VControllerKbMode mode);
 	void onVKeyboardShown(VControllerKeyboard &, bool shown);
 	VideoSystem videoSystem() const;
 	void closeSystem();

@@ -59,7 +59,7 @@ public:
 	};
 
 	// Align delegate data to 16 bytes in case we store SIMD types
-	using FuncDelegate = DelegateFuncA<sizeof(uintptr_t)*4 + sizeof(int)*10, 16, void(GLDisplay glDpy, std::binary_semaphore *semPtr)>;
+	using FuncDelegate = DelegateFuncA<sizeof(uintptr_t)*2 + sizeof(int)*16, 16, void(GLDisplay glDpy, std::binary_semaphore *semPtr)>;
 
 	enum class Command: uint8_t
 	{

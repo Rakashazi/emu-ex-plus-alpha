@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/gfx/defs.hh>
 #include "glIncludes.h"
 #include "defs.hh"
 #include <imagine/util/memory/UniqueResource.hh>
@@ -27,6 +28,8 @@ namespace IG::Gfx
 
 class RendererTask;
 class RendererCommands;
+class Text;
+class Mat4;
 
 // Shader
 
@@ -64,26 +67,17 @@ struct GLProgramDeleter
 };
 using UniqueGLProgram = IG::UniqueResource<NativeProgram, GLProgramDeleter>;
 
-struct NativeProgramBundle
-{
-	NativeProgram program{};
-	GLint mvpUniform = -1;
-};
-
 class GLSLProgram
 {
 public:
 	constexpr GLSLProgram() = default;
-	constexpr GLint modelViewProjectionUniform() const { return mvpUniform; };
 	constexpr NativeProgram glProgram() const { return program_; }
 	constexpr bool operator ==(GLSLProgram const &rhs) const { return program_.get() == rhs.program_.get(); }
-	constexpr NativeProgramBundle programBundle() const { return {program_, mvpUniform}; }
-	constexpr NativeProgramBundle releaseProgramBundle() { return {program_.release(), mvpUniform}; }
+	constexpr NativeProgram release() { return program_.release(); }
 	constexpr RendererTask &task() { return *program_.get_deleter().rTask; }
 
 protected:
 	UniqueGLProgram program_{};
-	GLint mvpUniform = -1;
 };
 
 using ProgramImpl = GLSLProgram;

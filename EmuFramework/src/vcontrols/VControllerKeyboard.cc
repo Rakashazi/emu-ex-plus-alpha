@@ -25,16 +25,16 @@ namespace EmuEx
 
 void VControllerKeyboard::updateImg(Gfx::Renderer &r)
 {
-	if(mode_)
+	if(mode_ == VControllerKbMode::LAYOUT_2)
 		spr.setUVBounds({{0., .5}, {texXEnd, 1.}});
 	else
 		spr.setUVBounds({{}, {texXEnd, .5}});
-	spr.compileDefaultProgramOneShot(Gfx::EnvMode::MODULATE);
 }
 
 void VControllerKeyboard::setImg(Gfx::Renderer &r, Gfx::TextureSpan img)
 {
 	spr = {{{-.5, -.5}, {.5, .5}}, img};
+	hasMipmaps = img.texture()->levels() > 1;
 	texXEnd = img.uvBounds().x2;
 	updateImg(r);
 }
@@ -59,16 +59,16 @@ void VControllerKeyboard::place(float btnSize, float yOffset, Gfx::ProjectionPla
 
 void VControllerKeyboard::draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPlane projP) const
 {
-	if(spr.image()->levels() > 1)
+	if(hasMipmaps)
 		cmds.set(View::imageCommonTextureSampler);
 	else
 		cmds.set(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
-	spr.setCommonProgram(cmds, Gfx::EnvMode::MODULATE);
-	spr.draw(cmds);
+	auto &basicEffect = cmds.basicEffect();
+	spr.draw(cmds, basicEffect);
 	if(selected.x != -1)
 	{
 		cmds.setColor(.2, .71, .9, 1./3.);
-		cmds.setCommonProgram(Gfx::CommonProgram::NO_TEX, projP.makeTranslate());
+		basicEffect.disableTexture(cmds);
 		IG::WindowRect rect{};
 		rect.x = bound.x + (selected.x * keyXSize);
 		rect.x2 = bound.x + ((selected.x2 + 1) * keyXSize);
@@ -76,10 +76,10 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPlane
 		rect.y2 = rect.y + keyYSize;
 		Gfx::GeomRect::draw(cmds, rect, projP);
 	}
-	if(shiftIsActive() && mode_ == 0)
+	if(shiftIsActive() && mode_ == VControllerKbMode::LAYOUT_1)
 	{
 		cmds.setColor(.2, .71, .9, 1./2.);
-		cmds.setCommonProgram(Gfx::CommonProgram::NO_TEX, projP.makeTranslate());
+		basicEffect.disableTexture(cmds);
 		IG::WindowRect rect{};
 		rect.x = bound.x + (shiftRect.x * keyXSize);
 		rect.x2 = bound.x + ((shiftRect.x2 + 1) * keyXSize);
@@ -136,7 +136,7 @@ bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, const Input
 			if(!e.pushed() || e.repeated())
 				return false;
 			logMsg("switch kb mode");
-			setMode(v.system(), r, mode() ^ true);
+			cycleMode(v.system(), r);
 			v.resetInput();
 		}
 		else if(e.pushed())
@@ -247,11 +247,18 @@ unsigned VControllerKeyboard::currentKey() const
 	return currentKey(selected.x, selected.y);
 }
 
-void VControllerKeyboard::setMode(EmuSystem &sys, Gfx::Renderer &r, int mode)
+void VControllerKeyboard::setMode(EmuSystem &sys, Gfx::Renderer &r, VControllerKbMode mode)
 {
 	mode_ = mode;
 	updateImg(r);
 	updateKeyboardMapping(sys);
+}
+
+void VControllerKeyboard::cycleMode(EmuSystem &sys, Gfx::Renderer &r)
+{
+	setMode(sys, r,
+		mode() == VControllerKbMode::LAYOUT_1 ? VControllerKbMode::LAYOUT_2
+		: VControllerKbMode::LAYOUT_1);
 }
 
 void VControllerKeyboard::applyMap(KbMap map)
@@ -269,7 +276,7 @@ void VControllerKeyboard::applyMap(KbMap map)
 	}
 	// 2nd row
 	mapPtr = &map[10];
-	if(mode_ == 0)
+	if(mode_ == VControllerKbMode::LAYOUT_1)
 	{
 		tablePtr = &table[1][1];
 		for(auto i : iotaCount(9))

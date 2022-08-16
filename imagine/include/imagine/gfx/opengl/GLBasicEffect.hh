@@ -17,28 +17,28 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/ProjectionPlane.hh>
-#include <imagine/gfx/Mat4.hh>
-#include <imagine/base/Viewport.hh>
+#include "GLSLProgram.hh"
+
 
 namespace IG::Gfx
 {
 
-class Projection
+class RendererCommands;
+class Mat4;
+
+class GLBasicEffect
 {
 public:
-	constexpr Projection() = default;
-
-	Projection(Viewport viewport, Mat4 matrix, float rotationAngle = 0.f):
-		mat{matrix.rollRotate(rotationAngle)},
-		plane_{viewport, matrix} {}
-
-	constexpr Mat4 matrix() const { return mat; };
-	constexpr ProjectionPlane plane() const { return plane_; };
+	NativeProgram program{};
+	GLint modelViewUniform = -1;
+	GLint projUniform = -1;
+	GLint textureModeUniform = -1;
+	TextureType texType{};
 
 protected:
-	Mat4 mat;
-	ProjectionPlane plane_;
+	void updateTextureType(RendererCommands &, TextureType);
 };
+
+using BasicEffectImpl = GLBasicEffect;
 
 }

@@ -161,6 +161,7 @@ public:
 	void dispatchSurfaceCreated();
 	void dispatchSurfaceChanged();
 	void dispatchSurfaceDestroyed();
+	void signalSurfaceChanged(uint8_t surfaceChangeFlags);
 
 private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);

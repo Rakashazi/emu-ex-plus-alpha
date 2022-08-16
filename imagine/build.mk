@@ -34,7 +34,7 @@ include $(imagineSrcDir)/logger/system.mk
 include $(buildSysPath)/package/stdc++.mk
 SRC += util/string/generic.cc
 
-# fmtlib snapshot from Sept 12, 2021 (commit 04e3a79f762aa28bb43a5d58e95ed168389f0c7e)
+# fmtlib 9.0.0
 SRC += fmt/format.cc
 
 libName := imagine$(libNameExt)

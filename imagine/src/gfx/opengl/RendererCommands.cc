@@ -111,11 +111,6 @@ void GLRendererCommands::notifyPresentComplete()
 	}
 }
 
-void GLRendererCommands::setCachedProjectionMatrix(Mat4 mat)
-{
-	projectionMat = mat;
-}
-
 void RendererCommands::bindTempVertexBuffer()
 {
 	if(renderer().support.hasVBOFuncs)
@@ -257,23 +252,6 @@ void RendererCommands::setBlendEquation(BlendEquation mode)
 	glcBlendEquation(glMode);
 }
 
-void RendererCommands::setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
-{
-	rTask->verifyCurrentContext();
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(renderer().support.useFixedFunctionPipeline)
-	{
-		GLfloat col[4] {r, g, b, a};
-		glcTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, col);
-		return;
-	}
-	#endif
-	texEnvColor[0] = r;
-	texEnvColor[1] = g;
-	texEnvColor[2] = b;
-	texEnvColor[3] = a;
-}
-
 void RendererCommands::setZTest(bool on)
 {
 	rTask->verifyCurrentContext();
@@ -296,7 +274,6 @@ void RendererCommands::clear()
 void RendererCommands::setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 {
 	rTask->verifyCurrentContext();
-	//GLfloat c[4] = {r, g, b, a};
 	//logMsg("setting clear color %f %f %f %f", (float)r, (float)g, (float)b, (float)a);
 	glClearColor(r, g, b, a);
 }
@@ -423,12 +400,18 @@ void RendererCommands::setClipRect(ClipRect r)
 
 void RendererCommands::setTexture(const Texture &t)
 {
+	set(t.binding());
+}
+
+void RendererCommands::set(TextureBinding binding)
+{
 	rTask->verifyCurrentContext();
-	if(renderer().support.hasSamplerObjects && !currSamplerName)
+	if(!binding.name) [[unlikely]]
 	{
-		logWarn("set texture without setting a sampler first");
+		logErr("tried to bind uninitialized texture");
+		return;
 	}
-	t.bindTex(*this);
+	glcBindTexture(binding.target, binding.name);
 }
 
 void RendererCommands::setTextureSampler(const TextureSampler &sampler)
@@ -495,63 +478,40 @@ void RendererCommands::drawPrimitiveElements(Primitive mode, const VertexIndex *
 
 // shaders
 
-void GLRendererCommands::setProgram(NativeProgramBundle programBundle, Mat4 modelMat)
+void RendererCommands::setProgram(NativeProgram program)
 {
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	rTask->verifyCurrentContext();
-	if(currProgram.program != programBundle.program)
+	if(currProgram != program)
 	{
-		currProgram = programBundle;
-		glUseProgram(programBundle.program);
+		currProgram = program;
+		glUseProgram(program);
 	}
-	static_cast<RendererCommands*>(this)->loadTransform(modelMat);
-}
-
-void GLRendererCommands::setProgram(NativeProgramBundle programBundle, const Mat4 *modelMatPtr)
-{
-	if(modelMatPtr)
-		setProgram(programBundle, *modelMatPtr);
-	else
-		setProgram(programBundle, modelMat);
+	#endif
 }
 
 void RendererCommands::setProgram(const Program &program)
 {
-	setProgram(program, modelMat);
+	setProgram(program.glProgram());
 }
 
-void RendererCommands::setProgram(const Program &program, Mat4 modelMat)
-{
-	GLRendererCommands::setProgram(program.programBundle(), modelMat);
-}
+#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+void RendererCommands::uniform(int loc, float v1){ glUniform1f(loc, v1); }
+void RendererCommands::uniform(int loc, float v1, float v2){ glUniform2f(loc, v1, v2); }
+void RendererCommands::uniform(int loc, float v1, float v2, float v3){ glUniform3f(loc, v1, v2, v3); }
+void RendererCommands::uniform(int loc, float v1, float v2, float v3, float v4){ glUniform4f(loc, v1, v2, v3, v4); }
+void RendererCommands::uniform(int loc, int v1){ glUniform1i(loc, v1); }
+void RendererCommands::uniform(int loc, int v1, int v2){ glUniform2i(loc, v1, v2); }
+void RendererCommands::uniform(int loc, int v1, int v2, int v3){ glUniform3i(loc, v1, v2, v3); }
+void RendererCommands::uniform(int loc, int v1, int v2, int v3, int v4){ glUniform4i(loc, v1, v2, v3, v4); }
 
-void RendererCommands::setProgram(const Program &program, const Mat4 *modelMat)
+void RendererCommands::uniform(int loc, Mat4 mat)
 {
-	if(modelMat)
-		setProgram(program, *modelMat);
-	else
-		setProgram(program);
+	glUniformMatrix4fv(loc, 1, GL_FALSE, &mat[0][0]);
 }
+#endif
 
-void RendererCommands::setCommonProgram(CommonProgram program)
-{
-	setCommonProgram(program, nullptr);
-}
-
-void RendererCommands::setCommonProgram(CommonProgram program, Mat4 modelMat)
-{
-	setCommonProgram(program, &modelMat);
-}
-
-void RendererCommands::setCommonProgram(CommonProgram program, const Mat4 *modelMat)
-{
-	rTask->verifyCurrentContext();
-	renderer().useCommonProgram(*this, program, modelMat);
-}
-
-void RendererCommands::uniformF(int uniformLocation, float v1, float v2)
-{
-	glUniform2f(uniformLocation, v1, v2);
-}
+BasicEffect &RendererCommands::basicEffect() { return renderer().basicEffect(); }
 
 void GLRendererCommands::glcBindTexture(GLenum target, GLuint texture)
 { if(useGLCache) glState.bindTexture(target, texture); else glBindTexture(target, texture); }
@@ -579,8 +539,6 @@ void GLRendererCommands::glcDisableClientState(GLenum cap)
 { if(useGLCache) glState.disableClientState(cap); else glDisableClientState(cap); }
 void GLRendererCommands::glcTexEnvi(GLenum target, GLenum pname, GLint param)
 { if(useGLCache) glState.texEnvi(target, pname, param); else glTexEnvi(target, pname, param); }
-void GLRendererCommands::glcTexEnvfv(GLenum target, GLenum pname, const GLfloat *params)
-{ if(useGLCache) glState.texEnvfv(target, pname, params); else glTexEnvfv(target, pname, params); }
 void GLRendererCommands::glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 {
 	if(useGLCache)

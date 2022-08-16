@@ -102,9 +102,6 @@ bool GLTask::makeGLContext(GLTaskConfig config)
 							// unset the drawable and finish all commands before entering background
 							if(GLManager::hasCurrentDrawable())
 								glContext.setCurrentDrawable({});
-							#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-							glReleaseShaderCompiler();
-							#endif
 							glFinish();
 						}, true);
 				}

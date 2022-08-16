@@ -36,11 +36,6 @@ class RendererCommands;
 class TextureSampler;
 class LockedTextureBuffer;
 
-enum class TextureType : uint8_t
-{
-	UNSET, T2D_1, T2D_2, T2D_4, T2D_EXTERNAL
-};
-
 class GLLockedTextureBuffer
 {
 public:
@@ -87,8 +82,9 @@ public:
 	constexpr GLTexture(RendererTask &rTask):
 		texName_{GLTextureRefDeleter{&rTask}} {}
 	GLuint texName() const;
-	void bindTex(RendererCommands &cmds) const;
 	GLenum target() const;
+	TextureType type() const { return type_; }
+	TextureBinding binding() const { return {texName(), target()}; }
 
 protected:
 	UniqueGLTextureRef texName_{};

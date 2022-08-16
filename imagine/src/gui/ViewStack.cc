@@ -20,6 +20,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/BasicEffect.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>
@@ -236,7 +237,7 @@ void ViewStack::draw(Gfx::RendererCommands &cmds)
 		using namespace Gfx;
 		cmds.set(BlendMode::ALPHA);
 		cmds.set(ColorName::WHITE);
-		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+		cmds.basicEffect().disableTexture(cmds);
 		bottomGradient.draw(cmds);
 	}
 }

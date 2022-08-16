@@ -22,6 +22,7 @@
 #endif
 
 #include <imagine/gfx/defs.hh>
+#include <imagine/util/bitset.hh>
 #include <span>
 #include <string_view>
 
@@ -29,22 +30,52 @@ namespace IG::Gfx
 {
 
 class RendererTask;
+class Mat4;
 
 class Shader : public ShaderImpl
 {
 public:
+	enum class CompileMode
+	{
+		NORMAL, COMPAT
+	};
+
 	using ShaderImpl::ShaderImpl;
-	Shader(RendererTask &, std::span<std::string_view> srcs, ShaderType type, bool compatMode = false);
-	Shader(RendererTask &, std::string_view src, ShaderType type, bool compatMode = false);
+	Shader(RendererTask &, std::span<std::string_view> srcs, ShaderType type, CompileMode mode = CompileMode::NORMAL);
+	Shader(RendererTask &, std::string_view src, ShaderType type, CompileMode mode = CompileMode::NORMAL);
 	explicit operator bool() const;
 };
+
+struct UniformLocationDesc
+{
+	const char *name;
+	int *locationPtr;
+};
+
+enum class ProgramFlagsMask
+{
+	HAS_COLOR = bit(0),
+	HAS_TEXTURE = bit(1),
+};
+
+IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(ProgramFlagsMask);
 
 class Program : public ProgramImpl
 {
 public:
 	using ProgramImpl::ProgramImpl;
-	Program(RendererTask &, NativeShader vShader, NativeShader fShader, bool hasColor, bool hasTex);
-	int uniformLocation(const char *uniformName);
+	Program(RendererTask &, NativeShader vShader, NativeShader fShader,
+		ProgramFlagsMask, std::span<UniformLocationDesc>);
+	int uniformLocation(const char *name);
+	void uniform(int location, float v1);
+	void uniform(int location, float v1, float v2);
+	void uniform(int location, float v1, float v2, float v3);
+	void uniform(int location, float v1, float v2, float v3, float v4);
+	void uniform(int location, int v1);
+	void uniform(int location, int v1, int v2);
+	void uniform(int location, int v1, int v2, int v3);
+	void uniform(int location, int v1, int v2, int v3, int v4);
+	void uniform(int location, Mat4);
 	explicit operator bool() const;
 };
 

@@ -48,6 +48,7 @@ public:
 
 	struct GLClientStateCaps
 	{
+		int8_t GL_VERTEX_ARRAY_state = -1;
 		int8_t GL_TEXTURE_COORD_ARRAY_state = -1;
 		int8_t GL_COLOR_ARRAY_state = -1;
 	};
@@ -77,8 +78,6 @@ public:
 	void disableClientState(GLenum cap);
 	GLint GL_TEXTURE_ENV_GL_TEXTURE_ENV_MODE_state = GL_MODULATE;
 	void texEnvi(GLenum target, GLenum pname, GLint param);
-	GLfloat GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state[4] = { 0, 0, 0, 0 };
-	void texEnvfv(GLenum target, GLenum pname, const GLfloat *params);
 	std::array<GLfloat, 4> colorState{1, 1, 1, 1};
 	void color4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
 	#endif

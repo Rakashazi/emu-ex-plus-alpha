@@ -216,7 +216,7 @@ VController::Map EmuSystem::vControllerMap(int player)
 	return static_cast<MainSystem*>(this)->vControllerMap(player);
 }
 
-VController::KbMap EmuSystem::vControllerKeyboardMap(unsigned mode)
+VController::KbMap EmuSystem::vControllerKeyboardMap(VControllerKbMode mode)
 {
 	if(&MainSystem::vControllerKeyboardMap != &EmuSystem::vControllerKeyboardMap)
 		return static_cast<MainSystem*>(this)->vControllerKeyboardMap(mode);

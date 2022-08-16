@@ -97,7 +97,7 @@ public:
 	void renderFramebuffer(EmuVideo &);
 	void onOptionsLoaded();
 	bool shouldFastForward() const;
-	VController::KbMap vControllerKeyboardMap(unsigned mode);
+	VController::KbMap vControllerKeyboardMap(VControllerKbMode mode);
 
 private:
 	void insertMedia(EmuApp &app);

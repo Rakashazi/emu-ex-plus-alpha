@@ -230,7 +230,7 @@ int VController::keyboardKeyFromPointer(const Input::MotionEvent &e)
 		if(!e.pushed())
 			return -1;
 		logMsg("switch kb mode");
-		kb.setMode(system(), renderer(), kb.mode() ^ true);
+		kb.cycleMode(system(), renderer());
 		resetInput();
 	}
 	else

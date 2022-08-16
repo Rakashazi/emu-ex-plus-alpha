@@ -82,7 +82,7 @@ public:
 	{
 		using namespace IG::Gfx;
 		cmds.setColor(1., 1., 1., 1.);
-		cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
+		cmds.basicEffect().enableAlphaTexture(cmds);
 		fpsText.draw(cmds, projP.alignXToPixel(projP.bounds().xCenter()),
 			projP.alignYToPixel(projP.bounds().yCenter()), C2DO, projP);
 	}

@@ -35,6 +35,7 @@ class Renderer;
 class Program;
 class Texture;
 class Mat4;
+class BasicEffect;
 
 enum class Primitive
 {
@@ -79,7 +80,6 @@ public:
 	void set(BlendMode mode) { setBlendMode(mode); }
 	void setBlendEquation(BlendEquation);
 	void set(BlendEquation mode) { setBlendEquation(mode); }
-	void setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a);
 	void setZTest(bool on);
 	void setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a = 1.);
 	void setColor(Color);
@@ -95,6 +95,7 @@ public:
 	void setClipTest(bool on);
 	void setClipRect(ClipRect b);
 	void setTexture(const Texture &t);
+	void set(TextureBinding);
 	void setTextureSampler(const TextureSampler &sampler);
 	void setCommonTextureSampler(CommonTextureSampler sampler);
 	void set(CommonTextureSampler sampler) { setCommonTextureSampler(sampler); }
@@ -104,21 +105,20 @@ public:
 	void bindTempVertexBuffer();
 	void flush();
 
-	// transforms
-
-	void loadTransform(Mat4 mat);
-	void loadTranslate(float x, float y, float z);
-	void loadIdentTransform();
-	void setProjectionMatrix(Mat4 mat);
-
 	// shaders
 
+	void setProgram(NativeProgram);
 	void setProgram(const Program &program);
-	void setProgram(const Program &program, Mat4 modelMat);
-	void setProgram(const Program &program, const Mat4 *modelMat);
-	void setCommonProgram(CommonProgram program);
-	void setCommonProgram(CommonProgram program, Mat4 modelMat);
-	void uniformF(int uniformLocation, float v1, float v2);
+	void uniform(int location, float v1);
+	void uniform(int location, float v1, float v2);
+	void uniform(int location, float v1, float v2, float v3);
+	void uniform(int location, float v1, float v2, float v3, float v4);
+	void uniform(int location, int v1);
+	void uniform(int location, int v1, int v2);
+	void uniform(int location, int v1, int v2, int v3);
+	void uniform(int location, int v1, int v2, int v3, int v4);
+	void uniform(int location, Mat4);
+	BasicEffect &basicEffect();
 
 	// synchronization
 	SyncFence addSyncFence();
@@ -132,9 +132,6 @@ public:
 	void clear();
 	void drawPrimitives(Primitive mode, int start, int count);
 	void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, int count);
-
-private:
-	void setCommonProgram(CommonProgram program, const Mat4 *modelMat);
 };
 
 }

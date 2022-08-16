@@ -75,9 +75,6 @@ bool ViewController::moveFocusToNextView(const Input::Event &, _2DOrigin)
 ViewManager::ViewManager(Gfx::Renderer &r)
 {
 	r.make(ViewDefs::imageCommonTextureSampler);
-	r.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
-	// for text
-	r.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
 }
 
 void ViewManager::setDefaultFace(Gfx::GlyphTextureSet face)

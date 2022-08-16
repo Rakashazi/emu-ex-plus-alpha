@@ -106,7 +106,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 
 	// draw separators
 	int yStart = y;
-	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+	cmds.basicEffect().disableTexture(cmds);
 	int selectedCellY = INT_MAX;
 	{
 		StaticArrayList<std::array<ColVertex, 4>, 80> vRect;

@@ -37,6 +37,7 @@ SRC += gfx/common/GeomQuad.cc \
  gfx/common/Mat4.cc \
  gfx/common/ProjectionPlane.cc \
  gfx/common/Sprite.cc \
+ gfx/opengl/BasicEffect.cc \
  gfx/opengl/config.cc \
  gfx/opengl/debug.cc \
  gfx/opengl/geometry.cc \
@@ -50,8 +51,7 @@ SRC += gfx/common/GeomQuad.cc \
  gfx/opengl/shader.cc \
  gfx/opengl/sync.cc \
  gfx/opengl/Texture.cc \
- gfx/opengl/TextureSampler.cc \
- gfx/opengl/transforms.cc
+ gfx/opengl/TextureSampler.cc
 
 ifeq ($(ENV), ios)
  SRC +=  gfx/opengl/ios/drawable.mm

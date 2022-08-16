@@ -79,7 +79,6 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id)
 	img.write(0, pix, {});
 	img.generateMipmaps();
 	spr = {{}, img};
-	spr.compileDefaultProgramOneShot(Gfx::EnvMode::MODULATE);
 }
 
 void VideoImageOverlay::setIntensity(float i)
@@ -89,13 +88,13 @@ void VideoImageOverlay::setIntensity(float i)
 
 void VideoImageOverlay::place(const Gfx::Sprite &disp, int lines, IG::Rotation r)
 {
-	if(!spr.image())
+	if(!spr.hasTexture())
 		return;
 	using namespace IG::Gfx;
 	//logMsg("placing overlay with %u lines in image", lines);
 	spr.setPos(disp);
 	auto width = lines * EmuSystem::aspectRatioInfos()[0].aspect.ratio<float>();
-	spr.setImg([&]() -> TextureSpan
+	spr.set([&]() -> TextureSpan
 	{
 		switch(overlayId)
 		{
@@ -116,14 +115,13 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, int lines, IG::Rotation r
 
 void VideoImageOverlay::draw(Gfx::RendererCommands &cmds)
 {
-	if(!spr.image())
+	if(!spr.hasTexture())
 		return;
 	using namespace IG::Gfx;
 	cmds.set(CommonTextureSampler::NEAREST_MIP_REPEAT);
 	cmds.setColor(1., 1., 1., intensity);
 	cmds.set(BlendMode::ALPHA);
-	spr.setCommonProgram(cmds, EnvMode::MODULATE);
-	spr.draw(cmds);
+	spr.draw(cmds, cmds.basicEffect());
 }
 
 }

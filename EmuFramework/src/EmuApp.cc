@@ -587,7 +587,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			viewManager.setDefaultBoldFace({renderer, fontManager.makeBoldSystem(), fontSettings(win)});
 			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
 			auto &winData = win.makeAppData<MainWindowData>(viewAttach, vController, emuVideoLayer, system());
-			winData.updateWindowViewport(win, makeViewport(win));
+			winData.updateWindowViewport(win, makeViewport(win), renderer);
 			win.setAcceptDnd(true);
 			renderer.setWindowValidOrientations(win, menuOrientation());
 			updateInputDevices(ctx);
@@ -858,9 +858,10 @@ IG::Viewport EmuApp::makeViewport(const IG::Window &win) const
 	return win.viewport(viewRect);
 }
 
-void WindowData::updateWindowViewport(const IG::Window &win, IG::Viewport viewport)
+void WindowData::updateWindowViewport(const IG::Window &win, IG::Viewport viewport, const IG::Gfx::Renderer &r)
 {
-	projection = {viewport, Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.)};
+	projection = r.projection(win, viewport,
+		Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.));
 	contentRect = viewport.bounds().intersection(win.contentBounds());
 }
 
@@ -1760,7 +1761,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 					win.moveOnFrame(ctx.mainWindow(), system().onFrameUpdate, windowFrameClockSource());
 					applyFrameRates();
 				}
-				extraWinData.updateWindowViewport(win, makeViewport(win));
+				extraWinData.updateWindowViewport(win, makeViewport(win), renderer);
 				viewController().moveEmuViewToWindow(win);
 
 				win.setOnSurfaceChange(

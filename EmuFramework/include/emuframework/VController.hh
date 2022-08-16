@@ -93,6 +93,12 @@ protected:
 	void updateBoundingAreaGfx(Gfx::Renderer &, Gfx::ProjectionPlane);
 };
 
+enum class VControllerKbMode: uint8_t
+{
+	LAYOUT_1,
+	LAYOUT_2
+};
+
 class VControllerKeyboard
 {
 public:
@@ -116,8 +122,9 @@ public:
 	[[nodiscard]] IG::WindowRect extendKeySelection(IG::WindowRect);
 	unsigned currentKey() const;
 	unsigned currentKey(int x, int y) const;
-	int mode() const { return mode_; }
-	void setMode(EmuSystem &, Gfx::Renderer &r, int mode);
+	VControllerKbMode mode() const { return mode_; }
+	void setMode(EmuSystem &, Gfx::Renderer &, VControllerKbMode mode);
+	void cycleMode(EmuSystem &, Gfx::Renderer &);
 	void applyMap(KbMap map);
 	void updateKeyboardMapping(EmuSystem &);
 	void setShiftActive(bool);
@@ -128,11 +135,12 @@ protected:
 	Gfx::Sprite spr{};
 	IG::WindowRect bound{};
 	int keyXSize{}, keyYSize{};
-	unsigned mode_{};
 	IG::WindowRect selected{{-1, -1}, {-1, -1}};
 	IG::WindowRect shiftRect{{-1, -1}, {-1, -1}};
 	float texXEnd{};
 	KeyTable table{};
+	VControllerKbMode mode_{};
+	bool hasMipmaps{};
 };
 
 class VControllerButton

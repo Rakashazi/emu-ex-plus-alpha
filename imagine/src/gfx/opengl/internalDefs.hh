@@ -23,6 +23,7 @@ struct GLRendererWindowData
 };
 
 GLRendererWindowData &winData(Window &win);
+const GLRendererWindowData &winData(const Window &win);
 
 extern bool checkGLErrors;
 extern bool checkGLErrorsVerbose;

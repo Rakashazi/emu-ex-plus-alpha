@@ -120,7 +120,7 @@ void TextEntry::prepareDraw(Gfx::Renderer &r)
 void TextEntry::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+	cmds.basicEffect().enableAlphaTexture(cmds);
 	t.draw(cmds, projP.unProjectRect(b).pos(LC2DO), LC2DO, projP);
 }
 
@@ -185,8 +185,6 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, IG::CStringV
 			if(manager().needsBackControl() && closeRes)
 			{
 				cancelSpr = {{{-.5, -.5}, {.5, .5}}, closeRes};
-				if(cancelSpr.compileDefaultProgram(Gfx::EnvMode::MODULATE))
-					renderer().autoReleaseShaderCompiler();
 			}
 		});
 	message = {msgText, face};
@@ -204,7 +202,7 @@ void CollectTextInputView::place()
 	IG::doIfUsed(cancelSpr,
 		[&](auto &cancelSpr)
 		{
-			if(cancelSpr.image())
+			if(cancelSpr.hasTexture())
 			{
 				cancelBtn.setPosRel(viewRect().pos(RT2DO), face.nominalHeight() * 1.75, RT2DO);
 				cancelSpr.setPos(projP.unProjectRect(cancelBtn));
@@ -273,33 +271,33 @@ void CollectTextInputView::prepareDraw()
 void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
+	auto &basicEffect = cmds.basicEffect();
 	IG::doIfUsed(cancelSpr,
 		[&](auto &cancelSpr)
 		{
-			if(cancelSpr.image())
+			if(cancelSpr.hasTexture())
 			{
 				cmds.set(ColorName::WHITE);
 				cmds.set(BlendMode::ALPHA);
 				cmds.set(imageCommonTextureSampler);
-				cancelSpr.setCommonProgram(cmds, EnvMode::MODULATE, projP.makeTranslate());
-				cancelSpr.draw(cmds);
+				cancelSpr.draw(cmds, basicEffect);
 			}
 		});
 	IG::doIfUsedOr(textEntry,
 		[&](auto &textEntry)
 		{
 			cmds.setColor(0.25);
-			cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+			basicEffect.disableTexture(cmds);
 			GeomRect::draw(cmds, textEntry.bgRect(), projP);
 			cmds.set(ColorName::WHITE);
 			textEntry.draw(cmds);
-			cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+			basicEffect.enableAlphaTexture(cmds);
 			message.draw(cmds, 0, projP.unprojectY(textEntry.bgRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
 		},
 		[&]()
 		{
 			cmds.set(ColorName::WHITE);
-			cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
+			basicEffect.enableAlphaTexture(cmds);
 			message.draw(cmds, 0, projP.unprojectY(textField.windowRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
 		});
 }

@@ -16,21 +16,30 @@
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/BasicEffect.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG::Gfx
 {
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setImg(const Texture *newImg)
+SpriteBase<BaseRect>::SpriteBase(GCRect pos, TextureSpan span):
+	BaseRect{pos, span.uvBounds()},
+	texBinding{span.texture() ? span.texture()->binding() : TextureBinding{}} {}
+
+template<class BaseRect>
+void SpriteBase<BaseRect>::set(const Texture *tex)
 {
-	img = newImg;
+	if(tex)
+		texBinding = tex->binding();
+	else
+		texBinding = {};
 }
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setImg(TextureSpan span, Rotation r)
+void SpriteBase<BaseRect>::set(TextureSpan span, Rotation r)
 {
-	setImg(span.texture());
+	set(span.texture());
 	setUVBounds(span.uvBounds(), r);
 }
 
@@ -46,48 +55,19 @@ void SpriteBase<BaseRect>::setUVBounds(FRect uvBounds, Rotation r)
 template<class BaseRect>
 void SpriteBase<BaseRect>::draw(RendererCommands &cmds) const
 {
-	if(img && *img) [[likely]]
-	{
-		cmds.setTexture(*img);
-		BaseRect::draw(cmds);
-	}
+	if(!texBinding.name) [[unlikely]]
+		return;
+	cmds.set(texBinding);
+	BaseRect::draw(cmds);
 }
 
 template<class BaseRect>
-bool SpriteBase<BaseRect>::compileDefaultProgram(EnvMode mode)
+void SpriteBase<BaseRect>::draw(RendererCommands &cmds, BasicEffect &prog) const
 {
-	if(img)
-		return img->compileDefaultProgram(mode);
-	else
-		return false;
-}
-
-template<class BaseRect>
-bool SpriteBase<BaseRect>::compileDefaultProgramOneShot(EnvMode mode)
-{
-	if(img)
-		return img->compileDefaultProgramOneShot(mode);
-	else
-		return false;
-}
-
-template<class BaseRect>
-void SpriteBase<BaseRect>::setCommonProgram(RendererCommands &cmds, EnvMode mode, const Mat4 *modelMat) const
-{
-	if(img)
-		img->useDefaultProgram(cmds, mode, modelMat);
-}
-
-template<class BaseRect>
-void SpriteBase<BaseRect>::setCommonProgram(RendererCommands &cmds, EnvMode mode, Mat4 modelMat) const
-{
-	setCommonProgram(cmds, mode, &modelMat);
-}
-
-template<class BaseRect>
-const Texture *SpriteBase<BaseRect>::image() const
-{
-	return img;
+	if(!texBinding.name) [[unlikely]]
+		return;
+	prog.enableTexture(cmds, texBinding);
+	BaseRect::draw(cmds);
 }
 
 std::array<TexVertex, 4> makeTexVertArray(GCRect pos, TextureSpan img)

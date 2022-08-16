@@ -19,6 +19,7 @@
 #include <imagine/gui/ViewManager.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/BasicEffect.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
@@ -105,14 +106,15 @@ void BaseAlertView::prepareDraw()
 void BaseAlertView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
+	auto &basicEffect = cmds.basicEffect();
 	cmds.set(BlendMode::ALPHA);
-	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+	basicEffect.disableTexture(cmds);
 	cmds.setColor(.4, .4, .4, .8);
 	GeomRect::draw(cmds, labelFrame);
 	cmds.setColor(.1, .1, .1, .6);
 	GeomRect::draw(cmds, menu.viewRect(), projP);
 	cmds.set(ColorName::WHITE);
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+	basicEffect.enableAlphaTexture(cmds);
 	text.draw(cmds, labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO)), C2DO, projP);
 	//setClipRect(1);
 	//setClipRectBounds(menu.viewRect());

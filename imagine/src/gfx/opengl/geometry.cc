@@ -134,11 +134,11 @@ void VertexInfo::bindAttribs(RendererCommands &cmds, const Vtx *v)
 	int numV = 2; // number of position elements
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(cmds.renderer().support.useFixedFunctionPipeline)
-		Gfx::setupVertexArrayPointers(cmds, v, numV);
+		setupVertexArrayPointers(cmds, v, numV);
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(!cmds.renderer().support.useFixedFunctionPipeline)
-		Gfx::setupShaderVertexArrayPointers(cmds, v, numV);
+		setupShaderVertexArrayPointers(cmds, v, numV);
 	#endif
 }
 

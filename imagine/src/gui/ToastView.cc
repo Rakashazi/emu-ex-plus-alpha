@@ -17,6 +17,7 @@
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/GeomRect.hh>
+#include <imagine/gfx/BasicEffect.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
@@ -105,7 +106,8 @@ void ToastView::draw(Gfx::RendererCommands &cmds)
 	using namespace IG::Gfx;
 	if(!text.isVisible())
 		return;
-	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+	auto &basicEffect = cmds.basicEffect();
+	basicEffect.disableTexture(cmds);
 	cmds.set(BlendMode::ALPHA);
 	if(error)
 		cmds.setColor(1., 0, 0, .7);
@@ -113,7 +115,7 @@ void ToastView::draw(Gfx::RendererCommands &cmds)
 		cmds.setColor(0, 0, 1., .7);
 	GeomRect::draw(cmds, msgFrame);
 	cmds.setColor(1., 1., 1., 1.);
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+	basicEffect.enableAlphaTexture(cmds);
 	text.draw(cmds, 0, projP.alignYToPixel(msgFrame.pos(C2DO).y), C2DO, projP);
 }
 

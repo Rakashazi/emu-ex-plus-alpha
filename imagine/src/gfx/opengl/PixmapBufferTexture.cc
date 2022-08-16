@@ -206,11 +206,6 @@ void PixmapBufferTexture::setCompatTextureSampler(const TextureSampler &compatSa
 	visit([&](auto &t){ t.setCompatTextureSampler(compatSampler); }, directTex);
 }
 
-bool PixmapBufferTexture::compileDefaultProgram(EnvMode mode) const
-{
-	return visit([&](auto &t){ return t.compileDefaultProgram(mode); }, directTex);
-}
-
 PixmapBufferTexture::operator bool() const
 {
 	return visit([&](auto &t){ return (bool)t; }, directTex);
@@ -391,14 +386,6 @@ static bool hasSurfaceTexture(Renderer &r)
 	if(!r.support.hasExternalEGLImages)
 	{
 		logErr("can't use SurfaceTexture without OES_EGL_image_external");
-		return false;
-	}
-	// check if external textures work in GLSL
-	if(r.makeCommonProgram(CommonProgram::TEX_EXTERNAL_REPLACE))
-		r.autoReleaseShaderCompiler();
-	if(!r.commonProgramIsCompiled(CommonProgram::TEX_EXTERNAL_REPLACE))
-	{
-		logErr("can't use SurfaceTexture due to test shader compilation error");
 		return false;
 	}
 	return true;

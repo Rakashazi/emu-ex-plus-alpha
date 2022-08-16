@@ -57,7 +57,6 @@ public:
 	void glcEnableClientState(GLenum cap);
 	void glcDisableClientState(GLenum cap);
 	void glcTexEnvi(GLenum target, GLenum pname, GLint param);
-	void glcTexEnvfv(GLenum target, GLenum pname, const GLfloat *params);
 	void glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
 	void glcTexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
 	void glcColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
@@ -66,13 +65,10 @@ public:
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	void glcVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer);
 	#endif
-	void setCachedProjectionMatrix(Mat4 projectionMat);
 	void setupVertexArrayPointers(const char *v, int numV, int stride,
 		int textureOffset, int colorOffset, int posOffset, bool hasTexture, bool hasColor);
 	void setupShaderVertexArrayPointers(const char *v, int numV, int stride, int id,
 		int textureOffset, int colorOffset, int posOffset, bool hasTexture, bool hasColor);
-	void setProgram(NativeProgramBundle program, Mat4 modelMat);
-	void setProgram(NativeProgramBundle program, const Mat4 *modelMat);
 
 protected:
 	bool setCurrentDrawable(Drawable win);
@@ -93,13 +89,11 @@ protected:
 	Rect2<int> winViewport{};
 	GLuint currSamplerName{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	NativeProgramBundle currProgram{};
-	Mat4 modelMat{}, projectionMat{};
+	NativeProgram currProgram{};
 	int currentVtxArrayPointerID = 0;
 	#endif
 	GLStateCache glState{};
 	Color vColor{}; // color when using shader pipeline
-	Color texEnvColor{}; // color when using shader pipeline
 	GLuint arrayBuffer = 0;
 	bool arrayBufferIsSet = false;
 };

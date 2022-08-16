@@ -39,7 +39,6 @@ EmuInputView::EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideo
 void EmuInputView::draw(Gfx::RendererCommands &cmds)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	cmds.loadTransform(projP.makeTranslate());
 	vController->draw(cmds, ffToggleActive);
 	#endif
 }

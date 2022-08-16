@@ -393,16 +393,6 @@ ErrorCode Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace,
 	return {};
 }
 
-void GLTexture::bindTex(RendererCommands &cmds) const
-{
-	if(!texName()) [[unlikely]]
-	{
-		logErr("called bindTex() on uninitialized texture");
-		return;
-	}
-	cmds.glcBindTexture(target(), texName());
-}
-
 void Texture::writeAligned(int level, PixmapView pixmap, IG::WP destPos, int assumeAlign, uint32_t writeFlags)
 {
 	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
@@ -599,62 +589,6 @@ void Texture::setCompatTextureSampler(const TextureSampler &compatSampler)
 		});
 }
 
-static CommonProgram commonProgramForMode(TextureType type, EnvMode mode)
-{
-	switch(mode)
-	{
-		case EnvMode::REPLACE:
-			switch(type)
-			{
-				case TextureType::T2D_1 : return CommonProgram::TEX_ALPHA_REPLACE;
-				case TextureType::T2D_2 : return CommonProgram::TEX_REPLACE;
-				case TextureType::T2D_4 : return CommonProgram::TEX_REPLACE;
-				#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
-				case TextureType::T2D_EXTERNAL : return CommonProgram::TEX_EXTERNAL_REPLACE;
-				#endif
-				default:
-					bug_unreachable("no default program for texture type:%d", std::to_underlying(type));
-			}
-		case EnvMode::MODULATE:
-			switch(type)
-			{
-				case TextureType::T2D_1 : return CommonProgram::TEX_ALPHA;
-				case TextureType::T2D_2 : return CommonProgram::TEX;
-				case TextureType::T2D_4 : return CommonProgram::TEX;
-				#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
-				case TextureType::T2D_EXTERNAL : return CommonProgram::TEX_EXTERNAL;
-				#endif
-				default:
-					bug_unreachable("no default program for texture type:%d", (int)type);
-			}
-		default:
-			bug_unreachable("no default program for texture mode:%d", std::to_underlying(mode));
-	}
-}
-
-bool Texture::compileDefaultProgram(EnvMode mode) const
-{
-	return renderer().makeCommonProgram(commonProgramForMode(type_, mode));
-}
-
-bool Texture::compileDefaultProgramOneShot(EnvMode mode) const
-{
-	auto compiled = compileDefaultProgram(mode);
-	if(compiled)
-		renderer().autoReleaseShaderCompiler();
-	return compiled;
-}
-
-void Texture::useDefaultProgram(RendererCommands &cmds, EnvMode mode, const Mat4 *modelMat) const
-{
-	renderer().useCommonProgram(cmds, commonProgramForMode(type_, mode), modelMat);
-}
-
-void Texture::useDefaultProgram(RendererCommands &cmds, EnvMode mode, Mat4 modelMat) const
-{
-	useDefaultProgram(cmds, mode, &modelMat);
-}
-
 Texture::operator bool() const
 {
 	return texName();
@@ -746,12 +680,10 @@ void GLTexture::updateFormatInfo(PixmapDesc desc, int8_t levels, GLenum target)
 	assert(levels);
 	levels_ = levels;
 	pixDesc = desc;
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL && target == GL_TEXTURE_EXTERNAL_OES)
 		type_ = TextureType::T2D_EXTERNAL;
 	else
 		type_ = typeForPixelFormat(desc.format());
-	#endif
 }
 
 #ifdef __ANDROID__

@@ -201,10 +201,13 @@ void GLRendererTask::runInitialCommandsInGL(TaskContext ctx, DrawContextSupport 
 		initVAO();
 	#endif
 	ctx.notifySemaphore();
-	runGLCheckedVerbose([&]()
+	if(!support.useFixedFunctionPipeline)
 	{
-		glEnableVertexAttribArray(VATTR_POS);
-	}, "glEnableVertexAttribArray(VATTR_POS)");
+		runGLCheckedVerbose([&]()
+		{
+			glEnableVertexAttribArray(VATTR_POS);
+		}, "glEnableVertexAttribArray(VATTR_POS)");
+	}
 	glClearColor(0., 0., 0., 1.);
 	if constexpr((bool)Config::Gfx::OPENGL_ES)
 	{
@@ -322,13 +325,11 @@ void RendererTask::flush()
 
 void RendererTask::releaseShaderCompiler()
 {
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	run(
 		[]()
 		{
 			glReleaseShaderCompiler();
 		});
-	#endif
 }
 
 void RendererTask::setDebugOutput(bool on)
@@ -347,14 +348,13 @@ void RendererTask::setDebugOutput(bool on)
 }
 
 RendererCommands GLRendererTask::makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
-	bool notifyWindowAfterPresent, Window &win, Mat4 projMat)
+	bool notifyWindowAfterPresent, Window &win)
 {
 	initDefaultFramebuffer();
 	auto &drawable = winData(win).drawable;
 	RendererCommands cmds{*static_cast<RendererTask*>(this),
 		notifyWindowAfterPresent ? &win : nullptr, drawable, winData(win).viewportRect, taskCtx.glDisplay(),
 		glContext(), manageSemaphore ? taskCtx.semaphorePtr() : nullptr};
-	cmds.setProjectionMatrix(projMat);
 	if(manageSemaphore)
 		taskCtx.markSemaphoreNotified(); // semaphore will be notified in RendererCommands::present()
 	return cmds;

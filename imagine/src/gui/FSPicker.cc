@@ -22,6 +22,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/BasicEffect.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/format.hh>
@@ -167,7 +168,7 @@ void FSPicker::draw(Gfx::RendererCommands &cmds)
 		{
 			using namespace IG::Gfx;
 			cmds.set(ColorName::WHITE);
-			cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
+			cmds.basicEffect().enableAlphaTexture(cmds);
 			auto textRect = controller.top().viewRect();
 			if(IG::isOdd(textRect.ySize()))
 				textRect.y2--;

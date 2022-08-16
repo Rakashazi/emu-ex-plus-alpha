@@ -20,6 +20,7 @@
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/BasicEffect.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/util/math/space.hh>
@@ -152,7 +153,7 @@ void ScrollView::drawScrollContent(Gfx::RendererCommands &cmds)
 	using namespace IG::Gfx;
 	if(contentIsBiggerThanView && (allowScrollWholeArea_ || dragTracker.isDragging()))
 	{
-		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+		cmds.basicEffect().disableTexture(cmds);
 		cmds.set(BlendMode::OFF);
 		if(scrollWholeArea_)
 		{

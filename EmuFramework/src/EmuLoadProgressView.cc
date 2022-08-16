@@ -126,18 +126,18 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 	if(!text.isVisible())
 		return;
 	using namespace IG::Gfx;
-	projP.resetTransforms(cmds);
+	auto &basicEffect = cmds.basicEffect();
 	cmds.set(BlendMode::OFF);
 	if(max)
 	{
-		cmds.setCommonProgram(CommonProgram::NO_TEX);
+		basicEffect.disableTexture(cmds);
 		cmds.setColor(.0, .0, .75);
 		float barHeight = text.height()*1.5;
 		auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - FP{0.f, barHeight/2.f},
 			{IG::remap((float)pos, 0.f, (float)max, 0.f, projP.width()), barHeight});
 		GeomRect::draw(cmds, bar);
 	}
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+	basicEffect.enableAlphaTexture(cmds);
 	cmds.set(ColorName::WHITE);
 	text.draw(cmds, 0, 0, C2DO, projP);
 }

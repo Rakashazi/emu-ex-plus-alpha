@@ -27,21 +27,20 @@ class Viewport;
 namespace IG::Gfx
 {
 
-class RendererCommands;
 class Mat4;
 
 class ProjectionPlane
 {
 public:
 	constexpr ProjectionPlane() = default;
-	static ProjectionPlane makeWithMatrix(Viewport viewport, Mat4 mat);
+	ProjectionPlane(Viewport viewport, Mat4 mat);
 	float wHalf() const { return rect.x2; }
 	float hHalf() const { return rect.y2; }
 	GCRect bounds() const { return rect; }
-	float width() const;
-	float height() const;
-	FP size() const;
-	float focalZ() const;
+	float width() const { return w; }
+	float height() const { return h; }
+	FP size() const { return {w, h}; }
+	float focalZ() const { return focal; }
 	WindowRect windowBounds() const { return winBounds; }
 	float unprojectXSize(float x) const;
 	float unprojectYSize(float y) const;
@@ -62,9 +61,6 @@ public:
 	FP alignToPixel(FP p) const;
 	Mat4 makeTranslate(FP p) const;
 	Mat4 makeTranslate() const;
-	void loadTranslate(RendererCommands &cmds, float x, float y) const;
-	void loadTranslate(RendererCommands &cmds, FP p) const;
-	void resetTransforms(RendererCommands &cmds) const;
 
 private:
 	WindowRect winBounds{};

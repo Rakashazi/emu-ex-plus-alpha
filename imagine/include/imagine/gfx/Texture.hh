@@ -74,11 +74,6 @@ public:
 	IG::WP size(int level) const;
 	PixmapDesc pixmapDesc() const;
 	void setCompatTextureSampler(const TextureSampler &compatSampler);
-	bool compileDefaultProgram(EnvMode mode) const;
-	bool compileDefaultProgramOneShot(EnvMode mode) const;
-	void useDefaultProgram(RendererCommands &cmds, EnvMode mode, const Mat4 *modelMat) const;
-	void useDefaultProgram(RendererCommands &cmds, EnvMode mode) const { useDefaultProgram(cmds, mode, nullptr); }
-	void useDefaultProgram(RendererCommands &cmds, EnvMode mode, Mat4 modelMat) const;
 	explicit operator bool() const;
 	Renderer &renderer() const;
 	RendererTask &task() const;
