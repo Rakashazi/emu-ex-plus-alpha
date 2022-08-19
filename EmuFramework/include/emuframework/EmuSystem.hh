@@ -181,6 +181,8 @@ public:
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional sub-class API functions
+	void onStart();
+	void onStop();
 	void closeSystem();
 	bool onPointerInputStart(const Input::MotionEvent &, Input::DragTrackerState, WindowRect gameRect);
 	bool onPointerInputUpdate(const Input::MotionEvent &, Input::DragTrackerState current, Input::DragTrackerState previous, WindowRect gameRect);

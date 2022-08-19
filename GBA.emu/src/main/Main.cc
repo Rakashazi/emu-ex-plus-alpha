@@ -111,6 +111,8 @@ void GbaSystem::closeSystem()
 	assert(hasContent());
 	CPUCleanUp();
 	detectedRtcGame = 0;
+	detectedSensorType = {};
+	sensorListener = {};
 	cheatsList.clear();
 }
 
@@ -191,6 +193,16 @@ void GbaSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 	double mixRate = std::round(rate / staticFrameTime * frameTime.count());
 	logMsg("set audio rate:%d, mix rate:%d", rate, (int)mixRate);
 	soundSetSampleRate(gGba, mixRate);
+}
+
+void GbaSystem::onStart()
+{
+	setSensorActive(true);
+}
+
+void GbaSystem::onStop()
+{
+	setSensorActive(false);
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

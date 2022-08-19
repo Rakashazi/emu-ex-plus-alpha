@@ -258,6 +258,7 @@ void EmuSystem::pause(EmuApp &app)
 		state = State::PAUSED;
 	app.audio().stop();
 	app.cancelAutoSaveStateTimer();
+	onStop();
 }
 
 void EmuSystem::start(EmuApp &app)
@@ -267,6 +268,7 @@ void EmuSystem::start(EmuApp &app)
 		app.defaultVController().keyboard().setShiftActive(false);
 	clearInputBuffers(app.viewController().inputView());
 	resetFrameTime();
+	onStart();
 	app.startAudio();
 	app.startAutoSaveStateTimer();
 }

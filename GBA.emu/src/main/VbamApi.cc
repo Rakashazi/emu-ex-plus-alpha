@@ -20,12 +20,13 @@
 #include <vbam/Util.h>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/math/space.hh>
 #include "MainSystem.hh"
 
 struct GameSettings
 {
-	const char *gameName;
-	char gameID[5];
+	std::string_view gameName;
+	std::string_view gameId;
 	int saveSize;
 	int saveType;
 	bool rtcEnabled;
@@ -44,6 +45,7 @@ uint32_t throttle{};
 uint32_t speedup_throttle{};
 uint32_t speedup_frame_skip{};
 int emulating{};
+static int sensorX, sensorY, sensorZ;
 
 static void debuggerOutput(const char *s, uint32_t addr)
 {
@@ -77,24 +79,10 @@ void log(const char *msg, ...)
 void log(const char *msg, ...) {}
 #endif
 
-void systemUpdateMotionSensor()
-{
-}
-
-int systemGetSensorX()
-{
-	return 0;
-}
-
-int systemGetSensorY()
-{
-	return 0;
-}
-
-int systemGetSensorZ()
-{
-	return 0;
-}
+void systemUpdateMotionSensor() {}
+int systemGetSensorX() { return sensorX; }
+int systemGetSensorY() { return sensorY; }
+int systemGetSensorZ() { return sensorZ; }
 
 uint8_t systemGetSensorDarkness()
 {
@@ -199,22 +187,41 @@ void setSaveType(int type, int size)
 	}
 }
 
+static GbaSensorType detectSensorType(std::string_view gameId)
+{
+	static constexpr std::string_view tiltIds[]{"KHPJ", "KYGJ", "KYGE", "KYGP"};
+	if(IG::contains(tiltIds, gameId))
+	{
+		logMsg("detected accelerometer sensor");
+		return GbaSensorType::Accelerometer;
+	}
+	static constexpr std::string_view gyroIds[]{"RZWJ", "RZWE", "RZWP"};
+	if(IG::contains(gyroIds, gameId))
+	{
+		logMsg("detected gyroscope sensor");
+		return GbaSensorType::Gyroscope;
+	}
+	return GbaSensorType::None;
+}
+
 void GbaSystem::setGameSpecificSettings(GBASys &gba, int romSize)
 {
 	using namespace EmuEx;
 	resetGameSettings();
 	logMsg("game id:%c%c%c%c", gba.mem.rom[0xac], gba.mem.rom[0xad], gba.mem.rom[0xae], gba.mem.rom[0xaf]);
 	GameSettings foundSettings{};
-	if(auto it = find_if(settings, [&](auto &s){ return equal_n(s.gameID, 4, &gba.mem.rom[0xac]); });
+	std::string_view gameId{(char*)&gba.mem.rom[0xac], 4};
+	if(auto it = IG::find_if(settings, [&](const auto &s){return s.gameId == gameId;});
 		it != std::end(settings))
 	{
 		foundSettings = *it;
 		logMsg("found settings for:%s save type:%s save size:%d rtc:%d mirroring:%d",
-			it->gameName, saveTypeStr(it->saveType, it->saveSize), it->saveSize, it->rtcEnabled, it->mirroringEnabled);
+			it->gameName.data(), saveTypeStr(it->saveType, it->saveSize), it->saveSize, it->rtcEnabled, it->mirroringEnabled);
 	}
 	detectedRtcGame = foundSettings.rtcEnabled;
 	detectedSaveType = foundSettings.saveType;
 	detectedSaveSize = foundSettings.saveSize;
+	detectedSensorType = detectSensorType(gameId);
 	doMirroring(gba, foundSettings.mirroringEnabled);
 	if(detectedSaveType == GBA_SAVE_AUTO)
 	{
@@ -235,6 +242,38 @@ void GbaSystem::setGameSpecificSettings(GBASys &gba, int romSize)
 	}
 	setRTC((RtcMode)optionRtcEmulation.val);
 }
+
+void GbaSystem::setSensorActive(bool on)
+{
+	auto ctx = appContext();
+	auto typeToSet = sensorType;
+	if(sensorType == GbaSensorType::Auto)
+		typeToSet = detectedSensorType;
+	if(!on)
+	{
+		sensorListener = {};
+	}
+	else if(typeToSet == GbaSensorType::Accelerometer)
+	{
+		sensorListener = IG::SensorListener{ctx, IG::SensorType::Accelerometer, [ctx](SensorValues vals)
+		{
+			vals = ctx.remapSensorValuesForDeviceRotation(vals);
+			sensorX = IG::remap(vals[0], -9.807, 9.807, 1897, 2197);
+			sensorY = IG::remap(vals[1], -9.807, 9.807, 2197, 1897);
+			//logDMsg("updated accel: %d,%d", sensorX, sensorY);
+		}};
+	}
+	else if(typeToSet == GbaSensorType::Gyroscope)
+	{
+		sensorListener = IG::SensorListener{ctx, IG::SensorType::Gyroscope, [ctx](SensorValues vals)
+		{
+			vals = ctx.remapSensorValuesForDeviceRotation(vals);
+			sensorZ = IG::remap(vals[2], -20., 20., 1800, -1800);
+			//logDMsg("updated gyro: %d", sensorZ);
+		}};
+	}
+}
+
 }
 
 size_t saveMemorySize()

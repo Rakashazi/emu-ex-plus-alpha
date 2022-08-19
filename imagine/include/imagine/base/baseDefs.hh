@@ -112,6 +112,13 @@ constexpr bool DISPLAY_CUTOUT = true;
 constexpr bool DISPLAY_CUTOUT = false;
 #endif
 
+#if defined __ANDROID__
+#define IG_CONFIG_SENSORS
+constexpr bool SENSORS = true;
+#else
+constexpr bool SENSORS = false;
+#endif
+
 }
 
 namespace IG::Input
@@ -233,6 +240,13 @@ struct ScreenChange
 	constexpr bool removed() const { return action == Action::REMOVED; }
 };
 
+WISE_ENUM_CLASS((SensorType, uint8_t),
+	(Accelerometer, 1),
+	(Gyroscope, 4)
+);
+
+using SensorValues = std::array<float, 3>;
+
 class Screen;
 class Window;
 class WindowConfig;
@@ -252,6 +266,7 @@ using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, 
 using ScreenChangeDelegate = DelegateFunc<void (ApplicationContext, Screen &s, ScreenChange)>;
 using SystemDocumentPickerDelegate = DelegateFunc<void(IG::CStringView uri, IG::CStringView displayName)>;
 using TextFieldDelegate = DelegateFunc<void (const char *str)>;
+using SensorChangedDelegate = DelegateFunc<void (SensorValues)>;
 
 using InputDeviceChangeDelegate = DelegateFunc<void (const Input::Device &dev, Input::DeviceChange)>;
 using InputDevicesEnumeratedDelegate = DelegateFunc<void ()>;

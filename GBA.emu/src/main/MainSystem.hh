@@ -2,6 +2,8 @@
 
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
+#include <imagine/base/Sensor.hh>
+#include <imagine/util/enum.hh>
 #include <vbam/gba/GBA.h>
 
 namespace IG
@@ -21,6 +23,7 @@ enum
 	CFGKEY_RTC_EMULATION = 256, CFGKEY_SAVE_TYPE_OVERRIDE = 257,
 	CFGKEY_PCM_VOLUME = 258, CFGKEY_GB_APU_VOLUME = 259,
 	CFGKEY_SOUND_FILTERING = 260, CFGKEY_SOUND_INTERPOLATION = 261,
+	CFGKEY_SENSOR_TYPE = 262
 };
 
 void readCheatFile(EmuSystem &);
@@ -39,14 +42,20 @@ constexpr bool optionSaveTypeOverrideIsValid(uint32_t val)
 	return type >= GBA_SAVE_AUTO && type <= GBA_SAVE_NONE;
 }
 
+WISE_ENUM_CLASS((GbaSensorType, uint8_t),
+	Auto, None, Accelerometer, Gyroscope);
+
 class GbaSystem final: public EmuSystem
 {
 public:
+	IG::SensorListener sensorListener{};
 	Byte1Option optionRtcEmulation{CFGKEY_RTC_EMULATION, std::to_underlying(RtcMode::AUTO), 0, optionIsValidWithMax<2>};
 	Byte4Option optionSaveTypeOverride{CFGKEY_SAVE_TYPE_OVERRIDE, GBA_SAVE_AUTO, 0, optionSaveTypeOverrideIsValid};
 	int detectedSaveSize{};
 	uint8_t detectedSaveType{};
 	bool detectedRtcGame{};
+	IG_UseMemberIf(Config::SENSORS, GbaSensorType, sensorType){};
+	IG_UseMemberIf(Config::SENSORS, GbaSensorType, detectedSensorType){};
 
 	GbaSystem(ApplicationContext ctx):
 		EmuSystem{ctx} {}
@@ -54,6 +63,8 @@ public:
 	void setRTC(RtcMode mode);
 	std::pair<int, int> saveTypeOverride() { return unpackSaveTypeOverride(optionSaveTypeOverride.val); }
 	void setSaveTypeOverride(int type, int size) { optionSaveTypeOverride = packSaveTypeOverride(type, size); };
+	void setSensorActive(bool);
+	void setSensorType(GbaSensorType);
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -72,6 +83,8 @@ public:
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions
+	void onStart();
+	void onStop();
 	bool resetSessionOptions(EmuApp &);
 	void onFlushBackupMemory(BackupMemoryDirtyFlags);
 	void closeSystem();

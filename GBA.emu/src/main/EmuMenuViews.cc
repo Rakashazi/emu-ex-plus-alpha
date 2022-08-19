@@ -121,10 +121,44 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		};
 	}
 
-	std::array<MenuItem*, 2> menuItem
+	#ifdef IG_CONFIG_SENSORS
+	TextMenuItem hardwareSensorItem[4]
 	{
-		&rtc,
-		&saveType
+		{"Auto",          &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::Auto)},
+		{"None",          &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::None)},
+		{"Accelerometer", &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::Accelerometer)},
+		{"Gyroscope",     &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::Gyroscope)},
+	};
+
+	MultiChoiceMenuItem hardwareSensor
+	{
+		"Hardware Sensor", &defaultFace(),
+		[this](int idx, Gfx::Text &t)
+		{
+			if(idx == 0)
+			{
+				t.setString(wise_enum::to_string(system().detectedSensorType));
+				return true;
+			}
+			return false;
+		},
+		(MenuItem::Id)system().sensorType,
+		hardwareSensorItem
+	};
+
+	TextMenuItem::SelectDelegate setHardwareSensorDel()
+	{
+		return [this](TextMenuItem &item) { system().setSensorType((GbaSensorType)item.id()); };
+	}
+	#endif
+
+	std::array<MenuItem*, Config::SENSORS ? 3 : 2> menuItem
+	{
+		&rtc
+		, &saveType
+		#ifdef IG_CONFIG_SENSORS
+		, &hardwareSensor
+		#endif
 	};
 
 public:

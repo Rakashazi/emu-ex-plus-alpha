@@ -26,10 +26,6 @@
 namespace IG
 {
 
-static jobject vibrator{};
-static JNI::InstMethod<void(jlong)> jVibrate{};
-static bool vibrationSystemIsInit = false;
-
 std::string AndroidApplication::androidBuildDevice(JNIEnv *env, jclass baseActivityClass) const
 {
 	JNI::ClassMethod<jstring()> jDevName{env, baseActivityClass, "devName", "()Ljava/lang/String;"};
@@ -86,11 +82,6 @@ void VibrationManager::vibrate(IG::Milliseconds ms)
 		return;
 	//logDMsg("vibrating for %u ms", ms.count());
 	jVibrate(vibrator.jniEnv(), vibrator, (jlong)ms.count());
-}
-
-void setDeviceOrientationChangedSensor(bool)
-{
-	// TODO
 }
 
 void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate)

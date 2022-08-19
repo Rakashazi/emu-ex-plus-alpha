@@ -39,6 +39,7 @@ bool GbaSystem::resetSessionOptions(EmuApp &)
 	optionRtcEmulation.reset();
 	setRTC((RtcMode)optionRtcEmulation.val);
 	optionSaveTypeOverride.reset();
+	sensorType = GbaSensorType::Auto;
 	return true;
 }
 
@@ -60,6 +61,12 @@ bool GbaSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 		{
 			case CFGKEY_RTC_EMULATION: return optionRtcEmulation.readFromIO(io, readSize);
 			case CFGKEY_SAVE_TYPE_OVERRIDE: return optionSaveTypeOverride.readFromIO(io, readSize);
+			case CFGKEY_SENSOR_TYPE:
+				return readOptionValue<uint8_t>(io, readSize, [&](auto v)
+				{
+					if(v <= to_underlying(IG::lastEnum<GbaSensorType>))
+						sensorType = (GbaSensorType)v;
+				});
 		}
 	}
 	return false;
@@ -78,6 +85,8 @@ void GbaSystem::writeConfig(ConfigType type, FileIO &io)
 	{
 		optionRtcEmulation.writeWithKeyIfNotDefault(io);
 		optionSaveTypeOverride.writeWithKeyIfNotDefault(io);
+		if(sensorType != GbaSensorType::Auto)
+			writeOptionValue(io, CFGKEY_SENSOR_TYPE, (uint8_t)sensorType);
 	}
 }
 
@@ -93,6 +102,12 @@ void GbaSystem::setRTC(RtcMode mode)
 		logMsg("%s RTC", mode == RtcMode::ON ? "enabled" : "disabled");
 		rtcEnable(mode == RtcMode::ON);
 	}
+}
+
+void GbaSystem::setSensorType(GbaSensorType type)
+{
+	sensorType = type;
+	sessionOptionSet();
 }
 
 int soundVolumeAsInt(GBASys &, bool gbVol)

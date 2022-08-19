@@ -17,6 +17,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/VibrationManager.hh>
+#include <imagine/base/Sensor.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/AssetFS.hh>
@@ -385,6 +386,8 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 
 [[gnu::weak]] void ApplicationContext::setDeviceOrientationChangeSensor(bool) {}
 
+[[gnu::weak]] SensorValues ApplicationContext::remapSensorValuesForDeviceRotation(SensorValues v) const { return v; }
+
 [[gnu::weak]] void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate) {}
 
 [[gnu::weak]] void ApplicationContext::setSystemOrientation(Rotation) {}
@@ -417,6 +420,8 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 {
 	bug_unreachable("Invalid platform-specific function");
 }
+
+[[gnu::weak]] SensorListener::SensorListener(ApplicationContext, SensorType, SensorChangedDelegate) {}
 
 OnExit::OnExit(ResumeDelegate del, ApplicationContext ctx, int priority): del{del}, ctx{ctx}
 {

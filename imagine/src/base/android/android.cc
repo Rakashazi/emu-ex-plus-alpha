@@ -880,6 +880,19 @@ void AndroidApplicationContext::setSustainedPerformanceMode(bool on)
 	}
 }
 
+SensorValues ApplicationContext::remapSensorValuesForDeviceRotation(SensorValues v) const
+{
+	switch(application().currentRotation())
+	{
+		case Rotation::ANY:
+		case Rotation::UP: return v;
+		case Rotation::RIGHT: return {-v[1], v[0], v[2]};
+		case Rotation::DOWN: return {v[0], -v[1], v[2]};
+		case Rotation::LEFT: return {v[1], v[0], v[2]};
+	}
+	bug_unreachable("invalid Rotation");
+}
+
 Window *AndroidApplication::deviceWindow() const
 {
 	if(windows().size()) [[likely]]

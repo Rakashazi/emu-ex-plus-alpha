@@ -195,6 +195,7 @@ public:
 
 	// Sensors
 	void setDeviceOrientationChangeSensor(bool on);
+	SensorValues remapSensorValuesForDeviceRotation(SensorValues) const;
 
 	// Notification/Launcher icons
 	void addNotification(IG::CStringView onShow, IG::CStringView title, IG::CStringView message);

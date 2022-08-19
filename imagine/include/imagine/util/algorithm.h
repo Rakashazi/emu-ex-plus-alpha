@@ -70,12 +70,12 @@ static int findIndexIf(Iterable auto &&c, auto pred, int notFound = -1)
 
 static bool contains(Iterable auto &&c, const auto &val)
 {
-	return std::find(std::begin(c), std::end(c), val) != c.end();
+	return std::find(std::begin(c), std::end(c), val) != std::end(c);
 }
 
 static bool containsIf(Iterable auto &&c, auto pred)
 {
-	return std::find_if(std::begin(c), std::end(c), pred) != c.end();
+	return std::find_if(std::begin(c), std::end(c), pred) != std::end(c);
 }
 
 static bool eraseFirst(Iterable auto &c, const auto &val)

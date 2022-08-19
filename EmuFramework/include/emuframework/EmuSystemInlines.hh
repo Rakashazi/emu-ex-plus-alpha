@@ -230,4 +230,16 @@ IG::Rotation EmuSystem::contentRotation() const
 	return {};
 }
 
+void EmuSystem::onStart()
+{
+	if(&MainSystem::onStart != &EmuSystem::onStart)
+		static_cast<MainSystem*>(this)->onStart();
+}
+
+void EmuSystem::onStop()
+{
+	if(&MainSystem::onStop != &EmuSystem::onStop)
+		static_cast<MainSystem*>(this)->onStop();
+}
+
 }
