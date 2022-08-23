@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GLTexture"
-#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Texture.hh>
@@ -189,7 +188,7 @@ static TextureConfig configWithLoadedImagePixmap(PixmapDesc desc, bool makeMipma
 {
 	TextureConfig config{desc};
 	config.setWillGenerateMipmaps(makeMipmaps);
-	config.setCompatSampler(compatSampler);
+	config.compatSampler = compatSampler;
 	return config;
 }
 
@@ -248,7 +247,7 @@ TextureConfig GLTexture::baseInit(RendererTask &r, TextureConfig config)
 	{
 		// when using glGenerateMipmaps exclusively, there is no need to define
 		// all texture levels with glTexImage2D beforehand
-		config.setLevels(1);
+		config.levels = 1;
 	}
 	return config;
 }
@@ -256,7 +255,7 @@ TextureConfig GLTexture::baseInit(RendererTask &r, TextureConfig config)
 void GLTexture::init(RendererTask &r, TextureConfig config)
 {
 	config = baseInit(r, config);
-	static_cast<Texture*>(this)->setFormat(config.pixmapDesc(), config.levels(), config.colorSpace(), config.compatSampler());
+	static_cast<Texture*>(this)->setFormat(config.pixmapDesc, config.levels, config.colorSpace, config.compatSampler);
 }
 
 void destroyGLTextureRef(RendererTask &task, TextureRef texName)
@@ -784,6 +783,11 @@ bool TextureSizeSupport::supportsMipmaps(int imageX, int imageY) const
 {
 	return imageX && imageY &&
 		(nonPow2CanMipmap || (IG::isPowerOf2(imageX) && IG::isPowerOf2(imageY)));
+}
+
+TextureSpan::operator bool() const
+{
+	return tex && (bool)*tex;
 }
 
 }

@@ -39,7 +39,7 @@ public:
 		Input::Device &dev, const char *actionName, SetDelegate onSet);
 	void place() final;
 	bool inputEvent(const Input::Event &) final;
-	void draw(Gfx::RendererCommands &cmds) final;
+	void draw(Gfx::RendererCommands &__restrict__) final;
 	void onAddedToController(ViewController *, const Input::Event &) final;
 
 private:
@@ -66,7 +66,7 @@ private:
 	struct BtnConfigMenuItem : public DualTextMenuItem
 	{
 		using DualTextMenuItem::DualTextMenuItem;
-		void draw(Gfx::RendererCommands &, float xPos, float yPos, float xSize, float ySize,
+		void draw(Gfx::RendererCommands &__restrict__ , float xPos, float yPos, float xSize, float ySize,
 			float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const final;
 	};
 

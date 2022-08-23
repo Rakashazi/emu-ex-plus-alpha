@@ -37,7 +37,7 @@ void EmuView::prepareDraw()
 	#endif
 }
 
-void EmuView::draw(Gfx::RendererCommands &cmds)
+void EmuView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
 	if(layer && system().isStarted())

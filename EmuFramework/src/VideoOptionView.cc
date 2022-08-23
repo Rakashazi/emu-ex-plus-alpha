@@ -78,7 +78,7 @@ public:
 		return false;
 	}
 
-	void draw(Gfx::RendererCommands &cmds) final
+	void draw(Gfx::RendererCommands &__restrict__ cmds) final
 	{
 		using namespace IG::Gfx;
 		cmds.setColor(1., 1., 1., 1.);
@@ -446,7 +446,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"Off",          &defaultFace(), setOverlayEffectDel(), 0},
 		{"Scanlines",    &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::SCANLINES)},
 		{"Scanlines 2x", &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::SCANLINES_2)},
-		{"CRT Mask",     &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT)},
+		{"LCD Grid",     &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::LCD)},
 		{"CRT",          &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT_RGB)},
 		{"CRT 2x",       &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT_RGB_2)}
 	},

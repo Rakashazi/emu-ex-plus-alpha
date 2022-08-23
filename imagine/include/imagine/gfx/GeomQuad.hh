@@ -4,17 +4,19 @@
 #include <imagine/base/baseDefs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Vertex.hh>
+#include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/edge.h>
+#include <imagine/util/math/math.hh>
+#include <imagine/util/concepts.hh>
+#include <span>
 
 namespace IG::Gfx
 {
 
-class RendererCommands;
-class ProjectionPlane;
-
-template<class Vtx>
-static constexpr auto mapQuadUV(std::array<Vtx, 4> v, FRect rect, Rotation r = Rotation::UP)
+template<VertexLayout V>
+constexpr auto mapQuadUV(std::array<V, 4> v, FRect rect, Rotation r = Rotation::UP)
 {
 	bool rotate = false;
 	if(r == Rotation::DOWN)
@@ -32,40 +34,53 @@ static constexpr auto mapQuadUV(std::array<Vtx, 4> v, FRect rect, Rotation r = R
 		std::swap(rect.y, rect.y2);
 		rotate = true;
 	}
-	if(rotate)
+	using TexCoord = decltype(V::texCoord.x);
+	Rect2<TexCoord> nRect{};
+	if constexpr(std::is_same_v<TexCoord, float>)
 	{
-		v[0].u = rect.x;  v[0].v = rect.y;  //BL
-		v[1].u = rect.x2; v[1].v = rect.y;  //TL
-		v[2].u = rect.x;  v[2].v = rect.y2; //BR
-		v[3].u = rect.x2; v[3].v = rect.y2; //TR
+		nRect = rect;
 	}
 	else
 	{
-		v[0].u = rect.x;  v[0].v = rect.y2; //BL
-		v[1].u = rect.x;  v[1].v = rect.y;  //TL
-		v[2].u = rect.x2; v[2].v = rect.y2; //BR
-		v[3].u = rect.x2; v[3].v = rect.y;  //TR
+		nRect.x = remapClamp(rect.x, -1.f, 1.f, std::numeric_limits<TexCoord>{});
+		nRect.x2 = remapClamp(rect.x2, -1.f, 1.f, std::numeric_limits<TexCoord>{});
+		nRect.y = remapClamp(rect.y, -1.f, 1.f, std::numeric_limits<TexCoord>{});
+		nRect.y2 = remapClamp(rect.y2, -1.f, 1.f, std::numeric_limits<TexCoord>{});
+	}
+	if(rotate)
+	{
+		v[0].texCoord.x = nRect.x;  v[0].texCoord.y = nRect.y;  //BL
+		v[1].texCoord.x = nRect.x2; v[1].texCoord.y = nRect.y;  //TL
+		v[2].texCoord.x = nRect.x;  v[2].texCoord.y = nRect.y2; //BR
+		v[3].texCoord.x = nRect.x2; v[3].texCoord.y = nRect.y2; //TR
+	}
+	else
+	{
+		v[0].texCoord.x = nRect.x;  v[0].texCoord.y = nRect.y2; //BL
+		v[1].texCoord.x = nRect.x;  v[1].texCoord.y = nRect.y;  //TL
+		v[2].texCoord.x = nRect.x2; v[2].texCoord.y = nRect.y2; //BR
+		v[3].texCoord.x = nRect.x2; v[3].texCoord.y = nRect.y;  //TR
 	}
 	return v;
 }
 
-template<class Vtx>
-static constexpr std::array<Vtx, 4> mapQuadPos(std::array<Vtx, 4> v, FP bl, FP tl, FP tr, FP br)
+template<VertexLayout V>
+constexpr std::array<V, 4> mapQuadPos(std::array<V, 4> v, FP bl, FP tl, FP tr, FP br)
 {
-	v[0].x = bl.x; v[0].y = bl.y;
-	v[1].x = tl.x; v[1].y = tl.y;
-	v[2].x = br.x; v[2].y = br.y;
-	v[3].x = tr.x; v[3].y = tr.y;
+	v[0].pos.x = bl.x; v[0].pos.y = bl.y;
+	v[1].pos.x = tl.x; v[1].pos.y = tl.y;
+	v[2].pos.x = br.x; v[2].pos.y = br.y;
+	v[3].pos.x = tr.x; v[3].pos.y = tr.y;
 	return v;
 }
 
-template<class Vtx>
-static constexpr std::array<Vtx, 4> mapQuadPos(std::array<Vtx, 4> v, GCRect rect)
+template<VertexLayout V>
+constexpr std::array<V, 4> mapQuadPos(std::array<V, 4> v, GCRect rect)
 {
 	return mapQuadPos(v, {rect.x, rect.y}, {rect.x, rect.y2}, {rect.x2, rect.y2}, {rect.x2, rect.y});
 }
 
-template<Vertex Vtx>
+template<VertexLayout V>
 class QuadGeneric
 {
 public:
@@ -81,11 +96,23 @@ public:
 		setPos(posRect);
 	}
 
-	constexpr QuadGeneric(GCRect posRect, FRect uvRect)
+	constexpr QuadGeneric(GCRect posRect, VertexColor col):
+		QuadGeneric{posRect}
 	{
-		setPos(posRect);
+		if constexpr(requires {V::color;})
+		{
+			for(auto &vtx : v) { vtx.color = col; }
+		}
+	}
+
+	constexpr QuadGeneric(GCRect posRect, FRect uvRect):
+		QuadGeneric{posRect}
+	{
 		setUV(uvRect);
 	}
+
+	constexpr QuadGeneric(GCRect posRect, TextureSpan texSpan):
+		QuadGeneric{posRect, texSpan.uvBounds()} {}
 
 	constexpr void setPos(FP bl, FP tl, FP tr, FP br)
 	{
@@ -95,10 +122,10 @@ public:
 	constexpr void setPos(QuadGeneric quad)
 	{
 		setPos(
-			{quad.v[0].x, quad.v[0].y},
-			{quad.v[1].x, quad.v[1].y},
-			{quad.v[3].x, quad.v[3].y},
-			{quad.v[2].x, quad.v[2].y});
+			{quad.v[0].pos.x, quad.v[0].pos.y},
+			{quad.v[1].pos.x, quad.v[1].pos.y},
+			{quad.v[3].pos.x, quad.v[3].pos.y},
+			{quad.v[2].pos.x, quad.v[2].pos.y});
 	}
 
 	constexpr void setPos(GCRect rect)
@@ -106,40 +133,84 @@ public:
 		setPos({rect.x, rect.y}, {rect.x, rect.y2}, {rect.x2, rect.y2}, {rect.x2, rect.y});
 	}
 
-	void setPos(IG::WindowRect b, ProjectionPlane proj);
-	void setPosRel(float x, float y, float xSize, float ySize);
+	void setPos(IG::WindowRect b, ProjectionPlane proj)
+	{
+		setPos(proj.unProjectRect(b));
+	}
+
+	constexpr void setPosRel(float x, float y, float xSize, float ySize)
+	{
+		setPos({{x, y}, {x+xSize, y+ySize}});
+	}
 
 	constexpr void setUV(FRect rect, Rotation r = Rotation::UP)
 	{
-		if constexpr(!Vtx::hasTexture)
-		{
-			return;
-		}
-		else
+		if constexpr(requires {V::texCoord;})
 		{
 			v = mapQuadUV(v, rect, r);
 		}
 	}
 
-	void setColor(VertexColor, uint32_t edges = EDGE_AI);
-	void draw(RendererCommands &r) const;
-	static void draw(RendererCommands &cmds, IG::WindowRect b, ProjectionPlane proj);
-	static void draw(RendererCommands &cmds, GCRect d);
+	void draw(RendererCommands &cmds) const
+	{
+		cmds.bindTempVertexBuffer();
+		cmds.vertexBufferData(v.data(), sizeof(v));
+		cmds.setVertexAttribs(v.data());
+		cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
+	}
+
+	static void draw(RendererCommands &cmds, IG::WindowRect b, ProjectionPlane proj)
+	{
+		draw(cmds, proj.unProjectRect(b));
+	}
+
+	static void draw(RendererCommands &cmds, GCRect d)
+	{
+		QuadGeneric rect{d};
+		rect.draw(cmds);
+	}
+
+	constexpr auto &operator[](size_t idx) { return v[idx]; }
+	constexpr auto &bl() { return v[0]; }
+	constexpr auto &tl() { return v[1]; }
+	constexpr auto &tr() { return v[3]; }
+	constexpr auto &br() { return v[2]; }
+	constexpr operator std::array<V, 4>&() { return v; }
+	constexpr auto data() const { return v.data(); }
+	constexpr auto size() const { return v.size(); }
 
 protected:
-	std::array<Vtx, 4> v{};
+	std::array<V, 4> v{};
 };
 
-using Quad = QuadGeneric<Vertex2D>;
-using TexQuad = QuadGeneric<TexVertex>;
-using ColQuad = QuadGeneric<ColVertex>;
-using ColTexQuad = QuadGeneric<ColTexVertex>;
+using Quad = QuadGeneric<Vertex2P>;
+using TexQuad = QuadGeneric<Vertex2PTex>;
+using ColQuad = QuadGeneric<Vertex2PCol>;
+using ColTexQuad = QuadGeneric<Vertex2PTexCol>;
+using TexRect = TexQuad;
+using GeomRect = Quad;
 
-std::array<Vertex2D, 4> makeVertArray(GCRect pos);
-std::array<ColVertex, 4> makeColVertArray(GCRect pos, VertexColor col);
-std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx);
+constexpr std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx)
+{
+	baseIdx *= 4;
+	return
+	{{
+		baseIdx,
+		VertexIndex(baseIdx+1),
+		VertexIndex(baseIdx+3),
+		baseIdx,
+		VertexIndex(baseIdx+3),
+		VertexIndex(baseIdx+2),
+	}};
+}
 
-template<class Vtx>
-void drawQuads(RendererCommands &cmds, std::array<Vtx, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs);
+inline void drawQuads(RendererCommands &cmds, IG::Container auto &quads,
+	std::span<const std::array<VertexIndex, 6>> quadIdxs)
+{
+	cmds.bindTempVertexBuffer();
+	cmds.vertexBufferData(quads.data(), sizeof(quads[0]) * quads.size());
+	cmds.setVertexAttribs(quads[0].data());
+	cmds.drawPrimitiveElements(Primitive::TRIANGLE, {quadIdxs[0].data(), quadIdxs.size() * 6});
+}
 
 }

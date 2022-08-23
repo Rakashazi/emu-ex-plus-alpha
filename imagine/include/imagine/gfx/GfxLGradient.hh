@@ -33,10 +33,8 @@ class LGradient
 public:
 	constexpr LGradient() = default;
 	void draw(RendererCommands &r) const;
-	void setColor(ColorComp r, ColorComp g, ColorComp b);
-	void setTranslucent(ColorComp a);
-	void setColorStop(ColorComp r, ColorComp g, ColorComp b, size_t i);
-	void setTranslucentStop(ColorComp a, size_t i);
+	void setColor(VertexColor);
+	void setColorStop(VertexColor, size_t i);
 	void setPos(std::span<const LGradientStopDesc> stops, float x, float y, float x2, float y2);
 	void setPos(std::span<const LGradientStopDesc> stops, GCRect d);
 	int stops() const;

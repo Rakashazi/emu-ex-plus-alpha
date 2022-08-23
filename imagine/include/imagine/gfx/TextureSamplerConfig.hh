@@ -25,94 +25,24 @@ namespace IG::Gfx
 class TextureSamplerConfig
 {
 public:
-	constexpr TextureSamplerConfig() = default;
+	bool minLinearFilter = true;
+	bool magLinearFilter = true;
+	MipFilter mipFilter = MipFilter::LINEAR;
+	WrapMode xWrapMode = WrapMode::CLAMP;
+	WrapMode yWrapMode = WrapMode::CLAMP;
+	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 
-	void setLinearFilter(bool on)
-	{
-		minLinearFiltering = magLinearFiltering = on;
-	}
-
-	void setMinLinearFilter(bool on)
-	{
-		minLinearFiltering = on;
-	}
-
-	void setMagLinearFilter(bool on)
-	{
-		magLinearFiltering = on;
-	}
-
-	bool minLinearFilter() const
-	{
-		return minLinearFiltering;
-	}
-
-	bool magLinearFilter() const
-	{
-		return magLinearFiltering;
-	}
-
-	void setMipFilter(MipFilter filter)
-	{
-		mipFiltering = filter;
-	}
-
-	MipFilter mipFilter() const
-	{
-		return mipFiltering;
-	}
-
-	void setWrapMode(WrapMode mode)
-	{
-		xWrapMode_ = yWrapMode_ = mode;
-	}
-
-	void setXWrapMode(WrapMode mode)
-	{
-		xWrapMode_ = mode;
-	}
-
-	void setYWrapMode(WrapMode mode)
-	{
-		yWrapMode_ = mode;
-	}
-
-	WrapMode xWrapMode() const
-	{
-		return xWrapMode_;
-	}
-
-	WrapMode yWrapMode() const
-	{
-		return yWrapMode_;
-	}
-
-	void setDebugLabel(const char *str)
-	{
-		label = str;
-	}
-
-	const char *debugLabel()
-	{
-		return label;
-	}
+	void setLinearFilter(bool on) { minLinearFilter = magLinearFilter = on; }
+	void setWrapMode(WrapMode mode) { xWrapMode = yWrapMode = mode; }
 
 	static TextureSamplerConfig makeWithVideoUseConfig()
 	{
 		TextureSamplerConfig config;
 		config.setLinearFilter(true);
-		config.setMipFilter(MipFilter::NONE);
+		config.mipFilter = MipFilter::NONE;
 		config.setWrapMode(WrapMode::CLAMP);
 		return config;
 	}
-
-private:
-	bool minLinearFiltering = true;
-	bool magLinearFiltering = true;
-	MipFilter mipFiltering = MipFilter::LINEAR;
-	WrapMode xWrapMode_ = WrapMode::CLAMP;
-	WrapMode yWrapMode_ = WrapMode::CLAMP;
-	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, label){};
 };
 
 }

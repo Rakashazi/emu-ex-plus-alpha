@@ -29,18 +29,15 @@ endif
 
 include $(IMAGINE_PATH)/make/package/opengl.mk
 
-SRC += gfx/common/GeomQuad.cc \
- gfx/common/GeomQuadMesh.cc \
+SRC += gfx/common/GeomQuadMesh.cc \
  gfx/common/GfxLGradient.cc \
  gfx/common/GfxText.cc \
  gfx/common/GlyphTextureSet.cc \
  gfx/common/Mat4.cc \
  gfx/common/ProjectionPlane.cc \
- gfx/common/Sprite.cc \
  gfx/opengl/BasicEffect.cc \
  gfx/opengl/config.cc \
  gfx/opengl/debug.cc \
- gfx/opengl/geometry.cc \
  gfx/opengl/GLStateCache.cc \
  gfx/opengl/GLTask.cc \
  gfx/opengl/PixmapBufferTexture.cc \

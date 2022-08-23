@@ -19,6 +19,7 @@
 #include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ctype.hh>
 #include <imagine/logger/logger.h>
@@ -26,6 +27,9 @@
 
 namespace IG::Gfx
 {
+
+static void drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPlane projP,
+	std::u16string_view strView, TexQuad &vArr, GlyphTextureSet *face_, float spaceSize);
 
 Text::Text(GlyphTextureSet *face): Text{{}, face}
 {}
@@ -171,9 +175,9 @@ void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, Pro
 	//logMsg("drawing with origin: %s,%s", o.toString(o.x), o.toString(o.y));
 	cmds.set(BlendMode::ALPHA);
 	cmds.set(glyphCommonTextureSampler);
-	std::array<TexVertex, 4> vArr;
+	TexQuad vArr;
 	cmds.bindTempVertexBuffer();
-	TexVertex::bindAttribs(cmds, vArr.data());
+	cmds.setVertexAttribs(vArr.data());
 	_2DOrigin align = o;
 	xPos = o.adjustX(xPos, xSize, LT2DO);
 	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
@@ -198,7 +202,7 @@ void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, Pro
 			auto charsToDraw = span.chars;
 			xPos = startingXPos(xLineSize);
 			//logMsg("line %d, %d chars", l, charsToDraw);
-			drawSpan(cmds, xPos, yPos, projP, std::u16string_view{s, charsToDraw}, vArr);
+			drawSpan(cmds, xPos, yPos, projP, std::u16string_view{s, charsToDraw}, vArr, face_, spaceSize);
 			s += charsToDraw;
 			yPos -= nominalHeight_;
 			yPos = projP.alignYToPixel(yPos);
@@ -209,7 +213,7 @@ void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, Pro
 		float xLineSize = xSize;
 		xPos = startingXPos(xLineSize);
 		//logMsg("line %d, %d chars", l, charsToDraw);
-		drawSpan(cmds, xPos, yPos, projP, std::u16string_view{textStr}, vArr);
+		drawSpan(cmds, xPos, yPos, projP, std::u16string_view{textStr}, vArr, face_, spaceSize);
 	}
 }
 
@@ -218,7 +222,8 @@ void Text::draw(RendererCommands &cmds, FP p, _2DOrigin o, ProjectionPlane projP
 	draw(cmds, p.x, p.y, o, projP);
 }
 
-void Text::drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPlane projP, std::u16string_view strView, std::array<TexVertex, 4> &vArr) const
+static void drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPlane projP,
+	std::u16string_view strView, TexQuad &vArr, GlyphTextureSet *face_, float spaceSize)
 {
 	auto xViewLimit = projP.wHalf();
 	for(auto c : strView)
@@ -243,7 +248,7 @@ void Text::drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPl
 		auto x = xPos + projP.unprojectXSize(gly->metrics.xOffset);
 		auto y = yPos - projP.unprojectYSize(gly->metrics.ySize - gly->metrics.yOffset);
 		auto &glyph = gly->glyph();
-		vArr = makeTexVertArray({{x, y}, {x + xSize, y + projP.unprojectYSize(gly->metrics.ySize)}}, glyph);
+		vArr = {{{x, y}, {x + xSize, y + projP.unprojectYSize(gly->metrics.ySize)}}, glyph};
 		cmds.vertexBufferData(vArr.data(), sizeof(vArr));
 		cmds.setTexture(glyph);
 		//logMsg("drawing");

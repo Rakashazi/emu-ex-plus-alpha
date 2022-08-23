@@ -32,7 +32,7 @@ HardwareSingleBufferStorage<Buffer>::HardwareSingleBufferStorage(RendererTask &r
 	Texture{r}
 {
 	config = baseInit(r, config);
-	auto err = setFormat(config.pixmapDesc(), config.colorSpace(), config.compatSampler());
+	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.compatSampler);
 	if(err) [[unlikely]]
 	{
 		throw Error{err};
@@ -86,7 +86,7 @@ HardwareBufferStorage<Buffer>::HardwareBufferStorage(RendererTask &r, TextureCon
 	Texture{r}
 {
 	config = baseInit(r, config);
-	auto err = setFormat(config.pixmapDesc(), config.colorSpace(), config.compatSampler());
+	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.compatSampler);
 	if(err) [[unlikely]]
 	{
 		throw Error{err};

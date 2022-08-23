@@ -16,7 +16,7 @@
 #define LOGTAG "ToastView"
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/gfx/GeomRect.hh>
+#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
@@ -101,7 +101,7 @@ void ToastView::prepareDraw()
 	text.makeGlyphs(renderer());
 }
 
-void ToastView::draw(Gfx::RendererCommands &cmds)
+void ToastView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
 	if(!text.isVisible())

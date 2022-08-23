@@ -26,18 +26,6 @@ constexpr T distance3D(T x1, T y1, T z1, T x2, T y2, T z2)
 	return std::sqrt(pow2(x1 - x2) + pow2(y1 - y2) + pow2(z1 - z2));
 }
 
-constexpr auto remap(auto val, auto origMin, auto origMax, auto newMin, auto newMax)
-{
-	auto origSize = origMax - origMin;
-	auto newSize = newMax - newMin;
-	return newMin + (val - origMin) * newSize / origSize;
-}
-
-constexpr auto normalize(std::floating_point auto val, std::floating_point auto origMin, std::floating_point auto origMax)
-{
-	return remap(val, origMin, origMax, (decltype(origMin))0, (decltype(origMin))1);
-}
-
 template <class T>
 constexpr void adjust2DSizeToFit(T &xBound, T &yBound, T aR)
 {

@@ -168,9 +168,9 @@ static GLContextAttributes makeGLContextAttributes(int majorVersion, int minorVe
 {
 	GLContextAttributes glAttr{majorVersion, minorVersion, glAPI};
 	if(Config::DEBUG_BUILD)
-		glAttr.setDebug(true);
+		glAttr.debug = true;
 	else
-		glAttr.setNoError(true);
+		glAttr.noError = true;
 	return glAttr;
 }
 

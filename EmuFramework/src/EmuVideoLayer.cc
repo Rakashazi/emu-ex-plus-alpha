@@ -241,14 +241,18 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	if(srgbOutput)
 		cmds.setSrgbFramebufferWrite(true);
 	disp.draw(cmds, cmds.basicEffect());
+	video.addFence(cmds);
+	vidImgOverlay.draw(cmds, c);
 	if(srgbOutput)
 		cmds.setSrgbFramebufferWrite(false);
-	video.addFence(cmds);
-	vidImgOverlay.draw(cmds);
 }
 
 void EmuVideoLayer::setFormat(EmuSystem &sys, IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace colorSpace)
 {
+	if(colSpace != colorSpace)
+	{
+		vidImgOverlay.setEffect(video.renderer(), {}, colSpace);
+	}
 	colSpace = colorSpace;
 	if(EmuSystem::canRenderRGBA8888 && colorSpace == Gfx::ColorSpace::SRGB)
 	{
@@ -258,13 +262,15 @@ void EmuVideoLayer::setFormat(EmuSystem &sys, IG::PixelFormat videoFmt, IG::Pixe
 	{
 		setEffectFormat(effectFmt);
 		updateConvertColorSpaceEffect();
+		updateSprite();
+		setOverlay(userOverlayEffectId);
 	}
 }
 
 void EmuVideoLayer::setOverlay(ImageOverlayId id)
 {
 	userOverlayEffectId = id;
-	vidImgOverlay.setEffect(video.renderer(), id);
+	vidImgOverlay.setEffect(video.renderer(), id, colSpace);
 	placeOverlay();
 }
 
@@ -325,8 +331,8 @@ void EmuVideoLayer::onVideoFormatChanged(IG::PixelFormat effectFmt)
 	if(!updateConvertColorSpaceEffect())
 	{
 		updateEffectImageSize();
-		updateSprite();
 	}
+	updateSprite();
 	setOverlay(userOverlayEffectId);
 }
 

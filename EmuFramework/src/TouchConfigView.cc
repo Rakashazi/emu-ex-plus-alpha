@@ -91,7 +91,7 @@ public:
 	~OnScreenInputPlaceView() final;
 	void place() final;
 	bool inputEvent(const Input::Event &e) final;
-	void draw(Gfx::RendererCommands &cmds) final;
+	void draw(Gfx::RendererCommands &__restrict__ cmds) final;
 
 private:
 	struct DragData
@@ -218,7 +218,7 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 	}, e);
 }
 
-void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
+void OnScreenInputPlaceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
 	vController().draw(cmds, false, true, .75);
@@ -235,7 +235,7 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
 	if(textFade != 0.)
 	{
 		cmds.setColor(0., 0., 0., textFade/2.);
-		GeomRect::draw(cmds, Gfx::makeGCRectRel({-text.width()/2.f - text.spaceWidth(), -text.height()/2.f - text.spaceWidth()},
+		GeomRect::draw(cmds, Gfx::GCRect::makeRel({-text.width()/2.f - text.spaceWidth(), -text.height()/2.f - text.spaceWidth()},
 			{text.width() + text.spaceWidth()*2.f, text.height() + text.spaceWidth()*2.f}));
 		cmds.setColor(1., 1., 1., textFade);
 		basicEffect.enableAlphaTexture(cmds);
@@ -303,7 +303,7 @@ TextMenuItem::SelectDelegate TouchConfigView::setAlphaDel(uint8_t val)
 	return [this, val]{ vController().setButtonAlpha(val); };
 }
 
-void TouchConfigView::draw(Gfx::RendererCommands &cmds)
+void TouchConfigView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	vController().draw(cmds, false, true, .75);
 	TableView::draw(cmds);

@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GLPixmapBufferTexture"
-#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
@@ -289,7 +288,7 @@ void GLTextureStorage<Impl, BufferInfo>::writeAligned(PixmapView pixmap, int ass
 GLSystemMemoryStorage::GLSystemMemoryStorage(RendererTask &rTask, TextureConfig config, bool singleBuffer):
 	GLTextureStorage{rTask, config, singleBuffer}
 {
-	initBuffer(config.pixmapDesc(), singleBuffer);
+	initBuffer(config.pixmapDesc, singleBuffer);
 }
 
 void GLSystemMemoryStorage::initBuffer(PixmapDesc desc, bool singleBuffer)
@@ -307,7 +306,7 @@ GLPixelBufferStorage::GLPixelBufferStorage(RendererTask &rTask, TextureConfig co
 	GLTextureStorage{rTask, config, singleBuffer},
 	pixelBuff{GLBufferDeleter{&rTask}}
 {
-	initBuffer(config.pixmapDesc(), singleBuffer);
+	initBuffer(config.pixmapDesc, singleBuffer);
 }
 
 void GLPixelBufferStorage::initBuffer(PixmapDesc desc, bool singleBuffer)

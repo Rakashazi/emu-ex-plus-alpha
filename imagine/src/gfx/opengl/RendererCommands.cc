@@ -43,15 +43,9 @@ GLRendererCommands::GLRendererCommands(RendererTask &rTask, Window *winPtr, Draw
 	}
 }
 
-void GLRendererCommands::discardTemporaryData() {}
-
 void GLRendererCommands::bindGLArrayBuffer(GLuint vbo)
 {
-	if(arrayBufferIsSet && vbo == arrayBuffer)
-		return;
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	arrayBuffer = vbo;
-	arrayBufferIsSet = true;
 }
 
 bool GLRendererCommands::setCurrentDrawable(Drawable drawable)
@@ -84,13 +78,6 @@ void GLRendererCommands::present(Drawable win)
 void GLRendererCommands::doPresent()
 {
 	rTask->verifyCurrentContext();
-	if(Config::envIsAndroid && Config::MACHINE_IS_GENERIC_X86 && r->support.hasSamplerObjects)
-	{
-		// reset sampler object at the end of frame, fixes blank screen
-		// on Android SDK emulator when using mipmaps
-		r->support.glBindSampler(0, 0);
-	}
-	discardTemporaryData();
 	present(drawable);
 	notifyPresentComplete();
 }
@@ -271,21 +258,20 @@ void RendererCommands::clear()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-void RendererCommands::setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
+void RendererCommands::setClearColor(float r, float g, float b, float a)
 {
 	rTask->verifyCurrentContext();
 	//logMsg("setting clear color %f %f %f %f", (float)r, (float)g, (float)b, (float)a);
 	glClearColor(r, g, b, a);
 }
 
-void RendererCommands::setColor(Color c)
+void RendererCommands::setColor(Color4F c)
 {
 	rTask->verifyCurrentContext();
-	auto [r, g, b, a] = c;
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
-		glcColor4f(r, g, b, a);
+		glcColor4f(c.r, c.g, c.b, c.a);
 		return;
 	}
 	#endif
@@ -294,12 +280,12 @@ void RendererCommands::setColor(Color c)
 	if(vColor == c)
 		return;
 	vColor = c;
-	glVertexAttrib4f(VATTR_COLOR, r, g, b, a);
+	glVertexAttrib4f(VATTR_COLOR, c.r, c.g, c.b, c.a);
 	//logMsg("set color: %f:%f:%f:%f", (double)r, (double)g, (double)b, (double)a);
 	#endif
 }
 
-void RendererCommands::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
+void RendererCommands::setColor(float r, float g, float b, float a)
 {
 	setColor({r, g, b, a});
 }
@@ -460,6 +446,20 @@ void RendererCommands::vertexBufferData(const void *v, size_t size)
 	}
 }
 
+constexpr GLenum asGLType(AttribType type)
+{
+	switch(type)
+	{
+		case AttribType::UByte: return GL_UNSIGNED_BYTE;
+		case AttribType::Short: return GL_SHORT;
+		case AttribType::UShort: return GL_UNSIGNED_SHORT;
+		case AttribType::Float: return GL_FLOAT;
+	}
+	bug_unreachable("invalid AttribType");
+}
+
+constexpr bool shouldNormalize(AttribType type) { return type != AttribType::Float; }
+
 void RendererCommands::drawPrimitives(Primitive mode, int start, int count)
 {
 	runGLCheckedVerbose([&]()
@@ -468,13 +468,78 @@ void RendererCommands::drawPrimitives(Primitive mode, int start, int count)
 	}, "glDrawArrays()");
 }
 
-void RendererCommands::drawPrimitiveElements(Primitive mode, const VertexIndex *idx, int count)
+void RendererCommands::drawPrimitiveElements(Primitive mode, std::span<const VertexIndex> idxs)
 {
 	runGLCheckedVerbose([&]()
 	{
-		glDrawElements((GLenum)mode, count, GL_UNSIGNED_SHORT, idx);
+		glDrawElements((GLenum)mode, idxs.size(), asGLType(attribType<VertexIndex>), idxs.data());
 	}, "glDrawElements()");
 }
+
+bool GLRendererCommands::hasVBOFuncs() const { return r->support.hasVBOFuncs; }
+
+bool GLRendererCommands::useFixedFunctionPipeline() const { return r->support.useFixedFunctionPipeline; }
+
+#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+void GLRendererCommands::setupVertexArrayPointers(const char *v, int stride,
+	AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib)
+{
+	if(hasVBOFuncs() && v) // turn off VBO when rendering from memory
+	{
+		//logMsg("un-binding VBO");
+		bindGLArrayBuffer(0);
+	}
+	glcEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(posAttrib.size, asGLType(posAttrib.type), stride, v + posAttrib.offset);
+	if(textureAttrib.size)
+	{
+		glcEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		glTexCoordPointer(textureAttrib.size, asGLType(textureAttrib.type), stride, v + textureAttrib.offset);
+	}
+	else
+		glcDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	if(colorAttrib.size)
+	{
+		glcEnableClientState(GL_COLOR_ARRAY);
+		glColorPointer(colorAttrib.size, asGLType(colorAttrib.type), stride, v + colorAttrib.offset);
+		glState.colorState[0] = -1; //invalidate glColor state cache
+	}
+	else
+		glcDisableClientState(GL_COLOR_ARRAY);
+}
+#endif
+
+#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+void GLRendererCommands::setupShaderVertexArrayPointers(const char *v, int stride, int id,
+	AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib)
+{
+	if(currentVtxArrayPointerID != id)
+	{
+		//logMsg("setting vertex array pointers for type: %d", id);
+		if(textureAttrib.size)
+			glEnableVertexAttribArray(VATTR_TEX_UV);
+		else
+			glDisableVertexAttribArray(VATTR_TEX_UV);
+		if(colorAttrib.size)
+			glEnableVertexAttribArray(VATTR_COLOR);
+		else
+			glDisableVertexAttribArray(VATTR_COLOR);
+	}
+	glVertexAttribPointer(VATTR_POS, posAttrib.size, asGLType(posAttrib.type),
+		shouldNormalize(posAttrib.type), stride, v + posAttrib.offset);
+	if(textureAttrib.size)
+	{
+		glVertexAttribPointer(VATTR_TEX_UV, textureAttrib.size, asGLType(textureAttrib.type),
+			shouldNormalize(textureAttrib.type), stride, v + textureAttrib.offset);
+	}
+	if(colorAttrib.size)
+	{
+		glVertexAttribPointer(VATTR_COLOR, colorAttrib.size, asGLType(colorAttrib.type),
+			shouldNormalize(colorAttrib.type), stride, v + colorAttrib.offset);
+	}
+	currentVtxArrayPointerID = id;
+}
+#endif
 
 // shaders
 
@@ -484,8 +549,8 @@ void RendererCommands::setProgram(NativeProgram program)
 	rTask->verifyCurrentContext();
 	if(currProgram != program)
 	{
-		currProgram = program;
 		glUseProgram(program);
+		currProgram = program;
 	}
 	#endif
 }

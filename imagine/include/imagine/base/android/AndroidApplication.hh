@@ -112,6 +112,7 @@ private:
 	using DeviceFlags = uint8_t;
 	static constexpr DeviceFlags PERMANENT_MENU_KEY_BIT = bit(0);
 	static constexpr DeviceFlags DISPLAY_CUTOUT_BIT = bit(1);
+	static constexpr DeviceFlags HANDLE_ROTATION_ANIMATION_BIT = bit(2);
 
 	JNI::UniqueGlobalRef displayListenerHelper{};
 	JNI::InstMethod<void()> jRecycle{};
@@ -146,7 +147,6 @@ private:
 	int aKeyboardType{};
 	int mostRecentKeyEventDevID{-1};
 	Rotation osRotation{};
-	bool osAnimatesRotation{};
 	bool aHasFocus{true};
 	DeviceFlags deviceFlags{PERMANENT_MENU_KEY_BIT};
 	bool keepScreenOn{};

@@ -92,34 +92,34 @@ static EGLContextAttrList glContextAttrsToEGLAttrs(GLContextAttributes attr)
 {
 	EGLContextAttrList list{};
 
-	if(attr.openGLESAPI())
+	if(attr.glesApi)
 	{
 		list.push_back(EGL_CONTEXT_CLIENT_VERSION);
-		list.push_back(attr.majorVersion());
+		list.push_back(attr.majorVersion);
 		//logDMsg("using OpenGL ES client version:%d", attr.majorVersion());
 	}
 	else
 	{
 		list.push_back(EGL_CONTEXT_MAJOR_VERSION_KHR);
-		list.push_back(attr.majorVersion());
+		list.push_back(attr.majorVersion);
 		list.push_back(EGL_CONTEXT_MINOR_VERSION_KHR);
-		list.push_back(attr.minorVersion());
+		list.push_back(attr.minorVersion);
 
-		if(attr.majorVersion() > 3
-			|| (attr.majorVersion() == 3 && attr.minorVersion() >= 2))
+		if(attr.majorVersion > 3
+			|| (attr.majorVersion == 3 && attr.minorVersion >= 2))
 		{
 			list.push_back(EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR);
 			list.push_back(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR);
 		}
 	}
 
-	if(HAS_DEBUG_CONTEXT && attr.debug())
+	if(HAS_DEBUG_CONTEXT && attr.debug)
 	{
 		list.push_back(EGL_CONTEXT_FLAGS_KHR);
 		list.push_back(EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR);
 	}
 
-	if(!attr.debug() && attr.noError())
+	if(!attr.debug && attr.noError)
 	{
 		list.push_back(EGL_CONTEXT_OPENGL_NO_ERROR_KHR);
 		list.push_back(EGL_TRUE);
@@ -199,10 +199,10 @@ EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGL
 {
 	if(!context)
 	{
-		if(attr.debug())
+		if(attr.debug)
 		{
 			logMsg("retrying without debug bit");
-			attr.setDebug(false);
+			attr.debug = false;
 			context.reset(eglCreateContext(display, config, shareContext, &glContextAttrsToEGLAttrs(attr)[0]));
 		}
 		if(!context)
@@ -414,12 +414,12 @@ GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config
 	if(hasNoConfigContext())
 		config = EGL_NO_CONFIG_KHR;
 	if(!hasNoErrorContextAttribute())
-		attr.setNoError(false);
+		attr.noError = false;
 	logMsg("making context with version: %d.%d config:0x%llX share context:%p",
-		attr.majorVersion(), attr.minorVersion(), (long long)(EGLConfig)config, shareContext);
+		attr.majorVersion, attr.minorVersion, (long long)(EGLConfig)config, shareContext);
 	// Ignore surfaceless context support when using GL versions below 3.0 due to possible driver issues,
 	// such as on Tegra 3 GPUs
-	bool savePBuffConfig = attr.majorVersion() <= 2 || !supportsSurfaceless;
+	bool savePBuffConfig = attr.majorVersion <= 2 || !supportsSurfaceless;
 	GLContext ctx{display(), attr, config, shareContext, savePBuffConfig};
 	if(!ctx)
 		return {};
@@ -496,15 +496,15 @@ GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes attr) const
 		attrList.push_back(EGL_RENDER_BUFFER);
 		attrList.push_back(EGL_TRIPLE_BUFFER_NV);
 	}
-	bool useSrgbColorSpace = attr.colorSpace() == GLColorSpace::SRGB && hasSrgbColorSpace() &&
-		supportsColorSpace(dpy, attr.bufferConfig(), GLColorSpace::SRGB);
+	bool useSrgbColorSpace = attr.colorSpace == GLColorSpace::SRGB && hasSrgbColorSpace() &&
+		supportsColorSpace(dpy, attr.bufferConfig, GLColorSpace::SRGB);
 	if(useSrgbColorSpace)
 	{
 		attrList.push_back(EGL_GL_COLORSPACE);
 		attrList.push_back(EGL_GL_COLORSPACE_SRGB);
 	}
 	attrList.push_back(EGL_NONE);
-	GLDrawable drawable{dpy, win, attr.bufferConfig(), attrList.data()};
+	GLDrawable drawable{dpy, win, attr.bufferConfig, attrList.data()};
 	logMsg("made surface:%p %s", (EGLSurface)drawable,
 		useSrgbColorSpace ? "(SRGB color space)" : "");
 	return drawable;

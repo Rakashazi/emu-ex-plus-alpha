@@ -38,7 +38,7 @@ public:
 	TextMenuItem &item(size_t idx);
 	void setItems(size_t items);
 	void onAddedToController(ViewController *, const Input::Event &) override;
-	void drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const override;
+	void drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const override;
 
 protected:
 	std::vector<TextMenuItem> textItem{};

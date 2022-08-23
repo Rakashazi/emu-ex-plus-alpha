@@ -273,7 +273,7 @@ std::u16string_view View::name() const
 	return u"";
 }
 
-std::u16string View::nameString(const BaseTextMenuItem &item)
+std::u16string View::nameString(const MenuItem &item)
 {
 	return item.text().string();
 }

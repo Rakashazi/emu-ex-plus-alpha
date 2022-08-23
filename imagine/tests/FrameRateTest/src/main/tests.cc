@@ -239,7 +239,7 @@ void DrawTest::initTest(IG::ApplicationContext app, Gfx::Renderer &r, IG::WP pix
 	using namespace IG::Gfx;
 	IG::PixmapDesc pixmapDesc = {pixmapSize, IG::PIXEL_FMT_RGB565};
 	TextureConfig texConf{pixmapDesc};
-	texConf.setCompatSampler(&r.make(CommonTextureSampler::NO_MIP_CLAMP));
+	texConf.compatSampler = &r.make(CommonTextureSampler::NO_MIP_CLAMP);
 	const bool canSingleBuffer = r.maxSwapChainImages() < 3 || r.supportsSyncFences();
 	texture = r.makePixmapBufferTexture(texConf, bufferMode, canSingleBuffer);
 	if(!texture) [[unlikely]]

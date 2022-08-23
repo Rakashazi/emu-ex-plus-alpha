@@ -18,12 +18,12 @@
 #include <imagine/gui/ScrollView.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/input/DragTracker.hh>
-#include <imagine/gfx/GeomRect.hh>
+#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
-#include <imagine/util/math/space.hh>
+#include <imagine/util/math/math.hh>
 #include <imagine/util/math/int.hh>
 #include <algorithm>
 #include <cmath>

@@ -36,7 +36,7 @@ public:
 	void postError(IG::utf16String msg, int secs);
 	void unpost();
 	void prepareDraw() final;
-	void draw(Gfx::RendererCommands &cmds) final;
+	void draw(Gfx::RendererCommands &__restrict__) final;
 	bool inputEvent(const Input::Event &) final;
 
 private:

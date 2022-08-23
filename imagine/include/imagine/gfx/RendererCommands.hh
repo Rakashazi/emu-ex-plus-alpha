@@ -17,11 +17,13 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/SyncFence.hh>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/GLRendererCommands.hh>
 #endif
+
+#include <imagine/gfx/SyncFence.hh>
+#include <span>
 
 namespace IG
 {
@@ -81,12 +83,12 @@ public:
 	void setBlendEquation(BlendEquation);
 	void set(BlendEquation mode) { setBlendEquation(mode); }
 	void setZTest(bool on);
-	void setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a = 1.);
-	void setColor(Color);
-	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a = 1.);
-	void setColor(ColorComp i) { setColor(i, i, i, 1.); }
+	void setClearColor(float r, float g, float b, float a = 1.);
+	void setColor(Color4F);
+	void setColor(float r, float g, float b, float a = 1.);
+	void setColor(float i) { setColor(i, i, i, 1.); }
 	void set(ColorName c) { setColor(::IG::Gfx::color(c)); }
-	Color color() const;
+	Color4F color() const;
 	void setImgMode(EnvMode);
 	void setDither(bool on);
 	bool dither();
@@ -129,9 +131,10 @@ public:
 
 	// rendering
 
+	void setVertexAttribs(VertexLayout auto *v) { RendererCommandsImpl::setVertexAttribs(v); }
 	void clear();
 	void drawPrimitives(Primitive mode, int start, int count);
-	void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, int count);
+	void drawPrimitiveElements(Primitive, std::span<const VertexIndex>);
 };
 
 }

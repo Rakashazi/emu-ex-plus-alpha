@@ -150,8 +150,8 @@ void ViewStack::place()
 	if(customDisplayRect.y2 > customViewRect.y2) // add a basic gradient in the OS navigation bar area
 	{
 		bottomGradient.setPos(View::displayInsetRect(View::Direction::BOTTOM, customViewRect, customDisplayRect), projP);
-		bottomGradient.setColor(Gfx::VertexColorPixelFormat.build(0., 0., 0., 0.), EDGE_TL | EDGE_TR);
-		bottomGradient.setColor(Gfx::VertexColorPixelFormat.build(0., 0., 0., 1.), EDGE_BL | EDGE_BR);
+		bottomGradient.tl().color = bottomGradient.tr().color = Gfx::VertexColorPixelFormat.build(0., 0., 0., 0.);
+		bottomGradient.bl().color = bottomGradient.br().color = Gfx::VertexColorPixelFormat.build(0., 0., 0., 1.);
 	}
 }
 

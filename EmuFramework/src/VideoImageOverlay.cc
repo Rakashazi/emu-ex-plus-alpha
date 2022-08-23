@@ -23,33 +23,40 @@
 namespace EmuEx
 {
 
-#define CONV_COL(x) 0, x
-alignas(2) constexpr uint8_t scanlinePixmapBuff[]{ CONV_COL(0x00), CONV_COL(0xff) };
-#undef CONV_COL
+constexpr uint32_t slCol(uint8_t a) { return IG::PIXEL_DESC_RGBA8888_NATIVE.build(0, 0, 0, a); }
 
-#define CONV_COL(x) 31, x
-alignas(8) constexpr uint8_t crtPixmapBuff[]
+alignas(8) constexpr uint32_t scanlinePixmapBuff[]
 {
-		CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00),
-		CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff),
-		CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00),
-		CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff),
-		CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00),
-		CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff),
-		CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00),
-		CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff),
+	slCol(0x00),
+	slCol(0xff)
 };
-#undef CONV_COL
 
-#define CONV_COL(r,g,b) IG::PIXEL_DESC_RGBA8888_NATIVE.build(r, g, b, 0xff)
-alignas(8) constexpr uint32_t crtRgbPixmapBuff[]
+constexpr uint32_t lcdCol(uint8_t a) { return IG::PIXEL_DESC_RGBA8888_NATIVE.build(0, 0, 0, a); }
+
+alignas(8) constexpr uint32_t lcdPixmapBuff[]
 {
-		CONV_COL(0xcc,0,0x32), CONV_COL(0xff,0,0), CONV_COL(0xcb,0x33,0), CONV_COL(0x98,0x66,0), CONV_COL(0x65,0x99,0), CONV_COL(0x32,0xcc,0), CONV_COL(0,0xff,0), CONV_COL(0,0xcb,0x33), CONV_COL(0,0x98,0x66), CONV_COL(0,0x65,0x99), CONV_COL(0,0x32,0xcc), CONV_COL(0,0,0xff), CONV_COL(0x33,0,0xcb), CONV_COL(0x66,0,0x98), CONV_COL(0x99,0,0x65), CONV_COL(0xcb,0,0x33),
-		CONV_COL(0,0x98,0x66), CONV_COL(0,0x65,0x99), CONV_COL(0,0x32,0xcc), CONV_COL(0,0,0xff), CONV_COL(0x33,0,0xcb), CONV_COL(0x66,0,0x98), CONV_COL(0x99,0,0x65), CONV_COL(0xcb,0,0x33), CONV_COL(0xcc,0,0x32), CONV_COL(0xff,0,0), CONV_COL(0xcb,0x33,0), CONV_COL(0x98,0x66,0), CONV_COL(0x65,0x99,0), CONV_COL(0x32,0xcc,0), CONV_COL(0,0xff,0), CONV_COL(0,0xcb,0x33),
+	lcdCol(0xe6), lcdCol(0xe6), lcdCol(0xe6), lcdCol(0xe6), lcdCol(0xe6), lcdCol(0xe6), lcdCol(0xe6), lcdCol(0xe6),
+	lcdCol(0xe6), lcdCol(0xe6), lcdCol(0x6f), lcdCol(0x6f), lcdCol(0x6f), lcdCol(0x6f), lcdCol(0x6f), lcdCol(0x6f),
+	lcdCol(0xe6), lcdCol(0x6f), lcdCol(0x33), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00),
+	lcdCol(0xe6), lcdCol(0x6f), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00),
+	lcdCol(0xe6), lcdCol(0x6f), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00),
+	lcdCol(0xe6), lcdCol(0x6f), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00),
+	lcdCol(0xe6), lcdCol(0x6f), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00),
+	lcdCol(0xe6), lcdCol(0x6f), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00), lcdCol(0x00),
 };
-#undef CONV_COL
 
-void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id)
+constexpr uint32_t crtCol(uint8_t r, uint8_t g, uint8_t b)
+{
+	return IG::PIXEL_DESC_RGBA8888_NATIVE.build(r, g, b, 0xff);
+}
+
+alignas(8) constexpr uint32_t crtPixmapBuff[]
+{
+	crtCol(0xff,0,0), crtCol(0xff,0,0), crtCol(0,0xff,0), crtCol(0,0xff,0), crtCol(0,0,0xff), crtCol(0,0,0xff),
+	crtCol(0,0xff,0), crtCol(0,0,0xff), crtCol(0,0,0xff), crtCol(0xff,0,0), crtCol(0xff,0,0), crtCol(0,0xff,0),
+};
+
+void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id, Gfx::ColorSpace colorSpace)
 {
 	if(overlayId == id)
 		return;
@@ -59,11 +66,11 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id)
 		switch(id)
 		{
 			case ImageOverlayId::SCANLINES ... ImageOverlayId::SCANLINES_2:
-				return {{{1, 2}, IG::PIXEL_IA88}, scanlinePixmapBuff};
-			case ImageOverlayId::CRT:
-				return {{{8, 8}, IG::PIXEL_IA88}, crtPixmapBuff};
+				return {{{1, 2}, IG::PIXEL_RGBA8888}, scanlinePixmapBuff};
+			case ImageOverlayId::LCD:
+				return {{{8, 8}, IG::PIXEL_RGBA8888}, lcdPixmapBuff};
 			case ImageOverlayId::CRT_RGB ... ImageOverlayId::CRT_RGB_2:
-				return {{{16, 2}, IG::PIXEL_RGBA8888}, crtRgbPixmapBuff};
+				return {{{6, 2}, IG::PIXEL_RGBA8888}, crtPixmapBuff};
 		}
 		return {};
 	}();
@@ -71,14 +78,26 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id)
 	{
 		spr = {};
 		img = {};
+		sampler = {};
 		return;
 	}
-	Gfx::TextureConfig texConf{pix.desc(), &r.make(Gfx::CommonTextureSampler::NEAREST_MIP_REPEAT)};
+	Gfx::TextureSamplerConfig samplerConf
+	{
+		.mipFilter = Gfx::MipFilter::NEAREST,
+		.debugLabel = "VideoImageOverlay"
+	};
+	if(id == ImageOverlayId::LCD)
+		samplerConf.setWrapMode(Gfx::WrapMode::MIRROR_REPEAT);
+	else
+		samplerConf.setWrapMode(Gfx::WrapMode::REPEAT);
+	sampler = r.makeTextureSampler(samplerConf);
+	Gfx::TextureConfig texConf{pix.desc(), &sampler};
+	texConf.colorSpace = colorSpace;
 	texConf.setWillGenerateMipmaps(true);
 	img = r.makeTexture(texConf);
-	img.write(0, pix, {});
-	img.generateMipmaps();
-	spr = {{}, img};
+	img.write(0, pix, {}, Gfx::Texture::WRITE_FLAG_MAKE_MIPMAPS);
+	spr = {{{0.f, 0.f}, {0.f, 0.f}}, img};
+	multiplyBlend = id == ImageOverlayId::CRT_RGB || id == ImageOverlayId::CRT_RGB_2;
 }
 
 void VideoImageOverlay::setIntensity(float i)
@@ -88,7 +107,7 @@ void VideoImageOverlay::setIntensity(float i)
 
 void VideoImageOverlay::place(const Gfx::Sprite &disp, int lines, IG::Rotation r)
 {
-	if(!spr.hasTexture())
+	if(!spr.hasTexture() || lines <= 1)
 		return;
 	using namespace IG::Gfx;
 	//logMsg("placing overlay with %u lines in image", lines);
@@ -99,28 +118,36 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, int lines, IG::Rotation r
 		switch(overlayId)
 		{
 			case ImageOverlayId::SCANLINES:
-				return {&img, {{}, {1.0f, (float)lines}}};
+				return {&img, {{}, {1.f, (float)lines}}};
 			case ImageOverlayId::SCANLINES_2:
-				return {&img, {{}, {1.0f, lines*2.f}}};
-			case ImageOverlayId::CRT:
-				return {&img, {{}, {width/2.f, lines/2.f}}};
+				return {&img, {{}, {1.f, lines * 2.f}}};
+			case ImageOverlayId::LCD:
+				return {&img, {{}, {width * 2.f, lines * 2.f}}};
 			case ImageOverlayId::CRT_RGB:
-				return {&img, {{}, {width/2.f, (float)lines}}};
+				return {&img, {{}, {width, (float)lines}}};
 			case ImageOverlayId::CRT_RGB_2:
-				return {&img, {{}, {width/2.f, lines*2.f}}};
+				return {&img, {{}, {width, lines * 2.f}}};
 		}
 		bug_unreachable("invalid overlayId:%d", std::to_underlying(overlayId));
 	}(), r);
 }
 
-void VideoImageOverlay::draw(Gfx::RendererCommands &cmds)
+void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, float brightness)
 {
 	if(!spr.hasTexture())
 		return;
 	using namespace IG::Gfx;
-	cmds.set(CommonTextureSampler::NEAREST_MIP_REPEAT);
-	cmds.setColor(1., 1., 1., intensity);
-	cmds.set(BlendMode::ALPHA);
+	cmds.setColor(brightness, brightness, brightness, intensity);
+	if(multiplyBlend)
+	{
+		cmds.setBlendFunc(BlendFunc::DST_COLOR, BlendFunc::SRC_ALPHA);
+		cmds.setBlend(true);
+	}
+	else
+	{
+		cmds.set(BlendMode::ALPHA);
+	}
+	cmds.setTextureSampler(sampler);
 	spr.draw(cmds, cmds.basicEffect());
 }
 

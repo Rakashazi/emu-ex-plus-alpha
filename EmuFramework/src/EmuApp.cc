@@ -1685,24 +1685,42 @@ void EmuApp::configureAppForEmulation(bool running)
 FloatSeconds EmuApp::bestFrameTimeForScreen(VideoSystem system) const
 {
 	auto &screen = *mainWindowData().viewController.emuWindowScreen();
-	auto frameTime = screen.frameTime();
-	auto defaultFrameRate = 1. / EmuSystem::defaultFrameTime(system).count();
+	auto targetFrameTime = EmuSystem::defaultFrameTime(system);
+	auto targetFrameRate = 1. / targetFrameTime.count();
+	static auto shouldAcceptRate = [](double rate, double targetRate)
+	{
+		static constexpr double stretchFrameRate = 4.; // accept rates +/- this value
+		auto rateDiff = rate - targetRate;
+		while(rateDiff >= stretchFrameRate)
+			rateDiff -= targetRate;
+		return std::abs(rateDiff) <= 3;
+	};;
 	if(Config::envIsAndroid && appContext().androidSDK() >= 30) // supports setting frame rate dynamically
 	{
+		float acceptableRate{};
 		for(auto rate : screen.supportedFrameRates(appContext()))
 		{
-			static constexpr double stretchFrameRate = 4.; // accept rates +/- this value
-			auto rateDiff = rate - defaultFrameRate;
-			while(rateDiff >= stretchFrameRate)
-				rateDiff -= defaultFrameRate;
-			if(std::abs(rateDiff) <= 3)
+			if(shouldAcceptRate(rate, targetFrameRate))
 			{
-				logMsg("updated best frame rate:%.2f", rate);
-				frameTime = FloatSeconds{1. / rate};
+				acceptableRate = rate;
 			}
 		}
+		if(acceptableRate)
+		{
+			logMsg("screen's frame rate:%.2f is close system's rate:%.2f", acceptableRate, targetFrameRate);
+			return FloatSeconds{1. / acceptableRate};
+		}
 	}
-	return frameTime;
+	else // check the current frame rate
+	{
+		auto screenRate = screen.frameRate();
+		if(shouldAcceptRate(screenRate, targetFrameRate))
+		{
+			logMsg("screen's frame rate:%.2f is close system's rate:%.2f", screenRate, targetFrameRate);
+			return screen.frameTime();
+		}
+	}
+	return targetFrameTime;
 }
 
 void EmuApp::applyFrameRates(bool updateFrameTime)

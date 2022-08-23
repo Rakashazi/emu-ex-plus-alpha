@@ -27,13 +27,8 @@ namespace IG::Gfx
 
 class RendererTask;
 
-using VertexPos = GLfloat;
-using ColorComp = GLfloat;
-using Color = std::array<GLfloat, 4>;
 using TextureRef = GLuint;
-using VertexIndex = GLushort;
-using VertexColor = uint32_t;
-using VertexArrayRef = uint32_t;
+using VertexIndex = uint8_t;
 
 static constexpr int TRIANGLE_IMPL = GL_TRIANGLES;
 static constexpr int TRIANGLE_STRIP_IMPL = GL_TRIANGLE_STRIP;

@@ -115,14 +115,16 @@ public:
 	static constexpr Id DEFAULT_ID = static_cast<Id>(std::numeric_limits<IdInt>::min());
 
 	constexpr MenuItem() = default;
-	constexpr MenuItem(IdInt id): id_{id} {}
+	MenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, IdInt id = {}):
+		id_{id},
+		t{std::move(name), face} {}
 	virtual ~MenuItem() = default;
-	virtual void prepareDraw(Gfx::Renderer &r) = 0;
-	virtual void draw(Gfx::RendererCommands &, float xPos, float yPos, float xSize, float ySize,
-		float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const = 0;
-	virtual void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) = 0;
-	virtual int ySize() = 0;
-	virtual float xSize() = 0;
+	virtual void prepareDraw(Gfx::Renderer &r);
+	virtual void draw(Gfx::RendererCommands &__restrict__, float xPos, float yPos, float xSize, float ySize,
+		float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const;
+	virtual void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP);
+	int ySize() const;
+	float xSize() const;
 	virtual bool select(View &, const Input::Event &) = 0;
 	constexpr auto flags() const { return flags_; }
 	constexpr void setFlags(uint32_t flags) { flags_ = flags; }
@@ -132,36 +134,17 @@ public:
 	constexpr void setActive(bool on) { flags_ = setOrClearBits(flags_, ACTIVE_FLAG, on); }
 	constexpr Id id() const { return (Id)id_; }
 	constexpr void setId(IdInt id) { id_ = id; }
+	void compile(utf16String name, Gfx::Renderer &, const Gfx::ProjectionPlane &);
+	void setName(utf16String name, Gfx::GlyphTextureSet *face = nullptr);
+	const Gfx::Text &text() const;
 
 protected:
 	uint32_t flags_{DEFAULT_FLAGS};
 	IdInt id_{};
-};
-
-class BaseTextMenuItem : public MenuItem
-{
-public:
-	BaseTextMenuItem() = default;
-
-	BaseTextMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, IdInt id = {}):
-		MenuItem{id},
-		t{std::move(name), face} {}
-
-	void prepareDraw(Gfx::Renderer &r) override;
-	void draw(Gfx::RendererCommands &, float xPos, float yPos, float xSize, float ySize,
-		float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const override;
-	void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
-	void compile(IG::utf16String name, Gfx::Renderer &r, const Gfx::ProjectionPlane &projP);
-	void setName(IG::utf16String name, Gfx::GlyphTextureSet *face = nullptr);
-	int ySize() override;
-	float xSize() override;
-	const Gfx::Text &text() const;
-
-protected:
 	Gfx::Text t{};
 };
 
-class TextMenuItem : public BaseTextMenuItem
+class TextMenuItem : public MenuItem
 {
 public:
 	using SelectDelegate = MenuItemSelectDelegate<TextMenuItem>;
@@ -169,7 +152,7 @@ public:
 	TextMenuItem() = default;
 
 	TextMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, SelectDelegate selectDel, IdInt id = {}):
-		BaseTextMenuItem{std::move(name), face, id},
+		MenuItem{std::move(name), face, id},
 		selectD{selectDel} {}
 
 	bool select(View &, const Input::Event &) override;
@@ -180,13 +163,13 @@ protected:
 	SelectDelegate selectD{};
 };
 
-class TextHeadingMenuItem : public BaseTextMenuItem
+class TextHeadingMenuItem : public MenuItem
 {
 public:
 	TextHeadingMenuItem() = default;
 
 	TextHeadingMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, IdInt id = {}):
-		BaseTextMenuItem{std::move(name), face, id}
+		MenuItem{std::move(name), face, id}
 	{
 		setSelectable(false);
 	}
@@ -194,13 +177,13 @@ public:
 	bool select(View &, const Input::Event &) override;
 };
 
-class BaseDualTextMenuItem : public BaseTextMenuItem
+class BaseDualTextMenuItem : public MenuItem
 {
 public:
 	BaseDualTextMenuItem() = default;
 
 	BaseDualTextMenuItem(IG::utf16String name, IG::utf16String name2, Gfx::GlyphTextureSet *face, IdInt id = {}):
-		BaseTextMenuItem{std::move(name), face, id},
+		MenuItem{std::move(name), face, id},
 		t2{std::move(name2), face} {}
 
 	void set2ndName(IG::utf16String name) { t2.setString(std::move(name)); }
@@ -209,7 +192,7 @@ public:
 	void prepareDraw(Gfx::Renderer &r) override;
 	void draw2ndText(Gfx::RendererCommands &, float xPos, float yPos, float xSize, float ySize,
 		float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const;
-	void draw(Gfx::RendererCommands &, float xPos, float yPos, float xSize, float ySize,
+	void draw(Gfx::RendererCommands &__restrict__, float xPos, float yPos, float xSize, float ySize,
 		float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const override;
 
 protected:
@@ -273,7 +256,7 @@ public:
 	bool setBoolValue(bool val);
 	bool flipBoolValue(View &view);
 	bool flipBoolValue();
-	void draw(Gfx::RendererCommands &, float xPos, float yPos, float xSize, float ySize,
+	void draw(Gfx::RendererCommands &__restrict__, float xPos, float yPos, float xSize, float ySize,
 		float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const override;
 	bool select(View &, const Input::Event &) override;
 	void setOnSelect(SelectDelegate onSelect);
@@ -355,7 +338,7 @@ public:
 	MultiChoiceMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, SelectedInit selected, IG::Container auto &item, IdInt id = {}):
 		MultiChoiceMenuItem{std::move(name), face, SetDisplayStringDelegate{}, selected, item, {}, id} {}
 
-	void draw(Gfx::RendererCommands &, float xPos, float yPos, float xSize, float ySize,
+	void draw(Gfx::RendererCommands &__restrict__, float xPos, float yPos, float xSize, float ySize,
 		float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const override;
 	void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
 	int selected() const;

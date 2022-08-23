@@ -15,7 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include <imagine/util/math/space.hh>
+#include <imagine/util/math/math.hh>
 #include "MainSystem.hh"
 #include "input.h"
 #include "system.h"

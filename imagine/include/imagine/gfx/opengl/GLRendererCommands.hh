@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/opengl/GLStateCache.hh>
 #include <imagine/gfx/Mat4.hh>
+#include <imagine/gfx/Vertex.hh>
 #include <imagine/thread/Semaphore.hh>
 #include "GLSLProgram.hh"
 #include <imagine/util/used.hh>
@@ -41,7 +42,6 @@ public:
 	constexpr GLRendererCommands() = default;
 	GLRendererCommands(RendererTask &rTask, Window *winPtr, Drawable drawable, Rect2<int> viewport,
 		GLDisplay glDpy, const GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr);
-	void discardTemporaryData();
 	void bindGLArrayBuffer(GLuint vbo);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	void glcMatrixMode(GLenum mode);
@@ -65,10 +65,10 @@ public:
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	void glcVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer);
 	#endif
-	void setupVertexArrayPointers(const char *v, int numV, int stride,
-		int textureOffset, int colorOffset, int posOffset, bool hasTexture, bool hasColor);
-	void setupShaderVertexArrayPointers(const char *v, int numV, int stride, int id,
-		int textureOffset, int colorOffset, int posOffset, bool hasTexture, bool hasColor);
+	void setupVertexArrayPointers(const char *v, int stride,
+		AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib);
+	void setupShaderVertexArrayPointers(const char *v, int stride, int id,
+		AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib);
 
 protected:
 	bool setCurrentDrawable(Drawable win);
@@ -78,6 +78,38 @@ protected:
 	void notifyDrawComplete();
 	void notifyPresentComplete();
 	const GLContext &glContext() const;
+	bool hasVBOFuncs() const;
+	bool useFixedFunctionPipeline() const;
+
+	template<VertexLayout V>
+	void setupVertexArrayPointers(const V *v)
+	{
+		setupVertexArrayPointers((const char*)v, sizeof(V),
+			texCoordAttribDesc<V>(), colorAttribDesc<V>(), posAttribDesc<V>());
+	}
+
+	template<VertexLayout V>
+	void setupShaderVertexArrayPointers(const V *v)
+	{
+		setupShaderVertexArrayPointers((const char*)v, sizeof(V), V::ID,
+			texCoordAttribDesc<V>(), colorAttribDesc<V>(), posAttribDesc<V>());
+	}
+
+	void setVertexAttribs(VertexLayout auto *v)
+	{
+		if(hasVBOFuncs())
+			v = nullptr;
+		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+		if(useFixedFunctionPipeline())
+		{
+			setupVertexArrayPointers(v);
+			return;
+		}
+		#endif
+		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+		setupShaderVertexArrayPointers(v);
+		#endif
+	}
 
 	RendererTask *rTask{};
 	Renderer *r{};
@@ -93,9 +125,7 @@ protected:
 	int currentVtxArrayPointerID = 0;
 	#endif
 	GLStateCache glState{};
-	Color vColor{}; // color when using shader pipeline
-	GLuint arrayBuffer = 0;
-	bool arrayBufferIsSet = false;
+	Color4F vColor{}; // color when using shader pipeline
 };
 
 using RendererCommandsImpl = GLRendererCommands;

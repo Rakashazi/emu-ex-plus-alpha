@@ -17,19 +17,24 @@
 
 #include <imagine/util/utility.h>
 #include <concepts>
+#include <algorithm>
+#include <numbers>
+#include <limits>
 #include <cmath>
 
 namespace IG
 {
 
-constexpr auto radians(std::floating_point auto degrees)
+template <std::floating_point T>
+constexpr auto radians(T degrees)
 {
-	return degrees * static_cast<decltype(degrees)>(M_PI / 180.0);
+	return degrees * static_cast<T>(std::numbers::pi / 180.0);
 }
 
-constexpr auto degrees(std::floating_point auto radians)
+template <std::floating_point T>
+constexpr auto degrees(T radians)
 {
-	return radians * static_cast<decltype(radians)>(180.0 / M_PI);
+	return radians * static_cast<T>(180.0 / std::numbers::pi);
 }
 
 constexpr auto pow2(auto base)
@@ -64,33 +69,30 @@ constexpr auto sign(auto num)
 	return static_cast<decltype(num)>(num >= 0 ? 1 : -1);
 }
 
-template<std::integral IntType, std::floating_point FloatType = float>
-constexpr FloatType floatScaler(uint8_t bits)
+constexpr auto remap(auto val, auto origMin, auto origMax, auto newMin, auto newMax)
 {
-	assumeExpr(bits <= 64);
-	if constexpr(std::is_signed_v<IntType>)
-	{
-		assumeExpr(bits);
-		return 1ul << (bits - 1);
-	}
-	else
-	{
-		return 1ul << bits;
-	}
+	auto origSize = origMax - origMin;
+	auto newSize = newMax - newMin;
+	return newMin + (val - origMin) * newSize / origSize;
 }
 
-template<std::integral IntType>
-constexpr IntType clampFromFloat(std::floating_point auto x, uint8_t bits)
+constexpr auto remapClamp(auto val, auto origMin, auto origMax, auto newMin, auto newMax)
 {
-	const auto scale = floatScaler<IntType, decltype(x)>(bits);
-	return std::round(std::fmax(std::fmin(x * scale, scale - (decltype(x))1.), -scale));
+	auto mappedVal = remap(val, origMin, origMax, newMin, newMax);
+	using MappedVal = decltype(mappedVal);
+	return std::clamp(mappedVal, static_cast<MappedVal>(newMin), static_cast<MappedVal>(newMax));
 }
 
-template<std::integral IntType>
-constexpr IntType clampFromFloat(std::floating_point auto x)
+template <class Limit>
+constexpr auto remap(auto val, auto origMin, auto origMax, std::numeric_limits<Limit> limit)
 {
-	const auto scale = floatScaler<IntType, decltype(x)>(sizeof(IntType) * 8);
-	return std::round(x * scale);
+	return remap(val, origMin, origMax, limit.min(), limit.max());
+}
+
+template <class Limit>
+constexpr auto remapClamp(auto val, auto origMin, auto origMax, std::numeric_limits<Limit> limit)
+{
+	return remapClamp(val, origMin, origMax, limit.min(), limit.max());
 }
 
 constexpr auto wrapMax(auto x, auto max)

@@ -10,6 +10,8 @@ ifndef RELEASE
  CFLAGS_CODEGEN += -g
 endif
 
+CFLAGS_CODEGEN += -fstrict-vtable-pointers
+
 ifeq ($(LTO_MODE),lto)
  ltoMode := lto
 else ifeq ($(LTO_MODE),lto-fat)

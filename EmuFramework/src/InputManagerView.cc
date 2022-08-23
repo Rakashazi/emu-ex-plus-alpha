@@ -71,7 +71,7 @@ bool IdentInputDeviceView::inputEvent(const Input::Event &e)
 	}, e);
 }
 
-void IdentInputDeviceView::draw(Gfx::RendererCommands &cmds)
+void IdentInputDeviceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
 	auto &basicEffect = cmds.basicEffect();

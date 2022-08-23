@@ -35,7 +35,7 @@ public:
 	EmuView(ViewAttachParams, EmuVideoLayer *, EmuSystem &);
 	void place() final;
 	void prepareDraw() final;
-	void draw(Gfx::RendererCommands &cmds) final;
+	void draw(Gfx::RendererCommands &__restrict__) final;
 	bool inputEvent(const Input::Event &) final;
 	bool hasLayer() const { return layer; }
 	void setLayoutInputView(EmuInputView *view);

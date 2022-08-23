@@ -213,7 +213,7 @@ void BasicNavView::setBackgroundGradient(std::span<const Gfx::LGradientStopDesc>
 	bg.setPos({gradientStops.get(), gradStops.size()}, {});
 }
 
-void BasicNavView::draw(Gfx::RendererCommands &cmds)
+void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
 	auto const &textRect = control[1].rect;

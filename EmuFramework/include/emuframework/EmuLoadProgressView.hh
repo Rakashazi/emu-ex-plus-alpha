@@ -35,7 +35,7 @@ public:
 	void setLabel(IG::utf16String label);
 	void place() final;
 	bool inputEvent(const Input::Event &) final;
-	void draw(Gfx::RendererCommands &cmds) final;
+	void draw(Gfx::RendererCommands &__restrict__) final;
 	MessagePortType &messagePort();
 
 private:

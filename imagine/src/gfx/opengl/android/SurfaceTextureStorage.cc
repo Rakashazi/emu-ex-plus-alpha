@@ -35,7 +35,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 		logErr("can't init without OES_EGL_image_external extension");
 		throw Error{ENOTSUP};
 	}
-	SamplerParams samplerParams = config.compatSampler() ? config.compatSampler()->samplerParams() : SamplerParams{};
+	SamplerParams samplerParams = config.compatSampler ? config.compatSampler->samplerParams() : SamplerParams{};
 	task().runSync(
 		[=, this](GLTask::TaskContext ctx)
 		{
@@ -78,7 +78,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 		throw Error{EINVAL};
 	}
 	logMsg("native window:%p from Surface:%p%s", nativeWin, localSurface, singleBuffered ? " (single-buffered)" : "");
-	auto err = setFormat(config.pixmapDesc(), config.colorSpace(), config.compatSampler());
+	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.compatSampler);
 	if(err) [[unlikely]]
 	{
 		throw Error{err};

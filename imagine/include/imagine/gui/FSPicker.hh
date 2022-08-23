@@ -50,7 +50,7 @@ public:
 	void place() override;
 	bool inputEvent(const Input::Event &) override;
 	void prepareDraw() override;
-	void draw(Gfx::RendererCommands &) override;
+	void draw(Gfx::RendererCommands &__restrict__) override;
 	void onAddedToController(ViewController *, const Input::Event &) override;
 	void setOnChangePath(OnChangePathDelegate);
 	void setOnSelectPath(OnSelectPathDelegate);

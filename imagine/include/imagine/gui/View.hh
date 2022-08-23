@@ -44,7 +44,7 @@ class ApplicationContext;
 class Application;
 class View;
 class ViewManager;
-class BaseTextMenuItem;
+class MenuItem;
 
 class ViewController
 {
@@ -84,7 +84,7 @@ public:
 	View &operator=(View &&) = delete;
 	virtual void place() = 0;
 	virtual void prepareDraw();
-	virtual void draw(Gfx::RendererCommands &cmds) = 0;
+	virtual void draw(Gfx::RendererCommands &__restrict__) = 0;
 	virtual bool inputEvent(const Input::Event &event) = 0;
 	virtual void clearSelection(); // de-select any items from previous input
 	virtual void onShow();
@@ -104,7 +104,7 @@ public:
 	ViewAttachParams attachParams() const;
 	Screen *screen() const;
 	ApplicationContext appContext() const;
-	static std::u16string nameString(const BaseTextMenuItem &item);
+	static std::u16string nameString(const MenuItem &item);
 	Gfx::GlyphTextureSet &defaultFace();
 	Gfx::GlyphTextureSet &defaultBoldFace();
 	static Gfx::Color menuTextColor(bool isSelected);
@@ -142,7 +142,7 @@ public:
 	}
 
 	template<class T>
-	std::unique_ptr<T> makeViewWithName(const BaseTextMenuItem &item, auto &&...args)
+	std::unique_ptr<T> makeViewWithName(const MenuItem &item, auto &&...args)
 	{
 		return std::make_unique<T>(nameString(item), attachParams(), IG_forward(args)...);
 	}

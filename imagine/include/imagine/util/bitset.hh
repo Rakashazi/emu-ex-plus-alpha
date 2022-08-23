@@ -22,52 +22,52 @@ namespace IG
 {
 
 template <class T>
-static constexpr unsigned bitSize = std::numeric_limits<T>::digits;
+constexpr inline auto bitSize = std::numeric_limits<T>::digits;
 
 template <std::unsigned_integral T = unsigned>
-constexpr static T bit(unsigned bitIdx)
+constexpr T bit(int bitIdx)
 {
-	return (T)1 << bitIdx;
+	return T{1} << bitIdx;
 }
 
 template <std::unsigned_integral T = unsigned>
-constexpr static T bits(unsigned numBits)
+constexpr T bits(int numBits)
 {
-	return std::numeric_limits<T>::max() >> (bitSize<T> - numBits);
+	return numBits ? std::numeric_limits<T>::max() >> (bitSize<T> - numBits) : 0;
 }
 
-constexpr static auto setBits(std::integral auto x, std::integral auto mask)
+constexpr auto setBits(std::integral auto x, std::integral auto mask)
 {
 	return x | mask; // OR mask to set
 }
 
-constexpr static auto clearBits(std::integral auto x, std::integral auto mask)
+constexpr auto clearBits(std::integral auto x, std::integral auto mask)
 {
 	return x & ~mask; // AND with the NOT of mask to unset
 }
 
-constexpr static auto setOrClearBits(std::integral auto x, std::integral auto mask, bool condition)
+constexpr auto setOrClearBits(std::integral auto x, std::integral auto mask, bool condition)
 {
 	return condition ? setBits(x, mask) : clearBits(x, mask);
 }
 
-constexpr static auto flipBits(std::integral auto x, std::integral auto mask)
+constexpr auto flipBits(std::integral auto x, std::integral auto mask)
 {
 	return x ^ mask; // XOR mask to flip
 }
 
-constexpr static auto updateBits(std::integral auto x, std::integral auto mask, std::integral auto updateMask)
+constexpr auto updateBits(std::integral auto x, std::integral auto mask, std::integral auto updateMask)
 {
 	return setBits(clearBits(x, updateMask), mask);
 }
 
-constexpr static auto swapBits(std::integral auto x, std::integral auto range1, std::integral auto range2, std::integral auto rangeSize)
+constexpr auto swapBits(std::integral auto x, std::integral auto range1, std::integral auto range2, std::integral auto rangeSize)
 {
 	auto t = ((x >> range1) ^ (x >> range2)) & ((1 << rangeSize) - 1); // XOR temporary
 	return x ^ ((t << range1) | (t << range2));
 }
 
-constexpr static bool isBitMaskSet(std::integral auto x, std::integral auto mask)
+constexpr bool isBitMaskSet(std::integral auto x, std::integral auto mask)
 {
 	return (x & mask) == mask; //AND mask, if the result equals mask, all bits match
 }

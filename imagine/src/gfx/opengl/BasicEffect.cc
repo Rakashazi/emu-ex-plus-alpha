@@ -21,6 +21,24 @@
 namespace IG::Gfx
 {
 
+bool GLBasicEffect::setShaders(RendererTask &task, std::span<std::string_view> vertSrcs, std::span<std::string_view> fragSrcs)
+{
+	UniformLocationDesc uniformDescs[]
+	{
+		{"modelView", &modelViewUniform},
+		{"proj", &projUniform},
+		{"textureMode", &textureModeUniform},
+	};
+	Program newProg{task,
+		Shader{task, vertSrcs, ShaderType::VERTEX, Shader::CompileMode::COMPAT},
+		Shader{task, fragSrcs, ShaderType::FRAGMENT, Shader::CompileMode::COMPAT},
+		ProgramFlagsMask::HAS_COLOR | ProgramFlagsMask::HAS_TEXTURE, uniformDescs};
+	if(!newProg) [[unlikely]]
+		return false;
+	program = newProg.release();
+	return true;
+}
+
 void GLBasicEffect::updateTextureType(RendererCommands &cmds, TextureType newTexType)
 {
 	if(cmds.renderer().support.useFixedFunctionPipeline)
@@ -83,7 +101,7 @@ void BasicEffect::disableTexture(RendererCommands &cmds)
 	updateTextureType(cmds, TextureType::UNSET);
 }
 
-void BasicEffect::setModelView(RendererCommands &cmds, Mat4 mat)
+void GLBasicEffect::setModelView(RendererCommands &cmds, Mat4 mat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(cmds.renderer().support.useFixedFunctionPipeline)
@@ -93,12 +111,11 @@ void BasicEffect::setModelView(RendererCommands &cmds, Mat4 mat)
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	cmds.setProgram(program);
 	cmds.uniform(modelViewUniform, mat);
 	#endif
 }
 
-void BasicEffect::setProjection(RendererCommands &cmds, Mat4 mat)
+void GLBasicEffect::setProjection(RendererCommands &cmds, Mat4 mat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(cmds.renderer().support.useFixedFunctionPipeline)
@@ -110,21 +127,34 @@ void BasicEffect::setProjection(RendererCommands &cmds, Mat4 mat)
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	cmds.setProgram(program);
 	cmds.uniform(projUniform, mat);
 	#endif
 }
 
+void BasicEffect::setModelView(RendererCommands &cmds, Mat4 mat)
+{
+	prepareDraw(cmds);
+	GLBasicEffect::setModelView(cmds, mat);
+}
+
+void BasicEffect::setProjection(RendererCommands &cmds, Mat4 mat)
+{
+	prepareDraw(cmds);
+	GLBasicEffect::setProjection(cmds, mat);
+}
+
 void BasicEffect::setModelViewProjection(RendererCommands &cmds, Mat4 modelView, Mat4 proj)
 {
-	setProjection(cmds, proj);
-	setModelView(cmds, modelView);
+	prepareDraw(cmds);
+	GLBasicEffect::setProjection(cmds, proj);
+	GLBasicEffect::setModelView(cmds, modelView);
 }
 
 void BasicEffect::setModelViewProjection(RendererCommands &cmds, Projection proj)
 {
-	setProjection(cmds, proj.matrix());
-	setModelView(cmds, proj.plane().makeTranslate());
+	prepareDraw(cmds);
+	GLBasicEffect::setProjection(cmds, proj.matrix());
+	GLBasicEffect::setModelView(cmds, proj.plane().makeTranslate());
 }
 
 void BasicEffect::prepareDraw(RendererCommands &cmds)

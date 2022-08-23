@@ -14,8 +14,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GfxProjectionPlane"
-#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/base/Viewport.hh>
 #include <imagine/logger/logger.h>
 

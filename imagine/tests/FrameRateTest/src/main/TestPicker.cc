@@ -30,7 +30,7 @@ TestTableEntry::TestTableEntry(Gfx::GlyphTextureSet *face, SelectDelegate select
 void TestTableEntry::draw(Gfx::RendererCommands &cmds, float xPos, float yPos, float xSize, float ySize,
 	float xIndent, IG::_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
-	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
+	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 	if(t2.isVisible())
 	{
 		Gfx::Color color2;

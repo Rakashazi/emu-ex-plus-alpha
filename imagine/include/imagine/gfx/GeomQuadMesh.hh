@@ -17,14 +17,12 @@ class GeomQuadMesh
 {
 public:
 	constexpr GeomQuadMesh() = default;
-	GeomQuadMesh(std::span<const VertexPos> x, std::span<const VertexPos> y, VertexColor color = 0);
+	GeomQuadMesh(std::span<const float> x, std::span<const float> y, VertexColor color = {});
 	void draw(RendererCommands &r) const;
-	void setColorRGB(ColorComp r, ColorComp g, ColorComp b);
-	void setColorTranslucent(ColorComp a);
-	void setColorRGBV(ColorComp r, ColorComp g, ColorComp b, size_t i);
-	void setColorTranslucentV(ColorComp a, size_t i);
+	void setColor(VertexColor);
+	void setColorV(VertexColor, size_t i);
 	void setPos(float x, float y, float x2, float y2);
-	IG::ArrayView2<ColVertex> v() const;
+	ArrayView2<Vertex2PCol> v() const;
 
 protected:
 	std::unique_ptr<char[]> vMem{};

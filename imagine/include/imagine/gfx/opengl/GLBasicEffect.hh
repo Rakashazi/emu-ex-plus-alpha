@@ -18,25 +18,30 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include "GLSLProgram.hh"
-
+#include <span>
 
 namespace IG::Gfx
 {
 
 class RendererCommands;
+class RendererTask;
 class Mat4;
 
 class GLBasicEffect
 {
 public:
+	bool setShaders(RendererTask &, std::span<std::string_view> vertSrcs, std::span<std::string_view> fragSrcs);
+
+protected:
 	NativeProgram program{};
 	GLint modelViewUniform = -1;
 	GLint projUniform = -1;
 	GLint textureModeUniform = -1;
 	TextureType texType{};
 
-protected:
 	void updateTextureType(RendererCommands &, TextureType);
+	void setModelView(RendererCommands &, Mat4);
+	void setProjection(RendererCommands &, Mat4);
 };
 
 using BasicEffectImpl = GLBasicEffect;

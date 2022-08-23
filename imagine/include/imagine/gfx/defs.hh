@@ -17,11 +17,13 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/Viewport.hh>
+#include <imagine/pixmap/PixelDesc.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
 #include <optional>
 #include <stdexcept>
+#include <compare>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/gfx-globals.hh>
@@ -37,12 +39,7 @@ class Texture;
 
 using GCRect = IG::CoordinateRect<float, true, true>;
 
-static GCRect makeGCRectRel(FP p, FP size)
-{
-	return GCRect::makeRel(p, size);
-}
-
-enum class WrapMode: uint8_t { REPEAT, CLAMP };
+enum class WrapMode: uint8_t { REPEAT, MIRROR_REPEAT, CLAMP };
 
 enum class MipFilter: uint8_t { NONE, NEAREST, LINEAR };
 
@@ -115,11 +112,51 @@ struct DrawParams
 	DrawAsyncMode asyncMode{DrawAsyncMode::AUTO};
 };
 
+struct Color4F
+{
+	union
+	{
+		std::array<float, 4> rgba{};
+		struct
+		{
+			float r, g, b, a;
+		};
+	};
+
+	constexpr Color4F() = default;
+	constexpr Color4F(float r, float g, float b, float a):
+		r{r}, g{g}, b{b}, a{a} {}
+	constexpr Color4F(std::array<float, 4> rgba): rgba{rgba} {}
+	constexpr operator std::array<float, 4>() const { return rgba; }
+	constexpr bool operator ==(Color4F const &rhs) const { return rgba == rhs.rgba; }
+};
+
+struct Color4B
+{
+	union
+	{
+		uint32_t rgba{};
+		struct
+		{
+			uint8_t r, g, b, a;
+		};
+	};
+
+	constexpr Color4B() = default;
+	constexpr Color4B(uint32_t rgba): rgba{rgba} {}
+	constexpr operator uint32_t() const { return rgba; }
+	constexpr bool operator ==(Color4B const &rhs) const { return rgba == rhs.rgba; }
+};
+
+using VertexColor = Color4B;
+constexpr auto VertexColorPixelFormat = PIXEL_DESC_RGBA8888_NATIVE;
+using Color = Color4F;
+
 constexpr Color color(float r, float g, float b, float a = 1.f)
 {
-	if constexpr(std::is_floating_point_v<ColorComp>)
+	if constexpr(std::is_same_v<Color, Color4F>)
 	{
-		return {(ColorComp)r, (ColorComp)g, (ColorComp)b, (ColorComp)a};
+		return {r, g, b, a};
 	}
 	else
 	{
@@ -129,12 +166,13 @@ constexpr Color color(float r, float g, float b, float a = 1.f)
 
 constexpr Color color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
 {
-	if constexpr(std::is_floating_point_v<ColorComp>)
+	if constexpr(std::is_same_v<Color, Color4F>)
 	{
 		return {r / 255.f, g / 255.f, b / 255.f, a / 255.f};
 	}
 	else
 	{
+		using ColorComp = decltype(Color::r);
 		return {(ColorComp)r, (ColorComp)g, (ColorComp)b, (ColorComp)a};
 	}
 }
@@ -160,5 +198,20 @@ constexpr Rect2<int> asYUpRelRect(Viewport v)
 {
 	return {{v.realBounds().x, v.realOriginBounds().ySize() - v.realBounds().y2}, {v.realWidth(), v.realHeight()}};
 }
+
+enum class AttribType
+{
+	UByte = 1,
+	Short,
+	UShort,
+	Float,
+};
+
+struct AttribDesc
+{
+	size_t offset{};
+	size_t size{};
+	AttribType type{};
+};
 
 }

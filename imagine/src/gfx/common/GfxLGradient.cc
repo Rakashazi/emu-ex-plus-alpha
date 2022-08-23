@@ -15,7 +15,7 @@
 
 #include <imagine/gfx/GfxLGradient.hh>
 #include <imagine/util/ranges.hh>
-#include <imagine/util/math/space.hh>
+#include <imagine/util/math/math.hh>
 
 namespace IG::Gfx
 {
@@ -25,26 +25,15 @@ void LGradient::draw(RendererCommands &cmds) const
 	g.draw(cmds);
 }
 
-void LGradient::setColor(ColorComp r, ColorComp g, ColorComp b)
+void LGradient::setColor(VertexColor c)
 {
-	this->g.setColorRGB(r, g, b);
+	g.setColor(c);
 }
 
-void LGradient::setTranslucent(ColorComp a)
+void LGradient::setColorStop(VertexColor c, size_t i)
 {
-	g.setColorTranslucent(a);
-}
-
-void LGradient::setColorStop(ColorComp r, ColorComp g, ColorComp b, size_t i)
-{
-	this->g.setColorRGBV(r, g, b, i*2);
-	this->g.setColorRGBV(r, g, b, (i*2)+1);
-}
-
-void LGradient::setTranslucentStop(ColorComp a, size_t i)
-{
-	g.setColorTranslucentV(a, i*2);
-	g.setColorTranslucentV(a, (i*2)+1);
+	g.setColorV(c, i*2);
+	g.setColorV(c, (i*2)+1);
 }
 
 void LGradient::setPos(std::span<const LGradientStopDesc> stops, float x, float y, float x2, float y2)
@@ -53,8 +42,8 @@ void LGradient::setPos(std::span<const LGradientStopDesc> stops, float x, float 
 	{
 		assert(stops.size() >= 2);
 		stops_ = stops.size();
-		VertexPos thickness[2]{x, x2};
-		VertexPos stopPos[stops.size()];
+		float thickness[2]{x, x2};
+		float stopPos[stops.size()];
 		for(auto i : iotaCount(stops.size()))
 		{
 			stopPos[i] = stops[i].pos;
@@ -62,12 +51,12 @@ void LGradient::setPos(std::span<const LGradientStopDesc> stops, float x, float 
 		g = {thickness, {stopPos, stops.size()}};
 	}
 
-	ColVertex *v = g.v().data();
+	auto *v = g.v().data();
 	for(auto i : iotaCount(stops.size()))
 	{
-		v[i*2].x = x;
-		v[i*2].y = v[(i*2)+1].y = IG::remap(stops[i].pos, 0.f, 1.f, y, y2);
-		v[(i*2)+1].x = x2;
+		v[i*2].pos.x = x;
+		v[i*2].pos.y = v[(i*2)+1].pos.y = IG::remap(stops[i].pos, 0.f, 1.f, y, y2);
+		v[(i*2)+1].pos.x = x2;
 
 		v[i*2].color = stops[i].color;
 		v[(i*2)+1].color = stops[i].color;

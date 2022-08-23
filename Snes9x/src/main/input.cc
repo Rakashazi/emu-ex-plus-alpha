@@ -2,7 +2,7 @@
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuInput.hh>
 #include <imagine/input/DragTracker.hh>
-#include <imagine/util/math/space.hh>
+#include <imagine/util/math/math.hh>
 #include <imagine/base/Window.hh>
 #include "MainSystem.hh"
 #include <snes9x.h>

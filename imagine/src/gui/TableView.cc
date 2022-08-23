@@ -18,7 +18,7 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/ViewManager.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/gfx/GeomRect.hh>
+#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/input/Input.hh>
@@ -82,7 +82,7 @@ void TableView::prepareDraw()
 	}
 }
 
-void TableView::draw(Gfx::RendererCommands &cmds)
+void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	ssize_t cells_ = items(*this);
 	if(!cells_)
@@ -109,7 +109,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 	cmds.basicEffect().disableTexture(cmds);
 	int selectedCellY = INT_MAX;
 	{
-		StaticArrayList<std::array<ColVertex, 4>, 80> vRect;
+		StaticArrayList<ColQuad, 80> vRect;
 		StaticArrayList<std::array<VertexIndex, 6>, vRect.capacity()> vRectIdx;
 		const auto headingColor = VertexColorPixelFormat.build(.4, .4, .4, 1.);
 		const auto regularColor = VertexColorPixelFormat.build(.2, .2, .2, 1.);
@@ -132,7 +132,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 				}
 				vRectIdx.emplace_back(makeRectIndexArray(vRect.size()));
 				auto rect = IG::makeWindowRectRel({x, y-1}, {viewRect().xSize(), ySize});
-				vRect.emplace_back(makeColVertArray(projP.unProjectRect(rect), color));
+				vRect.emplace_back(projP.unProjectRect(rect), color);
 			}
 			y += yCellSize;
 			if(vRect.size() == vRect.capacity()) [[unlikely]]
@@ -142,7 +142,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 		{
 			cmds.set(BlendMode::OFF);
 			cmds.set(ColorName::WHITE);
-			drawQuads(cmds, &vRect[0], vRect.size(), &vRectIdx[0], vRectIdx.size());
+			drawQuads(cmds, vRect, vRectIdx);
 		}
 	}
 
@@ -493,7 +493,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 	}, e);
 }
 
-void TableView::drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const
+void TableView::drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const
 {
 	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, align, projP, Gfx::color(Gfx::ColorName::WHITE));
 }

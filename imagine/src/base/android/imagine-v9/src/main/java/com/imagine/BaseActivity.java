@@ -83,6 +83,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		// keep in sync with AndroidApplication.hh
 		final int PERMANENT_MENU_KEY_BIT = 1;
 		final int DISPLAY_CUTOUT_BIT = 1 << 1;
+		final int HANDLE_ROTATION_ANIMATION_BIT = 1 << 2;
 		int flags = 0;
 		if(android.os.Build.VERSION.SDK_INT >= 14)
 		{
@@ -94,6 +95,12 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			DisplayCutout cutout = defaultDpy.getCutout();
 			if(cutout != null)
 				flags |= DISPLAY_CUTOUT_BIT;
+		}
+		if(android.os.Build.VERSION.SDK_INT <= 10)
+		{
+			// Use our on rotation animation on Gingerbread OS versions
+			if(!android.os.Build.DISPLAY.contains("cyano")) // CM7 provides its own animation
+				flags |= HANDLE_ROTATION_ANIMATION_BIT;
 		}
 		return flags;
 	}
@@ -124,12 +131,6 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		{
 		}
 		return found;
-	}
-	
-	static boolean gbAnimatesRotation()
-	{
-		// Check if Gingerbread OS provides rotation animation
-		return android.os.Build.DISPLAY.contains("cyano"); // Disable our rotation animation on CM7
 	}
 
 	int mainDisplayRotation()

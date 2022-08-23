@@ -268,7 +268,7 @@ void CollectTextInputView::prepareDraw()
 		});
 }
 
-void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
+void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
 	auto &basicEffect = cmds.basicEffect();

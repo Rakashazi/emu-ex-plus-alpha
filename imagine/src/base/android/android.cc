@@ -469,7 +469,10 @@ void AndroidApplication::setOnSystemOrientationChanged(SystemOrientationChangedD
 
 bool AndroidApplication::systemAnimatesWindowRotation() const
 {
-	return osAnimatesRotation;
+	if(Config::MACHINE_IS_GENERIC_ARMV7)
+		return !(deviceFlags & HANDLE_ROTATION_ANIMATION_BIT);
+	else
+		return true;
 }
 
 void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
@@ -640,18 +643,6 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 		env->RegisterNatives(baseActivityClass, method, std::size(method));
 	}
 
-	if(androidSDK >= 11)
-		osAnimatesRotation = true;
-	else
-	{
-		JNI::ClassMethod<jboolean()> jAnimatesRotation{env, baseActivityClass, "gbAnimatesRotation", "()Z"};
-		osAnimatesRotation = jAnimatesRotation(env, baseActivityClass);
-	}
-	if(!osAnimatesRotation)
-	{
-		logMsg("app handles rotation animations");
-	}
-
 	if(androidSDK >= 14)
 	{
 		JNI::InstMethod<jint()> jDeviceFlags{env, baseActivityClass, "deviceFlags", "()I"};
@@ -663,6 +654,10 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 		if(deviceFlags & DISPLAY_CUTOUT_BIT)
 		{
 			logMsg("device has display cutout");
+		}
+		if(deviceFlags & HANDLE_ROTATION_ANIMATION_BIT)
+		{
+			logMsg("app handles rotation animations");
 		}
 	}
 

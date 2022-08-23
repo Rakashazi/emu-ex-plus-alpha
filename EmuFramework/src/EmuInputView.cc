@@ -36,7 +36,7 @@ EmuInputView::EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideo
 		videoLayer{&videoLayer}
 {}
 
-void EmuInputView::draw(Gfx::RendererCommands &cmds)
+void EmuInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	vController->draw(cmds, ffToggleActive);

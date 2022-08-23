@@ -28,7 +28,6 @@ namespace IG::Gfx
 class Renderer;
 class RendererCommands;
 class GlyphTextureSet;
-struct TexVertex;
 class ProjectionPlane;
 
 class Text
@@ -82,7 +81,6 @@ protected:
 	uint16_t lines = 0;
 	uint16_t maxLines = NO_MAX_LINES;
 
-	void drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPlane projP, std::u16string_view strView, std::array<TexVertex, 4> &vArr) const;
 	bool hasText() const;
 };
 

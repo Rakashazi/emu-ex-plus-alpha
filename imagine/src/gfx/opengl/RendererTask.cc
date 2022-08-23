@@ -116,7 +116,7 @@ void GLRendererTask::doPreDraw(Window &win, WindowDrawParams winParams, DrawPara
 	{
 		params.asyncMode = DrawAsyncMode::PRESENT;
 	}
-	if(winParams.needsSync()) [[unlikely]]
+	if(winParams.needsSync) [[unlikely]]
 	{
 		params.asyncMode = DrawAsyncMode::NONE;
 	}
@@ -131,7 +131,7 @@ void RendererTask::updateDrawableForSurfaceChange(Window &win, WindowSurfaceChan
 {
 	auto &data = winData(win);
 	auto &drawable = data.drawable;
-	switch(change.action())
+	switch(change.action)
 	{
 		case WindowSurfaceChange::Action::CREATED:
 			r->makeWindowDrawable(*this, win, data.bufferConfig, data.colorSpace);

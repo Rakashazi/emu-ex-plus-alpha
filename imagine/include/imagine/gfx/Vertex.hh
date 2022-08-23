@@ -16,63 +16,87 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/defs.hh>
-#include <imagine/pixmap/PixelDesc.hh>
+#include <imagine/glm/ext/vector_float2.hpp>
 
 namespace IG::Gfx
 {
 
 class RendererCommands;
 
-static constexpr auto VertexColorPixelFormat = PIXEL_DESC_RGBA8888_NATIVE;
-
-struct VertexInfo
-{
-	static constexpr uint32_t posOffset = 0;
-	static constexpr bool hasColor = false;
-	static constexpr uint32_t colorOffset = 0;
-	static constexpr bool hasTexture = false;
-	static constexpr uint32_t textureOffset = 0;
-	template<class Vtx>
-	static void bindAttribs(RendererCommands &cmds, const Vtx *v);
-};
+template <class T> constexpr inline AttribType attribType{};
+template <> constexpr inline AttribType attribType<uint8_t> = AttribType::UByte;
+template <> constexpr inline AttribType attribType<int16_t> = AttribType::Short;
+template <> constexpr inline AttribType attribType<uint16_t> = AttribType::UShort;
+template <> constexpr inline AttribType attribType<float> = AttribType::Float;
 
 template <class T>
-concept Vertex = std::derived_from<T, VertexInfo>;
-
-struct Vertex2D : public VertexInfo
+concept VertexLayout = requires
 {
-	VertexPos x{}, y{};
-	static constexpr uint32_t ID = 1;
+    T::pos;
+    T::ID;
 };
 
-struct ColVertex : public VertexInfo
+template <VertexLayout V>
+constexpr AttribDesc posAttribDesc()
 {
-	VertexPos x{}, y{};
+	using T = decltype(V::pos.x);
+	return {offsetof(V, pos), sizeof(V::pos) / sizeof(T), attribType<T>};
+}
+
+template <VertexLayout V>
+constexpr AttribDesc colorAttribDesc()
+{
+	if constexpr(requires {V::color;})
+	{
+		using T = decltype(V::color.r);
+		return {offsetof(V, color), sizeof(V::color) / sizeof(T), attribType<T>};
+	}
+	else
+	{
+		return {};
+	}
+}
+
+template <VertexLayout V>
+constexpr AttribDesc texCoordAttribDesc()
+{
+	if constexpr(requires {V::texCoord;})
+	{
+		using T = decltype(V::texCoord.x);
+		return {offsetof(V, texCoord), sizeof(V::texCoord) / sizeof(T), attribType<T>};
+	}
+	else
+	{
+		return {};
+	}
+}
+
+struct Vertex2P
+{
+	glm::vec2 pos{};
+	static constexpr unsigned ID = 1;
+};
+
+struct Vertex2PCol
+{
+	glm::vec2 pos{};
 	VertexColor color{};
-	static constexpr bool hasColor = true;
-	static const uint32_t colorOffset;
-	static constexpr uint32_t ID = 2;
+	static constexpr unsigned ID = 2;
 };
 
-struct TexVertex : public VertexInfo
+struct Vertex2PTex
 {
-	VertexPos x{}, y{};
-	float u{}, v{};
-	static constexpr bool hasTexture = true;
-	static const uint32_t textureOffset;
-	static constexpr uint32_t ID = 3;
+	glm::vec2 pos{};
+	glm::vec2 texCoord{};
+	static constexpr unsigned ID = 3;
 };
 
-struct ColTexVertex : public VertexInfo
+struct Vertex2PTexCol
 {
-	VertexPos x{}, y{};
-	float u{}, v{};
+	glm::vec2 pos{};
+	glm::vec2 texCoord{};
 	VertexColor color{};
-	static constexpr bool hasColor = true;
-	static const uint32_t colorOffset;
-	static constexpr bool hasTexture = true;
-	static const uint32_t textureOffset;
-	static constexpr uint32_t ID = 4;
+	static constexpr unsigned ID = 4;
 };
 
 }

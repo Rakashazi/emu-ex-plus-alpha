@@ -15,7 +15,7 @@
 
 #include <emuframework/EmuLoadProgressView.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/util/math/space.hh>
+#include <imagine/util/math/math.hh>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
@@ -121,7 +121,7 @@ bool EmuLoadProgressView::inputEvent(const Input::Event &e)
 	return true;
 }
 
-void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
+void EmuLoadProgressView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	if(!text.isVisible())
 		return;
@@ -133,7 +133,7 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 		basicEffect.disableTexture(cmds);
 		cmds.setColor(.0, .0, .75);
 		float barHeight = text.height()*1.5;
-		auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - FP{0.f, barHeight/2.f},
+		auto bar = GCRect::makeRel(projP.bounds().pos(LC2DO) - FP{0.f, barHeight/2.f},
 			{IG::remap((float)pos, 0.f, (float)max, 0.f, projP.width()), barHeight});
 		GeomRect::draw(cmds, bar);
 	}

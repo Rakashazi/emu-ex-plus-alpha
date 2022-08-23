@@ -54,6 +54,7 @@ static_assert(GL_LINEAR_MIPMAP_LINEAR < std::numeric_limits<uint16_t>::max());
 static_assert(GL_NEAREST_MIPMAP_LINEAR < std::numeric_limits<uint16_t>::max());
 static_assert(GL_CLAMP_TO_EDGE < std::numeric_limits<uint16_t>::max());
 static_assert(GL_REPEAT < std::numeric_limits<uint16_t>::max());
+static_assert(GL_MIRRORED_REPEAT < std::numeric_limits<uint16_t>::max());
 
 static uint16_t makeMinFilter(bool linearFiltering, MipFilter mipFiltering)
 {
@@ -73,18 +74,24 @@ static uint16_t makeMagFilter(bool linearFiltering)
 
 static uint16_t makeWrapMode(WrapMode mode)
 {
-	return mode == WrapMode::CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+	switch(mode)
+	{
+		case WrapMode::REPEAT: return GL_REPEAT;
+		case WrapMode::MIRROR_REPEAT: return GL_MIRRORED_REPEAT;
+		case WrapMode::CLAMP: return GL_CLAMP_TO_EDGE;
+	}
+	bug_unreachable("invalid WrapMode");
 }
 
 GLTextureSampler::GLTextureSampler(RendererTask &rTask, TextureSamplerConfig config):
 	rTask{&rTask},
-	debugLabel{config.debugLabel() ? config.debugLabel() : ""}
+	debugLabel{config.debugLabel ? config.debugLabel : ""}
 {
 	auto &r = rTask.renderer();
-	auto minFilter = makeMinFilter(config.magLinearFilter(), config.mipFilter());
-	auto magFilter = makeMagFilter(config.minLinearFilter());
-	auto xWrapMode = makeWrapMode(config.xWrapMode());
-	auto yWrapMode = makeWrapMode(config.yWrapMode());
+	auto minFilter = makeMinFilter(config.magLinearFilter, config.mipFilter);
+	auto magFilter = makeMagFilter(config.minLinearFilter);
+	auto xWrapMode = makeWrapMode(config.xWrapMode);
+	auto yWrapMode = makeWrapMode(config.yWrapMode);
 	if(r.support.hasSamplerObjects)
 	{
 		rTask.runSync(

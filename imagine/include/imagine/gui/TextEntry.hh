@@ -64,7 +64,7 @@ public:
 	void place() override;
 	bool inputEvent(const Input::Event &) override;
 	void prepareDraw() override;
-	void draw(Gfx::RendererCommands &cmds) override;
+	void draw(Gfx::RendererCommands &__restrict__) override;
 
 protected:
 	IG::WindowRect cancelBtn{};

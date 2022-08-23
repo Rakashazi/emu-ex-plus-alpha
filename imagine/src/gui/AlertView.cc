@@ -17,7 +17,7 @@
 
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/ViewManager.hh>
-#include <imagine/gfx/GeomRect.hh>
+#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/input/Input.hh>
@@ -103,7 +103,7 @@ void BaseAlertView::prepareDraw()
 	menu.prepareDraw();
 }
 
-void BaseAlertView::draw(Gfx::RendererCommands &cmds)
+void BaseAlertView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
 	auto &basicEffect = cmds.basicEffect();

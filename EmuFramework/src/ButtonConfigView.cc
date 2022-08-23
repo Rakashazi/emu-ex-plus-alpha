@@ -166,7 +166,7 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 	}, e);
 }
 
-void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
+void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
 	auto &basicEffect = cmds.basicEffect();
@@ -209,10 +209,10 @@ void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Eve
 	#endif
 }
 
-void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &cmds, float xPos, float yPos, float xSize, float ySize,
+void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, float xPos, float yPos, float xSize, float ySize,
 	float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
-	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
+	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, Gfx::color(Gfx::ColorName::YELLOW));
 }
 

@@ -4,7 +4,7 @@ endif
 
 include $(buildSysPath)/imagineSDKPath.mk
 
-libarchiveVer := 3.5.2
+libarchiveVer := 3.6.1
 libarchiveSrcDir := $(tempDir)/libarchive-$(libarchiveVer)
 libarchiveSrcArchive := libarchive-$(libarchiveVer).tar.xz
 
@@ -63,6 +63,7 @@ $(makeFile) : $(libarchiveSrcDir)/configure
 	--without-bz2lib \
 	--without-iconv \
 	--without-lz4 \
+	--without-zstd \
 	--without-lzo2 \
 	--without-nettle \
 	--without-openssl \

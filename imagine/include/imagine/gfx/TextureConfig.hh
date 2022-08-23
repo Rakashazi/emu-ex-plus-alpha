@@ -27,25 +27,17 @@ class TextureSampler;
 class TextureConfig
 {
 public:
+	const TextureSampler *compatSampler{};
+	IG::PixmapDesc pixmapDesc{};
+	uint8_t levels{1};
+	bool genMipmaps{};
+	ColorSpace colorSpace{};
+
 	constexpr TextureConfig() = default;
 	constexpr TextureConfig(IG::PixmapDesc pixDesc, const TextureSampler *compatSampler = {}):
-		compatSampler_{compatSampler}, pixmapDesc_{pixDesc}
-	{}
-
-	constexpr void setLevels(uint8_t levels)
-	{
-		levels_ = levels;
-	}
-
-	constexpr void setAllLevels()
-	{
-		levels_ = 0;
-	}
-
-	constexpr uint8_t levels() const
-	{
-		return levels_;
-	}
+		compatSampler{compatSampler}, pixmapDesc{pixDesc} {}
+	constexpr void setAllLevels() { levels = 0; }
+	constexpr bool willGenerateMipmaps() const { return genMipmaps; }
 
 	constexpr void setWillGenerateMipmaps(bool on)
 	{
@@ -53,42 +45,6 @@ public:
 		if(on)
 			setAllLevels();
 	}
-
-	constexpr bool willGenerateMipmaps() const
-	{
-		return genMipmaps;
-	}
-
-	constexpr void setPixmapDesc(IG::PixmapDesc pixDesc)
-	{
-		pixmapDesc_ = pixDesc;
-	}
-
-	constexpr IG::PixmapDesc pixmapDesc() const
-	{
-		return pixmapDesc_;
-	}
-
-	constexpr void setCompatSampler(const TextureSampler *sampler)
-	{
-		compatSampler_ = sampler;
-	}
-
-	constexpr const TextureSampler *compatSampler() const
-	{
-		return compatSampler_;
-	}
-
-	constexpr void setColorSpace(ColorSpace c) { colorSpace_ = c; }
-
-	constexpr ColorSpace colorSpace() const { return colorSpace_; }
-
-private:
-	const TextureSampler *compatSampler_{};
-	IG::PixmapDesc pixmapDesc_{};
-	uint8_t levels_{1};
-	bool genMipmaps{};
-	ColorSpace colorSpace_{};
 };
 
 }

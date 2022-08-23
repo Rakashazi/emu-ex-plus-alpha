@@ -115,7 +115,7 @@ void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r, const Gfx::Text
 	if(!renderTarget_)
 	{
 		Gfx::TextureConfig conf{renderPix, &compatTexSampler};
-		conf.setColorSpace(colorSpace);
+		conf.colorSpace = colorSpace;
 		renderTarget_ = r.makeTexture(conf);
 	}
 	else

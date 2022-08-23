@@ -386,11 +386,11 @@ void Window::dispatchOnFrame()
 void Window::draw(bool needsSync)
 {
 	DrawParams params;
-	params.needsSync_ = needsSync;
+	params.needsSync = needsSync;
 	if(surfaceChangeFlags) [[unlikely]]
 	{
 		dispatchSurfaceChanged();
-		params.wasResized_ = true;
+		params.wasResized = true;
 	}
 	drawNeeded = false;
 	drawPhase = DrawPhase::DRAW;

@@ -32,10 +32,16 @@ public:
 	constexpr uint32_t build(std::floating_point auto r_, std::floating_point auto g_, std::floating_point auto b_,
 		std::floating_point auto a_) const
 	{
-		return build(IG::clampFromFloat<uint32_t>(r_, rBits),
-			IG::clampFromFloat<uint32_t>(g_, gBits),
-			IG::clampFromFloat<uint32_t>(b_, bBits),
-			IG::clampFromFloat<uint32_t>(a_, aBits));
+		assumeExpr(r_ >= 0. && r_ <= 1.);
+		assumeExpr(g_ >= 0. && g_ <= 1.);
+		assumeExpr(b_ >= 0. && b_ <= 1.);
+		assumeExpr(a_ >= 0. && a_ <= 1.);
+		using Float = decltype(r_);
+		return build(
+			static_cast<uint32_t>(remap(r_, Float{0}, Float{1}, 0, bits(rBits))),
+			static_cast<uint32_t>(remap(g_, Float{0}, Float{1}, 0, bits(gBits))),
+			static_cast<uint32_t>(remap(b_, Float{0}, Float{1}, 0, bits(bBits))),
+			static_cast<uint32_t>(remap(a_, Float{0}, Float{1}, 0, bits(aBits))));
 	}
 
 	constexpr uint32_t build(std::integral auto r_, std::integral auto g_, std::integral auto b_,

@@ -156,7 +156,7 @@ void FSPicker::prepareDraw()
 	msgText.makeGlyphs(renderer());
 }
 
-void FSPicker::draw(Gfx::RendererCommands &cmds)
+void FSPicker::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	if(!dirListThread.isWorking())
 	{

@@ -47,7 +47,7 @@ void CreditsView::prepareDraw()
 	text.makeGlyphs(renderer());
 }
 
-void CreditsView::draw(Gfx::RendererCommands &cmds)
+void CreditsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
 	cmds.setColor(1., 1., 1., fade);

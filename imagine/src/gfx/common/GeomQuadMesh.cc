@@ -15,13 +15,13 @@
 
 #include <imagine/gfx/GeomQuadMesh.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/util/math/space.hh>
+#include <imagine/util/math/math.hh>
 #include <imagine/util/ranges.hh>
 
 namespace IG::Gfx
 {
 
-GeomQuadMesh::GeomQuadMesh(std::span<const VertexPos> x, std::span<const VertexPos> y, VertexColor color)
+GeomQuadMesh::GeomQuadMesh(std::span<const float> x, std::span<const float> y, VertexColor color)
 {
 	if(x.size() < 2 || y.size() < 2)
 		return;
@@ -29,15 +29,15 @@ GeomQuadMesh::GeomQuadMesh(std::span<const VertexPos> x, std::span<const VertexP
 	int quads = (x.size() - 1) * (y.size() - 1);
 	idxs = quads*6;
 	//logMsg("mesh with %d verts, %d idxs, %d quads", verts, idxs, quads);
-	vMem = std::make_unique<char[]>((sizeof(ColVertex) * verts) + (sizeof(VertexIndex) * idxs));
+	vMem = std::make_unique<char[]>((sizeof(Vertex2PCol) * verts) + (sizeof(VertexIndex) * idxs));
 	xVals = x.size();
-	i = (VertexIndex*)(vMem.get() + (sizeof(ColVertex) * verts));
+	i = (VertexIndex*)(vMem.get() + (sizeof(Vertex2PCol) * verts));
 
-	/*ColVertex *currV = v;
+	/*Vertex2PCol *currV = v;
 	iterateTimes(y.size(), yIdx)
 		iterateTimes(x.size(), xIdx)
 		{
-			*currV = ColVertex(x[xIdx], y[yIdx], color);
+			*currV = Vertex2PCol(x[xIdx], y[yIdx], color);
 			logMsg("vert %f,%f", currV->x, currV->y);
 			currV++;
 		}*/
@@ -68,40 +68,24 @@ GeomQuadMesh::GeomQuadMesh(std::span<const VertexPos> x, std::span<const VertexP
 void GeomQuadMesh::draw(RendererCommands &cmds) const
 {
 	cmds.bindTempVertexBuffer();
-	cmds.vertexBufferData(v().arr, sizeof(ColVertex) * verts);
-	ColVertex::bindAttribs(cmds, v().arr);
-	cmds.drawPrimitiveElements(Primitive::TRIANGLE, i, idxs);
+	cmds.vertexBufferData(v().arr, sizeof(Vertex2PCol) * verts);
+	cmds.setVertexAttribs(v().arr);
+	cmds.drawPrimitiveElements(Primitive::TRIANGLE, {i, (size_t)idxs});
 }
 
-void GeomQuadMesh::setColorRGB(ColorComp r, ColorComp g, ColorComp b)
+void GeomQuadMesh::setColor(VertexColor c)
 {
 	auto vPtr = v().data();
 	for(auto i : iotaCount(verts))
 	{
-		vPtr[i].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, VertexColorPixelFormat.a(vPtr[i].color));
+		vPtr[i].color = c;
 	}
 }
 
-void GeomQuadMesh::setColorTranslucent(ColorComp a)
+void GeomQuadMesh::setColorV(VertexColor c, size_t i)
 {
 	auto vPtr = v().data();
-	for(auto i : iotaCount(verts))
-	{
-		vPtr[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(vPtr[i].color), VertexColorPixelFormat.g(vPtr[i].color), VertexColorPixelFormat.b(vPtr[i].color), (uint32_t)a);
-	}
-}
-
-void GeomQuadMesh::setColorRGBV(ColorComp r, ColorComp g, ColorComp b, size_t i)
-{
-	auto vPtr = v().data();
-	vPtr[i].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, VertexColorPixelFormat.a(vPtr[i].color));
-}
-
-void GeomQuadMesh::setColorTranslucentV(ColorComp a, size_t i)
-{
-	// swap for tri strip
-	auto vPtr = v().data();
-	vPtr[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(vPtr[i].color), VertexColorPixelFormat.g(vPtr[i].color), VertexColorPixelFormat.b(vPtr[i].color), (uint32_t)a);
+	vPtr[i].color = c;
 }
 
 void GeomQuadMesh::setPos(float x, float y, float x2, float y2)
@@ -111,17 +95,17 @@ void GeomQuadMesh::setPos(float x, float y, float x2, float y2)
 	for(auto yIdx : iotaCount(yVals))
 		for(auto xIdx : iotaCount(xVals))
 		{
-			vPtr->x = yIdx == 0 ? IG::remap((float)xIdx, 0.f, float(xVals-1), x, x2)
-					: (vPtr-xVals)->x;
-			vPtr->y = xIdx == 0 ? IG::remap((float)yIdx, 0.f, float(yVals-1), y, y2)
-					: (vPtr-xIdx)->y;
+			vPtr->pos.x = yIdx == 0 ? IG::remap((float)xIdx, 0.f, float(xVals-1), x, x2)
+					: (vPtr-xVals)->pos.x;
+			vPtr->pos.y = xIdx == 0 ? IG::remap((float)yIdx, 0.f, float(yVals-1), y, y2)
+					: (vPtr-xIdx)->pos.y;
 			vPtr++;
 		}
 }
 
-ArrayView2<ColVertex> GeomQuadMesh::v() const
+ArrayView2<Vertex2PCol> GeomQuadMesh::v() const
 {
-	return {(ColVertex*)vMem.get(), (size_t)xVals};
+	return {(Vertex2PCol*)vMem.get(), (size_t)xVals};
 }
 
 }

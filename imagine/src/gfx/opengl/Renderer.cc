@@ -156,7 +156,7 @@ bool GLRenderer::makeWindowDrawable(RendererTask &task, Window &win, GLBufferCon
 	rData.colorSpace = colorSpace;
 	task.destroyDrawable(rData.drawable);
 	GLDrawableAttributes attr{bufferConfig};
-	attr.setColorSpace(colorSpace);
+	attr.colorSpace = colorSpace;
 	try
 	{
 		rData.drawable = glManager.makeDrawable(win, attr);
@@ -423,7 +423,7 @@ bool GLRenderer::initBasicEffect()
 		return true;
 	auto &rTask = mainTask;
 
-	std::string_view basicEffectVertShaderSrc =
+	std::string_view vertShaderSrc =
 R"(in vec4 pos;
 in vec4 color;
 in vec2 texUV;
@@ -437,7 +437,7 @@ void main() {
 	gl_Position = proj * modelView * pos;
 })";
 
-	std::string_view basicEffectFragShaderSrc =
+	std::string_view fragShaderSrc =
 R"(in mediump vec4 colorOut;
 in lowp vec2 texUVOut;
 uniform sampler2D tex;
@@ -447,30 +447,23 @@ void main() {
 	{
 		FRAGCOLOR = colorOut * texture(tex, texUVOut);
 	}
+#ifdef alphaTexSwizzle
 	else if(textureMode == 2)
 	{
 		FRAGCOLOR.rgb = colorOut.rgb;
 		FRAGCOLOR.a = colorOut.a * texture(tex, texUVOut).a;
 	}
+#endif
 	else
 	{
 		FRAGCOLOR = colorOut;
 	}
 })";
 
-	UniformLocationDesc uniformDescs[]
-	{
-		{"modelView", &basicEffect_.modelViewUniform},
-		{"proj", &basicEffect_.projUniform},
-		{"textureMode", &basicEffect_.textureModeUniform},
-	};
-	Program newProg{rTask,
-		Shader{rTask, {&basicEffectVertShaderSrc, 1}, ShaderType::VERTEX, Shader::CompileMode::COMPAT},
-		Shader{rTask, {&basicEffectFragShaderSrc, 1}, ShaderType::FRAGMENT, Shader::CompileMode::COMPAT},
-		ProgramFlagsMask::HAS_COLOR | ProgramFlagsMask::HAS_TEXTURE, uniformDescs};
-	if(!newProg) [[unlikely]]
+	std::string_view fragDefsSrc = support.hasTextureSwizzle ? "" : "#define alphaTexSwizzle\n";
+	std::array<std::string_view, 2> fragSrcs{fragDefsSrc, fragShaderSrc};
+	if(!basicEffect_.setShaders(rTask, {&vertShaderSrc, 1}, fragSrcs)) [[unlikely]]
 		return false;
-	basicEffect_.program = newProg.release();
 	releaseShaderCompilerEvent.notify();
 	return true;
 }

@@ -184,38 +184,23 @@ struct WindowSurfaceChange
 	};
 
 	static constexpr uint8_t SURFACE_RESIZED = IG::bit(0),
-		CONTENT_RECT_RESIZED = IG::bit(1);
-	static constexpr uint8_t RESIZE_BITS = SURFACE_RESIZED | CONTENT_RECT_RESIZED;
+		CONTENT_RECT_RESIZED = IG::bit(1),
+		RESIZE_BITS = SURFACE_RESIZED | CONTENT_RECT_RESIZED;
+
+	Action action{};
+	uint8_t flags{};
 
 	constexpr WindowSurfaceChange(Action action, uint8_t flags = 0):
-		action_{action}, flags{flags}
-	{}
-
-	constexpr Action action() const
-	{
-		return action_;
-	}
-
-	constexpr bool resized() const
-	{
-		return action() == Action::CHANGED;
-	}
-
+		action{action}, flags{flags} {}
+	constexpr bool resized() const { return action == Action::CHANGED; }
 	constexpr bool surfaceResized() const { return flags & SURFACE_RESIZED; }
 	constexpr bool contentRectResized() const { return flags & CONTENT_RECT_RESIZED; }
-
-protected:
-	Action action_{};
-	uint8_t flags{};
 };
 
 struct WindowDrawParams
 {
-	bool wasResized_ = false;
-	bool needsSync_ = false;
-
-	bool wasResized() const { return wasResized_; }
-	bool needsSync() const { return needsSync_; }
+	bool wasResized{};
+	bool needsSync{};
 };
 
 enum class WindowFrameTimeSource : uint8_t
