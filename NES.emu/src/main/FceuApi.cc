@@ -203,6 +203,8 @@ void FCEUD_SaveStateAs() {}
 
 void FCEUD_LoadStateFrom() {}
 
+void FCEUD_FlushTrace() {}
+
 void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC fcexp)
 {
 	logMsg("called set input");

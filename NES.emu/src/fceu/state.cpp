@@ -110,7 +110,7 @@ SFORMAT SFCPU[]={
 	{ &X.Y, 1, "Y\0\0"},
 	{ &X.S, 1, "S\0\0"},
 	{ &X.P, 1, "P\0\0"},
-	{ &X.DB, 1, "DB"},
+	{ &X.DB, 1, "DB\0"},
 	{ &RAM, 0x800 | FCEUSTATE_INDIRECT, "RAM", },
 	{ 0 }
 };
@@ -307,17 +307,28 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize)
 			// load back buffer
 			{
 				extern uint8 *XBackBuf;
-				if(is->fread((char*)XBackBuf,size) != size)
-					ret = false;
+								//ignore 8 garbage bytes, whose idea was it to write these or even have them there in the first place
+								if(size == 256*256+8)
+								{
+									if(is->fread((char*)XBackBuf,256*256) != 256*256)
+										ret = false;
+									is->fseek(8,SEEK_CUR);
+								}
+								else
+								{
+									if(is->fread((char*)XBackBuf,size) != size)
+										ret = false;
+								}
 
-				//MBG TODO - can this be moved to a better place?
-				//does it even make sense, displaying XBuf when its XBackBuf we just loaded?
+
+								//MBG TODO - can this be moved to a better place?
+								//does it even make sense, displaying XBuf when its XBackBuf we just loaded?
 #ifdef __WIN_DRIVER__
-				else
-				{
-					FCEUD_BlitScreen(XBuf);
-					UpdateFCEUWindow();
-				}
+								if(ret)
+								{
+									FCEUD_BlitScreen(XBuf);
+									UpdateFCEUWindow();
+								}
 #endif
 
 			}
@@ -404,7 +415,7 @@ bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel)
 	// save back buffer
 	{
 		extern uint8 *XBackBuf;
-		uint32 size = 256 * 256 + 8;
+		uint32 size = 256 * 256;
 		os->fputc(8);
 		write32le(size, os);
 		os->fwrite((char*)XBackBuf,size);

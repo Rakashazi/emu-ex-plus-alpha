@@ -31,8 +31,13 @@ namespace EmuEx
 
 using namespace IG;
 
+// Stateless option API
+
 template <class T>
-inline std::optional<T> readOptionValue(Readable auto &io, size_t bytesToRead, IG::Predicate<const T&> auto &&isValid)
+constexpr bool isAlwaysValid(const T &) { return true; }
+
+template <class T>
+inline std::optional<T> readOptionValue(Readable auto &io, size_t bytesToRead, Predicate<T> auto &&isValid)
 {
 	if(bytesToRead != sizeof(T))
 	{
@@ -48,16 +53,39 @@ inline std::optional<T> readOptionValue(Readable auto &io, size_t bytesToRead, I
 template <class T>
 inline std::optional<T> readOptionValue(Readable auto &io, size_t bytesToRead)
 {
-	return readOptionValue<T>(io, bytesToRead, [](const T&){ return true; });
+	return readOptionValue<T>(io, bytesToRead, isAlwaysValid<T>);
 }
 
 template <class T>
-inline bool readOptionValue(Readable auto &io, size_t bytesToRead, auto &&func)
+inline bool readOptionValue(Readable auto &io, size_t bytesToRead,
+	Callable<void, T> auto &&func, Predicate<T> auto &&isValid)
 {
-	return (bool)IG::doOptionally(readOptionValue<T>(io, bytesToRead), std::forward<decltype(func)>(func));
+	return doOptionally(readOptionValue<T>(io, bytesToRead, IG_forward(isValid)),
+		IG_forward(func));
 }
 
-template <IG::Container T>
+template <class T>
+inline bool readOptionValue(Readable auto &io, size_t bytesToRead,
+	Callable<void, T> auto &&func)
+{
+	return readOptionValue<T>(io, bytesToRead, IG_forward(func), isAlwaysValid<T>);
+}
+
+template <class T>
+inline bool readOptionValue(Readable auto &io, size_t bytesToRead, T &output,
+	Predicate<T> auto &&isValid)
+{
+	return readOptionValue<T>(io, bytesToRead,
+		[&](auto &&val){ output = IG_forward(val); }, IG_forward(isValid));
+}
+
+template <class T>
+inline bool readOptionValue(Readable auto &io, size_t bytesToRead, T &output)
+{
+	return readOptionValue<T>(io, bytesToRead, output, isAlwaysValid<T>);
+}
+
+template <Container T>
 inline std::optional<T> readStringOptionValue(Readable auto &io, size_t bytesToRead)
 {
 	T val{};
@@ -76,10 +104,17 @@ inline std::optional<T> readStringOptionValue(Readable auto &io, size_t bytesToR
 	return val;
 }
 
-template <IG::Container T>
-inline bool readStringOptionValue(Readable auto &io, size_t bytesToRead, auto &&func)
+template <Container T>
+inline bool readStringOptionValue(Readable auto &io, size_t bytesToRead,
+	Callable<void, T> auto &&func)
 {
-	return (bool)IG::doOptionally(readStringOptionValue<T>(io, bytesToRead), std::forward<decltype(func)>(func));
+	return doOptionally(readStringOptionValue<T>(io, bytesToRead), IG_forward(func));
+}
+
+template <Container T>
+inline bool readStringOptionValue(Readable auto &io, size_t bytesToRead, T &output)
+{
+	return readStringOptionValue<T>(io, bytesToRead, [&](auto &&val){ output = IG_forward(val); });
 }
 
 inline void writeOptionValueHeader(Writable auto &io, uint16_t key, uint16_t optSize)
@@ -119,10 +154,12 @@ inline void writeStringOptionValue(Writable auto &io, uint16_t key, std::string_
 	io.write(view.data(), view.size());
 }
 
-inline void writeStringOptionValue(Writable auto &io, uint16_t key, const IG::Container auto &c)
+inline void writeStringOptionValue(Writable auto &io, uint16_t key, const Container auto &c)
 {
 	writeStringOptionValue(io, key, std::string_view(c.data()));
 }
+
+// Older stateful option API
 
 template <class T>
 constexpr bool optionIsAlwaysValid(T)

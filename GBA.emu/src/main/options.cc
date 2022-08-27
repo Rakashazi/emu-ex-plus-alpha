@@ -49,10 +49,10 @@ bool GbaSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 	{
 		switch(key)
 		{
-			case CFGKEY_PCM_VOLUME: return readOptionValue<uint8_t>(io, readSize, [](auto v){ soundSetVolume(gGba, v / 100.f, false); });
-			case CFGKEY_GB_APU_VOLUME: return readOptionValue<uint8_t>(io, readSize, [](auto v){ soundSetVolume(gGba, v / 100.f, true); });
-			case CFGKEY_SOUND_FILTERING: return readOptionValue<uint8_t>(io, readSize, [](auto v){ soundSetFiltering(gGba, v / 100.f); });
-			case CFGKEY_SOUND_INTERPOLATION: return readOptionValue<uint8_t>(io, readSize, [](auto on){ soundSetInterpolation(gGba, on); });
+			case CFGKEY_PCM_VOLUME: return readOptionValue<uint8_t>(io, readSize, [](auto v){soundSetVolume(gGba, v / 100.f, false);});
+			case CFGKEY_GB_APU_VOLUME: return readOptionValue<uint8_t>(io, readSize, [](auto v){soundSetVolume(gGba, v / 100.f, true);});
+			case CFGKEY_SOUND_FILTERING: return readOptionValue<uint8_t>(io, readSize, [](auto v){soundSetFiltering(gGba, v / 100.f);});
+			case CFGKEY_SOUND_INTERPOLATION: return readOptionValue<bool>(io, readSize, [](auto on){soundSetInterpolation(gGba, on);});
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -62,11 +62,7 @@ bool GbaSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_RTC_EMULATION: return optionRtcEmulation.readFromIO(io, readSize);
 			case CFGKEY_SAVE_TYPE_OVERRIDE: return optionSaveTypeOverride.readFromIO(io, readSize);
 			case CFGKEY_SENSOR_TYPE:
-				return readOptionValue<uint8_t>(io, readSize, [&](auto v)
-				{
-					if(v <= to_underlying(IG::lastEnum<GbaSensorType>))
-						sensorType = (GbaSensorType)v;
-				});
+				return readOptionValue(io, readSize, sensorType, [&](auto v){return v <= IG::lastEnum<GbaSensorType>;});
 		}
 	}
 	return false;
@@ -79,7 +75,7 @@ void GbaSystem::writeConfig(ConfigType type, FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_PCM_VOLUME, (uint8_t)soundVolumeAsInt(gGba, false), 100);
 		writeOptionValueIfNotDefault(io, CFGKEY_GB_APU_VOLUME, (uint8_t)soundVolumeAsInt(gGba, true), 100);
 		writeOptionValueIfNotDefault(io, CFGKEY_SOUND_FILTERING, (uint8_t)soundFilteringAsInt(gGba), 50);
-		writeOptionValueIfNotDefault(io, CFGKEY_SOUND_INTERPOLATION, (uint8_t)soundGetInterpolation(gGba), true);
+		writeOptionValueIfNotDefault(io, CFGKEY_SOUND_INTERPOLATION, soundGetInterpolation(gGba), true);
 	}
 	else if(type == ConfigType::SESSION)
 	{

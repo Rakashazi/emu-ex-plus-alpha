@@ -81,44 +81,4 @@ void BaseEditCheatListView::onCheatListChanged()
 	onCheatListChanged_.callSafe();
 }
 
-BaseEditCheatView::BaseEditCheatView(IG::utf16String viewName, ViewAttachParams attach, IG::utf16String cheatName,
-	TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed,
-	RefreshCheatsDelegate onCheatListChanged_):
-	TableView
-	{
-		std::move(viewName),
-		attach,
-		items,
-		item
-	},
-	name
-	{
-		std::move(cheatName), &defaultFace(),
-		[this](const Input::Event &e)
-		{
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input description", cheatNameString(),
-				[this](EmuApp &, auto str)
-				{
-					logMsg("setting cheat name %s", str);
-					name.compile(str, renderer(), projP);
-					renamed(str);
-					onCheatListChanged();
-					postDraw();
-					return true;
-				});
-		}
-	},
-	remove
-	{
-		"Delete Cheat", &defaultFace(),
-		removed
-	},
-	onCheatListChanged_{onCheatListChanged_}
-{}
-
-void BaseEditCheatView::onCheatListChanged()
-{
-	onCheatListChanged_.callSafe();
-}
-
 }

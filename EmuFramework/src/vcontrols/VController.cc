@@ -838,7 +838,7 @@ bool VController::readConfig(MapIO &io, unsigned key, size_t size)
 		bcase CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES: setBoundingAreaVisible(readOptionValue<bool>(io, size), false);
 		bcase CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH: setShowOnTouchInput(readOptionValue<bool>(io, size));
 		bcase CFGKEY_VCONTROLLER_LAYOUT_POS: readSerializedLayoutPositions(io, size);
-		bcase CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS: readOptionValue<bool>(io, size, [&](bool on){ allowButtonsPastContentBounds_ = on; });
+		bcase CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS: readOptionValue(io, size, allowButtonsPastContentBounds_);
 	}
 	return true;
 }

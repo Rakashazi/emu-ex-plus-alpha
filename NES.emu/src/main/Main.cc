@@ -274,7 +274,7 @@ void NesSystem::setupNESInputPorts()
 	setupNESFourScore();
 }
 
-static int cheatCallback(char *name, uint32 a, uint8 v, int compare, int s, int type, void *data)
+static int cheatCallback(const char *name, uint32 a, uint8 v, int compare, int s, int type, void *data)
 {
 	logMsg("cheat: %s, %d", name, s);
 	fceuCheats++;

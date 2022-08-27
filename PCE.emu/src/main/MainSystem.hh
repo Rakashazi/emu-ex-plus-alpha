@@ -20,11 +20,29 @@ class EmuApp;
 enum
 {
 	CFGKEY_SYSCARD_PATH = 275, CFGKEY_ARCADE_CARD = 276,
-	CFGKEY_6_BTN_PAD = 277
+	CFGKEY_6_BTN_PAD = 277, CFGKEY_VISIBLE_LINES = 278,
+	CFGKEY_DEFAULT_VISIBLE_LINES = 279, CFGKEY_CORRECT_LINE_ASPECT = 280,
+	CFGKEY_NO_SPRITE_LIMIT = 281, CFGKEY_CD_SPEED = 282,
+	CFGKEY_CDDA_VOLUME = 283, CFGKEY_ADPCM_VOLUME = 284,
+	CFGKEY_ADPCM_FILTER = 285,
+
 };
 
 void set6ButtonPadEnabled(EmuApp &, bool);
 bool hasHuCardExtension(std::string_view name);
+
+struct VisibleLines
+{
+	uint8_t first{11};
+	uint8_t last{234};
+
+	constexpr bool operator==(const VisibleLines&) const = default;
+};
+
+enum class VolumeType
+{
+	CDDA, ADPCM
+};
 
 class PceSystem final: public EmuSystem
 {
@@ -38,9 +56,23 @@ public:
 	FS::PathString sysCardPath{};
 	Byte1Option optionArcadeCard{CFGKEY_ARCADE_CARD, 1};
 	Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};
+	VisibleLines defaultVisibleLines{};
+	VisibleLines visibleLines{};
+	uint8_t cdSpeed{2};
+	uint8_t cddaVolume{100};
+	uint8_t adpcmVolume{100};
+	bool noSpriteLimit{};
+	bool correctLineAspect{};
+	bool adpcmFilter{};
 
 	PceSystem(ApplicationContext ctx):
 		EmuSystem{ctx} {}
+	void setVisibleLines(VisibleLines);
+	void setNoSpriteLimit(bool);
+	void setCdSpeed(uint8_t);
+	void setVolume(VolumeType, uint8_t volume);
+	uint8_t volume(VolumeType type) { return  volumeVar(type); }
+	void setAdpcmFilter(bool);
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -65,6 +97,20 @@ public:
 	WP multiresVideoBaseSize() const;
 	void onSessionOptionsLoaded(EmuApp &);
 	bool resetSessionOptions(EmuApp &);
+	double videoAspectRatioScale() const;
+
+private:
+	void updateCdSettings();
+
+	uint8_t &volumeVar(VolumeType vol)
+	{
+		switch(vol)
+		{
+			case VolumeType::CDDA: return cddaVolume;
+			case VolumeType::ADPCM: return adpcmVolume;
+		}
+		bug_unreachable("invalid VolumeType");
+	}
 };
 
 using MainSystem = PceSystem;

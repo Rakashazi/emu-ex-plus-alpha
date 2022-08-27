@@ -22,15 +22,26 @@
 		(at least that's the idea) 
 */
 
-void FCEU_dwmemset(uint8 *d, auto c, auto n) {for(int x=n-4;x>=0;x-=4) *(uint32 *)&(d)[x]=c;}
+inline void FCEU_dwmemset(uint8 *d, auto c, auto n) {for(int x=n-4;x>=0;x-=4) *(uint32 *)&(d)[x]=c;}
 
-void *FCEU_malloc(uint32 size); // initialized to 0
-void *FCEU_gmalloc(uint32 size); // used by boards for WRAM etc, initialized to 0 (default) or other via RAMInitOption
+//returns a 32-aligned buffer, initialized to 0
+void *FCEU_malloc(uint32 size); 
+
+//returns a 32-aligned buffer, with jumbled initial contents
+//used by boards for WRAM etc, initialized to 0 (default) or other via RAMInitOption
+void *FCEU_gmalloc(uint32 size); 
+
+//free memory allocated with FCEU_gmalloc
 void FCEU_gfree(void *ptr);
-void FCEU_free(void *ptr);
-void FCEU_memmove(void *d, void *s, uint32 l);
 
-// wrapper for debugging when its needed, otherwise act like
-// normal malloc/free
+//free memory allocated with 
+void FCEU_free(void *ptr);
+
+//don't use these. change them if you find them.
 void *FCEU_dmalloc(uint32 size);
+
+//don't use these. change them if you find them.
 void FCEU_dfree(void *ptr);
+
+//aborts the process for fatal errors
+void FCEU_abort(const char* message = nullptr);

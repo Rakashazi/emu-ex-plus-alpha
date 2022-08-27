@@ -52,20 +52,55 @@ protected:
 	virtual void loadCheatItems() = 0;
 };
 
-class BaseEditCheatView : public TableView, public EmuAppHelper<BaseEditCheatView>
+template <class CheatViewImpl>
+class BaseEditCheatView : public TableView, public EmuAppHelper<BaseEditCheatView<CheatViewImpl>>
 {
 public:
-	BaseEditCheatView(IG::utf16String name, ViewAttachParams attach, IG::utf16String cheatName,
+	using EmuAppHelper<BaseEditCheatView<CheatViewImpl>>::app;
+
+	BaseEditCheatView(IG::utf16String viewName, ViewAttachParams attach, IG::utf16String cheatName,
 		TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed,
-		RefreshCheatsDelegate onCheatListChanged);
+		RefreshCheatsDelegate onCheatListChanged_):
+		TableView
+		{
+			std::move(viewName),
+			attach,
+			items,
+			item
+		},
+		name
+		{
+			std::move(cheatName), &defaultFace(),
+			[this](const Input::Event &e)
+			{
+				app().template pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
+					"Input description", static_cast<CheatViewImpl*>(this)->cheatNameString(),
+					[this](EmuApp &, auto str)
+					{
+						name.compile(str, renderer(), projP);
+						static_cast<CheatViewImpl*>(this)->renamed(str);
+						onCheatListChanged();
+						postDraw();
+						return true;
+					});
+			}
+		},
+		remove
+		{
+			"Delete Cheat", &defaultFace(),
+			removed
+		},
+		onCheatListChanged_{onCheatListChanged_} {}
+
 
 protected:
 	TextMenuItem name{}, remove{};
 	RefreshCheatsDelegate onCheatListChanged_{};
 
-	void onCheatListChanged();
-	virtual const char *cheatNameString() const = 0;
-	virtual void renamed(const char *str) = 0;
+	void onCheatListChanged()
+	{
+		onCheatListChanged_.callSafe();
+	}
 };
 
 }

@@ -179,7 +179,7 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_CROP_NORMAL_BORDERS: return optionCropNormalBorders.readFromIO(io, readSize);
 			case CFGKEY_SID_ENGINE: return optionSidEngine.readFromIO(io, readSize);
 			case CFGKEY_SYSTEM_FILE_PATH:
-				return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){setFirmwarePath(path);});
+				return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &&path){setFirmwarePath(path);});
 			case CFGKEY_RESID_SAMPLING: return optionReSidSampling.readFromIO(io, readSize);
 		}
 	}
@@ -188,8 +188,7 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 		switch(key)
 		{
 			case CFGKEY_DEFAULT_MODEL: return optionDefaultModel.readFromIO(io, readSize);
-			case CFGKEY_DEFAULT_PALETTE_NAME:
-				return readStringOptionValue<FS::FileString>(io, readSize, [&](auto &name){defaultPaletteName = name;});
+			case CFGKEY_DEFAULT_PALETTE_NAME: return readStringOptionValue(io, readSize, defaultPaletteName);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -207,7 +206,7 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_VIC20_RAM_EXPANSIONS: return optionVic20RamExpansions.readFromIO(io, readSize);
 			case CFGKEY_C64_RAM_EXPANSION_MODULE: return optionC64RamExpansionModule.readFromIO(io, readSize);
 			case CFGKEY_PALETTE_NAME:
-				return readStringOptionValue<FS::FileString>(io, readSize, [&](auto &name)
+				return readStringOptionValue<FS::FileString>(io, readSize, [&](auto &&name)
 				{
 					if(name == "internal")
 						setPaletteResources({});
@@ -215,13 +214,13 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 						setPaletteResources(name.data());
 				});
 			case CFGKEY_DRIVE8_TYPE:
-				return readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive8Type", type); });
+				return readOptionValue<uint16_t>(io, readSize, [&](auto type){setIntResource("Drive8Type", type);});
 			case CFGKEY_DRIVE9_TYPE:
-				return readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive9Type", type); });
+				return readOptionValue<uint16_t>(io, readSize, [&](auto type){setIntResource("Drive9Type", type);});
 			case CFGKEY_DRIVE10_TYPE:
-				return readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive10Type", type); });
+				return readOptionValue<uint16_t>(io, readSize, [&](auto type){setIntResource("Drive10Type", type);});
 			case CFGKEY_DRIVE11_TYPE:
-				return readOptionValue<uint16_t>(io, readSize, [&](auto &type){ setIntResource("Drive11Type", type); });
+				return readOptionValue<uint16_t>(io, readSize, [&](auto type){setIntResource("Drive11Type", type);});
 		}
 	}
 	return false;

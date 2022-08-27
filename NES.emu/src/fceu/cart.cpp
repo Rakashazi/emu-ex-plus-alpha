@@ -358,8 +358,7 @@ bool FCEU_OpenGenie(void)
 		if (!(GENIEROM = (uint8*)FCEU_malloc(4096 + 1024)))
 			return true;
 
-		std::string fn = FCEU_MakeFName(FCEUMKF_GGROM, 0, 0);
-		fp = FCEUD_UTF8fopen(fn.c_str(), "rb");
+		fp = FCEUD_UTF8fopen(FCEU_MakeFName(FCEUMKF_GGROM, 0, 0).c_str(), "rb");
 		if (!fp)
 		{
 			FCEU_PrintError("Error opening Game Genie ROM image!\nIt should be named \"gg.rom\"!");

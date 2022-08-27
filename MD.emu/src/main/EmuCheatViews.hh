@@ -45,17 +45,16 @@ private:
 	void loadCheatItems() final;
 };
 
-class EmuEditCheatView : public BaseEditCheatView
+class EmuEditCheatView : public BaseEditCheatView<EmuEditCheatView>
 {
 public:
 	EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat, RefreshCheatsDelegate onCheatListChanged_);
+	std::string_view cheatNameString() const;
+	void renamed(std::string_view);
 
 private:
 	DualTextMenuItem code{};
 	MdCheat *cheat{};
-
-	const char *cheatNameString() const final;
-	void renamed(const char *str) final;
 };
 
 }

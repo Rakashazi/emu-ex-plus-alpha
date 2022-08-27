@@ -556,7 +556,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_FRAME_RATE: optionFrameRate.readFromIO(io, size);
 				bcase CFGKEY_FRAME_RATE_PAL: optionFrameRatePAL.readFromIO(io, size);
 				bcase CFGKEY_LAST_DIR:
-					readStringOptionValue<FS::PathString>(io, size, [&](auto &path) { setContentSearchPath(path); });
+					readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){setContentSearchPath(path);});
 				bcase CFGKEY_FONT_Y_SIZE: optionFontSize.readFromIO(io, size);
 				bcase CFGKEY_GAME_ORIENTATION: optionEmuOrientation.readFromIO(io, size);
 				bcase CFGKEY_MENU_ORIENTATION: optionMenuOrientation.readFromIO(io, size);
@@ -585,7 +585,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_HIDE_STATUS_BAR:
 					doIfUsed(optionHideStatusBar, [&](auto &opt){ opt.readFromIO(io, size); });
 				bcase CFGKEY_LAYOUT_BEHIND_SYSTEM_UI:
-					if(ctx.hasTranslucentSysUI()) readOptionValue<bool>(io, size, [&](bool on){ layoutBehindSystemUI = on; });
+					if(ctx.hasTranslucentSysUI()) readOptionValue(io, size, layoutBehindSystemUI);
 				bcase CFGKEY_CONFIRM_OVERWRITE_STATE: optionConfirmOverwriteState.readFromIO(io, size);
 				bcase CFGKEY_FAST_SLOW_MODE_SPEED: optionFastSlowModeSpeed.readFromIO(io, size);
 				#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
@@ -593,12 +593,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				#endif
 				bcase CFGKEY_MOGA_INPUT_SYSTEM:
 					if constexpr(MOGA_INPUT)
-					{
-						if(readOptionValue<bool>(io, size).value_or(false))
-						{
-							setMogaManagerActive(true, false);
-						}
-					}
+						readOptionValue<bool>(io, size, [&](auto on){setMogaManagerActive(on, false);});
 				bcase CFGKEY_TEXTURE_BUFFER_MODE: optionTextureBufferMode.readFromIO(io, size);
 				#if defined __ANDROID__
 				bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
@@ -610,7 +605,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					doIfUsed(optionKeepBluetoothActive, [&](auto &opt){ opt.readFromIO(io, size); });
 				bcase CFGKEY_SHOW_BLUETOOTH_SCAN: optionShowBluetoothScan.readFromIO(io, size);
 					#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-					bcase CFGKEY_BLUETOOTH_SCAN_CACHE: BluetoothAdapter::setScanCacheUsage(readOptionValue<bool>(io, size).value_or(true));
+					bcase CFGKEY_BLUETOOTH_SCAN_CACHE: readOptionValue<bool>(io, size, [](auto on){BluetoothAdapter::setScanCacheUsage(on);});
 					#endif
 				#endif
 				bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
@@ -621,17 +616,17 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_AUDIO_API: optionAudioAPI.readFromIO(io, size);
 				#endif
 				bcase CFGKEY_SAVE_PATH:
-					readStringOptionValue<FS::PathString>(io, size, [&](auto &path) { system().setUserSaveDirectory(path); });
+					readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){system().setUserSaveDirectory(path);});
 				bcase CFGKEY_SHOW_BUNDLED_GAMES:
 				{
 					if(EmuSystem::hasBundledGames)
 						optionShowBundledGames.readFromIO(io, size);
 				}
-				bcase CFGKEY_WINDOW_PIXEL_FORMAT: pendingWindowDrawableConf.pixelFormat = readOptionValue<IG::PixelFormat>(io, size, windowPixelFormatIsValid).value_or(IG::PixelFormat{});
-				bcase CFGKEY_VIDEO_COLOR_SPACE: pendingWindowDrawableConf.colorSpace = readOptionValue<Gfx::ColorSpace>(io, size, colorSpaceIsValid).value_or(Gfx::ColorSpace{});
-				bcase CFGKEY_SHOW_HIDDEN_FILES: setShowHiddenFilesInPicker(readOptionValue<bool>(io, size).value_or(false));
-				bcase CFGKEY_RENDERER_PRESENTATION_TIME: setUsePresentationTime(readOptionValue<bool>(io, size).value_or(true));
-				bcase CFGKEY_CONTENT_ROTATION: readOptionValue<IG::Rotation>(io, size, [&](auto &r){ if((int)r <= 4) contentRotation_ = r; });
+				bcase CFGKEY_WINDOW_PIXEL_FORMAT: readOptionValue(io, size, pendingWindowDrawableConf.pixelFormat, windowPixelFormatIsValid);
+				bcase CFGKEY_VIDEO_COLOR_SPACE: readOptionValue(io, size, pendingWindowDrawableConf.colorSpace, colorSpaceIsValid);
+				bcase CFGKEY_SHOW_HIDDEN_FILES: readOptionValue<bool>(io, size, [&](auto on){setShowHiddenFilesInPicker(on);});
+				bcase CFGKEY_RENDERER_PRESENTATION_TIME: readOptionValue<bool>(io, size, [&](auto on){setUsePresentationTime(on);});
+				bcase CFGKEY_CONTENT_ROTATION: readOptionValue(io, size, contentRotation_, [](auto r){return r <= lastEnum<Rotation>;});
 				bcase CFGKEY_INPUT_KEY_CONFIGS:
 				{
 					if(!readKeyConfig(customKeyConfigs, io, size, inputControlCategories()))

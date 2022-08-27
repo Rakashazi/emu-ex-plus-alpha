@@ -551,12 +551,12 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 	cheat{&cheat_}
 {}
 
-const char *EmuEditCheatView::cheatNameString() const
+std::string_view EmuEditCheatView::cheatNameString() const
 {
-	return cheat->name.data();
+	return std::string_view{cheat->name};
 }
 
-void EmuEditCheatView::renamed(const char *str)
+void EmuEditCheatView::renamed(std::string_view str)
 {
 	cheat->name = str;
 	writeCheatFile(system());

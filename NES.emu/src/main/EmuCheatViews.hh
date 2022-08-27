@@ -24,8 +24,13 @@ public:
 	EmuEditCheatListView(ViewAttachParams attach);
 };
 
-class EmuEditCheatView : public BaseEditCheatView
+class EmuEditCheatView : public BaseEditCheatView<EmuEditCheatView>
 {
+public:
+	EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged);
+	std::string cheatNameString() const;
+	void renamed(std::string_view);
+
 private:
 	DualTextMenuItem addr{}, value{}, comp{}, ggCode{};
 	unsigned idx = 0;
@@ -35,12 +40,7 @@ private:
 	IG::StaticString<2> compStr{};
 	IG::StaticString<8> ggCodeStr{};
 
-	void syncCheat(const char *newName = {});
-	const char *cheatNameString() const final;
-	void renamed(const char *str) final;
-
-public:
-	EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged);
+	void syncCheat(std::string_view newName = {});
 };
 
 }

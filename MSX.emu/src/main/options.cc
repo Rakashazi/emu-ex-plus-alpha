@@ -170,9 +170,9 @@ bool MsxSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 	{
 		switch(key)
 		{
-			case CFGKEY_DEFAULT_MACHINE_NAME: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){optionDefaultMachineNameStr = path;});
+			case CFGKEY_DEFAULT_MACHINE_NAME: return readStringOptionValue(io, readSize, optionDefaultMachineNameStr);
 			case CFGKEY_SKIP_FDC_ACCESS: return optionSkipFdcAccess.readFromIO(io, readSize);
-			case CFGKEY_MACHINE_FILE_PATH: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){setFirmwarePath(path);});
+			case CFGKEY_MACHINE_FILE_PATH: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &&path){setFirmwarePath(path);});
 			case CFGKEY_MIXER_PSG_VOLUME: return optionMixerPSGVolume.readFromIO(io, readSize);
 			case CFGKEY_MIXER_SCC_VOLUME: return optionMixerSCCVolume.readFromIO(io, readSize);
 			case CFGKEY_MIXER_MSX_MUSIC_VOLUME: return optionMixerMSXMUSICVolume.readFromIO(io, readSize);
@@ -193,7 +193,7 @@ bool MsxSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 	{
 		switch(key)
 		{
-			case CFGKEY_SESSION_MACHINE_NAME: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){optionSessionMachineNameStr = path;});
+			case CFGKEY_SESSION_MACHINE_NAME: return readStringOptionValue(io, readSize, optionSessionMachineNameStr);
 		}
 	}
 	return false;

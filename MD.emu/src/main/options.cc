@@ -66,9 +66,9 @@ bool MdSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readS
 			case CFGKEY_BIG_ENDIAN_SRAM: return optionBigEndianSram.readFromIO(io, readSize);
 			case CFGKEY_SMS_FM: return optionSmsFM.readFromIO(io, readSize);
 			#ifndef NO_SCD
-			case CFGKEY_MD_CD_BIOS_USA_PATH: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){cdBiosUSAPath = path;});
-			case CFGKEY_MD_CD_BIOS_JPN_PATH: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){cdBiosJpnPath = path;});
-			case CFGKEY_MD_CD_BIOS_EUR_PATH: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){cdBiosEurPath = path;});
+			case CFGKEY_MD_CD_BIOS_USA_PATH: return readStringOptionValue(io, readSize, cdBiosUSAPath);
+			case CFGKEY_MD_CD_BIOS_JPN_PATH: return readStringOptionValue(io, readSize, cdBiosJpnPath);
+			case CFGKEY_MD_CD_BIOS_EUR_PATH: return readStringOptionValue(io, readSize, cdBiosEurPath);
 			#endif
 		}
 	}

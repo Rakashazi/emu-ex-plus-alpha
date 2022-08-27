@@ -22,13 +22,17 @@ namespace IG
 {
 
 template <class T>
-constexpr auto doOptionally(const std::optional<T> &optionalValue, std::invocable<T&> auto &&func)
+concept Optional = std::same_as<T, std::optional<typename T::value_type>>;
+
+template <Optional T>
+constexpr bool doOptionally(T &&optionalValue, std::invocable<typename T::value_type> auto &&func)
 {
 	if(optionalValue)
 	{
 		func(*optionalValue);
+		return true;
 	}
-	return optionalValue;
+	return false;
 }
 
 }

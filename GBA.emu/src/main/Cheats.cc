@@ -29,7 +29,7 @@ namespace EmuEx
 
 static void writeCheatFile(EmuSystem &);
 
-EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
+EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
 		"Edit Code",
@@ -71,15 +71,15 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	idx{cheatIdx}
 {}
 
-const char *EmuEditCheatView::cheatNameString() const
+std::string_view EmuEditCheatView::cheatNameString() const
 {
 	return cheatsList[idx].desc;
 }
 
-void EmuEditCheatView::renamed(const char *str)
+void EmuEditCheatView::renamed(std::string_view str)
 {
 	auto &cheat = cheatsList[idx];
-	strncpy(cheat.desc, str, sizeof(cheat.desc));
+	strncpy(cheat.desc, str.data(), sizeof(cheat.desc));
 	writeCheatFile(system());
 }
 

@@ -128,12 +128,32 @@ public:
 	{
 		if(c.max_size() < maxBytes)
 			return -1;
-		c.resize(maxBytes);
-		auto bytesRead = static_cast<IO*>(this)->read(c.data(), maxBytes);
-		if(bytesRead == -1) [[unlikely]]
-			return -1;
-		c.resize(bytesRead);
-		return bytesRead;
+		if constexpr(requires {c.resize_and_overwrite(maxBytes, [](char*, std::size_t){return 0;});})
+		{
+			bool error{};
+			c.resize_and_overwrite(maxBytes, [&](char *str, std::size_t allocBytes) -> ssize_t
+			{
+				auto bytesRead = static_cast<IO*>(this)->read(str, std::min(maxBytes, allocBytes));
+				if(bytesRead == -1) [[unlikely]]
+				{
+					error = true;
+					return {};
+				}
+				return bytesRead;
+			});
+			if(error) [[unlikely]]
+				return -1;
+			return c.size();
+		}
+		else
+		{
+			c.resize(maxBytes);
+			auto bytesRead = static_cast<IO*>(this)->read(c.data(), maxBytes);
+			if(bytesRead == -1) [[unlikely]]
+				return -1;
+			c.resize(bytesRead);
+			return bytesRead;
+		}
 	}
 
 	ssize_t write(NotPointerDecayable auto &&obj)

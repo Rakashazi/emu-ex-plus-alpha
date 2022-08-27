@@ -42,17 +42,16 @@ private:
 	void addNewCheat(int isGSv3);
 };
 
-class EmuEditCheatView : public BaseEditCheatView
+class EmuEditCheatView : public BaseEditCheatView<EmuEditCheatView>
 {
 public:
-	EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged_);
+	EmuEditCheatView(ViewAttachParams attach, int cheatIdx, RefreshCheatsDelegate onCheatListChanged_);
+	std::string_view cheatNameString() const;
+	void renamed(std::string_view);
 
 private:
 	DualTextMenuItem code{};
-	unsigned idx = 0;
-
-	const char *cheatNameString() const final;
-	void renamed(const char *str) final;
+	int idx = 0;
 };
 
 }

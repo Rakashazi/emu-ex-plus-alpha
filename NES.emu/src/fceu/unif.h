@@ -159,8 +159,10 @@ void BMC8IN1_Init(CartInfo *info);
 void BMC80013B_Init(CartInfo *info);
 void BMCWS_Init(CartInfo *info);			/* m332 */
 void BMCHPxx_Init(CartInfo *info);
+void WAIXINGFS005_Init(CartInfo *info);
 void MINDKIDS_Init(CartInfo *info);
 void FNS_Init(CartInfo *info);
+void COOLGIRL_Init(CartInfo * info);
 void BS400R_Init(CartInfo *info);
 void BS4040R_Init(CartInfo *info);
 void SMD132_SMD133_Init(CartInfo *info);

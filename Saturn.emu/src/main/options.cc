@@ -84,7 +84,7 @@ bool SaturnSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t r
 		switch(key)
 		{
 			case CFGKEY_BIOS_PATH:
-				return readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){biosPath = path;});
+				return readStringOptionValue(io, readSize, biosPath);
 			case CFGKEY_SH2_CORE: return optionSH2Core.readFromIO(io, readSize);
 		}
 	}

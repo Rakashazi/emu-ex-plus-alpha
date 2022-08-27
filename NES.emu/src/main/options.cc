@@ -76,21 +76,19 @@ bool NesSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 		switch(key)
 		{
 			case CFGKEY_FDS_BIOS_PATH:
-				return readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){fdsBiosPath = path;});
+				return readStringOptionValue(io, readSize, fdsBiosPath);
 			case CFGKEY_SPRITE_LIMIT: return optionSpriteLimit.readFromIO(io, readSize);
 			case CFGKEY_SOUND_QUALITY: return optionSoundQuality.readFromIO(io, readSize);
 			case CFGKEY_DEFAULT_VIDEO_SYSTEM: return optionDefaultVideoSystem.readFromIO(io, readSize);
 			case CFGKEY_DEFAULT_PALETTE_PATH:
-				return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &path){defaultPalettePath = path;});
+				return readStringOptionValue(io, readSize, defaultPalettePath);
 			case CFGKEY_DEFAULT_SOUND_LOW_PASS_FILTER:
-				return readOptionValue<bool>(io, readSize, [](auto &val){FCEUI_SetLowPass(val);});
-			case CFGKEY_SWAP_DUTY_CYCLES:
-				return readOptionValue<bool>(io, readSize, [](auto &val){swapDuty = val;});
+				return readOptionValue<bool>(io, readSize, [](auto val){FCEUI_SetLowPass(val);});
+			case CFGKEY_SWAP_DUTY_CYCLES: return readOptionValue(io, readSize, swapDuty);
 			case CFGKEY_START_VIDEO_LINE: return optionDefaultStartVideoLine.readFromIO(io, readSize);
 			case CFGKEY_VISIBLE_VIDEO_LINES: return optionDefaultVisibleVideoLines.readFromIO(io, readSize);
 			case CFGKEY_CORRECT_LINE_ASPECT: return optionCorrectLineAspect.readFromIO(io, readSize);
-			case CFGKEY_FF_DURING_FDS_ACCESS:
-				return readOptionValue<bool>(io, readSize, [&](auto &val){fastForwardDuringFdsAccess = val;});
+			case CFGKEY_FF_DURING_FDS_ACCESS: return readOptionValue(io, readSize, fastForwardDuringFdsAccess);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -127,7 +125,7 @@ void NesSystem::writeConfig(ConfigType type, FileIO &io)
 		optionDefaultVisibleVideoLines.writeWithKeyIfNotDefault(io);
 		optionCorrectLineAspect.writeWithKeyIfNotDefault(io);
 		if(!fastForwardDuringFdsAccess)
-			writeOptionValue(io, CFGKEY_FF_DURING_FDS_ACCESS, (bool)fastForwardDuringFdsAccess);
+			writeOptionValue(io, CFGKEY_FF_DURING_FDS_ACCESS, fastForwardDuringFdsAccess);
 	}
 	else if(type == ConfigType::SESSION)
 	{

@@ -1220,10 +1220,10 @@ public:
 	}
 };
 
-class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomSystemActionsView>
+class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMainMenuView>
 {
-	using MainAppHelper<CustomSystemActionsView>::app;
-	using MainAppHelper<CustomSystemActionsView>::system;
+	using MainAppHelper<CustomMainMenuView>::app;
+	using MainAppHelper<CustomMainMenuView>::system;
 
 	TextMenuItem systemPlugin
 	{

@@ -34,8 +34,8 @@ namespace EmuEx
 {
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
-static constexpr double masterClockFrac = 21477272.727273 / 3.;
-static constexpr double staticFrameTimeWith262Lines = (455. * 262.) / masterClockFrac; // ~60.05Hz
+constexpr double masterClockFrac = 21477272.727273 / 3.;
+constexpr double staticFrameTimeWith262Lines = (455. * 262.) / masterClockFrac; // ~60.05Hz
 double EmuSystem::staticFrameTime = (455. * 263.) / masterClockFrac; //~59.82Hz
 bool EmuApp::needsGlobalInstance = true;
 
@@ -233,6 +233,15 @@ void PceSystem::loadState(EmuApp &, CStringView path)
 {
 	if(!MDFNI_LoadState(path, 0))
 		throwFileReadError();
+}
+
+double PceSystem::videoAspectRatioScale() const
+{
+	double baseLines = 224.;
+	double lineCount = (visibleLines.last - visibleLines.first) + 1;
+	assumeExpr(lineCount >= 0);
+	double lineAspectScaler = baseLines / lineCount;
+	return correctLineAspect ? lineAspectScaler : 1.;
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

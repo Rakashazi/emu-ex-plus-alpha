@@ -54,6 +54,7 @@ iNES_HEADER head;
 static CartInfo iNESCart;
 
 uint8 Mirroring = 0;
+uint8 MirroringAs2bits = 0;
 uint32 ROM_size = 0;
 uint32 VROM_size = 0;
 char LoadedRomFName[2048]; //mbg merge 7/17/06 added
@@ -107,11 +108,11 @@ void iNESGI(GI h) { //bbit edited: removed static keyword
 		if (iNESCart.Close)
 			iNESCart.Close();
 		if (ROM) {
-			free(ROM);
+			FCEU_free(ROM);
 			ROM = NULL;
 		}
 		if (VROM) {
-			free(VROM);
+			FCEU_free(VROM);
 			VROM = NULL;
 		}
 		if (trainerpoo) {
@@ -675,7 +676,7 @@ BMAPPINGLocal bmap[] = {
 	{"",					215, UNL8237_Init},
 	{"",					216, Mapper216_Init},
 	{"",					217, Mapper217_Init},	// Redefined to a new Discrete BMC mapper
-//	{"",					218, Mapper218_Init},
+	{"",					218, Mapper218_Init},
 	{"UNLA9746",			219, UNLA9746_Init},
 	{"Debug Mapper",		220, QTAi_Init},
 	{"UNLN625092",			221, UNLN625092_Init},
@@ -719,6 +720,7 @@ BMAPPINGLocal bmap[] = {
 	{"9999999-in-1",    414, Mapper414_Init},
 	{"BS-400R/BS-4040",    422, Mapper422_Init},
 	{"DS-9-27",    452, Mapper452_Init},
+	{"Jncota KT-???", 523, Mapper523_Init},
 	{"NJ064",    452, Mapper534_Init},
 
 //-------- Mappers 256-511 is the Supplementary Multilingual Plane ----------
@@ -739,6 +741,7 @@ BMAPPINGLocal bmap[] = {
 	{"SMD132/SMD133",		268, SMD132_SMD133_Init},
 	{"COOLBOY",		        268, COOLBOY_Init},
 	{"WS",    332, BMCWS_Init},
+	{"COOLGIRL", 342, COOLGIRL_Init},
 
 	{"Impact Soft MMC3 Flash Board",	406, Mapper406_Init },
 
@@ -776,6 +779,9 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 		Mirroring = 2;
 	} else
 		Mirroring = (head.ROM_type & 1);
+
+	MirroringAs2bits = head.ROM_type & 1;
+	if (head.ROM_type & 8) MirroringAs2bits |= 2;
 
 	int not_round_size;
 	if (!iNES2)	{
@@ -820,17 +826,11 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 		}
 	}
 
-	if ((ROM = (uint8*)FCEU_malloc(ROM_size << 14)) == NULL)
-		return 0;
+	ROM = (uint8*)FCEU_malloc(ROM_size << 14);
 	memset(ROM, 0xFF, ROM_size << 14);
 
 	if (VROM_size) {
-		if ((VROM = (uint8*)FCEU_malloc(VROM_size << 13)) == NULL) {
-			free(ROM);
-			ROM = NULL;
-			FCEU_PrintError("Unable to allocate memory.");
-			return LOADER_HANDLED_ERROR;
-		}
+		VROM = (uint8*)FCEU_malloc(VROM_size << 13);
 		memset(VROM, 0xFF, VROM_size << 13);
 	}
 
@@ -929,6 +929,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 
 	iNESCart.battery = (head.ROM_type & 2) ? 1 : 0;
 	iNESCart.mirror = Mirroring;
+	iNESCart.mirrorAs2Bits = MirroringAs2bits;
 
 	int result = iNES_Init(MapperNo);
 	switch(result)

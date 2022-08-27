@@ -10,7 +10,7 @@
 namespace EmuEx
 {
 
-uint32_t numCheats()
+int numCheats()
 {
 	#ifndef SNES9X_VERSION_1_4
 	return Cheat.g.size();
@@ -19,18 +19,18 @@ uint32_t numCheats()
 	#endif
 }
 
-static void setCheatName(uint32_t idx, const char *name)
+static void setCheatName(int idx, std::string_view name)
 {
 	#ifndef SNES9X_VERSION_1_4
 	if(idx >= numCheats())
 		return;
 	Cheat.g[idx].name = name;
 	#else
-	strncpy(Cheat.c[idx].name, name, sizeof(SCheat::name));
+	strncpy(Cheat.c[idx].name, name.data(), sizeof(SCheat::name));
 	#endif
 }
 
-static const char *cheatName(uint32_t idx)
+static const char *cheatName(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
 	return Cheat.g[idx].name.c_str();
@@ -39,7 +39,7 @@ static const char *cheatName(uint32_t idx)
 	#endif
 }
 
-static void deleteCheat(uint32_t idx)
+static void deleteCheat(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
 	S9xDeleteCheatGroup(idx);
@@ -48,7 +48,7 @@ static void deleteCheat(uint32_t idx)
 	#endif
 }
 
-static bool cheatIsEnabled(uint32_t idx)
+static bool cheatIsEnabled(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
 	return Cheat.g[idx].enabled;
@@ -57,7 +57,7 @@ static bool cheatIsEnabled(uint32_t idx)
 	#endif
 }
 
-static void enableCheat(uint32_t idx)
+static void enableCheat(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
 	S9xEnableCheatGroup(idx);
@@ -66,7 +66,7 @@ static void enableCheat(uint32_t idx)
 	#endif
 }
 
-static void disableCheat(uint32_t idx)
+static void disableCheat(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
 	S9xDisableCheatGroup(idx);
@@ -75,7 +75,7 @@ static void disableCheat(uint32_t idx)
 	#endif
 }
 
-static void setCheatAddress(uint32_t idx, uint32_t a)
+static void setCheatAddress(int idx, uint32_t a)
 {
 	#ifndef SNES9X_VERSION_1_4
 	Cheat.g[idx].c[0].address = a;
@@ -84,7 +84,7 @@ static void setCheatAddress(uint32_t idx, uint32_t a)
 	#endif
 }
 
-static uint32_t cheatAddress(uint32_t idx)
+static uint32_t cheatAddress(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
 	return Cheat.g[idx].c[0].address;
@@ -93,7 +93,7 @@ static uint32_t cheatAddress(uint32_t idx)
 	#endif
 }
 
-static void setCheatValue(uint32_t idx, uint8 v)
+static void setCheatValue(int idx, uint8 v)
 {
 	#ifndef SNES9X_VERSION_1_4
 	Cheat.g[idx].c[0].byte = v;
@@ -102,7 +102,7 @@ static void setCheatValue(uint32_t idx, uint8 v)
 	#endif
 }
 
-static uint8 cheatValue(uint32_t idx)
+static uint8 cheatValue(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
 	return Cheat.g[idx].c[0].byte;
@@ -111,7 +111,7 @@ static uint8 cheatValue(uint32_t idx)
 	#endif
 }
 
-static void setCheatConditionalValue(uint32_t idx, bool conditional, uint8 v)
+static void setCheatConditionalValue(int idx, bool conditional, uint8 v)
 {
 	#ifndef SNES9X_VERSION_1_4
 	Cheat.g[idx].c[0].conditional = conditional;
@@ -122,7 +122,7 @@ static void setCheatConditionalValue(uint32_t idx, bool conditional, uint8 v)
 	#endif
 }
 
-static std::pair<bool, uint8> cheatConditionalValue(uint32_t idx)
+static std::pair<bool, uint8> cheatConditionalValue(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
 	return {Cheat.g[idx].c[0].conditional, Cheat.g[idx].c[0].cond_byte};
@@ -180,7 +180,7 @@ static void writeCheatsFile(EmuSystem &sys)
 	S9xSaveCheatFile(cheatsFilename(sys).data());
 }
 
-EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
+EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
 		"Edit Address/Values",
@@ -359,12 +359,12 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	}
 }
 
-const char *EmuEditCheatView::cheatNameString() const
+std::string_view EmuEditCheatView::cheatNameString() const
 {
 	return cheatName(idx);
 }
 
-void EmuEditCheatView::renamed(const char *str)
+void EmuEditCheatView::renamed(std::string_view str)
 {
 	setCheatName(idx, str);
 	writeCheatsFile(system());

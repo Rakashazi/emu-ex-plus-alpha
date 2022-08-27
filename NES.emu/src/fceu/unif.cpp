@@ -469,8 +469,11 @@ static BMAPPING bmap[] = {
 	{ "80013-B", BMC80013B_Init, 0 },
 	{ "WS", BMCWS_Init, 0 },
 	{ "HPxx", BMCHPxx_Init, 0 },
+	{ "WAIXING-FS005", WAIXINGFS005_Init, 0 },
 	{ "MINDKIDS", MINDKIDS_Init, BMCFLAG_256KCHRR },
 	{ "FNS", FNS_Init, BMCFLAG_16KCHRR },
+	{ "COOLGIRL", COOLGIRL_Init, 0 },
+	{ "T4A54A", Mapper134_Init, 0 },
 	{ "BS-400R", Mapper422_Init, 0 },
 	{ "BS-4040R", Mapper422_Init, 0 },
 

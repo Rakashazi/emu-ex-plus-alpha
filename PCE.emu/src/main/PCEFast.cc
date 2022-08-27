@@ -41,20 +41,21 @@ MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
 uint64 MDFN_GetSettingUI(const char *name)
 {
 	std::string_view nameV{name};
+	auto &sys = static_cast<EmuEx::PceSystem&>(EmuEx::gSystem());
 	if(EMU_MODULE".ocmultiplier" == nameV)
 		return 1;
 	if(EMU_MODULE".cdspeed" == nameV)
-		return 2;
+		return sys.cdSpeed;
 	if(EMU_MODULE".cdpsgvolume" == nameV)
 		return 100;
 	if(EMU_MODULE".cddavolume" == nameV)
-		return 100;
+		return sys.cddaVolume;
 	if(EMU_MODULE".adpcmvolume" == nameV)
-		return 100;
+		return sys.adpcmVolume;
 	if(EMU_MODULE".slstart" == nameV)
-		return 12;
+		return sys.visibleLines.first;
 	if(EMU_MODULE".slend" == nameV)
-		return 235;
+		return sys.visibleLines.last;
 	bug_unreachable("unhandled settingUI %s", name);
 	return 0;
 }
@@ -80,23 +81,22 @@ double MDFN_GetSettingF(const char *name)
 bool MDFN_GetSettingB(const char *name)
 {
 	std::string_view nameV{name};
+	auto &sys = static_cast<EmuEx::PceSystem&>(EmuEx::gSystem());
 	if("cheats" == nameV)
 		return 0;
 	if(EMU_MODULE".arcadecard" == nameV)
-		return static_cast<EmuEx::PceSystem&>(EmuEx::gSystem()).optionArcadeCard;
+		return sys.optionArcadeCard;
 	if(EMU_MODULE".forcesgx" == nameV)
 		return 0;
 	if(EMU_MODULE".nospritelimit" == nameV)
-		return 0;
+		return sys.noSpriteLimit;
 	if(EMU_MODULE".forcemono" == nameV)
 		return 0;
 	if(EMU_MODULE".disable_softreset" == nameV)
 		return 0;
 	if(EMU_MODULE".adpcmlp" == nameV)
-		return 0;
+		return sys.adpcmFilter;
 	if(EMU_MODULE".correct_aspect" == nameV)
-		return 1;
-	if("cdrom.lec_eval" == nameV)
 		return 1;
 	if("filesys.untrusted_fip_check" == nameV)
 		return 0;
