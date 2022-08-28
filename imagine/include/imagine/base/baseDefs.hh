@@ -133,7 +133,6 @@ namespace IG
 
 using OnFrameDelegate = DelegateFunc<bool (FrameParams params)>;
 
-
 enum class OrientationMask: uint8_t
 {
 	UNSET,
@@ -234,8 +233,10 @@ using SensorValues = std::array<float, 3>;
 
 class Screen;
 class Window;
-class WindowConfig;
+struct WindowConfig;
 class ApplicationContext;
+class Application;
+struct ApplicationInitParams;
 
 using WindowContainer = std::vector<std::unique_ptr<Window>>;
 using ScreenContainer = std::vector<std::unique_ptr<Screen>>;

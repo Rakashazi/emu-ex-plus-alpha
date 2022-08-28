@@ -34,174 +34,29 @@ class ApplicationContext;
 class Screen;
 class PixelFormat;
 
-class WindowConfig
+struct WindowConfig
 {
-public:
-	constexpr WindowConfig() = default;
-
-	void setDefaultPosition()
-	{
-		pos = {-1, -1};
-	}
-
-	bool isDefaultPosition() const
-	{
-		return pos == Point2D<int>{-1, -1};
-	}
-
-	void setPosition(Point2D<int> pos)
-	{
-		this->pos = pos;
-	}
-
-	Point2D<int> position() const
-	{
-		return pos;
-	}
-
-	void setDefaultSize()
-	{
-		size_ = {0, 0};
-	}
-
-	bool isDefaultSize() const
-	{
-		return !size_.x || !size_.y;
-	}
-
-	void setSize(Point2D<int> size_)
-	{
-		this->size_ = size_;
-	}
-
-	Point2D<int> size() const
-	{
-		return size_;
-	}
-
-	void setMinimumSize(Point2D<int> minSize)
-	{
-		this->minSize = minSize;
-	}
-
-	Point2D<int> minimumSize() const
-	{
-		return minSize;
-	}
-
-	void setFormat(NativeWindowFormat fmt)
-	{
-		this->fmt = fmt;
-	}
-
-	void setFormat(IG::PixelFormat);
-
-	NativeWindowFormat format() const
-	{
-		return fmt;
-	}
-
-	void setScreen(Screen &screen)
-	{
-		screen_ = &screen;
-	}
-
-	Screen &screen(ApplicationContext) const;
-
-	void setOnSurfaceChange(WindowSurfaceChangeDelegate del)
-	{
-		onSurfaceChange_ = del;
-	}
-
-	WindowSurfaceChangeDelegate onSurfaceChange() const
-	{
-		return onSurfaceChange_;
-	}
-
-	void setOnDraw(WindowDrawDelegate del)
-	{
-		onDraw_ = del;
-	}
-
-	WindowDrawDelegate onDraw() const
-	{
-		return onDraw_;
-	}
-
-	void setOnInputEvent(WindowInputEventDelegate del)
-	{
-		onInputEvent_ = del;
-	}
-
-	WindowInputEventDelegate onInputEvent() const
-	{
-		return onInputEvent_;
-	}
-
-	void setOnFocusChange(WindowFocusChangeDelegate del)
-	{
-		onFocusChange_ = del;
-	}
-
-	WindowFocusChangeDelegate onFocusChange() const
-	{
-		return onFocusChange_;
-	}
-
-	void setOnDragDrop(WindowDragDropDelegate del)
-	{
-		onDragDrop_ = del;
-	}
-
-	WindowDragDropDelegate onDragDrop() const
-	{
-		return onDragDrop_;
-	}
-
-	void setOnDismissRequest(WindowDismissRequestDelegate del)
-	{
-		onDismissRequest_ = del;
-	}
-
-	WindowDismissRequestDelegate onDismissRequest() const
-	{
-		return onDismissRequest_;
-	}
-
-	void setOnDismiss(WindowDismissDelegate del)
-	{
-		onDismiss_ = del;
-	}
-
-	WindowDismissDelegate onDismiss() const
-	{
-		return onDismiss_;
-	}
-
-	void setTitle(const char *str)
-	{
-		title_ = str;
-	}
-
-	const char *title() const
-	{
-		return title_;
-	}
-
-private:
-	Point2D<int> pos{-1, -1};
-	Point2D<int> size_{0, 0};
-	Point2D<int> minSize{320, 240};
-	NativeWindowFormat fmt{};
+	Point2D<int> position{-1, -1};
+	Point2D<int> size{0, 0};
+	Point2D<int> minimumSize{320, 240};
+	NativeWindowFormat nativeFormat{};
 	Screen *screen_{};
-	const char *title_{};
-	WindowSurfaceChangeDelegate onSurfaceChange_;
-	WindowDrawDelegate onDraw_;
-	WindowInputEventDelegate onInputEvent_;
-	WindowFocusChangeDelegate onFocusChange_;
-	WindowDragDropDelegate onDragDrop_;
-	WindowDismissRequestDelegate onDismissRequest_;
-	WindowDismissDelegate onDismiss_;
+	const char *title{};
+	WindowSurfaceChangeDelegate onSurfaceChange{};
+	WindowDrawDelegate onDraw{};
+	WindowInputEventDelegate onInputEvent{};
+	WindowFocusChangeDelegate onFocusChange{};
+	WindowDragDropDelegate onDragDrop{};
+	WindowDismissRequestDelegate onDismissRequest{};
+	WindowDismissDelegate onDismiss{};
+
+	void setDefaultPosition() { position = {-1, -1}; }
+	bool isDefaultPosition() const { return position == Point2D<int>{-1, -1}; }
+	void setDefaultSize() { size = {0, 0}; }
+	bool isDefaultSize() const { return !size.x || !size.y; }
+	void setFormat(IG::PixelFormat);
+	void setScreen(Screen &screen) { screen_ = &screen; }
+	Screen &screen(ApplicationContext) const;
 };
 
 }

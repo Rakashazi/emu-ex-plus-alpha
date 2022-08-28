@@ -85,16 +85,16 @@ protected:
 	VController &vController() { return *vControllerPtr; }
 	void refreshTouchConfigMenu();
 	TextMenuItem::SelectDelegate setVisibilityDel(VControllerVisibility);
-	TextMenuItem::SelectDelegate setSizeDel(uint16_t val);
+	TextMenuItem::SelectDelegate setSizeDel();
 	TextMenuItem::SelectDelegate setPointerInputPlayerDel(int val);
-	TextMenuItem::SelectDelegate setDeadzoneDel(int val);
-	TextMenuItem::SelectDelegate setDiagonalSensitivityDel(int val);
-	TextMenuItem::SelectDelegate setButtonSpaceDel(int val);
-	TextMenuItem::SelectDelegate setButtonExtraXSizeDel(int val);
-	TextMenuItem::SelectDelegate setButtonExtraYSizeDel(int val);
+	TextMenuItem::SelectDelegate setDeadzoneDel();
+	TextMenuItem::SelectDelegate setDiagonalSensitivityDel();
+	TextMenuItem::SelectDelegate setButtonSpaceDel();
+	TextMenuItem::SelectDelegate setButtonExtraXSizeDel();
+	TextMenuItem::SelectDelegate setButtonExtraYSizeDel();
 	TextMenuItem::SelectDelegate setButtonStaggerDel(int val);
 	TextMenuItem::SelectDelegate setButtonStateDel(VControllerState, uint8_t btnIdx);
-	TextMenuItem::SelectDelegate setAlphaDel(uint8_t val);
+	TextMenuItem::SelectDelegate setAlphaDel();
 };
 
 }

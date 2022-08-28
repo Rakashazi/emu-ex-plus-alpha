@@ -51,5 +51,6 @@ struct ApiDesc
 using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, size_t frames)>;
 
 struct OutputStreamConfig;
+class Manager;
 
 }

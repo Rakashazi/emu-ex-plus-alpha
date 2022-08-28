@@ -115,20 +115,19 @@ GlyphTextureSet::GlyphTextureSet(Renderer &r, IG::Font font, IG::FontSettings se
 	}
 }
 
-int GlyphTextureSet::nominalHeight() const
-{
-	return nominalHeight_;
-}
-
-void GlyphTextureSet::calcNominalHeight(Renderer &r)
+void GlyphTextureSet::calcMetrics(Renderer &r)
 {
 	//logMsg("calcNominalHeight");
 	GlyphEntry *mGly = glyphEntry(r, 'M');
 	GlyphEntry *gGly = glyphEntry(r, 'g');
-
-	assert(mGly && gGly);
-
-	nominalHeight_ = mGly->metrics.ySize + (gGly->metrics.ySize/2);
+	if(!mGly || !gGly) [[unlikely]]
+	{
+		logErr("error reading measurement glyphs");
+		return;
+	}
+	metrics_.nominalHeight = mGly->metrics.ySize + (gGly->metrics.ySize/2);
+	metrics_.spaceSize = mGly->metrics.xSize/2;
+	metrics_.yLineStart = gGly->metrics.ySize - gGly->metrics.yOffset;
 }
 
 IG::FontSettings GlyphTextureSet::fontSettings() const
@@ -148,7 +147,7 @@ bool GlyphTextureSet::setFontSettings(Renderer &r, IG::FontSettings set)
 	settings = set;
 	std::errc ec{};
 	faceSize = font.makeSize(settings, ec);
-	calcNominalHeight(r);
+	calcMetrics(r);
 	return true;
 }
 

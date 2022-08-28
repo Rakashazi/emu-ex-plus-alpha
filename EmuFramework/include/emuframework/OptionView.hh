@@ -28,11 +28,6 @@ namespace IG
 class TextTableView;
 }
 
-namespace IG::Gfx
-{
-struct DrawableConfig;
-}
-
 namespace EmuEx
 {
 
@@ -79,7 +74,7 @@ protected:
 	BoolMenuItem imgFilter;
 	TextMenuItem imgEffectItem[4];
 	MultiChoiceMenuItem imgEffect;
-	TextMenuItem overlayEffectItem[6];
+	TextMenuItem overlayEffectItem[8];
 	MultiChoiceMenuItem overlayEffect;
 	TextMenuItem overlayEffectLevelItem[5];
 	MultiChoiceMenuItem overlayEffectLevel;

@@ -35,10 +35,7 @@ ToastView::ToastView(ViewAttachParams attach): View{attach},
 		{
 			unpost();
 		}
-	}
-{
-	text.setMaxLines(6);
-}
+	} {}
 
 void ToastView::setFace(Gfx::GlyphTextureSet &face)
 {
@@ -58,8 +55,7 @@ void ToastView::clear()
 
 void ToastView::place()
 {
-	text.setMaxLineSize(projP.width());
-	text.compile(renderer(), projP);
+	text.compile(renderer(), projP, {.maxLineSize = projP.width(), .maxLines = 6});
 
 	int labelYSize = IG::makeEvenRoundedUp((int)projP.projectYSize(text.fullHeight()));
 	IG::WindowRect viewFrame;

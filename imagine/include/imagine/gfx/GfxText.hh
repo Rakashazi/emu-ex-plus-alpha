@@ -25,28 +25,27 @@
 namespace IG::Gfx
 {
 
-class Renderer;
-class RendererCommands;
-class GlyphTextureSet;
-class ProjectionPlane;
+struct TextLayoutConfig
+{
+	static constexpr uint16_t NO_MAX_LINES = std::numeric_limits<uint16_t>::max();
+	static constexpr float NO_MAX_LINE_SIZE = std::numeric_limits<float>::max();
+
+	float maxLineSize = NO_MAX_LINE_SIZE;
+	uint16_t maxLines = NO_MAX_LINES;
+};
 
 class Text
 {
 public:
-	static constexpr uint16_t NO_MAX_LINES = std::numeric_limits<uint16_t>::max();
-	static constexpr float NO_MAX_LINE_SIZE = std::numeric_limits<float>::max();
-
 	Text() = default;
 	Text(GlyphTextureSet *face);
 	Text(IG::utf16String str, GlyphTextureSet *face = nullptr);
 	void setString(IG::utf16String);
 	void setFace(GlyphTextureSet *face);
 	void makeGlyphs(Renderer &r);
-	bool compile(Renderer &r, ProjectionPlane projP);
+	bool compile(Renderer &, ProjectionPlane, TextLayoutConfig conf = {});
 	void draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, ProjectionPlane projP) const;
 	void draw(RendererCommands &cmds, FP p, _2DOrigin o, ProjectionPlane projP) const;
-	void setMaxLineSize(float size);
-	void setMaxLines(uint16_t lines);
 	float width() const;
 	float height() const;
 	float fullHeight() const;
@@ -77,9 +76,7 @@ protected:
 	float yLineStart = 0;
 	float xSize = 0;
 	float ySize = 0;
-	float maxLineSize = NO_MAX_LINE_SIZE;
 	uint16_t lines = 0;
-	uint16_t maxLines = NO_MAX_LINES;
 
 	bool hasText() const;
 };

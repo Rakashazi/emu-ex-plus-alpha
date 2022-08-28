@@ -208,8 +208,7 @@ void CollectTextInputView::place()
 				cancelSpr.setPos(projP.unProjectRect(cancelBtn));
 			}
 		});
-	message.setMaxLineSize(projP.width() * 0.95);
-	message.compile(renderer(), projP);
+	message.compile(renderer(), projP, {.maxLineSize = projP.width() * 0.95f});
 	IG::WindowRect textRect;
 	int xSize = viewRect().xSize() * 0.95;
 	int ySize = face.nominalHeight() * (Config::envIsAndroid ? 2. : 1.5);

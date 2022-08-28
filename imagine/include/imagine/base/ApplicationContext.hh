@@ -41,19 +41,10 @@ class Event;
 class Device;
 }
 
-namespace IG::FS
-{
-class AssetDirectoryIterator;
-}
-
 namespace IG
 {
 
-class Application;
-struct ApplicationInitParams;
 class PixelFormat;
-class AssetIO;
-class FileIO;
 
 enum class Permission
 {

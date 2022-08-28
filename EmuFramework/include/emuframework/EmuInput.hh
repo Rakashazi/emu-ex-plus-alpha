@@ -27,11 +27,6 @@
 #include <memory>
 #include <span>
 
-namespace IG::Input
-{
-class Device;
-}
-
 static constexpr unsigned MAX_KEY_CONFIG_NAME_SIZE = 80;
 static constexpr unsigned MAX_KEY_CONFIG_KEYS = 256;
 static constexpr unsigned MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;

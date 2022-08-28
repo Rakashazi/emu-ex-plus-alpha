@@ -22,11 +22,6 @@
 #include <imagine/gfx/SyncFence.hh>
 #include <optional>
 
-namespace IG
-{
-class ApplicationContext;
-}
-
 namespace EmuEx
 {
 

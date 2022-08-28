@@ -84,4 +84,6 @@ static constexpr PointerId NULL_POINTER_ID
 
 using DeviceTypeBits = uint8_t;
 
+class Device;
+
 }

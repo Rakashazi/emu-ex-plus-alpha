@@ -87,5 +87,7 @@ concept Seekable =
 		i.seek(offset, mode);
 	};
 
+class AssetIO;
+class FileIO;
 
 }

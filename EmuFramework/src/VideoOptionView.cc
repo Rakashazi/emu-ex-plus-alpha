@@ -443,12 +443,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	overlayEffectItem
 	{
-		{"Off",          &defaultFace(), setOverlayEffectDel(), 0},
-		{"Scanlines",    &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::SCANLINES)},
-		{"Scanlines 2x", &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::SCANLINES_2)},
-		{"LCD Grid",     &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::LCD)},
-		{"CRT",          &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT_RGB)},
-		{"CRT 2x",       &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT_RGB_2)}
+		{"Off",            &defaultFace(), setOverlayEffectDel(), 0},
+		{"Scanlines",      &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::SCANLINES)},
+		{"Scanlines 2x",   &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::SCANLINES_2)},
+		{"LCD Grid",       &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::LCD)},
+		{"CRT Mask",       &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT_MASK)},
+		{"CRT Mask .5x",   &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT_MASK_2)},
+		{"CRT Grille",     &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT_GRILLE)},
+		{"CRT Grille .5x", &defaultFace(), setOverlayEffectDel(), std::to_underlying(ImageOverlayId::CRT_GRILLE_2)}
 	},
 	overlayEffect
 	{

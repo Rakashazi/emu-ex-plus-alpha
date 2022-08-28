@@ -72,7 +72,7 @@ void TestFramework::placeCPUStatsText(Gfx::Renderer &r)
 
 void TestFramework::placeFrameStatsText(Gfx::Renderer &r)
 {
-	if(frameStatsText.compile(r, projP))
+	if(frameStatsText.compile(r, projP, {.maxLineSize = projP.width()}))
 	{
 		frameStatsRect = projP.bounds();
 		frameStatsRect.y2 = (frameStatsRect.y + frameStatsText.nominalHeight() * frameStatsText.currentLines())
@@ -83,7 +83,6 @@ void TestFramework::placeFrameStatsText(Gfx::Renderer &r)
 void TestFramework::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect)
 {
 	this->projP = projP;
-	frameStatsText.setMaxLineSize(projP.bounds().xSize());
 	placeCPUStatsText(r);
 	placeFrameStatsText(r);
 	placeTest(testRect);

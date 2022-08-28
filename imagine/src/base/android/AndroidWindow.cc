@@ -154,7 +154,7 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate onInit_
 		type = Type::MAIN;
 		logMsg("made device window:%p", (jobject)jWin);
 	}
-	nPixelFormat = config.format() ? config.format() : toAHardwareBufferFormat(ctx.defaultWindowPixelFormat());
+	nPixelFormat = config.nativeFormat ? config.nativeFormat : toAHardwareBufferFormat(ctx.defaultWindowPixelFormat());
 	// default to screen's size
 	updateSize({screen.width(), screen.height()});
 	contentRect = {{0, 0}, {width(), height()}};
@@ -353,7 +353,7 @@ void Window::setAcceptDnd(bool on) {}
 
 void WindowConfig::setFormat(IG::PixelFormat fmt)
 {
-	setFormat(toAHardwareBufferFormat(fmt));
+	nativeFormat = toAHardwareBufferFormat(fmt);
 }
 
 }

@@ -76,11 +76,11 @@ static EAGLRenderingAPI majorVersionToAPI(int version)
 
 IOSGLContext::IOSGLContext(GLContextAttributes attr, NativeGLContext shareContext_)
 {
-	assert(attr.openGLESAPI());
-	EAGLRenderingAPI api = majorVersionToAPI(attr.majorVersion());
+	assert(attr.glesApi);
+	EAGLRenderingAPI api = majorVersionToAPI(attr.majorVersion);
 	auto shareContext = (__bridge EAGLContext*)shareContext_;
 	EAGLSharegroup *sharegroup = [shareContext sharegroup];
-	logMsg("making context with version: %d.%d sharegroup:%p", attr.majorVersion(), attr.minorVersion(), sharegroup);
+	logMsg("making context with version: %d.%d sharegroup:%p", attr.majorVersion, attr.minorVersion, sharegroup);
 	EAGLContext *newContext = [[EAGLContext alloc] initWithAPI:api sharegroup:sharegroup];
 	if(!newContext)
 	{
@@ -148,7 +148,7 @@ GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes config) con
 	CGRect rect = win.screen()->uiScreen().bounds;
 	// Create the OpenGL ES view and add it to the Window
 	auto glView = [[EAGLView alloc] initWithFrame:rect];
-	if(config.bufferConfig().useRGB565)
+	if(config.bufferConfig.useRGB565)
 	{
 		[glView setDrawableColorFormat:kEAGLColorFormatRGB565];
 	}

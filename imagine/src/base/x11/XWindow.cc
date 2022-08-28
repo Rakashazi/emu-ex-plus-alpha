@@ -112,8 +112,8 @@ static IG::WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig 
 	}
 	else
 	{
-		winRect.x2 = config.size().x;
-		winRect.y2 = config.size().y;
+		winRect.x2 = config.size.x;
+		winRect.y2 = config.size.y;
 	}
 
 	// reduce size to work area if too big
@@ -136,7 +136,7 @@ static IG::WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig 
 	}
 	else
 	{
-		winRect.setPos(config.position(), LT2DO);
+		winRect.setPos(config.position, LT2DO);
 	}
 
 	// crop right & bottom to work area if overflowing
@@ -168,9 +168,9 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 		attr.event_mask = ExposureMask | PropertyChangeMask | StructureNotifyMask;
 		unsigned long valueMask = CWEventMask;
 		Visual *visual = DefaultVisualOfScreen(xScreen);
-		if(config.format())
+		if(config.nativeFormat)
 		{
-			visual = (Visual*)config.format();
+			visual = (Visual*)config.nativeFormat;
 			attr.colormap = XCreateColormap(dpy, rootWindow, visual, AllocNone);
 			valueMask |= CWColormap;
 		}
@@ -195,20 +195,20 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 	{
 		auto wmDelete = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
 		XSetWMProtocols(dpy, xWin, &wmDelete, 1);
-		if(config.minimumSize().x || config.minimumSize().y)
+		if(config.minimumSize.x || config.minimumSize.y)
 		{
 			XSizeHints hints{};
 			hints.x = winRect.x;
 			hints.y = winRect.y;
-			hints.min_width = config.minimumSize().x;
-			hints.min_height = config.minimumSize().y;
+			hints.min_width = config.minimumSize.x;
+			hints.min_height = config.minimumSize.y;
 			hints.flags = PPosition | PMinSize;
 			XSetWMNormalHints(dpy, xWin, &hints);
 		}
 	}
 	this->dpy = dpy;
-	if(config.title())
-		setTitle(config.title());
+	if(config.title)
+		setTitle(config.title);
 }
 
 XWindow::~XWindow()

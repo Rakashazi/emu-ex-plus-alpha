@@ -20,11 +20,6 @@
 #include <imagine/gfx/TextureSampler.hh>
 #include <imagine/util/enum.hh>
 
-namespace IG::Gfx
-{
-class Renderer;
-}
-
 namespace EmuEx
 {
 
@@ -34,8 +29,10 @@ WISE_ENUM_CLASS((ImageOverlayId, uint8_t),
 	(SCANLINES, 1),
 	(SCANLINES_2, 2),
 	(LCD, 10),
-	(CRT_RGB, 20),
-	(CRT_RGB_2, 21));
+	(CRT_MASK, 20),
+	(CRT_MASK_2, 21),
+	(CRT_GRILLE, 30),
+	(CRT_GRILLE_2, 31));
 
 class VideoImageOverlay
 {
@@ -43,14 +40,14 @@ public:
 	constexpr	VideoImageOverlay() = default;
 	void setEffect(Gfx::Renderer &, ImageOverlayId, Gfx::ColorSpace);
 	void setIntensity(float intensity);
-	void place(const Gfx::Sprite &, int lines, IG::Rotation);
+	void place(const Gfx::Sprite &, WP videoPixels, IG::Rotation);
 	void draw(Gfx::RendererCommands &cmds, float brightness);
 
 private:
 	Gfx::Texture img{};
 	Gfx::Sprite spr{};
 	Gfx::TextureSampler sampler{};
-	float intensity = 0.25;
+	float intensity = 0.75f;
 	ImageOverlayId overlayId{};
 	bool multiplyBlend{};
 };

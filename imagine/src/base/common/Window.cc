@@ -60,13 +60,13 @@ BaseWindow::BaseWindow(ApplicationContext ctx, WindowConfig config):
 			}
 			return true;
 		}, ctx, WINDOW_ON_EXIT_PRIORITY},
-	onSurfaceChange{config.onSurfaceChange() ? config.onSurfaceChange() : defaultOnSurfaceChange},
-	onDraw{config.onDraw() ? config.onDraw() : defaultOnDraw},
-	onInputEvent{config.onInputEvent() ? config.onInputEvent() : defaultOnInputEvent},
-	onFocusChange{config.onFocusChange() ? config.onFocusChange() : defaultOnFocusChange},
-	onDragDrop{config.onDragDrop() ? config.onDragDrop() : defaultOnDragDrop},
-	onDismissRequest{config.onDismissRequest() ? config.onDismissRequest() : defaultOnDismissRequest},
-	onDismiss{config.onDismiss() ? config.onDismiss() : defaultOnDismiss}
+	onSurfaceChange{config.onSurfaceChange ? config.onSurfaceChange : defaultOnSurfaceChange},
+	onDraw{config.onDraw ? config.onDraw : defaultOnDraw},
+	onInputEvent{config.onInputEvent ? config.onInputEvent : defaultOnInputEvent},
+	onFocusChange{config.onFocusChange ? config.onFocusChange : defaultOnFocusChange},
+	onDragDrop{config.onDragDrop ? config.onDragDrop : defaultOnDragDrop},
+	onDismissRequest{config.onDismissRequest ? config.onDismissRequest : defaultOnDismissRequest},
+	onDismiss{config.onDismiss ? config.onDismiss : defaultOnDismiss}
 {
 	attachDrawEvent();
 }

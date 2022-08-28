@@ -281,7 +281,7 @@ void EmuVideoLayer::setOverlayIntensity(float intensity)
 
 void EmuVideoLayer::placeOverlay()
 {
-	vidImgOverlay.place(disp, video.size().y, rotation);
+	vidImgOverlay.place(disp, video.size(), rotation);
 }
 
 void EmuVideoLayer::setEffectFormat(IG::PixelFormat fmt)

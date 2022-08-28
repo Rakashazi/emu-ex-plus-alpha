@@ -27,11 +27,6 @@ namespace IG::Input
 class Event;
 }
 
-namespace IG::Gfx
-{
-class RendererCommands;
-}
-
 namespace IG
 {
 

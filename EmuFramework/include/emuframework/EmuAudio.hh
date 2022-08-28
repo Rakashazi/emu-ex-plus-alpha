@@ -21,11 +21,6 @@
 #include <memory>
 #include <atomic>
 
-namespace IG::Audio
-{
-class Manager;
-}
-
 namespace EmuEx
 {
 

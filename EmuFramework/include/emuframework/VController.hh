@@ -32,11 +32,6 @@ class FileIO;
 class MapIO;
 }
 
-namespace IG::Gfx
-{
-class GlyphTextureSet;
-}
-
 namespace EmuEx
 {
 

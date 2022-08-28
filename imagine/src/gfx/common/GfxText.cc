@@ -74,31 +74,15 @@ void Text::makeGlyphs(Renderer &r)
 	}
 }
 
-bool Text::compile(Renderer &r, ProjectionPlane projP)
+bool Text::compile(Renderer &r, ProjectionPlane projP, TextLayoutConfig conf)
 {
 	if(!hasText()) [[unlikely]]
 		return false;
 	//logMsg("compiling text %s", str);
-
-	// TODO: move calc into Face class
-	GlyphEntry *mGly = face_->glyphEntry(r, 'M');
-	GlyphEntry *gGly = face_->glyphEntry(r, 'g');
-
-	if(!mGly || !gGly)
-	{
-		logErr("error reading measurement glyphs to compile text");
-		return false;
-	}
-
-	yLineStart = projP.alignYToPixel(projP.unprojectYSize(gGly->metrics.ySize - gGly->metrics.yOffset));
-
-	int spaceSizeI = mGly->metrics.xSize/2;
-	spaceSize = projP.unprojectXSize(spaceSizeI);
-	int nominalHeightPixels = mGly->metrics.ySize + gGly->metrics.ySize/2;
-	nominalHeight_ = projP.alignYToPixel(projP.unprojectYSize(IG::makeEvenRoundedUp(nominalHeightPixels)));
-	//int maxLineSizeI = Gfx::toIXSize(maxLineSize);
-	//logMsg("max line size %f", maxLineSize);
-	
+	auto metrics = face_->metrics();
+	yLineStart = projP.alignYToPixel(projP.unprojectYSize(metrics.yLineStart));
+	spaceSize = projP.unprojectXSize(metrics.spaceSize);
+	nominalHeight_ = projP.alignYToPixel(projP.unprojectYSize(IG::makeEvenRoundedUp(metrics.nominalHeight)));
 	lines = 1;
 	lineInfo.clear();
 	float xLineSize = 0, maxXLineSize = 0;
@@ -120,8 +104,8 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 		xLineSize += cSize;
 		textBlockSize += cSize;
 		bool lineHasMultipleBlocks = textBlockIdx != currLineIdx;
-		bool lineExceedsMaxSize = xLineSize > maxLineSize;
-		if(lines < maxLines)
+		bool lineExceedsMaxSize = xLineSize > conf.maxLineSize;
+		if(lines < conf.maxLines)
 		{
 			bool wentToNextLine = false;
 			// Go to next line?
@@ -255,16 +239,6 @@ static void drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionP
 		cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 		xPos += projP.unprojectXSize(gly->metrics.xAdvance);
 	}
-}
-
-void Text::setMaxLineSize(float size)
-{
-	maxLineSize = size;
-}
-
-void Text::setMaxLines(uint16_t lines)
-{
-	maxLines = lines;
 }
 
 float Text::width() const

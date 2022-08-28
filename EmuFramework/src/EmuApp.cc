@@ -173,7 +173,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionImgEffect{CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<std::to_underlying(lastEnum<ImageEffectId>)>},
 	optionImageEffectPixelFormat{CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid},
 	optionOverlayEffect{CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<std::to_underlying(lastEnum<ImageOverlayId>)>},
-	optionOverlayEffectLevel{CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>},
+	optionOverlayEffectLevel{CFGKEY_OVERLAY_EFFECT_LEVEL, 75, 0, optionIsValidWithMax<100>},
 	optionFrameInterval{CFGKEY_FRAME_INTERVAL,	1, !Config::envIsIOS, optionIsValidWithMinMax<1, 4, uint8_t>},
 	optionSkipLateFrames{CFGKEY_SKIP_LATE_FRAMES, 1, 0},
 	optionImageZoom(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid),
@@ -563,8 +563,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			return true;
 		});
 
-	IG::WindowConfig winConf{};
-	winConf.setTitle(ctx.applicationName);
+	IG::WindowConfig winConf{ .title = ctx.applicationName };
 	winConf.setFormat(windowDrawableConf.pixelFormat);
 	ctx.makeWindow(winConf,
 		[this, appConfig](IG::ApplicationContext ctx, IG::Window &win)
@@ -1761,9 +1760,8 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 	if(on && !hasExtraWindow(ctx))
 	{
 		logMsg("setting emu view on extra window");
-		IG::WindowConfig winConf;
+		IG::WindowConfig winConf{ .title = ctx.applicationName };
 		winConf.setScreen(screen);
-		winConf.setTitle(ctx.applicationName);
 		winConf.setFormat(windowDrawableConfig().pixelFormat);
 		auto extraWin = ctx.makeWindow(winConf,
 			[this](IG::ApplicationContext ctx, IG::Window &win)

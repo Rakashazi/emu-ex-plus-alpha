@@ -69,8 +69,7 @@ void BaseAlertView::place()
 {
 	using namespace IG::Gfx;
 	int xSize = viewRect().xSize() * .8;
-	text.setMaxLineSize(projP.unprojectXSize(xSize) * 0.95f);
-	text.compile(renderer(), projP);
+	text.compile(renderer(), projP, {.maxLineSize = projP.unprojectXSize(xSize) * 0.95f});
 
 	int menuYSize = menu.cells() * text.face()->nominalHeight()*2;
 	int labelYSize = IG::makeEvenRoundedUp((int)projP.projectYSize(text.fullHeight()));

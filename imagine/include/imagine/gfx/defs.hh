@@ -32,10 +32,16 @@
 namespace IG::Gfx
 {
 
+class Renderer;
 class RendererTask;
 class RendererCommands;
 class SyncFence;
 class Texture;
+class TextureSampler;
+class Mat4;
+class GlyphTextureSet;
+class ProjectionPlane;
+struct DrawableConfig;
 
 using GCRect = IG::CoordinateRect<float, true, true>;
 

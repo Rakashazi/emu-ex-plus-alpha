@@ -36,6 +36,13 @@ struct GlyphEntry
 	constexpr const Texture &glyph() const { return glyph_; }
 };
 
+struct GlyphSetMetrics
+{
+	int nominalHeight{};
+	int spaceSize{};
+	int yLineStart{};
+};
+
 class GlyphTextureSet
 {
 public:
@@ -51,7 +58,8 @@ public:
 		return precache(r, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 	}
 	GlyphEntry *glyphEntry(Renderer &r, int c, bool allowCache = true);
-	int nominalHeight() const;
+	GlyphSetMetrics metrics() const { return metrics_; }
+	int nominalHeight() const { return metrics().nominalHeight; }
 	void freeCaches(uint32_t rangeToFreeBits);
 	void freeCaches() { freeCaches(~0); }
 
@@ -60,10 +68,10 @@ private:
 	VMemArray<GlyphEntry> glyphTable{};
 	FontSettings settings{};
 	FontSize faceSize{};
-	int nominalHeight_ = 0;
+	GlyphSetMetrics metrics_{};
 	uint32_t usedGlyphTableBits = 0;
 
-	void calcNominalHeight(Renderer &r);
+	void calcMetrics(Renderer &r);
 	void resetGlyphTable();
 	std::errc cacheChar(Renderer &r, int c, int tableIdx);
 };

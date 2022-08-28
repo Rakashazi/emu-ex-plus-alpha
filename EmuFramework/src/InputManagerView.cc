@@ -40,8 +40,7 @@ IdentInputDeviceView::IdentInputDeviceView(ViewAttachParams attach):
 
 void IdentInputDeviceView::place()
 {
-	text.setMaxLineSize(projP.width() * 0.95);
-	text.compile(renderer(), projP);
+	text.compile(renderer(), projP, {.maxLineSize = projP.width() * 0.95f});
 }
 
 bool IdentInputDeviceView::inputEvent(const Input::Event &e)

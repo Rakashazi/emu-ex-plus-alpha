@@ -388,8 +388,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 			"Audio", &defaultFace(),
 			[this, &audio](const Input::Event &e)
 			{
-				auto view = EmuApp::makeView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS);
-				pushAndShow(std::move(view), e);
+				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS), e);
 			}
 		},
 		{

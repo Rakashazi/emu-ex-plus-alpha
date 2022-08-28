@@ -60,8 +60,7 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 	fontManager{ctx},
 	renderer{ctx}
 {
-	IG::WindowConfig winConf;
-	winConf.setTitle(ctx.applicationName);
+	IG::WindowConfig winConf{ .title = ctx.applicationName };
 
 	ctx.makeWindow(winConf,
 		[this](IG::ApplicationContext ctx, IG::Window &win)
