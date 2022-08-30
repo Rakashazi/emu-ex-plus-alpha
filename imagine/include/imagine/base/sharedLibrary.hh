@@ -27,6 +27,7 @@ static constexpr unsigned RESOLVE_ALL_SYMBOLS_FLAG = IG::bit(0);
 SharedLibraryRef openSharedLibrary(const char *name, unsigned flags = 0);
 void closeSharedLibrary(SharedLibraryRef lib);
 void *loadSymbol(SharedLibraryRef lib, const char *name);
+const char *lastOpenSharedLibraryError();
 
 static bool loadSymbol(IG::Pointer auto &symPtr, SharedLibraryRef lib, const char *name)
 {

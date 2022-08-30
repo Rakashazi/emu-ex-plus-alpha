@@ -20,12 +20,12 @@ else
 endif
 
 ifeq ($(ltoMode),lto)
- CFLAGS_CODEGEN += -flto
+ CFLAGS_CODEGEN += -flto=auto
 else ifeq ($(ltoMode),lto-fat)
- CFLAGS_CODEGEN += -flto -ffat-lto-objects
+ CFLAGS_CODEGEN += -flto=auto -ffat-lto-objects
 else ifeq ($(ltoMode),lto-link)
  # link thin LTO objects with non-LTO objects
- LDFLAGS_SYSTEM += -flto
+ LDFLAGS_SYSTEM += -flto=auto
 else
  LDFLAGS_SYSTEM += -fno-lto
 endif

@@ -95,6 +95,11 @@ void *loadSymbol(SharedLibraryRef lib, const char *name)
 	return dlsym(lib, name);
 }
 
+const char *lastOpenSharedLibraryError()
+{
+	return dlerror();
+}
+
 GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config)
 {
 	return makeContext(attr, config, {});

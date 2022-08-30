@@ -95,7 +95,8 @@ void C64System::onOptionsLoaded()
 	plugin = loadVicePlugin(currSystem, appContext().libPath().data());
 	if(!plugin)
 	{
-		throw std::runtime_error(fmt::format("Error loading plugin for system {}", VicePlugin::systemName(currSystem)));
+		throw std::runtime_error(fmt::format("Error loading plugin for system {}: {}",
+			VicePlugin::systemName(currSystem), lastOpenSharedLibraryError()));
 	}
 	IG::formatTo(externalPaletteResStr, "{}ExternalPalette", videoChipStr());
 	IG::formatTo(paletteFileResStr, "{}PaletteFile", videoChipStr());

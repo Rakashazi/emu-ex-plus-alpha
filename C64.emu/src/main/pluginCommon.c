@@ -55,6 +55,7 @@
 #include "zfile.h"
 #include "mousedrv.h"
 #include "rs232.h"
+#include "tick.h"
 
 VICE_API int vice_init();
 
@@ -225,7 +226,7 @@ console_t *uimon_window_resume(void)
 
 void uimon_window_close(void) {}
 
-console_t *uimon_window_open(void)
+console_t *uimon_window_open(bool display_now)
 {
 	return NULL;
 }
@@ -473,7 +474,8 @@ unsigned int width, const unsigned int height, \
 const unsigned int xs, const unsigned int ys, \
 const unsigned int xt, const unsigned int yt, \
 const unsigned int pitchs, const unsigned int pitcht, \
-viewport_t *viewport, video_render_config_t *config) {}
+unsigned int viewport_first_line, unsigned int viewport_last_line, \
+video_render_config_t *config) {}
 
 DUMMY_VIDEO_RENDER(render_32_2x2)
 DUMMY_VIDEO_RENDER(render_08_2x2_04)
@@ -574,7 +576,7 @@ int zfile_close_action(const char *filename, zfile_action_t action,
 	return 0;
 }
 
-void tick_sleep(unsigned long ticks) { assert(!"emulation thread should not explicitly call sleep for timing"); }
+void tick_sleep(tick_t ticks) { assert(!"emulation thread should not explicitly call sleep for timing"); }
 
 #ifdef NDEBUG
 int log_message(log_t log, const char *format, ...) { return 0; }

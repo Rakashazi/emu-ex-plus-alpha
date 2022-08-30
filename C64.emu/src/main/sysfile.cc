@@ -78,6 +78,7 @@ static int loadSysFile(Readable auto &file, const char *name, uint8_t *dest, int
 
 static ArchiveIO archiveIOForSysFile(IG::CStringView archivePath, std::string_view sysFileName, std::string_view subPath, char **complete_path_return)
 {
+	auto sysFilePath = FS::pathString(subPath, sysFileName);
 	try
 	{
 		for(auto &entry : FS::ArchiveIterator{gAppContext().openFileUri(archivePath)})
@@ -87,7 +88,7 @@ static ArchiveIO archiveIOForSysFile(IG::CStringView archivePath, std::string_vi
 				continue;
 			}
 			auto name = entry.name();
-			if(FS::basename(name) != sysFileName || FS::basename(FS::dirname(name)) != subPath)
+			if(!name.ends_with(sysFilePath))
 				continue;
 			logMsg("archive file entry:%s", name.data());
 			if(complete_path_return)
@@ -145,7 +146,7 @@ std::vector<std::string> C64System::systemFilesWithExtension(const char *ext) co
 					auto name = entry.name();
 					if(FS::basename(FS::dirname(name)) != sysFileDir)
 						continue;
-					if(FS::basename(name).ends_with(ext))
+					if(name.ends_with(ext))
 					{
 						logMsg("archive file entry:%s", name.data());
 						filenames.emplace_back(FS::basename(name));

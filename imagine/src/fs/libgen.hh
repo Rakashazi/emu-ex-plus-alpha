@@ -20,8 +20,11 @@
 #include <libgen.h>
 #undef basename
 #include <string.h> // use GNU version of basename() that doesn't modify argument
+constexpr bool dirnameCanModifyArgument = true;
 #else
+// Bionic or BSD
 #include <libgen.h>
+constexpr bool dirnameCanModifyArgument = false;
 #endif
 
 namespace IG::FS
@@ -33,12 +36,12 @@ static auto basenameImpl(const char *path)
 	{
 		if constexpr(requires {::basename(path);})
 		{
+			// Bionic or GNU C versions take const char*
 			return ::basename(path);
 		}
 		else
 		{
-			// standard version can modify input, and returns a pointer within it
-			// BSD version can modify input, but always returns its own allocated storage
+			// BSD version takes char *, but always returns its own allocated storage
 			return ::basename(PathString{path}.data());
 		}
 	}(path);
@@ -50,13 +53,23 @@ static auto dirnameImpl(const char *path)
 	{
 		if constexpr(requires {::dirname(path);})
 		{
+			// Bionic version takes const char*
 			return ::dirname(path);
 		}
 		else
 		{
-			// standard version can modify input, and returns a pointer within it
-			// BSD version can modify input, but always returns its own allocated storage
-			return ::dirname(PathString{path}.data());
+			if constexpr(dirnameCanModifyArgument)
+			{
+				// standard version can modify input, and returns a pointer within it
+				PathString tempPath{path};
+				FileString output{::dirname(tempPath.data())};
+				return output;
+			}
+			else
+			{
+				// BSD version takes char *, but always returns its own allocated storage
+				return ::dirname(PathString{path}.data());
+			}
 		}
 	}(path);
 }
