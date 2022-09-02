@@ -138,6 +138,8 @@ protected:
 	bool hasMipmaps{};
 };
 
+using FaceButtonImageMap = std::array<int, MAX_FACE_BTNS>;
+
 class VControllerButton
 {
 public:
@@ -216,6 +218,7 @@ public:
 	void setFaceButtonSize(Gfx::Renderer &, IG::WP sizeInPixels, IG::WP extraSizePixels, Gfx::ProjectionPlane);
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::ProjectionPlane);
 	void setImg(Gfx::Renderer &r, Gfx::Texture &pics);
+	void setFaceButtonMapping(Gfx::Renderer &, Gfx::Texture &, FaceButtonImageMap map);
 	void drawDPads(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane) const;
 	void drawButtons(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane) const;
 	void draw(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane) const;

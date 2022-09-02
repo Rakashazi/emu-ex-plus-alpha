@@ -4,6 +4,8 @@
 #include <emuframework/Option.hh>
 #include <mednafen/mednafen.h>
 
+extern const Mednafen::MDFNGI EmulatedNGP;
+
 namespace EmuEx
 {
 
@@ -15,6 +17,7 @@ enum
 class NgpSystem final: public EmuSystem
 {
 public:
+	Mednafen::MDFNGI mdfnGameInfo{EmulatedNGP};
 	Byte1Option optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
 	uint8_t inputBuff{};
 	IG::MutablePixmapView mSurfacePix{};
@@ -22,7 +25,10 @@ public:
 	alignas(8) uint32_t pixBuff[vidBufferX*vidBufferY]{};
 
 	NgpSystem(ApplicationContext ctx):
-		EmuSystem{ctx} {}
+		EmuSystem{ctx}
+	{
+		Mednafen::MDFNGameInfo = &mdfnGameInfo;
+	}
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -59,6 +65,3 @@ namespace MDFN_IEN_NGP
 {
 void applyVideoFormat(Mednafen::MDFN_PixelFormat);
 }
-
-extern Mednafen::MDFNGI EmulatedNGP;
-static Mednafen::MDFNGI *emuSys = &EmulatedNGP;

@@ -46,8 +46,6 @@ public:
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	void glcMatrixMode(GLenum mode);
 	#endif
-	void glcBindTexture(GLenum target, GLuint texture);
-	void glcDeleteTextures(GLsizei n, const GLuint *textures);
 	void glcBlendFunc(GLenum sfactor, GLenum dfactor);
 	void glcBlendEquation(GLenum mode);
 	void glcEnable(GLenum cap);
@@ -56,14 +54,7 @@ public:
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	void glcEnableClientState(GLenum cap);
 	void glcDisableClientState(GLenum cap);
-	void glcTexEnvi(GLenum target, GLenum pname, GLint param);
 	void glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-	void glcTexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
-	void glcColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
-	void glcVertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	void glcVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer);
 	#endif
 	void setupVertexArrayPointers(const char *v, int stride,
 		AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib);

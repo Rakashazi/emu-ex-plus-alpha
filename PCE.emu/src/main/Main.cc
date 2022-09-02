@@ -82,7 +82,7 @@ FS::FileString PceSystem::stateFilename(int slot, std::string_view name) const
 
 void PceSystem::closeSystem()
 {
-	emuSys->CloseGame();
+	mdfnGameInfo.CloseGame();
 	if(CDInterfaces.size())
 	{
 		assert(CDInterfaces.size() == 1);
@@ -91,7 +91,7 @@ void PceSystem::closeSystem()
 	}
 }
 
-static void writeCDMD5(CDInterface &cdInterface)
+static void writeCDMD5(MDFNGI &mdfnGameInfo, CDInterface &cdInterface)
 {
 	CDUtility::TOC toc;
 	md5_context layout_md5;
@@ -113,14 +113,14 @@ static void writeCDMD5(CDInterface &cdInterface)
 	uint8 LayoutMD5[16];
 	layout_md5.finish(LayoutMD5);
 
-	memcpy(emuSys->MD5, LayoutMD5, 16);
+	memcpy(mdfnGameInfo.MD5, LayoutMD5, 16);
 }
 
 WP PceSystem::multiresVideoBaseSize() const { return {512, 0}; }
 
 void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	emuSys->name = std::string{EmuSystem::contentName()};
+	mdfnGameInfo.name = std::string{EmuSystem::contentName()};
 	auto unloadCD = IG::scopeGuard(
 		[&]()
 		{
@@ -143,8 +143,8 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 		}
 		CDInterfaces.reserve(1);
 		CDInterfaces.push_back(CDInterface::Open(&NVFS, contentLocation().data(), false, 0));
-		writeCDMD5(*CDInterfaces[0]);
-		emuSys->LoadCD(&CDInterfaces);
+		writeCDMD5(mdfnGameInfo, *CDInterfaces[0]);
+		mdfnGameInfo.LoadCD(&CDInterfaces);
 		PCECD_Drive_SetDisc(false, CDInterfaces[0]);
 	}
 	else
@@ -159,12 +159,12 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 		GameFile gf{&NVFS, std::string{contentDirectory()}, fp.stream(),
 			stringWithoutDotExtension<std::string>(contentFileName()),
 			std::string{contentName()}};
-		emuSys->Load(&gf);
+		mdfnGameInfo.Load(&gf);
 	}
 	//logMsg("%d input ports", MDFNGameInfo->InputInfo->InputPorts);
 	for(auto i : iotaCount(5))
 	{
-		emuSys->SetInput(i, "gamepad", (uint8*)&inputBuff[i]);
+		mdfnGameInfo.SetInput(i, "gamepad", (uint8*)&inputBuff[i]);
 	}
 	unloadCD.cancel();
 }
@@ -209,7 +209,7 @@ void PceSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	espec.surface = &mSurface;
 	int32 lineWidth[242];
 	espec.LineWidths = lineWidth;
-	emuSys->Emulate(&espec);
+	mdfnGameInfo.Emulate(&espec);
 	if(audio)
 	{
 		assert((unsigned)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));

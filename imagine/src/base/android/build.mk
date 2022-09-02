@@ -6,8 +6,6 @@ include $(imagineSrcDir)/input/build.mk
 include $(IMAGINE_PATH)/make/package/egl.mk
 include $(imagineSrcDir)/util/fdUtils.mk
 
-configDefs += CONFIG_BASE_ANDROID
-
 SRC += base/android/android.cc \
 base/android/AndroidWindow.cc \
 base/android/AndroidScreen.cc \

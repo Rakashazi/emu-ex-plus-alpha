@@ -15,14 +15,17 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <array>
+#include <string_view>
+
 namespace EmuEx::Controls
 {
 
-static constexpr int gameActionKeys = 10;
-static constexpr int systemKeyMapStart = gameActionKeys;
-typedef unsigned GameActionKeyArray[gameActionKeys];
+constexpr int gameActionKeys = 10;
+constexpr int systemKeyMapStart = gameActionKeys;
+using GameActionKeyArray = std::array<unsigned, gameActionKeys>;
 
-static const char *gameActionName[gameActionKeys] =
+inline constexpr std::array<const std::string_view, gameActionKeys> gameActionName
 {
 	"Load Game",
 	"Open System Actions",

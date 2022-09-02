@@ -106,7 +106,7 @@ static bool readKeyConfig(KeyConfigContainer &customKeyConfigs,
 			if(size < catSize)
 				return false;
 
-			if(catSize > cat.keys * sizeof(KeyConfig::Key))
+			if(catSize > cat.keys() * sizeof(KeyConfig::Key))
 				return false;
 			auto key = keyConf.key(cat);
 			if(io.read(key, catSize) != catSize)
@@ -116,7 +116,7 @@ static bool readKeyConfig(KeyConfigContainer &customKeyConfigs,
 			// verify keys
 			{
 				const auto keyMax = Input::KeyEvent::mapNumKeys(keyConf.map);
-				for(auto i : iotaCount(cat.keys))
+				for(auto i : iotaCount(cat.keys()))
 				{
 					if(key[i] >= keyMax)
 					{
@@ -373,7 +373,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 			{
 				bool write{};
 				const auto key = e.key(cat);
-				for(auto k : iotaCount(cat.keys))
+				for(auto k : iotaCount(cat.keys()))
 				{
 					if(key[k]) // check if category has any keys defined
 					{
@@ -384,13 +384,13 @@ void EmuApp::saveConfigFile(FileIO &io)
 				writeCategory[configs][std::distance(inputControlCategories().data(), &cat)] = write;
 				if(!write)
 				{
-					logMsg("category:%s of key conf:%s skipped", cat.name, e.name.data());
+					logMsg("category:%s of key conf:%s skipped", cat.name.data(), e.name.data());
 					continue;
 				}
 				writeCategories[configs]++;
 				bytes += 1; // category index
 				bytes += 2; // category key array size
-				bytes += cat.keys * sizeof(KeyConfig::Key); // keys array
+				bytes += cat.keys() * sizeof(KeyConfig::Key); // keys array
 			}
 			configs++;
 		}
@@ -418,7 +418,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 				if(!writeCategory[configs][catIdx])
 					continue;
 				io.write((uint8_t)catIdx);
-				uint16_t catSize = cat.keys * sizeof(KeyConfig::Key);
+				uint16_t catSize = cat.keys() * sizeof(KeyConfig::Key);
 				io.write(catSize);
 				io.write(e.key(cat), catSize);
 			}

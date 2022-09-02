@@ -27,7 +27,7 @@ using Time = std::chrono::nanoseconds;
 
 using Key = uint16_t;
 
-	namespace Android
+	namespace Keycode
 	{
 	static constexpr Key
 	// SYS_HOME = 3, // Never sent to apps
@@ -217,47 +217,9 @@ using Key = uint16_t;
 		R1 = GAME_R1,
 		SELECT = GAME_SELECT,
 		START = GAME_START,
-		UP = Android::UP, RIGHT = Android::RIGHT, DOWN = Android::DOWN, LEFT = Android::LEFT;
-		}
-
-		namespace Ouya
-		{
-		static constexpr Key
-		O = GAME_A,
-		U = GAME_X,
-		Y = GAME_Y,
-		A = GAME_B,
-		L1 = GAME_L1,
-		L2 = GAME_L2,
-		L3 = GAME_LEFT_THUMB,
-		R1 = GAME_R1,
-		R2 = GAME_R2,
-		R3 = GAME_RIGHT_THUMB,
-		UP = Android::UP, RIGHT = Android::RIGHT, DOWN = Android::DOWN, LEFT = Android::LEFT,
-		SYSTEM = MENU;
-		}
-
-		namespace PS3
-		{
-		static constexpr Key
-		CROSS = GAME_X,
-		CIRCLE = GAME_Y,
-		SQUARE = GAME_A,
-		TRIANGLE = GAME_B,
-		L1 = GAME_L1,
-		L2 = GAME_L2,
-		L3 = GAME_LEFT_THUMB,
-		R1 = GAME_R1,
-		R2 = GAME_R2,
-		R3 = GAME_RIGHT_THUMB,
-		SELECT = GAME_SELECT,
-		START = GAME_START,
-		UP = Android::UP, RIGHT = Android::RIGHT, DOWN = Android::DOWN, LEFT = Android::LEFT,
-		PS = GAME_1;
+		UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT;
 		}
 }
-
-namespace Keycode = Android;
 
 	namespace Pointer
 	{

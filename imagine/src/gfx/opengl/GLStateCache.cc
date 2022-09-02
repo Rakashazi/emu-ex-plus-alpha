@@ -19,58 +19,6 @@
 
 bool GLStateCache::verifyState = false;
 
-static GLenum textureTargetToGet(GLenum target)
-{
-	switch(target)
-	{
-		case GL_TEXTURE_2D: return GL_TEXTURE_BINDING_2D;
-		default: bug_unreachable("target == %d", target);
-	}
-}
-
-GLuint *GLStateCache::getBindTextureState(GLenum target)
-{
-	#define GLTARGET_CASE(target) case target: return &bindTextureState.target ## _state
-	switch(target)
-	{
-		GLTARGET_CASE(GL_TEXTURE_2D);
-	}
-	return nullptr;
-	#undef GLTARGET_CASE
-}
-
-void GLStateCache::bindTexture(GLenum target, GLuint texture)
-{
-	GLuint *state = getBindTextureState(target);
-	if(!state) [[unlikely]]
-	{
-		runGLCheckedVerbose([&]()
-		{
-			glBindTexture(target, texture);
-		}, "glBindTexture()");
-		return;
-	}
-	if(texture != *state)
-	{
-		//logMsg("binding texture %d to target %d", texture, target);
-		runGLCheckedVerbose([&]()
-		{
-			glBindTexture(target, texture);
-		}, "glBindTexture()");
-		*state = texture;
-	}
-
-	if(verifyState)
-	{
-		GLint realTexture = 0;
-		if(runGLCheckedVerbose([&]() { glGetIntegerv(textureTargetToGet(target), &realTexture); })
-			&& texture != (GLuint)realTexture)
-		{
-			bug_unreachable("out of sync, expected %u but got %u, target %d", texture, realTexture, target);
-		}
-	}
-}
-
 void GLStateCache::blendFunc(GLenum sfactor, GLenum dfactor)
 {
 	if(!(sfactor == blendFuncSfactor && dfactor == blendFuncDfactor))
@@ -109,7 +57,6 @@ int8_t *GLStateCache::getCap(GLenum cap)
 		GLCAP_CASE(GL_DEPTH_TEST);
 		GLCAP_CASE(GL_BLEND);
 		GLCAP_CASE(GL_SCISSOR_TEST);
-		GLCAP_CASE(GL_CULL_FACE);
 		GLCAP_CASE(GL_DITHER);
 		#ifndef CONFIG_GFX_OPENGL_ES
 		GLCAP_CASE(GL_MULTISAMPLE);
@@ -285,28 +232,6 @@ void GLStateCache::disableClientState(GLenum cap)
 		{
 			bug_unreachable("state %d out of sync", cap);
 		}
-	}
-}
-
-void GLStateCache::texEnvi(GLenum target, GLenum pname, GLint param)
-{
-	if(target == GL_TEXTURE_ENV && pname == GL_TEXTURE_ENV_MODE)
-	{
-		if(param != GL_TEXTURE_ENV_GL_TEXTURE_ENV_MODE_state)
-		{
-			GL_TEXTURE_ENV_GL_TEXTURE_ENV_MODE_state = param;
-			runGLCheckedVerbose([&]()
-			{
-				glTexEnvi(target, pname, param);
-			}, "glTexEnvi()");
-		}
-	}
-	else // cases we don't handle
-	{
-		runGLCheckedVerbose([&]()
-		{
-			glTexEnvi(target, pname, param);
-		}, "glTexEnvi()");
 	}
 }
 

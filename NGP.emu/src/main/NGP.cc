@@ -28,7 +28,7 @@
 namespace Mednafen
 {
 
-MDFNGI *MDFNGameInfo = &EmulatedNGP;
+MDFNGI *MDFNGameInfo;
 
 uint64 MDFN_GetSettingUI(const char *name)
 {
@@ -95,7 +95,7 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 
 void MDFN_DoSimpleCommand(int cmd)
 {
-	emuSys->DoSimpleCommand(cmd);
+	MDFNGameInfo->DoSimpleCommand(cmd);
 }
 
 }

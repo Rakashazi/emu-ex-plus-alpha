@@ -19,17 +19,16 @@
 namespace EmuEx::Controls
 {
 
-const unsigned categories = 4;
-static const unsigned gamepadKeys = 11;
-static const unsigned kbKeys = 88;
-const unsigned systemTotalKeys = gameActionKeys + gamepadKeys*2 + kbKeys;
+constexpr int gamepadKeys = 11;
+constexpr int kbKeys = 88;
+const int systemTotalKeys = gameActionKeys + gamepadKeys*2 + kbKeys;
 
 void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player)
 {
 	generic2PlayerTranspose(key, player, 1);
 }
 
-static const char *gamepadName[gamepadKeys] =
+constexpr std::array<const std::string_view, gamepadKeys> gamepadName
 {
 	"Up",
 	"Right",
@@ -41,10 +40,10 @@ static const char *gamepadName[gamepadKeys] =
 	"Left+Down",
 	"Trigger",
 	"Trigger Turbo",
-	"Swap Ports"
+	"Swap Ports",
 };
 
-static const char *keyboardName[kbKeys] =
+constexpr std::array<const std::string_view, kbKeys> keyboardName
 {
 	"Toggle Keyboard",
 
@@ -143,17 +142,19 @@ static const char *keyboardName[kbKeys] =
 	"' ⇧\"",
 };
 
-static const unsigned gamepadKeyOffset = gameActionKeys;
-static const unsigned gamepad2KeyOffset = gamepadKeyOffset + gamepadKeys;
-static const unsigned keyboardKeyOffset = gamepad2KeyOffset + gamepadKeys;
+constexpr int gamepadKeyOffset = gameActionKeys;
+constexpr int gamepad2KeyOffset = gamepadKeyOffset + gamepadKeys;
+constexpr int keyboardKeyOffset = gamepad2KeyOffset + gamepadKeys;
 
-const KeyCategory category[MAX_CATEGORIES]
+constexpr KeyCategory category[]
 {
 	EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
 	{"Set Joystick Keys", gamepadName, gamepadKeyOffset},
 	{"Set Joystick 2 Keys", gamepadName, gamepad2KeyOffset, true},
 	{"Set Keyboard Keys", keyboardName, keyboardKeyOffset}
 };
+
+std::span<const KeyCategory> categories() { return category; }
 
 const KeyConfig defaultKeyProfile[] =
 {
@@ -306,8 +307,6 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::GAME_B,
 		}
 	},
-	#endif
-	#ifdef CONFIG_BASE_ANDROID
 	{
 		Map::SYSTEM,
 		DeviceSubtype::PS3_CONTROLLER,
@@ -463,204 +462,204 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::GAME_Y,
 		}
 	},
-		#if __ARM_ARCH == 7
+	#endif
+	#if defined(__ANDROID__) && __ARM_ARCH == 7
+	{
+		Map::SYSTEM,
+		DeviceSubtype::XPERIA_PLAY,
+		{"Xperia Play"},
 		{
-			Map::SYSTEM,
-			DeviceSubtype::XPERIA_PLAY,
-			{"Xperia Play"},
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
-				// JS 1
-				Keycode::XperiaPlay::UP,
-				Keycode::XperiaPlay::RIGHT,
-				Keycode::XperiaPlay::DOWN,
-				Keycode::XperiaPlay::LEFT,
-				0, 0, 0, 0,
-				Keycode::XperiaPlay::CROSS,
-				Keycode::XperiaPlay::SQUARE,
-				Keycode::XperiaPlay::TRIANGLE,
+			// JS 1
+			Keycode::XperiaPlay::UP,
+			Keycode::XperiaPlay::RIGHT,
+			Keycode::XperiaPlay::DOWN,
+			Keycode::XperiaPlay::LEFT,
+			0, 0, 0, 0,
+			Keycode::XperiaPlay::CROSS,
+			Keycode::XperiaPlay::SQUARE,
+			Keycode::XperiaPlay::TRIANGLE,
 
-				// JS 2
-				PP_ZERO_LIST(11)
+			// JS 2
+			PP_ZERO_LIST(11)
 
-				// Keyboard
-				Keycode::XperiaPlay::START,
-				Keycode::XperiaPlay::SELECT, // F1 ... F8
-				0,
-				Keycode::XperiaPlay::L1,
-				0,
-				Keycode::XperiaPlay::R1,
-				0,
-				Keycode::XperiaPlay::CIRCLE,
-			}
-		},
+			// Keyboard
+			Keycode::XperiaPlay::START,
+			Keycode::XperiaPlay::SELECT, // F1 ... F8
+			0,
+			Keycode::XperiaPlay::L1,
+			0,
+			Keycode::XperiaPlay::R1,
+			0,
+			Keycode::XperiaPlay::CIRCLE,
+		}
+	},
+	{
+		Map::SYSTEM,
+		DeviceSubtype::MOTO_DROID_KEYBOARD,
+		{"Droid/Milestone Keyboard (w/ Joystick Keys)"},
 		{
-			Map::SYSTEM,
-			DeviceSubtype::MOTO_DROID_KEYBOARD,
-			{"Droid/Milestone Keyboard (w/ Joystick Keys)"},
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
-				// JS 1
-				Keycode::UP,
-				Keycode::RIGHT,
-				Keycode::DOWN,
-				Keycode::LEFT,
-				0, 0, 0, 0,
-				Keycode::X,
-				Keycode::C,
-				0,
+			// JS 1
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
+			0, 0, 0, 0,
+			Keycode::X,
+			Keycode::C,
+			0,
 
-				// JS 2
-				PP_ZERO_LIST(11)
+			// JS 2
+			PP_ZERO_LIST(11)
 
-				// KB
-				Keycode::LALT,
+			// KB
+			Keycode::LALT,
 
-				PP_ZERO_LIST(8) // F1-F8
+			PP_ZERO_LIST(8) // F1-F8
 
-				0, // Left Arrow
-				PP_ZERO_LIST(10) // '1', '2', ... '0'
-				0, // +
-				0, // =
-				0, // Pound
-				0, // Clr Home
-				Keycode::BACK_SPACE,
+			0, // Left Arrow
+			PP_ZERO_LIST(10) // '1', '2', ... '0'
+			0, // +
+			0, // =
+			0, // Pound
+			0, // Clr Home
+			Keycode::BACK_SPACE,
 
-				0, // Ctrl
-				Keycode::Q,
-				Keycode::W,
-				Keycode::E,
-				Keycode::R,
-				Keycode::T,
-				Keycode::Y,
-				Keycode::U,
-				Keycode::I,
-				Keycode::O,
-				Keycode::P,
-				0, // @
-				0, // *
-				0, // Up Arrow
-				0, // Restore
+			0, // Ctrl
+			Keycode::Q,
+			Keycode::W,
+			Keycode::E,
+			Keycode::R,
+			Keycode::T,
+			Keycode::Y,
+			Keycode::U,
+			Keycode::I,
+			Keycode::O,
+			Keycode::P,
+			0, // @
+			0, // *
+			0, // Up Arrow
+			0, // Restore
 
-				Keycode::RALT, // Run/Stop
-				0, // Shift/Lock
-				Keycode::A,
-				Keycode::S,
-				Keycode::D,
-				Keycode::F,
-				Keycode::G,
-				Keycode::H,
-				Keycode::J,
-				Keycode::K,
-				0, // l
-				0, // :
-				0, // ;
-				0, // =
-				Keycode::ENTER,
+			Keycode::RALT, // Run/Stop
+			0, // Shift/Lock
+			Keycode::A,
+			Keycode::S,
+			Keycode::D,
+			Keycode::F,
+			Keycode::G,
+			Keycode::H,
+			Keycode::J,
+			Keycode::K,
+			0, // l
+			0, // :
+			0, // ;
+			0, // =
+			Keycode::ENTER,
 
-				0, // Commodore Logo
-				Keycode::LSHIFT,
-				Keycode::Z,
-				0, // x
-				0, // c
-				Keycode::V,
-				Keycode::B,
-				Keycode::N,
-				Keycode::M,
-				Keycode::COMMA,
-				Keycode::PERIOD,
-				Keycode::SLASH,
-				Keycode::RSHIFT,
-				0, // up
-				0, // right
-				0, // down
-				0, // left
+			0, // Commodore Logo
+			Keycode::LSHIFT,
+			Keycode::Z,
+			0, // x
+			0, // c
+			Keycode::V,
+			Keycode::B,
+			Keycode::N,
+			Keycode::M,
+			Keycode::COMMA,
+			Keycode::PERIOD,
+			Keycode::SLASH,
+			Keycode::RSHIFT,
+			0, // up
+			0, // right
+			0, // down
+			0, // left
 
-				Keycode::SPACE,
-			}
-		},
+			Keycode::SPACE,
+		}
+	},
+	{
+		Map::SYSTEM,
+		DeviceSubtype::MOTO_DROID_KEYBOARD,
+		{"Droid/Milestone Keyboard"},
 		{
-			Map::SYSTEM,
-			DeviceSubtype::MOTO_DROID_KEYBOARD,
-			{"Droid/Milestone Keyboard"},
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
-				// JS 1
-				PP_ZERO_LIST(11)
+			// JS 1
+			PP_ZERO_LIST(11)
 
-				// JS 2
-				PP_ZERO_LIST(11)
+			// JS 2
+			PP_ZERO_LIST(11)
 
-				// KB
-				Keycode::LALT,
+			// KB
+			Keycode::LALT,
 
-				PP_ZERO_LIST(8) // F1-F8
+			PP_ZERO_LIST(8) // F1-F8
 
-				0, // Left Arrow
-				PP_ZERO_LIST(10) // '1', '2', ... '0'
-				0, // +
-				0, // =
-				0, // Pound
-				0, // Clr Home
-				Keycode::BACK_SPACE,
+			0, // Left Arrow
+			PP_ZERO_LIST(10) // '1', '2', ... '0'
+			0, // +
+			0, // =
+			0, // Pound
+			0, // Clr Home
+			Keycode::BACK_SPACE,
 
-				0, // Ctrl
-				Keycode::Q,
-				Keycode::W,
-				Keycode::E,
-				Keycode::R,
-				Keycode::T,
-				Keycode::Y,
-				Keycode::U,
-				Keycode::I,
-				Keycode::O,
-				Keycode::P,
-				0, // @
-				0, // *
-				0, // Up Arrow
-				0, // Restore
+			0, // Ctrl
+			Keycode::Q,
+			Keycode::W,
+			Keycode::E,
+			Keycode::R,
+			Keycode::T,
+			Keycode::Y,
+			Keycode::U,
+			Keycode::I,
+			Keycode::O,
+			Keycode::P,
+			0, // @
+			0, // *
+			0, // Up Arrow
+			0, // Restore
 
-				Keycode::RALT, // Run/Stop
-				0, // Shift/Lock
-				Keycode::A,
-				Keycode::S,
-				Keycode::D,
-				Keycode::F,
-				Keycode::G,
-				Keycode::H,
-				Keycode::J,
-				Keycode::K,
-				0, // l
-				0, // :
-				0, // ;
-				0, // =
-				Keycode::ENTER,
+			Keycode::RALT, // Run/Stop
+			0, // Shift/Lock
+			Keycode::A,
+			Keycode::S,
+			Keycode::D,
+			Keycode::F,
+			Keycode::G,
+			Keycode::H,
+			Keycode::J,
+			Keycode::K,
+			0, // l
+			0, // :
+			0, // ;
+			0, // =
+			Keycode::ENTER,
 
-				0, // Commodore Logo
-				Keycode::LSHIFT,
-				Keycode::Z,
-				Keycode::X,
-				Keycode::C,
-				Keycode::V,
-				Keycode::B,
-				Keycode::N,
-				Keycode::M,
-				Keycode::COMMA,
-				Keycode::PERIOD,
-				Keycode::SLASH,
-				Keycode::RSHIFT,
-				Keycode::UP,
-				Keycode::RIGHT,
-				Keycode::DOWN,
-				Keycode::LEFT,
+			0, // Commodore Logo
+			Keycode::LSHIFT,
+			Keycode::Z,
+			Keycode::X,
+			Keycode::C,
+			Keycode::V,
+			Keycode::B,
+			Keycode::N,
+			Keycode::M,
+			Keycode::COMMA,
+			Keycode::PERIOD,
+			Keycode::SLASH,
+			Keycode::RSHIFT,
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
 
-				Keycode::SPACE,
-			}
-		},
-		#endif
+			Keycode::SPACE,
+		}
+	},
 	#endif
 	#ifdef CONFIG_MACHINE_PANDORA
 	{

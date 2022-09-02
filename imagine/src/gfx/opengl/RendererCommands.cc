@@ -311,10 +311,10 @@ void RendererCommands::setImgMode(EnvMode mode)
 	{
 		switch(mode)
 		{
-			case EnvMode::REPLACE: return glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-			case EnvMode::MODULATE: return glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-			case EnvMode::ADD: return glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD);
-			case EnvMode::BLEND: return glcTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
+			case EnvMode::REPLACE: return glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+			case EnvMode::MODULATE: return glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+			case EnvMode::ADD: return glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD);
+			case EnvMode::BLEND: return glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
 		}
 		return;
 	}
@@ -354,16 +354,16 @@ void RendererCommands::setVisibleGeomFace(Faces sides)
 	rTask->verifyCurrentContext();
 	if(sides == Faces::BOTH)
 	{
-		glcDisable(GL_CULL_FACE);
+		glDisable(GL_CULL_FACE);
 	}
 	else if(sides == Faces::FRONT)
 	{
-		glcEnable(GL_CULL_FACE);
+		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT); // our order is reversed from OpenGL
 	}
 	else
 	{
-		glcEnable(GL_CULL_FACE);
+		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 	}
 }
@@ -394,10 +394,9 @@ void RendererCommands::set(TextureBinding binding)
 	rTask->verifyCurrentContext();
 	if(!binding.name) [[unlikely]]
 	{
-		logErr("tried to bind uninitialized texture");
-		return;
+		logWarn("binding default texture");
 	}
-	glcBindTexture(binding.target, binding.name);
+	glBindTexture(binding.target, binding.name);
 }
 
 void RendererCommands::setTextureSampler(const TextureSampler &sampler)
@@ -578,8 +577,6 @@ void RendererCommands::uniform(int loc, Mat4 mat)
 
 BasicEffect &RendererCommands::basicEffect() { return renderer().basicEffect(); }
 
-void GLRendererCommands::glcBindTexture(GLenum target, GLuint texture)
-{ if(useGLCache) glState.bindTexture(target, texture); else glBindTexture(target, texture); }
 void GLRendererCommands::glcBlendFunc(GLenum sfactor, GLenum dfactor)
 { if(useGLCache) glState.blendFunc(sfactor, dfactor); else glBlendFunc(sfactor, dfactor); }
 void GLRendererCommands::glcBlendEquation(GLenum mode)
@@ -602,8 +599,6 @@ void GLRendererCommands::glcEnableClientState(GLenum cap)
 { if(useGLCache) glState.enableClientState(cap); else glEnableClientState(cap); }
 void GLRendererCommands::glcDisableClientState(GLenum cap)
 { if(useGLCache) glState.disableClientState(cap); else glDisableClientState(cap); }
-void GLRendererCommands::glcTexEnvi(GLenum target, GLenum pname, GLint param)
-{ if(useGLCache) glState.texEnvi(target, pname, param); else glTexEnvi(target, pname, param); }
 void GLRendererCommands::glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 {
 	if(useGLCache)

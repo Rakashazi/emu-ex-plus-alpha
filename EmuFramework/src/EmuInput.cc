@@ -402,13 +402,16 @@ void generic2PlayerTranspose(KeyConfig::KeyArray &key, int player, int startCate
 	if(player == 0)
 	{
 		// clear P2 joystick keys
-		std::fill_n(&key[category[startCategory+1].configOffset], category[startCategory+1].keys, 0);
+		auto cat2 = categories()[startCategory+1];
+		std::fill_n(&key[cat2.configOffset], cat2.keys(), 0);
 	}
 	else
 	{
 		// transpose joystick keys
-		std::copy_n(&key[category[startCategory].configOffset], category[startCategory].keys, &key[category[startCategory+1].configOffset]);
-		std::fill_n(&key[category[startCategory].configOffset], category[startCategory].keys, 0);
+		auto cat = categories()[startCategory];
+		auto cat2 = categories()[startCategory+1];
+		std::copy_n(&key[cat.configOffset], cat.keys(), &key[cat2.configOffset]);
+		std::fill_n(&key[cat.configOffset], cat.keys(), 0);
 	}
 }
 
@@ -419,17 +422,25 @@ void genericMultiplayerTranspose(KeyConfig::KeyArray &key, int player, int start
 		if(player && i == player)
 		{
 			//logMsg("moving to player %d map", i);
-			std::copy_n(&key[category[startCategory].configOffset], category[startCategory].keys, &key[category[i+startCategory].configOffset]);
-			std::fill_n(&key[category[startCategory].configOffset], category[startCategory].keys, 0);
+			auto cat = categories()[startCategory];
+			auto cat2 = categories()[startCategory+i];
+			std::copy_n(&key[cat.configOffset], cat.keys(), &key[cat2.configOffset]);
+			std::fill_n(&key[cat.configOffset], cat.keys(), 0);
 		}
 		else if(i)
 		{
 			//logMsg("clearing player %d map", i);
-			std::fill_n(&key[category[i+startCategory].configOffset], category[i+startCategory].keys, 0);
+			auto cat2 = categories()[startCategory+i];
+			std::fill_n(&key[cat2.configOffset], cat2.keys(), 0);
 		}
 	}
 }
 
+}
+
+void EmuApp::setFaceButtonMapping(std::array<int, EmuSystem::MAX_FACE_BTNS> map)
+{
+	vController.gamePad().setFaceButtonMapping(renderer, asset(AssetID::GAMEPAD_OVERLAY), map);
 }
 
 void EmuApp::applyEnabledFaceButtons(std::span<const std::pair<int, bool>> applyEnableMap)
@@ -510,19 +521,19 @@ bool KeyConfig::operator ==(KeyConfig const& rhs) const
 
 KeyConfig::Key *KeyConfig::key(const KeyCategory &category)
 {
-	assert(category.configOffset + category.keys <= MAX_KEY_CONFIG_KEYS);
+	assert(category.configOffset + category.keys() <= MAX_KEY_CONFIG_KEYS);
 	return &key_[category.configOffset];
 }
 
 const KeyConfig::Key *KeyConfig::key(const KeyCategory &category) const
 {
-	assert(category.configOffset + category.keys <= MAX_KEY_CONFIG_KEYS);
+	assert(category.configOffset + category.keys() <= MAX_KEY_CONFIG_KEYS);
 	return &key_[category.configOffset];
 }
 
 void KeyConfig::unbindCategory(const KeyCategory &category)
 {
-	std::fill_n(key(category), category.keys, 0);
+	std::fill_n(key(category), category.keys(), 0);
 }
 
 bool InputDeviceSavedConfig::matchesDevice(const Input::Device &dev) const

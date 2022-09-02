@@ -88,12 +88,12 @@ void NgpSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 
 void NgpSystem::closeSystem()
 {
-	emuSys->CloseGame();
+	mdfnGameInfo.CloseGame();
 }
 
 void NgpSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	emuSys->name = std::string{EmuSystem::contentName()};
+	mdfnGameInfo.name = std::string{EmuSystem::contentName()};
 	static constexpr size_t maxRomSize = 0x400000;
 	auto stream = std::make_unique<MemoryStream>(maxRomSize, true);
 	auto size = io.read(stream->map(), stream->map_size());
@@ -104,8 +104,8 @@ void NgpSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	GameFile gf{&NVFS, std::string{contentDirectory()}, fp.stream(),
 		stringWithoutDotExtension<std::string>(contentFileName()),
 		std::string{contentName()}};
-	emuSys->Load(&gf);
-	emuSys->SetInput(0, "gamepad", (uint8*)&inputBuff);
+	mdfnGameInfo.Load(&gf);
+	mdfnGameInfo.SetInput(0, "gamepad", (uint8*)&inputBuff);
 	MDFN_IEN_NGP::applyVideoFormat(pixmapToMDFNSurface(mSurfacePix).format);
 }
 
@@ -141,7 +141,7 @@ void NgpSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	espec.skip = !video;
 	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
 	espec.surface = &mSurface;
-	emuSys->Emulate(&espec);
+	mdfnGameInfo.Emulate(&espec);
 	if(audio)
 	{
 		assert((unsigned)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));

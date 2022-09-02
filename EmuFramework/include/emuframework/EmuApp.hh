@@ -86,6 +86,11 @@ WISE_ENUM_CLASS((AssetID, size_t),
 	GAMEPAD_OVERLAY,
 	KEYBOARD_OVERLAY);
 
+enum class ScanValueMode
+{
+	NORMAL, ALLOW_BLANK
+};
+
 class EmuApp : public IG::Application
 {
 public:
@@ -180,6 +185,7 @@ public:
 	void cancelAutoSaveStateTimer();
 	void startAutoSaveStateTimer();
 	void configFrameTime();
+	void setFaceButtonMapping(FaceButtonImageMap map);
 	void applyEnabledFaceButtons(std::span<const std::pair<int, bool>> applyEnableMap);
 	void applyEnabledCenterButtons(std::span<const std::pair<int, bool>> applyEnableMap);
 	void updateKeyboardMapping();
@@ -353,13 +359,13 @@ public:
 	}
 
 	template <std::same_as<const char*> T>
-	static std::pair<T, int> scanValue(const char *str)
+	static std::pair<T, int> scanValue(const char *str, ScanValueMode mode)
 	{
-		return {str, strlen(str) ? 1 : 0};
+		return {str, mode == ScanValueMode::ALLOW_BLANK || strlen(str) ? 1 : 0};
 	}
 
 	template <std::integral T>
-	static std::pair<T, int> scanValue(const char *str)
+	static std::pair<T, int> scanValue(const char *str, ScanValueMode)
 	{
 		int val;
 		int items = sscanf(str, "%d", &val);
@@ -367,7 +373,7 @@ public:
 	}
 
 	template <std::floating_point T>
-	static std::pair<T, int> scanValue(const char *str)
+	static std::pair<T, int> scanValue(const char *str, ScanValueMode)
 	{
 		double val;
 		double denom;
@@ -380,7 +386,7 @@ public:
 	}
 
 	template <std::same_as<std::pair<double, double>> T>
-	static std::pair<T, int> scanValue(const char *str)
+	static std::pair<T, int> scanValue(const char *str, ScanValueMode)
 	{
 		// special case for getting a fraction
 		T val{};
@@ -392,7 +398,7 @@ public:
 		return {val, items};
 	}
 
-	template<class T>
+	template<class T, ScanValueMode mode = ScanValueMode::NORMAL>
 	void pushAndShowNewCollectValueInputView(ViewAttachParams attach, const Input::Event &e,
 		IG::CStringView msgText, IG::CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
 	{
@@ -405,7 +411,7 @@ public:
 					return false;
 				}
 				auto &app = get(view.appContext());
-				auto [val, items] = scanValue<T>(str);
+				auto [val, items] = scanValue<T>(str, mode);
 				if(items <= 0)
 				{
 					app.postErrorMessage("Enter a value");

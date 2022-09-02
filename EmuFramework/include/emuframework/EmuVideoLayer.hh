@@ -52,9 +52,9 @@ public:
 	auto zoom() const { return zoom_; }
 	void setRotation(IG::Rotation);
 
-	const IG::WindowRect &gameRect() const
+	const IG::WindowRect &contentRect() const
 	{
-		return gameRect_;
+		return contentRect_;
 	}
 
 private:
@@ -64,8 +64,7 @@ private:
 	const Gfx::TextureSampler *texSampler{};
 	VideoImageEffect userEffect{};
 	Gfx::Sprite disp{};
-	IG::WindowRect gameRect_{};
-	Gfx::GCRect gameRectG{};
+	IG::WindowRect contentRect_{};
 	double aspectRatio_ = 1.;
 	float brightness = 1.f;
 	float brightnessSrgb = 1.f;

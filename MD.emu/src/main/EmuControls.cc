@@ -19,16 +19,15 @@
 namespace EmuEx::Controls
 {
 
-const unsigned categories = 5;
-extern const unsigned gamepadKeys = 22;
-const unsigned systemTotalKeys = gameActionKeys + gamepadKeys*4;
+extern const int gamepadKeys = 22;
+const int systemTotalKeys = gameActionKeys + gamepadKeys*4;
 
 void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player)
 {
 	genericMultiplayerTranspose(key, player, 1);
 }
 
-static const char *gamepadName[gamepadKeys] =
+constexpr std::array<const std::string_view, gamepadKeys> gamepadName
 {
 	"Up",
 	"Right",
@@ -54,12 +53,12 @@ static const char *gamepadName[gamepadKeys] =
 	"Turbo Z",
 };
 
-static const unsigned gamepadKeyOffset = gameActionKeys;
-static const unsigned gamepad2KeyOffset = gamepadKeyOffset + gamepadKeys;
-static const unsigned gamepad3KeyOffset = gamepad2KeyOffset + gamepadKeys;
-static const unsigned gamepad4KeyOffset = gamepad3KeyOffset + gamepadKeys;
+constexpr int gamepadKeyOffset = gameActionKeys;
+constexpr int gamepad2KeyOffset = gamepadKeyOffset + gamepadKeys;
+constexpr int gamepad3KeyOffset = gamepad2KeyOffset + gamepadKeys;
+constexpr int gamepad4KeyOffset = gamepad3KeyOffset + gamepadKeys;
 
-const KeyCategory category[MAX_CATEGORIES]
+constexpr KeyCategory category[]
 {
 	EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
 	{"Set Gamepad Keys", gamepadName, gameActionKeys},
@@ -67,6 +66,8 @@ const KeyCategory category[MAX_CATEGORIES]
 	{"Set Gamepad 3 Keys", gamepadName, gamepad3KeyOffset, 1},
 	{"Set Gamepad 4 Keys", gamepadName, gamepad4KeyOffset, 1}
 };
+
+std::span<const KeyCategory> categories() { return category; }
 
 const KeyConfig defaultKeyProfile[] =
 {
@@ -114,8 +115,6 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::GAME_R1,
 		}
 	},
-	#endif
-	#ifdef CONFIG_BASE_ANDROID
 	{
 		Map::SYSTEM,
 		DeviceSubtype::PS3_CONTROLLER,
@@ -246,52 +245,52 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::GAME_L1,
 		}
 	},
-		#if __ARM_ARCH == 7
+	#endif
+	#if defined(__ANDROID__) && __ARM_ARCH == 7
+	{
+		Map::SYSTEM,
+		DeviceSubtype::XPERIA_PLAY,
+		{"Xperia Play"},
 		{
-			Map::SYSTEM,
-			DeviceSubtype::XPERIA_PLAY,
-			{"Xperia Play"},
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
-				Keycode::XperiaPlay::UP,
-				Keycode::XperiaPlay::RIGHT,
-				Keycode::XperiaPlay::DOWN,
-				Keycode::XperiaPlay::LEFT,
-				0, 0, 0, 0,
-				Keycode::XperiaPlay::SELECT,
-				Keycode::XperiaPlay::START,
-				Keycode::XperiaPlay::SQUARE,
-				Keycode::XperiaPlay::CROSS,
-				Keycode::XperiaPlay::CIRCLE,
-				Keycode::XperiaPlay::L1,
-				Keycode::XperiaPlay::TRIANGLE,
-				Keycode::XperiaPlay::R1,
-			}
-		},
+			Keycode::XperiaPlay::UP,
+			Keycode::XperiaPlay::RIGHT,
+			Keycode::XperiaPlay::DOWN,
+			Keycode::XperiaPlay::LEFT,
+			0, 0, 0, 0,
+			Keycode::XperiaPlay::SELECT,
+			Keycode::XperiaPlay::START,
+			Keycode::XperiaPlay::SQUARE,
+			Keycode::XperiaPlay::CROSS,
+			Keycode::XperiaPlay::CIRCLE,
+			Keycode::XperiaPlay::L1,
+			Keycode::XperiaPlay::TRIANGLE,
+			Keycode::XperiaPlay::R1,
+		}
+	},
+	{
+		Map::SYSTEM,
+		DeviceSubtype::MOTO_DROID_KEYBOARD,
+		{"Droid/Milestone Keyboard"},
 		{
-			Map::SYSTEM,
-			DeviceSubtype::MOTO_DROID_KEYBOARD,
-			{"Droid/Milestone Keyboard"},
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
-				Keycode::UP,
-				Keycode::RIGHT,
-				Keycode::DOWN,
-				Keycode::LEFT,
-				0, 0, 0, 0,
-				Keycode::SPACE,
-				Keycode::ENTER,
-				Keycode::Z,
-				Keycode::X,
-				Keycode::C,
-				Keycode::A,
-				Keycode::S,
-				Keycode::D,
-			}
-		},
-		#endif
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
+			0, 0, 0, 0,
+			Keycode::SPACE,
+			Keycode::ENTER,
+			Keycode::Z,
+			Keycode::X,
+			Keycode::C,
+			Keycode::A,
+			Keycode::S,
+			Keycode::D,
+		}
+	},
 	#endif
 	#ifdef CONFIG_MACHINE_PANDORA
 	{

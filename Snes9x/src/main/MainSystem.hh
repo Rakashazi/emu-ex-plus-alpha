@@ -15,7 +15,7 @@
 
 namespace EmuEx::Controls
 {
-extern const unsigned gamepadKeys;
+extern const int gamepadKeys;
 }
 
 namespace EmuEx

@@ -27,7 +27,7 @@ using PointerIdImpl = int;
 // Note: only first 15-bits of XF86XK_* values are used
 // so they fit in 2 bytes and don't conflict with other keys
 
-	namespace X
+	namespace Keycode
 	{
 	static constexpr Key
 	ESCAPE = XK_Escape,
@@ -218,11 +218,9 @@ using PointerIdImpl = int;
 		SELECT = LCTRL,
 		START = LALT,
 		LOGO = UNDO,
-		UP = X::UP, RIGHT = X::RIGHT, DOWN = X::DOWN, LEFT = X::LEFT;
+		UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT;
 		}
 	}
-
-namespace Keycode = X;
 
 	namespace Pointer
 	{

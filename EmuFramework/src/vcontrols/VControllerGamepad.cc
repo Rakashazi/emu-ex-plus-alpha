@@ -220,7 +220,12 @@ void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::Texture &pics)
 	{
 		centerBtns.buttons()[1].setImage({&pics, {{33./64., 65.f/h}, {1., 81.f/h}}}, 2.f);
 	}
-	auto faceBtnMap = EmuSystem::vControllerImageMap;
+	setFaceButtonMapping(r, pics, EmuSystem::vControllerImageMap);
+}
+
+void VControllerGamepad::setFaceButtonMapping(Gfx::Renderer &r, Gfx::Texture &pics, FaceButtonImageMap faceBtnMap)
+{
+	float h = EmuSystem::inputFaceBtns == 2 || EmuSystem::inputHasShortBtnTexture ? 128. : 256.;
 	for(auto i : iotaCount(EmuSystem::inputFaceBtns))
 	{
 		faceBtns.buttons()[i].setImage({&pics, faceButtonCoordinates(faceBtnMap[i], h)});

@@ -1561,7 +1561,7 @@ void EmuApp::setMogaManagerActive(bool on, bool notify)
 
 std::span<const KeyCategory> EmuApp::inputControlCategories() const
 {
-	return {Controls::category, Controls::categories};
+	return Controls::categories();
 }
 
 ViewAttachParams EmuApp::attachParams()

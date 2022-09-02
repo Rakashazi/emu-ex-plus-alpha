@@ -68,7 +68,7 @@ void ButtonConfigSetView::initPointerUI()
 #endif
 
 ButtonConfigSetView::ButtonConfigSetView(ViewAttachParams attach,
-	InputManagerView &rootIMView, Input::Device &dev, const char *actionName,
+	InputManagerView &rootIMView, Input::Device &dev, std::string_view actionName,
 	SetDelegate onSet):
 		View{attach},
 		text{&defaultFace()},
@@ -227,7 +227,7 @@ static std::pair<const KeyCategory *, int> findCategoryAndKeyInConfig(EmuApp &ap
 		{
 			skipIdx = skipIdx_;
 		}
-		for(auto k : iotaCount(cat.keys))
+		for(auto k : iotaCount(cat.keys()))
 		{
 			if((int)k != skipIdx && keyPtr[k] == key)
 			{
@@ -282,14 +282,14 @@ bool ButtonConfigView::inputEvent(const Input::Event &e)
 	}
 }
 
-ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView_, const KeyCategory *cat_, InputDeviceConfig &devConf_):
+ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView_, const KeyCategory &cat_, InputDeviceConfig &devConf_):
 	TableView
 	{
-		cat_->name,
+		cat_.name,
 		attach,
 		[this](const TableView &)
 		{
-			return 1 + cat->keys;
+			return 1 + cat->keys();
 		},
 		[this](const TableView &, size_t idx) -> MenuItem&
 		{
@@ -313,7 +313,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 					if(!conf)
 						return;
 					conf->unbindCategory(*cat);
-					for(auto i : iotaCount(cat->keys))
+					for(auto i : iotaCount(cat->keys()))
 					{
 						btn[i].set2ndName(devConf->device().keyName(devConf->keyConf().key(*cat)[i]));
 						btn[i].compile2nd(renderer(), projP);
@@ -325,16 +325,16 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 	}
 {
 	logMsg("init button config view for %s", Input::KeyEvent::mapName(devConf_.device().map()).data());
-	cat = cat_;
+	cat = &cat_;
 	devConf = &devConf_;
 	auto keyConfig = devConf_.keyConf();
-	btn = std::make_unique<BtnConfigMenuItem[]>(cat->keys);
-	for(int i : iotaCount(cat->keys))
+	btn = std::make_unique<BtnConfigMenuItem[]>(cat_.keys());
+	for(int i : iotaCount(cat_.keys()))
 	{
-		auto key = keyConfig.key(*cat)[i];
+		auto key = keyConfig.key(cat_)[i];
 		btn[i] =
 		{
-			cat->keyName[i],
+			cat_.keyName[i],
 			makeKeyNameStr(key, devConf_.device().keyName(key)),
 			&defaultFace(),
 			[this, keyToSet = i](const Input::Event &e)

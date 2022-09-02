@@ -37,7 +37,8 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 {
 	if(sys.hasContent())
 	{
-		float viewportAspectRatio = displayRect.xSize()/(float)displayRect.ySize();
+		Gfx::GCRect contentGCRect{};
+		auto viewportAspectRatio = displayRect.xSize() / (float)displayRect.ySize();
 		auto zoom = zoom_;
 		auto contentSize = video.size();
 		if(isSideways(rotation))
@@ -46,77 +47,73 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 		if((zoom == optionImageZoomIntegerOnly || zoom == optionImageZoomIntegerOnlyY)
 			&& contentSize.x)
 		{
-			int gameX = contentSize.x, gameY = contentSize.y;
+			int x = contentSize.x, y = contentSize.y;
 
 			// Halve pixel sizes if image has mixed low/high-res content so scaling is based on lower res,
 			// this prevents jumping between two screen sizes in games like Seiken Densetsu 3 on SNES
 			auto multiresVideoBaseSize = sys.multiresVideoBaseSize();
-			if(multiresVideoBaseSize.x && gameX > multiresVideoBaseSize.x)
+			if(multiresVideoBaseSize.x && x > multiresVideoBaseSize.x)
 			{
 				logMsg("halving X size for multires content");
-				gameX /= 2;
+				x /= 2;
 			}
-			if(multiresVideoBaseSize.y && gameY > multiresVideoBaseSize.y)
+			if(multiresVideoBaseSize.y && y > multiresVideoBaseSize.y)
 			{
 				logMsg("halving Y size for multires content");
-				gameY /= 2;
+				y /= 2;
 			}
 
-			auto gameAR = float(gameX) / float(gameY);
+			auto aR = x / float(y);
 
 			// avoid overly wide images (SNES, etc.) or tall images (2600, etc.)
-			if(gameAR >= 2)
+			if(aR >= 2.f)
 			{
 				logMsg("unscaled image too wide, doubling height to compensate");
-				gameY *= 2;
-				gameAR = float(gameX) / float(gameY);
+				y *= 2;
+				aR = x / float(y);
 			}
-			else if(gameAR < 0.8)
+			else if(aR < 0.8f)
 			{
 				logMsg("unscaled image too tall, doubling width to compensate");
-				gameX *= 2;
-				gameAR = float(gameX) / float(gameY);
+				x *= 2;
+				aR = x / float(y);
 			}
 
 			int scaleFactor;
-			if(gameAR > viewportAspectRatio)//Gfx::proj.aspectRatio)
+			if(aR > viewportAspectRatio)
 			{
-				scaleFactor = std::max(1, displayRect.xSize() / gameX);
+				scaleFactor = std::max(1, displayRect.xSize() / x);
 				logMsg("using x scale factor %d", scaleFactor);
 			}
 			else
 			{
-				scaleFactor = std::max(1, displayRect.ySize() / gameY);
+				scaleFactor = std::max(1, displayRect.ySize() / y);
 				logMsg("using y scale factor %d", scaleFactor);
 			}
 
-			gameRect_.x = 0;
-			gameRect_.y = 0;
-			gameRect_.x2 = gameX * scaleFactor;
-			gameRect_.y2 = gameY * scaleFactor;
-			gameRect_.setPos({(int)displayRect.xCenter() - gameRect_.x2/2, (int)displayRect.yCenter() - gameRect_.y2/2});
+			contentRect_.x = 0;
+			contentRect_.y = 0;
+			contentRect_.x2 = x * scaleFactor;
+			contentRect_.y2 = y * scaleFactor;
+			contentRect_.setPos({(int)displayRect.xCenter() - contentRect_.x2/2, (int)displayRect.yCenter() - contentRect_.y2/2});
 		}
 
 		// compute the video rectangle in world coordinates for sub-pixel placement
 		if(zoom <= 100 || zoom == optionImageZoomIntegerOnlyY)
 		{
-			auto aR = aspectRatio();
-			if(sys.videoAspectRatioScale())
-			{
-				aR *= sys.videoAspectRatioScale();
-			}
+			auto aR = aspectRatio() * sys.videoAspectRatioScale();
 			if(isSideways(rotation))
 				aR = 1. / aR;
 			if(zoom == optionImageZoomIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height
-				float width = projP.unprojectYSize(gameRect_.ySize()) * (float)aR;
+				float width = projP.unprojectYSize(contentRect_.ySize()) * (float)aR;
 				if(!aR)
 				{
 					width = projP.width();
 				}
-				gameRectG.x = -width/2.;
-				gameRectG.x2 = width/2.;
+				contentGCRect.x = -width / 2.f;
+				contentGCRect.x2 = width / 2.f;
 			}
 			else
 			{
@@ -125,10 +122,10 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 				{
 					size = IG::sizesWithRatioBestFit((float)aR, size.x, size.y);
 				}
-				gameRectG.x = -size.x/2.;
-				gameRectG.x2 = size.x/2.;
-				gameRectG.y = -size.y/2.;
-				gameRectG.y2 = size.y/2.;
+				contentGCRect.x = -size.x / 2.f;
+				contentGCRect.x2 = size.x / 2.f;
+				contentGCRect.y = -size.y / 2.f;
+				contentGCRect.y2 = size.y / 2.f;
 			}
 		}
 
@@ -147,16 +144,17 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 		if(zoom < 100)
 		{
 			auto scaler = zoom / 100.f;
-			gameRectG.x *= scaler;
-			gameRectG.y *= scaler;
-			gameRectG.x2 *= scaler;
-			gameRectG.y2 *= scaler;
+			contentGCRect.x *= scaler;
+			contentGCRect.y *= scaler;
+			contentGCRect.x2 *= scaler;
+			contentGCRect.y2 *= scaler;
 		}
 
 		// adjust position
 		int layoutDirection = 0;
 		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-		if(inputView && viewportAspectRatio < 1. && inputView->activeVController()->gamepadIsActive())
+		if(inputView && viewportAspectRatio < 1. && !isSideways(rotation) &&
+			inputView->activeVController()->gamepadIsActive())
 		{
 			auto &vController = *inputView->activeVController();
 			auto padding = vController.bounds(3).ySize(); // adding menu button-sized padding
@@ -166,49 +164,49 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
 			{
 				layoutDirection = -1;
-				gameRectG.setYPos(viewBoundsG.y + paddingG, CB2DO);
-				gameRect_.setYPos(viewRect.y2 - padding, CB2DO);
+				contentGCRect.setYPos(viewBoundsG.y + paddingG, CB2DO);
+				contentRect_.setYPos(viewRect.y2 - padding, CB2DO);
 			}
 			else if(!(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onBottom() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
 				&& !(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom()))
 			{
 				// move controls to top if d-pad & face button aren't on opposite Y quadrants
 				layoutDirection = 1;
-				gameRectG.setYPos(viewBoundsG.y2 - paddingG, CT2DO);
-				gameRect_.setYPos(viewRect.y + padding, CT2DO);
+				contentGCRect.setYPos(viewBoundsG.y2 - paddingG, CT2DO);
+				contentRect_.setYPos(viewRect.y + padding, CT2DO);
 			}
 		}
 		#endif
 
 		// assign final coordinates
-		auto fromWorldSpaceRect = projP.projectRect(gameRectG);
-		auto fromPixelRect = projP.unProjectRect(gameRect_);
+		auto fromWorldSpaceRect = projP.projectRect(contentGCRect);
+		auto fromPixelRect = projP.unProjectRect(contentRect_);
 		if(getXCoordinateFromPixels)
 		{
-			gameRectG.x = fromPixelRect.x;
-			gameRectG.x2 = fromPixelRect.x2;
+			contentGCRect.x = fromPixelRect.x;
+			contentGCRect.x2 = fromPixelRect.x2;
 		}
 		else
 		{
-			gameRect_.x = fromWorldSpaceRect.x;
-			gameRect_.x2 = fromWorldSpaceRect.x2;
+			contentRect_.x = fromWorldSpaceRect.x;
+			contentRect_.x2 = fromWorldSpaceRect.x2;
 		}
 		if(getYCoordinateFromPixels)
 		{
-			gameRectG.y = fromPixelRect.y;
-			gameRectG.y2 = fromPixelRect.y2;
+			contentGCRect.y = fromPixelRect.y;
+			contentGCRect.y2 = fromPixelRect.y2;
 		}
 		else
 		{
-			gameRect_.y = fromWorldSpaceRect.y;
-			gameRect_.y2 = fromWorldSpaceRect.y2;
+			contentRect_.y = fromWorldSpaceRect.y;
+			contentRect_.y2 = fromWorldSpaceRect.y2;
 		}
 
-		disp.setPos(gameRectG);
+		disp.setPos(contentGCRect);
 		auto layoutStr = layoutDirection == 1 ? "top" : layoutDirection == -1 ? "bottom" : "center";
 		logMsg("placed game rect (%s), at pixels %d:%d:%d:%d, world %f:%f:%f:%f",
-				layoutStr, gameRect_.x, gameRect_.y, gameRect_.x2, gameRect_.y2,
-				(double)gameRectG.x, (double)gameRectG.y, (double)gameRectG.x2, (double)gameRectG.y2);
+				layoutStr, contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2,
+				(double)contentGCRect.x, (double)contentGCRect.y, (double)contentGCRect.x2, (double)contentGCRect.y2);
 	}
 	placeOverlay();
 }
@@ -281,7 +279,7 @@ void EmuVideoLayer::setOverlayIntensity(float intensity)
 
 void EmuVideoLayer::placeOverlay()
 {
-	vidImgOverlay.place(disp, video.size(), rotation);
+	vidImgOverlay.place(disp, contentRect(), video.size(), rotation);
 }
 
 void EmuVideoLayer::setEffectFormat(IG::PixelFormat fmt)

@@ -30,7 +30,7 @@ using Time = std::chrono::duration<double>;
 
 using Key = uint16_t;
 
-	namespace IOS
+	namespace Keycode
 	{
 
 	static constexpr Key
@@ -183,8 +183,6 @@ using Key = uint16_t;
 	static constexpr uint32_t COUNT = LAST_KEY + 1;
 
 	}
-
-namespace Keycode = IOS;
 
 	namespace Pointer
 	{

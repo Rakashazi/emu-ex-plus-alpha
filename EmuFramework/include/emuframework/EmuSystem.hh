@@ -158,9 +158,9 @@ public:
 	static NameFilterFunc defaultFsFilter;
 	static NameFilterFunc defaultBenchmarkFsFilter;
 	static const char *creditsViewStr;
-	static constexpr int MAX_CENTER_BTNS = 2;
-	static constexpr int MAX_FACE_BTNS = 8;
-	static std::array<int, MAX_FACE_BTNS> vControllerImageMap;
+	static constexpr int MAX_CENTER_BTNS = EmuEx::MAX_CENTER_BTNS;
+	static constexpr int MAX_FACE_BTNS = EmuEx::MAX_FACE_BTNS;
+	static FaceButtonImageMap vControllerImageMap;
 
 	EmuSystem(IG::ApplicationContext ctx): appCtx{ctx} {}
 

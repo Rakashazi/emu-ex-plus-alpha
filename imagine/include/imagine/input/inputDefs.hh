@@ -86,4 +86,47 @@ using DeviceTypeBits = uint8_t;
 
 class Device;
 
+#ifdef CONFIG_INPUT_GAMEPAD_DEVICES
+
+namespace Keycode
+{
+	namespace Ouya
+	{
+	static constexpr Key
+	O = GAME_A,
+	U = GAME_X,
+	Y = GAME_Y,
+	A = GAME_B,
+	L1 = GAME_L1,
+	L2 = GAME_L2,
+	L3 = GAME_LEFT_THUMB,
+	R1 = GAME_R1,
+	R2 = GAME_R2,
+	R3 = GAME_RIGHT_THUMB,
+	UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT,
+	SYSTEM = MENU;
+	}
+
+	namespace PS3
+	{
+	static constexpr Key
+	CROSS = GAME_X,
+	CIRCLE = GAME_Y,
+	SQUARE = GAME_A,
+	TRIANGLE = GAME_B,
+	L1 = GAME_L1,
+	L2 = GAME_L2,
+	L3 = GAME_LEFT_THUMB,
+	R1 = GAME_R1,
+	R2 = GAME_R2,
+	R3 = GAME_RIGHT_THUMB,
+	SELECT = GAME_SELECT,
+	START = GAME_START,
+	UP = Keycode::UP, RIGHT = Keycode::RIGHT, DOWN = Keycode::DOWN, LEFT = Keycode::LEFT,
+	PS = GAME_1;
+	}
+}
+
+#endif
+
 }

@@ -66,7 +66,7 @@ double EmuSystem::videoAspectRatioScale() const
 {
 	if(&MainSystem::videoAspectRatioScale != &EmuSystem::videoAspectRatioScale)
 		return static_cast<const MainSystem*>(this)->videoAspectRatioScale();
-	return {};
+	return 1.;
 }
 
 VideoSystem EmuSystem::videoSystem() const

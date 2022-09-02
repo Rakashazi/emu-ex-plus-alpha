@@ -95,7 +95,7 @@ using Time = std::chrono::duration<double>;
 using Key = uint16_t;
 
 // TODO: remove dummy defs
-namespace OSX
+namespace Keycode
 {
 	static const Key
 	A = 3000, // TODO kVK_ANSI_A,
@@ -309,8 +309,6 @@ namespace OSX
 
 	static const uint32_t COUNT = 0xffff;
 };
-
-namespace Keycode = OSX;
 
 namespace Pointer
 {

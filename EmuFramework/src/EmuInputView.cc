@@ -83,7 +83,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 			}
 			else
 			{
-				vController->pointerInputEvent(motionEv, videoLayer->gameRect());
+				vController->pointerInputEvent(motionEv, videoLayer->contentRect());
 			}
 			return false;
 		},

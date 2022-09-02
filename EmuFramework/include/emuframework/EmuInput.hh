@@ -24,12 +24,13 @@
 #include <imagine/util/container/VMemArray.hh>
 #include <imagine/util/string/StaticString.hh>
 #include <string>
+#include <string_view>
 #include <memory>
 #include <span>
 
-static constexpr unsigned MAX_KEY_CONFIG_NAME_SIZE = 80;
-static constexpr unsigned MAX_KEY_CONFIG_KEYS = 256;
-static constexpr unsigned MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;
+constexpr int MAX_KEY_CONFIG_NAME_SIZE = 80;
+constexpr int MAX_KEY_CONFIG_KEYS = 256;
+constexpr int MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;
 
 namespace EmuEx
 {
@@ -39,17 +40,16 @@ class InputDeviceConfig;
 
 struct KeyCategory
 {
-	constexpr KeyCategory() = default;
-	template <size_t S>
-	constexpr KeyCategory(const char *name, const char *(&keyName)[S],
-			unsigned configOffset, bool isMultiplayer = false) :
-	name(name), keyName(keyName), keys(S), configOffset(configOffset), isMultiplayer(isMultiplayer) {}
+	std::string_view name{};
+	std::span<const std::string_view> keyName{};
+	int configOffset{};
+	bool isMultiplayer{}; // category appears when one input device is assigned multiple players
 
-	const char *name{};
-	const char **keyName{};
-	unsigned keys = 0;
-	unsigned configOffset = 0;
-	bool isMultiplayer = false; // category appears when one input device is assigned multiple players
+	constexpr KeyCategory() = default;
+	constexpr KeyCategory(std::string_view name, std::span<const std::string_view> keyName,
+		int configOffset, bool isMultiplayer = false) :
+	name(name), keyName(keyName), configOffset(configOffset), isMultiplayer(isMultiplayer) {}
+	constexpr size_t keys() const { return keyName.size(); }
 };
 
 struct KeyConfig
@@ -122,13 +122,12 @@ namespace EmuEx::Controls
 
 using namespace IG::Input;
 
-static constexpr unsigned MAX_CATEGORIES = 8;
+constexpr int MAX_CATEGORIES = 8;
 
 // Defined in the emulation module
-extern const unsigned categories;
-extern const unsigned systemTotalKeys;
+extern const int systemTotalKeys;
 
-extern const KeyCategory category[MAX_CATEGORIES];
+std::span<const KeyCategory> categories();
 
 extern const KeyConfig defaultKeyProfile[];
 extern const unsigned defaultKeyProfiles;

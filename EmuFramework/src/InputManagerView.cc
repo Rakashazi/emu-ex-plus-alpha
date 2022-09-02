@@ -77,7 +77,7 @@ void IdentInputDeviceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.set(BlendMode::OFF);
 	basicEffect.disableTexture(cmds);
 	cmds.setColor(.4, .4, .4, 1.);
-	GeomRect::draw(cmds, viewRect(), projP);
+	GeomRect::draw(cmds, displayRect(), projP);
 	cmds.set(ColorName::WHITE);
 	basicEffect.enableAlphaTexture(cmds);
 	text.draw(cmds, 0, 0, C2DO, projP);
@@ -754,7 +754,7 @@ void InputManagerDeviceView::loadItems()
 		auto &catItem = inputCategory.emplace_back(cat.name, &defaultFace(),
 			[this, &cat](const Input::Event &e)
 			{
-				pushAndShow(makeView<ButtonConfigView>(rootIMView, &cat, *this->devConf), e);
+				pushAndShow(makeView<ButtonConfigView>(rootIMView, cat, *this->devConf), e);
 			});
 		item.emplace_back(&catItem);
 	}

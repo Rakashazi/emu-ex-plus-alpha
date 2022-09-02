@@ -50,28 +50,22 @@ constexpr uint32_t crtCol(uint8_t r, uint8_t g, uint8_t b)
 	return IG::PIXEL_DESC_RGBA8888_NATIVE.build(r, g, b, 0xff);
 }
 
-constexpr uint32_t crtMaskPixmapBuff[]
+constexpr IP crtTexSize{4, 4};
+
+constexpr uint32_t crtMaskPixmapBuff[crtTexSize.x * crtTexSize.y]
 {
-	crtCol(0xff,0,0), crtCol(0xff,0,0), crtCol(0,0xff,0), crtCol(0,0xff,0), crtCol(0,0,0xff), crtCol(0,0,0xff),
-	crtCol(0xff,0,0), crtCol(0xff,0,0), crtCol(0,0xff,0), crtCol(0,0xff,0), crtCol(0,0,0xff), crtCol(0,0,0xff),
-	crtCol(0,0xff,0), crtCol(0,0,0xff), crtCol(0,0,0xff), crtCol(0xff,0,0), crtCol(0xff,0,0), crtCol(0,0xff,0),
-	crtCol(0,0xff,0), crtCol(0,0,0xff), crtCol(0,0,0xff), crtCol(0xff,0,0), crtCol(0xff,0,0), crtCol(0,0xff,0),
-	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
-	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
-	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
-	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
+	crtCol(0xff,0,0), crtCol(0,0xff,0), crtCol(0,0xff,0), crtCol(0,0,0xff),
+	crtCol(0,0xff,0), crtCol(0,0,0xff), crtCol(0xff,0,0), crtCol(0,0xff,0),
+	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
+	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
 };
 
-constexpr uint32_t crtGrillePixmapBuff[]
+constexpr uint32_t crtGrillePixmapBuff[crtTexSize.x * crtTexSize.y]
 {
-	crtCol(0xff,0,0), crtCol(0xff,0,0), crtCol(0,0xff,0), crtCol(0,0xff,0), crtCol(0,0,0xff), crtCol(0,0,0xff),
-	crtCol(0xff,0,0), crtCol(0xff,0,0), crtCol(0,0xff,0), crtCol(0,0xff,0), crtCol(0,0,0xff), crtCol(0,0,0xff),
-	crtCol(0xff,0,0), crtCol(0xff,0,0), crtCol(0,0xff,0), crtCol(0,0xff,0), crtCol(0,0,0xff), crtCol(0,0,0xff),
-	crtCol(0xff,0,0), crtCol(0xff,0,0), crtCol(0,0xff,0), crtCol(0,0xff,0), crtCol(0,0,0xff), crtCol(0,0,0xff),
-	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
-	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
-	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
-	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
+	crtCol(0xff,0,0), crtCol(0,0xff,0), crtCol(0,0xff,0), crtCol(0,0,0xff),
+	crtCol(0xff,0,0), crtCol(0,0xff,0), crtCol(0,0xff,0), crtCol(0,0,0xff),
+	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
+	crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),    crtCol(0,0,0),
 };
 
 struct OverlayDesc
@@ -89,9 +83,9 @@ constexpr OverlayDesc overlayDesc(ImageOverlayId id)
 		case ImageOverlayId::LCD:
 			return {{{{8, 8}, PIXEL_RGBA8888}, lcdPixmapBuff}, Gfx::WrapMode::MIRROR_REPEAT};
 		case ImageOverlayId::CRT_MASK ... ImageOverlayId::CRT_MASK_2:
-			return {{{{6, 8}, PIXEL_RGBA8888}, crtMaskPixmapBuff}, Gfx::WrapMode::REPEAT};
+			return {{{crtTexSize, PIXEL_RGBA8888}, crtMaskPixmapBuff}, Gfx::WrapMode::REPEAT};
 		case ImageOverlayId::CRT_GRILLE ... ImageOverlayId::CRT_GRILLE_2:
-			return {{{{6, 8}, PIXEL_RGBA8888}, crtGrillePixmapBuff}, Gfx::WrapMode::REPEAT};
+			return {{{crtTexSize, PIXEL_RGBA8888}, crtGrillePixmapBuff}, Gfx::WrapMode::REPEAT};
 	}
 	bug_unreachable("invalid ImageOverlayId");
 }
@@ -135,7 +129,7 @@ void VideoImageOverlay::setIntensity(float i)
 	intensity = i;
 }
 
-void VideoImageOverlay::place(const Gfx::Sprite &disp, WP videoPixels, IG::Rotation r)
+void VideoImageOverlay::place(const Gfx::Sprite &disp, IG::WRect contentRect, WP videoPixels, IG::Rotation r)
 {
 	if(!spr.hasTexture() || videoPixels.y <= 1)
 		return;
@@ -146,7 +140,8 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, WP videoPixels, IG::Rotat
 	const bool is240p = videoPixels.y <= 256;
 	const float lines = is240p ? videoPixels.y : videoPixels.y * .5f;
 	const float lines2x = is240p ? videoPixels.y * 2.f : videoPixels.y;
-	constexpr float crtHDots = 720.f;
+	const FP crtDots = {contentRect.xSize() / float(crtTexSize.x), contentRect.ySize() / float(crtTexSize.y * 2)};
+	const FP crtDotsHalf = crtDots / FP{2.f, 1.f};
 	spr.set([&]() -> TextureSpan
 	{
 		switch(overlayId)
@@ -159,10 +154,10 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, WP videoPixels, IG::Rotat
 				return {&img, {{}, {width2x, lines2x}}};
 			case ImageOverlayId::CRT_MASK:
 			case ImageOverlayId::CRT_GRILLE:
-				return {&img, {{}, {crtHDots, lines}}};
+				return {&img, {{}, crtDots}};
 			case ImageOverlayId::CRT_MASK_2:
 			case ImageOverlayId::CRT_GRILLE_2:
-				return {&img, {{}, {crtHDots * .5f, lines}}};
+				return {&img, {{}, crtDotsHalf}};
 		}
 		bug_unreachable("invalid ImageOverlayId");
 	}(), r);
@@ -173,14 +168,16 @@ void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, float brightness)
 	if(!spr.hasTexture())
 		return;
 	using namespace IG::Gfx;
-	cmds.setColor(brightness, brightness, brightness, intensity);
 	if(multiplyBlend)
 	{
+		brightness *= 2.f;
+		cmds.setColor(brightness, brightness, brightness, intensity);
 		cmds.setBlendFunc(BlendFunc::DST_COLOR, BlendFunc::SRC_ALPHA);
 		cmds.setBlend(true);
 	}
 	else
 	{
+		cmds.setColor(brightness, brightness, brightness, intensity);
 		cmds.set(BlendMode::ALPHA);
 	}
 	cmds.setTextureSampler(sampler);

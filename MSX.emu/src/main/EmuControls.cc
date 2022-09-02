@@ -19,11 +19,10 @@
 namespace EmuEx::Controls
 {
 
-const unsigned categories = 6;
-static const unsigned joystickKeys = 12;
-static const unsigned colecoNumericKeys = 12;
-static const unsigned kbKeys = 93;
-const unsigned systemTotalKeys = gameActionKeys + joystickKeys*2 + colecoNumericKeys*2 + kbKeys;
+constexpr int joystickKeys = 12;
+constexpr int colecoNumericKeys = 12;
+constexpr int kbKeys = 93;
+const int systemTotalKeys = gameActionKeys + joystickKeys*2 + colecoNumericKeys*2 + kbKeys;
 
 void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player)
 {
@@ -31,7 +30,7 @@ void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player)
 	generic2PlayerTranspose(key, player, 3);
 }
 
-static const char *gamepadName[joystickKeys] =
+constexpr std::array<const std::string_view, joystickKeys> gamepadName
 {
 	"Up",
 	"Right",
@@ -47,7 +46,7 @@ static const char *gamepadName[joystickKeys] =
 	"Turbo B",
 };
 
-static const char *colecoName[colecoNumericKeys] =
+constexpr std::array<const std::string_view, colecoNumericKeys> colecoName
 {
 	"0",
 	"1",
@@ -63,7 +62,7 @@ static const char *colecoName[colecoNumericKeys] =
 	"#",
 };
 
-static const char *keyboardName[kbKeys] =
+constexpr std::array<const std::string_view, kbKeys> keyboardName
 {
 	"Toggle Keyboard",
 
@@ -168,13 +167,13 @@ static const char *keyboardName[kbKeys] =
 	"Num Add",
 };
 
-static const unsigned msxJoystickKeyOffset = gameActionKeys;
-static const unsigned msxJoystick2KeyOffset = msxJoystickKeyOffset + joystickKeys;
-static const unsigned colecoJoystickKeyOffset = msxJoystick2KeyOffset + joystickKeys;
-static const unsigned colecoJoystick2KeyOffset = colecoJoystickKeyOffset + colecoNumericKeys;
-static const unsigned keyboardKeyOffset = colecoJoystick2KeyOffset + colecoNumericKeys;
+constexpr int msxJoystickKeyOffset = gameActionKeys;
+constexpr int msxJoystick2KeyOffset = msxJoystickKeyOffset + joystickKeys;
+constexpr int colecoJoystickKeyOffset = msxJoystick2KeyOffset + joystickKeys;
+constexpr int colecoJoystick2KeyOffset = colecoJoystickKeyOffset + colecoNumericKeys;
+constexpr int keyboardKeyOffset = colecoJoystick2KeyOffset + colecoNumericKeys;
 
-const KeyCategory category[MAX_CATEGORIES]
+constexpr KeyCategory category[]
 {
 	EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
 	{"Set Joystick Keys", gamepadName, msxJoystickKeyOffset},
@@ -183,6 +182,8 @@ const KeyCategory category[MAX_CATEGORIES]
 	{"Set Coleco Numpad 2 Keys", colecoName, colecoJoystick2KeyOffset, 1},
 	{"Set Keyboard Keys", keyboardName, keyboardKeyOffset},
 };
+
+std::span<const KeyCategory> categories() { return category; }
 
 const KeyConfig defaultKeyProfile[] =
 {
@@ -401,8 +402,6 @@ const KeyConfig defaultKeyProfile[] =
 			PP_ZERO_LIST(87) // 26 - 92
 		}
 	},
-	#endif
-	#ifdef CONFIG_BASE_ANDROID
 	{
 		Map::SYSTEM,
 		DeviceSubtype::PS3_CONTROLLER,
@@ -596,123 +595,123 @@ const KeyConfig defaultKeyProfile[] =
 			PP_ZERO_LIST(87) // 26 - 92
 		}
 	},
-		#if __ARM_ARCH == 7
+	#endif
+	#if defined(__ANDROID__) && __ARM_ARCH == 7
+	{
+		Map::SYSTEM,
+		DeviceSubtype::XPERIA_PLAY,
+		{"Xperia Play"},
 		{
-			Map::SYSTEM,
-			DeviceSubtype::XPERIA_PLAY,
-			{"Xperia Play"},
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
-				// JS 1
-				Keycode::XperiaPlay::UP,
-				Keycode::XperiaPlay::RIGHT,
-				Keycode::XperiaPlay::DOWN,
-				Keycode::XperiaPlay::LEFT,
-				0, 0, 0, 0,
-				Keycode::XperiaPlay::CROSS,
-				Keycode::XperiaPlay::SQUARE,
-				0,
-				0,
+			// JS 1
+			Keycode::XperiaPlay::UP,
+			Keycode::XperiaPlay::RIGHT,
+			Keycode::XperiaPlay::DOWN,
+			Keycode::XperiaPlay::LEFT,
+			0, 0, 0, 0,
+			Keycode::XperiaPlay::CROSS,
+			Keycode::XperiaPlay::SQUARE,
+			0,
+			0,
 
-				// JS 2
-				PP_ZERO_LIST(12)
+			// JS 2
+			PP_ZERO_LIST(12)
 
-				// Coleco 1
-				PP_ZERO_LIST(10)
-				Keycode::XperiaPlay::CIRCLE,
-				Keycode::XperiaPlay::TRIANGLE,
+			// Coleco 1
+			PP_ZERO_LIST(10)
+			Keycode::XperiaPlay::CIRCLE,
+			Keycode::XperiaPlay::TRIANGLE,
 
-				// Coleco 2
-				PP_ZERO_LIST(12)
+			// Coleco 2
+			PP_ZERO_LIST(12)
 
-				// Keyboard
-				Keycode::XperiaPlay::START,
-				Keycode::XperiaPlay::TRIANGLE, // F1 ... F5
-				Keycode::XperiaPlay::L1,
-				Keycode::XperiaPlay::R1,
-				Keycode::XperiaPlay::CIRCLE,
-				Keycode::XperiaPlay::SELECT,
-				PP_ZERO_LIST(87) // 26 - 92
-			}
-		},
+			// Keyboard
+			Keycode::XperiaPlay::START,
+			Keycode::XperiaPlay::TRIANGLE, // F1 ... F5
+			Keycode::XperiaPlay::L1,
+			Keycode::XperiaPlay::R1,
+			Keycode::XperiaPlay::CIRCLE,
+			Keycode::XperiaPlay::SELECT,
+			PP_ZERO_LIST(87) // 26 - 92
+		}
+	},
+	{
+		Map::SYSTEM,
+		DeviceSubtype::MOTO_DROID_KEYBOARD,
+		{"Droid/Milestone Keyboard (w/ Joystick Keys)"},
 		{
-			Map::SYSTEM,
-			DeviceSubtype::MOTO_DROID_KEYBOARD,
-			{"Droid/Milestone Keyboard (w/ Joystick Keys)"},
-			{
-				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
-				// JS 1
-				Keycode::UP,
-				Keycode::RIGHT,
-				Keycode::DOWN,
-				Keycode::LEFT,
-				0, 0, 0, 0,
-				Keycode::C,
-				Keycode::X,
-				0,
-				0,
+			// JS 1
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
+			0, 0, 0, 0,
+			Keycode::C,
+			Keycode::X,
+			0,
+			0,
 
-				// JS 2
-				PP_ZERO_LIST(12)
+			// JS 2
+			PP_ZERO_LIST(12)
 
-				// Coleco 1
-				Keycode::P,
-				Keycode::Q,
-				Keycode::W,
-				Keycode::E,
-				Keycode::R,
-				Keycode::T,
-				Keycode::Y,
-				Keycode::U,
-				Keycode::I,
-				Keycode::O,
-				Keycode::K,
-				Keycode::D,
+			// Coleco 1
+			Keycode::P,
+			Keycode::Q,
+			Keycode::W,
+			Keycode::E,
+			Keycode::R,
+			Keycode::T,
+			Keycode::Y,
+			Keycode::U,
+			Keycode::I,
+			Keycode::O,
+			Keycode::K,
+			Keycode::D,
 
-				// Coleco 2
-				PP_ZERO_LIST(12)
+			// Coleco 2
+			PP_ZERO_LIST(12)
 
-				// Keyboard
-				0,
-				Keycode::T, // F1 ... F5
-				Keycode::Y,
-				Keycode::U,
-				Keycode::I,
-				Keycode::O,
-				PP_ZERO_LIST(6) // 6 - 11
-				Keycode::G, // 1 ... 0
-				Keycode::H,
-				0,
-				0,
-				0,
-				0,
-				0,
-				0,
-				0,
-				0,
-				PP_ZERO_LIST(3) // 22 - 24
-				Keycode::BACK_SPACE,
-				PP_ZERO_LIST(11) // 26 - 36
-				0, // @
-				0,
-				Keycode::ENTER,
-				0, // CTRL
-				PP_ZERO_LIST(12) // 41 ... 52
-				0, // Left Shift
-				PP_ZERO_LIST(7) // 54 ... 60
-				0, // ,
-				0, // .
-				0, // /
-				0,
-				0, // Right Shift
-				PP_ZERO_LIST(3) // 66 - 68
-				Keycode::SPACE,
-				PP_ZERO_LIST(23) // 70 - 92
-			}
-		},
-		#endif
+			// Keyboard
+			0,
+			Keycode::T, // F1 ... F5
+			Keycode::Y,
+			Keycode::U,
+			Keycode::I,
+			Keycode::O,
+			PP_ZERO_LIST(6) // 6 - 11
+			Keycode::G, // 1 ... 0
+			Keycode::H,
+			0,
+			0,
+			0,
+			0,
+			0,
+			0,
+			0,
+			0,
+			PP_ZERO_LIST(3) // 22 - 24
+			Keycode::BACK_SPACE,
+			PP_ZERO_LIST(11) // 26 - 36
+			0, // @
+			0,
+			Keycode::ENTER,
+			0, // CTRL
+			PP_ZERO_LIST(12) // 41 ... 52
+			0, // Left Shift
+			PP_ZERO_LIST(7) // 54 ... 60
+			0, // ,
+			0, // .
+			0, // /
+			0,
+			0, // Right Shift
+			PP_ZERO_LIST(3) // 66 - 68
+			Keycode::SPACE,
+			PP_ZERO_LIST(23) // 70 - 92
+		}
+	},
 	#endif
 	#ifdef CONFIG_MACHINE_PANDORA
 	{

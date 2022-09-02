@@ -7,9 +7,11 @@
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/vdc.h>
 
+extern const Mednafen::MDFNGI EmulatedPCE_Fast;
+
 namespace EmuEx::Controls
 {
-extern const unsigned gamepadKeys;
+extern const int gamepadKeys;
 }
 
 namespace EmuEx
@@ -47,6 +49,7 @@ enum class VolumeType
 class PceSystem final: public EmuSystem
 {
 public:
+	Mednafen::MDFNGI mdfnGameInfo{EmulatedPCE_Fast};
 	std::array<uint16, 5> inputBuff{}; // 5 gamepad buffers
 	static constexpr int vidBufferX = 512, vidBufferY = 242;
 	alignas(8) uint32_t pixBuff[vidBufferX*vidBufferY]{};
@@ -66,7 +69,10 @@ public:
 	bool adpcmFilter{};
 
 	PceSystem(ApplicationContext ctx):
-		EmuSystem{ctx} {}
+		EmuSystem{ctx}
+	{
+		Mednafen::MDFNGameInfo = &mdfnGameInfo;
+	}
 	void setVisibleLines(VisibleLines);
 	void setNoSpriteLimit(bool);
 	void setCdSpeed(uint8_t);
@@ -122,6 +128,3 @@ namespace MDFN_IEN_PCE_FAST
 void applySoundFormat(double rate);
 extern vce_t vce;
 }
-
-extern Mednafen::MDFNGI EmulatedPCE_Fast;
-static Mednafen::MDFNGI *emuSys = &EmulatedPCE_Fast;
