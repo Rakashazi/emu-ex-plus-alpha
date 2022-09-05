@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x"]
+        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Swan.emu"]
     container: cirrusci/android-sdk:30-ndk
  
     steps:
@@ -262,6 +262,24 @@ jobs:
       with: 
         name: Snes9x
         path: ${{ github.workspace }}/Snes9x/target/android-release/build/outputs/apk/release/Snes9xEXPlus-release.apk
+
+    - name: Build Swan.emu
+      if: ${{ matrix.image == 'Swan.emu' }}
+      run: |
+        cd Swan.emu
+        make -f android-release.mk android-apk V=1 -j2
+
+    - name: Copy Swan.emu artifact
+      if: ${{ matrix.image == 'Swan.emu' }}
+      run: |
+        cp Swan.emu/target/android-release/build/outputs/apk/release/SwanEmu-release.apk EX-Emulators/SwanEmu-release.apk
+
+    - name: Upload Swan.emu artifact
+      uses: actions/upload-artifact@v2
+      if: ${{ matrix.image == 'Swan.emu' }}
+      with:
+        name: Swanemu
+        path: ${{ github.workspace }}/Swan.emu/target/android-release/build/outputs/apk/release/SwanEmu-release.apk
 
     - name: Upload EX-Emulators artifacts
       uses: actions/upload-artifact@v2
