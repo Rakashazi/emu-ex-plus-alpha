@@ -50,7 +50,7 @@ class CustomSystemOptionView : public SystemOptionView
 		return fmt::format("BIOS: {}", displayName.size() ? displayName : "None set");
 	}
 
-	StaticArrayList<TextMenuItem, MAX_SH2_CORES> sh2CoreItem{};
+	StaticArrayList<TextMenuItem, MAX_SH2_CORES> sh2CoreItem;
 
 	MultiChoiceMenuItem sh2Core
 	{

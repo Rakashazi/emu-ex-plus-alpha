@@ -78,8 +78,6 @@ FileString basename(IG::CStringView path);
 PathString dirname(IG::CStringView path);
 FileString displayName(IG::CStringView path);
 std::string formatLastWriteTimeLocal(IG::CStringView path);
-size_t directoryItems(IG::CStringView path);
-void forEachInDirectory(IG::CStringView path, DirectoryEntryDelegate del);
 
 // URI path functions
 static constexpr std::string_view uriPathSegmentTreeName{"/tree/"};

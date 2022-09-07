@@ -191,7 +191,7 @@
 #define CHEATS_16_BIT_WRITE           114
 #define CHEATS_32_BIT_WRITE           115
 
-IG::StaticArrayList<CheatsData, 100> cheatsList{};
+IG::StaticArrayList<CheatsData, 100> cheatsList;
 uint32_t rompatch2addr[4];
 uint16_t rompatch2val[4];
 uint16_t rompatch2oldval[4];

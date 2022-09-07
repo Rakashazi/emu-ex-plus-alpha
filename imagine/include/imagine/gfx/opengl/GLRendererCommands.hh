@@ -32,9 +32,6 @@ namespace IG::Gfx
 {
 
 class TextureSampler;
-class Program;
-class Renderer;
-class RendererTask;
 
 class GLRendererCommands
 {

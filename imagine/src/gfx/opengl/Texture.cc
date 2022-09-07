@@ -184,11 +184,10 @@ static TextureType typeForPixelFormat(PixelFormatID format)
 		TextureType::T2D_4;
 }
 
-static TextureConfig configWithLoadedImagePixmap(PixmapDesc desc, bool makeMipmaps, const TextureSampler *compatSampler)
+static TextureConfig configWithLoadedImagePixmap(PixmapDesc desc, bool makeMipmaps, TextureSamplerConfig samplerConf)
 {
-	TextureConfig config{desc};
+	TextureConfig config{desc, samplerConf};
 	config.setWillGenerateMipmaps(makeMipmaps);
-	config.compatSampler = compatSampler;
 	return config;
 }
 
@@ -234,10 +233,10 @@ Texture::Texture(RendererTask &r, TextureConfig config):
 	init(r, config);
 }
 
-Texture::Texture(RendererTask &r, IG::Data::PixmapSource img, const TextureSampler *compatSampler, bool makeMipmaps):
+Texture::Texture(RendererTask &r, IG::Data::PixmapSource img, TextureSamplerConfig samplerConf, bool makeMipmaps):
 	GLTexture{r}
 {
-	init(r, configWithLoadedImagePixmap(img.pixmapView().desc(), makeMipmaps, compatSampler));
+	init(r, configWithLoadedImagePixmap(img.pixmapView().desc(), makeMipmaps, samplerConf));
 	loadImageSource(*static_cast<Texture*>(this), img, makeMipmaps);
 }
 
@@ -255,7 +254,7 @@ TextureConfig GLTexture::baseInit(RendererTask &r, TextureConfig config)
 void GLTexture::init(RendererTask &r, TextureConfig config)
 {
 	config = baseInit(r, config);
-	static_cast<Texture*>(this)->setFormat(config.pixmapDesc, config.levels, config.colorSpace, config.compatSampler);
+	static_cast<Texture*>(this)->setFormat(config.pixmapDesc, config.levels, config.colorSpace, config.samplerConfig);
 }
 
 void destroyGLTextureRef(RendererTask &task, TextureRef texName)
@@ -314,7 +313,7 @@ int Texture::levels() const
 	return levels_;
 }
 
-ErrorCode Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
+ErrorCode Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
 {
 	assumeExpr(desc.w());
 	assumeExpr(desc.h());
@@ -327,7 +326,7 @@ ErrorCode Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace,
 	{
 		levels = 1;
 	}
-	SamplerParams samplerParams = compatSampler ? compatSampler->samplerParams() : SamplerParams{};
+	SamplerParams samplerParams = asSamplerParams(samplerConf);
 	if(renderer().support.hasImmutableTexStorage)
 	{
 		bool isSrgb = renderer().supportedColorSpace(desc.format(), colorSpace) == ColorSpace::SRGB;
@@ -577,14 +576,15 @@ PixmapDesc Texture::pixmapDesc() const
 	return pixDesc;
 }
 
-void Texture::setCompatTextureSampler(const TextureSampler &compatSampler)
+void Texture::setSampler(TextureSamplerConfig samplerConf)
 {
-	if(renderer().support.hasSamplerObjects)
+	if(!texName()) [[unlikely]]
 		return;
 	task().run(
-		[&r = std::as_const(renderer()), texName = texName(), params = compatSampler.samplerParams()]()
+		[&r = std::as_const(renderer()), target = target(), texName = texName(), params = asSamplerParams(samplerConf)]()
 		{
-			GLTextureSampler::setTexParamsInGL(texName, GL_TEXTURE_2D, params);
+			glBindTexture(target, texName);
+			setSamplerParamsInGL(r, params, target);
 		});
 }
 
@@ -667,11 +667,22 @@ void GLTexture::setSwizzleForFormatInGL(const Renderer &r, PixelFormatID format,
 	}
 }
 
+static void setTexParameteri(GLenum target, GLenum pname, GLint param)
+{
+	runGLCheckedVerbose(
+		[&]()
+		{
+			glTexParameteri(target, pname, param);
+		}, "glTexParameteri()");
+}
+
 void GLTexture::setSamplerParamsInGL(const Renderer &r, SamplerParams params, GLenum target)
 {
-	if(r.support.hasSamplerObjects || !params.magFilter)
-		return;
-	GLTextureSampler::setTexParamsInGL(target, params);
+	assert(params.magFilter);
+	setTexParameteri(target, GL_TEXTURE_MAG_FILTER, params.magFilter);
+	setTexParameteri(target, GL_TEXTURE_MIN_FILTER, params.minFilter);
+	setTexParameteri(target, GL_TEXTURE_WRAP_S, params.xWrapMode);
+	setTexParameteri(target, GL_TEXTURE_WRAP_T, params.yWrapMode);
 }
 
 void GLTexture::updateFormatInfo(PixmapDesc desc, int8_t levels, GLenum target)

@@ -271,7 +271,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 {
 	using MainAppHelper<CustomSystemOptionView>::system;
 
-	StaticArrayList<TextMenuItem, maxModels> defaultModelItem{};
+	StaticArrayList<TextMenuItem, maxModels> defaultModelItem;
 
 	MultiChoiceMenuItem defaultModel
 	{
@@ -688,7 +688,7 @@ private:
 
 	unsigned currDriveTypeSlot = 0;
 
-	StaticArrayList<TextMenuItem, 18> driveTypeItem{};
+	StaticArrayList<TextMenuItem, 18> driveTypeItem;
 
 	MultiChoiceMenuItem drive8Type
 	{
@@ -740,7 +740,7 @@ private:
 
 	TextHeadingMenuItem mediaOptions{"Media Options", &defaultBoldFace()};
 
-	StaticArrayList<MenuItem*, 12> item{};
+	StaticArrayList<MenuItem*, 12> item;
 
 public:
 	C64IOControlView(ViewAttachParams attach):
@@ -871,7 +871,7 @@ public:
 
 class MachineOptionView : public TableView, public MainAppHelper<MachineOptionView>
 {
-	StaticArrayList<TextMenuItem, maxModels> modelItem{};
+	StaticArrayList<TextMenuItem, maxModels> modelItem;
 
 	MultiChoiceMenuItem model
 	{
@@ -999,7 +999,7 @@ class MachineOptionView : public TableView, public MainAppHelper<MachineOptionVi
 		reuItem
 	};
 
-	StaticArrayList<MenuItem*, 10> menuItem{};
+	StaticArrayList<MenuItem*, 10> menuItem;
 
 public:
 	MachineOptionView(ViewAttachParams attach):

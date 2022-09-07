@@ -1,4 +1,4 @@
-libcxxVersion := 14.0.6
+libcxxVersion := 15.0.0
 libcxxSrcDir := $(tempDir)/llvm-project-$(libcxxVersion).src/libcxx
 libcxxabiSrcDir := $(tempDir)/llvm-project-$(libcxxVersion).src/libcxxabi
 # Archive containing the libcxx & libcxxabi directories along with a minimal set of cmake support files
@@ -50,7 +50,9 @@ install : $(outputLibFile) $(outputLibcxxabiFile)
 
 # build libc++abi after libc++ and use its build headers
 $(CXXABI_OBJ) : | $(outputLibFile)
-$(CXXABI_OBJ) : CPPFLAGS += -DHAVE___CXA_THREAD_ATEXIT_IMPL -D_LIBCPP_DISABLE_EXTERN_TEMPLATE -D_LIBCPP_BUILDING_LIBRARY -D_LIBCXXABI_BUILDING_LIBRARY -nostdinc++ -I$(libcxxSrcDir)/src -I$(buildDir)/include/c++/v1
+$(CXXABI_OBJ) : CPPFLAGS += -DHAVE___CXA_THREAD_ATEXIT_IMPL -D_LIBCPP_DISABLE_EXTERN_TEMPLATE -D_LIBCPP_BUILDING_LIBRARY -D_LIBCXXABI_BUILDING_LIBRARY -I$(libcxxSrcDir)/src -I$(buildDir)/include/c++/v1
+
+CPPFLAGS += -nostdinc++ -I$(libcxxabiSrcDir)/include -Wno-user-defined-literals -U_LIBCPP_LINK_PTHREAD_LIB -U_LIBCPP_LINK_RT_LIB
 
 $(outputLibcxxabiFile) : $(CXXABI_OBJ)
 	@echo "Archiving libc++abi..."
@@ -68,5 +70,5 @@ $(makeFile) : $(libcxxSrcDir)/CMakeLists.txt
 	-DLIBCXX_CXX_ABI=libcxxabi -DLLVM_INCLUDE_TESTS=OFF -DLIBCXX_ENABLE_EXPERIMENTAL_LIBRARY=OFF \
 	-DLIBCXX_ENABLE_DEBUG_MODE_SUPPORT=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="$(CPPFLAGS) $(CXXFLAGS)" \
 	-DLIBCXX_ABI_UNSTABLE=ON -DLIBCXX_ENABLE_INCOMPLETE_FEATURES=ON -DCMAKE_CXX_COMPILER_TARGET=$(clangTarget) \
-	-DLIBCXX_HERMETIC_STATIC_LIBRARY=ON \
+	-DLIBCXX_HERMETIC_STATIC_LIBRARY=ON -DLIBCXX_INCLUDE_BENCHMARKS=OFF \
 	$(buildArg) -B $(@D)

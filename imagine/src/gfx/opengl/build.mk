@@ -44,7 +44,6 @@ SRC += gfx/common/GeomQuadMesh.cc \
  gfx/opengl/Renderer.cc \
  gfx/opengl/RendererCommands.cc \
  gfx/opengl/RendererTask.cc \
- gfx/opengl/resource.cc \
  gfx/opengl/shader.cc \
  gfx/opengl/sync.cc \
  gfx/opengl/Texture.cc \

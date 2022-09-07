@@ -16,13 +16,14 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/gfx/defs.hh>
-#include <imagine/gfx/TextureConfig.hh>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/GLTexture.hh>
 #endif
 
+#include <imagine/gfx/defs.hh>
+#include <imagine/gfx/TextureConfig.hh>
+#include <imagine/gfx/TextureSamplerConfig.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <utility>
 
@@ -33,12 +34,6 @@ class PixmapSource;
 
 namespace IG::Gfx
 {
-
-class Renderer;
-class RendererTask;
-class RendererCommands;
-class TextureSampler;
-class Mat4;
 
 class LockedTextureBuffer: public LockedTextureBufferImpl
 {
@@ -59,12 +54,12 @@ public:
 
 	using TextureImpl::TextureImpl;
 	Texture(RendererTask &, TextureConfig);
-	Texture(RendererTask &, IG::Data::PixmapSource, const TextureSampler *compatSampler, bool makeMipmaps);
+	Texture(RendererTask &, IG::Data::PixmapSource, TextureSamplerConfig, bool makeMipmaps);
 	static int bestAlignment(PixmapView pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
 	int levels() const;
-	ErrorCode setFormat(PixmapDesc, int levels, ColorSpace c = {}, const TextureSampler *compatSampler = {});
+	ErrorCode setFormat(PixmapDesc, int levels, ColorSpace c = {}, TextureSamplerConfig samplerConf = {});
 	void write(int level, PixmapView pixmap, IG::WP destPos, uint32_t writeFlags = 0);
 	void writeAligned(int level, PixmapView pixmap, IG::WP destPos, int assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear(int level);
@@ -73,7 +68,7 @@ public:
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
 	IG::WP size(int level) const;
 	PixmapDesc pixmapDesc() const;
-	void setCompatTextureSampler(const TextureSampler &compatSampler);
+	void setSampler(TextureSamplerConfig);
 	explicit operator bool() const;
 	Renderer &renderer() const;
 	RendererTask &task() const;

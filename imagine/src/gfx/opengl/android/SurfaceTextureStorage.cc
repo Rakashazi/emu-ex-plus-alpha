@@ -35,7 +35,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 		logErr("can't init without OES_EGL_image_external extension");
 		throw Error{ENOTSUP};
 	}
-	SamplerParams samplerParams = config.compatSampler ? config.compatSampler->samplerParams() : SamplerParams{};
+	SamplerParams samplerParams = asSamplerParams(config.samplerConfig);
 	task().runSync(
 		[=, this](GLTask::TaskContext ctx)
 		{
@@ -78,7 +78,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 		throw Error{EINVAL};
 	}
 	logMsg("native window:%p from Surface:%p%s", nativeWin, localSurface, singleBuffered ? " (single-buffered)" : "");
-	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.compatSampler);
+	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.samplerConfig);
 	if(err) [[unlikely]]
 	{
 		throw Error{err};
@@ -127,7 +127,7 @@ void SurfaceTextureStorage::deinit()
 	}
 }
 
-IG::ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *)
+ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig)
 {
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
 	int winFormat = toAHardwareBufferFormat(desc.format());
@@ -194,17 +194,6 @@ void SurfaceTextureStorage::unlock(LockedTextureBuffer, uint32_t)
 		[tex = surfaceTex, app = task().appContext()]()
 		{
 			updateSurfaceTextureImage(app.thisThreadJniEnv(), tex);
-		});
-}
-
-void SurfaceTextureStorage::setCompatTextureSampler(const TextureSampler &compatSampler)
-{
-	if(renderer().support.hasSamplerObjects)
-		return;
-	task().run(
-		[&r = std::as_const(renderer()), texName = texName(), params = compatSampler.samplerParams()]()
-		{
-			GLTextureSampler::setTexParamsInGL(texName, GL_TEXTURE_EXTERNAL_OES, params);
 		});
 }
 

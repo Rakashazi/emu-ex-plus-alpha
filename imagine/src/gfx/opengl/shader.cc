@@ -265,8 +265,8 @@ static GLuint makeGLShader(RendererTask &rTask, std::span<std::string_view> srcs
 		[&shaderOut, srcs, type]()
 		{
 			auto shader = glCreateShader((GLenum)type);
-			StaticArrayList<const GLchar*, maxSourceStrings> srcStrings{};
-			StaticArrayList<GLint, maxSourceStrings> srcSizes{};
+			StaticArrayList<const GLchar*, maxSourceStrings> srcStrings;
+			StaticArrayList<GLint, maxSourceStrings> srcSizes;
 			for(auto s : srcs)
 			{
 				srcStrings.emplace_back(s.data());
@@ -313,7 +313,7 @@ static GLuint makeCompatGLShader(RendererTask &rTask, std::span<std::string_view
 		logErr("%zu source strings is over %zu limit", srcCount, maxSourceStrings);
 		return 0;
 	}
-	StaticArrayList<std::string_view, maxSourceStrings> compatSrcs{};
+	StaticArrayList<std::string_view, maxSourceStrings> compatSrcs;
 	std::string_view version = Config::Gfx::OPENGL_ES ? "#version 300 es\n"sv : "#version 330\n"sv;
 	std::string_view legacyVertDefs // for GL ES 2.0
 	{

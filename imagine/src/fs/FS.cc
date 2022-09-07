@@ -15,6 +15,7 @@
 
 #define LOGTAG "FS"
 #include <imagine/fs/FS.hh>
+#include <imagine/fs/FSUtils.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
 #include <imagine/util/string.h>

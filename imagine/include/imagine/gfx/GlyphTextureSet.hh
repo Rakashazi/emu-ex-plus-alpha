@@ -24,9 +24,7 @@
 namespace IG::Gfx
 {
 
-class Renderer;
-
-static constexpr auto glyphCommonTextureSampler = CommonTextureSampler::NO_MIP_CLAMP;
+constexpr auto glyphSamplerConfig = SamplerConfigs::noMipClamp;
 
 struct GlyphEntry
 {

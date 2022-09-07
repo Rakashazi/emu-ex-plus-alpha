@@ -55,7 +55,6 @@ public:
 
 	constexpr void setUVBounds(FRect uvBounds, Rotation r = Rotation::UP)
 	{
-		assert(uvBounds.xSize());
 		BaseRect::setUV(uvBounds, r);
 	}
 

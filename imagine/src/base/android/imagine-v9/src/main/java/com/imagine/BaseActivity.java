@@ -104,21 +104,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		}
 		return flags;
 	}
-		
-	int sigHash()
-	{
-		try
-		{
-			Signature[] sig = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES).signatures;
-			//Log.i(logTag, "sig hash " + sig[0].hashCode());
-			return sig[0].hashCode();
-		}
-		catch(PackageManager.NameNotFoundException e)
-		{
-			return 0;
-		}
-	}
-	
+
 	boolean packageIsInstalled(String name)
 	{
 		boolean found = false;
@@ -591,35 +577,59 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 
 	// Storage Access Framework support
 
-	void openDocumentTree(long nativeUserData)
+	boolean openDocumentTree(long nativeUserData)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 21)
-			return;
+			return false;
 		activityResultNativeUserData = nativeUserData;
 		Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-		startActivityForResult(intent, REQUEST_OPEN_DOCUMENT_TREE);
+		try
+		{
+			startActivityForResult(intent, REQUEST_OPEN_DOCUMENT_TREE);
+		}
+		catch(Exception e)
+		{
+			return false;
+		}
+		return true;
 	}
 
-	void openDocument(long nativeUserData)
+	boolean openDocument(long nativeUserData)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 19)
-			return;
+			return false;
 		activityResultNativeUserData = nativeUserData;
 		Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
 		intent.addCategory(Intent.CATEGORY_OPENABLE);
 		intent.setType("application/*");
-		startActivityForResult(intent, REQUEST_OPEN_DOCUMENT);
+		try
+		{
+			startActivityForResult(intent, REQUEST_OPEN_DOCUMENT);
+		}
+		catch(Exception e)
+		{
+			return false;
+		}
+		return true;
 	}
 
-	void createDocument(long nativeUserData)
+	boolean createDocument(long nativeUserData)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 19)
-			return;
+			return false;
 		activityResultNativeUserData = nativeUserData;
 		Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
 		intent.addCategory(Intent.CATEGORY_OPENABLE);
 		intent.setType("application/octet-stream");
-		startActivityForResult(intent, REQUEST_OPEN_DOCUMENT);
+		try
+		{
+			startActivityForResult(intent, REQUEST_OPEN_DOCUMENT);
+		}
+		catch(Exception e)
+		{
+			return false;
+		}
+		return true;
 	}
 
 	int openUriFd(String uriStr, int flags)

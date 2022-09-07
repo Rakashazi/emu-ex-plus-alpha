@@ -139,7 +139,7 @@ public:
 	void setDragStartPixels(int p) { dragStartPixels = p; }
 
 protected:
-	StaticArrayList<State, MAX_POINTERS> state_{};
+	StaticArrayList<State, MAX_POINTERS> state_;
 	int dragStartPixels{};
 
 	State *state(PointerId id)

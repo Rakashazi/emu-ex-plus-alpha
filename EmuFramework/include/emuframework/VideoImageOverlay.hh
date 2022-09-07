@@ -17,7 +17,6 @@
 
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/Texture.hh>
-#include <imagine/gfx/TextureSampler.hh>
 #include <imagine/util/enum.hh>
 
 namespace EmuEx
@@ -46,7 +45,6 @@ public:
 private:
 	Gfx::Texture img{};
 	Gfx::Sprite spr{};
-	Gfx::TextureSampler sampler{};
 	float intensity = 0.75f;
 	ImageOverlayId overlayId{};
 	bool multiplyBlend{};

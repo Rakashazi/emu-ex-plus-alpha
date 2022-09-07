@@ -17,11 +17,12 @@
 
 #include <imagine/fs/FS.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/util/string/CStringView.hh>
 
 namespace IG::FS
 {
 
-static PathString createDirectoryUriSegments(ApplicationContext ctx, ConvertibleToPathString auto &&base, auto &&...components)
+inline PathString createDirectoryUriSegments(ApplicationContext ctx, ConvertibleToPathString auto &&base, auto &&...components)
 {
 	if(!isUri(base))
 		return createDirectorySegments(IG_forward(base), IG_forward(components)...);
@@ -34,5 +35,8 @@ static PathString createDirectoryUriSegments(ApplicationContext ctx, Convertible
 	}(), ...);
 	return uri;
 }
+
+size_t directoryItems(CStringView path);
+void forEachInDirectory(CStringView path, DirectoryEntryDelegate del);
 
 }

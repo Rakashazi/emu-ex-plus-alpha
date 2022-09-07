@@ -34,7 +34,6 @@ void VControllerKeyboard::updateImg(Gfx::Renderer &r)
 void VControllerKeyboard::setImg(Gfx::Renderer &r, Gfx::TextureSpan img)
 {
 	spr = {{{-.5, -.5}, {.5, .5}}, img};
-	hasMipmaps = img.texture()->levels() > 1;
 	texXEnd = img.uvBounds().x2;
 	updateImg(r);
 }
@@ -59,10 +58,6 @@ void VControllerKeyboard::place(float btnSize, float yOffset, Gfx::ProjectionPla
 
 void VControllerKeyboard::draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPlane projP) const
 {
-	if(hasMipmaps)
-		cmds.set(View::imageCommonTextureSampler);
-	else
-		cmds.set(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
 	auto &basicEffect = cmds.basicEffect();
 	spr.draw(cmds, basicEffect);
 	if(selected.x != -1)

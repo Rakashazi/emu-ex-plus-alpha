@@ -80,15 +80,15 @@ public:
 	void setTextureBufferMode(EmuSystem &, Gfx::TextureBufferMode mode);
 	void setImageBuffers(int num);
 	int imageBuffers() const;
-	void setCompatTextureSampler(const Gfx::TextureSampler &);
+	void setSampler(Gfx::TextureSamplerConfig);
 	constexpr auto colorSpace() const { return colSpace; }
 	bool setRenderPixelFormat(EmuSystem &, IG::PixelFormat, Gfx::ColorSpace);
 	IG::PixelFormat renderPixelFormat() const;
 	IG::PixelFormat internalRenderPixelFormat() const;
+	static Gfx::TextureSamplerConfig samplerConfigForLinearFilter(bool useLinearFilter);
 
 protected:
 	Gfx::RendererTask *rTask{};
-	const Gfx::TextureSampler *texSampler{};
 	Gfx::SyncFence fence{};
 	Gfx::PixmapBufferTexture vidImg{};
 	FrameFinishedDelegate onFrameFinished{};
@@ -99,11 +99,13 @@ protected:
 	bool singleBuffer{};
 	bool needsFence{};
 	Gfx::ColorSpace colSpace{};
+	bool useLinearFilter{true};
 
 	void doScreenshot(EmuSystemTaskContext, IG::PixmapView pix);
 	void postFrameFinished(EmuSystemTaskContext);
 	void syncImageAccess();
 	void updateNeedsFence();
+	Gfx::TextureSamplerConfig samplerConfig() const { return samplerConfigForLinearFilter(useLinearFilter); }
 };
 
 }

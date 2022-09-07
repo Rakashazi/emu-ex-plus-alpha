@@ -19,7 +19,6 @@
 #include <imagine/base/BaseApplication.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/android/Choreographer.hh>
-#include <imagine/fs/FSDefs.hh>
 #include <imagine/util/jni.hh>
 #include <pthread.h>
 #include <optional>
@@ -33,6 +32,12 @@ struct AInputEvent;
 namespace IG::Input
 {
 class AndroidInputDevice;
+}
+
+namespace IG::FS
+{
+class PathString;
+class FileString;
 }
 
 namespace IG
@@ -76,9 +81,9 @@ public:
 	void addNotification(JNIEnv *, jobject baseActivity, const char *onShow, const char *title, const char *message);
 	void removePostedNotifications(JNIEnv *, jobject baseActivity);
 	void handleIntent(ApplicationContext);
-	void openDocumentTreeIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
-	void openDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
-	void createDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
+	bool openDocumentTreeIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
+	bool openDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
+	bool createDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
 	FrameTimer makeFrameTimer(Screen &);
 	bool requestPermission(ApplicationContext, Permission);
 	UniqueFileDescriptor openFileUriFd(JNIEnv *, jobject baseActivity, CStringView uri, OpenFlagsMask oFlags = {}) const;
@@ -88,7 +93,7 @@ public:
 	bool removeFileUri(JNIEnv *, jobject baseActivity, IG::CStringView uri, bool isDir) const;
 	bool renameFileUri(JNIEnv *, jobject baseActivity, IG::CStringView oldUri, IG::CStringView newUri) const;
 	bool createDirectoryUri(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
-	void forEachInDirectoryUri(JNIEnv *, jobject baseActivity, IG::CStringView uri, FS::DirectoryEntryDelegate) const;
+	void forEachInDirectoryUri(JNIEnv *, jobject baseActivity, CStringView uri, DirectoryEntryDelegate) const;
 
 	// Input system functions
 	void onInputQueueCreated(ApplicationContext, AInputQueue *);

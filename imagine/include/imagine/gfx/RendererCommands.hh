@@ -99,8 +99,6 @@ public:
 	void setTexture(const Texture &t);
 	void set(TextureBinding);
 	void setTextureSampler(const TextureSampler &sampler);
-	void setCommonTextureSampler(CommonTextureSampler sampler);
-	void set(CommonTextureSampler sampler) { setCommonTextureSampler(sampler); }
 	void setViewport(Viewport v);
 	void restoreViewport();
 	void vertexBufferData(const void *v, size_t size);

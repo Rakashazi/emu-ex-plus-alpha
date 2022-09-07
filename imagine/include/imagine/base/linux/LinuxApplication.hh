@@ -28,14 +28,16 @@
 struct _XDisplay;
 union _XEvent;
 
-namespace IG
+namespace IG::FS
 {
-class LinuxApplication;
-class ApplicationContext;
+class PathString;
 }
 
 namespace IG
 {
+
+class LinuxApplication;
+class ApplicationContext;
 
 struct ApplicationInitParams
 {

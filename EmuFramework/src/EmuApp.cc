@@ -249,8 +249,7 @@ Gfx::Texture &EmuApp::asset(AssetID assetID) const
 	{
 		try
 		{
-			res = renderer.makeTexture(pixmapReader.loadAsset(assetFilename[assetIdx]),
-				&renderer.get(View::imageCommonTextureSampler));
+			res = renderer.makeTexture(pixmapReader.loadAsset(assetFilename[assetIdx]), View::imageSamplerConfig);
 		}
 		catch(...)
 		{
@@ -690,19 +689,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						return false;
 					}
 				};
-
-			#if defined __ANDROID__
-			if(!ctx.apkSignatureIsConsistent())
-			{
-				auto ynAlertView = std::make_unique<YesNoAlertView>(viewAttach, "Warning: App has been modified by 3rd party, use at your own risk");
-				ynAlertView->setOnNo(
-					[](View &v)
-					{
-						v.appContext().exit();
-					});
-				viewController().pushAndShowModal(std::move(ynAlertView), false);
-			}
-			#endif
 
 			win.setOnInputEvent(
 				[this](IG::Window &win, const Input::Event &e)

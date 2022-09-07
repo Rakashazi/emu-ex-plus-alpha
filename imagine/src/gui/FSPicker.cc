@@ -183,14 +183,14 @@ void FSPicker::onAddedToController(ViewController *, const Input::Event &e)
 	controller.top().onAddedToController(&controller, e);
 }
 
-void FSPicker::setEmptyPath()
+void FSPicker::setEmptyPath(std::string_view message)
 {
 	logMsg("setting empty path");
 	dirListThread.stop();
 	dirListEvent.cancel();
 	root = {};
 	dir.clear();
-	msgText.setString("No folder is set");
+	msgText.setString(message);
 	if(mode_ == Mode::FILE_IN_DIR)
 	{
 		fileTableView().setName({});
@@ -199,6 +199,11 @@ void FSPicker::setEmptyPath()
 	{
 		fileTableView().setName("Select File Location");
 	}
+}
+
+void FSPicker::setEmptyPath()
+{
+	setEmptyPath("No folder is set");
 }
 
 void FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInfo, const Input::Event &e)
@@ -320,12 +325,13 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 
 	int customItems = 1 + Config::envIsLinux + appContext().hasSystemPathPicker() + appContext().hasSystemDocumentPicker();
 	auto view = makeView<FileLocationsTextTableView>(appContext().rootFileLocations(), customItems);
+	static constexpr std::string_view failedSystemPickerMsg = "This device doesn't have a document browser, please select a media folder instead";
 	if(appContext().hasSystemPathPicker())
 	{
 		view->appendItem("Browse For Folder",
 			[this](View &view, const Input::Event &e)
 			{
-				appContext().showSystemPathPicker(
+				if(!appContext().showSystemPathPicker(
 					[this, &view](IG::CStringView uri, IG::CStringView displayName)
 					{
 						view.dismiss();
@@ -333,7 +339,11 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 							onSelectPath_.callCopy(*this, uri, displayName, appContext().defaultInputEvent());
 						else
 							changeDirByInput(uri, appContext().rootPathInfo(uri), appContext().defaultInputEvent());
-					});
+					}))
+				{
+					setEmptyPath(failedSystemPickerMsg);
+					view.dismiss();
+				}
 			});
 	}
 	if(mode_ != Mode::DIR && appContext().hasSystemDocumentPicker())
@@ -341,11 +351,15 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 		view->appendItem("Browse For File",
 			[this](View &view, const Input::Event &e)
 			{
-				appContext().showSystemDocumentPicker(
+				if(!appContext().showSystemDocumentPicker(
 					[this, &view](IG::CStringView uri, IG::CStringView displayName)
 					{
 						onSelectPath_.callCopy(*this, uri, displayName, appContext().defaultInputEvent());
-					});
+					}))
+				{
+					setEmptyPath(failedSystemPickerMsg);
+					view.dismiss();
+				}
 			});
 	}
 	for(auto &loc : view->locations())

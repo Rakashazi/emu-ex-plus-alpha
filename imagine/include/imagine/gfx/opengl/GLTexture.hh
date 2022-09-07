@@ -30,10 +30,6 @@
 namespace IG::Gfx
 {
 
-class Renderer;
-class RendererTask;
-class RendererCommands;
-class TextureSampler;
 class LockedTextureBuffer;
 
 class GLLockedTextureBuffer

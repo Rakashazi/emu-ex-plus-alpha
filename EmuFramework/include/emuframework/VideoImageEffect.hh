@@ -44,11 +44,10 @@ public:
 	};
 
 	constexpr	VideoImageEffect() = default;
-	VideoImageEffect(Gfx::Renderer &r, Id effect, IG::PixelFormat, Gfx::ColorSpace,
-		const Gfx::TextureSampler &compatTexSampler, IG::WP size);
-	void setImageSize(Gfx::Renderer &r, IG::WP size, const Gfx::TextureSampler &compatTexSampler);
-	void setFormat(Gfx::Renderer &r, IG::PixelFormat, Gfx::ColorSpace, const Gfx::TextureSampler &compatTexSampler);
-	void setCompatTextureSampler(const Gfx::TextureSampler &);
+	VideoImageEffect(Gfx::Renderer &r, Id effect, IG::PixelFormat, Gfx::ColorSpace, Gfx::TextureSamplerConfig, IG::WP size);
+	void setImageSize(Gfx::Renderer &r, IG::WP size, Gfx::TextureSamplerConfig);
+	void setFormat(Gfx::Renderer &r, IG::PixelFormat, Gfx::ColorSpace, Gfx::TextureSamplerConfig);
+	void setSampler(Gfx::TextureSamplerConfig);
 	Gfx::Program &program();
 	Gfx::Texture &renderTarget();
 	void drawRenderTarget(Gfx::RendererCommands &, const Gfx::TextureSpan);
@@ -67,9 +66,9 @@ private:
 	IG::PixelFormat format{};
 	Gfx::ColorSpace colorSpace{};
 
-	void initRenderTargetTexture(Gfx::Renderer &r, const Gfx::TextureSampler &compatTexSampler);
+	void initRenderTargetTexture(Gfx::Renderer &r, Gfx::TextureSamplerConfig);
 	void updateProgramUniforms(Gfx::Renderer &r);
-	void compile(Gfx::Renderer &r, EffectDesc desc, const Gfx::TextureSampler &compatTexSampler);
+	void compile(Gfx::Renderer &r, EffectDesc desc, Gfx::TextureSamplerConfig);
 	void compileEffect(Gfx::Renderer &r, EffectDesc desc, bool useFallback);
 };
 

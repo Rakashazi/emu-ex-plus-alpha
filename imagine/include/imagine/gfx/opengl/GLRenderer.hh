@@ -152,16 +152,6 @@ public:
 	void setGLDebugOutput(bool on);
 };
 
-struct GLCommonSamplers
-{
-	TextureSampler clamp{};
-	TextureSampler nearestMipClamp{};
-	TextureSampler noMipClamp{};
-	TextureSampler noLinearNoMipClamp{};
-	TextureSampler repeat{};
-	TextureSampler nearestMipRepeat{};
-};
-
 class GLRenderer
 {
 public:
@@ -169,7 +159,6 @@ public:
 	[[no_unique_address]] GLManager glManager;
 	RendererTask mainTask;
 	BasicEffect basicEffect_{};
-	GLCommonSamplers commonSampler{};
 	CustomEvent releaseShaderCompilerEvent{CustomEvent::NullInit{}};
 
 	GLRenderer(ApplicationContext);

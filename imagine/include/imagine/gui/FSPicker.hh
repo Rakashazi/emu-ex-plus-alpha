@@ -99,6 +99,7 @@ protected:
 	TableView &fileTableView();
 	void startDirectoryListThread(CStringView path);
 	void listDirectory(CStringView path, ThreadStop &stop);
+	void setEmptyPath(std::string_view message);
 };
 
 }

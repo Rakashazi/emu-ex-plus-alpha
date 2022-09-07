@@ -59,9 +59,8 @@ public:
 
 private:
 	VideoImageOverlay vidImgOverlay{};
-	IG::StaticArrayList<VideoImageEffect*, 1> effects{};
+	IG::StaticArrayList<VideoImageEffect*, 1> effects;
 	EmuVideo &video;
-	const Gfx::TextureSampler *texSampler{};
 	VideoImageEffect userEffect{};
 	Gfx::Sprite disp{};
 	IG::WindowRect contentRect_{};
@@ -73,6 +72,7 @@ private:
 	Gfx::ColorSpace colSpace{};
 	uint8_t zoom_{100};
 	IG::Rotation rotation{};
+	bool useLinearFilter{true};
 
 	void placeOverlay();
 	void updateEffectImageSize();
@@ -82,6 +82,7 @@ private:
 	void logOutputFormat();
 	Gfx::Renderer &renderer();
 	Gfx::ColorSpace videoColorSpace(IG::PixelFormat videoFmt) const;
+	Gfx::TextureSamplerConfig samplerConfig() const;
 };
 
 }

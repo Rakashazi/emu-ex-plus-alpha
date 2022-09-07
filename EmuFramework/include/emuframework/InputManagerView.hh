@@ -93,7 +93,7 @@ private:
 	BoolMenuItem btScanCache{};
 	#endif
 	BoolMenuItem altGamepadConfirm{};
-	StaticArrayList<MenuItem*, 10> item{};
+	StaticArrayList<MenuItem*, 10> item;
 	EmuInputView *emuInputView{};
 };
 
@@ -124,8 +124,8 @@ private:
 	BoolMenuItem joystickAxisHatDPad{};
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, consumeUnboundKeys){};
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
-	StaticArrayList<TextMenuItem, Controls::MAX_CATEGORIES> inputCategory{};
-	StaticArrayList<MenuItem*, Controls::MAX_CATEGORIES + 11> item{};
+	StaticArrayList<TextMenuItem, Controls::MAX_CATEGORIES> inputCategory;
+	StaticArrayList<MenuItem*, Controls::MAX_CATEGORIES + 11> item;
 	InputDeviceConfig *devConf{};
 
 	void confirmICadeMode();

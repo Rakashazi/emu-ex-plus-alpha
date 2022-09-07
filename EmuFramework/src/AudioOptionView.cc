@@ -15,8 +15,6 @@
 
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuAudio.hh>
-#include "EmuOptions.hh"
 #include <imagine/util/format.hh>
 
 namespace EmuEx

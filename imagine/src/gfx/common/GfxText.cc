@@ -158,7 +158,6 @@ void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, Pro
 		return;
 	//logMsg("drawing with origin: %s,%s", o.toString(o.x), o.toString(o.y));
 	cmds.set(BlendMode::ALPHA);
-	cmds.set(glyphCommonTextureSampler);
 	TexQuad vArr;
 	cmds.bindTempVertexBuffer();
 	cmds.setVertexAttribs(vArr.data());

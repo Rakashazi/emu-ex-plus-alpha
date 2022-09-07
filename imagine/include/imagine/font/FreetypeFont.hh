@@ -106,7 +106,7 @@ public:
 
 protected:
 	FT_Library library{};
-	StaticArrayList<FreetypeFaceData, MAX_FREETYPE_SLOTS> f{};
+	StaticArrayList<FreetypeFaceData, MAX_FREETYPE_SLOTS> f;
 	FontWeight weight{};
 
 	std::errc loadIntoNextSlot(IO);

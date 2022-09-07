@@ -12,6 +12,9 @@ endif
 
 CFLAGS_CODEGEN += -fstrict-vtable-pointers
 
+# needed for <ranges>
+CPPFLAGS += -D_LIBCPP_ENABLE_EXPERIMENTAL
+
 ifeq ($(LTO_MODE),lto)
  ltoMode := lto
 else ifeq ($(LTO_MODE),lto-fat)

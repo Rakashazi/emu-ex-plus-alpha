@@ -20,6 +20,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/format.hh>
+#include <imagine/util/string/StaticString.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
@@ -237,8 +238,7 @@ void DrawTest::initTest(IG::ApplicationContext app, Gfx::Renderer &r, IG::WP pix
 {
 	using namespace IG::Gfx;
 	IG::PixmapDesc pixmapDesc = {pixmapSize, IG::PIXEL_FMT_RGB565};
-	TextureConfig texConf{pixmapDesc};
-	texConf.compatSampler = &r.make(CommonTextureSampler::NO_MIP_CLAMP);
+	TextureConfig texConf{pixmapDesc, SamplerConfigs::noMipClamp};
 	const bool canSingleBuffer = r.maxSwapChainImages() < 3 || r.supportsSyncFences();
 	texture = r.makePixmapBufferTexture(texConf, bufferMode, canSingleBuffer);
 	if(!texture) [[unlikely]]
@@ -270,7 +270,6 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);
 	cmds.set(BlendMode::OFF);
-	cmds.set(CommonTextureSampler::NO_MIP_CLAMP);
 	if(flash)
 	{
 		if(!droppedFrames)
@@ -319,7 +318,6 @@ void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);
 	cmds.set(BlendMode::OFF);
-	cmds.set(CommonTextureSampler::NO_MIP_CLAMP);
 	sprite.draw(cmds, cmds.basicEffect());
 }
 

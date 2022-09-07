@@ -278,7 +278,6 @@ void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 			{
 				cmds.set(ColorName::WHITE);
 				cmds.set(BlendMode::ALPHA);
-				cmds.set(imageCommonTextureSampler);
 				cancelSpr.draw(cmds, basicEffect);
 			}
 		});

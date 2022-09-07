@@ -63,7 +63,7 @@ protected:
 	#endif
 	TextMenuItem about;
 	TextMenuItem exitApp;
-	StaticArrayList<MenuItem*, STANDARD_ITEMS + MAX_SYSTEM_ITEMS> item{};
+	StaticArrayList<MenuItem*, STANDARD_ITEMS + MAX_SYSTEM_ITEMS> item;
 };
 
 }

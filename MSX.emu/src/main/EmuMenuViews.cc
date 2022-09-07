@@ -461,7 +461,7 @@ public:
 		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }}
 	};
 
-	StaticArrayList<MenuItem*, 9> item{};
+	StaticArrayList<MenuItem*, 9> item;
 
 public:
 	MsxIOControlView(ViewAttachParams attach):

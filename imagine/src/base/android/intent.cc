@@ -82,44 +82,44 @@ void ApplicationContext::openURL(IG::CStringView url) const
 	jOpenURL(env, baseActivity, env->NewStringUTF(url));
 }
 
-void AndroidApplication::openDocumentTreeIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
+bool AndroidApplication::openDocumentTreeIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
 {
 	onSystemDocumentPicker = del;
-	JNI::InstMethod<void(jlong)> jOpenDocumentTree{env, env->GetObjectClass(baseActivity), "openDocumentTree", "(J)V"};
-	jOpenDocumentTree(env, baseActivity, (jlong)this);
+	JNI::InstMethod<jboolean(jlong)> jOpenDocumentTree{env, env->GetObjectClass(baseActivity), "openDocumentTree", "(J)Z"};
+	return jOpenDocumentTree(env, baseActivity, (jlong)this);
 }
 
 bool ApplicationContext::hasSystemPathPicker() const { return androidSDK() >= 21; }
 
-void ApplicationContext::showSystemPathPicker(SystemDocumentPickerDelegate del)
+bool ApplicationContext::showSystemPathPicker(SystemDocumentPickerDelegate del)
 {
-	application().openDocumentTreeIntent(mainThreadJniEnv(), baseActivityObject(), del);
+	return application().openDocumentTreeIntent(mainThreadJniEnv(), baseActivityObject(), del);
 }
 
-void AndroidApplication::openDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
+bool AndroidApplication::openDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
 {
 	onSystemDocumentPicker = del;
-	JNI::InstMethod<void(jlong)> jOpenDocument{env, env->GetObjectClass(baseActivity), "openDocument", "(J)V"};
-	jOpenDocument(env, baseActivity, (jlong)this);
+	JNI::InstMethod<jboolean(jlong)> jOpenDocument{env, env->GetObjectClass(baseActivity), "openDocument", "(J)Z"};
+	return jOpenDocument(env, baseActivity, (jlong)this);
 }
 
 bool ApplicationContext::hasSystemDocumentPicker() const { return androidSDK() >= 19; }
 
-void ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate del)
+bool ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate del)
 {
-	application().openDocumentIntent(mainThreadJniEnv(), baseActivityObject(), del);
+	return application().openDocumentIntent(mainThreadJniEnv(), baseActivityObject(), del);
 }
 
-void AndroidApplication::createDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
+bool AndroidApplication::createDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
 {
 	onSystemDocumentPicker = del;
-	JNI::InstMethod<void(jlong)> jCreateDocument{env, env->GetObjectClass(baseActivity), "createDocument", "(J)V"};
-	jCreateDocument(env, baseActivity, (jlong)this);
+	JNI::InstMethod<jboolean(jlong)> jCreateDocument{env, env->GetObjectClass(baseActivity), "createDocument", "(J)Z"};
+	return jCreateDocument(env, baseActivity, (jlong)this);
 }
 
-void ApplicationContext::showSystemCreateDocumentPicker(SystemDocumentPickerDelegate del)
+bool ApplicationContext::showSystemCreateDocumentPicker(SystemDocumentPickerDelegate del)
 {
-	application().createDocumentIntent(mainThreadJniEnv(), baseActivityObject(), del);
+	return application().createDocumentIntent(mainThreadJniEnv(), baseActivityObject(), del);
 }
 
 void AndroidApplication::handleDocumentIntentResult(const char *uri, const char *name)

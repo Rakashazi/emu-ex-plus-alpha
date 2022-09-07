@@ -38,7 +38,7 @@ public:
 
 protected:
 	static constexpr uint32_t MAX_AXES = 14;
-	StaticArrayList<Axis, MAX_AXES> axis{};
+	StaticArrayList<Axis, MAX_AXES> axis;
 	bool iCadeMode_{};
 };
 

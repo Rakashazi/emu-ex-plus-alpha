@@ -15,8 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/string/CStringView.hh>
-#include <imagine/util/string/StaticString.hh>
 #include <imagine/util/utility.h>
 #include <concepts>
 #include <string>
@@ -38,12 +36,9 @@ public:
 
 	// UTF-8 -> UTF-16 conversion
 	utf16String(std::string_view s):std::u16string{makeUTF16String(s)} {}
+	utf16String(std::convertible_to<std::string_view> auto &&s):utf16String{std::string_view{IG_forward(s)}} {}
 	[[gnu::nonnull]]
 	utf16String(const char *s):utf16String{std::string_view{s}} {}
-	utf16String(CStringView s):utf16String{std::string_view{s}} {}
-	utf16String(const std::string &s):utf16String{std::string_view{s}} {}
-	template<size_t N>
-	utf16String(const StaticString<N> &s):utf16String{std::string_view{s}} {}
 };
 
 }

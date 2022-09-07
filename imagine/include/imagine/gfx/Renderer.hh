@@ -116,21 +116,21 @@ public:
 	// resources
 
 	Texture makeTexture(TextureConfig);
-	Texture makeTexture(IG::Data::PixmapSource, const TextureSampler *compatSampler = {}, bool makeMipmaps = true);
+	Texture makeTexture(IG::Data::PixmapSource, TextureSamplerConfig samplerConf = {}, bool makeMipmaps = true);
 	PixmapBufferTexture makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false);
 	std::vector<TextureBufferModeDesc> textureBufferModes();
 	TextureBufferMode makeValidTextureBufferMode(TextureBufferMode mode = {});
-	TextureSampler makeTextureSampler(TextureSamplerConfig config);
-	const TextureSampler &makeCommonTextureSampler(CommonTextureSampler sampler);
-	const TextureSampler &make(CommonTextureSampler sampler) { return makeCommonTextureSampler(sampler); }
-	const TextureSampler &commonTextureSampler(CommonTextureSampler sampler) const;
-	const TextureSampler &get(CommonTextureSampler sampler) const { return commonTextureSampler(sampler); }
+	TextureSampler makeTextureSampler(TextureSamplerConfig);
 
 	// color space control
 
 	bool supportsColorSpace() const;
 	bool hasSrgbColorSpaceWriteControl() const;
 	static ColorSpace supportedColorSpace(IG::PixelFormat, ColorSpace wantedColorSpace);
+
+	// optional features
+
+	static const bool enableSamplerObjects;
 };
 
 }

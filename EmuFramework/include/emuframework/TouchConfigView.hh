@@ -80,7 +80,7 @@ protected:
 	TextHeadingMenuItem dpadtHeading;
 	TextHeadingMenuItem faceBtnHeading;
 	TextHeadingMenuItem otherHeading;
-	StaticArrayList<MenuItem*, 32> item{};
+	StaticArrayList<MenuItem*, 32> item;
 
 	VController &vController() { return *vControllerPtr; }
 	void refreshTouchConfigMenu();

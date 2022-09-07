@@ -46,7 +46,7 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, Gfx::ProjectionPla
 										: IG::isOdd(input) ? IG::PIXEL_DESC_RGB565.build(1., 1., 1., 1.)
 										: IG::PIXEL_DESC_RGB565.build(0., 1., 0., 1.);
 			}
-		mapImg = r.makeTexture({mapPix.desc(), &r.make(View::imageCommonTextureSampler)});
+		mapImg = r.makeTexture({mapPix.desc(), View::imageSamplerConfig});
 		mapImg.write(0, mapPix, {});
 		mapSpr = {{}, mapImg};
 		mapSpr.setPos(padArea, projP);
@@ -130,7 +130,6 @@ void VControllerDPad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::Pro
 void VControllerDPad::draw(Gfx::RendererCommands &cmds) const
 {
 	cmds.basicEffect().enableTexture(cmds);
-	cmds.set(View::imageCommonTextureSampler);
 	spr.draw(cmds);
 	if(visualizeBounds)
 	{

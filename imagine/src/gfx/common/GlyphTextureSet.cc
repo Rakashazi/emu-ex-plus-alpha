@@ -170,7 +170,7 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 	}
 	//logMsg("setting up table entry %d", tableIdx);
 	glyphTable[tableIdx].metrics = res.metrics;
-	glyphTable[tableIdx].glyph_ = r.makeTexture(res.image, &r.make(glyphCommonTextureSampler), false);
+	glyphTable[tableIdx].glyph_ = r.makeTexture(res.image, glyphSamplerConfig, false);
 	usedGlyphTableBits |= IG::bit((c >> 11) & 0x1F); // use upper 5 BMP plane bits to map in range 0-31
 	//logMsg("used table bits 0x%X", usedGlyphTableBits);
 	return {};

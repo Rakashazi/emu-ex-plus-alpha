@@ -412,13 +412,6 @@ void RendererCommands::setTextureSampler(const TextureSampler &sampler)
 	currSamplerName = sampler.name();
 }
 
-void RendererCommands::setCommonTextureSampler(CommonTextureSampler sampler)
-{
-	auto &samplerObj = renderer().commonTextureSampler(sampler);
-	assert(samplerObj);
-	setTextureSampler(samplerObj);
-}
-
 void GLRendererCommands::setViewport(Rect2<int> v)
 {
 	rTask->verifyCurrentContext();

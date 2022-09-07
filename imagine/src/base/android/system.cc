@@ -38,18 +38,6 @@ std::string AndroidApplicationContext::androidBuildDevice() const
 	return application().androidBuildDevice(env, env->GetObjectClass(baseActivityObject()));
 }
 
-bool AndroidApplicationContext::apkSignatureIsConsistent() const
-{
-	bool sigMatchesAPK = true;
-	#ifdef ANDROID_APK_SIGNATURE_HASH
-	auto env = mainThreadJniEnv();
-	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<jint()> jSigHash{env, baseActivity, "sigHash", "()I"};
-	sigMatchesAPK = jSigHash(env, baseActivity) == ANDROID_APK_SIGNATURE_HASH;
-	#endif
-	return sigMatchesAPK;
-}
-
 bool ApplicationContext::packageIsInstalled(IG::CStringView name) const
 {
 	auto env = mainThreadJniEnv();

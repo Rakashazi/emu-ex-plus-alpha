@@ -473,7 +473,7 @@ protected:
 	BluetoothAdapter *bta{};
 	#endif
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr){};
-	RecentContentList recentContentList{};
+	RecentContentList recentContentList;
 	DoubleOption optionAspectRatio;
 	DoubleOption optionFrameRate;
 	DoubleOption optionFrameRatePAL;

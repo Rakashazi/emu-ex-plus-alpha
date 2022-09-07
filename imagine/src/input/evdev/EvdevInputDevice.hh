@@ -44,7 +44,7 @@ public:
 protected:
 	static constexpr unsigned AXIS_SIZE = 24;
 	int fd{-1};
-	StaticArrayList<Axis, AXIS_SIZE> axis{};
+	StaticArrayList<Axis, AXIS_SIZE> axis;
 	std::array<int, AXIS_SIZE> axisRangeOffset{};
 	FDEventSource fdSrc{-1};
 };

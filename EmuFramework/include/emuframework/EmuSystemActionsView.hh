@@ -45,7 +45,7 @@ protected:
 	TextMenuItem screenshot;
 	TextMenuItem resetSessionOptions;
 	TextMenuItem close;
-	StaticArrayList<MenuItem*, STANDARD_ITEMS + MAX_SYSTEM_ITEMS> item{};
+	StaticArrayList<MenuItem*, STANDARD_ITEMS + MAX_SYSTEM_ITEMS> item;
 };
 
 }

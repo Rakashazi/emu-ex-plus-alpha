@@ -28,7 +28,16 @@ android {
 
     def signingConfigType = signingConfigs.debug
     // set code signing variables in ~/.gradle/gradle.properties
-    if (project.hasProperty('ANDROID_KEY_STORE'))
+    // per-project variables are prefixed with the project name
+    def final String project_ANDROID_KEY_STORE = METADATA_PROJECT + '_ANDROID_KEY_STORE'
+    def final String project_ANDROID_KEY_STORE_PASSWORD = METADATA_PROJECT + '_ANDROID_KEY_STORE_PASSWORD'
+    def final String project_ANDROID_KEY_ALIAS = METADATA_PROJECT + '_ANDROID_KEY_ALIAS'
+    def final String project_ANDROID_KEY_PASSWORD = METADATA_PROJECT + '_ANDROID_KEY_PASSWORD'
+    if(project.hasProperty(project_ANDROID_KEY_STORE)) { ANDROID_KEY_STORE = project.getProperty(project_ANDROID_KEY_STORE) }
+    if(project.hasProperty(project_ANDROID_KEY_STORE_PASSWORD)) { ANDROID_KEY_STORE_PASSWORD = project.getProperty(project_ANDROID_KEY_STORE_PASSWORD) }
+    if(project.hasProperty(project_ANDROID_KEY_ALIAS)) { ANDROID_KEY_ALIAS = project.getProperty(project_ANDROID_KEY_ALIAS) }
+    if(project.hasProperty(project_ANDROID_KEY_PASSWORD)) { ANDROID_KEY_PASSWORD = project.getProperty(project_ANDROID_KEY_PASSWORD) }
+    if(project.hasProperty('ANDROID_KEY_STORE'))
     {
 	    signingConfigs {
 	        release {

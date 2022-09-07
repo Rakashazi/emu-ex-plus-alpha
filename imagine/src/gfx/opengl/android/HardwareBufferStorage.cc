@@ -32,7 +32,7 @@ HardwareSingleBufferStorage<Buffer>::HardwareSingleBufferStorage(RendererTask &r
 	Texture{r}
 {
 	config = baseInit(r, config);
-	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.compatSampler);
+	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.samplerConfig);
 	if(err) [[unlikely]]
 	{
 		throw Error{err};
@@ -40,7 +40,7 @@ HardwareSingleBufferStorage<Buffer>::HardwareSingleBufferStorage(RendererTask &r
 }
 
 template<class Buffer>
-IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
+IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
 {
 	buffer = {desc, allocateUsage};
 	if(!buffer)
@@ -58,7 +58,7 @@ IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc
 		logErr("error creating EGL image");
 		return {EINVAL};
 	}
-	initWithEGLImage(eglImg, desc, compatSampler ? compatSampler->samplerParams() : SamplerParams{}, false);
+	initWithEGLImage(eglImg, desc, asSamplerParams(samplerConf), false);
 	eglDestroyImageKHR(dpy, eglImg);
 	return {};
 }
@@ -86,7 +86,7 @@ HardwareBufferStorage<Buffer>::HardwareBufferStorage(RendererTask &r, TextureCon
 	Texture{r}
 {
 	config = baseInit(r, config);
-	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.compatSampler);
+	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.samplerConfig);
 	if(err) [[unlikely]]
 	{
 		throw Error{err};
@@ -94,7 +94,7 @@ HardwareBufferStorage<Buffer>::HardwareBufferStorage(RendererTask &r, TextureCon
 }
 
 template<class Buffer>
-IG::ErrorCode HardwareBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
+ErrorCode HardwareBufferStorage<Buffer>::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
 {
 	auto dpy = renderer().glDisplay();
 	for(auto &[buff, eglImg, pitchBytes] : bufferInfo)
@@ -115,7 +115,7 @@ IG::ErrorCode HardwareBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc, Colo
 			return {EINVAL};
 		}
 	}
-	initWithEGLImage({}, desc, compatSampler ? compatSampler->samplerParams() : SamplerParams{}, true);
+	initWithEGLImage({}, desc, asSamplerParams(samplerConf), true);
 	return {};
 }
 

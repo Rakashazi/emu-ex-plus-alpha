@@ -34,7 +34,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	using MainAppHelper<CustomAudioOptionView>::app;
 	using MainAppHelper<CustomAudioOptionView>::system;
 
-	StaticArrayList<TextMenuItem, MAX_RESAMPLERS> resamplerItem{};
+	StaticArrayList<TextMenuItem, MAX_RESAMPLERS> resamplerItem;
 
 	MultiChoiceMenuItem resampler
 	{

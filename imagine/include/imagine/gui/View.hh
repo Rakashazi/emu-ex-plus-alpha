@@ -67,7 +67,7 @@ class View
 {
 public:
 	using DismissDelegate = DelegateFunc<bool (View &view)>;
-	static constexpr auto imageCommonTextureSampler = ViewDefs::imageCommonTextureSampler;
+	static constexpr auto imageSamplerConfig = ViewDefs::imageSamplerConfig;
 	enum class Direction: uint8_t
 	{
 		TOP, RIGHT, BOTTOM, LEFT

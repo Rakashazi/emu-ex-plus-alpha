@@ -263,7 +263,6 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		assumeExpr(leftSpr.hasTexture());
 		cmds.set(BlendMode::ALPHA);
 		cmds.set(ColorName::WHITE);
-		cmds.set(imageCommonTextureSampler);
 		auto trans = projP.makeTranslate(projP.unProjectRect(control[0].rect).pos(C2DO));
 		if(rotateLeftBtn)
 			trans = trans.rollRotate(radians(90.f));
@@ -275,7 +274,6 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		assumeExpr(rightSpr.hasTexture());
 		cmds.set(BlendMode::ALPHA);
 		cmds.set(ColorName::WHITE);
-		cmds.set(imageCommonTextureSampler);
 		basicEffect.setModelView(cmds, projP.makeTranslate(projP.unProjectRect(control[2].rect).pos(C2DO)));
 		rightSpr.draw(cmds, basicEffect);
 	}

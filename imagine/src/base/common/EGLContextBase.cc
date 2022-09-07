@@ -52,7 +52,7 @@ using EGLContextAttrList = StaticArrayList<int, 16>;
 
 static EGLAttrList glConfigAttrsToEGLAttrs(int renderableType, GLBufferConfigAttributes attr)
 {
-	EGLAttrList list{};
+	EGLAttrList list;
 	// don't accept slow configs
 	list.push_back(EGL_CONFIG_CAVEAT);
 	list.push_back(EGL_NONE);
@@ -90,7 +90,7 @@ static EGLAttrList glConfigAttrsToEGLAttrs(int renderableType, GLBufferConfigAtt
 
 static EGLContextAttrList glContextAttrsToEGLAttrs(GLContextAttributes attr)
 {
-	EGLContextAttrList list{};
+	EGLContextAttrList list;
 
 	if(attr.glesApi)
 	{
@@ -489,7 +489,7 @@ static bool supportsColorSpace(GLDisplay dpy, GLBufferConfig conf, GLColorSpace 
 GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes attr) const
 {
 	auto dpy = display();
-	EGLSurfaceAttrList attrList{};
+	EGLSurfaceAttrList attrList;
 	if(Config::envIsLinux && supportsTripleBufferSurfaces)
 	{
 		// request triple-buffering on Nvidia GPUs

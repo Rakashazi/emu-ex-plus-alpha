@@ -68,13 +68,13 @@ bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTaskContext taskCtx)
 	}
 	if(!vidImg)
 	{
-		Gfx::TextureConfig conf{desc, texSampler};
+		Gfx::TextureConfig conf{desc, samplerConfig()};
 		conf.colorSpace = colSpace;
 		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode, singleBuffer);
 	}
 	else
 	{
-		vidImg.setFormat(desc, colSpace, texSampler);
+		vidImg.setFormat(desc, colSpace, samplerConfig());
 	}
 	logMsg("resized to:%dx%d", desc.w(), desc.h());
 	if(taskCtx)
@@ -334,12 +334,10 @@ int EmuVideo::imageBuffers() const
 	return singleBuffer ? 1 : 2;
 }
 
-void EmuVideo::setCompatTextureSampler(const Gfx::TextureSampler &compatTexSampler)
+void EmuVideo::setSampler(Gfx::TextureSamplerConfig samplerConf)
 {
-	texSampler = &compatTexSampler;
-	if(!vidImg)
-		return;
-	vidImg.setCompatTextureSampler(compatTexSampler);
+	useLinearFilter = samplerConf.minLinearFilter;
+	vidImg.setSampler(samplerConf);
 }
 
 bool EmuVideo::setRenderPixelFormat(EmuSystem &sys, IG::PixelFormat fmt, Gfx::ColorSpace colorSpace)
@@ -380,6 +378,11 @@ IG::PixelFormat EmuVideo::renderPixelFormat() const
 IG::PixelFormat EmuVideo::internalRenderPixelFormat() const
 {
 	return renderPixelFormat() == IG::PIXEL_BGRA8888 ? IG::PIXEL_FMT_RGBA8888 : renderPixelFormat();
+}
+
+Gfx::TextureSamplerConfig EmuVideo::samplerConfigForLinearFilter(bool useLinearFilter)
+{
+	return useLinearFilter ? Gfx::SamplerConfigs::noMipClamp : Gfx::SamplerConfigs::noLinearNoMipClamp;
 }
 
 }

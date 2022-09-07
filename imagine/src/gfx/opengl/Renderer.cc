@@ -23,6 +23,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Viewport.hh>
 #include <imagine/base/Error.hh>
+#include <imagine/data-type/image/PixmapSource.hh>
 #include "internalDefs.hh"
 
 namespace IG::Gfx
@@ -487,6 +488,36 @@ void Renderer::animateWindowRotation(Window &win, float srcAngle, float destAngl
 Projection Renderer::projection(const Window &win, Viewport viewport, Mat4 matrix) const
 {
 	return {viewport, matrix, winData(win).projAngleM};
+}
+
+Texture Renderer::makeTexture(TextureConfig config)
+{
+	return {task(), config};
+}
+
+Texture Renderer::makeTexture(Data::PixmapSource img, TextureSamplerConfig samplerConf, bool makeMipmaps)
+{
+	return {task(), img, samplerConf, makeMipmaps};
+}
+
+PixmapBufferTexture Renderer::makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode, bool singleBuffer)
+{
+	return {task(), config, mode, singleBuffer};
+}
+
+TextureSampler Renderer::makeTextureSampler(TextureSamplerConfig config)
+{
+	return {task(), config};
+}
+
+void destroyGLBuffer(RendererTask &task, NativeBuffer buff)
+{
+	logMsg("deleting GL buffer:%u", buff);
+	task.run(
+		[buff]()
+		{
+			glDeleteBuffers(1, &buff);
+		});
 }
 
 }

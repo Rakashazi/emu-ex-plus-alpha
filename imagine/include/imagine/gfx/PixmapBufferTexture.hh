@@ -39,7 +39,7 @@ public:
 
 	using PixmapBufferTextureImpl::PixmapBufferTextureImpl;
 	PixmapBufferTexture(RendererTask &, TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false);
-	ErrorCode setFormat(PixmapDesc desc, ColorSpace c = {}, const TextureSampler *compatSampler = {});
+	ErrorCode setFormat(PixmapDesc desc, ColorSpace c = {}, TextureSamplerConfig samplerConf = {});
 	void write(PixmapView pixmap, uint32_t writeFlags = 0);
 	void writeAligned(PixmapView pixmap, int assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear();
@@ -47,7 +47,7 @@ public:
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
 	IG::WP size() const;
 	PixmapDesc pixmapDesc() const;
-	void setCompatTextureSampler(const TextureSampler &compatSampler);
+	void setSampler(TextureSamplerConfig);
 	explicit operator bool() const;
 	Renderer &renderer() const;
 	operator TextureSpan() const;

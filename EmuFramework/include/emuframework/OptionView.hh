@@ -56,7 +56,7 @@ protected:
 	static constexpr int MAX_ASPECT_RATIO_ITEMS = 5;
 	EmuVideoLayer *videoLayer{};
 
-	StaticArrayList<TextMenuItem, 5> textureBufferModeItem{};
+	StaticArrayList<TextMenuItem, 5> textureBufferModeItem;
 	MultiChoiceMenuItem textureBufferMode;
 	IG_UseMemberIf(Config::SCREEN_FRAME_INTERVAL, TextMenuItem, frameIntervalItem[4]);
 	IG_UseMemberIf(Config::SCREEN_FRAME_INTERVAL, MultiChoiceMenuItem, frameInterval);
@@ -80,7 +80,7 @@ protected:
 	MultiChoiceMenuItem overlayEffectLevel;
 	TextMenuItem imgEffectPixelFormatItem[3];
 	MultiChoiceMenuItem imgEffectPixelFormat;
-	StaticArrayList<TextMenuItem, 4> windowPixelFormatItem{};
+	StaticArrayList<TextMenuItem, 4> windowPixelFormatItem;
 	MultiChoiceMenuItem windowPixelFormat;
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	BoolMenuItem secondDisplay;
@@ -97,7 +97,7 @@ protected:
 	TextHeadingMenuItem screenShapeHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 32> item{};
+	StaticArrayList<MenuItem*, 32> item;
 
 	void pushAndShowFrameRateSelectMenu(VideoSystem, const Input::Event &);
 	bool onFrameTimeChange(VideoSystem vidSys, IG::FloatSeconds time);
@@ -131,13 +131,13 @@ protected:
 	TextMenuItem soundBuffersItem[7];
 	MultiChoiceMenuItem soundBuffers;
 	BoolMenuItem addSoundBuffersOnUnderrun;
-	StaticArrayList<TextMenuItem, 5> audioRateItem{};
+	StaticArrayList<TextMenuItem, 5> audioRateItem;
 	MultiChoiceMenuItem audioRate;
 	IG_UseMemberIf(IG::Audio::Manager::HAS_SOLO_MIX, BoolMenuItem, audioSoloMix);
 	using ApiItemContainer = StaticArrayList<TextMenuItem, MAX_APIS + 1>;
 	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, ApiItemContainer, apiItem);
 	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, MultiChoiceMenuItem, api);
-	StaticArrayList<MenuItem*, 22> item{};
+	StaticArrayList<MenuItem*, 22> item;
 
 	TextMenuItem::SelectDelegate setRateDel();
 	TextMenuItem::SelectDelegate setBuffersDel();
@@ -158,7 +158,7 @@ protected:
 	TextMenuItem fastSlowModeSpeedItem[8];
 	MultiChoiceMenuItem fastSlowModeSpeed;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
-	StaticArrayList<MenuItem*, 24> item{};
+	StaticArrayList<MenuItem*, 24> item;
 
 	TextMenuItem::SelectDelegate setAutoSaveStateDel();
 	TextMenuItem::SelectDelegate setFastSlowModeSpeedDel();
@@ -172,7 +172,7 @@ public:
 
 protected:
 	TextMenuItem savePath;
-	StaticArrayList<MenuItem*, 6> item{};
+	StaticArrayList<MenuItem*, 6> item;
 
 	void onSavePathChange(std::string_view path);
 	virtual bool onFirmwarePathChange(IG::CStringView path, bool isDir);
@@ -211,7 +211,7 @@ protected:
 	TextMenuItem emuOrientationItem[5];
 	MultiChoiceMenuItem emuOrientation;
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, BoolMenuItem, layoutBehindSystemUI);
-	StaticArrayList<MenuItem*, 22> item{};
+	StaticArrayList<MenuItem*, 22> item;
 
 	TextMenuItem::SelectDelegate setFontSizeDel();
 	TextMenuItem::SelectDelegate setMenuOrientationDel();

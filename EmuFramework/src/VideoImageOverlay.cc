@@ -104,19 +104,13 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id, Gfx::Colo
 	{
 		spr = {};
 		img = {};
-		sampler = {};
 		return;
 	}
 	multiplyBlend = isCrtOverlay(id);
 	auto desc = overlayDesc(id);
-	Gfx::TextureSamplerConfig samplerConf
-	{
-		.mipFilter = Gfx::MipFilter::NEAREST,
-		.debugLabel = "VideoImageOverlay"
-	};
+	Gfx::TextureSamplerConfig samplerConf{ .mipFilter = Gfx::MipFilter::NEAREST };
 	samplerConf.setWrapMode(desc.wrapMode);
-	sampler = r.makeTextureSampler(samplerConf);
-	Gfx::TextureConfig texConf{desc.pixView.desc(), &sampler};
+	Gfx::TextureConfig texConf{desc.pixView.desc(), samplerConf};
 	texConf.colorSpace = colorSpace;
 	texConf.setWillGenerateMipmaps(true);
 	img = r.makeTexture(texConf);
@@ -180,7 +174,6 @@ void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, float brightness)
 		cmds.setColor(brightness, brightness, brightness, intensity);
 		cmds.set(BlendMode::ALPHA);
 	}
-	cmds.setTextureSampler(sampler);
 	spr.draw(cmds, cmds.basicEffect());
 }
 

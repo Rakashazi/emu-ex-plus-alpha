@@ -19,7 +19,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/format.hh>
-#include <imagine/fs/FS.hh>
 #include "internalDefs.hh"
 #include "utils.hh"
 #ifdef __ANDROID__
@@ -32,6 +31,8 @@
 
 namespace IG::Gfx
 {
+
+[[gnu::weak]] const bool Renderer::enableSamplerObjects = false;
 
 float rotationRadians(Rotation r)
 {
@@ -215,7 +216,7 @@ void GLRenderer::setupRGFormats()
 
 void GLRenderer::setupSamplerObjects()
 {
-	if(support.hasSamplerObjects)
+	if(!Renderer::enableSamplerObjects || support.hasSamplerObjects)
 		return;
 	support.hasSamplerObjects = true;
 	#ifdef CONFIG_GFX_OPENGL_ES

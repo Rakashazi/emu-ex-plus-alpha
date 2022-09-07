@@ -39,6 +39,7 @@ class SyncFence;
 class Texture;
 class TextureSampler;
 class Mat4;
+class Program;
 class GlyphTextureSet;
 class ProjectionPlane;
 struct DrawableConfig;
@@ -67,16 +68,6 @@ enum class ColorName: uint8_t
 	MAGENTA,
 	WHITE,
 	BLACK
-};
-
-enum class CommonTextureSampler: uint8_t
-{
-	CLAMP,
-	NEAREST_MIP_CLAMP,
-	NO_MIP_CLAMP,
-	NO_LINEAR_NO_MIP_CLAMP,
-	REPEAT,
-	NEAREST_MIP_REPEAT
 };
 
 enum class TextureType : uint8_t

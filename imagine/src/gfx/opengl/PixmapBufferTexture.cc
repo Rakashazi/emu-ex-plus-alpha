@@ -136,11 +136,11 @@ void GLPixmapBufferTexture::initWithSurfaceTexture(RendererTask &r, TextureConfi
 }
 #endif
 
-ErrorCode PixmapBufferTexture::setFormat(PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
+ErrorCode PixmapBufferTexture::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
 {
 	if(Config::DEBUG_BUILD && pixmapDesc() == desc)
 		logWarn("resizing with same dimensions %dx%d, should optimize caller code", desc.w(), desc.h());
-	return visit([&](auto &t){ return t.setFormat(desc, colorSpace, compatSampler); }, directTex);
+	return visit([&](auto &t){ return t.setFormat(desc, colorSpace, samplerConf); }, directTex);
 }
 
 void PixmapBufferTexture::writeAligned(PixmapView pixmap, int assumeAlign, uint32_t writeFlags)
@@ -200,9 +200,9 @@ PixmapDesc PixmapBufferTexture::pixmapDesc() const
 	return visit([&](auto &t){ return t.pixmapDesc(); }, directTex);
 }
 
-void PixmapBufferTexture::setCompatTextureSampler(const TextureSampler &compatSampler)
+void PixmapBufferTexture::setSampler(TextureSamplerConfig samplerConf)
 {
-	visit([&](auto &t){ t.setCompatTextureSampler(compatSampler); }, directTex);
+	visit([&](auto &t){ t.setSampler(samplerConf); }, directTex);
 }
 
 PixmapBufferTexture::operator bool() const
@@ -232,10 +232,10 @@ bool PixmapBufferTexture::isExternal() const
 }
 
 template<class Impl, class BufferInfo>
-ErrorCode GLTextureStorage<Impl, BufferInfo>::setFormat(PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
+ErrorCode GLTextureStorage<Impl, BufferInfo>::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
 {
 	static_cast<Impl*>(this)->initBuffer(desc, isSingleBuffered());
-	return Texture::setFormat(desc, 1, colorSpace, compatSampler);
+	return Texture::setFormat(desc, 1, colorSpace, samplerConf);
 }
 
 template<class Impl, class BufferInfo>

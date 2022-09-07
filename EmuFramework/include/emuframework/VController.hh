@@ -135,7 +135,6 @@ protected:
 	float texXEnd{};
 	KeyTable table{};
 	VControllerKbMode mode_{};
-	bool hasMipmaps{};
 };
 
 using FaceButtonImageMap = std::array<int, MAX_FACE_BTNS>;

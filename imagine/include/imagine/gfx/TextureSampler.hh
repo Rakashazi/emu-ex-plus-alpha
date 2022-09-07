@@ -33,8 +33,6 @@ class TextureSampler: public TextureSamplerImpl
 {
 public:
 	using TextureSamplerImpl::TextureSamplerImpl;
-	TextureSampler(TextureSampler &&o) noexcept;
-	TextureSampler &operator=(TextureSampler &&o) noexcept;
 	explicit operator bool() const;
 	Renderer &renderer() const;
 	RendererTask &task() const;

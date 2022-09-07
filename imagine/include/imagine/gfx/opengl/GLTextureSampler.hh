@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureSamplerConfig.hh>
+#include <imagine/util/memory/UniqueResource.hh>
 
 namespace IG::Gfx
 {
@@ -26,34 +27,40 @@ class RendererTask;
 
 struct SamplerParams
 {
-	uint16_t minFilter;
-	uint16_t magFilter;
-	uint16_t xWrapMode;
-	uint16_t yWrapMode;
+	uint16_t minFilter{};
+	uint16_t magFilter{};
+	uint16_t xWrapMode{};
+	uint16_t yWrapMode{};
 };
+
+SamplerParams asSamplerParams(TextureSamplerConfig);
+
+using GLSamplerRef = GLuint;
+
+void destroyGLSamplerRef(RendererTask &, GLSamplerRef);
+
+struct GLSamplerRefDeleter
+{
+	RendererTask *rTaskPtr{};
+
+	void operator()(GLSamplerRef s) const
+	{
+		destroyGLSamplerRef(*rTaskPtr, s);
+	}
+};
+using UniqueGLSamplerRef = UniqueResource<GLSamplerRef, GLSamplerRefDeleter>;
 
 class GLTextureSampler
 {
 public:
 	constexpr GLTextureSampler() = default;
 	GLTextureSampler(RendererTask &rTask, TextureSamplerConfig config);
-	~GLTextureSampler();
-	static void setTexParamsInGL(GLenum target, SamplerParams params);
-	static void setTexParamsInGL(GLuint texName, GLenum target, SamplerParams params);
-	GLuint name() const;
+	GLSamplerRef name() const;
 	const char *label() const;
-	SamplerParams samplerParams() const;
 
 protected:
-	RendererTask *rTask{};
-	union
-	{
-		SamplerParams params{};
-		GLuint name_;
-	};
-	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel);
-
-	void deinit();
+	UniqueGLSamplerRef sampler{};
+	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 };
 
 using TextureSamplerImpl = GLTextureSampler;

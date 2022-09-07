@@ -210,8 +210,6 @@ static void readInputDeviceConfig(InputDeviceSavedConfigContainer &savedInputDev
 			if(size < keyConfNameLen)
 				break;
 
-			if(keyConfNameLen > devConf.name.max_size()-1)
-				break;
 			char keyConfName[keyConfNameLen + 1];
 			if(io.read(keyConfName, keyConfNameLen) != keyConfNameLen)
 				break;

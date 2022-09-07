@@ -19,6 +19,7 @@
 #include <imagine/util/used.hh>
 #include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <glib.h>
+#include <memory>
 
 namespace IG
 {
@@ -30,21 +31,16 @@ struct PollEventGSource : public GSource
 	PollEventDelegate callback{};
 };
 
-class GlibFDSource
+void destroyGSource(GSource *);
+
+struct GSourceDeleter
 {
-public:
-	constexpr GlibFDSource() = default;
-	GlibFDSource(GSource *, int fd, GIOCondition events, GMainContext *, gpointer &tagOut);
-	GlibFDSource(GlibFDSource &&o) noexcept;
-	GlibFDSource &operator=(GlibFDSource &&o) noexcept;
-	~GlibFDSource();
-	operator PollEventGSource *() const { return static_cast<PollEventGSource*>(src); }
-
-protected:
-	GSource *src{};
-
-	void deinit();
+	void operator()(GSource *src) const
+	{
+		destroyGSource(src);
+	}
 };
+using UniqueGSource = std::unique_ptr<GSource, GSourceDeleter>;
 
 class GlibFDEventSource
 {
@@ -55,7 +51,7 @@ public:
 
 protected:
 	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
-	GlibFDSource fdSource{};
+	UniqueGSource fdSource{};
 	gpointer tag{};
 	MaybeUniqueFileDescriptor fd_{};
 	IG_UseMemberIfOrConstant(Config::DEBUG_BUILD, bool, true, usingGlibSource){};

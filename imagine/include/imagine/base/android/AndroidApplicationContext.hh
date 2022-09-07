@@ -16,13 +16,17 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/fs/FSDefs.hh>
 #include <android/native_activity.h>
 #include <jni.h>
 #include <array>
 
 struct ANativeActivity;
 struct AAssetManager;
+
+namespace IG::FS
+{
+struct PathLocation;
+}
 
 namespace IG
 {
@@ -51,7 +55,6 @@ public:
 	std::string androidBuildDevice() const;
 	SustainedPerformanceType sustainedPerformanceModeType() const;
 	void setSustainedPerformanceMode(bool on);
-	bool apkSignatureIsConsistent() const;
 	FS::PathLocation externalMediaPathLocation() const;
 
 	// Input system functions

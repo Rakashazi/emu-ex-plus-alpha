@@ -71,7 +71,6 @@ void VControllerButton::draw(Gfx::RendererCommands &cmds, std::optional<Gfx::Col
 		return;
 	if(col)
 		cmds.setColor(*col);
-	cmds.set(View::imageCommonTextureSampler);
 	spr.draw(cmds, cmds.basicEffect());
 }
 
@@ -220,7 +219,6 @@ void VControllerButtonGroup::draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPl
 	//basicEffect.disableTexture(cmds);
 	//Gfx::GeomRect::draw(cmds, bounds(), projP);
 	basicEffect.enableTexture(cmds);
-	cmds.set(View::imageCommonTextureSampler);
 	for(auto &b : btns)
 	{
 		if(!b.isEnabled())

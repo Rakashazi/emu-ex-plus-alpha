@@ -17,25 +17,24 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
+#include <imagine/gfx/TextureSamplerConfig.hh>
 #include <imagine/pixmap/PixmapDesc.hh>
 
 namespace IG::Gfx
 {
 
-class TextureSampler;
-
 class TextureConfig
 {
 public:
-	const TextureSampler *compatSampler{};
+	TextureSamplerConfig samplerConfig{};
 	IG::PixmapDesc pixmapDesc{};
 	uint8_t levels{1};
 	bool genMipmaps{};
 	ColorSpace colorSpace{};
 
 	constexpr TextureConfig() = default;
-	constexpr TextureConfig(IG::PixmapDesc pixDesc, const TextureSampler *compatSampler = {}):
-		compatSampler{compatSampler}, pixmapDesc{pixDesc} {}
+	constexpr TextureConfig(IG::PixmapDesc pixDesc, TextureSamplerConfig samplerConfig = {}):
+		samplerConfig{samplerConfig}, pixmapDesc{pixDesc} {}
 	constexpr void setAllLevels() { levels = 0; }
 	constexpr bool willGenerateMipmaps() const { return genMipmaps; }
 

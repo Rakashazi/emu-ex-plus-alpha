@@ -166,7 +166,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
-	StaticArrayList<MenuItem*, 5> item{};
+	StaticArrayList<MenuItem*, 5> item;
 
 public:
 	ConsoleOptionView(ViewAttachParams attach):

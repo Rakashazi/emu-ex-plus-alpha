@@ -72,10 +72,7 @@ bool ViewController::moveFocusToNextView(const Input::Event &, _2DOrigin)
 	return false;
 };
 
-ViewManager::ViewManager(Gfx::Renderer &r)
-{
-	r.make(ViewDefs::imageCommonTextureSampler);
-}
+ViewManager::ViewManager(Gfx::Renderer &r) {}
 
 void ViewManager::setDefaultFace(Gfx::GlyphTextureSet face)
 {

@@ -175,7 +175,7 @@ struct BtstackCmd
 	}
 };
 
-static StaticArrayList<BtstackCmd, 8> pendingCmdList{};
+static StaticArrayList<BtstackCmd, 8> pendingCmdList;
 static BtstackCmd activeCmd{BtstackCmd::NOOP};
 
 bool BtstackBluetoothAdapter::cmdActive = 0;

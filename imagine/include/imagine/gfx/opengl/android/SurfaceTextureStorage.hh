@@ -32,10 +32,9 @@ public:
 	SurfaceTextureStorage(SurfaceTextureStorage &&o) noexcept;
 	SurfaceTextureStorage &operator=(SurfaceTextureStorage &&o) noexcept;
 	~SurfaceTextureStorage();
-	ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler);
+	ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace, TextureSamplerConfig);
 	LockedTextureBuffer lock(uint32_t bufferFlags);
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags);
-	void setCompatTextureSampler(const TextureSampler &compatSampler);
 
 protected:
 	jobject surfaceTex{};

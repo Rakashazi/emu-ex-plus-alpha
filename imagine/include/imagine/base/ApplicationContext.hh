@@ -27,7 +27,6 @@
 
 #include <imagine/base/baseDefs.hh>
 #include <imagine/io/ioDefs.hh>
-#include <imagine/fs/FSDefs.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string/CStringView.hh>
@@ -41,10 +40,22 @@ class Event;
 class Device;
 }
 
+namespace IG::FS
+{
+class PathString;
+class FileString;
+struct PathLocation;
+struct RootPathInfo;
+class AssetDirectoryIterator;
+class directory_entry;
+}
+
 namespace IG
 {
 
 class PixelFormat;
+
+using DirectoryEntryDelegate = DelegateFuncS<sizeof(void*)*3, bool(const FS::directory_entry &)>;
 
 enum class Permission
 {
@@ -160,10 +171,10 @@ public:
 	// path/file access using OS-specific URIs such as those in the Android Storage Access Framework,
 	// backwards compatible with regular file system paths, all thread-safe except for picker functions
 	bool hasSystemPathPicker() const;
-	void showSystemPathPicker(SystemDocumentPickerDelegate);
+	bool showSystemPathPicker(SystemDocumentPickerDelegate);
 	bool hasSystemDocumentPicker() const;
-	void showSystemDocumentPicker(SystemDocumentPickerDelegate);
-	void showSystemCreateDocumentPicker(SystemDocumentPickerDelegate);
+	bool showSystemDocumentPicker(SystemDocumentPickerDelegate);
+	bool showSystemCreateDocumentPicker(SystemDocumentPickerDelegate);
 	FileIO openFileUri(CStringView uri, IOAccessHint, OpenFlagsMask oFlags = {}) const;
 	FileIO openFileUri(CStringView uri, OpenFlagsMask oFlags = {}) const;
 	UniqueFileDescriptor openFileUriFd(CStringView uri, OpenFlagsMask oFlags = {}) const;
@@ -174,7 +185,7 @@ public:
 	bool renameFileUri(IG::CStringView oldUri, IG::CStringView newUri) const;
 	bool createDirectoryUri(IG::CStringView uri) const;
 	bool removeDirectoryUri(IG::CStringView uri) const;
-	void forEachInDirectoryUri(IG::CStringView uri, FS::DirectoryEntryDelegate) const;
+	void forEachInDirectoryUri(CStringView uri, DirectoryEntryDelegate) const;
 
 	// OS UI management (status & navigation bar)
 	void setSysUIStyle(uint32_t flags);

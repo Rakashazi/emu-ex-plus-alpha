@@ -98,14 +98,14 @@ static PixelFormat effectFormat(IG::PixelFormat format, Gfx::ColorSpace colSpace
 }
 
 VideoImageEffect::VideoImageEffect(Gfx::Renderer &r, Id effect, IG::PixelFormat fmt, Gfx::ColorSpace colSpace,
-	const Gfx::TextureSampler &compatTexSampler, IG::WP size):
+	Gfx::TextureSamplerConfig samplerConf, IG::WP size):
 		inputImgSize{size}, format{effectFormat(fmt, colSpace)}, colorSpace{colSpace}
 {
 	logMsg("compiling effect:%s", effectName(effect));
-	compile(r, effectDesc(effect), compatTexSampler);
+	compile(r, effectDesc(effect), samplerConf);
 }
 
-void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r, const Gfx::TextureSampler &compatTexSampler)
+void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r, Gfx::TextureSamplerConfig samplerConf)
 {
 	if(!renderTargetScale.x)
 		return;
@@ -114,16 +114,15 @@ void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r, const Gfx::Text
 	IG::PixmapDesc renderPix{renderTargetImgSize, format};
 	if(!renderTarget_)
 	{
-		Gfx::TextureConfig conf{renderPix, &compatTexSampler};
+		Gfx::TextureConfig conf{renderPix, samplerConf};
 		conf.colorSpace = colorSpace;
 		renderTarget_ = r.makeTexture(conf);
 	}
 	else
-		renderTarget_.setFormat(renderPix, 1, colorSpace, &compatTexSampler);
-	r.make(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
+		renderTarget_.setFormat(renderPix, 1, colorSpace, samplerConf);
 }
 
-void VideoImageEffect::compile(Gfx::Renderer &r, EffectDesc desc, const Gfx::TextureSampler &compatTexSampler)
+void VideoImageEffect::compile(Gfx::Renderer &r, EffectDesc desc, Gfx::TextureSamplerConfig samplerConf)
 {
 	if(program())
 		return; // already compiled
@@ -133,7 +132,7 @@ void VideoImageEffect::compile(Gfx::Renderer &r, EffectDesc desc, const Gfx::Tex
 		return;
 	}
 	renderTargetScale = desc.scale;
-	initRenderTargetTexture(r, compatTexSampler);
+	initRenderTargetTexture(r, samplerConf);
 	try
 	{
 		compileEffect(r, desc, false);
@@ -199,7 +198,7 @@ void VideoImageEffect::updateProgramUniforms(Gfx::Renderer &r)
 		prog.uniform(srcPixelsU, (float)inputImgSize.x, (float)inputImgSize.y);
 }
 
-void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size, const Gfx::TextureSampler &compatTexSampler)
+void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size, Gfx::TextureSamplerConfig samplerConf)
 {
 	if(size == IG::WP{0, 0})
 		return;
@@ -208,17 +207,17 @@ void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size, const Gfx::Te
 	inputImgSize = size;
 	if(program())
 		updateProgramUniforms(r);
-	initRenderTargetTexture(r, compatTexSampler);
+	initRenderTargetTexture(r, samplerConf);
 }
 
-void VideoImageEffect::setFormat(Gfx::Renderer &r,IG::PixelFormat fmt, Gfx::ColorSpace colSpace, const Gfx::TextureSampler &compatTexSampler)
+void VideoImageEffect::setFormat(Gfx::Renderer &r,IG::PixelFormat fmt, Gfx::ColorSpace colSpace, Gfx::TextureSamplerConfig samplerConf)
 {
 	fmt = effectFormat(fmt, colSpace);
 	if(format == fmt && colorSpace == colSpace)
 		return;
 	format = fmt;
 	colorSpace = colSpace;
-	initRenderTargetTexture(r, compatTexSampler);
+	initRenderTargetTexture(r, samplerConf);
 }
 
 Gfx::Program &VideoImageEffect::program()
@@ -234,16 +233,13 @@ Gfx::Texture &VideoImageEffect::renderTarget()
 void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, const Gfx::TextureSpan span)
 {
 	cmds.setViewport(renderTargetImgSize);
-	cmds.set(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 	Gfx::Sprite spr{{{-1., -1.}, {1., 1.}}, {span.texture(), {{0., 1.}, {1., 0.}}}};
 	spr.draw(cmds);
 }
 
-void VideoImageEffect::setCompatTextureSampler(const Gfx::TextureSampler &compatTexSampler)
+void VideoImageEffect::setSampler(Gfx::TextureSamplerConfig samplerConf)
 {
-	if(!renderTarget_)
-		return;
-	renderTarget_.setCompatTextureSampler(compatTexSampler);
+	renderTarget_.setSampler(samplerConf);
 }
 
 }

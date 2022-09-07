@@ -20,6 +20,7 @@
 #include <imagine/base/Sensor.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/fs/FSUtils.hh>
 #include <imagine/fs/AssetFS.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #ifdef __ANDROID__
@@ -270,13 +271,13 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(IG::CStringVie
 
 [[gnu::weak]] bool ApplicationContext::hasSystemPathPicker() const { return false; }
 
-[[gnu::weak]] void ApplicationContext::showSystemPathPicker(SystemDocumentPickerDelegate) {}
+[[gnu::weak]] bool ApplicationContext::showSystemPathPicker(SystemDocumentPickerDelegate) { return false; }
 
 [[gnu::weak]] bool ApplicationContext::hasSystemDocumentPicker() const { return false; }
 
-[[gnu::weak]] void ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate) {}
+[[gnu::weak]] bool ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate) { return false; }
 
-[[gnu::weak]] void ApplicationContext::showSystemCreateDocumentPicker(SystemDocumentPickerDelegate) {}
+[[gnu::weak]] bool ApplicationContext::showSystemCreateDocumentPicker(SystemDocumentPickerDelegate) { return false; }
 
 [[gnu::weak]] FileIO ApplicationContext::openFileUri(CStringView uri, IOAccessHint access, OpenFlagsMask openFlags) const
 {
@@ -328,7 +329,7 @@ FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlagsMask openFlags)
 	return FS::remove(uri);
 }
 
-[[gnu::weak]] void ApplicationContext::forEachInDirectoryUri(IG::CStringView uri, FS::DirectoryEntryDelegate del) const
+[[gnu::weak]] void ApplicationContext::forEachInDirectoryUri(CStringView uri, DirectoryEntryDelegate del) const
 {
 	forEachInDirectory(uri, del);
 }

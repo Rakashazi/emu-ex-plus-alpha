@@ -17,12 +17,13 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
+#include <imagine/gfx/TextureSamplerConfig.hh>
 
 namespace IG::ViewDefs
 {
 
-static constexpr bool needsBackControlDefault = !Config::envIsAndroid;
-static constexpr bool needsBackControlIsMutable = !Config::envIsIOS;
-static constexpr auto imageCommonTextureSampler = Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP;
+constexpr bool needsBackControlDefault = !Config::envIsAndroid;
+constexpr bool needsBackControlIsMutable = !Config::envIsIOS;
+constexpr auto imageSamplerConfig = Gfx::SamplerConfigs::nearestMipClamp;
 
 }

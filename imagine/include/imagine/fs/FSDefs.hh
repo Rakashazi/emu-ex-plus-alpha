@@ -133,9 +133,6 @@ protected:
 };
 
 class directory_entry;
-
-using DirectoryEntryDelegate = IG::DelegateFuncS<sizeof(void*)*3, bool(const directory_entry &)>;
-
 class AssetDirectoryIterator;
 
 }
