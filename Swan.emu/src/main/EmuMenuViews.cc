@@ -171,6 +171,25 @@ public:
 
 class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
 {
+	TextMenuItem::SelectDelegate setRotationDel()
+	{
+		return [this](TextMenuItem &item) { system().setRotation((WsRotation)item.id()); };
+	}
+
+	TextMenuItem rotationItem[3]
+	{
+		{"Auto",       &defaultFace(), setRotationDel(), to_underlying(WsRotation::Auto)},
+		{"Horizontal", &defaultFace(), setRotationDel(), to_underlying(WsRotation::Horizontal)},
+		{"Vertical",   &defaultFace(), setRotationDel(), to_underlying(WsRotation::Vertical)},
+	};
+
+	MultiChoiceMenuItem rotation
+	{
+		"Handheld Rotation", &defaultFace(),
+		(MenuItem::Id)system().rotation,
+		rotationItem
+	};
+
 	TextHeadingMenuItem vGamepad{"Virtual Gamepad", &defaultBoldFace()};
 
 	BoolMenuItem showVGamepadButtons
@@ -186,8 +205,9 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		}
 	};
 
-	std::array<MenuItem*, 2> menuItem
+	std::array<MenuItem*, 3> menuItem
 	{
+		&rotation,
 		&vGamepad,
 		&showVGamepadButtons,
 	};

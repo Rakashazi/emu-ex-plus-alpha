@@ -51,6 +51,10 @@ bool WsSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readS
 		{
 			case CFGKEY_SHOW_VGAMEPAD_Y_HORIZ: return readOptionValue(io, readSize, showVGamepadYWhenHorizonal);
 			case CFGKEY_SHOW_VGAMEPAD_AB_VERT: return readOptionValue(io, readSize, showVGamepadABWhenVertical);
+			case CFGKEY_WS_ROTATION: return readOptionValue(io, readSize, rotation, [](auto val)
+				{
+					return val <= lastEnum<WsRotation>;
+				});
 		}
 	}
 	return false;
@@ -71,6 +75,8 @@ void WsSystem::writeConfig(ConfigType type, FileIO &io)
 			writeOptionValue(io, CFGKEY_SHOW_VGAMEPAD_Y_HORIZ, showVGamepadYWhenHorizonal);
 		if(showVGamepadABWhenVertical)
 			writeOptionValue(io, CFGKEY_SHOW_VGAMEPAD_AB_VERT, showVGamepadABWhenVertical);
+		if(rotation != WsRotation::Auto)
+			writeOptionValue(io, CFGKEY_WS_ROTATION, rotation);
 	}
 }
 
@@ -78,6 +84,7 @@ bool WsSystem::resetSessionOptions(EmuApp &app)
 {
 	showVGamepadYWhenHorizonal = true;
 	showVGamepadABWhenVertical = false;
+	rotation = WsRotation::Auto;
 	return true;
 }
 
@@ -93,6 +100,18 @@ void WsSystem::setShowVGamepadABWhenVertical(bool on)
 	sessionOptionSet();
 	showVGamepadABWhenVertical = on;
 	setupInput(EmuApp::get(appContext()));
+}
+
+void WsSystem::setRotation(WsRotation r)
+{
+	if(r == rotation || !hasContent())
+		return;
+	rotation = r;
+	sessionOptionSet();
+	auto &app = EmuApp::get(appContext());
+	setupInput(app);
+	app.updateContentRotation();
+	app.viewController().placeEmuViews();
 }
 
 }

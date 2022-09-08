@@ -14,6 +14,7 @@ enum
 {
 	CFGKEY_USER_NAME = 256, CFGKEY_USER_PROFILE = 257,
 	CFGKEY_SHOW_VGAMEPAD_Y_HORIZ = 258, CFGKEY_SHOW_VGAMEPAD_AB_VERT = 259,
+	CFGKEY_WS_ROTATION = 260,
 };
 
 struct WsUserProfile
@@ -61,6 +62,11 @@ constexpr WsUserProfile defaultUserProfile
 	.languageIsEnglish = 0
 };
 
+WISE_ENUM_CLASS((WsRotation, uint8_t),
+	Auto,
+	Horizontal,
+	Vertical);
+
 class WsSystem final: public EmuSystem
 {
 public:
@@ -73,6 +79,7 @@ public:
 	WsUserProfile userProfile{defaultUserProfile};
 	bool showVGamepadYWhenHorizonal = true;
 	bool showVGamepadABWhenVertical{};
+	WsRotation rotation{};
 
 	WsSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -82,7 +89,18 @@ public:
 	}
 	void setShowVGamepadYWhenHorizonal(bool);
 	void setShowVGamepadABWhenVertical(bool);
-	bool isRotated() const { return mdfnGameInfo.rotated == Mednafen::MDFN_ROTATE90; }
+	void setRotation(WsRotation);
+
+	bool isRotated() const
+	{
+		switch(rotation)
+		{
+			case WsRotation::Auto: return mdfnGameInfo.rotated == Mednafen::MDFN_ROTATE90;
+			case WsRotation::Horizontal: return false;
+			case WsRotation::Vertical: return true;
+		}
+		bug_unreachable("invalid WsRotation");
+	}
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
