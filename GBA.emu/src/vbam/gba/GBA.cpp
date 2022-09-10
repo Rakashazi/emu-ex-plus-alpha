@@ -2694,7 +2694,6 @@ void CPUUpdateRegister(ARM7TDMI &cpu, uint32_t address, uint16_t value)
       CPUUpdateRender();
       // we only care about changes in BG0-BG3
       if (changeBG) {
-      	logMsg("changed bg mode: %d", DISPCNT & 7);
         CPUUpdateRenderBuffers(false);
       }
       break;

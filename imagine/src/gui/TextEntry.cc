@@ -229,7 +229,7 @@ bool CollectTextInputView::inputEvent(const Input::Event &e)
 {
 	if(visit(overloaded
 		{
-			[&](const Input::MotionEvent &e) { return cancelBtn.overlaps(e.pos()); },
+			[&](const Input::MotionEvent &e) { return e.pushed() && cancelBtn.overlaps(e.pos()); },
 			[&](const Input::KeyEvent &e)	{ return e.pushed(Input::DefaultKey::CANCEL); }
 		}, e))
 	{

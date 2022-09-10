@@ -25,6 +25,7 @@ namespace IG
 // verify SensorType maps to Sensor.TYPE_*
 static_assert(to_underlying(SensorType::Accelerometer) == 1);
 static_assert(to_underlying(SensorType::Gyroscope) == 4);
+static_assert(to_underlying(SensorType::Light) == 5);
 
 SensorListener::SensorListener(ApplicationContext ctx, SensorType type, SensorChangedDelegate del):
 	AndroidSensorListener{ASensorManager_getInstance(), type, del} {}

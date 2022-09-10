@@ -53,6 +53,7 @@ bool GbaSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_GB_APU_VOLUME: return readOptionValue<uint8_t>(io, readSize, [](auto v){soundSetVolume(gGba, v / 100.f, true);});
 			case CFGKEY_SOUND_FILTERING: return readOptionValue<uint8_t>(io, readSize, [](auto v){soundSetFiltering(gGba, v / 100.f);});
 			case CFGKEY_SOUND_INTERPOLATION: return readOptionValue<bool>(io, readSize, [](auto on){soundSetInterpolation(gGba, on);});
+			case CFGKEY_LIGHT_SENSOR_SCALE: return readOptionValue<uint16_t>(io, readSize, [&](auto val){lightSensorScaleLux = val;});
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -76,6 +77,7 @@ void GbaSystem::writeConfig(ConfigType type, FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_GB_APU_VOLUME, (uint8_t)soundVolumeAsInt(gGba, true), 100);
 		writeOptionValueIfNotDefault(io, CFGKEY_SOUND_FILTERING, (uint8_t)soundFilteringAsInt(gGba), 50);
 		writeOptionValueIfNotDefault(io, CFGKEY_SOUND_INTERPOLATION, soundGetInterpolation(gGba), true);
+		writeOptionValueIfNotDefault(io, CFGKEY_LIGHT_SENSOR_SCALE, (uint16_t)lightSensorScaleLux, (uint16_t)lightSensorScaleLuxDefault);
 	}
 	else if(type == ConfigType::SESSION)
 	{

@@ -241,7 +241,7 @@ void EmuViewController::configureWindowForEmulation(IG::Window &win, bool runnin
 	if constexpr(Config::SCREEN_FRAME_INTERVAL)
 		win.screen()->setFrameInterval(app().frameInterval());
 	emuView.renderer().setWindowValidOrientations(win, running ? app().emuOrientation() : app().menuOrientation());
-	win.setIntendedFrameRate(running ? system().frameRate() : 0.);
+	win.setIntendedFrameRate(running ? app().intendedFrameRate(win) : 0.);
 	movePopupToWindow(running ? emuView.window() : emuInputView.window());
 }
 

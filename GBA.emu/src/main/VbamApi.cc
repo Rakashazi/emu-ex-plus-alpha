@@ -45,7 +45,8 @@ uint32_t throttle{};
 uint32_t speedup_throttle{};
 uint32_t speedup_frame_skip{};
 int emulating{};
-static int sensorX, sensorY, sensorZ;
+
+using namespace EmuEx;
 
 static void debuggerOutput(const char *s, uint32_t addr)
 {
@@ -80,14 +81,10 @@ void log(const char *msg, ...) {}
 #endif
 
 void systemUpdateMotionSensor() {}
-int systemGetSensorX() { return sensorX; }
-int systemGetSensorY() { return sensorY; }
-int systemGetSensorZ() { return sensorZ; }
-
-uint8_t systemGetSensorDarkness()
-{
-	return 0;
-}
+int systemGetSensorX() { return static_cast<EmuEx::GbaSystem&>(gSystem()).sensorX; }
+int systemGetSensorY() { return static_cast<EmuEx::GbaSystem&>(gSystem()).sensorY; }
+int systemGetSensorZ() { return static_cast<EmuEx::GbaSystem&>(gSystem()).sensorZ; }
+uint8_t systemGetSensorDarkness() { return static_cast<EmuEx::GbaSystem&>(gSystem()).darknessLevel; }
 
 void systemCartridgeRumble(bool e) {}
 
@@ -201,6 +198,13 @@ static GbaSensorType detectSensorType(std::string_view gameId)
 		logMsg("detected gyroscope sensor");
 		return GbaSensorType::Gyroscope;
 	}
+	static constexpr std::string_view lightIds[]{"U3IJ", "U3IE", "U3IP",
+		"U32J", "U32E", "U32P", "U33J"};
+	if(IG::contains(lightIds, gameId))
+	{
+		logMsg("detected light sensor");
+		return GbaSensorType::Light;
+	}
 	return GbaSensorType::None;
 }
 
@@ -255,23 +259,39 @@ void GbaSystem::setSensorActive(bool on)
 	}
 	else if(typeToSet == GbaSensorType::Accelerometer)
 	{
-		sensorListener = IG::SensorListener{ctx, IG::SensorType::Accelerometer, [ctx](SensorValues vals)
+		sensorListener = IG::SensorListener{ctx, IG::SensorType::Accelerometer, [this, ctx](SensorValues vals)
 		{
 			vals = ctx.remapSensorValuesForDeviceRotation(vals);
-			sensorX = IG::remap(vals[0], -9.807, 9.807, 1897, 2197);
-			sensorY = IG::remap(vals[1], -9.807, 9.807, 2197, 1897);
+			sensorX = IG::remap(vals[0], -9.807f, 9.807f, 1897, 2197);
+			sensorY = IG::remap(vals[1], -9.807f, 9.807f, 2197, 1897);
 			//logDMsg("updated accel: %d,%d", sensorX, sensorY);
 		}};
 	}
 	else if(typeToSet == GbaSensorType::Gyroscope)
 	{
-		sensorListener = IG::SensorListener{ctx, IG::SensorType::Gyroscope, [ctx](SensorValues vals)
+		sensorListener = IG::SensorListener{ctx, IG::SensorType::Gyroscope, [this, ctx](SensorValues vals)
 		{
 			vals = ctx.remapSensorValuesForDeviceRotation(vals);
-			sensorZ = IG::remap(vals[2], -20., 20., 1800, -1800);
+			sensorZ = IG::remap(vals[2], -20.f, 20.f, 1800, -1800);
 			//logDMsg("updated gyro: %d", sensorZ);
 		}};
 	}
+	else if(typeToSet == GbaSensorType::Light)
+	{
+		sensorListener = IG::SensorListener{ctx, IG::SensorType::Light, [this](SensorValues vals)
+		{
+			if(!lightSensorScaleLux)
+				darknessLevel = 0;
+			else
+				darknessLevel = IG::remapClamp(vals[0], lightSensorScaleLux, 0.f, std::numeric_limits<decltype(darknessLevel)>{});
+			//logDMsg("updated light: %u", darknessLevel);
+		}};
+	}
+}
+
+void GbaSystem::clearSensorValues()
+{
+	sensorX = sensorY = sensorZ = 0;
 }
 
 }

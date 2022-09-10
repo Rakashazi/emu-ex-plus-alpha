@@ -345,6 +345,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 	vController.writeConfig(io);
 	if(IG::used(usePresentationTime_) && !usePresentationTime_)
 		writeOptionValue(io, CFGKEY_RENDERER_PRESENTATION_TIME, false);
+	if(IG::used(forceMaxScreenFrameRate) && forceMaxScreenFrameRate)
+		writeOptionValue(io, CFGKEY_FORCE_MAX_SCREEN_FRAME_RATE, true);
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 	if(!BluetoothAdapter::scanCacheUsage())
 		writeOptionValue(io, CFGKEY_BLUETOOTH_SCAN_CACHE, false);
@@ -624,6 +626,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_VIDEO_COLOR_SPACE: readOptionValue(io, size, pendingWindowDrawableConf.colorSpace, colorSpaceIsValid);
 				bcase CFGKEY_SHOW_HIDDEN_FILES: readOptionValue<bool>(io, size, [&](auto on){setShowHiddenFilesInPicker(on);});
 				bcase CFGKEY_RENDERER_PRESENTATION_TIME: readOptionValue<bool>(io, size, [&](auto on){setUsePresentationTime(on);});
+				bcase CFGKEY_FORCE_MAX_SCREEN_FRAME_RATE: readOptionValue<bool>(io, size, [&](auto on){setForceMaxScreenFrameRate(on);});
 				bcase CFGKEY_CONTENT_ROTATION: readOptionValue(io, size, contentRotation_, [](auto r){return r <= lastEnum<Rotation>;});
 				bcase CFGKEY_INPUT_KEY_CONFIGS:
 				{

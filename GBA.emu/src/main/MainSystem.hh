@@ -23,7 +23,7 @@ enum
 	CFGKEY_RTC_EMULATION = 256, CFGKEY_SAVE_TYPE_OVERRIDE = 257,
 	CFGKEY_PCM_VOLUME = 258, CFGKEY_GB_APU_VOLUME = 259,
 	CFGKEY_SOUND_FILTERING = 260, CFGKEY_SOUND_INTERPOLATION = 261,
-	CFGKEY_SENSOR_TYPE = 262
+	CFGKEY_SENSOR_TYPE = 262, CFGKEY_LIGHT_SENSOR_SCALE = 263,
 };
 
 void readCheatFile(EmuSystem &);
@@ -43,7 +43,10 @@ constexpr bool optionSaveTypeOverrideIsValid(uint32_t val)
 }
 
 WISE_ENUM_CLASS((GbaSensorType, uint8_t),
-	Auto, None, Accelerometer, Gyroscope);
+	Auto, None, Accelerometer, Gyroscope, Light);
+
+constexpr float lightSensorScaleLuxDefault = 10000.f;
+constexpr uint8_t darknessLevelDefault = 0xee;
 
 class GbaSystem final: public EmuSystem
 {
@@ -52,6 +55,9 @@ public:
 	Byte1Option optionRtcEmulation{CFGKEY_RTC_EMULATION, std::to_underlying(RtcMode::AUTO), 0, optionIsValidWithMax<2>};
 	Byte4Option optionSaveTypeOverride{CFGKEY_SAVE_TYPE_OVERRIDE, GBA_SAVE_AUTO, 0, optionSaveTypeOverrideIsValid};
 	int detectedSaveSize{};
+	int sensorX{}, sensorY{}, sensorZ{};
+	float lightSensorScaleLux{lightSensorScaleLuxDefault};
+	uint8_t darknessLevel{darknessLevelDefault};
 	uint8_t detectedSaveType{};
 	bool detectedRtcGame{};
 	IG_UseMemberIf(Config::SENSORS, GbaSensorType, sensorType){};
@@ -65,6 +71,7 @@ public:
 	void setSaveTypeOverride(int type, int size) { optionSaveTypeOverride = packSaveTypeOverride(type, size); };
 	void setSensorActive(bool);
 	void setSensorType(GbaSensorType);
+	void clearSensorValues();
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);

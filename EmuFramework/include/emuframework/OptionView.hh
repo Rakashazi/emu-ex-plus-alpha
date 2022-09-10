@@ -93,11 +93,12 @@ protected:
 	TextMenuItem renderPixelFormatItem[3];
 	MultiChoiceMenuItem renderPixelFormat;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, presentationTime);
+	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, forceMaxScreenFrameRate);
 	TextHeadingMenuItem visualsHeading;
 	TextHeadingMenuItem screenShapeHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 32> item;
+	StaticArrayList<MenuItem*, 33> item;
 
 	void pushAndShowFrameRateSelectMenu(VideoSystem, const Input::Event &);
 	bool onFrameTimeChange(VideoSystem vidSys, IG::FloatSeconds time);

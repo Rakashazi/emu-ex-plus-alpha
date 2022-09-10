@@ -600,6 +600,15 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			app().setUsePresentationTime(item.flipBoolValue(*this));
 		}
 	},
+	forceMaxScreenFrameRate
+	{
+		"Force Max Screen Frame Rate", &defaultFace(),
+		app().shouldForceMaxScreenFrameRate(),
+		[this](BoolMenuItem &item)
+		{
+			app().setForceMaxScreenFrameRate(item.flipBoolValue(*this));
+		}
+	},
 	visualsHeading{"Visuals", &defaultBoldFace()},
 	screenShapeHeading{"Screen Shape", &defaultBoldFace()},
 	advancedHeading{"Advanced", &defaultBoldFace()},
@@ -721,6 +730,8 @@ void VideoOptionView::loadStockItems()
 		item.emplace_back(&imageBuffers);
 	if(IG::used(presentationTime) && renderer().supportsPresentationTime())
 		item.emplace_back(&presentationTime);
+	if(IG::used(forceMaxScreenFrameRate) && appContext().androidSDK() >= 30)
+		item.emplace_back(&forceMaxScreenFrameRate);
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	item.emplace_back(&secondDisplay);
 	#endif

@@ -19,7 +19,7 @@
 namespace EmuEx::Controls
 {
 
-constexpr int gamepadKeys = 18;
+constexpr int gamepadKeys = 20;
 constexpr int systemTotalKeys = gameActionKeys + gamepadKeys;
 
 constexpr std::array<const std::string_view, gamepadKeys> gamepadName
@@ -42,6 +42,8 @@ constexpr std::array<const std::string_view, gamepadKeys> gamepadName
 	"Turbo B",
 	"A+B",
 	"R+B",
+	"Light Sensor Level +",
+	"Light Sensor Level -",
 };
 
 constexpr int gamepadKeyOffset = gameActionKeys;

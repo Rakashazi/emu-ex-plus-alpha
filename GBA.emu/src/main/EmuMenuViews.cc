@@ -122,12 +122,13 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	}
 
 	#ifdef IG_CONFIG_SENSORS
-	TextMenuItem hardwareSensorItem[4]
+	TextMenuItem hardwareSensorItem[5]
 	{
 		{"Auto",          &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::Auto)},
 		{"None",          &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::None)},
 		{"Accelerometer", &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::Accelerometer)},
 		{"Gyroscope",     &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::Gyroscope)},
+		{"Light",         &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::Light)},
 	};
 
 	MultiChoiceMenuItem hardwareSensor
@@ -355,11 +356,68 @@ public:
 	}
 };
 
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
+{
+	using MainAppHelper<CustomSystemOptionView>::system;
+	using MainAppHelper<CustomSystemOptionView>::app;
+
+	#ifdef IG_CONFIG_SENSORS
+	TextMenuItem lightSensorScaleItem[5]
+	{
+		{"Darkness",      &defaultFace(), setLightSensorScaleDel(), 0},
+		{"Indoor Light",  &defaultFace(), setLightSensorScaleDel(), 100},
+		{"Overcast Day",  &defaultFace(), setLightSensorScaleDel(), 1000},
+		{"Sunny Day",     &defaultFace(), setLightSensorScaleDel(), 10000},
+		{"Custom Value",  &defaultFace(),
+			[this](Input::Event e)
+			{
+				app().pushAndShowNewCollectValueRangeInputView<int, 0, 50000>(attachParams(), e, "Input 0 to 50000", "",
+					[this](EmuApp &app, auto val)
+					{
+						system().lightSensorScaleLux = val;
+						lightSensorScale.setSelected((MenuItem::Id)val, *this);
+						dismissPrevious();
+						return true;
+					});
+				return false;
+			}, MenuItem::DEFAULT_ID
+		}
+	};
+
+	MultiChoiceMenuItem lightSensorScale
+	{
+		"Light Sensor Scale", &defaultFace(),
+		[this](int idx, Gfx::Text &t)
+		{
+			t.setString(fmt::format("{} lux", (int)system().lightSensorScaleLux));
+			return true;
+		},
+		(MenuItem::Id)system().lightSensorScaleLux,
+		lightSensorScaleItem
+	};
+
+	TextMenuItem::SelectDelegate setLightSensorScaleDel()
+	{
+		return [this](TextMenuItem &item) { system().lightSensorScaleLux = item.id(); };
+	}
+	#endif
+
+public:
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	{
+		loadStockItems();
+		#ifdef IG_CONFIG_SENSORS
+		item.emplace_back(&lightSensorScale);
+		#endif
+	}
+};
+
 std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
+		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
 		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);

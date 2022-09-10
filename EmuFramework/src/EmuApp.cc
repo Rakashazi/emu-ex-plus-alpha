@@ -1716,6 +1716,16 @@ void EmuApp::applyFrameRates(bool updateFrameTime)
 		system().configFrameTime(soundRate());
 }
 
+double EmuApp::intendedFrameRate(const IG::Window &win) const
+{
+	if(shouldForceMaxScreenFrameRate())
+	{
+		auto rates = win.screen()->supportedFrameRates(appContext());
+		return *std::ranges::max_element(rates);
+	}
+	return system().frameRate();
+}
+
 void EmuApp::onFocusChange(bool in)
 {
 	if(viewController().isShowingEmulation())

@@ -227,6 +227,7 @@ public:
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &);
 	void setWindowFrameClockSource(IG::Window::FrameTimeSource src) { winFrameTimeSrc = src; }
 	IG::Window::FrameTimeSource windowFrameClockSource() const { return winFrameTimeSrc; }
+	double intendedFrameRate(const IG::Window &) const;
 	static std::u16string_view mainViewName();
 	void runBenchmarkOneShot(EmuVideo &);
 	void onSelectFileFromPicker(IG::IO, IG::CStringView path, std::string_view displayName,
@@ -291,6 +292,8 @@ public:
 	void setContentRotation(IG::Rotation);
 	IG::Rotation contentRotation() const { return contentRotation_; }
 	void updateContentRotation();
+	bool shouldForceMaxScreenFrameRate() const { return forceMaxScreenFrameRate; }
+	void setForceMaxScreenFrameRate(bool on) { forceMaxScreenFrameRate = on; }
 
 	// System Options
 	auto &autoSaveStateOption() { return optionAutoSaveState; }
@@ -522,6 +525,7 @@ protected:
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, bool, layoutBehindSystemUI){};
 	IG::WindowFrameTimeSource winFrameTimeSrc{};
 	IG_UseMemberIf(Config::envIsAndroid, bool, usePresentationTime_){true};
+	IG_UseMemberIf(Config::envIsAndroid, bool, forceMaxScreenFrameRate){};
 
 	class ConfigParams
 	{

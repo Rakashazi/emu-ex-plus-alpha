@@ -226,7 +226,8 @@ struct ScreenChange
 
 WISE_ENUM_CLASS((SensorType, uint8_t),
 	(Accelerometer, 1),
-	(Gyroscope, 4)
+	(Gyroscope, 4),
+	(Light, 5)
 );
 
 using SensorValues = std::array<float, 3>;

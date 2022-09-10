@@ -92,10 +92,11 @@ VController::Map WsSystem::vControllerMap(int player)
 	}
 	else
 	{
-		map[VController::F_ELEM] = A_BIT;
+		bool swapAB = !showVGamepadYWhenHorizonal;
+		map[VController::F_ELEM] = swapAB ? B_BIT : A_BIT;
 		map[VController::F_ELEM+1] = Y3_BIT;
 		map[VController::F_ELEM+2] = Y2_BIT;
-		map[VController::F_ELEM+3] = B_BIT;
+		map[VController::F_ELEM+3] = swapAB ? A_BIT : B_BIT;
 		map[VController::F_ELEM+4] = Y4_BIT;
 		map[VController::F_ELEM+5] = Y1_BIT;
 

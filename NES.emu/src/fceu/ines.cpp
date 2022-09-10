@@ -517,7 +517,7 @@ BMAPPINGLocal bmap[] = {
 //	{"",					 56, Mapper56_Init},
 	{"SIMBPLE BMC PIRATE A", 57, Mapper57_Init},
 	{"SIMBPLE BMC PIRATE B", 58, BMCGK192_Init},
-	{"",					 59, Mapper59_Init},	// Check this out
+	{"BMC T3H53/D1038",			 59, BMCD1038_Init},
 	{"SIMBPLE BMC PIRATE C", 60, BMCD1038_Init},
 	{"20-in-1 KAISER Rev. A",61, Mapper61_Init},
 	{"700-in-1",			 62, Mapper62_Init},
@@ -715,8 +715,11 @@ BMAPPINGLocal bmap[] = {
 	{"",					254, Mapper254_Init},
 //	{"",					255, Mapper255_Init},	// No good dumps for this mapper
 	{"860224C",    282, Mapper282_Init},
+	{"64in1NoRepeat", 314, BMC64in1nr_Init},
 	{"HP898F",    319, Mapper319_Init},
+	{"Golden Mario Party II - Around the World 6-in-1", 370, Mapper370_Init},
 	{"42 to 80,000 (970630C)",    380, Mapper380_Init},
+	{"A88S-1", 411, Mapper411_Init},
 	{"9999999-in-1",    414, Mapper414_Init},
 	{"BS-400R/BS-4040",    422, Mapper422_Init},
 	{"DS-9-27",    452, Mapper452_Init},

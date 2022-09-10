@@ -72,12 +72,15 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::ENTER,
 			Keycode::X,
 			Keycode::Z,
+			Keycode::Q,
 			Keycode::W,
 			Keycode::S,
 			Keycode::A,
-			Keycode::Q,
 			Keycode::V,
 			Keycode::C,
+			0, 0,
+			Keycode::F,
+			Keycode::D,
 		}
 	},
 	#ifdef CONFIG_INPUT_GAMEPAD_DEVICES

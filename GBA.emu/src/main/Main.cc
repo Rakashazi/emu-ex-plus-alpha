@@ -36,6 +36,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobe
 bool EmuSystem::hasBundledGames = true;
 bool EmuSystem::hasCheats = true;
 double EmuSystem::staticFrameTime = 280896. / 16777216.; // ~59.7275Hz
+bool EmuApp::needsGlobalInstance = true;
 constexpr IG::WP lcdSize{240, 160};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
@@ -113,6 +114,7 @@ void GbaSystem::closeSystem()
 	detectedRtcGame = 0;
 	detectedSensorType = {};
 	sensorListener = {};
+	darknessLevel = darknessLevelDefault;
 	cheatsList.clear();
 }
 

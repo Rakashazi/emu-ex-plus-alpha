@@ -31,17 +31,17 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	if (regs[0] & 0x80) {
+	if (regs[0] & 0x80) { /* NROM mode */
 		if (regs[1] & 0x80)
-			setprg32(0x8000, regs[1] & 0x1F);
-		else{
-			int bank = ((regs[1] & 0x1f) << 1) | ((regs[1] >> 6) & 1);
+			setprg32(0x8000, regs[1] & 0x3F);
+		else {
+			int bank = ((regs[1] & 0x3F) << 1) | ((regs[1] >> 6) & 1);
 			setprg16(0x8000, bank);
 			setprg16(0xC000, bank);
 		}
-	} else {
-		int bank = ((regs[1] & 0x1f) << 1) | ((regs[1] >> 6) & 1);
-		setprg16(0xC000, bank);
+	} else { /* UNROM mode */
+		setprg16(0x8000, regs[1] <<1 | regs[3] &7);
+		setprg16(0xC000, regs[1] <<1 |          7);
 	}
 	if (regs[0] & 0x20)
 		setmirror(MI_H);
@@ -51,6 +51,8 @@ static void Sync(void) {
 }
 
 static DECLFW(BMC64in1nrWriteLo) {
+	A &=3;
+	if (A ==3) A =1; /* K-42001's "Aladdin III" */
 	regs[A & 3] = V;
 	Sync();
 }
@@ -65,9 +67,17 @@ static void BMC64in1nrPower(void) {
 	regs[1] = 0x43;
 	regs[2] = regs[3] = 0;
 	Sync();
-	SetWriteHandler(0x5000, 0x5003, BMC64in1nrWriteLo);
+	SetWriteHandler(0x5000, 0x5FFF, BMC64in1nrWriteLo);
 	SetWriteHandler(0x8000, 0xFFFF, BMC64in1nrWriteHi);
 	SetReadHandler(0x8000, 0xFFFF, CartBR);
+}
+
+static void BMC64in1nrReset(void) {
+	/* Reset returns to menu */
+	regs[0] = 0x80;
+	regs[1] = 0x43;
+	regs[2] = regs[3] = 0;
+	Sync();
 }
 
 static void StateRestore(int version) {
@@ -76,6 +86,7 @@ static void StateRestore(int version) {
 
 void BMC64in1nr_Init(CartInfo *info) {
 	info->Power = BMC64in1nrPower;
+	info->Reset = BMC64in1nrReset;
 	AddExState(&StateRegs, ~0, 0, 0);
 	GameStateRestore = StateRestore;
 }
