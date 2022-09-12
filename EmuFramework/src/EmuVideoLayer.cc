@@ -24,6 +24,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/glm/gtc/color_space.hpp>
 #include <imagine/logger/logger.h>
 #include <algorithm>
 
@@ -216,7 +217,7 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	using namespace IG::Gfx;
 	bool srgbOutput = srgbColorSpace();
 	auto c = srgbOutput ? brightnessSrgb : brightness;
-	cmds.setColor(c, c, c);
+	cmds.setColor(c.r, c.g, c.b);
 	cmds.set(BlendMode::OFF);
 	if(effects.size())
 	{
@@ -316,10 +317,10 @@ void EmuVideoLayer::setLinearFilter(bool on)
 		video.setSampler(samplerConfig());
 }
 
-void EmuVideoLayer::setBrightness(float b)
+void EmuVideoLayer::setBrightness(Gfx::Vec3 b)
 {
 	brightness = b;
-	brightnessSrgb = std::pow(b, 2.2f);
+	brightnessSrgb = glm::convertSRGBToLinear(b);
 }
 
 void EmuVideoLayer::onVideoFormatChanged(IG::PixelFormat effectFmt)

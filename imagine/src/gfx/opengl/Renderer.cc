@@ -17,6 +17,9 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/Projection.hh>
+#include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/PixmapBufferTexture.hh>
+#include <imagine/gfx/TextureSampler.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>

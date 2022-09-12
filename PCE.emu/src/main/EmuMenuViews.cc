@@ -14,6 +14,8 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/OptionView.hh>
+#include <emuframework/AudioOptionView.hh>
+#include <emuframework/VideoOptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuInput.hh>
 #include "MainApp.hh"

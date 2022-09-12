@@ -38,6 +38,7 @@
 #include <imagine/base/VibrationManager.hh>
 #include <imagine/audio/Manager.hh>
 #include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/Vec3.hh>
 #include <imagine/data-type/image/PixmapReader.hh>
 #include <imagine/data-type/image/PixmapWriter.hh>
 #include <imagine/font/Font.hh>
@@ -90,6 +91,12 @@ enum class ScanValueMode
 {
 	NORMAL, ALLOW_BLANK
 };
+
+WISE_ENUM_CLASS((ImageChannel, uint8_t),
+	All,
+	Red,
+	Green,
+	Blue);
 
 class EmuApp : public IG::Application
 {
@@ -294,6 +301,9 @@ public:
 	void updateContentRotation();
 	bool shouldForceMaxScreenFrameRate() const { return forceMaxScreenFrameRate; }
 	void setForceMaxScreenFrameRate(bool on) { forceMaxScreenFrameRate = on; }
+	float videoBrightness(ImageChannel);
+	int videoBrightnessAsInt(ImageChannel ch) { return videoBrightness(ch) * 100.f; }
+	void setVideoBrightness(float brightness, ImageChannel);
 
 	// System Options
 	auto &autoSaveStateOption() { return optionAutoSaveState; }
@@ -468,6 +478,7 @@ protected:
 	KeyConfigContainer customKeyConfigs{};
 	InputDeviceSavedConfigContainer savedInputDevs{};
 	TurboInput turboActions{};
+	Gfx::Vec3 videoBrightnessRGB{1.f, 1.f, 1.f};
 	FS::PathString contentSearchPath_{};
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
 	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;

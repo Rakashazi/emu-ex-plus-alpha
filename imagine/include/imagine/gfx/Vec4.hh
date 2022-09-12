@@ -19,5 +19,14 @@
 
 namespace IG::Gfx
 {
-using Vec4 = glm::vec4;
+
+using Vec4Impl = glm::vec4;
+
+class Vec4 : public Vec4Impl
+{
+public:
+	using Vec4Impl::Vec4Impl;
+	constexpr Vec4(Vec4Impl v): Vec4Impl{v} {}
+};
+
 }

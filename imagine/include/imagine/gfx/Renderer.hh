@@ -17,8 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/Texture.hh>
-#include <imagine/gfx/PixmapBufferTexture.hh>
+#include <imagine/gfx/TextureSamplerConfig.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 
 #ifdef CONFIG_GFX_OPENGL

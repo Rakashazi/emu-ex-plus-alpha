@@ -263,7 +263,6 @@ void EmuViewController::showMenuView(bool updateTopView)
 	if(!showingEmulation)
 		return;
 	showingEmulation = false;
-	videoLayer().setBrightness(.25f);
 	configureWindowForEmulation(emuView.window(), false);
 	emuView.postDraw();
 	if(updateTopView)

@@ -18,6 +18,8 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/Program.hh>
+#include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/TextureSampler.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Viewport.hh>

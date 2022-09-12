@@ -14,6 +14,7 @@
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/OptionView.hh>
+#include <emuframework/AudioOptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/gui/AlertView.hh>

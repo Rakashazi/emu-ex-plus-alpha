@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/OptionView.hh>
+#include <emuframework/VideoOptionView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppHelper.hh>
 #include <emuframework/EmuVideoLayer.hh>
@@ -528,7 +528,6 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		0,
 		windowPixelFormatItem
 	},
-	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	secondDisplay
 	{
 		"2nd Window (for testing only)", &defaultFace(),
@@ -538,8 +537,6 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			app().setEmuViewOnExtraWindow(item.flipBoolValue(*this), appContext().mainScreen());
 		}
 	},
-	#endif
-	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
 	showOnSecondScreen
 	{
 		"External Screen", &defaultFace(),
@@ -552,7 +549,6 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				app().setEmuViewOnExtraWindow(app().showOnSecondScreenOption(), *appContext().screens()[1]);
 		}
 	},
-	#endif
 	imageBuffersItem
 	{
 		{"Auto",                                     &defaultFace(), setImageBuffersDel(), 0},
@@ -609,8 +605,77 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			app().setForceMaxScreenFrameRate(item.flipBoolValue(*this));
 		}
 	},
+	brightnessItem
+	{
+		{
+			"Default", &defaultFace(), [this](View &v)
+			{
+				app().setVideoBrightness(1.f, ImageChannel::All);
+				setAllColorLevelsSelected(MenuItem::Id{100});
+				v.dismiss();
+			}
+		},
+		{"Custom Value", &defaultFace(), setVideoBrightnessCustomDel(ImageChannel::All)},
+	},
+	redItem
+	{
+		{"Default", &defaultFace(), [this](){ app().setVideoBrightness(1.f, ImageChannel::Red); }, 100},
+		{"Custom Value", &defaultFace(), setVideoBrightnessCustomDel(ImageChannel::Red), MenuItem::DEFAULT_ID},
+	},
+	greenItem
+	{
+		{"Default", &defaultFace(), [this](){ app().setVideoBrightness(1.f, ImageChannel::Green); }, 100},
+		{"Custom Value", &defaultFace(), setVideoBrightnessCustomDel(ImageChannel::Green), MenuItem::DEFAULT_ID},
+	},
+	blueItem
+	{
+		{"Default", &defaultFace(), [this](){ app().setVideoBrightness(1.f, ImageChannel::Blue); }, 100},
+		{"Custom Value", &defaultFace(), setVideoBrightnessCustomDel(ImageChannel::Blue), MenuItem::DEFAULT_ID},
+	},
+	brightness
+	{
+		"Set All Levels", &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<TableView>("All Levels", brightnessItem), e);
+		}
+	},
+	red
+	{
+		"Red", &defaultFace(),
+		[this](size_t idx, Gfx::Text &t)
+		{
+			t.setString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Red)));
+			return true;
+		},
+		MenuItem::Id{app().videoBrightnessAsInt(ImageChannel::Red)},
+		redItem
+	},
+	green
+	{
+		"Green", &defaultFace(),
+		[this](size_t idx, Gfx::Text &t)
+		{
+			t.setString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Green)));
+			return true;
+		},
+		MenuItem::Id{app().videoBrightnessAsInt(ImageChannel::Green)},
+		greenItem
+	},
+	blue
+	{
+		"Blue", &defaultFace(),
+		[this](size_t idx, Gfx::Text &t)
+		{
+			t.setString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Blue)));
+			return true;
+		},
+		MenuItem::Id{app().videoBrightnessAsInt(ImageChannel::Blue)},
+		blueItem
+	},
 	visualsHeading{"Visuals", &defaultBoldFace()},
 	screenShapeHeading{"Screen Shape", &defaultBoldFace()},
+	colorLevelsHeading{"Color Levels", &defaultBoldFace()},
 	advancedHeading{"Advanced", &defaultBoldFace()},
 	systemSpecificHeading{"System-specific", &defaultBoldFace()}
 {
@@ -717,6 +782,11 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&viewportZoom);
 	item.emplace_back(&aspectRatio);
 	item.emplace_back(&contentRotation);
+	item.emplace_back(&colorLevelsHeading);
+	item.emplace_back(&brightness);
+	item.emplace_back(&red);
+	item.emplace_back(&green);
+	item.emplace_back(&blue);
 	item.emplace_back(&advancedHeading);
 	item.emplace_back(&textureBufferMode);
 	if(windowPixelFormatItem.size() > 2)
@@ -732,15 +802,10 @@ void VideoOptionView::loadStockItems()
 		item.emplace_back(&presentationTime);
 	if(IG::used(forceMaxScreenFrameRate) && appContext().androidSDK() >= 30)
 		item.emplace_back(&forceMaxScreenFrameRate);
-	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
-	item.emplace_back(&secondDisplay);
-	#endif
-	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
-	if(!app().showOnSecondScreenOption().isConst)
-	{
+	if(IG::used(secondDisplay))
+		item.emplace_back(&secondDisplay);
+	if(IG::used(showOnSecondScreen) && !app().showOnSecondScreenOption().isConst)
 		item.emplace_back(&showOnSecondScreen);
-	}
-	#endif
 }
 
 void VideoOptionView::setEmuVideoLayer(EmuVideoLayer &videoLayer_)
@@ -856,6 +921,42 @@ TextMenuItem::SelectDelegate VideoOptionView::setContentRotationDel()
 TextMenuItem::SelectDelegate VideoOptionView::setOverlayEffectLevelDel()
 {
 	return [this](TextMenuItem &item) { app().setOverlayEffectLevel(*videoLayer, item.id()); };
+}
+
+TextMenuItem::SelectDelegate VideoOptionView::setVideoBrightnessCustomDel(ImageChannel ch)
+{
+	return [=, this](const Input::Event &e)
+	{
+		app().pushAndShowNewCollectValueRangeInputView<int, 0, 200>(attachParams(), e, "Input 0 to 200", "",
+			[=, this](EmuApp &app, auto val)
+			{
+				app.setVideoBrightness(val / 100.f, ch);
+				if(ch == ImageChannel::All)
+					setAllColorLevelsSelected(MenuItem::Id{val});
+				else
+					[&]() -> MultiChoiceMenuItem&
+					{
+						switch(ch)
+						{
+							case ImageChannel::All: break;
+							case ImageChannel::Red: return red;
+							case ImageChannel::Green: return green;
+							case ImageChannel::Blue: return blue;
+						}
+						bug_unreachable("invalid ImageChannel");
+					}().setSelected(MenuItem::Id{val}, *this);
+				dismissPrevious();
+				return true;
+			});
+		return false;
+	};
+}
+
+void VideoOptionView::setAllColorLevelsSelected(MenuItem::Id val)
+{
+	red.setSelected(val, *this);
+	green.setSelected(val, *this);
+	blue.setSelected(val, *this);
 }
 
 EmuVideo &VideoOptionView::emuVideo() const

@@ -17,6 +17,8 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Projection.hh>
+#include <imagine/gfx/Program.hh>
+#include <imagine/gfx/Texture.hh>
 
 namespace IG::Gfx
 {

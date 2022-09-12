@@ -21,6 +21,8 @@
 #include <emuframework/FilePicker.hh>
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/OptionView.hh>
+#include <emuframework/AudioOptionView.hh>
+#include <emuframework/VideoOptionView.hh>
 #include "EmuOptions.hh"
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/TouchConfigView.hh>
@@ -38,6 +40,15 @@
 
 namespace EmuEx
 {
+
+class OptionCategoryView : public TableView, public EmuAppHelper<OptionCategoryView>
+{
+public:
+	OptionCategoryView(ViewAttachParams attach, EmuAudio &audio, EmuVideoLayer &videoLayer);
+
+protected:
+	TextMenuItem subConfig[6];
+};
 
 #ifdef CONFIG_BLUETOOTH
 

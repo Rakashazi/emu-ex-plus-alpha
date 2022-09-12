@@ -157,7 +157,7 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, IG::WRect contentRect, WP
 	}(), r);
 }
 
-void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, float brightness)
+void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness)
 {
 	if(!spr.hasTexture())
 		return;
@@ -165,13 +165,13 @@ void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, float brightness)
 	if(multiplyBlend)
 	{
 		brightness *= 2.f;
-		cmds.setColor(brightness, brightness, brightness, intensity);
+		cmds.setColor(brightness.r, brightness.g, brightness.b, intensity);
 		cmds.setBlendFunc(BlendFunc::DST_COLOR, BlendFunc::SRC_ALPHA);
 		cmds.setBlend(true);
 	}
 	else
 	{
-		cmds.setColor(brightness, brightness, brightness, intensity);
+		cmds.setColor(brightness.r, brightness.g, brightness.b, intensity);
 		cmds.set(BlendMode::ALPHA);
 	}
 	spr.draw(cmds, cmds.basicEffect());

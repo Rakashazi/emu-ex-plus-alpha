@@ -18,6 +18,7 @@
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VideoImageEffect.hh>
 #include <imagine/gfx/GfxSprite.hh>
+#include <imagine/gfx/Vec3.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/container/ArrayList.hh>
 
@@ -41,7 +42,7 @@ public:
 	void setEffect(EmuSystem &, ImageEffectId, IG::PixelFormat);
 	void setEffectFormat(IG::PixelFormat);
 	void setLinearFilter(bool on);
-	void setBrightness(float b);
+	void setBrightness(Gfx::Vec3);
 	void setAspectRatio(double ratio) { aspectRatio_ = ratio; }
 	auto aspectRatio() { return aspectRatio_; }
 	void onVideoFormatChanged(IG::PixelFormat effectFmt);
@@ -65,8 +66,8 @@ private:
 	Gfx::Sprite disp{};
 	IG::WindowRect contentRect_{};
 	double aspectRatio_ = 1.;
-	float brightness = 1.f;
-	float brightnessSrgb = 1.f;
+	Gfx::Vec3 brightness{1.f, 1.f, 1.f};
+	Gfx::Vec3 brightnessSrgb{1.f, 1.f, 1.f};
 	ImageEffectId userEffectId{};
 	ImageOverlayId userOverlayEffectId{};
 	Gfx::ColorSpace colSpace{};

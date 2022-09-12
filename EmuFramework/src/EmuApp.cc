@@ -53,6 +53,8 @@ static EmuApp *gAppPtr{};
 [[gnu::weak]] bool EmuApp::hasIcon = true;
 [[gnu::weak]] bool EmuApp::autoSaveStateDefault = true;
 [[gnu::weak]] bool EmuApp::needsGlobalInstance = false;
+constexpr float menuVideoBrightnessScale = .25f;
+constexpr float pausedVideoBrightnessScale = .75f;
 
 constexpr const char *assetFilename[wise_enum::size<AssetID>]
 {
@@ -938,7 +940,7 @@ void EmuApp::startEmulation()
 {
 	if(!viewController().isShowingEmulation())
 		return;
-	emuVideoLayer.setBrightness(1.f);
+	emuVideoLayer.setBrightness(videoBrightnessRGB);
 	video().setOnFrameFinished(
 		[this](EmuVideo &)
 		{
@@ -957,6 +959,7 @@ void EmuApp::showUI(bool updateTopView)
 		return;
 	pauseEmulation();
 	configureAppForEmulation(false);
+	emuVideoLayer.setBrightness(videoBrightnessRGB * menuVideoBrightnessScale);
 	viewController().showMenuView(updateTopView);
 }
 
@@ -967,7 +970,7 @@ void EmuApp::pauseEmulation()
 	emuSystemTask.pause();
 	system().pause(*this);
 	setRunSpeed(1.);
-	emuVideoLayer.setBrightness(.75f);
+	emuVideoLayer.setBrightness(videoBrightnessRGB * pausedVideoBrightnessScale);
 	viewController().emuWindow().setDrawEventPriority();
 	removeOnFrame();
 }
@@ -1719,11 +1722,9 @@ void EmuApp::applyFrameRates(bool updateFrameTime)
 double EmuApp::intendedFrameRate(const IG::Window &win) const
 {
 	if(shouldForceMaxScreenFrameRate())
-	{
-		auto rates = win.screen()->supportedFrameRates(appContext());
-		return *std::ranges::max_element(rates);
-	}
-	return system().frameRate();
+		return std::ranges::max(win.screen()->supportedFrameRates(appContext()));
+	else
+		return system().frameRate();
 }
 
 void EmuApp::onFocusChange(bool in)
@@ -1893,6 +1894,36 @@ void EmuApp::addOnFrame()
 void EmuApp::removeOnFrame()
 {
 	viewController().emuWindow().removeOnFrame(system().onFrameUpdate, windowFrameClockSource());
+}
+
+static float &videoBrightnessVal(ImageChannel ch, Gfx::Vec3 &videoBrightnessRGB)
+{
+	switch(ch)
+	{
+		case ImageChannel::All: break;
+		case ImageChannel::Red: return videoBrightnessRGB.r;
+		case ImageChannel::Green: return videoBrightnessRGB.g;
+		case ImageChannel::Blue: return videoBrightnessRGB.b;
+	}
+	bug_unreachable("invalid ImageChannel");
+}
+
+float EmuApp::videoBrightness(ImageChannel ch)
+{
+	return videoBrightnessVal(ch, videoBrightnessRGB);
+}
+
+void EmuApp::setVideoBrightness(float brightness, ImageChannel ch)
+{
+	if(ch == ImageChannel::All)
+	{
+		videoBrightnessRGB.r = videoBrightnessRGB.g = videoBrightnessRGB.b = brightness;
+	}
+	else
+	{
+		videoBrightnessVal(ch, videoBrightnessRGB) = brightness;
+	}
+	emuVideoLayer.setBrightness(videoBrightnessRGB * menuVideoBrightnessScale);
 }
 
 MainWindowData &EmuApp::mainWindowData() const

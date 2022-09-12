@@ -14,6 +14,8 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/OptionView.hh>
+#include <emuframework/AudioOptionView.hh>
+#include <emuframework/VideoOptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuMainMenuView.hh>
 #include <emuframework/FilePicker.hh>

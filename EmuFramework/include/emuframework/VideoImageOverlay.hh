@@ -18,6 +18,7 @@
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/util/enum.hh>
+#include <array>
 
 namespace EmuEx
 {
@@ -40,7 +41,7 @@ public:
 	void setEffect(Gfx::Renderer &, ImageOverlayId, Gfx::ColorSpace);
 	void setIntensity(float intensity);
 	void place(const Gfx::Sprite &, IG::WRect contentRect, WP videoPixels, IG::Rotation);
-	void draw(Gfx::RendererCommands &cmds, float brightness);
+	void draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness);
 
 private:
 	Gfx::Texture img{};

@@ -19,6 +19,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/ranges.hh>
 #include "internalDefs.hh"
 #include "utils.hh"
 #ifdef __ANDROID__

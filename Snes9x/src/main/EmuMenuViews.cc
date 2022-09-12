@@ -5,6 +5,7 @@
 #endif
 #include <emuframework/EmuApp.hh>
 #include <emuframework/OptionView.hh>
+#include <emuframework/AudioOptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
