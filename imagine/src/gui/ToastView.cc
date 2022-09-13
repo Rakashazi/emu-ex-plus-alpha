@@ -112,7 +112,7 @@ void ToastView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	GeomRect::draw(cmds, msgFrame);
 	cmds.setColor(1., 1., 1., 1.);
 	basicEffect.enableAlphaTexture(cmds);
-	text.draw(cmds, 0, projP.alignYToPixel(msgFrame.pos(C2DO).y), C2DO, projP);
+	text.draw(cmds, {0, projP.alignYToPixel(msgFrame.pos(C2DO).y)}, C2DO, projP);
 }
 
 bool ToastView::inputEvent(const Input::Event &event)

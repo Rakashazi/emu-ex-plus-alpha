@@ -67,9 +67,9 @@ static const uint32_t firstByteMark[7] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0
  * definition of UTF-8 goes up to 4-byte sequences.
  */
 
-constexpr static bool isLegalUTF8(const uint8_t *source, int length) {
+constexpr static bool isLegalUTF8(const char *source, int length) {
 		uint8_t a;
-    const uint8_t *srcptr = source+length;
+    auto srcptr = source+length;
     switch (length) {
     default: return false;
 	/* Everything else falls through when "true"... */
@@ -77,7 +77,7 @@ constexpr static bool isLegalUTF8(const uint8_t *source, int length) {
     case 3: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return false; [[fallthrough]];
     case 2: if ((a = (*--srcptr)) > 0xBF) return false;
 
-	switch (*source) {
+	switch ((unsigned char)*source) {
 	    /* no fall-through in this inner switch */
 	    case 0xE0: if (a < 0xA0) return false; break;
 	    case 0xED: if (a > 0x9F) return false; break;
@@ -86,9 +86,9 @@ constexpr static bool isLegalUTF8(const uint8_t *source, int length) {
 	    default:   if (a < 0x80) return false;
 	} [[fallthrough]];
 
-    case 1: if (*source >= 0x80 && *source < 0xC2) return false;
+    case 1: if ((unsigned char)*source >= 0x80 && (unsigned char)*source < 0xC2) return false;
     }
-    if (*source > 0xF4) return false;
+    if ((unsigned char)*source > 0xF4) return false;
     return true;
 }
 
@@ -106,28 +106,31 @@ typedef enum {
 	lenientConversion
 } ConversionFlags;
 
-static ConversionResult ConvertUTF8toUTF32 (
-	const uint8_t** sourceStart, const uint8_t* sourceEnd,
+constexpr ConversionResult ConvertUTF8toUTF32 (
+	const char** sourceStart, const char* sourceEnd,
 	ConversionFlags flags, uint32_t &c)
 {
 	ConversionResult result = conversionOK;
-	const uint8_t* source = *sourceStart;
+	auto source = *sourceStart;
 	// sourceEnd of nullptr is ignored
 	if((sourceEnd && source < sourceEnd) || !sourceEnd)
 	{
 		if(*source == '\0')
 			return reachedNullChar;
 		uint32_t ch = 0;
-		auto extraBytesToRead = trailingBytesForUTF8[*source];
+		auto extraBytesToRead = trailingBytesForUTF8[(unsigned char)*source];
 		if(sourceEnd && source + extraBytesToRead >= sourceEnd)
 		{
-			result = sourceExhausted; goto DONE;
+			result = sourceExhausted;
+			*sourceStart = source;
+			return result;
 		}
 		/* Do this check whether lenient or strict */
 		if (! isLegalUTF8(source, extraBytesToRead+1))
 		{
 			result = sourceIllegal;
-			goto DONE;
+			*sourceStart = source;
+			return result;
 		}
 
 		// The cases all fall through. See "Note A" below.
@@ -154,7 +157,8 @@ static ConversionResult ConvertUTF8toUTF32 (
 				{
 					source -= (extraBytesToRead+1); /* return to the illegal value itself */
 					result = sourceIllegal;
-					goto DONE;
+					*sourceStart = source;
+					return result;
 				}
 				else
 				{
@@ -177,15 +181,13 @@ static ConversionResult ConvertUTF8toUTF32 (
 	{
 		result = sourceExhausted;
 	}
-
-	DONE:
 	*sourceStart = source;
 	return result;
 }
 
 // convert from a source without an end bound
-static ConversionResult ConvertUTF8toUTF32 (
-	const uint8_t** sourceStart,
+constexpr ConversionResult ConvertUTF8toUTF32 (
+	const char** sourceStart,
 	ConversionFlags flags, uint32_t &c)
 {
 	return ConvertUTF8toUTF32(sourceStart, nullptr, flags, c);

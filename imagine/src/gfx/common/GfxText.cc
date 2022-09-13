@@ -24,6 +24,7 @@
 #include <imagine/util/ctype.hh>
 #include <imagine/logger/logger.h>
 #include <algorithm>
+#include <bit>
 
 namespace IG::Gfx
 {
@@ -31,16 +32,15 @@ namespace IG::Gfx
 static void drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPlane projP,
 	std::u16string_view strView, TexQuad &vArr, GlyphTextureSet *face_, float spaceSize);
 
-Text::Text(GlyphTextureSet *face): Text{{}, face}
-{}
+Text::Text(GlyphTextureSet *face): Text{{}, face} {}
 
 Text::Text(IG::utf16String str, GlyphTextureSet *face):
-	textStr{std::move(str)}, face_{face}
-{}
+	textStr{std::move(str)}, face_{face} {}
 
 void Text::setString(IG::utf16String str)
 {
 	textStr = std::move(str);
+	sizeBeforeLineSpans = {};
 }
 
 void Text::setFace(GlyphTextureSet *face_)
@@ -79,12 +79,17 @@ bool Text::compile(Renderer &r, ProjectionPlane projP, TextLayoutConfig conf)
 	if(!hasText()) [[unlikely]]
 		return false;
 	//logMsg("compiling text %s", str);
+	if(sizeBeforeLineSpans)
+	{
+		textStr.resize(stringSize());
+		sizeBeforeLineSpans = {};
+	}
 	auto metrics = face_->metrics();
 	yLineStart = projP.alignYToPixel(projP.unprojectYSize(metrics.yLineStart));
 	spaceSize = projP.unprojectXSize(metrics.spaceSize);
 	nominalHeight_ = projP.alignYToPixel(projP.unprojectYSize(IG::makeEvenRoundedUp(metrics.nominalHeight)));
-	lines = 1;
-	lineInfo.clear();
+	int lines = 1;
+	std::vector<LineSpan> lineInfo;
 	float xLineSize = 0, maxXLineSize = 0;
 	int prevC = 0;
 	float textBlockSize = 0;
@@ -142,9 +147,14 @@ bool Text::compile(Renderer &r, ProjectionPlane projP, TextLayoutConfig conf)
 		charIdx++;
 		prevC = c;
 	}
-	if(lines > 1) // Add info of last line (1 line case doesn't use per-line info)
+	if(lines > 1) // Encode LineSpan metadata (1 line case doesn't use per-line info)
 	{
-		lineInfo.emplace_back(xLineSize, charsInLine);
+		sizeBeforeLineSpans = textStr.size();
+		for(auto &span : lineInfo)
+		{
+			LineSpan{span.size, span.chars}.encodeTo(textStr);
+		}
+		LineSpan{xLineSize, (uint16_t)charsInLine}.encodeTo(textStr);
 	}
 	maxXLineSize = std::max(xLineSize, maxXLineSize);
 	xSize = maxXLineSize;
@@ -152,10 +162,11 @@ bool Text::compile(Renderer &r, ProjectionPlane projP, TextLayoutConfig conf)
 	return true;
 }
 
-void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, ProjectionPlane projP) const
+void Text::draw(RendererCommands &cmds, FP p, _2DOrigin o, ProjectionPlane projP) const
 {
 	if(!hasText()) [[unlikely]]
 		return;
+	auto [xPos, yPos] = p;
 	//logMsg("drawing with origin: %s,%s", o.toString(o.x), o.toString(o.y));
 	cmds.set(BlendMode::ALPHA);
 	TexQuad vArr;
@@ -175,14 +186,16 @@ void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, Pro
 		{
 			return projP.alignXToPixel(LT2DO.adjustX(xOrig, xSize-xLineSize, align));
 		};
+	auto lines = currentLines();
 	if(lines > 1)
 	{
 		auto s = textStr.data();
-		for(auto &span : lineInfo)
+		auto spansPtr = &textStr[sizeBeforeLineSpans];
+		for(auto i : iotaCount(lines))
 		{
 			// Get line info (1 line case doesn't use per-line info)
-			float xLineSize = span.size;
-			auto charsToDraw = span.chars;
+			auto [xLineSize, charsToDraw] = LineSpan::decode({spansPtr, LineSpan::encodedChar16Size});
+			spansPtr += LineSpan::encodedChar16Size;
 			xPos = startingXPos(xLineSize);
 			//logMsg("line %d, %d chars", l, charsToDraw);
 			drawSpan(cmds, xPos, yPos, projP, std::u16string_view{s, charsToDraw}, vArr, face_, spaceSize);
@@ -198,11 +211,6 @@ void Text::draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, Pro
 		//logMsg("line %d, %d chars", l, charsToDraw);
 		drawSpan(cmds, xPos, yPos, projP, std::u16string_view{textStr}, vArr, face_, spaceSize);
 	}
-}
-
-void Text::draw(RendererCommands &cmds, FP p, _2DOrigin o, ProjectionPlane projP) const
-{
-	draw(cmds, p.x, p.y, o, projP);
 }
 
 static void drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPlane projP,
@@ -272,12 +280,28 @@ GlyphTextureSet *Text::face() const
 
 uint16_t Text::currentLines() const
 {
-	return lines;
+	if(sizeBeforeLineSpans)
+	{
+		// count of LineSpans stored at the end of textStr
+		return (textStr.size() - sizeBeforeLineSpans) / LineSpan::encodedChar16Size;
+	}
+	else
+	{
+		return 1;
+	}
 }
 
 size_t Text::stringSize() const
 {
-	return textStr.size();
+	if(sizeBeforeLineSpans)
+	{
+		assumeExpr(sizeBeforeLineSpans < textStr.size());
+		return sizeBeforeLineSpans;
+	}
+	else
+	{
+		return textStr.size();
+	}
 }
 
 bool Text::isVisible() const
@@ -287,17 +311,37 @@ bool Text::isVisible() const
 
 std::u16string_view Text::stringView() const
 {
-	return textStr;
+	return {textStr.data(), stringSize()};
 }
 
 std::u16string Text::string() const
 {
-	return textStr;
+	return std::u16string{stringView()};
 }
 
 bool Text::hasText() const
 {
 	return face_ && stringSize();
+}
+
+void Text::LineSpan::encodeTo(std::u16string &outStr)
+{
+	auto newSize = outStr.size() + 3;
+	auto sizeBits = std::bit_cast<uint32_t>(size);
+	outStr.resize_and_overwrite(newSize, [&](char16_t *buf, size_t)
+	{
+		buf[newSize - 3] = chars;
+		buf[newSize - 2] = char16_t(sizeBits & 0xFFFF);
+		buf[newSize - 1] = char16_t(sizeBits >> 16);
+		return newSize;
+	});
+}
+
+Text::LineSpan Text::LineSpan::decode(std::u16string_view str)
+{
+	assumeExpr(str.size() >= 3);
+	auto sizeBits = str[1] | (str[2] << 16);
+	return {std::bit_cast<float>(sizeBits), str[0]};
 }
 
 }

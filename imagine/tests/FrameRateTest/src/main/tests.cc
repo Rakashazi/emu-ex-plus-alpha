@@ -185,8 +185,8 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, floa
 		GeomRect::draw(cmds, cpuStatsRect);
 		cmds.setColor(1., 1., 1., 1.);
 		basicEffect.enableAlphaTexture(cmds);
-		cpuStatsText.draw(cmds, projP.alignXToPixel(cpuStatsRect.x + xIndent),
-			projP.alignYToPixel(cpuStatsRect.yCenter()), LC2DO, projP);
+		cpuStatsText.draw(cmds, {projP.alignXToPixel(cpuStatsRect.x + xIndent),
+			projP.alignYToPixel(cpuStatsRect.yCenter())}, LC2DO, projP);
 	}
 	if(frameStatsText.isVisible())
 	{
@@ -196,8 +196,8 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, floa
 		GeomRect::draw(cmds, frameStatsRect);
 		cmds.setColor(1., 1., 1., 1.);
 		basicEffect.enableAlphaTexture(cmds);
-		frameStatsText.draw(cmds, projP.alignXToPixel(frameStatsRect.x + xIndent),
-			projP.alignYToPixel(frameStatsRect.yCenter()), LC2DO, projP);
+		frameStatsText.draw(cmds, {projP.alignXToPixel(frameStatsRect.x + xIndent),
+			projP.alignYToPixel(frameStatsRect.yCenter())}, LC2DO, projP);
 	}
 }
 

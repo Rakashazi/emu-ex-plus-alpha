@@ -19,7 +19,6 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string/utf16.hh>
-#include <vector>
 #include <limits>
 
 namespace IG::Gfx
@@ -27,24 +26,23 @@ namespace IG::Gfx
 
 struct TextLayoutConfig
 {
-	static constexpr uint16_t NO_MAX_LINES = std::numeric_limits<uint16_t>::max();
-	static constexpr float NO_MAX_LINE_SIZE = std::numeric_limits<float>::max();
+	static constexpr auto NO_MAX_LINES = std::numeric_limits<int>::max();
+	static constexpr auto NO_MAX_LINE_SIZE = std::numeric_limits<float>::max();
 
 	float maxLineSize = NO_MAX_LINE_SIZE;
-	uint16_t maxLines = NO_MAX_LINES;
+	int maxLines = NO_MAX_LINES;
 };
 
 class Text
 {
 public:
-	Text() = default;
+	constexpr Text() = default;
 	Text(GlyphTextureSet *face);
-	Text(IG::utf16String str, GlyphTextureSet *face = nullptr);
-	void setString(IG::utf16String);
+	Text(utf16String str, GlyphTextureSet *face = nullptr);
+	void setString(utf16String);
 	void setFace(GlyphTextureSet *face);
 	void makeGlyphs(Renderer &r);
 	bool compile(Renderer &, ProjectionPlane, TextLayoutConfig conf = {});
-	void draw(RendererCommands &cmds, float xPos, float yPos, _2DOrigin o, ProjectionPlane projP) const;
 	void draw(RendererCommands &cmds, FP p, _2DOrigin o, ProjectionPlane projP) const;
 	float width() const;
 	float height() const;
@@ -61,22 +59,24 @@ public:
 protected:
 	struct LineSpan
 	{
-		constexpr LineSpan(float size, uint32_t chars):
-			size{size}, chars{chars}
-		{}
 		float size;
-		uint32_t chars;
+		uint16_t chars;
+		static constexpr size_t encodedChar16Size = (sizeof(size) / 2) + (sizeof(chars) / 2);
+
+		constexpr LineSpan(float size, uint16_t chars):
+			size{size}, chars{chars} {}
+		void encodeTo(std::u16string &);
+		static LineSpan decode(std::u16string_view);
 	};
 
 	std::u16string textStr{};
 	GlyphTextureSet *face_{};
-	std::vector<LineSpan> lineInfo{};
+	size_t sizeBeforeLineSpans{}; // encoded LineSpans in textStr start after this offset
 	float spaceSize = 0;
 	float nominalHeight_ = 0;
 	float yLineStart = 0;
 	float xSize = 0;
 	float ySize = 0;
-	uint16_t lines = 0;
 
 	bool hasText() const;
 };

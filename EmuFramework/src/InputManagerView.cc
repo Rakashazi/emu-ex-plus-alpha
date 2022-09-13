@@ -80,7 +80,7 @@ void IdentInputDeviceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	GeomRect::draw(cmds, displayRect(), projP);
 	cmds.set(ColorName::WHITE);
 	basicEffect.enableAlphaTexture(cmds);
-	text.draw(cmds, 0, 0, C2DO, projP);
+	text.draw(cmds, {}, C2DO, projP);
 }
 
 static void removeKeyConfFromAllDevices(auto &savedInputDevs, const KeyConfig *conf, IG::ApplicationContext ctx)

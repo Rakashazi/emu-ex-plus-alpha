@@ -290,13 +290,13 @@ void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 			cmds.set(ColorName::WHITE);
 			textEntry.draw(cmds);
 			basicEffect.enableAlphaTexture(cmds);
-			message.draw(cmds, 0, projP.unprojectY(textEntry.bgRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
+			message.draw(cmds, {0, projP.unprojectY(textEntry.bgRect().pos(C2DO).y) + message.nominalHeight()}, CB2DO, projP);
 		},
 		[&]()
 		{
 			cmds.set(ColorName::WHITE);
 			basicEffect.enableAlphaTexture(cmds);
-			message.draw(cmds, 0, projP.unprojectY(textField.windowRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
+			message.draw(cmds, {0, projP.unprojectY(textField.windowRect().pos(C2DO).y) + message.nominalHeight()}, CB2DO, projP);
 		});
 }
 

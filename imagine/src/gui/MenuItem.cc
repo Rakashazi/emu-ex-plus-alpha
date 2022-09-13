@@ -45,7 +45,7 @@ void MenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, float xPos, float 
 		xPos += xSize/2;
 	else
 		xPos += xIndent;
-	t.draw(cmds, xPos, yPos, align, projP);
+	t.draw(cmds, {xPos, yPos}, align, projP);
 }
 
 void MenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
@@ -123,7 +123,7 @@ void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, float xPos, 
 {
 	cmds.basicEffect().enableAlphaTexture(cmds);
 	cmds.setColor(color);
-	t2.draw(cmds, (xPos + xSize) - xIndent, yPos, RC2DO, projP);
+	t2.draw(cmds, {(xPos + xSize) - xIndent, yPos}, RC2DO, projP);
 }
 
 void BaseDualTextMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, float xPos, float yPos, float xSize, float ySize,

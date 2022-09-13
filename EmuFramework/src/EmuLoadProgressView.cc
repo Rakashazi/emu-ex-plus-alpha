@@ -139,7 +139,7 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	}
 	basicEffect.enableAlphaTexture(cmds);
 	cmds.set(ColorName::WHITE);
-	text.draw(cmds, 0, 0, C2DO, projP);
+	text.draw(cmds, {}, C2DO, projP);
 }
 
 EmuLoadProgressView::MessagePortType &EmuLoadProgressView::messagePort()

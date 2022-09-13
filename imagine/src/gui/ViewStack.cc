@@ -387,7 +387,7 @@ int ViewStack::viewIdx(std::u16string_view name) const
 
 int ViewStack::viewIdx(std::string_view name) const
 {
-	return viewIdx(IG::makeUTF16String(name));
+	return viewIdx(toUTF16String(name));
 }
 
 bool ViewStack::contains(View &v) const
@@ -402,7 +402,7 @@ bool ViewStack::contains(std::u16string_view name) const
 
 bool ViewStack::contains(std::string_view name) const
 {
-	return contains(IG::makeUTF16String(name));
+	return contains(toUTF16String(name));
 }
 
 void ViewStack::dismissView(View &v, bool refreshLayout)

@@ -23,7 +23,7 @@
 namespace IG
 {
 
-std::u16string makeUTF16String(std::string_view);
+std::u16string toUTF16String(std::string_view);
 
 // Simple wrapper around u16string that converts any char-type strings from UTF-8 to UTF-16
 class utf16String : public std::u16string
@@ -35,7 +35,7 @@ public:
 	utf16String(std::u16string_view s):std::u16string{s} {}
 
 	// UTF-8 -> UTF-16 conversion
-	utf16String(std::string_view s):std::u16string{makeUTF16String(s)} {}
+	utf16String(std::string_view s):std::u16string{toUTF16String(s)} {}
 	utf16String(std::convertible_to<std::string_view> auto &&s):utf16String{std::string_view{IG_forward(s)}} {}
 	[[gnu::nonnull]]
 	utf16String(const char *s):utf16String{std::string_view{s}} {}

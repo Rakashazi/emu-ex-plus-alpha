@@ -149,7 +149,7 @@ class TextMenuItem : public MenuItem
 public:
 	using SelectDelegate = MenuItemSelectDelegate<TextMenuItem>;
 
-	TextMenuItem() = default;
+	constexpr TextMenuItem() = default;
 
 	TextMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, SelectDelegate selectDel, IdInt id = {}):
 		MenuItem{std::move(name), face, id},
@@ -166,7 +166,7 @@ protected:
 class TextHeadingMenuItem : public MenuItem
 {
 public:
-	TextHeadingMenuItem() = default;
+	constexpr TextHeadingMenuItem() = default;
 
 	TextHeadingMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, IdInt id = {}):
 		MenuItem{std::move(name), face, id}
@@ -180,7 +180,7 @@ public:
 class BaseDualTextMenuItem : public MenuItem
 {
 public:
-	BaseDualTextMenuItem() = default;
+	constexpr BaseDualTextMenuItem() = default;
 
 	BaseDualTextMenuItem(IG::utf16String name, IG::utf16String name2, Gfx::GlyphTextureSet *face, IdInt id = {}):
 		MenuItem{std::move(name), face, id},
@@ -204,7 +204,7 @@ class DualTextMenuItem : public BaseDualTextMenuItem
 public:
 	using SelectDelegate = MenuItemSelectDelegate<DualTextMenuItem>;
 
-	DualTextMenuItem() = default;
+	constexpr DualTextMenuItem() = default;
 
 	DualTextMenuItem(IG::utf16String name, IG::utf16String name2,
 		Gfx::GlyphTextureSet *face, SelectDelegate selectDel, IdInt id = {}):
@@ -229,7 +229,7 @@ public:
 	static constexpr uint32_t ON_FLAG = IMPL_FLAG_START;
 	static constexpr uint32_t ON_OFF_STYLE_FLAG = IMPL_FLAG_START << 1;
 
-	BoolMenuItem() = default;
+	constexpr BoolMenuItem() = default;
 
 	BoolMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, bool val, SelectDelegate selectDel, IdInt id = {}):
 		BaseDualTextMenuItem{std::move(name), val ? u"On" : u"Off", face, id},
@@ -283,7 +283,7 @@ public:
 		constexpr SelectedInit(Id i): val{i}, isId{true} {}
 	};
 
-	MultiChoiceMenuItem() = default;
+	constexpr MultiChoiceMenuItem() = default;
 
 	MultiChoiceMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, SetDisplayStringDelegate onDisplayStr,
 		SelectedInit selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel, IdInt id = {}):

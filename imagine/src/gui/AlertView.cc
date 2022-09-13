@@ -114,7 +114,7 @@ void BaseAlertView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	GeomRect::draw(cmds, menu.viewRect(), projP);
 	cmds.set(ColorName::WHITE);
 	basicEffect.enableAlphaTexture(cmds);
-	text.draw(cmds, labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO)), C2DO, projP);
+	text.draw(cmds, {labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO))}, C2DO, projP);
 	//setClipRect(1);
 	//setClipRectBounds(menu.viewRect());
 	menu.draw(cmds);

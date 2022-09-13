@@ -26,11 +26,11 @@ namespace IG
 {
 
 [[gnu::nonnull]]
-static std::errc convertCharCode(const char** sourceStart, uint32_t &c)
+constexpr std::errc convertCharCode(const char** sourceStart, uint32_t &c)
 {
 	if(Config::UNICODE_CHARS)
 	{
-		switch(UTF::ConvertUTF8toUTF32((const uint8_t**)sourceStart, UTF::strictConversion, c))
+		switch(UTF::ConvertUTF8toUTF32(sourceStart, UTF::strictConversion, c))
 		{
 			case UTF::conversionOK: return {};
 			case UTF::reachedNullChar: return std::errc::result_out_of_range;
@@ -47,28 +47,38 @@ static std::errc convertCharCode(const char** sourceStart, uint32_t &c)
 	}
 }
 
-std::u16string makeUTF16String(std::string_view strView)
+constexpr size_t utf16StringSize(std::string_view strView)
 {
-	if(!strView.size())
-		return {};
-	std::u16string u16String{};
-	size_t utf16Len = 0;
+	size_t size = 0;
 	const char *s = strView.data();
 	uint32_t c = 0;
 	while(!(bool)convertCharCode(&s, c))
 	{
 		if(c > UINT16_MAX)
 			continue;
-		utf16Len++;
+		size++;
 	}
-	u16String.reserve(utf16Len);
-	s = strView.data();
-	while(!(bool)convertCharCode(&s, c))
+	return size;
+}
+
+std::u16string toUTF16String(std::string_view strView)
+{
+	if(!strView.size())
+		return {};
+	size_t utf16Len = utf16StringSize(strView);
+	std::u16string u16String;
+  u16String.resize_and_overwrite(utf16Len, [&](char16_t *buf, size_t)
 	{
-		if(c > UINT16_MAX)
-			continue;
-		u16String.push_back(c);
-	}
+  	uint32_t c = 0;
+  	const char *s = strView.data();
+		while(!(bool)convertCharCode(&s, c))
+		{
+			if(c > UINT16_MAX)
+				continue;
+			*(buf++) = c;
+		}
+		return utf16Len;
+	});
 	return u16String;
 }
 

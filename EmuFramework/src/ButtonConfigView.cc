@@ -192,7 +192,7 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		cancel.draw(cmds, projP.unProjectRect(cancelB).pos(C2DO), C2DO, projP);
 	}
 	#endif
-	text.draw(cmds, 0, 0, C2DO, projP);
+	text.draw(cmds, {}, C2DO, projP);
 }
 
 void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Event &e)
