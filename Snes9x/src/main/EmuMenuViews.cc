@@ -201,7 +201,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		"SuperFX Clock Multiplier", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", system().optionSuperFXClockMultiplier.val));
+			t.resetString(fmt::format("{}%", system().optionSuperFXClockMultiplier.val));
 			return true;
 		},
 		[this]()

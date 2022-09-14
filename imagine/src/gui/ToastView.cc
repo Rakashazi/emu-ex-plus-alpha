@@ -49,7 +49,7 @@ void ToastView::clear()
 	{
 		unpostTimer.cancel();
 		waitForDrawFinished();
-		text.setString({});
+		text.resetString();
 	}
 }
 
@@ -65,24 +65,11 @@ void ToastView::place()
 	msgFrame = projP.unProjectRect(viewFrame);
 }
 
-void ToastView::post(IG::utf16String msg, int secs, bool error)
-{
-	text.setString(std::move(msg));
-	place();
-	this->error = error;
-	postContent(secs);
-}
-
-void ToastView::postError(IG::utf16String msg, int secs)
-{
-	post(std::move(msg), secs, true);
-}
-
 void ToastView::unpost()
 {
 	logMsg("unposting");
 	waitForDrawFinished();
-	text.setString({});
+	text.resetString();
 	postDraw();
 }
 

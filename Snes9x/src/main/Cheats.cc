@@ -214,7 +214,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 	addr
 	{
 		"Address",
-		{},
+		u"",
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -250,7 +250,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 	value
 	{
 		"Value",
-		{},
+		u"",
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -289,7 +289,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		#else
 		"Saved Value",
 		#endif
-		{},
+		u"",
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{

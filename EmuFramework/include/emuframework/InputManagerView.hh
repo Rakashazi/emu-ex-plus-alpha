@@ -100,7 +100,7 @@ private:
 class InputManagerDeviceView : public TableView, public EmuAppHelper<InputManagerDeviceView>
 {
 public:
-	InputManagerDeviceView(IG::utf16String name, ViewAttachParams,
+	InputManagerDeviceView(UTF16String name, ViewAttachParams,
 		InputManagerView &rootIMView, const Input::Device &,
 		KeyConfigContainer &, InputDeviceSavedConfigContainer &);
 	void setPlayer(int playerVal);

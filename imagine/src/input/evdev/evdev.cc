@@ -110,12 +110,12 @@ static constexpr bool isBitSetInArray(const T (&arr)[S], unsigned int bit)
 
 EvdevInputDevice::EvdevInputDevice() {}
 
-EvdevInputDevice::EvdevInputDevice(int id, int fd, TypeBits typeBits, std::string name, uint32_t vendorProductId):
-	Device{id, Map::SYSTEM, typeBits, std::move(name)},
+EvdevInputDevice::EvdevInputDevice(int id, int fd, TypeBits typeBits, std::string name_, uint32_t vendorProductId):
+	Device{id, Map::SYSTEM, typeBits, std::move(name_)},
 	fd{fd}
 {
 	subtype_ = Device::Subtype::GENERIC_GAMEPAD;
-	updateGamepadSubtype(name, vendorProductId);
+	updateGamepadSubtype(name(), vendorProductId);
 	if(setupJoystickBits())
 		typeBits_ |= Device::TYPE_BIT_JOYSTICK;
 }

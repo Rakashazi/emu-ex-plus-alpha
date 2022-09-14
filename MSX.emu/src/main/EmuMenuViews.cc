@@ -122,7 +122,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		{
 			if(idx == -1)
 			{
-				t.setString("None");
+				t.resetString("None");
 				return true;
 			}
 			return false;
@@ -310,10 +310,10 @@ public:
 
 	TextMenuItem hdSlot[4]
 	{
-		{{}, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 0); }},
-		{{}, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 1); }},
-		{{}, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 2); }},
-		{{}, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 3); }}
+		{u"", &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 0); }},
+		{u"", &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 1); }},
+		{u"", &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 2); }},
+		{u"", &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 3); }}
 	};
 
 	static const char *romSlotPrefix[2];
@@ -394,8 +394,8 @@ public:
 
 	TextMenuItem romSlot[2]
 	{
-		{{}, &defaultFace(), [this](Input::Event e) { onSelectROM(e, 0); }},
-		{{}, &defaultFace(), [this](Input::Event e) { onSelectROM(e, 1); }}
+		{u"", &defaultFace(), [this](Input::Event e) { onSelectROM(e, 0); }},
+		{u"", &defaultFace(), [this](Input::Event e) { onSelectROM(e, 1); }}
 	};
 
 	static const char *diskSlotPrefix[2];
@@ -458,8 +458,8 @@ public:
 
 	TextMenuItem diskSlot[2]
 	{
-		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 0); }},
-		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }}
+		{u"", &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 0); }},
+		{u"", &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }}
 	};
 
 	StaticArrayList<MenuItem*, 9> item;
@@ -537,7 +537,7 @@ private:
 		{
 			if(idx == -1)
 			{
-				t.setString("None");
+				t.resetString("None");
 				return true;
 			}
 			return false;
@@ -727,7 +727,7 @@ protected:
 			"Volume", &defaultFace(),
 			[this, type](uint32_t idx, Gfx::Text &t)
 			{
-				t.setString(fmt::format("{}%", mixerVolumeOption(type)));
+				t.resetString(fmt::format("{}%", mixerVolumeOption(type)));
 				return true;
 			},
 			1,
@@ -798,7 +798,7 @@ protected:
 			"Pan", &defaultFace(),
 			[this, type](uint32_t idx, Gfx::Text &t)
 			{
-				t.setString(fmt::format("{}%", mixerPanOption(type)));
+				t.resetString(fmt::format("{}%", mixerPanOption(type)));
 				return true;
 			},
 			1,

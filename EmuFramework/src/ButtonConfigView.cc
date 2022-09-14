@@ -41,8 +41,8 @@ public:
 
 	Context ctx;
 
-	KeyConflictAlertView(ViewAttachParams attach, IG::utf16String label):
-		AlertView(attach, std::move(label), 3)
+	KeyConflictAlertView(ViewAttachParams attach, UTF16Convertible auto &&label):
+		AlertView(attach, IG_forward(label), 3)
 	{
 		setItem(2, "Cancel", [](){});
 	}
@@ -198,9 +198,9 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
 void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Event &e)
 {
 	if(e.motionEvent())
-		text.setString(fmt::format("Push key to set:\n{}", actionStr));
+		text.resetString(fmt::format("Push key to set:\n{}", actionStr));
 	else
-		text.setString(fmt::format("Push key to set:\n{}\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr));
+		text.resetString(fmt::format("Push key to set:\n{}\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr));
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(e.motionEvent())
 	{

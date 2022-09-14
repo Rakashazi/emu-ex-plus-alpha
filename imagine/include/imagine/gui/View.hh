@@ -136,9 +136,9 @@ public:
 	}
 
 	template<class T>
-	std::unique_ptr<T> makeViewWithName(IG::utf16String name, auto &&...args)
+	std::unique_ptr<T> makeViewWithName(UTF16Convertible auto &&name, auto &&...args)
 	{
-		return std::make_unique<T>(std::move(name), attachParams(), IG_forward(args)...);
+		return std::make_unique<T>(IG_forward(name), attachParams(), IG_forward(args)...);
 	}
 
 	template<class T>

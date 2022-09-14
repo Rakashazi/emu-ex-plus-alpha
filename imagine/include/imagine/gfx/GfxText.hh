@@ -20,6 +20,7 @@
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string/utf16.hh>
 #include <limits>
+#include <concepts>
 
 namespace IG::Gfx
 {
@@ -37,9 +38,18 @@ class Text
 {
 public:
 	constexpr Text() = default;
-	Text(GlyphTextureSet *face);
-	Text(utf16String str, GlyphTextureSet *face = nullptr);
-	void setString(utf16String);
+
+	Text(GlyphTextureSet *face): Text{UTF16String{}, face} {}
+	Text(UTF16Convertible auto &&str, GlyphTextureSet *face = nullptr):
+		textStr{IG_forward(str)}, face_{face} {}
+
+	void resetString(UTF16Convertible auto &&str)
+	{
+		textStr = IG_forward(str);
+		sizeBeforeLineSpans = {};
+	}
+
+	void resetString() { resetString(UTF16String{}); }
 	void setFace(GlyphTextureSet *face);
 	void makeGlyphs(Renderer &r);
 	bool compile(Renderer &, ProjectionPlane, TextLayoutConfig conf = {});
@@ -69,7 +79,7 @@ protected:
 		static LineSpan decode(std::u16string_view);
 	};
 
-	std::u16string textStr{};
+	UTF16String textStr{};
 	GlyphTextureSet *face_{};
 	size_t sizeBeforeLineSpans{}; // encoded LineSpans in textStr start after this offset
 	float spaceSize = 0;

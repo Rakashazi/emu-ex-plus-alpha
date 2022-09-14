@@ -60,12 +60,19 @@ ifdef CHOST
  CHOST_PREFIX := $(CHOST)-
 endif
 
+# Disable some undefined sanitizers that greatly increase compile time or are not needed
+compiler_noSanitizeMode ?= unreachable,return,vptr,enum,nonnull-attribute
+
 ifndef RELEASE
  ifneq ($(compiler_sanitizeMode),)
   CFLAGS_CODEGEN += -fsanitize=$(compiler_sanitizeMode) -fno-omit-frame-pointer
   LDFLAGS_SYSTEM += -fsanitize=$(compiler_sanitizeMode)
   # Disable debug section compression since it may prevent symbols from appearing in backtrace
   COMPRESS_DEBUG_SECTIONS = none
+  ifneq ($(compiler_sanitizeMode),)
+   CFLAGS_CODEGEN += -fno-sanitize=$(compiler_noSanitizeMode)
+   LDFLAGS_SYSTEM += -fno-sanitize=$(compiler_noSanitizeMode)
+  endif
  endif
 endif
 

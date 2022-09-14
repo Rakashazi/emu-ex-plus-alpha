@@ -32,17 +32,6 @@ namespace IG::Gfx
 static void drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPlane projP,
 	std::u16string_view strView, TexQuad &vArr, GlyphTextureSet *face_, float spaceSize);
 
-Text::Text(GlyphTextureSet *face): Text{{}, face} {}
-
-Text::Text(IG::utf16String str, GlyphTextureSet *face):
-	textStr{std::move(str)}, face_{face} {}
-
-void Text::setString(IG::utf16String str)
-{
-	textStr = std::move(str);
-	sizeBeforeLineSpans = {};
-}
-
 void Text::setFace(GlyphTextureSet *face_)
 {
 	assert(face_);

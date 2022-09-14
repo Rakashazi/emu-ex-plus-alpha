@@ -36,8 +36,8 @@ class Screen;
 class Window;
 class FrameTimer;
 class FDEventSource;
-class XIDeviceInfo;
-class XkbDescRec;
+struct XIDeviceInfo;
+struct XkbDescRec;
 
 enum class SupportedFrameTimer : uint8_t
 {

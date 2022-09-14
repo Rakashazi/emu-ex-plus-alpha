@@ -73,11 +73,11 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::E
 							}
 							bdefault: // custom string
 							{
-								int len = msg.intArg3;
+								size_t len = msg.intArg3;
 								char labelStr[len + 1];
 								msgs.getExtraData(labelStr, len);
 								labelStr[len] = 0;
-								setLabel(labelStr);
+								setLabel(std::string_view{labelStr, len});
 								logMsg("set custom string:%s", labelStr);
 							}
 						}
@@ -104,11 +104,6 @@ void EmuLoadProgressView::setMax(int val)
 void EmuLoadProgressView::setPos(int val)
 {
 	pos = val;
-}
-
-void EmuLoadProgressView::setLabel(IG::utf16String label)
-{
-	text.setString(std::move(label));
 }
 
 void EmuLoadProgressView::place()

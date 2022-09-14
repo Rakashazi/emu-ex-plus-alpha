@@ -153,14 +153,14 @@ FS::PathString ApplicationContext::libPath(const char *) const
 	return application().appPath();
 }
 
-FS::PathString LinuxApplication::appPath() const
+const FS::PathString &LinuxApplication::appPath() const
 {
 	return appPath_;
 }
 
 void LinuxApplication::setAppPath(FS::PathString path)
 {
-	appPath_ = path;
+	appPath_ = std::move(path);
 }
 
 void ApplicationContext::exitWithMessage(int exitVal, const char *msg)

@@ -58,19 +58,19 @@ class BaseEditCheatView : public TableView, public EmuAppHelper<BaseEditCheatVie
 public:
 	using EmuAppHelper<BaseEditCheatView<CheatViewImpl>>::app;
 
-	BaseEditCheatView(IG::utf16String viewName, ViewAttachParams attach, IG::utf16String cheatName,
+	BaseEditCheatView(UTF16Convertible auto &&viewName, ViewAttachParams attach, UTF16Convertible auto &&cheatName,
 		TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed,
 		RefreshCheatsDelegate onCheatListChanged_):
 		TableView
 		{
-			std::move(viewName),
+			IG_forward(viewName),
 			attach,
 			items,
 			item
 		},
 		name
 		{
-			std::move(cheatName), &defaultFace(),
+			IG_forward(cheatName), &defaultFace(),
 			[this](const Input::Event &e)
 			{
 				app().template pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,

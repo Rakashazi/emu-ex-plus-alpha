@@ -27,15 +27,7 @@
 namespace IG
 {
 
-BaseAlertView::BaseAlertView(ViewAttachParams attach, IG::utf16String label, TableView::ItemsDelegate items, TableView::ItemDelegate item):
-	View{attach},
-	text{std::move(label), &attach.viewManager().defaultFace()},
-	menu
-	{
-		attach,
-		items,
-		item
-	}
+void BaseAlertView::init()
 {
 	menu.setAlign(C2DO);
 	menu.setScrollableIfNeeded(true);
@@ -125,39 +117,6 @@ void BaseAlertView::onAddedToController(ViewController *c, const Input::Event &e
 {
 	menu.setController(c, e);
 }
-
-void BaseAlertView::setLabel(IG::utf16String label)
-{
-	text.setString(std::move(label));
-}
-
-AlertView::AlertView(ViewAttachParams attach, IG::utf16String label, size_t menuItems):
-	BaseAlertView{attach, std::move(label), item},
-	item{menuItems}
-{}
-
-void AlertView::setItem(size_t idx, IG::utf16String name, TextMenuItem::SelectDelegate del)
-{
-	assert(idx < item.size());
-	item[idx].setName(std::move(name), &manager().defaultFace());
-	item[idx].setOnSelect(del);
-}
-
-YesNoAlertView::YesNoAlertView(ViewAttachParams attach, IG::utf16String label,
-	IG::utf16String yesStr, IG::utf16String noStr,
-	TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo):
-	BaseAlertView(attach, std::move(label),
-		[](const TableView &) -> size_t
-		{
-			return 2;
-		},
-		[this](const TableView &, size_t idx) -> MenuItem&
-		{
-			return idx == 0 ? yes : no;
-		}),
-	yes{yesStr.size() ? std::move(yesStr) : u"Yes", &defaultFace(), onYes ? onYes : makeDefaultSelectDelegate()},
-	no{noStr.size() ? std::move(noStr) : u"No", &defaultFace(), onNo ? onNo : makeDefaultSelectDelegate()}
-{}
 
 void YesNoAlertView::setOnYes(TextMenuItem::SelectDelegate del)
 {

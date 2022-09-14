@@ -22,19 +22,6 @@
 namespace IG
 {
 
-TextTableView::TextTableView(ViewAttachParams attach, size_t itemsHint): TextTableView{{}, attach, itemsHint} {}
-
-void TextTableView::appendItem(IG::utf16String name, TextMenuItem::SelectDelegate del)
-{
-	textItem.emplace_back(std::move(name), &defaultFace(), del);
-}
-
-void TextTableView::setItem(size_t idx, IG::utf16String name, TextMenuItem::SelectDelegate del)
-{
-	assert(idx < textItem.size());
-	textItem[idx] = {std::move(name), &defaultFace(), del};
-}
-
 TextMenuItem &TextTableView::item(size_t idx)
 {
 	assert(idx < textItem.size());

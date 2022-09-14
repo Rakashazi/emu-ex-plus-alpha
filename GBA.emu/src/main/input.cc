@@ -56,8 +56,8 @@ int EmuSystem::inputLTriggerIndex = 2;
 int EmuSystem::inputRTriggerIndex = 3;
 const int EmuSystem::maxPlayers = 1;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0, 2, 3};
-constexpr int gbaKeypadBits = 9;
-constexpr unsigned gbaKeypadMask = 0x1FF;
+constexpr int gbaKeypadBits = 10;
+constexpr unsigned gbaKeypadMask = 0x3FF;
 
 enum ActionBits : unsigned
 {
@@ -134,8 +134,8 @@ void GbaSystem::handleInputAction(EmuApp *app, InputAction a)
 	{
 		if(a.state == Input::Action::PUSHED && (exKey == lightIncKey || exKey == lightDecKey))
 		{
-			int lightChange = exKey == lightIncKey ? 17 : -17;
-			darknessLevel = std::clamp(darknessLevel + lightChange, 0, 0xff);
+			int darknessChange = exKey == lightDecKey ? 17 : -17;
+			darknessLevel = std::clamp(darknessLevel + darknessChange, 0, 0xff);
 			if(app)
 			{
 				app->postMessage(1, false, fmt::format("Light sensor level: {}%", IG::remap(darknessLevel, 0xff, 0, 0, 100)));

@@ -28,33 +28,53 @@ namespace IG
 class BaseAlertView : public View
 {
 public:
-	BaseAlertView(ViewAttachParams attach, IG::utf16String label, TableView::ItemsDelegate items, TableView::ItemDelegate item);
-	BaseAlertView(ViewAttachParams attach, IG::utf16String label, IG::Container auto &item):
+	BaseAlertView(ViewAttachParams attach, UTF16Convertible auto &&label, TableView::ItemsDelegate items, TableView::ItemDelegate item):
+		View{attach},
+		text{IG_forward(label), &defaultFace()},
+		menu
+		{
+			attach,
+			items,
+			item
+		} { init(); }
+
+	BaseAlertView(ViewAttachParams attach, UTF16Convertible auto &&label, IG::Container auto &item):
 		BaseAlertView
 		{
 			attach,
-			std::move(label),
+			IG_forward(label),
 			[&item](const TableView &) { return std::size(item); },
 			[&item](const TableView &, size_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
 		} {}
+
 	void place() override;
 	bool inputEvent(const Input::Event &) override;
 	void prepareDraw() override;
 	void draw(Gfx::RendererCommands &__restrict__) override;
 	void onAddedToController(ViewController *, const Input::Event &) override;
-	void setLabel(IG::utf16String label);
+	void setLabel(UTF16Convertible auto &&label) { text.resetString(IG_forward(label)); }
 
 protected:
 	Gfx::GCRect labelFrame{};
 	Gfx::Text text{};
 	TableView menu;
+
+	void init();
 };
 
 class AlertView : public BaseAlertView
 {
 public:
-	AlertView(ViewAttachParams attach, IG::utf16String label, size_t menuItems);
-	void setItem(size_t idx, IG::utf16String name, TextMenuItem::SelectDelegate del);
+	AlertView(ViewAttachParams attach, UTF16Convertible auto &&label, size_t menuItems):
+		BaseAlertView{attach, IG_forward(label), item},
+		item{menuItems} {}
+
+	void setItem(size_t idx, UTF16Convertible auto &&name, TextMenuItem::SelectDelegate del)
+	{
+		assert(idx < item.size());
+		item[idx].setName(IG_forward(name), &defaultFace());
+		item[idx].setOnSelect(del);
+	}
 
 protected:
 	std::vector<TextMenuItem> item;
@@ -63,11 +83,28 @@ protected:
 class YesNoAlertView : public BaseAlertView
 {
 public:
-	YesNoAlertView(ViewAttachParams attach, IG::utf16String label, IG::utf16String yesStr, IG::utf16String noStr,
-		TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo);
-	YesNoAlertView(ViewAttachParams attach, IG::utf16String label,
-		IG::utf16String yesStr = {}, IG::utf16String noStr = {}):
-		YesNoAlertView{attach, std::move(label), std::move(yesStr), std::move(noStr), {}, {}} {}
+	YesNoAlertView(ViewAttachParams attach, UTF16Convertible auto &&label,
+		UTF16Convertible auto &&yesStr, UTF16Convertible auto &&noStr,
+		TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo):
+		BaseAlertView(attach, IG_forward(label),
+			[](const TableView &) -> size_t
+			{
+				return 2;
+			},
+			[this](const TableView &, size_t idx) -> MenuItem&
+			{
+				return idx == 0 ? yes : no;
+			}),
+		yes{IG_forward(yesStr), &defaultFace(), onYes ? onYes : makeDefaultSelectDelegate()},
+		no{IG_forward(noStr), &defaultFace(), onNo ? onNo : makeDefaultSelectDelegate()} {}
+
+	YesNoAlertView(ViewAttachParams attach, UTF16Convertible auto &&label,
+		UTF16Convertible auto &&yesStr, UTF16Convertible auto &&noStr):
+		YesNoAlertView{attach, IG_forward(label), IG_forward(yesStr), IG_forward(noStr), {}, {}} {}
+
+	YesNoAlertView(ViewAttachParams attach, UTF16Convertible auto &&label):
+		YesNoAlertView{attach, IG_forward(label), u"Yes", u"No", {}, {}} {}
+
 	void setOnYes(TextMenuItem::SelectDelegate del);
 	void setOnNo(TextMenuItem::SelectDelegate del);
 

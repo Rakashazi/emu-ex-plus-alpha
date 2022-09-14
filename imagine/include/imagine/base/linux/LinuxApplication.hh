@@ -61,7 +61,7 @@ public:
 	void endIdleByUserActivity();
 	bool registerInstance(ApplicationInitParams, const char *name);
 	void setAcceptIPC(bool on, const char *name);
-	FS::PathString appPath() const;
+	const FS::PathString &appPath() const;
 	void setAppPath(FS::PathString);
 
 protected:

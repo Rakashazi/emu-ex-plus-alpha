@@ -49,9 +49,9 @@ static auto cheatName(unsigned idx)
 EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
-		{},
+		u"",
 		attach,
-		{},
+		u"",
 		[this](const TableView &)
 		{
 			return type ? 3 : 5;
@@ -94,7 +94,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	addr
 	{
 		"Address",
-		{},
+		u"",
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -121,7 +121,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	value
 	{
 		"Value",
-		{},
+		u"",
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -148,7 +148,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	comp
 	{
 		"Compare",
-		{},
+		u"",
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -172,7 +172,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 						else
 						{
 							compStr.clear();
-							comp.set2ndName({});
+							comp.set2ndName();
 						}
 						syncCheat();
 						comp.compile(renderer(), projP);
@@ -186,7 +186,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	ggCode
 	{
 		"GG Code",
-		{},
+		u"",
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -220,7 +220,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	}
 	if(type)
 	{
-		setName("Edit Code");
+		resetName("Edit Code");
 		if(a == 0 && v == 0 && compare == -1)
 			ggCodeStr.clear();
 		else
@@ -233,7 +233,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	}
 	else
 	{
-		setName("Edit RAM Patch");
+		resetName("Edit RAM Patch");
 		IG::formatTo(addrStr, "{:x}", a);
 		addr.set2ndName(addrStr);
 		IG::formatTo(valueStr, "{:x}", v);

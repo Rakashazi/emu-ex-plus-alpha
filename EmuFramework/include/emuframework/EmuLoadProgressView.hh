@@ -32,7 +32,7 @@ public:
 	EmuLoadProgressView(ViewAttachParams, const Input::Event &, EmuApp::CreateSystemCompleteDelegate);
 	void setMax(int val);
 	void setPos(int val);
-	void setLabel(IG::utf16String label);
+	void setLabel(UTF16Convertible auto &&label) { text.resetString(IG_forward(label)); }
 	void place() final;
 	bool inputEvent(const Input::Event &) final;
 	void draw(Gfx::RendererCommands &__restrict__) final;

@@ -459,7 +459,7 @@ private:
 
 	TextMenuItem tapeCounter
 	{
-		{}, &defaultFace(), nullptr
+		u"", &defaultFace(), nullptr
 	};
 
 	std::array<MenuItem*, 8> menuItem
@@ -522,7 +522,7 @@ public:
 private:
 	TextMenuItem tapeSlot
 	{
-		{}, &defaultFace(),
+		u"", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(!item.active())
@@ -595,7 +595,7 @@ public:
 private:
 	TextMenuItem romSlot
 	{
-		{}, &defaultFace(),
+		u"", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto cartFilename = system().plugin.cartridge_get_file_name(system().plugin.cart_getid_slotmain());
@@ -682,10 +682,10 @@ public:
 private:
 	TextMenuItem diskSlot[4]
 	{
-		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 0); }},
-		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }},
-		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 2); }},
-		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 3); }},
+		{u"", &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 0); }},
+		{u"", &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }},
+		{u"", &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 2); }},
+		{u"", &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 3); }},
 	};
 
 	unsigned currDriveTypeSlot = 0;
@@ -1229,7 +1229,7 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMa
 
 	TextMenuItem systemPlugin
 	{
-		{}, &defaultFace(),
+		u"", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>(item, VicePlugin::SYSTEMS);

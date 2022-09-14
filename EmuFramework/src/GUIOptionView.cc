@@ -79,7 +79,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		"Font Size", &defaultFace(),
 		[this](auto idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{:.2f}", app().fontSize() / 1000.));
+			t.resetString(fmt::format("{:.2f}", app().fontSize() / 1000.));
 			return true;
 		},
 		(MenuItem::Id)app().fontSize(),

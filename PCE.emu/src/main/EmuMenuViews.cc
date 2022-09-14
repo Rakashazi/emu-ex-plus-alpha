@@ -327,7 +327,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 			desc(type).name, &defaultFace(),
 			[=, this](size_t idx, Gfx::Text &t)
 			{
-				t.setString(fmt::format("{}%", system().volume(type)));
+				t.resetString(fmt::format("{}%", system().volume(type)));
 				return true;
 			},
 			(MenuItem::Id)system().volume(type),

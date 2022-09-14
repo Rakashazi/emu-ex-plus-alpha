@@ -15,8 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/Option.hh>
-
 namespace EmuEx
 {
 
@@ -72,9 +70,9 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	// 256+ is reserved
 };
 
-static const unsigned optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY = 254;
+constexpr unsigned optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY = 254;
 
-static const char *optionSavePathDefaultToken = ":DEFAULT:";
+constexpr const char *optionSavePathDefaultToken = ":DEFAULT:";
 
 constexpr double MIN_RUN_SPEED = .05;
 constexpr double MAX_RUN_SPEED = 20.;

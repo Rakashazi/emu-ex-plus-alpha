@@ -112,7 +112,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 			if(cpuUseStr.size() && cpuFreqStr.size())
 				str += '\n';
 			str += cpuFreqStr;
-			cpuStatsText.setString(str);
+			cpuStatsText.resetString(str);
 			placeCPUStatsText(rTask.renderer());
 		}
 
@@ -155,7 +155,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 			if(skippedFrameStr.size() && statsStr.size())
 				str += '\n';
 			str += statsStr;
-			frameStatsText.setString(str);
+			frameStatsText.resetString(str);
 			placeFrameStatsText(rTask.renderer());
 		}
 	}

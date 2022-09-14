@@ -27,7 +27,7 @@ using namespace IG;
 class CreditsView : public View
 {
 public:
-	CreditsView(ViewAttachParams attach, IG::utf16String str);
+	CreditsView(ViewAttachParams attach, UTF16String str);
 	~CreditsView();
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &__restrict__) final;

@@ -53,21 +53,6 @@ void MenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 	t.compile(r, projP);
 }
 
-void MenuItem::compile(IG::utf16String name, Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
-{
-	t.setString(std::move(name));
-	compile(r, projP);
-}
-
-void MenuItem::setName(IG::utf16String name, Gfx::GlyphTextureSet *face)
-{
-	t.setString(std::move(name));
-	if(face)
-	{
-		t.setFace(face);
-	}
-}
-
 int MenuItem::ySize() const
 {
 	return t.face()->nominalHeight();
@@ -169,7 +154,7 @@ bool BoolMenuItem::setBoolValue(bool val)
 	{
 		//logMsg("setting bool: %d", val);
 		flags_ = setOrClearBits(flags_, ON_FLAG, val);
-		t2.setString(val ? onStr : offStr);
+		t2.resetString(val ? onStr : offStr);
 		return true;
 	}
 	return false;
@@ -217,8 +202,8 @@ public:
 	int activeItem;
 	MultiChoiceMenuItem &src;
 
-	MenuItemTableView(IG::utf16String name, ViewAttachParams attach, int active, ItemsDelegate items, ItemDelegate item, MultiChoiceMenuItem &src):
-		TableView{std::move(name), attach, items, item},
+	MenuItemTableView(UTF16Convertible auto &&name, ViewAttachParams attach, int active, ItemsDelegate items, ItemDelegate item, MultiChoiceMenuItem &src):
+		TableView{IG_forward(name), attach, items, item},
 		activeItem{active},
 		src{src}
 	{
@@ -304,11 +289,11 @@ void MultiChoiceMenuItem::setDisplayString(size_t idx)
 	}
 	else if(idx < items_(*this))
 	{
-		t2.setString(std::u16string{item_(*this, idx).text().stringView()});
+		t2.resetString(std::u16string{item_(*this, idx).text().stringView()});
 	}
 	else
 	{
-		t2.setString({});
+		t2.resetString();
 	}
 }
 

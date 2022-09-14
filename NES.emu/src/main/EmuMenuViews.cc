@@ -105,7 +105,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			if(idx == 0)
 			{
-				t.setString(dendy ? "Dendy" : pal_emulation ? "PAL" : "NTSC");
+				t.resetString(dendy ? "Dendy" : pal_emulation ? "PAL" : "NTSC");
 				return true;
 			}
 			return false;
@@ -308,7 +308,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 		{
 			if(idx == defaultPaletteCustomFileIdx())
 			{
-				t.setString(IG::stringWithoutDotExtension(appContext().fileUriDisplayName(system().defaultPalettePath)));
+				t.resetString(IG::stringWithoutDotExtension(appContext().fileUriDisplayName(system().defaultPalettePath)));
 				return true;
 			}
 			return false;
@@ -619,7 +619,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 private:
 	TextMenuItem fdsControl
 	{
-		{}, &defaultFace(),
+		u"", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(system().hasContent() && isFDS)

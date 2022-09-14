@@ -16,8 +16,8 @@
 #define LOGTAG "VMem"
 #include <imagine/config/env.hh>
 #include <imagine/vmem/memory.hh>
+#include <imagine/vmem/pageSize.hh>
 #include <imagine/util/utility.h>
-#include <imagine/util/system/pagesize.h>
 #include <imagine/logger/logger.h>
 #include <sys/mman.h>
 

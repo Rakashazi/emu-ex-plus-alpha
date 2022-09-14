@@ -42,7 +42,7 @@ static FS::PathString savePathStrToDescStr(IG::ApplicationContext ctx, std::stri
 	}
 }
 
-BiosSelectMenu::BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS::PathString *biosPathStr_, BiosChangeDelegate onBiosChange_,
+BiosSelectMenu::BiosSelectMenu(UTF16String name, ViewAttachParams attach, FS::PathString *biosPathStr_, BiosChangeDelegate onBiosChange_,
 	EmuSystem::NameFilterFunc fsFilter_):
 	TableView
 	{
@@ -187,7 +187,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		"Fast/Slow Mode Speed", &defaultFace(),
 		[this](size_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{:.2f}x", app().fastSlowModeSpeedAsDouble()));
+			t.resetString(fmt::format("{:.2f}x", app().fastSlowModeSpeedAsDouble()));
 			return true;
 		},
 		(MenuItem::Id)app().fastSlowModeSpeedOption().val,
@@ -325,7 +325,7 @@ void FilePathOptionView::onSavePathChange(std::string_view path)
 
 bool FilePathOptionView::onFirmwarePathChange(IG::CStringView path, bool isDir) { return true; }
 
-std::unique_ptr<TextTableView> FilePathOptionView::makeFirmwarePathMenu(IG::utf16String name, bool allowFiles, int extraItemsHint)
+std::unique_ptr<TextTableView> FilePathOptionView::makeFirmwarePathMenu(UTF16String name, bool allowFiles, int extraItemsHint)
 {
 	int items = (allowFiles ? 3 : 2) + extraItemsHint;
 	auto multiChoiceView = std::make_unique<TextTableView>(std::move(name), attachParams(), items);
@@ -380,16 +380,6 @@ std::unique_ptr<TextTableView> FilePathOptionView::makeFirmwarePathMenu(IG::utf1
 			view.dismiss();
 		});
 	return multiChoiceView;
-}
-
-void FilePathOptionView::pushAndShowFirmwarePathMenu(IG::utf16String name, const Input::Event &e, bool allowFiles)
-{
-	pushAndShow(makeFirmwarePathMenu(std::move(name), allowFiles), e);
-}
-
-void FilePathOptionView::pushAndShowFirmwareFilePathMenu(IG::utf16String name, const Input::Event &e)
-{
-	pushAndShowFirmwarePathMenu(std::move(name), e, true);
 }
 
 }

@@ -21,12 +21,12 @@
 namespace IG
 {
 
-static constexpr bool isUri(std::string_view str)
+constexpr bool isUri(std::string_view str)
 {
 	return str.contains("://");
 }
 
-static constexpr bool isUnreservedUriChar(char c)
+constexpr bool isUnreservedUriChar(char c)
 {
 	switch(c)
 	{
@@ -51,7 +51,7 @@ static constexpr bool isUnreservedUriChar(char c)
 
 template <class Return>
 [[nodiscard]]
-static constexpr Return encodeUri(std::string_view input)
+constexpr Return encodeUri(std::string_view input)
 {
 	Return output{};
 	output.reserve(input.size());
@@ -74,7 +74,7 @@ static constexpr Return encodeUri(std::string_view input)
 
 template <class Return>
 [[nodiscard]]
-static constexpr Return decodeUri(std::string_view input)
+constexpr Return decodeUri(std::string_view input)
 {
 	Return output{};
 	output.reserve(input.size());

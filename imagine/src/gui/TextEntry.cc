@@ -100,7 +100,7 @@ bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 				{
 					{
 						parentView.waitForDrawFinished();
-						t.setString(str);
+						t.resetString(str);
 						t.compile(parentView.renderer(), projP);
 					}
 					parentView.postDraw();

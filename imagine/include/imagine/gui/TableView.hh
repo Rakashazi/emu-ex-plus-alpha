@@ -40,16 +40,16 @@ public:
 	using ItemDelegate = DelegateFunc<MenuItem& (const TableView &view, size_t idx)>;
 	using SelectElementDelegate = DelegateFunc<void (const Input::Event &, int i, MenuItem &)>;
 
-	TableView(IG::utf16String name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
-		ScrollView{attach}, items{items}, item{item}, nameStr{std::move(name)} {}
+	TableView(UTF16Convertible auto &&name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
+		ScrollView{attach}, items{items}, item{item}, nameStr{IG_forward(name)} {}
 
 	TableView(ViewAttachParams attach, IG::Container auto &item):
-		TableView{{}, attach, item} {}
+		TableView{UTF16String{}, attach, item} {}
 
-	TableView(IG::utf16String name, ViewAttachParams attach, IG::Container auto &item):
+	TableView(UTF16Convertible auto &&name, ViewAttachParams attach, Container auto &item):
 		TableView
 		{
-			std::move(name),
+			IG_forward(name),
 			attach,
 			[&item](const TableView &) { return std::size(item); },
 			[&item](const TableView &, size_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
@@ -74,14 +74,15 @@ public:
 	void highlightCell(int idx);
 	void setAlign(_2DOrigin align);
 	std::u16string_view name() const override;
-	void setName(IG::utf16String name) { nameStr = std::move(name); }
+	void resetName(UTF16Convertible auto &&name) { nameStr = IG_forward(name); }
+	void resetName() { nameStr.clear(); }
 	void setItemsDelegate(ItemsDelegate items_ = [](const TableView &){ return 0; }) { items = items_; }
 
 protected:
 	ItemsDelegate items{};
 	ItemDelegate item{};
 	SelectElementDelegate selectElementDel{};
-	std::u16string nameStr{};
+	UTF16String nameStr{};
 	int yCellSize = 0;
 	int selected = -1;
 	int visibleCells = 0;

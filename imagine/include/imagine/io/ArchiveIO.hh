@@ -43,8 +43,8 @@ public:
 	~ArchiveEntry();
 	ArchiveEntry(CStringView path);
 	explicit ArchiveEntry(IO);
-	ArchiveEntry(ArchiveEntry&&);
-	ArchiveEntry &operator=(ArchiveEntry&&);
+	ArchiveEntry(ArchiveEntry&&) noexcept;
+	ArchiveEntry &operator=(ArchiveEntry&&) noexcept;
 	std::string_view name() const;
 	FS::file_type type() const;
 	size_t size() const;

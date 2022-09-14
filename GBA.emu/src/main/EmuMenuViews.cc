@@ -47,7 +47,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			if(idx == 0)
 			{
-				t.setString(rtcIsEnabled() ? "On" : "Off");
+				t.resetString(rtcIsEnabled() ? "On" : "Off");
 				return true;
 			}
 			return false;
@@ -81,7 +81,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			if(idx == 0)
 			{
-				t.setString(saveTypeStr(system().detectedSaveType, system().detectedSaveSize));
+				t.resetString(saveTypeStr(system().detectedSaveType, system().detectedSaveSize));
 				return true;
 			}
 			return false;
@@ -139,7 +139,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			if(idx == 0)
 			{
-				t.setString(wise_enum::to_string(system().detectedSensorType));
+				t.resetString(wise_enum::to_string(system().detectedSensorType));
 				return true;
 			}
 			return false;
@@ -254,7 +254,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 			gbVol ? "GB APU Volume" : "PCM Volume", &defaultFace(),
 			[this, gbVol](size_t idx, Gfx::Text &t)
 			{
-				t.setString(fmt::format("{}%", soundVolumeAsInt(gGba, gbVol)));
+				t.resetString(fmt::format("{}%", soundVolumeAsInt(gGba, gbVol)));
 				return true;
 			},
 			(MenuItem::Id)soundVolumeAsInt(gGba, gbVol),
@@ -322,7 +322,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 		"Filtering Level", &defaultFace(),
 		[this](size_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", soundFilteringAsInt(gGba)));
+			t.resetString(fmt::format("{}%", soundFilteringAsInt(gGba)));
 			return true;
 		},
 		(MenuItem::Id)soundFilteringAsInt(gGba),
@@ -390,7 +390,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		"Light Sensor Scale", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{} lux", (int)system().lightSensorScaleLux));
+			t.resetString(fmt::format("{} lux", (int)system().lightSensorScaleLux));
 			return true;
 		},
 		(MenuItem::Id)system().lightSensorScaleLux,

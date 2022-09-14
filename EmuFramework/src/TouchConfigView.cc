@@ -313,7 +313,7 @@ void TouchConfigView::refreshTouchConfigMenu()
 }
 
 TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
-	IG::utf16String faceBtnName, IG::utf16String centerBtnName):
+	UTF16String faceBtnName, UTF16String centerBtnName):
 	TableView{"On-screen Input Setup", attach, item},
 	vControllerPtr{&vCtrl},
 	touchCtrlItem
@@ -389,7 +389,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 		"Button Size", &defaultFace(),
 		[this](auto idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{:.2f}", vController().buttonSize() / 100.));
+			t.resetString(fmt::format("{:.2f}", vController().buttonSize() / 100.));
 			return true;
 		},
 		(MenuItem::Id)vController().buttonSize(),

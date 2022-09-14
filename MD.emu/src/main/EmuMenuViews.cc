@@ -79,7 +79,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		"Input Ports", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
-			t.setString(inputSystemName(input.system[1]));
+			t.resetString(inputSystemName(input.system[1]));
 			return true;
 		},
 		(MenuItem::Id)system().mdInputPortDev[1],
@@ -111,7 +111,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			if(idx == 0)
 			{
-				t.setString(vdp_pal ? "PAL" : "NTSC");
+				t.resetString(vdp_pal ? "PAL" : "NTSC");
 				return true;
 			}
 			return false;
@@ -151,7 +151,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 						default: return "Japan";
 					}
 				};
-				t.setString(regionStr(region_code));
+				t.resetString(regionStr(region_code));
 				return true;
 			}
 			return false;
@@ -301,9 +301,9 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem cdBiosPath[3]
 	{
-		{{}, &defaultFace(), [this](Input::Event e){ cdBiosPathHandler(e, REGION_USA); }},
-		{{}, &defaultFace(), [this](Input::Event e){ cdBiosPathHandler(e, REGION_JAPAN_NTSC); }},
-		{{}, &defaultFace(), [this](Input::Event e){ cdBiosPathHandler(e, REGION_EUROPE); }}
+		{u"", &defaultFace(), [this](Input::Event e){ cdBiosPathHandler(e, REGION_USA); }},
+		{u"", &defaultFace(), [this](Input::Event e){ cdBiosPathHandler(e, REGION_JAPAN_NTSC); }},
+		{u"", &defaultFace(), [this](Input::Event e){ cdBiosPathHandler(e, REGION_EUROPE); }}
 	};
 
 	auto biosMenuEntryStr(int region, std::string_view displayName) const

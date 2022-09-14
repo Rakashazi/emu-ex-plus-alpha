@@ -24,7 +24,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/util/format.hh>
 
@@ -46,11 +45,11 @@ public:
 	bool useRenderTaskTime = false;
 
 	DetectFrameRateView(ViewAttachParams attach): View(attach),
-		fpsText{{}, &defaultFace()}
+		fpsText{&defaultFace()}
 	{
 		defaultFace().precacheAlphaNum(attach.renderer());
 		defaultFace().precache(attach.renderer(), ".");
-		fpsText.setString("Preparing to detect frame rate...");
+		fpsText.resetString("Preparing to detect frame rate...");
 		useRenderTaskTime = !screen()->supportsTimestamps();
 		frameTimeSample.reserve(std::round(screen()->frameRate() * 2.));
 	}
@@ -117,9 +116,9 @@ public:
 			{
 				waitForDrawFinished();
 				if(detectedFrameTime.count())
-					fpsText.setString(fmt::format("{:.2f}fps", 1. / detectedFrameTime.count()));
+					fpsText.resetString(fmt::format("{:.2f}fps", 1. / detectedFrameTime.count()));
 				else
-					fpsText.setString("0fps");
+					fpsText.resetString("0fps");
 				fpsText.compile(renderer(), projP);
 			}
 			if(stableFrameTime)
@@ -302,7 +301,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	frameRate
 	{
-		{}, &defaultFace(),
+		u"", &defaultFace(),
 		[this](const Input::Event &e)
 		{
 			pushAndShowFrameRateSelectMenu(VideoSystem::NATIVE_NTSC, e);
@@ -311,7 +310,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	frameRatePAL
 	{
-		{}, &defaultFace(),
+		u"", &defaultFace(),
 		[this](const Input::Event &e)
 		{
 			pushAndShowFrameRateSelectMenu(VideoSystem::PAL, e);
@@ -325,7 +324,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			if(idx == EmuSystem::aspectRatioInfos().size())
 			{
-				t.setString(fmt::format("{:.2f}", app().videoAspectRatio()));
+				t.resetString(fmt::format("{:.2f}", app().videoAspectRatio()));
 				return true;
 			}
 			return false;
@@ -362,7 +361,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			if(app().videoZoom() <= 100)
 			{
-				t.setString(fmt::format("{}%", app().videoZoom()));
+				t.resetString(fmt::format("{}%", app().videoZoom()));
 				return true;
 			}
 			return false;
@@ -395,7 +394,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"App Zoom", &defaultFace(),
 		[this](auto idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", app().viewportZoom()));
+			t.resetString(fmt::format("{}%", app().viewportZoom()));
 			return true;
 		},
 		(MenuItem::Id)app().viewportZoom(),
@@ -483,7 +482,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Overlay Effect Level", &defaultFace(),
 		[this](auto idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", app().overlayEffectLevel()));
+			t.resetString(fmt::format("{}%", app().overlayEffectLevel()));
 			return true;
 		},
 		(MenuItem::Id)app().overlayEffectLevel(),
@@ -502,7 +501,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			if(idx == 0)
 			{
-				t.setString(app().videoEffectPixelFormat().name());
+				t.resetString(app().videoEffectPixelFormat().name());
 				return true;
 			}
 			else
@@ -518,7 +517,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			if(idx == 0)
 			{
-				t.setString(autoWindowPixelFormatStr(appContext()));
+				t.resetString(autoWindowPixelFormatStr(appContext()));
 				return true;
 			}
 			else
@@ -559,7 +558,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Image Buffers", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
-			t.setString(emuVideo().imageBuffers() == 1 ? "1" : "2");
+			t.resetString(emuVideo().imageBuffers() == 1 ? "1" : "2");
 			return true;
 		},
 		(MenuItem::Id)app().videoImageBuffersOption().val,
@@ -578,7 +577,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			if(idx == 0)
 			{
-				t.setString(emuVideo().internalRenderPixelFormat().name());
+				t.resetString(emuVideo().internalRenderPixelFormat().name());
 				return true;
 			}
 			return false;
@@ -644,7 +643,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Red", &defaultFace(),
 		[this](size_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Red)));
+			t.resetString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Red)));
 			return true;
 		},
 		MenuItem::Id{app().videoBrightnessAsInt(ImageChannel::Red)},
@@ -655,7 +654,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Green", &defaultFace(),
 		[this](size_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Green)));
+			t.resetString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Green)));
 			return true;
 		},
 		MenuItem::Id{app().videoBrightnessAsInt(ImageChannel::Green)},
@@ -666,7 +665,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Blue", &defaultFace(),
 		[this](size_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Blue)));
+			t.resetString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Blue)));
 			return true;
 		},
 		MenuItem::Id{app().videoBrightnessAsInt(ImageChannel::Blue)},

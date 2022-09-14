@@ -190,14 +190,14 @@ void FSPicker::setEmptyPath(std::string_view message)
 	dirListEvent.cancel();
 	root = {};
 	dir.clear();
-	msgText.setString(message);
+	msgText.resetString(message);
 	if(mode_ == Mode::FILE_IN_DIR)
 	{
-		fileTableView().setName({});
+		fileTableView().resetName();
 	}
 	else
 	{
-		fileTableView().setName("Select File Location");
+		fileTableView().resetName("Select File Location");
 	}
 }
 
@@ -249,7 +249,7 @@ void FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInfo, const In
 	{
 		rootedPath = IG::decodeUri<FS::PathString>(rootedPath);
 	}
-	fileTableView().setName(rootedPath);
+	fileTableView().resetName(rootedPath);
 	onChangePath_.callSafe(*this, e);
 }
 
@@ -529,11 +529,11 @@ void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
 						});
 				}
 			}
-			msgText.setString({});
+			msgText.resetString();
 		}
 		else // no entries, show a message instead
 		{
-			msgText.setString("Empty Directory");
+			msgText.resetString("Empty Directory");
 		}
 	}
 	catch(std::system_error &err)
@@ -541,7 +541,7 @@ void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
 		logErr("can't open %s", path.data());
 		auto ec = err.code();
 		std::string_view extraMsg = mode_ == Mode::FILE_IN_DIR ? "" : "\nPick a path from the top bar";
-		msgText.setString(fmt::format("Can't open directory:\n{}{}", ec.message(), extraMsg));
+		msgText.resetString(fmt::format("Can't open directory:\n{}{}", ec.message(), extraMsg));
 	}
 }
 

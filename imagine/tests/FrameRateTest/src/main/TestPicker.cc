@@ -24,7 +24,7 @@ namespace FrameRateTest
 {
 
 TestTableEntry::TestTableEntry(Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
-	DualTextMenuItem{{}, {}, face, selectDel}
+	DualTextMenuItem{u"", u"", face, selectDel}
 {}
 
 void TestTableEntry::draw(Gfx::RendererCommands &cmds, float xPos, float yPos, float xSize, float ySize,

@@ -23,7 +23,7 @@
 #include <cstring>
 #if defined __linux__ || defined __APPLE__
 #include <sys/mman.h>
-#include <imagine/util/system/pagesize.h>
+#include <imagine/vmem/pageSize.hh>
 #endif
 
 namespace IG
@@ -111,7 +111,7 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 		bytes = size() - offset;
 	}
 	auto srcAddr = data() + offset;
-	void *pageSrcAddr = (void*)roundDownToPageSize((uintptr_t)srcAddr);
+	void *pageSrcAddr = roundDownToPageSize(srcAddr);
 	bytes += (uintptr_t)srcAddr - (uintptr_t)pageSrcAddr; // add extra bytes from rounding down to page size
 	int mAdv = adviceToMAdv(advice);
 	if(madvise(pageSrcAddr, bytes, mAdv) != 0 && Config::DEBUG_BUILD)

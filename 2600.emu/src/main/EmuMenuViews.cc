@@ -122,7 +122,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 			if(idx == 2 && system().osystem.hasConsole())
 			{
 				bool phospherInUse = system().osystem.console().properties().get(PropType::Display_Phosphor) == "YES";
-				t.setString(phospherInUse ? "On" : "Off");
+				t.resetString(phospherInUse ? "On" : "Off");
 				return true;
 			}
 			else
@@ -150,7 +150,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			if(idx == 0 && system().osystem.hasConsole())
 			{
-				t.setString(system().osystem.console().about().DisplayFormat.c_str());
+				t.resetString(system().osystem.console().about().DisplayFormat.c_str());
 				return true;
 			}
 			else
@@ -195,7 +195,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			if(idx == 0 && system().osystem.hasConsole())
 			{
-				t.setString(controllerTypeStr(system().osystem.console().leftController().type()));
+				t.resetString(controllerTypeStr(system().osystem.console().leftController().type()));
 				return true;
 			}
 			else
@@ -274,7 +274,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		"Digital Paddle Sensitivity", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}", system().optionPaddleDigitalSensitivity.val));
+			t.resetString(fmt::format("{}", system().optionPaddleDigitalSensitivity.val));
 			return true;
 		},
 		(MenuItem::Id)system().optionPaddleDigitalSensitivity.val,

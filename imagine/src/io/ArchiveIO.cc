@@ -71,9 +71,9 @@ ArchiveEntry::ArchiveEntry() = default;
 
 ArchiveEntry::~ArchiveEntry() = default;
 
-ArchiveEntry::ArchiveEntry(ArchiveEntry&&) = default;
+ArchiveEntry::ArchiveEntry(ArchiveEntry&&) noexcept = default;
 
-ArchiveEntry &ArchiveEntry::operator=(ArchiveEntry &&) = default;
+ArchiveEntry &ArchiveEntry::operator=(ArchiveEntry &&) noexcept = default;
 
 ArchiveEntry::ArchiveEntry(CStringView path)
 {

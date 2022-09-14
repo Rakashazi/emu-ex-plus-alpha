@@ -32,7 +32,7 @@ enum class VControllerVisibility : uint8_t;
 class TouchConfigView final: public TableView, public EmuAppHelper<TouchConfigView>
 {
 public:
-	TouchConfigView(ViewAttachParams attach, VController &vController, IG::utf16String faceBtnName, IG::utf16String centerBtnName);
+	TouchConfigView(ViewAttachParams attach, VController &vController, UTF16String faceBtnName, UTF16String centerBtnName);
 	void place() final;
 	void draw(Gfx::RendererCommands &__restrict__) final;
 

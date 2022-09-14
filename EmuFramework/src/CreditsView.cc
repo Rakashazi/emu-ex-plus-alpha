@@ -25,7 +25,7 @@
 namespace EmuEx
 {
 
-CreditsView::CreditsView(ViewAttachParams attach, IG::utf16String str):
+CreditsView::CreditsView(ViewAttachParams attach, UTF16String str):
 	View{attach},
 	text{std::move(str), &defaultFace()},
 	animate

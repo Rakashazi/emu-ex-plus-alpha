@@ -26,19 +26,22 @@ namespace IG
 std::u16string toUTF16String(std::string_view);
 
 // Simple wrapper around u16string that converts any char-type strings from UTF-8 to UTF-16
-class utf16String : public std::u16string
+class UTF16String : public std::u16string
 {
 public:
 	using std::u16string::u16string;
 	using std::u16string::operator=;
-	utf16String(std::convertible_to<std::u16string> auto &&s):std::u16string{IG_forward(s)} {}
-	utf16String(std::u16string_view s):std::u16string{s} {}
+	UTF16String(std::convertible_to<std::u16string> auto &&s):std::u16string{IG_forward(s)} {}
+	UTF16String(std::u16string_view s):std::u16string{s} {}
 
 	// UTF-8 -> UTF-16 conversion
-	utf16String(std::string_view s):std::u16string{toUTF16String(s)} {}
-	utf16String(std::convertible_to<std::string_view> auto &&s):utf16String{std::string_view{IG_forward(s)}} {}
+	UTF16String(std::string_view s):std::u16string{toUTF16String(s)} {}
+	UTF16String(std::convertible_to<std::string_view> auto &&s):UTF16String{std::string_view{IG_forward(s)}} {}
 	[[gnu::nonnull]]
-	utf16String(const char *s):utf16String{std::string_view{s}} {}
+	UTF16String(const char *s):UTF16String{std::string_view{s}} {}
 };
+
+template<class T>
+concept UTF16Convertible = std::convertible_to<T, UTF16String>;
 
 }

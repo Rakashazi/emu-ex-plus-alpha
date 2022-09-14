@@ -3,10 +3,12 @@ inc_vmem := 1
 
 ifeq ($(ENV_KERNEL), linux)
  SRC += vmem/linux.cc
- SRC += vmem/RingBuffer.cc
 else ifeq ($(ENV_KERNEL), mach)
  SRC += vmem/mach.cc
- SRC += vmem/RingBuffer.cc
+else
+ $(error unsupported ENV_KERNEL)
 endif
+
+SRC += vmem/pageSize.cc vmem/RingBuffer.cc
 
 endif

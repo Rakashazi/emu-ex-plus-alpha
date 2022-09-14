@@ -67,7 +67,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			if(idx == 2)
 			{
-				t.setString(conf.raster ? "On" : "Off");
+				t.resetString(conf.raster ? "On" : "Off");
 				return true;
 			}
 			else

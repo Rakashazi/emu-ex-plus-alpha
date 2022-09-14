@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,13 +13,29 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/vmem/pageSize.hh>
 #include <imagine/util/utility.h>
-#include <stdint.h>
+#if defined __linux__
+#include <unistd.h>
+#define USE_GETPAGESIZE
+#elif defined __APPLE__
+#include <mach/machine/vm_param.h>
+#else
+#include <limits.h>
+#endif
 
-BEGIN_C_DECLS
+namespace IG
+{
 
-int pageSize();
-uintptr_t roundDownToPageSize(uintptr_t val);
-uintptr_t roundUpToPageSize(uintptr_t val);
+uintptr_t pageSize()
+{
+	#ifdef USE_GETPAGESIZE
+	static uintptr_t pageSize_ = sysconf(_SC_PAGESIZE);
+	assumeExpr(pageSize_);
+	return pageSize_;
+	#else
+	return PAGE_SIZE;
+	#endif
+}
 
-END_C_DECLS
+}

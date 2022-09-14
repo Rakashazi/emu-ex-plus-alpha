@@ -31,7 +31,7 @@ class CustomSystemOptionView : public SystemOptionView
 {
 	TextMenuItem biosPath
 	{
-		{}, &defaultFace(),
+		u"", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			pushAndShow(

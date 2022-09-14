@@ -520,7 +520,7 @@ static bool customKeyConfigsContainName(auto &customKeyConfigs, std::string_view
 	return IG::find_if(customKeyConfigs, [&](auto &confPtr){ return confPtr->name == name; }) != customKeyConfigs.end();
 }
 
-InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachParams attach,
+InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParams attach,
 	InputManagerView &rootIMView_, const Input::Device &dev,
 	KeyConfigContainer &customKeyConfigs_,
 	InputDeviceSavedConfigContainer &savedInputDevs_):
@@ -552,7 +552,7 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 	},
 	loadProfile
 	{
-		{}, &defaultFace(),
+		u"", &defaultFace(),
 		[this](const Input::Event &e)
 		{
 			auto profileSelectMenu = makeView<ProfileSelectMenu>(devConf->device(),

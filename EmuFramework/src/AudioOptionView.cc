@@ -65,7 +65,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		"Volume", &defaultFace(),
 		[this](size_t idx, Gfx::Text &t)
 		{
-			t.setString(fmt::format("{}%", app().soundVolume()));
+			t.resetString(fmt::format("{}%", app().soundVolume()));
 			return true;
 		},
 		(MenuItem::Id)app().soundVolume(),

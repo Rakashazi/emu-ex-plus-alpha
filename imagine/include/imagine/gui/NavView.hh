@@ -35,7 +35,7 @@ public:
 	void setOnPushLeftBtn(OnPushDelegate del);
 	void setOnPushRightBtn(OnPushDelegate del);
 	void setOnPushMiddleBtn(OnPushDelegate del);
-	void setTitle(IG::utf16String title) { text.setString(std::move(title)); }
+	void setTitle(UTF16Convertible auto &&title) { text.resetString(IG_forward(title)); }
 	void prepareDraw() override;
 	void place() override;
 	bool inputEvent(const Input::Event &) override;

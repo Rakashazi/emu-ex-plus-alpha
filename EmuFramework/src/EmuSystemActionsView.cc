@@ -34,8 +34,8 @@ namespace EmuEx
 class ResetAlertView : public BaseAlertView, public EmuAppHelper<ResetAlertView>
 {
 public:
-	ResetAlertView(ViewAttachParams attach, IG::utf16String label, EmuSystem &sys):
-		BaseAlertView{attach, std::move(label), items},
+	ResetAlertView(ViewAttachParams attach, UTF16Convertible auto &&label, EmuSystem &sys):
+		BaseAlertView{attach, IG_forward(label), items},
 		items
 		{
 			TextMenuItem
@@ -191,7 +191,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	},
 	stateSlot
 	{
-		{}, &defaultFace(),
+		u"", &defaultFace(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<StateSlotView>(), e);
