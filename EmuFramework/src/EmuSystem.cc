@@ -194,16 +194,6 @@ void EmuSystem::setUserSaveDirectory(IG::CStringView path)
 	savePathChanged();
 }
 
-FS::PathString EmuSystem::firmwarePath() const
-{
-	return firmwarePath_;
-}
-
-void EmuSystem::setFirmwarePath(std::string_view path)
-{
-	firmwarePath_ = path;
-}
-
 FS::PathString EmuSystem::statePath(std::string_view filename, std::string_view basePath) const
 {
 	return FS::uriString(basePath, filename);

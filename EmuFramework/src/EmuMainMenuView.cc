@@ -20,9 +20,11 @@
 #include <emuframework/CreditsView.hh>
 #include <emuframework/FilePicker.hh>
 #include <emuframework/StateSlotView.hh>
-#include <emuframework/OptionView.hh>
+#include <emuframework/SystemOptionView.hh>
+#include <emuframework/GUIOptionView.hh>
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/VideoOptionView.hh>
+#include <emuframework/FilePathOptionView.hh>
 #include "EmuOptions.hh"
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/TouchConfigView.hh>

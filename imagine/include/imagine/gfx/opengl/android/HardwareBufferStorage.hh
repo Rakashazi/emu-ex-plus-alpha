@@ -49,12 +49,7 @@ public:
 protected:
 	struct EGLImageDeleter
 	{
-		void operator()(EGLImageKHR ptr) const
-		{
-			if(!ptr)
-				return;
-			eglDestroyImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), ptr);
-		}
+		void operator()(EGLImageKHR ptr) const { eglDestroyImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), ptr); }
 	};
 	using UniqueEGLImage = std::unique_ptr<std::remove_pointer_t<EGLImageKHR>, EGLImageDeleter>;
 	struct BufferInfo
@@ -63,6 +58,7 @@ protected:
 		UniqueEGLImage eglImg{};
 		uint32_t pitchBytes{};
 	};
+
 	std::array<BufferInfo, 2> bufferInfo{};
 	uint8_t bufferIdx{};
 

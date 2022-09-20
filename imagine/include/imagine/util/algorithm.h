@@ -15,44 +15,24 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#ifdef __cplusplus
 #include <imagine/util/concepts.hh>
 #include <algorithm>
 #include <iterator>
-#endif
-
-#ifdef __cplusplus
 
 namespace IG
 {
-
-template <class InputIterator1, class Size, class InputIterator2>
-static bool equal_n(InputIterator1 first1, Size size, InputIterator2 first2)
-{
-	return std::equal(first1, first1 + size, first2);
-}
 
 constexpr static auto emptyIteratorValue(Iterable auto &&c)
 {
 	return std::remove_cvref_t<decltype(*std::begin(c))>{};
 }
 
-static void fill(Iterable auto &c, auto val)
+constexpr void fill(Iterable auto &c)
 {
-	std::fill(std::begin(c), std::end(c), val);
+	std::ranges::fill(c, emptyIteratorValue(c));
 }
 
-static void fill(Iterable auto &c)
-{
-	fill(c, emptyIteratorValue(c));
-}
-
-static auto find_if(Iterable auto &&c, auto pred)
-{
-	return std::find_if(std::begin(c), std::end(c), pred);
-}
-
-static int findIndex(Iterable auto &&c, const auto &val, int notFound = -1)
+constexpr int findIndex(Iterable auto &&c, const auto &val, int notFound = -1)
 {
 	auto it = std::find(std::begin(c), std::end(c), val);
 	if(it == std::end(c))
@@ -60,7 +40,7 @@ static int findIndex(Iterable auto &&c, const auto &val, int notFound = -1)
 	return std::distance(std::begin(c), it);
 }
 
-static int findIndexIf(Iterable auto &&c, auto pred, int notFound = -1)
+constexpr int findIndexIf(Iterable auto &&c, auto pred, int notFound = -1)
 {
 	auto it = std::find_if(std::begin(c), std::end(c), pred);
 	if(it == std::end(c))
@@ -68,17 +48,17 @@ static int findIndexIf(Iterable auto &&c, auto pred, int notFound = -1)
 	return std::distance(std::begin(c), it);
 }
 
-static bool contains(Iterable auto &&c, const auto &val)
+constexpr bool contains(Iterable auto &&c, const auto &val)
 {
 	return std::find(std::begin(c), std::end(c), val) != std::end(c);
 }
 
-static bool containsIf(Iterable auto &&c, auto pred)
+constexpr bool containsIf(Iterable auto &&c, auto pred)
 {
 	return std::find_if(std::begin(c), std::end(c), pred) != std::end(c);
 }
 
-static bool eraseFirst(Iterable auto &c, const auto &val)
+constexpr bool eraseFirst(Iterable auto &c, const auto &val)
 {
 	auto it = std::find(c.begin(), c.end(), val);
 	if(it == c.end())
@@ -87,7 +67,7 @@ static bool eraseFirst(Iterable auto &c, const auto &val)
 	return true;
 }
 
-static auto moveOutIf(Iterable auto &c, auto pred)
+constexpr auto moveOutIf(Iterable auto &c, auto pred)
 {
 	if(auto it = std::find_if(c.begin(), c.end(), pred);
 		it != c.end())
@@ -103,7 +83,7 @@ static auto moveOutIf(Iterable auto &c, auto pred)
 }
 
 template<typename InputIt, class Size, typename OutputIt, typename UnaryOperation>
-OutputIt transformNOverlapped(InputIt first, Size count,
+constexpr OutputIt transformNOverlapped(InputIt first, Size count,
 	OutputIt result, UnaryOperation unary_op)
 {
 	return std::transform(first, first + count, result, unary_op);
@@ -112,31 +92,29 @@ OutputIt transformNOverlapped(InputIt first, Size count,
 // wrapper functions for iterators to non-overlapping memory regions
 // to improve compiler optimization opportunities
 template<typename InputIt, typename OutputIt, typename UnaryOperation>
-OutputIt transform(InputIt __restrict__ first, InputIt last,
+constexpr OutputIt transform(InputIt __restrict__ first, InputIt last,
 	OutputIt __restrict__ result, UnaryOperation unary_op)
 {
 	return std::transform(first, last, result, unary_op);
 }
 
 template<typename InputIt, class Size, typename OutputIt, typename UnaryOperation>
-OutputIt transformN(InputIt __restrict__ first, Size count,
+constexpr OutputIt transformN(InputIt __restrict__ first, Size count,
 	OutputIt __restrict__ result, UnaryOperation unary_op)
 {
 	return std::transform(first, first + count, result, unary_op);
 }
 
 template< class InputIt, class OutputIt>
-OutputIt copy(InputIt __restrict__ first, InputIt last, OutputIt __restrict__ d_first)
+constexpr OutputIt copy(InputIt __restrict__ first, InputIt last, OutputIt __restrict__ d_first)
 {
 	return std::copy(first, last, d_first);
 }
 
 template< class InputIt, class Size, class OutputIt>
-OutputIt copy_n(InputIt __restrict__ first, Size count, OutputIt __restrict__ d_first)
+constexpr OutputIt copy_n(InputIt __restrict__ first, Size count, OutputIt __restrict__ d_first)
 {
 	return std::copy_n(first, count, d_first);
 }
 
 }
-
-#endif

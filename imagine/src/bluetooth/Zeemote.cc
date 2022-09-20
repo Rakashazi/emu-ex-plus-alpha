@@ -26,8 +26,6 @@
 namespace IG
 {
 
-const uint8_t Zeemote::btClass[3] = { 0x84, 0x05, 0x00 };
-
 static const Input::Key sysKeyMap[4]
 {
 	Input::Keycode::GAME_A,
@@ -209,9 +207,9 @@ void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time)
 	memcpy(prevBtnPush, btnPush, sizeof(prevBtnPush));
 }
 
-bool Zeemote::isSupportedClass(const uint8_t devClass[3])
+bool Zeemote::isSupportedClass(std::array<uint8_t, 3> devClass)
 {
-	return IG::equal_n(devClass, 3, btClass);
+	return devClass == btClass;
 }
 
 std::span<Input::Axis> Zeemote::motionAxes()

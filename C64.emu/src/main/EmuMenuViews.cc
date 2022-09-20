@@ -13,9 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/OptionView.hh>
+#include <emuframework/SystemOptionView.hh>
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/VideoOptionView.hh>
+#include <emuframework/FilePathOptionView.hh>
+#include <emuframework/DataPathSelectView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuMainMenuView.hh>
 #include <emuframework/FilePicker.hh>
@@ -311,54 +313,61 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 {
 	using MainAppHelper<CustomFilePathOptionView>::app;
 	using MainAppHelper<CustomFilePathOptionView>::system;
+	friend class FilePathOptionView;
 
 	TextMenuItem systemFilePath
 	{
-		sysPathMenuEntryStr(system().firmwarePath()), &defaultFace(),
+		sysPathMenuEntryStr(system().sysFilePath[0]), &defaultFace(),
 		[this](Input::Event e)
 		{
-			auto view = makeFirmwarePathMenu("VICE System Files", true, 1);
-			view->appendItem("Download VICE System Files",
-				[this](Input::Event e)
+			auto view = makeViewWithName<DataFolderSelectView>("VICE System Files",
+				app().validSearchPath(system().sysFilePath[0]),
+				[this](CStringView path, FS::file_type type)
 				{
-					auto ynAlertView = makeView<YesNoAlertView>(
-						"Open the C64.emu setup page? From there, download C64.emu.zip to your device and select it as an archive in the previous menu.");
-					ynAlertView->setOnYes(
-						[this](Input::Event e)
+					if(type == FS::file_type::directory && !appContext().fileUriExists(FS::uriString(path, "DRIVES")))
+					{
+						app().postErrorMessage("Path is missing DRIVES folder");
+						return false;
+					}
+					logMsg("set firmware path:%s", path.data());
+					systemFilePath.compile(sysPathMenuEntryStr(path), renderer(), projP);
+					auto &sysFilePath = system().sysFilePath;
+					sysFilePath[0] = path;
+					if(type == FS::file_type::none)
+					{
+						if constexpr(Config::envIsLinux)
+							app().postMessage(5, false, fmt::format("Using fallback paths:\n{}\n{}", sysFilePath[3], sysFilePath[4]));
+						else
 						{
-							appContext().openURL("https://www.explusalpha.com/contents/c64-emu");
-						});
-					pushAndShowModal(std::move(ynAlertView), e);
+							app().postMessage(5, false, fmt::format("Using fallback paths:\n{}\n{}", sysFilePath[1], sysFilePath[2]));
+						}
+					}
+					return true;
 				});
+			view->appendItem(downloadSystemFiles);
 			pushAndShow(std::move(view), e);
 		}
 	};
 
-	bool onFirmwarePathChange(IG::CStringView path, bool isDir) final
+	TextMenuItem downloadSystemFiles
 	{
-		if(isDir && !appContext().fileUriExists(FS::uriString(path, "DRIVES")))
+		"Download VICE System Files", &defaultFace(),
+		[this](Input::Event e)
 		{
-			app().postErrorMessage("Path is missing DRIVES folder");
-			return false;
+			auto ynAlertView = makeView<YesNoAlertView>(
+				"Open the C64.emu setup page? From there, download C64.emu.zip to your device and select it as an archive in the previous menu.");
+			ynAlertView->setOnYes(
+				[this](Input::Event e)
+				{
+					appContext().openURL("https://www.explusalpha.com/contents/c64-emu");
+				});
+			pushAndShowModal(std::move(ynAlertView), e);
 		}
-		systemFilePath.compile(sysPathMenuEntryStr(path), renderer(), projP);
-		auto &sysFilePath = system().sysFilePath;
-		sysFilePath[0] = path;
-		if(!path.size())
-		{
-			if constexpr(Config::envIsLinux)
-				app().postMessage(5, false, fmt::format("Using fallback paths:\n{}\n{}", sysFilePath[3], sysFilePath[4]));
-			else
-			{
-				app().postMessage(5, false, fmt::format("Using fallback paths:\n{}\n{}", sysFilePath[1], sysFilePath[2]));
-			}
-		}
-		return true;
-	}
+	};
 
 	std::string sysPathMenuEntryStr(IG::CStringView path)
 	{
-		return fmt::format("VICE System Files: {}", path.size() ? appContext().fileUriDisplayName(path) : "");
+		return fmt::format("VICE System Files: {}", appContext().fileUriDisplayName(path));
 	}
 
 public:

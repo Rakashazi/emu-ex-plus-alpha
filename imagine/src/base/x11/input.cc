@@ -30,7 +30,6 @@ namespace IG
 {
 
 struct XIDeviceInfo : public ::XIDeviceInfo {};
-struct XkbDescRec : public ::XkbDescRec {};
 
 struct XInputDevice : public Input::Device
 {
@@ -240,7 +239,8 @@ void XApplication::initInputSystem()
 	}
 	XIFreeDeviceInfo(device);
 
-	coreKeyboardDesc = static_cast<XkbDescRec*>(XkbGetKeyboard(dpy, XkbAllComponentsMask, XkbUseCoreKbd));
+	im = XOpenIM(dpy, {}, {}, {});
+	ic = XCreateIC(im, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, nullptr);
 }
 
 void XApplication::deinitInputSystem()
@@ -250,8 +250,10 @@ void XApplication::deinitInputSystem()
 		XFreeCursor(dpy, blankCursor);
 	if(normalCursor)
 		XFreeCursor(dpy, normalCursor);
-	if(coreKeyboardDesc)
-		XkbFreeKeyboard(coreKeyboardDesc, XkbAllComponentsMask, true);
+	if(ic)
+		XDestroyIC(ic);
+	if(im)
+		XCloseIM(im);
 }
 
 static uint32_t makePointerButtonState(XIButtonState state)
@@ -405,11 +407,15 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 
 std::string XApplication::inputKeyString(Input::Key rawKey, uint32_t modifiers) const
 {
-	KeySym k;
-	XkbTranslateKeyCode(coreKeyboardDesc, rawKey, modifiers, nullptr, &k);
 	std::array<char, 4> str{};
-	XkbTranslateKeySym(dpy, &k, 0, str.data(), sizeof(str), nullptr);
-	return str.data();
+	XKeyPressedEvent event{};
+	event.type = KeyPress;
+	event.display = dpy;
+	event.state = modifiers;
+	event.keycode = rawKey;
+	Status status;
+	size_t size = Xutf8LookupString(ic, &event, str.data(), str.size(), nullptr, &status);
+	return {str.data(), size};
 }
 
 void ApplicationContext::flushSystemInputEvents()

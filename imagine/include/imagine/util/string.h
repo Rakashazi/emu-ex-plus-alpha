@@ -20,6 +20,8 @@
 #include <imagine/util/ctype.hh>
 #include <string_view>
 #include <type_traits>
+#include <algorithm>
+#include <cctype>
 
 namespace IG
 {
@@ -62,6 +64,15 @@ constexpr auto stringWithoutDotExtension(auto &&str)
 		return R{IG_forward(str)};
 }
 
-bool stringNoCaseLexCompare(std::string_view s1, std::string_view s2);
+constexpr bool stringNoCaseLexCompare(std::string_view s1, std::string_view s2)
+{
+	return std::lexicographical_compare(
+		s1.begin(), s1.end(),
+		s2.begin(), s2.end(),
+		[](char c1, char c2)
+		{
+			return std::tolower(c1) < std::tolower(c2);
+		});
+}
 
 }

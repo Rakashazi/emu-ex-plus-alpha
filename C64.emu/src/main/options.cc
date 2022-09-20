@@ -180,7 +180,7 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_CROP_NORMAL_BORDERS: return optionCropNormalBorders.readFromIO(io, readSize);
 			case CFGKEY_SID_ENGINE: return optionSidEngine.readFromIO(io, readSize);
 			case CFGKEY_SYSTEM_FILE_PATH:
-				return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &&path){setFirmwarePath(path);});
+				return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &&path){sysFilePath[0] = IG_forward(path);});
 			case CFGKEY_RESID_SAMPLING: return optionReSidSampling.readFromIO(io, readSize);
 		}
 	}
@@ -236,7 +236,7 @@ void C64System::writeConfig(ConfigType type, FileIO &io)
 		optionCropNormalBorders.writeWithKeyIfNotDefault(io);
 		optionSidEngine.writeWithKeyIfNotDefault(io);
 		optionReSidSampling.writeWithKeyIfNotDefault(io);
-		writeStringOptionValue(io, CFGKEY_SYSTEM_FILE_PATH, firmwarePath());
+		writeStringOptionValue(io, CFGKEY_SYSTEM_FILE_PATH, sysFilePath[0]);
 	}
 	else if(type == ConfigType::CORE)
 	{

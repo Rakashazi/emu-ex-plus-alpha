@@ -18,7 +18,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <imagine/util/algorithm.h>
+#include <algorithm>
 #include <concepts>
 
 namespace IG::Input
@@ -144,7 +144,7 @@ protected:
 
 	State *state(PointerId id)
 	{
-		auto s = IG::find_if(state_, [id](const auto &s){ return s.dragState.id() == id; });
+		auto s = std::ranges::find_if(state_, [id](const auto &s){ return s.dragState.id() == id; });
 		if(s == state_.end())
 		{
 			return nullptr;

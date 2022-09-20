@@ -16,7 +16,9 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/VideoOptionView.hh>
-#include <emuframework/OptionView.hh>
+#include <emuframework/FilePathOptionView.hh>
+#include <emuframework/DataPathSelectView.hh>
+#include <emuframework/SystemOptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
 #include "EmuCheatViews.hh"
@@ -501,32 +503,33 @@ public:
 
 class CustomFilePathOptionView : public FilePathOptionView
 {
-	TextMenuItem fdsBiosPath
+	TextMenuItem fdsBios
 	{
-		biosMenuEntryStr(appContext().fileUriDisplayName(EmuEx::fdsBiosPath)), &defaultFace(),
+		biosMenuEntryStr(fdsBiosPath), &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("Disk System BIOS", &EmuEx::fdsBiosPath,
-				[this](std::string_view displayName)
+			pushAndShow(makeViewWithName<DataFileSelectView>("Disk System BIOS",
+				app().validSearchPath(FS::dirnameUri(fdsBiosPath)),
+				[this](CStringView path, FS::file_type type)
 				{
-					logMsg("set fds bios %s", EmuEx::fdsBiosPath.data());
-					fdsBiosPath.compile(biosMenuEntryStr(displayName), renderer(), projP);
-				},
-				hasFDSBIOSExtension);
-			pushAndShow(std::move(biosSelectMenu), e);
+					fdsBiosPath = path;
+					logMsg("set fds bios:%s", path.data());
+					fdsBios.compile(biosMenuEntryStr(path), renderer(), projP);
+					return true;
+				}, hasFDSBIOSExtension), e);
 		}
 	};
 
-	std::string biosMenuEntryStr(std::string_view displayName) const
+	std::string biosMenuEntryStr(CStringView path) const
 	{
-		return fmt::format("Disk System BIOS: {}", displayName);
+		return fmt::format("Disk System BIOS: {}", appContext().fileUriDisplayName(path));
 	}
 
 public:
 	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
 	{
 		loadStockItems();
-		item.emplace_back(&fdsBiosPath);
+		item.emplace_back(&fdsBios);
 	}
 };
 

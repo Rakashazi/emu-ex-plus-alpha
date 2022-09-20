@@ -23,7 +23,7 @@ namespace IG
 {
 
 template <class... T>
-static auto formatTo(IG::Container auto &c, fmt::format_string<T...> fmt, const T&... args)
+constexpr auto formatTo(IG::Container auto &c, fmt::format_string<T...> fmt, const T&... args)
 {
 	if constexpr(requires {c.push_back('0');})
 	{
@@ -37,7 +37,7 @@ static auto formatTo(IG::Container auto &c, fmt::format_string<T...> fmt, const 
 }
 
 template <IG::Container Container, class... T>
-static auto format(fmt::format_string<T...> fmt, const T&... args)
+constexpr auto format(fmt::format_string<T...> fmt, const T&... args)
 {
 	Container c{};
 	formatTo(c, fmt, args...);
@@ -45,7 +45,7 @@ static auto format(fmt::format_string<T...> fmt, const T&... args)
 }
 
 template <size_t S, class... T>
-static auto formatArray(fmt::format_string<T...> fmt, const T&... args)
+constexpr auto formatArray(fmt::format_string<T...> fmt, const T&... args)
 {
 	std::array<char, S> arr{};
 	formatTo(arr, fmt, args...);

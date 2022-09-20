@@ -23,6 +23,8 @@
 
 struct _XDisplay;
 union _XEvent;
+struct _XIM;
+struct _XIC;
 
 namespace Config
 {
@@ -37,7 +39,6 @@ class Window;
 class FrameTimer;
 class FDEventSource;
 struct XIDeviceInfo;
-struct XkbDescRec;
 
 enum class SupportedFrameTimer : uint8_t
 {
@@ -69,7 +70,8 @@ private:
 	XdndAtoms xdndAtom{};
 
 	// Input state
-	XkbDescRec *coreKeyboardDesc{};
+	_XIM *im{};
+	_XIC *ic{};
 	Input::Device *vkbDevice{};
 	unsigned long blankCursor{};
 	unsigned long normalCursor{};

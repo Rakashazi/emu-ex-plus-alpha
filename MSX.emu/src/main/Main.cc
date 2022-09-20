@@ -72,9 +72,9 @@ static const char saveStateVersion[] = "blueMSX - state  v 8";
 
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
-FS::PathString machineBasePath(EmuSystem &sys)
+FS::PathString machineBasePath(MsxSystem &sys)
 {
-	if(sys.firmwarePath().empty())
+	if(sys.firmwarePath.empty())
 	{
 		if constexpr(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
 			return sys.appContext().assetPath();
@@ -83,7 +83,7 @@ FS::PathString machineBasePath(EmuSystem &sys)
 	}
 	else
 	{
-		return sys.firmwarePath();
+		return sys.firmwarePath;
 	}
 }
 

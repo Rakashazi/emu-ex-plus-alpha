@@ -49,7 +49,7 @@ PathString dirname(IG::CStringView path)
 
 FileString displayName(IG::CStringView path)
 {
-	if(!FS::exists(path))
+	if(path.empty() || !FS::exists(path))
 		return {};
 	else
 		return basename(path);
@@ -57,6 +57,8 @@ FileString displayName(IG::CStringView path)
 
 PathString dirnameUri(IG::CStringView pathOrUri)
 {
+	if(pathOrUri.empty())
+		return {};
 	if(!isUri(pathOrUri))
 		return dirname(pathOrUri);
 	if(auto [treePath, treePos] = FS::uriPathSegment(pathOrUri, FS::uriPathSegmentTreeName);

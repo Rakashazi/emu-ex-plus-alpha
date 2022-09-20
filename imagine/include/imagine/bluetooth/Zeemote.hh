@@ -26,7 +26,7 @@ class ErrorCode;
 struct Zeemote : public BluetoothInputDevice
 {
 public:
-	static const uint8_t btClass[3];
+	static constexpr std::array<uint8_t, 3> btClass{0x84, 0x05, 0x00};
 
 	Zeemote(ApplicationContext ctx, BluetoothAddr addr);
 	ErrorCode open(BluetoothAdapter &adapter) final;
@@ -35,7 +35,7 @@ public:
 	bool dataHandler(const char *packet, size_t size);
 	const char *keyName(Input::Key k) const final;
 	std::span<Input::Axis> motionAxes() final;
-	static bool isSupportedClass(const uint8_t devClass[3]);
+	static bool isSupportedClass(std::array<uint8_t, 3> devClass);
 	static std::pair<Input::Key, Input::Key> joystickKeys(Input::AxisId);
 
 private:

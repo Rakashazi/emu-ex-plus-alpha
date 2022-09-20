@@ -15,28 +15,27 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/config.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAppHelper.hh>
+#include <imagine/gui/TableView.hh>
+#include <imagine/gui/MenuItem.hh>
+#include <imagine/util/container/ArrayList.hh>
+#include <memory>
 
 namespace EmuEx
 {
 
-class EmuApp;
-class EmuSystem;
-
-// Easier access to the EmuApp object for any class that provides an appContext() function
-template<class T, class App = EmuApp>
-class EmuAppHelper
+class FilePathOptionView : public TableView, public EmuAppHelper<FilePathOptionView>
 {
 public:
-	App &app() const
-	{
-		return static_cast<const T*>(this)->appContext().template applicationAs<App>();
-	}
+	FilePathOptionView(ViewAttachParams attach, bool customMenu = false);
+	void loadStockItems();
 
-	auto &system() const
-	{
-		return app().system();
-	}
+protected:
+	TextMenuItem savePath;
+	StaticArrayList<MenuItem*, 6> item;
+
+	void onSavePathChange(std::string_view path);
 };
 
 }

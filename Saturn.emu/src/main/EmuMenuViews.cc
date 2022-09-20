@@ -13,7 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Saturn.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/OptionView.hh>
+#include <emuframework/SystemOptionView.hh>
+#include <emuframework/FilePathOptionView.hh>
+#include <emuframework/DataPathSelectView.hh>
 #include <emuframework/EmuMainMenuView.hh>
 #include "MainApp.hh"
 #include <imagine/fs/FS.hh>
@@ -29,25 +31,26 @@ static constexpr unsigned MAX_SH2_CORES = 4;
 
 class CustomSystemOptionView : public SystemOptionView
 {
-	TextMenuItem biosPath
+	TextMenuItem bios
 	{
-		u"", &defaultFace(),
+		biosMenuEntryStr(biosPath), &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			pushAndShow(
-				makeViewWithName<BiosSelectMenu>("BIOS", &EmuEx::biosPath,
-				[this](std::string_view displayName)
+			pushAndShow(makeViewWithName<DataFileSelectView>("BIOS",
+				app().validSearchPath(FS::dirnameUri(biosPath)),
+				[this](CStringView path, FS::file_type type)
 				{
-					logMsg("set bios %s", EmuEx::biosPath.data());
-					biosPath.compile(biosMenuEntryStr(displayName), renderer(), projP);
-				},
-				hasBIOSExtension), e);
+					biosPath = path;
+					logMsg("set bios:%s", biosPath.data());
+					bios.compile(biosMenuEntryStr(path), renderer(), projP);
+					return true;
+				}, hasBIOSExtension), e);
 		}
 	};
 
-	std::string biosMenuEntryStr(std::string_view displayName) const
+	std::string biosMenuEntryStr(std::string_view path) const
 	{
-		return fmt::format("BIOS: {}", displayName.size() ? displayName : "None set");
+		return fmt::format("BIOS: {}", appContext().fileUriDisplayName(path));
 	}
 
 	StaticArrayList<TextMenuItem, MAX_SH2_CORES> sh2CoreItem;
@@ -85,8 +88,7 @@ public:
 			}
 			item.emplace_back(&sh2Core);
 		}
-		biosPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(EmuEx::biosPath)));
-		item.emplace_back(&biosPath);
+		item.emplace_back(&bios);
 	}
 };
 

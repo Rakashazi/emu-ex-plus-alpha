@@ -26,7 +26,9 @@ class ErrorCode;
 class Wiimote final: public BluetoothInputDevice
 {
 public:
-	static const uint8_t btClass[3], btClassDevOnly[3], btClassRemotePlus[3];
+	static constexpr std::array<uint8_t, 3> btClass{0x04, 0x25, 0x00};
+	static constexpr std::array<uint8_t, 3> btClassDevOnly{0x04, 0x05, 0x00};
+	static constexpr std::array<uint8_t, 3> btClassRemotePlus{0x08, 0x05, 0x00};
 
 	Wiimote(ApplicationContext, BluetoothAddr);
 	~Wiimote();
@@ -40,7 +42,7 @@ public:
 	void readReg(uint32_t offset, uint8_t size);
 	const char *keyName(Input::Key k) const final;
 	std::span<Input::Axis> motionAxes() final;
-	static bool isSupportedClass(const uint8_t devClass[3]);
+	static bool isSupportedClass(std::array<uint8_t, 3> devClass);
 	static std::pair<Input::Key, Input::Key> joystickKeys(Input::Map, Input::AxisId);
 
 private:

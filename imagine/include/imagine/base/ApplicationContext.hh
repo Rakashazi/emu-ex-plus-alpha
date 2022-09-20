@@ -95,6 +95,7 @@ public:
 	}
 
 	Application &application() const;
+	template<class T> T &applicationAs() const { return static_cast<T&>(application()); }
 	void runOnMainThread(MainThreadMessageDelegate);
 	void flushMainThreadMessages();
 

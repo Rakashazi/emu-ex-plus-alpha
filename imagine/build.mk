@@ -31,7 +31,6 @@ include $(imagineSrcDir)/data-type/image/system.mk
 include $(imagineSrcDir)/vmem/system.mk
 include $(imagineSrcDir)/logger/system.mk
 include $(buildSysPath)/package/stdc++.mk
-SRC += util/string/generic.cc
 
 # fmtlib 9.0.0
 SRC += fmt/format.cc

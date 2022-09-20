@@ -58,7 +58,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 	}
 	else
 	{
-		auto &sys = gSystem();
+		auto &sys = static_cast<MsxSystem&>(gSystem());
 		auto appCtx = sys.appContext();
 		if(filename[0] == '/' || IG::isUri(filename)) // try to load absolute path directly
 		{
@@ -93,7 +93,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 
 CLINK FILE *openMachineIni(const char *path, const char *mode)
 {
-	auto &sys = gSystem();
+	auto &sys = static_cast<MsxSystem&>(gSystem());
 	auto appCtx = sys.appContext();
 	auto filePathInFirmwarePath = FS::uriString(machineBasePath(sys), path);
 	auto file = appCtx.openFileUri(filePathInFirmwarePath, IOAccessHint::ALL, OpenFlagsMask::TEST);

@@ -94,7 +94,7 @@ static void removeKeyConfFromAllDevices(auto &savedInputDevs, const KeyConfig *c
 			logMsg("used by saved device config %s,%d", e.name.data(), e.enumId);
 			e.keyConf = nullptr;
 		}
-		auto devIt = IG::find_if(ctx.inputDevices(), [&](auto &devPtr){ return e.matchesDevice(*devPtr); });
+		auto devIt = std::ranges::find_if(ctx.inputDevices(), [&](auto &devPtr){ return e.matchesDevice(*devPtr); });
 		if(devIt != ctx.inputDevices().end())
 		{
 			inputDevData(*devIt->get()).buildKeyMap(*devIt->get());
@@ -517,7 +517,7 @@ static int playerConfToMenuIdx(int player)
 
 static bool customKeyConfigsContainName(auto &customKeyConfigs, std::string_view name)
 {
-	return IG::find_if(customKeyConfigs, [&](auto &confPtr){ return confPtr->name == name; }) != customKeyConfigs.end();
+	return std::ranges::find_if(customKeyConfigs, [&](auto &confPtr){ return confPtr->name == name; }) != customKeyConfigs.end();
 }
 
 InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParams attach,

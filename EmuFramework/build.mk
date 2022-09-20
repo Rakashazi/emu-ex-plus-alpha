@@ -25,6 +25,7 @@ EmuVideo.cc \
 EmuVideoLayer.cc \
 EmuView.cc \
 EmuViewController.cc \
+FilePathOptionView.cc \
 FilePicker.cc \
 GUIOptionView.cc \
 InputManagerView.cc \

@@ -13,8 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/OptionView.hh>
+#include <emuframework/SystemOptionView.hh>
 #include <emuframework/AudioOptionView.hh>
+#include <emuframework/FilePathOptionView.hh>
+#include <emuframework/DataPathSelectView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/gui/AlertView.hh>
@@ -176,38 +178,42 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
 {
+	using MainAppHelper<CustomFilePathOptionView>::app;
+	using MainAppHelper<CustomFilePathOptionView>::system;
+	friend class FilePathOptionView;
+
 	std::string machinePathMenuEntryStr(IG::CStringView path) const
 	{
-		return fmt::format("BIOS: {}", path.size() ? appContext().fileUriDisplayName(path) : "");
+		return fmt::format("BIOS: {}", appContext().fileUriDisplayName(path));
 	}
 
 	TextMenuItem machineFilePath
 	{
-		machinePathMenuEntryStr(system().firmwarePath()), &defaultFace(),
+		machinePathMenuEntryStr(system().firmwarePath), &defaultFace(),
 		[this](Input::Event e)
 		{
-			pushAndShowFirmwarePathMenu("BIOS", e);
+			pushAndShow(makeViewWithName<DataFolderSelectView>("BIOS",
+				app().validSearchPath(system().firmwarePath),
+				[this](CStringView path, FS::file_type type)
+				{
+					if(type == FS::file_type::directory && !appContext().fileUriExists(FS::uriString(path, "Machines")))
+					{
+						app().postErrorMessage("Path is missing Machines folder");
+						return false;
+					}
+					system().firmwarePath = path;
+					machineFilePath.compile(machinePathMenuEntryStr(path), renderer(), projP);
+					if(type == FS::file_type::none)
+					{
+						app().postMessage(4, false, fmt::format("Using fallback path:\n{}", machineBasePath(system())));
+					}
+					return true;
+				}), e);
 			postDraw();
 		}
 	};
-
-	bool onFirmwarePathChange(IG::CStringView path, bool isDir) final
-	{
-		auto pathIsSet = path.size();
-		if(pathIsSet && !appContext().fileUriExists(FS::uriString(path, "Machines")))
-		{
-			app().postErrorMessage("Path is missing Machines folder");
-			return false;
-		}
-		machineFilePath.compile(machinePathMenuEntryStr(path), renderer(), projP);
-		if(!pathIsSet)
-		{
-			app().postMessage(4, false, fmt::format("Using fallback path:\n{}", machineBasePath(system())));
-		}
-		return true;
-	}
 
 public:
 	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}

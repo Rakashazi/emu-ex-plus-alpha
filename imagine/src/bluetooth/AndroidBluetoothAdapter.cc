@@ -94,7 +94,7 @@ bool AndroidBluetoothAdapter::handleScanClass(uint32_t classInt)
 		return 0;
 	}
 	logMsg("got class %X", classInt);
-	uint8_t classByte[3];
+	std::array<uint8_t, 3> classByte;
 	classByte[2] = classInt >> 16;
 	classByte[1] = (classInt >> 8) & 0xff;
 	classByte[0] = classInt & 0xff;

@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/OptionView.hh>
+#include <emuframework/GUIOptionView.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>

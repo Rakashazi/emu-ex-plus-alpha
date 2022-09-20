@@ -170,8 +170,7 @@ public:
 	FS::PathString contentSearchPath() const;
 	FS::PathString contentSearchPath(std::string_view name) const;
 	void setContentSearchPath(std::string_view path);
-	FS::PathString firmwareSearchPath() const;
-	void setFirmwareSearchPath(std::string_view path);
+	FS::PathString validSearchPath(const FS::PathString &) const;
 	static void updateLegacySavePath(IG::ApplicationContext, IG::CStringView path);
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
 	void addTurboInputEvent(unsigned action);

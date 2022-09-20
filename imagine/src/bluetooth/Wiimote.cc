@@ -26,9 +26,6 @@
 namespace IG
 {
 
-const uint8_t Wiimote::btClass[3] = { 0x04, 0x25, 0x00 };
-const uint8_t Wiimote::btClassDevOnly[3] = { 0x04, 0x05, 0x00 };
-const uint8_t Wiimote::btClassRemotePlus[3] = { 0x08, 0x05, 0x00 };
 static constexpr char ccDataBytes = 6;
 static constexpr char nunchuckDataBytes = 6;
 static constexpr char proDataBytes = 10;
@@ -391,7 +388,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						logMsg("extension is CC");
 						extension = EXT_CC;
 						sendDataModeByExtension();
-						IG::fill(prevExtData, 0xFF);
+						std::ranges::fill(prevExtData, 0xFF);
 						static constexpr float axisClassicLScaler = 1./31.;
 						static constexpr float axisClassicRScaler = 1./15.;
 						axis[0] = {*this, Input::AxisId::X, axisClassicLScaler};
@@ -407,7 +404,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						logMsg("extension is Nunchuk");
 						extension = EXT_NUNCHUK;
 						sendDataModeByExtension();
-						IG::fill(prevExtData, 0xFF);
+						std::ranges::fill(prevExtData, 0xFF);
 						static constexpr float axisNunchukScaler = 1./127.;
 						axis[0] = {*this, Input::AxisId::X, axisNunchukScaler};
 						axis[1] = {*this, Input::AxisId::Y, axisNunchukScaler};
@@ -417,7 +414,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						logMsg("extension is Wii U Pro");
 						extension = EXT_WIIU_PRO;
 						sendDataModeByExtension();
-						IG::fill(prevExtData, 0xFF);
+						std::ranges::fill(prevExtData, 0xFF);
 						static constexpr float axisClassicProScaler = 1./2047.;
 						axis[0] = {*this, Input::AxisId::X, axisClassicProScaler};
 						axis[1] = {*this, Input::AxisId::Y, axisClassicProScaler};
@@ -586,11 +583,11 @@ void Wiimote::processNunchukButtons(const uint8_t *packet, Input::Time time)
 	memcpy(prevExtData, nunData, nunchuckDataBytes);
 }
 
-bool Wiimote::isSupportedClass(const uint8_t devClass[3])
+bool Wiimote::isSupportedClass(std::array<uint8_t, 3> devClass)
 {
-	return IG::equal_n(devClass, 3, btClass)
-		|| IG::equal_n(devClass, 3, btClassDevOnly)
-		|| IG::equal_n(devClass, 3, btClassRemotePlus);
+	return devClass == btClass
+		|| devClass == btClassDevOnly
+		|| devClass == btClassRemotePlus;
 }
 
 void Wiimote::removeExtendedDevice()

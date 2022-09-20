@@ -13,7 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with NEO.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/OptionView.hh>
+#include <emuframework/SystemOptionView.hh>
+#include <emuframework/GUIOptionView.hh>
 #include <emuframework/EmuMainMenuView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <imagine/gui/AlertView.hh>

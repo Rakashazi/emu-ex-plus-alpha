@@ -15,7 +15,6 @@
 
 #define LOGTAG "Evdev"
 #include "EvdevInputDevice.hh"
-#include <imagine/util/algorithm.h>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/fd-utils.h>
@@ -30,6 +29,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <vector>
+#include <algorithm>
 
 #define DEV_NODE_PATH "/dev/input"
 static constexpr uint32_t MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
@@ -143,7 +143,7 @@ void EvdevInputDevice::processInputEvents(LinuxApplication &app, std::span<const
 			}
 			bcase EV_ABS:
 			{
-				auto axisIt = IG::find_if(axis, [&](auto &axis){ return ev.code == (uint8_t)axis.id(); });
+				auto axisIt = std::ranges::find_if(axis, [&](auto &axis){ return ev.code == (uint8_t)axis.id(); });
 				if(axisIt == axis.end())
 				{
 					//logMsg("event from unused axis:%d", ev.code);

@@ -266,7 +266,7 @@ void NeoSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 {
 	//logMsg("run frame %d", (int)processGfx);
 	if(video)
-		IG::fill(screenBuff, (uint16_t)current_pc_pal[4095]);
+		std::ranges::fill(screenBuff, (uint16_t)current_pc_pal[4095]);
 	main_frame(&taskCtx, this, video);
 	auto audioFrames = updateAudioFramesPerVideoFrame();
 	Uint16 audioBuff[audioFrames * 2];

@@ -532,7 +532,6 @@ static FS::PathString autostartPrgDiskImagePath(EmuSystem &sys)
 void EmuApp::onMainWindowCreated(ViewAttachParams attach, const Input::Event &e)
 {
 	auto &sys = static_cast<C64System&>(system());
-	sys.sysFilePath[0] = sys.firmwarePath();
 	sys.plugin.init();
 	updateKeyboardMapping();
 	sys.setSysModel(sys.optionDefaultModel);

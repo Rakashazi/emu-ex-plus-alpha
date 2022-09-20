@@ -74,9 +74,8 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::E
 							bdefault: // custom string
 							{
 								size_t len = msg.intArg3;
-								char labelStr[len + 1];
+								char labelStr[len];
 								msgs.getExtraData(labelStr, len);
-								labelStr[len] = 0;
 								setLabel(std::string_view{labelStr, len});
 								logMsg("set custom string:%s", labelStr);
 							}

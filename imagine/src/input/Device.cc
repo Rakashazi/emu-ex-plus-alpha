@@ -376,7 +376,7 @@ uint32_t Device::joystickAxisAsDpadBits()
 Axis *Device::motionAxis(AxisId id)
 {
 	auto axes = motionAxes();
-	auto it = IG::find_if(axes, [&](auto &axis){ return axis.id() == id; });
+	auto it = std::ranges::find_if(axes, [&](auto &axis){ return axis.id() == id; });
 	if(it == std::end(axes))
 		return nullptr;
 	return &(*it);

@@ -13,9 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/OptionView.hh>
+#include <emuframework/SystemOptionView.hh>
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/VideoOptionView.hh>
+#include <emuframework/FilePathOptionView.hh>
+#include <emuframework/DataPathSelectView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuInput.hh>
 #include "MainApp.hh"
@@ -126,27 +128,29 @@ public:
 
 class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
 {
+	using MainAppHelper<CustomFilePathOptionView>::app;
 	using MainAppHelper<CustomFilePathOptionView>::system;
 
 	TextMenuItem sysCardPath
 	{
-		biosMenuEntryStr(appContext().fileUriDisplayName(system().sysCardPath)), &defaultFace(),
+		biosMenuEntryStr(system().sysCardPath), &defaultFace(),
 		[this](Input::Event e)
 		{
-			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("System Card", &system().sysCardPath,
-				[this](std::string_view displayName)
+			pushAndShow(makeViewWithName<DataFileSelectView>("System Card",
+				app().validSearchPath(FS::dirnameUri(system().sysCardPath)),
+				[this](CStringView path, FS::file_type type)
 				{
-					logMsg("set bios %s", system().sysCardPath.data());
-					sysCardPath.compile(biosMenuEntryStr(displayName), renderer(), projP);
-				},
-				hasHuCardExtension);
-			pushAndShow(std::move(biosSelectMenu), e);
+					system().sysCardPath = path;
+					logMsg("set system card:%s", system().sysCardPath.data());
+					sysCardPath.compile(biosMenuEntryStr(path), renderer(), projP);
+					return true;
+				}, hasHuCardExtension), e);
 		}
 	};
 
-	std::string biosMenuEntryStr(std::string_view displayName) const
+	std::string biosMenuEntryStr(std::string_view path) const
 	{
-		return fmt::format("System Card: {}", displayName);
+		return fmt::format("System Card: {}", appContext().fileUriDisplayName(path));
 	}
 
 public:

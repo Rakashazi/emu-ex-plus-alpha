@@ -18,7 +18,6 @@
 #include <stella/emucore/Paddles.hxx>
 // TODO: Some Stella types collide with MacTypes.h
 #define Debugger DebuggerMac
-#include <emuframework/OptionView.hh>
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/VideoOptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>

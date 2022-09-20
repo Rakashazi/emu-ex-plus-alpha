@@ -172,7 +172,7 @@ bool MsxSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 		{
 			case CFGKEY_DEFAULT_MACHINE_NAME: return readStringOptionValue(io, readSize, optionDefaultMachineNameStr);
 			case CFGKEY_SKIP_FDC_ACCESS: return optionSkipFdcAccess.readFromIO(io, readSize);
-			case CFGKEY_MACHINE_FILE_PATH: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &&path){setFirmwarePath(path);});
+			case CFGKEY_MACHINE_FILE_PATH: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &&path){firmwarePath = IG_forward(path);});
 			case CFGKEY_MIXER_PSG_VOLUME: return optionMixerPSGVolume.readFromIO(io, readSize);
 			case CFGKEY_MIXER_SCC_VOLUME: return optionMixerSCCVolume.readFromIO(io, readSize);
 			case CFGKEY_MIXER_MSX_MUSIC_VOLUME: return optionMixerMSXMUSICVolume.readFromIO(io, readSize);
@@ -208,7 +208,7 @@ void MsxSystem::writeConfig(ConfigType type, FileIO &io)
 			writeStringOptionValue(io, CFGKEY_DEFAULT_MACHINE_NAME, optionDefaultMachineNameStr);
 		}
 		optionSkipFdcAccess.writeWithKeyIfNotDefault(io);
-		writeStringOptionValue(io, CFGKEY_MACHINE_FILE_PATH, firmwarePath());
+		writeStringOptionValue(io, CFGKEY_MACHINE_FILE_PATH, firmwarePath);
 
 		optionMixerPSGVolume.writeWithKeyIfNotDefault(io);
 		optionMixerSCCVolume.writeWithKeyIfNotDefault(io);

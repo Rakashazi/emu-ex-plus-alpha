@@ -14,7 +14,6 @@
 	along with GBC.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include <emuframework/OptionView.hh>
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/VideoOptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>

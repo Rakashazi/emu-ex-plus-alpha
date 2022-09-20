@@ -39,7 +39,7 @@ static BluetoothAdapter::OnStatusDelegate onServerStatus;
 static Timer unregisterHIDServiceCallback{"unregisterHIDServiceCallback"};
 #endif
 
-static bool testSupportedBTDevClasses(const uint8_t devClass[3])
+static bool testSupportedBTDevClasses(std::array<uint8_t, 3> devClass)
 {
 	return Wiimote::isSupportedClass(devClass) ||
 			IControlPad::isSupportedClass(devClass) ||
@@ -163,7 +163,7 @@ bool scanForDevices(ApplicationContext ctx, BluetoothAdapter &bta, BluetoothAdap
 	{
 		removePendingDevs();
 		return bta.startScan(onScanStatus,
-			[](BluetoothAdapter &, const uint8_t devClass[3]) // on device class
+			[](BluetoothAdapter &, std::array<uint8_t, 3> devClass) // on device class
 			{
 				logMsg("class: %X:%X:%X", devClass[0], devClass[1], devClass[2]);
 				return testSupportedBTDevClasses(devClass);

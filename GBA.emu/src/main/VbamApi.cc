@@ -215,7 +215,7 @@ void GbaSystem::setGameSpecificSettings(GBASys &gba, int romSize)
 	logMsg("game id:%c%c%c%c", gba.mem.rom[0xac], gba.mem.rom[0xad], gba.mem.rom[0xae], gba.mem.rom[0xaf]);
 	GameSettings foundSettings{};
 	std::string_view gameId{(char*)&gba.mem.rom[0xac], 4};
-	if(auto it = IG::find_if(settings, [&](const auto &s){return s.gameId == gameId;});
+	if(auto it = std::ranges::find_if(settings, [&](const auto &s){return s.gameId == gameId;});
 		it != std::end(settings))
 	{
 		foundSettings = *it;

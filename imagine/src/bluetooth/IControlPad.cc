@@ -75,8 +75,6 @@ static const uint8_t PWR_OFF_CHK_BYTE3 = 0xFE;
 
 static const uint8_t RESP_OKAY = 0x80;
 
-const uint8_t IControlPad::btClass[3] = { 0x00, 0x1F, 0x00 };
-
 static const char *icpButtonName(Key b)
 {
 	switch(b)
@@ -239,9 +237,9 @@ void IControlPad::processBtnReport(const char *btnData, Input::Time time)
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
 }
 
-bool IControlPad::isSupportedClass(const uint8_t devClass[3])
+bool IControlPad::isSupportedClass(std::array<uint8_t, 3> devClass)
 {
-	return IG::equal_n(devClass, 3, btClass);
+	return devClass == btClass;
 }
 
 std::span<Input::Axis> IControlPad::motionAxes()

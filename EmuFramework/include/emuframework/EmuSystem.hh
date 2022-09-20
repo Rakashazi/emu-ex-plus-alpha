@@ -235,8 +235,6 @@ public:
 	FS::PathString contentSaveFilePath(std::string_view ext) const;
 	FS::PathString userSaveDirectory() const;
 	void setUserSaveDirectory(IG::CStringView path);
-	FS::PathString firmwarePath() const;
-	void setFirmwarePath(std::string_view path);
 	FS::FileString stateFilename(int slot) const { return stateFilename(slot, contentName_); }
 	FS::PathString statePath(std::string_view filename, std::string_view basePath) const;
 	FS::PathString statePath(std::string_view filename) const;
@@ -308,7 +306,6 @@ protected:
 	std::string contentDisplayName_{}; // more descriptive content name set by system
 	FS::PathString contentSaveDirectory_{};
 	FS::PathString userSaveDirectory_{};
-	FS::PathString firmwarePath_{};
 
 	void setupContentUriPaths(IG::CStringView uri, std::string_view displayName);
 	void setupContentFilePaths(IG::CStringView filePath, std::string_view displayName);

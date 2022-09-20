@@ -104,6 +104,7 @@ public:
 	ViewAttachParams attachParams() const;
 	Screen *screen() const;
 	ApplicationContext appContext() const;
+	template<class T> T &applicationAs() const { return appContext().applicationAs<T>(); }
 	static std::u16string nameString(const MenuItem &item);
 	Gfx::GlyphTextureSet &defaultFace();
 	Gfx::GlyphTextureSet &defaultBoldFace();

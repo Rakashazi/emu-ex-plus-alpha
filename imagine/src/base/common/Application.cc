@@ -75,7 +75,7 @@ Screen &BaseApplication::addScreen(ApplicationContext ctx, std::unique_ptr<Scree
 
 Screen *BaseApplication::findScreen(ScreenId id) const
 {
-	auto it = IG::find_if(screen_, [&](const auto &s) { return *s == id; });
+	auto it = std::ranges::find_if(screen_, [&](const auto &s) { return *s == id; });
 	if(it == screen_.end())
 	{
 		return nullptr;

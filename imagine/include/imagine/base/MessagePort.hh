@@ -36,10 +36,12 @@ public:
 	class Messages
 	{
 	public:
+		struct Sentinel {};
+
 		class Iterator
 		{
 		public:
-			constexpr Iterator(PosixIO *io): io{io}
+			constexpr Iterator(PosixIO &io): io{&io}
 			{
 				this->operator++();
 			}
@@ -57,9 +59,9 @@ public:
 				return *this;
 			}
 
-			bool operator!=(const Iterator &rhs) const
+			bool operator==(Sentinel) const
 			{
-				return io != rhs.io;
+				return !io;
 			}
 
 			const MsgType &operator*() const
@@ -73,9 +75,8 @@ public:
 		};
 
 		constexpr Messages(PosixIO &io): io{io} {}
-
-		Iterator begin() { return Iterator{&io}; }
-		Iterator end() { return Iterator{nullptr}; }
+		auto begin() const { return Iterator{io}; }
+		auto end() const { return Sentinel{}; }
 
 		template <class T>
 		T getExtraData()

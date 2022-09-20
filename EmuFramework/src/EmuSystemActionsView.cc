@@ -19,7 +19,6 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/CreditsView.hh>
 #include <emuframework/StateSlotView.hh>
-#include <emuframework/OptionView.hh>
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/BundledGamesView.hh>
 #include <imagine/gui/AlertView.hh>

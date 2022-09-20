@@ -510,8 +510,8 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 	system().onOptionsLoaded();
 	loadSystemOptions();
 	updateLegacySavePathOnStoragePath(ctx, system());
-	auto launchGame = parseCommandArgs(initParams.commandArgs());
-	if(launchGame)
+	if(auto launchGame = parseCommandArgs(initParams.commandArgs());
+		launchGame)
 		system().setInitialLoadPath(launchGame);
 	audioManager().setMusicVolumeControlHint();
 	if(optionSoundRate > optionSoundRate.defaultVal)
@@ -1257,18 +1257,12 @@ void EmuApp::setContentSearchPath(std::string_view path)
 	contentSearchPath_ = path;
 }
 
-FS::PathString EmuApp::firmwareSearchPath() const
+FS::PathString EmuApp::validSearchPath(const FS::PathString &path) const
 {
 	auto ctx = appContext();
-	auto firmwarePath = system().firmwarePath();
-	if(firmwarePath.empty() || !ctx.fileUriExists(firmwarePath))
+	if(path.empty())
 		return contentSearchPath();
-	return hasArchiveExtension(firmwarePath) ? FS::dirnameUri(firmwarePath) : firmwarePath;
-}
-
-void EmuApp::setFirmwareSearchPath(std::string_view path)
-{
-	system().setFirmwarePath(path);
+	return hasArchiveExtension(path) ? FS::dirnameUri(path) : path;
 }
 
 [[gnu::weak]] void EmuApp::onMainWindowCreated(ViewAttachParams, const Input::Event &) {}
@@ -1933,7 +1927,7 @@ MainWindowData &EmuApp::mainWindowData() const
 
 EmuApp &EmuApp::get(IG::ApplicationContext ctx)
 {
-	return static_cast<EmuApp&>(ctx.application());
+	return ctx.applicationAs<EmuApp>();
 }
 
 EmuApp &gApp() { return *gAppPtr; }

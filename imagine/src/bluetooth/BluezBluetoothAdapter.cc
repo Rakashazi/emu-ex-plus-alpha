@@ -161,7 +161,7 @@ IG::ErrorCode BluezBluetoothAdapter::doScan(const OnScanDeviceClassDelegate &onD
 		sendBTScanStatusDelegate(SCAN_PROCESSING, devices);
 	for(auto i : iotaCount(devices))
 	{
-		if(!onDeviceClass(*this, deviceInfo[i].dev_class))
+		if(!onDeviceClass(*this, std::to_array(deviceInfo[i].dev_class)))
 		{
 			logMsg("skipping device due to class %X:%X:%X", deviceInfo[i].dev_class[0], deviceInfo[i].dev_class[1], deviceInfo[i].dev_class[2]);
 			continue;

@@ -14,7 +14,7 @@
 	along with GBA.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include <emuframework/OptionView.hh>
+#include <emuframework/SystemOptionView.hh>
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"

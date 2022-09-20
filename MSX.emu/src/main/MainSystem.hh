@@ -37,10 +37,11 @@ class MsxSystem final: public EmuSystem
 {
 public:
 	unsigned activeBoardType = BOARD_MSX;
-	FS::FileString cartName[2]{};
-	FS::FileString diskName[2]{};
+	FS::FileString cartName[2];
+	FS::FileString diskName[2];
 	IG::StaticString<128> optionDefaultMachineNameStr{optionMachineNameDefault};
-	IG::StaticString<128> optionSessionMachineNameStr{};
+	IG::StaticString<128> optionSessionMachineNameStr;
+	FS::PathString firmwarePath;
 
 	MsxSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -113,7 +114,7 @@ bool hasMSXDiskExtension(std::string_view name);
 bool hasMSXROMExtension(std::string_view name);
 bool insertROM(EmuApp &, const char *name, unsigned slot = 0);
 bool insertDisk(EmuApp &, const char *name, unsigned slot = 0);
-FS::PathString machineBasePath(EmuSystem &);
+FS::PathString machineBasePath(MsxSystem &);
 void setupVKeyboardMap(EmuApp &, unsigned boardType);
 const char *currentMachineName();
 bool mixerEnableOption(MixerAudioType type);
