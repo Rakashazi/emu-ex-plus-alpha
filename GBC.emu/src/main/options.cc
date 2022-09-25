@@ -54,6 +54,7 @@ bool GbcSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_GB_PAL_IDX: return optionGBPal.readFromIO(io, readSize);
 			case CFGKEY_FULL_GBC_SATURATION: return optionFullGbcSaturation.readFromIO(io, readSize);
 			case CFGKEY_AUDIO_RESAMPLER: return optionAudioResampler.readFromIO(io, readSize);
+			case CFGKEY_CHEATS_PATH: return readStringOptionValue(io, readSize, cheatsDir);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -74,6 +75,7 @@ void GbcSystem::writeConfig(ConfigType type, FileIO &io)
 		optionGBPal.writeWithKeyIfNotDefault(io);
 		optionFullGbcSaturation.writeWithKeyIfNotDefault(io);
 		optionAudioResampler.writeWithKeyIfNotDefault(io);
+		writeStringOptionValue(io, CFGKEY_CHEATS_PATH, cheatsDir);
 	}
 	else if(type == ConfigType::SESSION)
 	{

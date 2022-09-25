@@ -20,7 +20,7 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <memory>
+#include <string_view>
 
 namespace EmuEx
 {
@@ -33,7 +33,8 @@ public:
 
 protected:
 	TextMenuItem savePath;
-	StaticArrayList<MenuItem*, 6> item;
+	TextMenuItem screenshotPath;
+	StaticArrayList<MenuItem*, 7> item;
 
 	void onSavePathChange(std::string_view path);
 };

@@ -79,6 +79,24 @@ const char * S9xGetFilenameInc(const char *ex, enum s9x_getdirtype dirtype)
 
 #else
 
+enum s9x_getdirtype
+{
+	DEFAULT_DIR = 0,
+	HOME_DIR,
+	ROMFILENAME_DIR,
+	ROM_DIR,
+	SRAM_DIR,
+	SNAPSHOT_DIR,
+	SCREENSHOT_DIR,
+	SPC_DIR,
+	CHEAT_DIR,
+	PATCH_DIR,
+	BIOS_DIR,
+	LOG_DIR,
+	SAT_DIR,
+	LAST_DIR
+};
+
 /*bool8 S9xOpenSoundDevice(int mode, bool8 stereo, int buffer_size)
 {
 	return TRUE;
@@ -128,6 +146,16 @@ extern "C" char* osd_GetPackDir()
 	return globalPath.data();
 }
 
+static s9x_getdirtype toDirType(std::string_view ext)
+{
+	if(ext == ".cht")
+		return CHEAT_DIR;
+	else if(ext == ".ips")
+		return PATCH_DIR;
+	else
+		return SRAM_DIR;
+}
+
 #endif
 
 #ifndef SNES9X_VERSION_1_4
@@ -136,16 +164,16 @@ const char *S9xGetFilename(const char *ex, enum s9x_getdirtype dirtype)
 const char *S9xGetFilename(const char *ex)
 #endif
 {
-	bool isRomDir{};
-	auto &sys = EmuEx::gSystem();
-	#ifndef SNES9X_VERSION_1_4
-	if(dirtype == ROMFILENAME_DIR)
-	{
-		isRomDir = true;
-	}
+	auto &sys = static_cast<Snes9xSystem&>(EmuEx::gSystem());
+	#ifdef SNES9X_VERSION_1_4
+	s9x_getdirtype dirtype = toDirType(ex);
 	#endif
-	if(isRomDir)
-		globalPath = sys.contentSaveFilePath(ex);
+	if(dirtype == ROMFILENAME_DIR)
+		globalPath = sys.contentFilePath(ex);
+	else if(dirtype == CHEAT_DIR)
+		globalPath = sys.userFilePath(sys.cheatsDir, ex);
+	else if(dirtype == PATCH_DIR)
+		globalPath = sys.userFilePath(sys.patchesDir, ex);
 	else
 		globalPath = sys.contentSaveFilePath(ex);
 	//logMsg("built s9x path:%s", globalPath.c_str());
@@ -154,25 +182,20 @@ const char *S9xGetFilename(const char *ex)
 
 #ifndef SNES9X_VERSION_1_4
 const char *S9xGetFullFilename(const char *name, enum s9x_getdirtype dirtype)
-#else
-const char *S9xGetFullFilename(const char *name)
-#endif
 {
-	bool isRomDir{};
-	auto &sys = EmuEx::gSystem();
-	#ifndef SNES9X_VERSION_1_4
+	auto &sys = static_cast<Snes9xSystem&>(EmuEx::gSystem());
 	if(dirtype == ROMFILENAME_DIR)
-	{
-		isRomDir = true;
-	}
-	#endif
-	if(isRomDir)
 		globalPath = sys.contentDirectory(name);
+	else if(dirtype == CHEAT_DIR)
+		globalPath = sys.userPath(sys.cheatsDir, name);
+	else if(dirtype == PATCH_DIR)
+		globalPath = sys.userPath(sys.patchesDir, name);
 	else
 		globalPath = sys.contentSavePath(name);
 	//logMsg("built s9x path:%s", globalPath.c_str());
 	return globalPath.c_str();
 }
+#endif
 
 bool S9xPollAxis(uint32 id, int16 *value)
 {

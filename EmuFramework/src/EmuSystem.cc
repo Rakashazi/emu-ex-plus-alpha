@@ -167,17 +167,18 @@ void EmuSystem::clearGamePaths()
 
 FS::PathString EmuSystem::contentSaveDirectory() const
 {
-	assert(!contentName_.empty());
 	return contentSaveDirectory_;
 }
 
 FS::PathString EmuSystem::contentSavePath(std::string_view name) const
 {
+	assert(!contentName_.empty());
 	return FS::uriString(contentSaveDirectory(), name);
 }
 
 FS::PathString EmuSystem::contentSaveFilePath(std::string_view ext) const
 {
+	assert(!contentName_.empty());
 	return FS::uriString(contentSaveDirectory(), contentName().append(ext));
 }
 
@@ -212,6 +213,32 @@ FS::PathString EmuSystem::statePath(int slot, std::string_view path) const
 FS::PathString EmuSystem::statePath(int slot) const
 {
 	return statePath(slot, contentSaveDirectory());
+}
+
+FS::PathString EmuSystem::userPath(std::string_view userDir, std::string_view filename) const
+{
+	return FS::uriString(userPath(userDir), filename);
+}
+
+FS::PathString EmuSystem::userPath(std::string_view userDir) const
+{
+	if(userDir.size())
+	{
+		if(userDir == optionUserPathContentToken)
+			return contentDirectory();
+		else
+			return FS::PathString{userDir};
+	}
+	else
+	{
+		return contentSaveDirectory();
+	}
+}
+
+FS::PathString EmuSystem::userFilePath(std::string_view userDir, std::string_view ext) const
+{
+	assert(!contentName_.empty());
+	return userPath(userDir, contentName().append(ext));
 }
 
 void EmuSystem::closeRuntimeSystem(EmuApp &app, bool allowAutosaveState)
@@ -443,6 +470,12 @@ void EmuSystem::throwMissingContentDirError()
 FS::PathString EmuSystem::contentDirectory(std::string_view name) const
 {
 	return FS::uriString(contentDirectory(), name);
+}
+
+FS::PathString EmuSystem::contentFilePath(std::string_view ext) const
+{
+	assert(!contentName_.empty());
+	return contentDirectory(contentName().append(ext));
 }
 
 std::string EmuSystem::contentDisplayName() const

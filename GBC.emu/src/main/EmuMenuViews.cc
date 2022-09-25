@@ -16,6 +16,8 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/VideoOptionView.hh>
+#include <emuframework/FilePathOptionView.hh>
+#include <emuframework/UserPathSelectView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
 #include "Palette.hh"
@@ -191,6 +193,33 @@ public:
 	}
 };
 
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
+{
+	using MainAppHelper<CustomFilePathOptionView>::system;
+
+	TextMenuItem cheatsPath
+	{
+		cheatsMenuName(appContext(), system().cheatsDir), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<UserPathSelectView>("Cheats", system().userPath(system().cheatsDir),
+				[this](CStringView path)
+				{
+					logMsg("set cheats path:%s", path.data());
+					system().cheatsDir = path;
+					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer(), projP);
+				}), e);
+		}
+	};
+
+public:
+	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
+	{
+		loadStockItems();
+		item.emplace_back(&cheatsPath);
+	}
+};
+
 std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
@@ -198,6 +227,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::VIDEO_OPTIONS: return std::make_unique<CustomVideoOptionView>(attach);
 		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
+		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;

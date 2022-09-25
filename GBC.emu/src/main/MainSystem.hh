@@ -16,7 +16,8 @@ enum
 {
 	CFGKEY_GB_PAL_IDX = 270, CFGKEY_REPORT_AS_GBA = 271,
 	CFGKEY_FULL_GBC_SATURATION = 272, CFGKEY_AUDIO_RESAMPLER = 273,
-	CFGKEY_USE_BUILTIN_GB_PAL = 274, CFGKEY_RENDER_PIXEL_FORMAT_UNUSED = 275
+	CFGKEY_USE_BUILTIN_GB_PAL = 274, CFGKEY_RENDER_PIXEL_FORMAT_UNUSED = 275,
+	CFGKEY_CHEATS_PATH = 276,
 };
 
 constexpr unsigned COLOR_CONVERSION_SATURATED_BIT = bit(0);
@@ -34,10 +35,11 @@ public:
 class GbcSystem final: public EmuSystem
 {
 public:
-	gambatte::GB gbEmu{};
-	GbcInput gbcInput{};
-	std::unique_ptr<Resampler> resampler{};
+	gambatte::GB gbEmu;
+	GbcInput gbcInput;
+	std::unique_ptr<Resampler> resampler;
 	const GBPalette *gameBuiltinPalette{};
+	std::string cheatsDir;
 	uint64_t totalSamples{};
 	uint32_t totalFrames{};
 	uint8_t activeResampler = 1;

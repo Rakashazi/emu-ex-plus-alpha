@@ -16,6 +16,7 @@
 #include <emuframework/EmuApp.hh>
 #include <main/Cheats.hh>
 #include "EmuCheatViews.hh"
+#include "MainSystem.hh"
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/FileStream.hh>
 #include <imagine/gui/TextEntry.hh>
@@ -388,10 +389,11 @@ void updateCheats()
 	applyCheats();
 }
 
-void writeCheatFile(EmuSystem &sys)
+void writeCheatFile(EmuSystem &sys_)
 {
+	auto &sys = static_cast<MdSystem&>(sys_);
 	auto ctx = sys.appContext();
-	auto path = sys.contentSaveFilePath(".pat");
+	auto path = sys.userFilePath(sys.cheatsDir, ".pat");
 
 	if(!cheatList.size())
 	{
@@ -425,9 +427,10 @@ void writeCheatFile(EmuSystem &sys)
 	}
 }
 
-void readCheatFile(EmuSystem &sys)
+void readCheatFile(EmuSystem &sys_)
 {
-	auto path = sys.contentSaveFilePath(".pat");
+	auto &sys = static_cast<MdSystem&>(sys_);
+	auto path = sys.userFilePath(sys.cheatsDir, ".pat");
 	auto file = sys.appContext().openFileUri(path, IOAccessHint::ALL, OpenFlagsMask::TEST);
 	if(!file)
 	{

@@ -1511,7 +1511,7 @@ std::pair<int, FS::PathString> EmuApp::makeNextScreenshotFilename()
 {
 	static constexpr int maxNum = 999;
 	auto ctx = appContext();
-	auto basePath = system().contentSavePath(system().contentName());
+	auto basePath = system().userPath(userScreenshotDir, system().contentName());
 	for(auto i : iotaCount(maxNum))
 	{
 		auto str = IG::format<FS::PathString>("{}.{:03d}.png", basePath, i);

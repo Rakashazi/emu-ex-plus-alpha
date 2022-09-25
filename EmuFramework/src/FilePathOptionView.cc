@@ -16,6 +16,7 @@
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
+#include <emuframework/UserPathSelectView.hh>
 #include "EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/TextTableView.hh>
@@ -27,7 +28,7 @@
 namespace EmuEx
 {
 
-static FS::PathString savePathStrToDescStr(IG::ApplicationContext ctx, std::string_view savePathStr)
+static FS::FileString savePathStrToDisplayName(IG::ApplicationContext ctx, std::string_view savePathStr)
 {
 	if(savePathStr.size())
 	{
@@ -42,16 +43,21 @@ static FS::PathString savePathStrToDescStr(IG::ApplicationContext ctx, std::stri
 	}
 }
 
-static auto savesMenuEntryStr(IG::ApplicationContext ctx, std::string_view savePath)
+static auto savesMenuName(IG::ApplicationContext ctx, std::string_view savePath)
 {
-	return fmt::format("Saves: {}", savePathStrToDescStr(ctx, savePath));
+	return fmt::format("Saves: {}", savePathStrToDisplayName(ctx, savePath));
+}
+
+static auto screenshotsMenuName(IG::ApplicationContext ctx, std::string_view userPath)
+{
+	return fmt::format("Screenshots: {}", userPathToDisplayName(ctx, userPath));
 }
 
 FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"File Path Options", attach, item},
 	savePath
 	{
-		savesMenuEntryStr(appContext(), system().userSaveDirectory()), &defaultFace(),
+		savesMenuName(appContext(), system().userSaveDirectory()), &defaultFace(),
 		[this](const Input::Event &e)
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Saves", 4);
@@ -128,6 +134,20 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 			pushAndShow(std::move(multiChoiceView), e);
 			postDraw();
 		}
+	},
+	screenshotPath
+	{
+		screenshotsMenuName(appContext(), app().userScreenshotPath()), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<UserPathSelectView>("Screenshots", app().screenshotDirectory(),
+				[this](CStringView path)
+				{
+					logMsg("set screenshots path:%s", path.data());
+					app().setUserScreenshotPath(path);
+					screenshotPath.compile(screenshotsMenuName(appContext(), path), renderer(), projP);
+				}), e);
+		}
 	}
 {
 	if(!customMenu)
@@ -139,6 +159,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 void FilePathOptionView::loadStockItems()
 {
 	item.emplace_back(&savePath);
+	item.emplace_back(&screenshotPath);
 }
 
 void FilePathOptionView::onSavePathChange(std::string_view path)
@@ -147,7 +168,7 @@ void FilePathOptionView::onSavePathChange(std::string_view path)
 	{
 		app().postMessage(4, false, fmt::format("App Folder:\n{}", system().fallbackSaveDirectory()));
 	}
-	savePath.compile(savesMenuEntryStr(appContext(), path), renderer(), projP);
+	savePath.compile(savesMenuName(appContext(), path), renderer(), projP);
 }
 
 }

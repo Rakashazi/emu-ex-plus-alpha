@@ -337,21 +337,20 @@ void EncodeGG(char *str, int a, int v, int c)
 std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 {
 	using namespace EmuEx;
-	auto &sys = EmuEx::gSystem();
+	auto &sys = static_cast<NesSystem&>(gSystem());
 	switch(type)
 	{
 		case FCEUMKF_SAV:
 			return std::string{sys.contentSaveFilePath(".sav")};
 		case FCEUMKF_CHEAT:
-			return std::string{sys.contentSaveFilePath(".cht")};
-		case FCEUMKF_IPS:
-			return std::string{sys.contentSaveFilePath(".ips")};
+			return std::string{sys.userFilePath(sys.cheatsDir, ".cht")};
 		case FCEUMKF_GGROM:
-			return std::string{sys.contentSavePath("gg.rom")};
+			return std::string{sys.contentDirectory("gg.rom")};
 		case FCEUMKF_FDS:
 			return std::string{sys.contentSaveFilePath(".fds.sav")};
 		case FCEUMKF_PALETTE:
-			return std::string{sys.contentSaveFilePath(".pal")};
+			return std::string{sys.userFilePath(sys.palettesDir, ".pal")};
+		case FCEUMKF_IPS:
 		case FCEUMKF_MOVIE:
 		case FCEUMKF_STATE:
 		case FCEUMKF_RESUMESTATE:

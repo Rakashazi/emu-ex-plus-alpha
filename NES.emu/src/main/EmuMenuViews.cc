@@ -18,6 +18,7 @@
 #include <emuframework/VideoOptionView.hh>
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/DataPathSelectView.hh>
+#include <emuframework/UserPathSelectView.hh>
 #include <emuframework/SystemOptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
@@ -501,8 +502,56 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
 {
+	using MainAppHelper<CustomFilePathOptionView>::app;
+	using MainAppHelper<CustomFilePathOptionView>::system;
+
+	TextMenuItem cheatsPath
+	{
+		cheatsMenuName(appContext(), system().cheatsDir), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<UserPathSelectView>("Cheats", system().userPath(system().cheatsDir),
+				[this](CStringView path)
+				{
+					logMsg("set cheats path:%s", path.data());
+					system().cheatsDir = path;
+					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer(), projP);
+				}), e);
+		}
+	};
+
+	TextMenuItem patchesPath
+	{
+		patchesMenuName(appContext(), system().patchesDir), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<UserPathSelectView>("Patches", system().userPath(system().patchesDir),
+				[this](CStringView path)
+				{
+					logMsg("set patches path:%s", path.data());
+					system().patchesDir = path;
+					patchesPath.compile(patchesMenuName(appContext(), path), renderer(), projP);
+				}), e);
+		}
+	};
+
+	TextMenuItem palettesPath
+	{
+		palettesMenuName(appContext(), system().palettesDir), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<UserPathSelectView>("Palettes", system().userPath(system().palettesDir),
+				[this](CStringView path)
+				{
+					logMsg("set palettes path:%s", path.data());
+					system().palettesDir = path;
+					palettesPath.compile(palettesMenuName(appContext(), path), renderer(), projP);
+				}), e);
+		}
+	};
+
 	TextMenuItem fdsBios
 	{
 		biosMenuEntryStr(fdsBiosPath), &defaultFace(),
@@ -529,6 +578,9 @@ public:
 	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
 	{
 		loadStockItems();
+		item.emplace_back(&cheatsPath);
+		item.emplace_back(&patchesPath);
+		item.emplace_back(&palettesPath);
 		item.emplace_back(&fdsBios);
 	}
 };

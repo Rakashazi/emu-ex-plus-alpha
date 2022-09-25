@@ -172,6 +172,9 @@ public:
 	void setContentSearchPath(std::string_view path);
 	FS::PathString validSearchPath(const FS::PathString &) const;
 	static void updateLegacySavePath(IG::ApplicationContext, IG::CStringView path);
+	auto userScreenshotPath() const { return userScreenshotDir; }
+	void setUserScreenshotPath(CStringView path) { userScreenshotDir = path; }
+	auto screenshotDirectory() const { return system().userPath(userScreenshotDir); }
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
 	void addTurboInputEvent(unsigned action);
 	void removeTurboInputEvent(unsigned action);
@@ -463,22 +466,22 @@ public:
 protected:
 	IG::FontManager fontManager;
 	mutable Gfx::Renderer renderer;
-	ViewManager viewManager{};
+	ViewManager viewManager;
 	IG::Audio::Manager audioManager_;
 	EmuAudio emuAudio;
-	EmuVideo emuVideo{};
+	EmuVideo emuVideo;
 	EmuVideoLayer emuVideoLayer;
 	EmuSystemTask emuSystemTask;
-	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetID>]{};
+	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetID>];
 	IG_UseMemberIf(VCONTROLS, VController, vController);
 	IG::Timer autoSaveStateTimer;
 	DelegateFunc<void ()> onUpdateInputDevices_{};
 	OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 	KeyConfigContainer customKeyConfigs{};
 	InputDeviceSavedConfigContainer savedInputDevs{};
-	TurboInput turboActions{};
+	TurboInput turboActions;
 	Gfx::Vec3 videoBrightnessRGB{1.f, 1.f, 1.f};
-	FS::PathString contentSearchPath_{};
+	FS::PathString contentSearchPath_;
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
 	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
 	[[no_unique_address]] IG::VibrationManager vibrationManager_;
@@ -487,6 +490,7 @@ protected:
 	#endif
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr){};
 	RecentContentList recentContentList;
+	std::string userScreenshotDir;
 	DoubleOption optionAspectRatio;
 	DoubleOption optionFrameRate;
 	DoubleOption optionFrameRatePAL;

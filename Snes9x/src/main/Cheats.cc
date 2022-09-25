@@ -4,6 +4,7 @@
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
+#include "MainSystem.hh"
 #include <cheats.h>
 #include <imagine/util/format.hh>
 
@@ -166,9 +167,10 @@ static bool addCheat(const char *cheatStr)
 	#endif
 }
 
-static FS::PathString cheatsFilename(EmuSystem &sys)
+static FS::PathString cheatsFilename(EmuSystem &sys_)
 {
-	return sys.contentSaveFilePath(".cht");
+	auto &sys = static_cast<Snes9xSystem&>(sys_);
+	return sys.userFilePath(sys.cheatsDir, ".cht");
 }
 
 static void writeCheatsFile(EmuSystem &sys)

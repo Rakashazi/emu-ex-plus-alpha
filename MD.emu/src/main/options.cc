@@ -70,6 +70,7 @@ bool MdSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readS
 			case CFGKEY_MD_CD_BIOS_JPN_PATH: return readStringOptionValue(io, readSize, cdBiosJpnPath);
 			case CFGKEY_MD_CD_BIOS_EUR_PATH: return readStringOptionValue(io, readSize, cdBiosEurPath);
 			#endif
+			case CFGKEY_CHEATS_PATH: return readStringOptionValue(io, readSize, cheatsDir);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -98,6 +99,7 @@ void MdSystem::writeConfig(ConfigType type, FileIO &io)
 		writeStringOptionValue(io, CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath);
 		writeStringOptionValue(io, CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath);
 		#endif
+		writeStringOptionValue(io, CFGKEY_CHEATS_PATH, cheatsDir);
 	}
 	else if(type == ConfigType::SESSION)
 	{

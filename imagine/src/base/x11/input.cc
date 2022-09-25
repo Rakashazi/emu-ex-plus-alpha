@@ -445,7 +445,7 @@ bool Device::anyTypeBitsPresent(ApplicationContext, TypeBits typeBits)
 
 std::string KeyEvent::keyString(ApplicationContext ctx) const
 {
-	return ctx.application().inputKeyString(rawKey, metaState ? ShiftMask : 0);
+	return ctx.application().inputKeyString(rawKey, metaState);
 }
 
 }

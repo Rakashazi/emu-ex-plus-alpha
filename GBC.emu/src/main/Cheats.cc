@@ -70,10 +70,11 @@ void GbcSystem::applyCheats()
 		logMsg("set GS codes: %s", gsCodeStr.c_str());
 }
 
-void writeCheatFile(EmuSystem &sys)
+void writeCheatFile(EmuSystem &sys_)
 {
+	auto &sys = static_cast<GbcSystem&>(sys_);
 	auto ctx = sys.appContext();
-	auto path = sys.contentSaveFilePath(".gbcht");
+	auto path = sys.userFilePath(sys.cheatsDir, ".gbcht");
 
 	if(!cheatList.size())
 	{
@@ -103,9 +104,10 @@ void writeCheatFile(EmuSystem &sys)
 	}
 }
 
-void readCheatFile(EmuSystem &sys)
+void readCheatFile(EmuSystem &sys_)
 {
-	auto path = sys.contentSaveFilePath(".gbcht");
+	auto &sys = static_cast<GbcSystem&>(sys_);
+	auto path = sys.userFilePath(sys.cheatsDir, ".gbcht");
 	auto file = sys.appContext().openFileUri(path, IOAccessHint::ALL, OpenFlagsMask::TEST);
 	if(!file)
 	{

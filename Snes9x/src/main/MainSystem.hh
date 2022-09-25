@@ -29,6 +29,7 @@ enum
 	CFGKEY_VIDEO_SYSTEM = 278, CFGKEY_INPUT_PORT = 279,
 	CFGKEY_AUDIO_DSP_INTERPOLATON = 280, CFGKEY_SEPARATE_ECHO_BUFFER = 281,
 	CFGKEY_SUPERFX_CLOCK_MULTIPLIER = 282, CFGKEY_ALLOW_EXTENDED_VIDEO_LINES = 283,
+	CFGKEY_CHEATS_PATH = 284, CFGKEY_PATCHES_PATH = 285,
 };
 
 #ifdef SNES9X_VERSION_1_4
@@ -50,6 +51,8 @@ constexpr int SNES_JUSTIFIER = CTL_JUSTIFIER;
 class Snes9xSystem final: public EmuSystem
 {
 public:
+	std::string cheatsDir;
+	std::string patchesDir;
 	#ifndef SNES9X_VERSION_1_4
 	int snesInputPort = SNES_AUTO_INPUT;
 	int snesActiveInputPort = SNES_JOYPAD;
@@ -139,8 +142,6 @@ using MainSystem = Snes9xSystem;
 inline Snes9xSystem &gSnes9xSystem() { return static_cast<Snes9xSystem&>(gSystem()); }
 
 void setSuperFXSpeedMultiplier(unsigned val);
-
-uint32_t numCheats();
 
 }
 

@@ -495,6 +495,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 
 	writeStringOptionValue(io, CFGKEY_LAST_DIR, contentSearchPath());
 	writeStringOptionValue(io, CFGKEY_SAVE_PATH, system().userSaveDirectory());
+	writeStringOptionValue(io, CFGKEY_SCREENSHOTS_PATH, userScreenshotDir);
 
 	system().writeConfig(ConfigType::MAIN, io);
 }
@@ -619,6 +620,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				#endif
 				bcase CFGKEY_SAVE_PATH:
 					readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){system().setUserSaveDirectory(path);});
+				bcase CFGKEY_SCREENSHOTS_PATH: readStringOptionValue(io, size, userScreenshotDir);
 				bcase CFGKEY_SHOW_BUNDLED_GAMES:
 				{
 					if(EmuSystem::hasBundledGames)

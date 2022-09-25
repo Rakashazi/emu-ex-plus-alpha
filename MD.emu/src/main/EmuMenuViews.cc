@@ -17,6 +17,7 @@
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/DataPathSelectView.hh>
+#include <emuframework/UserPathSelectView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
@@ -274,6 +275,21 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 	using MainAppHelper<CustomFilePathOptionView>::app;
 	using MainAppHelper<CustomFilePathOptionView>::system;
 
+	TextMenuItem cheatsPath
+	{
+		cheatsMenuName(appContext(), system().cheatsDir), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<UserPathSelectView>("Cheats", system().userPath(system().cheatsDir),
+				[this](CStringView path)
+				{
+					logMsg("set cheats path:%s", path.data());
+					system().cheatsDir = path;
+					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer(), projP);
+				}), e);
+		}
+	};
+
 	#ifndef NO_SCD
 	static constexpr std::string_view biosHeadingStr[3]
 	{
@@ -337,6 +353,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
 	{
 		loadStockItems();
+		item.emplace_back(&cheatsPath);
 		#ifndef NO_SCD
 		for(auto i : iotaCount(3))
 		{

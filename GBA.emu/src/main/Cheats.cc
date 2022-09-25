@@ -16,6 +16,7 @@
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
+#include "MainSystem.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/util/string.h>
@@ -219,10 +220,11 @@ EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 	loadCheatItems();
 }
 
-void writeCheatFile(EmuSystem &sys)
+static void writeCheatFile(EmuSystem &sys_)
 {
+	auto &sys = static_cast<GbaSystem&>(sys_);
 	auto ctx = sys.appContext();
-	auto filename = sys.contentSaveFilePath(".clt");
+	auto filename = sys.userFilePath(sys.cheatsDir, ".clt");
 	if(cheatsList.empty())
 	{
 		logMsg("deleting cheats file %s", filename.data());
@@ -232,9 +234,10 @@ void writeCheatFile(EmuSystem &sys)
 	cheatsSaveCheatList(ctx, filename.data());
 }
 
-void readCheatFile(EmuSystem &sys)
+void readCheatFile(EmuSystem &sys_)
 {
-	auto filename = sys.contentSaveFilePath(".clt");
+	auto &sys = static_cast<GbaSystem&>(sys_);
+	auto filename = sys.userFilePath(sys.cheatsDir, ".clt");
 	if(cheatsLoadCheatList(sys.appContext(), filename.data()))
 	{
 		logMsg("loaded cheat file: %s", filename.data());

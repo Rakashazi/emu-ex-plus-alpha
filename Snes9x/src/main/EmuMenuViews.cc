@@ -5,6 +5,8 @@
 #endif
 #include <emuframework/EmuApp.hh>
 #include <emuframework/AudioOptionView.hh>
+#include <emuframework/FilePathOptionView.hh>
+#include <emuframework/UserPathSelectView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
@@ -263,6 +265,49 @@ public:
 	}
 };
 
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
+{
+	using MainAppHelper<CustomFilePathOptionView>::system;
+
+	TextMenuItem cheatsPath
+	{
+		cheatsMenuName(appContext(), system().cheatsDir), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<UserPathSelectView>("Cheats", system().userPath(system().cheatsDir),
+				[this](CStringView path)
+				{
+					logMsg("set cheats path:%s", path.data());
+					system().cheatsDir = path;
+					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer(), projP);
+				}), e);
+		}
+	};
+
+	TextMenuItem patchesPath
+	{
+		patchesMenuName(appContext(), system().patchesDir), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<UserPathSelectView>("Patches", system().userPath(system().patchesDir),
+				[this](CStringView path)
+				{
+					logMsg("set patches path:%s", path.data());
+					system().patchesDir = path;
+					patchesPath.compile(patchesMenuName(appContext(), path), renderer(), projP);
+				}), e);
+		}
+	};
+
+public:
+	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
+	{
+		loadStockItems();
+		item.emplace_back(&cheatsPath);
+		item.emplace_back(&patchesPath);
+	}
+};
+
 std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
@@ -270,6 +315,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		#ifndef SNES9X_VERSION_1_4
 		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
 		#endif
+		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);

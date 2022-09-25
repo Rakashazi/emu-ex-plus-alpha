@@ -89,6 +89,9 @@ bool NesSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_VISIBLE_VIDEO_LINES: return optionDefaultVisibleVideoLines.readFromIO(io, readSize);
 			case CFGKEY_CORRECT_LINE_ASPECT: return optionCorrectLineAspect.readFromIO(io, readSize);
 			case CFGKEY_FF_DURING_FDS_ACCESS: return readOptionValue(io, readSize, fastForwardDuringFdsAccess);
+			case CFGKEY_CHEATS_PATH: return readStringOptionValue(io, readSize, cheatsDir);
+			case CFGKEY_PATCHES_PATH: return readStringOptionValue(io, readSize, patchesDir);
+			case CFGKEY_PALETTE_PATH: return readStringOptionValue(io, readSize, palettesDir);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -126,6 +129,9 @@ void NesSystem::writeConfig(ConfigType type, FileIO &io)
 		optionCorrectLineAspect.writeWithKeyIfNotDefault(io);
 		if(!fastForwardDuringFdsAccess)
 			writeOptionValue(io, CFGKEY_FF_DURING_FDS_ACCESS, fastForwardDuringFdsAccess);
+		writeStringOptionValue(io, CFGKEY_CHEATS_PATH, cheatsDir);
+		writeStringOptionValue(io, CFGKEY_PATCHES_PATH, patchesDir);
+		writeStringOptionValue(io, CFGKEY_PALETTE_PATH, palettesDir);
 	}
 	else if(type == ConfigType::SESSION)
 	{

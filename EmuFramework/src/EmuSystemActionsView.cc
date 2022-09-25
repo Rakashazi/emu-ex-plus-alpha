@@ -229,7 +229,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(!system().hasContent())
 				return;
-			auto pathName = appContext().fileUriDisplayName(system().contentSaveDirectory());
+			auto pathName = appContext().fileUriDisplayName(app().screenshotDirectory());
 			if(pathName.empty())
 			{
 				app().postMessage("Save path isn't valid");

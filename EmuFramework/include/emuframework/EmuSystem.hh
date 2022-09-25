@@ -94,6 +94,8 @@ enum class VideoSystem: uint8_t
 	NATIVE_NTSC, PAL
 };
 
+constexpr const char *optionUserPathContentToken = ":CONTENT:";
+
 class EmuSystem
 {
 public:
@@ -220,6 +222,7 @@ public:
 	const BundledGameInfo &bundledGameInfo(int idx) const;
 	auto contentDirectory() const { return contentDirectory_; }
 	FS::PathString contentDirectory(std::string_view name) const;
+	FS::PathString contentFilePath(std::string_view ext) const;
 	auto contentLocation() const { return contentLocation_; }
 	const char *contentLocationPtr() { return contentLocation_.data(); }
 	FS::FileString contentName() const { return contentName_; }
@@ -240,6 +243,9 @@ public:
 	FS::PathString statePath(std::string_view filename) const;
 	FS::PathString statePath(int slot, std::string_view basePath) const;
 	FS::PathString statePath(int slot) const;
+	FS::PathString userPath(std::string_view userDir, std::string_view filename) const;
+	FS::PathString userPath(std::string_view userDir) const;
+	FS::PathString userFilePath(std::string_view userDir, std::string_view ext) const;
 	void clearGamePaths();
 	char saveSlotChar(int slot) const;
 	char saveSlotCharUpper(int slot) const;
@@ -299,13 +305,13 @@ protected:
 	bool sessionOptionsSet{};
 	BackupMemoryDirtyFlags backupMemoryDirtyFlags{};
 	int8_t backupMemoryCounter{};
-	FS::PathString contentDirectory_{}; // full directory path of content on disk, if any
-	FS::PathString contentLocation_{}; // full path or URI to content
-	FS::FileString contentFileName_{}; // name + extension of content, inside archive if any
-	FS::FileString contentName_{}; // name of content from the original location without extension
-	std::string contentDisplayName_{}; // more descriptive content name set by system
-	FS::PathString contentSaveDirectory_{};
-	FS::PathString userSaveDirectory_{};
+	FS::PathString contentDirectory_; // full directory path of content on disk, if any
+	FS::PathString contentLocation_; // full path or URI to content
+	FS::FileString contentFileName_; // name + extension of content, inside archive if any
+	FS::FileString contentName_; // name of content from the original location without extension
+	std::string contentDisplayName_; // more descriptive content name set by system
+	FS::PathString contentSaveDirectory_;
+	FS::PathString userSaveDirectory_;
 
 	void setupContentUriPaths(IG::CStringView uri, std::string_view displayName);
 	void setupContentFilePaths(IG::CStringView filePath, std::string_view displayName);

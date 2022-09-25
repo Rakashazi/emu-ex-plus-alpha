@@ -122,31 +122,31 @@ void GbaSystem::applyGamePatches(uint8_t *rom, int &romSize)
 {
 	auto ctx = appContext();
 	// The patchApply* functions are responsible for closing the FILE
-	if(auto f = IG::FileUtils::fopenUri(ctx, contentSaveFilePath(".ips"), "rb");
+	if(auto f = IG::FileUtils::fopenUri(ctx, userFilePath(patchesDir, ".ips"), "rb");
 		f)
 	{
-		logMsg("applying IPS patch");
+		logMsg("applying IPS patch:%s", userFilePath(patchesDir, ".ips").data());
 		if(!patchApplyIPS(f, &rom, &romSize))
 		{
-			throw std::runtime_error(fmt::format("Error applying IPS patch in:\n{}", contentSaveDirectory()));
+			throw std::runtime_error(fmt::format("Error applying IPS patch in:\n{}", patchesDir));
 		}
 	}
-	else if(auto f = IG::FileUtils::fopenUri(ctx, contentSaveFilePath(".ups"), "rb");
+	else if(auto f = IG::FileUtils::fopenUri(ctx, userFilePath(patchesDir, ".ups"), "rb");
 		f)
 	{
-		logMsg("applying UPS patch");
+		logMsg("applying UPS patch:%s", userFilePath(patchesDir, ".ups").data());
 		if(!patchApplyUPS(f, &rom, &romSize))
 		{
-			throw std::runtime_error(fmt::format("Error applying UPS patch in:\n{}", contentSaveDirectory()));
+			throw std::runtime_error(fmt::format("Error applying UPS patch in:\n{}", patchesDir));
 		}
 	}
-	else if(auto f = IG::FileUtils::fopenUri(ctx, contentSaveFilePath(".ppf"), "rb");
+	else if(auto f = IG::FileUtils::fopenUri(ctx, userFilePath(patchesDir, ".ppf"), "rb");
 		f)
 	{
-		logMsg("applying UPS patch");
+		logMsg("applying UPS patch:%s", userFilePath(patchesDir, ".ppf").data());
 		if(!patchApplyPPF(f, &rom, &romSize))
 		{
-			throw std::runtime_error(fmt::format("Error applying PPF patch in:\n{}", contentSaveDirectory()));
+			throw std::runtime_error(fmt::format("Error applying PPF patch in:\n{}", patchesDir));
 		}
 	}
 }
