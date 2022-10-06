@@ -14,4 +14,5 @@ void FCEU_FDSSetDisk(uint8 side, EmuEx::NesSystem &);
 bool FCEU_FDSInserted();
 uint8 FCEU_FDSCurrentSide();
 uint8 FCEU_FDSSides();
+void FCEU_FDSReadModifiedDisk();
 void FCEU_FDSWriteModifiedDisk();

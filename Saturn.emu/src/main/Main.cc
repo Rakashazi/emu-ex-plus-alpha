@@ -267,7 +267,7 @@ void SaturnSystem::loadState(EmuApp &, IG::CStringView path)
 		throwFileReadError();
 }
 
-void SaturnSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void SaturnSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 {
 	if(hasContent())
 	{

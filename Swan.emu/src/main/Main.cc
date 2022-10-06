@@ -78,7 +78,12 @@ static FS::PathString saveFilename(EmuSystem &sys)
 	return sys.contentSaveFilePath(".sav");
 }
 
-void WsSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void WsSystem::loadBackupMemory(EmuApp &app)
+{
+	WSwan_MemoryLoadNV();
+}
+
+void WsSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 {
 	WSwan_MemorySaveNV();
 }

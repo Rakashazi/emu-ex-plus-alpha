@@ -134,14 +134,14 @@ FS::FileString MdSystem::stateFilename(int slot, std::string_view name) const
 	return IG::format<FS::FileString>("{}.0{}.gp", name, saveSlotChar(slot));
 }
 
-static FS::PathString saveFilename(EmuSystem &sys)
+static FS::PathString saveFilename(EmuApp &app)
 {
-	return sys.contentSaveFilePath(".srm");
+	return app.contentSaveFilePath(".srm");
 }
 
-static FS::PathString bramSaveFilename(EmuSystem &sys)
+static FS::PathString bramSaveFilename(EmuApp &app)
 {
-	return sys.contentSaveFilePath(".brm");
+	return app.contentSaveFilePath(".brm");
 }
 
 static const unsigned maxSaveStateSize = STATE_SIZE+4;
@@ -172,7 +172,58 @@ static bool sramHasContent(std::span<uint8> sram)
 	return false;
 }
 
-void MdSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void MdSystem::loadBackupMemory(EmuApp &app)
+{
+	#ifndef NO_SCD
+	if(sCD.isActive)
+	{
+		auto saveStr = bramSaveFilename(app);
+		auto bramFile = appContext().openFileUri(saveStr, IOAccessHint::ALL, OpenFlagsMask::TEST);
+		if(!bramFile)
+		{
+			logMsg("no BRAM on disk, formatting");
+			IG::fill(bram);
+			memcpy(bram + sizeof(bram) - sizeof(fmtBram), fmtBram, sizeof(fmtBram));
+			auto sramFormatStart = sram.sram + 0x10000 - sizeof(fmt64kSram);
+			memcpy(sramFormatStart, fmt64kSram, sizeof(fmt64kSram));
+			for(unsigned i = 0; i < 0x40; i += 2) // byte-swap sram cart format region
+			{
+				std::swap(sramFormatStart[i], sramFormatStart[i+1]);
+			}
+		}
+		else
+		{
+			bramFile.read(bram, sizeof(bram));
+			bramFile.read(sram.sram, 0x10000);
+			for(unsigned i = 0; i < 0x10000; i += 2) // byte-swap
+			{
+				std::swap(sram.sram[i], sram.sram[i+1]);
+			}
+			logMsg("loaded BRAM from disk");
+		}
+	}
+	else
+	#endif
+	if(sram.on)
+	{
+		auto saveStr = saveFilename(app);
+
+		if(FileUtils::readFromUri(appContext(), saveStr, {sram.sram, 0x10000}) <= 0)
+			logMsg("no SRAM on disk");
+		else
+			logMsg("loaded SRAM from disk%s", optionBigEndianSram ? ", will byte-swap" : "");
+
+		if(optionBigEndianSram)
+		{
+			for(unsigned i = 0; i < 0x10000; i += 2)
+			{
+				std::swap(sram.sram[i], sram.sram[i+1]);
+			}
+		}
+	}
+}
+
+void MdSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 {
 	if(!hasContent())
 		return;
@@ -180,7 +231,7 @@ void MdSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 	if(sCD.isActive)
 	{
 		logMsg("saving BRAM");
-		auto saveStr = bramSaveFilename(*this);
+		auto saveStr = bramSaveFilename(app);
 		auto bramFile = appContext().openFileUri(saveStr, OpenFlagsMask::NEW | OpenFlagsMask::TEST);
 		if(!bramFile)
 			logMsg("error creating bram file");
@@ -200,7 +251,7 @@ void MdSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 	#endif
 	if(sram.on)
 	{
-		auto saveStr = saveFilename(*this);
+		auto saveStr = saveFilename(app);
 		if(sramHasContent({sram.sram, 0x10000}))
 		{
 			logMsg("saving SRAM%s", optionBigEndianSram ? ", byte-swapped" : "");
@@ -351,54 +402,6 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 			old_system[i] = input.system[i]; // store input ports set by game
 	}
 	setupInput(EmuApp::get(appContext()));
-
-	#ifndef NO_SCD
-	if(sCD.isActive)
-	{
-		auto saveStr = bramSaveFilename(*this);
-		auto bramFile = appContext().openFileUri(saveStr, IOAccessHint::ALL, OpenFlagsMask::TEST);
-		if(!bramFile)
-		{
-			logMsg("no BRAM on disk, formatting");
-			IG::fill(bram);
-			memcpy(bram + sizeof(bram) - sizeof(fmtBram), fmtBram, sizeof(fmtBram));
-			auto sramFormatStart = sram.sram + 0x10000 - sizeof(fmt64kSram);
-			memcpy(sramFormatStart, fmt64kSram, sizeof(fmt64kSram));
-			for(unsigned i = 0; i < 0x40; i += 2) // byte-swap sram cart format region
-			{
-				std::swap(sramFormatStart[i], sramFormatStart[i+1]);
-			}
-		}
-		else
-		{
-			bramFile.read(bram, sizeof(bram));
-			bramFile.read(sram.sram, 0x10000);
-			for(unsigned i = 0; i < 0x10000; i += 2) // byte-swap
-			{
-				std::swap(sram.sram[i], sram.sram[i+1]);
-			}
-			logMsg("loaded BRAM from disk");
-		}
-	}
-	else
-	#endif
-	if(sram.on)
-	{
-		auto saveStr = saveFilename(*this);
-
-		if(FileUtils::readFromUri(appContext(), saveStr, {sram.sram, 0x10000}) <= 0)
-			logMsg("no SRAM on disk");
-		else
-			logMsg("loaded SRAM from disk%s", optionBigEndianSram ? ", will byte-swap" : "");
-
-		if(optionBigEndianSram)
-		{
-			for(unsigned i = 0; i < 0x10000; i += 2)
-			{
-				std::swap(sram.sram[i], sram.sram[i+1]);
-			}
-		}
-	}
 
 	system_reset();
 

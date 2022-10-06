@@ -110,8 +110,8 @@ public:
 		lcd_.setDmgPaletteColor(palNum, colorNum, rgb32);
 	}
 
-	void setStreamDelegates(InputStreamDelegate iDel, OutputStreamDelegate oDel) {
-		cart_.setStreamDelegates(iDel, oDel);
+	void setSaveStreamDelegates(SaveInputStreamDelegate iDel, SaveOutputStreamDelegate oDel) {
+		cart_.setSaveStreamDelegates(iDel, oDel);
 	}
 
 	void refreshPalettes() { lcd_.refreshPalettes(); }

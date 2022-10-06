@@ -28,7 +28,7 @@
 #include "mamez80/z80.h"
 #include "state.h"
 
-static Uint8 *z80map1, *z80map2, *z80map3, *z80map4;
+static const Uint8 *z80map1, *z80map2, *z80map3, *z80map4;
 
 Uint8 mame_z80mem[0x10000];
 
@@ -137,11 +137,10 @@ void cpu_z80_mkstate(gzFile gzf,int mode) {
 	mkstate_data(gzf, z80_stateData(), z80_stateDataSize, mode);
 	mkstate_data(gzf, mame_z80mem, 0x10000, mode);
 	if (mode==STREAD) {
-		int i;
-		for (i = 0; i < 4; i++) {
-			cpu_z80_switchbank(i, z80_bank[i]);
-		}
-//		memcpy(mame_z80mem + 0xf800, memory.z80_ram, 0x800);
+		z80map1 = memory.rom.cpu_z80.p + (0x4000 * ((z80_bank[0] >> 8) & 0x0f));
+		z80map2 = memory.rom.cpu_z80.p + (0x2000 * ((z80_bank[1] >> 8) & 0x1f));
+		z80map3 = memory.rom.cpu_z80.p + (0x1000 * ((z80_bank[2] >> 8) & 0x3f));
+		z80map4 = memory.rom.cpu_z80.p + (0x0800 * ((z80_bank[3] >> 8) & 0x7f));
 	}
 }
 

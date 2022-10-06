@@ -959,7 +959,6 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 init_ok:
 
 	GameInfo->mappernum = MapperNo;
-	FCEU_LoadGameSave(&iNESCart);
 
 	strcpy(LoadedRomFName, name); //bbit edited: line added
 

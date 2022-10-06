@@ -26,7 +26,6 @@ namespace EmuEx
 {
 
 const char *EmuSystem::configFilename = "NeoEmu.config";
-bool EmuApp::autoSaveStateDefault = false;
 
 std::span<const AspectRatioInfo> NeoSystem::aspectRatioInfos()
 {

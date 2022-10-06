@@ -104,11 +104,6 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 		optionFrameRate.initDefault(60);
 	}
 
-	if(!EmuApp::autoSaveStateDefault)
-	{
-		optionAutoSaveState.initDefault(false);
-	}
-
 	if(!EmuApp::hasIcon)
 	{
 		optionNotificationIcon.initDefault(false);

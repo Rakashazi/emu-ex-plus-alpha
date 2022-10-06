@@ -99,18 +99,17 @@ void GbcSystem::loadState(EmuApp &app, IG::CStringView path)
 		throwFileReadError();
 }
 
-void GbcSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void GbcSystem::loadBackupMemory(EmuApp &)
+{
+	gbEmu.loadSavedata();
+}
+
+void GbcSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 {
 	if(!hasContent())
 		return;
 	logMsg("saving backup memory");
 	gbEmu.saveSavedata();
-}
-
-void GbcSystem::savePathChanged()
-{
-	if(hasContent())
-		gbEmu.setSaveDir(std::string{contentSaveDirectory()});
 }
 
 void GbcSystem::closeSystem()

@@ -372,22 +372,28 @@ bool ApplicationContext::removeDirectoryUri(IG::CStringView uri) const
 	return application().removeFileUri(thisThreadJniEnv(), baseActivityObject(), uri, true);
 }
 
-void AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity, CStringView uri, DirectoryEntryDelegate del) const
+bool AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity,
+	CStringView uri, DirectoryEntryDelegate del, FS::DirOpenFlagsMask flags) const
 {
 	logMsg("listing directory URI:%s", uri.data());
 	if(!listUriFiles(env, baseActivity, (jlong)&del, env->NewStringUTF(uri)))
 	{
-		throw std::system_error{ENOENT, std::system_category(), uri};
+		if(to_underlying(flags & FS::DirOpenFlagsMask::Test))
+			return false;
+		else
+			throw std::system_error{ENOENT, std::system_category(), uri};
 	}
+	return true;
 }
 
-void ApplicationContext::forEachInDirectoryUri(CStringView uri, DirectoryEntryDelegate del) const
+bool ApplicationContext::forEachInDirectoryUri(CStringView uri, DirectoryEntryDelegate del,
+	FS::DirOpenFlagsMask flags) const
 {
 	if(androidSDK() < 21 || !IG::isUri(uri))
 	{
-		return forEachInDirectory(uri, del);
+		return forEachInDirectory(uri, del, flags);
 	}
-	application().forEachInDirectoryUri(thisThreadJniEnv(), baseActivityObject(), uri, del);
+	return application().forEachInDirectoryUri(thisThreadJniEnv(), baseActivityObject(), uri, del, flags);
 }
 
 static FS::PathString mainSOPath(ApplicationContext ctx)

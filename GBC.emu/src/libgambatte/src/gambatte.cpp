@@ -96,9 +96,9 @@ void GB::setInputGetter(InputGetter *getInput) {
 	p_->cpu.setInputGetter(getInput);
 }
 
-void GB::setStreamDelegates(InputStreamDelegate iDel, OutputStreamDelegate oDel)
+void GB::setSaveStreamDelegates(SaveInputStreamDelegate iDel, SaveOutputStreamDelegate oDel)
 {
-	p_->cpu.setStreamDelegates(iDel, oDel);
+	p_->cpu.setSaveStreamDelegates(iDel, oDel);
 }
 
 void GB::setSaveDir(std::string const &sdir) {
@@ -115,7 +115,6 @@ LoadRes GB::load(const void *romdata, std::size_t size, std::string const &romfi
 		p_->loadflags = flags;
 		setInitState(state, p_->cpu.isCgb(), flags & GBA_CGB);
 		p_->cpu.loadState(state);
-		p_->cpu.loadSavedata();
 
 		p_->stateNo = 1;
 		#ifndef GAMBATTE_NO_OSD
@@ -137,6 +136,11 @@ bool GB::isLoaded() const {
 void GB::saveSavedata() {
 	if (p_->cpu.loaded())
 		p_->cpu.saveSavedata();
+}
+
+void GB::loadSavedata() {
+	if (p_->cpu.loaded())
+		p_->cpu.loadSavedata();
 }
 
 void GB::setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32) {

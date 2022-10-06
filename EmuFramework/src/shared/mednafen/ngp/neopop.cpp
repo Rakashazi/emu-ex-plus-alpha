@@ -195,7 +195,6 @@ static MDFN_COLD void Load(GameFile* gf)
   rom_loaded();
   MDFN_printf(_("ROM:       %uKiB\n"), (ngpc_rom.length + 1023) / 1024);
   MDFN_printf(_("ROM MD5:   0x%s\n"), md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str());
-  FLASH_LoadNV();
 
   MDFNMP_Init(1024, 1024 * 1024 * 16 / 1024);
 

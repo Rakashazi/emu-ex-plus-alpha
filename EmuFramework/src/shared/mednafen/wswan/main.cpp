@@ -376,9 +376,6 @@ static void Load(GameFile* gf)
 
   WSwan_MemoryInit(MDFN_GetSettingB("wswan.language"), wsc, SRAMSize, IsWW);
 
-  if(!IsWSR)
-   WSwan_MemoryLoadNV();
-
   Comm_Init(MDFN_GetSettingB("wswan.excomm") ? MDFN_GetSettingS("wswan.excomm.path").c_str() : NULL);
 
   WSwan_GfxInit();

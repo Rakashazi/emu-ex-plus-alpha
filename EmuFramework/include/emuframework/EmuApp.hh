@@ -98,6 +98,9 @@ WISE_ENUM_CLASS((ImageChannel, uint8_t),
 	Green,
 	Blue);
 
+constexpr const char *defaultAutosaveFilename = "auto-00";
+constexpr const char *noAutosaveName = "\a";
+
 class EmuApp : public IG::Application
 {
 public:
@@ -121,7 +124,6 @@ public:
 	};
 
 	// Static app configuration
-	static bool autoSaveStateDefault;
 	static bool hasIcon;
 	static bool needsGlobalInstance;
 
@@ -130,7 +132,8 @@ public:
 	static void onCustomizeNavView(NavView &v);
 	void createSystemWithMedia(IG::IO, IG::CStringView path, std::string_view displayName,
 		const Input::Event &, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
-	void closeSystem(bool allowAutosaveState = true);
+	void closeSystem();
+	void closeSystemWithoutSave();
 	void reloadSystem(EmuSystemCreateParams params = {});
 	void onSystemCreated();
 	void promptSystemReloadDueToSetOption(ViewAttachParams, const Input::Event &, EmuSystemCreateParams params = {});
@@ -150,16 +153,24 @@ public:
 	void startEmulation();
 	void pauseEmulation();
 	void showUI(bool updateTopView = true);
-	void launchSystemWithResumePrompt(const Input::Event &);
-	void launchSystem(const Input::Event &, bool tryAutoState);
-	void launchSystem(bool tryAutoState);
+	void launchSystem(const Input::Event &);
 	static bool hasArchiveExtension(std::string_view name);
 	void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
 	void dispatchOnMainMenuItemOptionChanged();
 	void unpostMessage();
 	void printScreenshotResult(int num, bool success);
-	void saveAutoState();
-	bool loadAutoState();
+	bool saveAutosave();
+	bool loadAutosave();
+	bool setAutosave(std::string_view name);
+	bool renameAutosave(std::string_view name, std::string_view newName);
+	bool deleteAutosave(std::string_view name);
+	const auto &currentAutosave() const { return autoSaveSlot; }
+	std::string currentAutosaveName() const;
+	std::string currentAutosaveTimeAsString() const;
+	FS::PathString currentAutosaveStatePath() const { return autosaveStatePath(autoSaveSlot); }
+	FS::PathString autosaveStatePath(std::string_view name) const;
+	FS::PathString contentSavePath(std::string_view name) const;
+	FS::PathString contentSaveFilePath(std::string_view ext) const;
 	bool saveState(IG::CStringView path);
 	bool saveStateWithSlot(int slot);
 	bool loadState(IG::CStringView path);
@@ -167,12 +178,12 @@ public:
 	bool shouldOverwriteExistingState() const;
 	void setDefaultVControlsButtonSpacing(int spacing);
 	void setDefaultVControlsButtonStagger(int stagger);
-	FS::PathString contentSearchPath() const;
+	const auto &contentSearchPath() const { return contentSearchPath_; }
 	FS::PathString contentSearchPath(std::string_view name) const;
 	void setContentSearchPath(std::string_view path);
 	FS::PathString validSearchPath(const FS::PathString &) const;
 	static void updateLegacySavePath(IG::ApplicationContext, IG::CStringView path);
-	auto userScreenshotPath() const { return userScreenshotDir; }
+	const auto &userScreenshotPath() const { return userScreenshotDir; }
 	void setUserScreenshotPath(CStringView path) { userScreenshotDir = path; }
 	auto screenshotDirectory() const { return system().userPath(userScreenshotDir); }
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
@@ -188,11 +199,12 @@ public:
 	void syncEmulationThread();
 	void prepareAudio();
 	void startAudio();
-	EmuAudio &audio();
-	EmuVideo &video();
+	EmuAudio &audio() { return emuAudio; }
+	EmuVideo &video() { return emuVideo; }
 	EmuViewController &viewController();
-	void cancelAutoSaveStateTimer();
-	void startAutoSaveStateTimer();
+	void pauseAutosaveStateTimer();
+	void cancelAutosaveStateTimer();
+	void startAutosaveStateTimer();
 	void configFrameTime();
 	void setFaceButtonMapping(FaceButtonImageMap map);
 	void applyEnabledFaceButtons(std::span<const std::pair<int, bool>> applyEnableMap);
@@ -212,7 +224,7 @@ public:
 	bool skipForwardFrames(EmuSystemTaskContext, int frames);
 	FloatSeconds bestFrameTimeForScreen(VideoSystem system) const;
 	void applyFrameRates(bool updateFrameTime = true);
-	IG::Audio::Manager &audioManager();
+	IG::Audio::Manager &audioManager() { return audioManager_; }
 	void renderSystemFramebuffer(EmuVideo &);
 	bool writeScreenshot(IG::PixmapView, IG::CStringView path);
 	std::pair<int, FS::PathString> makeNextScreenshotFilename();
@@ -245,7 +257,7 @@ public:
 	static bool hasGooglePlayStoreFeatures();
 	EmuSystem &system();
 	const EmuSystem &system() const;
-	ApplicationContext appContext() const;
+	ApplicationContext appContext() const { return system().appContext(); }
 	static EmuApp &get(ApplicationContext);
 	MainWindowData &mainWindowData() const;
 
@@ -269,10 +281,10 @@ public:
 
 	// Video Options
 	bool setWindowDrawableConfig(Gfx::DrawableConfig);
-	Gfx::DrawableConfig windowDrawableConfig() const;
+	Gfx::DrawableConfig windowDrawableConfig() const { return windowDrawableConf; }
 	IG::PixelFormat windowPixelFormat() const;
 	void setRenderPixelFormat(std::optional<IG::PixelFormat>);
-	IG::PixelFormat renderPixelFormat() const;
+	IG::PixelFormat renderPixelFormat() const { return renderPixelFmt; }
 	bool setVideoAspectRatio(double val);
 	double videoAspectRatio() const;
 	auto &videoFilterOption() { return optionImgFilter; }
@@ -308,8 +320,8 @@ public:
 	void setVideoBrightness(float brightness, ImageChannel);
 
 	// System Options
-	auto &autoSaveStateOption() { return optionAutoSaveState; }
-	auto &confirmAutoLoadStateOption() { return optionConfirmAutoLoadState; }
+	auto &autosaveTimerMinsOption() { return optionAutosaveTimerMins; }
+	auto &confirmAutosaveSlotOption() { return optionConfirmAutosaveSlot; }
 	auto &confirmOverwriteStateOption() { return optionConfirmOverwriteState; }
 	auto &fastSlowModeSpeedOption() { return optionFastSlowModeSpeed; }
 	double fastSlowModeSpeedAsDouble() { return optionFastSlowModeSpeed.val / 100.; }
@@ -474,7 +486,9 @@ protected:
 	EmuSystemTask emuSystemTask;
 	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetID>];
 	IG_UseMemberIf(VCONTROLS, VController, vController);
-	IG::Timer autoSaveStateTimer;
+	IG::Timer autoSaveTimer;
+	IG::Time autoSaveTimerStartTime;
+	IG::Time autoSaveTimerElapsedTime;
 	DelegateFunc<void ()> onUpdateInputDevices_{};
 	OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 	KeyConfigContainer customKeyConfigs{};
@@ -490,6 +504,7 @@ protected:
 	#endif
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr){};
 	RecentContentList recentContentList;
+	std::string autoSaveSlot;
 	std::string userScreenshotDir;
 	DoubleOption optionAspectRatio;
 	DoubleOption optionFrameRate;
@@ -497,8 +512,8 @@ protected:
 	Byte4Option optionSoundRate;
 	Byte2Option optionFontSize;
 	Byte1Option optionPauseUnfocused;
-	Byte1Option optionAutoSaveState;
-	Byte1Option optionConfirmAutoLoadState;
+	Byte1Option optionAutosaveTimerMins;
+	Byte1Option optionConfirmAutosaveSlot;
 	Byte1Option optionConfirmOverwriteState;
 	Byte2Option optionFastSlowModeSpeed;
 	Byte1Option optionSound;

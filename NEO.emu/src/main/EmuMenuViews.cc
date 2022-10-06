@@ -487,7 +487,7 @@ private:
 			[this](Input::Event e)
 			{
 				app().addCurrentContentToRecent();
-				app().launchSystemWithResumePrompt(e);
+				app().launchSystem(e);
 			});
 	}
 

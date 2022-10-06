@@ -28,9 +28,9 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 	auto ctx = appContext();
 	auto &sys = system();
 	bool hasContent = sys.hasContent();
-	for(auto &s : stateSlot)
+	for(int i = 0; auto &s : stateSlot)
 	{
-		int slot = std::distance(stateSlot, &s) - 1;
+		int slot = i++;
 		if(hasContent)
 		{
 			auto saveStr = sys.statePath(slot);

@@ -48,6 +48,7 @@ struct PathLocation;
 struct RootPathInfo;
 class AssetDirectoryIterator;
 class directory_entry;
+enum class DirOpenFlagsMask: uint8_t;
 }
 
 namespace IG
@@ -186,7 +187,7 @@ public:
 	bool renameFileUri(IG::CStringView oldUri, IG::CStringView newUri) const;
 	bool createDirectoryUri(IG::CStringView uri) const;
 	bool removeDirectoryUri(IG::CStringView uri) const;
-	void forEachInDirectoryUri(CStringView uri, DirectoryEntryDelegate) const;
+	bool forEachInDirectoryUri(CStringView uri, DirectoryEntryDelegate, FS::DirOpenFlagsMask flags = {}) const;
 
 	// OS UI management (status & navigation bar)
 	void setSysUIStyle(uint32_t flags);

@@ -98,11 +98,13 @@ FS::FileString Snes9xSystem::stateFilename(int slot, std::string_view name) cons
 	return IG::format<FS::FileString>("{}.0{}." FREEZE_EXT, name, saveSlotCharUpper(slot));
 }
 
+std::string_view Snes9xSystem::stateFilenameExt() const { return "." FREEZE_EXT; }
+
 #undef FREEZE_EXT
 
-static FS::PathString sramFilename(EmuSystem &sys)
+static FS::PathString sramFilename(EmuApp &app)
 {
-	return sys.contentSaveFilePath(".srm");
+	return app.contentSaveFilePath(".srm");
 }
 
 void Snes9xSystem::saveState(IG::CStringView path)
@@ -121,16 +123,20 @@ void Snes9xSystem::loadState(EmuApp &, IG::CStringView path)
 		return throwFileReadError();
 }
 
-void Snes9xSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void Snes9xSystem::loadBackupMemory(EmuApp &app)
 {
-	if(!hasContent())
+	if(!Memory.SRAMSize)
 		return;
-	if(Memory.SRAMSize)
-	{
-		logMsg("saving backup memory");
-		auto saveStr = sramFilename(*this);
-		Memory.SaveSRAM(saveStr.data());
-	}
+	logMsg("loading backup memory");
+	Memory.LoadSRAM(sramFilename(app).c_str());
+}
+
+void Snes9xSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
+{
+	if(!Memory.SRAMSize)
+		return;
+	logMsg("saving backup memory");
+	Memory.SaveSRAM(sramFilename(app).c_str());
 }
 
 VideoSystem Snes9xSystem::videoSystem() const { return Settings.PAL ? VideoSystem::PAL : VideoSystem::NATIVE_NTSC; }
@@ -170,8 +176,6 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 		throw std::runtime_error("Error loading game");
 	}
 	setupSNESInput(EmuApp::get(appContext()).defaultVController());
-	auto saveStr = sramFilename(*this);
-	Memory.LoadSRAM(saveStr.data());
 	IPPU.RenderThisFrame = TRUE;
 }
 

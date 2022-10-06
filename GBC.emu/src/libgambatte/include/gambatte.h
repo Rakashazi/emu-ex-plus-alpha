@@ -106,7 +106,7 @@ public:
 	/** Sets the callback used for getting input state. */
 	void setInputGetter(InputGetter *getInput);
 
-	void setStreamDelegates(InputStreamDelegate, OutputStreamDelegate);
+	void setSaveStreamDelegates(SaveInputStreamDelegate, SaveOutputStreamDelegate);
 
 	/**
 	  * Sets the directory used for storing save data. The default is the same directory as
@@ -122,6 +122,8 @@ public:
 
 	/** Writes persistent cartridge data to disk. Done implicitly on ROM close. */
 	void saveSavedata();
+
+	void loadSavedata();
 
 	/**
 	  * Saves emulator state to the state slot selected with selectState().

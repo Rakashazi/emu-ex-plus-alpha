@@ -777,7 +777,7 @@ static int SubLoad(FCEUFILE *fp) {
 	if (TotalSides < 1) TotalSides = 1;
 
 	for (x = 0; x < TotalSides; x++) {
-		if ((diskdata[x] = (uint8*)FCEU_malloc(65500)) == NULL) return 2;
+		if (!diskdata[x] && (diskdata[x] = (uint8*)FCEU_malloc(65500)) == NULL) return 2;
 		FCEU_fread(diskdata[x], 1, 65500, fp);
 		md5_update(&md5, diskdata[x], 65500);
 	}
@@ -845,30 +845,9 @@ int FDSLoad(const char *name, FCEUFILE *fp) {
 		return LOADER_HANDLED_ERROR;
 	}
 
-	if (!disableBatteryLoading) {
-		FCEUFILE *tp;
-		std::string fn = FCEU_MakeFName(FCEUMKF_FDS, 0, 0);
-
-		int x;
-		for (x = 0; x < TotalSides; x++) {
-			diskdatao[x] = (uint8*)FCEU_malloc(65500);
-			memcpy(diskdatao[x], diskdata[x], 65500);
-		}
-
-		if ((tp = FCEU_fopen(fn.c_str(), 0, "rb", 0))) {
-			FCEU_printf("Disk was written. Auxiliary FDS file open \"%s\".\n", fn.c_str());
-			FreeFDSMemory();
-			if (SubLoad(tp)) {
-				FCEU_PrintError("Error reading auxiliary FDS file.");
-				if(FDSBIOS)
-					free(FDSBIOS);
-				FDSBIOS = NULL;
-				FreeFDSMemory();
-				return LOADER_HANDLED_ERROR;
-			}
-			FCEU_fclose(tp);
-			DiskWritten = 1;  /* For save state handling. */
-		}
+	for (x = 0; x < TotalSides; x++) {
+		diskdatao[x] = (uint8*)FCEU_malloc(65500);
+		memcpy(diskdatao[x], diskdata[x], 65500);
 	}
 
 	extern char LoadedRomFName[2048];
@@ -948,6 +927,22 @@ void FDSClose(void) {
 	if(CHRRAM)
 		free(CHRRAM);
 	CHRRAM = NULL;
+}
+
+void FCEU_FDSReadModifiedDisk() {
+	FCEUFILE *tp;
+	std::string fn = FCEU_MakeFName(FCEUMKF_FDS, 0, 0);
+
+	if ((tp = FCEU_fopen(fn.c_str(), 0, "rb", 0))) {
+		FCEU_printf("Disk was written. Auxiliary FDS file open \"%s\".\n", fn.c_str());
+		if (SubLoad(tp)) {
+			FCEU_PrintError("Error reading auxiliary FDS file.");
+		}
+		else {
+			DiskWritten = 1;  /* For save state handling. */
+		}
+		FCEU_fclose(tp);
+	}
 }
 
 void FCEU_FDSWriteModifiedDisk() {

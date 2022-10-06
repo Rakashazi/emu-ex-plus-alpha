@@ -53,7 +53,7 @@ protected:
 class DirectoryStream
 {
 public:
-	DirectoryStream(IG::CStringView path);
+	DirectoryStream(CStringView path, DirOpenFlagsMask flags = {});
 	bool readNextDir();
 	bool hasEntry() const;
 	directory_entry &entry() { return entry_; }

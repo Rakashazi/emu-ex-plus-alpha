@@ -61,7 +61,7 @@ RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentLis
 				app().createSystemWithMedia({}, entry.path, appContext().fileUriDisplayName(entry.path), e, {}, attachParams(),
 					[this](const Input::Event &e)
 					{
-						app().launchSystemWithResumePrompt(e);
+						app().launchSystem(e);
 					});
 			});
 	}

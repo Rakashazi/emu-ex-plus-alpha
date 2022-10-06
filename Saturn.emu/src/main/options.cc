@@ -57,7 +57,6 @@ const char *EmuSystem::configFilename = "SaturnEmu.config";
 Byte1Option optionSH2Core{CFGKEY_SH2_CORE, (uint8_t)defaultSH2CoreID, false, OptionSH2CoreIsValid};
 unsigned SH2Cores = std::size(SH2CoreList) - 1;
 bool EmuApp::hasIcon = false;
-bool EmuApp::autoSaveStateDefault = false;
 bool EmuSystem::hasSound = !(Config::envIsAndroid || Config::envIsIOS);
 int EmuSystem::forcedSoundRate = 44100;
 bool EmuSystem::constFrameRate = true;

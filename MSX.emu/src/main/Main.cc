@@ -438,7 +438,7 @@ void MsxSystem::reset(EmuApp &app, ResetMode mode)
 		if(!createBoard(app))
 		{
 			app.postMessage(true, "Error during MSX reset");
-			app.closeSystem(false);
+			app.closeSystemWithoutSave();
 		}
 		try
 		{
@@ -550,7 +550,7 @@ void MsxSystem::loadBlueMSXState(EmuApp &app, const char *filename)
 	if(!createBoardFromLoadGame(app))
 	{
 		auto err = fmt::format("Can't initialize machine:{} from save-state", machine->name);
-		app.closeSystem(false);
+		app.closeSystemWithoutSave();
 		throw std::runtime_error{err};
 	}
 
@@ -574,7 +574,7 @@ void MsxSystem::loadBlueMSXState(EmuApp &app, const char *filename)
 	}
 	catch(...)
 	{
-		app.closeSystem(false);
+		app.closeSystemWithoutSave();
 		throw;
 	}
 

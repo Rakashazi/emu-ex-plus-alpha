@@ -126,7 +126,21 @@ void NesSystem::loadState(EmuApp &app, IG::CStringView path)
 		EmuSystem::throwFileReadError();
 }
 
-void NesSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void NesSystem::loadBackupMemory(EmuApp &app)
+{
+	if(!hasContent())
+		return;
+	if(isFDS)
+	{
+		FCEU_FDSReadModifiedDisk();
+	}
+	else
+	{
+		FCEU_LoadGameSave(currCartInfo);
+	}
+}
+
+void NesSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 {
 	if(!hasContent())
 		return;

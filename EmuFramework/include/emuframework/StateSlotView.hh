@@ -30,7 +30,7 @@ public:
 	StateSlotView(ViewAttachParams attach);
 
 private:
-	static constexpr int stateSlots = 11;
+	static constexpr int stateSlots = 10;
 	TextMenuItem stateSlot[stateSlots]{};
 };
 

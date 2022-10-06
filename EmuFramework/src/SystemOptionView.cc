@@ -24,11 +24,11 @@
 namespace EmuEx
 {
 
-TextMenuItem::SelectDelegate SystemOptionView::setAutoSaveStateDel()
+TextMenuItem::SelectDelegate SystemOptionView::setAutosaveTimerDel()
 {
 	return [this](TextMenuItem &item)
 	{
-		app().autoSaveStateOption() = item.id();
+		app().autosaveTimerMinsOption() = item.id();
 		logMsg("set auto-savestate:%u", item.id());
 	};
 }
@@ -40,26 +40,27 @@ TextMenuItem::SelectDelegate SystemOptionView::setFastSlowModeSpeedDel()
 
 SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"System Options", attach, item},
-	autoSaveStateItem
+	autosaveTimerItem
 	{
-		{"Off",       &defaultFace(), setAutoSaveStateDel(), 0},
-		{"Game Exit", &defaultFace(), setAutoSaveStateDel(), 1},
-		{"15mins",    &defaultFace(), setAutoSaveStateDel(), 15},
-		{"30mins",    &defaultFace(), setAutoSaveStateDel(), 30},
+		{"Only On Exit",    &defaultFace(), setAutosaveTimerDel(), 0},
+		{"5mins & On Exit",  &defaultFace(), setAutosaveTimerDel(), 5},
+		{"10mins & On Exit", &defaultFace(), setAutosaveTimerDel(), 10},
+		{"15mins & On Exit", &defaultFace(), setAutosaveTimerDel(), 15},
 	},
-	autoSaveState
+	autosaveTimer
 	{
-		"Auto-save State", &defaultFace(),
-		(MenuItem::Id)app().autoSaveStateOption().val,
-		autoSaveStateItem
+		"Autosave Timer", &defaultFace(),
+		(MenuItem::Id)app().autosaveTimerMinsOption().val,
+		autosaveTimerItem
 	},
-	confirmAutoLoadState
+	autosaveInitialSlot
 	{
-		"Confirm Auto-load State", &defaultFace(),
-		(bool)app().confirmAutoLoadStateOption(),
+		"Initial Autosave Slot", &defaultFace(),
+		(bool)app().confirmAutosaveSlotOption(),
+		"Main", "Ask",
 		[this](BoolMenuItem &item)
 		{
-			app().confirmAutoLoadStateOption() = item.flipBoolValue(*this);
+			app().confirmAutosaveSlotOption() = item.flipBoolValue(*this);
 		}
 	},
 	confirmOverwriteState
@@ -134,8 +135,8 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 
 void SystemOptionView::loadStockItems()
 {
-	item.emplace_back(&autoSaveState);
-	item.emplace_back(&confirmAutoLoadState);
+	item.emplace_back(&autosaveTimer);
+	item.emplace_back(&autosaveInitialSlot);
 	item.emplace_back(&confirmOverwriteState);
 	item.emplace_back(&fastSlowModeSpeed);
 	if(used(performanceMode))

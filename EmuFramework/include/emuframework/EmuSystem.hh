@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/fs/FSDefs.hh>
+#include <imagine/fs/FSUtils.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/time/Time.hh>
@@ -170,6 +170,7 @@ public:
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
 	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	FS::FileString stateFilename(int slot, std::string_view name) const;
+	std::string_view stateFilenameExt() const;
 	void loadState(EmuApp &, CStringView uri);
 	void saveState(CStringView path);
 	bool readConfig(ConfigType, MapIO &io, unsigned key, size_t readSize);
@@ -196,7 +197,8 @@ public:
 	WP multiresVideoBaseSize() const;
 	double videoAspectRatioScale() const;
 	bool onVideoRenderFormatChange(EmuVideo &, PixelFormat);
-	void onFlushBackupMemory(BackupMemoryDirtyFlags);
+	void loadBackupMemory(EmuApp &);
+	void onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags);
 	FS::FileString configName() const;
 	void onOptionsLoaded();
 	void onSessionOptionsLoaded(EmuApp &);
@@ -215,8 +217,8 @@ public:
 	std::string_view stateSlotName() { return stateSlotName(stateSlot()); }
 	int stateSlot() const { return saveStateSlot; }
 	void setStateSlot(int slot) { saveStateSlot = slot; }
-	void decStateSlot() { if(--saveStateSlot < -1) saveStateSlot = 9; }
-	void incStateSlot() { if(++saveStateSlot > 9) saveStateSlot = -1; }
+	void decStateSlot() { if(--saveStateSlot < 0) saveStateSlot = 9; }
+	void incStateSlot() { if(++saveStateSlot > 9) saveStateSlot = 0; }
 	const char *systemName() const;
 	const char *shortSystemName() const;
 	const BundledGameInfo &bundledGameInfo(int idx) const;
@@ -232,13 +234,35 @@ public:
 	FS::FileString contentDisplayNameForPathDefaultImpl(IG::CStringView path) const;
 	void setInitialLoadPath(IG::CStringView path);
 	FS::PathString fallbackSaveDirectory(bool create = false);
-	FS::PathString contentSaveDirectory() const;
+	const FS::PathString &contentSaveDirectory() const { return contentSaveDirectory_; }
+
+	FS::PathString contentLocalSaveDirectory(auto &&...components) const
+	{
+		assert(!contentName_.empty());
+		return FS::uriString(contentSaveDirectory_, contentName_, "saves", IG_forward(components)...);
+	}
+
+	bool createContentLocalSaveDirectory(auto &&...components)
+	{
+		assert(!contentName_.empty());
+		try
+		{
+			FS::createDirectoryUriSegments(appContext(), contentSaveDirectory_, contentName_, "saves", IG_forward(components)...);
+		}
+		catch(...)
+		{
+			return false;
+		}
+		return true;
+	}
+
 	FS::PathString contentSavePath(std::string_view name) const;
 	const char *contentSaveDirectoryPtr() { return contentSaveDirectory_.data(); }
 	FS::PathString contentSaveFilePath(std::string_view ext) const;
-	FS::PathString userSaveDirectory() const;
+	const FS::PathString &userSaveDirectory() const { return userSaveDirectory_; }
 	void setUserSaveDirectory(IG::CStringView path);
 	FS::FileString stateFilename(int slot) const { return stateFilename(slot, contentName_); }
+	FS::FileString stateFilename(std::string_view name) const;
 	FS::PathString statePath(std::string_view filename, std::string_view basePath) const;
 	FS::PathString statePath(std::string_view filename) const;
 	FS::PathString statePath(int slot, std::string_view basePath) const;
@@ -249,7 +273,7 @@ public:
 	void clearGamePaths();
 	char saveSlotChar(int slot) const;
 	char saveSlotCharUpper(int slot) const;
-	void flushBackupMemory(BackupMemoryDirtyFlags flags = 0xFF);
+	void flushBackupMemory(EmuApp &, BackupMemoryDirtyFlags flags = 0xFF);
 	void onBackupMemoryWritten(BackupMemoryDirtyFlags flags = 0xFF);
 	bool updateBackupMemoryCounter();
 	void sessionOptionSet();
@@ -281,7 +305,7 @@ public:
 	void resetFrameTime();
 	void pause(EmuApp &);
 	void start(EmuApp &);
-	void closeRuntimeSystem(EmuApp &, bool allowAutosaveState = 1);
+	void closeRuntimeSystem(EmuApp &);
 	static void throwFileReadError();
 	static void throwFileWriteError();
 	static void throwMissingContentDirError();

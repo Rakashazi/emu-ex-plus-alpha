@@ -21,6 +21,7 @@ namespace MDFN_IEN_PCE_FAST
 uint32 HuC_Load(Stream* fp) MDFN_COLD;
 void HuC_LoadCD(const std::string& bios_path) MDFN_COLD;
 void HuC_SaveNV(void) MDFN_COLD;
+void HuC_LoadNV(void) MDFN_COLD;
 void HuC_Kill(void) MDFN_COLD;
 
 void HuC_StateAction(StateMem *sm, int load, int data_only);

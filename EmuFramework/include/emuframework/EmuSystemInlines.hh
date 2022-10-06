@@ -37,16 +37,27 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name) const
 	return static_cast<const MainSystem*>(this)->stateFilename(slot, name);
 }
 
+std::string_view EmuSystem::stateFilenameExt() const
+{
+	return static_cast<const MainSystem*>(this)->stateFilenameExt();
+}
+
 void EmuSystem::onOptionsLoaded()
 {
 	if(&MainSystem::onOptionsLoaded != &EmuSystem::onOptionsLoaded)
 		static_cast<MainSystem*>(this)->onOptionsLoaded();
 }
 
-void EmuSystem::onFlushBackupMemory(BackupMemoryDirtyFlags flags)
+void EmuSystem::loadBackupMemory(EmuApp &app)
+{
+	if(&MainSystem::loadBackupMemory != &EmuSystem::loadBackupMemory)
+		static_cast<MainSystem*>(this)->loadBackupMemory(app);
+}
+
+void EmuSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags flags)
 {
 	if(&MainSystem::onFlushBackupMemory != &EmuSystem::onFlushBackupMemory)
-		static_cast<MainSystem*>(this)->onFlushBackupMemory(flags);
+		static_cast<MainSystem*>(this)->onFlushBackupMemory(app, flags);
 }
 
 void EmuSystem::savePathChanged()

@@ -18,31 +18,42 @@
 #include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/util/container/ArrayList.hh>
+#include <imagine/fs/FS.hh>
+#include <vector>
 
 namespace EmuEx
 {
 
 using namespace IG;
 
-class SystemOptionView : public TableView, public EmuAppHelper<SystemOptionView>
+class AutosaveSlotView : public TableView, public EmuAppHelper<AutosaveSlotView>
 {
 public:
-	SystemOptionView(ViewAttachParams attach, bool customMenu = false);
-	void loadStockItems();
+	class SlotTextMenuItem : public TextMenuItem
+	{
+	public:
+		SlotTextMenuItem(std::string_view slotName, UTF16Convertible auto &&name, Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
+			TextMenuItem{IG_forward(name), face, selectDel},
+			slotName{slotName} {}
+
+		std::string slotName;
+	};
+
+	AutosaveSlotView(ViewAttachParams attach);
+	void updateItem(std::string_view name, std::string_view newName);
 
 protected:
-	TextMenuItem autosaveTimerItem[4];
-	MultiChoiceMenuItem autosaveTimer;
-	BoolMenuItem autosaveInitialSlot;
-	BoolMenuItem confirmOverwriteState;
-	TextMenuItem fastSlowModeSpeedItem[8];
-	MultiChoiceMenuItem fastSlowModeSpeed;
-	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
-	StaticArrayList<MenuItem*, 24> item;
+	TextMenuItem mainSlot;
+	TextMenuItem noSaveSlot;
+	TextMenuItem newSlot;
+	TextMenuItem manageSlots;
+	TextHeadingMenuItem actions;
+	std::vector<SlotTextMenuItem> extraSlotItems;
+	std::vector<MenuItem*> menuItems{};
 
-	TextMenuItem::SelectDelegate setAutosaveTimerDel();
-	TextMenuItem::SelectDelegate setFastSlowModeSpeedDel();
+	void refreshSlots();
+	void refreshItems();
+	void loadItems();
 };
 
 }

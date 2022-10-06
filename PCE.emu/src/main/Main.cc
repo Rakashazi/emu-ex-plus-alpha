@@ -67,7 +67,13 @@ const char *EmuSystem::systemName() const
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasHuCardExtension;
 
-void PceSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void PceSystem::loadBackupMemory(EmuApp &)
+{
+	logMsg("loading backup memory");
+	MDFN_IEN_PCE_FAST::HuC_LoadNV();
+}
+
+void PceSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 {
 	if(!hasContent())
 		return;

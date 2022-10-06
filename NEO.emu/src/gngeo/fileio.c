@@ -178,8 +178,6 @@ int init_game(void *contextPtr, char *rom_name, char romerror[1024]) {
 
     }
 
-    open_nvram(contextPtr, conf.game);
-    open_memcard(contextPtr, conf.game);
 #ifndef GP2X
     sdl_set_title(conf.game);
 #endif

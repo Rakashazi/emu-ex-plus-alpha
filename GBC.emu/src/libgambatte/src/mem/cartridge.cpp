@@ -554,7 +554,7 @@ void Cartridge::setSaveDir(std::string const &dir) {
 	saveDir_ = dir;
 }
 
-void Cartridge::setStreamDelegates(InputStreamDelegate iDel, OutputStreamDelegate oDel) {
+void Cartridge::setSaveStreamDelegates(SaveInputStreamDelegate iDel, SaveOutputStreamDelegate oDel) {
 	makeInputStream = iDel;
 	makeOutputStream = oDel;
 }
@@ -675,7 +675,7 @@ LoadRes Cartridge::loadROM(const void *romdata, std::size_t size,
 
 void Cartridge::loadSavedata() {
 	if (hasBattery(memptrs_.romdata()[0x147])) {
-		auto file = makeInputStream(saveDir_, defaultSaveBasePath_ + ".sav");
+		auto file = makeInputStream(".sav");
 
 		if (file.is_open()) {
 			file.read(reinterpret_cast<char*>(memptrs_.rambankdata()),
@@ -685,7 +685,7 @@ void Cartridge::loadSavedata() {
 	}
 
 	if (hasRtc(memptrs_.romdata()[0x147])) {
-		auto file = makeInputStream(saveDir_, defaultSaveBasePath_ + ".rtc");
+		auto file = makeInputStream(".rtc");
 		if (file) {
 			unsigned long basetime =    file.get() & 0xFF;
 			basetime = basetime << 8 | (file.get() & 0xFF);
@@ -698,13 +698,13 @@ void Cartridge::loadSavedata() {
 
 void Cartridge::saveSavedata() {
 	if (hasBattery(memptrs_.romdata()[0x147])) {
-		auto file = makeOutputStream(saveDir_, defaultSaveBasePath_ + ".sav");
+		auto file = makeOutputStream(".sav");
 		file.write(reinterpret_cast<char const *>(memptrs_.rambankdata()),
 		           memptrs_.rambankdataend() - memptrs_.rambankdata());
 	}
 
 	if (hasRtc(memptrs_.romdata()[0x147])) {
-		auto file = makeOutputStream(saveDir_, defaultSaveBasePath_ + ".rtc");
+		auto file = makeOutputStream(".rtc");
 		unsigned long const basetime = rtc_.baseTime();
 		file.put(basetime >> 24 & 0xFF);
 		file.put(basetime >> 16 & 0xFF);

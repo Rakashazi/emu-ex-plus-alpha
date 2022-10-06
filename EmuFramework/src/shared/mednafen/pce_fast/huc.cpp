@@ -224,8 +224,6 @@ uint32 HuC_Load(Stream* fp)
    uint8 *PopRAM = ROMSpace + 0x40 * 8192;
    memset(PopRAM, 0xFF, 32768);
 
-   LoadSaveMemory(MDFN_MakeFName(MDFNMKF_SAV, 0, "sav"), PopRAM, 32768);
-
    IsPopulous = 1;
 
    MDFN_printf("Populous\n");
@@ -244,8 +242,6 @@ uint32 HuC_Load(Stream* fp)
    memcpy(SaveRAM, BRAM_Init_String, 8);    // So users don't have to manually intialize the file cabinet
                                             // in the CD BIOS screen.
    
-   LoadSaveMemory(MDFN_MakeFName(MDFNMKF_SAV, 0, "sav"), SaveRAM, 2048);
-
    HuCPU.PCEWrite[0xF7] = SaveRAMWrite;
    HuCPU.PCERead[0xF7] = SaveRAMRead;
    MDFNMP_AddRAM(2048, 0xF7 * 8192, SaveRAM);
@@ -394,6 +390,18 @@ void HuC_SaveNV(void)
  else if(IsBRAMUsed())
  {
   MDFN_DumpToFile(MDFN_MakeFName(MDFNMKF_SAV, 0, "sav"), SaveRAM, 2048);
+ }
+}
+
+void HuC_LoadNV(void)
+{
+ if(IsPopulous)
+ {
+	LoadSaveMemory(MDFN_MakeFName(MDFNMKF_SAV, 0, "sav"), ROMSpace + 0x40 * 8192, 32768);
+ }
+ else if(IsBRAMUsed())
+ {
+	LoadSaveMemory(MDFN_MakeFName(MDFNMKF_SAV, 0, "sav"), SaveRAM, 2048);
  }
 }
 

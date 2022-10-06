@@ -45,7 +45,15 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 		auto primaryOutput = XRRGetOutputPrimary(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
 		if(!primaryOutput)
 		{
-			primaryOutput = screenRes->outputs[0];
+			for(auto output : std::span<RROutput>{screenRes->outputs, size_t(screenRes->noutput)})
+			{
+				auto outputInfo = XRRGetOutputInfo(DisplayOfScreen(xScreen), screenRes, output);
+				if(outputInfo->connection == RR_Connected)
+				{
+					primaryOutput = output;
+					break;
+				}
+			}
 		}
 		auto outputInfo = XRRGetOutputInfo(DisplayOfScreen(xScreen), screenRes, primaryOutput);
 		auto crtcInfo = XRRGetCrtcInfo(DisplayOfScreen(xScreen), screenRes, outputInfo->crtc);

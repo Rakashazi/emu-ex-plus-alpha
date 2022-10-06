@@ -270,8 +270,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 
 	const auto cfgFileOptions = std::tie
 	(
-		optionAutoSaveState,
-		optionConfirmAutoLoadState,
+		optionAutosaveTimerMins,
+		optionConfirmAutosaveSlot,
 		optionSound,
 		optionSoundVolume,
 		optionSoundRate,
@@ -551,8 +551,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				}
 				bcase CFGKEY_SOUND: optionSound.readFromIO(io, size);
 				bcase CFGKEY_SOUND_RATE: optionSoundRate.readFromIO(io, size);
-				bcase CFGKEY_AUTO_SAVE_STATE: optionAutoSaveState.readFromIO(io, size);
-				bcase CFGKEY_CONFIRM_AUTO_LOAD_STATE: optionConfirmAutoLoadState.readFromIO(io, size);
+				bcase CFGKEY_AUTOSAVE_TIMER_MINS: optionAutosaveTimerMins.readFromIO(io, size);
+				bcase CFGKEY_CONFIRM_AUTOSAVE_SLOT: optionConfirmAutosaveSlot.readFromIO(io, size);
 				bcase CFGKEY_FRAME_INTERVAL:
 					doIfUsed(optionFrameInterval, [&](auto &opt){ opt.readFromIO(io, size); });
 				bcase CFGKEY_SKIP_LATE_FRAMES: optionSkipLateFrames.readFromIO(io, size);

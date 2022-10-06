@@ -73,7 +73,6 @@ public:
 	bool extraWindowInputEvent(const Input::Event &e);
 	void showEmulationView();
 	void showMenuView(bool updateTopView);
-	bool showAutoStateConfirm(const Input::Event &);
 	void placeEmuViews();
 	void placeElements();
 	void updateMainWindowViewport(IG::Window &, IG::Viewport, Gfx::RendererTask &);

@@ -26,8 +26,6 @@ int open_rom(char *romname);
 int init_game(void *contextPtr, char *rom_name, char romerror[1024]);
 void open_bios(void);
 void open_conf(void);
-void open_nvram(void *contextPtr, char *name);
-void open_memcard(void *contextPtr, char *name);
 void list_game(void);
 int close_game(void);
 

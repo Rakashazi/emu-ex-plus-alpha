@@ -80,7 +80,13 @@ static FS::PathString saveFilename(EmuSystem &sys)
 	return sys.contentSaveFilePath(".ngf");
 }
 
-void NgpSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void NgpSystem::loadBackupMemory(EmuApp &)
+{
+	logMsg("loading flash");
+	MDFN_IEN_NGP::FLASH_LoadNV();
+}
+
+void NgpSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 {
 	logMsg("saving flash");
 	MDFN_IEN_NGP::FLASH_SaveNV();

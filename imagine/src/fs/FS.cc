@@ -105,13 +105,16 @@ size_t directoryItems(IG::CStringView path)
 	return items;
 }
 
-void forEachInDirectory(IG::CStringView path, DirectoryEntryDelegate del)
+bool forEachInDirectory(IG::CStringView path, DirectoryEntryDelegate del, DirOpenFlagsMask flags)
 {
-	for(FS::DirectoryStream dirStream{path}; dirStream.hasEntry(); dirStream.readNextDir())
+	bool entriesRead{};
+	for(FS::DirectoryStream dirStream{path, flags}; dirStream.hasEntry(); dirStream.readNextDir())
 	{
+		entriesRead = true;
 		if(!del(dirStream.entry()))
 			break;
 	}
+	return entriesRead;
 }
 
 }

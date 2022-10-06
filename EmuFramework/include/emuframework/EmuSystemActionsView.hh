@@ -32,12 +32,15 @@ public:
 	void onShow() override;
 	void loadStandardItems();
 
-	static constexpr int STANDARD_ITEMS = 9;
+	static constexpr int STANDARD_ITEMS = 12;
 	static constexpr int MAX_SYSTEM_ITEMS = 6;
 
 protected:
 	TextMenuItem cheats;
 	TextMenuItem reset;
+	TextMenuItem autosaveSlot;
+	TextMenuItem autosaveNow;
+	TextMenuItem revertAutosave;
 	TextMenuItem loadState;
 	TextMenuItem saveState;
 	TextMenuItem stateSlot;

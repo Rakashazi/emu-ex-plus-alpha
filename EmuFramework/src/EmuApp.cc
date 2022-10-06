@@ -21,6 +21,7 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/FilePicker.hh>
+#include "AutosaveSlotView.hh"
 #include "privateInput.hh"
 #include "WindowData.hh"
 #include "configFile.hh"
@@ -51,7 +52,6 @@ constexpr uint8_t OPTION_SOUND_DURING_FAST_SLOW_MODE_ENABLED_FLAG = IG::bit(1);
 constexpr uint8_t OPTION_SOUND_DEFAULT_FLAGS = OPTION_SOUND_ENABLED_FLAG | OPTION_SOUND_DURING_FAST_SLOW_MODE_ENABLED_FLAG;
 static EmuApp *gAppPtr{};
 [[gnu::weak]] bool EmuApp::hasIcon = true;
-[[gnu::weak]] bool EmuApp::autoSaveStateDefault = true;
 [[gnu::weak]] bool EmuApp::needsGlobalInstance = false;
 constexpr float menuVideoBrightnessScale = .25f;
 constexpr float pausedVideoBrightnessScale = .75f;
@@ -121,14 +121,15 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	emuVideoLayer{emuVideo},
 	emuSystemTask{*this},
 	vController{ctx, (int)EmuSystem::inputFaceBtns, (int)EmuSystem::inputCenterBtns},
-	autoSaveStateTimer
+	autoSaveTimer
 	{
-		"EmuApp::autoSaveStateTimer",
+		"EmuApp::autosaveTimer",
 		[this]()
 		{
-			logMsg("running auto-save state timer");
+			logMsg("running autosave timer");
+			autoSaveTimerStartTime = IG::steadyClockTimestamp();
 			syncEmulationThread();
-			saveAutoState();
+			saveAutosave();
 			return true;
 		}
 	},
@@ -146,8 +147,8 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 		false, optionIsValidWithMinMax<2000, 10000, uint16_t>},
 	optionPauseUnfocused{CFGKEY_PAUSE_UNFOCUSED, 1,
 		!(Config::envIsLinux || Config::envIsAndroid)},
-	optionAutoSaveState{CFGKEY_AUTO_SAVE_STATE, 1},
-	optionConfirmAutoLoadState{CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1},
+	optionAutosaveTimerMins{CFGKEY_AUTOSAVE_TIMER_MINS, 5},
+	optionConfirmAutosaveSlot{CFGKEY_CONFIRM_AUTOSAVE_SLOT, 0},
 	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
 	optionFastSlowModeSpeed{CFGKEY_FAST_SLOW_MODE_SPEED, 800, false, optionIsValidWithMinMax<int(MIN_RUN_SPEED * 100.), int(MAX_RUN_SPEED * 100.)>},
 	optionSound{CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS},
@@ -283,16 +284,23 @@ static void suspendEmulation(EmuApp &app)
 {
 	if(!app.system().hasContent())
 		return;
-	app.saveAutoState();
-	app.system().flushBackupMemory();
+	app.saveAutosave();
+	app.system().flushBackupMemory(app);
 }
 
-void EmuApp::closeSystem(bool allowAutosaveState)
+void EmuApp::closeSystem()
 {
 	showUI();
 	emuSystemTask.stop();
-	system().closeRuntimeSystem(*this, allowAutosaveState);
+	system().closeRuntimeSystem(*this);
+	autoSaveSlot = "";
 	viewController().onSystemClosed();
+}
+
+void EmuApp::closeSystemWithoutSave()
+{
+	autoSaveSlot = noAutosaveName;
+	closeSystem();
 }
 
 void EmuApp::applyOSNavStyle(IG::ApplicationContext ctx, bool inGame)
@@ -305,16 +313,6 @@ void EmuApp::applyOSNavStyle(IG::ApplicationContext ctx, bool inGame)
 	if((int)optionHideStatusBar > (inGame ? 0 : 1))
 		flags |= IG::SYS_UI_STYLE_HIDE_STATUS;
 	ctx.setSysUIStyle(flags);
-}
-
-IG::Audio::Manager &EmuApp::audioManager()
-{
-	return audioManager_;
-}
-
-IG::ApplicationContext EmuApp::appContext() const
-{
-	return system().appContext();
 }
 
 void EmuApp::showSystemActionsViewFromSystem(ViewAttachParams attach, const Input::Event &e)
@@ -363,11 +361,6 @@ bool EmuApp::setWindowDrawableConfig(Gfx::DrawableConfig conf)
 	return true;
 }
 
-Gfx::DrawableConfig EmuApp::windowDrawableConfig() const
-{
-	return windowDrawableConf;
-}
-
 std::optional<IG::PixelFormat> EmuApp::windowDrawablePixelFormatOption() const
 {
 	if(windowDrawableConf.pixelFormat)
@@ -396,11 +389,6 @@ void EmuApp::setRenderPixelFormat(std::optional<IG::PixelFormat> fmtOpt)
 		return;
 	renderPixelFmt = *fmtOpt;
 	applyRenderPixelFormat();
-}
-
-IG::PixelFormat EmuApp::renderPixelFormat() const
-{
-	return renderPixelFmt;
 }
 
 std::optional<IG::PixelFormat> EmuApp::renderPixelFormatOption() const
@@ -455,16 +443,6 @@ void EmuApp::startAudio()
 {
 	audio().start(makeWantedAudioLatencyUSecs(optionSoundBuffers, system().frameTime()),
 		makeWantedAudioLatencyUSecs(1, system().frameTime()));
-}
-
-EmuAudio &EmuApp::audio()
-{
-	return emuAudio;
-}
-
-EmuVideo &EmuApp::video()
-{
-	return emuVideo;
 }
 
 void EmuApp::updateLegacySavePath(IG::ApplicationContext ctx, IG::CStringView path)
@@ -862,22 +840,24 @@ void EmuApp::setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func)
 	onMainMenuOptionChanged_ = func;
 }
 
-void EmuApp::launchSystem(bool tryAutoState)
+void EmuApp::launchSystem(const Input::Event &e)
 {
-	if(tryAutoState)
+	if(optionConfirmAutosaveSlot)
 	{
-		loadAutoState();
+		autoSaveSlot = noAutosaveName;
+		viewController().pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::SYSTEM_ACTIONS), e);
+		viewController().pushAndShow(std::make_unique<AutosaveSlotView>(attachParams()), e);
+	}
+	else
+	{
+		loadAutosave();
 		if(!system().hasContent())
 		{
 			logErr("system was closed while trying to load auto-state");
 			return;
 		}
+		showEmulation();
 	}
-	if(!hasWriteAccessToDir(system().contentSaveDirectory()))
-	{
-		postErrorMessage(8, "Save folder inaccessible, please set it in Options➔File Paths➔Saves");
-	}
-	showEmulation();
 }
 
 void EmuApp::onSelectFileFromPicker(IO io, IG::CStringView path, std::string_view displayName,
@@ -887,7 +867,7 @@ void EmuApp::onSelectFileFromPicker(IO io, IG::CStringView path, std::string_vie
 		[this](const Input::Event &e)
 		{
 			addCurrentContentToRecent();
-			launchSystemWithResumePrompt(e);
+			launchSystem(e);
 		});
 }
 
@@ -921,7 +901,8 @@ void EmuApp::runBenchmarkOneShot(EmuVideo &emuVideo)
 {
 	logMsg("starting benchmark");
 	IG::FloatSeconds time = system().benchmark(emuVideo);
-	closeSystem(false);
+	autoSaveSlot = noAutosaveName;
+	closeSystem();
 	logMsg("done in: %f", time.count());
 	postMessage(2, 0, fmt::format("{:.2f} fps", double(180.)/time.count()));
 }
@@ -973,27 +954,6 @@ void EmuApp::pauseEmulation()
 	emuVideoLayer.setBrightness(videoBrightnessRGB * pausedVideoBrightnessScale);
 	viewController().emuWindow().setDrawEventPriority();
 	removeOnFrame();
-}
-
-void EmuApp::launchSystemWithResumePrompt(const Input::Event &e)
-{
-	if(optionAutoSaveState && optionConfirmAutoLoadState)
-	{
-		if(!viewController().showAutoStateConfirm(e))
-		{
-			// state doesn't exist
-			launchSystem(false);
-		}
-	}
-	else
-	{
-		launchSystem(optionAutoSaveState);
-	}
-}
-
-void EmuApp::launchSystem(const Input::Event &e, bool tryAutoState)
-{
-	launchSystem(tryAutoState);
 }
 
 bool EmuApp::hasArchiveExtension(std::string_view name)
@@ -1157,27 +1117,122 @@ void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view
 		});
 }
 
-void EmuApp::saveAutoState()
+bool EmuApp::saveAutosave()
 {
-	if(optionAutoSaveState)
+	if(autoSaveSlot == noAutosaveName)
+		return true;
+	logMsg("saving autosave slot:%s", autoSaveSlot.c_str());
+	system().flushBackupMemory(*this);
+	return saveState(currentAutosaveStatePath());
+}
+
+bool EmuApp::loadAutosave()
+{
+	if(autoSaveSlot == noAutosaveName)
+		return true;
+	system().loadBackupMemory(*this);
+	auto statePath = currentAutosaveStatePath();
+	if(appContext().fileUriExists(statePath))
 	{
-		//logMsg("saving autosave-state");
-		saveState(system().statePath(-1));
+		logMsg("loading autosave state");
+		return loadState(statePath);
+	}
+	else
+	{
+		logMsg("autosave state doesn't exist, creating");
+		return saveState(statePath);
 	}
 }
 
-bool EmuApp::loadAutoState()
+bool EmuApp::setAutosave(std::string_view name)
 {
-	if(optionAutoSaveState)
+	if(autoSaveSlot == name)
+		return true;
+	if(!saveAutosave())
+		return false;
+	if(name.size() && name != noAutosaveName)
 	{
-		if(auto err = EmuApp::loadStateWithSlot(-1);
-			!err)
-		{
-			logMsg("loaded autosave-state");
-			return 1;
-		}
+		if(!system().createContentLocalSaveDirectory(name))
+			return false;
 	}
-	return 0;
+	autoSaveSlot = name;
+	autoSaveTimerElapsedTime = {};
+	return loadAutosave();
+}
+
+bool EmuApp::renameAutosave(std::string_view name, std::string_view newName)
+{
+	if(!appContext().renameFileUri(system().contentLocalSaveDirectory(name),
+		system().contentLocalSaveDirectory(newName)))
+	{
+		return false;
+	}
+	if(name == autoSaveSlot)
+		autoSaveSlot = newName;
+	return true;
+}
+
+bool EmuApp::deleteAutosave(std::string_view name)
+{
+	if(name == autoSaveSlot)
+		return false;
+	auto ctx = appContext();
+	if(!ctx.forEachInDirectoryUri(system().contentLocalSaveDirectory(name),
+			[this, ctx](const FS::directory_entry &e)
+		{
+			ctx.removeFileUri(e.path());
+			return true;
+		}, FS::DirOpenFlagsMask::Test))
+	{
+		return false;
+	}
+	if(!ctx.removeFileUri(system().contentLocalSaveDirectory(name)))
+	{
+		return false;
+	}
+	return true;
+}
+
+std::string EmuApp::currentAutosaveName() const
+{
+	if(autoSaveSlot == noAutosaveName)
+		return "No Save";
+	else if(autoSaveSlot.empty())
+		return "Main";
+	else
+		return autoSaveSlot;
+}
+
+std::string EmuApp::currentAutosaveTimeAsString() const
+{
+	if(autoSaveSlot == noAutosaveName)
+		return "";
+	return appContext().fileUriFormatLastWriteTimeLocal(currentAutosaveStatePath());
+}
+
+FS::PathString EmuApp::autosaveStatePath(std::string_view name) const
+{
+	if(name == noAutosaveName)
+		return "";
+	if(name.empty())
+		return system().statePath(-1);
+	return system().contentLocalSaveDirectory(name, system().stateFilename(defaultAutosaveFilename));
+}
+
+FS::PathString EmuApp::contentSavePath(std::string_view name) const
+{
+	if(autoSaveSlot.size() && autoSaveSlot != noAutosaveName)
+		return system().contentLocalSaveDirectory(autoSaveSlot, name);
+	else
+		return system().contentSavePath(name);
+}
+
+FS::PathString EmuApp::contentSaveFilePath(std::string_view ext) const
+{
+	if(autoSaveSlot.size() && autoSaveSlot != noAutosaveName)
+		return system().contentLocalSaveDirectory(autoSaveSlot, FS::FileString{"auto"}.append(ext));
+	else
+		return system().contentSaveFilePath(ext);
 }
 
 bool EmuApp::saveState(IG::CStringView path)
@@ -1222,13 +1277,17 @@ bool EmuApp::loadState(IG::CStringView path)
 	}
 	catch(std::exception &err)
 	{
-		postErrorMessage(4, fmt::format("Can't load state:\n{}", err.what()));
+		if(!hasWriteAccessToDir(system().contentSaveDirectory()))
+			postErrorMessage(8, "Save folder inaccessible, please set it in Options➔File Paths➔Saves");
+		else
+			postErrorMessage(4, fmt::format("Can't load state:\n{}", err.what()));
 		return false;
 	}
 }
 
 bool EmuApp::loadStateWithSlot(int slot)
 {
+	assert(slot != -1);
 	return loadState(system().statePath(slot));
 }
 
@@ -1240,11 +1299,6 @@ void EmuApp::setDefaultVControlsButtonSpacing(int spacing)
 void EmuApp::setDefaultVControlsButtonStagger(int stagger)
 {
 	vController.setDefaultButtonStagger(stagger);
-}
-
-FS::PathString EmuApp::contentSearchPath() const
-{
-	return contentSearchPath_;
 }
 
 FS::PathString EmuApp::contentSearchPath(std::string_view name) const
@@ -1430,18 +1484,28 @@ void EmuApp::syncEmulationThread()
 	emuSystemTask.pause();
 }
 
-void EmuApp::cancelAutoSaveStateTimer()
+void EmuApp::pauseAutosaveStateTimer()
 {
-	autoSaveStateTimer.cancel();
+	autoSaveTimerElapsedTime = IG::steadyClockTimestamp() - autoSaveTimerStartTime;
+	autoSaveTimer.cancel();
 }
 
-void EmuApp::startAutoSaveStateTimer()
+void EmuApp::cancelAutosaveStateTimer()
 {
-	if(optionAutoSaveState > 1)
-	{
-		IG::Minutes mins{optionAutoSaveState.val};
-		autoSaveStateTimer.run(mins, mins);
-	}
+	autoSaveTimerElapsedTime = {};
+	autoSaveTimer.cancel();
+}
+
+void EmuApp::startAutosaveStateTimer()
+{
+	if(!optionAutosaveTimerMins || autoSaveSlot == noAutosaveName)
+		return;
+	Time timerFreq = Minutes{optionAutosaveTimerMins.val};
+	Time timerStart{};
+	if(autoSaveTimerElapsedTime < timerFreq)
+		timerStart = timerFreq - autoSaveTimerElapsedTime;
+	autoSaveTimerStartTime = IG::steadyClockTimestamp();
+	autoSaveTimer.run(timerStart, timerFreq);
 }
 
 VController &EmuApp::defaultVController()

@@ -46,7 +46,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 				app().createSystemWithMedia(std::move(file), info.assetName, info.assetName, e, {}, attachParams(),
 					[this](const Input::Event &e)
 					{
-						app().launchSystemWithResumePrompt(e);
+						app().launchSystem(e);
 					});
 			}
 		}

@@ -55,14 +55,16 @@ public:
 		EmuSystem{ctx}
 	{
 		gbEmu.setInputGetter(&gbcInput);
-		gbEmu.setStreamDelegates(
-			[ctx](std::string_view basePath, std::string_view filename) -> IG::IFStream
+		gbEmu.setSaveStreamDelegates(
+			[ctx](std::string_view filenameExt) -> IG::IFStream
 			{
-				return {ctx.openFileUri(FS::uriString(basePath, filename), IOAccessHint::ALL, OpenFlagsMask::TEST)};
+				auto &app = EmuApp::get(ctx);
+				return {ctx.openFileUri(app.contentSaveFilePath(filenameExt), IOAccessHint::ALL, OpenFlagsMask::TEST)};
 			},
-			[ctx](std::string_view basePath, std::string_view filename) -> IG::OFStream
+			[ctx](std::string_view filenameExt) -> IG::OFStream
 			{
-				return {ctx.openFileUri(FS::uriString(basePath, filename), OpenFlagsMask::NEW | OpenFlagsMask::TEST)};
+				auto &app = EmuApp::get(ctx);
+				return {ctx.openFileUri(app.contentSaveFilePath(filenameExt), OpenFlagsMask::NEW | OpenFlagsMask::TEST)};
 			});
 	}
 	void applyGBPalette();
@@ -73,6 +75,7 @@ public:
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
 	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	FS::FileString stateFilename(int slot, std::string_view name) const;
+	std::string_view stateFilenameExt() const { return ".sta"; }
 	void loadState(EmuApp &, CStringView uri);
 	void saveState(CStringView path);
 	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
@@ -86,8 +89,8 @@ public:
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions
-	void onFlushBackupMemory(BackupMemoryDirtyFlags);
-	void savePathChanged();
+	void loadBackupMemory(EmuApp &);
+	void onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags);
 	void closeSystem();
 	void onOptionsLoaded();
 	bool resetSessionOptions(EmuApp &);

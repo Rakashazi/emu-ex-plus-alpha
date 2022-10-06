@@ -38,6 +38,7 @@ namespace IG::FS
 {
 class PathString;
 class FileString;
+enum class DirOpenFlagsMask: uint8_t;
 }
 
 namespace IG
@@ -93,7 +94,8 @@ public:
 	bool removeFileUri(JNIEnv *, jobject baseActivity, IG::CStringView uri, bool isDir) const;
 	bool renameFileUri(JNIEnv *, jobject baseActivity, IG::CStringView oldUri, IG::CStringView newUri) const;
 	bool createDirectoryUri(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
-	void forEachInDirectoryUri(JNIEnv *, jobject baseActivity, CStringView uri, DirectoryEntryDelegate) const;
+	bool forEachInDirectoryUri(JNIEnv *, jobject baseActivity, CStringView uri, DirectoryEntryDelegate,
+		FS::DirOpenFlagsMask) const;
 
 	// Input system functions
 	void onInputQueueCreated(ApplicationContext, AInputQueue *);

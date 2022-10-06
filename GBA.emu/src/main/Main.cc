@@ -89,7 +89,12 @@ void GbaSystem::loadState(EmuApp &app, IG::CStringView path)
 		return throwFileReadError();
 }
 
-void GbaSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
+void GbaSystem::loadBackupMemory(EmuApp &app)
+{
+	CPUReadBatteryFile(appContext(), gGba, app.contentSaveFilePath(".sav").c_str());
+}
+
+void GbaSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 {
 	if(!hasContent() || saveType == GBA_SAVE_NONE)
 		return;
@@ -102,8 +107,7 @@ void GbaSystem::onFlushBackupMemory(BackupMemoryDirtyFlags)
 	else
 	{
 		logMsg("saving backup memory");
-		auto saveStr = EmuSystem::contentSaveFilePath(".sav");
-		CPUWriteBatteryFile(appContext(), gGba, saveStr.data());
+		CPUWriteBatteryFile(appContext(), gGba, app.contentSaveFilePath(".sav").c_str());
 	}
 }
 
@@ -162,8 +166,6 @@ void GbaSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	applyGamePatches(gGba.mem.rom, size);
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
-	auto saveStr = EmuSystem::contentSaveFilePath(".sav");
-	CPUReadBatteryFile(appContext(), gGba, saveStr.data());
 	readCheatFile(*this);
 }
 

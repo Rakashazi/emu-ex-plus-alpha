@@ -1325,7 +1325,7 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMa
 		app().createSystemWithMedia({}, mediaPath, appContext().fileUriDisplayName(mediaPath), e, {SYSTEM_FLAG_NO_AUTOSTART}, attachParams(),
 			[this](Input::Event e)
 			{
-				app().launchSystem(e, false);
+				app().launchSystem(e);
 			});
 	}
 

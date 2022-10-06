@@ -633,7 +633,6 @@ int UNIFLoad(const char *name, FCEUFILE *fp) {
 
 init_ok:
 
-	FCEU_LoadGameSave(&UNIFCart);
 	strcpy(LoadedRomFName, name); //For the debugger list
 	GameInterface = UNIFGI;
 	currCartInfo = &UNIFCart;

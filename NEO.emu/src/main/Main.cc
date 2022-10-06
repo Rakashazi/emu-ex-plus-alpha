@@ -162,24 +162,30 @@ void NeoSystem::loadState(EmuApp &app, IG::CStringView path)
 		return EmuSystem::throwFileReadError();
 }
 
-static auto nvramPath(EmuSystem &sys)
+static auto nvramPath(EmuApp &app)
 {
-	return sys.contentSaveFilePath(".nv");
+	return app.contentSaveFilePath(".nv");
 }
 
-static auto memcardPath(EmuSystem &sys)
+static auto memcardPath(EmuApp &app)
 {
-	return sys.contentSavePath("memcard");
+	return app.contentSavePath("memcard");
 }
 
-void NeoSystem::onFlushBackupMemory(BackupMemoryDirtyFlags flags)
+void NeoSystem::loadBackupMemory(EmuApp &app)
+{
+	FileUtils::readFromUri(appContext(), nvramPath(app), {memory.sram, 0x10000});
+	FileUtils::readFromUri(appContext(), memcardPath(app), {memory.memcard, 0x800});
+}
+
+void NeoSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags flags)
 {
 	if(!hasContent())
 		return;
 	if(flags & SRAM_DIRTY_BIT)
-		FileUtils::writeToUri(appContext(), nvramPath(*this), {memory.sram, 0x10000});
+		FileUtils::writeToUri(appContext(), nvramPath(app), {memory.sram, 0x10000});
 	if(flags & MEMCARD_DIRTY_BIT)
-		FileUtils::writeToUri(appContext(), memcardPath(*this), {memory.memcard, 0x800});
+		FileUtils::writeToUri(appContext(), memcardPath(app), {memory.memcard, 0x800});
 }
 
 void NeoSystem::closeSystem()
@@ -369,20 +375,6 @@ CLINK void screen_update(void *emuTaskCtxPtr, void *neoSystemPtr, void *emuVideo
 	{
 		//logMsg("skipping render");
 	}
-}
-
-void open_nvram(void *contextPtr, char *name)
-{
-	auto &ctx = *((IG::ApplicationContext*)contextPtr);
-	auto &sys = EmuEx::EmuApp::get(ctx).system();
-	IG::FileUtils::readFromUri(ctx, EmuEx::nvramPath(sys), {memory.sram, 0x10000});
-}
-
-void open_memcard(void *contextPtr, char *name)
-{
-	auto &ctx = *((IG::ApplicationContext*)contextPtr);
-	auto &sys = EmuEx::EmuApp::get(ctx).system();
-	IG::FileUtils::readFromUri(ctx, EmuEx::memcardPath(sys), {memory.memcard, 0x800});
 }
 
 void sramWritten()

@@ -67,7 +67,7 @@ public:
 	void saveSavedata();
 	std::string const saveBasePath() const;
 	void setSaveDir(std::string const &dir);
-	void setStreamDelegates(InputStreamDelegate, OutputStreamDelegate);
+	void setSaveStreamDelegates(SaveInputStreamDelegate, SaveOutputStreamDelegate);
 	LoadRes loadROM(const void *romdata, std::size_t size, std::string const &romfilename, bool forceDmg, bool multicartCompat);
 	char const * romTitle() const { return reinterpret_cast<char const *>(memptrs_.romdata() + 0x134); }
 	class PakInfo const pakInfo(bool multicartCompat) const;
@@ -86,8 +86,8 @@ private:
 	std::string defaultSaveBasePath_;
 	std::string saveDir_;
 	std::vector<AddrData> ggUndoList_;
-	InputStreamDelegate makeInputStream;
-	OutputStreamDelegate makeOutputStream;
+	SaveInputStreamDelegate makeInputStream;
+	SaveOutputStreamDelegate makeOutputStream;
 
 	void applyGameGenie(std::string const &code);
 };

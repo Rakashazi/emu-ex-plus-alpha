@@ -37,6 +37,6 @@ inline PathString createDirectoryUriSegments(ApplicationContext ctx, Convertible
 }
 
 size_t directoryItems(CStringView path);
-void forEachInDirectory(CStringView path, DirectoryEntryDelegate del);
+bool forEachInDirectory(CStringView path, DirectoryEntryDelegate del, DirOpenFlagsMask flags = {});
 
 }

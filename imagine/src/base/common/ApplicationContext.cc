@@ -329,9 +329,10 @@ FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlagsMask openFlags)
 	return FS::remove(uri);
 }
 
-[[gnu::weak]] void ApplicationContext::forEachInDirectoryUri(CStringView uri, DirectoryEntryDelegate del) const
+[[gnu::weak]] bool ApplicationContext::forEachInDirectoryUri(CStringView uri,
+	DirectoryEntryDelegate del, FS::DirOpenFlagsMask flags) const
 {
-	forEachInDirectory(uri, del);
+	return forEachInDirectory(uri, del, flags);
 }
 
 const InputDeviceContainer &ApplicationContext::inputDevices() const
