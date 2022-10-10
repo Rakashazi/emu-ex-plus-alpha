@@ -109,7 +109,8 @@ public:
 	enum Id : IdInt{};
 	static constexpr uint32_t SELECTABLE_FLAG = bit(0);
 	static constexpr uint32_t ACTIVE_FLAG = bit(1);
-	static constexpr uint32_t IMPL_FLAG_START = bit(2);
+	static constexpr uint32_t HIGHLIGHT_FLAG = bit(2);
+	static constexpr uint32_t IMPL_FLAG_START = bit(3);
 	static constexpr uint32_t USER_FLAG_START = bit(16);
 	static constexpr uint32_t DEFAULT_FLAGS = SELECTABLE_FLAG | ACTIVE_FLAG;
 	static constexpr Id DEFAULT_ID = static_cast<Id>(std::numeric_limits<IdInt>::min());
@@ -132,6 +133,8 @@ public:
 	constexpr void setSelectable(bool on) { flags_ = setOrClearBits(flags_, SELECTABLE_FLAG, on); }
 	constexpr bool active() const { return flags_ & ACTIVE_FLAG; }
 	constexpr void setActive(bool on) { flags_ = setOrClearBits(flags_, ACTIVE_FLAG, on); }
+	constexpr bool highlighted() const { return flags_ & HIGHLIGHT_FLAG; }
+	constexpr void setHighlighted(bool on) { flags_ = setOrClearBits(flags_, HIGHLIGHT_FLAG, on); }
 	constexpr Id id() const { return (Id)id_; }
 	constexpr void setId(IdInt id) { id_ = id; }
 
@@ -153,7 +156,7 @@ public:
 protected:
 	uint32_t flags_{DEFAULT_FLAGS};
 	IdInt id_{};
-	Gfx::Text t{};
+	Gfx::Text t;
 };
 
 class TextMenuItem : public MenuItem
@@ -167,12 +170,12 @@ public:
 		MenuItem{IG_forward(name), face, id},
 		selectD{selectDel} {}
 
-	bool select(View &, const Input::Event &) override;
-	void setOnSelect(SelectDelegate onSelect);
-	SelectDelegate onSelect() const;
+	bool select(View &parent, const Input::Event &e) override { return selectD.callCopySafe(*this, parent, e); }
+	void setOnSelect(SelectDelegate onSelect) { selectD = onSelect; }
+	const SelectDelegate &onSelect() const { return selectD; }
 
 protected:
-	SelectDelegate selectD{};
+	SelectDelegate selectD;
 };
 
 class TextHeadingMenuItem : public MenuItem
@@ -186,7 +189,7 @@ public:
 		setSelectable(false);
 	}
 
-	bool select(View &, const Input::Event &) override;
+	bool select(View &, const Input::Event &) override { return true; }
 };
 
 class BaseDualTextMenuItem : public MenuItem
@@ -209,7 +212,7 @@ public:
 		float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const override;
 
 protected:
-	Gfx::Text t2{};
+	Gfx::Text t2;
 };
 
 class DualTextMenuItem : public BaseDualTextMenuItem
@@ -231,7 +234,7 @@ public:
 	void setOnSelect(SelectDelegate onSelect);
 
 protected:
-	SelectDelegate selectD{};
+	SelectDelegate selectD;
 };
 
 
@@ -275,7 +278,7 @@ public:
 	void setOnSelect(SelectDelegate onSelect);
 
 protected:
-	SelectDelegate selectD{};
+	SelectDelegate selectD;
 	UTF16String offStr{u"Off"}, onStr{u"On"};
 };
 
@@ -370,10 +373,10 @@ public:
 	int idxOfId(IdInt);
 
 protected:
-	SelectDelegate selectD{};
-	ItemsDelegate items_{};
-	ItemDelegate item_{};
-	SetDisplayStringDelegate onSetDisplayString{};
+	SelectDelegate selectD;
+	ItemsDelegate items_;
+	ItemDelegate item_;
+	SetDisplayStringDelegate onSetDisplayString;
 	int selected_{};
 
 	void setDisplayString(size_t idx);

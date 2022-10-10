@@ -21,7 +21,7 @@
 #include <imagine/util/string/StaticString.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/enum.hh>
-#include <ctime>
+#include <chrono>
 #include <array>
 #include <unistd.h>
 #include <limits.h>
@@ -29,7 +29,7 @@
 namespace IG::FS
 {
 
-using file_time_type = std::time_t;
+using file_time_type = std::chrono::seconds;
 
 static constexpr size_t FILE_STRING_SIZE = std::max(512, NAME_MAX + 1);
 using FileStringImpl = IG::StaticString<FILE_STRING_SIZE - 1>;
@@ -126,7 +126,6 @@ public:
 	constexpr file_type type() const { return type_; }
 	constexpr std::uintmax_t size() const { return size_; }
 	constexpr file_time_type lastWriteTime() const { return lastWriteTime_; }
-	std::tm lastWriteTimeLocal() const;
 
 protected:
 	std::uintmax_t size_{};

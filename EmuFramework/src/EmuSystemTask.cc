@@ -137,12 +137,12 @@ void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video, std::binary_semaphor
 	}
 }
 
-void EmuSystemTask::sendScreenshotReply(int num, bool success)
+void EmuSystemTask::sendScreenshotReply(bool success)
 {
 	app().runOnMainThread(
 		[=](IG::ApplicationContext ctx)
 		{
-			EmuApp::get(ctx).printScreenshotResult(num, success);
+			EmuApp::get(ctx).printScreenshotResult(success);
 		});
 }
 

@@ -38,5 +38,6 @@ inline PathString createDirectoryUriSegments(ApplicationContext ctx, Convertible
 
 size_t directoryItems(CStringView path);
 bool forEachInDirectory(CStringView path, DirectoryEntryDelegate del, DirOpenFlagsMask flags = {});
+std::string formatLastWriteTimeLocal(ApplicationContext, CStringView path);
 
 }

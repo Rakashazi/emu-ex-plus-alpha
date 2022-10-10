@@ -301,7 +301,7 @@ FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlagsMask openFlags)
 
 [[gnu::weak]] std::string ApplicationContext::fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const
 {
-	return FS::formatLastWriteTimeLocal(uri);
+	return FS::formatLastWriteTimeLocal(*this, uri);
 }
 
 [[gnu::weak]] FS::FileString ApplicationContext::fileUriDisplayName(IG::CStringView uri) const
@@ -421,6 +421,33 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 [[gnu::weak]] int32_t ApplicationContext::androidSDK() const
 {
 	bug_unreachable("Invalid platform-specific function");
+}
+
+[[gnu::weak]] std::string ApplicationContext::formatDateAndTime(WallClockTime time)
+{
+	if(!time.count())
+		return {};
+	std::tm localTime;
+	time_t secs = std::chrono::duration_cast<Seconds>(time).count();
+	if(!localtime_r(&secs, &localTime)) [[unlikely]]
+	{
+		logErr("localtime_r failed");
+		return {};
+	}
+	std::string str;
+	str.resize_and_overwrite(64, [&](char *buf, size_t size)
+	{
+		return std::strftime(buf, size, "%x %r", &localTime);
+	});
+	return str;
+}
+
+std::string ApplicationContext::formatDateAndTimeAsFilename(WallClockTime time)
+{
+	auto filename = formatDateAndTime(time);
+	std::ranges::replace(filename, '/', '-');
+	std::ranges::replace(filename, ':', '.');
+	return filename;
 }
 
 [[gnu::weak]] SensorListener::SensorListener(ApplicationContext, SensorType, SensorChangedDelegate) {}

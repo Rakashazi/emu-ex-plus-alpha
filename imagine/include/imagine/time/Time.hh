@@ -39,6 +39,9 @@ using FrameTime = Nanoseconds;
 
 using Time = Nanoseconds; // default time resolution
 
+using SteadyClockTime = std::chrono::steady_clock::duration;
+using WallClockTime = std::chrono::system_clock::duration;
+
 template <class T>
 concept ChronoDuration =
 	requires
@@ -47,13 +50,11 @@ concept ChronoDuration =
 		typename T::period;
 	};
 
-static Time steadyClockTimestamp()
-{
-	auto timePoint = std::chrono::steady_clock::now();
-	return Time{timePoint.time_since_epoch()};
-}
+inline SteadyClockTime steadyClockTimestamp() { return std::chrono::steady_clock::now().time_since_epoch(); }
 
-static Time timeFunc(auto &&func, auto &&...args)
+inline WallClockTime wallClockTimestamp() { return std::chrono::system_clock::now().time_since_epoch(); }
+
+inline SteadyClockTime timeFunc(auto &&func, auto &&...args)
 {
 	auto before = steadyClockTimestamp();
 	func(IG_forward(args)...);
@@ -61,7 +62,7 @@ static Time timeFunc(auto &&func, auto &&...args)
 	return after - before;
 }
 
-static Time timeFuncDebug(auto &&func, auto &&...args)
+inline SteadyClockTime timeFuncDebug(auto &&func, auto &&...args)
 {
 	#ifdef NDEBUG
 	// execute directly without timing
@@ -76,8 +77,7 @@ class FrameParams
 {
 public:
 	constexpr FrameParams(FrameTime timestamp_, FloatSeconds frameTime_):
-		timestamp_{timestamp_}, frameTime_{frameTime_}
-	{}
+		timestamp_{timestamp_}, frameTime_{frameTime_} {}
 	FrameTime timestamp() const { return timestamp_; }
 	FloatSeconds frameTime() const { return frameTime_; }
 	FrameTime presentTime() const;

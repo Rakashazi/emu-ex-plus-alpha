@@ -238,16 +238,26 @@ public:
 
 	FS::PathString contentLocalSaveDirectory(auto &&...components) const
 	{
-		assert(!contentName_.empty());
-		return FS::uriString(contentSaveDirectory_, contentName_, "saves", IG_forward(components)...);
+		return contentLocalDirectory(contentSaveDirectory_, "saves", IG_forward(components)...);
 	}
 
 	bool createContentLocalSaveDirectory(auto &&...components)
 	{
+		return createContentLocalDirectory(contentSaveDirectory_, "saves", IG_forward(components)...);
+	}
+
+	FS::PathString contentLocalDirectory(std::string_view basePath, std::string_view name, auto &&...components) const
+	{
+		assert(!contentName_.empty());
+		return FS::uriString(basePath, contentName_, name, IG_forward(components)...);
+	}
+
+	bool createContentLocalDirectory(std::string_view basePath, std::string_view name, auto &&...components)
+	{
 		assert(!contentName_.empty());
 		try
 		{
-			FS::createDirectoryUriSegments(appContext(), contentSaveDirectory_, contentName_, "saves", IG_forward(components)...);
+			FS::createDirectoryUriSegments(appContext(), basePath, contentName_, name, IG_forward(components)...);
 		}
 		catch(...)
 		{

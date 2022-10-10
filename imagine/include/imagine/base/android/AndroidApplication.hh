@@ -19,6 +19,7 @@
 #include <imagine/base/BaseApplication.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/android/Choreographer.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/util/jni.hh>
 #include <pthread.h>
 #include <optional>
@@ -96,6 +97,7 @@ public:
 	bool createDirectoryUri(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
 	bool forEachInDirectoryUri(JNIEnv *, jobject baseActivity, CStringView uri, DirectoryEntryDelegate,
 		FS::DirOpenFlagsMask) const;
+	std::string formatDateAndTime(JNIEnv *, jclass baseActivityClass, WallClockTime timeSinceEpoch);
 
 	// Input system functions
 	void onInputQueueCreated(ApplicationContext, AInputQueue *);
@@ -139,6 +141,7 @@ private:
 	JNI::InstMethod<jboolean(jlong, jstring)> listUriFiles{};
 	JNI::InstMethod<jboolean(jstring)> createDirUri{};
 	JNI::InstMethod<jboolean(jstring, jstring)> renameUri{};
+	JNI::ClassMethod<jstring(jlong)> jFormatDateTime;
 	SystemDocumentPickerDelegate onSystemDocumentPicker{};
 	SystemOrientationChangedDelegate onSystemOrientationChanged{};
 	Timer userActivityCallback{"userActivityCallback"};

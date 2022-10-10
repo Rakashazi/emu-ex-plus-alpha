@@ -68,24 +68,6 @@ const Gfx::Text &MenuItem::text() const
 	return t;
 }
 
-bool TextMenuItem::select(View &parent, const Input::Event &e)
-{
-	//logMsg("calling delegate");
-	return selectD.callCopySafe(*this, parent, e);
-}
-
-void TextMenuItem::setOnSelect(SelectDelegate onSelect)
-{
-	selectD = onSelect;
-}
-
-TextMenuItem::SelectDelegate TextMenuItem::onSelect() const
-{
-	return selectD;
-}
-
-bool TextHeadingMenuItem::select(View &parent, const Input::Event &e) { return true; };
-
 void BaseDualTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
 	MenuItem::compile(r, projP);

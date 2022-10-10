@@ -119,8 +119,6 @@ static std::string slotDescription(EmuApp &app, std::string_view saveName)
 	auto desc = app.appContext().fileUriFormatLastWriteTimeLocal(app.autosaveStatePath(saveName));
 	if(desc.empty())
 		desc = "No saved state";
-	if(app.currentAutosave() == saveName)
-		desc += " (Active)";
 	return desc;
 }
 
@@ -200,6 +198,8 @@ void AutosaveSlotView::refreshSlots()
 			}
 		}
 	};
+	if(app().currentAutosave().empty())
+		mainSlot.setHighlighted(true);
 	extraSlotItems.clear();
 	auto ctx = appContext();
 	auto &sys = system();
@@ -207,7 +207,7 @@ void AutosaveSlotView::refreshSlots()
 	{
 		if(e.type() != FS::file_type::directory)
 			return true;
-		extraSlotItems.emplace_back(e.name(), fmt::format("{}: {}", e.name(), slotDescription(app(), e.name())),
+		auto &item = extraSlotItems.emplace_back(e.name(), fmt::format("{}: {}", e.name(), slotDescription(app(), e.name())),
 			&defaultFace(), [this](TextMenuItem &item)
 		{
 			if(app().setAutosave(static_cast<SlotTextMenuItem&>(item).slotName))
@@ -216,11 +216,13 @@ void AutosaveSlotView::refreshSlots()
 				refreshItems();
 			}
 		});
+		if(app().currentAutosave() == e.name())
+			item.setHighlighted(true);
 		return true;
 	}, FS::DirOpenFlagsMask::Test);
 	noSaveSlot =
 	{
-		fmt::format("No Save {}", app().currentAutosave() == noAutosaveName ? "(active)" : ""),
+		"No Save",
 		&defaultFace(), [this]()
 		{
 			if(app().setAutosave(noAutosaveName))
@@ -230,6 +232,8 @@ void AutosaveSlotView::refreshSlots()
 			}
 		}
 	};
+	if(app().currentAutosave() == noAutosaveName)
+		noSaveSlot.setHighlighted(true);
 }
 
 void AutosaveSlotView::refreshItems()

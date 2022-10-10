@@ -79,14 +79,14 @@ protected:
 		static LineSpan decode(std::u16string_view);
 	};
 
-	UTF16String textStr{};
+	UTF16String textStr;
 	GlyphTextureSet *face_{};
 	size_t sizeBeforeLineSpans{}; // encoded LineSpans in textStr start after this offset
-	float spaceSize = 0;
-	float nominalHeight_ = 0;
-	float yLineStart = 0;
-	float xSize = 0;
-	float ySize = 0;
+	float spaceSize{};
+	float nominalHeight_{};
+	float yLineStart{};
+	float xSize{};
+	float ySize{};
 
 	bool hasText() const;
 };

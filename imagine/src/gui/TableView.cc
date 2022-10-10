@@ -495,7 +495,9 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 
 void TableView::drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const
 {
-	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, align, projP, Gfx::color(Gfx::ColorName::WHITE));
+	static constexpr auto highlightColor = Gfx::color(0.f, .8f, 1.f);
+	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, align, projP,
+		item.highlighted() ? highlightColor : Gfx::color(Gfx::ColorName::WHITE));
 }
 
 void TableView::onSelectElement(const Input::Event &e, size_t i, MenuItem &item)

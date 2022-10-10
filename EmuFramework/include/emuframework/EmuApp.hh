@@ -158,7 +158,7 @@ public:
 	void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
 	void dispatchOnMainMenuItemOptionChanged();
 	void unpostMessage();
-	void printScreenshotResult(int num, bool success);
+	void printScreenshotResult(bool success);
 	bool saveAutosave();
 	bool loadAutosave();
 	bool setAutosave(std::string_view name);
@@ -204,6 +204,7 @@ public:
 	EmuViewController &viewController();
 	void pauseAutosaveStateTimer();
 	void cancelAutosaveStateTimer();
+	void resetAutosaveStateTimer();
 	void startAutosaveStateTimer();
 	void configFrameTime();
 	void setFaceButtonMapping(FaceButtonImageMap map);
@@ -227,7 +228,7 @@ public:
 	IG::Audio::Manager &audioManager() { return audioManager_; }
 	void renderSystemFramebuffer(EmuVideo &);
 	bool writeScreenshot(IG::PixmapView, IG::CStringView path);
-	std::pair<int, FS::PathString> makeNextScreenshotFilename();
+	FS::PathString makeNextScreenshotFilename();
 	bool mogaManagerIsActive() const;
 	void setMogaManagerActive(bool on, bool notify);
 	constexpr IG::VibrationManager &vibrationManager() { return vibrationManager_; }

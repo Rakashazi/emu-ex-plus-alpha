@@ -199,35 +199,6 @@ static file_type makeFileType(struct stat s)
 	return file_type::unknown;
 }
 
-static std::string formatDateAndTime(std::tm time)
-{
-	if(!time.tm_year)
-		return {};
-	std::array<char, 64> str{};
-	static constexpr const char *strftimeFormat = "%x  %r";
-	std::strftime(str.data(), str.size(), strftimeFormat, &time);
-	return str.data();
-}
-
-std::tm file_status::lastWriteTimeLocal() const
-{
-	std::time_t mTime = lastWriteTime();
-	if(!mTime)
-		return {};
-	std::tm localMTime;
-	if(!localtime_r(&mTime, &localMTime)) [[unlikely]]
-	{
-		logErr("localtime_r failed");
-		return {};
-	}
-	return localMTime;
-}
-
-std::string formatLastWriteTimeLocal(IG::CStringView path)
-{
-	return formatDateAndTime(status(path).lastWriteTimeLocal());
-}
-
 PathString current_path()
 {
 	PathStringArray wDir;

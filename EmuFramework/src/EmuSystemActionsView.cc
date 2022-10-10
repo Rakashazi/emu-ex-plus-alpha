@@ -63,11 +63,6 @@ protected:
 	std::array<TextMenuItem, 3> items;
 };
 
-static auto makeStateSlotStr(EmuSystem &sys, int slot)
-{
-	return fmt::format("State Slot ({})", sys.saveSlotChar(slot));
-}
-
 static auto autoSaveName(EmuApp &app)
 {
 	return fmt::format("Autosave Slot ({})", app.currentAutosaveName());
@@ -79,19 +74,11 @@ void EmuSystemActionsView::onShow()
 		return;
 	TableView::onShow();
 	logMsg("refreshing action menu state");
-	auto hasContent = system().hasContent();
-	cheats.setActive(hasContent);
-	reset.setActive(hasContent);
+	assert(system().hasContent());
 	autosaveSlot.compile(autoSaveName(app()), renderer(), projP);
-	autosaveNow.setActive(hasContent && app().currentAutosave() != noAutosaveName);
-	revertAutosave.setActive(hasContent && app().currentAutosave() != noAutosaveName);
-	saveState.setActive(hasContent);
-	loadState.setActive(hasContent && system().stateExists(system().stateSlot()));
-	stateSlot.compile(makeStateSlotStr(system(), system().stateSlot()), renderer(), projP);
-	screenshot.setActive(hasContent);
-	doIfUsed(addLauncherIcon, [&](auto &mItem){ mItem.setActive(hasContent); });
+	autosaveNow.setActive(app().currentAutosave() != noAutosaveName);
+	revertAutosave.setActive(app().currentAutosave() != noAutosaveName);
 	resetSessionOptions.setActive(app().hasSavedSessionOptions());
-	close.setActive(hasContent);
 }
 
 void EmuSystemActionsView::loadStandardItems()
@@ -101,11 +88,9 @@ void EmuSystemActionsView::loadStandardItems()
 		item.emplace_back(&cheats);
 	}
 	item.emplace_back(&reset);
+	item.emplace_back(&autosaveSlot);
 	item.emplace_back(&revertAutosave);
 	item.emplace_back(&autosaveNow);
-	item.emplace_back(&autosaveSlot);
-	item.emplace_back(&loadState);
-	item.emplace_back(&saveState);
 	item.emplace_back(&stateSlot);
 	if(used(addLauncherIcon))
 		item.emplace_back(&addLauncherIcon);
@@ -197,57 +182,9 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	},
-	loadState
-	{
-		"Load State", &defaultFace(),
-		[this](TextMenuItem &item, View &, const Input::Event &e)
-		{
-			if(item.active() && system().hasContent())
-			{
-				auto ynAlertView = makeView<YesNoAlertView>("Really load state?");
-				ynAlertView->setOnYes(
-					[this]()
-					{
-						if(app().loadStateWithSlot(system().stateSlot()))
-							app().showEmulation();
-					});
-				pushAndShowModal(std::move(ynAlertView), e);
-			}
-		}
-	},
-	saveState
-	{
-		"Save State", &defaultFace(),
-		[this](const Input::Event &e)
-		{
-			if(system().hasContent())
-			{
-				static auto doSaveState =
-					[](EmuApp &app)
-					{
-						if(app.saveStateWithSlot(app.system().stateSlot()))
-							app.showEmulation();
-					};
-				if(app().shouldOverwriteExistingState())
-				{
-					doSaveState(app());
-				}
-				else
-				{
-					auto ynAlertView = makeView<YesNoAlertView>("Really overwrite state?");
-					ynAlertView->setOnYes(
-						[this]()
-						{
-							doSaveState(app());
-						});
-					pushAndShowModal(std::move(ynAlertView), e);
-				}
-			}
-		}
-	},
 	stateSlot
 	{
-		makeStateSlotStr(system(), system().stateSlot()), &defaultFace(),
+		"Manual Save States", &defaultFace(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<StateSlotView>(), e);
@@ -322,10 +259,10 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	},
 	close
 	{
-		"Close Game", &defaultFace(),
+		"Close Content", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			auto ynAlertView = makeView<YesNoAlertView>("Really close current game?");
+			auto ynAlertView = makeView<YesNoAlertView>("Really close current content?");
 			ynAlertView->setOnYes(
 				[this]()
 				{

@@ -203,29 +203,14 @@ void EmuVideo::takeGameScreenshot()
 void EmuVideo::doScreenshot(EmuSystemTaskContext taskCtx, IG::PixmapView pix)
 {
 	screenshotNextFrame = false;
-	auto [screenshotNum, path] = app().makeNextScreenshotFilename();
-	if(screenshotNum == -1)
+	auto success = app().writeScreenshot(pix, app().makeNextScreenshotFilename());
+	if(taskCtx)
 	{
-		if(taskCtx)
-		{
-			taskCtx.task().sendScreenshotReply(-1, false);
-		}
-		else
-		{
-			app().printScreenshotResult(-1, false);
-		}
+		taskCtx.task().sendScreenshotReply(success);
 	}
 	else
 	{
-		auto success = app().writeScreenshot(pix, path);
-		if(taskCtx)
-		{
-			taskCtx.task().sendScreenshotReply(screenshotNum, success);
-		}
-		else
-		{
-			app().printScreenshotResult(screenshotNum, success);
-		}
+		app().printScreenshotResult(success);
 	}
 }
 

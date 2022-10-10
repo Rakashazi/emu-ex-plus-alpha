@@ -55,6 +55,8 @@ import java.io.InputStream;
 import java.io.File;
 import android.util.Log;
 import android.provider.DocumentsContract;
+import java.util.Date;
+import java.text.DateFormat;
 
 // This class is also named BaseActivity to prevent shortcuts from breaking with previous SDK < 9 APKs
 
@@ -573,6 +575,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		{
 			//Log.e(logTag, "error starting activity for URL:" + url);
 		}
+	}
+
+	static String formatDateTime(long time)
+	{
+		return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date(time));
 	}
 
 	// Storage Access Framework support

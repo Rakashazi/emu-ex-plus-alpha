@@ -77,7 +77,6 @@ PathString makeAppPathFromLaunchCommand(IG::CStringView launchPath);
 FileString basename(IG::CStringView path);
 PathString dirname(IG::CStringView path);
 FileString displayName(IG::CStringView path);
-std::string formatLastWriteTimeLocal(IG::CStringView path);
 
 // URI path functions
 static constexpr std::string_view uriPathSegmentTreeName{"/tree/"};

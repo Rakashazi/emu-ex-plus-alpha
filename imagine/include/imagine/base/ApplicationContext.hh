@@ -27,6 +27,7 @@
 
 #include <imagine/base/baseDefs.hh>
 #include <imagine/io/ioDefs.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string/CStringView.hh>
@@ -213,6 +214,10 @@ public:
 	bool usesPermission(Permission p) const;
 	bool permissionIsRestricted(Permission p) const;
 	bool requestPermission(Permission p);
+
+	// Date & Time
+	std::string formatDateAndTime(WallClockTime timeSinceEpoch);
+	std::string formatDateAndTimeAsFilename(WallClockTime timeSinceEpoch);
 
 	// Input
 	const InputDeviceContainer &inputDevices() const;

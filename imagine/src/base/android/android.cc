@@ -309,7 +309,7 @@ std::string AndroidApplication::fileUriFormatLastWriteTimeLocal(JNIEnv *env, job
 std::string ApplicationContext::fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const
 {
 	if(androidSDK() < 19 || !IG::isUri(uri))
-		return FS::formatLastWriteTimeLocal(uri);
+		return FS::formatLastWriteTimeLocal(*this, uri);
 	return application().fileUriFormatLastWriteTimeLocal(thisThreadJniEnv(), baseActivityObject(), uri);
 }
 
@@ -440,6 +440,21 @@ bool ApplicationContext::requestPermission(Permission p)
 	return requestPermission(env, baseActivity, permissionJStr);
 }
 
+std::string AndroidApplication::formatDateAndTime(JNIEnv *env, jclass baseActivityClass, WallClockTime time)
+{
+	if(!time.count())
+		return {};
+	return std::string{JNI::StringChars{env, jFormatDateTime(env, baseActivityClass,
+		std::chrono::duration_cast<Milliseconds>(time).count())}};
+}
+
+std::string ApplicationContext::formatDateAndTime(WallClockTime time)
+{
+	auto env = thisThreadJniEnv();
+	return application().formatDateAndTime(env,
+		(jclass)env->GetObjectClass(baseActivityObject()), time);
+}
+
 JNIEnv *AndroidApplicationContext::mainThreadJniEnv() const
 {
 	assert(mainThreadId == gettid());
@@ -565,6 +580,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 	// BaseActivity JNI functions
 	jSetRequestedOrientation = {env, baseActivityClass, "setRequestedOrientation", "(I)V"};
 	jMainDisplayRotation = {env, baseActivityClass, "mainDisplayRotation", "()I"};
+	jFormatDateTime = {env, baseActivityClass, "formatDateTime", "(J)Ljava/lang/String;"};
 	jNewFontRenderer = {env, baseActivityClass, "newFontRenderer", "()Lcom/imagine/FontRenderer;"};
 	{
 		JNINativeMethod method[]

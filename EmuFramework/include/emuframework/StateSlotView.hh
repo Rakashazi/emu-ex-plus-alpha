@@ -31,7 +31,14 @@ public:
 
 private:
 	static constexpr int stateSlots = 10;
-	TextMenuItem stateSlot[stateSlots]{};
+	TextMenuItem load;
+	TextMenuItem save;
+	TextHeadingMenuItem slotHeading;
+	TextMenuItem stateSlot[stateSlots];
+	std::array<MenuItem*, 13> menuItems;
+
+	void refreshSlot(int slot);
+	void doSaveState();
 };
 
 }

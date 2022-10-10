@@ -117,4 +117,9 @@ bool forEachInDirectory(IG::CStringView path, DirectoryEntryDelegate del, DirOpe
 	return entriesRead;
 }
 
+std::string formatLastWriteTimeLocal(ApplicationContext ctx, CStringView path)
+{
+	return ctx.formatDateAndTime(status(path).lastWriteTime());
+}
+
 }

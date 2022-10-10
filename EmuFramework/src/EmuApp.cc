@@ -127,9 +127,9 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 		[this]()
 		{
 			logMsg("running autosave timer");
-			autoSaveTimerStartTime = IG::steadyClockTimestamp();
 			syncEmulationThread();
 			saveAutosave();
+			resetAutosaveStateTimer();
 			return true;
 		}
 	},
@@ -1043,17 +1043,11 @@ void EmuApp::unpostMessage()
 	viewController().popupMessageView().clear();
 }
 
-void EmuApp::printScreenshotResult(int num, bool success)
+void EmuApp::printScreenshotResult(bool success)
 {
-	if(num == -1)
-	{
-		postErrorMessage("Too many screenshots");
-	}
-	else
-	{
-		postMessage(2, !success, fmt::format("{}{}",
-			success ? "Wrote screenshot #" : "Error writing screenshot #", num));
-	}
+	postMessage(3, !success, fmt::format("{}{}",
+		success ? "Wrote screenshot at " : "Error writing screenshot at ",
+		appContext().formatDateAndTime(wallClockTimestamp())));
 }
 
 void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view displayName,
@@ -1273,6 +1267,7 @@ bool EmuApp::loadState(IG::CStringView path)
 	try
 	{
 		system().loadState(*this, path);
+		resetAutosaveStateTimer();
 		return true;
 	}
 	catch(std::exception &err)
@@ -1496,6 +1491,11 @@ void EmuApp::cancelAutosaveStateTimer()
 	autoSaveTimer.cancel();
 }
 
+void EmuApp::resetAutosaveStateTimer()
+{
+	autoSaveTimerStartTime = IG::steadyClockTimestamp();
+}
+
 void EmuApp::startAutosaveStateTimer()
 {
 	if(!optionAutosaveTimerMins || autoSaveSlot == noAutosaveName)
@@ -1571,22 +1571,14 @@ bool EmuApp::writeScreenshot(IG::PixmapView pix, IG::CStringView path)
 	return pixmapWriter.writeToFile(pix, path);
 }
 
-std::pair<int, FS::PathString> EmuApp::makeNextScreenshotFilename()
+FS::PathString EmuApp::makeNextScreenshotFilename()
 {
-	static constexpr int maxNum = 999;
-	auto ctx = appContext();
-	auto basePath = system().userPath(userScreenshotDir, system().contentName());
-	for(auto i : iotaCount(maxNum))
-	{
-		auto str = IG::format<FS::PathString>("{}.{:03d}.png", basePath, i);
-		if(!ctx.fileUriExists(str))
-		{
-			logMsg("screenshot %d", i);
-			return {i, str};
-		}
-	}
-	logMsg("no screenshot filenames left");
-	return {-1, {}};
+	static constexpr std::string_view subDirName = "screenshots";
+	auto &sys = system();
+	auto userPath = sys.userPath(userScreenshotDir);
+	sys.createContentLocalDirectory(userPath, subDirName);
+	return sys.contentLocalDirectory(userPath, subDirName,
+		appContext().formatDateAndTimeAsFilename(wallClockTimestamp()).append(".png"));
 }
 
 bool EmuApp::mogaManagerIsActive() const
