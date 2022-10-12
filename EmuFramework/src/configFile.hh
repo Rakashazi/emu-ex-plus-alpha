@@ -64,7 +64,7 @@ static bool readConfigKeys(MapIO io, ON_KEY onKey)
 		}
 		fileBytesLeft -= size;
 
-		if(size < 3) // all blocks are at least a 2 byte key + 1 byte or more of data
+		if(size < 2) // all blocks are at least a 2 byte key
 		{
 			logMsg("skipping %d byte block", size);
 			if(io.seekC(size) == -1)

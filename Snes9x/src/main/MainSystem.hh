@@ -30,6 +30,8 @@ enum
 	CFGKEY_AUDIO_DSP_INTERPOLATON = 280, CFGKEY_SEPARATE_ECHO_BUFFER = 281,
 	CFGKEY_SUPERFX_CLOCK_MULTIPLIER = 282, CFGKEY_ALLOW_EXTENDED_VIDEO_LINES = 283,
 	CFGKEY_CHEATS_PATH = 284, CFGKEY_PATCHES_PATH = 285,
+	CFGKEY_SATELLAVIEW_PATH = 286, CFGKEY_SUFAMI_BIOS_PATH = 287,
+	CFGKEY_BSX_BIOS_PATH = 288,
 };
 
 #ifdef SNES9X_VERSION_1_4
@@ -53,6 +55,9 @@ class Snes9xSystem final: public EmuSystem
 public:
 	std::string cheatsDir;
 	std::string patchesDir;
+	std::string satDir{optionUserPathContentToken};
+	std::string sufamiBiosPath;
+	std::string bsxBiosPath;
 	#ifndef SNES9X_VERSION_1_4
 	int snesInputPort = SNES_AUTO_INPUT;
 	int snesActiveInputPort = SNES_JOYPAD;
@@ -102,6 +107,7 @@ public:
 		#endif
 	}
 	void setupSNESInput(VController &);
+	static bool hasBiosExtension(std::string_view name);
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -137,6 +143,7 @@ public:
 protected:
 	void applyInputPortOption(int portVal, VController &vCtrl);
 	WP updateAbsolutePointerPosition(IG::WindowRect gameRect, WP pos);
+	IOBuffer readSufamiTurboBios() const;
 };
 
 using MainSystem = Snes9xSystem;

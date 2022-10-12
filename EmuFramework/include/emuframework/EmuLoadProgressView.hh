@@ -40,10 +40,10 @@ public:
 
 private:
 	MessagePortType msgPort{"EmuLoadProgressView"};
-	EmuApp::CreateSystemCompleteDelegate onComplete{};
+	EmuApp::CreateSystemCompleteDelegate onComplete;
 	Gfx::Text text;
-	Input::Event originalEvent{};
-	int pos = 0, max = 0;
+	Input::Event originalEvent;
+	int pos{}, max{};
 };
 
 }

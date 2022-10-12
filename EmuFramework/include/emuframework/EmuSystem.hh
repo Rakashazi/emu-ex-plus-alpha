@@ -328,7 +328,7 @@ public:
 
 protected:
 	IG::ApplicationContext appCtx{};
-	EmuTiming emuTiming{};
+	EmuTiming emuTiming;
 	IG::FloatSeconds frameTimeNative{1./60.};
 	IG::FloatSeconds frameTimePAL{1./50.};
 	double audioFramesPerVideoFrameFloat{};
@@ -365,7 +365,7 @@ protected:
 	auto &frameTimeVar(VideoSystem system) const { return frameTimeVar(*this, system); }
 
 public:
-	IG::OnFrameDelegate onFrameUpdate{};
+	IG::OnFrameDelegate onFrameUpdate;
 	double targetSpeed{1.};
 };
 

@@ -59,12 +59,12 @@ public:
 	}
 
 private:
-	VideoImageOverlay vidImgOverlay{};
+	VideoImageOverlay vidImgOverlay;
 	IG::StaticArrayList<VideoImageEffect*, 1> effects;
 	EmuVideo &video;
-	VideoImageEffect userEffect{};
-	Gfx::Sprite disp{};
-	IG::WindowRect contentRect_{};
+	VideoImageEffect userEffect;
+	Gfx::Sprite disp;
+	IG::WindowRect contentRect_;
 	double aspectRatio_ = 1.;
 	Gfx::Vec3 brightness{1.f, 1.f, 1.f};
 	Gfx::Vec3 brightnessSrgb{1.f, 1.f, 1.f};

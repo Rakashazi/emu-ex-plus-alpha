@@ -32,8 +32,8 @@ public:
 	BaseCheatsView(ViewAttachParams attach);
 
 protected:
-	TextMenuItem edit{};
-	std::vector<BoolMenuItem> cheat{};
+	TextMenuItem edit;
+	std::vector<BoolMenuItem> cheat;
 
 	virtual void loadCheatItems() = 0;
 };
@@ -45,8 +45,8 @@ public:
 	void setOnCheatListChanged(RefreshCheatsDelegate del);
 
 protected:
-	std::vector<TextMenuItem> cheat{};
-	RefreshCheatsDelegate onCheatListChanged_{};
+	std::vector<TextMenuItem> cheat;
+	RefreshCheatsDelegate onCheatListChanged_;
 
 	void onCheatListChanged();
 	virtual void loadCheatItems() = 0;
@@ -94,8 +94,8 @@ public:
 
 
 protected:
-	TextMenuItem name{}, remove{};
-	RefreshCheatsDelegate onCheatListChanged_{};
+	TextMenuItem name, remove;
+	RefreshCheatsDelegate onCheatListChanged_;
 
 	void onCheatListChanged()
 	{

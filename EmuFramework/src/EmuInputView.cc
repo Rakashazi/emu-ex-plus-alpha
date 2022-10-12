@@ -38,23 +38,17 @@ EmuInputView::EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideo
 
 void EmuInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	vController->draw(cmds, ffToggleActive);
-	#endif
 }
 
 void EmuInputView::place()
 {
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	vController->place();
-	#endif
 }
 
 void EmuInputView::resetInput()
 {
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	vController->resetInput();
-	#endif
 	ffToggleActive = false;
 }
 

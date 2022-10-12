@@ -15,6 +15,7 @@
 #include <math.h>
 
 #define fopen fopenHelper
+void S9xReadBSXBios(uint8 *data);
 
 //#define BSX_DEBUG
 
@@ -1206,33 +1207,8 @@ static bool8 BSX_LoadBIOS (void)
 	char	name[PATH_MAX + 1];
 	bool8	r = FALSE;
 
-	strcpy(name, S9xGetFullFilename("BS-X.bin", BIOS_DIR));
-
-	fp = fopen(name, "rb");
-	if (!fp)
-	{
-		strcpy(name, S9xGetFullFilename("BS-X.bios", BIOS_DIR));
-		fp = fopen(name, "rb");
-	}
-
-	if (fp)
-	{
-		size_t	size;
-
-		size = fread((void *) BIOSROM, 1, BIOS_SIZE, fp);
-		fclose(fp);
-		if (size == BIOS_SIZE)
-			r = TRUE;
-	}
-
-#ifdef BSX_DEBUG
-	if (r)
-		printf("BS: BIOS found.\n");
-	else
-		printf("BS: BIOS not found!\n");
-#endif
-
-	return (r);
+	S9xReadBSXBios(BIOSROM);
+	return true;
 }
 
 static bool8 is_BSX_BIOS (const uint8 *data, uint32 size)

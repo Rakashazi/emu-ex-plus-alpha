@@ -74,15 +74,15 @@ public:
 	constexpr void setState(VControllerState state) { state_ = state; }
 
 protected:
-	Gfx::Sprite spr{};
-	Gfx::Sprite mapSpr{};
-	Gfx::Texture mapImg{};
-	Gfx::GCRect padBase{};
-	IG::WindowRect padBaseArea{}, padArea{};
+	Gfx::Sprite spr;
+	Gfx::Sprite mapSpr;
+	Gfx::Texture mapImg;
+	Gfx::GCRect padBase;
+	IG::WindowRect padBaseArea, padArea;
 	int deadzone{};
 	float diagonalSensitivity = 1.;
 	int btnSizePixels{};
-	VControllerState state_ = VControllerState::SHOWN;
+	VControllerState state_{VControllerState::SHOWN};
 	bool visualizeBounds{};
 
 	void updateBoundingAreaGfx(Gfx::Renderer &, Gfx::ProjectionPlane);

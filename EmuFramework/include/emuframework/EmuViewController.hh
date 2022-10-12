@@ -108,9 +108,9 @@ public:
 protected:
 	static constexpr bool HAS_USE_RENDER_TIME = Config::envIsLinux
 		|| (Config::envIsAndroid && Config::ENV_ANDROID_MIN_SDK < 16);
-	EmuView emuView{};
-	EmuInputView emuInputView{};
-	ToastView popup{};
+	EmuView emuView;
+	EmuInputView emuInputView;
+	ToastView popup;
 	EmuMenuViewStack viewStack;
 	bool showingEmulation{};
 

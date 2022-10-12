@@ -2,6 +2,7 @@
 #include <emuframework/EmuSystemInlines.hh>
 #include <emuframework/EmuAppInlines.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/fs/ArchiveFS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 
@@ -142,6 +143,50 @@ void Snes9xSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 VideoSystem Snes9xSystem::videoSystem() const { return Settings.PAL ? VideoSystem::PAL : VideoSystem::NATIVE_NTSC; }
 WP Snes9xSystem::multiresVideoBaseSize() const { return {256, 239}; }
 
+static bool isSufamiTurboCart(const IOBuffer &buff)
+{
+	return buff.size() >= 0x80000 && buff.size() <= 0x100000 &&
+		buff.stringView(0, 14) == "BANDAI SFC-ADX" && buff.stringView(0x10, 14) != "SFC-ADX BACKUP";
+}
+
+static bool isSufamiTurboBios(const IOBuffer &buff)
+{
+	return buff.size() == 0x40000 &&
+		buff.stringView(0, 14) == "BANDAI SFC-ADX" && buff.stringView(0x10, 14) == "SFC-ADX BACKUP";
+}
+
+bool Snes9xSystem::hasBiosExtension(std::string_view name)
+{
+	return IG::stringEndsWithAny(name, ".bin", ".bios", ".BIN", ".BIOS");
+}
+
+IOBuffer Snes9xSystem::readSufamiTurboBios() const
+{
+	if(sufamiBiosPath.empty())
+		throw std::runtime_error{"No Sufami Turbo BIOS set"};
+	logMsg("loading Sufami Turbo BIOS:%s", sufamiBiosPath.data());
+	if(EmuApp::hasArchiveExtension(appCtx.fileUriDisplayName(sufamiBiosPath)))
+	{
+		for(auto &entry : FS::ArchiveIterator{appCtx.openFileUri(sufamiBiosPath)})
+		{
+			if(entry.type() == FS::file_type::directory || !hasBiosExtension(entry.name()))
+				continue;
+			auto buff = entry.moveIO().buffer(IOBufferMode::RELEASE);
+			if(!isSufamiTurboBios(buff))
+				throw std::runtime_error{"Incompatible Sufami Turbo BIOS"};
+			return buff;
+		}
+		throw std::runtime_error{"Sufami Turbo BIOS not in archive, must end in .bin or .bios"};
+	}
+	else
+	{
+		auto buff = appCtx.openFileUri(sufamiBiosPath, IOAccessHint::ALL).releaseBuffer();
+		if(!isSufamiTurboBios(buff))
+			throw std::runtime_error{"Incompatible Sufami Turbo BIOS"};
+		return buff;
+	}
+}
+
 void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto size = io.size();
@@ -171,9 +216,23 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 	{
 		throwFileReadError();
 	}
-	if(!Memory.LoadROMMem((const uint8*)buff.data(), buff.size()))
+	if(isSufamiTurboCart(buff)) // TODO: loading dual carts
 	{
-		throw std::runtime_error("Error loading game");
+		logMsg("detected Sufami Turbo cart");
+		auto biosBuff = readSufamiTurboBios();
+		if(!Memory.LoadMultiCartMem((const uint8*)buff.data(), buff.size(),
+			nullptr, 0,
+			biosBuff.data(), biosBuff.size()))
+		{
+			throw std::runtime_error("Error loading ROM");
+		}
+	}
+	else
+	{
+		if(!Memory.LoadROMMem((const uint8*)buff.data(), buff.size()))
+		{
+			throw std::runtime_error("Error loading ROM");
+		}
 	}
 	setupSNESInput(EmuApp::get(appContext()).defaultVController());
 	IPPU.RenderThisFrame = TRUE;

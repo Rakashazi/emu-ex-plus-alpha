@@ -34,6 +34,7 @@
 #include "movie.h"
 #include "display.h"
 #include "sha256.h"
+#include "snapshot.h"
 #include "apu/bapu/snes/snes.hpp"
 
 #ifndef SET_UI_COLOR
@@ -1406,6 +1407,8 @@ bool8 CMemory::LoadROM (const char *filename)
     if(!filename || !*filename)
         return FALSE;
 
+    S9xResetSaveTimer(FALSE); // reset oops timer here so that .oops file has rom name of previous rom
+
     int32 totalFileSize;
 
     do
@@ -1681,6 +1684,8 @@ bool8 CMemory::LoadMultiCartMem (const uint8 *sourceA, uint32 sourceASize,
 
 bool8 CMemory::LoadMultiCart (const char *cartA, const char *cartB)
 {
+    S9xResetSaveTimer(FALSE); // reset oops timer here so that .oops file has rom name of previous rom
+
     memset(ROM, 0, MAX_ROM_SIZE);
 	memset(&Multi, 0, sizeof(Multi));
 
@@ -1737,34 +1742,6 @@ bool8 CMemory::LoadMultiCartInt ()
 	}
 	else
 		Multi.cartType = 4; // assuming BIOS only
-
-
-    if(Multi.cartType == 4 && Multi.cartOffsetA == 0) { // try to load bios from file
-        Multi.cartOffsetA = 0x40000;
-        if(Multi.cartSizeA)
-            memmove(ROM + Multi.cartOffsetA, ROM, Multi.cartSizeA + Multi.cartSizeB);
-        else if(Multi.cartOffsetB) // clear cart A so the bios can detect that it's not present
-            memset(ROM, 0, Multi.cartOffsetB);
-
-        FILE	*fp;
-	    size_t	size;
-	    char	path[PATH_MAX + 1];
-
-	    strcpy(path, S9xGetFullFilename("STBIOS.bin", BIOS_DIR));
-
-	    fp = fopen(path, "rb");
-	    if (fp)
-	    {
-		    size = fread((void *) ROM, 1, 0x40000, fp);
-		    fclose(fp);
-		    if (!is_SufamiTurbo_BIOS(ROM, size))
-			    return (FALSE);
-	    }
-	    else
-		    return (FALSE);
-
-        strcpy(ROMFilename, path);
-    }
 
 	switch (Multi.cartType)
 	{

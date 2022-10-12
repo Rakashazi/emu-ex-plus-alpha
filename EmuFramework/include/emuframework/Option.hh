@@ -146,17 +146,29 @@ inline void writeOptionValueIfNotDefault(Writable auto &io, uint16_t key, const 
 	writeOptionValue(io, key, val);
 }
 
-inline void writeStringOptionValue(Writable auto &io, uint16_t key, std::string_view view)
+inline void writeStringOptionValueAllowEmpty(Writable auto &io, uint16_t key, std::string_view s)
 {
-	if(!view.size())
+	writeOptionValueHeader(io, key, s.size());
+	io.write(s.data(), s.size());
+}
+
+inline void writeStringOptionValue(Writable auto &io, uint16_t key, std::string_view s)
+{
+	if(s.empty())
 		return;
-	writeOptionValueHeader(io, key, view.size());
-	io.write(view.data(), view.size());
+	writeStringOptionValueAllowEmpty(io, key, s);
 }
 
 inline void writeStringOptionValue(Writable auto &io, uint16_t key, const Container auto &c)
 {
 	writeStringOptionValue(io, key, std::string_view(c.data()));
+}
+
+inline void writeStringOptionValueIfNotDefault(Writable auto &io, uint16_t key, std::string_view s, std::string_view defaultStr)
+{
+	if(s == defaultStr)
+		return;
+	writeStringOptionValueAllowEmpty(io, key, s);
 }
 
 // Older stateful option API

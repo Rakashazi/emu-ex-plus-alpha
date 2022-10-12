@@ -6,6 +6,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/FilePathOptionView.hh>
+#include <emuframework/DataPathSelectView.hh>
 #include <emuframework/UserPathSelectView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
@@ -268,6 +269,7 @@ public:
 class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
 {
 	using MainAppHelper<CustomFilePathOptionView>::system;
+	using MainAppHelper<CustomFilePathOptionView>::app;
 
 	TextMenuItem cheatsPath
 	{
@@ -299,12 +301,79 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 		}
 	};
 
+	static std::string satMenuName(IG::ApplicationContext ctx, std::string_view userPath)
+	{
+		return fmt::format("Satellaview Files: {}", userPathToDisplayName(ctx, userPath));
+	}
+
+	TextMenuItem satPath
+	{
+		satMenuName(appContext(), system().satDir), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<UserPathSelectView>("Satellaview Files", system().userPath(system().satDir),
+				[this](CStringView path)
+				{
+					logMsg("set satellaview files path:%s", path.data());
+					system().satDir = path;
+					satPath.compile(satMenuName(appContext(), path), renderer(), projP);
+				}), e);
+		}
+	};
+
+	TextMenuItem bsxBios
+	{
+		bsxMenuName(system().bsxBiosPath), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<DataFileSelectView>("BS-X BIOS",
+				app().validSearchPath(FS::dirnameUri(system().bsxBiosPath)),
+				[this](CStringView path, FS::file_type type)
+				{
+					system().bsxBiosPath = path;
+					logMsg("set BS-X bios:%s", path.data());
+					bsxBios.compile(bsxMenuName(path), renderer(), projP);
+					return true;
+				}, Snes9xSystem::hasBiosExtension), e);
+		}
+	};
+
+	std::string bsxMenuName(CStringView path) const
+	{
+		return fmt::format("BS-X BIOS: {}", appContext().fileUriDisplayName(path));
+	}
+
+	TextMenuItem sufamiBios
+	{
+		sufamiMenuName(system().sufamiBiosPath), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeViewWithName<DataFileSelectView>("Sufami Turbo BIOS",
+				app().validSearchPath(FS::dirnameUri(system().sufamiBiosPath)),
+				[this](CStringView path, FS::file_type type)
+				{
+					system().sufamiBiosPath = path;
+					logMsg("set Sufami Turbo bios:%s", path.data());
+					sufamiBios.compile(sufamiMenuName(path), renderer(), projP);
+					return true;
+				}, Snes9xSystem::hasBiosExtension), e);
+		}
+	};
+
+	std::string sufamiMenuName(CStringView path) const
+	{
+		return fmt::format("Sufami Turbo BIOS: {}", appContext().fileUriDisplayName(path));
+	}
+
 public:
 	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&cheatsPath);
 		item.emplace_back(&patchesPath);
+		item.emplace_back(&satPath);
+		item.emplace_back(&bsxBios);
+		item.emplace_back(&sufamiBios);
 	}
 };
 

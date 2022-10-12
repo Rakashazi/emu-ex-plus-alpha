@@ -34,11 +34,6 @@
 namespace EmuEx
 {
 
-#if defined CONFIG_INPUT_POINTING_DEVICES
-#define CONFIG_EMUFRAMEWORK_VCONTROLS
-#endif
-constexpr bool VCONTROLS = Config::Input::POINTING_DEVICES;
-
 #if defined __ANDROID__ || \
 	defined CONFIG_BASE_IOS || \
 	(defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA)

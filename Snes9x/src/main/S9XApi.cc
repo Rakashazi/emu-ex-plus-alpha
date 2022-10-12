@@ -1,7 +1,9 @@
 #define LOGTAG "main"
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
+#include <imagine/fs/ArchiveFS.hh>
 #include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include <emuframework/EmuSystem.hh>
@@ -174,6 +176,8 @@ const char *S9xGetFilename(const char *ex)
 		globalPath = sys.userFilePath(sys.cheatsDir, ex);
 	else if(dirtype == PATCH_DIR)
 		globalPath = sys.userFilePath(sys.patchesDir, ex);
+	else if(dirtype == SAT_DIR)
+		globalPath = sys.userFilePath(sys.satDir, ex);
 	else
 		globalPath = sys.contentSaveFilePath(ex);
 	//logMsg("built s9x path:%s", globalPath.c_str());
@@ -190,10 +194,50 @@ const char *S9xGetFullFilename(const char *name, enum s9x_getdirtype dirtype)
 		globalPath = sys.userPath(sys.cheatsDir, name);
 	else if(dirtype == PATCH_DIR)
 		globalPath = sys.userPath(sys.patchesDir, name);
+	else if(dirtype == SAT_DIR)
+		globalPath = sys.userPath(sys.satDir, name);
 	else
 		globalPath = sys.contentSavePath(name);
 	//logMsg("built s9x path:%s", globalPath.c_str());
 	return globalPath.c_str();
+}
+
+constexpr size_t BsxBiosSize = 0x100000;
+
+static bool isBsxBios(uint8 *data, ssize_t size)
+{
+	return size == BsxBiosSize && std::string_view{(char*)data + 0x7FC0, 21} == "Satellaview BS-X     ";
+}
+
+void S9xReadBSXBios(uint8 *data)
+{
+	auto &sys = static_cast<Snes9xSystem&>(EmuEx::gSystem());
+	auto appCtx = sys.appContext();
+	auto &bsxBiosPath = sys.bsxBiosPath;
+	if(bsxBiosPath.empty())
+		throw std::runtime_error{"No BS-X BIOS set"};
+	logMsg("loading BS-X BIOS:%s", bsxBiosPath.data());
+	if(EmuApp::hasArchiveExtension(appCtx.fileUriDisplayName(bsxBiosPath)))
+	{
+		for(auto &entry : FS::ArchiveIterator{appCtx.openFileUri(bsxBiosPath)})
+		{
+			if(entry.type() == FS::file_type::directory || !Snes9xSystem::hasBiosExtension(entry.name()))
+				continue;
+			auto io = entry.moveIO();
+			auto size = io.read(data, BsxBiosSize);
+			if(!isBsxBios(data, size))
+				throw std::runtime_error{"Incompatible BS-X BIOS"};
+			return;
+		}
+		throw std::runtime_error{"BS-X BIOS not in archive, must end in .bin or .bios"};
+	}
+	else
+	{
+		auto io = appCtx.openFileUri(bsxBiosPath, IOAccessHint::ALL);
+		auto size = io.read(data, BsxBiosSize);
+		if(!isBsxBios(data, size))
+			throw std::runtime_error{"Incompatible BS-X BIOS"};
+	}
 }
 #endif
 
@@ -328,9 +372,6 @@ gzFile gzopenHelper(const char *filename, const char *mode)
 	auto openFlags = std::string_view{mode}.contains('w') ? IG::OpenFlagsMask::NEW : IG::OpenFlagsMask{};
 	return gzdopen(gAppContext().openFileUriFd(filename, openFlags | IG::OpenFlagsMask::TEST).release(), mode);
 }
-
-// from logger.h
-void S9xResetLogger() {}
 
 // from screenshot.h
 bool8 S9xDoScreenshot(int, int) { return 1; }

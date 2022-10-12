@@ -64,7 +64,6 @@ apu/apu.cpp \
 apu/bapu/dsp/sdsp.cpp \
 apu/bapu/smp/smp.cpp \
 apu/bapu/smp/smp_state.cpp
-# conffile.cpp crosshairs.cpp logger.cpp screenshot.cpp snes9x.cpp
 
 SRC += \
 main/Main.cc \

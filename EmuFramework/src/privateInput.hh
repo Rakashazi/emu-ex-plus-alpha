@@ -22,9 +22,7 @@
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
 #include <emuframework/EmuInput.hh>
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 #include <emuframework/VController.hh>
-#endif
 #include <memory>
 #include <string>
 

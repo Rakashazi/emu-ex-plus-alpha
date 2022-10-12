@@ -44,18 +44,14 @@ public:
 	void onAddedToController(ViewController *, const Input::Event &) final;
 
 private:
-	#ifdef CONFIG_INPUT_POINTING_DEVICES
-	IG::WindowRect unbindB{}, cancelB{};
-	#endif
-	Gfx::Text text{};
-	#ifdef CONFIG_INPUT_POINTING_DEVICES
-	Gfx::Text unbind{}, cancel{};
-	#endif
-	SetDelegate onSetD{};
+	IG::WindowRect unbindB, cancelB;
+	Gfx::Text text;
+	Gfx::Text unbind, cancel;
+	SetDelegate onSetD;
 	const Input::Device &dev;
 	const Input::Device *savedDev{};
 	InputManagerView &rootIMView;
-	std::string actionStr{};
+	std::string actionStr;
 
 	void initPointerUI();
 	bool pointerUIIsInit();
@@ -72,8 +68,8 @@ private:
 	};
 
 	InputManagerView &rootIMView;
-	TextMenuItem reset{};
-	std::unique_ptr<BtnConfigMenuItem[]> btn{};
+	TextMenuItem reset;
+	std::unique_ptr<BtnConfigMenuItem[]> btn;
 	const KeyCategory *cat{};
 	InputDeviceConfig *devConf{};
 	Input::Time leftKeyPushTime{};

@@ -39,9 +39,9 @@ public:
 	void endFrame();
 
 protected:
-	EmuSystemTaskContext taskCtx{};
+	EmuSystemTaskContext taskCtx;
 	EmuVideo *emuVideo{};
-	Gfx::LockedTextureBuffer texBuff{};
+	Gfx::LockedTextureBuffer texBuff;
 };
 
 class EmuVideo : public EmuAppHelper<EmuVideo>
@@ -89,16 +89,16 @@ public:
 
 protected:
 	Gfx::RendererTask *rTask{};
-	Gfx::SyncFence fence{};
-	Gfx::PixmapBufferTexture vidImg{};
-	FrameFinishedDelegate onFrameFinished{};
-	FormatChangedDelegate onFormatChanged{};
-	IG::PixelFormat renderFmt{};
+	Gfx::SyncFence fence;
+	Gfx::PixmapBufferTexture vidImg;
+	FrameFinishedDelegate onFrameFinished;
+	FormatChangedDelegate onFormatChanged;
+	IG::PixelFormat renderFmt;
 	Gfx::TextureBufferMode bufferMode{};
 	bool screenshotNextFrame{};
 	bool singleBuffer{};
 	bool needsFence{};
-	Gfx::ColorSpace colSpace{};
+	Gfx::ColorSpace colSpace{Gfx::ColorSpace::LINEAR};
 	bool useLinearFilter{true};
 
 	void doScreenshot(EmuSystemTaskContext, IG::PixmapView pix);

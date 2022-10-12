@@ -486,14 +486,14 @@ protected:
 	EmuVideoLayer emuVideoLayer;
 	EmuSystemTask emuSystemTask;
 	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetID>];
-	IG_UseMemberIf(VCONTROLS, VController, vController);
+	VController vController;
 	IG::Timer autoSaveTimer;
-	IG::Time autoSaveTimerStartTime;
-	IG::Time autoSaveTimerElapsedTime;
-	DelegateFunc<void ()> onUpdateInputDevices_{};
-	OnMainMenuOptionChanged onMainMenuOptionChanged_{};
-	KeyConfigContainer customKeyConfigs{};
-	InputDeviceSavedConfigContainer savedInputDevs{};
+	IG::Time autoSaveTimerStartTime{};
+	IG::Time autoSaveTimerElapsedTime{};
+	DelegateFunc<void ()> onUpdateInputDevices_;
+	OnMainMenuOptionChanged onMainMenuOptionChanged_;
+	KeyConfigContainer customKeyConfigs;
+	InputDeviceSavedConfigContainer savedInputDevs;
 	TurboInput turboActions;
 	Gfx::Vec3 videoBrightnessRGB{1.f, 1.f, 1.f};
 	FS::PathString contentSearchPath_;
@@ -503,7 +503,7 @@ protected:
 	#ifdef CONFIG_BLUETOOTH
 	BluetoothAdapter *bta{};
 	#endif
-	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr){};
+	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr);
 	RecentContentList recentContentList;
 	std::string autoSaveSlot;
 	std::string userScreenshotDir;
@@ -548,12 +548,12 @@ protected:
 	Byte1Option optionShowOnSecondScreen;
 	Byte1Option optionTextureBufferMode;
 	Byte1Option optionVideoImageBuffers;
-	Gfx::DrawableConfig windowDrawableConf{};
-	IG::PixelFormat renderPixelFmt{};
+	Gfx::DrawableConfig windowDrawableConf;
+	IG::PixelFormat renderPixelFmt;
 	IG::Rotation contentRotation_{IG::Rotation::ANY};
 	bool showHiddenFilesInPicker_{};
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, bool, layoutBehindSystemUI){};
-	IG::WindowFrameTimeSource winFrameTimeSrc{};
+	IG::WindowFrameTimeSource winFrameTimeSrc{IG::WindowFrameTimeSource::AUTO};
 	IG_UseMemberIf(Config::envIsAndroid, bool, usePresentationTime_){true};
 	IG_UseMemberIf(Config::envIsAndroid, bool, forceMaxScreenFrameRate){};
 

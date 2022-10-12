@@ -17,9 +17,7 @@
 
 #include <emuframework/config.hh>
 #include <emuframework/inGameActionKeys.hh>
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 #include <emuframework/VController.hh>
-#endif
 #include <imagine/input/Input.hh>
 #include <imagine/util/container/VMemArray.hh>
 #include <imagine/util/string/StaticString.hh>
@@ -40,8 +38,8 @@ class InputDeviceConfig;
 
 struct KeyCategory
 {
-	std::string_view name{};
-	std::span<const std::string_view> keyName{};
+	std::string_view name;
+	std::span<const std::string_view> keyName;
 	int configOffset{};
 	bool isMultiplayer{}; // category appears when one input device is assigned multiple players
 
@@ -59,8 +57,8 @@ struct KeyConfig
 
 	Input::Map map{};
 	Input::DeviceSubtype devSubtype{};
-	IG::StaticString<MAX_KEY_CONFIG_NAME_SIZE> name{};
-	KeyArray key_{};
+	IG::StaticString<MAX_KEY_CONFIG_NAME_SIZE> name;
+	KeyArray key_;
 
 	constexpr KeyConfig() = default;
 	constexpr KeyConfig(Input::Map map, Input::DeviceSubtype devSubtype, std::string_view name, KeyArray key):
@@ -94,7 +92,7 @@ struct InputDeviceSavedConfig
 	static constexpr uint8_t HANDLE_UNBOUND_EVENTS_FLAG = 0x80;
 
 	const KeyConfig *keyConf{};
-	std::string name{};
+	std::string name;
 	uint8_t enumId{};
 	uint8_t player{};
 	bool enabled = true;

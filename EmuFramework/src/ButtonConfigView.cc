@@ -48,7 +48,6 @@ public:
 	}
 };
 
-#ifdef CONFIG_INPUT_POINTING_DEVICES
 bool ButtonConfigSetView::pointerUIIsInit()
 {
 	return unbindB.x != unbindB.x2;
@@ -65,7 +64,6 @@ void ButtonConfigSetView::initPointerUI()
 		unbindB.x2 = 1;
 	}
 }
-#endif
 
 ButtonConfigSetView::ButtonConfigSetView(ViewAttachParams attach,
 	InputManagerView &rootIMView, Input::Device &dev, std::string_view actionName,
@@ -81,7 +79,6 @@ void ButtonConfigSetView::place()
 {
 	text.compile(renderer(), projP);
 
-	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
 		unbind.compile(renderer(), projP);
@@ -96,7 +93,6 @@ void ButtonConfigSetView::place()
 		cancelB.x = (viewRect().xSize()/2)*1;
 		cancelB.x2 = (viewRect().xSize()/2)*2;
 	}
-	#endif
 }
 
 bool ButtonConfigSetView::inputEvent(const Input::Event &e)
@@ -174,24 +170,20 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	basicEffect.disableTexture(cmds);
 	cmds.setColor(.4, .4, .4, 1.);
 	GeomRect::draw(cmds, viewRect(), projP);
-	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
 		cmds.setColor(.2, .2, .2, 1.);
 		GeomRect::draw(cmds, unbindB, projP);
 		GeomRect::draw(cmds, cancelB, projP);
 	}
-	#endif
 
 	cmds.set(ColorName::WHITE);
 	basicEffect.enableAlphaTexture(cmds);
-	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
 		unbind.draw(cmds, projP.unProjectRect(unbindB).pos(C2DO), C2DO, projP);
 		cancel.draw(cmds, projP.unProjectRect(cancelB).pos(C2DO), C2DO, projP);
 	}
-	#endif
 	text.draw(cmds, {}, C2DO, projP);
 }
 
@@ -201,12 +193,10 @@ void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Eve
 		text.resetString(fmt::format("Push key to set:\n{}", actionStr));
 	else
 		text.resetString(fmt::format("Push key to set:\n{}\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr));
-	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(e.motionEvent())
 	{
 		initPointerUI();
 	}
-	#endif
 }
 
 void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, float xPos, float yPos, float xSize, float ySize,

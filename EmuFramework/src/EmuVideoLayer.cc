@@ -153,7 +153,6 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 
 		// adjust position
 		int layoutDirection = 0;
-		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 		if(inputView && viewportAspectRatio < 1. && !isSideways(rotation) &&
 			inputView->activeVController()->gamepadIsActive())
 		{
@@ -177,7 +176,6 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 				contentRect_.setYPos(viewRect.y + padding, CT2DO);
 			}
 		}
-		#endif
 
 		// assign final coordinates
 		auto fromWorldSpaceRect = projP.projectRect(contentGCRect);

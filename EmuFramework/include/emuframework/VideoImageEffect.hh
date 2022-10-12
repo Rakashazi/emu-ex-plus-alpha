@@ -55,16 +55,16 @@ public:
 	operator bool() const { return (bool)prog; }
 
 private:
-	Gfx::Texture renderTarget_{};
-	Gfx::Program prog{};
+	Gfx::Texture renderTarget_;
+	Gfx::Program prog;
 	int srcTexelDeltaU{};
 	int srcTexelHalfDeltaU{};
 	int srcPixelsU{};
-	IG::WP renderTargetScale{};
-	IG::WP renderTargetImgSize{};
+	IG::WP renderTargetScale;
+	IG::WP renderTargetImgSize;
 	IG::WP inputImgSize{1, 1};
-	IG::PixelFormat format{};
-	Gfx::ColorSpace colorSpace{};
+	IG::PixelFormat format;
+	Gfx::ColorSpace colorSpace{Gfx::ColorSpace::LINEAR};
 
 	void initRenderTargetTexture(Gfx::Renderer &r, Gfx::TextureSamplerConfig);
 	void updateProgramUniforms(Gfx::Renderer &r);

@@ -36,9 +36,9 @@ public:
 	std::u16string_view name() const final;
 
 private:
-	Gfx::Text text{};
-	IG::InterpolatorValue<float, IG::FrameTime, IG::InterpolatorType::LINEAR> fade{};
-	IG::OnFrameDelegate animate{};
+	Gfx::Text text;
+	IG::InterpolatorValue<float, IG::FrameTime, IG::InterpolatorType::LINEAR> fade;
+	IG::OnFrameDelegate animate;
 };
 
 }

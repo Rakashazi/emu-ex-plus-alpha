@@ -44,8 +44,8 @@ public:
 	void draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness);
 
 private:
-	Gfx::Texture img{};
-	Gfx::Sprite spr{};
+	Gfx::Texture img;
+	Gfx::Sprite spr;
 	float intensity = 0.75f;
 	ImageOverlayId overlayId{};
 	bool multiplyBlend{};

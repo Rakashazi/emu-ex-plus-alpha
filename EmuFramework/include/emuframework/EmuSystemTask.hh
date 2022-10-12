@@ -74,7 +74,7 @@ public:
 private:
 	EmuApp *appPtr{};
 	IG::MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
-	std::thread taskThread{};
+	std::thread taskThread;
 	bool videoFormatChanged{};
 };
 

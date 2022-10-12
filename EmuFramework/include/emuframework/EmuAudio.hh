@@ -52,9 +52,9 @@ public:
 	explicit operator bool() const;
 
 protected:
-	IG::Audio::OutputStream audioStream{};
+	IG::Audio::OutputStream audioStream;
 	const IG::Audio::Manager *audioManagerPtr{};
-	IG::RingBuffer rBuff{};
+	IG::RingBuffer rBuff;
 	IG::Time lastUnderrunTime{};
 	double speedMultiplier = 1.;
 	size_t targetBufferFillBytes{};
