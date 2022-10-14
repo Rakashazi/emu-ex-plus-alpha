@@ -26,6 +26,7 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/format.hh>
+#include <imagine/fmt/chrono.h>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
@@ -68,6 +69,14 @@ static auto autoSaveName(EmuApp &app)
 	return fmt::format("Autosave Slot ({})", app.currentAutosaveName());
 }
 
+static std::string saveAutosaveName(EmuApp &app)
+{
+	if(!app.autosaveTimerFrequency().count())
+		return "Save Autosave State";
+	return fmt::format("Save Autosave State (Timer In {:%M:%S})",
+		std::chrono::duration_cast<Seconds>(app.nextAutosaveTimerFireTime()));
+}
+
 void EmuSystemActionsView::onShow()
 {
 	if(app().viewController().isShowingEmulation())
@@ -76,6 +85,7 @@ void EmuSystemActionsView::onShow()
 	logMsg("refreshing action menu state");
 	assert(system().hasContent());
 	autosaveSlot.compile(autoSaveName(app()), renderer(), projP);
+	autosaveNow.compile(saveAutosaveName(app()), renderer(), projP);
 	autosaveNow.setActive(app().currentAutosave() != noAutosaveName);
 	revertAutosave.setActive(app().currentAutosave() != noAutosaveName);
 	resetSessionOptions.setActive(app().hasSavedSessionOptions());
@@ -144,7 +154,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	},
 	autosaveNow
 	{
-		"Save Autosave State", &defaultFace(),
+		saveAutosaveName(app()), &defaultFace(),
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(!item.active())
@@ -192,28 +202,23 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	},
 	addLauncherIcon
 	{
-		"Add Game Shortcut to Launcher", &defaultFace(),
+		"Add Content Shortcut To Launcher", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(system().hasContent())
+			if(!system().hasContent())
+				return;
+			if(system().contentDirectory().empty())
 			{
-				if(system().contentDirectory().empty())
+				// shortcuts to bundled games not yet supported
+				return;
+			}
+			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Shortcut Name", system().contentDisplayName(),
+				[this](EmuApp &app, auto str)
 				{
-					// shortcuts to bundled games not yet supported
-					return;
-				}
-				app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Shortcut Name", system().contentDisplayName(),
-					[this](EmuApp &app, auto str)
-					{
-						appContext().addLauncherIcon(str, app.system().contentLocation());
-						app.postMessage(2, false, fmt::format("Added shortcut:\n{}", str));
-						return true;
-					});
-			}
-			else
-			{
-				app().postMessage("Load a game first");
-			}
+					appContext().addLauncherIcon(str, app.system().contentLocation());
+					app.postMessage(2, false, fmt::format("Added shortcut:\n{}", str));
+					return true;
+				});
 		}
 	},
 	screenshot

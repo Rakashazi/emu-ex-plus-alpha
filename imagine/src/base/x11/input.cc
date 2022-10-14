@@ -368,15 +368,11 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 			}
 			else
 			{
-				if(!dev->iCadeMode()
-					|| (dev->iCadeMode() && !processICadeKey(k, action, time, *dev, win)))
-				{
-					auto key = keysymToKey(k);
-					auto ev = Input::KeyEvent{Input::Map::SYSTEM, key, key, action, (uint32_t)event.mods.effective,
-						repeated, Input::Source::KEYBOARD, time, dev};
-					ev.setX11RawKey(event.detail);
-					dispatchKeyInputEvent(ev, win);
-				}
+				auto key = keysymToKey(k);
+				auto ev = Input::KeyEvent{Input::Map::SYSTEM, key, key, action, (uint32_t)event.mods.effective,
+					repeated, Input::Source::KEYBOARD, time, dev};
+				ev.setX11RawKey(event.detail);
+				dispatchKeyInputEvent(ev, win);
 			}
 		};
 	//logMsg("device %d, event %s", ievent.deviceid, xIEventTypeToStr(ievent.evtype));

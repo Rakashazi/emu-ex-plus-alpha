@@ -78,6 +78,7 @@ class GLDrawableAttributes
 public:
 	GLBufferConfig bufferConfig{};
 	GLColorSpace colorSpace{};
+	int wantedRenderBuffers{};
 
 	constexpr GLDrawableAttributes() = default;
 	constexpr GLDrawableAttributes(GLBufferConfig config): bufferConfig{config} {}

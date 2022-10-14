@@ -117,7 +117,7 @@ public:
 	bool swappedConfirmKeys() const;
 	void setSwappedConfirmKeys(std::optional<bool>);
 	uint8_t keyEventFlags() const;
-	bool processICadeKey(Input::Key, Input::Action, Input::Time, const Input::Device &, Window &);
+	bool processICadeKey(const Input::KeyEvent &, Window &);
 	void bluetoothInputDeviceStatus(Input::Device &, int status);
 
 protected:

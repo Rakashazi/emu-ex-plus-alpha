@@ -29,7 +29,9 @@ WISE_ENUM_CLASS((ImageEffectId, uint8_t),
 	(DIRECT, 0),
 	(HQ2X, 1),
 	(SCALE2X, 2),
-	(PRESCALE2X, 3));
+	(PRESCALE2X, 3),
+	(PRESCALE3X, 4),
+	(PRESCALE4X, 5));
 
 class VideoImageEffect
 {

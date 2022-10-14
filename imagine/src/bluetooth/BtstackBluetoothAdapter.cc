@@ -415,7 +415,8 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						bd_addr_t addr;
 						bt_flip_addr(addr, &packet[3+i*6]);
 
-						auto devClass = &packet[3 + responses*(6+1+1+1) + i*3];
+						auto devClassPtr = &packet[3 + responses*(6+1+1+1) + i*3];
+						std::array<uint8_t, 3> devClass{devClassPtr[0], devClassPtr[1], devClassPtr[2]};
 						if(!onScanDeviceClassD(*this, devClass))
 						{
 							logMsg("skipping device #%d due to class %X:%X:%X", i, devClass[0], devClass[1], devClass[2]);

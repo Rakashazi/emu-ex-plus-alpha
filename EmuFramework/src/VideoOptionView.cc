@@ -431,7 +431,9 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"Off",         &defaultFace(), setImgEffectDel(), std::to_underlying(ImageEffectId::DIRECT)},
 		{"hq2x",        &defaultFace(), setImgEffectDel(), std::to_underlying(ImageEffectId::HQ2X)},
 		{"Scale2x",     &defaultFace(), setImgEffectDel(), std::to_underlying(ImageEffectId::SCALE2X)},
-		{"Prescale 2x", &defaultFace(), setImgEffectDel(), std::to_underlying(ImageEffectId::PRESCALE2X)}
+		{"Prescale 2x", &defaultFace(), setImgEffectDel(), std::to_underlying(ImageEffectId::PRESCALE2X)},
+		{"Prescale 3x", &defaultFace(), setImgEffectDel(), std::to_underlying(ImageEffectId::PRESCALE3X)},
+		{"Prescale 4x", &defaultFace(), setImgEffectDel(), std::to_underlying(ImageEffectId::PRESCALE4X)},
 	},
 	imgEffect
 	{

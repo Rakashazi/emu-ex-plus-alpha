@@ -148,7 +148,6 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionPauseUnfocused{CFGKEY_PAUSE_UNFOCUSED, 1,
 		!(Config::envIsLinux || Config::envIsAndroid)},
 	optionAutosaveTimerMins{CFGKEY_AUTOSAVE_TIMER_MINS, 5},
-	optionConfirmAutosaveSlot{CFGKEY_CONFIRM_AUTOSAVE_SLOT, 0},
 	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
 	optionFastSlowModeSpeed{CFGKEY_FAST_SLOW_MODE_SPEED, 800, false, optionIsValidWithMinMax<int(MIN_RUN_SPEED * 100.), int(MAX_RUN_SPEED * 100.)>},
 	optionSound{CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS},
@@ -842,7 +841,7 @@ void EmuApp::setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func)
 
 void EmuApp::launchSystem(const Input::Event &e)
 {
-	if(optionConfirmAutosaveSlot)
+	if(autosaveLaunchMode == AutosaveLaunchMode::Ask)
 	{
 		autoSaveSlot = noAutosaveName;
 		viewController().pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::SYSTEM_ACTIONS), e);
@@ -850,7 +849,7 @@ void EmuApp::launchSystem(const Input::Event &e)
 	}
 	else
 	{
-		loadAutosave();
+		loadAutosave(autosaveLaunchMode == AutosaveLaunchMode::LoadNoState ? LoadAutosaveMode::NoState : LoadAutosaveMode::Normal);
 		if(!system().hasContent())
 		{
 			logErr("system was closed while trying to load auto-state");
@@ -1120,7 +1119,7 @@ bool EmuApp::saveAutosave()
 	return saveState(currentAutosaveStatePath());
 }
 
-bool EmuApp::loadAutosave()
+bool EmuApp::loadAutosave(LoadAutosaveMode mode)
 {
 	if(autoSaveSlot == noAutosaveName)
 		return true;
@@ -1128,6 +1127,11 @@ bool EmuApp::loadAutosave()
 	auto statePath = currentAutosaveStatePath();
 	if(appContext().fileUriExists(statePath))
 	{
+		if(mode == LoadAutosaveMode::NoState)
+		{
+			logMsg("skipped loading autosave state");
+			return true;
+		}
 		logMsg("loading autosave state");
 		return loadState(statePath);
 	}
@@ -1498,14 +1502,25 @@ void EmuApp::resetAutosaveStateTimer()
 
 void EmuApp::startAutosaveStateTimer()
 {
-	if(!optionAutosaveTimerMins || autoSaveSlot == noAutosaveName)
+	if(!autosaveTimerFrequency().count())
 		return;
-	Time timerFreq = Minutes{optionAutosaveTimerMins.val};
-	Time timerStart{};
-	if(autoSaveTimerElapsedTime < timerFreq)
-		timerStart = timerFreq - autoSaveTimerElapsedTime;
+	autoSaveTimer.run(nextAutosaveTimerFireTime(), autosaveTimerFrequency());
 	autoSaveTimerStartTime = IG::steadyClockTimestamp();
-	autoSaveTimer.run(timerStart, timerFreq);
+}
+
+IG::Time EmuApp::nextAutosaveTimerFireTime() const
+{
+	auto timerFreq = autosaveTimerFrequency();
+	if(autoSaveTimerElapsedTime < timerFreq)
+		return timerFreq - autoSaveTimerElapsedTime;
+	return {};
+}
+
+IG::Time EmuApp::autosaveTimerFrequency() const
+{
+	if(autoSaveSlot == noAutosaveName)
+		return {};
+	return IG::Minutes{optionAutosaveTimerMins.val};
 }
 
 VController &EmuApp::defaultVController()

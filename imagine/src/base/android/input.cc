@@ -370,14 +370,10 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 			auto time = makeTimeFromKeyEvent(event);
 			assert((uint32_t)keyCode < Keycode::COUNT);
 			auto action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? Action::RELEASED : Action::PUSHED;
-			if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(keyCode, action, time, *dev, win)))
-			{
-				cancelKeyRepeatTimer();
-				Key key = keyCode & 0x1ff;
-				return dispatchKeyInputEvent({Map::SYSTEM, key, key, action, (uint32_t)metaState,
-					repeatCount, eventSource, time, dev}, win);
-			}
-			return true;
+			cancelKeyRepeatTimer();
+			Key key = keyCode & 0x1ff;
+			return dispatchKeyInputEvent({Map::SYSTEM, key, key, action, (uint32_t)metaState,
+				repeatCount, eventSource, time, dev}, win);
 		}
 	}
 	logWarn("unknown input event type:%d", type);

@@ -245,12 +245,8 @@ void handleKeyEvent(ApplicationContext ctx, UIEvent *event)
 	auto time = IG::FloatSeconds((double)[event timestamp]);
 	auto &app = ctx.application();
 	auto &keyDev = *keyDevPtr;
-	if(!keyDev.iCadeMode()
-		|| (keyDev.iCadeMode() && !app.processICadeKey(key, action, time, keyDev, *ctx.deviceWindow())))
-	{
-		auto src = keyDev.iCadeMode() ? Input::Source::GAMEPAD : Input::Source::KEYBOARD;
-		app.dispatchKeyInputEvent({Map::SYSTEM, key, key, action, 0, 0, src, time, &keyDev});
-	}
+	auto src = Input::Source::KEYBOARD;
+	app.dispatchKeyInputEvent({Map::SYSTEM, key, key, action, 0, 0, src, time, &keyDev});
 }
 
 std::string KeyEvent::keyString(ApplicationContext) const

@@ -57,7 +57,7 @@ protected:
 	TextMenuItem contentRotationItem[5];
 	MultiChoiceMenuItem contentRotation;
 	BoolMenuItem imgFilter;
-	TextMenuItem imgEffectItem[4];
+	TextMenuItem imgEffectItem[6];
 	MultiChoiceMenuItem imgEffect;
 	TextMenuItem overlayEffectItem[8];
 	MultiChoiceMenuItem overlayEffect;

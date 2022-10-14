@@ -98,6 +98,13 @@ WISE_ENUM_CLASS((ImageChannel, uint8_t),
 	Green,
 	Blue);
 
+WISE_ENUM_CLASS((AutosaveLaunchMode, uint8_t),
+	Load,
+	LoadNoState,
+	Ask);
+
+enum class LoadAutosaveMode{Normal, NoState};
+
 constexpr const char *defaultAutosaveFilename = "auto-00";
 constexpr const char *noAutosaveName = "\a";
 
@@ -160,7 +167,7 @@ public:
 	void unpostMessage();
 	void printScreenshotResult(bool success);
 	bool saveAutosave();
-	bool loadAutosave();
+	bool loadAutosave(LoadAutosaveMode m = LoadAutosaveMode::Normal);
 	bool setAutosave(std::string_view name);
 	bool renameAutosave(std::string_view name, std::string_view newName);
 	bool deleteAutosave(std::string_view name);
@@ -206,6 +213,8 @@ public:
 	void cancelAutosaveStateTimer();
 	void resetAutosaveStateTimer();
 	void startAutosaveStateTimer();
+	IG::Time nextAutosaveTimerFireTime() const;
+	IG::Time autosaveTimerFrequency() const;
 	void configFrameTime();
 	void setFaceButtonMapping(FaceButtonImageMap map);
 	void applyEnabledFaceButtons(std::span<const std::pair<int, bool>> applyEnableMap);
@@ -322,7 +331,6 @@ public:
 
 	// System Options
 	auto &autosaveTimerMinsOption() { return optionAutosaveTimerMins; }
-	auto &confirmAutosaveSlotOption() { return optionConfirmAutosaveSlot; }
 	auto &confirmOverwriteStateOption() { return optionConfirmOverwriteState; }
 	auto &fastSlowModeSpeedOption() { return optionFastSlowModeSpeed; }
 	double fastSlowModeSpeedAsDouble() { return optionFastSlowModeSpeed.val / 100.; }
@@ -514,7 +522,6 @@ protected:
 	Byte2Option optionFontSize;
 	Byte1Option optionPauseUnfocused;
 	Byte1Option optionAutosaveTimerMins;
-	Byte1Option optionConfirmAutosaveSlot;
 	Byte1Option optionConfirmOverwriteState;
 	Byte2Option optionFastSlowModeSpeed;
 	Byte1Option optionSound;
@@ -556,7 +563,10 @@ protected:
 	IG::WindowFrameTimeSource winFrameTimeSrc{IG::WindowFrameTimeSource::AUTO};
 	IG_UseMemberIf(Config::envIsAndroid, bool, usePresentationTime_){true};
 	IG_UseMemberIf(Config::envIsAndroid, bool, forceMaxScreenFrameRate){};
+public:
+	AutosaveLaunchMode autosaveLaunchMode{};
 
+protected:
 	class ConfigParams
 	{
 	public:

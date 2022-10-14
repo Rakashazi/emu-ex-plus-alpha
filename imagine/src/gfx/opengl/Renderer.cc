@@ -324,6 +324,14 @@ int Renderer::maxSwapChainImages() const
 	if(appContext().androidSDK() < 18)
 		return 2;
 	#endif
+	if(Config::envIsLinux)
+	{
+		if(const char *maxFramesEnv = getenv("__GL_MaxFramesAllowed");
+			maxFramesEnv && maxFramesEnv[0] == '1')
+		{
+			return 2;
+		}
+	}
 	return 3; // assume triple-buffering by default
 }
 

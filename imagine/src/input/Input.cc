@@ -332,6 +332,8 @@ bool BaseApplication::dispatchRepeatableKeyInputEvent(Input::KeyEvent e)
 bool BaseApplication::dispatchKeyInputEvent(Input::KeyEvent e, Window &win)
 {
 	e.setKeyFlags(swappedConfirmKeys());
+	if(e.device()->iCadeMode() && processICadeKey(e, win))
+		return true;
 	return win.dispatchInputEvent(e);
 }
 
@@ -399,23 +401,23 @@ void ApplicationContext::flushInternalInputEvents()
 
 [[gnu::weak]] void ApplicationContext::flushSystemInputEvents() {}
 
-bool BaseApplication::processICadeKey(Input::Key key, Input::Action action, Input::Time time, const Input::Device &dev, Window &win)
+bool BaseApplication::processICadeKey(const Input::KeyEvent &e, Window &win)
 {
 	using namespace IG::Input;
-	if(auto onKey = keyToICadeOnKey(key))
+	if(auto onKey = keyToICadeOnKey(e.key()))
 	{
-		if(action == Action::PUSHED)
+		if(e.state() == Action::PUSHED)
 		{
 			//logMsg("pushed iCade keyboard key: %s", dev.keyName(key));
-			dispatchRepeatableKeyInputEvent({Map::ICADE, onKey, onKey, Action::PUSHED, 0, 0, Source::GAMEPAD, time, &dev}, win);
+			dispatchRepeatableKeyInputEvent({Map::ICADE, onKey, onKey, Action::PUSHED, 0, 0, Source::GAMEPAD, e.time(), e.device()}, win);
 		}
 		return true;
 	}
-	if(auto offKey = keyToICadeOffKey(key))
+	if(auto offKey = keyToICadeOffKey(e.key()))
 	{
-		if(action == Action::PUSHED)
+		if(e.state() == Action::PUSHED)
 		{
-			dispatchRepeatableKeyInputEvent({Map::ICADE, offKey, offKey, Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev}, win);
+			dispatchRepeatableKeyInputEvent({Map::ICADE, offKey, offKey, Action::RELEASED, 0, 0, Source::GAMEPAD, e.time(), e.device()}, win);
 		}
 		return true;
 	}

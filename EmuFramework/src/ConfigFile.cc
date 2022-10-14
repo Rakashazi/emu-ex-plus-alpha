@@ -271,7 +271,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 	const auto cfgFileOptions = std::tie
 	(
 		optionAutosaveTimerMins,
-		optionConfirmAutosaveSlot,
 		optionSound,
 		optionSoundVolume,
 		optionSoundRate,
@@ -326,6 +325,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 	std::apply([&](auto &...opt){ (writeOptionValue(io, opt), ...); }, cfgFileOptions);
 
 	writeRecentContent(io);
+	writeOptionValueIfNotDefault(io, CFGKEY_AUTOSAVE_LAUNCH_MODE, autosaveLaunchMode, AutosaveLaunchMode::Load);
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
 	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager().soloMixOption());
@@ -552,7 +552,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				bcase CFGKEY_SOUND: optionSound.readFromIO(io, size);
 				bcase CFGKEY_SOUND_RATE: optionSoundRate.readFromIO(io, size);
 				bcase CFGKEY_AUTOSAVE_TIMER_MINS: optionAutosaveTimerMins.readFromIO(io, size);
-				bcase CFGKEY_CONFIRM_AUTOSAVE_SLOT: optionConfirmAutosaveSlot.readFromIO(io, size);
+				bcase CFGKEY_AUTOSAVE_LAUNCH_MODE: readOptionValue(io, size, autosaveLaunchMode, [](auto m){return m <= lastEnum<AutosaveLaunchMode>;});
 				bcase CFGKEY_FRAME_INTERVAL:
 					doIfUsed(optionFrameInterval, [&](auto &opt){ opt.readFromIO(io, size); });
 				bcase CFGKEY_SKIP_LATE_FRAMES: optionSkipLateFrames.readFromIO(io, size);

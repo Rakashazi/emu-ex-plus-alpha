@@ -27,17 +27,15 @@
 namespace EmuEx
 {
 
-static constexpr VideoImageEffect::EffectDesc
-	directDesc{"direct-v.txt", "direct-f.txt", {1, 1}};
+constexpr VideoImageEffect::EffectDesc directDesc{"direct-v.txt", "direct-f.txt", {1, 1}};
 
-static constexpr VideoImageEffect::EffectDesc
-	hq2xDesc{"hq2x-v.txt", "hq2x-f.txt", {2, 2}};
+constexpr VideoImageEffect::EffectDesc hq2xDesc{"hq2x-v.txt", "hq2x-f.txt", {2, 2}};
 
-static constexpr VideoImageEffect::EffectDesc
-	scale2xDesc{"scale2x-v.txt", "scale2x-f.txt", {2, 2}};
+constexpr VideoImageEffect::EffectDesc scale2xDesc{"scale2x-v.txt", "scale2x-f.txt", {2, 2}};
 
-static constexpr VideoImageEffect::EffectDesc
-	prescale2xDesc{"direct-v.txt", "direct-f.txt", {2, 2}};
+constexpr VideoImageEffect::EffectDesc prescale2xDesc{"direct-v.txt", "direct-f.txt", {2, 2}};
+constexpr VideoImageEffect::EffectDesc prescale3xDesc{"direct-v.txt", "direct-f.txt", {3, 3}};
+constexpr VideoImageEffect::EffectDesc prescale4xDesc{"direct-v.txt", "direct-f.txt", {4, 4}};
 
 static constexpr const char *effectName(ImageEffectId id)
 {
@@ -47,6 +45,8 @@ static constexpr const char *effectName(ImageEffectId id)
 		case ImageEffectId::HQ2X: return "HQ2X";
 		case ImageEffectId::SCALE2X: return "Scale2X";
 		case ImageEffectId::PRESCALE2X: return "Prescale 2X";
+		case ImageEffectId::PRESCALE3X: return "Prescale 3X";
+		case ImageEffectId::PRESCALE4X: return "Prescale 4X";
 	}
 	return nullptr;
 }
@@ -59,6 +59,8 @@ static constexpr VideoImageEffect::EffectDesc effectDesc(ImageEffectId id)
 		case ImageEffectId::HQ2X: return hq2xDesc;
 		case ImageEffectId::SCALE2X: return scale2xDesc;
 		case ImageEffectId::PRESCALE2X: return prescale2xDesc;
+		case ImageEffectId::PRESCALE3X: return prescale3xDesc;
+		case ImageEffectId::PRESCALE4X: return prescale4xDesc;
 	}
 	return {};
 }

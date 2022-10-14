@@ -579,7 +579,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 
 	static String formatDateTime(long time)
 	{
-		return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date(time));
+		return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(new Date(time));
 	}
 
 	// Storage Access Framework support

@@ -26,11 +26,12 @@ namespace EmuEx
 
 TextMenuItem::SelectDelegate SystemOptionView::setAutosaveTimerDel()
 {
-	return [this](TextMenuItem &item)
-	{
-		app().autosaveTimerMinsOption() = item.id();
-		logMsg("set auto-savestate:%u", item.id());
-	};
+	return [this](TextMenuItem &item) { app().autosaveTimerMinsOption() = item.id(); };
+}
+
+TextMenuItem::SelectDelegate SystemOptionView::setAutosaveLaunchDel()
+{
+	return [this](TextMenuItem &item) { app().autosaveLaunchMode = AutosaveLaunchMode(item.id()); };
 }
 
 TextMenuItem::SelectDelegate SystemOptionView::setFastSlowModeSpeedDel()
@@ -53,15 +54,17 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		(MenuItem::Id)app().autosaveTimerMinsOption().val,
 		autosaveTimerItem
 	},
-	autosaveInitialSlot
+	autosaveLaunchItem
 	{
-		"Initial Autosave Slot", &defaultFace(),
-		(bool)app().confirmAutosaveSlotOption(),
-		"Main", "Ask",
-		[this](BoolMenuItem &item)
-		{
-			app().confirmAutosaveSlotOption() = item.flipBoolValue(*this);
-		}
+		{"Load",            &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::Load)},
+		{"Load (No State)", &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::LoadNoState)},
+		{"Ask",             &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::Ask)},
+	},
+	autosaveLaunch
+	{
+		"Autosave Launch Mode", &defaultFace(),
+		(MenuItem::Id)app().autosaveLaunchMode,
+		autosaveLaunchItem
 	},
 	confirmOverwriteState
 	{
@@ -135,8 +138,8 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 
 void SystemOptionView::loadStockItems()
 {
+	item.emplace_back(&autosaveLaunch);
 	item.emplace_back(&autosaveTimer);
-	item.emplace_back(&autosaveInitialSlot);
 	item.emplace_back(&confirmOverwriteState);
 	item.emplace_back(&fastSlowModeSpeed);
 	if(used(performanceMode))

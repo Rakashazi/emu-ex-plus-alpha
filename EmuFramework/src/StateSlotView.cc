@@ -25,14 +25,14 @@ namespace EmuEx
 
 static auto slotHeadingName(EmuSystem &sys)
 {
-	return fmt::format("Set Active Slot ({})", sys.stateSlot());
+	return fmt::format("Set State Slot ({})", sys.stateSlot());
 }
 
 StateSlotView::StateSlotView(ViewAttachParams attach):
 	TableView{"Save States", attach, menuItems},
 	load
 	{
-		"Load Active Slot", &defaultFace(),
+		"Load State", &defaultFace(),
 		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(!item.active())
@@ -49,7 +49,7 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 	},
 	save
 	{
-		"Save Active Slot", &defaultFace(),
+		"Save State", &defaultFace(),
 		[this](const Input::Event &e)
 		{
 			if(app().shouldOverwriteExistingState())

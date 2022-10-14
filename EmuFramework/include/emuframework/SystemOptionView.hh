@@ -34,7 +34,8 @@ public:
 protected:
 	TextMenuItem autosaveTimerItem[4];
 	MultiChoiceMenuItem autosaveTimer;
-	BoolMenuItem autosaveInitialSlot;
+	TextMenuItem autosaveLaunchItem[3];
+	MultiChoiceMenuItem autosaveLaunch;
 	BoolMenuItem confirmOverwriteState;
 	TextMenuItem fastSlowModeSpeedItem[8];
 	MultiChoiceMenuItem fastSlowModeSpeed;
@@ -42,6 +43,7 @@ protected:
 	StaticArrayList<MenuItem*, 24> item;
 
 	TextMenuItem::SelectDelegate setAutosaveTimerDel();
+	TextMenuItem::SelectDelegate setAutosaveLaunchDel();
 	TextMenuItem::SelectDelegate setFastSlowModeSpeedDel();
 };
 

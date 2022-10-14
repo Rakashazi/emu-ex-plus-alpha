@@ -490,7 +490,7 @@ GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes attr) const
 {
 	auto dpy = display();
 	EGLSurfaceAttrList attrList;
-	if(Config::envIsLinux && supportsTripleBufferSurfaces)
+	if(Config::envIsLinux && supportsTripleBufferSurfaces && attr.wantedRenderBuffers >= 3)
 	{
 		// request triple-buffering on Nvidia GPUs
 		attrList.push_back(EGL_RENDER_BUFFER);
