@@ -101,6 +101,7 @@ public:
 	void closeSystem();
 	void loadBackupMemory(EmuApp &);
 	void onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags);
+	IG::Time backupMemoryLastWriteTime(const EmuApp &) const;
 	bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
 	WP multiresVideoBaseSize() const;
 	void onSessionOptionsLoaded(EmuApp &);

@@ -660,6 +660,13 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return ContentResolverUtils.uriLastModified(getContentResolver(), uriStr);
 	}
 
+	long uriLastModifiedTime(String uriStr)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 19)
+			return 0;
+		return ContentResolverUtils.uriLastModifiedTime(getContentResolver(), uriStr);
+	}
+
 	String uriDisplayName(String uriStr)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 19)

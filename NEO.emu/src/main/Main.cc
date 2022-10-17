@@ -188,6 +188,11 @@ void NeoSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags flags)
 		FileUtils::writeToUri(appContext(), memcardPath(app), {memory.memcard, 0x800});
 }
 
+IG::Time NeoSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+{
+	return appContext().fileUriLastWriteTime(app.contentSavePath("memcard").c_str());
+}
+
 void NeoSystem::closeSystem()
 {
 	close_game();

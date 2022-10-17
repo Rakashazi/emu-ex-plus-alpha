@@ -60,6 +60,18 @@ void EmuSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags flags)
 		static_cast<MainSystem*>(this)->onFlushBackupMemory(app, flags);
 }
 
+IG::Time EmuSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+{
+	if(&MainSystem::backupMemoryLastWriteTime != &EmuSystem::backupMemoryLastWriteTime)
+		return static_cast<const MainSystem*>(this)->backupMemoryLastWriteTime(app);
+	return {};
+}
+
+bool EmuSystem::usesBackupMemory() const
+{
+	return &MainSystem::loadBackupMemory != &EmuSystem::loadBackupMemory;
+}
+
 void EmuSystem::savePathChanged()
 {
 	if(&MainSystem::savePathChanged != &EmuSystem::savePathChanged)

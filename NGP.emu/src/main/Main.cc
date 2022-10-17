@@ -92,6 +92,11 @@ void NgpSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 	MDFN_IEN_NGP::FLASH_SaveNV();
 }
 
+IG::Time NgpSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+{
+	return appContext().fileUriLastWriteTime(app.contentSaveFilePath(".ngf").c_str());
+}
+
 void NgpSystem::closeSystem()
 {
 	mdfnGameInfo.CloseGame();

@@ -181,13 +181,14 @@ public:
 	FileIO openFileUri(CStringView uri, IOAccessHint, OpenFlagsMask oFlags = {}) const;
 	FileIO openFileUri(CStringView uri, OpenFlagsMask oFlags = {}) const;
 	UniqueFileDescriptor openFileUriFd(CStringView uri, OpenFlagsMask oFlags = {}) const;
-	bool fileUriExists(IG::CStringView uri) const;
-	std::string fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const;
-	FS::FileString fileUriDisplayName(IG::CStringView uri) const;
-	bool removeFileUri(IG::CStringView uri) const;
-	bool renameFileUri(IG::CStringView oldUri, IG::CStringView newUri) const;
-	bool createDirectoryUri(IG::CStringView uri) const;
-	bool removeDirectoryUri(IG::CStringView uri) const;
+	bool fileUriExists(CStringView uri) const;
+	Seconds fileUriLastWriteTime(CStringView uri) const;
+	std::string fileUriFormatLastWriteTimeLocal(CStringView uri) const;
+	FS::FileString fileUriDisplayName(CStringView uri) const;
+	bool removeFileUri(CStringView uri) const;
+	bool renameFileUri(CStringView oldUri, CStringView newUri) const;
+	bool createDirectoryUri(CStringView uri) const;
+	bool removeDirectoryUri(CStringView uri) const;
 	bool forEachInDirectoryUri(CStringView uri, DirectoryEntryDelegate, FS::DirOpenFlagsMask flags = {}) const;
 
 	// OS UI management (status & navigation bar)

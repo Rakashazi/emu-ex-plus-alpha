@@ -140,6 +140,11 @@ void Snes9xSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 	Memory.SaveSRAM(sramFilename(app).c_str());
 }
 
+IG::Time Snes9xSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+{
+	return appContext().fileUriLastWriteTime(app.contentSaveFilePath(".srm").c_str());
+}
+
 VideoSystem Snes9xSystem::videoSystem() const { return Settings.PAL ? VideoSystem::PAL : VideoSystem::NATIVE_NTSC; }
 WP Snes9xSystem::multiresVideoBaseSize() const { return {256, 239}; }
 

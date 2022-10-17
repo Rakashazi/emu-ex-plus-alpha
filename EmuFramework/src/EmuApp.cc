@@ -849,13 +849,30 @@ void EmuApp::launchSystem(const Input::Event &e)
 	}
 	else
 	{
-		loadAutosave(autosaveLaunchMode == AutosaveLaunchMode::LoadNoState ? LoadAutosaveMode::NoState : LoadAutosaveMode::Normal);
-		if(!system().hasContent())
+		auto loadMode = autosaveLaunchMode == AutosaveLaunchMode::LoadNoState ? LoadAutosaveMode::NoState : LoadAutosaveMode::Normal;
+		static auto finishLaunch = [](EmuApp &app, LoadAutosaveMode mode)
 		{
-			logErr("system was closed while trying to load auto-state");
-			return;
+			app.loadAutosave(mode);
+			if(!app.system().hasContent())
+			{
+				logErr("system was closed while trying to load autosave state");
+				return;
+			}
+			app.showEmulation();
+		};
+		if(system().usesBackupMemory() && loadMode == LoadAutosaveMode::Normal &&
+			currentAutosaveStateTime() < currentAutosaveBackupMemoryTime())
+		{
+			auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(),
+				"Autosave state timestamp is older than the contents of backup memory, really load it even though progress may be lost?");
+			ynAlertView->setOnYes([this]() { finishLaunch(*this, LoadAutosaveMode::Normal); });
+			ynAlertView->setOnNo([this]() { finishLaunch(*this, LoadAutosaveMode::NoState); });
+			viewController().pushAndShowModal(std::move(ynAlertView), e, false);
 		}
-		showEmulation();
+		else
+		{
+			finishLaunch(*this, loadMode);
+		}
 	}
 }
 
@@ -1201,11 +1218,25 @@ std::string EmuApp::currentAutosaveName() const
 		return autoSaveSlot;
 }
 
-std::string EmuApp::currentAutosaveTimeAsString() const
+std::string EmuApp::currentAutosaveStateTimeAsString() const
 {
 	if(autoSaveSlot == noAutosaveName)
 		return "";
 	return appContext().fileUriFormatLastWriteTimeLocal(currentAutosaveStatePath());
+}
+
+IG::Time EmuApp::currentAutosaveStateTime() const
+{
+	if(autoSaveSlot == noAutosaveName)
+		return {};
+	return appContext().fileUriLastWriteTime(currentAutosaveStatePath());
+}
+
+IG::Time EmuApp::currentAutosaveBackupMemoryTime() const
+{
+	if(!system().usesBackupMemory() || autoSaveSlot == noAutosaveName)
+		return {};
+	return system().backupMemoryLastWriteTime(*this);
 }
 
 FS::PathString EmuApp::autosaveStatePath(std::string_view name) const

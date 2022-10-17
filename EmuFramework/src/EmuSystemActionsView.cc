@@ -176,7 +176,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(!item.active())
 				return;
-			auto saveTime = app().currentAutosaveTimeAsString();
+			auto saveTime = app().currentAutosaveStateTimeAsString();
 			if(saveTime.empty())
 			{
 				app().postMessage("No saved state");

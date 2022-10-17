@@ -81,6 +81,11 @@ void PceSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 	MDFN_IEN_PCE_FAST::HuC_SaveNV();
 }
 
+IG::Time PceSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+{
+	return appContext().fileUriLastWriteTime(app.contentSaveFilePath(".sav").c_str());
+}
+
 FS::FileString PceSystem::stateFilename(int slot, std::string_view name) const
 {
 	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'q');

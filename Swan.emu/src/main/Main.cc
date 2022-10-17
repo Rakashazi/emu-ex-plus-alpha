@@ -88,6 +88,11 @@ void WsSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 	WSwan_MemorySaveNV();
 }
 
+IG::Time WsSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+{
+	return appContext().fileUriLastWriteTime(app.contentSaveFilePath(".sav").c_str());
+}
+
 void WsSystem::closeSystem()
 {
 	mdfnGameInfo.CloseGame();

@@ -199,6 +199,7 @@ public:
 	bool onVideoRenderFormatChange(EmuVideo &, PixelFormat);
 	void loadBackupMemory(EmuApp &);
 	void onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags);
+	IG::Time backupMemoryLastWriteTime(const EmuApp &) const;
 	FS::FileString configName() const;
 	void onOptionsLoaded();
 	void onSessionOptionsLoaded(EmuApp &);
@@ -286,6 +287,7 @@ public:
 	void flushBackupMemory(EmuApp &, BackupMemoryDirtyFlags flags = 0xFF);
 	void onBackupMemoryWritten(BackupMemoryDirtyFlags flags = 0xFF);
 	bool updateBackupMemoryCounter();
+	bool usesBackupMemory() const;
 	void sessionOptionSet();
 	void resetSessionOptionsSet() { sessionOptionsSet = false; }
 	bool sessionOptionsAreSet() const { return sessionOptionsSet; }

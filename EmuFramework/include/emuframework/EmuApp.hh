@@ -173,7 +173,9 @@ public:
 	bool deleteAutosave(std::string_view name);
 	const auto &currentAutosave() const { return autoSaveSlot; }
 	std::string currentAutosaveName() const;
-	std::string currentAutosaveTimeAsString() const;
+	std::string currentAutosaveStateTimeAsString() const;
+	IG::Time currentAutosaveStateTime() const;
+	IG::Time currentAutosaveBackupMemoryTime() const;
 	FS::PathString currentAutosaveStatePath() const { return autosaveStatePath(autoSaveSlot); }
 	FS::PathString autosaveStatePath(std::string_view name) const;
 	FS::PathString contentSavePath(std::string_view name) const;

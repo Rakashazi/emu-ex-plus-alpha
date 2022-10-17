@@ -300,6 +300,18 @@ bool ApplicationContext::fileUriExists(IG::CStringView uri) const
 	return application().fileUriExists(thisThreadJniEnv(), baseActivityObject(), uri);
 }
 
+Seconds AndroidApplication::fileUriLastWriteTime(JNIEnv *env, jobject baseActivity, CStringView uri) const
+{
+	return std::chrono::duration_cast<Seconds>(Milliseconds{uriLastModifiedTime(env, baseActivity, env->NewStringUTF(uri))});
+}
+
+Seconds ApplicationContext::fileUriLastWriteTime(CStringView uri) const
+{
+	if(androidSDK() < 19 || !IG::isUri(uri))
+		return FS::status(uri).lastWriteTime();
+	return application().fileUriLastWriteTime(thisThreadJniEnv(), baseActivityObject(), uri);
+}
+
 std::string AndroidApplication::fileUriFormatLastWriteTimeLocal(JNIEnv *env, jobject baseActivity, IG::CStringView uri) const
 {
 	//logMsg("getting modification time for URI:%s", uri.data());
@@ -582,8 +594,32 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 	jMainDisplayRotation = {env, baseActivityClass, "mainDisplayRotation", "()I"};
 	jFormatDateTime = {env, baseActivityClass, "formatDateTime", "(J)Ljava/lang/String;"};
 	jNewFontRenderer = {env, baseActivityClass, "newFontRenderer", "()Lcom/imagine/FontRenderer;"};
+	jSetWinFlags = {env, baseActivityClass, "setWinFlags", "(II)V"};
+	jWinFlags = {env, baseActivityClass, "winFlags", "()I"};
+	if(androidSDK >= 11) { jSetUIVisibility = {env, baseActivityClass, "setUIVisibility", "(I)V"}; }
+	jRecycle = {env, env->FindClass("android/graphics/Bitmap"), "recycle", "()V"};
+
+	if(androidSDK >= 19) // Storage Access Framework support
 	{
-		JNINativeMethod method[]
+		openUriFd = {env, baseActivity, "openUriFd", "(Ljava/lang/String;I)I"};
+		uriExists = {env, baseActivity, "uriExists", "(Ljava/lang/String;)Z"};
+		uriLastModified = {env, baseActivity, "uriLastModified", "(Ljava/lang/String;)Ljava/lang/String;"};
+		uriLastModifiedTime = {env, baseActivity, "uriLastModifiedTime", "(Ljava/lang/String;)J"};
+		uriDisplayName = {env, baseActivity, "uriDisplayName", "(Ljava/lang/String;)Ljava/lang/String;"};
+		deleteUri = {env, baseActivity, "deleteUri", "(Ljava/lang/String;Z)Z"};
+		if(androidSDK >= 21)
+		{
+			listUriFiles = {env, baseActivity, "listUriFiles", "(JLjava/lang/String;)Z"};
+			createDirUri = {env, baseActivity, "createDirUri", "(Ljava/lang/String;)Z"};
+		}
+		if(androidSDK >= 24)
+		{
+			renameUri = {env, baseActivity, "renameUri", "(Ljava/lang/String;Ljava/lang/String;)Z"};
+		}
+	}
+
+	{
+		static constexpr JNINativeMethod method[]
 		{
 			{
 				"onContentRectChanged", "(JIIIIII)V",
@@ -696,34 +732,6 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 		if(!mainLibHandle)
 			logWarn("unable to get native lib handle");
 	}*/
-
-	jSetWinFlags = {env, baseActivityClass, "setWinFlags", "(II)V"};
-	jWinFlags = {env, baseActivityClass, "winFlags", "()I"};
-
-	if(androidSDK >= 11)
-	{
-		jSetUIVisibility = {env, baseActivityClass, "setUIVisibility", "(I)V"};
-	}
-
-	jRecycle = {env, env->FindClass("android/graphics/Bitmap"), "recycle", "()V"};
-
-	if(androidSDK >= 19) // Storage Access Framework support
-	{
-		openUriFd = {env, baseActivity, "openUriFd", "(Ljava/lang/String;I)I"};
-		uriExists = {env, baseActivity, "uriExists", "(Ljava/lang/String;)Z"};
-		uriLastModified = {env, baseActivity, "uriLastModified", "(Ljava/lang/String;)Ljava/lang/String;"};
-		uriDisplayName = {env, baseActivity, "uriDisplayName", "(Ljava/lang/String;)Ljava/lang/String;"};
-		deleteUri = {env, baseActivity, "deleteUri", "(Ljava/lang/String;Z)Z"};
-		if(androidSDK >= 21)
-		{
-			listUriFiles = {env, baseActivity, "listUriFiles", "(JLjava/lang/String;)Z"};
-			createDirUri = {env, baseActivity, "createDirUri", "(Ljava/lang/String;)Z"};
-		}
-		if(androidSDK >= 24)
-		{
-			renameUri = {env, baseActivity, "renameUri", "(Ljava/lang/String;Ljava/lang/String;)Z"};
-		}
-	}
 }
 
 JNIEnv* AndroidApplication::thisThreadJniEnv() const

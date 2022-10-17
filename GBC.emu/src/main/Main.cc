@@ -112,6 +112,11 @@ void GbcSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 	gbEmu.saveSavedata();
 }
 
+IG::Time GbcSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+{
+	return appContext().fileUriLastWriteTime(app.contentSaveFilePath(".sav").c_str());
+}
+
 void GbcSystem::closeSystem()
 {
 	cheatList.clear();

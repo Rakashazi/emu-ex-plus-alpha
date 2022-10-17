@@ -129,6 +129,7 @@ public:
 	// optional API functions
 	void loadBackupMemory(EmuApp &);
 	void onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags);
+	IG::Time backupMemoryLastWriteTime(const EmuApp &) const;
 	void renderFramebuffer(EmuVideo &);
 	WP multiresVideoBaseSize() const;
 	void onOptionsLoaded();

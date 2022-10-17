@@ -299,6 +299,11 @@ FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlagsMask openFlags)
 	return FS::exists(uri);
 }
 
+[[gnu::weak]] FS::file_time_type ApplicationContext::fileUriLastWriteTime(CStringView uri) const
+{
+	return FS::status(uri).lastWriteTime();
+}
+
 [[gnu::weak]] std::string ApplicationContext::fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const
 {
 	return FS::formatLastWriteTimeLocal(*this, uri);
