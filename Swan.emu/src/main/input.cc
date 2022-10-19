@@ -114,9 +114,32 @@ VController::Map WsSystem::vControllerMap(int player)
 	return map;
 }
 
+static bool isGamepadButton(unsigned input)
+{
+	switch(input)
+	{
+		case wsKeyIdxY1Turbo:
+		case wsKeyIdxY1:
+		case wsKeyIdxY2Turbo:
+		case wsKeyIdxY2:
+		case wsKeyIdxY3Turbo:
+		case wsKeyIdxY3:
+		case wsKeyIdxY4Turbo:
+		case wsKeyIdxY4:
+		case wsKeyIdxStart:
+		case wsKeyIdxATurbo:
+		case wsKeyIdxA:
+		case wsKeyIdxBTurbo:
+		case wsKeyIdxB:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned WsSystem::translateInputAction(unsigned input, bool &turbo)
 {
-	turbo = 0;
+	if(!isGamepadButton(input))
+		turbo = 0;
 	if(isRotated())
 	{
 		switch(input)

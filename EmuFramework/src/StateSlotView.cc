@@ -77,11 +77,13 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 	}
 {
 	assert(system().hasContent());
-	for(auto i : iotaCount(stateSlots))
-	{
-		refreshSlot(i);
-	}
-	stateSlot[system().stateSlot()].setHighlighted(true);
+	refreshSlots();
+}
+
+void StateSlotView::onShow()
+{
+	refreshSlots();
+	place();
 }
 
 void StateSlotView::refreshSlot(int slot)
@@ -113,6 +115,15 @@ void StateSlotView::refreshSlot(int slot)
 			load.setActive(sys.stateExists(sys.stateSlot()));
 			postDraw();
 		});
+}
+
+void StateSlotView::refreshSlots()
+{
+	for(auto i : iotaCount(stateSlots))
+	{
+		refreshSlot(i);
+	}
+	stateSlot[system().stateSlot()].setHighlighted(true);
 }
 
 void StateSlotView::doSaveState()

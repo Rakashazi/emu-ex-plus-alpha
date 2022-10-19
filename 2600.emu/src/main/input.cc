@@ -127,9 +127,27 @@ void A2600System::updateJoytickMapping(EmuApp &app, Controller::Type type)
 	app.updateVControllerMapping();
 }
 
+static bool isJoystickButton(unsigned input)
+{
+	switch(input)
+	{
+		case vcsKeyIdxJSBtnTurbo:
+		case vcsKeyIdxJSBtn:
+		case vcsKeyIdxJSBtnAltTurbo:
+		case vcsKeyIdxJSBtnAlt:
+		case vcsKeyIdxJSBtnTurbo2:
+		case vcsKeyIdxJSBtn2:
+		case vcsKeyIdxJSBtnAltTurbo2:
+		case vcsKeyIdxJSBtnAlt2:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned A2600System::translateInputAction(unsigned input, bool &turbo)
 {
-	turbo = 0;
+	if(!isJoystickButton(input))
+		turbo = 0;
 	switch(input)
 	{
 		case vcsKeyIdxUp: return Event::LeftJoystickUp;

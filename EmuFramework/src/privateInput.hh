@@ -96,15 +96,20 @@ static InputDeviceData& inputDevData(const Input::Device &d)
 	return *d.appData<InputDeviceData>();
 }
 
-static constexpr int guiKeyIdxLoadGame = 0;
-static constexpr int guiKeyIdxMenu = 1;
-static constexpr int guiKeyIdxSaveState = 2;
-static constexpr int guiKeyIdxLoadState = 3;
-static constexpr int guiKeyIdxDecStateSlot = 4;
-static constexpr int guiKeyIdxIncStateSlot = 5;
-static constexpr int guiKeyIdxFastForward = 6;
-static constexpr int guiKeyIdxGameScreenshot = 7;
-static constexpr int guiKeyIdxExit = 8;
-static constexpr int guiKeyIdxToggleFastForward = 9;
+enum
+{
+	guiKeyIdxLoadGame,
+	guiKeyIdxMenu,
+	guiKeyIdxSaveState,
+	guiKeyIdxLoadState,
+	guiKeyIdxDecStateSlot,
+	guiKeyIdxIncStateSlot,
+	guiKeyIdxFastForward,
+	guiKeyIdxGameScreenshot,
+	guiKeyIdxLastView,
+	guiKeyIdxToggleFastForward,
+	guiKeyIdxTurboModifier,
+	guiKeyIdxExitApp,
+};
 
 }

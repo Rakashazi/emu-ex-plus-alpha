@@ -96,9 +96,29 @@ VController::Map NeoSystem::vControllerMap(int player)
 	return map;
 }
 
+static bool isGamepadButton(unsigned input)
+{
+	switch(input)
+	{
+		case neogeoKeyIdxSelect:
+		case neogeoKeyIdxStart:
+		case neogeoKeyIdxXTurbo:
+		case neogeoKeyIdxX:
+		case neogeoKeyIdxYTurbo:
+		case neogeoKeyIdxY:
+		case neogeoKeyIdxATurbo:
+		case neogeoKeyIdxA:
+		case neogeoKeyIdxBTurbo:
+		case neogeoKeyIdxB:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned NeoSystem::translateInputAction(unsigned input, bool &turbo)
 {
-	turbo = 0;
+	if(!isGamepadButton(input))
+		turbo = 0;
 	using namespace NGKey;
 	if(input == neogeoKeyIdxTestSwitch) [[unlikely]]
 	{

@@ -1376,7 +1376,7 @@ void EmuApp::runTurboInputEvents()
 
 void EmuApp::resetInput()
 {
-	turboActions = {};
+	removeTurboInputEvents();
 	setRunSpeed(1.);
 }
 

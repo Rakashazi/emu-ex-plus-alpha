@@ -159,9 +159,27 @@ VController::Map MsxSystem::vControllerMap(int player)
 	return map;
 }
 
+static bool isJoystickButton(unsigned input)
+{
+	switch(input)
+	{
+		case msxKeyIdxJS1BtnTurbo:
+		case msxKeyIdxJS1Btn:
+		case msxKeyIdxJS2BtnTurbo:
+		case msxKeyIdxJS2Btn:
+		case msxKeyIdxJS1BtnTurbo2:
+		case msxKeyIdxJS1Btn2:
+		case msxKeyIdxJS2BtnTurbo2:
+		case msxKeyIdxJS2Btn2:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned MsxSystem::translateInputAction(unsigned input, bool &turbo)
 {
-	turbo = 0;
+	if(!isJoystickButton(input))
+		turbo = 0;
 	switch(input)
 	{
 		case msxKeyIdxUp: return EC_JOY1_UP;

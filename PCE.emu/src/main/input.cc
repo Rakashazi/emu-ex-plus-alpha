@@ -75,9 +75,29 @@ VController::Map PceSystem::vControllerMap(int player)
 	return map;
 }
 
+static bool isGamepadButton(unsigned input)
+{
+	switch(input)
+	{
+		case pceKeyIdxSelect:
+		case pceKeyIdxRun:
+		case pceKeyIdxITurbo:
+		case pceKeyIdxI:
+		case pceKeyIdxIITurbo:
+		case pceKeyIdxII:
+		case pceKeyIdxIII:
+		case pceKeyIdxIV:
+		case pceKeyIdxV:
+		case pceKeyIdxVI:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned PceSystem::translateInputAction(unsigned input, bool &turbo)
 {
-	turbo = 0;
+	if(!isGamepadButton(input))
+		turbo = 0;
 	assert(input >= pceKeyIdxUp);
 	unsigned player = (input - pceKeyIdxUp) / Controls::gamepadKeys;
 	unsigned playerMask = player << playerBit;

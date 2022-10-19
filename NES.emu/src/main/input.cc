@@ -100,9 +100,25 @@ static unsigned playerInputShift(int player)
 	return 0;
 }
 
+static bool isGamepadButton(unsigned input)
+{
+	switch(input)
+	{
+		case nesKeyIdxSelect:
+		case nesKeyIdxStart:
+		case nesKeyIdxATurbo:
+		case nesKeyIdxA:
+		case nesKeyIdxBTurbo:
+		case nesKeyIdxB:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned NesSystem::translateInputAction(unsigned input, bool &turbo)
 {
-	turbo = 0;
+	if(!isGamepadButton(input))
+		turbo = 0;
 	assert(input >= nesKeyIdxUp);
 	int player = (input - nesKeyIdxUp) / Controls::gamepadKeys;
 	unsigned playerMask = player << 8;

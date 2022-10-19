@@ -100,9 +100,33 @@ VController::Map MdSystem::vControllerMap(int player)
 	return map;
 }
 
+static bool isGamepadButton(unsigned input)
+{
+	switch(input)
+	{
+		case mdKeyIdxMode:
+		case mdKeyIdxStart:
+		case mdKeyIdxATurbo:
+		case mdKeyIdxA:
+		case mdKeyIdxBTurbo:
+		case mdKeyIdxB:
+		case mdKeyIdxCTurbo:
+		case mdKeyIdxC:
+		case mdKeyIdxXTurbo:
+		case mdKeyIdxX:
+		case mdKeyIdxYTurbo:
+		case mdKeyIdxY:
+		case mdKeyIdxZTurbo:
+		case mdKeyIdxZ:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned MdSystem::translateInputAction(unsigned input, bool &turbo)
 {
-	turbo = 0;
+	if(!isGamepadButton(input))
+		turbo = 0;
 	assert(input >= mdKeyIdxUp);
 	unsigned player = (input - mdKeyIdxUp) / Controls::gamepadKeys;
 	unsigned playerMask = player << 30;

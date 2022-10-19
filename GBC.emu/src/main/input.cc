@@ -67,10 +67,26 @@ VController::Map GbcSystem::vControllerMap(int player)
 	return map;
 }
 
+static bool isGamepadButton(unsigned input)
+{
+	switch(input)
+	{
+		case gbcKeyIdxSelect:
+		case gbcKeyIdxStart:
+		case gbcKeyIdxATurbo:
+		case gbcKeyIdxA:
+		case gbcKeyIdxBTurbo:
+		case gbcKeyIdxB:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned GbcSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	using namespace gambatte;
-	turbo = 0;
+	if(!isGamepadButton(input))
+		turbo = 0;
 	switch(input)
 	{
 		case gbcKeyIdxUp: return InputGetter::UP;

@@ -169,7 +169,7 @@ static auto nvramPath(EmuApp &app)
 
 static auto memcardPath(EmuApp &app)
 {
-	return app.contentSavePath("memcard");
+	return app.contentSaveFilePath(".memcard");
 }
 
 void NeoSystem::loadBackupMemory(EmuApp &app)
@@ -256,6 +256,14 @@ void NeoSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate 
 	// clear excess bits from universe bios region/system settings
 	memory.memcard[2] = memory.memcard[2] & 0x80;
 	memory.memcard[3] = memory.memcard[3] & 0x3;
+	auto &app = EmuApp::get(ctx);
+	if(auto memcardPath = app.contentSaveFilePath(".memcard"), sharedMemcardPath = app.contentSavePath("memcard");
+		!ctx.fileUriExists(memcardPath) && ctx.fileUriExists(sharedMemcardPath))
+	{
+		logMsg("copying shared memcard");
+		FileUtils::readFromUri(ctx, sharedMemcardPath, {memory.memcard, 0x800});
+		FileUtils::writeToUri(ctx, memcardPath, {memory.memcard, 0x800});
+	}
 }
 
 void NeoSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)

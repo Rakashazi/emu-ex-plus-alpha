@@ -65,9 +65,24 @@ VController::Map NgpSystem::vControllerMap(int player)
 	return map;
 }
 
+static bool isGamepadButton(unsigned input)
+{
+	switch(input)
+	{
+		case ngpKeyIdxOption:
+		case ngpKeyIdxATurbo:
+		case ngpKeyIdxA:
+		case ngpKeyIdxBTurbo:
+		case ngpKeyIdxB:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned NgpSystem::translateInputAction(unsigned input, bool &turbo)
 {
-	turbo = 0;
+	if(!isGamepadButton(input))
+		turbo = 0;
 	switch(input)
 	{
 		case ngpKeyIdxUp: return ctrlUpBit;

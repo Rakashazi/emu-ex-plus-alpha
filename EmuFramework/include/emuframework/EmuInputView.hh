@@ -42,6 +42,7 @@ private:
 	VController *vController{};
 	EmuVideoLayer *videoLayer{};
 	bool ffToggleActive{};
+	bool turboModifierActive{};
 
 	void updateRunSpeed();
 };

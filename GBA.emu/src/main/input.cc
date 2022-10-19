@@ -98,9 +98,27 @@ VController::Map GbaSystem::vControllerMap(int player)
 	return map;
 }
 
+static bool isGamepadButton(unsigned input)
+{
+	switch(input)
+	{
+		case gbaKeyIdxSelect:
+		case gbaKeyIdxStart:
+		case gbaKeyIdxATurbo:
+		case gbaKeyIdxA:
+		case gbaKeyIdxBTurbo:
+		case gbaKeyIdxB:
+		case gbaKeyIdxL:
+		case gbaKeyIdxR:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned GbaSystem::translateInputAction(unsigned input, bool &turbo)
 {
-	turbo = 0;
+	if(!isGamepadButton(input))
+		turbo = 0;
 	switch(input)
 	{
 		case gbaKeyIdxUp: return UP;

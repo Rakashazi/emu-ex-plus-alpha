@@ -198,6 +198,7 @@ public:
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
 	void addTurboInputEvent(unsigned action);
 	void removeTurboInputEvent(unsigned action);
+	void removeTurboInputEvents() { turboActions = {}; }
 	void runTurboInputEvents();
 	void resetInput();
 	void setRunSpeed(double speed);

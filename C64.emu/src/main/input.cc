@@ -299,9 +299,23 @@ static unsigned shiftKeycode(unsigned keycode, bool positional)
 	return positional ? shiftKeycodePositional(keycode) : shiftKeycodeSymbolic(keycode);
 }
 
+static bool isJoystickButton(unsigned input)
+{
+	switch(input)
+	{
+		case c64KeyIdxBtn:
+		case c64KeyIdxBtnTurbo:
+		case c64KeyIdxBtn2:
+		case c64KeyIdxBtnTurbo2:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned C64System::translateInputAction(unsigned input, bool &turbo)
 {
-	turbo = 0;
+	if(!isJoystickButton(input))
+		turbo = 0;
 	switch(input)
 	{
 		case c64KeyIdxUp: return JS_N;

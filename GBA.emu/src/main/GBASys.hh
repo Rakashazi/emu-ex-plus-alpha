@@ -16,7 +16,7 @@ struct GBAMem
 {
 	union IoMem
 	{
-		uint8_t b[0x400] __attribute__ ((aligned(4)));
+		alignas(4) uint8_t b[0x400];
 		struct
 		{
 			uint16_t DISPCNT;
@@ -254,20 +254,20 @@ void mode0RenderLine(MixColorType *, GBALCD &lcd, const GBAMem::IoMem &ioMem);
 struct GBALCD
 {
 #ifndef GBALCD_TEMP_LINE_BUFFER
-	uint32_t line0[240]{};
-	uint32_t line1[240]{};
-	uint32_t line2[240]{};
-	uint32_t line3[240]{};
-	uint32_t lineOBJ[240]{};
+	uint32_t line0[240];
+	uint32_t line1[240];
+	uint32_t line2[240];
+	uint32_t line3[240];
+	uint32_t lineOBJ[240];
 #endif
-	uint32_t lineOBJWin[240]{};
-	bool gfxInWin0[240]{};
-	bool gfxInWin1[240]{};
-	int lineOBJpixleft[128]{};
-	uint16_t pix[240 * 160] __attribute__ ((aligned(8))){};
-	uint8_t vram[0x20000] __attribute__ ((aligned(4))){};
-	uint8_t paletteRAM[0x400] __attribute__ ((aligned(4))){};
-	uint8_t oam[0x400] __attribute__ ((aligned(4))){};
+	uint32_t lineOBJWin[240];
+	bool gfxInWin0[240];
+	bool gfxInWin1[240];
+	int lineOBJpixleft[128];
+	alignas(8) uint16_t pix[240 * 160];
+	alignas(4) uint8_t vram[0x20000];
+	alignas(4) uint8_t paletteRAM[0x400];
+	alignas(4) uint8_t oam[0x400];
 	typedef void (*RenderLineFunc)(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &ioMem);
 	RenderLineFunc renderLine = mode0RenderLine;
 	bool fxOn = false;

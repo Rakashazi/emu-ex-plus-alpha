@@ -50,6 +50,7 @@ void EmuInputView::resetInput()
 {
 	vController->resetInput();
 	ffToggleActive = false;
+	turboModifierActive = false;
 }
 
 void EmuInputView::updateRunSpeed()
@@ -103,153 +104,163 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 					isPushed ? "pushed" : "released", keyEv.device()->keyName(keyEv.key()),
 					keyEv.device()->name()));
 			}
-			for(auto i : iotaCount(InputDeviceData::maxKeyActions))
+			for(auto action : actionGroup)
 			{
-				auto action = actionGroup[i];
-				if(action != 0)
+				if(!action)
+					break;
+				using namespace Controls;
+				didAction = true;
+				action--; // action values are offset by 1 due to the null action value
+				switch(action)
 				{
-					using namespace Controls;
-					didAction = true;
-					action--;
-
-					switch(action)
+					case guiKeyIdxFastForward:
 					{
-						bcase guiKeyIdxFastForward:
+						if(isRepeated)
+							break;
+						ffToggleActive = keyEv.pushed();
+						updateRunSpeed();
+						logMsg("fast-forward state:%d", ffToggleActive);
+						break;
+					}
+					case guiKeyIdxLoadGame:
+					{
+						if(!isPushed)
+							break;
+						logMsg("show load game view from key event");
+						emuApp.viewController().popToRoot();
+						pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e), e, false);
+						return true;
+					}
+					case guiKeyIdxMenu:
+					{
+						if(!isPushed)
+							break;
+						logMsg("show system actions view from key event");
+						emuApp.showSystemActionsViewFromSystem(attachParams(), e);
+						return true;
+					}
+					case guiKeyIdxSaveState:
+					{
+						if(!isPushed)
+							break;
+						static auto doSaveState = [](EmuApp &app, bool notify)
 						{
-							if(isRepeated)
-								continue;
-							ffToggleActive = keyEv.pushed();
-							updateRunSpeed();
-							logMsg("fast-forward state:%d", ffToggleActive);
-						}
-
-						bcase guiKeyIdxLoadGame:
-						if(isPushed)
-						{
-							logMsg("show load game view from key event");
-							emuApp.viewController().popToRoot();
-							pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e), e, false);
-							return true;
-						}
-
-						bcase guiKeyIdxMenu:
-						if(isPushed)
-						{
-							logMsg("show system actions view from key event");
-							emuApp.showSystemActionsViewFromSystem(attachParams(), e);
-							return true;
-						}
-
-						bcase guiKeyIdxSaveState:
-						if(isPushed)
-						{
-							static auto doSaveState =
-								[](EmuApp &app, bool notify)
-								{
-									if(app.saveStateWithSlot(app.system().stateSlot()) && notify)
-									{
-										app.postMessage("State Saved");
-									}
-								};
-
-							if(emuApp.shouldOverwriteExistingState())
+							if(app.saveStateWithSlot(app.system().stateSlot()) && notify)
 							{
-								emuApp.syncEmulationThread();
-								doSaveState(emuApp, emuApp.confirmOverwriteStateOption());
+								app.postMessage("State Saved");
+							}
+						};
+						if(emuApp.shouldOverwriteExistingState())
+						{
+							emuApp.syncEmulationThread();
+							doSaveState(emuApp, emuApp.confirmOverwriteStateOption());
+						}
+						else
+						{
+							auto ynAlertView = makeView<YesNoAlertView>("Really Overwrite State?");
+							ynAlertView->setOnYes(
+								[this]()
+								{
+									doSaveState(app(), false);
+									app().showEmulation();
+								});
+							ynAlertView->setOnNo(
+								[this]()
+								{
+									app().showEmulation();
+								});
+							pushAndShowModal(std::move(ynAlertView), e);
+						}
+						return true;
+					}
+					case guiKeyIdxLoadState:
+					{
+						if(!isPushed)
+							break;
+						emuApp.syncEmulationThread();
+						emuApp.loadStateWithSlot(sys.stateSlot());
+						return true;
+					}
+					case guiKeyIdxDecStateSlot:
+					{
+						if(!isPushed)
+							break;
+						sys.decStateSlot();
+						emuApp.postMessage(1, false, fmt::format("State Slot: {}", sys.stateSlotName()));
+						return true;
+					}
+					case guiKeyIdxIncStateSlot:
+					{
+						if(!isPushed)
+							break;
+						sys.incStateSlot();
+						emuApp.postMessage(1, false, fmt::format("State Slot: {}", sys.stateSlotName()));
+						return true;
+					}
+					case guiKeyIdxGameScreenshot:
+					{
+						if(!isPushed)
+							break;
+						videoLayer->emuVideo().takeGameScreenshot();
+						return true;
+					}
+					case guiKeyIdxToggleFastForward:
+					{
+						if(!isPushed || keyEv.repeated())
+							break;
+						ffToggleActive = !ffToggleActive;
+						updateRunSpeed();
+						logMsg("fast-forward state:%d", ffToggleActive);
+						break;
+					}
+					case guiKeyIdxLastView:
+					{
+						if(!isPushed)
+							break;
+						logMsg("show last view from key event");
+						emuApp.showLastViewFromSystem(attachParams(), e);
+						return true;
+					}
+					case guiKeyIdxTurboModifier:
+					{
+						if(isRepeated)
+							break;
+						turboModifierActive = isPushed;
+						if(!isPushed)
+							emuApp.removeTurboInputEvents();
+						break;
+					}
+					case guiKeyIdxExitApp:
+					{
+						if(!isPushed)
+							break;
+						auto ynAlertView = makeView<YesNoAlertView>("Really Exit?");
+						ynAlertView->setOnYes([this]() { appContext().exit(); });
+						emuApp.viewController().pushAndShowModal(std::move(ynAlertView), e, false);
+						break;
+					}
+					default:
+					{
+						if(isRepeated)
+							break;
+						//logMsg("action %d", action);
+						bool turbo = turboModifierActive;
+						unsigned sysAction = sys.translateInputAction(action, turbo);
+						//logMsg("action %d -> %d, pushed %d", action, sysAction, keyEv.state() == Input::PUSHED);
+						if(turbo)
+						{
+							if(isPushed)
+							{
+								emuApp.addTurboInputEvent(sysAction);
 							}
 							else
 							{
-								auto ynAlertView = makeView<YesNoAlertView>("Really Overwrite State?");
-								ynAlertView->setOnYes(
-									[this]()
-									{
-										doSaveState(app(), false);
-										app().showEmulation();
-									});
-								ynAlertView->setOnNo(
-									[this]()
-									{
-										app().showEmulation();
-									});
-								pushAndShowModal(std::move(ynAlertView), e);
+								emuApp.removeTurboInputEvent(sysAction);
 							}
-							return true;
 						}
-
-						bcase guiKeyIdxLoadState:
-						if(isPushed)
-						{
-							emuApp.syncEmulationThread();
-							emuApp.loadStateWithSlot(sys.stateSlot());
-							return true;
-						}
-
-						bcase guiKeyIdxDecStateSlot:
-						if(isPushed)
-						{
-							sys.decStateSlot();
-							emuApp.postMessage(1, false, fmt::format("State Slot: {}", sys.stateSlotName()));
-						}
-
-						bcase guiKeyIdxIncStateSlot:
-						if(isPushed)
-						{
-							sys.incStateSlot();
-							emuApp.postMessage(1, false, fmt::format("State Slot: {}", sys.stateSlotName()));
-						}
-
-						bcase guiKeyIdxGameScreenshot:
-						if(isPushed)
-						{
-							videoLayer->emuVideo().takeGameScreenshot();
-							return true;
-						}
-
-						bcase guiKeyIdxToggleFastForward:
-						if(isPushed)
-						{
-							if(keyEv.repeated())
-								continue;
-							ffToggleActive = !ffToggleActive;
-							updateRunSpeed();
-							logMsg("fast-forward state:%d", ffToggleActive);
-						}
-
-						bcase guiKeyIdxExit:
-						if(isPushed)
-						{
-							logMsg("show last view from key event");
-							emuApp.showLastViewFromSystem(attachParams(), e);
-							return true;
-						}
-
-						bdefault:
-						{
-							if(isRepeated)
-							{
-								continue;
-							}
-							//logMsg("action %d, %d", emuKey, state);
-							bool turbo;
-							unsigned sysAction = sys.translateInputAction(action, turbo);
-							//logMsg("action %d -> %d, pushed %d", action, sysAction, keyEv.state() == Input::PUSHED);
-							if(turbo)
-							{
-								if(isPushed)
-								{
-									emuApp.addTurboInputEvent(sysAction);
-								}
-								else
-								{
-									emuApp.removeTurboInputEvent(sysAction);
-								}
-							}
-							sys.handleInputAction(&emuApp, {sysAction, keyEv.state(), keyEv.metaKeyBits()});
-						}
+						sys.handleInputAction(&emuApp, {sysAction, keyEv.state(), keyEv.metaKeyBits()});
 					}
 				}
-				else
-					break;
 			}
 			return didAction
 				|| keyEv.isGamepad() // consume all gamepad events

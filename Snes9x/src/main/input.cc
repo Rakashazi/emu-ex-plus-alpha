@@ -85,9 +85,33 @@ VController::Map Snes9xSystem::vControllerMap(int player)
 	return map;
 }
 
+static bool isGamepadButton(unsigned input)
+{
+	switch(input)
+	{
+		case s9xKeyIdxSelect:
+		case s9xKeyIdxStart:
+		case s9xKeyIdxXTurbo:
+		case s9xKeyIdxX:
+		case s9xKeyIdxYTurbo:
+		case s9xKeyIdxY:
+		case s9xKeyIdxATurbo:
+		case s9xKeyIdxA:
+		case s9xKeyIdxBTurbo:
+		case s9xKeyIdxB:
+		case s9xKeyIdxLTurbo:
+		case s9xKeyIdxL:
+		case s9xKeyIdxRTurbo:
+		case s9xKeyIdxR:
+			return true;
+		default: return false;
+	}
+}
+
 unsigned Snes9xSystem::translateInputAction(unsigned input, bool &turbo)
 {
-	turbo = 0;
+	if(!isGamepadButton(input))
+		turbo = 0;
 	assert(input >= s9xKeyIdxUp);
 	unsigned player = (input - s9xKeyIdxUp) / Controls::gamepadKeys;
 	unsigned playerMask = player << playerBitShift;
