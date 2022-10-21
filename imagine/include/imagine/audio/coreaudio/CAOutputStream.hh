@@ -31,6 +31,7 @@ class CAOutputStream
 public:
 	CAOutputStream();
 	~CAOutputStream();
+	CAOutputStream &operator=(CAOutputStream &&) = delete;
 	ErrorCode open(OutputStreamConfig config);
 	void play();
 	void pause();

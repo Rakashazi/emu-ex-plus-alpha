@@ -128,9 +128,4 @@ void YesNoAlertView::setOnNo(TextMenuItem::SelectDelegate del)
 	no.setOnSelect(del);
 }
 
-TextMenuItem::SelectDelegate YesNoAlertView::makeDefaultSelectDelegate()
-{
-	return [](){};
-}
-
 }

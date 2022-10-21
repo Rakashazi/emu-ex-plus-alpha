@@ -223,19 +223,19 @@ public:
 	const char *systemName() const;
 	const char *shortSystemName() const;
 	const BundledGameInfo &bundledGameInfo(int idx) const;
-	auto contentDirectory() const { return contentDirectory_; }
+	const auto &contentDirectory() const { return contentDirectory_; }
 	FS::PathString contentDirectory(std::string_view name) const;
 	FS::PathString contentFilePath(std::string_view ext) const;
-	auto contentLocation() const { return contentLocation_; }
+	const auto &contentLocation() const { return contentLocation_; }
 	const char *contentLocationPtr() { return contentLocation_.data(); }
-	FS::FileString contentName() const { return contentName_; }
+	const auto &contentName() const { return contentName_; }
 	FS::FileString contentFileName() const;
 	std::string contentDisplayName() const;
 	void setContentDisplayName(std::string_view name);
 	FS::FileString contentDisplayNameForPathDefaultImpl(IG::CStringView path) const;
 	void setInitialLoadPath(IG::CStringView path);
 	FS::PathString fallbackSaveDirectory(bool create = false);
-	const FS::PathString &contentSaveDirectory() const { return contentSaveDirectory_; }
+	const auto &contentSaveDirectory() const { return contentSaveDirectory_; }
 
 	FS::PathString contentLocalSaveDirectory(auto &&...components) const
 	{
@@ -270,7 +270,7 @@ public:
 	FS::PathString contentSavePath(std::string_view name) const;
 	const char *contentSaveDirectoryPtr() { return contentSaveDirectory_.data(); }
 	FS::PathString contentSaveFilePath(std::string_view ext) const;
-	const FS::PathString &userSaveDirectory() const { return userSaveDirectory_; }
+	const auto &userSaveDirectory() const { return userSaveDirectory_; }
 	void setUserSaveDirectory(IG::CStringView path);
 	FS::FileString stateFilename(int slot) const { return stateFilename(slot, contentName_); }
 	FS::FileString stateFilename(std::string_view name) const;

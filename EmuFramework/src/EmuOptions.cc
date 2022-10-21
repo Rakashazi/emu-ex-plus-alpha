@@ -68,12 +68,6 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	{
 		optionShowOnSecondScreen.isConst = true;
 	}
-	else if(FS::exists(FS::pathString(ctx.sharedStoragePath(), "emuex_disable_presentation_displays")))
-	{
-		logMsg("force-disabling presentation display support");
-		optionShowOnSecondScreen.initDefault(false);
-		optionShowOnSecondScreen.isConst = true;
-	}
 	else
 	{
 		#ifdef CONFIG_BLUETOOTH

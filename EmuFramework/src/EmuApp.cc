@@ -180,7 +180,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionSkipLateFrames{CFGKEY_SKIP_LATE_FRAMES, 1, 0},
 	optionImageZoom(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid),
 	optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<50, 100>),
-	optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 1, 0},
+	optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 0},
 	optionTextureBufferMode{CFGKEY_TEXTURE_BUFFER_MODE, 0},
 	optionVideoImageBuffers{CFGKEY_VIDEO_IMAGE_BUFFERS, 0, 0, optionIsValidWithMax<2>},
 	layoutBehindSystemUI{ctx.hasTranslucentSysUI()}
@@ -1096,14 +1096,7 @@ void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view
 					{
 						int len = label ? std::string_view{label}.size() : -1;
 						auto msg = EmuSystem::LoadProgressMessage{EmuSystem::LoadProgress::UPDATE, pos, max, len};
-						if(len > 0)
-						{
-							msgPort.sendWithExtraData(msg, label, len);
-						}
-						else
-						{
-							msgPort.send(msg);
-						}
+						msgPort.sendWithExtraData(msg, std::span<const char>{label, len > 0 ? size_t(len) : 0});
 						return true;
 					});
 				msgPort.send({EmuSystem::LoadProgress::OK, 0, 0, 0});
@@ -1113,14 +1106,13 @@ void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view
 			{
 				system().clearGamePaths();
 				std::string_view errStr{err.what()};
-				int len = errStr.size();
-				assert(len);
+				auto len = errStr.size();
 				if(len > 1024)
 				{
-					logWarn("truncating long error size:%d", len);
+					logWarn("truncating long error size:%zu", len);
 					len = 1024;
 				}
-				msgPort.sendWithExtraData({EmuSystem::LoadProgress::FAILED, 0, 0, len}, errStr.data(), len);
+				msgPort.sendWithExtraData({EmuSystem::LoadProgress::FAILED, 0, 0, int(len)}, std::span<const char>{errStr.data(), len});
 				logErr("loader thread failed");
 				return;
 			}

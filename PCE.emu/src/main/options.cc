@@ -18,6 +18,8 @@
 #include "MainSystem.hh"
 #include <mednafen/pce_fast/vdc.h>
 #include <mednafen/pce_fast/pcecd.h>
+#include <mednafen-emuex/MDFNUtils.hh>
+#include <mednafen/general.h>
 
 namespace EmuEx
 {
@@ -157,6 +159,105 @@ void PceSystem::setAdpcmFilter(bool on)
 {
 	adpcmFilter = on;
 	updateCdSettings();
+}
+
+}
+
+namespace Mednafen
+{
+
+#define EMU_MODULE "pce_fast"
+
+using namespace EmuEx;
+
+uint64 MDFN_GetSettingUI(const char *name_)
+{
+	std::string_view name{name_};
+	auto &sys = static_cast<PceSystem&>(gSystem());
+	if(EMU_MODULE".ocmultiplier" == name)
+		return 1;
+	if(EMU_MODULE".cdspeed" == name)
+		return sys.cdSpeed;
+	if(EMU_MODULE".cdpsgvolume" == name)
+		return 100;
+	if(EMU_MODULE".cddavolume" == name)
+		return sys.cddaVolume;
+	if(EMU_MODULE".adpcmvolume" == name)
+		return sys.adpcmVolume;
+	if(EMU_MODULE".slstart" == name)
+		return sys.visibleLines.first;
+	if(EMU_MODULE".slend" == name)
+		return sys.visibleLines.last;
+	bug_unreachable("unhandled settingUI %s", name_);
+}
+
+int64 MDFN_GetSettingI(const char *name_)
+{
+	std::string_view name{name_};
+	if("filesys.state_comp_level" == name)
+		return 6;
+	bug_unreachable("unhandled settingI %s", name_);
+}
+
+double MDFN_GetSettingF(const char *name_)
+{
+	std::string_view name{name_};
+	if(EMU_MODULE".mouse_sensitivity" == name)
+		return 0.50;
+	bug_unreachable("unhandled settingF %s", name_);
+}
+
+bool MDFN_GetSettingB(const char *name_)
+{
+	std::string_view name{name_};
+	auto &sys = static_cast<PceSystem&>(gSystem());
+	if("cheats" == name)
+		return 0;
+	if(EMU_MODULE".arcadecard" == name)
+		return sys.optionArcadeCard;
+	if(EMU_MODULE".forcesgx" == name)
+		return 0;
+	if(EMU_MODULE".nospritelimit" == name)
+		return sys.noSpriteLimit;
+	if(EMU_MODULE".forcemono" == name)
+		return 0;
+	if(EMU_MODULE".disable_softreset" == name)
+		return 0;
+	if(EMU_MODULE".adpcmlp" == name)
+		return sys.adpcmFilter;
+	if(EMU_MODULE".correct_aspect" == name)
+		return 1;
+	if("filesys.untrusted_fip_check" == name)
+		return 0;
+	bug_unreachable("unhandled settingB %s", name_);
+}
+
+std::string MDFN_GetSettingS(const char *name_)
+{
+	std::string_view name{name_};
+	if(EMU_MODULE".cdbios" == name)
+		return {};
+	bug_unreachable("unhandled settingS %s", name_);
+}
+
+std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
+{
+	switch(type)
+	{
+		case MDFNMKF_STATE:
+		case MDFNMKF_SAV:
+		case MDFNMKF_SAVBACK:
+			return savePathMDFN(id1, cd1);
+		case MDFNMKF_FIRMWARE:
+		{
+			// pce-specific
+			auto &sys = static_cast<PceSystem&>(gSystem());
+			logMsg("system card path:%s", sys.sysCardPath.data());
+			return std::string{sys.sysCardPath};
+		}
+		default:
+			bug_unreachable("type == %d", type);
+	}
 }
 
 }

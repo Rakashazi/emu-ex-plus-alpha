@@ -55,8 +55,8 @@ public:
 	void setLabel(UTF16Convertible auto &&label) { text.resetString(IG_forward(label)); }
 
 protected:
-	Gfx::GCRect labelFrame{};
-	Gfx::Text text{};
+	Gfx::GCRect labelFrame;
+	Gfx::Text text;
 	TableView menu;
 
 	void init();
@@ -95,8 +95,8 @@ public:
 			{
 				return idx == 0 ? yes : no;
 			}),
-		yes{IG_forward(yesStr), &defaultFace(), onYes ? onYes : makeDefaultSelectDelegate()},
-		no{IG_forward(noStr), &defaultFace(), onNo ? onNo : makeDefaultSelectDelegate()} {}
+		yes{IG_forward(yesStr), &defaultFace(), onYes ? onYes : TextMenuItem::SelectDelegate([]{})},
+		no{IG_forward(noStr), &defaultFace(), onNo ? onNo : TextMenuItem::SelectDelegate([]{})} {}
 
 	YesNoAlertView(ViewAttachParams attach, UTF16Convertible auto &&label,
 		UTF16Convertible auto &&yesStr, UTF16Convertible auto &&noStr):
@@ -110,7 +110,6 @@ public:
 
 protected:
 	TextMenuItem yes, no;
-	TextMenuItem::SelectDelegate makeDefaultSelectDelegate();
 };
 
 }

@@ -34,20 +34,19 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::E
 			{
 				switch(msg.progress)
 				{
-					bcase EmuSystem::LoadProgress::FAILED:
+					case EmuSystem::LoadProgress::FAILED:
 					{
 						assumeExpr(msg.intArg3 > 0);
-						int len = msg.intArg3;
-						char errorStr[len + 1];
-						msgs.getExtraData(errorStr, len);
-						errorStr[len] = 0;
+						size_t len = msg.intArg3;
+						char errorStr[len];
+						msgs.getExtraData(std::span<char>{errorStr, len});
 						msgPort.detach();
 						auto &app = this->app();
 						app.popModalViews();
-						app.postErrorMessage(4, errorStr);
+						app.postErrorMessage(4, std::string_view{errorStr, len});
 						return;
 					}
-					bcase EmuSystem::LoadProgress::OK:
+					case EmuSystem::LoadProgress::OK:
 					{
 						msgPort.detach();
 						auto onComplete = this->onComplete;
@@ -58,32 +57,34 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::E
 						onComplete(originalEvent);
 						return;
 					}
-					bcase EmuSystem::LoadProgress::UPDATE:
+					case EmuSystem::LoadProgress::UPDATE:
 					{
 						setPos(msg.intArg);
 						setMax(msg.intArg2);
 						assumeExpr(msg.intArg3 >= -1);
 						switch(msg.intArg3)
 						{
-							bcase -1: // no string
-							{}
-							bcase 0: // default string
-							{
+							case -1: // no string
+								break;
+							case 0: // default string
 								setLabel("Loading...");
-							}
-							bdefault: // custom string
+								break;
+							default: // custom string
 							{
 								size_t len = msg.intArg3;
+								if(!len)
+									break;
 								char labelStr[len];
-								msgs.getExtraData(labelStr, len);
+								msgs.getExtraData(std::span<char>{labelStr, len});
 								setLabel(std::string_view{labelStr, len});
 								logMsg("set custom string:%s", labelStr);
 							}
 						}
 						place();
 						postDraw();
+						break;
 					}
-					bdefault:
+					default:
 					{
 						logWarn("Unknown LoadProgressMessage value:%d", (int)msg.progress);
 					}

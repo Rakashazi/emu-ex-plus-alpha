@@ -25,7 +25,13 @@
 namespace Mednafen
 {
 
+MDFNGI *MDFNGameInfo{};
 int MDFNnetplay{};
+
+void MDFN_DoSimpleCommand(int cmd)
+{
+	MDFNGameInfo->DoSimpleCommand(cmd);
+}
 
 void MDFN_printf(const char *format, ...) noexcept
 {
@@ -72,6 +78,9 @@ void MDFN_StateAction(StateMem *sm, const unsigned load, const bool data_only)
 }
 
 void MDFN_MidLineUpdate(EmulateSpecStruct *espec, int y) {}
+
+void Player_Init(int tsongs, const std::string &album, const std::string &artist, const std::string &copyright, const std::vector<std::string> &snames = std::vector<std::string>(), bool override_gi = true) {}
+void Player_Draw(MDFN_Surface *surface, MDFN_Rect *dr, int CurrentSong, int16 *samples, int32 sampcount) {}
 
 namespace Time
 {

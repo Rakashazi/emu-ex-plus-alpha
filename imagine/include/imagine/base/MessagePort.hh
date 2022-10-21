@@ -21,6 +21,7 @@
 #include <imagine/util/concepts.hh>
 #include <imagine/util/utility.h>
 #include <cstring>
+#include <span>
 
 namespace IG
 {
@@ -84,9 +85,10 @@ public:
 			return io.get<T>();
 		}
 
-		bool getExtraData(auto *obj, size_t size)
+		template <class T>
+		bool getExtraData(std::span<T> span)
 		{
-			return io.read(obj, size) != -1;
+			return io.read(span.data(), span.size()) != -1;
 		}
 
 	protected:
@@ -176,16 +178,19 @@ public:
 	bool sendWithExtraData(MsgType msg, auto &&obj)
 	{
 		static_assert(MSG_SIZE + sizeof(obj) < PIPE_BUF, "size of data too big for atomic writes");
-		return sendWithExtraData(msg, &obj, sizeof(obj));
+		return sendWithExtraData(msg, {&obj, sizeof(obj)});
 	}
 
-	bool sendWithExtraData(MsgType msg, auto *obj, size_t size)
+	template <class T>
+	bool sendWithExtraData(MsgType msg, std::span<T> span)
 	{
-		const auto bufferSize = MSG_SIZE + size;
+		if(span.empty())
+			return send(msg);
+		const auto bufferSize = MSG_SIZE + span.size();
 		assumeExpr(bufferSize < PIPE_BUF);
-		char buffer[bufferSize];
+		char buffer[PIPE_BUF];
 		memcpy(buffer, &msg, MSG_SIZE);
-		memcpy(buffer + MSG_SIZE, obj, size);
+		memcpy(buffer + MSG_SIZE, span.data(), span.size());
 		return pipe.sink().write(buffer, bufferSize) != -1;
 	}
 

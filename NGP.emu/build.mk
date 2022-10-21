@@ -16,7 +16,6 @@ main/options.cc \
 main/input.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \
-main/NGP.cc \
 $(MDFN_COMMON_SRC)
 
 MDFN_SRC := ngp/bios.cpp \

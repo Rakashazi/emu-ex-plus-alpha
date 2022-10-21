@@ -16,6 +16,7 @@
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/util/format.hh>
+#include <emuframework/EmuApp.hh>
 #include <mednafen/video/surface.h>
 #include <mednafen/hash/md5.h>
 #include <mednafen/git.h>
@@ -55,6 +56,17 @@ inline FS::FileString stateFilenameMDFN(const Mednafen::MDFNGI &gameInfo, int sl
 	};
 	return IG::format<FS::FileString>("{}.{}.nc{}",
 		name, Mednafen::md5_context::asciistr(gameInfo.MD5, 0), saveSlotChar(slot));
+}
+
+inline std::string savePathMDFN(int id1, const char *cd1)
+{
+	assert(cd1);
+	IG::FileString ext{'.'};
+	ext += Mednafen::md5_context::asciistr(Mednafen::MDFNGameInfo->MD5, 0);
+	ext += '.';
+	ext += cd1;
+	auto path = EmuEx::gApp().contentSaveFilePath(ext);
+	return std::string{path};
 }
 
 }

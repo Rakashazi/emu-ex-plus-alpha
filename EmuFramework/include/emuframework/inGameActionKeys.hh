@@ -44,7 +44,7 @@ using GameActionKeyArray = std::array<unsigned, gameActionKeys>;
 }
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT \
-{"Set In-Game Actions", gameActionName, 0}
+{"Set In-Emulation Actions", gameActionName, 0}
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT \
 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0

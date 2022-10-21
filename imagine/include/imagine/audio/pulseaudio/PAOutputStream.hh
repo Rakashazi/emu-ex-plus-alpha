@@ -39,6 +39,7 @@ class PAOutputStream
 public:
 	PAOutputStream();
 	~PAOutputStream();
+	PAOutputStream &operator=(PAOutputStream &&) = delete;
 	ErrorCode open(OutputStreamConfig config);
 	void play();
 	void pause();

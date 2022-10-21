@@ -413,3 +413,13 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 }
 
 }
+
+namespace MDFN_IEN_PCE_FAST
+{
+// dummy HES functions
+int PCE_HESLoad(const uint8 *buf, uint32 size) { return 0; };
+void HES_Draw(MDFN_Surface *surface, MDFN_Rect *DisplayRect, int16 *SoundBuf, int32 SoundBufSize) {}
+void HES_Close(void) {}
+void HES_Reset(void) {}
+uint8 ReadIBP(unsigned int A) { return 0; }
+};

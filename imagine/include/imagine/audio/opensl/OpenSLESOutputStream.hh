@@ -35,6 +35,7 @@ class OpenSLESOutputStream
 public:
 	OpenSLESOutputStream(const Manager &);
 	~OpenSLESOutputStream();
+	OpenSLESOutputStream &operator=(OpenSLESOutputStream &&) = delete;
 	ErrorCode open(OutputStreamConfig config);
 	void play();
 	void pause();

@@ -117,9 +117,9 @@ void TextEntry::prepareDraw(Gfx::Renderer &r)
 	t.makeGlyphs(r);
 }
 
-void TextEntry::draw(Gfx::RendererCommands &cmds)
+void TextEntry::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
-	using namespace IG::Gfx;
+	using namespace Gfx;
 	cmds.basicEffect().enableAlphaTexture(cmds);
 	t.draw(cmds, projP.unProjectRect(b).pos(LC2DO), LC2DO, projP);
 }
@@ -129,7 +129,7 @@ void TextEntry::place(Gfx::Renderer &r)
 	t.compile(r, projP);
 }
 
-void TextEntry::place(Gfx::Renderer &r, IG::WindowRect rect, const Gfx::ProjectionPlane &projP)
+void TextEntry::place(Gfx::Renderer &r, WindowRect rect, const Gfx::ProjectionPlane &projP)
 {
 	this->projP = projP;
 	b = rect;
@@ -141,12 +141,12 @@ const char *TextEntry::textStr() const
 	return str.data();
 }
 
-IG::WindowRect TextEntry::bgRect() const
+WindowRect TextEntry::bgRect() const
 {
 	return b;
 }
 
-CollectTextInputView::CollectTextInputView(ViewAttachParams attach, IG::CStringView msgText, IG::CStringView initialContent,
+CollectTextInputView::CollectTextInputView(ViewAttachParams attach, CStringView msgText, CStringView initialContent,
 	Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face):
 	View{attach},
 	textField
@@ -179,7 +179,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, IG::CStringV
 	onTextD{onText}
 {
 	face = face ? face : &attach.viewManager().defaultFace();
-	IG::doIfUsed(cancelSpr,
+	doIfUsed(cancelSpr,
 		[&](auto &cancelSpr)
 		{
 			if(manager().needsBackControl() && closeRes)
@@ -188,7 +188,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, IG::CStringV
 			}
 		});
 	message = {msgText, face};
-	IG::doIfUsed(textEntry,
+	doIfUsed(textEntry,
 		[](auto &textEntry)
 		{
 			textEntry.setAcceptingInput(true);
@@ -197,30 +197,30 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, IG::CStringV
 
 void CollectTextInputView::place()
 {
-	using namespace IG::Gfx;
+	using namespace Gfx;
 	auto &face = *message.face();
-	IG::doIfUsed(cancelSpr,
+	doIfUsed(cancelSpr,
 		[&](auto &cancelSpr)
 		{
 			if(cancelSpr.hasTexture())
 			{
-				cancelBtn.setPosRel(viewRect().pos(RT2DO), face.nominalHeight() * 1.75, RT2DO);
+				cancelBtn.setPosRel(viewRect().pos(RT2DO), face.nominalHeight() * 1.75f, RT2DO);
 				cancelSpr.setPos(projP.unProjectRect(cancelBtn));
 			}
 		});
 	message.compile(renderer(), projP, {.maxLineSize = projP.width() * 0.95f});
-	IG::WindowRect textRect;
-	int xSize = viewRect().xSize() * 0.95;
-	int ySize = face.nominalHeight() * (Config::envIsAndroid ? 2. : 1.5);
-	IG::doIfUsedOr(textEntry,
+	WindowRect textRect;
+	int xSize = viewRect().xSize() * 0.95f;
+	int ySize = face.nominalHeight();
+	doIfUsedOr(textEntry,
 		[&](auto &textEntry)
 		{
-			textRect.setPosRel(viewRect().pos(C2DO), {xSize, ySize}, C2DO);
+			textRect.setPosRel(viewRect().pos(C2DO), {xSize, int(ySize * 1.5f)}, C2DO);
 			textEntry.place(renderer(), textRect, projP);
 		},
 		[&]()
 		{
-			textRect.setPosRel(viewRect().pos(C2DO) - IG::WP{0, (int)viewRect().ySize()/4}, {xSize, ySize}, C2DO);
+			textRect.setPosRel(viewRect().pos(C2DO) - WP{0, viewRect().ySize() / 4}, {xSize, ySize}, C2DO);
 			textField.place(textRect);
 		});
 }
@@ -236,7 +236,7 @@ bool CollectTextInputView::inputEvent(const Input::Event &e)
 		dismiss();
 		return true;
 	}
-	return IG::doIfUsedOr(textEntry,
+	return doIfUsedOr(textEntry,
 		[&](auto &textEntry)
 		{
 			bool acceptingInput = textEntry.isAcceptingInput();
@@ -260,7 +260,7 @@ bool CollectTextInputView::inputEvent(const Input::Event &e)
 void CollectTextInputView::prepareDraw()
 {
 	message.makeGlyphs(renderer());
-	IG::doIfUsed(textEntry,
+	doIfUsed(textEntry,
 		[this](auto &textEntry)
 		{
 			textEntry.prepareDraw(renderer());
@@ -269,9 +269,9 @@ void CollectTextInputView::prepareDraw()
 
 void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
-	using namespace IG::Gfx;
+	using namespace Gfx;
 	auto &basicEffect = cmds.basicEffect();
-	IG::doIfUsed(cancelSpr,
+	doIfUsed(cancelSpr,
 		[&](auto &cancelSpr)
 		{
 			if(cancelSpr.hasTexture())
@@ -281,7 +281,7 @@ void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 				cancelSpr.draw(cmds, basicEffect);
 			}
 		});
-	IG::doIfUsedOr(textEntry,
+	doIfUsedOr(textEntry,
 		[&](auto &textEntry)
 		{
 			cmds.setColor(0.25);

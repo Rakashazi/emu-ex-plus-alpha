@@ -19,7 +19,6 @@ main/options.cc \
 main/input.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \
-main/PCEFast.cc \
 $(MDFN_COMMON_SRC) \
 $(MDFN_CDROM_SRC)
 

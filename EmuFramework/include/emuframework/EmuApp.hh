@@ -372,29 +372,29 @@ public:
 	auto &notifyInputDeviceChangeOption() { return optionNotifyInputDeviceChange; }
 	auto &keepBluetoothActiveOption() { return optionKeepBluetoothActive; }
 
-	void postMessage(auto msg)
+	void postMessage(UTF16Convertible auto &&msg)
 	{
-		postMessage(false, std::move(msg));
+		postMessage(false, IG_forward(msg));
 	}
 
-	void postMessage(bool error, auto msg)
+	void postMessage(bool error, UTF16Convertible auto &&msg)
 	{
-		postMessage(3, error, std::move(msg));
+		postMessage(3, error, IG_forward(msg));
 	}
 
-	void postMessage(int secs, bool error, auto msg)
+	void postMessage(int secs, bool error, UTF16Convertible auto &&msg)
 	{
-		viewController().popupMessageView().post(std::move(msg), secs, error);
+		viewController().popupMessageView().post(IG_forward(msg), secs, error);
 	}
 
-	void postErrorMessage(auto msg)
+	void postErrorMessage(UTF16Convertible auto &&msg)
 	{
-		postMessage(true, std::move(msg));
+		postMessage(true, IG_forward(msg));
 	}
 
-	void postErrorMessage(int secs, auto msg)
+	void postErrorMessage(int secs, UTF16Convertible auto &&msg)
 	{
-		postMessage(secs, true, std::move(msg));
+		postMessage(secs, true, IG_forward(msg));
 	}
 
 	template <std::same_as<const char*> T>

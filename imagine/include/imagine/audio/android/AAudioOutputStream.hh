@@ -37,6 +37,7 @@ class AAudioOutputStream
 public:
 	AAudioOutputStream(const Manager &);
 	~AAudioOutputStream();
+	AAudioOutputStream &operator=(AAudioOutputStream &&) = delete;
 	ErrorCode open(OutputStreamConfig config);
 	void play();
 	void pause();

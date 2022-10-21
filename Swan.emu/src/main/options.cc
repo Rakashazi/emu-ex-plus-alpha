@@ -16,6 +16,8 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Option.hh>
 #include "MainSystem.hh"
+#include <mednafen-emuex/MDFNUtils.hh>
+#include <mednafen/general.h>
 
 namespace EmuEx
 {
@@ -112,6 +114,85 @@ void WsSystem::setRotation(WsRotation r)
 	setupInput(app);
 	app.updateContentRotation();
 	app.viewController().placeEmuViews();
+}
+
+}
+
+namespace Mednafen
+{
+
+#define EMU_MODULE "wswan"
+
+using namespace EmuEx;
+
+uint64 MDFN_GetSettingUI(const char *name_)
+{
+	std::string_view name{name_};
+	auto &sys = static_cast<WsSystem&>(gSystem());
+	if(EMU_MODULE".bday" == name)
+		return sys.userProfile.birthDay;
+	if(EMU_MODULE".bmonth" == name)
+		return sys.userProfile.birthMonth;
+	if(EMU_MODULE".byear" == name)
+		return sys.userProfile.birthYear;
+	bug_unreachable("unhandled settingUI %s", name_);
+}
+
+int64 MDFN_GetSettingI(const char *name_)
+{
+	std::string_view name{name_};
+	auto &sys = static_cast<WsSystem&>(gSystem());
+	if("filesys.state_comp_level" == name)
+		return 6;
+	if(EMU_MODULE".sex" == name)
+		return sys.userProfile.sex;
+	if(EMU_MODULE".blood" == name)
+		return sys.userProfile.bloodType;
+	bug_unreachable("unhandled settingI %s", name_);
+}
+
+double MDFN_GetSettingF(const char *name)
+{
+	bug_unreachable("unhandled settingF %s", name);
+}
+
+bool MDFN_GetSettingB(const char *name_)
+{
+	std::string_view name{name_};
+	auto &sys = static_cast<WsSystem&>(gSystem());
+	if("cheats" == name)
+		return 0;
+	if(EMU_MODULE".language" == name)
+		return sys.userProfile.languageIsEnglish;
+	if(EMU_MODULE".excomm" == name)
+		return 0;
+	if("filesys.untrusted_fip_check" == name)
+		return 0;
+	bug_unreachable("unhandled settingB %s", name_);
+}
+
+std::string MDFN_GetSettingS(const char *name_)
+{
+	std::string_view name{name_};
+	auto &sys = static_cast<WsSystem&>(gSystem());
+	if(EMU_MODULE".name" == name)
+		return std::string{sys.userName};
+	if(EMU_MODULE".excomm.path" == name)
+		return {};
+	bug_unreachable("unhandled settingS %s", name_);
+}
+
+std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
+{
+	switch(type)
+	{
+		case MDFNMKF_STATE:
+		case MDFNMKF_SAV:
+		case MDFNMKF_SAVBACK:
+			return savePathMDFN(id1, cd1);
+		default:
+			bug_unreachable("type == %d", type);
+	}
 }
 
 }

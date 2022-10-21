@@ -35,17 +35,17 @@ public:
 	bool isAcceptingInput() const;
 	bool inputEvent(View &parentView, const Input::Event &);
 	void prepareDraw(Gfx::Renderer &r);
-	void draw(Gfx::RendererCommands &cmds);
+	void draw(Gfx::RendererCommands &__restrict__);
 	void place(Gfx::Renderer &r);
 	void place(Gfx::Renderer &r, IG::WindowRect rect, const Gfx::ProjectionPlane &projP);
 	const char *textStr() const;
 	IG::WindowRect bgRect() const;
 
 protected:
-	Gfx::Text t{};
-	Gfx::ProjectionPlane projP{};
-	IG::WindowRect b{};
-	IG::StaticString<128> str{};
+	Gfx::Text t;
+	Gfx::ProjectionPlane projP;
+	IG::WindowRect b;
+	IG::StaticString<128> str;
 	bool acceptingInput{};
 	bool multiLine{};
 };
@@ -67,13 +67,13 @@ public:
 	void draw(Gfx::RendererCommands &__restrict__) override;
 
 protected:
-	IG::WindowRect cancelBtn{};
+	IG::WindowRect cancelBtn;
 	// TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
-	IG_UseMemberIf(!Config::envIsAndroid, Gfx::Sprite, cancelSpr){};
-	Gfx::Text message{};
+	IG_UseMemberIf(!Config::envIsAndroid, Gfx::Sprite, cancelSpr);
+	Gfx::Text message;
 	[[no_unique_address]] Input::TextField textField;
 	IG_UseMemberIf(!Config::Input::SYSTEM_COLLECTS_TEXT, TextEntry, textEntry);
-	OnTextDelegate onTextD{};
+	OnTextDelegate onTextD;
 };
 
 }

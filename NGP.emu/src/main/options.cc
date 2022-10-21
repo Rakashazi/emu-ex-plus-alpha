@@ -16,6 +16,8 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Option.hh>
 #include "MainSystem.hh"
+#include <mednafen-emuex/MDFNUtils.hh>
+#include <mednafen/general.h>
 
 namespace EmuEx
 {
@@ -49,6 +51,63 @@ void NgpSystem::writeConfig(ConfigType type, FileIO &io)
 	if(type == ConfigType::MAIN)
 	{
 		optionNGPLanguage.writeWithKeyIfNotDefault(io);
+	}
+}
+
+}
+
+namespace Mednafen
+{
+
+#define EMU_MODULE "ngp"
+
+using namespace EmuEx;
+
+uint64 MDFN_GetSettingUI(const char *name)
+{
+	bug_unreachable("unhandled settingUI %s", name);
+}
+
+int64 MDFN_GetSettingI(const char *name_)
+{
+	std::string_view name{name_};
+	if("filesys.state_comp_level" == name)
+		return 6;
+	bug_unreachable("unhandled settingI %s", name_);
+}
+
+double MDFN_GetSettingF(const char *name)
+{
+	bug_unreachable("unhandled settingF %s", name);
+}
+
+bool MDFN_GetSettingB(const char *name_)
+{
+	std::string_view name{name_};
+	if("cheats" == name)
+		return 0;
+	if(EMU_MODULE".language" == name)
+		return static_cast<NgpSystem&>(gSystem()).optionNGPLanguage;
+	if("filesys.untrusted_fip_check" == name)
+		return 0;
+	bug_unreachable("unhandled settingB %s", name_);
+}
+
+std::string MDFN_GetSettingS(const char *name)
+{
+	bug_unreachable("unhandled settingS %s", name);
+}
+
+std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
+{
+	switch(type)
+	{
+		case MDFNMKF_STATE:
+		case MDFNMKF_SAV:
+		case MDFNMKF_SAVBACK:
+			return savePathMDFN(id1, cd1);
+		default:
+			bug_unreachable("type == %d", type);
 	}
 }
 

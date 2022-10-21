@@ -174,7 +174,7 @@ FS::PathString EmuSystem::contentSavePath(std::string_view name) const
 FS::PathString EmuSystem::contentSaveFilePath(std::string_view ext) const
 {
 	assert(!contentName_.empty());
-	return FS::uriString(contentSaveDirectory(), contentName().append(ext));
+	return FS::uriString(contentSaveDirectory(), FS::FileString{contentName()}.append(ext));
 }
 
 void EmuSystem::setUserSaveDirectory(IG::CStringView path)
@@ -235,7 +235,7 @@ FS::PathString EmuSystem::userPath(std::string_view userDir) const
 FS::PathString EmuSystem::userFilePath(std::string_view userDir, std::string_view ext) const
 {
 	assert(!contentName_.empty());
-	return userPath(userDir, contentName().append(ext));
+	return userPath(userDir, FS::FileString{contentName()}.append(ext));
 }
 
 void EmuSystem::closeRuntimeSystem(EmuApp &app)
@@ -471,7 +471,7 @@ FS::PathString EmuSystem::contentDirectory(std::string_view name) const
 FS::PathString EmuSystem::contentFilePath(std::string_view ext) const
 {
 	assert(!contentName_.empty());
-	return contentDirectory(contentName().append(ext));
+	return contentDirectory(FS::FileString{contentName()}.append(ext));
 }
 
 std::string EmuSystem::contentDisplayName() const

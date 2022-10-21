@@ -33,6 +33,7 @@ class ALSAOutputStream
 public:
 	constexpr ALSAOutputStream() = default;
 	~ALSAOutputStream();
+	ALSAOutputStream &operator=(ALSAOutputStream &&) = delete;
 	ErrorCode open(OutputStreamConfig config);
 	void play();
 	void pause();
