@@ -23,7 +23,6 @@
 #include <imagine/base/linux/FBDevFrameTimer.hh>
 #include <imagine/base/FrameTimerInterface.hh>
 #include <utility>
-#include <compare>
 #include <memory>
 
 namespace IG

@@ -19,7 +19,6 @@
 #include <imagine/base/iphone/config.h>
 #include <imagine/base/iphone/IOSWindow.hh>
 #include <imagine/util/memory/UniqueCFObject.hh>
-#include <compare>
 #include <type_traits>
 
 #ifdef __OBJC__

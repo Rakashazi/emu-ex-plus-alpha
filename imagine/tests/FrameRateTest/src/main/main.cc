@@ -26,6 +26,7 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/variant.hh>
 #include "tests.hh"
 #include "TestPicker.hh"
 #include "cpuUtils.hh"
@@ -304,15 +305,16 @@ TestFramework *FrameRateTestApplication::startTest(IG::Window &win, const TestPa
 	app.setSustainedPerformanceMode(true);
 	#endif
 	auto &activeTest = windowData(win).activeTest;
-	switch(t.test)
+	activeTest = [&] -> std::unique_ptr<TestFramework>
 	{
-		bcase TEST_CLEAR:
-			activeTest = std::make_unique<ClearTest>();
-		bcase TEST_DRAW:
-			activeTest = std::make_unique<DrawTest>();
-		bcase TEST_WRITE:
-			activeTest = std::make_unique<WriteTest>();
-	}
+		switch(t.test)
+		{
+			case TEST_CLEAR: return std::make_unique<ClearTest>();
+			case TEST_DRAW: return std::make_unique<DrawTest>();
+			case TEST_WRITE: return std::make_unique<WriteTest>();
+		}
+		bug_unreachable("invalid TestID");
+	}();
 	activeTest->init(app, renderer, face, t.pixmapSize, t.bufferMode);
 	app.setIdleDisplayPowerSave(false);
 	initCPUFreqStatus();

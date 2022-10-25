@@ -1862,8 +1862,9 @@ int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::NesSystem &sys, Emu
 			for (scanline = 0; scanline < totalscanlines; ) {	//scanline is incremented in  DoLine.  Evil. :/
 				deempcnt[deemp]++;
 
-				if (scanline < 240)
+				if (scanline < 240) {
 					DEBUG(FCEUD_UpdatePPUView(scanline, 1));
+				}
 
 				DoLine();
 

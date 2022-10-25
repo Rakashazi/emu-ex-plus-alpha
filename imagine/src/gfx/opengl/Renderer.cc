@@ -258,27 +258,20 @@ ClipRect Renderer::makeClipRect(const Window &win, IG::WindowRect rect)
 		switch(win.softOrientation())
 		{
 			default:
-				//x += win.viewport.rect.x;
 				y = win.height() - (y + h);
-			bcase Rotation::RIGHT:
-				//x += win.viewport.rect.y;
-				//y = win.width() - (y + h /*+ (win.w - win.viewport.rect.x2)*/);
+				break;
+			case Rotation::RIGHT:
 				std::swap(x, y);
 				std::swap(w, h);
 				x = (win.realWidth() - x) - w;
 				y = (win.realHeight() - y) - h;
-			bcase Rotation::LEFT:
-				//x += win.viewport.rect.y;
-				//y += win.viewport.rect.x;
+				break;
+			case Rotation::LEFT:
 				std::swap(x, y);
 				std::swap(w, h);
-			bcase Rotation::DOWN:
+				break;
+			case Rotation::DOWN:
 				x = (win.realWidth() - x) - w;
-				//y = win.height() - (y + h);
-				//std::swap(x, y);
-				//std::swap(w, h);
-				//x += win.viewport.rect.x;
-				//y += win.height() - win.viewport.bounds().y2;
 		}
 	}
 	else

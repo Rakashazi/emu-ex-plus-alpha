@@ -134,14 +134,15 @@ void EvdevInputDevice::processInputEvents(LinuxApplication &app, std::span<const
 		Time time = IG::Seconds{ev.time.tv_sec} + IG::Microseconds{ev.time.tv_usec};
 		switch(ev.type)
 		{
-			bcase EV_KEY:
+			case EV_KEY:
 			{
 				//logMsg("got key event code:0x%X value:%d", ev.code, ev.value);
 				auto key = toSysKey(ev.code);
 				KeyEvent event{Map::SYSTEM, key, key, ev.value ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 				app.dispatchRepeatableKeyInputEvent(event);
+				break;
 			}
-			bcase EV_ABS:
+			case EV_ABS:
 			{
 				auto axisIt = std::ranges::find_if(axis, [&](auto &axis){ return ev.code == (uint8_t)axis.id(); });
 				if(axisIt == axis.end())

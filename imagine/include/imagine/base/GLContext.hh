@@ -31,7 +31,6 @@
 #include <imagine/base/glDefs.hh>
 #include <imagine/util/concepts.hh>
 #include <optional>
-#include <compare>
 
 namespace IG
 {

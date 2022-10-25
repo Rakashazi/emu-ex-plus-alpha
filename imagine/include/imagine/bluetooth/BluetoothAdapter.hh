@@ -21,7 +21,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/input/Device.hh>
 #include <array>
-#include <compare>
 
 namespace IG
 {

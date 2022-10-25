@@ -406,7 +406,7 @@ void EmuVideoLayer::logOutputFormat()
 	if constexpr(Config::DEBUG_BUILD)
 	{
 		IG::StaticString<255> str{"output format: main video:"};
-		str += video.image().pixmapDesc().format().name();
+		str += video.image().pixmapDesc().format.name();
 		for(auto &ePtr : effects)
 		{
 			auto &e = *ePtr;

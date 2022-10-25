@@ -387,7 +387,7 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 	}
 	switch(a.key >> KEY_MODE_SHIFT)
 	{
-		bcase JS_MODE:
+		case JS_MODE:
 		{
 			auto key = a.key & 0x1F;
 			if(optionSwapJoystickPorts == JoystickMode::KEYBOARD)
@@ -414,17 +414,19 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 				//logMsg("js %X p %d", key, player);
 				joystick_value[player] = IG::setOrClearBits(joystick_value[player], (uint16_t)key, a.state == Input::Action::PUSHED);
 			}
+			break;
 		}
-		bcase KB_MODE:
+		case KB_MODE:
 		{
 			auto key = a.key & CODE_MASK;
 			handleKeyboardInput({key, a.state, a.metaState}, positionalShift);
+			break;
 		}
-		bcase EX_MODE:
+		case EX_MODE:
 		{
 			switch(a.key)
 			{
-				bcase KBEX_SWAP_JS_PORTS:
+				case KBEX_SWAP_JS_PORTS:
 				{
 					if(a.state == Input::Action::PUSHED && optionSwapJoystickPorts != JoystickMode::KEYBOARD)
 					{
@@ -437,13 +439,15 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 						if(app)
 							app->postMessage(1, false, "Swapped Joystick Ports");
 					}
+					break;
 				}
-				bcase KBEX_TOGGLE_VKEYBOARD:
+				case KBEX_TOGGLE_VKEYBOARD:
 				{
 					if(app && a.state == Input::Action::PUSHED)
 						app->toggleKeyboard();
+					break;
 				}
-				bcase KBEX_POS_SHIFT_LOCK:
+				case KBEX_POS_SHIFT_LOCK:
 				{
 					if(app && a.state == Input::Action::PUSHED)
 					{
@@ -451,16 +455,18 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 						//logMsg("positional shift:%d", active);
 						handleKeyboardInput({c64KeyLeftShift, active ? Input::Action::PUSHED : Input::Action::RELEASED});
 					}
+					break;
 				}
-				bcase KBEX_CTRL_LOCK:
+				case KBEX_CTRL_LOCK:
 				{
 					if(a.state == Input::Action::PUSHED)
 					{
 						ctrlLock ^= true;
 						handleKeyboardInput({c64KeyCtrl, ctrlLock ? Input::Action::PUSHED : Input::Action::RELEASED});
 					}
+					break;
 				}
-				bcase KBEX_RESTORE:
+				case KBEX_RESTORE:
 				{
 					if(app)
 					{
@@ -468,6 +474,7 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 						app->syncEmulationThread();
 						plugin.machine_set_restore_key(a.state == Input::Action::PUSHED);
 					}
+					break;
 				}
 			}
 		}

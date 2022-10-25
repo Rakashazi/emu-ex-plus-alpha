@@ -129,8 +129,8 @@ void SurfaceTextureStorage::deinit()
 
 ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig)
 {
-	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
-	int winFormat = toAHardwareBufferFormat(desc.format());
+	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format.name());
+	int winFormat = toAHardwareBufferFormat(desc.format);
 	if(!winFormat) [[unlikely]]
 	{
 		logErr("pixel format not usable");
@@ -142,7 +142,7 @@ ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace color
 		return {EINVAL};
 	}
 	updateFormatInfo(desc, 1, GL_TEXTURE_EXTERNAL_OES);
-	bpp = desc.format().bytesPerPixel();
+	bpp = desc.format.bytesPerPixel();
 	return {};
 }
 

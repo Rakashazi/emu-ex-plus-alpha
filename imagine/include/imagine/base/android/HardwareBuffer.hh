@@ -22,7 +22,7 @@ struct AHardwareBuffer;
 
 namespace IG
 {
-class PixmapDesc;
+struct PixmapDesc;
 }
 
 namespace IG
@@ -32,7 +32,7 @@ class HardwareBuffer
 {
 public:
 	HardwareBuffer();
-	HardwareBuffer(IG::PixmapDesc desc, uint32_t usage);
+	HardwareBuffer(PixmapDesc desc, uint32_t usage);
 	HardwareBuffer(uint32_t w, uint32_t h, uint32_t format, uint32_t usage);
 	bool lock(uint32_t usage, void **outAddr);
 	bool lock(uint32_t usage, IG::WindowRect rect, void **outAddr);

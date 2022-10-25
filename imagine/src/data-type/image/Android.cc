@@ -87,7 +87,6 @@ PixmapImage::operator bool() const
 
 void PixmapImage::write(MutablePixmapView dest)
 {
-	assumeExpr(dest.format() == pixmap_.format());
 	dest.write(pixmap_, {});
 }
 

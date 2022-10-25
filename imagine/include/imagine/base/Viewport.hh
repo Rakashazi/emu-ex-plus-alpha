@@ -20,7 +20,6 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/used.hh>
 #include <imagine/util/2DOrigin.h>
-#include <compare>
 
 namespace IG
 {

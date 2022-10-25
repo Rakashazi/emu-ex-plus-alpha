@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/util/string/CStringView.hh>
-#include <compare>
 #include <memory>
 
 struct AAssetManager;

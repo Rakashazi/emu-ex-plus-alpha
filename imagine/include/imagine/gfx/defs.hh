@@ -23,7 +23,6 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <optional>
 #include <stdexcept>
-#include <compare>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/gfx-globals.hh>

@@ -58,14 +58,15 @@ static EGLAttrList glConfigAttrsToEGLAttrs(int renderableType, GLBufferConfigAtt
 	list.push_back(EGL_NONE);
 	switch(attr.pixelFormat.id())
 	{
-		bdefault:
+		default:
 			bug_unreachable("format id == %d", attr.pixelFormat.id());
-		bcase PIXEL_NONE:
-			// don't set any color bits
-		bcase PIXEL_RGB565:
+		case PIXEL_NONE:
+			break; // don't set any color bits
+		case PIXEL_RGB565:
 			list.push_back(EGL_BUFFER_SIZE);
 			list.push_back(16);
-		bcase PIXEL_RGBA8888:
+			break;
+		case PIXEL_RGBA8888:
 			if(attr.useAlpha)
 			{
 				list.push_back(EGL_ALPHA_SIZE);

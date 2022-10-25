@@ -248,7 +248,7 @@ LockedTextureBuffer GLTextureStorage<Impl, BufferInfo>::lock(uint32_t bufferFlag
 	}
 	auto bufferInfo = currentBuffer();
 	IG::WindowRect fullRect{{}, size(0)};
-	MutablePixmapView pix{{fullRect.size(), pixmapDesc().format()}, bufferInfo.data};
+	MutablePixmapView pix{{fullRect.size(), pixmapDesc().format}, bufferInfo.data};
 	if(bufferFlags & Texture::BUFFER_FLAG_CLEARED)
 		pix.clear();
 	GLuint pbo{};

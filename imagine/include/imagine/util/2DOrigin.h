@@ -21,7 +21,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
-#include <compare>
 
 // Origins are based on Cartesian coordinates,
 // min:negative x = left

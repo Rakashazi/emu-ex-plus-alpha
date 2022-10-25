@@ -114,8 +114,8 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 	frameTimer{ctx.application().makeFrameTimer(*static_cast<Screen*>(this))}
 {
 	auto [env, aDisplay, metrics, id, refreshRate, rotation] = params;
-	assumeExpr(aDisplay);
-	assumeExpr(metrics);
+	assert(aDisplay);
+	assert(metrics);
 	this->aDisplay = {env, aDisplay};
 	bool isStraightRotation = true;
 	if(id == 0)

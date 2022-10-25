@@ -17,7 +17,6 @@
 
 #include <imagine/util/AssignmentArithmetics.hh>
 #include <numeric>
-#include <compare>
 #include <cmath>
 
 namespace IG

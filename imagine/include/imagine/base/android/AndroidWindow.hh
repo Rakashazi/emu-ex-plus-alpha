@@ -20,7 +20,6 @@
 #include <imagine/base/Animation.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/jni.hh>
-#include <compare>
 
 struct ANativeWindow;
 struct ANativeActivity;

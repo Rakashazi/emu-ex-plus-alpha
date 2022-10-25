@@ -19,7 +19,6 @@
 #include <imagine/util/AssignmentArithmetics.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/concepts.hh>
-#include <compare>
 #include <algorithm>
 
 namespace IG

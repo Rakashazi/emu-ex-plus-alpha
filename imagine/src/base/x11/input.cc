@@ -378,25 +378,26 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 	//logMsg("device %d, event %s", ievent.deviceid, xIEventTypeToStr(ievent.evtype));
 	switch(ievent.evtype)
 	{
-		bcase XI_ButtonPress:
-			updatePointer(win, ievent, Input::Action::PUSHED, time);
-		bcase XI_ButtonRelease:
-			updatePointer(win, ievent, Input::Action::RELEASED, time);
-		bcase XI_Motion:
-			updatePointer(win, ievent, Input::Action::MOVED, time);
-		bcase XI_Enter:
-			updatePointer(win, *((XIEnterEvent*)cookie->data), Input::Action::ENTER_VIEW, time);
-		bcase XI_Leave:
-			updatePointer(win, *((XILeaveEvent*)cookie->data), Input::Action::EXIT_VIEW, time);
-		bcase XI_FocusIn:
-			win.dispatchFocusChange(true);
-		bcase XI_FocusOut:
+		case XI_ButtonPress:
+			updatePointer(win, ievent, Input::Action::PUSHED, time); break;
+		case XI_ButtonRelease:
+			updatePointer(win, ievent, Input::Action::RELEASED, time); break;
+		case XI_Motion:
+			updatePointer(win, ievent, Input::Action::MOVED, time); break;
+		case XI_Enter:
+			updatePointer(win, *((XIEnterEvent*)cookie->data), Input::Action::ENTER_VIEW, time); break;
+		case XI_Leave:
+			updatePointer(win, *((XILeaveEvent*)cookie->data), Input::Action::EXIT_VIEW, time); break;
+		case XI_FocusIn:
+			win.dispatchFocusChange(true); break;
+		case XI_FocusOut:
 			win.dispatchFocusChange(false);
 			deinitKeyRepeatTimer();
-		bcase XI_KeyPress:
-			handleKeyEvent(win, ievent, time, true);
-		bcase XI_KeyRelease:
-			handleKeyEvent(win, ievent, time, false);
+			break;
+		case XI_KeyPress:
+			handleKeyEvent(win, ievent, time, true); break;
+		case XI_KeyRelease:
+			handleKeyEvent(win, ievent, time, false); break;
 	}
 	return true;
 }

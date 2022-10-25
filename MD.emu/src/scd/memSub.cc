@@ -123,7 +123,7 @@ static unsigned subGateRegRead16(unsigned a)
 			{
 				switch(a)
 				{
-					bcase 0x0e:
+					case 0x0e:
 						if(comFlagsSync[0])
 						{
 							logMsg("S read16 M-Com flags 0x%X", d);
@@ -139,7 +139,8 @@ static unsigned subGateRegRead16(unsigned a)
 							}
 						}
 						comFlagsSync[0] = 0;
-					bcase 0x010 ... 0x1e:
+						break;
+					case 0x010 ... 0x1e:
 						if(comSync[a-0x10] || comSync[a-0xf])
 						{
 							logMsg("S read16 Com comm 0x%X @ 0x%X", sCD.gate[a], a);
@@ -155,6 +156,7 @@ static unsigned subGateRegRead16(unsigned a)
 							}
 						}
 						comSync[a-0x10] = comSync[a-0xf] = 0;
+						break;
 				}
 			}
 			return d;
@@ -175,7 +177,7 @@ unsigned subGateRead8(unsigned address)
 			{
 				switch(address)
 				{
-					bcase 0x0e:
+					case 0x0e:
 						if(comFlagsSync[0])
 						{
 							logMsg("S read M-Com flags 0x%X", d);
@@ -191,9 +193,11 @@ unsigned subGateRead8(unsigned address)
 							}
 						}
 						comFlagsSync[0] = 0;
-					bcase 0x0f:
+						break;
+					case 0x0f:
 						//logMsg("S read S-Com flags 0x%X", d);
-					bcase 0x010 ... 0x1f:
+						break;
+					case 0x010 ... 0x1f:
 						if(comSync[address-0x10])
 						{
 							logMsg("S read8 Com comm 0x%X @ 0x%X", sCD.gate[address], address);
@@ -209,6 +213,7 @@ unsigned subGateRead8(unsigned address)
 							}
 						}
 						comSync[address-0x10] = 0;
+						break;
 				}
 			}
 			return d;
@@ -299,14 +304,16 @@ void subGateWrite8(unsigned address, unsigned data)
 		unsigned subAddr = address & 0x1ff;
 		switch(subAddr)
 		{
-			bcase 0x0:
+			case 0x0:
 				//logMsg("set LEDs 0x%X", data);
 				sCD.gate[subAddr] = data;
-			bcase 0x1:
+				break;
+			case 0x1:
 				sCD.gate[subAddr] = data;
-			bcase 0x2:
+				break;
+			case 0x2:
 				return; // write-protect bits read-only on S68K
-			bcase 0x3: //logMsg("s write mem mode %d", data);
+			case 0x3: //logMsg("s write mem mode %d", data);
 			{
 				int dold = sCD.gate[3];
 				data &= 0x1d;
@@ -340,32 +347,42 @@ void subGateWrite8(unsigned address, unsigned data)
 				sCD.gate[subAddr] = data;
 				updateCpuWordMap(sCD, data);
 			}
-			bcase 4:
+			break;
+			case 4:
 				//logMsg("s68k CDC dest: %x", data&7);
 				sCD.gate[subAddr] = (sCD.gate[subAddr]&0xC0) | (data&7); // CDC mode
-			bcase 0x5:
+				break;
+			case 0x5:
 				//logMsg("s68k CDC reg addr: %x", data&0xf);
 				sCD.gate[subAddr] = data;
-			bcase 0x6:
+				break;
+			case 0x6:
 				sCD.gate[subAddr] = data;
-			bcase 0x7:
+				break;
+			case 0x7:
 				//logMsg("write CDC reg 0x%X", data);
 				CDC_Write_Reg(data);
-			bcase 0xa:
+				break;
+			case 0xa:
 				logMsg("s68k set CDC dma addr");
 				sCD.gate[subAddr] = data;
-			bcase 0xb:
+				break;
+			case 0xb:
 				logMsg("s68k set CDC dma addr 2");
 				sCD.gate[subAddr] = data;
-			bcase 0xc:
+				break;
+			case 0xc:
 			case 0xd:
 				logMsg("s68k set stopwatch timer (val %d)", data);
 				sCD.stopwatchTimer = 0;
-			bcase 0xe:
+				break;
+			case 0xe:
 				writeSComFlags((data>>1) | (data<<7)); // ror8 1, Gens note: Dragons lair
-			bcase 0xf:
+				break;
+			case 0xf:
 				writeSComFlags(data);
-			bcase 0x20 ... 0x2f:
+				break;
+			case 0x20 ... 0x2f:
 			{
 				if(extraCpuSync)
 				{
@@ -381,16 +398,20 @@ void subGateWrite8(unsigned address, unsigned data)
 				sCD.gate[subAddr] = data;
 				if(extraCpuSync)
 					endSyncSubCpu(subAddr);
+				break;
 			}
-			bcase 0x30:
+			case 0x30:
 				// empty register
-			bcase 0x31:
+				break;
+			case 0x31:
 				//logMsg("s68k set int3 timer: %02x, int active: %d", data, (sCD.gate[0x33] & (1<<3)) != 0);
 				sCD.timer_int3 = (data & 0xff) << 16;
 				sCD.gate[subAddr] = data;
-			bcase 0x32:
+				break;
+			case 0x32:
 				sCD.gate[subAddr] = data;
-			bcase 0x33:
+				break;
+			case 0x33:
 				//logMsg("s68k irq mask: %02x", data);
 				if ((data&(1<<4)) && (sCD.gate[0x37]&4) && !(sCD.gate[0x33]&(1<<4)))
 				{
@@ -398,15 +419,18 @@ void subGateWrite8(unsigned address, unsigned data)
 					CDD_Export_Status();
 				}
 				sCD.gate[0x33] = data;
-			bcase 0x34: // fader
+				break;
+			case 0x34: // fader
 				logMsg("set fader %02x", data);
 				sCD.gate[0x34] = data & 0x7f;
 				scd_updateCddaVol();
-			bcase 0x35: // fader
+				break;
+			case 0x35: // fader
 				logMsg("set fader low %02x", data);
 				sCD.gate[0x35] = data;
 				scd_updateCddaVol();
-			bcase 0x37:
+				break;
+			case 0x37:
 			{
 				logMsg("CCD control: %02x", data);
 				unsigned d_old = sCD.gate[0x37];
@@ -416,24 +440,32 @@ void subGateWrite8(unsigned address, unsigned data)
 					logMsg("CDD status from control");
 					CDD_Export_Status();
 				}
+				break;
 			}
-			bcase 0x42 ... 0x4a:
+			case 0x42 ... 0x4a:
 				sCD.gate[subAddr] = data;
-			bcase 0x4b:
+				break;
+			case 0x4b:
 				sCD.gate[subAddr] = data;
 				CDD_Import_Command();
-			bcase 0x4c:
+				break;
+			case 0x4c:
 				sCD.gate[subAddr] = data;
 				logMsg("wrote unused font color byte");
-			bcase 0x4d: // font color
+				break;
+			case 0x4d: // font color
 				sCD.gate[subAddr] = data;
-			bcase 0x4e: // font bit MSB
+				break;
+			case 0x4e: // font bit MSB
 				sCD.gate[subAddr] = data;
-			bcase 0x4f: // font bit LSB
+				break;
+			case 0x4f: // font bit LSB
 				sCD.gate[subAddr] = data;
-			bcase 0x58 ... 0x67:
+				break;
+			case 0x58 ... 0x67:
 				gfx_cd_write16(sCD.rot_comp, subAddr&~1, (data<<8)|data);
-			bdefault:
+				break;
+			default:
 				logWarn("bad sub GATE write8 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 		}
 	}
@@ -464,12 +496,14 @@ void subGateWrite16(unsigned address, unsigned data)
 		unsigned subAddr = address & 0x1ff;
 		switch(subAddr)
 		{
-			bcase 0x58 ... 0x67:
+			case 0x58 ... 0x67:
 				gfx_cd_write16(sCD.rot_comp, subAddr, data);
-			bcase 0xe:
+				break;
+			case 0xe:
 				// special case, 2 byte writes would be handled differently
 				writeSComFlags(data);
-			bdefault:
+				break;
+			default:
 				//logMsg("sub gate write16 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 				subGateWrite8(address, data >> 8);
 				subGateWrite8(address+1, data & 0xFF);

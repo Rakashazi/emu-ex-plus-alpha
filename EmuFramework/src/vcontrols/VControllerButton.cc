@@ -135,19 +135,20 @@ void VControllerButtonGroup::setStaggerType(uint8_t type)
 	btnRowShift = 0;
 	switch(type)
 	{
-		bcase 0:
-			btnStagger = btnSize.y * -.75;
-		bcase 1:
-			btnStagger = btnSize.y * -.5;
-		bcase 2:
-			btnStagger = 0;
-		bcase 3:
-			btnStagger = btnSize.y * .5;
-		bcase 4:
-			btnStagger = btnSize.y * .75;
-		bdefault:
+		case 0:
+			btnStagger = btnSize.y * -.75; break;
+		case 1:
+			btnStagger = btnSize.y * -.5; break;
+		case 2:
+			btnStagger = 0; break;
+		case 3:
+			btnStagger = btnSize.y * .5; break;
+		case 4:
+			btnStagger = btnSize.y * .75; break;
+		default:
 			btnStagger = btnSize.y + btnSpace;
 			btnRowShift = -(btnSize.y + btnSpace);
+			break;
 	}
 }
 

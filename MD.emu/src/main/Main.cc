@@ -359,13 +359,16 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 			region = detectISORegion(bootSector);
 	  }
 
-		std::string_view biosPath = cdBiosJpnPath;
-		std::string_view biosName = "Japan";
-		switch(region)
+		struct BiosDesc{std::string_view path, name;};
+		auto [biosPath, biosName] = [&] -> BiosDesc
 		{
-			bcase REGION_USA: biosPath = cdBiosUSAPath; biosName = "USA";
-			bcase REGION_EUROPE: biosPath = cdBiosEurPath; biosName = "Europe";
-		}
+			switch(region)
+			{
+				case REGION_USA: return {cdBiosUSAPath, "USA"};
+				case REGION_EUROPE: return {cdBiosEurPath, "Europe"};
+				default: return {cdBiosJpnPath, "Japan"};
+			}
+		}();
 		if(biosPath.empty())
 		{
 			throw std::runtime_error(fmt::format("Set a {} BIOS in the Options", biosName));

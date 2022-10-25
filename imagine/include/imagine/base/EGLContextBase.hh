@@ -26,7 +26,6 @@
 #include <optional>
 #include <memory>
 #include <type_traits>
-#include <compare>
 
 namespace IG
 {

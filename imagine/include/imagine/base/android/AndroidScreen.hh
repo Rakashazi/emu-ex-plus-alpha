@@ -23,7 +23,6 @@
 #include <imagine/base/FrameTimerInterface.hh>
 #include <imagine/util/jni.hh>
 #include <utility>
-#include <compare>
 #include <memory>
 
 namespace IG

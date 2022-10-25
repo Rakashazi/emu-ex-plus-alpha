@@ -351,15 +351,19 @@ const char *VicePlugin::cartridge_get_file_name(int type)
 	const char *filename{};
 	switch(type)
 	{
-		bcase CARTRIDGE_CBM2_8KB_1000:
+		case CARTRIDGE_CBM2_8KB_1000:
 			resources_get_string("Cart1Name", &filename);
-		bcase CARTRIDGE_CBM2_8KB_2000:
+			break;
+		case CARTRIDGE_CBM2_8KB_2000:
 			resources_get_string("Cart2Name", &filename);
-		bcase CARTRIDGE_CBM2_16KB_4000:
+			break;
+		case CARTRIDGE_CBM2_16KB_4000:
 			resources_get_string("Cart4Name", &filename);
-		bcase CARTRIDGE_CBM2_16KB_6000:
+			break;
+		case CARTRIDGE_CBM2_16KB_6000:
 			resources_get_string("Cart6Name", &filename);
-		bdefault:
+			break;
+		default:
 			logErr("cartridge_get_file_name: unsupported type (%04x)", type);
 	}
 	return filename;

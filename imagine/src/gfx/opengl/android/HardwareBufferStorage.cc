@@ -45,12 +45,12 @@ IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(PixmapDesc desc, Co
 	buffer = {desc, allocateUsage};
 	if(!buffer)
 	{
-		logMsg("error allocating %dx%d format:%s buffer", desc.w(), desc.h(), desc.format().name());
+		logMsg("error allocating %dx%d format:%s buffer", desc.w(), desc.h(), desc.format.name());
 		return {EINVAL};
 	}
 	logMsg("allocated buffer:%p size:%dx%d format:%s pitch:%d",
-		buffer.nativeObject(), desc.w(), desc.h(), desc.format().name(), buffer.pitch());
-	pitchBytes = buffer.pitch() * desc.format().bytesPerPixel();
+		buffer.nativeObject(), desc.w(), desc.h(), desc.format.name(), buffer.pitch());
+	pitchBytes = buffer.pitch() * desc.format.bytesPerPixel();
 	auto dpy = renderer().glDisplay();
 	auto eglImg = makeAndroidNativeBufferEGLImage(dpy, buffer.eglClientBuffer(), colorSpace == ColorSpace::SRGB);
 	if(!eglImg) [[unlikely]]
@@ -102,12 +102,12 @@ ErrorCode HardwareBufferStorage<Buffer>::setFormat(PixmapDesc desc, ColorSpace c
 		buff = {desc, allocateUsage};
 		if(!buff)
 		{
-			logMsg("error allocating %dx%d format:%s buffer", desc.w(), desc.h(), desc.format().name());
+			logMsg("error allocating %dx%d format:%s buffer", desc.w(), desc.h(), desc.format.name());
 			return {EINVAL};
 		}
 		logMsg("allocated buffer:%p size:%dx%d format:%s pitch:%d",
-			buff.nativeObject(), desc.w(), desc.h(), desc.format().name(), buff.pitch());
-		pitchBytes = buff.pitch() * desc.format().bytesPerPixel();
+			buff.nativeObject(), desc.w(), desc.h(), desc.format.name(), buff.pitch());
+		pitchBytes = buff.pitch() * desc.format.bytesPerPixel();
 		eglImg.reset(makeAndroidNativeBufferEGLImage(dpy, buff.eglClientBuffer(), colorSpace == ColorSpace::SRGB));
 		if(!eglImg) [[unlikely]]
 		{

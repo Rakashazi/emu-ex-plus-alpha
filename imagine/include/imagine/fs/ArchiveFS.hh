@@ -19,7 +19,6 @@
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/io/ArchiveIO.hh>
 #include <imagine/util/string/CStringView.hh>
-#include <compare>
 #include <memory>
 
 namespace IG

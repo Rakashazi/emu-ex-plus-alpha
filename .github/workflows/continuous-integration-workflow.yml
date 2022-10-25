@@ -13,7 +13,7 @@ jobs:
  
     steps:
     - name: Checkout emu-ex-plus-alpha repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
@@ -77,7 +77,7 @@ jobs:
         cp 2600.emu/target/android-release/build/outputs/apk/release/2600Emu-release.apk EX-Emulators/2600Emu-release.apk
 
     - name: Upload 2600.emu artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == '2600.emu' }}
       with: 
         name: 2600emu
@@ -95,7 +95,7 @@ jobs:
         cp C64.emu/target/android-release/build/outputs/apk/release/C64Emu-release.apk EX-Emulators/C64Emu-release.apk
     
     - name: Upload C64.emu artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'C64.emu' }}
       with: 
         name: C64emu
@@ -113,7 +113,7 @@ jobs:
         cp GBA.emu/target/android-release/build/outputs/apk/release/GbaEmu-release.apk EX-Emulators/GbaEmu-release.apk
 
     - name: Upload GBA.emu artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'GBA.emu' }}
       with: 
         name: GBAemu
@@ -131,7 +131,7 @@ jobs:
         cp GBC.emu/target/android-release/build/outputs/apk/release/GbcEmu-release.apk EX-Emulators/GbcEmu-release.apk
   
     - name: Upload GBC.emu artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'GBC.emu' }}
       with: 
         name: GBCemu
@@ -149,7 +149,7 @@ jobs:
         cp MD.emu/target/android-release/build/outputs/apk/release/MdEmu-release.apk EX-Emulators/MdEmu-release.apk
      
     - name: Upload MD.emu artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'MD.emu' }}
       with: 
         name: MDemu
@@ -167,7 +167,7 @@ jobs:
         cp MSX.emu/target/android-release/build/outputs/apk/release/MsxEmu-release.apk EX-Emulators/MsxEmu-release.apk
 
     - name: Upload MSX.emu artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'MSX.emu' }}
       with: 
         name: MSXemu
@@ -185,7 +185,7 @@ jobs:
         cp NEO.emu/target/android-release/build/outputs/apk/release/NeoEmu-release.apk EX-Emulators/NeoEmu-release.apk
 
     - name: Upload NEO.emu artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'NEO.emu' }}
       with: 
         name: NEOemu
@@ -203,7 +203,7 @@ jobs:
         cp NES.emu/target/android-release/build/outputs/apk/release/NesEmu-release.apk EX-Emulators/NesEmu-release.apk
 
     - name: Upload NES.emu artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'NES.emu' }}
       with: 
         name: NESemu
@@ -221,7 +221,7 @@ jobs:
         cp NGP.emu/target/android-release/build/outputs/apk/release/NgpEmu-release.apk EX-Emulators/NgpEmu-release.apk
 
     - name: Upload NGP.emu artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'NGP.emu' }}
       with: 
         name: NGPemu
@@ -239,7 +239,7 @@ jobs:
         cp PCE.emu/target/android-release/build/outputs/apk/release/PceEmu-release.apk EX-Emulators/PceEmu-release.apk
      
     - name: Upload PCE.emu artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'PCE.emu' }}
       with: 
         name: PCEemu
@@ -257,7 +257,7 @@ jobs:
         cp Snes9x/target/android-release/build/outputs/apk/release/Snes9xEXPlus-release.apk EX-Emulators/Snes9xEXPlus-release.apk
      
     - name: Upload Snes9x artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'Snes9x' }}
       with: 
         name: Snes9x
@@ -275,14 +275,14 @@ jobs:
         cp Swan.emu/target/android-release/build/outputs/apk/release/SwanEmu-release.apk EX-Emulators/SwanEmu-release.apk
 
     - name: Upload Swan.emu artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'Swan.emu' }}
       with:
         name: Swanemu
         path: ${{ github.workspace }}/Swan.emu/target/android-release/build/outputs/apk/release/SwanEmu-release.apk
 
     - name: Upload EX-Emulators artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with: 
         name: EX-Emulators
         path: EX-Emulators/

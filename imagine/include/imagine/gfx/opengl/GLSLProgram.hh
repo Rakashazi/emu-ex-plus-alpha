@@ -21,7 +21,6 @@
 #include "defs.hh"
 #include <imagine/util/memory/UniqueResource.hh>
 #include <utility>
-#include <compare>
 
 namespace IG::Gfx
 {

@@ -30,7 +30,7 @@ namespace IG
 {
 
 class ApplicationContext;
-class PixmapDesc;
+struct PixmapDesc;
 
 class GraphicBuffer : public android_native_buffer_t
 {

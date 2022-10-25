@@ -126,15 +126,22 @@ void MsxSystem::insertMedia(EmuApp &app)
 	{
 		switch(currentRomType[i])
 		{
-			bcase ROM_SCC: logMsg("loading SCC"); boardChangeCartridge(i, ROM_SCC, "", 0);
-			bcase ROM_SCCPLUS: logMsg("loading SCC+"); boardChangeCartridge(i, ROM_SCCPLUS, "", 0);
-			bcase ROM_SUNRISEIDE:
+			case ROM_SCC:
+				logMsg("loading SCC");
+				boardChangeCartridge(i, ROM_SCC, "", 0);
+				break;
+			case ROM_SCCPLUS:
+				logMsg("loading SCC+");
+				boardChangeCartridge(i, ROM_SCCPLUS, "", 0);
+				break;
+			case ROM_SUNRISEIDE:
 				logMsg("loading Sunrise IDE");
 				if(!boardChangeCartridge(i, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 				{
 					throw std::runtime_error("Error loading Sunrise IDE device");
 				}
-			bdefault:
+				break;
+			default:
 			{
 				if(cartName[i].empty())
 					continue;

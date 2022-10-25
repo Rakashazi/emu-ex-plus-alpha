@@ -332,7 +332,7 @@ public:
 	bool updateAutoOnScreenControlVisible();
 	bool readConfig(MapIO &, unsigned key, size_t size);
 	void writeConfig(FileIO &) const;
-	void readSerializedLayoutPositions(MapIO &, size_t size);
+	bool readSerializedLayoutPositions(MapIO &, size_t size);
 	size_t serializedLayoutPositionsSize() const;
 	void configure(IG::Window &, Gfx::Renderer &, const Gfx::GlyphTextureSet &face);
 	static VControllerLayoutPosition pixelToLayoutPos(IG::WP pos, IG::WP size, IG::WindowRect viewBounds);

@@ -49,7 +49,7 @@ public:
 	OptionCategoryView(ViewAttachParams attach, EmuAudio &audio, EmuVideoLayer &videoLayer);
 
 protected:
-	TextMenuItem subConfig[6];
+	TextMenuItem subConfig[7];
 };
 
 #ifdef CONFIG_BLUETOOTH
@@ -74,30 +74,35 @@ static void onScanStatus(EmuApp &app, unsigned status, int arg)
 	{
 		switch(status)
 		{
-			bcase BluetoothAdapter::INIT_FAILED:
+			case BluetoothAdapter::INIT_FAILED:
 			{
 				if(Config::envIsIOS)
 				{
 					app.postErrorMessage("BTstack power on failed, make sure the iOS Bluetooth stack is not active");
 				}
+				break;
 			}
-			bcase BluetoothAdapter::SCAN_FAILED:
+			case BluetoothAdapter::SCAN_FAILED:
 			{
 				app.postErrorMessage("Scan failed");
+				break;
 			}
-			bcase BluetoothAdapter::SCAN_NO_DEVS:
+			case BluetoothAdapter::SCAN_NO_DEVS:
 			{
 				app.postMessage("No devices found");
+				break;
 			}
-			bcase BluetoothAdapter::SCAN_PROCESSING:
+			case BluetoothAdapter::SCAN_PROCESSING:
 			{
 				app.postMessage(2, 0, fmt::format("Checking {} device(s)...", arg));
+				break;
 			}
-			bcase BluetoothAdapter::SCAN_NAME_FAILED:
+			case BluetoothAdapter::SCAN_NAME_FAILED:
 			{
 				app.postErrorMessage("Failed reading a device name");
+				break;
 			}
-			bcase BluetoothAdapter::SCAN_COMPLETE:
+			case BluetoothAdapter::SCAN_COMPLETE:
 			{
 				int devs = Bluetooth::pendingDevs();
 				if(devs)
@@ -109,8 +114,9 @@ static void onScanStatus(EmuApp &app, unsigned status, int arg)
 				{
 					app.postMessage("Scan complete, no recognized devices");
 				}
+				break;
 			}
-			/*bcase BluetoothAdapter::SOCKET_OPEN_FAILED:
+			/*case BluetoothAdapter::SOCKET_OPEN_FAILED:
 			{
 				app.postErrorMessage("Failed opening a Bluetooth connection");
 			}*/
@@ -319,18 +325,20 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 					{
 						switch(status)
 						{
-							bcase BluetoothAdapter::INIT_FAILED:
+							case BluetoothAdapter::INIT_FAILED:
 							{
 								app().postErrorMessage(Config::envIsLinux ? 8 : 2,
 									Config::envIsLinux ?
 										"Unable to register server, make sure this executable has cap_net_bind_service enabled and bluetoothd isn't running" :
 										"Bluetooth setup failed");
+								break;
 							}
-							bcase BluetoothAdapter::SCAN_COMPLETE:
+							case BluetoothAdapter::SCAN_COMPLETE:
 							{
 								app().postMessage(4, "Push the PS button on your controller\n(see website for pairing help)");
+								break;
 							}
-							bdefault: onScanStatus(app(), status, arg);
+							default: onScanStatus(app(), status, arg);
 						}
 					});
 				if(!startedScan)
@@ -423,6 +431,13 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 			[this](const Input::Event &e)
 			{
 				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::GUI_OPTIONS), e);
+			}
+		},
+		{
+			"Online Documentation", &defaultFace(),
+			[this]
+			{
+				appContext().openURL("https://www.explusalpha.com/contents/emuex/documentation");
 			}
 		}
 	}

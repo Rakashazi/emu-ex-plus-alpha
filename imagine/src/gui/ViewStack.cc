@@ -359,7 +359,7 @@ View &ViewStack::top() const
 
 View &ViewStack::viewAtIdx(int idx) const
 {
-	assumeExpr((unsigned)idx < view.size());
+	assumeExpr(size_t(idx) < view.size());
 	return *view[idx].v;
 }
 

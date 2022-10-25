@@ -17,30 +17,21 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/pixmap/PixelFormat.hh>
-#include <imagine/util/rectangle2.h>
-#include <compare>
+#include <imagine/util/Point2D.hh>
 
 namespace IG
 {
 
-class PixmapDesc
+struct PixmapDesc
 {
-public:
-	constexpr PixmapDesc() = default;
-	constexpr PixmapDesc(WP size, PixelFormat format):
-		size_{size}, format_(format)
-	{}
-	constexpr int w() const { return size().x; }
-	constexpr int h() const { return size().y; }
-	constexpr WP size() const { return size_; }
-	constexpr PixelFormat format() const { return format_; }
-	constexpr int bytes() const { return format().pixelBytes(w() * h()); }
-	constexpr PixmapDesc makeNewSize(WP newSize) const { return {newSize, format_}; }
-	constexpr bool operator ==(const PixmapDesc &rhs) const = default;
+	IP size{};
+	PixelFormat format{};
 
-protected:
-	WP size_{};
-	PixelFormat format_{};
+	constexpr int w() const { return size.x; }
+	constexpr int h() const { return size.y; }
+	constexpr int bytes() const { return format.pixelBytes(w() * h()); }
+	constexpr PixmapDesc makeNewSize(IP newSize) const { return {newSize, format}; }
+	constexpr bool operator ==(const PixmapDesc &) const = default;
 };
 
 }

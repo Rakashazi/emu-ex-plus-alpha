@@ -78,8 +78,8 @@ PAOutputStream::PAOutputStream()
 				case PA_CONTEXT_TERMINATED:
 					result->state = state;
 					result->thisPtr->signalMainLoop();
-				bdefault:
-				break;
+					break;
+				default: break;
 			}
 		}, &result);
 	if(pa_context_connect(context, nullptr, PA_CONTEXT_NOFLAGS, nullptr) < 0)
@@ -155,8 +155,8 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 				case PA_STREAM_TERMINATED:
 					result->state = state;
 					result->thisPtr->signalMainLoop();
-				bdefault:
-				break;
+					break;
+				default: break;
 			}
 		}, &result);
 	pa_stream_set_write_callback(stream,

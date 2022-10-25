@@ -24,7 +24,6 @@
 #include <array>
 #include <cstring>
 #include <string_view>
-#include <compare>
 
 namespace EmuEx
 {

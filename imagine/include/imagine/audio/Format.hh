@@ -18,7 +18,6 @@
 #include <imagine/time/Time.hh>
 #include <imagine/util/concepts.hh>
 #include "SampleFormat.hh"
-#include <compare>
 #include <cmath>
 
 namespace IG::Audio

@@ -20,7 +20,6 @@
 #include <imagine/base/iphone/config.h>
 #include <imagine/util/rectangle2.h>
 #import <CoreGraphics/CGBase.h>
-#include <compare>
 
 #ifdef __OBJC__
 #import <UIKit/UIKit.h>

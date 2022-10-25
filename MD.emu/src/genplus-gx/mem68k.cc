@@ -773,28 +773,28 @@ const char *m68KAddrToStr(M68KCPU &cpu, unsigned addr)
 		{
 			switch(idx)
 			{
-				bcase 0x0: return "M:ROM(1)";
-				bcase 0x1: return "M:ROM(2)";
-				bcase 0x2: return "M:PRG(1)";
-				bcase 0x3: return "M:PRG(2)";
-				bcase 0x20: return "M:WORD(1)";
-				bcase 0x21: return "M:WORD(2)";
-				bcase 0x22: return "M:WORD(3)";
-				bcase 0x23: return "M:WORD(4)";
+				case 0x0: return "M:ROM(1)";
+				case 0x1: return "M:ROM(2)";
+				case 0x2: return "M:PRG(1)";
+				case 0x3: return "M:PRG(2)";
+				case 0x20: return "M:WORD(1)";
+				case 0x21: return "M:WORD(2)";
+				case 0x22: return "M:WORD(3)";
+				case 0x23: return "M:WORD(4)";
 			}
 		}
 		else
 		{
 			switch(idx)
 			{
-				bcase 0x0: return "S:PRG(1)";
-				bcase 0x1: return "S:PRG(2)";
-				bcase 0x2: return "S:PRG(3)";
-				bcase 0x3: return "S:PRG(4)";
-				bcase 0x4: return "S:PRG(5)";
-				bcase 0x5: return "S:PRG(6)";
-				bcase 0x6: return "S:PRG(7)";
-				bcase 0x7: return "S:PRG(8)";
+				case 0x0: return "S:PRG(1)";
+				case 0x1: return "S:PRG(2)";
+				case 0x2: return "S:PRG(3)";
+				case 0x3: return "S:PRG(4)";
+				case 0x4: return "S:PRG(5)";
+				case 0x5: return "S:PRG(6)";
+				case 0x6: return "S:PRG(7)";
+				case 0x7: return "S:PRG(8)";
 			}
 		}
 	}
@@ -812,22 +812,22 @@ static bool isVerboseCPUWrite(M68KCPU &cpu, unsigned addr)
 		{
 			switch(idx)
 			{
-				//bcase 0x0: return 0;
-				//bcase 0x1: return 0;
-				/*bcase 0x2: return 1;
-				bcase 0x3: return 1;
-				bcase 0x20: return 1;
-				bcase 0x21: return 1;
-				bcase 0x22: return 1;
-				bcase 0x23: return 1;*/
+				//case 0x0: return 0;
+				//case 0x1: return 0;
+				/*case 0x2: return 1;
+				case 0x3: return 1;
+				case 0x20: return 1;
+				case 0x21: return 1;
+				case 0x22: return 1;
+				case 0x23: return 1;*/
 			}
 		}
 		if(&cpu == &sCD.cpu)
 		{
 			switch(idx)
 			{
-				//bcase 0x0 ... 0x7: return 1;
-				//bcase 0x8 ... 0xB: return 1;
+				//case 0x0 ... 0x7: return 1;
+				//case 0x8 ... 0xB: return 1;
 			}
 		}
 	}
@@ -845,14 +845,14 @@ static bool isVerboseCPURead(M68KCPU &cpu, unsigned addr)
 		{
 			switch(idx)
 			{
-				//bcase 0x0: return 0;
-				//bcase 0x1: return 0;
-				//bcase 0x2: return 1;
-				//bcase 0x3: return 1;
-				//bcase 0x20: return 0;
-				//bcase 0x21: return 0;
-				//bcase 0x22: return 0;
-				//bcase 0x23: return 0;
+				//case 0x0: return 0;
+				//case 0x1: return 0;
+				//case 0x2: return 1;
+				//case 0x3: return 1;
+				//case 0x20: return 0;
+				//case 0x21: return 0;
+				//case 0x22: return 0;
+				//case 0x23: return 0;
 			}
 		}
 	}

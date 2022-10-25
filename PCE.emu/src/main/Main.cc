@@ -288,9 +288,9 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 			int width = lineWidth[h];
 			switch(width)
 			{
-				bdefault:
+				default:
 					bug_unreachable("width == %d", width);
-				bcase 256:
+				case 256:
 				{
 					for(auto w : IG::iotaCount(256))
 					{
@@ -299,8 +299,9 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 						*destPixAddr++ = *srcPixAddr;
 						*destPixAddr++ = *srcPixAddr++;
 					}
+					break;
 				}
-				bcase 341:
+				case 341:
 				{
 					for(auto w : IG::iotaCount(340))
 					{
@@ -312,14 +313,16 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 					*destPixAddr++ = *srcPixAddr;
 					*destPixAddr++ = *srcPixAddr;
 					*destPixAddr++ = *srcPixAddr++;
+					break;
 				}
-				bcase 512:
+				case 512:
 				{
 					for(auto w : IG::iotaCount(512))
 					{
 						*destPixAddr++ = *srcPixAddr;
 						*destPixAddr++ = *srcPixAddr++;
 					}
+					break;
 				}
 			}
 			destPixAddr += img.pixmap().paddingPixels();
@@ -333,21 +336,23 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 			int width = lineWidth[h];
 			switch(width)
 			{
-				bdefault:
+				default:
 					bug_unreachable("width == %d", width);
-				bcase 256:
+				case 256:
 				{
 					for(auto w : IG::iotaCount(256))
 					{
 						*destPixAddr++ = *srcPixAddr;
 						*destPixAddr++ = *srcPixAddr++;
 					}
+					break;
 				}
-				bcase 512:
+				case 512:
 				{
 					memcpy(destPixAddr, srcPixAddr, 512 * sizeof(Pixel));
 					destPixAddr += 512;
 					srcPixAddr += 512;
+					break;
 				}
 			}
 			destPixAddr += img.pixmap().paddingPixels();
@@ -369,9 +374,9 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 		assumeExpr(w == 256 || w == 341 || w == 512);
 		switch(w)
 		{
-			bcase 256: uses256 = true;
-			bcase 341: uses341 = true;
-			bcase 512: uses512 = true;
+			case 256: uses256 = true; break;
+			case 341: uses341 = true; break;
+			case 512: uses512 = true; break;
 		}
 	}
 	int pixWidth = 256;

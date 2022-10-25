@@ -52,8 +52,8 @@ HardwareBuffer::HardwareBuffer()
 	loadAHardwareBufferSymbols();
 }
 
-HardwareBuffer::HardwareBuffer(IG::PixmapDesc desc, uint32_t usage):
-	HardwareBuffer(desc.w(), desc.h(), toAHardwareBufferFormat(desc.format()), usage)
+HardwareBuffer::HardwareBuffer(PixmapDesc desc, uint32_t usage):
+	HardwareBuffer(desc.w(), desc.h(), toAHardwareBufferFormat(desc.format), usage)
 {}
 
 HardwareBuffer::HardwareBuffer(uint32_t w, uint32_t h, uint32_t format, uint32_t usage):

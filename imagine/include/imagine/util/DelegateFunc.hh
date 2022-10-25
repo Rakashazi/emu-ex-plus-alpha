@@ -21,7 +21,6 @@
 #include <cstddef>
 #include <cassert>
 #include <array>
-#include <compare>
 
 namespace IG
 {

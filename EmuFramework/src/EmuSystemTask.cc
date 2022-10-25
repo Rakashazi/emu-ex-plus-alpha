@@ -43,28 +43,30 @@ void EmuSystemTask::start()
 					{
 						switch(msg.command)
 						{
-							bcase Command::RUN_FRAME:
+							case Command::RUN_FRAME:
 							{
 								auto frames = msg.args.run.frames;
 								assumeExpr(frames);
 								//logMsg("running %d frame(s)", frames);
 								app().runFrames({this, msg.semPtr}, msg.args.run.video, msg.args.run.audio,
 									frames, msg.args.run.skipForward);
+								break;
 							}
-							bcase Command::PAUSE:
+							case Command::PAUSE:
 							{
 								//logMsg("got pause command");
 								assumeExpr(msg.semPtr);
 								msg.semPtr->release();
+								break;
 							}
-							bcase Command::EXIT:
+							case Command::EXIT:
 							{
 								//logMsg("got exit command");
 								started = false;
 								IG::EventLoop::forThread().stop();
 								return false;
 							}
-							bdefault:
+							default:
 							{
 								logWarn("unknown CommandMessage value:%d", (int)msg.command);
 							}

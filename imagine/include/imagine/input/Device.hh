@@ -23,7 +23,6 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/utility.h>
 #include <string>
-#include <compare>
 #include <span>
 #include <memory>
 

@@ -72,28 +72,32 @@ struct BtstackCmd
 	{
 		switch(cmd)
 		{
-			bcase CREATE_L2CAP:
+			case CREATE_L2CAP:
 			{
 				logMsg("l2cap_create_channel");
 				bt_send_cmd(&l2cap_create_channel, createChannelData.address.data(), createChannelData.channel);
+				break;
 			}
-			bcase CREATE_RFCOMM:
+			case CREATE_RFCOMM:
 			{
 				logMsg("rfcomm_create_channel");
 				bt_send_cmd(&rfcomm_create_channel, createChannelData.address.data(), createChannelData.channel);
+				break;
 			}
-			bcase INQUIRY:
+			case INQUIRY:
 			{
 				logMsg("hci_inquiry");
 				bt_send_cmd(&hci_inquiry, HCI_INQUIRY_LAP, inquiryData.length, 0);
+				break;
 			}
-			bcase REMOTE_NAME_REQ:
+			case REMOTE_NAME_REQ:
 			{
 				logMsg("hci_remote_name_request");
 				bt_send_cmd(&hci_remote_name_request, remoteNameRequestData.address.data(),
 					remoteNameRequestData.pageScanRepetitionMode, 0, remoteNameRequestData.clockOffset);
+				break;
 			}
-			bcase WRITE_AUTH_ENABLE:
+			case WRITE_AUTH_ENABLE:
 			{
 				/*if(writeAuthEnable == (int)writeAuthEnableData.on)
 				{
@@ -103,18 +107,21 @@ struct BtstackCmd
 				logMsg("hci_write_authentication_enable");
 				bt_send_cmd(&hci_write_authentication_enable, writeAuthEnableData.on);
 				writeAuthEnable = writeAuthEnableData.on;
+				break;
 			}
-			bcase L2CAP_REGISTER_SERVICE:
+			case L2CAP_REGISTER_SERVICE:
 			{
 				logMsg("l2cap_register_service");
 				bt_send_cmd(&l2cap_register_service, l2capRegisterServiceData.psm, l2capRegisterServiceData.mtu);
+				break;
 			}
-			bcase L2CAP_ACCEPT_CONNECTION:
+			case L2CAP_ACCEPT_CONNECTION:
 			{
 				logMsg("l2cap_accept_connection");
 				bt_send_cmd(&l2cap_accept_connection, l2capAcceptConnectionData.localCh);
+				break;
 			}
-			bcase NOOP:
+			case NOOP:
 				break;
 		}
 		return 1;
@@ -238,7 +245,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 	//logMsg("got packet type: %s", btstackPacketTypeToString(packet_type));
 	switch (packet_type)
 	{
-		bcase L2CAP_DATA_PACKET:
+		case L2CAP_DATA_PACKET:
 		case RFCOMM_DATA_PACKET:
 		{
 			/*logMsg("%s ch 0x%02X, size %d",
@@ -252,13 +259,14 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 			}
 			sock->onData()((char*)packet, size);
 			//debugPrintL2CAPPacket(channel, packet, size);
+			break;
 		}
 
-		bcase HCI_EVENT_PACKET:
+		case HCI_EVENT_PACKET:
 		{
 			switch (packet[0])
 			{
-				bcase BTSTACK_EVENT_STATE:
+				case BTSTACK_EVENT_STATE:
 				{
 					state_ = (HCI_STATE)packet[2];
 					logMsg("got BTSTACK_EVENT_STATE: %d", state_);
@@ -281,9 +289,10 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 							cmdActive = 0;
 						}
 					}
+					break;
 				}
 
-				bcase BTSTACK_EVENT_POWERON_FAILED:
+				case BTSTACK_EVENT_POWERON_FAILED:
 				{
 					if(inDetect)
 					{
@@ -299,24 +308,26 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						onStateChangeD(*this, STATE_ERROR);
 						onStateChangeD = {};
 					}
+					break;
 				}
 
-				bcase BTSTACK_EVENT_NR_CONNECTIONS_CHANGED:
+				case BTSTACK_EVENT_NR_CONNECTIONS_CHANGED:
 				{
-					logMsg("got BTSTACK_EVENT_NR_CONNECTIONS_CHANGED");
+					logMsg("got BTSTACK_EVENT_NR_CONNECTIONS_CHANGED"); break;
 				}
 
-				bcase BTSTACK_EVENT_DISCOVERABLE_ENABLED:
+				case BTSTACK_EVENT_DISCOVERABLE_ENABLED:
 				{
-					logMsg("got BTSTACK_EVENT_DISCOVERABLE_ENABLED");
+					logMsg("got BTSTACK_EVENT_DISCOVERABLE_ENABLED"); break;
 				}
 
-				bcase HCI_EVENT_COMMAND_STATUS:
+				case HCI_EVENT_COMMAND_STATUS:
 				{
 					//logMsg("got HCI_EVENT_COMMAND_STATUS");
+					break;
 				}
 
-				bcase HCI_EVENT_CONNECTION_COMPLETE:
+				case HCI_EVENT_CONNECTION_COMPLETE:
 				{
 					uint16_t handle = READ_BT_16(packet, 3);
 					bd_addr_t addr;
@@ -334,9 +345,10 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						}
 						sock->handle = handle;
 					}
+					break;
 				}
 
-				bcase HCI_EVENT_DISCONNECTION_COMPLETE:
+				case HCI_EVENT_DISCONNECTION_COMPLETE:
 				{
 					uint16_t handle = READ_BT_16(packet, 3);
 					logMsg("got HCI_EVENT_DISCONNECTION_COMPLETE: handle: %d", handle);
@@ -357,29 +369,34 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						/*if(defaultBtstackAdapter.onScanStatus())
 							defaultBtstackAdapter.onScanStatus()(defaultBtstackAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);*/
 					}
+					break;
 				}
 
-				bcase HCI_EVENT_NUMBER_OF_COMPLETED_PACKETS:
+				case HCI_EVENT_NUMBER_OF_COMPLETED_PACKETS:
 				{
 					//logMsg("got HCI_EVENT_NUMBER_OF_COMPLETED_PACKETS");
+					break;
 				}
 
-				bcase L2CAP_EVENT_CREDITS:
+				case L2CAP_EVENT_CREDITS:
 				{
 					//logMsg("got L2CAP_EVENT_CREDITS");
+					break;
 				}
 
-				bcase HCI_EVENT_QOS_SETUP_COMPLETE:
+				case HCI_EVENT_QOS_SETUP_COMPLETE:
 				{
 					//logMsg("got HCI_EVENT_QOS_SETUP_COMPLETE");
+					break;
 				}
 
-				bcase RFCOMM_EVENT_CREDITS:
+				case RFCOMM_EVENT_CREDITS:
 				{
 					//logMsg("got RFCOMM_EVENT_CREDITS");
+					break;
 				}
 
-				bcase HCI_EVENT_PIN_CODE_REQUEST:
+				case HCI_EVENT_PIN_CODE_REQUEST:
 				{
 					bd_addr_t addr;
 					bt_flip_addr(addr, &packet[2]);
@@ -403,9 +420,10 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						logMsg("sending default 1234 pin");
 						bt_send_cmd(&hci_pin_code_request_reply, &addr, 4, "1234");
 					}
+					break;
 				}
 
-				bcase HCI_EVENT_INQUIRY_RESULT:
+				case HCI_EVENT_INQUIRY_RESULT:
 				case HCI_EVENT_INQUIRY_RESULT_WITH_RSSI:
 				{
 					uint32_t responses = scanResponses = packet[2];
@@ -437,9 +455,10 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						}
 						scanDevList.push_back(dev);
 					}
+					break;
 				}
 
-				bcase HCI_EVENT_INQUIRY_COMPLETE:
+				case HCI_EVENT_INQUIRY_COMPLETE:
 				{
 					cmdActive = 0;
 					logMsg("got HCI_EVENT_INQUIRY_COMPLETE");
@@ -468,9 +487,10 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					}
 					BtstackBluetoothAdapter::processCommands();
 					scanResponses = 0;
+					break;
 				}
 
-				bcase BTSTACK_EVENT_REMOTE_NAME_CACHED:
+				case BTSTACK_EVENT_REMOTE_NAME_CACHED:
 					if(!BluetoothAdapter::useScanCache)
 					{
 						logMsg("ignoring cached name");
@@ -521,37 +541,40 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						onScanStatusD(*this, SCAN_COMPLETE, 0);
 					}
 					BtstackBluetoothAdapter::processCommands();
+					break;
 				}
 
-				bcase HCI_EVENT_LINK_KEY_NOTIFICATION:
+				case HCI_EVENT_LINK_KEY_NOTIFICATION:
 				{
-					logMsg("got HCI_EVENT_LINK_KEY_NOTIFICATION");
+					logMsg("got HCI_EVENT_LINK_KEY_NOTIFICATION"); break;
 				}
 
-				bcase HCI_EVENT_LINK_KEY_REQUEST:
+				case HCI_EVENT_LINK_KEY_REQUEST:
 				{
 					bd_addr_t addr;
 					bt_flip_addr(addr, &packet[2]);
 					logMsg("got HCI_EVENT_LINK_KEY_REQUEST from %s", bd_addr_to_str(addr));
 					bt_send_cmd(&hci_link_key_request_negative_reply, &addr);
+					break;
 				}
 
-				bcase L2CAP_EVENT_TIMEOUT_CHECK:
+				case L2CAP_EVENT_TIMEOUT_CHECK:
 				{
 					//logMsg("got L2CAP_EVENT_TIMEOUT_CHECK");
+					break;
 				}
 
-				bcase HCI_EVENT_ENCRYPTION_CHANGE:
+				case HCI_EVENT_ENCRYPTION_CHANGE:
 				{
-					logMsg("got HCI_EVENT_ENCRYPTION_CHANGE");
+					logMsg("got HCI_EVENT_ENCRYPTION_CHANGE"); break;
 				}
 
-				bcase HCI_EVENT_MAX_SLOTS_CHANGED:
+				case HCI_EVENT_MAX_SLOTS_CHANGED:
 				{
-					logMsg("got HCI_EVENT_MAX_SLOTS_CHANGED");
+					logMsg("got HCI_EVENT_MAX_SLOTS_CHANGED"); break;
 				}
 
-				bcase HCI_EVENT_COMMAND_COMPLETE:
+				case HCI_EVENT_COMMAND_COMPLETE:
 				{
 					if(COMMAND_COMPLETE_EVENT(packet, hci_inquiry_cancel))
 					{
@@ -569,25 +592,28 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						logMsg("got HCI_EVENT_COMMAND_COMPLETE");
 					cmdActive = 0;
 					BtstackBluetoothAdapter::processCommands();
+					break;
 				}
 
-				bcase RFCOMM_EVENT_OPEN_CHANNEL_COMPLETE:
+				case RFCOMM_EVENT_OPEN_CHANNEL_COMPLETE:
 				{
 					logMsg("got RFCOMM_EVENT_OPEN_CHANNEL_COMPLETE ch 0x%02X", (int)channel);
 					cmdActive = 0;
 					BtstackBluetoothSocket::handleRfcommChannelOpened(packet_type, channel, packet, size);
 					BtstackBluetoothAdapter::processCommands();
+					break;
 				}
 
-				bcase L2CAP_EVENT_CHANNEL_OPENED:
+				case L2CAP_EVENT_CHANNEL_OPENED:
 				{
 					logMsg("got L2CAP_EVENT_CHANNEL_OPENED ch 0x%02X", (int)channel);
 					cmdActive = 0;
 					BtstackBluetoothSocket::handleL2capChannelOpened(packet_type, channel, packet, size);
 					BtstackBluetoothAdapter::processCommands();
+					break;
 				}
 
-				bcase RFCOMM_EVENT_CHANNEL_CLOSED:
+				case RFCOMM_EVENT_CHANNEL_CLOSED:
 				case L2CAP_EVENT_CHANNEL_CLOSED:
 				{
 					logMsg("got %s for 0x%02X",
@@ -600,9 +626,10 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						return;
 					}
 					sock->onStatus()(*sock, BluetoothSocket::STATUS_READ_ERROR);
+					break;
 				}
 
-				bcase L2CAP_EVENT_SERVICE_REGISTERED:
+				case L2CAP_EVENT_SERVICE_REGISTERED:
 				{
 					cmdActive = 0;
 					uint8_t status = packet[2];
@@ -617,9 +644,10 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					logMsg("registered l2cap service for psm 0x%X", psm);
 					onResult(*this, 1, 0);
 					BtstackBluetoothAdapter::processCommands();
+					break;
 				}
 
-				bcase L2CAP_EVENT_INCOMING_CONNECTION:
+				case L2CAP_EVENT_INCOMING_CONNECTION:
 				{
 					uint16_t psm = READ_BT_16(packet, 10);
 					uint16_t sourceCid = READ_BT_16(packet, 12);
@@ -627,20 +655,21 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					bt_flip_addr(addr, &packet[2]);
 					BluetoothPendingSocket pending {0, addr, psm, sourceCid};
 					onIncomingL2capConnectionD(*this, pending);
+					break;
 				}
 
-				bdefault:
+				default:
 					logMsg("unhandled HCI event type 0x%X", packet[0]);
-				break;
 			}
+			break;
 		}
 
-		bcase DAEMON_EVENT_PACKET:
+		case DAEMON_EVENT_PACKET:
 		//logMsg("got DAEMON_EVENT_PACKET");
-
-		bdefault:
-			logMsg("unhandled packet type 0x%X", packet_type);
 			break;
+
+		default:
+			logMsg("unhandled packet type 0x%X", packet_type);
 	}
 	//logMsg("end packet");
 }

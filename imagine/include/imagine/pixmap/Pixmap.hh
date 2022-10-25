@@ -62,7 +62,7 @@ public:
 
 	constexpr PixmapViewBase(PixmapDesc desc, Pointer auto data, PitchInit pitch):
 		data_{(PixData*)data},
-		pitch{pitch.units == Units::PIXEL ? pitch.val * desc.format().bytesPerPixel() : pitch.val},
+		pitch{pitch.units == Units::PIXEL ? pitch.val * desc.format.bytesPerPixel() : pitch.val},
 		desc_{desc} {}
 
 	constexpr PixmapViewBase(PixmapDesc desc, Pointer auto data):
@@ -90,8 +90,8 @@ public:
 	constexpr PixmapDesc desc() const { return desc_; }
 	constexpr int w() const { return desc().w(); }
 	constexpr int h() const { return desc().h(); }
-	constexpr WP size() const { return desc().size(); }
-	constexpr PixelFormat format() const { return desc().format(); }
+	constexpr WP size() const { return desc().size; }
+	constexpr PixelFormat format() const { return desc().format; }
 
 	constexpr auto pixel(WP pos) const
 	{

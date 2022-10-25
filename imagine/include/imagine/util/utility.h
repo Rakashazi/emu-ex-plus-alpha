@@ -42,9 +42,6 @@
 // Make symbol remain visible after linking
 #define LVISIBLE __attribute__((visibility("default")))
 
-#define bcase break; case
-#define bdefault break; default
-
 #define PP_STRINGIFY(A) #A
 #define PP_STRINGIFY_EXP(A) PP_STRINGIFY(A)
 
@@ -52,7 +49,11 @@
 // or about unreachable locations to optimize accordingly.
 
 #ifdef NDEBUG
-#define assumeExpr(E) ((void)(__builtin_expect(!(E), 0) ? __builtin_unreachable(), 0 : 0))
+	#if __has_builtin(__builtin_assume)
+	#define assumeExpr(E) __builtin_assume([&][[gnu::const]]{return bool(E);}());
+	#else
+	#define assumeExpr(E) ((void)(__builtin_expect(!(E), 0) ? __builtin_unreachable(), 0 : 0))
+	#endif
 #define bug_unreachable(msg, ...) __builtin_unreachable()
 #else
 CLINK void bug_doExit(const char *msg, ...)  __attribute__ ((format (printf, 1, 2), noreturn));
@@ -60,15 +61,16 @@ CLINK void bug_doExit(const char *msg, ...)  __attribute__ ((format (printf, 1, 
 #define bug_unreachable(msg, ...) bug_doExit("bug: " msg " @" __FILE__ ", line:%d , func:%s", ## __VA_ARGS__, __LINE__, __PRETTY_FUNCTION__)
 #endif
 
+#ifdef __cplusplus
+
 #define IG_forward(var) std::forward<decltype(var)>(var)
 
-#ifdef __cplusplus
 namespace IG
 {
 
 using std::to_underlying;
 
-static constexpr char hexDigitChar(int value, bool uppercase = true)
+constexpr char hexDigitChar(int value, bool uppercase = true)
 {
 	switch(value)
 	{
@@ -91,7 +93,7 @@ static constexpr char hexDigitChar(int value, bool uppercase = true)
 	}
 }
 
-static constexpr unsigned char charHexDigitInt(char c)
+constexpr unsigned char charHexDigitInt(char c)
 {
 	switch (c)
 	{

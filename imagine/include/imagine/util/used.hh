@@ -83,12 +83,17 @@ constexpr bool used(auto &) { return true; }
 constexpr bool used(Unused auto &) { return false; }
 
 // invoke func if v's type doesn't satisfy the Unused concept
-constexpr void doIfUsed(auto &v, auto &&func)
+template<class R = int>
+constexpr auto doIfUsed(auto &v, auto &&func, R &&defaultReturn = 0)
 {
-	func(v);
+	return func(v);
 }
 
-constexpr void doIfUsed(Unused auto &v, auto &&) {}
+template<class R = int>
+constexpr auto doIfUsed(Unused auto &v, auto &&func, R &&defaultReturn = 0)
+{
+	return defaultReturn;
+}
 
 // same as above, but invoke defaultFunc if v's type is unused
 constexpr auto doIfUsedOr(auto &v, auto &&func, auto &&defaultFunc)

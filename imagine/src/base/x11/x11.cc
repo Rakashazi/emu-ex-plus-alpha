@@ -151,21 +151,23 @@ bool XApplication::eventHandler(XEvent event)
 
 	switch(event.type)
 	{
-		bcase Expose:
+		case Expose:
 		{
 			auto &win = *windowForXWindow(event.xexpose.window);
 			if (event.xexpose.count == 0)
 				win.postDraw();
+			break;
 		}
-		bcase ConfigureNotify:
+		case ConfigureNotify:
 		{
 			//logMsg("ConfigureNotify");
 			auto &win = *windowForXWindow(event.xconfigure.window);
 			if(event.xconfigure.width == win.width() && event.xconfigure.height == win.height())
 				break;
 			win.updateSize({event.xconfigure.width, event.xconfigure.height});
+			break;
 		}
-		bcase ClientMessage:
+		case ClientMessage:
 		{
 			auto &win = *windowForXWindow(event.xclient.window);
 			auto type = event.xclient.message_type;
@@ -189,12 +191,14 @@ bool XApplication::eventHandler(XEvent event)
 				handleXDNDEvent(dpy, xdndAtom, event.xclient, win.nativeObject(), draggerXWin, dragAction);
 			}
 			XFree(clientMsgName);
+			break;
 		}
-		bcase PropertyNotify:
+		case PropertyNotify:
 		{
 			//logMsg("PropertyNotify");
+			break;
 		}
-		bcase SelectionNotify:
+		case SelectionNotify:
 		{
 			logMsg("SelectionNotify");
 			if(Config::XDND && event.xselection.property != None)
@@ -215,20 +219,23 @@ bool XApplication::eventHandler(XEvent event)
 				win.dispatchDragDrop(filename);
 				XFree(prop);
 			}
+			break;
 		}
-		bcase MapNotify:
+		case MapNotify:
 		{
 			//logDMsg("MapNotfiy");
+			break;
 		}
-		bcase ReparentNotify:
+		case ReparentNotify:
 		{
 			//logDMsg("ReparentNotify");
+			break;
 		}
-		bcase GenericEvent:
+		case GenericEvent:
 		{
-			handleXI2GenericEvent(event);
+			handleXI2GenericEvent(event); break;
 		}
-		bdefault:
+		default:
 		{
 			logDMsg("got unhandled message type %d", event.type);
 		}

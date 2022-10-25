@@ -116,34 +116,34 @@ void SaturnSystem::handleInputAction(EmuApp *, InputAction a)
 	bool pushed = a.state == Input::Action::PUSHED;
 	switch(a.key)
 	{
-		bcase ssKeyIdxUp: if(pushed) PerPadUpPressed(p); else PerPadUpReleased(p);
-		bcase ssKeyIdxRight: if(pushed) PerPadRightPressed(p); else PerPadRightReleased(p);
-		bcase ssKeyIdxDown: if(pushed) PerPadDownPressed(p); else PerPadDownReleased(p);
-		bcase ssKeyIdxLeft: if(pushed) PerPadLeftPressed(p); else PerPadLeftReleased(p);
-		bcase ssKeyIdxLeftUp: if(pushed) { PerPadLeftPressed(p); PerPadUpPressed(p); }
-			else { PerPadLeftReleased(p); PerPadUpReleased(p); }
-		bcase ssKeyIdxRightUp: if(pushed) { PerPadRightPressed(p); PerPadUpPressed(p); }
-			else { PerPadRightReleased(p); PerPadUpReleased(p); }
-		bcase ssKeyIdxRightDown: if(pushed) { PerPadRightPressed(p); PerPadDownPressed(p); }
-			else { PerPadRightReleased(p); PerPadDownReleased(p); }
-		bcase ssKeyIdxLeftDown: if(pushed) { PerPadLeftPressed(p); PerPadDownPressed(p); }
-			else { PerPadLeftReleased(p); PerPadDownReleased(p); }
-		bcase ssKeyIdxStart: if(pushed) PerPadStartPressed(p); else PerPadStartReleased(p);
-		bcase ssKeyIdxXTurbo:
-		case ssKeyIdxX: if(pushed) PerPadXPressed(p); else PerPadXReleased(p);
-		bcase ssKeyIdxYTurbo:
-		case ssKeyIdxY: if(pushed) PerPadYPressed(p); else PerPadYReleased(p);
-		bcase ssKeyIdxZTurbo:
-		case ssKeyIdxZ: if(pushed) PerPadZPressed(p); else PerPadZReleased(p);
-		bcase ssKeyIdxATurbo:
-		case ssKeyIdxA: if(pushed) PerPadAPressed(p); else PerPadAReleased(p);
-		bcase ssKeyIdxBTurbo:
-		case ssKeyIdxB: if(pushed) PerPadBPressed(p); else PerPadBReleased(p);
-		bcase ssKeyIdxCTurbo:
-		case ssKeyIdxC: if(pushed) PerPadCPressed(p); else PerPadCReleased(p);
-		bcase ssKeyIdxL: if(pushed) PerPadLTriggerPressed(p); else PerPadLTriggerReleased(p);
-		bcase ssKeyIdxR: if(pushed) PerPadRTriggerPressed(p); else PerPadRTriggerReleased(p);
-		bdefault: bug_unreachable("input == %d", a.key);
+		case ssKeyIdxUp: if(pushed) PerPadUpPressed(p); else PerPadUpReleased(p); break;
+		case ssKeyIdxRight: if(pushed) PerPadRightPressed(p); else PerPadRightReleased(p); break;
+		case ssKeyIdxDown: if(pushed) PerPadDownPressed(p); else PerPadDownReleased(p); break;
+		case ssKeyIdxLeft: if(pushed) PerPadLeftPressed(p); else PerPadLeftReleased(p); break;
+		case ssKeyIdxLeftUp: if(pushed) { PerPadLeftPressed(p); PerPadUpPressed(p); }
+			else { PerPadLeftReleased(p); PerPadUpReleased(p); } break;
+		case ssKeyIdxRightUp: if(pushed) { PerPadRightPressed(p); PerPadUpPressed(p); }
+			else { PerPadRightReleased(p); PerPadUpReleased(p); } break;
+		case ssKeyIdxRightDown: if(pushed) { PerPadRightPressed(p); PerPadDownPressed(p); }
+			else { PerPadRightReleased(p); PerPadDownReleased(p); } break;
+		case ssKeyIdxLeftDown: if(pushed) { PerPadLeftPressed(p); PerPadDownPressed(p); }
+			else { PerPadLeftReleased(p); PerPadDownReleased(p); } break;
+		case ssKeyIdxStart: if(pushed) PerPadStartPressed(p); else PerPadStartReleased(p); break;
+		case ssKeyIdxXTurbo:
+		case ssKeyIdxX: if(pushed) PerPadXPressed(p); else PerPadXReleased(p); break;
+		case ssKeyIdxYTurbo:
+		case ssKeyIdxY: if(pushed) PerPadYPressed(p); else PerPadYReleased(p); break;
+		case ssKeyIdxZTurbo:
+		case ssKeyIdxZ: if(pushed) PerPadZPressed(p); else PerPadZReleased(p); break;
+		case ssKeyIdxATurbo:
+		case ssKeyIdxA: if(pushed) PerPadAPressed(p); else PerPadAReleased(p); break;
+		case ssKeyIdxBTurbo:
+		case ssKeyIdxB: if(pushed) PerPadBPressed(p); else PerPadBReleased(p); break;
+		case ssKeyIdxCTurbo:
+		case ssKeyIdxC: if(pushed) PerPadCPressed(p); else PerPadCReleased(p); break;
+		case ssKeyIdxL: if(pushed) PerPadLTriggerPressed(p); else PerPadLTriggerReleased(p); break;
+		case ssKeyIdxR: if(pushed) PerPadRTriggerPressed(p); else PerPadRTriggerReleased(p); break;
+		default: bug_unreachable("input == %d", a.key);
 	}
 }
 

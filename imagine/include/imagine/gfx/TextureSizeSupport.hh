@@ -4,11 +4,6 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/util/used.hh>
 
-namespace IG
-{
-class PixmapDesc;
-}
-
 namespace IG::Gfx
 {
 

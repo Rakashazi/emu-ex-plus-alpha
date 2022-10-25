@@ -427,26 +427,26 @@ void VController::setState(int elemIdx, VControllerState state)
 	{
 		switch(elemIdx)
 		{
-			bcase 0: gp.dPad().setState(state);
-			bcase 1: gp.centerButtons().setState(state);
-			bcase 2: gp.faceButtons().setState(state);
-			bcase 3: menuBtn.setState(state);
-			bcase 4: ffBtn.setState(state);
-			bcase 5: gp.lTrigger().setState(state);
-			bcase 6: gp.lTrigger().setState(state);
-			bdefault: bug_unreachable("elemIdx == %d", elemIdx);
+			case 0: return gp.dPad().setState(state);
+			case 1: return gp.centerButtons().setState(state);
+			case 2: return gp.faceButtons().setState(state);
+			case 3: return menuBtn.setState(state);
+			case 4: return ffBtn.setState(state);
+			case 5: return gp.lTrigger().setState(state);
+			case 6: return gp.lTrigger().setState(state);
+			default: bug_unreachable("elemIdx == %d", elemIdx);
 		}
 	}
 	else
 	{
 		switch(elemIdx)
 		{
-			bcase 0:
-			bcase 1:
-			bcase 2:
-			bcase 3: menuBtn.setState(state);
-			bcase 4: ffBtn.setState(state);
-			bdefault: bug_unreachable("elemIdx == %d", elemIdx);
+			case 0:
+			case 1:
+			case 2:
+			case 3: return menuBtn.setState(state);
+			case 4: return ffBtn.setState(state);
+			default: bug_unreachable("elemIdx == %d", elemIdx);
 		}
 	}
 }
@@ -825,22 +825,45 @@ bool VController::readConfig(MapIO &io, unsigned key, size_t size)
 	switch(key)
 	{
 		default: return false;
-		bcase CFGKEY_TOUCH_CONTROL_ALPHA: setButtonAlpha(readOptionValue<uint8_t>(io, size));
-		bcase CFGKEY_TOUCH_CONTROL_DISPLAY: setGamepadControlsVisibility(readOptionValue<VControllerVisibility>(io, size, visibilityIsValid));
-		bcase CFGKEY_TOUCH_CONTROL_SIZE: setButtonSize(readOptionValue<uint16_t>(io, size), false);
-		bcase CFGKEY_TOUCH_CONTROL_FACE_BTN_SPACE: setButtonSpacing(readOptionValue<uint16_t>(io, size), false);
-		bcase CFGKEY_TOUCH_CONTROL_FACE_BTN_STAGGER: setButtonStagger(readOptionValue<uint16_t>(io, size), false);
-		bcase CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE: setDpadDeadzone(readOptionValue<uint16_t>(io, size));
-		bcase CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS: setTriggersInline(readOptionValue<bool>(io, size), false);
-		bcase CFGKEY_TOUCH_CONTROL_DIAGONAL_SENSITIVITY: setDpadDiagonalSensitivity(readOptionValue<uint16_t>(io, size));
-		bcase CFGKEY_TOUCH_CONTROL_EXTRA_X_BTN_SIZE: setButtonXPadding(readOptionValue<uint16_t>(io, size), false);
-		bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE: setButtonYPadding(readOptionValue<uint16_t>(io, size), false);
-		bcase CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES: setBoundingAreaVisible(readOptionValue<bool>(io, size), false);
-		bcase CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH: setShowOnTouchInput(readOptionValue<bool>(io, size));
-		bcase CFGKEY_VCONTROLLER_LAYOUT_POS: readSerializedLayoutPositions(io, size);
-		bcase CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS: readOptionValue(io, size, allowButtonsPastContentBounds_);
+		case CFGKEY_TOUCH_CONTROL_ALPHA:
+			setButtonAlpha(readOptionValue<uint8_t>(io, size));
+			return true;
+		case CFGKEY_TOUCH_CONTROL_DISPLAY:
+			setGamepadControlsVisibility(readOptionValue<VControllerVisibility>(io, size, visibilityIsValid));
+			return true;
+		case CFGKEY_TOUCH_CONTROL_SIZE:
+			setButtonSize(readOptionValue<uint16_t>(io, size), false);
+			return true;
+		case CFGKEY_TOUCH_CONTROL_FACE_BTN_SPACE:
+			setButtonSpacing(readOptionValue<uint16_t>(io, size), false);
+			return true;
+		case CFGKEY_TOUCH_CONTROL_FACE_BTN_STAGGER:
+			setButtonStagger(readOptionValue<uint16_t>(io, size), false);
+			return true;
+		case CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE:
+			setDpadDeadzone(readOptionValue<uint16_t>(io, size));
+			return true;
+		case CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS:
+			setTriggersInline(readOptionValue<bool>(io, size), false);
+			return true;
+		case CFGKEY_TOUCH_CONTROL_DIAGONAL_SENSITIVITY:
+			setDpadDiagonalSensitivity(readOptionValue<uint16_t>(io, size));
+			return true;
+		case CFGKEY_TOUCH_CONTROL_EXTRA_X_BTN_SIZE:
+			setButtonXPadding(readOptionValue<uint16_t>(io, size), false);
+			return true;
+		case CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE:
+			setButtonYPadding(readOptionValue<uint16_t>(io, size), false);
+			return true;
+		case CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES:
+			setBoundingAreaVisible(readOptionValue<bool>(io, size), false);
+			return true;
+		case CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH:
+			setShowOnTouchInput(readOptionValue<bool>(io, size));
+			return true;
+		case CFGKEY_VCONTROLLER_LAYOUT_POS: return readSerializedLayoutPositions(io, size);
+		case CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS: return readOptionValue(io, size, allowButtonsPastContentBounds_);
 	}
-	return true;
 }
 
 void VController::writeConfig(FileIO &io) const
@@ -890,12 +913,12 @@ void VController::writeConfig(FileIO &io) const
 	}
 }
 
-void VController::readSerializedLayoutPositions(MapIO &io, size_t size)
+bool VController::readSerializedLayoutPositions(MapIO &io, size_t size)
 {
 	if(size < serializedLayoutPositionsSize())
 	{
 		logErr("expected layout position size:%zu, got size:%zu", serializedLayoutPositionsSize(), size);
-		return;
+		return false;
 	}
 	for(auto &posArr : layoutPosition())
 	{
@@ -920,6 +943,7 @@ void VController::readSerializedLayoutPositions(MapIO &io, size_t size)
 			setLayoutPositionChanged();
 		}
 	}
+	return true;
 }
 
 size_t VController::serializedLayoutPositionsSize() const

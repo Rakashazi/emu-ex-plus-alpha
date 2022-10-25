@@ -178,7 +178,7 @@ public:
 	bool sendWithExtraData(MsgType msg, auto &&obj)
 	{
 		static_assert(MSG_SIZE + sizeof(obj) < PIPE_BUF, "size of data too big for atomic writes");
-		return sendWithExtraData(msg, {&obj, sizeof(obj)});
+		return sendWithExtraData(msg, {&obj, 1});
 	}
 
 	template <class T>
@@ -186,11 +186,11 @@ public:
 	{
 		if(span.empty())
 			return send(msg);
-		const auto bufferSize = MSG_SIZE + span.size();
+		const auto bufferSize = MSG_SIZE + span.size_bytes();
 		assumeExpr(bufferSize < PIPE_BUF);
 		char buffer[PIPE_BUF];
 		memcpy(buffer, &msg, MSG_SIZE);
-		memcpy(buffer + MSG_SIZE, span.data(), span.size());
+		memcpy(buffer + MSG_SIZE, span.data(), span.size_bytes());
 		return pipe.sink().write(buffer, bufferSize) != -1;
 	}
 

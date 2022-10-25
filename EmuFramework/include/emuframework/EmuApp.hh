@@ -252,7 +252,7 @@ public:
 	void addCurrentContentToRecent();
 	RecentContentList &recentContent() { return recentContentList; };
 	void writeRecentContent(FileIO &);
-	void readRecentContent(IG::ApplicationContext, MapIO &, size_t readSize_);
+	bool readRecentContent(IG::ApplicationContext, MapIO &, size_t readSize_);
 	bool showHiddenFilesInPicker(){ return showHiddenFilesInPicker_; };
 	void setShowHiddenFilesInPicker(bool on){ showHiddenFilesInPicker_ = on; };
 	auto &customKeyConfigList() { return customKeyConfigs; };

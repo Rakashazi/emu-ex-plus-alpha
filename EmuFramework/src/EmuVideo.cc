@@ -30,7 +30,7 @@ void EmuVideo::resetImage(IG::PixelFormat newFmt)
 		return;
 	auto desc = deleteImage();
 	if(newFmt)
-		setFormat({desc.size(), newFmt});
+		setFormat({desc.size, newFmt});
 	else
 		setFormat(desc);
 	app().renderSystemFramebuffer(*this);
@@ -125,8 +125,9 @@ void EmuVideo::startFrameWithFormat(EmuSystemTaskContext taskCtx, IG::PixmapView
 void EmuVideo::startFrameWithAltFormat(EmuSystemTaskContext taskCtx, IG::PixmapView pix)
 {
 	auto destFmt = renderPixelFormat();
-	assumeExpr(isValidRenderFormat(pix.format()));
-	if(pix.format() == destFmt)
+	auto srcFmt = pix.format();
+	assumeExpr(isValidRenderFormat(srcFmt));
+	if(srcFmt == destFmt)
 	{
 		startFrameWithFormat(taskCtx, pix);
 	}
@@ -261,7 +262,7 @@ IG::WP EmuVideo::size() const
 	if(!vidImg)
 		return {1, 1};
 	else
-		return vidImg.pixmapDesc().size();
+		return vidImg.pixmapDesc().size;
 }
 
 bool EmuVideo::formatIsEqual(IG::PixmapDesc desc) const
@@ -348,7 +349,7 @@ bool EmuVideo::setRenderPixelFormat(EmuSystem &sys, IG::PixelFormat fmt, Gfx::Co
 	auto oldPixDesc = deleteImage();
 	if(!sys.onVideoRenderFormatChange(*this, fmt) && oldPixDesc.w())
 	{
-		setFormat({oldPixDesc.size(), fmt});
+		setFormat({oldPixDesc.size, fmt});
 	}
 	app().renderSystemFramebuffer(*this);
 	return true;

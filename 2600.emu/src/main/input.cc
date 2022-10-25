@@ -200,7 +200,7 @@ void A2600System::handleInputAction(EmuApp *app, InputAction a)
 
 	switch(event1)
 	{
-		bcase Event::Combo1:
+		case Event::Combo1:
 			if(!isPushed)
 				break;
 			p1DiffB ^= true;
@@ -210,7 +210,8 @@ void A2600System::handleInputAction(EmuApp *app, InputAction a)
 			}
 			ev.set(Event::ConsoleLeftDiffB, p1DiffB);
 			ev.set(Event::ConsoleLeftDiffA, !p1DiffB);
-		bcase Event::Combo2:
+			break;
+		case Event::Combo2:
 			if(!isPushed)
 				break;
 			p2DiffB ^= true;
@@ -220,7 +221,8 @@ void A2600System::handleInputAction(EmuApp *app, InputAction a)
 			}
 			ev.set(Event::ConsoleRightDiffB, p2DiffB);
 			ev.set(Event::ConsoleRightDiffA, !p2DiffB);
-		bcase Event::Combo3:
+			break;
+		case Event::Combo3:
 			if(!isPushed)
 				break;
 			vcsColor ^= true;
@@ -230,9 +232,11 @@ void A2600System::handleInputAction(EmuApp *app, InputAction a)
 			}
 			ev.set(Event::ConsoleColor, vcsColor);
 			ev.set(Event::ConsoleBlackWhite, !vcsColor);
-		bcase Event::LeftKeyboard1 ... Event::RightKeyboardPound:
+			break;
+		case Event::LeftKeyboard1 ... Event::RightKeyboardPound:
 			ev.set(Event::Type(event1), isPushed);
-		bdefault:
+			break;
+		default:
 			ev.set(Event::Type(event1), isPushed);
 			auto event2 = a.key >> 8;
 			if(event2) // extra event for diagonals

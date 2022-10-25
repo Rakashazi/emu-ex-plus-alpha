@@ -21,7 +21,6 @@
 #include <imagine/util/string/uri.hh>
 #include <concepts>
 #include <cstddef>
-#include <compare>
 #include <memory>
 
 // Tries to mirror API of C++ filesystem TS library in most cases

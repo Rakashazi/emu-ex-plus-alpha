@@ -141,13 +141,13 @@ static bool readKeyConfig(KeyConfigContainer &customKeyConfigs,
 	return true;
 }
 
-static void readInputDeviceConfig(InputDeviceSavedConfigContainer &savedInputDevs,
+static bool readInputDeviceConfig(InputDeviceSavedConfigContainer &savedInputDevs,
 	MapIO &io, uint16_t &size, const KeyConfigContainer &customKeyConfigs)
 {
 	auto confs = io.get<uint8_t>(); // TODO: unused currently, use to pre-allocate memory for configs
 	size--;
 	if(!size)
-		return;
+		return false;
 
 	while(size)
 	{
@@ -156,14 +156,14 @@ static void readInputDeviceConfig(InputDeviceSavedConfigContainer &savedInputDev
 		auto enumIdWithFlags = io.get<uint8_t>();
 		size--;
 		if(!size)
-			break;
+			return false;
 		devConf.handleUnboundEvents = enumIdWithFlags & devConf.HANDLE_UNBOUND_EVENTS_FLAG;
 		devConf.enumId = enumIdWithFlags & devConf.ENUM_ID_MASK;
 
 		devConf.enabled = io.get<uint8_t>();
 		size--;
 		if(!size)
-			break;
+			return false;
 
 		devConf.player = io.get<uint8_t>();
 		if(devConf.player != InputDeviceConfig::PLAYER_MULTI && devConf.player > EmuSystem::maxPlayers)
@@ -173,29 +173,29 @@ static void readInputDeviceConfig(InputDeviceSavedConfigContainer &savedInputDev
 		}
 		size--;
 		if(!size)
-			break;
+			return false;
 
 		devConf.joystickAxisAsDpadBits = io.get<uint8_t>();
 		size--;
 		if(!size)
-			break;
+			return false;
 
 		#ifdef CONFIG_INPUT_ICADE
 		devConf.iCadeMode = io.get<uint8_t>();
 		size--;
 		if(!size)
-			break;
+			return false;
 		#endif
 
 		auto nameLen = io.get<uint8_t>();
 		size--;
 		if(size < nameLen)
-			break;
+			return false;
 
 		io.readSized(devConf.name, nameLen);
 		size -= nameLen;
 		if(!size)
-			break;
+			return false;
 
 		auto keyConfMap = Input::validateMap(io.get<uint8_t>());
 		size--;
@@ -203,16 +203,16 @@ static void readInputDeviceConfig(InputDeviceSavedConfigContainer &savedInputDev
 		if(keyConfMap != Input::Map::UNKNOWN)
 		{
 			if(!size)
-				break;
+				return false;
 
 			auto keyConfNameLen = io.get<uint8_t>();
 			size--;
 			if(size < keyConfNameLen)
-				break;
+				return false;
 
 			char keyConfName[keyConfNameLen + 1];
 			if(io.read(keyConfName, keyConfNameLen) != keyConfNameLen)
-				break;
+				return false;
 			keyConfName[keyConfNameLen] = '\0';
 			size -= keyConfNameLen;
 
@@ -254,9 +254,10 @@ static void readInputDeviceConfig(InputDeviceSavedConfigContainer &savedInputDev
 		if(savedInputDevs.size() == INPUT_DEVICE_CONFIGS_HARD_LIMIT)
 		{
 			logWarn("reached input device config hard limit:%d", INPUT_DEVICE_CONFIGS_HARD_LIMIT);
-			break;
+			return false;
 		}
 	}
+	return true;
 }
 
 void EmuApp::saveConfigFile(FileIO &io)
@@ -533,128 +534,110 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 	ConfigParams appConfig{};
 	Gfx::DrawableConfig pendingWindowDrawableConf{};
 	readConfigKeys(FileUtils::bufferFromPath(configFilePath, OpenFlagsMask::TEST),
-		[&](uint16_t key, uint16_t size, auto &io)
+		[&](uint16_t key, uint16_t size, auto &io) -> bool
 		{
 			switch(key)
 			{
 				default:
 				{
 					if(system().readConfig(ConfigType::MAIN, io, key, size))
-					{
-						break;
-					}
+						return true;
 					if(vController.readConfig(io, key, size))
-					{
-						break;
-					}
+						return true;
 					logMsg("skipping key %u", (unsigned)key);
+					return false;
 				}
-				bcase CFGKEY_SOUND: optionSound.readFromIO(io, size);
-				bcase CFGKEY_SOUND_RATE: optionSoundRate.readFromIO(io, size);
-				bcase CFGKEY_AUTOSAVE_TIMER_MINS: optionAutosaveTimerMins.readFromIO(io, size);
-				bcase CFGKEY_AUTOSAVE_LAUNCH_MODE: readOptionValue(io, size, autosaveLaunchMode, [](auto m){return m <= lastEnum<AutosaveLaunchMode>;});
-				bcase CFGKEY_FRAME_INTERVAL:
-					doIfUsed(optionFrameInterval, [&](auto &opt){ opt.readFromIO(io, size); });
-				bcase CFGKEY_SKIP_LATE_FRAMES: optionSkipLateFrames.readFromIO(io, size);
-				bcase CFGKEY_FRAME_RATE: optionFrameRate.readFromIO(io, size);
-				bcase CFGKEY_FRAME_RATE_PAL: optionFrameRatePAL.readFromIO(io, size);
-				bcase CFGKEY_LAST_DIR:
-					readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){setContentSearchPath(path);});
-				bcase CFGKEY_FONT_Y_SIZE: optionFontSize.readFromIO(io, size);
-				bcase CFGKEY_GAME_ORIENTATION: optionEmuOrientation.readFromIO(io, size);
-				bcase CFGKEY_MENU_ORIENTATION: optionMenuOrientation.readFromIO(io, size);
-				bcase CFGKEY_GAME_IMG_FILTER: optionImgFilter.readFromIO(io, size);
-				bcase CFGKEY_GAME_ASPECT_RATIO: optionAspectRatio.readFromIO(io, size);
-				bcase CFGKEY_IMAGE_ZOOM: optionImageZoom.readFromIO(io, size);
-				bcase CFGKEY_VIEWPORT_ZOOM: optionViewportZoom.readFromIO(io, size);
+				case CFGKEY_SOUND: return optionSound.readFromIO(io, size);
+				case CFGKEY_SOUND_RATE: return optionSoundRate.readFromIO(io, size);
+				case CFGKEY_AUTOSAVE_TIMER_MINS: return optionAutosaveTimerMins.readFromIO(io, size);
+				case CFGKEY_AUTOSAVE_LAUNCH_MODE: return readOptionValue(io, size, autosaveLaunchMode, [](auto m){return m <= lastEnum<AutosaveLaunchMode>;});
+				case CFGKEY_FRAME_INTERVAL:
+					return doIfUsed(optionFrameInterval, [&](auto &opt){return opt.readFromIO(io, size);});
+				case CFGKEY_SKIP_LATE_FRAMES: return optionSkipLateFrames.readFromIO(io, size);
+				case CFGKEY_FRAME_RATE: return optionFrameRate.readFromIO(io, size);
+				case CFGKEY_FRAME_RATE_PAL: return optionFrameRatePAL.readFromIO(io, size);
+				case CFGKEY_LAST_DIR:
+					return readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){setContentSearchPath(path);});
+				case CFGKEY_FONT_Y_SIZE: return optionFontSize.readFromIO(io, size);
+				case CFGKEY_GAME_ORIENTATION: return optionEmuOrientation.readFromIO(io, size);
+				case CFGKEY_MENU_ORIENTATION: return optionMenuOrientation.readFromIO(io, size);
+				case CFGKEY_GAME_IMG_FILTER: return optionImgFilter.readFromIO(io, size);
+				case CFGKEY_GAME_ASPECT_RATIO: return optionAspectRatio.readFromIO(io, size);
+				case CFGKEY_IMAGE_ZOOM: return optionImageZoom.readFromIO(io, size);
+				case CFGKEY_VIEWPORT_ZOOM: return optionViewportZoom.readFromIO(io, size);
 				#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
-				bcase CFGKEY_SHOW_ON_2ND_SCREEN: optionShowOnSecondScreen.readFromIO(io, size);
+				case CFGKEY_SHOW_ON_2ND_SCREEN: return optionShowOnSecondScreen.readFromIO(io, size);
 				#endif
-				bcase CFGKEY_IMAGE_EFFECT: optionImgEffect.readFromIO(io, size);
-				bcase CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: optionImageEffectPixelFormat.readFromIO(io, size);
-				bcase CFGKEY_RENDER_PIXEL_FORMAT: setRenderPixelFormat(readOptionValue<IG::PixelFormat>(io, size, renderPixelFormatIsValid));
-				bcase CFGKEY_VIDEO_IMAGE_BUFFERS: optionVideoImageBuffers.readFromIO(io, size);
-				bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
-				bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: vController.setVibrateOnTouchInput(*this, readOptionValue<bool>(io, size));
-				bcase CFGKEY_RECENT_GAMES: readRecentContent(ctx, io, size);
-				bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM: setSwappedConfirmKeys(readOptionValue<bool>(io, size));
-				bcase CFGKEY_PAUSE_UNFOCUSED: optionPauseUnfocused.readFromIO(io, size);
-				bcase CFGKEY_NOTIFICATION_ICON: optionNotificationIcon.readFromIO(io, size);
-				bcase CFGKEY_TITLE_BAR: optionTitleBar.readFromIO(io, size);
-				bcase CFGKEY_BACK_NAVIGATION: appConfig.setBackNavigation(readOptionValue<bool>(io, size));
-				bcase CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: optionSystemActionsIsDefaultMenu.readFromIO(io, size);
-				bcase CFGKEY_IDLE_DISPLAY_POWER_SAVE: optionIdleDisplayPowerSave.readFromIO(io, size);
-				bcase CFGKEY_HIDE_STATUS_BAR:
-					doIfUsed(optionHideStatusBar, [&](auto &opt){ opt.readFromIO(io, size); });
-				bcase CFGKEY_LAYOUT_BEHIND_SYSTEM_UI:
-					if(ctx.hasTranslucentSysUI()) readOptionValue(io, size, layoutBehindSystemUI);
-				bcase CFGKEY_CONFIRM_OVERWRITE_STATE: optionConfirmOverwriteState.readFromIO(io, size);
-				bcase CFGKEY_FAST_SLOW_MODE_SPEED: optionFastSlowModeSpeed.readFromIO(io, size);
+				case CFGKEY_IMAGE_EFFECT: return optionImgEffect.readFromIO(io, size);
+				case CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: return optionImageEffectPixelFormat.readFromIO(io, size);
+				case CFGKEY_RENDER_PIXEL_FORMAT:
+					setRenderPixelFormat(readOptionValue<IG::PixelFormat>(io, size, renderPixelFormatIsValid));
+					return true;
+				case CFGKEY_VIDEO_IMAGE_BUFFERS: return optionVideoImageBuffers.readFromIO(io, size);
+				case CFGKEY_OVERLAY_EFFECT: return optionOverlayEffect.readFromIO(io, size);
+				case CFGKEY_OVERLAY_EFFECT_LEVEL: return optionOverlayEffectLevel.readFromIO(io, size);
+				case CFGKEY_TOUCH_CONTROL_VIRBRATE:
+					vController.setVibrateOnTouchInput(*this, readOptionValue<bool>(io, size));
+					return true;
+				case CFGKEY_RECENT_GAMES: return readRecentContent(ctx, io, size);
+				case CFGKEY_SWAPPED_GAMEPAD_CONFIM:
+					setSwappedConfirmKeys(readOptionValue<bool>(io, size));
+					return true;
+				case CFGKEY_PAUSE_UNFOCUSED: return optionPauseUnfocused.readFromIO(io, size);
+				case CFGKEY_NOTIFICATION_ICON: return optionNotificationIcon.readFromIO(io, size);
+				case CFGKEY_TITLE_BAR: return optionTitleBar.readFromIO(io, size);
+				case CFGKEY_BACK_NAVIGATION:
+					appConfig.setBackNavigation(readOptionValue<bool>(io, size));
+					return true;
+				case CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: return optionSystemActionsIsDefaultMenu.readFromIO(io, size);
+				case CFGKEY_IDLE_DISPLAY_POWER_SAVE: return optionIdleDisplayPowerSave.readFromIO(io, size);
+				case CFGKEY_HIDE_STATUS_BAR: return doIfUsed(optionHideStatusBar, [&](auto &opt){ return opt.readFromIO(io, size); });
+				case CFGKEY_LAYOUT_BEHIND_SYSTEM_UI:
+					return ctx.hasTranslucentSysUI() ? readOptionValue(io, size, layoutBehindSystemUI) : false;
+				case CFGKEY_CONFIRM_OVERWRITE_STATE: return optionConfirmOverwriteState.readFromIO(io, size);
+				case CFGKEY_FAST_SLOW_MODE_SPEED: return optionFastSlowModeSpeed.readFromIO(io, size);
 				#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
-				bcase CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: optionNotifyInputDeviceChange.readFromIO(io, size);
+				case CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: return optionNotifyInputDeviceChange.readFromIO(io, size);
 				#endif
-				bcase CFGKEY_MOGA_INPUT_SYSTEM:
-					if constexpr(MOGA_INPUT)
-						readOptionValue<bool>(io, size, [&](auto on){setMogaManagerActive(on, false);});
-				bcase CFGKEY_TEXTURE_BUFFER_MODE: optionTextureBufferMode.readFromIO(io, size);
+				case CFGKEY_MOGA_INPUT_SYSTEM:
+					return MOGA_INPUT ? readOptionValue<bool>(io, size, [&](auto on){setMogaManagerActive(on, false);}) : false;
+				case CFGKEY_TEXTURE_BUFFER_MODE: return optionTextureBufferMode.readFromIO(io, size);
 				#if defined __ANDROID__
-				bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
-				bcase CFGKEY_HIDE_OS_NAV: optionHideOSNav.readFromIO(io, size);
-				bcase CFGKEY_SUSTAINED_PERFORMANCE_MODE: optionSustainedPerformanceMode.readFromIO(io, size);
+				case CFGKEY_LOW_PROFILE_OS_NAV: return optionLowProfileOSNav.readFromIO(io, size);
+				case CFGKEY_HIDE_OS_NAV: return optionHideOSNav.readFromIO(io, size);
+				case CFGKEY_SUSTAINED_PERFORMANCE_MODE: return optionSustainedPerformanceMode.readFromIO(io, size);
 				#endif
 				#ifdef CONFIG_BLUETOOTH
-				bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE:
-					doIfUsed(optionKeepBluetoothActive, [&](auto &opt){ opt.readFromIO(io, size); });
-				bcase CFGKEY_SHOW_BLUETOOTH_SCAN: optionShowBluetoothScan.readFromIO(io, size);
+				case CFGKEY_KEEP_BLUETOOTH_ACTIVE: return doIfUsed(optionKeepBluetoothActive, [&](auto &opt){ return opt.readFromIO(io, size); });
+				case CFGKEY_SHOW_BLUETOOTH_SCAN: return optionShowBluetoothScan.readFromIO(io, size);
 					#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-					bcase CFGKEY_BLUETOOTH_SCAN_CACHE: readOptionValue<bool>(io, size, [](auto on){BluetoothAdapter::setScanCacheUsage(on);});
+					case CFGKEY_BLUETOOTH_SCAN_CACHE: return readOptionValue<bool>(io, size, [](auto on){BluetoothAdapter::setScanCacheUsage(on);});
 					#endif
 				#endif
-				bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
-				bcase CFGKEY_SOUND_VOLUME: optionSoundVolume.readFromIO(io, size);
-				bcase CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: optionAddSoundBuffersOnUnderrun.readFromIO(io, size);
-				bcase CFGKEY_AUDIO_SOLO_MIX: audioManager().setSoloMix(readOptionValue<bool>(io, size));
+				case CFGKEY_SOUND_BUFFERS: return optionSoundBuffers.readFromIO(io, size);
+				case CFGKEY_SOUND_VOLUME: return optionSoundVolume.readFromIO(io, size);
+				case CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: return optionAddSoundBuffersOnUnderrun.readFromIO(io, size);
+				case CFGKEY_AUDIO_SOLO_MIX:
+					audioManager().setSoloMix(readOptionValue<bool>(io, size));
+					return true;
 				#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-				bcase CFGKEY_AUDIO_API: optionAudioAPI.readFromIO(io, size);
+				case CFGKEY_AUDIO_API: return optionAudioAPI.readFromIO(io, size);
 				#endif
-				bcase CFGKEY_SAVE_PATH:
-					readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){system().setUserSaveDirectory(path);});
-				bcase CFGKEY_SCREENSHOTS_PATH: readStringOptionValue(io, size, userScreenshotDir);
-				bcase CFGKEY_SHOW_BUNDLED_GAMES:
-				{
-					if(EmuSystem::hasBundledGames)
-						optionShowBundledGames.readFromIO(io, size);
-				}
-				bcase CFGKEY_WINDOW_PIXEL_FORMAT: readOptionValue(io, size, pendingWindowDrawableConf.pixelFormat, windowPixelFormatIsValid);
-				bcase CFGKEY_VIDEO_COLOR_SPACE: readOptionValue(io, size, pendingWindowDrawableConf.colorSpace, colorSpaceIsValid);
-				bcase CFGKEY_SHOW_HIDDEN_FILES: readOptionValue<bool>(io, size, [&](auto on){setShowHiddenFilesInPicker(on);});
-				bcase CFGKEY_RENDERER_PRESENTATION_TIME: readOptionValue<bool>(io, size, [&](auto on){setUsePresentationTime(on);});
-				bcase CFGKEY_FORCE_MAX_SCREEN_FRAME_RATE: readOptionValue<bool>(io, size, [&](auto on){setForceMaxScreenFrameRate(on);});
-				bcase CFGKEY_CONTENT_ROTATION: readOptionValue(io, size, contentRotation_, [](auto r){return r <= lastEnum<Rotation>;});
-				bcase CFGKEY_VIDEO_BRIGHTNESS: readOptionValue(io, size, videoBrightnessRGB);
-				bcase CFGKEY_INPUT_KEY_CONFIGS:
-				{
-					if(!readKeyConfig(customKeyConfigs, io, size, inputControlCategories()))
-					{
-						logErr("error reading key configs from file");
-					}
-					if(size)
-					{
-						// skip leftover bytes
-						logWarn("%d bytes leftover reading key configs", size);
-					}
-				}
-				bcase CFGKEY_INPUT_DEVICE_CONFIGS:
-				{
-					readInputDeviceConfig(savedInputDevs, io, size, customKeyConfigs);
-					if(size)
-					{
-						// skip leftover bytes
-						logWarn("%d bytes leftover reading input device configs", size);
-					}
-				}
+				case CFGKEY_SAVE_PATH:
+					return readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){system().setUserSaveDirectory(path);});
+				case CFGKEY_SCREENSHOTS_PATH: return readStringOptionValue(io, size, userScreenshotDir);
+				case CFGKEY_SHOW_BUNDLED_GAMES: return EmuSystem::hasBundledGames ? optionShowBundledGames.readFromIO(io, size) : false;
+				case CFGKEY_WINDOW_PIXEL_FORMAT: return readOptionValue(io, size, pendingWindowDrawableConf.pixelFormat, windowPixelFormatIsValid);
+				case CFGKEY_VIDEO_COLOR_SPACE: return readOptionValue(io, size, pendingWindowDrawableConf.colorSpace, colorSpaceIsValid);
+				case CFGKEY_SHOW_HIDDEN_FILES: return readOptionValue<bool>(io, size, [&](auto on){setShowHiddenFilesInPicker(on);});
+				case CFGKEY_RENDERER_PRESENTATION_TIME: return readOptionValue<bool>(io, size, [&](auto on){setUsePresentationTime(on);});
+				case CFGKEY_FORCE_MAX_SCREEN_FRAME_RATE: return readOptionValue<bool>(io, size, [&](auto on){setForceMaxScreenFrameRate(on);});
+				case CFGKEY_CONTENT_ROTATION: return readOptionValue(io, size, contentRotation_, [](auto r){return r <= lastEnum<Rotation>;});
+				case CFGKEY_VIDEO_BRIGHTNESS: return readOptionValue(io, size, videoBrightnessRGB);
+				case CFGKEY_INPUT_KEY_CONFIGS: return readKeyConfig(customKeyConfigs, io, size, inputControlCategories());
+				case CFGKEY_INPUT_DEVICE_CONFIGS: return readInputDeviceConfig(savedInputDevs, io, size, customKeyConfigs);
 			}
+			return false;
 		});
 
 	// apply any pending read options

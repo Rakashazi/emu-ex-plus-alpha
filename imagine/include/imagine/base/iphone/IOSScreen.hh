@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/base/baseDefs.hh>
-#include <compare>
 
 #ifdef __OBJC__
 #import <UIKit/UIKit.h>
