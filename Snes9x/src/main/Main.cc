@@ -221,6 +221,7 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 	{
 		throwFileReadError();
 	}
+	#ifndef SNES9X_VERSION_1_4
 	if(isSufamiTurboCart(buff)) // TODO: loading dual carts
 	{
 		logMsg("detected Sufami Turbo cart");
@@ -233,6 +234,7 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 		}
 	}
 	else
+	#endif
 	{
 		if(!Memory.LoadROMMem((const uint8*)buff.data(), buff.size()))
 		{

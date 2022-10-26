@@ -70,9 +70,10 @@ class TextEntry
 			WindowManager.LayoutParams p = getWindow().getAttributes();
 			p.x = x;
 			p.y = y;
+			editBox.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
 			ViewGroup.LayoutParams vp = editBox.getLayoutParams();
 			vp.width = width;
-			vp.height = height + editBox.getTotalPaddingTop() + editBox.getTotalPaddingBottom();
+			vp.height = height + editBox.getExtendedPaddingTop() + editBox.getExtendedPaddingBottom();
 			getWindow().setAttributes(p);
 		}
 
