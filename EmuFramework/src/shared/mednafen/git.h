@@ -18,6 +18,7 @@
 namespace EmuEx
 {
 class EmuVideo;
+class EmuAudio;
 class EmuSystem;
 }
 
@@ -26,7 +27,8 @@ namespace Mednafen
 
 struct FileExtensionSpecStruct
 {
- const char *extension; // Example ".nes"
+  const char *extension; // Example ".nes" for case-insensitive extension matching,
+			// or "whatever.ext"(no leading .) for case-insensitive filename matching.
 
  /*
   Priorities used in heuristics to determine which file to load from a multi-file archive:
@@ -40,7 +42,7 @@ struct FileExtensionSpecStruct
    -50 = ccd
    -60 = cue
    -70 = toc (not guaranteed to be cdrdao format, so prefer ccd or cue)
-   -80 = bin (lower than everything due to be overused)
+   -1000 = bin (lower than everything due to being overused)
  */
  int priority;
 
@@ -405,6 +407,9 @@ struct EmulateSpecStruct
 	// Calls MDFND_commitVideoFrame upon drawing a frame if non-null. Set by the driver code.
 	EmuEx::EmuVideo *video{};
 
+	// Used in MDFN_MidSync to update audio
+	EmuEx::EmuAudio *audio{};
+
 	//
 	// If sound is disabled, the driver code must set SoundRate to false, SoundBuf to NULL, SoundBufMaxSize to 0.
 
@@ -603,7 +608,7 @@ struct MDFNGI
  #else
  void *Debugger;
  #endif
- const std::vector<InputPortInfoStruct> &PortInfo;
+ std::reference_wrapper<const std::vector<InputPortInfoStruct>> PortInfo;
 
  void (*GetInternalDB)(std::vector<GameDB_Database>* databases);
 
@@ -626,7 +631,7 @@ struct MDFNGI
  bool (*TestMagic)(GameFile* gf);
 
  //
- // (*CDInterfaces).size() is guaranteed to be >= 1.
+ // CDInterfaces->size() is guaranteed to be >= 1 for TestMagicCD(), but may be == 0 for LoadCD().
  void (*LoadCD)(std::vector<CDInterface*> *CDInterfaces);
  bool (*TestMagicCD)(std::vector<CDInterface*> *CDInterfaces);
 
@@ -646,7 +651,7 @@ struct MDFNGI
  uint64 CPInfoActiveBF;			// 1 = 0, 2 = 1, 4 = 2, 8 = 3, etc. (to allow for future expansion for systems that might need
 					// multiple custom palette files, without having to go back and restructure this data).
 
- const CheatInfoStruct& CheatInfo;
+ std::reference_wrapper<const CheatInfoStruct> CheatInfo;
 
  bool SaveStateAltersState;	// true for bsnes and some libco-style emulators, false otherwise.
 

@@ -73,7 +73,7 @@ MemoryStream::MemoryStream(Stream *stream, uint64 size_limit) : data_buffer(NULL
 {
  try
  {
-  MemoryStream* msdc = stream->isMemoryStream() ? static_cast<MemoryStream*>(stream) : nullptr;
+  MemoryStream* msdc = dynamic_cast<MemoryStream*>(stream);
 
   if(msdc)
   {

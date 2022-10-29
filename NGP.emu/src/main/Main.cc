@@ -75,9 +75,9 @@ void NgpSystem::loadState(EmuApp &, IG::CStringView path)
 		throwFileReadError();
 }
 
-static FS::PathString saveFilename(EmuSystem &sys)
+static FS::PathString saveFilename(const EmuApp &app)
 {
-	return sys.contentSaveFilePath(".ngf");
+	return app.contentSaveFilePath(".ngf");
 }
 
 void NgpSystem::loadBackupMemory(EmuApp &)
@@ -94,7 +94,7 @@ void NgpSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 
 IG::Time NgpSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
-	return appContext().fileUriLastWriteTime(app.contentSaveFilePath(".ngf").c_str());
+	return appContext().fileUriLastWriteTime(saveFilename(app).c_str());
 }
 
 void NgpSystem::closeSystem()
@@ -117,7 +117,7 @@ void NgpSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 		std::string{contentName()}};
 	mdfnGameInfo.Load(&gf);
 	mdfnGameInfo.SetInput(0, "gamepad", (uint8*)&inputBuff);
-	MDFN_IEN_NGP::applyVideoFormat(pixmapToMDFNSurface(mSurfacePix).format);
+	MDFN_IEN_NGP::applyVideoFormat(toMDFNSurface(mSurfacePix).format);
 }
 
 bool NgpSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
@@ -125,7 +125,7 @@ bool NgpSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
 	if(!hasContent())
 		return false;
-	MDFN_IEN_NGP::applyVideoFormat(pixmapToMDFNSurface(mSurfacePix).format);
+	MDFN_IEN_NGP::applyVideoFormat(toMDFNSurface(mSurfacePix).format);
 	return false;
 }
 
@@ -150,7 +150,7 @@ void NgpSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	espec.sys = this;
 	espec.video = video;
 	espec.skip = !video;
-	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
+	auto mSurface = toMDFNSurface(mSurfacePix);
 	espec.surface = &mSurface;
 	mdfnGameInfo.Emulate(&espec);
 	if(audio)
@@ -180,7 +180,7 @@ namespace MDFN_IEN_NGP
 bool system_io_flash_read(uint8_t* buffer, uint32_t len)
 {
 	using namespace EmuEx;
-	auto saveStr = saveFilename(gSystem());
+	auto saveStr = saveFilename(gApp());
 	return IG::FileUtils::readFromUri(gAppContext(), saveStr, {buffer, len}) > 0;
 }
 
@@ -189,7 +189,7 @@ void system_io_flash_write(uint8_t* buffer, uint32 len)
 	using namespace EmuEx;
 	if(!len)
 		return;
-	auto saveStr = saveFilename(gSystem());
+	auto saveStr = saveFilename(gApp());
 	logMsg("writing flash %s", saveStr.data());
 	IG::FileUtils::writeToUri(gAppContext(), saveStr, {buffer, len}) != -1;
 }

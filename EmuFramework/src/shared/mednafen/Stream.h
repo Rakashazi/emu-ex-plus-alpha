@@ -107,7 +107,6 @@ class Stream
 				// stream is writeable; it will be called automatically from the destructor, with any
 				// exceptions thrown caught and logged.
 
- virtual bool isMemoryStream();
  virtual void advise(off_t offset, size_t bytes, IG::IOAdvice advice);
 
  //

@@ -16,7 +16,8 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
 #include "MainSystem.hh"
-#include <mednafen/pce_fast/vdc.h>
+#include <mednafen/pce/pcecd.h>
+#include <mednafen/pce/vce.h>
 #include <mednafen/pce_fast/pcecd.h>
 #include <mednafen-emuex/MDFNUtils.hh>
 #include <mednafen/general.h>
@@ -52,6 +53,7 @@ bool PceSystem::resetSessionOptions(EmuApp &app)
 	optionArcadeCard.reset();
 	option6BtnPad.reset();
 	visibleLines = defaultVisibleLines;
+	core = EmuCore::Auto;
 	onSessionOptionsLoaded(app);
 	return true;
 }
@@ -70,6 +72,7 @@ bool PceSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_CDDA_VOLUME: return readOptionValue(io, readSize, cddaVolume, [](auto val){return val <= 200;});
 			case CFGKEY_ADPCM_VOLUME: return readOptionValue(io, readSize, adpcmVolume, [](auto val){return val <= 200;});
 			case CFGKEY_ADPCM_FILTER: return readOptionValue(io, readSize, adpcmFilter);
+			case CFGKEY_EMU_CORE: return readOptionValue(io, readSize, defaultCore, [](auto val){return val <= lastEnum<EmuCore>;});
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -79,6 +82,7 @@ bool PceSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_ARCADE_CARD: return optionArcadeCard.readFromIO(io, readSize);
 			case CFGKEY_6_BTN_PAD: return option6BtnPad.readFromIO(io, readSize);
 			case CFGKEY_VISIBLE_LINES: return readOptionValue(io, readSize, visibleLines, visibleLinesAreValid);
+			case CFGKEY_EMU_CORE: return readOptionValue(io, readSize, core, [](auto val){return val <= lastEnum<EmuCore>;});
 		}
 	}
 	return false;
@@ -103,6 +107,7 @@ void PceSystem::writeConfig(ConfigType type, FileIO &io)
 			writeOptionValue(io, CFGKEY_ADPCM_VOLUME, adpcmVolume);
 		if(adpcmFilter)
 			writeOptionValue(io, CFGKEY_ADPCM_FILTER, adpcmFilter);
+		writeOptionValueIfNotDefault(io, CFGKEY_EMU_CORE, defaultCore, EmuCore::Auto);
 	}
 	else if(type == ConfigType::SESSION)
 	{
@@ -110,6 +115,7 @@ void PceSystem::writeConfig(ConfigType type, FileIO &io)
 		option6BtnPad.writeWithKeyIfNotDefault(io);
 		if(visibleLines != defaultVisibleLines)
 			writeOptionValue<VisibleLines>(io, CFGKEY_VISIBLE_LINES, visibleLines);
+		writeOptionValueIfNotDefault(io, CFGKEY_EMU_CORE, core, EmuCore::Auto);
 	}
 }
 
@@ -117,8 +123,18 @@ void PceSystem::setVisibleLines(VisibleLines lines)
 {
 	sessionOptionSet();
 	visibleLines = lines;
-	MDFN_IEN_PCE_FAST::vce.slstart = lines.first;
-	MDFN_IEN_PCE_FAST::vce.slend = lines.last;
+	if(!hasContent())
+		return;
+	if(isUsingAccurateCore())
+	{
+		MDFN_IEN_PCE::vce->slstart = lines.first;
+		MDFN_IEN_PCE::vce->slend = lines.last;
+	}
+	else
+	{
+		MDFN_IEN_PCE_FAST::vce.slstart = lines.first;
+		MDFN_IEN_PCE_FAST::vce.slend = lines.last;
+	}
 }
 
 void PceSystem::setNoSpriteLimit(bool on)
@@ -126,21 +142,37 @@ void PceSystem::setNoSpriteLimit(bool on)
 	noSpriteLimit = on;
 	if(!hasContent())
 		return;
-	MDFN_IEN_PCE_FAST::VDC_SetSettings(on, true);
+	if(isUsingAccurateCore())
+		MDFN_IEN_PCE::vce->SetVDCUnlimitedSprites(on);
+	else
+		MDFN_IEN_PCE_FAST::VDC_SetSettings(on, true);
 }
 
 void PceSystem::updateCdSettings()
 {
 	if(!hasContent())
 		return;
-	MDFN_IEN_PCE_FAST::PCECD_Settings cdSettings
+	if(isUsingAccurateCore())
 	{
-		.CDDA_Volume = cddaVolume / 100.f,
-		.ADPCM_Volume = adpcmVolume / 100.f,
-		.CD_Speed = cdSpeed,
-		.ADPCM_LPF = adpcmFilter
-	};
-	MDFN_IEN_PCE_FAST::PCECD_SetSettings(&cdSettings);
+		MDFN_IEN_PCE::PCECD_Settings cdSettings
+		{
+			.CDDA_Volume = cddaVolume / 100.f,
+			.ADPCM_Volume = adpcmVolume / 100.f,
+			.ADPCM_ExtraPrecision = adpcmFilter
+		};
+		MDFN_IEN_PCE::PCECD_SetSettings(&cdSettings);
+	}
+	else
+	{
+		MDFN_IEN_PCE_FAST::PCECD_Settings cdSettings
+		{
+			.CDDA_Volume = cddaVolume / 100.f,
+			.ADPCM_Volume = adpcmVolume / 100.f,
+			.CD_Speed = cdSpeed,
+			.ADPCM_LPF = adpcmFilter
+		};
+		MDFN_IEN_PCE_FAST::PCECD_SetSettings(&cdSettings);
+	}
 }
 
 void PceSystem::setCdSpeed(uint8_t speed)
@@ -166,34 +198,38 @@ void PceSystem::setAdpcmFilter(bool on)
 namespace Mednafen
 {
 
-#define EMU_MODULE "pce_fast"
-
 using namespace EmuEx;
 
 uint64 MDFN_GetSettingUI(const char *name_)
 {
 	std::string_view name{name_};
 	auto &sys = static_cast<PceSystem&>(gSystem());
-	if(EMU_MODULE".ocmultiplier" == name)
+	if("pce_fast.ocmultiplier" == name)
 		return 1;
-	if(EMU_MODULE".cdspeed" == name)
+	if("pce_fast.cdspeed" == name)
 		return sys.cdSpeed;
-	if(EMU_MODULE".cdpsgvolume" == name)
+	if(name.ends_with(".cdpsgvolume"))
 		return 100;
-	if(EMU_MODULE".cddavolume" == name)
+	if(name.ends_with(".cddavolume"))
 		return sys.cddaVolume;
-	if(EMU_MODULE".adpcmvolume" == name)
+	if(name.ends_with(".adpcmvolume"))
 		return sys.adpcmVolume;
-	if(EMU_MODULE".slstart" == name)
+	if(name.ends_with(".slstart"))
 		return sys.visibleLines.first;
-	if(EMU_MODULE".slend" == name)
+	if(name.ends_with(".slend"))
 		return sys.visibleLines.last;
+	if("pce.resamp_quality" == name)
+		return 3;
+	if("pce.vramsize" == name)
+		return 32768;
 	bug_unreachable("unhandled settingUI %s", name_);
 }
 
 int64 MDFN_GetSettingI(const char *name_)
 {
 	std::string_view name{name_};
+	if("pce.psgrevision" == name)
+		return 2; //PCE_PSG::_REVISION_COUNT
 	if("filesys.state_comp_level" == name)
 		return 6;
 	bug_unreachable("unhandled settingI %s", name_);
@@ -202,8 +238,10 @@ int64 MDFN_GetSettingI(const char *name_)
 double MDFN_GetSettingF(const char *name_)
 {
 	std::string_view name{name_};
-	if(EMU_MODULE".mouse_sensitivity" == name)
+	if(name.ends_with(".mouse_sensitivity"))
 		return 0.50;
+	if("pce.resamp_rate_error" == name)
+		return 0.0000009;
 	bug_unreachable("unhandled settingF %s", name_);
 }
 
@@ -212,21 +250,29 @@ bool MDFN_GetSettingB(const char *name_)
 	std::string_view name{name_};
 	auto &sys = static_cast<PceSystem&>(gSystem());
 	if("cheats" == name)
-		return 0;
-	if(EMU_MODULE".arcadecard" == name)
+		return false;
+	if(name.ends_with(".arcadecard"))
 		return sys.optionArcadeCard;
-	if(EMU_MODULE".forcesgx" == name)
-		return 0;
-	if(EMU_MODULE".nospritelimit" == name)
+	if(name.ends_with(".forcesgx"))
+		return false;
+	if(name.ends_with(".nospritelimit"))
 		return sys.noSpriteLimit;
-	if(EMU_MODULE".forcemono" == name)
-		return 0;
-	if(EMU_MODULE".disable_softreset" == name)
-		return 0;
-	if(EMU_MODULE".adpcmlp" == name)
+	if("pce_fast.forcemono" == name)
+		return false;
+	if(name.ends_with(".disable_softreset"))
+		return false;
+	if("pce_fast.adpcmlp" == name || "pce.adpcmextraprec" == name)
 		return sys.adpcmFilter;
-	if(EMU_MODULE".correct_aspect" == name)
-		return 1;
+	if("pce_fast.correct_aspect" == name)
+		return true;
+	if("pce.input.multitap" == name)
+		return true;
+	if("pce.h_overscan" == name)
+		return false;
+	if("pce.disable_bram_cd" == name)
+		return false;
+	if("pce.disable_bram_hucard" == name)
+		return false;
 	if("filesys.untrusted_fip_check" == name)
 		return 0;
 	bug_unreachable("unhandled settingB %s", name_);
@@ -235,7 +281,9 @@ bool MDFN_GetSettingB(const char *name_)
 std::string MDFN_GetSettingS(const char *name_)
 {
 	std::string_view name{name_};
-	if(EMU_MODULE".cdbios" == name)
+	if(name.ends_with(".cdbios"))
+		return {};
+	if("pce.gecdbios" == name)
 		return {};
 	bug_unreachable("unhandled settingS %s", name_);
 }

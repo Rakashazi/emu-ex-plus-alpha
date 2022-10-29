@@ -539,6 +539,9 @@ void MDFN_strazcasexlate(char* d, const char* s)
 }
 */
 
+// Take care to never return INT_MIN in the MDFN_*azicmp() functions, or the
+// inline function in string.h with the return value negation will malfunction.
+
 int MDFN_strazicmp(const char* s, const char* t, size_t n)
 {
  if(!n)
@@ -558,8 +561,8 @@ int MDFN_strazicmp(const char* s, const char* t, size_t n)
 
 int MDFN_memazicmp(const void* s, const void* t, size_t n)
 {
- unsigned char* a = (unsigned char*)s;
- unsigned char* b = (unsigned char*)t;
+ const unsigned char* a = (const unsigned char*)s;
+ const unsigned char* b = (const unsigned char*)t;
 
  while(n--)
  {
@@ -570,6 +573,29 @@ int MDFN_memazicmp(const void* s, const void* t, size_t n)
  }
 
  return 0;
+}
+
+int MDFN_strazicmp(const std::string& s, const std::string& t, size_t n)
+{
+ const size_t sn_len = std::min<size_t>(s.size(), n);
+ const size_t tn_len = std::min<size_t>(t.size(), n);
+
+ if(sn_len != tn_len)
+  return (sn_len > tn_len) ? 1 : -1;
+
+ return MDFN_memazicmp(s.data(), t.data(), sn_len);
+}
+
+int MDFN_strazicmp(const std::string& s, const char* t, size_t n)
+{
+ const size_t t_len = strlen(t);
+ const size_t sn_len = std::min<size_t>(s.size(), n);
+ const size_t tn_len = std::min<size_t>(t_len, n);
+
+ if(sn_len != tn_len)
+  return (sn_len > tn_len) ? 1 : -1;
+
+ return MDFN_memazicmp(s.data(), t, sn_len);
 }
 
 std::vector<std::string> MDFN_strsplit(const std::string& str, const std::string& delim)

@@ -25,11 +25,8 @@ template<class T> struct dependentFalse : std::false_type {};
 template <class T>
 constexpr bool dependentFalseValue = dependentFalse<T>::value;
 
-constexpr auto &deref(IG::Pointer auto &obj) { return *obj; }
+constexpr auto &deref(Pointer auto &obj) { return *obj; }
 
-constexpr auto &deref(IG::NotPointer auto &obj) { return obj; }
+constexpr auto &deref(NotPointer auto &obj) { return obj; }
 
 }
-
-#define static_assertIsStandardLayout(type) static_assert(std::is_standard_layout_v<type>, #type " isn't standard-layout")
-#define static_assertHasTrivialDestructor(type) static_assert(std::is_trivially_destructible_v<type>, #type " has non-trivial destructor")

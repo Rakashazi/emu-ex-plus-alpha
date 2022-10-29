@@ -22,8 +22,8 @@
 #include <emuframework/EmuInput.hh>
 #include "MainApp.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/gui/AlertView.hh>
 #include <imagine/util/format.hh>
-#include <mednafen/pce_fast/vdc.h>
 
 namespace EmuEx
 {
@@ -31,13 +31,17 @@ namespace EmuEx
 template <class T>
 using MainAppHelper = EmuAppHelper<T, MainApp>;
 
+constexpr std::string_view pceFastText{"pce_fast (Default for general use)"};
+constexpr std::string_view pceText{"pce (Better accuracy, higher power usage)"};
+constexpr std::string_view changeEmuCoreText{"Really change emulation core? Note that save states from different cores aren't compatible."};
+
 class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem sixButtonPad
 	{
 		"6-button Gamepad", &defaultFace(),
 		(bool)system().option6BtnPad,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
 			system().sessionOptionSet();
 			system().option6BtnPad = item.flipBoolValue(*this);
@@ -49,7 +53,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	{
 		"Arcade Card", &defaultFace(),
 		(bool)system().optionArcadeCard,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, const Input::Event &e)
 		{
 			system().sessionOptionSet();
 			system().optionArcadeCard = item.flipBoolValue(*this);
@@ -90,10 +94,52 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		return [=, this]() { system().setVisibleLines({startLine, endLine}); };
 	}
 
-	std::array<MenuItem*, 4> menuItem
+	TextMenuItem emuCoreItems[3]
+	{
+		{"Auto",      &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Auto)},
+		{pceFastText, &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Fast)},
+		{pceText,     &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Accurate)},
+	};
+
+	MultiChoiceMenuItem emuCore
+	{
+		"Emulation Core", &defaultFace(),
+		[this](size_t idx, Gfx::Text &t)
+		{
+			t.resetString(asModuleString(system().resolvedCore()));
+			return true;
+		},
+		(MenuItem::Id)system().core,
+		emuCoreItems
+	};
+
+	TextMenuItem::SelectDelegate setEmuCoreDel()
+	{
+		return [this](TextMenuItem &item, const Input::Event &e)
+		{
+			auto c = EmuCore(item.id());
+			if(c == system().core)
+				return true;
+			auto ynAlertView = makeView<YesNoAlertView>(changeEmuCoreText);
+			ynAlertView->setOnYes(
+				[this, c](const Input::Event &e)
+				{
+					system().sessionOptionSet();
+					system().core = c;
+					emuCore.setSelected((MenuItem::Id)c);
+					dismissPrevious();
+					app().promptSystemReloadDueToSetOption(attachParams(), e);
+				});
+			pushAndShowModal(std::move(ynAlertView), e, false);
+			return false;
+		};
+	}
+
+	std::array<MenuItem*, 5> menuItem
 	{
 		&sixButtonPad,
 		&arcadeCard,
+		&emuCore,
 		&videoHeading,
 		&visibleVideoLines,
 	};
@@ -250,10 +296,50 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		return [this](TextMenuItem &item) { system().setCdSpeed(item.id()); };
 	}
 
+	TextMenuItem emuCoreItems[3]
+	{
+		{"Auto",      &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Auto)},
+		{pceFastText, &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Fast)},
+		{pceText,     &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Accurate)},
+	};
+
+	MultiChoiceMenuItem emuCore
+	{
+		"Emulation Core", &defaultFace(),
+		[this](size_t idx, Gfx::Text &t)
+		{
+			t.resetString(asModuleString(system().resolvedDefaultCore()));
+			return true;
+		},
+		(MenuItem::Id)system().defaultCore,
+		emuCoreItems
+	};
+
+	TextMenuItem::SelectDelegate setEmuCoreDel()
+	{
+		return [this](TextMenuItem &item, const Input::Event &e)
+		{
+			auto c = EmuCore(item.id());
+			if(c == system().defaultCore)
+				return true;
+			auto ynAlertView = makeView<YesNoAlertView>(changeEmuCoreText);
+			ynAlertView->setOnYes(
+				[this, c]
+				{
+					system().defaultCore = c;
+					emuCore.setSelected((MenuItem::Id)c);
+					dismissPrevious();
+				});
+			pushAndShowModal(std::move(ynAlertView), e, false);
+			return false;
+		};
+	}
+
 public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
+		item.emplace_back(&emuCore);
 		item.emplace_back(&cdSpeed);
 	}
 };

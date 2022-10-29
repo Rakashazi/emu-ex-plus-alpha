@@ -68,7 +68,7 @@ public:
 	FontSettings fontSettings() const;
 
 protected:
-	FontSettings settings{};
+	FontSettings settings;
 	FTSizeArray ftSize{};
 
 	void deinit();
@@ -77,7 +77,7 @@ protected:
 struct FreetypeFaceData
 {
 	FT_Face face{};
-	std::unique_ptr<FT_StreamRec> streamRecPtr{};
+	std::unique_ptr<FT_StreamRec> streamRecPtr;
 
 	constexpr FreetypeFaceData() = default;
 	FreetypeFaceData(FT_Library, IO);

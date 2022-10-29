@@ -25,8 +25,7 @@ class SampleFormat
 public:
 	constexpr SampleFormat() = default;
 	constexpr SampleFormat(uint8_t bytes, bool isFloat = false):
-		bytesWithFlags{(uint8_t)((bytes & BYTES_MASK) | (isFloat ? IS_FLOAT_BIT : 0))}
-	{}
+		bytesWithFlags{uint8_t((bytes & BYTES_MASK) | (isFloat ? IS_FLOAT_BIT : 0))}{}
 
 	constexpr int bytes() const
 	{
@@ -58,11 +57,11 @@ protected:
 
 namespace SampleFormats
 {
-	static constexpr SampleFormat   i8 {1};
-	static constexpr SampleFormat  i16 {2};
-	static constexpr SampleFormat  i32 {4};
-	static constexpr SampleFormat  f32 {4, true};
-	static constexpr SampleFormat none {};
+	constexpr SampleFormat   i8{1};
+	constexpr SampleFormat  i16{2};
+	constexpr SampleFormat  i32{4};
+	constexpr SampleFormat  f32{4, true};
+	constexpr SampleFormat none;
 }
 
 }

@@ -243,14 +243,14 @@ namespace CDUtility
  // Returns false on checksum mismatch, true on match.
  static INLINE bool subq_check_checksum(const uint8* subq_buf)
  {
-  return MDFN_de16msb(&subq_buf[0xA]) == (0xFFFF ^ crc16_ccitt(subq_buf, 0xA));
+  return MDFN_de16msb(&subq_buf[0xA]) == (0xFFFF ^ crc16_ccitt(0, subq_buf, 0xA));
  }
 
  // Calculates the checksum of Q subchannel data(not including the checksum bytes of course ;)) from subq_buf, and stores it into the appropriate position
  // in subq_buf.
  static INLINE void subq_generate_checksum(uint8* subq_buf)
  {
-  MDFN_en16msb(&subq_buf[0xA], 0xFFFF ^ crc16_ccitt(subq_buf, 0xA));
+  MDFN_en16msb(&subq_buf[0xA], 0xFFFF ^ crc16_ccitt(0, subq_buf, 0xA));
  }
 
  // Deinterleaves 12 bytes of subchannel Q data from 96 bytes of interleaved subchannel PW data.

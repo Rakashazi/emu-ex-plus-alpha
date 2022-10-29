@@ -25,7 +25,7 @@
 namespace Mednafen
 {
 
-NO_CLONE NO_INLINE uint16 crc16_ccitt(const void* data, const size_t len);
+NO_CLONE NO_INLINE uint16 crc16_ccitt(const uint16 initial, const void* data, const size_t len);
 NO_CLONE NO_INLINE uint32 crc32_cdrom_edc(const void* data, const size_t len);
 
 void crc_test(void);

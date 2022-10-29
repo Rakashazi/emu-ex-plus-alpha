@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <android/native_activity.h>
 #include <jni.h>
-#include <array>
+#include <string>
 
 struct ANativeActivity;
 struct AAssetManager;

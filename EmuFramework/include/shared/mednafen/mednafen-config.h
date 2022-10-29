@@ -161,10 +161,10 @@
 #endif
 
 /* Mednafen version definition. */
-#define MEDNAFEN_VERSION "1.27.1"
+#define MEDNAFEN_VERSION "1.31.0-UNSTABLE"
 
 /* Mednafen version numeric. */
-#define MEDNAFEN_VERSION_NUMERIC 0x00102701
+#define MEDNAFEN_VERSION_NUMERIC 0x00103100
 
 /* Define if config.h is present */
 #define MINILZO_HAVE_CONFIG_H 1

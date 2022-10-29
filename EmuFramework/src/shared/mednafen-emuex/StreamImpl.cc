@@ -173,8 +173,6 @@ uint64 MemoryStream::readAtPos(void *data, uint64 count, uint64 pos)
 	return bytes;
 }
 
-bool MemoryStream::isMemoryStream() { return true; }
-
 void MemoryStream::setSize(size_t size)
 {
 	assert(size <= data_buffer_alloced);
@@ -186,8 +184,6 @@ uint64 Stream::readAtPos(void *data, uint64 count, uint64 pos)
 	bug_unreachable("Stream::readAtPos not implemented");
 	return 0;
 }
-
-bool Stream::isMemoryStream() { return false; }
 
 void Stream::advise(off_t offset, size_t bytes, IG::IOAdvice advice) {}
 

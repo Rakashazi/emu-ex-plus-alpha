@@ -336,8 +336,6 @@ void HuC_LoadCD(const std::string& bios_path)
   memcpy(SaveRAM, BRAM_Init_String, 8);	// So users don't have to manually intialize the file cabinet
 						// in the CD BIOS screen.
 
-  LoadSaveMemory(MDFN_MakeFName(MDFNMKF_SAV, 0, "sav"), SaveRAM, 2048);
-
   HuCPU.PCEWrite[0xF7] = SaveRAMWrite;
   HuCPU.PCERead[0xF7] = SaveRAMRead;
   MDFNMP_AddRAM(2048, 0xF7 * 8192, SaveRAM);
@@ -399,7 +397,7 @@ void HuC_LoadNV(void)
  {
 	LoadSaveMemory(MDFN_MakeFName(MDFNMKF_SAV, 0, "sav"), ROMSpace + 0x40 * 8192, 32768);
  }
- else if(IsBRAMUsed())
+ else
  {
 	LoadSaveMemory(MDFN_MakeFName(MDFNMKF_SAV, 0, "sav"), SaveRAM, 2048);
  }

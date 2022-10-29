@@ -73,11 +73,6 @@ void WsSystem::loadState(EmuApp &, IG::CStringView path)
 		throwFileReadError();
 }
 
-static FS::PathString saveFilename(EmuSystem &sys)
-{
-	return sys.contentSaveFilePath(".sav");
-}
-
 void WsSystem::loadBackupMemory(EmuApp &app)
 {
 	WSwan_MemoryLoadNV();
@@ -90,7 +85,7 @@ void WsSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 
 IG::Time WsSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
-	return appContext().fileUriLastWriteTime(app.contentSaveFilePath(".sav").c_str());
+	return appContext().fileUriLastWriteTime(savePathMDFN(app, 0, "sav").c_str());
 }
 
 void WsSystem::closeSystem()
@@ -114,7 +109,7 @@ void WsSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 		std::string{contentName()}};
 	mdfnGameInfo.Load(&gf);
 	setupInput(EmuApp::get(appContext()));
-	WSwan_SetPixelFormat(pixmapToMDFNSurface(mSurfacePix).format);
+	WSwan_SetPixelFormat(toMDFNSurface(mSurfacePix).format);
 }
 
 bool WsSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
@@ -122,7 +117,7 @@ bool WsSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
 	if(!hasContent())
 		return false;
-	WSwan_SetPixelFormat(pixmapToMDFNSurface(mSurfacePix).format);
+	WSwan_SetPixelFormat(toMDFNSurface(mSurfacePix).format);
 	return false;
 }
 
@@ -149,7 +144,7 @@ void WsSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio 
 	espec.sys = this;
 	espec.video = video;
 	espec.skip = !video;
-	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
+	auto mSurface = toMDFNSurface(mSurfacePix);
 	espec.surface = &mSurface;
 	mdfnGameInfo.Emulate(&espec);
 	if(audio)

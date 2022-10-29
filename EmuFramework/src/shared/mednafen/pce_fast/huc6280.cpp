@@ -17,7 +17,6 @@
 
 #include "pce.h"
 #include "vdc.h"
-#include <imagine/util/utility.h>
 
 namespace MDFN_IEN_PCE_FAST
 {
@@ -629,7 +628,7 @@ void HuC6280_Run(int32 cycles)
 	  case IBM_TDD: goto continue_the_TDD;
 	  case IBM_TII: goto continue_the_TII;
 	  case IBM_TIN:	goto continue_the_TIN;
-	  default: bug_unreachable("HuCPU.in_block_move:%d", HuCPU.in_block_move);
+	  default: __builtin_unreachable();
 	 }
 	}
 

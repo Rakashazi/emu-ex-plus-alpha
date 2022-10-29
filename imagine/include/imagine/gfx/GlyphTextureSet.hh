@@ -44,8 +44,6 @@ struct GlyphSetMetrics
 class GlyphTextureSet
 {
 public:
-	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
-
 	constexpr GlyphTextureSet() = default;
 	GlyphTextureSet(Renderer &, Font, FontSettings settings = {});
 	FontSettings fontSettings() const;
@@ -62,12 +60,12 @@ public:
 	void freeCaches() { freeCaches(~0); }
 
 private:
-	Font font{};
-	VMemArray<GlyphEntry> glyphTable{};
-	FontSettings settings{};
-	FontSize faceSize{};
-	GlyphSetMetrics metrics_{};
-	uint32_t usedGlyphTableBits = 0;
+	Font font;
+	VMemArray<GlyphEntry> glyphTable;
+	FontSettings settings;
+	FontSize faceSize;
+	GlyphSetMetrics metrics_;
+	uint32_t usedGlyphTableBits{};
 
 	void calcMetrics(Renderer &r);
 	void resetGlyphTable();

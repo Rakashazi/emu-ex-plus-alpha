@@ -25,7 +25,7 @@
 namespace EmuEx
 {
 
-inline Mednafen::MDFN_Surface pixmapToMDFNSurface(IG::MutablePixmapView pix)
+inline Mednafen::MDFN_Surface toMDFNSurface(IG::MutablePixmapView pix)
 {
 	using namespace Mednafen;
 	MDFN_PixelFormat fmt =
@@ -58,15 +58,20 @@ inline FS::FileString stateFilenameMDFN(const Mednafen::MDFNGI &gameInfo, int sl
 		name, Mednafen::md5_context::asciistr(gameInfo.MD5, 0), saveSlotChar(slot));
 }
 
-inline std::string savePathMDFN(int id1, const char *cd1)
+inline std::string savePathMDFN(const EmuApp &app, int id1, const char *cd1)
 {
 	assert(cd1);
 	IG::FileString ext{'.'};
 	ext += Mednafen::md5_context::asciistr(Mednafen::MDFNGameInfo->MD5, 0);
 	ext += '.';
 	ext += cd1;
-	auto path = EmuEx::gApp().contentSaveFilePath(ext);
+	auto path = app.contentSaveFilePath(ext);
 	return std::string{path};
+}
+
+inline std::string savePathMDFN(int id1, const char *cd1)
+{
+	return savePathMDFN(EmuEx::gApp(), id1, cd1);
 }
 
 }

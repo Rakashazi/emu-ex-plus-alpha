@@ -32,6 +32,8 @@
 #include "FileStream.h"
 #include "MemoryStream.h"
 
+#define CheatInfo CheatInfo.get()
+
 namespace Mednafen
 {
 

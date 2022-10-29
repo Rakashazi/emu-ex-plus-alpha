@@ -79,13 +79,13 @@ public:
 		auto begin() const { return Iterator{io}; }
 		auto end() const { return Sentinel{}; }
 
-		template <std::copyable T>
+		template <class T>
 		T getExtraData()
 		{
 			return io.get<T>();
 		}
 
-		template <std::copyable T>
+		template <class T>
 		bool getExtraData(std::span<T> span)
 		{
 			return io.read(span.data(), span.size_bytes()) != -1;
@@ -175,13 +175,13 @@ public:
 		}
 	}
 
-	bool sendWithExtraData(MsgType msg, std::copyable auto &&obj)
+	bool sendWithExtraData(MsgType msg, auto &&obj)
 	{
 		static_assert(MSG_SIZE + sizeof(obj) < PIPE_BUF, "size of data too big for atomic writes");
 		return sendWithExtraData(msg, std::span<std::remove_reference_t<decltype(obj)>>{&obj, 1});
 	}
 
-	template <std::copyable T>
+	template <class T>
 	bool sendWithExtraData(MsgType msg, std::span<T> span)
 	{
 		if(span.empty())

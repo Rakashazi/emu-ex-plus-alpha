@@ -1024,6 +1024,8 @@ void EmuApp::reloadSystem(EmuSystemCreateParams params)
 			ctx.fileUriDisplayName(system().contentLocation()), params,
 			[](int pos, int max, const char *label){ return true; });
 		onSystemCreated();
+		if(autoSaveSlot != noAutosaveName)
+			system().loadBackupMemory(*this);
 		showEmulation();
 	}
 	catch(...)
@@ -1096,7 +1098,7 @@ void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view
 					{
 						int len = label ? std::string_view{label}.size() : -1;
 						auto msg = EmuSystem::LoadProgressMessage{EmuSystem::LoadProgress::UPDATE, pos, max, len};
-						msgPort.sendWithExtraData(msg, std::span<const char>{label, len > 0 ? size_t(len) : 0});
+						msgPort.sendWithExtraData(msg, std::span{label, len > 0 ? size_t(len) : 0});
 						return true;
 					});
 				msgPort.send({EmuSystem::LoadProgress::OK, 0, 0, 0});
@@ -1112,7 +1114,7 @@ void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view
 					logWarn("truncating long error size:%zu", len);
 					len = 1024;
 				}
-				msgPort.sendWithExtraData({EmuSystem::LoadProgress::FAILED, 0, 0, int(len)}, std::span<const char>{errStr.data(), len});
+				msgPort.sendWithExtraData({EmuSystem::LoadProgress::FAILED, 0, 0, int(len)}, std::span{errStr.data(), len});
 				logErr("loader thread failed");
 				return;
 			}

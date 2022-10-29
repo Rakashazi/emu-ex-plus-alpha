@@ -70,6 +70,10 @@ static INLINE char MDFN_azupper(char c) { return MDFN_isazlower(c) ? c - 'a' + '
 /*TODO? void MDFN_strazcasexlate(char* d, const char* s);*/
 
 int MDFN_strazicmp(const char* s, const char* t, size_t n = SIZE_MAX);
+int MDFN_strazicmp(const std::string& s, const char* t, size_t n = SIZE_MAX);
+int MDFN_strazicmp(const std::string& s, const std::string& t, size_t n = SIZE_MAX);
+INLINE int MDFN_strazicmp(const char* s, const std::string& t, size_t n = SIZE_MAX) { return -MDFN_strazicmp(t, s, n); }
+
 int MDFN_memazicmp(const void* s, const void* t, size_t n);
 
 static INLINE char* MDFN_memdupstr(const void* s, size_t n)

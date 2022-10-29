@@ -138,7 +138,6 @@ class MemoryStream : public Stream
 
  void mswin_utf8_convert_kludge(void);
 
- bool isMemoryStream() final;
  void setSize(size_t size);
 
 #if 0

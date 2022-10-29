@@ -54,19 +54,18 @@ using PathStringArray = std::array<char, PATH_STRING_SIZE>;
 
 struct RootPathInfo
 {
-	size_t length = 0;
-	FileString name{};
+	size_t length{};
+	FileString name;
 
 	constexpr RootPathInfo() = default;
 	constexpr RootPathInfo(auto &&name, size_t length):
-		length{length}, name{IG_forward(name)}
-	{}
+		length{length}, name{IG_forward(name)} {}
 };
 
 struct RootedPath
 {
-	PathString path{};
-	RootPathInfo info{};
+	PathString path;
+	RootPathInfo info;
 
 	constexpr bool pathIsRoot() const
 	{
@@ -76,8 +75,8 @@ struct RootedPath
 
 struct PathLocation
 {
-	RootedPath root{};
-	FileString description{};
+	RootedPath root;
+	FileString description;
 
 	constexpr PathLocation() = default;
 	constexpr PathLocation(auto &&path, auto &&description, auto &&rootName):

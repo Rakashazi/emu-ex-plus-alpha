@@ -88,10 +88,18 @@ class VirtualFS
 
  struct FileInfo
  {
-  INLINE FileInfo() : size(0), mtime_us(0), is_regular(false), is_directory(false) { }
+  enum
+  {
+   CHECK_TYPE_INVALID = 0,
+   CHECK_TYPE_CRC32
+  };
+
+  INLINE FileInfo() : size(0), mtime_us(0), check(0), check_type(CHECK_TYPE_INVALID), is_regular(false), is_directory(false) { }
 
   uint64 size;			// In bytes.
   int64 mtime_us;		// Last modification time, in microseconds(since the "Epoch").
+  uint64 check;			// Checksum/CRC/Hash
+  uint8 check_type;		
   bool is_regular : 1;		// Is regular file.
   bool is_directory : 1;	// Is directory.
  };

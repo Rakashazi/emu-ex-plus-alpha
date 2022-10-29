@@ -4,10 +4,36 @@
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <mednafen/mednafen.h>
+#include <mednafen/pce/vce.h>
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/vdc.h>
 
 extern const Mednafen::MDFNGI EmulatedPCE_Fast;
+extern const Mednafen::MDFNGI EmulatedPCE;
+
+namespace Mednafen
+{
+class CDInterface;
+
+void SCSICD_SetDisc(bool tray_open, CDInterface* cdif, bool no_emu_side_effects = false);
+}
+
+namespace MDFN_IEN_PCE_FAST
+{
+extern vce_t vce;
+
+void applySoundFormat(double rate);
+void PCECD_Drive_SetDisc(bool tray_open, CDInterface* cdif, bool no_emu_side_effects = false) MDFN_COLD;
+}
+
+namespace MDFN_IEN_PCE
+{
+class VCE;
+
+extern VCE *vce;
+
+void applySoundFormat(double rate);
+}
 
 namespace EmuEx::Controls
 {
@@ -26,8 +52,7 @@ enum
 	CFGKEY_DEFAULT_VISIBLE_LINES = 279, CFGKEY_CORRECT_LINE_ASPECT = 280,
 	CFGKEY_NO_SPRITE_LIMIT = 281, CFGKEY_CD_SPEED = 282,
 	CFGKEY_CDDA_VOLUME = 283, CFGKEY_ADPCM_VOLUME = 284,
-	CFGKEY_ADPCM_FILTER = 285,
-
+	CFGKEY_ADPCM_FILTER = 285, CFGKEY_EMU_CORE = 286,
 };
 
 void set6ButtonPadEnabled(EmuApp &, bool);
@@ -46,17 +71,24 @@ enum class VolumeType
 	CDDA, ADPCM
 };
 
+WISE_ENUM_CLASS((EmuCore, uint8_t),
+	Auto,
+	Fast,
+	Accurate);
+
+inline std::string_view asModuleString(EmuCore c) { return c == EmuCore::Accurate ? "pce" : "pce_fast"; }
+
 class PceSystem final: public EmuSystem
 {
 public:
 	Mednafen::MDFNGI mdfnGameInfo{EmulatedPCE_Fast};
-	std::array<uint16, 5> inputBuff{}; // 5 gamepad buffers
-	static constexpr int vidBufferX = 512, vidBufferY = 242;
-	alignas(8) uint32_t pixBuff[vidBufferX*vidBufferY]{};
-	IG::MutablePixmapView mSurfacePix{};
+	std::array<uint16, 5> inputBuff; // 5 gamepad buffers
+	static constexpr int maxFrameBuffWidth = 1365, maxFrameBuffHeight = 270;
+	alignas(8) uint32_t pixBuff[maxFrameBuffWidth * maxFrameBuffHeight];
+	IG::MutablePixmapView mSurfacePix;
 	bool prevUsing263Lines{};
 	std::vector<CDInterface *> CDInterfaces;
-	FS::PathString sysCardPath{};
+	FS::PathString sysCardPath;
 	Byte1Option optionArcadeCard{CFGKEY_ARCADE_CARD, 1};
 	Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};
 	VisibleLines defaultVisibleLines{};
@@ -67,6 +99,8 @@ public:
 	bool noSpriteLimit{};
 	bool correctLineAspect{};
 	bool adpcmFilter{};
+	EmuCore defaultCore{};
+	EmuCore core{};
 
 	PceSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -79,6 +113,10 @@ public:
 	void setVolume(VolumeType, uint8_t volume);
 	uint8_t volume(VolumeType type) { return  volumeVar(type); }
 	void setAdpcmFilter(bool);
+	bool isUsingAccurateCore() const { return mdfnGameInfo.fb_width == 1365; }
+	EmuCore resolvedCore(EmuCore c) const { return c == EmuCore::Auto ? defaultCore : c; }
+	EmuCore resolvedCore() const { return resolvedCore(core); }
+	EmuCore resolvedDefaultCore() const { return defaultCore == EmuCore::Auto ? EmuCore::Fast : defaultCore; }
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -110,6 +148,15 @@ public:
 
 private:
 	void updateCdSettings();
+	void updatePixmap(IG::PixelFormat);
+
+	bool isUsing263Lines() const
+	{
+		if(isUsingAccurateCore())
+			return MDFN_IEN_PCE::vce ? MDFN_IEN_PCE::vce->CR & 0x04 : false;
+		else
+			return MDFN_IEN_PCE_FAST::vce.CR & 0x04;
+	}
 
 	uint8_t &volumeVar(VolumeType vol)
 	{
@@ -124,10 +171,4 @@ private:
 
 using MainSystem = PceSystem;
 
-}
-
-namespace MDFN_IEN_PCE_FAST
-{
-void applySoundFormat(double rate);
-extern vce_t vce;
 }

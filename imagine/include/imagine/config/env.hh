@@ -63,8 +63,6 @@ static constexpr int ENV_ANDROID_MIN_SDK = ANDROID_MIN_API;
 static constexpr int ENV_ANDROID_MIN_SDK = 0;
 #endif
 
-static constexpr bool UNICODE_CHARS = true;
-
 #ifndef NDEBUG
 static constexpr bool DEBUG_BUILD = true;
 #else

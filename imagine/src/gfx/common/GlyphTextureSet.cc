@@ -25,10 +25,6 @@
 namespace IG::Gfx
 {
 
-static constexpr char firstDrawableAsciiChar = '!';
-static constexpr char lastDrawableAsciiChar = '~';
-static constexpr int numDrawableAsciiChars = (lastDrawableAsciiChar - firstDrawableAsciiChar) + 1;
-
 // definitions for the Unicode Basic Multilingual Plane (BMP)
 static constexpr int unicodeBmpChars = 0xFFFE;
 
@@ -38,16 +34,9 @@ static constexpr int unicodeBmpPrivateChars = 0x2100;
 
 static constexpr int unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPrivateChars;
 
-static constexpr int glyphTableEntries = GlyphTextureSet::supportsUnicode ? unicodeBmpUsedChars : numDrawableAsciiChars;
+static constexpr int glyphTableEntries = unicodeBmpUsedChars;
 
 static std::errc mapCharToTable(int c, int &tableIdx);
-
-static int charIsDrawableAscii(int c)
-{
-	if(c >= firstDrawableAsciiChar && c <= lastDrawableAsciiChar)
-		return 1;
-	else return 0;
-}
 
 static int charIsDrawableUnicode(int c)
 {
@@ -178,39 +167,26 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 
 static std::errc mapCharToTable(int c, int &tableIdx)
 {
-	if(GlyphTextureSet::supportsUnicode)
+	//logMsg("mapping char 0x%X", c);
+	if(c < unicodeBmpChars && charIsDrawableUnicode(c))
 	{
-		//logMsg("mapping char 0x%X", c);
-		if(c < unicodeBmpChars && charIsDrawableUnicode(c))
+		if(c < unicodeBmpPrivateStart)
 		{
-			if(c < unicodeBmpPrivateStart)
-			{
-				tableIdx = c;
-				return {};
-			}
-			else if(c > unicodeBmpPrivateEnd)
-			{
-				tableIdx = c - unicodeBmpPrivateChars; // surrogate & private chars are a hole in the table
-				return {};
-			}
-			else
-			{
-				return std::errc::invalid_argument;
-			}
+			tableIdx = c;
+			return {};
 		}
-		else
-			return std::errc::invalid_argument;
-	}
-	else
-	{
-		if(charIsDrawableAscii(c))
+		else if(c > unicodeBmpPrivateEnd)
 		{
-			tableIdx = c - firstDrawableAsciiChar;
+			tableIdx = c - unicodeBmpPrivateChars; // surrogate & private chars are a hole in the table
 			return {};
 		}
 		else
+		{
 			return std::errc::invalid_argument;
+		}
 	}
+	else
+		return std::errc::invalid_argument;
 }
 
 // TODO: update for unicode

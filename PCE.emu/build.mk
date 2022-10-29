@@ -30,12 +30,28 @@ pce_fast/huc.cpp \
 pce_fast/pcecd.cpp \
 pce_fast/pcecd_drive.cpp \
 pce_fast/psg.cpp \
+pce/huc.cpp \
+pce/huc6280.cpp \
+pce/input.cpp \
+pce/mcgenjin.cpp \
+pce/pce.cpp \
+pce/pcecd.cpp \
+pce/tsushin.cpp \
+pce/vce.cpp \
+pce/input/gamepad.cpp \
+pce/input/mouse.cpp \
+pce/input/tsushinkb.cpp \
 cputest/cputest.c \
+sound/DSPUtility.cpp \
 sound/okiadpcm.cpp \
+sound/OwlResampler.cpp \
 hw_misc/arcade_card/arcade_card.cpp \
-hw_sound/pce_psg/pce_psg.cpp
+hw_sound/pce_psg/pce_psg.cpp \
+hw_video/huc6270/vdc.cpp
 
 SRC += $(addprefix mednafen/,$(MDFN_SRC))
+
+%/mednafen/sound/DSPUtility.o : CFLAGS_OPTIMIZE += -fno-fast-math
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/libvorbis.mk

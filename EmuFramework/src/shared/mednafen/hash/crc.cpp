@@ -159,9 +159,9 @@ static INLINE T crcN(T r, const void* data, const size_t len)
  return r;
 }
 
-uint16 crc16_ccitt(const void* data, const size_t len)
+uint16 crc16_ccitt(const uint16 initial, const void* data, const size_t len)
 {
- return crcN<uint16, 16, 0x1021, false>(0, data, len);
+ return crcN<uint16, 16, 0x1021, false>(initial, data, len);
 }
 
 uint32 crc32_cdrom_edc(const void* data, const size_t len)
@@ -176,9 +176,9 @@ void crc_test(void)
  for(unsigned i = 0; i < 256; i++)
   tv[i] = i ^ 0xA5;
 
- assert(crc16_ccitt(tv,   0) == 0x0000);
- assert(crc16_ccitt(tv,   1) == 0xE54F);
- assert(crc16_ccitt(tv, 256) == 0x9C87);
+ assert(crc16_ccitt(0, tv,   0) == 0x0000);
+ assert(crc16_ccitt(0, tv,   1) == 0xE54F);
+ assert(crc16_ccitt(0, tv, 256) == 0x9C87);
 
  assert(crc32_cdrom_edc(tv,   0) == 0x00000000);
  assert(crc32_cdrom_edc(tv,   1) == 0x58D0A500);
