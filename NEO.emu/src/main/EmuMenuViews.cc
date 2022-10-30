@@ -469,7 +469,7 @@ static FS::PathString gameFilePath(EmuApp &app, std::string_view name)
 
 constexpr static bool gameFileExists(std::string_view name, std::string_view nameList)
 {
-	return IG::stringContainsAny(nameList,
+	return IG::containsAny(nameList,
 		FS::FileString{name}.append(".zip"),
 		FS::FileString{name}.append(".7z"),
 		FS::FileString{name}.append(".rar"));

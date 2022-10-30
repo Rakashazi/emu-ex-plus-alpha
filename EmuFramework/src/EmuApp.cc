@@ -526,7 +526,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			saveConfigFile(ctx);
 			saveSystemOptions();
 
-			#ifdef CONFIG_BLUETOOTH
+			#ifdef CONFIG_INPUT_BLUETOOTH
 			if(bta && (!backgrounded || (backgrounded && !optionKeepBluetoothActive)))
 				closeBluetoothConnections();
 			#endif
@@ -850,6 +850,8 @@ void EmuApp::launchSystem(const Input::Event &e)
 	else
 	{
 		auto loadMode = autosaveLaunchMode == AutosaveLaunchMode::LoadNoState ? LoadAutosaveMode::NoState : LoadAutosaveMode::Normal;
+		if(autosaveLaunchMode == AutosaveLaunchMode::NoSave)
+			autoSaveSlot = noAutosaveName;
 		static auto finishLaunch = [](EmuApp &app, LoadAutosaveMode mode)
 		{
 			app.loadAutosave(mode);

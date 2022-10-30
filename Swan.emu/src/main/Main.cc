@@ -41,7 +41,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobe
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::stringEndsWithAny(name, ".ws", ".wsc", ".bin", ".WS", ".WSC", ".BIN");
+		return IG::endsWithAnyCaseless(name, ".ws", ".wsc", ".bin");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 double EmuSystem::staticFrameTime = (159. * 256.) / 3072000.;
@@ -105,7 +105,7 @@ void WsSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 	stream->setSize(size);
 	MDFNFILE fp(&NVFS, std::move(stream));
 	GameFile gf{&NVFS, std::string{contentDirectory()}, fp.stream(),
-		stringWithoutDotExtension<std::string>(contentFileName()),
+		std::string{withoutDotExtension(contentFileName())},
 		std::string{contentName()}};
 	mdfnGameInfo.Load(&gf);
 	setupInput(EmuApp::get(appContext()));

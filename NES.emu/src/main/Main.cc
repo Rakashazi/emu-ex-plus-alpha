@@ -59,17 +59,17 @@ unsigned fceuCheats = 0;
 
 bool hasFDSBIOSExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".rom", ".bin", ".ROM", ".BIN");
+	return IG::endsWithAnyCaseless(name, ".rom", ".bin");
 }
 
 static bool hasFDSExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".fds", ".FDS");
+	return IG::endsWithAnyCaseless(name, ".fds");
 }
 
 static bool hasROMExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".nes", ".unf", ".unif", ".NES", ".UNF", ".UNIF");
+	return IG::endsWithAnyCaseless(name, ".nes", ".unf", ".unif");
 }
 
 static bool hasNESExtension(std::string_view name)
@@ -315,12 +315,12 @@ const char *regionToStr(int region)
 
 static int regionFromName(std::string_view name)
 {
-	if(IG::stringContainsAny(name, "(E)", "(e)", "(EU)", "(Europe)", "(PAL)",
+	if(IG::containsAny(name, "(E)", "(e)", "(EU)", "(Europe)", "(PAL)",
 		"(F)", "(f)", "(G)", "(g)", "(I)", "(i)"))
 	{
 		return 1; // PAL
 	}
-	else if(IG::stringContainsAny(name, "(RU)", "(ru)"))
+	else if(IG::containsAny(name, "(RU)", "(ru)"))
 	{
 		return 2; // Dendy
 	}

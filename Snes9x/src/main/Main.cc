@@ -41,7 +41,7 @@ bool EmuApp::needsGlobalInstance = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::stringEndsWithAny(name, ".smc", ".sfc", ".fig", ".mgd", ".bs", ".SMC", ".SFC", ".FIG", ".MGD", ".BS");
+		return IG::endsWithAnyCaseless(name, ".smc", ".sfc", ".fig", ".mgd", ".bs");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
@@ -162,7 +162,7 @@ static bool isSufamiTurboBios(const IOBuffer &buff)
 
 bool Snes9xSystem::hasBiosExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".bin", ".bios", ".BIN", ".BIOS");
+	return IG::endsWithAnyCaseless(name, ".bin", ".bios");
 }
 
 IOBuffer Snes9xSystem::readSufamiTurboBios() const

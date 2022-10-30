@@ -34,7 +34,7 @@ public:
 protected:
 	TextMenuItem autosaveTimerItem[4];
 	MultiChoiceMenuItem autosaveTimer;
-	TextMenuItem autosaveLaunchItem[3];
+	TextMenuItem autosaveLaunchItem[4];
 	MultiChoiceMenuItem autosaveLaunch;
 	BoolMenuItem confirmOverwriteState;
 	TextMenuItem fastSlowModeSpeedItem[8];

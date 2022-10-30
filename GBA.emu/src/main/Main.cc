@@ -42,7 +42,7 @@ constexpr IG::WP lcdSize{240, 160};
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::stringEndsWithAny(name, ".gba", ".GBA");
+		return IG::endsWithAnyCaseless(name, ".gba");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 

@@ -328,7 +328,6 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 			app().notifyInputDeviceChangeOption() = item.flipBoolValue(*this);
 		}
 	},
-	#ifdef CONFIG_BLUETOOTH
 	bluetoothHeading
 	{
 		"In-app Bluetooth Options", &defaultBoldFace(),
@@ -342,7 +341,6 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 			app().keepBluetoothActiveOption() = item.flipBoolValue(*this);
 		}
 	},
-	#endif
 	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
 	btScanSecsItem
 	{
@@ -440,19 +438,20 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 			item.emplace_back(&notifyDeviceChange);
 		}
 	}
-	#ifdef CONFIG_BLUETOOTH
-	item.emplace_back(&bluetoothHeading);
-	if(used(keepBtActive))
+	if(used(bluetoothHeading))
 	{
-		item.emplace_back(&keepBtActive);
+		item.emplace_back(&bluetoothHeading);
+		if(used(keepBtActive))
+		{
+			item.emplace_back(&keepBtActive);
+		}
+		#ifdef CONFIG_BLUETOOTH_SCAN_SECS
+		item.emplace_back(&btScanSecs);
+		#endif
+		#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
+		item.emplace_back(&btScanCache);
+		#endif
 	}
-	#endif
-	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-	item.emplace_back(&btScanSecs);
-	#endif
-	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-	item.emplace_back(&btScanCache);
-	#endif
 }
 
 class ProfileSelectMenu : public TextTableView

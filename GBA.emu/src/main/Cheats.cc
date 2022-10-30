@@ -111,7 +111,7 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 		{
 			if(str)
 			{
-				auto tempStr{IG::stringToUpper<std::string>(str)};
+				auto tempStr{IG::toUpperCase(str)};
 				if(tempStr.size() == 17 && tempStr[8] == ' ')
 				{
 					logMsg("removing middle space in text");

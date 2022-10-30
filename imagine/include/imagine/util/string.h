@@ -15,64 +15,62 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/string/CStringView.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/ctype.hh>
+#include <imagine/util/algorithm.h>
 #include <string_view>
-#include <type_traits>
-#include <algorithm>
-#include <cctype>
+#include <concepts>
 
 namespace IG
 {
 
+using namespace std::string_view_literals;
+
 [[nodiscard]]
-constexpr bool stringContainsAny(std::string_view sv, auto &&...substrs)
+constexpr bool containsAny(std::string_view s, auto &&...substrs)
 {
-	return (sv.contains(IG_forward(substrs)) || ...);
+	return (s.contains(std::string_view{IG_forward(substrs)}) || ...);
 }
 
 [[nodiscard]]
-constexpr bool stringEndsWithAny(std::string_view sv, auto &&...endings)
+constexpr bool endsWithAnyCaseless(std::string_view s, std::convertible_to<std::string_view> auto &&...endings)
 {
-	return (sv.ends_with(IG_forward(endings)) || ...);
+	return (ends_with(s, std::string_view{IG_forward(endings)}, std::ranges::equal_to{}, tolower<char>, tolower<char>) || ...);
 }
 
-template <class String>
+template <class String = std::string>
 [[nodiscard]]
-constexpr auto stringToUpper(std::string_view str)
+constexpr auto toUpperCase(std::string_view s)
 {
-	String destStr{};
-	destStr.reserve(str.size());
-	for(auto c : str)
+	String dest;
+	dest.reserve(s.size());
+	for(auto c : s)
 	{
-		destStr.push_back(toupper(c));
+		dest.push_back(toupper(c));
 	}
-	return destStr;
+	return dest;
 }
 
-template <class Return = void>
 [[nodiscard]]
-constexpr auto stringWithoutDotExtension(auto &&str)
+constexpr std::string_view withoutDotExtension(std::string_view s)
 {
-	auto dotOffset = str.rfind('.');
-	// If Return isn't specified, return result as argument type
-	using R = std::conditional_t<std::is_same_v<Return, void>, std::decay_t<decltype(str)>, Return>;
-	if(dotOffset != str.npos)
-		return R{str.data(), dotOffset};
+	auto dotOffset = s.rfind('.');
+	if(dotOffset != s.npos)
+		return {s.data(), dotOffset};
 	else
-		return R{IG_forward(str)};
+		return s;
 }
 
-constexpr bool stringNoCaseLexCompare(std::string_view s1, std::string_view s2)
+[[nodiscard]]
+constexpr std::string_view withoutDotExtension(std::convertible_to<std::string_view> auto &&s)
 {
-	return std::lexicographical_compare(
-		s1.begin(), s1.end(),
-		s2.begin(), s2.end(),
-		[](char c1, char c2)
-		{
-			return std::tolower(c1) < std::tolower(c2);
-		});
+	return withoutDotExtension(std::string_view{IG_forward(s)});
+}
+
+[[nodiscard]]
+constexpr bool caselessLexCompare(std::string_view s1, std::string_view s2)
+{
+	return std::ranges::lexicographical_compare(s1, s2, std::ranges::less{}, tolower<char>, tolower<char>);
 }
 
 }

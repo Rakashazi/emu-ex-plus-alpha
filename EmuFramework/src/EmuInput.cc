@@ -156,7 +156,7 @@ std::span<const KeyConfig> KeyConfig::defaultConfigsForInputMap(Input::Map map)
 		default: return {};
 		case Input::Map::SYSTEM:
 			return {Controls::defaultKeyProfile, Controls::defaultKeyProfiles};
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Input::Map::WIIMOTE:
 			return {Controls::defaultWiimoteProfile, Controls::defaultWiimoteProfiles};
 		case Input::Map::WII_CC:

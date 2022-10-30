@@ -70,9 +70,7 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	}
 	else
 	{
-		#ifdef CONFIG_BLUETOOTH
 		optionShowBluetoothScan.initDefault(0);
-		#endif
 	}
 	{
 		auto type = ctx.sustainedPerformanceModeType();

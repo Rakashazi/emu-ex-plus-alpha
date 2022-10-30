@@ -56,21 +56,21 @@ bool EmuApp::needsGlobalInstance = true;
 
 static bool hasBinExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".bin", ".BIN");
+	return IG::endsWithAnyCaseless(name, ".bin");
 }
 
 bool hasMDExtension(std::string_view name)
 {
-	return hasBinExtension(name) || IG::stringEndsWithAny(name, ".smd", ".md", ".gen", ".SMD", ".MD", ".GEN"
+	return hasBinExtension(name) || IG::endsWithAnyCaseless(name, ".smd", ".md", ".gen"
 		#ifndef NO_SYSTEM_PBC
-		, ".sms", ".SMS"
+		, ".sms"
 		#endif
 		);
 }
 
 static bool hasMDCDExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".cue", ".iso", ".chd", ".CUE", ".ISO", ".CHD");
+	return IG::endsWithAnyCaseless(name, ".cue", ".iso", ".chd");
 }
 
 static bool hasMDWithCDExtension(std::string_view name)

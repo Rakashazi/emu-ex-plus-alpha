@@ -503,7 +503,7 @@ void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
 				else if(!e1.isDir() && e2.isDir())
 					return false;
 				else
-					return IG::stringNoCaseLexCompare(e1.path, e2.path);
+					return caselessLexCompare(e1.path, e2.path);
 			});
 		if(dir.size())
 		{

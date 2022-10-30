@@ -101,7 +101,8 @@ WISE_ENUM_CLASS((ImageChannel, uint8_t),
 WISE_ENUM_CLASS((AutosaveLaunchMode, uint8_t),
 	Load,
 	LoadNoState,
-	Ask);
+	Ask,
+	NoSave);
 
 enum class LoadAutosaveMode{Normal, NoState};
 
@@ -511,9 +512,7 @@ protected:
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
 	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
 	[[no_unique_address]] IG::VibrationManager vibrationManager_;
-	#ifdef CONFIG_BLUETOOTH
 	BluetoothAdapter *bta{};
-	#endif
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr);
 	RecentContentList recentContentList;
 	std::string autoSaveSlot;

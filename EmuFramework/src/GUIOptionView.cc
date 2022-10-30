@@ -285,9 +285,8 @@ void GUIOptionView::loadStockItems()
 	{
 		item.emplace_back(&showBundledGames);
 	}
-	#ifdef CONFIG_BLUETOOTH
-	item.emplace_back(&showBluetoothScan);
-	#endif
+	if(used(showBluetoothScan))
+		item.emplace_back(&showBluetoothScan);
 	item.emplace_back(&showHiddenFiles);
 	item.emplace_back(&orientationHeading);
 	item.emplace_back(&emuOrientation);

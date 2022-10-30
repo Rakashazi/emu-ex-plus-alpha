@@ -193,7 +193,7 @@ public:
 			});
 		for(const auto &name : paletteName)
 		{
-			paletteItem.emplace_back(IG::stringWithoutDotExtension(name), &defaultFace(),
+			paletteItem.emplace_back(IG::withoutDotExtension(name), &defaultFace(),
 				[this, name = name.data()](Input::Event)
 				{
 					system().defaultPaletteName = name;
@@ -1059,7 +1059,7 @@ public:
 			});
 		for(const auto &name : paletteName)
 		{
-			paletteItem.emplace_back(IG::stringWithoutDotExtension(name), &defaultFace(),
+			paletteItem.emplace_back(IG::withoutDotExtension(name), &defaultFace(),
 				[this, name = name.data()](Input::Event)
 				{
 					system().sessionOptionSet();

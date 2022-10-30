@@ -89,17 +89,17 @@ FS::PathString machineBasePath(MsxSystem &sys)
 
 bool hasMSXTapeExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".cas", ".CAS");
+	return IG::endsWithAnyCaseless(name, ".cas");
 }
 
 bool hasMSXDiskExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".dsk", ".DSK");
+	return IG::endsWithAnyCaseless(name, ".dsk");
 }
 
 bool hasMSXROMExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".rom", ".mx1", ".mx2", ".col", ".ROM", ".MX1", ".MX2", ".COL");
+	return IG::endsWithAnyCaseless(name, ".rom", ".mx1", ".mx2", ".col");
 }
 
 static bool hasMSXExtension(std::string_view name)

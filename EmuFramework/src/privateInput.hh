@@ -18,9 +18,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/input/Device.hh>
 #include <imagine/util/string/StaticString.hh>
-#ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
-#endif
 #include <emuframework/EmuInput.hh>
 #include <emuframework/VController.hh>
 #include <memory>

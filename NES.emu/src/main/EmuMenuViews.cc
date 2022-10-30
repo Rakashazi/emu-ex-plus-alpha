@@ -287,7 +287,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 			{
 				auto fsFilter = [](std::string_view name)
 					{
-						return IG::stringEndsWithAny(name, ".pal", ".PAL");
+						return IG::endsWithAnyCaseless(name, ".pal");
 					};
 				auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::FILE, fsFilter, e, false);
 				fPicker->setOnSelectPath(
@@ -311,7 +311,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 		{
 			if(idx == defaultPaletteCustomFileIdx())
 			{
-				t.resetString(IG::stringWithoutDotExtension(appContext().fileUriDisplayName(system().defaultPalettePath)));
+				t.resetString(IG::withoutDotExtension(appContext().fileUriDisplayName(system().defaultPalettePath)));
 				return true;
 			}
 			return false;

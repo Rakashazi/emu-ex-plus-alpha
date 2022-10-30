@@ -71,14 +71,16 @@ constexpr int isxdigit(std::integral auto c)
 	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
-constexpr int tolower(std::integral auto c)
+template<std::integral T>
+constexpr T tolower(T c)
 {
 	if(c >= 'A' && c <= 'Z')
 		return c | 0x20;
 	return c;
 }
 
-constexpr int toupper(std::integral auto c)
+template<std::integral T>
+constexpr T toupper(T c)
 {
 	if(c >= 'a' && c <= 'z')
 		return c ^ 0x20;

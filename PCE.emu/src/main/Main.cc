@@ -40,12 +40,12 @@ bool EmuApp::needsGlobalInstance = true;
 
 bool hasHuCardExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".pce", ".sgx", ".PCE", ".SGX");
+	return IG::endsWithAnyCaseless(name, ".pce", ".sgx");
 }
 
 static bool hasCDExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".toc", ".cue", ".ccd", ".chd", ".TOC", ".CUE", ".CCD", ".CHD");
+	return IG::endsWithAnyCaseless(name, ".toc", ".cue", ".ccd", ".chd");
 }
 
 static bool hasPCEWithCDExtension(std::string_view name)
@@ -178,7 +178,7 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 		stream->setSize(size);
 		MDFNFILE fp(&NVFS, std::move(stream));
 		GameFile gf{&NVFS, std::string{contentDirectory()}, fp.stream(),
-			stringWithoutDotExtension<std::string>(contentFileName()),
+			std::string{withoutDotExtension(contentFileName())},
 			std::string{contentName()}};
 		mdfnGameInfo.Load(&gf);
 	}

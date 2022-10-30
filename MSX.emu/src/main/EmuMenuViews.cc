@@ -87,7 +87,7 @@ static std::vector<FS::FileString> machinesNames(IG::ApplicationContext ctx, std
 	std::sort(machineName.begin(), machineName.end(),
 		[](const FS::FileString &n1, const FS::FileString &n2)
 		{
-			return IG::stringNoCaseLexCompare(n1, n2);
+			return IG::caselessLexCompare(n1, n2);
 		});
 	// remove any duplicates
 	auto dupeEraseIt = std::unique(machineName.begin(), machineName.end());

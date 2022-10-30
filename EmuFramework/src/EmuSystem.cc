@@ -85,7 +85,7 @@ void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, double speed)
 void EmuSystem::setupContentUriPaths(IG::CStringView uri, std::string_view displayName)
 {
 	contentFileName_ = displayName;
-	contentName_ = IG::stringWithoutDotExtension(contentFileName_);
+	contentName_ = IG::withoutDotExtension(contentFileName_);
 	contentLocation_ = uri;
 	contentDirectory_ = FS::dirnameUri(uri);
 	updateContentSaveDirectory();
@@ -94,7 +94,7 @@ void EmuSystem::setupContentUriPaths(IG::CStringView uri, std::string_view displ
 void EmuSystem::setupContentFilePaths(IG::CStringView filePath, std::string_view displayName)
 {
 	contentFileName_ = displayName;
-	contentName_ = IG::stringWithoutDotExtension(contentFileName_);
+	contentName_ = IG::withoutDotExtension(contentFileName_);
 	// find the realpath of the dirname portion separately in case the file is a symlink
 	auto fileDir = FS::dirname(filePath);
 	if(fileDir == ".")
@@ -495,7 +495,7 @@ void EmuSystem::setContentDisplayName(std::string_view name)
 
 FS::FileString EmuSystem::contentDisplayNameForPathDefaultImpl(IG::CStringView path) const
 {
-	return IG::stringWithoutDotExtension<FS::FileString>(appContext().fileUriDisplayName(path));
+	return FS::FileString{IG::withoutDotExtension(appContext().fileUriDisplayName(path))};
 }
 
 void EmuSystem::setInitialLoadPath(IG::CStringView path)

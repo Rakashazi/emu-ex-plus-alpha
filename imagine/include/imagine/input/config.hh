@@ -80,8 +80,9 @@ namespace Config
 	static constexpr bool RELATIVE_MOTION_DEVICES = false;
 	#endif
 
-	#ifdef CONFIG_BLUETOOTH
+	#if defined CONFIG_BASE_X11 || defined __ANDROID__ || defined __APPLE__
 	static constexpr bool BLUETOOTH = true;
+	#define CONFIG_INPUT_BLUETOOTH
 	#else
 	static constexpr bool BLUETOOTH = false;
 	#endif
@@ -89,6 +90,6 @@ namespace Config
 
 }
 
-#ifdef CONFIG_BLUETOOTH
+#ifdef CONFIG_INPUT_BLUETOOTH
 #include <imagine/input/bluetoothInputDefs.hh>
 #endif

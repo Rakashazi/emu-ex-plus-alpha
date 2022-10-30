@@ -15,7 +15,7 @@
 
 #include <imagine/input/Device.hh>
 #include <imagine/input/Input.hh>
-#ifdef CONFIG_BLUETOOTH
+#ifdef CONFIG_INPUT_BLUETOOTH
 #include <imagine/bluetooth/Wiimote.hh>
 #include <imagine/bluetooth/Zeemote.hh>
 #include <imagine/bluetooth/IControlPad.hh>
@@ -536,7 +536,7 @@ static std::pair<Key, Key> joystickKeys(Map map, AxisId axisId)
 	switch(map)
 	{
 		case Map::SYSTEM: return joystickKeys(axisId);
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE:
 		case Map::WII_CC: return ::IG::Wiimote::joystickKeys(map, axisId);
 		case Map::ICONTROLPAD: return ::IG::IControlPad::joystickKeys(axisId);

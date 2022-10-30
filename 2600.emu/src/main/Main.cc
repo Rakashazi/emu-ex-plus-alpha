@@ -49,7 +49,7 @@ IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats:
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::stringEndsWithAny(name, ".a26", ".bin", ".A26", ".BIN");
+		return IG::endsWithAnyCaseless(name, ".a26", ".bin");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = EmuSystem::defaultFsFilter;
 bool EmuApp::needsGlobalInstance = true;

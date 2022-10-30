@@ -56,9 +56,10 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	autosaveLaunchItem
 	{
-		{"Load",            &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::Load)},
-		{"Load (No State)", &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::LoadNoState)},
-		{"Ask",             &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::Ask)},
+		{"Main Slot",            &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::Load)},
+		{"Main Slot (No State)", &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::LoadNoState)},
+		{"No Save Slot",         &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::NoSave)},
+		{"Select Slot",          &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::Ask)},
 	},
 	autosaveLaunch
 	{

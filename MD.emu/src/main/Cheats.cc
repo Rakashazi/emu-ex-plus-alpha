@@ -447,7 +447,7 @@ void readCheatFile(EmuSystem &sys_)
 		cheat.name.resize(MAX_CHEAT_NAME_CHARS);
 		auto items = sscanf(line, "%11s %" PP_STRINGIFY_EXP(MAX_CHEAT_NAME_CHARS) "[^\n]", tempCode.data(), cheat.name.data());
 		cheat.name.resize(strlen(cheat.name.data()));
-		cheat.code = IG::stringToUpper<decltype(cheat.code)>(tempCode.data());
+		cheat.code = IG::toUpperCase<decltype(cheat.code)>(tempCode.data());
 
 		if(items == 2) // code & name
 		{
@@ -534,7 +534,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code,
 				[this](EmuApp &, auto str)
 				{
-					cheat->code = IG::stringToUpper<decltype(cheat->code)>(str);
+					cheat->code = IG::toUpperCase<decltype(cheat->code)>(str);
 					if(!decodeCheat(cheat->code.data(), cheat->address, cheat->data, cheat->origData))
 					{
 						cheat->code.clear();
@@ -622,7 +622,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 							return true;
 						}
 						MdCheat c;
-						c.code = IG::stringToUpper<decltype(c.code)>(str);
+						c.code = IG::toUpperCase<decltype(c.code)>(str);
 						if(!decodeCheat(c.code.data(), c.address, c.data, c.origData))
 						{
 							app().postMessage(true, "Invalid code");

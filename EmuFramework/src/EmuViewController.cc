@@ -428,10 +428,8 @@ void EmuViewController::showSystemActionsView(ViewAttachParams attach, const Inp
 
 void EmuViewController::onInputDevicesChanged()
 {
-	#ifdef CONFIG_BLUETOOTH
 	if(viewStack.size() == 1) // update bluetooth items
 		viewStack.top().onShow();
-	#endif
 }
 
 void EmuViewController::onSystemCreated()

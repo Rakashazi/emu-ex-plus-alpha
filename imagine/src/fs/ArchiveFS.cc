@@ -104,7 +104,7 @@ IG::ArchiveIO fileFromArchive(IG::IO io, std::string_view filePath)
 
 bool hasArchiveExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".7z", ".rar", ".zip", ".7Z", ".RAR", ".ZIP");
+	return endsWithAnyCaseless(name, ".7z", ".rar", ".zip");
 }
 
 }

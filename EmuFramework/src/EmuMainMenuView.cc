@@ -35,10 +35,8 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
-#ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
-#endif
 
 namespace EmuEx
 {
@@ -51,8 +49,6 @@ public:
 protected:
 	TextMenuItem subConfig[7];
 };
-
-#ifdef CONFIG_BLUETOOTH
 
 BluetoothAdapter *EmuApp::bluetoothAdapter()
 {
@@ -142,17 +138,13 @@ static void handledFailedBTAdapterInit(ViewT &view, ViewAttachParams attach, con
 	#endif
 }
 
-#endif
-
 void EmuMainMenuView::onShow()
 {
 	TableView::onShow();
 	logMsg("refreshing main menu state");
 	recentGames.setActive(app().recentContent().size());
 	systemActions.setActive(system().hasContent());
-	#ifdef CONFIG_BLUETOOTH
 	bluetoothDisconnect.setActive(Bluetooth::devsConnected(appContext()));
-	#endif
 }
 
 void EmuMainMenuView::loadFileBrowserItems()
@@ -171,8 +163,7 @@ void EmuMainMenuView::loadStandardItems()
 	item.emplace_back(&onScreenInputManager);
 	item.emplace_back(&inputManager);
 	item.emplace_back(&options);
-	#ifdef CONFIG_BLUETOOTH
-	if(app().showsBluetoothScanItems())
+	if(used(scanWiimotes) && app().showsBluetoothScanItems())
 	{
 		item.emplace_back(&scanWiimotes);
 		#ifdef CONFIG_BLUETOOTH_SERVER
@@ -180,7 +171,6 @@ void EmuMainMenuView::loadStandardItems()
 		#endif
 		item.emplace_back(&bluetoothDisconnect);
 	}
-	#endif
 	item.emplace_back(&benchmark);
 	item.emplace_back(&about);
 	item.emplace_back(&exitApp);
@@ -263,7 +253,6 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 			pushAndShow(EmuFilePicker::makeForBenchmarking(attachParams(), e), e, false);
 		}
 	},
-	#ifdef CONFIG_BLUETOOTH
 	scanWiimotes
 	{
 		"Scan for Wiimotes/iCP/JS1", &defaultFace(),
@@ -310,7 +299,6 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 			}
 		}
 	},
-	#endif
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	acceptPS3ControllerConnection
 	{

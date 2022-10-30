@@ -187,7 +187,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 						postDraw();
 						return false;
 					}
-					cheat->code = IG::stringToUpper<decltype(cheat->code)>(str);
+					cheat->code = IG::toUpperCase<decltype(cheat->code)>(str);
 					writeCheatFile(system());
 					static_cast<GbcSystem&>(app.system()).applyCheats();
 					ggCode.set2ndName(str);
@@ -251,7 +251,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 							return true;
 						}
 						GbcCheat c;
-						c.code = IG::stringToUpper<decltype(c.code)>(str);
+						c.code = IG::toUpperCase<decltype(c.code)>(str);
 						c.name = "Unnamed Cheat";
 						cheatList.push_back(c);
 						logMsg("added new cheat, %zu total", cheatList.size());

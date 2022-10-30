@@ -19,10 +19,8 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <array>
-#ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
-#endif
+#include <array>
 
 namespace EmuEx
 {
@@ -54,10 +52,8 @@ protected:
 	TextMenuItem onScreenInputManager;
 	TextMenuItem inputManager;
 	TextMenuItem benchmark;
-	#ifdef CONFIG_BLUETOOTH
-	TextMenuItem scanWiimotes;
-	TextMenuItem bluetoothDisconnect;
-	#endif
+	IG_UseMemberIf(Config::Input::BLUETOOTH, TextMenuItem, scanWiimotes);
+	IG_UseMemberIf(Config::Input::BLUETOOTH, TextMenuItem, bluetoothDisconnect);
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	TextMenuItem acceptPS3ControllerConnection;
 	#endif

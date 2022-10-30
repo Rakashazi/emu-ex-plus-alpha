@@ -83,7 +83,7 @@ std::string_view BaseEvent::mapName(Map map)
 		case Map::SYSTEM: return "Key Input";
 		case Map::POINTER: return "Pointer";
 		case Map::REL_POINTER: return "Relative Pointer";
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE: return "Wiimote";
 		case Map::WII_CC: return "Classic / Wii U Pro Controller";
 		case Map::ICONTROLPAD: return "iControlPad";
@@ -105,7 +105,7 @@ uint32_t BaseEvent::mapNumKeys(Map map)
 	{
 		default: return 0;
 		case Map::SYSTEM: return Input::Keycode::COUNT;
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE: return Input::Wiimote::COUNT;
 		case Map::WII_CC: return Input::WiiCC::COUNT;
 		case Map::ICONTROLPAD: return Input::iControlPad::COUNT;
@@ -160,7 +160,7 @@ Map validateMap(uint8_t mapValue)
 	{
 		default: return Map::UNKNOWN;
 		case (uint8_t)Map::SYSTEM:
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case (uint8_t)Map::WIIMOTE:
 		case (uint8_t)Map::WII_CC:
 		case (uint8_t)Map::ICONTROLPAD:
@@ -182,7 +182,7 @@ DirectionKeys directionKeys(Map map)
 	switch(map)
 	{
 		case Map::SYSTEM: return {Keycode::UP, Keycode::RIGHT, Keycode::DOWN, Keycode::LEFT};
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE: return {Wiimote::UP, Wiimote::RIGHT, Wiimote::DOWN, Wiimote::LEFT};
 		case Map::WII_CC: return {WiiCC::UP, WiiCC::RIGHT, WiiCC::DOWN, WiiCC::LEFT};
 		case Map::ICONTROLPAD: return {iControlPad::UP, iControlPad::RIGHT, iControlPad::DOWN, iControlPad::LEFT};

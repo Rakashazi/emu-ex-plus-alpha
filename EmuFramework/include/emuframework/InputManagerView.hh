@@ -81,10 +81,8 @@ public:
 private:
 	IG_UseMemberIf(MOGA_INPUT, BoolMenuItem, mogaInputSystem);
 	IG_UseMemberIf(Config::Input::DEVICE_HOTSWAP, BoolMenuItem, notifyDeviceChange);
-	#ifdef CONFIG_BLUETOOTH
-	TextHeadingMenuItem bluetoothHeading;
+	IG_UseMemberIf(Config::Input::BLUETOOTH, TextHeadingMenuItem, bluetoothHeading);
 	IG_UseMemberIf(Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, BoolMenuItem, keepBtActive);
-	#endif
 	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
 	TextMenuItem btScanSecsItem[5];
 	MultiChoiceMenuItem btScanSecs;

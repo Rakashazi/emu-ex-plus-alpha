@@ -37,7 +37,7 @@ double EmuSystem::staticFrameTime = (199. * 515.) / 6144000.; //~59.95Hz
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::stringEndsWithAny(name, ".ngc", ".ngp", ".npc", ".NGC", ".NGP", ".NPC");
+		return IG::endsWithAnyCaseless(name, ".ngc", ".ngp", ".npc");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 bool EmuApp::needsGlobalInstance = true;
@@ -113,7 +113,7 @@ void NgpSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	stream->setSize(size);
 	MDFNFILE fp(&NVFS, std::move(stream));
 	GameFile gf{&NVFS, std::string{contentDirectory()}, fp.stream(),
-		stringWithoutDotExtension<std::string>(contentFileName()),
+		std::string{withoutDotExtension(contentFileName())},
 		std::string{contentName()}};
 	mdfnGameInfo.Load(&gf);
 	mdfnGameInfo.SetInput(0, "gamepad", (uint8*)&inputBuff);

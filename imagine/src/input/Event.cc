@@ -80,7 +80,7 @@ bool KeyEvent::isDefaultConfirmButton(uint32_t swapped) const
 	switch(map())
 	{
 		default: return false;
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE: return swapped ? isDefaultCancelButton(0) :
 				(button == Input::Wiimote::_1 || button == Input::Wiimote::NUN_Z);
 		case Map::WII_CC:
@@ -118,7 +118,7 @@ bool KeyEvent::isDefaultCancelButton(uint32_t swapped) const
 	switch(map())
 	{
 		default: return false;
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE: return swapped ? isDefaultConfirmButton(0) :
 				(button == Input::Wiimote::_2 || button == Input::Wiimote::NUN_C);
 		case Map::WII_CC:
@@ -167,7 +167,7 @@ bool KeyEvent::isDefaultLeftButton() const
 	switch(map())
 	{
 		default: return false;
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE:
 			return button == Input::Wiimote::LEFT || button == Input::Wiimote::NUN_STICK_LEFT;
 		case Map::WII_CC:
@@ -195,7 +195,7 @@ bool KeyEvent::isDefaultRightButton() const
 	switch(map())
 	{
 		default: return false;
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE:
 			return button == Input::Wiimote::RIGHT || button == Input::Wiimote::NUN_STICK_RIGHT;
 		case Map::WII_CC:
@@ -223,7 +223,7 @@ bool KeyEvent::isDefaultUpButton() const
 	switch(map())
 	{
 		default: return false;
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE:
 			return button == Input::Wiimote::UP || button == Input::Wiimote::NUN_STICK_UP;
 		case Map::WII_CC:
@@ -251,7 +251,7 @@ bool KeyEvent::isDefaultDownButton() const
 	switch(map())
 	{
 		default: return false;
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE:
 			return button == Input::Wiimote::DOWN || button == Input::Wiimote::NUN_STICK_DOWN;
 		case Map::WII_CC:
@@ -284,7 +284,7 @@ bool KeyEvent::isDefaultPageUpButton() const
 	switch(map())
 	{
 		default: return false;
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE: return button == Input::Wiimote::PLUS;
 		case Map::WII_CC: return button == Input::WiiCC::L;
 		case Map::ICONTROLPAD: return button == Input::iControlPad::L;
@@ -316,7 +316,7 @@ bool KeyEvent::isDefaultPageDownButton() const
 	switch(map())
 	{
 		default: return false;
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		case Map::WIIMOTE: return button == Input::Wiimote::MINUS;
 		case Map::WII_CC: return button == Input::WiiCC::R;
 		case Map::ICONTROLPAD: return button == Input::iControlPad::R;

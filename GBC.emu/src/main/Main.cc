@@ -32,7 +32,7 @@ double EmuSystem::staticFrameTime = 70224. / 4194304.; // ~59.7275Hz
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::stringEndsWithAny(name, ".gb", ".gbc", ".GB", ".GBC");
+		return IG::endsWithAnyCaseless(name, ".gb", ".gbc");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 constexpr IG::WP lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};

@@ -311,7 +311,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionHideOSNav,
 		optionSustainedPerformanceMode,
 		#endif
-		#ifdef CONFIG_BLUETOOTH
+		#ifdef CONFIG_INPUT_BLUETOOTH
 		optionKeepBluetoothActive,
 		optionShowBluetoothScan,
 		#endif
@@ -607,7 +607,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_HIDE_OS_NAV: return optionHideOSNav.readFromIO(io, size);
 				case CFGKEY_SUSTAINED_PERFORMANCE_MODE: return optionSustainedPerformanceMode.readFromIO(io, size);
 				#endif
-				#ifdef CONFIG_BLUETOOTH
+				#ifdef CONFIG_INPUT_BLUETOOTH
 				case CFGKEY_KEEP_BLUETOOTH_ACTIVE: return doIfUsed(optionKeepBluetoothActive, [&](auto &opt){ return opt.readFromIO(io, size); });
 				case CFGKEY_SHOW_BLUETOOTH_SCAN: return optionShowBluetoothScan.readFromIO(io, size);
 					#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE

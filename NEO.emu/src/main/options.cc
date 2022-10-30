@@ -41,7 +41,7 @@ void NeoSystem::setTimerIntOption()
 {
 	if(optionTimerInt == 2)
 	{
-		bool needsTimer = hasContent() && IG::stringContainsAny(contentDisplayName(),
+		bool needsTimer = hasContent() && IG::containsAny(contentDisplayName(),
 			"Sidekicks 2", "Sidekicks 3", "Ultimate 11", "Neo-Geo Cup", "Spin Master", "Neo Turf Masters");
 		if(needsTimer) logMsg("auto enabled timer interrupt");
 		conf.raster = needsTimer;
