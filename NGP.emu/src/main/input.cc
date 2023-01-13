@@ -37,33 +37,36 @@ enum
 	ngpKeyIdxBTurbo
 };
 
-const char *EmuSystem::inputFaceBtnName = "A/B";
-const char *EmuSystem::inputCenterBtnName = "Option";
+constexpr std::array<unsigned, 4> dpadButtonCodes
+{
+	ngpKeyIdxUp,
+	ngpKeyIdxRight,
+	ngpKeyIdxDown,
+	ngpKeyIdxLeft,
+};
+
+constexpr unsigned optionButtonCode[]{ngpKeyIdxOption};
+
+constexpr unsigned faceButtonCodes[]
+{
+	ngpKeyIdxA,
+	ngpKeyIdxB,
+};
+
+constexpr std::array gamepadComponents
+{
+	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
+	InputComponentDesc{"Option Button", optionButtonCode, InputComponent::button, CB2DO},
+	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO}
+};
+
+constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 const int EmuSystem::inputFaceBtns = 2;
-const int EmuSystem::inputCenterBtns = 1;
 const int EmuSystem::maxPlayers = 1;
 
 constexpr unsigned ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,
 		ctrlABit = 0x10, ctrlBBit = 0x20, ctrlOptionBit = 0x40;
-
-VController::Map NgpSystem::vControllerMap(int player)
-{
-	VController::Map map{};
-	map[VController::F_ELEM] = ctrlABit;
-	map[VController::F_ELEM+1] = ctrlBBit;
-
-	map[VController::C_ELEM] = ctrlOptionBit;
-
-	map[VController::D_ELEM] = ctrlUpBit | ctrlLeftBit;
-	map[VController::D_ELEM+1] = ctrlUpBit;
-	map[VController::D_ELEM+2] = ctrlUpBit | ctrlRightBit;
-	map[VController::D_ELEM+3] = ctrlLeftBit;
-	map[VController::D_ELEM+5] = ctrlRightBit;
-	map[VController::D_ELEM+6] = ctrlDownBit | ctrlLeftBit;
-	map[VController::D_ELEM+7] = ctrlDownBit;
-	map[VController::D_ELEM+8] = ctrlDownBit | ctrlRightBit;
-	return map;
-}
 
 static bool isGamepadButton(unsigned input)
 {
@@ -79,28 +82,31 @@ static bool isGamepadButton(unsigned input)
 	}
 }
 
-unsigned NgpSystem::translateInputAction(unsigned input, bool &turbo)
+InputAction NgpSystem::translateInputAction(InputAction action)
 {
-	if(!isGamepadButton(input))
-		turbo = 0;
-	switch(input)
+	if(!isGamepadButton(action.key))
+		action.setTurboFlag(false);
+	action.key = [&] -> unsigned
 	{
-		case ngpKeyIdxUp: return ctrlUpBit;
-		case ngpKeyIdxRight: return ctrlRightBit;
-		case ngpKeyIdxDown: return ctrlDownBit;
-		case ngpKeyIdxLeft: return ctrlLeftBit;
-		case ngpKeyIdxLeftUp: return ctrlLeftBit | ctrlUpBit;
-		case ngpKeyIdxRightUp: return ctrlRightBit | ctrlUpBit;
-		case ngpKeyIdxRightDown: return ctrlRightBit | ctrlDownBit;
-		case ngpKeyIdxLeftDown: return ctrlLeftBit | ctrlDownBit;
-		case ngpKeyIdxOption: return ctrlOptionBit;
-		case ngpKeyIdxATurbo: turbo = 1; [[fallthrough]];
-		case ngpKeyIdxA: return ctrlABit;
-		case ngpKeyIdxBTurbo: turbo = 1; [[fallthrough]];
-		case ngpKeyIdxB: return ctrlBBit;
-		default: bug_unreachable("input == %d", input);
-	}
-	return 0;
+		switch(action.key)
+		{
+			case ngpKeyIdxUp: return ctrlUpBit;
+			case ngpKeyIdxRight: return ctrlRightBit;
+			case ngpKeyIdxDown: return ctrlDownBit;
+			case ngpKeyIdxLeft: return ctrlLeftBit;
+			case ngpKeyIdxLeftUp: return ctrlLeftBit | ctrlUpBit;
+			case ngpKeyIdxRightUp: return ctrlRightBit | ctrlUpBit;
+			case ngpKeyIdxRightDown: return ctrlRightBit | ctrlDownBit;
+			case ngpKeyIdxLeftDown: return ctrlLeftBit | ctrlDownBit;
+			case ngpKeyIdxOption: return ctrlOptionBit;
+			case ngpKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
+			case ngpKeyIdxA: return ctrlABit;
+			case ngpKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case ngpKeyIdxB: return ctrlBBit;
+		}
+		bug_unreachable("invalid key");
+	}();
+	return action;
 }
 
 void NgpSystem::handleInputAction(EmuApp *, InputAction a)
@@ -111,6 +117,25 @@ void NgpSystem::handleInputAction(EmuApp *, InputAction a)
 void NgpSystem::clearInputBuffers(EmuInputView &)
 {
 	inputBuff = {};
+}
+
+VControllerImageIndex NgpSystem::mapVControllerButton(unsigned key) const
+{
+	using enum VControllerImageIndex;
+	switch(key)
+	{
+		case ngpKeyIdxOption: return auxButton1;
+		case ngpKeyIdxATurbo:
+		case ngpKeyIdxA: return button1;
+		case ngpKeyIdxBTurbo:
+		case ngpKeyIdxB: return button2;
+		default: return button1;
+	}
+}
+
+SystemInputDeviceDesc NgpSystem::inputDeviceDesc(int idx) const
+{
+	return gamepadDesc;
 }
 
 }

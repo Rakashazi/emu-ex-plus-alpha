@@ -27,11 +27,7 @@ public:
 	Snes9xSystem snes9xSystem;
 
 	Snes9xApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, snes9xSystem{ctx}
-	{
-		setDefaultVControlsButtonSpacing(100);
-		setDefaultVControlsButtonStagger(5); // original SNES layout
-	}
+		EmuApp{initParams, ctx}, snes9xSystem{ctx} {}
 
 	auto &system() { return snes9xSystem;  }
 	const auto &system() const { return snes9xSystem;  }

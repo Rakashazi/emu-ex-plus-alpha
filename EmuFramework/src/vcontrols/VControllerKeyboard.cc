@@ -56,7 +56,7 @@ void VControllerKeyboard::place(float btnSize, float yOffset, Gfx::ProjectionPla
 	logMsg("key size %dx%d", keyXSize, keyYSize);
 }
 
-void VControllerKeyboard::draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPlane projP) const
+void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds, Gfx::ProjectionPlane projP) const
 {
 	auto &basicEffect = cmds.basicEffect();
 	spr.draw(cmds, basicEffect);

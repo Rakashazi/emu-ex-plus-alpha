@@ -214,9 +214,9 @@ void EmuSystem::clearInputBuffers(EmuInputView &view)
 	static_cast<MainSystem*>(this)->clearInputBuffers(view);
 }
 
-unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
+InputAction EmuSystem::translateInputAction(InputAction action)
 {
-	return static_cast<MainSystem*>(this)->translateInputAction(input, turbo);
+	return static_cast<MainSystem*>(this)->translateInputAction(action);
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
@@ -229,14 +229,19 @@ std::span<const AspectRatioInfo> EmuSystem::aspectRatioInfos()
 	return MainSystem::aspectRatioInfos();
 }
 
+VControllerImageIndex EmuSystem::mapVControllerButton(unsigned key) const
+{
+	return static_cast<const MainSystem*>(this)->mapVControllerButton(key);
+}
+
+SystemInputDeviceDesc EmuSystem::inputDeviceDesc(int idx) const
+{
+	return static_cast<const MainSystem*>(this)->inputDeviceDesc(idx);
+}
+
 void EmuSystem::loadContent(IO &io, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadDel)
 {
 	static_cast<MainSystem*>(this)->loadContent(io, params, onLoadDel);
-}
-
-VController::Map EmuSystem::vControllerMap(int player)
-{
-	return static_cast<MainSystem*>(this)->vControllerMap(player);
 }
 
 VController::KbMap EmuSystem::vControllerKeyboardMap(VControllerKbMode mode)

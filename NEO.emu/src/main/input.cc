@@ -48,10 +48,38 @@ enum
 	neogeoKeyIdxTestSwitch = EmuEx::Controls::systemKeyMapStart + EmuEx::Controls::joystickKeys*2
 };
 
-const char *EmuSystem::inputFaceBtnName = "A/B/C/D";
-const char *EmuSystem::inputCenterBtnName = "Select/Start";
+constexpr std::array<unsigned, 4> dpadButtonCodes
+{
+	neogeoKeyIdxUp,
+	neogeoKeyIdxRight,
+	neogeoKeyIdxDown,
+	neogeoKeyIdxLeft,
+};
+
+constexpr unsigned centerButtonCodes[]
+{
+	neogeoKeyIdxSelect,
+	neogeoKeyIdxStart,
+};
+
+constexpr unsigned faceButtonCodes[]
+{
+	neogeoKeyIdxB,
+	neogeoKeyIdxY,
+	neogeoKeyIdxA,
+	neogeoKeyIdxX,
+};
+
+constexpr std::array gamepadComponents
+{
+	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
+	InputComponentDesc{"Select/Start Buttons", centerButtonCodes, InputComponent::button, CB2DO},
+	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO}
+};
+
+constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 const int EmuSystem::inputFaceBtns = 4;
-const int EmuSystem::inputCenterBtns = 2;
 const int EmuSystem::maxPlayers = 2;
 
 namespace NGKey
@@ -70,30 +98,6 @@ static const unsigned COIN1 = bit(0), COIN2 = bit(1), SERVICE = bit(2),
 	SELECT_COIN_EMU_INPUT = bit(9),
 	SERVICE_EMU_INPUT = bit(10);
 
-}
-
-VController::Map NeoSystem::vControllerMap(int player)
-{
-	using namespace NGKey;
-	unsigned playerMask = player << 11;
-	VController::Map map{};
-	map[VController::F_ELEM] = A | playerMask;
-	map[VController::F_ELEM+1] = B | playerMask;
-	map[VController::F_ELEM+2] = C | playerMask;
-	map[VController::F_ELEM+3] = D | playerMask;
-
-	map[VController::C_ELEM] = SELECT_COIN_EMU_INPUT | playerMask;
-	map[VController::C_ELEM+1] = START_EMU_INPUT | playerMask;
-
-	map[VController::D_ELEM] = UP | LEFT | playerMask;
-	map[VController::D_ELEM+1] = UP | playerMask;
-	map[VController::D_ELEM+2] = UP | RIGHT | playerMask;
-	map[VController::D_ELEM+3] = LEFT | playerMask;
-	map[VController::D_ELEM+5] = RIGHT | playerMask;
-	map[VController::D_ELEM+6] = DOWN | LEFT | playerMask;
-	map[VController::D_ELEM+7] = DOWN | playerMask;
-	map[VController::D_ELEM+8] = DOWN | RIGHT | playerMask;
-	return map;
 }
 
 static bool isGamepadButton(unsigned input)
@@ -115,43 +119,47 @@ static bool isGamepadButton(unsigned input)
 	}
 }
 
-unsigned NeoSystem::translateInputAction(unsigned input, bool &turbo)
+InputAction NeoSystem::translateInputAction(InputAction action)
 {
-	if(!isGamepadButton(input))
-		turbo = 0;
+	if(!isGamepadButton(action.key))
+		action.setTurboFlag(false);
 	using namespace NGKey;
-	if(input == neogeoKeyIdxTestSwitch) [[unlikely]]
+	if(action.key == neogeoKeyIdxTestSwitch) [[unlikely]]
 	{
-		return SERVICE_EMU_INPUT;
+		action.key = SERVICE_EMU_INPUT;
+		return action;
 	}
-	assert(input >= neogeoKeyIdxUp);
-	unsigned player = (input - neogeoKeyIdxUp) / EmuEx::Controls::joystickKeys;
+	assert(action.key >= neogeoKeyIdxUp);
+	unsigned player = (action.key - neogeoKeyIdxUp) / EmuEx::Controls::joystickKeys;
 	unsigned playerMask = player << 11;
-	input -= EmuEx::Controls::joystickKeys * player;
-	switch(input)
+	action.key -= EmuEx::Controls::joystickKeys * player;
+	action.key = [&] -> unsigned
 	{
-		case neogeoKeyIdxUp: return UP | playerMask;
-		case neogeoKeyIdxRight: return RIGHT | playerMask;
-		case neogeoKeyIdxDown: return DOWN | playerMask;
-		case neogeoKeyIdxLeft: return LEFT | playerMask;
-		case neogeoKeyIdxLeftUp: return LEFT | UP | playerMask;
-		case neogeoKeyIdxRightUp: return RIGHT | UP | playerMask;
-		case neogeoKeyIdxRightDown: return RIGHT | DOWN | playerMask;
-		case neogeoKeyIdxLeftDown: return LEFT | DOWN | playerMask;
-		case neogeoKeyIdxSelect: return SELECT_COIN_EMU_INPUT | playerMask;
-		case neogeoKeyIdxStart: return START_EMU_INPUT | playerMask;
-		case neogeoKeyIdxXTurbo: turbo = 1; [[fallthrough]];
-		case neogeoKeyIdxX: return C | playerMask;
-		case neogeoKeyIdxYTurbo: turbo = 1; [[fallthrough]];
-		case neogeoKeyIdxY: return D | playerMask;
-		case neogeoKeyIdxATurbo: turbo = 1; [[fallthrough]];
-		case neogeoKeyIdxA: return A | playerMask;
-		case neogeoKeyIdxBTurbo: turbo = 1; [[fallthrough]];
-		case neogeoKeyIdxB: return B | playerMask;
-		case neogeoKeyIdxABC: return A | B | C | playerMask;
-		default: bug_unreachable("input == %d", input);
-	}
-	return 0;
+		switch(action.key)
+		{
+			case neogeoKeyIdxUp: return UP | playerMask;
+			case neogeoKeyIdxRight: return RIGHT | playerMask;
+			case neogeoKeyIdxDown: return DOWN | playerMask;
+			case neogeoKeyIdxLeft: return LEFT | playerMask;
+			case neogeoKeyIdxLeftUp: return LEFT | UP | playerMask;
+			case neogeoKeyIdxRightUp: return RIGHT | UP | playerMask;
+			case neogeoKeyIdxRightDown: return RIGHT | DOWN | playerMask;
+			case neogeoKeyIdxLeftDown: return LEFT | DOWN | playerMask;
+			case neogeoKeyIdxSelect: return SELECT_COIN_EMU_INPUT | playerMask;
+			case neogeoKeyIdxStart: return START_EMU_INPUT | playerMask;
+			case neogeoKeyIdxXTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case neogeoKeyIdxX: return C | playerMask;
+			case neogeoKeyIdxYTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case neogeoKeyIdxY: return D | playerMask;
+			case neogeoKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
+			case neogeoKeyIdxA: return A | playerMask;
+			case neogeoKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case neogeoKeyIdxB: return B | playerMask;
+			case neogeoKeyIdxABC: return A | B | C | playerMask;
+		}
+		bug_unreachable("invalid key");
+	}();
+	return action;
 }
 
 void NeoSystem::handleInputAction(EmuApp *, InputAction a)
@@ -165,11 +173,11 @@ void NeoSystem::handleInputAction(EmuApp *, InputAction a)
 		// Don't permit simultaneous left + right input, locks up Metal Slug 3
 		if(isPushed && (a.key & 0xFF) == NGKey::LEFT)
 		{
-			p = IG::setBits(p, (Uint8)NGKey::RIGHT);
+			p |= (Uint8)NGKey::RIGHT;
 		}
 		else if(isPushed && (a.key & 0xFF) == NGKey::RIGHT)
 		{
-			p = IG::setBits(p, (Uint8)NGKey::LEFT);
+			p |= (Uint8)NGKey::LEFT;
 		}
 		p = IG::setOrClearBits(p, (Uint8)(a.key & 0xFF), !isPushed);
 		return;
@@ -214,4 +222,27 @@ void NeoSystem::clearInputBuffers(EmuInputView &)
 	memory.intern_p2 = 0xFF;
 }
 
+VControllerImageIndex NeoSystem::mapVControllerButton(unsigned key) const
+{
+	using enum VControllerImageIndex;
+	switch(key)
+	{
+		case neogeoKeyIdxSelect: return auxButton1;
+		case neogeoKeyIdxStart: return auxButton2;
+		case neogeoKeyIdxATurbo:
+		case neogeoKeyIdxA: return button1;
+		case neogeoKeyIdxBTurbo:
+		case neogeoKeyIdxB: return button2;
+		case neogeoKeyIdxXTurbo:
+		case neogeoKeyIdxX: return button3;
+		case neogeoKeyIdxYTurbo:
+		case neogeoKeyIdxY: return button4;
+		default: return button1;
+	}
+}
+
+SystemInputDeviceDesc NeoSystem::inputDeviceDesc(int idx) const
+{
+	return gamepadDesc;
+}
 }

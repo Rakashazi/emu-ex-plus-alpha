@@ -80,7 +80,7 @@ void BaseAlertView::place()
 
 bool BaseAlertView::inputEvent(const Input::Event &e)
 {
-	if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::CANCEL))
+	if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::CANCEL))
 	{
 		dismiss();
 		return true;

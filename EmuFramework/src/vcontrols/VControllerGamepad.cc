@@ -16,7 +16,9 @@
 #define LOGTAG "VControllerGamepad"
 #include <emuframework/VController.hh>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include <imagine/util/math/int.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/pixmap/MemPixmap.hh>
@@ -26,9 +28,9 @@
 namespace EmuEx
 {
 
-void VControllerDPad::setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, float texHeight)
+void VControllerDPad::setImage(Gfx::TextureSpan img)
 {
-	spr = {{{-.5, -.5}, {.5, .5}}, {&dpadR, {{}, {1., 64.f/texHeight}}}};
+	spr = {{{-.5, -.5}, {.5, .5}}, img};
 }
 
 void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, Gfx::ProjectionPlane projP)
@@ -40,11 +42,11 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, Gfx::ProjectionPla
 		for(auto y : iotaCount(mapPix.h()))
 			for(auto x : iotaCount(mapPix.w()))
 			{
-				int input = getInput({padArea.xPos(LT2DO) + (int)x, padArea.yPos(LT2DO) + (int)y});
+				auto input = getInput({padArea.xPos(LT2DO) + (int)x, padArea.yPos(LT2DO) + (int)y});
 				//logMsg("got input %d", input);
-				*((uint16_t*)mapPix.pixel({(int)x, (int)y})) = input == -1 ? IG::PIXEL_DESC_RGB565.build(1., 0., 0., 1.)
-										: IG::isOdd(input) ? IG::PIXEL_DESC_RGB565.build(1., 1., 1., 1.)
-										: IG::PIXEL_DESC_RGB565.build(0., 1., 0., 1.);
+				*((uint16_t*)mapPix.pixel({(int)x, (int)y})) = input == std::array{-1, -1} ? IG::PIXEL_DESC_RGB565.build(1., 0., 0., 1.)
+										: (input[0] != -1 && input[1] != -1) ? IG::PIXEL_DESC_RGB565.build(0., 1., 0., 1.)
+										: IG::PIXEL_DESC_RGB565.build(1., 1., 1., 1.);
 			}
 		mapImg = r.makeTexture({mapPix.desc(), View::imageSamplerConfig});
 		mapImg.write(0, mapPix, {});
@@ -53,28 +55,24 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, Gfx::ProjectionPla
 	}
 }
 
-void VControllerDPad::setDeadzone(Gfx::Renderer &r, int newDeadzone, Gfx::ProjectionPlane projP)
+void VControllerDPad::setDeadzone(Gfx::Renderer &r, int newDeadzone, const Window &win, Gfx::ProjectionPlane projP)
 {
-	if(deadzone != newDeadzone)
+	if(deadzoneMM100x != newDeadzone)
 	{
-		deadzone = newDeadzone;
+		deadzoneMM100x = newDeadzone;
+		deadzonePixels = win.widthMMInPixels(deadzoneMM100x / 100.);
 		updateBoundingAreaGfx(r, projP);
 	}
 }
 
 void VControllerDPad::setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity, Gfx::ProjectionPlane projP)
 {
-	if(diagonalSensitivity != newDiagonalSensitivity)
+	if(diagonalSensitivity_ != newDiagonalSensitivity)
 	{
 		logMsg("set diagonal sensitivity: %f", (double)newDiagonalSensitivity);
-		diagonalSensitivity = newDiagonalSensitivity;
+		diagonalSensitivity_ = newDiagonalSensitivity;
 		updateBoundingAreaGfx(r, projP);
 	}
-}
-
-IG::WindowRect VControllerDPad::bounds() const
-{
-	return padBaseArea;
 }
 
 void VControllerDPad::setSize(Gfx::Renderer &r, int sizeInPixels, Gfx::ProjectionPlane projP)
@@ -107,7 +105,7 @@ void VControllerDPad::setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::Project
 	}
 }
 
-void VControllerDPad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::ProjectionPlane projP)
+void VControllerDPad::setShowBounds(Gfx::Renderer &r, bool on, Gfx::ProjectionPlane projP)
 {
 	if(visualizeBounds == on)
 		return;
@@ -127,8 +125,23 @@ void VControllerDPad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::Pro
 	}
 }
 
-void VControllerDPad::draw(Gfx::RendererCommands &cmds) const
+void VControllerDPad::updateMeasurements(const IG::Window &win)
 {
+	deadzonePixels = win.widthMMInPixels(deadzoneMM100x / 100.);
+}
+
+void VControllerDPad::transposeKeysForPlayer(const EmuApp &app, int player)
+{
+	for(auto &k : keys)
+	{
+		k = app.transposeKeyForPlayer(k, player);
+	}
+}
+
+void VControllerDPad::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden) const
+{
+	if(!VController::shouldDraw(state, showHidden))
+		return;
 	cmds.basicEffect().enableTexture(cmds);
 	spr.draw(cmds);
 	if(visualizeBounds)
@@ -137,155 +150,33 @@ void VControllerDPad::draw(Gfx::RendererCommands &cmds) const
 	}
 }
 
-int VControllerDPad::getInput(IG::WP c) const
+std::array<int, 2> VControllerDPad::getInput(IG::WP c) const
 {
-	if(padArea.overlaps(c))
+	std::array<int, 2> pad{-1, -1};
+	if(state == VControllerState::OFF || !padArea.overlaps(c))
+		return pad;
+	int x = c.x - padArea.xCenter(), y = c.y - padArea.yCenter();
+	int xDeadzone = deadzonePixels, yDeadzone = deadzonePixels;
+	if(std::abs(x) > deadzonePixels)
+		yDeadzone += (std::abs(x) - deadzonePixels)/diagonalSensitivity_;
+	if(std::abs(y) > deadzonePixels)
+		xDeadzone += (std::abs(y) - deadzonePixels)/diagonalSensitivity_;
+	//logMsg("dpad offset %d,%d, deadzone %d,%d", x, y, xDeadzone, yDeadzone);
+	if(std::abs(x) > xDeadzone)
 	{
-		int x = c.x - padArea.xCenter(), y = c.y - padArea.yCenter();
-		int xDeadzone = deadzone, yDeadzone = deadzone;
-		if(std::abs(x) > deadzone)
-			yDeadzone += (std::abs(x) - deadzone)/diagonalSensitivity;
-		if(std::abs(y) > deadzone)
-			xDeadzone += (std::abs(y) - deadzone)/diagonalSensitivity;
-		//logMsg("dpad offset %d,%d, deadzone %d,%d", x, y, xDeadzone, yDeadzone);
-		int pad = 4; // init to center
-		if(std::abs(x) > xDeadzone)
-		{
-			if(x > 0)
-				pad = 5; // right
-			else
-				pad = 3; // left
-		}
-		if(std::abs(y) > yDeadzone)
-		{
-			if(y > 0)
-				pad += 3; // shift to top row
-			else
-				pad -= 3; // shift to bottom row
-		}
-		return pad == 4 ? -1 : pad; // don't send center dpad push
+		if(x > 0)
+			pad[0] = keys[1]; // right
+		else
+			pad[0] = keys[3]; // left
 	}
-	return -1;
-}
-
-VControllerGamepad::VControllerGamepad(int faceButtons, int centerButtons):
-	centerBtns{centerButtons},
-	faceBtns{faceButtons}
-{
-	if(EmuSystem::inputHasTriggers())
+	if(std::abs(y) > yDeadzone)
 	{
-		lTriggerPtr = &faceBtns.buttons()[EmuSystem::inputLTriggerIndex];
-		rTriggerPtr = &faceBtns.buttons()[EmuSystem::inputRTriggerIndex];
+		if(y > 0)
+			pad[1] = keys[2]; // down
+		else
+			pad[1] = keys[0]; // up
 	}
-}
-
-void VControllerGamepad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::ProjectionPlane projP)
-{
-	dp.setBoundingAreaVisible(r, on, projP);
-	centerBtns.setShowBounds(on);
-	faceBtns.setShowBounds(on);
-}
-
-static FRect faceButtonCoordinates(int slot, float texHeight)
-{
-	switch(slot)
-	{
-		case 0: return {{0., 82.f/texHeight}, {32./64., 114.f/texHeight}};
-		case 1: return {{33./64., 83.f/texHeight}, {1., 114.f/texHeight}};
-		case 2:
-			if(texHeight == 128.f)
-				return {{0., 82.f/texHeight}, {32./64., 114.f/texHeight}};
-			else
-				return {{0., 115.f/texHeight}, {32./64., 147.f/texHeight}};
-		case 3:
-			if(texHeight == 128.f)
-				return {{33./64., 83.f/texHeight}, {1., 114.f/texHeight}};
-			else
-				return {{33./64., 116.f/texHeight}, {1., 147.f/texHeight}};
-		case 4: return {{0., 148.f/texHeight}, {32./64., 180.f/texHeight}};
-		case 5: return {{33./64., 149.f/texHeight}, {1., 180.f/texHeight}};
-		case 6: return {{0., 181.f/texHeight}, {32./64., 213.f/texHeight}};
-		case 7: return {{33./64., 182.f/texHeight}, {1., 213.f/texHeight}};
-	}
-	bug_unreachable("invalid slot:%d", slot);
-}
-
-void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::Texture &pics)
-{
-	float h = EmuSystem::inputFaceBtns == 2 || EmuSystem::inputHasShortBtnTexture ? 128. : 256.;
-	dp.setImg(r, pics, h);
-	centerBtns.buttons()[0].setImage({&pics, {{0., 65.f/h}, {32./64., 81.f/h}}}, 2.f);
-	if(EmuSystem::inputCenterBtns == 2)
-	{
-		centerBtns.buttons()[1].setImage({&pics, {{33./64., 65.f/h}, {1., 81.f/h}}}, 2.f);
-	}
-	setFaceButtonMapping(r, pics, EmuSystem::vControllerImageMap);
-}
-
-void VControllerGamepad::setFaceButtonMapping(Gfx::Renderer &r, Gfx::Texture &pics, FaceButtonImageMap faceBtnMap)
-{
-	float h = EmuSystem::inputFaceBtns == 2 || EmuSystem::inputHasShortBtnTexture ? 128. : 256.;
-	for(auto i : iotaCount(EmuSystem::inputFaceBtns))
-	{
-		faceBtns.buttons()[i].setImage({&pics, faceButtonCoordinates(faceBtnMap[i], h)});
-	}
-}
-
-void VControllerGamepad::setFaceButtonSize(Gfx::Renderer &r, IG::WP sizeInPixels, IG::WP extraSizePixels, Gfx::ProjectionPlane projP)
-{
-	dp.setSize(r, IG::makeEvenRoundedUp(int(sizeInPixels.x*(double)2.5)), projP);
-	faceBtns.setButtonSize(sizeInPixels, extraSizePixels);
-}
-
-void VControllerGamepad::drawDPads(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane) const
-{
-	if(VController::shouldDraw(dp.state(), showHidden))
-	{
-		dp.draw(cmds);
-	}
-}
-
-void VControllerGamepad::drawButtons(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane projP) const
-{
-	faceBtns.draw(cmds, projP, showHidden);
-	centerBtns.draw(cmds, projP, showHidden);
-}
-
-void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane projP) const
-{
-	drawDPads(cmds, showHidden, projP);
-	drawButtons(cmds, showHidden, projP);
-}
-
-void VControllerGamepad::setSpacingPixels(int space)
-{
-	centerBtns.setSpacing(space);
-	faceBtns.setSpacing(space);
-}
-
-void VControllerGamepad::setStaggerType(int type)
-{
-	faceBtns.setStaggerType(type);
-}
-
-void VControllerGamepad::setTriggersInline(bool on)
-{
-	if(!EmuSystem::inputHasTriggers())
-		return;
-	lTriggerPtr->setShouldSkipLayout(!on);
-	rTriggerPtr->setShouldSkipLayout(!on);
-}
-
-bool VControllerGamepad::triggersInline() const
-{
-	if(!EmuSystem::inputHasTriggers())
-		return false;
-	return !lTriggerPtr->shouldSkipLayout();
-}
-
-int VControllerGamepad::faceButtonRows() const
-{
-	return faceBtns.rows();
+	return pad;
 }
 
 }

@@ -165,7 +165,7 @@ void FrameRateTestApplication::setPickerHandlers(IG::Window &win)
 	win.setOnInputEvent(
 		[this](IG::Window &win, const Input::Event &e)
 		{
-			if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::CANCEL) && !e.asKeyEvent().repeated())
+			if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::CANCEL) && !e.keyEvent()->repeated())
 			{
 				win.appContext().exit();
 				return true;

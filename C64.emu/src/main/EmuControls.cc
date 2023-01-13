@@ -150,7 +150,7 @@ constexpr KeyCategory category[]
 {
 	EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
 	{"Set Joystick Keys", gamepadName, gamepadKeyOffset},
-	{"Set Joystick 2 Keys", gamepadName, gamepad2KeyOffset, true},
+	{"Set Joystick 2 Keys", gamepadName, gamepad2KeyOffset, 1},
 	{"Set Keyboard Keys", keyboardName, keyboardKeyOffset}
 };
 

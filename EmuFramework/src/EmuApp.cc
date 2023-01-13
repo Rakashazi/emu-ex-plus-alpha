@@ -120,19 +120,8 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	emuAudio{audioManager_},
 	emuVideoLayer{emuVideo},
 	emuSystemTask{*this},
-	vController{ctx, (int)EmuSystem::inputFaceBtns, (int)EmuSystem::inputCenterBtns},
-	autoSaveTimer
-	{
-		"EmuApp::autosaveTimer",
-		[this]()
-		{
-			logMsg("running autosave timer");
-			syncEmulationThread();
-			saveAutosave();
-			resetAutosaveStateTimer();
-			return true;
-		}
-	},
+	vController{ctx},
+	autosaveManager_{*this},
 	pixmapReader{ctx},
 	pixmapWriter{ctx},
 	vibrationManager_{ctx},
@@ -147,7 +136,6 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 		false, optionIsValidWithMinMax<2000, 10000, uint16_t>},
 	optionPauseUnfocused{CFGKEY_PAUSE_UNFOCUSED, 1,
 		!(Config::envIsLinux || Config::envIsAndroid)},
-	optionAutosaveTimerMins{CFGKEY_AUTOSAVE_TIMER_MINS, 5},
 	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
 	optionFastSlowModeSpeed{CFGKEY_FAST_SLOW_MODE_SPEED, 800, false, optionIsValidWithMinMax<int(MIN_RUN_SPEED * 100.), int(MAX_RUN_SPEED * 100.)>},
 	optionSound{CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS},
@@ -230,9 +218,9 @@ public:
 
 	bool inputEvent(const Input::Event &e) final
 	{
-		if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::CANCEL))
+		if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::CANCEL))
 		{
-			if(!e.asKeyEvent().repeated())
+			if(!e.keyEvent()->repeated())
 			{
 				appContext().exit();
 			}
@@ -283,7 +271,7 @@ static void suspendEmulation(EmuApp &app)
 {
 	if(!app.system().hasContent())
 		return;
-	app.saveAutosave();
+	app.autosaveManager().save();
 	app.system().flushBackupMemory(app);
 }
 
@@ -292,13 +280,13 @@ void EmuApp::closeSystem()
 	showUI();
 	emuSystemTask.stop();
 	system().closeRuntimeSystem(*this);
-	autoSaveSlot = "";
+	autosaveManager_.resetSlot();
 	viewController().onSystemClosed();
 }
 
 void EmuApp::closeSystemWithoutSave()
 {
-	autoSaveSlot = noAutosaveName;
+	autosaveManager_.resetSlot(noAutosaveName);
 	closeSystem();
 }
 
@@ -569,12 +557,11 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			renderer.setWindowValidOrientations(win, menuOrientation());
 			updateInputDevices(ctx);
 			vController.configure(win, renderer, viewManager.defaultFace());
-			vController.setMenuImage(asset(AssetID::MENU));
-			vController.setFastForwardImage(asset(AssetID::FAST_FORWARD));
-			if constexpr(VCONTROLS_GAMEPAD)
-			{
-				vController.setImg(asset(AssetID::GAMEPAD_OVERLAY));
-			}
+			vController.add(std::array<unsigned, 1>{guiKeyIdxLastView}, InputComponent::ui, RT2DO);
+			vController.add(std::array<unsigned, 1>{guiKeyIdxFastForward}, InputComponent::ui, LT2DO);
+			if(!vController.gamepadItems())
+				vController.reset(system().inputDeviceDesc(0));
+			vController.applyLayout();
 			if(EmuSystem::inputHasKeyboard)
 			{
 				vController.setKeyboardImage(asset(AssetID::KEYBOARD_OVERLAY));
@@ -841,20 +828,20 @@ void EmuApp::setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func)
 
 void EmuApp::launchSystem(const Input::Event &e)
 {
-	if(autosaveLaunchMode == AutosaveLaunchMode::Ask)
+	if(autosaveManager_.autosaveLaunchMode == AutosaveLaunchMode::Ask)
 	{
-		autoSaveSlot = noAutosaveName;
+		autosaveManager_.resetSlot(noAutosaveName);
 		viewController().pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::SYSTEM_ACTIONS), e);
 		viewController().pushAndShow(std::make_unique<AutosaveSlotView>(attachParams()), e);
 	}
 	else
 	{
-		auto loadMode = autosaveLaunchMode == AutosaveLaunchMode::LoadNoState ? LoadAutosaveMode::NoState : LoadAutosaveMode::Normal;
-		if(autosaveLaunchMode == AutosaveLaunchMode::NoSave)
-			autoSaveSlot = noAutosaveName;
+		auto loadMode = autosaveManager_.autosaveLaunchMode == AutosaveLaunchMode::LoadNoState ? LoadAutosaveMode::NoState : LoadAutosaveMode::Normal;
+		if(autosaveManager_.autosaveLaunchMode == AutosaveLaunchMode::NoSave)
+			autosaveManager_.resetSlot(noAutosaveName);
 		static auto finishLaunch = [](EmuApp &app, LoadAutosaveMode mode)
 		{
-			app.loadAutosave(mode);
+			app.autosaveManager_.load(mode);
 			if(!app.system().hasContent())
 			{
 				logErr("system was closed while trying to load autosave state");
@@ -863,7 +850,7 @@ void EmuApp::launchSystem(const Input::Event &e)
 			app.showEmulation();
 		};
 		if(system().usesBackupMemory() && loadMode == LoadAutosaveMode::Normal &&
-			currentAutosaveStateTime() < currentAutosaveBackupMemoryTime())
+			autosaveManager_.stateTime() < autosaveManager_.backupMemoryTime())
 		{
 			auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(),
 				"Autosave state timestamp is older than the contents of backup memory, really load it even though progress may be lost?");
@@ -919,7 +906,7 @@ void EmuApp::runBenchmarkOneShot(EmuVideo &emuVideo)
 {
 	logMsg("starting benchmark");
 	IG::FloatSeconds time = system().benchmark(emuVideo);
-	autoSaveSlot = noAutosaveName;
+	autosaveManager_.resetSlot(noAutosaveName);
 	closeSystem();
 	logMsg("done in: %f", time.count());
 	postMessage(2, 0, fmt::format("{:.2f} fps", double(180.)/time.count()));
@@ -1026,7 +1013,7 @@ void EmuApp::reloadSystem(EmuSystemCreateParams params)
 			ctx.fileUriDisplayName(system().contentLocation()), params,
 			[](int pos, int max, const char *label){ return true; });
 		onSystemCreated();
-		if(autoSaveSlot != noAutosaveName)
+		if(autosaveManager_.slotName() != noAutosaveName)
 			system().loadBackupMemory(*this);
 		showEmulation();
 	}
@@ -1123,139 +1110,20 @@ void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view
 		});
 }
 
-bool EmuApp::saveAutosave()
-{
-	if(autoSaveSlot == noAutosaveName)
-		return true;
-	logMsg("saving autosave slot:%s", autoSaveSlot.c_str());
-	system().flushBackupMemory(*this);
-	return saveState(currentAutosaveStatePath());
-}
-
-bool EmuApp::loadAutosave(LoadAutosaveMode mode)
-{
-	if(autoSaveSlot == noAutosaveName)
-		return true;
-	system().loadBackupMemory(*this);
-	auto statePath = currentAutosaveStatePath();
-	if(appContext().fileUriExists(statePath))
-	{
-		if(mode == LoadAutosaveMode::NoState)
-		{
-			logMsg("skipped loading autosave state");
-			return true;
-		}
-		logMsg("loading autosave state");
-		return loadState(statePath);
-	}
-	else
-	{
-		logMsg("autosave state doesn't exist, creating");
-		return saveState(statePath);
-	}
-}
-
-bool EmuApp::setAutosave(std::string_view name)
-{
-	if(autoSaveSlot == name)
-		return true;
-	if(!saveAutosave())
-		return false;
-	if(name.size() && name != noAutosaveName)
-	{
-		if(!system().createContentLocalSaveDirectory(name))
-			return false;
-	}
-	autoSaveSlot = name;
-	autoSaveTimerElapsedTime = {};
-	return loadAutosave();
-}
-
-bool EmuApp::renameAutosave(std::string_view name, std::string_view newName)
-{
-	if(!appContext().renameFileUri(system().contentLocalSaveDirectory(name),
-		system().contentLocalSaveDirectory(newName)))
-	{
-		return false;
-	}
-	if(name == autoSaveSlot)
-		autoSaveSlot = newName;
-	return true;
-}
-
-bool EmuApp::deleteAutosave(std::string_view name)
-{
-	if(name == autoSaveSlot)
-		return false;
-	auto ctx = appContext();
-	if(!ctx.forEachInDirectoryUri(system().contentLocalSaveDirectory(name),
-			[this, ctx](const FS::directory_entry &e)
-		{
-			ctx.removeFileUri(e.path());
-			return true;
-		}, FS::DirOpenFlagsMask::Test))
-	{
-		return false;
-	}
-	if(!ctx.removeFileUri(system().contentLocalSaveDirectory(name)))
-	{
-		return false;
-	}
-	return true;
-}
-
-std::string EmuApp::currentAutosaveName() const
-{
-	if(autoSaveSlot == noAutosaveName)
-		return "No Save";
-	else if(autoSaveSlot.empty())
-		return "Main";
-	else
-		return autoSaveSlot;
-}
-
-std::string EmuApp::currentAutosaveStateTimeAsString() const
-{
-	if(autoSaveSlot == noAutosaveName)
-		return "";
-	return appContext().fileUriFormatLastWriteTimeLocal(currentAutosaveStatePath());
-}
-
-IG::Time EmuApp::currentAutosaveStateTime() const
-{
-	if(autoSaveSlot == noAutosaveName)
-		return {};
-	return appContext().fileUriLastWriteTime(currentAutosaveStatePath());
-}
-
-IG::Time EmuApp::currentAutosaveBackupMemoryTime() const
-{
-	if(!system().usesBackupMemory() || autoSaveSlot == noAutosaveName)
-		return {};
-	return system().backupMemoryLastWriteTime(*this);
-}
-
-FS::PathString EmuApp::autosaveStatePath(std::string_view name) const
-{
-	if(name == noAutosaveName)
-		return "";
-	if(name.empty())
-		return system().statePath(-1);
-	return system().contentLocalSaveDirectory(name, system().stateFilename(defaultAutosaveFilename));
-}
-
 FS::PathString EmuApp::contentSavePath(std::string_view name) const
 {
-	if(autoSaveSlot.size() && autoSaveSlot != noAutosaveName)
-		return system().contentLocalSaveDirectory(autoSaveSlot, name);
+	auto slotName = autosaveManager_.slotName();
+	if(slotName.size() && slotName != noAutosaveName)
+		return system().contentLocalSaveDirectory(slotName, name);
 	else
 		return system().contentSavePath(name);
 }
 
 FS::PathString EmuApp::contentSaveFilePath(std::string_view ext) const
 {
-	if(autoSaveSlot.size() && autoSaveSlot != noAutosaveName)
-		return system().contentLocalSaveDirectory(autoSaveSlot, FS::FileString{"auto"}.append(ext));
+	auto slotName = autosaveManager_.slotName();
+	if(slotName.size() && slotName != noAutosaveName)
+		return system().contentLocalSaveDirectory(slotName, FS::FileString{"auto"}.append(ext));
 	else
 		return system().contentSaveFilePath(ext);
 }
@@ -1298,7 +1166,7 @@ bool EmuApp::loadState(IG::CStringView path)
 	try
 	{
 		system().loadState(*this, path);
-		resetAutosaveStateTimer();
+		autosaveManager_.resetTimer();
 		return true;
 	}
 	catch(std::exception &err)
@@ -1315,16 +1183,6 @@ bool EmuApp::loadStateWithSlot(int slot)
 {
 	assert(slot != -1);
 	return loadState(system().statePath(slot));
-}
-
-void EmuApp::setDefaultVControlsButtonSpacing(int spacing)
-{
-	vController.setDefaultButtonSpacing(spacing);
-}
-
-void EmuApp::setDefaultVControlsButtonStagger(int stagger)
-{
-	vController.setDefaultButtonStagger(stagger);
 }
 
 FS::PathString EmuApp::contentSearchPath(std::string_view name) const
@@ -1352,6 +1210,23 @@ FS::PathString EmuApp::validSearchPath(const FS::PathString &path) const
 [[gnu::weak]] std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, EmuApp::ViewID id)
 {
 	return nullptr;
+}
+
+void EmuApp::handleSystemKeyInput(InputAction action)
+{
+	action = system().translateInputAction(action);
+	if(to_underlying(action.flags & InputActionFlagsMask::turbo))
+	{
+		if(action.state == Input::Action::PUSHED)
+		{
+			addTurboInputEvent(action.key);
+		}
+		else
+		{
+			removeTurboInputEvent(action.key);
+		}
+	}
+	system().handleInputAction(this, action);
 }
 
 void EmuApp::addTurboInputEvent(unsigned action)
@@ -1510,46 +1385,6 @@ void EmuApp::syncEmulationThread()
 	emuSystemTask.pause();
 }
 
-void EmuApp::pauseAutosaveStateTimer()
-{
-	autoSaveTimerElapsedTime = IG::steadyClockTimestamp() - autoSaveTimerStartTime;
-	autoSaveTimer.cancel();
-}
-
-void EmuApp::cancelAutosaveStateTimer()
-{
-	autoSaveTimerElapsedTime = {};
-	autoSaveTimer.cancel();
-}
-
-void EmuApp::resetAutosaveStateTimer()
-{
-	autoSaveTimerStartTime = IG::steadyClockTimestamp();
-}
-
-void EmuApp::startAutosaveStateTimer()
-{
-	if(!autosaveTimerFrequency().count())
-		return;
-	autoSaveTimer.run(nextAutosaveTimerFireTime(), autosaveTimerFrequency());
-	autoSaveTimerStartTime = IG::steadyClockTimestamp();
-}
-
-IG::Time EmuApp::nextAutosaveTimerFireTime() const
-{
-	auto timerFreq = autosaveTimerFrequency();
-	if(autoSaveTimerElapsedTime < timerFreq)
-		return timerFreq - autoSaveTimerElapsedTime;
-	return {};
-}
-
-IG::Time EmuApp::autosaveTimerFrequency() const
-{
-	if(autoSaveSlot == noAutosaveName)
-		return {};
-	return IG::Minutes{optionAutosaveTimerMins.val};
-}
-
 VController &EmuApp::defaultVController()
 {
 	return vController;
@@ -1643,6 +1478,47 @@ void EmuApp::setMogaManagerActive(bool on, bool notify)
 std::span<const KeyCategory> EmuApp::inputControlCategories() const
 {
 	return Controls::categories();
+}
+
+const KeyCategory &EmuApp::categoryOfSystemKey(unsigned key) const
+{
+	size_t idx{};
+	for(const auto &c : Controls::categories())
+	{
+		if(key < unsigned(c.configOffset))
+		{
+			idx--;
+			break;
+		}
+		idx++;
+	}
+	if(idx >= Controls::categories().size())
+		idx = Controls::categories().size() - 1;
+	return Controls::categories()[idx];
+}
+
+std::string_view EmuApp::systemKeyName(unsigned key) const
+{
+	const auto &cat = categoryOfSystemKey(key);
+	return cat.keyName[key - cat.configOffset];
+}
+
+unsigned EmuApp::transposeKeyForPlayer(unsigned key, int player) const
+{
+	const auto &cat = categoryOfSystemKey(key);
+	if(!cat.configOffset) // skip emulator actions category
+		return key;
+	int transposeOffset = player - cat.multiplayerIndex;
+	if(!transposeOffset)
+		return key;
+	auto catIdx = &cat - Controls::categories().data();
+	auto transposedCatIdx = catIdx + transposeOffset;
+	if(transposedCatIdx < 0 || transposedCatIdx >= std::ranges::ssize(Controls::categories()))
+		return key;
+	const auto &transposedCat = Controls::categories()[transposedCatIdx];
+	if(cat.keyName.data() != transposedCat.keyName.data())
+		return key;
+	return key + cat.keys() * transposeOffset;
 }
 
 ViewAttachParams EmuApp::attachParams()

@@ -153,10 +153,32 @@ enum
 	c64KeyLastKeyboardKey = c64KeyApostrophe,
 };
 
-const char *EmuSystem::inputFaceBtnName = "JS Buttons";
-const char *EmuSystem::inputCenterBtnName = "F1/KB";
+constexpr std::array<unsigned, 4> dpadButtonCodes
+{
+	c64KeyIdxUp,
+	c64KeyIdxRight,
+	c64KeyIdxDown,
+	c64KeyIdxLeft,
+};
+
+constexpr unsigned shortcutButtonCodes[]
+{
+	c64KeyF1,
+	c64KeyToggleKB,
+};
+
+constexpr unsigned jsButtonCodes[]{c64KeyIdxBtn};
+
+constexpr std::array jsComponents
+{
+	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
+	InputComponentDesc{"F1 & Keyboard Toggle", shortcutButtonCodes, InputComponent::button, CB2DO},
+	InputComponentDesc{"Joystick Button", jsButtonCodes, InputComponent::button, RB2DO}
+};
+
+constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};
+
 const int EmuSystem::inputFaceBtns = 2;
-const int EmuSystem::inputCenterBtns = 2;
 bool EmuSystem::inputHasKeyboard = true;
 const int EmuSystem::maxPlayers = 2;
 
@@ -225,27 +247,6 @@ VController::KbMap C64System::vControllerKeyboardMap(VControllerKbMode mode)
 	return mode == VControllerKbMode::LAYOUT_2 ? kbToEventMap2 : kbToEventMap;
 }
 
-VController::Map C64System::vControllerMap(int player)
-{
-	const unsigned p2Bit = player ? JS_P2_BIT : 0;
-	VController::Map map{};
-	map[VController::F_ELEM] = JS_FIRE | p2Bit;
-	map[VController::F_ELEM+1] = JS_FIRE | p2Bit | VController::TURBO_BIT;
-
-	map[VController::C_ELEM] = c64KeyF1;
-	map[VController::C_ELEM+1] = KBEX_TOGGLE_VKEYBOARD;
-
-	map[VController::D_ELEM] = JS_NW | p2Bit;
-	map[VController::D_ELEM+1] = JS_N | p2Bit;
-	map[VController::D_ELEM+2] = JS_NE | p2Bit;
-	map[VController::D_ELEM+3] = JS_W | p2Bit;
-	map[VController::D_ELEM+5] = JS_E | p2Bit;
-	map[VController::D_ELEM+6] = JS_SW | p2Bit;
-	map[VController::D_ELEM+7] = JS_S | p2Bit;
-	map[VController::D_ELEM+8] = JS_SE | p2Bit;
-	return map;
-}
-
 static unsigned shiftKeycodeSymbolic(unsigned keycode)
 {
 	switch(keycode)
@@ -312,47 +313,50 @@ static bool isJoystickButton(unsigned input)
 	}
 }
 
-unsigned C64System::translateInputAction(unsigned input, bool &turbo)
+InputAction C64System::translateInputAction(InputAction action)
 {
-	if(!isJoystickButton(input))
-		turbo = 0;
-	switch(input)
+	if(!isJoystickButton(action.key))
+		action.setTurboFlag(false);
+	action.key = [&] -> unsigned
 	{
-		case c64KeyIdxUp: return JS_N;
-		case c64KeyIdxRight: return JS_E;
-		case c64KeyIdxDown: return JS_S;
-		case c64KeyIdxLeft: return JS_W;
-		case c64KeyIdxLeftUp: return JS_NW;
-		case c64KeyIdxRightUp: return JS_NE;
-		case c64KeyIdxRightDown: return JS_SE;
-		case c64KeyIdxLeftDown: return JS_SW;
-		case c64KeyIdxBtn: return JS_FIRE;
-		case c64KeyIdxBtnTurbo: turbo = 1; return JS_FIRE;
-		case c64KeyIdxSwapPorts: return KBEX_SWAP_JS_PORTS;
-
-		case c64KeyIdxUp2: return JS_N | JS_P2_BIT;
-		case c64KeyIdxRight2: return JS_E | JS_P2_BIT;
-		case c64KeyIdxDown2: return JS_S | JS_P2_BIT;
-		case c64KeyIdxLeft2: return JS_W | JS_P2_BIT;
-		case c64KeyIdxLeftUp2: return JS_NW | JS_P2_BIT;
-		case c64KeyIdxRightUp2: return JS_NE | JS_P2_BIT;
-		case c64KeyIdxRightDown2: return JS_SE | JS_P2_BIT;
-		case c64KeyIdxLeftDown2: return JS_SW | JS_P2_BIT;
-		case c64KeyIdxBtn2: return JS_FIRE | JS_P2_BIT;
-		case c64KeyIdxBtnTurbo2: turbo = 1; return JS_FIRE | JS_P2_BIT;
-		case c64KeyIdxSwapPorts2: return KBEX_SWAP_JS_PORTS;
-
-		case c64KeyToggleKB : return KBEX_TOGGLE_VKEYBOARD;
-		case c64KeyRestore : return KBEX_RESTORE;
-		case c64KeyCtrlLock : return KBEX_CTRL_LOCK;
-		default:
+		switch(action.key)
 		{
-			if(!isEmuKeyInKeyboardRange(input))
-				return KBEX_NONE;
-			return input;
+			case c64KeyIdxUp: return JS_N;
+			case c64KeyIdxRight: return JS_E;
+			case c64KeyIdxDown: return JS_S;
+			case c64KeyIdxLeft: return JS_W;
+			case c64KeyIdxLeftUp: return JS_NW;
+			case c64KeyIdxRightUp: return JS_NE;
+			case c64KeyIdxRightDown: return JS_SE;
+			case c64KeyIdxLeftDown: return JS_SW;
+			case c64KeyIdxBtn: return JS_FIRE;
+			case c64KeyIdxBtnTurbo: action.setTurboFlag(true); return JS_FIRE;
+			case c64KeyIdxSwapPorts: return KBEX_SWAP_JS_PORTS;
+
+			case c64KeyIdxUp2: return JS_N | JS_P2_BIT;
+			case c64KeyIdxRight2: return JS_E | JS_P2_BIT;
+			case c64KeyIdxDown2: return JS_S | JS_P2_BIT;
+			case c64KeyIdxLeft2: return JS_W | JS_P2_BIT;
+			case c64KeyIdxLeftUp2: return JS_NW | JS_P2_BIT;
+			case c64KeyIdxRightUp2: return JS_NE | JS_P2_BIT;
+			case c64KeyIdxRightDown2: return JS_SE | JS_P2_BIT;
+			case c64KeyIdxLeftDown2: return JS_SW | JS_P2_BIT;
+			case c64KeyIdxBtn2: return JS_FIRE | JS_P2_BIT;
+			case c64KeyIdxBtnTurbo2: action.setTurboFlag(true); return JS_FIRE | JS_P2_BIT;
+			case c64KeyIdxSwapPorts2: return KBEX_SWAP_JS_PORTS;
+
+			case c64KeyToggleKB : return KBEX_TOGGLE_VKEYBOARD;
+			case c64KeyRestore : return KBEX_RESTORE;
+			case c64KeyCtrlLock : return KBEX_CTRL_LOCK;
+			default:
+			{
+				if(!isEmuKeyInKeyboardRange(action.key))
+					return KBEX_NONE;
+				return action.key;
+			}
 		}
-	}
-	return 0;
+	}();
+	return action;
 }
 
 void C64System::handleKeyboardInput(InputAction a, bool positionalShift)
@@ -519,6 +523,24 @@ void C64System::setJoystickMode(JoystickMode mode)
 		setIntResource("JoyPort1Device", JOYPORT_ID_JOYSTICK);
 		setIntResource("JoyPort2Device", JOYPORT_ID_JOYSTICK);
 	}
+}
+
+VControllerImageIndex C64System::mapVControllerButton(unsigned key) const
+{
+	using enum VControllerImageIndex;
+	switch(key)
+	{
+		case c64KeyF1: return auxButton1;
+		case c64KeyToggleKB: return auxButton1;
+		case c64KeyIdxBtn: return button1;
+		case c64KeyIdxBtnTurbo: return button2;
+		default: return button1;
+	}
+}
+
+SystemInputDeviceDesc C64System::inputDeviceDesc(int idx) const
+{
+	return jsDesc;
 }
 
 }

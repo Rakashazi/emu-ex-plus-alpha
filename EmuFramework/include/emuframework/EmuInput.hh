@@ -41,12 +41,12 @@ struct KeyCategory
 	std::string_view name;
 	std::span<const std::string_view> keyName;
 	int configOffset{};
-	bool isMultiplayer{}; // category appears when one input device is assigned multiple players
+	int multiplayerIndex{}; // if >= 1, category appears when one input device is assigned multiple players
 
 	constexpr KeyCategory() = default;
 	constexpr KeyCategory(std::string_view name, std::span<const std::string_view> keyName,
-		int configOffset, bool isMultiplayer = false) :
-	name(name), keyName(keyName), configOffset(configOffset), isMultiplayer(isMultiplayer) {}
+		int configOffset, int multiplayerIndex = 0) :
+	name(name), keyName(keyName), configOffset(configOffset), multiplayerIndex(multiplayerIndex) {}
 	constexpr size_t keys() const { return keyName.size(); }
 };
 

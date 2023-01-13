@@ -22,6 +22,16 @@ namespace IG
 {
 
 template <class T>
+concept BitSet =
+	requires(T &&v)
+	{
+		~v;
+		v | T{};
+		v & T{};
+		v ^ T{};
+	};
+
+template <class T>
 constexpr inline auto bitSize = std::numeric_limits<T>::digits;
 
 template <std::unsigned_integral T = unsigned>
@@ -36,29 +46,19 @@ constexpr T bits(int numBits)
 	return numBits ? std::numeric_limits<T>::max() >> (bitSize<T> - numBits) : 0;
 }
 
-constexpr auto setBits(std::integral auto x, std::integral auto mask)
-{
-	return x | mask; // OR mask to set
-}
-
-constexpr auto clearBits(std::integral auto x, std::integral auto mask)
+constexpr auto clearBits(BitSet auto x, BitSet auto mask)
 {
 	return x & ~mask; // AND with the NOT of mask to unset
 }
 
-constexpr auto setOrClearBits(std::integral auto x, std::integral auto mask, bool condition)
+constexpr auto setOrClearBits(BitSet auto x, BitSet auto mask, bool condition)
 {
-	return condition ? setBits(x, mask) : clearBits(x, mask);
+	return condition ? (x | mask) : clearBits(x, mask);
 }
 
-constexpr auto flipBits(std::integral auto x, std::integral auto mask)
+constexpr auto updateBits(BitSet auto x, BitSet auto mask, BitSet auto updateMask)
 {
-	return x ^ mask; // XOR mask to flip
-}
-
-constexpr auto updateBits(std::integral auto x, std::integral auto mask, std::integral auto updateMask)
-{
-	return setBits(clearBits(x, updateMask), mask);
+	return clearBits(x, updateMask) | mask;
 }
 
 constexpr auto swapBits(std::integral auto x, std::integral auto range1, std::integral auto range2, std::integral auto rangeSize)
@@ -67,7 +67,7 @@ constexpr auto swapBits(std::integral auto x, std::integral auto range1, std::in
 	return x ^ ((t << range1) | (t << range2));
 }
 
-constexpr bool isBitMaskSet(std::integral auto x, std::integral auto mask)
+constexpr bool isBitMaskSet(BitSet auto x, BitSet auto mask)
 {
 	return (x & mask) == mask; //AND mask, if the result equals mask, all bits match
 }

@@ -41,12 +41,37 @@ enum
 	nesKeyIdxAB,
 };
 
-const char *EmuSystem::inputFaceBtnName = "A/B";
-const char *EmuSystem::inputCenterBtnName = "Select/Start";
+constexpr std::array<unsigned, 4> dpadButtonCodes
+{
+	nesKeyIdxUp,
+	nesKeyIdxRight,
+	nesKeyIdxDown,
+	nesKeyIdxLeft,
+};
+
+constexpr unsigned centerButtonCodes[]
+{
+	nesKeyIdxSelect,
+	nesKeyIdxStart,
+};
+
+constexpr unsigned faceButtonCodes[]
+{
+	nesKeyIdxB,
+	nesKeyIdxA,
+};
+
+constexpr std::array gamepadComponents
+{
+	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
+	InputComponentDesc{"Center Buttons", centerButtonCodes, InputComponent::button, CB2DO},
+	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO}
+};
+
+constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 const int EmuSystem::inputFaceBtns = 2;
-const int EmuSystem::inputCenterBtns = 2;
 const int EmuSystem::maxPlayers = 4;
-std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0};
 
 void NesSystem::connectNESInput(int port, ESI type)
 {
@@ -65,28 +90,6 @@ void NesSystem::connectNESInput(int port, ESI type)
 	{
 		FCEUI_SetInput(port, SI_NONE, 0, 0);
 	}
-}
-
-VController::Map NesSystem::vControllerMap(int player)
-{
-	using namespace IG;
-	unsigned playerMask = player << 8;
-	VController::Map map{};
-	map[VController::F_ELEM] = bit(1) | playerMask;
-	map[VController::F_ELEM+1] = bit(0) | playerMask;
-
-	map[VController::C_ELEM] = bit(2) | playerMask;
-	map[VController::C_ELEM+1] = bit(3) | playerMask;
-
-	map[VController::D_ELEM] = bit(4) | bit(6) | playerMask;
-	map[VController::D_ELEM+1] = bit(4) | playerMask;
-	map[VController::D_ELEM+2] = bit(4) | bit(7) | playerMask;
-	map[VController::D_ELEM+3] = bit(6) | playerMask;
-	map[VController::D_ELEM+5] = bit(7) | playerMask;
-	map[VController::D_ELEM+6] = bit(5) | bit(6) | playerMask;
-	map[VController::D_ELEM+7] = bit(5) | playerMask;
-	map[VController::D_ELEM+8] = bit(5) | bit(7) | playerMask;
-	return map;
 }
 
 static unsigned playerInputShift(int player)
@@ -115,34 +118,37 @@ static bool isGamepadButton(unsigned input)
 	}
 }
 
-unsigned NesSystem::translateInputAction(unsigned input, bool &turbo)
+InputAction NesSystem::translateInputAction(InputAction action)
 {
-	if(!isGamepadButton(input))
-		turbo = 0;
-	assert(input >= nesKeyIdxUp);
-	int player = (input - nesKeyIdxUp) / Controls::gamepadKeys;
+	if(!isGamepadButton(action.key))
+		action.setTurboFlag(false);
+	assert(action.key >= nesKeyIdxUp);
+	int player = (action.key - nesKeyIdxUp) / Controls::gamepadKeys;
 	unsigned playerMask = player << 8;
-	input -= Controls::gamepadKeys * player;
-	switch(input)
+	action.key -= Controls::gamepadKeys * player;
+	action.key = [&] -> unsigned
 	{
-		case nesKeyIdxUp: return bit(4) | playerMask;
-		case nesKeyIdxRight: return bit(7) | playerMask;
-		case nesKeyIdxDown: return bit(5) | playerMask;
-		case nesKeyIdxLeft: return bit(6) | playerMask;
-		case nesKeyIdxLeftUp: return bit(6) | bit(4) | playerMask;
-		case nesKeyIdxRightUp: return bit(7) | bit(4) | playerMask;
-		case nesKeyIdxRightDown: return bit(7) | bit(5) | playerMask;
-		case nesKeyIdxLeftDown: return bit(6) | bit(5) | playerMask;
-		case nesKeyIdxSelect: return bit(2) | playerMask;
-		case nesKeyIdxStart: return bit(3) | playerMask;
-		case nesKeyIdxATurbo: turbo = 1; [[fallthrough]];
-		case nesKeyIdxA: return bit(0) | playerMask;
-		case nesKeyIdxBTurbo: turbo = 1; [[fallthrough]];
-		case nesKeyIdxB: return bit(1) | playerMask;
-		case nesKeyIdxAB: return bit(0) | bit(1) | playerMask;
-		default: bug_unreachable("input == %d", input);
-	}
-	return 0;
+		switch(action.key)
+		{
+			case nesKeyIdxUp: return bit(4) | playerMask;
+			case nesKeyIdxRight: return bit(7) | playerMask;
+			case nesKeyIdxDown: return bit(5) | playerMask;
+			case nesKeyIdxLeft: return bit(6) | playerMask;
+			case nesKeyIdxLeftUp: return bit(6) | bit(4) | playerMask;
+			case nesKeyIdxRightUp: return bit(7) | bit(4) | playerMask;
+			case nesKeyIdxRightDown: return bit(7) | bit(5) | playerMask;
+			case nesKeyIdxLeftDown: return bit(6) | bit(5) | playerMask;
+			case nesKeyIdxSelect: return bit(2) | playerMask;
+			case nesKeyIdxStart: return bit(3) | playerMask;
+			case nesKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
+			case nesKeyIdxA: return bit(0) | playerMask;
+			case nesKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case nesKeyIdxB: return bit(1) | playerMask;
+			case nesKeyIdxAB: return bit(0) | bit(1) | playerMask;
+		}
+		bug_unreachable("invalid key");
+	}();
+	return action;
 }
 
 void NesSystem::handleInputAction(EmuApp *, InputAction a)
@@ -205,6 +211,26 @@ void NesSystem::clearInputBuffers(EmuInputView &)
 	IG::fill(zapperData);
 	padData = {};
 	fcExtData = {};
+}
+
+VControllerImageIndex NesSystem::mapVControllerButton(unsigned key) const
+{
+	using enum VControllerImageIndex;
+	switch(key)
+	{
+		case nesKeyIdxSelect: return auxButton1;
+		case nesKeyIdxStart: return auxButton2;
+		case nesKeyIdxATurbo:
+		case nesKeyIdxA: return button1;
+		case nesKeyIdxBTurbo:
+		case nesKeyIdxB: return button2;
+		default: return button1;
+	}
+}
+
+SystemInputDeviceDesc NesSystem::inputDeviceDesc(int idx) const
+{
+	return gamepadDesc;
 }
 
 }

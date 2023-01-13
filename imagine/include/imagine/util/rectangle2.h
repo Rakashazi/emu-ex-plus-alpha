@@ -169,14 +169,12 @@ public:
 
 	constexpr void setRelX(T newX, T xSize)
 	{
-		assert(xSize >= 0);
 		x = newX;
 		x2 = newX + xSize;
 	}
 
 	constexpr void setRelY(T newY, T ySize)
 	{
-		assert(ySize >= 0);
 		y = newY;
 		y2 = newY + ySize;
 	}

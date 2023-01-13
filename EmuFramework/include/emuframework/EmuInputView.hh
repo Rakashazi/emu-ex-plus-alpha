@@ -36,6 +36,7 @@ public:
 	void draw(Gfx::RendererCommands &__restrict__) final;
 	bool inputEvent(const Input::Event &) final;
 	void resetInput();
+	bool toggleFastSlowMode();
 	VController *activeVController() const { return vController; }
 
 private:

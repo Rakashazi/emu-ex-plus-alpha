@@ -26,12 +26,12 @@ namespace EmuEx
 
 TextMenuItem::SelectDelegate SystemOptionView::setAutosaveTimerDel()
 {
-	return [this](TextMenuItem &item) { app().autosaveTimerMinsOption() = item.id(); };
+	return [this](TextMenuItem &item) { app().autosaveManager().autosaveTimerMins = IG::Minutes{item.id()}; };
 }
 
 TextMenuItem::SelectDelegate SystemOptionView::setAutosaveLaunchDel()
 {
-	return [this](TextMenuItem &item) { app().autosaveLaunchMode = AutosaveLaunchMode(item.id()); };
+	return [this](TextMenuItem &item) { app().autosaveManager().autosaveLaunchMode = AutosaveLaunchMode(item.id()); };
 }
 
 TextMenuItem::SelectDelegate SystemOptionView::setFastSlowModeSpeedDel()
@@ -51,7 +51,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	autosaveTimer
 	{
 		"Autosave Timer", &defaultFace(),
-		(MenuItem::Id)app().autosaveTimerMinsOption().val,
+		(MenuItem::Id)app().autosaveManager().autosaveTimerMins.count(),
 		autosaveTimerItem
 	},
 	autosaveLaunchItem
@@ -64,7 +64,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	autosaveLaunch
 	{
 		"Autosave Launch Mode", &defaultFace(),
-		(MenuItem::Id)app().autosaveLaunchMode,
+		(MenuItem::Id)app().autosaveManager().autosaveLaunchMode,
 		autosaveLaunchItem
 	},
 	confirmOverwriteState

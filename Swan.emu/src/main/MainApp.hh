@@ -27,11 +27,7 @@ public:
 	WsSystem wsSystem;
 
 	WsApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, wsSystem{ctx}
-	{
-		setDefaultVControlsButtonSpacing(100);
-		setDefaultVControlsButtonStagger(5);
-	}
+		EmuApp{initParams, ctx}, wsSystem{ctx} {}
 
 	auto &system() { return wsSystem;  }
 	const auto &system() const { return wsSystem;  }

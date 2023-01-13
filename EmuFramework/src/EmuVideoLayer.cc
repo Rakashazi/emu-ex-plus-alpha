@@ -151,32 +151,6 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 			contentGCRect.y2 *= scaler;
 		}
 
-		// adjust position
-		int layoutDirection = 0;
-		if(inputView && viewportAspectRatio < 1. && !isSideways(rotation) &&
-			inputView->activeVController()->gamepadIsActive())
-		{
-			auto &vController = *inputView->activeVController();
-			auto padding = vController.bounds(3).ySize(); // adding menu button-sized padding
-			auto paddingG = projP.unProjectRect(vController.bounds(3)).ySize();
-			auto viewBoundsG = projP.unProjectRect(viewRect);
-			auto &layoutPos = vController.layoutPosition()[inputView->window().isPortrait() ? 1 : 0];
-			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
-			{
-				layoutDirection = -1;
-				contentGCRect.setYPos(viewBoundsG.y + paddingG, CB2DO);
-				contentRect_.setYPos(viewRect.y2 - padding, CB2DO);
-			}
-			else if(!(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onBottom() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
-				&& !(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom()))
-			{
-				// move controls to top if d-pad & face button aren't on opposite Y quadrants
-				layoutDirection = 1;
-				contentGCRect.setYPos(viewBoundsG.y2 - paddingG, CT2DO);
-				contentRect_.setYPos(viewRect.y + padding, CT2DO);
-			}
-		}
-
 		// assign final coordinates
 		auto fromWorldSpaceRect = projP.projectRect(contentGCRect);
 		auto fromPixelRect = projP.unProjectRect(contentRect_);
@@ -202,9 +176,8 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 		}
 
 		disp.setPos(contentGCRect);
-		auto layoutStr = layoutDirection == 1 ? "top" : layoutDirection == -1 ? "bottom" : "center";
-		logMsg("placed game rect (%s), at pixels %d:%d:%d:%d, world %f:%f:%f:%f",
-				layoutStr, contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2,
+		logMsg("placed game rect, at pixels %d:%d:%d:%d, world %f:%f:%f:%f",
+				contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2,
 				(double)contentGCRect.x, (double)contentGCRect.y, (double)contentGCRect.x2, (double)contentGCRect.y2);
 	}
 	placeOverlay();

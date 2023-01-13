@@ -26,6 +26,7 @@
 #include <emuframework/VController.hh>
 #include <emuframework/TurboInput.hh>
 #include <emuframework/Option.hh>
+#include <emuframework/AutosaveManager.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/android/MogaManager.hh>
 #include <imagine/gui/ViewManager.hh>
@@ -34,7 +35,6 @@
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
-#include <imagine/base/Timer.hh>
 #include <imagine/base/VibrationManager.hh>
 #include <imagine/audio/Manager.hh>
 #include <imagine/gfx/Renderer.hh>
@@ -48,6 +48,7 @@
 #include <cstring>
 #include <optional>
 #include <span>
+#include <string>
 
 namespace IG
 {
@@ -97,17 +98,6 @@ WISE_ENUM_CLASS((ImageChannel, uint8_t),
 	Red,
 	Green,
 	Blue);
-
-WISE_ENUM_CLASS((AutosaveLaunchMode, uint8_t),
-	Load,
-	LoadNoState,
-	Ask,
-	NoSave);
-
-enum class LoadAutosaveMode{Normal, NoState};
-
-constexpr const char *defaultAutosaveFilename = "auto-00";
-constexpr const char *noAutosaveName = "\a";
 
 class EmuApp : public IG::Application
 {
@@ -167,18 +157,6 @@ public:
 	void dispatchOnMainMenuItemOptionChanged();
 	void unpostMessage();
 	void printScreenshotResult(bool success);
-	bool saveAutosave();
-	bool loadAutosave(LoadAutosaveMode m = LoadAutosaveMode::Normal);
-	bool setAutosave(std::string_view name);
-	bool renameAutosave(std::string_view name, std::string_view newName);
-	bool deleteAutosave(std::string_view name);
-	const auto &currentAutosave() const { return autoSaveSlot; }
-	std::string currentAutosaveName() const;
-	std::string currentAutosaveStateTimeAsString() const;
-	IG::Time currentAutosaveStateTime() const;
-	IG::Time currentAutosaveBackupMemoryTime() const;
-	FS::PathString currentAutosaveStatePath() const { return autosaveStatePath(autoSaveSlot); }
-	FS::PathString autosaveStatePath(std::string_view name) const;
 	FS::PathString contentSavePath(std::string_view name) const;
 	FS::PathString contentSaveFilePath(std::string_view ext) const;
 	bool saveState(IG::CStringView path);
@@ -186,8 +164,6 @@ public:
 	bool loadState(IG::CStringView path);
 	bool loadStateWithSlot(int slot);
 	bool shouldOverwriteExistingState() const;
-	void setDefaultVControlsButtonSpacing(int spacing);
-	void setDefaultVControlsButtonStagger(int stagger);
 	const auto &contentSearchPath() const { return contentSearchPath_; }
 	FS::PathString contentSearchPath(std::string_view name) const;
 	void setContentSearchPath(std::string_view path);
@@ -197,6 +173,7 @@ public:
 	void setUserScreenshotPath(CStringView path) { userScreenshotDir = path; }
 	auto screenshotDirectory() const { return system().userPath(userScreenshotDir); }
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
+	void handleSystemKeyInput(InputAction);
 	void addTurboInputEvent(unsigned action);
 	void removeTurboInputEvent(unsigned action);
 	void removeTurboInputEvents() { turboActions = {}; }
@@ -213,19 +190,12 @@ public:
 	EmuAudio &audio() { return emuAudio; }
 	EmuVideo &video() { return emuVideo; }
 	EmuViewController &viewController();
-	void pauseAutosaveStateTimer();
-	void cancelAutosaveStateTimer();
-	void resetAutosaveStateTimer();
-	void startAutosaveStateTimer();
-	IG::Time nextAutosaveTimerFireTime() const;
-	IG::Time autosaveTimerFrequency() const;
+	AutosaveManager &autosaveManager() { return autosaveManager_; }
 	void configFrameTime();
-	void setFaceButtonMapping(FaceButtonImageMap map);
-	void applyEnabledFaceButtons(std::span<const std::pair<int, bool>> applyEnableMap);
-	void applyEnabledCenterButtons(std::span<const std::pair<int, bool>> applyEnableMap);
+	void setDisabledInputKeys(std::span<const unsigned> keys);
+	void unsetDisabledInputKeys();
 	void updateKeyboardMapping();
 	void toggleKeyboard();
-	void updateVControllerMapping();
 	Gfx::Texture &asset(AssetID) const;
 	void updateInputDevices(IG::ApplicationContext);
 	void setOnUpdateInputDevices(DelegateFunc<void ()>);
@@ -246,6 +216,9 @@ public:
 	void setMogaManagerActive(bool on, bool notify);
 	constexpr IG::VibrationManager &vibrationManager() { return vibrationManager_; }
 	std::span<const KeyCategory> inputControlCategories() const;
+	const KeyCategory &categoryOfSystemKey(unsigned key) const;
+	std::string_view systemKeyName(unsigned key) const;
+	unsigned transposeKeyForPlayer(unsigned keys, int player) const;
 	BluetoothAdapter *bluetoothAdapter();
 	void closeBluetoothConnections();
 	ViewAttachParams attachParams();
@@ -334,7 +307,6 @@ public:
 	void setVideoBrightness(float brightness, ImageChannel);
 
 	// System Options
-	auto &autosaveTimerMinsOption() { return optionAutosaveTimerMins; }
 	auto &confirmOverwriteStateOption() { return optionConfirmOverwriteState; }
 	auto &fastSlowModeSpeedOption() { return optionFastSlowModeSpeed; }
 	double fastSlowModeSpeedAsDouble() { return optionFastSlowModeSpeed.val / 100.; }
@@ -499,9 +471,7 @@ protected:
 	EmuSystemTask emuSystemTask;
 	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetID>];
 	VController vController;
-	IG::Timer autoSaveTimer;
-	IG::Time autoSaveTimerStartTime{};
-	IG::Time autoSaveTimerElapsedTime{};
+	AutosaveManager autosaveManager_;
 	DelegateFunc<void ()> onUpdateInputDevices_;
 	OnMainMenuOptionChanged onMainMenuOptionChanged_;
 	KeyConfigContainer customKeyConfigs;
@@ -515,7 +485,6 @@ protected:
 	BluetoothAdapter *bta{};
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr);
 	RecentContentList recentContentList;
-	std::string autoSaveSlot;
 	std::string userScreenshotDir;
 	DoubleOption optionAspectRatio;
 	DoubleOption optionFrameRate;
@@ -523,7 +492,6 @@ protected:
 	Byte4Option optionSoundRate;
 	Byte2Option optionFontSize;
 	Byte1Option optionPauseUnfocused;
-	Byte1Option optionAutosaveTimerMins;
 	Byte1Option optionConfirmOverwriteState;
 	Byte2Option optionFastSlowModeSpeed;
 	Byte1Option optionSound;
@@ -565,8 +533,6 @@ protected:
 	IG::WindowFrameTimeSource winFrameTimeSrc{IG::WindowFrameTimeSource::AUTO};
 	IG_UseMemberIf(Config::envIsAndroid, bool, usePresentationTime_){true};
 	IG_UseMemberIf(Config::envIsAndroid, bool, forceMaxScreenFrameRate){};
-public:
-	AutosaveLaunchMode autosaveLaunchMode{};
 
 protected:
 	class ConfigParams

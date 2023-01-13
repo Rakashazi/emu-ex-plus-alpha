@@ -39,7 +39,7 @@ struct GbcCheat
 
 	void toggleOn()
 	{
-		flags = IG::flipBits(flags, ON);
+		flags ^= ON;
 		// if(game running) refresh cheats
 	}
 

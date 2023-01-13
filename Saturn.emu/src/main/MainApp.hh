@@ -27,11 +27,7 @@ public:
 	SaturnSystem saturnSystem;
 
 	SaturnApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, saturnSystem{ctx}
-	{
-		setDefaultVControlsButtonSpacing(100);
-		setDefaultVControlsButtonStagger(3);
-	}
+		EmuApp{initParams, ctx}, saturnSystem{ctx} {}
 
 	auto &system() { return saturnSystem;  }
 	const auto &system() const { return saturnSystem;  }

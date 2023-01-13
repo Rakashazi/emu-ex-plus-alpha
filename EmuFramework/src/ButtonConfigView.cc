@@ -252,9 +252,9 @@ void ButtonConfigView::onSet(Input::Key mapKey, int keyToSet)
 
 bool ButtonConfigView::inputEvent(const Input::Event &e)
 {
-	if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::LEFT) && selected > 0)
+	if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::LEFT) && selected > 0)
 	{
-		auto &keyEv = e.asKeyEvent();
+		auto &keyEv = *e.keyEvent();
 		auto durationSinceLastKeySet = leftKeyPushTime.count() ? keyEv.time() - leftKeyPushTime : Input::Time{};
 		leftKeyPushTime = keyEv.time();
 		if(durationSinceLastKeySet.count() && durationSinceLastKeySet <= IG::Milliseconds(500))

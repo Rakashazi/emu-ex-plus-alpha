@@ -21,6 +21,8 @@
 #include <imagine/time/Time.hh>
 #include <imagine/audio/SampleFormat.hh>
 #include <imagine/util/rectangle2.h>
+#include <imagine/util/enum.hh>
+#include <imagine/util/bitset.hh>
 #include <emuframework/EmuTiming.hh>
 #include <emuframework/VController.hh>
 #include <optional>
@@ -82,11 +84,43 @@ enum class ConfigType : uint8_t
 	MAIN, SESSION, CORE
 };
 
+enum class InputActionFlagsMask: uint8_t
+{
+	turbo = bit(0),
+};
+
+IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(InputActionFlagsMask);
+
 struct InputAction
 {
 	unsigned key{};
 	Input::Action state{};
 	uint32_t metaState{};
+	InputActionFlagsMask flags{};
+
+	void setTurboFlag(bool on)
+	{
+		flags = setOrClearBits(flags, InputActionFlagsMask::turbo, on);
+	}
+};
+
+enum class InputComponent : uint8_t
+{
+	ui, dPad, button, trigger
+};
+
+struct InputComponentDesc
+{
+	const char *name{};
+	std::span<const unsigned> keyCodes{};
+	InputComponent type{};
+	_2DOrigin layoutOrigin{};
+};
+
+struct SystemInputDeviceDesc
+{
+	const char *name;
+	std::span<const InputComponentDesc> components;
 };
 
 enum class VideoSystem: uint8_t
@@ -136,12 +170,7 @@ public:
 	// Static system configuration
 	static const int maxPlayers;
 	static const char *configFilename;
-	static const char *inputFaceBtnName;
-	static const char *inputCenterBtnName;
-	static const int inputCenterBtns;
 	static const int inputFaceBtns;
-	static int inputLTriggerIndex;
-	static int inputRTriggerIndex;
 	static bool inputHasKeyboard;
 	static bool inputHasShortBtnTexture;
 	static bool hasBundledGames;
@@ -160,9 +189,6 @@ public:
 	static NameFilterFunc defaultFsFilter;
 	static NameFilterFunc defaultBenchmarkFsFilter;
 	static const char *creditsViewStr;
-	static constexpr int MAX_CENTER_BTNS = EmuEx::MAX_CENTER_BTNS;
-	static constexpr int MAX_FACE_BTNS = EmuEx::MAX_FACE_BTNS;
-	static FaceButtonImageMap vControllerImageMap;
 
 	EmuSystem(IG::ApplicationContext ctx): appCtx{ctx} {}
 
@@ -178,10 +204,11 @@ public:
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);
-	unsigned translateInputAction(unsigned input, bool &turbo);
-	VController::Map vControllerMap(int player);
+	InputAction translateInputAction(InputAction);
 	void configAudioRate(FloatSeconds frameTime, int rate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
+	VControllerImageIndex mapVControllerButton(unsigned key) const;
+	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
 
 	// optional sub-class API functions
 	void onStart();
@@ -308,7 +335,6 @@ public:
 	bool setFrameTime(VideoSystem system, IG::FloatSeconds time);
 	void configAudioPlayback(EmuAudio &, int rate);
 	void configFrameTime(int rate);
-	static bool inputHasTriggers();
 	void setStartFrameTime(IG::FrameTime time);
 	EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
 	void setSpeedMultiplier(EmuAudio &, double speed);
@@ -321,12 +347,6 @@ public:
 	static void throwFileReadError();
 	static void throwFileWriteError();
 	static void throwMissingContentDirError();
-
-	unsigned translateInputAction(unsigned input)
-	{
-		bool turbo;
-		return translateInputAction(input, turbo);
-	}
 
 protected:
 	IG::ApplicationContext appCtx{};

@@ -83,8 +83,9 @@ public:
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);
-	unsigned translateInputAction(unsigned input, bool &turbo);
-	VController::Map vControllerMap(int player);
+	InputAction translateInputAction(InputAction);
+	VControllerImageIndex mapVControllerButton(unsigned key) const;
+	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
 	void configAudioRate(FloatSeconds frameTime, int rate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 

@@ -68,7 +68,7 @@ public:
 
 	bool inputEvent(const Input::Event &e) final
 	{
-		if(e.keyEvent() && e.asKeyEvent().pushed(Input::DefaultKey::CANCEL))
+		if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::CANCEL))
 		{
 			logMsg("aborted detection");
 			dismiss();

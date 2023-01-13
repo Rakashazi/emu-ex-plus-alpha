@@ -29,7 +29,6 @@ public:
 	A2600App(ApplicationInitParams initParams, ApplicationContext &ctx):
 		EmuApp{initParams, ctx}, a2600System{ctx, *this}
 	{
-		setDefaultVControlsButtonStagger(5);
 		audio().setStereo(false); // TODO: stereo mode
 	}
 

@@ -53,7 +53,7 @@ public:
 	}
 
 	constexpr DelegateFuncBase(IG::CallableFunctionPointer<R, Args...> auto const &funcObj)
-		requires (sizeof(StorageSize) >= sizeof(void*) && Align >= sizeof(void*)):
+		requires (StorageSize >= sizeof(void*) && Align >= sizeof(void*)):
 		exec
 		{
 			[](const Storage &funcObj, Args ...args) -> R

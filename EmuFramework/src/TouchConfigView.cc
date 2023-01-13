@@ -24,6 +24,8 @@
 #include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
 #include <utility>
+#include "WindowData.hh"
+#include "privateInput.hh"
 
 namespace EmuEx
 {
@@ -45,11 +47,6 @@ constexpr int touchCtrlExtraBtnSizeMenuVal[4]
 	0, 1, 200, 500
 };
 
-static auto &layoutPosArr(VController &vController, const IG::Window &win)
-{
-	return vController.layoutPosition()[win.isPortrait() ? 1 : 0];
-}
-
 class OnScreenInputPlaceView final: public View, public EmuAppHelper<OnScreenInputPlaceView>
 {
 public:
@@ -62,7 +59,7 @@ public:
 private:
 	struct DragData
 	{
-		int elem{-1};
+		VControllerElement *elem{};
 		IG::WP startPos{};
 	};
 	Gfx::Text text{};
@@ -138,35 +135,46 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 			dragTracker.inputEvent(e,
 				[&](Input::DragTrackerState, DragData &d)
 				{
-					if(d.elem == -1)
+					if(d.elem)
+						return;
+					auto tryGrabElement = [&](VControllerElement &elem)
 					{
-						for(auto i : iotaCount(vController().numElements()))
+						if(elem.state() == VControllerState::OFF || !elem.bounds().contains(e.pos()))
+							return false;
+						for(const auto &state : dragTracker.stateList())
 						{
-							if(vController().state(i) == VControllerState::OFF || !vController().bounds(i).contains(e.pos()))
-								continue;
-							for(const auto &state : dragTracker.stateList())
-							{
-								if(state.data.elem == (int)i)
-									continue; // element already grabbed
-							}
-							d.elem = i;
-							d.startPos = vController().bounds(d.elem).pos(C2DO);
-							break;
+							if(state.data.elem == &elem)
+								return false; // element already grabbed
 						}
+						d.elem = &elem;
+						d.startPos = elem.bounds().pos(C2DO);
+						return true;
+					};
+					for(auto &elem : vController().deviceElements())
+					{
+						if(tryGrabElement(elem))
+							return;
+					}
+					for(auto &elem : vController().guiElements())
+					{
+						if(tryGrabElement(elem))
+							return;
 					}
 				},
 				[&](Input::DragTrackerState state, Input::DragTrackerState, DragData &d)
 				{
-					if(d.elem >= 0)
+					if(d.elem)
 					{
 						auto newPos = d.startPos + state.downPosDiff();
-						waitForDrawFinished();
-						vController().setPos(d.elem, newPos);
-						auto layoutPos = vController().pixelToLayoutPos(vController().bounds(d.elem).pos(C2DO), vController().bounds(d.elem).size(), viewRect());
+						auto contentBounds = vController().windowData().contentBounds();
+						auto bounds = vController().layoutBounds();
+						auto projP = vController().windowData().projection.plane();
+						d.elem->setPos(newPos, bounds, projP);
+						auto layoutPos = VControllerLayoutPosition::fromPixelPos(d.elem->bounds().pos(C2DO), d.elem->bounds().size(), viewRect());
 						//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
-						auto &vCtrlLayoutPos = vController().layoutPosition()[window().isPortrait() ? 1 : 0];
-						vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
-						vCtrlLayoutPos[d.elem].pos = layoutPos.pos;
+						auto &vCtrlLayoutPos = d.elem->layoutPos[window().isPortrait()];
+						vCtrlLayoutPos.origin = layoutPos.origin;
+						vCtrlLayoutPos.pos = layoutPos.pos;
 						vController().setLayoutPositionChanged();
 						app().viewController().placeEmuViews();
 						postDraw();
@@ -174,7 +182,7 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 				},
 				[&](Input::DragTrackerState state, DragData &d)
 				{
-					if(d.elem == -1 && exitBtnRect.overlaps(state.pos()) && exitBtnRect.overlaps(state.downPos()))
+					if(!d.elem && exitBtnRect.overlaps(state.pos()) && exitBtnRect.overlaps(state.downPos()))
 					{
 						dismiss();
 					}
@@ -187,7 +195,7 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 void OnScreenInputPlaceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
-	vController().draw(cmds, false, true, .75);
+	vController().draw(cmds, true, .75);
 	cmds.setColor(.5, .5, .5);
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
@@ -209,6 +217,424 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	}
 }
 
+static void drawVControllerElement(Gfx::RendererCommands &__restrict__ cmds, const VControllerElement &elem)
+{
+	cmds.set(Gfx::BlendMode::ALPHA);
+	Gfx::Color whiteCol{1., 1., 1., .75};
+	cmds.setColor(whiteCol);
+	elem.draw(cmds);
+}
+
+class DPadElementConfigView : public TableView, public EmuAppHelper<DPadElementConfigView>
+{
+public:
+	DPadElementConfigView(ViewAttachParams attach, TouchConfigView &confView_, VController &vCtrl_, VControllerElement &elem_):
+		TableView{"Edit D-Pad", attach, item},
+		vCtrl{vCtrl_},
+		elem{elem_},
+		confView{confView_},
+		deadzoneItems
+		{
+			{"1",    &defaultFace(), setDeadzoneDel(), 100},
+			{"1.35", &defaultFace(), setDeadzoneDel(), 135},
+			{"1.6",  &defaultFace(), setDeadzoneDel(), 160},
+		},
+		deadzone
+		{
+			"Deadzone", &defaultFace(),
+			MenuItem::Id{elem.dPad()->deadzone()},
+			deadzoneItems
+		},
+		diagonalSensitivityItems
+		{
+			{"None",  &defaultFace(), setDiagonalSensitivityDel(), 1000},
+			{"Low",   &defaultFace(), setDiagonalSensitivityDel(), 1500},
+			{"M-Low", &defaultFace(), setDiagonalSensitivityDel(), 1750},
+			{"Med.",  &defaultFace(), setDiagonalSensitivityDel(), 2000},
+			{"High",  &defaultFace(), setDiagonalSensitivityDel(), 2500},
+		},
+		diagonalSensitivity
+		{
+			"Diagonal Sensitivity", &defaultFace(),
+			MenuItem::Id(elem.dPad()->diagonalSensitivity() * 1000.f),
+			diagonalSensitivityItems
+		},
+		stateItems
+		{
+			{ctrlStateStr[0], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::OFF)},
+			{ctrlStateStr[1], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::SHOWN)},
+			{ctrlStateStr[2], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::HIDDEN)},
+		},
+		state
+		{
+			"State", &defaultFace(),
+			MenuItem::Id(elem.layoutPos[window().isPortrait()].state),
+			stateItems
+		},
+		showBoundingArea
+		{
+			"Show Bounding Area", &defaultFace(),
+			elem.dPad()->showBounds(),
+			[this](BoolMenuItem &item)
+			{
+				elem.dPad()->setShowBounds(renderer(), item.flipBoolValue(), projP);
+				vCtrl.place();
+				postDraw();
+			}
+		},
+		remove
+		{
+			"Remove This D-Pad", &defaultFace(),
+			[this]()
+			{
+				vCtrl.remove(elem);
+				vCtrl.setLayoutPositionChanged();
+				vCtrl.place();
+				confView.reloadItems();
+				dismiss();
+			}
+		}
+	{
+		item.emplace_back(&state);
+		item.emplace_back(&deadzone);
+		item.emplace_back(&diagonalSensitivity);
+		item.emplace_back(&showBoundingArea);
+		item.emplace_back(&remove);
+	}
+
+	void draw(Gfx::RendererCommands &__restrict__ cmds) final
+	{
+		drawVControllerElement(cmds, elem);
+		TableView::draw(cmds);
+	}
+
+private:
+	VController &vCtrl;
+	VControllerElement &elem;
+	TouchConfigView &confView;
+	TextMenuItem deadzoneItems[3];
+	MultiChoiceMenuItem deadzone;
+	TextMenuItem diagonalSensitivityItems[5];
+	MultiChoiceMenuItem diagonalSensitivity;
+	TextMenuItem stateItems[3];
+	MultiChoiceMenuItem state;
+	BoolMenuItem showBoundingArea;
+	TextMenuItem remove;
+	StaticArrayList<MenuItem*, 5> item;
+
+	TextMenuItem::SelectDelegate setButtonStateDel()
+	{
+		return [this](TextMenuItem &item)
+		{
+			elem.layoutPos[window().isPortrait()].state = VControllerState(item.id());
+			vCtrl.setLayoutPositionChanged();
+			vCtrl.place();
+		};
+	}
+
+	TextMenuItem::SelectDelegate setDeadzoneDel()
+	{
+		return [this](TextMenuItem &item){ elem.dPad()->setDeadzone(renderer(), item.id(), window(), projP); };
+	}
+
+	TextMenuItem::SelectDelegate setDiagonalSensitivityDel()
+	{
+		return [this](TextMenuItem &item){ elem.dPad()->setDiagonalSensitivity(renderer(), float(item.id()) / 1000.f, projP); };
+	}
+};
+
+class ButtonGroupElementConfigView : public TableView, public EmuAppHelper<ButtonGroupElementConfigView>
+{
+public:
+	ButtonGroupElementConfigView(ViewAttachParams attach, TouchConfigView &confView_, VController &vCtrl_, VControllerElement &elem_):
+		TableView{"Edit Buttons", attach, item},
+		vCtrl{vCtrl_},
+		elem{elem_},
+		confView{confView_},
+		stateItems
+		{
+			{ctrlStateStr[0], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::OFF)},
+			{ctrlStateStr[1], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::SHOWN)},
+			{ctrlStateStr[2], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::HIDDEN)},
+		},
+		state
+		{
+			"State", &defaultFace(),
+			MenuItem::Id(elem.layoutPos[window().isPortrait()].state),
+			stateItems
+		},
+		spaceItems
+		{
+			{"1", &defaultFace(), setButtonSpaceDel(), 100},
+			{"2", &defaultFace(), setButtonSpaceDel(), 200},
+			{"3", &defaultFace(), setButtonSpaceDel(), 300},
+			{"4", &defaultFace(), setButtonSpaceDel(), 400},
+		},
+		space
+		{
+			"Spacing", &defaultFace(),
+			MenuItem::Id{elem.buttonGroup()->spacing()},
+			spaceItems
+		},
+		staggerItems
+		{
+			{"-0.75x V", &defaultFace(), setButtonStaggerDel(), 0},
+			{"-0.5x V",  &defaultFace(), setButtonStaggerDel(), 1},
+			{"0",        &defaultFace(), setButtonStaggerDel(), 2},
+			{"0.5x V",   &defaultFace(), setButtonStaggerDel(), 3},
+			{"0.75x V",  &defaultFace(), setButtonStaggerDel(), 4},
+			{"1x H&V",   &defaultFace(), setButtonStaggerDel(), 5},
+		},
+		stagger
+		{
+			"Stagger", &defaultFace(),
+			MenuItem::Id{elem.buttonGroup()->stagger()},
+			staggerItems
+		},
+		extraXSizeItems
+		{
+			{touchCtrlExtraBtnSizeMenuName[0], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[0]},
+			{touchCtrlExtraBtnSizeMenuName[1], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[1]},
+			{touchCtrlExtraBtnSizeMenuName[2], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[2]},
+			{touchCtrlExtraBtnSizeMenuName[3], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[3]},
+		},
+		extraXSize
+		{
+			"H Bound Overlap", &defaultFace(),
+			MenuItem::Id{elem.buttonGroup()->xPadding()},
+			extraXSizeItems
+		},
+		extraYSizeItems
+		{
+			{touchCtrlExtraBtnSizeMenuName[0], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[0]},
+			{touchCtrlExtraBtnSizeMenuName[1], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[1]},
+			{touchCtrlExtraBtnSizeMenuName[2], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[2]},
+			{touchCtrlExtraBtnSizeMenuName[3], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[3]},
+		},
+		extraYSize
+		{
+			"V Bound Overlap", &defaultFace(),
+			MenuItem::Id{elem.buttonGroup()->yPadding()},
+			extraYSizeItems
+		},
+		showBoundingArea
+		{
+			"Show Bounding Area", &defaultFace(),
+			elem.buttonGroup()->showsBounds(),
+			[this](BoolMenuItem &item)
+			{
+				elem.buttonGroup()->setShowBounds(item.flipBoolValue());
+				vCtrl.place();
+				postDraw();
+			}
+		},
+		remove
+		{
+			"Remove This Button Group", &defaultFace(),
+			[this]()
+			{
+				vCtrl.remove(elem);
+				vCtrl.setLayoutPositionChanged();
+				vCtrl.place();
+				confView.reloadItems();
+				dismiss();
+			}
+		}
+	{
+		item.emplace_back(&state);
+		item.emplace_back(&space);
+		item.emplace_back(&stagger);
+		item.emplace_back(&extraXSize);
+		item.emplace_back(&extraYSize);
+		item.emplace_back(&showBoundingArea);
+		item.emplace_back(&remove);
+	}
+
+	void draw(Gfx::RendererCommands &__restrict__ cmds) final
+	{
+		drawVControllerElement(cmds, elem);
+		TableView::draw(cmds);
+	}
+
+private:
+	VController &vCtrl;
+	VControllerElement &elem;
+	TouchConfigView &confView;
+	TextMenuItem stateItems[3];
+	MultiChoiceMenuItem state;
+	TextMenuItem spaceItems[4];
+	MultiChoiceMenuItem space;
+	TextMenuItem staggerItems[6];
+	MultiChoiceMenuItem stagger;
+	TextMenuItem extraXSizeItems[4];
+	MultiChoiceMenuItem extraXSize;
+	TextMenuItem extraYSizeItems[4];
+	MultiChoiceMenuItem extraYSize;
+	BoolMenuItem showBoundingArea;
+	TextMenuItem remove;
+	StaticArrayList<MenuItem*, 7> item;
+
+	TextMenuItem::SelectDelegate setButtonStateDel()
+	{
+		return [this](TextMenuItem &item)
+		{
+			elem.layoutPos[window().isPortrait()].state = VControllerState(item.id());
+			vCtrl.setLayoutPositionChanged();
+			vCtrl.place();
+		};
+	}
+
+	TextMenuItem::SelectDelegate setButtonSpaceDel()
+	{
+		return [this](TextMenuItem &item)
+		{
+			elem.buttonGroup()->setSpacing(item.id(), window());
+			vCtrl.place();
+		};
+	}
+
+	TextMenuItem::SelectDelegate setButtonExtraXSizeDel()
+	{
+		return [this](TextMenuItem &item)
+		{
+			elem.buttonGroup()->setXPadding(item.id());
+			vCtrl.place();
+		};
+	}
+
+	TextMenuItem::SelectDelegate setButtonExtraYSizeDel()
+	{
+		return [this](TextMenuItem &item)
+		{
+			elem.buttonGroup()->setYPadding(item.id());
+			vCtrl.place();
+		};
+	}
+
+	TextMenuItem::SelectDelegate setButtonStaggerDel()
+	{
+		return [this](TextMenuItem &item)
+		{
+			elem.buttonGroup()->setStaggerType(item.id());
+			vCtrl.place();
+		};
+	}
+};
+
+class UIButtonGroupElementConfigView : public TableView, public EmuAppHelper<UIButtonGroupElementConfigView>
+{
+public:
+	UIButtonGroupElementConfigView(ViewAttachParams attach, TouchConfigView &confView_, VController &vCtrl_, VControllerElement &elem_):
+		TableView{"Edit UI Buttons", attach, item},
+		vCtrl{vCtrl_},
+		elem{elem_},
+		confView{confView_},
+		stateItems
+		{
+			{ctrlStateStr[0], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::OFF)},
+			{ctrlStateStr[1], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::SHOWN)},
+			{ctrlStateStr[2], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::HIDDEN)},
+		},
+		state
+		{
+			"State", &defaultFace(),
+			MenuItem::Id(elem.layoutPos[window().isPortrait()].state),
+			stateItems
+		},
+		remove
+		{
+			"Remove This Button Group", &defaultFace(),
+			[this]()
+			{
+				vCtrl.remove(elem);
+				vCtrl.setLayoutPositionChanged();
+				vCtrl.place();
+				confView.reloadItems();
+				dismiss();
+			}
+		}
+	{
+		item.emplace_back(&state);
+		item.emplace_back(&remove);
+	}
+
+	void draw(Gfx::RendererCommands &__restrict__ cmds) final
+	{
+		drawVControllerElement(cmds, elem);
+		TableView::draw(cmds);
+	}
+
+private:
+	VController &vCtrl;
+	VControllerElement &elem;
+	TouchConfigView &confView;
+	TextMenuItem stateItems[3];
+	MultiChoiceMenuItem state;
+	TextMenuItem remove;
+	StaticArrayList<MenuItem*, 2> item;
+
+	TextMenuItem::SelectDelegate setButtonStateDel()
+	{
+		return [this](TextMenuItem &item)
+		{
+			elem.layoutPos[window().isPortrait()].state = VControllerState(item.id());
+			vCtrl.setLayoutPositionChanged();
+			vCtrl.place();
+		};
+	}
+};
+
+class AddNewButtonView : public TableView, public EmuAppHelper<AddNewButtonView>
+{
+public:
+	AddNewButtonView(ViewAttachParams attach, TouchConfigView &confView_, VController &vCtrl_):
+		TableView{"Add New Button Group", attach, buttons},
+		vCtrl{vCtrl_},
+		confView{confView_},
+		components{system().inputDeviceDesc(0).components}
+	{
+		for(const auto &c : components)
+		{
+			buttons.emplace_back(
+				c.name, &defaultFace(),
+				[this, &c](const Input::Event &e)
+				{
+					vCtrl.add(c);
+					vCtrl.setLayoutPositionChanged();
+					vCtrl.place();
+					confView.reloadItems();
+					dismiss();
+				});
+		}
+		buttons.emplace_back(
+			"Open Menu", &defaultFace(),
+			[this](const Input::Event &e)
+			{
+				vCtrl.add(std::array<unsigned, 1>{guiKeyIdxLastView}, InputComponent::ui, RT2DO);
+				vCtrl.setLayoutPositionChanged();
+				vCtrl.place();
+				confView.reloadItems();
+				dismiss();
+			});
+		buttons.emplace_back(
+			"Toggle Slow/Fast Mode", &defaultFace(),
+			[this](const Input::Event &e)
+			{
+				vCtrl.add(std::array<unsigned, 1>{guiKeyIdxFastForward}, InputComponent::ui, LT2DO);
+				vCtrl.setLayoutPositionChanged();
+				vCtrl.place();
+				confView.reloadItems();
+				dismiss();
+			});
+	}
+
+private:
+	VController &vCtrl;
+	TouchConfigView &confView;
+	std::vector<TextMenuItem> buttons;
+	std::span<const InputComponentDesc> components;
+};
+
 TextMenuItem::SelectDelegate TouchConfigView::setVisibilityDel(VControllerVisibility val)
 {
 	return [this, val](){ vController().setGamepadControlsVisibility(val); };
@@ -224,46 +650,6 @@ TextMenuItem::SelectDelegate TouchConfigView::setSizeDel()
 	return [this](TextMenuItem &item){ vController().setButtonSize(item.id()); };
 }
 
-TextMenuItem::SelectDelegate TouchConfigView::setDeadzoneDel()
-{
-	return [this](TextMenuItem &item){ vController().setDpadDeadzone(item.id()); };
-}
-
-TextMenuItem::SelectDelegate TouchConfigView::setDiagonalSensitivityDel()
-{
-	return [this](TextMenuItem &item){ vController().setDpadDiagonalSensitivity(item.id()); };
-}
-
-TextMenuItem::SelectDelegate TouchConfigView::setButtonSpaceDel()
-{
-	return [this](TextMenuItem &item){ vController().setButtonSpacing(item.id()); };
-}
-
-TextMenuItem::SelectDelegate TouchConfigView::setButtonExtraXSizeDel()
-{
-	return [this](TextMenuItem &item){ vController().setButtonXPadding(item.id()); };
-}
-
-TextMenuItem::SelectDelegate TouchConfigView::setButtonExtraYSizeDel()
-{
-	return [this](TextMenuItem &item){ vController().setButtonYPadding(item.id()); };
-}
-
-TextMenuItem::SelectDelegate TouchConfigView::setButtonStaggerDel(int val)
-{
-	return [this, val]{ vController().setButtonStagger(val); };
-}
-
-TextMenuItem::SelectDelegate TouchConfigView::setButtonStateDel(VControllerState state, uint8_t btnIdx)
-{
-	return [this, state, btnIdx]
-	{
-		vController().layoutPosition()[window().isPortrait() ? 1 : 0][btnIdx].state = state;
-		vController().setLayoutPositionChanged();
-		vController().place();
-	};
-}
-
 TextMenuItem::SelectDelegate TouchConfigView::setAlphaDel()
 {
 	return [this](TextMenuItem &item){ vController().setButtonAlpha(item.id()); };
@@ -271,7 +657,7 @@ TextMenuItem::SelectDelegate TouchConfigView::setAlphaDel()
 
 void TouchConfigView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
-	vController().draw(cmds, false, true, .75);
+	vController().draw(cmds, true, .75);
 	TableView::draw(cmds);
 }
 
@@ -283,28 +669,11 @@ void TouchConfigView::place()
 
 void TouchConfigView::refreshTouchConfigMenu()
 {
-	auto &layoutPos = layoutPosArr(vController(), window());
 	alpha.setSelected((MenuItem::Id)vController().buttonAlpha(), *this);
-	ffState.setSelected((int)layoutPos[4].state, *this);
-	menuState.setSelected((int)layoutPos[3].state - (CAN_TURN_OFF_MENU_BTN ? 0 : 1), *this);
 	touchCtrl.setSelected((int)vController().gamepadControlsVisibility(), *this);
 	if(EmuSystem::maxPlayers > 1)
 		pointerInput.setSelected((int)vController().inputPlayer(), *this);
 	size.setSelected((MenuItem::Id)vController().buttonSize(), *this);
-	dPadState.setSelected((int)layoutPos[0].state, *this);
-	faceBtnState.setSelected((int)layoutPos[2].state, *this);
-	centerBtnState.setSelected((int)layoutPos[1].state, *this);
-	if(vController().hasTriggers())
-	{
-		triggerPos.setBoolValue(vController().triggersInline());
-	}
-	deadzone.setSelected((MenuItem::Id)vController().dpadDeadzone(), *this);
-	diagonalSensitivity.setSelected((MenuItem::Id)vController().dpadDiagonalSensitivity(), *this);
-	btnSpace.setSelected((MenuItem::Id)vController().buttonSpacing(), *this);
-	btnExtraXSize.setSelected((MenuItem::Id)vController().buttonXPadding(), *this);
-	btnExtraYSize.setSelected((MenuItem::Id)vController().buttonYPadding(), *this);
-	btnStagger.setSelected(vController().buttonStagger(), *this);
-	boundingBoxes.setBoolValue(vController().boundingAreaVisible(), *this);
 	if(app().vibrationManager().hasVibrator())
 	{
 		vibrate.setBoolValue(vController().vibrateOnTouchInput(), *this);
@@ -312,8 +681,7 @@ void TouchConfigView::refreshTouchConfigMenu()
 	showOnTouch.setBoolValue(vController().showOnTouchInput(), *this);
 }
 
-TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
-	UTF16String faceBtnName, UTF16String centerBtnName):
+TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 	TableView{"On-screen Input Setup", attach, item},
 	vControllerPtr{&vCtrl},
 	touchCtrlItem
@@ -395,141 +763,6 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 		(MenuItem::Id)vController().buttonSize(),
 		sizeItem
 	},
-	deadzoneItem
-	{
-		{"1",    &defaultFace(), setDeadzoneDel(), 100},
-		{"1.35", &defaultFace(), setDeadzoneDel(), 135},
-		{"1.6",  &defaultFace(), setDeadzoneDel(), 160},
-	},
-	deadzone
-	{
-		"Deadzone", &defaultFace(),
-		(MenuItem::Id)vController().dpadDeadzone(),
-		deadzoneItem
-	},
-	diagonalSensitivityItem
-	{
-		{"None",  &defaultFace(), setDiagonalSensitivityDel(), 1000},
-		{"Low",   &defaultFace(), setDiagonalSensitivityDel(), 1500},
-		{"M-Low", &defaultFace(), setDiagonalSensitivityDel(), 1750},
-		{"Med.",  &defaultFace(), setDiagonalSensitivityDel(), 2000},
-		{"High",  &defaultFace(), setDiagonalSensitivityDel(), 2500},
-	},
-	diagonalSensitivity
-	{
-		"Diagonal Sensitivity", &defaultFace(),
-		(MenuItem::Id)vController().dpadDiagonalSensitivity(),
-		diagonalSensitivityItem
-	},
-	btnSpaceItem
-	{
-		{"1", &defaultFace(), setButtonSpaceDel(), 100},
-		{"2", &defaultFace(), setButtonSpaceDel(), 200},
-		{"3", &defaultFace(), setButtonSpaceDel(), 300},
-		{"4", &defaultFace(), setButtonSpaceDel(), 400},
-	},
-	btnSpace
-	{
-		"Spacing", &defaultFace(),
-		(MenuItem::Id)vController().buttonSpacing(),
-		btnSpaceItem
-	},
-	btnExtraXSizeItem
-	{
-		{touchCtrlExtraBtnSizeMenuName[0], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[0]},
-		{touchCtrlExtraBtnSizeMenuName[1], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[1]},
-		{touchCtrlExtraBtnSizeMenuName[2], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[2]},
-		{touchCtrlExtraBtnSizeMenuName[3], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[3]},
-	},
-	btnExtraXSize
-	{
-		"H Overlap", &defaultFace(),
-		(MenuItem::Id)vController().buttonXPadding(),
-		btnExtraXSizeItem
-	},
-	btnExtraYSizeItem
-	{
-		{touchCtrlExtraBtnSizeMenuName[0], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[0]},
-		{touchCtrlExtraBtnSizeMenuName[1], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[1]},
-		{touchCtrlExtraBtnSizeMenuName[2], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[2]},
-		{touchCtrlExtraBtnSizeMenuName[3], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[3]},
-	},
-	btnExtraYSize
-	{
-		"V Overlap", &defaultFace(),
-		(MenuItem::Id)vController().buttonYPadding(),
-		btnExtraYSizeItem
-	},
-	triggerPos
-	{
-		"Inline L/R", &defaultFace(),
-		vController().triggersInline(),
-		[this](BoolMenuItem &item)
-		{
-			vController().setTriggersInline(item.flipBoolValue(*this));
-		}
-	},
-	btnStaggerItem
-	{
-		{"-0.75x V", &defaultFace(), setButtonStaggerDel(0)},
-		{"-0.5x V",  &defaultFace(), setButtonStaggerDel(1)},
-		{"0",        &defaultFace(), setButtonStaggerDel(2)},
-		{"0.5x V",   &defaultFace(), setButtonStaggerDel(3)},
-		{"0.75x V",  &defaultFace(), setButtonStaggerDel(4)},
-		{"1x H&V",   &defaultFace(), setButtonStaggerDel(5)},
-	},
-	btnStagger
-	{
-		"Stagger", &defaultFace(),
-		vController().buttonStagger(),
-		btnStaggerItem
-	},
-	dPadStateItem
-	{
-		{ctrlStateStr[0], &defaultFace(), setButtonStateDel(VControllerState::OFF, 0)},
-		{ctrlStateStr[1], &defaultFace(), setButtonStateDel(VControllerState::SHOWN, 0)},
-		{ctrlStateStr[2], &defaultFace(), setButtonStateDel(VControllerState::HIDDEN, 0)},
-	},
-	dPadState
-	{
-		"D-Pad", &defaultFace(),
-		(int)layoutPosArr(vCtrl, window())[0].state,
-		dPadStateItem
-	},
-	faceBtnStateItem
-	{
-		{ctrlStateStr[0], &defaultFace(), setButtonStateDel(VControllerState::OFF, 2)},
-		{ctrlStateStr[1], &defaultFace(), setButtonStateDel(VControllerState::SHOWN, 2)},
-		{ctrlStateStr[2], &defaultFace(), setButtonStateDel(VControllerState::HIDDEN, 2)},
-	},
-	faceBtnState
-	{
-		std::move(faceBtnName), &defaultFace(),
-		(int)layoutPosArr(vCtrl, window())[2].state,
-		faceBtnStateItem
-	},
-	centerBtnStateItem
-	{
-		{ctrlStateStr[0], &defaultFace(), setButtonStateDel(VControllerState::OFF, 1)},
-		{ctrlStateStr[1], &defaultFace(), setButtonStateDel(VControllerState::SHOWN, 1)},
-		{ctrlStateStr[2], &defaultFace(), setButtonStateDel(VControllerState::HIDDEN, 1)},
-	},
-	centerBtnState
-	{
-		std::move(centerBtnName), &defaultFace(),
-		(int)layoutPosArr(vCtrl, window())[1].state,
-		centerBtnStateItem
-	},
-	boundingBoxes
-	{
-		"Show Bounding Boxes", &defaultFace(),
-		vController().boundingAreaVisible(),
-		[this](BoolMenuItem &item)
-		{
-			vController().setBoundingAreaVisible(item.flipBoolValue(*this));
-			postDraw();
-		}
-	},
 	vibrate
 	{
 		"Vibration", &defaultFace(),
@@ -571,36 +804,13 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 			pushAndShowModal(makeView<OnScreenInputPlaceView>(vController()), e);
 		}
 	},
-	menuStateItem
+	addButton
 	{
-		{ctrlStateStr[0], &defaultFace(), setButtonStateDel(VControllerState::OFF, 3)},
-		{ctrlStateStr[1], &defaultFace(), setButtonStateDel(VControllerState::SHOWN, 3)},
-		{ctrlStateStr[2], &defaultFace(), setButtonStateDel(VControllerState::HIDDEN, 3)},
-	},
-	menuState
-	{
-		"Open Menu Button", &defaultFace(),
-		(int)layoutPosArr(vCtrl, window())[3].state,
-		[](const MultiChoiceMenuItem &)
+		"Add New Button Group", &defaultFace(),
+		[this](const Input::Event &e)
 		{
-			return CAN_TURN_OFF_MENU_BTN ? 3 : 2; // iOS port doesn't use "off" value
-		},
-		[this](const MultiChoiceMenuItem &, size_t idx) -> TextMenuItem&
-		{
-			return menuStateItem[CAN_TURN_OFF_MENU_BTN ? idx : idx + 1];
+			pushAndShow(makeView<AddNewButtonView>(*this, vController()), e);
 		}
-	},
-	ffStateItem
-	{
-		{ctrlStateStr[0], &defaultFace(), setButtonStateDel(VControllerState::OFF, 4)},
-		{ctrlStateStr[1], &defaultFace(), setButtonStateDel(VControllerState::SHOWN, 4)},
-		{ctrlStateStr[2], &defaultFace(), setButtonStateDel(VControllerState::HIDDEN, 4)},
-	},
-	ffState
-	{
-		"Fast/Slow Mode Button", &defaultFace(),
-		(int)layoutPosArr(vCtrl, window())[4].state,
-		ffStateItem
 	},
 	allowButtonsPastContentBounds
 	{
@@ -614,53 +824,56 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	},
 	resetControls
 	{
-		"Reset Position & Spacing Options", &defaultFace(),
+		"Reset Positions & States", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			auto ynAlertView = makeView<YesNoAlertView>("Reset buttons to default positions & spacing?");
+			auto ynAlertView = makeView<YesNoAlertView>("Reset buttons to default positions?");
 			ynAlertView->setOnYes(
 				[this]()
 				{
-					vController().resetOptions();
+					vController().resetPositions();
 					vController().place();
-					refreshTouchConfigMenu();
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	},
 	resetAllControls
 	{
-		"Reset All Options", &defaultFace(),
+		"Reset To Defaults", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			auto ynAlertView = makeView<YesNoAlertView>("Reset all on-screen control options to default?");
+			auto ynAlertView = makeView<YesNoAlertView>("Reset all on-screen controls and options to default?");
 			ynAlertView->setOnYes(
 				[this]()
 				{
 					vController().resetAllOptions();
 					vController().place();
+					reloadItems();
 					refreshTouchConfigMenu();
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	},
-	btnTogglesHeading
+	devButtonsHeading
 	{
-		"Individual Button Toggles", &defaultBoldFace()
+		"Emulated Device Button Groups", &defaultBoldFace()
 	},
-	dpadtHeading
+	uiButtonsHeading
 	{
-		"D-Pad Options", &defaultBoldFace()
-	},
-	faceBtnHeading
-	{
-		"Face Button Layout", &defaultBoldFace()
+		"UI Button Groups", &defaultBoldFace()
 	},
 	otherHeading
 	{
 		"Other Options", &defaultBoldFace()
 	}
 {
+	reloadItems();
+}
+
+void TouchConfigView::reloadItems()
+{
+	elementItems.clear();
+	item.clear();
 	item.emplace_back(&touchCtrl);
 	if(EmuSystem::maxPlayers > 1)
 	{
@@ -668,38 +881,44 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	}
 	item.emplace_back(&size);
 	item.emplace_back(&btnPlace);
+	item.emplace_back(&devButtonsHeading);
+	elementItems.reserve(vController().deviceElements().size() + vController().guiElements().size());
+	for(auto &elem : vController().deviceElements())
+	{
+		auto &i = elementItems.emplace_back(
+			elem.name(app()), &defaultFace(),
+			[this, &elem](const Input::Event &e)
+			{
+				visit(overloaded
+				{
+					[&](VControllerDPad &){ pushAndShow(makeView<DPadElementConfigView>(*this, vController(), elem), e); },
+					[&](VControllerButtonGroup &){ pushAndShow(makeView<ButtonGroupElementConfigView>(*this, vController(), elem), e); },
+					[](auto &){}
+				}, elem);
+			});
+		item.emplace_back(&i);
+	}
+	item.emplace_back(&uiButtonsHeading);
+	for(auto &elem : vController().guiElements())
+	{
+		auto &i = elementItems.emplace_back(
+			elem.name(app()), &defaultFace(),
+			[this, &elem](const Input::Event &e)
+			{
+				visit(overloaded
+				{
+					[&](VControllerUIButtonGroup &){ pushAndShow(makeView<UIButtonGroupElementConfigView>(*this, vController(), elem), e); },
+					[](auto &){}
+				}, elem);
+			});
+		item.emplace_back(&i);
+	}
+	item.emplace_back(&otherHeading);
+	item.emplace_back(&addButton);
 	if(used(allowButtonsPastContentBounds) && appContext().hasDisplayCutout())
 	{
 		item.emplace_back(&allowButtonsPastContentBounds);
 	}
-	item.emplace_back(&btnTogglesHeading);
-	auto &layoutPos = layoutPosArr(vCtrl, window());
-	{
-		if(!CAN_TURN_OFF_MENU_BTN) // prevent iOS port from disabling menu control
-		{
-			if(layoutPos[3].state == VControllerState::OFF)
-				layoutPos[3].state = VControllerState::SHOWN;
-		}
-		item.emplace_back(&menuState);
-	}
-	item.emplace_back(&ffState);
-	item.emplace_back(&dPadState);
-	item.emplace_back(&faceBtnState);
-	item.emplace_back(&centerBtnState);
-	if(vController().hasTriggers())
-	{
-		item.emplace_back(&triggerPos);
-	}
-	item.emplace_back(&dpadtHeading);
-	item.emplace_back(&deadzone);
-	item.emplace_back(&diagonalSensitivity);
-	item.emplace_back(&faceBtnHeading);
-	item.emplace_back(&btnSpace);
-	item.emplace_back(&btnStagger);
-	item.emplace_back(&btnExtraXSize);
-	item.emplace_back(&btnExtraYSize);
-	item.emplace_back(&otherHeading);
-	item.emplace_back(&boundingBoxes);
 	if(app().vibrationManager().hasVibrator())
 	{
 		item.emplace_back(&vibrate);

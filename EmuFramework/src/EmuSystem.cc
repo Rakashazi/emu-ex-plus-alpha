@@ -37,8 +37,6 @@ namespace EmuEx
 
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
 [[gnu::weak]] bool EmuSystem::inputHasShortBtnTexture = false;
-[[gnu::weak]] int EmuSystem::inputLTriggerIndex = -1;
-[[gnu::weak]] int EmuSystem::inputRTriggerIndex = -1;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
 [[gnu::weak]] double EmuSystem::staticFrameTime = 1. / 60.;
@@ -52,7 +50,6 @@ namespace EmuEx
 [[gnu::weak]] int EmuSystem::forcedSoundRate = 0;
 [[gnu::weak]] IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::i16;
 [[gnu::weak]] bool EmuSystem::constFrameRate = false;
-[[gnu::weak]] std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{0, 1, 2, 3, 4, 5, 6, 7};
 
 bool EmuSystem::stateExists(int slot) const
 {
@@ -244,12 +241,12 @@ void EmuSystem::closeRuntimeSystem(EmuApp &app)
 	{
 		app.video().clear();
 		app.audio().flush();
-		app.saveAutosave();
+		app.autosaveManager().save();
 		app.saveSessionOptions();
 		logMsg("closing game:%s", contentName_.data());
 		flushBackupMemory(app);
 		closeSystem();
-		app.cancelAutosaveStateTimer();
+		app.autosaveManager().cancelTimer();
 		state = State::OFF;
 	}
 	clearGamePaths();
@@ -270,7 +267,7 @@ void EmuSystem::pause(EmuApp &app)
 	if(isActive())
 		state = State::PAUSED;
 	app.audio().stop();
-	app.pauseAutosaveStateTimer();
+	app.autosaveManager().pauseTimer();
 	onStop();
 }
 
@@ -283,7 +280,7 @@ void EmuSystem::start(EmuApp &app)
 	resetFrameTime();
 	onStart();
 	app.startAudio();
-	app.startAutosaveStateTimer();
+	app.autosaveManager().startTimer();
 }
 
 IG::Time EmuSystem::benchmark(EmuVideo &video)
@@ -529,11 +526,6 @@ void EmuSystem::sessionOptionSet()
 	if(!hasContent())
 		return;
 	sessionOptionsSet = true;
-}
-
-bool EmuSystem::inputHasTriggers()
-{
-	return inputLTriggerIndex != -1 && inputRTriggerIndex != -1;
 }
 
 void EmuSystem::flushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags flags)

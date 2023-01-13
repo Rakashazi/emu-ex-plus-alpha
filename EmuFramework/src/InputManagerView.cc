@@ -745,7 +745,7 @@ void InputManagerDeviceView::loadItems()
 	item.emplace_back(&loadProfile);
 	for(auto &cat : app().inputControlCategories())
 	{
-		if(cat.isMultiplayer && devConf->player() != InputDeviceConfig::PLAYER_MULTI)
+		if(cat.multiplayerIndex && devConf->player() != InputDeviceConfig::PLAYER_MULTI)
 		{
 			//logMsg("skipping category %s (%d)", cat.name, (int)c_i);
 			continue;

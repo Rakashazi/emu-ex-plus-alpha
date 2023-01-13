@@ -31,10 +31,10 @@ namespace EmuEx
 
 EmuInputView::EmuInputView() {}
 
-EmuInputView::EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideoLayer &videoLayer)
-	: View(attach), vController{&vCtrl},
-		videoLayer{&videoLayer}
-{}
+EmuInputView::EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideoLayer &videoLayer):
+	View(attach),
+	vController{&vCtrl},
+	videoLayer{&videoLayer} {}
 
 void EmuInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
@@ -53,6 +53,13 @@ void EmuInputView::resetInput()
 	turboModifierActive = false;
 }
 
+bool EmuInputView::toggleFastSlowMode()
+{
+	ffToggleActive ^= true;
+	updateRunSpeed();
+	return ffToggleActive;
+}
+
 void EmuInputView::updateRunSpeed()
 {
 	app().setRunSpeed(ffToggleActive ? app().fastSlowModeSpeedAsDouble() : 1.);
@@ -66,21 +73,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 		{
 			if(!motionEv.isAbsolute())
 				return false;
-			if(motionEv.pushed() && vController->menuHitTest(motionEv.pos()))
-			{
-				app().showLastViewFromSystem(attachParams(), motionEv);
-				return true;
-			}
-			else if(motionEv.pushed() && vController->fastForwardHitTest(motionEv.pos()))
-			{
-				ffToggleActive ^= true;
-				updateRunSpeed();
-			}
-			else
-			{
-				vController->pointerInputEvent(motionEv, videoLayer->contentRect());
-			}
-			return false;
+			return vController->pointerInputEvent(motionEv, videoLayer->contentRect());
 		},
 		[&](const Input::KeyEvent &keyEv)
 		{
@@ -208,8 +201,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 					{
 						if(!isPushed || keyEv.repeated())
 							break;
-						ffToggleActive = !ffToggleActive;
-						updateRunSpeed();
+						toggleFastSlowMode();
 						logMsg("fast-forward state:%d", ffToggleActive);
 						break;
 					}
@@ -243,22 +235,10 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 					{
 						if(isRepeated)
 							break;
-						//logMsg("action %d", action);
-						bool turbo = turboModifierActive;
-						unsigned sysAction = sys.translateInputAction(action, turbo);
-						//logMsg("action %d -> %d, pushed %d", action, sysAction, keyEv.state() == Input::PUSHED);
-						if(turbo)
-						{
-							if(isPushed)
-							{
-								emuApp.addTurboInputEvent(sysAction);
-							}
-							else
-							{
-								emuApp.removeTurboInputEvent(sysAction);
-							}
-						}
-						sys.handleInputAction(&emuApp, {sysAction, keyEv.state(), keyEv.metaKeyBits()});
+						InputActionFlagsMask flags{};
+						if(turboModifierActive)
+							flags |= InputActionFlagsMask::turbo;
+						emuApp.handleSystemKeyInput({action, keyEv.state(), keyEv.metaKeyBits(), flags});
 					}
 				}
 			}

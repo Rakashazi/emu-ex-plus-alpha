@@ -159,9 +159,9 @@ bool ViewStack::inputEvent(const Input::Event &e)
 {
 	if(!view.size())
 		return false;
-	if(e.motionEvent() && e.asMotionEvent().isAbsolute())
+	if(e.motionEvent() && e.motionEvent()->isAbsolute())
 	{
-		auto &motionEv = e.asMotionEvent();
+		auto &motionEv = *e.motionEvent();
 		if(navViewIsActive() && nav->viewRect().overlaps(motionEv.pos()))
 		{
 			if(nav->inputEvent(e))

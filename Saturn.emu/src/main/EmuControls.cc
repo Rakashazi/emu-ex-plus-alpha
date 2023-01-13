@@ -61,7 +61,7 @@ constexpr KeyCategory category[]
 {
 	EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
 	{"Gamepad", gamepadName, gamepadKeyOffset},
-	{"Gamepad 2", gamepadName, gamepad2KeyOffset, true}
+	{"Gamepad 2", gamepadName, gamepad2KeyOffset, 1}
 };
 
 std::span<const KeyCategory> categories() { return category; }

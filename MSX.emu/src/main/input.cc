@@ -85,13 +85,38 @@ enum
 	msxKeyIdxKbEnd = msxKeyIdxKbStart + (msxKeyboardKeys - 1)
 };
 
-const char *EmuSystem::inputFaceBtnName = "A/B";
-const char *EmuSystem::inputCenterBtnName = "Space/KB";
+constexpr std::array<unsigned, 4> dpadButtonCodes
+{
+	msxKeyIdxUp,
+	msxKeyIdxRight,
+	msxKeyIdxDown,
+	msxKeyIdxLeft,
+};
+
+constexpr unsigned shortcutButtonCodes[]
+{
+	msxKeyIdxKbStart + EC_SPACE,
+	msxKeyIdxToggleKb,
+};
+
+constexpr unsigned jsButtonCodes[]
+{
+	msxKeyIdxJS1Btn,
+	msxKeyIdxJS2Btn,
+};
+
+constexpr std::array jsComponents
+{
+	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
+	InputComponentDesc{"Space & Keyboard Toggle", shortcutButtonCodes, InputComponent::button, CB2DO},
+	InputComponentDesc{"Joystick Button", jsButtonCodes, InputComponent::button, RB2DO}
+};
+
+constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};
+
 const int EmuSystem::inputFaceBtns = 2;
-const int EmuSystem::inputCenterBtns = 2;
 bool EmuSystem::inputHasKeyboard = true;
 const int EmuSystem::maxPlayers = 2;
-std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0};
 
 static VController::KbMap kbToEventMap
 {
@@ -117,46 +142,19 @@ void setupVKeyboardMap(EmuApp &app, unsigned boardType)
 			kbToEventMap2[10 + i] = EC_1 + i;
 		kbToEventMap2[23] = EC_3 | (EC_LSHIFT << 8);
 	}
+	else
+	{
+		for(auto i : iotaCount(9)) // 1 - 9
+			kbToEventMap2[10 + i] = EC_COLECO1_1 + i;
+		kbToEventMap2[19] = EC_COLECO1_0;
+		kbToEventMap2[23] = EC_COLECO1_HASH;
+	}
 	app.updateKeyboardMapping();
-	app.updateVControllerMapping();
 }
 
 VController::KbMap MsxSystem::vControllerKeyboardMap(VControllerKbMode mode)
 {
 	return mode == VControllerKbMode::LAYOUT_2 ? kbToEventMap2 : kbToEventMap;
-}
-
-VController::Map MsxSystem::vControllerMap(int player)
-{
-	VController::Map map{};
-	if(machine && machine->board.type == BOARD_COLECO)
-	{
-		unsigned playerShift = player ? 12 : 0;
-		for(auto i : iotaCount(9)) // 1 - 9
-			kbToEventMap2[10 + i] = EC_COLECO1_1 + i + playerShift;
-		kbToEventMap2[19] = EC_COLECO1_0 + playerShift;
-		kbToEventMap2[23] = EC_COLECO1_HASH + playerShift;
-	}
-	map[VController::F_ELEM] = player ? EC_JOY2_BUTTON2 : EC_JOY1_BUTTON2;
-	map[VController::F_ELEM+1] = player ? EC_JOY2_BUTTON1 : EC_JOY1_BUTTON1;
-
-	map[VController::C_ELEM] = activeBoardType == BOARD_COLECO ? (player ? EC_COLECO2_STAR : EC_COLECO1_STAR)
-																	: EC_SPACE;
-	map[VController::C_ELEM+1] = EC_KEYCOUNT;
-
-	unsigned up = player ? EC_JOY2_UP : EC_JOY1_UP;
-	unsigned down = player ? EC_JOY2_DOWN : EC_JOY1_DOWN;
-	unsigned left = player ? EC_JOY2_LEFT : EC_JOY1_LEFT;
-	unsigned right = player ? EC_JOY2_RIGHT : EC_JOY1_RIGHT;
-	map[VController::D_ELEM] = up | (left << 8);
-	map[VController::D_ELEM+1] = up;
-	map[VController::D_ELEM+2] = up | (right << 8);
-	map[VController::D_ELEM+3] = left;
-	map[VController::D_ELEM+5] = right;
-	map[VController::D_ELEM+6] = down | (left << 8);
-	map[VController::D_ELEM+7] = down;
-	map[VController::D_ELEM+8] = down | (right << 8);
-	return map;
 }
 
 static bool isJoystickButton(unsigned input)
@@ -176,49 +174,59 @@ static bool isJoystickButton(unsigned input)
 	}
 }
 
-unsigned MsxSystem::translateInputAction(unsigned input, bool &turbo)
+InputAction MsxSystem::translateInputAction(InputAction action)
 {
-	if(!isJoystickButton(input))
-		turbo = 0;
-	switch(input)
+	if(!isJoystickButton(action.key))
+		action.setTurboFlag(false);
+	action.key = [&] -> unsigned
 	{
-		case msxKeyIdxUp: return EC_JOY1_UP;
-		case msxKeyIdxRight: return EC_JOY1_RIGHT;
-		case msxKeyIdxDown: return EC_JOY1_DOWN;
-		case msxKeyIdxLeft: return EC_JOY1_LEFT;
-		case msxKeyIdxLeftUp: return EC_JOY1_LEFT | (EC_JOY1_UP << 8);
-		case msxKeyIdxRightUp: return EC_JOY1_RIGHT | (EC_JOY1_UP << 8);
-		case msxKeyIdxRightDown: return EC_JOY1_RIGHT | (EC_JOY1_DOWN << 8);
-		case msxKeyIdxLeftDown: return EC_JOY1_LEFT | (EC_JOY1_DOWN << 8);
-		case msxKeyIdxJS1BtnTurbo: turbo = 1; [[fallthrough]];
-		case msxKeyIdxJS1Btn: return EC_JOY1_BUTTON1;
-		case msxKeyIdxJS2BtnTurbo: turbo = 1; [[fallthrough]];
-		case msxKeyIdxJS2Btn: return EC_JOY1_BUTTON2;
+		switch(action.key)
+		{
+			case msxKeyIdxUp: return EC_JOY1_UP;
+			case msxKeyIdxRight: return EC_JOY1_RIGHT;
+			case msxKeyIdxDown: return EC_JOY1_DOWN;
+			case msxKeyIdxLeft: return EC_JOY1_LEFT;
+			case msxKeyIdxLeftUp: return EC_JOY1_LEFT | (EC_JOY1_UP << 8);
+			case msxKeyIdxRightUp: return EC_JOY1_RIGHT | (EC_JOY1_UP << 8);
+			case msxKeyIdxRightDown: return EC_JOY1_RIGHT | (EC_JOY1_DOWN << 8);
+			case msxKeyIdxLeftDown: return EC_JOY1_LEFT | (EC_JOY1_DOWN << 8);
+			case msxKeyIdxJS1BtnTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case msxKeyIdxJS1Btn: return EC_JOY1_BUTTON1;
+			case msxKeyIdxJS2BtnTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case msxKeyIdxJS2Btn: return EC_JOY1_BUTTON2;
 
-		case msxKeyIdxUp2: return EC_JOY2_UP;
-		case msxKeyIdxRight2: return EC_JOY2_RIGHT;
-		case msxKeyIdxDown2: return EC_JOY2_DOWN;
-		case msxKeyIdxLeft2: return EC_JOY2_LEFT;
-		case msxKeyIdxLeftUp2: return EC_JOY2_LEFT | (EC_JOY2_UP << 8);
-		case msxKeyIdxRightUp2: return EC_JOY2_RIGHT | (EC_JOY2_UP << 8);
-		case msxKeyIdxRightDown2: return EC_JOY2_RIGHT | (EC_JOY2_DOWN << 8);
-		case msxKeyIdxLeftDown2: return EC_JOY2_LEFT | (EC_JOY2_DOWN << 8);
-		case msxKeyIdxJS1BtnTurbo2: turbo = 1; [[fallthrough]];
-		case msxKeyIdxJS1Btn2: return EC_JOY2_BUTTON1;
-		case msxKeyIdxJS2BtnTurbo2: turbo = 1; [[fallthrough]];
-		case msxKeyIdxJS2Btn2: return EC_JOY2_BUTTON2;
+			case msxKeyIdxUp2: return EC_JOY2_UP;
+			case msxKeyIdxRight2: return EC_JOY2_RIGHT;
+			case msxKeyIdxDown2: return EC_JOY2_DOWN;
+			case msxKeyIdxLeft2: return EC_JOY2_LEFT;
+			case msxKeyIdxLeftUp2: return EC_JOY2_LEFT | (EC_JOY2_UP << 8);
+			case msxKeyIdxRightUp2: return EC_JOY2_RIGHT | (EC_JOY2_UP << 8);
+			case msxKeyIdxRightDown2: return EC_JOY2_RIGHT | (EC_JOY2_DOWN << 8);
+			case msxKeyIdxLeftDown2: return EC_JOY2_LEFT | (EC_JOY2_DOWN << 8);
+			case msxKeyIdxJS1BtnTurbo2: action.setTurboFlag(true); [[fallthrough]];
+			case msxKeyIdxJS1Btn2: return EC_JOY2_BUTTON1;
+			case msxKeyIdxJS2BtnTurbo2: action.setTurboFlag(true); [[fallthrough]];
+			case msxKeyIdxJS2Btn2: return EC_JOY2_BUTTON2;
 
-		case msxKeyIdxColeco0Num ... msxKeyIdxColecoHash :
-			return (input - msxKeyIdxColeco0Num) + EC_COLECO1_0;
-		case msxKeyIdxColeco0Num2 ... msxKeyIdxColecoHash2 :
-			return (input - msxKeyIdxColeco0Num) + EC_COLECO2_0;
+			case msxKeyIdxColeco0Num ... msxKeyIdxColecoHash :
+				return (action.key - msxKeyIdxColeco0Num) + EC_COLECO1_0;
+			case msxKeyIdxColeco0Num2 ... msxKeyIdxColecoHash2 :
+				return (action.key - msxKeyIdxColeco0Num) + EC_COLECO2_0;
 
-		case msxKeyIdxToggleKb: return EC_KEYCOUNT;
-		case msxKeyIdxKbStart ... msxKeyIdxKbEnd :
-			return (input - msxKeyIdxKbStart) + 1;
-		default: bug_unreachable("input == %d", input);
-	}
-	return 0;
+			case msxKeyIdxToggleKb: return EC_KEYCOUNT;
+			case msxKeyIdxKbStart ... msxKeyIdxKbEnd :
+				if(activeBoardType == BOARD_COLECO)
+				{
+					return EC_COLECO1_STAR;
+				}
+				else
+				{
+					return (action.key - msxKeyIdxKbStart) + 1;
+				}
+		}
+		bug_unreachable("invalid key");
+	}();
+	return action;
 }
 
 void MsxSystem::handleInputAction(EmuApp *appPtr, InputAction a)
@@ -245,6 +253,26 @@ void MsxSystem::handleInputAction(EmuApp *appPtr, InputAction a)
 void MsxSystem::clearInputBuffers(EmuInputView &)
 {
 	IG::fill(eventMap);
+}
+
+VControllerImageIndex MsxSystem::mapVControllerButton(unsigned key) const
+{
+	using enum VControllerImageIndex;
+	switch(key)
+	{
+		case msxKeyIdxKbStart + EC_SPACE: return auxButton1;
+		case msxKeyIdxToggleKb: return auxButton1;
+		case msxKeyIdxJS1Btn:
+		case msxKeyIdxJS1BtnTurbo: return button1;
+		case msxKeyIdxJS2Btn:
+		case msxKeyIdxJS2BtnTurbo: return button2;
+		default: return button1;
+	}
+}
+
+SystemInputDeviceDesc MsxSystem::inputDeviceDesc(int idx) const
+{
+	return jsDesc;
 }
 
 }

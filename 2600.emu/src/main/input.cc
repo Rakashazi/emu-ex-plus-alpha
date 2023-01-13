@@ -63,10 +63,36 @@ enum
 	vcsKeyIdxKeyboard2Base = vcsKeyIdxKeyboard1Base + 12,
 };
 
-const char *EmuSystem::inputFaceBtnName = "JS Buttons";
-const char *EmuSystem::inputCenterBtnName = "Select/Reset";
+constexpr std::array<unsigned, 4> dpadButtonCodes
+{
+	vcsKeyIdxUp,
+	vcsKeyIdxRight,
+	vcsKeyIdxDown,
+	vcsKeyIdxLeft,
+};
+
+constexpr unsigned consoleButtonCodes[]
+{
+	vcsKeyIdxSelect,
+	vcsKeyIdxReset,
+};
+
+constexpr unsigned jsButtonCodes[]
+{
+	vcsKeyIdxJSBtn,
+	vcsKeyIdxJSBtnAlt,
+};
+
+constexpr std::array jsComponents
+{
+	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
+	InputComponentDesc{"Console Buttons", consoleButtonCodes, InputComponent::button, CB2DO},
+	InputComponentDesc{"Joystick Buttons", jsButtonCodes, InputComponent::button, RB2DO}
+};
+
+constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};
+
 const int EmuSystem::inputFaceBtns = 4;
-const int EmuSystem::inputCenterBtns = 2;
 bool EmuSystem::inputHasShortBtnTexture = true;
 const int EmuSystem::maxPlayers = 2;
 
@@ -83,33 +109,6 @@ void A2600System::clearInputBuffers(EmuInputView &)
 	ev.set(Event::ConsoleBlackWhite, !vcsColor);
 }
 
-VController::Map A2600System::vControllerMap(int player)
-{
-	int playerShift = player ? 7 : 0;
-	VController::Map map{};
-	map[VController::F_ELEM] = jsFireMap[player];
-	map[VController::F_ELEM+1] = jsFireMap[player] | VController::TURBO_BIT;
-	map[VController::F_ELEM+2] = Event::LeftJoystickFire5 + playerShift;
-	map[VController::F_ELEM+3] = (Event::LeftJoystickFire5 + playerShift) | VController::TURBO_BIT;
-
-	map[VController::C_ELEM] = Event::ConsoleSelect;
-	map[VController::C_ELEM+1] = Event::ConsoleReset;
-
-	map[VController::D_ELEM] = (Event::LeftJoystickUp + playerShift)
-																| ((Event::LeftJoystickLeft + playerShift) << 8);
-	map[VController::D_ELEM+1] = Event::LeftJoystickUp + playerShift; // up
-	map[VController::D_ELEM+2] = (Event::LeftJoystickUp  + playerShift)
-																	| ((Event::LeftJoystickRight + playerShift) << 8);
-	map[VController::D_ELEM+3] = jsLeftMap[player]; // left
-	map[VController::D_ELEM+5] = jsRightMap[player]; // right
-	map[VController::D_ELEM+6] = (Event::LeftJoystickDown + playerShift)
-																	| ((Event::LeftJoystickLeft + playerShift) << 8);
-	map[VController::D_ELEM+7] = Event::LeftJoystickDown + playerShift; // down
-	map[VController::D_ELEM+8] = (Event::LeftJoystickDown + playerShift)
-																	| ((Event::LeftJoystickRight + playerShift) << 8);
-	return map;
-}
-
 void A2600System::updateJoytickMapping(EmuApp &app, Controller::Type type)
 {
 	if(type == Controller::Type::Paddles)
@@ -124,7 +123,6 @@ void A2600System::updateJoytickMapping(EmuApp &app, Controller::Type type)
 		jsLeftMap = {Event::LeftJoystickLeft, Event::RightJoystickLeft};
 		jsRightMap = {Event::LeftJoystickRight, Event::RightJoystickRight};
 	}
-	app.updateVControllerMapping();
 }
 
 static bool isJoystickButton(unsigned input)
@@ -144,50 +142,53 @@ static bool isJoystickButton(unsigned input)
 	}
 }
 
-unsigned A2600System::translateInputAction(unsigned input, bool &turbo)
+InputAction A2600System::translateInputAction(InputAction action)
 {
-	if(!isJoystickButton(input))
-		turbo = 0;
-	switch(input)
+	if(!isJoystickButton(action.key))
+		action.setTurboFlag(false);
+	action.key = [&] -> unsigned
 	{
-		case vcsKeyIdxUp: return Event::LeftJoystickUp;
-		case vcsKeyIdxRight: return jsRightMap[0];
-		case vcsKeyIdxDown: return Event::LeftJoystickDown;
-		case vcsKeyIdxLeft: return jsLeftMap[0];
-		case vcsKeyIdxLeftUp: return Event::LeftJoystickLeft | (Event::LeftJoystickUp << 8);
-		case vcsKeyIdxRightUp: return Event::LeftJoystickRight | (Event::LeftJoystickUp << 8);
-		case vcsKeyIdxRightDown: return Event::LeftJoystickRight | (Event::LeftJoystickDown << 8);
-		case vcsKeyIdxLeftDown: return Event::LeftJoystickLeft | (Event::LeftJoystickDown << 8);
-		case vcsKeyIdxJSBtnTurbo: turbo = 1; [[fallthrough]];
-		case vcsKeyIdxJSBtn: return jsFireMap[0];
-		case vcsKeyIdxJSBtnAltTurbo: turbo = 1; [[fallthrough]];
-		case vcsKeyIdxJSBtnAlt: return Event::LeftJoystickFire5;
+		switch(action.key)
+		{
+			case vcsKeyIdxUp: return Event::LeftJoystickUp;
+			case vcsKeyIdxRight: return jsRightMap[0];
+			case vcsKeyIdxDown: return Event::LeftJoystickDown;
+			case vcsKeyIdxLeft: return jsLeftMap[0];
+			case vcsKeyIdxLeftUp: return Event::LeftJoystickLeft | (Event::LeftJoystickUp << 8);
+			case vcsKeyIdxRightUp: return Event::LeftJoystickRight | (Event::LeftJoystickUp << 8);
+			case vcsKeyIdxRightDown: return Event::LeftJoystickRight | (Event::LeftJoystickDown << 8);
+			case vcsKeyIdxLeftDown: return Event::LeftJoystickLeft | (Event::LeftJoystickDown << 8);
+			case vcsKeyIdxJSBtnTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case vcsKeyIdxJSBtn: return jsFireMap[0];
+			case vcsKeyIdxJSBtnAltTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case vcsKeyIdxJSBtnAlt: return Event::LeftJoystickFire5;
 
-		case vcsKeyIdxUp2: return Event::RightJoystickUp;
-		case vcsKeyIdxRight2: return jsRightMap[1];
-		case vcsKeyIdxDown2: return Event::RightJoystickDown;
-		case vcsKeyIdxLeft2: return jsLeftMap[1];
-		case vcsKeyIdxLeftUp2: return Event::RightJoystickLeft | (Event::RightJoystickUp << 8);
-		case vcsKeyIdxRightUp2: return Event::RightJoystickRight | (Event::RightJoystickUp << 8);
-		case vcsKeyIdxRightDown2: return Event::RightJoystickRight | (Event::RightJoystickDown << 8);
-		case vcsKeyIdxLeftDown2: return Event::RightJoystickLeft | (Event::RightJoystickDown << 8);
-		case vcsKeyIdxJSBtnTurbo2: turbo = 1; [[fallthrough]];
-		case vcsKeyIdxJSBtn2: return jsFireMap[1];
-		case vcsKeyIdxJSBtnAltTurbo2: turbo = 1; [[fallthrough]];
-		case vcsKeyIdxJSBtnAlt2: return Event::RightJoystickFire5;
+			case vcsKeyIdxUp2: return Event::RightJoystickUp;
+			case vcsKeyIdxRight2: return jsRightMap[1];
+			case vcsKeyIdxDown2: return Event::RightJoystickDown;
+			case vcsKeyIdxLeft2: return jsLeftMap[1];
+			case vcsKeyIdxLeftUp2: return Event::RightJoystickLeft | (Event::RightJoystickUp << 8);
+			case vcsKeyIdxRightUp2: return Event::RightJoystickRight | (Event::RightJoystickUp << 8);
+			case vcsKeyIdxRightDown2: return Event::RightJoystickRight | (Event::RightJoystickDown << 8);
+			case vcsKeyIdxLeftDown2: return Event::RightJoystickLeft | (Event::RightJoystickDown << 8);
+			case vcsKeyIdxJSBtnTurbo2: action.setTurboFlag(true); [[fallthrough]];
+			case vcsKeyIdxJSBtn2: return jsFireMap[1];
+			case vcsKeyIdxJSBtnAltTurbo2: action.setTurboFlag(true); [[fallthrough]];
+			case vcsKeyIdxJSBtnAlt2: return Event::RightJoystickFire5;
 
-		case vcsKeyIdxSelect: return Event::ConsoleSelect;
-		case vcsKeyIdxP1Diff: return Event::Combo1; // toggle P1 diff
-		case vcsKeyIdxP2Diff: return Event::Combo2; // toggle P2 diff
-		case vcsKeyIdxColorBW: return Event::Combo3; // toggle Color/BW
-		case vcsKeyIdxReset: return Event::ConsoleReset;
-		case vcsKeyIdxKeyboard1Base ... vcsKeyIdxKeyboard1Base + 11:
-			return Event::LeftKeyboard1 + (input - vcsKeyIdxKeyboard1Base);
-		case vcsKeyIdxKeyboard2Base ... vcsKeyIdxKeyboard2Base + 11:
-			return Event::RightKeyboard1 + (input - vcsKeyIdxKeyboard2Base);
-		default: bug_unreachable("input == %d", input);
-	}
-	return 0;
+			case vcsKeyIdxSelect: return Event::ConsoleSelect;
+			case vcsKeyIdxP1Diff: return Event::Combo1; // toggle P1 diff
+			case vcsKeyIdxP2Diff: return Event::Combo2; // toggle P2 diff
+			case vcsKeyIdxColorBW: return Event::Combo3; // toggle Color/BW
+			case vcsKeyIdxReset: return Event::ConsoleReset;
+			case vcsKeyIdxKeyboard1Base ... vcsKeyIdxKeyboard1Base + 11:
+				return Event::LeftKeyboard1 + (action.key - vcsKeyIdxKeyboard1Base);
+			case vcsKeyIdxKeyboard2Base ... vcsKeyIdxKeyboard2Base + 11:
+				return Event::RightKeyboard1 + (action.key - vcsKeyIdxKeyboard2Base);
+		}
+		bug_unreachable("invalid key");
+	}();
+	return action;
 }
 
 void A2600System::handleInputAction(EmuApp *app, InputAction a)
@@ -268,10 +269,15 @@ void A2600System::setControllerType(EmuApp &app, Console &console, Controller::T
 {
 	if(type == Controller::Type::Unknown)
 		type = autoDetectedInput1;
-	const bool extraButtons = type == Controller::Type::Genesis;
-	static constexpr std::pair<int, bool> enableExtraBtn[]{{2, true}, {3, true}};
-	static constexpr std::pair<int, bool> disableExtraBtn[]{{2, false}, {3, false}};
-	app.applyEnabledFaceButtons(extraButtons ? enableExtraBtn : disableExtraBtn);
+	if(type == Controller::Type::Genesis)
+	{
+		app.unsetDisabledInputKeys();
+	}
+	else
+	{
+		static constexpr std::array<unsigned, 2> disableExtraBtn{vcsKeyIdxJSBtnAlt, vcsKeyIdxJSBtnAltTurbo};
+		app.setDisabledInputKeys(disableExtraBtn);
+	}
 	updateDPadForPaddles(app, console, (PaddleRegionMode)optionPaddleAnalogRegion.val);
 	updateJoytickMapping(app, type);
 	Controller &currentController = console.leftController();
@@ -368,6 +374,26 @@ bool A2600System::onPointerInputUpdate(const Input::MotionEvent &, Input::DragTr
 		default:
 			return false;
 	}
+}
+
+VControllerImageIndex A2600System::mapVControllerButton(unsigned key) const
+{
+	using enum VControllerImageIndex;
+	switch(key)
+	{
+		case vcsKeyIdxSelect: return auxButton1;
+		case vcsKeyIdxReset: return auxButton2;
+		case vcsKeyIdxJSBtn:
+		case vcsKeyIdxJSBtnAlt: return button1;
+		case vcsKeyIdxJSBtnTurbo:
+		case vcsKeyIdxJSBtnAltTurbo: return button2;
+		default: return button1;
+	}
+}
+
+SystemInputDeviceDesc A2600System::inputDeviceDesc(int idx) const
+{
+	return jsDesc;
 }
 
 }

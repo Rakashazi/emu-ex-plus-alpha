@@ -178,10 +178,6 @@ public:
 	constexpr auto motionEvent() const { return std::get_if<MotionEvent>(this); }
 	constexpr auto keyEvent() { return std::get_if<KeyEvent>(this); }
 	constexpr auto keyEvent() const { return std::get_if<KeyEvent>(this); }
-	constexpr auto &asMotionEvent() { return *motionEvent(); }
-	constexpr auto &asMotionEvent() const { return *motionEvent(); }
-	constexpr auto &asKeyEvent() { return *keyEvent(); }
-	constexpr auto &asKeyEvent() const { return *keyEvent(); }
 
 	Time time() const;
 	const Device *device() const;

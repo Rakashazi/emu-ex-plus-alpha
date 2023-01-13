@@ -52,53 +52,44 @@ enum
 	mdKeyIdxZTurbo
 };
 
-const char *EmuSystem::inputFaceBtnName = "A/B/C";
-const char *EmuSystem::inputCenterBtnName = "Mode/Start";
+constexpr std::array<unsigned, 4> dpadButtonCodes
+{
+	mdKeyIdxUp,
+	mdKeyIdxRight,
+	mdKeyIdxDown,
+	mdKeyIdxLeft,
+};
+
+constexpr unsigned centerButtonCodes[]
+{
+	mdKeyIdxMode,
+	mdKeyIdxStart,
+};
+
+constexpr unsigned faceButtonCodes[]
+{
+	mdKeyIdxA,
+	mdKeyIdxB,
+	mdKeyIdxC,
+	mdKeyIdxX,
+	mdKeyIdxY,
+	mdKeyIdxZ,
+};
+
+constexpr std::array gamepadComponents
+{
+	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
+	InputComponentDesc{"Mode/Start Buttons", centerButtonCodes, InputComponent::button, CB2DO},
+	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO}
+};
+
+constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 const int EmuSystem::inputFaceBtns = 6;
-const int EmuSystem::inputCenterBtns = 2;
 const int EmuSystem::maxPlayers = 4;
 
-constexpr std::pair<int, bool> setMd6BGamepad[]
-{
-	{0, true}, {1, true}, {2, true}, {3, true}, {4, true}, {5, true}
-};
-constexpr std::pair<int, bool> setMdGamepad[]
-{
-	{0, true}, {1, true}, {2, true}, {3, false}, {4, false}, {5, false}
-};
-constexpr std::pair<int, bool> setM3Gamepad[]
-{
-	{0, false}, {1, true}, {2, true}, {3, false}, {4, false}, {5, false}
-};
-constexpr std::pair<int, bool> enableModeBtn[]{{0, true}};
-constexpr std::pair<int, bool> disableModeBtn[]{{0, false}};
-
-VController::Map MdSystem::vControllerMap(int player)
-{
-	unsigned playerMask = player << 30;
-	unsigned playMaskAlt = input.system[1] == SYSTEM_MENACER ? 1 << 30 : playerMask;
-	unsigned playMaskAlt2 = input.system[1] == SYSTEM_JUSTIFIER ? 1 << 30 : playerMask;
-	VController::Map map{};
-	map[VController::F_ELEM] = INPUT_A | playerMask;
-	map[VController::F_ELEM+1] = INPUT_B | playMaskAlt;
-	map[VController::F_ELEM+2] = INPUT_C | playMaskAlt;
-	map[VController::F_ELEM+3] = INPUT_X | playerMask;
-	map[VController::F_ELEM+4] = INPUT_Y | playerMask;
-	map[VController::F_ELEM+5] = INPUT_Z | playerMask;
-
-	map[VController::C_ELEM] = INPUT_MODE | playerMask;
-	map[VController::C_ELEM+1] = INPUT_START | playMaskAlt2;
-
-	map[VController::D_ELEM] = INPUT_UP | INPUT_LEFT | playerMask;
-	map[VController::D_ELEM+1] = INPUT_UP | playerMask;
-	map[VController::D_ELEM+2] = INPUT_UP | INPUT_RIGHT | playerMask;
-	map[VController::D_ELEM+3] = INPUT_LEFT | playerMask;
-	map[VController::D_ELEM+5] = INPUT_RIGHT | playerMask;
-	map[VController::D_ELEM+6] = INPUT_DOWN | INPUT_LEFT | playerMask;
-	map[VController::D_ELEM+7] = INPUT_DOWN | playerMask;
-	map[VController::D_ELEM+8] = INPUT_DOWN | INPUT_RIGHT | playerMask;
-	return map;
-}
+constexpr unsigned m3MissingCodes[]{mdKeyIdxMode, mdKeyIdxA, mdKeyIdxX, mdKeyIdxY, mdKeyIdxZ};
+constexpr unsigned md6BtnExtraCodes[]{mdKeyIdxMode, mdKeyIdxX, mdKeyIdxY, mdKeyIdxZ};
 
 static bool isGamepadButton(unsigned input)
 {
@@ -123,41 +114,49 @@ static bool isGamepadButton(unsigned input)
 	}
 }
 
-unsigned MdSystem::translateInputAction(unsigned input, bool &turbo)
+InputAction MdSystem::translateInputAction(InputAction action)
 {
-	if(!isGamepadButton(input))
-		turbo = 0;
-	assert(input >= mdKeyIdxUp);
-	unsigned player = (input - mdKeyIdxUp) / Controls::gamepadKeys;
+	if(!isGamepadButton(action.key))
+		action.setTurboFlag(false);
+	assert(action.key >= mdKeyIdxUp);
+	unsigned player = (action.key - mdKeyIdxUp) / Controls::gamepadKeys;
 	unsigned playerMask = player << 30;
-	input -= Controls::gamepadKeys * player;
-	switch(input)
+	action.key -= Controls::gamepadKeys * player;
+	if((input.system[1] == SYSTEM_MENACER && (action.key == mdKeyIdxB || action.key == mdKeyIdxC)) ||
+		(input.system[1] == SYSTEM_JUSTIFIER && (action.key == mdKeyIdxStart)))
 	{
-		case mdKeyIdxUp: return INPUT_UP | playerMask;
-		case mdKeyIdxRight: return INPUT_RIGHT | playerMask;
-		case mdKeyIdxDown: return INPUT_DOWN | playerMask;
-		case mdKeyIdxLeft: return INPUT_LEFT | playerMask;
-		case mdKeyIdxLeftUp: return INPUT_LEFT | INPUT_UP | playerMask;
-		case mdKeyIdxRightUp: return INPUT_RIGHT | INPUT_UP | playerMask;
-		case mdKeyIdxRightDown: return INPUT_RIGHT | INPUT_DOWN | playerMask;
-		case mdKeyIdxLeftDown: return INPUT_LEFT | INPUT_DOWN | playerMask;
-		case mdKeyIdxMode: return INPUT_MODE | playerMask;
-		case mdKeyIdxStart: return INPUT_START | playerMask;
-		case mdKeyIdxATurbo: turbo = 1; [[fallthrough]];
-		case mdKeyIdxA: return INPUT_A | playerMask;
-		case mdKeyIdxBTurbo: turbo = 1; [[fallthrough]];
-		case mdKeyIdxB: return INPUT_B | playerMask;
-		case mdKeyIdxCTurbo: turbo = 1; [[fallthrough]];
-		case mdKeyIdxC: return INPUT_C | playerMask;
-		case mdKeyIdxXTurbo: turbo = 1; [[fallthrough]];
-		case mdKeyIdxX: return INPUT_X | playerMask;
-		case mdKeyIdxYTurbo: turbo = 1; [[fallthrough]];
-		case mdKeyIdxY: return INPUT_Y | playerMask;
-		case mdKeyIdxZTurbo: turbo = 1; [[fallthrough]];
-		case mdKeyIdxZ: return INPUT_Z | playerMask;
-		default: bug_unreachable("input == %d", input);
+		playerMask = 1 << 30;
 	}
-	return 0;
+	action.key = [&] -> unsigned
+	{
+		switch(action.key)
+		{
+			case mdKeyIdxUp: return INPUT_UP | playerMask;
+			case mdKeyIdxRight: return INPUT_RIGHT | playerMask;
+			case mdKeyIdxDown: return INPUT_DOWN | playerMask;
+			case mdKeyIdxLeft: return INPUT_LEFT | playerMask;
+			case mdKeyIdxLeftUp: return INPUT_LEFT | INPUT_UP | playerMask;
+			case mdKeyIdxRightUp: return INPUT_RIGHT | INPUT_UP | playerMask;
+			case mdKeyIdxRightDown: return INPUT_RIGHT | INPUT_DOWN | playerMask;
+			case mdKeyIdxLeftDown: return INPUT_LEFT | INPUT_DOWN | playerMask;
+			case mdKeyIdxMode: return INPUT_MODE | playerMask;
+			case mdKeyIdxStart: return INPUT_START | playerMask;
+			case mdKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
+			case mdKeyIdxA: return INPUT_A | playerMask;
+			case mdKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case mdKeyIdxB: return INPUT_B | playerMask;
+			case mdKeyIdxCTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case mdKeyIdxC: return INPUT_C | playerMask;
+			case mdKeyIdxXTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case mdKeyIdxX: return INPUT_X | playerMask;
+			case mdKeyIdxYTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case mdKeyIdxY: return INPUT_Y | playerMask;
+			case mdKeyIdxZTurbo: action.setTurboFlag(true); [[fallthrough]];
+			case mdKeyIdxZ: return INPUT_Z | playerMask;
+		}
+		bug_unreachable("invalid key");
+	}();
+	return action;
 }
 
 void MdSystem::handleInputAction(EmuApp *, InputAction a)
@@ -247,8 +246,7 @@ void MdSystem::setupSmsInput(EmuApp &app)
 		input.system[0] = SYSTEM_MS_GAMEPAD;
 	input.system[1] = SYSTEM_MS_GAMEPAD;
 	io_init();
-	app.applyEnabledFaceButtons(setM3Gamepad);
-	app.applyEnabledCenterButtons(disableModeBtn);
+	app.setDisabledInputKeys(m3MissingCodes);
 	for(auto i : iotaCount(2))
 	{
 		logMsg("attached %s to port %d", mdInputSystemToStr(input.system[i]), i);
@@ -300,16 +298,20 @@ void MdSystem::setupMdInput(EmuApp &app)
 	}
 	io_init();
 	gunDevIdx = 4;
-	app.applyEnabledFaceButtons(option6BtnPad ? setMd6BGamepad : setMdGamepad);
-	app.applyEnabledCenterButtons(option6BtnPad ? enableModeBtn : disableModeBtn);
+	if(option6BtnPad)
+		app.unsetDisabledInputKeys();
+	else
+		app.setDisabledInputKeys(md6BtnExtraCodes);
 }
 
 void MdSystem::setupInput(EmuApp &app)
 {
 	if(!hasContent())
 	{
-		app.applyEnabledFaceButtons(option6BtnPad ? setMd6BGamepad : setMdGamepad);
-		app.applyEnabledCenterButtons(option6BtnPad ? enableModeBtn : disableModeBtn);
+		if(option6BtnPad)
+			app.unsetDisabledInputKeys();
+		else
+			app.setDisabledInputKeys(md6BtnExtraCodes);
 		return;
 	}
 	if(savedVControllerPlayer != -1)
@@ -332,7 +334,34 @@ void MdSystem::setupInput(EmuApp &app)
 	{
 		setupMdInput(app);
 	}
-	app.updateVControllerMapping();
+}
+
+VControllerImageIndex MdSystem::mapVControllerButton(unsigned key) const
+{
+	using enum VControllerImageIndex;
+	switch(key)
+	{
+		case mdKeyIdxMode: return auxButton1;
+		case mdKeyIdxStart: return auxButton2;
+		case mdKeyIdxATurbo:
+		case mdKeyIdxA: return button1;
+		case mdKeyIdxBTurbo:
+		case mdKeyIdxB: return button2;
+		case mdKeyIdxCTurbo:
+		case mdKeyIdxC: return button3;
+		case mdKeyIdxXTurbo:
+		case mdKeyIdxX: return button4;
+		case mdKeyIdxYTurbo:
+		case mdKeyIdxY: return button5;
+		case mdKeyIdxZTurbo:
+		case mdKeyIdxZ: return button6;
+		default: return button1;
+	}
+}
+
+SystemInputDeviceDesc MdSystem::inputDeviceDesc(int idx) const
+{
+	return gamepadDesc;
 }
 
 

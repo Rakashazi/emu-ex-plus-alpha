@@ -126,7 +126,7 @@ bool FSPicker::inputEvent(const Input::Event &e)
 {
 	if(e.keyEvent())
 	{
-		auto &keyEv = e.asKeyEvent();
+		auto &keyEv = *e.keyEvent();
 		if(keyEv.pushed(Input::DefaultKey::CANCEL))
 		{
 			dismiss();

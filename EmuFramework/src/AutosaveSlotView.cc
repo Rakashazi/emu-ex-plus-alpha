@@ -57,7 +57,7 @@ public:
 							app.postErrorMessage("A save slot with that name already exists");
 							return false;
 						}
-						if(!app.renameAutosave(slotName, str))
+						if(!app.autosaveManager().renameSlot(slotName, str))
 						{
 							app.postErrorMessage("Error renaming save slot");
 							return false;
@@ -73,7 +73,7 @@ public:
 			"Delete", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				if(slotName == app().currentAutosave())
+				if(slotName == app().autosaveManager().slotName())
 				{
 					app().postErrorMessage("Can't delete the currently active save slot");
 					return;
@@ -82,7 +82,7 @@ public:
 				ynAlertView->setOnYes(
 					[this]()
 					{
-						app().deleteAutosave(slotName);
+						app().autosaveManager().deleteSlot(slotName);
 						srcView.updateItem(slotName, "");
 						if(!srcView.hasItems())
 							srcView.dismiss();
@@ -116,7 +116,7 @@ ManageAutosavesView::ManageAutosavesView(ViewAttachParams attach, AutosaveSlotVi
 
 static std::string slotDescription(EmuApp &app, std::string_view saveName)
 {
-	auto desc = app.appContext().fileUriFormatLastWriteTimeLocal(app.autosaveStatePath(saveName));
+	auto desc = app.appContext().fileUriFormatLastWriteTimeLocal(app.autosaveManager().statePath(saveName));
 	if(desc.empty())
 		desc = "No saved state";
 	return desc;
@@ -155,7 +155,7 @@ AutosaveSlotView::AutosaveSlotView(ViewAttachParams attach):
 					app.postErrorMessage("A save slot with that name already exists");
 					return false;
 				}
-				if(!app.setAutosave(name))
+				if(!app.autosaveManager().setSlot(name))
 				{
 					app.postErrorMessage("Error creating save slot");
 					return false;
@@ -191,14 +191,14 @@ void AutosaveSlotView::refreshSlots()
 		fmt::format("Main: {}", slotDescription(app(), "")),
 		&defaultFace(), [this]()
 		{
-			if(app().setAutosave(""))
+			if(app().autosaveManager().setSlot(""))
 			{
 				app().showEmulation();
 				refreshItems();
 			}
 		}
 	};
-	if(app().currentAutosave().empty())
+	if(app().autosaveManager().slotName().empty())
 		mainSlot.setHighlighted(true);
 	extraSlotItems.clear();
 	auto ctx = appContext();
@@ -210,13 +210,13 @@ void AutosaveSlotView::refreshSlots()
 		auto &item = extraSlotItems.emplace_back(e.name(), fmt::format("{}: {}", e.name(), slotDescription(app(), e.name())),
 			&defaultFace(), [this](TextMenuItem &item)
 		{
-			if(app().setAutosave(static_cast<SlotTextMenuItem&>(item).slotName))
+			if(app().autosaveManager().setSlot(static_cast<SlotTextMenuItem&>(item).slotName))
 			{
 				app().showEmulation();
 				refreshItems();
 			}
 		});
-		if(app().currentAutosave() == e.name())
+		if(app().autosaveManager().slotName() == e.name())
 			item.setHighlighted(true);
 		return true;
 	}, FS::DirOpenFlagsMask::Test);
@@ -225,14 +225,14 @@ void AutosaveSlotView::refreshSlots()
 		"No Save",
 		&defaultFace(), [this]()
 		{
-			if(app().setAutosave(noAutosaveName))
+			if(app().autosaveManager().setSlot(noAutosaveName))
 			{
 				app().showEmulation();
 				refreshItems();
 			}
 		}
 	};
-	if(app().currentAutosave() == noAutosaveName)
+	if(app().autosaveManager().slotName() == noAutosaveName)
 		noSaveSlot.setHighlighted(true);
 }
 

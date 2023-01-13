@@ -80,10 +80,10 @@ constexpr KeyCategory category[]
 {
 	EMU_CONTROLS_IN_GAME_ACTIONS_CATEGORY_INIT,
 	{"Set Joystick Keys", gamepadName, joystickKeyOffset},
-	{"Set Joystick 2 Keys", gamepadName, joystick2KeyOffset, true},
+	{"Set Joystick 2 Keys", gamepadName, joystick2KeyOffset, 1},
 	{"Set Console Switch Keys", switchName, switchKeyOffset},
 	{"Set Keyboard Keys", keyboardName, keyboardKeyOffset},
-	{"Set Keyboard 2 Keys", keyboardName, keyboard2KeyOffset}
+	{"Set Keyboard 2 Keys", keyboardName, keyboard2KeyOffset, 1}
 };
 
 std::span<const KeyCategory> categories() { return category; }

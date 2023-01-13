@@ -51,7 +51,7 @@ static bool colorSpaceIsValid(Gfx::ColorSpace val)
 }
 
 static bool readKeyConfig(KeyConfigContainer &customKeyConfigs,
-	MapIO &io, uint16_t &size, std::span<const KeyCategory> categorySpan)
+	MapIO &io, size_t &size, std::span<const KeyCategory> categorySpan)
 {
 	auto confs = io.get<uint8_t>(); // TODO: unused currently, use to pre-allocate memory for configs
 	size--;
@@ -142,7 +142,7 @@ static bool readKeyConfig(KeyConfigContainer &customKeyConfigs,
 }
 
 static bool readInputDeviceConfig(InputDeviceSavedConfigContainer &savedInputDevs,
-	MapIO &io, uint16_t &size, const KeyConfigContainer &customKeyConfigs)
+	MapIO &io, size_t &size, const KeyConfigContainer &customKeyConfigs)
 {
 	auto confs = io.get<uint8_t>(); // TODO: unused currently, use to pre-allocate memory for configs
 	size--;
@@ -271,7 +271,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 
 	const auto cfgFileOptions = std::tie
 	(
-		optionAutosaveTimerMins,
 		optionSound,
 		optionSoundVolume,
 		optionSoundRate,
@@ -326,7 +325,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 	std::apply([&](auto &...opt){ (writeOptionValue(io, opt), ...); }, cfgFileOptions);
 
 	writeRecentContent(io);
-	writeOptionValueIfNotDefault(io, CFGKEY_AUTOSAVE_LAUNCH_MODE, autosaveLaunchMode, AutosaveLaunchMode::Load);
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
 	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager().soloMixOption());
@@ -344,6 +342,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 	if(contentRotation_ != Rotation::ANY)
 		writeOptionValue(io, CFGKEY_CONTENT_ROTATION, contentRotation_);
 	vController.writeConfig(io);
+	autosaveManager_.writeConfig(io);
 	if(IG::used(usePresentationTime_) && !usePresentationTime_)
 		writeOptionValue(io, CFGKEY_RENDERER_PRESENTATION_TIME, false);
 	if(IG::used(forceMaxScreenFrameRate) && forceMaxScreenFrameRate)
@@ -534,7 +533,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 	ConfigParams appConfig{};
 	Gfx::DrawableConfig pendingWindowDrawableConf{};
 	readConfigKeys(FileUtils::bufferFromPath(configFilePath, OpenFlagsMask::TEST),
-		[&](uint16_t key, uint16_t size, auto &io) -> bool
+		[&](auto key, auto size, auto &io) -> bool
 		{
 			switch(key)
 			{
@@ -542,15 +541,15 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				{
 					if(system().readConfig(ConfigType::MAIN, io, key, size))
 						return true;
-					if(vController.readConfig(io, key, size))
+					if(vController.readConfig(*this, io, key, size))
+						return true;
+					if(autosaveManager_.readConfig(io, key, size))
 						return true;
 					logMsg("skipping key %u", (unsigned)key);
 					return false;
 				}
 				case CFGKEY_SOUND: return optionSound.readFromIO(io, size);
 				case CFGKEY_SOUND_RATE: return optionSoundRate.readFromIO(io, size);
-				case CFGKEY_AUTOSAVE_TIMER_MINS: return optionAutosaveTimerMins.readFromIO(io, size);
-				case CFGKEY_AUTOSAVE_LAUNCH_MODE: return readOptionValue(io, size, autosaveLaunchMode, [](auto m){return m <= lastEnum<AutosaveLaunchMode>;});
 				case CFGKEY_FRAME_INTERVAL:
 					return doIfUsed(optionFrameInterval, [&](auto &opt){return opt.readFromIO(io, size);});
 				case CFGKEY_SKIP_LATE_FRAMES: return optionSkipLateFrames.readFromIO(io, size);
@@ -576,9 +575,6 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_VIDEO_IMAGE_BUFFERS: return optionVideoImageBuffers.readFromIO(io, size);
 				case CFGKEY_OVERLAY_EFFECT: return optionOverlayEffect.readFromIO(io, size);
 				case CFGKEY_OVERLAY_EFFECT_LEVEL: return optionOverlayEffectLevel.readFromIO(io, size);
-				case CFGKEY_TOUCH_CONTROL_VIRBRATE:
-					vController.setVibrateOnTouchInput(*this, readOptionValue<bool>(io, size));
-					return true;
 				case CFGKEY_RECENT_GAMES: return readRecentContent(ctx, io, size);
 				case CFGKEY_SWAPPED_GAMEPAD_CONFIM:
 					setSwappedConfirmKeys(readOptionValue<bool>(io, size));

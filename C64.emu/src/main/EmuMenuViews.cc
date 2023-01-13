@@ -1288,7 +1288,7 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMa
 							{
 								newMediaPath = FS::uriString(path, newMediaName);
 								picker.dismiss();
-								if(e.keyEvent() && e.asKeyEvent().isDefaultCancelButton())
+								if(e.keyEvent() && e.keyEvent()->isDefaultCancelButton())
 								{
 									// picker was cancelled
 									app().unpostMessage();
@@ -1364,7 +1364,7 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMa
 							{
 								newMediaPath = FS::uriString(path, newMediaName);
 								picker.dismiss();
-								if(e.keyEvent() && e.asKeyEvent().isDefaultCancelButton())
+								if(e.keyEvent() && e.keyEvent()->isDefaultCancelButton())
 								{
 									// picker was cancelled
 									app().unpostMessage();

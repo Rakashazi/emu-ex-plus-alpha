@@ -66,15 +66,15 @@ protected:
 
 static auto autoSaveName(EmuApp &app)
 {
-	return fmt::format("Autosave Slot ({})", app.currentAutosaveName());
+	return fmt::format("Autosave Slot ({})", app.autosaveManager().slotFullName());
 }
 
 static std::string saveAutosaveName(EmuApp &app)
 {
-	if(!app.autosaveTimerFrequency().count())
+	if(!app.autosaveManager().timerFrequency().count())
 		return "Save Autosave State";
 	return fmt::format("Save Autosave State (Timer In {:%M:%S})",
-		std::chrono::duration_cast<Seconds>(app.nextAutosaveTimerFireTime()));
+		std::chrono::duration_cast<Seconds>(app.autosaveManager().nextTimerFireTime()));
 }
 
 void EmuSystemActionsView::onShow()
@@ -86,8 +86,8 @@ void EmuSystemActionsView::onShow()
 	assert(system().hasContent());
 	autosaveSlot.compile(autoSaveName(app()), renderer(), projP);
 	autosaveNow.compile(saveAutosaveName(app()), renderer(), projP);
-	autosaveNow.setActive(app().currentAutosave() != noAutosaveName);
-	revertAutosave.setActive(app().currentAutosave() != noAutosaveName);
+	autosaveNow.setActive(app().autosaveManager().slotName() != noAutosaveName);
+	revertAutosave.setActive(app().autosaveManager().slotName() != noAutosaveName);
 	resetSessionOptions.setActive(app().hasSavedSessionOptions());
 }
 
@@ -163,7 +163,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			ynAlertView->setOnYes(
 				[this]()
 				{
-					if(app().saveAutosave())
+					if(app().autosaveManager().save())
 						app().showEmulation();
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
@@ -176,7 +176,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(!item.active())
 				return;
-			auto saveTime = app().currentAutosaveStateTimeAsString();
+			auto saveTime = app().autosaveManager().stateTimeAsString();
 			if(saveTime.empty())
 			{
 				app().postMessage("No saved state");
@@ -186,7 +186,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			ynAlertView->setOnYes(
 				[this]()
 				{
-					if(app().loadAutosave())
+					if(app().autosaveManager().load())
 						app().showEmulation();
 				});
 			pushAndShowModal(std::move(ynAlertView), e);

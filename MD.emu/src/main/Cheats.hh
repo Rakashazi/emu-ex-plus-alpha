@@ -51,7 +51,7 @@ struct MdCheat
 
 	void toggleOn()
 	{
-		flags = IG::flipBits(flags, ON);
+		flags ^= ON;
 	}
 
 	void setApplied(bool applied)

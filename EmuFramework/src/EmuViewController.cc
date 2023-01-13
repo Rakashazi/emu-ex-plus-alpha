@@ -100,7 +100,7 @@ bool EmuMenuViewStack::inputEvent(const Input::Event &e)
 	}
 	if(e.keyEvent())
 	{
-		auto &keyEv = e.asKeyEvent();
+		auto &keyEv = *e.keyEvent();
 		bool hasEmuContent = app().system().hasContent();
 		if(keyEv.pushed(Input::DefaultKey::CANCEL))
 		{
