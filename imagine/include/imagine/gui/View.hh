@@ -17,7 +17,6 @@
 
 #include <imagine/gui/viewDefs.hh>
 #include <imagine/gui/ViewAttachParams.hh>
-#include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string/utf16.hh>
@@ -93,9 +92,8 @@ public:
 	virtual void setFocus(bool focused);
 	virtual std::u16string_view name() const;
 
-	void setViewRect(WindowRect viewRect, WindowRect displayRect, Gfx::ProjectionPlane);
-	void setViewRect(WindowRect viewRect, Gfx::ProjectionPlane);
-	void setViewRect(Gfx::ProjectionPlane projP);
+	void setViewRect(WindowRect viewRect, WindowRect displayRect);
+	void setViewRect(WindowRect viewRect);
 	void postDraw();
 	Window &window() const;
 	Gfx::Renderer &renderer() const;
@@ -126,7 +124,6 @@ public:
 	WindowRect displayRect() const { return displayRect_; }
 	WindowRect displayInsetRect(Direction) const;
 	static WindowRect displayInsetRect(Direction, WindowRect viewRect, WindowRect displayRect);
-	Gfx::ProjectionPlane projection() const { return projP; }
 	bool pointIsInView(IG::WP pos);
 	void waitForDrawFinished();
 
@@ -156,7 +153,6 @@ protected:
 	DismissDelegate dismissDel{};
 	IG::WindowRect viewRect_{};
 	IG::WindowRect displayRect_{};
-	Gfx::ProjectionPlane projP{};
 };
 
 }

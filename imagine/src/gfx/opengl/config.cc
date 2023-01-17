@@ -41,9 +41,9 @@ float rotationRadians(Rotation r)
 	{
 		case Rotation::ANY:
 		case Rotation::UP: return radians(0.);
-		case Rotation::RIGHT: return radians(-90.);
+		case Rotation::RIGHT: return radians(90.);
 		case Rotation::DOWN: return radians(-180.);
-		case Rotation::LEFT: return radians(90.);
+		case Rotation::LEFT: return radians(-90.);
 	}
 	bug_unreachable("Rotation == %d", std::to_underlying(r));
 }

@@ -188,7 +188,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					system().sysCardPath = path;
 					logMsg("set system card:%s", system().sysCardPath.data());
-					sysCardPath.compile(biosMenuEntryStr(path), renderer(), projP);
+					sysCardPath.compile(biosMenuEntryStr(path), renderer());
 					return true;
 				}, hasHuCardExtension), e);
 		}

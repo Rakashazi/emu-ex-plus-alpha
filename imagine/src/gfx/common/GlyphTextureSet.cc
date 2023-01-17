@@ -107,8 +107,8 @@ GlyphTextureSet::GlyphTextureSet(Renderer &r, IG::Font font, IG::FontSettings se
 void GlyphTextureSet::calcMetrics(Renderer &r)
 {
 	//logMsg("calcNominalHeight");
-	GlyphEntry *mGly = glyphEntry(r, 'M');
-	GlyphEntry *gGly = glyphEntry(r, 'g');
+	auto mGly = glyphEntry(r, 'M');
+	auto gGly = glyphEntry(r, 'g');
 	if(!mGly || !gGly) [[unlikely]]
 	{
 		logErr("error reading measurement glyphs");
@@ -143,7 +143,8 @@ bool GlyphTextureSet::setFontSettings(Renderer &r, IG::FontSettings set)
 std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 {
 	assert(settings);
-	if(glyphTable[tableIdx].metrics.ySize == -1)
+	auto &[glyph, metrics] = glyphTable[tableIdx];
+	if(metrics.ySize == -1)
 	{
 		// failed to previously cache char
 		return std::errc::invalid_argument;
@@ -154,12 +155,12 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 	if((bool)ec)
 	{
 		// mark failed attempt
-		glyphTable[tableIdx].metrics.ySize = -1;
+		metrics.ySize = -1;
 		return ec;
 	}
 	//logMsg("setting up table entry %d", tableIdx);
-	glyphTable[tableIdx].metrics = res.metrics;
-	glyphTable[tableIdx].glyph_ = r.makeTexture(res.image, glyphSamplerConfig, false);
+	metrics = res.metrics;
+	glyph = r.makeTexture(res.image, glyphSamplerConfig, false);
 	usedGlyphTableBits |= IG::bit((c >> 11) & 0x1F); // use upper 5 BMP plane bits to map in range 0-31
 	//logMsg("used table bits 0x%X", usedGlyphTableBits);
 	return {};
@@ -202,7 +203,7 @@ int GlyphTextureSet::precache(Renderer &r, std::string_view string)
 			//logMsg( "%c not a known drawable character, skipping", c);
 			continue;
 		}
-		if(glyphTable[tableIdx].glyph())
+		if(glyphTable[tableIdx].glyph)
 		{
 			//logMsg( "%c already cached", c);
 			continue;
@@ -214,14 +215,15 @@ int GlyphTextureSet::precache(Renderer &r, std::string_view string)
 	return glyphsCached;
 }
 
-GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c, bool allowCache)
+const GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c, bool allowCache)
 {
 	assert(settings);
 	int tableIdx;
 	if((bool)mapCharToTable(c, tableIdx))
 		return nullptr;
 	assert(tableIdx < glyphTableEntries);
-	if(!glyphTable[tableIdx].glyph())
+	auto &entry = glyphTable[tableIdx];
+	if(!entry.glyph)
 	{
 		if(!allowCache)
 		{
@@ -232,7 +234,7 @@ GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c, bool allowCache)
 			return nullptr;
 		//logMsg("glyph:%c (0x%X) was not in table", c, c);
 	}
-	return &glyphTable[tableIdx];
+	return &entry;
 }
 
 }

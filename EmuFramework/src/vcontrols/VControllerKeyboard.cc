@@ -38,25 +38,26 @@ void VControllerKeyboard::setImg(Gfx::Renderer &r, Gfx::TextureSpan img)
 	updateImg(r);
 }
 
-void VControllerKeyboard::place(float btnSize, float yOffset, Gfx::ProjectionPlane projP)
+void VControllerKeyboard::place(int btnSize, int yOffset, WRect viewBounds)
 {
-	float xSize, ySize;
-	IG::setSizesWithRatioX(xSize, ySize, 3./2., std::min(btnSize*10, projP.width()));
-	float vArea = projP.height() - yOffset*2;
+	int xSize, ySize;
+	setSizesWithRatioX(xSize, ySize, 3./2., std::min(btnSize*10, viewBounds.xSize()));
+	int vArea = viewBounds.ySize() - yOffset * 2;
 	if(ySize > vArea)
 	{
 		IG::setSizesWithRatioY(xSize, ySize, 3./2., vArea);
 	}
-	Gfx::GCRect boundGC {{}, {xSize, ySize}};
-	boundGC.setPos({0., projP.bounds().y + yOffset}, CB2DO);
-	spr.setPos(boundGC);
-	bound = projP.projectRect(boundGC);
+	WRect bounds {{}, {xSize, ySize}};
+	bounds.setPos({viewBounds.xCenter(), viewBounds.y2 - yOffset}, CB2DO);
+	//bounds.setPos(viewBounds.center(), CB2DO);
+	spr.setPos(bounds);
+	bound = bounds;
 	keyXSize = std::max(bound.xSize() / VKEY_COLS, 1);
 	keyYSize = std::max(bound.ySize() / KEY_ROWS, 1);
 	logMsg("key size %dx%d", keyXSize, keyYSize);
 }
 
-void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds, Gfx::ProjectionPlane projP) const
+void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	auto &basicEffect = cmds.basicEffect();
 	spr.draw(cmds, basicEffect);
@@ -69,7 +70,7 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds, Gfx::Pr
 		rect.x2 = bound.x + ((selected.x2 + 1) * keyXSize);
 		rect.y = bound.y + (selected.y * keyYSize);
 		rect.y2 = rect.y + keyYSize;
-		Gfx::GeomRect::draw(cmds, rect, projP);
+		Gfx::GeomRect::draw(cmds, rect);
 	}
 	if(shiftIsActive() && mode_ == VControllerKbMode::LAYOUT_1)
 	{
@@ -80,7 +81,7 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds, Gfx::Pr
 		rect.x2 = bound.x + ((shiftRect.x2 + 1) * keyXSize);
 		rect.y = bound.y + (shiftRect.y * keyYSize);
 		rect.y2 = rect.y + keyYSize;
-		Gfx::GeomRect::draw(cmds, rect, projP);
+		Gfx::GeomRect::draw(cmds, rect);
 	}
 }
 

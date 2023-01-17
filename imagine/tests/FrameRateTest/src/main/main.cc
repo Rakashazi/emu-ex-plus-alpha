@@ -20,7 +20,6 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/gfx/Projection.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Screen.hh>
@@ -43,9 +42,8 @@ struct WindowData
 {
 	WindowData(IG::ViewAttachParams attachParams):picker{attachParams} {}
 
-	Gfx::Projection proj{};
-	IG::WindowRect testRectWin{};
-	Gfx::GCRect testRect{};
+	Gfx::Mat4 projM;
+	WRect testRect{};
 	TestPicker picker;
 	std::unique_ptr<TestFramework> activeTest{};
 };
@@ -95,10 +93,9 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 						auto viewport = win.viewport(win.contentBounds());
 						renderer.task().setDefaultViewport(win, viewport);
 						auto &winData = windowData(win);
-						winData.proj = renderer.projection(win, viewport,
-							Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.));
-						winData.testRectWin = viewport.relRectBestFit({}, 4./3., C2DO, C2DO);
-						winData.testRect = winData.proj.plane().unProjectRect(winData.testRectWin);
+						winData.projM = Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 0.1, 100.)
+							.projectionPlane(viewport, .5f, renderer.projectionRollAngle(win));
+						winData.testRect = viewport.relRectBestFit({}, 4./3., C2DO, C2DO);
 						placeElements(win);
 					}
 					renderer.task().updateDrawableForSurfaceChange(win, change);
@@ -156,7 +153,7 @@ void FrameRateTestApplication::setPickerHandlers(IG::Window &win)
 				cmds.clear();
 				auto &winData = windowData(win);
 				auto &picker = winData.picker;
-				cmds.basicEffect().setModelViewProjection(cmds, winData.proj);
+				cmds.basicEffect().setModelViewProjection(cmds, Gfx::Mat4::ident(), winData.projM);
 				picker.draw(cmds);
 				cmds.setClipTest(false);
 				cmds.present();
@@ -210,8 +207,8 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 			{
 				auto &winData = windowData(win);
 				auto &activeTest = winData.activeTest;
-				auto rect = winData.testRectWin;
-				cmds.basicEffect().setModelViewProjection(cmds, winData.proj);
+				auto rect = winData.testRect;
+				cmds.basicEffect().setModelViewProjection(cmds, Gfx::Mat4::ident(), winData.projM);
 				activeTest->draw(cmds, cmds.renderer().makeClipRect(win, rect), xIndent);
 				activeTest->lastFramePresentTime.atWinPresent = IG::steadyClockTimestamp();
 				activeTest->presentFence = cmds.clientWaitSyncReset(activeTest->presentFence);
@@ -258,17 +255,16 @@ void FrameRateTestApplication::placeElements(const IG::Window &win)
 {
 	auto &winData = windowData(win);
 	auto &picker = winData.picker;
-	auto projP = winData.proj.plane();
 	auto &activeTest = winData.activeTest;
-	viewManager.setTableXIndentToDefault(win, projP);
+	viewManager.setTableXIndentToDefault(win);
 	if(!activeTest)
 	{
-		picker.setViewRect(projP);
+		picker.setViewRect(win.contentBounds());
 		picker.place();
 	}
 	else
 	{
-		activeTest->place(renderer, projP, winData.testRect);
+		activeTest->place(renderer, win.contentBounds(), winData.testRect);
 	}
 }
 

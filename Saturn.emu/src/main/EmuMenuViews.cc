@@ -42,7 +42,7 @@ class CustomSystemOptionView : public SystemOptionView
 				{
 					biosPath = path;
 					logMsg("set bios:%s", biosPath.data());
-					bios.compile(biosMenuEntryStr(path), renderer(), projP);
+					bios.compile(biosMenuEntryStr(path), renderer());
 					return true;
 				}, hasBIOSExtension), e);
 		}

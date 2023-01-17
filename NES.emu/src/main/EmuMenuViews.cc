@@ -517,7 +517,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set cheats path:%s", path.data());
 					system().cheatsDir = path;
-					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer(), projP);
+					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer());
 				}), e);
 		}
 	};
@@ -532,7 +532,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set patches path:%s", path.data());
 					system().patchesDir = path;
-					patchesPath.compile(patchesMenuName(appContext(), path), renderer(), projP);
+					patchesPath.compile(patchesMenuName(appContext(), path), renderer());
 				}), e);
 		}
 	};
@@ -547,7 +547,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set palettes path:%s", path.data());
 					system().palettesDir = path;
-					palettesPath.compile(palettesMenuName(appContext(), path), renderer(), projP);
+					palettesPath.compile(palettesMenuName(appContext(), path), renderer());
 				}), e);
 		}
 	};
@@ -563,7 +563,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					fdsBiosPath = path;
 					logMsg("set fds bios:%s", path.data());
-					fdsBios.compile(biosMenuEntryStr(path), renderer(), projP);
+					fdsBios.compile(biosMenuEntryStr(path), renderer());
 					return true;
 				}, hasFDSBIOSExtension), e);
 		}
@@ -690,12 +690,12 @@ private:
 	{
 		fdsControl.setActive(isFDS);
 		if(!isFDS)
-			fdsControl.compile("FDS Control", renderer(), projP);
+			fdsControl.compile("FDS Control", renderer());
 		else if(!FCEU_FDSInserted())
-			fdsControl.compile("FDS Control (No Disk)", renderer(), projP);
+			fdsControl.compile("FDS Control (No Disk)", renderer());
 		else
 			fdsControl.compile(fmt::format("FDS Control (Disk {}:{})", (FCEU_FDSCurrentSide() >> 1) + 1, (FCEU_FDSCurrentSide() & 1) ? 'B' : 'A'),
-				renderer(), projP);
+				renderer());
 	}
 
 	TextMenuItem options

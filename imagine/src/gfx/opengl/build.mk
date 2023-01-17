@@ -34,7 +34,6 @@ SRC += gfx/common/GeomQuadMesh.cc \
  gfx/common/GfxText.cc \
  gfx/common/GlyphTextureSet.cc \
  gfx/common/Mat4.cc \
- gfx/common/ProjectionPlane.cc \
  gfx/opengl/BasicEffect.cc \
  gfx/opengl/config.cc \
  gfx/opengl/debug.cc \

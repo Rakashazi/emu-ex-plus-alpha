@@ -243,7 +243,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 					}
 					writeCheatsFile(system());
 					addr.set2ndName(addrStr);
-					addr.compile(renderer(), projP);
+					addr.compile(renderer());
 					postDraw();
 					return true;
 				});
@@ -278,7 +278,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 					}
 					writeCheatsFile(system());
 					value.set2ndName(valueStr);
-					value.compile(renderer(), projP);
+					value.compile(renderer());
 					postDraw();
 					return true;
 				});
@@ -334,7 +334,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 						}
 						writeCheatsFile(system());
 						saved.set2ndName(savedStr);
-						saved.compile(renderer(), projP);
+						saved.compile(renderer());
 						postDraw();
 					}
 					view.dismiss();

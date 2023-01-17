@@ -281,7 +281,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set cheats path:%s", path.data());
 					system().cheatsDir = path;
-					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer(), projP);
+					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer());
 				}), e);
 		}
 	};
@@ -296,7 +296,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set patches path:%s", path.data());
 					system().patchesDir = path;
-					patchesPath.compile(patchesMenuName(appContext(), path), renderer(), projP);
+					patchesPath.compile(patchesMenuName(appContext(), path), renderer());
 				}), e);
 		}
 	};
@@ -316,7 +316,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set satellaview files path:%s", path.data());
 					system().satDir = path;
-					satPath.compile(satMenuName(appContext(), path), renderer(), projP);
+					satPath.compile(satMenuName(appContext(), path), renderer());
 				}), e);
 		}
 	};
@@ -332,7 +332,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					system().bsxBiosPath = path;
 					logMsg("set BS-X bios:%s", path.data());
-					bsxBios.compile(bsxMenuName(path), renderer(), projP);
+					bsxBios.compile(bsxMenuName(path), renderer());
 					return true;
 				}, Snes9xSystem::hasBiosExtension), e);
 		}
@@ -354,7 +354,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					system().sufamiBiosPath = path;
 					logMsg("set Sufami Turbo bios:%s", path.data());
-					sufamiBios.compile(sufamiMenuName(path), renderer(), projP);
+					sufamiBios.compile(sufamiMenuName(path), renderer());
 					return true;
 				}, Snes9xSystem::hasBiosExtension), e);
 		}

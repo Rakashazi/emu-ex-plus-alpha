@@ -50,7 +50,7 @@ private:
 	EmuSystem *sysPtr{};
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	Gfx::Text audioStatsText{};
-	Gfx::GCRect audioStatsRect{};
+	WRect audioStatsRect{};
 	#endif
 };
 

@@ -29,7 +29,6 @@ namespace IG::Gfx
 class RendererCommands;
 class Mat4;
 class Texture;
-class Projection;
 
 class BasicEffect : public BasicEffectImpl
 {
@@ -43,7 +42,6 @@ public:
 	void setModelView(RendererCommands &, Mat4);
 	void setProjection(RendererCommands &, Mat4);
 	void setModelViewProjection(RendererCommands &, Mat4 modelView, Mat4 proj);
-	void setModelViewProjection(RendererCommands &, Projection);
 	void prepareDraw(RendererCommands &);
 };
 

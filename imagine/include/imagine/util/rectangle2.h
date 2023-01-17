@@ -317,6 +317,9 @@ public:
 
 	[[nodiscard]] constexpr Rect2 xRect() const { return {{x, 0}, {x2, 0}}; }
 	[[nodiscard]] constexpr Rect2 yRect() const { return {{0, y}, {0, y2}}; }
+
+	template<class NewType>
+	Rect2<NewType> asType() const { return {{NewType(x), NewType(y)}, {NewType(x2), NewType(y2)}}; }
 };
 
 template<class T>
@@ -338,6 +341,7 @@ public:
 	using Rect2<T>::y;
 	using Rect2<T>::x2;
 	using Rect2<T>::y2;
+	using Rect2<T>::asType;
 	static constexpr int xOriginVal = xIsCartesian ? -1 : 1;
 	static constexpr int x2OriginVal = xIsCartesian ? 1 : -1;
 	static constexpr int yOriginVal = yIsCartesian ? -1 : 1;

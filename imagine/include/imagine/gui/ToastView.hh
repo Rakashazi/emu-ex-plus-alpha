@@ -50,7 +50,7 @@ public:
 private:
 	Gfx::Text text{};
 	Timer unpostTimer{Timer::NullInit{}};
-	Gfx::GCRect msgFrame{};
+	WRect msgFrame{};
 	bool error = false;
 
 	void postContent(int secs);

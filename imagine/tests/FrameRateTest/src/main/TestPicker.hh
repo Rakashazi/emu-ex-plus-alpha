@@ -30,8 +30,8 @@ public:
 	bool redText{};
 
 	TestTableEntry(Gfx::GlyphTextureSet *face, SelectDelegate);
-	void draw(Gfx::RendererCommands &, float xPos, float yPos, float xSize, float ySize,
-		float xIndent, IG::_2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const final;
+	void draw(Gfx::RendererCommands &, int xPos, int yPos, int xSize, int ySize,
+		int xIndent, IG::_2DOrigin align, Gfx::Color) const final;
 };
 
 class TestPicker : public IG::TableView

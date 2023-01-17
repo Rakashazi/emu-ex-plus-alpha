@@ -28,7 +28,6 @@ class Window;
 namespace IG::Gfx
 {
 class Renderer;
-class ProjectionPlane;
 }
 
 namespace IG
@@ -49,15 +48,15 @@ public:
 	constexpr bool needsBackControl() const { return needsBackControl_; }
 	void setNeedsBackControl(std::optional<bool>);
 	std::optional<bool> needsBackControlOption() const;
-	float tableXIndent() const;
-	void setTableXIndentMM(float indentMM, const Window &, Gfx::ProjectionPlane);
+	int tableXIndent() const;
+	void setTableXIndentMM(float indentMM, const Window &);
 	float defaultTableXIndentMM(const Window &);
-	void setTableXIndentToDefault(const Window &, Gfx::ProjectionPlane);
+	void setTableXIndentToDefault(const Window &);
 
 protected:
 	Gfx::GlyphTextureSet defaultFace_{};
 	Gfx::GlyphTextureSet defaultBoldFace_{};
-	float tableXIndent_{};
+	int tableXIndent_{};
 	// True if the platform needs an on-screen/pointer-based control to move to a previous view
 	IG_UseMemberIfOrConstant(needsBackControlIsMutable,
 		bool, needsBackControlDefault, needsBackControl_){needsBackControlDefault};

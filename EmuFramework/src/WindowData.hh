@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/Projection.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <emuframework/EmuViewController.hh>
 
 namespace EmuEx
@@ -26,19 +26,20 @@ class ToastView;
 
 struct WindowData
 {
-	Gfx::Projection projection{};
-	IG::WindowRect contentRect{};
+	Gfx::Mat4 projM;
+	WRect windowRect{};
+	WRect contentRect{};
 	bool hasEmuView{true};
 	bool hasPopup{true};
 	bool focused{};
 
-	auto windowBounds() const { return projection.plane().windowBounds(); }
+	auto windowBounds() const { return windowRect; }
 	auto contentBounds() const { return contentRect; }
 	void updateWindowViewport(const IG::Window &, IG::Viewport, const IG::Gfx::Renderer &);
 
 	void applyViewRect(auto &view)
 	{
-		view.setViewRect(contentBounds(), windowBounds(), projection.plane());
+		view.setViewRect(contentBounds(), windowBounds());
 	}
 };
 

@@ -55,12 +55,12 @@ void CreditsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	auto textRect = viewRect();
 	if(IG::isOdd(textRect.ySize()))
 		textRect.y2--;
-	text.draw(cmds, projP.unProjectRect(textRect).pos(C2DO), C2DO, projP);
+	text.draw(cmds, textRect.pos(C2DO), C2DO);
 }
 
 void CreditsView::place()
 {
-	text.compile(renderer(), projP);
+	text.compile(renderer());
 }
 
 bool CreditsView::inputEvent(const Input::Event &e)

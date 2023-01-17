@@ -98,7 +98,7 @@ protected:
 	int nextSelectableElement(int start, int items);
 	int prevSelectableElement(int start, int items);
 	bool handleTableInput(const Input::Event &, bool &movedSelected);
-	virtual void drawElement(Gfx::RendererCommands &__restrict__, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const;
+	virtual void drawElement(Gfx::RendererCommands &__restrict__, size_t i, MenuItem &item, WRect rect, int xIndent) const;
 };
 
 }

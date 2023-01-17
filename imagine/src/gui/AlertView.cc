@@ -61,20 +61,20 @@ void BaseAlertView::place()
 {
 	using namespace IG::Gfx;
 	int xSize = viewRect().xSize() * .8;
-	text.compile(renderer(), projP, {.maxLineSize = projP.unprojectXSize(xSize) * 0.95f});
+	text.compile(renderer(), {.maxLineSize = int(xSize * 0.95f)});
 
 	int menuYSize = menu.cells() * text.face()->nominalHeight()*2;
-	int labelYSize = IG::makeEvenRoundedUp((int)projP.projectYSize(text.fullHeight()));
-	IG::WindowRect viewFrame;
+	int labelYSize = IG::makeEvenRoundedUp(text.fullHeight());
+	WRect viewFrame;
 	viewFrame.setPosRel(viewRect().pos(C2DO),
 			{xSize, labelYSize + menuYSize}, C2DO);
 
-	labelFrame = projP.unProjectRect(viewFrame.x, viewFrame.y, viewFrame.x2, viewFrame.y + labelYSize);
+	labelFrame = {{viewFrame.x, viewFrame.y}, {viewFrame.x2, viewFrame.y + labelYSize}};
 
-	IG::WindowRect menuViewFrame;
+	WRect menuViewFrame;
 	menuViewFrame.setPosRel({viewFrame.x, viewFrame.y + (int)labelYSize},
 			{viewFrame.xSize(), menuYSize}, LT2DO);
-	menu.setViewRect(menuViewFrame, projP);
+	menu.setViewRect(menuViewFrame);
 	menu.place();
 }
 
@@ -103,10 +103,10 @@ void BaseAlertView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.setColor(.4, .4, .4, .8);
 	GeomRect::draw(cmds, labelFrame);
 	cmds.setColor(.1, .1, .1, .6);
-	GeomRect::draw(cmds, menu.viewRect(), projP);
+	GeomRect::draw(cmds, menu.viewRect());
 	cmds.set(ColorName::WHITE);
 	basicEffect.enableAlphaTexture(cmds);
-	text.draw(cmds, {labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO))}, C2DO, projP);
+	text.draw(cmds, {labelFrame.xPos(C2DO), labelFrame.yPos(C2DO)}, C2DO);
 	//setClipRect(1);
 	//setClipRectBounds(menu.viewRect());
 	menu.draw(cmds);

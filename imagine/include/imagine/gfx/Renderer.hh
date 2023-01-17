@@ -43,7 +43,6 @@ namespace IG::Gfx
 
 class RendererTask;
 class Program;
-class Projection;
 
 struct TextureBufferModeDesc
 {
@@ -92,7 +91,7 @@ public:
 	NativeWindowFormat nativeWindowFormat() const;
 	void setWindowValidOrientations(Window &, OrientationMask);
 	void animateWindowRotation(Window &, float srcAngle, float destAngle);
-	Projection projection(const Window &, Viewport, Mat4) const;
+	float projectionRollAngle(const Window &) const;
 	static ClipRect makeClipRect(const Window &win, IG::WindowRect rect);
 	bool supportsSyncFences() const;
 	void setPresentationTime(Window &, IG::FrameTime time) const;

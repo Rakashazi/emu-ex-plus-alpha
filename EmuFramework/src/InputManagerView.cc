@@ -40,7 +40,7 @@ IdentInputDeviceView::IdentInputDeviceView(ViewAttachParams attach):
 
 void IdentInputDeviceView::place()
 {
-	text.compile(renderer(), projP, {.maxLineSize = projP.width() * 0.95f});
+	text.compile(renderer(), {.maxLineSize = int(viewRect().xSize() * 0.95f)});
 }
 
 bool IdentInputDeviceView::inputEvent(const Input::Event &e)
@@ -77,10 +77,10 @@ void IdentInputDeviceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.set(BlendMode::OFF);
 	basicEffect.disableTexture(cmds);
 	cmds.setColor(.4, .4, .4, 1.);
-	GeomRect::draw(cmds, displayRect(), projP);
+	GeomRect::draw(cmds, displayRect());
 	cmds.set(ColorName::WHITE);
 	basicEffect.enableAlphaTexture(cmds);
-	text.draw(cmds, {}, C2DO, projP);
+	text.draw(cmds, viewRect().center(), C2DO);
 }
 
 static void removeKeyConfFromAllDevices(auto &savedInputDevs, const KeyConfig *conf, IG::ApplicationContext ctx)
@@ -789,7 +789,7 @@ void InputManagerDeviceView::loadItems()
 void InputManagerDeviceView::onShow()
 {
 	TableView::onShow();
-	loadProfile.compile(fmt::format("Profile: {}", devConf->keyConf().name), renderer(), projP);
+	loadProfile.compile(fmt::format("Profile: {}", devConf->keyConf().name), renderer());
 	bool keyConfIsMutable = devConf->mutableKeyConf(customKeyConfigs());
 	renameProfile.setActive(keyConfIsMutable);
 	deleteProfile.setActive(keyConfIsMutable);

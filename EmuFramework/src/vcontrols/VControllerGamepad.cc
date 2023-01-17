@@ -33,7 +33,7 @@ void VControllerDPad::setImage(Gfx::TextureSpan img)
 	spr = {{{-.5, -.5}, {.5, .5}}, img};
 }
 
-void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, Gfx::ProjectionPlane projP)
+void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
 {
 	if(visualizeBounds && padArea.xSize())
 	{
@@ -51,31 +51,31 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, Gfx::ProjectionPla
 		mapImg = r.makeTexture({mapPix.desc(), View::imageSamplerConfig});
 		mapImg.write(0, mapPix, {});
 		mapSpr = {{}, mapImg};
-		mapSpr.setPos(padArea, projP);
+		mapSpr.setPos(padArea);
 	}
 }
 
-void VControllerDPad::setDeadzone(Gfx::Renderer &r, int newDeadzone, const Window &win, Gfx::ProjectionPlane projP)
+void VControllerDPad::setDeadzone(Gfx::Renderer &r, int newDeadzone, const Window &win)
 {
 	if(deadzoneMM100x != newDeadzone)
 	{
 		deadzoneMM100x = newDeadzone;
 		deadzonePixels = win.widthMMInPixels(deadzoneMM100x / 100.);
-		updateBoundingAreaGfx(r, projP);
+		updateBoundingAreaGfx(r);
 	}
 }
 
-void VControllerDPad::setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity, Gfx::ProjectionPlane projP)
+void VControllerDPad::setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity)
 {
 	if(diagonalSensitivity_ != newDiagonalSensitivity)
 	{
 		logMsg("set diagonal sensitivity: %f", (double)newDiagonalSensitivity);
 		diagonalSensitivity_ = newDiagonalSensitivity;
-		updateBoundingAreaGfx(r, projP);
+		updateBoundingAreaGfx(r);
 	}
 }
 
-void VControllerDPad::setSize(Gfx::Renderer &r, int sizeInPixels, Gfx::ProjectionPlane projP)
+void VControllerDPad::setSize(Gfx::Renderer &r, int sizeInPixels)
 {
 	//logMsg("set dpad pixel size: %d", sizeInPixels);
 	btnSizePixels = sizeInPixels;
@@ -86,26 +86,25 @@ void VControllerDPad::setSize(Gfx::Renderer &r, int sizeInPixels, Gfx::Projectio
 	if(visualizeBounds)
 	{
 		if(changedSize)
-			updateBoundingAreaGfx(r, projP);
+			updateBoundingAreaGfx(r);
 	}
 }
 
-void VControllerDPad::setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::ProjectionPlane projP)
+void VControllerDPad::setPos(IG::WP pos, IG::WindowRect viewBounds)
 {
 	padBaseArea.setPos(pos, C2DO);
 	padBaseArea.fitIn(viewBounds);
-	padBase = projP.unProjectRect(padBaseArea);
-	spr.setPos(padBase);
+	spr.setPos(padBaseArea);
 	//logMsg("set dpad pos %d:%d:%d:%d, %f:%f:%f:%f", padBaseArea.x, padBaseArea.y, padBaseArea.x2, padBaseArea.y2,
 	//	(double)padBase.x, (double)padBase.y, (double)padBase.x2, (double)padBase.y2);
 	padArea.setPos(padBaseArea.pos(C2DO), C2DO);
 	if(visualizeBounds)
 	{
-		mapSpr.setPos(padArea, projP);
+		mapSpr.setPos(padArea);
 	}
 }
 
-void VControllerDPad::setShowBounds(Gfx::Renderer &r, bool on, Gfx::ProjectionPlane projP)
+void VControllerDPad::setShowBounds(Gfx::Renderer &r, bool on)
 {
 	if(visualizeBounds == on)
 		return;
@@ -121,7 +120,7 @@ void VControllerDPad::setShowBounds(Gfx::Renderer &r, bool on, Gfx::ProjectionPl
 	}
 	else
 	{
-		updateBoundingAreaGfx(r, projP);
+		updateBoundingAreaGfx(r);
 	}
 }
 

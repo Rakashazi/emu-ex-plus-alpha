@@ -79,10 +79,10 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 
 void FSPicker::place()
 {
-	controller.place(viewRect(), displayRect(), projP);
+	controller.place(viewRect(), displayRect());
 	if(dirListThread.isWorking())
 		return;
-	msgText.compile(renderer(), projP);
+	msgText.compile(renderer());
 }
 
 void FSPicker::changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, const Input::Event &e)
@@ -172,7 +172,7 @@ void FSPicker::draw(Gfx::RendererCommands &__restrict__ cmds)
 			auto textRect = controller.top().viewRect();
 			if(IG::isOdd(textRect.ySize()))
 				textRect.y2--;
-			msgText.draw(cmds, projP.unProjectRect(textRect).pos(C2DO), C2DO, projP);
+			msgText.draw(cmds, textRect.pos(C2DO), C2DO);
 		}
 	}
 	controller.navView()->draw(cmds);

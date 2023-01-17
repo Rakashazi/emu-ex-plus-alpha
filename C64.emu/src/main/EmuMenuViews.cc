@@ -330,7 +330,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 						return false;
 					}
 					logMsg("set firmware path:%s", path.data());
-					systemFilePath.compile(sysPathMenuEntryStr(path), renderer(), projP);
+					systemFilePath.compile(sysPathMenuEntryStr(path), renderer());
 					auto &sysFilePath = system().sysFilePath;
 					sysFilePath[0] = path;
 					if(type == FS::file_type::none)
@@ -491,7 +491,7 @@ private:
 	void onShow() final
 	{
 		updateTapeCounter();
-		tapeCounter.compile(renderer(), projP);
+		tapeCounter.compile(renderer());
 	}
 };
 
@@ -509,7 +509,7 @@ public:
 	void onTapeMediaChange()
 	{
 		updateTapeText();
-		tapeSlot.compile(renderer(), projP);
+		tapeSlot.compile(renderer());
 	}
 
 	void addTapeFilePickerView(Input::Event e, bool dismissPreviousView)
@@ -582,7 +582,7 @@ public:
 	void onROMMediaChange()
 	{
 		updateROMText();
-		romSlot.compile(renderer(), projP);
+		romSlot.compile(renderer());
 	}
 
 	void addCartFilePickerView(Input::Event e, bool dismissPreviousView)
@@ -641,7 +641,7 @@ private:
 	void onDiskMediaChange(int slot)
 	{
 		updateDiskText(slot);
-		diskSlot[slot].compile(renderer(), projP);
+		diskSlot[slot].compile(renderer());
 	}
 
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)

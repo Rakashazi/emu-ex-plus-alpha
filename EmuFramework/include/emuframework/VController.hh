@@ -89,16 +89,16 @@ public:
 		keys{keys[0], keys[1], keys[2], keys[3]} {}
 	void setImage(Gfx::TextureSpan);
 	void draw(Gfx::RendererCommands &__restrict__, bool showHidden = false) const;
-	void setShowBounds(Gfx::Renderer &r, bool on, Gfx::ProjectionPlane);
+	void setShowBounds(Gfx::Renderer &r, bool on);
 	bool showBounds() const { return visualizeBounds; }
 	std::array<int, 2> getInput(IG::WP c) const;
 	IG::WRect bounds() const { return padBaseArea; }
 	IG::WRect realBounds() const { return padArea; }
-	void setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::ProjectionPlane);
-	void setSize(Gfx::Renderer &, int sizeInPixels, Gfx::ProjectionPlane);
-	void setDeadzone(Gfx::Renderer &, int newDeadzone, const IG::Window &, Gfx::ProjectionPlane);
+	void setPos(IG::WP pos, IG::WindowRect viewBounds);
+	void setSize(Gfx::Renderer &, int sizeInPixels);
+	void setDeadzone(Gfx::Renderer &, int newDeadzone, const IG::Window &);
 	auto deadzone() const { return deadzoneMM100x; }
-	void setDiagonalSensitivity(Gfx::Renderer &, float newDiagonalSensitivity, Gfx::ProjectionPlane);
+	void setDiagonalSensitivity(Gfx::Renderer &, float newDiagonalSensitivity);
 	auto diagonalSensitivity() const { return diagonalSensitivity_; }
 	std::string name(const EmuApp &) const { return "D-Pad"; }
 	void updateMeasurements(const IG::Window &win);
@@ -108,7 +108,6 @@ protected:
 	Gfx::Sprite spr;
 	Gfx::Sprite mapSpr;
 	Gfx::Texture mapImg;
-	Gfx::GCRect padBase;
 	IG::WindowRect padBaseArea, padArea;
 	int deadzonePixels{};
 	int deadzoneMM100x{defaultDPadDeadzone};
@@ -117,7 +116,7 @@ protected:
 	std::array<unsigned, 4> keys{};
 	bool visualizeBounds{};
 
-	void updateBoundingAreaGfx(Gfx::Renderer &, Gfx::ProjectionPlane);
+	void updateBoundingAreaGfx(Gfx::Renderer &);
 
 public:
 	VControllerState state{VControllerState::SHOWN};
@@ -141,8 +140,8 @@ public:
 	constexpr VControllerKeyboard() = default;
 	void updateImg(Gfx::Renderer &r);
 	void setImg(Gfx::Renderer &r, Gfx::TextureSpan img);
-	void place(float btnSize, float yOffset, Gfx::ProjectionPlane);
-	void draw(Gfx::RendererCommands &__restrict__, Gfx::ProjectionPlane) const;
+	void place(int btnSize, int yOffset, WRect viewBounds);
+	void draw(Gfx::RendererCommands &__restrict__) const;
 	int getInput(IG::WP c) const;
 	unsigned translateInput(int idx) const;
 	bool keyInput(VController &v, Gfx::Renderer &r, const Input::KeyEvent &e);
@@ -176,7 +175,7 @@ class VControllerButtonBase
 {
 public:
 	constexpr VControllerButtonBase(unsigned key): key{key} {}
-	void setPos(IG::WP pos, IG::WRect viewBounds, Gfx::ProjectionPlane, _2DOrigin = C2DO);
+	void setPos(IG::WP pos, IG::WRect viewBounds, _2DOrigin = C2DO);
 	void setSize(IG::WP size);
 	void setImage(Gfx::TextureSpan, float aR = 1.f);
 	IG::WindowRect bounds() const { return bounds_; }
@@ -212,7 +211,7 @@ class VControllerButton : public VControllerButtonBase
 {
 public:
 	constexpr VControllerButton(unsigned key): VControllerButtonBase{key} {}
-	void setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::ProjectionPlane, _2DOrigin = C2DO);
+	void setPos(IG::WP pos, IG::WindowRect viewBounds, _2DOrigin = C2DO);
 	void setSize(IG::WP size, IG::WP extendedSize = {});
 	void setShowBounds(bool on) { showBoundingArea = on; }
 	bool showBounds() const {return showBoundingArea; }
@@ -224,14 +223,13 @@ public:
 protected:
 	bool showBoundingArea{};
 	IG::WindowRect extendedBounds_{};
-	Gfx::GeomRect gfxBoundingBox{};
 };
 
 class VControllerButtonGroup
 {
 public:
 	VControllerButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin);
-	void setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::ProjectionPlane);
+	void setPos(IG::WP pos, IG::WindowRect viewBounds);
 	void setButtonSize(IG::WP size);
 	void setStaggerType(uint8_t);
 	auto stagger() const { return btnStaggerType; }
@@ -278,7 +276,7 @@ class VControllerUIButtonGroup
 {
 public:
 	VControllerUIButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin);
-	void setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::ProjectionPlane);
+	void setPos(IG::WP pos, IG::WindowRect viewBounds);
 	void setButtonSize(IG::WP size);
 	auto bounds() const { return bounds_; }
 	IG::WRect realBounds() const { return bounds(); }
@@ -314,27 +312,27 @@ public:
 	IG::WRect bounds() const { return visit([](auto &e){ return e.bounds(); }, *this); }
 	IG::WRect realBounds() const { return visit([](auto &e){ return e.realBounds(); }, *this); }
 
-	void setPos(IG::WP pos, IG::WRect viewBounds, Gfx::ProjectionPlane projP)
+	void setPos(IG::WP pos, IG::WRect viewBounds)
 	{
-		visit([&](auto &e){ e.setPos(pos, viewBounds, projP); }, *this);
+		visit([&](auto &e){ e.setPos(pos, viewBounds); }, *this);
 	}
 
 	void setState(VControllerState state) { visit([&](auto &e){ e.state = state; }, *this); }
 	VControllerState state() const { return visit([](auto &e){ return e.state; }, *this); }
 	void draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden = false) const { visit([&](auto &e){ e.draw(cmds, showHidden); }, *this); }
 
-	void place(IG::WRect viewBounds, IG::WRect contentBounds, Gfx::ProjectionPlane projP, int layoutIdx)
+	void place(IG::WRect viewBounds, IG::WRect contentBounds, int layoutIdx)
 	{
 		auto &lPos = layoutPos[layoutIdx];
-		setPos(lPos.toPixelPos(contentBounds), viewBounds, projP);
+		setPos(lPos.toPixelPos(contentBounds), viewBounds);
 		setState(lPos.state);
 	}
 
-	void setShowBounds(Gfx::Renderer &r, bool on, Gfx::ProjectionPlane projP)
+	void setShowBounds(Gfx::Renderer &r, bool on)
 	{
 		visit(overloaded
 		{
-			[&](VControllerDPad &e){ e.setShowBounds(r, on, projP); },
+			[&](VControllerDPad &e){ e.setShowBounds(r, on); },
 			[&](VControllerButtonGroup &e){ e.setShowBounds(on); },
 			[](auto &e){}
 		}, *this);
@@ -408,7 +406,7 @@ public:
 	bool keyInput(const Input::KeyEvent &);
 	void draw(Gfx::RendererCommands &__restrict__, bool showHidden = false);
 	void draw(Gfx::RendererCommands &__restrict__, bool showHidden, float alpha);
-	void setButtonSize(int gamepadBtnSizeInPixels, int uiBtnSizeInPixels, Gfx::ProjectionPlane projP);
+	void setButtonSize(int gamepadBtnSizeInPixels, int uiBtnSizeInPixels);
 	bool isInKeyboardMode() const;
 	void setKeyboardImage(Gfx::TextureSpan img);
 	void setButtonAlpha(std::optional<uint8_t>);

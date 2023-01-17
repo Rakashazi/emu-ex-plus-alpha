@@ -27,13 +27,13 @@
 namespace EmuEx
 {
 
-void VControllerButtonBase::setPos(IG::WP pos, IG::WRect viewBounds, Gfx::ProjectionPlane projP, _2DOrigin o)
+void VControllerButtonBase::setPos(IG::WP pos, IG::WRect viewBounds, _2DOrigin o)
 {
 	bounds_.setPos(pos, o);
 	bounds_.fitIn(viewBounds);
 	IG::WindowRect spriteBounds{{0, 0}, {bounds_.xSize(), (int)(bounds_.ySize() / aspectRatio)}};
 	spriteBounds.setPos(bounds_.pos(C2DO), C2DO);
-	spr.setPos(spriteBounds, projP);
+	spr.setPos(spriteBounds);
 }
 
 void VControllerButtonBase::setSize(IG::WP size)
@@ -70,11 +70,10 @@ void VControllerUIButton::draw(Gfx::RendererCommands &__restrict__ cmds) const
 	VControllerButtonBase::draw(cmds, optColor);
 }
 
-void VControllerButton::setPos(IG::WP pos, IG::WRect viewBounds, Gfx::ProjectionPlane projP, _2DOrigin o)
+void VControllerButton::setPos(IG::WP pos, IG::WRect viewBounds, _2DOrigin o)
 {
-	VControllerButtonBase::setPos(pos, viewBounds, projP, o);
+	VControllerButtonBase::setPos(pos, viewBounds, o);
 	extendedBounds_.setPos(bounds_.pos(C2DO), C2DO);
-	gfxBoundingBox = projP.unProjectRect(extendedBounds_);
 }
 
 void VControllerButton::setSize(IG::WP size, IG::WP extendedSize)
@@ -85,7 +84,7 @@ void VControllerButton::setSize(IG::WP size, IG::WP extendedSize)
 
 void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds) const
 {
-	gfxBoundingBox.draw(cmds);
+	Gfx::GeomRect::draw(cmds, extendedBounds_);
 }
 
 void VControllerButton::draw(Gfx::RendererCommands &__restrict__ cmds) const
@@ -121,7 +120,7 @@ static int buttonsToLayout(const auto &buttons)
 }
 
 static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, WP size,
-	int spacing, int stagger, int rowShift, int rowItems, Gfx::ProjectionPlane projP)
+	int spacing, int stagger, int rowShift, int rowItems)
 {
 	if(!rowItems)
 		return;
@@ -136,7 +135,7 @@ static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, W
 		if(b.skipLayout || !b.enabled)
 			continue;
 		WP pos = layoutBounds.pos(LB2DO) + WP{x, y + staggerOffset} + (size / 2);
-		b.setPos(pos, viewBounds, projP);
+		b.setPos(pos, viewBounds);
 		x += size.x + spacing;
 		staggerOffset -= stagger;
 		if(++btnPos == rowItems)
@@ -150,12 +149,12 @@ static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, W
 	}
 }
 
-void VControllerButtonGroup::setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::ProjectionPlane projP)
+void VControllerButtonGroup::setPos(IG::WP pos, IG::WindowRect viewBounds)
 {
 	bounds_.setPos(pos, C2DO);
 	bounds_.fitIn(viewBounds);
 	layoutButtons(buttons, bounds_, viewBounds, btnSize,
-		spacingPixels, btnStagger, btnRowShift, rowItems, projP);
+		spacingPixels, btnStagger, btnRowShift, rowItems);
 }
 
 void VControllerButtonGroup::setButtonSize(IG::WP size)
@@ -298,12 +297,12 @@ VControllerUIButtonGroup::VControllerUIButtonGroup(std::span<const unsigned> but
 	}
 }
 
-void VControllerUIButtonGroup::setPos(IG::WP pos, IG::WindowRect viewBounds, Gfx::ProjectionPlane projP)
+void VControllerUIButtonGroup::setPos(IG::WP pos, IG::WindowRect viewBounds)
 {
 	bounds_.setPos(pos, C2DO);
 	bounds_.fitIn(viewBounds);
 	layoutButtons(buttons, bounds_, viewBounds, btnSize,
-		0, 0, 0, rowItems, projP);
+		0, 0, 0, rowItems);
 }
 
 void VControllerUIButtonGroup::setButtonSize(IG::WP size)

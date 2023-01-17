@@ -34,19 +34,17 @@ namespace EmuEx
 EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
 	video{video} {}
 
-void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, Gfx::ProjectionPlane projP, EmuInputView *inputView, EmuSystem &sys)
+void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, EmuInputView *inputView, EmuSystem &sys)
 {
-	if(sys.hasContent())
+	if(sys.hasContent() && video.size().x)
 	{
-		Gfx::GCRect contentGCRect{};
 		auto viewportAspectRatio = displayRect.xSize() / (float)displayRect.ySize();
 		auto zoom = zoom_;
 		auto contentSize = video.size();
 		if(isSideways(rotation))
 			std::swap(contentSize.x, contentSize.y);
-		// compute the video rectangle in pixel coordinates
-		if((zoom == optionImageZoomIntegerOnly || zoom == optionImageZoomIntegerOnlyY)
-			&& contentSize.x)
+		contentRect_ = {};
+		if(zoom == optionImageZoomIntegerOnly || zoom == optionImageZoomIntegerOnlyY)
 		{
 			int x = contentSize.x, y = contentSize.y;
 
@@ -91,15 +89,9 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 				scaleFactor = std::max(1, displayRect.ySize() / y);
 				logMsg("using y scale factor %d", scaleFactor);
 			}
-
-			contentRect_.x = 0;
-			contentRect_.y = 0;
 			contentRect_.x2 = x * scaleFactor;
 			contentRect_.y2 = y * scaleFactor;
-			contentRect_.setPos({(int)displayRect.xCenter() - contentRect_.x2/2, (int)displayRect.yCenter() - contentRect_.y2/2});
 		}
-
-		// compute the video rectangle in world coordinates for sub-pixel placement
 		if(zoom <= 100 || zoom == optionImageZoomIntegerOnlyY)
 		{
 			auto aR = aspectRatio() * sys.videoAspectRatioScale();
@@ -108,82 +100,39 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, G
 			if(zoom == optionImageZoomIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height
-				float width = projP.unprojectYSize(contentRect_.ySize()) * (float)aR;
+				float width = contentRect_.ySize() * (float)aR;
 				if(!aR)
 				{
-					width = projP.width();
+					width = displayRect.xSize();
 				}
-				contentGCRect.x = -width / 2.f;
-				contentGCRect.x2 = width / 2.f;
+				contentRect_.x2 = width;
 			}
 			else
 			{
-				auto size = projP.size();
+				auto size = displayRect.size();
 				if(aR)
 				{
 					size = IG::sizesWithRatioBestFit((float)aR, size.x, size.y);
 				}
-				contentGCRect.x = -size.x / 2.f;
-				contentGCRect.x2 = size.x / 2.f;
-				contentGCRect.y = -size.y / 2.f;
-				contentGCRect.y2 = size.y / 2.f;
+				contentRect_.x2 = size.x;
+				contentRect_.y2 = size.y;
+				if(zoom < 100)
+				{
+					auto scaler = zoom / 100.f;
+					contentRect_.x2 *= scaler;
+					contentRect_.y2 *= scaler;
+				}
 			}
 		}
-
-		// determine whether to generate the final coordinates from pixels or world units
-		bool getXCoordinateFromPixels = 0, getYCoordinateFromPixels = 0;
-		if(zoom == optionImageZoomIntegerOnlyY)
-		{
-			getYCoordinateFromPixels = 1;
-		}
-		else if(zoom == optionImageZoomIntegerOnly)
-		{
-			getXCoordinateFromPixels = getYCoordinateFromPixels = 1;
-		}
-
-		// apply sub-pixel zoom
-		if(zoom < 100)
-		{
-			auto scaler = zoom / 100.f;
-			contentGCRect.x *= scaler;
-			contentGCRect.y *= scaler;
-			contentGCRect.x2 *= scaler;
-			contentGCRect.y2 *= scaler;
-		}
-
-		// assign final coordinates
-		auto fromWorldSpaceRect = projP.projectRect(contentGCRect);
-		auto fromPixelRect = projP.unProjectRect(contentRect_);
-		if(getXCoordinateFromPixels)
-		{
-			contentGCRect.x = fromPixelRect.x;
-			contentGCRect.x2 = fromPixelRect.x2;
-		}
-		else
-		{
-			contentRect_.x = fromWorldSpaceRect.x;
-			contentRect_.x2 = fromWorldSpaceRect.x2;
-		}
-		if(getYCoordinateFromPixels)
-		{
-			contentGCRect.y = fromPixelRect.y;
-			contentGCRect.y2 = fromPixelRect.y2;
-		}
-		else
-		{
-			contentRect_.y = fromWorldSpaceRect.y;
-			contentRect_.y2 = fromWorldSpaceRect.y2;
-		}
-
-		disp.setPos(contentGCRect);
-		logMsg("placed game rect, at pixels %d:%d:%d:%d, world %f:%f:%f:%f",
-				contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2,
-				(double)contentGCRect.x, (double)contentGCRect.y, (double)contentGCRect.x2, (double)contentGCRect.y2);
+		contentRect_.setPos(displayRect.center(), C2DO);
+		disp.setPos(contentRect_);
+		logMsg("placed game rect, at pixels %d:%d:%d:%d",
+			contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2);
 	}
 	placeOverlay();
 }
 
-void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP)
+void EmuVideoLayer::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace IG::Gfx;
 	bool srgbOutput = srgbColorSpace();

@@ -65,7 +65,7 @@ void LGradient::setPos(std::span<const LGradientStopDesc> stops, float x, float 
 
 void LGradient::setPos(std::span<const LGradientStopDesc> stops, GCRect d)
 {
-	 setPos(stops, d.x, d.y2, d.x2, d.y);
+	 setPos(stops, d.x, d.y, d.x2, d.y2);
 }
 
 int LGradient::stops() const

@@ -28,8 +28,8 @@ void MenuItem::prepareDraw(Gfx::Renderer &r)
 	t.makeGlyphs(r);
 }
 
-void MenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, float xPos, float yPos, float xSize, float ySize,
-	float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+void MenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
+	int xIndent, _2DOrigin align, Gfx::Color color) const
 {
 	if(!active())
 	{
@@ -45,12 +45,12 @@ void MenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, float xPos, float 
 		xPos += xSize/2;
 	else
 		xPos += xIndent;
-	t.draw(cmds, {xPos, yPos}, align, projP);
+	t.draw(cmds, {xPos, yPos}, align);
 }
 
-void MenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
+void MenuItem::compile(Gfx::Renderer &r)
 {
-	t.compile(r, projP);
+	t.compile(r);
 }
 
 int MenuItem::ySize() const
@@ -58,7 +58,7 @@ int MenuItem::ySize() const
 	return t.face()->nominalHeight();
 }
 
-float MenuItem::xSize() const
+int MenuItem::xSize() const
 {
 	return t.width();
 }
@@ -68,15 +68,15 @@ const Gfx::Text &MenuItem::text() const
 	return t;
 }
 
-void BaseDualTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
+void BaseDualTextMenuItem::compile(Gfx::Renderer &r)
 {
-	MenuItem::compile(r, projP);
-	compile2nd(r, projP);
+	MenuItem::compile(r);
+	compile2nd(r);
 }
 
-void BaseDualTextMenuItem::compile2nd(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
+void BaseDualTextMenuItem::compile2nd(Gfx::Renderer &r)
 {
-	t2.compile(r, projP);
+	t2.compile(r);
 }
 
 void BaseDualTextMenuItem::prepareDraw(Gfx::Renderer &r)
@@ -85,19 +85,19 @@ void BaseDualTextMenuItem::prepareDraw(Gfx::Renderer &r)
 	t2.makeGlyphs(r);
 }
 
-void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, float xPos, float yPos, float xSize, float ySize,
-	float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, int xPos, int yPos, int xSize, int ySize,
+	int xIndent, _2DOrigin align, Gfx::Color color) const
 {
 	cmds.basicEffect().enableAlphaTexture(cmds);
 	cmds.setColor(color);
-	t2.draw(cmds, {(xPos + xSize) - xIndent, yPos}, RC2DO, projP);
+	t2.draw(cmds, {(xPos + xSize) - xIndent, yPos}, RC2DO);
 }
 
-void BaseDualTextMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, float xPos, float yPos, float xSize, float ySize,
-	float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+void BaseDualTextMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
+	int xIndent, _2DOrigin align, Gfx::Color color) const
 {
-	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
-	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
+	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
+	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
 }
 
 bool DualTextMenuItem::select(View &parent, const Input::Event &e)
@@ -123,7 +123,7 @@ bool BoolMenuItem::setBoolValue(bool val, View &view)
 	if(val != boolValue())
 	{
 		setBoolValue(val);
-		t2.compile(view.renderer(), view.projection());
+		t2.compile(view.renderer());
 		view.postDraw();
 		return true;
 	}
@@ -159,10 +159,10 @@ bool BoolMenuItem::flipBoolValue()
 	return boolValue();
 }
 
-void BoolMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, float xPos, float yPos, float xSize, float ySize,
-	float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+void BoolMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
+	int xIndent, _2DOrigin align, Gfx::Color color) const
 {
-	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
+	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
 	Gfx::Color color2;
 	if(!(flags_ & ON_OFF_STYLE_FLAG)) // custom strings
 		color2 = Gfx::color(0.f, .8f, 1.f);
@@ -170,7 +170,7 @@ void BoolMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, float xPos, fl
 		color2 = Gfx::color(.27f, 1.f, .27f);
 	else
 		color2 = Gfx::color(1.f, .27f, .27f);
-	draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color2);
+	draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
 }
 
 void BoolMenuItem::setOnSelect(SelectDelegate onSelect)
@@ -206,25 +206,25 @@ public:
 			selected = activeItem;
 	}
 
-	void drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const final
+	void drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, WRect rect, int xIndent) const final
 	{
-		item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, TableView::align, projP, menuTextColor((int)i == activeItem));
+		item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, TableView::align, menuTextColor((int)i == activeItem));
 	}
 };
 
-void MultiChoiceMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, float xPos, float yPos, float xSize, float ySize,
-	float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+void MultiChoiceMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
+	int xIndent, _2DOrigin align, Gfx::Color color) const
 {
-	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
+	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
 	//auto color2 = Gfx::color(0.f, 1.f, 1.f); // aqua
 	auto color2 = Gfx::color(0.f, .8f, 1.f);
-	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color2);
+	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
 }
 
-void MultiChoiceMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
+void MultiChoiceMenuItem::compile(Gfx::Renderer &r)
 {
 	setDisplayString(selected_);
-	BaseDualTextMenuItem::compile(r, projP);
+	BaseDualTextMenuItem::compile(r);
 }
 
 int MultiChoiceMenuItem::selected() const
@@ -240,7 +240,7 @@ size_t MultiChoiceMenuItem::items() const
 bool MultiChoiceMenuItem::setSelected(int idx, View &view)
 {
 	bool selectChanged = setSelected(idx);
-	t2.compile(view.renderer(), view.projection());
+	t2.compile(view.renderer());
 	view.postDraw();
 	return selectChanged;
 }

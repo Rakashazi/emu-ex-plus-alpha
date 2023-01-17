@@ -108,7 +108,7 @@ void EmuLoadProgressView::setPos(int val)
 
 void EmuLoadProgressView::place()
 {
-	text.compile(renderer(), projP);
+	text.compile(renderer());
 }
 
 bool EmuLoadProgressView::inputEvent(const Input::Event &e)
@@ -127,14 +127,14 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	{
 		basicEffect.disableTexture(cmds);
 		cmds.setColor(.0, .0, .75);
-		float barHeight = text.height()*1.5;
-		auto bar = GCRect::makeRel(projP.bounds().pos(LC2DO) - FP{0.f, barHeight/2.f},
-			{IG::remap((float)pos, 0.f, (float)max, 0.f, projP.width()), barHeight});
+		int barHeight = text.height() * 1.5f;
+		auto bar = WRect::makeRel(displayRect().pos(LC2DO) - WP{0, barHeight/2},
+			{int(IG::remap(int64_t(pos), 0, max, 0, displayRect().xSize())), barHeight});
 		GeomRect::draw(cmds, bar);
 	}
 	basicEffect.enableAlphaTexture(cmds);
 	cmds.set(ColorName::WHITE);
-	text.draw(cmds, {}, C2DO, projP);
+	text.draw(cmds, displayRect().center(), C2DO);
 }
 
 EmuLoadProgressView::MessagePortType &EmuLoadProgressView::messagePort()

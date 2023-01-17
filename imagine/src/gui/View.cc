@@ -108,17 +108,17 @@ std::optional<bool> ViewManager::needsBackControlOption() const
 	return needsBackControl();
 }
 
-float ViewManager::tableXIndent() const
+int ViewManager::tableXIndent() const
 {
 	return tableXIndent_;
 }
 
-void ViewManager::setTableXIndentMM(float indentMM, const Window &win, Gfx::ProjectionPlane projP)
+void ViewManager::setTableXIndentMM(float indentMM, const Window &win)
 {
-	auto oldIndent = std::exchange(tableXIndent_, projP.unprojectXSize(win.widthMMInPixels(indentMM)));
-	if(!IG::valIsWithinStretch(tableXIndent_, oldIndent, 0.001f))
+	auto oldIndent = std::exchange(tableXIndent_, win.widthMMInPixels(indentMM));
+	if(tableXIndent_ != oldIndent)
 	{
-		logDMsg("setting X indent:%.2fmm (%f as coordinate)", indentMM, tableXIndent_);
+		logDMsg("setting X indent:%.2fmm (%d as pixels)", indentMM, tableXIndent_);
 	}
 }
 
@@ -131,9 +131,9 @@ float ViewManager::defaultTableXIndentMM(const Window &win)
 		4.;
 }
 
-void ViewManager::setTableXIndentToDefault(const Window &win, Gfx::ProjectionPlane projP)
+void ViewManager::setTableXIndentToDefault(const Window &win)
 {
-	setTableXIndentMM(defaultTableXIndentMM(win), win, projP);
+	setTableXIndentMM(defaultTableXIndentMM(win), win);
 }
 
 void View::pushAndShow(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView, bool isModal)
@@ -204,21 +204,15 @@ void View::prepareDraw() {}
 
 void View::setFocus(bool) {}
 
-void View::setViewRect(WindowRect viewRect, WindowRect displayRect, Gfx::ProjectionPlane projP)
+void View::setViewRect(WindowRect viewRect, WindowRect displayRect)
 {
 	this->viewRect_ = viewRect;
 	this->displayRect_ = displayRect;
-	this->projP = projP;
 }
 
-void View::setViewRect(WindowRect viewRect, Gfx::ProjectionPlane projP)
+void View::setViewRect(WindowRect viewRect)
 {
-	setViewRect(viewRect, viewRect, projP);
-}
-
-void View::setViewRect(Gfx::ProjectionPlane projP)
-{
-	setViewRect(projP.windowBounds(), projP);
+	setViewRect(viewRect, viewRect);
 }
 
 void View::postDraw()

@@ -69,10 +69,9 @@ void BasicViewController::dismissView(int idx, bool)
 	win.postDraw();
 }
 
-void BasicViewController::place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP)
+void BasicViewController::place(const IG::WindowRect &rect)
 {
 	viewRect = rect;
-	this->projP = projP;
 	place();
 }
 
@@ -82,7 +81,7 @@ void BasicViewController::place()
 		return;
 	assert(viewRect.xSize() && viewRect.ySize());
 	view->waitForDrawFinished();
-	view->setViewRect(viewRect, projP);
+	view->setViewRect(viewRect);
 	view->place();
 }
 
@@ -115,11 +114,10 @@ NavView *ViewStack::navView() const
 	return nav.get();
 }
 
-void ViewStack::place(WindowRect viewRect, WindowRect displayRect, Gfx::ProjectionPlane projP)
+void ViewStack::place(WindowRect viewRect, WindowRect displayRect)
 {
 	this->viewRect = viewRect;
 	this->displayRect = displayRect;
-	this->projP = projP;
 	place();
 }
 
@@ -136,7 +134,7 @@ void ViewStack::place()
 		nav->setTitle(std::u16string{top().name()});
 		auto navRect = makeWindowRectRel(viewRect.pos(LT2DO), {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->titleFace()->nominalHeight()*(double)1.75))});
 		WindowRect navDisplayRect{displayRect.pos(LT2DO), {displayRect.xPos(RC2DO), navRect.yPos(CB2DO)}};
-		nav->setViewRect(navRect, navDisplayRect, projP);
+		nav->setViewRect(navRect, navDisplayRect);
 		nav->place();
 		customViewRect.y += nav->viewRect().ySize();
 		customDisplayRect.y += nav->displayRect().ySize();
@@ -145,13 +143,13 @@ void ViewStack::place()
 	{
 		navViewHasFocus = false;
 	}
-	top().setViewRect(customViewRect, customDisplayRect, projP);
+	top().setViewRect(customViewRect, customDisplayRect);
 	top().place();
 	if(customDisplayRect.y2 > customViewRect.y2) // add a basic gradient in the OS navigation bar area
 	{
-		bottomGradient.setPos(View::displayInsetRect(View::Direction::BOTTOM, customViewRect, customDisplayRect), projP);
-		bottomGradient.tl().color = bottomGradient.tr().color = Gfx::VertexColorPixelFormat.build(0., 0., 0., 0.);
-		bottomGradient.bl().color = bottomGradient.br().color = Gfx::VertexColorPixelFormat.build(0., 0., 0., 1.);
+		bottomGradient.setPos(View::displayInsetRect(View::Direction::BOTTOM, customViewRect, customDisplayRect));
+		bottomGradient.tl().color = bottomGradient.tr().color = Gfx::VertexColorPixelFormat.build(0., 0., 0., 1.);
+		bottomGradient.bl().color = bottomGradient.br().color = Gfx::VertexColorPixelFormat.build(0., 0., 0., 0.);
 	}
 }
 

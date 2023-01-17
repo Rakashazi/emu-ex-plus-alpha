@@ -17,7 +17,6 @@
 
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GfxSprite.hh>
-#include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/gfx/SyncFence.hh>
 #include <imagine/time/Time.hh>
@@ -90,15 +89,15 @@ public:
 	TestFramework() {}
 	virtual ~TestFramework() {}
 	virtual void initTest(IG::ApplicationContext, Gfx::Renderer &, IG::WP pixmapSize, Gfx::TextureBufferMode) {}
-	virtual void placeTest(const Gfx::GCRect &testRect) {}
+	virtual void placeTest(WRect testRect) {}
 	virtual void frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime) = 0;
 	virtual void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) = 0;
 	virtual void presentedTest(Gfx::RendererCommands &cmds) {}
 	void init(IG::ApplicationContext, Gfx::Renderer &, Gfx::GlyphTextureSet &face, IG::WP pixmapSize, Gfx::TextureBufferMode);
-	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);
+	void place(Gfx::Renderer &r, WRect viewBounds, WRect testRect);
 	void frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::FrameParams frameParams);
 	void prepareDraw(Gfx::Renderer &r);
-	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, float xIndent);
+	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int xIndent);
 	void finish(Gfx::RendererTask &task, IG::FrameTime frameTime);
 	void setCPUFreqText(std::string_view str);
 	void setCPUUseText(std::string_view str);
@@ -110,9 +109,9 @@ protected:
 	std::string cpuUseStr{};
 	std::string skippedFrameStr{};
 	std::string statsStr{};
-	Gfx::GCRect cpuStatsRect{};
-	Gfx::GCRect frameStatsRect{};
-	Gfx::ProjectionPlane projP;
+	WRect viewBounds{};
+	WRect cpuStatsRect{};
+	WRect frameStatsRect{};
 	unsigned lostFrameProcessTime = 0;
 
 	void placeCPUStatsText(Gfx::Renderer &r);
@@ -138,7 +137,7 @@ protected:
 
 public:
 	void initTest(IG::ApplicationContext, Gfx::Renderer &, IG::WP pixmapSize, Gfx::TextureBufferMode) override;
-	void placeTest(const Gfx::GCRect &rect) override;
+	void placeTest(WRect testRect) override;
 	void frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };

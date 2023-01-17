@@ -111,7 +111,7 @@ void StateSlotView::refreshSlot(int slot)
 			stateSlot[slot].setHighlighted(true);
 			sys.setStateSlot(slot);
 			logMsg("set state slot:%d", sys.stateSlot());
-			slotHeading.compile(slotHeadingName(sys), renderer(), projP);
+			slotHeading.compile(slotHeadingName(sys), renderer());
 			load.setActive(sys.stateExists(sys.stateSlot()));
 			postDraw();
 		});

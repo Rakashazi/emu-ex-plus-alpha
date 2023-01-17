@@ -204,7 +204,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 						return false;
 					}
 					system().firmwarePath = path;
-					machineFilePath.compile(machinePathMenuEntryStr(path), renderer(), projP);
+					machineFilePath.compile(machinePathMenuEntryStr(path), renderer());
 					if(type == FS::file_type::none)
 					{
 						app().postMessage(4, false, fmt::format("Using fallback path:\n{}", machineBasePath(system())));
@@ -265,7 +265,7 @@ public:
 	{
 		hdName[slot] = name;
 		updateHDText(slot);
-		hdSlot[slot].compile(renderer(), projP);
+		hdSlot[slot].compile(renderer());
 	}
 
 	void addHDFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
@@ -333,7 +333,7 @@ public:
 	{
 		system().cartName[slot] = name;
 		updateROMText(slot);
-		romSlot[slot].compile(renderer(), projP);
+		romSlot[slot].compile(renderer());
 		updateHDStatusFromCartSlot(slot);
 	}
 
@@ -415,7 +415,7 @@ public:
 	{
 		system().diskName[slot] = name;
 		updateDiskText(slot);
-		diskSlot[slot].compile(renderer(), projP);
+		diskSlot[slot].compile(renderer());
 	}
 
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)

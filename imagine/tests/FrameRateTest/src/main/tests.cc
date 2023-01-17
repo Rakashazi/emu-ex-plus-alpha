@@ -63,27 +63,27 @@ void TestFramework::setCPUUseText(std::string_view str)
 
 void TestFramework::placeCPUStatsText(Gfx::Renderer &r)
 {
-	if(cpuStatsText.compile(r, projP))
+	if(cpuStatsText.compile(r))
 	{
-		cpuStatsRect = projP.bounds();
-		cpuStatsRect.y = (cpuStatsRect.y2 - cpuStatsText.nominalHeight() * cpuStatsText.currentLines())
-			- cpuStatsText.nominalHeight() * .5f; // adjust to top
+		cpuStatsRect = viewBounds;
+		cpuStatsRect.y2 = (cpuStatsRect.y + cpuStatsText.nominalHeight() * cpuStatsText.currentLines())
+			+ cpuStatsText.nominalHeight() / 2; // adjust to top
 	}
 }
 
 void TestFramework::placeFrameStatsText(Gfx::Renderer &r)
 {
-	if(frameStatsText.compile(r, projP, {.maxLineSize = projP.width()}))
+	if(frameStatsText.compile(r, {.maxLineSize = viewBounds.xSize()}))
 	{
-		frameStatsRect = projP.bounds();
-		frameStatsRect.y2 = (frameStatsRect.y + frameStatsText.nominalHeight() * frameStatsText.currentLines())
-			+ cpuStatsText.nominalHeight() * .5f; // adjust to bottom
+		frameStatsRect = viewBounds;
+		frameStatsRect.y = (frameStatsRect.y2 - frameStatsText.nominalHeight() * frameStatsText.currentLines())
+			- cpuStatsText.nominalHeight() / 2; // adjust to bottom
 	}
 }
 
-void TestFramework::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect)
+void TestFramework::place(Gfx::Renderer &r, WRect viewBounds_, WRect testRect)
 {
-	this->projP = projP;
+	viewBounds = viewBounds_;
 	placeCPUStatsText(r);
 	placeFrameStatsText(r);
 	placeTest(testRect);
@@ -171,7 +171,7 @@ void TestFramework::prepareDraw(Gfx::Renderer &r)
 	frameStatsText.makeGlyphs(r);
 }
 
-void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, float xIndent)
+void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int xIndent)
 {
 	using namespace IG::Gfx;
 	drawTest(cmds, bounds);
@@ -185,8 +185,8 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, floa
 		GeomRect::draw(cmds, cpuStatsRect);
 		cmds.setColor(1., 1., 1., 1.);
 		basicEffect.enableAlphaTexture(cmds);
-		cpuStatsText.draw(cmds, {projP.alignXToPixel(cpuStatsRect.x + xIndent),
-			projP.alignYToPixel(cpuStatsRect.yCenter())}, LC2DO, projP);
+		cpuStatsText.draw(cmds, {cpuStatsRect.x + xIndent,
+			cpuStatsRect.yCenter()}, LC2DO);
 	}
 	if(frameStatsText.isVisible())
 	{
@@ -196,8 +196,8 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, floa
 		GeomRect::draw(cmds, frameStatsRect);
 		cmds.setColor(1., 1., 1., 1.);
 		basicEffect.enableAlphaTexture(cmds);
-		frameStatsText.draw(cmds, {projP.alignXToPixel(frameStatsRect.x + xIndent),
-			projP.alignYToPixel(frameStatsRect.yCenter())}, LC2DO, projP);
+		frameStatsText.draw(cmds, {frameStatsRect.x + xIndent,
+			frameStatsRect.yCenter()}, LC2DO);
 	}
 }
 
@@ -253,7 +253,7 @@ void DrawTest::initTest(IG::ApplicationContext app, Gfx::Renderer &r, IG::WP pix
 	sprite = {{}, texture};
 }
 
-void DrawTest::placeTest(const Gfx::GCRect &rect)
+void DrawTest::placeTest(WRect rect)
 {
 	sprite.setPos(rect);
 }

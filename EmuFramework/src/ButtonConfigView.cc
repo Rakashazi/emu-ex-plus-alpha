@@ -77,15 +77,15 @@ ButtonConfigSetView::ButtonConfigSetView(ViewAttachParams attach,
 
 void ButtonConfigSetView::place()
 {
-	text.compile(renderer(), projP);
+	text.compile(renderer());
 
 	if(pointerUIIsInit())
 	{
-		unbind.compile(renderer(), projP);
-		cancel.compile(renderer(), projP);
+		unbind.compile(renderer());
+		cancel.compile(renderer());
 
 		IG::WindowRect btnFrame;
-		btnFrame.setPosRel(viewRect().pos(LB2DO), IG::makeEvenRoundedUp((int)projP.projectYSize(unbind.nominalHeight()*2)), LB2DO);
+		btnFrame.setPosRel(viewRect().pos(LB2DO), unbind.nominalHeight() * 2, LB2DO);
 		unbindB = btnFrame;
 		unbindB.x = (viewRect().xSize()/2)*0;
 		unbindB.x2 = (viewRect().xSize()/2)*1;
@@ -169,22 +169,22 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.set(BlendMode::OFF);
 	basicEffect.disableTexture(cmds);
 	cmds.setColor(.4, .4, .4, 1.);
-	GeomRect::draw(cmds, viewRect(), projP);
+	GeomRect::draw(cmds, viewRect());
 	if(pointerUIIsInit())
 	{
 		cmds.setColor(.2, .2, .2, 1.);
-		GeomRect::draw(cmds, unbindB, projP);
-		GeomRect::draw(cmds, cancelB, projP);
+		GeomRect::draw(cmds, unbindB);
+		GeomRect::draw(cmds, cancelB);
 	}
 
 	cmds.set(ColorName::WHITE);
 	basicEffect.enableAlphaTexture(cmds);
 	if(pointerUIIsInit())
 	{
-		unbind.draw(cmds, projP.unProjectRect(unbindB).pos(C2DO), C2DO, projP);
-		cancel.draw(cmds, projP.unProjectRect(cancelB).pos(C2DO), C2DO, projP);
+		unbind.draw(cmds, unbindB.pos(C2DO), C2DO);
+		cancel.draw(cmds, cancelB.pos(C2DO), C2DO);
 	}
-	text.draw(cmds, {}, C2DO, projP);
+	text.draw(cmds, viewRect().center(), C2DO);
 }
 
 void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Event &e)
@@ -199,11 +199,11 @@ void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Eve
 	}
 }
 
-void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, float xPos, float yPos, float xSize, float ySize,
-	float xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
+	int xIndent, _2DOrigin align, Gfx::Color color) const
 {
-	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
-	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, Gfx::color(Gfx::ColorName::YELLOW));
+	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
+	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, Gfx::color(Gfx::ColorName::YELLOW));
 }
 
 static std::pair<const KeyCategory *, int> findCategoryAndKeyInConfig(EmuApp &app, Input::Key key,
@@ -246,7 +246,7 @@ void ButtonConfigView::onSet(Input::Key mapKey, int keyToSet)
 		return;
 	auto &b = btn[keyToSet];
 	b.set2ndName(makeKeyNameStr(mapKey, devConf->device().keyName(mapKey)));
-	b.compile2nd(renderer(), projP);
+	b.compile2nd(renderer());
 	devConf->buildKeyMap();
 }
 
@@ -306,7 +306,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 					for(auto i : iotaCount(cat->keys()))
 					{
 						btn[i].set2ndName(devConf->device().keyName(devConf->keyConf().key(*cat)[i]));
-						btn[i].compile2nd(renderer(), projP);
+						btn[i].compile2nd(renderer());
 					}
 					devConf->buildKeyMap();
 				});

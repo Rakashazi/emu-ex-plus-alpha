@@ -63,7 +63,7 @@ public:
 
 	void place() final
 	{
-		fpsText.compile(renderer(), projP);
+		fpsText.compile(renderer());
 	}
 
 	bool inputEvent(const Input::Event &e) final
@@ -82,7 +82,7 @@ public:
 		using namespace IG::Gfx;
 		cmds.setColor(1., 1., 1., 1.);
 		cmds.basicEffect().enableAlphaTexture(cmds);
-		fpsText.draw(cmds, projP.alignToPixel(projP.bounds().center()), C2DO, projP);
+		fpsText.draw(cmds, viewRect().center(), C2DO);
 	}
 
 	bool runFrameTimeDetection(IG::FrameTime timestampDiff, double slack)
@@ -119,7 +119,7 @@ public:
 					fpsText.resetString(fmt::format("{:.2f}fps", 1. / detectedFrameTime.count()));
 				else
 					fpsText.resetString("0fps");
-				fpsText.compile(renderer(), projP);
+				fpsText.compile(renderer());
 			}
 			if(stableFrameTime)
 			{
@@ -823,11 +823,11 @@ bool VideoOptionView::onFrameTimeChange(VideoSystem vidSys, IG::FloatSeconds tim
 	}
 	if(vidSys == VideoSystem::NATIVE_NTSC)
 	{
-		frameRate.compile(makeFrameRateStr(system()), renderer(), projP);
+		frameRate.compile(makeFrameRateStr(system()), renderer());
 	}
 	else
 	{
-		frameRatePAL.compile(makeFrameRatePALStr(system()), renderer(), projP);
+		frameRatePAL.compile(makeFrameRatePALStr(system()), renderer());
 	}
 	return true;
 }

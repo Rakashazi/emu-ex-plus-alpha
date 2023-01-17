@@ -191,7 +191,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 					writeCheatFile(system());
 					static_cast<GbcSystem&>(app.system()).applyCheats();
 					ggCode.set2ndName(str);
-					ggCode.compile(renderer(), projP);
+					ggCode.compile(renderer());
 					postDraw();
 					return true;
 				});

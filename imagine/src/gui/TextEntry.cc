@@ -25,11 +25,11 @@
 namespace IG
 {
 
-TextEntry::TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP):
+TextEntry::TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face):
 	t{initText, face},
 	str{initText}
 {
-	t.compile(r, projP);
+	t.compile(r);
 }
 
 void TextEntry::setAcceptingInput(bool on)
@@ -101,7 +101,7 @@ bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 					{
 						parentView.waitForDrawFinished();
 						t.resetString(str);
-						t.compile(parentView.renderer(), projP);
+						t.compile(parentView.renderer());
 					}
 					parentView.postDraw();
 				}
@@ -121,17 +121,16 @@ void TextEntry::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace Gfx;
 	cmds.basicEffect().enableAlphaTexture(cmds);
-	t.draw(cmds, projP.unProjectRect(b).pos(LC2DO), LC2DO, projP);
+	t.draw(cmds, b.pos(LC2DO), LC2DO);
 }
 
 void TextEntry::place(Gfx::Renderer &r)
 {
-	t.compile(r, projP);
+	t.compile(r);
 }
 
-void TextEntry::place(Gfx::Renderer &r, WindowRect rect, const Gfx::ProjectionPlane &projP)
+void TextEntry::place(Gfx::Renderer &r, WindowRect rect)
 {
-	this->projP = projP;
 	b = rect;
 	place(r);
 }
@@ -173,8 +172,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, CStringView 
 	{
 		initialContent,
 		attach.renderer(),
-		face ? face : &attach.viewManager().defaultFace(),
-		projP
+		face ? face : &attach.viewManager().defaultFace()
 	},
 	onTextD{onText}
 {
@@ -205,10 +203,10 @@ void CollectTextInputView::place()
 			if(cancelSpr.hasTexture())
 			{
 				cancelBtn.setPosRel(viewRect().pos(RT2DO), face.nominalHeight() * 1.75f, RT2DO);
-				cancelSpr.setPos(projP.unProjectRect(cancelBtn));
+				cancelSpr.setPos(cancelBtn);
 			}
 		});
-	message.compile(renderer(), projP, {.maxLineSize = projP.width() * 0.95f});
+	message.compile(renderer(), {.maxLineSize = int(viewRect().xSize() * 0.95f)});
 	WindowRect textRect;
 	int xSize = viewRect().xSize() * 0.95f;
 	int ySize = face.nominalHeight();
@@ -216,7 +214,7 @@ void CollectTextInputView::place()
 		[&](auto &textEntry)
 		{
 			textRect.setPosRel(viewRect().pos(C2DO), {xSize, int(ySize * 1.5f)}, C2DO);
-			textEntry.place(renderer(), textRect, projP);
+			textEntry.place(renderer(), textRect);
 		},
 		[&]()
 		{
@@ -286,17 +284,17 @@ void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		{
 			cmds.setColor(0.25);
 			basicEffect.disableTexture(cmds);
-			GeomRect::draw(cmds, textEntry.bgRect(), projP);
+			GeomRect::draw(cmds, textEntry.bgRect());
 			cmds.set(ColorName::WHITE);
 			textEntry.draw(cmds);
 			basicEffect.enableAlphaTexture(cmds);
-			message.draw(cmds, {0, projP.unprojectY(textEntry.bgRect().pos(C2DO).y) + message.nominalHeight()}, CB2DO, projP);
+			message.draw(cmds, {viewRect().xCenter(), textEntry.bgRect().pos(C2DO).y - message.nominalHeight()}, CB2DO);
 		},
 		[&]()
 		{
 			cmds.set(ColorName::WHITE);
 			basicEffect.enableAlphaTexture(cmds);
-			message.draw(cmds, {0, projP.unprojectY(textField.windowRect().pos(C2DO).y) + message.nominalHeight()}, CB2DO, projP);
+			message.draw(cmds, {viewRect().xCenter(), textField.windowRect().pos(C2DO).y - message.nominalHeight()}, CB2DO);
 		});
 }
 

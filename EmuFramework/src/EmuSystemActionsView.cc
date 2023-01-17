@@ -84,8 +84,8 @@ void EmuSystemActionsView::onShow()
 	TableView::onShow();
 	logMsg("refreshing action menu state");
 	assert(system().hasContent());
-	autosaveSlot.compile(autoSaveName(app()), renderer(), projP);
-	autosaveNow.compile(saveAutosaveName(app()), renderer(), projP);
+	autosaveSlot.compile(autoSaveName(app()), renderer());
+	autosaveNow.compile(saveAutosaveName(app()), renderer());
 	autosaveNow.setActive(app().autosaveManager().slotName() != noAutosaveName);
 	revertAutosave.setActive(app().autosaveManager().slotName() != noAutosaveName);
 	resetSessionOptions.setActive(app().hasSavedSessionOptions());

@@ -285,7 +285,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set cheats path:%s", path.data());
 					system().cheatsDir = path;
-					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer(), projP);
+					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer());
 				}), e);
 		}
 	};
@@ -342,7 +342,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 					auto idx = regionCodeToIdx(region);
 					pathFromRegion(region) = path;
 					logMsg("set bios:%d to path:%s", idx, pathFromRegion(region).data());
-					cdBiosPath[idx].compile(biosMenuEntryStr(region, path), renderer(), projP);
+					cdBiosPath[idx].compile(biosMenuEntryStr(region, path), renderer());
 					return true;
 				}, hasMDExtension), e);
 		};

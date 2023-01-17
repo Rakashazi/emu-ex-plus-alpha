@@ -77,7 +77,7 @@ public:
 					"Input description", static_cast<CheatViewImpl*>(this)->cheatNameString(),
 					[this](EmuApp &, auto str)
 					{
-						name.compile(str, renderer(), projP);
+						name.compile(str, renderer());
 						static_cast<CheatViewImpl*>(this)->renamed(str);
 						onCheatListChanged();
 						postDraw();

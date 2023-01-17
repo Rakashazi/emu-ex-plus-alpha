@@ -14,9 +14,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/Mat4.hh>
+#include <imagine/gfx/defs.hh>
+#include <imagine/base/Viewport.hh>
 #include <imagine/glm/geometric.hpp>
 #include <imagine/glm/gtc/matrix_transform.hpp>
 #include <imagine/glm/gtc/matrix_inverse.hpp>
+#include <imagine/logger/logger.h>
 
 namespace glm
 {
@@ -48,6 +51,8 @@ Mat4 Mat4::translate(Vec3 translation) const
 	return glm::translate(*this, translation);
 }
 
+Mat4 Mat4::ident() { return glm::identity<glm::mat4>(); }
+
 Mat4 Mat4::makeTranslate(Vec3 translation)
 {
 	return glm::translate(glm::identity<glm::mat4>(), translation);
@@ -56,6 +61,23 @@ Mat4 Mat4::makeTranslate(Vec3 translation)
 Mat4 Mat4::makePerspectiveFovRH(float fovy, float aspect, float znear, float zfar)
 {
 	return glm::perspective(fovy, aspect, znear, zfar);
+}
+
+Mat4 Mat4::projectionPlane(Viewport viewport, float z, float rollAngle)
+{
+	auto matInv = invert();
+	auto bounds = viewport.bounds();
+	auto windowBounds = viewport.originBounds();
+	auto lowerLeft = unproject(asYUpRelRect(viewport), {(float)bounds.x, (float)bounds.y, z}, matInv);
+	auto upperRight = unproject(asYUpRelRect(viewport), {(float)bounds.x2, (float)bounds.y2, z}, matInv);
+	//logMsg("Lower-left projection point %d,%d -> %f %f %f", bounds.x, bounds.y, (double)lowerLeft.x, (double)lowerLeft.y, (double)lowerLeft.z);
+	//logMsg("Upper-right projection point %d,%d -> %f %f %f", bounds.x2, bounds.y2, (double)upperRight.x, (double)upperRight.y, (double)upperRight.z);
+	auto w = upperRight.x - lowerLeft.x;
+	auto h = upperRight.y - lowerLeft.y;
+	auto insetRect = windowBounds - bounds;
+	return scale(FP{w / float(bounds.xSize()), -h / float(bounds.ySize())})
+		.rollRotate(rollAngle)
+		.translate(Vec3{-bounds.xSize() / 2.f + insetRect.x, -bounds.ySize() / 2.f + insetRect.y, upperRight.z});
 }
 
 Mat4 Mat4::scale(Vec3 factors) const

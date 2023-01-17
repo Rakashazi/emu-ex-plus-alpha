@@ -27,10 +27,10 @@ TestTableEntry::TestTableEntry(Gfx::GlyphTextureSet *face, SelectDelegate select
 	DualTextMenuItem{u"", u"", face, selectDel}
 {}
 
-void TestTableEntry::draw(Gfx::RendererCommands &cmds, float xPos, float yPos, float xSize, float ySize,
-	float xIndent, IG::_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+void TestTableEntry::draw(Gfx::RendererCommands &cmds, int xPos, int yPos, int xSize, int ySize,
+	int xIndent, IG::_2DOrigin align, Gfx::Color color) const
 {
-	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
+	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
 	if(t2.isVisible())
 	{
 		Gfx::Color color2;
@@ -38,7 +38,7 @@ void TestTableEntry::draw(Gfx::RendererCommands &cmds, float xPos, float yPos, f
 			color2 = Gfx::color(1.f, 0.f, 0.f);
 		else
 			color2 = Gfx::color(1.f, 1.f, 1.f);
-		draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color2);
+		draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
 	}
 }
 

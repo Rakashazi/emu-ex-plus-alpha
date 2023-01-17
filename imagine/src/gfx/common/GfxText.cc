@@ -16,7 +16,6 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
-#include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/GeomQuad.hh>
@@ -29,26 +28,16 @@
 namespace IG::Gfx
 {
 
-static void drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPlane projP,
-	std::u16string_view strView, TexQuad &vArr, GlyphTextureSet *face_, float spaceSize);
-
-void Text::setFace(GlyphTextureSet *face_)
-{
-	assert(face_);
-	this->face_ = face_;
-}
-
-static float xSizeOfChar(Renderer &r, GlyphTextureSet *face_, int c, float spaceX, const ProjectionPlane &projP)
+static int xSizeOfChar(Renderer &r, GlyphTextureSet *face_, int c, int spaceX)
 {
 	assert(c != '\0');
 	if(c == ' ')
 		return spaceX;
 	if(c == '\n')
 		return 0;
-
-	GlyphEntry *gly = face_->glyphEntry(r, c);
+	auto gly = face_->glyphEntry(r, c);
 	if(gly)
-		return projP.unprojectXSize(gly->metrics.xAdvance);
+		return gly->metrics.xAdvance;
 	else
 		return 0;
 }
@@ -63,7 +52,7 @@ void Text::makeGlyphs(Renderer &r)
 	}
 }
 
-bool Text::compile(Renderer &r, ProjectionPlane projP, TextLayoutConfig conf)
+bool Text::compile(Renderer &r, TextLayoutConfig conf)
 {
 	if(!hasText()) [[unlikely]]
 		return false;
@@ -73,20 +62,18 @@ bool Text::compile(Renderer &r, ProjectionPlane projP, TextLayoutConfig conf)
 		textStr.resize(stringSize());
 		sizeBeforeLineSpans = {};
 	}
-	auto metrics = face_->metrics();
-	yLineStart = projP.alignYToPixel(projP.unprojectYSize(metrics.yLineStart));
-	spaceSize = projP.unprojectXSize(metrics.spaceSize);
-	nominalHeight_ = projP.alignYToPixel(projP.unprojectYSize(IG::makeEvenRoundedUp(metrics.nominalHeight)));
+	metrics = face_->metrics();
+	auto [nominalHeight, spaceSize, yLineStart] = metrics;
 	int lines = 1;
 	std::vector<LineSpan> lineInfo;
-	float xLineSize = 0, maxXLineSize = 0;
+	int xLineSize = 0, maxXLineSize = 0;
 	int prevC = 0;
-	float textBlockSize = 0;
+	int textBlockSize = 0;
 	int textBlockIdx = 0, currLineIdx = 0;
 	int charIdx = 0, charsInLine = 0;
 	for(auto c : textStr)
 	{
-		auto cSize = xSizeOfChar(r, face_, c, spaceSize, projP);
+		auto cSize = xSizeOfChar(r, face_, c, spaceSize);
 		charsInLine++;
 
 		// Is this the start of a text block?
@@ -141,39 +128,64 @@ bool Text::compile(Renderer &r, ProjectionPlane projP, TextLayoutConfig conf)
 		sizeBeforeLineSpans = textStr.size();
 		for(auto &span : lineInfo)
 		{
-			LineSpan{span.size, span.chars}.encodeTo(textStr);
+			LineSpan{span.xSize, span.chars}.encodeTo(textStr);
 		}
 		LineSpan{xLineSize, (uint16_t)charsInLine}.encodeTo(textStr);
 	}
 	maxXLineSize = std::max(xLineSize, maxXLineSize);
 	xSize = maxXLineSize;
-	ySize = nominalHeight_ * (float)lines;
+	ySize = nominalHeight * lines;
 	return true;
 }
 
-void Text::draw(RendererCommands &cmds, FP p, _2DOrigin o, ProjectionPlane projP) const
+static void drawSpan(RendererCommands &cmds, WP pos,
+	std::u16string_view strView, TexQuad &vArr, GlyphTextureSet *face_, int spaceSize)
+{
+	for(auto c : strView)
+	{
+		if(c == '\n')
+		{
+			continue;
+		}
+		auto gly = face_->glyphEntry(cmds.renderer(), c, false);
+		if(!gly)
+		{
+			//logMsg("no glyph for %X", c);
+			pos.x += spaceSize;
+			continue;
+		}
+		auto &[glyph, metrics] = *gly;
+		auto x = pos.x + metrics.xOffset;
+		auto y = pos.y - metrics.yOffset;
+		pos.x += metrics.xAdvance;
+		vArr = {{{float(x), float(y)}, {float(x + metrics.xSize), float(y + metrics.ySize)}}, glyph};
+		cmds.vertexBufferData(vArr.data(), sizeof(vArr));
+		cmds.setTexture(glyph);
+		cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
+	}
+}
+
+void Text::draw(RendererCommands &cmds, WP pos, _2DOrigin o) const
 {
 	if(!hasText()) [[unlikely]]
 		return;
-	auto [xPos, yPos] = p;
-	//logMsg("drawing with origin: %s,%s", o.toString(o.x), o.toString(o.y));
 	cmds.set(BlendMode::ALPHA);
-	TexQuad vArr;
 	cmds.bindTempVertexBuffer();
+	TexQuad vArr;
 	cmds.setVertexAttribs(vArr.data());
-	_2DOrigin align = o;
-	xPos = o.adjustX(xPos, xSize, LT2DO);
-	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
-	yPos = o.adjustY(yPos, projP.alignYToPixel(ySize/2.f), ySize, LT2DO);
-	if(IG::isOdd(projP.windowBounds().ySize()))
-		yPos = projP.alignYToPixel(yPos);
-	yPos -= nominalHeight_ - yLineStart;
-	float xOrig = xPos;
-	//logMsg("drawing text @ %f,%f: str", xPos, yPos, str);
+	pos.x = o.adjustX(pos.x, xSize, LT2DO);
+	if(o.onBottom())
+		pos.y -= ySize;
+	else if(o.onYCenter())
+		pos.y -= ySize / 2;
+	//logMsg("drawing text @ %d,%d, size:%d,%d", xPos, yPos, xSize, ySize);
+	auto [nominalHeight, spaceSize, yLineStart] = metrics;
+	pos.y += nominalHeight - yLineStart;
+	auto xOrig = pos.x;
 	auto startingXPos =
-		[&](float xLineSize)
+		[&](auto xLineSize)
 		{
-			return projP.alignXToPixel(LT2DO.adjustX(xOrig, xSize-xLineSize, align));
+			return LT2DO.adjustX(xOrig, xSize - xLineSize, o);
 		};
 	auto lines = currentLines();
 	if(lines > 1)
@@ -182,89 +194,21 @@ void Text::draw(RendererCommands &cmds, FP p, _2DOrigin o, ProjectionPlane projP
 		auto spansPtr = &textStr[sizeBeforeLineSpans];
 		for(auto i : iotaCount(lines))
 		{
-			// Get line info (1 line case doesn't use per-line info)
 			auto [xLineSize, charsToDraw] = LineSpan::decode({spansPtr, LineSpan::encodedChar16Size});
 			spansPtr += LineSpan::encodedChar16Size;
-			xPos = startingXPos(xLineSize);
-			//logMsg("line %d, %d chars", l, charsToDraw);
-			drawSpan(cmds, xPos, yPos, projP, std::u16string_view{s, charsToDraw}, vArr, face_, spaceSize);
+			pos.x = startingXPos(xLineSize);
+			//logMsg("line:%d chars:%d ", i, charsToDraw);
+			drawSpan(cmds, pos, std::u16string_view{s, charsToDraw}, vArr, face_, spaceSize);
 			s += charsToDraw;
-			yPos -= nominalHeight_;
-			yPos = projP.alignYToPixel(yPos);
+			pos.y += nominalHeight;
 		}
 	}
 	else
 	{
-		float xLineSize = xSize;
-		xPos = startingXPos(xLineSize);
-		//logMsg("line %d, %d chars", l, charsToDraw);
-		drawSpan(cmds, xPos, yPos, projP, std::u16string_view{textStr}, vArr, face_, spaceSize);
+		auto xLineSize = xSize;
+		pos.x = startingXPos(xLineSize);
+		drawSpan(cmds, pos, std::u16string_view{textStr}, vArr, face_, spaceSize);
 	}
-}
-
-static void drawSpan(RendererCommands &cmds, float xPos, float yPos, ProjectionPlane projP,
-	std::u16string_view strView, TexQuad &vArr, GlyphTextureSet *face_, float spaceSize)
-{
-	auto xViewLimit = projP.wHalf();
-	for(auto c : strView)
-	{
-		if(c == '\n')
-		{
-			continue;
-		}
-		GlyphEntry *gly = face_->glyphEntry(cmds.renderer(), c, false);
-		if(!gly)
-		{
-			//logMsg("no glyph for %X", c);
-			xPos += spaceSize;
-			continue;
-		}
-		if(xPos >= xViewLimit)
-		{
-			//logMsg("skipped %c, off right screen edge", s[i]);
-			continue;
-		}
-		float xSize = projP.unprojectXSize(gly->metrics.xSize);
-		auto x = xPos + projP.unprojectXSize(gly->metrics.xOffset);
-		auto y = yPos - projP.unprojectYSize(gly->metrics.ySize - gly->metrics.yOffset);
-		auto &glyph = gly->glyph();
-		vArr = {{{x, y}, {x + xSize, y + projP.unprojectYSize(gly->metrics.ySize)}}, glyph};
-		cmds.vertexBufferData(vArr.data(), sizeof(vArr));
-		cmds.setTexture(glyph);
-		//logMsg("drawing");
-		cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
-		xPos += projP.unprojectXSize(gly->metrics.xAdvance);
-	}
-}
-
-float Text::width() const
-{
-	return xSize;
-}
-
-float Text::height() const
-{
-	return ySize;
-}
-
-float Text::fullHeight() const
-{
-	return ySize + (nominalHeight_ * .5f);
-}
-
-float Text::nominalHeight() const
-{
-	return nominalHeight_;
-}
-
-float Text::spaceWidth() const
-{
-	return spaceSize;
-}
-
-GlyphTextureSet *Text::face() const
-{
-	return face_;
 }
 
 uint16_t Text::currentLines() const
@@ -316,12 +260,11 @@ bool Text::hasText() const
 void Text::LineSpan::encodeTo(std::u16string &outStr)
 {
 	auto newSize = outStr.size() + 3;
-	auto sizeBits = std::bit_cast<uint32_t>(size);
 	outStr.resize_and_overwrite(newSize, [&](char16_t *buf, size_t)
 	{
 		buf[newSize - 3] = chars;
-		buf[newSize - 2] = char16_t(sizeBits & 0xFFFF);
-		buf[newSize - 1] = char16_t(sizeBits >> 16);
+		buf[newSize - 2] = char16_t(xSize & 0xFFFF);
+		buf[newSize - 1] = char16_t(xSize >> 16);
 		return newSize;
 	});
 }
@@ -329,8 +272,8 @@ void Text::LineSpan::encodeTo(std::u16string &outStr)
 Text::LineSpan Text::LineSpan::decode(std::u16string_view str)
 {
 	assumeExpr(str.size() >= 3);
-	auto sizeBits = str[1] | (str[2] << 16);
-	return {std::bit_cast<float>(sizeBits), str[0]};
+	auto xSize = str[1] | (str[2] << 16);
+	return {xSize, str[0]};
 }
 
 }

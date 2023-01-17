@@ -16,7 +16,6 @@
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/gfx/Projection.hh>
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/Texture.hh>
 
@@ -150,13 +149,6 @@ void BasicEffect::setModelViewProjection(RendererCommands &cmds, Mat4 modelView,
 	prepareDraw(cmds);
 	GLBasicEffect::setProjection(cmds, proj);
 	GLBasicEffect::setModelView(cmds, modelView);
-}
-
-void BasicEffect::setModelViewProjection(RendererCommands &cmds, Projection proj)
-{
-	prepareDraw(cmds);
-	GLBasicEffect::setProjection(cmds, proj.matrix());
-	GLBasicEffect::setModelView(cmds, proj.plane().makeTranslate());
 }
 
 void BasicEffect::prepareDraw(RendererCommands &cmds)

@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
+#include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string/utf16.hh>
 #include <limits>
@@ -27,11 +28,11 @@ namespace IG::Gfx
 
 struct TextLayoutConfig
 {
-	static constexpr auto NO_MAX_LINES = std::numeric_limits<int>::max();
-	static constexpr auto NO_MAX_LINE_SIZE = std::numeric_limits<float>::max();
+	static constexpr auto noMaxLines = std::numeric_limits<int>::max();
+	static constexpr auto noMaxLineSize = std::numeric_limits<int>::max();
 
-	float maxLineSize = NO_MAX_LINE_SIZE;
-	int maxLines = NO_MAX_LINES;
+	int maxLineSize = noMaxLineSize;
+	int maxLines = noMaxLines;
 };
 
 class Text
@@ -50,16 +51,16 @@ public:
 	}
 
 	void resetString() { resetString(UTF16String{}); }
-	void setFace(GlyphTextureSet *face);
-	void makeGlyphs(Renderer &r);
-	bool compile(Renderer &, ProjectionPlane, TextLayoutConfig conf = {});
-	void draw(RendererCommands &cmds, FP p, _2DOrigin o, ProjectionPlane projP) const;
-	float width() const;
-	float height() const;
-	float fullHeight() const;
-	float nominalHeight() const;
-	float spaceWidth() const;
-	GlyphTextureSet *face() const;
+	void setFace(GlyphTextureSet *face) { face_ = face; }
+	GlyphTextureSet *face() const { return face_; }
+	void makeGlyphs(Renderer &);
+	bool compile(Renderer &, TextLayoutConfig conf = {});
+	void draw(RendererCommands &, WP pos, _2DOrigin o) const;
+	int width() const { return xSize; }
+	int height() const { return ySize; }
+	auto nominalHeight() const { return metrics.nominalHeight; }
+	int fullHeight() const { return ySize + (nominalHeight() / 2); }
+	auto spaceWidth() const { return metrics.spaceSize; }
 	uint16_t currentLines() const;
 	size_t stringSize() const;
 	bool isVisible() const;
@@ -69,12 +70,12 @@ public:
 protected:
 	struct LineSpan
 	{
-		float size;
+		int xSize;
 		uint16_t chars;
-		static constexpr size_t encodedChar16Size = (sizeof(size) / 2) + (sizeof(chars) / 2);
+		static constexpr size_t encodedChar16Size = (sizeof(xSize) / 2) + (sizeof(chars) / 2);
 
-		constexpr LineSpan(float size, uint16_t chars):
-			size{size}, chars{chars} {}
+		constexpr LineSpan(int xSize, uint16_t chars):
+			xSize{xSize}, chars{chars} {}
 		void encodeTo(std::u16string &);
 		static LineSpan decode(std::u16string_view);
 	};
@@ -82,11 +83,9 @@ protected:
 	UTF16String textStr;
 	GlyphTextureSet *face_{};
 	size_t sizeBeforeLineSpans{}; // encoded LineSpans in textStr start after this offset
-	float spaceSize{};
-	float nominalHeight_{};
-	float yLineStart{};
-	float xSize{};
-	float ySize{};
+	int xSize{};
+	int ySize{};
+	GlyphSetMetrics metrics;
 
 	bool hasText() const;
 };

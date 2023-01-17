@@ -55,7 +55,7 @@ public:
 	void setLabel(UTF16Convertible auto &&label) { text.resetString(IG_forward(label)); }
 
 protected:
-	Gfx::GCRect labelFrame;
+	WRect labelFrame;
 	Gfx::Text text;
 	TableView menu;
 

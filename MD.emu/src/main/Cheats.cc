@@ -545,7 +545,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 					updateCheats();
 					writeCheatFile(system());
 					code.set2ndName(str);
-					code.compile(renderer(), projP);
+					code.compile(renderer());
 					postDraw();
 					return true;
 				});

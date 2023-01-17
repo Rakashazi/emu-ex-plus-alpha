@@ -132,7 +132,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 				}
 				vRectIdx.emplace_back(makeRectIndexArray(vRect.size()));
 				auto rect = IG::makeWindowRectRel({x, y-1}, {viewRect().xSize(), ySize});
-				vRect.emplace_back(projP.unProjectRect(rect), color);
+				vRect.emplace_back(rect.asType<float>(), color);
 			}
 			y += yCellSize;
 			if(vRect.size() == vRect.capacity()) [[unlikely]]
@@ -158,7 +158,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		else
 			cmds.setColor(.2 / 3., .71 / 3., .9 / 3., 1./3.);
 		auto rect = IG::makeWindowRectRel({x, selectedCellY}, {viewRect().xSize(), yCellSize-1});
-		GeomRect::draw(cmds, rect, projP);
+		GeomRect::draw(cmds, rect);
 	}
 
 	// draw elements
@@ -167,7 +167,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	for(size_t i = startYCell; i < endYCell; i++)
 	{
 		auto rect = IG::makeWindowRectRel({x, y}, {viewRect().xSize(), yCellSize});
-		drawElement(cmds, i, item(*this, i), projP.unProjectRect(rect), xIndent);
+		drawElement(cmds, i, item(*this, i), rect, xIndent);
 		y += yCellSize;
 	}
 	cmds.setClipTest(false);
@@ -179,7 +179,7 @@ void TableView::place()
 	for(auto i : iotaCount(cells_))
 	{
 		//logMsg("compile item %d", i);
-		item(*this, i).compile(renderer(), projP);
+		item(*this, i).compile(renderer());
 	}
 	if(cells_)
 	{
@@ -493,10 +493,10 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 	}, e);
 }
 
-void TableView::drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, Gfx::GCRect rect, float xIndent) const
+void TableView::drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, WRect rect, int xIndent) const
 {
 	static constexpr auto highlightColor = Gfx::color(0.f, .8f, 1.f);
-	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, align, projP,
+	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, align,
 		item.highlighted() ? highlightColor : Gfx::color(Gfx::ColorName::WHITE));
 }
 

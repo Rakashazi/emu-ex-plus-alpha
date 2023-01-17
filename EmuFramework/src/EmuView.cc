@@ -42,7 +42,7 @@ void EmuView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	using namespace IG::Gfx;
 	if(layer && system().isStarted())
 	{
-		layer->draw(cmds, projP);
+		layer->draw(cmds);
 	}
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	if(audioStatsText.isVisible())
@@ -53,8 +53,8 @@ void EmuView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		GeomRect::draw(cmds, audioStatsRect);
 		cmds.setColor(1., 1., 1., 1.);
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
-		audioStatsText.draw(cmds, projP.alignXToPixel(audioStatsRect.x + TableView::globalXIndent),
-			projP.alignYToPixel(audioStatsRect.yCenter()), LC2DO, projP);
+		audioStatsText.draw(cmds, audioStatsRect.x + TableView::globalXIndent,
+			audioStatsRect.yCenter(), LC2DO);
 	}
 	#endif
 }
@@ -63,14 +63,14 @@ void EmuView::place()
 {
 	if(layer)
 	{
-		layer->place(viewRect(), displayRect(), projP, inputView, system());
+		layer->place(viewRect(), displayRect(), inputView, system());
 	}
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-	if(audioStatsText.compile(renderer(), projP))
+	if(audioStatsText.compile(renderer()))
 	{
-		audioStatsRect = projP.bounds();
+		audioStatsRect = viewRect.bounds();
 		audioStatsRect.y2 = (audioStatsRect.y + audioStatsText.nominalHeight * audioStatsText.lines)
-			+ audioStatsText.nominalHeight * .5f; // adjust to bottom
+			+ audioStatsText.nominalHeight / 2; // adjust to bottom
 	}
 	#endif
 }

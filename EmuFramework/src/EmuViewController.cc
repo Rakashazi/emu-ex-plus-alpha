@@ -263,9 +263,9 @@ void EmuViewController::placeElements()
 		popup.place();
 	}
 	auto &winData = app().mainWindowData();
-	emuView.manager().setTableXIndentToDefault(appContext().mainWindow(), winData.projection.plane());
+	emuView.manager().setTableXIndentToDefault(appContext().mainWindow());
 	placeEmuViews();
-	viewStack.place(winData.contentBounds(), winData.windowBounds(), winData.projection.plane());
+	viewStack.place(winData.contentBounds(), winData.windowBounds());
 }
 
 void EmuViewController::updateMainWindowViewport(IG::Window &win, IG::Viewport viewport, Gfx::RendererTask &task)
@@ -361,7 +361,7 @@ bool EmuViewController::drawMainWindow(IG::Window &win, IG::WindowDrawParams par
 	{
 		cmds.clear();
 		auto &winData = windowData(win);
-		cmds.basicEffect().setModelViewProjection(cmds, winData.projection);
+		cmds.basicEffect().setModelViewProjection(cmds, Gfx::Mat4::ident(), winData.projM);
 		if(showingEmulation)
 		{
 			if(winData.hasEmuView)
@@ -392,7 +392,7 @@ bool EmuViewController::drawExtraWindow(IG::Window &win, IG::WindowDrawParams pa
 	{
 		cmds.clear();
 		auto &winData = windowData(win);
-		cmds.basicEffect().setModelViewProjection(cmds, winData.projection);
+		cmds.basicEffect().setModelViewProjection(cmds, Gfx::Mat4::ident(), winData.projM);
 		emuView.draw(cmds);
 		if(winData.hasPopup)
 		{

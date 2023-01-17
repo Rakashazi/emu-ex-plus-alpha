@@ -136,10 +136,10 @@ void VController::updateTextures()
 	}
 }
 
-void VController::setButtonSize(int gamepadBtnSizeInPixels, int uiBtnSizeInPixels, Gfx::ProjectionPlane projP)
+void VController::setButtonSize(int gamepadBtnSizeInPixels, int uiBtnSizeInPixels)
 {
 	if(EmuSystem::inputHasKeyboard)
-		kb.place(projP.unprojectYSize(gamepadBtnSizeInPixels), projP.unprojectYSize(gamepadBtnSizeInPixels * .75), projP);
+		kb.place(gamepadBtnSizeInPixels, gamepadBtnSizeInPixels * .75, layoutBounds());
 	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		IG::WP size{gamepadBtnSizeInPixels, gamepadBtnSizeInPixels};
@@ -147,7 +147,7 @@ void VController::setButtonSize(int gamepadBtnSizeInPixels, int uiBtnSizeInPixel
 		{
 			visit(overloaded
 			{
-				[&](VControllerDPad &dpad){ dpad.setSize(renderer(), IG::makeEvenRoundedUp(int(size.x*(double)2.5)), projP); },
+				[&](VControllerDPad &dpad){ dpad.setSize(renderer(), IG::makeEvenRoundedUp(int(size.x*(double)2.5))); },
 				[&](VControllerButtonGroup &grp){ grp.setButtonSize(size); },
 				[](auto &){}
 			}, elem);
@@ -166,7 +166,7 @@ void VController::setButtonSize(int gamepadBtnSizeInPixels, int uiBtnSizeInPixel
 
 void VController::applyButtonSize()
 {
-	setButtonSize(buttonPixelSize(window()), face().nominalHeight()*1.75, winData->projection.plane());
+	setButtonSize(buttonPixelSize(window()), face().nominalHeight()*1.75);
 }
 
 void VController::inputAction(Input::Action action, unsigned vBtn)
@@ -203,15 +203,14 @@ void VController::place()
 	applyButtonSize();
 	auto contentBounds = windowData().contentBounds();
 	auto bounds = layoutBounds();
-	auto projP = windowData().projection.plane();
 	bool isPortrait = window().isPortrait();
 	for(auto &elem : gpElements)
 	{
-		elem.place(bounds, contentBounds, projP, isPortrait);
+		elem.place(bounds, contentBounds, isPortrait);
 	}
 	for(auto &elem : uiElements)
 	{
-		elem.place(bounds, contentBounds, projP, isPortrait);
+		elem.place(bounds, contentBounds, isPortrait);
 	}
 	dragTracker.setDragStartPixels(window().widthMMInPixels(1.));
 }
@@ -398,12 +397,11 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 {
 	if(alpha == 0.f) [[unlikely]]
 		return;
-	auto projP = windowData().projection.plane();
 	cmds.set(Gfx::BlendMode::ALPHA);
 	Gfx::Color whiteCol{1., 1., 1., alpha};
 	cmds.setColor(whiteCol);
 	if(isInKeyboardMode())
-		kb.draw(cmds, projP);
+		kb.draw(cmds);
 	else if(gamepadIsVisible)
 	{
 		for(const auto &e : gpElements)

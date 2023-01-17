@@ -5,7 +5,6 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Vertex.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/edge.h>
 #include <imagine/util/math/math.hh>
@@ -49,17 +48,17 @@ constexpr auto mapQuadUV(std::array<V, 4> v, FRect rect, Rotation r = Rotation::
 	}
 	if(rotate)
 	{
-		v[0].texCoord.x = nRect.x;  v[0].texCoord.y = nRect.y;  //BL
-		v[1].texCoord.x = nRect.x2; v[1].texCoord.y = nRect.y;  //TL
-		v[2].texCoord.x = nRect.x;  v[2].texCoord.y = nRect.y2; //BR
-		v[3].texCoord.x = nRect.x2; v[3].texCoord.y = nRect.y2; //TR
+		v[0].texCoord.x = nRect.x2; v[0].texCoord.y = nRect.y;  //BL
+		v[1].texCoord.x = nRect.x;  v[1].texCoord.y = nRect.y;  //TL
+		v[2].texCoord.x = nRect.x2; v[2].texCoord.y = nRect.y2; //BR
+		v[3].texCoord.x = nRect.x;  v[3].texCoord.y = nRect.y2; //TR
 	}
 	else
 	{
-		v[0].texCoord.x = nRect.x;  v[0].texCoord.y = nRect.y2; //BL
-		v[1].texCoord.x = nRect.x;  v[1].texCoord.y = nRect.y;  //TL
-		v[2].texCoord.x = nRect.x2; v[2].texCoord.y = nRect.y2; //BR
-		v[3].texCoord.x = nRect.x2; v[3].texCoord.y = nRect.y;  //TR
+		v[0].texCoord.x = nRect.x;  v[0].texCoord.y = nRect.y; //BL
+		v[1].texCoord.x = nRect.x;  v[1].texCoord.y = nRect.y2;  //TL
+		v[2].texCoord.x = nRect.x2; v[2].texCoord.y = nRect.y; //BR
+		v[3].texCoord.x = nRect.x2; v[3].texCoord.y = nRect.y2;  //TR
 	}
 	return v;
 }
@@ -133,9 +132,9 @@ public:
 		setPos({rect.x, rect.y}, {rect.x, rect.y2}, {rect.x2, rect.y2}, {rect.x2, rect.y});
 	}
 
-	void setPos(IG::WindowRect b, ProjectionPlane proj)
+	void setPos(IG::WindowRect b)
 	{
-		setPos(proj.unProjectRect(b));
+		setPos(GCRect{{float(b.x), float(b.y)}, {float(b.x2), float(b.y2)}});
 	}
 
 	constexpr void setPosRel(float x, float y, float xSize, float ySize)
@@ -159,9 +158,9 @@ public:
 		cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 	}
 
-	static void draw(RendererCommands &cmds, IG::WindowRect b, ProjectionPlane proj)
+	static void draw(RendererCommands &cmds, WindowRect b)
 	{
-		draw(cmds, proj.unProjectRect(b));
+		draw(cmds, GCRect{{float(b.x), float(b.y)}, {float(b.x2), float(b.y2)}});
 	}
 
 	static void draw(RendererCommands &cmds, GCRect d)

@@ -811,9 +811,10 @@ IG::Viewport EmuApp::makeViewport(const IG::Window &win) const
 
 void WindowData::updateWindowViewport(const IG::Window &win, IG::Viewport viewport, const IG::Gfx::Renderer &r)
 {
-	projection = r.projection(win, viewport,
-		Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.));
+	windowRect = viewport.bounds();
 	contentRect = viewport.bounds().intersection(win.contentBounds());
+	projM = Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), .1f, 100.f)
+		.projectionPlane(viewport, .5f, r.projectionRollAngle(win));
 }
 
 void EmuApp::dispatchOnMainMenuItemOptionChanged()
@@ -1643,22 +1644,28 @@ FloatSeconds EmuApp::bestFrameTimeForScreen(VideoSystem system) const
 	auto &screen = *mainWindowData().viewController.emuWindowScreen();
 	auto targetFrameTime = EmuSystem::defaultFrameTime(system);
 	auto targetFrameRate = 1. / targetFrameTime.count();
-	static auto shouldAcceptRate = [](double rate, double targetRate)
+	static auto selectAcceptableRate = [](double rate, double targetRate)
 	{
 		static constexpr double stretchFrameRate = 4.; // accept rates +/- this value
 		auto rateDiff = rate - targetRate;
+		double acceptableRate{};
 		while(rateDiff >= stretchFrameRate)
+		{
+			acceptableRate = rateDiff;
 			rateDiff -= targetRate;
-		return std::abs(rateDiff) <= 3;
+		}
+		return std::abs(rateDiff) <= 3 ? acceptableRate : 0.;
 	};;
 	if(Config::envIsAndroid && appContext().androidSDK() >= 30) // supports setting frame rate dynamically
 	{
-		float acceptableRate{};
+		double acceptableRate{};
 		for(auto rate : screen.supportedFrameRates(appContext()))
 		{
-			if(shouldAcceptRate(rate, targetFrameRate))
+			if(auto acceptedRate = selectAcceptableRate(rate, targetFrameRate);
+				acceptedRate)
 			{
-				acceptableRate = rate;
+				acceptableRate = acceptedRate;
+				logMsg("updated rate:%.2f", acceptableRate);
 			}
 		}
 		if(acceptableRate)
@@ -1670,10 +1677,11 @@ FloatSeconds EmuApp::bestFrameTimeForScreen(VideoSystem system) const
 	else // check the current frame rate
 	{
 		auto screenRate = screen.frameRate();
-		if(shouldAcceptRate(screenRate, targetFrameRate))
+		if(auto acceptedRate = selectAcceptableRate(screenRate, targetFrameRate);
+			acceptedRate)
 		{
 			logMsg("screen's frame rate:%.2f is close system's rate:%.2f", screenRate, targetFrameRate);
-			return screen.frameTime();
+			return FloatSeconds{1. / acceptedRate};
 		}
 	}
 	return targetFrameTime;

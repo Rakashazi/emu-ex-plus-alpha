@@ -145,7 +145,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 				{
 					logMsg("set screenshots path:%s", path.data());
 					app().setUserScreenshotPath(path);
-					screenshotPath.compile(screenshotsMenuName(appContext(), path), renderer(), projP);
+					screenshotPath.compile(screenshotsMenuName(appContext(), path), renderer());
 				}), e);
 		}
 	}
@@ -168,7 +168,7 @@ void FilePathOptionView::onSavePathChange(std::string_view path)
 	{
 		app().postMessage(4, false, fmt::format("App Folder:\n{}", system().fallbackSaveDirectory()));
 	}
-	savePath.compile(savesMenuName(appContext(), path), renderer(), projP);
+	savePath.compile(savesMenuName(appContext(), path), renderer());
 }
 
 }

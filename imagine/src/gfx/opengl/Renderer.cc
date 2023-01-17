@@ -16,7 +16,6 @@
 #define LOGTAG "GLRenderer"
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
-#include <imagine/gfx/Projection.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/gfx/TextureSampler.hh>
@@ -489,9 +488,9 @@ void Renderer::animateWindowRotation(Window &win, float srcAngle, float destAngl
 	});
 }
 
-Projection Renderer::projection(const Window &win, Viewport viewport, Mat4 matrix) const
+float Renderer::projectionRollAngle(const Window &win) const
 {
-	return {viewport, matrix, winData(win).projAngleM};
+	return winData(win).projAngleM;
 }
 
 Texture Renderer::makeTexture(TextureConfig config)

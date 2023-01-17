@@ -30,20 +30,19 @@ namespace IG
 class TextEntry
 {
 public:
-	TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP);
+	TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face);
 	void setAcceptingInput(bool on);
 	bool isAcceptingInput() const;
 	bool inputEvent(View &parentView, const Input::Event &);
 	void prepareDraw(Gfx::Renderer &r);
 	void draw(Gfx::RendererCommands &__restrict__);
 	void place(Gfx::Renderer &r);
-	void place(Gfx::Renderer &r, IG::WindowRect rect, const Gfx::ProjectionPlane &projP);
+	void place(Gfx::Renderer &r, IG::WindowRect rect);
 	const char *textStr() const;
 	IG::WindowRect bgRect() const;
 
 protected:
 	Gfx::Text t;
-	Gfx::ProjectionPlane projP;
 	IG::WindowRect b;
 	IG::StaticString<128> str;
 	bool acceptingInput{};

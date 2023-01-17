@@ -166,7 +166,7 @@ void ScrollView::drawScrollContent(Gfx::RendererCommands &cmds)
 			cmds.setColor(.5, .5, .5);
 		scrollBarRect.setYPos(
 			IG::remap((float)offset, 0.f, float(offsetMax), (float)viewRect().y, float(viewRect().y2 - scrollBarRect.ySize())));
-		GeomRect::draw(cmds, scrollBarRect, projP);
+		GeomRect::draw(cmds, scrollBarRect);
 	}
 }
 

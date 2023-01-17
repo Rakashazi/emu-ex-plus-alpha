@@ -429,7 +429,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set cheats path:%s", path.data());
 					system().cheatsDir = path;
-					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer(), projP);
+					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer());
 				}), e);
 		}
 	};
@@ -444,7 +444,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set patches path:%s", path.data());
 					system().patchesDir = path;
-					patchesPath.compile(patchesMenuName(appContext(), path), renderer(), projP);
+					patchesPath.compile(patchesMenuName(appContext(), path), renderer());
 				}), e);
 		}
 	};

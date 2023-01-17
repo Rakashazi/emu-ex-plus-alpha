@@ -110,7 +110,7 @@ void OnScreenInputPlaceView::place()
 	auto exitBtnPos = viewRect().pos(C2DO);
 	int exitBtnSize = window().widthMMInPixels(10.);
 	exitBtnRect = IG::makeWindowRectRel(exitBtnPos - IG::WP{exitBtnSize/2, exitBtnSize/2}, {exitBtnSize, exitBtnSize});
-	text.compile(renderer(), projP);
+	text.compile(renderer());
 }
 
 bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
@@ -168,8 +168,7 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 						auto newPos = d.startPos + state.downPosDiff();
 						auto contentBounds = vController().windowData().contentBounds();
 						auto bounds = vController().layoutBounds();
-						auto projP = vController().windowData().projection.plane();
-						d.elem->setPos(newPos, bounds, projP);
+						d.elem->setPos(newPos, bounds);
 						auto layoutPos = VControllerLayoutPosition::fromPixelPos(d.elem->bounds().pos(C2DO), d.elem->bounds().size(), viewRect());
 						//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
 						auto &vCtrlLayoutPos = d.elem->layoutPos[window().isPortrait()];
@@ -199,12 +198,11 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.setColor(.5, .5, .5);
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
-	float lineSize = projP.unprojectYSize(1);
-	GeomRect::draw(cmds, Gfx::GCRect{{-projP.wHalf(), -lineSize/2.f},
-		{projP.wHalf(), lineSize/2.f}});
-	lineSize = projP.unprojectYSize(1);
-	GeomRect::draw(cmds, Gfx::GCRect{{-lineSize/2.f, -projP.hHalf()},
-		{lineSize/2.f, projP.hHalf()}});
+	const int lineSize = 1;
+	GeomRect::draw(cmds, WRect{{displayRect().x, displayRect().yCenter()},
+		{displayRect().x2, displayRect().yCenter() + lineSize}});
+	GeomRect::draw(cmds, WRect{{displayRect().xCenter(), displayRect().y},
+		{displayRect().xCenter() + lineSize, displayRect().y2}});
 
 	if(textFade != 0.)
 	{
@@ -213,7 +211,7 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 			{text.width() + text.spaceWidth()*2.f, text.height() + text.spaceWidth()*2.f}));
 		cmds.setColor(1., 1., 1., textFade);
 		basicEffect.enableAlphaTexture(cmds);
-		text.draw(cmds, projP.unProjectRect(viewRect()).pos(C2DO), C2DO, projP);
+		text.draw(cmds, viewRect().pos(C2DO), C2DO);
 	}
 }
 
@@ -277,7 +275,7 @@ public:
 			elem.dPad()->showBounds(),
 			[this](BoolMenuItem &item)
 			{
-				elem.dPad()->setShowBounds(renderer(), item.flipBoolValue(), projP);
+				elem.dPad()->setShowBounds(renderer(), item.flipBoolValue());
 				vCtrl.place();
 				postDraw();
 			}
@@ -334,12 +332,12 @@ private:
 
 	TextMenuItem::SelectDelegate setDeadzoneDel()
 	{
-		return [this](TextMenuItem &item){ elem.dPad()->setDeadzone(renderer(), item.id(), window(), projP); };
+		return [this](TextMenuItem &item){ elem.dPad()->setDeadzone(renderer(), item.id(), window()); };
 	}
 
 	TextMenuItem::SelectDelegate setDiagonalSensitivityDel()
 	{
-		return [this](TextMenuItem &item){ elem.dPad()->setDiagonalSensitivity(renderer(), float(item.id()) / 1000.f, projP); };
+		return [this](TextMenuItem &item){ elem.dPad()->setDiagonalSensitivity(renderer(), float(item.id()) / 1000.f); };
 	}
 };
 

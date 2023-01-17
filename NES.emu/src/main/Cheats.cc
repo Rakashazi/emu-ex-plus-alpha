@@ -112,7 +112,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 					addrStr = a ? str : "0";
 					syncCheat();
 					addr.set2ndName(addrStr);
-					addr.compile(renderer(), projP);
+					addr.compile(renderer());
 					postDraw();
 					return true;
 				});
@@ -139,7 +139,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 					valueStr = a ? str : "0";
 					syncCheat();
 					value.set2ndName(valueStr);
-					value.compile(renderer(), projP);
+					value.compile(renderer());
 					postDraw();
 					return true;
 				});
@@ -175,7 +175,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 							comp.set2ndName();
 						}
 						syncCheat();
-						comp.compile(renderer(), projP);
+						comp.compile(renderer());
 						postDraw();
 					}
 					view.dismiss();
@@ -201,7 +201,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 					ggCodeStr = str;
 					syncCheat();
 					ggCode.set2ndName(str);
-					ggCode.compile(renderer(), projP);
+					ggCode.compile(renderer());
 					postDraw();
 					return true;
 				});
