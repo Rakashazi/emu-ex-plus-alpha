@@ -49,7 +49,6 @@ void VControllerKeyboard::place(int btnSize, int yOffset, WRect viewBounds)
 	}
 	WRect bounds {{}, {xSize, ySize}};
 	bounds.setPos({viewBounds.xCenter(), viewBounds.y2 - yOffset}, CB2DO);
-	//bounds.setPos(viewBounds.center(), CB2DO);
 	spr.setPos(bounds);
 	bound = bounds;
 	keyXSize = std::max(bound.xSize() / VKEY_COLS, 1);

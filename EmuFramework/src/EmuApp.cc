@@ -1213,8 +1213,141 @@ FS::PathString EmuApp::validSearchPath(const FS::PathString &path) const
 	return nullptr;
 }
 
+bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
+{
+	bool isPushed = action.state == Input::Action::PUSHED;
+	switch(action.key)
+	{
+		case guiKeyIdxFastForward:
+		{
+			viewController().inputView().setFastSlowMode(isPushed);
+			break;
+		}
+		case guiKeyIdxLoadGame:
+		{
+			if(!isPushed)
+				break;
+			logMsg("show load game view from key event");
+			viewController().popToRoot();
+			viewController().pushAndShow(EmuFilePicker::makeForLoading(attachParams(), srcEvent), srcEvent, false);
+			return true;
+		}
+		case guiKeyIdxMenu:
+		{
+			if(!isPushed)
+				break;
+			logMsg("show system actions view from key event");
+			showSystemActionsViewFromSystem(attachParams(), srcEvent);
+			return true;
+		}
+		case guiKeyIdxSaveState:
+		{
+			if(!isPushed)
+				break;
+			static auto doSaveState = [](EmuApp &app, bool notify)
+			{
+				if(app.saveStateWithSlot(app.system().stateSlot()) && notify)
+				{
+					app.postMessage("State Saved");
+				}
+			};
+			if(shouldOverwriteExistingState())
+			{
+				syncEmulationThread();
+				doSaveState(*this, confirmOverwriteStateOption());
+			}
+			else
+			{
+				auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(), "Really Overwrite State?");
+				ynAlertView->setOnYes(
+					[this]()
+					{
+						doSaveState(*this, false);
+						showEmulation();
+					});
+				ynAlertView->setOnNo(
+					[this]()
+					{
+						showEmulation();
+					});
+				viewController().pushAndShowModal(std::move(ynAlertView), srcEvent, false);
+			}
+			return true;
+		}
+		case guiKeyIdxLoadState:
+		{
+			if(!isPushed)
+				break;
+			syncEmulationThread();
+			loadStateWithSlot(system().stateSlot());
+			return true;
+		}
+		case guiKeyIdxDecStateSlot:
+		{
+			if(!isPushed)
+				break;
+			system().decStateSlot();
+			postMessage(1, false, fmt::format("State Slot: {}", system().stateSlotName()));
+			return true;
+		}
+		case guiKeyIdxIncStateSlot:
+		{
+			if(!isPushed)
+				break;
+			system().incStateSlot();
+			postMessage(1, false, fmt::format("State Slot: {}", system().stateSlotName()));
+			return true;
+		}
+		case guiKeyIdxGameScreenshot:
+		{
+			if(!isPushed)
+				break;
+			video().takeGameScreenshot();
+			return true;
+		}
+		case guiKeyIdxToggleFastForward:
+		{
+			if(!isPushed)
+				break;
+			viewController().inputView().toggleFastSlowMode();
+			break;
+		}
+		case guiKeyIdxLastView:
+		{
+			if(!isPushed)
+				break;
+			logMsg("show last view from key event");
+			showLastViewFromSystem(attachParams(), srcEvent);
+			return true;
+		}
+		case guiKeyIdxTurboModifier:
+		{
+			turboModifierActive = isPushed;
+			if(!isPushed)
+				removeTurboInputEvents();
+			break;
+		}
+		case guiKeyIdxExitApp:
+		{
+			if(!isPushed)
+				break;
+			auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(), "Really Exit?");
+			ynAlertView->setOnYes([this]() { appContext().exit(); });
+			viewController().pushAndShowModal(std::move(ynAlertView), srcEvent, false);
+			break;
+		}
+		default:
+		{
+			handleSystemKeyInput(action);
+		}
+	}
+	return false;
+}
+
 void EmuApp::handleSystemKeyInput(InputAction action)
 {
+	if(turboModifierActive)
+		action.flags |= InputActionFlagsMask::turbo;
 	action = system().translateInputAction(action);
 	if(to_underlying(action.flags & InputActionFlagsMask::turbo))
 	{
@@ -1248,6 +1381,7 @@ void EmuApp::runTurboInputEvents()
 
 void EmuApp::resetInput()
 {
+	turboModifierActive = false;
 	removeTurboInputEvents();
 	setRunSpeed(1.);
 }
@@ -1646,15 +1780,16 @@ FloatSeconds EmuApp::bestFrameTimeForScreen(VideoSystem system) const
 	auto targetFrameRate = 1. / targetFrameTime.count();
 	static auto selectAcceptableRate = [](double rate, double targetRate)
 	{
+		assumeExpr(rate > 0.);
+		assumeExpr(targetRate > 0.);
 		static constexpr double stretchFrameRate = 4.; // accept rates +/- this value
-		auto rateDiff = rate - targetRate;
-		double acceptableRate{};
-		while(rateDiff >= stretchFrameRate)
+		do
 		{
-			acceptableRate = rateDiff;
-			rateDiff -= targetRate;
-		}
-		return std::abs(rateDiff) <= 3 ? acceptableRate : 0.;
+			if(std::abs(rate - targetRate) <= stretchFrameRate)
+				return rate;
+			rate /= 2.; // try half the rate until it falls below the target
+		} while(rate > targetRate);
+		return 0.;
 	};;
 	if(Config::envIsAndroid && appContext().androidSDK() >= 30) // supports setting frame rate dynamically
 	{

@@ -173,6 +173,7 @@ public:
 	void setUserScreenshotPath(CStringView path) { userScreenshotDir = path; }
 	auto screenshotDirectory() const { return system().userPath(userScreenshotDir); }
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
+	bool handleKeyInput(InputAction, const Input::Event &srcEvent);
 	void handleSystemKeyInput(InputAction);
 	void addTurboInputEvent(unsigned action);
 	void removeTurboInputEvent(unsigned action);
@@ -525,6 +526,7 @@ protected:
 	Byte1Option optionShowOnSecondScreen;
 	Byte1Option optionTextureBufferMode;
 	Byte1Option optionVideoImageBuffers;
+	bool turboModifierActive{};
 	Gfx::DrawableConfig windowDrawableConf;
 	IG::PixelFormat renderPixelFmt;
 	IG::Rotation contentRotation_{IG::Rotation::ANY};

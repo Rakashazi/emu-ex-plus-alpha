@@ -27,28 +27,33 @@
 namespace EmuEx
 {
 
-void VControllerButtonBase::setPos(IG::WP pos, IG::WRect viewBounds, _2DOrigin o)
+void VControllerButton::setPos(WP pos, WRect viewBounds, _2DOrigin o)
 {
 	bounds_.setPos(pos, o);
 	bounds_.fitIn(viewBounds);
-	IG::WindowRect spriteBounds{{0, 0}, {bounds_.xSize(), (int)(bounds_.ySize() / aspectRatio)}};
-	spriteBounds.setPos(bounds_.pos(C2DO), C2DO);
-	spr.setPos(spriteBounds);
+	extendedBounds_.setPos(bounds_.pos(C2DO), C2DO);
+	spr.setPos(bounds_);
 }
 
-void VControllerButtonBase::setSize(IG::WP size)
+void VControllerButton::setSize(WP size, WP extendedSize)
 {
-	bounds_ = IG::makeWindowRectRel(bounds_.pos(C2DO), size);
+	size.y /= aspectRatio;
+	bounds_ = makeWindowRectRel(bounds_.pos(C2DO), size);
+	extendedBounds_ = bounds_ + WRect{{-extendedSize}, {extendedSize}};
 }
 
-void VControllerButtonBase::setImage(Gfx::TextureSpan tex, float aR)
+void VControllerButton::setImage(Gfx::TextureSpan tex, int aR)
 {
 	spr.set(tex);
 	aspectRatio = aR;
 }
 
-void VControllerButtonBase::draw(Gfx::RendererCommands &__restrict__ cmds, std::optional<Gfx::Color> col) const
+void VControllerButton::draw(Gfx::RendererCommands &__restrict__ cmds, std::optional<Gfx::Color> col) const
 {
+	if(!enabled)
+		return;
+	if(showBoundingArea)
+		drawBounds(cmds);
 	if(col)
 	{
 		col->a = cmds.color().a;
@@ -57,43 +62,22 @@ void VControllerButtonBase::draw(Gfx::RendererCommands &__restrict__ cmds, std::
 	spr.draw(cmds, cmds.basicEffect());
 }
 
-std::string VControllerButtonBase::name(const EmuApp &app) const
-{
-	return std::string{app.systemKeyName(key)};
-}
-
-void VControllerUIButton::draw(Gfx::RendererCommands &__restrict__ cmds) const
+void VControllerButton::draw(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	std::optional<Gfx::Color> optColor;
 	if(color != Gfx::Color{})
 		optColor = color;
-	VControllerButtonBase::draw(cmds, optColor);
+	draw(cmds, optColor);
 }
 
-void VControllerButton::setPos(IG::WP pos, IG::WRect viewBounds, _2DOrigin o)
+std::string VControllerButton::name(const EmuApp &app) const
 {
-	VControllerButtonBase::setPos(pos, viewBounds, o);
-	extendedBounds_.setPos(bounds_.pos(C2DO), C2DO);
-}
-
-void VControllerButton::setSize(IG::WP size, IG::WP extendedSize)
-{
-	VControllerButtonBase::setSize(size);
-	extendedBounds_ = bounds_ + IG::WindowRect{{-extendedSize}, {extendedSize}};
+	return std::string{app.systemKeyName(key)};
 }
 
 void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	Gfx::GeomRect::draw(cmds, extendedBounds_);
-}
-
-void VControllerButton::draw(Gfx::RendererCommands &__restrict__ cmds) const
-{
-	if(!enabled)
-		return;
-	if(showBoundingArea)
-		drawBounds(cmds);
-	VControllerButtonBase::draw(cmds);
 }
 
 VControllerButtonGroup::VControllerButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin):
@@ -270,7 +254,7 @@ void VControllerButtonGroup::drawButtons(Gfx::RendererCommands &__restrict__ cmd
 static std::string namesString(auto &buttons, const EmuApp &app)
 {
 	if(buttons.empty())
-		return {};
+		return "Empty Group";
 	std::string s;
 	for(const auto &b : buttons | std::ranges::views::take(buttons.size() - 1))
 	{

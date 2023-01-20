@@ -81,13 +81,13 @@ static FRect gamepadButtonImageRect(VControllerImageIndex idx, float texHeight)
 	bug_unreachable("invalid VControllerImageIndex");
 }
 
-static float gamepadButtonImageAspectRatio(VControllerImageIndex idx)
+static int gamepadButtonImageAspectRatio(VControllerImageIndex idx)
 {
 	using enum VControllerImageIndex;
 	switch(idx)
 	{
-		case auxButton1 ... auxButton2: return 2.f;
-		default: return 1.f;
+		case auxButton1 ... auxButton2: return 2;
+		default: return 1;
 	}
 }
 
@@ -117,7 +117,9 @@ static void updateTexture(const EmuApp &app, VControllerElement &e)
 				switch(btn.key)
 				{
 					case guiKeyIdxLastView: btn.setImage({&app.asset(AssetID::MENU)}); break;
+					case guiKeyIdxToggleFastForward:
 					case guiKeyIdxFastForward: btn.setImage({&app.asset(AssetID::FAST_FORWARD)}); break;
+					default: btn.setImage({&app.asset(AssetID::MENU)}); break;
 				}
 			}
 		}
@@ -289,19 +291,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 			{
 				if(btn.bounds().overlaps(e.pos()))
 				{
-					switch(btn.key)
-					{
-						case guiKeyIdxFastForward:
-						{
-							app().viewController().inputView().toggleFastSlowMode();
-							break;
-						}
-						case guiKeyIdxLastView:
-						{
-							app().showLastViewFromSystem(app().attachParams(), e);
-							break;
-						}
-					}
+					app().handleKeyInput({btn.key, e.state()}, e);
 					return true;
 				}
 			}
@@ -822,15 +812,19 @@ VControllerElement &VController::add(std::span<const unsigned> keyCodes, InputCo
 		}
 		bug_unreachable("invalid InputComponent");
 	}();
-	if(hasWindow())
-	{
-		updateTexture(app(), elem);
-		elem.updateMeasurements(window());
-		applyButtonSize();
-		auto layoutPos = VControllerLayoutPosition::fromPixelPos(layoutBounds().center(), elem.bounds().size(), layoutBounds());
-		elem.layoutPos[0] = elem.layoutPos[1] = layoutPos;
-	}
+	update(elem);
+	auto layoutPos = VControllerLayoutPosition::fromPixelPos(layoutBounds().center(), elem.bounds().size(), layoutBounds());
+	elem.layoutPos[0] = elem.layoutPos[1] = layoutPos;
 	return elem;
+}
+
+void VController::update(VControllerElement &elem)
+{
+	if(!hasWindow())
+		return;
+	updateTexture(app(), elem);
+	elem.updateMeasurements(window());
+	applyButtonSize();
 }
 
 bool VController::remove(VControllerElement &elemToErase)

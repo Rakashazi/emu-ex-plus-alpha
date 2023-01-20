@@ -37,13 +37,13 @@ public:
 	bool inputEvent(const Input::Event &) final;
 	void resetInput();
 	bool toggleFastSlowMode();
+	bool setFastSlowMode(bool on);
 	VController *activeVController() const { return vController; }
 
 private:
 	VController *vController{};
 	EmuVideoLayer *videoLayer{};
 	bool ffToggleActive{};
-	bool turboModifierActive{};
 
 	void updateRunSpeed();
 };

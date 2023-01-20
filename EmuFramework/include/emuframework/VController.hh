@@ -171,58 +171,33 @@ protected:
 	VControllerKbMode mode_{};
 };
 
-class VControllerButtonBase
+class VControllerButton
 {
 public:
-	constexpr VControllerButtonBase(unsigned key): key{key} {}
+	constexpr VControllerButton(unsigned key): key{key} {}
 	void setPos(IG::WP pos, IG::WRect viewBounds, _2DOrigin = C2DO);
-	void setSize(IG::WP size);
-	void setImage(Gfx::TextureSpan, float aR = 1.f);
-	IG::WindowRect bounds() const { return bounds_; }
+	void setSize(IG::WP size, IG::WP extendedSize = {});
+	void setImage(Gfx::TextureSpan, int aR = 1);
+	IG::WRect bounds() const { return bounds_; }
+	IG::WRect realBounds() const { return extendedBounds_; }
 	const Gfx::Sprite &sprite() const { return spr; }
 	void draw(Gfx::RendererCommands &__restrict__, std::optional<Gfx::Color>) const;
-	void draw(Gfx::RendererCommands &__restrict__ cmds) const { draw(cmds, {}); };
+	void draw(Gfx::RendererCommands &__restrict__ cmds) const;
+	void drawBounds(Gfx::RendererCommands &__restrict__) const;
 	std::string name(const EmuApp &) const;
+	bool overlaps(WP windowPos) const { return enabled && realBounds().overlaps(windowPos); }
 
 protected:
 	Gfx::Sprite spr;
-	IG::WindowRect bounds_;
-	float aspectRatio{};
+	IG::WRect bounds_{};
+	IG::WRect extendedBounds_{};
+	int aspectRatio{1};
+	Gfx::Color color{};
 public:
 	unsigned key{};
 	bool enabled = true;
 	bool skipLayout{};
-};
-
-class VControllerUIButton : public VControllerButtonBase
-{
-public:
-	using SelectFunc = DelegateFunc<void(VControllerUIButton &, const Input::MotionEvent &)>;
-
-	Gfx::Color color;
-
-	VControllerUIButton(unsigned key): VControllerButtonBase{key} {}
-	void draw(Gfx::RendererCommands &__restrict__) const;
-	WRect realBounds() const { return bounds(); }
-	bool overlaps(WP windowPos) const { return enabled && realBounds().overlaps(windowPos); }
-};
-
-class VControllerButton : public VControllerButtonBase
-{
-public:
-	constexpr VControllerButton(unsigned key): VControllerButtonBase{key} {}
-	void setPos(IG::WP pos, IG::WindowRect viewBounds, _2DOrigin = C2DO);
-	void setSize(IG::WP size, IG::WP extendedSize = {});
-	void setShowBounds(bool on) { showBoundingArea = on; }
-	bool showBounds() const {return showBoundingArea; }
-	IG::WRect realBounds() const { return extendedBounds_; }
-	void drawBounds(Gfx::RendererCommands &__restrict__) const;
-	void draw(Gfx::RendererCommands &__restrict__) const;
-	bool overlaps(WP windowPos) const { return enabled && realBounds().overlaps(windowPos); }
-
-protected:
 	bool showBoundingArea{};
-	IG::WindowRect extendedBounds_{};
 };
 
 class VControllerButtonGroup
@@ -284,7 +259,7 @@ public:
 	void draw(Gfx::RendererCommands &__restrict__, bool showHidden = false) const;
 	std::string name(const EmuApp &) const;
 
-	std::vector<VControllerUIButton> buttons;
+	std::vector<VControllerButton> buttons;
 protected:
 	IG::WRect bounds_{};
 	IG::WP btnSize{};
@@ -373,6 +348,39 @@ public:
 			}
 		}, *this);
 	}
+
+	std::span<VControllerButton> buttons()
+	{
+		return visit([&](auto &e) -> std::span<VControllerButton>
+		{
+			if constexpr(requires {e.buttons;})
+				return e.buttons;
+			else
+				return {};
+		}, *this);
+	}
+
+	void add(unsigned keyCode)
+	{
+		visit([&](auto &e)
+		{
+			if constexpr(requires {e.buttons;})
+			{
+				e.buttons.emplace_back(keyCode);
+			}
+		}, *this);
+	}
+
+	void remove(VControllerButton &btnToErase)
+	{
+		visit([&](auto &e)
+		{
+			if constexpr(requires {e.buttons;})
+			{
+				std::erase_if(e.buttons, [&](auto &b) { return &b == &btnToErase; });
+			}
+		}, *this);
+	}
 };
 
 enum class VControllerVisibility : uint8_t
@@ -458,6 +466,7 @@ public:
 	void reset(SystemInputDeviceDesc);
 	VControllerElement &add(InputComponentDesc);
 	VControllerElement &add(std::span<const unsigned> keyCodes, InputComponent, _2DOrigin layoutOrigin);
+	void update(VControllerElement &);
 	bool remove(VControllerElement &);
 	std::span<VControllerElement> deviceElements() { return gpElements; }
 	std::span<VControllerElement> guiElements() { return uiElements; }

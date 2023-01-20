@@ -259,6 +259,8 @@ void EmuAudio::flush()
 
 void EmuAudio::writeFrames(const void *samples, size_t framesToWrite)
 {
+	if(!framesToWrite) [[unlikely]]
+		return;
 	assumeExpr(rBuff);
 	auto inputFormat = format();
 	switch(audioWriteState)

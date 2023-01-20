@@ -16,6 +16,7 @@
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/AlertView.hh>
+#include <imagine/gui/TextTableView.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -283,13 +284,19 @@ public:
 		remove
 		{
 			"Remove This D-Pad", &defaultFace(),
-			[this]()
+			[this](const Input::Event &e)
 			{
-				vCtrl.remove(elem);
-				vCtrl.setLayoutPositionChanged();
-				vCtrl.place();
-				confView.reloadItems();
-				dismiss();
+				auto ynAlertView = makeView<YesNoAlertView>("Really remove this d-pad?");
+				ynAlertView->setOnYes(
+					[this]()
+					{
+						vCtrl.remove(elem);
+						vCtrl.setLayoutPositionChanged();
+						vCtrl.place();
+						confView.reloadItems();
+						dismiss();
+					});
+				pushAndShowModal(std::move(ynAlertView), e);
 			}
 		}
 	{
@@ -341,6 +348,70 @@ private:
 	}
 };
 
+class ButtonElementConfigView : public TableView, public EmuAppHelper<ButtonElementConfigView>
+{
+public:
+	using OnChange = DelegateFunc<void()>;
+
+	ButtonElementConfigView(ViewAttachParams attach, OnChange onChange_, VController &vCtrl_, VControllerElement &elem_, VControllerButton &btn_):
+		TableView{"Edit Button", attach, item},
+		vCtrl{vCtrl_},
+		elem{elem_},
+		btn{btn_},
+		onChange{onChange_},
+		key
+		{
+			"Action", app().systemKeyName(btn_.key), &defaultFace(),
+			[this](const Input::Event &e)
+			{
+				auto &cat = app().categoryOfSystemKey(btn.key);
+				auto multiChoiceView = makeViewWithName<TextTableView>("Assign Action", cat.keys());
+				for(auto i : iotaCount(cat.keys()))
+				{
+					multiChoiceView->appendItem(cat.keyName[i],
+						[this, keyCode = cat.configOffset + i](View &parentView, const Input::Event &e)
+						{
+							btn.key = keyCode;
+							key.set2ndName(app().systemKeyName(keyCode));
+							vCtrl.update(elem);
+							onChange.callSafe();
+							vCtrl.setLayoutPositionChanged();
+							vCtrl.place();
+							parentView.dismiss();
+						});
+				}
+				pushAndShow(std::move(multiChoiceView), e);
+			}
+		},
+		remove
+		{
+			"Remove This Button", &defaultFace(),
+			[this](const Input::Event &e)
+			{
+				auto ynAlertView = makeView<YesNoAlertView>("Really remove this button?");
+				ynAlertView->setOnYes(
+					[this]()
+					{
+						elem.remove(btn);
+						onChange.callSafe();
+						vCtrl.setLayoutPositionChanged();
+						vCtrl.place();
+						dismiss();
+					});
+				pushAndShowModal(std::move(ynAlertView), e);
+			}
+		} {}
+
+private:
+	VController &vCtrl;
+	VControllerElement &elem;
+	VControllerButton &btn;
+	OnChange onChange;
+	DualTextMenuItem key;
+	TextMenuItem remove;
+	std::array<MenuItem*, 2> item{&key, &remove};
+};
+
 class ButtonGroupElementConfigView : public TableView, public EmuAppHelper<ButtonGroupElementConfigView>
 {
 public:
@@ -371,7 +442,7 @@ public:
 		space
 		{
 			"Spacing", &defaultFace(),
-			MenuItem::Id{elem.buttonGroup()->spacing()},
+			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->spacing() : 0},
 			spaceItems
 		},
 		staggerItems
@@ -386,7 +457,7 @@ public:
 		stagger
 		{
 			"Stagger", &defaultFace(),
-			MenuItem::Id{elem.buttonGroup()->stagger()},
+			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->stagger() : 0},
 			staggerItems
 		},
 		extraXSizeItems
@@ -399,7 +470,7 @@ public:
 		extraXSize
 		{
 			"H Bound Overlap", &defaultFace(),
-			MenuItem::Id{elem.buttonGroup()->xPadding()},
+			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->xPadding() : 0},
 			extraXSizeItems
 		},
 		extraYSizeItems
@@ -412,13 +483,13 @@ public:
 		extraYSize
 		{
 			"V Bound Overlap", &defaultFace(),
-			MenuItem::Id{elem.buttonGroup()->yPadding()},
+			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->yPadding() : 0},
 			extraYSizeItems
 		},
 		showBoundingArea
 		{
 			"Show Bounding Area", &defaultFace(),
-			elem.buttonGroup()->showsBounds(),
+			elem.buttonGroup() ? elem.buttonGroup()->showsBounds() : false,
 			[this](BoolMenuItem &item)
 			{
 				elem.buttonGroup()->setShowBounds(item.flipBoolValue());
@@ -426,26 +497,51 @@ public:
 				postDraw();
 			}
 		},
+		add
+		{
+			"Add Button To This Group", &defaultFace(),
+			[this](const Input::Event &e)
+			{
+				auto &cat = elem.uiButtonGroup() ? app().inputControlCategories()[0] : app().inputControlCategories()[1];
+				auto multiChoiceView = makeViewWithName<TextTableView>("Add Button", cat.keys());
+				for(auto i : iotaCount(cat.keys()))
+				{
+					multiChoiceView->appendItem(cat.keyName[i],
+						[this, keyCode = cat.configOffset + i](View &parentView, const Input::Event &e)
+						{
+							elem.add(keyCode);
+							vCtrl.update(elem);
+							vCtrl.setLayoutPositionChanged();
+							vCtrl.place();
+							confView.reloadItems();
+							reloadItems();
+							parentView.dismiss();
+						});
+				}
+				pushAndShow(std::move(multiChoiceView), e);
+			}
+		},
 		remove
 		{
 			"Remove This Button Group", &defaultFace(),
-			[this]()
+			[this](const Input::Event &e)
 			{
-				vCtrl.remove(elem);
-				vCtrl.setLayoutPositionChanged();
-				vCtrl.place();
-				confView.reloadItems();
-				dismiss();
+				auto ynAlertView = makeView<YesNoAlertView>("Really remove this button group?");
+				ynAlertView->setOnYes(
+					[this]()
+					{
+						vCtrl.remove(elem);
+						vCtrl.setLayoutPositionChanged();
+						vCtrl.place();
+						confView.reloadItems();
+						dismiss();
+					});
+				pushAndShowModal(std::move(ynAlertView), e);
 			}
-		}
+		},
+		buttonsHeading{"Buttons In Group", &defaultBoldFace()}
 	{
-		item.emplace_back(&state);
-		item.emplace_back(&space);
-		item.emplace_back(&stagger);
-		item.emplace_back(&extraXSize);
-		item.emplace_back(&extraYSize);
-		item.emplace_back(&showBoundingArea);
-		item.emplace_back(&remove);
+		reloadItems();
 	}
 
 	void draw(Gfx::RendererCommands &__restrict__ cmds) final
@@ -469,8 +565,45 @@ private:
 	TextMenuItem extraYSizeItems[4];
 	MultiChoiceMenuItem extraYSize;
 	BoolMenuItem showBoundingArea;
+	TextMenuItem add;
 	TextMenuItem remove;
-	StaticArrayList<MenuItem*, 7> item;
+	TextHeadingMenuItem buttonsHeading;
+	std::vector<TextMenuItem> buttonItems;
+	std::vector<MenuItem*> item;
+
+	void reloadItems()
+	{
+		buttonItems.clear();
+		item.clear();
+		item.emplace_back(&state);
+		if(elem.buttonGroup())
+		{
+			item.emplace_back(&space);
+			item.emplace_back(&stagger);
+			item.emplace_back(&extraXSize);
+			item.emplace_back(&extraYSize);
+			item.emplace_back(&showBoundingArea);
+		}
+		item.emplace_back(&add);
+		item.emplace_back(&remove);
+		item.emplace_back(&buttonsHeading);
+		auto buttons = elem.buttons();
+		buttonItems.reserve(buttons.size());
+		for(auto &btn : buttons)
+		{
+			auto &i = buttonItems.emplace_back(
+				btn.name(app()), &defaultFace(),
+				[this, &btn](const Input::Event &e)
+				{
+					pushAndShow(makeView<ButtonElementConfigView>([this]()
+					{
+						confView.reloadItems();
+						reloadItems();
+					}, vCtrl, elem, btn), e);
+				});
+			item.emplace_back(&i);
+		}
+	}
 
 	TextMenuItem::SelectDelegate setButtonStateDel()
 	{
@@ -514,69 +647,6 @@ private:
 		return [this](TextMenuItem &item)
 		{
 			elem.buttonGroup()->setStaggerType(item.id());
-			vCtrl.place();
-		};
-	}
-};
-
-class UIButtonGroupElementConfigView : public TableView, public EmuAppHelper<UIButtonGroupElementConfigView>
-{
-public:
-	UIButtonGroupElementConfigView(ViewAttachParams attach, TouchConfigView &confView_, VController &vCtrl_, VControllerElement &elem_):
-		TableView{"Edit UI Buttons", attach, item},
-		vCtrl{vCtrl_},
-		elem{elem_},
-		confView{confView_},
-		stateItems
-		{
-			{ctrlStateStr[0], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::OFF)},
-			{ctrlStateStr[1], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::SHOWN)},
-			{ctrlStateStr[2], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::HIDDEN)},
-		},
-		state
-		{
-			"State", &defaultFace(),
-			MenuItem::Id(elem.layoutPos[window().isPortrait()].state),
-			stateItems
-		},
-		remove
-		{
-			"Remove This Button Group", &defaultFace(),
-			[this]()
-			{
-				vCtrl.remove(elem);
-				vCtrl.setLayoutPositionChanged();
-				vCtrl.place();
-				confView.reloadItems();
-				dismiss();
-			}
-		}
-	{
-		item.emplace_back(&state);
-		item.emplace_back(&remove);
-	}
-
-	void draw(Gfx::RendererCommands &__restrict__ cmds) final
-	{
-		drawVControllerElement(cmds, elem);
-		TableView::draw(cmds);
-	}
-
-private:
-	VController &vCtrl;
-	VControllerElement &elem;
-	TouchConfigView &confView;
-	TextMenuItem stateItems[3];
-	MultiChoiceMenuItem state;
-	TextMenuItem remove;
-	StaticArrayList<MenuItem*, 2> item;
-
-	TextMenuItem::SelectDelegate setButtonStateDel()
-	{
-		return [this](TextMenuItem &item)
-		{
-			elem.layoutPos[window().isPortrait()].state = VControllerState(item.id());
-			vCtrl.setLayoutPositionChanged();
 			vCtrl.place();
 		};
 	}
@@ -905,7 +975,7 @@ void TouchConfigView::reloadItems()
 			{
 				visit(overloaded
 				{
-					[&](VControllerUIButtonGroup &){ pushAndShow(makeView<UIButtonGroupElementConfigView>(*this, vController(), elem), e); },
+					[&](VControllerUIButtonGroup &){ pushAndShow(makeView<ButtonGroupElementConfigView>(*this, vController(), elem), e); },
 					[](auto &){}
 				}, elem);
 			});
