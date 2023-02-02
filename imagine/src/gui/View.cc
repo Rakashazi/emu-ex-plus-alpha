@@ -21,6 +21,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/math/space.hh>
+#include <imagine/util/math/int.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
@@ -190,6 +191,11 @@ Gfx::GlyphTextureSet &View::defaultBoldFace()
 Gfx::Color View::menuTextColor(bool isSelected)
 {
 	return isSelected ? Gfx::color(0.f, .8f, 1.f) : Gfx::color(Gfx::ColorName::WHITE);
+}
+
+int View::navBarHeight(const Gfx::GlyphTextureSet &face)
+{
+	return makeEvenRoundedUp(int(face.nominalHeight() * 1.75f));
 }
 
 void View::clearSelection() {}

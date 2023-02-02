@@ -60,16 +60,29 @@ constexpr unsigned faceButtonCodes[]
 	s9xKeyIdxX,
 };
 
+constexpr unsigned faceButtonLRCodes[]
+{
+	s9xKeyIdxB,
+	s9xKeyIdxA,
+	s9xKeyIdxR,
+	s9xKeyIdxY,
+	s9xKeyIdxX,
+	s9xKeyIdxL,
+};
+
 constexpr unsigned lButtonCode[]{s9xKeyIdxL};
 constexpr unsigned rButtonCode[]{s9xKeyIdxR};
 
 constexpr std::array gamepadComponents
 {
 	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Center Buttons", centerButtonCodes, InputComponent::button, CB2DO},
 	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO},
+	InputComponentDesc{"Face Buttons + Inline L/R", faceButtonLRCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
 	InputComponentDesc{"L", lButtonCode, InputComponent::trigger, LB2DO},
-	InputComponentDesc{"R", rButtonCode, InputComponent::trigger, RB2DO}
+	InputComponentDesc{"R", rButtonCode, InputComponent::trigger, RB2DO},
+	InputComponentDesc{"Select", {&centerButtonCodes[0], 1}, InputComponent::button, LB2DO},
+	InputComponentDesc{"Start", {&centerButtonCodes[1], 1}, InputComponent::button, RB2DO},
+	InputComponentDesc{"Select/Start", centerButtonCodes, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
 };
 
 constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};

@@ -56,6 +56,7 @@ public:
 	void makeGlyphs(Renderer &);
 	bool compile(Renderer &, TextLayoutConfig conf = {});
 	void draw(RendererCommands &, WP pos, _2DOrigin o) const;
+	WP pixelSize() const { return {xSize, ySize}; }
 	int width() const { return xSize; }
 	int height() const { return ySize; }
 	auto nominalHeight() const { return metrics.nominalHeight; }

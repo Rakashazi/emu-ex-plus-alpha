@@ -109,12 +109,27 @@ enum class InputComponent : uint8_t
 	ui, dPad, button, trigger
 };
 
+enum class InputComponentFlagsMask: uint8_t
+{
+	altConfig = bit(0),
+	rowSizeBit1 = bit(1),
+	rowSizeBit2 = bit(2),
+	rowSizeBits = rowSizeBit1 | rowSizeBit2,
+	rowSizeAuto = 0,
+	rowSize1 = rowSizeBit1,
+	rowSize2 = rowSizeBit2,
+	rowSize3 = rowSizeBit1 | rowSizeBit2,
+};
+
+IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(InputComponentFlagsMask);
+
 struct InputComponentDesc
 {
 	const char *name{};
 	std::span<const unsigned> keyCodes{};
 	InputComponent type{};
 	_2DOrigin layoutOrigin{};
+	InputComponentFlagsMask flags{};
 };
 
 struct SystemInputDeviceDesc

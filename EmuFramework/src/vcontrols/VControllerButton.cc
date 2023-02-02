@@ -48,28 +48,6 @@ void VControllerButton::setImage(Gfx::TextureSpan tex, int aR)
 	aspectRatio = aR;
 }
 
-void VControllerButton::draw(Gfx::RendererCommands &__restrict__ cmds, std::optional<Gfx::Color> col) const
-{
-	if(!enabled)
-		return;
-	if(showBoundingArea)
-		drawBounds(cmds);
-	if(col)
-	{
-		col->a = cmds.color().a;
-		cmds.setColor(*col);
-	}
-	spr.draw(cmds, cmds.basicEffect());
-}
-
-void VControllerButton::draw(Gfx::RendererCommands &__restrict__ cmds) const
-{
-	std::optional<Gfx::Color> optColor;
-	if(color != Gfx::Color{})
-		optColor = color;
-	draw(cmds, optColor);
-}
-
 std::string VControllerButton::name(const EmuApp &app) const
 {
 	return std::string{app.systemKeyName(key)};
@@ -80,9 +58,24 @@ void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds) con
 	Gfx::GeomRect::draw(cmds, extendedBounds_);
 }
 
-VControllerButtonGroup::VControllerButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin):
-	rowItems{int8_t(buttonCodes.size() >= 6 ? 3 : 2)},
-	layoutOrigin{layoutOrigin}
+void VControllerButton::drawSprite(Gfx::RendererCommands &__restrict__ cmds) const
+{
+	if(color != Gfx::Color{})
+	{
+		auto col = color;
+		col.a = cmds.color().a;
+		cmds.setColor(col);
+	}
+	else
+	{
+		cmds.setColor(1., 1., 1., cmds.color().a);
+	}
+	sprite().draw(cmds);
+}
+
+VControllerButtonGroup::VControllerButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin, int8_t rowItems):
+	layoutOrigin{layoutOrigin},
+	rowItems{rowItems}
 {
 	buttons.reserve(buttonCodes.size());
 	for(auto c : buttonCodes)
@@ -104,12 +97,12 @@ static int buttonsToLayout(const auto &buttons)
 }
 
 static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, WP size,
-	int spacing, int stagger, int rowShift, int rowItems)
+	int spacing, int stagger, int rowShift, int rowItems, _2DOrigin o)
 {
 	if(!rowItems)
 		return;
 	int rows = divRoundUp(buttonsToLayout(buttons), rowItems);
-	int row{}, btnPos{}, y{-size.y};
+	int row{}, btnPos{}, y{o.yScaler() == -1 ? -size.y : 0};
 	if(stagger < 0)
 		y += stagger * (rowItems - 1);
 	int x = -rowShift * (rows - 1);
@@ -118,14 +111,14 @@ static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, W
 	{
 		if(b.skipLayout || !b.enabled)
 			continue;
-		WP pos = layoutBounds.pos(LB2DO) + WP{x, y + staggerOffset} + (size / 2);
+		WP pos = layoutBounds.pos(o) + WP{x, y + staggerOffset} + (size / 2);
 		b.setPos(pos, viewBounds);
 		x += size.x + spacing;
 		staggerOffset -= stagger;
 		if(++btnPos == rowItems)
 		{
 			row++;
-			y -= size.y + spacing;
+			y += (size.y + spacing) * o.yScaler();
 			staggerOffset = 0;
 			x = -rowShift * ((rows - 1) - row);
 			btnPos = 0;
@@ -138,7 +131,7 @@ void VControllerButtonGroup::setPos(IG::WP pos, IG::WindowRect viewBounds)
 	bounds_.setPos(pos, C2DO);
 	bounds_.fitIn(viewBounds);
 	layoutButtons(buttons, bounds_, viewBounds, btnSize,
-		spacingPixels, btnStagger, btnRowShift, rowItems);
+		spacingPixels, btnStagger, btnRowShift, rowItems, LB2DO);
 }
 
 void VControllerButtonGroup::setButtonSize(IG::WP size)
@@ -247,7 +240,7 @@ void VControllerButtonGroup::drawButtons(Gfx::RendererCommands &__restrict__ cmd
 	{
 		if(!b.enabled)
 			continue;
-		b.sprite().draw(cmds);
+		b.drawSprite(cmds);
 	}
 }
 
@@ -286,7 +279,7 @@ void VControllerUIButtonGroup::setPos(IG::WP pos, IG::WindowRect viewBounds)
 	bounds_.setPos(pos, C2DO);
 	bounds_.fitIn(viewBounds);
 	layoutButtons(buttons, bounds_, viewBounds, btnSize,
-		0, 0, 0, rowItems);
+		0, 0, 0, rowItems, LT2DO);
 }
 
 void VControllerUIButtonGroup::setButtonSize(IG::WP size)
@@ -316,7 +309,7 @@ void VControllerUIButtonGroup::draw(Gfx::RendererCommands &__restrict__ cmds, bo
 	{
 		if(!b.enabled)
 			continue;
-		b.sprite().draw(cmds);
+		b.drawSprite(cmds);
 	}
 }
 

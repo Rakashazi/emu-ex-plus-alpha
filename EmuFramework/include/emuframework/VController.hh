@@ -80,7 +80,7 @@ enum class VControllerImageIndex
 
 constexpr int defaultDPadDeadzone = 135;
 constexpr float defaultDPadDiagonalSensitivity = 1.75f;
-constexpr uint16_t defaultButtonBoundsPadding = 200;
+constexpr int16_t defaultButtonSpacingMM100x = 200;
 
 class VControllerDPad
 {
@@ -181,9 +181,8 @@ public:
 	IG::WRect bounds() const { return bounds_; }
 	IG::WRect realBounds() const { return extendedBounds_; }
 	const Gfx::Sprite &sprite() const { return spr; }
-	void draw(Gfx::RendererCommands &__restrict__, std::optional<Gfx::Color>) const;
-	void draw(Gfx::RendererCommands &__restrict__ cmds) const;
 	void drawBounds(Gfx::RendererCommands &__restrict__) const;
+	void drawSprite(Gfx::RendererCommands &__restrict__) const;
 	std::string name(const EmuApp &) const;
 	bool overlaps(WP windowPos) const { return enabled && realBounds().overlaps(windowPos); }
 
@@ -192,8 +191,8 @@ protected:
 	IG::WRect bounds_{};
 	IG::WRect extendedBounds_{};
 	int aspectRatio{1};
-	Gfx::Color color{};
 public:
+	Gfx::Color color{};
 	unsigned key{};
 	bool enabled = true;
 	bool skipLayout{};
@@ -203,7 +202,7 @@ public:
 class VControllerButtonGroup
 {
 public:
-	VControllerButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin);
+	VControllerButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin, int8_t rowItems);
 	void setPos(IG::WP pos, IG::WindowRect viewBounds);
 	void setButtonSize(IG::WP size);
 	void setStaggerType(uint8_t);
@@ -214,7 +213,7 @@ public:
 	auto xPadding() const { return buttonXPadding_; }
 	void setYPadding(uint16_t p) { buttonYPadding_ = p; }
 	auto yPadding() const { return buttonYPadding_; }
-	IG::WP paddingPixels() const { return {int(btnSize.x * (xPadding() / 1000.f)), int(btnSize.y * (yPadding() / 1000.f))}; }
+	IG::WP paddingPixels() const { return {int(spacingPixels + btnSize.x * (xPadding() / 100.f)), int(spacingPixels + btnSize.y * (yPadding() / 100.f))}; }
 	bool showsBounds() const { return showBoundingArea; }
 	void setShowBounds(bool on) { showBoundingArea = on; }
 	auto bounds() const { return bounds_; }
@@ -234,17 +233,17 @@ protected:
 	int spacingPixels{};
 	int16_t btnStagger{};
 	int16_t btnRowShift{};
-	uint16_t spacingMM100x{200};
-	uint16_t buttonXPadding_{defaultButtonBoundsPadding};
-	uint16_t buttonYPadding_{defaultButtonBoundsPadding};
+	int16_t spacingMM100x{defaultButtonSpacingMM100x};
+	int8_t buttonXPadding_{};
+	int8_t buttonYPadding_{};
 	uint8_t btnStaggerType{2};
-	int8_t rowItems{};
 	bool showBoundingArea{};
 
 	void drawButtons(Gfx::RendererCommands &__restrict__) const;
 public:
 	VControllerState state{VControllerState::SHOWN};
 	_2DOrigin layoutOrigin{};
+	int8_t rowItems{};
 };
 
 class VControllerUIButtonGroup
@@ -296,10 +295,10 @@ public:
 	VControllerState state() const { return visit([](auto &e){ return e.state; }, *this); }
 	void draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden = false) const { visit([&](auto &e){ e.draw(cmds, showHidden); }, *this); }
 
-	void place(IG::WRect viewBounds, IG::WRect contentBounds, int layoutIdx)
+	void place(IG::WRect viewBounds, IG::WRect windowBounds, int layoutIdx)
 	{
 		auto &lPos = layoutPos[layoutIdx];
-		setPos(lPos.toPixelPos(contentBounds), viewBounds);
+		setPos(lPos.toPixelPos(windowBounds), viewBounds);
 		setState(lPos.state);
 	}
 
@@ -381,6 +380,26 @@ public:
 			}
 		}, *this);
 	}
+
+	void setRowSize(int8_t size)
+	{
+		visit([&](auto &e)
+		{
+			if constexpr(requires {e.rowItems;})
+				e.rowItems = size;
+		}, *this);
+	}
+
+	auto rowSize() const
+	{
+		return visit([&](auto &e) -> int8_t
+		{
+			if constexpr(requires {e.rowItems;})
+				return e.rowItems;
+			else
+				return 1;
+		}, *this);
+	}
 };
 
 enum class VControllerVisibility : uint8_t
@@ -408,6 +427,7 @@ public:
 	void updateTextures();
 	void inputAction(Input::Action action, unsigned vBtn);
 	void resetInput();
+	void updateFastSlowModeInput(bool on);
 	void place();
 	void toggleKeyboard();
 	bool pointerInputEvent(const Input::MotionEvent &, IG::WindowRect gameRect);
@@ -465,7 +485,6 @@ public:
 	auto gamepadItems() { return gpElements.size(); }
 	void reset(SystemInputDeviceDesc);
 	VControllerElement &add(InputComponentDesc);
-	VControllerElement &add(std::span<const unsigned> keyCodes, InputComponent, _2DOrigin layoutOrigin);
 	void update(VControllerElement &);
 	bool remove(VControllerElement &);
 	std::span<VControllerElement> deviceElements() { return gpElements; }

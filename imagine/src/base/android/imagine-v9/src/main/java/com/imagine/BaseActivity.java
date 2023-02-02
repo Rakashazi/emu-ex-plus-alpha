@@ -38,6 +38,7 @@ import android.view.DisplayCutout;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
 import android.util.DisplayMetrics;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -56,6 +57,7 @@ import java.io.File;
 import android.util.Log;
 import android.provider.DocumentsContract;
 import java.util.Date;
+import java.util.ArrayList;
 import java.text.DateFormat;
 
 // This class is also named BaseActivity to prevent shortcuts from breaking with previous SDK < 9 APKs
@@ -239,6 +241,18 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		setContentView(contentView);
 		contentView.requestFocus();
 		return getWindow();
+	}
+
+	static void setSystemGestureExclusionRects(Window win, int[] coords)
+	{
+		if(Build.VERSION.SDK_INT < 29)
+			return;
+		ArrayList<Rect> rects = new ArrayList<Rect>(coords.length / 4);
+		for(int i = 0; i < coords.length; i += 4)
+		{
+			rects.add(new Rect(coords[i], coords[i+1], coords[i+2], coords[i+3]));
+		}
+		win.setSystemGestureExclusionRects(rects);
 	}
 
 	void addNotification(String onShow, String title, String message)

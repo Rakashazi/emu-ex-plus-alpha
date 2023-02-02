@@ -232,6 +232,7 @@ void EmuViewController::showEmulationView()
 		emuInputView.postDraw();
 	emuInputView.resetInput();
 	placeEmuViews();
+	emuInputView.setSystemGestureExclusion(true);
 }
 
 void EmuViewController::showMenuView(bool updateTopView)
@@ -239,6 +240,7 @@ void EmuViewController::showMenuView(bool updateTopView)
 	if(!showingEmulation)
 		return;
 	showingEmulation = false;
+	emuInputView.setSystemGestureExclusion(false);
 	configureWindowForEmulation(emuView.window(), false);
 	emuView.postDraw();
 	if(updateTopView)

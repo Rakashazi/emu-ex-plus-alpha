@@ -557,10 +557,10 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			renderer.setWindowValidOrientations(win, menuOrientation());
 			updateInputDevices(ctx);
 			vController.configure(win, renderer, viewManager.defaultFace());
-			vController.add(std::array<unsigned, 1>{guiKeyIdxLastView}, InputComponent::ui, RT2DO);
-			vController.add(std::array<unsigned, 1>{guiKeyIdxFastForward}, InputComponent::ui, LT2DO);
-			if(!vController.gamepadItems())
-				vController.reset(system().inputDeviceDesc(0));
+			vController.add(rightUIComponents);
+			if(Config::Input::TOUCH_DEVICES)
+				vController.add(leftUIComponents);
+			vController.reset(system().inputDeviceDesc(0));
 			vController.applyLayout();
 			if(EmuSystem::inputHasKeyboard)
 			{

@@ -141,7 +141,7 @@ void VController::updateTextures()
 void VController::setButtonSize(int gamepadBtnSizeInPixels, int uiBtnSizeInPixels)
 {
 	if(EmuSystem::inputHasKeyboard)
-		kb.place(gamepadBtnSizeInPixels, gamepadBtnSizeInPixels * .75, layoutBounds());
+		kb.place(gamepadBtnSizeInPixels, gamepadBtnSizeInPixels * .75f, layoutBounds());
 	if constexpr(VCONTROLS_GAMEPAD)
 	{
 		IG::WP size{gamepadBtnSizeInPixels, gamepadBtnSizeInPixels};
@@ -149,7 +149,7 @@ void VController::setButtonSize(int gamepadBtnSizeInPixels, int uiBtnSizeInPixel
 		{
 			visit(overloaded
 			{
-				[&](VControllerDPad &dpad){ dpad.setSize(renderer(), IG::makeEvenRoundedUp(int(size.x*(double)2.5))); },
+				[&](VControllerDPad &dpad){ dpad.setSize(renderer(), IG::makeEvenRoundedUp(int(size.x * 2.5f))); },
 				[&](VControllerButtonGroup &grp){ grp.setButtonSize(size); },
 				[](auto &){}
 			}, elem);
@@ -168,7 +168,7 @@ void VController::setButtonSize(int gamepadBtnSizeInPixels, int uiBtnSizeInPixel
 
 void VController::applyButtonSize()
 {
-	setButtonSize(buttonPixelSize(window()), face().nominalHeight()*1.75);
+	setButtonSize(buttonPixelSize(window()), View::navBarHeight(face()));
 }
 
 void VController::inputAction(Input::Action action, unsigned vBtn)
@@ -194,6 +194,21 @@ void VController::resetInput()
 		}
 	}
 	dragTracker.reset();
+	updateFastSlowModeInput(false);
+}
+
+void VController::updateFastSlowModeInput(bool on)
+{
+	for(auto &e : uiElements)
+	{
+		for(auto &b : e.buttons())
+		{
+			if(b.key == guiKeyIdxFastForward || b.key == guiKeyIdxToggleFastForward)
+			{
+				b.color = on ? Gfx::color(Gfx::ColorName::RED) : Gfx::Color{};
+			}
+		}
+	}
 }
 
 void VController::place()
@@ -203,18 +218,18 @@ void VController::place()
 	auto &winData = windowData();
 	auto &win = window();
 	applyButtonSize();
-	auto contentBounds = windowData().contentBounds();
 	auto bounds = layoutBounds();
-	bool isPortrait = window().isPortrait();
+	auto windowBounds = win.bounds();
+	bool isPortrait = win.isPortrait();
 	for(auto &elem : gpElements)
 	{
-		elem.place(bounds, contentBounds, isPortrait);
+		elem.place(bounds, windowBounds, isPortrait);
 	}
 	for(auto &elem : uiElements)
 	{
-		elem.place(bounds, contentBounds, isPortrait);
+		elem.place(bounds, windowBounds, isPortrait);
 	}
-	dragTracker.setDragStartPixels(window().widthMMInPixels(1.));
+	dragTracker.setDragStartPixels(win.widthMMInPixels(1.));
 }
 
 void VController::toggleKeyboard()
@@ -283,7 +298,7 @@ int VController::keyboardKeyFromPointer(const Input::MotionEvent &e)
 
 bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect gameRect)
 {
-	if(e.pushed())
+	if(e.pushed() || e.released())
 	{
 		for(const auto &grp: uiElements)
 		{
@@ -340,8 +355,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 	dragTracker.inputEvent(e,
 		[&](Input::DragTrackerState dragState, auto &currElems)
 		{
-			applyInputActions(nullElems, newElems);
 			currElems = newElems;
+			applyInputActions(nullElems, newElems);
 			if(!elementsArePushed)
 			{
 				elementsArePushed |= system().onPointerInputStart(e, dragState, gameRect);
@@ -349,8 +364,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 		},
 		[&](Input::DragTrackerState dragState, Input::DragTrackerState prevDragState, auto &currElems)
 		{
-			applyInputActions(currElems, newElems);
-			currElems = newElems;
+			auto prevElems = std::exchange(currElems, newElems);
+			applyInputActions(prevElems, newElems);
 			if(!elementsArePushed)
 			{
 				elementsArePushed |= system().onPointerInputUpdate(e, dragState, prevDragState, gameRect);
@@ -405,7 +420,6 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 	}
 	for(auto &e : uiElements)
 	{
-		cmds.setColor(whiteCol);
 		e.draw(cmds);
 	}
 }
@@ -666,54 +680,51 @@ void VController::resetPositions()
 	auto ctx = appContext();
 	auto &win = window();
 	logMsg("resetting on-screen controls to default positions & states");
-	auto initFastForwardState = (Config::envIsIOS || (Config::envIsAndroid  && !ctx.hasHardwareNavButtons()))
-		? VControllerState::SHOWN : VControllerState::OFF;
-	auto initMenuState = (Config::envIsAndroid && ctx.hasHardwareNavButtons())
-		? VControllerState::HIDDEN : VControllerState::SHOWN;
-	auto defaultSidePadding = xMMSizeToPixel(win, 4.);
-	for(int leftY{}, prevLeftY{}, rightY{}, prevRightY{}; auto &e : uiElements)
+	const auto shortSidePadding = xMMSizeToPixel(win, 1);
+	const auto longSidePadding = xMMSizeToPixel(win, 3);
+	const int yTop = win.contentBounds().y;
+	for(int leftY{yTop}, rightY{yTop}; auto &e : uiElements)
 	{
-		if(e.layoutOrigin() == RT2DO)
+		const auto halfSize = e.realBounds().size() / 2;
+		if(e.layoutOrigin() == RT2DO || e.layoutOrigin() == LT2DO)
 		{
-			auto yOffset = std::max(rightY, prevLeftY);
-			e.layoutPos[0] = e.layoutPos[1] = {RT2DO, {-defaultSidePadding, yOffset}, initMenuState};
-			prevRightY = rightY;
-			rightY += e.realBounds().ySize() + (e.realBounds().ySize() / 2);
-		}
-		else if(e.layoutOrigin() == LT2DO)
-		{
-			auto yOffset = std::max(leftY, prevRightY);
-			e.layoutPos[0] = e.layoutPos[1] = {LT2DO, {defaultSidePadding, yOffset}, initFastForwardState};
-			prevLeftY = leftY;
-			leftY += e.realBounds().ySize() + (e.realBounds().ySize() / 2);
+			auto &yOffset = e.layoutOrigin() == RT2DO ? rightY : leftY;
+			auto xOffset = e.layoutOrigin() == RT2DO ? -shortSidePadding : shortSidePadding;
+			e.layoutPos[0] = e.layoutPos[1] = {e.layoutOrigin(), {xOffset, yOffset + halfSize.y}};
+			yOffset += e.realBounds().ySize();
 		}
 	}
-	int xOffset = xMMSizeToPixel(win, 3.f);
-	int xOffsetPortrait = xMMSizeToPixel(win, 1.f);
-	int buttonPixels = buttonPixelSize(win);
-	for(int leftY{}, prevLeftY{}, centerY{}, rightY{}, prevRightY{}; auto &e : gpElements)
+	const int yBottomPadding = xMMSizeToPixel(win, 3);
+	const int yBottom = (win.bounds().y2 - win.contentBounds().y2) + yBottomPadding;
+	VControllerElement *prevElem{};
+	for(int leftY{yBottom}, centerY{}, rightY{yBottom}; auto &e : gpElements)
 	{
-		const auto halfSize = e.bounds().size() / 2;
-		if(e.layoutOrigin() == LB2DO)
+		const auto halfSize = e.realBounds().size() / 2;
+		if(e.layoutOrigin() == LB2DO || e.layoutOrigin() == RB2DO)
 		{
-			auto yOffset = std::max(leftY, prevRightY);
-			e.layoutPos[0] = {LB2DO, {xOffset + halfSize.x, -buttonPixels - halfSize.y - yOffset}};
-			e.layoutPos[1] = {LB2DO, {xOffsetPortrait + halfSize.x, -buttonPixels - halfSize.y - yOffset}};
-			prevLeftY = leftY;
-			leftY += e.realBounds().ySize();
+			auto &yOffset = e.layoutOrigin() == RB2DO ? rightY : leftY;
+			auto xOffset = e.layoutOrigin() == RB2DO ? -longSidePadding - halfSize.x : longSidePadding + halfSize.x;
+			auto xOffsetPortrait = e.layoutOrigin() == RB2DO ? -shortSidePadding - halfSize.x : shortSidePadding + halfSize.x;
+			int yAdvance = e.realBounds().ySize();
+			if(prevElem && prevElem->layoutOrigin() != e.layoutOrigin()) // line up elements
+			{
+				const auto prevHalfSize = prevElem->realBounds().size() / 2;
+				auto prevElemYOffset = -prevElem->layoutPos[0].pos.y - prevHalfSize.y + (prevHalfSize.y - halfSize.y);
+				if(prevElemYOffset > yOffset)
+				{
+					yOffset = prevElemYOffset;
+					yAdvance = prevElem->realBounds().ySize() - (prevHalfSize.y - halfSize.y);
+				}
+			}
+			e.layoutPos[0] = {e.layoutOrigin(), {xOffset, -yOffset - halfSize.y}};
+			e.layoutPos[1] = {e.layoutOrigin(), {xOffsetPortrait, -yOffset - halfSize.y - yBottomPadding}};
+			yOffset += yAdvance;
+			prevElem = &e;
 		}
 		else if(e.layoutOrigin() == CB2DO)
 		{
-			e.layoutPos[0] = e.layoutPos[1] = {CB2DO, {0, -centerY}};
+			e.layoutPos[0] = e.layoutPos[1] = {CB2DO, {0, -centerY - halfSize.y}};
 			centerY += e.realBounds().ySize();
-		}
-		else if(e.layoutOrigin() == RB2DO)
-		{
-			auto yOffset = std::max(rightY, prevLeftY);
-			e.layoutPos[0] = {RB2DO, {-xOffset - halfSize.x, -buttonPixels - halfSize.y - yOffset}};
-			e.layoutPos[1] = {RB2DO, {-xOffsetPortrait - halfSize.x, -buttonPixels - halfSize.y - yOffset}};
-			prevRightY = rightY;
-			rightY += e.realBounds().ySize();
 		}
 	}
 	setLayoutPositionChanged(false);
@@ -733,11 +744,11 @@ void VController::resetAllOptions()
 	setInputPlayer(0);
 }
 
-VControllerLayoutPosition VControllerLayoutPosition::fromPixelPos(IG::WP pos, IG::WP size, IG::WindowRect viewBounds)
+VControllerLayoutPosition VControllerLayoutPosition::fromPixelPos(IG::WP pos, IG::WP size, IG::WindowRect windowBounds)
 {
 	IG::WindowRect bound {pos - size/2, pos + size/2};
 
-	const auto &rect = viewBounds;
+	const auto &rect = windowBounds;
 	IG::WindowRect ltQuadrantRect{{rect.x, rect.y}, rect.center()};
 	IG::WindowRect rtQuadrantRect{{rect.xCenter(), rect.y}, {rect.x2, rect.yCenter()}};
 	IG::WindowRect lbQuadrantRect{{rect.x, rect.yCenter()}, {rect.xCenter(), rect.y2}};
@@ -763,11 +774,11 @@ VControllerLayoutPosition VControllerLayoutPosition::fromPixelPos(IG::WP pos, IG
 	return {origin, {x, y}, VControllerState::SHOWN};
 }
 
-IG::WP VControllerLayoutPosition::toPixelPos(IG::WindowRect viewBounds) const
+IG::WP VControllerLayoutPosition::toPixelPos(IG::WindowRect windowBounds) const
 {
-	int x = (origin.xScaler() == 0) ? pos.x + viewBounds.xSize() / 2 :
-		(origin.xScaler() == 1) ? pos.x + viewBounds.xSize() : pos.x;
-	int y = origin.adjustY(pos.y, viewBounds.ySize(), LT2DO);
+	int x = (origin.xScaler() == 0) ? pos.x + windowBounds.xSize() / 2 :
+		(origin.xScaler() == 1) ? pos.x + windowBounds.xSize() : pos.x;
+	int y = origin.adjustY(pos.y, windowBounds.ySize(), LT2DO);
 	return {x, y};
 }
 
@@ -786,34 +797,39 @@ void VController::reset(SystemInputDeviceDesc desc)
 	gpElements.clear();
 	for(const auto &c : desc.components)
 	{
-		add(c);
+		if(!to_underlying(c.flags & InputComponentFlagsMask::altConfig))
+			add(c);
 	}
+}
+
+static int8_t rowSize(InputComponentDesc c)
+{
+	auto size = to_underlying(c.flags & InputComponentFlagsMask::rowSizeBits) >> 1;
+	if(size)
+		return size;
+	else
+		return c.keyCodes.size() >= 6 ? 3 : 2;
 }
 
 VControllerElement &VController::add(InputComponentDesc c)
 {
-	return add(c.keyCodes, c.type, c.layoutOrigin);
-}
-
-VControllerElement &VController::add(std::span<const unsigned> keyCodes, InputComponent type, _2DOrigin layoutOrigin)
-{
 	auto &elem = [&]() -> VControllerElement&
 	{
-		switch(type)
+		switch(c.type)
 		{
 			case InputComponent::ui:
-				return uiElements.emplace_back(std::in_place_type<VControllerUIButtonGroup>, keyCodes, layoutOrigin);
+				return uiElements.emplace_back(std::in_place_type<VControllerUIButtonGroup>, c.keyCodes, c.layoutOrigin);
 			case InputComponent::dPad:
-				assert(keyCodes.size() == 4);
-				return gpElements.emplace_back(std::in_place_type<VControllerDPad>, std::span<const unsigned, 4>{keyCodes.data(), 4});
+				assert(c.keyCodes.size() == 4);
+				return gpElements.emplace_back(std::in_place_type<VControllerDPad>, std::span<const unsigned, 4>{c.keyCodes.data(), 4});
 			case InputComponent::button:
 			case InputComponent::trigger:
-				return gpElements.emplace_back(std::in_place_type<VControllerButtonGroup>, keyCodes, layoutOrigin);
+				return gpElements.emplace_back(std::in_place_type<VControllerButtonGroup>, c.keyCodes, c.layoutOrigin, rowSize(c));
 		}
 		bug_unreachable("invalid InputComponent");
 	}();
 	update(elem);
-	auto layoutPos = VControllerLayoutPosition::fromPixelPos(layoutBounds().center(), elem.bounds().size(), layoutBounds());
+	auto layoutPos = VControllerLayoutPosition::fromPixelPos(layoutBounds().center(), elem.bounds().size(), window().bounds());
 	elem.layoutPos[0] = elem.layoutPos[1] = layoutPos;
 	return elem;
 }

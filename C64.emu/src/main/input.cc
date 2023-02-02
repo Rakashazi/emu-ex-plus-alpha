@@ -172,8 +172,8 @@ constexpr unsigned jsButtonCodes[]{c64KeyIdxBtn};
 constexpr std::array jsComponents
 {
 	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"F1 & Keyboard Toggle", shortcutButtonCodes, InputComponent::button, CB2DO},
-	InputComponentDesc{"Joystick Button", jsButtonCodes, InputComponent::button, RB2DO}
+	InputComponentDesc{"Joystick Button", jsButtonCodes, InputComponent::button, RB2DO},
+	InputComponentDesc{"F1 & Keyboard Toggle", shortcutButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::rowSize1},
 };
 
 constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};
@@ -531,7 +531,7 @@ VControllerImageIndex C64System::mapVControllerButton(unsigned key) const
 	switch(key)
 	{
 		case c64KeyF1: return auxButton1;
-		case c64KeyToggleKB: return auxButton1;
+		case c64KeyToggleKB: return auxButton2;
 		case c64KeyIdxBtn: return button1;
 		case c64KeyIdxBtnTurbo: return button2;
 		default: return button1;

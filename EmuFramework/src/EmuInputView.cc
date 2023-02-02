@@ -59,8 +59,9 @@ bool EmuInputView::toggleFastSlowMode()
 
 bool EmuInputView::setFastSlowMode(bool on)
 {
+	logMsg("fast-forward state:%d", on);
 	ffToggleActive = on;
-	logMsg("fast-forward state:%d", ffToggleActive);
+	vController->updateFastSlowModeInput(on);
 	updateRunSpeed();
 	return ffToggleActive;
 }
@@ -120,6 +121,29 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 				|| devData.devConf.shouldConsumeUnboundKeys();
 		}
 	}, e);
+}
+
+void EmuInputView::setSystemGestureExclusion(bool on)
+{
+	if(on)
+	{
+		auto rectsSize = vController->deviceElements().size();
+		WRect rects[rectsSize];
+		for(int i = 0; const auto &e : vController->deviceElements())
+		{
+			rects[i++] = e.realBounds();
+		}
+		window().setSystemGestureExclusionRects({rects, rectsSize});
+	}
+	else
+		window().setSystemGestureExclusionRects({});
+}
+
+int EmuInputView::uiElementHeight() const
+{
+	if(!vController)
+		return 0;
+	return View::navBarHeight(vController->face());
 }
 
 }

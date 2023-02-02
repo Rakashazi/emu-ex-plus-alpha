@@ -108,8 +108,8 @@ constexpr unsigned jsButtonCodes[]
 constexpr std::array jsComponents
 {
 	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Space & Keyboard Toggle", shortcutButtonCodes, InputComponent::button, CB2DO},
-	InputComponentDesc{"Joystick Button", jsButtonCodes, InputComponent::button, RB2DO}
+	InputComponentDesc{"Joystick Button", jsButtonCodes, InputComponent::button, RB2DO},
+	InputComponentDesc{"Space & Keyboard Toggle", shortcutButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::rowSize1},
 };
 
 constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};

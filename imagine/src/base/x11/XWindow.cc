@@ -317,4 +317,6 @@ void XWindow::toggleFullScreen()
 
 void WindowConfig::setFormat(IG::PixelFormat) {}
 
+void Window::setSystemGestureExclusionRects(std::span<const WRect>) {}
+
 }

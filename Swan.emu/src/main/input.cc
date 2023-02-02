@@ -75,12 +75,23 @@ constexpr unsigned oppositeDPadButtonCodes[]
 	wsKeyIdxY2X2,
 };
 
+constexpr unsigned faceButtonCombinedCodes[]
+{
+	wsKeyIdxBNoRotation,
+	wsKeyIdxANoRotation,
+	wsKeyIdxY4X4,
+	wsKeyIdxY3X3,
+	wsKeyIdxY1X1,
+	wsKeyIdxY2X2,
+};
+
 constexpr std::array gamepadComponents
 {
 	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Start Button", centerButtonCodes, InputComponent::button, CB2DO},
-	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO},
-	InputComponentDesc{"Opposite D-Pad Buttons", oppositeDPadButtonCodes, InputComponent::button, RB2DO}
+	InputComponentDesc{"Face Buttons + Opposite D-Pad Buttons", faceButtonCombinedCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::rowSize2},
+	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
+	InputComponentDesc{"Opposite D-Pad Buttons", oppositeDPadButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
+	InputComponentDesc{"Start", centerButtonCodes, InputComponent::button, RB2DO},
 };
 
 constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};

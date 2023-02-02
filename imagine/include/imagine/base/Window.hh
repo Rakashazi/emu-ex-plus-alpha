@@ -73,6 +73,7 @@ public:
 	ApplicationContext appContext() const;
 	Application &application() const;
 	void setCursorVisible(bool);
+	void setSystemGestureExclusionRects(std::span<const WRect>);
 
 	template <class T>
 	T &makeAppData(auto &&... args)

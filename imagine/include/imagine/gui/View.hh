@@ -107,6 +107,7 @@ public:
 	Gfx::GlyphTextureSet &defaultFace();
 	Gfx::GlyphTextureSet &defaultBoldFace();
 	static Gfx::Color menuTextColor(bool isSelected);
+	static int navBarHeight(const Gfx::GlyphTextureSet &face);
 	void dismiss(bool refreshLayout = true);
 	void dismissPrevious();
 	void pushAndShow(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView = true, bool isModal = false);

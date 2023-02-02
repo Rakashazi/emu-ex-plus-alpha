@@ -472,12 +472,7 @@ void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
 					return false;
 				}
 				bool isDir = entry.type() == FS::file_type::directory;
-				if(mode_ == Mode::DIR) // filter non-directories
-				{
-					if(!isDir)
-						return true;
-				}
-				else if(mode_ == Mode::FILE_IN_DIR) // filter directories
+				if(mode_ == Mode::FILE_IN_DIR) // filter directories
 				{
 					if(isDir)
 						return true;
@@ -493,6 +488,8 @@ void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
 				auto &item = dir.emplace_back(FileEntry{std::string{entry.path()}, {entry.name(), &face(), nullptr}});
 				if(isDir)
 					item.text.setFlags(item.text.flags() | FileEntry::IS_DIR_FLAG);
+				if(mode_ == Mode::DIR && !isDir)
+					item.text.setActive(false);
 				return true;
 			});
 		std::sort(dir.begin(), dir.end(),
@@ -509,6 +506,8 @@ void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
 		{
 			for(auto &d : dir)
 			{
+				if(!d.text.active())
+					continue;
 				if(d.isDir())
 				{
 					d.text.setOnSelect(

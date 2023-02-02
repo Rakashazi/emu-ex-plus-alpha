@@ -71,8 +71,8 @@ constexpr unsigned faceButtonCodes[]
 constexpr std::array gamepadComponents
 {
 	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Start Button", centerButtonCodes, InputComponent::button, CB2DO},
-	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO}
+	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO},
+	InputComponentDesc{"Start", centerButtonCodes, InputComponent::button, RB2DO},
 };
 
 constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};

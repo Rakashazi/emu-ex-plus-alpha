@@ -39,6 +39,8 @@ public:
 	bool toggleFastSlowMode();
 	bool setFastSlowMode(bool on);
 	VController *activeVController() const { return vController; }
+	void setSystemGestureExclusion(bool on);
+	int uiElementHeight() const;
 
 private:
 	VController *vController{};

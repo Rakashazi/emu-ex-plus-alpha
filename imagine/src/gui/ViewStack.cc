@@ -22,7 +22,6 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <utility>
 
@@ -132,7 +131,7 @@ void ViewStack::place()
 	if(navViewIsActive())
 	{
 		nav->setTitle(std::u16string{top().name()});
-		auto navRect = makeWindowRectRel(viewRect.pos(LT2DO), {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->titleFace()->nominalHeight()*(double)1.75))});
+		auto navRect = makeWindowRectRel(viewRect.pos(LT2DO), {viewRect.xSize(), View::navBarHeight(*nav->titleFace())});
 		WindowRect navDisplayRect{displayRect.pos(LT2DO), {displayRect.xPos(RC2DO), navRect.yPos(CB2DO)}};
 		nav->setViewRect(navRect, navDisplayRect);
 		nav->place();

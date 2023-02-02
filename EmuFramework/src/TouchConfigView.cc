@@ -40,12 +40,12 @@ constexpr const char *ctrlStateStr[]
 
 constexpr const char *touchCtrlExtraBtnSizeMenuName[4]
 {
-	"None", "Gap only", "10%", "25%"
+	"None", "10%", "20%", "30%"
 };
 
 constexpr int touchCtrlExtraBtnSizeMenuVal[4]
 {
-	0, 1, 200, 500
+	0, 10, 20, 30
 };
 
 class OnScreenInputPlaceView final: public View, public EmuAppHelper<OnScreenInputPlaceView>
@@ -167,10 +167,9 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 					if(d.elem)
 					{
 						auto newPos = d.startPos + state.downPosDiff();
-						auto contentBounds = vController().windowData().contentBounds();
-						auto bounds = vController().layoutBounds();
+						auto bounds = window().bounds();
 						d.elem->setPos(newPos, bounds);
-						auto layoutPos = VControllerLayoutPosition::fromPixelPos(d.elem->bounds().pos(C2DO), d.elem->bounds().size(), viewRect());
+						auto layoutPos = VControllerLayoutPosition::fromPixelPos(d.elem->bounds().pos(C2DO), d.elem->bounds().size(), bounds);
 						//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
 						auto &vCtrlLayoutPos = d.elem->layoutPos[window().isPortrait()];
 						vCtrlLayoutPos.origin = layoutPos.origin;
@@ -200,16 +199,16 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
 	const int lineSize = 1;
-	GeomRect::draw(cmds, WRect{{displayRect().x, displayRect().yCenter()},
-		{displayRect().x2, displayRect().yCenter() + lineSize}});
-	GeomRect::draw(cmds, WRect{{displayRect().xCenter(), displayRect().y},
-		{displayRect().xCenter() + lineSize, displayRect().y2}});
+	GeomRect::draw(cmds, WRect{{viewRect().x, viewRect().yCenter()},
+		{viewRect().x2, viewRect().yCenter() + lineSize}});
+	GeomRect::draw(cmds, WRect{{viewRect().xCenter(), viewRect().y},
+		{viewRect().xCenter() + lineSize, viewRect().y2}});
 
 	if(textFade != 0.)
 	{
 		cmds.setColor(0., 0., 0., textFade/2.);
-		GeomRect::draw(cmds, Gfx::GCRect::makeRel({-text.width()/2.f - text.spaceWidth(), -text.height()/2.f - text.spaceWidth()},
-			{text.width() + text.spaceWidth()*2.f, text.height() + text.spaceWidth()*2.f}));
+		GeomRect::draw(cmds, WRect{viewRect().pos(C2DO) - text.pixelSize() / 2 - text.spaceWidth(),
+			viewRect().pos(C2DO) + text.pixelSize() / 2 + text.spaceWidth()});
 		cmds.setColor(1., 1., 1., textFade);
 		basicEffect.enableAlphaTexture(cmds);
 		text.draw(cmds, viewRect().pos(C2DO), C2DO);
@@ -298,14 +297,7 @@ public:
 					});
 				pushAndShowModal(std::move(ynAlertView), e);
 			}
-		}
-	{
-		item.emplace_back(&state);
-		item.emplace_back(&deadzone);
-		item.emplace_back(&diagonalSensitivity);
-		item.emplace_back(&showBoundingArea);
-		item.emplace_back(&remove);
-	}
+		} {}
 
 	void draw(Gfx::RendererCommands &__restrict__ cmds) final
 	{
@@ -325,7 +317,7 @@ private:
 	MultiChoiceMenuItem state;
 	BoolMenuItem showBoundingArea;
 	TextMenuItem remove;
-	StaticArrayList<MenuItem*, 5> item;
+	std::array<MenuItem*, 5> item{&state, &deadzone, &diagonalSensitivity, &showBoundingArea, &remove};
 
 	TextMenuItem::SelectDelegate setButtonStateDel()
 	{
@@ -348,6 +340,20 @@ private:
 	}
 };
 
+static void addCategories(EmuApp &app, VControllerElement &elem, auto &&addCategory)
+{
+	if(elem.uiButtonGroup())
+		addCategory(app.inputControlCategories()[0]);
+	else
+	{
+		for(auto &cat : app.inputControlCategories() | std::views::drop(1)
+			| std::views::filter([](auto &c){return !c.multiplayerIndex;}))
+		{
+			addCategory(cat);
+		}
+	}
+}
+
 class ButtonElementConfigView : public TableView, public EmuAppHelper<ButtonElementConfigView>
 {
 public:
@@ -364,22 +370,24 @@ public:
 			"Action", app().systemKeyName(btn_.key), &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				auto &cat = app().categoryOfSystemKey(btn.key);
-				auto multiChoiceView = makeViewWithName<TextTableView>("Assign Action", cat.keys());
-				for(auto i : iotaCount(cat.keys()))
+				auto multiChoiceView = makeViewWithName<TextTableView>("Assign Action", 16);
+				addCategories(app(), elem, [&](const KeyCategory &cat)
 				{
-					multiChoiceView->appendItem(cat.keyName[i],
-						[this, keyCode = cat.configOffset + i](View &parentView, const Input::Event &e)
-						{
-							btn.key = keyCode;
-							key.set2ndName(app().systemKeyName(keyCode));
-							vCtrl.update(elem);
-							onChange.callSafe();
-							vCtrl.setLayoutPositionChanged();
-							vCtrl.place();
-							parentView.dismiss();
-						});
-				}
+					for(auto i : iotaCount(cat.keys()))
+					{
+						multiChoiceView->appendItem(cat.keyName[i],
+							[this, keyCode = cat.configOffset + i](View &parentView, const Input::Event &e)
+							{
+								btn.key = keyCode;
+								key.set2ndName(app().systemKeyName(keyCode));
+								vCtrl.update(elem);
+								onChange.callSafe();
+								vCtrl.setLayoutPositionChanged();
+								vCtrl.place();
+								parentView.dismiss();
+							});
+					}
+				});
 				pushAndShow(std::move(multiChoiceView), e);
 			}
 		},
@@ -432,6 +440,20 @@ public:
 			MenuItem::Id(elem.layoutPos[window().isPortrait()].state),
 			stateItems
 		},
+		rowSizeItems
+		{
+			{"1", &defaultFace(), setRowSizeDel(), 1},
+			{"2", &defaultFace(), setRowSizeDel(), 2},
+			{"3", &defaultFace(), setRowSizeDel(), 3},
+			{"4", &defaultFace(), setRowSizeDel(), 4},
+			{"5", &defaultFace(), setRowSizeDel(), 5},
+		},
+		rowSize
+		{
+			"Buttons Per Row", &defaultFace(),
+			MenuItem::Id(elem.rowSize()),
+			rowSizeItems
+		},
 		spaceItems
 		{
 			{"1", &defaultFace(), setButtonSpaceDel(), 100},
@@ -469,7 +491,7 @@ public:
 		},
 		extraXSize
 		{
-			"H Bound Overlap", &defaultFace(),
+			"Extended H Bounds", &defaultFace(),
 			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->xPadding() : 0},
 			extraXSizeItems
 		},
@@ -482,7 +504,7 @@ public:
 		},
 		extraYSize
 		{
-			"V Bound Overlap", &defaultFace(),
+			"Extended V Bounds", &defaultFace(),
 			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->yPadding() : 0},
 			extraYSizeItems
 		},
@@ -502,22 +524,24 @@ public:
 			"Add Button To This Group", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				auto &cat = elem.uiButtonGroup() ? app().inputControlCategories()[0] : app().inputControlCategories()[1];
-				auto multiChoiceView = makeViewWithName<TextTableView>("Add Button", cat.keys());
-				for(auto i : iotaCount(cat.keys()))
+				auto multiChoiceView = makeViewWithName<TextTableView>("Add Button", 16);
+				addCategories(app(), elem, [&](const KeyCategory &cat)
 				{
-					multiChoiceView->appendItem(cat.keyName[i],
-						[this, keyCode = cat.configOffset + i](View &parentView, const Input::Event &e)
-						{
-							elem.add(keyCode);
-							vCtrl.update(elem);
-							vCtrl.setLayoutPositionChanged();
-							vCtrl.place();
-							confView.reloadItems();
-							reloadItems();
-							parentView.dismiss();
-						});
-				}
+					for(auto i : iotaCount(cat.keys()))
+					{
+						multiChoiceView->appendItem(cat.keyName[i],
+							[this, keyCode = cat.configOffset + i](View &parentView, const Input::Event &e)
+							{
+								elem.add(keyCode);
+								vCtrl.update(elem);
+								vCtrl.setLayoutPositionChanged();
+								vCtrl.place();
+								confView.reloadItems();
+								reloadItems();
+								parentView.dismiss();
+							});
+					}
+				});
 				pushAndShow(std::move(multiChoiceView), e);
 			}
 		},
@@ -556,6 +580,8 @@ private:
 	TouchConfigView &confView;
 	TextMenuItem stateItems[3];
 	MultiChoiceMenuItem state;
+	TextMenuItem rowSizeItems[5];
+	MultiChoiceMenuItem rowSize;
 	TextMenuItem spaceItems[4];
 	MultiChoiceMenuItem space;
 	TextMenuItem staggerItems[6];
@@ -584,6 +610,7 @@ private:
 			item.emplace_back(&extraYSize);
 			item.emplace_back(&showBoundingArea);
 		}
+		item.emplace_back(&rowSize);
 		item.emplace_back(&add);
 		item.emplace_back(&remove);
 		item.emplace_back(&buttonsHeading);
@@ -610,6 +637,16 @@ private:
 		return [this](TextMenuItem &item)
 		{
 			elem.layoutPos[window().isPortrait()].state = VControllerState(item.id());
+			vCtrl.setLayoutPositionChanged();
+			vCtrl.place();
+		};
+	}
+
+	TextMenuItem::SelectDelegate setRowSizeDel()
+	{
+		return [this](TextMenuItem &item)
+		{
+			elem.setRowSize(item.id());
 			vCtrl.setLayoutPositionChanged();
 			vCtrl.place();
 		};
@@ -658,10 +695,9 @@ public:
 	AddNewButtonView(ViewAttachParams attach, TouchConfigView &confView_, VController &vCtrl_):
 		TableView{"Add New Button Group", attach, buttons},
 		vCtrl{vCtrl_},
-		confView{confView_},
-		components{system().inputDeviceDesc(0).components}
+		confView{confView_}
 	{
-		for(const auto &c : components)
+		for(const auto &c : system().inputDeviceDesc(0).components)
 		{
 			buttons.emplace_back(
 				c.name, &defaultFace(),
@@ -675,20 +711,20 @@ public:
 				});
 		}
 		buttons.emplace_back(
-			"Open Menu", &defaultFace(),
+			rightUIComponents.name, &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				vCtrl.add(std::array<unsigned, 1>{guiKeyIdxLastView}, InputComponent::ui, RT2DO);
+				vCtrl.add(rightUIComponents);
 				vCtrl.setLayoutPositionChanged();
 				vCtrl.place();
 				confView.reloadItems();
 				dismiss();
 			});
 		buttons.emplace_back(
-			"Toggle Slow/Fast Mode", &defaultFace(),
+			leftUIComponents.name, &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				vCtrl.add(std::array<unsigned, 1>{guiKeyIdxFastForward}, InputComponent::ui, LT2DO);
+				vCtrl.add(leftUIComponents);
 				vCtrl.setLayoutPositionChanged();
 				vCtrl.place();
 				confView.reloadItems();
@@ -700,7 +736,6 @@ private:
 	VController &vCtrl;
 	TouchConfigView &confView;
 	std::vector<TextMenuItem> buttons;
-	std::span<const InputComponentDesc> components;
 };
 
 TextMenuItem::SelectDelegate TouchConfigView::setVisibilityDel(VControllerVisibility val)
