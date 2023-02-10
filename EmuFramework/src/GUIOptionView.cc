@@ -42,15 +42,15 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fontSizeItem
 	{
-		{"2",  &defaultFace(), setFontSizeDel(), 2000},
-		{"3",  &defaultFace(), setFontSizeDel(), 3000},
-		{"4",  &defaultFace(), setFontSizeDel(), 4000},
-		{"5",  &defaultFace(), setFontSizeDel(), 5000},
-		{"6",  &defaultFace(), setFontSizeDel(), 6000},
-		{"7",  &defaultFace(), setFontSizeDel(), 7000},
-		{"8",  &defaultFace(), setFontSizeDel(), 8000},
-		{"9",  &defaultFace(), setFontSizeDel(), 9000},
-		{"10", &defaultFace(), setFontSizeDel(), 10000},
+		{"2",  &defaultFace(), 2000},
+		{"3",  &defaultFace(), 3000},
+		{"4",  &defaultFace(), 4000},
+		{"5",  &defaultFace(), 5000},
+		{"6",  &defaultFace(), 6000},
+		{"7",  &defaultFace(), 7000},
+		{"8",  &defaultFace(), 8000},
+		{"9",  &defaultFace(), 9000},
+		{"10", &defaultFace(), 10000},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
@@ -77,10 +77,13 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	fontSize
 	{
 		"Font Size", &defaultFace(),
-		[this](auto idx, Gfx::Text &t)
 		{
-			t.resetString(fmt::format("{:.2f}", app().fontSize() / 1000.));
-			return true;
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(fmt::format("{:.2f}", app().fontSize() / 1000.));
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setFontSize(item.id()); }
 		},
 		(MenuItem::Id)app().fontSize(),
 		fontSizeItem
@@ -96,37 +99,49 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	statusBarItem
 	{
-		{"Off",    &defaultFace(), setStatusBarDel(), (int)Tristate::OFF},
-		{"In Emu", &defaultFace(), setStatusBarDel(), (int)Tristate::IN_EMU},
-		{"On",     &defaultFace(), setStatusBarDel(), (int)Tristate::ON}
+		{"Off",    &defaultFace(), to_underlying(Tristate::OFF)},
+		{"In Emu", &defaultFace(), to_underlying(Tristate::IN_EMU)},
+		{"On",     &defaultFace(), to_underlying(Tristate::ON)}
 	},
 	statusBar
 	{
 		"Hide Status Bar", &defaultFace(),
+		MultiChoiceMenuItem::DelegatesInit
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setHideStatusBarMode(Tristate(item.id())); }
+		},
 		(MenuItem::Id)app().hideStatusBarMode(),
 		statusBarItem
 	},
 	lowProfileOSNavItem
 	{
-		{"Off",    &defaultFace(), setLowProfileOSNavDel(), (int)Tristate::OFF},
-		{"In Emu", &defaultFace(), setLowProfileOSNavDel(), (int)Tristate::IN_EMU},
-		{"On",     &defaultFace(), setLowProfileOSNavDel(), (int)Tristate::ON}
+		{"Off",    &defaultFace(), to_underlying(Tristate::OFF)},
+		{"In Emu", &defaultFace(), to_underlying(Tristate::IN_EMU)},
+		{"On",     &defaultFace(), to_underlying(Tristate::ON)}
 	},
 	lowProfileOSNav
 	{
 		"Dim OS UI", &defaultFace(),
+		MultiChoiceMenuItem::DelegatesInit
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setLowProfileOSNavMode(Tristate(item.id())); }
+		},
 		(MenuItem::Id)app().lowProfileOSNavMode(),
 		lowProfileOSNavItem
 	},
 	hideOSNavItem
 	{
-		{"Off",    &defaultFace(), setHideOSNavDel(), (int)Tristate::OFF},
-		{"In Emu", &defaultFace(), setHideOSNavDel(), (int)Tristate::IN_EMU},
-		{"On",     &defaultFace(), setHideOSNavDel(), (int)Tristate::ON}
+		{"Off",    &defaultFace(), to_underlying(Tristate::OFF)},
+		{"In Emu", &defaultFace(), to_underlying(Tristate::IN_EMU)},
+		{"On",     &defaultFace(), to_underlying(Tristate::ON)}
 	},
 	hideOSNav
 	{
 		"Hide OS Navigation", &defaultFace(),
+		MultiChoiceMenuItem::DelegatesInit
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setHideOSNavMode(Tristate(item.id())); }
+		},
 		(MenuItem::Id)app().hideOSNavMode(),
 		hideOSNavItem
 	},
@@ -202,29 +217,35 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	menuOrientationItem
 	{
-		{"Auto",         &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::UNSET},
-		{landscapeName,  &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::LANDSCAPE_RIGHT},
-		{landscape2Name, &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::LANDSCAPE_LEFT},
-		{portraitName,   &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::PORTRAIT},
-		{portrait2Name,  &defaultFace(), setMenuOrientationDel(), (int)OrientationMask::PORTRAIT_UPSIDE_DOWN},
+		{"Auto",         &defaultFace(), to_underlying(OrientationMask::UNSET)},
+		{landscapeName,  &defaultFace(), to_underlying(OrientationMask::LANDSCAPE_RIGHT)},
+		{landscape2Name, &defaultFace(), to_underlying(OrientationMask::LANDSCAPE_LEFT)},
+		{portraitName,   &defaultFace(), to_underlying(OrientationMask::PORTRAIT)},
+		{portrait2Name,  &defaultFace(), to_underlying(OrientationMask::PORTRAIT_UPSIDE_DOWN)},
 	},
 	menuOrientation
 	{
 		"In Menu", &defaultFace(),
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setMenuOrientation(OrientationMask(item.id())); }
+		},
 		(MenuItem::Id)app().menuOrientation(),
 		menuOrientationItem
 	},
 	emuOrientationItem
 	{
-		{"Auto",         &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::UNSET},
-		{landscapeName,  &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::LANDSCAPE_RIGHT},
-		{landscape2Name, &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::LANDSCAPE_LEFT},
-		{portraitName,   &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::PORTRAIT},
-		{portrait2Name,  &defaultFace(), setEmuOrientationDel(), (int)OrientationMask::PORTRAIT_UPSIDE_DOWN},
+		{"Auto",         &defaultFace(), to_underlying(OrientationMask::UNSET)},
+		{landscapeName,  &defaultFace(), to_underlying(OrientationMask::LANDSCAPE_RIGHT)},
+		{landscape2Name, &defaultFace(), to_underlying(OrientationMask::LANDSCAPE_LEFT)},
+		{portraitName,   &defaultFace(), to_underlying(OrientationMask::PORTRAIT)},
+		{portrait2Name,  &defaultFace(), to_underlying(OrientationMask::PORTRAIT_UPSIDE_DOWN)},
 	},
 	emuOrientation
 	{
 		"In Emu", &defaultFace(),
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setEmuOrientation(OrientationMask(item.id())); }
+		},
 		(MenuItem::Id)app().emuOrientation(),
 		emuOrientationItem
 	},
@@ -291,36 +312,6 @@ void GUIOptionView::loadStockItems()
 	item.emplace_back(&orientationHeading);
 	item.emplace_back(&emuOrientation);
 	item.emplace_back(&menuOrientation);
-}
-
-TextMenuItem::SelectDelegate GUIOptionView::setMenuOrientationDel()
-{
-	return [this](TextMenuItem &item) { app().setMenuOrientation((OrientationMask)item.id()); };
-}
-
-TextMenuItem::SelectDelegate GUIOptionView::setEmuOrientationDel()
-{
-	return [this](TextMenuItem &item) { app().setEmuOrientation((OrientationMask)item.id()); };
-}
-
-TextMenuItem::SelectDelegate GUIOptionView::setFontSizeDel()
-{
-	return [this](TextMenuItem &item) { app().setFontSize(item.id()); };
-}
-
-TextMenuItem::SelectDelegate GUIOptionView::setStatusBarDel()
-{
-	return [this](TextMenuItem &item) { app().setHideStatusBarMode((Tristate)item.id()); };
-}
-
-TextMenuItem::SelectDelegate GUIOptionView::setLowProfileOSNavDel()
-{
-	return [this](TextMenuItem &item) { app().setLowProfileOSNavMode((Tristate)item.id()); };
-}
-
-TextMenuItem::SelectDelegate GUIOptionView::setHideOSNavDel()
-{
-	return [this](TextMenuItem &item) { app().setHideOSNavMode((Tristate)item.id()); };
 }
 
 }

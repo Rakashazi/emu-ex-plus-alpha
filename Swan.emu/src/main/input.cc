@@ -90,7 +90,7 @@ constexpr std::array gamepadComponents
 	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
 	InputComponentDesc{"Face Buttons + Opposite D-Pad Buttons", faceButtonCombinedCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::rowSize2},
 	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
-	InputComponentDesc{"Opposite D-Pad Buttons", oppositeDPadButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
+	InputComponentDesc{"Opposite D-Pad Buttons", oppositeDPadButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig | InputComponentFlagsMask::staggeredLayout},
 	InputComponentDesc{"Start", centerButtonCodes, InputComponent::button, RB2DO},
 };
 

@@ -828,6 +828,10 @@ VControllerElement &VController::add(InputComponentDesc c)
 		}
 		bug_unreachable("invalid InputComponent");
 	}();
+	if(to_underlying(c.flags & InputComponentFlagsMask::staggeredLayout) && elem.buttonGroup())
+	{
+		elem.buttonGroup()->setStaggerType(5);
+	}
 	update(elem);
 	auto layoutPos = VControllerLayoutPosition::fromPixelPos(layoutBounds().center(), elem.bounds().size(), window().bounds());
 	elem.layoutPos[0] = elem.layoutPos[1] = layoutPos;

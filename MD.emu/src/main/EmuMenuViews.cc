@@ -80,10 +80,12 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			t.resetString(inputSystemName(input.system[1]));
-			return true;
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(inputSystemName(input.system[1]));
+				return true;
+			}
 		},
 		(MenuItem::Id)system().mdInputPortDev[1],
 		inputPortsItem
@@ -110,14 +112,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem videoSystem
 	{
 		"Video System", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 0)
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(vdp_pal ? "PAL" : "NTSC");
-				return true;
+				if(idx == 0)
+				{
+					t.resetString(vdp_pal ? "PAL" : "NTSC");
+					return true;
+				}
+				return false;
 			}
-			return false;
 		},
 		system().optionVideoSystem.val,
 		videoSystemItem
@@ -141,23 +145,25 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem region
 	{
 		"Game Region", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 0)
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				auto regionStr = [](unsigned region)
+				if(idx == 0)
 				{
-					switch(region)
+					auto regionStr = [](unsigned region)
 					{
-						case REGION_USA: return "USA";
-						case REGION_EUROPE: return "Europe";
-						default: return "Japan";
-					}
-				};
-				t.resetString(regionStr(region_code));
-				return true;
+						switch(region)
+						{
+							case REGION_USA: return "USA";
+							case REGION_EUROPE: return "Europe";
+							default: return "Japan";
+						}
+					};
+					t.resetString(regionStr(region_code));
+					return true;
+				}
+				return false;
 			}
-			return false;
 		},
 		std::min((int)config.region_detect, 4),
 		regionItem

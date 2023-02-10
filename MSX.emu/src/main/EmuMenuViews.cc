@@ -120,26 +120,28 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	MultiChoiceMenuItem msxMachine
 	{
 		"Default Machine Type", &defaultFace(),
-		[](int idx, Gfx::Text &t)
 		{
-			if(idx == -1)
+			.onSetDisplayString = [](auto idx, Gfx::Text &t)
 			{
-				t.resetString("None");
-				return true;
+				if(idx == -1)
+				{
+					t.resetString("None");
+					return true;
+				}
+				return false;
+			},
+			.onSelect = [this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+			{
+				if(!msxMachineItem.size())
+				{
+					logErr("no machines definitions are present");
+					return;
+				}
+				item.defaultOnSelect(view, e);
 			}
-			return false;
 		},
 		0,
-		msxMachineItem,
-		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
-		{
-			if(!msxMachineItem.size())
-			{
-				logErr("no machines definitions are present");
-				return;
-			}
-			item.defaultOnSelect(view, e);
-		}
+		msxMachineItem
 	};
 
 	void reloadMachineItem()
@@ -539,25 +541,27 @@ private:
 	MultiChoiceMenuItem msxMachine
 	{
 		"Machine Type", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == -1)
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString("None");
-				return true;
+				if(idx == -1)
+				{
+					t.resetString("None");
+					return true;
+				}
+				return false;
+			},
+			.onSelect = [this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+			{
+				if(!msxMachineItem.size())
+				{
+					return;
+				}
+				item.defaultOnSelect(view, e);
 			}
-			return false;
 		},
 		0,
-		msxMachineItem,
-		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
-		{
-			if(!msxMachineItem.size())
-			{
-				return;
-			}
-			item.defaultOnSelect(view, e);
-		}
+		msxMachineItem
 	};
 
 	void reloadMachineItem()
@@ -731,10 +735,12 @@ protected:
 		return
 		{
 			"Volume", &defaultFace(),
-			[this, type](uint32_t idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", mixerVolumeOption(type)));
-				return true;
+				.onSetDisplayString = [this, type](auto idx, Gfx::Text &t)
+				{
+					t.resetString(fmt::format("{}%", mixerVolumeOption(type)));
+					return true;
+				}
 			},
 			1,
 			volumeLevelItem[idx]
@@ -802,10 +808,12 @@ protected:
 		return
 		{
 			"Pan", &defaultFace(),
-			[this, type](uint32_t idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", mixerPanOption(type)));
-				return true;
+				.onSetDisplayString = [this, type](auto idx, Gfx::Text &t)
+				{
+					t.resetString(fmt::format("{}%", mixerPanOption(type)));
+					return true;
+				}
 			},
 			1,
 			panLevelItem[idx]

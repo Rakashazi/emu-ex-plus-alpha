@@ -103,7 +103,7 @@ void StateSlotView::refreshSlot(int slot)
 	s = {str(), &defaultFace(), nullptr};
 	if(slot == sys.stateSlot())
 		load.setActive(fileExists);
-	s.setOnSelect(
+	s.onSelect =
 		[this, slot](View &view)
 		{
 			auto &sys = system();
@@ -114,7 +114,7 @@ void StateSlotView::refreshSlot(int slot)
 			slotHeading.compile(slotHeadingName(sys), renderer());
 			load.setActive(sys.stateExists(sys.stateSlot()));
 			postDraw();
-		});
+		};
 }
 
 void StateSlotView::refreshSlots()

@@ -104,14 +104,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem videoSystem
 	{
 		"System", &defaultFace(),
-		[this](uint32_t idx, Gfx::Text &t)
 		{
-			if(idx == 0)
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(dendy ? "Dendy" : pal_emulation ? "PAL" : "NTSC");
-				return true;
+				if(idx == 0)
+				{
+					t.resetString(dendy ? "Dendy" : pal_emulation ? "PAL" : "NTSC");
+					return true;
+				}
+				return false;
 			}
-			return false;
 		},
 		system().optionVideoSystem.val,
 		videoSystemItem
@@ -307,14 +309,16 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 	MultiChoiceMenuItem defaultPal
 	{
 		"Default Palette", &defaultFace(),
-		[this](uint32_t idx, Gfx::Text &t)
 		{
-			if(idx == defaultPaletteCustomFileIdx())
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(IG::withoutDotExtension(appContext().fileUriDisplayName(system().defaultPalettePath)));
-				return true;
+				if(idx == defaultPaletteCustomFileIdx())
+				{
+					t.resetString(IG::withoutDotExtension(appContext().fileUriDisplayName(system().defaultPalettePath)));
+					return true;
+				}
+				return false;
 			}
-			return false;
 		},
 		[this]()
 		{

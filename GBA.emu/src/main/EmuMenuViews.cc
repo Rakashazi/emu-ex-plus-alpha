@@ -45,14 +45,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem rtc
 	{
 		"RTC Emulation", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 0)
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(rtcIsEnabled() ? "On" : "Off");
-				return true;
+				if(idx == 0)
+				{
+					t.resetString(rtcIsEnabled() ? "On" : "Off");
+					return true;
+				}
+				return false;
 			}
-			return false;
 		},
 		system().optionRtcEmulation.val,
 		rtcItem
@@ -79,14 +81,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem saveType
 	{
 		"Save Type", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 0)
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(saveTypeStr(system().detectedSaveType, system().detectedSaveSize));
-				return true;
+				if(idx == 0)
+				{
+					t.resetString(saveTypeStr(system().detectedSaveType, system().detectedSaveSize));
+					return true;
+				}
+				return false;
 			}
-			return false;
 		},
 		(MenuItem::Id)system().optionSaveTypeOverride.val,
 		saveTypeItem
@@ -137,14 +141,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem hardwareSensor
 	{
 		"Hardware Sensor", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 0)
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(wise_enum::to_string(system().detectedSensorType));
-				return true;
+				if(idx == 0)
+				{
+					t.resetString(wise_enum::to_string(system().detectedSensorType));
+					return true;
+				}
+				return false;
 			}
-			return false;
 		},
 		(MenuItem::Id)system().sensorType,
 		hardwareSensorItem
@@ -254,10 +260,12 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 		return
 		{
 			gbVol ? "GB APU Volume" : "PCM Volume", &defaultFace(),
-			[this, gbVol](size_t idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", soundVolumeAsInt(gGba, gbVol)));
-				return true;
+				.onSetDisplayString = [this, gbVol](auto idx, Gfx::Text &t)
+				{
+					t.resetString(fmt::format("{}%", soundVolumeAsInt(gGba, gbVol)));
+					return true;
+				}
 			},
 			(MenuItem::Id)soundVolumeAsInt(gGba, gbVol),
 			volumeLevelItem[gbVol ? 1 : 0]
@@ -322,10 +330,12 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	MultiChoiceMenuItem filteringLevel
 	{
 		"Filtering Level", &defaultFace(),
-		[this](size_t idx, Gfx::Text &t)
 		{
-			t.resetString(fmt::format("{}%", soundFilteringAsInt(gGba)));
-			return true;
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(fmt::format("{}%", soundFilteringAsInt(gGba)));
+				return true;
+			}
 		},
 		(MenuItem::Id)soundFilteringAsInt(gGba),
 		filteringLevelItem
@@ -390,10 +400,12 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	MultiChoiceMenuItem lightSensorScale
 	{
 		"Light Sensor Scale", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			t.resetString(fmt::format("{} lux", (int)system().lightSensorScaleLux));
-			return true;
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(fmt::format("{} lux", (int)system().lightSensorScaleLux));
+				return true;
+			}
 		},
 		(MenuItem::Id)system().lightSensorScaleLux,
 		lightSensorScaleItem

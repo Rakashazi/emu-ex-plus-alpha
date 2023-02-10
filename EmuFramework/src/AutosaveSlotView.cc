@@ -107,10 +107,10 @@ ManageAutosavesView::ManageAutosavesView(ViewAttachParams attach, AutosaveSlotVi
 {
 	for(auto &i : extraSlotItems)
 	{
-		i.setOnSelect([this](TextMenuItem &item, const Input::Event &e)
+		i.onSelect = [this](TextMenuItem &item, const Input::Event &e)
 		{
 			pushAndShow(makeView<EditAutosaveView>(*this, static_cast<SlotTextMenuItem&>(item).slotName), e);
-		});
+		};
 	}
 }
 

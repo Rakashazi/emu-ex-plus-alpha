@@ -104,10 +104,12 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem emuCore
 	{
 		"Emulation Core", &defaultFace(),
-		[this](size_t idx, Gfx::Text &t)
 		{
-			t.resetString(asModuleString(system().resolvedCore()));
-			return true;
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(asModuleString(system().resolvedCore()));
+				return true;
+			}
 		},
 		(MenuItem::Id)system().core,
 		emuCoreItems
@@ -306,10 +308,12 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	MultiChoiceMenuItem emuCore
 	{
 		"Emulation Core", &defaultFace(),
-		[this](size_t idx, Gfx::Text &t)
 		{
-			t.resetString(asModuleString(system().resolvedDefaultCore()));
-			return true;
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(asModuleString(system().resolvedDefaultCore()));
+				return true;
+			}
 		},
 		(MenuItem::Id)system().defaultCore,
 		emuCoreItems
@@ -415,10 +419,12 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 		return
 		{
 			desc(type).name, &defaultFace(),
-			[=, this](size_t idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", system().volume(type)));
-				return true;
+				.onSetDisplayString = [this, type](auto idx, Gfx::Text &t)
+				{
+					t.resetString(fmt::format("{}%", system().volume(type)));
+					return true;
+				}
 			},
 			(MenuItem::Id)system().volume(type),
 			volumeLevelItem[desc(type).idx]

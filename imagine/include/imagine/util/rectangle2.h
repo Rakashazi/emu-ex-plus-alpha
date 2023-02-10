@@ -319,7 +319,10 @@ public:
 	[[nodiscard]] constexpr Rect2 yRect() const { return {{0, y}, {0, y2}}; }
 
 	template<class NewType>
-	Rect2<NewType> asType() const { return {{NewType(x), NewType(y)}, {NewType(x2), NewType(y2)}}; }
+	constexpr Rect2<NewType> asType() const { return {{NewType(x), NewType(y)}, {NewType(x2), NewType(y2)}}; }
+
+	[[nodiscard]] constexpr bool isPortrait() const { return xSize() < ySize(); }
+	[[nodiscard]] constexpr bool isLandscape() const { return !isPortrait(); }
 };
 
 template<class T>

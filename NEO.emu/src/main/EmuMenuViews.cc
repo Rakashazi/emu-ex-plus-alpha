@@ -64,15 +64,17 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem timer
 	{
 		"Emulate Timer", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 2)
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(conf.raster ? "On" : "Off");
-				return true;
+				if(idx == 2)
+				{
+					t.resetString(conf.raster ? "On" : "Off");
+					return true;
+				}
+				else
+					return false;
 			}
-			else
-				return false;
 		},
 		std::min((int)system().optionTimerInt, 2),
 		timerItem

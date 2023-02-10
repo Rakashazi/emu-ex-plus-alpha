@@ -341,6 +341,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 		writeOptionValue(io, CFGKEY_LAYOUT_BEHIND_SYSTEM_UI, false);
 	if(contentRotation_ != Rotation::ANY)
 		writeOptionValue(io, CFGKEY_CONTENT_ROTATION, contentRotation_);
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LANDSCAPE_OFFSET, videoLayer().landscapeOffset, 0);
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_OFFSET, videoLayer().portraitOffset, 0);
 	vController.writeConfig(io);
 	autosaveManager_.writeConfig(io);
 	if(IG::used(usePresentationTime_) && !usePresentationTime_)
@@ -629,6 +631,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_RENDERER_PRESENTATION_TIME: return readOptionValue<bool>(io, size, [&](auto on){setUsePresentationTime(on);});
 				case CFGKEY_FORCE_MAX_SCREEN_FRAME_RATE: return readOptionValue<bool>(io, size, [&](auto on){setForceMaxScreenFrameRate(on);});
 				case CFGKEY_CONTENT_ROTATION: return readOptionValue(io, size, contentRotation_, [](auto r){return r <= lastEnum<Rotation>;});
+				case CFGKEY_VIDEO_LANDSCAPE_OFFSET: return readOptionValue(io, size, videoLayer().landscapeOffset, [](auto v){return v >= -4096 && v <= 4096;});
+				case CFGKEY_VIDEO_PORTRAIT_OFFSET: return readOptionValue(io, size, videoLayer().portraitOffset, [](auto v){return v >= -4096 && v <= 4096;});
 				case CFGKEY_VIDEO_BRIGHTNESS: return readOptionValue(io, size, videoBrightnessRGB);
 				case CFGKEY_INPUT_KEY_CONFIGS: return readKeyConfig(customKeyConfigs, io, size, inputControlCategories());
 				case CFGKEY_INPUT_DEVICE_CONFIGS: return readInputDeviceConfig(savedInputDevs, io, size, customKeyConfigs);

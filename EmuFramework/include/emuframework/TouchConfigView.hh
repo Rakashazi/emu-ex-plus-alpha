@@ -51,6 +51,7 @@ protected:
 	TextMenuItem alphaItem[6];
 	MultiChoiceMenuItem alpha;
 	TextMenuItem btnPlace;
+	TextMenuItem placeVideo;
 	TextMenuItem addButton;
 	IG_UseMemberIf(Config::DISPLAY_CUTOUT, BoolMenuItem, allowButtonsPastContentBounds);
 	TextMenuItem resetControls;
@@ -63,10 +64,6 @@ protected:
 
 	VController &vController() { return *vControllerPtr; }
 	void refreshTouchConfigMenu();
-	TextMenuItem::SelectDelegate setVisibilityDel(VControllerVisibility);
-	TextMenuItem::SelectDelegate setSizeDel();
-	TextMenuItem::SelectDelegate setPointerInputPlayerDel(int val);
-	TextMenuItem::SelectDelegate setAlphaDel();
 };
 
 }

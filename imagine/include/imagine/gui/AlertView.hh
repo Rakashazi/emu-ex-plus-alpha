@@ -73,7 +73,7 @@ public:
 	{
 		assert(idx < item.size());
 		item[idx].setName(IG_forward(name), &defaultFace());
-		item[idx].setOnSelect(del);
+		item[idx].onSelect = del;
 	}
 
 protected:

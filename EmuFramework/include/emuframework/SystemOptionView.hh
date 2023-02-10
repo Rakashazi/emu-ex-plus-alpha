@@ -41,10 +41,6 @@ protected:
 	MultiChoiceMenuItem fastSlowModeSpeed;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
 	StaticArrayList<MenuItem*, 24> item;
-
-	TextMenuItem::SelectDelegate setAutosaveTimerDel();
-	TextMenuItem::SelectDelegate setAutosaveLaunchDel();
-	TextMenuItem::SelectDelegate setFastSlowModeSpeedDel();
 };
 
 }

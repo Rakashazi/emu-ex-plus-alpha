@@ -116,16 +116,18 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem tvPhosphor
 	{
 		"Simulate TV Phosphor", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 2 && system().osystem.hasConsole())
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				bool phospherInUse = system().osystem.console().properties().get(PropType::Display_Phosphor) == "YES";
-				t.resetString(phospherInUse ? "On" : "Off");
-				return true;
+				if(idx == 2 && system().osystem.hasConsole())
+				{
+					bool phospherInUse = system().osystem.console().properties().get(PropType::Display_Phosphor) == "YES";
+					t.resetString(phospherInUse ? "On" : "Off");
+					return true;
+				}
+				else
+					return false;
 			}
-			else
-				return false;
 		},
 		(MenuItem::Id)system().optionTVPhosphor.val,
 		tvPhosphorItem
@@ -145,15 +147,17 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem videoSystem
 	{
 		"Video System", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 0 && system().osystem.hasConsole())
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(system().osystem.console().about().DisplayFormat.c_str());
-				return true;
+				if(idx == 0 && system().osystem.hasConsole())
+				{
+					t.resetString(system().osystem.console().about().DisplayFormat.c_str());
+					return true;
+				}
+				else
+					return false;
 			}
-			else
-				return false;
 		},
 		(MenuItem::Id)system().optionVideoSystem.val,
 		videoSystemItem
@@ -190,15 +194,17 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports", &defaultFace(),
-		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 0 && system().osystem.hasConsole())
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(controllerTypeStr(system().osystem.console().leftController().type()));
-				return true;
+				if(idx == 0 && system().osystem.hasConsole())
+				{
+					t.resetString(controllerTypeStr(system().osystem.console().leftController().type()));
+					return true;
+				}
+				else
+					return false;
 			}
-			else
-				return false;
 		},
 		(MenuItem::Id)system().optionInputPort1.val,
 		inputPortsItem
@@ -271,10 +277,12 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem dPaddleSensitivity
 	{
 		"Digital Paddle Sensitivity", &defaultFace(),
-		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.resetString(fmt::format("{}", system().optionPaddleDigitalSensitivity.val));
-			return true;
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(fmt::format("{}", system().optionPaddleDigitalSensitivity.val));
+				return true;
+			}
 		},
 		(MenuItem::Id)system().optionPaddleDigitalSensitivity.val,
 		dPaddleSensitivityItem

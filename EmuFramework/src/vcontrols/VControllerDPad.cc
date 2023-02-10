@@ -37,16 +37,16 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
 {
 	if(visualizeBounds && padArea.xSize())
 	{
-		IG::MemPixmap mapMemPix{{padArea.size(), IG::PIXEL_FMT_RGB565}};
+		MemPixmap mapMemPix{{padArea.size(), PIXEL_FMT_RGB565}};
 		auto mapPix = mapMemPix.view();
 		for(auto y : iotaCount(mapPix.h()))
 			for(auto x : iotaCount(mapPix.w()))
 			{
 				auto input = getInput({padArea.xPos(LT2DO) + (int)x, padArea.yPos(LT2DO) + (int)y});
 				//logMsg("got input %d", input);
-				*((uint16_t*)mapPix.pixel({(int)x, (int)y})) = input == std::array{-1, -1} ? IG::PIXEL_DESC_RGB565.build(1., 0., 0., 1.)
-										: (input[0] != -1 && input[1] != -1) ? IG::PIXEL_DESC_RGB565.build(0., 1., 0., 1.)
-										: IG::PIXEL_DESC_RGB565.build(1., 1., 1., 1.);
+				*((uint16_t*)mapPix.pixel({(int)x, (int)y})) = input == std::array{-1, -1} ? PIXEL_DESC_RGB565.build(1., 0., 0., 1.)
+										: (input[0] != -1 && input[1] != -1) ? PIXEL_DESC_RGB565.build(0., 1., 0., 1.)
+										: PIXEL_DESC_RGB565.build(1., 1., 1., 1.);
 			}
 		mapImg = r.makeTexture({mapPix.desc(), View::imageSamplerConfig});
 		mapImg.write(0, mapPix, {});
@@ -79,7 +79,7 @@ void VControllerDPad::setSize(Gfx::Renderer &r, int sizeInPixels)
 {
 	//logMsg("set dpad pixel size: %d", sizeInPixels);
 	btnSizePixels = sizeInPixels;
-	auto rect = IG::makeWindowRectRel({0, 0}, {btnSizePixels, btnSizePixels});
+	auto rect = makeWindowRectRel({0, 0}, {btnSizePixels, btnSizePixels});
 	bool changedSize = rect.xSize() != padBaseArea.xSize();
 	padBaseArea = rect;
 	padArea = {{}, {int(padBaseArea.xSize()*1.5), int(padBaseArea.xSize()*1.5)}};
@@ -90,7 +90,7 @@ void VControllerDPad::setSize(Gfx::Renderer &r, int sizeInPixels)
 	}
 }
 
-void VControllerDPad::setPos(IG::WP pos, IG::WindowRect viewBounds)
+void VControllerDPad::setPos(WP pos, WindowRect viewBounds)
 {
 	padBaseArea.setPos(pos, C2DO);
 	padBaseArea.fitIn(viewBounds);
@@ -124,7 +124,7 @@ void VControllerDPad::setShowBounds(Gfx::Renderer &r, bool on)
 	}
 }
 
-void VControllerDPad::updateMeasurements(const IG::Window &win)
+void VControllerDPad::updateMeasurements(const Window &win)
 {
 	deadzonePixels = win.widthMMInPixels(deadzoneMM100x / 100.);
 }
@@ -149,7 +149,7 @@ void VControllerDPad::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHi
 	}
 }
 
-std::array<int, 2> VControllerDPad::getInput(IG::WP c) const
+std::array<int, 2> VControllerDPad::getInput(WP c) const
 {
 	std::array<int, 2> pad{-1, -1};
 	if(state == VControllerState::OFF || !padArea.overlaps(c))

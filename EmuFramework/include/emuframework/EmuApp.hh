@@ -190,6 +190,7 @@ public:
 	void startAudio();
 	EmuAudio &audio() { return emuAudio; }
 	EmuVideo &video() { return emuVideo; }
+	EmuVideoLayer &videoLayer() { return emuVideoLayer; }
 	EmuViewController &viewController();
 	AutosaveManager &autosaveManager() { return autosaveManager_; }
 	void configFrameTime();

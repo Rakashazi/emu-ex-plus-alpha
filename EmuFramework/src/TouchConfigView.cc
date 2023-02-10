@@ -27,6 +27,7 @@
 #include <utility>
 #include "WindowData.hh"
 #include "privateInput.hh"
+#include "PlaceVideoView.hh"
 
 namespace EmuEx
 {
@@ -63,13 +64,13 @@ private:
 		VControllerElement *elem{};
 		IG::WP startPos{};
 	};
-	Gfx::Text text{};
+	Gfx::Text text;
 	VController *vControllerPtr;
 	IG::InterpolatorValue<float, IG::FrameTime, IG::InterpolatorType::LINEAR> textFade{};
 	IG::Timer animationStartTimer{"OnScreenInputPlaceView::animationStartTimer"};
-	IG::OnFrameDelegate animate{};
+	IG::OnFrameDelegate animate;
 	IG::WindowRect exitBtnRect{};
-	Input::DragTracker<DragData> dragTracker{};
+	Input::DragTracker<DragData> dragTracker;
 
 	VController &vController() { return *vControllerPtr; }
 };
@@ -233,39 +234,53 @@ public:
 		confView{confView_},
 		deadzoneItems
 		{
-			{"1",    &defaultFace(), setDeadzoneDel(), 100},
-			{"1.35", &defaultFace(), setDeadzoneDel(), 135},
-			{"1.6",  &defaultFace(), setDeadzoneDel(), 160},
+			{"1",    &defaultFace(), 100},
+			{"1.35", &defaultFace(), 135},
+			{"1.6",  &defaultFace(), 160},
 		},
 		deadzone
 		{
 			"Deadzone", &defaultFace(),
+			{
+				.defaultItemOnSelect = [this](TextMenuItem &item) { elem.dPad()->setDeadzone(renderer(), item.id(), window()); }
+			},
 			MenuItem::Id{elem.dPad()->deadzone()},
 			deadzoneItems
 		},
 		diagonalSensitivityItems
 		{
-			{"None",  &defaultFace(), setDiagonalSensitivityDel(), 1000},
-			{"Low",   &defaultFace(), setDiagonalSensitivityDel(), 1500},
-			{"M-Low", &defaultFace(), setDiagonalSensitivityDel(), 1750},
-			{"Med.",  &defaultFace(), setDiagonalSensitivityDel(), 2000},
-			{"High",  &defaultFace(), setDiagonalSensitivityDel(), 2500},
+			{"None",  &defaultFace(), 1000},
+			{"Low",   &defaultFace(), 1500},
+			{"M-Low", &defaultFace(), 1750},
+			{"Med.",  &defaultFace(), 2000},
+			{"High",  &defaultFace(), 2500},
 		},
 		diagonalSensitivity
 		{
 			"Diagonal Sensitivity", &defaultFace(),
+			{
+				.defaultItemOnSelect = [this](TextMenuItem &item) { elem.dPad()->setDiagonalSensitivity(renderer(), float(item.id()) / 1000.f); }
+			},
 			MenuItem::Id(elem.dPad()->diagonalSensitivity() * 1000.f),
 			diagonalSensitivityItems
 		},
 		stateItems
 		{
-			{ctrlStateStr[0], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::OFF)},
-			{ctrlStateStr[1], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::SHOWN)},
-			{ctrlStateStr[2], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::HIDDEN)},
+			{ctrlStateStr[0], &defaultFace(), to_underlying(VControllerState::OFF)},
+			{ctrlStateStr[1], &defaultFace(), to_underlying(VControllerState::SHOWN)},
+			{ctrlStateStr[2], &defaultFace(), to_underlying(VControllerState::HIDDEN)},
 		},
 		state
 		{
 			"State", &defaultFace(),
+			{
+				.defaultItemOnSelect = [this](TextMenuItem &item)
+				{
+					elem.layoutPos[window().isPortrait()].state = VControllerState(item.id());
+					vCtrl.setLayoutPositionChanged();
+					vCtrl.place();
+				}
+			},
 			MenuItem::Id(elem.layoutPos[window().isPortrait()].state),
 			stateItems
 		},
@@ -318,26 +333,6 @@ private:
 	BoolMenuItem showBoundingArea;
 	TextMenuItem remove;
 	std::array<MenuItem*, 5> item{&state, &deadzone, &diagonalSensitivity, &showBoundingArea, &remove};
-
-	TextMenuItem::SelectDelegate setButtonStateDel()
-	{
-		return [this](TextMenuItem &item)
-		{
-			elem.layoutPos[window().isPortrait()].state = VControllerState(item.id());
-			vCtrl.setLayoutPositionChanged();
-			vCtrl.place();
-		};
-	}
-
-	TextMenuItem::SelectDelegate setDeadzoneDel()
-	{
-		return [this](TextMenuItem &item){ elem.dPad()->setDeadzone(renderer(), item.id(), window()); };
-	}
-
-	TextMenuItem::SelectDelegate setDiagonalSensitivityDel()
-	{
-		return [this](TextMenuItem &item){ elem.dPad()->setDiagonalSensitivity(renderer(), float(item.id()) / 1000.f); };
-	}
 };
 
 static void addCategories(EmuApp &app, VControllerElement &elem, auto &&addCategory)
@@ -430,81 +425,125 @@ public:
 		confView{confView_},
 		stateItems
 		{
-			{ctrlStateStr[0], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::OFF)},
-			{ctrlStateStr[1], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::SHOWN)},
-			{ctrlStateStr[2], &defaultFace(), setButtonStateDel(), to_underlying(VControllerState::HIDDEN)},
+			{ctrlStateStr[0], &defaultFace(), to_underlying(VControllerState::OFF)},
+			{ctrlStateStr[1], &defaultFace(), to_underlying(VControllerState::SHOWN)},
+			{ctrlStateStr[2], &defaultFace(), to_underlying(VControllerState::HIDDEN)},
 		},
 		state
 		{
 			"State", &defaultFace(),
+			{
+				.defaultItemOnSelect = [this](TextMenuItem &item)
+				{
+					elem.layoutPos[window().isPortrait()].state = VControllerState(item.id());
+					vCtrl.setLayoutPositionChanged();
+					vCtrl.place();
+				}
+			},
 			MenuItem::Id(elem.layoutPos[window().isPortrait()].state),
 			stateItems
 		},
 		rowSizeItems
 		{
-			{"1", &defaultFace(), setRowSizeDel(), 1},
-			{"2", &defaultFace(), setRowSizeDel(), 2},
-			{"3", &defaultFace(), setRowSizeDel(), 3},
-			{"4", &defaultFace(), setRowSizeDel(), 4},
-			{"5", &defaultFace(), setRowSizeDel(), 5},
+			{"1", &defaultFace(), 1},
+			{"2", &defaultFace(), 2},
+			{"3", &defaultFace(), 3},
+			{"4", &defaultFace(), 4},
+			{"5", &defaultFace(), 5},
 		},
 		rowSize
 		{
 			"Buttons Per Row", &defaultFace(),
+			{
+				.defaultItemOnSelect = [this](TextMenuItem &item)
+				{
+					elem.setRowSize(item.id());
+					vCtrl.setLayoutPositionChanged();
+					vCtrl.place();
+				}
+			},
 			MenuItem::Id(elem.rowSize()),
 			rowSizeItems
 		},
 		spaceItems
 		{
-			{"1", &defaultFace(), setButtonSpaceDel(), 100},
-			{"2", &defaultFace(), setButtonSpaceDel(), 200},
-			{"3", &defaultFace(), setButtonSpaceDel(), 300},
-			{"4", &defaultFace(), setButtonSpaceDel(), 400},
+			{"1", &defaultFace(), 100},
+			{"2", &defaultFace(), 200},
+			{"3", &defaultFace(), 300},
+			{"4", &defaultFace(), 400},
 		},
 		space
 		{
 			"Spacing", &defaultFace(),
+			{
+				.defaultItemOnSelect = [this](TextMenuItem &item)
+				{
+					elem.buttonGroup()->setSpacing(item.id(), window());
+					vCtrl.place();
+				}
+			},
 			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->spacing() : 0},
 			spaceItems
 		},
 		staggerItems
 		{
-			{"-0.75x V", &defaultFace(), setButtonStaggerDel(), 0},
-			{"-0.5x V",  &defaultFace(), setButtonStaggerDel(), 1},
-			{"0",        &defaultFace(), setButtonStaggerDel(), 2},
-			{"0.5x V",   &defaultFace(), setButtonStaggerDel(), 3},
-			{"0.75x V",  &defaultFace(), setButtonStaggerDel(), 4},
-			{"1x H&V",   &defaultFace(), setButtonStaggerDel(), 5},
+			{"-0.75x V", &defaultFace(), 0},
+			{"-0.5x V",  &defaultFace(), 1},
+			{"0",        &defaultFace(), 2},
+			{"0.5x V",   &defaultFace(), 3},
+			{"0.75x V",  &defaultFace(), 4},
+			{"1x H&V",   &defaultFace(), 5},
 		},
 		stagger
 		{
 			"Stagger", &defaultFace(),
+			{
+				.defaultItemOnSelect = [this](TextMenuItem &item)
+				{
+					elem.buttonGroup()->setStaggerType(item.id());
+					vCtrl.place();
+				}
+			},
 			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->stagger() : 0},
 			staggerItems
 		},
 		extraXSizeItems
 		{
-			{touchCtrlExtraBtnSizeMenuName[0], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[0]},
-			{touchCtrlExtraBtnSizeMenuName[1], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[1]},
-			{touchCtrlExtraBtnSizeMenuName[2], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[2]},
-			{touchCtrlExtraBtnSizeMenuName[3], &defaultFace(), setButtonExtraXSizeDel(), touchCtrlExtraBtnSizeMenuVal[3]},
+			{touchCtrlExtraBtnSizeMenuName[0], &defaultFace(), touchCtrlExtraBtnSizeMenuVal[0]},
+			{touchCtrlExtraBtnSizeMenuName[1], &defaultFace(), touchCtrlExtraBtnSizeMenuVal[1]},
+			{touchCtrlExtraBtnSizeMenuName[2], &defaultFace(), touchCtrlExtraBtnSizeMenuVal[2]},
+			{touchCtrlExtraBtnSizeMenuName[3], &defaultFace(), touchCtrlExtraBtnSizeMenuVal[3]},
 		},
 		extraXSize
 		{
 			"Extended H Bounds", &defaultFace(),
+			{
+				.defaultItemOnSelect = [this](TextMenuItem &item)
+				{
+					elem.buttonGroup()->setXPadding(item.id());
+					vCtrl.place();
+				}
+			},
 			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->xPadding() : 0},
 			extraXSizeItems
 		},
 		extraYSizeItems
 		{
-			{touchCtrlExtraBtnSizeMenuName[0], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[0]},
-			{touchCtrlExtraBtnSizeMenuName[1], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[1]},
-			{touchCtrlExtraBtnSizeMenuName[2], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[2]},
-			{touchCtrlExtraBtnSizeMenuName[3], &defaultFace(), setButtonExtraYSizeDel(), touchCtrlExtraBtnSizeMenuVal[3]},
+			{touchCtrlExtraBtnSizeMenuName[0], &defaultFace(), touchCtrlExtraBtnSizeMenuVal[0]},
+			{touchCtrlExtraBtnSizeMenuName[1], &defaultFace(), touchCtrlExtraBtnSizeMenuVal[1]},
+			{touchCtrlExtraBtnSizeMenuName[2], &defaultFace(), touchCtrlExtraBtnSizeMenuVal[2]},
+			{touchCtrlExtraBtnSizeMenuName[3], &defaultFace(), touchCtrlExtraBtnSizeMenuVal[3]},
 		},
 		extraYSize
 		{
 			"Extended V Bounds", &defaultFace(),
+			{
+				.defaultItemOnSelect = [this](TextMenuItem &item)
+				{
+					elem.buttonGroup()->setYPadding(item.id());
+					vCtrl.place();
+				}
+			},
 			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->yPadding() : 0},
 			extraYSizeItems
 		},
@@ -631,62 +670,6 @@ private:
 			item.emplace_back(&i);
 		}
 	}
-
-	TextMenuItem::SelectDelegate setButtonStateDel()
-	{
-		return [this](TextMenuItem &item)
-		{
-			elem.layoutPos[window().isPortrait()].state = VControllerState(item.id());
-			vCtrl.setLayoutPositionChanged();
-			vCtrl.place();
-		};
-	}
-
-	TextMenuItem::SelectDelegate setRowSizeDel()
-	{
-		return [this](TextMenuItem &item)
-		{
-			elem.setRowSize(item.id());
-			vCtrl.setLayoutPositionChanged();
-			vCtrl.place();
-		};
-	}
-
-	TextMenuItem::SelectDelegate setButtonSpaceDel()
-	{
-		return [this](TextMenuItem &item)
-		{
-			elem.buttonGroup()->setSpacing(item.id(), window());
-			vCtrl.place();
-		};
-	}
-
-	TextMenuItem::SelectDelegate setButtonExtraXSizeDel()
-	{
-		return [this](TextMenuItem &item)
-		{
-			elem.buttonGroup()->setXPadding(item.id());
-			vCtrl.place();
-		};
-	}
-
-	TextMenuItem::SelectDelegate setButtonExtraYSizeDel()
-	{
-		return [this](TextMenuItem &item)
-		{
-			elem.buttonGroup()->setYPadding(item.id());
-			vCtrl.place();
-		};
-	}
-
-	TextMenuItem::SelectDelegate setButtonStaggerDel()
-	{
-		return [this](TextMenuItem &item)
-		{
-			elem.buttonGroup()->setStaggerType(item.id());
-			vCtrl.place();
-		};
-	}
 };
 
 class AddNewButtonView : public TableView, public EmuAppHelper<AddNewButtonView>
@@ -738,26 +721,6 @@ private:
 	std::vector<TextMenuItem> buttons;
 };
 
-TextMenuItem::SelectDelegate TouchConfigView::setVisibilityDel(VControllerVisibility val)
-{
-	return [this, val](){ vController().setGamepadControlsVisibility(val); };
-}
-
-TextMenuItem::SelectDelegate TouchConfigView::setPointerInputPlayerDel(int val)
-{
-	return [this, val](){ vController().setInputPlayer(val); };
-}
-
-TextMenuItem::SelectDelegate TouchConfigView::setSizeDel()
-{
-	return [this](TextMenuItem &item){ vController().setButtonSize(item.id()); };
-}
-
-TextMenuItem::SelectDelegate TouchConfigView::setAlphaDel()
-{
-	return [this](TextMenuItem &item){ vController().setButtonAlpha(item.id()); };
-}
-
 void TouchConfigView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	vController().draw(cmds, true, .75);
@@ -789,49 +752,48 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 	vControllerPtr{&vCtrl},
 	touchCtrlItem
 	{
-		{"Off",  &defaultFace(), setVisibilityDel(VControllerVisibility::OFF)},
-		{"On",   &defaultFace(), setVisibilityDel(VControllerVisibility::ON)},
-		{"Auto", &defaultFace(), setVisibilityDel(VControllerVisibility::AUTO)}
+		{"Off",  &defaultFace(), to_underlying(VControllerVisibility::OFF)},
+		{"On",   &defaultFace(), to_underlying(VControllerVisibility::ON)},
+		{"Auto", &defaultFace(), to_underlying(VControllerVisibility::AUTO)}
 	},
 	touchCtrl
 	{
 		"Use Virtual Gamepad", &defaultFace(),
-		(int)vCtrl.gamepadControlsVisibility(),
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item){ vController().setGamepadControlsVisibility(VControllerVisibility(item.id())); }
+		},
+		int(vCtrl.gamepadControlsVisibility()),
 		touchCtrlItem
 	},
 	pointerInputItem
 	{
-		{"1", &defaultFace(), setPointerInputPlayerDel(0)},
-		{"2", &defaultFace(), setPointerInputPlayerDel(1)},
-		{"3", &defaultFace(), setPointerInputPlayerDel(2)},
-		{"4", &defaultFace(), setPointerInputPlayerDel(3)},
-		{"5", &defaultFace(), setPointerInputPlayerDel(4)},
+		{"1", &defaultFace(), 0},
+		{"2", &defaultFace(), 1},
+		{"3", &defaultFace(), 2},
+		{"4", &defaultFace(), 3},
+		{"5", &defaultFace(), 4},
 	},
 	pointerInput
 	{
 		"Virtual Gamepad Player", &defaultFace(),
-		(int)vCtrl.inputPlayer(),
-		[this](const MultiChoiceMenuItem &)
 		{
-			return EmuSystem::maxPlayers;
+			.defaultItemOnSelect = [this](TextMenuItem &item){ vController().setInputPlayer(item.id()); }
 		},
-		[this](const MultiChoiceMenuItem &, size_t idx) -> TextMenuItem&
-		{
-			return pointerInputItem[idx];
-		}
+		int(vCtrl.inputPlayer()),
+		std::span{pointerInputItem, size_t(EmuSystem::maxPlayers)}
 	},
 	sizeItem
 	{
-		{"6.5", &defaultFace(), setSizeDel(), 650},
-		{"7",   &defaultFace(), setSizeDel(), 700},
-		{"7.5", &defaultFace(), setSizeDel(), 750},
-		{"8",   &defaultFace(), setSizeDel(), 800},
-		{"8.5", &defaultFace(), setSizeDel(), 850},
-		{"9",   &defaultFace(), setSizeDel(), 900},
-		{"10",  &defaultFace(), setSizeDel(), 1000},
-		{"12",  &defaultFace(), setSizeDel(), 1200},
-		{"14",  &defaultFace(), setSizeDel(), 1400},
-		{"15",  &defaultFace(), setSizeDel(), 1500},
+		{"6.5", &defaultFace(), 650},
+		{"7",   &defaultFace(), 700},
+		{"7.5", &defaultFace(), 750},
+		{"8",   &defaultFace(), 800},
+		{"8.5", &defaultFace(), 850},
+		{"9",   &defaultFace(), 900},
+		{"10",  &defaultFace(), 1000},
+		{"12",  &defaultFace(), 1200},
+		{"14",  &defaultFace(), 1400},
+		{"15",  &defaultFace(), 1500},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
@@ -858,10 +820,13 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 	size
 	{
 		"Button Size", &defaultFace(),
-		[this](auto idx, Gfx::Text &t)
 		{
-			t.resetString(fmt::format("{:.2f}", vController().buttonSize() / 100.));
-			return true;
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(fmt::format("{:.2f}", vController().buttonSize() / 100.));
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item){ vController().setButtonSize(item.id()); }
 		},
 		(MenuItem::Id)vController().buttonSize(),
 		sizeItem
@@ -886,16 +851,19 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 	},
 	alphaItem
 	{
-		{"0%",  &defaultFace(), setAlphaDel(), 0},
-		{"10%", &defaultFace(), setAlphaDel(), int(255. * .1)},
-		{"25%", &defaultFace(), setAlphaDel(), int(255. * .25)},
-		{"50%", &defaultFace(), setAlphaDel(), int(255. * .5)},
-		{"65%", &defaultFace(), setAlphaDel(), int(255. * .65)},
-		{"75%", &defaultFace(), setAlphaDel(), int(255. * .75)},
+		{"0%",  &defaultFace(), 0},
+		{"10%", &defaultFace(), int(255. * .1)},
+		{"25%", &defaultFace(), int(255. * .25)},
+		{"50%", &defaultFace(), int(255. * .5)},
+		{"65%", &defaultFace(), int(255. * .65)},
+		{"75%", &defaultFace(), int(255. * .75)},
 	},
 	alpha
 	{
 		"Blend Amount", &defaultFace(),
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item){ vController().setButtonAlpha(item.id()); }
+		},
 		(MenuItem::Id)vController().buttonAlpha(),
 		alphaItem
 	},
@@ -905,6 +873,16 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 		[this](const Input::Event &e)
 		{
 			pushAndShowModal(makeView<OnScreenInputPlaceView>(vController()), e);
+		}
+	},
+	placeVideo
+	{
+		"Set Video Position", &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			if(!system().hasContent())
+				return;
+			pushAndShowModal(makeView<PlaceVideoView>(app().videoLayer(), vController()), e);
 		}
 	},
 	addButton
@@ -984,6 +962,8 @@ void TouchConfigView::reloadItems()
 	}
 	item.emplace_back(&size);
 	item.emplace_back(&btnPlace);
+	placeVideo.setActive(system().hasContent());
+	item.emplace_back(&placeVideo);
 	item.emplace_back(&devButtonsHeading);
 	elementItems.reserve(vController().deviceElements().size() + vController().guiElements().size());
 	for(auto &elem : vController().deviceElements())

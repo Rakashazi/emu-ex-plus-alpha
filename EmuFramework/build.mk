@@ -1,9 +1,5 @@
 include $(IMAGINE_PATH)/make/imagineStaticLibBase.mk
 
-ifneq ($(filter linux ios android,$(ENV)),)
- emuFramework_onScreenControls := 1
-endif
-
 SRC += AudioOptionView.cc \
 AutosaveManager.cc \
 AutosaveSlotView.cc \
@@ -32,20 +28,19 @@ FilePicker.cc \
 GUIOptionView.cc \
 InputManagerView.cc \
 pathUtils.cc \
+PlaceVideoView.cc \
 RecentGameView.cc \
 StateSlotView.cc \
 SystemOptionView.cc \
+TouchConfigView.cc \
 VideoImageEffect.cc \
 VideoImageOverlay.cc \
-VideoOptionView.cc
-
-ifeq ($(emuFramework_onScreenControls), 1)
- SRC += TouchConfigView.cc \
- vcontrols/VController.cc \
- vcontrols/VControllerButton.cc \
- vcontrols/VControllerGamepad.cc \
- vcontrols/VControllerKeyboard.cc
-endif
+VideoOptionView.cc \
+vcontrols/VController.cc \
+vcontrols/VControllerButton.cc \
+vcontrols/VControllerButtonGroup.cc \
+vcontrols/VControllerDPad.cc \
+vcontrols/VControllerKeyboard.cc
 
 libName := emuframework$(libNameExt)
 ifndef RELEASE

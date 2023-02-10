@@ -68,6 +68,10 @@ private:
 	double aspectRatio_ = 1.;
 	Gfx::Vec3 brightness{1.f, 1.f, 1.f};
 	Gfx::Vec3 brightnessSrgb{1.f, 1.f, 1.f};
+public:
+	int16_t landscapeOffset{};
+	int16_t portraitOffset{};
+private:
 	ImageEffectId userEffectId{};
 	ImageOverlayId userOverlayEffectId{};
 	Gfx::ColorSpace colSpace{};

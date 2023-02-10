@@ -503,17 +503,6 @@ public:
 	}
 };
 
-static int playerConfToMenuIdx(int player)
-{
-	if(player == InputDeviceConfig::PLAYER_MULTI)
-		return 0;
-	else
-	{
-		assert(player < (int)EmuSystem::maxPlayers);
-		return player + 1;
-	}
-}
-
 static bool customKeyConfigsContainName(auto &customKeyConfigs, std::string_view name)
 {
 	return std::ranges::find_if(customKeyConfigs, [&](auto &confPtr){ return confPtr->name == name; }) != customKeyConfigs.end();
@@ -529,25 +518,36 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	rootIMView{rootIMView_},
 	playerItem
 	{
-		{"Multiple", &defaultFace(), [this]() { setPlayer(InputDeviceConfig::PLAYER_MULTI); }},
-		{"1", &defaultFace(), [this]() { setPlayer(0); }},
-		{"2", &defaultFace(), [this]() { setPlayer(1); }},
-		{"3", &defaultFace(), [this]() { setPlayer(2); }},
-		{"4", &defaultFace(), [this]() { setPlayer(3); }},
-		{"5", &defaultFace(), [this]() { setPlayer(4); }}
+		{"Multiple", &defaultFace(), InputDeviceConfig::PLAYER_MULTI},
+		{"1",        &defaultFace(), 0},
+		{"2",        &defaultFace(), 1},
+		{"3",        &defaultFace(), 2},
+		{"4",        &defaultFace(), 3},
+		{"5",        &defaultFace(), 4}
 	},
 	player
 	{
 		"Player", &defaultFace(),
-		(int)playerConfToMenuIdx(inputDevData(dev).devConf.player()),
-		[](const MultiChoiceMenuItem &)
 		{
-			return EmuSystem::maxPlayers+1;
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				auto playerVal = item.id();
+				bool changingMultiplayer = (playerVal == InputDeviceConfig::PLAYER_MULTI && devConf->player() != InputDeviceConfig::PLAYER_MULTI) ||
+					(playerVal != InputDeviceConfig::PLAYER_MULTI && devConf->player() == InputDeviceConfig::PLAYER_MULTI);
+				devConf->setPlayer(playerVal);
+				devConf->save(savedInputDevs());
+				if(changingMultiplayer)
+				{
+					loadItems();
+					place();
+					show();
+				}
+				else
+					onShow();
+			}
 		},
-		[this](const MultiChoiceMenuItem &, size_t idx) -> TextMenuItem&
-		{
-			return playerItem[idx];
-		}
+		MenuItem::Id(inputDevData(dev).devConf.player()),
+		std::span{playerItem, EmuSystem::maxPlayers + 1uz}
 	},
 	loadProfile
 	{
@@ -737,7 +737,9 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 void InputManagerDeviceView::loadItems()
 {
 	item.clear();
+	item.reserve(app().inputControlCategories().size() + 11);
 	inputCategory.clear();
+	inputCategory.reserve(app().inputControlCategories().size());
 	if(EmuSystem::maxPlayers > 1)
 	{
 		item.emplace_back(&player);
@@ -803,21 +805,5 @@ void InputManagerDeviceView::confirmICadeMode()
 	app().defaultVController().setPhysicalControlsPresent(appContext().keyInputIsPresent());
 }
 #endif
-
-void InputManagerDeviceView::setPlayer(int playerVal)
-{
-	bool changingMultiplayer = (playerVal == InputDeviceConfig::PLAYER_MULTI && devConf->player() != InputDeviceConfig::PLAYER_MULTI) ||
-		(playerVal != InputDeviceConfig::PLAYER_MULTI && devConf->player() == InputDeviceConfig::PLAYER_MULTI);
-	devConf->setPlayer(playerVal);
-	devConf->save(savedInputDevs());
-	if(changingMultiplayer)
-	{
-		loadItems();
-		place();
-		show();
-	}
-	else
-		onShow();
-}
 
 }

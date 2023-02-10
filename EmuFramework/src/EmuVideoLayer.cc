@@ -124,11 +124,15 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 				}
 			}
 		}
-		contentRect_.setPos(displayRect.center(), C2DO);
 		if(viewportAspectRatio < 1.f && inputView)
 		{
-			contentRect_.setPos(viewRect.pos(CT2DO) + WP{0, inputView->uiElementHeight()}, CT2DO);
+			contentRect_.setPos(viewRect.pos(CT2DO) + WP{0, inputView->uiElementHeight() + portraitOffset}, CT2DO);
 		}
+		else
+		{
+			contentRect_.setPos(displayRect.center() + WP{landscapeOffset, 0}, C2DO);
+		}
+		contentRect_.fitIn(displayRect);
 		disp.setPos(contentRect_);
 		logMsg("placed game rect, at pixels %d:%d:%d:%d",
 			contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2);

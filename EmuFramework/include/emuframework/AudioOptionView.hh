@@ -50,10 +50,6 @@ protected:
 	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, ApiItemContainer, apiItem);
 	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, MultiChoiceMenuItem, api);
 	StaticArrayList<MenuItem*, 22> item;
-
-	TextMenuItem::SelectDelegate setRateDel();
-	TextMenuItem::SelectDelegate setBuffersDel();
-	TextMenuItem::SelectDelegate setVolumeDel();
 };
 
 }

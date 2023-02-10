@@ -103,18 +103,13 @@ void BaseDualTextMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xP
 bool DualTextMenuItem::select(View &parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
-	selectD.callCopySafe(*this, parent, e);
+	onSelect.callCopySafe(*this, parent, e);
 	return true;
-}
-
-void DualTextMenuItem::setOnSelect(SelectDelegate onSelect)
-{
-	selectD = onSelect;
 }
 
 bool BoolMenuItem::select(View &parent, const Input::Event &e)
 {
-	selectD.callCopySafe(*this, parent, e);
+	onSelect.callCopySafe(*this, parent, e);
 	return true;
 }
 
@@ -171,11 +166,6 @@ void BoolMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int 
 	else
 		color2 = Gfx::color(1.f, .27f, .27f);
 	draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
-}
-
-void BoolMenuItem::setOnSelect(SelectDelegate onSelect)
-{
-	selectD = onSelect;
 }
 
 class MenuItemTableView : public TableView
@@ -294,13 +284,8 @@ int MultiChoiceMenuItem::cycleSelected(int offset)
 bool MultiChoiceMenuItem::select(View &parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");
-	selectD.callCopySafe(*this, parent, e);
+	onSelect.callCopySafe(*this, parent, e);
 	return true;
-}
-
-void MultiChoiceMenuItem::setOnSelect(SelectDelegate onSelect)
-{
-	selectD = onSelect;
 }
 
 std::unique_ptr<TableView> MultiChoiceMenuItem::makeTableView(ViewAttachParams attach)

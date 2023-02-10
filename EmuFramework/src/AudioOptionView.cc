@@ -42,9 +42,9 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	soundVolumeItem
 	{
-		{"100%", &defaultFace(), setVolumeDel(), 100},
-		{"50%",  &defaultFace(), setVolumeDel(), 50},
-		{"25%",  &defaultFace(), setVolumeDel(), 25},
+		{"100%", &defaultFace(), 100},
+		{"50%",  &defaultFace(), 50},
+		{"25%",  &defaultFace(), 25},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
@@ -63,27 +63,33 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	soundVolume
 	{
 		"Volume", &defaultFace(),
-		[this](size_t idx, Gfx::Text &t)
 		{
-			t.resetString(fmt::format("{}%", app().soundVolume()));
-			return true;
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(fmt::format("{}%", app().soundVolume()));
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setSoundVolume(item.id()); }
 		},
 		(MenuItem::Id)app().soundVolume(),
 		soundVolumeItem
 	},
 	soundBuffersItem
 	{
-		{"1", &defaultFace(), setBuffersDel(), 1},
-		{"2", &defaultFace(), setBuffersDel(), 2},
-		{"3", &defaultFace(), setBuffersDel(), 3},
-		{"4", &defaultFace(), setBuffersDel(), 4},
-		{"5", &defaultFace(), setBuffersDel(), 5},
-		{"6", &defaultFace(), setBuffersDel(), 6},
-		{"7", &defaultFace(), setBuffersDel(), 7},
+		{"1", &defaultFace(), 1},
+		{"2", &defaultFace(), 2},
+		{"3", &defaultFace(), 3},
+		{"4", &defaultFace(), 4},
+		{"5", &defaultFace(), 5},
+		{"6", &defaultFace(), 6},
+		{"7", &defaultFace(), 7},
 	},
 	soundBuffers
 	{
 		"Buffer Size In Frames", &defaultFace(),
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setSoundBuffers(item.id()); }
+		},
 		(MenuItem::Id)app().soundBuffers(),
 		soundBuffersItem
 	},
@@ -163,11 +169,12 @@ void AudioOptionView::loadStockItems()
 				view.dismiss();
 				return false;
 			});
-		audioRateItem.emplace_back("22KHz", &defaultFace(), setRateDel(), 22050);
-		audioRateItem.emplace_back("32KHz", &defaultFace(), setRateDel(), 32000);
-		audioRateItem.emplace_back("44KHz", &defaultFace(), setRateDel(), 44100);
+		auto setRateDel = [this](TextMenuItem &item) { app().setSoundRate(item.id()); };
+		audioRateItem.emplace_back("22KHz", &defaultFace(), setRateDel, 22050);
+		audioRateItem.emplace_back("32KHz", &defaultFace(), setRateDel, 32000);
+		audioRateItem.emplace_back("44KHz", &defaultFace(), setRateDel, 44100);
 		if(app().soundRateMax() >= 48000)
-			audioRateItem.emplace_back("48KHz", &defaultFace(), setRateDel(), 48000);
+			audioRateItem.emplace_back("48KHz", &defaultFace(), setRateDel, 48000);
 		item.emplace_back(&audioRate);
 		audioRate.setSelected((MenuItem::Id)app().soundRate());
 	}
@@ -184,21 +191,6 @@ void AudioOptionView::loadStockItems()
 			item.emplace_back(&api);
 		}
 	});
-}
-
-TextMenuItem::SelectDelegate AudioOptionView::setRateDel()
-{
-	return [this](TextMenuItem &item) { app().setSoundRate(item.id()); };
-}
-
-TextMenuItem::SelectDelegate AudioOptionView::setBuffersDel()
-{
-	return [this](TextMenuItem &item) { app().setSoundBuffers(item.id()); };
-}
-
-TextMenuItem::SelectDelegate AudioOptionView::setVolumeDel()
-{
-	return [this](TextMenuItem &item) { app().setSoundVolume(item.id()); };
 }
 
 }

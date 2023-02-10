@@ -56,13 +56,6 @@ protected:
 	MultiChoiceMenuItem emuOrientation;
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, BoolMenuItem, layoutBehindSystemUI);
 	StaticArrayList<MenuItem*, 22> item;
-
-	TextMenuItem::SelectDelegate setFontSizeDel();
-	TextMenuItem::SelectDelegate setMenuOrientationDel();
-	TextMenuItem::SelectDelegate setEmuOrientationDel();
-	TextMenuItem::SelectDelegate setStatusBarDel();
-	TextMenuItem::SelectDelegate setLowProfileOSNavDel();
-	TextMenuItem::SelectDelegate setHideOSNavDel();
 };
 
 }

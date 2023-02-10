@@ -510,22 +510,22 @@ void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
 					continue;
 				if(d.isDir())
 				{
-					d.text.setOnSelect(
+					d.text.onSelect =
 						[this, &dirPath = d.path](const Input::Event &e)
 						{
 							assert(!isSingleDirectoryMode());
 							auto path = std::move(dirPath);
 							logMsg("entering dir:%s", path.data());
 							changeDirByInput(path, root.info, e);
-						});
+						};
 				}
 				else
 				{
-					d.text.setOnSelect(
+					d.text.onSelect =
 						[this, &dirPath = d.path](const Input::Event &e)
 						{
 							onSelectPath_.callCopy(*this, dirPath, appContext().fileUriDisplayName(dirPath), e);
-						});
+						};
 				}
 			}
 			msgText.resetString();

@@ -24,46 +24,37 @@
 namespace EmuEx
 {
 
-TextMenuItem::SelectDelegate SystemOptionView::setAutosaveTimerDel()
-{
-	return [this](TextMenuItem &item) { app().autosaveManager().autosaveTimerMins = IG::Minutes{item.id()}; };
-}
-
-TextMenuItem::SelectDelegate SystemOptionView::setAutosaveLaunchDel()
-{
-	return [this](TextMenuItem &item) { app().autosaveManager().autosaveLaunchMode = AutosaveLaunchMode(item.id()); };
-}
-
-TextMenuItem::SelectDelegate SystemOptionView::setFastSlowModeSpeedDel()
-{
-	return [this](TextMenuItem &item) { app().fastSlowModeSpeedOption() = item.id(); };
-}
-
 SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"System Options", attach, item},
 	autosaveTimerItem
 	{
-		{"Only On Exit",    &defaultFace(), setAutosaveTimerDel(), 0},
-		{"5mins & On Exit",  &defaultFace(), setAutosaveTimerDel(), 5},
-		{"10mins & On Exit", &defaultFace(), setAutosaveTimerDel(), 10},
-		{"15mins & On Exit", &defaultFace(), setAutosaveTimerDel(), 15},
+		{"Only On Exit",     &defaultFace(), 0},
+		{"5mins & On Exit",  &defaultFace(), 5},
+		{"10mins & On Exit", &defaultFace(), 10},
+		{"15mins & On Exit", &defaultFace(), 15},
 	},
 	autosaveTimer
 	{
 		"Autosave Timer", &defaultFace(),
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager().autosaveTimerMins = IG::Minutes{item.id()}; }
+		},
 		(MenuItem::Id)app().autosaveManager().autosaveTimerMins.count(),
 		autosaveTimerItem
 	},
 	autosaveLaunchItem
 	{
-		{"Main Slot",            &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::Load)},
-		{"Main Slot (No State)", &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::LoadNoState)},
-		{"No Save Slot",         &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::NoSave)},
-		{"Select Slot",          &defaultFace(), setAutosaveLaunchDel(), to_underlying(AutosaveLaunchMode::Ask)},
+		{"Main Slot",            &defaultFace(), to_underlying(AutosaveLaunchMode::Load)},
+		{"Main Slot (No State)", &defaultFace(), to_underlying(AutosaveLaunchMode::LoadNoState)},
+		{"No Save Slot",         &defaultFace(), to_underlying(AutosaveLaunchMode::NoSave)},
+		{"Select Slot",          &defaultFace(), to_underlying(AutosaveLaunchMode::Ask)},
 	},
 	autosaveLaunch
 	{
 		"Autosave Launch Mode", &defaultFace(),
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager().autosaveLaunchMode = AutosaveLaunchMode(item.id()); }
+		},
 		(MenuItem::Id)app().autosaveManager().autosaveLaunchMode,
 		autosaveLaunchItem
 	},
@@ -78,13 +69,13 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fastSlowModeSpeedItem
 	{
-		{"0.25x", &defaultFace(), setFastSlowModeSpeedDel(), 25},
-		{"0.50x", &defaultFace(), setFastSlowModeSpeedDel(), 50},
-		{"1.5x",  &defaultFace(), setFastSlowModeSpeedDel(), 150},
-		{"2x",    &defaultFace(), setFastSlowModeSpeedDel(), 200},
-		{"4x",    &defaultFace(), setFastSlowModeSpeedDel(), 400},
-		{"8x",    &defaultFace(), setFastSlowModeSpeedDel(), 800},
-		{"16x",   &defaultFace(), setFastSlowModeSpeedDel(), 1600},
+		{"0.25x", &defaultFace(), 25},
+		{"0.50x", &defaultFace(), 50},
+		{"1.5x",  &defaultFace(), 150},
+		{"2x",    &defaultFace(), 200},
+		{"4x",    &defaultFace(), 400},
+		{"8x",    &defaultFace(), 800},
+		{"16x",   &defaultFace(), 1600},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
@@ -112,10 +103,13 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	fastSlowModeSpeed
 	{
 		"Fast/Slow Mode Speed", &defaultFace(),
-		[this](size_t idx, Gfx::Text &t)
 		{
-			t.resetString(fmt::format("{:.2f}x", app().fastSlowModeSpeedAsDouble()));
-			return true;
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(fmt::format("{:.2f}x", app().fastSlowModeSpeedAsDouble()));
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().fastSlowModeSpeedOption() = item.id(); }
 		},
 		(MenuItem::Id)app().fastSlowModeSpeedOption().val,
 		fastSlowModeSpeedItem

@@ -101,7 +101,6 @@ public:
 	InputManagerDeviceView(UTF16String name, ViewAttachParams,
 		InputManagerView &rootIMView, const Input::Device &,
 		KeyConfigContainer &, InputDeviceSavedConfigContainer &);
-	void setPlayer(int playerVal);
 	void onShow() final;
 
 private:
@@ -122,8 +121,8 @@ private:
 	BoolMenuItem joystickAxisHatDPad;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, consumeUnboundKeys);
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
-	StaticArrayList<TextMenuItem, Controls::MAX_CATEGORIES> inputCategory;
-	StaticArrayList<MenuItem*, Controls::MAX_CATEGORIES + 11> item;
+	std::vector<TextMenuItem> inputCategory;
+	std::vector<MenuItem*> item;
 	InputDeviceConfig *devConf{};
 
 	void confirmICadeMode();

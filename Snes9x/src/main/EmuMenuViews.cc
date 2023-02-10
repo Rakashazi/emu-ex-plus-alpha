@@ -201,10 +201,12 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem superFXClock
 	{
 		"SuperFX Clock Multiplier", &defaultFace(),
-		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.resetString(fmt::format("{}%", system().optionSuperFXClockMultiplier.val));
-			return true;
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(fmt::format("{}%", system().optionSuperFXClockMultiplier.val));
+				return true;
+			}
 		},
 		[this]()
 		{

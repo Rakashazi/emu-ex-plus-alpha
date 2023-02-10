@@ -120,12 +120,12 @@ void BaseAlertView::onAddedToController(ViewController *c, const Input::Event &e
 
 void YesNoAlertView::setOnYes(TextMenuItem::SelectDelegate del)
 {
-	yes.setOnSelect(del);
+	yes.onSelect = del;
 }
 
 void YesNoAlertView::setOnNo(TextMenuItem::SelectDelegate del)
 {
-	no.setOnSelect(del);
+	no.onSelect = del;
 }
 
 }

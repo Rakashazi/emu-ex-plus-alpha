@@ -704,49 +704,57 @@ private:
 	MultiChoiceMenuItem drive8Type
 	{
 		"Drive 8 Type", &defaultFace(),
-		(MenuItem::Id)system().intResource(driveResName[0]),
-		driveTypeItem,
-		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 		{
-			currDriveTypeSlot = 0;
-			item.defaultOnSelect(view, e);
-		}
+			.onSelect = [this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+			{
+				currDriveTypeSlot = 0;
+				item.defaultOnSelect(view, e);
+			}
+		},
+		(MenuItem::Id)system().intResource(driveResName[0]),
+		driveTypeItem
 	};
 
 	MultiChoiceMenuItem drive9Type
 	{
 		"Drive 9 Type", &defaultFace(),
+		{
+			.onSelect = [this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+			{
+				currDriveTypeSlot = 1;
+				item.defaultOnSelect(view, e);
+			}
+		},
 		(MenuItem::Id)system().intResource(driveResName[1]),
 		driveTypeItem,
-		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
-		{
-			currDriveTypeSlot = 1;
-			item.defaultOnSelect(view, e);
-		}
 	};
 
 	MultiChoiceMenuItem drive10Type
 	{
 		"Drive 10 Type", &defaultFace(),
-		(MenuItem::Id)system().intResource(driveResName[2]),
-		driveTypeItem,
-		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 		{
-			currDriveTypeSlot = 2;
-			item.defaultOnSelect(view, e);
-		}
+			.onSelect = [this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+			{
+				currDriveTypeSlot = 2;
+				item.defaultOnSelect(view, e);
+			}
+		},
+		(MenuItem::Id)system().intResource(driveResName[2]),
+		driveTypeItem
 	};
 
 	MultiChoiceMenuItem drive11Type
 	{
 		"Drive 11 Type", &defaultFace(),
-		(MenuItem::Id)system().intResource(driveResName[3]),
-		driveTypeItem,
-		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 		{
-			currDriveTypeSlot = 3;
-			item.defaultOnSelect(view, e);
-		}
+			.onSelect = [this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+			{
+				currDriveTypeSlot = 3;
+				item.defaultOnSelect(view, e);
+			}
+		},
+		(MenuItem::Id)system().intResource(driveResName[3]),
+		driveTypeItem
 	};
 
 	TextHeadingMenuItem mediaOptions{"Media Options", &defaultBoldFace()};

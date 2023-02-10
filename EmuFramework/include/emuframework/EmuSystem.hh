@@ -119,6 +119,7 @@ enum class InputComponentFlagsMask: uint8_t
 	rowSize1 = rowSizeBit1,
 	rowSize2 = rowSizeBit2,
 	rowSize3 = rowSizeBit1 | rowSizeBit2,
+	staggeredLayout = bit(3),
 };
 
 IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(InputComponentFlagsMask);
