@@ -55,7 +55,8 @@ public:
 	GlyphTextureSet *face() const { return face_; }
 	void makeGlyphs(Renderer &);
 	bool compile(Renderer &, TextLayoutConfig conf = {});
-	void draw(RendererCommands &, WP pos, _2DOrigin o) const;
+	void draw(RendererCommands &, WP pos, _2DOrigin, Color) const;
+	void draw(RendererCommands &, WP pos, _2DOrigin) const;
 	WP pixelSize() const { return {xSize, ySize}; }
 	int width() const { return xSize; }
 	int height() const { return ySize; }

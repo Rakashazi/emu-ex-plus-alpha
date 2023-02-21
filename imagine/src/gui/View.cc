@@ -190,7 +190,7 @@ Gfx::GlyphTextureSet &View::defaultBoldFace()
 
 Gfx::Color View::menuTextColor(bool isSelected)
 {
-	return isSelected ? Gfx::color(0.f, .8f, 1.f) : Gfx::color(Gfx::ColorName::WHITE);
+	return isSelected ? Gfx::Color{0.f, .8f, 1.f} : Gfx::Color(Gfx::ColorName::WHITE);
 }
 
 int View::navBarHeight(const Gfx::GlyphTextureSet &face)

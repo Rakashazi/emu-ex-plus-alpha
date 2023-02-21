@@ -29,30 +29,30 @@ namespace IG
 
 template class IOUtils<AAssetIO>;
 
-static int accessHintToAAssetMode(IOAccessHint advice)
+static int asAAssetMode(IOAccessHint advice)
 {
 	switch(advice)
 	{
 		default: return AASSET_MODE_UNKNOWN;
-		case IOAccessHint::SEQUENTIAL: return AASSET_MODE_STREAMING;
-		case IOAccessHint::RANDOM: return AASSET_MODE_RANDOM;
-		case IOAccessHint::ALL: return AASSET_MODE_BUFFER;
+		case IOAccessHint::Sequential: return AASSET_MODE_STREAMING;
+		case IOAccessHint::Random: return AASSET_MODE_RANDOM;
+		case IOAccessHint::All: return AASSET_MODE_BUFFER;
 	}
 }
 
 AAssetIO::AAssetIO(ApplicationContext ctx, IG::CStringView name, AccessHint access, OpenFlagsMask openFlags):
-	asset{AAssetManager_open(ctx.aAssetManager(), name, accessHintToAAssetMode(access))}
+	asset{AAssetManager_open(ctx.aAssetManager(), name, asAAssetMode(access))}
 {
 	if(!asset) [[unlikely]]
 	{
-		logErr("error in AAssetManager_open(%s, %s)", name.data(), accessHintStr(access));
-		if(to_underlying(openFlags & OpenFlagsMask::TEST))
+		logErr("error in AAssetManager_open(%s, %s)", name.data(), asString(access));
+		if(to_underlying(openFlags & OpenFlagsMask::Test))
 			return;
 		else
 			throw std::runtime_error{fmt::format("Error opening asset: {}", name)};
 	}
-	logMsg("opened asset:%p name:%s access:%s", asset.get(), name.data(), accessHintStr(access));
-	if(access == IOAccessHint::ALL)
+	logMsg("opened asset:%p name:%s access:%s", asset.get(), name.data(), asString(access));
+	if(access == IOAccessHint::All)
 		makeMapIO();
 }
 
@@ -122,7 +122,7 @@ AAssetIO::operator bool() const
 
 void AAssetIO::advise(off_t offset, size_t bytes, Advice advice)
 {
-	if(offset == 0 && bytes == 0 && advice == IOAdvice::WILLNEED)
+	if(offset == 0 && bytes == 0 && advice == IOAdvice::WillNeed)
 	makeMapIO();
 	if(mapIO)
 		mapIO.advise(offset, bytes, advice);

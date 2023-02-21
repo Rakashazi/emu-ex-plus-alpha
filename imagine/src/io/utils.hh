@@ -11,41 +11,35 @@ inline auto transformOffsetToAbsolute(IOSeekMode mode, auto offset, auto startPo
 {
 	switch(mode)
 	{
-		case IOSeekMode::SET:
-			return offset + startPos;
-		case IOSeekMode::END:
-			return offset + endPos;
-		case IOSeekMode::CUR:
-			return offset + currentPos;
-		default:
-			bug_unreachable("IOSeekMode == %d", (int)mode);
+		case IOSeekMode::Set: return offset + startPos;
+		case IOSeekMode::End: return offset + endPos;
+		case IOSeekMode::Cur: return offset + currentPos;
 	}
+	bug_unreachable("IOSeekMode == %d", (int)mode);
 }
 
-inline const char *accessHintStr(IOAccessHint access)
+inline auto asString(IOAccessHint access)
 {
 	switch(access)
 	{
-		case IOAccessHint::NORMAL: return "Normal";
-		case IOAccessHint::SEQUENTIAL: return "Sequential";
-		case IOAccessHint::RANDOM: return "Random";
-		case IOAccessHint::ALL: return "All";
-		default:
-			bug_unreachable("IOAccessHint == %d", (int)access);
+		case IOAccessHint::Normal: return "Normal";
+		case IOAccessHint::Sequential: return "Sequential";
+		case IOAccessHint::Random: return "Random";
+		case IOAccessHint::All: return "All";
 	}
+	bug_unreachable("IOAccessHint == %d", (int)access);
 }
 
-inline const char *adviceStr(IOAdvice advice)
+inline auto asString(IOAdvice advice)
 {
 	switch(advice)
 	{
-		case IOAdvice::NORMAL: return "Normal";
-		case IOAdvice::SEQUENTIAL: return "Sequential";
-		case IOAdvice::RANDOM: return "Random";
-		case IOAdvice::WILLNEED: return "Will Need";
-		default:
-			bug_unreachable("IOAdvice == %d", (int)advice);
+		case IOAdvice::Normal: return "Normal";
+		case IOAdvice::Sequential: return "Sequential";
+		case IOAdvice::Random: return "Random";
+		case IOAdvice::WillNeed: return "Will Need";
 	}
+	bug_unreachable("IOAdvice == %d", (int)advice);
 }
 
 }

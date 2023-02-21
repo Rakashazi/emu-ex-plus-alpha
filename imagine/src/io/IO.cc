@@ -91,35 +91,35 @@ namespace IG::FileUtils
 
 ssize_t writeToPath(CStringView path, std::span<const unsigned char> src)
 {
-	auto f = FileIO{path, OpenFlagsMask::NEW | OpenFlagsMask::TEST};
+	auto f = FileIO{path, OpenFlagsMask::New | OpenFlagsMask::Test};
 	return f.write(src.data(), src.size());
 }
 
 ssize_t writeToPath(CStringView path, IO &io)
 {
-	auto f = FileIO{path, OpenFlagsMask::NEW | OpenFlagsMask::TEST};
+	auto f = FileIO{path, OpenFlagsMask::New | OpenFlagsMask::Test};
 	return io.send(f, nullptr, io.size());
 }
 
 ssize_t readFromPath(CStringView path, std::span<unsigned char> dest, IO::AccessHint accessHint)
 {
-	FileIO f{path, accessHint, OpenFlagsMask::TEST};
+	FileIO f{path, accessHint, OpenFlagsMask::Test};
 	return f.read(dest.data(), dest.size());
 }
 
 IOBuffer bufferFromPath(CStringView path, OpenFlagsMask openFlags, size_t sizeLimit)
 {
-	FileIO file{path, IOAccessHint::ALL, openFlags};
+	FileIO file{path, IOAccessHint::All, openFlags};
 	if(!file)
 		return {};
 	if(file.size() > sizeLimit)
 	{
-		if(to_underlying(openFlags & OpenFlagsMask::TEST))
+		if(to_underlying(openFlags & OpenFlagsMask::Test))
 			return {};
 		else
 			throw std::runtime_error(fmt::format("{} exceeds {} byte limit", path.data(), sizeLimit));
 	}
-	return file.buffer(IOBufferMode::RELEASE);
+	return file.buffer(IOBufferMode::Release);
 }
 
 }

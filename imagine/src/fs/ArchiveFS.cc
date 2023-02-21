@@ -23,12 +23,12 @@ namespace IG::FS
 {
 
 template <class... Args>
-static std::shared_ptr<IG::ArchiveEntry> makeArchiveEntryPtr(Args&& ...args)
+static std::shared_ptr<ArchiveEntry> makeArchiveEntryPtr(Args&& ...args)
 {
-	IG::ArchiveEntry entry{std::forward<Args>(args)...};
+	ArchiveEntry entry{std::forward<Args>(args)...};
 	if(entry.hasEntry())
 	{
-		return std::make_shared<IG::ArchiveEntry>(std::move(entry));
+		return std::make_shared<ArchiveEntry>(std::move(entry));
 	}
 	else
 	{
@@ -37,24 +37,21 @@ static std::shared_ptr<IG::ArchiveEntry> makeArchiveEntryPtr(Args&& ...args)
 	}
 }
 
-ArchiveIterator::ArchiveIterator(IG::CStringView path):
-	impl{makeArchiveEntryPtr(path)}
-{}
+ArchiveIterator::ArchiveIterator(CStringView path):
+	impl{makeArchiveEntryPtr(path)} {}
 
-ArchiveIterator::ArchiveIterator(IG::IO io):
-	impl{makeArchiveEntryPtr(std::move(io))}
-{}
+ArchiveIterator::ArchiveIterator(IO io):
+	impl{makeArchiveEntryPtr(std::move(io))} {}
 
-ArchiveIterator::ArchiveIterator(IG::ArchiveEntry entry):
-	impl{entry.hasEntry() ? std::make_shared<IG::ArchiveEntry>(std::move(entry)) : std::shared_ptr<IG::ArchiveEntry>{}}
-{}
+ArchiveIterator::ArchiveIterator(ArchiveEntry entry):
+	impl{entry.hasEntry() ? std::make_shared<ArchiveEntry>(std::move(entry)) : std::shared_ptr<ArchiveEntry>{}} {}
 
-IG::ArchiveEntry& ArchiveIterator::operator*()
+ArchiveEntry& ArchiveIterator::operator*()
 {
 	return *impl;
 }
 
-IG::ArchiveEntry* ArchiveIterator::operator->()
+ArchiveEntry* ArchiveIterator::operator->()
 {
 	return impl.get();
 }
@@ -76,7 +73,7 @@ void ArchiveIterator::rewind()
 	impl->rewind();
 }
 
-static IG::ArchiveIO fileFromArchiveGeneric(auto &&init, std::string_view filePath)
+static ArchiveIO fileFromArchiveGeneric(auto &&init, std::string_view filePath)
 {
 	for(auto &entry : FS::ArchiveIterator{std::forward<decltype(init)>(init)})
 	{
@@ -86,18 +83,18 @@ static IG::ArchiveIO fileFromArchiveGeneric(auto &&init, std::string_view filePa
 		}
 		if(entry.name() == filePath)
 		{
-			return entry.moveIO();
+			return entry.releaseIO();
 		}
 	}
 	return {};
 }
 
-IG::ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath)
+ArchiveIO fileFromArchive(CStringView archivePath, std::string_view filePath)
 {
 	return fileFromArchiveGeneric(archivePath, filePath);
 }
 
-IG::ArchiveIO fileFromArchive(IG::IO io, std::string_view filePath)
+ArchiveIO fileFromArchive(IO io, std::string_view filePath)
 {
 	return fileFromArchiveGeneric(std::move(io), filePath);
 }

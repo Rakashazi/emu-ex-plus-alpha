@@ -114,9 +114,9 @@ void GlyphTextureSet::calcMetrics(Renderer &r)
 		logErr("error reading measurement glyphs");
 		return;
 	}
-	metrics_.nominalHeight = mGly->metrics.ySize + (gGly->metrics.ySize/2);
-	metrics_.spaceSize = mGly->metrics.xSize/2;
-	metrics_.yLineStart = gGly->metrics.ySize - gGly->metrics.yOffset;
+	metrics_.nominalHeight = mGly->metrics.size.y + (gGly->metrics.size.y / 2);
+	metrics_.spaceSize = mGly->metrics.size.x / 2;
+	metrics_.yLineStart = gGly->metrics.size.y - gGly->metrics.offset.y;
 }
 
 IG::FontSettings GlyphTextureSet::fontSettings() const
@@ -144,7 +144,7 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 {
 	assert(settings);
 	auto &[glyph, metrics] = glyphTable[tableIdx];
-	if(metrics.ySize == -1)
+	if(metrics.size.y == -1)
 	{
 		// failed to previously cache char
 		return std::errc::invalid_argument;
@@ -155,7 +155,7 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 	if((bool)ec)
 	{
 		// mark failed attempt
-		metrics.ySize = -1;
+		metrics.size.y = -1;
 		return ec;
 	}
 	//logMsg("setting up table entry %d", tableIdx);

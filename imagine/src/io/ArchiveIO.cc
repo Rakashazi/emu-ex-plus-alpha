@@ -32,7 +32,7 @@ template class IOUtils<ArchiveIO>;
 
 static FS::file_type makeEntryType(int type)
 {
-	using namespace FS;
+	using namespace IG::FS;
 	switch(type)
 	{
 		case AE_IFREG: return file_type::regular;
@@ -77,7 +77,7 @@ ArchiveEntry &ArchiveEntry::operator=(ArchiveEntry &&) noexcept = default;
 
 ArchiveEntry::ArchiveEntry(CStringView path)
 {
-	init(FileIO{path, IOAccessHint::SEQUENTIAL});
+	init(FileIO{path, IOAccessHint::Sequential});
 }
 
 ArchiveEntry::ArchiveEntry(IO io)
@@ -107,7 +107,7 @@ void ArchiveEntry::init(IO io)
 		{
 			//logMsg("skip %lld", (long long)request);
 			auto &a = *((ArchiveControlBlock*)data);
-			if(auto bytes = a.io.seekC(request);
+			if(auto bytes = a.io.seek(request, IOSeekMode::Cur);
 				bytes != -1)
 				return bytes;
 			else
@@ -130,7 +130,7 @@ void ArchiveEntry::init(IO io)
 				if(bytesRead)
 				{
 					*buffOut = a.io.map().data() + pos;
-					a.io.seekC(bytesRead);
+					a.io.seek(bytesRead, IOSeekMode::Cur);
 				}
 				//logMsg("read %lld bytes @ offset:%llu", (long long)bytesRead, (long long)pos);
 				return bytesRead;
@@ -200,12 +200,12 @@ uint32_t ArchiveEntry::crc32() const
 	return archive_entry_crc32(ptr);
 }
 
-ArchiveIO ArchiveEntry::moveIO()
+ArchiveIO ArchiveEntry::releaseIO()
 {
 	return ArchiveIO{std::move(*this)};
 }
 
-void ArchiveEntry::moveIO(ArchiveIO io)
+void ArchiveEntry::reset(ArchiveIO io)
 {
 	*this = io.releaseArchive();
 }

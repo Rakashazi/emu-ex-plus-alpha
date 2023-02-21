@@ -30,7 +30,7 @@ namespace EmuEx
 
 void VControllerDPad::setImage(Gfx::TextureSpan img)
 {
-	spr = {{{-.5, -.5}, {.5, .5}}, img};
+	spr.set(img);
 }
 
 void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
@@ -44,35 +44,39 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
 			{
 				auto input = getInput({padArea.xPos(LT2DO) + (int)x, padArea.yPos(LT2DO) + (int)y});
 				//logMsg("got input %d", input);
-				*((uint16_t*)mapPix.pixel({(int)x, (int)y})) = input == std::array{-1, -1} ? PIXEL_DESC_RGB565.build(1., 0., 0., 1.)
-										: (input[0] != -1 && input[1] != -1) ? PIXEL_DESC_RGB565.build(0., 1., 0., 1.)
-										: PIXEL_DESC_RGB565.build(1., 1., 1., 1.);
+				*((uint16_t*)mapPix.pixel({(int)x, (int)y})) = input == std::array{-1, -1} ? PIXEL_DESC_RGB565.build(1., 0., 0.)
+										: (input[0] != -1 && input[1] != -1) ? PIXEL_DESC_RGB565.build(0., 1., 0.)
+										: PIXEL_DESC_RGB565.build(1., 1., 1.);
 			}
 		mapImg = r.makeTexture({mapPix.desc(), View::imageSamplerConfig});
 		mapImg.write(0, mapPix, {});
-		mapSpr = {{}, mapImg};
+		mapSpr.set(mapImg);
 		mapSpr.setPos(padArea);
 	}
 }
 
-void VControllerDPad::setDeadzone(Gfx::Renderer &r, int newDeadzone, const Window &win)
+bool VControllerDPad::setDeadzone(Gfx::Renderer &r, int newDeadzone, const Window &win)
 {
-	if(deadzoneMM100x != newDeadzone)
-	{
-		deadzoneMM100x = newDeadzone;
-		deadzonePixels = win.widthMMInPixels(deadzoneMM100x / 100.);
-		updateBoundingAreaGfx(r);
-	}
+	if(newDeadzone < 100 || newDeadzone > 300)
+		return false;
+	if(deadzoneMM100x == newDeadzone)
+		return true;
+	deadzoneMM100x = newDeadzone;
+	deadzonePixels = win.widthMMInPixels(deadzoneMM100x / 100.);
+	updateBoundingAreaGfx(r);
+	return true;
 }
 
-void VControllerDPad::setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity)
+bool VControllerDPad::setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity)
 {
-	if(diagonalSensitivity_ != newDiagonalSensitivity)
-	{
-		logMsg("set diagonal sensitivity: %f", (double)newDiagonalSensitivity);
-		diagonalSensitivity_ = newDiagonalSensitivity;
-		updateBoundingAreaGfx(r);
-	}
+	if(newDiagonalSensitivity < .01f || newDiagonalSensitivity > 1.f)
+		return false;
+	if(diagonalSensitivity_ == newDiagonalSensitivity)
+		return true;
+	logMsg("set diagonal sensitivity: %f", (double)newDiagonalSensitivity);
+	diagonalSensitivity_ = newDiagonalSensitivity;
+	updateBoundingAreaGfx(r);
+	return true;
 }
 
 void VControllerDPad::setSize(Gfx::Renderer &r, int sizeInPixels)
@@ -154,23 +158,22 @@ std::array<int, 2> VControllerDPad::getInput(WP c) const
 	std::array<int, 2> pad{-1, -1};
 	if(state == VControllerState::OFF || !padArea.overlaps(c))
 		return pad;
-	int x = c.x - padArea.xCenter(), y = c.y - padArea.yCenter();
+	c -= padArea.center();
 	int xDeadzone = deadzonePixels, yDeadzone = deadzonePixels;
-	if(std::abs(x) > deadzonePixels)
-		yDeadzone += (std::abs(x) - deadzonePixels)/diagonalSensitivity_;
-	if(std::abs(y) > deadzonePixels)
-		xDeadzone += (std::abs(y) - deadzonePixels)/diagonalSensitivity_;
-	//logMsg("dpad offset %d,%d, deadzone %d,%d", x, y, xDeadzone, yDeadzone);
-	if(std::abs(x) > xDeadzone)
+	if(std::abs(c.x) > deadzonePixels)
+		yDeadzone += (std::abs(c.x) - deadzonePixels) * diagonalSensitivity_;
+	if(std::abs(c.y) > deadzonePixels)
+		xDeadzone += (std::abs(c.y) - deadzonePixels) * diagonalSensitivity_;
+	if(std::abs(c.x) > xDeadzone)
 	{
-		if(x > 0)
+		if(c.x > 0)
 			pad[0] = keys[1]; // right
 		else
 			pad[0] = keys[3]; // left
 	}
-	if(std::abs(y) > yDeadzone)
+	if(std::abs(c.y) > yDeadzone)
 	{
-		if(y > 0)
+		if(c.y > 0)
 			pad[1] = keys[2]; // down
 		else
 			pad[1] = keys[0]; // up

@@ -201,7 +201,7 @@ void NeoSystem::closeSystem()
 static auto openGngeoDataIO(IG::ApplicationContext ctx, IG::CStringView filename)
 {
 	#ifdef __ANDROID__
-	return ctx.openAsset(filename, IO::AccessHint::ALL);
+	return ctx.openAsset(filename, IO::AccessHint::All);
 	#else
 	return FS::fileFromArchive(static_cast<NeoApp&>(ctx.application()).system().datafilePath, filename);
 	#endif
@@ -313,9 +313,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
-		{ .0, Gfx::VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build((85./255.) * .4, (71./255.) * .4, (0./255.) * .4, 1.) },
+		{ .0, Gfx::PackedColor::format.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
+		{ .3, Gfx::PackedColor::format.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
+		{ .97, Gfx::PackedColor::format.build((85./255.) * .4, (71./255.) * .4, (0./255.) * .4, 1.) },
 		{ 1., view.separatorColor() },
 	};
 	view.setBackgroundGradient(navViewGrad);

@@ -25,7 +25,7 @@ namespace IG::Gfx
 struct LGradientStopDesc
 {
 	float pos;
-	VertexColor color;
+	PackedColor color;
 };
 
 class LGradient
@@ -33,10 +33,10 @@ class LGradient
 public:
 	constexpr LGradient() = default;
 	void draw(RendererCommands &r) const;
-	void setColor(VertexColor);
-	void setColorStop(VertexColor, size_t i);
-	void setPos(std::span<const LGradientStopDesc> stops, float x, float y, float x2, float y2);
-	void setPos(std::span<const LGradientStopDesc> stops, GCRect d);
+	void setColor(PackedColor);
+	void setColorStop(PackedColor, size_t i);
+	void setPos(std::span<const LGradientStopDesc> stops, int x, int y, int x2, int y2);
+	void setPos(std::span<const LGradientStopDesc> stops, WRect d);
 	int stops() const;
 	explicit operator bool() const;
 	const GeomQuadMesh &mesh() const { return g; }

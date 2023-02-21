@@ -204,10 +204,8 @@ static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Library libr
 		glyph->bitmap = {};
 	}
 	GlyphMetrics metrics;
-	metrics.xSize = bitmap.width;
-	metrics.ySize = bitmap.rows;
-	metrics.xOffset = glyph->bitmap_left;
-	metrics.yOffset = glyph->bitmap_top;
+	metrics.size = {int16_t(bitmap.width), int16_t(bitmap.rows)};
+	metrics.offset = {int16_t(glyph->bitmap_left), int16_t(glyph->bitmap_top)};
 	metrics.xAdvance = glyph->advance.x >> 6;;
 	if(!keepPixData)
 	{
@@ -265,7 +263,7 @@ FreetypeFont::FreetypeFont(FT_Library library, IO io):
 FreetypeFont::FreetypeFont(FT_Library library, const char *name):
 	library{library}
 {
-	loadIntoNextSlot(FileIO{name, IOAccessHint::ALL});
+	loadIntoNextSlot(FileIO{name, IOAccessHint::All});
 }
 
 Font FontManager::makeFromFile(IO io) const
@@ -300,7 +298,7 @@ Font FontManager::makeBoldSystem() const
 
 Font FontManager::makeFromAsset(const char *name, const char *appName) const
 {
-	return {library.get(), ctx.openAsset(name, IOAccessHint::ALL, {}, appName)};
+	return {library.get(), ctx.openAsset(name, IOAccessHint::All, {}, appName)};
 }
 
 FreetypeFaceData::FreetypeFaceData(FreetypeFaceData &&o) noexcept
@@ -358,7 +356,7 @@ std::errc FreetypeFont::loadIntoNextSlot(IG::CStringView name)
 		return std::errc::no_space_on_device;
 	try
 	{
-		if(auto ec = loadIntoNextSlot(FileIO{name, IOAccessHint::ALL});
+		if(auto ec = loadIntoNextSlot(FileIO{name, IOAccessHint::All});
 			(bool)ec)
 		{
 			return ec;

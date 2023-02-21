@@ -178,7 +178,7 @@ void MdSystem::loadBackupMemory(EmuApp &app)
 	if(sCD.isActive)
 	{
 		auto saveStr = bramSaveFilename(app);
-		auto bramFile = appContext().openFileUri(saveStr, IOAccessHint::ALL, OpenFlagsMask::TEST);
+		auto bramFile = appContext().openFileUri(saveStr, IOAccessHint::All, OpenFlagsMask::Test);
 		if(!bramFile)
 		{
 			logMsg("no BRAM on disk, formatting");
@@ -232,7 +232,7 @@ void MdSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 	{
 		logMsg("saving BRAM");
 		auto saveStr = bramSaveFilename(app);
-		auto bramFile = appContext().openFileUri(saveStr, OpenFlagsMask::NEW | OpenFlagsMask::TEST);
+		auto bramFile = appContext().openFileUri(saveStr, OpenFlagsMask::New | OpenFlagsMask::Test);
 		if(!bramFile)
 			logMsg("error creating bram file");
 		else
@@ -447,9 +447,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
-		{ .0, Gfx::VertexColorPixelFormat.build(0., 0., 1. * .4, 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build(0., 0., 1. * .4, 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build(0., 0., .6 * .4, 1.) },
+		{ .0, Gfx::PackedColor::format.build(0., 0., 1. * .4, 1.) },
+		{ .3, Gfx::PackedColor::format.build(0., 0., 1. * .4, 1.) },
+		{ .97, Gfx::PackedColor::format.build(0., 0., .6 * .4, 1.) },
 		{ 1., view.separatorColor() },
 	};
 	view.setBackgroundGradient(navViewGrad);

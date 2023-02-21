@@ -139,7 +139,7 @@ bool Text::compile(Renderer &r, TextLayoutConfig conf)
 }
 
 static void drawSpan(RendererCommands &cmds, WP pos,
-	std::u16string_view strView, TexQuad &vArr, GlyphTextureSet *face_, int spaceSize)
+	std::u16string_view strView, auto &vArr, GlyphTextureSet *face_, int spaceSize)
 {
 	for(auto c : strView)
 	{
@@ -155,14 +155,22 @@ static void drawSpan(RendererCommands &cmds, WP pos,
 			continue;
 		}
 		auto &[glyph, metrics] = *gly;
-		auto x = pos.x + metrics.xOffset;
-		auto y = pos.y - metrics.yOffset;
+		auto drawPos = pos.as<int16_t>() + metrics.offset.negateY();
 		pos.x += metrics.xAdvance;
-		vArr = {{{float(x), float(y)}, {float(x + metrics.xSize), float(y + metrics.ySize)}}, glyph};
+		vArr =
+		{
+			{.bounds = {drawPos, (drawPos + metrics.size)}, .textureBounds = vArr.unitTexCoordRect()}
+		};
 		cmds.vertexBufferData(vArr.data(), sizeof(vArr));
 		cmds.setTexture(glyph);
 		cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 	}
+}
+
+void Text::draw(RendererCommands &cmds, WP pos, _2DOrigin o, Color c) const
+{
+	cmds.setColor(c);
+	draw(cmds, pos, o);
 }
 
 void Text::draw(RendererCommands &cmds, WP pos, _2DOrigin o) const
@@ -171,7 +179,7 @@ void Text::draw(RendererCommands &cmds, WP pos, _2DOrigin o) const
 		return;
 	cmds.set(BlendMode::ALPHA);
 	cmds.bindTempVertexBuffer();
-	TexQuad vArr;
+	ITexQuad vArr;
 	cmds.setVertexAttribs(vArr.data());
 	pos.x = o.adjustX(pos.x, xSize, LT2DO);
 	if(o.onBottom())

@@ -29,7 +29,7 @@ public:
 	static constexpr std::chrono::nanoseconds IGNORE_TIMEOUT{0xFFFFFFFFFFFFFFFFull};
 	GLsync sync{};
 
-	constexpr GLSyncFence() {}
+	constexpr GLSyncFence() = default;
 	constexpr GLSyncFence(GLsync sync): sync{sync} {}
 };
 

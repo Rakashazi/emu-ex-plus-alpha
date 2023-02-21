@@ -49,8 +49,8 @@ public:
 	FS::file_type type() const;
 	size_t size() const;
 	uint32_t crc32() const;
-	ArchiveIO moveIO();
-	void moveIO(ArchiveIO io);
+	ArchiveIO releaseIO();
+	void reset(ArchiveIO io);
 	bool readNextEntry();
 	bool hasEntry() const;
 	void rewind();
@@ -74,14 +74,12 @@ protected:
 	static void freeArchive(struct archive *);
 };
 
-class ArchiveIO final : public IOUtils<ArchiveIO>
+class ArchiveIO : public IOUtils<ArchiveIO>
 {
 public:
 	using IOUtilsBase = IOUtils<ArchiveIO>;
 	using IOUtilsBase::write;
-	using IOUtilsBase::seekS;
-	using IOUtilsBase::seekE;
-	using IOUtilsBase::seekC;
+	using IOUtilsBase::seek;
 	using IOUtilsBase::tell;
 	using IOUtilsBase::send;
 	using IOUtilsBase::buffer;

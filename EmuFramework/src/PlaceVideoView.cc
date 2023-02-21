@@ -142,19 +142,19 @@ void PlaceVideoView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
 	vController.draw(cmds, true, .50);
-	cmds.setColor(.5, .5, .5);
+	cmds.setColor({.5, .5, .5});
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
 	const int lineSize = 1;
-	GeomRect::draw(cmds, WRect{{viewRect().x, viewRect().yCenter()},
+	cmds.drawRect({{viewRect().x, viewRect().yCenter()},
 		{viewRect().x2, viewRect().yCenter() + lineSize}});
-	GeomRect::draw(cmds, WRect{{viewRect().xCenter(), viewRect().y},
+	cmds.drawRect({{viewRect().xCenter(), viewRect().y},
 		{viewRect().xCenter() + lineSize, viewRect().y2}});
-	cmds.setColor(.2, .2, .2, .5);
-	GeomRect::draw(cmds, exitBounds);
-	GeomRect::draw(cmds, resetBounds);
-	cmds.set(ColorName::WHITE);
+	cmds.setColor({.2, .2, .2, .5});
+	cmds.drawRect(exitBounds);
+	cmds.drawRect(resetBounds);
 	basicEffect.enableAlphaTexture(cmds);
+	cmds.setColor(ColorName::WHITE);
 	exitText.draw(cmds, exitBounds.pos(C2DO), C2DO);
 	resetText.draw(cmds, resetBounds.pos(C2DO), C2DO);
 }

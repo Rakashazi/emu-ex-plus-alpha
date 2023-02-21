@@ -51,10 +51,9 @@ void EmuView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		cmds.setBlendMode(BLEND_MODE_ALPHA);
 		cmds.setColor(0., 0., 0., .7);
 		GeomRect::draw(cmds, audioStatsRect);
-		cmds.setColor(1., 1., 1., 1.);
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 		audioStatsText.draw(cmds, audioStatsRect.x + TableView::globalXIndent,
-			audioStatsRect.yCenter(), LC2DO);
+			audioStatsRect.yCenter(), LC2DO, ColorName::WHITE);
 	}
 	#endif
 }

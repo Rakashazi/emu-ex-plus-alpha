@@ -288,7 +288,7 @@ IG::ApplicationContext gAppContext();
 
 bool bml_node::parse_file(std::string filename)
 {
-    IG::IFStream file(EmuEx::gAppContext().openFileUri(filename, IG::OpenFlagsMask::TEST), std::ios_base::binary);
+    IG::IFStream file(EmuEx::gAppContext().openFileUri(filename, IG::OpenFlagsMask::Test), std::ios_base::binary);
 
     if (!file)
         return false;

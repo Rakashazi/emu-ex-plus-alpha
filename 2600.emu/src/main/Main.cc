@@ -218,9 +218,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
-		{ .0, Gfx::VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build((75./255.) * .4, (37.5/255.) * .4, (0./255.) * .4, 1.) },
+		{ .0, Gfx::PackedColor::format.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
+		{ .3, Gfx::PackedColor::format.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
+		{ .97, Gfx::PackedColor::format.build((75./255.) * .4, (37.5/255.) * .4, (0./255.) * .4, 1.) },
 		{ 1., view.separatorColor() },
 	};
 	view.setBackgroundGradient(navViewGrad);

@@ -100,17 +100,13 @@ void BaseAlertView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	auto &basicEffect = cmds.basicEffect();
 	cmds.set(BlendMode::ALPHA);
 	basicEffect.disableTexture(cmds);
-	cmds.setColor(.4, .4, .4, .8);
-	GeomRect::draw(cmds, labelFrame);
-	cmds.setColor(.1, .1, .1, .6);
-	GeomRect::draw(cmds, menu.viewRect());
-	cmds.set(ColorName::WHITE);
+	cmds.setColor({.4, .4, .4, .8});
+	cmds.drawRect(labelFrame);
+	cmds.setColor({.1, .1, .1, .6});
+	cmds.drawRect(menu.viewRect());
 	basicEffect.enableAlphaTexture(cmds);
-	text.draw(cmds, {labelFrame.xPos(C2DO), labelFrame.yPos(C2DO)}, C2DO);
-	//setClipRect(1);
-	//setClipRectBounds(menu.viewRect());
+	text.draw(cmds, {labelFrame.xPos(C2DO), labelFrame.yPos(C2DO)}, C2DO, ColorName::WHITE);
 	menu.draw(cmds);
-	//setClipRect(0);
 }
 
 void BaseAlertView::onAddedToController(ViewController *c, const Input::Event &e)

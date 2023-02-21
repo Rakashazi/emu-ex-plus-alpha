@@ -43,14 +43,14 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 	auto nav = makeView<BasicNavView>
 		(
 			&face(),
-			isSingleDirectoryMode() ? nullptr : backRes,
+			isSingleDirectoryMode() ? Gfx::TextureSpan{} : backRes,
 			closeRes
 		);
 	const Gfx::LGradientStopDesc fsNavViewGrad[]
 	{
-		{ .0, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build(.35 * .4, .35 * .4, .35 * .4, 1.) },
+		{ .0, Gfx::PackedColor::format.build(1. * .4, 1. * .4, 1. * .4, 1.) },
+		{ .3, Gfx::PackedColor::format.build(1. * .4, 1. * .4, 1. * .4, 1.) },
+		{ .97, Gfx::PackedColor::format.build(.35 * .4, .35 * .4, .35 * .4, 1.) },
 		{ 1., nav->separatorColor() },
 	};
 	nav->setBackgroundGradient(fsNavViewGrad);
@@ -167,12 +167,8 @@ void FSPicker::draw(Gfx::RendererCommands &__restrict__ cmds)
 		else
 		{
 			using namespace IG::Gfx;
-			cmds.set(ColorName::WHITE);
 			cmds.basicEffect().enableAlphaTexture(cmds);
-			auto textRect = controller.top().viewRect();
-			if(IG::isOdd(textRect.ySize()))
-				textRect.y2--;
-			msgText.draw(cmds, textRect.pos(C2DO), C2DO);
+			msgText.draw(cmds, controller.top().viewRect().pos(C2DO), C2DO, ColorName::WHITE);
 		}
 	}
 	controller.navView()->draw(cmds);
@@ -390,7 +386,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 		[this](const Input::Event &e)
 		{
 			auto textInputView = makeView<CollectTextInputView>(
-				"Input a directory path", root.path, nullptr,
+				"Input a directory path", root.path, Gfx::TextureSpan{},
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(!str || !strlen(str))

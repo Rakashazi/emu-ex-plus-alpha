@@ -56,7 +56,7 @@ ZFILE *gn_unzip_fopen(PKZIP *archPtr, const char *filename, uint32_t fileCRC)
 		if((loadByName && entry.name() == filename) || crc == fileCRC)
 		{
 			//logMsg("opened archive entry file:%s crc32:0x%X", name, crc);
-			return new ZFILE{entry.moveIO(), archPtr};
+			return new ZFILE{entry.releaseIO(), archPtr};
 		}
 	}
 	logMsg("file:%s crc32:0x%X not found in archive", filename, fileCRC);
@@ -142,6 +142,6 @@ struct PKZIP *open_rom_zip(void *contextPtr, char *romPath, char *name)
 gzFile gzopenHelper(void *contextPtr, const char *filename, const char *mode)
 {
 	auto &ctx = *((IG::ApplicationContext*)contextPtr);
-	auto openFlags = std::string_view{mode}.contains('w') ? IG::OpenFlagsMask::NEW : IG::OpenFlagsMask{};
-	return gzdopen(ctx.openFileUriFd(filename, openFlags | IG::OpenFlagsMask::TEST).release(), mode);
+	auto openFlags = std::string_view{mode}.contains('w') ? IG::OpenFlagsMask::New : IG::OpenFlagsMask{};
+	return gzdopen(ctx.openFileUriFd(filename, openFlags | IG::OpenFlagsMask::Test).release(), mode);
 }

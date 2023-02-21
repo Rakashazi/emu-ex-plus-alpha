@@ -145,7 +145,7 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds)
 	using namespace IG::Gfx;
 	bool srgbOutput = srgbColorSpace();
 	auto c = srgbOutput ? brightnessSrgb : brightness;
-	cmds.setColor(c.r, c.g, c.b);
+	cmds.setColor({c.r, c.g, c.b});
 	cmds.set(BlendMode::OFF);
 	if(effects.size())
 	{
@@ -265,7 +265,7 @@ void EmuVideoLayer::onVideoFormatChanged(IG::PixelFormat effectFmt)
 void EmuVideoLayer::setRotation(IG::Rotation r)
 {
 	rotation = r;
-	disp.setUVBounds({{0.f, 0.f}, {1.f, 1.f}}, r);
+	disp.setUVBounds(disp.unitTexCoordRect(), r);
 	placeOverlay();
 }
 

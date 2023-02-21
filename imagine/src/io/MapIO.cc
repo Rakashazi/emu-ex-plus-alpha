@@ -94,9 +94,9 @@ static int adviceToMAdv(IOAdvice advice)
 	switch(advice)
 	{
 		default: return MADV_NORMAL;
-		case IOAdvice::SEQUENTIAL: return MADV_SEQUENTIAL;
-		case IOAdvice::RANDOM: return MADV_RANDOM;
-		case IOAdvice::WILLNEED: return MADV_WILLNEED;
+		case IOAdvice::Sequential: return MADV_SEQUENTIAL;
+		case IOAdvice::Random: return MADV_RANDOM;
+		case IOAdvice::WillNeed: return MADV_WILLNEED;
 	}
 }
 
@@ -116,11 +116,11 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 	int mAdv = adviceToMAdv(advice);
 	if(madvise(pageSrcAddr, bytes, mAdv) != 0 && Config::DEBUG_BUILD)
 	{
-		logWarn("madvise(%p, %zu, %s) failed:%s", pageSrcAddr, bytes, adviceStr(advice), strerror(errno));
+		logWarn("madvise(%p, %zu, %s) failed:%s", pageSrcAddr, bytes, asString(advice), strerror(errno));
 	}
 	else
 	{
-		logDMsg("madvise(%p, %zu, %s)", pageSrcAddr, bytes, adviceStr(advice));
+		logDMsg("madvise(%p, %zu, %s)", pageSrcAddr, bytes, asString(advice));
 	}
 }
 #endif

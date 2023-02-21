@@ -67,7 +67,7 @@ static bool readConfigKeys(MapIO io, ON_KEY onKey)
 		if(size < 2) // all blocks are at least a 2 byte key
 		{
 			logMsg("skipping %zu byte block", size);
-			if(io.seekC(size) == -1)
+			if(io.seek(nextBlockPos) == -1)
 			{
 				logErr("unable to seek to next block, skipping rest of config");
 				return false;
@@ -81,7 +81,7 @@ static bool readConfigKeys(MapIO io, ON_KEY onKey)
 		logMsg("got config key %u, size %zu", key, size);
 		onKey(key, size, io);
 
-		if(io.seekS(nextBlockPos) == -1)
+		if(io.seek(nextBlockPos) == -1)
 		{
 			logErr("unable to seek to next block, skipping rest of config");
 			return false;

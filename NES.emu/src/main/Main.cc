@@ -198,14 +198,14 @@ void NesSystem::setDefaultPalette(IG::ApplicationContext ctx, IG::CStringView pa
 	if(palPath[0] != '/' && !IG::isUri(palPath))
 	{
 		// load as asset
-		IO io = ctx.openAsset(FS::pathString("palette", palPath), IO::AccessHint::ALL);
+		IO io = ctx.openAsset(FS::pathString("palette", palPath), IO::AccessHint::All);
 		if(!io)
 			return;
 		setDefaultPalette(io);
 	}
 	else
 	{
-		IO io = ctx.openFileUri(palPath, IO::AccessHint::ALL, OpenFlagsMask::TEST);
+		IO io = ctx.openFileUri(palPath, IO::AccessHint::All, OpenFlagsMask::Test);
 		if(!io)
 			return;
 		setDefaultPalette(io);
@@ -451,9 +451,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
-		{ .0, Gfx::VertexColorPixelFormat.build(1. * .4, 0., 0., 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build(1. * .4, 0., 0., 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build(.5 * .4, 0., 0., 1.) },
+		{ .0, Gfx::PackedColor::format.build(1. * .4, 0., 0., 1.) },
+		{ .3, Gfx::PackedColor::format.build(1. * .4, 0., 0., 1.) },
+		{ .97, Gfx::PackedColor::format.build(.5 * .4, 0., 0., 1.) },
 		{ 1., view.separatorColor() },
 	};
 	view.setBackgroundGradient(navViewGrad);

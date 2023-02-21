@@ -126,15 +126,14 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	if(max)
 	{
 		basicEffect.disableTexture(cmds);
-		cmds.setColor(.0, .0, .75);
+		cmds.setColor({.0, .0, .75});
 		int barHeight = text.height() * 1.5f;
 		auto bar = WRect::makeRel(displayRect().pos(LC2DO) - WP{0, barHeight/2},
 			{int(IG::remap(int64_t(pos), 0, max, 0, displayRect().xSize())), barHeight});
-		GeomRect::draw(cmds, bar);
+		cmds.drawRect(bar);
 	}
 	basicEffect.enableAlphaTexture(cmds);
-	cmds.set(ColorName::WHITE);
-	text.draw(cmds, displayRect().center(), C2DO);
+	text.draw(cmds, displayRect().center(), C2DO, ColorName::WHITE);
 }
 
 EmuLoadProgressView::MessagePortType &EmuLoadProgressView::messagePort()

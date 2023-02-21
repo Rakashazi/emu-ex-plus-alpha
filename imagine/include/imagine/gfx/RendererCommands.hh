@@ -83,11 +83,12 @@ public:
 	void setBlendEquation(BlendEquation);
 	void set(BlendEquation mode) { setBlendEquation(mode); }
 	void setZTest(bool on);
-	void setClearColor(float r, float g, float b, float a = 1.);
+	void setClearColor(Color4F);
+	void setClearColor(float i) { setClearColor({i, i, i}); }
+	void setClearColor(ColorName name) { setClearColor(Color4F{name}); }
 	void setColor(Color4F);
-	void setColor(float r, float g, float b, float a = 1.);
-	void setColor(float i) { setColor(i, i, i, 1.); }
-	void set(ColorName c) { setColor(::IG::Gfx::color(c)); }
+	void setColor(float i) { setColor({i, i, i}); }
+	void setColor(ColorName name) { setColor(Color4F{name}); }
 	Color4F color() const;
 	void setImgMode(EnvMode);
 	void setDither(bool on);
@@ -133,6 +134,7 @@ public:
 	void clear();
 	void drawPrimitives(Primitive mode, int start, int count);
 	void drawPrimitiveElements(Primitive, std::span<const VertexIndex>);
+	void drawRect(WRect bounds);
 };
 
 }

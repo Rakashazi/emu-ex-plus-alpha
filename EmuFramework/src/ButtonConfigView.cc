@@ -168,23 +168,21 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	auto &basicEffect = cmds.basicEffect();
 	cmds.set(BlendMode::OFF);
 	basicEffect.disableTexture(cmds);
-	cmds.setColor(.4, .4, .4, 1.);
-	GeomRect::draw(cmds, viewRect());
+	cmds.setColor({.4, .4, .4});
+	cmds.drawRect(viewRect());
 	if(pointerUIIsInit())
 	{
-		cmds.setColor(.2, .2, .2, 1.);
-		GeomRect::draw(cmds, unbindB);
-		GeomRect::draw(cmds, cancelB);
+		cmds.setColor({.2, .2, .2});
+		cmds.drawRect(unbindB);
+		cmds.drawRect(cancelB);
 	}
-
-	cmds.set(ColorName::WHITE);
 	basicEffect.enableAlphaTexture(cmds);
 	if(pointerUIIsInit())
 	{
-		unbind.draw(cmds, unbindB.pos(C2DO), C2DO);
-		cancel.draw(cmds, cancelB.pos(C2DO), C2DO);
+		unbind.draw(cmds, unbindB.pos(C2DO), C2DO, ColorName::WHITE);
+		cancel.draw(cmds, cancelB.pos(C2DO), C2DO, ColorName::WHITE);
 	}
-	text.draw(cmds, viewRect().center(), C2DO);
+	text.draw(cmds, viewRect().center(), C2DO, ColorName::WHITE);
 }
 
 void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Event &e)
@@ -203,7 +201,7 @@ void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &__restrict
 	int xIndent, _2DOrigin align, Gfx::Color color) const
 {
 	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
-	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, Gfx::color(Gfx::ColorName::YELLOW));
+	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, Gfx::ColorName::YELLOW);
 }
 
 static std::pair<const KeyCategory *, int> findCategoryAndKeyInConfig(EmuApp &app, Input::Key key,

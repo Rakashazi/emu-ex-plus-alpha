@@ -36,12 +36,12 @@ static void applyAccessHint(PosixFileIO &io, IOAccessHint access, bool isMapped)
 {
 	switch(access)
 	{
-		case IOAccessHint::NORMAL: return;
-		case IOAccessHint::SEQUENTIAL: return io.advise(0, 0, IOAdvice::SEQUENTIAL);
-		case IOAccessHint::RANDOM: return io.advise(0, 0, IOAdvice::RANDOM);
-		case IOAccessHint::ALL:
+		case IOAccessHint::Normal: return;
+		case IOAccessHint::Sequential: return io.advise(0, 0, IOAdvice::Sequential);
+		case IOAccessHint::Random: return io.advise(0, 0, IOAdvice::Random);
+		case IOAccessHint::All:
 			if(!isMapped || (isMapped && !hasMmapPopulateFlag))
-				return io.advise(0, 0, IOAdvice::WILLNEED);
+				return io.advise(0, 0, IOAdvice::WillNeed);
 	}
 }
 
@@ -52,7 +52,7 @@ PosixFileIO::PosixFileIO(UniqueFileDescriptor fd_, IOAccessHint access, OpenFlag
 }
 
 PosixFileIO::PosixFileIO(UniqueFileDescriptor fd, OpenFlagsMask openFlags):
-	PosixFileIO{std::move(fd), IOAccessHint::NORMAL, openFlags} {}
+	PosixFileIO{std::move(fd), IOAccessHint::Normal, openFlags} {}
 
 PosixFileIO::PosixFileIO(IG::CStringView path, IOAccessHint access, OpenFlagsMask openFlags):
 	ioImpl{std::in_place_type<PosixIO>, path, openFlags}
@@ -61,19 +61,19 @@ PosixFileIO::PosixFileIO(IG::CStringView path, IOAccessHint access, OpenFlagsMas
 }
 
 PosixFileIO::PosixFileIO(IG::CStringView path, OpenFlagsMask openFlags):
-	PosixFileIO{path, IOAccessHint::NORMAL, openFlags} {}
+	PosixFileIO{path, IOAccessHint::Normal, openFlags} {}
 
 void PosixFileIO::tryMmap(IOAccessHint access, OpenFlagsMask openFlags)
 {
 	assumeExpr(std::holds_alternative<PosixIO>(ioImpl));
 	auto &io = *std::get_if<PosixIO>(&ioImpl);
 	// try to open as memory map only if read-only
-	if(to_underlying(openFlags & OpenFlagsMask::WRITE) || !io)
+	if(to_underlying(openFlags & OpenFlagsMask::Write) || !io)
 		return;
 	size_t size = io.size();
 	if(!size) [[unlikely]]
 		return;
-	PosixIO::MapFlags flags = access == IOAccessHint::ALL ? PosixIO::MAP_POPULATE_PAGES : 0;
+	auto flags = access == IOAccessHint::All ? IOMapFlagsMask::PopulatePages : IOMapFlagsMask{};
 	MapIO mappedFile{io.mapRange(0, size, flags)};
 	if(mappedFile)
 	{

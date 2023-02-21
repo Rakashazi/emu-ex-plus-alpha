@@ -60,7 +60,7 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, const std::string& path, const std::vector<Fi
 				if(hasKnownExtension(entry.name(), known_ext))
 				{
 					logMsg("archive file entry:%s", entry.name().data());
-					auto io = entry.moveIO();
+					auto io = entry.releaseIO();
 					str = std::make_unique<MemoryStream>(io.size(), true);
 					if(io.read(str->map(), str->map_size()) != (int)str->map_size())
 					{
@@ -87,8 +87,8 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, std::unique_ptr<Stream> str):
 
 extern int openFdHelper(const char *file, int oflag, mode_t mode)
 {
-	auto openFlags = (oflag & O_CREAT) ? IG::OpenFlagsMask::NEW : IG::OpenFlagsMask{};
-	return EmuEx::gAppContext().openFileUriFd(file, openFlags | IG::OpenFlagsMask::TEST).release();
+	auto openFlags = (oflag & O_CREAT) ? IG::OpenFlagsMask::New : IG::OpenFlagsMask{};
+	return EmuEx::gAppContext().openFileUriFd(file, openFlags | IG::OpenFlagsMask::Test).release();
 }
 
 extern FILE *fopenHelper(const char* filename, const char* mode)

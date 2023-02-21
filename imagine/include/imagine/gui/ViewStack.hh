@@ -101,7 +101,7 @@ protected:
 	//ViewController *nextController{};
 	WindowRect viewRect{}, customViewRect{};
 	WindowRect displayRect{}, customDisplayRect{};
-	Gfx::ColQuad bottomGradient{};
+	Gfx::IColQuad bottomGradient{};
 	bool showNavBackBtn = true;
 	bool showNavView_ = true;
 	bool navViewHasFocus = false;

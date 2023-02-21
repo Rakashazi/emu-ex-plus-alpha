@@ -20,14 +20,12 @@
 namespace IG
 {
 
-class MapIO final : public IOUtils<MapIO>
+class MapIO : public IOUtils<MapIO>
 {
 public:
 	using IOUtilsBase = IOUtils<MapIO>;
 	using IOUtilsBase::write;
-	using IOUtilsBase::seekS;
-	using IOUtilsBase::seekE;
-	using IOUtilsBase::seekC;
+	using IOUtilsBase::seek;
 	using IOUtilsBase::tell;
 	using IOUtilsBase::send;
 	using IOUtilsBase::buffer;
@@ -36,8 +34,8 @@ public:
 
 	constexpr MapIO() = default;
 	MapIO(IOBuffer);
-	explicit MapIO(Readable auto &&io): MapIO{io.buffer(BufferMode::RELEASE)} {}
-	explicit MapIO(Readable auto &io): MapIO{io.buffer(BufferMode::DIRECT)} {}
+	explicit MapIO(Readable auto &&io): MapIO{io.buffer(BufferMode::Release)} {}
+	explicit MapIO(Readable auto &io): MapIO{io.buffer(BufferMode::Direct)} {}
 	ssize_t read(void *buff, size_t bytes);
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
 	std::span<uint8_t> map();

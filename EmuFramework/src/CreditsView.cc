@@ -50,12 +50,8 @@ void CreditsView::prepareDraw()
 void CreditsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
-	cmds.setColor(1., 1., 1., fade);
 	cmds.basicEffect().enableAlphaTexture(cmds);
-	auto textRect = viewRect();
-	if(IG::isOdd(textRect.ySize()))
-		textRect.y2--;
-	text.draw(cmds, textRect.pos(C2DO), C2DO);
+	text.draw(cmds, viewRect().pos(C2DO), C2DO, Color{1., 1., 1., fade});
 }
 
 void CreditsView::place()

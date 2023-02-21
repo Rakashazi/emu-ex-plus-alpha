@@ -204,7 +204,7 @@ FS::RootPathInfo ApplicationContext::rootPathInfo(std::string_view path) const
 {
 	if(path.empty())
 		return {};
-	if(IG::isUri(path))
+	if(isUri(path))
 	{
 		if(auto [treePath, treePos] = FS::uriPathSegment(path, FS::uriPathSegmentTreeName);
 			Config::envIsAndroid && treePos != std::string_view::npos)
@@ -251,7 +251,7 @@ FS::RootPathInfo ApplicationContext::rootPathInfo(std::string_view path) const
 	return nearestPtr->root.info;
 }
 
-AssetIO ApplicationContext::openAsset(IG::CStringView name, IOAccessHint hint, OpenFlagsMask openFlags, const char *appName) const
+AssetIO ApplicationContext::openAsset(CStringView name, IOAccessHint hint, OpenFlagsMask openFlags, const char *appName) const
 {
 	#ifdef __ANDROID__
 	return {*this, name, hint, openFlags};
@@ -260,7 +260,7 @@ AssetIO ApplicationContext::openAsset(IG::CStringView name, IOAccessHint hint, O
 	#endif
 }
 
-FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(IG::CStringView path, const char *appName)
+FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(CStringView path, const char *appName)
 {
 	#ifdef __ANDROID__
 	return {aAssetManager(), path};
@@ -286,7 +286,7 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(IG::CStringVie
 
 FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlagsMask openFlags) const
 {
-	return openFileUri(uri, IOAccessHint::NORMAL, openFlags);
+	return openFileUri(uri, IOAccessHint::Normal, openFlags);
 }
 
 [[gnu::weak]] UniqueFileDescriptor ApplicationContext::openFileUriFd(CStringView uri, OpenFlagsMask openFlags) const
@@ -294,7 +294,7 @@ FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlagsMask openFlags)
 	return PosixIO{uri, openFlags}.releaseFd();
 }
 
-[[gnu::weak]] bool ApplicationContext::fileUriExists(IG::CStringView uri) const
+[[gnu::weak]] bool ApplicationContext::fileUriExists(CStringView uri) const
 {
 	return FS::exists(uri);
 }
@@ -304,32 +304,32 @@ FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlagsMask openFlags)
 	return FS::status(uri).lastWriteTime();
 }
 
-[[gnu::weak]] std::string ApplicationContext::fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const
+[[gnu::weak]] std::string ApplicationContext::fileUriFormatLastWriteTimeLocal(CStringView uri) const
 {
 	return FS::formatLastWriteTimeLocal(*this, uri);
 }
 
-[[gnu::weak]] FS::FileString ApplicationContext::fileUriDisplayName(IG::CStringView uri) const
+[[gnu::weak]] FS::FileString ApplicationContext::fileUriDisplayName(CStringView uri) const
 {
 	return FS::displayName(uri);
 }
 
-[[gnu::weak]] bool ApplicationContext::removeFileUri(IG::CStringView uri) const
+[[gnu::weak]] bool ApplicationContext::removeFileUri(CStringView uri) const
 {
 	return FS::remove(uri);
 }
 
-[[gnu::weak]] bool ApplicationContext::renameFileUri(IG::CStringView oldUri, IG::CStringView newUri) const
+[[gnu::weak]] bool ApplicationContext::renameFileUri(CStringView oldUri, CStringView newUri) const
 {
 	return FS::rename(oldUri, newUri);
 }
 
-[[gnu::weak]] bool ApplicationContext::createDirectoryUri(IG::CStringView uri) const
+[[gnu::weak]] bool ApplicationContext::createDirectoryUri(CStringView uri) const
 {
 	return FS::create_directory(uri);
 }
 
-[[gnu::weak]] bool ApplicationContext::removeDirectoryUri(IG::CStringView uri) const
+[[gnu::weak]] bool ApplicationContext::removeDirectoryUri(CStringView uri) const
 {
 	return FS::remove(uri);
 }
@@ -411,17 +411,17 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 
 [[gnu::weak]] bool ApplicationContext::requestPermission(Permission) { return false; }
 
-[[gnu::weak]] void ApplicationContext::addNotification(IG::CStringView onShow, IG::CStringView title, IG::CStringView message) {}
+[[gnu::weak]] void ApplicationContext::addNotification(CStringView onShow, CStringView title, CStringView message) {}
 
-[[gnu::weak]] void ApplicationContext::addLauncherIcon(IG::CStringView name, IG::CStringView path) {}
+[[gnu::weak]] void ApplicationContext::addLauncherIcon(CStringView name, CStringView path) {}
 
 [[gnu::weak]] bool VibrationManager::hasVibrator() const { return false; }
 
-[[gnu::weak]] void VibrationManager::vibrate(IG::Milliseconds) {}
+[[gnu::weak]] void VibrationManager::vibrate(Milliseconds) {}
 
 [[gnu::weak]] NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const { return {}; }
 
-[[gnu::weak]] bool ApplicationContext::packageIsInstalled(IG::CStringView name) const { return false; }
+[[gnu::weak]] bool ApplicationContext::packageIsInstalled(CStringView name) const { return false; }
 
 [[gnu::weak]] int32_t ApplicationContext::androidSDK() const
 {
@@ -497,20 +497,20 @@ ApplicationContext OnExit::appContext() const
 namespace IG::FileUtils
 {
 
-ssize_t writeToUri(ApplicationContext ctx, IG::CStringView uri, std::span<const unsigned char> src)
+ssize_t writeToUri(ApplicationContext ctx, CStringView uri, std::span<const unsigned char> src)
 {
-	auto f = ctx.openFileUri(uri, OpenFlagsMask::NEW | OpenFlagsMask::TEST);
+	auto f = ctx.openFileUri(uri, OpenFlagsMask::New | OpenFlagsMask::Test);
 	return f.write(src.data(), src.size());
 }
 
-ssize_t readFromUri(ApplicationContext ctx, IG::CStringView uri, std::span<unsigned char> dest,
+ssize_t readFromUri(ApplicationContext ctx, CStringView uri, std::span<unsigned char> dest,
 	IOAccessHint accessHint)
 {
-	auto f = ctx.openFileUri(uri, accessHint, OpenFlagsMask::TEST);
+	auto f = ctx.openFileUri(uri, accessHint, OpenFlagsMask::Test);
 	return f.read(dest.data(), dest.size());
 }
 
-std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext ctx, IG::CStringView uri,
+std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext ctx, CStringView uri,
 	std::span<unsigned char> dest, bool(*nameMatchFunc)(std::string_view), IOAccessHint accessHint)
 {
 	auto io = ctx.openFileUri(uri, accessHint);
@@ -525,8 +525,7 @@ std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext
 			auto name = entry.name();
 			if(nameMatchFunc(name))
 			{
-				auto io = entry.moveIO();
-				return {io.read(dest.data(), dest.size()), FS::PathString{name}};
+				return {entry.releaseIO().read(dest.data(), dest.size()), FS::PathString{name}};
 			}
 		}
 		logErr("no recognized files in archive:%s", uri.data());
@@ -542,30 +541,30 @@ IOBuffer bufferFromUri(ApplicationContext ctx, CStringView uri, OpenFlagsMask op
 {
 	if(!sizeLimit) [[unlikely]]
 		return {};
-	auto file = ctx.openFileUri(uri, IOAccessHint::ALL, openFlags);
+	auto file = ctx.openFileUri(uri, IOAccessHint::All, openFlags);
 	if(!file)
 		return {};
 	else if(file.size() > sizeLimit)
 	{
-		if(to_underlying(openFlags & OpenFlagsMask::TEST))
+		if(to_underlying(openFlags & OpenFlagsMask::Test))
 			return {};
 		else
 			throw std::runtime_error(fmt::format("{} exceeds {} byte limit", uri.data(), sizeLimit));
 	}
-	return file.buffer(IOBufferMode::RELEASE);
+	return file.buffer(IOBufferMode::Release);
 }
 
 IOBuffer rwBufferFromUri(ApplicationContext ctx, CStringView uri, OpenFlagsMask extraOFlags, size_t size, uint8_t initValue)
 {
 	if(!size) [[unlikely]]
 		return {};
-	auto file = ctx.openFileUri(uri, IOAccessHint::RANDOM, OpenFlagsMask::CREATE_RW | extraOFlags);
+	auto file = ctx.openFileUri(uri, IOAccessHint::Random, OpenFlagsMask::CreateRW | extraOFlags);
 	if(!file) [[unlikely]]
 		return {};
 	auto fileSize = file.size();
 	if(fileSize != size)
 		file.truncate(size);
-	auto buff = file.buffer(IOBufferMode::RELEASE);
+	auto buff = file.buffer(IOBufferMode::Release);
 	if(initValue && fileSize < size)
 	{
 		std::fill(&buff[fileSize], &buff[size], initValue);
@@ -573,12 +572,12 @@ IOBuffer rwBufferFromUri(ApplicationContext ctx, CStringView uri, OpenFlagsMask 
 	return buff;
 }
 
-FILE *fopenUri(ApplicationContext ctx, IG::CStringView path, IG::CStringView mode)
+FILE *fopenUri(ApplicationContext ctx, CStringView path, CStringView mode)
 {
-	if(IG::isUri(path))
+	if(isUri(path))
 	{
-		auto openFlags = mode.contains('w') ? OpenFlagsMask::NEW : OpenFlagsMask{};
-		return ctx.openFileUri(path, openFlags | OpenFlagsMask::TEST).toFileStream(mode);
+		auto openFlags = mode.contains('w') ? OpenFlagsMask::New : OpenFlagsMask{};
+		return ctx.openFileUri(path, openFlags | OpenFlagsMask::Test).toFileStream(mode);
 	}
 	else
 	{

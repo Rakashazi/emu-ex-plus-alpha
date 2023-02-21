@@ -24,8 +24,7 @@ namespace FrameRateTest
 {
 
 TestTableEntry::TestTableEntry(Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
-	DualTextMenuItem{u"", u"", face, selectDel}
-{}
+	DualTextMenuItem{u"", u"", face, selectDel} {}
 
 void TestTableEntry::draw(Gfx::RendererCommands &cmds, int xPos, int yPos, int xSize, int ySize,
 	int xIndent, IG::_2DOrigin align, Gfx::Color color) const
@@ -35,9 +34,9 @@ void TestTableEntry::draw(Gfx::RendererCommands &cmds, int xPos, int yPos, int x
 	{
 		Gfx::Color color2;
 		if(redText)
-			color2 = Gfx::color(1.f, 0.f, 0.f);
+			color2 = Gfx::Color{1.f, 0.f, 0.f};
 		else
-			color2 = Gfx::color(1.f, 1.f, 1.f);
+			color2 = Gfx::Color{1.f, 1.f, 1.f};
 		draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
 	}
 }
@@ -47,8 +46,7 @@ TestPicker::TestPicker(IG::ViewAttachParams attach):
 	{
 		attach,
 		testEntry
-	}
-{}
+	} {}
 
 void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 {

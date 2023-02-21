@@ -48,6 +48,7 @@ class Program;
 class GlyphTextureSet;
 class ProjectionPlane;
 struct DrawableConfig;
+struct Color4B;
 
 using GCRect = IG::CoordinateRect<float, true, true>;
 
@@ -83,16 +84,10 @@ enum class TextureType : uint8_t
 class TextureSpan
 {
 public:
-	constexpr TextureSpan(const Texture *tex = {}, FRect uv = {{}, {1., 1.}}):
-		tex{tex}, uv{uv}
-	{}
-	constexpr const Texture *texture() const { return tex; }
-	constexpr auto uvBounds() const { return uv; }
-	explicit operator bool() const;
+	const Texture *texturePtr;
+	FRect bounds{{}, {1.f, 1.f}};
 
-protected:
-	const Texture *tex;
-	FRect uv;
+	explicit operator bool() const;
 };
 
 enum class TextureBufferMode : uint8_t
@@ -126,9 +121,31 @@ struct Color4F
 	};
 
 	constexpr Color4F() = default;
-	constexpr Color4F(float r, float g, float b, float a):
+	constexpr Color4F(float r, float g, float b, float a = 1.f):
 		r{r}, g{g}, b{b}, a{a} {}
 	constexpr Color4F(std::array<float, 4> rgba): rgba{rgba} {}
+
+	constexpr Color4F(ColorName c):
+		rgba
+		{
+			[&] -> std::array<float, 4>
+			{
+				switch(c)
+				{
+					case ColorName::RED:     return {1.f, 0.f, 0.f, 1.f};
+					case ColorName::GREEN:   return {0.f, 1.f, 0.f, 1.f};
+					case ColorName::BLUE:    return {0.f, 0.f, 1.f, 1.f};
+					case ColorName::CYAN:    return {0.f, 1.f, 1.f, 1.f};
+					case ColorName::YELLOW:  return {1.f, 1.f, 0.f, 1.f};
+					case ColorName::MAGENTA: return {1.f, 0.f, 1.f, 1.f};
+					case ColorName::WHITE:   return {1.f, 1.f, 1.f, 1.f};
+					case ColorName::BLACK:   return {0.f, 0.f, 0.f, 1.f};
+				}
+				return {};
+			}()
+		} {}
+
+	constexpr operator Color4B() const;
 	constexpr operator std::array<float, 4>() const { return rgba; }
 	constexpr bool operator ==(Color4F const &rhs) const { return rgba == rhs.rgba; }
 };
@@ -143,57 +160,40 @@ struct Color4B
 			uint8_t r, g, b, a;
 		};
 	};
+	static constexpr auto format = PIXEL_DESC_RGBA8888_NATIVE;
 
 	constexpr Color4B() = default;
 	constexpr Color4B(uint32_t rgba): rgba{rgba} {}
+
+	constexpr Color4B(ColorName c):
+		rgba
+		{
+			[&] -> uint32_t
+			{
+				switch(c)
+				{
+					case ColorName::RED:     return format.build(1.f, 0.f, 0.f);
+					case ColorName::GREEN:   return format.build(0.f, 1.f, 0.f);
+					case ColorName::BLUE:    return format.build(0.f, 0.f, 1.f);
+					case ColorName::CYAN:    return format.build(0.f, 1.f, 1.f);
+					case ColorName::YELLOW:  return format.build(1.f, 1.f, 0.f);
+					case ColorName::MAGENTA: return format.build(1.f, 0.f, 1.f);
+					case ColorName::WHITE:   return format.build(1.f, 1.f, 1.f);
+					case ColorName::BLACK:   return format.build(0.f, 0.f, 0.f);
+				}
+				return {};
+			}()
+		} {}
+
+	constexpr operator Color4F() const { return format.rgbaNorm(rgba); }
 	constexpr operator uint32_t() const { return rgba; }
 	constexpr bool operator ==(Color4B const &rhs) const { return rgba == rhs.rgba; }
 };
 
-using VertexColor = Color4B;
-constexpr auto VertexColorPixelFormat = PIXEL_DESC_RGBA8888_NATIVE;
+constexpr Color4F::operator Color4B() const { return Color4B::format.build(r, g, b, a); }
+
+using PackedColor = Color4B;
 using Color = Color4F;
-
-constexpr Color color(float r, float g, float b, float a = 1.f)
-{
-	if constexpr(std::is_same_v<Color, Color4F>)
-	{
-		return {r, g, b, a};
-	}
-	else
-	{
-		return {255.f * r, 255.f * g, 255.f * b, 255.f * a};
-	}
-}
-
-constexpr Color color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
-{
-	if constexpr(std::is_same_v<Color, Color4F>)
-	{
-		return {r / 255.f, g / 255.f, b / 255.f, a / 255.f};
-	}
-	else
-	{
-		using ColorComp = decltype(Color::r);
-		return {(ColorComp)r, (ColorComp)g, (ColorComp)b, (ColorComp)a};
-	}
-}
-
-constexpr Color color(ColorName c)
-{
-	switch(c)
-	{
-		case ColorName::RED: return color(1.f, 0.f, 0.f);
-		case ColorName::GREEN: return color(0.f, 1.f, 0.f);
-		case ColorName::BLUE: return color(0.f, 0.f, 1.f);
-		case ColorName::CYAN: return color(0.f, 1.f, 1.f);
-		case ColorName::YELLOW: return color(1.f, 1.f, 0.f);
-		case ColorName::MAGENTA: return color(1.f, 0.f, 1.f);
-		case ColorName::WHITE: return color(1.f, 1.f, 1.f);
-		case ColorName::BLACK: return color(0.f, 0.f, 0.f);
-		default: return color(0.f, 0.f, 0.f, 0.f);
-	}
-}
 
 // converts to a relative rectangle in OpenGL coordinate system
 constexpr Rect2<int> asYUpRelRect(Viewport v)
@@ -214,6 +214,7 @@ struct AttribDesc
 	size_t offset{};
 	size_t size{};
 	AttribType type{};
+	bool normalize{};
 };
 
 }

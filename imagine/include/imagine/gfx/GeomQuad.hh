@@ -9,13 +9,14 @@
 #include <imagine/util/edge.h>
 #include <imagine/util/math/math.hh>
 #include <imagine/util/concepts.hh>
+#include <imagine/util/used.hh>
 #include <span>
 
 namespace IG::Gfx
 {
 
 template<VertexLayout V>
-constexpr auto mapQuadUV(std::array<V, 4> v, FRect rect, Rotation r = Rotation::UP)
+constexpr auto mapQuadUV(std::array<V, 4> v, Rectangle auto rect, Rotation r = Rotation::UP)
 {
 	bool rotate = false;
 	if(r == Rotation::DOWN)
@@ -33,92 +34,101 @@ constexpr auto mapQuadUV(std::array<V, 4> v, FRect rect, Rotation r = Rotation::
 		std::swap(rect.y, rect.y2);
 		rotate = true;
 	}
-	using TexCoord = decltype(V::texCoord.x);
-	Rect2<TexCoord> nRect{};
-	if constexpr(std::is_same_v<TexCoord, float>)
-	{
-		nRect = rect;
-	}
-	else
-	{
-		nRect.x = remapClamp(rect.x, -1.f, 1.f, std::numeric_limits<TexCoord>{});
-		nRect.x2 = remapClamp(rect.x2, -1.f, 1.f, std::numeric_limits<TexCoord>{});
-		nRect.y = remapClamp(rect.y, -1.f, 1.f, std::numeric_limits<TexCoord>{});
-		nRect.y2 = remapClamp(rect.y2, -1.f, 1.f, std::numeric_limits<TexCoord>{});
-	}
 	if(rotate)
 	{
-		v[0].texCoord.x = nRect.x2; v[0].texCoord.y = nRect.y;  //BL
-		v[1].texCoord.x = nRect.x;  v[1].texCoord.y = nRect.y;  //TL
-		v[2].texCoord.x = nRect.x2; v[2].texCoord.y = nRect.y2; //BR
-		v[3].texCoord.x = nRect.x;  v[3].texCoord.y = nRect.y2; //TR
+		v[0].texCoord = {rect.x2, rect.y};  //BL
+		v[1].texCoord = {rect.x,  rect.y};  //TL
+		v[2].texCoord = {rect.x2, rect.y2}; //BR
+		v[3].texCoord = {rect.x,  rect.y2}; //TR
 	}
 	else
 	{
-		v[0].texCoord.x = nRect.x;  v[0].texCoord.y = nRect.y; //BL
-		v[1].texCoord.x = nRect.x;  v[1].texCoord.y = nRect.y2;  //TL
-		v[2].texCoord.x = nRect.x2; v[2].texCoord.y = nRect.y; //BR
-		v[3].texCoord.x = nRect.x2; v[3].texCoord.y = nRect.y2;  //TR
+		v[0].texCoord = {rect.x,  rect.y};  //BL
+		v[1].texCoord = {rect.x,  rect.y2}; //TL
+		v[2].texCoord = {rect.x2, rect.y};  //BR
+		v[3].texCoord = {rect.x2, rect.y2}; //TR
 	}
 	return v;
 }
 
 template<VertexLayout V>
-constexpr std::array<V, 4> mapQuadPos(std::array<V, 4> v, FP bl, FP tl, FP tr, FP br)
+constexpr std::array<V, 4> mapQuadPos(std::array<V, 4> v, Point auto bl, Point auto tl, Point auto tr, Point auto br)
 {
-	v[0].pos.x = bl.x; v[0].pos.y = bl.y;
-	v[1].pos.x = tl.x; v[1].pos.y = tl.y;
-	v[2].pos.x = br.x; v[2].pos.y = br.y;
-	v[3].pos.x = tr.x; v[3].pos.y = tr.y;
+	v[0].pos = {bl.x, bl.y};
+	v[1].pos = {tl.x, tl.y};
+	v[2].pos = {br.x, br.y};
+	v[3].pos = {tr.x, tr.y};
 	return v;
 }
 
 template<VertexLayout V>
-constexpr std::array<V, 4> mapQuadPos(std::array<V, 4> v, GCRect rect)
+constexpr std::array<V, 4> mapQuadPos(std::array<V, 4> v, Rectangle auto rect)
 {
 	return mapQuadPos(v, {rect.x, rect.y}, {rect.x, rect.y2}, {rect.x2, rect.y2}, {rect.x2, rect.y});
+}
+
+template<Rectangle OutRect>
+constexpr OutRect remapTexCoordRect(FRect rect)
+{
+	if constexpr(std::is_same_v<OutRect, FRect>)
+		return rect;
+	// normalize integers
+	using OutValue = decltype(OutRect::x);
+	auto outLimits = std::numeric_limits<OutValue>{};
+	float min = std::is_signed_v<OutValue> ? -1.f : 0.f;
+	return
+	{
+		{OutValue(remap(rect.x, min, 1.f, outLimits)), OutValue(remap(rect.y, min, 1.f, outLimits))},
+		{OutValue(remap(rect.x2, min, 1.f, outLimits)), OutValue(remap(rect.y2, min, 1.f, outLimits))}
+	};
 }
 
 template<VertexLayout V>
 class QuadGeneric
 {
 public:
+	using Pos = decltype(V::pos.x);
+	using PosRect = Rect2<Pos>;
+	using PosPoint = Point2D<Pos>;
+	using Color = IG_GetValueTypeOr(V::color, UnusedType<Color>);
+	using TexCoord = IG_GetValueTypeOr(V::texCoord.x, UnusedType<float>);
+	using TexCoordRect = std::conditional_t<used(TexCoord{}), Rect2<TexCoord>, UnusedType<FRect>>;
+
+	struct RectInitParams
+	{
+		PosRect bounds{};
+		Color color{};
+		TexCoordRect textureBounds{};
+	};
+
+	std::array<V, 4> v;
+
 	constexpr QuadGeneric() = default;
 
-	constexpr QuadGeneric(FP bl, FP tl, FP tr, FP br)
+	constexpr QuadGeneric(PosPoint bl, PosPoint tl, PosPoint tr, PosPoint br)
 	{
 		setPos(bl, tl, tr, br);
 	}
 
-	constexpr QuadGeneric(GCRect posRect)
+	constexpr QuadGeneric(RectInitParams params)
 	{
-		setPos(posRect);
-	}
-
-	constexpr QuadGeneric(GCRect posRect, VertexColor col):
-		QuadGeneric{posRect}
-	{
+		setPos(params.bounds);
 		if constexpr(requires {V::color;})
 		{
-			for(auto &vtx : v) { vtx.color = col; }
+			for(auto &vtx : v) { vtx.color = params.color; }
+		}
+		if constexpr(requires {V::texCoord;})
+		{
+			setUV(params.textureBounds);
 		}
 	}
 
-	constexpr QuadGeneric(GCRect posRect, FRect uvRect):
-		QuadGeneric{posRect}
-	{
-		setUV(uvRect);
-	}
-
-	constexpr QuadGeneric(GCRect posRect, TextureSpan texSpan):
-		QuadGeneric{posRect, texSpan.uvBounds()} {}
-
-	constexpr void setPos(FP bl, FP tl, FP tr, FP br)
+	constexpr void setPos(PosPoint bl, PosPoint tl, PosPoint tr, PosPoint br)
 	{
 		v = mapQuadPos(v, bl, tl, tr, br);
 	}
 
-	constexpr void setPos(QuadGeneric quad)
+	constexpr void setPos(const auto &quad)
 	{
 		setPos(
 			{quad.v[0].pos.x, quad.v[0].pos.y},
@@ -127,28 +137,29 @@ public:
 			{quad.v[2].pos.x, quad.v[2].pos.y});
 	}
 
-	constexpr void setPos(GCRect rect)
+	constexpr void setPos(PosRect rect)
 	{
 		setPos({rect.x, rect.y}, {rect.x, rect.y2}, {rect.x2, rect.y2}, {rect.x2, rect.y});
 	}
 
-	void setPos(IG::WindowRect b)
-	{
-		setPos(GCRect{{float(b.x), float(b.y)}, {float(b.x2), float(b.y2)}});
-	}
+	constexpr void setPos(WRect rect) { setPos(rect.as<Pos>()); }
 
-	constexpr void setPosRel(float x, float y, float xSize, float ySize)
-	{
-		setPos({{x, y}, {x+xSize, y+ySize}});
-	}
-
-	constexpr void setUV(FRect rect, Rotation r = Rotation::UP)
+	constexpr void setUV(TexCoordRect rect, Rotation r = Rotation::UP)
 	{
 		if constexpr(requires {V::texCoord;})
 		{
 			v = mapQuadUV(v, rect, r);
 		}
 	}
+
+	static constexpr TexCoordRect remapTexCoordRect(FRect rect)
+	{
+		if(texCoordAttribDesc<V>().normalize)
+			return Gfx::remapTexCoordRect<TexCoordRect>(rect);
+		return rect.as<TexCoord>();
+	}
+
+	static constexpr TexCoordRect unitTexCoordRect() { return remapTexCoordRect({{}, {1.f, 1.f}}); }
 
 	void draw(RendererCommands &cmds) const
 	{
@@ -158,15 +169,15 @@ public:
 		cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 	}
 
-	static void draw(RendererCommands &cmds, WindowRect b)
+	static void draw(RendererCommands &cmds, RectInitParams params)
 	{
-		draw(cmds, GCRect{{float(b.x), float(b.y)}, {float(b.x2), float(b.y2)}});
+		QuadGeneric rect{params};
+		rect.draw(cmds);
 	}
 
-	static void draw(RendererCommands &cmds, GCRect d)
+	static void draw(RendererCommands &cmds, PosRect bounds)
 	{
-		QuadGeneric rect{d};
-		rect.draw(cmds);
+		draw(cmds, RectInitParams{.bounds = bounds});
 	}
 
 	constexpr auto &operator[](size_t idx) { return v[idx]; }
@@ -177,17 +188,16 @@ public:
 	constexpr operator std::array<V, 4>&() { return v; }
 	constexpr auto data() const { return v.data(); }
 	constexpr auto size() const { return v.size(); }
-
-protected:
-	std::array<V, 4> v{};
 };
 
-using Quad = QuadGeneric<Vertex2P>;
-using TexQuad = QuadGeneric<Vertex2PTex>;
-using ColQuad = QuadGeneric<Vertex2PCol>;
-using ColTexQuad = QuadGeneric<Vertex2PTexCol>;
-using TexRect = TexQuad;
-using GeomRect = Quad;
+using Quad = QuadGeneric<Vertex2F>;
+using TexQuad = QuadGeneric<Vertex2FTexF>;
+using ColQuad = QuadGeneric<Vertex2FColI>;
+using ColTexQuad = QuadGeneric<Vertex2FTexFColI>;
+using IQuad = QuadGeneric<Vertex2I>;
+using ITexQuad = QuadGeneric<Vertex2ITexI>;
+using IColQuad = QuadGeneric<Vertex2IColI>;
+using IColTexQuad = QuadGeneric<Vertex2ITexIColI>;
 
 constexpr std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx)
 {

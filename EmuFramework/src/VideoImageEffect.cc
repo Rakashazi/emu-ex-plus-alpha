@@ -163,7 +163,7 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool use
 
 	auto vShader = makeEffectVertexShader(r,
 		ctx.openAsset(IG::format<FS::PathString>("shaders/{}{}", fallbackStr, desc.vShaderFilename),
-			IOAccessHint::ALL).buffer().stringView());
+			IOAccessHint::All).buffer().stringView());
 	if(!vShader)
 	{
 		throw std::runtime_error{"GPU rejected shader (vertex compile error)"};
@@ -171,7 +171,7 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool use
 
 	auto fShader = makeEffectFragmentShader(r,
 		ctx.openAsset(IG::format<FS::PathString>("shaders/{}{}", fallbackStr, desc.fShaderFilename),
-		IOAccessHint::ALL).buffer().stringView());
+		IOAccessHint::All).buffer().stringView());
 	if(!fShader)
 	{
 		throw std::runtime_error{"GPU rejected shader (fragment compile error)"};
@@ -235,7 +235,7 @@ Gfx::Texture &VideoImageEffect::renderTarget()
 void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, const Gfx::TextureSpan span)
 {
 	cmds.setViewport(renderTargetImgSize);
-	Gfx::Sprite spr{{{-1., -1.}, {1., 1.}}, {span.texture(), {{0., 0.}, {1., 1.}}}};
+	Gfx::Sprite spr{{{-1, -1}, {1, 1}}, {span.texturePtr, {{}, {1.f, 1.f}}}};
 	spr.draw(cmds);
 }
 

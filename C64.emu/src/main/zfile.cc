@@ -49,7 +49,7 @@ CLINK FILE *zfile_fopen(const char *path, const char *mode)
 				if(EmuSystem::defaultFsFilter(entry.name()))
 				{
 					logMsg("archive file entry:%s", entry.name().data());
-					return MapIO{entry.moveIO()}.toFileStream(mode);
+					return MapIO{entry.releaseIO()}.toFileStream(mode);
 				}
 			}
 			logErr("no recognized file extensions in archive:%s", path);

@@ -78,8 +78,10 @@ using UseIf = std::conditional_t<CONDITION, T, UnusedType<T, Tag>>;
 	[[no_unique_address]] IG::UseIf<(c), t, __LINE__> name
 
 // test that a variable's type is used in UseIf and not the UnusedType case
+constexpr bool used(auto &&) { return true; }
 constexpr bool used(auto &) { return true; }
 
+constexpr bool used(Unused auto &&) { return false; }
 constexpr bool used(Unused auto &) { return false; }
 
 // invoke func if v's type doesn't satisfy the Unused concept
@@ -105,5 +107,16 @@ constexpr auto doIfUsedOr(Unused auto &v, auto &&func, auto &&defaultFunc)
 {
 	return defaultFunc();
 }
+
+#define IG_GetDefaultValueOr(value, orValue) \
+[]() \
+{ \
+    if constexpr(requires {value;}) \
+        return decltype(value)(); \
+    else \
+        return orValue; \
+}()
+
+#define IG_GetValueTypeOr(value, OrType) decltype(IG_GetDefaultValueOr(value, OrType()))
 
 }

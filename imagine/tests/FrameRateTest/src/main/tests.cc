@@ -181,23 +181,21 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int 
 	{
 		basicEffect.disableTexture(cmds);
 		cmds.set(BlendMode::ALPHA);
-		cmds.setColor(0., 0., 0., .7);
-		GeomRect::draw(cmds, cpuStatsRect);
-		cmds.setColor(1., 1., 1., 1.);
+		cmds.setColor({0., 0., 0., .7});
+		cmds.drawRect(cpuStatsRect);
 		basicEffect.enableAlphaTexture(cmds);
 		cpuStatsText.draw(cmds, {cpuStatsRect.x + xIndent,
-			cpuStatsRect.yCenter()}, LC2DO);
+			cpuStatsRect.yCenter()}, LC2DO, ColorName::WHITE);
 	}
 	if(frameStatsText.isVisible())
 	{
 		basicEffect.disableTexture(cmds);
 		cmds.set(BlendMode::ALPHA);
-		cmds.setColor(0., 0., 0., .7);
-		GeomRect::draw(cmds, frameStatsRect);
-		cmds.setColor(1., 1., 1., 1.);
+		cmds.setColor({0., 0., 0., .7});
+		cmds.drawRect(frameStatsRect);
 		basicEffect.enableAlphaTexture(cmds);
 		frameStatsText.draw(cmds, {frameStatsRect.x + xIndent,
-			frameStatsRect.yCenter()}, LC2DO);
+			frameStatsRect.yCenter()}, LC2DO, ColorName::WHITE);
 	}
 }
 
@@ -220,13 +218,13 @@ void ClearTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect)
 	if(flash)
 	{
 		if(!droppedFrames)
-			cmds.setClearColor(.7, .7, .7);
+			cmds.setClearColor({.7, .7, .7});
 		else if(droppedFrames % 2 == 0)
-			cmds.setClearColor(.7, .7, .0);
+			cmds.setClearColor({.7, .7, .0});
 		else
-			cmds.setClearColor(.7, .0, .0);
+			cmds.setClearColor({.7, .0, .0});
 		cmds.clear();
-		cmds.setClearColor(0, 0, 0);
+		cmds.setClearColor(0);
 	}
 	else
 	{
@@ -273,14 +271,14 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	if(flash)
 	{
 		if(!droppedFrames)
-			cmds.setColor(.7, .7, .7, 1.);
+			cmds.setColor({.7, .7, .7});
 		else if(droppedFrames % 2 == 0)
-			cmds.setColor(.7, .7, .0, 1.);
+			cmds.setColor({.7, .7, .0});
 		else
-			cmds.setColor(.7, .0, .0, 1.);
+			cmds.setColor({.7, .0, .0});
 	}
 	else
-		cmds.setColor(0., 0., 0., 1.);
+		cmds.setColor(0);
 	sprite.draw(cmds, cmds.basicEffect());
 }
 
@@ -318,6 +316,7 @@ void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);
 	cmds.set(BlendMode::OFF);
+	cmds.setColor(ColorName::WHITE);
 	sprite.draw(cmds, cmds.basicEffect());
 }
 

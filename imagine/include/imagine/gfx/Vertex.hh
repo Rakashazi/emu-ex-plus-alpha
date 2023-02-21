@@ -17,6 +17,7 @@
 
 #include <imagine/gfx/defs.hh>
 #include <imagine/glm/ext/vector_float2.hpp>
+#include <imagine/glm/ext/vector_int2_sized.hpp>
 
 namespace IG::Gfx
 {
@@ -33,14 +34,53 @@ template <class T>
 concept VertexLayout = requires
 {
     T::pos;
-    T::ID;
 };
+
+enum class VertexLayoutAttribMask : uint8_t
+{
+	Position = bit(0),
+	TextureCoordinate = bit(1),
+	Color = bit(2),
+};
+
+IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(VertexLayoutAttribMask);
+
+template <VertexLayout V>
+constexpr VertexLayoutAttribMask vertexLayoutEnableMask()
+{
+	using enum VertexLayoutAttribMask;
+	if constexpr(requires {V::pos; V::texCoord; V::color;})
+		return Position | TextureCoordinate | Color;
+	else if constexpr(requires {V::pos; V::color;})
+		return Position | Color;
+	else if constexpr(requires {V::pos; V::texCoord;})
+		return Position | TextureCoordinate;
+	else
+		return Position;
+}
+
+template <VertexLayout V>
+constexpr VertexLayoutAttribMask vertexLayoutIntNormalizeMask()
+{
+	using enum VertexLayoutAttribMask;
+	if constexpr(requires {V::intNormalizeMask;})
+		return V::intNormalizeMask;
+	else
+		return TextureCoordinate | Color;
+}
+
+template <VertexLayout V>
+constexpr bool shouldNormalize(AttribType type, VertexLayoutAttribMask attribMask)
+{
+	return type != AttribType::Float && to_underlying(vertexLayoutIntNormalizeMask<V>() & attribMask);
+}
 
 template <VertexLayout V>
 constexpr AttribDesc posAttribDesc()
 {
 	using T = decltype(V::pos.x);
-	return {offsetof(V, pos), sizeof(V::pos) / sizeof(T), attribType<T>};
+	auto type = attribType<T>;
+	return {offsetof(V, pos), sizeof(V::pos) / sizeof(T), type, shouldNormalize<V>(type, VertexLayoutAttribMask::Position)};
 }
 
 template <VertexLayout V>
@@ -49,7 +89,8 @@ constexpr AttribDesc colorAttribDesc()
 	if constexpr(requires {V::color;})
 	{
 		using T = decltype(V::color.r);
-		return {offsetof(V, color), sizeof(V::color) / sizeof(T), attribType<T>};
+		auto type = attribType<T>;
+		return {offsetof(V, color), sizeof(V::color) / sizeof(T), type, shouldNormalize<V>(type, VertexLayoutAttribMask::Color)};
 	}
 	else
 	{
@@ -63,7 +104,8 @@ constexpr AttribDesc texCoordAttribDesc()
 	if constexpr(requires {V::texCoord;})
 	{
 		using T = decltype(V::texCoord.x);
-		return {offsetof(V, texCoord), sizeof(V::texCoord) / sizeof(T), attribType<T>};
+		auto type = attribType<T>;
+		return {offsetof(V, texCoord), sizeof(V::texCoord) / sizeof(T), type, shouldNormalize<V>(type, VertexLayoutAttribMask::TextureCoordinate)};
 	}
 	else
 	{
@@ -71,32 +113,52 @@ constexpr AttribDesc texCoordAttribDesc()
 	}
 }
 
-struct Vertex2P
+struct Vertex2F
 {
-	glm::vec2 pos{};
-	static constexpr unsigned ID = 1;
+	glm::vec2 pos;
 };
 
-struct Vertex2PCol
+struct Vertex2FColI
 {
-	glm::vec2 pos{};
-	VertexColor color{};
-	static constexpr unsigned ID = 2;
+	glm::vec2 pos;
+	PackedColor color;
 };
 
-struct Vertex2PTex
+struct Vertex2FTexF
 {
-	glm::vec2 pos{};
-	glm::vec2 texCoord{};
-	static constexpr unsigned ID = 3;
+	glm::vec2 pos;
+	glm::vec2 texCoord;
 };
 
-struct Vertex2PTexCol
+struct Vertex2FTexFColI
 {
-	glm::vec2 pos{};
-	glm::vec2 texCoord{};
-	VertexColor color{};
-	static constexpr unsigned ID = 4;
+	glm::vec2 pos;
+	glm::vec2 texCoord;
+	PackedColor color;
+};
+
+struct Vertex2I
+{
+	glm::i16vec2 pos;
+};
+
+struct Vertex2IColI
+{
+	glm::i16vec2 pos;
+	PackedColor color;
+};
+
+struct Vertex2ITexI
+{
+	glm::i16vec2 pos;
+	glm::i16vec2 texCoord;
+};
+
+struct Vertex2ITexIColI
+{
+	glm::i16vec2 pos;
+	glm::i16vec2 texCoord;
+	PackedColor color;
 };
 
 }

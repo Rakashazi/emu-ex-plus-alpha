@@ -40,8 +40,8 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, EmuApp &app,
 	FSPicker
 	{
 		attach,
-		&app.asset(AssetID::ARROW),
-		mode == FSPicker::Mode::DIR ? &app.asset(AssetID::ACCEPT) : &app.asset(AssetID::CLOSE),
+		app.asset(AssetID::ARROW),
+		mode == FSPicker::Mode::DIR ? app.asset(AssetID::ACCEPT) : app.asset(AssetID::CLOSE),
 		mode == FSPicker::Mode::DIR ?
 		FSPicker::FilterFunc{} :
 		FSPicker::FilterFunc{[filter, includeArchives](auto &entry)

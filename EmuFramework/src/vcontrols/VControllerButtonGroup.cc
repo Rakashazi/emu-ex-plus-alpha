@@ -125,11 +125,14 @@ void VControllerButtonGroup::setStaggerType(uint8_t type)
 	}
 }
 
-void VControllerButtonGroup::setSpacing(int16_t space, const Window &win)
+bool VControllerButtonGroup::setSpacing(int16_t space, const Window &win)
 {
+	if(space < 100 || space > 800)
+		return false;
 	spacingMM100x = space;
 	spacingPixels = makeEvenRoundedUp(win.widthMMInPixels(space / 100.));
 	setStaggerType(btnStaggerType);
+	return true;
 }
 
 void VControllerButtonGroup::updateMeasurements(const Window &win)

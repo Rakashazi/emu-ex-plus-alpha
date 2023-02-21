@@ -175,9 +175,9 @@ bool NavView::hasButtons() const
 	return control[0].isActive || control[2].isActive;
 }
 
-Gfx::VertexColor NavView::separatorColor() const
+Gfx::PackedColor NavView::separatorColor() const
 {
-	return Gfx::VertexColorPixelFormat.build(.25, .25, .25, 1.);
+	return Gfx::PackedColor::format.build(.25, .25, .25, 1.);
 }
 
 // BasicNavView
@@ -185,8 +185,6 @@ Gfx::VertexColor NavView::separatorColor() const
 BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes):
 	NavView{attach, face}
 {
-	leftSpr = {{{-.5, -.5}, {.5, .5}}};
-	rightSpr = {{{-.5, -.5}, {.5, .5}}};
 	bool compiled = false;
 	if(backRes)
 	{
@@ -224,24 +222,23 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		basicEffect.disableTexture(cmds);
 		if(viewRect().y > displayRect().y)
 		{
-			cmds.setColor(VertexColorPixelFormat.rgbaNorm(bg.mesh().v().data()->color));
+			cmds.setColor(PackedColor::format.rgbaNorm(bg.mesh().v().data()->color));
 			topBg.draw(cmds);
 		}
-		cmds.set(ColorName::WHITE);
+		cmds.setColor(ColorName::WHITE);
 		bg.draw(cmds);
 	}
 	if(selected != -1 && control[selected].isActive)
 	{
 		cmds.set(BlendMode::ALPHA);
-		cmds.setColor(.2, .71, .9, 1./3.);
+		cmds.setColor({.2, .71, .9, 1./3.});
 		basicEffect.disableTexture(cmds);
-		GeomRect::draw(cmds, control[selected].rect);
+		cmds.drawRect(control[selected].rect);
 	}
-	cmds.set(ColorName::WHITE);
 	basicEffect.enableAlphaTexture(cmds);
 	if(centerTitle)
 	{
-		text.draw(cmds, viewRect().pos(C2DO), C2DO);
+		text.draw(cmds, viewRect().pos(C2DO), C2DO, ColorName::WHITE);
 	}
 	else
 	{
@@ -250,19 +247,19 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		{
 			cmds.setClipRect(renderer().makeClipRect(window(), textRect));
 			cmds.setClipTest(true);
-			text.draw(cmds, textRect.pos(RC2DO) - WP{xIndent, 0}, RC2DO);
+			text.draw(cmds, textRect.pos(RC2DO) - WP{xIndent, 0}, RC2DO, ColorName::WHITE);
 			cmds.setClipTest(false);
 		}
 		else
 		{
-			text.draw(cmds, textRect.pos(LC2DO) + WP{xIndent, 0}, LC2DO);
+			text.draw(cmds, textRect.pos(LC2DO) + WP{xIndent, 0}, LC2DO, ColorName::WHITE);
 		}
 	}
 	if(control[0].isActive)
 	{
 		assumeExpr(leftSpr.hasTexture());
 		cmds.set(BlendMode::ALPHA);
-		cmds.set(ColorName::WHITE);
+		cmds.setColor(ColorName::WHITE);
 		auto trans = Mat4::makeTranslate(control[0].rect.pos(C2DO));
 		if(rotateLeftBtn)
 			trans = trans.rollRotate(radians(-90.f));
@@ -273,7 +270,7 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	{
 		assumeExpr(rightSpr.hasTexture());
 		cmds.set(BlendMode::ALPHA);
-		cmds.set(ColorName::WHITE);
+		cmds.setColor(ColorName::WHITE);
 		basicEffect.setModelView(cmds, Mat4::makeTranslate(control[2].rect.pos(C2DO)));
 		rightSpr.draw(cmds, basicEffect);
 	}
@@ -298,7 +295,7 @@ void BasicNavView::place()
 		rightSpr.setPos(scaledRect);
 	}
 	auto rect = displayRect().xRect() + viewRect().yRect();
-	bg.setPos({gradientStops.get(), (size_t)bg.stops()}, rect.asType<float>());
+	bg.setPos({gradientStops.get(), (size_t)bg.stops()}, rect);
 	if(viewRect().y > displayRect().y)
 	{
 		topBg.setPos(displayInsetRect(Direction::TOP));

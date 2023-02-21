@@ -44,8 +44,15 @@ public:
 	void draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness);
 
 private:
+	struct Vertex
+	{
+		glm::i16vec2 pos;
+		glm::vec2 texCoord;
+	};
+	using Sprite = Gfx::SpriteBase<Vertex>;
+
 	Gfx::Texture img;
-	Gfx::Sprite spr;
+	Sprite spr;
 	float intensity = 0.75f;
 	ImageOverlayId overlayId{};
 	bool multiplyBlend{};

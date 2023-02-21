@@ -34,18 +34,16 @@ void MenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos
 	if(!active())
 	{
 		// half-bright color
-		cmds.setColor(color.r/2.f, color.g/2.f, color.b/2.f, color.a);
+		color.r /= 2.f;
+		color.g /= 2.f;
+		color.b /= 2.f;
 	}
-	else
-	{
-		cmds.setColor(color);
-	}
-	cmds.basicEffect().enableAlphaTexture(cmds);
 	if(align.isXCentered())
 		xPos += xSize/2;
 	else
 		xPos += xIndent;
-	t.draw(cmds, {xPos, yPos}, align);
+	cmds.basicEffect().enableAlphaTexture(cmds);
+	t.draw(cmds, {xPos, yPos}, align,color);
 }
 
 void MenuItem::compile(Gfx::Renderer &r)
@@ -89,8 +87,7 @@ void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, int xPos, in
 	int xIndent, _2DOrigin align, Gfx::Color color) const
 {
 	cmds.basicEffect().enableAlphaTexture(cmds);
-	cmds.setColor(color);
-	t2.draw(cmds, {(xPos + xSize) - xIndent, yPos}, RC2DO);
+	t2.draw(cmds, {(xPos + xSize) - xIndent, yPos}, RC2DO, color);
 }
 
 void BaseDualTextMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
@@ -160,11 +157,11 @@ void BoolMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int 
 	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
 	Gfx::Color color2;
 	if(!(flags_ & ON_OFF_STYLE_FLAG)) // custom strings
-		color2 = Gfx::color(0.f, .8f, 1.f);
+		color2 = Gfx::Color{0.f, .8f, 1.f};
 	else if(boolValue())
-		color2 = Gfx::color(.27f, 1.f, .27f);
+		color2 = Gfx::Color{.27f, 1.f, .27f};
 	else
-		color2 = Gfx::color(1.f, .27f, .27f);
+		color2 = Gfx::Color{1.f, .27f, .27f};
 	draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
 }
 
@@ -206,8 +203,7 @@ void MultiChoiceMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPo
 	int xIndent, _2DOrigin align, Gfx::Color color) const
 {
 	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
-	//auto color2 = Gfx::color(0.f, 1.f, 1.f); // aqua
-	auto color2 = Gfx::color(0.f, .8f, 1.f);
+	auto color2 = Gfx::Color{0.f, .8f, 1.f};
 	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
 }
 

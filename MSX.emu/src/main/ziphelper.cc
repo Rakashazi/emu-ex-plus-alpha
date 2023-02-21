@@ -63,12 +63,12 @@ static void *loadFromArchiveIt(FS::ArchiveIterator &it, const char* zipName, con
 		//logMsg("archive file entry:%s", entry.name());
 		if(entry.name() == fileName)
 		{
-			auto io = entry.moveIO();
+			auto io = entry.releaseIO();
 			int fileSize = io.size();
 			void *buff = malloc(fileSize);
 			io.read(buff, fileSize);
 			*size = fileSize;
-			entry.moveIO(std::move(io));
+			entry.reset(std::move(io));
 			return buff;
 		}
 	}
@@ -104,7 +104,7 @@ bool zipStartWrite(const char *fileName)
 	assert(!writeArch);
 	writeArch = archive_write_new();
 	archive_write_set_format_zip(writeArch);
-	int fd = EmuEx::gAppContext().openFileUriFd(fileName, OpenFlagsMask::NEW | OpenFlagsMask::TEST).release();
+	int fd = EmuEx::gAppContext().openFileUriFd(fileName, OpenFlagsMask::New | OpenFlagsMask::Test).release();
 	if(archive_write_open_fd(writeArch, fd) != ARCHIVE_OK)
 	{
 		archive_write_free(writeArch);

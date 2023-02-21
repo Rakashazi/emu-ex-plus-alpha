@@ -32,7 +32,7 @@ double EmuSystem::staticFrameTime = 70224. / 4194304.; // ~59.7275Hz
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::endsWithAnyCaseless(name, ".gb", ".gbc");
+		return IG::endsWithAnyCaseless(name, ".gb", ".gbc", ".dmg");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 constexpr IG::WP lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
@@ -87,14 +87,14 @@ FS::FileString GbcSystem::stateFilename(int slot, std::string_view name) const
 
 void GbcSystem::saveState(IG::CStringView path)
 {
-	IG::OFStream stream{appContext().openFileUri(path, OpenFlagsMask::NEW)};
+	IG::OFStream stream{appContext().openFileUri(path, OpenFlagsMask::New)};
 	if(!gbEmu.saveState(frameBuffer, gambatte::lcd_hres, stream))
 		throwFileWriteError();
 }
 
 void GbcSystem::loadState(EmuApp &app, IG::CStringView path)
 {
-	IG::IFStream stream{app.appContext().openFileUri(path, IO::AccessHint::ALL)};
+	IG::IFStream stream{app.appContext().openFileUri(path, IO::AccessHint::All)};
 	if(!gbEmu.loadState(stream))
 		throwFileReadError();
 }
@@ -246,9 +246,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
-		{ .0, Gfx::VertexColorPixelFormat.build((8./255.) * .4, (232./255.) * .4, (222./255.) * .4, 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build((8./255.) * .4, (232./255.) * .4, (222./255.) * .4, 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build((0./255.) * .4, (77./255.) * .4, (74./255.) * .4, 1.) },
+		{ .0, Gfx::PackedColor::format.build((8./255.) * .4, (232./255.) * .4, (222./255.) * .4, 1.) },
+		{ .3, Gfx::PackedColor::format.build((8./255.) * .4, (232./255.) * .4, (222./255.) * .4, 1.) },
+		{ .97, Gfx::PackedColor::format.build((0./255.) * .4, (77./255.) * .4, (74./255.) * .4, 1.) },
 		{ 1., view.separatorColor() },
 	};
 	view.setBackgroundGradient(navViewGrad);

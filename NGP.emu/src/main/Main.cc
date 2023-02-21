@@ -37,7 +37,7 @@ double EmuSystem::staticFrameTime = (199. * 515.) / 6144000.; //~59.95Hz
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::endsWithAnyCaseless(name, ".ngc", ".ngp", ".npc");
+		return IG::endsWithAnyCaseless(name, ".ngc", ".ngp", ".npc", ".ngpc");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 bool EmuApp::needsGlobalInstance = true;
@@ -164,9 +164,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
-		{ .0, Gfx::VertexColorPixelFormat.build((101./255.) * .4, (45./255.) * .4, (193./255.) * .4, 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build((101./255.) * .4, (45./255.) * .4, (193./255.) * .4, 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build((34./255.) * .4, (15./255.) * .4, (64./255.) * .4, 1.) },
+		{ .0, Gfx::PackedColor::format.build((101./255.) * .4, (45./255.) * .4, (193./255.) * .4, 1.) },
+		{ .3, Gfx::PackedColor::format.build((101./255.) * .4, (45./255.) * .4, (193./255.) * .4, 1.) },
+		{ .97, Gfx::PackedColor::format.build((34./255.) * .4, (15./255.) * .4, (64./255.) * .4, 1.) },
 		{ 1., view.separatorColor() },
 	};
 	view.setBackgroundGradient(navViewGrad);

@@ -36,7 +36,7 @@ VController::VController(IG::ApplicationContext ctx):
 	defaultButtonSize
 	{
 		#ifdef CONFIG_BASE_IOS
-		uint16_t(ctx.deviceIsIPad() ? 1400 : 850)
+		int16_t(ctx.deviceIsIPad() ? 1400 : 850)
 		#else
 		850
 		#endif
@@ -205,7 +205,7 @@ void VController::updateFastSlowModeInput(bool on)
 		{
 			if(b.key == guiKeyIdxFastForward || b.key == guiKeyIdxToggleFastForward)
 			{
-				b.color = on ? Gfx::color(Gfx::ColorName::RED) : Gfx::Color{};
+				b.color = on ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{};
 			}
 		}
 	}
@@ -429,18 +429,13 @@ bool VController::isInKeyboardMode() const
 	return EmuSystem::inputHasKeyboard && kbMode;
 }
 
-void VController::setInputPlayer(uint8_t player)
+void VController::setInputPlayer(int8_t player)
 {
 	inputPlayer_ = player;
 	for(auto &e : gpElements)
 	{
 		e.transposeKeysForPlayer(app(), player);
 	}
-}
-
-uint8_t VController::inputPlayer() const
-{
-	return inputPlayer_;
 }
 
 void VController::setDisabledInputKeys(std::span<const unsigned> disabledKeys)
@@ -510,11 +505,11 @@ void VController::setFace(const Gfx::GlyphTextureSet &face)
 	facePtr = &face;
 }
 
-bool VController::setButtonSize(std::optional<uint16_t> mm100xOpt, bool placeElements)
+bool VController::setButtonSize(int16_t mm100xOpt, bool placeElements)
 {
-	if(!mm100xOpt || *mm100xOpt < 300 || *mm100xOpt > 1500)
+	if(mm100xOpt < 300 || mm100xOpt > 3000)
 		return false;
-	btnSize = *mm100xOpt;
+	btnSize = mm100xOpt;
 	if(placeElements)
 		place();
 	return true;
@@ -618,8 +613,7 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key, size_t size)
 			setGamepadControlsVisibility(readOptionValue<VControllerVisibility>(io, size, visibilityIsValid));
 			return true;
 		case CFGKEY_TOUCH_CONTROL_SIZE:
-			setButtonSize(readOptionValue<uint16_t>(io, size), false);
-			return true;
+			return readOptionValue<int16_t>(io, size, [&](auto val){setButtonSize(val, false);});
 		case CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH:
 			setShowOnTouchInput(readOptionValue<bool>(io, size));
 			return true;

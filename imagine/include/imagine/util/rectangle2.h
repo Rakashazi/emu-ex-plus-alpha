@@ -24,6 +24,12 @@
 namespace IG
 {
 
+template <class T>
+concept Rectangle = requires()
+{
+	T::x; T::y; T::x2; T::y2;
+};
+
 template<class T>
 class Rect2 : public AssignmentArithmetics< Rect2<T> >
 {
@@ -319,7 +325,7 @@ public:
 	[[nodiscard]] constexpr Rect2 yRect() const { return {{0, y}, {0, y2}}; }
 
 	template<class NewType>
-	constexpr Rect2<NewType> asType() const { return {{NewType(x), NewType(y)}, {NewType(x2), NewType(y2)}}; }
+	constexpr Rect2<NewType> as() const { return {{NewType(x), NewType(y)}, {NewType(x2), NewType(y2)}}; }
 
 	[[nodiscard]] constexpr bool isPortrait() const { return xSize() < ySize(); }
 	[[nodiscard]] constexpr bool isLandscape() const { return !isPortrait(); }
@@ -344,7 +350,7 @@ public:
 	using Rect2<T>::y;
 	using Rect2<T>::x2;
 	using Rect2<T>::y2;
-	using Rect2<T>::asType;
+	using Rect2<T>::as;
 	static constexpr int xOriginVal = xIsCartesian ? -1 : 1;
 	static constexpr int x2OriginVal = xIsCartesian ? 1 : -1;
 	static constexpr int yOriginVal = yIsCartesian ? -1 : 1;
@@ -429,6 +435,7 @@ using WindowRect = CoordinateRect<int, true, false>;
 using WRect = WindowRect;
 using WP = IP;
 using IRect = Rect2<int>;
+using SRect = Rect2<int16_t>;
 using FRect = Rect2<float>;
 
 constexpr static WindowRect makeWindowRectRel(WP pos, WP size)

@@ -41,9 +41,7 @@ public:
 	using IOVariant::operator=;
 	using IOUtilsBase = IOUtils<IO>;
 	using IOUtilsBase::write;
-	using IOUtilsBase::seekS;
-	using IOUtilsBase::seekE;
-	using IOUtilsBase::seekC;
+	using IOUtilsBase::seek;
 	using IOUtilsBase::tell;
 	using IOUtilsBase::send;
 	using IOUtilsBase::buffer;

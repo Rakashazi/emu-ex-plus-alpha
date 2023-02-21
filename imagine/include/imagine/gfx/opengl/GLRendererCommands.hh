@@ -55,7 +55,7 @@ public:
 	#endif
 	void setupVertexArrayPointers(const char *v, int stride,
 		AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib);
-	void setupShaderVertexArrayPointers(const char *v, int stride, int id,
+	void setupShaderVertexArrayPointers(const char *v, int stride, VertexLayoutAttribMask enableMask,
 		AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib);
 
 protected:
@@ -79,7 +79,7 @@ protected:
 	template<VertexLayout V>
 	void setupShaderVertexArrayPointers(const V *v)
 	{
-		setupShaderVertexArrayPointers((const char*)v, sizeof(V), V::ID,
+		setupShaderVertexArrayPointers((const char*)v, sizeof(V), vertexLayoutEnableMask<V>(),
 			texCoordAttribDesc<V>(), colorAttribDesc<V>(), posAttribDesc<V>());
 	}
 
@@ -110,7 +110,7 @@ protected:
 	GLuint currSamplerName{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	NativeProgram currProgram{};
-	int currentVtxArrayPointerID = 0;
+	VertexLayoutAttribMask currentVertexLayoutEnableMask{};
 	#endif
 	GLStateCache glState{};
 	Color4F vColor{}; // color when using shader pipeline

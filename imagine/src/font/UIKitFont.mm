@@ -92,17 +92,15 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, CGColorS
 			}
 		}
 	//logMsg("min bounds %d:%d:%d:%d", minX, minY, maxX, maxY);
-	auto cXOffset = minX;
-	uint32_t cXSize = (maxX - minX) + 1;
-	auto cYOffset = minY;
-	uint32_t cYSize = (maxY - minY) + 1;
+	int16_t cXOffset = minX;
+	int16_t cXSize = (maxX - minX) + 1;
+	int16_t cYOffset = minY;
+	int16_t cYSize = (maxY - minY) + 1;
 	auto startOfCharInPixBuffer = &pixView[cYOffset][cXOffset];
 
 	GlyphMetrics metrics;
-	metrics.xSize = cXSize;
-	metrics.ySize = cYSize;
-	metrics.xOffset = cXOffset;
-	metrics.yOffset = -cYOffset;
+	metrics.size = {cXSize, cYSize};
+	metrics.offset = {cXOffset, -cYOffset};
 	metrics.xAdvance = cXFullSize;
 	
 	if(keepPixData)

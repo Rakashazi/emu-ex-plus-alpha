@@ -534,7 +534,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 	#endif
 	ConfigParams appConfig{};
 	Gfx::DrawableConfig pendingWindowDrawableConf{};
-	readConfigKeys(FileUtils::bufferFromPath(configFilePath, OpenFlagsMask::TEST),
+	readConfigKeys(FileUtils::bufferFromPath(configFilePath, OpenFlagsMask::Test),
 		[&](auto key, auto size, auto &io) -> bool
 		{
 			switch(key)
@@ -656,7 +656,7 @@ void EmuApp::saveConfigFile(IG::ApplicationContext ctx)
 	auto configFilePath = FS::pathString(ctx.supportPath(), "config");
 	try
 	{
-		FileIO file{configFilePath, OpenFlagsMask::NEW};
+		FileIO file{configFilePath, OpenFlagsMask::New};
 		saveConfigFile(file);
 	}
 	catch(...)

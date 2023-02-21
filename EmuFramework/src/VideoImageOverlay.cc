@@ -115,7 +115,7 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id, Gfx::Colo
 	texConf.setWillGenerateMipmaps(true);
 	img = r.makeTexture(texConf);
 	img.write(0, desc.pixView, {}, Gfx::Texture::WRITE_FLAG_MAKE_MIPMAPS);
-	spr = {{{0.f, 0.f}, {0.f, 0.f}}, img};
+	spr.set(img);
 }
 
 void VideoImageOverlay::setIntensity(float i)
@@ -165,13 +165,13 @@ void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness)
 	if(multiplyBlend)
 	{
 		brightness *= 2.f;
-		cmds.setColor(brightness.r, brightness.g, brightness.b, intensity);
+		cmds.setColor({brightness.r, brightness.g, brightness.b, intensity});
 		cmds.setBlendFunc(BlendFunc::DST_COLOR, BlendFunc::SRC_ALPHA);
 		cmds.setBlend(true);
 	}
 	else
 	{
-		cmds.setColor(brightness.r, brightness.g, brightness.b, intensity);
+		cmds.setColor({brightness.r, brightness.g, brightness.b, intensity});
 		cmds.set(BlendMode::ALPHA);
 	}
 	spr.draw(cmds, cmds.basicEffect());

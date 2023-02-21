@@ -50,7 +50,7 @@ std::string VControllerButton::name(const EmuApp &app) const
 
 void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds) const
 {
-	Gfx::GeomRect::draw(cmds, extendedBounds_);
+	cmds.drawRect(extendedBounds_);
 }
 
 void VControllerButton::drawSprite(Gfx::RendererCommands &__restrict__ cmds) const
@@ -63,7 +63,7 @@ void VControllerButton::drawSprite(Gfx::RendererCommands &__restrict__ cmds) con
 	}
 	else
 	{
-		cmds.setColor(1., 1., 1., cmds.color().a);
+		cmds.setColor({1.f, 1.f, 1.f, cmds.color().a});
 	}
 	sprite().draw(cmds);
 }

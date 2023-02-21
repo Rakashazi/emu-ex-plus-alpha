@@ -14,7 +14,7 @@
 	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "EmuFileIO.hh"
-#include <imagine/io/api/stdio.hh>
+#include <imagine/io/stdioWrapper.hh>
 #include <imagine/io/IO.hh>
 
 namespace EmuEx

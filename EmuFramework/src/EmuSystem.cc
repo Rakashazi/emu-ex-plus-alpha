@@ -406,7 +406,7 @@ void EmuSystem::loadContentFromPath(IG::CStringView pathStr, std::string_view di
 		return;
 	}
 	logMsg("load from %s:%s", IG::isUri(path) ? "uri" : "path", path.data());
-	loadContentFromFile(appContext().openFileUri(path, IOAccessHint::SEQUENTIAL), path, displayName, params, onLoadProgress);
+	loadContentFromFile(appContext().openFileUri(path, IOAccessHint::Sequential), path, displayName, params, onLoadProgress);
 }
 
 void EmuSystem::loadContentFromFile(IO file, IG::CStringView path, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
@@ -426,7 +426,7 @@ void EmuSystem::loadContentFromFile(IO file, IG::CStringView path, std::string_v
 			if(EmuSystem::defaultFsFilter(name))
 			{
 				originalName = name;
-				io = entry.moveIO();
+				io = entry.releaseIO();
 				break;
 			}
 		}

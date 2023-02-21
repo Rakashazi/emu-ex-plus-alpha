@@ -24,44 +24,44 @@ namespace IG
 
 enum class IOAdvice
 {
-	NORMAL, SEQUENTIAL, RANDOM, WILLNEED
+	Normal, Sequential, Random, WillNeed
 };
 
 enum class IOAccessHint
 {
-	NORMAL, SEQUENTIAL, RANDOM, ALL
+	Normal, Sequential, Random, All
 };
 
 enum class IOBufferMode
 {
-	DIRECT, // may point directly to mapped memory, not valid after IO is destroyed
-	RELEASE // may take IO's underlying memory and is always valid, invalidates IO object
+	Direct, // may point directly to mapped memory, not valid after IO is destroyed
+	Release // may take IO's underlying memory and is always valid, invalidates IO object
 };
 
 enum class IOSeekMode
 {
-	SET = SEEK_SET,
-	CUR = SEEK_CUR,
-	END = SEEK_END,
+	Set = SEEK_SET,
+	Cur = SEEK_CUR,
+	End = SEEK_END,
 };
 
 enum class OpenFlagsMask: uint8_t
 {
 	// allow reading file
-	READ = bit(0),
+	Read = bit(0),
 	// allow modifying file
-	WRITE = bit(1),
+	Write = bit(1),
 	// create a new file if it doesn't already exist
-	CREATE = bit(2),
+	Create = bit(2),
 	// if using WRITE, truncate any existing file to 0 bytes
-	TRUNCATE = bit(3),
+	Truncate = bit(3),
 	// return from constructor without throwing exception if opening fails,
 	// used to avoid redundant FS::exists() tests when searching for a file to open
-	TEST = bit(4),
+	Test = bit(4),
 
 	// common flag combinations
-	NEW = WRITE | CREATE | TRUNCATE,
-	CREATE_RW = READ | WRITE | CREATE
+	New = Write | Create | Truncate,
+	CreateRW = Read | Write | Create
 };
 
 IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(OpenFlagsMask);

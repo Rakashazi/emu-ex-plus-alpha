@@ -57,10 +57,8 @@ AndroidFontManager::AndroidFontManager(ApplicationContext ctx):
 					jint xSize, jint ySize, jint xOff, jint yOff, jint xAdv)
 			{
 				auto &metrics = *((GlyphMetrics*)metricsAddr);
-				metrics.xSize = xSize;
-				metrics.ySize = ySize;
-				metrics.xOffset = xOff;
-				metrics.yOffset = yOff;
+				metrics.size = {int16_t(xSize), int16_t(ySize)};
+				metrics.offset = {int16_t(xOff), int16_t(yOff)};
 				metrics.xAdvance = xAdv;
 				/*logDMsg("char metrics: size %dx%d offset %dx%d advance %d", metrics.xSize, metrics.ySize,
 					metrics.xOffset, metrics.yOffset, metrics.xAdvance);*/
@@ -132,7 +130,7 @@ GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
 	auto &mgr = manager();
 	auto env = mgr.app().thisThreadJniEnv();
 	auto metrics = mgr.makeMetrics(env, idx, size);
-	if(!metrics.xSize)
+	if(!metrics.size.x)
 	{
 		ec = std::errc::invalid_argument;
 		return {};

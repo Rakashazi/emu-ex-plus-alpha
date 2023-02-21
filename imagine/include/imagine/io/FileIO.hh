@@ -61,11 +61,11 @@ constexpr size_t defaultBufferReadSizeLimit = 0x2000000; // 32 Megabytes
 ssize_t writeToPath(CStringView path, std::span<const unsigned char> src);
 ssize_t writeToPath(CStringView path, IO &io);
 ssize_t writeToUri(ApplicationContext ctx, CStringView uri, std::span<const unsigned char> src);
-ssize_t readFromPath(CStringView path, std::span<unsigned char> dest, IOAccessHint accessHint = IOAccessHint::ALL);
+ssize_t readFromPath(CStringView path, std::span<unsigned char> dest, IOAccessHint accessHint = IOAccessHint::All);
 ssize_t readFromUri(ApplicationContext, CStringView uri, std::span<unsigned char> dest,
-	IOAccessHint accessHint = IOAccessHint::ALL);
+	IOAccessHint accessHint = IOAccessHint::All);
 std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext, CStringView uri,
-	std::span<unsigned char> dest, bool(*nameMatchFunc)(std::string_view), IOAccessHint accessHint = IOAccessHint::ALL);
+	std::span<unsigned char> dest, bool(*nameMatchFunc)(std::string_view), IOAccessHint accessHint = IOAccessHint::All);
 IOBuffer bufferFromPath(CStringView path, OpenFlagsMask oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
 IOBuffer bufferFromUri(ApplicationContext, CStringView uri, OpenFlagsMask oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
 IOBuffer rwBufferFromUri(ApplicationContext, CStringView uri, OpenFlagsMask extraOFlags, size_t size, uint8_t initValue = 0);

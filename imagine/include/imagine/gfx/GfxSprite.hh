@@ -28,16 +28,21 @@ class Texture;
 class RendererCommands;
 class Mat4;
 
-template<class BaseRect>
-class SpriteBase : public BaseRect
+template<VertexLayout V>
+class SpriteBase : public QuadGeneric<V>
 {
 public:
-	constexpr SpriteBase():
-		BaseRect{{}, FRect{{}, {1., 1.}}} {}
+	using BaseQuad = QuadGeneric<V>;
+	using PosRect = typename BaseQuad::PosRect;
+	using TexCoord = typename BaseQuad::TexCoord;
+	using TexCoordRect = typename BaseQuad::TexCoordRect;
 
-	constexpr SpriteBase(GCRect pos, TextureSpan span = {}):
-		BaseRect{pos, span.uvBounds()},
-		texBinding{span.texture() ? span.texture()->binding() : TextureBinding{}} {}
+	constexpr SpriteBase():
+		BaseQuad{{.textureBounds = remapTexCoordRect<TexCoordRect>({{}, {1.f, 1.f}})}} {}
+
+	constexpr SpriteBase(PosRect pos, TextureSpan span = {}):
+		BaseQuad{{.bounds = pos, .textureBounds = remapTexCoordRect<TexCoordRect>(span.bounds)}},
+		texBinding{span.texturePtr ? span.texturePtr->binding() : TextureBinding{}} {}
 
 	constexpr void set(const Texture *tex)
 	{
@@ -49,13 +54,13 @@ public:
 
 	constexpr void set(TextureSpan span, Rotation r = Rotation::UP)
 	{
-		set(span.texture());
-		setUVBounds(span.uvBounds(), r);
+		set(span.texturePtr);
+		setUVBounds(BaseQuad::remapTexCoordRect(span.bounds), r);
 	}
 
-	constexpr void setUVBounds(FRect uvBounds, Rotation r = Rotation::UP)
+	constexpr void setUVBounds(TexCoordRect uvBounds, Rotation r = Rotation::UP)
 	{
-		BaseRect::setUV(uvBounds, r);
+		BaseQuad::setUV(uvBounds, r);
 	}
 
 	void draw(RendererCommands &cmds) const
@@ -63,7 +68,7 @@ public:
 		if(!texBinding.name) [[unlikely]]
 			return;
 		cmds.set(texBinding);
-		BaseRect::draw(cmds);
+		BaseQuad::draw(cmds);
 	}
 
 	void draw(RendererCommands &cmds, BasicEffect &prog) const
@@ -71,7 +76,7 @@ public:
 		if(!texBinding.name) [[unlikely]]
 			return;
 		prog.enableTexture(cmds, texBinding);
-		BaseRect::draw(cmds);
+		BaseQuad::draw(cmds);
 	}
 
 	constexpr TextureBinding textureBinding() const { return texBinding; }
@@ -81,7 +86,7 @@ private:
 	TextureBinding texBinding{};
 };
 
-using Sprite = SpriteBase<TexRect>;
-using ShadedSprite = SpriteBase<ColTexQuad>;
+using Sprite = SpriteBase<Vertex2ITexI>;
+using ShadedSprite = SpriteBase<Vertex2ITexIColI>;
 
 }

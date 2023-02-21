@@ -81,9 +81,8 @@ public:
 	void draw(Gfx::RendererCommands &__restrict__ cmds) final
 	{
 		using namespace IG::Gfx;
-		cmds.setColor(1., 1., 1., 1.);
 		cmds.basicEffect().enableAlphaTexture(cmds);
-		fpsText.draw(cmds, viewRect().center(), C2DO);
+		fpsText.draw(cmds, viewRect().center(), C2DO, ColorName::WHITE);
 	}
 
 	bool runFrameTimeDetection(IG::FrameTime timestampDiff, double slack)

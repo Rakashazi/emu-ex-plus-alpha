@@ -249,9 +249,9 @@ Gfx::Texture &EmuApp::asset(AssetID assetID) const
 	return res;
 }
 
-Gfx::Texture *EmuApp::collectTextCloseAsset() const
+Gfx::TextureSpan EmuApp::collectTextCloseAsset() const
 {
-	return Config::envIsAndroid ? nullptr : &asset(AssetID::CLOSE);
+	return Config::envIsAndroid ? Gfx::TextureSpan{} : asset(AssetID::CLOSE);
 }
 
 EmuViewController &EmuApp::viewController()
@@ -1425,7 +1425,7 @@ void EmuApp::saveSessionOptions()
 	try
 	{
 		auto ctx = appContext();
-		auto configFile = ctx.openFileUri(configFilePath, OpenFlagsMask::NEW);
+		auto configFile = ctx.openFileUri(configFilePath, OpenFlagsMask::New);
 		writeConfigHeader(configFile);
 		system().writeConfig(ConfigType::SESSION, configFile);
 		system().resetSessionOptionsSet();
@@ -1451,7 +1451,7 @@ void EmuApp::loadSessionOptions()
 {
 	if(!system().resetSessionOptions(*this))
 		return;
-	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), OpenFlagsMask::TEST),
+	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), OpenFlagsMask::Test),
 		[this](uint16_t key, uint16_t size, auto &io)
 		{
 			switch(key)
@@ -1475,7 +1475,7 @@ void EmuApp::loadSystemOptions()
 	auto configName = system().configName();
 	if(configName.empty())
 		return;
-	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), OpenFlagsMask::TEST),
+	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), OpenFlagsMask::Test),
 		[this](uint16_t key, uint16_t size, auto &io)
 		{
 			if(!system().readConfig(ConfigType::CORE, io, key, size))
@@ -1493,7 +1493,7 @@ void EmuApp::saveSystemOptions()
 	try
 	{
 		auto configFilePath = FS::pathString(appContext().supportPath(), configName);
-		auto configFile = FileIO{configFilePath, OpenFlagsMask::NEW};
+		auto configFile = FileIO{configFilePath, OpenFlagsMask::New};
 		saveSystemOptions(configFile);
 		if(configFile.size() == 1)
 		{

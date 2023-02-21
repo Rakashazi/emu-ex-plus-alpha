@@ -566,7 +566,7 @@ protected:
 
 	bool willCreateSystem(ViewAttachParams, const Input::Event &);
 	void onMainWindowCreated(ViewAttachParams, const Input::Event &);
-	Gfx::Texture *collectTextCloseAsset() const;
+	Gfx::TextureSpan collectTextCloseAsset() const;
 	ConfigParams loadConfigFile(IG::ApplicationContext);
 	void saveConfigFile(IG::ApplicationContext);
 	void saveConfigFile(FileIO &);

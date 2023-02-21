@@ -121,7 +121,7 @@ void TextEntry::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace Gfx;
 	cmds.basicEffect().enableAlphaTexture(cmds);
-	t.draw(cmds, b.pos(LC2DO), LC2DO);
+	t.draw(cmds, b.pos(LC2DO), LC2DO, ColorName::WHITE);
 }
 
 void TextEntry::place(Gfx::Renderer &r)
@@ -182,7 +182,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, CStringView 
 		{
 			if(manager().needsBackControl() && closeRes)
 			{
-				cancelSpr = {{{-.5, -.5}, {.5, .5}}, closeRes};
+				cancelSpr = {{}, closeRes};
 			}
 		});
 	message = {msgText, face};
@@ -274,7 +274,7 @@ void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		{
 			if(cancelSpr.hasTexture())
 			{
-				cmds.set(ColorName::WHITE);
+				cmds.setColor(ColorName::WHITE);
 				cmds.set(BlendMode::ALPHA);
 				cancelSpr.draw(cmds, basicEffect);
 			}
@@ -284,17 +284,15 @@ void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		{
 			cmds.setColor(0.25);
 			basicEffect.disableTexture(cmds);
-			GeomRect::draw(cmds, textEntry.bgRect());
-			cmds.set(ColorName::WHITE);
+			cmds.drawRect(textEntry.bgRect());
 			textEntry.draw(cmds);
 			basicEffect.enableAlphaTexture(cmds);
-			message.draw(cmds, {viewRect().xCenter(), textEntry.bgRect().pos(C2DO).y - message.nominalHeight()}, CB2DO);
+			message.draw(cmds, {viewRect().xCenter(), textEntry.bgRect().pos(C2DO).y - message.nominalHeight()}, CB2DO, ColorName::WHITE);
 		},
 		[&]()
 		{
-			cmds.set(ColorName::WHITE);
 			basicEffect.enableAlphaTexture(cmds);
-			message.draw(cmds, {viewRect().xCenter(), textField.windowRect().pos(C2DO).y - message.nominalHeight()}, CB2DO);
+			message.draw(cmds, {viewRect().xCenter(), textField.windowRect().pos(C2DO).y - message.nominalHeight()}, CB2DO, ColorName::WHITE);
 		});
 }
 

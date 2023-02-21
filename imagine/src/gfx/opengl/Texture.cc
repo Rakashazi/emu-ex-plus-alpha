@@ -798,7 +798,7 @@ bool TextureSizeSupport::supportsMipmaps(int imageX, int imageY) const
 
 TextureSpan::operator bool() const
 {
-	return tex && (bool)*tex;
+	return texturePtr && (bool)*texturePtr;
 }
 
 }

@@ -25,25 +25,25 @@ void LGradient::draw(RendererCommands &cmds) const
 	g.draw(cmds);
 }
 
-void LGradient::setColor(VertexColor c)
+void LGradient::setColor(PackedColor c)
 {
 	g.setColor(c);
 }
 
-void LGradient::setColorStop(VertexColor c, size_t i)
+void LGradient::setColorStop(PackedColor c, size_t i)
 {
 	g.setColorV(c, i*2);
 	g.setColorV(c, (i*2)+1);
 }
 
-void LGradient::setPos(std::span<const LGradientStopDesc> stops, float x, float y, float x2, float y2)
+void LGradient::setPos(std::span<const LGradientStopDesc> stops, int x, int y, int x2, int y2)
 {
 	if(stops.size() != (size_t)stops_)
 	{
 		assert(stops.size() >= 2);
 		stops_ = stops.size();
-		float thickness[2]{x, x2};
-		float stopPos[stops.size()];
+		int thickness[2]{x, x2};
+		int stopPos[stops.size()];
 		for(auto i : iotaCount(stops.size()))
 		{
 			stopPos[i] = stops[i].pos;
@@ -63,7 +63,7 @@ void LGradient::setPos(std::span<const LGradientStopDesc> stops, float x, float 
 	}
 }
 
-void LGradient::setPos(std::span<const LGradientStopDesc> stops, GCRect d)
+void LGradient::setPos(std::span<const LGradientStopDesc> stops, WRect d)
 {
 	 setPos(stops, d.x, d.y, d.x2, d.y2);
 }

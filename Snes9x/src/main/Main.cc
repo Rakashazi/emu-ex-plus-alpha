@@ -41,7 +41,7 @@ bool EmuApp::needsGlobalInstance = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return IG::endsWithAnyCaseless(name, ".smc", ".sfc", ".fig", ".mgd", ".bs");
+		return IG::endsWithAnyCaseless(name, ".smc", ".sfc", ".swc", ".bs", ".st", ".fig", ".mgd");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
@@ -176,7 +176,7 @@ IOBuffer Snes9xSystem::readSufamiTurboBios() const
 		{
 			if(entry.type() == FS::file_type::directory || !hasBiosExtension(entry.name()))
 				continue;
-			auto buff = entry.moveIO().buffer(IOBufferMode::RELEASE);
+			auto buff = entry.releaseIO().buffer(IOBufferMode::Release);
 			if(!isSufamiTurboBios(buff))
 				throw std::runtime_error{"Incompatible Sufami Turbo BIOS"};
 			return buff;
@@ -185,7 +185,7 @@ IOBuffer Snes9xSystem::readSufamiTurboBios() const
 	}
 	else
 	{
-		auto buff = appCtx.openFileUri(sufamiBiosPath, IOAccessHint::ALL).releaseBuffer();
+		auto buff = appCtx.openFileUri(sufamiBiosPath, IOAccessHint::All).releaseBuffer();
 		if(!isSufamiTurboBios(buff))
 			throw std::runtime_error{"Incompatible Sufami Turbo BIOS"};
 		return buff;
@@ -327,9 +327,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
-		{ .0, Gfx::VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build((46./255.) * .4, (50./255.) * .4, (77./255.) * .4, 1.) },
+		{ .0, Gfx::PackedColor::format.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
+		{ .3, Gfx::PackedColor::format.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
+		{ .97, Gfx::PackedColor::format.build((46./255.) * .4, (50./255.) * .4, (77./255.) * .4, 1.) },
 		{ 1., view.separatorColor() },
 	};
 	view.setBackgroundGradient(navViewGrad);

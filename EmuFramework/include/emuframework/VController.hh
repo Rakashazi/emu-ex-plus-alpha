@@ -79,7 +79,7 @@ enum class VControllerImageIndex
 };
 
 constexpr int defaultDPadDeadzone = 135;
-constexpr float defaultDPadDiagonalSensitivity = 1.75f;
+constexpr float defaultDPadDiagonalSensitivity = .57f;
 constexpr int16_t defaultButtonSpacingMM100x = 200;
 
 class VControllerDPad
@@ -96,9 +96,9 @@ public:
 	IG::WRect realBounds() const { return padArea; }
 	void setPos(IG::WP pos, IG::WindowRect viewBounds);
 	void setSize(Gfx::Renderer &, int sizeInPixels);
-	void setDeadzone(Gfx::Renderer &, int newDeadzone, const IG::Window &);
+	bool setDeadzone(Gfx::Renderer &, int newDeadzone, const IG::Window &);
 	auto deadzone() const { return deadzoneMM100x; }
-	void setDiagonalSensitivity(Gfx::Renderer &, float newDiagonalSensitivity);
+	bool setDiagonalSensitivity(Gfx::Renderer &, float newDiagonalSensitivity);
 	auto diagonalSensitivity() const { return diagonalSensitivity_; }
 	std::string name(const EmuApp &) const { return "D-Pad"; }
 	void updateMeasurements(const IG::Window &win);
@@ -207,11 +207,11 @@ public:
 	void setButtonSize(IG::WP size);
 	void setStaggerType(uint8_t);
 	auto stagger() const { return btnStaggerType; }
-	void setSpacing(int16_t spacingMM100x, const Window &);
+	bool setSpacing(int16_t spacingMM100x, const Window &);
 	auto spacing() const { return spacingMM100x; }
-	void setXPadding(uint16_t p) { buttonXPadding_ = p; }
+	void setXPadding(int8_t p) { buttonXPadding_ = p; }
 	auto xPadding() const { return buttonXPadding_; }
-	void setYPadding(uint16_t p) { buttonYPadding_ = p; }
+	void setYPadding(int8_t p) { buttonYPadding_ = p; }
 	auto yPadding() const { return buttonYPadding_; }
 	IG::WP paddingPixels() const { return {int(spacingPixels + btnSize.x * (xPadding() / 100.f)), int(spacingPixels + btnSize.y * (yPadding() / 100.f))}; }
 	bool showsBounds() const { return showBoundingArea; }
@@ -420,8 +420,8 @@ public:
 	VController(IG::ApplicationContext);
 	int xMMSizeToPixel(const IG::Window &win, float mm) const;
 	int yMMSizeToPixel(const IG::Window &win, float mm) const;
-	void setInputPlayer(uint8_t player);
-	uint8_t inputPlayer() const;
+	void setInputPlayer(int8_t player);
+	auto inputPlayer() const { return inputPlayer_; }
 	void setDisabledInputKeys(std::span<const unsigned> keys);
 	void updateKeyboardMapping();
 	void updateTextures();
@@ -451,8 +451,8 @@ public:
 	IG::ApplicationContext appContext() const;
 	const Gfx::GlyphTextureSet &face() const;
 	void setFace(const Gfx::GlyphTextureSet &face);
-	bool setButtonSize(std::optional<uint16_t> mm100xOpt, bool placeElements = true);
-	uint16_t buttonSize() const { return btnSize; }
+	bool setButtonSize(int16_t mm100xOpt, bool placeElements = true);
+	auto buttonSize() const { return btnSize; }
 	int buttonPixelSize(const IG::Window &) const;
 	void setShowOnTouchInput(std::optional<bool> opt);
 	bool showOnTouchInput() const;
@@ -501,12 +501,12 @@ private:
 	std::vector<VControllerElement> uiElements{};
 	float alphaF{};
 	Input::DragTracker<std::array<int, 2>> dragTracker{};
-	uint16_t defaultButtonSize{};
-	uint16_t btnSize{};
+	int16_t defaultButtonSize{};
+	int16_t btnSize{};
 	bool showOnTouchInput_ = true;
 	static constexpr auto DEFAULT_GAMEPAD_CONTROLS_VISIBILITY{Config::envIsLinux ? VControllerVisibility::OFF : VControllerVisibility::AUTO};
 	VControllerVisibility gamepadControlsVisibility_{DEFAULT_GAMEPAD_CONTROLS_VISIBILITY};
-	uint8_t inputPlayer_{};
+	int8_t inputPlayer_{};
 	bool layoutPosChanged{};
 	bool physicalControlsPresent{};
 	bool gamepadIsVisible{gamepadControlsVisibility_ != VControllerVisibility::OFF};

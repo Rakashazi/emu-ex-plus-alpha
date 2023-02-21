@@ -35,9 +35,7 @@ class AAssetIO : public IOUtils<AAssetIO>
 public:
 	using IOUtilsBase = IOUtils<AAssetIO>;
 	using IOUtilsBase::write;
-	using IOUtilsBase::seekS;
-	using IOUtilsBase::seekE;
-	using IOUtilsBase::seekC;
+	using IOUtilsBase::seek;
 	using IOUtilsBase::tell;
 	using IOUtilsBase::send;
 	using IOUtilsBase::buffer;

@@ -83,7 +83,7 @@ void writeCheatFile(EmuSystem &sys_)
 		return;
 	}
 
-	auto file = ctx.openFileUri(path, OpenFlagsMask::NEW | OpenFlagsMask::TEST);
+	auto file = ctx.openFileUri(path, OpenFlagsMask::New | OpenFlagsMask::Test);
 	if(!file)
 	{
 		logMsg("error creating cheats file %s", path.data());
@@ -108,7 +108,7 @@ void readCheatFile(EmuSystem &sys_)
 {
 	auto &sys = static_cast<GbcSystem&>(sys_);
 	auto path = sys.userFilePath(sys.cheatsDir, ".gbcht");
-	auto file = sys.appContext().openFileUri(path, IOAccessHint::ALL, OpenFlagsMask::TEST);
+	auto file = sys.appContext().openFileUri(path, IOAccessHint::All, OpenFlagsMask::Test);
 	if(!file)
 	{
 		return;

@@ -30,7 +30,7 @@ class IO;
 // templates for using IO types with standard C++ stream-based IO
 
 template <class IO>
-class IOStreamBuf : public std::streambuf
+class IOStreamBuf final : public std::streambuf
 {
 public:
 	static constexpr size_t buffSize = 8192;
@@ -97,9 +97,9 @@ public:
 		switch(way)
 		{
 			default:
-			case std::ios::beg: return IOSeekMode::SET;
-			case std::ios::cur: return IOSeekMode::CUR;
-			case std::ios::end: return IOSeekMode::END;
+			case std::ios::beg: return IOSeekMode::Set;
+			case std::ios::cur: return IOSeekMode::Cur;
+			case std::ios::end: return IOSeekMode::End;
 		}
 	}
 
@@ -110,7 +110,7 @@ public:
 
 	pos_type seekpos(pos_type sp, std::ios::openmode) final
 	{
-		return io.seekS(sp * sizeof(char_type));
+		return io.seek(sp * sizeof(char_type));
 	}
 
 	explicit operator bool() const { return (bool)io; }

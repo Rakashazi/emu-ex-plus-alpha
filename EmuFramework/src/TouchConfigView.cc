@@ -196,23 +196,22 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
 	vController().draw(cmds, true, .75);
-	cmds.setColor(.5, .5, .5);
+	cmds.setColor({.5, .5, .5});
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
 	const int lineSize = 1;
-	GeomRect::draw(cmds, WRect{{viewRect().x, viewRect().yCenter()},
+	cmds.drawRect({{viewRect().x, viewRect().yCenter()},
 		{viewRect().x2, viewRect().yCenter() + lineSize}});
-	GeomRect::draw(cmds, WRect{{viewRect().xCenter(), viewRect().y},
+	cmds.drawRect({{viewRect().xCenter(), viewRect().y},
 		{viewRect().xCenter() + lineSize, viewRect().y2}});
 
 	if(textFade != 0.)
 	{
-		cmds.setColor(0., 0., 0., textFade/2.);
-		GeomRect::draw(cmds, WRect{viewRect().pos(C2DO) - text.pixelSize() / 2 - text.spaceWidth(),
+		cmds.setColor({0, 0, 0, textFade / 2.f});
+		cmds.drawRect({viewRect().pos(C2DO) - text.pixelSize() / 2 - text.spaceWidth(),
 			viewRect().pos(C2DO) + text.pixelSize() / 2 + text.spaceWidth()});
-		cmds.setColor(1., 1., 1., textFade);
 		basicEffect.enableAlphaTexture(cmds);
-		text.draw(cmds, viewRect().pos(C2DO), C2DO);
+		text.draw(cmds, viewRect().pos(C2DO), C2DO, Color{1., 1., 1., textFade});
 	}
 }
 
@@ -234,14 +233,41 @@ public:
 		confView{confView_},
 		deadzoneItems
 		{
-			{"1",    &defaultFace(), 100},
-			{"1.35", &defaultFace(), 135},
-			{"1.6",  &defaultFace(), 160},
+			{"1mm",    &defaultFace(), 100},
+			{"1.35mm", &defaultFace(), 135},
+			{"1.6mm",  &defaultFace(), 160},
+			{"Custom Value", &defaultFace(),
+				[this](const Input::Event &e)
+				{
+					app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 1.0 to 3.0", "",
+						[this](EmuApp &app, auto val)
+						{
+							int scaledIntVal = val * 100.0;
+							if(elem.dPad()->setDeadzone(renderer(), scaledIntVal, window()))
+							{
+								deadzone.setSelected((MenuItem::Id)scaledIntVal, *this);
+								dismissPrevious();
+								return true;
+							}
+							else
+							{
+								app.postErrorMessage("Value not in range");
+								return false;
+							}
+						});
+					return false;
+				}, MenuItem::DEFAULT_ID
+			},
 		},
 		deadzone
 		{
 			"Deadzone", &defaultFace(),
 			{
+				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+				{
+					t.resetString(fmt::format("{:.2f}mm", elem.dPad()->deadzone() / 100.));
+					return true;
+				},
 				.defaultItemOnSelect = [this](TextMenuItem &item) { elem.dPad()->setDeadzone(renderer(), item.id(), window()); }
 			},
 			MenuItem::Id{elem.dPad()->deadzone()},
@@ -249,16 +275,45 @@ public:
 		},
 		diagonalSensitivityItems
 		{
-			{"None",  &defaultFace(), 1000},
-			{"Low",   &defaultFace(), 1500},
-			{"M-Low", &defaultFace(), 1750},
-			{"Med.",  &defaultFace(), 2000},
-			{"High",  &defaultFace(), 2500},
+			{"None",             &defaultFace(), 1000},
+			{"33% (Low)",        &defaultFace(), 667},
+			{"43% (Medium-Low)", &defaultFace(), 570},
+			{"50% (Medium)",     &defaultFace(), 500},
+			{"60% (High)",       &defaultFace(), 400},
+			{"Custom Value", &defaultFace(),
+				[this](const Input::Event &e)
+				{
+					app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 0 to 99.0", "",
+						[this](EmuApp &app, auto val)
+						{
+							val = 100. - val;
+							int scaledIntVal = val * 10.0;
+							val /= 100.;
+							if(elem.dPad()->setDiagonalSensitivity(renderer(), val))
+							{
+								diagonalSensitivity.setSelected((MenuItem::Id)scaledIntVal, *this);
+								dismissPrevious();
+								return true;
+							}
+							else
+							{
+								app.postErrorMessage("Value not in range");
+								return false;
+							}
+						});
+					return false;
+				}, MenuItem::DEFAULT_ID
+			},
 		},
 		diagonalSensitivity
 		{
 			"Diagonal Sensitivity", &defaultFace(),
 			{
+				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+				{
+					t.resetString(fmt::format("{:.1f}%", 100.f - elem.dPad()->diagonalSensitivity() * 100.f));
+					return true;
+				},
 				.defaultItemOnSelect = [this](TextMenuItem &item) { elem.dPad()->setDiagonalSensitivity(renderer(), float(item.id()) / 1000.f); }
 			},
 			MenuItem::Id(elem.dPad()->diagonalSensitivity() * 1000.f),
@@ -324,9 +379,9 @@ private:
 	VController &vCtrl;
 	VControllerElement &elem;
 	TouchConfigView &confView;
-	TextMenuItem deadzoneItems[3];
+	TextMenuItem deadzoneItems[4];
 	MultiChoiceMenuItem deadzone;
-	TextMenuItem diagonalSensitivityItems[5];
+	TextMenuItem diagonalSensitivityItems[6];
 	MultiChoiceMenuItem diagonalSensitivity;
 	TextMenuItem stateItems[3];
 	MultiChoiceMenuItem state;
@@ -467,15 +522,43 @@ public:
 		},
 		spaceItems
 		{
-			{"1", &defaultFace(), 100},
-			{"2", &defaultFace(), 200},
-			{"3", &defaultFace(), 300},
-			{"4", &defaultFace(), 400},
+			{"1mm", &defaultFace(), 100},
+			{"2mm", &defaultFace(), 200},
+			{"3mm", &defaultFace(), 300},
+			{"4mm", &defaultFace(), 400},
+			{"Custom Value", &defaultFace(),
+				[this](const Input::Event &e)
+				{
+					app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 1 to 8.0", "",
+						[this](EmuApp &app, auto val)
+						{
+							int scaledIntVal = val * 100.0;
+							if(elem.buttonGroup()->setSpacing(scaledIntVal, window()))
+							{
+								vCtrl.place();
+								space.setSelected((MenuItem::Id)scaledIntVal, *this);
+								dismissPrevious();
+								return true;
+							}
+							else
+							{
+								app.postErrorMessage("Value not in range");
+								return false;
+							}
+						});
+					return false;
+				}, MenuItem::DEFAULT_ID
+			},
 		},
 		space
 		{
 			"Spacing", &defaultFace(),
 			{
+				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+				{
+					t.resetString(fmt::format("{:.1f}mm", elem.buttonGroup()->spacing() / 100.f));
+					return true;
+				},
 				.defaultItemOnSelect = [this](TextMenuItem &item)
 				{
 					elem.buttonGroup()->setSpacing(item.id(), window());
@@ -621,7 +704,7 @@ private:
 	MultiChoiceMenuItem state;
 	TextMenuItem rowSizeItems[5];
 	MultiChoiceMenuItem rowSize;
-	TextMenuItem spaceItems[4];
+	TextMenuItem spaceItems[5];
 	MultiChoiceMenuItem space;
 	TextMenuItem staggerItems[6];
 	MultiChoiceMenuItem stagger;
@@ -684,41 +767,29 @@ public:
 		{
 			buttons.emplace_back(
 				c.name, &defaultFace(),
-				[this, &c](const Input::Event &e)
-				{
-					vCtrl.add(c);
-					vCtrl.setLayoutPositionChanged();
-					vCtrl.place();
-					confView.reloadItems();
-					dismiss();
-				});
+				[this, &c](const Input::Event &e){ add(c); });
 		}
 		buttons.emplace_back(
 			rightUIComponents.name, &defaultFace(),
-			[this](const Input::Event &e)
-			{
-				vCtrl.add(rightUIComponents);
-				vCtrl.setLayoutPositionChanged();
-				vCtrl.place();
-				confView.reloadItems();
-				dismiss();
-			});
+			[this](const Input::Event &e){ add(rightUIComponents); });
 		buttons.emplace_back(
 			leftUIComponents.name, &defaultFace(),
-			[this](const Input::Event &e)
-			{
-				vCtrl.add(leftUIComponents);
-				vCtrl.setLayoutPositionChanged();
-				vCtrl.place();
-				confView.reloadItems();
-				dismiss();
-			});
+			[this](const Input::Event &e){ add(leftUIComponents); });
 	}
 
 private:
 	VController &vCtrl;
 	TouchConfigView &confView;
 	std::vector<TextMenuItem> buttons;
+
+	void add(const InputComponentDesc &desc)
+	{
+		vCtrl.add(desc);
+		vCtrl.setLayoutPositionChanged();
+		vCtrl.place();
+		confView.reloadItems();
+		dismiss();
+	}
 };
 
 void TouchConfigView::draw(Gfx::RendererCommands &__restrict__ cmds)
@@ -784,20 +855,20 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 	},
 	sizeItem
 	{
-		{"6.5", &defaultFace(), 650},
-		{"7",   &defaultFace(), 700},
-		{"7.5", &defaultFace(), 750},
-		{"8",   &defaultFace(), 800},
-		{"8.5", &defaultFace(), 850},
-		{"9",   &defaultFace(), 900},
-		{"10",  &defaultFace(), 1000},
-		{"12",  &defaultFace(), 1200},
-		{"14",  &defaultFace(), 1400},
-		{"15",  &defaultFace(), 1500},
+		{"6.5mm", &defaultFace(), 650},
+		{"7mm",   &defaultFace(), 700},
+		{"7.5mm", &defaultFace(), 750},
+		{"8mm",   &defaultFace(), 800},
+		{"8.5mm", &defaultFace(), 850},
+		{"9mm",   &defaultFace(), 900},
+		{"10mm",  &defaultFace(), 1000},
+		{"12mm",  &defaultFace(), 1200},
+		{"14mm",  &defaultFace(), 1400},
+		{"15mm",  &defaultFace(), 1500},
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 3.0 to 15.0", "",
+				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 3.0 to 30.0", "",
 					[this](EmuApp &app, auto val)
 					{
 						int scaledIntVal = val * 100.0;
@@ -823,7 +894,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{:.2f}", vController().buttonSize() / 100.));
+				t.resetString(fmt::format("{:.1f}mm", vController().buttonSize() / 100.));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item){ vController().setButtonSize(item.id()); }

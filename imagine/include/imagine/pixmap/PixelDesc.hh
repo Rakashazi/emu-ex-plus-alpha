@@ -26,23 +26,7 @@ public:
 		name_{name},
 		rBits{rBits}, gBits{gBits}, bBits{bBits}, aBits{aBits},
 		rShift{rShift}, gShift{gShift}, bShift{bShift}, aShift{aShift},
-		bytesPerPixel_{bytesPerPixel}
-	{}
-
-	constexpr uint32_t build(std::floating_point auto r_, std::floating_point auto g_, std::floating_point auto b_,
-		std::floating_point auto a_) const
-	{
-		assumeExpr(r_ >= 0. && r_ <= 1.);
-		assumeExpr(g_ >= 0. && g_ <= 1.);
-		assumeExpr(b_ >= 0. && b_ <= 1.);
-		assumeExpr(a_ >= 0. && a_ <= 1.);
-		using Float = decltype(r_);
-		return build(
-			static_cast<uint32_t>(remap(r_, Float{0}, Float{1}, 0, bits(rBits))),
-			static_cast<uint32_t>(remap(g_, Float{0}, Float{1}, 0, bits(gBits))),
-			static_cast<uint32_t>(remap(b_, Float{0}, Float{1}, 0, bits(bBits))),
-			static_cast<uint32_t>(remap(a_, Float{0}, Float{1}, 0, bits(aBits))));
-	}
+		bytesPerPixel_{bytesPerPixel} {}
 
 	constexpr uint32_t build(std::integral auto r_, std::integral auto g_, std::integral auto b_,
 		std::integral auto a_) const
@@ -55,6 +39,19 @@ public:
 			(gBits ? ((g & bits<uint32_t>(gBits)) << gShift) : 0) |
 			(bBits ? ((b & bits<uint32_t>(bBits)) << bShift) : 0) |
 			(aBits ? ((a & bits<uint32_t>(aBits)) << aShift) : 0);
+	}
+
+	constexpr uint32_t build(float r_, float g_, float b_, float a_ = 1.) const
+	{
+		assumeExpr(r_ >= 0. && r_ <= 1.);
+		assumeExpr(g_ >= 0. && g_ <= 1.);
+		assumeExpr(b_ >= 0. && b_ <= 1.);
+		assumeExpr(a_ >= 0. && a_ <= 1.);
+		return build(
+			static_cast<uint32_t>(remap(r_, 0.f, 1.f, 0, bits(rBits))),
+			static_cast<uint32_t>(remap(g_, 0.f, 1.f, 0, bits(gBits))),
+			static_cast<uint32_t>(remap(b_, 0.f, 1.f, 0, bits(bBits))),
+			static_cast<uint32_t>(remap(a_, 0.f, 1.f, 0, bits(aBits))));
 	}
 
 	static constexpr uint8_t component(uint32_t pixel, uint8_t shift, uint8_t bits_)

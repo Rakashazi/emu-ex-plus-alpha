@@ -20,6 +20,7 @@
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/TextureSampler.hh>
+#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Viewport.hh>
@@ -260,11 +261,11 @@ void RendererCommands::clear()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-void RendererCommands::setClearColor(float r, float g, float b, float a)
+void RendererCommands::setClearColor(Color4F c)
 {
 	rTask->verifyCurrentContext();
 	//logMsg("setting clear color %f %f %f %f", (float)r, (float)g, (float)b, (float)a);
-	glClearColor(r, g, b, a);
+	glClearColor(c.r, c.g, c.b, c.a);
 }
 
 void RendererCommands::setColor(Color4F c)
@@ -285,11 +286,6 @@ void RendererCommands::setColor(Color4F c)
 	glVertexAttrib4f(VATTR_COLOR, c.r, c.g, c.b, c.a);
 	//logMsg("set color: %f:%f:%f:%f", (double)r, (double)g, (double)b, (double)a);
 	#endif
-}
-
-void RendererCommands::setColor(float r, float g, float b, float a)
-{
-	setColor({r, g, b, a});
 }
 
 Color RendererCommands::color() const
@@ -452,7 +448,7 @@ constexpr GLenum asGLType(AttribType type)
 	bug_unreachable("invalid AttribType");
 }
 
-constexpr bool shouldNormalize(AttribType type) { return type != AttribType::Float; }
+constexpr bool shouldNormalize(AttribType type, bool normalize) { return type != AttribType::Float && normalize; }
 
 void RendererCommands::drawPrimitives(Primitive mode, int start, int count)
 {
@@ -468,6 +464,11 @@ void RendererCommands::drawPrimitiveElements(Primitive mode, std::span<const Ver
 	{
 		glDrawElements((GLenum)mode, idxs.size(), asGLType(attribType<VertexIndex>), idxs.data());
 	}, "glDrawElements()");
+}
+
+void RendererCommands::drawRect(WRect bounds)
+{
+	IQuad::draw(*this, bounds.as<int16_t>());
 }
 
 bool GLRendererCommands::hasVBOFuncs() const { return r->support.hasVBOFuncs; }
@@ -504,12 +505,11 @@ void GLRendererCommands::setupVertexArrayPointers(const char *v, int stride,
 #endif
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-void GLRendererCommands::setupShaderVertexArrayPointers(const char *v, int stride, int id,
+void GLRendererCommands::setupShaderVertexArrayPointers(const char *v, int stride, VertexLayoutAttribMask enableMask,
 	AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib)
 {
-	if(currentVtxArrayPointerID != id)
+	if(currentVertexLayoutEnableMask != enableMask)
 	{
-		//logMsg("setting vertex array pointers for type: %d", id);
 		if(textureAttrib.size)
 			glEnableVertexAttribArray(VATTR_TEX_UV);
 		else
@@ -518,20 +518,20 @@ void GLRendererCommands::setupShaderVertexArrayPointers(const char *v, int strid
 			glEnableVertexAttribArray(VATTR_COLOR);
 		else
 			glDisableVertexAttribArray(VATTR_COLOR);
+		currentVertexLayoutEnableMask = enableMask;
 	}
 	glVertexAttribPointer(VATTR_POS, posAttrib.size, asGLType(posAttrib.type),
-		shouldNormalize(posAttrib.type), stride, v + posAttrib.offset);
+		posAttrib.normalize, stride, v + posAttrib.offset);
 	if(textureAttrib.size)
 	{
 		glVertexAttribPointer(VATTR_TEX_UV, textureAttrib.size, asGLType(textureAttrib.type),
-			shouldNormalize(textureAttrib.type), stride, v + textureAttrib.offset);
+			textureAttrib.normalize, stride, v + textureAttrib.offset);
 	}
 	if(colorAttrib.size)
 	{
 		glVertexAttribPointer(VATTR_COLOR, colorAttrib.size, asGLType(colorAttrib.type),
-			shouldNormalize(colorAttrib.type), stride, v + colorAttrib.offset);
+			colorAttrib.normalize, stride, v + colorAttrib.offset);
 	}
-	currentVtxArrayPointerID = id;
 }
 #endif
 

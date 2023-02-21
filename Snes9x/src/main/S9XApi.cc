@@ -223,7 +223,7 @@ void S9xReadBSXBios(uint8 *data)
 		{
 			if(entry.type() == FS::file_type::directory || !Snes9xSystem::hasBiosExtension(entry.name()))
 				continue;
-			auto io = entry.moveIO();
+			auto io = entry.releaseIO();
 			auto size = io.read(data, BsxBiosSize);
 			if(!isBsxBios(data, size))
 				throw std::runtime_error{"Incompatible BS-X BIOS"};
@@ -233,7 +233,7 @@ void S9xReadBSXBios(uint8 *data)
 	}
 	else
 	{
-		auto io = appCtx.openFileUri(bsxBiosPath, IOAccessHint::ALL);
+		auto io = appCtx.openFileUri(bsxBiosPath, IOAccessHint::All);
 		auto size = io.read(data, BsxBiosSize);
 		if(!isBsxBios(data, size))
 			throw std::runtime_error{"Incompatible BS-X BIOS"};
@@ -369,8 +369,8 @@ void removeFileHelper(const char* filename)
 
 gzFile gzopenHelper(const char *filename, const char *mode)
 {
-	auto openFlags = std::string_view{mode}.contains('w') ? IG::OpenFlagsMask::NEW : IG::OpenFlagsMask{};
-	return gzdopen(gAppContext().openFileUriFd(filename, openFlags | IG::OpenFlagsMask::TEST).release(), mode);
+	auto openFlags = std::string_view{mode}.contains('w') ? IG::OpenFlagsMask::New : IG::OpenFlagsMask{};
+	return gzdopen(gAppContext().openFileUriFd(filename, openFlags | IG::OpenFlagsMask::Test).release(), mode);
 }
 
 // from screenshot.h

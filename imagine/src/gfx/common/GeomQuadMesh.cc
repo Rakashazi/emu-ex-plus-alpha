@@ -21,7 +21,7 @@
 namespace IG::Gfx
 {
 
-GeomQuadMesh::GeomQuadMesh(std::span<const float> x, std::span<const float> y, VertexColor color)
+GeomQuadMesh::GeomQuadMesh(std::span<const int> x, std::span<const int> y, PackedColor color)
 {
 	if(x.size() < 2 || y.size() < 2)
 		return;
@@ -29,15 +29,15 @@ GeomQuadMesh::GeomQuadMesh(std::span<const float> x, std::span<const float> y, V
 	int quads = (x.size() - 1) * (y.size() - 1);
 	idxs = quads*6;
 	//logMsg("mesh with %d verts, %d idxs, %d quads", verts, idxs, quads);
-	vMem = std::make_unique<char[]>((sizeof(Vertex2PCol) * verts) + (sizeof(VertexIndex) * idxs));
+	vMem = std::make_unique<char[]>((sizeof(Vertex) * verts) + (sizeof(VertexIndex) * idxs));
 	xVals = x.size();
-	i = (VertexIndex*)(vMem.get() + (sizeof(Vertex2PCol) * verts));
+	i = (VertexIndex*)(vMem.get() + (sizeof(Vertex) * verts));
 
-	/*Vertex2PCol *currV = v;
+	/*Vertex *currV = v;
 	iterateTimes(y.size(), yIdx)
 		iterateTimes(x.size(), xIdx)
 		{
-			*currV = Vertex2PCol(x[xIdx], y[yIdx], color);
+			*currV = Vertex(x[xIdx], y[yIdx], color);
 			logMsg("vert %f,%f", currV->x, currV->y);
 			currV++;
 		}*/
@@ -68,12 +68,12 @@ GeomQuadMesh::GeomQuadMesh(std::span<const float> x, std::span<const float> y, V
 void GeomQuadMesh::draw(RendererCommands &cmds) const
 {
 	cmds.bindTempVertexBuffer();
-	cmds.vertexBufferData(v().arr, sizeof(Vertex2PCol) * verts);
+	cmds.vertexBufferData(v().arr, sizeof(Vertex) * verts);
 	cmds.setVertexAttribs(v().arr);
 	cmds.drawPrimitiveElements(Primitive::TRIANGLE, {i, (size_t)idxs});
 }
 
-void GeomQuadMesh::setColor(VertexColor c)
+void GeomQuadMesh::setColor(PackedColor c)
 {
 	auto vPtr = v().data();
 	for(auto i : iotaCount(verts))
@@ -82,30 +82,30 @@ void GeomQuadMesh::setColor(VertexColor c)
 	}
 }
 
-void GeomQuadMesh::setColorV(VertexColor c, size_t i)
+void GeomQuadMesh::setColorV(PackedColor c, size_t i)
 {
 	auto vPtr = v().data();
 	vPtr[i].color = c;
 }
 
-void GeomQuadMesh::setPos(float x, float y, float x2, float y2)
+void GeomQuadMesh::setPos(int x, int y, int x2, int y2)
 {
 	auto yVals = verts/xVals;
 	auto vPtr = v().data();
 	for(auto yIdx : iotaCount(yVals))
 		for(auto xIdx : iotaCount(xVals))
 		{
-			vPtr->pos.x = yIdx == 0 ? IG::remap((float)xIdx, 0.f, float(xVals-1), x, x2)
+			vPtr->pos.x = yIdx == 0 ? IG::remap(xIdx, 0, xVals-1, x, x2)
 					: (vPtr-xVals)->pos.x;
-			vPtr->pos.y = xIdx == 0 ? IG::remap((float)yIdx, 0.f, float(yVals-1), y, y2)
+			vPtr->pos.y = xIdx == 0 ? IG::remap(yIdx, 0, yVals-1, y, y2)
 					: (vPtr-xIdx)->pos.y;
 			vPtr++;
 		}
 }
 
-ArrayView2<Vertex2PCol> GeomQuadMesh::v() const
+auto GeomQuadMesh::v() const -> ArrayView2<Vertex>
 {
-	return {(Vertex2PCol*)vMem.get(), (size_t)xVals};
+	return {(Vertex*)vMem.get(), (size_t)xVals};
 }
 
 }

@@ -50,9 +50,7 @@ public:
 	using BufferMode = IOBufferMode;
 	using SeekMode = IOSeekMode;
 
-	off_t seekS(off_t offset);
-	off_t seekE(off_t offset);
-	off_t seekC(off_t offset);
+	off_t seek(off_t offset);
 	bool rewind();
 	off_t tell();
 
@@ -60,7 +58,7 @@ public:
 	{
 		if(srcOffset)
 		{
-			seekS(*srcOffset);
+			seek(*srcOffset);
 		}
 		ssize_t bytesToWrite = bytes;
 		ssize_t totalBytesWritten = 0;
@@ -86,7 +84,7 @@ public:
 		return totalBytesWritten;
 	}
 
-	IOBuffer buffer(BufferMode mode = BufferMode::DIRECT);
+	IOBuffer buffer(BufferMode mode = BufferMode::Direct);
 
 	template <class T, bool useOffset = false>
 	T getImpl(off_t offset = 0)

@@ -22,33 +22,21 @@ namespace IG
 {
 
 template <class IO>
-off_t IOUtils<IO>::seekS(off_t offset)
+off_t IOUtils<IO>::seek(off_t offset)
 {
-	return static_cast<IO*>(this)->seek(offset, IOSeekMode::SET);
-}
-
-template <class IO>
-off_t IOUtils<IO>::seekE(off_t offset)
-{
-	return static_cast<IO*>(this)->seek(offset, IOSeekMode::END);
-}
-
-template <class IO>
-off_t IOUtils<IO>::seekC(off_t offset)
-{
-	return static_cast<IO*>(this)->seek(offset, IOSeekMode::CUR);
+	return static_cast<IO*>(this)->seek(offset, IOSeekMode::Set);
 }
 
 template <class IO>
 bool IOUtils<IO>::rewind()
 {
-	return seekS(0) != -1;
+	return seek(0) != -1;
 }
 
 template <class IO>
 off_t IOUtils<IO>::tell()
 {
-	return static_cast<IO*>(this)->seekC(0);
+	return static_cast<IO*>(this)->seek(0, IOSeekMode::Cur);
 }
 
 static IOBuffer makeBufferCopy(auto &io)
@@ -66,7 +54,7 @@ template <class IO>
 IOBuffer IOUtils<IO>::buffer(IOBufferMode mode)
 {
 	auto &io = *static_cast<IO*>(this);
-	if(mode == IOBufferMode::RELEASE)
+	if(mode == IOBufferMode::Release)
 	{
 		if constexpr(requires {io.releaseBuffer();})
 		{
@@ -92,9 +80,9 @@ ssize_t IOUtils<IO>::readAtPosGeneric(void *buff, size_t bytes, off_t offset)
 {
 	auto &io = *static_cast<IO*>(this);
 	auto savedOffset = io.tell();
-	io.seekS(offset);
+	io.seek(offset);
 	auto bytesRead = io.read(buff, bytes);
-	io.seekS(savedOffset);
+	io.seek(savedOffset);
 	return bytesRead;
 }
 
