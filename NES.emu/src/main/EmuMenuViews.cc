@@ -136,16 +136,17 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			if(!item.boolValue())
 			{
-				auto ynAlertView = makeView<YesNoAlertView>(
+				app().pushAndShowModalView(makeView<YesNoAlertView>(
 					"Use compatible mode if the current game has glitches when "
-					"fast-forwarding/frame-skipping, at the cost of increased CPU usage.");
-				ynAlertView->setOnYes(
-					[this, &item]()
+					"fast-forwarding/frame-skipping, at the cost of increased CPU usage.",
+					YesNoAlertView::Delegates
 					{
-						system().sessionOptionSet();
-						system().optionCompatibleFrameskip = item.flipBoolValue(*this);
-					});
-				app().pushAndShowModalView(std::move(ynAlertView), e);
+						.onYes = [this, &item]
+						{
+							system().sessionOptionSet();
+							system().optionCompatibleFrameskip = item.flipBoolValue(*this);
+						}
+					}), e);
 			}
 			else
 			{

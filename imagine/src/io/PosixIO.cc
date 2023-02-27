@@ -193,7 +193,7 @@ static int adviceToFAdv(IOAdvice advice)
 void PosixIO::advise(off_t offset, size_t bytes, Advice advice)
 {
 	#ifdef __APPLE__
-	if(advice == Advice::SEQUENTIAL || advice == Advice::WILLNEED)
+	if(advice == Advice::Sequential || advice == Advice::WillNeed)
 		fcntl(fd(), F_RDAHEAD, 1);
 	#else
 		#if _XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112L

@@ -28,10 +28,10 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"System Options", attach, item},
 	autosaveTimerItem
 	{
-		{"Only On Exit",     &defaultFace(), 0},
-		{"5mins & On Exit",  &defaultFace(), 5},
-		{"10mins & On Exit", &defaultFace(), 10},
-		{"15mins & On Exit", &defaultFace(), 15},
+		{"Off",    &defaultFace(), 0},
+		{"5mins",  &defaultFace(), 5},
+		{"10mins", &defaultFace(), 10},
+		{"15mins", &defaultFace(), 15},
 	},
 	autosaveTimer
 	{
@@ -57,6 +57,16 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		},
 		(MenuItem::Id)app().autosaveManager().autosaveLaunchMode,
 		autosaveLaunchItem
+	},
+	autosaveContent
+	{
+		"Autosave Content", &defaultFace(),
+		app().autosaveManager().saveOnlyBackupMemory,
+		"State & Backup RAM", "Only Backup RAM",
+		[this](BoolMenuItem &item)
+		{
+			app().autosaveManager().saveOnlyBackupMemory = item.flipBoolValue(*this);
+		}
 	},
 	confirmOverwriteState
 	{
@@ -135,6 +145,7 @@ void SystemOptionView::loadStockItems()
 {
 	item.emplace_back(&autosaveLaunch);
 	item.emplace_back(&autosaveTimer);
+	item.emplace_back(&autosaveContent);
 	item.emplace_back(&confirmOverwriteState);
 	item.emplace_back(&fastSlowModeSpeed);
 	if(used(performanceMode))

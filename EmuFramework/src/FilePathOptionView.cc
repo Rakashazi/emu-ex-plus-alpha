@@ -100,36 +100,38 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 			multiChoiceView->appendItem("Legacy Game Data Folder",
 				[this](View &view, const Input::Event &e)
 				{
-					auto ynAlertView = makeView<YesNoAlertView>(
-						fmt::format("Please select the \"Game Data/{}\" folder from an old version of the app to use its existing saves and convert it to a regular save path (this is only needed once)", system().shortSystemName()));
-					ynAlertView->setOnYes(
-						[this](const Input::Event &e)
+					pushAndShowModal(makeView<YesNoAlertView>(
+						fmt::format("Please select the \"Game Data/{}\" folder from an old version of the app to use its existing saves "
+							"and convert it to a regular save path (this is only needed once)", system().shortSystemName()),
+						YesNoAlertView::Delegates
 						{
-							auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
-							fPicker->setPath("");
-							fPicker->setOnSelectPath(
-								[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
-								{
-									auto ctx = appContext();
-									if(!hasWriteAccessToDir(path))
+							.onYes = [this](const Input::Event &e)
+							{
+								auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
+								fPicker->setPath("");
+								fPicker->setOnSelectPath(
+									[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 									{
-										app().postErrorMessage("This folder lacks write access");
-										return;
-									}
-									if(ctx.fileUriDisplayName(path) != system().shortSystemName())
-									{
-										app().postErrorMessage(fmt::format("Please select the {} folder", system().shortSystemName()));
-										return;
-									}
-									EmuApp::updateLegacySavePath(ctx, path);
-									system().setUserSaveDirectory(path);
-									onSavePathChange(path);
-									dismissPrevious();
-									picker.dismiss();
-								});
-							pushAndShowModal(std::move(fPicker), e);
-						});
-					pushAndShowModal(std::move(ynAlertView), e);
+										auto ctx = appContext();
+										if(!hasWriteAccessToDir(path))
+										{
+											app().postErrorMessage("This folder lacks write access");
+											return;
+										}
+										if(ctx.fileUriDisplayName(path) != system().shortSystemName())
+										{
+											app().postErrorMessage(fmt::format("Please select the {} folder", system().shortSystemName()));
+											return;
+										}
+										EmuApp::updateLegacySavePath(ctx, path);
+										system().setUserSaveDirectory(path);
+										onSavePathChange(path);
+										dismissPrevious();
+										picker.dismiss();
+									});
+								pushAndShowModal(std::move(fPicker), e);
+							}
+						}), e);
 				});
 			pushAndShow(std::move(multiChoiceView), e);
 			postDraw();

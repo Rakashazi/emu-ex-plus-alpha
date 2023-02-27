@@ -34,6 +34,7 @@ class AAssetIO : public IOUtils<AAssetIO>
 {
 public:
 	using IOUtilsBase = IOUtils<AAssetIO>;
+	using IOUtilsBase::read;
 	using IOUtilsBase::write;
 	using IOUtilsBase::seek;
 	using IOUtilsBase::tell;

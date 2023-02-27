@@ -38,20 +38,24 @@ AutosaveManager::AutosaveManager(EmuApp &app_):
 		}
 	} {}
 
-bool AutosaveManager::save()
+bool AutosaveManager::save(AutosaveActionSource src)
 {
 	if(autoSaveSlot == noAutosaveName)
 		return true;
 	logMsg("saving autosave slot:%s", autoSaveSlot.c_str());
 	system().flushBackupMemory(app);
+	if(saveOnlyBackupMemory && src == AutosaveActionSource::Auto)
+		return true;
 	return app.saveState(statePath());
 }
 
-bool AutosaveManager::load(LoadAutosaveMode mode)
+bool AutosaveManager::load(AutosaveActionSource src, LoadAutosaveMode mode)
 {
 	if(autoSaveSlot == noAutosaveName)
 		return true;
 	system().loadBackupMemory(app);
+	if(saveOnlyBackupMemory && src == AutosaveActionSource::Auto)
+		return true;
 	auto path = statePath();
 	if(appContext().fileUriExists(path))
 	{
@@ -210,6 +214,7 @@ bool AutosaveManager::readConfig(MapIO &io, unsigned key, size_t size)
 			if(m >= 0 && m <= 15)
 				autosaveTimerMins = IG::Minutes{m};
 		});
+		case CFGKEY_AUTOSAVE_CONTENT: return readOptionValue(io, size, saveOnlyBackupMemory);
 	}
 }
 
@@ -217,6 +222,7 @@ void AutosaveManager::writeConfig(FileIO &io) const
 {
 	writeOptionValueIfNotDefault(io, CFGKEY_AUTOSAVE_LAUNCH_MODE, autosaveLaunchMode, AutosaveLaunchMode::Load);
 	writeOptionValueIfNotDefault(io, CFGKEY_AUTOSAVE_TIMER_MINS, autosaveTimerMins.count(), 5);
+	writeOptionValueIfNotDefault(io, CFGKEY_AUTOSAVE_CONTENT, saveOnlyBackupMemory, false);
 }
 
 EmuSystem &AutosaveManager::system() { return app.system(); }

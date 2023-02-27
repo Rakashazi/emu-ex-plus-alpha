@@ -36,11 +36,12 @@ protected:
 	MultiChoiceMenuItem autosaveTimer;
 	TextMenuItem autosaveLaunchItem[4];
 	MultiChoiceMenuItem autosaveLaunch;
+	BoolMenuItem autosaveContent;
 	BoolMenuItem confirmOverwriteState;
 	TextMenuItem fastSlowModeSpeedItem[8];
 	MultiChoiceMenuItem fastSlowModeSpeed;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
-	StaticArrayList<MenuItem*, 24> item;
+	StaticArrayList<MenuItem*, 25> item;
 };
 
 }

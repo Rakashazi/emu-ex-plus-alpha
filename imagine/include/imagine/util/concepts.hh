@@ -32,6 +32,9 @@ concept Pointer = std::is_pointer_v<T>;
 template <class T>
 concept NotPointer = !Pointer<T>;
 
+template <class T, size_t size>
+concept PointerOfSize = Pointer<T> && sizeof(std::remove_pointer_t<T>) == size;
+
 template <class T>
 concept PointerDecayable = Pointer<std::decay_t<T>>;
 

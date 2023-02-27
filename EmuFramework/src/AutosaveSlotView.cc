@@ -78,17 +78,18 @@ public:
 					app().postErrorMessage("Can't delete the currently active save slot");
 					return;
 				}
-				auto ynAlertView = makeView<YesNoAlertView>("Really delete this save slot?");
-				ynAlertView->setOnYes(
-					[this]()
+				pushAndShowModal(makeView<YesNoAlertView>("Really delete this save slot?",
+					YesNoAlertView::Delegates
 					{
-						app().autosaveManager().deleteSlot(slotName);
-						srcView.updateItem(slotName, "");
-						if(!srcView.hasItems())
-							srcView.dismiss();
-						dismiss();
-					});
-				pushAndShowModal(std::move(ynAlertView), e);
+						.onYes = [this]
+						{
+							app().autosaveManager().deleteSlot(slotName);
+							srcView.updateItem(slotName, "");
+							if(!srcView.hasItems())
+								srcView.dismiss();
+							dismiss();
+						}
+					}), e);
 			}
 		} {}
 

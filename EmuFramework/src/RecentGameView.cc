@@ -40,14 +40,15 @@ RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentLis
 		"Clear List", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			auto ynAlertView = makeView<YesNoAlertView>("Really clear the list?");
-			ynAlertView->setOnYes(
-				[this]()
+			pushAndShowModal(makeView<YesNoAlertView>("Really clear the list?",
+				YesNoAlertView::Delegates
 				{
-					this->list.clear();
-					dismiss();
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+					.onYes = [this]
+					{
+						this->list.clear();
+						dismiss();
+					}
+				}), e);
 		}
 	},
 	list{list}

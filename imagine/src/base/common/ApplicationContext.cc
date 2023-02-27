@@ -500,14 +500,14 @@ namespace IG::FileUtils
 ssize_t writeToUri(ApplicationContext ctx, CStringView uri, std::span<const unsigned char> src)
 {
 	auto f = ctx.openFileUri(uri, OpenFlagsMask::New | OpenFlagsMask::Test);
-	return f.write(src.data(), src.size());
+	return f.write(src).bytes;
 }
 
 ssize_t readFromUri(ApplicationContext ctx, CStringView uri, std::span<unsigned char> dest,
 	IOAccessHint accessHint)
 {
 	auto f = ctx.openFileUri(uri, accessHint, OpenFlagsMask::Test);
-	return f.read(dest.data(), dest.size());
+	return f.read(dest).bytes;
 }
 
 std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext ctx, CStringView uri,
@@ -525,7 +525,7 @@ std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext
 			auto name = entry.name();
 			if(nameMatchFunc(name))
 			{
-				return {entry.releaseIO().read(dest.data(), dest.size()), FS::PathString{name}};
+				return {entry.releaseIO().read(dest).bytes, FS::PathString{name}};
 			}
 		}
 		logErr("no recognized files in archive:%s", uri.data());
@@ -533,7 +533,7 @@ std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext
 	}
 	else
 	{
-		return {io.read(dest.data(), dest.size()), FS::PathString{uri}};
+		return {io.read(dest).bytes, FS::PathString{uri}};
 	}
 }
 

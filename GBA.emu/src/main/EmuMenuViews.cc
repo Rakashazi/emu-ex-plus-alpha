@@ -110,14 +110,14 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 			};
 			if(saveMemoryHasContent())
 			{
-				auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(),
-					"Really change save type? Existing data in .sav file may be lost so please make a backup before proceeding.");
-				ynAlertView->setOnYes(
-					[this, optVal = item.id()](const Input::Event &e)
+				pushAndShowModal(makeView<YesNoAlertView>("Really change save type? Existing data in .sav file may be lost so please make a backup before proceeding.",
+					YesNoAlertView::Delegates
 					{
-						setSaveTypeOption(app(), optVal, attachParams(), e);
-					});
-				pushAndShowModal(std::move(ynAlertView), e);
+						.onYes = [this, optVal = item.id()](const Input::Event &e)
+						{
+							setSaveTypeOption(app(), optVal, attachParams(), e);
+						}
+					}), e);
 				return false;
 			}
 			else

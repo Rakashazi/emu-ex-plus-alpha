@@ -297,7 +297,7 @@ public:
 		constexpr SelectedInit(Id i): val{i}, isId{true} {}
 	};
 
-	struct DelegatesInit
+	struct Delegates
 	{
 		SetDisplayStringDelegate onSetDisplayString{};
 		SelectDelegate onSelect{};
@@ -308,7 +308,7 @@ public:
 
 	constexpr MultiChoiceMenuItem() = default;
 
-	MultiChoiceMenuItem(UTF16Convertible auto &&name, Gfx::GlyphTextureSet *face, DelegatesInit delegates,
+	MultiChoiceMenuItem(UTF16Convertible auto &&name, Gfx::GlyphTextureSet *face, Delegates delegates,
 		SelectedInit selected, ItemsDelegate items, ItemDelegate item, IdInt id = {}):
 		BaseDualTextMenuItem{IG_forward(name), UTF16String{}, face, id},
 		onSelect
@@ -328,7 +328,7 @@ public:
 		SelectedInit selected, ItemsDelegate items, ItemDelegate item, IdInt id = {}):
 		MultiChoiceMenuItem{IG_forward(name), face, {}, selected, items, item, id} {}
 
-	MultiChoiceMenuItem(UTF16Convertible auto &&name, Gfx::GlyphTextureSet *face, DelegatesInit delegates,
+	MultiChoiceMenuItem(UTF16Convertible auto &&name, Gfx::GlyphTextureSet *face, Delegates delegates,
 		SelectedInit selected, Container auto &&item, IdInt id = {}):
 		MultiChoiceMenuItem{IG_forward(name), face, delegates, selected,
 		itemsDelegate(IG_forward(item)),

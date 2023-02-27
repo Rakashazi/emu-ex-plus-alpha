@@ -533,14 +533,9 @@ public:
 					{
 						if(entry.bugs)
 						{
-							auto ynAlertView = makeView<YesNoAlertView>(
-								"This game doesn't yet work properly, load anyway?");
-							ynAlertView->setOnYes(
-								[this, &entry](Input::Event e)
-								{
-									loadGame(entry, e);
-								});
-							app().pushAndShowModalView(std::move(ynAlertView), e);
+							app().pushAndShowModalView(makeView<YesNoAlertView>(
+								"This game doesn't yet work properly, load anyway?",
+								YesNoAlertView::Delegates{.onYes = [this, &entry](Input::Event e){ loadGame(entry, e); }}), e);
 						}
 						else
 						{

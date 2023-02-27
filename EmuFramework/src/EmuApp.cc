@@ -140,7 +140,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionFastSlowModeSpeed{CFGKEY_FAST_SLOW_MODE_SPEED, 800, false, optionIsValidWithMinMax<int(MIN_RUN_SPEED * 100.), int(MAX_RUN_SPEED * 100.)>},
 	optionSound{CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS},
 	optionSoundVolume{CFGKEY_SOUND_VOLUME,
-		100, false, optionIsValidWithMinMax<0, 100, uint8_t>},
+		100, false, optionIsValidWithMinMax<0, 125, uint8_t>},
 	optionSoundBuffers{CFGKEY_SOUND_BUFFERS,
 		3, 0, optionIsValidWithMinMax<1, 7, uint8_t>},
 	optionAddSoundBuffersOnUnderrun{CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, 1, 0},
@@ -557,11 +557,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			renderer.setWindowValidOrientations(win, menuOrientation());
 			updateInputDevices(ctx);
 			vController.configure(win, renderer, viewManager.defaultFace());
-			vController.add(rightUIComponents);
-			if(Config::Input::TOUCH_DEVICES)
-				vController.add(leftUIComponents);
-			vController.reset(system().inputDeviceDesc(0));
-			vController.applyLayout();
 			if(EmuSystem::inputHasKeyboard)
 			{
 				vController.setKeyboardImage(asset(AssetID::KEYBOARD_OVERLAY));
@@ -595,7 +590,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			emuVideoLayer.setLinearFilter(optionImgFilter); // init the texture sampler before setting format
 			applyRenderPixelFormat();
 			emuVideoLayer.setOverlay((ImageOverlayId)optionOverlayEffect.val);
-			emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
+			emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel / 100.f);
 			emuVideoLayer.setEffect(system(), (ImageEffectId)optionImgEffect.val, videoEffectPixelFormat());
 			emuVideoLayer.setAspectRatio(optionAspectRatio);
 			emuVideoLayer.setZoom(optionImageZoom);
@@ -803,7 +798,7 @@ IG::Viewport EmuApp::makeViewport(const IG::Window &win) const
 	{
 		IG::WP viewCenter{viewRect.xSize() / 2, viewRect.ySize() / 2};
 		viewRect -= viewCenter;
-		viewRect *= optionViewportZoom/100.;
+		viewRect *= optionViewportZoom / 100.f;
 		viewRect += viewCenter;
 	}
 	return win.viewport(viewRect);
@@ -850,14 +845,21 @@ void EmuApp::launchSystem(const Input::Event &e)
 			}
 			app.showEmulation();
 		};
-		if(system().usesBackupMemory() && loadMode == LoadAutosaveMode::Normal &&
-			autosaveManager_.stateTime() < autosaveManager_.backupMemoryTime())
+		auto stateIsOlderThanBackupMemory = [&]
 		{
-			auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(),
-				"Autosave state timestamp is older than the contents of backup memory, really load it even though progress may be lost?");
-			ynAlertView->setOnYes([this]() { finishLaunch(*this, LoadAutosaveMode::Normal); });
-			ynAlertView->setOnNo([this]() { finishLaunch(*this, LoadAutosaveMode::NoState); });
-			viewController().pushAndShowModal(std::move(ynAlertView), e, false);
+			auto stateTime = autosaveManager_.stateTime();
+			return stateTime.count() && stateTime < autosaveManager_.backupMemoryTime();
+		};
+		if(system().usesBackupMemory() && loadMode == LoadAutosaveMode::Normal &&
+			!autosaveManager_.saveOnlyBackupMemory && stateIsOlderThanBackupMemory())
+		{
+			viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attachParams(),
+				"Autosave state timestamp is older than the contents of backup memory, really load it even though progress may be lost?",
+				YesNoAlertView::Delegates
+				{
+					.onYes = [this]{ finishLaunch(*this, LoadAutosaveMode::Normal); },
+					.onNo = [this]{ finishLaunch(*this, LoadAutosaveMode::NoState); }
+				}), e, false);
 		}
 		else
 		{
@@ -977,7 +979,7 @@ void EmuApp::pushAndShowNewCollectTextInputView(ViewAttachParams attach, const I
 void EmuApp::pushAndShowNewYesNoAlertView(ViewAttachParams attach, const Input::Event &e, const char *label,
 	const char *choice1, const char *choice2, TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo)
 {
-	pushAndShowModalView(std::make_unique<YesNoAlertView>(attach, label, choice1, choice2, onYes, onNo), e);
+	pushAndShowModalView(std::make_unique<YesNoAlertView>(attach, label, choice1, choice2, YesNoAlertView::Delegates{onYes, onNo}), e);
 }
 
 void EmuApp::pushAndShowModalView(std::unique_ptr<View> v, const Input::Event &e)
@@ -1036,14 +1038,9 @@ void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, const Inp
 {
 	if(!system().hasContent())
 		return;
-	auto ynAlertView = std::make_unique<YesNoAlertView>(attach,
-		"This option takes effect next time the system starts. Restart it now?");
-	ynAlertView->setOnYes(
-		[this, params]()
-		{
-			reloadSystem(params);
-		});
-	viewController().pushAndShowModal(std::move(ynAlertView), e, false);
+	viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attach,
+		"This option takes effect next time the system starts. Restart it now?",
+		YesNoAlertView::Delegates{ .onYes = [this, params] { reloadSystem(params); } }), e, false);
 }
 
 void EmuApp::unpostMessage()
@@ -1258,19 +1255,16 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 			}
 			else
 			{
-				auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(), "Really Overwrite State?");
-				ynAlertView->setOnYes(
-					[this]()
+				viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attachParams(), "Really Overwrite State?",
+					YesNoAlertView::Delegates
 					{
-						doSaveState(*this, false);
-						showEmulation();
-					});
-				ynAlertView->setOnNo(
-					[this]()
-					{
-						showEmulation();
-					});
-				viewController().pushAndShowModal(std::move(ynAlertView), srcEvent, false);
+						.onYes = [this]
+						{
+							doSaveState(*this, false);
+							showEmulation();
+						},
+						.onNo = [this]{ showEmulation(); }
+					}), srcEvent, false);
 			}
 			return true;
 		}
@@ -1331,9 +1325,8 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 		{
 			if(!isPushed)
 				break;
-			auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(), "Really Exit?");
-			ynAlertView->setOnYes([this]() { appContext().exit(); });
-			viewController().pushAndShowModal(std::move(ynAlertView), srcEvent, false);
+			viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attachParams(), "Really Exit?",
+				YesNoAlertView::Delegates{.onYes = [this]{ appContext().exit(); }}), srcEvent, false);
 			break;
 		}
 		default:
@@ -1654,6 +1647,17 @@ unsigned EmuApp::transposeKeyForPlayer(unsigned key, int player) const
 	if(cat.keyName.data() != transposedCat.keyName.data())
 		return key;
 	return key + cat.keys() * transposeOffset;
+}
+
+unsigned EmuApp::validateSystemKey(unsigned key) const
+{
+	const auto &cat = categoryOfSystemKey(key);
+	if(key - cat.configOffset > cat.keyName.size())
+	{
+		logMsg("resetting invalid system key:%u", key);
+		return Controls::categories()[1].configOffset;
+	}
+	return key;
 }
 
 ViewAttachParams EmuApp::attachParams()

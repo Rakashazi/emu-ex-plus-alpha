@@ -573,26 +573,27 @@ private:
 			msxMachineItem.emplace_back(name, &defaultFace(),
 			[this, name = name.data()](Input::Event e)
 			{
-				auto ynAlertView = makeView<YesNoAlertView>("Change machine type and reset emulation?");
-				ynAlertView->setOnYes(
-					[this, name]()
+				app().pushAndShowModalView(makeView<YesNoAlertView>("Change machine type and reset emulation?",
+					YesNoAlertView::Delegates
 					{
-						try
+						.onYes = [this, name]
 						{
-							system().setCurrentMachineName(app(), name);
+							try
+							{
+								system().setCurrentMachineName(app(), name);
+							}
+							catch(std::exception &err)
+							{
+								app().postMessage(3, true, err.what());
+								return;
+							}
+							auto machineName = currentMachineName();
+							system().optionSessionMachineNameStr = machineName;
+							msxMachine.setSelected(machineIndex(msxMachineName, machineName));
+							system().sessionOptionSet();
+							dismissPrevious();
 						}
-						catch(std::exception &err)
-						{
-							app().postMessage(3, true, err.what());
-							return;
-						}
-						auto machineName = currentMachineName();
-						system().optionSessionMachineNameStr = machineName;
-						msxMachine.setSelected(machineIndex(msxMachineName, machineName));
-						system().sessionOptionSet();
-						dismissPrevious();
-					});
-				app().pushAndShowModalView(std::move(ynAlertView), e);
+					}), e);
 				return false;
 			});
 		}

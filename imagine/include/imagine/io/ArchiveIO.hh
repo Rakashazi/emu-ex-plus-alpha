@@ -78,6 +78,7 @@ class ArchiveIO : public IOUtils<ArchiveIO>
 {
 public:
 	using IOUtilsBase = IOUtils<ArchiveIO>;
+	using IOUtilsBase::read;
 	using IOUtilsBase::write;
 	using IOUtilsBase::seek;
 	using IOUtilsBase::tell;

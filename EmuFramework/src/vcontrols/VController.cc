@@ -32,6 +32,7 @@ namespace EmuEx
 static constexpr uint8_t DEFAULT_ALPHA = 255. * .5;
 
 VController::VController(IG::ApplicationContext ctx):
+	appCtx{ctx},
 	alphaF{DEFAULT_ALPHA / 255.},
 	defaultButtonSize
 	{
@@ -42,7 +43,12 @@ VController::VController(IG::ApplicationContext ctx):
 		#endif
 	},
 	btnSize{defaultButtonSize},
-	alpha{DEFAULT_ALPHA} {}
+	alpha{DEFAULT_ALPHA}
+{
+	// set dummy buttons to indicate uninitialized state
+	gpElements.emplace_back(std::in_place_type<VControllerButtonGroup>);
+	uiElements.emplace_back(std::in_place_type<VControllerUIButtonGroup>);
+}
 
 int VController::xMMSizeToPixel(const IG::Window &win, float mm) const
 {
@@ -128,47 +134,32 @@ static void updateTexture(const EmuApp &app, VControllerElement &e)
 
 void VController::updateTextures()
 {
-	for(auto &e : gpElements)
-	{
-		updateTexture(app(), e);
-	}
-	for(auto &e : uiElements)
-	{
-		updateTexture(app(), e);
-	}
+	for(auto &e : gpElements) { updateTexture(app(), e); }
+	for(auto &e : uiElements) { updateTexture(app(), e); }
 }
 
-void VController::setButtonSize(int gamepadBtnSizeInPixels, int uiBtnSizeInPixels)
+static void setSize(VControllerElement &elem, int sizePx, Gfx::Renderer &r)
+{
+	assert(sizePx);
+	visit(overloaded
+	{
+		[&](VControllerDPad &dpad){ dpad.setSize(r, makeEvenRoundedUp(int(sizePx * 2.5f))); },
+		[&](VControllerButtonGroup &grp){ grp.setButtonSize(sizePx); },
+		[&](VControllerUIButtonGroup &grp){ grp.setButtonSize(sizePx); },
+	}, elem);
+}
+
+void VController::setButtonSizes(int gamepadBtnSizeInPixels, int uiBtnSizeInPixels)
 {
 	if(EmuSystem::inputHasKeyboard)
 		kb.place(gamepadBtnSizeInPixels, gamepadBtnSizeInPixels * .75f, layoutBounds());
-	if constexpr(VCONTROLS_GAMEPAD)
-	{
-		IG::WP size{gamepadBtnSizeInPixels, gamepadBtnSizeInPixels};
-		for(auto &elem : gpElements)
-		{
-			visit(overloaded
-			{
-				[&](VControllerDPad &dpad){ dpad.setSize(renderer(), IG::makeEvenRoundedUp(int(size.x * 2.5f))); },
-				[&](VControllerButtonGroup &grp){ grp.setButtonSize(size); },
-				[](auto &){}
-			}, elem);
-		}
-	}
-	IG::WP size = {uiBtnSizeInPixels, uiBtnSizeInPixels};
-	for(auto &e : uiElements)
-	{
-		visit(overloaded
-		{
-			[&](VControllerUIButtonGroup &grp){ grp.setButtonSize(size); },
-			[](auto &){}
-		}, e);
-	}
+	for(auto &elem : gpElements) { setSize(elem, gamepadBtnSizeInPixels, renderer()); }
+	for(auto &elem : uiElements) { setSize(elem, uiBtnSizeInPixels, renderer()); }
 }
 
 void VController::applyButtonSize()
 {
-	setButtonSize(buttonPixelSize(window()), View::navBarHeight(face()));
+	setButtonSizes(emulatedDeviceButtonPixelSize(), uiButtonPixelSize());
 }
 
 void VController::inputAction(Input::Action action, unsigned vBtn)
@@ -248,13 +239,13 @@ std::array<int, 2> VController::findGamepadElements(IG::WP pos)
 		{
 			[&](const VControllerDPad &dpad) -> std::array<int, 2>
 			{
-				if(!gamepadDPadIsEnabled())
+				if(!gamepadDPadIsEnabled() || gpElem.state == VControllerState::OFF)
 					return {-1, -1};
 				return dpad.getInput(pos);
 			},
 			[&](const VControllerButtonGroup &grp) -> std::array<int, 2>
 			{
-				if(!gamepadButtonsAreEnabled())
+				if(!gamepadButtonsAreEnabled() || gpElem.state == VControllerState::OFF)
 					return {-1, -1};
 				return grp.findButtonIndices(pos);
 			},
@@ -420,7 +411,7 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 	}
 	for(auto &e : uiElements)
 	{
-		e.draw(cmds);
+		e.draw(cmds, showHidden);
 	}
 }
 
@@ -473,36 +464,10 @@ void VController::setButtonAlpha(std::optional<uint8_t> opt)
 	alphaF = *opt / 255.f;
 }
 
-void VController::setRenderer(Gfx::Renderer &renderer)
-{
-	renderer_ = &renderer;
-}
-
-Gfx::Renderer &VController::renderer()
-{
-	return *renderer_;
-}
-
 void VController::setWindow(const IG::Window &win_)
 {
 	win = &win_;
 	winData = &EmuEx::windowData(win_);
-}
-
-IG::ApplicationContext VController::appContext() const
-{
-	assert(hasWindow());
-	return window().appContext();
-}
-
-const Gfx::GlyphTextureSet &VController::face() const
-{
-	return *facePtr;
-}
-
-void VController::setFace(const Gfx::GlyphTextureSet &face)
-{
-	facePtr = &face;
 }
 
 bool VController::setButtonSize(int16_t mm100xOpt, bool placeElements)
@@ -515,9 +480,14 @@ bool VController::setButtonSize(int16_t mm100xOpt, bool placeElements)
 	return true;
 }
 
-int VController::buttonPixelSize(const IG::Window &win) const
+int VController::emulatedDeviceButtonPixelSize() const
 {
-	return IG::makeEvenRoundedUp(xMMSizeToPixel(win, buttonSize() / 100.f));
+	return IG::makeEvenRoundedUp(xMMSizeToPixel(window(), buttonSize() / 100.f));
+}
+
+int VController::uiButtonPixelSize() const
+{
+	return View::navBarHeight(face());
 }
 
 void VController::setShowOnTouchInput(std::optional<bool> opt)
@@ -601,6 +571,66 @@ bool VController::updateAutoOnScreenControlVisible()
 	return false;
 }
 
+static bool readVControllerElement(EmuApp &app, MapIO &io, std::vector<VControllerElement> &elems, bool readingUIElems)
+{
+	auto elemType = io.get<uint8_t>();
+	if(elemType == 0)
+	{
+		if(readingUIElems)
+		{
+			VControllerUIButtonGroup::Config config;
+			io.read(config.layout.rowItems);
+			config.layout.origin = _2DOrigin::unpack(io.get<_2DOrigin::PackedType>());
+			auto keys = io.get<uint8_t>();
+			io.readSized(config.keys, keys);
+			config.validate(app);
+			elems.emplace_back(std::in_place_type<VControllerUIButtonGroup>, std::move(config));
+		}
+		else
+		{
+			VControllerButtonGroup::Config config;
+			io.read(config.layout.rowItems);
+			io.read(config.layout.spacingMM);
+			io.read(config.layout.xPadding);
+			io.read(config.layout.yPadding);
+			io.read(config.layout.staggerType);
+			config.layout.origin = _2DOrigin::unpack(io.get<_2DOrigin::PackedType>());
+			io.read(config.layout.showBoundingArea);
+			auto keys = io.get<uint8_t>();
+			io.readSized(config.keys, keys);
+			config.validate(app);
+			elems.emplace_back(std::in_place_type<VControllerButtonGroup>, std::move(config));
+		}
+	}
+	else if(elemType == 1 && !readingUIElems)
+	{
+		VControllerDPad::Config config;
+		io.read(config.keys);
+		io.read(config.diagonalSensitivity);
+		io.read(config.deadzoneMM100x);
+		io.read(config.visualizeBounds);
+		config.validate(app);
+		elems.emplace_back(std::in_place_type<VControllerDPad>, std::move(config));
+	}
+	else
+	{
+		logErr("bad VControllerElement type from config");
+		elems.clear();
+		if(readingUIElems)
+			elems.emplace_back(std::in_place_type<VControllerUIButtonGroup>);
+		else
+			elems.emplace_back(std::in_place_type<VControllerButtonGroup>);
+		return false;
+	}
+	auto &elem = elems.back();
+	io.read(elem.layoutPos[0].pos);
+	elem.layoutPos[0].origin = _2DOrigin::unpack(io.get<_2DOrigin::PackedType>());
+	io.read(elem.layoutPos[1].pos);
+	elem.layoutPos[1].origin = _2DOrigin::unpack(io.get<_2DOrigin::PackedType>());
+	if(auto state = io.get<VControllerState>(); state <= VControllerState::HIDDEN) { elem.state = state; }
+	return true;
+}
+
 bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key, size_t size)
 {
 	switch(key)
@@ -621,30 +651,144 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key, size_t size)
 			setVibrateOnTouchInput(app, readOptionValue<bool>(io, size));
 			return true;
 		case CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS: return readOptionValue(io, size, allowButtonsPastContentBounds_);
+		case CFGKEY_VCONTROLLER_DEVICE_BUTTONS:
+		{
+			gpElements.clear();
+			auto emuDeviceId = io.get<uint8_t>(); // reserved for future use
+			auto configId = io.get<uint8_t>(); // reserved for future use
+			auto elements = io.get<uint8_t>();
+			logMsg("read emu device button data (%zu bytes) with %u element(s)", size, elements);
+			for(auto i : iotaCount(elements))
+			{
+				if(!readVControllerElement(app, io, gpElements, false))
+					return false;
+			}
+			return true;
+		}
+		case CFGKEY_VCONTROLLER_UI_BUTTONS:
+		{
+			uiElements.clear();
+			auto configId = io.get<uint8_t>(); // reserved for future use
+			auto elements = io.get<uint8_t>();
+			logMsg("read UI button data (%zu bytes) with %u element(s)", size, elements);
+			for(auto i : iotaCount(elements))
+			{
+				if(!readVControllerElement(app, io, uiElements, true))
+					return false;
+			}
+			return true;
+		}
 	}
+}
+
+static void writeToConfig(const VControllerElement &e, FileIO &io)
+{
+	io.write(e.dPad() ? int8_t(1) : int8_t(0));
+	visit(overloaded
+	{
+		[&](const VControllerButtonGroup &e)
+		{
+			auto config = e.config();
+			io.write(config.layout.rowItems);
+			io.write(config.layout.spacingMM);
+			io.write(config.layout.xPadding);
+			io.write(config.layout.yPadding);
+			io.write(config.layout.staggerType);
+			io.write(config.layout.origin.pack());
+			io.write(config.layout.showBoundingArea);
+			auto keyCount = uint8_t(std::min(config.keys.size(), 255zu));
+			io.write(keyCount);
+			io.write(config.keys.data(), keyCount);
+		},
+		[&](const VControllerUIButtonGroup &e)
+		{
+			auto config = e.config();
+			io.write(config.layout.rowItems);
+			io.write(config.layout.origin.pack());
+			auto keyCount = uint8_t(std::min(config.keys.size(), 255zu));
+			io.write(keyCount);
+			io.write(config.keys.data(), keyCount);
+		},
+		[&](const VControllerDPad &e)
+		{
+			auto config = e.config;
+			io.write(config.keys);
+			io.write(config.diagonalSensitivity);
+			io.write(config.deadzoneMM100x);
+			io.write(config.visualizeBounds);
+		},
+	}, e);
+	io.write(e.layoutPos[0].pos);
+	io.write(e.layoutPos[0].origin.pack());
+	io.write(e.layoutPos[1].pos);
+	io.write(e.layoutPos[1].origin.pack());
+	io.write(e.state);
+}
+
+static size_t configDataSizeBytes(const std::vector<VControllerElement> &elems, bool savingUIElems)
+{
+	size_t bytes = 2; // config key size
+	if(!savingUIElems)
+		bytes++; // emulated device index
+	bytes++; // config index
+	bytes++; // element count
+	for(const auto &e : elems)
+	{
+		bytes++; // element type
+		bytes += e.configSize();
+	}
+	return bytes;
+}
+
+void VController::writeDeviceButtonsConfig(FileIO &io) const
+{
+	auto bytes = configDataSizeBytes(gpElements, false);
+	if(bytes > std::numeric_limits<uint16_t>::max())
+	{
+		logErr("device button data bytes:%zu too large, skipped writing to config", bytes);
+		return;
+	}
+	io.write(uint16_t(bytes));
+	io.write(uint16_t(CFGKEY_VCONTROLLER_DEVICE_BUTTONS));
+	io.write(int8_t(0));
+	io.write(int8_t(0));
+	io.write(uint8_t(std::min(gpElements.size(), 255zu)));
+	logMsg("wrote emu device button data (%zu bytes) with %zu element(s)", bytes, gpElements.size());
+	for(const auto &e : gpElements) { writeToConfig(e, io); }
+}
+
+void VController::writeUIButtonsConfig(FileIO &io) const
+{
+	auto bytes = configDataSizeBytes(uiElements, true);
+	if(bytes > std::numeric_limits<uint16_t>::max())
+	{
+		logErr("UI button data bytes:%zu too large, skipped writing to config", bytes);
+		return;
+	}
+	io.write(uint16_t(bytes));
+	io.write(uint16_t(CFGKEY_VCONTROLLER_UI_BUTTONS));
+	io.write(int8_t(0));
+	io.write(uint8_t(std::min(uiElements.size(), 255zu)));
+	logMsg("wrote UI button data (%zu bytes) with %zu element(s)", bytes, uiElements.size());
+	for(const auto &e : uiElements) { writeToConfig(e, io); }
 }
 
 void VController::writeConfig(FileIO &io) const
 {
-	if constexpr(VCONTROLS_GAMEPAD)
-	{
-		if(buttonAlpha() != DEFAULT_ALPHA)
-			writeOptionValue(io, CFGKEY_TOUCH_CONTROL_ALPHA, buttonAlpha());
-		if(buttonSize() != defaultButtonSize)
-			writeOptionValue(io, CFGKEY_TOUCH_CONTROL_SIZE, buttonSize());
-		if(!showOnTouchInput())
-			writeOptionValue(io, CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH, showOnTouchInput());
-		if(gamepadControlsVisibility() != DEFAULT_GAMEPAD_CONTROLS_VISIBILITY)
-			writeOptionValue(io, CFGKEY_TOUCH_CONTROL_DISPLAY, gamepadControlsVisibility());
-		if(vibrateOnTouchInput())
-			writeOptionValue(io, CFGKEY_TOUCH_CONTROL_VIRBRATE, vibrateOnTouchInput());
-		if(allowButtonsPastContentBounds_)
-			writeOptionValue(io, CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS, true);
-	}
-	if(layoutPositionChanged())
-	{
-		// TODO: write element state to config
-	}
+	if(buttonAlpha() != DEFAULT_ALPHA)
+		writeOptionValue(io, CFGKEY_TOUCH_CONTROL_ALPHA, buttonAlpha());
+	if(buttonSize() != defaultButtonSize)
+		writeOptionValue(io, CFGKEY_TOUCH_CONTROL_SIZE, buttonSize());
+	if(!showOnTouchInput())
+		writeOptionValue(io, CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH, showOnTouchInput());
+	if(gamepadControlsVisibility() != DEFAULT_GAMEPAD_CONTROLS_VISIBILITY)
+		writeOptionValue(io, CFGKEY_TOUCH_CONTROL_DISPLAY, gamepadControlsVisibility());
+	if(vibrateOnTouchInput())
+		writeOptionValue(io, CFGKEY_TOUCH_CONTROL_VIRBRATE, vibrateOnTouchInput());
+	if(allowButtonsPastContentBounds_)
+		writeOptionValue(io, CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS, true);
+	writeDeviceButtonsConfig(io);
+	writeUIButtonsConfig(io);
 }
 
 void VController::configure(IG::Window &win, Gfx::Renderer &renderer, const Gfx::GlyphTextureSet &face)
@@ -652,42 +796,21 @@ void VController::configure(IG::Window &win, Gfx::Renderer &renderer, const Gfx:
 	setWindow(win);
 	setRenderer(renderer);
 	setFace(face);
-}
-
-void VController::applyLayout()
-{
-	auto &app = this->app();
-	auto &winData = windowData();
-	if constexpr(VCONTROLS_GAMEPAD)
-	{
-		for(auto &e : uiElements) { e.updateMeasurements(window()); };
-		for(auto &e : gpElements) { e.updateMeasurements(window()); };
-	}
-	applyButtonSize();
-	if(!layoutPositionChanged()) // setup default positions if not provided in config file
-		resetPositions();
+	for(auto &e : uiElements) { update(e); };
+	for(auto &e : gpElements) { update(e); };
+	if(uiElements.size() && uiElements[0].layoutPos[0].pos.x == -1)
+		resetUIGroups();
+	if(gpElements.size() && gpElements[0].layoutPos[0].pos.x == -1)
+		resetEmulatedDeviceGroups();
 	setInputPlayer(0);
 }
 
-void VController::resetPositions()
+void VController::resetEmulatedDevicePositions(std::vector<VControllerElement> &gpElements) const
 {
-	auto ctx = appContext();
 	auto &win = window();
-	logMsg("resetting on-screen controls to default positions & states");
-	const auto shortSidePadding = xMMSizeToPixel(win, 1);
-	const auto longSidePadding = xMMSizeToPixel(win, 3);
-	const int yTop = win.contentBounds().y;
-	for(int leftY{yTop}, rightY{yTop}; auto &e : uiElements)
-	{
-		const auto halfSize = e.realBounds().size() / 2;
-		if(e.layoutOrigin() == RT2DO || e.layoutOrigin() == LT2DO)
-		{
-			auto &yOffset = e.layoutOrigin() == RT2DO ? rightY : leftY;
-			auto xOffset = e.layoutOrigin() == RT2DO ? -shortSidePadding : shortSidePadding;
-			e.layoutPos[0] = e.layoutPos[1] = {e.layoutOrigin(), {xOffset, yOffset + halfSize.y}};
-			yOffset += e.realBounds().ySize();
-		}
-	}
+	logMsg("resetting emulated device controls to default positions");
+	const int shortSidePadding = xMMSizeToPixel(win, 1);
+	const int longSidePadding = xMMSizeToPixel(win, 3);
 	const int yBottomPadding = xMMSizeToPixel(win, 3);
 	const int yBottom = (win.bounds().y2 - win.contentBounds().y2) + yBottomPadding;
 	VControllerElement *prevElem{};
@@ -721,21 +844,65 @@ void VController::resetPositions()
 			centerY += e.realBounds().ySize();
 		}
 	}
-	setLayoutPositionChanged(false);
 }
 
-void VController::resetAllOptions()
+void VController::resetEmulatedDevicePositions() { resetEmulatedDevicePositions(gpElements); }
+
+void VController::resetEmulatedDeviceGroups()
 {
-	gamepadControlsVisibility_ = DEFAULT_GAMEPAD_CONTROLS_VISIBILITY;
-	btnSize = defaultButtonSize;
-	vibrateOnTouchInput_ = false;
-	showOnTouchInput_ = true;
-	allowButtonsPastContentBounds_ = false;
-	reset(system().inputDeviceDesc(0));
-	resetPositions();
-	setButtonAlpha(DEFAULT_ALPHA);
-	updateAutoOnScreenControlVisible();
-	setInputPlayer(0);
+	logMsg("setting default emu device button groups");
+	gpElements = defaultEmulatedDeviceGroups();
+}
+
+std::vector<VControllerElement> VController::defaultEmulatedDeviceGroups() const
+{
+	std::vector<VControllerElement> gpElements;
+	for(const auto &c : system().inputDeviceDesc(0).components)
+	{
+		if(!to_underlying(c.flags & InputComponentFlagsMask::altConfig))
+			add(gpElements, c);
+	}
+	if(hasWindow())
+		resetEmulatedDevicePositions(gpElements);
+	return gpElements;
+}
+
+void VController::resetUIPositions(std::vector<VControllerElement> &uiElements) const
+{
+	auto &win = window();
+	logMsg("resetting UI controls to default positions");
+	const auto sidePadding = xMMSizeToPixel(win, 2);
+	const int yTop = win.contentBounds().y;
+	for(int leftY{yTop}, rightY{yTop}; auto &e : uiElements)
+	{
+		const auto halfSize = e.realBounds().size() / 2;
+		if(e.layoutOrigin() == RT2DO || e.layoutOrigin() == LT2DO)
+		{
+			auto &yOffset = e.layoutOrigin() == RT2DO ? rightY : leftY;
+			auto xOffset = e.layoutOrigin() == RT2DO ? -sidePadding : sidePadding;
+			e.layoutPos[0] = e.layoutPos[1] = {e.layoutOrigin(), {xOffset, yOffset + halfSize.y}};
+			yOffset += e.realBounds().ySize();
+		}
+	}
+}
+
+void VController::resetUIPositions() { resetUIPositions(uiElements); }
+
+void VController::resetUIGroups()
+{
+	logMsg("setting default UI button groups");
+	uiElements = defaultUIGroups();
+}
+
+std::vector<VControllerElement> VController::defaultUIGroups() const
+{
+	std::vector<VControllerElement> uiElements;
+	add(uiElements, rightUIComponents);
+	if(Config::Input::TOUCH_DEVICES)
+		add(uiElements, leftUIComponents);
+	if(hasWindow())
+		resetUIPositions(uiElements);
+	return uiElements;
 }
 
 VControllerLayoutPosition VControllerLayoutPosition::fromPixelPos(IG::WP pos, IG::WP size, IG::WindowRect windowBounds)
@@ -765,35 +932,20 @@ VControllerLayoutPosition VControllerLayoutPosition::fromPixelPos(IG::WP pos, IG
 	int x = (origin.xScaler() == 0) ? pos.x - rect.xSize()/2 :
 		(origin.xScaler() == 1) ? pos.x - rect.xSize() : pos.x;
 	int y = LT2DO.adjustY(pos.y, rect.ySize(), origin);
-	return {origin, {x, y}, VControllerState::SHOWN};
+	return {origin, {x, y}};
 }
 
 IG::WP VControllerLayoutPosition::toPixelPos(IG::WindowRect windowBounds) const
 {
 	int x = (origin.xScaler() == 0) ? pos.x + windowBounds.xSize() / 2 :
 		(origin.xScaler() == 1) ? pos.x + windowBounds.xSize() : pos.x;
-	int y = origin.adjustY(pos.y, windowBounds.ySize(), LT2DO);
+	int y = origin.adjustY(int(pos.y), windowBounds.ySize(), LT2DO);
 	return {x, y};
-}
-
-bool VController::shouldDraw(VControllerState state, bool showHidden)
-{
-	return state == VControllerState::SHOWN || (showHidden && state != VControllerState::OFF);
 }
 
 bool VController::gamepadIsActive() const
 {
 	return gamepadIsEnabled() && gamepadControlsVisible();
-}
-
-void VController::reset(SystemInputDeviceDesc desc)
-{
-	gpElements.clear();
-	for(const auto &c : desc.components)
-	{
-		if(!to_underlying(c.flags & InputComponentFlagsMask::altConfig))
-			add(c);
-	}
 }
 
 static int8_t rowSize(InputComponentDesc c)
@@ -805,20 +957,20 @@ static int8_t rowSize(InputComponentDesc c)
 		return c.keyCodes.size() >= 6 ? 3 : 2;
 }
 
-VControllerElement &VController::add(InputComponentDesc c)
+VControllerElement &VController::add(std::vector<VControllerElement> &elems, InputComponentDesc c) const
 {
 	auto &elem = [&]() -> VControllerElement&
 	{
 		switch(c.type)
 		{
 			case InputComponent::ui:
-				return uiElements.emplace_back(std::in_place_type<VControllerUIButtonGroup>, c.keyCodes, c.layoutOrigin);
+				return elems.emplace_back(std::in_place_type<VControllerUIButtonGroup>, c.keyCodes, c.layoutOrigin);
 			case InputComponent::dPad:
 				assert(c.keyCodes.size() == 4);
-				return gpElements.emplace_back(std::in_place_type<VControllerDPad>, std::span<const unsigned, 4>{c.keyCodes.data(), 4});
+				return elems.emplace_back(std::in_place_type<VControllerDPad>, std::span<const unsigned, 4>{c.keyCodes.data(), 4});
 			case InputComponent::button:
 			case InputComponent::trigger:
-				return gpElements.emplace_back(std::in_place_type<VControllerButtonGroup>, c.keyCodes, c.layoutOrigin, rowSize(c));
+				return elems.emplace_back(std::in_place_type<VControllerButtonGroup>, c.keyCodes, c.layoutOrigin, rowSize(c));
 		}
 		bug_unreachable("invalid InputComponent");
 	}();
@@ -826,19 +978,27 @@ VControllerElement &VController::add(InputComponentDesc c)
 	{
 		elem.buttonGroup()->setStaggerType(5);
 	}
-	update(elem);
-	auto layoutPos = VControllerLayoutPosition::fromPixelPos(layoutBounds().center(), elem.bounds().size(), window().bounds());
-	elem.layoutPos[0] = elem.layoutPos[1] = layoutPos;
+	if(hasWindow())
+	{
+		auto layoutPos = VControllerLayoutPosition::fromPixelPos(layoutBounds().center(), elem.bounds().size(), window().bounds());
+		elem.layoutPos[0] = elem.layoutPos[1] = layoutPos;
+		update(elem);
+	}
 	return elem;
 }
 
-void VController::update(VControllerElement &elem)
+VControllerElement &VController::add(InputComponentDesc c)
+{
+	return add(c.type == InputComponent::ui ? uiElements : gpElements, c);
+}
+
+void VController::update(VControllerElement &elem) const
 {
 	if(!hasWindow())
 		return;
 	updateTexture(app(), elem);
+	setSize(elem, elem.uiButtonGroup() ? uiButtonPixelSize() : emulatedDeviceButtonPixelSize(), *renderer_);
 	elem.updateMeasurements(window());
-	applyButtonSize();
 }
 
 bool VController::remove(VControllerElement &elemToErase)

@@ -35,15 +35,16 @@ public:
 
 	TextTableView(ViewAttachParams attach, size_t itemsHint): TextTableView{UTF16String{}, attach, itemsHint} {}
 
-	void appendItem(UTF16Convertible auto &&name, TextMenuItem::SelectDelegate del)
+	TextMenuItem &appendItem(UTF16Convertible auto &&name, TextMenuItem::SelectDelegate del)
 	{
-		textItem.emplace_back(IG_forward(name), &defaultFace(), del);
+		return textItem.emplace_back(IG_forward(name), &defaultFace(), del);
 	}
 
-	void setItem(size_t idx, UTF16Convertible auto &&name, TextMenuItem::SelectDelegate del)
+	TextMenuItem &setItem(size_t idx, UTF16Convertible auto &&name, TextMenuItem::SelectDelegate del)
 	{
 		assert(idx < textItem.size());
 		textItem[idx] = {IG_forward(name), &defaultFace(), del};
+		return textItem[idx];
 	}
 
 	TextMenuItem &item(size_t idx);

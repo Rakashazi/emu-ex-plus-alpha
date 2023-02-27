@@ -122,17 +122,18 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 			auto c = EmuCore(item.id());
 			if(c == system().core)
 				return true;
-			auto ynAlertView = makeView<YesNoAlertView>(changeEmuCoreText);
-			ynAlertView->setOnYes(
-				[this, c](const Input::Event &e)
+			pushAndShowModal(makeView<YesNoAlertView>(changeEmuCoreText,
+				YesNoAlertView::Delegates
 				{
-					system().sessionOptionSet();
-					system().core = c;
-					emuCore.setSelected((MenuItem::Id)c);
-					dismissPrevious();
-					app().promptSystemReloadDueToSetOption(attachParams(), e);
-				});
-			pushAndShowModal(std::move(ynAlertView), e, false);
+					.onYes = [this, c](const Input::Event &e)
+					{
+						system().sessionOptionSet();
+						system().core = c;
+						emuCore.setSelected((MenuItem::Id)c);
+						dismissPrevious();
+						app().promptSystemReloadDueToSetOption(attachParams(), e);
+					}
+				}), e, false);
 			return false;
 		};
 	}
@@ -326,15 +327,16 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 			auto c = EmuCore(item.id());
 			if(c == system().defaultCore)
 				return true;
-			auto ynAlertView = makeView<YesNoAlertView>(changeEmuCoreText);
-			ynAlertView->setOnYes(
-				[this, c]
+			pushAndShowModal(makeView<YesNoAlertView>(changeEmuCoreText,
+				YesNoAlertView::Delegates
 				{
-					system().defaultCore = c;
-					emuCore.setSelected((MenuItem::Id)c);
-					dismissPrevious();
-				});
-			pushAndShowModal(std::move(ynAlertView), e, false);
+					.onYes = [this, c]
+					{
+						system().defaultCore = c;
+						emuCore.setSelected((MenuItem::Id)c);
+						dismissPrevious();
+					}
+				}), e, false);
 			return false;
 		};
 	}

@@ -92,7 +92,7 @@ namespace IG::FileUtils
 ssize_t writeToPath(CStringView path, std::span<const unsigned char> src)
 {
 	auto f = FileIO{path, OpenFlagsMask::New | OpenFlagsMask::Test};
-	return f.write(src.data(), src.size());
+	return f.write(src).bytes;
 }
 
 ssize_t writeToPath(CStringView path, IO &io)
@@ -104,7 +104,7 @@ ssize_t writeToPath(CStringView path, IO &io)
 ssize_t readFromPath(CStringView path, std::span<unsigned char> dest, IO::AccessHint accessHint)
 {
 	FileIO f{path, accessHint, OpenFlagsMask::Test};
-	return f.read(dest.data(), dest.size());
+	return f.read(dest).bytes;
 }
 
 IOBuffer bufferFromPath(CStringView path, OpenFlagsMask openFlags, size_t sizeLimit)

@@ -369,7 +369,7 @@ void EmuAudio::setVolume(int8_t vol)
 	}
 	else
 	{
-		assumeExpr(vol < 100);
+		assumeExpr(vol <= 125);
 		requestedVolume = volume = vol / 100.f;
 	}
 }

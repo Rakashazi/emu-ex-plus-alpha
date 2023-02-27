@@ -27,14 +27,35 @@ namespace EmuEx
 {
 
 VControllerButtonGroup::VControllerButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin, int8_t rowItems):
-	layoutOrigin{layoutOrigin},
-	rowItems{rowItems}
+	layout
+	{
+		.rowItems = rowItems,
+		.origin = layoutOrigin,
+	}
 {
 	buttons.reserve(buttonCodes.size());
 	for(auto c : buttonCodes)
 	{
 		buttons.emplace_back(c);
 	}
+}
+
+VControllerButtonGroup::VControllerButtonGroup(const Config &conf):
+	layout{conf.layout}
+{
+	buttons.reserve(conf.keys.size());
+	for(auto c : conf.keys)
+	{
+		buttons.emplace_back(c);
+	}
+}
+
+VControllerButtonGroup::Config VControllerButtonGroup::config() const
+{
+	Config conf{.layout = layout};
+	conf.keys.reserve(buttons.size());
+	for(const auto &b : buttons) { conf.keys.emplace_back(b.key); }
+	return conf;
 }
 
 static int buttonsToLayout(const auto &buttons)
@@ -49,13 +70,13 @@ static int buttonsToLayout(const auto &buttons)
 	return count;
 }
 
-static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, WP size,
+static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, int size,
 	int spacing, int stagger, int rowShift, int rowItems, _2DOrigin o)
 {
 	if(!rowItems)
 		return;
 	int rows = divRoundUp(buttonsToLayout(buttons), rowItems);
-	int row{}, btnPos{}, y{o.yScaler() == -1 ? -size.y : 0};
+	int row{}, btnPos{}, y{o.yScaler() == -1 ? -size : 0};
 	if(stagger < 0)
 		y += stagger * (rowItems - 1);
 	int x = -rowShift * (rows - 1);
@@ -66,12 +87,12 @@ static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, W
 			continue;
 		WP pos = layoutBounds.pos(o) + WP{x, y + staggerOffset} + (size / 2);
 		b.setPos(pos, viewBounds);
-		x += size.x + spacing;
+		x += size + spacing;
 		staggerOffset -= stagger;
 		if(++btnPos == rowItems)
 		{
 			row++;
-			y += (size.y + spacing) * o.yScaler();
+			y += (size + spacing) * o.yScaler();
 			staggerOffset = 0;
 			x = -rowShift * ((rows - 1) - row);
 			btnPos = 0;
@@ -84,60 +105,60 @@ void VControllerButtonGroup::setPos(WP pos, WindowRect viewBounds)
 	bounds_.setPos(pos, C2DO);
 	bounds_.fitIn(viewBounds);
 	layoutButtons(buttons, bounds_, viewBounds, btnSize,
-		spacingPixels, btnStagger, btnRowShift, rowItems, LB2DO);
+		spacingPixels, btnStagger, btnRowShift, layout.rowItems, LB2DO);
 }
 
-void VControllerButtonGroup::setButtonSize(WP size)
+void VControllerButtonGroup::setButtonSize(int sizePx)
 {
-	btnSize = size;
-	setStaggerType(btnStaggerType);
-	int btnsPerRow = std::min(buttonsToLayout(buttons), int(rowItems));
-	int xSizePixel = size.x*btnsPerRow + spacingPixels*(btnsPerRow-1) + std::abs(btnRowShift*((int)rows()-1));
-	int ySizePixel = size.y*rows() + spacingPixels*(rows()-1) + std::abs(btnStagger*((int)btnsPerRow-1));
+	btnSize = sizePx;
+	setStaggerType(layout.staggerType);
+	int btnsPerRow = std::min(buttonsToLayout(buttons), int(layout.rowItems));
+	int xSizePixel = sizePx * btnsPerRow + spacingPixels*(btnsPerRow-1) + std::abs(btnRowShift*((int)rows()-1));
+	int ySizePixel = sizePx * rows() + spacingPixels*(rows()-1) + std::abs(btnStagger*((int)btnsPerRow-1));
 	bounds_ = makeWindowRectRel({0, 0}, {xSizePixel, ySizePixel});
 	WP extendedSize = paddingPixels();
 	for(auto &b : buttons)
 	{
-		b.setSize(size, extendedSize);
+		b.setSize({sizePx, sizePx}, extendedSize);
 	}
 }
 
 void VControllerButtonGroup::setStaggerType(uint8_t type)
 {
-	btnStaggerType = type;
+	layout.staggerType = type;
 	btnRowShift = 0;
 	switch(type)
 	{
 		case 0:
-			btnStagger = btnSize.y * -.75; break;
+			btnStagger = btnSize * -.75f; break;
 		case 1:
-			btnStagger = btnSize.y * -.5; break;
+			btnStagger = btnSize * -.5f; break;
 		case 2:
 			btnStagger = 0; break;
 		case 3:
-			btnStagger = btnSize.y * .5; break;
+			btnStagger = btnSize * .5f; break;
 		case 4:
-			btnStagger = btnSize.y * .75; break;
+			btnStagger = btnSize * .75f; break;
 		default:
-			btnStagger = btnSize.y + spacingPixels;
-			btnRowShift = -(btnSize.y + spacingPixels);
+			btnStagger = btnSize + spacingPixels;
+			btnRowShift = -(btnSize + spacingPixels);
 			break;
 	}
 }
 
-bool VControllerButtonGroup::setSpacing(int16_t space, const Window &win)
+bool VControllerButtonGroup::setSpacing(int8_t space, const Window &win)
 {
-	if(space < 100 || space > 800)
+	if(space < 0 || space > 8)
 		return false;
-	spacingMM100x = space;
-	spacingPixels = makeEvenRoundedUp(win.widthMMInPixels(space / 100.));
-	setStaggerType(btnStaggerType);
+	layout.spacingMM = space;
+	spacingPixels = makeEvenRoundedUp(win.widthMMInPixels(space));
+	setStaggerType(layout.staggerType);
 	return true;
 }
 
 void VControllerButtonGroup::updateMeasurements(const Window &win)
 {
-	setSpacing(spacingMM100x, win);
+	setSpacing(layout.spacingMM, win);
 	setButtonSize(btnSize);
 }
 
@@ -151,14 +172,13 @@ void VControllerButtonGroup::transposeKeysForPlayer(const EmuApp &app, int playe
 
 int VControllerButtonGroup::rows() const
 {
-	return divRoundUp(buttonsToLayout(buttons), rowItems);
+	assert(layout.rowItems);
+	return divRoundUp(buttonsToLayout(buttons), layout.rowItems);
 }
 
 std::array<int, 2> VControllerButtonGroup::findButtonIndices(WP windowPos) const
 {
 	std::array<int, 2> btnOut{-1, -1};
-	if(state == VControllerState::OFF)
-		return btnOut;
 	for(size_t count = 0; auto &b : buttons)
 	{
 		if(b.overlaps(windowPos))
@@ -171,12 +191,10 @@ std::array<int, 2> VControllerButtonGroup::findButtonIndices(WP windowPos) const
 	return btnOut;
 }
 
-void VControllerButtonGroup::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden) const
+void VControllerButtonGroup::draw(Gfx::RendererCommands &__restrict__ cmds) const
 {
-	if(!VController::shouldDraw(state, showHidden))
-		return;
 	auto &basicEffect = cmds.basicEffect();
-	if(showBoundingArea)
+	if(layout.showBoundingArea)
 	{
 		basicEffect.disableTexture(cmds);
 		for(const auto &b : buttons)
@@ -219,9 +237,32 @@ std::string VControllerButtonGroup::name(const EmuApp &app) const
 	return namesString(buttons, app);
 }
 
+static bool isValidRowItemCount(int val) { return val >= 1 && val <= 5; }
+static bool isValidSpacing(int val) { return val >= 0 && val <= 8; }
+static bool isValidPadding(int val) { return val >= 0 && val <= 30; }
+static bool isValidStaggerType(int val) { return val >= 0 && val <= 5; }
+
+void VControllerButtonGroup::Config::validate(const EmuApp &app)
+{
+	for(auto &k : keys) { k =	app.validateSystemKey(k); }
+	if(!isValidRowItemCount(layout.rowItems))
+		layout.rowItems = 2;
+	if(!isValidSpacing(layout.spacingMM))
+		layout.spacingMM = defaultButtonSpacingMM;
+	if(!isValidPadding(layout.xPadding))
+		layout.xPadding = 0;
+	if(!isValidPadding(layout.yPadding))
+		layout.yPadding = 0;
+	if(!isValidStaggerType(layout.staggerType))
+		layout.staggerType = 2;
+}
+
 VControllerUIButtonGroup::VControllerUIButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin):
-	rowItems{4},
-	layoutOrigin{layoutOrigin}
+	layout
+	{
+		.rowItems = 4,
+		.origin = layoutOrigin,
+	}
 {
 	buttons.reserve(buttonCodes.size());
 	for(auto c : buttonCodes)
@@ -230,36 +271,50 @@ VControllerUIButtonGroup::VControllerUIButtonGroup(std::span<const unsigned> but
 	}
 }
 
+VControllerUIButtonGroup::VControllerUIButtonGroup(const Config &conf):
+	layout{conf.layout}
+{
+	buttons.reserve(conf.keys.size());
+	for(auto c : conf.keys) { buttons.emplace_back(c); }
+}
+
+VControllerUIButtonGroup::Config VControllerUIButtonGroup::config() const
+{
+	Config conf{.layout = layout};
+	conf.keys.reserve(buttons.size());
+	for(const auto &b : buttons) { conf.keys.emplace_back(b.key); }
+	return conf;
+}
+
 void VControllerUIButtonGroup::setPos(WP pos, WindowRect viewBounds)
 {
 	bounds_.setPos(pos, C2DO);
 	bounds_.fitIn(viewBounds);
 	layoutButtons(buttons, bounds_, viewBounds, btnSize,
-		0, 0, 0, rowItems, LT2DO);
+		0, 0, 0, layout.rowItems, LT2DO);
 }
 
-void VControllerUIButtonGroup::setButtonSize(WP size)
+void VControllerUIButtonGroup::setButtonSize(int sizePx)
 {
-	btnSize = size;
-	int btnsPerRow = std::min(buttonsToLayout(buttons), int(rowItems));
-	int xSizePixel = size.x * btnsPerRow;
-	int ySizePixel = size.y * rows();
+	btnSize = sizePx;
+	int btnsPerRow = std::min(buttonsToLayout(buttons), int(layout.rowItems));
+	int xSizePixel = sizePx * btnsPerRow;
+	int ySizePixel = sizePx * rows();
 	bounds_ = makeWindowRectRel({0, 0}, {xSizePixel, ySizePixel});
 	for(auto &b : buttons)
 	{
-		b.setSize(size);
+		b.setSize({sizePx, sizePx});
 	}
 }
 
 int VControllerUIButtonGroup::rows() const
 {
-	return divRoundUp(buttonsToLayout(buttons), rowItems);
+	assert(layout.rowItems);
+	return divRoundUp(buttonsToLayout(buttons), layout.rowItems);
 }
 
-void VControllerUIButtonGroup::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden) const
+void VControllerUIButtonGroup::draw(Gfx::RendererCommands &__restrict__ cmds) const
 {
-	if(!VController::shouldDraw(state, showHidden))
-		return;
 	cmds.basicEffect().enableTexture(cmds);
 	for(auto &b : buttons)
 	{
@@ -272,6 +327,13 @@ void VControllerUIButtonGroup::draw(Gfx::RendererCommands &__restrict__ cmds, bo
 std::string VControllerUIButtonGroup::name(const EmuApp &app) const
 {
 	return namesString(buttons, app);
+}
+
+void VControllerUIButtonGroup::Config::validate(const EmuApp &app)
+{
+	for(auto &k : keys) { k =	app.validateSystemKey(k); }
+	if(!isValidRowItemCount(layout.rowItems))
+		layout.rowItems = 2;
 }
 
 }

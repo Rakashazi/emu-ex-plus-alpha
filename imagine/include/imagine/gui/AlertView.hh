@@ -83,27 +83,23 @@ protected:
 class YesNoAlertView : public BaseAlertView
 {
 public:
+	struct Delegates
+	{
+		TextMenuItem::SelectDelegate onYes{[]{}};
+		TextMenuItem::SelectDelegate onNo{[]{}};
+	};
+
 	YesNoAlertView(ViewAttachParams attach, UTF16Convertible auto &&label,
 		UTF16Convertible auto &&yesStr, UTF16Convertible auto &&noStr,
-		TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo):
+		Delegates delegates):
 		BaseAlertView(attach, IG_forward(label),
-			[](const TableView &) -> size_t
-			{
-				return 2;
-			},
-			[this](const TableView &, size_t idx) -> MenuItem&
-			{
-				return idx == 0 ? yes : no;
-			}),
-		yes{IG_forward(yesStr), &defaultFace(), onYes ? onYes : TextMenuItem::SelectDelegate([]{})},
-		no{IG_forward(noStr), &defaultFace(), onNo ? onNo : TextMenuItem::SelectDelegate([]{})} {}
+			[](const TableView &) -> size_t { return 2; },
+			[this](const TableView &, size_t idx) -> MenuItem& { return idx == 0 ? yes : no; }),
+		yes{IG_forward(yesStr), &defaultFace(), delegates.onYes},
+		no{IG_forward(noStr), &defaultFace(), delegates.onNo} {}
 
-	YesNoAlertView(ViewAttachParams attach, UTF16Convertible auto &&label,
-		UTF16Convertible auto &&yesStr, UTF16Convertible auto &&noStr):
-		YesNoAlertView{attach, IG_forward(label), IG_forward(yesStr), IG_forward(noStr), {}, {}} {}
-
-	YesNoAlertView(ViewAttachParams attach, UTF16Convertible auto &&label):
-		YesNoAlertView{attach, IG_forward(label), u"Yes", u"No", {}, {}} {}
+	YesNoAlertView(ViewAttachParams attach, UTF16Convertible auto &&label, Delegates delegates):
+		YesNoAlertView{attach, IG_forward(label), u"Yes", u"No", delegates} {}
 
 	void setOnYes(TextMenuItem::SelectDelegate del);
 	void setOnNo(TextMenuItem::SelectDelegate del);

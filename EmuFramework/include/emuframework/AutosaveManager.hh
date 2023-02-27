@@ -43,6 +43,7 @@ WISE_ENUM_CLASS((AutosaveLaunchMode, uint8_t),
 	NoSave);
 
 enum class LoadAutosaveMode{Normal, NoState};
+enum class AutosaveActionSource{Auto, Manual};
 
 constexpr std::string_view defaultAutosaveFilename = "auto-00";
 constexpr std::string_view noAutosaveName = "\a";
@@ -50,12 +51,11 @@ constexpr std::string_view noAutosaveName = "\a";
 class AutosaveManager
 {
 public:
-	AutosaveLaunchMode autosaveLaunchMode{};
-	IG::Minutes autosaveTimerMins{};
-
 	AutosaveManager(EmuApp &);
-	bool save();
-	bool load(LoadAutosaveMode m = LoadAutosaveMode::Normal);
+	bool save(AutosaveActionSource src = AutosaveActionSource::Auto);
+	bool load(AutosaveActionSource src, LoadAutosaveMode m);
+	bool load(LoadAutosaveMode m) { return load(AutosaveActionSource::Auto, m); }
+	bool load(AutosaveActionSource src = AutosaveActionSource::Auto) { return load(src, LoadAutosaveMode::Normal); }
 	bool setSlot(std::string_view name);
 	void resetSlot(std::string_view name = "") { autoSaveSlot = name; }
 	bool renameSlot(std::string_view name, std::string_view newName);
@@ -85,6 +85,10 @@ private:
 	IG::Timer autoSaveTimer;
 	IG::Time autoSaveTimerStartTime{};
 	IG::Time autoSaveTimerElapsedTime{};
+public:
+	IG::Minutes autosaveTimerMins{};
+	AutosaveLaunchMode autosaveLaunchMode{};
+	bool saveOnlyBackupMemory{};
 };
 
 }

@@ -288,7 +288,7 @@ bool EmuApp::setOverlayEffectLevel(EmuVideoLayer &videoLayer, uint8_t val)
 	if(!optionOverlayEffectLevel.isValidVal(val))
 		return false;
 	optionOverlayEffectLevel = val;
-	videoLayer.setOverlayIntensity(val/100.);
+	videoLayer.setOverlayIntensity(val / 100.f);
 	viewController().postDrawToEmuWindows();
 	return true;
 }

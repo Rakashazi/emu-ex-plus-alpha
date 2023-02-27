@@ -293,22 +293,23 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 		"Unbind All", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			auto ynAlertView = makeView<YesNoAlertView>("Really unbind all keys in this category?");
-			ynAlertView->setOnYes(
-				[this]()
+			pushAndShowModal(makeView<YesNoAlertView>("Really unbind all keys in this category?",
+				YesNoAlertView::Delegates
 				{
-					auto conf = devConf->makeMutableKeyConf(app());
-					if(!conf)
-						return;
-					conf->unbindCategory(*cat);
-					for(auto i : iotaCount(cat->keys()))
+					.onYes = [this]
 					{
-						btn[i].set2ndName(devConf->device().keyName(devConf->keyConf().key(*cat)[i]));
-						btn[i].compile2nd(renderer());
+						auto conf = devConf->makeMutableKeyConf(app());
+						if(!conf)
+							return;
+						conf->unbindCategory(*cat);
+						for(auto i : iotaCount(cat->keys()))
+						{
+							btn[i].set2ndName(devConf->device().keyName(devConf->keyConf().key(*cat)[i]));
+							btn[i].compile2nd(renderer());
+						}
+						devConf->buildKeyMap();
 					}
-					devConf->buildKeyMap();
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+				}), e);
 		}
 	}
 {

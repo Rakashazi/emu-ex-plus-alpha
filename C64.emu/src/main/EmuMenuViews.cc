@@ -354,14 +354,9 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 		"Download VICE System Files", &defaultFace(),
 		[this](Input::Event e)
 		{
-			auto ynAlertView = makeView<YesNoAlertView>(
-				"Open the C64.emu setup page? From there, download C64.emu.zip to your device and select it as an archive in the previous menu.");
-			ynAlertView->setOnYes(
-				[this](Input::Event e)
-				{
-					appContext().openURL("https://www.explusalpha.com/contents/c64-emu");
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+			pushAndShowModal(makeView<YesNoAlertView>(
+				"Open the C64.emu setup page? From there, download C64.emu.zip to your device and select it as an archive in the previous menu.",
+				YesNoAlertView::Delegates{.onYes = [this]{ appContext().openURL("https://www.explusalpha.com/contents/c64-emu"); }}), e);
 		}
 	};
 
@@ -1256,14 +1251,9 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMa
 					[this, i](View &view, Input::Event e)
 					{
 						system().optionViceSystem = i;
-						auto ynAlertView = makeView<YesNoAlertView>("Changing systems needs app restart, exit now?");
-						ynAlertView->setOnYes(
-							[this]()
-							{
-								appContext().exit();
-							});
 						view.dismiss(false);
-						app().pushAndShowModalView(std::move(ynAlertView), e);
+						app().pushAndShowModalView(makeView<YesNoAlertView>("Changing systems needs app restart, exit now?",
+							YesNoAlertView::Delegates{.onYes = [this]{ appContext().exit(); }}), e);
 					});
 			}
 			pushAndShow(std::move(multiChoiceView), e);
@@ -1304,13 +1294,14 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMa
 								}
 								if(appContext().fileUriExists(newMediaPath))
 								{
-									auto ynAlertView = makeView<YesNoAlertView>("Disk image already exists, overwrite?");
-									ynAlertView->setOnYes(
-										[this](Input::Event e)
+									app().pushAndShowModalView(makeView<YesNoAlertView>("Disk image already exists, overwrite?",
+										YesNoAlertView::Delegates
 										{
-											createDiskAndLaunch(newMediaPath.data(), newMediaName, e);
-										});
-									app().pushAndShowModalView(std::move(ynAlertView), e);
+											.onYes = [this](Input::Event e)
+											{
+												createDiskAndLaunch(newMediaPath.data(), newMediaName, e);
+											}
+										}), e);
 									return;
 								}
 								createDiskAndLaunch(newMediaPath.data(), newMediaName, e);
@@ -1380,14 +1371,14 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMa
 								}
 								if(appContext().fileUriExists(newMediaPath))
 								{
-									//EmuApp::printfMessage(3, true, "%s already exists");
-									auto ynAlertView = makeView<YesNoAlertView>("Tape image already exists, overwrite?");
-									ynAlertView->setOnYes(
-										[this](Input::Event e)
+									app().pushAndShowModalView(makeView<YesNoAlertView>("Tape image already exists, overwrite?",
+										YesNoAlertView::Delegates
 										{
-											createTapeAndLaunch(newMediaPath.data(), e);
-										});
-									app().pushAndShowModalView(std::move(ynAlertView), e);
+											.onYes = [this](Input::Event e)
+											{
+												createTapeAndLaunch(newMediaPath.data(), e);
+											}
+										}), e);
 									return;
 								}
 								createTapeAndLaunch(newMediaPath.data(), e);

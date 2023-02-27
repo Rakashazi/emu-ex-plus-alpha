@@ -34,6 +34,7 @@ class PosixIO : public IOUtils<PosixIO>
 {
 public:
 	using IOUtilsBase = IOUtils<PosixIO>;
+	using IOUtilsBase::read;
 	using IOUtilsBase::write;
 	using IOUtilsBase::seek;
 	using IOUtilsBase::tell;

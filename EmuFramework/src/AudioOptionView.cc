@@ -48,7 +48,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
+				app().pushAndShowNewCollectValueRangeInputView<int, 0, 125>(attachParams(), e, "Input 0 to 125", "",
 					[this](EmuApp &app, auto val)
 					{
 						app.setSoundVolume(val);

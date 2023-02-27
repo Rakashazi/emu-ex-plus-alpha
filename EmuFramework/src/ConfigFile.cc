@@ -109,7 +109,7 @@ static bool readKeyConfig(KeyConfigContainer &customKeyConfigs,
 			if(catSize > cat.keys() * sizeof(KeyConfig::Key))
 				return false;
 			auto key = keyConf.key(cat);
-			if(io.read(key, catSize) != catSize)
+			if(io.read(static_cast<void*>(key), catSize) != catSize)
 				return false;
 			size -= catSize;
 
@@ -424,7 +424,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 				io.write((uint8_t)catIdx);
 				uint16_t catSize = cat.keys() * sizeof(KeyConfig::Key);
 				io.write(catSize);
-				io.write(e.key(cat), catSize);
+				io.write(static_cast<void*>(e.key(cat)), catSize);
 			}
 			configs++;
 		}

@@ -253,18 +253,13 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	{
 		"Use Big-Endian SRAM", &defaultFace(),
 		(bool)system().optionBigEndianSram,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
-			auto ynAlertView = makeView<YesNoAlertView>(
+			app().pushAndShowModalView(makeView<YesNoAlertView>(
 				"Warning, this changes the format of SRAM saves files. "
 				"Turn on to make them compatible with other emulators like Gens. "
-				"Any SRAM loaded with the incorrect setting will be corrupted.");
-			ynAlertView->setOnYes(
-				[this, &item]()
-				{
-					system().optionBigEndianSram = item.flipBoolValue(*this);
-				});
-			app().pushAndShowModalView(std::move(ynAlertView), e);
+				"Any SRAM loaded with the incorrect setting will be corrupted.",
+				YesNoAlertView::Delegates{.onYes = [&]{ system().optionBigEndianSram = item.flipBoolValue(*this); }}), e);
 		}
 	};
 

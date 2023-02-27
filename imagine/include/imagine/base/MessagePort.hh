@@ -86,9 +86,9 @@ public:
 		}
 
 		template <class T>
-		bool getExtraData(std::span<T> span)
+		auto readExtraData(std::span<T> span)
 		{
-			return io.read(span.data(), span.size_bytes()) != -1;
+			return io.read(span);
 		}
 
 	protected:

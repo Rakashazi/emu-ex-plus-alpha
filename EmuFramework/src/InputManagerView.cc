@@ -123,26 +123,27 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 				multiChoiceView->appendItem(InputDeviceData::makeDisplayName(ePtr->name, ePtr->enumId),
 					[this, deleteDeviceConfigPtr = ePtr.get()](const Input::Event &e)
 					{
-						auto ynAlertView = makeView<YesNoAlertView>(confirmDeleteDeviceSettingsStr);
-						ynAlertView->setOnYes(
-							[this, deleteDeviceConfigPtr]()
+						pushAndShowModal(makeView<YesNoAlertView>(confirmDeleteDeviceSettingsStr,
+							YesNoAlertView::Delegates
 							{
-								logMsg("deleting device settings for:%s,%d",
-									deleteDeviceConfigPtr->name.data(), deleteDeviceConfigPtr->enumId);
-								for(auto &devPtr : appContext().inputDevices())
+								.onYes = [this, deleteDeviceConfigPtr]
 								{
-									auto &inputDevConf = inputDevData(*devPtr).devConf;
-									if(inputDevConf.hasSavedConf(*deleteDeviceConfigPtr))
+									logMsg("deleting device settings for:%s,%d",
+										deleteDeviceConfigPtr->name.data(), deleteDeviceConfigPtr->enumId);
+									for(auto &devPtr : appContext().inputDevices())
 									{
-										logMsg("removing from active device");
-										inputDevConf.setSavedConf(nullptr);
-										break;
+										auto &inputDevConf = inputDevData(*devPtr).devConf;
+										if(inputDevConf.hasSavedConf(*deleteDeviceConfigPtr))
+										{
+											logMsg("removing from active device");
+											inputDevConf.setSavedConf(nullptr);
+											break;
+										}
 									}
+									std::erase_if(savedInputDevs(), [&](auto &ptr){ return ptr.get() == deleteDeviceConfigPtr; });
+									dismissPrevious();
 								}
-								std::erase_if(savedInputDevs(), [&](auto &ptr){ return ptr.get() == deleteDeviceConfigPtr; });
-								dismissPrevious();
-							});
-						pushAndShowModal(std::move(ynAlertView), e);
+							}), e);
 					});
 			}
 			pushAndShow(std::move(multiChoiceView), e);
@@ -164,16 +165,17 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 				multiChoiceView->appendItem(ePtr->name,
 					[this, deleteProfilePtr = ePtr.get()](const Input::Event &e)
 					{
-						auto ynAlertView = makeView<YesNoAlertView>(confirmDeleteProfileStr);
-						ynAlertView->setOnYes(
-							[this, deleteProfilePtr]()
+						pushAndShowModal(makeView<YesNoAlertView>(confirmDeleteProfileStr,
+							YesNoAlertView::Delegates
 							{
-								logMsg("deleting profile: %s", deleteProfilePtr->name.data());
-								removeKeyConfFromAllDevices(savedInputDevs(), deleteProfilePtr, appContext());
-								std::erase_if(customKeyConfigs(), [&](auto &confPtr){ return confPtr.get() == deleteProfilePtr; });
-								dismissPrevious();
-							});
-						pushAndShowModal(std::move(ynAlertView), e);
+								.onYes = [this, deleteProfilePtr]
+								{
+									logMsg("deleting profile: %s", deleteProfilePtr->name.data());
+									removeKeyConfFromAllDevices(savedInputDevs(), deleteProfilePtr, appContext());
+									std::erase_if(customKeyConfigs(), [&](auto &confPtr){ return confPtr.get() == deleteProfilePtr; });
+									dismissPrevious();
+								}
+							}), e);
 					});
 			}
 			pushAndShow(std::move(multiChoiceView), e);
@@ -597,27 +599,28 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 		"New Profile", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			auto ynAlertView = makeView<YesNoAlertView>(
-				"Create a new profile? All keys from the current profile will be copied over.");
-			ynAlertView->setOnYes(
-				[this](const Input::Event &e)
+			pushAndShowModal(makeView<YesNoAlertView>(
+				"Create a new profile? All keys from the current profile will be copied over.",
+				YesNoAlertView::Delegates
 				{
-					app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", "",
-						[this](EmuApp &app, auto str)
-						{
-							if(customKeyConfigsContainName(customKeyConfigs(), str))
+					.onYes = [this](const Input::Event &e)
+					{
+						app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", "",
+							[this](EmuApp &app, auto str)
 							{
-								app.postErrorMessage("Another profile is already using this name");
-								return false;
-							}
-							devConf->setKeyConfCopiedFromExisting(str, customKeyConfigs(), savedInputDevs());
-							logMsg("created new profile %s", devConf->keyConf().name.data());
-							onShow();
-							postDraw();
-							return true;
-						});
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+								if(customKeyConfigsContainName(customKeyConfigs(), str))
+								{
+									app.postErrorMessage("Another profile is already using this name");
+									return false;
+								}
+								devConf->setKeyConfCopiedFromExisting(str, customKeyConfigs(), savedInputDevs());
+								logMsg("created new profile %s", devConf->keyConf().name.data());
+								onShow();
+								postDraw();
+								return true;
+							});
+					}
+				}), e);
 		}
 	},
 	deleteProfile
@@ -630,20 +633,21 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 				app().postMessage(2, "Can't delete a built-in profile");
 				return;
 			}
-			auto ynAlertView = makeView<YesNoAlertView>(confirmDeleteProfileStr);
-			ynAlertView->setOnYes(
-				[this]()
+			pushAndShowModal(makeView<YesNoAlertView>(confirmDeleteProfileStr,
+				YesNoAlertView::Delegates
 				{
-					auto conf = devConf->mutableKeyConf(customKeyConfigs());
-					if(!conf)
+					.onYes = [this]
 					{
-						bug_unreachable("confirmed deletion of a read-only key config, should never happen");
+						auto conf = devConf->mutableKeyConf(customKeyConfigs());
+						if(!conf)
+						{
+							bug_unreachable("confirmed deletion of a read-only key config, should never happen");
+						}
+						logMsg("deleting profile: %s", conf->name.data());
+						removeKeyConfFromAllDevices(savedInputDevs(), conf, appContext());
+						std::erase_if(customKeyConfigs(), [&](auto &confPtr){ return confPtr.get() == conf; });
 					}
-					logMsg("deleting profile: %s", conf->name.data());
-					removeKeyConfFromAllDevices(savedInputDevs(), conf, appContext());
-					std::erase_if(customKeyConfigs(), [&](auto &confPtr){ return confPtr.get() == conf; });
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+				}), e);
 		}
 	},
 	#if defined CONFIG_INPUT_ICADE
@@ -661,14 +665,9 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 			{
 				if(!item.boolValue())
 				{
-					auto ynAlertView = makeView<YesNoAlertView>(
-						"This mode allows input from an iCade-compatible Bluetooth device, don't enable if this isn't an iCade", "Enable", "Cancel");
-					ynAlertView->setOnYes(
-						[this](const Input::Event &e)
-						{
-							confirmICadeMode();
-						});
-					pushAndShowModal(std::move(ynAlertView), e);
+					pushAndShowModal(makeView<YesNoAlertView>(
+						"This mode allows input from an iCade-compatible Bluetooth device, don't enable if this isn't an iCade", "Enable", "Cancel",
+						YesNoAlertView::Delegates{.onYes = [this]{ confirmICadeMode(); }}), e);
 				}
 				else
 					confirmICadeMode();

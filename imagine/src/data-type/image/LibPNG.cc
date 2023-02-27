@@ -134,11 +134,11 @@ PngImage::PngImage(IO io)
 	//log_mPrintf(LOG_MSG, "%d items %d size, %d", 10, 500, PNG_UINT_32_MAX/500);
 	if(!io)
 		return;
-	uint8_t header[INITIAL_HEADER_READ_BYTES];
-	if(io.read(&header, INITIAL_HEADER_READ_BYTES) != INITIAL_HEADER_READ_BYTES)
+	std::array <uint8_t, INITIAL_HEADER_READ_BYTES> header;
+	if(io.read(header).bytes != INITIAL_HEADER_READ_BYTES)
 		return;
 
-	int isPng = !png_sig_cmp(header, 0, INITIAL_HEADER_READ_BYTES);
+	int isPng = !png_sig_cmp(header.data(), 0, INITIAL_HEADER_READ_BYTES);
 	if (!isPng)
 	{
 		logErr("error - not a png file");

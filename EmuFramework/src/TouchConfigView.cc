@@ -134,6 +134,7 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 			{
 				animationStartTimer.dispatchEarly();
 			}
+			size_t layoutIdx = window().isPortrait();
 			dragTracker.inputEvent(e,
 				[&](Input::DragTrackerState, DragData &d)
 				{
@@ -141,7 +142,7 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 						return;
 					auto tryGrabElement = [&](VControllerElement &elem)
 					{
-						if(elem.state() == VControllerState::OFF || !elem.bounds().contains(e.pos()))
+						if(elem.state == VControllerState::OFF || !elem.bounds().contains(e.pos()))
 							return false;
 						for(const auto &state : dragTracker.stateList())
 						{
@@ -172,10 +173,9 @@ bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
 						d.elem->setPos(newPos, bounds);
 						auto layoutPos = VControllerLayoutPosition::fromPixelPos(d.elem->bounds().pos(C2DO), d.elem->bounds().size(), bounds);
 						//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
-						auto &vCtrlLayoutPos = d.elem->layoutPos[window().isPortrait()];
+						auto &vCtrlLayoutPos = d.elem->layoutPos[layoutIdx];
 						vCtrlLayoutPos.origin = layoutPos.origin;
 						vCtrlLayoutPos.pos = layoutPos.pos;
-						vController().setLayoutPositionChanged();
 						app().viewController().placeEmuViews();
 						postDraw();
 					}
@@ -215,12 +215,26 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	}
 }
 
-static void drawVControllerElement(Gfx::RendererCommands &__restrict__ cmds, const VControllerElement &elem)
+static void drawVControllerElement(Gfx::RendererCommands &__restrict__ cmds, const VControllerElement &elem, size_t layoutIdx)
 {
 	cmds.set(Gfx::BlendMode::ALPHA);
 	Gfx::Color whiteCol{1., 1., 1., .75};
 	cmds.setColor(whiteCol);
-	elem.draw(cmds);
+	elem.draw(cmds, layoutIdx);
+}
+
+static void addCategories(EmuApp &app, VControllerElement &elem, auto &&addCategory)
+{
+	if(elem.uiButtonGroup())
+		addCategory(app.inputControlCategories()[0]);
+	else
+	{
+		for(auto &cat : app.inputControlCategories() | std::views::drop(1)
+			| std::views::filter([](auto &c){return !c.multiplayerIndex;}))
+		{
+			addCategory(cat);
+		}
+	}
 }
 
 class DPadElementConfigView : public TableView, public EmuAppHelper<DPadElementConfigView>
@@ -331,12 +345,11 @@ public:
 			{
 				.defaultItemOnSelect = [this](TextMenuItem &item)
 				{
-					elem.layoutPos[window().isPortrait()].state = VControllerState(item.id());
-					vCtrl.setLayoutPositionChanged();
+					elem.state = VControllerState(item.id());
 					vCtrl.place();
 				}
 			},
-			MenuItem::Id(elem.layoutPos[window().isPortrait()].state),
+			MenuItem::Id(elem.state),
 			stateItems
 		},
 		showBoundingArea
@@ -355,23 +368,43 @@ public:
 			"Remove This D-Pad", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				auto ynAlertView = makeView<YesNoAlertView>("Really remove this d-pad?");
-				ynAlertView->setOnYes(
-					[this]()
+				pushAndShowModal(makeView<YesNoAlertView>("Really remove this d-pad?",
+					YesNoAlertView::Delegates
 					{
-						vCtrl.remove(elem);
-						vCtrl.setLayoutPositionChanged();
-						vCtrl.place();
-						confView.reloadItems();
-						dismiss();
-					});
-				pushAndShowModal(std::move(ynAlertView), e);
+						.onYes = [this]
+						{
+							vCtrl.remove(elem);
+							vCtrl.place();
+							confView.reloadItems();
+							dismiss();
+						}
+					}), e);
+			}
+		},
+		actionsHeading{"D-Pad Actions", &defaultBoldFace()},
+		actions
+		{
+			{
+				"Up", app().systemKeyName(elem.dPad()->config.keys[0]), &defaultFace(),
+				[this](const Input::Event &e) { assignAction(0, e); }
+			},
+			{
+				"Right", app().systemKeyName(elem.dPad()->config.keys[1]), &defaultFace(),
+				[this](const Input::Event &e) { assignAction(1, e); }
+			},
+			{
+				"Down", app().systemKeyName(elem.dPad()->config.keys[2]), &defaultFace(),
+				[this](const Input::Event &e) { assignAction(2, e); }
+			},
+			{
+				"Left", app().systemKeyName(elem.dPad()->config.keys[3]), &defaultFace(),
+				[this](const Input::Event &e) { assignAction(3, e); }
 			}
 		} {}
 
 	void draw(Gfx::RendererCommands &__restrict__ cmds) final
 	{
-		drawVControllerElement(cmds, elem);
+		drawVControllerElement(cmds, elem, window().isPortrait());
 		TableView::draw(cmds);
 	}
 
@@ -387,22 +420,30 @@ private:
 	MultiChoiceMenuItem state;
 	BoolMenuItem showBoundingArea;
 	TextMenuItem remove;
-	std::array<MenuItem*, 5> item{&state, &deadzone, &diagonalSensitivity, &showBoundingArea, &remove};
-};
+	TextHeadingMenuItem actionsHeading;
+	DualTextMenuItem actions[4];
+	std::array<MenuItem*, 10> item{&state, &deadzone, &diagonalSensitivity, &showBoundingArea, &remove,
+		&actionsHeading, &actions[0], &actions[1], &actions[2], &actions[3]};
 
-static void addCategories(EmuApp &app, VControllerElement &elem, auto &&addCategory)
-{
-	if(elem.uiButtonGroup())
-		addCategory(app.inputControlCategories()[0]);
-	else
+	void assignAction(int idx, const Input::Event &e)
 	{
-		for(auto &cat : app.inputControlCategories() | std::views::drop(1)
-			| std::views::filter([](auto &c){return !c.multiplayerIndex;}))
+		auto multiChoiceView = makeViewWithName<TextTableView>("Assign Action", 16);
+		addCategories(app(), elem, [&](const KeyCategory &cat)
 		{
-			addCategory(cat);
-		}
+			for(auto i : iotaCount(cat.keys()))
+			{
+				multiChoiceView->appendItem(cat.keyName[i],
+					[this, keyCode = cat.configOffset + i](TextMenuItem &item, View &parentView, const Input::Event &)
+					{
+						elem.dPad()->config.keys[item.id()] = keyCode;
+						actions[item.id()].set2ndName(app().systemKeyName(keyCode));
+						parentView.dismiss();
+					}).setId(idx);
+			}
+		});
+		pushAndShow(std::move(multiChoiceView), e);
 	}
-}
+};
 
 class ButtonElementConfigView : public TableView, public EmuAppHelper<ButtonElementConfigView>
 {
@@ -426,13 +467,12 @@ public:
 					for(auto i : iotaCount(cat.keys()))
 					{
 						multiChoiceView->appendItem(cat.keyName[i],
-							[this, keyCode = cat.configOffset + i](View &parentView, const Input::Event &e)
+							[this, keyCode = cat.configOffset + i](View &parentView)
 							{
 								btn.key = keyCode;
 								key.set2ndName(app().systemKeyName(keyCode));
 								vCtrl.update(elem);
 								onChange.callSafe();
-								vCtrl.setLayoutPositionChanged();
 								vCtrl.place();
 								parentView.dismiss();
 							});
@@ -446,17 +486,17 @@ public:
 			"Remove This Button", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				auto ynAlertView = makeView<YesNoAlertView>("Really remove this button?");
-				ynAlertView->setOnYes(
-					[this]()
+				pushAndShowModal(makeView<YesNoAlertView>("Really remove this button?",
+					YesNoAlertView::Delegates
 					{
-						elem.remove(btn);
-						onChange.callSafe();
-						vCtrl.setLayoutPositionChanged();
-						vCtrl.place();
-						dismiss();
-					});
-				pushAndShowModal(std::move(ynAlertView), e);
+						.onYes = [this]
+						{
+							elem.remove(btn);
+							onChange.callSafe();
+							vCtrl.place();
+							dismiss();
+						}
+					}), e);
 			}
 		} {}
 
@@ -490,12 +530,11 @@ public:
 			{
 				.defaultItemOnSelect = [this](TextMenuItem &item)
 				{
-					elem.layoutPos[window().isPortrait()].state = VControllerState(item.id());
-					vCtrl.setLayoutPositionChanged();
+					elem.state = VControllerState(item.id());
 					vCtrl.place();
 				}
 			},
-			MenuItem::Id(elem.layoutPos[window().isPortrait()].state),
+			MenuItem::Id(elem.state),
 			stateItems
 		},
 		rowSizeItems
@@ -513,7 +552,6 @@ public:
 				.defaultItemOnSelect = [this](TextMenuItem &item)
 				{
 					elem.setRowSize(item.id());
-					vCtrl.setLayoutPositionChanged();
 					vCtrl.place();
 				}
 			},
@@ -522,29 +560,21 @@ public:
 		},
 		spaceItems
 		{
-			{"1mm", &defaultFace(), 100},
-			{"2mm", &defaultFace(), 200},
-			{"3mm", &defaultFace(), 300},
-			{"4mm", &defaultFace(), 400},
+			{"1mm", &defaultFace(), 1},
+			{"2mm", &defaultFace(), 2},
+			{"3mm", &defaultFace(), 3},
+			{"4mm", &defaultFace(), 4},
 			{"Custom Value", &defaultFace(),
 				[this](const Input::Event &e)
 				{
-					app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 1 to 8.0", "",
+					app().pushAndShowNewCollectValueRangeInputView<int, 0, 8>(attachParams(), e, "Input 0 to 8", "",
 						[this](EmuApp &app, auto val)
 						{
-							int scaledIntVal = val * 100.0;
-							if(elem.buttonGroup()->setSpacing(scaledIntVal, window()))
-							{
-								vCtrl.place();
-								space.setSelected((MenuItem::Id)scaledIntVal, *this);
-								dismissPrevious();
-								return true;
-							}
-							else
-							{
-								app.postErrorMessage("Value not in range");
-								return false;
-							}
+							elem.buttonGroup()->setSpacing(val, window());
+							vCtrl.place();
+							space.setSelected(MenuItem::Id(val), *this);
+							dismissPrevious();
+							return true;
 						});
 					return false;
 				}, MenuItem::DEFAULT_ID
@@ -556,7 +586,7 @@ public:
 			{
 				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 				{
-					t.resetString(fmt::format("{:.1f}mm", elem.buttonGroup()->spacing() / 100.f));
+					t.resetString(fmt::format("{}mm", elem.buttonGroup()->spacing()));
 					return true;
 				},
 				.defaultItemOnSelect = [this](TextMenuItem &item)
@@ -603,11 +633,11 @@ public:
 			{
 				.defaultItemOnSelect = [this](TextMenuItem &item)
 				{
-					elem.buttonGroup()->setXPadding(item.id());
+					elem.buttonGroup()->layout.xPadding = item.id();
 					vCtrl.place();
 				}
 			},
-			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->xPadding() : 0},
+			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->layout.xPadding : 0},
 			extraXSizeItems
 		},
 		extraYSizeItems
@@ -623,11 +653,11 @@ public:
 			{
 				.defaultItemOnSelect = [this](TextMenuItem &item)
 				{
-					elem.buttonGroup()->setYPadding(item.id());
+					elem.buttonGroup()->layout.yPadding = item.id();
 					vCtrl.place();
 				}
 			},
-			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->yPadding() : 0},
+			MenuItem::Id{elem.buttonGroup() ? elem.buttonGroup()->layout.yPadding : 0},
 			extraYSizeItems
 		},
 		showBoundingArea
@@ -656,7 +686,6 @@ public:
 							{
 								elem.add(keyCode);
 								vCtrl.update(elem);
-								vCtrl.setLayoutPositionChanged();
 								vCtrl.place();
 								confView.reloadItems();
 								reloadItems();
@@ -672,17 +701,17 @@ public:
 			"Remove This Button Group", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				auto ynAlertView = makeView<YesNoAlertView>("Really remove this button group?");
-				ynAlertView->setOnYes(
-					[this]()
+				pushAndShowModal(makeView<YesNoAlertView>("Really remove this button group?",
+					YesNoAlertView::Delegates
 					{
-						vCtrl.remove(elem);
-						vCtrl.setLayoutPositionChanged();
-						vCtrl.place();
-						confView.reloadItems();
-						dismiss();
-					});
-				pushAndShowModal(std::move(ynAlertView), e);
+						.onYes = [this]
+						{
+							vCtrl.remove(elem);
+							vCtrl.place();
+							confView.reloadItems();
+							dismiss();
+						}
+					}), e);
 			}
 		},
 		buttonsHeading{"Buttons In Group", &defaultBoldFace()}
@@ -692,7 +721,7 @@ public:
 
 	void draw(Gfx::RendererCommands &__restrict__ cmds) final
 	{
-		drawVControllerElement(cmds, elem);
+		drawVControllerElement(cmds, elem, window().isPortrait());
 		TableView::draw(cmds);
 	}
 
@@ -785,7 +814,6 @@ private:
 	void add(const InputComponentDesc &desc)
 	{
 		vCtrl.add(desc);
-		vCtrl.setLayoutPositionChanged();
 		vCtrl.place();
 		confView.reloadItems();
 		dismiss();
@@ -974,36 +1002,70 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 			vController().place();
 		}
 	},
-	resetControls
+	resetEmuPositions
 	{
-		"Reset Positions & States", &defaultFace(),
+		"Reset Emulated Device Positions", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			auto ynAlertView = makeView<YesNoAlertView>("Reset buttons to default positions?");
-			ynAlertView->setOnYes(
-				[this]()
+			pushAndShowModal(makeView<YesNoAlertView>("Reset buttons to default positions?",
+				YesNoAlertView::Delegates
 				{
-					vController().resetPositions();
-					vController().place();
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+					.onYes = [this]
+					{
+						vController().resetEmulatedDevicePositions();
+						vController().place();
+					}
+				}), e);
 		}
 	},
-	resetAllControls
+	resetEmuGroups
 	{
-		"Reset To Defaults", &defaultFace(),
+		"Reset Emulated Device Groups", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			auto ynAlertView = makeView<YesNoAlertView>("Reset all on-screen controls and options to default?");
-			ynAlertView->setOnYes(
-				[this]()
+			pushAndShowModal(makeView<YesNoAlertView>("Reset buttons groups to default?",
+				YesNoAlertView::Delegates
 				{
-					vController().resetAllOptions();
-					vController().place();
-					reloadItems();
-					refreshTouchConfigMenu();
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+					.onYes = [this]
+					{
+						vController().resetEmulatedDeviceGroups();
+						vController().place();
+						reloadItems();
+					}
+				}), e);
+		}
+	},
+	resetUIPositions
+	{
+		"Reset UI Positions", &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShowModal(makeView<YesNoAlertView>("Reset buttons to default positions?",
+				YesNoAlertView::Delegates
+				{
+					.onYes = [this]
+					{
+						vController().resetUIPositions();
+						vController().place();
+					}
+				}), e);
+		}
+	},
+	resetUIGroups
+	{
+		"Reset UI Groups", &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShowModal(makeView<YesNoAlertView>("Reset buttons groups to default?",
+				YesNoAlertView::Delegates
+				{
+					.onYes = [this]
+					{
+						vController().resetUIGroups();
+						vController().place();
+						reloadItems();
+					}
+				}), e);
 		}
 	},
 	devButtonsHeading
@@ -1079,8 +1141,10 @@ void TouchConfigView::reloadItems()
 	}
 	item.emplace_back(&showOnTouch);
 	item.emplace_back(&alpha);
-	item.emplace_back(&resetControls);
-	item.emplace_back(&resetAllControls);
+	item.emplace_back(&resetEmuPositions);
+	item.emplace_back(&resetEmuGroups);
+	item.emplace_back(&resetUIPositions);
+	item.emplace_back(&resetUIGroups);
 }
 
 }

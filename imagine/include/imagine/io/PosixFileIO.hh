@@ -29,6 +29,7 @@ class PosixFileIO : public IOUtils<PosixFileIO>
 {
 public:
 	using IOUtilsBase = IOUtils<PosixFileIO>;
+	using IOUtilsBase::read;
 	using IOUtilsBase::write;
 	using IOUtilsBase::seek;
 	using IOUtilsBase::tell;

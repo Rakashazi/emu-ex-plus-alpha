@@ -231,7 +231,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	frameInterval
 	{
 		"Target Frame Rate", &defaultFace(),
-		MultiChoiceMenuItem::DelegatesInit
+		MultiChoiceMenuItem::Delegates
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{

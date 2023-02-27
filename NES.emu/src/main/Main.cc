@@ -174,13 +174,13 @@ void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b)
 
 void NesSystem::setDefaultPalette(IO &io)
 {
-	auto bytesRead = io.read(defaultPal.data(), 512);
-	if(bytesRead < 192)
+	auto colors = io.read(std::span<pal>{defaultPal}).items;
+	if(colors < 64)
 	{
-		logErr("skipped palette with only %d bytes", (int)bytesRead);
+		logErr("skipped palette with only %d colors", (int)colors);
 		return;
 	}
-	if(bytesRead != 512)
+	if(colors != 512)
 	{
 		ApplyDeemphasisComplete(defaultPal.data());
 	}

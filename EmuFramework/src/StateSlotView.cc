@@ -37,14 +37,15 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 		{
 			if(!item.active())
 				return;
-			auto ynAlertView = makeView<YesNoAlertView>("Really load state?");
-			ynAlertView->setOnYes(
-				[this]()
+			pushAndShowModal(makeView<YesNoAlertView>("Really load state?",
+				YesNoAlertView::Delegates
 				{
-					if(app().loadStateWithSlot(system().stateSlot()))
-						app().showEmulation();
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+					.onYes = [this]
+					{
+						if(app().loadStateWithSlot(system().stateSlot()))
+							app().showEmulation();
+					}
+				}), e);
 		}
 	},
 	save
@@ -58,13 +59,8 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 			}
 			else
 			{
-				auto ynAlertView = makeView<YesNoAlertView>("Really overwrite state?");
-				ynAlertView->setOnYes(
-					[this]()
-					{
-						doSaveState();
-					});
-				pushAndShowModal(std::move(ynAlertView), e);
+				pushAndShowModal(makeView<YesNoAlertView>("Really overwrite state?",
+					YesNoAlertView::Delegates{.onYes = [this]{ doSaveState(); }}), e);
 			}
 		}
 	},

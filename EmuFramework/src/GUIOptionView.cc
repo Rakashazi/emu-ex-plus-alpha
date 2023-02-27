@@ -106,7 +106,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	statusBar
 	{
 		"Hide Status Bar", &defaultFace(),
-		MultiChoiceMenuItem::DelegatesInit
+		MultiChoiceMenuItem::Delegates
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setHideStatusBarMode(Tristate(item.id())); }
 		},
@@ -122,7 +122,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	lowProfileOSNav
 	{
 		"Dim OS UI", &defaultFace(),
-		MultiChoiceMenuItem::DelegatesInit
+		MultiChoiceMenuItem::Delegates
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setLowProfileOSNavMode(Tristate(item.id())); }
 		},
@@ -138,7 +138,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	hideOSNav
 	{
 		"Hide OS Navigation", &defaultFace(),
-		MultiChoiceMenuItem::DelegatesInit
+		MultiChoiceMenuItem::Delegates
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setHideOSNavMode(Tristate(item.id())); }
 		},

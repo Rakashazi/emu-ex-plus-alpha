@@ -126,14 +126,15 @@ static void handledFailedBTAdapterInit(ViewT &view, ViewAttachParams attach, con
 	#ifdef CONFIG_BLUETOOTH_BTSTACK
 	if(!FS::exists("/var/lib/dpkg/info/ch.ringwald.btstack.list"))
 	{
-		auto ynAlertView = std::make_unique<YesNoAlertView>(attach, "BTstack not found, open Cydia and install?");
-		ynAlertView->setOnYes(
-			[](View &v)
+		view.pushAndShowModal(std::make_unique<YesNoAlertView>(attach, "BTstack not found, open Cydia and install?",
+			YesNoAlertView::Delegates
 			{
-				logMsg("launching Cydia");
-				v.appContext().openURL("cydia://package/ch.ringwald.btstack");
-			});
-		view.pushAndShowModal(std::move(ynAlertView), e, false);
+				.onYes = [](View &v)
+				{
+					logMsg("launching Cydia");
+					v.appContext().openURL("cydia://package/ch.ringwald.btstack");
+				}
+			}), e, false);
 	}
 	#endif
 }
@@ -288,14 +289,8 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 			auto devConnected = Bluetooth::devsConnected(appContext());
 			if(devConnected)
 			{
-				auto ynAlertView = makeView<YesNoAlertView>(
-					fmt::format("Really disconnect {} Bluetooth device(s)?", devConnected));
-				ynAlertView->setOnYes(
-					[this]()
-					{
-						app().closeBluetoothConnections();
-					});
-				pushAndShowModal(std::move(ynAlertView), e);
+				pushAndShowModal(makeView<YesNoAlertView>(fmt::format("Really disconnect {} Bluetooth device(s)?", devConnected),
+					YesNoAlertView::Delegates{.onYes = [this]{ app().closeBluetoothConnections(); }}), e);
 			}
 		}
 	},

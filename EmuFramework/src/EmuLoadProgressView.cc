@@ -39,7 +39,7 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::E
 						assumeExpr(msg.intArg3 > 0);
 						size_t len = msg.intArg3;
 						char errorStr[len];
-						msgs.getExtraData(std::span{errorStr, len});
+						msgs.readExtraData(std::span{errorStr, len});
 						msgPort.detach();
 						auto &app = this->app();
 						app.popModalViews();
@@ -75,7 +75,7 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::E
 								if(!len)
 									break;
 								char labelStr[len];
-								msgs.getExtraData(std::span{labelStr, len});
+								msgs.readExtraData(std::span{labelStr, len});
 								setLabel(std::string_view{labelStr, len});
 								logMsg("set custom string:%s", labelStr);
 							}

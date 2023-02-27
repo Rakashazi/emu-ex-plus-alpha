@@ -100,17 +100,17 @@ FILE *IOUtils<IO>::toFileStream(const char *opentype)
 		[](void *cookie, char *buf, int size)
 		{
 			auto &io = *(IO*)cookie;
-			return (int)io.read(buf, size);
+			return int(io.read(buf, size));
 		},
 		[](void *cookie, const char *buf, int size)
 		{
 			auto &io = *(IO*)cookie;
-			return (int)io.write(buf, size);
+			return int(io.write(buf, size));
 		},
 		[](void *cookie, fpos_t offset, int whence)
 		{
 			auto &io = *(IO*)cookie;
-			return (fpos_t)io.seek(offset, (IOSeekMode)whence);
+			return fpos_t(io.seek(offset, (IOSeekMode)whence));
 		},
 		[](void *cookie)
 		{
@@ -124,7 +124,7 @@ FILE *IOUtils<IO>::toFileStream(const char *opentype)
 			[](void *cookie, char *buf, size_t size)
 			{
 				auto &io = *(IO*)cookie;
-				return (ssize_t)io.read(buf, size);
+				return io.read(buf, size);
 			},
 		.write =
 			[](void *cookie, const char *buf, size_t size)
@@ -135,7 +135,7 @@ FILE *IOUtils<IO>::toFileStream(const char *opentype)
 				{
 					bytesWritten = 0; // needs to return 0 for error
 				}
-				return (ssize_t)bytesWritten;
+				return bytesWritten;
 			},
 		.seek =
 			[](void *cookie, off64_t *position, int whence)

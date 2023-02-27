@@ -24,6 +24,7 @@ class MapIO : public IOUtils<MapIO>
 {
 public:
 	using IOUtilsBase = IOUtils<MapIO>;
+	using IOUtilsBase::read;
 	using IOUtilsBase::write;
 	using IOUtilsBase::seek;
 	using IOUtilsBase::tell;
@@ -41,11 +42,12 @@ public:
 	std::span<uint8_t> map();
 	ssize_t write(const void *buff, size_t bytes);
 	off_t seek(off_t offset, SeekMode mode);
-	size_t size();
-	bool eof();
+	size_t size() const;
+	bool eof() const;
 	explicit operator bool() const;
 	void advise(off_t offset, size_t bytes, Advice advice);
 	IOBuffer releaseBuffer();
+	MapIO subView(off_t offset, size_t bytes) const;
 
 protected:
 	uint8_t *currPos{};

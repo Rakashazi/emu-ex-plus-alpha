@@ -54,8 +54,10 @@ protected:
 	TextMenuItem placeVideo;
 	TextMenuItem addButton;
 	IG_UseMemberIf(Config::DISPLAY_CUTOUT, BoolMenuItem, allowButtonsPastContentBounds);
-	TextMenuItem resetControls;
-	TextMenuItem resetAllControls;
+	TextMenuItem resetEmuPositions;
+	TextMenuItem resetEmuGroups;
+	TextMenuItem resetUIPositions;
+	TextMenuItem resetUIGroups;
 	TextHeadingMenuItem devButtonsHeading;
 	TextHeadingMenuItem uiButtonsHeading;
 	TextHeadingMenuItem otherHeading;

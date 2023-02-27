@@ -74,12 +74,12 @@ off_t MapIO::seek(off_t offset, IOSeekMode mode)
 	return currPos - data();
 }
 
-size_t MapIO::size()
+size_t MapIO::size() const
 {
 	return buff.size();
 }
 
-bool MapIO::eof()
+bool MapIO::eof() const
 {
 	return currPos >= dataEnd();
 }
@@ -129,6 +129,16 @@ IOBuffer MapIO::releaseBuffer()
 {
 	logMsg("releasing buffer:%p (%zu bytes)", buff.data(), buff.size());
 	return std::move(buff);
+}
+
+MapIO MapIO::subView(off_t offset, size_t bytes) const
+{
+	if(offset + bytes > size()) [[unlikely]]
+	{
+		logErr("offset%zd size:%zu is larger than size:%zu", ssize_t(offset), bytes, size());
+		return {};
+	}
+	return IOBuffer{{data() + offset, bytes}, 0};
 }
 
 uint8_t *MapIO::data() const

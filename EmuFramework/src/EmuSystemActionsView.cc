@@ -135,14 +135,15 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				}
 				else
 				{
-					auto ynAlertView = makeView<YesNoAlertView>("Really reset?");
-					ynAlertView->setOnYes(
-						[this]()
+					pushAndShowModal(makeView<YesNoAlertView>("Really reset?",
+						YesNoAlertView::Delegates
 						{
-							system().reset(app(), EmuSystem::ResetMode::SOFT);
-							app().showEmulation();
-						});
-					pushAndShowModal(std::move(ynAlertView), e);
+							.onYes = [this]
+							{
+								system().reset(app(), EmuSystem::ResetMode::SOFT);
+								app().showEmulation();
+							}
+						}), e);
 				}
 			}
 		}
@@ -159,14 +160,15 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(!item.active())
 				return;
-			auto ynAlertView = makeView<YesNoAlertView>("Really save state?");
-			ynAlertView->setOnYes(
-				[this]()
+			pushAndShowModal(makeView<YesNoAlertView>("Really save state?",
+				YesNoAlertView::Delegates
 				{
-					if(app().autosaveManager().save())
-						app().showEmulation();
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+					.onYes = [this]
+					{
+						if(app().autosaveManager().save(AutosaveActionSource::Manual))
+							app().showEmulation();
+					}
+				}), e);
 		}
 	},
 	revertAutosave
@@ -182,14 +184,15 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				app().postMessage("No saved state");
 				return;
 			}
-			auto ynAlertView = makeView<YesNoAlertView>(fmt::format("Really load state from: {}?", saveTime));
-			ynAlertView->setOnYes(
-				[this]()
+			pushAndShowModal(makeView<YesNoAlertView>(fmt::format("Really load state from: {}?", saveTime),
+				YesNoAlertView::Delegates
 				{
-					if(app().autosaveManager().load())
-						app().showEmulation();
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+					.onYes = [this]
+					{
+						if(app().autosaveManager().load(AutosaveActionSource::Manual))
+							app().showEmulation();
+					}
+				}), e);
 		}
 	},
 	stateSlot
@@ -234,14 +237,15 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				app().postMessage("Save path isn't valid");
 				return;
 			}
-			auto ynAlertView = makeView<YesNoAlertView>(fmt::format("Save screenshot to folder {}?", pathName));
-			ynAlertView->setOnYes(
-				[this]()
+			pushAndShowModal(makeView<YesNoAlertView>(fmt::format("Save screenshot to folder {}?", pathName),
+				YesNoAlertView::Delegates
 				{
-					app().video().takeGameScreenshot();
-					system().runFrame({}, &app().video(), nullptr);
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+					.onYes = [this]
+					{
+						app().video().takeGameScreenshot();
+						system().runFrame({}, &app().video(), nullptr);
+					}
+				}), e);
 		}
 	},
 	resetSessionOptions
@@ -251,15 +255,16 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(!app().hasSavedSessionOptions())
 				return;
-			auto ynAlertView = makeView<YesNoAlertView>(
-				"Reset saved options for the currently running system to defaults? Some options only take effect next time the system loads.");
-			ynAlertView->setOnYes(
-				[this]()
+			pushAndShowModal(makeView<YesNoAlertView>(
+				"Reset saved options for the currently running system to defaults? Some options only take effect next time the system loads.",
+				YesNoAlertView::Delegates
 				{
-					resetSessionOptions.setActive(false);
-					app().deleteSessionOptions();
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+					.onYes = [this]
+					{
+						resetSessionOptions.setActive(false);
+						app().deleteSessionOptions();
+					}
+				}), e);
 		}
 	},
 	close
@@ -267,13 +272,11 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		"Close Content", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			auto ynAlertView = makeView<YesNoAlertView>("Really close current content?");
-			ynAlertView->setOnYes(
-				[this]()
+			pushAndShowModal(makeView<YesNoAlertView>("Really close current content?",
+				YesNoAlertView::Delegates
 				{
-					app().closeSystem(); // pops any System Actions views in stack
-				});
-			pushAndShowModal(std::move(ynAlertView), e);
+					.onYes = [this] { app().closeSystem(); } // pops any System Actions views in the stack
+				}), e);
 		}
 	}
 {

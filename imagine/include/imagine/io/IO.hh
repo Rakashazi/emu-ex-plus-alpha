@@ -40,6 +40,7 @@ public:
 	using IOVariant::IOVariant;
 	using IOVariant::operator=;
 	using IOUtilsBase = IOUtils<IO>;
+	using IOUtilsBase::read;
 	using IOUtilsBase::write;
 	using IOUtilsBase::seek;
 	using IOUtilsBase::tell;

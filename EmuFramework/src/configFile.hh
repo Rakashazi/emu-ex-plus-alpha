@@ -59,7 +59,7 @@ static bool readConfigKeys(MapIO io, ON_KEY onKey)
 
 		if(size > fileBytesLeft)
 		{
-			logErr("size of key exceeds rest of file, skipping rest of config");
+			logErr("size:%zu of key exceeds rest of file (%zu bytes), skipping rest of config", size, fileBytesLeft);
 			return false;
 		}
 		fileBytesLeft -= size;
@@ -79,7 +79,8 @@ static bool readConfigKeys(MapIO io, ON_KEY onKey)
 		size -= 2;
 
 		logMsg("got config key %u, size %zu", key, size);
-		onKey(key, size, io);
+		auto ioView = io.subView(io.tell(), size);
+		onKey(key, size, ioView);
 
 		if(io.seek(nextBlockPos) == -1)
 		{
