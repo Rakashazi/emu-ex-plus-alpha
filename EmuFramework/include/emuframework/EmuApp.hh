@@ -78,15 +78,29 @@ enum class Tristate : uint8_t
 	OFF, IN_EMU, ON
 };
 
+WISE_ENUM_CLASS((AssetFileID, size_t),
+	ui,
+	gamepadOverlay,
+	keyboardOverlay);
+
 WISE_ENUM_CLASS((AssetID, size_t),
-	ARROW,
-	CLOSE,
-	ACCEPT,
-	GAME_ICON,
-	MENU,
-	FAST_FORWARD,
-	GAMEPAD_OVERLAY,
-	KEYBOARD_OVERLAY);
+	arrow,
+	accept,
+	close,
+	more,
+	fast,
+	slow,
+	speed,
+	menu,
+	leftSwitch,
+	rightSwitch,
+	load,
+	save,
+	display,
+	screenshot,
+	openFile,
+	gamepadOverlay,
+	keyboardOverlay);
 
 enum class ScanValueMode
 {
@@ -198,7 +212,7 @@ public:
 	void unsetDisabledInputKeys();
 	void updateKeyboardMapping();
 	void toggleKeyboard();
-	Gfx::Texture &asset(AssetID) const;
+	Gfx::TextureSpan asset(AssetID) const;
 	void updateInputDevices(IG::ApplicationContext);
 	void setOnUpdateInputDevices(DelegateFunc<void ()>);
 	VController &defaultVController();
@@ -472,7 +486,7 @@ protected:
 	EmuVideo emuVideo;
 	EmuVideoLayer emuVideoLayer;
 	EmuSystemTask emuSystemTask;
-	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetID>];
+	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetFileID>];
 	VController vController;
 	AutosaveManager autosaveManager_;
 	DelegateFunc<void ()> onUpdateInputDevices_;

@@ -97,7 +97,7 @@ static int gamepadButtonImageAspectRatio(VControllerImageIndex idx)
 	}
 }
 
-static void mapGamepadButtonImage(VControllerButton &btn, const EmuSystem &sys, Gfx::Texture &tex, unsigned key, float texHeight)
+static void mapGamepadButtonImage(VControllerButton &btn, const EmuSystem &sys, const Gfx::Texture &tex, unsigned key, float texHeight)
 {
 	auto idx = sys.mapVControllerButton(key);
 	btn.setImage({&tex, gamepadButtonImageRect(idx, texHeight)}, gamepadButtonImageAspectRatio(idx));
@@ -108,25 +108,37 @@ static void updateTexture(const EmuApp &app, VControllerElement &e)
 	const float h = EmuSystem::inputFaceBtns == 2 || EmuSystem::inputHasShortBtnTexture ? 128. : 256.;
 	visit(overloaded
 	{
-		[&](VControllerDPad &dpad){ dpad.setImage(Gfx::TextureSpan{&app.asset(AssetID::GAMEPAD_OVERLAY), {{}, {1., 64.f/h}}}); },
+		[&](VControllerDPad &dpad){ dpad.setImage(Gfx::TextureSpan{app.asset(AssetID::gamepadOverlay).texturePtr, {{}, {1., 64.f/h}}}); },
 		[&](VControllerButtonGroup &grp)
 		{
 			for(auto &btn : grp.buttons)
 			{
-				mapGamepadButtonImage(btn, app.system(), app.asset(AssetID::GAMEPAD_OVERLAY), btn.key, h);
+				mapGamepadButtonImage(btn, app.system(), *app.asset(AssetID::gamepadOverlay).texturePtr, btn.key, h);
 			}
 		},
 		[&](VControllerUIButtonGroup &grp)
 		{
 			for(auto &btn : grp.buttons)
 			{
-				switch(btn.key)
+				btn.setImage([&]
 				{
-					case guiKeyIdxLastView: btn.setImage({&app.asset(AssetID::MENU)}); break;
-					case guiKeyIdxToggleFastForward:
-					case guiKeyIdxFastForward: btn.setImage({&app.asset(AssetID::FAST_FORWARD)}); break;
-					default: btn.setImage({&app.asset(AssetID::MENU)}); break;
-				}
+					switch(btn.key)
+					{
+						case guiKeyIdxLoadGame: return app.asset(AssetID::openFile); break;
+						case guiKeyIdxMenu: return app.asset(AssetID::more); break;
+						case guiKeyIdxSaveState: return app.asset(AssetID::save); break;
+						case guiKeyIdxLoadState: return app.asset(AssetID::load); break;
+						case guiKeyIdxDecStateSlot: return app.asset(AssetID::leftSwitch); break;
+						case guiKeyIdxIncStateSlot: return app.asset(AssetID::rightSwitch); break;
+						case guiKeyIdxFastForward:
+						case guiKeyIdxToggleFastForward: return app.asset(AssetID::fast); break;
+						case guiKeyIdxGameScreenshot: return app.asset(AssetID::screenshot); break;
+						case guiKeyIdxLastView: return app.asset(AssetID::menu); break;
+						case guiKeyIdxTurboModifier: return app.asset(AssetID::speed); break;
+						case guiKeyIdxExitApp: return app.asset(AssetID::close); break;
+					}
+					return app.asset(AssetID::more);
+				}());
 			}
 		}
 	}, e);

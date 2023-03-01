@@ -93,11 +93,8 @@ IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat)
 		case ANDROID_BITMAP_FORMAT_A_8: return PIXEL_FMT_I8;
 		default:
 		{
-			if(androidFormat == ANDROID_BITMAP_FORMAT_NONE)
-				return {};
-			else
-				logErr("unhandled format");
-			return PIXEL_FMT_RGBA8888;
+			logErr("unhandled format");
+			return PIXEL_FMT_I8;
 		}
 	}
 }

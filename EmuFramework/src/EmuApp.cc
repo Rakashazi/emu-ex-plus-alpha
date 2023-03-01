@@ -56,16 +56,45 @@ static EmuApp *gAppPtr{};
 constexpr float menuVideoBrightnessScale = .25f;
 constexpr float pausedVideoBrightnessScale = .75f;
 
-constexpr const char *assetFilename[wise_enum::size<AssetID>]
+constexpr const char *assetFilename[wise_enum::size<AssetFileID>]
 {
-	"navArrow.png",
-	"x.png",
-	"accept.png",
-	"game.png",
-	"menu.png",
-	"fastForward.png",
+	"ui.png",
 	"overlays128.png",
 	"kbOverlay.png",
+};
+
+struct AssetDesc
+{
+	AssetFileID fileID;
+	FRect texBounds;
+
+	constexpr size_t fileIdx() const { return to_underlying(fileID); }
+	constexpr auto filename() const { return assetFilename[fileIdx()]; }
+};
+
+constexpr AssetDesc assetDesc[wise_enum::size<AssetID>]
+{
+	// arrow, accept, close, more
+	{AssetFileID::ui, {{},       {.25, .25}}},
+	{AssetFileID::ui, {{.25, 0}, {.5,  .25}}},
+	{AssetFileID::ui, {{.5,  0}, {.75, .25}}},
+	{AssetFileID::ui, {{.75, 0}, {1.,  .25}}},
+	// fast, slow, speed, menu
+	{AssetFileID::ui, {{0,   .25}, {.25, .5}}},
+	{AssetFileID::ui, {{.25, .25}, {.5,  .5}}},
+	{AssetFileID::ui, {{.5,  .25}, {.75, .5}}},
+	{AssetFileID::ui, {{.75, .25}, {1.,  .5}}},
+	// leftSwitch, rightSwitch, load, save
+	{AssetFileID::ui, {{0,   .5}, {.25, .75}}},
+	{AssetFileID::ui, {{.25, .5}, {.5,  .75}}},
+	{AssetFileID::ui, {{.5,  .5}, {.75, .75}}},
+	{AssetFileID::ui, {{.75, .5}, {1.,  .75}}},
+	// display, screenshot, openFile
+	{AssetFileID::ui, {{0,   .75}, {.25, 1.}}},
+	{AssetFileID::ui, {{.25, .75}, {.5,  1.}}},
+	{AssetFileID::ui, {{.5,  .75}, {.75, 1.}}},
+	{AssetFileID::gamepadOverlay, {{}, {1.f, 1.f}}},
+	{AssetFileID::keyboardOverlay, {{}, {1.f, 1.f}}},
 };
 
 constexpr bool isValidSoundRate(uint32_t rate)
@@ -230,28 +259,28 @@ public:
 	}
 };
 
-Gfx::Texture &EmuApp::asset(AssetID assetID) const
+Gfx::TextureSpan EmuApp::asset(AssetID assetID) const
 {
-	auto assetIdx = std::to_underlying(assetID);
-	assumeExpr(assetIdx < wise_enum::size<AssetID>);
-	auto &res = assetBuffImg[assetIdx];
+	assumeExpr(to_underlying(assetID) < wise_enum::size<AssetID>);
+	const auto &desc = assetDesc[to_underlying(assetID)];
+	auto &res = assetBuffImg[desc.fileIdx()];
 	if(!res)
 	{
 		try
 		{
-			res = renderer.makeTexture(pixmapReader.loadAsset(assetFilename[assetIdx]), View::imageSamplerConfig);
+			res = renderer.makeTexture(pixmapReader.loadAsset(desc.filename()), View::imageSamplerConfig);
 		}
 		catch(...)
 		{
-			logErr("error loading asset:%s", assetFilename[assetIdx]);
+			logErr("error loading asset:%s", desc.filename());
 		}
 	}
-	return res;
+	return {&res, desc.texBounds};
 }
 
 Gfx::TextureSpan EmuApp::collectTextCloseAsset() const
 {
-	return Config::envIsAndroid ? Gfx::TextureSpan{} : asset(AssetID::CLOSE);
+	return Config::envIsAndroid ? Gfx::TextureSpan{} : asset(AssetID::close);
 }
 
 EmuViewController &EmuApp::viewController()
@@ -559,7 +588,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			vController.configure(win, renderer, viewManager.defaultFace());
 			if(EmuSystem::inputHasKeyboard)
 			{
-				vController.setKeyboardImage(asset(AssetID::KEYBOARD_OVERLAY));
+				vController.setKeyboardImage(asset(AssetID::keyboardOverlay));
 			}
 			auto &screen = *win.screen();
 			if(!screen.supportsTimestamps() && (!Config::envIsLinux || screen.frameRate() < 100.))
