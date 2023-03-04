@@ -91,7 +91,7 @@ CLINK void main_frame(void *emuTaskPtr, void *neoSystemPtr, void *emuVideoPtr);
 namespace EmuEx
 {
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGngeo Team\ncode.google.com/p/gngeo";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGngeo Team\ncode.google.com/p/gngeo";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 bool EmuSystem::canRenderRGBA8888 = false;
 double EmuSystem::staticFrameTime = 264. / 15625.; // ~59.18Hz

@@ -43,6 +43,7 @@ class EmuViewController;
 struct SystemInputDeviceDesc;
 struct InputComponentDesc;
 enum class InputComponent : uint8_t;
+enum class AltSpeedMode;
 struct WindowData;
 
 enum class VControllerState : uint8_t
@@ -505,7 +506,7 @@ public:
 	void updateTextures();
 	void inputAction(Input::Action action, unsigned vBtn);
 	void resetInput();
-	void updateFastSlowModeInput(bool on);
+	void updateAltSpeedModeInput(AltSpeedMode, bool on);
 	void place();
 	void toggleKeyboard();
 	bool pointerInputEvent(const Input::MotionEvent &, WindowRect gameRect);

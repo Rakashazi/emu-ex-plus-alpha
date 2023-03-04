@@ -77,10 +77,8 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 			app().confirmOverwriteStateOption() = item.flipBoolValue(*this);
 		}
 	},
-	fastSlowModeSpeedItem
+	fastModeSpeedItem
 	{
-		{"0.25x", &defaultFace(), 25},
-		{"0.50x", &defaultFace(), 50},
 		{"1.5x",  &defaultFace(), 150},
 		{"2x",    &defaultFace(), 200},
 		{"4x",    &defaultFace(), 400},
@@ -89,14 +87,13 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 0.05 to 20.0", "",
+				app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input above 1.0 to 20.0", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(val >= MIN_RUN_SPEED && val <= MAX_RUN_SPEED)
+						auto valAsInt = std::round(val * 100.f);
+						if(app.setAltSpeed(AltSpeedMode::fast, valAsInt))
 						{
-							auto valAsInt = std::round(val * 100.);
-							app.fastSlowModeSpeedOption() = valAsInt;
-							fastSlowModeSpeed.setSelected((MenuItem::Id)valAsInt, *this);
+							fastModeSpeed.setSelected((MenuItem::Id)valAsInt, *this);
 							dismissPrevious();
 							return true;
 						}
@@ -110,19 +107,60 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 			}, MenuItem::DEFAULT_ID
 		},
 	},
-	fastSlowModeSpeed
+	fastModeSpeed
 	{
-		"Fast/Slow Mode Speed", &defaultFace(),
+		"Fast-forward Speed", &defaultFace(),
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{:.2f}x", app().fastSlowModeSpeedAsDouble()));
+				t.resetString(fmt::format("{:.2f}x", app().altSpeedAsDouble(AltSpeedMode::fast)));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().fastSlowModeSpeedOption() = item.id(); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setAltSpeed(AltSpeedMode::fast, item.id()); }
 		},
-		(MenuItem::Id)app().fastSlowModeSpeedOption().val,
-		fastSlowModeSpeedItem
+		(MenuItem::Id)app().altSpeed(AltSpeedMode::fast),
+		fastModeSpeedItem
+	},
+	slowModeSpeedItem
+	{
+		{"0.25x", &defaultFace(), 25},
+		{"0.50x", &defaultFace(), 50},
+		{"Custom Value", &defaultFace(),
+			[this](const Input::Event &e)
+			{
+				app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input 0.05 up to 1.0", "",
+					[this](EmuApp &app, auto val)
+					{
+						auto valAsInt = std::round(val * 100.f);
+						if(app.setAltSpeed(AltSpeedMode::slow, valAsInt))
+						{
+							slowModeSpeed.setSelected((MenuItem::Id)valAsInt, *this);
+							dismissPrevious();
+							return true;
+						}
+						else
+						{
+							app.postErrorMessage("Value not in range");
+							return false;
+						}
+					});
+				return false;
+			}, MenuItem::DEFAULT_ID
+		},
+	},
+	slowModeSpeed
+	{
+		"Slow-motion Speed", &defaultFace(),
+		{
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(fmt::format("{:.2f}x", app().altSpeedAsDouble(AltSpeedMode::slow)));
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setAltSpeed(AltSpeedMode::slow, item.id()); }
+		},
+		(MenuItem::Id)app().altSpeed(AltSpeedMode::slow),
+		slowModeSpeedItem
 	},
 	performanceMode
 	{
@@ -147,7 +185,8 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&autosaveTimer);
 	item.emplace_back(&autosaveContent);
 	item.emplace_back(&confirmOverwriteState);
-	item.emplace_back(&fastSlowModeSpeed);
+	item.emplace_back(&fastModeSpeed);
+	item.emplace_back(&slowModeSpeed);
 	if(used(performanceMode))
 		item.emplace_back(&performanceMode);
 }

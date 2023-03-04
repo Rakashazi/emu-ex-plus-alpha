@@ -109,11 +109,6 @@ constexpr bool isValidSoundRate(uint32_t rate)
 	return false;
 }
 
-constexpr bool optionAspectRatioIsValid(double val)
-{
-	return val == 0. || (val >= 0.1 && val <= 10.);
-}
-
 constexpr bool imageEffectPixelFormatIsValid(uint8_t val)
 {
 	switch(val)
@@ -147,14 +142,13 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	renderer{ctx},
 	audioManager_{ctx},
 	emuAudio{audioManager_},
-	emuVideoLayer{emuVideo},
+	emuVideoLayer{emuVideo, defaultVideoAspectRatio()},
 	emuSystemTask{*this},
 	vController{ctx},
 	autosaveManager_{*this},
 	pixmapReader{ctx},
 	pixmapWriter{ctx},
 	vibrationManager_{ctx},
-	optionAspectRatio{CFGKEY_GAME_ASPECT_RATIO, (double)EmuSystem::aspectRatioInfos()[0], 0, optionAspectRatioIsValid},
 	optionFrameRate{CFGKEY_FRAME_RATE, 0, 0, optionFrameTimeIsValid},
 	optionFrameRatePAL{CFGKEY_FRAME_RATE_PAL, 0, !EmuSystem::hasPALVideoSystem, optionFrameTimePALIsValid},
 	optionSoundRate{CFGKEY_SOUND_RATE, 48000, false, isValidSoundRate},
@@ -166,7 +160,6 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionPauseUnfocused{CFGKEY_PAUSE_UNFOCUSED, 1,
 		!(Config::envIsLinux || Config::envIsAndroid)},
 	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
-	optionFastSlowModeSpeed{CFGKEY_FAST_SLOW_MODE_SPEED, 800, false, optionIsValidWithMinMax<int(MIN_RUN_SPEED * 100.), int(MAX_RUN_SPEED * 100.)>},
 	optionSound{CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS},
 	optionSoundVolume{CFGKEY_SOUND_VOLUME,
 		100, false, optionIsValidWithMinMax<0, 125, uint8_t>},
@@ -283,10 +276,8 @@ Gfx::TextureSpan EmuApp::collectTextCloseAsset() const
 	return Config::envIsAndroid ? Gfx::TextureSpan{} : asset(AssetID::close);
 }
 
-EmuViewController &EmuApp::viewController()
-{
-	return mainWindowData().viewController;
-}
+EmuViewController &EmuApp::viewController() { return mainWindowData().viewController; }
+const EmuViewController &EmuApp::viewController() const { return mainWindowData().viewController; }
 
 void EmuApp::setCPUNeedsLowLatency(IG::ApplicationContext ctx, bool needed)
 {
@@ -608,10 +599,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				[this, &viewController = winData.viewController](EmuVideo &)
 				{
 					emuVideoLayer.onVideoFormatChanged(videoEffectPixelFormat());
-					if(emuVideoLayer.zoom() > 100)
-					{
-						viewController.placeEmuViews();
-					}
+					viewController.placeEmuViews();
 				});
 			emuVideo.setRendererTask(renderer.task());
 			emuVideo.setTextureBufferMode(system(), (Gfx::TextureBufferMode)optionTextureBufferMode.val);
@@ -621,7 +609,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			emuVideoLayer.setOverlay((ImageOverlayId)optionOverlayEffect.val);
 			emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel / 100.f);
 			emuVideoLayer.setEffect(system(), (ImageEffectId)optionImgEffect.val, videoEffectPixelFormat());
-			emuVideoLayer.setAspectRatio(optionAspectRatio);
 			emuVideoLayer.setZoom(optionImageZoom);
 			system().onFrameUpdate = [this, &viewController = winData.viewController](IG::FrameParams params)
 				{
@@ -1246,7 +1233,7 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 	{
 		case guiKeyIdxFastForward:
 		{
-			viewController().inputView().setFastSlowMode(isPushed);
+			viewController().inputView().setAltSpeedMode(AltSpeedMode::fast, isPushed);
 			break;
 		}
 		case guiKeyIdxLoadGame:
@@ -1332,7 +1319,7 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 		{
 			if(!isPushed)
 				break;
-			viewController().inputView().toggleFastSlowMode();
+			viewController().inputView().toggleAltSpeedMode(AltSpeedMode::fast);
 			break;
 		}
 		case guiKeyIdxLastView:
@@ -1356,6 +1343,18 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 				break;
 			viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attachParams(), "Really Exit?",
 				YesNoAlertView::Delegates{.onYes = [this]{ appContext().exit(); }}), srcEvent, false);
+			break;
+		}
+		case guiKeyIdxSlowMotion:
+		{
+			viewController().inputView().setAltSpeedMode(AltSpeedMode::slow, isPushed);
+			break;
+		}
+		case guiKeyIdxToggleSlowMotion:
+		{
+			if(!isPushed)
+				break;
+			viewController().inputView().toggleAltSpeedMode(AltSpeedMode::slow);
 			break;
 		}
 		default:
@@ -2068,6 +2067,23 @@ void EmuApp::setVideoBrightness(float brightness, ImageChannel ch)
 		videoBrightnessVal(ch, videoBrightnessRGB) = brightness;
 	}
 	emuVideoLayer.setBrightness(videoBrightnessRGB * menuVideoBrightnessScale);
+}
+
+bool isValidFastSpeed(int16_t speed) { return speed <= int(maxRunSpeed * 100.) && speed > 100; }
+
+bool isValidSlowSpeed(int16_t speed) { return speed >= int(minRunSpeed * 100.) && speed < 100; }
+
+static bool isValidAltSpeed(AltSpeedMode mode, int16_t speed)
+{
+	return mode == AltSpeedMode::slow ? isValidSlowSpeed(speed) : isValidFastSpeed(speed);
+}
+
+bool EmuApp::setAltSpeed(AltSpeedMode mode, int16_t speed)
+{
+	if(!isValidAltSpeed(mode, speed))
+		return false;
+	altSpeedRef(mode) = speed;
+	return true;
 }
 
 MainWindowData &EmuApp::mainWindowData() const

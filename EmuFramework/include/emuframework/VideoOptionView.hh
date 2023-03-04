@@ -34,6 +34,7 @@ class VideoOptionView : public TableView, public EmuAppHelper<VideoOptionView>
 {
 public:
 	VideoOptionView(ViewAttachParams attach, bool customMenu = false);
+	void place() final;
 	void loadStockItems();
 	void setEmuVideoLayer(EmuVideoLayer &videoLayer);
 

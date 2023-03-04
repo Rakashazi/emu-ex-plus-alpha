@@ -109,6 +109,8 @@ enum
 	guiKeyIdxToggleFastForward,
 	guiKeyIdxTurboModifier,
 	guiKeyIdxExitApp,
+	guiKeyIdxSlowMotion,
+	guiKeyIdxToggleSlowMotion,
 };
 
 constexpr std::array<unsigned, 1> rightUIKeys{guiKeyIdxLastView};

@@ -32,7 +32,7 @@
 namespace EmuEx
 {
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
 constexpr double masterClockFrac = 21477272.727273 / 3.;
 constexpr double staticFrameTimeWith262Lines = (455. * 262.) / masterClockFrac; // ~60.05Hz
 double EmuSystem::staticFrameTime = (455. * 263.) / masterClockFrac; //~59.82Hz

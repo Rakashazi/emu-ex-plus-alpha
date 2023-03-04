@@ -201,18 +201,6 @@ TextMenuItem::SelectDelegate VideoOptionView::setWindowDrawableConfigDel(Gfx::Dr
 	};
 }
 
-static int aspectRatioValueIndex(double val)
-{
-	for(auto i : iotaCount(EmuSystem::aspectRatioInfos().size()))
-	{
-		if(val == (double)EmuSystem::aspectRatioInfos()[i])
-		{
-			return i;
-		}
-	}
-	return -1;
-}
-
 VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"Video Options", attach, item},
 	textureBufferMode
@@ -268,6 +256,42 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			pushAndShowFrameRateSelectMenu(VideoSystem::PAL, e);
 			postDraw();
 		}
+	},
+	aspectRatioItem
+	{
+		[&]()
+		{
+			StaticArrayList<TextMenuItem, MAX_ASPECT_RATIO_ITEMS> aspectRatioItem;
+			for(const auto &i : EmuSystem::aspectRatioInfos())
+			{
+				aspectRatioItem.emplace_back(i.name, &defaultFace(), [this](TextMenuItem &item)
+				{
+					app().setVideoAspectRatio(std::bit_cast<float>(item.id()));
+				}, std::bit_cast<MenuItem::Id>(i.aspect.ratio<float>()));
+			}
+			aspectRatioItem.emplace_back("Custom Value", &defaultFace(), [this](const Input::Event &e)
+			{
+				app().pushAndShowNewCollectValueInputView<std::pair<float, float>>(attachParams(), e,
+					"Input decimal or fraction", "",
+					[this](EmuApp &app, auto val)
+					{
+						float ratio = val.first / val.second;
+						if(app.setVideoAspectRatio(ratio))
+						{
+							aspectRatio.setSelected(std::bit_cast<MenuItem::Id>(ratio), *this);
+							dismissPrevious();
+							return true;
+						}
+						else
+						{
+							app.postErrorMessage("Value not in range");
+							return false;
+						}
+					});
+				return false;
+			}, MenuItem::DEFAULT_ID);
+			return aspectRatioItem;
+		}()
 	},
 	aspectRatio
 	{
@@ -709,49 +733,6 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		}
 		windowPixelFormat.setSelected(IG::findIndex(descs, app().windowDrawableConfig()) + 1);
 	}
-	for(const auto &i : EmuSystem::aspectRatioInfos())
-	{
-		aspectRatioItem.emplace_back(i.name, &defaultFace(),
-			[this, aspect = i.aspect]()
-			{
-				app().setVideoAspectRatio(aspect.ratio<double>());
-			});
-	}
-	aspectRatioItem.emplace_back("Custom Value", &defaultFace(),
-		[this](const Input::Event &e)
-		{
-			app().pushAndShowNewCollectValueInputView<std::pair<double, double>>(attachParams(), e,
-				"Input decimal or fraction", "",
-				[this](EmuApp &app, auto val)
-				{
-					double ratio = val.first / val.second;
-					if(app.setVideoAspectRatio(ratio))
-					{
-						if(auto idx = aspectRatioValueIndex(ratio);
-							idx != -1)
-						{
-							aspectRatio.setSelected(idx, *this);
-						}
-						else
-						{
-							aspectRatio.setSelected(std::size(aspectRatioItem) - 1, *this);
-						}
-						dismissPrevious();
-						return true;
-					}
-					else
-					{
-						app.postErrorMessage("Value not in range");
-						return false;
-					}
-				});
-			return false;
-		});
-	if(auto idx = aspectRatioValueIndex(app().videoAspectRatio());
-		idx != -1)
-	{
-		aspectRatio.setSelected(idx, *this);
-	}
 	textureBufferModeItem.emplace_back("Auto (Set optimal mode)", &defaultFace(),
 		[this](View &view)
 		{
@@ -780,6 +761,13 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		loadStockItems();
 	}
 }
+
+void VideoOptionView::place()
+{
+	aspectRatio.setSelected(std::bit_cast<MenuItem::Id>(app().videoAspectRatio()), *this);
+	TableView::place();
+}
+
 
 void VideoOptionView::loadStockItems()
 {

@@ -31,7 +31,7 @@
 namespace EmuEx
 {
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nNeoPop Team\nwww.nih.at";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nNeoPop Team\nwww.nih.at";
 // TODO: Mednafen/Neopop timing is based on 199 lines/frame, verify if this is correct
 double EmuSystem::staticFrameTime = (199. * 515.) / 6144000.; //~59.95Hz
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =

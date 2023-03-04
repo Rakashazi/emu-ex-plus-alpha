@@ -140,7 +140,7 @@ static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32
 namespace EmuEx
 {
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nYabause Team\nyabause.org";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nYabause Team\nyabause.org";
 bool EmuSystem::handlesGenericIO = false;
 static EmuSystemTaskContext emuSysTask{};
 static EmuAudio *emuAudio{};

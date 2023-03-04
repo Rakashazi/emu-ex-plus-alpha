@@ -293,21 +293,33 @@ bool EmuApp::setOverlayEffectLevel(EmuVideoLayer &videoLayer, uint8_t val)
 	return true;
 }
 
-bool EmuApp::setVideoAspectRatio(double ratio)
+bool isValidAspectRatio(float val)
 {
-	if(!optionAspectRatio.isValidVal(ratio))
+	return val == -1. || (val >= 0.1 && val <= 10.);
+}
+
+bool EmuApp::setVideoAspectRatio(float ratio)
+{
+	if(!isValidAspectRatio(ratio))
 		return false;
-	optionAspectRatio = ratio;
 	logMsg("set aspect ratio:%.2f", ratio);
-	emuVideoLayer.setAspectRatio(ratio);
+	if(viewController().emuWindow().isLandscape())
+		emuVideoLayer.landscapeAspectRatio = ratio;
+	else
+		emuVideoLayer.portraitAspectRatio = ratio;
 	viewController().placeEmuViews();
 	viewController().postDrawToEmuWindows();
 	return true;
 }
 
-double EmuApp::videoAspectRatio() const
+float EmuApp::videoAspectRatio() const
 {
-	return optionAspectRatio;
+	return viewController().emuWindow().isLandscape() ? emuVideoLayer.landscapeAspectRatio : emuVideoLayer.portraitAspectRatio;
+}
+
+float EmuApp::defaultVideoAspectRatio() const
+{
+	return EmuSystem::aspectRatioInfos()[0].asFloat();
 }
 
 void EmuApp::setShowsTitleBar(bool on)

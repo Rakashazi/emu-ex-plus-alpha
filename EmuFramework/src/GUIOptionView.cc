@@ -54,7 +54,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 2.0 to 10.0", "",
+				app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input 2.0 to 10.0", "",
 					[this](EmuApp &app, auto val)
 					{
 						int scaledIntVal = val * 1000.0;

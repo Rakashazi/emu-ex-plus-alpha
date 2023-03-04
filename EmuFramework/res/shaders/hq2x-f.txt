@@ -35,7 +35,7 @@ void main()
 
 	float t1 = w1 + w3;
 	float t2 = w2 + w4;
-	float ww = max(t1, t2) + 0.0001;
+	float ww = max(t1, t2) + 0.001;
 
 	c11 = (w1 * c00 + w2 * c20 + w3 * c22 + w4 * c02 + ww * c11) / (t1 + t2 + ww);
 
@@ -47,6 +47,5 @@ void main()
 	w3 = clamp(lc1 * dot(abs(c11 - c12), dt) + mx, minW, maxW);
 	w4 = clamp(lc2 * dot(abs(c11 - c01), dt) + mx, minW, maxW);
 
-	lowp vec4 color = vec4(w1 * c10 + w2 * c21 + w3 * c12 + w4 * c01 + (1.0 - w1 - w2 - w3 - w4) * c11, 1.0);
-	FRAGCOLOR = color;
+	FRAGCOLOR = vec4(w1 * c10 + w2 * c21 + w3 * c12 + w4 * c01 + (1.0 - w1 - w2 - w3 - w4) * c11, 1.0);
 }

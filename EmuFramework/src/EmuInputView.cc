@@ -38,7 +38,7 @@ EmuInputView::EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideo
 
 void EmuInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
-	vController->draw(cmds, ffToggleActive);
+	vController->draw(cmds, speedToggleActive);
 }
 
 void EmuInputView::place()
@@ -49,26 +49,26 @@ void EmuInputView::place()
 void EmuInputView::resetInput()
 {
 	vController->resetInput();
-	ffToggleActive = false;
+	speedToggleActive = false;
 }
 
-bool EmuInputView::toggleFastSlowMode()
+bool EmuInputView::toggleAltSpeedMode(AltSpeedMode mode)
 {
-	return setFastSlowMode(ffToggleActive ^ true);
+	return setAltSpeedMode(mode, speedToggleActive ^ true);
 }
 
-bool EmuInputView::setFastSlowMode(bool on)
+bool EmuInputView::setAltSpeedMode(AltSpeedMode mode, bool on)
 {
-	logMsg("fast-forward state:%d", on);
-	ffToggleActive = on;
-	vController->updateFastSlowModeInput(on);
-	updateRunSpeed();
-	return ffToggleActive;
+	logMsg("alt speed state:%d", on);
+	speedToggleActive = on;
+	vController->updateAltSpeedModeInput(mode, on);
+	updateRunSpeed(mode);
+	return speedToggleActive;
 }
 
-void EmuInputView::updateRunSpeed()
+void EmuInputView::updateRunSpeed(AltSpeedMode mode)
 {
-	app().setRunSpeed(ffToggleActive ? app().fastSlowModeSpeedAsDouble() : 1.);
+	app().setRunSpeed(speedToggleActive ? app().altSpeedAsDouble(mode) : 1.);
 }
 
 bool EmuInputView::inputEvent(const Input::Event &e)

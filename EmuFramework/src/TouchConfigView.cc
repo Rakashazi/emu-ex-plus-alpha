@@ -253,7 +253,7 @@ public:
 			{"Custom Value", &defaultFace(),
 				[this](const Input::Event &e)
 				{
-					app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 1.0 to 3.0", "",
+					app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input 1.0 to 3.0", "",
 						[this](EmuApp &app, auto val)
 						{
 							int scaledIntVal = val * 100.0;
@@ -297,7 +297,7 @@ public:
 			{"Custom Value", &defaultFace(),
 				[this](const Input::Event &e)
 				{
-					app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 0 to 99.0", "",
+					app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input 0 to 99.0", "",
 						[this](EmuApp &app, auto val)
 						{
 							val = 100. - val;
@@ -896,7 +896,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 3.0 to 30.0", "",
+				app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input 3.0 to 30.0", "",
 					[this](EmuApp &app, auto val)
 					{
 						int scaledIntVal = val * 100.0;

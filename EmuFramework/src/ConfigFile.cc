@@ -29,7 +29,11 @@ namespace EmuEx
 static constexpr int KEY_CONFIGS_HARD_LIMIT = 256;
 static constexpr int INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
 
-static bool windowPixelFormatIsValid(uint8_t val)
+bool isValidAspectRatio(float val);
+bool isValidFastSpeed(int16_t);
+bool isValidSlowSpeed(int16_t);
+
+constexpr bool windowPixelFormatIsValid(uint8_t val)
 {
 	switch(val)
 	{
@@ -40,12 +44,12 @@ static bool windowPixelFormatIsValid(uint8_t val)
 	}
 }
 
-static bool renderPixelFormatIsValid(IG::PixelFormat val)
+constexpr bool renderPixelFormatIsValid(IG::PixelFormat val)
 {
 	return windowPixelFormatIsValid(val);
 }
 
-static bool colorSpaceIsValid(Gfx::ColorSpace val)
+constexpr bool colorSpaceIsValid(Gfx::ColorSpace val)
 {
 	return val == Gfx::ColorSpace::SRGB;
 }
@@ -274,7 +278,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionSound,
 		optionSoundVolume,
 		optionSoundRate,
-		optionAspectRatio,
 		optionImageZoom,
 		optionViewportZoom,
 		#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
@@ -291,7 +294,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionEmuOrientation,
 		optionMenuOrientation,
 		optionConfirmOverwriteState,
-		optionFastSlowModeSpeed,
 		#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 		optionNotifyInputDeviceChange,
 		#endif
@@ -341,8 +343,12 @@ void EmuApp::saveConfigFile(FileIO &io)
 		writeOptionValue(io, CFGKEY_LAYOUT_BEHIND_SYSTEM_UI, false);
 	if(contentRotation_ != Rotation::ANY)
 		writeOptionValue(io, CFGKEY_CONTENT_ROTATION, contentRotation_);
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LANDSCAPE_ASPECT_RATIO, videoLayer().landscapeAspectRatio, defaultVideoAspectRatio());
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_ASPECT_RATIO, videoLayer().portraitAspectRatio, defaultVideoAspectRatio());
 	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LANDSCAPE_OFFSET, videoLayer().landscapeOffset, 0);
 	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_OFFSET, videoLayer().portraitOffset, 0);
+	writeOptionValueIfNotDefault(io, CFGKEY_FAST_MODE_SPEED, fastModeSpeed, defaultFastModeSpeed);
+	writeOptionValueIfNotDefault(io, CFGKEY_SLOW_MODE_SPEED, slowModeSpeed, defaultSlowModeSpeed);
 	vController.writeConfig(io);
 	autosaveManager_.writeConfig(io);
 	if(IG::used(usePresentationTime_) && !usePresentationTime_)
@@ -563,7 +569,6 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_GAME_ORIENTATION: return optionEmuOrientation.readFromIO(io, size);
 				case CFGKEY_MENU_ORIENTATION: return optionMenuOrientation.readFromIO(io, size);
 				case CFGKEY_GAME_IMG_FILTER: return optionImgFilter.readFromIO(io, size);
-				case CFGKEY_GAME_ASPECT_RATIO: return optionAspectRatio.readFromIO(io, size);
 				case CFGKEY_IMAGE_ZOOM: return optionImageZoom.readFromIO(io, size);
 				case CFGKEY_VIEWPORT_ZOOM: return optionViewportZoom.readFromIO(io, size);
 				#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
@@ -593,7 +598,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_LAYOUT_BEHIND_SYSTEM_UI:
 					return ctx.hasTranslucentSysUI() ? readOptionValue(io, size, layoutBehindSystemUI) : false;
 				case CFGKEY_CONFIRM_OVERWRITE_STATE: return optionConfirmOverwriteState.readFromIO(io, size);
-				case CFGKEY_FAST_SLOW_MODE_SPEED: return optionFastSlowModeSpeed.readFromIO(io, size);
+				case CFGKEY_FAST_MODE_SPEED: return readOptionValue(io, size, fastModeSpeed, isValidFastSpeed);
+				case CFGKEY_SLOW_MODE_SPEED: return readOptionValue(io, size, slowModeSpeed, isValidSlowSpeed);
 				#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 				case CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: return optionNotifyInputDeviceChange.readFromIO(io, size);
 				#endif
@@ -631,6 +637,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_RENDERER_PRESENTATION_TIME: return readOptionValue<bool>(io, size, [&](auto on){setUsePresentationTime(on);});
 				case CFGKEY_FORCE_MAX_SCREEN_FRAME_RATE: return readOptionValue<bool>(io, size, [&](auto on){setForceMaxScreenFrameRate(on);});
 				case CFGKEY_CONTENT_ROTATION: return readOptionValue(io, size, contentRotation_, [](auto r){return r <= lastEnum<Rotation>;});
+				case CFGKEY_VIDEO_LANDSCAPE_ASPECT_RATIO: return readOptionValue(io, size, videoLayer().landscapeAspectRatio, isValidAspectRatio);
+				case CFGKEY_VIDEO_PORTRAIT_ASPECT_RATIO: return readOptionValue(io, size, videoLayer().portraitAspectRatio, isValidAspectRatio);
 				case CFGKEY_VIDEO_LANDSCAPE_OFFSET: return readOptionValue(io, size, videoLayer().landscapeOffset, [](auto v){return v >= -4096 && v <= 4096;});
 				case CFGKEY_VIDEO_PORTRAIT_OFFSET: return readOptionValue(io, size, videoLayer().portraitOffset, [](auto v){return v >= -4096 && v <= 4096;});
 				case CFGKEY_VIDEO_BRIGHTNESS: return readOptionValue(io, size, videoBrightnessRGB);

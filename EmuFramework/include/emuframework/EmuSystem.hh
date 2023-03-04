@@ -63,10 +63,10 @@ struct AspectRatioInfo
 	std::string_view name{};
 	IG::Point2D<int8_t> aspect{};
 
-	constexpr explicit operator double() const { return aspect.ratio<double>(); }
+	constexpr float asFloat() const { return aspect.ratio<float>(); }
 };
 
-#define EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT {"1:1", {1, 1}}, {"Full Screen", {0, 1}}
+#define EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT {"1:1", {1, 1}}, {"Square Pixels", {-1, 1}}
 
 struct BundledGameInfo
 {

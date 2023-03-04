@@ -33,7 +33,7 @@ class VController;
 class EmuVideoLayer
 {
 public:
-	EmuVideoLayer(EmuVideo &video);
+	EmuVideoLayer(EmuVideo &video, float defaultAspectRatio);
 	void place(IG::WindowRect viewRect, IG::WindowRect displayRect, EmuInputView *inputView, EmuSystem &sys);
 	void draw(Gfx::RendererCommands &cmds);
 	void setFormat(EmuSystem &, IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace);
@@ -43,8 +43,6 @@ public:
 	void setEffectFormat(IG::PixelFormat);
 	void setLinearFilter(bool on);
 	void setBrightness(Gfx::Vec3);
-	void setAspectRatio(double ratio) { aspectRatio_ = ratio; }
-	auto aspectRatio() { return aspectRatio_; }
 	void onVideoFormatChanged(IG::PixelFormat effectFmt);
 	EmuVideo &emuVideo() const { return video; }
 	Gfx::ColorSpace colorSpace() const { return colSpace; }
@@ -52,6 +50,7 @@ public:
 	void setZoom(uint8_t val) { zoom_ = val; }
 	auto zoom() const { return zoom_; }
 	void setRotation(IG::Rotation);
+	float evalAspectRatio(float aR);
 
 	const IG::WindowRect &contentRect() const
 	{
@@ -65,10 +64,11 @@ private:
 	VideoImageEffect userEffect;
 	Gfx::Sprite disp;
 	IG::WindowRect contentRect_;
-	double aspectRatio_ = 1.;
 	Gfx::Vec3 brightness{1.f, 1.f, 1.f};
 	Gfx::Vec3 brightnessSrgb{1.f, 1.f, 1.f};
 public:
+	float landscapeAspectRatio;
+	float portraitAspectRatio;
 	int16_t landscapeOffset{};
 	int16_t portraitOffset{};
 private:

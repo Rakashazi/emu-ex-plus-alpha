@@ -21,7 +21,7 @@
 namespace EmuEx::Controls
 {
 
-inline constexpr std::array<const std::string_view, 12> gameActionName
+inline constexpr std::array<const std::string_view, 14> gameActionName
 {
 	"Load Game",
 	"Open System Actions",
@@ -29,12 +29,14 @@ inline constexpr std::array<const std::string_view, 12> gameActionName
 	"Load State",
 	"Decrement State Slot",
 	"Increment State Slot",
-	"Fast/Slow Mode",
+	"Fast-forward",
 	"Take Screenshot",
 	"Open Menu",
-	"Toggle Fast/Slow Mode",
+	"Toggle Fast-forward",
 	"Turbo Modifier",
 	"Exit App",
+	"Slow-motion",
+	"Toggle Slow-motion",
 };
 
 constexpr auto gameActionKeys = gameActionName.size();
@@ -47,7 +49,7 @@ using GameActionKeyArray = std::array<unsigned, gameActionKeys>;
 {"Set In-Emulation Actions", gameActionName, 0}
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT \
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ICP_NUBS_PROFILE_INIT \
 Input::iControlPad::RNUB_DOWN, \
@@ -59,7 +61,7 @@ Input::iControlPad::RNUB_UP, \
 Input::iControlPad::LNUB_UP, \
 0, \
 0, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ICADE_PROFILE_INIT \
 0, \
@@ -71,7 +73,7 @@ Input::ICade::Z, \
 0, \
 0, \
 0, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_WIIMOTE_PROFILE_INIT \
 0, \
@@ -83,7 +85,7 @@ Input::Wiimote::HOME, \
 0, \
 0, \
 0, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT \
 0, \
@@ -95,7 +97,7 @@ Input::WiiCC::HOME, \
 Input::WiiCC::ZR, \
 0, \
 0, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT \
 0, \
@@ -107,7 +109,7 @@ Input::Keycode::MENU, \
 Input::Keycode::SEARCH, \
 0, \
 Input::Keycode::BACK, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_GENERIC_GAMEPAD_PROFILE_INIT \
 0, \
@@ -119,7 +121,7 @@ Input::Keycode::JS2_YAXIS_NEG, \
 Input::Keycode::JS_RTRIGGER_AXIS, \
 0, \
 0, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_PROFILE_INIT \
 0, \
@@ -131,7 +133,7 @@ Input::Keycode::MENU, \
 Input::Keycode::Ouya::R2, \
 0, \
 0, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_MINIMAL_PROFILE_INIT \
 0, \
@@ -143,7 +145,7 @@ Input::Keycode::MENU, \
 0, \
 0, \
 0, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT \
 0, \
@@ -155,7 +157,7 @@ Input::Keycode::MENU, \
 Input::Keycode::JS_RTRIGGER_AXIS, \
 0, \
 Input::Keycode::BACK, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_MINIMAL_PROFILE_INIT \
 0, \
@@ -167,7 +169,7 @@ Input::Keycode::BACK, \
 Input::Keycode::JS_RTRIGGER_AXIS, \
 0, \
 Input::Keycode::BACK, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_PROFILE_INIT \
 0, \
@@ -179,7 +181,7 @@ Input::Keycode::GAME_1, \
 Input::Keycode::GAME_R2, \
 0, \
 0, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_MINIMAL_PROFILE_INIT \
 0, \
@@ -191,7 +193,7 @@ Input::Keycode::GAME_1, \
 0, \
 0, \
 0, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_PROFILE_INIT \
 Input::Keycode::F2, \
@@ -203,7 +205,7 @@ Input::Keycode::RIGHT_BRACKET, \
 Input::Keycode::GRAVE, \
 0, \
 Input::Keycode::BACK_KEY, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_ALT_PROFILE_INIT \
 Input::Keycode::F10, \
@@ -215,7 +217,7 @@ Input::Keycode::RIGHT_BRACKET, \
 Input::Keycode::GRAVE, \
 0, \
 Input::Keycode::BACK_KEY, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_ALT2_PROFILE_INIT \
 0, \
@@ -227,7 +229,7 @@ Input::Keycode::F12, \
 Input::Keycode::GRAVE, \
 0, \
 Input::Keycode::BACK_KEY, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #ifdef __ANDROID__
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT \
@@ -240,7 +242,7 @@ Input::Keycode::MENU, \
 Input::Keycode::SEARCH, \
 0, \
 0, \
-0, 0, 0
+0, 0, 0, 0, 0
 #else
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT \
 0, \
@@ -252,7 +254,7 @@ Input::Keycode::MENU, \
 Input::Keycode::F11, \
 0, \
 0, \
-0, 0, 0
+0, 0, 0, 0, 0
 #endif
 
 #define PS3PAD_OPEN_MENU_KEY Input::PS3::PS
@@ -267,7 +269,7 @@ Input::Keycode::F11, \
 	Input::PS3::R2, \
 	0, \
 	0, \
-	0, 0, 0
+	0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_PS3PAD_ALT_MINIMAL_PROFILE_INIT \
 	0, \
@@ -279,7 +281,7 @@ Input::Keycode::F11, \
 	0, \
 	0, \
 	0, \
-	0, 0, 0
+	0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_PROFILE_INIT \
 	Input::Keycode::L, \
@@ -291,7 +293,7 @@ Input::Keycode::F11, \
 	Input::Keycode::Pandora::R, \
 	0, \
 	Input::Keycode::BACK_SPACE, \
-	0, 0, 0
+	0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_ALT_PROFILE_INIT \
 	Input::Keycode::L, \
@@ -303,7 +305,7 @@ Input::Keycode::F11, \
 	Input::Keycode::_0, \
 	0, \
 	Input::Keycode::BACK_SPACE, \
-	0, 0, 0
+	0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_ALT_MINIMAL_PROFILE_INIT \
 	0, \
@@ -315,7 +317,7 @@ Input::Keycode::F11, \
 	Input::Keycode::Pandora::R, \
 	0, \
 	0, \
-	0, 0, 0
+	0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_APPLEGC_PROFILE_INIT \
 	0, \
@@ -327,7 +329,7 @@ Input::Keycode::F11, \
 	Input::AppleGC::R2, \
 	0, \
 	0, \
-	0, 0, 0
+	0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_APPLEGC_MINIMAL_PROFILE_INIT \
 	0, \
@@ -339,7 +341,7 @@ Input::Keycode::F11, \
 	0, \
 	0, \
 	0, \
-	0, 0, 0
+	0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SF30_PRO_PROFILE_INIT \
 0, \
@@ -351,7 +353,7 @@ Input::Keycode::JS2_YAXIS_NEG, \
 Input::Keycode::GAME_R2, \
 0, \
 Input::Keycode::GAME_L2, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SF30_PRO_MINIMAL_PROFILE_INIT \
 0, \
@@ -363,7 +365,7 @@ Input::Keycode::JS2_YAXIS_NEG, \
 Input::Keycode::GAME_R2, \
 0, \
 Input::Keycode::GAME_L2, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SN30_PRO_PLUS_PROFILE_INIT \
 0, \
@@ -375,7 +377,7 @@ Input::Keycode::JS2_YAXIS_NEG, \
 Input::Keycode::GAME_R2, \
 0, \
 Input::Keycode::GAME_L2, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SN30_PRO_PLUS_MINIMAL_PROFILE_INIT \
 0, \
@@ -387,7 +389,7 @@ Input::Keycode::JS2_YAXIS_NEG, \
 Input::Keycode::GAME_R2, \
 0, \
 Input::Keycode::GAME_L2, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_M30_GAMEPAD_PROFILE_INIT \
 0, \
@@ -399,7 +401,7 @@ Input::Keycode::JS2_YAXIS_NEG, \
 Input::Keycode::GAME_R2, \
 0, \
 Input::Keycode::GAME_L2, \
-0, 0, 0
+0, 0, 0, 0, 0
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_M30_GAMEPAD_MINIMAL_PROFILE_INIT \
 0, \
@@ -411,4 +413,4 @@ Input::Keycode::JS2_YAXIS_NEG, \
 Input::Keycode::GAME_R2, \
 0, \
 Input::Keycode::GAME_L2, \
-0, 0, 0
+0, 0, 0, 0, 0

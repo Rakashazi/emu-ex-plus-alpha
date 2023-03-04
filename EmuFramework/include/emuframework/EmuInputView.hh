@@ -26,6 +26,7 @@ class VController;
 class EmuApp;
 class EmuVideoLayer;
 class EmuViewController;
+enum class AltSpeedMode;
 
 class EmuInputView : public View, public EmuAppHelper<EmuInputView>
 {
@@ -36,8 +37,8 @@ public:
 	void draw(Gfx::RendererCommands &__restrict__) final;
 	bool inputEvent(const Input::Event &) final;
 	void resetInput();
-	bool toggleFastSlowMode();
-	bool setFastSlowMode(bool on);
+	bool toggleAltSpeedMode(AltSpeedMode);
+	bool setAltSpeedMode(AltSpeedMode, bool on);
 	VController *activeVController() const { return vController; }
 	void setSystemGestureExclusion(bool on);
 	int uiElementHeight() const;
@@ -45,9 +46,9 @@ public:
 private:
 	VController *vController{};
 	EmuVideoLayer *videoLayer{};
-	bool ffToggleActive{};
+	bool speedToggleActive{};
 
-	void updateRunSpeed();
+	void updateRunSpeed(AltSpeedMode);
 };
 
 }

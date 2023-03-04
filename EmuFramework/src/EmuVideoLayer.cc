@@ -31,8 +31,10 @@
 namespace EmuEx
 {
 
-EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
-	video{video} {}
+EmuVideoLayer::EmuVideoLayer(EmuVideo &video, float defaultAspectRatio):
+	video{video},
+	landscapeAspectRatio{defaultAspectRatio},
+	portraitAspectRatio{defaultAspectRatio} {}
 
 void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, EmuInputView *inputView, EmuSystem &sys)
 {
@@ -94,7 +96,8 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 		}
 		if(zoom <= 100 || zoom == optionImageZoomIntegerOnlyY)
 		{
-			auto aR = aspectRatio() * sys.videoAspectRatioScale();
+			auto aR = evalAspectRatio(viewportAspectRatio < 1.f ? portraitAspectRatio : landscapeAspectRatio)
+				* sys.videoAspectRatioScale();
 			if(isSideways(rotation))
 				aR = 1. / aR;
 			if(zoom == optionImageZoomIntegerOnlyY)
@@ -267,6 +270,15 @@ void EmuVideoLayer::setRotation(IG::Rotation r)
 	rotation = r;
 	disp.setUVBounds(disp.unitTexCoordRect(), r);
 	placeOverlay();
+}
+
+float EmuVideoLayer::evalAspectRatio(float aR)
+{
+	if(aR == -1)
+	{
+		return video.size().ratio<float>();
+	}
+	return aR;
 }
 
 Gfx::Renderer &EmuVideoLayer::renderer()

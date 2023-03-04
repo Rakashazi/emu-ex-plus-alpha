@@ -113,6 +113,11 @@ WISE_ENUM_CLASS((ImageChannel, uint8_t),
 	Green,
 	Blue);
 
+enum class AltSpeedMode
+{
+	fast, slow
+};
+
 class EmuApp : public IG::Application
 {
 public:
@@ -206,6 +211,7 @@ public:
 	EmuVideo &video() { return emuVideo; }
 	EmuVideoLayer &videoLayer() { return emuVideoLayer; }
 	EmuViewController &viewController();
+	const EmuViewController &viewController() const;
 	AutosaveManager &autosaveManager() { return autosaveManager_; }
 	void configFrameTime();
 	void setDisabledInputKeys(std::span<const unsigned> keys);
@@ -289,8 +295,9 @@ public:
 	IG::PixelFormat windowPixelFormat() const;
 	void setRenderPixelFormat(std::optional<IG::PixelFormat>);
 	IG::PixelFormat renderPixelFormat() const { return renderPixelFmt; }
-	bool setVideoAspectRatio(double val);
-	double videoAspectRatio() const;
+	bool setVideoAspectRatio(float val);
+	float videoAspectRatio() const;
+	float defaultVideoAspectRatio() const;
 	auto &videoFilterOption() { return optionImgFilter; }
 	auto &videoEffectOption() { return optionImgEffect; }
 	IG::PixelFormat videoEffectPixelFormat() const;
@@ -325,8 +332,9 @@ public:
 
 	// System Options
 	auto &confirmOverwriteStateOption() { return optionConfirmOverwriteState; }
-	auto &fastSlowModeSpeedOption() { return optionFastSlowModeSpeed; }
-	double fastSlowModeSpeedAsDouble() { return optionFastSlowModeSpeed.val / 100.; }
+	bool setAltSpeed(AltSpeedMode mode, int16_t speed);
+	int16_t altSpeed(AltSpeedMode mode) const { return altSpeedRef(mode); }
+	double altSpeedAsDouble(AltSpeedMode mode) const { return altSpeed(mode) / 100.; }
 	auto &sustainedPerformanceModeOption() { return optionSustainedPerformanceMode; }
 
 	// GUI Options
@@ -404,27 +412,28 @@ public:
 	template <std::floating_point T>
 	static std::pair<T, int> scanValue(const char *str, ScanValueMode)
 	{
-		double val;
-		double denom;
-		int items = sscanf(str, "%lf /%lf", &val, &denom);
-		if(items > 1 && denom > 0)
+		T val, denom;
+		int items = sscanf(str, std::is_same_v<T, double> ? "%lf /%lf" : "%f /%f", &val, &denom);
+		if(items > 1 && denom != 0)
 		{
 			val /= denom;
 		}
 		return {val, items};
 	}
 
-	template <std::same_as<std::pair<double, double>> T>
+	template <class T>
+	requires std::same_as<T, std::pair<float, float>> || std::same_as<T, std::pair<double, double>>
 	static std::pair<T, int> scanValue(const char *str, ScanValueMode)
 	{
 		// special case for getting a fraction
-		T val{};
-		int items = sscanf(str, "%lf /%lf", &val.first, &val.second);
-		if(!val.second)
+		using PairValue = typename T::first_type;
+		PairValue val, denom{};
+		int items = sscanf(str, std::is_same_v<PairValue, double> ? "%lf /%lf" : "%f /%f", &val, &denom);
+		if(denom == 0)
 		{
-			val.second = 1.;
+			denom = 1.;
 		}
-		return {val, items};
+		return {{val, denom}, items};
 	}
 
 	template<class T, ScanValueMode mode = ScanValueMode::NORMAL>
@@ -503,14 +512,16 @@ protected:
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr);
 	RecentContentList recentContentList;
 	std::string userScreenshotDir;
-	DoubleOption optionAspectRatio;
 	DoubleOption optionFrameRate;
 	DoubleOption optionFrameRatePAL;
 	Byte4Option optionSoundRate;
+	static constexpr int16_t defaultFastModeSpeed{800};
+	static constexpr int16_t defaultSlowModeSpeed{50};
+	int16_t fastModeSpeed{defaultFastModeSpeed};
+	int16_t slowModeSpeed{defaultSlowModeSpeed};
 	Byte2Option optionFontSize;
 	Byte1Option optionPauseUnfocused;
 	Byte1Option optionConfirmOverwriteState;
-	Byte2Option optionFastSlowModeSpeed;
 	Byte1Option optionSound;
 	Byte1Option optionSoundVolume;
 	Byte1Option optionSoundBuffers;
@@ -618,6 +629,9 @@ protected:
 	{
 		return const_cast<DoubleOption&>(std::as_const(*this).frameTimeOption(system));
 	}
+
+	int16_t &altSpeedRef(AltSpeedMode mode) { return mode == AltSpeedMode::slow ? slowModeSpeed : fastModeSpeed; }
+	const int16_t &altSpeedRef(AltSpeedMode mode) const { return mode == AltSpeedMode::slow ? slowModeSpeed : fastModeSpeed; }
 };
 
 // Global instance access if required by the emulated system, valid if EmuApp::needsGlobalInstance initialized to true

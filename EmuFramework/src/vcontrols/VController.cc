@@ -136,6 +136,8 @@ static void updateTexture(const EmuApp &app, VControllerElement &e)
 						case guiKeyIdxLastView: return app.asset(AssetID::menu); break;
 						case guiKeyIdxTurboModifier: return app.asset(AssetID::speed); break;
 						case guiKeyIdxExitApp: return app.asset(AssetID::close); break;
+						case guiKeyIdxSlowMotion:
+						case guiKeyIdxToggleSlowMotion: return app.asset(AssetID::slow); break;
 					}
 					return app.asset(AssetID::more);
 				}());
@@ -197,10 +199,10 @@ void VController::resetInput()
 		}
 	}
 	dragTracker.reset();
-	updateFastSlowModeInput(false);
+	updateAltSpeedModeInput({}, false);
 }
 
-void VController::updateFastSlowModeInput(bool on)
+void VController::updateAltSpeedModeInput(AltSpeedMode mode, bool on)
 {
 	for(auto &e : uiElements)
 	{
@@ -208,7 +210,11 @@ void VController::updateFastSlowModeInput(bool on)
 		{
 			if(b.key == guiKeyIdxFastForward || b.key == guiKeyIdxToggleFastForward)
 			{
-				b.color = on ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{};
+				b.color = on && mode == AltSpeedMode::fast ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{};
+			}
+			else if(b.key == guiKeyIdxSlowMotion || b.key == guiKeyIdxToggleSlowMotion)
+			{
+				b.color = on && mode == AltSpeedMode::slow ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{};
 			}
 		}
 	}
