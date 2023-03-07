@@ -52,6 +52,11 @@ bool EmuApp::willCreateSystem(ViewAttachParams attach, const Input::Event &e)
 	return true;
 }
 
+AssetDesc EmuApp::vControllerAssetDesc(unsigned key) const
+{
+	return static_cast<const MainApp*>(this)->vControllerAssetDesc(key);
+}
+
 }
 
 namespace IG

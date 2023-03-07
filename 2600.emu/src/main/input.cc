@@ -21,6 +21,7 @@
 #include <emuframework/EmuInput.hh>
 #undef Debugger
 #include "MainSystem.hh"
+#include "MainApp.hh"
 #include <imagine/util/math/space.hh>
 
 namespace EmuEx
@@ -92,8 +93,67 @@ constexpr std::array jsComponents
 
 constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};
 
-const int EmuSystem::inputFaceBtns = 4;
-bool EmuSystem::inputHasShortBtnTexture = true;
+constexpr FRect gpImageCoords(IRect cellRelBounds)
+{
+	constexpr FP imageSize{512, 256};
+	constexpr int cellSize = 32;
+	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
+}
+
+constexpr AssetDesc virtualControllerAssets[]
+{
+	// d-pad
+	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+	// js buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})},
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})},
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})},
+
+	// kb buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{10, 0}, {2, 2}})}, // 1
+	{AssetFileID::gamepadOverlay, gpImageCoords({{12, 0}, {2, 2}})}, // 2
+	{AssetFileID::gamepadOverlay, gpImageCoords({{14, 0}, {2, 2}})}, // 3
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4,  2}, {2, 2}})}, // 4
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6,  2}, {2, 2}})}, // 5
+	{AssetFileID::gamepadOverlay, gpImageCoords({{8,  2}, {2, 2}})}, // 6
+	{AssetFileID::gamepadOverlay, gpImageCoords({{10, 2}, {2, 2}})}, // 7
+	{AssetFileID::gamepadOverlay, gpImageCoords({{12, 2}, {2, 2}})}, // 8
+	{AssetFileID::gamepadOverlay, gpImageCoords({{14, 2}, {2, 2}})}, // 9
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0,  4}, {2, 2}})}, // *
+	{AssetFileID::gamepadOverlay, gpImageCoords({{8,  0}, {2, 2}})}, // 0
+	{AssetFileID::gamepadOverlay, gpImageCoords({{2,  4}, {2, 2}})}, // #
+
+	// switches
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // Select
+	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 6}, {2, 1}}), {1, 2}}, // P1 Difficulty
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 6}, {2, 1}}), {1, 2}}, // P2 Difficulty
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // Reset
+	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}}, // Color B/W
+};
+
+AssetDesc A2600App::vControllerAssetDesc(unsigned key) const
+{
+	const int kbOffset = 4;
+	const int switchOffset = kbOffset + 12;
+	switch(key)
+	{
+		case 0: return virtualControllerAssets[0];
+		case vcsKeyIdxJSBtn:
+		case vcsKeyIdxJSBtnTurbo: return virtualControllerAssets[1];
+		case vcsKeyIdxJSBtnAlt:
+		case vcsKeyIdxJSBtnAltTurbo: return virtualControllerAssets[2];
+		case vcsKeyIdxKeyboard1Base ... vcsKeyIdxKeyboard1Base + 11:
+			return virtualControllerAssets[kbOffset + (key - vcsKeyIdxKeyboard1Base)];
+		case vcsKeyIdxSelect: return virtualControllerAssets[switchOffset];
+		case vcsKeyIdxP1Diff: return virtualControllerAssets[switchOffset + 1];
+		case vcsKeyIdxP2Diff: return virtualControllerAssets[switchOffset + 2];
+		case vcsKeyIdxReset: return virtualControllerAssets[switchOffset + 3];
+		case vcsKeyIdxColorBW: return virtualControllerAssets[switchOffset + 4];
+		default: return virtualControllerAssets[1];
+	}
+}
+
 const int EmuSystem::maxPlayers = 2;
 
 void A2600System::clearInputBuffers(EmuInputView &)
@@ -373,21 +433,6 @@ bool A2600System::onPointerInputUpdate(const Input::MotionEvent &, Input::DragTr
 		}
 		default:
 			return false;
-	}
-}
-
-VControllerImageIndex A2600System::mapVControllerButton(unsigned key) const
-{
-	using enum VControllerImageIndex;
-	switch(key)
-	{
-		case vcsKeyIdxSelect: return auxButton1;
-		case vcsKeyIdxReset: return auxButton2;
-		case vcsKeyIdxJSBtn:
-		case vcsKeyIdxJSBtnAlt: return button1;
-		case vcsKeyIdxJSBtnTurbo:
-		case vcsKeyIdxJSBtnAltTurbo: return button2;
-		default: return button1;
 	}
 }
 

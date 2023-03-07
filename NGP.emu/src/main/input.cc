@@ -16,6 +16,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
 #include "MainSystem.hh"
+#include "MainApp.hh"
 
 namespace EmuEx
 {
@@ -62,7 +63,38 @@ constexpr std::array gamepadComponents
 
 constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
-const int EmuSystem::inputFaceBtns = 2;
+constexpr FRect gpImageCoords(IRect cellRelBounds)
+{
+	constexpr FP imageSize{256, 128};
+	constexpr int cellSize = 32;
+	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
+}
+
+constexpr AssetDesc virtualControllerAssets[]
+{
+	// d-pad
+	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+	// gamepad buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}}, // option
+};
+
+AssetDesc NgpApp::vControllerAssetDesc(unsigned key) const
+{
+	switch(key)
+	{
+		case 0: return virtualControllerAssets[0];
+		case ngpKeyIdxATurbo:
+		case ngpKeyIdxA: return virtualControllerAssets[1];
+		case ngpKeyIdxBTurbo:
+		case ngpKeyIdxB: return virtualControllerAssets[2];
+		case ngpKeyIdxOption: return virtualControllerAssets[3];
+		default: return virtualControllerAssets[1];
+	}
+}
+
 const int EmuSystem::maxPlayers = 1;
 
 constexpr unsigned ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,
@@ -117,20 +149,6 @@ void NgpSystem::handleInputAction(EmuApp *, InputAction a)
 void NgpSystem::clearInputBuffers(EmuInputView &)
 {
 	inputBuff = {};
-}
-
-VControllerImageIndex NgpSystem::mapVControllerButton(unsigned key) const
-{
-	using enum VControllerImageIndex;
-	switch(key)
-	{
-		case ngpKeyIdxOption: return auxButton1;
-		case ngpKeyIdxATurbo:
-		case ngpKeyIdxA: return button1;
-		case ngpKeyIdxBTurbo:
-		case ngpKeyIdxB: return button2;
-		default: return button1;
-	}
 }
 
 SystemInputDeviceDesc NgpSystem::inputDeviceDesc(int idx) const

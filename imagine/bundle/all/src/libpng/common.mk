@@ -1,12 +1,8 @@
-ifndef pnglibconfFile
- pnglibconfFile := pnglibconf.rw-min.h
-endif
-
 ifndef CHOST
  CHOST := $(shell $(CC) -dumpmachine)
 endif
 
-libpngVer := 1.6.13
+libpngVer := 1.6.39
 libpngSrcDir := $(tempDir)/libpng-$(libpngVer)
 libpngSrcArchive := libpng-$(libpngVer).tar.xz
 
@@ -42,7 +38,3 @@ $(makeFile) : $(libpngSrcDir)/configure
 	dir=`pwd` && cd $(@D) && $(libpngSrcDir)/configure --prefix='$${pcfiledir}/../..' --disable-shared \
 	--host=$(CHOST) $(buildArg) "CC=$(CC)" "CFLAGS=$(CPPFLAGS) $(CFLAGS)" \
 	"LDFLAGS=$(LDFLAGS) $(LDLIBS)" PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config
-	touch $(buildDir)/pnglibconf.dfn
-	touch $(buildDir)/pnglibconf.out
-	dir=`pwd` && cp $$dir/$(pnglibconfFile) $(buildDir)/pnglibconf.h
-	touch $(buildDir)/pnglibconf.h

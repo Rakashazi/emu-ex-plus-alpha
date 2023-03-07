@@ -48,7 +48,7 @@ static PixmapImage makePixmapImage(JNIEnv *env, jobject bitmap, JNI::InstMethod<
 	return PixmapImage{{env, bitmap, recycle}, pix};
 }
 
-PixmapImage PixmapReader::load(const char *name) const
+PixmapImage PixmapReader::load(const char *name, PixmapReaderParams params) const
 {
 	auto env = app().thisThreadJniEnv();
 	auto nameJStr = env->NewStringUTF(name);
@@ -62,7 +62,7 @@ PixmapImage PixmapReader::load(const char *name) const
 	return makePixmapImage(env, bitmap, jRecycleBitmap);
 }
 
-PixmapImage PixmapReader::loadAsset(const char *name, const char *) const
+PixmapImage PixmapReader::loadAsset(const char *name, PixmapReaderParams, const char *) const
 {
 	logMsg("loading asset: %s", name);
 	auto env = app().thisThreadJniEnv();
@@ -99,6 +99,8 @@ PixmapImage::operator PixmapSource()
 {
 	return {pixmapView()};
 }
+
+bool PixmapImage::isPremultipled() const { return true; }
 
 BitmapWriter::BitmapWriter(ApplicationContext ctx):
 	appPtr{&ctx.application()},

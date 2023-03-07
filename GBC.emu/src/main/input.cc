@@ -16,6 +16,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
 #include "MainSystem.hh"
+#include "MainApp.hh"
 
 namespace EmuEx
 {
@@ -69,7 +70,40 @@ constexpr std::array gamepadComponents
 
 constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
-const int EmuSystem::inputFaceBtns = 2;
+constexpr FRect gpImageCoords(IRect cellRelBounds)
+{
+	constexpr FP imageSize{256, 128};
+	constexpr int cellSize = 32;
+	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
+}
+
+constexpr AssetDesc virtualControllerAssets[]
+{
+	// d-pad
+	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+	// gamepad buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}}, // select
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 3}, {2, 1}}), {1, 2}}, // start
+};
+
+AssetDesc GbcApp::vControllerAssetDesc(unsigned key) const
+{
+	switch(key)
+	{
+		case 0: return virtualControllerAssets[0];
+		case gbcKeyIdxATurbo:
+		case gbcKeyIdxA: return virtualControllerAssets[1];
+		case gbcKeyIdxBTurbo:
+		case gbcKeyIdxB: return virtualControllerAssets[2];
+		case gbcKeyIdxSelect: return virtualControllerAssets[3];
+		case gbcKeyIdxStart: return virtualControllerAssets[4];
+		default: return virtualControllerAssets[1];
+	}
+}
+
 const int EmuSystem::maxPlayers = 1;
 
 static bool isGamepadButton(unsigned input)
@@ -124,21 +158,6 @@ void GbcSystem::handleInputAction(EmuApp *, InputAction a)
 void GbcSystem::clearInputBuffers(EmuInputView &)
 {
 	gbcInput.bits = 0;
-}
-
-VControllerImageIndex GbcSystem::mapVControllerButton(unsigned key) const
-{
-	using enum VControllerImageIndex;
-	switch(key)
-	{
-		case gbcKeyIdxSelect: return auxButton1;
-		case gbcKeyIdxStart: return auxButton2;
-		case gbcKeyIdxATurbo:
-		case gbcKeyIdxA: return button1;
-		case gbcKeyIdxBTurbo:
-		case gbcKeyIdxB: return button2;
-		default: return button1;
-	}
 }
 
 SystemInputDeviceDesc GbcSystem::inputDeviceDesc(int idx) const

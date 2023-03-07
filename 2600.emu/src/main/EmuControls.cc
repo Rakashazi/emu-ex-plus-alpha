@@ -39,10 +39,10 @@ constexpr std::array<const std::string_view, joystickKeys> gamepadName
 	"Right+Up",
 	"Right+Down",
 	"Left+Down",
-	"Trigger",
-	"Trigger Turbo",
-	"Trigger 2",
-	"Trigger 2 Turbo",
+	"Fire",
+	"Fire Turbo",
+	"Extra Fire 1",
+	"Extra Fire 1 Turbo",
 };
 
 constexpr std::array<const std::string_view, switchKeys> switchName

@@ -31,11 +31,13 @@ class IO;
 namespace IG::Data
 {
 
+struct PixmapReaderParams;
+
 class PngImage
 {
 public:
 	constexpr PngImage() = default;
-	PngImage(IO);
+	PngImage(IO, PixmapReaderParams);
 	PngImage(PngImage &&o) noexcept;
 	PngImage &operator=(PngImage &&o) noexcept;
 	~PngImage();
@@ -50,6 +52,7 @@ public:
 protected:
 	png_struct_def *png{};
 	png_info_def *info{};
+	bool premultiplyAlpha{};
 	void setTransforms(IG::PixelFormat outFormat, png_info_def *transInfo);
 	static bool supportUncommonConv;
 };

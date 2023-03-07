@@ -125,7 +125,8 @@ static void png_memFree(png_structp png_ptr, png_voidp ptr)
 	delete[] (uint8_t*)ptr;
 }
 
-PngImage::PngImage(IO io)
+PngImage::PngImage(IO io, PixmapReaderParams params):
+	premultiplyAlpha{params.premultiplyAlpha}
 {
 	//logMsg("reading header from file handle @ %p",stream);
 	
@@ -241,6 +242,13 @@ void PngImage::setTransforms(PixelFormat outFormat, png_infop transInfo)
 		logMsg("adding alpha channel");
 			png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
 	}
+
+	#ifdef PNG_READ_ALPHA_MODE_SUPPORTED
+	if(premultiplyAlpha)
+	{
+		png_set_alpha_mode(png, PNG_ALPHA_STANDARD, PNG_GAMMA_LINEAR);
+	}
+	#endif
 
 	if(supportUncommonConv)
 	{
@@ -376,24 +384,26 @@ PixmapImage::operator PixmapSource()
 	return {[this](MutablePixmapView dest){ return write(dest); }, pixmapView()};
 }
 
-PixmapImage PixmapReader::load(IO io) const
+bool PixmapImage::isPremultipled() const { return premultiplyAlpha; }
+
+PixmapImage PixmapReader::load(IO io, PixmapReaderParams params) const
 {
-	return PixmapImage{std::move(io)};
+	return PixmapImage{std::move(io), params};
 }
 
-PixmapImage PixmapReader::load(const char *name) const
+PixmapImage PixmapReader::load(const char *name, PixmapReaderParams params) const
 {
 	if(!std::string_view{name}.ends_with(".png"))
 	{
 		logErr("suffix doesn't match PNG image");
 		return {};
 	}
-	return load(FileIO{name, IOAccessHint::All, OpenFlagsMask::Test});
+	return load(FileIO{name, IOAccessHint::All, OpenFlagsMask::Test}, params);
 }
 
-PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const
+PixmapImage PixmapReader::loadAsset(const char *name, PixmapReaderParams params, const char *appName) const
 {
-	return load(appContext().openAsset(name, IOAccessHint::All, {}, appName));
+	return load(appContext().openAsset(name, IOAccessHint::All, {}, appName), params);
 }
 
 bool PixmapWriter::writeToFile(PixmapView pix, const char *path) const

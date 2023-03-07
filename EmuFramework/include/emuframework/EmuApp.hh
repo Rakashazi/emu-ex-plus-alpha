@@ -102,6 +102,23 @@ WISE_ENUM_CLASS((AssetID, size_t),
 	gamepadOverlay,
 	keyboardOverlay);
 
+constexpr const char *assetFilename[wise_enum::size<AssetFileID>]
+{
+	"ui.png",
+	"gpOverlay.png",
+	"kbOverlay.png",
+};
+
+struct AssetDesc
+{
+	AssetFileID fileID;
+	FRect texBounds;
+	IP aspectRatio{1, 1};
+
+	constexpr size_t fileIdx() const { return to_underlying(fileID); }
+	constexpr auto filename() const { return assetFilename[fileIdx()]; }
+};
+
 enum class ScanValueMode
 {
 	NORMAL, ALLOW_BLANK
@@ -117,6 +134,8 @@ enum class AltSpeedMode
 {
 	fast, slow
 };
+
+constexpr float menuVideoBrightnessScale = .25f;
 
 class EmuApp : public IG::Application
 {
@@ -145,6 +164,11 @@ public:
 	static bool needsGlobalInstance;
 
 	EmuApp(IG::ApplicationInitParams, IG::ApplicationContext &);
+
+	// required sub-class API functions
+	bool willCreateSystem(ViewAttachParams, const Input::Event &);
+	AssetDesc vControllerAssetDesc(unsigned key) const;
+
 	void mainInitCommon(IG::ApplicationInitParams, IG::ApplicationContext);
 	static void onCustomizeNavView(NavView &v);
 	void createSystemWithMedia(IG::IO, IG::CStringView path, std::string_view displayName,
@@ -219,6 +243,7 @@ public:
 	void updateKeyboardMapping();
 	void toggleKeyboard();
 	Gfx::TextureSpan asset(AssetID) const;
+	Gfx::TextureSpan asset(AssetDesc) const;
 	void updateInputDevices(IG::ApplicationContext);
 	void setOnUpdateInputDevices(DelegateFunc<void ()>);
 	VController &defaultVController();
@@ -326,8 +351,9 @@ public:
 	void updateContentRotation();
 	bool shouldForceMaxScreenFrameRate() const { return forceMaxScreenFrameRate; }
 	void setForceMaxScreenFrameRate(bool on) { forceMaxScreenFrameRate = on; }
-	float videoBrightness(ImageChannel);
-	int videoBrightnessAsInt(ImageChannel ch) { return videoBrightness(ch) * 100.f; }
+	float videoBrightness(ImageChannel) const;
+	const Gfx::Vec3 &videoBrightnessAsRGB() const { return videoBrightnessRGB; }
+	int videoBrightnessAsInt(ImageChannel ch) const { return videoBrightness(ch) * 100.f; }
 	void setVideoBrightness(float brightness, ImageChannel);
 
 	// System Options
@@ -590,7 +616,6 @@ protected:
 		Gfx::DrawableConfig windowDrawableConf{};
 	};
 
-	bool willCreateSystem(ViewAttachParams, const Input::Event &);
 	void onMainWindowCreated(ViewAttachParams, const Input::Event &);
 	Gfx::TextureSpan collectTextCloseAsset() const;
 	ConfigParams loadConfigFile(IG::ApplicationContext);

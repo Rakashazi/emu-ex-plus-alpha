@@ -17,6 +17,7 @@
 #include <emuframework/EmuInput.hh>
 #include <imagine/util/format.hh>
 #include "MainSystem.hh"
+#include "MainApp.hh"
 #include <vbam/gba/GBA.h>
 
 namespace EmuEx
@@ -93,7 +94,54 @@ constexpr std::array gamepadComponents
 
 constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
-const int EmuSystem::inputFaceBtns = 4;
+constexpr FRect gpImageCoords(IRect cellRelBounds)
+{
+	constexpr FP imageSize{256, 256};
+	constexpr int cellSize = 32;
+	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
+}
+
+constexpr AssetDesc virtualControllerAssets[]
+{
+	// d-pad
+	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+	// gamepad buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // AB
+	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 4}, {2, 2}})}, // RB
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})}, // L
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 4}, {2, 2}})}, // R
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // select
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // start
+
+	// functions
+	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 6}, {2, 1}}), {1, 2}}, // light sensor +
+	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}}, // light sensor -
+};
+
+AssetDesc GbaApp::vControllerAssetDesc(unsigned key) const
+{
+	switch(key)
+	{
+		case 0: return virtualControllerAssets[0];
+		case gbaKeyIdxATurbo:
+		case gbaKeyIdxA: return virtualControllerAssets[1];
+		case gbaKeyIdxBTurbo:
+		case gbaKeyIdxB: return virtualControllerAssets[2];
+		case gbaKeyIdxAB: return virtualControllerAssets[3];
+		case gbaKeyIdxRB: return virtualControllerAssets[4];
+		case gbaKeyIdxL: return virtualControllerAssets[5];
+		case gbaKeyIdxR: return virtualControllerAssets[6];
+		case gbaKeyIdxSelect: return virtualControllerAssets[7];
+		case gbaKeyIdxStart: return virtualControllerAssets[8];
+		case gbaKeyIdxLightInc: return virtualControllerAssets[9];
+		case gbaKeyIdxLightDec: return virtualControllerAssets[10];
+		default: return virtualControllerAssets[1];
+	}
+}
+
 const int EmuSystem::maxPlayers = 1;
 constexpr int gbaKeypadBits = 10;
 constexpr unsigned gbaKeypadMask = 0x3FF;
@@ -191,23 +239,6 @@ void GbaSystem::clearInputBuffers(EmuInputView &)
 {
 	P1 = 0x03FF;
 	clearSensorValues();
-}
-
-VControllerImageIndex GbaSystem::mapVControllerButton(unsigned key) const
-{
-	using enum VControllerImageIndex;
-	switch(key)
-	{
-		case gbaKeyIdxSelect: return auxButton1;
-		case gbaKeyIdxStart: return auxButton2;
-		case gbaKeyIdxATurbo:
-		case gbaKeyIdxA: return button1;
-		case gbaKeyIdxBTurbo:
-		case gbaKeyIdxB: return button2;
-		case gbaKeyIdxL: return button3;
-		case gbaKeyIdxR: return button4;
-		default: return button1;
-	}
 }
 
 SystemInputDeviceDesc GbaSystem::inputDeviceDesc(int idx) const

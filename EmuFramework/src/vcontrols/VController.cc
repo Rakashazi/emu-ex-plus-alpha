@@ -60,60 +60,17 @@ int VController::yMMSizeToPixel(const IG::Window &win, float mm) const
 	return win.heightMMInPixels(mm);
 }
 
-static FRect gamepadButtonImageRect(VControllerImageIndex idx, float texHeight)
-{
-	using enum VControllerImageIndex;
-	switch(idx)
-	{
-		case button1: return {{0., 82.f/texHeight}, {32./64., 114.f/texHeight}};
-		case button2: return {{33./64., 83.f/texHeight}, {1., 114.f/texHeight}};
-		case button3:
-			if(texHeight == 128.f)
-				return {{0., 82.f/texHeight}, {32./64., 114.f/texHeight}};
-			else
-				return {{0., 115.f/texHeight}, {32./64., 147.f/texHeight}};
-		case button4:
-			if(texHeight == 128.f)
-				return {{33./64., 83.f/texHeight}, {1., 114.f/texHeight}};
-			else
-				return {{33./64., 116.f/texHeight}, {1., 147.f/texHeight}};
-		case button5: return {{0., 148.f/texHeight}, {32./64., 180.f/texHeight}};
-		case button6: return {{33./64., 149.f/texHeight}, {1., 180.f/texHeight}};
-		case button7: return {{0., 181.f/texHeight}, {32./64., 213.f/texHeight}};
-		case button8: return {{33./64., 182.f/texHeight}, {1., 213.f/texHeight}};
-		case auxButton1: return {{0., 65.f/texHeight}, {32./64., 81.f/texHeight}};
-		case auxButton2: return {{33./64., 65.f/texHeight}, {1., 81.f/texHeight}};
-	}
-	bug_unreachable("invalid VControllerImageIndex");
-}
-
-static int gamepadButtonImageAspectRatio(VControllerImageIndex idx)
-{
-	using enum VControllerImageIndex;
-	switch(idx)
-	{
-		case auxButton1 ... auxButton2: return 2;
-		default: return 1;
-	}
-}
-
-static void mapGamepadButtonImage(VControllerButton &btn, const EmuSystem &sys, const Gfx::Texture &tex, unsigned key, float texHeight)
-{
-	auto idx = sys.mapVControllerButton(key);
-	btn.setImage({&tex, gamepadButtonImageRect(idx, texHeight)}, gamepadButtonImageAspectRatio(idx));
-}
-
 static void updateTexture(const EmuApp &app, VControllerElement &e)
 {
-	const float h = EmuSystem::inputFaceBtns == 2 || EmuSystem::inputHasShortBtnTexture ? 128. : 256.;
 	visit(overloaded
 	{
-		[&](VControllerDPad &dpad){ dpad.setImage(Gfx::TextureSpan{app.asset(AssetID::gamepadOverlay).texturePtr, {{}, {1., 64.f/h}}}); },
+		[&](VControllerDPad &dpad){ dpad.setImage(app.asset(app.vControllerAssetDesc(0))); },
 		[&](VControllerButtonGroup &grp)
 		{
 			for(auto &btn : grp.buttons)
 			{
-				mapGamepadButtonImage(btn, app.system(), *app.asset(AssetID::gamepadOverlay).texturePtr, btn.key, h);
+				auto desc = app.vControllerAssetDesc(btn.key);
+				btn.setImage(app.asset(desc), desc.aspectRatio.y);
 			}
 		},
 		[&](VControllerUIButtonGroup &grp)
@@ -411,11 +368,13 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 {
 	if(alpha == 0.f) [[unlikely]]
 		return;
-	cmds.set(Gfx::BlendMode::ALPHA);
-	Gfx::Color whiteCol{1., 1., 1., alpha};
-	cmds.setColor(whiteCol);
+	cmds.set(Gfx::BlendMode::PREMULT_ALPHA);
 	if(isInKeyboardMode())
+	{
+		Gfx::Color whiteCol{alpha, alpha, alpha, alpha};
+		cmds.setColor(whiteCol);
 		kb.draw(cmds);
+	}
 	else if(gamepadIsVisible)
 	{
 		for(const auto &e : gpElements)
@@ -424,12 +383,12 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 				continue;
 			if(e.dPad() && gamepadDisabledFlags & VController::GAMEPAD_DPAD_BIT)
 				continue;
-			e.draw(cmds, showHidden);
+			e.draw(cmds, alpha, showHidden);
 		}
 	}
 	for(auto &e : uiElements)
 	{
-		e.draw(cmds, showHidden);
+		e.draw(cmds, alpha, showHidden);
 	}
 }
 

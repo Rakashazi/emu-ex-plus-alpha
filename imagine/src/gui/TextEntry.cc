@@ -275,7 +275,7 @@ void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 			if(cancelSpr.hasTexture())
 			{
 				cmds.setColor(ColorName::WHITE);
-				cmds.set(BlendMode::ALPHA);
+				cmds.set(BlendMode::PREMULT_ALPHA);
 				cancelSpr.draw(cmds, basicEffect);
 			}
 		});

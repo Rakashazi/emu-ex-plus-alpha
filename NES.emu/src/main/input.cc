@@ -17,6 +17,7 @@
 #include <emuframework/EmuInput.hh>
 #include <imagine/util/math/math.hh>
 #include "MainSystem.hh"
+#include "MainApp.hh"
 #include <fceu/fceu.h>
 
 namespace EmuEx
@@ -72,7 +73,42 @@ constexpr std::array gamepadComponents
 
 constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
-const int EmuSystem::inputFaceBtns = 2;
+constexpr FRect gpImageCoords(IRect cellRelBounds)
+{
+	constexpr FP imageSize{256, 128};
+	constexpr int cellSize = 32;
+	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
+}
+
+constexpr AssetDesc virtualControllerAssets[]
+{
+	// d-pad
+	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+	// gamepad buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}}, // select
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 3}, {2, 1}}), {1, 2}}, // start
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // AB
+};
+
+AssetDesc NesApp::vControllerAssetDesc(unsigned key) const
+{
+	switch(key)
+	{
+		case 0: return virtualControllerAssets[0];
+		case nesKeyIdxATurbo:
+		case nesKeyIdxA: return virtualControllerAssets[1];
+		case nesKeyIdxBTurbo:
+		case nesKeyIdxB: return virtualControllerAssets[2];
+		case nesKeyIdxSelect: return virtualControllerAssets[3];
+		case nesKeyIdxStart: return virtualControllerAssets[4];
+		case nesKeyIdxAB: return virtualControllerAssets[5];
+		default: return virtualControllerAssets[1];
+	}
+}
+
 const int EmuSystem::maxPlayers = 4;
 
 void NesSystem::connectNESInput(int port, ESI type)
@@ -213,21 +249,6 @@ void NesSystem::clearInputBuffers(EmuInputView &)
 	IG::fill(zapperData);
 	padData = {};
 	fcExtData = {};
-}
-
-VControllerImageIndex NesSystem::mapVControllerButton(unsigned key) const
-{
-	using enum VControllerImageIndex;
-	switch(key)
-	{
-		case nesKeyIdxSelect: return auxButton1;
-		case nesKeyIdxStart: return auxButton2;
-		case nesKeyIdxATurbo:
-		case nesKeyIdxA: return button1;
-		case nesKeyIdxBTurbo:
-		case nesKeyIdxB: return button2;
-		default: return button1;
-	}
 }
 
 SystemInputDeviceDesc NesSystem::inputDeviceDesc(int idx) const

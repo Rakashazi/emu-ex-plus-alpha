@@ -5,6 +5,7 @@
 #include <imagine/util/math/math.hh>
 #include <imagine/base/Window.hh>
 #include "MainSystem.hh"
+#include "MainApp.hh"
 #include <snes9x.h>
 #include <memmap.h>
 #include <display.h>
@@ -87,9 +88,53 @@ constexpr std::array gamepadComponents
 
 constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
-const int EmuSystem::inputFaceBtns = 6;
-const int EmuSystem::maxPlayers = 5;
+constexpr FRect gpImageCoords(IRect cellRelBounds)
+{
+	constexpr FP imageSize{256, 256};
+	constexpr int cellSize = 32;
+	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
+}
 
+constexpr AssetDesc virtualControllerAssets[]
+{
+	// d-pad
+	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+	// gamepad buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // X
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // Y
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})}, // L
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 4}, {2, 2}})}, // R
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // select
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // start
+};
+
+AssetDesc Snes9xApp::vControllerAssetDesc(unsigned key) const
+{
+	switch(key)
+	{
+		case 0: return virtualControllerAssets[0];
+		case s9xKeyIdxATurbo:
+		case s9xKeyIdxA: return virtualControllerAssets[1];
+		case s9xKeyIdxBTurbo:
+		case s9xKeyIdxB: return virtualControllerAssets[2];
+		case s9xKeyIdxXTurbo:
+		case s9xKeyIdxX: return virtualControllerAssets[3];
+		case s9xKeyIdxYTurbo:
+		case s9xKeyIdxY: return virtualControllerAssets[4];
+		case s9xKeyIdxLTurbo:
+		case s9xKeyIdxL: return virtualControllerAssets[5];
+		case s9xKeyIdxRTurbo:
+		case s9xKeyIdxR: return virtualControllerAssets[6];
+		case s9xKeyIdxSelect: return virtualControllerAssets[7];
+		case s9xKeyIdxStart: return virtualControllerAssets[8];
+		default: return virtualControllerAssets[1];
+	}
+}
+
+const int EmuSystem::maxPlayers = 5;
 
 // from controls.cpp
 #define SUPERSCOPE_FIRE			0x80
@@ -528,29 +573,6 @@ bool Snes9xSystem::onPointerInputEnd(const Input::MotionEvent &e, Input::DragTra
 		}
 	}
 	return false;
-}
-
-VControllerImageIndex Snes9xSystem::mapVControllerButton(unsigned key) const
-{
-	using enum VControllerImageIndex;
-	switch(key)
-	{
-		case s9xKeyIdxSelect: return auxButton1;
-		case s9xKeyIdxStart: return auxButton2;
-		case s9xKeyIdxATurbo:
-		case s9xKeyIdxA: return button1;
-		case s9xKeyIdxBTurbo:
-		case s9xKeyIdxB: return button2;
-		case s9xKeyIdxXTurbo:
-		case s9xKeyIdxX: return button3;
-		case s9xKeyIdxYTurbo:
-		case s9xKeyIdxY: return button4;
-		case s9xKeyIdxLTurbo:
-		case s9xKeyIdxL: return button5;
-		case s9xKeyIdxRTurbo:
-		case s9xKeyIdxR: return button6;
-		default: return button1;
-	}
 }
 
 SystemInputDeviceDesc Snes9xSystem::inputDeviceDesc(int idx) const

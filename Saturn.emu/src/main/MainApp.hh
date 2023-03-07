@@ -31,6 +31,7 @@ public:
 
 	auto &system() { return saturnSystem;  }
 	const auto &system() const { return saturnSystem;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = SaturnApp;

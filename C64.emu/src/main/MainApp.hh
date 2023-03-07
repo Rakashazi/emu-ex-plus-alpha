@@ -35,6 +35,7 @@ public:
 	auto &system() { return c64System;  }
 	const auto &system() const { return c64System;  }
 	bool willCreateSystem(ViewAttachParams, const Input::Event &);
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = C64App;

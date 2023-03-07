@@ -48,22 +48,21 @@ std::string VControllerButton::name(const EmuApp &app) const
 	return std::string{app.systemKeyName(key)};
 }
 
-void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds) const
+void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds, float alpha) const
 {
+	cmds.setColor({alpha, alpha, alpha, alpha});
 	cmds.drawRect(extendedBounds_);
 }
 
-void VControllerButton::drawSprite(Gfx::RendererCommands &__restrict__ cmds) const
+void VControllerButton::drawSprite(Gfx::RendererCommands &__restrict__ cmds, float alpha) const
 {
 	if(color != Gfx::Color{})
 	{
-		auto col = color;
-		col.a = cmds.color().a;
-		cmds.setColor(col);
+		cmds.setColor({color.r * alpha, color.g * alpha, color.b * alpha, alpha});
 	}
 	else
 	{
-		cmds.setColor({1.f, 1.f, 1.f, cmds.color().a});
+		cmds.setColor({alpha, alpha, alpha, alpha});
 	}
 	sprite().draw(cmds);
 }

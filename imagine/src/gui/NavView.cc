@@ -258,7 +258,7 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	if(control[0].isActive)
 	{
 		assumeExpr(leftSpr.hasTexture());
-		cmds.set(BlendMode::ALPHA);
+		cmds.set(BlendMode::PREMULT_ALPHA);
 		cmds.setColor(ColorName::WHITE);
 		auto trans = Mat4::makeTranslate(control[0].rect.pos(C2DO));
 		if(rotateLeftBtn)
@@ -269,7 +269,7 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	if(control[2].isActive)
 	{
 		assumeExpr(rightSpr.hasTexture());
-		cmds.set(BlendMode::ALPHA);
+		cmds.set(BlendMode::PREMULT_ALPHA);
 		cmds.setColor(ColorName::WHITE);
 		basicEffect.setModelView(cmds, Mat4::makeTranslate(control[2].rect.pos(C2DO)));
 		rightSpr.draw(cmds, basicEffect);

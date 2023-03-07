@@ -16,6 +16,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
 #include "MainSystem.hh"
+#include "MainApp.hh"
 
 namespace EmuEx
 {
@@ -96,7 +97,56 @@ constexpr std::array gamepadComponents
 
 constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
-const int EmuSystem::inputFaceBtns = 6;
+constexpr FRect gpImageCoords(IRect cellRelBounds)
+{
+	constexpr FP imageSize{256, 256};
+	constexpr int cellSize = 32;
+	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
+}
+
+constexpr AssetDesc virtualControllerAssets[]
+{
+	// d-pad
+	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+	// gamepad buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // 1
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // 2
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})}, // 3
+	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 4}, {2, 2}})}, // 4
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // start
+};
+
+AssetDesc WsApp::vControllerAssetDesc(unsigned key) const
+{
+	switch(key)
+	{
+		case 0: return virtualControllerAssets[0];
+		case wsKeyIdxANoRotation:
+		case wsKeyIdxATurbo:
+		case wsKeyIdxA: return virtualControllerAssets[1];
+		case wsKeyIdxBNoRotation:
+		case wsKeyIdxBTurbo:
+		case wsKeyIdxB: return virtualControllerAssets[2];
+		case wsKeyIdxY1X1:
+		case wsKeyIdxY1Turbo:
+		case wsKeyIdxY1: return virtualControllerAssets[3];
+		case wsKeyIdxY2X2:
+		case wsKeyIdxY2Turbo:
+		case wsKeyIdxY2: return virtualControllerAssets[4];
+		case wsKeyIdxY3X3:
+		case wsKeyIdxY3Turbo:
+		case wsKeyIdxY3: return virtualControllerAssets[5];
+		case wsKeyIdxY4X4:
+		case wsKeyIdxY4Turbo:
+		case wsKeyIdxY4: return virtualControllerAssets[6];
+		case wsKeyIdxStart: return virtualControllerAssets[7];
+		default: return virtualControllerAssets[1];
+	}
+}
+
 const int EmuSystem::maxPlayers = 1;
 
 enum KeypadMask: unsigned
@@ -226,34 +276,6 @@ void WsSystem::setupInput(EmuApp &app)
 			app.unsetDisabledInputKeys();
 		else
 			app.setDisabledInputKeys(oppositeDPadButtonCodes);
-	}
-}
-
-VControllerImageIndex WsSystem::mapVControllerButton(unsigned key) const
-{
-	using enum VControllerImageIndex;
-	switch(key)
-	{
-		case wsKeyIdxStart: return auxButton1;
-		case wsKeyIdxANoRotation:
-		case wsKeyIdxATurbo:
-		case wsKeyIdxA: return button1;
-		case wsKeyIdxBNoRotation:
-		case wsKeyIdxBTurbo:
-		case wsKeyIdxB: return button2;
-		case wsKeyIdxY1X1:
-		case wsKeyIdxY1Turbo:
-		case wsKeyIdxY1: return button3;
-		case wsKeyIdxY2X2:
-		case wsKeyIdxY2Turbo:
-		case wsKeyIdxY2: return button4;
-		case wsKeyIdxY3X3:
-		case wsKeyIdxY3Turbo:
-		case wsKeyIdxY3: return button5;
-		case wsKeyIdxY4X4:
-		case wsKeyIdxY4Turbo:
-		case wsKeyIdxY4: return button6;
-		default: return button1;
 	}
 }
 

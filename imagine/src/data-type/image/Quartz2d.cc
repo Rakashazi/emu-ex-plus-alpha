@@ -115,7 +115,9 @@ PixmapImage::operator PixmapSource()
 	return {[this](MutablePixmapView dest){ return write(dest); }, pixmapView()};
 }
 
-PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const
+bool PixmapImage::isPremultipled() const { return true; }
+
+PixmapImage PixmapReader::loadAsset(const char *name, PixmapReaderParams, const char *appName) const
 {
 	return PixmapImage(FS::pathString(appContext().assetPath(appName), name));
 }

@@ -16,6 +16,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
 #include "MainSystem.hh"
+#include "MainApp.hh"
 
 namespace EmuEx
 {
@@ -77,7 +78,48 @@ constexpr std::array gamepadComponents
 
 constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
-const int EmuSystem::inputFaceBtns = 6;
+constexpr FRect gpImageCoords(IRect cellRelBounds)
+{
+	constexpr FP imageSize{256, 256};
+	constexpr int cellSize = 32;
+	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
+}
+
+constexpr AssetDesc virtualControllerAssets[]
+{
+	// d-pad
+	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+	// gamepad buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // I
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // II
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // III
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // IV
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})}, // V
+	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 4}, {2, 2}})}, // VI
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // select
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // run
+};
+
+AssetDesc PceApp::vControllerAssetDesc(unsigned key) const
+{
+	switch(key)
+	{
+		case 0: return virtualControllerAssets[0];
+		case pceKeyIdxITurbo:
+		case pceKeyIdxI: return virtualControllerAssets[1];
+		case pceKeyIdxIITurbo:
+		case pceKeyIdxII: return virtualControllerAssets[2];
+		case pceKeyIdxIII: return virtualControllerAssets[3];
+		case pceKeyIdxIV: return virtualControllerAssets[4];
+		case pceKeyIdxV: return virtualControllerAssets[5];
+		case pceKeyIdxVI: return virtualControllerAssets[6];
+		case pceKeyIdxSelect: return virtualControllerAssets[7];
+		case pceKeyIdxRun: return virtualControllerAssets[8];
+		default: return virtualControllerAssets[1];
+	}
+}
+
 const int EmuSystem::maxPlayers = 5;
 unsigned playerBit = 13;
 
@@ -163,25 +205,6 @@ void set6ButtonPadEnabled(EmuApp &app, bool on)
 	{
 		static constexpr unsigned extraCodes[]{pceKeyIdxIII, pceKeyIdxIV, pceKeyIdxV, pceKeyIdxVI};
 		app.setDisabledInputKeys(extraCodes);
-	}
-}
-
-VControllerImageIndex PceSystem::mapVControllerButton(unsigned key) const
-{
-	using enum VControllerImageIndex;
-	switch(key)
-	{
-		case pceKeyIdxSelect: return auxButton1;
-		case pceKeyIdxRun: return auxButton2;
-		case pceKeyIdxITurbo:
-		case pceKeyIdxI: return button1;
-		case pceKeyIdxIITurbo:
-		case pceKeyIdxII: return button2;
-		case pceKeyIdxIII: return button3;
-		case pceKeyIdxIV: return button4;
-		case pceKeyIdxV: return button5;
-		case pceKeyIdxVI: return button6;
-		default: return button1;
 	}
 }
 

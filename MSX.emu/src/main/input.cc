@@ -108,13 +108,67 @@ constexpr unsigned jsButtonCodes[]
 constexpr std::array jsComponents
 {
 	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Joystick Button", jsButtonCodes, InputComponent::button, RB2DO},
+	InputComponentDesc{"Joystick Buttons", jsButtonCodes, InputComponent::button, RB2DO},
 	InputComponentDesc{"Space & Keyboard Toggle", shortcutButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::rowSize1},
 };
 
 constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};
 
-const int EmuSystem::inputFaceBtns = 2;
+constexpr FRect gpImageCoords(IRect cellRelBounds)
+{
+	constexpr FP imageSize{512, 256};
+	constexpr int cellSize = 32;
+	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
+}
+
+constexpr AssetDesc virtualControllerAssets[]
+{
+	// d-pad
+	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+	// js buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})},
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})},
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})},
+
+	// coleco kb buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{8,  0}, {2, 2}})}, // 0
+	{AssetFileID::gamepadOverlay, gpImageCoords({{10, 0}, {2, 2}})}, // 1
+	{AssetFileID::gamepadOverlay, gpImageCoords({{12, 0}, {2, 2}})}, // 2
+	{AssetFileID::gamepadOverlay, gpImageCoords({{14, 0}, {2, 2}})}, // 3
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4,  2}, {2, 2}})}, // 4
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6,  2}, {2, 2}})}, // 5
+	{AssetFileID::gamepadOverlay, gpImageCoords({{8,  2}, {2, 2}})}, // 6
+	{AssetFileID::gamepadOverlay, gpImageCoords({{10, 2}, {2, 2}})}, // 7
+	{AssetFileID::gamepadOverlay, gpImageCoords({{12, 2}, {2, 2}})}, // 8
+	{AssetFileID::gamepadOverlay, gpImageCoords({{14, 2}, {2, 2}})}, // 9
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0,  4}, {2, 2}})}, // *
+	{AssetFileID::gamepadOverlay, gpImageCoords({{2,  4}, {2, 2}})}, // #
+
+	// functions
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // KB
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // space key
+};
+
+AssetDesc MsxApp::vControllerAssetDesc(unsigned key) const
+{
+	const int kbOffset = 4;
+	const int switchOffset = kbOffset + 12;
+	switch(key)
+	{
+		case 0: return virtualControllerAssets[0];
+		case msxKeyIdxJS1Btn:
+		case msxKeyIdxJS1BtnTurbo: return virtualControllerAssets[2];
+		case msxKeyIdxJS2Btn:
+		case msxKeyIdxJS2BtnTurbo: return virtualControllerAssets[3];
+		case msxKeyIdxColeco0Num ... msxKeyIdxColecoHash:
+			return virtualControllerAssets[kbOffset + (key - msxKeyIdxColeco0Num)];
+		case msxKeyIdxToggleKb: return virtualControllerAssets[switchOffset];
+		case msxKeyIdxKbStart + EC_SPACE: return virtualControllerAssets[switchOffset + 1];
+		default: return virtualControllerAssets[1];
+	}
+}
+
 bool EmuSystem::inputHasKeyboard = true;
 const int EmuSystem::maxPlayers = 2;
 
@@ -253,21 +307,6 @@ void MsxSystem::handleInputAction(EmuApp *appPtr, InputAction a)
 void MsxSystem::clearInputBuffers(EmuInputView &)
 {
 	IG::fill(eventMap);
-}
-
-VControllerImageIndex MsxSystem::mapVControllerButton(unsigned key) const
-{
-	using enum VControllerImageIndex;
-	switch(key)
-	{
-		case msxKeyIdxKbStart + EC_SPACE: return auxButton1;
-		case msxKeyIdxToggleKb: return auxButton1;
-		case msxKeyIdxJS1Btn:
-		case msxKeyIdxJS1BtnTurbo: return button1;
-		case msxKeyIdxJS2Btn:
-		case msxKeyIdxJS2BtnTurbo: return button2;
-		default: return button1;
-	}
 }
 
 SystemInputDeviceDesc MsxSystem::inputDeviceDesc(int idx) const

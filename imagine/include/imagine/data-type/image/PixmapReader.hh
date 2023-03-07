@@ -46,15 +46,21 @@ public:
 	PixmapView pixmapView();
 	explicit operator bool() const;
 	operator PixmapSource();
+	bool isPremultipled() const;
+};
+
+struct PixmapReaderParams
+{
+	bool premultiplyAlpha{true};
 };
 
 class PixmapReader final: public PixmapReaderImpl
 {
 public:
 	using PixmapReaderImpl::PixmapReaderImpl;
-	PixmapImage load(IO) const;
-	PixmapImage load(const char *name) const;
-	PixmapImage loadAsset(const char *name, const char *appName = ApplicationContext::applicationName) const;
+	PixmapImage load(IO, PixmapReaderParams p = {}) const;
+	PixmapImage load(const char *name, PixmapReaderParams p = {}) const;
+	PixmapImage loadAsset(const char *name, PixmapReaderParams p = {}, const char *appName = ApplicationContext::applicationName) const;
 };
 
 }

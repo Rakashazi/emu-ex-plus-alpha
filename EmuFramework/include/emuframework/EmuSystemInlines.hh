@@ -229,11 +229,6 @@ std::span<const AspectRatioInfo> EmuSystem::aspectRatioInfos()
 	return MainSystem::aspectRatioInfos();
 }
 
-VControllerImageIndex EmuSystem::mapVControllerButton(unsigned key) const
-{
-	return static_cast<const MainSystem*>(this)->mapVControllerButton(key);
-}
-
 SystemInputDeviceDesc EmuSystem::inputDeviceDesc(int idx) const
 {
 	return static_cast<const MainSystem*>(this)->inputDeviceDesc(idx);

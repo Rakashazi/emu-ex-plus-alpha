@@ -31,6 +31,7 @@ public:
 
 	auto &system() { return snes9xSystem;  }
 	const auto &system() const { return snes9xSystem;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = Snes9xApp;

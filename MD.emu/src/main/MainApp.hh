@@ -31,6 +31,7 @@ public:
 
 	auto &system() { return mdSystem;  }
 	const auto &system() const { return mdSystem;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = MdApp;

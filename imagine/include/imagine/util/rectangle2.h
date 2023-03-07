@@ -329,6 +329,8 @@ public:
 
 	[[nodiscard]] constexpr bool isPortrait() const { return xSize() < ySize(); }
 	[[nodiscard]] constexpr bool isLandscape() const { return !isPortrait(); }
+
+	[[nodiscard]] constexpr Rect2 relToAbs() const { return {{x, y}, {x + x2, y + y2}}; }
 };
 
 template<class T>

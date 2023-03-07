@@ -31,6 +31,7 @@ public:
 
 	auto &system() { return gbcSystem;  }
 	const auto &system() const { return gbcSystem;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = GbcApp;

@@ -36,7 +36,6 @@ namespace EmuEx
 {
 
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
-[[gnu::weak]] bool EmuSystem::inputHasShortBtnTexture = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
 [[gnu::weak]] double EmuSystem::staticFrameTime = 1. / 60.;

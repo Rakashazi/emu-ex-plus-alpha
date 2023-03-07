@@ -31,6 +31,7 @@ public:
 
 	auto &system() { return ngpSystem;  }
 	const auto &system() const { return ngpSystem;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = NgpApp;

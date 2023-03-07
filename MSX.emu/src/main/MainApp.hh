@@ -31,6 +31,7 @@ public:
 
 	auto &system() { return msxSystem;  }
 	const auto &system() const { return msxSystem;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = MsxApp;

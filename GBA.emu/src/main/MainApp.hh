@@ -31,6 +31,7 @@ public:
 
 	auto &system() { return gbaSystem;  }
 	const auto &system() const { return gbaSystem;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = GbaApp;

@@ -172,7 +172,7 @@ void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness)
 	else
 	{
 		cmds.setColor({brightness.r, brightness.g, brightness.b, intensity});
-		cmds.set(BlendMode::ALPHA);
+		cmds.set(BlendMode::PREMULT_ALPHA);
 	}
 	spr.draw(cmds, cmds.basicEffect());
 }

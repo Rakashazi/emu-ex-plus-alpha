@@ -26,11 +26,13 @@ PlaceVideoView::PlaceVideoView(ViewAttachParams attach, EmuVideoLayer &layer, VC
 	resetText{"Reset", &defaultFace()}
 {
 	app().applyOSNavStyle(appContext(), true);
+	layer.setBrightness(app().videoBrightnessAsRGB());
 }
 
 PlaceVideoView::~PlaceVideoView()
 {
 	app().applyOSNavStyle(appContext(), false);
+	layer.setBrightness(app().videoBrightnessAsRGB() * menuVideoBrightnessScale);
 }
 
 void PlaceVideoView::place()

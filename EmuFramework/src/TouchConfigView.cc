@@ -217,10 +217,8 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 
 static void drawVControllerElement(Gfx::RendererCommands &__restrict__ cmds, const VControllerElement &elem, size_t layoutIdx)
 {
-	cmds.set(Gfx::BlendMode::ALPHA);
-	Gfx::Color whiteCol{1., 1., 1., .75};
-	cmds.setColor(whiteCol);
-	elem.draw(cmds, layoutIdx);
+	cmds.set(Gfx::BlendMode::PREMULT_ALPHA);
+	elem.draw(cmds, .75, layoutIdx);
 }
 
 static void addCategories(EmuApp &app, VControllerElement &elem, auto &&addCategory)

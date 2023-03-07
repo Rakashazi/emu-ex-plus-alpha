@@ -31,6 +31,7 @@ public:
 
 	auto &system() { return pceSystem;  }
 	const auto &system() const { return pceSystem;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = PceApp;

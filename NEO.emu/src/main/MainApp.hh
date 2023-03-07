@@ -31,6 +31,7 @@ public:
 
 	auto &system() { return neoSystem;  }
 	const auto &system() const { return neoSystem;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = NeoApp;

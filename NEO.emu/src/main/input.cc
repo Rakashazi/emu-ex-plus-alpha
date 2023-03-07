@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuInput.hh>
 #include "MainSystem.hh"
+#include "MainApp.hh"
 
 extern "C"
 {
@@ -81,7 +82,50 @@ constexpr std::array gamepadComponents
 
 constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
-const int EmuSystem::inputFaceBtns = 4;
+constexpr FRect gpImageCoords(IRect cellRelBounds)
+{
+	constexpr FP imageSize{256, 256};
+	constexpr int cellSize = 32;
+	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
+}
+
+constexpr AssetDesc virtualControllerAssets[]
+{
+	// d-pad
+	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+	// gamepad buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // C
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // D
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})}, // ABC
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // select
+	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // start
+	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 6}, {2, 1}}), {1, 2}}, // test
+};
+
+AssetDesc NeoApp::vControllerAssetDesc(unsigned key) const
+{
+	switch(key)
+	{
+		case 0: return virtualControllerAssets[0];
+		case neogeoKeyIdxATurbo:
+		case neogeoKeyIdxA: return virtualControllerAssets[1];
+		case neogeoKeyIdxBTurbo:
+		case neogeoKeyIdxB: return virtualControllerAssets[2];
+		case neogeoKeyIdxXTurbo:
+		case neogeoKeyIdxX: return virtualControllerAssets[3];
+		case neogeoKeyIdxYTurbo:
+		case neogeoKeyIdxY: return virtualControllerAssets[4];
+		case neogeoKeyIdxABC: return virtualControllerAssets[5];
+		case neogeoKeyIdxSelect: return virtualControllerAssets[6];
+		case neogeoKeyIdxStart: return virtualControllerAssets[7];
+		case neogeoKeyIdxTestSwitch: return virtualControllerAssets[8];
+		default: return virtualControllerAssets[1];
+	}
+}
+
 const int EmuSystem::maxPlayers = 2;
 
 namespace NGKey
@@ -222,25 +266,6 @@ void NeoSystem::clearInputBuffers(EmuInputView &)
 	memory.intern_start = 0x8F;
 	memory.intern_p1 = 0xFF;
 	memory.intern_p2 = 0xFF;
-}
-
-VControllerImageIndex NeoSystem::mapVControllerButton(unsigned key) const
-{
-	using enum VControllerImageIndex;
-	switch(key)
-	{
-		case neogeoKeyIdxSelect: return auxButton1;
-		case neogeoKeyIdxStart: return auxButton2;
-		case neogeoKeyIdxATurbo:
-		case neogeoKeyIdxA: return button1;
-		case neogeoKeyIdxBTurbo:
-		case neogeoKeyIdxB: return button2;
-		case neogeoKeyIdxXTurbo:
-		case neogeoKeyIdxX: return button3;
-		case neogeoKeyIdxYTurbo:
-		case neogeoKeyIdxY: return button4;
-		default: return button1;
-	}
 }
 
 SystemInputDeviceDesc NeoSystem::inputDeviceDesc(int idx) const

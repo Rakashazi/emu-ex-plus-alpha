@@ -50,8 +50,8 @@ struct Point2D : public AssignmentArithmetics< Point2D<T> >
 	constexpr Point2D operator *(T const& rhs) const { return {T(x * rhs), T(y * rhs)}; }
 	constexpr Point2D operator /(T const& rhs) const { return {T(x / rhs), T(y / rhs)}; }
 
-	template <class Ratio>
-	constexpr Ratio ratio() const { return Ratio(x)/Ratio(y); }
+	template <class Ratio = T>
+	constexpr Ratio ratio() const { return Ratio(x) / Ratio(y); }
 
 	constexpr T vectorLength() { return distance({(T)0, (T)0}); }
 	constexpr T midpoint() { return std::midpoint(x, y); }

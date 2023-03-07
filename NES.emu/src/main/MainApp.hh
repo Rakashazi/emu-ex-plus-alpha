@@ -34,6 +34,7 @@ public:
 
 	auto &system() { return nesSystem;  }
 	const auto &system() const { return nesSystem;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = NesApp;

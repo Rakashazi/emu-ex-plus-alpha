@@ -186,9 +186,7 @@ public:
 	// Static system configuration
 	static const int maxPlayers;
 	static const char *configFilename;
-	static const int inputFaceBtns;
 	static bool inputHasKeyboard;
-	static bool inputHasShortBtnTexture;
 	static bool hasBundledGames;
 	static bool hasPALVideoSystem;
 	static double staticFrameTime;
@@ -223,7 +221,6 @@ public:
 	InputAction translateInputAction(InputAction);
 	void configAudioRate(FloatSeconds frameTime, int rate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
-	VControllerImageIndex mapVControllerButton(unsigned key) const;
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
 
 	// optional sub-class API functions

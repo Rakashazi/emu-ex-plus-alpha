@@ -34,6 +34,7 @@ public:
 
 	auto &system() { return a2600System;  }
 	const auto &system() const { return a2600System;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = A2600App;

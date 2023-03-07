@@ -16,6 +16,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
 #include "MainSystem.hh"
+#include "MainApp.hh"
 
 extern "C"
 {
@@ -178,7 +179,49 @@ constexpr std::array jsComponents
 
 constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};
 
-const int EmuSystem::inputFaceBtns = 2;
+constexpr FRect gpImageCoords(IRect cellRelBounds)
+{
+	constexpr FP imageSize{256, 128};
+	constexpr int cellSize = 32;
+	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
+}
+
+constexpr AssetDesc virtualControllerAssets[]
+{
+	// d-pad
+	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+	// js buttons
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})},
+
+	// functions
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 1}}), {1, 2}}, // KB
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 1}, {2, 1}}), {1, 2}}, // Swap JS ports
+
+	// f-keys
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}}, // F1
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 1}}), {1, 2}}, // F3
+	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 3}, {2, 1}}), {1, 2}}, // F5
+	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 3}, {2, 1}}), {1, 2}}, // F7
+};
+
+AssetDesc C64App::vControllerAssetDesc(unsigned key) const
+{
+	const int kbOffset = 4;
+	const int switchOffset = kbOffset + 12;
+	switch(key)
+	{
+		case 0: return virtualControllerAssets[0];
+		case c64KeyF1: return virtualControllerAssets[4];
+		case c64KeyF3: return virtualControllerAssets[5];
+		case c64KeyF5: return virtualControllerAssets[6];
+		case c64KeyF7: return virtualControllerAssets[7];
+		case c64KeyToggleKB: return virtualControllerAssets[2];
+		case c64KeyIdxSwapPorts: return virtualControllerAssets[3];
+		default: return virtualControllerAssets[1];
+	}
+}
+
 bool EmuSystem::inputHasKeyboard = true;
 const int EmuSystem::maxPlayers = 2;
 
@@ -522,19 +565,6 @@ void C64System::setJoystickMode(JoystickMode mode)
 	{
 		setIntResource("JoyPort1Device", JOYPORT_ID_JOYSTICK);
 		setIntResource("JoyPort2Device", JOYPORT_ID_JOYSTICK);
-	}
-}
-
-VControllerImageIndex C64System::mapVControllerButton(unsigned key) const
-{
-	using enum VControllerImageIndex;
-	switch(key)
-	{
-		case c64KeyF1: return auxButton1;
-		case c64KeyToggleKB: return auxButton2;
-		case c64KeyIdxBtn: return button1;
-		case c64KeyIdxBtnTurbo: return button2;
-		default: return button1;
 	}
 }
 

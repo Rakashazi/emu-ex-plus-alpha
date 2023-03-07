@@ -31,6 +31,7 @@ public:
 
 	auto &system() { return wsSystem;  }
 	const auto &system() const { return wsSystem;  }
+	AssetDesc vControllerAssetDesc(unsigned key) const;
 };
 
 using MainApp = WsApp;

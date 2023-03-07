@@ -64,20 +64,6 @@ struct VControllerLayoutPosition
 	WP toPixelPos(WindowRect viewBounds) const;
 };
 
-enum class VControllerImageIndex
-{
-	button1,
-	button2,
-	button3,
-	button4,
-	button5,
-	button6,
-	button7,
-	button8,
-	auxButton1,
-	auxButton2,
-};
-
 constexpr int16_t defaultDPadDeadzoneMM100x = 135;
 constexpr float defaultDPadDiagonalSensitivity = .57f;
 constexpr int8_t defaultButtonSpacingMM = 2;
@@ -100,7 +86,7 @@ public:
 		config{.keys{keys[0], keys[1], keys[2], keys[3]}} {}
 	constexpr VControllerDPad(const Config &config): config{config} {}
 	void setImage(Gfx::TextureSpan);
-	void draw(Gfx::RendererCommands &__restrict__) const;
+	void draw(Gfx::RendererCommands &__restrict__, float alpha) const;
 	void setShowBounds(Gfx::Renderer &r, bool on);
 	bool showBounds() const { return config.visualizeBounds; }
 	std::array<int, 2> getInput(WP c) const;
@@ -196,8 +182,8 @@ public:
 	WRect bounds() const { return bounds_; }
 	WRect realBounds() const { return extendedBounds_; }
 	const Gfx::Sprite &sprite() const { return spr; }
-	void drawBounds(Gfx::RendererCommands &__restrict__) const;
-	void drawSprite(Gfx::RendererCommands &__restrict__) const;
+	void drawBounds(Gfx::RendererCommands &__restrict__, float alpha) const;
+	void drawSprite(Gfx::RendererCommands &__restrict__, float alpha) const;
 	std::string name(const EmuApp &) const;
 	bool overlaps(WP windowPos) const { return enabled && realBounds().overlaps(windowPos); }
 
@@ -253,7 +239,7 @@ public:
 	WRect realBounds() const { return bounds() + paddingRect(); }
 	int rows() const;
 	std::array<int, 2> findButtonIndices(WP windowPos) const;
-	void draw(Gfx::RendererCommands &__restrict__) const;
+	void draw(Gfx::RendererCommands &__restrict__, float alpha) const;
 	std::string name(const EmuApp &) const;
 	void updateMeasurements(const Window &win);
 	void transposeKeysForPlayer(const EmuApp &, int player);
@@ -282,7 +268,7 @@ protected:
 	int16_t btnStagger{};
 	int16_t btnRowShift{};
 
-	void drawButtons(Gfx::RendererCommands &__restrict__) const;
+	void drawButtons(Gfx::RendererCommands &__restrict__, float alpha) const;
 public:
 	LayoutConfig layout{};
 };
@@ -313,7 +299,7 @@ public:
 	auto bounds() const { return bounds_; }
 	WRect realBounds() const { return bounds(); }
 	int rows() const;
-	void draw(Gfx::RendererCommands &__restrict__) const;
+	void draw(Gfx::RendererCommands &__restrict__, float alpha) const;
 	std::string name(const EmuApp &) const;
 
 	static size_t layoutConfigSize()
@@ -368,11 +354,11 @@ public:
 		return state == VControllerState::SHOWN || (showHidden && state != VControllerState::OFF);
 	}
 
-	void draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden) const
+	void draw(Gfx::RendererCommands &__restrict__ cmds, float alpha, bool showHidden) const
 	{
 		if(!shouldDraw(state, showHidden))
 			return;
-		visit([&](auto &e){ e.draw(cmds); }, *this);
+		visit([&](auto &e){ e.draw(cmds, alpha); }, *this);
 	}
 
 	void place(WRect viewBounds, WRect windowBounds, int layoutIdx)

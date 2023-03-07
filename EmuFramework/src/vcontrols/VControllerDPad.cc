@@ -145,9 +145,10 @@ void VControllerDPad::transposeKeysForPlayer(const EmuApp &app, int player)
 	}
 }
 
-void VControllerDPad::draw(Gfx::RendererCommands &__restrict__ cmds) const
+void VControllerDPad::draw(Gfx::RendererCommands &__restrict__ cmds, float alpha) const
 {
 	cmds.basicEffect().enableTexture(cmds);
+	cmds.setColor({alpha, alpha, alpha, alpha});
 	spr.draw(cmds);
 	if(config.visualizeBounds)
 	{

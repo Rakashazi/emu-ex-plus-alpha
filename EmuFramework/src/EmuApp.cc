@@ -53,24 +53,7 @@ constexpr uint8_t OPTION_SOUND_DEFAULT_FLAGS = OPTION_SOUND_ENABLED_FLAG | OPTIO
 static EmuApp *gAppPtr{};
 [[gnu::weak]] bool EmuApp::hasIcon = true;
 [[gnu::weak]] bool EmuApp::needsGlobalInstance = false;
-constexpr float menuVideoBrightnessScale = .25f;
 constexpr float pausedVideoBrightnessScale = .75f;
-
-constexpr const char *assetFilename[wise_enum::size<AssetFileID>]
-{
-	"ui.png",
-	"overlays128.png",
-	"kbOverlay.png",
-};
-
-struct AssetDesc
-{
-	AssetFileID fileID;
-	FRect texBounds;
-
-	constexpr size_t fileIdx() const { return to_underlying(fileID); }
-	constexpr auto filename() const { return assetFilename[fileIdx()]; }
-};
 
 constexpr AssetDesc assetDesc[wise_enum::size<AssetID>]
 {
@@ -255,7 +238,11 @@ public:
 Gfx::TextureSpan EmuApp::asset(AssetID assetID) const
 {
 	assumeExpr(to_underlying(assetID) < wise_enum::size<AssetID>);
-	const auto &desc = assetDesc[to_underlying(assetID)];
+	return asset(assetDesc[to_underlying(assetID)]);
+}
+
+Gfx::TextureSpan EmuApp::asset(AssetDesc desc) const
+{
 	auto &res = assetBuffImg[desc.fileIdx()];
 	if(!res)
 	{
@@ -2039,7 +2026,7 @@ void EmuApp::removeOnFrame()
 	viewController().emuWindow().removeOnFrame(system().onFrameUpdate, windowFrameClockSource());
 }
 
-static float &videoBrightnessVal(ImageChannel ch, Gfx::Vec3 &videoBrightnessRGB)
+static auto &videoBrightnessVal(ImageChannel ch, auto &videoBrightnessRGB)
 {
 	switch(ch)
 	{
@@ -2051,7 +2038,7 @@ static float &videoBrightnessVal(ImageChannel ch, Gfx::Vec3 &videoBrightnessRGB)
 	bug_unreachable("invalid ImageChannel");
 }
 
-float EmuApp::videoBrightness(ImageChannel ch)
+float EmuApp::videoBrightness(ImageChannel ch) const
 {
 	return videoBrightnessVal(ch, videoBrightnessRGB);
 }
