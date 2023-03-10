@@ -15,8 +15,8 @@
 
 #include <emuframework/SystemOptionView.hh>
 #include <emuframework/GUIOptionView.hh>
-#include <emuframework/EmuMainMenuView.hh>
-#include <emuframework/EmuSystemActionsView.hh>
+#include <emuframework/MainMenuView.hh>
+#include <emuframework/SystemActionsView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/ScopeGuard.hh>
@@ -620,7 +620,7 @@ public:
 	}*/
 };
 
-class CustomSystemActionsView : public EmuSystemActionsView
+class CustomSystemActionsView : public SystemActionsView
 {
 private:
 	TextMenuItem unibiosSwitches
@@ -655,7 +655,7 @@ private:
 	};
 
 public:
-	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	CustomSystemActionsView(ViewAttachParams attach): SystemActionsView{attach, true}
 	{
 		item.emplace_back(&unibiosSwitches);
 		item.emplace_back(&options);
@@ -664,13 +664,13 @@ public:
 
 	void onShow()
 	{
-		EmuSystemActionsView::onShow();
+		SystemActionsView::onShow();
 		bool isUnibios = conf.system >= SYS_UNIBIOS && conf.system <= SYS_UNIBIOS_LAST;
 		unibiosSwitches.setActive(system().hasContent() && isUnibios);
 	}
 };
 
-class CustomMainMenuView : public EmuMainMenuView
+class CustomMainMenuView : public MainMenuView
 {
 private:
 	TextMenuItem gameList
@@ -688,7 +688,7 @@ private:
 		}
 	};
 
-	void reloadItems()
+	void reloadItems() final
 	{
 		item.clear();
 		loadFileBrowserItems();
@@ -697,10 +697,9 @@ private:
 	}
 
 public:
-	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
+	CustomMainMenuView(ViewAttachParams attach): MainMenuView{attach, true}
 	{
 		reloadItems();
-		app().setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 };
 

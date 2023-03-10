@@ -17,13 +17,13 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 #include <emuframework/UserPathSelectView.hh>
-#include "EmuOptions.hh"
+#include "../EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
-#include "pathUtils.hh"
+#include "../pathUtils.hh"
 
 namespace EmuEx
 {
@@ -64,7 +64,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 			multiChoiceView->appendItem("Select Folder",
 				[this](const Input::Event &e)
 				{
-					auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
+					auto fPicker = makeView<FilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
 					auto userSavePath = system().userSaveDirectory();
 					fPicker->setPath(userSavePath.size() && userSavePath != optionSavePathDefaultToken ? userSavePath
 						: app().contentSearchPath(), e);
@@ -107,7 +107,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 						{
 							.onYes = [this](const Input::Event &e)
 							{
-								auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
+								auto fPicker = makeView<FilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
 								fPicker->setPath("");
 								fPicker->setOnSelectPath(
 									[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)

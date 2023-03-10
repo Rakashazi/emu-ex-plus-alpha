@@ -15,7 +15,7 @@
 
 #include <emuframework/GUIOptionView.hh>
 #include <emuframework/EmuApp.hh>
-#include "EmuOptions.hh"
+#include "../EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/util/format.hh>
@@ -166,11 +166,11 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	backNav
 	{
 		"Title Back Navigation", &defaultFace(),
-		attach.viewManager().needsBackControl(),
+		attach.viewManager.needsBackControl,
 		[this](BoolMenuItem &item)
 		{
-			manager().setNeedsBackControl(item.flipBoolValue(*this));
-			app().viewController().setShowNavViewBackButton(manager().needsBackControl());
+			manager().needsBackControl = item.flipBoolValue(*this);
+			app().viewController().setShowNavViewBackButton(manager().needsBackControl);
 			app().viewController().placeElements();
 		}
 	},

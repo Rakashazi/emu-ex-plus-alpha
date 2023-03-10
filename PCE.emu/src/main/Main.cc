@@ -64,7 +64,6 @@ const char *EmuSystem::systemName() const
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasHuCardExtension;
 
 void PceSystem::loadBackupMemory(EmuApp &)
 {

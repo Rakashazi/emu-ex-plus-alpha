@@ -163,7 +163,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 
 	// draw elements
 	y = yStart;
-	auto xIndent = manager().tableXIndent();
+	auto xIndent = manager().tableXIndentPx;
 	for(size_t i = startYCell; i < endYCell; i++)
 	{
 		auto rect = IG::makeWindowRectRel({x, y}, {viewRect().xSize(), yCellSize});

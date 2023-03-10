@@ -17,17 +17,18 @@
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
-#include <imagine/base/Timer.hh>
-#include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/util/Interpolator.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
-#include <utility>
-#include "WindowData.hh"
-#include "privateInput.hh"
 #include "PlaceVideoView.hh"
+#include "PlaceVControlsView.hh"
+#include "../privateInput.hh"
+#include <utility>
+#include <vector>
+#include <array>
+#include <span>
+#include <ranges>
 
 namespace EmuEx
 {
@@ -48,172 +49,6 @@ constexpr int touchCtrlExtraBtnSizeMenuVal[4]
 {
 	0, 10, 20, 30
 };
-
-class OnScreenInputPlaceView final: public View, public EmuAppHelper<OnScreenInputPlaceView>
-{
-public:
-	OnScreenInputPlaceView(ViewAttachParams attach, VController &vController);
-	~OnScreenInputPlaceView() final;
-	void place() final;
-	bool inputEvent(const Input::Event &e) final;
-	void draw(Gfx::RendererCommands &__restrict__ cmds) final;
-
-private:
-	struct DragData
-	{
-		VControllerElement *elem{};
-		IG::WP startPos{};
-	};
-	Gfx::Text text;
-	VController *vControllerPtr;
-	IG::InterpolatorValue<float, IG::FrameTime, IG::InterpolatorType::LINEAR> textFade{};
-	IG::Timer animationStartTimer{"OnScreenInputPlaceView::animationStartTimer"};
-	IG::OnFrameDelegate animate;
-	IG::WindowRect exitBtnRect{};
-	Input::DragTracker<DragData> dragTracker;
-
-	VController &vController() { return *vControllerPtr; }
-};
-
-OnScreenInputPlaceView::OnScreenInputPlaceView(ViewAttachParams attach, VController &vController):
-	View(attach),
-	text{"Click center to go back", &defaultFace()},
-	vControllerPtr{&vController},
-	animate
-	{
-		[this](IG::FrameParams params)
-		{
-			window().setNeedsDraw(true);
-			//logMsg("updating fade");
-			return textFade.update(params.timestamp());
-		}
-	}
-{
-	app().applyOSNavStyle(appContext(), true);
-	textFade = {1.};
-	animationStartTimer.runIn(IG::Seconds{2}, {},
-		[this]()
-		{
-			logMsg("starting fade");
-			textFade = {1., 0., {}, IG::steadyClockTimestamp(), IG::Milliseconds{400}};
-			window().addOnFrame(animate);
-		});
-}
-
-OnScreenInputPlaceView::~OnScreenInputPlaceView()
-{
-	app().applyOSNavStyle(appContext(), false);
-	window().removeOnFrame(animate);
-}
-
-void OnScreenInputPlaceView::place()
-{
-	dragTracker.reset();
-	auto exitBtnPos = viewRect().pos(C2DO);
-	int exitBtnSize = window().widthMMInPixels(10.);
-	exitBtnRect = IG::makeWindowRectRel(exitBtnPos - IG::WP{exitBtnSize/2, exitBtnSize/2}, {exitBtnSize, exitBtnSize});
-	text.compile(renderer());
-}
-
-bool OnScreenInputPlaceView::inputEvent(const Input::Event &e)
-{
-	return visit(overloaded
-	{
-		[&](const Input::KeyEvent &e)
-		{
-			if(e.pushed())
-			{
-				dismiss();
-				return true;
-			}
-			return false;
-		},
-		[&](const Input::MotionEvent &e)
-		{
-			if(e.pushed() && animationStartTimer.isArmed())
-			{
-				animationStartTimer.dispatchEarly();
-			}
-			size_t layoutIdx = window().isPortrait();
-			dragTracker.inputEvent(e,
-				[&](Input::DragTrackerState, DragData &d)
-				{
-					if(d.elem)
-						return;
-					auto tryGrabElement = [&](VControllerElement &elem)
-					{
-						if(elem.state == VControllerState::OFF || !elem.bounds().contains(e.pos()))
-							return false;
-						for(const auto &state : dragTracker.stateList())
-						{
-							if(state.data.elem == &elem)
-								return false; // element already grabbed
-						}
-						d.elem = &elem;
-						d.startPos = elem.bounds().pos(C2DO);
-						return true;
-					};
-					for(auto &elem : vController().deviceElements())
-					{
-						if(tryGrabElement(elem))
-							return;
-					}
-					for(auto &elem : vController().guiElements())
-					{
-						if(tryGrabElement(elem))
-							return;
-					}
-				},
-				[&](Input::DragTrackerState state, Input::DragTrackerState, DragData &d)
-				{
-					if(d.elem)
-					{
-						auto newPos = d.startPos + state.downPosDiff();
-						auto bounds = window().bounds();
-						d.elem->setPos(newPos, bounds);
-						auto layoutPos = VControllerLayoutPosition::fromPixelPos(d.elem->bounds().pos(C2DO), d.elem->bounds().size(), bounds);
-						//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
-						auto &vCtrlLayoutPos = d.elem->layoutPos[layoutIdx];
-						vCtrlLayoutPos.origin = layoutPos.origin;
-						vCtrlLayoutPos.pos = layoutPos.pos;
-						app().viewController().placeEmuViews();
-						postDraw();
-					}
-				},
-				[&](Input::DragTrackerState state, DragData &d)
-				{
-					if(!d.elem && exitBtnRect.overlaps(state.pos()) && exitBtnRect.overlaps(state.downPos()))
-					{
-						dismiss();
-					}
-				});
-			return true;
-		}
-	}, e);
-}
-
-void OnScreenInputPlaceView::draw(Gfx::RendererCommands &__restrict__ cmds)
-{
-	using namespace IG::Gfx;
-	vController().draw(cmds, true, .75);
-	cmds.setColor({.5, .5, .5});
-	auto &basicEffect = cmds.basicEffect();
-	basicEffect.disableTexture(cmds);
-	const int lineSize = 1;
-	cmds.drawRect({{viewRect().x, viewRect().yCenter()},
-		{viewRect().x2, viewRect().yCenter() + lineSize}});
-	cmds.drawRect({{viewRect().xCenter(), viewRect().y},
-		{viewRect().xCenter() + lineSize, viewRect().y2}});
-
-	if(textFade != 0.)
-	{
-		cmds.setColor({0, 0, 0, textFade / 2.f});
-		cmds.drawRect({viewRect().pos(C2DO) - text.pixelSize() / 2 - text.spaceWidth(),
-			viewRect().pos(C2DO) + text.pixelSize() / 2 + text.spaceWidth()});
-		basicEffect.enableAlphaTexture(cmds);
-		text.draw(cmds, viewRect().pos(C2DO), C2DO, Color{1., 1., 1., textFade});
-	}
-}
 
 static void drawVControllerElement(Gfx::RendererCommands &__restrict__ cmds, const VControllerElement &elem, size_t layoutIdx)
 {
@@ -969,7 +804,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 		"Set Button Positions", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			pushAndShowModal(makeView<OnScreenInputPlaceView>(vController()), e);
+			pushAndShowModal(makeView<PlaceVControlsView>(vController()), e);
 		}
 	},
 	placeVideo

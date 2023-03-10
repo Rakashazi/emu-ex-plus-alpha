@@ -16,12 +16,19 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuView.hh>
-#include <emuframework/EmuLoadProgressView.hh>
+#include <emuframework/LoadProgressView.hh>
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/FilePicker.hh>
-#include "AutosaveSlotView.hh"
+#include <emuframework/MainMenuView.hh>
+#include <emuframework/SystemActionsView.hh>
+#include <emuframework/SystemOptionView.hh>
+#include <emuframework/GUIOptionView.hh>
+#include <emuframework/AudioOptionView.hh>
+#include <emuframework/VideoOptionView.hh>
+#include <emuframework/FilePathOptionView.hh>
+#include "gui/AutosaveSlotView.hh"
 #include "privateInput.hh"
 #include "WindowData.hh"
 #include "configFile.hh"
@@ -553,17 +560,15 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					optionTextureBufferMode.reset();
 				}
 			}
-			viewManager = {renderer};
-			viewManager.setNeedsBackControl(appConfig.backNavigation());
-			viewManager.setDefaultFace({renderer, fontManager.makeSystem(), fontSettings(win)});
-			viewManager.setDefaultBoldFace({renderer, fontManager.makeBoldSystem(), fontSettings(win)});
+			viewManager.defaultFace = {renderer, fontManager.makeSystem(), fontSettings(win)};
+			viewManager.defaultBoldFace = {renderer, fontManager.makeBoldSystem(), fontSettings(win)};
 			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
 			auto &winData = win.makeAppData<MainWindowData>(viewAttach, vController, emuVideoLayer, system());
 			winData.updateWindowViewport(win, makeViewport(win), renderer);
 			win.setAcceptDnd(true);
 			renderer.setWindowValidOrientations(win, menuOrientation());
 			updateInputDevices(ctx);
-			vController.configure(win, renderer, viewManager.defaultFace());
+			vController.configure(win, renderer, viewManager.defaultFace);
 			if(EmuSystem::inputHasKeyboard)
 			{
 				vController.setKeyboardImage(asset(AssetID::keyboardOverlay));
@@ -745,8 +750,8 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			ctx.setOnFreeCaches(
 				[this](IG::ApplicationContext, bool running)
 				{
-					viewManager.defaultFace().freeCaches();
-					viewManager.defaultBoldFace().freeCaches();
+					viewManager.defaultFace.freeCaches();
+					viewManager.defaultBoldFace.freeCaches();
 					if(running)
 						viewController().prepareDraw();
 				});
@@ -813,16 +818,6 @@ void WindowData::updateWindowViewport(const IG::Window &win, IG::Viewport viewpo
 	contentRect = viewport.bounds().intersection(win.contentBounds());
 	projM = Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), .1f, 100.f)
 		.projectionPlane(viewport, .5f, r.projectionRollAngle(win));
-}
-
-void EmuApp::dispatchOnMainMenuItemOptionChanged()
-{
-	onMainMenuOptionChanged_.callSafe();
-}
-
-void EmuApp::setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func)
-{
-	onMainMenuOptionChanged_ = func;
 }
 
 void EmuApp::launchSystem(const Input::Event &e)
@@ -897,7 +892,7 @@ void EmuApp::handleOpenFileCommand(IG::CStringView path)
 		viewController().popToRoot();
 		setContentSearchPath(path);
 		viewController().pushAndShow(
-			EmuFilePicker::makeForLoading(attachParams(), appContext().defaultInputEvent()),
+			FilePicker::forLoading(attachParams(), appContext().defaultInputEvent()),
 			appContext().defaultInputEvent(),
 			false);
 		return;
@@ -1073,10 +1068,10 @@ void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view
 		return;
 	}
 	closeSystem();
-	auto loadProgressView = std::make_unique<EmuLoadProgressView>(attachParams, e, onComplete);
+	auto loadProgressView = std::make_unique<LoadProgressView>(attachParams, e, onComplete);
 	auto &msgPort = loadProgressView->messagePort();
 	pushAndShowModalView(std::move(loadProgressView), e);
-	auto ctx = attachParams.window().appContext();
+	auto ctx = attachParams.appContext();
 	IG::makeDetachedThread(
 		[this, io{std::move(io)}, pathStr = FS::PathString{path}, nameStr = FS::FileString{displayName}, &msgPort, params]() mutable
 		{
@@ -1229,7 +1224,7 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 				break;
 			logMsg("show load game view from key event");
 			viewController().popToRoot();
-			viewController().pushAndShow(EmuFilePicker::makeForLoading(attachParams(), srcEvent), srcEvent, false);
+			viewController().pushAndShow(FilePicker::forLoading(attachParams(), srcEvent), srcEvent, false);
 			return true;
 		}
 		case guiKeyIdxMenu:
@@ -2071,6 +2066,40 @@ bool EmuApp::setAltSpeed(AltSpeedMode mode, int16_t speed)
 		return false;
 	altSpeedRef(mode) = speed;
 	return true;
+}
+
+std::unique_ptr<View> EmuApp::makeView(ViewAttachParams attach, ViewID id)
+{
+	auto view = makeCustomView(attach, id);
+	if(view)
+		return view;
+	switch(id)
+	{
+		case ViewID::MAIN_MENU: return std::make_unique<MainMenuView>(attach);
+		case ViewID::SYSTEM_ACTIONS: return std::make_unique<SystemActionsView>(attach);
+		case ViewID::VIDEO_OPTIONS: return std::make_unique<VideoOptionView>(attach);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<AudioOptionView>(attach);
+		case ViewID::SYSTEM_OPTIONS: return std::make_unique<SystemOptionView>(attach);
+		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<FilePathOptionView>(attach);
+		case ViewID::GUI_OPTIONS: return std::make_unique<GUIOptionView>(attach);
+		default: bug_unreachable("Tried to make non-existing view ID:%d", (int)id);
+	}
+}
+
+BluetoothAdapter *EmuApp::bluetoothAdapter()
+{
+	if(bta)
+	{
+		return bta;
+	}
+	logMsg("initializing Bluetooth");
+	bta = BluetoothAdapter::defaultAdapter(appContext());
+	return bta;
+}
+
+void EmuApp::closeBluetoothConnections()
+{
+	Bluetooth::closeBT(std::exchange(bta, {}));
 }
 
 MainWindowData &EmuApp::mainWindowData() const

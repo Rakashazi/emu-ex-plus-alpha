@@ -29,14 +29,15 @@ using namespace IG;
 class EmuVideoLayer;
 class EmuAudio;
 
-class EmuMainMenuView : public TableView, public EmuAppHelper<EmuMainMenuView>
+class MainMenuView : public TableView, public EmuAppHelper<MainMenuView>
 {
 public:
-	EmuMainMenuView(ViewAttachParams attach, bool customMenu = false);
+	MainMenuView(ViewAttachParams attach, bool customMenu = false);
 	void onShow() final;
 	void loadFileBrowserItems();
 	void loadStandardItems();
 	void setAudioVideo(EmuAudio &audio, EmuVideoLayer &videoLayer);
+	virtual void reloadItems();
 
 	static constexpr int STANDARD_ITEMS = 15;
 	static constexpr int MAX_SYSTEM_ITEMS = 5;

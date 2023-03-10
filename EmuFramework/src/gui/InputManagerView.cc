@@ -16,8 +16,8 @@
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/ButtonConfigView.hh>
 #include <emuframework/EmuApp.hh>
-#include "EmuOptions.hh"
-#include "privateInput.hh"
+#include "../EmuOptions.hh"
+#include "../privateInput.hh"
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gui/AlertView.hh>

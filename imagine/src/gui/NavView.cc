@@ -242,7 +242,7 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	}
 	else
 	{
-		auto xIndent = manager().tableXIndent();
+		auto xIndent = manager().tableXIndentPx;
 		if(text.width() > textRect.xSize() - xIndent * 2)
 		{
 			cmds.setClipRect(renderer().makeClipRect(window(), textRect));

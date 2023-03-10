@@ -16,32 +16,34 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include <imagine/input/DragTracker.hh>
-#include <imagine/gui/View.hh>
-#include <imagine/gfx/GfxText.hh>
+#include <emuframework/EmuAppHelper.hh>
+#include <imagine/base/MessagePort.hh>
 
 namespace EmuEx
 {
 
-class PlaceVideoView final: public View, public EmuAppHelper<PlaceVideoView>
+using namespace IG;
+
+class LoadProgressView : public View, public EmuAppHelper<LoadProgressView>
 {
 public:
-	PlaceVideoView(ViewAttachParams, EmuVideoLayer &, VController &);
-	~PlaceVideoView() final;
+	using MessagePortType = IG::MessagePort<EmuSystem::LoadProgressMessage>;
+
+	LoadProgressView(ViewAttachParams, const Input::Event &, EmuApp::CreateSystemCompleteDelegate);
+	void setMax(int val);
+	void setPos(int val);
+	void setLabel(UTF16Convertible auto &&label) { text.resetString(IG_forward(label)); }
 	void place() final;
-	bool inputEvent(const Input::Event &e) final;
+	bool inputEvent(const Input::Event &) final;
 	void draw(Gfx::RendererCommands &__restrict__) final;
+	MessagePortType &messagePort();
 
 private:
-	EmuVideoLayer &layer;
-	VController &vController;
-	Gfx::Text exitText, resetText;
-	WRect exitBounds{}, resetBounds{};
-	Input::DragTrackerState dragState;
-	int startPosOffset{};
-	int posOffsetLimit{};
-
-	void updateVideo(int offset);
+	MessagePortType msgPort{"LoadProgressView"};
+	EmuApp::CreateSystemCompleteDelegate onComplete;
+	Gfx::Text text;
+	Input::Event originalEvent;
+	int pos{}, max{};
 };
 
 }

@@ -44,6 +44,7 @@ class EmuApp;
 class EmuAudio;
 class EmuSystem;
 struct WindowData;
+class MainMenuView;
 
 class EmuMenuViewStack : public ViewStack
 {
@@ -97,6 +98,7 @@ public:
 	void onSystemCreated();
 	void onSystemClosed();
 	EmuInputView &inputView();
+	MainMenuView &mainMenu();
 	IG::ToastView &popupMessageView();
 	bool isMenuDismissKey(const Input::KeyEvent &) const;
 	IG::ApplicationContext appContext() const;

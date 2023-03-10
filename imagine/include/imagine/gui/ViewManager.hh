@@ -39,27 +39,18 @@ public:
 	static constexpr bool needsBackControlDefault = ViewDefs::needsBackControlDefault;
 	static constexpr bool needsBackControlIsMutable = ViewDefs::needsBackControlIsMutable;
 
+	Gfx::GlyphTextureSet defaultFace;
+	Gfx::GlyphTextureSet defaultBoldFace;
+	int tableXIndentPx{};
+	// True if the platform needs an on-screen/pointer-based control to move to a previous view
+	IG_UseMemberIfOrConstant(needsBackControlIsMutable,
+		bool, needsBackControlDefault, needsBackControl){needsBackControlDefault};
+
 	constexpr ViewManager() = default;
-	ViewManager(Gfx::Renderer &);
-	void setDefaultFace(Gfx::GlyphTextureSet);
-	void setDefaultBoldFace(Gfx::GlyphTextureSet);
-	Gfx::GlyphTextureSet &defaultFace();
-	Gfx::GlyphTextureSet &defaultBoldFace();
-	constexpr bool needsBackControl() const { return needsBackControl_; }
-	void setNeedsBackControl(std::optional<bool>);
 	std::optional<bool> needsBackControlOption() const;
-	int tableXIndent() const;
 	void setTableXIndentMM(float indentMM, const Window &);
 	float defaultTableXIndentMM(const Window &);
 	void setTableXIndentToDefault(const Window &);
-
-protected:
-	Gfx::GlyphTextureSet defaultFace_{};
-	Gfx::GlyphTextureSet defaultBoldFace_{};
-	int tableXIndent_{};
-	// True if the platform needs an on-screen/pointer-based control to move to a previous view
-	IG_UseMemberIfOrConstant(needsBackControlIsMutable,
-		bool, needsBackControlDefault, needsBackControl_){needsBackControlDefault};
 };
 
 }

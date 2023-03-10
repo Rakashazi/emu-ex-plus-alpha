@@ -19,7 +19,7 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/VideoImageEffect.hh>
-#include "EmuOptions.hh"
+#include "../EmuOptions.hh"
 #include "PlaceVideoView.hh"
 #include <imagine/base/Screen.hh>
 #include <imagine/base/ApplicationContext.hh>
@@ -187,26 +187,47 @@ static const char *autoWindowPixelFormatStr(IG::ApplicationContext ctx)
 	return ctx.defaultWindowPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGBA8888";
 }
 
-TextMenuItem::SelectDelegate VideoOptionView::setWindowDrawableConfigDel(Gfx::DrawableConfig conf)
+constexpr uint16_t pack(Gfx::DrawableConfig c)
 {
-	return [this, conf]()
-	{
-		if(!app().setWindowDrawableConfig(conf))
-		{
-			app().postMessage("Restart app for option to take effect");
-			return;
-		}
-		renderPixelFormat.updateDisplayString();
-		imgEffectPixelFormat.updateDisplayString();
-	};
+	return to_underlying(c.pixelFormat.id()) | to_underlying(c.colorSpace) << sizeof(c.colorSpace) * 8;
+}
+
+constexpr Gfx::DrawableConfig unpackDrawableConfig(uint16_t c)
+{
+	return {PixelFormatID(c & 0xFF), Gfx::ColorSpace(c >> sizeof(Gfx::DrawableConfig::colorSpace) * 8)};
 }
 
 VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"Video Options", attach, item},
+	textureBufferModeItem
+	{
+		[&]
+		{
+			decltype(textureBufferModeItem) items;
+			items.emplace_back("Auto (Set optimal mode)", &defaultFace(), [this](View &view)
+			{
+				app().textureBufferModeOption() = 0;
+				auto defaultMode = renderer().makeValidTextureBufferMode();
+				emuVideo().setTextureBufferMode(system(), defaultMode);
+				textureBufferMode.setSelected(MenuItem::Id(defaultMode));
+				view.dismiss();
+				return false;
+			}, 0);
+			for(auto desc: renderer().textureBufferModes())
+			{
+				items.emplace_back(desc.name, &defaultFace(), [this](MenuItem &item)
+				{
+					app().textureBufferModeOption() = item.id();
+					emuVideo().setTextureBufferMode(system(), Gfx::TextureBufferMode(item.id()));
+				}, to_underlying(desc.mode));
+			}
+			return items;
+		}()
+	},
 	textureBufferMode
 	{
 		"GPU Copy Mode", &defaultFace(),
-		0,
+		MenuItem::Id(renderer().makeValidTextureBufferMode(Gfx::TextureBufferMode(app().textureBufferModeOption().val))),
 		textureBufferModeItem
 	},
 	frameIntervalItem
@@ -539,6 +560,30 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		(MenuItem::Id)app().videoEffectPixelFormatOption().val,
 		imgEffectPixelFormatItem
 	},
+	windowPixelFormatItem
+	{
+		[&]
+		{
+			decltype(windowPixelFormatItem) items;
+			auto setWindowDrawableConfigDel = [this](TextMenuItem &item)
+			{
+				auto conf = unpackDrawableConfig(item.id());
+				if(!app().setWindowDrawableConfig(conf))
+				{
+					app().postMessage("Restart app for option to take effect");
+					return;
+				}
+				renderPixelFormat.updateDisplayString();
+				imgEffectPixelFormat.updateDisplayString();
+			};
+			items.emplace_back("Auto", &defaultFace(), setWindowDrawableConfigDel, 0);
+			for(auto desc: renderer().supportedDrawableConfigs())
+			{
+				items.emplace_back(desc.name, &defaultFace(), setWindowDrawableConfigDel, pack(desc.config));
+			}
+			return items;
+		}()
+	},
 	windowPixelFormat
 	{
 		"Display Color Format", &defaultFace(),
@@ -554,7 +599,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 					return false;
 			}
 		},
-		0,
+		MenuItem::Id(pack(app().windowDrawableConfig())),
 		windowPixelFormatItem
 	},
 	secondDisplay
@@ -724,38 +769,6 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	advancedHeading{"Advanced", &defaultBoldFace()},
 	systemSpecificHeading{"System-specific", &defaultBoldFace()}
 {
-	windowPixelFormatItem.emplace_back("Auto", &defaultFace(), setWindowDrawableConfigDel({}));
-	{
-		auto descs = renderer().supportedDrawableConfigs();
-		for(auto desc: descs)
-		{
-			windowPixelFormatItem.emplace_back(desc.name, &defaultFace(), setWindowDrawableConfigDel(desc.config));
-		}
-		windowPixelFormat.setSelected(IG::findIndex(descs, app().windowDrawableConfig()) + 1);
-	}
-	textureBufferModeItem.emplace_back("Auto (Set optimal mode)", &defaultFace(),
-		[this](View &view)
-		{
-			app().textureBufferModeOption() = 0;
-			auto defaultMode = renderer().makeValidTextureBufferMode();
-			emuVideo().setTextureBufferMode(system(), defaultMode);
-			textureBufferMode.setSelected(IG::findIndex(renderer().textureBufferModes(), defaultMode) + 1);
-			view.dismiss();
-			return false;
-		});
-	{
-		auto descs = renderer().textureBufferModes();
-		for(auto desc: descs)
-		{
-			textureBufferModeItem.emplace_back(desc.name, &defaultFace(),
-				[this, mode = desc.mode]()
-				{
-					app().textureBufferModeOption() = (uint8_t)mode;
-					emuVideo().setTextureBufferMode(system(), mode);
-				});
-		}
-		textureBufferMode.setSelected(IG::findIndex(descs, renderer().makeValidTextureBufferMode((Gfx::TextureBufferMode)app().textureBufferModeOption().val)) + 1);
-	}
 	if(!customMenu)
 	{
 		loadStockItems();

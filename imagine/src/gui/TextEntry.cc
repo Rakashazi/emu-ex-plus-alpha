@@ -166,21 +166,21 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, CStringView 
 			}
 		},
 		initialContent, msgText,
-		face ? face->fontSettings().pixelHeight() : attach.viewManager().defaultFace().fontSettings().pixelHeight()
+		face ? face->fontSettings().pixelHeight() : attach.viewManager.defaultFace.fontSettings().pixelHeight()
 	},
 	textEntry
 	{
 		initialContent,
 		attach.renderer(),
-		face ? face : &attach.viewManager().defaultFace()
+		face ? face : &attach.viewManager.defaultFace
 	},
 	onTextD{onText}
 {
-	face = face ? face : &attach.viewManager().defaultFace();
+	face = face ? face : &attach.viewManager.defaultFace;
 	doIfUsed(cancelSpr,
 		[&](auto &cancelSpr)
 		{
-			if(manager().needsBackControl() && closeRes)
+			if(manager().needsBackControl && closeRes)
 			{
 				cancelSpr = {{}, closeRes};
 			}

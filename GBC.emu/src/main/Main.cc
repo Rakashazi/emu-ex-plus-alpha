@@ -34,7 +34,6 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	{
 		return IG::endsWithAnyCaseless(name, ".gb", ".gbc", ".dmg");
 	};
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 constexpr IG::WP lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
 
 const char *EmuSystem::shortSystemName() const

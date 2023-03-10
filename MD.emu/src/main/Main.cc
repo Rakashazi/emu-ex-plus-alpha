@@ -93,7 +93,6 @@ const char *EmuSystem::systemName() const
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMDWithCDExtension;
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMDExtension;
 
 void MdSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {

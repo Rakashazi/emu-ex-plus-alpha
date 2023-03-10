@@ -19,8 +19,8 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/FilePicker.hh>
-#include "EmuOptions.hh"
-#include "privateInput.hh"
+#include "../EmuOptions.hh"
+#include "../privateInput.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/format.hh>

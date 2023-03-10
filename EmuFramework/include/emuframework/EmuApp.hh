@@ -61,6 +61,7 @@ namespace EmuEx
 {
 
 struct MainWindowData;
+class EmuMainMenuView;
 
 struct RecentContentInfo
 {
@@ -140,7 +141,6 @@ constexpr float menuVideoBrightnessScale = .25f;
 class EmuApp : public IG::Application
 {
 public:
-	using OnMainMenuOptionChanged = DelegateFunc<void()>;
 	using CreateSystemCompleteDelegate = DelegateFunc<void (const Input::Event &)>;
 	using NavView = BasicNavView;
 	static constexpr int MAX_RECENT = 10;
@@ -196,8 +196,6 @@ public:
 	void showUI(bool updateTopView = true);
 	void launchSystem(const Input::Event &);
 	static bool hasArchiveExtension(std::string_view name);
-	void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
-	void dispatchOnMainMenuItemOptionChanged();
 	void unpostMessage();
 	void printScreenshotResult(bool success);
 	FS::PathString contentSavePath(std::string_view name) const;
@@ -525,7 +523,6 @@ protected:
 	VController vController;
 	AutosaveManager autosaveManager_;
 	DelegateFunc<void ()> onUpdateInputDevices_;
-	OnMainMenuOptionChanged onMainMenuOptionChanged_;
 	KeyConfigContainer customKeyConfigs;
 	InputDeviceSavedConfigContainer savedInputDevs;
 	TurboInput turboActions;
@@ -590,29 +587,8 @@ protected:
 	IG_UseMemberIf(Config::envIsAndroid, bool, forceMaxScreenFrameRate){};
 
 protected:
-	class ConfigParams
+	struct ConfigParams
 	{
-	public:
-		static constexpr uint8_t BACK_NAVIGATION_IS_SET_BIT = IG::bit(0);
-		static constexpr uint8_t BACK_NAVIGATION_BIT = IG::bit(1);
-
-		constexpr std::optional<bool> backNavigation() const
-		{
-			if(flags & BACK_NAVIGATION_IS_SET_BIT)
-				return flags & BACK_NAVIGATION_BIT;
-			return {};
-		}
-
-		constexpr void setBackNavigation(std::optional<bool> opt)
-		{
-			if(!opt)
-				return;
-			flags |= BACK_NAVIGATION_IS_SET_BIT;
-			flags = IG::setOrClearBits(flags, BACK_NAVIGATION_BIT, *opt);
-		}
-
-	protected:
-		uint8_t flags{};
 		Gfx::DrawableConfig windowDrawableConf{};
 	};
 

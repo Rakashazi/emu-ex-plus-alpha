@@ -133,7 +133,6 @@ static bool hasNeoGeoExtension(std::string_view name)
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasNeoGeoExtension;
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasNeoGeoExtension;
 
 void NeoSystem::reset(EmuApp &, ResetMode mode)
 {

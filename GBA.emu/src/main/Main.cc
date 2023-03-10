@@ -44,7 +44,6 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	{
 		return IG::endsWithAnyCaseless(name, ".gba");
 	};
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
 const BundledGameInfo &EmuSystem::bundledGameInfo(int idx) const
 {

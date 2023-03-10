@@ -97,6 +97,14 @@ void BaseDualTextMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xP
 	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
 }
 
+void DualTextMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
+	int xIndent, _2DOrigin align, Gfx::Color color) const
+{
+	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
+	Gfx::Color color2 = text2Color != Gfx::Color{} ? text2Color : color;
+	draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
+}
+
 bool DualTextMenuItem::select(View &parent, const Input::Event &e)
 {
 	//logMsg("calling delegate");

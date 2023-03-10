@@ -54,7 +54,7 @@ public:
 			"Select Folder", &defaultFace(),
 			[=](View &view, const Input::Event &e)
 			{
-				auto fPicker = view.makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
+				auto fPicker = view.makeView<FilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
 				auto &thisView = asThis(view);
 				fPicker->setPath(thisView.searchDir, e);
 				fPicker->setOnSelectPath(
@@ -74,7 +74,7 @@ public:
 			[=](View &view, const Input::Event &e)
 			{
 				auto &thisView = asThis(view);
-				auto fPicker = view.makeView<EmuFilePicker>(FSPicker::Mode::FILE, thisView.fsFilter, e);
+				auto fPicker = view.makeView<FilePicker>(FSPicker::Mode::FILE, thisView.fsFilter, e);
 				fPicker->setPath(thisView.searchDir, e);
 				fPicker->setOnSelectPath(
 					[=](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)

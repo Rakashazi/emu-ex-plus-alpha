@@ -18,8 +18,8 @@
 #include <emuframework/VideoOptionView.hh>
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/DataPathSelectView.hh>
-#include <emuframework/EmuSystemActionsView.hh>
-#include <emuframework/EmuMainMenuView.hh>
+#include <emuframework/SystemActionsView.hh>
+#include <emuframework/MainMenuView.hh>
 #include <emuframework/FilePicker.hh>
 #include "MainApp.hh"
 #include "VicePlugin.hh"
@@ -510,7 +510,7 @@ public:
 	void addTapeFilePickerView(Input::Event e, bool dismissPreviousView)
 	{
 		app().pushAndShowModalView(
-			EmuFilePicker::makeForMediaChange(attachParams(), e, hasC64TapeExtension,
+			FilePicker::forMediaChange(attachParams(), e, hasC64TapeExtension,
 			[this, dismissPreviousView](FSPicker &picker, IG::CStringView path, std::string_view name, Input::Event e)
 			{
 				if(system().plugin.tape_image_attach(1, path.data()) == 0)
@@ -583,7 +583,7 @@ public:
 	void addCartFilePickerView(Input::Event e, bool dismissPreviousView)
 	{
 		app().pushAndShowModalView(
-			EmuFilePicker::makeForMediaChange(attachParams(), e, hasC64CartExtension,
+			FilePicker::forMediaChange(attachParams(), e, hasC64CartExtension,
 			[this, dismissPreviousView](FSPicker &picker, IG::CStringView path, std::string_view name, Input::Event e)
 			{
 				if(system().plugin.cartridge_attach_image(systemCartType(system().currSystem), path.data()) == 0)
@@ -642,7 +642,7 @@ private:
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
 		app().pushAndShowModalView(
-			EmuFilePicker::makeForMediaChange(attachParams(), e, hasC64DiskExtension,
+			FilePicker::forMediaChange(attachParams(), e, hasC64DiskExtension,
 			[this, slot, dismissPreviousView](FSPicker &picker, IG::CStringView path, std::string_view name, Input::Event e)
 			{
 				logMsg("inserting disk in unit %d", slot+8);
@@ -1079,7 +1079,7 @@ public:
 	}
 };
 
-class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelper<CustomSystemActionsView>
+class CustomSystemActionsView : public SystemActionsView, public MainAppHelper<CustomSystemActionsView>
 {
 	using MainAppHelper<CustomSystemActionsView>::system;
 	using MainAppHelper<CustomSystemActionsView>::app;
@@ -1220,21 +1220,21 @@ class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelpe
 	}
 
 public:
-	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	CustomSystemActionsView(ViewAttachParams attach): SystemActionsView{attach, true}
 	{
 		reloadItems();
 	}
 
 	void onShow() final
 	{
-		EmuSystemActionsView::onShow();
+		SystemActionsView::onShow();
 		c64IOControl.setActive(system().hasContent());
 		options.setActive(system().hasContent());
 		warpMode.setBoolValue(*system().plugin.warp_mode_enabled);
 	}
 };
 
-class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMainMenuView>
+class CustomMainMenuView : public MainMenuView, public MainAppHelper<CustomMainMenuView>
 {
 	using MainAppHelper<CustomMainMenuView>::app;
 	using MainAppHelper<CustomMainMenuView>::system;
@@ -1280,7 +1280,7 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMa
 						}
 						newMediaName = str;
 						newMediaName.append(".d64");
-						auto fPicker = EmuFilePicker::makeForMediaCreation(attachParams());
+						auto fPicker = FilePicker::forMediaCreation(attachParams());
 						fPicker->setOnSelectPath(
 							[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 							{
@@ -1357,7 +1357,7 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMa
 						}
 						newMediaName = str;
 						newMediaName.append(".tap");
-						auto fPicker = EmuFilePicker::makeForMediaCreation(attachParams());
+						auto fPicker = FilePicker::forMediaCreation(attachParams());
 						fPicker->setOnSelectPath(
 							[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 							{
@@ -1411,11 +1411,11 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMa
 		"Open Content (No Autostart)", &defaultFace(),
 		[this](Input::Event e)
 		{
-			pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e, false, {SYSTEM_FLAG_NO_AUTOSTART}), e, false);
+			pushAndShow(FilePicker::forLoading(attachParams(), e, false, {SYSTEM_FLAG_NO_AUTOSTART}), e, false);
 		}
 	};
 
-	void reloadItems()
+	void reloadItems() final
 	{
 		item.clear();
 		loadFileBrowserItems();
@@ -1428,10 +1428,9 @@ class CustomMainMenuView : public EmuMainMenuView, public MainAppHelper<CustomMa
 	}
 
 public:
-	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
+	CustomMainMenuView(ViewAttachParams attach): MainMenuView{attach, true}
 	{
 		reloadItems();
-		app().setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 };
 

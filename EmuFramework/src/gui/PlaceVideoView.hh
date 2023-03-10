@@ -15,35 +15,38 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuApp.hh>
+#include <imagine/input/DragTracker.hh>
+#include <imagine/gui/View.hh>
+#include <imagine/gfx/GfxText.hh>
 #include <emuframework/EmuAppHelper.hh>
-#include <imagine/base/MessagePort.hh>
 
 namespace EmuEx
 {
 
+class EmuVideoLayer;
+class VController;
+
 using namespace IG;
 
-class EmuLoadProgressView : public View, public EmuAppHelper<EmuLoadProgressView>
+class PlaceVideoView final: public View, public EmuAppHelper<PlaceVideoView>
 {
 public:
-	using MessagePortType = IG::MessagePort<EmuSystem::LoadProgressMessage>;
-
-	EmuLoadProgressView(ViewAttachParams, const Input::Event &, EmuApp::CreateSystemCompleteDelegate);
-	void setMax(int val);
-	void setPos(int val);
-	void setLabel(UTF16Convertible auto &&label) { text.resetString(IG_forward(label)); }
+	PlaceVideoView(ViewAttachParams, EmuVideoLayer &, VController &);
+	~PlaceVideoView() final;
 	void place() final;
-	bool inputEvent(const Input::Event &) final;
+	bool inputEvent(const Input::Event &e) final;
 	void draw(Gfx::RendererCommands &__restrict__) final;
-	MessagePortType &messagePort();
 
 private:
-	MessagePortType msgPort{"EmuLoadProgressView"};
-	EmuApp::CreateSystemCompleteDelegate onComplete;
-	Gfx::Text text;
-	Input::Event originalEvent;
-	int pos{}, max{};
+	EmuVideoLayer &layer;
+	VController &vController;
+	Gfx::Text exitText, resetText;
+	WRect exitBounds{}, resetBounds{};
+	Input::DragTrackerState dragState;
+	int startPosOffset{};
+	int posOffsetLimit{};
+
+	void updateVideo(int offset);
 };
 
 }

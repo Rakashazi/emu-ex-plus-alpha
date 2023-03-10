@@ -14,7 +14,7 @@
 	along with NGP.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/SystemOptionView.hh>
-#include <emuframework/EmuSystemActionsView.hh>
+#include <emuframework/SystemActionsView.hh>
 #include "MainApp.hh"
 #include <mednafen/wswan/wswan.h>
 
@@ -222,7 +222,7 @@ public:
 		} {}
 };
 
-class CustomSystemActionsView : public EmuSystemActionsView
+class CustomSystemActionsView : public SystemActionsView
 {
 private:
 	TextMenuItem options
@@ -232,7 +232,7 @@ private:
 	};
 
 public:
-	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	CustomSystemActionsView(ViewAttachParams attach): SystemActionsView{attach, true}
 	{
 		item.emplace_back(&options);
 		loadStandardItems();

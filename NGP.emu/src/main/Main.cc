@@ -39,7 +39,6 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	{
 		return IG::endsWithAnyCaseless(name, ".ngc", ".ngp", ".npc", ".ngpc");
 	};
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 bool EmuApp::needsGlobalInstance = true;
 
 const char *EmuSystem::shortSystemName() const

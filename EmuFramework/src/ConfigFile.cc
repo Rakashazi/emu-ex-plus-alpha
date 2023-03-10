@@ -590,8 +590,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_NOTIFICATION_ICON: return optionNotificationIcon.readFromIO(io, size);
 				case CFGKEY_TITLE_BAR: return optionTitleBar.readFromIO(io, size);
 				case CFGKEY_BACK_NAVIGATION:
-					appConfig.setBackNavigation(readOptionValue<bool>(io, size));
-					return true;
+					return readOptionValue(io, size, viewManager.needsBackControl);
 				case CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: return optionSystemActionsIsDefaultMenu.readFromIO(io, size);
 				case CFGKEY_IDLE_DISPLAY_POWER_SAVE: return optionIdleDisplayPowerSave.readFromIO(io, size);
 				case CFGKEY_HIDE_STATUS_BAR: return doIfUsed(optionHideStatusBar, [&](auto &opt){ return opt.readFromIO(io, size); });

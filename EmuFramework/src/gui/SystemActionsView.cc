@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuSystemActionsView.hh>
+#include <emuframework/SystemActionsView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuVideo.hh>
@@ -77,39 +77,7 @@ static std::string saveAutosaveName(EmuApp &app)
 		std::chrono::duration_cast<Seconds>(app.autosaveManager().nextTimerFireTime()));
 }
 
-void EmuSystemActionsView::onShow()
-{
-	if(app().viewController().isShowingEmulation())
-		return;
-	TableView::onShow();
-	logMsg("refreshing action menu state");
-	assert(system().hasContent());
-	autosaveSlot.compile(autoSaveName(app()), renderer());
-	autosaveNow.compile(saveAutosaveName(app()), renderer());
-	autosaveNow.setActive(app().autosaveManager().slotName() != noAutosaveName);
-	revertAutosave.setActive(app().autosaveManager().slotName() != noAutosaveName);
-	resetSessionOptions.setActive(app().hasSavedSessionOptions());
-}
-
-void EmuSystemActionsView::loadStandardItems()
-{
-	if(EmuSystem::hasCheats)
-	{
-		item.emplace_back(&cheats);
-	}
-	item.emplace_back(&reset);
-	item.emplace_back(&autosaveSlot);
-	item.emplace_back(&revertAutosave);
-	item.emplace_back(&autosaveNow);
-	item.emplace_back(&stateSlot);
-	if(used(addLauncherIcon))
-		item.emplace_back(&addLauncherIcon);
-	item.emplace_back(&screenshot);
-	item.emplace_back(&resetSessionOptions);
-	item.emplace_back(&close);
-}
-
-EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customMenu):
+SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	TableView{"System Actions", attach, item},
 	cheats
 	{
@@ -284,6 +252,38 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	{
 		loadStandardItems();
 	}
+}
+
+void SystemActionsView::onShow()
+{
+	if(app().viewController().isShowingEmulation())
+		return;
+	TableView::onShow();
+	logMsg("refreshing action menu state");
+	assert(system().hasContent());
+	autosaveSlot.compile(autoSaveName(app()), renderer());
+	autosaveNow.compile(saveAutosaveName(app()), renderer());
+	autosaveNow.setActive(app().autosaveManager().slotName() != noAutosaveName);
+	revertAutosave.setActive(app().autosaveManager().slotName() != noAutosaveName);
+	resetSessionOptions.setActive(app().hasSavedSessionOptions());
+}
+
+void SystemActionsView::loadStandardItems()
+{
+	if(EmuSystem::hasCheats)
+	{
+		item.emplace_back(&cheats);
+	}
+	item.emplace_back(&reset);
+	item.emplace_back(&autosaveSlot);
+	item.emplace_back(&revertAutosave);
+	item.emplace_back(&autosaveNow);
+	item.emplace_back(&stateSlot);
+	if(used(addLauncherIcon))
+		item.emplace_back(&addLauncherIcon);
+	item.emplace_back(&screenshot);
+	item.emplace_back(&resetSessionOptions);
+	item.emplace_back(&close);
 }
 
 }

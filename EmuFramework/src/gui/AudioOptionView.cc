@@ -102,10 +102,31 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			app().setAddSoundBuffersOnUnderrun(item.flipBoolValue(*this));
 		}
 	},
+	audioRateItem
+	{
+		[&]
+		{
+			decltype(audioRateItem) items;
+			items.emplace_back("Device Native", &defaultFace(), [this](View &view)
+			{
+				app().setSoundRate(0);
+				audioRate.setSelected((MenuItem::Id)app().soundRate());
+				view.dismiss();
+				return false;
+			});
+			auto setRateDel = [this](TextMenuItem &item) { app().setSoundRate(item.id()); };
+			items.emplace_back("22KHz", &defaultFace(), setRateDel, 22050);
+			items.emplace_back("32KHz", &defaultFace(), setRateDel, 32000);
+			items.emplace_back("44KHz", &defaultFace(), setRateDel, 44100);
+			if(app().soundRateMax() >= 48000)
+				items.emplace_back("48KHz", &defaultFace(), setRateDel, 48000);
+			return items;
+		}()
+	},
 	audioRate
 	{
 		"Sound Rate", &defaultFace(),
-		0,
+		(MenuItem::Id)app().soundRate(),
 		audioRateItem
 	},
 	audioSoloMix
@@ -160,23 +181,7 @@ void AudioOptionView::loadStockItems()
 	item.emplace_back(&soundVolume);
 	if(app().canChangeSoundRate())
 	{
-		audioRateItem.clear();
-		audioRateItem.emplace_back("Device Native", &defaultFace(),
-			[this](View &view)
-			{
-				app().setSoundRate(0);
-				audioRate.setSelected((MenuItem::Id)app().soundRate());
-				view.dismiss();
-				return false;
-			});
-		auto setRateDel = [this](TextMenuItem &item) { app().setSoundRate(item.id()); };
-		audioRateItem.emplace_back("22KHz", &defaultFace(), setRateDel, 22050);
-		audioRateItem.emplace_back("32KHz", &defaultFace(), setRateDel, 32000);
-		audioRateItem.emplace_back("44KHz", &defaultFace(), setRateDel, 44100);
-		if(app().soundRateMax() >= 48000)
-			audioRateItem.emplace_back("48KHz", &defaultFace(), setRateDel, 48000);
 		item.emplace_back(&audioRate);
-		audioRate.setSelected((MenuItem::Id)app().soundRate());
 	}
 	item.emplace_back(&soundBuffers);
 	item.emplace_back(&addSoundBuffersOnUnderrun);

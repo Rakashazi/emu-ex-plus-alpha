@@ -25,10 +25,10 @@ namespace EmuEx
 
 using namespace IG;
 
-class EmuSystemActionsView : public TableView, public EmuAppHelper<EmuSystemActionsView>
+class SystemActionsView : public TableView, public EmuAppHelper<SystemActionsView>
 {
 public:
-	EmuSystemActionsView(ViewAttachParams attach, bool customMenu = false);
+	SystemActionsView(ViewAttachParams attach, bool customMenu = false);
 	void onShow() override;
 	void loadStandardItems();
 

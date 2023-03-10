@@ -29,12 +29,12 @@ namespace IG
 
 Gfx::Renderer &ViewAttachParams::renderer() const
 {
-	return rendererTask().renderer();
+	return rendererTask.renderer();
 }
 
 ApplicationContext ViewAttachParams::appContext() const
 {
-	return window().appContext();
+	return window.appContext();
 }
 
 void ViewController::pushAndShow(std::unique_ptr<View> v, const Input::Event &e)
@@ -73,53 +73,19 @@ bool ViewController::moveFocusToNextView(const Input::Event &, _2DOrigin)
 	return false;
 };
 
-ViewManager::ViewManager(Gfx::Renderer &r) {}
-
-void ViewManager::setDefaultFace(Gfx::GlyphTextureSet face)
-{
-	defaultFace_ = std::move(face);
-}
-
-void ViewManager::setDefaultBoldFace(Gfx::GlyphTextureSet face)
-{
-	defaultBoldFace_ = std::move(face);
-}
-
-Gfx::GlyphTextureSet &ViewManager::defaultFace()
-{
-	return defaultFace_;
-}
-
-Gfx::GlyphTextureSet &ViewManager::defaultBoldFace()
-{
-	return defaultBoldFace_;
-}
-
-void ViewManager::setNeedsBackControl(std::optional<bool> opt)
-{
-	if(!opt)
-		return;
-	needsBackControl_ = *opt;
-}
-
 std::optional<bool> ViewManager::needsBackControlOption() const
 {
-	if(!needsBackControlIsMutable || needsBackControl() == needsBackControlDefault)
+	if(!needsBackControlIsMutable || needsBackControl == needsBackControlDefault)
 		return {};
-	return needsBackControl();
-}
-
-int ViewManager::tableXIndent() const
-{
-	return tableXIndent_;
+	return needsBackControl;
 }
 
 void ViewManager::setTableXIndentMM(float indentMM, const Window &win)
 {
-	auto oldIndent = std::exchange(tableXIndent_, win.widthMMInPixels(indentMM));
-	if(tableXIndent_ != oldIndent)
+	auto oldIndent = std::exchange(tableXIndentPx, win.widthMMInPixels(indentMM));
+	if(tableXIndentPx != oldIndent)
 	{
-		logDMsg("setting X indent:%.2fmm (%d as pixels)", indentMM, tableXIndent_);
+		logDMsg("setting X indent:%.2fmm (%d as pixels)", indentMM, tableXIndentPx);
 	}
 }
 
@@ -178,15 +144,9 @@ void View::dismissPrevious()
 	}
 }
 
-Gfx::GlyphTextureSet &View::defaultFace()
-{
-	return manager().defaultFace();
-}
+Gfx::GlyphTextureSet &View::defaultFace() { return manager().defaultFace; }
 
-Gfx::GlyphTextureSet &View::defaultBoldFace()
-{
-	return manager().defaultBoldFace();
-}
+Gfx::GlyphTextureSet &View::defaultBoldFace() { return manager().defaultBoldFace; }
 
 Gfx::Color View::menuTextColor(bool isSelected)
 {

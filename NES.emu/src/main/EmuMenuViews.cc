@@ -20,7 +20,7 @@
 #include <emuframework/DataPathSelectView.hh>
 #include <emuframework/UserPathSelectView.hh>
 #include <emuframework/SystemOptionView.hh>
-#include <emuframework/EmuSystemActionsView.hh>
+#include <emuframework/SystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
@@ -292,7 +292,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 					{
 						return IG::endsWithAnyCaseless(name, ".pal");
 					};
-				auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::FILE, fsFilter, e, false);
+				auto fPicker = makeView<FilePicker>(FSPicker::Mode::FILE, fsFilter, e, false);
 				fPicker->setOnSelectPath(
 					[this](FSPicker &picker, IG::CStringView path, std::string_view name, Input::Event)
 					{
@@ -674,7 +674,7 @@ public:
 	}
 };
 
-class CustomSystemActionsView : public EmuSystemActionsView
+class CustomSystemActionsView : public SystemActionsView
 {
 private:
 	TextMenuItem fdsControl
@@ -716,7 +716,7 @@ private:
 	};
 
 public:
-	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	CustomSystemActionsView(ViewAttachParams attach): SystemActionsView{attach, true}
 	{
 		item.emplace_back(&fdsControl);
 		item.emplace_back(&options);
@@ -725,7 +725,7 @@ public:
 
 	void onShow()
 	{
-		EmuSystemActionsView::onShow();
+		SystemActionsView::onShow();
 		refreshFDSItem();
 	}
 };

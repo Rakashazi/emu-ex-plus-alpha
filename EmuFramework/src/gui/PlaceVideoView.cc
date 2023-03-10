@@ -14,6 +14,8 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "PlaceVideoView.hh"
+#include <emuframework/EmuApp.hh>
+#include <imagine/gfx/RendererCommands.hh>
 
 namespace EmuEx
 {

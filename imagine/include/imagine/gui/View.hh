@@ -75,9 +75,9 @@ public:
 	constexpr View() = default;
 
 	constexpr View(ViewAttachParams attach):
-		win(&attach.window()),
-		rendererTask_{&attach.rendererTask()},
-		manager_{&attach.viewManager()} {}
+		win(&attach.window),
+		rendererTask_{&attach.rendererTask},
+		manager_{&attach.viewManager} {}
 
 	virtual ~View() = default;
 	View &operator=(View &&) = delete;

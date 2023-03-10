@@ -94,7 +94,6 @@ protected:
 
 	void pushAndShowFrameRateSelectMenu(VideoSystem, const Input::Event &);
 	bool onFrameTimeChange(VideoSystem vidSys, IG::FloatSeconds time);
-	TextMenuItem::SelectDelegate setWindowDrawableConfigDel(Gfx::DrawableConfig);
 	TextMenuItem::SelectDelegate setVideoBrightnessCustomDel(ImageChannel);
 	void setAllColorLevelsSelected(MenuItem::Id);
 	EmuVideo &emuVideo() const;

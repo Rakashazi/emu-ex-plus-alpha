@@ -18,7 +18,7 @@
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/UserPathSelectView.hh>
-#include <emuframework/EmuSystemActionsView.hh>
+#include <emuframework/SystemActionsView.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
 #include <imagine/gui/AlertView.hh>
@@ -182,7 +182,7 @@ public:
 	{}
 };
 
-class CustomSystemActionsView : public EmuSystemActionsView
+class CustomSystemActionsView : public SystemActionsView
 {
 	TextMenuItem options
 	{
@@ -197,7 +197,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 	};
 
 public:
-	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	CustomSystemActionsView(ViewAttachParams attach): SystemActionsView{attach, true}
 	{
 		item.emplace_back(&options);
 		loadStandardItems();

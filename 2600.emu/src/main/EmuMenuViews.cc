@@ -20,7 +20,7 @@
 #define Debugger DebuggerMac
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/VideoOptionView.hh>
-#include <emuframework/EmuSystemActionsView.hh>
+#include <emuframework/SystemActionsView.hh>
 #undef Debugger
 #include "MainApp.hh"
 #include <imagine/util/format.hh>
@@ -375,7 +375,7 @@ public:
 
 };
 
-class CustomSystemActionsView : public EmuSystemActionsView
+class CustomSystemActionsView : public SystemActionsView
 {
 private:
 	TextMenuItem switches
@@ -403,7 +403,7 @@ private:
 	};
 
 public:
-	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	CustomSystemActionsView(ViewAttachParams attach): SystemActionsView{attach, true}
 	{
 		item.emplace_back(&switches);
 		item.emplace_back(&options);

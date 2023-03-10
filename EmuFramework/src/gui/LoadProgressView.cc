@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuLoadProgressView.hh>
+#include <emuframework/LoadProgressView.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/math.hh>
 #include <imagine/logger/logger.h>
@@ -21,7 +21,7 @@
 namespace EmuEx
 {
 
-EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::Event &e, EmuApp::CreateSystemCompleteDelegate onComplete):
+LoadProgressView::LoadProgressView(ViewAttachParams attach, const Input::Event &e, EmuApp::CreateSystemCompleteDelegate onComplete):
 	View{attach},
 	onComplete{onComplete},
 	text{"Loading...", &defaultFace()},
@@ -93,7 +93,7 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, const Input::E
 		});
 }
 
-void EmuLoadProgressView::setMax(int val)
+void LoadProgressView::setMax(int val)
 {
 	if(val)
 	{
@@ -101,22 +101,22 @@ void EmuLoadProgressView::setMax(int val)
 	}
 }
 
-void EmuLoadProgressView::setPos(int val)
+void LoadProgressView::setPos(int val)
 {
 	pos = val;
 }
 
-void EmuLoadProgressView::place()
+void LoadProgressView::place()
 {
 	text.compile(renderer());
 }
 
-bool EmuLoadProgressView::inputEvent(const Input::Event &e)
+bool LoadProgressView::inputEvent(const Input::Event &e)
 {
 	return true;
 }
 
-void EmuLoadProgressView::draw(Gfx::RendererCommands &__restrict__ cmds)
+void LoadProgressView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	if(!text.isVisible())
 		return;
@@ -136,7 +136,7 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	text.draw(cmds, displayRect().center(), C2DO, ColorName::WHITE);
 }
 
-EmuLoadProgressView::MessagePortType &EmuLoadProgressView::messagePort()
+LoadProgressView::MessagePortType &LoadProgressView::messagePort()
 {
 	return msgPort;
 }

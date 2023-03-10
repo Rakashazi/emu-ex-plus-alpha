@@ -16,6 +16,7 @@
 #include "EmuOptions.hh"
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/MainMenuView.hh>
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VController.hh>
@@ -123,8 +124,8 @@ void EmuApp::applyFontSize(Window &win)
 {
 	auto settings = fontSettings(win);
 	logMsg("setting up font with pixel height:%d", settings.pixelHeight());
-	viewManager.defaultFace().setFontSettings(renderer, settings);
-	viewManager.defaultBoldFace().setFontSettings(renderer, settings);
+	viewManager.defaultFace.setFontSettings(renderer, settings);
+	viewManager.defaultBoldFace.setFontSettings(renderer, settings);
 }
 
 IG::FontSettings EmuApp::fontSettings(Window &win) const
@@ -369,13 +370,13 @@ void EmuApp::setMenuOrientation(OrientationMask o)
 void EmuApp::setShowsBundledGames(bool on)
 {
 	optionShowBundledGames = on;
-	dispatchOnMainMenuItemOptionChanged();
+	viewController().mainMenu().reloadItems();
 }
 
 void EmuApp::setShowsBluetoothScanItems(bool on)
 {
 	optionShowBluetoothScan = on;
-	dispatchOnMainMenuItemOptionChanged();
+	viewController().mainMenu().reloadItems();
 }
 
 void EmuApp::setLayoutBehindSystemUI(bool on)

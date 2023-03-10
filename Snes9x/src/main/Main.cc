@@ -43,7 +43,6 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	{
 		return IG::endsWithAnyCaseless(name, ".smc", ".sfc", ".swc", ".bs", ".st", ".fig", ".mgd");
 	};
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
 const BundledGameInfo &EmuSystem::bundledGameInfo(int idx) const
 {

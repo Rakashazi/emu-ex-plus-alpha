@@ -118,7 +118,6 @@ const char *EmuSystem::systemName() const
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMSXExtension;
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMSXExtension;
 
 void MsxSystem::insertMedia(EmuApp &app)
 {

@@ -51,7 +51,6 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	{
 		return IG::endsWithAnyCaseless(name, ".a26", ".bin");
 	};
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = EmuSystem::defaultFsFilter;
 bool EmuApp::needsGlobalInstance = true;
 
 const char *EmuSystem::shortSystemName() const

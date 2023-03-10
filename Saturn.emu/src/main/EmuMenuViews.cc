@@ -16,7 +16,6 @@
 #include <emuframework/SystemOptionView.hh>
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/DataPathSelectView.hh>
-#include <emuframework/EmuMainMenuView.hh>
 #include "MainApp.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>

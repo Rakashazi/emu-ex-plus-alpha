@@ -13,25 +13,18 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuMainMenuView.hh>
-#include <emuframework/EmuSystemActionsView.hh>
+#include <emuframework/MainMenuView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/CreditsView.hh>
 #include <emuframework/FilePicker.hh>
-#include <emuframework/StateSlotView.hh>
-#include <emuframework/SystemOptionView.hh>
-#include <emuframework/GUIOptionView.hh>
-#include <emuframework/AudioOptionView.hh>
 #include <emuframework/VideoOptionView.hh>
-#include <emuframework/FilePathOptionView.hh>
-#include "EmuOptions.hh"
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/BundledGamesView.hh>
 #include "RecentGameView.hh"
+#include "../EmuOptions.hh"
 #include <imagine/gui/AlertView.hh>
-#include <imagine/gui/TextEntry.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
@@ -50,74 +43,7 @@ protected:
 	TextMenuItem subConfig[7];
 };
 
-BluetoothAdapter *EmuApp::bluetoothAdapter()
-{
-	if(bta)
-	{
-		return bta;
-	}
-	logMsg("initializing Bluetooth");
-	bta = BluetoothAdapter::defaultAdapter(appContext());
-	return bta;
-}
-
-void EmuApp::closeBluetoothConnections()
-{
-	Bluetooth::closeBT(std::exchange(bta, {}));
-}
-
-static void onScanStatus(EmuApp &app, unsigned status, int arg)
-	{
-		switch(status)
-		{
-			case BluetoothAdapter::INIT_FAILED:
-			{
-				if(Config::envIsIOS)
-				{
-					app.postErrorMessage("BTstack power on failed, make sure the iOS Bluetooth stack is not active");
-				}
-				break;
-			}
-			case BluetoothAdapter::SCAN_FAILED:
-			{
-				app.postErrorMessage("Scan failed");
-				break;
-			}
-			case BluetoothAdapter::SCAN_NO_DEVS:
-			{
-				app.postMessage("No devices found");
-				break;
-			}
-			case BluetoothAdapter::SCAN_PROCESSING:
-			{
-				app.postMessage(2, 0, fmt::format("Checking {} device(s)...", arg));
-				break;
-			}
-			case BluetoothAdapter::SCAN_NAME_FAILED:
-			{
-				app.postErrorMessage("Failed reading a device name");
-				break;
-			}
-			case BluetoothAdapter::SCAN_COMPLETE:
-			{
-				int devs = Bluetooth::pendingDevs();
-				if(devs)
-				{
-					app.postMessage(2, 0, fmt::format("Connecting to {} device(s)...", devs));
-					Bluetooth::connectPendingDevs(app.bluetoothAdapter());
-				}
-				else
-				{
-					app.postMessage("Scan complete, no recognized devices");
-				}
-				break;
-			}
-			/*case BluetoothAdapter::SOCKET_OPEN_FAILED:
-			{
-				app.postErrorMessage("Failed opening a Bluetooth connection");
-			}*/
-		}
-	};
+static void onScanStatus(EmuApp &app, unsigned status, int arg);
 
 template <class ViewT>
 static void handledFailedBTAdapterInit(ViewT &view, ViewAttachParams attach, const Input::Event &e)
@@ -129,68 +55,20 @@ static void handledFailedBTAdapterInit(ViewT &view, ViewAttachParams attach, con
 		view.pushAndShowModal(std::make_unique<YesNoAlertView>(attach, "BTstack not found, open Cydia and install?",
 			YesNoAlertView::Delegates
 			{
-				.onYes = [](View &v)
-				{
-					logMsg("launching Cydia");
-					v.appContext().openURL("cydia://package/ch.ringwald.btstack");
-				}
+				.onYes = [](View &v){ v.appContext().openURL("cydia://package/ch.ringwald.btstack"); }
 			}), e, false);
 	}
 	#endif
 }
 
-void EmuMainMenuView::onShow()
-{
-	TableView::onShow();
-	logMsg("refreshing main menu state");
-	recentGames.setActive(app().recentContent().size());
-	systemActions.setActive(system().hasContent());
-	bluetoothDisconnect.setActive(Bluetooth::devsConnected(appContext()));
-}
-
-void EmuMainMenuView::loadFileBrowserItems()
-{
-	item.emplace_back(&loadGame);
-	item.emplace_back(&recentGames);
-	if(EmuSystem::hasBundledGames && app().showsBundledGames())
-	{
-		item.emplace_back(&bundledGames);
-	}
-}
-
-void EmuMainMenuView::loadStandardItems()
-{
-	item.emplace_back(&systemActions);
-	item.emplace_back(&onScreenInputManager);
-	item.emplace_back(&inputManager);
-	item.emplace_back(&options);
-	if(used(scanWiimotes) && app().showsBluetoothScanItems())
-	{
-		item.emplace_back(&scanWiimotes);
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		item.emplace_back(&acceptPS3ControllerConnection);
-		#endif
-		item.emplace_back(&bluetoothDisconnect);
-	}
-	item.emplace_back(&benchmark);
-	item.emplace_back(&about);
-	item.emplace_back(&exitApp);
-}
-
-void EmuMainMenuView::setAudioVideo(EmuAudio &audio_, EmuVideoLayer &videoLayer_)
-{
-	audio = &audio_;
-	videoLayer = &videoLayer_;
-}
-
-EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
+MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	TableView{EmuApp::mainViewName(), attach, item},
 	loadGame
 	{
 		"Open Content", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e), e, false);
+			pushAndShow(FilePicker::forLoading(attachParams(), e), e, false);
 		}
 	},
 	systemActions
@@ -251,7 +129,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Benchmark Content", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			pushAndShow(EmuFilePicker::makeForBenchmarking(attachParams(), e), e, false);
+			pushAndShow(FilePicker::forBenchmarking(attachParams(), e), e, false);
 		}
 	},
 	scanWiimotes
@@ -356,17 +234,112 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 {
 	if(!customMenu)
 	{
-		loadFileBrowserItems();
-		loadStandardItems();
-		app().setOnMainMenuItemOptionChanged(
-			[this]()
-			{
-				waitForDrawFinished();
-				item.clear();
-				loadFileBrowserItems();
-				loadStandardItems();
-			});
+		reloadItems();
 	}
+}
+
+static void onScanStatus(EmuApp &app, unsigned status, int arg)
+{
+	switch(status)
+	{
+		case BluetoothAdapter::INIT_FAILED:
+		{
+			if(Config::envIsIOS)
+			{
+				app.postErrorMessage("BTstack power on failed, make sure the iOS Bluetooth stack is not active");
+			}
+			break;
+		}
+		case BluetoothAdapter::SCAN_FAILED:
+		{
+			app.postErrorMessage("Scan failed");
+			break;
+		}
+		case BluetoothAdapter::SCAN_NO_DEVS:
+		{
+			app.postMessage("No devices found");
+			break;
+		}
+		case BluetoothAdapter::SCAN_PROCESSING:
+		{
+			app.postMessage(2, 0, fmt::format("Checking {} device(s)...", arg));
+			break;
+		}
+		case BluetoothAdapter::SCAN_NAME_FAILED:
+		{
+			app.postErrorMessage("Failed reading a device name");
+			break;
+		}
+		case BluetoothAdapter::SCAN_COMPLETE:
+		{
+			int devs = Bluetooth::pendingDevs();
+			if(devs)
+			{
+				app.postMessage(2, 0, fmt::format("Connecting to {} device(s)...", devs));
+				Bluetooth::connectPendingDevs(app.bluetoothAdapter());
+			}
+			else
+			{
+				app.postMessage("Scan complete, no recognized devices");
+			}
+			break;
+		}
+		/*case BluetoothAdapter::SOCKET_OPEN_FAILED:
+		{
+			app.postErrorMessage("Failed opening a Bluetooth connection");
+		}*/
+	}
+};
+
+void MainMenuView::onShow()
+{
+	TableView::onShow();
+	logMsg("refreshing main menu state");
+	recentGames.setActive(app().recentContent().size());
+	systemActions.setActive(system().hasContent());
+	bluetoothDisconnect.setActive(Bluetooth::devsConnected(appContext()));
+}
+
+void MainMenuView::loadFileBrowserItems()
+{
+	item.emplace_back(&loadGame);
+	item.emplace_back(&recentGames);
+	if(EmuSystem::hasBundledGames && app().showsBundledGames())
+	{
+		item.emplace_back(&bundledGames);
+	}
+}
+
+void MainMenuView::loadStandardItems()
+{
+	item.emplace_back(&systemActions);
+	item.emplace_back(&onScreenInputManager);
+	item.emplace_back(&inputManager);
+	item.emplace_back(&options);
+	if(used(scanWiimotes) && app().showsBluetoothScanItems())
+	{
+		item.emplace_back(&scanWiimotes);
+		#ifdef CONFIG_BLUETOOTH_SERVER
+		item.emplace_back(&acceptPS3ControllerConnection);
+		#endif
+		item.emplace_back(&bluetoothDisconnect);
+	}
+	item.emplace_back(&benchmark);
+	item.emplace_back(&about);
+	item.emplace_back(&exitApp);
+}
+
+void MainMenuView::setAudioVideo(EmuAudio &audio_, EmuVideoLayer &videoLayer_)
+{
+	audio = &audio_;
+	videoLayer = &videoLayer_;
+}
+
+void MainMenuView::reloadItems()
+{
+	item.clear();
+	loadFileBrowserItems();
+	loadStandardItems();
 }
 
 OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio, EmuVideoLayer &videoLayer):
@@ -435,24 +408,6 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 				appContext().openURL(fmt::format("https://play.google.com/apps/testing/{}", appContext().applicationId));
 			}
 		};
-	}
-}
-
-std::unique_ptr<View> EmuApp::makeView(ViewAttachParams attach, ViewID id)
-{
-	auto view = makeCustomView(attach, id);
-	if(view)
-		return view;
-	switch(id)
-	{
-		case ViewID::MAIN_MENU: return std::make_unique<EmuMainMenuView>(attach);
-		case ViewID::SYSTEM_ACTIONS: return std::make_unique<EmuSystemActionsView>(attach);
-		case ViewID::VIDEO_OPTIONS: return std::make_unique<VideoOptionView>(attach);
-		case ViewID::AUDIO_OPTIONS: return std::make_unique<AudioOptionView>(attach);
-		case ViewID::SYSTEM_OPTIONS: return std::make_unique<SystemOptionView>(attach);
-		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<FilePathOptionView>(attach);
-		case ViewID::GUI_OPTIONS: return std::make_unique<GUIOptionView>(attach);
-		default: bug_unreachable("Tried to make non-existing view ID:%d", (int)id);
 	}
 }
 

@@ -17,7 +17,7 @@
 #include <emuframework/inGameActionKeys.hh>
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/EmuApp.hh>
-#include "privateInput.hh"
+#include "../privateInput.hh"
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/math/int.hh>
@@ -197,13 +197,6 @@ void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Eve
 	}
 }
 
-void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
-	int xIndent, _2DOrigin align, Gfx::Color color) const
-{
-	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
-	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, Gfx::ColorName::YELLOW);
-}
-
 static std::pair<const KeyCategory *, int> findCategoryAndKeyInConfig(EmuApp &app, Input::Key key,
 	InputDeviceConfig &devConf, const KeyCategory *skipCat, int skipIdx_)
 {
@@ -317,7 +310,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 	cat = &cat_;
 	devConf = &devConf_;
 	auto keyConfig = devConf_.keyConf();
-	btn = std::make_unique<BtnConfigMenuItem[]>(cat_.keys());
+	btn = std::make_unique<DualTextMenuItem[]>(cat_.keys());
 	for(int i : iotaCount(cat_.keys()))
 	{
 		auto key = keyConfig.key(cat_)[i];
@@ -369,6 +362,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 				pushAndShowModal(std::move(btnSetView), e);
 			}
 		};
+		btn[i].text2Color = Gfx::ColorName::YELLOW;
 	}
 }
 

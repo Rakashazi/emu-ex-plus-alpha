@@ -23,24 +23,6 @@
 namespace FrameRateTest
 {
 
-TestTableEntry::TestTableEntry(Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
-	DualTextMenuItem{u"", u"", face, selectDel} {}
-
-void TestTableEntry::draw(Gfx::RendererCommands &cmds, int xPos, int yPos, int xSize, int ySize,
-	int xIndent, IG::_2DOrigin align, Gfx::Color color) const
-{
-	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
-	if(t2.isVisible())
-	{
-		Gfx::Color color2;
-		if(redText)
-			color2 = Gfx::Color{1.f, 0.f, 0.f};
-		else
-			color2 = Gfx::Color{1.f, 1.f, 1.f};
-		draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
-	}
-}
-
 TestPicker::TestPicker(IG::ViewAttachParams attach):
 	TableView
 	{
@@ -56,7 +38,7 @@ void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 	testParam.reserve(tests);
 	for(auto i : iotaCount(tests))
 	{
-		testEntry.emplace_back(&defaultFace(),
+		testEntry.emplace_back(testDesc[i].name, u"", &defaultFace(),
 			[this, i](IG::DualTextMenuItem &, IG::View &, IG::Input::Event e)
 			{
 				auto &app = mainApp(appContext());
@@ -72,10 +54,9 @@ void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 						auto &entry = testEntry[i];
 						auto fps = double(test.frames-1) / diff.count();
 						entry.set2ndName(fmt::format("{:.2f}", fps).data());
-						entry.redText = test.droppedFrames;
+						entry.text2Color = test.droppedFrames ? Gfx::ColorName::RED : Gfx::ColorName::WHITE;
 					};
 			});
-		testEntry[i].setName(testDesc[i].name.data());
 		testParam.emplace_back(testDesc[i].params);
 	}
 	if(appContext().keyInputIsPresent())

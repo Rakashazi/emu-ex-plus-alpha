@@ -173,7 +173,7 @@ public:
 		onSelect{onSelect} {}
 
 	TextMenuItem(UTF16Convertible auto &&name, Gfx::GlyphTextureSet *face, IdInt id):
-		TextMenuItem{IG_forward(name), face, {}, id} {}
+		MenuItem{IG_forward(name), face, id} {}
 
 	bool select(View &parent, const Input::Event &e) override { return onSelect.callCopySafe(*this, parent, e); }
 };
@@ -221,17 +221,17 @@ public:
 	using SelectDelegate = MenuItemSelectDelegate<DualTextMenuItem>;
 
 	SelectDelegate onSelect;
+	Gfx::Color text2Color;
 
 	constexpr DualTextMenuItem() = default;
 
 	DualTextMenuItem(UTF16Convertible auto &&name, UTF16Convertible auto &&name2, Gfx::GlyphTextureSet *face,
-		SelectDelegate onSelect, IdInt id = {}):
+		SelectDelegate onSelect = {}, IdInt id = {}):
 		BaseDualTextMenuItem{IG_forward(name), IG_forward(name2), face, id},
 		onSelect{onSelect} {}
 
-	DualTextMenuItem(UTF16Convertible auto &&name, UTF16Convertible auto &&name2, Gfx::GlyphTextureSet *face, IdInt id = {}):
-		BaseDualTextMenuItem{IG_forward(name), IG_forward(name2), face, id} {}
-
+	void draw(Gfx::RendererCommands &__restrict__, int xPos, int yPos, int xSize, int ySize,
+		int xIndent, _2DOrigin align, Gfx::Color) const override;
 	bool select(View &, const Input::Event &) override;
 };
 

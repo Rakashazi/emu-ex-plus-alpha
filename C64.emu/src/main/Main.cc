@@ -221,7 +221,6 @@ static bool hasC64Extension(std::string_view name)
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasC64Extension;
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasC64Extension;
 
 void C64System::reset(EmuApp &, ResetMode mode)
 {

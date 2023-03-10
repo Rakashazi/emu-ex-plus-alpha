@@ -43,7 +43,6 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	{
 		return IG::endsWithAnyCaseless(name, ".ws", ".wsc", ".bin");
 	};
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 double EmuSystem::staticFrameTime = (159. * 256.) / 3072000.;
 bool EmuApp::needsGlobalInstance = true;
 

@@ -65,11 +65,10 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 		[this](IG::ApplicationContext ctx, IG::Window &win)
 		{
 			renderer.initMainTask(&win);
-			viewManager = {renderer};
 			Gfx::GlyphTextureSet defaultFace{renderer, fontManager.makeSystem(), win.heightScaledMMInPixels(2.5)};
 			defaultFace.precacheAlphaNum(renderer);
 			defaultFace.precache(renderer, ":.%()");
-			viewManager.setDefaultFace(std::move(defaultFace));
+			viewManager.defaultFace = std::move(defaultFace);
 			auto &winData = win.makeAppData<WindowData>(IG::ViewAttachParams{viewManager, win, renderer.task()});
 			std::vector<TestDesc> testDesc;
 			testDesc.emplace_back(TEST_CLEAR, "Clear");
@@ -122,7 +121,7 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 						{
 							finishTest(win, IG::steadyClockTimestamp());
 						}
-						viewManager.defaultFace().freeCaches();
+						viewManager.defaultFace.freeCaches();
 					}
 					return true;
 				});
@@ -202,7 +201,7 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 	win.setOnDraw(
 		[this, &task = renderer.task()](IG::Window &win, IG::Window::DrawParams params)
 		{
-			auto xIndent = viewManager.tableXIndent();
+			auto xIndent = viewManager.tableXIndentPx;
 			return task.draw(win, params, {}, [xIndent](IG::Window &win, Gfx::RendererCommands &cmds)
 			{
 				auto &winData = windowData(win);
@@ -293,7 +292,7 @@ void FrameRateTestApplication::finishTest(IG::Window &win, IG::FrameTime frameTi
 
 TestFramework *FrameRateTestApplication::startTest(IG::Window &win, const TestParams &t)
 {
-	auto &face = viewManager.defaultFace();
+	auto &face = viewManager.defaultFace;
 	auto app = win.appContext();
 	#ifdef __ANDROID__
 	if(cpuFreq)

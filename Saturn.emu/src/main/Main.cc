@@ -202,7 +202,6 @@ const char *EmuSystem::systemName() const
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasCDExtension;
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasCDExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 

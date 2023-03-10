@@ -32,21 +32,14 @@ namespace IG
 
 class ViewManager;
 
-class ViewAttachParams
+struct ViewAttachParams
 {
-public:
-	constexpr ViewAttachParams(ViewManager &manager, Window &win, Gfx::RendererTask &rTask):
-		manager{manager}, win{win}, rTask{rTask} {}
-	constexpr ViewManager &viewManager() const { return manager; }
-	constexpr Window &window() const { return win; }
-	constexpr Gfx::RendererTask &rendererTask() const { return rTask; }
+	ViewManager &viewManager;
+	Window &window;
+	Gfx::RendererTask &rendererTask;
+
 	Gfx::Renderer &renderer() const;
 	ApplicationContext appContext() const;
-
-protected:
-	ViewManager &manager;
-	Window &win;
-	Gfx::RendererTask &rTask;
 };
 
 }

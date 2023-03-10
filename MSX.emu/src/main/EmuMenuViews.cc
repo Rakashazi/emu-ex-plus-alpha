@@ -17,7 +17,7 @@
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/DataPathSelectView.hh>
-#include <emuframework/EmuSystemActionsView.hh>
+#include <emuframework/SystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
@@ -272,7 +272,7 @@ public:
 
 	void addHDFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
-		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e,
+		auto fPicker = FilePicker::forMediaChange(attachParams(), e,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
 			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view path, std::string_view name, Input::Event e)
 			{
@@ -341,7 +341,7 @@ public:
 
 	void addROMFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
-		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e,
+		auto fPicker = FilePicker::forMediaChange(attachParams(), e,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM),
 			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view path, std::string_view name, Input::Event e)
 			{
@@ -422,7 +422,7 @@ public:
 
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
-		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e,
+		auto fPicker = FilePicker::forMediaChange(attachParams(), e,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
 			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view path, std::string_view name, Input::Event e)
 			{
@@ -513,7 +513,7 @@ const char *MsxIOControlView::romSlotPrefix[2] {"ROM1:", "ROM2:"};
 const char *MsxIOControlView::diskSlotPrefix[2] {"Disk1:", "Disk2:"};
 const char *MsxIOControlView::hdSlotPrefix[4] {"IDE1-M:", "IDE1-S:", "IDE2-M:", "IDE2-S:"};
 
-class CustomSystemActionsView : public EmuSystemActionsView, public MainAppHelper<CustomSystemActionsView>
+class CustomSystemActionsView : public SystemActionsView, public MainAppHelper<CustomSystemActionsView>
 {
 	using MainAppHelper<CustomSystemActionsView>::system;
 	using MainAppHelper<CustomSystemActionsView>::app;
@@ -610,14 +610,14 @@ private:
 	}
 
 public:
-	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	CustomSystemActionsView(ViewAttachParams attach): SystemActionsView{attach, true}
 	{
 		reloadItems();
 	}
 
 	void onShow()
 	{
-		EmuSystemActionsView::onShow();
+		SystemActionsView::onShow();
 		msxIOControl.setActive(system().hasContent() && system().activeBoardType == BOARD_MSX);
 		msxMachine.setSelected(machineIndex(msxMachineName, currentMachineName()));
 	}

@@ -22,10 +22,10 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuAudio.hh>
-#include <emuframework/EmuMainMenuView.hh>
-#include "EmuOptions.hh"
-#include "WindowData.hh"
-#include "configFile.hh"
+#include <emuframework/MainMenuView.hh>
+#include "../EmuOptions.hh"
+#include "../WindowData.hh"
+#include "../configFile.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/gfx/Renderer.hh>
@@ -47,9 +47,9 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	viewStack{app()}
 {
 	emuInputView.setController(this);
-	auto &win = viewAttach.window();
-	auto &face = viewAttach.viewManager().defaultFace();
-	auto &screen = *viewAttach.window().screen();
+	auto &win = viewAttach.window;
+	auto &face = viewAttach.viewManager.defaultFace;
+	auto &screen = *viewAttach.window.screen();
 	popup.setFace(face);
 	{
 		auto viewNav = std::make_unique<BasicNavView>
@@ -71,7 +71,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 				app().showEmulation();
 			});
 		viewNav->showRightBtn(false);
-		viewStack.setShowNavViewBackButton(viewAttach.viewManager().needsBackControl());
+		viewStack.setShowNavViewBackButton(viewAttach.viewManager.needsBackControl);
 		app().onCustomizeNavView(*viewNav);
 		viewStack.setNavView(std::move(viewNav));
 	}
@@ -83,7 +83,7 @@ void EmuViewController::pushAndShowMainMenu(ViewAttachParams viewAttach, EmuVide
 	EmuAudio &emuAudio)
 {
 	auto mainMenu = EmuApp::makeView(viewAttach, EmuApp::ViewID::MAIN_MENU);
-	static_cast<EmuMainMenuView*>(mainMenu.get())->setAudioVideo(emuAudio, videoLayer);
+	static_cast<MainMenuView*>(mainMenu.get())->setAudioVideo(emuAudio, videoLayer);
 	viewStack.pushAndShow(std::move(mainMenu));
 }
 
@@ -453,6 +453,11 @@ void EmuViewController::onSystemClosed()
 EmuInputView &EmuViewController::inputView()
 {
 	return emuInputView;
+}
+
+MainMenuView &EmuViewController::mainMenu()
+{
+	return static_cast<MainMenuView&>(viewStack.viewAtIdx(0));
 }
 
 IG::ToastView &EmuViewController::popupMessageView()

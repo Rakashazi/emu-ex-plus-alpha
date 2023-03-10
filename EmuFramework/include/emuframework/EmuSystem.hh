@@ -201,7 +201,6 @@ public:
 	static IG::Audio::SampleFormat audioSampleFormat;
 	static bool constFrameRate;
 	static NameFilterFunc defaultFsFilter;
-	static NameFilterFunc defaultBenchmarkFsFilter;
 	static const char *creditsViewStr;
 
 	EmuSystem(IG::ApplicationContext ctx): appCtx{ctx} {}

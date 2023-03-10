@@ -15,7 +15,7 @@
 
 #include <emuframework/SystemOptionView.hh>
 #include <emuframework/EmuApp.hh>
-#include "EmuOptions.hh"
+#include "../EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/fs/FS.hh>
