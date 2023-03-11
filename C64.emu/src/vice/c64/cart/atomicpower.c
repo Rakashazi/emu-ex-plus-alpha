@@ -189,11 +189,11 @@ static uint8_t atomicpower_io1_read(uint16_t addr)
     }
     /* since the r/w line is not decoded, a read still changes the register,
        to whatever was on the bus before */
-    value = vicii_read_phi1();    
+    value = vicii_read_phi1();
     atomicpower_io1_store(addr, value);
     log_warning(LOG_DEFAULT, "AP: reading IO1 area at 0xde%02x, this corrupts the register",
                 addr & 0xffu);
-    
+
     return value;
 }
 

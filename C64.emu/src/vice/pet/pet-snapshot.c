@@ -31,22 +31,21 @@
 #include <stdio.h>
 
 #include "6809.h"
+#include "archdep.h"
 #include "crtc.h"
 #include "drive-snapshot.h"
-#include "serial.h"
-#include "ioutil.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "log.h"
 #include "machine.h"
 #include "maincpu.h"
-#include "pet-snapshot.h"
 #include "pet.h"
 #include "petacia.h"
 #include "petdww.h"
 #include "petmemsnapshot.h"
 #include "petpia.h"
 #include "pets.h"
+#include "serial.h"
 #include "snapshot.h"
 #include "sound.h"
 #include "tapeport.h"
@@ -54,6 +53,9 @@
 #include "userport.h"
 #include "via.h"
 #include "vice-event.h"
+
+#include "pet-snapshot.h"
+
 
 #define SNAP_MAJOR 1
 #define SNAP_MINOR 0
@@ -96,7 +98,7 @@ int pet_snapshot_write(const char *name, int save_roms, int save_disks,
     snapshot_close(s);
 
     if (ef) {
-        ioutil_remove(name);
+        archdep_remove(name);
     }
 
     return ef;

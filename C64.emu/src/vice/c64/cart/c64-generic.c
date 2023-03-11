@@ -41,6 +41,7 @@
 #include "types.h"
 #include "util.h"
 #include "lib.h"
+#include "log.h"
 
 /*
     the default cartridge works like this:
@@ -210,6 +211,9 @@ static int generic_common_attach(int mode)
                 return -1;
             }
             break;
+        default:
+            log_error(LOG_DEFAULT, "generic_common_attach: unknown mode %d", mode);
+            break;
     }
     return 0;
 }
@@ -262,6 +266,7 @@ int generic_crt_attach(FILE *fd, uint8_t *rawcart)
     int crttype;
 
     export_res_ultimax.game = 0;
+    DBG(("generic_crt_attach\n"));
 
     if (crt_read_chip_header(&chip, fd)) {
         return -1;

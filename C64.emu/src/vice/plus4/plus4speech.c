@@ -497,7 +497,7 @@ static int speech_sound_machine_channels(void)
 
 /* V364 speech sound chip */
 static sound_chip_t speech_sound_chip = {
-    NULL,                                   /* NO sound chip open function */ 
+    NULL,                                   /* NO sound chip open function */
     speech_sound_machine_init,              /* sound chip init function */
     NULL,                                   /* NO sound chip close function */
     speech_sound_machine_calculate_samples, /* sound chip calculate samples function */

@@ -133,7 +133,7 @@ static const machine_drives_t machine_drives[] = {
 
 int drive_cmdline_options_init(void)
 {
-    unsigned int dnr, i, j;
+    int dnr, i, j;
     const char *found_string = NULL;
     int has_iec;
 

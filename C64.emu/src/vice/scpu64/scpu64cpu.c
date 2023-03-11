@@ -321,7 +321,7 @@ void scpu64_clock_write_stretch_simm(uint32_t addr)
             maincpu_accu -= 20000000;
             scpu64_maincpu_inc();
         }
-    } 
+    }
 }
 
 void scpu64_clock_read_ioram(void) /* scpu64 v1 $d200-$d3ff one extra 20 Mhz cycle */

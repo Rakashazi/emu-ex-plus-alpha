@@ -268,7 +268,7 @@ int memhacks_snapshot_read_modules(struct snapshot_s *s)
     }
 
     return 0;
-    
+
 fail:
     if (m != NULL) {
         snapshot_module_close(m);

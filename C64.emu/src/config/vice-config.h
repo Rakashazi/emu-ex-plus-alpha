@@ -423,6 +423,12 @@
 /* Use the new 8580 filter */
 #define HAVE_NEW_8580_FILTER 1
 
+/* Define to 1 if the system has the type `off_t'. */
+#define HAVE_OFF_T
+
+/* Include sys/types.h for off_t */
+#define HAVE_OFF_T_IN_SYS_TYPES
+
 /* Define to 1 if you have the `outb' function. */
 /* #undef HAVE_OUTB */
 
@@ -777,7 +783,7 @@
 #define TIME_T_IS_64BIT /**/
 
 /* Are we compiling for unix? */
-/* #undef UNIX_COMPILE */
+#define UNIX_COMPILE
 
 /* Define if this version is unstable. */
 /* #undef UNSTABLE */

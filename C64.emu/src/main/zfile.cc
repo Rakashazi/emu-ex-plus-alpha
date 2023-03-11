@@ -65,3 +65,14 @@ CLINK FILE *zfile_fopen(const char *path, const char *mode)
 		return FileUtils::fopenUri(appContext, path, mode);
 	}
 }
+
+CLINK off_t archdep_file_size(FILE *stream)
+{
+	off_t pos = ftello(stream);
+	if(pos == -1)
+		return -1;
+	fseeko(stream, 0, SEEK_END);
+	off_t end = ftello(stream);
+	fseeko(stream, pos, SEEK_SET);
+	return end;
+}

@@ -573,7 +573,7 @@ int c64_256k_snapshot_read(struct snapshot_s *s)
     }
 
     return snapshot_module_close(m);
-   
+
 fail:
     if (m != NULL) {
         snapshot_module_close(m);

@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 
+#include "driverom.h"
 #include "lib.h"
 #include "resources.h"
 #include "tcbm-resources.h"
@@ -46,7 +47,7 @@ static int set_dos_rom_name_1551(const char *val, void *param)
 }
 
 static const resource_string_t resources_string[] = {
-    { "DosName1551", "dos1551", RES_EVENT_NO, NULL,
+    { "DosName1551", DRIVE_ROM1551_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_1551, set_dos_rom_name_1551, NULL },
     RESOURCE_STRING_LIST_END
 };

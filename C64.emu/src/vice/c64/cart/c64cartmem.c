@@ -103,6 +103,7 @@
 #include "multimax.h"
 #include "ocean.h"
 #include "pagefox.h"
+#include "partner64.h"
 #include "prophet64.h"
 #include "ramcart.h"
 #include "ramlink.h"
@@ -657,6 +658,8 @@ static uint8_t roml_read_slotmain(uint16_t addr)
             return multimax_roml_read(addr);
         case CARTRIDGE_PAGEFOX:
             return pagefox_roml_read(addr);
+        case CARTRIDGE_PARTNER64:
+            return partner64_roml_read(addr);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_roml_read(addr);
         case CARTRIDGE_REX_RAMFLOPPY:
@@ -913,6 +916,8 @@ static uint8_t romh_read_slotmain(uint16_t addr)
             return ocean_romh_read(addr);
         case CARTRIDGE_PAGEFOX:
             return pagefox_romh_read(addr);
+        case CARTRIDGE_PARTNER64:
+            return partner64_romh_read(addr);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_romh_read(addr);
         case CARTRIDGE_SNAPSHOT64:
@@ -1045,6 +1050,8 @@ static uint8_t ultimax_romh_read_hirom_slotmain(uint16_t addr)
             return multimax_romh_read(addr);
         case CARTRIDGE_OCEAN:
             return ocean_romh_read(addr);
+        case CARTRIDGE_PARTNER64:
+            return partner64_romh_read(addr);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_romh_read(addr);
         case CARTRIDGE_SNAPSHOT64:
@@ -1438,6 +1445,7 @@ static uint8_t ultimax_1000_7fff_read_slot1(uint16_t addr)
             return ide64_ram_read(addr);
         case CARTRIDGE_MMC_REPLAY:
             return mmcreplay_1000_7fff_read(addr);
+        case CARTRIDGE_PARTNER64:
         case CARTRIDGE_EXOS:
         case CARTRIDGE_FINAL_PLUS:
         case CARTRIDGE_FORMEL64:
@@ -1532,6 +1540,7 @@ void ultimax_1000_7fff_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_KINGSOFT:
         case CARTRIDGE_LT_KERNAL:
         case CARTRIDGE_MAGIC_FORMEL:
+        case CARTRIDGE_PARTNER64:
         case CARTRIDGE_STARDOS:
             /* fake ultimax hack, c64 ram */
             mem_store_without_ultimax(addr, value);
@@ -1570,6 +1579,8 @@ static uint8_t ultimax_a000_bfff_read_slot1(uint16_t addr)
             return ide64_rom_read(addr);
         case CARTRIDGE_MMC_REPLAY:
             return mmcreplay_a000_bfff_read(addr);
+        case CARTRIDGE_PARTNER64:
+            return partner64_a000_bfff_read(addr);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_a000_bfff_read(addr);
         case CARTRIDGE_CAPTURE:
@@ -1663,6 +1674,9 @@ void ultimax_a000_bfff_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_MMC_REPLAY:
             mmcreplay_a000_bfff_store(addr, value);
             break;
+        case CARTRIDGE_PARTNER64:
+            partner64_a000_bfff_store(addr, value);
+            break;
         case CARTRIDGE_RETRO_REPLAY:
             retroreplay_a000_bfff_store(addr, value);
             break;
@@ -1708,6 +1722,7 @@ static uint8_t ultimax_c000_cfff_read_slot1(uint16_t addr)
     switch (mem_cartridge_type) {
         case CARTRIDGE_MMC_REPLAY:
             return mmcreplay_c000_cfff_read(addr);
+        case CARTRIDGE_PARTNER64:
         case CARTRIDGE_CAPTURE:
         case CARTRIDGE_EXOS:
         case CARTRIDGE_FINAL_PLUS:
@@ -1796,6 +1811,7 @@ void ultimax_c000_cfff_store(uint16_t addr, uint8_t value)
         case CARTRIDGE_KINGSOFT:
         case CARTRIDGE_LT_KERNAL:
         case CARTRIDGE_MAGIC_FORMEL:
+        case CARTRIDGE_PARTNER64:
         case CARTRIDGE_STARDOS:
             /* fake ultimax hack, c64 ram */
             mem_store_without_ultimax(addr, value);
@@ -2036,6 +2052,11 @@ int ultimax_romh_phi1_read(uint16_t addr, uint8_t *value)
             return 1;
         }
     }
+    if (ramlink_cart_enabled()) {
+        if ((res = ramlink_romh_phi1_read(addr, value)) == CART_READ_VALID) {
+            return 1;
+        }
+    }
 
     switch (res) {
         case CART_READ_C64MEM:
@@ -2144,6 +2165,11 @@ int ultimax_romh_phi2_read(uint16_t addr, uint8_t *value)
     }
     if (ieeeflash64_cart_enabled()) {
         if ((res = ieeeflash64_romh_phi2_read(addr, value)) == CART_READ_VALID) {
+            return 1;
+        }
+    }
+    if (ramlink_cart_enabled()) {
+        if ((res = ramlink_romh_phi2_read(addr, value)) == CART_READ_VALID) {
             return 1;
         }
     }

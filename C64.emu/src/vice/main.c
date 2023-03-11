@@ -59,9 +59,9 @@
 #include "mainlock.h"
 #include "resources.h"
 #include "sysfile.h"
-#include "tick.h"
 #include "types.h"
 #include "uiapi.h"
+#include "uiactions.h"
 #include "util.h"
 #include "version.h"
 #include "video.h"
@@ -123,25 +123,15 @@ int main_program(int argc, char **argv)
      * The init lock guarantees that all main thread init outcomes are visible
      * to the VICE thread.
      */
-    
+
     pthread_mutex_lock(&init_lock);
 
     archdep_thread_init();
 
     mainlock_init();
 #endif
-    
-    /*
-     * OpenMP defaults to spinning threads for a couple hundred ms
-     * after they are used, which means they max out forever in our
-     * use case. Setting OMP_WAIT_POLICY to PASSIVE fixes that.
-     */
-    
-#if defined(WIN32_COMPILE)
-    _putenv("OMP_WAIT_POLICY=PASSIVE");
-#else
-    setenv("OMP_WAIT_POLICY", "PASSIVE", 1);
-#endif
+
+    archdep_set_openmp_wait_policy();
 
     lib_init();
 
@@ -153,8 +143,11 @@ int main_program(int argc, char **argv)
         cmdline = util_concat(p, " ", argv[i], NULL);
         lib_free(p); /* free old pointer */
     }
+    /* make stdin, stdout and stderr available on Windows when compiling with
+     * -mwindows */
+    archdep_fix_streams();
 
-    /* Check for some options at the beginning of the commandline before 
+    /* Check for some options at the beginning of the commandline before
        initializing the user interface or loading the config file.
        -default => use default config, do not load any config
        -config  => use specified configuration file
@@ -168,8 +161,17 @@ int main_program(int argc, char **argv)
         if ((!strcmp(argv[i], "-console")) || (!strcmp(argv[i], "--console"))) {
             console_mode = 1;
             /* video_disabled_mode = 1;  Breaks exitscreenshot */
-        } else
-        if ((!strcmp(argv[i], "-config")) || (!strcmp(argv[i], "--config"))) {
+        } else if ((!strcmp(argv[i], "-version")) || (!strcmp(argv[i], "--version"))) {
+#ifdef USE_SVN_REVISION
+            printf("%s (VICE %s SVN r%d)\n", archdep_program_name(), VERSION, VICE_SVN_REV_NUMBER);
+#else
+            printf("%s (VICE %s)\n", archdep_program_name(), VERSION);
+#endif
+            archdep_program_name_free();
+            archdep_program_path_free();
+            lib_free(cmdline);
+            exit(EXIT_SUCCESS);
+        } else if ((!strcmp(argv[i], "-config")) || (!strcmp(argv[i], "--config"))) {
             if ((i + 1) < argc) {
                 vice_config_file = lib_strdup(argv[++i]);
                 loadconfig = 1;
@@ -225,15 +227,14 @@ int main_program(int argc, char **argv)
     sysfile_init(machine_name);
 
 
-    /* hotkeys init needs to be called after sysfile_init() but before the
-     * resources and cmdline options of the hotkeys are registered.
-     */
-    if (!help_requested) {
-        ui_hotkeys_init();
+    if ((init_resources() < 0) || (init_cmdline_options() < 0)) {
+        return -1;
     }
 
     gfxoutput_early_init(help_requested);
-    if ((init_resources() < 0) || (init_cmdline_options() < 0)) {
+    gfxoutput_resources_init();
+    if (gfxoutput_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("gfxoutput");
         return -1;
     }
 
@@ -241,6 +242,12 @@ int main_program(int argc, char **argv)
     if (resources_set_defaults() < 0) {
         archdep_startup_log_error("Cannot set defaults.\n");
         return -1;
+    }
+
+    /* Initialize the UI actions system, this needs to happen before the UI
+     * init so the UI code can register handlers */
+    if (!console_mode && !help_requested) {
+        ui_actions_init();
     }
 
     /* Initialize the user interface.  `ui_init_with_args()' might need to handle the

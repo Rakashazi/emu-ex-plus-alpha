@@ -554,7 +554,6 @@ static int mem_read_rom_snapshot_module(snapshot_t *s)
         SMR_BA(m, mem_rom + 0x6000, 0x0800);
 
         /* chargen ROM */
-        resources_set_int("Basic1Chars", 0);
         SMR_BA(m, mem_chargen_rom, 0x0800);
 
         /* $9000-$9fff */

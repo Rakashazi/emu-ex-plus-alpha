@@ -34,11 +34,11 @@
 
 #include "types.h"
 #include "diskimage.h"
-#include "rtc/rtc-72421.h"
+#include "rtc-72421.h"
 #include "alarm.h"
 #include "via.h"
-#include "core/scsi.h"
-#include "core/i8255a.h"
+#include "scsi.h"
+#include "i8255a.h"
 
 struct diskunit_context_s;
 struct via_context_s;

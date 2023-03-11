@@ -47,6 +47,6 @@ extern int monitor_network_get_command_line(char **prompt);
 extern int monitor_is_remote(void);
 extern vice_network_socket_t *monitor_get_connected_socket(void);
 
-extern ui_jam_action_t monitor_network_ui_jam_dialog(const char *format, ...);
+extern ui_jam_action_t monitor_network_ui_jam_dialog(const char *format, ...) VICE_ATTR_PRINTF;
 
 #endif

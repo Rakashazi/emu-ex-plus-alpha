@@ -575,13 +575,17 @@ void georam_config_setup(uint8_t *rawcart)
 int georam_bin_attach(const char *filename, uint8_t *rawcart)
 {
     FILE *fd;
-    size_t size;
+    off_t size;
 
     fd = fopen(filename, MODE_READ);
     if (fd == NULL) {
         return -1;
     }
-    size = util_file_length(fd);
+    size = archdep_file_size(fd);
+    if (size < 0) {
+        fclose(fd);
+        return -1;
+    }
     fclose(fd);
 
     if (set_georam_size((uint32_t)(size / 1024), NULL) < 0) {
@@ -592,7 +596,7 @@ int georam_bin_attach(const char *filename, uint8_t *rawcart)
         return -1;
     }
 
-    if (util_file_load(filename, rawcart, size, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
+    if (util_file_load(filename, rawcart, (size_t)size, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
     }
 

@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "alarm.h"
 #include "catweaselmkiii.h"
 #include "fastsid.h"
 #include "hardsid.h"
@@ -110,6 +111,34 @@ static void sid_write_off(uint16_t addr, uint8_t val, int chipno)
 
 /* ------------------------------------------------------------------------- */
 
+/* FIXME: we should really use an alarm to update the POT values every 512
+          cycles. unfortunately the current mouse code will not work with
+          this approach
+*/
+#if 0
+struct alarm_s *sid_pot_alarm = NULL;
+
+static void sid_pot_alarm_handler(CLOCK offset, void *data)
+{
+    if (_mouse_enabled) {
+        mouse_poll();
+    }
+    val_pot_x = read_joyport_potx();
+    val_pot_y = read_joyport_poty();
+
+    alarm_set(sid_pot_alarm, maincpu_clk + 512);
+}
+
+static void sid_alarm_init(void)
+{
+    if (sid_pot_alarm == NULL) {
+        sid_pot_alarm = alarm_new(maincpu_alarm_context, "SIDPotAlarm", sid_pot_alarm_handler, NULL);
+        alarm_set(sid_pot_alarm, maincpu_clk + 512);
+    }
+}
+#endif
+/* ------------------------------------------------------------------------- */
+
 static uint8_t sid_read_chip(uint16_t addr, int chipno)
 {
     int val = -1;
@@ -120,6 +149,7 @@ static uint8_t sid_read_chip(uint16_t addr, int chipno)
 
 #ifdef HAVE_MOUSE
     if (chipno == 0 && (addr == 0x19 || addr == 0x1a)) {
+#if 1
         if ((maincpu_clk ^ pot_cycle) & ~511) {
             pot_cycle = maincpu_clk & ~511; /* simplistic 512 cycle sampling */
 
@@ -130,6 +160,7 @@ static uint8_t sid_read_chip(uint16_t addr, int chipno)
             val_pot_x = read_joyport_potx();
             val_pot_y = read_joyport_poty();
         }
+#endif
         val = (addr == 0x19) ? val_pot_x : val_pot_y;
 
     } else {
@@ -412,6 +443,12 @@ void sid_reset(void)
     sound_reset();
 
     memset(siddata, 0, sizeof(siddata));
+
+/* FIXME: we should really use an alarm to update the POT values every 512
+          cycles. unfortunately the current mouse code will not work with
+          this approach
+*/
+    /* sid_alarm_init(); */
 }
 
 static int sidengine;
@@ -1055,7 +1092,7 @@ int sid_engine_get_max_sids(int engine)
             return SID_ENGINE_FASTSID_NUM_SIDS;
         case SID_ENGINE_RESID:
             return SID_ENGINE_RESID_NUM_SIDS;
-       case SID_ENGINE_CATWEASELMKIII:
+        case SID_ENGINE_CATWEASELMKIII:
             return SID_ENGINE_CATWEASELMKIII_NUM_SIDS;
         case SID_ENGINE_HARDSID:
             return SID_ENGINE_HARDSID_NUM_SIDS;

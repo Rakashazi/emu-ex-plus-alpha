@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "drive.h"
 #include "drivemem.h"
@@ -153,17 +154,54 @@ static int set_drive_fixed(const char *val, void *param)
     diskunit_context_t *unit = diskunit_context[vice_ptr_to_uint(param)];
     unsigned long long int work;
     char suffix;
+    size_t len = 0;
+    char *check_string = NULL;
+    char last_char = 0;
+    int i;
 #if 0
     unsigned long long int calc;
     char text[50];
     int tp = 0;
-    int i;
 #endif
+
+    /* check if the given string is null */
+    if (!util_check_null_string(val)) {
+
+        /* duplicate the string so we can work on it */
+        check_string = lib_strdup(val);
+
+        /* remove any spaces */
+        util_remove_spaces(check_string);
+
+        /* check if last character is a k, m or g */
+        len = strlen(check_string);
+        if (!len) {
+            lib_free(check_string);
+            return -1;
+        }
+        last_char = util_toupper(check_string[len - 1]);
+        if (last_char == 'K' || last_char == 'M' || last_char == 'G') {
+            check_string[len - 1] = 0;
+        }
+
+        /* now check if the left over string is a number */
+        len = strlen(check_string);
+        for (i = 0; i < len; i++) {
+            if (!isdigit(check_string[i])) {
+                lib_free(check_string);
+                return -1;
+            }
+        }
+
+        /* string is a valid input, free the check string and proceed with the rest of the code */
+        lib_free(check_string);
+    }
 
     /* free existing ASCII value of resource */
     if (unit->fixed_size_text) {
         lib_free(unit->fixed_size_text);
     }
+
 
     /* turn whatever we are given into a number */
     errno = 0;
@@ -277,24 +315,24 @@ static int set_drive_rama(int val, void *param)
 }
 
 static const resource_string_t resources_string[] = {
-    { "DosName1540", "dos1540", RES_EVENT_NO, NULL,
+    { "DosName1540", DRIVE_ROM1540_NAME, RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &dos_rom_name_1540, set_dos_rom_name_1540, NULL },
-    { "DosName1541", "dos1541", RES_EVENT_NO, NULL,
+    { "DosName1541", DRIVE_ROM1541_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_1541, set_dos_rom_name_1541, NULL },
-    { "DosName1541ii", "d1541II", RES_EVENT_NO, NULL,
+    { "DosName1541ii", DRIVE_ROM1541II_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_1541ii, set_dos_rom_name_1541ii, NULL },
-    { "DosName1570", "dos1570", RES_EVENT_NO, NULL,
+    { "DosName1570", DRIVE_ROM1570_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_1570, set_dos_rom_name_1570, NULL },
-    { "DosName1571", "dos1571", RES_EVENT_NO, NULL,
+    { "DosName1571", DRIVE_ROM1571_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_1571, set_dos_rom_name_1571, NULL },
-    { "DosName1581", "dos1581", RES_EVENT_NO, NULL,
+    { "DosName1581", DRIVE_ROM1581_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_1581, set_dos_rom_name_1581, NULL },
-    { "DosName2000", "dos2000", RES_EVENT_NO, NULL,
+    { "DosName2000", DRIVE_ROM2000_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_2000, set_dos_rom_name_2000, NULL },
-    { "DosName4000", "dos4000", RES_EVENT_NO, NULL,
+    { "DosName4000", DRIVE_ROM4000_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_4000, set_dos_rom_name_4000, NULL },
-    { "DosNameCMDHD", "dosCMDHD", RES_EVENT_NO, NULL,
+    { "DosNameCMDHD", DRIVE_ROMCMDHD_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_CMDHD, set_dos_rom_name_CMDHD, NULL },
     RESOURCE_STRING_LIST_END
 };
@@ -321,7 +359,7 @@ static resource_string_t res_string[] = {
 
 int iec_resources_init(void)
 {
-    unsigned int dnr;
+    int dnr;
 
     for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         diskunit_context_t *unit = diskunit_context[dnr];

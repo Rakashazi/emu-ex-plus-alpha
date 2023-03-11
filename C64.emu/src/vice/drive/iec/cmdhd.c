@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "archdep.h"
 #include "diskimage.h"
 #include "debug.h"
 #include "drive.h"
@@ -214,7 +215,7 @@ static void reset_alarm_handler(CLOCK offset, void *data)
 {
     cmdhd_context_t *hd = (cmdhd_context_t *)data;
 
-    CLOG((LOG, "CMDHD: alarm triggered at %u; releasing buttons",
+    CLOG((LOG, "CMDHD: alarm triggered at %lu; releasing buttons",
         *(hd->mycontext->clk_ptr)));
     /* stop pressing WP, SWAP8, and SWAP9 buttons */
     hd->i8255a_i[1] |= (0x08 | 0x04 | 0x02);
@@ -545,8 +546,8 @@ static uint8_t get_pc(struct _i8255a_state *ctx, int8_t reg)
 
 static void updateleds(diskunit_context_t *ctxptr)
 {
-    ctxptr->drives[0]->led_status = (ctxptr->cmdhd->LEDs & 0x02) ? 1 : 0;
-    ctxptr->drives[0]->led_status |= (ctxptr->cmdhd->LEDs & 0x01) ? 2 : 0;
+    ctxptr->drives[0]->led_status = (ctxptr->cmdhd->LEDs & 0x02) ? 0 : 2;
+    ctxptr->drives[0]->led_status |= (ctxptr->cmdhd->LEDs & 0x01) ? 0 : 1;
 }
 
 void cmdhd_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
@@ -1263,7 +1264,7 @@ void cmdhd_reset(cmdhd_context_t *hd)
         about 8M cycles, where as if it is a soft reset, wait 500K cycles. */
     c = *(hd->mycontext->clk_ptr) +
         cmdhd_has_sig(&(hd->mycontext->drive_ram[0x9000])) ? 8000000 : 500000;
-    CLOG((LOG, "CMDHD: alarm set for %u from %u", c, *(hd->mycontext->clk_ptr)));
+    CLOG((LOG, "CMDHD: alarm set for %lu from %lu", c, *(hd->mycontext->clk_ptr)));
     alarm_set(hd->reset_alarm, c);
 
     /* look for base lba as it may have changed on reset */
@@ -1391,12 +1392,13 @@ int cmdhd_attach_image(disk_image_t *image, unsigned int unit)
             /* skip first disk as it has a DHD extension */
             for (j = (i == 0); j < 8; j++) {
                /* generate the name */
-               testname = lib_msprintf("%s%1u%1u", basename, i, j);
+               testname = lib_msprintf("%s%" PRI_SIZE_T" %1" PRI_SIZE_T,
+                                       basename, i, j);
                /* open the file */
                test = fopen(testname, "rb+");
                if (test) {
                    /* if it is there, check the length */
-                   filelength = util_file_length(test);
+                   filelength = archdep_file_size(test);
                    /* must be multiple of 512 */
                    if ((filelength % 512) == 0) {
                        /* set the FILE pointer */
@@ -1531,7 +1533,7 @@ int cmdhd_snapshot_write_module(cmdhd_context_t *drv, struct snapshot_s *s)
         || SMW_B(m, drv->LEDs) < 0
         || SMW_BA(m, drv->i8255a_i, 3) < 0
         || SMW_BA(m, drv->i8255a_o, 3) < 0
-        || SMW_B(m, drv->scsi_dir) < 0 
+        || SMW_B(m, drv->scsi_dir) < 0
         || SMW_B(m, drv->preadyff) < 0 ) {
         snapshot_module_close(m);
         return -1;
@@ -1588,7 +1590,7 @@ int cmdhd_snapshot_read_module(cmdhd_context_t *drv, struct snapshot_s *s)
         || SMR_B(m, &drv->LEDs) < 0
         || SMR_BA(m, drv->i8255a_i, 3) < 0
         || SMR_BA(m, drv->i8255a_o, 3) < 0
-        || SMR_B(m, &drv->scsi_dir) < 0  
+        || SMR_B(m, &drv->scsi_dir) < 0
         || SMR_B(m, &drv->preadyff) < 0 ) {
         snapshot_module_close(m);
         return -1;

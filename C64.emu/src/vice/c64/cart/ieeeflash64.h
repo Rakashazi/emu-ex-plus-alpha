@@ -52,7 +52,7 @@ extern void ieeeflash64_config_init(export_t *ex);
 extern void ieeeflash64_reset(void);
 extern void ieeeflash64_config_setup(uint8_t *rawcart);
 extern int ieeeflash64_bin_attach(const char *filename, uint8_t *rawcart);
-extern int ieeeflash64_crt_attach(FILE *fd, uint8_t *rawcart);
+extern int ieeeflash64_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
 extern void ieeeflash64_detach(void);
 extern const char *ieeeflash64_get_file_name(void);
 

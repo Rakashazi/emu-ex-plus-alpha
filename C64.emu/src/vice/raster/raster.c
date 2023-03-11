@@ -76,13 +76,13 @@ static int raster_draw_buffer_alloc(video_canvas_t *canvas,
 {
     unsigned int padded_size;
     unsigned int unpadded_offset;
-    
+
     /*
      * FIXME: We have to allocate memory either size of the draw buffer because both the CRT and Scale2x
-     * filters will access memory both before and after the draw_buffer. This is a workaround that will 
+     * filters will access memory both before and after the draw_buffer. This is a workaround that will
      * no doubt survive until we shift filters to the GPU.
      */
-    
+
     raster_calculate_padding_size(fb_width, fb_height, &padded_size, &unpadded_offset);
 
     canvas->draw_buffer->draw_buffer_padded_allocations[0] = lib_calloc(1, padded_size);
@@ -184,13 +184,13 @@ static int realize_canvas(raster_t *raster)
         if (new_canvas == NULL) {
             return -1;
         }
-        
+
         /* Ensure that this canvas is ready to screenshot immediately */
         video_color_update_palette(new_canvas);
 
         raster->canvas = new_canvas;
 
-#if defined(USE_SDLUI) || defined(USE_SDLUI2)
+#if defined(USE_SDLUI) || defined(USE_SDL2UI)
         /* A hack to allow raster_force_repaint() calls for SDL UI & vkbd */
         raster->canvas->parent_raster = raster;
 #endif
@@ -282,7 +282,7 @@ int raster_init(raster_t *raster,
     memset(raster->zero_gfx_msk, 0, RASTER_GFX_MSK_SIZE);
 
     video_viewport_get(raster->canvas, &raster->viewport, &raster->geometry);
-#if defined(USE_SDLUI) || defined(USE_SDLUI2) || defined(USE_NATIVE_GTK3)
+#if !defined(USE_HEADLESSUI)
     raster->canvas->initialized = 1;
 #endif
     raster_set_canvas_refresh(raster, 1);
@@ -504,21 +504,6 @@ void raster_force_repaint(raster_t *raster)
 {
     raster->dont_cache = 1;
     raster->num_cached_lines = 0;
-}
-
-void raster_set_title(raster_t *raster, const char *name)
-{
-    char *title;
-    char *extra_title_text = archdep_extra_title_text();
-
-    if (extra_title_text) {
-        title = util_concat("VICE: ", name, extra_title_text, NULL);
-    } else {
-        title = util_concat("VICE: ", name, NULL);
-    }
-    video_viewport_title_set(raster->canvas, title);
-
-    lib_free(title);
 }
 
 void raster_enable_cache(raster_t *raster, int enable)

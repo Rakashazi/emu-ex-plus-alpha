@@ -245,7 +245,7 @@ int blackbox4_snapshot_read_module(snapshot_t *s)
     }
 
     if (0
-        || SMR_B(m, &bb4_rom_enabled) < 0 
+        || SMR_B(m, &bb4_rom_enabled) < 0
         || SMR_BA(m, roml_banks, 0x2000) < 0
         || SMR_BA(m, romh_banks, 0x2000) < 0) {
         goto fail;

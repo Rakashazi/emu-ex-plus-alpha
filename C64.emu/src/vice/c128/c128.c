@@ -40,6 +40,7 @@
 #include "c128-resources.h"
 #include "c128-snapshot.h"
 #include "c128.h"
+#include "c128cart.h"
 #include "c128fastiec.h"
 #include "c128mem.h"
 #include "c128memrom.h"
@@ -96,7 +97,6 @@
 #include "ninja_snespad.h"
 #include "paperclip64.h"
 #include "parallel.h"
-#include "patchrom.h"
 #include "plus60k.h"
 #include "plus256k.h"
 #include "printer.h"
@@ -133,6 +133,7 @@
 #include "userport_petscii_snespad.h"
 #include "userport_rtc_58321a.h"
 #include "userport_rtc_ds1307.h"
+#include "userport_spt_joystick.h"
 #include "userport_superpad64.h"
 #include "userport_wic64.h"
 #include "vdc.h"
@@ -477,12 +478,30 @@ static io_source_t sid_d420_device = {
     IO_MIRROR_OTHER        /* this is a mirror of another registered device */
 };
 
+static io_source_t vdc_d600_device = {
+    "VDC",                 /* name of the chip */
+    IO_DETACH_NEVER,       /* chip is never involved in collisions, so no detach */
+    IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
+    0xd600, 0xd601, 0x01,  /* main SID registers $d400-$d41f */
+    1,                     /* read is always valid */
+    vdc_store,             /* store function */
+    NULL,                  /* NO poke function */
+    vdc_read,              /* read function */
+    vdc_peek,              /* peek function */
+    vdc_dump,              /* chip state information dump function */
+    IO_CART_ID_NONE,       /* not a cartridge */
+    IO_PRIO_NORMAL,        /* high priority, mirrors never involved in collisions */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* this is not a mirror */
+};
+
 static io_source_list_t *vicii_d000_list_item = NULL;
 static io_source_list_t *vicii_d100_list_item = NULL;
 static io_source_list_t *vicii_d200_list_item = NULL;
 static io_source_list_t *vicii_d300_list_item = NULL;
 static io_source_list_t *sid_d400_list_item = NULL;
 static io_source_list_t *sid_d420_list_item = NULL;
+static io_source_list_t *vdc_d600_list_item = NULL;
 
 void c64io_vicii_init(void)
 {
@@ -520,6 +539,7 @@ static void c128io_init(void)
     c64io_vicii_init();
     sid_d400_list_item = io_source_register(&sid_d400_device);
     sid_d420_list_item = io_source_register(&sid_d420_device);
+    vdc_d600_list_item = io_source_register(&vdc_d600_device);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -660,6 +680,8 @@ static int init_joyport_ports(void)
    the machine itself with `machine_init()'.  */
 int machine_resources_init(void)
 {
+    c128cartridge_setup_interface();
+
     if (traps_resources_init() < 0) {
         init_resource_fail("traps");
         return -1;
@@ -780,10 +802,6 @@ int machine_resources_init(void)
         init_resource_fail("joystick");
         return -1;
     }
-    if (gfxoutput_resources_init() < 0) {
-        init_resource_fail("gfxoutput");
-        return -1;
-    }
     if (sampler_resources_init() < 0) {
         init_resource_fail("samplerdrv");
         return -1;
@@ -849,6 +867,10 @@ int machine_resources_init(void)
         init_resource_fail("cartridge");
         return -1;
     }
+    if (c128cartridge_resources_init() < 0) {
+        init_resource_fail("c128 cartridge");
+        return -1;
+    }
     if (mmu_resources_init() < 0) {
         init_resource_fail("mmu");
         return -1;
@@ -883,6 +905,10 @@ int machine_resources_init(void)
     }
     if (userport_joystick_synergy_resources_init() < 0) {
         init_resource_fail("userport synergy joystick");
+        return -1;
+    }
+    if (userport_spt_joystick_resources_init() < 0) {
+        init_resource_fail("userport stupid pet tricks joystick");
         return -1;
     }
     if (userport_dac_resources_init() < 0) {
@@ -1035,10 +1061,6 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("userport");
         return -1;
     }
-    if (gfxoutput_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("gfxoutput");
-        return -1;
-    }
     if (sampler_cmdline_options_init() < 0) {
         init_cmdline_options_fail("samplerdrv");
         return -1;
@@ -1099,6 +1121,10 @@ int machine_cmdline_options_init(void)
     }
     if (cartridge_cmdline_options_init() < 0) {
         init_cmdline_options_fail("cartridge");
+        return -1;
+    }
+    if (c128cartridge_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("c128 cartridge");
         return -1;
     }
     if (mmu_cmdline_options_init() < 0) {
@@ -1395,7 +1421,7 @@ void machine_autostart_reset_c64(void)
 {
     /* autostart_reinit(3, 1); */
 }
- 
+
 /* ------------------------------------------------------------------------- */
 
 /* This hook is called at the end of every frame.  */
@@ -1465,7 +1491,7 @@ void machine_change_timing(int timeval, int border_mode)
     serial_iec_device_set_machine_parameter(machine_timing.cycles_per_sec);
     sid_set_machine_parameter(machine_timing.cycles_per_sec);
 #ifdef HAVE_MOUSE
-    neos_mouse_set_machine_parameter(machine_timing.cycles_per_sec);
+    mouse_set_machine_parameter(machine_timing.cycles_per_sec);
 #endif
 
     vicii_change_timing(&machine_timing, border_mode);
@@ -1564,7 +1590,7 @@ int machine_addr_in_ram(unsigned int addr)
 {
     uint8_t mmucfg = mmu_peek(0);
 
-    if ((mmucfg == 0x3e) && (mmu_peek(5) == 0xb7)) {
+    if (mmu_is_c64config()) {
         /* c64 mode */
         return (
             addr < 0xe000

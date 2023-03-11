@@ -39,18 +39,6 @@
 #define PET_ROM_SIZE            0x8000
 #define PET_CHARGEN_ROM_SIZE    0x4000
 
-#define PET_KERNAL1_CHECKSUM    3236
-#define PET_KERNAL2_CHECKSUM    31896
-#define PET_KERNAL4_CHECKSUM    53017
-
-#define PET_EDIT1G_CHECKSUM     51858
-#define PET_EDIT2G_CHECKSUM     64959
-#define PET_EDIT2B_CHECKSUM     1514
-#define PET_EDIT4G40_CHECKSUM   14162   /* edit-4-40-n-50Hz.901498-01.bin */
-#define PET_EDIT4B40_CHECKSUM1  27250   /* edit-4-b-noCRTC.901474-02.bin */
-#define PET_EDIT4B40_CHECKSUM2  11897   /* edit-4-40-b-50Hz.ts.bin */
-#define PET_EDIT4B80_CHECKSUM   21166
-
 extern uint8_t mem_chargen_rom[PET_CHARGEN_ROM_SIZE];
 extern uint8_t mem_rom[PET_ROM_SIZE];
 extern uint8_t mem_6809rom[];

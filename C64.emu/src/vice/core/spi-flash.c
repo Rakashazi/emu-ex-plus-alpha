@@ -27,7 +27,7 @@
 
 /* this implements the EN25QH128A EEPROM as used by the GMod3 cartridge.
    see http://wiki.icomp.de/wiki/GMod3
-   
+
    FIXME: only a couple commands are implemented, barely enough to make the
           examples in the ICOMP repository work, see https://svn.icomp.de/svn/gmod3/
  */
@@ -149,7 +149,7 @@ void spi_flash_write_data(uint8_t value)
 void spi_flash_write_select(uint8_t value)
 {
     /* LOG(("spi_flash_write_select %d", value)); */
-    
+
     /* Each instruction is preceded by a rising edge on Chip Select Input with Serial Clock being held low. */
     if ((eeprom_cs == 1) && (value == 0) /* && (eeprom_clock == 0) */) {
         LOG(("spi_flash_write_select raising edge (select)"));
@@ -164,7 +164,7 @@ void spi_flash_write_select(uint8_t value)
                 break;
             case FLASH_CMD_BLOCK_ERASE:
                 addr = (input_shiftreg & 0xff0000) & (spi_flash_size - 1);
-                LOG(("executing command FLASH_CMD_BLOCK_ERASE %08x (addr:%08x)", 
+                LOG(("executing command FLASH_CMD_BLOCK_ERASE %08x (addr:%08x)",
                      input_shiftreg, addr));
                 memset(spi_flash_data + addr, 0xff, 0x10000);
                 command = STATUSBUSY;
@@ -195,16 +195,16 @@ void spi_flash_write_clock(uint8_t value)
 
     /* rising edge of clock will read one bit from data input */
     if ((eeprom_cs == 0) && (value == 1) && (eeprom_clock == 0)) {
-        
+
             shift_input_shiftreg();
             switch (input_count) {
                 case 8:
                     /* LOG(("got byte 1: %02x\n", input_shiftreg)); */
                     if (command == FLASH_CMD_PAGE_PROGRAM) {
                         addr &= (spi_flash_size - 1);
-                        LOG(("writing byte: %02x->%02x %08x", 
-                             spi_flash_data[addr], 
-                             spi_flash_data[addr] & input_shiftreg, 
+                        LOG(("writing byte: %02x->%02x %08x",
+                             spi_flash_data[addr],
+                             spi_flash_data[addr] & input_shiftreg,
                              addr));
                         spi_flash_data[addr] &= input_shiftreg;
                         addr++;
@@ -260,7 +260,7 @@ void spi_flash_write_clock(uint8_t value)
                     break;
                 case 32:
                     /* LOG(("got byte 4: %08x\n", input_shiftreg)); */
-                    
+
                     switch(command) {
                         /* reading id will work without deselecting first */
                         case FLASH_CMD_REMS:
@@ -313,7 +313,7 @@ void spi_flash_write_clock(uint8_t value)
                             reset_input_shiftreg();
                             break;
                     }
-                    
+
                     break;
             }
             shift_output_shiftreg();

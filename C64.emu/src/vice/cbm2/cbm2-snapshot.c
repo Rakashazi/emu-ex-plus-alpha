@@ -29,7 +29,7 @@
 
 #include <stdio.h>
 
-#include "cbm2-snapshot.h"
+#include "archdep.h"
 #include "cbm2.h"
 #include "cbm2acia.h"
 #include "cbm2memsnapshot.h"
@@ -37,21 +37,22 @@
 #include "crtc.h"
 #include "drive-snapshot.h"
 #include "drive.h"
-#include "serial.h"
-#include "ioutil.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "log.h"
 #include "machine.h"
 #include "maincpu.h"
+#include "serial.h"
 #include "sid-snapshot.h"
-#include "sound.h"
 #include "snapshot.h"
+#include "sound.h"
 #include "tapeport.h"
-#include "userport.h"
 #include "tpi.h"
 #include "types.h"
+#include "userport.h"
 #include "vice-event.h"
+
+#include "cbm2-snapshot.h"
 
 
 #define SNAP_MAJOR          1
@@ -85,7 +86,7 @@ int cbm2_snapshot_write(const char *name, int save_roms, int save_disks,
         || keyboard_snapshot_write_module(s) < 0
         || userport_snapshot_write_module(s) < 0) {
         snapshot_close(s);
-        ioutil_remove(name);
+        archdep_remove(name);
         return -1;
     }
 

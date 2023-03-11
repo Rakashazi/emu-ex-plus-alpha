@@ -42,6 +42,7 @@
 #include "petrom.h"
 #include "pets.h"
 #include "resources.h"
+#include "sound.h"
 #include "util.h"
 
 static int sync_factor;
@@ -49,6 +50,7 @@ static int set_ramsize(int size, void *param);
 
 int pet_colour_type = PET_COLOUR_TYPE_OFF;
 int pet_colour_analog_bg = 0;
+int cb2_lowpass = 0;
 
 static int set_iosize(int val, void *param)
 {
@@ -261,19 +263,6 @@ static int set_pet2k_enabled(int val, void *param)
     return 0;
 }
 
-static int set_pet2kchar_enabled(int val, void *param)
-{
-    int i = (val) ? 1 : 0;
-
-    if (i != petres.pet2kchar) {
-        petres.pet2kchar = i;
-
-        /* function reverses itself -> no reload necessary */
-        petrom_convert_chargen_2k();
-    }
-    return 0;
-}
-
 static int set_eoiblank_enabled(int val, void *param)
 {
     int i = (val) ? 1 : 0;
@@ -385,8 +374,20 @@ static int set_pet_colour_bg(int val, void *param)
     return 0;
 }
 
+static int set_cb2_lowpass(int val, void *param)
+{
+    if (val < 1 || val > 2000000) {
+        return -1;
+    }
+
+    cb2_lowpass = val;
+    sid_state_changed = true;
+
+    return 0;
+}
+
 static const resource_string_t resources_string[] = {
-    { "ChargenName", PET_CHARGEN_NAME, RES_EVENT_NO, NULL,
+    { "ChargenName", PET_CHARGEN2_NAME, RES_EVENT_NO, NULL,
       &petres.chargenName, set_chargen_rom_name, NULL },
     { "KernalName", PET_KERNAL4NAME, RES_EVENT_NO, NULL,
       &petres.kernalName, set_kernal_rom_name, NULL },
@@ -435,8 +436,6 @@ static const resource_int_t resources_int[] = {
       &petres.superpet, set_superpet_enabled, NULL },
     { "Basic1", 1, RES_EVENT_SAME, NULL,
       &petres.pet2k, set_pet2k_enabled, NULL },
-    { "Basic1Chars", 0, RES_EVENT_SAME, NULL,
-      &petres.pet2kchar, set_pet2kchar_enabled, NULL },
     { "EoiBlank", 0, RES_EVENT_SAME, NULL,
       &petres.eoiblank, set_eoiblank_enabled, NULL },
     { "Screen2001", 0, RES_EVENT_SAME, NULL,
@@ -450,6 +449,8 @@ static const resource_int_t resources_int[] = {
       &pet_colour_type, set_pet_colour, NULL },
     { "PETColourBG", 0, RES_EVENT_SAME, NULL,
       &pet_colour_analog_bg, set_pet_colour_bg, NULL },
+    { "CB2Lowpass", 16000, RES_EVENT_SAME, NULL,
+      &cb2_lowpass, set_cb2_lowpass, NULL },
     RESOURCE_INT_LIST_END
 };
 

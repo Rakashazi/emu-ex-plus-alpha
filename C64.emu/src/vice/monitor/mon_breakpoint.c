@@ -97,7 +97,7 @@ static void remove_checkpoint_from_list(checkpoint_list_t **head, mon_checkpoint
 /** \brief Get a list of all checkpoints
  *
  * \param[out]  len     length of the returned array
- * 
+ *
  * \return The list of checkpoints
  */
 mon_checkpoint_t **mon_breakpoint_checkpoint_list_get(unsigned int *len) {
@@ -162,7 +162,7 @@ mon_checkpoint_t **mon_breakpoint_checkpoint_list_get(unsigned int *len) {
 /** \brief find the breakpoint with number 'brknum' in the linked list
  *
  * \param[in]  brknum     breakpoint number
- * 
+ *
  * \return The checkpoint that has brknum, or NULL
  */
 mon_checkpoint_t *mon_breakpoint_find_checkpoint(int brknum)
@@ -202,14 +202,14 @@ mon_checkpoint_t *mon_breakpoint_find_checkpoint(int brknum)
 static void update_checkpoint_state(MEMSPACE mem)
 {
     /* calls mem_toggle_watchpoints() */
-    if (watchpoints_load[mem] != NULL || 
+    if (watchpoints_load[mem] != NULL ||
         watchpoints_store[mem] != NULL) {
         monitor_mask[mem] |= MI_WATCH;
-        mon_interfaces[mem]->toggle_watchpoints_func( 
+        mon_interfaces[mem]->toggle_watchpoints_func(
             1 | (break_on_dummy_access << 1), mon_interfaces[mem]->context);
     } else {
         monitor_mask[mem] &= ~MI_WATCH;
-        mon_interfaces[mem]->toggle_watchpoints_func( 
+        mon_interfaces[mem]->toggle_watchpoints_func(
             0, mon_interfaces[mem]->context);
     }
 
@@ -233,7 +233,7 @@ static void update_checkpoint_state(MEMSPACE mem)
 void mon_update_all_checkpoint_state(void)
 {
     MEMSPACE i;
-    
+
     for (i = FIRST_SPACE; i <= LAST_SPACE; i++) {
         update_checkpoint_state(i);
     }
@@ -289,14 +289,14 @@ void mon_breakpoint_switch_checkpoint(int op, int cp_num)
         }
         return;
     }
-    
+
     cp = mon_breakpoint_find_checkpoint(cp_num);
-    
+
     if (!cp) {
         mon_out("#%d not a valid checkpoint\n", cp_num);
         return;
     }
-    
+
     cp->enabled = op;
 }
 
@@ -609,7 +609,14 @@ bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr, unsigned i
             } else {
                 mon_out("\n");
             }
-            mon_interfaces[mem]->current_bank = 0; /* always disassemble using CPU bank */
+
+            /* always disassemble using CPU bank */
+            if (mon_interfaces[mem]->mem_bank_from_name != NULL) {
+                mon_interfaces[mem]->current_bank = mon_interfaces[mem]->mem_bank_from_name("cpu");
+            } else {
+                mon_interfaces[mem]->current_bank = 0;
+            }
+
             if (is_loadstore) {
                 mon_disassemble_with_regdump(mem, loadstorepc);
             } else if (!is_loadstore || cp->stop) {

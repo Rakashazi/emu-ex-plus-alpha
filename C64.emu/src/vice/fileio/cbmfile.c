@@ -29,21 +29,23 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "archdep.h"
 #include "cbmdos.h"
-#include "cbmfile.h"
 #include "charset.h"
 #include "fileio.h"
-#include "ioutil.h"
 #include "lib.h"
 #include "rawfile.h"
 #include "types.h"
 
+#include "cbmfile.h"
+
 
 static char *cbmfile_find_file(const char *fsname, const char *path)
 {
-    struct ioutil_dir_s *ioutil_dir;
+    archdep_dir_t *host_dir;
     uint8_t *name1, *name2;
-    char *name, *retname = NULL;
+    const char *name;
+    char *retname = NULL;
     const char *open_path;
 
     open_path = path;
@@ -51,9 +53,9 @@ static char *cbmfile_find_file(const char *fsname, const char *path)
         open_path = "";
     }
 
-    ioutil_dir = ioutil_opendir(open_path, IOUTIL_OPENDIR_ALL_FILES);
+    host_dir = archdep_opendir(open_path, ARCHDEP_OPENDIR_ALL_FILES);
 
-    if (ioutil_dir == NULL) {
+    if (host_dir == NULL) {
         return NULL;
     }
 
@@ -62,7 +64,7 @@ static char *cbmfile_find_file(const char *fsname, const char *path)
     while (1) {
         unsigned int equal;
 
-        name = ioutil_readdir(ioutil_dir);
+        name = archdep_readdir(host_dir);
 
         if (name == NULL) {
             break;
@@ -80,7 +82,7 @@ static char *cbmfile_find_file(const char *fsname, const char *path)
     }
 
     lib_free(name1);
-    ioutil_closedir(ioutil_dir);
+    archdep_closedir(host_dir);
 
     return retname;
 }

@@ -56,11 +56,11 @@ static const uint8_t values[6] = {
     0x55, 0x55, 0xaa, 0xaa, 0xff, 0xff
 };
 
-static int joyport_vizawrite64_dongle_enable(int port, int value)
+static int joyport_vizawrite64_dongle_set_enabled(int port, int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
 
-    joyport_vizawrite64_dongle_enabled[port] = val;
+    joyport_vizawrite64_dongle_enabled[port] = new_state;
 
     return 0;
 }
@@ -98,23 +98,23 @@ static int vizawrite64_write_snapshot(struct snapshot_s *s, int p);
 static int vizawrite64_read_snapshot(struct snapshot_s *s, int p);
 
 static joyport_t joyport_vizawrite64_dongle_device = {
-    "Dongle (VizaWrite 64)",           /* name of the device */
-    JOYPORT_RES_ID_NONE,               /* device can be used in multiple ports at the same time */
-    JOYPORT_IS_NOT_LIGHTPEN,           /* device is NOT a lightpen */
-    JOYPORT_POT_REQUIRED,              /* device uses the potentiometer lines */
-    JOYSTICK_ADAPTER_ID_NONE,          /* device is NOT a joystick adapter */
-    JOYPORT_DEVICE_C64_DONGLE,         /* device is a C64 Dongle */
-    0,                                 /* NO output bits */
-    joyport_vizawrite64_dongle_enable, /* device enable function */
-    NULL,                              /* NO digital line read function */
-    NULL,                              /* NO digital line store function */
-    vizawrite64_dongle_read_potx,      /* pot-x read function */
-    vizawrite64_dongle_read_poty,      /* pot-y read function */
-    vizawrite64_powerup,               /* powerup function */
-    vizawrite64_write_snapshot,        /* device write snapshot function */
-    vizawrite64_read_snapshot,         /* device read snapshot function */
-    NULL,                              /* NO device hook function */
-    0                                  /* NO device hook function mask */
+    "Dongle (VizaWrite 64)",               /* name of the device */
+    JOYPORT_RES_ID_NONE,                   /* device can be used in multiple ports at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,               /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,                  /* device uses the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,              /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_C64_DONGLE,             /* device is a C64 Dongle */
+    0,                                     /* NO output bits */
+    joyport_vizawrite64_dongle_set_enabled, /* device enable/disable function */
+    NULL,                                  /* NO digital line read function */
+    NULL,                                  /* NO digital line store function */
+    vizawrite64_dongle_read_potx,          /* pot-x read function */
+    vizawrite64_dongle_read_poty,          /* pot-y read function */
+    vizawrite64_powerup,                   /* powerup function */
+    vizawrite64_write_snapshot,            /* device write snapshot function */
+    vizawrite64_read_snapshot,             /* device read snapshot function */
+    NULL,                                  /* NO device hook function */
+    0                                      /* NO device hook function mask */
 };
 
 /* ------------------------------------------------------------------------- */
@@ -147,7 +147,7 @@ static int vizawrite64_write_snapshot(struct snapshot_s *s, int port)
         return -1;
     }
 
-    if (0 
+    if (0
         || SMW_B(m, counter[port]) < 0) {
             snapshot_module_close(m);
             return -1;

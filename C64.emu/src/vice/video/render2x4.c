@@ -68,11 +68,11 @@ void render_32_2x4_interlaced(const video_render_color_tables_t *color_tab,
         wfast = (width - wstart) >> 3; /* fast loop for 8 pixel segments*/
         wend = (width - wstart) & 0x07; /* do not forget the rest*/
     }
-    
+
     for (y = yys; y < (yys + height); y++) {
         tmpsrc = src;
         tmptrg = (uint32_t *)trg;
-        
+
         /*
          * If it's an even source line and an even frame, or if it's an odd source
          * line and an odd frame, then this line contains new pixels from the video
@@ -101,7 +101,7 @@ void render_32_2x4_interlaced(const video_render_color_tables_t *color_tab,
                 render_solid_line_2x(tmptrg, tmpsrc, scanline_color, wstart, wfast, wend, wfirst, wlast);
             }
         }
-        
+
         if ((y & 3) == 3) {
             src += pitchs;
         }

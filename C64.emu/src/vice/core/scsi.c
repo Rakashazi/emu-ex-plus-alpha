@@ -33,12 +33,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "archdep.h"
 #include "lib.h"
 #include "log.h"
 #include "types.h"
 #include "snapshot.h"
 #include "scsi.h"
-#include "util.h"
 
 /* #define SCSILOG1 */
 /* #define SCSILOG2 */
@@ -83,7 +83,7 @@ static off_t scsi_getmaxsize(struct scsi_context_s *context)
     if (context->file[(context->target << 3) | context->lun]) {
         if (!context->max_imagesize) {
             /* if the max length setting is zero, return the image length */
-            work = util_file_length(context->file[(context->target << 3) | context->lun]);
+            work = archdep_file_size(context->file[(context->target << 3) | context->lun]);
             /* turn the file size into 512 byte sectors */
             work = (work >> 9) + (work & 511 ? 1 : 0);
             return work;
@@ -170,7 +170,7 @@ int32_t scsi_image_read(struct scsi_context_s *context)
 
     fhd = context->file[(context->target << 3) | context->lun];
 
-    if (fseeko(fhd, (off_t)context->address * 512, SEEK_SET) < 0) {
+    if (archdep_fseeko(fhd, (off_t)context->address * 512, SEEK_SET) < 0) {
         CRIT((ERR, "SCSI: error seeking disk %d at sector 0x%x",
             context->target, context->address));
         return -3;
@@ -218,7 +218,7 @@ int32_t scsi_image_write(struct scsi_context_s *context)
 
     fhd = context->file[(context->target << 3) | context->lun];
 
-    if (fseeko(fhd, (off_t)context->address * 512, SEEK_SET) < 0) {
+    if (archdep_fseeko(fhd, (off_t)context->address * 512, SEEK_SET) < 0) {
         CRIT((ERR, "SCSI: error seeking disk %d at sector 0x%x",
             context->target, context->address));
         return -3;

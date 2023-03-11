@@ -35,7 +35,7 @@
 #include "maincpu.h"
 #include "vicii.h"
 
-int c64keyboard_active = 1;
+int c64keyboard_active = 1; /* flag to disable the keyboard for C64GS */
 
 static unsigned int c64keyboard_int_num;
 

@@ -143,7 +143,7 @@ struct vdc_s {
 
     /* Character width - width of each character on screen in physical pixels */
     unsigned int charwidth;
-    
+
     /* Value to add to `mem_counter' after the graphics has been painted.  */
     unsigned int mem_counter_inc;
 
@@ -209,25 +209,25 @@ struct vdc_s {
 
     /* offset into the attribute memory - used for emulating the 8x1 attribute VDC quirk */
     unsigned int attribute_offset;
-    
+
     /* flag as to whether the VDC is actually rendering active raster lines, or is idle (i.e in the top or bottom border) */
     unsigned int display_enable;
 
     /* flag as to whether the VDC is preparing to draw but hasn't actually started yet, usually when it's reset to internal row # 0 */
     unsigned int prime_draw;
-    
+
     /* flag as to whether the VDC is drawing (e.g. reading from screen memory) or if it is stopped. This is different to above, because the VDC can be drawing inside the top or bottom border */
     unsigned int draw_active;
 
     /* flag as to whether the VDC is finished drawing or not, to make sure end of frame stuff like video pointers is handled properly */
     unsigned int draw_finished;
-    
+
     /* flag as to whether the VDC is in VSYNC or not */
     unsigned int vsync;
-    
+
     /* internal VDC counter so the vsync is the correct height (in rows) */
     unsigned int vsync_counter;
-    
+
     /* height of the vsync pulse in raster lines, this varies by video standard/video mode */
     unsigned int vsync_height;
 

@@ -224,8 +224,8 @@ static uint8_t retroreplay_clockport_read(uint16_t address)
         retroreplay_clockport_io1_device.io_source_valid = 1;
         /* read from clockport device */
         if (clockport_device) {
-            return clockport_device->read(address, 
-                    &retroreplay_clockport_io1_device.io_source_valid, 
+            return clockport_device->read(address,
+                    &retroreplay_clockport_io1_device.io_source_valid,
                     clockport_device->device_context);
         }
         /* read open clock port */
@@ -293,8 +293,8 @@ uint8_t retroreplay_io1_read(uint16_t addr)
             case 0:
             case 1:
                 retroreplay_io1_device.io_source_valid = 1;
-                return ((roml_bank & 3) << 3) | ((roml_bank & 4) << 5) | 
-                ((roml_bank & 8) << 2) | allow_bank | reu_mapping | 
+                return ((roml_bank & 3) << 3) | ((roml_bank & 4) << 5) |
+                ((roml_bank & 8) << 2) | allow_bank | reu_mapping |
                 rr_hw_flashjumper | (freeze_button_pressed << 2);
             default:
                 if (rr_clockport_enabled && (addr & 0xff) < 0x10) {
@@ -1090,7 +1090,7 @@ static int retroreplay_common_attach(void)
 
 int retroreplay_bin_attach(const char *filename, uint8_t *rawcart)
 {
-    size_t len = 0;
+    off_t len;
     FILE *fd;
 
     retroreplay_filetype = 0;
@@ -1100,7 +1100,11 @@ int retroreplay_bin_attach(const char *filename, uint8_t *rawcart)
     if (fd == NULL) {
         return -1;
     }
-    len = util_file_length(fd);
+    len = archdep_file_size(fd);
+    if (len < 0) {
+        fclose(fd);
+        return -1;
+    }
     fclose(fd);
 
     memset(rawcart, 0xff, 0x20000);
@@ -1164,7 +1168,7 @@ int retroreplay_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename, uin
 
     retroreplay_filetype = CARTRIDGE_FILETYPE_CRT;
     retroreplay_filename = lib_strdup(filename);
-    
+
     if (revision > 0) {
         rr_revision = RR_REV_NORDIC_REPLAY;
     }

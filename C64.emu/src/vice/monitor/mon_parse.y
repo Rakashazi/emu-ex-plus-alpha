@@ -30,37 +30,19 @@
 
 #include "vice.h"
 
-#ifndef __OS2__
 #ifdef __GNUC__
 #undef alloca
-#ifndef ANDROID_COMPILE
 #define        alloca(n)       __builtin_alloca (n)
-#endif
-#else
+#else /* not __GNUC__ */
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
-#else  /* Not HAVE_ALLOCA_H.  */
-#if !defined(_AIX) && !defined(WINCE)
-#ifndef _MSC_VER
+#else  /* Not HAVE_ALLOCA_H  */
 extern char *alloca();
-#else
-#define alloca(n)   _alloca(n)
-#endif  /* MSVC */
-#endif /* Not AIX and not WINCE.  */
 #endif /* HAVE_ALLOCA_H.  */
-#endif /* GCC.  */
-#endif /* __OS2__ */
-
-/* SunOS 4.x specific stuff */
-#if defined(sun) || defined(__sun)
-#  if !defined(__SVR4) && !defined(__svr4__)
-#    ifdef __sparc__
-#      define YYFREE
-#    endif
-#  endif
-#endif
+#endif /* __GNUC__ */
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -87,10 +69,6 @@ extern char *alloca();
 #include "uimon.h"
 #include "vsync.h"
 
-#ifdef AMIGA_MORPHOS
-#undef REG_PC
-#endif
-
 #define join_ints(x,y) (LO16_TO_HI16(x)|y)
 #define separate_int1(x) (HI16_TO_LO16(x))
 #define separate_int2(x) (LO16(x))
@@ -100,10 +78,6 @@ static int temp;
 static int resolve_datatype(unsigned guess_type, const char *num);
 static int resolve_range(enum t_memspace memspace, MON_ADDR range[2],
                          const char *num);
-
-#ifdef __IBMC__
-static void __yy_memcpy (char *to, char *from, int count);
-#endif
 
 /* Defined in the lexer */
 extern int new_cmd, opt_asm;
@@ -852,19 +826,19 @@ value: number { $$ = $1; }
 
 d_number: D_NUMBER { $$ = $1; }
         | B_NUMBER_GUESS { $$ = (int)strtol($1, NULL, 10); }
-        | O_NUMBER_GUESS { $$ = (int)strtol($1, NULL, 10); }
         | D_NUMBER_GUESS { $$ = (int)strtol($1, NULL, 10); }
+        | O_NUMBER_GUESS { $$ = (int)strtol($1, NULL, 10); }
         ;
 
 guess_default: B_NUMBER_GUESS { $$ = resolve_datatype(B_NUMBER,$1); }
-             | O_NUMBER_GUESS { $$ = resolve_datatype(O_NUMBER,$1); }
              | D_NUMBER_GUESS { $$ = resolve_datatype(D_NUMBER,$1); }
+             | O_NUMBER_GUESS { $$ = resolve_datatype(O_NUMBER,$1); }
              ;
 
 number: H_NUMBER { $$ = $1; }
+      | B_NUMBER { $$ = $1; }
       | D_NUMBER { $$ = $1; }
       | O_NUMBER { $$ = $1; }
-      | B_NUMBER { $$ = $1; }
       | guess_default { $$ = $1; }
       ;
 
@@ -1243,22 +1217,95 @@ static int yyerror(char *s)
    return 0;
 }
 
+/* convert the string in "num" to a numeric value, depending on radix. this 
+   function does some magic conversion on addresses when radix is not hex.
+*/
 static int resolve_datatype(unsigned guess_type, const char *num)
 {
-   /* FIXME: Handle cases when default type is non-numerical */
-   if (default_radix == e_hexadecimal) {
-       return (int)strtol(num, NULL, 16);
-   }
+    int binary = 1, hex = 0, octal = 0, decimal = 1;
+    const char *c;
 
-   if ((guess_type == D_NUMBER) || (default_radix == e_decimal)) {
-       return (int)strtol(num, NULL, 10);
-   }
+    /* FIXME: Handle cases when default type is non-numerical */
+    if (default_radix == e_hexadecimal) {
+        return (int)strtol(num, NULL, 16);
+    }
 
-   if ((guess_type == O_NUMBER) || (default_radix == e_octal)) {
-       return (int)strtol(num, NULL, 8);
-   }
+    /* we do some educated guessing on what type of number we have here */
+    if (num[0] == '0') {
+        /* might be octal with leading zero */
+        octal = 1;
+    }
+    /* a string containing any digits not 0 or 1 can't be a binary number */
+    c = num;
+    while (*c) {
+        if ((*c != '0') && (*c != '1')) {
+            binary = 0;
+            break;
+        }
+        c++;
+    }
+    /* a string containing 8 or 9 can't be an octal number */
+    c = num;
+    while (*c) {
+        if ((*c == '8') && (*c == '9')) {
+            octal = 0;
+            break;
+        }
+        c++;
+    }
+    /* a string containing any of A-F can only be a hex number */
+    c = num;
+    while (*c) {
+        if ((tolower(*c) >= 'a') && (tolower(*c) <= 'f')) {
+            hex = 1;
+            octal = 0;
+            binary = 0;
+            decimal = 0;
+            break;
+        }
+        c++;
+    }
 
-   return (int)strtol(num, NULL, 2);
+    /* a hex number can only be hex no matter what */
+    if (hex) {
+        return (int)strtol(num, NULL, 16);
+    }
+
+    /* first, if default radix and detected number matches, just do it */
+    if (binary && (default_radix == e_binary)) {
+        return (int)strtol(num, NULL, 2);
+    }
+    if (decimal && (default_radix == e_decimal)) {
+        return (int)strtol(num, NULL, 10);
+    }
+    if (octal && (default_radix == e_octal)) {
+        return (int)strtol(num, NULL, 8);
+    }
+
+    /* second, if detected number matches guess type, do it */
+    if (binary && (guess_type == B_NUMBER)) {
+        return (int)strtol(num, NULL, 2);
+    }
+    if (decimal && (guess_type == D_NUMBER)) {
+        return (int)strtol(num, NULL, 10);
+    }
+    if (octal && (guess_type == O_NUMBER)) {
+        return (int)strtol(num, NULL, 8);
+    }
+
+    /* third only use the detected type */
+    if (binary) {
+        return (int)strtol(num, NULL, 2);
+    }
+    if (decimal) {
+        return (int)strtol(num, NULL, 10);
+    }
+    if (octal) {
+        return (int)strtol(num, NULL, 8);
+    }
+
+    /* use hex as default, should we ever come here */
+    return (int)strtol(num, NULL, 16);
 }
 
 /*

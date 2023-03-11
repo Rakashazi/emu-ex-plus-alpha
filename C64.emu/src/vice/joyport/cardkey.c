@@ -130,31 +130,36 @@ static unsigned int keys[KEYPAD_NUM_KEYS];
 
 static void handle_keys(int row, int col, int pressed)
 {
+    /* sanity check of the rows and cols, rows should be 0-3 and cols should be 1-4 */
     if (row < 0 || row > 3 || col < 1 || col > 4) {
         return;
     }
 
+    /* change the state of the key that the row/col is wired to */
     keys[(row * 4) + col - 1] = (unsigned int)pressed;
 }
 
 /* ------------------------------------------------------------------------- */
 
-static int joyport_cardkey_enable(int port, int value)
+static int joyport_cardkey_set_enabled(int port, int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
 
-    if (val == cardkey_enabled) {
+    if (new_state == cardkey_enabled) {
         return 0;
     }
 
-    if (val) {
+    if (new_state) {
+        /* enabled, clear keys and register the keypad */
         memset(keys, 0, KEYPAD_NUM_KEYS * sizeof(unsigned int));
         keyboard_register_joy_keypad(handle_keys);
     } else {
+        /* disabled, unregister the keypad */
         keyboard_register_joy_keypad(NULL);
     }
 
-    cardkey_enabled = val;
+    /* set the current state */
+    cardkey_enabled = new_state;
 
     return 0;
 }
@@ -213,7 +218,7 @@ static uint8_t cardkey_read_dig(int port)
 
     retval |= 0xf0;
 
-    joyport_display_joyport(JOYPORT_ID_CARDCO_KEYPAD, (uint16_t)~retval);
+    joyport_display_joyport(port, JOYPORT_ID_CARDCO_KEYPAD, (uint16_t)~retval);
 
     return (uint8_t)retval;
 }
@@ -222,6 +227,7 @@ static uint8_t cardkey_read_pot(int port)
 {
     int i;
 
+    /* if any of the keys is pressed return 0xff */
     for (i = 0; i < 16; ++i) {
         if (keys[i]) {
             return 0xff;
@@ -241,7 +247,7 @@ static joyport_t joyport_cardkey_device = {
     JOYSTICK_ADAPTER_ID_NONE,    /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_KEYPAD,       /* device is a Keypad */
     0,                           /* No output bits */
-    joyport_cardkey_enable,      /* device enable function */
+    joyport_cardkey_set_enabled, /* device enable/disable function */
     cardkey_read_dig,            /* digital line read function */
     NULL,                        /* NO digital line store function */
     NULL,                        /* NO pot-x read function */

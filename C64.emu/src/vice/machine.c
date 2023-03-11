@@ -67,6 +67,7 @@
 #include "traps.h"
 #include "types.h"
 #include "uiapi.h"
+#include "uiactions.h"
 #include "util.h"
 #include "video.h"
 #include "vsync.h"
@@ -126,14 +127,14 @@ unsigned int machine_jam(const char *format, ...)
     if (jam_action == MACHINE_JAM_ACTION_DIALOG) {
         if (monitor_is_remote() || monitor_is_binary()) {
             if (monitor_is_remote()) {
-                ret = monitor_network_ui_jam_dialog(jam_reason);
+                ret = monitor_network_ui_jam_dialog("%s", jam_reason);
             }
 
             if (monitor_is_binary()) {
-                ret = monitor_binary_ui_jam_dialog(jam_reason);
+                ret = monitor_binary_ui_jam_dialog("%s", jam_reason);
             }
         } else if (!console_mode) {
-            ret = ui_jam_dialog(jam_reason);
+            ret = ui_jam_dialog("%s", jam_reason);
         }
     } else if (jam_action == MACHINE_JAM_ACTION_QUIT) {
         archdep_vice_exit(EXIT_SUCCESS);
@@ -369,6 +370,7 @@ void machine_shutdown(void)
 
     if (!console_mode) {
         ui_shutdown();
+        ui_actions_shutdown();
     }
 
     sysfile_shutdown();

@@ -33,7 +33,7 @@ extern const char info_license_text[];
 extern const char info_contrib_text[];
 extern const char info_warranty_text[];
 
-#if defined(USE_SDLUI) || defined(USE_SDLUI2)
+#if defined(USE_SDLUI) || defined(USE_SDL2UI)
 
 extern const char info_license_text40[];
 extern const char info_warranty_text40[];

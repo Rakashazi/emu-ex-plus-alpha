@@ -46,11 +46,7 @@
 
 #include "c64dtvflash.h"
 
-#ifndef AMIGA_SUPPORT
 #define DTVROM_NAME_DEFAULT   "dtvrom.bin"
-#else
-#define DTVROM_NAME_DEFAULT   "PROGDIR:C64DTV/dtvrom.bin"
-#endif
 
 #ifdef DEBUG
 static log_t c64dtvflash_log = LOG_ERR;
@@ -546,9 +542,7 @@ static int set_c64dtvflash_filename(const char *name, void *param)
 {
     int retval = 0;
 
-#ifndef AMIGA_SUPPORT
     char *complete_path = NULL;
-#endif
 
     if (c64dtvflash_filename != NULL && name != NULL && strcmp(name, c64dtvflash_filename) == 0) {
         return 0;
@@ -566,7 +560,6 @@ static int set_c64dtvflash_filename(const char *name, void *param)
         }
     }
 
-#ifndef AMIGA_SUPPORT
     /* check if the given rom file can be found in a sys dir and set resource with absolute path */
     if (name != NULL && *name != '\0' && !util_file_exists(name)) {
         sysfile_locate(name, "C64DTV", &complete_path);
@@ -574,13 +567,10 @@ static int set_c64dtvflash_filename(const char *name, void *param)
             name = complete_path;
         }
     }
-#endif
 
     util_string_set(&c64dtvflash_filename, name);
 
-#ifndef AMIGA_SUPPORT
     lib_free(complete_path);
-#endif
 
     if (c64dtvflash_filename != NULL && *c64dtvflash_filename != '\0') {
         retval = c64dtvflash_load_rom();

@@ -58,7 +58,6 @@
 #include "diskcontents.h"
 #include "initcmdline.h"
 #include "interrupt.h"
-#include "ioutil.h"
 #include "kbdbuf.h"
 #include "lib.h"
 #include "log.h"
@@ -69,6 +68,7 @@
 #include "mem.h"
 #include "monitor.h"
 #include "mon_breakpoint.h"
+;
 #include "network.h"
 #include "resources.h"
 #include "snapshot.h"
@@ -790,7 +790,7 @@ static void load_snapshot_trap(uint16_t unused_addr, void *unused_data)
 
     /* Make sure breakpoints are still working after loading the snapshot */
     mon_update_all_checkpoint_state();
-    
+
     /* Enter monitor after done */
     if (trigger_monitor) {
         trigger_monitor = 0;
@@ -803,7 +803,7 @@ static void load_snapshot_trap(uint16_t unused_addr, void *unused_data)
 
 /* Reset autostart.  */
 /* FIXME: cbm2 and pet pass 0,0 into this function before loading
-            kernal ... why is this? 
+            kernal ... why is this?
 
     default_seconds : initial delay before checking for READY
     handle_tde : if zero, "handle tde at autostart" will never be done
@@ -830,7 +830,7 @@ static void autostart_reinit(int default_seconds, int handle_tde)
 
 /* Initialize autostart.  */
 /* FIXME: cbm2 and pet pass 0,0 into this function before loading
-            kernal ... why is this? 
+            kernal ... why is this?
 
     default_seconds : initial delay before checking for READY
     handle_tde : if zero, "handle tde at autostart" will never be done
@@ -1648,7 +1648,7 @@ static void setup_for_disk_ready(int unit, int drive)
         unit, drive,
         get_true_drive_emulation_state(unit) ? "on" : "off",
         get_iec_device_state(unit) ? "on" : "off",
-        get_device_traps_state() ? "on" : "off",
+        get_device_traps_state(unit) ? "on" : "off",
         handle_drive_true_emulation_overridden ? "yes" : "no"
         ));
 }
@@ -1862,7 +1862,7 @@ int autostart_prg(const char *file_name, unsigned int runmode)
             /* create the directory where the image should be written first */
             util_fname_split(AutostartPrgDiskImage, &savedir, NULL);
             if ((savedir != NULL) && (*savedir != 0) && (strcmp(savedir, "."))) {
-                ioutil_mkdir(savedir, IOUTIL_MKDIR_RWXU);
+                archdep_mkdir(savedir, ARCHDEP_MKDIR_RWXU);
             }
             lib_free(savedir);
             result = autostart_prg_with_disk_image(unit, drive, file_name, finfo,
@@ -1876,7 +1876,7 @@ int autostart_prg(const char *file_name, unsigned int runmode)
                     n = 1;
                     break;
                 }
-                if ((n < 17) && (!strcasecmp((const char*)&finfo->name[n], ".prg"))) {
+                if ((n < 17) && (!util_strcasecmp((const char*)&finfo->name[n], ".prg"))) {
                     break;
                 }
                 tempname[n] = finfo->name[n];
@@ -1930,7 +1930,7 @@ int autostart_prg(const char *file_name, unsigned int runmode)
           function (perhaps we need to handle all drives?) */
 int autostart_tapecart(const char *file_name, void *unused)
 {
-    /* check if \a file_name is actuallt a TCRT image */
+    /* check if a file_name is actually a TCRT image */
     if (!tapecart_is_valid(file_name)) {
         return -1;
     }
@@ -1990,7 +1990,7 @@ static void set_tapeport_device(int datasette, int tapecart)
 {
     /* first disable all devices, so we dont get any conflicts */
     if (resources_set_int("TapePort1Device", TAPEPORT_DEVICE_NONE) < 0) {
-        log_error(LOG_ERR, "Failed to disable the Tapecart.");
+        log_error(LOG_ERR, "Failed to disable the tape port device.");
     }
     /* now enable the one we want to enable */
     if (datasette) {
@@ -2055,7 +2055,8 @@ int autostart_autodetect(const char *file_name, const char *program_name,
         }
 
         /* tapecart can only be used with C64 (or C64 mode of C128) */
-        if ((machine_class == VICE_MACHINE_C64) &&
+        if ((machine_class == VICE_MACHINE_C64) ||
+            (machine_class == VICE_MACHINE_C64SC) ||
             (machine_class == VICE_MACHINE_C128)) {
             set_tapeport_device(0, 1); /* select datasette off, tapecart on */
             if (autostart_tapecart(file_name, NULL) == 0) {
@@ -2073,7 +2074,7 @@ int autostart_autodetect(const char *file_name, const char *program_name,
         return 0;
     }
 
-    if ((machine_class == VICE_MACHINE_C64) || 
+    if ((machine_class == VICE_MACHINE_C64) ||
         (machine_class == VICE_MACHINE_C64SC) ||
         (machine_class == VICE_MACHINE_SCPU64) ||
         (machine_class == VICE_MACHINE_VIC20) ||
@@ -2136,6 +2137,8 @@ void autostart_reset(void)
 {
     int oldmode;
 
+    DBG(("autostart_reset (autostart_enabled:%d)", autostart_enabled));
+
     if (!autostart_enabled) {
         return;
     }
@@ -2146,6 +2149,7 @@ void autostart_reset(void)
         oldmode = autostartmode;
         autostartmode = AUTOSTART_NONE;
         if (oldmode != AUTOSTART_DONE) {
+            DBG(("autostart_reset oldmode != AUTOSTART_DONE"));
             disk_eof_callback();
         }
         autostartmode = AUTOSTART_NONE;
@@ -2162,10 +2166,3 @@ void autostart_shutdown(void)
 
     autostart_prg_shutdown();
 }
-
-#ifdef ANDROID_COMPILE
-void loader_set_warpmode(int on)
-{
-    set_warp_mode(on);
-}
-#endif

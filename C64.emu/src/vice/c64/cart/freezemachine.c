@@ -251,7 +251,7 @@ int freezemachine_bin_attach(const char *filename, uint8_t *rawcart)
 
 /*
  * (old) wrong formats:
- * 
+ *
  * cartconv produced this until 2011:
  *
  * offset  sig  type  bank start size  chunklen

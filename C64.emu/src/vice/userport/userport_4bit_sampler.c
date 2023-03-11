@@ -58,47 +58,51 @@ int userport_4bit_sampler_read = 1;
 /* Some prototypes are needed */
 static uint8_t userport_4bit_sampler_read_pbx(uint8_t orig);
 static void userport_4bit_sampler_store_pa2(uint8_t value);
-static int userport_4bit_sampler_enable(int value);
+static int userport_4bit_sampler_set_enabled(int enabled);
 
 static userport_device_t sampler_device = {
-    "Userport 4bit sampler",         /* device name */
-    JOYSTICK_ADAPTER_ID_NONE,        /* NOT a joystick adapter */
-    USERPORT_DEVICE_TYPE_SAMPLER,    /* device is a sampler */
-    userport_4bit_sampler_enable,    /* enable function */
-    userport_4bit_sampler_read_pbx,  /* read pb0-pb7 function */
-    NULL,                            /* NO store pb0-pb7 function */
-    NULL,                            /* NO read pa2 pin function */
-    userport_4bit_sampler_store_pa2, /* store pa2 pin function */
-    NULL,                            /* NO read pa3 pin function */
-    NULL,                            /* NO store pa3 pin function */
-    0,                               /* pc pin is NOT needed */
-    NULL,                            /* NO store sp1 pin function */
-    NULL,                            /* NO read sp1 pin function */
-    NULL,                            /* NO store sp2 pin function */
-    NULL,                            /* NO read sp2 pin function */
-    NULL,                            /* NO reset function */
-    NULL,                            /* NO powerup function */
-    NULL,                            /* NO snapshot write function */
-    NULL                             /* NO snapshot read function */
+    "Userport 4bit sampler",           /* device name */
+    JOYSTICK_ADAPTER_ID_NONE,          /* NOT a joystick adapter */
+    USERPORT_DEVICE_TYPE_SAMPLER,      /* device is a sampler */
+    userport_4bit_sampler_set_enabled, /* enable/disable function */
+    userport_4bit_sampler_read_pbx,    /* read pb0-pb7 function */
+    NULL,                              /* NO store pb0-pb7 function */
+    NULL,                              /* NO read pa2 pin function */
+    userport_4bit_sampler_store_pa2,   /* store pa2 pin function */
+    NULL,                              /* NO read pa3 pin function */
+    NULL,                              /* NO store pa3 pin function */
+    0,                                 /* pc pin is NOT needed */
+    NULL,                              /* NO store sp1 pin function */
+    NULL,                              /* NO read sp1 pin function */
+    NULL,                              /* NO store sp2 pin function */
+    NULL,                              /* NO read sp2 pin function */
+    NULL,                              /* NO reset function */
+    NULL,                              /* NO powerup function */
+    NULL,                              /* NO snapshot write function */
+    NULL                               /* NO snapshot read function */
 };
 
 /* ------------------------------------------------------------------------- */
 
-static int userport_4bit_sampler_enable(int value)
+static int userport_4bit_sampler_set_enabled(int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
 
-    if (userport_4bit_sampler_enabled == val) {
+    if (userport_4bit_sampler_enabled == new_state) {
         return 0;
     }
 
-    if (val) {
+    if (new_state) {
+        /* enabled, start sampler module in mono mode */
         sampler_start(SAMPLER_OPEN_MONO, "4bit userport sampler");
     } else {
+        /* disabled, stop sampler module */
         sampler_stop();
     }
 
-    userport_4bit_sampler_enabled = val;
+    /* set the current state */
+    userport_4bit_sampler_enabled = new_state;
+
     return 0;
 }
 
@@ -109,9 +113,10 @@ int userport_4bit_sampler_resources_init(void)
 
 /* ---------------------------------------------------------------------*/
 
-static void userport_4bit_sampler_store_pa2(uint8_t value)
+static void userport_4bit_sampler_store_pa2(uint8_t new_state)
 {
-    userport_4bit_sampler_read = value & 1;
+    /* set the current state of the read line */
+    userport_4bit_sampler_read = new_state & 1;
 }
 
 static uint8_t userport_4bit_sampler_read_pbx(uint8_t orig)
@@ -119,6 +124,7 @@ static uint8_t userport_4bit_sampler_read_pbx(uint8_t orig)
     uint8_t retval = orig;
 
     if (!userport_4bit_sampler_read) {
+        /* get 8bit sample and keep only the 4 highest bits */
         retval = sampler_get_sample(SAMPLER_CHANNEL_DEFAULT) & 0xf0;
     }
     return retval;

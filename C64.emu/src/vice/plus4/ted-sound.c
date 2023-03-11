@@ -64,7 +64,7 @@ static int ted_sound_machine_channels(void)
 
 /* TED sound device */
 static sound_chip_t ted_sound_chip = {
-    NULL,                                /* NO sound chip open function */ 
+    NULL,                                /* NO sound chip open function */
     ted_sound_machine_init,              /* sound chip init function */
     NULL,                                /* NO sound chip close function */
     ted_sound_machine_calculate_samples, /* sound chip calculate samples function */

@@ -178,11 +178,11 @@ static int set_sync_factor(int val, void *param)
 
 static const resource_string_t resources_string[] =
 {
-    { "ChargenName", "chargen", RES_EVENT_NO, NULL,
+    { "ChargenName", VIC20_CHARGEN_NAME, RES_EVENT_NO, NULL,
       &chargen_rom_name, set_chargen_rom_name, NULL },
-    { "KernalName", "kernal", RES_EVENT_NO, NULL,
+    { "KernalName", VIC20_KERNAL_REV7_NAME, RES_EVENT_NO, NULL,
       &kernal_rom_name, set_kernal_rom_name, NULL },
-    { "BasicName", "basic", RES_EVENT_NO, NULL,
+    { "BasicName", VIC20_BASIC_NAME, RES_EVENT_NO, NULL,
       &basic_rom_name, set_basic_rom_name, NULL },
     RESOURCE_STRING_LIST_END
 };

@@ -172,7 +172,7 @@ static int ps2mouse_handle_command(uint8_t value)
 
         case PS2_CMD_SET_REMOTE_MODE:
 #ifdef HAVE_MOUSE
-            mouse_get_int16(&ps2mouse_lastx, &ps2mouse_lasty);
+            mouse_get_raw_int16(&ps2mouse_lastx, &ps2mouse_lasty);
 #endif
             return (ps2mouse_queue_put(PS2_REPLY_OK));
             break;
@@ -180,7 +180,7 @@ static int ps2mouse_handle_command(uint8_t value)
         case PS2_CMD_READ_DATA:
             new_buttons = ps2mouse_buttons;
 #ifdef HAVE_MOUSE
-            mouse_get_int16(&new_x, &new_y);
+            mouse_get_raw_int16(&new_x, &new_y);
             diff_x = (new_x - ps2mouse_lastx);
             if (diff_x < 0) {
                 new_buttons |= PS2_MDATA_XS;
@@ -416,7 +416,7 @@ void ps2mouse_store(uint8_t value)
     return;
 }
 
-uint8_t ps2mouse_read()
+uint8_t ps2mouse_read(void)
 {
     return ps2mouse_out;
 }
@@ -477,7 +477,7 @@ static const cmdline_option_t cmdline_options[] =
 
 static const mouse_func_t mouse_funcs =
 {
-    mouse_button_left,    
+    mouse_button_left,
     mouse_button_right,
     mouse_button_middle,
     mouse_button_up,

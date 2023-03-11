@@ -29,14 +29,13 @@
 
 #include <stdio.h>
 
-#include "c128-snapshot.h"
+#include "archdep.h"
 #include "c128memsnapshot.h"
 #include "c128.h"
 #include "cia.h"
 #include "drive-snapshot.h"
 #include "drive.h"
 #include "serial.h"
-#include "ioutil.h"
 #include "joyport.h"
 #include "joystick.h"
 #include "keyboard.h"
@@ -51,6 +50,9 @@
 #include "userport.h"
 #include "vice-event.h"
 #include "vicii.h"
+
+#include "c128-snapshot.h"
+
 
 #define SNAP_MACHINE_NAME "C128"
 #define SNAP_MAJOR        1
@@ -82,7 +84,7 @@ int c128_snapshot_write(const char *name, int save_roms, int save_disks, int eve
         || joyport_snapshot_write_module(s, JOYPORT_2) < 0
         || userport_snapshot_write_module(s) < 0) {
         snapshot_close(s);
-        ioutil_remove(name);
+        archdep_remove(name);
         return -1;
     }
 

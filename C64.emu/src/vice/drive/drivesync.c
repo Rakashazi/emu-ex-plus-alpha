@@ -26,7 +26,7 @@
 
 #include "vice.h"
 
-#if !defined(__BEOS__) || !defined(WORDS_BIGENDIAN)
+#if !defined(BEOS_COMPULE) || !defined(WORDS_BIGENDIAN)
 #include <math.h>
 #endif
 
@@ -61,7 +61,7 @@ void drive_set_machine_parameter(long cycles_per_sec)
     }
 }
 
-void drivesync_set_1571(struct diskunit_context_s *drv, int new_sync) 
+void drivesync_set_1571(struct diskunit_context_s *drv, int new_sync)
 {
     unsigned int dnr;
 

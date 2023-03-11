@@ -30,10 +30,8 @@
 #include "sound.h"
 #include "types.h"
 
-extern void petsound_store_onoff(int value);
-extern void petsound_store_rate(CLOCK t);
-extern void petsound_store_waveform(uint8_t value);
-extern void petsound_store_manual(int value);
+extern void petsound_store_onoff(bool value);
+extern void petsound_store_manual(bool value, CLOCK rclk);
 
 extern void petsound_reset(sound_t *psid, CLOCK cpu_clk);
 

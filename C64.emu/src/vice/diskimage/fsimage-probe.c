@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "archdep.h"
 #include "crt.h"
 #include "diskconstants.h"
 #include "diskimage.h"
@@ -86,13 +87,15 @@ static int disk_image_check_for_d64(disk_image_t *image)
          and compare this with the size of the given image. */
 
     int checkimage_tracks, checkimage_errorinfo;
-    size_t countbytes, checkimage_blocks, checkimage_realsize;
+    size_t countbytes, checkimage_blocks;
+    off_t checkimage_realsize;
     fsimage_t *fsimage;
 
     fsimage = image->media.fsimage;
 
     checkimage_errorinfo = 0;
-    checkimage_realsize = util_file_length(fsimage->fd);
+
+    checkimage_realsize = archdep_file_size(fsimage->fd);
     checkimage_tracks = NUM_TRACKS_1541; /* start at track 35 */
     checkimage_blocks = D64_FILE_SIZE_35 / 256;
 
@@ -156,7 +159,7 @@ static int disk_image_check_for_d67(disk_image_t *image)
 
     fsimage = image->media.fsimage;
 
-    if (!(IS_D67_LEN(util_file_length(fsimage->fd)))) {
+    if (!(IS_D67_LEN(archdep_file_size(fsimage->fd)))) {
         return 0;
     }
 
@@ -200,7 +203,7 @@ static int disk_image_check_for_d71(disk_image_t *image)
     int checkimage_errorinfo;
 
     fsimage = image->media.fsimage;
-    checkimage_realsize = util_file_length(fsimage->fd);
+    checkimage_realsize = archdep_file_size(fsimage->fd);
     checkimage_errorinfo = 0;
 
     if (!(IS_D71_LEN(checkimage_realsize))) {
@@ -249,7 +252,7 @@ static int disk_image_check_for_d81(disk_image_t *image)
 
     fsimage = image->media.fsimage;
 
-    if (!(IS_D81_LEN(util_file_length(fsimage->fd)))) {
+    if (!(IS_D81_LEN(archdep_file_size(fsimage->fd)))) {
         return 0;
     }
 
@@ -330,7 +333,7 @@ static int disk_image_check_for_d80(disk_image_t *image)
 
     fsimage = image->media.fsimage;
 
-    if (!(IS_D80_LEN(util_file_length(fsimage->fd)))) {
+    if (!(IS_D80_LEN(archdep_file_size(fsimage->fd)))) {
         return 0;
     }
 
@@ -372,7 +375,7 @@ static int disk_image_check_for_d82(disk_image_t *image)
 
     fsimage = image->media.fsimage;
 
-    if (!(IS_D82_LEN(util_file_length(fsimage->fd)))) {
+    if (!(IS_D82_LEN(archdep_file_size(fsimage->fd)))) {
         return 0;
     }
 
@@ -543,7 +546,7 @@ static int disk_image_check_for_d1m(disk_image_t *image)
     fsimage = image->media.fsimage;
 
     /* reject files with unknown size */
-    if (!(IS_D1M_LEN(util_file_length(fsimage->fd)))) {
+    if (!(IS_D1M_LEN(archdep_file_size(fsimage->fd)))) {
         return 0;
     }
 
@@ -593,7 +596,7 @@ static int disk_image_check_for_d2m(disk_image_t *image)
 
     fsimage = image->media.fsimage;
 
-    if (!(IS_D2M_LEN(util_file_length(fsimage->fd)))) {
+    if (!(IS_D2M_LEN(archdep_file_size(fsimage->fd)))) {
         return 0;
     }
 
@@ -637,7 +640,7 @@ static int disk_image_check_for_d4m(disk_image_t *image)
     fsimage = image->media.fsimage;
     image->tracks = NUM_TRACKS_2000;
 
-    if (!(IS_D4M_LEN(util_file_length(fsimage->fd)))) {
+    if (!(IS_D4M_LEN(archdep_file_size(fsimage->fd)))) {
         return 0;
     }
 
@@ -683,7 +686,7 @@ static int disk_image_check_for_dhd(disk_image_t *image)
     fsimage = image->media.fsimage;
     image->tracks = 65535;
 
-    blk = util_file_length(fsimage->fd);
+    blk = archdep_file_size(fsimage->fd);
 
     /* only allow blank images to be attached if the CMDHD rom is loaded */
     if (blk == 0) {
@@ -727,7 +730,7 @@ static int disk_image_check_for_dhd(disk_image_t *image)
     pos = 1024;
 
     while ( pos < blk ) {
-        if (fseeko(fsimage->fd, pos, SEEK_SET)) {
+        if (archdep_fseeko(fsimage->fd, pos, SEEK_SET)) {
             /* hit the end of file */
             break;
         }
@@ -764,7 +767,7 @@ static int disk_image_check_for_d90(disk_image_t *image)
     fsimage = image->media.fsimage;
 
     /* get file size */
-    blk = util_file_length(fsimage->fd);
+    blk = archdep_file_size(fsimage->fd);
 
     /* only allow true D9090/D9060 image sizes right now */
     if (blk == D9060_FILE_SIZE) {

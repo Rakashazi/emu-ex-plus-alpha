@@ -165,7 +165,7 @@ void iec_drive_idling_method(unsigned int dnr)
 {
     char *tmp;
 
-    tmp = lib_msprintf("Drive%iIdleMethod", dnr + 8);
+    tmp = lib_msprintf("Drive%uIdleMethod", dnr + 8);
 
     resources_touch(tmp);
 

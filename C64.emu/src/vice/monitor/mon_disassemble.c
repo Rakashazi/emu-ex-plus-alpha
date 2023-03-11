@@ -1485,7 +1485,7 @@ static const char* mon_disassemble_instr_interal(unsigned *opc_size, MON_ADDR ad
     opc[2] = mon_get_mem_val_nosfx(mem, (uint16_t)(loc + 2));
     opc[3] = mon_get_mem_val_nosfx(mem, (uint16_t)(loc + 3));
     opc[4] = mon_get_mem_val_nosfx(mem, (uint16_t)(loc + 4));
-    
+
     dis_inst = mon_disassemble_to_string_internal(mem, loc, opc, hex_mode, opc_size, monitor_cpu_for_memspace[mem]);
 
     sprintf(buff, ".%s:%04x  %s", mon_memspace_string[mem], loc, dis_inst);
@@ -1546,7 +1546,7 @@ unsigned mon_disassemble_instr(MON_ADDR addr, int *line_count)
     if (line_count) {
         *line_count = label ? 2 : 1;
     }
-    
+
     return opc_size;
 }
 
@@ -1604,7 +1604,7 @@ void mon_disassemble_lines(MON_ADDR start_addr, MON_ADDR end_addr)
         if (limitlines) {
             /* if there is a label on the NEXT line, we add an extra line so we
                abort early and do not scroll up the top line */
-            if (mon_symbol_table_lookup_name(addr_memspace(dot_addr[mem]), 
+            if (mon_symbol_table_lookup_name(addr_memspace(dot_addr[mem]),
                                              addr_location(dot_addr[mem]))) {
                 line_count++;
             }

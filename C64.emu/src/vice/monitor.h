@@ -196,12 +196,7 @@ extern void monitor_interface_destroy(monitor_interface_t *monitor_interface);
 extern int monitor_diskspace_dnr(int mem);
 extern int monitor_diskspace_mem(int dnr);
 
-#ifdef __GNUC__
-extern int mon_out(const char *format, ...)
-    __attribute__((format(printf, 1, 2)));
-#else
-extern int mon_out(const char *format, ...);
-#endif
+extern int mon_out(const char *format, ...) VICE_ATTR_PRINTF;
 
 /** Breakpoint interface.  */
 

@@ -28,18 +28,17 @@
 
 #include <stdio.h>
 
+#include "archdep.h"
 #include "drive-snapshot.h"
 #include "drive.h"
-#include "serial.h"
-#include "ioutil.h"
 #include "joyport.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "log.h"
 #include "machine.h"
 #include "maincpu.h"
-#include "plus4-snapshot.h"
 #include "plus4memsnapshot.h"
+#include "serial.h"
 #include "snapshot.h"
 #include "sound.h"
 #include "tapeport.h"
@@ -47,6 +46,9 @@
 #include "types.h"
 #include "userport.h"
 #include "vice-event.h"
+
+#include "plus4-snapshot.h"
+
 
 /* #define DEBUGSNAPSHOT */
 
@@ -87,7 +89,7 @@ int plus4_snapshot_write(const char *name, int save_roms, int save_disks,
         || joyport_snapshot_write_module(s, JOYPORT_2) < 0
         || userport_snapshot_write_module(s) < 0) {
         snapshot_close(s);
-        ioutil_remove(name);
+        archdep_remove(name);
         DBG(("error writing snapshot modules.\n"));
         return -1;
     }

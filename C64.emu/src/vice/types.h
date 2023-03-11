@@ -30,7 +30,7 @@
 
 #include "vice.h"
 #if 0
-#if defined(USE_SDLUI) || defined(USE_SDLUI2)
+#if defined(USE_SDLUI) || defined(USE_SDL2UI)
 #  include "vice_sdl.h"
 #endif
 #endif
@@ -46,11 +46,40 @@
 #  endif
 #endif
 
+/* According to POSIX including <stdio.h> provides off_t, but on Windows we
+ * need to include <sys/types.h> */
+#ifdef HAVE_OFF_T
+# ifdef HAVE_OFF_T_IN_SYS_TYPES
+#  include <sys/types.h>
+# endif
+#else
+/* Fallback */
+typedef long long off_t;
+#endif
+
+
 typedef uint64_t CLOCK;
 
 /* Maximum value of a CLOCK.  */
 #undef CLOCK_MAX
 #define CLOCK_MAX (~((CLOCK)0))
+
+/* MVSC <2019 doesn't have PRIu64/PRIx64, which we use to print CLOCK */
+#ifndef PRIu64
+# if SIZEOF_UNSIGNED_LONG == 8
+#  define PRIu64 "lu"
+# else
+#  define PRIu64 "llu"
+# endif
+#endif
+#ifndef PRIx64
+# if SIZEOF_UNSIGNED_LONG == 8
+#  define PRIx64 "lx"
+# else
+#  define PRIx64 "llx"
+# endif
+#endif
+
 
 #define vice_ptr_to_int(x) ((int)(intptr_t)(x))
 #define vice_ptr_to_uint(x) ((unsigned int)(uintptr_t)(x))

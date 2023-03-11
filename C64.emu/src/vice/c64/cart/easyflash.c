@@ -465,7 +465,7 @@ void easyflash_powerup(void)
 {
     /* fill easyflash ram with startup value(s). this shall not be zeros, see
      * http://sourceforge.net/p/vice-emu/bugs/469/
-     * 
+     *
      * FIXME: the real hardware likely behaves somewhat differently
      */
     /*memset(easyflash_ram, 0xff, CART_RAM_SIZE);*/

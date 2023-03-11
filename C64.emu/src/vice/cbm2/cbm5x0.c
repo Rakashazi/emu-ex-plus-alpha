@@ -398,10 +398,6 @@ int machine_resources_init(void)
         init_resource_fail("joystick");
         return -1;
     }
-    if (gfxoutput_resources_init() < 0) {
-        init_resource_fail("gfxoutput");
-        return -1;
-    }
     if (sampler_resources_init() < 0) {
         init_resource_fail("samplerdrv");
         return -1;
@@ -544,10 +540,6 @@ int machine_cmdline_options_init(void)
     }
     if (joystick_cmdline_options_init() < 0) {
         init_cmdline_options_fail("joystick");
-        return -1;
-    }
-    if (gfxoutput_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("gfxoutput");
         return -1;
     }
     if (sampler_cmdline_options_init() < 0) {
@@ -983,9 +975,9 @@ void machine_change_timing(int timeval, int border_mode)
                                 machine_timing.screen_lines);
     drive_set_machine_parameter(machine_timing.cycles_per_sec);
 #ifdef HAVE_MOUSE
-    neos_mouse_set_machine_parameter(machine_timing.cycles_per_sec);
+    mouse_set_machine_parameter(machine_timing.cycles_per_sec);
 #endif
-    
+
     vicii_change_timing(&machine_timing, border_mode);
     cia1_set_timing(machine_context.cia1,
                     (int)machine_timing.cycles_per_sec,
@@ -1086,20 +1078,20 @@ uint8_t machine_tape_behaviour(void)
 int machine_addr_in_ram(unsigned int addr)
 {
     /* FIXME: handle the banking */
-    
+
     if (addr >= 0x25a && addr <= 0x25d) {
         /* 'Pickup subroutine' */
         return 0;
     }
-    
+
     if (addr >= 0x8000 && addr < 0xc000) {
         return 0;
     }
-    
+
     if (addr > 0xe000) {
         return 0;
     }
-    
+
     return 1;
 }
 

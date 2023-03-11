@@ -59,7 +59,7 @@ namespace reSID
 //
 // Solving using Gaussian elimination and back substitution, setting
 // dy = yj - yi, dx = xj - xi, we get
-// 
+//
 //   a = ((ki + kj) - 2*dy/dx)/(dx*dx);
 //   b = ((kj - ki)/dx - 3*(xi + xj)*a)/2;
 //   c = ki - (3*xi*a + 2*b)*xi;
@@ -79,7 +79,7 @@ namespace reSID
 //   dy = (3*a*(x1 + res) + 2*b)*x1*res + ((a*res + b)*res + c)*res;
 //   d2y = (6*a*(x1 + res) + 2*b)*res*res;
 //   d3y = 6*a*res*res*res;
-//     
+//
 //   for (x = x1; x <= x2; x += res) {
 //     plot(x, y);
 //     y += dy; dy += d2y; d2y += d3y;
@@ -151,7 +151,7 @@ void interpolate_brute_force(double x1, double y1, double x2, double y2,
 {
   double a, b, c, d;
   cubic_coefficients(x1, y1, x2, y2, k1, k2, a, b, c, d);
-  
+
   // Calculate each point.
   for (double x = x1; x <= x2; x += res) {
     double y = ((a*x + b)*x + c)*x + d;
@@ -170,12 +170,12 @@ void interpolate_forward_difference(double x1, double y1, double x2, double y2,
 {
   double a, b, c, d;
   cubic_coefficients(x1, y1, x2, y2, k1, k2, a, b, c, d);
-  
+
   double y = ((a*x1 + b)*x1 + c)*x1 + d;
   double dy = (3*a*(x1 + res) + 2*b)*x1*res + ((a*res + b)*res + c)*res;
   double d2y = (6*a*(x1 + res) + 2*b)*res*res;
   double d3y = 6*a*res*res*res;
-    
+
   // Calculate each point.
   for (double x = x1; x <= x2; x += res) {
     plot(x, y);

@@ -76,7 +76,7 @@ typedef struct fdc_t {
 
 /*
  * The fdc[] array contains an fdc_t struct for every drive, i.e. two structs
- * for every unit, as each unit could be dual drive. 
+ * for every unit, as each unit could be dual drive.
  */
 static fdc_t fdc[NUM_FDC][2];
 

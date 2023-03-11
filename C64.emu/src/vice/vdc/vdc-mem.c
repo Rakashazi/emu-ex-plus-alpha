@@ -615,7 +615,7 @@ uint8_t vdc_ram_read(uint16_t addr)
     if (!(vdc.regs[28] & 0x10)) {
         return vdc.ram[vdc_64k_to_16k_map(addr & vdc.vdc_address_mask)];
     }
-    /* otherwise return the default linear memory layout for the 4164 chip setting */
+    /* otherwise return the default linear memory layout for the 4464 chip setting */
     return vdc.ram[addr & vdc.vdc_address_mask];
 }
 
@@ -628,7 +628,7 @@ void vdc_ram_store(uint16_t addr, uint8_t value)
 }
 
 
-int vdc_dump(void *context, uint16_t addr)
+int vdc_dump(void)
 {
     unsigned int r, c, regnum=0, location, size;
 

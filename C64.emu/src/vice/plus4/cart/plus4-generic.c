@@ -25,7 +25,7 @@
  *
  */
 
-#define DEBUGGENERIC
+/* #define DEBUGGENERIC */
 /* #define DEBUGGENERICRW */
 
 #include "vice.h"

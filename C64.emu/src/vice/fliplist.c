@@ -42,7 +42,6 @@
 #include "cmdline.h"
 #include "drive.h"
 #include "fliplist.h"
-#include "ioutil.h"
 #include "lib.h"
 #include "log.h"
 #include "resources.h"
@@ -374,7 +373,7 @@ int fliplist_save_list(unsigned int unit, const char *filename)
     /* create the directory where the fliplist should be written first */
     util_fname_split(fliplist_fullname, &fliplist_path, &fliplist_name);
     if ((fliplist_path != NULL) && (*fliplist_path != 0) && (!strcmp(fliplist_path, "."))) {
-        ioutil_mkdir(fliplist_path, IOUTIL_MKDIR_RWXU);
+        archdep_mkdir(fliplist_path, ARCHDEP_MKDIR_RWXU);
     }
     DBG(("path: '%s' name: '%s'", fliplist_path, fliplist_name));
 
@@ -445,7 +444,7 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
     int c;
     char *fliplist_fullname, *fliplist_path, *fliplist_name;
     char *buffer_fullname;
-    char *cwd;
+    char cwd[ARCHDEP_PATH_MAX];
 
     if (filename == NULL || *filename == 0 || (fp = fopen(filename, MODE_READ)) == NULL) {
         return -1;
@@ -466,9 +465,8 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
 
     /* KLUDGES: we need to change the current dir to the fliplist path, else
        the archdep_expand_path below will not work as expected */
-    cwd = lib_malloc(ioutil_maxpathlen() + 1);
-    ioutil_getcwd(cwd, ioutil_maxpathlen());
-    ioutil_chdir(fliplist_path);
+    archdep_getcwd(cwd, ARCHDEP_PATH_MAX);
+    archdep_chdir(fliplist_path);
 
     /* remove current fliplist */
     if (unit == FLIPLIST_ALL_UNITS) {
@@ -549,8 +547,7 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
                             "Invalid unit number %ld for fliplist\n", unit_long);
                     /* perhaps VICE should properly error out, ie quit? */
                     fclose(fp);
-                    ioutil_chdir(cwd);
-                    lib_free(cwd);
+                    archdep_chdir(cwd);
                     lib_free(fliplist_fullname);
                     lib_free(fliplist_path);
                     lib_free(fliplist_name);
@@ -590,8 +587,7 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
             /* always use full path for attaching in the fliplist */
             if (archdep_expand_path(&buffer_fullname, buffer) != 0) {
                 fclose(fp);
-                ioutil_chdir(cwd);
-                lib_free(cwd);
+                archdep_chdir(cwd);
                 lib_free(fliplist_fullname);
                 lib_free(fliplist_path);
                 lib_free(fliplist_name);
@@ -600,7 +596,7 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
 
             DBG(("file full name: '%s'", buffer_fullname));
 
-            if (ioutil_access(buffer_fullname, IOUTIL_ACCESS_R_OK) == 0) {
+            if (archdep_access(buffer_fullname, ARCHDEP_ACCESS_R_OK) == 0) {
                 tmp = lib_malloc(sizeof(struct fliplist_s));
                 tmp->image = lib_strdup(buffer_fullname);
                 tmp->unit = unit;
@@ -627,8 +623,7 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
     }
 
     fclose(fp);
-    ioutil_chdir(cwd);
-    lib_free(cwd);
+    archdep_chdir(cwd);
     lib_free(fliplist_fullname);
     lib_free(fliplist_path);
     lib_free(fliplist_name);

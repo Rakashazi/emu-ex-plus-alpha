@@ -28,6 +28,7 @@
 #define VICE_FSDEVICETYPES_H
 
 #include "types.h"
+#include "archdep_dir.h"
 
 #define FSDEVICE_BUFFER_MAX 16
 #define FSDEVICE_DEVICE_MAX 4
@@ -40,12 +41,11 @@ enum fsmode {
 };
 
 struct fileio_info_s;
-struct ioutil_dir_s;
 struct tape_image_s;
 
 struct bufinfo_s {
     struct fileio_info_s *fileio_info;
-    struct ioutil_dir_s *ioutil_dir;
+    archdep_dir_t *host_dir;
     struct tape_image_s *tape;
     enum fsmode mode;
     char *dir;

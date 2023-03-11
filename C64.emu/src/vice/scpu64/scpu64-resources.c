@@ -210,7 +210,7 @@ static int set_speed_switch(int val, void *param)
 }
 
 static const resource_string_t resources_string[] = {
-    { "ChargenName", "chargen", RES_EVENT_NO, NULL,
+    { "ChargenName", C64_CHARGEN_NAME, RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &chargen_rom_name, set_chargen_rom_name, NULL },
     { "SCPU64Name", "scpu64", RES_EVENT_NO, NULL,

@@ -30,6 +30,8 @@
 
 #include "vice.h"
 
+#include "archdep.h"
+
 #ifdef USE_VICE_THREAD
 
 #include <pthread.h>
@@ -41,6 +43,7 @@ void mainlock_set_vice_thread(void);
 void mainlock_initiate_shutdown(void);
 
 void mainlock_yield(void);
+void mainlock_yield_and_sleep(tick_t ticks);
 void mainlock_yield_begin(void);
 void mainlock_yield_end(void);
 
@@ -57,6 +60,7 @@ bool mainlock_is_vice_thread(void);
 #define mainlock_yield()
 #define mainlock_yield_begin()
 #define mainlock_yield_end()
+#define mainlock_yield_and_sleep(ticks) tick_sleep(ticks)
 
 #define mainlock_obtain()
 #define mainlock_release()

@@ -48,7 +48,7 @@
    Black Box V8
 
    32k or 64k, 2 or 4 16K banks
-   
+
    writing to IO2 sets the cartridge config:
    A0 - EXROM
    A1 - GAME
@@ -253,7 +253,7 @@ int blackbox8_snapshot_read_module(snapshot_t *s)
 
     if (0
         || SMR_B_INT(m, &bb8_rom_banks) < 0
-        || SMR_B(m, &regval) < 0 
+        || SMR_B(m, &regval) < 0
         || SMR_BA(m, roml_banks, 0x2000 * bb8_rom_banks) < 0
         || SMR_BA(m, romh_banks, 0x2000 * bb8_rom_banks) < 0) {
         goto fail;

@@ -51,7 +51,7 @@ CPPFLAGS += \
 -I$(viceSrcPath)/video \
 -I$(viceSrcPath)/drive/iec/c64exp \
 -I$(viceSrcPath)/core \
--I$(viceSrcPath)/rtc \
+-I$(viceSrcPath)/core/rtc \
 -I$(viceSrcPath)/vdrive \
 -I$(viceSrcPath)/imagecontents \
 -I$(viceSrcPath)/monitor \
@@ -109,6 +109,7 @@ interrupt.c \
 ioutil.c \
 kbdbuf.c \
 keyboard.c \
+keymap.c \
 lib.c \
 machine-bus.c \
 machine.c \
@@ -198,6 +199,7 @@ multimax.c \
 ocean.c \
 prophet64.c \
 pagefox.c \
+partner64.c \
 ramcart.c \
 ramlink.c \
 retroreplay.c \
@@ -445,6 +447,7 @@ vicii.c
 libviciidtv_a_SOURCES := $(addprefix vicii/,$(libviciidtv_a_SOURCES))
 
 libc128_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/c128/*)))
+libc128_a_SOURCES += $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/c128/cart/*)))
 
 libc64c128_a_SOURCES = \
 c64bus.c \
@@ -497,6 +500,7 @@ libcbm2_a_SOURCES = \
 cbm2-cmdline-options.c \
 cbm2-resources.c \
 cbm2-snapshot.c \
+cbm2-stubs.c \
 cbm2.c \
 cbm2acia1.c \
 cbm2bus.c \
@@ -588,11 +592,10 @@ libresid_a_SOURCES := $(filter-out resid/filter.cc, $(libresid_a_SOURCES))
 libresiddtv_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.cc, $(wildcard $(viceSrcPath)/resid-dtv/*))) sid/resid-dtv.cc
 libresid_a_SOURCES := $(filter-out $(viceSrcPath)/resid/filter8580new.cc, $(libresid_a_SOURCES))
 
-librtc_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/rtc/*)))
-
 libtape_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/tape/*)))
 
 libcore_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/core/*)))
+libcore_a_SOURCES += $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/core/rtc/*)))
 
 libuserport_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/userport/*)))
 
@@ -677,7 +680,6 @@ $(libmonitor_a_SOURCES) \
 $(libvicii_a_SOURCES) \
 $(libraster_a_SOURCES) \
 $(libuserport_a_SOURCES) \
-$(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
 $(libresid_a_SOURCES) \
@@ -703,7 +705,6 @@ $(libmonitor_a_SOURCES) \
 $(libviciisc_a_SOURCES) \
 $(libraster_a_SOURCES) \
 $(libuserport_a_SOURCES) \
-$(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
 $(libtapeport_a_SOURCES) \
@@ -731,7 +732,6 @@ $(libmonitor_a_SOURCES) \
 $(libviciisc_a_SOURCES) \
 $(libraster_a_SOURCES) \
 $(libuserport_a_SOURCES) \
-$(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
 $(libresid_a_SOURCES)
@@ -754,7 +754,6 @@ $(libmonitor_a_SOURCES) \
 $(libviciitv_a_SOURCES) \
 $(libraster_a_SOURCES) \
 $(libuserport_a_SOURCES) \
-$(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
 $(libresiddtv_a_SOURCES) \
@@ -784,7 +783,6 @@ $(libvicii_a_SOURCES) \
 $(libvdc_a_SOURCES) \
 $(libraster_a_SOURCES) \
 $(libuserport_a_SOURCES) \
-$(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
 $(libtapeport_a_SOURCES) \
@@ -808,7 +806,6 @@ $(libsid_a_SOURCES) \
 $(libmonitor_a_SOURCES) \
 $(libraster_a_SOURCES) \
 $(libuserport_a_SOURCES) \
-$(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
 $(libtapeport_a_SOURCES) \
@@ -828,7 +825,6 @@ $(libmonitor_a_SOURCES) \
 $(libcrtc_a_SOURCES) \
 $(libraster_a_SOURCES) \
 $(libuserport_a_SOURCES) \
-$(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libsid_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
@@ -850,7 +846,6 @@ $(libvdrive_a_SOURCES) \
 $(libmonitor_a_SOURCES) \
 $(libraster_a_SOURCES) \
 $(libuserport_a_SOURCES) \
-$(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libsid_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
@@ -871,7 +866,6 @@ $(libmonitor_a_SOURCES) \
 $(libcrtc_a_SOURCES) \
 $(libraster_a_SOURCES) \
 $(libuserport_a_SOURCES) \
-$(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libsid_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
@@ -892,7 +886,6 @@ $(libvdrive_a_SOURCES) \
 $(libmonitor_a_SOURCES) \
 $(libvicii_a_SOURCES) \
 $(libraster_a_SOURCES) \
-$(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libsid_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \

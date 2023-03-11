@@ -59,7 +59,9 @@ int vic20rom_kernal_checksum(void)
         sum += vic20memrom_kernal_rom[i];
     }
 
-    if (sum != VIC20_KERNAL_CHECKSUM) {
+    if ((sum != VIC20_KERNAL_REV2_CHECKSUM)
+     && (sum != VIC20_KERNAL_REV6_CHECKSUM)
+     && (sum != VIC20_KERNAL_REV7_CHECKSUM)) {
         log_warning(vic20rom_log,
                   "Unknown Kernal image.  Sum: %d ($%04X).",
                   sum, sum);
@@ -211,88 +213,6 @@ int mem_load(void)
     if (vic20rom_load_chargen(rom_name) < 0) {
         return -1;
     }
-
-    /* patch the kernal respecting the video mode */
-    mem_patch_kernal();
-
-    return 0;
-}
-
-/************************************************************************/
-
-/* This is a light version of C64's patchrom to change between PAL and
-   NTSC kernal
-    0: kernal ROM 901486-07 (VIC20 PAL)
-    1: kernal ROM 901486-06 (VIC20 NTSC)
-*/
-#define PATCH_VERSIONS 1
-
-int mem_patch_kernal(void)
-{
-    static unsigned short const patch_bytes[] = {
-        1, 0xE475,
-            0xe8,
-            0x41,
-
-        2, 0xEDE4,
-            0x0c, 0x26,
-            0x05, 0x19,
-
-        6, 0xFE3F,
-            0x26, 0x8d, 0x24, 0x91, 0xa9, 0x48,
-            0x89, 0x8d, 0x24, 0x91, 0xa9, 0x42,
-
-        21, 0xFF5C,
-            0xe6, 0x2a, 0x78, 0x1c, 0x49, 0x13, 0xb1, 0x0f,
-                0x0a, 0x0e, 0xd3, 0x06, 0x38, 0x03, 0x6a, 0x01,
-                0xd0, 0x00, 0x83, 0x00, 0x36,
-            0x92, 0x27, 0x40, 0x1a, 0xc6, 0x11, 0x74, 0x0e,
-                0xee, 0x0c, 0x45, 0x06, 0xf1, 0x02, 0x46, 0x01,
-                0xb8, 0x00, 0x71, 0x00, 0x2a,
-
-        0, 00
-    };
-
-    int rev, video_mode;
-    short bytes, n, i = 0;
-    uint16_t a;
-
-    if (!vicrom_loaded) {
-        return 0;
-    }
-
-    if (vic20rom_kernal_checksum() < 0) {
-        log_message(LOG_ERR, "VIC20MEM: unknown kernal, cannot patch kernal.");
-        return -1;
-    }
-
-    resources_get_int("MachineVideoStandard", &video_mode);
-
-    switch (video_mode) {
-        case MACHINE_SYNC_PAL:
-            rev = 0; /* use kernal 901486-07 */
-            break;
-        case MACHINE_SYNC_NTSC:
-            rev = 1; /* use kernal 901486-06 */
-            break;
-        default:
-            log_message(LOG_ERR, "VIC20MEM: unknown sync, cannot patch kernal.");
-            return -1;
-    }
-
-    while ((bytes = patch_bytes[i++]) > 0) {
-        a = (uint16_t)patch_bytes[i++];
-
-        i += (bytes * rev); /* select patch */
-        for (n = bytes; n--; ) {
-            vic20memrom_trap_store(a, (uint8_t)patch_bytes[i]);
-            rom_store(a++, (uint8_t)patch_bytes[i++]);
-        }
-
-        i += (bytes * (PATCH_VERSIONS - rev));  /* skip patch */
-    }
-
-    log_message(LOG_DEFAULT, "VIC20 kernal patched to 901486-0%d.", 7 - rev);
 
     return 0;
 }

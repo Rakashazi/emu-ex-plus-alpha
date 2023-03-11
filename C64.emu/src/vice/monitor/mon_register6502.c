@@ -212,9 +212,9 @@ static void mon_register_print(int mem)
     }
 
     /* enable sidefx, else we'd read RAM for 00/01 */
-    sfxtmp = sidefx; 
+    sfxtmp = sidefx;
     sidefx = 1;
-    
+
     mon_out(".;%04x %02x %02x %02x %02x %02x %02x %d%d%c%d%d%d%d%d",
             addr_location(mon_register_get_val(mem, e_PC)),
             mon_register_get_val(mem, e_A),
@@ -234,7 +234,7 @@ static void mon_register_print(int mem)
 
     /* restore original value of sidefx */
     sidefx = sfxtmp;
-    
+
     mon_interfaces[mem]->current_bank = current_bank;
 
     if (mon_interfaces[mem]->get_line_cycle != NULL) {

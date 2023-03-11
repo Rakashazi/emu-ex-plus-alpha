@@ -164,7 +164,7 @@ int crtc_snapshot_write_module(snapshot_t * s)
             ef = -1;
         }
     }
-    
+
     if (raster_snapshot_write(m, &crtc.raster)) {
         ef = -1;
     }
@@ -361,7 +361,7 @@ int crtc_snapshot_read_module(snapshot_t * s)
 
     force_repaint();
 #endif
-    
+
     if (raster_snapshot_read(m, &crtc.raster)) {
         ef = -1;
     }

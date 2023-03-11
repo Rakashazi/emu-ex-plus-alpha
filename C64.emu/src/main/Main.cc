@@ -316,47 +316,39 @@ void C64System::closeSystem()
 	plugin.machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 }
 
-static const char *mainROMFilename(ViceSystem system)
+static bool hasSysFilePath(ApplicationContext ctx, const auto &paths)
 {
-	switch(system)
+	for(const auto &path : paths)
 	{
-		case ViceSystem::PET: return "kernal-4.901465-22.bin";
-		case ViceSystem::SUPER_CPU: return "scpu64";
-		default: return "kernal";
+		if(!path.empty() && !ctx.fileUriDisplayName(path).empty())
+			return true;
 	}
+	return false;
 }
 
-static void throwC64FirmwareError()
-{
-	throw std::runtime_error{fmt::format("System files missing, please set them in Options➔File Paths➔VICE System Files")};
-}
-
-bool C64System::initC64(EmuApp &app)
+void C64System::initC64(EmuApp &app)
 {
 	if(c64IsInit)
-		return true;
-	if(sysfile_locate(mainROMFilename(currSystem), sysFileDir, nullptr) == -1)
-	{
-		return false;
-	}
+		return;
+	if(!hasSysFilePath(appContext(), sysFilePath))
+		throw std::runtime_error{"Missing system file path, please check Options➔File Paths➔VICE System Files"};
 	logMsg("initializing C64");
   if(plugin.init_main() < 0)
   {
   	logErr("error in init_main()");
   	c64FailedInit = true;
-  	return false;
+  	throw std::runtime_error{fmt::format("Missing system file {}, please check Options➔File Paths➔VICE System Files", lastMissingSysFile)};
 	}
 	c64IsInit = true;
-	return true;
 }
 
 bool C64App::willCreateSystem(ViewAttachParams attach, const Input::Event &e)
 {
 	if(!system().c64FailedInit)
 		return true;
-	pushAndShowNewYesNoAlertView(attach, e,
-		"A previous system file load failed, you must restart the app to run any C64 software",
-		"Exit Now", "Cancel", [](View &v) { v.appContext().exit(); }, nullptr);
+	pushAndShowModalView(std::make_unique<YesNoAlertView>(attach,
+		fmt::format("A system file {} failed loading, you must restart the app and try again after verifying the file", system().lastMissingSysFile),
+		"Exit Now", "Cancel", YesNoAlertView::Delegates{ .onYes = [](View &v) { v.appContext().exit(); } }), e);
 	return false;
 }
 
@@ -406,10 +398,7 @@ static FS::PathString vic20ExtraCartPath(IG::ApplicationContext ctx, std::string
 
 void C64System::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
 {
-	if(!initC64(EmuApp::get(appContext())))
-	{
-		throwC64FirmwareError();
-	}
+	initC64(EmuApp::get(appContext()));
 	applyInitialOptionResources();
 	bool shouldAutostart = !(params.systemFlags & SYSTEM_FLAG_NO_AUTOSTART) && optionAutostartOnLaunch;
 	if(shouldAutostart && plugin.autostart_autodetect_)

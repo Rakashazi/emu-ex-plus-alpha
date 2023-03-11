@@ -1,3 +1,6 @@
+#ifndef _yy_defines_h_
+#define _yy_defines_h_
+
 #define H_NUMBER 257
 #define D_NUMBER 258
 #define O_NUMBER 259
@@ -175,7 +178,7 @@
 #endif
 #ifndef YYSTYPE_IS_DECLARED
 #define YYSTYPE_IS_DECLARED 1
-typedef union {
+typedef union YYSTYPE {
     MON_ADDR a;
     MON_ADDR range[2];
     int i;
@@ -189,3 +192,5 @@ typedef union {
 } YYSTYPE;
 #endif /* !YYSTYPE_IS_DECLARED */
 extern YYSTYPE yylval;
+
+#endif /* _yy_defines_h_ */

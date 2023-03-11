@@ -32,7 +32,7 @@
     - bank register at $FE00
  */
 
-#define DEBUG_JACINT1MB
+/* #define DEBUG_JACINT1MB */
 
 #include "vice.h"
 

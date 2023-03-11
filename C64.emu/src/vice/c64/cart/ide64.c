@@ -37,11 +37,6 @@
 #include <sys/types.h>
 #endif
 
-/* VAC++ has off_t in sys/stat.h */
-#ifdef __IBMC__
-#include <sys/stat.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -422,13 +417,13 @@ static void detect_ide64_image(struct drive_s *drive)
     drive->type = ATA_DRIVE_CF;
     ext = util_get_extension(drive->filename);
     if (ext) {
-        if (!strcasecmp(ext, "cfa")) {
+        if (!util_strcasecmp(ext, "cfa")) {
             drive->type = ATA_DRIVE_CF;
-        } else if (!strcasecmp(ext, "hdd")) {
+        } else if (!util_strcasecmp(ext, "hdd")) {
             drive->type = ATA_DRIVE_HDD;
-        } else if (!strcasecmp(ext, "fdd")) {
+        } else if (!util_strcasecmp(ext, "fdd")) {
             drive->type = ATA_DRIVE_FDD;
-        } else if (!strcasecmp(ext, "iso")) {
+        } else if (!util_strcasecmp(ext, "iso")) {
             drive->type = ATA_DRIVE_CD;
         }
     }
@@ -463,8 +458,8 @@ static void detect_ide64_image(struct drive_s *drive)
             }
         } else {
             off_t size = 0;
-            if (fseeko(file, 0, SEEK_END) == 0) {
-                size = ftello(file);
+            if (archdep_fseeko(file, 0, SEEK_END) == 0) {
+                size = archdep_ftello(file);
                 if (size < 0) {
                     size = 0;
                 }
@@ -1568,19 +1563,23 @@ static int ide64_common_attach(uint8_t *rawcart, int detect)
 
 int ide64_bin_attach(const char *filename, uint8_t *rawcart)
 {
-    size_t len;
+    off_t len;
     FILE *fd;
 
     fd = fopen(filename, MODE_READ);
     if (fd == NULL) {
         return -1;
     }
-    len = util_file_length(fd);
+    len = archdep_file_size(fd);
+    if (len < 0) {
+        fclose(fd);
+        return -1;
+    }
     fclose(fd);
 
     /* we accept 64k, 128k and full 512k images */
     if (len == 0x10000 || len == 0x20000 || len == 0x80000) {
-        if (util_file_load(filename, rawcart, len, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
+        if (util_file_load(filename, rawcart, (size_t)len, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
             return -1;
         }
     }

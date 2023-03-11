@@ -101,6 +101,7 @@
 #include "userport_petscii_snespad.h"
 #include "userport_rtc_58321a.h"
 #include "userport_rtc_ds1307.h"
+#include "userport_spt_joystick.h"
 #include "via.h"
 #include "vic.h"
 #include "vic-mem.h"
@@ -674,10 +675,6 @@ int machine_resources_init(void)
         init_resource_fail("joystick");
         return -1;
     }
-    if (gfxoutput_resources_init() < 0) {
-        init_resource_fail("gfxoutput");
-        return -1;
-    }
     if (sampler_resources_init() < 0) {
         init_resource_fail("samplerdrv");
         return -1;
@@ -771,6 +768,10 @@ int machine_resources_init(void)
     }
     if (userport_joystick_synergy_resources_init() < 0) {
         init_resource_fail("userport synergy joystick");
+        return -1;
+    }
+    if (userport_spt_joystick_resources_init() < 0) {
+        init_resource_fail("userport stupid pet tricks joystick");
         return -1;
     }
     if (userport_dac_resources_init() < 0) {
@@ -887,10 +888,6 @@ int machine_cmdline_options_init(void)
     }
     if (userport_cmdline_options_init() < 0) {
         init_cmdline_options_fail("userport");
-        return -1;
-    }
-    if (gfxoutput_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("gfxoutput");
         return -1;
     }
     if (sampler_cmdline_options_init() < 0) {
@@ -1292,7 +1289,7 @@ void machine_change_timing(int timeval, int border_mode)
     drive_set_machine_parameter(machine_timing.cycles_per_sec);
     serial_iec_device_set_machine_parameter(machine_timing.cycles_per_sec);
 #ifdef HAVE_MOUSE
-    neos_mouse_set_machine_parameter(machine_timing.cycles_per_sec);
+    mouse_set_machine_parameter(machine_timing.cycles_per_sec);
 #endif
 
     vic_change_timing(&machine_timing, border_mode);
@@ -1300,8 +1297,6 @@ void machine_change_timing(int timeval, int border_mode)
     fmopl_set_machine_parameter(machine_timing.cycles_per_sec);
 
     rsuser_change_timing(machine_timing.cycles_per_sec);
-
-    mem_patch_kernal();
 
     machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 }
@@ -1377,12 +1372,12 @@ int machine_addr_in_ram(unsigned int addr)
         /* CHRGET zero page routine */
         return 0;
     }
-    
+
     if (addr >= 0xc000) {
         /* ROM */
         return 0;
     }
-    
+
     return 1;
 }
 

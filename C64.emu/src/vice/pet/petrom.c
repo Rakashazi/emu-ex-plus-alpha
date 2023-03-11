@@ -472,35 +472,6 @@ void petrom_convert_chargen(uint8_t *charrom)
     }
 }
 
-void petrom_convert_chargen_2k(void)
-{
-    int i, j;
-
-#if 0
-    /* This only works right after loading! */
-    /* If pet2001 then exchange upper and lower case letters.  */
-    for (i = 8; i < (0x1b * 8); i++) {
-        j = mem_chargen_rom[0x400 + i];
-        mem_chargen_rom[i + 0x400] = mem_chargen_rom[i + 0x600];
-        mem_chargen_rom[i + 0x600] = j;
-    }
-#endif
-    /* If pet2001 then exchange upper and lower case letters.  */
-    for (i = 16; i < 0x1b0; i++) {
-        /* first the not inverted chars */
-        j = mem_chargen_rom[0x1000 + i];
-        mem_chargen_rom[0x1000 + i] = mem_chargen_rom[0x1400 + i];
-        mem_chargen_rom[0x1400 + i] = j;
-    }
-    /* If pet2001 then exchange upper and lower case letters.  */
-    for (i = 16; i < 0x1b0; i++) {
-        /* then the inverted chars */
-        j = mem_chargen_rom[0x1800 + i];
-        mem_chargen_rom[0x1800 + i] = mem_chargen_rom[0x1c00 + i];
-        mem_chargen_rom[0x1c00 + i] = j;
-    }
-}
-
 /*
  * The Waterloo chargen rom is actually 4K, containing 2 sets of
  * characters: Commodore's original, and Waterloo ASCII/APL.
@@ -537,10 +508,6 @@ int petrom_load_chargen(void)
         log_error(petrom_log,
                   "Couldn't load character ROM (%s).", petres.chargenName);
         return -1;
-    }
-
-    if (petres.pet2kchar) {
-        petrom_convert_chargen_2k();
     }
 
     petrom_convert_chargen(mem_chargen_rom);

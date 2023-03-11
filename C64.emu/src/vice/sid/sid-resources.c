@@ -213,7 +213,7 @@ static int set_sid_model(int val, void *param)
             sid_model = SID_MODEL_DTVSID;
         } else
 #endif
-        if ((machine_class == VICE_MACHINE_C128) || 
+        if ((machine_class == VICE_MACHINE_C128) ||
             (machine_class == VICE_MACHINE_C64) ||
             (machine_class == VICE_MACHINE_C64SC) ||
             (machine_class == VICE_MACHINE_SCPU64)){
@@ -370,7 +370,7 @@ void sid_set_enable(int value)
 #ifdef HAVE_FASTSID
     if (val) {
         sid_engine_set(SID_ENGINE_FASTSID);
-    } else 
+    } else
 #endif
     {
         sid_engine_set(sid_engine);
@@ -455,7 +455,7 @@ int sid_common_resources_init(void)
         common_resources_int[2].factory_value = SID_MODEL_DTVSID;
     } else
 #endif
-    if ((machine_class == VICE_MACHINE_C128) || 
+    if ((machine_class == VICE_MACHINE_C128) ||
         (machine_class == VICE_MACHINE_C64) ||
         (machine_class == VICE_MACHINE_C64SC) ||
         (machine_class == VICE_MACHINE_SCPU64)){

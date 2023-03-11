@@ -6632,7 +6632,7 @@ int cpmcart_snapshot_read_module(snapshot_t *s)
     if (snapshot_version_is_bigger(major, minor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
-    } 
+    }
 
     /* FIXME: This is a mighty kludge to prevent VIC-II from stealing the
        wrong number of cycles.  */

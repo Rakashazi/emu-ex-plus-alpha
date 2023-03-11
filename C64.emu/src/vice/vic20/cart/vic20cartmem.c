@@ -493,7 +493,7 @@ void cartridge_attach(int type, uint8_t *rawcart)
     int cartridge_reset;
 
     mem_cartridge_type = type;
-    
+
     DBG(("cartridge_attach type: %d\n", type));
 #if 0
     switch (type) {

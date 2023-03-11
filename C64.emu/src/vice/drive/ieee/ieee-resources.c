@@ -100,18 +100,18 @@ static int set_dos_rom_name_2031(const char *val, void *param)
 }
 
 static const resource_string_t resources_string[] = {
-    { "DosName2031", "dos2031", RES_EVENT_NO, NULL,
+    { "DosName2031", DRIVE_ROM2031_NAME, RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &dos_rom_name_2031, set_dos_rom_name_2031, NULL },
-    { "DosName2040", "dos2040", RES_EVENT_NO, NULL,
+    { "DosName2040", DRIVE_ROM2040_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_2040, set_dos_rom_name_2040, NULL },
-    { "DosName3040", "dos3040", RES_EVENT_NO, NULL,
+    { "DosName3040", DRIVE_ROM3040_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_3040, set_dos_rom_name_3040, NULL },
-    { "DosName4040", "dos4040", RES_EVENT_NO, NULL,
+    { "DosName4040", DRIVE_ROM4040_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_4040, set_dos_rom_name_4040, NULL },
-    { "DosName1001", "dos1001", RES_EVENT_NO, NULL,
+    { "DosName1001", DRIVE_ROM1001_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_1001, set_dos_rom_name_1001, NULL },
-    { "DosName9000", "dos9000", RES_EVENT_NO, NULL,
+    { "DosName9000", DRIVE_ROM9000_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_9000, set_dos_rom_name_9000, NULL },
     RESOURCE_STRING_LIST_END
 };

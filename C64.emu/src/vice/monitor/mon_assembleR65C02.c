@@ -58,7 +58,7 @@ static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t oper
         const asm_opcode_info_t *opinfo;
 
         opinfo = (monitor_cpu_for_memspace[mem]->asm_opcode_info_get)(i, 0, 0, 0);
-        if (!strcasecmp(opinfo->mnemonic, opcode_name)) {
+        if (!util_strcasecmp(opinfo->mnemonic, opcode_name)) {
             /* Special case: ZERO PAGE RELATIVE mode needs special handling. */
             if (opinfo->addr_mode == ASM_ADDR_MODE_ZERO_PAGE_RELATIVE
                 && operand_mode == ASM_ADDR_MODE_DOUBLE) {

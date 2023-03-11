@@ -48,18 +48,9 @@
 static inline
 void yuv_to_rgb(int32_t y, int32_t u, int32_t v, int16_t *red, int16_t *grn, int16_t *blu)
 {
-#ifdef _MSC_VER
-# pragma warning( push )
-# pragma warning( disable: 4244 )
-#endif
-
     *red = (y + ((209 * u +  41 * v) >> 7)) >> 15;
     *grn = (y - (( 48 * u +  69 * v) >> 7)) >> 15;
     *blu = (y - ((139 * u - 215 * v) >> 7)) >> 15;
-
-#ifdef _MSC_VER
-# pragma warning( pop )
-#endif
 }
 
 /* Often required function that stores gamma-corrected pixel to current line,
@@ -122,7 +113,7 @@ void render_generic_2x2_ntsc(video_render_color_tables_t *color_tab,
     int32_t *cbtable, *crtable;
     uint32_t x, y, wfirst, wlast, yys;
     int32_t l, l2, u, u2, unew, v, v2, vnew, off_flip, shade;
-    
+
     int first_line = viewport_first_line * 2;
     int last_line = (viewport_last_line * 2) + 1;
 

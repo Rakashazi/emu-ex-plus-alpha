@@ -210,7 +210,7 @@ static const asm_opcode_info_t opcode_list[] = {
 
     /* 60 */ { "RTS",   ASM_ADDR_MODE_IMPLIED },
     /* 61 */ { "ADC",   ASM_ADDR_MODE_INDIRECT_X },
-    /* 62 */ { "PER",   ASM_ADDR_MODE_ABSOLUTE },
+    /* 62 */ { "PER",   ASM_ADDR_MODE_RELATIVE_LONG },
     /* 63 */ { "ADC",   ASM_ADDR_MODE_STACK_RELATIVE },
     /* 64 */ { "STZ",   ASM_ADDR_MODE_ZERO_PAGE },
     /* 65 */ { "ADC",   ASM_ADDR_MODE_ZERO_PAGE },

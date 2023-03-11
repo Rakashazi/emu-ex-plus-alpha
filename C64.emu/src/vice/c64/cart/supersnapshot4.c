@@ -337,7 +337,7 @@ int supersnapshot_v4_bin_attach(const char *filename, uint8_t *rawcart)
  * $006070 CHIP ROM   #003 $8000 $2000 $2010
  *
  * cartconv produced this from 2011 to 12/2015:
- * 
+ *
  * offset  sig  type  bank start size  chunklen
  * $000040 CHIP ROM   #000 $8000 $2000 $2010
  * $002050 CHIP ROM   #000 $a000 $2000 $2010

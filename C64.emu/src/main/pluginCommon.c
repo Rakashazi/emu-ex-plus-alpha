@@ -43,6 +43,7 @@
 #include "palette.h"
 #include "c64model.h"
 #include "keyboard.h"
+#include "keymap.h"
 #include "autostart.h"
 #include "kbdbuf.h"
 #include "attach.h"
@@ -386,7 +387,24 @@ void archdep_vice_exit(int excode)
 	assert(!"Should never call archdep_vice_exit()");
 }
 
-char *archdep_extra_title_text() { return NULL; }
+FILE *archdep_fdopen(int fd, const char *mode) { return fdopen(fd, mode); }
+int archdep_close(int fd) { return close(fd); }
+int archdep_fseeko(FILE *stream, off_t offset, int whence) { return fseeko(stream, offset, whence); }
+off_t archdep_ftello(FILE *stream) { return ftello(stream); }
+int archdep_access(const char *pathname, int mode) { return -1; }
+
+archdep_dir_t *archdep_opendir(const char *path, int mode) { return NULL; }
+const char *archdep_readdir(archdep_dir_t *dir) { return NULL; }
+void archdep_closedir(archdep_dir_t *dir) {}
+void archdep_rewinddir(archdep_dir_t *dir) {}
+void archdep_seekdir(archdep_dir_t *dir, int pos) {}
+int archdep_telldir(const archdep_dir_t *dir) { return -1; }
+int archdep_chdir(const char *path) { return -1; }
+char *archdep_current_dir(void) { return calloc(1, 1); }
+char *archdep_getcwd(char *buf, size_t size) { return NULL; }
+int archdep_remove(const char *path) { return -1; }
+
+const char *archdep_extra_title_text() { return NULL; }
 void archdep_shutdown(void) {}
 void uimon_set_interface(monitor_interface_t **monitor_interface_init, int count) {}
 void uimon_window_suspend(void) {}
@@ -444,11 +462,13 @@ int sysfile_cmdline_options_init() { return 0; }
 int cmdline_register_options(const cmdline_option_t *c) { return 0; }
 int cmdline_init() { return 0; }
 int initcmdline_init() { return 0; }
+void initcmdline_shutdown() {}
 void cmdline_shutdown() {}
 int video_arch_get_active_chip() { return VIDEO_CHIP_VICII; }
 void video_render_1x2_init() {}
 void video_render_2x2_init() {}
 int cmdline_get_autostart_mode(void) { return AUTOSTART_MODE_NONE; }
+void ui_actions_shutdown() {}
 
 #define DUMMY_VIDEO_RENDER(func) void func(const video_render_color_tables_t *color_tab, \
 const uint8_t *src, uint8_t *trg, \
@@ -505,6 +525,7 @@ DUMMY_VIDEO_RENDER_CRT(render_32_2x2_ntsc)
 DUMMY_VIDEO_RENDER_CRT(render_32_2x2_pal)
 DUMMY_VIDEO_RENDER_CRT(render_32_2x2_rgbi)
 DUMMY_VIDEO_RENDER_CRT(render_32_2x4_rgbi)
+DUMMY_VIDEO_RENDER_CRT(render_32_2x2_pal_u)
 
 int mousedrv_resources_init(mouse_func_t *funcs) { return 0; }
 int mousedrv_cmdline_options_init(void) { return 0; }
@@ -577,6 +598,8 @@ int zfile_close_action(const char *filename, zfile_action_t action,
 }
 
 void tick_sleep(tick_t ticks) { assert(!"emulation thread should not explicitly call sleep for timing"); }
+
+int fork_coproc(int *fd_wr, int *fd_rd, char *cmd) { return -1; }
 
 #ifdef NDEBUG
 int log_message(log_t log, const char *format, ...) { return 0; }

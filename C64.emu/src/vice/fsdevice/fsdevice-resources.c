@@ -89,13 +89,13 @@ static int set_fsdevice_overwrite_existing_files(int val, void *param)
 /* ------------------------------------------------------------------------- */
 
 static const resource_string_t resources_string[] = {
-    { "FSDevice8Dir", FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
+    { "FSDevice8Dir", ARCHDEP_FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
       (void *)&fsdevice_dir[0], set_fsdevice_dir, (void *)8 },
-    { "FSDevice9Dir", FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
+    { "FSDevice9Dir", ARCHDEP_FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
       (void *)&fsdevice_dir[1], set_fsdevice_dir, (void *)9 },
-    { "FSDevice10Dir", FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
+    { "FSDevice10Dir", ARCHDEP_FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
       (void *)&fsdevice_dir[2], set_fsdevice_dir, (void *)10 },
-    { "FSDevice11Dir", FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
+    { "FSDevice11Dir", ARCHDEP_FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
       (void *)&fsdevice_dir[3], set_fsdevice_dir, (void *)11 },
     RESOURCE_STRING_LIST_END
 };

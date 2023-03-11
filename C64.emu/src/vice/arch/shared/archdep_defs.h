@@ -33,110 +33,37 @@
 #include <inttypes.h>
 
 
-/** \brief  Various OS-identification macros
+/* \brief  Various OS-identification macros
  *
  * The question marks indicate ports I have my doubts about they'll even run
  * VICE at all.
  *
+ * XXX:     Non of the ARCHDEP_OS_* macros should be left when we've finished
+ *          the archdep cleanup!
+ * TODO:    Move this comment to either src/vice.h or configure.ac.
+ *
  * <pre>
- *  ARCHDEP_OS_UNIX
- *    ARCHDEP_OS_MACOS
- *    ARCHDEP_OS_LINUX
- *    ARCHDEP_OS_BSD
- *      ARCHDEP_OS_BSD_FREE
- *      ARCHDEP_OS_BSD_NET
- *      ARCHDEP_OS_BSD_OPEN
- *      ARCHDEP_OS_BSD_DRAGON
- *  ARCHDEP_OS_WINDOWS
- *  ARCHDEP_OS_BEOS
+ *  UNIX_COMPILE
+ *    MACOS_COMPILE
+ *    LINUX_COMPILE
+ *    BSD_COMPILE
+ *      FREEBSD_COMPILE
+ *      NETBSD_COMPILE
+ *      OPENBSD_COMPILE
+ *      DRAGONFLYBSD_COMPILE
+ *  WINDOWS_COMPILE
+ *  BEOS_COMPILE
+ *    HAIKU_COMPILE
  * </pre>
  */
-#ifdef UNIX_COMPILE
 
-/** \brief  OS is UNIX */
-# define ARCHDEP_OS_UNIX
-
-# if defined(MACOSX_SUPPORT)
-
-/** \brief  OS is Unix and MacOS */
-#  define ARCHDEP_OS_MACOS
-
-# elif defined(__linux__)
-
-/** \brief  OS is Linux (yay!) */
-#  define ARCHDEP_OS_LINUX
-
-# elif defined(__FreeBSD__)
-
-/** \brief  OS is BSD */
-#  define ARCHDEP_OS_BSD
-
-/** \brief  OS is FreeBSD */
-#  define ARCHDEP_OS_BSD_FREE
-
-# elif defined(__NetBSD__)
-
-#  define ARCHDEP_OS_BSD
-/** \brief  OS is NetBSD */
-#  define ARCHDEP_OS_BSD_NET
-
-# elif defined(__OpenBSD__)
-#  define ARCHDEP_OS_BSD
-
-/** \brief  OS is OpenBSD */
-#  define ARCHDEP_OS_BSD_OPEN
-
-# elif defined(__DragonFly__)
-#  define ARCHDEP_OS_BSD
-
-
-/** \brief  OS is DragonFly BSD */
-#  define ARCHDEP_OS_BSD_DRAGON
-
-# endif /* ifdef UNIX_COMPILE */
-
-#elif defined(WIN32_COMPILE)
-
-/** \brief  OS is Windows */
-# define ARCHDEP_OS_WINDOWS
-
-#elif defined(BEOS_COMPILE)
-
-/** \brief  OS is in the BeOS family */
-# define ARCHDEP_OS_BEOS
-
-# if defined(__BEOS__)
-
-/** \brief  Assume OS is BeOS R5 compatible (if we still support that) */
-#  define ARCHDEP_OS_BEOS_R5
-
-# elif defined(__HAIKU__)
-
-/** \brief  OS is Haiku */
-#  define ARCHDEP_OS_HAIKU
-
-# endif /* ifdef BEOS_COMPILE */
-
-#endif
-
-
-/** \brief  Arch-dependent directory separator used in paths
- */
-#if defined(ARCHDEP_OS_WINDOWS)
-
-/** \brief  OS-dependent directory separator
- */
-# define ARCHDEP_DIR_SEPARATOR  '\\'
-#else
-# define ARCHDEP_DIR_SEPARATOR  '/'
-#endif
 
 /** \brief  Extension used for autostart disks
  */
 #define ARCHDEP_AUTOSTART_DISK_EXTENSION    "d64"
 
 
-#if defined(ARCHDEP_OS_WINDOWS)
+#if defined(WINDOWS_COMPILE)
 /** \brief  Separator used for a pathlist
  */
 # define ARCHDEP_FINDPATH_SEPARATOR_STRING  ";"
@@ -146,6 +73,40 @@
 /** \brief  Separator used for a pathlist
  */
 # define ARCHDEP_FINDPATH_SEPARATOR_STRING  ":"
+#endif
+
+
+/** \def ARCHDEP_PATH_MAX
+ *
+ * \brief   Arch-independent replacement for PATH_MAX/MAX_PATH
+ *
+ * The maximum size of a pathname.
+ *
+ * Note that there are some serious flaws with PATH_MAX and similar constants,
+ * so only use this if dynamically allocating memory isn't possible. There also
+ * doesn't seem to be consencus on whether PATH_MAX is enough to hold the
+ * longest possible path including the terminating NUL character.
+ */
+
+#ifdef WINDOWS_COMPILE
+# include <stdlib.h>
+# define ARCHDEP_PATH_MAX   _MAX_PATH
+#elif defined(UNIX_COMPILE) || defined(HAIKU_COMPILE)
+# include <limits.h>
+/* Not sure we need this fallback: on FreeBSD, NetBSD and OpenBSD using
+ * `#include <limits.h>` worked even with -pedantic -ansi passed to the compiler.
+ */
+#if 0
+# ifndef PATH_MAX
+#  if defined(BSD_COMPILE) || defined(MACOS_COMPILE)
+#   include <sys/syslimits.h>
+#  endif
+# endif
+#endif
+# define ARCHDEP_PATH_MAX   PATH_MAX
+#else
+/* Paniek! */
+# define ARCHDEP_PATH_MAX   4096
 #endif
 
 
@@ -174,12 +135,11 @@
 /*
  * Determine if we compile against SDL
  */
-#if defined(USE_SDLUI) || defined(USE_SDLUI2)
+#if defined(USE_SDLUI) || defined(USE_SDL2UI)
 # define ARCHDEP_USE_SDL
 #endif
 
-#if defined(ARCHDEP_OS_WINDOWS) \
-    || defined(ARCHDEP_OS_BEOS)
+#if defined(WINDOWS_COMPILE) || defined(BEOS_COMPILE)
 # ifdef ARCHDEP_USE_SDL
 #  define ARCHDEP_VICERC_NAME   "sdl-vice.ini"
 /* Just copying stuff, I'm backwards */
@@ -233,35 +193,6 @@
 #else
 # define PRI_SIZE_T     "zu"
 # define PRI_SSIZE_T    "zd"
-#endif
-
-/** \def    GULONG_TO_POINTER
- * \brief   Cast gulong to pointer
- *
- * GLib appears to be "missing" this macro, so we define it here.
- *
- * \param[in]   ul  gulong value
- *
- * \return  gpointer
- */
-
-#ifndef GULONG_TO_POINTER
-# define GULONG_TO_POINTER(ul) (gpointer)(uintptr_t)(ul)
-#endif
-
-
-/** \def    GPOINTER_TO_ULONG
- * \brief   Cast pointer to gulong
- *
- * GLib appears to be "missing" this macro, so we define it here.
- *
- * \param[in]   p   gpointer
- *
- * \return  gulong
- */
-
-#ifndef GPOINTER_TO_ULONG
-# define GPOINTER_TO_ULONG(p) (gulong)(uintptr_t)(p)
 #endif
 
 #endif

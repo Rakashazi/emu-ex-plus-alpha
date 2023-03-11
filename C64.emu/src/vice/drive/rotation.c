@@ -589,7 +589,7 @@ static void rotation_1541_gcr_cycle(drive_t *dptr)
     ref_cycles += ref_advance_cycles;
 
     /* run simulation if at least 1 R cycle has elapsed */
-    if ((int64_t)ref_cycles > 0) {
+    if (ref_cycles > 0) {
         if (ref_cycles > rptr->ref_advance) {
             /* run simulation without the extra reference cycles already simmulated */
             ref_cycles -= rptr->ref_advance;
@@ -659,7 +659,7 @@ static void rotation_1541_p64(drive_t *dptr, CLOCK ref_cycles)
     DeltaPositionToNextPulse = rotation_p64_get_delta(dptr);
 
     if (dptr->read_write_mode) {
-        while (ref_cycles > 0) {
+        while ((int64_t)ref_cycles > 0) {
             /****************************************************************************************************************************************/
             {
                 /* How-Much-16MHz-Clock-Cycles-ToDo-Count logic */
@@ -721,7 +721,7 @@ static void rotation_1541_p64(drive_t *dptr, CLOCK ref_cycles)
                 /* Increment the pulse divider clock until the speed zone pulse divider clock threshold value is reached, which is:
                 ** 16-(CurrentSpeedZone & 3), and each overflow, increment the pulse counter clock until the 4th pulse is reached
                 */
-                
+
                 if (rptr->ue7_counter == 16) {
                     rptr->ue7_counter = rptr->ue7_dcba;
 
@@ -810,7 +810,7 @@ static void rotation_1541_p64(drive_t *dptr, CLOCK ref_cycles)
 
         head_write = 0;
 
-        while (ref_cycles > 0) {
+        while ((int64_t)ref_cycles > 0) {
             /****************************************************************************************************************************************/
             {
                 /* How-Much-16MHz-Clock-Cycles-ToDo-Count logic */

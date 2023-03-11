@@ -852,13 +852,15 @@ static int set_enabled(int value, void *param)
         rl_enabled = 0;
         cart_port_config_changed_slot0();
     } else if ((val) && (!rl_enabled)) {
-        /* activate mmc64 */
+        /* activate ramlink */
         if (param) {
             /* if the param is != NULL, then we should load the default image file */
             LOG1(("RAMLINK: set_enabled(1) '%s'", rl_bios_filename));
             if (rl_bios_filename) {
                 if (*rl_bios_filename) {
-                    if (cartridge_attach_image(CARTRIDGE_RAMLINK, rl_bios_filename) < 0) {
+                    /* try .crt image first */
+                    if ((cartridge_attach_image(CARTRIDGE_CRT, rl_bios_filename) < 0) &&
+                        (cartridge_attach_image(CARTRIDGE_RAMLINK, rl_bios_filename) < 0)) {
                         LOG1(("RAMLINK: set_enabled(1) did not register"));
                         return -1;
                     }
@@ -1313,7 +1315,7 @@ static void ramlink_io1_store(uint16_t addr, uint8_t value)
         IDBG((LOG, "RAMLINK: io1 w card[%06x] < %02x (%02x) at 0x%04x", rl_cardbase |
             (addr & 0xff), value, old_val, reg_pc));
         return;
-    } 
+    }
 
     IDBG((LOG, "RAMLINK: unhandled io1 w %04x (%02x) at 0x%04x", addr, value, reg_pc));
 }
@@ -1490,15 +1492,17 @@ int ramlink_romh_read(uint16_t addr, uint8_t *value)
         ramlink_off();
     }
 
-    /* get from ram based on $1 */
-    if (rl_mapped && ((~pport.dir | pport.data) & 2)) {
+    /* It seems that rl_on has higher priority over $1 */
+    if (rl_mapped) {
         /* other wise pull from one of the ROMS */
         if (!rl_enabled) {
             return CART_READ_THROUGH;
         } else if (rl_on) {
             *value = rl_rom[rl_kernbase | (addr & 0x1fff)];
-        } else {
+        } else if ((~pport.dir | pport.data) & 2) {
             *value = rl_rom[rl_kernbase | 0x2000 | (addr & 0x1fff)];
+        } else {
+            return CART_READ_THROUGH;
         }
         MDBG((LOG, "RAMLINK: romh_read %04x = %02x pport=%02x",
             (int)addr, (int)*value, (int)(~pport.dir | pport.data)));
@@ -1552,16 +1556,31 @@ int ramlink_peek_mem(uint16_t addr, uint8_t *value)
             *value = rl_rom[rl_rombase | (addr & 0x3fff)];
             return CART_READ_VALID;
         }
-    } else if (addr >= 0xe000 && ((~pport.dir | pport.data) & 2)) {
+    /* It seems that rl_on has higher priority over $1 */
+    } else if (addr >= 0xe000) {
         if (rl_on) {
             *value = rl_rom[rl_kernbase | (addr & 0x1fff)];
-        } else {
+        } else if ((~pport.dir | pport.data) & 2) {
             *value = rl_rom[rl_kernbase | 0x2000 | (addr & 0x1fff)];
+        } else {
+            return CART_READ_THROUGH;
         }
         return CART_READ_VALID;
     }
 
     return CART_READ_THROUGH;
+}
+
+/* ---------------------------------------------------------------------*/
+
+int ramlink_romh_phi1_read(uint16_t addr, uint8_t *value)
+{
+    return CART_READ_C64MEM;
+}
+
+int ramlink_romh_phi2_read(uint16_t addr, uint8_t *value)
+{
+    return ramlink_romh_phi1_read(addr, value);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -1590,11 +1609,14 @@ int ramlink_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *li
             *limit = 0xbffd;
             return CART_READ_VALID;
         }
-    } else if (addr >= 0xe000 && ((~pport.dir | pport.data) & 2)) {
+    /* It seems that rl_on has higher priority over $1 */
+    } else if (addr >= 0xe000) {
         if (rl_on) {
             *base = rl_rom + rl_kernbase - 0xe000;
-        } else {
+        } else if ((~pport.dir | pport.data) & 2) {
             *base = rl_rom + rl_kernbase + 0x2000 - 0xe000;
+        } else {
+            return CART_READ_THROUGH;
         }
         *start = 0xe000;
         *limit = 0xfffd;
@@ -1624,7 +1646,7 @@ void ramlink_passthrough_changed(export_t *ex)
 /* used by c64cartmem.c to determine the original intended mode */
 int ramlink_cart_mode(void)
 {
-    return ( rl_extgame << 4 ) | ( rl_extexrom << 3 ) | 
+    return ( rl_extgame << 4 ) | ( rl_extexrom << 3 ) |
        ( ( ~pport.dir | pport.data ) & 7 );
 }
 
@@ -1697,7 +1719,7 @@ static int ramlink_common_attach(void)
     return 0;
 }
 
-int ramlink_crt_attach(FILE *fd, uint8_t *rawcart)
+int ramlink_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename)
 {
     crt_chip_header_t chip;
     int i;
@@ -1715,7 +1737,7 @@ int ramlink_crt_attach(FILE *fd, uint8_t *rawcart)
             return -1;
         }
     }
-
+    set_bios_filename(filename, NULL); /* set the resource */
     return ramlink_common_attach();
 }
 
@@ -1729,6 +1751,7 @@ int ramlink_bin_attach(const char *filename, uint8_t *rawcart)
         return -1;
     }
 
+    set_bios_filename(filename, NULL); /* set the resource */
     return ramlink_common_attach();
 }
 

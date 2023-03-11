@@ -716,7 +716,7 @@ int vic_um_bin_attach(const char *filename)
         vic_um_detach();
         return -1;
     }
-    cart_rom_size = util_file_length(fd);
+    cart_rom_size = archdep_file_size(fd);
 
     switch (cart_rom_size) {
         case CART_ROM_SIZE_16M:

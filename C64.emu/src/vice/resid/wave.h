@@ -374,7 +374,7 @@ RESID_INLINE void WaveformGenerator::set_noise_output()
 // in the output.
 //
 // Example:
-// 
+//
 //             1 1
 // Bit #       1 0 9 8 7 6 5 4 3 2 1 0
 //             -----------------------
@@ -427,11 +427,11 @@ RESID_INLINE void WaveformGenerator::set_noise_output()
 //
 // Sawtooth+Triangle:
 // The accumulator is used to look up an OSC3 sample.
-// 
+//
 // Pulse+Triangle:
 // The accumulator is used to look up an OSC3 sample. When ring modulation is
 // selected, the accumulator MSB is substituted with MSB EOR NOT sync_source MSB.
-// 
+//
 // Pulse+Sawtooth:
 // The accumulator is used to look up an OSC3 sample.
 // The sample is output if the pulse output is on.
@@ -439,7 +439,7 @@ RESID_INLINE void WaveformGenerator::set_noise_output()
 // Pulse+Sawtooth+Triangle:
 // The accumulator is used to look up an OSC3 sample.
 // The sample is output if the pulse output is on.
-// 
+//
 // Combined waveforms including noise:
 // All waveform combinations including noise output zero after a few cycles,
 // since the waveform bits are and'ed into the shift register via the shift
@@ -562,7 +562,7 @@ void WaveformGenerator::set_waveform_output(cycle_count delta_t)
 // The digital waveform output is converted to an analog signal by a 12-bit
 // DAC. Re-vectorized die photographs reveal that the DAC is an R-2R ladder
 // built up as follows:
-// 
+//
 //        12V     11  10   9   8   7   6   5   4   3   2   1   0    GND
 // Strange  |      |   |   |   |   |   |   |   |   |   |   |   |     |  Missing
 // part    2R     2R  2R  2R  2R  2R  2R  2R  2R  2R  2R  2R  2R    2R  term.

@@ -836,7 +836,10 @@ char *lib_strdup_trimmed(char *str)
 
     /* trim leading whitespace */
     while (*trimmed != '\0') {
-        if (*trimmed == ' ' || *trimmed == '\t') {
+        if (*trimmed == ' ' ||
+            *trimmed == '\t' ||
+            *trimmed == '\n' ||
+            *trimmed == '\r') {
             trimmed++;
         } else {
             break;
@@ -845,7 +848,10 @@ char *lib_strdup_trimmed(char *str)
 
     /* trim trailing whitespace */
     while ((len = strlen(trimmed)) > 0) {
-        if (trimmed[len - 1] == ' ' || trimmed[len - 1] == '\t') {
+        if (trimmed[len - 1] == ' ' ||
+            trimmed[len - 1] == '\t' ||
+            trimmed[len - 1] == '\n' ||
+            trimmed[len - 1] == '\r') {
             trimmed[len - 1] = '\0';
         } else {
             break;
@@ -855,7 +861,7 @@ char *lib_strdup_trimmed(char *str)
     trimmed = lib_strdup(trimmed);
 
     lib_free(copy);
-    
+
     return trimmed;
 }
 

@@ -47,7 +47,7 @@
       "Business (us)"
       "Business (de)"
       "Business (jp)"
-      
+
       also see http://www.6502.org/users/andre/petindex/keyboards.html
 */
 

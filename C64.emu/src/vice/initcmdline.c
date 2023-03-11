@@ -45,7 +45,6 @@
 #include "fsdevice.h"
 #include "gfxoutput.h"
 #include "initcmdline.h"
-#include "ioutil.h"
 #include "kbdbuf.h"
 #include "keyboard.h"
 #include "lib.h"
@@ -71,6 +70,9 @@
 #include "vsync.h"
 #include "zfile.h"
 
+#ifdef USE_SVN_REVISION
+#include "svnversion.h"
+#endif
 
 #ifdef DEBUG_CMDLINE
 #define DBG(x)  printf x
@@ -154,7 +156,7 @@ static int cmdline_help(const char *param, void *extra_param)
 
 /* FIXME: a hack to prevent -help crashing on the SDL ui.
           This needs to be fixed properly!! */
-#if defined(USE_SDLUI) || defined(USE_SDLUI2)
+#if defined(USE_SDLUI) || defined(USE_SDL2UI)
     /* remove any trace of this variable once this is properly fixed! */
     sdl_help_shutdown = 1;
 #endif
@@ -271,7 +273,7 @@ static int cmdline_default(const char *param, void *extra_param)
 
 static int cmdline_chdir(const char *param, void *extra_param)
 {
-    return ioutil_chdir(param);
+    return archdep_chdir(param);
 }
 
 static int cmdline_limitcycles(const char *param, void *extra_param)
@@ -301,7 +303,7 @@ static int cmdline_autoload(const char *param, void *extra_param)
     return 0;
 }
 
-#if !defined(__OS2__) && !defined(__BEOS__)
+#if !defined(BEOS_COMPILE)
 static int cmdline_console(const char *param, void *extra_param)
 {
     console_mode = 1;
@@ -314,6 +316,17 @@ static int cmdline_seed(const char *param, void *extra_param)
 {
     lib_rand_seed(strtoul(param, NULL, 0));
     return 0;
+}
+
+static int cmdline_version(const char *param, void *extra_param)
+{
+#ifdef USE_SVN_REVISION
+    printf("%s (VICE %s SVN r%d)\n", archdep_program_name(), VERSION, VICE_SVN_REV_NUMBER);
+#else
+    printf("%s (VICE %s)\n", archdep_program_name(), VERSION);
+#endif
+    exit(EXIT_SUCCESS);
+    return 0; /* get rid of warning */
 }
 
 static int cmdline_attach(const char *param, void *extra_param)
@@ -365,6 +378,9 @@ static const cmdline_option_t common_cmdline_options[] =
     { "-h", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       cmdline_help, NULL, NULL, NULL,
       NULL, "Show a list of the available options and exit normally" },
+    { "-version", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
+      cmdline_version, NULL, NULL, NULL,
+      NULL, "Show the program name and version" },
     { "-features", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       cmdline_features, NULL, NULL, NULL,
       NULL, "Show a list of the available compile-time options and their configuration." },
@@ -386,9 +402,11 @@ static const cmdline_option_t common_cmdline_options[] =
     { "-limitcycles", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cmdline_limitcycles, NULL, NULL, NULL,
       "<value>", "Specify number of cycles to run before quitting with an error." },
+#ifndef BEOS_COMPILE
     { "-console", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       cmdline_console, NULL, NULL, NULL,
       NULL, "Console mode (for music playback)" },
+#endif
     { "-seed", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cmdline_seed, NULL, NULL, NULL,
       "<value>", "Set random seed (for debugging)" },

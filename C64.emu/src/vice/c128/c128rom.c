@@ -67,21 +67,52 @@ static uint8_t chargen_se[C128_CHARGEN_ROM_SIZE];
 static uint8_t chargen_ch[C128_CHARGEN_ROM_SIZE];
 static uint8_t chargen_no[C128_CHARGEN_ROM_SIZE];
 
+typedef struct
+{
+    char *name;
+    uint16_t checksum;
+    int id;
+} ROMINFO;
+
+static ROMINFO kernalinfo[] = {
+    { "international r1", C128_KERNAL_R01_CHECKSUM, 1 },
+    { "swedish r1", C128_KERNAL_SE_R01_CHECKSUM, 1 },
+    { "german r1", C128_KERNAL_DE_R01_CHECKSUM, 1 },
+    { "swiss r1", C128_KERNAL_CH_R01_CHECKSUM, 1 },
+    { NULL, 0, 0 }
+};
+
+static char *checkrominfo(ROMINFO *info, uint16_t checksum, int id)
+{
+    int n = 0;
+    while (info[n].name) {
+        if (checksum == info[n].checksum) {
+            if ((id == -1) || (id == info[n].id)) {
+                return info[n].name;
+            }
+        }
+        ++n;
+    }
+    return NULL;
+}
+
 int c128rom_kernal_checksum(void)
 {
     int i, id;
     uint16_t sum;
+    char *name;
 
     /* Check Kernal ROM.  */
     for (i = 0, sum = 0; i < C128_KERNAL_ROM_SIZE; i++) {
         sum += c128memrom_kernal_rom[i];
     }
-
     id = c128memrom_rom_read(0xff80);
+    name = checkrominfo(kernalinfo, sum, id);
 
-    log_message(c128rom_log, "Kernal rev #%d.", id);
-    if (id == 1 && sum != C128_KERNAL_CHECKSUM_R01 && sum != C128_KERNAL_CHECKSUM_R01SWE && sum != C128_KERNAL_CHECKSUM_R01GER) {
-        log_error(c128rom_log, "Warning: Kernal image may be corrupted. Sum: %d.", sum);
+    if (name == NULL) {
+        log_warning(c128rom_log, "Unknown kernal image. ID: %d Sum: %d.", id, sum);
+    } else {
+        log_message(c128rom_log, "Kernal is '%s' rev #%d.", name, id);
     }
     return 0;
 }
@@ -242,10 +273,23 @@ static void restore_trapflags(void)
     }
 }
 
+static ROMINFO machineinfo[] = {
+    { "international", C128_MACHINE_INT, 0 },
+    { "finnish", C128_MACHINE_FINNISH, 0 },
+    { "french", C128_MACHINE_FRENCH, 0 },
+    { "german", C128_MACHINE_GERMAN, 0 },
+    { "italian", C128_MACHINE_ITALIAN, 0 },
+    { "norwegian", C128_MACHINE_NORWEGIAN, 0 },
+    { "swedish", C128_MACHINE_SWEDISH, 0 },
+    { "swiss", C128_MACHINE_SWISS, 0 },
+    { NULL, 0, 0 }
+};
+
 int c128rom_kernal_setup(void)
 {
     int machine_type;
     uint8_t *kernal = NULL;
+    char *name;
 
     if (!rom_loaded) {
         return 0;
@@ -292,6 +336,10 @@ int c128rom_kernal_setup(void)
     memcpy(c128memrom_kernal_rom, &kernal[C128_EDITOR_ROM_SIZE + C128_Z80BIOS_ROM_SIZE], C128_KERNAL_ROM_SIZE);
     memcpy(c128memrom_kernal_trap_rom, c128memrom_kernal_rom, C128_KERNAL_ROM_SIZE);
 
+    if ((name = checkrominfo(machineinfo, machine_type, -1)) != NULL) {
+        log_message(c128rom_log, "Switching ROMs to '%s':", name);
+    }
+    c128rom_basic_checksum();
     c128rom_kernal_checksum();
 
     restore_trapflags();
@@ -299,29 +347,48 @@ int c128rom_kernal_setup(void)
     return 0;
 }
 
+static ROMINFO basicinfo[] = {
+    { "85", C128_BASIC_85_CHECKSUM, 0 },
+    { "86", C128_BASIC_86_CHECKSUM, 0 },
+    { NULL, 0, 0 }
+};
+
+static ROMINFO editorinfo[] = {
+    { "international r1", C128_EDITOR_R01_CHECKSUM, 1 },
+    { "swedish r1", C128_EDITOR_SE_R01_CHECKSUM, 1 },
+    { "german r1", C128_EDITOR_DE_R01_CHECKSUM, 1 },
+    { NULL, 0, 0 }
+};
+
 int c128rom_basic_checksum(void)
 {
     int i, id;
     uint16_t sum;
+    char *name;
 
     /* Check Basic ROM.  */
     for (i = 0, sum = 0; i < C128_BASIC_ROM_SIZE; i++) {
         sum += c128memrom_basic_rom[i];
     }
+    name = checkrominfo(basicinfo, sum, -1);
 
-    if (sum != C128_BASIC_CHECKSUM_85 && sum != C128_BASIC_CHECKSUM_86) {
-        log_error(c128rom_log, "Warning: Unknown Basic image.  Sum: %d ($%04X).", sum, sum);
+    if (name == NULL) {
+        log_warning(c128rom_log, "Unknown BASIC image. Sum: %d ($%04X).", sum, sum);
+    } else {
+        log_message(c128rom_log, "BASIC is '%s'.", name);
     }
 
     /* Check Editor ROM.  */
     for (i = C128_BASIC_ROM_SIZE, sum = 0; i < C128_BASIC_ROM_SIZE + C128_EDITOR_ROM_SIZE; i++) {
         sum += c128memrom_basic_rom[i];
     }
-
     id = c128memrom_rom_read(0xff80);
-    if (id == 01 && sum != C128_EDITOR_CHECKSUM_R01 && sum != C128_EDITOR_CHECKSUM_R01SWE && sum != C128_EDITOR_CHECKSUM_R01GER) {
-        log_error(c128rom_log, "Warning: EDITOR image may be corrupted. Sum: %d.", sum);
-        log_error(c128rom_log, "Check your Basic ROM.");
+    name = checkrominfo(editorinfo, sum, id);
+
+    if (name == NULL) {
+        log_warning(c128rom_log, "Unknown editor image. ID: %d Sum: %d.", id, sum);
+    } else {
+        log_message(c128rom_log, "Editor is '%s' rev #%d.", name, id);
     }
     return 0;
 }
@@ -355,7 +422,7 @@ int c128rom_load_basichi(const char *rom_name)
             return -1;
         }
     }
-    return c128rom_basic_checksum();
+    return 0;
 }
 
 int c128rom_chargen_setup(void)
@@ -552,6 +619,20 @@ int mem_load(void)
 
     rom_loaded = 1;
 
+    if (resources_get_string("BasicLoName", &rom_name) < 0) {
+        return -1;
+    }
+    if (c128rom_load_basiclo(rom_name) < 0) {
+        return -1;
+    }
+
+    if (resources_get_string("BasicHiName", &rom_name) < 0) {
+        return -1;
+    }
+    if (c128rom_load_basichi(rom_name) < 0) {
+        return -1;
+    }
+
     if (resources_get_string("KernalIntName", &rom_name) < 0) {
         return -1;
     }
@@ -609,20 +690,6 @@ int mem_load(void)
     }
 
     c128rom_kernal_setup();
-
-    if (resources_get_string("BasicLoName", &rom_name) < 0) {
-        return -1;
-    }
-    if (c128rom_load_basiclo(rom_name) < 0) {
-        return -1;
-    }
-
-    if (resources_get_string("BasicHiName", &rom_name) < 0) {
-        return -1;
-    }
-    if (c128rom_load_basichi(rom_name) < 0) {
-        return -1;
-    }
 
     if (resources_get_string("ChargenIntName", &rom_name) < 0) {
         return -1;

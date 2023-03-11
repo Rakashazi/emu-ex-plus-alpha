@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "alarm.h"
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
@@ -37,11 +38,13 @@
 #include "cartio.h"
 #include "cartridge.h"
 #include "export.h"
+#include "maincpu.h"
 #include "monitor.h"
 #include "snapshot.h"
 #include "superexplode5.h"
 #include "types.h"
 #include "util.h"
+#include "vicii-phi1.h"
 #include "crt.h"
 
 /*
@@ -58,6 +61,11 @@
 
     controlregister is $df00:
         bit 7 selects bank
+
+    the ROM at $8000 is enabled / disabled the following way:
+    - if either IO1, ROMLO or RESET are active (=0), then EXROM becomes active (=0)
+    - if all of the above are inactive (=1) then a capacitor is being charged,
+      and EXROM becomes inactive (=1) after roughly 300ms
 
     this is a very strange cartridge, almost no information about it seems
     to exist, from http://www.mayhem64.co.uk/cartpower.htm:
@@ -89,6 +97,8 @@
 */
 
 /* #define SE5_DEBUG */
+/* #define SE5_DEBUG_RW */
+/* #define SE5_DEBUG_CHARGE */
 
 #ifdef SE5_DEBUG
 #define DBG(x)  printf x
@@ -96,33 +106,156 @@
 #define DBG(x)
 #endif
 
+#ifdef SE5_DEBUG_RW
+#define DBGRW(x)  printf x
+#else
+#define DBGRW(x)
+#endif
+
+#ifdef SE5_DEBUG_CHARGE
+#define DBGCH(x)  printf x
+#else
+#define DBGCH(x)
+#endif
+
 #define SE5_CART_SIZE (2 * 0x2000)
 
 /* ---------------------------------------------------------------------*/
 
 static int se5_bank = 0;
+static int se5_rom_enabled = 0;
+
+static int se5_cap_charge = 0;
+
+struct alarm_s *se5_alarm;
+static CLOCK se5_alarm_time;
+static CLOCK se5_charge_time;
+
+#define CHARGEMAX           (90 * 3)            /* ~ 300ms */
+#define DECHARGESTEPS       3                   /* should discharge in ~90 steps */
+#define LOWTHRESHOLD        5
+#define HIGHTHRESHOLD       (CHARGEMAX - 5)
+
+static void flipflop(void)
+{
+#ifdef SE5_DEBUG
+    int old = se5_rom_enabled;
+#endif
+    int mode;
+    if (se5_cap_charge < LOWTHRESHOLD) {
+        se5_rom_enabled = 1;
+    }
+    if (se5_cap_charge > HIGHTHRESHOLD) {
+        se5_rom_enabled = 0;
+    }
+    mode = se5_rom_enabled ? CMODE_8KGAME : CMODE_RAM;
+    mode |= se5_bank << CMODE_BANK_SHIFT;
+    cart_config_changed_slotmain(mode, mode, CMODE_READ);
+#ifdef SE5_DEBUG
+    if (old != se5_rom_enabled) {
+        DBG(("%08lx SE5: flipflop (rom:%d charge:%d)\n", maincpu_clk, se5_rom_enabled, se5_cap_charge));
+    }
+#endif
+}
+
+static void cap_trigger_access(void)
+{
+    alarm_unset(se5_alarm);
+    se5_alarm_time = CLOCK_MAX;
+
+    if (se5_cap_charge < CHARGEMAX) {
+        se5_alarm_time = maincpu_clk + 1;
+        alarm_set(se5_alarm, se5_alarm_time);
+    }
+    DBGCH(("%08lx SE5: is fully charged (idle) (rom:%d charge:%d)\n", maincpu_clk, se5_rom_enabled, se5_cap_charge));
+}
+
+static void se5_alarm_handler(CLOCK offset, void *data)
+{
+    if (maincpu_clk >= se5_charge_time) {
+        se5_cap_charge++;
+        if (se5_cap_charge > CHARGEMAX) {
+            se5_cap_charge = CHARGEMAX;
+        }
+    }
+    DBGCH(("%08lx SE5: charge idle (rom:%d charge:%d)\n", maincpu_clk, se5_rom_enabled, se5_cap_charge));
+    flipflop();
+    cap_trigger_access();
+}
+
+static void cap_discharge(void)
+{
+    se5_cap_charge -= DECHARGESTEPS;
+    if (se5_cap_charge < 0) {
+        se5_cap_charge = 0;
+    }
+    DBGCH(("%08lx SE5: discharge (rom:%d charge:%d)\n", maincpu_clk , se5_rom_enabled, se5_cap_charge));
+    /* put first alarm a few cycles ahead, so we dont have to fiddle with alternating
+       charge/discharge while the discharge loop is executed */
+    se5_charge_time = maincpu_clk + 10;
+    flipflop();
+    cap_trigger_access();
+}
+
+/* ---------------------------------------------------------------------*/
+
+static void se5_io1_store(uint16_t addr, uint8_t value)
+{
+    DBGRW(("%08lx io1 wr %04x %02x %d\n",maincpu_clk ,addr, value, se5_cap_charge));
+    cap_discharge();
+}
+
+static uint8_t se5_io1_read(uint16_t addr)
+{
+    DBGRW(("%08lx io1 rd %04x %d\n",maincpu_clk, addr, se5_cap_charge));
+    cap_discharge();
+    return vicii_read_phi1();
+}
+
+static uint8_t se5_io1_peek(uint16_t addr)
+{
+    DBGRW(("io1 rd %04x\n", addr));
+    return 0;
+}
 
 static void se5_io2_store(uint16_t addr, uint8_t value)
 {
-    DBG(("io2 wr %04x %02x\n", addr, value));
+    DBGRW(("io2 wr %04x %02x\n", addr, value));
     se5_bank = (value & 0x80) ? 1 : 0;
-    cart_romlbank_set_slotmain(se5_bank);
+    flipflop();
 }
 
 static uint8_t se5_io2_read(uint16_t addr)
 {
     addr |= 0xdf00;
-    return roml_banks[(addr & 0x1fff) + (roml_bank << 13)];
+    return roml_banks[(addr & 0x1fff) + (se5_bank << 13)];
 }
 
 static int se5_dump(void)
 {
     mon_out("Bank: %d\n", se5_bank);
+    mon_out("ROM is %s\n", se5_rom_enabled ? "enabled" : "disabled");
 
     return 0;
 }
 
 /* ---------------------------------------------------------------------*/
+
+static io_source_t se5_io1_device = {
+    CARTRIDGE_NAME_SUPER_EXPLODE_V5, /* name of the device */
+    IO_DETACH_CART,                  /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,           /* does not use a resource for detach */
+    0xde00, 0xdeff, 0x01,            /* range for the device, regs:$de00-$deff */
+    1,                               /* read is always valid */
+    se5_io1_store,                   /* store function */
+    NULL,                            /* NO poke function */
+    se5_io1_read,                    /* read function */
+    se5_io1_peek,                    /* NO peek function */
+    se5_dump,                        /* device state information dump function */
+    CARTRIDGE_SUPER_EXPLODE_V5,      /* cartridge ID */
+    IO_PRIO_NORMAL,                  /* normal priority, device read needs to be checked for collisions */
+    0                                /* insertion order, gets filled in by the registration function */
+};
 
 static io_source_t se5_io2_device = {
     CARTRIDGE_NAME_SUPER_EXPLODE_V5, /* name of the device */
@@ -140,25 +273,31 @@ static io_source_t se5_io2_device = {
     0                                /* insertion order, gets filled in by the registration function */
 };
 
+static io_source_list_t *se5_io1_list_item = NULL;
 static io_source_list_t *se5_io2_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_SUPER_EXPLODE_V5, 0, 1, NULL, &se5_io2_device, CARTRIDGE_SUPER_EXPLODE_V5
+    CARTRIDGE_NAME_SUPER_EXPLODE_V5, 1, 1, &se5_io1_device, &se5_io2_device, CARTRIDGE_SUPER_EXPLODE_V5
 };
 
 /* ---------------------------------------------------------------------*/
 
 uint8_t se5_roml_read(uint16_t addr)
 {
-    if (addr < 0x9f00) {
-        return roml_banks[(addr & 0x1fff) + (roml_bank << 13)];
-    } else {
-        return ram_read(addr);
-        /* return mem_read_without_ultimax(addr); */
-    }
+    DBGRW(("%08lx se5_roml_read %04x %d\n", maincpu_clk, addr, se5_cap_charge));
+    cap_discharge();
+    return roml_banks[(addr & 0x1fff) + (roml_bank << 13)];
 }
 
 /* ---------------------------------------------------------------------*/
+
+void se5_reset(void)
+{
+    se5_cap_charge = 0;
+    se5_charge_time = maincpu_clk + 10;
+    flipflop();
+    cap_trigger_access();
+}
 
 void se5_config_init(void)
 {
@@ -183,7 +322,11 @@ static int se5_common_attach(void)
         return -1;
     }
 
+    se5_io1_list_item = io_source_register(&se5_io1_device);
     se5_io2_list_item = io_source_register(&se5_io2_device);
+
+    se5_alarm = alarm_new(maincpu_alarm_context, "SE5RomAlarm", se5_alarm_handler, NULL);
+    se5_alarm_time = CLOCK_MAX;
 
     return 0;
 }
@@ -200,7 +343,7 @@ int se5_bin_attach(const char *filename, uint8_t *rawcart)
 int se5_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
-    int i, cnt = 0;
+    int i;
 
     for (i = 0; i <= 0x01; i++) {
         if (crt_read_chip_header(&chip, fd)) {
@@ -214,7 +357,6 @@ int se5_crt_attach(FILE *fd, uint8_t *rawcart)
         if (crt_read_chip(rawcart, chip.bank << 13, &chip, fd)) {
             return -1;
         }
-        cnt++;
     }
 
     return se5_common_attach();
@@ -222,7 +364,10 @@ int se5_crt_attach(FILE *fd, uint8_t *rawcart)
 
 void se5_detach(void)
 {
+    alarm_destroy(se5_alarm);
     export_remove(&export_res);
+    io_source_unregister(se5_io1_list_item);
+    se5_io1_list_item = NULL;
     io_source_unregister(se5_io2_list_item);
     se5_io2_list_item = NULL;
 }

@@ -172,7 +172,7 @@ int ted_snapshot_write_module(snapshot_t *s)
         ) {
         goto fail;
     }
-    
+
     if (raster_snapshot_write(m, &ted.raster)) {
         goto fail;
     }
@@ -254,7 +254,7 @@ int ted_snapshot_read_module(snapshot_t *s)
         || SMR_B_INT(m, &ted.irq_status) < 0) {
         goto fail;
     }
-    
+
     /* Sanity check the current raster line and the current raster cycle */
     DBG(("TED read snapshot at clock: %d cycle: %d (%d) tedline: %d (%d) rasterline: %d\n",
          maincpu_clk, TED_RASTER_CYCLE(maincpu_clk), RasterCycle, TED_RASTER_Y(maincpu_clk),
@@ -348,7 +348,7 @@ int ted_snapshot_read_module(snapshot_t *s)
     if (ted.irq_status & 0x80) {
         interrupt_restore_irq(maincpu_int_status, ted.int_num, 1);
     }
-    
+
 
     if (raster_snapshot_read(m, &ted.raster)) {
         goto fail;

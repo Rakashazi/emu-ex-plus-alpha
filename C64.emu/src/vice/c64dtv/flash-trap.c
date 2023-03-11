@@ -293,7 +293,7 @@ static int set_flash_trap_trueflashfs(int val, void *param)
 }
 
 static const resource_string_t resources_string[] = {
-    { "FSFlashDir", FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
+    { "FSFlashDir", ARCHDEP_FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
       &flash_trap_fsflashdir, set_flash_trap_fsflashdir, NULL },
     RESOURCE_STRING_LIST_END
 };

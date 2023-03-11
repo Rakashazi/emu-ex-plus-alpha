@@ -191,8 +191,8 @@ CLINK FILE *sysfile_open(const char *name, const char *subPath, char **complete_
 {
 	logMsg("sysfile open:%s subPath:%s", name, subPath);
 	auto appContext = gAppContext();
-	auto &sysFilePath = static_cast<C64System&>(gSystem()).sysFilePath;
-	for(const auto &basePath : sysFilePath)
+	auto &system = static_cast<C64System&>(gSystem());
+	for(const auto &basePath : system.sysFilePath)
 	{
 		if(basePath.empty())
 			continue;
@@ -230,6 +230,7 @@ CLINK FILE *sysfile_open(const char *name, const char *subPath, char **complete_
 		}
 	}
 	logErr("can't open %s in system paths", name);
+	system.lastMissingSysFile = name;
 	return nullptr;
 }
 
@@ -285,8 +286,8 @@ CLINK int sysfile_load(const char *name, const char *subPath, uint8_t *dest, int
 {
 	logMsg("sysfile load:%s subPath:%s", name, subPath);
 	auto appContext = gAppContext();
-	auto &sysFilePath = static_cast<C64System&>(gSystem()).sysFilePath;
-	for(const auto &basePath : sysFilePath)
+	auto &system = static_cast<C64System&>(gSystem());
+	for(const auto &basePath : system.sysFilePath)
 	{
 		if(basePath.empty())
 			continue;
@@ -322,6 +323,7 @@ CLINK int sysfile_load(const char *name, const char *subPath, uint8_t *dest, int
 		}
 	}
 	logErr("can't load %s in system paths", name);
+	system.lastMissingSysFile = name;
 	return -1;
 }
 

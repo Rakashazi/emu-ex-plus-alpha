@@ -28,6 +28,7 @@
 
 #include "vic20mem.h"
 #include "vic20memrom.h"
+#include "vic20rom.h"
 #include "types.h"
 
 uint8_t vic20memrom_basic_rom[VIC20_BASIC_ROM_SIZE];

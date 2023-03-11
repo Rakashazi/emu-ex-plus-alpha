@@ -108,7 +108,7 @@ static int *mem_read_limit_tab_ptr;
 
 int cbm2_init_ok = 0;
 
-/* Current watchpoint state. 
+/* Current watchpoint state.
           0 = no watchpoints
     bit0; 1 = watchpoints active
     bit1; 2 = watchpoints trigger on dummy accesses
@@ -950,7 +950,7 @@ void mem_set_basic_text(uint16_t start, uint16_t end)
 }
 
 /* this function should always read from the screen currently used by the kernal
-   for output, normally this does just return system ram - except when the 
+   for output, normally this does just return system ram - except when the
    videoram is not memory mapped.
    used by autostart to "read" the kernal messages
 */
@@ -1116,7 +1116,7 @@ uint8_t mem_bank_read(int bank, uint16_t addr, void *context)
             }
             return _mem_read_tab[15][addr >> 8](addr);
         default:
-            if (bank >= 0 && bank < 15) {
+            if (bank >= 0 && bank <= 15) {
                 return read_ram_tab[bank](addr);
             }
     }
@@ -1185,7 +1185,7 @@ void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, i
 
 /* used by autostart to locate and "read" kernal output on the current screen
  * this function should return whatever the kernal currently uses, regardless
- * what is currently visible/active in the UI 
+ * what is currently visible/active in the UI
  */
 void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uint8_t *line_length, int *blinking)
 {
@@ -1195,7 +1195,7 @@ void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uin
     *cursor_column = zero_read(0xcb);  /* Cursor Column on Current Line */
     *line_length = 40;                 /* Physical Screen Line Length */
 }
-    
+
 void mem_color_ram_to_snapshot(uint8_t *color_ram)
 {
     memcpy(color_ram, mem_color_ram, 0x400);

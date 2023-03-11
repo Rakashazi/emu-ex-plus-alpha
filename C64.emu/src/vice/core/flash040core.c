@@ -73,7 +73,7 @@ static const flash_types_t flash_types[FLASH040_TYPE_NUM] = {
       0x80000,
       0x70000, 0x10000, 16,
       0x5555, 0x2aaa, 0x7fff, 0x7fff,
-      0x40, 
+      0x40,
       80, 2000000, 14000000}, /* may take up to 30s and 120s */
     /* AM29F040B */
     { 0x01, 0xa4, 1,

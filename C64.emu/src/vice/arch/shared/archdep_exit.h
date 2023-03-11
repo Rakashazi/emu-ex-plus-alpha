@@ -33,8 +33,12 @@
 bool archdep_is_exiting(void);
 void archdep_vice_exit(int excode);
 
-#ifdef USE_NATIVE_GTK3
+/* TODO - something about these being in here */
+#ifdef USE_GTK3UI
+void archdep_thread_init(void);
 void archdep_set_main_thread(void);
+void archdep_set_vice_thread(void);
+void archdep_thread_shutdown(void);
 #endif
 
 #endif

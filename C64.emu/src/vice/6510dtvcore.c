@@ -535,7 +535,7 @@
         CLK_INC();            \
     }
 
-/* load zp, x */    
+/* load zp, x */
 #define GET_ZERO_X(dest)          \
     INT_ZERO_I                    \
     dest = LOAD_ZERO(p1 + reg_x); \
@@ -775,7 +775,7 @@ known occurances of this opcode in actual code are:
 also see here:
 
 https://sourceforge.net/tracker/?func=detail&aid=2110948&group_id=223021&atid=1057617
-  
+
 FIXME: in the unlikely event that other code surfaces that depends on another
 CONST value, it probably has to be made configureable somehow if no value can
 be found that works for both.
@@ -813,7 +813,7 @@ static int ane_log_level = 1; /* 0: none, 1: unstable only 2: all */
 #else
 #define ANE_LOGGING(rdy)
 #endif
-    
+
 #define ANE()                                                       \
     do {                                                            \
         /* Set by main-cpu to signal steal after first fetch */     \
@@ -1653,7 +1653,7 @@ static const uint8_t fetch_tab[] = {
 
 {
     static int cpu_is_jammed = 0;
-    
+
 #ifdef CHECK_AND_RUN_ALTERNATE_CPU
     CHECK_AND_RUN_ALTERNATE_CPU
 #endif
@@ -1661,9 +1661,9 @@ static const uint8_t fetch_tab[] = {
     while (CLK >= alarm_context_next_pending_clk(ALARM_CONTEXT)) {
         alarm_context_dispatch(ALARM_CONTEXT, CLK);
     }
-    
-    /* HACK: when the CPU is jammed, no interrupts are served, the only way 
-       to recover is reset. so we clear the interrupt flags and force 
+
+    /* HACK: when the CPU is jammed, no interrupts are served, the only way
+       to recover is reset. so we clear the interrupt flags and force
        acknowledging them here in this case. */
     if (cpu_is_jammed) {
         interrupt_ack_irq(CPU_INT_STATUS);
@@ -1697,7 +1697,7 @@ static const uint8_t fetch_tab[] = {
 
     {
         opcode_t opcode;
-#ifdef DEBUG
+#if defined (DEBUG) || defined (FEATURE_CPUMEMHISTORY)
         debug_clk = maincpu_clk;
 #endif
 
@@ -1713,7 +1713,7 @@ static const uint8_t fetch_tab[] = {
         /* If reg_pc >= bank_limit  then JSR (0x20) hasn't load p2 yet.
            The earlier LOAD(reg_pc+2) hack can break stealing badly on x64sc.
            The fixing is now handled in JSR(). */
-        monitor_cpuhistory_store(maincpu_clk, reg_pc, p0, p1, p2 >> 8, reg_a_read, reg_x, reg_y, reg_sp, LOCAL_STATUS(), 0);
+        monitor_cpuhistory_store(debug_clk, reg_pc, p0, p1, p2 >> 8, reg_a_read, reg_x, reg_y, reg_sp, LOCAL_STATUS(), 0);
         memmap_state &= ~(MEMMAP_STATE_INSTR | MEMMAP_STATE_OPCODE);
 #endif
 

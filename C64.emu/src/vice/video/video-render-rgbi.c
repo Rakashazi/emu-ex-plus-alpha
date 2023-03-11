@@ -57,14 +57,14 @@ void video_render_rgbi_main(video_render_config_t *config,
                            unsigned int viewport_first_line, unsigned int viewport_last_line)
 {
     video_render_color_tables_t *colortab;
-    int doublescan, delayloop, rendermode, scale2x;
+    int doublescan, crtemulation, rendermode, scale2x;
 
     rendermode = config->rendermode;
     doublescan = config->doublescan;
     colortab = &config->color_tables;
-    scale2x = config->scale2x;
 
-    delayloop = (config->filter == VIDEO_FILTER_CRT);
+    scale2x = (config->filter == VIDEO_FILTER_SCALE2X);
+    crtemulation = (config->filter == VIDEO_FILTER_CRT);
 
     if ((rendermode == VIDEO_RENDER_RGBI_1X1
          || rendermode == VIDEO_RENDER_RGBI_1X2
@@ -80,7 +80,7 @@ void video_render_rgbi_main(video_render_config_t *config,
             break;
 
         case VIDEO_RENDER_RGBI_1X1:
-            if (delayloop) {
+            if (crtemulation) {
                 render_32_1x1_rgbi(colortab, src, trg, width, height,
                                    xs, ys, xt, yt, pitchs, pitcht);
                 return;
@@ -91,7 +91,7 @@ void video_render_rgbi_main(video_render_config_t *config,
             }
             break;
         case VIDEO_RENDER_RGBI_1X2:
-            if (delayloop) {
+            if (crtemulation) {
                 render_32_1x2_rgbi(colortab, src, trg, width, height,
                                   xs, ys, xt, yt, pitchs, pitcht,
                                   viewport_first_line, viewport_last_line,
@@ -108,7 +108,7 @@ void video_render_rgbi_main(video_render_config_t *config,
                 render_32_scale2x(colortab, src, trg, width, height,
                                   xs, ys, xt, yt, pitchs, pitcht);
                 return;
-            } else if (delayloop) {
+            } else if (crtemulation) {
                 render_32_2x2_rgbi(colortab, src, trg, width, height,
                                   xs, ys, xt, yt, pitchs, pitcht,
                                   viewport_first_line, viewport_last_line, config);
@@ -120,7 +120,7 @@ void video_render_rgbi_main(video_render_config_t *config,
             }
             break;
         case VIDEO_RENDER_RGBI_2X4:
-            if (delayloop) {
+            if (crtemulation) {
                 render_32_2x4_rgbi(colortab, src, trg, width, height,
                                   xs, ys, xt, yt, pitchs, pitcht,
                                   viewport_first_line, viewport_last_line, config);

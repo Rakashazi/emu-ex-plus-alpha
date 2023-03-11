@@ -93,7 +93,7 @@ int cbm2rom_load_chargen(const char *rom_name)
         }
 
         /* try loading 8k first, then 4k. normal "standard" ROMs only have one
-           charset in the first 4k, the rest is FF, "localized" ROMs have a 
+           charset in the first 4k, the rest is FF, "localized" ROMs have a
            second charset in the upper half. */
         memset(temp, 0xff, 0x2000);
         if (sysfile_load(rom_name, machine_name, temp, 0x2000, 0x2000) < 0) {

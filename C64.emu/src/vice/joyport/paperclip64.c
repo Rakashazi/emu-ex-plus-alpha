@@ -102,19 +102,21 @@ static const uint8_t keys[64] = {
 
 /* ------------------------------------------------------------------------- */
 
-static int joyport_paperclip64_enable(int port, int value)
+static int joyport_paperclip64_set_enabled(int port, int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
 
-    if (val == paperclip64_enabled[port]) {
+    if (new_state == paperclip64_enabled[port]) {
         return 0;
     }
 
-    if (val) {
+    if (new_state) {
+        /* enabled, set command to 0 */
         command[port] = 0;
     }
 
-    paperclip64_enabled[port] = val;
+    /* set current state */
+    paperclip64_enabled[port] = new_state;
 
     return 0;
 }
@@ -124,6 +126,7 @@ static uint8_t paperclip64_read(int port)
     uint8_t retval = 0xff;
 
     if (output_enable[port]) {
+        /* if the output is enabled, return current key bits */
         retval &= (keys[counter[port]] | 0xfc);
     }
     return retval;
@@ -145,12 +148,14 @@ static void paperclip64_store(int port, uint8_t val)
     reset = !(val & 8);
 
     if (reset) {
+        /* reset line asserted, set counter to 0 */
         counter[port] = 0;
     } else {
         clk = val & JOYPORT_LEFT;   /* clock line is on joyport 'left' pin */
         old_clk = command[port] & JOYPORT_LEFT;
 
         if (old_clk && !clk) {
+            /* clock line asserted, increment key position */
             counter[port]++;
             if (counter[port] == 0x3c) {
                 counter[port] = 0;
@@ -162,6 +167,7 @@ static void paperclip64_store(int port, uint8_t val)
 
 static void paperclip64_powerup(int port)
 {
+    /* reset counter */
     counter[port] = 0;
 }
 
@@ -172,23 +178,23 @@ static int paperclip64_write_snapshot(struct snapshot_s *s, int port);
 static int paperclip64_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t joyport_paperclip64_device = {
-    "Dongle (Paperclip64)",     /* name of the device */
-    JOYPORT_RES_ID_NONE,        /* device can be used in multiple ports at the same time */
-    JOYPORT_IS_NOT_LIGHTPEN,    /* device is NOT a lightpen */
-    JOYPORT_POT_OPTIONAL,       /* device does NOT use the potentiometer lines */
-    JOYSTICK_ADAPTER_ID_NONE,   /* device is NOT a joystick adapter */
-    JOYPORT_DEVICE_C64_DONGLE,  /* device is a C64 Dongle */
-    0x1C,                       /* bits 4, 3 and 2 are output bits */
-    joyport_paperclip64_enable, /* device enable function */
-    paperclip64_read,           /* digital line read function */
-    paperclip64_store,          /* digital line store function */
-    NULL,                       /* NO pot-x read function */
-    NULL,                       /* NO pot-y read function */
-    paperclip64_powerup,        /* powerup function */
-    paperclip64_write_snapshot, /* device write snapshot function */
-    paperclip64_read_snapshot,  /* device read snapshot function */
-    NULL,                       /* NO device hook function */
-    0                           /* NO device hook function mask */
+    "Dongle (Paperclip64)",          /* name of the device */
+    JOYPORT_RES_ID_NONE,             /* device can be used in multiple ports at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,         /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,            /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,        /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_C64_DONGLE,       /* device is a C64 Dongle */
+    0x1C,                            /* bits 4, 3 and 2 are output bits */
+    joyport_paperclip64_set_enabled, /* device enable/disable function */
+    paperclip64_read,                /* digital line read function */
+    paperclip64_store,               /* digital line store function */
+    NULL,                            /* NO pot-x read function */
+    NULL,                            /* NO pot-y read function */
+    paperclip64_powerup,             /* powerup function */
+    paperclip64_write_snapshot,      /* device write snapshot function */
+    paperclip64_read_snapshot,       /* device read snapshot function */
+    NULL,                            /* NO device hook function */
+    0                                /* NO device hook function mask */
 };
 
 /* ------------------------------------------------------------------------- */

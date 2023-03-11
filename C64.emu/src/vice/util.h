@@ -55,7 +55,6 @@ extern void util_add_extension_maxpath(char *name, const char *extension,
                                        unsigned int maxpath);
 extern char *util_get_extension(const char *filename);
 
-extern off_t util_file_length(FILE *fd);
 extern int util_file_exists(const char *name);
 extern int util_file_load(const char *name, uint8_t *dest, size_t size,
                           unsigned int load_flag);
@@ -96,7 +95,15 @@ extern char *util_find_next_line(const char *pos);
 
 extern char util_tolower(char c);
 extern char util_toupper(char c);
+const char *util_skip_whitespace(const char *s);
+const char *util_skip_whitespace_trailing(const char *s);
 
 extern char *util_gen_hex_address_list(int start, int stop, int step);
+
+char *util_join_paths(const char *path, ...);
+
+int util_strcasecmp(const char *s1, const char *s2);
+int util_strncasecmp(const char *s1, const char *s2, size_t n);
+
 
 #endif

@@ -118,7 +118,7 @@ static int sfx_soundsampler_sound_machine_channels(void)
 
 /* SFX Sound Sampler cartridge sound chip */
 static sound_chip_t sfx_soundsampler_sound_chip = {
-    NULL,                                             /* NO sound chip open function */ 
+    NULL,                                             /* NO sound chip open function */
     sfx_soundsampler_sound_machine_init,              /* sound chip init function */
     NULL,                                             /* NO sound chip close function */
     sfx_soundsampler_sound_machine_calculate_samples, /* sound chip calculate samples function */

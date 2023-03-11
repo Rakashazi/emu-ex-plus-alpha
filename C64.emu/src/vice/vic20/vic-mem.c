@@ -239,7 +239,7 @@ static inline unsigned vic_read_rasterline(void)
                top + bottom field combined cycle count: 32+262x65 + 262x65+33 = 525x65 cycles
              */
             if (vic.interlace_field == 0) {
-                /* 
+                /*
                  * top
                  * line 0 with 32 cycles
                    lines 1..262 with 65 cycles
@@ -250,7 +250,7 @@ static inline unsigned vic_read_rasterline(void)
                     return 0;
                 }
             } else {
-                /* 
+                /*
                  * bottom
                  * lines 0..261 with 65 cycles
                    line 262 with 33 cycles

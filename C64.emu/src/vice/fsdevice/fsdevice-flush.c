@@ -52,7 +52,6 @@
 #include "fsdevice-resources.h"
 #include "fsdevice.h"
 #include "fsdevicetypes.h"
-#include "ioutil.h"
 #include "lib.h"
 #include "log.h"
 #include "types.h"
@@ -78,7 +77,7 @@ static int fsdevice_flush_cd(vdrive_t* vdrive, char *arg)
     int er;
 
     DBG(("fsdevice_flush_cd '%s'\n", arg));
-    
+
     /* guard against NULL */
     if (arg == NULL) {
         return CBMDOS_IPE_SYNTAX;
@@ -90,13 +89,14 @@ static int fsdevice_flush_cd(vdrive_t* vdrive, char *arg)
     }
 
     er = CBMDOS_IPE_OK;
-    if (ioutil_chdir(fsdevice_get_path(vdrive->unit)) || ioutil_chdir(arg)) {
+    if ((archdep_chdir(fsdevice_get_path(vdrive->unit)) != 0)
+            || (archdep_chdir(arg) != 0)) {
         er = CBMDOS_IPE_NOT_FOUND;
-        if (ioutil_errno(IOUTIL_ERRNO_EPERM)) {
+        if (errno == EPERM) {
             er = CBMDOS_IPE_PERMISSION;
         }
     } else { /* get full path and save */
-        arg = ioutil_current_dir();
+        arg = archdep_current_dir();
         fsdevice_set_directory(arg, vdrive->unit);
         lib_free(arg);
     }
@@ -124,23 +124,21 @@ static int fsdevice_flush_mkdir(vdrive_t *vdrive, char *arg)
     char *path;
 
     DBG(("fsdevice_flush_mkdir '%s'\n", arg));
-    
+
     /* get proper FS device path */
     prefix = fsdevice_get_path(vdrive->unit);
 
     /* construct absolute path */
-    path = util_concat(prefix, FSDEV_DIR_SEP_STR, arg, NULL);
+    path = util_concat(prefix, ARCHDEP_DIR_SEP_STR, arg, NULL);
 
     er = CBMDOS_IPE_OK;
-    if (ioutil_mkdir(path, IOUTIL_MKDIR_RWXUG)) {
+    if (archdep_mkdir(path, ARCHDEP_MKDIR_RWXUG)) {
         er = CBMDOS_IPE_INVAL;
-        if (ioutil_errno(IOUTIL_ERRNO_EEXIST)) {
+        if (errno == EEXIST) {
             er = CBMDOS_IPE_FILE_EXISTS;
-        }
-        if (ioutil_errno(IOUTIL_ERRNO_EACCES)) {
+        } else if (errno == EACCES) {
             er = CBMDOS_IPE_PERMISSION;
-        }
-        if (ioutil_errno(IOUTIL_ERRNO_ENOENT)) {
+        } else if (errno == ENOENT) {
             er = CBMDOS_IPE_NOT_FOUND;
         }
     }
@@ -191,16 +189,16 @@ static int fsdevice_flush_rmdir(vdrive_t *vdrive, char *arg)
     /* since the cwd can differ from the FSDeviceDir, we need to obtain the
      * absolute path to the directory to remove.
      */
-    char *path = util_concat(prefix, FSDEV_DIR_SEP_STR, arg, NULL);
+    char *path = util_concat(prefix, ARCHDEP_DIR_SEP_STR, arg, NULL);
 
     DBG(("fsdevice_flush_rmdir '%s'\n", arg));
 
     /* FIXME: rmdir() can set a lot of different errors codes, so this probably
      *        is a little naive
      */
-    if (ioutil_rmdir(path) != 0) {
+    if (archdep_rmdir(path) != 0) {
         er = CBMDOS_IPE_NOT_EMPTY;
-        if (ioutil_errno(IOUTIL_ERRNO_EPERM)) {
+        if (errno == EPERM) {
             er = CBMDOS_IPE_PERMISSION;
         }
     }
@@ -217,7 +215,7 @@ static int fsdevice_flush_rename(vdrive_t *vdrive, char *realarg)
     unsigned int format = 0, rc;
 
     DBG(("fsdevice_flush_rename '%s'\n", realarg));
-    
+
     tmp = strchr(realarg, '=');
 
     if (tmp == NULL) {
@@ -247,7 +245,7 @@ static int fsdevice_flush_rename(vdrive_t *vdrive, char *realarg)
 
     DBG(("fsdevice_flush_rename '%s' to '%s'\n", realsrc, dest));
     rc = fileio_rename(realsrc, dest, fsdevice_get_path(vdrive->unit), format);
-    
+
     lib_free(realsrc);
 
     switch (rc) {
@@ -268,7 +266,7 @@ static int fsdevice_flush_scratch(vdrive_t *vdrive, char *realarg)
 
     /* FIXME: we need to handle a comma seperated list of files to scratch */
     DBG(("fsdevice_flush_scratch '%s'\n", realarg));
-    
+
     if (realarg == NULL || *realarg == '\0') {
         return CBMDOS_IPE_SYNTAX;
     }
@@ -283,10 +281,10 @@ static int fsdevice_flush_scratch(vdrive_t *vdrive, char *realarg)
     rc = fileio_scratch(realarg, fsdevice_get_path(vdrive->unit), format);
 
     switch (rc) {
-        case FILEIO_FILE_NOT_FOUND:
-            return CBMDOS_IPE_NOT_FOUND;
         case FILEIO_FILE_PERMISSION:
             return CBMDOS_IPE_PERMISSION;
+        case FILEIO_FILE_NOT_FOUND: /* fall through */
+            /* return "files scratched" even when no files were scratched */
         case FILEIO_FILE_SCRATCHED:
             return CBMDOS_IPE_DELETED;
     }
@@ -602,7 +600,7 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
 {
     unsigned int dnr;
     char *cmd, *realarg, *arg, *realname;
-    char *cbmcmd;
+    char cbmcmd[ARCHDEP_PATH_MAX];
     int er = CBMDOS_IPE_SYNTAX;
 
     dnr = vdrive->unit - DRIVE_UNIT_MIN;
@@ -610,8 +608,6 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
     if ((secondary != 15) || (!(fsdevice_dev[dnr].cptr))) {
         return;
     }
-
-    cbmcmd = lib_malloc(ioutil_maxpathlen());
 
     /*
                                             '41 '71 '81  FD
@@ -678,7 +674,7 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
     }
 
     DBG(("fsdevice_flush arg:'%s' realarg:'%s'\n", arg, realarg));
-    
+
     /*
                                             '41 '71 '81  FD
        i                                      *   *   *   *    initialize disk
@@ -690,12 +686,12 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
        d:                                   n/a n/a n/a n/a    backup
 
        p chn lo hi pos                        *   *   *   *    pointer positioning (REL)
-       
+
        b-r chn drv trk sec                    *   *   *   *    block-read
        u1  chn drv trk sec                    *   *   *   *    "
        ua  chn drv trk sec                    *   *   *        "
        b-R chn drv trk sec                  n/a n/a   *        block-read without range check
-       b-w chn drv trk sec                    *   *   *   *    block-write 
+       b-w chn drv trk sec                    *   *   *   *    block-write
        u2  chn drv trk sec                    *   *   *   *    "
        ub  chn drv trk sec                    *   *   *        "
        b-W chn drv trk sec                  n/a n/a   *        block-write without range check
@@ -704,9 +700,9 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
        b-f drv trk sec                        *   *   *   *    block-free
        b-e chn drv trk sec                    *   *   *   *    block execute
 
-       u9/ui                                  *   *   *   *    switch mode (NMI,warmstart)       
+       u9/ui                                  *   *   *   *    switch mode (NMI,warmstart)
        u:/uj                                  *   *   *   *    reset (powerup)
-       
+
        u3/uc                                  *   *   *   *    start at $0500
        u4/ud                                  *   *   *   *    start at $0503
        u5/ue                                  *   *   *   *    start at $0506
@@ -719,30 +715,30 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
        u0>side                              n/a   * n/a n/a    select active disk side
        u0>devnr                             n/a   * n/a n/a    set device nr.
        u0+cmd                               n/a n/a   *   *    burst utility cmd
-       
+
        cd                                   n/a n/a n/a   *    change directory
-       cd_                                  n/a n/a n/a    
-       cd:_                                 n/a n/a n/a   * 
-       
+       cd_                                  n/a n/a n/a
+       cd:_                                 n/a n/a n/a   *
+
        /<drv>:name trk src lenlo lenhi,c    n/a n/a   *        partition (create)
        /<drv>:name                          n/a n/a   *        partition (activate)
-       
+
        md                                   n/a n/a n/a   *    make directory
        rd                                   n/a n/a n/a   *    remove directory
-       
+
        cp<num>                              n/a n/a n/a   *    change partition
        g-p                                  n/a n/a n/a   *    get partition info
-       
+
        t-ra                                 n/a n/a n/a   *    read RTC (ascii format)
        t-wa                                 n/a n/a n/a   *    write RTC (ascii format)
        t-rd                                 n/a n/a n/a   *    read RTC (decimal ormat)
        t-wd                                 n/a n/a n/a   *    write RTC (decimal format)
-       
+
        r-h:<name>                           n/a n/a n/a   *    change directory header
        l:<name>                             n/a n/a n/a   *    (un)lock file (toggle)
        w-<state>                            n/a n/a n/a   *    set disk write protection
-       s-<dev>                              n/a n/a n/a   *    swap device nr.             
-       g-d                                  n/a n/a n/a   *    get disk change status     
+       s-<dev>                              n/a n/a n/a   *    swap device nr.
+       g-d                                  n/a n/a n/a   *    get disk change status
 
     */
     if (!strcmp(cmd, "u0")) {
@@ -824,8 +820,6 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
 leave:
 
     fsdevice_dev[dnr].cptr = 0;
-
-    lib_free(cbmcmd);
 }
 
 int fsdevice_flush_write_byte(vdrive_t *vdrive, uint8_t data)
@@ -837,7 +831,7 @@ int fsdevice_flush_write_byte(vdrive_t *vdrive, uint8_t data)
     rc = SERIAL_OK;
 
     /* FIXME: Consider the real size of the input buffer. */
-    if (fsdevice_dev[dnr].cptr < ioutil_maxpathlen() - 1) {
+    if (fsdevice_dev[dnr].cptr < (ARCHDEP_PATH_MAX - 1U)) {
         fsdevice_dev[dnr].cmdbuf[(fsdevice_dev[dnr].cptr)++] = data;
         rc = SERIAL_OK;
     } else {

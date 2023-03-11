@@ -209,7 +209,7 @@ static const unsigned int raw_track_size_d64[SPEED_ZONE_COUNT] = {
  */
 /* the 2040 tried to squeeze one more sector into speed zone 2 */
 /* FIXME: D67 has 20 sectors per track for speed zone 2,
-          D64/D71 has 19 sectors for that speed zone 
+          D64/D71 has 19 sectors for that speed zone
 
           note: the number of GCR bits per track "should" be the same as in D64,
                 as that is pretty much defined by the clock and rotation speed.
@@ -279,7 +279,7 @@ static const unsigned int gap_size_d64[4] = {
 /* FIXME: D67 has 20 sectors per track for speed zone 2,
  *        D64/D71 has 19 sectors for that speed zone */
 static const unsigned int gap_size_d67[4] = {
-    9,  /* tracks 31-[35-40} */ 
+    9,  /* tracks 31-[35-40} */
     12, /* track 25-30 */
     4,  /* tracks 18-24 */ /* FIXME: is this correct? */
     8   /* tracks 1-17 */

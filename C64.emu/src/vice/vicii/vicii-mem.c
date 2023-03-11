@@ -979,7 +979,7 @@ inline static void d030_store(uint8_t value)
     }
 }
 
-void viciidtv_update_colorram()
+void viciidtv_update_colorram(void)
 {
     vicii.color_ram_ptr = mem_ram
                           + (vicii.regs[0x36] << 10)

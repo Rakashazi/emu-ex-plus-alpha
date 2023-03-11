@@ -56,7 +56,7 @@
 */
 
 /* ------------------------------------------------------------------------- */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (FEATURE_CPUMEMHISTORY)
 CLOCK debug_clk;
 #endif
 
@@ -149,7 +149,7 @@ static uint8_t memmap_mem_read_dummy(unsigned int addr)
 #define LOAD_DUMMY(addr) \
     memmap_mem_read_dummy(addr)
 #endif
-    
+
 /* FIXME: vic20 does not really need BA */
 #ifndef LOAD_CHECK_BA_LOW
 #define LOAD_CHECK_BA_LOW(addr) \
@@ -160,7 +160,7 @@ static uint8_t memmap_mem_read_dummy(unsigned int addr)
 #ifndef LOAD_CHECK_BA_LOW_DUMMY
 #define LOAD_CHECK_BA_LOW_DUMMY(addr) \
     memmap_mem_read_dummy(addr)
-#endif    
+#endif
 
 #ifndef STORE_ZERO
 #define STORE_ZERO(addr, value) \
@@ -193,7 +193,7 @@ static uint8_t memmap_mem_read_dummy(unsigned int addr)
 #define STORE_DUMMY(addr, value) \
     (*_mem_write_tab_ptr_dummy[(addr) >> 8])((uint16_t)(addr), (uint8_t)(value))
 #endif
-    
+
 #ifndef LOAD
 #define LOAD(addr) \
     (*_mem_read_tab_ptr[(addr) >> 8])((uint16_t)(addr))

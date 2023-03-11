@@ -41,7 +41,7 @@
 #include "joyport.h"
 #include "userport.h"
 
-/* 
+/*
 C64/C128 | CBM2 | PET | VIC20 | CENTRONICS  | NOTES
 ---------------------------------------------------
     B    |  6   |  B  |   B   |     11      | FLAG2 <- BUSY
@@ -156,7 +156,7 @@ static int userport_printer_write_snapshot_module(snapshot_t *s)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }

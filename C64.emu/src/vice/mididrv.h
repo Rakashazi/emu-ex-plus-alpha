@@ -51,4 +51,10 @@ extern int mididrv_resources_init(void);
 extern void mididrv_resources_shutdown(void);
 extern int mididrv_cmdline_options_init(void);
 
+#if defined(WINDOWS_COMPILE)
+/* get the list of MIDI devices */
+extern void mididrv_ui_reset_device_list(int device);
+extern char *mididrv_ui_get_next_device_name(int device, int *id);
+#endif
+
 #endif

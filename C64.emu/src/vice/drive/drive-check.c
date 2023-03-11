@@ -378,8 +378,8 @@ int drive_get_type_by_devnr(int devnr)
     int fsdevice;
     int drivetype;
 
-    if ((machine_class != VICE_MACHINE_CBM5x0) && 
-        (machine_class != VICE_MACHINE_CBM6x0) && 
+    if ((machine_class != VICE_MACHINE_CBM5x0) &&
+        (machine_class != VICE_MACHINE_CBM6x0) &&
         (machine_class != VICE_MACHINE_PET)) {
         resources_get_int_sprintf("IECDevice%i", &iecdevice, devnr);
         resources_get_int_sprintf("FileSystemDevice%i", &fsdevice, devnr);

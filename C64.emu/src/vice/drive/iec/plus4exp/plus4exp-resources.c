@@ -75,7 +75,7 @@ static resource_int_t res_drive[] = {
 
 int plus4exp_resources_init(void)
 {
-    unsigned int dnr;
+    int dnr;
 
     for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         res_drive[0].name = lib_msprintf("Drive%iParallelCable", dnr + 8);

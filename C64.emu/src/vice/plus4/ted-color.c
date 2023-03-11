@@ -98,45 +98,45 @@ static float ted_luminances[8] =
 
 static video_cbm_color_t ted_colors_pal[16] =
 {
-    { 0.0f, ANGLE_ORN, -0, "Black"       },
-    { 0.0f, ANGLE_BRN,  0, "White"       },
-    { 0.0f, ANGLE_RED,  1, "Red"         },
-    { 0.0f, ANGLE_RED, -1, "Cyan"        },
-    { 0.0f, ANGLE_GRN, -1, "Purple"      },
-    { 0.0f, ANGLE_GRN,  1, "Green"       },
-    { 0.0f, ANGLE_BLU,  1, "Blue"        },
-    { 0.0f, ANGLE_BLU, -1, "Yellow"      },
+    { 0.0f, ANGLE_ORN, TED_SATURATION, -0, "Black"       },
+    { 0.0f, ANGLE_BRN, TED_SATURATION,  0, "White"       },
+    { 0.0f, ANGLE_RED, TED_SATURATION,  1, "Red"         },
+    { 0.0f, ANGLE_RED, TED_SATURATION, -1, "Cyan"        },
+    { 0.0f, ANGLE_GRN, TED_SATURATION, -1, "Purple"      },
+    { 0.0f, ANGLE_GRN, TED_SATURATION,  1, "Green"       },
+    { 0.0f, ANGLE_BLU, TED_SATURATION,  1, "Blue"        },
+    { 0.0f, ANGLE_BLU, TED_SATURATION, -1, "Yellow"      },
 
-    { 0.0f, ANGLE_ORN, -1, "Orange"      },
-    { 0.0f, ANGLE_BRN,  1, "Brown"       },
-    { 0.0f, ANGLE_YLG,  1, "Yellow-Green"},     /* Lime */
-    { 0.0f, ANGLE_PNK,  1, "Pink"        },
-    { 0.0f, ANGLE_BLG,  1, "Blue-Green"  },
-    { 0.0f, ANGLE_LBL,  1, "Light Blue"  },
-    { 0.0f, ANGLE_DBL,  1, "Dark Blue"   },     /* purple-blue */
-    { 0.0f, ANGLE_LGN,  1, "Light Green" }
+    { 0.0f, ANGLE_ORN, TED_SATURATION, -1, "Orange"      },
+    { 0.0f, ANGLE_BRN, TED_SATURATION,  1, "Brown"       },
+    { 0.0f, ANGLE_YLG, TED_SATURATION,  1, "Yellow-Green"},     /* Lime */
+    { 0.0f, ANGLE_PNK, TED_SATURATION,  1, "Pink"        },
+    { 0.0f, ANGLE_BLG, TED_SATURATION,  1, "Blue-Green"  },
+    { 0.0f, ANGLE_LBL, TED_SATURATION,  1, "Light Blue"  },
+    { 0.0f, ANGLE_DBL, TED_SATURATION,  1, "Dark Blue"   },     /* purple-blue */
+    { 0.0f, ANGLE_LGN, TED_SATURATION,  1, "Light Green" }
 };
 
 /* FIXME: this is hand tuned to somehow fit the colors produced by yape in NTSC mode */
 static video_cbm_color_t ted_colors_ntsc[16] =
 {
-    { 0.0f, ANGLE_ORN, -0, "Black"       },
-    { 0.0f, ANGLE_BRN,  0, "White"       },
-    { 0.0f, ANGLE_RED,  1, "Red"         },
-    { 0.0f, ANGLE_RED, -1, "Cyan"        },
-    { 0.0f, ANGLE_GRN + 30.0f, -1, "Purple"      },
-    { 0.0f, ANGLE_GRN + 30.0f,  1, "Green"       },
-    { 0.0f, ANGLE_BLU + 20.0f,  1, "Blue"        },
-    { 0.0f, ANGLE_BLU + 20.0f, -1, "Yellow"      },
+    { 0.0f, ANGLE_ORN,         TED_SATURATION, -0, "Black"       },
+    { 0.0f, ANGLE_BRN,         TED_SATURATION,  0, "White"       },
+    { 0.0f, ANGLE_RED,         TED_SATURATION,  1, "Red"         },
+    { 0.0f, ANGLE_RED,         TED_SATURATION, -1, "Cyan"        },
+    { 0.0f, ANGLE_GRN + 30.0f, TED_SATURATION, -1, "Purple"      },
+    { 0.0f, ANGLE_GRN + 30.0f, TED_SATURATION,  1, "Green"       },
+    { 0.0f, ANGLE_BLU + 20.0f, TED_SATURATION,  1, "Blue"        },
+    { 0.0f, ANGLE_BLU + 20.0f, TED_SATURATION, -1, "Yellow"      },
 
-    { 0.0f, ANGLE_ORN,         -1, "Orange"      },
-    { 0.0f, ANGLE_BRN + 10.0f,  1, "Brown"       },
-    { 0.0f, ANGLE_GRN,          1, "Yellow-Green"},    /* Lime */
-    { 0.0f, ANGLE_PNK + 20.0f,  1, "Pink"        },
-    { 0.0f, ANGLE_BLG + 10.0f,  1, "Blue-Green"  },
-    { 0.0f, ANGLE_LBL,          1, "Light Blue"  },
-    { 0.0f, ANGLE_PNK - 20.0f,  1, "Dark Blue"   },    /* purple-blue */
-    { 0.0f, ANGLE_GRN + 10.0f,  1, "Light Green" }
+    { 0.0f, ANGLE_ORN,         TED_SATURATION, -1, "Orange"      },
+    { 0.0f, ANGLE_BRN + 10.0f, TED_SATURATION,  1, "Brown"       },
+    { 0.0f, ANGLE_GRN,         TED_SATURATION,  1, "Yellow-Green"},    /* Lime */
+    { 0.0f, ANGLE_PNK + 20.0f, TED_SATURATION,  1, "Pink"        },
+    { 0.0f, ANGLE_BLG + 10.0f, TED_SATURATION,  1, "Blue-Green"  },
+    { 0.0f, ANGLE_LBL,         TED_SATURATION,  1, "Light Blue"  },
+    { 0.0f, ANGLE_PNK - 20.0f, TED_SATURATION,  1, "Dark Blue"   },    /* purple-blue */
+    { 0.0f, ANGLE_GRN + 10.0f, TED_SATURATION,  1, "Light Green" }
 };
 
 static video_cbm_color_t ted_colors_with_lum[TED_NUM_COLORS];
@@ -145,7 +145,7 @@ static video_cbm_palette_t ted_palette =
 {
     TED_NUM_COLORS,
     ted_colors_with_lum,
-    TED_SATURATION,
+    NULL, NULL,
     TED_PHASE,
     CBM_PALETTE_YUV
 };
@@ -186,6 +186,7 @@ int ted_color_update_palette(struct video_canvas_s *canvas)
             }
             vc->angle = tc[col].angle;
             vc->direction = tc[col].direction;
+            vc->saturation = tc[col].saturation;
             vc->name = tc[col].name;
             cl++;
         }

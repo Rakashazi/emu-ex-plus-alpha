@@ -37,7 +37,7 @@ static inline void render_source_line(uint32_t *tmptrg, const uint8_t *tmpsrc, c
                                       unsigned int wstart, unsigned int wfast, unsigned int wend)
 {
     unsigned int x;
-    
+
     for (x = 0; x < wstart; x++) {
         *tmptrg++ = colortab[*tmpsrc++];
     }
@@ -64,7 +64,7 @@ static inline void render_source_line_2x(uint32_t *tmptrg, const uint8_t *tmpsrc
 {
     unsigned int x;
     uint32_t color;
-    
+
     if (wfirst) {
         *tmptrg++ = colortab[*tmpsrc++];
     }
@@ -115,7 +115,7 @@ static inline void render_solid_line(uint32_t *tmptrg, const uint8_t *tmpsrc, co
                                      unsigned int wstart, unsigned int wfast, unsigned int wend)
 {
     unsigned int x;
-    
+
     for (x = 0; x < wstart; x++) {
         *tmptrg++ = color;
     }
@@ -140,7 +140,7 @@ static inline void render_solid_line_2x(uint32_t *tmptrg, const uint8_t *tmpsrc,
                                         unsigned int wfirst, unsigned int wlast)
 {
     unsigned int x;
-    
+
     if (wfirst) {
         *tmptrg++ = color;
     }

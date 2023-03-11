@@ -41,6 +41,7 @@
 #define MyIrq           IK_NMI
 
 #define myaciadev       acia1dev
+#define myaciactrl      acia1ctrl
 
 #if 0
 void acia1_init(void);

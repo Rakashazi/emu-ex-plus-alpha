@@ -90,7 +90,7 @@ void iec_fast_drive_write(uint8_t data, unsigned int dnr)
 }
 
 
-#if (defined(DEBUG) || defined(WIN32_COMPILE) || defined(OS2_COMPILE))
+#ifdef DEBUG
 void debug_iec_drv_read(unsigned int data)
 {
     /* FIXME: unused */

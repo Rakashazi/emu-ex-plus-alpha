@@ -141,16 +141,16 @@ static void actionreplay_io1_store(uint16_t addr, uint8_t value)
         if (value & 4) {
             ar_active = 0;
         }
-        
+
         /* mode 0x22 is broken in the original AR, we handle it here so we can
            emit a warning on access */
         if ((value & 0x23) == 0x22) {
-            cart_config_changed_slotmain(CMODE_8KGAME, 
-                CMODE_8KGAME | (((value >> 3) & 3) << CMODE_BANK_SHIFT), 
+            cart_config_changed_slotmain(CMODE_8KGAME,
+                CMODE_8KGAME | (((value >> 3) & 3) << CMODE_BANK_SHIFT),
                 (unsigned int)(mode | CMODE_WRITE));
         } else {
-            cart_config_changed_slotmain((uint8_t)(value & 3), 
-                (uint8_t)((value & 3) | (((value >> 3) & 3) << CMODE_BANK_SHIFT)), 
+            cart_config_changed_slotmain((uint8_t)(value & 3),
+                (uint8_t)((value & 3) | (((value >> 3) & 3) << CMODE_BANK_SHIFT)),
                 (unsigned int)(mode | CMODE_WRITE));
         }
 
@@ -169,9 +169,9 @@ static uint8_t actionreplay_io1_read(uint16_t addr)
        to whatever was on the bus before */
     value = vicii_read_phi1();
     actionreplay_io1_store(addr, value);
-    log_warning(LOG_DEFAULT, "AR5: reading IO1 area at 0xde%02x, this corrupts the register", 
+    log_warning(LOG_DEFAULT, "AR5: reading IO1 area at 0xde%02x, this corrupts the register",
                 addr & 0xffu);
-    
+
     return value;
 }
 
@@ -269,10 +269,10 @@ static int actionreplay_dump(void)
 uint8_t actionreplay_roml_read(uint16_t addr)
 {
     if ((regvalue & 0x23) == 0x22) {
-        log_warning(LOG_DEFAULT, 
+        log_warning(LOG_DEFAULT,
             "AR5: reading ROML area at 0x%04x in mode $22, this causes bus contention,", addr);
-        log_warning(LOG_DEFAULT, 
-            "     is unreliable, and may damage the hardware - do not do this!");    
+        log_warning(LOG_DEFAULT,
+            "     is unreliable, and may damage the hardware - do not do this!");
         /* in mode 0x22 both C64 and cartridge RAM is selected */
         return mem_read_without_ultimax(addr) | export_ram0[addr & 0x1fff];
     }

@@ -43,18 +43,9 @@
 static inline
 void yuv_to_rgb(int32_t y, int32_t u, int32_t v, int16_t *red, int16_t *grn, int16_t *blu)
 {
-#ifdef _MSC_VER
-# pragma warning( push )
-# pragma warning( disable: 4244 )
-#endif
-
     *red = (y + v) >> 16;
     *blu = (y + u) >> 16;
     *grn = (y - ((50 * u + 130 * v) >> 8)) >> 16;
-
-#ifdef _MSC_VER
-# pragma warning( pop )
-#endif
 }
 
 static inline

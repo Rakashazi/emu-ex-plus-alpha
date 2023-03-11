@@ -34,9 +34,9 @@
 #include <string.h>
 
 #include "archdep.h"
-#include "findpath.h"
-#include "ioutil.h"
 #include "lib.h"
+
+#include "findpath.h"
 
 
 /*
@@ -48,23 +48,20 @@
 
 char *findpath(const char *cmd, const char *syspath, const char *subpath, int mode)
 {
+    char buf[ARCHDEP_PATH_MAX];
     char *pd = NULL;
-    char *c, *buf;
-    size_t maxpathlen;
-
-    maxpathlen = (size_t)ioutil_maxpathlen();
-
-    buf = lib_malloc(maxpathlen);
+    char *c;
 
     buf[0] = '\0'; /* this will (and needs to) stay '\0' */
 
-    if (strchr(cmd, FSDEV_DIR_SEP_CHR)) {
+    if (strchr(cmd, ARCHDEP_DIR_SEP_CHR)) {
         size_t l;
         int state;
         const char *ps;
 
         if (archdep_path_is_relative(cmd)) {
-            if (ioutil_getcwd(buf + 1, (int)maxpathlen - 128) == NULL) {
+            /* What does the magic 128 do? --compyx */
+            if (archdep_getcwd(buf + 1, ARCHDEP_PATH_MAX - 128) == NULL) {
                 goto fail;
             }
 
@@ -73,14 +70,15 @@ char *findpath(const char *cmd, const char *syspath, const char *subpath, int mo
             l = 0;
         }
 
-        if (l + strlen(cmd) >= maxpathlen - 5) {
+        /* Again: magic 5 */
+        if (l + strlen(cmd) >= ARCHDEP_PATH_MAX - 5) {
             goto fail;
         }
 
         ps = cmd;
         pd = buf + l; /* buf + 1 + l - 1 */
 
-#if (FSDEV_DIR_SEP_CHR == '/')
+#if (ARCHDEP_DIR_SEP_CHR == '/')
         if (*pd++ != '/') {
             *pd++ = '/';
         }
@@ -157,7 +155,7 @@ char *findpath(const char *cmd, const char *syspath, const char *subpath, int mo
             s = strchr(path, ARCHDEP_FINDPATH_SEPARATOR_CHAR);
             l = s ? (int)(s - path) : (int)strlen(path);
 
-            if (l + cl + spl > maxpathlen - 5) {
+            if (l + cl + spl > ARCHDEP_PATH_MAX - 5) {
                 continue;
             }
 
@@ -177,12 +175,12 @@ char *findpath(const char *cmd, const char *syspath, const char *subpath, int mo
             memcpy(p, cmd, cl);
 
             for (c = buf + 1; *c != '\0'; c++) {
-#if (FSDEV_DIR_SEP_CHR == '\\')
+#if (ARCHDEP_DIR_SEP_CHR == '\\')
                 if (*c == '/') {
                     *c = '\\';
                 }
 #else
-#if (FSDEV_DIR_SEP_CHR == '/')
+#if (ARCHDEP_DIR_SEP_CHR == '/')
                 if (*c == '\\') {
                     *c = '/';
                 }
@@ -191,15 +189,15 @@ char *findpath(const char *cmd, const char *syspath, const char *subpath, int mo
 #endif
 #endif
             }
-            if (ioutil_access(buf + 1, mode) == 0) {
+            if (archdep_access(buf + 1, mode) == 0) {
                 pd = p /* + cl*/;
                 break;
             }
-            
+
             if (s == NULL) {
                 break;
             }
-                
+
             path = s + 1;
         }
     }
@@ -219,10 +217,8 @@ char *findpath(const char *cmd, const char *syspath, const char *subpath, int mo
 #endif
 
         tmpbuf = lib_strdup(buf + 1);
-        lib_free(buf);
         return tmpbuf;
     }
 fail:
-    lib_free(buf);
     return NULL;
 }

@@ -97,21 +97,24 @@ void video_render_main(video_render_config_t *config, uint8_t *src, uint8_t *trg
 
         case VIDEO_RENDER_PAL_NTSC_1X1:
         case VIDEO_RENDER_PAL_NTSC_2X2:
-            render_pal_ntsc_func(config, src, trg, width, height, xs, ys, xt, yt, pitchs, pitcht, viewport->crt_type, viewport->first_line, viewport->last_line);
+            render_pal_ntsc_func(config, src, trg, width, height, xs, ys, xt, yt, pitchs, pitcht,
+                                 viewport->crt_type, viewport->first_line, viewport->last_line);
             return;
 
         case VIDEO_RENDER_CRT_MONO_1X1:
         case VIDEO_RENDER_CRT_MONO_1X2:
         case VIDEO_RENDER_CRT_MONO_2X2:
         case VIDEO_RENDER_CRT_MONO_2X4:
-            render_crt_mono_func(config, src, trg, width, height, xs, ys, xt, yt, pitchs, pitcht, viewport->first_line, viewport->last_line);
+            render_crt_mono_func(config, src, trg, width, height, xs, ys, xt, yt, pitchs, pitcht,
+                                 viewport->first_line, viewport->last_line);
             return;
 
         case VIDEO_RENDER_RGBI_1X1:
         case VIDEO_RENDER_RGBI_1X2:
         case VIDEO_RENDER_RGBI_2X2:
         case VIDEO_RENDER_RGBI_2X4:
-            render_rgbi_func(config, src, trg, width, height, xs, ys, xt, yt, pitchs, pitcht, viewport->first_line, viewport->last_line);
+            render_rgbi_func(config, src, trg, width, height, xs, ys, xt, yt, pitchs, pitcht,
+                             viewport->first_line, viewport->last_line);
             return;
     }
     if (rendermode_error != rendermode) {

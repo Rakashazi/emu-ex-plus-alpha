@@ -116,7 +116,7 @@ void WaveformGenerator::clock_noise()
   reg24 bit0 = ((shift_register >> 22) ^ (shift_register >> 17)) & 0x1;
   shift_register <<= 1;
   shift_register |= bit0;
-    
+
   noise =
     ((shift_register & 0x400000) >> 11) |
     ((shift_register & 0x100000) >> 10) |

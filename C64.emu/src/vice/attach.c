@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "archdep.h"
 #include "attach.h"
 #include "cmdline.h"
 #include "diskimage.h"
@@ -52,7 +53,6 @@
 #include "vdrive.h"
 #include "vice-event.h"
 #include "p64.h"
-#include "arch/shared/archdep_real_path.h"
 
 #ifdef DEBUG_ATTACH
 #define DBG(x)  log_debug x
@@ -95,16 +95,16 @@ static int attach_disk_image(disk_image_t *oldimage, vdrive_t *vdrive,
 #define GET_DRIVE(du)                   (du & 0xFF)
 
 static const resource_int_t resources_int[] = {
-    { "AttachDevice8Readonly", 0, RES_EVENT_SAME, NULL,
+    { "AttachDevice8d0Readonly", 0, RES_EVENT_SAME, NULL,
       &attach_device_readonly_enabled[0][0],
       set_attach_device_readonly, (void *)UNIT_AND_DRIVE(8,0) },
-    { "AttachDevice9Readonly", 0, RES_EVENT_SAME, NULL,
+    { "AttachDevice9d0Readonly", 0, RES_EVENT_SAME, NULL,
       &attach_device_readonly_enabled[1][0],
       set_attach_device_readonly, (void *)UNIT_AND_DRIVE(9,0) },
-    { "AttachDevice10Readonly", 0, RES_EVENT_SAME, NULL,
+    { "AttachDevice10d0Readonly", 0, RES_EVENT_SAME, NULL,
       &attach_device_readonly_enabled[2][0],
       set_attach_device_readonly, (void *)UNIT_AND_DRIVE(10,0) },
-    { "AttachDevice11Readonly", 0, RES_EVENT_SAME, NULL,
+    { "AttachDevice11d0Readonly", 0, RES_EVENT_SAME, NULL,
       &attach_device_readonly_enabled[3][0],
       set_attach_device_readonly, (void *)UNIT_AND_DRIVE(11,0) },
     { "AttachDevice8d1Readonly", 0, RES_EVENT_SAME, NULL,
@@ -160,28 +160,28 @@ static const cmdline_option_t cmdline_options[] =
       NULL, NULL, "FileSystemDevice11", (void *)ATTACH_DEVICE_FS,
       "<Type>", "Set device type for device #11 (0: None, 1: Filesystem, 2: OpenCBM)" },
     { "-attach8ro", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "AttachDevice8Readonly", (resource_value_t)1,
+      NULL, NULL, "AttachDevice8d0Readonly", (resource_value_t)1,
       NULL, "Attach disk image for drive #8:0 read only" },
     { "-attach8rw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "AttachDevice8Readonly", (resource_value_t)0,
+      NULL, NULL, "AttachDevice8d0Readonly", (resource_value_t)0,
       NULL, "Attach disk image for drive #8:0 read write (if possible)" },
     { "-attach9ro", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "AttachDevice9Readonly", (resource_value_t)1,
+      NULL, NULL, "AttachDevice9d0Readonly", (resource_value_t)1,
       NULL, "Attach disk image for drive #9:0 read only" },
     { "-attach9rw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "AttachDevice9Readonly", (resource_value_t)0,
+      NULL, NULL, "AttachDevice9d0Readonly", (resource_value_t)0,
       NULL, "Attach disk image for drive #9:0 read write (if possible)" },
     { "-attach10ro", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "AttachDevice10Readonly", (resource_value_t)1,
+      NULL, NULL, "AttachDevice10d0Readonly", (resource_value_t)1,
       NULL, "Attach disk image for drive #10:0 read only" },
     { "-attach10rw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "AttachDevice10Readonly", (resource_value_t)0,
+      NULL, NULL, "AttachDevice10d0Readonly", (resource_value_t)0,
       NULL, "Attach disk image for drive #10:0 read write (if possible)" },
     { "-attach11ro", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "AttachDevice11Readonly", (resource_value_t)1,
+      NULL, NULL, "AttachDevice11d0Readonly", (resource_value_t)1,
       NULL, "Attach disk image for drive #11:0 read only" },
     { "-attach11rw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
-      NULL, NULL, "AttachDevice11Readonly", (resource_value_t)0,
+      NULL, NULL, "AttachDevice11d0Readonly", (resource_value_t)0,
       NULL, "Attach disk image for drive #11:0 read write (if possible)" },
     { "-attach8d1ro", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "AttachDevice8d1Readonly", (resource_value_t)1,
@@ -591,7 +591,7 @@ static int attach_disk_image(disk_image_t *oldimage, vdrive_t *vdrive,
                     log_error(attach_log, "`%s' is already mounted on drive %d:%d", filename, test_unit, test_drive);
                     return -1;
                 }
-            }            
+            }
         }
     }
 

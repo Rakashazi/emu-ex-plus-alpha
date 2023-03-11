@@ -82,7 +82,6 @@
 #include "ninja_snespad.h"
 #include "paperclip64.h"
 #include "parallel.h"
-#include "patchrom.h"
 #include "printer.h"
 #include "protopad.h"
 #include "ps2mouse.h"
@@ -486,10 +485,6 @@ int machine_resources_init(void)
         init_resource_fail("joystick");
         return -1;
     }
-    if (gfxoutput_resources_init() < 0) {
-        init_resource_fail("gfxoutput");
-        return -1;
-    }
     if (sampler_resources_init() < 0) {
         init_resource_fail("samplerdrv");
         return -1;
@@ -638,10 +633,6 @@ int machine_cmdline_options_init(void)
     }
     if (userport_cmdline_options_init() < 0) {
         init_cmdline_options_fail("userport");
-        return -1;
-    }
-    if (gfxoutput_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("gfxoutput");
         return -1;
     }
     if (sampler_cmdline_options_init() < 0) {
@@ -1058,7 +1049,7 @@ int machine_addr_in_ram(unsigned int addr)
     if (maincpu_clk <= 6817181 && addr >= 0x824 && addr <= 0x884) {
         return 0;
     }
-    
+
 #if 0
     /*
      * If autostart stops working on DTV, use this to check if the splash screen is

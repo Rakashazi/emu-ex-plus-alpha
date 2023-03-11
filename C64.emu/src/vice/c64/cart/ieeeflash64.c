@@ -477,7 +477,9 @@ static int set_ieeeflash64_enabled(int value, void *param)
             if (ieeeflash64_filename) {
                 if (*ieeeflash64_filename) {
                     DBG(("IEEEFlash64: attach default image\n"));
-                    if (cartridge_attach_image(CARTRIDGE_IEEEFLASH64, ieeeflash64_filename) < 0) {
+                    /* try .crt first */
+                    if ((cartridge_attach_image(CARTRIDGE_CRT, ieeeflash64_filename) < 0) &&
+                        (cartridge_attach_image(CARTRIDGE_IEEEFLASH64, ieeeflash64_filename) < 0)) {
                         DBG(("IEEEFlash64: set_enabled did not register (attach image failed)\n"));
                         lib_free(ieeeflash64_rom);
                         ieeeflash64_rom = NULL;
@@ -598,10 +600,11 @@ int ieeeflash64_bin_attach(const char *filename, uint8_t *rawcart)
     if (util_file_load(filename, rawcart, IEEEFLASH64_ROM_SIZE, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
     }
+    set_ieeeflash64_filename(filename, NULL); /* set the resource */
     return ieeeflash64_common_attach();
 }
 
-int ieeeflash64_crt_attach(FILE *fd, uint8_t *rawcart)
+int ieeeflash64_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename)
 {
     crt_chip_header_t chip;
 
@@ -617,6 +620,7 @@ int ieeeflash64_crt_attach(FILE *fd, uint8_t *rawcart)
         return -1;
     }
 
+    set_ieeeflash64_filename(filename, NULL); /* set the resource */
     return ieeeflash64_common_attach();
 }
 

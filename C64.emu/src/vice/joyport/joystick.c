@@ -163,6 +163,7 @@ static uint8_t joystick_axis_value[4] = { 0x80, 0x80, 0x80, 0x80 };
 static void joystick_latch_matrix(CLOCK offset)
 {
     uint8_t idx;
+    int port;
 
     if (network_connected()) {
         idx = network_joystick_value.last_used_joyport;
@@ -179,35 +180,10 @@ static void joystick_latch_matrix(CLOCK offset)
         joystick_machine_func();
     }
 
-    if (joyport_joystick[0]) {
-        joyport_display_joyport(JOYPORT_ID_JOY1, joystick_value[JOYPORT_1]);
-    }
-    if (joyport_joystick[1]) {
-        joyport_display_joyport(JOYPORT_ID_JOY2, joystick_value[JOYPORT_2]);
-    }
-    if (joyport_joystick[2]) {
-        joyport_display_joyport(JOYPORT_ID_JOY3, joystick_value[JOYPORT_3]);
-    }
-    if (joyport_joystick[3]) {
-        joyport_display_joyport(JOYPORT_ID_JOY4, joystick_value[JOYPORT_4]);
-    }
-    if (joyport_joystick[4]) {
-        joyport_display_joyport(JOYPORT_ID_JOY5, joystick_value[JOYPORT_5]);
-    }
-    if (joyport_joystick[5]) {
-        joyport_display_joyport(JOYPORT_ID_JOY6, joystick_value[JOYPORT_6]);
-    }
-    if (joyport_joystick[6]) {
-        joyport_display_joyport(JOYPORT_ID_JOY7, joystick_value[JOYPORT_7]);
-    }
-    if (joyport_joystick[7]) {
-        joyport_display_joyport(JOYPORT_ID_JOY8, joystick_value[JOYPORT_8]);
-    }
-    if (joyport_joystick[8]) {
-        joyport_display_joyport(JOYPORT_ID_JOY9, joystick_value[JOYPORT_9]);
-    }
-    if (joyport_joystick[9]) {
-        joyport_display_joyport(JOYPORT_ID_JOY10, joystick_value[JOYPORT_10]);
+    for (port = 0; port < JOYPORT_MAX_PORTS; port++) {
+        if (joyport_joystick[port]) {
+            joyport_display_joyport(port, JOYPORT_ID_JOYSTICK, joystick_value[port]);
+        }
     }
 }
 
@@ -789,7 +765,7 @@ static joyport_t joystick_device = {
     JOYSTICK_ADAPTER_ID_NONE,       /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_JOYSTICK,        /* device is a Joystick */
     0,                              /* NO output bits */
-    joyport_enable_joystick,        /* device enable function */
+    joyport_enable_joystick,        /* device enable/disable function */
     read_joystick,                  /* digital line read function */
     NULL,                           /* NO digital line store function */
     read_potx,                      /* pot-x read function */
@@ -1722,7 +1698,7 @@ void register_joystick_driver(
         new_joystick_device->axis_mapping[1].negative_direction.action = JOYSTICK;
         new_joystick_device->axis_mapping[1].negative_direction.value.joy_pin = JOYSTICK_DIRECTION_UP;
 
-#if !defined(MACOSX_SUPPORT)
+#if !defined(MACOS_COMPILE)
         if (num_axes == 4) {
             /* next two axes */
             /* CAUTION: make sure to not map axes 2 and/or 5 for pads with > 4 axes, those are
@@ -1741,7 +1717,7 @@ void register_joystick_driver(
             new_joystick_device->axis_mapping[3].negative_direction.action = JOYSTICK;
             new_joystick_device->axis_mapping[3].negative_direction.value.joy_pin = JOYSTICK_DIRECTION_UP;
         }
-#if defined(UNIX_COMPILE) && !defined(MACOSX_SUPPORT)
+#if defined(UNIX_COMPILE) && !defined(MACOS_COMPILE)
         /* CAUTION: this does not work correctly with the current windows joystick code */
         if (num_axes >= 6) {
             /* next two axes (eg second analog stick on ps3/ps4 pads) */

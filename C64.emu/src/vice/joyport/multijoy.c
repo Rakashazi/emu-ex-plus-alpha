@@ -78,26 +78,34 @@ static joyport_t joyport_multijoy_control_device;
 
 static int joyport_enable_in_progres = 0;
 
-static int joyport_multijoy_joysticks_enable(int port, int value)
+static int joyport_multijoy_joysticks_set_enabled(int port, int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
     int otherport = 0;
 
-    if (val == multijoy_enabled) {
+    if (new_state == multijoy_enabled) {
         return 0;
     }
 
-    if (val) {
+    if (new_state) {
+        /* enabled, activate joystick adapter, set amount of joystick adapter ports to 8 */
         joystick_adapter_activate(JOYSTICK_ADAPTER_ID_MULTIJOY, joyport_multijoy_joy_device.name);
         joystick_adapter_set_ports(8);
+
+        /* set other port to multijoy control device */
         if (port == JOYPORT_1) {
             resources_set_int("JoyPort2Device", JOYPORT_ID_MULTIJOY_CONTROL);
         } else {
             resources_set_int("JoyPort1Device", JOYPORT_ID_MULTIJOY_CONTROL);
         }
     } else {
+        /* disabled, disable joystick adapter and multijoy control port */
+
+        /* this function is called again upon setting the multijoy control port, ignore if this is part of the control enable/disable */
         if (!joyport_enable_in_progres) {
             joyport_enable_in_progres = 1;
+
+            /* disable multijoy control port */
             if (port == JOYPORT_1) {
                 resources_get_int("JoyPort2Device", &otherport);
                 if (otherport == JOYPORT_ID_MULTIJOY_CONTROL) {
@@ -114,18 +122,20 @@ static int joyport_multijoy_joysticks_enable(int port, int value)
         joyport_enable_in_progres = 0;
     }
 
-    multijoy_enabled = val;
+    /* set current state */
+    multijoy_enabled = new_state;
 
     return 0;
 }
 
-static int joyport_multijoy_control_enable(int port, int value)
+static int joyport_multijoy_control_set_enabled(int port, int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
     int otherport = 0;
 
-    if (!val) {
+    if (!new_state) {
         if (!joyport_enable_in_progres) {
+            /* if the multijoy control port was disabled by the user, disable main multijoy port as well */
             joyport_enable_in_progres = 1;
             if (port == JOYPORT_1) {
                 resources_get_int("JoyPort2Device", &otherport);
@@ -174,7 +184,7 @@ static joyport_t joyport_multijoy_joy_device = {
     JOYSTICK_ADAPTER_ID_MULTIJOY,            /* device is a joystick adapter */
     JOYPORT_DEVICE_JOYSTICK_ADAPTER,         /* device is a Joystick adapter */
     0,                                       /* NO output bits */
-    joyport_multijoy_joysticks_enable,       /* device enable function */
+    joyport_multijoy_joysticks_set_enabled,  /* device enable/disable function */
     multijoy_read,                           /* digital line read function */
     NULL,                                    /* NO digital line store function */
     NULL,                                    /* NO pot-x read function */
@@ -187,23 +197,23 @@ static joyport_t joyport_multijoy_joy_device = {
 };
 
 static joyport_t joyport_multijoy_control_device = {
-    "Joystick Adapter (MultiJoy Logic)", /* name of the device */
-    JOYPORT_RES_ID_NONE,                 /* device can be used in multiple ports at the same time */
-    JOYPORT_IS_NOT_LIGHTPEN,             /* device is NOT a lightpen */
-    JOYPORT_POT_OPTIONAL,                /* device does NOT use the potentiometer lines */
-    JOYSTICK_ADAPTER_ID_NONE,            /* device is NOT a joystick adapter */
-    JOYPORT_DEVICE_JOYSTICK_ADAPTER,     /* device is a Joystick adapter */
-    0x07,                                /* bits 2, 1 and 0 are output bits */
-    joyport_multijoy_control_enable,     /* device enable function */
-    NULL,                                /* NO digital line read function */
-    multijoy_store,                      /* digital line store function */
-    NULL,                                /* NO pot-x read function */
-    NULL,                                /* NO pot-y read function */
-    NULL,                                /* NO powerup function */
-    NULL,                                /* NO device write snapshot function */
-    NULL,                                /* NO device read snapshot function */
-    NULL,                                /* NO device hook function */
-    0                                    /* NO device hook function mask */
+    "Joystick Adapter (MultiJoy Logic)",  /* name of the device */
+    JOYPORT_RES_ID_NONE,                  /* device can be used in multiple ports at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,              /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,                 /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,             /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_JOYSTICK_ADAPTER,      /* device is a Joystick adapter */
+    0x07,                                 /* bits 2, 1 and 0 are output bits */
+    joyport_multijoy_control_set_enabled, /* device enable/disable function */
+    NULL,                                 /* NO digital line read function */
+    multijoy_store,                       /* digital line store function */
+    NULL,                                 /* NO pot-x read function */
+    NULL,                                 /* NO pot-y read function */
+    NULL,                                 /* NO powerup function */
+    NULL,                                 /* NO device write snapshot function */
+    NULL,                                 /* NO device read snapshot function */
+    NULL,                                 /* NO device hook function */
+    0                                     /* NO device hook function mask */
 };
 
 /* ------------------------------------------------------------------------- */
@@ -239,7 +249,7 @@ static int multijoy_write_snapshot(struct snapshot_s *s, int p)
         return -1;
     }
 
-    if (0 
+    if (0
         || SMW_B(m, multijoy_address) < 0) {
             snapshot_module_close(m);
             return -1;

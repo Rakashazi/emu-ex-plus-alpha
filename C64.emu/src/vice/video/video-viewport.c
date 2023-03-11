@@ -161,18 +161,3 @@ void video_viewport_resize(video_canvas_t *canvas, char resize_canvas)
 
     video_canvas_refresh_all(canvas);
 }
-
-void video_viewport_title_set(video_canvas_t *canvas, const char *title)
-{
-    viewport_t *viewport;
-
-    viewport = canvas->viewport;
-
-    lib_free(viewport->title);
-    viewport->title = lib_strdup(title);
-}
-
-void video_viewport_title_free(viewport_t *viewport)
-{
-    lib_free(viewport->title);
-}

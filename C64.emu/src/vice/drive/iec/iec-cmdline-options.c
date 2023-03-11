@@ -105,9 +105,11 @@ static cmdline_option_t cmd_drive[] =
 
 int iec_cmdline_options_init(void)
 {
-    unsigned int dnr, i;
+    int dnr;
 
     for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+        int i;
+
         cmd_drive[0].name = lib_msprintf("-drive%iram2000", dnr + 8);
         cmd_drive[0].resource_name
             = lib_msprintf("Drive%iRAM2000", dnr + 8);

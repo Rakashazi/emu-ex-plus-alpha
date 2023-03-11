@@ -28,7 +28,7 @@ namespace reSID
 // Rate counter periods are calculated from the Envelope Rates table in
 // the Programmer's Reference Guide. The rate counter period is the number of
 // cycles between each increment of the envelope counter.
-// The rates have been verified by sampling ENV3. 
+// The rates have been verified by sampling ENV3.
 //
 // The rate counter is a 16 bit register which is incremented each cycle.
 // When the counter reaches a specific comparison value, the envelope counter

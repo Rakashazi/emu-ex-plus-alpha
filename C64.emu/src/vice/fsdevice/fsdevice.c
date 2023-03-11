@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "archdep.h"
 #include "attach.h"
 #include "cbmdos.h"
 #include "fileio.h"
@@ -52,7 +53,6 @@
 #include "fsdevice-write.h"
 #include "fsdevice.h"
 #include "fsdevicetypes.h"
-#include "ioutil.h"
 #include "lib.h"
 #include "log.h"
 #include "machine-bus.h"
@@ -77,7 +77,7 @@ void fsdevice_set_directory(char *filename, unsigned int unit)
         case 9:
         case 10:
         case 11:
-            resources_set_string_sprintf("FSDevice%iDir", filename, unit);
+            resources_set_string_sprintf("FSDevice%uDir", filename, unit);
             break;
         default:
             log_message(LOG_DEFAULT, "Invalid unit number %u.", unit);
@@ -208,15 +208,12 @@ int fsdevice_attach(unsigned int device, unsigned int drive, const char *name)
 void fsdevice_init(void)
 {
     unsigned int i, j;
-    unsigned int maxpathlen;
-
-    maxpathlen = ioutil_maxpathlen();
 
     for (i = 0; i < FSDEVICE_DEVICE_MAX; i++) {
         bufinfo_t *bufinfo;
 
-        fsdevice_dev[i].errorl = lib_calloc(1, maxpathlen);
-        fsdevice_dev[i].cmdbuf = lib_calloc(1, maxpathlen);
+        fsdevice_dev[i].errorl = lib_calloc(1, ARCHDEP_PATH_MAX);
+        fsdevice_dev[i].cmdbuf = lib_calloc(1, ARCHDEP_PATH_MAX);
 
         fsdevice_dev[i].cptr = 0;
 
@@ -224,9 +221,9 @@ void fsdevice_init(void)
 
         for (j = 0; j < FSDEVICE_BUFFER_MAX; j++) {
             bufinfo[j].tape = lib_calloc(1, sizeof(tape_image_t));
-            bufinfo[j].dir = lib_calloc(1, maxpathlen);
-            bufinfo[j].name = lib_calloc(1, maxpathlen);
-            bufinfo[j].dirmask = lib_calloc(1, maxpathlen);
+            bufinfo[j].dir = lib_calloc(1, ARCHDEP_PATH_MAX);
+            bufinfo[j].name = lib_calloc(1, ARCHDEP_PATH_MAX);
+            bufinfo[j].dirmask = lib_calloc(1, ARCHDEP_PATH_MAX);
         }
     }
 }

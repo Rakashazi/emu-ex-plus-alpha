@@ -185,11 +185,11 @@ static int cbm6x0_set_sync_factor(int val, void *param)
 }
 
 static const resource_string_t cbm6x0_resources_string[] = {
-    { "ChargenName", CBM2_CHARGEN600, RES_EVENT_NO, NULL,
+    { "ChargenName", CBM2_CHARGEN600_NAME, RES_EVENT_NO, NULL,
       &chargen_name, set_chargen_rom_name, NULL },
-    { "KernalName", CBM2_KERNAL, RES_EVENT_NO, NULL,
+    { "KernalName", CBM2_KERNAL_NAME, RES_EVENT_NO, NULL,
       &kernal_rom_name, set_kernal_rom_name, NULL },
-    { "BasicName", CBM2_BASIC128, RES_EVENT_NO, NULL,
+    { "BasicName", CBM2_BASIC128_NAME, RES_EVENT_NO, NULL,
       &basic_rom_name, set_basic_rom_name, NULL },
     RESOURCE_STRING_LIST_END
 };

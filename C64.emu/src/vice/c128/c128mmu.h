@@ -47,15 +47,15 @@ extern int mmu_cmdline_options_init(void);
 
 extern int mmu_dump(void *context, uint16_t addr);
 
-extern void c128_cpu_set_mmu_page_0(uint8_t val);
-extern void c128_cpu_set_mmu_page_1(uint8_t val);
+extern void c128_mem_set_mmu_page_0(uint8_t val);
+extern void c128_mem_set_mmu_page_1(uint8_t val);
 
-extern void c128_cpu_set_mmu_page_0_bank(uint8_t val);
-extern void c128_cpu_set_mmu_page_1_bank(uint8_t val);
+extern void c128_mem_set_mmu_page_0_bank(uint8_t val);
+extern void c128_mem_set_mmu_page_1_bank(uint8_t val);
 
-extern void c128_cpu_set_mmu_page_0_target_ram(uint8_t val);
-extern void c128_cpu_set_mmu_page_1_target_ram(uint8_t val);
+extern void c128_mem_set_mmu_page_0_target_ram(uint8_t val);
+extern void c128_mem_set_mmu_page_1_target_ram(uint8_t val);
 
-extern void c128_cpu_set_mmu_zp_sp_shared(uint8_t val);
+extern void c128_mem_set_mmu_zp_sp_shared(uint8_t val);
 
 #endif

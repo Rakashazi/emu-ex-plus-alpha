@@ -140,27 +140,31 @@ static void handle_keys(int row, int col, int pressed)
         return;
     }
 
+    /* change the state of the key that the row/col is wired to */
     keys[(row * 5) + col] = (unsigned int)pressed;
 }
 
 /* ------------------------------------------------------------------------- */
 
-static int joyport_cx85_enable(int port, int value)
+static int joyport_cx85_set_enabled(int port, int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
 
-    if (val == cx85_enabled) {
+    if (new_state == cx85_enabled) {
         return 0;
     }
 
-    if (val) {
+    if (new_state) {
+        /* enabled, clear keys and register the keypad */
         memset(keys, 0, KEYPAD_KEYS_NUM * sizeof(unsigned int));
         keyboard_register_joy_keypad(handle_keys);
     } else {
+        /* disabled, unregister the keypad */
         keyboard_register_joy_keypad(NULL);
     }
 
-    cx85_enabled = val;
+    /* set the current state */
+    cx85_enabled = new_state;
 
     return 0;
 }
@@ -225,7 +229,7 @@ static uint8_t cx85_read_dig(int port)
 
     retval |= 0xe0;
 
-    joyport_display_joyport(JOYPORT_ID_CX85_KEYPAD, (uint16_t)~retval);
+    joyport_display_joyport(port, JOYPORT_ID_CX85_KEYPAD, (uint16_t)~retval);
 
     return (uint8_t)retval;
 }
@@ -234,6 +238,7 @@ static uint8_t cx85_read_pot(int port)
 {
     int i;
 
+    /* return 0xff if any of the keys are pressed */
     for (i = 0; i < 20; ++i) {
         if (keys[i]) {
             return 0xff;
@@ -253,7 +258,7 @@ static joyport_t joyport_cx85_device = {
     JOYSTICK_ADAPTER_ID_NONE, /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_KEYPAD,    /* device is a Keypad */
     0,                        /* NO output bits */
-    joyport_cx85_enable,      /* device enable function */
+    joyport_cx85_set_enabled, /* device enable/disable function */
     cx85_read_dig,            /* digital line read function */
     NULL,                     /* NO digital line store function */
     NULL,                     /* NO pot-x read function */

@@ -246,7 +246,9 @@ int pagefox_bin_attach(const char *filename, uint8_t *rawcart)
     if (util_file_load(filename, rawcart, 0x10000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
     }
-    pagefox_ram = lib_malloc(PAGEFOX_RAMSIZE);
+    if (pagefox_ram == NULL) {
+        pagefox_ram = lib_malloc(PAGEFOX_RAMSIZE);
+    }
     return pagefox_common_attach();
 }
 
@@ -267,7 +269,9 @@ int pagefox_crt_attach(FILE *fd, uint8_t *rawcart)
             return -1;
         }
     }
-    pagefox_ram = lib_malloc(PAGEFOX_RAMSIZE);
+    if (pagefox_ram == NULL) {
+        pagefox_ram = lib_malloc(PAGEFOX_RAMSIZE);
+    }
     return pagefox_common_attach();
 }
 
@@ -277,6 +281,7 @@ void pagefox_detach(void)
     io_source_unregister(pagefox_list_item);
     pagefox_list_item = NULL;
     lib_free(pagefox_ram);
+    pagefox_ram = NULL;
 }
 
 /* ---------------------------------------------------------------------*/
@@ -353,6 +358,7 @@ int pagefox_snapshot_read_module(snapshot_t *s)
         || SMR_BA(m, roml_banks, 0x8000) < 0
         || SMR_BA(m, romh_banks, 0x8000) < 0) {
         lib_free(pagefox_ram);
+        pagefox_ram = NULL;
         goto fail;
     }
 

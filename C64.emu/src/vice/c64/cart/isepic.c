@@ -693,6 +693,7 @@ int isepic_bin_attach(const char *filename, uint8_t *rawcart)
         return -1;
     }
 
+    /* set the resource */
     if (set_isepic_filename(filename, NULL) < 0) {
         return -1;
     }
@@ -747,6 +748,7 @@ int isepic_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename)
     if (isepic_crt_load(fd, rawcart) < 0) {
         return -1;
     }
+    /* set the resource */
     if (set_isepic_filename(filename, NULL) < 0) {
         return -1;
     }

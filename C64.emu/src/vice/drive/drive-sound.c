@@ -1522,7 +1522,7 @@ static int drive_sound_machine_channels(void)
 
 /* Drive sound 'chip', emulates the sound of a 1541 disk drive */
 static sound_chip_t drive_sound = {
-    NULL,                                  /* NO sound chip open function */ 
+    NULL,                                  /* NO sound chip open function */
     drive_sound_machine_init,              /* sound chip init function */
     NULL,                                  /* NO sound chip close function */
     drive_sound_machine_calculate_samples, /* sound chip calculate samples function */

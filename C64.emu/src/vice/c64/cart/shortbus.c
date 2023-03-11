@@ -292,14 +292,14 @@ int shortbus_read_snapshot_module(snapshot_t *s)
         if (devices[0]) {
             if (shortbus_digimax_read_snapshot_module(s) < 0) {
                 return -1;
-            }        
+            }
         }
 
 #ifdef HAVE_RAWNET
         if (devices[2]) {
             if (shortbus_etfe_read_snapshot_module(s) < 0) {
                 return -1;
-            }        
+            }
         }
 #endif
 
@@ -308,12 +308,12 @@ int shortbus_read_snapshot_module(snapshot_t *s)
         if (devices[1]) {
             if (shortbus_duart_read_snapshot_module(s) < 0) {
                 return -1;
-            }        
+            }
         }
         if (devices[3]) {
             if (shortbus_eth64_read_snapshot_module(s) < 0) {
                 return -1;
-            }        
+            }
         }
 #endif
     }

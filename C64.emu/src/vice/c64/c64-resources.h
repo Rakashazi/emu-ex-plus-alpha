@@ -34,20 +34,6 @@ extern void c64_resources_update_cia_models(int model);
 
 extern int acia_de_enabled;
 
-#define C64_KERNAL_UNKNOWN -1
-#define C64_KERNAL_REV1 1       /* 901227-01 */
-#define C64_KERNAL_REV2 2       /* 901227-02 */
-#define C64_KERNAL_REV3 3       /* 901227-03 */
-#define C64_KERNAL_SX64 67      /* 251104-04 */
-#define C64_KERNAL_4064 100     /* 901246-01 */
-
-#define C64_KERNAL_JAP     -1   /* FIXME */
-#define C64_KERNAL_GS64    -1   /* FIXME */
-#define C64_KERNAL_MAX     -1   /* FIXME */
-#define C64_KERNAL_REV3SWE -1   /* FIXME */
-extern int kernal_revision;
-extern int kernal_revision_cmdline;
-
 extern int cia1_model;
 extern int cia2_model;
 

@@ -57,7 +57,7 @@ extern void tpi_passthrough_changed(export_t *export);
 
 extern void tpi_setup_context(struct machine_context_s *machine_context);
 extern int tpi_bin_attach(const char *filename, uint8_t *rawcart);
-extern int tpi_crt_attach(FILE *fd, uint8_t *rawcart);
+extern int tpi_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
 extern const char *tpi_get_file_name(void);
 extern int tpi_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 

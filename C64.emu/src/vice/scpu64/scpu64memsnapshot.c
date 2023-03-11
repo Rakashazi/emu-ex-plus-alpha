@@ -58,12 +58,12 @@
 extern int mem_reg_soft_1mhz;
 extern int mem_reg_sys_1mhz;
 extern int mem_reg_hwenable;
-extern int mem_reg_dosext;  
-extern int mem_reg_ramlink; 
-extern int mem_reg_optim; 
+extern int mem_reg_dosext;
+extern int mem_reg_ramlink;
+extern int mem_reg_optim;
 extern int mem_reg_bootmap;
-extern int mem_reg_simm;  
-extern int mem_pport;   
+extern int mem_reg_simm;
+extern int mem_pport;
 extern unsigned int mem_simm_ram_mask;
 /* ------------------------ */
 

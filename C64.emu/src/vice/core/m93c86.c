@@ -26,7 +26,7 @@
 
 
 /* this implements the M93C86 EEPROM in 16 bit mode as used by the GMod2 cartridge.
-   other types (M93C86-x M93C76-x M93C66-x M93C56-x M93C46-x) can probably be 
+   other types (M93C86-x M93C76-x M93C66-x M93C56-x M93C46-x) can probably be
    supported with some reworking too (if we ever need it) */
 
 /* #define M93C86DEBUG */

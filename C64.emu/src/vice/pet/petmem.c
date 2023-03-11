@@ -53,6 +53,7 @@
 #include "petmem.h"
 #include "petmodel.h"
 #include "petpia.h"
+#include "petrom.h"
 #include "pets.h"
 #include "petvia.h"
 #include "ram.h"
@@ -141,7 +142,7 @@ static log_t pet_mem_log = LOG_ERR;
 
 static uint8_t last_access = 0;
 
-/* Current watchpoint state. 
+/* Current watchpoint state.
           0 = no watchpoints
     bit0; 1 = watchpoints active
     bit1; 2 = watchpoints trigger on dummy accesses
@@ -444,7 +445,7 @@ static inline uint8_t read6702(void)
  *
  * William Levak had a slightly different model in mind but it works
  * out the same. He wrote the following Basic program to mimic it:
- * 
+ *
 100 dims(7,7)
 110 l(0)=6:l(1)=3:l(2)=7:l(3)=8:l(4)=1:l(5)=3:l(6)=5:l(7)=2
 120 b(0)=1:b(1)=2:b(2)=4:b(3)=8:b(4)=16:b(5)=32:b(6)=64:b(7)=128
@@ -457,11 +458,11 @@ static inline uint8_t read6702(void)
 190 if(n2andeo)=0theneo=1-(n2and1):goto160
 200 mk=(lnorn2)-(lnandn2)
 210 fori=0to7:ifmkandb(i)thens(i,c(i))=1-s(i,c(i))
-220 next                                                                 
-230 fori=0to7:c(i)=c(i)+1:ifc(i)=l(i)thenc(i)=0                            
-240 next:ln=n2:eo=1-(n2and1)                                                 
-250 fori=0to7:ifs(i,c(i))=0goto280                                             
-260 ifb(i)andtthent=int(t-b(i)):goto280                                         
+220 next
+230 fori=0to7:c(i)=c(i)+1:ifc(i)=l(i)thenc(i)=0
+240 next:ln=n2:eo=1-(n2and1)
+250 fori=0to7:ifs(i,c(i))=0goto280
+260 ifb(i)andtthent=int(t-b(i)):goto280
 270 t=b(i)ort
 280 next
 290 n=n+1:goto140
@@ -1493,22 +1494,28 @@ void mem_initialize_memory_6809(void)
     }
 }
 
+/*
+ * The memory mapping is probably reset even if FIRQ is disabled
+ * (see http://mikenaberezny.com/wp-content/uploads/2009/11/superos9-mmu-schematic-r2.jpg )
+ * but since a missing FIRQ basically halts the 6809, there is little
+ * difference in practice.
+ */
 int superpet_sync(void)
 {
+    spet_flat_mode = 0;
+    mem_initialize_memory_6809_banked();
+    /* mon_bank(e_default_space, "6809");
+       extern WORD PC;
+       printf("next opcode: %04X: banked %02X, flat %02X\n",
+               PC,
+               mem_ram[EXT_RAM + spet_bank_4k + (PC & 0x0FFF)],
+               mem_ram[EXT_RAM + PC]
+          ); */
+
     if (spet_firq_disabled) {
         log_error(pet_mem_log, "SuperPET: SYNC encountered, but no FIRQ possible!");
         return 1;
     } else {
-        spet_flat_mode = 0;
-        mem_initialize_memory_6809_banked();
-        /* mon_bank(e_default_space, "6809");
-           extern WORD PC;
-           printf("next opcode: %04X: banked %02X, flat %02X\n",
-                   PC,
-                   mem_ram[EXT_RAM + spet_bank_4k + (PC & 0x0FFF)],
-                   mem_ram[EXT_RAM + PC]
-              ); */
-
         return 0;
     }
 }
@@ -1674,7 +1681,7 @@ void mem_set_basic_text(uint16_t start, uint16_t end)
 }
 
 /* this function should always read from the screen currently used by the kernal
-   for output, normally this does just return system ram - except when the 
+   for output, normally this does just return system ram - except when the
    videoram is not memory mapped.
    used by autostart to "read" the kernal messages
 */
@@ -2059,7 +2066,7 @@ void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, i
 
 /* used by autostart to locate and "read" kernal output on the current screen
  * this function should return whatever the kernal currently uses, regardless
- * what is currently visible/active in the UI. 
+ * what is currently visible/active in the UI.
  */
 void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uint8_t *line_length, int *blinking)
 {
@@ -2095,18 +2102,3 @@ void petmem_check_info(petres_t *pi)
         pi->videoSize = 0x1000;
     }
 }
-
-/* dummy function to satisfy the global cartridge system */
-int cartridge_attach_image(int type, const char *name)
-{
-    return -1;
-}
-
-void cartridge_detach_image(int type)
-{
-}
-
-void cartridge_unset_default(void)
-{
-}
-

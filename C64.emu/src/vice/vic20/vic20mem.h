@@ -36,12 +36,6 @@
 #include "types.h"
 
 #define VIC20_RAM_SIZE                  0x10000 /* Kludged... */
-#define VIC20_BASIC_ROM_SIZE            0x2000
-#define VIC20_KERNAL_ROM_SIZE           0x2000
-#define VIC20_CHARGEN_ROM_SIZE          0x1000
-
-#define VIC20_BASIC_CHECKSUM            33073
-#define VIC20_KERNAL_CHECKSUM           38203
 
 /* VIC20 memory-related resources.  */
 #define VIC_BLK0 1
@@ -68,8 +62,6 @@ extern int vic20_mem_enable_ram_block(int num);
 /* this should go away */
 extern void mem_attach_cartridge(int type, uint8_t *rawcart);
 extern void mem_detach_cartridge(int type);
-
-extern int mem_patch_kernal(void);
 
 /* Last data read/write by the cpu, this value lingers on the C(PU)-bus and
    gets used when the CPU reads from unconnected space on the C(PU)-bus */

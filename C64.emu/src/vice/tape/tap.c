@@ -247,7 +247,7 @@ tap_t *tap_open(const char *name, unsigned int *read_only)
     new->fd = fd;
     new->read_only = *read_only;
 
-    new->size = (int)util_file_length(fd) - TAP_HDR_SIZE;
+    new->size = (int)archdep_file_size(fd) - TAP_HDR_SIZE;
 
     if (new->size < 3) {
         zfile_fclose(new->fd);
@@ -270,10 +270,10 @@ int tap_close(tap_t *tap)
     if (tap->fd != NULL) {
         /* write data size into header */
         if (tap->has_changed) {
-            size_t datasize = util_file_length(tap->fd) - TAP_HDR_SIZE;
             uint8_t buf[4];
+            off_t datasize = archdep_file_size(tap->fd) - TAP_HDR_SIZE;
             /* sanity check */
-            if (tap->size != datasize) {
+            if (tap->size != (int)datasize) {
                 log_warning(tape_log,
                             "tap data size mismatch, expected: 0x%06lx is: 0x%06x",
                             (unsigned long)datasize, (unsigned)tap->size);
@@ -535,13 +535,12 @@ static int tap_cbm_read_byte(tap_t *tap)
 static int tap_cbm_skip_pilot(tap_t *tap)
 {
     int data, errors;
-    long fpos, counter;
+    long fpos;
     long fpos2;
     long current_filepos;
     int pos_advance;
 
     errors = 0;
-    counter = 0;
     current_filepos = ftell(tap->fd);
     while (1) {
         /*  Save file position */
@@ -566,7 +565,6 @@ static int tap_cbm_skip_pilot(tap_t *tap)
                 /* Start over after the L pulse */
                 fseek(tap->fd, fpos2, SEEK_SET);
                 current_filepos = fpos2;
-                counter = 0;
             } else {
                 /* success.  Go back to start of byte and return */
                 fseek(tap->fd, fpos, SEEK_SET);
@@ -575,11 +573,8 @@ static int tap_cbm_skip_pilot(tap_t *tap)
             }
         } else if (data < 0) {
             return -1; /* end-of-tape */
-        } else {
-            ++counter;
-            if (!TAP_PULSE_SHORT(data)) {
-                return 0;
-            }
+        } else if (!TAP_PULSE_SHORT(data)) {
+            return 0;
         }
     }
 
@@ -587,7 +582,7 @@ static int tap_cbm_skip_pilot(tap_t *tap)
 }
 
 
-#if TAP_DEBUG>0 
+#if TAP_DEBUG>0
 void tap_cbm_print_error(int ret)
 {
     switch (ret) {

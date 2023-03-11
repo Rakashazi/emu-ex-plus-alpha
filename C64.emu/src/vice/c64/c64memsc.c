@@ -121,7 +121,7 @@ static int tape_sense = 0;
 static int tape_write_in = 0;
 static int tape_motor_in = 0;
 
-/* Current watchpoint state. 
+/* Current watchpoint state.
           0 = no watchpoints
     bit0; 1 = watchpoints active
     bit1; 2 = watchpoints trigger on dummy accesses
@@ -408,10 +408,6 @@ void ram_store(uint16_t addr, uint8_t value)
 void ram_hi_store(uint16_t addr, uint8_t value)
 {
     mem_ram[addr] = value;
-
-    if (addr == 0xff00) {
-        reu_dma(-1);
-    }
 }
 
 /* unconnected memory space */
@@ -424,6 +420,21 @@ static void void_store(uint16_t addr, uint8_t value)
 {
     return;
 }
+
+/* ------------------------------------------------------------------------- */
+
+/* DMA memory access, on c64 this is the same as generic memory access.  */
+
+void mem_dma_store(uint16_t addr, uint8_t value)
+{
+    _mem_write_tab_ptr[addr >> 8](addr, value);
+}
+
+uint8_t mem_dma_read(uint16_t addr)
+{
+    return _mem_read_tab_ptr[addr >> 8](addr);
+}
+
 
 /* ------------------------------------------------------------------------- */
 
@@ -806,7 +817,7 @@ void mem_set_basic_text(uint16_t start, uint16_t end)
 }
 
 /* this function should always read from the screen currently used by the kernal
-   for output, normally this does just return system ram - except when the 
+   for output, normally this does just return system ram - except when the
    videoram is not memory mapped.
    used by autostart to "read" the kernal messages
 */
@@ -1123,7 +1134,8 @@ uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
                 return mem_read(addr);
             }
             /* we must check for which bank is currently active */
-            if (c64meminit_io_config[mem_config]) {
+            /* don't include ultimax here, check later */
+            if (c64meminit_io_config[mem_config] == 1) {
                 if ((addr >= 0xd000) && (addr < 0xe000)) {
                     return peek_bank_io(addr);
                 }
@@ -1238,7 +1250,7 @@ void mem_bank_poke(int bank, uint16_t addr, uint8_t byte, void *context)
             }
             break;
     }
-    
+
     mem_bank_write(bank, addr, byte, context);
 }
 
@@ -1274,7 +1286,7 @@ void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, i
 
 /* used by autostart to locate and "read" kernal output on the current screen
  * this function should return whatever the kernal currently uses, regardless
- * what is currently visible/active in the UI 
+ * what is currently visible/active in the UI
  */
 void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uint8_t *line_length, int *blinking)
 {

@@ -35,9 +35,7 @@
 
 #include "archdep.h"
 #include "lib.h"
-#include "ioutil.h"
 #include "log.h"
-#include "snapshot.h"
 #ifdef USE_SVN_REVISION
 #include "svnversion.h"
 #endif
@@ -46,6 +44,9 @@
 #include "version.h"
 #include "vsync.h"
 #include "zfile.h"
+
+#include "snapshot.h"
+
 
 #ifdef DEBUG_SNAPSHOT
 #define DBG(x)  printf x
@@ -858,7 +859,7 @@ snapshot_t *snapshot_create(const char *filename, uint8_t major_version, uint8_t
 
 fail:
     fclose(f);
-    ioutil_remove(filename);
+    archdep_remove(filename);
     return NULL;
 }
 
@@ -1061,7 +1062,7 @@ void snapshot_display_error(void)
             ui_error("Cannot find first module in snapshot %s", current_filename);
             break;
         case SNAPSHOT_MODULE_HEADER_READ_ERROR:
-            ui_error("Error while reading module header (after module '%s' at pos 0x%lx) in snapshot %s",
+            ui_error("Error while reading module header (after module '%s' at pos 0x%" PRI_SIZE_T ") in snapshot %s",
                      current_module, current_fpos, current_filename);
             break;
         case SNAPSHOT_MODULE_NOT_FOUND_ERROR:
@@ -1121,8 +1122,8 @@ void snapshot_display_error(void)
             break;
     }
     if (snapshot_error != SNAPSHOT_NO_ERROR) {
-        log_error(LOG_DEFAULT, "snapshot error at position 0x%lx module '%s' in file '%s'",
-                  current_fpos, current_module, current_filename);
+        log_error(LOG_DEFAULT, "snapshot error at position 0x%llx module '%s' in file '%s'",
+                  (unsigned long long)current_fpos, current_module, current_filename);
     }
 }
 

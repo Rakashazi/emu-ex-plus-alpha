@@ -616,7 +616,7 @@ static int charrom_on;
 uint8_t petdwwpia_read(uint16_t addr);
 void petdwwpia_store(uint16_t addr, uint8_t byte);
 
-int petdww_mem_at_9000()
+int petdww_mem_at_9000(void)
 {
     return mem_at_9000;
 }

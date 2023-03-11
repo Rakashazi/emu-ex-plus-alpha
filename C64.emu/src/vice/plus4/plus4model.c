@@ -36,6 +36,7 @@
 #include "plus4cart.h"
 #include "plus4mem.h"
 #include "plus4model.h"
+#include "plus4rom.h"
 #include "machine.h"
 #include "resources.h"
 #include "types.h"
@@ -61,17 +62,17 @@ struct model_s {
 */
 
 static const struct model_s plus4models[] = {
-    { MACHINE_SYNC_PAL,  RAM16K, NO_SPEECH,  NO_ACIA,  NO_USERPORT,  "kernal",     "basic", "",         "",         "" }, /* c16 (pal) */
-    { MACHINE_SYNC_NTSC, RAM16K, NO_SPEECH,  NO_ACIA,  NO_USERPORT,  "kernal.005", "basic", "",         "",         "" }, /* c16 (ntsc) */
-    { MACHINE_SYNC_PAL,  RAM64K, NO_SPEECH,  HAS_ACIA, HAS_USERPORT, "kernal",     "basic", "3plus1lo", "3plus1hi", "" }, /* plus4 (pal) */
-    { MACHINE_SYNC_NTSC, RAM64K, NO_SPEECH,  HAS_ACIA, HAS_USERPORT, "kernal.005", "basic", "3plus1lo", "3plus1hi", "" }, /* plus4 (ntsc) */
-    { MACHINE_SYNC_NTSC, RAM64K, HAS_SPEECH, HAS_ACIA, HAS_USERPORT, "kernal.364", "basic", "3plus1lo", "3plus1hi", "c2lo.364" }, /* v364 (ntsc) */
-    { MACHINE_SYNC_NTSC, RAM32K, NO_SPEECH,  NO_ACIA,  NO_USERPORT,  "kernal.232", "basic", "",         "",         "" }, /* 232 (ntsc) */
+    { MACHINE_SYNC_PAL,  RAM16K, NO_SPEECH,  NO_ACIA,  NO_USERPORT,  PLUS4_KERNAL_PAL_REV5_NAME,  PLUS4_BASIC_NAME, "",                  "",                  "" }, /* c16 (pal) */
+    { MACHINE_SYNC_NTSC, RAM16K, NO_SPEECH,  NO_ACIA,  NO_USERPORT,  PLUS4_KERNAL_NTSC_REV5_NAME, PLUS4_BASIC_NAME, "",                  "",                  "" }, /* c16 (ntsc) */
+    { MACHINE_SYNC_PAL,  RAM64K, NO_SPEECH,  HAS_ACIA, HAS_USERPORT, PLUS4_KERNAL_PAL_REV5_NAME,  PLUS4_BASIC_NAME, PLUS4_3PLUS1LO_NAME, PLUS4_3PLUS1HI_NAME, "" }, /* plus4 (pal) */
+    { MACHINE_SYNC_NTSC, RAM64K, NO_SPEECH,  HAS_ACIA, HAS_USERPORT, PLUS4_KERNAL_NTSC_REV5_NAME, PLUS4_BASIC_NAME, PLUS4_3PLUS1LO_NAME, PLUS4_3PLUS1HI_NAME, "" }, /* plus4 (ntsc) */
+    { MACHINE_SYNC_NTSC, RAM64K, HAS_SPEECH, HAS_ACIA, HAS_USERPORT, PLUS4_KERNAL_NTSC_364_NAME,  PLUS4_BASIC_NAME, PLUS4_3PLUS1LO_NAME, PLUS4_3PLUS1HI_NAME, PLUS4_C2LO_NAME }, /* v364 (ntsc) */
+    { MACHINE_SYNC_NTSC, RAM32K, NO_SPEECH,  NO_ACIA,  NO_USERPORT,  PLUS4_KERNAL_NTSC_REV1_NAME, PLUS4_BASIC_NAME, "",                  "",                  "" }, /* 232 (ntsc) */
 };
 
 /* ------------------------------------------------------------------------- */
 
-static int plus4model_get_temp(int video, int ramsize, int hasspeech, int hasacia, 
+static int plus4model_get_temp(int video, int ramsize, int hasspeech, int hasacia,
                                const char *plus1loname,
                                const char *plus1hiname,
                                const char* c2loname,
@@ -87,7 +88,7 @@ static int plus4model_get_temp(int video, int ramsize, int hasspeech, int hasaci
             && ((strlen(plus4models[i].plus1loname) == 0 ? 1 : 0) == (strlen(plus1loname) == 0 ? 1 : 0))
             && ((strlen(plus4models[i].plus1hiname) == 0 ? 1 : 0) == (strlen(plus1hiname) == 0 ? 1 : 0))
             && ((strlen(plus4models[i].c2loname) == 0 ? 1 : 0) == (strlen(c2loname) == 0 ? 1 : 0))
-            && (!strcmp(plus4models[i].kernalname, kernal))) {
+            && (kernal && (strcmp(plus4models[i].kernalname, kernal) == 0))) {
             return i;
         }
     }

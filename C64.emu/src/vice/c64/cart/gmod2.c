@@ -231,7 +231,7 @@ void gmod2_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *lim
 static int gmod2_dump(void)
 {
     /* FIXME: incomplete */
-    mon_out("GAME/EXROM status: %s%s\n", 
+    mon_out("GAME/EXROM status: %s%s\n",
             cart_config_string(gmod2_cmode),
             (gmod2_cmode == CMODE_ULTIMAX) ? " (Flash mode)" : "");
     mon_out("ROM bank: %d\n", gmod2_bank);

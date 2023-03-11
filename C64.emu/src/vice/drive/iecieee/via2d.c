@@ -153,7 +153,7 @@ int via2d_dump(diskunit_context_t *ctxptr, uint16_t addr)
     int zone = (ctxptr->via2->via[VIA_PRB] >> 5) & 3;
 
     viacore_dump(ctxptr->via2);
-    mon_out("\nHead is on track: %d.%d (%s at %dbps, speed zone %d)\n", 
+    mon_out("\nHead is on track: %d.%d (%s at %dbps, speed zone %d)\n",
             track_number / 2, (track_number & 1) * 5,
             ((ctxptr->via2->via[VIA_PCR] & 0xe0) == 0xe0) ? "reading" : "writing",
             speeds[zone], zone
@@ -222,7 +222,7 @@ static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t poldpb,
        suggests a binary counter circuitry, but that is not the case, the similarity is just a side effect.
        Note, how switching the drive motor on/off may move the stepper motor as well.
     */
-    
+
     /* vice track numbering starts with 2... we need the real, physical track number */
     track_number = drv->current_half_track - 2;
 
@@ -244,17 +244,17 @@ static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t poldpb,
 
     /* the steps travelled and the direction */
     /* int step_count = (drv->stepper_new_position - old_stepper_position) & 3; */
-    step_count = (new_stepper_position - old_stepper_position) & 3;    
+    step_count = (new_stepper_position - old_stepper_position) & 3;
     if (step_count == 3) {
         step_count = -1;
     }
-    
+
     /* Process stepper motor if the drive motor is on */
     if (byte & 0x4) {
 #ifdef DEBUG_STEP
         if (new_stepper_position != old_stepper_position) {
-            DBGSTEP(("trk: %d.%d, old: %d new: %d steps: %d", 
-                   (track_number+1) / 2, (track_number+1) & 1, 
+            DBGSTEP(("trk: %d.%d, old: %d new: %d steps: %d",
+                   (track_number+1) / 2, (track_number+1) & 1,
                    old_stepper_position, new_stepper_position,
                    step_count
                   ));
@@ -276,7 +276,7 @@ static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t poldpb,
             - startup time, the time it takes from changing the coils to when
               the head starts moving.
             - seek time, the time it takes the head to move from track to track
-            - settle time, the time it takes from stopping the head to being 
+            - settle time, the time it takes from stopping the head to being
               able to read reliably.
 
             the simplified emulation here only simulates startup time, and then
@@ -289,7 +289,7 @@ static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t poldpb,
         /*
             Action Replay 6:                                     8333 = 8.3ms
             Cauldron/The Dreams:                                 7734 = 7.7ms
-            fastest usable stepping speed seems to be around     4096 = 4.1ms 
+            fastest usable stepping speed seems to be around     4096 = 4.1ms
             min delay so we dont get a step at reset              700 = 0.7ms
          */
         /* if ((*(via_context->clk_ptr) - drv->stepper_last_change_clk) >= 2000) */ {
@@ -303,8 +303,8 @@ static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t poldpb,
                     allowing it always does more harm than good, so we should simply ignore
                     this condition for the time being. */
             if ((step_count == 1) || (step_count == -1)) {
-                DBG(("VIA2: store_prb drive_move_head(%d) (%02x to %02x) clk:%d delay:%d", 
-                     step_count, poldpb, byte, *(via_context->clk_ptr), 
+                DBG(("VIA2: store_prb drive_move_head(%d) (%02x to %02x) clk:%d delay:%d",
+                     step_count, poldpb, byte, *(via_context->clk_ptr),
                      (*(via_context->clk_ptr) - drv->stepper_last_change_clk)));
                 drive_move_head(step_count, drv);
             }
@@ -340,7 +340,7 @@ static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t poldpb,
             if ((byte & 0x04) != 0) {
 #ifdef DEBUG_STEP
                 DBGSTEP(("motor: %d trk: %d.%d, old: %d new: %d steps: %d",
-                    byte & 0x04, (track_number+1) / 2, (track_number+1) & 1, 
+                    byte & 0x04, (track_number+1) / 2, (track_number+1) & 1,
                     old_stepper_position, new_stepper_position, step_count));
 #endif
                 drive_move_head(step_count, drv);
@@ -502,8 +502,8 @@ void via2d_setup_context(diskunit_context_t *ctxptr)
     via->rmw_flag = &(ctxptr->cpu->rmw_flag);
     via->clk_ptr = ctxptr->clk_ptr;
 
-    via->myname = lib_msprintf("Drive%dVia2", via2p->number);
-    via->my_module_name = lib_msprintf("VIA2D%d", via2p->number);
+    via->myname = lib_msprintf("Drive%uVia2", via2p->number);
+    via->my_module_name = lib_msprintf("VIA2D%u", via2p->number);
 
     viacore_setup_context(via);
 

@@ -51,7 +51,7 @@ int vic_snapshot_write_module(snapshot_t *s)
 {
     int i;
     snapshot_module_t *m;
-    
+
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
     if (m == NULL) {
         return -1;
@@ -84,7 +84,7 @@ int vic_snapshot_write_module(snapshot_t *s)
         ) {
         goto fail;
     }
-    
+
     /* Color RAM.  */
     if (SMW_BA(m, mem_ram + 0x9400, 0x400) < 0) {
         goto fail;

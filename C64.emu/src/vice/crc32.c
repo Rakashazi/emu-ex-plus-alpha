@@ -96,7 +96,7 @@ uint32_t crc32_file(const char *filename)
 {
     FILE *fd;
     char *buffer;
-    unsigned int len;
+    off_t len;
     uint32_t crc = 0;
 
     if (util_check_null_string(filename) < 0) {
@@ -109,12 +109,15 @@ uint32_t crc32_file(const char *filename)
         return 0;
     }
 
-    len = (unsigned int)util_file_length(fd);
+    len = archdep_file_size(fd);
+    if (len < 0) {
+        fclose(fd);
+        return 0;
+    }
+    buffer = lib_malloc((size_t)len);
 
-    buffer = lib_malloc(len);
-
-    if (fread(buffer, len, 1, fd) == 1) {
-        crc = crc32_buf(buffer, len);
+    if (fread(buffer, (size_t)len, 1, fd) == 1) {
+        crc = crc32_buf(buffer, (unsigned int)len);
     }
 
     fclose(fd);

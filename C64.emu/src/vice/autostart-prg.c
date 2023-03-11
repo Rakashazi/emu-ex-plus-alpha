@@ -296,7 +296,7 @@ int autostart_prg_with_disk_image(int unit, int drive, const char *file_name,
             if (i == 16) {
                 break;
             }
-            if ((i < 16) && (!strcasecmp((const char*)&fh->name[i], ".prg"))) {
+            if ((i < 16) && (!util_strcasecmp((const char*)&fh->name[i], ".prg"))) {
                 break;
             }
             tempname[i] = fh->name[i];

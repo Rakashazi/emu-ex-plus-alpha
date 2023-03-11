@@ -367,7 +367,7 @@ static void debug_int(interrupt_cpu_status_t *cs, const char *name,
         }
     }
 
-    texttmp = lib_msprintf("%s %ld", textout, iclk);
+    texttmp = lib_msprintf("%s %llu", textout, (unsigned long long)iclk);
     lib_free(textout);
     textout = texttmp;
 
@@ -430,7 +430,7 @@ static void debug_create_new_file(void)
     resources_get_string("EventSnapshotDir", &directory);
 
     st = lib_msprintf("debug%06d", debug_file_current);
-    filename = util_concat(directory, st, FSDEV_EXT_SEP_STR, "log", NULL);
+    filename = util_concat(directory, st, ".log", NULL);
     lib_free(st);
 
     debug_file = fopen(filename, MODE_WRITE_TEXT);
@@ -450,7 +450,7 @@ static void debug_open_new_file(void)
     resources_get_string("EventSnapshotDir", &directory);
 
     st = lib_msprintf("debug%06d", debug_file_current);
-    filename = util_concat(directory, st, FSDEV_EXT_SEP_STR, "log", NULL);
+    filename = util_concat(directory, st, ".log", NULL);
     lib_free(st);
 
     debug_file = fopen(filename, MODE_READ_TEXT);

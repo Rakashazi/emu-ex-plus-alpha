@@ -61,6 +61,7 @@ struct fd_drive_s {
     int disk_rate;
     int image_sectors;
     unsigned int index_count;
+    int write_beyond; /* flag to see if we writing D?M data to a D81 image */
     drive_t *drive;
     struct disk_image_s *image;
     struct {
@@ -93,6 +94,7 @@ fd_drive_t *fdd_init(int num, drive_t *drive)
     /* TODO: What about the other fields in raw? */
     drv->raw.data = NULL;
     drv->raw.sync = NULL;
+    drv->write_beyond = 0;
     return drv;
 }
 
@@ -167,7 +169,11 @@ void fdd_image_attach(fd_drive_t *drv, struct disk_image_s *image)
             break;
         case DISK_IMAGE_TYPE_D81:
         default:
-            drv->tracks = 80;
+            /* Normally, the value below would be 80, but the FD2K/4K ROMS
+               write to sector 81 with zeros when formatting for 1581 disks.
+               By setting it to 81, we later detect this and error out
+               appropriately so the format command will work. */
+            drv->tracks = 81;
             drv->sectors = 10;
             drv->sector_size = 2;
             drv->head_invert = 1;
@@ -184,6 +190,7 @@ void fdd_image_attach(fd_drive_t *drv, struct disk_image_s *image)
     drv->raw.track_head = -1;
     drv->raw.dirty = 0;
     drv->raw.head = 0;
+    drv->write_beyond = 0;
 
     drv->disk_change = 1;
     drv->write_protect = (int)(image->read_only);
@@ -233,7 +240,7 @@ inline uint16_t fdd_crc(uint16_t crc, uint8_t b)
 
 static void fdd_flush_raw(fd_drive_t *drv)
 {
-    int i, j, s, p, step, d;
+    int i, j, s, p, step, d, c;
     uint8_t *data;
     uint16_t w;
     disk_addr_t dadr;
@@ -244,7 +251,7 @@ static void fdd_flush_raw(fd_drive_t *drv)
     drv->raw.dirty = 0;
 
     if (drv->raw.track_head / 2 < drv->tracks && drv->image) {
-#if FDD_DEBUG
+#ifdef FDD_DEBUG
         for (i = 0; i < drv->raw.size; i++) {
             if (!(i & 15)) {
                 printf("%04x: ", i);
@@ -365,7 +372,22 @@ static void fdd_flush_raw(fd_drive_t *drv)
                         dadr.sector = dadr.sector % (unsigned int)(drv->image_sectors);
 
                         for (j = 0; j < (1 << drv->sector_size); j += 2) {
-                            disk_image_write_sector(drv->image, data + j * 128, &dadr);
+                            /* FD2000 and FD4000 drives will expect to read back a formatted
+                               track 81 on a D81 image, but this is beyond the image spec.
+                               We will track if the data wasn't all zeros here, and error
+                               out in the read process (below) later. */
+                            if (dadr.track >= 81 && drv->image->type == DISK_IMAGE_TYPE_D81
+                                && !drv->write_beyond) {
+                                for (c = 0; c < 256 ; c++ ) {
+                                    if (data[j * 128 + c]) {
+                                        drv->write_beyond = 1;
+                                        break;
+                                    }
+                                }
+                            } else {
+                                disk_image_write_sector(drv->image, data + j * 128, &dadr);
+                                drv->write_beyond = 0;
+                            }
                             dadr.sector = (dadr.sector + 1) % (unsigned int)(drv->image_sectors);
                             if (!dadr.sector) {
                                 dadr.track++;
@@ -445,7 +467,24 @@ static void fdd_update_raw(fd_drive_t *drv)
             }
             crc = 0xe295;
             for (j = 0; j < (1 << drv->sector_size); j += 2) {
-                res = disk_image_read_sector(drv->image, buffer, &dadr);
+                /* FD2000 and FD4000 drives will expect to read back a formatted
+                   track 81 on a D81 image, but this is beyond the image spec.
+                   If any data other than zero was written, error out on the
+                   track read. We do this by not creating the MFM structure for
+                   the whole track. */
+                if (dadr.track >= 81 && drv->image->type == DISK_IMAGE_TYPE_D81) {
+                    if (drv->write_beyond) {
+                        /* remove all MFM data from the track */
+                        memset(drv->raw.data, 0x4e, (size_t)(drv->raw.size));
+                        memset(drv->raw.sync, 0, (size_t)((drv->raw.size + 7) >> 3));
+                        drv->write_beyond = 0;
+                        return;
+                    }
+                    memset(buffer, 0, 256);
+                    res = 0;
+                } else {
+                    res = disk_image_read_sector(drv->image, buffer, &dadr);
+                }
                 if (res < 0) {
                     return;
                 }
@@ -473,7 +512,7 @@ static void fdd_update_raw(fd_drive_t *drv)
                 fdd_raw_write(0x4e); /* GAP 3 */
             }
         }
-#if FDD_DEBUG
+#ifdef FDD_DEBUG
         for (i = 0; i < drv->raw.size; i++) {
             if (!(i & 15)) {
                 printf("%04x: ", i);

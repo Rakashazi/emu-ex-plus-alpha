@@ -226,11 +226,7 @@ int init_cmdline_options(void)
 
 int init_main(void)
 {
-#ifdef __IBMC__
-       signals_init(0);
-#else
-       signals_init(debug.do_core_dumps);
-#endif
+    signals_init(debug.do_core_dumps);
 
     romset_init();
 

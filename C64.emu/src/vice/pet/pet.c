@@ -107,6 +107,7 @@
 #include "userport_petscii_snespad.h"
 #include "userport_rtc_58321a.h"
 #include "userport_rtc_ds1307.h"
+#include "userport_spt_joystick.h"
 #include "util.h"
 #include "via.h"
 #include "vice-event.h"
@@ -144,12 +145,12 @@ int machine_get_keyboard_type(void)
 
 char *machine_get_keyboard_type_name(int type)
 {
-    static char names[KBD_TYPE_NUM][5] = { 
+    static char names[KBD_TYPE_NUM][5] = {
         KBD_TYPE_STR_BUSINESS_UK,
-        KBD_TYPE_STR_BUSINESS_US, 
-        KBD_TYPE_STR_BUSINESS_DE, 
-        KBD_TYPE_STR_BUSINESS_JP, 
-        KBD_TYPE_STR_GRAPHICS_US 
+        KBD_TYPE_STR_BUSINESS_US,
+        KBD_TYPE_STR_BUSINESS_DE,
+        KBD_TYPE_STR_BUSINESS_JP,
+        KBD_TYPE_STR_GRAPHICS_US
     };
     return names[type]; /* return 0 if no different types exist */
 }
@@ -310,10 +311,6 @@ int machine_resources_init(void)
         init_resource_fail("joystick");
         return -1;
     }
-    if (gfxoutput_resources_init() < 0) {
-        init_resource_fail("gfxoutput");
-        return -1;
-    }
     if (sampler_resources_init() < 0) {
         init_resource_fail("samplerdrv");
         return -1;
@@ -383,6 +380,10 @@ int machine_resources_init(void)
     }
     if (userport_joystick_synergy_resources_init() < 0) {
         init_resource_fail("userport synergy joystick");
+        return -1;
+    }
+    if (userport_spt_joystick_resources_init() < 0) {
+        init_resource_fail("userport stupid pet tricks joystick");
         return -1;
     }
     if (userport_dac_resources_init() < 0) {
@@ -509,10 +510,6 @@ int machine_cmdline_options_init(void)
     }
     if (userport_cmdline_options_init() < 0) {
         init_cmdline_options_fail("userport");
-        return -1;
-    }
-    if (gfxoutput_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("gfxoutput");
         return -1;
     }
     if (sampler_cmdline_options_init() < 0) {

@@ -775,7 +775,7 @@ static int drive_snapshot_read_image_module(snapshot_t *s, unsigned int dnr)
     }
     /* TODO: drive 1 */
 
-    request_str = lib_msprintf("Disk image unit #%d imported from snapshot",
+    request_str = lib_msprintf("Disk image unit #%u imported from snapshot",
                                dnr + 8);
     zfile_close_action(filename, ZFILE_REQUEST, request_str);
     lib_free(request_str);

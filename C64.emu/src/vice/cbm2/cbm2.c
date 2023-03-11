@@ -106,6 +106,7 @@
 #include "userport_petscii_snespad.h"
 #include "userport_rtc_58321a.h"
 #include "userport_rtc_ds1307.h"
+#include "userport_spt_joystick.h"
 #include "userport_superpad64.h"
 #include "vice-event.h"
 #include "video.h"
@@ -364,10 +365,6 @@ int machine_resources_init(void)
         init_resource_fail("samplerdrv");
         return -1;
     }
-    if (gfxoutput_resources_init() < 0) {
-        init_resource_fail("gfxoutput");
-        return -1;
-    }
     if (fliplist_resources_init() < 0) {
         init_resource_fail("flip list");
         return -1;
@@ -433,6 +430,10 @@ int machine_resources_init(void)
     }
     if (userport_joystick_synergy_resources_init() < 0) {
         init_resource_fail("userport synergy joystick");
+        return -1;
+    }
+    if (userport_spt_joystick_resources_init() < 0) {
+        init_resource_fail("userport stupid pet tricks joystick");
         return -1;
     }
     if (userport_dac_resources_init() < 0) {
@@ -562,10 +563,6 @@ int machine_cmdline_options_init(void)
     }
     if (userport_cmdline_options_init() < 0) {
         init_cmdline_options_fail("userport");
-        return -1;
-    }
-    if (gfxoutput_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("gfxoutput");
         return -1;
     }
     if (sampler_cmdline_options_init() < 0) {
@@ -1066,20 +1063,20 @@ uint8_t machine_tape_behaviour(void)
 int machine_addr_in_ram(unsigned int addr)
 {
     /* FIXME: handle the banking */
-    
+
     if (addr >= 0x25a && addr <= 0x25d) {
         /* 'Pickup subroutine' */
         return 0;
     }
-    
+
     if (addr >= 0x8000 && addr < 0xc000) {
         return 0;
     }
-    
+
     if (addr > 0xe000) {
         return 0;
     }
-    
+
     return 1;
 }
 

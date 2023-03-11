@@ -701,6 +701,7 @@ int expert_bin_attach(const char *filename, uint8_t *rawcart)
     if (expert_bin_load(filename, rawcart) < 0) {
         return -1;
     }
+    /* set the resource */
     if (set_expert_filename(filename, NULL) < 0) {
         return -1;
     }
@@ -759,6 +760,7 @@ int expert_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename)
     if (expert_crt_load(fd, rawcart) < 0) {
         return -1;
     }
+    /* set the resource */
     if (set_expert_filename(filename, NULL) < 0) {
         return -1;
     }

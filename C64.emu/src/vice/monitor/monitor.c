@@ -41,10 +41,6 @@
 #include <stdint.h>
 #include <errno.h>
 
-#ifdef __IBMC__
-#include <direct.h>
-#endif
-
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
@@ -59,7 +55,6 @@
 #include "drive.h"
 
 #include "interrupt.h"
-#include "ioutil.h"
 #include "kbdbuf.h"
 #include "lib.h"
 #include "util.h"
@@ -72,10 +67,6 @@
 #include "mon_memmap.h"
 #include "mon_memory.h"
 #include "asm.h"
-
-#ifdef AMIGA_MORPHOS
-#undef REG_PC
-#endif
 
 #include "mon_parse.h"
 #include "mon_register.h"
@@ -356,7 +347,7 @@ static bool is_machine_ready(void)
     if (cursor_column != 0) {
         return false;
     }
-    
+
     /* now we expect the string in the previous line (typically "READY.") */
     addr = screen_addr - line_length;
 
@@ -373,7 +364,7 @@ void monitor_reset_hook(void)
 {
     if (init_break_mode == ON_RESET) {
         init_break_mode = NONE;
-        
+
         monitor_startup_trap();
     }
 }
@@ -387,11 +378,11 @@ void monitor_vsync_hook(void)
          */
         if (is_machine_ready()) {
             init_break_mode = NONE;
-            
+
             monitor_startup_trap();
         }
     }
-    
+
 #ifdef HAVE_NETWORK
     /* check if someone wants to connect remotely to the monitor */
     monitor_check_remote();
@@ -895,7 +886,7 @@ void mon_get_mem_block(MEMSPACE mem, uint16_t start, uint16_t end, uint8_t *data
     main entry point for the monitor to write a value to memory
 
     mem_bank_peek and mem_bank_read are set up in src/drive/drivecpu.c,
-    src/drive/drivecpu65c02.c, src/mainc64cpu.c, src/mainviccpu.c, 
+    src/drive/drivecpu65c02.c, src/mainc64cpu.c, src/mainviccpu.c,
     src/maincpu.c, src/main65816cpu.c
 */
 
@@ -910,12 +901,12 @@ void mon_set_mem_val(MEMSPACE mem, uint16_t mem_addr, uint8_t val)
             return;
         }
     }
-    
+
     if ((sidefx == 0) && (mon_interfaces[mem]->mem_bank_poke != NULL)) {
         mon_interfaces[mem]->mem_bank_poke(bank, mem_addr, val, mon_interfaces[mem]->context);
     } else {
         mon_interfaces[mem]->mem_bank_write(bank, mem_addr, val, mon_interfaces[mem]->context);
-    }    
+    }
 }
 
 /*! \internal \brief set a byte of memory in a specific bank, not the current.
@@ -940,12 +931,12 @@ void mon_set_mem_val_ex(MEMSPACE mem, int bank, uint16_t mem_addr, uint8_t val)
             return;
         }
     }
-    
+
     if ((sidefx == 0) && (mon_interfaces[mem]->mem_bank_poke != NULL)) {
         mon_interfaces[mem]->mem_bank_poke(bank, mem_addr, val, mon_interfaces[mem]->context);
     } else {
         mon_interfaces[mem]->mem_bank_write(bank, mem_addr, val, mon_interfaces[mem]->context);
-    }    
+    }
 }
 
 /* exit monitor  */
@@ -960,7 +951,7 @@ void mon_jump(MON_ADDR addr)
 void mon_go(void)
 {
     exit_mon = 1;
-    
+
     if (should_pause_on_exit_mon || ui_pause_active()) {
         should_pause_on_exit_mon = false;
         pause_on_exit_mon = true;
@@ -972,7 +963,7 @@ void mon_exit(void)
 {
     exit_mon = 1;
     mon_console_close_on_leaving = 1;
-    
+
     if (should_pause_on_exit_mon || ui_pause_active()) {
         should_pause_on_exit_mon = false;
         pause_on_exit_mon = true;
@@ -1143,42 +1134,42 @@ void mon_screenshot_save(const char* filename, int format)
  */
 void mon_show_pwd(void)
 {
-    char *p = ioutil_current_dir();
+    char *p = archdep_current_dir();
     mon_out("%s\n", p);
     lib_free(p);
 }
 
 void mon_show_dir(const char *path)
 {
-    struct ioutil_dir_s *dir;
-    char *name;
+    archdep_dir_t *dir;
+    const char *name;
     char *mpath;
     char *fullname;
 
     if (path) {
         mpath = lib_strdup(path);
     } else {
-        mpath = ioutil_current_dir();
+        mpath = archdep_current_dir();
     }
     mon_out("Displaying directory: `%s'\n", mpath);
 
-    dir = ioutil_opendir(mpath, IOUTIL_OPENDIR_ALL_FILES);
+    dir = archdep_opendir(mpath, ARCHDEP_OPENDIR_ALL_FILES);
     if (!dir) {
         mon_out("Couldn't open directory.\n");
         lib_free(mpath);
         return;
     }
 
-    while ((name = ioutil_readdir(dir))) {
+    while ((name = archdep_readdir(dir))) {
         size_t len;
         unsigned int isdir;
         int ret;
         if (path) {
-            fullname = util_concat(path, FSDEV_DIR_SEP_STR, name, NULL);
-            ret = ioutil_stat(fullname, &len, &isdir);
+            fullname = util_concat(path, ARCHDEP_DIR_SEP_STR, name, NULL);
+            ret = archdep_stat(fullname, &len, &isdir);
             lib_free(fullname);
         } else {
-            ret = ioutil_stat(name, &len, &isdir);
+            ret = archdep_stat(name, &len, &isdir);
         }
         if (!ret) {
             if (isdir) {
@@ -1191,7 +1182,7 @@ void mon_show_dir(const char *path)
         }
     }
     lib_free(mpath);
-    ioutil_closedir(dir);
+    archdep_closedir(dir);
 }
 
 void mon_resource_get(const char *name)
@@ -1261,7 +1252,7 @@ void mon_cart_freeze(void)
 }
 
 IO_SIM_RESULT mon_userport_set_output(int value)
-{ 
+{
     if (machine_class == VICE_MACHINE_CBM5x0) {
         mon_out("Unsupported.\n");
         return e_IO_SIM_RESULT_GENERAL_FAILURE;
@@ -1496,7 +1487,14 @@ void monitor_init(monitor_interface_t *maincpu_interface_init,
     }
 
     mon_memmap_init();
-    
+
+    /* set the current bank to the CPU bank. we need to do this here since this may not be bank 0 */
+    if (mon_interfaces[e_comp_space]->mem_bank_from_name != NULL) {
+        mon_interfaces[e_comp_space]->current_bank = mon_interfaces[e_comp_space]->mem_bank_from_name("cpu");
+    } else {
+        mon_interfaces[e_comp_space]->current_bank = 0;
+    }
+
     if (init_break_mode == ON_EXECUTE) {
         /* Create the -initbreak execute address breakpoint */
         if (init_break_address >= 0 && init_break_address < 65536) {
@@ -1511,12 +1509,12 @@ void monitor_shutdown(void)
     monitor_cpu_type_list_t *list, *list_next;
     supported_cpu_type_list_t *slist, *slist_next;
     int i;
-    
+
     if (inside_monitor) {
         /* Can happen if VICE thread exited while monitor open */
         monitor_close(false);
     }
-    
+
     if (last_cmd) {
         lib_free(last_cmd);
         last_cmd = NULL;
@@ -1541,14 +1539,14 @@ void monitor_shutdown(void)
     }
 
     mon_memmap_shutdown();
-    
+
     while (playback_fp_stack_size) {
         playback_end_file();
     }
-    
+
     lib_free(playback_filename_stack);
     lib_free(playback_fp_stack);
-    
+
     playback_filename_stack = NULL;
     playback_fp_stack = NULL;
     playback_fp_stack_size = 0;
@@ -1559,35 +1557,35 @@ static int monitor_set_initial_breakpoint(const char *param, void *extra_param)
 {
     long val;
     char *end;
-    
+
     /* -initbreak <address> */
-    
+
     errno = 0;
     val = strtoul(param, &end, 0);
-    
+
     if (errno == 0 && end != param && *end == '\0') {
         if (val >= 0 && val < 65536) {
             init_break_mode = ON_EXECUTE;
             init_break_address = (int)val;
-            
+
             return 0;
         }
     }
-    
+
     /* -initbreak reset */
-    
+
     if (strcmp(param, "reset") == 0) {
         init_break_mode = ON_RESET;
         return 0;
     }
-    
+
     /* -initbreak ready */
-    
+
     if (strcmp(param, "ready") == 0) {
         init_break_mode = ON_READY;
         return 0;
     }
-    
+
     return -1;
 }
 
@@ -1628,7 +1626,7 @@ static int set_monitor_log_enabled(int val, void *param)
 {
     int old = monitorlogenabled;
     monitorlogenabled = val ? 1 : 0;
-    
+
     if (!old && monitorlogenabled) {
         mon_log_file_open(monitorlogfilename);
     }
@@ -1817,7 +1815,7 @@ void mon_display_screen(long addr)
 
     for (r = 0; r < rows; r++) {
         /* Only show addresses of each line in non-SDL */
-#if !defined(USE_SDLUI) && !defined(USE_SDLUI2)
+#if !defined(USE_SDLUI) && !defined(USE_SDL2UI)
         mon_out("%04x  ", base);
 #endif
         for (c = 0; c < cols; c++) {
@@ -1882,7 +1880,7 @@ void mon_display_io_regs(MON_ADDR addr)
                     if (addr > 0) {
                         if (mem_ioreg_list_base[n].dump) {
                             mon_out("\n");
-                            if (mem_ioreg_list_base[n].dump(mem_ioreg_list_base[n].context, 
+                            if (mem_ioreg_list_base[n].dump(mem_ioreg_list_base[n].context,
                                     (uint16_t)(addr_location(start))) < 0) {
                                 mon_out("No details available.\n");
                             }
@@ -1952,7 +1950,7 @@ void mon_change_dir(const char *path)
     if (path != NULL && path[0] == '~' && path[1] == '\0') {
         path = archdep_home_path();
     }
-    if (ioutil_chdir(path) < 0) {
+    if (archdep_chdir(path) != 0) {
         mon_out("Cannot change to directory: '%s'\n", path);
     } else {
         mon_out("Changing to directory: '%s'\n", path);
@@ -2053,23 +2051,23 @@ static int monitor_set_moncommands_file(const char *filename, void *extra_param)
     if (mon_playback_commands(filename, false) != 0) {
         return -1;
     }
-    
+
     /*
      * Default for -moncommands is to execute immediately on launch.
      * Override it if it hasn't been changed.
      */
-    
+
     if (init_break_mode == NONE) {
         init_break_mode = ON_RESET;
     }
-    
+
     /*
      * We're executing a -moncommands script at some point, so return
      * to emulation when it completes.
      */
-    
+
     playback_exit_after_all_playback = true;
-    
+
     return 0;
 }
 
@@ -2077,7 +2075,7 @@ static int monitor_set_moncommands_file(const char *filename, void *extra_param)
 int mon_playback_commands(const char *filename, bool interrupt_current_playback)
 {
     FILE *fp;
-    
+
     log_message(LOG_DEFAULT, "Opening monitor command playback file: %s", filename);
 
     if (playback_fp_stack_size == playback_fp_stack_size_max) {
@@ -2088,29 +2086,30 @@ int mon_playback_commands(const char *filename, bool interrupt_current_playback)
             log_error(LOG_ERR, "Max level of playback file depth %d reached, exiting", playback_fp_stack_size_max);
             archdep_vice_exit(1);
         }
-        
+
         playback_fp_stack_size_max += 1;
         playback_fp_stack       = lib_realloc(playback_fp_stack,       playback_fp_stack_size_max * sizeof(FILE *));
         playback_filename_stack = lib_realloc(playback_filename_stack, playback_fp_stack_size_max * sizeof(char *));
     }
 
     fp = fopen(filename, MODE_READ_TEXT);
-    
+
     if (fp == NULL) {
         fp = sysfile_open(filename, NULL, NULL, MODE_READ_TEXT);
     }
-    
+
     if (fp == NULL) {
-        log_error(LOG_ERR, "Failed to open playback file: %s", filename);
+        log_error(LOG_ERR, "Failed to open playback file: '%s'", filename);
+        mon_out("Cannot open '%s'.\n", filename);
         return -1;
     }
-    
+
     if (interrupt_current_playback || playback_fp_stack_size == 0) {
         /*
          * Place the new file at the top of the stack and set the current playback fp,
          * which means that the commands within this file will be be next commands to execute.
          */
-        
+
         playback_fp = fp;
 
         playback_fp_stack[playback_fp_stack_size] = fp;
@@ -2121,40 +2120,40 @@ int mon_playback_commands(const char *filename, bool interrupt_current_playback)
          * within will execute after all queued playback files have finished. If no
          * playback is currently active, start with this file.
          */
-        
+
         memmove(playback_fp_stack + 1,       playback_fp_stack,       playback_fp_stack_size * sizeof(char *));
         memmove(playback_filename_stack + 1, playback_filename_stack, playback_fp_stack_size * sizeof(FILE *));
 
         playback_fp_stack[0] = fp;
         playback_filename_stack[0] = lib_strdup(filename);
     }
-    
+
     playback_fp_stack_size++;
-    
+
     return 0;
 }
 
 static void playback_end_file(void)
 {
     fclose(playback_fp);
-    
+
     playback_fp_stack_size--;
-    
+
     log_message(LOG_DEFAULT, "Closed monitor command playback file: %s", playback_filename_stack[playback_fp_stack_size]);
     lib_free(playback_filename_stack[playback_fp_stack_size]);
-    
+
     playback_filename_stack[playback_fp_stack_size] = NULL;
     playback_fp_stack[playback_fp_stack_size] = NULL;
-    
+
     if (playback_fp_stack_size) {
         /* Return to playing back the previous file */
         playback_fp = playback_fp_stack[playback_fp_stack_size - 1];
         return;
     }
-    
+
     /* Playback of all files is complete */
     playback_fp = NULL;
-    
+
     /* Should we return to emulation? (Yes if -moncommands arg used) */
     if (playback_exit_after_all_playback) {
         playback_exit_after_all_playback = false;
@@ -2166,11 +2165,11 @@ static void playback_next_command(void)
 {
     char line[1024];
     char *command;
-    
+
     if (fgets(line, sizeof(line), playback_fp) == NULL) {
         /* Reached the end of the file */
         playback_end_file();
-        
+
         if (playback_fp) {
             playback_next_command();
         }
@@ -2179,7 +2178,7 @@ static void playback_next_command(void)
 
     line[strlen(line) - 1] = '\0';
     command = lib_strdup_trimmed(line);
-    
+
     log_message(LOG_DEFAULT, "Monitor playback command: %s", command);
     parse_and_execute_line(command);
 
@@ -2363,7 +2362,7 @@ void mon_remove_name_from_symbol_table(MEMSPACE mem, char *name)
     sym_ptr = monitor_labels[mem].addr_hash_table[HASH_ADDR(addr)];
     prev_ptr = NULL;
     while (sym_ptr) {
-        if (addr == sym_ptr->addr) {
+        if ((addr == sym_ptr->addr) && !strcmp(sym_ptr->name, name)) {
             lib_free(sym_ptr->name);
             if (prev_ptr) {
                 prev_ptr->next = sym_ptr->next;
@@ -2543,10 +2542,10 @@ int mon_evaluate_conditional(cond_node_t *cnode)
             case e_LTE:
                 cnode->value = (value_1 <= value_2);
                 break;
-            case e_AND:
+            case e_LOGICAL_AND:
                 cnode->value = (value_1 && value_2);
                 break;
-            case e_OR:
+            case e_LOGICAL_OR:
                 cnode->value = (value_1 || value_2);
                 break;
             case e_ADD:
@@ -2561,15 +2560,15 @@ int mon_evaluate_conditional(cond_node_t *cnode)
             case e_DIV:
                 if (value_2 == 0) {
                     log_error(LOG_ERR, "Division by zero in conditional\n");
-                    return 0;                    
+                    return 0;
                 }
                 cnode->value = (value_1 / value_2);
                 break;
             case e_BINARY_AND:
-                cnode->value = (value_1 && value_2);
+                cnode->value = (value_1 & value_2);
                 break;
             case e_BINARY_OR:
-                cnode->value = (value_1 || value_2);
+                cnode->value = (value_1 | value_2);
                 break;
             default:
                 log_error(LOG_ERR, "Unexpected conditional operator: %d\n",
@@ -3002,7 +3001,12 @@ static void monitor_open(void)
     /* disassemble at monitor entry, for single stepping */
     if (disassemble_on_entry) {
         int monbank = mon_interfaces[default_memspace]->current_bank;
-        mon_interfaces[default_memspace]->current_bank = 0; /* always disassemble using CPU bank */
+        /* always disassemble using CPU bank */
+        if (mon_interfaces[default_memspace]->mem_bank_from_name != NULL) {
+            mon_interfaces[default_memspace]->current_bank = mon_interfaces[default_memspace]->mem_bank_from_name("cpu");
+        } else {
+            mon_interfaces[default_memspace]->current_bank = 0;
+        }
         mon_disassemble_with_regdump(default_memspace, dot_addr[default_memspace]);
         mon_interfaces[default_memspace]->current_bank = monbank; /* restore value used in monitor */
         disassemble_on_entry = 0;
@@ -3012,7 +3016,7 @@ static void monitor_open(void)
 static int monitor_process(char *cmd)
 {
     char *trimmed_command;
-    
+
     mon_stop_output = 0;
 
     if (cmd == NULL) {
@@ -3030,9 +3034,9 @@ static int monitor_process(char *cmd)
 
         if (cmd) {
             if (recording) {
-                
+
                 trimmed_command = lib_strdup_trimmed(cmd);
-                
+
                 if (strcmp(trimmed_command, "stop") != 0) {
                     if (fprintf(recording_fp, "%s\n", trimmed_command) < 0) {
                         mon_out("Error while recording commands. Output file closed.\n");
@@ -3041,11 +3045,9 @@ static int monitor_process(char *cmd)
                         recording = false;
                     }
                 }
-                
                 lib_free(trimmed_command);
                 trimmed_command = NULL;
             }
-            
             parse_and_execute_line(cmd);
         }
     }
@@ -3114,7 +3116,7 @@ void monitor_startup(MEMSPACE mem)
 {
     char prompt[40];
     char *p;
-    
+
     if (inside_monitor) {
         /*
          * Drive cpu interrupt can enter the monitor .. and then the monitor
@@ -3123,10 +3125,10 @@ void monitor_startup(MEMSPACE mem)
          */
         return;
     }
-    
+
     if (ui_pause_active()) {
         should_pause_on_exit_mon = true;
-        
+
         ui_pause_disable();
     }
 
@@ -3136,7 +3138,7 @@ void monitor_startup(MEMSPACE mem)
 
     monitor_open();
     while (!exit_mon) {
-        
+
         if (playback_fp) {
             playback_next_command();
         } else {
@@ -3148,7 +3150,7 @@ void monitor_startup(MEMSPACE mem)
                 /* Render all in-progress frames as we enter the prompt */
                 video_canvas_refresh_all_tracked();
             }
-            
+
             make_prompt(prompt);
             p = uimon_in(prompt);
             if (p) {
@@ -3164,12 +3166,12 @@ void monitor_startup(MEMSPACE mem)
         }
     }
     monitor_close(true);
-    
+
     if (pause_on_exit_mon) {
         pause_on_exit_mon = false;
-        
+
         ui_pause_enable();
-        
+
         while (ui_pause_loop_iteration());
     }
 }

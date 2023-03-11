@@ -139,7 +139,7 @@ static int video_sound_machine_channels(void)
 
 /* Video sound interference 'device' */
 static sound_chip_t video_sound = {
-    NULL,                                  /* NO sound chip open function */ 
+    NULL,                                  /* NO sound chip open function */
     video_sound_machine_init,              /* sound chip init function */
     NULL,                                  /* NO sound chip close function */
     video_sound_machine_calculate_samples, /* sound chip calculate samples function */

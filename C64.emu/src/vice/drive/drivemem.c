@@ -52,7 +52,7 @@
 static drive_read_func_t *read_tab_watch[0x101];
 static drive_store_func_t *store_tab_watch[0x101];
 
-/* Current watchpoint state. 
+/* Current watchpoint state.
           0 = no watchpoints
     bit0; 1 = watchpoints active
     bit1; 2 = watchpoints trigger on dummy accesses

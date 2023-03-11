@@ -1015,7 +1015,7 @@ static int userport_joystick_cga_write_snapshot_module(snapshot_t *s)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, cga_module_name, CGA_VER_MAJOR, CGA_VER_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }
@@ -1131,7 +1131,7 @@ static int userport_joystick_hit_write_snapshot_module(snapshot_t *s)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, hit_module_name, HIT_VER_MAJOR, HIT_VER_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }
@@ -1204,7 +1204,7 @@ static int userport_joystick_kingsoft_write_snapshot_module(snapshot_t *s)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, kingsoft_module_name, KINGSOFT_VER_MAJOR, KINGSOFT_VER_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }
@@ -1348,7 +1348,7 @@ static int userport_joystick_synergy_write_snapshot_module(snapshot_t *s)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, synergy_module_name, SYNERGY_VER_MAJOR, SYNERGY_VER_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }

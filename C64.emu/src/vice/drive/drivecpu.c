@@ -512,7 +512,7 @@ static void drivecpu_jam(diskunit_context_t *drv)
             break;
     }
 
-    tmp = drive_jam(drv->mynumber, "%s (%d) CPU: JAM at $%04X  ", dname, drv->mynumber + 8, (int)reg_pc);
+    tmp = drive_jam(drv->mynumber, "%s (%d) CPU: JAM at $%04X  ", dname, drv->mynumber + 8, (unsigned int)reg_pc);
     switch (tmp) {
         case JAM_RESET:
             reg_pc = 0xeaa0;

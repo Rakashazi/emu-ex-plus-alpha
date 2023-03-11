@@ -43,22 +43,20 @@ static cmdline_option_t cmd_drive[] =
 
 int plus4exp_cmdline_options_init(void)
 {
-    unsigned int dnr, i;
+    int dnr;
 
     for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         cmd_drive[0].name = lib_msprintf("-parallel%i", dnr + 8);
-        cmd_drive[0].resource_name
-            = lib_msprintf("Drive%iParallelCable", dnr + 8);
+        cmd_drive[0].resource_name = lib_msprintf("Drive%iParallelCable", dnr + 8);
 
         if (cmdline_register_options(cmd_drive) < 0) {
+            lib_free(cmd_drive[0].name);
+            lib_free(cmd_drive[0].resource_name);
             return -1;
         }
 
-        for (i = 0; i < 1; i++) {
-            lib_free(cmd_drive[i].name);
-            lib_free(cmd_drive[i].resource_name);
-        }
+        lib_free(cmd_drive[0].name);
+        lib_free(cmd_drive[0].resource_name);
     }
-
     return 0;
 }

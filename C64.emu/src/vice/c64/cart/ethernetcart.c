@@ -474,7 +474,7 @@ int ethernetcart_cmdline_options_init(void)
     if (machine_class == VICE_MACHINE_VIC20) {
         temp1 = util_gen_hex_address_list(0x9800, 0x9900, 0x10);
         temp2 = util_gen_hex_address_list(0x9c00, 0x9d00, 0x10);
-        ethernetcart_address_list = util_concat("Base address of the Ethernet Cartridge. (", temp1, "/", temp2, ")", NULL);        
+        ethernetcart_address_list = util_concat("Base address of the Ethernet Cartridge. (", temp1, "/", temp2, ")", NULL);
         lib_free(temp2);
     } else {
         temp1 = util_gen_hex_address_list(0xde00, 0xe000, 0x10);

@@ -45,9 +45,6 @@ struct position_s {
 typedef struct position_s position_t;
 
 struct viewport_s {
-    /* Title for the viewport.  FIXME: Duplicated info from the canvas?  */
-    char *title;
-
     /* Offset of the screen on the window.  */
     unsigned int x_offset, y_offset;
 

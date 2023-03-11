@@ -48,21 +48,24 @@
 
 static int sampler_enabled = 0;
 
-static int joyport_sampler_enable(int port, int value)
+static int joyport_sampler_set_enabled(int port, int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
 
-    if (val == sampler_enabled) {
+    if (new_state == sampler_enabled) {
         return 0;
     }
 
-    if (val) {
+    if (new_state) {
+        /* enabled, start the sampler module in mono mode */
         sampler_start(SAMPLER_OPEN_MONO, "2bit control port sampler");
     } else {
+        /* disabled, stop the sampler module */
         sampler_stop();
     }
 
-    sampler_enabled = val;
+    /* set current state */
+    sampler_enabled = new_state;
 
     return 0;
 }
@@ -72,31 +75,32 @@ static uint8_t joyport_sampler_read(int port)
     uint8_t retval = 0;
 
     if (sampler_enabled) {
+        /* get 8bit sample and only keep the 2 highest bits */
         retval = sampler_get_sample(SAMPLER_CHANNEL_DEFAULT) >> 6;
-        joyport_display_joyport(JOYPORT_ID_SAMPLER_2BIT, (uint16_t)retval);
+        joyport_display_joyport(port, JOYPORT_ID_SAMPLER_2BIT, (uint16_t)retval);
         return (uint8_t)(~retval);
     }
     return 0xff;
 }
 
 static joyport_t joyport_sampler_device = {
-    "Sampler (2bit)",         /* name of the device */
-    JOYPORT_RES_ID_SAMPLER,   /* device is a sampler, only 1 sampler can be active at the same time */
-    JOYPORT_IS_NOT_LIGHTPEN,  /* device is NOT a lightpen */
-    JOYPORT_POT_OPTIONAL,     /* device does NOT use the potentiometer lines */
-    JOYSTICK_ADAPTER_ID_NONE, /* device is NOT a joystick adapter */
-    JOYPORT_DEVICE_SAMPLER,   /* device is a Sampler */
-    0,                        /* NO output bits */
-    joyport_sampler_enable,   /* device enable function */
-    joyport_sampler_read,     /* digital line read function */
-    NULL,                     /* NO digital line store function */
-    NULL,                     /* NO pot-x read function */
-    NULL,                     /* NO pot-x read function */
-    NULL,                     /* NO powerup function */
-    NULL,                     /* NO device write snapshot function */
-    NULL,                     /* NO device read snapshot function */
-    NULL,                     /* NO device hook function */
-    0                         /* NO device hook function mask */
+    "Sampler (2bit)",            /* name of the device */
+    JOYPORT_RES_ID_SAMPLER,      /* device is a sampler, only 1 sampler can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,     /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,        /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,    /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_SAMPLER,      /* device is a Sampler */
+    0,                           /* NO output bits */
+    joyport_sampler_set_enabled, /* device enable/disable function */
+    joyport_sampler_read,        /* digital line read function */
+    NULL,                        /* NO digital line store function */
+    NULL,                        /* NO pot-x read function */
+    NULL,                        /* NO pot-x read function */
+    NULL,                        /* NO powerup function */
+    NULL,                        /* NO device write snapshot function */
+    NULL,                        /* NO device read snapshot function */
+    NULL,                        /* NO device hook function */
+    0                            /* NO device hook function mask */
 };
 
 /* currently only used to register the joyport device */

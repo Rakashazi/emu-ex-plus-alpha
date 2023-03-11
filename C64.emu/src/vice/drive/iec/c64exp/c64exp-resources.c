@@ -148,7 +148,7 @@ static const resource_string_t resources_string[] =
 
 int c64exp_resources_init(void)
 {
-    unsigned int dnr;
+    int dnr;
 
     for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         diskunit_context_t *unit = diskunit_context[dnr];

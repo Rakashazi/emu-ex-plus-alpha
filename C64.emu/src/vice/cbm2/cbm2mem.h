@@ -28,6 +28,7 @@
 #define VICE_CBM2MEM_H
 
 #include "types.h"
+#include "archdep.h"
 
 #define CBM2_RAM_SIZE           0x100000        /* maximum 1M */
 #define CBM2_ROM_SIZE           0x10000         /* complete bank 15 */
@@ -35,15 +36,6 @@
    to some extra logic on the board. we generate a "ROM" that is twice the
    original size at load time so we dont need extra code for this at runtime */
 #define CBM2_CHARGEN_ROM_SIZE   0x4000
-
-#define CBM2_CHARGEN500 "chargen" FSDEV_EXT_SEP_STR "500"
-#define CBM2_CHARGEN600 "chargen" FSDEV_EXT_SEP_STR "600"
-#define CBM2_CHARGEN700 "chargen" FSDEV_EXT_SEP_STR "700"
-#define CBM2_BASIC128   "basic" FSDEV_EXT_SEP_STR "128"
-#define CBM2_BASIC256   "basic" FSDEV_EXT_SEP_STR "256"
-#define CBM2_BASIC500   "basic" FSDEV_EXT_SEP_STR "500"
-#define CBM2_KERNAL     "kernal"
-#define CBM2_KERNAL500  "kernal" FSDEV_EXT_SEP_STR "500"
 
 extern uint8_t mem_rom[CBM2_ROM_SIZE];
 extern uint8_t mem_chargen_rom[CBM2_CHARGEN_ROM_SIZE];

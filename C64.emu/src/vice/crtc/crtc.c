@@ -362,7 +362,7 @@ static float crtc_get_pixel_aspect(void)
 /* return type of monitor used for current video mode */
 static int crtc_get_crt_type(void)
 {
-    return 2; /* RGB */
+    return VIDEO_CRT_TYPE_MONO;
 }
 
 /* update screen window */
@@ -539,8 +539,6 @@ raster_t *crtc_init(void)
     crtc.initialized = 1;
 
     crtc_update_window();
-
-    raster_set_title(raster, machine_name);
 
     if (raster_realize(raster) < 0) {
         return NULL;
@@ -969,12 +967,12 @@ int crtc_dump(void)
     if (vsyncw == 0) vsyncw = 16;
     vtotal = regs[CRTC_REG_VTOTAL] + 1;
     scanlines = regs[CRTC_REG_SCANLINE] + 1;
-    mon_out("HW cursor: %d blank: %d chars per cycle: %d\n\n", 
+    mon_out("HW cursor: %d blank: %d chars per cycle: %d\n\n",
             crtc.hw_cursor, crtc.hw_blank, crtc.hw_cols);
     mon_out("Horizontal total:         %3d chars.\n", htotal);
     mon_out("Horizontal sync position: %3d chars.\n", regs[CRTC_REG_HSYNC]);
     mon_out("Horizontal sync width:    %3d chars.\n", regs[CRTC_REG_SYNCWIDTH] & 0x0f);
-    mon_out("Vertical total:           %3d chars +%3d lines.\n", 
+    mon_out("Vertical total:           %3d chars +%3d lines.\n",
            vtotal, regs[CRTC_REG_VTOTALADJ]);
     mon_out("Vertical sync position:   %3d chars.\n", regs[CRTC_REG_VSYNC]);
     mon_out("Vertical sync width:      %3d lines.\n", vsyncw);
@@ -1002,23 +1000,23 @@ int crtc_dump(void)
             (regs[CRTC_REG_MODECTRL] & 4) ? "row/column" : "binary",
             (regs[CRTC_REG_MODECTRL] & 16) ? "delay one character" : "no",
             (regs[CRTC_REG_MODECTRL] & 32) ? "delay one character" : "no");
-    mon_out("\nEffective size of display: %d x %d (%d x %d characters)\n", 
+    mon_out("\nEffective size of display: %d x %d (%d x %d characters)\n",
             regs[CRTC_REG_HDISP] * 8,
             regs[CRTC_REG_VDISP] * scanlines,
             regs[CRTC_REG_HDISP],
             regs[CRTC_REG_VDISP]);
-    mon_out(" including overscan:       %d x %d (%d x %d characters)\n", 
+    mon_out(" including overscan:       %d x %d (%d x %d characters)\n",
             (htotal * 8),
             crtc.framelines,
             htotal,
             vtotal);
-    mon_out(" cycles:                   %d x %d = %d\n", 
+    mon_out(" cycles:                   %d x %d = %d\n",
             htotal,
             crtc.framelines,
             htotal * crtc.framelines);
     v = (double)machine_get_cycles_per_second() /
                 (htotal * crtc.framelines);
-    mon_out(" timing:                   %d Hz horizontal, %d.%04d Hz vertical\n", 
+    mon_out(" timing:                   %d Hz horizontal, %d.%04d Hz vertical\n",
             (int)(machine_get_cycles_per_second() / htotal),
             (int)v, (int)(10000 * (v - (int)v))
            );
@@ -1037,11 +1035,11 @@ int crtc_dump(void)
     } else {
         /* row/column mode */
         mon_out("\nMode is: row/column\n");
-        mon_out("Display start:     %3d x %3d\n", 
+        mon_out("Display start:     %3d x %3d\n",
                 regs[CRTC_REG_DISPSTARTL], regs[CRTC_REG_DISPSTARTH]);
-        mon_out("Cursor position:   %3d x %3d\n", 
+        mon_out("Cursor position:   %3d x %3d\n",
                 regs[CRTC_REG_CURSORPOSL], regs[CRTC_REG_CURSORPOSH]);
-        mon_out("Lightpen position: %3d x %3d\n", 
+        mon_out("Lightpen position: %3d x %3d\n",
                 regs[CRTC_REG_LPENL], regs[CRTC_REG_LPENH]);
     }
     mon_out("\nBeam position (to draw next):\n"
@@ -1054,7 +1052,7 @@ int crtc_dump(void)
             crtc.frame_start,
             crtc.rl_start - crtc.frame_start,
             crtc.rl_len);
-    
+
     if (crtc.raster_draw_alarm) {
         CLOCK then = crtc.raster_draw_alarm->context->next_pending_alarm_clk;
         mon_out("next raster line draw alarm: %"PRIu64" (now+%"PRIu64")\n",

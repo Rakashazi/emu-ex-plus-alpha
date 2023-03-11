@@ -166,7 +166,7 @@ void ciat_init_table(void)
  */
 void ciat_init(ciat_t *state, const char *name, CLOCK cclk, alarm_t *alarm)
 {
-    CIAT_LOGIN(("%s init: cclk=%d", name, cclk));
+    CIAT_LOGIN(("%s init: cclk=%lu", name, cclk));
 
     state->name = name;
     state->clk = cclk;
@@ -181,7 +181,7 @@ void ciat_init(ciat_t *state, const char *name, CLOCK cclk, alarm_t *alarm)
 /* timer reset */
 void ciat_reset(ciat_t *state, CLOCK cclk)
 {
-    CIAT_LOGIN(("%s reset: cclk=%d", state->name, cclk));
+    CIAT_LOGIN(("%s reset: cclk=%lu", state->name, cclk));
 
     /* FIXME? */
     state->clk = cclk;

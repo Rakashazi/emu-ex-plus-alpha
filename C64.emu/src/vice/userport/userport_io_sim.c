@@ -448,7 +448,7 @@ static uint8_t userport_io_sim_read_pbx(uint8_t orig)
 static void userport_io_sim_store_pa2(uint8_t value)
 {
     uint8_t val = (value) ? 4 : 0;
- 
+
     userport_io_sim_pax_in &= 0xfb;
     userport_io_sim_pax_in |= val;
 }
@@ -461,7 +461,7 @@ static uint8_t userport_io_sim_read_pa2(uint8_t orig)
 static void userport_io_sim_store_pa3(uint8_t value)
 {
     uint8_t val = (value) ? 8 : 0;
- 
+
     userport_io_sim_pax_in &= 0xf7;
     userport_io_sim_pax_in |= val;
 }
@@ -546,7 +546,7 @@ static int userport_io_sim_write_snapshot_module(snapshot_t *s)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }

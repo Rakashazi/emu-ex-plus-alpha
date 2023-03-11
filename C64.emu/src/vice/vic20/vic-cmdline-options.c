@@ -41,21 +41,15 @@
 
 static int border_set_func(const char *value, void *extra_param)
 {
-    int video;
-
-    resources_get_int("MachineVideoStandard", &video);
-
     if (strcmp(value, "1") == 0 || strcmp(value, "full") == 0) {
-        vic_resources.border_mode = VIC_FULL_BORDERS;
+        resources_set_int("VICBorderMode", 1);
     } else if (strcmp(value, "2") == 0 || strcmp(value, "debug") == 0) {
-        vic_resources.border_mode = VIC_DEBUG_BORDERS;
+        resources_set_int("VICBorderMode", 2);
     } else if (strcmp(value, "3") == 0 || strcmp(value, "none") == 0) {
-        vic_resources.border_mode = VIC_NO_BORDERS;
+        resources_set_int("VICBorderMode", 3);
     } else {
-        vic_resources.border_mode = VIC_NORMAL_BORDERS;
+        resources_set_int("VICBorderMode", 0);
     }
-
-    machine_change_timing(video, vic_resources.border_mode);
 
     return 0;
 }
@@ -64,7 +58,7 @@ static int border_set_func(const char *value, void *extra_param)
 static const cmdline_option_t cmdline_options[] =
 {
     { "-VICborders", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      border_set_func, NULL, "VICBorderMode", NULL,
+      border_set_func, NULL, NULL, NULL,
       "<Mode>", "Set border display mode (0: normal, 1: full, 2: debug, 3: none)" },
     CMDLINE_LIST_END
 };

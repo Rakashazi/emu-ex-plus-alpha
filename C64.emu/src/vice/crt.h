@@ -37,6 +37,8 @@ typedef struct crt_header_s {
     int exrom;                /* exrom line status */
     int game;                 /* game line status */
     char name[32 + 1];        /* name of cartridge */
+    /* following are not actually part of the header */
+    int machine;              /* detected machine for this crt file */
 } crt_header_t;
 
 typedef struct crt_chip_header_s {

@@ -39,7 +39,6 @@
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
-#include "patchrom.h"
 #include "psid.h"
 #include "resources.h"
 #include "types.h"
@@ -95,21 +94,24 @@ struct kernal_s {
     int rev;
 };
 
+/* NOTE: this table is duplicated in c64-cmdline-options.c */
 static struct kernal_s kernal_match[] = {
-    { "1", C64_KERNAL_REV1 },
-    { "2", C64_KERNAL_REV2 },
-    { "3", C64_KERNAL_REV3 },
-    { "67", C64_KERNAL_SX64 },
-    { "sx", C64_KERNAL_SX64 },
-    { "100", C64_KERNAL_4064 },
+    { "0",    C64_KERNAL_JAP },
+    { "jap",  C64_KERNAL_JAP },
+    { "1",    C64_KERNAL_REV1 },
+    { "2",    C64_KERNAL_REV2 },
+    { "3",    C64_KERNAL_REV3 },
+    { "67",   C64_KERNAL_SX64 },
+    { "sx",   C64_KERNAL_SX64 },
+    { "39",   C64_KERNAL_GS64 },
+    { "gs",   C64_KERNAL_GS64 },
+    { "100",  C64_KERNAL_4064 },
     { "4064", C64_KERNAL_4064 },
     { NULL, C64_KERNAL_UNKNOWN }
 };
 
 static int set_kernal_revision(const char *param, void *extra_param)
 {
-    uint16_t sum;                   /* ROM checksum */
-    int id;                     /* ROM identification number */
     int rev = C64_KERNAL_UNKNOWN;
     int i = 0;
 
@@ -124,24 +126,19 @@ static int set_kernal_revision(const char *param, void *extra_param)
         i++;
     } while ((rev == C64_KERNAL_UNKNOWN) && (kernal_match[i].name != NULL));
 
-    if(!c64rom_isloaded()) {
-        kernal_revision = rev;
-        return 0;
+    log_verbose("set_kernal_revision (\"-kernalrev\") val:'%s' rev: %d", param, rev);
+
+    if (rev == C64_KERNAL_UNKNOWN) {
+        log_error(LOG_DEFAULT, "invalid kernal revision (%d)", rev);
+        return -1;
     }
 
-    if (c64rom_get_kernal_chksum_id(&sum, &id) < 0) {
-        id = C64_KERNAL_UNKNOWN;
-        kernal_revision = id;
-    } else {
-        if (patch_rom_idx(rev) >= 0) {
-            kernal_revision = rev;
-        } else {
-            kernal_revision = id;
-        }
+    if (resources_set_int("KernalRev", rev) < 0) {
+        log_error(LOG_DEFAULT, "failed to set kernal revision (%d)", rev);
     }
+
     return 0;
 }
-
 
 static int set_keepenv(int val, void *param)
 {
@@ -209,7 +206,8 @@ static const cmdline_option_t cmdline_options[] =
       "<Name>", "Specify name of character generator ROM image" },
     { "-kernalrev", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       set_kernal_revision, NULL, NULL, NULL,
-      "<Revision>", "Patch the Kernal ROM to the specified <revision> (1: rev. 1, 2: rev. 2, 3: rev. 3, 67/sx: sx64, 100/4064: 4064)" },
+      "<Revision>", "Patch the Kernal ROM to the specified <revision> "
+      "(0/jap: japanese 1: rev. 1, 2: rev. 2, 3: rev. 3, 39/gs: C64 GS, 67/sx: sx64, 100/4064: 4064)" },
     CMDLINE_LIST_END
 };
 
@@ -526,8 +524,10 @@ void psid_init_tune(int install_driver_hook)
     } else {
         if (machine_class == VICE_MACHINE_VSID) {
             char * driver_info_text;
-            driver_info_text = lib_msprintf("Driver=$%04X, Image=$%04X-$%04X, Init=$%04X, Play=$%04X", reloc_addr, psid->load_addr,
-                                            psid->load_addr + psid->data_size - 1, psid->init_addr, psid->play_addr);
+            driver_info_text = lib_msprintf("Driver=$%04X, Image=$%04X-$%04X, Init=$%04X, Play=$%04X",
+                                            reloc_addr, psid->load_addr,
+                                            psid->load_addr + psid->data_size - 1U,
+                                            psid->init_addr, psid->play_addr);
             vsid_ui_setdrv(driver_info_text);
             lib_free(driver_info_text);
 
@@ -536,7 +536,7 @@ void psid_init_tune(int install_driver_hook)
             vsid_ui_set_init_addr(psid->init_addr);
             vsid_ui_set_play_addr(psid->play_addr);
             vsid_ui_set_data_size(psid->data_size);
-            vsid_ui_set_default_tune(start_song);
+            vsid_ui_set_default_tune(psid->start_song);
             vsid_ui_display_name((char *)(psid->name));
             vsid_ui_display_author((char *)(psid->author));
             vsid_ui_display_copyright((char *)(psid->copyright));
@@ -748,7 +748,7 @@ unsigned int psid_increment_frames(void)
  * compute sidplayer (.mus/.str) support
  *
  * to minimize code duplication and to simplify the integration with the rest
- * of the code, the sidplayer data is simply converted into PSID like format 
+ * of the code, the sidplayer data is simply converted into PSID like format
  * at load time. heavily inspired by the respective code in libsidplay2.
  ******************************************************************************/
 

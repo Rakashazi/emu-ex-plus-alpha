@@ -125,7 +125,6 @@ enum {
 #define ACIA_MODE_SWIFTLINK 1  /* Swiftlink ACIA emulation, baud rates are doubled */
 #define ACIA_MODE_TURBO232  2  /* Turbo232 ACIA emulation, baud rates are doubled,
                                  and enhanced baud rate register */
-
 #define ACIA_MODE_LOWEST ACIA_MODE_NORMAL
 
 int acia_dump(void);

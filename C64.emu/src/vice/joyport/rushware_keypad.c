@@ -125,31 +125,35 @@ static int keys[KEYPAD_KEYS_NUM];
 
 static void handle_keys(int row, int col, int pressed)
 {
+    /* sanity check for row and col, row should be 0-3, and col should be 1-4 */
     if (row < 0 || row > 3 || col < 1 || col > 4) {
         return;
     }
 
+    /* change the state of the key that the row/col is wired to */
     keys[(row * 4) + col - 1] = pressed;
 }
 
 /* ------------------------------------------------------------------------- */
 
-static int joyport_rushware_keypad_enable(int port, int value)
+static int joyport_rushware_keypad_set_enabled(int port, int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
 
-    if (val == rushware_keypad_enabled) {
+    if (new_state == rushware_keypad_enabled) {
         return 0;
     }
 
-    if (val) {
+    if (new_state) {
+        /* enabled, clear keys and register the keypad */
         memset(keys, 0, KEYPAD_KEYS_NUM * sizeof(unsigned int));
         keyboard_register_joy_keypad(handle_keys);
     } else {
+        /* disabled, unregister the keypad */
         keyboard_register_joy_keypad(NULL);
     }
 
-    rushware_keypad_enabled = val;
+    rushware_keypad_enabled = new_state;
 
     return 0;
 }
@@ -207,7 +211,7 @@ static uint8_t rushware_keypad_read(int port)
         retval = 0xef;
     }
 
-    joyport_display_joyport(JOYPORT_ID_RUSHWARE_KEYPAD, (uint16_t)~retval);
+    joyport_display_joyport(port, JOYPORT_ID_RUSHWARE_KEYPAD, (uint16_t)~retval);
 
     return retval;
 }
@@ -215,23 +219,23 @@ static uint8_t rushware_keypad_read(int port)
 /* ------------------------------------------------------------------------- */
 
 static joyport_t joyport_rushware_keypad_device = {
-    "Keypad (RushWare)",            /* name of the device */
-    JOYPORT_RES_ID_KEYPAD,          /* device is a keypad, only 1 keypad can be active at the same time */
-    JOYPORT_IS_NOT_LIGHTPEN,        /* device is NOT a lightpen */
-    JOYPORT_POT_OPTIONAL,           /* device does NOT use the potentiometer lines */
-    JOYSTICK_ADAPTER_ID_NONE,       /* device is NOT a joystick adapter */
-    JOYPORT_DEVICE_KEYPAD,          /* device is a Keypad */
-    0,                              /* NO output bits */
-    joyport_rushware_keypad_enable, /* device enable function */
-    rushware_keypad_read,           /* digital line read function */
-    NULL,                           /* NO digital line store function */
-    NULL,                           /* NO pot-x read function */
-    NULL,                           /* NO pot-x read function */
-    NULL,                           /* NO powerup function */
-    NULL,                           /* NO device write snapshot function */
-    NULL,                           /* NO device read snapshot function */
-    NULL,                           /* NO device hook function */
-    0                               /* NO device hook function mask */
+    "Keypad (RushWare)",                 /* name of the device */
+    JOYPORT_RES_ID_KEYPAD,               /* device is a keypad, only 1 keypad can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,             /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,                /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,            /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_KEYPAD,               /* device is a Keypad */
+    0,                                   /* NO output bits */
+    joyport_rushware_keypad_set_enabled, /* device enable/disable function */
+    rushware_keypad_read,                /* digital line read function */
+    NULL,                                /* NO digital line store function */
+    NULL,                                /* NO pot-x read function */
+    NULL,                                /* NO pot-x read function */
+    NULL,                                /* NO powerup function */
+    NULL,                                /* NO device write snapshot function */
+    NULL,                                /* NO device read snapshot function */
+    NULL,                                /* NO device hook function */
+    0                                    /* NO device hook function mask */
 };
 
 /* ------------------------------------------------------------------------- */

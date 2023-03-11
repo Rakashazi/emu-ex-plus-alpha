@@ -55,10 +55,10 @@
 
     2K RAM
     - RAM is mapped to $0800
-    
+
     one register in the entire I/O1 space:
-    
-    bit 7       when set, the register is disabled and can only be 
+
+    bit 7       when set, the register is disabled and can only be
                 reenabled by reset
     bit 0-5     select ROM bank 0-63
 */
@@ -192,7 +192,7 @@ static int multimax_common_attach(void)
     if (export_add(&export_res) < 0) {
         return -1;
     }
-    multimax_list_item = io_source_register(&multimax_device);    
+    multimax_list_item = io_source_register(&multimax_device);
     return 0;
 }
 
@@ -297,7 +297,7 @@ int multimax_snapshot_read_module(snapshot_t *s)
         || (SMR_BA(m, export_ram0, 0x0800) < 0)) {
         goto fail;
     }
-    
+
     snapshot_module_close(m);
 
     return multimax_common_attach();

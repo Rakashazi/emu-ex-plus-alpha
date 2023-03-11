@@ -59,8 +59,9 @@
 #define USERPORT_DEVICE_IO_SIMULATION       21
 #define USERPORT_DEVICE_WIC64               22
 #define USERPORT_DEVICE_SPACEBALLS          23
+#define USERPORT_DEVICE_SPT_JOYSTICK        24
 
-#define USERPORT_MAX_DEVICES                24
+#define USERPORT_MAX_DEVICES                25
 
 enum {
     USERPORT_DEVICE_TYPE_NONE = 0,

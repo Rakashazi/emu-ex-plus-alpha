@@ -26,6 +26,8 @@
  *
  */
 
+/* #define EVENT_DEBUG */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -58,10 +60,15 @@
 #include "version.h"
 #include "vice-event.h"
 
+#ifdef EVENT_DEBUG
+#define DBG(x)  log_debug x
+#else
+#define DBG(x)
+#endif
 
-#define EVENT_START_SNAPSHOT "start" FSDEV_EXT_SEP_STR "vsf"
-#define EVENT_END_SNAPSHOT "end" FSDEV_EXT_SEP_STR "vsf"
-#define EVENT_MILESTONE_SNAPSHOT "milestone" FSDEV_EXT_SEP_STR "vsf"
+#define EVENT_START_SNAPSHOT "start.vsf"
+#define EVENT_END_SNAPSHOT "end.vsf"
+#define EVENT_MILESTONE_SNAPSHOT "milestone.vsf"
 
 
 /** \brief  Size of the CRC32 entries
@@ -179,19 +186,19 @@ void event_record_attach_in_list(event_list_state_t *list, unsigned int unit,
         strcpy(&event_data[3], filename);
         if (event_image_append(filename, NULL, 0) == 1) {
             FILE *fd;
-            size_t file_len = 0;
+            off_t file_len = 0;
 
             fd = fopen(filename, MODE_READ);
 
             if (fd != NULL) {
-                file_len = util_file_length(fd);
-                event_data = lib_realloc(event_data, size + file_len);
-
-                if (fread(&event_data[size], file_len, 1, fd) != 1) {
-                    log_error(event_log, "Cannot load image file %s", filename);
+                file_len = archdep_file_size(fd);
+                if (file_len >= 0) {
+                    event_data = lib_realloc(event_data, size + (unsigned int)file_len);
+                    if (fread(&event_data[size], (size_t)file_len, 1, fd) != 1) {
+                        log_error(event_log, "Cannot load image file %s", filename);
+                    }
+                    fclose(fd);
                 }
-
-                fclose(fd);
             } else {
                 log_error(event_log, "Cannot open image file %s", filename);
             }
@@ -258,7 +265,7 @@ static void event_playback_attach_image(void *data, unsigned int size)
                 uint32_t file_crc;
 
                 filename = ui_get_file(
-                        "Please attach image %s (CRC32 checksum 0x" PRIu32 ")",
+                        "Please attach image %s (CRC32 checksum 0x%" PRIu32 ")",
                         (char *) data + 4 + sizeof(uint32_t), crc_to_attach);
                 if (filename == NULL) {
                     break;
@@ -288,7 +295,7 @@ static void event_playback_attach_image(void *data, unsigned int size)
             fd = archdep_mkstemp_fd(&filename, MODE_WRITE);
 
             if (fd == NULL) {
-                ui_error("Cannot create image file!", filename);
+                ui_error("Cannot create image file '%s'!", filename);
                 goto error;
             }
 
@@ -311,7 +318,7 @@ static void event_playback_attach_image(void *data, unsigned int size)
     if (unit == 1 || unit == 2) {
         tape_image_event_playback(unit, filename);
     } else {
-        resources_set_int_sprintf("AttachDevice%dReadonly", read_only, unit);
+        resources_set_int_sprintf("AttachDevice%ud%uReadonly", read_only, unit, drive);
         file_system_event_playback(unit, drive, filename);
     }
 
@@ -325,7 +332,7 @@ void event_record_in_list(event_list_state_t *list, unsigned int type,
 {
     void *event_data = NULL;
 
-    /*log_debug("EVENT RECORD %i CLK %i", type, maincpu_clk);*/
+    DBG(("event_record_in_list type:%u size:%u clock:%lu", type, size, maincpu_clk));
 
     if (type == EVENT_RESETCPU) {
         next_timestamp_clk -= maincpu_clk;
@@ -351,17 +358,22 @@ void event_record_in_list(event_list_state_t *list, unsigned int type,
         case EVENT_KEYBOARD_CLEAR:
             break;
         default:
-            /*log_error(event_log, "Unknow event type %i.", type);*/
+            log_error(event_log, "Unknown event type %u.", type);
             return;
     }
 
-    list->current->type = type;
-    list->current->clk = maincpu_clk;
-    list->current->size = size;
-    list->current->data = event_data;
-    list->current->next = lib_calloc(1, sizeof(event_list_t));
-    list->current = list->current->next;
-    list->current->type = EVENT_LIST_END;
+    if (list && list->current) {
+        list->current->type = type;
+        list->current->clk = maincpu_clk;
+        list->current->size = size;
+        list->current->data = event_data;
+        list->current->next = lib_calloc(1, sizeof(event_list_t));
+        list->current = list->current->next;
+        list->current->type = EVENT_LIST_END;
+    } else {
+        log_error(event_log, "event_record_in_list: Could not append to event list (type:%u size:%u clock:%"PRIX64")",
+                  type, size, maincpu_clk);
+    }
 }
 
 void event_record(unsigned int type, void *data, unsigned int size)
@@ -461,7 +473,11 @@ void event_playback_event_list(event_list_state_t *list)
 {
     event_list_t *current = list->base;
 
+    DBG(("event_playback_event_list entry %p current: %p", list, current));
+
     while (current->type != EVENT_LIST_END) {
+        DBG(("event_playback_event_list current: %p type: %d size: %d data: %p",
+            current, current->type, current->size, current->data));
         switch (current->type) {
             case EVENT_SYNC_TEST:
                 break;
@@ -516,10 +532,12 @@ void event_playback_event_list(event_list_state_t *list)
         }
         current = current->next;
     }
+    DBG(("event_playback_event_list exit"));
 }
 
 void event_register_event_list(event_list_state_t *list)
 {
+    DBG(("event_register_event_list %p", list));
     list->base = lib_calloc(1, sizeof(event_list_t));
     list->current = list->base;
 }
@@ -571,6 +589,7 @@ void event_destroy_image_list(void)
 
 void event_clear_list(event_list_state_t *list)
 {
+    DBG(("event_clear_list %p", list));
     if (list != NULL && list->base != NULL) {
         cut_list(list->base);
     }
@@ -1159,12 +1178,12 @@ static int set_event_snapshot_dir(const char *val, void *param)
 {
     const char *s = val;
 
-    /* Make sure that the string ends with FSDEV_DIR_SEP_STR */
-    if (s[strlen(s) - 1] == FSDEV_DIR_SEP_CHR) {
+    /* Make sure that the string ends with ARCHDEP_DIR_SEP_STR */
+    if (s[strlen(s) - 1] == ARCHDEP_DIR_SEP_CHR) {
         util_string_set(&event_snapshot_dir, s);
     } else {
         lib_free(event_snapshot_dir);
-        event_snapshot_dir = util_concat(s, FSDEV_DIR_SEP_STR, NULL);
+        event_snapshot_dir = util_concat(s, ARCHDEP_DIR_SEP_STR, NULL);
     }
 
     return 0;
@@ -1214,7 +1233,7 @@ static int set_event_image_include(int enable, void *param)
 
 static const resource_string_t resources_string[] = {
     { "EventSnapshotDir",
-      FSDEVICE_DEFAULT_DIR FSDEV_DIR_SEP_STR, RES_EVENT_NO, NULL,
+      ARCHDEP_FSDEVICE_DEFAULT_DIR ARCHDEP_DIR_SEP_STR, RES_EVENT_NO, NULL,
       &event_snapshot_dir, set_event_snapshot_dir, NULL },
     { "EventStartSnapshot", EVENT_START_SNAPSHOT, RES_EVENT_NO, NULL,
       &event_start_snapshot, set_event_start_snapshot, NULL },

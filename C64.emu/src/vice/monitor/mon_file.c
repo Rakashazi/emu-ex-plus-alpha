@@ -41,13 +41,15 @@
 #include "mem.h"
 #include "montypes.h"
 #include "mon_drive.h"
-#include "mon_file.h"
 #include "mon_util.h"
 #include "tape.h"
 #include "tapeport.h"
 #include "uimon.h"
+#include "util.h"
 #include "vdrive-iec.h"
 #include "vdrive.h"
+
+#include "mon_file.h"
 
 
 #define ADDR_LIMIT(x) ((uint16_t)(addr_mask(x)))
@@ -87,7 +89,7 @@ static int mon_file_open(const char *filename,
             if (vdrive == NULL) {
                 /* if vdrive did not succeed, try fsdevice */
                 if ((fspath = mon_drive_get_fsdevice_path(device))) {
-                    fullpath = archdep_join_paths(fspath, filename, NULL);
+                    fullpath = util_join_paths(fspath, filename, NULL);
                     fp = fopen(fullpath, (secondary == 0) ? MODE_READ : MODE_WRITE);
                     lib_free(fullpath);
                     if (fp != NULL) {

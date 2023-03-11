@@ -1,5 +1,5 @@
 /*
- * userport_superpet64.h:
+ * userport_superpad64.h:
  *
  * Written by
  *  Marco van den Heuvel <blackystardust68@yahoo.com>

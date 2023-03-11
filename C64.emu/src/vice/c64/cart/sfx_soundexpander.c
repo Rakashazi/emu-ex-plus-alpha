@@ -144,7 +144,7 @@ static int sfx_soundexpander_sound_machine_channels(void)
 
 /* SFX Sound Expander cartridge sound chip */
 static sound_chip_t sfx_soundexpander_sound_chip = {
-    NULL,                                              /* NO sound chip open function */ 
+    NULL,                                              /* NO sound chip open function */
     sfx_soundexpander_sound_machine_init,              /* sound chip init function */
     sfx_soundexpander_sound_machine_close,             /* sound chip close function */
     sfx_soundexpander_sound_machine_calculate_samples, /* sound chip calculate samples function */

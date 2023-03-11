@@ -79,6 +79,9 @@ extern store_func_t rom_store, rom_trap_store, zero_store;
 extern read_func_t mem_read;
 extern store_func_t mem_store;
 
+extern read_func_t mem_dma_read;
+extern store_func_t mem_dma_store;
+
 /* ------------------------------------------------------------------------- */
 
 /* Memory access functions for the monitor.  */

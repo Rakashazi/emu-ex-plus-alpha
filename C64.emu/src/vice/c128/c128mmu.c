@@ -37,10 +37,12 @@
 #include "c128memrom.h"
 #include "c128mmu.h"
 #include "c64cart.h"
+#include "c128cart.h"
 #include "cmdline.h"
 #include "functionrom.h"
 #include "interrupt.h"
 #include "keyboard.h"
+#include "keymap.h"
 #include "log.h"
 #include "maincpu.h"
 #include "mem.h"
@@ -55,6 +57,13 @@
 #include "z80mem.h"
 
 /* #define MMU_DEBUG */
+/* #define DEBUG_KEYS */
+
+#ifdef DEBUG_KEYS
+#define DBGKEY(x) log_debug x
+#else
+#define DBGKEY(x)
+#endif
 
 /* MMU register.  */
 static uint8_t mmu[12];
@@ -62,8 +71,8 @@ static uint8_t mmu[12];
 /* latches for P0H and P1H */
 static uint8_t p0h_latch, p1h_latch;
 
-/* State of the 40/80 column key.  */
-static int mmu_column4080_key = 1;
+/* State of the 40/80 column key (Resource value)  */
+static int mmu_column4080_key = -1;
 
 static int force_c64_mode_res = 0;
 static int force_c64_mode = 0;
@@ -75,9 +84,25 @@ static log_t mmu_log = LOG_ERR;
 
 /* ------------------------------------------------------------------------- */
 
+/* resource handler for "C128ColumnKey"
+    = 1 : 40 colums     (key released: 0)
+    = 0 : 80 colums     (key pressed: 1)
+*/
 static int set_column4080_key(int val, void *param)
 {
-    mmu_column4080_key = val ? 1 : 0;
+    DBGKEY(("set_column4080_key %d", val));
+    if (mmu_column4080_key != val) {
+        /* caution, the resource value is 1 when the key is not pressed (val = 0) */
+        keyboard_custom_key_set(KBD_CUSTOM_4080, val ? 0 : 1);
+        val = keyboard_custom_key_get(KBD_CUSTOM_4080);
+        if (val != 1) {
+            val = 0;
+        }
+        /* caution, the resource value is 1 when the key is not pressed (val = 0) */
+        mmu_column4080_key = val ^ 1;
+        DBGKEY(("set_column4080_key mmu_column4080_key:%d 40/80 column key: %s.",
+            mmu_column4080_key, mmu_column4080_key ? "40cols" : "80cols"));
+    }
 
 #ifdef HAS_SINGLE_CANVAS
     vdc_set_canvas_refresh(mmu_column4080_key ? 0 : 1);
@@ -201,11 +226,21 @@ static uint8_t mmu_is_valid_ram(uint8_t page, uint8_t bank, uint8_t current_bank
     return 0;
 }
 
-static void mmu_toggle_column4080_key(void)
+/* custom key handler, called when key either pressed or released */
+static int mmu_4080_key_event(int pressed)
 {
-    mmu_column4080_key = !mmu_column4080_key;
-    resources_set_int("C128ColumnKey", mmu_column4080_key);
-    log_message(mmu_log, "40/80 column key %s.", (mmu_column4080_key) ? "released" : "pressed");
+    DBGKEY(("mmu_4080_key_event pressed:%d", pressed));
+    /*keyboard_custom_key_set(KBD_CUSTOM_4080, pressed);
+    pressed = keyboard_custom_key_get(KBD_CUSTOM_4080);*/
+    if (pressed != 1) {
+        pressed = 0;
+    }
+    /* caution, the resource value is 1 when the key is not pressed (enabled = 0) */
+    mmu_column4080_key = pressed ? 0 : 1;
+    mem_pla_config_changed();
+    DBGKEY(("mmu_4080_key_event mmu_column4080_key:%d 40/80 column key: %s.",
+            mmu_column4080_key, mmu_column4080_key ? "40cols" : "80cols"));
+    return pressed;
 }
 
 static void mmu_switch_cpu(int value)
@@ -239,6 +274,15 @@ static void mmu_set_ram_bank(uint8_t value)
 #endif
 }
 
+static void mmu_set_dma_bank(uint8_t value)
+{
+    if (c128_full_banks) {
+        dma_bank = mem_ram + (((long)value & 0xc0) << 10);
+    } else {
+        dma_bank = mem_ram + (((long)value & 0x40) << 10);
+    }
+}
+
 static void mmu_update_page01_pointers(void)
 {
     /* update pointers for page 0/1 in case they or the shared RAM settings changed */
@@ -255,13 +299,13 @@ static void mmu_update_page01_pointers(void)
         current_bank = ((mmu[0] >> 6) & 0x1);
     }
 
-    c128_cpu_set_mmu_page_0_target_ram(mmu_is_valid_ram(mmu[0x7], page_zero_bank, current_bank));
-    c128_cpu_set_mmu_page_1_target_ram(mmu_is_valid_ram(mmu[0x9], page_one_bank, current_bank));
+    c128_mem_set_mmu_page_0_target_ram(mmu_is_valid_ram(mmu[0x7], page_zero_bank, current_bank));
+    c128_mem_set_mmu_page_1_target_ram(mmu_is_valid_ram(mmu[0x9], page_one_bank, current_bank));
 
-    c128_cpu_set_mmu_page_0_bank(page_zero_bank);
-    c128_cpu_set_mmu_page_1_bank(page_one_bank);
+    c128_mem_set_mmu_page_0_bank(page_zero_bank);
+    c128_mem_set_mmu_page_1_bank(page_one_bank);
 
-    c128_cpu_set_mmu_zp_sp_shared(mmu_is_in_shared_ram(0));
+    c128_mem_set_mmu_zp_sp_shared(mmu_is_in_shared_ram(0));
 
     if (mmu_is_in_shared_ram(mmu[0x7] << 8)) {
         page_zero_bank = 0;
@@ -276,7 +320,7 @@ static void mmu_update_page01_pointers(void)
 /* returns 1 if MMU is in C64 mode */
 int mmu_is_c64config(void)
 {
-    return (mmu[5] & 0x40) ? 1 : 0; /* FIXME: is this correct? */
+    return (mmu[5] & 0x40) ? 1 : 0;
 }
 
 static void mmu_switch_to_c64mode(void)
@@ -295,10 +339,11 @@ static void mmu_switch_to_c64mode(void)
         mmu[5] = 0xf7;
         /* force standard addresses for stack and zeropage */
         mmu[7] = 0;
-        c128_cpu_set_mmu_page_0(0);
+        c128_mem_set_mmu_page_0(0);
+        mmu_set_dma_bank(mmu[6]);
         mmu[8] = 0;
         mmu[9] = 1;
-        c128_cpu_set_mmu_page_1(1);
+        c128_mem_set_mmu_page_1(1);
         mmu[10] = 0;
         mmu_update_page01_pointers();
     }
@@ -435,6 +480,7 @@ void mmu_store(uint16_t address, uint8_t value)
                 c128fastiec_fast_cpu_direction(value & 8);
                 break;
             case 6: /* RAM configuration register (RCR).  */
+                mmu_set_dma_bank(value);
                 mem_set_ram_config(value);
                 break;
             case 8:
@@ -449,7 +495,7 @@ void mmu_store(uint16_t address, uint8_t value)
                 break;
             case 7:
                 mmu[8] = p0h_latch;
-                c128_cpu_set_mmu_page_0(mmu[7]);
+                c128_mem_set_mmu_page_0(mmu[7]);
 #ifdef MMU_DEBUG
                 log_message(mmu_log, "PAGE ZERO %05x PAGE ONE %05x",
                             (mmu[0x8] & 0x1 ? 0x10000 : 0x00000) + (mmu[0x7] << 8),
@@ -458,7 +504,7 @@ void mmu_store(uint16_t address, uint8_t value)
                 break;
             case 9:
                 mmu[10] = p1h_latch;
-                c128_cpu_set_mmu_page_1(mmu[9]);
+                c128_mem_set_mmu_page_1(mmu[9]);
 #ifdef MMU_DEBUG
                 log_message(mmu_log, "PAGE ZERO %05x PAGE ONE %05x",
                             (mmu[0x8] & 0x1 ? 0x10000 : 0x00000) + (mmu[0x7] << 8),
@@ -587,7 +633,7 @@ int mmu_dump(void *context, uint16_t addr)
 void mmu_init(void)
 {
     mmu_log = log_open("MMU");
-
+    DBGKEY(("mmu_init mmu_column4080_key:%d", mmu_column4080_key));
     set_column4080_key(mmu_column4080_key, NULL);
 
     mmu[5] = 0;
@@ -602,8 +648,11 @@ void mmu_reset(void)
     }
     mmu[9] = 1;
     mmu_update_page01_pointers();
+    mmu_set_dma_bank(mmu[6]);
 
-    keyboard_register_column4080_key(mmu_toggle_column4080_key);
+    /* CAUTION: the registered function MUST NOT call keyboard_custom_key_set() */
+    keyboard_register_custom_key(KBD_CUSTOM_4080, mmu_4080_key_event, "40/80 column key",
+                                 &key_ctrl_column4080, &key_flags_column4080);
 
     force_c64_mode = force_c64_mode_res;
 }

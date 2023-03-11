@@ -40,19 +40,18 @@
 #include "output-select.h"
 #include "output.h"
 #include "palette.h"
+#include "printer.h"
 #include "sysfile.h"
 #include "types.h"
 
 #ifdef DEBUG_MPS803
-#define DBG(x) printf x
+#define DBG(x) log_debug x
 #else
 #define DBG(x)
 #endif
 
 #define MAX_COL 480
 #define MAX_ROW 66 * 10
-
-#define MPS803_ROM_SIZE (7 * 512)
 
 #define MPS_REVERSE  0x01
 #define MPS_CRSRUP   0x02 /* set in gfxmode (default) unset in businessmode */
@@ -80,6 +79,23 @@ static palette_t *palette = NULL;
 
 /* Logging goes here.  */
 static log_t drv803_log = LOG_ERR;
+
+#ifdef DEBUG_MPS803
+static void dump_charset(void)
+{
+    int ch, row, col, bit;
+    for (ch = 0; ch < 512; ch++) {
+        printf("%d\n", ch);
+        for (row = 0; row < 7; row++) {
+            for (col = 0; col < 7; col++) {
+                bit = charset[ch][row] & (1 << (7 - col));
+                printf("%c", bit ? '*' : '.');
+            }
+            printf("\n");
+        }
+    }
+}
+#endif
 
 /* ------------------------------------------------------------------------- */
 /* MPS803 printer engine. */
@@ -356,7 +372,7 @@ static void print_char(mps_t *mps, unsigned int prnr, const uint8_t c)
         return;
     }
 
-   /* 
+   /*
     * When an odd number of CHR$(34) is detected in a line, the control
     * codes $00-$1F and $80-$9F will be made visible by printing a
     * reverse character for each of these controls. This will continue
@@ -401,6 +417,9 @@ static int init_charset(uint8_t chrset[512][7], const char *name)
 
     memcpy(chrset, romimage, MPS803_ROM_SIZE);
 
+#ifdef DEBUG_MPS803
+    dump_charset();
+#endif
     return 0;
 }
 
@@ -449,26 +468,26 @@ static void drv_mps803_close(unsigned int prnr, unsigned int secondary)
 
 static int drv_mps803_putc(unsigned int prnr, unsigned int secondary, uint8_t b)
 {
-    DBG(("drv_mps803_putc(%d,%d:$%02x)\n", prnr, secondary, b));
+    DBG(("drv_mps803_putc(%u,%u:$%02x)\n", prnr, secondary, b));
     print_char(&drv_mps803[prnr], prnr, b);
     return 0;
 }
 
 static int drv_mps803_getc(unsigned int prnr, unsigned int secondary, uint8_t *b)
 {
-    DBG(("drv_mps803_getc(%d,%d)\n", prnr, secondary));
+    DBG(("drv_mps803_getc(%u,%u)\n", prnr, secondary));
     return output_select_getc(prnr, b);
 }
 
 static int drv_mps803_flush(unsigned int prnr, unsigned int secondary)
 {
-    DBG(("drv_mps803_flush(%d,%d)\n", prnr, secondary));
+    DBG(("drv_mps803_flush(%u,%u)\n", prnr, secondary));
     return output_select_flush(prnr);
 }
 
 static int drv_mps803_formfeed(unsigned int prnr)
 {
-    DBG(("drv_mps803_formfeed(%d)\n", prnr));
+    DBG(("drv_mps803_formfeed(%u)\n", prnr));
     return 0;
 }
 
@@ -495,7 +514,7 @@ int drv_mps803_init(void)
 
     drv803_log = log_open("MPS-803");
 
-    init_charset(charset, "mps803");
+    init_charset(charset, MPS803_ROM_NAME);
 
     palette = palette_create(2, color_names);
 
@@ -503,9 +522,9 @@ int drv_mps803_init(void)
         return -1;
     }
 
-    if (palette_load("mps803" FSDEV_EXT_SEP_STR "vpl", "PRINTER", palette) < 0) {
+    if (palette_load("mps803.vpl", "PRINTER", palette) < 0) {
         log_error(drv803_log, "Cannot load palette file `%s'.",
-                  "mps803" FSDEV_EXT_SEP_STR "vpl");
+                  "mps803.vpl");
         return -1;
     }
 

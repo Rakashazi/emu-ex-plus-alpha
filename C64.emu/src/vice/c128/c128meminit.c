@@ -32,6 +32,7 @@
 #include "c128meminit.h"
 #include "c128memrom.h"
 #include "c128mmu.h"
+#include "c128cart.h"
 #include "c64cia.h"
 #include "cartio.h"
 #include "functionrom.h"
@@ -1045,8 +1046,8 @@ void c128meminit(void)
         mem_set_write_hook(j, 0xd4, c128_c64io_d400_store);
         mem_read_tab_set(j, 0xd5, c128_mmu_read);
         mem_set_write_hook(j, 0xd5, c128_mmu_store);
-        mem_read_tab_set(j, 0xd6, c128_vdc_read);
-        mem_set_write_hook(j, 0xd6, c128_vdc_store);
+        mem_read_tab_set(j, 0xd6, c128_c64io_d600_read);
+        mem_set_write_hook(j, 0xd6, c128_c64io_d600_store);
         mem_read_tab_set(j, 0xd7, c128_c64io_d700_read);
         mem_set_write_hook(j, 0xd7, c128_c64io_d700_store);
 

@@ -498,7 +498,7 @@ static void do_command_01_0f(int encode)
         DBG(("temppath:%s", temppath));
         /* add the MAC address */
         sprintf(macstring, "%02x%02x%02x%02x%02x%02x",
-                wic64_mac_address[0], wic64_mac_address[1], wic64_mac_address[2], 
+                wic64_mac_address[0], wic64_mac_address[1], wic64_mac_address[2],
                 wic64_mac_address[3], wic64_mac_address[4], wic64_mac_address[5]);
         DBG(("temppath:%s", temppath));
         strcat(temppath, macstring);
@@ -649,7 +649,7 @@ static void do_command_14(void)
 {
     char buffer[0x20];
     sprintf(buffer, "%02x:%02x:%02x:%02x:%02x:%02x",
-            wic64_mac_address[0], wic64_mac_address[1], wic64_mac_address[2], 
+            wic64_mac_address[0], wic64_mac_address[1], wic64_mac_address[2],
             wic64_mac_address[3], wic64_mac_address[4], wic64_mac_address[5]);
     send_reply(buffer);
 }
@@ -910,7 +910,7 @@ static int userport_wic64_write_snapshot_module(snapshot_t *s)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }

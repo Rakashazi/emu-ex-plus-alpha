@@ -32,26 +32,24 @@
 #include "archdep.h"
 #include "cmdline.h"
 #include "fsdevice.h"
-#include "ioutil.h"
 #include "lib.h"
 #include "resources.h"
 #include "types.h"
 
+#include "fsdevice-cmdline-options.h"
+
+
 static int cmdline_fsdirectory(const char *param, void *extra_param)
 {
     unsigned int unit;
-    char *directory;
+    char directory[ARCHDEP_PATH_MAX];
 
     unit = vice_ptr_to_uint(extra_param);
-    directory = lib_malloc(ioutil_maxpathlen());
 
-    strcpy(directory, param);
-    strcat(directory, FSDEV_DIR_SEP_STR);
+    snprintf(directory, ARCHDEP_PATH_MAX - 1U, "%s%s", param, ARCHDEP_DIR_SEP_STR);
+    directory[sizeof(directory) - 1] = '\0';
 
     fsdevice_set_directory(directory, unit);
-
-    lib_free(directory);
-
     return 0;
 }
 

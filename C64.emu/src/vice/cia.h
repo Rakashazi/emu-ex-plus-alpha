@@ -58,6 +58,39 @@
 #define CIA_CRA         14 /* Control register A */
 #define CIA_CRB         15 /* Control register B */
 
+/* Common control register bits */
+#define CIA_CR_START            0x01
+#define CIA_CR_PBON             0x02
+#define CIA_CR_OUTMODE          0x04
+#  define CIA_CR_OUTMODE_TOGGLE         0x04
+#  define CIA_CR_OUTMODE_PULSE          0x00
+#define CIA_CR_RUNMODE          0x08
+#  define CIA_CR_RUNMODE_ONE_SHOT       0x08
+#  define CIA_CR_RUNMODE_CONTINUOUS     0x00
+#define CIA_CR_LOAD             0x10
+#define CIA_CR_FORCE_LOAD               0x10
+
+/* CR A control register bits */
+#define CIA_CRA_INMODE          0x20
+#  define CIA_CRA_INMODE_CNT            0x20
+#  define CIA_CRA_INMODE_PHI2           0x00
+#define CIA_CRA_SPMODE          0x40
+#  define CIA_CRA_SPMODE_OUT            0x40
+#  define CIA_CRA_SPMODE_IN             0x00
+#define CIA_CRA_TODIN           0x80
+#  define CIA_CRA_TODIN_50HZ            0x80
+#  define CIA_CRA_TODIN_60HZ            0x00
+
+/* CR B control register bits */
+#define CIA_CRB_INMODE          0x60
+#  define CIA_CRB_INMODE_PHI2           0x00
+#  define CIA_CRB_INMODE_CNT            0x20
+#  define CIA_CRB_INMODE_TA             0x40
+#  define CIA_CRB_INMODE_TA_CNT         0x60
+#define CIA_CRB_ALARM           0x80
+#  define CIA_CRB_ALARM_ALARM           0x80
+#  define CIA_CRB_ALARM_TOD             0x00
+
 
 struct alarm_context_s;
 struct cia_context_s;
@@ -80,6 +113,7 @@ typedef struct cia_context_s {
     struct alarm_s *tb_alarm;
     struct alarm_s *tod_alarm;
     struct alarm_s *idle_alarm;
+    struct alarm_s *sdr_alarm;
     int irqflags;
     uint8_t irq_enabled;
     CLOCK rdi;
@@ -87,8 +121,9 @@ typedef struct cia_context_s {
     unsigned int tbt;
     CLOCK todclk;
     unsigned int sr_bits;
-    int sdr_valid;
-    uint8_t shifter;
+    bool sdr_off;
+    bool sdr_valid;
+    uint16_t shifter;
     uint8_t old_pa;
     uint8_t old_pb;
 
@@ -123,7 +158,9 @@ typedef struct cia_context_s {
     int write_offset;             /* 1 if CPU core does CLK++ before store */
     int model;
 
-    int enabled;
+    bool enabled;
+    bool sp_in_state;             /* state stored by ciacore_set_sp() */
+    bool cnt_in_state;            /* state stored by ciacore_set_cnt() */
 
     void *prv;
     void *context;
@@ -133,6 +170,8 @@ typedef struct cia_context_s {
     void (*store_ciapa)(struct cia_context_s *, CLOCK, uint8_t);
     void (*store_ciapb)(struct cia_context_s *, CLOCK, uint8_t);
     void (*store_sdr)(struct cia_context_s *, uint8_t);
+    void (*set_sp)(struct cia_context_s *, CLOCK, bool);
+    void (*set_cnt)(struct cia_context_s *, CLOCK, bool);
     uint8_t (*read_ciapa)(struct cia_context_s *);
     uint8_t (*read_ciapb)(struct cia_context_s *);
     void (*read_ciaicr)(struct cia_context_s *);
@@ -157,8 +196,15 @@ extern void ciacore_store(struct cia_context_s *cia_context, uint16_t addr, uint
 extern uint8_t ciacore_read(struct cia_context_s *cia_context, uint16_t addr);
 extern uint8_t ciacore_peek(struct cia_context_s *cia_context, uint16_t addr);
 
+/*
+ * The next several functions can be called from outside the CIA
+ * to set the FLAG, CNT or SP input lines, or the whole SDR at once
+ * (which is cheating).
+ */
 extern void ciacore_set_flag(struct cia_context_s *cia_context);
 extern void ciacore_set_sdr(struct cia_context_s *cia_context, uint8_t data);
+extern void ciacore_set_cnt(struct cia_context_s *cia_context, bool data);
+extern void ciacore_set_sp(struct cia_context_s *cia_context, bool data);
 
 extern int ciacore_snapshot_write_module(struct cia_context_s *cia_context,
                                          struct snapshot_s *s);

@@ -35,7 +35,6 @@
 #include "log.h"
 #include "mem.h"
 #include "machine.h"
-#include "patchrom.h"
 #include "resources.h"
 #include "sysfile.h"
 #include "types.h"

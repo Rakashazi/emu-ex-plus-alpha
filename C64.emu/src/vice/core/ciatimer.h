@@ -114,9 +114,9 @@ extern void ciat_init_table(void);
 
 #ifdef CIAT_NEED_LOG
 
-extern void ciat_login(const char *format, ...);
-extern void ciat_logout(const char *format, ...);
-extern void ciat_log(const char *format, ...);
+extern void ciat_login(const char *format, ...) VICE_ATTR_PRINTF;
+extern void ciat_logout(const char *format, ...) VICE_ATTR_PRINTF;
+extern void ciat_log(const char *format, ...) VICE_ATTR_PRINTF;
 
 extern void ciat_print_state(const ciat_t *state);
 
@@ -159,11 +159,11 @@ _CIAT_FUNC void ciat_set_alarm(ciat_t *state, CLOCK cclk)
     uint16_t cnt = state->cnt;
     ciat_tstate_t t = state->state;
 
-    CIAT_LOGIN(("%s set_alarm: cclk=%d, latch=%d",
+    CIAT_LOGIN(("%s set_alarm: cclk=%lu, latch=%d",
                 state->name, cclk, state->latch));
 
     while (1) {
-        CIAT_LOG(("- state->clk=%d cnt=%d state=%04x", aclk, cnt, t));
+        CIAT_LOG(("- state->clk=%lu cnt=%d state=%04x", aclk, cnt, t));
 
         if (((t & (CIAT_CR_START | CIAT_CR_FLOAD | CIAT_LOAD1
                    | CIAT_PHI2IN | CIAT_COUNT2 | CIAT_COUNT3 | CIAT_COUNT
@@ -255,11 +255,11 @@ _CIAT_FUNC int ciat_update(ciat_t *state, CLOCK cclk)
 
     n = 0;
 
-    CIAT_LOGIN(("%s update: cclk=%d, latch=%d",
+    CIAT_LOGIN(("%s update: cclk=%lu, latch=%d",
                 state->name, cclk, state->latch));
 
     while (state->clk < cclk) {
-        CIAT_LOG(("- clk=%d cnt=%d state=%04x", state->clk, state->cnt, t));
+        CIAT_LOG(("- clk=%lu cnt=%d state=%04x", state->clk, state->cnt, t));
 
         if (((t & (CIAT_CR_START | CIAT_CR_FLOAD | CIAT_LOAD1
                    | CIAT_PHI2IN | CIAT_COUNT2 | CIAT_COUNT3 | CIAT_COUNT
@@ -341,7 +341,7 @@ _CIAT_FUNC int ciat_update(ciat_t *state, CLOCK cclk)
 
     state->state = t;
 
-    CIAT_LOG(("-> state->clk=%d cnt=%d, latch=%d, state=%04x",
+    CIAT_LOG(("-> state->clk=%lu cnt=%d, latch=%d, state=%04x",
               state->clk, state->cnt, state->latch, t));
 
     CIAT_LOGOUT(("-> n=%d", n));
@@ -391,7 +391,7 @@ _CIAT_FUNC int ciat_single_step(ciat_t *state, CLOCK cclk)
 
 _CIAT_FUNC void ciat_set_latchhi(ciat_t *state, CLOCK cclk, uint8_t byte)
 {
-    CIAT_LOGIN(("%s set_latchhi: cclk=%d, byte=%02x", state->name, cclk, byte));
+    CIAT_LOGIN(("%s set_latchhi: cclk=%lu, byte=%02x", state->name, cclk, byte));
     state->latch = (state->latch & 0xff) | (byte << 8);
     if ((state->state & CIAT_LOAD) || !(state->state & CIAT_CR_START)) {
         state->cnt = state->latch;
@@ -422,7 +422,7 @@ _CIAT_FUNC void ciat_set_latchlo(ciat_t *state, CLOCK cclk, uint8_t byte)
 /* needs update before */
 _CIAT_FUNC void ciat_set_ctrl(ciat_t *state, CLOCK cclk, uint8_t byte)
 {
-    CIAT_LOGIN(("%s set_ctrl: cclk=%d, byte=%02x",
+    CIAT_LOGIN(("%s set_ctrl: cclk=%lu, byte=%02x",
                 state->name, cclk, byte));
 
     /* bit 0= start/stop, 3=oneshot 4=force load, 5=0:count phi2 1:singlestep */ state->state &= ~(CIAT_CR_MASK);
@@ -435,7 +435,7 @@ _CIAT_FUNC void ciat_set_ctrl(ciat_t *state, CLOCK cclk, uint8_t byte)
 
 _CIAT_FUNC void ciat_ack_alarm(ciat_t *state, CLOCK cclk)
 {
-    CIAT_LOGIN(("%s ack_alarm: cclk=%d, alarmclk=%d",
+    CIAT_LOGIN(("%s ack_alarm: cclk=%lu, alarmclk=%lu",
                 state->name, cclk, state->alarmclk));
 
     alarm_unset(state->alarm);

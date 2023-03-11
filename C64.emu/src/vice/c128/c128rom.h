@@ -51,4 +51,42 @@ extern int c128rom_kernal_checksum(void);
 extern int c128rom_kernal_setup(void);
 extern int c128rom_chargen_setup(void);
 
+/* BASICLO + BASICHI */
+#define C128_BASIC_85_CHECKSUM      38592
+#define C128_BASIC_86_CHECKSUM      2496
+
+/* 0x0000 - 0x0fff in kernal image */
+#define C128_EDITOR_R01_CHECKSUM        56682
+#define C128_EDITOR_SE_R01_CHECKSUM     9364
+#define C128_EDITOR_DE_R01_CHECKSUM     9619
+
+/* 0x2000 - 0x3fff in kernal image */
+#define C128_KERNAL_R01_CHECKSUM        22353
+#define C128_KERNAL_SE_R01_CHECKSUM     24139 /* FIXME: 23086 ? */
+#define C128_KERNAL_DE_R01_CHECKSUM     22098 /* FIXME: 19680 ? */
+#define C128_KERNAL_CH_R01_CHECKSUM     21376
+
+#define C128_CHARGEN_NAME       "chargen-390059-01.bin"
+#define C128_CHARGEN_DE_NAME    "chargen-315079-01.bin"
+#define C128_CHARGEN_FR_NAME    "chargen-325167-01.bin"
+#define C128_CHARGEN_SE_NAME    "chargen-325181-01.bin"
+#define C128_CHARGEN_CH_NAME    "chargen-325173-01D.bin"
+#define C128_CHARGEN_NO_NAME    "chargen-325078-02.bin"
+
+/* Editor + Z80BIOS + Kernal */
+#define C128_KERNAL_NAME        "kernal-318020-05.bin"
+#define C128_KERNAL_DE_NAME     "kernal-315078-03.bin"
+#define C128_KERNAL_FI_NAME     "kernalfi"                  /* FIXME: identify */
+#define C128_KERNAL_FR_NAME     "kernalfr"                  /* FIXME: identify */
+#define C128_KERNAL_IT_NAME     "kernalit"                  /* FIXME: identify */
+#define C128_KERNAL_NO_NAME     "kernalno"                  /* FIXME: identify */
+#define C128_KERNAL_SE_NAME     "kernal-318034-01.bin"
+#define C128_KERNAL_CH_NAME     "kernal-325172-01.bin"
+
+#define C128_BASICLO_NAME       "basiclo-318018-04.bin"     /* BASIC */
+#define C128_BASICHI_NAME       "basichi-318019-04.bin"     /* Editor */
+
+#define C128_KERNAL64_NAME      "kernal64-901227-03.bin"
+#define C128_BASIC64_NAME       "basic64-901226-01.bin"
+
 #endif

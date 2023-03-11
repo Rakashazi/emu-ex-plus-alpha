@@ -156,12 +156,14 @@ void behrbonz_reset(void)
 static int zfile_load(const char *filename, uint8_t *dest, size_t size)
 {
     FILE *fd;
+    off_t len;
 
     fd = zfile_fopen(filename, MODE_READ);
     if (!fd) {
         return -1;
     }
-    if (util_file_length(fd) != size) {
+    len = archdep_file_size(fd);
+    if (len < 0 || (size_t)len != size) {
         zfile_fclose(fd);
         return -1;
     }

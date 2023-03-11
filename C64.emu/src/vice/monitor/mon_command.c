@@ -40,10 +40,6 @@
 #include "asm.h"
 #include "montypes.h"
 
-#ifdef AMIGA_MORPHOS
-#undef REG_PC
-#endif
-
 #include "mon_parse.h"
 #include "mon_util.h"
 #include "uimon.h"
@@ -51,8 +47,8 @@
 
 /* FIXME:
  * Removing `const` from `str` and `abbrev` fixes this warning:
-../../../../vice/src/arch/gtk3/uimon.c: In function ‘console_init’:
-../../../../vice/src/arch/gtk3/uimon.c:710:17: warning: to be safe all intermediate pointers in cast from ‘char **’ to ‘const char **’ must be ‘const’ qualified [-Wcast-qual
+../../../../vice/src/arch/gtk3/uimon.c: In function 'console_init':
+../../../../vice/src/arch/gtk3/uimon.c:710:17: warning: to be safe all intermediate pointers in cast from 'char **' to 'const char **' must be 'const' qualified [-Wcast-qual
 (const char **)&full_name,
 
   Also had to do some additional hacking, would be nice to see a better solution.
@@ -547,13 +543,13 @@ static const mon_cmds_t mon_cmd_array[] = {
       "current state.",
       NO_FILENAME_ARG
     },
-    
+
     { "logname", "",
       "\"<filename>\"",
       "Sets the filename of the logfile.",
       FILENAME_ARG
     },
-    
+
     { "", "",
       "",
       "Disk commands:",
@@ -835,8 +831,8 @@ static int mon_command_lookup_index(const char *str)
     }
 
     do {
-        if ((strcasecmp(str, mon_cmd_array[num].str) == 0) ||
-            (strcasecmp(str, mon_cmd_array[num].abbrev) == 0)) {
+        if ((util_strcasecmp(str, mon_cmd_array[num].str) == 0) ||
+            (util_strcasecmp(str, mon_cmd_array[num].abbrev) == 0)) {
             return num;
         }
         num++;

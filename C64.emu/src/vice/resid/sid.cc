@@ -25,7 +25,7 @@
 #endif
 
 #include "sid.h"
-#include <math.h>
+#include <cmath>
 
 #include <iostream>
 #include <fstream>
@@ -72,6 +72,8 @@ SID::SID()
   write_pipeline = 0;
 
   databus_ttl = 0;
+
+  raw_debug_output = false;
 }
 
 
@@ -562,7 +564,7 @@ double SID::I0(double x)
 // E.g. provided a clock frequency of ~ 1MHz, the sample frequency can not
 // be set lower than ~ 8kHz. A lower sample frequency would make the
 // resampling code overfill its 16k sample ring buffer.
-// 
+//
 // The end of passband frequency is also limited:
 //   pass_freq <= 0.9*sample_freq/2
 
@@ -829,7 +831,7 @@ void SID::clock(cycle_count delta_t)
 //   write(dsp, buf, bufindex*2);
 //   bufindex = 0;
 // }
-// 
+//
 // ----------------------------------------------------------------------------
 int SID::clock(cycle_count& delta_t, short* buf, int n, int interleave)
 {

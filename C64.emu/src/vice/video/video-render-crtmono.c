@@ -57,14 +57,14 @@ void video_render_crt_mono_main(video_render_config_t *config,
                            unsigned int viewport_first_line, unsigned int viewport_last_line)
 {
     video_render_color_tables_t *colortab;
-    int doublescan, delayloop, rendermode, scale2x;
+    int doublescan, crtemulation, rendermode, scale2x;
 
     rendermode = config->rendermode;
     doublescan = config->doublescan;
     colortab = &config->color_tables;
-    scale2x = config->scale2x;
 
-    delayloop = (config->filter == VIDEO_FILTER_CRT);
+    scale2x = (config->filter == VIDEO_FILTER_SCALE2X);
+    crtemulation = (config->filter == VIDEO_FILTER_CRT);
 
     if ((rendermode == VIDEO_RENDER_CRT_MONO_1X1
          || rendermode == VIDEO_RENDER_CRT_MONO_1X2
@@ -80,7 +80,7 @@ void video_render_crt_mono_main(video_render_config_t *config,
             break;
 
         case VIDEO_RENDER_CRT_MONO_1X1:
-            if (delayloop) {
+            if (crtemulation) {
                 /* FIXME: open end, this should use a dedicated monochrome CRT renderer */
                 render_32_1x1_rgbi(colortab, src, trg, width, height,
                                    xs, ys, xt, yt, pitchs, pitcht);
@@ -92,7 +92,7 @@ void video_render_crt_mono_main(video_render_config_t *config,
             }
             break;
         case VIDEO_RENDER_CRT_MONO_1X2:
-            if (delayloop) {
+            if (crtemulation) {
                 /* FIXME: open end, this should use a dedicated monochrome CRT renderer */
                 render_32_1x2_rgbi(colortab, src, trg, width, height,
                                   xs, ys, xt, yt, pitchs, pitcht,
@@ -110,7 +110,7 @@ void video_render_crt_mono_main(video_render_config_t *config,
                 render_32_scale2x(colortab, src, trg, width, height,
                                   xs, ys, xt, yt, pitchs, pitcht);
                 return;
-            } else if (delayloop) {
+            } else if (crtemulation) {
                 /* FIXME: open end, this should use a dedicated monochrome CRT renderer */
                 render_32_2x2_rgbi(colortab, src, trg, width, height,
                                   xs, ys, xt, yt, pitchs, pitcht,
@@ -123,7 +123,7 @@ void video_render_crt_mono_main(video_render_config_t *config,
             }
             break;
         case VIDEO_RENDER_CRT_MONO_2X4:
-            if (delayloop) {
+            if (crtemulation) {
                 /* FIXME: open end, this should use a dedicated monochrome CRT renderer */
                 render_32_2x4_rgbi(colortab, src, trg, width, height,
                                   xs, ys, xt, yt, pitchs, pitcht,

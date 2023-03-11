@@ -190,10 +190,8 @@ inline static int ciapb_forcelow(int i)
 {
     uint8_t v;
 
-    /* Check for shift lock.
-       FIXME: keyboard_shiftlock state may be inconsistent
-              with the (rev_)keyarr state. */
-    if ((i == 7) && keyboard_shiftlock) {
+    /* Check for shift lock. */
+    if ((i == 7) && keyboard_get_shiftlock()) {
         return 1;
     }
 

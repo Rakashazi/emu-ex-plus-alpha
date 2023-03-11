@@ -63,4 +63,37 @@ extern int driverom_load_images(void);
 extern int driverom_snapshot_write(struct snapshot_s *s, const struct drive_s *drive);
 extern int driverom_snapshot_read(struct snapshot_s *s, struct drive_s *drive);
 
+/* 1001 Images have the low and high part combined */
+#define DRIVE_ROM1001_NAME          "dos1001-901887+8-01.bin"
+
+/* 2031 Images have the low and high part combined */
+#define DRIVE_ROM2031_NAME          "dos2031-901484-03+05.bin"
+
+/* 2040 Images have the low and high parts combined */
+#define DRIVE_ROM2040_NAME          "dos2040-901468-06+07.bin"
+
+/* 3040 Images have the three parts combined */
+#define DRIVE_ROM3040_NAME          "dos3040-901468-11-13.bin"
+
+/* 4040 Images have the three parts combined */
+#define DRIVE_ROM4040_NAME          "dos4040-901468-14-16.bin"
+
+/* 90x0 Images have the low and high parts combined */
+#define DRIVE_ROM9000_NAME          "dos9000-300516+7-revC.bin"
+
+/* 154x Images have the low and high part combined */
+#define DRIVE_ROM1540_NAME          "dos1540-325302+3-01.bin"
+#define DRIVE_ROM1541_NAME          "dos1541-325302-01+901229-05.bin"
+#define DRIVE_ROM1541II_NAME        "dos1541ii-251968-03.bin"
+
+#define DRIVE_ROM1551_NAME          "dos1551-318008-01.bin"
+#define DRIVE_ROM1570_NAME          "dos1570-315090-01.bin"
+#define DRIVE_ROM1571_NAME          "dos1571-310654-05.bin"
+#define DRIVE_ROM1571CR_NAME        "dos1571cr-318047-01.bin"
+#define DRIVE_ROM1581_NAME          "dos1581-318045-02.bin"
+
+#define DRIVE_ROM2000_NAME          "dos2000-cs-33cc6f.bin"
+#define DRIVE_ROM4000_NAME          "dos4000-fd-350022.bin"
+#define DRIVE_ROMCMDHD_NAME         "bootromCMDHD-v2-80.bin"
+
 #endif

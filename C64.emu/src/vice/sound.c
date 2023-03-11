@@ -41,7 +41,6 @@
 #endif
 
 #include "archdep.h"
-#include "archdep_exit.h"
 #include "cmdline.h"
 #include "debug.h"
 #include "fixpoint.h"
@@ -53,7 +52,6 @@
 #include "resources.h"
 #include "sound.h"
 #include "types.h"
-#include "tick.h"
 #include "uiapi.h"
 #include "util.h"
 #include "vsync.h"
@@ -103,35 +101,24 @@ static const sound_register_devices_t sound_register_devices[] = {
 #endif
 
 /* Don't use the NetBSD/SUN sound driver for OpenBSD */
-#if defined(HAVE_SYS_AUDIOIO_H) && !defined(__OpenBSD__)
-#if defined(__NetBSD__)
+#if defined(HAVE_SYS_AUDIOIO_H) && !defined(OPENBSD_COMPILE)
+#if defined(NETBSD_COMPILE)
     { "netbsd", sound_init_sun_device, SOUND_PLAYBACK_DEVICE },
 #else
-    /* Really? */
     { "sun", sound_init_sun_device, SOUND_PLAYBACK_DEVICE },
-#endif /* __NetBSD__*/
+#endif /* NETBSD_COMPILE */
 #endif /* HAVE_SYS_AUDIOIO_H */
 
-#ifdef WIN32_COMPILE
+#ifdef WINDOWS_COMPILE
 #ifdef USE_DXSOUND
     { "dx", sound_init_dx_device, SOUND_PLAYBACK_DEVICE },
 #endif
-#if !defined(__XBOX__)
     { "wmm", sound_init_wmm_device, SOUND_PLAYBACK_DEVICE },
-#endif
-#endif
-
-#if defined(__OS2__) && !defined(USE_SDLUI)
-    { "dart", sound_init_dart_device, SOUND_PLAYBACK_DEVICE },
 #endif
 
 #ifdef BEOS_COMPILE
     { "beos", sound_init_beos_device, SOUND_PLAYBACK_DEVICE },
     { "bsp", sound_init_bsp_device, SOUND_PLAYBACK_DEVICE },
-#endif
-
-#if defined(AMIGA_SUPPORT) && defined(HAVE_DEVICES_AHI_H)
-    { "ahi", sound_init_ahi_device, SOUND_PLAYBACK_DEVICE },
 #endif
 
     /* SDL driver last, after all platform specific ones */
@@ -734,13 +721,11 @@ const char *sound_device_name(unsigned int num)
 static int sound_error(const char *msg)
 {
     sound_close();
-    
+
     log_message(sound_log, "%s", msg);
 
     if (!console_mode && !video_disabled_mode) {
-        char *txt = lib_msprintf("Sound: %s", msg);
-        ui_error(txt);
-        lib_free(txt);
+        ui_error("Sound: %s", msg);
     }
 
     playback_enabled = 0;
@@ -826,7 +811,7 @@ static int sid_open(void)
             /* already open */
             continue;
         }
-        
+
         if (!(snddata.psid[c] = sound_machine_open(c))) {
             return sound_error("Cannot open SID engine");
         }
@@ -858,7 +843,7 @@ static int sid_init(void)
     snddata.fclk = SOUNDCLK_CONSTANT(maincpu_clk);
     snddata.wclk = maincpu_clk;
     snddata.lastclk = maincpu_clk;
-    
+
     for (c = 0; c < snddata.sound_chip_channels; c++) {
         if (!sound_machine_init(snddata.psid[c], speed, cycles_per_sec) || !playback_enabled) {
             return sound_error("Cannot initialize SID engine");
@@ -957,7 +942,7 @@ int sound_open(void)
 
     /* find pdev */
     for (i = 0; (pdev = sound_devices[i]); i++) {
-        if (!playname || (pdev->name && !strcasecmp(playname, pdev->name))) {
+        if (!playname || (pdev->name && !util_strcasecmp(playname, pdev->name))) {
             break;
         }
     }
@@ -985,13 +970,13 @@ int sound_open(void)
     fragnr = (int)((speed * bufsize + fragsize - 1) / fragsize);
 
     if (pdev) {
-        
+
         snddata.playdev = pdev;
         snddata.fragsize = fragsize;
         snddata.fragnr = fragnr;
         snddata.bufsize = fragsize * fragnr;
         snddata.bufptr = 0;
-        
+
         if (pdev->init) {
             channels_cap = channels;
             if (pdev->init(playparam, &speed, &fragsize, &fragnr, &channels_cap)) {
@@ -1008,6 +993,10 @@ int sound_open(void)
             } else {
                 snddata.sound_output_channels = channels;
             }
+        }
+        if (snddata.buffer) {
+            lib_free(snddata.buffer);
+            snddata.buffer = NULL;
         }
         snddata.buffer = lib_malloc(snddata.bufsize * snddata.sound_output_channels * sizeof(int16_t));
         snddata.issuspended = 0;
@@ -1055,7 +1044,7 @@ int sound_open(void)
     sound_state_changed = FALSE;
 
     for (i = 0; (rdev = sound_devices[i]); i++) {
-        if (recname && rdev->name && !strcasecmp(recname, rdev->name)) {
+        if (recname && rdev->name && !util_strcasecmp(recname, rdev->name)) {
             break;
         }
     }
@@ -1072,7 +1061,7 @@ int sound_open(void)
         }
 
         if (rdev->bufferspace != NULL) {
-            ui_error("Warning! Recording device %s seems to be a realtime device!");
+            ui_error("Warning! Recording device %s seems to be a realtime device!", recname);
         }
 
         if (rdev->init) {
@@ -1239,11 +1228,11 @@ void sound_reset(void)
 }
 
 /* flush all generated samples from buffer to sounddevice. */
-bool sound_flush()
+bool sound_flush(void)
 {
     int c, i, nr, space;
     char *state;
-    
+
     if (!playback_enabled) {
         if (sdev_open) {
             sound_close();
@@ -1300,21 +1289,21 @@ bool sound_flush()
 
     /*
      * At this point we have to block until we have written at least one fragment.
-     * 
+     *
      * The 'push against the audio device' sync method depends on this.
      */
-    
+
     while (!warp_mode_enabled) {
 
         if (snddata.playdev->bufferspace) {
-            space = snddata.playdev->bufferspace();            
+            space = snddata.playdev->bufferspace();
         } else {
             /* We are using a blocking driver like simple pulse - write everything we have. */
             space = nr;
         }
 
         space -= space % snddata.fragsize;
-        
+
         if (space) {
             if (nr > space) {
                 /* Write as much as we can */
@@ -1322,7 +1311,7 @@ bool sound_flush()
             }
 
             mainlock_yield_begin();
-            
+
             /* Flush buffer, all channels are already mixed into it. */
             if (snddata.playdev->write(snddata.buffer, nr * snddata.sound_output_channels)) {
                 sound_error("write to sound device failed.");
@@ -1339,21 +1328,21 @@ bool sound_flush()
                     goto done;
                 }
             }
-            
+
             /* Successful write to audio device, exit loop. */
             mainlock_yield_end();
             break;
         }
-        
+
         /* We can't write yet, try again after a minimal sleep. */
-        tick_sleep(tick_per_second() / 1000);
+        mainlock_yield_and_sleep(tick_per_second() / 1000);
     }
 
     snddata.bufptr -= nr;
 
     /*
      * Move any incomplete fragments back to the start of the sample buffer
-     */ 
+     */
 
     for (c = 0; c < snddata.sound_output_channels; c++) {
         snddata.lastsample[c] = snddata.buffer[(nr - 1) * snddata.sound_output_channels + c];
@@ -1362,7 +1351,7 @@ bool sound_flush()
                 snddata.buffer[(i + nr) * snddata.sound_output_channels + c];
         }
     }
-    
+
 done:
 
     /*
@@ -1526,7 +1515,7 @@ void sound_set_relative_speed(int value)
 {
     double natural_fps;
     double new_percent;
-    
+
     if (value < 0) {
         natural_fps = (double)machine_get_cycles_per_second() / machine_get_cycles_per_frame();
         new_percent = 100.0 * (double)(0 - value) / natural_fps;

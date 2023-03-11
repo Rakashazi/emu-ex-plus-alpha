@@ -55,13 +55,20 @@ int fsimage_read_gcr_image(const disk_image_t *image)
     unsigned int half_track;
 
     for (half_track = 0; half_track < MAX_GCR_TRACKS; half_track++) {
+        /* free existing track */
         if (image->gcr->tracks[half_track].data) {
             lib_free(image->gcr->tracks[half_track].data);
             image->gcr->tracks[half_track].data = NULL;
             image->gcr->tracks[half_track].size = 0;
         }
+        /* load new track from image */
         if (half_track < image->max_half_tracks) {
             fsimage_gcr_read_half_track(image, half_track + 2, &image->gcr->tracks[half_track]);
+        } else {
+            /* create empty tracks for non existing tracks */
+            image->gcr->tracks[half_track].size = disk_image_raw_track_size(image->type, half_track / 2);
+            image->gcr->tracks[half_track].data = lib_malloc(image->gcr->tracks[half_track].size);
+            memset(image->gcr->tracks[half_track].data, 0, image->gcr->tracks[half_track].size);
         }
     }
     return 0;

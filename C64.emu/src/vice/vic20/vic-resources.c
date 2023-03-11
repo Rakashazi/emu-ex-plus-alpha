@@ -91,7 +91,6 @@ int vic_resources_init(void)
     video_chip_cap.dsize_limit_width = 0;
     video_chip_cap.dsize_limit_height = 0;
     video_chip_cap.dscan_allowed = ARCHDEP_VIC_DSCAN;
-    video_chip_cap.scale2x_allowed = ARCHDEP_VIC_DSIZE;
     video_chip_cap.interlace_allowed = 1;
     video_chip_cap.external_palette_name = "mike-pal";
     video_chip_cap.double_buffering_allowed = ARCHDEP_VIC_DBUF;

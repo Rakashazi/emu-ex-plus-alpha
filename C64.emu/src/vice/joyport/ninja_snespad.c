@@ -70,23 +70,25 @@ static uint8_t latch_line = 0;
 
 static joyport_t joyport_snespad_device;
 
-static int joyport_snespad_enable(int port, int value)
+static int joyport_snespad_set_enabled(int port, int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
 
-    if (val == snespad_enabled) {
+    if (new_state == snespad_enabled) {
         return 0;
     }
 
-    if (val) {
+    if (new_state) {
+        /* enabled, activate joystick adapter and set amount of ports to 3 */
         joystick_adapter_activate(JOYSTICK_ADAPTER_ID_NINJA_SNES, joyport_snespad_device.name);
         counter = 0;
         joystick_adapter_set_ports(3);
     } else {
+        /* disabled, deactivate joystick adapter */
         joystick_adapter_deactivate();
     }
 
-    snespad_enabled = val;
+    snespad_enabled = new_state;
 
     return 0;
 }
@@ -163,6 +165,7 @@ static uint8_t snespad_read(int port)
         case SNESPAD_BIT_13_1:
         case SNESPAD_BIT_14_1:
         case SNESPAD_BIT_15_1:
+            /* part of the snes sequence, but unused, return 1 on each line */
             retval = 7;
             break;
         case SNESPAD_EOS:
@@ -181,10 +184,12 @@ static void snespad_store(int port, uint8_t val)
     uint8_t new_latch = JOYPORT_BIT_BOOL(val, JOYPORT_FIRE_BIT);    /* latch line is on joyport 'fire' pin */
 
     if (latch_line && !new_latch) {
+        /* latch line asserted, set counter to 0 */
         counter = 0;
     }
 
     if (clock_line && !new_clock) {
+        /* clock line asserted, increment the counter if we are not at the end of the sequence */
         if (counter != SNESPAD_EOS) {
             counter++;
         }
@@ -212,7 +217,7 @@ static joyport_t joyport_snespad_device = {
     JOYSTICK_ADAPTER_ID_NINJA_SNES,   /* device is a joystick adapter */
     JOYPORT_DEVICE_SNES_ADAPTER,      /* device is a SNES adapter */
     0,                                /* NO output bits */
-    joyport_snespad_enable,           /* device enable function */
+    joyport_snespad_set_enabled,      /* device enable/disable function */
     snespad_read,                     /* digital line read function */
     snespad_store,                    /* digital line store function */
     NULL,                             /* NO pot-x read function */
@@ -256,7 +261,7 @@ static int ninja_snespad_write_snapshot(struct snapshot_s *s, int p)
         return -1;
     }
 
-    if (0 
+    if (0
         || SMW_B(m, counter) < 0
         || SMW_B(m, latch_line) < 0
         || SMW_B(m, clock_line) < 0) {

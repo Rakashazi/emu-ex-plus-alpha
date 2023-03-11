@@ -39,7 +39,7 @@ typedef enum resource_type_s {
 typedef enum resource_event_relevant_s {
     RES_EVENT_NO,
     RES_EVENT_SAME,     /* guess: must be the same on server and client */
-    RES_EVENT_STRICT    /* guess: must be the exact event_strict_value */ 
+    RES_EVENT_STRICT    /* guess: must be the exact event_strict_value */
 } resource_event_relevant_t;
 
 typedef void *resource_value_t;
@@ -140,16 +140,16 @@ extern int resources_set_value(const char *name, resource_value_t value);
 extern int resources_set_int(const char *name, int value);
 extern int resources_set_string(const char *name, const char *value);
 extern void resources_set_value_event(void *data, int size);
-extern int resources_set_int_sprintf(const char *name, int value, ...);
-extern int resources_set_string_sprintf(const char *name, const char *value, ...);
+extern int resources_set_int_sprintf(const char *name, int value, ...) VICE_ATTR_RESPRINTF;
+extern int resources_set_string_sprintf(const char *name, const char *value, ...) VICE_ATTR_RESPRINTF;
 extern int resources_set_value_string(const char *name, const char *value);
 extern int resources_toggle(const char *name, int *new_value_return);
 extern int resources_touch(const char *name);
 extern int resources_get_value(const char *name, void *value_return);
 extern int resources_get_int(const char *name, int *value_return);
 extern int resources_get_string(const char *name, const char **value_return);
-extern int resources_get_int_sprintf(const char *name, int *value_return, ...);
-extern int resources_get_string_sprintf(const char *name, const char **value_return, ...);
+extern int resources_get_int_sprintf(const char *name, int *value_return, ...) VICE_ATTR_RESPRINTF;
+extern int resources_get_string_sprintf(const char *name, const char **value_return, ...) VICE_ATTR_RESPRINTF;
 extern int resources_get_default_value(const char *name, void *value_return);
 extern resource_type_t resources_query_type(const char *name);
 extern int resources_save(const char *fname);

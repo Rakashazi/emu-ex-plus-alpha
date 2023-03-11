@@ -41,18 +41,20 @@
 #define RANDOM_CHANCE_MAX   0x1000
 
 static RAMINITPARAM mainramparam = {
-    .start_value = 255,
-    .value_invert = 128,
-    .value_offset = 0,
+    .start_value = 255,         /* RAMInitStartValue - first value of the base pattern (byte value) */
+    .value_invert = 128,        /* RAMInitValueInvert - number of bytes until start value is inverted */
+    .value_offset = 0,          /* RAMInitValueOffset - offset of first pattern in bytes */
 
-    .pattern_invert = 0,
-    .pattern_invert_value = 0,
+    .pattern_invert = 0,        /* RAMInitPatternInvert - invert base pattern after this many bytes */
+    .pattern_invert_value = 0,  /* RAMInitPatternInvertValue - invert base pattern with this byte */
 
-    .random_start = 0,
-    .random_repeat = 0,
-    .random_chance = 0,
+    .random_start = 0,          /* RAMInitStartRandom - length of random pattern in bytes */
+    .random_repeat = 0,         /* RAMInitRepeatRandom - repeat random pattern after this many bytes */
+
+    .random_chance = 0,         /* RAMInitRandomChance - global random chance */
 };
 
+/* first value of the base pattern (byte value) */
 static int set_start_value(int val, void *param)
 {
     mainramparam.start_value = val;
@@ -65,24 +67,28 @@ static int set_start_value(int val, void *param)
     return 0;
 }
 
+/* number of bytes until start value is inverted */
 static int set_value_invert(int val, void *param)
 {
     mainramparam.value_invert = val;
     return 0;
 }
 
+/* offset of first pattern in bytes  */
 static int set_value_offset(int val, void *param)
 {
     mainramparam.value_offset = val;
     return 0;
 }
 
+/* invert base pattern after this many bytes */
 static int set_pattern_invert(int val, void *param)
 {
     mainramparam.pattern_invert = val;
     return 0;
 }
 
+/* invert base pattern with this byte */
 static int set_pattern_invert_value(int val, void *param)
 {
     mainramparam.pattern_invert_value = val;
@@ -95,25 +101,21 @@ static int set_pattern_invert_value(int val, void *param)
     return 0;
 }
 
-
+/* offset where the random pattern starts */
 static int set_random_start(int val, void *param)
 {
     mainramparam.random_start = val;
-    if (mainramparam.random_start < 0) {
-        mainramparam.random_start = 0;
-    }
-    if (mainramparam.random_start > 0xff) {
-        mainramparam.random_start = 0xff;
-    }
     return 0;
 }
 
+/* repeat random pattern every "val" bytes */
 static int set_random_repeat(int val, void *param)
 {
     mainramparam.random_repeat = val;
     return 0;
 }
 
+/* global random chance */
 static int set_random_chance(int val, void *param)
 {
     if (val > RANDOM_CHANCE_MAX) {
@@ -126,7 +128,7 @@ static int set_random_chance(int val, void *param)
 }
 
 /* FIXME: the defaults have been choosen so the result matches a real reported
-          pattern in x64sc, AND from those one was picked so all raminitvalue 
+          pattern in x64sc, AND from those one was picked so all raminitvalue
           tests pass.
 
           however, the respective defaults should probably be different per
@@ -144,6 +146,7 @@ static const resource_int_t resources_int[] = {
       &mainramparam.pattern_invert, set_pattern_invert, NULL },
     { "RAMInitPatternInvertValue", 255, RES_EVENT_SAME, NULL,
       &mainramparam.pattern_invert_value, set_pattern_invert_value, NULL },
+    /* RAMInitStartRandom - length of random pattern in bytes */ /* FIXME: bad name */
     { "RAMInitStartRandom", 0, RES_EVENT_SAME, NULL,
       &mainramparam.random_start, set_random_start, NULL },
     { "RAMInitRepeatRandom", 0, RES_EVENT_SAME, NULL,
@@ -178,6 +181,7 @@ static const cmdline_option_t cmdline_options[] =
     { "-raminitpatterninvertvalue", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RAMInitPatternInvertValue", NULL,
       "<value>", "Value to invert with in second pattern" },
+    /* FIXME: bad name */
     { "-raminitstartrandom", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RAMInitStartRandom", NULL,
       "<num of bytes>", "Number of random bytes in random pattern" },

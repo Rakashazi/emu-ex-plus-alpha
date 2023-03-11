@@ -37,7 +37,6 @@
 #include "cia.h"
 #include "drive-snapshot.h"
 #include "drive.h"
-#include "ioutil.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "log.h"
@@ -50,6 +49,7 @@
 #include "types.h"
 #include "vice-event.h"
 #include "vicii.h"
+
 
 #define SNAP_MAJOR 1
 #define SNAP_MINOR 1
@@ -78,7 +78,7 @@ int c64_snapshot_write(const char *name, int save_roms, int save_disks, int even
         || event_snapshot_write_module(s, event_mode) < 0
         || keyboard_snapshot_write_module(s)) {
         snapshot_close(s);
-        ioutil_remove(name);
+        archdep_remove(name);
         return -1;
     }
 

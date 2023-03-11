@@ -60,7 +60,7 @@ namespace reSID
 // Tommi Lempinen has done an impressive work on re-vectorizing and annotating
 // the die photographs, substantially simplifying further analysis of the
 // filter circuit.
-// 
+//
 // The filter schematics below are reverse engineered from these re-vectorized
 // and annotated die photographs. While the filter first depicted in reSID 0.9
 // is a correct model of the basic filter, the schematics are now completed
@@ -72,7 +72,7 @@ namespace reSID
 //
 // SID filter / mixer / output
 // ---------------------------
-// 
+//
 //                ---------------------------------------------------
 //               |                                                   |
 //               |                         --1R1-- \--  D7           |
@@ -84,7 +84,7 @@ namespace reSID
 //               |   |                     --8R1-- \--| D4           | (7.0R1)
 //               |   |                                |              |
 // $17           |   |                    (CAP2B)     |  (CAP1B)     |
-// 0=to mixer    |    --R8--    ---R8--        ---C---|       ---C---| 
+// 0=to mixer    |    --R8--    ---R8--        ---C---|       ---C---|
 // 1=to filter   |          |  |       |      |       |      |       |
 //                ------R8--|-----[A>--|--Rw-----[A>--|--Rw-----[A>--|
 //     ve (EXT IN)          |          |              |              |
@@ -147,8 +147,8 @@ namespace reSID
 // of 12V, the NMOS FET will enter saturation mode (a.k.a. active mode), and
 // the NMOS FET will not operate anywhere like a resistor.
 //
-// 
-// 
+//
+//
 // NMOS FET voltage controlled resistor (VCR)
 // ------------------------------------------
 //
@@ -171,7 +171,7 @@ namespace reSID
 // vo  - output
 // Rn  - "resistors", implemented with custom NMOS FETs
 // Vw  - voltage from 11-bit DAC (frequency cutoff control)
-// 
+//
 // Notes:
 //
 // An approximate value for R24 can be found by using the formula for the
@@ -198,9 +198,9 @@ namespace reSID
 // Note that these are only approximate values for one particular SID chip,
 // due to process variations the values can be substantially different in
 // other chips.
-// 
-// 
-// 
+//
+//
+//
 // Filter frequency cutoff DAC
 // ---------------------------
 //
@@ -221,12 +221,12 @@ namespace reSID
 // which varies with the input signals to the VCRs. This can be seen from the
 // VCR figure above.
 //
-// 
-// 
+//
+//
 // "Op-amp" (self-biased NMOS inverter)
 // ------------------------------------
-//                  
-//                  
+//
+//
 //                        12V
 //
 //                         |
@@ -1440,7 +1440,7 @@ both subthreshold, triode, and saturation modes.
 The Shichman-Hodges transistor model routinely used in textbooks may
 be written as follows:
 
-  Ids = 0                          , Vgst < 0               (subthreshold mode) 
+  Ids = 0                          , Vgst < 0               (subthreshold mode)
   Ids = K/2*W/L*(2*Vgst - Vds)*Vds , Vgst >= 0, Vds < Vgst  (triode mode)
   Ids = K/2*W/L*Vgst^2             , Vgst >= 0, Vds >= Vgst (saturation mode)
 
@@ -1469,7 +1469,7 @@ currents without any change of parameters (since the terms for drain
 and source are identical except for the sign).
 
 FIXME: Subthreshold as function of Vgs, Vgd.
-  Ids = I0*e^(Vgst/(n*VT))       , Vgst < 0               (subthreshold mode) 
+  Ids = I0*e^(Vgst/(n*VT))       , Vgst < 0               (subthreshold mode)
 
 The remaining problem with the textbook model is that the transition
 from subthreshold the triode/saturation is not continuous.
@@ -1499,10 +1499,10 @@ Rw in the circuit diagram above is a VCR (voltage controlled resistor),
 as shown in the circuit diagram below.
 
                    Vw
-                   
+
                    |
            Vdd     |
-              |---|  
+              |---|
              _|_   |
            --    --| Vg
           |      __|__

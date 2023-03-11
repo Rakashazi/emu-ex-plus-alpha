@@ -49,13 +49,15 @@
 
 #include "archdep.h"
 #include "cartridge.h"
-#include "ioutil.h"
 #include "lib.h"
 #include "log.h"
 #include "network.h"
-#include "resources.h"
 #include "util.h"
+#include "uiapi.h"
 #include "vice-event.h"
+
+#include "resources.h"
+
 
 #ifdef VICE_DEBUG_RESOURCES
 #define DBG(x)  printf x
@@ -235,7 +237,7 @@ static resource_ram_t *lookup(const char *name)
     hashkey = resources_calc_hash_key(name);
     res = (hashTable[hashkey] >= 0) ? resources + hashTable[hashkey] : NULL;
     while (res != NULL) {
-        if (strcasecmp(res->name, name) == 0) {
+        if (util_strcasecmp(res->name, name) == 0) {
             return res;
         }
         res = (res->hash_next >= 0) ? resources + res->hash_next : NULL;
@@ -639,10 +641,14 @@ void resources_set_value_event(void *data, int size)
     name = data;
     valueptr = name + strlen(name) + 1;
     r = lookup(name);
-    if (r->type == RES_INTEGER) {
-        resources_set_value_internal(r, (resource_value_t) uint_to_void_ptr(*(uint32_t *)valueptr));
+    if (r == NULL) {
+        log_error(LOG_DEFAULT, "resources_set_value_event: resource '%s' does not exist.", name);
     } else {
-        resources_set_value_internal(r, (resource_value_t)valueptr);
+        if (r->type == RES_INTEGER) {
+            resources_set_value_internal(r, (resource_value_t) uint_to_void_ptr(*(uint32_t *)valueptr));
+        } else {
+            resources_set_value_internal(r, (resource_value_t)valueptr);
+        }
     }
 }
 
@@ -1053,7 +1059,7 @@ int resources_touch(const char *name)
 /* ------------------------------------------------------------------------- */
 
 /* Check whether `buf' is the emulator ID for the machine we are emulating.  */
-static int check_emu_id(const char *buf)
+static int check_emu_id(const char *buf, const char *checkstring)
 {
     size_t machine_id_len, buf_len;
 
@@ -1062,16 +1068,16 @@ static int check_emu_id(const char *buf)
         return 0;
     }
 
-    if (machine_id == NULL) {
+    if (checkstring == NULL) {
         return 1;
     }
 
-    machine_id_len = strlen(machine_id);
+    machine_id_len = strlen(checkstring);
     if (machine_id_len != buf_len - 2) {
         return 0;
     }
 
-    if (strncmp(buf + 1, machine_id, machine_id_len) == 0) {
+    if (strncmp(buf + 1, checkstring, machine_id_len) == 0) {
         return 1;
     } else {
         return 0;
@@ -1172,6 +1178,69 @@ int resources_read_item_from_file(FILE *f)
     }
 }
 
+static const char *versionmessage =
+    "Please notice that using configuration files from a different VICE "
+    "version is not supported. It should be mostly no problem in practice - "
+    "however, if you experience any problems eg. after updating VICE, you might "
+    "have to reset the settings to defaults.\n\n"
+    "Save the settings now to make this message go away.";
+
+static int check_resource_file_version(const char *fname)
+{
+    FILE *f;
+    int err = 1;
+
+    f = fopen(fname, MODE_READ_TEXT);
+    if (f == NULL) {
+        return RESERR_FILE_NOT_FOUND;
+    }
+
+    /* Find the version tag  */
+    while(1) {
+        char buf[1024];
+
+        if (util_get_line(buf, 1024, f) < 0) {
+            break;
+        }
+
+        if (check_emu_id(buf, "Version")) {
+            err = 0;
+            break;
+        }
+    }
+
+    if (err == 0) {
+        char buf[1024];
+
+        if (util_get_line(buf, 1024, f) < 0) {
+            err = 1;
+        } if (*buf == 0) {
+            err = 1;
+        } else {
+            char *tag = strtok(buf, "=");
+            if (strcmp(tag, "ConfigVersion") == 0) {
+                tag = strtok(NULL, "=");
+                if (strcmp(tag, VERSION) != 0) {
+                    log_warning(LOG_DEFAULT, "Config file version mismatch (is '%s', expected '%s').\n",
+                                tag, VERSION);
+                    ui_error("WARNING: Configuration file version mismatch (is '%s', expected '%s').\n\n%s",
+                            tag, VERSION, versionmessage);
+                    err = 0;
+                }
+            }
+        }
+    }
+
+    fclose(f);
+
+    if (err) {
+        log_warning(LOG_DEFAULT, "No version tag found in config file.");
+        ui_error("WARNING: No version tag found in configuration file.\n\n%s", versionmessage);
+    }
+
+    return 0;
+}
+
 static int load_resource_file(const char *fname)
 {
     FILE *f;
@@ -1195,7 +1264,7 @@ static int load_resource_file(const char *fname)
             return RESERR_READ_ERROR;
         }
 
-        if (check_emu_id(buf)) {
+        if (check_emu_id(buf, machine_id)) {
             line_num++;
             break;
         }
@@ -1239,7 +1308,7 @@ int resources_load(const char *fname)
             /* try the alternative name/location first */
             default_name = archdep_default_portable_resource_file_name();
             if (default_name != NULL) {
-                if (ioutil_access(default_name, IOUTIL_ACCESS_R_OK) != 0)  {
+                if (archdep_access(default_name, ARCHDEP_ACCESS_R_OK) != 0)  {
                     /* if not found at alternative location, try the normal one */
                     lib_free(default_name);
                     default_name = archdep_default_resource_file_name();
@@ -1249,6 +1318,9 @@ int resources_load(const char *fname)
             default_name = lib_strdup(vice_config_file);
         }
         fname = default_name;
+        /* only check version if fname was NULL, that allows to load extra
+           settings without the check */
+        check_resource_file_version(fname);
     }
     res = load_resource_file(fname);
     lib_free(default_name);
@@ -1260,6 +1332,12 @@ int resources_load(const char *fname)
 int resources_reset_and_load(const char *fname)
 {
     resources_set_defaults();
+    if (fname != NULL) {
+        /* if fname was not NULL, check it's version here, as this function will
+           only be used for regular setting and resources_load will only check
+           if fname is NULL. */
+        check_resource_file_version(fname);
+    }
     return resources_load(fname);
 }
 
@@ -1353,7 +1431,7 @@ int resources_save(const char *fname)
             /* try the alternative name/location first */
             default_name = archdep_default_portable_resource_file_name();
             if (default_name != NULL) {
-                if (ioutil_access(default_name, IOUTIL_ACCESS_R_OK) != 0) {
+                if (archdep_access(default_name, ARCHDEP_ACCESS_R_OK) != 0) {
                     /* if not found at alternative location, try the normal one
                      this also creates the .vice directory if not present */
                     lib_free(default_name);
@@ -1369,7 +1447,7 @@ int resources_save(const char *fname)
     /* make a backup of an existing config, open it */
     if (util_file_exists(fname) != 0) {
         /* try to open it */
-        if (ioutil_access(fname, IOUTIL_ACCESS_W_OK) != 0) {
+        if (archdep_access(fname, ARCHDEP_ACCESS_W_OK) != 0) {
             lib_free(default_name);
             return RESERR_WRITE_PROTECTED;
         }
@@ -1377,19 +1455,19 @@ int resources_save(const char *fname)
         backup_name = archdep_make_backup_filename(fname);
         /* if backup exists, remove it */
         if (util_file_exists(backup_name) != 0) {
-            if (ioutil_access(backup_name, IOUTIL_ACCESS_W_OK) != 0) {
+            if (archdep_access(backup_name, ARCHDEP_ACCESS_W_OK) != 0) {
                 lib_free(backup_name);
                 lib_free(default_name);
                 return RESERR_WRITE_PROTECTED;
             }
-            if (ioutil_remove(backup_name) != 0) {
+            if (archdep_remove(backup_name) != 0) {
                 lib_free(backup_name);
                 lib_free(default_name);
                 return RESERR_CANNOT_REMOVE_BACKUP;
             }
         }
         /* move existing config to backup */
-        if (ioutil_rename(fname, backup_name) != 0) {
+        if (archdep_rename(fname, backup_name) != 0) {
             lib_free(backup_name);
             lib_free(default_name);
             return RESERR_CANNOT_RENAME_FILE;
@@ -1418,6 +1496,9 @@ int resources_save(const char *fname)
 
     setbuf(out_file, NULL);
 
+    /* put version tag at the top of the config file */
+    fprintf(out_file, "[Version]\nConfigVersion=%s\n\n", VERSION);
+
     /* Copy the configuration for the other emulators.  */
     if (in_file != NULL) {
         while (1) {
@@ -1427,7 +1508,19 @@ int resources_save(const char *fname)
                 break;
             }
 
-            if (check_emu_id(buf)) {
+            /* skip version tag */
+            if (check_emu_id(buf, "Version")) {
+                /* skip lines until we hit another section start */
+                do {
+                    if (util_get_line(buf, 1024, in_file) < 0) {
+                        *buf = 0;
+                        break;
+                    }
+                } while (*buf != '[');
+            }
+
+            /* exit if we found ourselves */
+            if (check_emu_id(buf, machine_id)) {
                 break;
             }
 
@@ -1456,6 +1549,16 @@ int resources_save(const char *fname)
 
             /* Check if another emulation section starts.  */
             if (*buf == '[') {
+                /* skip version tag */
+                if (check_emu_id(buf, "Version")) {
+                    /* skip lines until we hit another section start */
+                    do {
+                        if (util_get_line(buf, 1024, in_file) < 0) {
+                            *buf = 0;
+                            break;
+                        }
+                    } while (*buf != '[');
+                }
                 fprintf(out_file, "%s\n", buf);
                 break;
             }
@@ -1464,12 +1567,22 @@ int resources_save(const char *fname)
         if (!feof(in_file)) {
             /* Copy the configuration for the other emulators.  */
             while (util_get_line(buf, 1024, in_file) >= 0) {
+                /* skip version tag */
+                if (check_emu_id(buf, "Version")) {
+                    /* skip lines until we hit another section start */
+                    do {
+                        if (util_get_line(buf, 1024, in_file) < 0) {
+                            *buf = 0;
+                            break;
+                        }
+                    } while (*buf != '[');
+                }
                 fprintf(out_file, "%s\n", buf);
             }
         }
         fclose(in_file);
         /* remove the backup */
-        ioutil_remove(backup_name);
+        archdep_remove(backup_name);
     }
 
     fclose(out_file);

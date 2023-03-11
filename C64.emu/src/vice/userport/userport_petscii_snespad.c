@@ -206,7 +206,7 @@ static uint8_t userport_snespad_read_pbx(uint8_t orig)
         default:
             retval = 0;
     }
-    
+
     retval <<= 6;
 
     return (~retval);
@@ -232,7 +232,7 @@ static int userport_petscii_write_snapshot_module(snapshot_t *s)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }

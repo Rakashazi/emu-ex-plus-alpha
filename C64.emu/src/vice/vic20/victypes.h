@@ -49,12 +49,7 @@
 `ifdef' them out once all video chips actually honour this.  */
 #define RASTER_PIXEL2(c) (vic.pixel_table.doub[(c)])
 
-/* On MS-DOS, do not duplicate pixels.  Otherwise, we would always need at
-   least 466 horizontal pixels to contain the whole screen.  */
-/* But this is no problem as 320*200 does not fit anyhow.  */
-#if !defined(__OS2__) && !defined(ANDROID_COMPILE)
 #define VIC_DUPLICATES_PIXELS
-#endif
 
 #ifdef VIC_DUPLICATES_PIXELS
 typedef uint16_t VIC_PIXEL;

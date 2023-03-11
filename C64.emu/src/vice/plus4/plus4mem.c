@@ -165,7 +165,7 @@ static uint8_t tape_read = 0xff;
 static uint8_t tape_write_in = 0xff;
 static uint8_t tape_motor_in = 0xff;
 
-/* Current watchpoint state. 
+/* Current watchpoint state.
           0 = no watchpoints
     bit0; 1 = watchpoints active
     bit1; 2 = watchpoints trigger on dummy accesses
@@ -927,7 +927,7 @@ void mem_set_basic_text(uint16_t start, uint16_t end)
 }
 
 /* this function should always read from the screen currently used by the kernal
-   for output, normally this does just return system ram - except when the 
+   for output, normally this does just return system ram - except when the
    videoram is not memory mapped.
    used by autostart to "read" the kernal messages
 */
@@ -1133,7 +1133,7 @@ uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
                 $FF00-  TED registers
 
                 $FF3E   ROM select, Write switches on ROM bank
-                $FF3F   RAM select, Write switches on RAM bank                
+                $FF3F   RAM select, Write switches on RAM bank
 
                 $FF40-$FFFF RAM / Kernal / Function HI
             */
@@ -1288,7 +1288,7 @@ void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, i
 
 /* used by autostart to locate and "read" kernal output on the current screen
  * this function should return whatever the kernal currently uses, regardless
- * what is currently visible/active in the UI 
+ * what is currently visible/active in the UI
  */
 void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uint8_t *line_length, int *blinking)
 {
@@ -1388,7 +1388,7 @@ static io_source_t pio1_only_device = {
     "PIO1",                /* name of the chip */
     IO_DETACH_NEVER,       /* chip is never involved in collisions, so no detach */
     IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
-    0xfd10, 0xfd10, 0x00,  /* range for the device, reg:$fd10 */ 
+    0xfd10, 0xfd10, 0x00,  /* range for the device, reg:$fd10 */
     1,                     /* read is always valid */
     pio1_store,            /* store function */
     NULL,                  /* NO poke function */
@@ -1485,3 +1485,4 @@ void plus4io_init(void)
     tcbm1_list_item = io_source_register(&tcbm1_device);
     tcbm2_list_item = io_source_register(&tcbm2_device);
 }
+

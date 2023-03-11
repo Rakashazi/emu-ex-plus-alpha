@@ -41,7 +41,7 @@
 #include "fsdevice-close.h"
 #include "fsdevice-read.h"
 #include "fsdevicetypes.h"
-#include "ioutil.h"
+#include "archdep.h"
 #include "tape.h"
 #include "vdrive.h"
 
@@ -76,12 +76,12 @@ int fsdevice_close(vdrive_t *vdrive, unsigned int secondary)
             }
             break;
         case Directory:
-            if (bufinfo->ioutil_dir == NULL) {
+            if (bufinfo->host_dir == NULL) {
                 return FLOPPY_ERROR;
             }
 
-            ioutil_closedir(bufinfo->ioutil_dir);
-            bufinfo->ioutil_dir = NULL;
+            archdep_closedir(bufinfo->host_dir);
+            bufinfo->host_dir = NULL;
             break;
     }
 

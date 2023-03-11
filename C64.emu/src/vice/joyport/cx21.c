@@ -113,64 +113,73 @@ static uint8_t port = 0;
 
 static void handle_keys(int row, int col, int pressed)
 {
+    /* sanity check for row and col, row should be 0-3, and col should be 1-3 */
     if (row < 0 || row > 3 || col < 1 || col > 3) {
         return;
     }
 
+    /* change the state of the key that the row/col is wired to */
     keys[(row * 3) + col - 1] = (unsigned int)pressed;
 }
 
 /* ------------------------------------------------------------------------- */
 
-static int joyport_cx21_enable(int prt, int value)
+static int joyport_cx21_set_enabled(int prt, int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
 
-    if (val == cx21_enabled) {
+    if (new_state == cx21_enabled) {
         return 0;
     }
 
-    if (val) {
+    if (new_state) {
+        /* enabled, clear keys and register the keypad */
         memset(keys, 0, KEYPAD_NUM_KEYS * sizeof(unsigned int));
         keyboard_register_joy_keypad(handle_keys);
     } else {
+        /* disabled, unregister the keypad */
         keyboard_register_joy_keypad(NULL);
     }
 
-    cx21_enabled = val;
+    /* set the current state */
+    cx21_enabled = new_state;
 
     return 0;
 }
 
-static uint8_t cx21_read_dig(int p)
+static uint8_t cx21_read_dig(int joyport)
 {
     uint8_t retval = 0;
 
+    /* output only if row 0 is selected and '3' is pressed */
     if (keys[KEYPAD_KEY_3]) {
         if (port & 1) {
             retval = JOYPORT_FIRE;   /* output on joyport 'fire' pin */
         }
     }
 
+    /* output only if row 1 is selected and '6' is pressed */
     if (keys[KEYPAD_KEY_6]) {
         if (port & 2) {
             retval = JOYPORT_FIRE;   /* output on joyport 'fire' pin */
         }
     }
 
+    /* output only if row 2 is selected and '9' is pressed */
     if (keys[KEYPAD_KEY_9]) {
         if (port & 4) {
             retval = JOYPORT_FIRE;   /* output on joyport 'fire' pin */
         }
     }
 
+    /* output only if row 3 is selected and '#' is pressed */
     if (keys[KEYPAD_KEY_HASH]) {
         if (port & 8) {
             retval = JOYPORT_FIRE;   /* output on joyport 'fire' pin */
         }
     }
 
-    joyport_display_joyport(JOYPORT_ID_CX21_KEYPAD, (uint8_t)retval);
+    joyport_display_joyport(joyport, JOYPORT_ID_CX21_KEYPAD, (uint16_t)retval);
 
     return (uint8_t)~retval;
 }
@@ -182,24 +191,28 @@ static void cx21_store_dig(int prt, uint8_t val)
 
 static uint8_t cx21_read_potx(int joyport)
 {
+    /* set output to 0 only if row 0 is selected and '2' is pressed */
     if (keys[KEYPAD_KEY_2]) {
         if (port & 1) {
             return 0;
         }
     }
 
+    /* set output to 0 only if row 1 is selected and '5' is pressed */
     if (keys[KEYPAD_KEY_5]) {
         if (port & 2) {
             return 0;
         }
     }
 
+    /* set output to 0 only if row 2 is selected and '8' is pressed */
     if (keys[KEYPAD_KEY_8]) {
         if (port & 4) {
             return 0;
         }
     }
 
+    /* set output to 0 only if row 3 is selected and '0' is pressed */
     if (keys[KEYPAD_KEY_0]) {
         if (port & 8) {
             return 0;
@@ -211,24 +224,28 @@ static uint8_t cx21_read_potx(int joyport)
 
 static uint8_t cx21_read_poty(int joyport)
 {
+    /* set output to 0 only if row 0 is selected and '1' is pressed */
     if (keys[KEYPAD_KEY_1]) {
         if (port & 1) {
             return 0;
         }
     }
 
+    /* set output to 0 only if row 1 is selected and '4' is pressed */
     if (keys[KEYPAD_KEY_4]) {
         if (port & 2) {
             return 0;
         }
     }
 
+    /* set output to 0 only if row 2 is selected and '7' is pressed */
     if (keys[KEYPAD_KEY_7]) {
         if (port & 4) {
             return 0;
         }
     }
 
+    /* set output to 0 only if row 3 is selected and '*' is pressed */
     if (keys[KEYPAD_KEY_MULT]) {
         if (port & 8) {
             return 0;
@@ -251,7 +268,7 @@ static joyport_t joyport_cx21_device = {
     JOYSTICK_ADAPTER_ID_NONE, /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_KEYPAD,    /* device is a Keypad */
     0x0F,                     /* bits 3, 2, 1 and 0 are output bits */
-    joyport_cx21_enable,      /* device enable function */
+    joyport_cx21_set_enabled, /* device enable/disable function */
     cx21_read_dig,            /* digital line read function */
     cx21_store_dig,           /* digital line store function */
     cx21_read_potx,           /* pot-x read function */
@@ -293,7 +310,7 @@ static int cx21_write_snapshot(struct snapshot_s *s, int p)
         return -1;
     }
 
-    if (0 
+    if (0
         || SMW_B(m, port) < 0) {
             snapshot_module_close(m);
             return -1;

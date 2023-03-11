@@ -293,7 +293,7 @@ static uint8_t read_prb(via_context_t *via_context)
     byte = (byte & ~(via_context->via[VIA_DDRB]))
            | (via_context->via[VIA_PRB] & via_context->via[VIA_DDRB]);
 
-    if (!(via_context->ca2_state)) {
+    if (!(via_context->ca2_out_state)) {  /* ???? */
         byte &= 0xf8;                     /* device-no switches */
         byte += via1p->drivenumberjumper; /* byte & 3 + 8 -> device-no */
     }

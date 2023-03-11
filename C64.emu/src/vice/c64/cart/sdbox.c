@@ -54,19 +54,19 @@
 
 /*
     "SD Box"
-    
+
     - 128k ROM, 8*16kb banks (16k GAME mode)
-    
+
     one register at de00:
-    
+
     bit 0-3     ROM bank
     bit 4       reset SD
     bit 5       CE ROM
     bit 6       EXROM
     bit 7       register enable
-    
+
     additionally there are 3 "ram cells" at de01-de03
-    
+
 */
 
 static uint8_t currbank = 0;
@@ -114,9 +114,9 @@ static void sdbox_io1_store(uint16_t addr, uint8_t value)
                 } else {
                     cart_config_changed_slotmain(CMODE_RAM, CMODE_RAM | (currbank << CMODE_BANK_SHIFT), CMODE_WRITE);
                 }
-                reg_enable = (value >> 7) ^ 1;          
+                reg_enable = (value >> 7) ^ 1;
                 regval = regs[addr] = value;
-                DBG(("io1 write %02x value: $%02x bank: %d exrom: %d\n", 
+                DBG(("io1 write %02x value: $%02x bank: %d exrom: %d\n",
                     addr, value, roml_bank, exrom));
                 break;
             case 1:

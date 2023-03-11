@@ -30,7 +30,7 @@
 #define VICE_DRIVE_H
 
 #include "types.h"
-#include "rtc/ds1216e.h"
+#include "ds1216e.h"
 #include "p64.h"
 
 /** \brief  Number of supported disk units
@@ -406,7 +406,7 @@ extern int drive_resources_type_init(unsigned int default_type);
 extern int drive_has_buttons(unsigned int dnr);
 extern void drive_cpu_trigger_reset_button(unsigned int dnr, unsigned int button);
 
-extern unsigned int drive_jam(int mynumber, const char *format, ...);
+extern unsigned int drive_jam(int mynumber, const char *format, ...) VICE_ATTR_PRINTF2;
 extern bool drive_is_jammed(int mynumber);
 extern char *drive_jam_reason(int mynumber);
 

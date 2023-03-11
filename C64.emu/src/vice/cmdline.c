@@ -84,12 +84,12 @@ int cmdline_register_options(const cmdline_option_t *c)
     p = options + num_options;
     for (; c->name != NULL; c++, p++) {
         if (lookup_exact(c->name)) {
-            archdep_startup_log_error("CMDLINE: (%d) Duplicated option '%s'.\n", num_options, c->name);
+            archdep_startup_log_error("CMDLINE: (%u) Duplicated option '%s'.\n", num_options, c->name);
             return -1;
         }
 
         if (c->description == NULL) {
-            archdep_startup_log_error("CMDLINE: (%d) description id not used and description NULL for '%s'.\n", num_options, c->name);
+            archdep_startup_log_error("CMDLINE: (%u) description id not used and description NULL for '%s'.\n", num_options, c->name);
             return -1;
         }
 
@@ -379,6 +379,8 @@ int cmdline_get_num_options(void)
     return num_options;
 }
 
+/*#define DEBUG_OPTIONS_LOG*/
+
 void cmdline_log_active(void)
 {
     unsigned int i;
@@ -400,9 +402,17 @@ void cmdline_log_active(void)
             if (restype == RES_INTEGER) {
                 resources_get_int(resname, &resval_int);
                 resources_get_default_value(resname, &resval_int_default);
+#ifdef DEBUG_OPTIONS_LOG
+                printf("opt: %s res: %s val: %d default: %d\n",
+                       optname, resname, resval_int, resval_int_default);
+#endif
             } else if (restype == RES_STRING) {
                 resources_get_string(resname, &resval_str);
                 resources_get_default_value(resname, &resval_str_default);
+#ifdef DEBUG_OPTIONS_LOG
+                printf("opt: %s res: %s val: %s default: %s\n",
+                       optname, resname, resval_str, resval_str_default);
+#endif
             }
         }
         cmd = NULL;

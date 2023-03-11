@@ -31,6 +31,7 @@
 
 #include "diskconstants.h"
 #include "diskimage.h"
+#include "drive.h"
 #include "cbmdos.h"
 #include "fsimage-dxx.h"
 #include "fsimage.h"
@@ -152,7 +153,8 @@ int fsimage_read_dxx_image(const disk_image_t *image)
     unsigned int track, sector, track_size;
     gcr_header_t header;
     fdc_err_t rf;
-    int double_sided = 0;
+    int image_has_two_single_sides = 0;
+    int double_sided_drive = 0;
     fsimage_t *fsimage = image->media.fsimage;
     unsigned int max_sector;
     uint8_t *ptr;
@@ -181,7 +183,40 @@ int fsimage_read_dxx_image(const disk_image_t *image)
     header.id2 = bam_id[1];
 
     /* check double sided images */
-    double_sided = (image->type == DISK_IMAGE_TYPE_D71) && !(buffer[0x03] & 0x80);
+    image_has_two_single_sides = (image->type == DISK_IMAGE_TYPE_D71) && !(buffer[0x03] & 0x80);
+    double_sided_drive = drive_get_disk_drive_type(image->device) == DRIVE_TYPE_1571;
+
+    /* special case for 1571: if we are inserting a d64 image into a 1571, fill
+       the second side with "unformatted" data */
+    if (double_sided_drive && (image->type != DISK_IMAGE_TYPE_D71)) {
+        for (header.track = track = 1; track <= image->max_half_tracks / 2; track++, header.track++) {
+            half_track = (36 + track) * 2 - 2;
+
+            track_size = disk_image_raw_track_size(image->type, track);
+            if (image->gcr->tracks[half_track].data == NULL) {
+                image->gcr->tracks[half_track].data = lib_malloc(track_size);
+            } else if (image->gcr->tracks[half_track].size != (int)track_size) {
+                image->gcr->tracks[half_track].data = lib_realloc(image->gcr->tracks[half_track].data, track_size);
+            }
+            ptr = image->gcr->tracks[half_track].data;
+            image->gcr->tracks[half_track].size = track_size;
+            /* regular track */
+            memset(ptr, 0, track_size);
+
+            /* Clear odd track */
+            half_track++;
+
+            /* create an (empty) half track */
+            if (image->gcr->tracks[half_track].data == NULL) {
+                image->gcr->tracks[half_track].data = lib_malloc(track_size);
+            } else if (image->gcr->tracks[half_track].size != (int)track_size) {
+                image->gcr->tracks[half_track].data = lib_realloc(image->gcr->tracks[half_track].data, track_size);
+            }
+            image->gcr->tracks[half_track].size = track_size;
+            ptr = image->gcr->tracks[half_track].data;
+            memset(ptr, 0, track_size);
+        }
+    }
 
     for (header.track = track = 1; track <= image->max_half_tracks / 2; track++, header.track++) {
         half_track = track * 2 - 2;
@@ -199,7 +234,10 @@ int fsimage_read_dxx_image(const disk_image_t *image)
             /* get temp buffer */
             ptr = tempgcr = lib_malloc(track_size);
 
-            if (double_sided && track == 36) {
+            /* special case for second side of the 1571. If each side was formatted
+               separately in one-sided mode, we must start from track 1 again and use
+               the ID from the BAM on the second side. */
+            if (image_has_two_single_sides && track == 36) {
                 sectors = disk_image_check_sector(image, BAM_TRACK_1571 + 35, BAM_SECTOR_1571);
 
                 buffer[BAM_ID_1571] = buffer[BAM_ID_1571 + 1] = 0xa0;
@@ -287,9 +325,9 @@ int fsimage_read_dxx_image(const disk_image_t *image)
         }
         image->gcr->tracks[half_track].size = track_size;
         ptr = image->gcr->tracks[half_track].data;
-        memset(ptr, 0, track_size);        
+        memset(ptr, 0, track_size);
 #endif
-        
+
     }
     return 0;
 }
@@ -344,7 +382,7 @@ int fsimage_dxx_read_sector(const disk_image_t *image, uint8_t *buf, const disk_
             }
         } else {
             rf = gcr_read_sector(&image->gcr->tracks[(dadr->track * 2) - 2], buf, (uint8_t)dadr->sector);
-            /* HACK: if the image has an error map, and the "FDC" did not detect an 
+            /* HACK: if the image has an error map, and the "FDC" did not detect an
             error in the GCR stream, use the error from the error map instead.
             FIXME: what should really be done is encoding the errors from the
             error map into the GCR stream. this is a lot more effort and will

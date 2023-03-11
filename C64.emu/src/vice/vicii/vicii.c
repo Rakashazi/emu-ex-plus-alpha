@@ -294,9 +294,9 @@ static int vicii_get_crt_type(void)
     switch (video) {
         case MACHINE_SYNC_PAL:
         case MACHINE_SYNC_PALN:
-            return 1; /* PAL */
+            return VIDEO_CRT_TYPE_PAL;
         default:
-            return 0; /* NTSC */
+            return VIDEO_CRT_TYPE_NTSC;
     }
 }
 
@@ -340,7 +340,9 @@ static int init_raster(void)
         return -1;
     }
     raster_modes_set_idle_mode(raster->modes, VICII_IDLE_MODE);
-    resources_touch("VICIIVideoCache");
+    if (machine_class != VICE_MACHINE_VSID) {
+        resources_touch("VICIIVideoCache");
+    }
 
     vicii_set_geometry();
 
@@ -348,8 +350,6 @@ static int init_raster(void)
         log_error(vicii.log, "Cannot load palette.");
         return -1;
     }
-
-    raster_set_title(raster, machine_name);
 
     if (raster_realize(raster) < 0) {
         return -1;

@@ -73,11 +73,7 @@
 #define SOUND_OUTPUT_STEREO   2
 
 /* Sound defaults.  */
-#ifdef ANDROID_COMPILE
-#define SOUND_SAMPLE_RATE 22050
-#define SOUND_SAMPLE_BUFFER_SIZE 100
-#define SOUND_FRAGMENT_SIZE SOUND_FRAGMENT_MEDIUM
-#elif defined(MACOSX_SUPPORT)
+#if defined(MACOS_COMPILE)
 #define SOUND_SAMPLE_RATE 48000
 #define SOUND_SAMPLE_BUFFER_SIZE 20
 #define SOUND_FRAGMENT_SIZE SOUND_FRAGMENT_VERY_SMALL
@@ -88,7 +84,16 @@
 #endif
 
 #define SOUND_CHANNELS_MAX 2
+
+/** \brief  Maximum number of SIDs supported by the emulation.
+ */
 #define SOUND_SIDS_MAX 8
+
+/** \brief  Maximum number of SIDs supported by PSID files
+ *
+ * Maximum number of SIDs for .psid files and thus VSID.
+ */
+#define SOUND_SIDS_MAX_PSID 3
 
 #define SOUND_CHIPS_MAX 20
 
@@ -174,30 +179,22 @@ extern int sound_cmdline_options_init(void);
 
 
 /* device initialization prototypes */
-extern int sound_init_allegro_device(void);
 extern int sound_init_alsa_device(void);
-extern int sound_init_sb_device(void);
 extern int sound_init_dummy_device(void);
 extern int sound_init_dump_device(void);
 extern int sound_init_fs_device(void);
 extern int sound_init_wav_device(void);
-extern int sound_init_midas_device(void);
 extern int sound_init_sdl_device(void);
 extern int sound_init_sun_device(void);
 extern int sound_init_uss_device(void);
 extern int sound_init_dx_device(void);
-extern int sound_init_ce_device(void);
-extern int sound_init_vidc_device(void);
-extern int sound_init_mmos2_device(void);
 extern int sound_init_dart_device(void);
-extern int sound_init_dart2_device(void);
 extern int sound_init_beos_device(void);
 extern int sound_init_bsp_device(void);
 extern int sound_init_arts_device(void);
 extern int sound_init_wmm_device(void);
 extern int sound_init_movie_device(void);
 extern int sound_init_coreaudio_device(void);
-extern int sound_init_ahi_device(void);
 extern int sound_init_voc_device(void);
 extern int sound_init_iff_device(void);
 extern int sound_init_aiff_device(void);

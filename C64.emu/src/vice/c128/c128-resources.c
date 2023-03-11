@@ -112,7 +112,7 @@ static char *basic64_rom_name = NULL;
 static char *kernal64_rom_name = NULL;
 
 /* Flag: Do we enable the emulation of banks 2 and 3 of ram? */
-int c128_full_banks;
+int c128_full_banks = 0;
 
 
 /* Hide the VDC window
@@ -532,45 +532,43 @@ static int set_c128_hide_vdc(int val, void *param)
     return 0;
 }
 
-
-
 static const resource_string_t resources_string[] = {
-    { "ChargenIntName", "chargen", RES_EVENT_NO, NULL,
+    { "ChargenIntName", C128_CHARGEN_NAME, RES_EVENT_NO, NULL,
       &chargen_int_rom_name, set_chargen_int_rom_name, NULL },
-    { "ChargenDEName", "chargde", RES_EVENT_NO, NULL,
+    { "ChargenDEName", C128_CHARGEN_DE_NAME, RES_EVENT_NO, NULL,
       &chargen_de_rom_name, set_chargen_de_rom_name, NULL },
-    { "ChargenFRName", "chargfr", RES_EVENT_NO, NULL,
+    { "ChargenFRName", C128_CHARGEN_FR_NAME, RES_EVENT_NO, NULL,
       &chargen_fr_rom_name, set_chargen_fr_rom_name, NULL },
-    { "ChargenSEName", "chargse", RES_EVENT_NO, NULL,
+    { "ChargenSEName", C128_CHARGEN_SE_NAME, RES_EVENT_NO, NULL,
       &chargen_se_rom_name, set_chargen_se_rom_name, NULL },
-    { "ChargenCHName", "chargch", RES_EVENT_NO, NULL,
+    { "ChargenCHName", C128_CHARGEN_CH_NAME, RES_EVENT_NO, NULL,
       &chargen_ch_rom_name, set_chargen_ch_rom_name, NULL },
-    { "ChargenNOName", "chargno", RES_EVENT_NO, NULL,
+    { "ChargenNOName", C128_CHARGEN_NO_NAME, RES_EVENT_NO, NULL,
       &chargen_no_rom_name, set_chargen_no_rom_name, NULL },
-    { "KernalIntName", "kernal", RES_EVENT_NO, NULL,
-      &kernal_int_rom_name, set_kernal_int_rom_name, NULL },
-    { "KernalDEName", "kernalde", RES_EVENT_NO, NULL,
-      &kernal_de_rom_name, set_kernal_de_rom_name, NULL },
-    { "KernalFIName", "kernalfi", RES_EVENT_NO, NULL,
-      &kernal_fi_rom_name, set_kernal_fi_rom_name, NULL },
-    { "KernalFRName", "kernalfr", RES_EVENT_NO, NULL,
-      &kernal_fr_rom_name, set_kernal_fr_rom_name, NULL },
-    { "KernalITName", "kernalit", RES_EVENT_NO, NULL,
-      &kernal_it_rom_name, set_kernal_it_rom_name, NULL },
-    { "KernalNOName", "kernalno", RES_EVENT_NO, NULL,
-      &kernal_no_rom_name, set_kernal_no_rom_name, NULL },
-    { "KernalSEName", "kernalse", RES_EVENT_NO, NULL,
-      &kernal_se_rom_name, set_kernal_se_rom_name, NULL },
-    { "KernalCHName", "kernalch", RES_EVENT_NO, NULL,
-      &kernal_ch_rom_name, set_kernal_ch_rom_name, NULL },
-    { "BasicLoName", "basiclo", RES_EVENT_NO, NULL,
+    { "BasicLoName", C128_BASICLO_NAME, RES_EVENT_NO, NULL,
       &basiclo_rom_name, set_basiclo_rom_name, NULL },
-    { "BasicHiName", "basichi", RES_EVENT_NO, NULL,
+    { "BasicHiName", C128_BASICHI_NAME, RES_EVENT_NO, NULL,
       &basichi_rom_name, set_basichi_rom_name, NULL },
-    { "Kernal64Name", "kernal64", RES_EVENT_NO, NULL,
+    { "Kernal64Name", C128_KERNAL64_NAME, RES_EVENT_NO, NULL,
       &kernal64_rom_name, set_kernal64_rom_name, NULL },
-    { "Basic64Name", "basic64", RES_EVENT_NO, NULL,
+    { "Basic64Name", C128_BASIC64_NAME, RES_EVENT_NO, NULL,
       &basic64_rom_name, set_basic64_rom_name, NULL },
+    { "KernalIntName", C128_KERNAL_NAME, RES_EVENT_NO, NULL,
+      &kernal_int_rom_name, set_kernal_int_rom_name, NULL },
+    { "KernalDEName", C128_KERNAL_DE_NAME, RES_EVENT_NO, NULL,
+      &kernal_de_rom_name, set_kernal_de_rom_name, NULL },
+    { "KernalFIName", C128_KERNAL_FI_NAME, RES_EVENT_NO, NULL,
+      &kernal_fi_rom_name, set_kernal_fi_rom_name, NULL },
+    { "KernalFRName", C128_KERNAL_FR_NAME, RES_EVENT_NO, NULL,
+      &kernal_fr_rom_name, set_kernal_fr_rom_name, NULL },
+    { "KernalITName", C128_KERNAL_IT_NAME, RES_EVENT_NO, NULL,
+      &kernal_it_rom_name, set_kernal_it_rom_name, NULL },
+    { "KernalNOName", C128_KERNAL_NO_NAME, RES_EVENT_NO, NULL,
+      &kernal_no_rom_name, set_kernal_no_rom_name, NULL },
+    { "KernalSEName", C128_KERNAL_SE_NAME, RES_EVENT_NO, NULL,
+      &kernal_se_rom_name, set_kernal_se_rom_name, NULL },
+    { "KernalCHName", C128_KERNAL_CH_NAME, RES_EVENT_NO, NULL,
+      &kernal_ch_rom_name, set_kernal_ch_rom_name, NULL },
     RESOURCE_STRING_LIST_END
 };
 

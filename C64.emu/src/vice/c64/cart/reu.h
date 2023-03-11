@@ -49,7 +49,7 @@ extern void reu_ba_register(reu_ba_check_callback_t *ba_check,
                             int *ba_var, int ba_mask);
 
 extern void reu_reset(void);
-extern void reu_dma(int immed);
+extern int reu_dma(int immed);
 extern void reu_dma_start(void);
 extern void reu_detach(void);
 extern int reu_enable(void);

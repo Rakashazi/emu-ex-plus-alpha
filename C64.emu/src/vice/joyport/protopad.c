@@ -103,15 +103,16 @@ static int speed_selection[] = { 2, 4, 8, 16, 32, -1 };   /* Speed selections in
 
 static joyport_t joyport_protopad_device;
 
-static int joyport_protopad_enable(int port, int value)
+static int joyport_protopad_set_enabled(int port, int enabled)
 {
-    int val = value ? 1 : 0;
+    int new_state = enabled ? 1 : 0;
 
-    if (val == protopad_enabled[port]) {
+    if (new_state == protopad_enabled[port]) {
         return 0;
     }
 
-    if (val) {
+    if (new_state) {
+        /* enabled, set default values and snes mapping instead of joystick mapping */
         counter[port] = 0;
         clock_line[port] = 0;
         mode_line[port] = 1;
@@ -121,10 +122,12 @@ static int joyport_protopad_enable(int port, int value)
         rapid_speed[port] = 0;
         joystick_set_snes_mapping(port);
     } else {
+        /* disabled, clear snes mapping */
         joyport_clear_mapping(port);
     }
 
-    protopad_enabled[port] = val;
+    /* set current state */
+    protopad_enabled[port] = new_state;
 
     return 0;
 }
@@ -258,14 +261,18 @@ static void protopad_store(int port, uint8_t val)
     uint8_t new_clock = JOYPORT_BIT_BOOL(val, JOYPORT_RIGHT_BIT);   /* clock line is on joyport 'right' pin */
 
     if (clock_line[port] != new_clock) {
+        /* clock line asserted, increment counter */
         counter[port]++;
         if (counter[port] == PROTOPAD_COUNT_MAX) {
+            /* counter is at the max, roll back to output state 0 */
             counter[port] = PROTOPAD_TRIPPLE_0;
         }
     }
 
     if (mode_line[port] && !new_mode) {
+        /* mode line changed */
         if (!new_mode) {
+            /* mode line asserted, set state to output handshake */
             counter[port] = PROTOPAD_HANDSHAKE;
         }
     }
@@ -308,11 +315,12 @@ static uint8_t protopad_read_poty(int port)
 
 static void protopad_powerup(int port)
 {
-        counter[port] = 0;
-        dpad_mode[port] = 0;
-        rapid_button[port] = 0;
-        permanent_rapid[port] = 0;
-        rapid_speed[port] = 0;
+    /* reset to default values */
+    counter[port] = 0;
+    dpad_mode[port] = 0;
+    rapid_button[port] = 0;
+    permanent_rapid[port] = 0;
+    rapid_speed[port] = 0;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -377,23 +385,23 @@ static int protopad_read_snapshot(struct snapshot_s *s, int p);
 #define START  JOYPORT_BUTTON_START
 
 static joyport_t joyport_protopad_device = {
-    "Protopad",                  /* name of the device */
-    JOYPORT_RES_ID_NONE,         /* device can be used in multiple ports at the same time */
-    JOYPORT_IS_NOT_LIGHTPEN,     /* device is NOT a lightpen */
-    JOYPORT_POT_OPTIONAL,        /* device does NOT use the potentiometer lines */
-    JOYSTICK_ADAPTER_ID_NONE,    /* device is NOT a joystick adapter */
-    JOYPORT_DEVICE_SNES_ADAPTER, /* device is a SNES adapter */
-    0x18,                        /* bits 4, and 3 are output bits */
-    joyport_protopad_enable,     /* device enable function */
-    protopad_read,               /* digital line read function */
-    protopad_store,              /* digital line store function */
-    protopad_read_potx,          /* pot-x read function */
-    protopad_read_poty,          /* pot-y read function */
-    protopad_powerup,            /* powerup function */
-    protopad_write_snapshot,     /* device write snapshot function */
-    protopad_read_snapshot,      /* device read snapshot function */
-    protopad_state_button_hook,  /* device hook function */
-    LB | RB | SELECT | START     /* device hook function mask */
+    "Protopad",                   /* name of the device */
+    JOYPORT_RES_ID_NONE,          /* device can be used in multiple ports at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,      /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,         /* device does NOT use the potentiometer lines */
+    JOYSTICK_ADAPTER_ID_NONE,     /* device is NOT a joystick adapter */
+    JOYPORT_DEVICE_SNES_ADAPTER,  /* device is a SNES adapter */
+    0x18,                         /* bits 4, and 3 are output bits */
+    joyport_protopad_set_enabled, /* device enable function */
+    protopad_read,                /* digital line read function */
+    protopad_store,               /* digital line store function */
+    protopad_read_potx,           /* pot-x read function */
+    protopad_read_poty,           /* pot-y read function */
+    protopad_powerup,             /* powerup function */
+    protopad_write_snapshot,      /* device write snapshot function */
+    protopad_read_snapshot,       /* device read snapshot function */
+    protopad_state_button_hook,   /* device hook function */
+    LB | RB | SELECT | START      /* device hook function mask */
 
 };
 
@@ -432,7 +440,7 @@ static int protopad_write_snapshot(struct snapshot_s *s, int p)
         return -1;
     }
 
-    if (0 
+    if (0
         || SMW_B(m, counter[p]) < 0
         || SMW_B(m, clock_line[p]) < 0
         || SMW_B(m, mode_line[p]) < 0

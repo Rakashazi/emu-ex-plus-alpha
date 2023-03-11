@@ -34,7 +34,7 @@ extern void ramlink_config_init(export_t *ex);
 extern void ramlink_config_setup(uint8_t *rawcart);
 extern int ramlink_bin_attach(const char *filename, uint8_t *rawcart);
 extern void ramlink_detach(void);
-extern int ramlink_crt_attach(FILE *fd, uint8_t *rawcart);
+extern int ramlink_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
 extern int ramlink_flush_image(void); /* FIXME: API reserved for primary/ROM image */
 extern const char *ramlink_get_file_name(void); /* FIXME: API reserved for primary/ROM image */
 extern int ramlink_cart_enabled(void);
@@ -44,6 +44,8 @@ extern int ramlink_roml_read(uint16_t addr, uint8_t *value);
 extern int ramlink_romh_read(uint16_t addr, uint8_t *value);
 extern int ramlink_a000_bfff_read(uint16_t addr, uint8_t *value);
 extern int ramlink_peek_mem(uint16_t addr, uint8_t *value);
+extern int ramlink_romh_phi1_read(uint16_t addr, uint8_t *value);
+extern int ramlink_romh_phi2_read(uint16_t addr, uint8_t *value);
 extern int ramlink_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 extern void ramlink_passthrough_changed(export_t *ex);
 extern int ramlink_cart_mode(void);

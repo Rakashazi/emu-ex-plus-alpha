@@ -62,7 +62,7 @@ static int digiblaster_sound_machine_channels(void)
 
 /* PLUS4 DigiBlaster cartridge sound chip */
 static sound_chip_t digiblaster_sound_chip = {
-    NULL,                                        /* NO sound chip open function */ 
+    NULL,                                        /* NO sound chip open function */
     digiblaster_sound_machine_init,              /* sound chip init function */
     NULL,                                        /* NO sound chip close function */
     digiblaster_sound_machine_calculate_samples, /* sound chip calculate samples function */

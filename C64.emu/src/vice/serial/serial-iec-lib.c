@@ -66,7 +66,7 @@ int serial_iec_lib_read_sector(unsigned int unit, unsigned int track,
     char *command;
     unsigned int i;
 
-    command = lib_msprintf("U1 2 0 %i %i", track, sector);
+    command = lib_msprintf("U1 2 0 %u %u", track, sector);
 
     serial_iec_open(unit, 2, "#", (unsigned int)strlen("#"));
     serial_iec_open(unit, 15, command, (unsigned int)strlen(command));

@@ -75,7 +75,7 @@ static int drive_rom_load_ok = 0;
 
 int driverom_load(const char *resource_name, uint8_t *drive_rom, unsigned
                   int *loaded, int min, int max, const char *name,
-                  unsigned int type, unsigned int *size) 
+                  unsigned int type, unsigned int *size)
 {
     const char *rom_name = NULL;
     int filesize;
@@ -102,7 +102,7 @@ int driverom_load(const char *resource_name, uint8_t *drive_rom, unsigned
             *size = 0;
         }
         return -1;
-    } 
+    }
 
     *loaded = 1;
     if (size != NULL) {

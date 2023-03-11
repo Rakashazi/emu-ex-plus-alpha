@@ -112,7 +112,7 @@ void EnvelopeGenerator::clock()
     return;
   }
   rate_counter = rate_period;
-  
+
   /* Envelope skips this wait during ATTACK.
    * This is handled during control register write: switching to attack
    * sets counter=0, period=1. Envelope uses this during decay and release,

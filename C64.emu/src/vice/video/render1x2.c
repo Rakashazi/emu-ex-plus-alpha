@@ -62,11 +62,11 @@ void render_32_1x2_interlaced(const video_render_color_tables_t *color_tab, cons
         wfast = (width - wstart) >> 3; /* fast loop for 8 pixel segments*/
         wend = (width - wstart) & 0x07;  /* do not forget the rest*/
     }
-    
+
     for (y = yys; y < (yys + height); y++) {
         tmpsrc = src;
         tmptrg = (uint32_t *)trg;
-        
+
         /*
          * If it's an even line and an even frame, or if it's an odd line
          * and an odd frame, then this line contains new pixels from the video
@@ -87,7 +87,7 @@ void render_32_1x2_interlaced(const video_render_color_tables_t *color_tab, cons
                 render_solid_line(tmptrg, tmpsrc, scanline_color, wstart, wfast, wend);
             }
         }
-        
+
         if (y & 1) {
             src += pitchs;
         }
@@ -123,11 +123,11 @@ void render_32_1x2_non_interlaced(const video_render_color_tables_t *color_tab, 
         wfast = (width - wstart) >> 3; /* fast loop for 8 pixel segments*/
         wend = (width - wstart) & 0x07;  /* do not forget the rest*/
     }
-    
+
     for (y = yys; y < (yys + height); y++) {
         tmpsrc = src;
         tmptrg = (uint32_t *)trg;
-        
+
         /*
          * Non-interlace code path, supporting doublescan
          */
@@ -145,7 +145,7 @@ void render_32_1x2_non_interlaced(const video_render_color_tables_t *color_tab, 
                 render_solid_line(tmptrg, tmpsrc, color, wstart, wfast, wend);
             }
         }
-        
+
         if (y & 1) {
             src += pitchs;
         }

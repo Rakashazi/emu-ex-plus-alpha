@@ -38,6 +38,7 @@
 #include "render1x2.h"
 #include "render2x2.h"
 #include "render2x2pal.h"
+#include "render2x2palu.h"
 #include "render2x2ntsc.h"
 #include "renderscale2x.h"
 #include "resources.h"
@@ -54,18 +55,18 @@ void video_render_pal_ntsc_main(video_render_config_t *config,
                            unsigned int viewport_first_line, unsigned int viewport_last_line)
 {
     video_render_color_tables_t *colortab;
-    int doublescan, delayloop, rendermode, scale2x;
+    int doublescan, crtemulation, rendermode, scale2x;
 
     rendermode = config->rendermode;
     doublescan = config->doublescan;
     colortab = &config->color_tables;
-    scale2x = config->scale2x;
 
-    delayloop = (config->filter == VIDEO_FILTER_CRT);
+    scale2x = (config->filter == VIDEO_FILTER_SCALE2X);
+    crtemulation = (config->filter == VIDEO_FILTER_CRT);
 
     /*
     if (config->external_palette)
-        delayloop = 0;
+        crtemulation = 0;
     */
 
     if ((rendermode == VIDEO_RENDER_PAL_NTSC_1X1
@@ -79,15 +80,15 @@ void video_render_pal_ntsc_main(video_render_config_t *config,
             break;
 
         case VIDEO_RENDER_PAL_NTSC_1X1:
-            if (delayloop) {
+            if (crtemulation) {
                 switch (crt_type) {
-                    case 0: /* NTSC */
+                    case VIDEO_CRT_TYPE_NTSC:
                         render_32_1x1_ntsc(colortab, src, trg, width, height,
                                         xs, ys, xt, yt, pitchs, pitcht);
                         return;
                     default:
                         /* fall through */
-                    case 1: /* PAL */
+                    case VIDEO_CRT_TYPE_PAL:
                         render_32_1x1_pal(colortab, src, trg, width, height,
                                         xs, ys, xt, yt, pitchs, pitcht, config);
                         return;
@@ -99,16 +100,23 @@ void video_render_pal_ntsc_main(video_render_config_t *config,
             }
             return;
         case VIDEO_RENDER_PAL_NTSC_2X2:
-            if (delayloop) {
+            if (crtemulation) {
                 switch (crt_type) {
-                    case 0: /* NTSC */
+                    case VIDEO_CRT_TYPE_NTSC:
                         render_32_2x2_ntsc(colortab, src, trg, width, height,
                                            xs, ys, xt, yt, pitchs, pitcht,
                                            viewport_first_line, viewport_last_line, config);
                         return;
                     default:
                         /* fall through */
-                    case 1: /* PAL */
+                    case VIDEO_CRT_TYPE_PAL:
+                        if (config->video_resources.delaylinetype == 1) {
+                            /* delay U only (1084 style) */
+                            render_32_2x2_pal_u(colortab, src, trg, width, height,
+                                                xs, ys, xt, yt, pitchs, pitcht,
+                                                viewport_first_line, viewport_last_line, config);
+                            return;
+                        }
                         render_32_2x2_pal(colortab, src, trg, width, height,
                                           xs, ys, xt, yt, pitchs, pitcht,
                                           viewport_first_line, viewport_last_line, config);

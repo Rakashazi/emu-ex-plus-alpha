@@ -191,8 +191,6 @@ static int init_raster(void)
 
     vic_color_update_palette(raster->canvas);
 
-    raster_set_title(raster, machine_name);
-
     if (raster_realize(raster) < 0) {
         return -1;
     }

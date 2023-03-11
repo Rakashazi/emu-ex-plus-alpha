@@ -640,6 +640,7 @@ void finalexpansion_config_setup(uint8_t *rawcart)
 static int zfile_load(const char *filename, uint8_t *dest)
 {
     FILE *fd;
+    off_t tmpsize;
     size_t fsize;
 
     fd = zfile_fopen(filename, MODE_READ);
@@ -648,7 +649,13 @@ static int zfile_load(const char *filename, uint8_t *dest)
                     filename);
         return -1;
     }
-    fsize = util_file_length(fd);
+    tmpsize = archdep_file_size(fd);
+    if (tmpsize < 0) {
+        log_message(fe_log, "Failed to determine size of image '%s'!", filename);
+        zfile_fclose(fd);
+        return -1;
+    }
+    fsize = (size_t)tmpsize;
 
     if (fsize < 0x8000) {
         size_t tsize;

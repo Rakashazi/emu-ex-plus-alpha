@@ -183,13 +183,13 @@ static int set_sync_factor(int val, void *param)
 }
 
 static const resource_string_t resources_string[] = {
-    { "KernalName", "kernal", RES_EVENT_NO, NULL,
+    { "KernalName", PLUS4_KERNAL_PAL_REV5_NAME, RES_EVENT_NO, NULL,
       &kernal_rom_name, set_kernal_rom_name, NULL },
-    { "BasicName", "basic", RES_EVENT_NO, NULL,
+    { "BasicName", PLUS4_BASIC_NAME, RES_EVENT_NO, NULL,
       &basic_rom_name, set_basic_rom_name, NULL },
-    { "FunctionLowName", "3plus1lo", RES_EVENT_NO, NULL,
+    { "FunctionLowName", PLUS4_3PLUS1LO_NAME, RES_EVENT_NO, NULL,
       &func_lo_rom_name, set_func_lo_rom_name, NULL },
-    { "FunctionHighName", "3plus1hi", RES_EVENT_NO, NULL,
+    { "FunctionHighName", PLUS4_3PLUS1HI_NAME, RES_EVENT_NO, NULL,
       &func_hi_rom_name, set_func_hi_rom_name, NULL },
     { "c2loName", "", RES_EVENT_NO, NULL,
       &c2lo_rom_name, set_c2lo_rom_name, NULL },

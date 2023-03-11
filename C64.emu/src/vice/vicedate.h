@@ -29,6 +29,14 @@
 #ifndef VICEDATE_H
 #define VICEDATE_H
 
+#define VICEDATE_DAY 27
+#define VICEDATE_DAY_STR "27"
+
+#define VICEDATE_MONTH 12
+#define VICEDATE_MONTH_STR "12"
+#define VICEDATE_MONTH_SHORT "Dec"
+#define VICEDATE_MONTH_LONG "December"
+
 #define VICEDATE_YEAR 2022
 #define VICEDATE_YEAR_STR "2022"
 #endif

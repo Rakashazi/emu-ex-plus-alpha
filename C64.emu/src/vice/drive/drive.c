@@ -215,7 +215,7 @@ int drive_init(void)
         machine_drive_port_default(diskunit);
 
         if (drive_check_type(diskunit->type, unit) < 1) {
-            resources_set_int_sprintf("Drive%iType", DRIVE_TYPE_NONE, unit + 8);
+            resources_set_int_sprintf("Drive%uType", DRIVE_TYPE_NONE, unit + 8);
         }
 
         machine_drive_rom_setup_image(unit);
@@ -644,14 +644,14 @@ unsigned int drive_jam(int mynumber, const char *format, ...)
     if (jam_action == MACHINE_JAM_ACTION_DIALOG) {
         if (monitor_is_remote() || monitor_is_binary()) {
             if (monitor_is_remote()) {
-                ret = monitor_network_ui_jam_dialog(jam_reason[mynumber]);
+                ret = monitor_network_ui_jam_dialog("%s", jam_reason[mynumber]);
             }
 
             if (monitor_is_binary()) {
-                ret = monitor_binary_ui_jam_dialog(jam_reason[mynumber]);
+                ret = monitor_binary_ui_jam_dialog("%s", jam_reason[mynumber]);
             }
         } else if (!console_mode) {
-            ret = ui_jam_dialog(jam_reason[mynumber]);
+            ret = ui_jam_dialog("%s", jam_reason[mynumber]);
         }
     } else if (jam_action == MACHINE_JAM_ACTION_QUIT) {
         archdep_vice_exit(EXIT_SUCCESS);

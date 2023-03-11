@@ -64,7 +64,7 @@ extern void magicvoice_resources_shutdown(void);
 extern int magicvoice_cmdline_options_init(void);
 
 extern int magicvoice_bin_attach(const char *filename, uint8_t *rawcart);
-extern int magicvoice_crt_attach(FILE *fd, uint8_t *rawcart);
+extern int magicvoice_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
 extern int magicvoice_enable(void);
 int magicvoice_disable(void);
 extern void magicvoice_detach(void);

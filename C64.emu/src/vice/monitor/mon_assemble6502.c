@@ -59,7 +59,7 @@ static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t oper
         const asm_opcode_info_t *opinfo;
 
         opinfo = (monitor_cpu_for_memspace[mem]->asm_opcode_info_get)(i, 0, 0, 0);
-        if (!strcasecmp(opinfo->mnemonic, opcode_name)) {
+        if (!util_strcasecmp(opinfo->mnemonic, opcode_name)) {
             if (opinfo->addr_mode == operand_mode) {
                 opcode = i;
                 found = TRUE;

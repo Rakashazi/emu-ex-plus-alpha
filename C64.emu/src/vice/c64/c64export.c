@@ -57,6 +57,7 @@ export_list_t *export_query_list(export_list_t *item)
     }
 }
 
+/* assigned to monitor interface in src/c64/cart/c64cart.c */
 void export_dump(void)
 {
     export_list_t *current = NULL;
@@ -108,7 +109,7 @@ void export_dump(void)
             mon_out("%s\n", current->device->name);
             current = current->next;
         }
-        mon_out("Current mode: %s, GAME status: (%d) (%s), EXROM status: (%d) (%s)\n", 
+        mon_out("Current mode: %s, GAME status: (%d) (%s), EXROM status: (%d) (%s)\n",
                 cart_config_string(((export.exrom ^ 1) << 1) | export.game),
                 !export.game, (export.game) ? "active" : "inactive",
                 !export.exrom, (export.exrom) ? "active" : "inactive");

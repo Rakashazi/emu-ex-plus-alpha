@@ -26,6 +26,8 @@
 
 #include "vice.h"
 
+#include <stdlib.h>
+
 #include "vdctypes.h"
 #include "vdc-color.h"
 #include "vdc-resources.h"
@@ -40,22 +42,22 @@
 #define VDCRGB(x) (((x)>>16) & 0xff), (((x)>>8) & 0xff), (((x)>>0) & 0xff)
 static video_cbm_color_t vdc_colors[VDC_NUM_COLORS] =
 {
-    { VDCRGB(0x000000), "Black"       },
-    { VDCRGB(0x555555), "Medium Gray" },
-    { VDCRGB(0x0000AA), "Blue"        },
-    { VDCRGB(0x5555FF), "Light Blue"  },
-    { VDCRGB(0x00AA00), "Green"       },
-    { VDCRGB(0x55FF55), "Light Green" },
-    { VDCRGB(0x00AAAA), "Cyan"        },
-    { VDCRGB(0x55FFFF), "Light Cyan"  },
-    { VDCRGB(0xAA0000), "Red"         },
-    { VDCRGB(0xFF5555), "Light Red"   },
-    { VDCRGB(0xAA00AA), "Purple"      },
-    { VDCRGB(0xFF55FF), "Light Purple"},
-    { VDCRGB(0xAA5500), "Brown"       }, /* "brown fix", aka "dark yellow" 0xAAAA00 */
-    { VDCRGB(0xFFFF55), "Yellow"      },
-    { VDCRGB(0xAAAAAA), "Light Gray"  },
-    { VDCRGB(0xFFFFFF), "White"       },
+    { VDCRGB(0x000000), VDC_SATURATION, "Black"       },
+    { VDCRGB(0x555555), VDC_SATURATION, "Medium Gray" },
+    { VDCRGB(0x0000AA), VDC_SATURATION, "Blue"        },
+    { VDCRGB(0x5555FF), VDC_SATURATION, "Light Blue"  },
+    { VDCRGB(0x00AA00), VDC_SATURATION, "Green"       },
+    { VDCRGB(0x55FF55), VDC_SATURATION, "Light Green" },
+    { VDCRGB(0x00AAAA), VDC_SATURATION, "Cyan"        },
+    { VDCRGB(0x55FFFF), VDC_SATURATION, "Light Cyan"  },
+    { VDCRGB(0xAA0000), VDC_SATURATION, "Red"         },
+    { VDCRGB(0xFF5555), VDC_SATURATION, "Light Red"   },
+    { VDCRGB(0xAA00AA), VDC_SATURATION, "Purple"      },
+    { VDCRGB(0xFF55FF), VDC_SATURATION, "Light Purple"},
+    { VDCRGB(0xAA5500), VDC_SATURATION, "Brown"       }, /* "brown fix", aka "dark yellow" 0xAAAA00 */
+    { VDCRGB(0xFFFF55), VDC_SATURATION, "Yellow"      },
+    { VDCRGB(0xAAAAAA), VDC_SATURATION, "Light Gray"  },
+    { VDCRGB(0xFFFFFF), VDC_SATURATION, "White"       },
 };
 #undef VDCRGB
 
@@ -63,7 +65,7 @@ static video_cbm_palette_t vdc_palette =
 {
     VDC_NUM_COLORS,
     vdc_colors,
-    VDC_SATURATION,
+    NULL, NULL,
     VDC_PHASE,
     CBM_PALETTE_RGB
 };

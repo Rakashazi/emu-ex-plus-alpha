@@ -42,14 +42,15 @@
 #include "cbmdos.h"
 #include "fileio.h"
 #include "fsdevice-filename.h"
-#include "fsdevice-read.h"
 #include "fsdevice-resources.h"
 #include "fsdevicetypes.h"
-#include "ioutil.h"
 #include "lib.h"
 #include "tape.h"
 #include "types.h"
 #include "vdrive.h"
+
+#include "fsdevice-read.h"
+
 
 /* #define REL_DEBUG */
 
@@ -381,14 +382,12 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
 {
     int i, l, f, statrc;
     unsigned long blocks;
-    char *direntry;
+    const char *direntry;
     size_t filelen;
     unsigned int isdir;
     fileio_info_t *finfo = NULL;
     unsigned int format = 0;
-    char *buf;
-
-    buf = lib_malloc(ioutil_maxpathlen());
+    char buf[ARCHDEP_PATH_MAX];
 
     bufinfo->bufp = bufinfo->name;
 
@@ -411,7 +410,7 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
         uint8_t *p;
         finfo = NULL;
 
-        direntry = ioutil_readdir(bufinfo->ioutil_dir);
+        direntry = archdep_readdir(bufinfo->host_dir);
 
         if (direntry == NULL) {
             break;
@@ -465,7 +464,7 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
         uint8_t *p = bufinfo->name;
 
         strcpy(buf, bufinfo->dir);
-        strcat(buf, FSDEV_DIR_SEP_STR);
+        strcat(buf, ARCHDEP_DIR_SEP_STR);
         strcat(buf, direntry);
 
         /* Line link, Length and spaces */
@@ -473,7 +472,7 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
         *p++ = 1;
         *p++ = 1;
 
-        statrc = ioutil_stat(buf, &filelen, &isdir);
+        statrc = archdep_stat(buf, &filelen, &isdir);
         if (statrc == 0) {
             blocks = (filelen + 253) / 254;
         } else {
@@ -501,7 +500,7 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
          */
 
         *p++ = '"';
-        
+
         fsdevice_limit_namelength(vdrive, finfo->name);
 
         for (i = 0; finfo->name[i] && (*p = finfo->name[i]); ++i, ++p) {
@@ -552,7 +551,7 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
             }
         }
 
-        if (ioutil_access(buf, IOUTIL_ACCESS_W_OK)) {
+        if (archdep_access(buf, ARCHDEP_ACCESS_W_OK)) {
             *p++ = '<'; /* read-only file */
         }
 
@@ -591,15 +590,13 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
     if (finfo != NULL) {
         fileio_close(finfo);
     }
-
-    lib_free(buf);
 }
 
 
 static int command_directory(vdrive_t *vdrive, bufinfo_t *bufinfo,
                              uint8_t *data, unsigned int secondary)
 {
-    if (bufinfo->ioutil_dir == NULL) {
+    if (bufinfo->host_dir == NULL) {
         return FLOPPY_ERROR;
     }
 

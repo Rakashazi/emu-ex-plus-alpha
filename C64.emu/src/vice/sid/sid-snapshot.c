@@ -69,7 +69,7 @@ static int intended_sid_engine = -1;
    BYTE  | sids     |   1.2+  | amount of extra sids
    BYTE  | sound    |   1.2+  | sound active flag
    BYTE  | engine   |   1.2+  | sound engine
-   BYTE  | model    |   1.4+  | SID model     
+   BYTE  | model    |   1.4+  | SID model
    ARRAY | sid data |   1.1+  | 32 BYTES of SID registers
  */
 
@@ -1151,9 +1151,9 @@ int sid_snapshot_write_module(snapshot_t *s)
     int sound_enabled = 1;
     int sids = 0;
     int i;
-    
+
     resources_get_int("Sound", &sound_enabled);
-    
+
     if (!sound_enabled) {
         /* Make sure the sid engine hooks are set. They wont be if we launched without sound. */
         if (!sid_sound_machine_set_engine_hooks()) {

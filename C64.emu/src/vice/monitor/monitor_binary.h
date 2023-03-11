@@ -51,6 +51,6 @@ extern int monitor_binary_get_command_line(void);
 extern int monitor_is_binary(void);
 extern vice_network_socket_t *monitor_binary_get_connected_socket(void);
 
-extern ui_jam_action_t monitor_binary_ui_jam_dialog(const char *format, ...);
+extern ui_jam_action_t monitor_binary_ui_jam_dialog(const char *format, ...) VICE_ATTR_PRINTF;
 
 #endif

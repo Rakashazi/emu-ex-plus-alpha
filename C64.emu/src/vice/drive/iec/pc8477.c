@@ -40,6 +40,8 @@
 #include "drivesync.h"
 #include "fdd.h"
 
+/* #define PC8477_DEBUG */
+
 #ifdef PC8477_DEBUG
 #define debug(_x_) log_message _x_
 #else
@@ -291,20 +293,25 @@ static void pc8477_result(pc8477_t *drv)
         case PC8477_CMD_SENSE_INTERRUPT:
             drv->res[0] = drv->st[0];
             drv->res[1] = drv->current->track;
+            debug((pc8477_log, "RESULT: %02x %02x", drv->res[0], drv->res[1]));
             return;
         case PC8477_CMD_VERSION:
             drv->res[0] = 0x90;
+            debug((pc8477_log, "RESULT: %02x", drv->res[0]));
             return;
         case PC8477_CMD_NSC:
             drv->res[0] = 0x72;
+            debug((pc8477_log, "RESULT: %02x", drv->res[0]));
             return;
         case PC8477_CMD_SENSE_DRIVE_STATUS:
             drv->res[0] = drv->st[3] | 0x20 | (drv->is8477 ? 0x08 : 0)
                           | (fdd_track0(drv->fdd) ? PC8477_ST3_TK0 : 0)
                           | (fdd_write_protect(drv->fdd) ? PC8477_ST3_WP : 0);
+            debug((pc8477_log, "RESULT: %02x", drv->res[0]));
             return;
         case PC8477_CMD_READ_ID:
             memcpy(drv->res, drv->st, 3);
+            debug((pc8477_log, "RESULT: %02x %02x %02x %02x %02x %02x", drv->res[0], drv->res[1], drv->res[2], drv->res[3], drv->res[4], drv->res[5]));
             return;
         case PC8477_CMD_RECALIBRATE:
             return;
@@ -322,19 +329,23 @@ static void pc8477_result(pc8477_t *drv)
             drv->res[7] |= (drv->fdds[1].perpendicular ? 0x04 : 0);
             drv->res[7] |= (drv->fdds[2].perpendicular ? 0x08 : 0);
             drv->res[7] |= (drv->fdds[3].perpendicular ? 0x10 : 0);
+            debug((pc8477_log, "RESULT: %02x %02x %02x %02x %02x %02x %02x", drv->res[0], drv->res[1], drv->res[2], drv->res[3], drv->res[4], drv->res[5], drv->res[6]));
             /* TODO */
             return;
         case PC8477_CMD_SET_TRACK:
             drv->res[0] = drv->current->track >> ((drv->cmd[1] & 4) ? 8 : 0);
+            debug((pc8477_log, "RESULT: %02x", drv->res[0]));
             return;
         case PC8477_CMD_READ_DATA:
         case PC8477_CMD_WRITE_DATA:
         case PC8477_CMD_FORMAT_A_TRACK:
             memcpy(drv->res, drv->st, 3);
             memcpy(drv->res + 3, drv->cmd + 2, 4);
+            debug((pc8477_log, "RESULT: %02x %02x %02x %02x %02x %02x", drv->res[0], drv->res[1], drv->res[2], drv->res[3], drv->res[4], drv->res[5]));
             return;
         default:
             drv->res[0] = drv->st[0];
+            debug((pc8477_log, "RESULT: %02x", drv->res[0]));
     }
 }
 
@@ -959,7 +970,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
         default:
             break;
     }
-    debug((pc8477_log, "invalid command %02x", drv->cmd[0]));
+    debug((pc8477_log, "invalid command %02x", drv->command));
     drv->command = PC8477_CMD_INVALID;
     drv->st[0] = drv->st[3] | 0x80; /* invalid command */
     drv->res_size = 1;

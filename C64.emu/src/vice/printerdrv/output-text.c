@@ -32,24 +32,28 @@
 
 #include "archdep.h"
 #include "cmdline.h"
+#include "coproc.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
 #include "output-select.h"
-#include "output-text.h"
 #include "output.h"
 #include "resources.h"
 #include "types.h"
 #include "util.h"
 
+#include "output-text.h"
+
+/* XXX: coproc.c now does the proper includes, and on systems where fork_coproc()
+ *      doesn't work an error is logged and -1 returned.
+ */
+#if 0
 /* TODO: configure check that matches what arch/shared/coproc.c does... */
 #if defined(HAVE_FORK)
-# if !defined(OPENSTEP_COMPILE) && !defined(RHAPSODY_COMPILE) \
-   && !defined(NEXTSTEP_COMPILE) && !defined(BEOS_COMPILE) \
-   && !defined(__ANDROID__)
+# if !defined(BEOS_COMPILE)
 #   define COPROC_SUPPORT
 # endif
-#elif defined(WIN32_COMPILE)
+#elif defined(WINDOWS_COMPILE)
 # include <windows.h>
 # define COPROC_SUPPORT
 #endif
@@ -58,6 +62,8 @@
 # include <unistd.h>
 # include "coproc.h"
 #endif
+#endif
+
 
 static char *PrinterDev[NUM_OUTPUT_SELECT] = { NULL, NULL, NULL };
 static int printer_device[NUM_OUTPUT_SELECT];
@@ -155,22 +161,20 @@ int output_text_init_cmdline_options(void)
 
 /*
  * TODO: only do this on systems which support it.
+ *
+ * 2022-04-03:  On systems where this isn't supported fork_coproc() logs an error
+ *              and returns -1. --compyx
  */
 static FILE *fopen_or_pipe(char *name)
 {
     if (name[0] == '|') {
-#ifdef COPROC_SUPPORT
         int fd_rd, fd_wr;
         if (fork_coproc(&fd_wr, &fd_rd, name + 1) < 0) {
             log_error(LOG_DEFAULT, "fopen_or_pipe(): Cannot fork process '%s'.", name + 1);
             return NULL;
         }
-        close(fd_rd);   /* We only want to write to the process */
-        return fdopen(fd_wr, MODE_WRITE);
-#else
-        log_error(LOG_DEFAULT, "COPROC_SUPPORT is disabled, Cannot fork process.");
-        return NULL;
-#endif
+        archdep_close(fd_rd);   /* We only want to write to the process */
+        return archdep_fdopen(fd_wr, MODE_WRITE);
     } else {
         return fopen(name, MODE_APPEND);
     }

@@ -51,7 +51,7 @@ static int sidcart_sound_machine_init(sound_t *psid, int speed, int cycles_per_s
 
 /* PET SID cartridge sound chip */
 static sound_chip_t sidcart_sound_chip = {
-    sid_sound_machine_open,              /* sound chip open function */ 
+    sid_sound_machine_open,              /* sound chip open function */
     sidcart_sound_machine_init,          /* sound chip init function */
     sid_sound_machine_close,             /* sound chip close function */
     sid_sound_machine_calculate_samples, /* sound chip calculate samples function */

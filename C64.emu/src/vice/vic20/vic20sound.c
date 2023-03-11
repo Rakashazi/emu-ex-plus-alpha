@@ -62,7 +62,7 @@ static int vic_sound_machine_channels(void)
 
 /* VIC20 VIC sound device */
 static sound_chip_t vic_sound_chip = {
-    NULL,                                /* NO sound chip open function */ 
+    NULL,                                /* NO sound chip open function */
     vic_sound_machine_init,              /* sound chip init function */
     NULL,                                /* NO sound chip close function */
     vic_sound_machine_calculate_samples, /* sound chip calculate samples function */
@@ -359,7 +359,7 @@ void vic_sound_clock(CLOCK cycles)
                     snd.ch[j].ctr += a << chspeed;
                     enabled = (snd.ch[j].reg & 128) >> 7;
                     edge_trigger = (noise_LFSR & 1) & !noise_LFSR0_old;
-                    
+
                     if((j != 3) || ((j == 3) && edge_trigger)) {
                         uint8_t shift = snd.ch[j].shift;
                         shift = ((shift << 1) | (((((shift & 128) >> 7)) ^ 1) & enabled));
@@ -377,7 +377,7 @@ void vic_sound_clock(CLOCK cycles)
                         noise_LFSR0_old = noise_LFSR & 1;
                         noise_LFSR = (noise_LFSR << 1) | gate4;
                     }
-                    snd.ch[j].out = snd.ch[j].shift & (j == 3 ? enabled : 1);                    
+                    snd.ch[j].out = snd.ch[j].shift & (j == 3 ? enabled : 1);
                 }
                 snd.accum += snd.ch[j].out; /* FIXME: doesn't take DC offset into account */
             }

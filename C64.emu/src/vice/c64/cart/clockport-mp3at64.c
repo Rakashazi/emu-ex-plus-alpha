@@ -70,7 +70,7 @@ static int mp3_input_rate = 44100;
 static int mp3_input_channels = 1;
 static int mp3_input_pointer = 0;
 static int mp3_input_frame_size = 0;
-static int mp3_input_frame_mpeg_version = 0; 
+static int mp3_input_frame_mpeg_version = 0;
 static int mp3_input_frame_layer = 3;
 static int mp3_protection = 0;
 static int mp3_input_bitrate = 0;
@@ -185,7 +185,7 @@ static int clockport_mp3at64_sound_machine_channels(void)
 
 /* ClockPort MP3@64 sound chip */
 static sound_chip_t clockport_mp3at64_sound_chip = {
-    NULL,                                              /* NO sound chip open function */ 
+    NULL,                                              /* NO sound chip open function */
     clockport_mp3at64_sound_machine_init,              /* sound chip init function */
     clockport_mp3at64_sound_machine_close,             /* sound chip close function */
     clockport_mp3at64_sound_machine_calculate_samples, /* sound chip calculate samples function */

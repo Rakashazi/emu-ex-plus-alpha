@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 
+#include "driverom.h"
 #include "iec128dcr-resources.h"
 #include "iec128dcrrom.h"
 #include "lib.h"
@@ -46,7 +47,7 @@ static int set_dos_rom_name_1571cr(const char *val, void *param)
 }
 
 static const resource_string_t resources_string[] = {
-    { "DosName1571cr", "d1571cr", RES_EVENT_NO, NULL,
+    { "DosName1571cr", DRIVE_ROM1571CR_NAME, RES_EVENT_NO, NULL,
       &dos_rom_name_1571cr, set_dos_rom_name_1571cr, NULL },
     RESOURCE_STRING_LIST_END
 };

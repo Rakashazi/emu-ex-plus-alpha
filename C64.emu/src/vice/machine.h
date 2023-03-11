@@ -69,11 +69,7 @@ struct machine_timing_s {
 typedef struct machine_timing_s machine_timing_t;
 
 extern int machine_class;
-extern
-#ifdef __OS2__
-const
-#endif
-int console_mode;
+extern int console_mode;
 extern int video_disabled_mode;
 extern int help_requested;
 
@@ -190,7 +186,7 @@ extern int machine_canvas_async_refresh(struct canvas_refresh_s *ref,
 #define JAM_RESET      1
 #define JAM_HARD_RESET 2
 #define JAM_MONITOR    3
-extern unsigned int machine_jam(const char *format, ...);
+extern unsigned int machine_jam(const char *format, ...) VICE_ATTR_PRINTF;
 extern bool machine_is_jammed(void);
 extern char *machine_jam_reason(void);
 

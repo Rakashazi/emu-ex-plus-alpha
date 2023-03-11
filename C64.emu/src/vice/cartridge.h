@@ -60,6 +60,16 @@ extern int cartridge_disable(int type);
 /* detaches/disables the cartridge with the associated id. pass -1 to detach all */
 extern void cartridge_detach_image(int type);
 
+/* FIXME: slot arg is ignored right now.
+   this should return a valid cartridge ID for a given slot, or CARTRIDGE_NONE
+*/
+extern int cartridge_get_id(int slot);
+
+/* FIXME: slot arg is ignored right now.
+   this should return a pointer to a filename, or NULL
+*/
+extern char *cartridge_get_filename(int slot);
+
 /* FIXME: this should also be made a generic function that takes the type */
 /* set current "Main Slot" cart as default */
 extern void cartridge_set_default(void);
@@ -237,7 +247,8 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_IEEEFLASH64          75 /* ieeeflash64.c */
 #define CARTRIDGE_TURTLE_GRAPHICS_II   76 /* turtlegraphics.c */
 #define CARTRIDGE_FREEZE_FRAME_MK2     77 /* freezeframe2.c */
-#define CARTRIDGE_LAST                 77 /* cartconv: last cartridge in list */
+#define CARTRIDGE_PARTNER64            78 /* partner64.c */
+#define CARTRIDGE_LAST                 78 /* cartconv: last cartridge in list */
 
 /* list of canonical names for the c64 cartridges:
    note: often it is hard to determine "the" official name, let alone the way it
@@ -322,6 +333,7 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_NAME_NORDIC_REPLAY      "Nordic Replay" /* "Retro Replay v2" see manual */
 #define CARTRIDGE_NAME_OCEAN              "Ocean"
 #define CARTRIDGE_NAME_PAGEFOX            "Pagefox"
+#define CARTRIDGE_NAME_PARTNER64          "Partner 64"
 #define CARTRIDGE_NAME_P64                "Prophet64" /* see http://www.prophet64.com/ */
 #define CARTRIDGE_NAME_RAMCART            "RamCart" /* see cc65 driver */
 #define CARTRIDGE_NAME_RAMLINK            "RAMLink"
@@ -362,9 +374,34 @@ extern void cartridge_sound_chip_init(void);
  * C128 cartridge system
  */
 
-#define CARTRIDGE_C128_WARPSPEED128 1
-#define CARTRIDGE_C128_LAST 1
+/* #define CARTRIDGE_NONE               -1 */
+/* #define CARTRIDGE_CRT                 0 */
 
+/* first unique number after the C64 cartridges */
+#define CARTRIDGE_C128_FIRST_UNIQUE     (CARTRIDGE_LAST + 1)
+
+/* since the C128 cartridge system must coexist with the C64 cartridge
+   system, we add a constant offset using the following macros */
+#define CARTRIDGE_C128_MAKEID(x)        ((x) + CARTRIDGE_C128_FIRST_UNIQUE)
+#define CARTRIDGE_C128_ISID(x)          ((x) >= CARTRIDGE_C128_FIRST_UNIQUE)
+
+/* the following must match the CRT IDs */
+#define CARTRIDGE_C128_GENERIC 0        /* external function rom */
+#define CARTRIDGE_C128_WARPSPEED128 1
+#define CARTRIDGE_C128_PARTNER128 2
+#define CARTRIDGE_C128_COMAL80 3
+#define CARTRIDGE_C128_MAGICDESK128 4
+#define CARTRIDGE_C128_GMOD2C128 5
+#define CARTRIDGE_C128_LAST 5
+
+#define CARTRIDGE_C128_NAME_GENERIC       "generic function ROM"
+#define CARTRIDGE_C128_NAME_GENERIC_16KB  "generic 16KiB function ROM"
+#define CARTRIDGE_C128_NAME_GENERIC_32KB  "generic 32KiB function ROM"
+
+#define CARTRIDGE_C128_NAME_COMAL80       "Comal 80 (C128)"
+#define CARTRIDGE_C128_NAME_GMOD2C128     "Gmod2-C128"
+#define CARTRIDGE_C128_NAME_MAGICDESK128  "Magic Desk 128"
+#define CARTRIDGE_C128_NAME_PARTNER128    "Partner 128"
 #define CARTRIDGE_C128_NAME_WARPSPEED128  "Warp Speed 128"
 
 /*
@@ -429,7 +466,7 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_VIC20_TYPEDEF(h, s1, s0, b1, b2, b3, b5) \
     (0x8000 | ((h) << 6) | ((s1) << 5) | ((s0) << 4) | ((b1) << 3) | ((b2) << 2) | ((b3) << 1) | ((b5) << 0))
 
-/* block 1 */    
+/* block 1 */
 #define CARTRIDGE_VIC20_4KB_2000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 0,  1, 0, 0, 0)
 #define CARTRIDGE_VIC20_8KB_2000        CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  1, 0, 0, 0)
 #define CARTRIDGE_VIC20_4KB_3000        CARTRIDGE_VIC20_TYPEDEF(1, 1, 0,  1, 0, 0, 0)
@@ -448,15 +485,15 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_VIC20_2KB_B000        CARTRIDGE_VIC20_TYPEDEF(1, 0, 1,  0, 0, 0, 1)
 
 /* block 1 + block 2 */
-#define CARTRIDGE_VIC20_16KB_2000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  1, 1, 0, 0) 
+#define CARTRIDGE_VIC20_16KB_2000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  1, 1, 0, 0)
 /* block 1 + block 5 */
-#define CARTRIDGE_VIC20_16KB_2000_A000  CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  1, 0, 0, 1) 
+#define CARTRIDGE_VIC20_16KB_2000_A000  CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  1, 0, 0, 1)
 /* block 2 + block 3 */
-#define CARTRIDGE_VIC20_16KB_4000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 1, 1, 0) 
+#define CARTRIDGE_VIC20_16KB_4000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 1, 1, 0)
 /* block 2 + block 5 */
-#define CARTRIDGE_VIC20_16KB_4000_A000  CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 1, 0, 1) 
+#define CARTRIDGE_VIC20_16KB_4000_A000  CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 1, 0, 1)
 /* block 3 + block 5 */
-#define CARTRIDGE_VIC20_16KB_6000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 0, 1, 1) 
+#define CARTRIDGE_VIC20_16KB_6000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  0, 0, 1, 1)
 
 /* block 1,2,3,5 */
 #define CARTRIDGE_VIC20_32KB_2000       CARTRIDGE_VIC20_TYPEDEF(0, 1, 1,  1, 1, 1, 1)

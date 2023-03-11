@@ -1557,7 +1557,7 @@
             if (fetch_tab[(o).ins]) {                                                     \
                 (o).op.op16 = LOAD(reg_pc + 1);                                           \
                 CLK_ADD(CLK, CYCLES_1);                                                   \
-                if (fetch_tab[(o).ins - 1]) {                                             \
+                if (fetch_tab[(o).ins] - 1) {                                             \
                     (o).op.op16 |= (LOAD(reg_pc + 2) << 8);                               \
                     CLK_ADD(CLK, CYCLES_1);                                               \
                 }                                                                         \

@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "archdep.h"
 #include "diskconstants.h"
 #include "diskimage.h"
 #include "fsimage-p64.h"
@@ -51,16 +52,20 @@ int fsimage_read_p64_image(const disk_image_t *image)
     TP64MemoryStream P64MemoryStreamInstance;
     PP64Image P64Image = (void*)image->p64;
     int rc;
-    size_t lSize;
+    off_t lSize;
     void *buffer;
 
     fsimage_t *fsimage;
 
     fsimage = image->media.fsimage;
 
-    lSize = util_file_length(fsimage->fd);
-    buffer = lib_malloc(lSize);
-    if (util_fpread(fsimage->fd, buffer, lSize, 0) < 0) {
+    lSize = archdep_file_size(fsimage->fd);
+    if (lSize < 0) {
+        log_error(fsimage_p64_log, "Failed to get size of P64 disk image.");
+        return -1;
+    }
+    buffer = lib_malloc((size_t)lSize);
+    if (util_fpread(fsimage->fd, buffer, (size_t)lSize, 0) < 0) {
         lib_free(buffer);
         log_error(fsimage_p64_log, "Could not read P64 disk image.");
         return -1;

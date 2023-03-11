@@ -138,7 +138,8 @@ static int set_drive_extend_image_policy(int val, void *param)
 
 static int drive_resources_type(int val, void *param)
 {
-    unsigned int type, dnr;
+    unsigned int type;
+    int dnr;
     int busses;
     diskunit_context_t *unit;
     drive_t *drive;
@@ -244,7 +245,8 @@ static resource_int_t res_drive_type[] = {
 
 int drive_resources_type_init(unsigned int default_type)
 {
-    unsigned int dnr, type;
+    unsigned int type;
+    int dnr;
 
     for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         diskunit_context_t *unit = diskunit_context[dnr];
@@ -384,7 +386,7 @@ static resource_int_t res_drive_rtc[] = {
 
 int drive_resources_init(void)
 {
-    unsigned int dnr;
+    int dnr;
     int has_iec;
     int i;
 
@@ -458,16 +460,3 @@ void drive_resources_shutdown(void)
 {
     machine_drive_resources_shutdown();
 }
-
-/* FIXME: (re)move this! */
-#ifdef ANDROID_COMPILE
-void loader_set_drive_true_emulation(int val)
-{
-    set_drive_true_emulation(val, 0);
-}
-
-int loader_get_drive_true_emulation()
-{
-    return drive_true_emulation;
-}
-#endif

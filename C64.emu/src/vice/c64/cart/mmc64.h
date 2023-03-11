@@ -59,7 +59,7 @@ extern void mmc64_passthrough_changed(export_t *export);
 
 extern void mmc64_config_setup(uint8_t *rawcart);
 
-extern int mmc64_crt_attach(FILE *fd, uint8_t *rawcart);
+extern int mmc64_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
 extern int mmc64_bin_attach(const char *filename, uint8_t *rawcart);
 extern int mmc64_bin_save(const char *filename);
 extern int mmc64_crt_save(const char *filename);

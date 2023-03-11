@@ -30,4 +30,16 @@
 extern int plus4rom_load_kernal(const char *rom_name);
 extern int plus4rom_load_basic(const char *rom_name);
 
+#define PLUS4_BASIC_NAME            "basic-318006-01.bin"
+
+#define PLUS4_KERNAL_NTSC_REV1_NAME "kernal-318004-01.bin" /* V232 prototype */
+#define PLUS4_KERNAL_PAL_REV5_NAME  "kernal-318004-05.bin"
+#define PLUS4_KERNAL_NTSC_REV5_NAME "kernal-318005-05.bin"
+#define PLUS4_KERNAL_NTSC_364_NAME  "kernal-364.bin"       /* 364 prototype */
+
+#define PLUS4_3PLUS1LO_NAME         "3plus1-317053-01.bin"
+#define PLUS4_3PLUS1HI_NAME         "3plus1-317054-01.bin"
+
+#define PLUS4_C2LO_NAME             "c2lo-364.bin"         /* 364 prototype */
+
 #endif

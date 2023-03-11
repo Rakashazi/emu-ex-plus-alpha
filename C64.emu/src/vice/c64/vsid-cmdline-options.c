@@ -40,7 +40,6 @@
 #include "cmdline.h"
 #include "log.h"
 #include "machine.h"
-#include "patchrom.h"
 #include "resources.h"
 #include "vicii.h"
 
@@ -51,7 +50,9 @@ static const cmdline_option_t cmdline_options[] =
 {
     { "-hvsc-root", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
         NULL, NULL, "HVSCRoot", NULL,
-        "<path>", "Set path to HVSC root directory" },
+        "<path>",
+        "Set path to HVSC root directory (when not set the HVSC_BASE environment"
+        "variable is used)" },
     CMDLINE_LIST_END
 };
 

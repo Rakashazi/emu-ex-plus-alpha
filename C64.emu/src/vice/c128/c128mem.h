@@ -37,27 +37,19 @@
 
 #define C128_RAM_SIZE               0x40000
 
-#define C128_KERNAL_ROM_SIZE        0x2000
-#define C128_BASIC_ROM_SIZE         0x8000
-#define C128_EDITOR_ROM_SIZE        0x1000
-#define C128_Z80BIOS_ROM_SIZE       0x1000
+#define C128_EDITOR_ROM_SIZE        0x1000  /* 0x0000 - 0x0fff in kernal image */
+#define C128_Z80BIOS_ROM_SIZE       0x1000  /* 0x1000 - 0x1fff in kernal image */
+#define C128_KERNAL_ROM_SIZE        0x2000  /* 0x2000 - 0x3fff in kernal image */
+
+#define C128_BASIC_ROM_SIZE         0x8000  /* BASICLO + BASICHI */
 #define C128_CHARGEN_ROM_SIZE       0x2000
 
 #define C128_BASIC_ROM_IMAGELO_SIZE 0x4000
 #define C128_BASIC_ROM_IMAGEHI_SIZE 0x4000
-#define C128_KERNAL_ROM_IMAGE_SIZE  0x4000
+#define C128_KERNAL_ROM_IMAGE_SIZE  0x4000  /* Editor + Z80BIOS + Kernal */
 
 #define C128_KERNAL64_ROM_SIZE      0x2000
 #define C128_BASIC64_ROM_SIZE       0x2000
-
-#define C128_BASIC_CHECKSUM_85      38592
-#define C128_BASIC_CHECKSUM_86      2496
-#define C128_EDITOR_CHECKSUM_R01    56682
-#define C128_EDITOR_CHECKSUM_R01SWE 9364
-#define C128_EDITOR_CHECKSUM_R01GER 9619
-#define C128_KERNAL_CHECKSUM_R01    22353
-#define C128_KERNAL_CHECKSUM_R01SWE 24139
-#define C128_KERNAL_CHECKSUM_R01GER 22098
 
 extern int c128_mem_init_resources(void);
 extern int c128_mem_init_cmdline_options(void);
@@ -111,6 +103,7 @@ extern uint8_t basic_hi_read(uint16_t addr);
 extern void basic_hi_store(uint16_t addr, uint8_t value);
 
 extern uint8_t *ram_bank;
+extern uint8_t *dma_bank;
 
 extern uint8_t mem_chargen_rom[C128_CHARGEN_ROM_SIZE];
 
@@ -128,8 +121,8 @@ extern uint8_t c128_d5xx_read(uint16_t addr);
 extern void c128_d5xx_store(uint16_t addr, uint8_t value);
 extern uint8_t c128_mmu_read(uint16_t addr);
 extern void c128_mmu_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_vdc_read(uint16_t addr);
-extern void c128_vdc_store(uint16_t addr, uint8_t value);
+extern uint8_t c128_c64io_d600_read(uint16_t addr);
+extern void c128_c64io_d600_store(uint16_t addr, uint8_t value);
 extern uint8_t c128_c64io_d700_read(uint16_t addr);
 extern void c128_c64io_d700_store(uint16_t addr, uint8_t value);
 extern uint8_t c128_colorram_read(uint16_t addr);

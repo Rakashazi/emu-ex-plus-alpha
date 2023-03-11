@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define ARCHDEP_SHOW_STATUSBAR_FACTORY  0
+
 struct video_canvas_s
 {
 	struct video_render_config_s *videoconfig;

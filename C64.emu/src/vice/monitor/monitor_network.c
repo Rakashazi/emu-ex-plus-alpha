@@ -216,16 +216,22 @@ static int monitor_network_activate(void)
 
     do {
         if (!monitor_server_address) {
+            log_error(LOG_DEFAULT,
+                "monitor_network_activate(): monitor server address not set");
             break;
         }
 
         server_addr = vice_network_address_generate(monitor_server_address, 0);
         if (!server_addr) {
+            log_error(LOG_DEFAULT,
+                "monitor_network_activate(): could not generate monitor server address?");
             break;
         }
 
         listen_socket = vice_network_server(server_addr);
         if (!listen_socket) {
+            log_error(LOG_DEFAULT,
+                "monitor_network_activate(): could not initialize listening socket");
             break;
         }
 
@@ -383,7 +389,7 @@ int monitor_network_cmdline_options_init(void)
     return cmdline_register_options(cmdline_options);
 }
 
-vice_network_socket_t *monitor_get_connected_socket() {
+vice_network_socket_t *monitor_get_connected_socket(void) {
     return connected_socket;
 }
 

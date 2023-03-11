@@ -69,7 +69,7 @@ static int dma_log_enabled = 0;
 static uint8_t dma_data;
 static uint8_t dma_data_swap;
 static int dma_count;
-static enum { DMA_IDLE, DMA_READ, DMA_READ_SWAP, DMA_WRITE_SWAP, DMA_WRITE } dma_state; 
+static enum { DMA_IDLE, DMA_READ, DMA_READ_SWAP, DMA_WRITE_SWAP, DMA_WRITE } dma_state;
 static int source_line_off = 0;
 static int dest_line_off = 0;
 static uint8_t source_memtype = 0x00;

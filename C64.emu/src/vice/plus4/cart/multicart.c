@@ -32,7 +32,7 @@
     - bank register at $FDA0
  */
 
-#define DEBUG_MULTICART
+/* #define DEBUG_MULTICART */
 
 #include "vice.h"
 
@@ -159,7 +159,7 @@ int multicart_bin_attach(const char *filename, uint8_t *rawcart)
     if (fd == NULL) {
         return -1;
     }
-    len = (unsigned int)util_file_length(fd);
+    len = (unsigned int)archdep_file_size(fd);
     fclose(fd);
 
     DBG(("multicart_bin_attach len: %04x\n", len));

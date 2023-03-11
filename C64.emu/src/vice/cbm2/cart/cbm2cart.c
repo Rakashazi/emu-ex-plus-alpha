@@ -28,6 +28,10 @@
 
 #include <string.h>
 
+/* in case cartridge_detect() gets uncommented remove the #if 0/#endif */
+#if 0
+#include "archdep.h"
+#endif
 #include "cartridge.h"
 #include "cmdline.h"
 #include "cbm2cart.h"
@@ -335,13 +339,13 @@ int cartridge_detect(const char *filename)
 {
     int type = CARTRIDGE_NONE;
     FILE *fd;
-    size_t len;
+    off_t len;
 
     fd = fopen(filename, "rb");
     if (fd == NULL) {
         return CARTRIDGE_NONE;
     }
-    len = util_file_length(fd);
+    len = archdep_file_size(fd);
 
     /* FIXME: add cartridge detection */
 
@@ -380,8 +384,3 @@ int cartridge_attach_image(int type, const char *filename)
 
     return -1;
 }
-
-void cartridge_unset_default(void)
-{
-}
-

@@ -29,8 +29,8 @@
 
 #include <stdio.h>
 
+#include "archdep.h"
 #include "c64-memory-hacks.h"
-#include "c64-snapshot.h"
 #include "c64.h"
 #include "c64gluelogic.h"
 #include "c64memsnapshot.h"
@@ -38,7 +38,6 @@
 #include "drive-snapshot.h"
 #include "drive.h"
 #include "serial.h"
-#include "ioutil.h"
 #include "joyport.h"
 #include "joystick.h"
 #include "keyboard.h"
@@ -53,6 +52,9 @@
 #include "userport.h"
 #include "vice-event.h"
 #include "vicii.h"
+
+#include "c64-snapshot.h"
+
 
 #define SNAP_MAJOR 2
 #define SNAP_MINOR 0
@@ -88,7 +90,7 @@ int c64_snapshot_write(const char *name, int save_roms, int save_disks, int even
         || joyport_snapshot_write_module(s, JOYPORT_2) < 0
         || userport_snapshot_write_module(s) < 0) {
         snapshot_close(s);
-        ioutil_remove(name);
+        archdep_remove(name);
         return -1;
     }
 

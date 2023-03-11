@@ -552,7 +552,7 @@ static int attach_image(int type, const char *filename)
         case CARTRIDGE_VIC20_32KB_2000:
             memcpy(cart_rom + 0x2000, rawcart, 0x6000); /* block 1,2,3 */
             memcpy(cart_rom + 0x0000, rawcart + 0x6000, 0x2000); /* block 5 */
-            generic_rom_blocks |= (VIC_CART_BLK1 | VIC_CART_BLK2 | 
+            generic_rom_blocks |= (VIC_CART_BLK1 | VIC_CART_BLK2 |
                                    VIC_CART_BLK3 | VIC_CART_BLK5);
             break;
         default:

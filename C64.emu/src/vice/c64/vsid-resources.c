@@ -43,8 +43,8 @@
 #include "kbd.h"
 #include "keyboard.h"
 #include "lib.h"
+#include "log.h"
 #include "machine.h"
-#include "patchrom.h"
 #include "resources.h"
 #include "reu.h"
 #include "georam.h"
@@ -116,17 +116,63 @@ static int set_basic_rom_name(const char *val, void *param)
     return c64rom_load_basic(basic_rom_name);
 }
 
+struct kernal_s {
+    const char *name;
+    int rev;
+};
+
+static struct kernal_s kernal_match[] = {
+    { C64_KERNAL_REV1_NAME, C64_KERNAL_REV1 },
+    { C64_KERNAL_REV2_NAME, C64_KERNAL_REV2 },
+    { C64_KERNAL_REV3_NAME, C64_KERNAL_REV3 },
+    { C64_KERNAL_JAP_NAME,  C64_KERNAL_JAP },
+    { C64_KERNAL_SX64_NAME, C64_KERNAL_SX64 },
+    { C64_KERNAL_GS64_NAME, C64_KERNAL_GS64 },
+    { C64_KERNAL_4064_NAME, C64_KERNAL_4064 },
+    { C64_KERNAL_NONE_NAME, C64_KERNAL_NONE },
+    { NULL, C64_KERNAL_UNKNOWN }
+};
+
 static int set_kernal_revision(int val, void *param)
 {
-    if(!c64rom_isloaded()) {
+    int n = 0, rev = C64_KERNAL_UNKNOWN;
+    const char *name = NULL;
+    log_verbose("set_kernal_revision was kernal_revision: %d new val:%d", kernal_revision, val);
+
+    if (val == C64_KERNAL_UNKNOWN) {
+        kernal_revision = C64_KERNAL_UNKNOWN;
         return 0;
     }
-    if ((val != -1) && (patch_rom_idx(val) < 0)) {
-        kernal_revision = -1;
-    } else {
-        kernal_revision = val;
+
+    /* find given revision */
+    do {
+        if (kernal_match[n].rev == val) {
+            rev = kernal_match[n].rev;
+            name = kernal_match[n].name;
+        }
+        ++n;
+    } while ((rev == C64_KERNAL_UNKNOWN) && (kernal_match[n].name != NULL));
+
+    if (rev == C64_KERNAL_UNKNOWN) {
+        log_error(LOG_DEFAULT, "invalid kernal revision (%d)", val);
+        return -1;
     }
+
+    log_verbose("set_kernal_revision found rev:%d name: %s", rev, name);
+
+    if (resources_set_string("KernalName", name) < 0) {
+        log_error(LOG_DEFAULT, "failed to set kernal name (%s)", name);
+        return -1;
+    }
+
     memcpy(c64memrom_kernal64_trap_rom, c64memrom_kernal64_rom, C64_KERNAL_ROM_SIZE);
+
+    if (kernal_revision != rev) {
+        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    }
+
+    kernal_revision = rev;
+    log_verbose("set_kernal_revision new kernal_revision: %d", kernal_revision);
     return 0;
 }
 
@@ -173,10 +219,13 @@ static int set_sync_factor(int val, void *param)
 
 static int set_hvsc_root(const char *path, void *param)
 {
-    char *result;
+    char *result = NULL;
 
-    /* expand ~, no effect on Windows */
-    archdep_expand_path(&result, path);
+    /* empty means use the 'HVSC_BASE' env var */
+    if (path != NULL && *path != '\0') {
+        /* expand ~, no effect on Windows */
+        archdep_expand_path(&result, path);
+    }
 
     util_string_set(&hvsc_root, result);
 
@@ -189,15 +238,16 @@ static int set_hvsc_root(const char *path, void *param)
 
 
 static const resource_string_t resources_string[] = {
-    { "ChargenName", "chargen", RES_EVENT_NO, NULL,
+    { "ChargenName", C64_CHARGEN_NAME, RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &chargen_rom_name, set_chargen_rom_name, NULL },
-    { "KernalName", "kernal", RES_EVENT_NO, NULL,
+    { "KernalName", C64_KERNAL_REV3_NAME, RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &kernal_rom_name, set_kernal_rom_name, NULL },
-    { "BasicName", "basic", RES_EVENT_NO, NULL,
+    { "BasicName", C64_BASIC_NAME, RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &basic_rom_name, set_basic_rom_name, NULL },
+    /* When empty the HVSC_BASE env var is used */
     { "HVSCRoot", "", RES_EVENT_NO, NULL,
       &hvsc_root, set_hvsc_root, NULL },
     RESOURCE_STRING_LIST_END
@@ -241,4 +291,5 @@ void c64_resources_shutdown(void)
     if (hvsc_root != NULL) {
         lib_free(hvsc_root);
     }
+    hvsc_exit();
 }

@@ -32,7 +32,7 @@
 #endif
 
 #ifndef VICE_VERSION_MINOR
-#define VICE_VERSION_MINOR 6
+#define VICE_VERSION_MINOR 7
 #endif
 
 #ifndef VICE_VERSION_BUILD
@@ -40,15 +40,15 @@
 #endif
 
 #ifndef VERSION
-#define VERSION "3.6.1"
+#define VERSION "3.7.1"
 #endif
 
 #ifndef VERSION_WITH_BUILD
-#define VERSION_WITH_BUILD "3.6.1.1"
+#define VERSION_WITH_BUILD "3.7.1.1"
 #endif
 
 #ifndef VERSION_RC_NUMBER
-#define VERSION_RC_NUMBER 3,6,1,0
+#define VERSION_RC_NUMBER 3,7,1,0
 #endif
 
 #ifndef PACKAGE

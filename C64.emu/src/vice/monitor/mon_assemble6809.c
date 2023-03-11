@@ -128,7 +128,7 @@ static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t oper
                 prefixlen = 1;
             }
 
-            if (!strcasecmp(opinfo->mnemonic, opcode_name)) {
+            if (!util_strcasecmp(opinfo->mnemonic, opcode_name)) {
                 if (opinfo->addr_mode == operand_mode) {
                     opcode = i;
                     found = TRUE;

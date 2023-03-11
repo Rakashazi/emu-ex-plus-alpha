@@ -50,7 +50,7 @@ extern double lib_double_rand_unit(void);
 extern void lib_rand_seed(uint64_t seed);
 extern void lib_rand_printseed(void);
 
-extern char *lib_msprintf(const char *fmt, ...);
+extern char *lib_msprintf(const char *fmt, ...) VICE_ATTR_PRINTF;
 extern char *lib_mvsprintf(const char *fmt, va_list args);
 
 #ifdef LIB_DEBUG_PINPOINT
@@ -71,18 +71,6 @@ extern char *lib_strdup_pinpoint(const char *str, const char *name, unsigned int
 
 #endif /* !COMPILING_LIB_DOT_C */
 
-#if defined(AMIGA_SUPPORT) || defined(__VBCC__)
-extern void *lib_AllocVec_pinpoint(unsigned long size, unsigned long attributes, char *name, unsigned int line);
-extern void lib_FreeVec_pinpoint(void *ptr, char *name, unsigned int line);
-extern void *lib_AllocMem_pinpoint(unsigned long size, unsigned long attributes, char *name, unsigned int line);
-extern void lib_FreeMem_pinpoint(void *ptr, unsigned long size, char *name, unsigned int line);
-
-#define lib_AllocVec(x, y) lib_AllocVec_pinpoint(x, y, __FILE__, __LINE__)
-#define lib_FreeVec(x) lib_FreeVec_pinpoint(x, __FILE__, __LINE__)
-#define lib_AllocMem(x, y) lib_AllocMem_pinpoint(x, y, __FILE__, __LINE__)
-#define lib_FreeMem(x, y) lib_FreeMem_pinpoint(x, y, __FILE__, __LINE__)
-#endif
-
 #else
 /* !defined LIB_DEBUG_PINPOINT */
 
@@ -92,13 +80,6 @@ extern void *lib_realloc(void *p, size_t size);
 extern void lib_free(void *ptr);
 
 extern char *lib_strdup(const char *str);
-
-#if defined(AMIGA_SUPPORT) || defined(__VBCC__)
-extern void *lib_AllocVec(unsigned long size, unsigned long attributes);
-extern void lib_FreeVec(void *ptr);
-extern void *lib_AllocMem(unsigned long size, unsigned long attributes);
-extern void lib_FreeMem(void *ptr, unsigned long size);
-#endif
 
 #endif /* LIB_DEBUG_PINPOINT */
 

@@ -40,7 +40,7 @@ extern void render_32_2x2_interlaced(const video_render_color_tables_t *color_ta
 
 extern void render_32_2x2(const video_render_color_tables_t *color_tab,
                              const uint8_t *src, uint8_t *trg,
-                             unsigned int width, unsigned int height,
+                             unsigned int width, const unsigned int height,
                              const unsigned int xs, const unsigned int ys,
                              const unsigned int xt, const unsigned int yt,
                              const unsigned int pitchs,

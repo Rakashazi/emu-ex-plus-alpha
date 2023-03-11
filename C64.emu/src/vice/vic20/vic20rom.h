@@ -37,4 +37,23 @@ extern int vic20rom_load_chargen(const char *rom_name);
 extern int vic20rom_kernal_checksum(void);
 extern int vic20rom_basic_checksum(void);
 
+#define VIC20_BASIC_ROM_SIZE    0x2000
+#define VIC20_BASIC_CHECKSUM    33073
+
+#define VIC20_BASIC_NAME        "basic-901486-01.bin"
+
+#define VIC20_KERNAL_ROM_SIZE   0x2000
+
+#define VIC20_KERNAL_REV2_CHECKSUM  27238   /* 901486-02 */
+#define VIC20_KERNAL_REV6_CHECKSUM  38203   /* 901486-06 */
+#define VIC20_KERNAL_REV7_CHECKSUM  38203   /* 901486-07 */
+
+#define VIC20_KERNAL_REV2_NAME  "kernal.901486-02.bin"  /* japanese NTSC machines */
+#define VIC20_KERNAL_REV6_NAME  "kernal.901486-06.bin"  /* NTSC machines */
+#define VIC20_KERNAL_REV7_NAME  "kernal.901486-07.bin"  /* PAL machines */
+
+#define VIC20_CHARGEN_ROM_SIZE  0x1000
+#define VIC20_CHARGEN_NAME      "chargen-901460-03.bin"
+#define VIC20_CHARGEN_JAP_NAME  "chargen-901460-02.bin"  /* japanese NTSC machines */
+
 #endif
