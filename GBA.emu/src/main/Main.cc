@@ -95,7 +95,7 @@ void GbaSystem::loadBackupMemory(EmuApp &app)
 
 void GbaSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 {
-	if(!hasContent() || saveType == GBA_SAVE_NONE)
+	if(!hasContent() || coreOptions.saveType == GBA_SAVE_NONE)
 		return;
 	if(saveMemoryIsMappedFile)
 	{

@@ -633,7 +633,7 @@ static inline void gfxDrawSprites(GBALCD &lcd, uint32_t* lineOBJ, const uint16_t
 	uint8_t (&paletteRAM)[0x400] = lcd.paletteRAM;
 	uint8_t (&vram)[0x20000] = lcd.vram;
 	uint8_t (&oam)[0x400] = lcd.oam;
-	unsigned int &layerEnable = lcd.layerEnable;
+	const auto &coreOptions = lcd;
 
   // lineOBJpix is used to keep track of the drawn OBJs
   // and to stop drawing them if the 'maximum number of OBJ per line'
@@ -641,7 +641,7 @@ static inline void gfxDrawSprites(GBALCD &lcd, uint32_t* lineOBJ, const uint16_t
   int lineOBJpix = (DISPCNT & 0x20) ? 954 : 1226;
   int m = 0;
   gfxClearArray(lineOBJ);
-  if (layerEnable & 0x1000) {
+  if (coreOptions.layerEnable & 0x1000) {
     const uint16_t *sprites = (uint16_t*)oam;
     const uint16_t *spritePalette = &((uint16_t*)paletteRAM)[256];
     int mosaicY = ((MOSAIC & 0xF000) >> 12) + 1;
@@ -690,7 +690,7 @@ static inline void gfxDrawSprites(GBALCD &lcd, uint32_t* lineOBJ, const uint16_t
       int sx = (a1 & 0x1FF);
 
       // computes ticks used by OBJ-WIN if OBJWIN is enabled
-      if (((a0 & 0x0c00) == 0x0800) && (layerEnable & 0x8000)) {
+      if (((a0 & 0x0c00) == 0x0800) && (coreOptions.layerEnable & 0x8000)) {
         if ((a0 & 0x0300) == 0x0300) {
           sizeX <<= 1;
           sizeY <<= 1;
@@ -1162,10 +1162,10 @@ static inline void gfxDrawOBJWin(GBALCD &lcd, uint32_t* lineOBJWin, const uint16
 	uint8_t (&paletteRAM)[0x400] = lcd.paletteRAM;
 	uint8_t (&vram)[0x20000] = lcd.vram;
 	uint8_t (&oam)[0x400] = lcd.oam;
-	unsigned int &layerEnable = lcd.layerEnable;
+	const auto &coreOptions = lcd;
 
   gfxClearArray(lineOBJWin);
-  if ((layerEnable & 0x9000) == 0x9000) {
+  if ((coreOptions.layerEnable & 0x9000) == 0x9000) {
 	const uint16_t* sprites = (uint16_t*)oam;
 	// uint16_t *spritePalette = &((uint16_t *)paletteRAM)[256];
     for (int x = 0; x < 128; x++) {

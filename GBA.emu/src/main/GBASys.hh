@@ -1,13 +1,8 @@
 #pragma once
 
+#include <vbam/System.h>
 #include <imagine/util/used.hh>
 #include <imagine/util/utility.h>
-
-constexpr int layerSettings = 0xff00;
-
-extern uint32_t throttle;
-extern uint32_t speedup_throttle;
-extern uint32_t speedup_frame_skip;
 
 using MixColorType = uint16_t;
 struct GBALCD;
@@ -194,19 +189,20 @@ struct GBAMem
 
 struct GBADMA
 {
-	int cpuDmaTicksToUpdate = 0;
-	int cpuDmaCount = 0;
-	bool cpuDmaHack = false;
-	uint32_t cpuDmaLast = 0;
+	int cpuDmaTicksToUpdate{};
+	int cpuDmaCount{};
+	bool cpuDmaRunning{};
+	uint32_t cpuDmaLast{};
+	uint32_t cpuDmaPC{};
 
-	uint32_t dma0Source = 0;
-	uint32_t dma0Dest = 0;
-	uint32_t dma1Source = 0;
-	uint32_t dma1Dest = 0;
-	uint32_t dma2Source = 0;
-	uint32_t dma2Dest = 0;
-	uint32_t dma3Source = 0;
-	uint32_t dma3Dest = 0;
+	uint32_t dma0Source{};
+	uint32_t dma0Dest{};
+	uint32_t dma1Source{};
+	uint32_t dma1Dest{};
+	uint32_t dma2Source{};
+	uint32_t dma2Dest{};
+	uint32_t dma3Source{};
+	uint32_t dma3Dest{};
 
 	void reset(GBAMem::IoMem &ioMem)
 	{
@@ -225,41 +221,39 @@ struct GBADMA
 
 struct GBATimers
 {
-	uint8_t timerOnOffDelay = 0;
-	bool timer0On = false;
-	bool timer1On = false;
-	bool timer2On = false;
-	bool timer3On = false;
-	int timer0Ticks = 0;
-	int timer0Reload = 0;
-	int timer0ClockReload = 0;
-	int timer1Ticks = 0;
-	int timer1Reload = 0;
-	int timer1ClockReload = 0;
-	int timer2Ticks = 0;
-	int timer2Reload = 0;
-	int timer2ClockReload = 0;
-	int timer3Ticks = 0;
-	int timer3Reload = 0;
-	int timer3ClockReload = 0;
+	uint8_t timerOnOffDelay{};
+	bool timer0On{};
+	bool timer1On{};
+	bool timer2On{};
+	bool timer3On{};
+	int timer0Ticks{};
+	int timer0Reload{};
+	int timer0ClockReload{};
+	int timer1Ticks{};
+	int timer1Reload{};
+	int timer1ClockReload{};
+	int timer2Ticks{};
+	int timer2Reload{};
+	int timer2ClockReload{};
+	int timer3Ticks{};
+	int timer3Reload{};
+	int timer3ClockReload{};
 
-	uint16_t timer0Value = 0;
-	uint16_t timer1Value = 0;
-	uint16_t timer2Value = 0;
-	uint16_t timer3Value = 0;
+	uint16_t timer0Value{};
+	uint16_t timer1Value{};
+	uint16_t timer2Value{};
+	uint16_t timer3Value{};
 };
 
 void mode0RenderLine(MixColorType *, GBALCD &lcd, const GBAMem::IoMem &ioMem);
 
 struct GBALCD
 {
-#ifndef GBALCD_TEMP_LINE_BUFFER
 	uint32_t line0[240];
 	uint32_t line1[240];
 	uint32_t line2[240];
 	uint32_t line3[240];
 	uint32_t lineOBJ[240];
-#endif
 	uint32_t lineOBJWin[240];
 	bool gfxInWin0[240];
 	bool gfxInWin1[240];
@@ -269,20 +263,20 @@ struct GBALCD
 	alignas(4) uint8_t paletteRAM[0x400];
 	alignas(4) uint8_t oam[0x400];
 	typedef void (*RenderLineFunc)(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &ioMem);
-	RenderLineFunc renderLine = mode0RenderLine;
-	bool fxOn = false;
-	bool windowOn = false;
-	MixColorType *lineMix = nullptr;
-	unsigned layerEnable = 0;
-	int gfxBG2Changed = 0;
-	int gfxBG3Changed = 0;
-	int gfxBG2X = 0;
-	int gfxBG2Y = 0;
-	int gfxBG3X = 0;
-	int gfxBG3Y = 0;
-	int layerEnableDelay = 0;
-	int lcdTicks = 0;
-	uint16_t gfxLastVCOUNT = 0;
+	RenderLineFunc renderLine{mode0RenderLine};
+	bool fxOn{};
+	bool windowOn{};
+	MixColorType *lineMix{};
+	unsigned layerEnable{};
+	int gfxBG2Changed{};
+	int gfxBG3Changed{};
+	int gfxBG2X{};
+	int gfxBG2Y{};
+	int gfxBG3X{};
+	int gfxBG3Y{};
+	int layerEnableDelay{};
+	int lcdTicks{};
+	uint16_t gfxLastVCOUNT{};
 
 	void registerRamReset(uint32_t flags)
 	{
@@ -312,7 +306,7 @@ struct GBALCD
 	{
 		reset();
 		ioMem.resetLcdRegs(useBios, skipBios);
-		layerEnable = ioMem.DISPCNT & layerSettings;
+		layerEnable = ioMem.DISPCNT & coreOptions.layerSettings;
 	}
 };
 
@@ -358,21 +352,21 @@ struct ARM7TDMI
 	constexpr ARM7TDMI(GBASys *gba): gba(gba) {}
 
 	#ifdef VBAM_USE_SWITICKS
-	static constexpr bool USE_SWITICKS = true;
+	static constexpr bool USE_SWITICKS{true};
 	#else
-	static constexpr bool USE_SWITICKS = false;
+	static constexpr bool USE_SWITICKS{};
 	#endif
 	#ifdef VBAM_USE_IRQTICKS
-	static constexpr bool USE_IRQTICKS = true;
+	static constexpr bool USE_IRQTICKS{true};
 	#else
-	static constexpr bool USE_IRQTICKS = false;
+	static constexpr bool USE_IRQTICKS{};
 	#endif
 
 	std::array<reg_pair, 45> reg{};
-	uint32_t armNextPC = 0;
-	int armMode = 0x1f;
-	int cpuNextEvent = 0;
-	int cpuTotalTicks = 0;
+	uint32_t armNextPC{};
+	int armMode{0x1f};
+	int cpuNextEvent{};
+	int cpuTotalTicks{};
 	IG_UseMemberIf(USE_SWITICKS, int, SWITicks){};
 	IG_UseMemberIf(USE_IRQTICKS, int, IRQTicks){};
 #ifdef VBAM_USE_CPU_PREFETCH
@@ -385,7 +379,7 @@ public:
 	uint16_t IF = 0;
 	uint16_t IME = 0;*/
 #ifdef VBAM_USE_DELAYED_CPU_FLAGS
-	uint32_t lastArithmeticRes = 1;
+	uint32_t lastArithmeticRes{1};
 #else
 	bool N_FLAG{};
 	bool Z_FLAG{};
@@ -394,8 +388,8 @@ public:
 	bool V_FLAG{};
 	bool busPrefetch{};
 	bool busPrefetchEnable{};
-	bool armState = true;
-	bool armIrqEnable = true;
+	bool armState{true};
+	bool armIrqEnable{true};
 	bool holdState{};
 	//uint8_t cpuBitsSet[256];
 	//uint8_t cpuLowestBitSet[256];
@@ -642,9 +636,9 @@ struct GBASys
 	bool stopState{};
 	ARM7TDMI cpu{this};
 	uint8_t biosProtected[4]{};
-	GBALCD lcd{};
-	GBATimers timers{};
-	GBADMA dma{};
+	GBALCD lcd;
+	GBATimers timers;
+	GBADMA dma;
 	GBAMem mem;
 };
 

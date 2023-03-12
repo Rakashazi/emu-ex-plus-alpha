@@ -163,7 +163,7 @@ extern void CPUUpdateRenderBuffers(bool);
 extern bool CPUReadMemState(GBASys &gba, char *, int);
 extern bool CPUWriteMemState(GBASys &gba, char *, int);
 #ifdef __LIBRETRO__
-extern bool CPUReadState(const uint8_t*, unsigned);
+extern bool CPUReadState(const uint8_t*);
 extern unsigned int CPUWriteState(uint8_t* data, unsigned int size);
 #else
 extern bool CPUReadState(GBASys &gba, const char*);

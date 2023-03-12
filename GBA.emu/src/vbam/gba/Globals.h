@@ -59,25 +59,9 @@ static const bool ioReadable[0x400] =
 };
 
 static const uint32_t stop = 0x08000568;
-extern int saveType;
-extern int frameSkip;
 extern bool gba_joybus_enabled;
 extern bool gba_joybus_active;
-extern int layerEnable;
-extern bool useBios;
-extern bool skipBios;
-static const bool cpuDisableSfx = 0;
-extern bool cpuIsMultiBoot;
-extern bool parseDebug;
-static const bool speedHack = 1;
 constexpr int customBackdropColor = -1;
-#ifdef USE_CHEATS
-extern bool cheatsEnabled;
-#else
-static const bool cheatsEnabled = false;
-#endif
-extern bool skipSaveGameBattery; // skip battery data when reading save states
-extern bool skipSaveGameCheats;  // skip cheat list data when reading save states
 
 static uint16a &P1 = *((uint16a*)&gGba.mem.ioMem.b[0x130]);
 

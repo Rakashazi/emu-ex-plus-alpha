@@ -19,6 +19,7 @@
 #include "agbprint.h"
 #include "bios.h"
 #include "elf.h"
+#include "remote.h"
 
 #ifdef PROFILING
 #include "prof/prof.h"
@@ -2293,7 +2294,7 @@ int armExecute(ARM7TDMI &cpu)
 	int &cpuNextEvent = cpu.cpuNextEvent;
 	int &cpuTotalTicks = cpu.cpuTotalTicks;
     do {
-		if (cheatsEnabled) {
+		if (coreOptions.cheatsEnabled) {
 			cpuMasterCodeCheck(cpu);
 		}
 

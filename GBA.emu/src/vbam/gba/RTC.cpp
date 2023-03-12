@@ -36,7 +36,6 @@ struct tm gba_time;
 static RTCCLOCKDATA rtcClockData;
 static bool rtcClockEnabled = true;
 static bool rtcRumbleEnabled = false;
-constexpr bool rtcEnabled = true;
 
 uint32_t countTicks = 0;
 
@@ -218,7 +217,7 @@ bool rtcWrite(uint32_t address, uint16_t value)
                             break;
 
                         case 0x65: {
-                            if (rtcEnabled)
+                            if (coreOptions.rtcEnabled)
                                 SetGBATime();
 
                             rtcClockData.dataLen = 7;
@@ -233,7 +232,7 @@ bool rtcWrite(uint32_t address, uint16_t value)
                         } break;
 
                         case 0x67: {
-                            if (rtcEnabled)
+                            if (coreOptions.rtcEnabled)
                                 SetGBATime();
 
                             rtcClockData.dataLen = 3;

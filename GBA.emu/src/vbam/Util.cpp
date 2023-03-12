@@ -51,6 +51,8 @@ static int(ZEXPORT *utilGzReadFunc)(gzFile, voidp, unsigned int) = NULL;
 static int(ZEXPORT *utilGzCloseFunc)(gzFile) = NULL;
 static z_off_t(ZEXPORT *utilGzSeekFunc)(gzFile, z_off_t, int) = NULL;
 
+#define MAX_CART_SIZE 0x8000000 // 128MB
+
 bool FileExists(const char *filename)
 {
 #ifdef _WIN32
@@ -315,6 +317,7 @@ void utilPutWord(uint8_t *p, uint16_t value)
         *p = (value >> 8) & 255;
 }
 
+#ifndef __LIBRETRO__
 bool utilWriteBMPFile(const char *fileName, int w, int h, uint8_t *pix)
 {
         uint8_t writeBuffer[512 * 3];
@@ -433,12 +436,11 @@ bool utilWriteBMPFile(const char *fileName, int w, int h, uint8_t *pix)
 
         return true;
 }
-
-extern bool cpuIsMultiBoot;
+#endif /* !__LIBRETRO__ */
 
 bool utilIsGBAImage(const char *file)
 {
-        cpuIsMultiBoot = false;
+        coreOptions.cpuIsMultiBoot = false;
         if (strlen(file) > 4) {
                 const char *p = strrchr(file, '.');
 
@@ -447,7 +449,7 @@ bool utilIsGBAImage(const char *file)
                             (_stricmp(p, ".bin") == 0) || (_stricmp(p, ".elf") == 0))
                                 return true;
                         if (_stricmp(p, ".mb") == 0) {
-                                cpuIsMultiBoot = true;
+                                coreOptions.cpuIsMultiBoot = true;
                                 return true;
                         }
                 }
@@ -551,10 +553,6 @@ static bool utilIsImage(const char *file)
         return utilIsGBAImage(file) || utilIsGBImage(file);
 }
 
-#ifdef WIN32
-#include <windows.h>
-#endif
-
 IMAGE_TYPE utilFindType(const char *file, char (&buffer)[2048]);
 
 IMAGE_TYPE utilFindType(const char *file)
@@ -634,6 +632,9 @@ uint8_t *utilLoad(const char *file, bool (*accept)(const char *), uint8_t *data,
         int fileSize = fex_size(fe);
         if (size == 0)
                 size = fileSize;
+
+        if (size > MAX_CART_SIZE)
+                return NULL;
 
         uint8_t *image = data;
 
@@ -767,6 +768,19 @@ void utilWriteData(gzFile gzFile, const variable_desc *data)
         }
 }
 
+gzFile utilAutoGzOpen(const char *file, const char *mode)
+{
+#ifdef _WIN32
+        wchar_t *wfile = utf8ToUtf16(file);
+        if (!wfile) return nullptr;
+        gzFile handler = gzopen_w(wfile, mode);
+        delete[] wfile;
+        return handler;
+#else
+        return gzopen(file, mode);
+#endif
+}
+
 gzFile utilGzOpen(int fd, const char *mode)
 {
         utilGzWriteFunc = (int(ZEXPORT *)(gzFile, void *const, unsigned int))gzwrite;
@@ -866,7 +880,7 @@ void utilGBAFindSave(const uint8_t *rom, const int size)
         }
         rtcEnable(rtcFound);
         rtcEnableRumble(!rtcFound);
-        saveType = detectedSaveType;
+        coreOptions.saveType = detectedSaveType;
         flashSetSize(flashSize);
 }
 

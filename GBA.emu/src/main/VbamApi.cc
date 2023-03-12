@@ -41,10 +41,8 @@ constexpr GameSettings settings[]
 
 int systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 SystemColorMap systemColorMap;
-uint32_t throttle{};
-uint32_t speedup_throttle{};
-uint32_t speedup_frame_skip{};
 int emulating{};
+CoreOptions coreOptions;
 
 using namespace EmuEx;
 
@@ -145,7 +143,7 @@ bool saveMemoryHasContent()
 		}
 		return false;
 	};
-	switch(saveType)
+	switch(coreOptions.saveType)
 	{
 		case GBA_SAVE_EEPROM:
 		case GBA_SAVE_EEPROM_SENSOR:
@@ -168,7 +166,7 @@ static void resetGameSettings()
 void setSaveType(int type, int size)
 {
 	assert(type != GBA_SAVE_AUTO);
-	saveType = type;
+	coreOptions.saveType = type;
 	switch(type)
 	{
 		case GBA_SAVE_EEPROM:
@@ -230,8 +228,8 @@ void GbaSystem::setGameSpecificSettings(GBASys &gba, int romSize)
 	if(detectedSaveType == GBA_SAVE_AUTO)
 	{
 		utilGBAFindSave(gba.mem.rom, romSize);
-		detectedSaveType = saveType;
-		detectedSaveSize = saveType == GBA_SAVE_FLASH ? flashSize : 0;
+		detectedSaveType = coreOptions.saveType;
+		detectedSaveSize = coreOptions.saveType == GBA_SAVE_FLASH ? flashSize : 0;
 		logMsg("save type found from rom scan:%s", saveTypeStr(detectedSaveType, detectedSaveSize));
 	}
 	if(auto [type, size] = saveTypeOverride();
@@ -298,11 +296,11 @@ void GbaSystem::clearSensorValues()
 
 size_t saveMemorySize()
 {
-	if(!saveType || saveType == GBA_SAVE_NONE)
+	if(!coreOptions.saveType || coreOptions.saveType == GBA_SAVE_NONE)
 		return 0;
-  if (saveType == GBA_SAVE_FLASH) {
+  if (coreOptions.saveType == GBA_SAVE_FLASH) {
   	return flashSize;
-  } else if (saveType == GBA_SAVE_SRAM) {
+  } else if (coreOptions.saveType == GBA_SAVE_SRAM) {
   	return 0x8000;
   }
   // eeprom case
@@ -311,10 +309,10 @@ size_t saveMemorySize()
 
 void setSaveMemory(IG::ByteBuffer buff)
 {
-  if(!saveType || saveType == GBA_SAVE_NONE)
+  if(!coreOptions.saveType || coreOptions.saveType == GBA_SAVE_NONE)
     return;
 	assert(buff.size() == saveMemorySize());
-  if (saveType == GBA_SAVE_FLASH || saveType == GBA_SAVE_SRAM) {
+  if (coreOptions.saveType == GBA_SAVE_FLASH || coreOptions.saveType == GBA_SAVE_SRAM) {
   	flashSaveMemory = std::move(buff);
   } else { // eeprom case
   	eepromData = std::move(buff);

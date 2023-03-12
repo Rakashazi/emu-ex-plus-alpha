@@ -8,7 +8,7 @@
 #define VCOUNT ioMem.VCOUNT
 #define MOSAIC ioMem.MOSAIC
 #define DISPCNT ioMem.DISPCNT
-#define layerEnable lcd.layerEnable
+#define coreOptions lcd
 #define BG0CNT ioMem.BG0CNT
 #define BG0HOFS ioMem.BG0HOFS
 #define BG0VOFS ioMem.BG0VOFS
@@ -42,14 +42,9 @@
 
 void mode2RenderLine(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &ioMem)
 {
-#ifdef GBALCD_TEMP_LINE_BUFFER
-	uint32_t line2[240];
-	uint32_t line3[240];
-	uint32_t lineOBJ[240];
-#endif
   const uint16_t *palette = (uint16_t *)lcd.paletteRAM;
 
-  if (layerEnable & 0x0400) {
+  if (coreOptions.layerEnable & 0x0400) {
     int changed = gfxBG2Changed;
     if (gfxLastVCOUNT > VCOUNT)
       changed = 3;
@@ -59,7 +54,7 @@ void mode2RenderLine(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &io
                      changed, line2, VCOUNT, MOSAIC, palette);
   }
 
-  if (layerEnable & 0x0800) {
+  if (coreOptions.layerEnable & 0x0800) {
     int changed = gfxBG3Changed;
     if (gfxLastVCOUNT > VCOUNT)
       changed = 3;
@@ -139,14 +134,9 @@ void mode2RenderLine(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &io
 
 void mode2RenderLineNoWindow(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &ioMem)
 {
-#ifdef GBALCD_TEMP_LINE_BUFFER
-	uint32_t line2[240];
-	uint32_t line3[240];
-	uint32_t lineOBJ[240];
-#endif
   const uint16_t *palette = (uint16_t *)lcd.paletteRAM;
 
-  if (layerEnable & 0x0400) {
+  if (coreOptions.layerEnable & 0x0400) {
     int changed = gfxBG2Changed;
     if (gfxLastVCOUNT > VCOUNT)
       changed = 3;
@@ -156,7 +146,7 @@ void mode2RenderLineNoWindow(MixColorType *lineMix, GBALCD &lcd, const GBAMem::I
                      changed, line2, VCOUNT, MOSAIC, palette);
   }
 
-  if (layerEnable & 0x0800) {
+  if (coreOptions.layerEnable & 0x0800) {
     int changed = gfxBG3Changed;
     if (gfxLastVCOUNT > VCOUNT)
       changed = 3;
@@ -282,17 +272,12 @@ void mode2RenderLineNoWindow(MixColorType *lineMix, GBALCD &lcd, const GBAMem::I
 
 void mode2RenderLineAll(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &ioMem)
 {
-#ifdef GBALCD_TEMP_LINE_BUFFER
-	uint32_t line2[240];
-	uint32_t line3[240];
-	uint32_t lineOBJ[240];
-#endif
   const uint16_t *palette = (uint16_t *)lcd.paletteRAM;
 
   bool inWindow0 = false;
   bool inWindow1 = false;
 
-  if (layerEnable & 0x2000) {
+  if (coreOptions.layerEnable & 0x2000) {
     uint8_t v0 = WIN0V >> 8;
     uint8_t v1 = WIN0V & 255;
     inWindow0 = ((v0 == v1) && (v0 >= 0xe8));
@@ -301,7 +286,7 @@ void mode2RenderLineAll(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem 
     else
       inWindow0 |= (VCOUNT >= v0 || VCOUNT < v1);
   }
-  if (layerEnable & 0x4000) {
+  if (coreOptions.layerEnable & 0x4000) {
     uint8_t v0 = WIN1V >> 8;
     uint8_t v1 = WIN1V & 255;
     inWindow1 = ((v0 == v1) && (v0 >= 0xe8));
@@ -311,7 +296,7 @@ void mode2RenderLineAll(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem 
       inWindow1 |= (VCOUNT >= v0 || VCOUNT < v1);
   }
 
-  if (layerEnable & 0x0400) {
+  if (coreOptions.layerEnable & 0x0400) {
     int changed = gfxBG2Changed;
     if (gfxLastVCOUNT > VCOUNT)
       changed = 3;
@@ -321,7 +306,7 @@ void mode2RenderLineAll(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem 
                      changed, line2, VCOUNT, MOSAIC, palette);
   }
 
-  if (layerEnable & 0x0800) {
+  if (coreOptions.layerEnable & 0x0800) {
     int changed = gfxBG3Changed;
     if (gfxLastVCOUNT > VCOUNT)
       changed = 3;

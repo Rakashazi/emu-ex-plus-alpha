@@ -1,6 +1,10 @@
 #ifndef CHEATS_H
 #define CHEATS_H
 
+#include <cstdint>
+
+#include "../System.h"
+
 #include <imagine/util/container/ArrayList.hh>
 #include <zlib.h>
 
@@ -40,9 +44,11 @@ void cheatsReadGameSkip(gzFile file, int version);
 void cheatsSaveCheatList(IG::ApplicationContext, const char *file);
 bool cheatsLoadCheatList(IG::ApplicationContext, const char *file);
 #endif
+#ifdef BKPT_SUPPORT
 void cheatsWriteMemory(uint32_t address, uint32_t value);
 void cheatsWriteHalfWord(uint32_t address, uint16_t value);
 void cheatsWriteByte(uint32_t address, uint8_t value);
+#endif
 int cheatsCheckKeys(ARM7TDMI &cpu, uint32_t keys, uint32_t extended);
 
 extern IG::StaticArrayList<CheatsData, 100> cheatsList;

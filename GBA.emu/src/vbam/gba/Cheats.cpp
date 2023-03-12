@@ -19,7 +19,7 @@
 #define CPUWriteMemory(a, b) CPUWriteMemory(cpu, a, b)
 #define CPUWriteByte(a, b) CPUWriteByte(cpu, a, b)
 #define CPUWriteHalfWord(a, b) CPUWriteHalfWord(cpu, a, b)
-#define cheatsNumber cheatsList.size()
+#define cheatsNumber std::ssize(cheatsList)
 #define rom cpu.gba->mem.rom
 #define ioMem cpu.gba->mem.ioMem.b
 
@@ -309,7 +309,6 @@ uint8_t v3_deadtable2[256] = {
 #define debuggerWriteByte(addr, value) \
   map[(addr) >> 24].address[(addr)&map[(addr) >> 24].mask] = (value)
 
-
 #define CHEAT_IS_HEX(a) (((a) >= 'A' && (a) <= 'F') || ((a) >= '0' && (a) <= '9'))
 
 #define CHEAT_PATCH_ROM_16BIT(a, v) \
@@ -323,7 +322,7 @@ static bool isMultilineWithData(int i)
   // we consider it a multiline code if it has more than one line of data
   // otherwise, it can still be considered a single code
   // (Only CBA codes can be true multilines !!!)
-  if (i < (int)cheatsNumber && i >= 0)
+  if (i < cheatsNumber && i >= 0)
     switch (cheatsList[i].size) {
     case INT_8_BIT_WRITE:
     case INT_16_BIT_WRITE:
@@ -449,7 +448,7 @@ static bool isMultilineWithData(int i)
 
 static int getCodeLength(int num)
 {
-  if (num >= (int)cheatsNumber || num < 0)
+  if (num >= cheatsNumber || num < 0)
     return 1;
 
   // this is for all the codes that are true multiline
@@ -588,7 +587,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, uint32_t keys, uint32_t extended)
       rompatch2addr[i] = 0;
     }
 
-  for (size_t i = 0; i < cheatsNumber; i++) {
+  for (ssize_t i = 0; i < cheatsNumber; i++) {
     if (!cheatsList[i].enabled) {
       // make sure we skip other lines in this code
       i += getCodeLength(i) - 1;
@@ -1098,10 +1097,11 @@ int cheatsCheckKeys(ARM7TDMI &cpu, uint32_t keys, uint32_t extended)
         break;
       case GSA_32_BIT_WRITE_IOREGS:
       	if (cheatsList[i].address <= 0x3FF) {
-          if (((cheatsList[i].address & 0x3FC) != 0x6) && ((cheatsList[i].address & 0x3FC) != 0x130))
-          	ioMem[cheatsList[i].address & 0x3FC] = (cheatsList[i].value & 0xFFFF);
-          if ((((cheatsList[i].address & 0x3FC) + 2) != 0x6) && ((cheatsList[i].address & 0x3FC) + 2) != 0x130)
-          	ioMem[(cheatsList[i].address & 0x3FC) + 2] = ((cheatsList[i].value >> 16) & 0xFFFF);
+            uint32_t cheat_addr = cheatsList[i].address & 0x3FC;
+            if ((cheat_addr != 6) && (cheat_addr != 0x130))
+                ioMem[cheat_addr] = (cheatsList[i].value & 0xFFFF);
+            if (((cheat_addr + 2) != 0x6) && (cheat_addr + 2) != 0x130)
+                ioMem[cheat_addr + 2] = ((cheatsList[i].value >> 16) & 0xFFFF);
         }
         break;
       case GSA_8_BIT_IF_TRUE3:
@@ -1337,7 +1337,7 @@ void cheatsAdd(ARM7TDMI &cpu, const char *codeStr,
 
 void cheatsDelete(ARM7TDMI &cpu, int number, bool restore)
 {
-  if (number < (int)cheatsNumber && number >= 0) {
+  if (number < cheatsNumber && number >= 0) {
     int x = number;
 
     if (restore) {
@@ -1364,7 +1364,7 @@ void cheatsDelete(ARM7TDMI &cpu, int number, bool restore)
         } else {
           CPUWriteMemory(cheatsList[x].address, cheatsList[x].oldValue);
         }
-        [[fallthrough]];
+        /* fallthrough */
       case GSA_16_BIT_ROM_PATCH:
         if (cheatsList[x].status & 1) {
           cheatsList[x].status &= ~1;
@@ -1398,7 +1398,7 @@ void cheatsDeleteAll(ARM7TDMI &cpu, bool restore)
 
 void cheatsEnable(int i)
 {
-  if (i >= 0 && i < (int)cheatsNumber) {
+  if (i >= 0 && i < cheatsNumber) {
     cheatsList[i].enabled = true;
     mastercode = 0;
   }
@@ -1406,7 +1406,7 @@ void cheatsEnable(int i)
 
 void cheatsDisable(ARM7TDMI &cpu, int i)
 {
-  if (i >= 0 && i < (int)cheatsNumber) {
+  if (i >= 0 && i < cheatsNumber) {
     switch (cheatsList[i].size) {
     case GSA_16_BIT_ROM_PATCH:
       if (cheatsList[i].status & 1) {
@@ -1509,7 +1509,7 @@ void cheatsAddCheatCode(ARM7TDMI &cpu, const char *code, const char *desc)
 
 uint16_t cheatsGSAGetDeadface(bool v3)
 {
-  for (int i = cheatsNumber - 1; i >= 0; i--)
+  for (auto i = cheatsNumber - 1; i >= 0; i--)
     if ((cheatsList[i].address == 0xDEADFACE) && (cheatsList[i].code == (v3 ? 257 : 256)))
       return cheatsList[i].value & 0xFFFF;
 	return 0;
@@ -2059,6 +2059,7 @@ bool cheatsImportGSACodeFile(ARM7TDMI &cpu, const char *name, int game, bool v3)
      fclose(f);
      return false;
   }
+
   uint32_t len = 0;
   bool found = false;
   int g = 0;
@@ -2114,7 +2115,7 @@ bool cheatsImportGSACodeFile(ARM7TDMI &cpu, const char *name, int game, bool v3)
   }
 evil_gsa_code_file:
   fclose(f);
-  return false;
+  return true;
 }
 
 void cheatsCBAReverseArray(uint8_t* array, uint8_t* dest)
@@ -2164,7 +2165,7 @@ void cheatsCBAArrayToValue(uint8_t* array, uint8_t* dest)
   dest[5] = array[4];
 }
 
-void cheatsCBAParseSeedCode(uint32_t address, uint32_t value, uint32_t *array)
+void cheatsCBAParseSeedCode(uint32_t address, uint32_t value, uint32_t* array)
 {
   array[0] = 1;
   array[1] = value & 0xFF;
@@ -2282,7 +2283,7 @@ void cheatsCBAUpdateSeedBuffer(uint32_t a, uint8_t* buffer, int count)
   }
 }
 
-void cheatsCBAChangeEncryption(uint32_t *seed)
+void cheatsCBAChangeEncryption(uint32_t* seed)
 {
   int i;
 
@@ -2676,7 +2677,7 @@ void cheatsReadGameSkip(gzFile file, int version)
   nCheats = utilReadInt(file);
 
   if (version >= 9) {
-    utilGzSeek(file, sizeof(cheatsList), SEEK_CUR );
+    utilGzSeek(file, sizeof(cheatsList), SEEK_CUR);
   }
 
   for (int i = 0; i < nCheats; i++) {
@@ -2733,7 +2734,6 @@ bool cheatsLoadCheatList(IG::ApplicationContext ctx, const char *file)
     fclose(f);
     return false;
   }
-
 
   if ((type != 0) && (type != 1)) {
     systemMessage(MSG_UNSUPPORTED_CHEAT_LIST_TYPE,
@@ -2842,9 +2842,9 @@ static uint8_t cheatsGetType(uint32_t address)
 }
 #endif
 
+#ifdef BKPT_SUPPORT
 void cheatsWriteMemory(uint32_t address, uint32_t value)
 {
-#ifdef BKPT_SUPPORT
   if (cheatsNumber == 0) {
     int type = cheatsGetType(address);
     uint32_t oldValue = debuggerReadMemory(address);
@@ -2854,12 +2854,10 @@ void cheatsWriteMemory(uint32_t address, uint32_t value)
     }
     debuggerWriteMemory(address, value);
   }
-#endif
 }
 
 void cheatsWriteHalfWord(uint32_t address, uint16_t value)
 {
-#ifdef BKPT_SUPPORT
   if (cheatsNumber == 0) {
     int type = cheatsGetType(address);
     uint16_t oldValue = debuggerReadHalfWord(address);
@@ -2869,12 +2867,10 @@ void cheatsWriteHalfWord(uint32_t address, uint16_t value)
     }
     debuggerWriteHalfWord(address, value);
   }
-#endif
 }
 
 void cheatsWriteByte(uint32_t address, uint8_t value)
 {
-#ifdef BKPT_SUPPORT
   if (cheatsNumber == 0) {
     int type = cheatsGetType(address);
     uint8_t oldValue = debuggerReadByte(address);
@@ -2884,5 +2880,5 @@ void cheatsWriteByte(uint32_t address, uint8_t value)
     }
     debuggerWriteByte(address, value);
   }
-#endif
 }
+#endif

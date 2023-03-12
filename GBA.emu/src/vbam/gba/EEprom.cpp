@@ -11,7 +11,7 @@ int eepromByte = 0;
 int eepromBits = 0;
 int eepromAddress = 0;
 
-IG::ByteBuffer eepromData{};
+IG::ByteBuffer eepromData;
 
 uint8_t eepromBuffer[16];
 bool eepromInUse = false;
@@ -56,16 +56,11 @@ void eepromSaveGame(uint8_t*& data)
     utilWriteMem(data, eepromData, SIZE_EEPROM_8K);
 }
 
-void eepromReadGame(const uint8_t*& data, int version)
+void eepromReadGame(const uint8_t*& data)
 {
     utilReadDataMem(data, eepromSaveData);
-    if (version >= SAVE_GAME_VERSION_3) {
-        eepromSize = utilReadIntMem(data);
-        utilReadMem(eepromData, data, SIZE_EEPROM_8K);
-    } else {
-        // prior to 0.7.1, only 4K EEPROM was supported
-        eepromSize = SIZE_EEPROM_512;
-    }
+    eepromSize = utilReadIntMem(data);
+    utilReadMem(eepromData, data, SIZE_EEPROM_8K);
 }
 
 #else // !__LIBRETRO__

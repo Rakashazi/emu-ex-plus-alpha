@@ -776,25 +776,17 @@ static constexpr variable_desc gba_state[] = {
 	{ NULL, 0 }
 };
 
-#ifdef __LIBRETRO__
-void soundSaveGame(uint8_t*& out)
-#else
+#ifndef __LIBRETRO__
 void soundSaveGame(gzFile out)
-#endif
 {
 	gb_apu.save_state( &state.apu );
 
 	// Be sure areas for expansion get written as zero
 	memset(dummy_state, 0, sizeof dummy_state);
 
-#ifdef __LIBRETRO__
-  utilWriteDataMem(out, gba_state);
-#else
 	utilWriteData(out, gba_state);
-#endif
 }
 
-#ifndef __LIBRETRO__
 // Reads and discards count bytes from in
 static void skip_read(gzFile in, int count)
 {
@@ -844,27 +836,18 @@ static void soundReadGameOld(GBASys &gba, gzFile in, int version)
 
 	(void)utilReadInt(in); // ignore quality
 }
-#endif
 
 #include <stdio.h>
 
-#ifdef __LIBRETRO__
-void soundReadGame(const uint8_t*& in, int version)
-#else
 void soundReadGame(GBASys &gba, gzFile in, int version)
-#endif
 {
 	// Prepare APU and default state
 	reset_apu();
 	gb_apu.save_state(&state.apu);
 
-#ifdef __LIBRETRO__
-  utilReadDataMem(in, gba_state);
-#else
 	if (version > SAVE_GAME_VERSION_9)
 		utilReadData(in, gba_state);
 	else
-#endif
 		soundReadGameOld(gba, in, version);
 
 	gb_apu.load_state(state.apu);
@@ -872,3 +855,31 @@ void soundReadGame(GBASys &gba, gzFile in, int version)
 
 	apply_muting(gba);
 }
+#endif // !__LIBRETRO__
+
+
+#ifdef __LIBRETRO__
+void soundSaveGame(uint8_t*& out)
+{
+    gb_apu->save_state(&state.apu);
+
+    // Be sure areas for expansion get written as zero
+    memset(dummy_state, 0, sizeof dummy_state);
+
+    utilWriteDataMem(out, gba_state);
+}
+
+void soundReadGame(const uint8_t*& in)
+{
+    // Prepare APU and default state
+    reset_apu();
+    gb_apu->save_state(&state.apu);
+
+    utilReadDataMem(in, gba_state);
+
+    gb_apu->load_state(state.apu);
+    write_SGCNT0_H(READ16LE(&ioMem[SGCNT0_H]) & 0x770F);
+
+    apply_muting();
+}
+#endif // __LIBRETRO__
