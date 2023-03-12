@@ -17,6 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#include <string>
 
 enum ENUM_SSLOADPARAMS
 {
@@ -67,13 +68,38 @@ void LoadBackup();					 //Loads the backupsavestate
 void RedoLoadState();				 //reloads a loadstate if backupsavestate was run
 void SwapSaveState();				 //Swaps a savestate with its backup state
 
-extern char lastSavestateMade[2048]; //Filename of last savestate used
+extern std::string lastSavestateMade; //Filename of last savestate used
 extern bool undoSS;					 //undo savestate flag
 extern bool redoSS;					 //redo savestate flag
-extern char lastLoadstateMade[2048]; //Filename of last state loaded
+extern std::string lastLoadstateMade; //Filename of last state loaded
 extern bool undoLS;					 //undo loadstate flag
 extern bool redoLS;					 //redo savestate flag
 extern bool backupSavestates;		 //Whether or not to make backups, true by default
 bool CheckBackupSaveStateExist();	 //Checks if backupsavestate exists
 
 extern bool compressSavestates;		//Whether or not to compress non-movie savestates (by default, yes)
+
+struct StateRecorderConfigData
+{
+	float historyDurationMinutes;
+	float timeBetweenSnapsMinutes;
+	int   compressionLevel;
+
+	StateRecorderConfigData(void)
+	{
+		historyDurationMinutes = 15.0f;
+		timeBetweenSnapsMinutes = 3.0f / 60.0f;
+		compressionLevel = 0;
+	}
+};
+
+int FCEU_StateRecorderStart(void);
+int FCEU_StateRecorderStop(void);
+int FCEU_StateRecorderUpdate(void);
+bool FCEU_StateRecorderRunning(void);
+bool FCEU_StateRecorderIsEnabled(void);
+void FCEU_StateRecorderSetEnabled(bool enabled);
+int FCEU_StateRecorderGetStateIndex(void);
+int FCEU_StateRecorderLoadState(int snapIndex);
+int FCEU_StateRecorderSetConfigData(const StateRecorderConfigData &newConfig);
+const StateRecorderConfigData& FCEU_StateRecorderGetConfigData(void);

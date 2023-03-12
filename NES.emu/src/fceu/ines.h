@@ -25,6 +25,8 @@
 #include <string.h>
 #include <map>
 
+#include "cart.h"
+
 struct TMasterRomInfo
 {
 	uint64 md5lower;
@@ -46,7 +48,8 @@ extern uint8 *ExtraNTARAM;
 extern uint8 **VPageR;
 extern int iNesSave(void); //bbit Edited: line added
 extern int iNesSaveAs(const char* name);
-extern char LoadedRomFName[2048]; //bbit Edited: line added
+extern char LoadedRomFName[4096]; //bbit Edited: line added
+extern char LoadedRomFNamePatchToUse[4096];
 extern char *iNesShortFName(void);
 extern const TMasterRomInfo* MasterRomInfo;
 extern TMasterRomInfoParams MasterRomInfoParams;
@@ -64,7 +67,8 @@ struct iNES_HEADER {
 	uint8 VRAM_size;             // 11
 	uint8 TV_system;             // 12
 	uint8 VS_hardware;           // 13
-	uint8 reserved[2];           // 14, 15
+	uint8 misc_roms;			       // 14
+	uint8 expansion;			       // 15
 
 	void clearFromByte7()
 	{
@@ -80,8 +84,8 @@ struct iNES_HEADER {
 		VRAM_size = 0;
 		TV_system = 0;
 		VS_hardware = 0;
-		reserved[0] = 0;
-		reserved[1] = 0;
+		misc_roms = 0;
+		expansion = 0;
 	}
 
 	void cleanup()
@@ -230,6 +234,7 @@ void Mapper170_Init(CartInfo *);
 void Mapper171_Init(CartInfo *);
 void Mapper172_Init(CartInfo *);
 void Mapper173_Init(CartInfo *);
+void Mapper174_Init(CartInfo *);
 void Mapper175_Init(CartInfo *);
 void Mapper177_Init(CartInfo *);
 void Mapper178_Init(CartInfo *);
@@ -296,8 +301,10 @@ void Mapper250_Init(CartInfo *);
 void Mapper252_Init(CartInfo *);
 void Mapper253_Init(CartInfo *);
 void Mapper254_Init(CartInfo *);
+void Mapper255_Init(CartInfo *);
 void Mapper282_Init(CartInfo *);
 void Mapper319_Init(CartInfo *);
+void Mapper354_Init(CartInfo *);
 void Mapper370_Init(CartInfo *);
 void Mapper380_Init(CartInfo *);
 void Mapper406_Init(CartInfo *);
@@ -307,6 +314,9 @@ void Mapper422_Init(CartInfo *);
 void Mapper452_Init(CartInfo *);
 void Mapper523_Init(CartInfo *);
 void Mapper534_Init(CartInfo *);
+
+void INX_007T_Init(CartInfo* info);
+void GN45_Init(CartInfo *info); /* previously mapper 205 */
 
 typedef struct {
 	const char *name;

@@ -29,12 +29,7 @@ EmuFileIO::EmuFileIO(IG::IO &srcIO):
 	}
 }
 
-void EmuFileIO::truncate(s32 length) {}
-
-int EmuFileIO::fgetc()
-{
-	return IG::fgetc(io);
-}
+int EmuFileIO::fgetc() { return IG::fgetc(io); }
 
 size_t EmuFileIO::_fread(const void *ptr, size_t bytes)
 {
@@ -44,19 +39,14 @@ size_t EmuFileIO::_fread(const void *ptr, size_t bytes)
 	return ret;
 }
 
-int EmuFileIO::fseek(int offset, int origin)
+int EmuFileIO::fseek(long int offset, int origin)
 {
 	return IG::fseek(io, offset, origin);
 }
 
-int EmuFileIO::ftell()
+long int EmuFileIO::ftell()
 {
-	return (int)IG::ftell(io);
-}
-
-int EmuFileIO::size()
-{
-	return io.size();
+	return IG::ftell(io);
 }
 
 }

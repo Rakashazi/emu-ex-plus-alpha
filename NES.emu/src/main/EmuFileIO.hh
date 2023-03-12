@@ -26,7 +26,7 @@ class IO;
 namespace EmuEx
 {
 
-class EmuFileIO : public EMUFILE {
+class EmuFileIO final : public EMUFILE {
 protected:
 	IG::MapIO io{};
 
@@ -34,44 +34,18 @@ public:
 
 	EmuFileIO(IG::IO &);
 	~EmuFileIO() = default;
-
-	FILE *get_fp() {
-		return nullptr;
-	}
-
-	EMUFILE* memwrap() { return nullptr; }
-
-	//bool is_open() { return io; }
-
-	void truncate(s32 length);
-
-	int fprintf(const char *format, ...) {
-		return 0;
-	};
-
-	int fgetc();
-
-	int fputc(int c) {
-		return 0;
-	}
-
-	size_t _fread(const void *ptr, size_t bytes);
-
-	//removing these return values for now so we can find any code that might be using them and make sure
-	//they handle the return values correctly
-
-	void fwrite(const void *ptr, size_t bytes){
-		failbit = true;
-	}
-
-	int fseek(int offset, int origin);
-
-	int ftell();
-
-	int size();
-
-	void fflush() {
-	}
+	FILE *get_fp() final { return nullptr; }
+	EMUFILE* memwrap() final { return nullptr; }
+	void truncate(size_t length) final {}
+	int fprintf(const char *format, ...) final { return 0; };
+	int fgetc() final;
+	int fputc(int c) final { return 0; }
+	size_t _fread(const void *ptr, size_t bytes) final;
+	void fwrite(const void *ptr, size_t bytes) final { failbit = true; }
+	int fseek(long int offset, int origin) final;
+	long int ftell() final;
+	size_t size() final { return io.size(); }
+	void fflush() final {}
 
 };
 

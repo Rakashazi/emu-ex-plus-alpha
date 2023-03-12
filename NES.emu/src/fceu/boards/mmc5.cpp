@@ -307,8 +307,7 @@ cartdata MMC5CartList[] =
 
 #define MMC5_NOCARTS (sizeof(MMC5CartList) / sizeof(MMC5CartList[0]))
 int DetectMMC5WRAMSize(uint32 crc32) {
-	int x;
-	for (x = 0; x < MMC5_NOCARTS; x++) {
+	for (size_t x = 0; x < MMC5_NOCARTS; x++) {
 		if (crc32 == MMC5CartList[x].crc32) {
 			if(MMC5CartList[x].size > 1)
 				FCEU_printf(" >8KB external WRAM present.  Use UNIF if you hack the ROM image.\n");
@@ -1022,22 +1021,23 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
 
 	MMC5battery = battery;
 	if (battery) {
-		info->SaveGame[0] = WRAM;
+		uint32 saveGameSize = 0;
 		if (info->ines2)
 		{
-			info->SaveGameLen[0] = info->battery_wram_size;
+			saveGameSize = info->battery_wram_size;
 		}
 		else
 		{
 			//this is more complex than it looks because it MUST BE, I guess. is there an assumption that only 8KB of 16KB is battery backed? That's NES mappers for you
 			//I added 64KB for the new 64KB homebrews
 			if (wsize <= 16)
-				info->SaveGameLen[0] = 8192;
+				saveGameSize = 8192;
 			else if(wsize == 64)
-				info->SaveGameLen[0] = 64*1024;
+				saveGameSize = 64*1024;
 			else
-				info->SaveGameLen[0] = 32768;
+				saveGameSize = 32768;
 		}
+		info->addSaveGameBuf( WRAM, saveGameSize );
 	}
 
 	MMC5HackVROMMask = CHRmask4[0];

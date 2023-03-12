@@ -21,11 +21,12 @@
 #include "mapinc.h"
 #include "../ines.h"
 
-static uint8 latche, latcheinit, bus_conflict;
-static uint16 addrreg0, addrreg1;
+static uint8 latche=0, latcheinit=0, bus_conflict=0;
+static uint16 addrreg0=0, addrreg1=0;
 static uint8 *WRAM = NULL;
-static uint32 WRAMSIZE;
-static void (*WSync)(void);
+static uint32 WRAMSIZE=0;
+static void (*WSync)(void) = nullptr;
+static uint8 submapper;
 
 static DECLFW(LatchWrite) {
 //	FCEU_printf("bs %04x %02x\n",A,V);
@@ -68,6 +69,7 @@ static void Latch_Init(CartInfo *info, void (*proc)(void), uint8 init, uint16 ad
 	info->Power = LatchPower;
 	info->Close = LatchClose;
 	GameStateRestore = StateRestore;
+	submapper = info->submapper;
 	if(info->ines2)
 		if(info->battery_wram_size + info->wram_size > 0)
 			wram = 1;
@@ -85,14 +87,12 @@ static void Latch_Init(CartInfo *info, void (*proc)(void), uint8 init, uint16 ad
 			//else if(!info->wram_size && info->battery_wram_size)
 			//{
 			//	SetupCartPRGMapping(0x10, WRAM, info->battery_wram_size, 1);
-			//	info->SaveGame[0] = WRAM;
-			//	info->SaveGameLen[0] = info->battery_wram_size;
+			//	info->addSaveGameBuf( WRAM, info->battery_wram_size );
 			//} else {
 			//	//well, this is annoying
 			//	SetupCartPRGMapping(0x10, WRAM, info->wram_size, 1);
 			//	SetupCartPRGMapping(0x11, WRAM, info->battery_wram_size, 1); //? ? ? there probably isnt even a way to select this
-			//	info->SaveGame[0] = WRAM + info->wram_size;
-			//	info->SaveGameLen[0] = info->battery_wram_size;
+			//	info->addSaveGameBuf( WRAM + info->wram_size, info->battery_wram_size );
 			//}
 			
 			//this is more likely the only practical scenario
@@ -104,8 +104,7 @@ static void Latch_Init(CartInfo *info, void (*proc)(void), uint8 init, uint16 ad
 			setprg8r(0x10, 0x6000, 0);
 			if(info->battery_wram_size)
 			{
-				info->SaveGame[0] = WRAM;
-				info->SaveGameLen[0] = 8192;
+				info->addSaveGameBuf( WRAM, 8192 );
 			}
 		}
 		else
@@ -114,8 +113,7 @@ static void Latch_Init(CartInfo *info, void (*proc)(void), uint8 init, uint16 ad
 			WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
 			SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
 			if (info->battery) {
-				info->SaveGame[0] = WRAM;
-				info->SaveGameLen[0] = WRAMSIZE;
+				info->addSaveGameBuf( WRAM, WRAMSIZE );
 			}
 			AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 		}
@@ -158,8 +156,7 @@ void NROM_Init(CartInfo *info) {
 	WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
 	SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
 	if (info->battery) {
-		info->SaveGame[0] = WRAM;
-		info->SaveGameLen[0] = WRAMSIZE;
+		info->addSaveGameBuf( WRAM, WRAMSIZE );
 	}
 	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 }
@@ -300,7 +297,11 @@ static void M78Sync() {
 	setprg16(0x8000, (latche & 7));
 	setprg16(0xc000, ~0);
 	setchr8(latche >> 4);
-	setmirror(MI_0 + ((latche >> 3) & 1));
+	if (submapper == 3) {
+		setmirror((latche >> 3) & 1);	
+	} else {
+		setmirror(MI_0 + ((latche >> 3) & 1));
+	}
 }
 
 void Mapper78_Init(CartInfo *info) {

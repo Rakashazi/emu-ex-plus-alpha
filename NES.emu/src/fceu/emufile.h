@@ -59,7 +59,7 @@ public:
 	bool fail(bool unset=false) { bool ret = failbit; if(unset) unfail(); return ret; }
 	void unfail() { failbit=false; }
 
-	bool eof() { return size()==ftell(); }
+	bool eof() { return size() == static_cast<size_t>(ftell()); }
 
 	size_t fread(const void *ptr, size_t bytes){
 		return _fread(ptr,bytes);
@@ -109,13 +109,13 @@ public:
 	double readdouble();
 	size_t readdouble(double* val);
 
-	virtual int fseek(int offset, int origin) = 0;
+	virtual int fseek(long int offset, int origin) = 0;
 
-	virtual int ftell() = 0;
-	virtual int size() = 0;
+	virtual long int ftell() = 0;
+	virtual size_t size() = 0;
 	virtual void fflush() = 0;
 
-	virtual void truncate(s32 length) = 0;
+	virtual void truncate(size_t length) = 0;
 };
 
 //todo - handle read-only specially?
@@ -123,9 +123,10 @@ class EMUFILE_MEMORY : public EMUFILE {
 protected:
 	std::vector<u8> *vec;
 	bool ownvec;
-	s32 pos, len;
+	long int pos;
+	size_t len;
 
-	void reserve(u32 amt) {
+	void reserve(size_t amt) {
 		if(vec->size() < amt)
 			vec->resize(amt);
 	}
@@ -133,12 +134,12 @@ protected:
 public:
 
 	EMUFILE_MEMORY(std::vector<u8> *underlying) : vec(underlying), ownvec(false), pos(0), len((s32)underlying->size()) { }
-	EMUFILE_MEMORY(u32 preallocate) : vec(new std::vector<u8>()), ownvec(true), pos(0), len(0) {
+	EMUFILE_MEMORY(size_t preallocate) : vec(new std::vector<u8>()), ownvec(true), pos(0), len(0) {
 		vec->resize(preallocate);
 		len = preallocate;
 	}
 	EMUFILE_MEMORY() : vec(new std::vector<u8>()), ownvec(true), pos(0), len(0) { vec->reserve(1024); }
-	EMUFILE_MEMORY(void* buf, s32 size) : vec(new std::vector<u8>()), ownvec(true), pos(0), len(size) {
+	EMUFILE_MEMORY(void* buf, size_t size) : vec(new std::vector<u8>()), ownvec(true), pos(0), len(size) {
 		vec->resize(size);
 		if(size != 0)
 			memcpy(&vec->front(),buf,size);
@@ -150,11 +151,11 @@ public:
 
 	virtual EMUFILE* memwrap();
 
-	virtual void truncate(s32 length)
+	virtual void truncate(size_t length)
 	{
 		vec->resize(length);
 		len = length;
-		if(pos>length) pos=length;
+		if (static_cast<size_t>(pos) > length) pos=static_cast<long int>(length);
 	}
 
 	u8* buf() {
@@ -178,10 +179,10 @@ public:
 		va_start(argptr, format);
 		vsprintf(tempbuf,format,argptr);
 
-        fwrite(tempbuf,amt);
+		fwrite(tempbuf,amt);
 		delete[] tempbuf;
 
-        va_end(argptr);
+		va_end(argptr);
 		return amt;
 	};
 
@@ -192,7 +193,7 @@ public:
 		//if(_fread(&temp,1) != 1)
 		//	return EOF;
 		//else return temp;
-		u32 remain = len-pos;
+		size_t remain = len-pos;
 		if(remain<1) {
 			failbit = true;
 			return -1;
@@ -216,13 +217,13 @@ public:
 	//they handle the return values correctly
 
 	virtual void fwrite(const void *ptr, size_t bytes){
-		reserve(pos+(s32)bytes);
+		reserve(pos+bytes);
 		memcpy(buf()+pos,ptr,bytes);
-		pos += (s32)bytes;
-		len = std::max<int>(pos,len);
+		pos += static_cast<long>(bytes);
+		len = std::max<size_t>(pos,len);
 	}
 
-	virtual int fseek(int offset, int origin){
+	virtual int fseek(long int offset, int origin){
 		//work differently for read-only...?
 		switch(origin) {
 			case SEEK_SET:
@@ -232,7 +233,7 @@ public:
 				pos += offset;
 				break;
 			case SEEK_END:
-				pos = size()+offset;
+				pos = (long int)(size()+offset);
 				break;
 			default:
 				assert(false);
@@ -241,24 +242,24 @@ public:
 		return 0;
 	}
 
-	virtual int ftell() {
+	virtual long int ftell() {
 		return pos;
 	}
 
 	virtual void fflush() {}
 
-	void set_len(s32 length)
+	void set_len(size_t length)
 	{
 		len = length;
-		if(pos > length)
-			pos = length;
+		if (static_cast<size_t>(pos) > length)
+			pos = static_cast<long>(length);
 	}
 	void trim()
 	{
 		vec->resize(len);
 	}
 
-	virtual int size() { return (int)len; }
+	virtual size_t size() { return len; }
 };
 
 class EMUFILE_FILE : public EMUFILE {
@@ -288,7 +289,7 @@ public:
 
 	bool is_open() { return fp != NULL; }
 
-	virtual void truncate(s32 length);
+	virtual void truncate(size_t length);
 
 	virtual int fprintf(const char *format, ...) {
 		va_list argptr;
@@ -321,20 +322,20 @@ public:
 			failbit = true;
 	}
 
-	virtual int fseek(int offset, int origin) {
+	virtual int fseek(long int offset, int origin) {
 		return ::fseek(fp, offset, origin);
 	}
 
-	virtual int ftell() {
-		return (u32)::ftell(fp);
+	virtual long int ftell() {
+		return ::ftell(fp);
 	}
 
-	virtual int size() {
-		int oldpos = ftell();
+	virtual size_t size() {
+		long int oldpos = ftell();
 		fseek(0,SEEK_END);
-		int len = ftell();
+		long int len = ftell();
 		fseek(oldpos,SEEK_SET);
-		return len;
+		return static_cast<size_t>(len);
 	}
 
 	virtual void fflush() {

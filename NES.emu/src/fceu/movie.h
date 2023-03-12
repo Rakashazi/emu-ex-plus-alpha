@@ -81,7 +81,9 @@ enum EMOVIECMD
 	MOVIECMD_POWER = 2,
 	MOVIECMD_FDS_INSERT = 4,
 	MOVIECMD_FDS_SELECT = 8,
-	MOVIECMD_VS_INSERTCOIN = 16
+	MOVIECMD_VS_INSERTCOIN = 16,
+	MOVIECMD_VS_INSERTCOIN2 = 32,
+	MOVIECMD_VS_SERVICE = 64
 };
 
 EMOVIEMODE FCEUMOV_Mode();
@@ -131,6 +133,8 @@ public:
 	bool command_fds_insert() { return (commands & MOVIECMD_FDS_INSERT) != 0; }
 	bool command_fds_select() { return (commands & MOVIECMD_FDS_SELECT) != 0; }
 	bool command_vs_insertcoin() { return (commands & MOVIECMD_VS_INSERTCOIN) != 0; }
+	bool command_vs_insertcoin2() { return (commands & MOVIECMD_VS_INSERTCOIN2) != 0; }
+	bool command_vs_service() { return (commands & MOVIECMD_VS_SERVICE) != 0; }
 
 	void toggleBit(int joy, int bit)
 	{
@@ -210,7 +214,7 @@ public:
 	//whether microphone is enabled
 	bool microphone;
 
-	int getNumRecords() { return (int)records.size(); }
+	int getNumRecords() { return static_cast<int>( records.size() ); }
 
 	int RAMInitOption, RAMInitSeed;
 
@@ -272,7 +276,7 @@ private:
 extern EMOVIEMODE movieMode;
 extern MovieData currMovieData;
 extern int currFrameCounter;
-extern char curMovieFilename[512];
+extern std::string curMovieFilename;
 extern bool subtitlesOnAVI;
 extern bool freshMovie;
 extern bool movie_readonly;

@@ -91,19 +91,19 @@ void FCEU_KillVirtualVideo(void)
 {
 	if ( XBuf )
 	{
-		FCEU_free(XBuf); XBuf = NULL;
+		FCEU_afree(XBuf); XBuf = NULL;
 	}
 	if ( XBackBuf )
 	{
-		FCEU_free(XBackBuf); XBackBuf = NULL;
+		FCEU_afree(XBackBuf); XBackBuf = NULL;
 	}
 	if ( XDBuf )
 	{
-		FCEU_free(XDBuf); XDBuf = NULL;
+		FCEU_afree(XDBuf); XDBuf = NULL;
 	}
 	if ( XDBackBuf )
 	{
-		FCEU_free(XDBackBuf); XDBackBuf = NULL;
+		FCEU_afree(XDBackBuf); XDBackBuf = NULL;
 	}
 	//printf("Video Core Cleanup\n");
 }
@@ -120,18 +120,18 @@ int FCEU_InitVirtualVideo(void)
 	if(XBuf)
 		return 1;
 	
-	XBuf = (u8*)FCEU_malloc(256 * 256);
-	XBackBuf = (u8*)FCEU_malloc(256 * 256);
-	XDBuf = (u8*)FCEU_malloc(256 * 256);
-	XDBackBuf = (u8*)FCEU_malloc(256 * 256);
+	XBuf = (u8*)FCEU_amalloc(256 * 256);
+	XBackBuf = (u8*)FCEU_amalloc(256 * 256);
+	XDBuf = (u8*)FCEU_amalloc(256 * 256);
+	XDBackBuf = (u8*)FCEU_amalloc(256 * 256);
 
 
 	xbsave = XBuf;
 
 	memset(XBuf,128,256*256);
 	memset(XBackBuf,128,256*256);
-	memset(XBuf,128,256*256);
-	memset(XBackBuf,128,256*256);
+	memset(XDBuf,0,256*256);
+	memset(XDBackBuf,0,256*256);
 
 	return 1;
 }
@@ -390,7 +390,7 @@ void snapAVI()
 		FCEUI_AviVideoUpdate(XBuf);
 }
 
-void FCEU_DispMessageOnMovie(const char *format, ...)
+void FCEU_DispMessageOnMovie( __FCEU_PRINTF_FORMAT const char *format, ...)
 {
 	va_list ap;
 
@@ -409,7 +409,7 @@ void FCEU_DispMessageOnMovie(const char *format, ...)
 		guiMessage.howlong = 0;
 }
 
-void FCEU_DispMessage(const char *format, int disppos=0, ...)
+void FCEU_DispMessage( __FCEU_PRINTF_FORMAT const char *format, int disppos=0, ...)
 {
 	va_list ap;
 
@@ -422,7 +422,7 @@ void FCEU_DispMessage(const char *format, int disppos=0, ...)
 	vsnprintf(temp,sizeof(temp),format,ap);
 	va_end(ap);
 	strcat(temp, "\n");
-	FCEU_printf(temp);
+	FCEU_printf("%s",temp);
 
 	if ( vidGuiMsgEna )
 	{

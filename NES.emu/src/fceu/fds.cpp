@@ -30,6 +30,7 @@
 #include "state.h"
 #include "file.h"
 #include "cart.h"
+#include "ines.h"
 #include "netplay.h"
 #include "driver.h"
 #include "movie.h"
@@ -850,7 +851,6 @@ int FDSLoad(const char *name, FCEUFILE *fp) {
 		memcpy(diskdatao[x], diskdata[x], 65500);
 	}
 
-	extern char LoadedRomFName[2048];
 	strcpy(LoadedRomFName, name); //For the debugger list
 
 	GameInfo->type = GIT_FDS;

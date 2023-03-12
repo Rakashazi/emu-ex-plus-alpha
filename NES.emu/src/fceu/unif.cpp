@@ -104,7 +104,7 @@ static void ResetUNIF(void) {
 	vramo = 0;
 	boardname = 0;
 	mirrortodo = 0;
-	memset(&UNIFCart, 0, sizeof(UNIFCart));
+	UNIFCart.clear();
 	UNIFchrrama = 0;
 }
 
@@ -140,7 +140,7 @@ static int DoMirroring(FCEUFILE *fp) {
 				return(0);
 			FCEU_printf(" %02x", t);
 		}
-		FCEU_printf("\n Default Name/Attribute Table Mirroring: Horizontal\n", uchead.info);
+		FCEU_printf("\n Default Name/Attribute Table Mirroring: Horizontal\n");
 		mirrortodo = 0;
 	}
 	return(1);
@@ -472,10 +472,11 @@ static BMAPPING bmap[] = {
 	{ "WAIXING-FS005", WAIXINGFS005_Init, 0 },
 	{ "MINDKIDS", MINDKIDS_Init, BMCFLAG_256KCHRR },
 	{ "FNS", FNS_Init, BMCFLAG_16KCHRR },
-	{ "COOLGIRL", COOLGIRL_Init, 0 },
 	{ "T4A54A", Mapper134_Init, 0 },
 	{ "BS-400R", Mapper422_Init, 0 },
 	{ "BS-4040R", Mapper422_Init, 0 },
+	{ "COOLGIRL", COOLGIRL_Init, 0 },
+	{ "JC-016-2", Mapper205_Init, 0 },
 
 	{ 0, 0, 0 }
 };

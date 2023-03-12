@@ -28,11 +28,8 @@
 #include "../fceu.h"
 #include "memory.h"
 
-static void *_FCEU_malloc(uint32 size)
+void *FCEU_amalloc(size_t size, size_t alignment)
 {
-	//do not add an aligned allocation function. if a larger alignment is needed, change this constant to use it for all allocations.
-	static const int alignment = 32;
-	
 	size = (size + alignment - 1) & ~(alignment-1);
 
 	#ifdef _MSC_VER
@@ -48,7 +45,7 @@ static void *_FCEU_malloc(uint32 size)
 	return ret;
 }
 
-static void _FCEU_free(void* ptr)
+void FCEU_afree(void* ptr)
 {
 	#ifdef _MSC_VER
 	_aligned_free(ptr);
@@ -57,37 +54,49 @@ static void _FCEU_free(void* ptr)
 	#endif
 }
 
-///allocates the specified number of bytes. exits process if this fails
-void *FCEU_gmalloc(uint32 size)
+static void *_FCEU_malloc(size_t size)
 {
- void *ret = _FCEU_malloc(size);
- 
- // initialize according to RAMInitOption, default zero
- FCEU_MemoryRand((uint8*)ret,size,true);
+	void* ret = malloc(size);
 
- return ret;
+	if(!ret)
+		FCEU_abort("Error allocating memory!");
+
+	return ret;
 }
 
-void *FCEU_malloc(uint32 size)
+static void _FCEU_free(void* ptr)
+{
+	free(ptr);
+}
+
+void *FCEU_gmalloc(size_t size)
+{
+	void *ret = _FCEU_malloc(size);
+ 
+	// initialize according to RAMInitOption, default zero
+	FCEU_MemoryRand((uint8*)ret,size,true);
+
+	return ret;
+}
+
+void *FCEU_malloc(size_t size)
 {
 	void *ret = _FCEU_malloc(size);
 	memset(ret, 0, size);
 	return ret;
 }
 
-//frees memory allocated with FCEU_gmalloc
 void FCEU_gfree(void *ptr)
 {
 	_FCEU_free(ptr);
 }
 
-//frees memory allocated with FCEU_malloc
 void FCEU_free(void *ptr)
 {
 	_FCEU_free(ptr);
 }
 
-void *FCEU_dmalloc(uint32 size)
+void *FCEU_dmalloc(size_t size)
 {
 	return FCEU_malloc(size);
 }
@@ -97,8 +106,13 @@ void FCEU_dfree(void *ptr)
 	return FCEU_free(ptr);
 }
 
+void* FCEU_realloc(void* ptr, size_t size)
+{
+	return realloc(ptr,size);
+}
+
 void FCEU_abort(const char* message)
 {
-	if(message) FCEU_PrintError(message);
+	if(message) FCEU_PrintError("%s", message);
 	abort();
 }

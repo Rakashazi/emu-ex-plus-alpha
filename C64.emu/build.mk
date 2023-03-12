@@ -128,8 +128,7 @@ tick.c \
 traps.c \
 util.c \
 vsync.c \
-zipcode.c \
-arch/shared/archdep_join_paths.c
+zipcode.c
 
 libc64cartsystem_a_SOURCES = \
 c64cart.c \
@@ -280,7 +279,6 @@ c64romset.c \
 c64rsuser.c \
 c64sound.c \
 c64video.c \
-patchrom.c \
 plus256k.c \
 plus60k.c \
 psid.c \
@@ -305,7 +303,6 @@ c64romset.c \
 c64rsuser.c \
 c64sound.c \
 c64video.c \
-patchrom.c \
 reloc65.c
 libc64scpu64_a_SOURCES := $(addprefix c64/,$(libc64scpu64_a_SOURCES))
 
@@ -377,7 +374,6 @@ c64romset.c \
 c64rsuser.c \
 c64sound.c \
 c64video.c \
-patchrom.c \
 plus256k.c \
 plus60k.c \
 psid.c \
@@ -396,8 +392,7 @@ c64keyboard.c \
 c64rom.c \
 c64romset.c \
 c64rsuser.c \
-c64video.c \
-patchrom.c
+c64video.c
 libc64c64dtv_a_SOURCES := $(addprefix c64/,$(libc64c64dtv_a_SOURCES))
 
 libc64dtv_a_SOURCES = \
@@ -420,15 +415,11 @@ c64dtvmodel.c \
 c64dtvpla.c \
 c64dtvprinter.c \
 c64dtvsound.c \
-c64dtvstubs.c \
+c64dtv-stubs.c \
 debugcart.c \
 flash-trap.c \
 hummeradc.c
 libc64dtv_a_SOURCES := $(addprefix c64dtv/,$(libc64dtv_a_SOURCES))
-
-libc64dtvstubs_a_SOURCES = \
-c64dtvcart.c
-libc64dtvstubs_a_SOURCES := $(addprefix c64dtv/,$(libc64dtvstubs_a_SOURCES))
 
 libviciidtv_a_SOURCES = \
 vicii-badline.c \
@@ -464,8 +455,7 @@ c64printer.c \
 c64pla.c \
 c64parallel.c \
 c64rsuser.c \
-c64sound.c \
-patchrom.c
+c64sound.c
 libc64c128_a_SOURCES := $(addprefix c64/,$(libc64c128_a_SOURCES))
 
 libvdc_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/vdc/*)))
@@ -757,7 +747,6 @@ $(libuserport_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
 $(libresiddtv_a_SOURCES) \
-$(libc64dtvstubs_a_SOURCES) \
 ps2mouse.c
 
 c128_src = \

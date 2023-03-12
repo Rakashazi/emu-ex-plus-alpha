@@ -189,6 +189,8 @@ static void FCEU_CloseGame(void)
 
 		GameInterface(GI_CLOSE);
 
+		FCEU_StateRecorderStop();
+
 		FCEUI_StopMovie();
 
 		ResetExState(0, 0);
@@ -206,10 +208,10 @@ static void FCEU_CloseGame(void)
 		currFrameCounter = 0;
 
 		//Reset flags for Undo/Redo/Auto Savestating //adelikat: TODO: maybe this stuff would be cleaner as a struct or class
-		lastSavestateMade[0] = 0;
+		lastSavestateMade.clear();
 		undoSS = false;
 		redoSS = false;
-		lastLoadstateMade[0] = 0;
+		lastLoadstateMade.clear();
 		undoLS = false;
 		redoLS = false;
 		AutoSS = false;
@@ -400,7 +402,7 @@ FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int Overwr
 {
 	//----------
 	//attempt to open the files
-	char fullname[2048];	// this name contains both archive name and ROM file name
+	std::string fullname;	// this name contains both archive name and ROM file name
 	int lastpal = PAL;
 	int lastdendy = dendy;
 
@@ -421,16 +423,19 @@ FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int Overwr
 	}
 	else if (fp->archiveFilename != "")
 	{
-		strcpy(fullname, fp->archiveFilename.c_str());
-		strcat(fullname, "|");
-		strcat(fullname, fp->filename.c_str());
-	} else
-		strcpy(fullname, name);
+		fullname.assign(fp->archiveFilename);
+		fullname.append("|");
+		fullname.append(fp->filename);
+	}
+	else
+	{
+		fullname.assign(name);
+	}
 
 	// reset loaded game BEFORE it's loading.
 	ResetGameLoaded();
 	//file opened ok. start loading.
-	FCEU_printf("Loading %s...\n\n", fullname);
+	FCEU_printf("Loading %s...\n\n", fullname.c_str());
 	GetFileBase(fp->filename.c_str());
 	//reset parameters so they're cleared just in case a format's loader doesn't know to do the clearing
 	MasterRomInfoParams = TMasterRomInfoParams();
@@ -460,18 +465,18 @@ FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int Overwr
 	//try to load each different format
 	bool FCEUXLoad(const char *name, FCEUFILE * fp);
 
-	bool isFDS = std::string_view{fullname}.ends_with(".fds");
+	bool isFDS = fullname.ends_with(".fds");
 	int load_result;
 	if(isFDS)
 	{
-		load_result = FDSLoad(fullname, fp);
+		load_result = FDSLoad(fullname.c_str(), fp);
 	}
 	else
 	{
-		load_result = iNESLoad(fullname, fp, OverwriteVidMode);
+		load_result = iNESLoad(fullname.c_str(), fp, OverwriteVidMode);
 		if (load_result == LOADER_INVALID_FORMAT)
 		{
-			load_result = UNIFLoad(fullname, fp);
+			load_result = UNIFLoad(fullname.c_str(), fp);
 		}
 	}
 	if (load_result == LOADER_OK)
@@ -479,7 +484,6 @@ FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int Overwr
 
 #ifdef __WIN_DRIVER__
 		// ################################## Start of SP CODE ###########################
-		extern char LoadedRomFName[2048];
 		extern int loadDebugDataFailed;
 
 		if ((loadDebugDataFailed = loadPreferences(mass_replace(LoadedRomFName, "|", ".").c_str())))
@@ -568,6 +572,12 @@ FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int Overwr
 	}
 
 	FCEU_fclose(fp);
+
+	if ( FCEU_StateRecorderIsEnabled() )
+	{
+		FCEU_StateRecorderStart();
+	}
+
 	return GameInfo;
 }
 
@@ -715,7 +725,8 @@ extern unsigned int frameAdvHoldTimer;
 ///Skip may be passed in, if FRAMESKIP is #defined, to cause this to emulate more than one frame
 void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int skip) {
 	//skip initiates frame skip if 1, or frame skip and sound skip if 2
-	int r, ssize;
+	FCEU_MAYBE_UNUSED int r;
+	int ssize;
 
 	JustFrameAdvanced = false;
 
@@ -732,7 +743,7 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
 		{
 			EmulationPaused = EMULATIONPAUSED_FA;
 		}
-		if (frameAdvance_Delay_count < frameAdvanceDelayScaled)
+		if ( static_cast<unsigned int>(frameAdvance_Delay_count) < frameAdvanceDelayScaled)
 		{
 			frameAdvance_Delay_count++;
 		}
@@ -781,6 +792,7 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
 
 	AutoFire();
 	UpdateAutosave();
+	FCEU_StateRecorderUpdate();
 
 #ifdef _S9XLUA_H
 	FCEU_LuaFrameBoundary();
@@ -1056,7 +1068,7 @@ void FCEU_ResetVidSys(void) {
 FCEUS FSettings;
 
 #if 0
-void FCEU_printf(const char *format, ...)
+void FCEU_printf( __FCEU_PRINTF_FORMAT const char *format, ...)
 {
 	char temp[2048];
 
@@ -1076,7 +1088,7 @@ void FCEU_printf(const char *format, ...)
 	va_end(ap);
 }
 
-void FCEU_PrintError(const char *format, ...)
+void FCEU_PrintError( __FCEU_PRINTF_FORMAT const char *format, ...)
 {
 	char temp[2048];
 
@@ -1241,8 +1253,8 @@ void FCEUI_FrameAdvanceEnd(void) {
 }
 
 void FCEUI_FrameAdvance(void) {
-	frameAdvanceRequested = true;
 	frameAdvance_Delay_count = 0;
+	frameAdvanceRequested = true;
 }
 
 static int AutosaveCounter = 0;

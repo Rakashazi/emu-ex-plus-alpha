@@ -488,11 +488,10 @@ void Init(CartInfo *info)
 
       if (info->battery)
       {
-         info->SaveGame[0] = WRAM;
          if (info->ines2 && info->battery_wram_size)
-            info->SaveGameLen[0] = info->battery_wram_size;
+           info->addSaveGameBuf(WRAM, info->battery_wram_size);
          else
-            info->SaveGameLen[0] = WRAMSIZE;
+        	 info->addSaveGameBuf(WRAM, WRAMSIZE);
       }
    }
 
