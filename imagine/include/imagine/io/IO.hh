@@ -22,6 +22,7 @@
 #include <imagine/io/AAssetIO.hh>
 #endif
 #include <variant>
+#include <span>
 
 namespace IG
 {

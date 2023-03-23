@@ -170,16 +170,15 @@ public:
 	}
 };
 
-static auto makeFrameRateStr(EmuSystem &sys)
+static std::string makeFrameRateStr(VideoSystem vidSys, const OutputTimingManager &mgr)
 {
-	return fmt::format("Frame Rate: {:.2f}Hz",
-		sys.frameRate(VideoSystem::NATIVE_NTSC));
-}
-
-static auto makeFrameRatePALStr(EmuSystem &sys)
-{
-	return fmt::format("Frame Rate (PAL): {:.2f}Hz",
-		sys.frameRate(VideoSystem::PAL));
+	auto frameTimeOpt = mgr.frameTimeOption(vidSys);
+	if(frameTimeOpt == OutputTimingManager::autoOption)
+		return "Auto";
+	else if(frameTimeOpt == OutputTimingManager::originalOption)
+		return "Original";
+	else
+		return fmt::format("{:.2f}Hz", 1. / frameTimeOpt.count());
 }
 
 static const char *autoWindowPixelFormatStr(IG::ApplicationContext ctx)
@@ -260,23 +259,99 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			app().setShouldSkipLateFrames(item.flipBoolValue(*this));
 		}
 	},
+	frameRateItems
+	{
+		{"Auto (Match screen when rates are similar)", &defaultFace(),
+			[this]
+			{
+				if(!app().viewController().emuWindowScreen()->frameRateIsReliable())
+				{
+					app().postErrorMessage("Reported rate potentially unreliable, "
+						"using the detected rate may give better results");
+				}
+				onFrameTimeChange(activeVideoSystem, OutputTimingManager::autoOption);
+			}, int(OutputTimingManager::autoOption.count())
+		},
+		{"Original (Use emulated system's rate)", &defaultFace(),
+			[this]
+			{
+				onFrameTimeChange(activeVideoSystem, OutputTimingManager::originalOption);
+			}, int(OutputTimingManager::originalOption.count())
+		},
+		{"Detect Custom Rate", &defaultFace(),
+			[this](const Input::Event &e)
+			{
+				window().setIntendedFrameRate(1. / system().frameTime().count());
+				auto frView = makeView<DetectFrameRateView>();
+				frView->onDetectFrameTime =
+					[this](FloatSeconds frameTime)
+					{
+						if(frameTime.count())
+						{
+							if(onFrameTimeChange(activeVideoSystem, frameTime))
+								dismissPrevious();
+						}
+						else
+						{
+							app().postErrorMessage("Detected rate too unstable to use");
+						}
+					};
+				pushAndShowModal(std::move(frView), e);
+			}
+		},
+		{"Custom Rate", &defaultFace(),
+			[this](const Input::Event &e)
+			{
+				app().pushAndShowNewCollectValueInputView<std::pair<double, double>>(attachParams(), e,
+					"Input decimal or fraction", "",
+					[this](EmuApp &, auto val)
+					{
+						if(onFrameTimeChange(activeVideoSystem, FloatSeconds{val.second / val.first}))
+						{
+							dismissPrevious();
+							return true;
+						}
+						else
+							return false;
+					});
+			}, MenuItem::DEFAULT_ID
+		},
+	},
 	frameRate
 	{
-		u"", &defaultFace(),
-		[this](const Input::Event &e)
+		"Frame Rate", &defaultFace(),
 		{
-			pushAndShowFrameRateSelectMenu(VideoSystem::NATIVE_NTSC, e);
-			postDraw();
-		}
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(makeFrameRateStr(VideoSystem::NATIVE_NTSC, app().outputTimingManager));
+				return true;
+			},
+			.onSelect = [this](MultiChoiceMenuItem &item, View &view, const Input::Event &e)
+			{
+				activeVideoSystem = VideoSystem::NATIVE_NTSC;
+				item.defaultOnSelect(view, e);
+			},
+		},
+		app().outputTimingManager.frameTimeOptionAsMenuId(VideoSystem::NATIVE_NTSC),
+		frameRateItems
 	},
 	frameRatePAL
 	{
-		u"", &defaultFace(),
-		[this](const Input::Event &e)
+		"Frame Rate (PAL)", &defaultFace(),
 		{
-			pushAndShowFrameRateSelectMenu(VideoSystem::PAL, e);
-			postDraw();
-		}
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(makeFrameRateStr(VideoSystem::PAL, app().outputTimingManager));
+				return true;
+			},
+			.onSelect = [this](MultiChoiceMenuItem &item, View &view, const Input::Event &e)
+			{
+				activeVideoSystem = VideoSystem::PAL;
+				item.defaultOnSelect(view, e);
+			},
+		},
+		app().outputTimingManager.frameTimeOptionAsMenuId(VideoSystem::PAL),
+		frameRateItems
 	},
 	aspectRatioItem
 	{
@@ -787,11 +862,9 @@ void VideoOptionView::loadStockItems()
 	if(used(frameInterval))
 		item.emplace_back(&frameInterval);
 	item.emplace_back(&dropLateFrames);
-	frameRate.setName(makeFrameRateStr(system()));
 	item.emplace_back(&frameRate);
 	if(EmuSystem::hasPALVideoSystem)
 	{
-		frameRatePAL.setName(makeFrameRatePALStr(system()));
 		item.emplace_back(&frameRatePAL);
 	}
 	item.emplace_back(&visualsHeading);
@@ -837,94 +910,16 @@ void VideoOptionView::setEmuVideoLayer(EmuVideoLayer &videoLayer_)
 	videoLayer = &videoLayer_;
 }
 
-bool VideoOptionView::onFrameTimeChange(VideoSystem vidSys, IG::FloatSeconds time)
+bool VideoOptionView::onFrameTimeChange(VideoSystem vidSys, FloatSeconds time)
 {
-	if(auto [effectiveFrameTime, isValid] = app().setFrameTime(vidSys, time);
-		!isValid)
+	if(!app().outputTimingManager.setFrameTimeOption(vidSys, time))
 	{
-		app().postMessage(4, true, fmt::format("{:.2f}Hz not in valid range", 1. / effectiveFrameTime.count()));
+		app().postMessage(4, true, fmt::format("{:.2f}Hz not in valid range", 1. / time.count()));
 		return false;
 	}
-	if(vidSys == VideoSystem::NATIVE_NTSC)
-	{
-		frameRate.compile(makeFrameRateStr(system()), renderer());
-	}
-	else
-	{
-		frameRatePAL.compile(makeFrameRatePALStr(system()), renderer());
-	}
+	if(system().videoSystem() == vidSys)
+		app().configFrameTime();
 	return true;
-}
-
-void VideoOptionView::pushAndShowFrameRateSelectMenu(VideoSystem vidSys, const Input::Event &e)
-{
-	const bool includeFrameRateDetection = !Config::envIsIOS;
-	auto multiChoiceView = makeViewWithName<TextTableView>("Frame Rate", includeFrameRateDetection ? 4 : 3);
-	multiChoiceView->appendItem("Set screen's reported rate",
-		[this, vidSys](View &view)
-		{
-			if(!app().viewController().emuWindowScreen()->frameRateIsReliable())
-			{
-				if(Config::envIsAndroid && appContext().androidSDK() <= 10)
-				{
-					app().postErrorMessage("Many Android 2.3 devices mis-report their refresh rate, "
-						"using the detected or default rate may give better results");
-				}
-				else
-				{
-					app().postErrorMessage("Reported rate potentially unreliable, "
-						"using the detected or default rate may give better results");
-				}
-			}
-			if(onFrameTimeChange(vidSys, {}))
-				view.dismiss();
-		});
-	multiChoiceView->appendItem("Set emulated system's rate",
-		[this, vidSys](View &view)
-		{
-			onFrameTimeChange(vidSys, EmuSystem::defaultFrameTime(vidSys));
-			view.dismiss();
-		});
-	multiChoiceView->appendItem("Set custom rate",
-		[this, vidSys](const Input::Event &e)
-		{
-			app().pushAndShowNewCollectValueInputView<std::pair<double, double>>(attachParams(), e,
-				"Input decimal or fraction", "",
-				[this, vidSys](EmuApp &, auto val)
-				{
-					if(onFrameTimeChange(vidSys, IG::FloatSeconds{val.second / val.first}))
-					{
-						dismissPrevious();
-						return true;
-					}
-					else
-						return false;
-				});
-		});
-	if(includeFrameRateDetection)
-	{
-		multiChoiceView->appendItem("Detect screen's rate and set",
-			[this, vidSys](const Input::Event &e)
-			{
-				window().setIntendedFrameRate(1. / EmuSystem::defaultFrameTime(vidSys).count());
-				auto frView = makeView<DetectFrameRateView>();
-				frView->onDetectFrameTime =
-					[this, vidSys](IG::FloatSeconds frameTime)
-					{
-						if(frameTime.count())
-						{
-							if(onFrameTimeChange(vidSys, frameTime))
-								dismissPrevious();
-						}
-						else
-						{
-							app().postErrorMessage("Detected rate too unstable to use");
-						}
-					};
-				pushAndShowModal(std::move(frView), e);
-			});
-	}
-	pushAndShow(std::move(multiChoiceView), e);
 }
 
 TextMenuItem::SelectDelegate VideoOptionView::setVideoBrightnessCustomDel(ImageChannel ch)

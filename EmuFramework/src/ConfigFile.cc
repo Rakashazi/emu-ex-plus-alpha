@@ -299,8 +299,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 		#endif
 		optionFrameInterval,
 		optionSkipLateFrames,
-		optionFrameRate,
-		optionFrameRatePAL,
 		optionNotificationIcon,
 		optionTitleBar,
 		optionIdleDisplayPowerSave,
@@ -349,6 +347,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_OFFSET, videoLayer().portraitOffset, 0);
 	writeOptionValueIfNotDefault(io, CFGKEY_FAST_MODE_SPEED, fastModeSpeed, defaultFastModeSpeed);
 	writeOptionValueIfNotDefault(io, CFGKEY_SLOW_MODE_SPEED, slowModeSpeed, defaultSlowModeSpeed);
+	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_RATE, outputTimingManager.frameTimeOption(VideoSystem::NATIVE_NTSC), OutputTimingManager::autoOption);
+	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_RATE_PAL, outputTimingManager.frameTimeOption(VideoSystem::PAL), OutputTimingManager::autoOption);
 	vController.writeConfig(io);
 	autosaveManager_.writeConfig(io);
 	if(IG::used(usePresentationTime_) && !usePresentationTime_)
@@ -561,8 +561,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_FRAME_INTERVAL:
 					return doIfUsed(optionFrameInterval, [&](auto &opt){return opt.readFromIO(io, size);});
 				case CFGKEY_SKIP_LATE_FRAMES: return optionSkipLateFrames.readFromIO(io, size);
-				case CFGKEY_FRAME_RATE: return optionFrameRate.readFromIO(io, size);
-				case CFGKEY_FRAME_RATE_PAL: return optionFrameRatePAL.readFromIO(io, size);
+				case CFGKEY_FRAME_RATE: return readOptionValue<FloatSeconds>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::NATIVE_NTSC, val);});
+				case CFGKEY_FRAME_RATE_PAL: return readOptionValue<FloatSeconds>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::PAL, val);});
 				case CFGKEY_LAST_DIR:
 					return readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){setContentSearchPath(path);});
 				case CFGKEY_FONT_Y_SIZE: return optionFontSize.readFromIO(io, size);

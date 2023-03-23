@@ -22,6 +22,7 @@
 #include <imagine/gfx/Texture.hh>
 #include <memory>
 #include <variant>
+#include <array>
 
 namespace IG::Gfx
 {
@@ -78,7 +79,7 @@ public:
 	void initBuffer(PixmapDesc desc, bool singleBuffer);
 
 private:
-	std::unique_ptr<char[]> storage{};
+	std::unique_ptr<char[]> storage;
 };
 
 struct GLPixelBufferInfo

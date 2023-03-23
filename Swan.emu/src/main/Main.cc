@@ -37,14 +37,13 @@ namespace EmuEx
 using namespace MDFN_IEN_WSWAN;
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+bool EmuApp::needsGlobalInstance = true;
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
 		return IG::endsWithAnyCaseless(name, ".ws", ".wsc", ".bin");
 	};
-double EmuSystem::staticFrameTime = (159. * 256.) / 3072000.;
-bool EmuApp::needsGlobalInstance = true;
 
 const char *EmuSystem::shortSystemName() const { return "WS"; }
 const char *EmuSystem::systemName() const { return "WonderSwan"; }
@@ -109,6 +108,7 @@ void WsSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 	mdfnGameInfo.Load(&gf);
 	setupInput(EmuApp::get(appContext()));
 	WSwan_SetPixelFormat(toMDFNSurface(mSurfacePix).format);
+	prevLCDVTotal = 159; // initialize to ~75.47hz
 }
 
 bool WsSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
@@ -120,18 +120,22 @@ bool WsSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	return false;
 }
 
-void WsSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
+static uint8_t lcdVTotal() { return WSwan_GfxRead(0x16) + 1; }
+
+FloatSeconds WsSystem::frameTime() const { return FloatSeconds{lcdVTotal() * 256. / 3072000.}; }
+
+void WsSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
 	if(!hasContent())
 		return;
-	auto soundRate = std::round(rate / staticFrameTime * frameTime.count());
+	auto soundRate = audioMixRate(outputRate, outputFrameTime);
 	logMsg("emu sound rate:%f", soundRate);
 	WSwan_SetSoundRate(soundRate);
 }
 
 void WsSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	static constexpr int maxFrames = 48000/54;
+	static constexpr size_t maxFrames = 48000 / minFrameRate;
 	int16 audioBuff[maxFrames*2];
 	EmulateSpecStruct espec{};
 	if(audio)
@@ -150,6 +154,11 @@ void WsSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio 
 	{
 		assert((size_t)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));
 		audio->writeFrames((uint8_t*)audioBuff, espec.SoundBufSize);
+	}
+	if(prevLCDVTotal != lcdVTotal()) [[unlikely]]
+	{
+		prevLCDVTotal = lcdVTotal();
+		onFrameTimeChanged();
 	}
 }
 

@@ -22,6 +22,7 @@
 #include <imagine/gui/View.hh>
 #include <memory>
 #include <array>
+#include <span>
 
 namespace IG
 {
@@ -76,9 +77,9 @@ public:
 	void setRotateLeftButton(bool on);
 
 protected:
-	std::unique_ptr<Gfx::LGradientStopDesc[]> gradientStops{};
-	Gfx::Sprite leftSpr{}, rightSpr{};
-	Gfx::LGradient bg{};
+	std::unique_ptr<Gfx::LGradientStopDesc[]> gradientStops;
+	Gfx::Sprite leftSpr, rightSpr;
+	Gfx::LGradient bg;
 	Gfx::IQuad topBg{};
 	bool centerTitle = true;
 	bool rotateLeftBtn{};

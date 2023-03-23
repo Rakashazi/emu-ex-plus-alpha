@@ -21,6 +21,7 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/string/utf16.hh>
 #include <memory>
+#include <string_view>
 
 namespace IG::Input
 {
@@ -125,7 +126,7 @@ public:
 	WindowRect displayRect() const { return displayRect_; }
 	WindowRect displayInsetRect(Direction) const;
 	static WindowRect displayInsetRect(Direction, WindowRect viewRect, WindowRect displayRect);
-	bool pointIsInView(IG::WP pos);
+	bool pointIsInView(WP pos);
 	void waitForDrawFinished();
 
 	template<class T>
@@ -152,8 +153,8 @@ protected:
 	ViewManager *manager_{};
 	ViewController *controller_{};
 	DismissDelegate dismissDel{};
-	IG::WindowRect viewRect_{};
-	IG::WindowRect displayRect_{};
+	WRect viewRect_{};
+	WRect displayRect_{};
 };
 
 }

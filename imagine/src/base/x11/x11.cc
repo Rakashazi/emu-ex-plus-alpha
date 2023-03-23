@@ -145,6 +145,11 @@ Window *XApplication::windowForXWindow(::Window xWin) const
 	return nullptr;
 }
 
+static bool shouldBypassCompositor(const Window &win)
+{
+	return win.size() == win.screen()->sizePx();
+}
+
 bool XApplication::eventHandler(XEvent event)
 {
 	//logMsg("got event type %s (%d)", xEventTypeToString(event.type), event.type);
@@ -165,6 +170,16 @@ bool XApplication::eventHandler(XEvent event)
 			if(event.xconfigure.width == win.width() && event.xconfigure.height == win.height())
 				break;
 			win.updateSize({event.xconfigure.width, event.xconfigure.height});
+			if(auto newShouldBypassCompositorState = shouldBypassCompositor(win);
+				win.shouldBypassCompositorState != newShouldBypassCompositorState)
+			{
+				// allow bypassing compositor on WMs without full screen unredirect support like KWin, needed for VRR
+				logMsg("setting bypass compositor hint:%d", newShouldBypassCompositorState);
+				win.shouldBypassCompositorState = newShouldBypassCompositorState;
+				auto wmBypassCompositor = XInternAtom(dpy, "_NET_WM_BYPASS_COMPOSITOR", False);
+				int32_t val = newShouldBypassCompositorState ? 1 : 0;
+				XChangeProperty(dpy, win.nativeObject(), wmBypassCompositor, XA_CARDINAL, 32, PropModeReplace, (unsigned char*)&val, 1);
+			}
 			break;
 		}
 		case ClientMessage:

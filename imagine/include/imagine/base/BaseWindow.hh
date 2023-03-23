@@ -55,24 +55,24 @@ protected:
 	};
 
 	OnExit onExit;
-	SurfaceChangeDelegate onSurfaceChange{};
-	DrawDelegate onDraw{};
-	InputEventDelegate onInputEvent{};
-	FocusChangeDelegate onFocusChange{};
-	DragDropDelegate onDragDrop{};
-	DismissRequestDelegate onDismissRequest{};
-	DismissDelegate onDismiss{};
-	DelegateFuncSet<OnFrameDelegate> onFrame{};
-	std::shared_ptr<void> appDataPtr{};
-	std::shared_ptr<void> rendererDataPtr{};
+	SurfaceChangeDelegate onSurfaceChange;
+	DrawDelegate onDraw;
+	InputEventDelegate onInputEvent;
+	FocusChangeDelegate onFocusChange;
+	DragDropDelegate onDragDrop;
+	DismissRequestDelegate onDismissRequest;
+	DismissDelegate onDismiss;
+	DelegateFuncSet<OnFrameDelegate> onFrame;
+	std::shared_ptr<void> appDataPtr;
+	std::shared_ptr<void> rendererDataPtr;
 	IG_UseMemberIf(Config::BASE_MULTI_SCREEN, Screen*, screen_){};
 	CustomEvent drawEvent{"Window::drawEvent"};
-	IG::Point2D<int> winSizePixels{}; // size of full window surface
-	IG::Point2D<float> winSizeMM{}; // size in millimeter
-	IG::Point2D<float> mmToPixelScaler{};
+	IP winSizePixels{}; // size of full window surface
+	FP winSizeMM{}; // size in millimeter
+	FP mmToPixelScaler{};
 	 // size in millimeter scaled by OS
-	IG_UseMemberIf(Config::envIsAndroid, IG::Point2D<float>, winSizeSMM){};
-	IG_UseMemberIf(Config::envIsAndroid, IG::Point2D<float>, smmToPixelScaler){};
+	IG_UseMemberIf(Config::envIsAndroid, FP, winSizeSMM){};
+	IG_UseMemberIf(Config::envIsAndroid, FP, smmToPixelScaler){};
 	bool drawNeeded{};
 	DrawPhase drawPhase{DrawPhase::READY};
 	int8_t drawEventPriority_{};
@@ -87,7 +87,7 @@ protected:
 	void setOnDragDrop(DragDropDelegate del);
 	void setOnDismissRequest(DismissRequestDelegate del);
 	void setOnDismiss(DismissDelegate del);
-	IG::Point2D<float> smmPixelScaler() const;
+	FP smmPixelScaler() const;
 	void attachDrawEvent();
 };
 

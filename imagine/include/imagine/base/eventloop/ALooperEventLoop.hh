@@ -20,6 +20,7 @@
 #include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <android/looper.h>
 #include <memory>
+#include <utility>
 
 namespace IG
 {
@@ -45,8 +46,8 @@ public:
 
 protected:
 	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
-	std::unique_ptr<ALooperFDEventSourceInfo> info{};
-	MaybeUniqueFileDescriptor fd_{};
+	std::unique_ptr<ALooperFDEventSourceInfo> info;
+	MaybeUniqueFileDescriptor fd_;
 
 	const char *label() const;
 	void deinit();

@@ -19,6 +19,7 @@
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/util/string/CStringView.hh>
 #include <memory>
+#include <string_view>
 
 struct AAssetManager;
 struct AAssetDir;
@@ -29,7 +30,7 @@ namespace IG::FS
 class AAssetDirectory
 {
 public:
-	AAssetDirectory(AAssetManager *, IG::CStringView path);
+	AAssetDirectory(AAssetManager *, CStringView path);
 	bool readNextDir();
 	bool hasEntry() const;
 	std::string_view name() const;
@@ -62,7 +63,7 @@ public:
 	using reference = value_type&;
 
 	constexpr AAssetIterator() = default;
-	AAssetIterator(AAssetManager *, IG::CStringView path);
+	AAssetIterator(AAssetManager *, CStringView path);
 	AAssetIterator(const AAssetIterator&) = default;
 	AAssetIterator(AAssetIterator&&) = default;
 	AAssetDirectory& operator*();
@@ -71,7 +72,7 @@ public:
 	bool operator==(AAssetIterator const &rhs) const;
 
 protected:
-	std::shared_ptr<AAssetDirectory> impl{};
+	std::shared_ptr<AAssetDirectory> impl;
 };
 
 static const AAssetIterator &begin(const AAssetIterator &iter)

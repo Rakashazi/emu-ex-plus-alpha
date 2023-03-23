@@ -128,10 +128,10 @@ public:
 				x > other.x2 ? 0 : 1;
 	}
 
-	constexpr bool overlaps(IG::Point2D<T> p) const
+	constexpr bool overlaps(Point2D<T> p) const
 	{
 		//logMsg("testing %d,%d in rect %d,%d %d,%d", p.x, p.y, x, y, x2, y2);
-		return IG::isInRange(p.x, x, x2+1) && IG::isInRange(p.y, y, y2+1);
+		return isInRange(p.x, x, x2+1) && isInRange(p.y, y, y2+1);
 	}
 
 	constexpr bool contains(Rect2 other) const
@@ -141,7 +141,7 @@ public:
 			y <= other.y && y2 >= other.y2;
 	}
 
-	constexpr bool contains(IG::Point2D<T> point) const
+	constexpr bool contains(Point2D<T> point) const
 	{
 		return contains({point, point});
 	}
@@ -156,17 +156,17 @@ public:
 		return Point2D<T>{y, y2}.midpoint();
 	}
 
-	constexpr IG::Point2D<T> center() const
+	constexpr Point2D<T> center() const
 	{
 		return {xCenter(), yCenter()};
 	}
 
-	constexpr IG::Point2D<T> xAxis() const
+	constexpr Point2D<T> xAxis() const
 	{
 		return {x, x2};
 	}
 
-	constexpr IG::Point2D<T> yAxis() const
+	constexpr Point2D<T> yAxis() const
 	{
 		return {y, y2};
 	}
@@ -185,7 +185,7 @@ public:
 		y2 = newY + ySize;
 	}
 
-	constexpr void setRel(IG::Point2D<T> pos, IG::Point2D<T> size)
+	constexpr void setRel(Point2D<T> pos, Point2D<T> size)
 	{
 		setRelX(pos.x, size.x);
 		setRelY(pos.y, size.y);
@@ -204,7 +204,7 @@ public:
 		setLinked(y, newY, y2);
 	}
 
-	constexpr void setPos(IG::Point2D<T> newPos)
+	constexpr void setPos(Point2D<T> newPos)
 	{
 		setXPos(newPos.x);
 		setYPos(newPos.y);
@@ -214,7 +214,7 @@ public:
 
 	constexpr T ySize() const { return (y2 - y); }
 
-	constexpr IG::Point2D<T> size() const
+	constexpr Point2D<T> size() const
 	{
 		return {xSize(), ySize()};
 	}
@@ -235,7 +235,7 @@ public:
 		setRelY(y + offset, size);
 	}
 
-	constexpr void setSize(IG::Point2D<T> size, IG::Point2D<T> anchor)
+	constexpr void setSize(Point2D<T> size, Point2D<T> anchor)
 	{
 		setXSize(size.x, anchor.x);
 		setYSize(size.y, anchor.y);
@@ -293,7 +293,7 @@ public:
 	}
 
 	[[nodiscard]]
-	constexpr IG::Point2D<T> fitPoint(IG::Point2D<T> p)
+	constexpr Point2D<T> fitPoint(Point2D<T> p)
 	{
 		if(p.x < x)
 			p.x = x;
@@ -343,7 +343,7 @@ template<class T, bool xIsCartesian, bool yIsCartesian>
 class CoordinateRect : public Rect2<T>
 {
 public:
-	using Point2DType = IG::Point2D<T>;
+	using Point2DType = Point2D<T>;
 	using Rect2<T>::setXPos;
 	using Rect2<T>::setYPos;
 	using Rect2<T>::setPos;

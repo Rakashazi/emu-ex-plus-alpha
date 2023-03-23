@@ -21,6 +21,8 @@
 #include <imagine/fs/FS.hh>
 #endif
 
+#include <type_traits>
+
 namespace IG::FS
 {
 

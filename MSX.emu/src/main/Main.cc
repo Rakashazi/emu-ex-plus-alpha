@@ -688,10 +688,10 @@ void MsxSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 	destroyMachineOnReturn.cancel();
 }
 
-void MsxSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
+void MsxSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	assumeExpr(rate == 44100);// TODO: not all sound chips handle non-44100Hz sample rate
-	int mixRate = std::round(rate * (59.924 * frameTime.count()));
+	assumeExpr(outputRate == 44100);// TODO: not all sound chips handle non-44100Hz sample rate
+	int mixRate = audioMixRate(outputRate, outputFrameTime);
 	mixerSetSampleRate(mixer, mixRate);
 	logMsg("set mixer rate %d", (int)mixerGetSampleRate(mixer));
 }

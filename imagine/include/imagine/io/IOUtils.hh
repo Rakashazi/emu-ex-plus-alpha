@@ -20,6 +20,8 @@
 #include <imagine/util/concepts.hh>
 #include <memory>
 #include <utility>
+#include <span>
+#include <type_traits>
 
 namespace IG
 {

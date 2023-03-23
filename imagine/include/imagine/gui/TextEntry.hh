@@ -37,14 +37,14 @@ public:
 	void prepareDraw(Gfx::Renderer &r);
 	void draw(Gfx::RendererCommands &__restrict__);
 	void place(Gfx::Renderer &r);
-	void place(Gfx::Renderer &r, IG::WindowRect rect);
+	void place(Gfx::Renderer &r, WRect rect);
 	const char *textStr() const;
-	IG::WindowRect bgRect() const;
+	WRect bgRect() const;
 
 protected:
 	Gfx::Text t;
-	IG::WindowRect b;
-	IG::StaticString<128> str;
+	WRect b;
+	StaticString<128> str;
 	bool acceptingInput{};
 	bool multiLine{};
 };
@@ -55,9 +55,9 @@ public:
 	// returning non-zero keeps text entry active on Android
 	using OnTextDelegate = DelegateFunc<bool (CollectTextInputView &view, const char *str)>;
 
-	CollectTextInputView(ViewAttachParams attach, IG::CStringView msgText, IG::CStringView initialContent,
+	CollectTextInputView(ViewAttachParams attach, CStringView msgText, CStringView initialContent,
 		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = {});
-	CollectTextInputView(ViewAttachParams attach, IG::CStringView msgText,
+	CollectTextInputView(ViewAttachParams attach, CStringView msgText,
 		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = {}):
 		CollectTextInputView(attach, msgText, "", closeRes, onText, face) {}
 	void place() override;
@@ -66,7 +66,7 @@ public:
 	void draw(Gfx::RendererCommands &__restrict__) override;
 
 protected:
-	IG::WindowRect cancelBtn;
+	WRect cancelBtn;
 	// TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
 	IG_UseMemberIf(!Config::envIsAndroid, Gfx::Sprite, cancelSpr);
 	Gfx::Text message;

@@ -50,6 +50,7 @@ public:
 	Byte1Option optionReportAsGba{CFGKEY_REPORT_AS_GBA, 0};
 	Byte1Option optionAudioResampler{CFGKEY_AUDIO_RESAMPLER, 1};
 	Byte1Option optionFullGbcSaturation{CFGKEY_FULL_GBC_SATURATION, 0};
+	static constexpr FloatSeconds staticFrameTime{70224. / 4194304.}; // ~59.7275Hz
 
 	GbcSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -85,7 +86,8 @@ public:
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	void configAudioRate(FloatSeconds frameTime, int rate);
+	FloatSeconds frameTime() const { return staticFrameTime; }
+	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

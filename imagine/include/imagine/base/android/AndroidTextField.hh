@@ -25,7 +25,7 @@ namespace IG::Input
 class AndroidTextField
 {
 public:
-	AndroidTextField(ApplicationContext, TextFieldDelegate, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels);
+	AndroidTextField(ApplicationContext, TextFieldDelegate, CStringView initialText, CStringView promptText, int fontSizePixels);
 	~AndroidTextField();
 	AndroidTextField &operator=(AndroidTextField &&) = delete;
 
@@ -33,7 +33,7 @@ protected:
 	ApplicationContext ctx;
 	JNI::UniqueGlobalRef jTextEntry{};
 	TextFieldDelegate textDelegate;
-	IG::WindowRect textRect{{8, 200}, {8+304, 200+48}};
+	WRect textRect{{8, 200}, {8+304, 200+48}};
 
 	void setupTextEntryJni(JNIEnv*, jobject textEntry);
 };

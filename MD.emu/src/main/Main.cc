@@ -49,8 +49,6 @@ namespace EmuEx
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
-double EmuSystem::staticFrameTime = (262. * (double)MCYCLES_PER_LINE) / 53693175.; // ~59.92Hz
-double EmuSystem::staticPalFrameTime = (313. * (double)MCYCLES_PER_LINE) / 53203424.; // ~49.70Hz
 bool EmuSystem::canRenderRGBA8888 = RENDER_BPP == 32;
 bool EmuApp::needsGlobalInstance = true;
 
@@ -428,9 +426,9 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 	applyCheats();
 }
 
-void MdSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
+void MdSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	audio_init(rate, 1. / frameTime.count());
+	audio_init(outputRate, 1. / outputFrameTime.count());
 	if(hasContent())
 		sound_restore();
 	logMsg("md sound buffer size %d", snd.buffer_size);

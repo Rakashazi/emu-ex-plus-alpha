@@ -55,7 +55,7 @@ struct WindowConfig
 	bool isDefaultPosition() const { return position == Point2D<int>{-1, -1}; }
 	void setDefaultSize() { size = {0, 0}; }
 	bool isDefaultSize() const { return !size.x || !size.y; }
-	void setFormat(IG::PixelFormat);
+	void setFormat(PixelFormat);
 	void setScreen(Screen &screen) { screen_ = &screen; }
 	Screen &screen(ApplicationContext) const;
 };

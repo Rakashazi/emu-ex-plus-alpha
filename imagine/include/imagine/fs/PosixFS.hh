@@ -21,6 +21,7 @@
 #include <imagine/util/utility.h>
 #include <ctime>
 #include <memory>
+#include <string_view>
 #include <dirent.h>
 #include <unistd.h>
 #include <limits.h>

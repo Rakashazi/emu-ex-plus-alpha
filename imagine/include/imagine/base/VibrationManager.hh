@@ -41,7 +41,7 @@ class VibrationManager : public VibrationManagerImpl
 public:
 	using VibrationManagerImpl::VibrationManagerImpl;
 	bool hasVibrator() const;
-	void vibrate(IG::Milliseconds ms);
+	void vibrate(Milliseconds);
 };
 
 }

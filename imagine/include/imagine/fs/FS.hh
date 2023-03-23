@@ -22,6 +22,8 @@
 #include <concepts>
 #include <cstddef>
 #include <memory>
+#include <iterator>
+#include <string_view>
 
 // Tries to mirror API of C++ filesystem TS library in most cases
 
@@ -38,7 +40,7 @@ public:
 	using reference = value_type&;
 
 	constexpr directory_iterator() = default;
-	directory_iterator(IG::CStringView path);
+	directory_iterator(CStringView path);
 	directory_iterator(const directory_iterator&) = default;
 	directory_iterator(directory_iterator&&) = default;
 	directory_entry& operator*();
@@ -47,7 +49,7 @@ public:
 	bool operator==(directory_iterator const &rhs) const;
 
 protected:
-	std::shared_ptr<DirectoryStream> impl{};
+	std::shared_ptr<DirectoryStream> impl;
 };
 
 static const directory_iterator &begin(const directory_iterator &iter)
@@ -61,26 +63,26 @@ static directory_iterator end(const directory_iterator &)
 }
 
 PathString current_path();
-void current_path(IG::CStringView path);
-bool exists(IG::CStringView path);
-std::uintmax_t file_size(IG::CStringView path);
-file_status status(IG::CStringView path);
-file_status symlink_status(IG::CStringView path);
-void chown(IG::CStringView path, uid_t owner, gid_t group);
-bool access(IG::CStringView path, acc type);
-bool remove(IG::CStringView path);
-bool create_directory(IG::CStringView path);
-bool rename(IG::CStringView oldPath, IG::CStringView newPath);
+void current_path(CStringView path);
+bool exists(CStringView path);
+std::uintmax_t file_size(CStringView path);
+file_status status(CStringView path);
+file_status symlink_status(CStringView path);
+void chown(CStringView path, uid_t owner, gid_t group);
+bool access(CStringView path, acc type);
+bool remove(CStringView path);
+bool create_directory(CStringView path);
+bool rename(CStringView oldPath, CStringView newPath);
 
-PathString makeAppPathFromLaunchCommand(IG::CStringView launchPath);
-FileString basename(IG::CStringView path);
-PathString dirname(IG::CStringView path);
-FileString displayName(IG::CStringView path);
+PathString makeAppPathFromLaunchCommand(CStringView launchPath);
+FileString basename(CStringView path);
+PathString dirname(CStringView path);
+FileString displayName(CStringView path);
 
 // URI path functions
 static constexpr std::string_view uriPathSegmentTreeName{"/tree/"};
 static constexpr std::string_view uriPathSegmentDocumentName{"/document/"};
-PathString dirnameUri(IG::CStringView pathOrUri);
+PathString dirnameUri(CStringView pathOrUri);
 std::pair<std::string_view, size_t> uriPathSegment(std::string_view uri, std::string_view segmentName);
 
 template <class T>
@@ -99,14 +101,14 @@ static constexpr PathString pathString(ConvertibleToPathString auto &&base, auto
 
 static constexpr PathString uriString(ConvertibleToPathString auto &&base, auto &&...components)
 {
-	if(!IG::isUri(base))
+	if(!isUri(base))
 		return pathString(IG_forward(base), IG_forward(components)...);
 	// assumes base is already encoded and encodes the components
 	PathString uri{IG_forward(base)};
 	([&]()
 	{
 		uri += "%2F";
-		uri += IG::encodeUri<PathString>(IG_forward(components));
+		uri += encodeUri<PathString>(IG_forward(components));
 	}(), ...);
 	return uri;
 }

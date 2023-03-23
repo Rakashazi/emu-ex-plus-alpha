@@ -46,12 +46,13 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobe
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::f32;
+bool EmuApp::needsGlobalInstance = true;
+
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
 		return IG::endsWithAnyCaseless(name, ".a26", ".bin");
 	};
-bool EmuApp::needsGlobalInstance = true;
 
 const char *EmuSystem::shortSystemName() const
 {
@@ -127,12 +128,13 @@ void A2600System::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDeleg
 	Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
 	console.initializeVideo();
 	console.initializeAudio();
+	inputVideoFrameRate = videoSystem() == VideoSystem::PAL ? 50. : 60.;
 	logMsg("is PAL: %s", videoSystem() == VideoSystem::PAL ? "yes" : "no");
 }
 
-void A2600System::configAudioRate(IG::FloatSeconds frameTime, int rate)
+void A2600System::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	osystem.setFrameTime(frameTime.count(), rate, (AudioSettings::ResamplingQuality)optionAudioResampleQuality.val);
+	osystem.setSoundRate(outputRate, inputVideoFrameRate, outputFrameTime, AudioSettings::ResamplingQuality(optionAudioResampleQuality.val));
 }
 
 static void renderVideo(EmuSystemTaskContext taskCtx, EmuVideo &video, FrameBuffer &fb, TIA &tia)
@@ -164,7 +166,13 @@ void A2600System::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAud
 	{
 		renderVideo(taskCtx, *video, os.frameBuffer(), tia);
 	}
-	sound.updateRate(os);
+	if(auto newInputVideoFrameRate = osystem.console().currentFrameRate();
+		inputVideoFrameRate != newInputVideoFrameRate
+		&& newInputVideoFrameRate >= 40.0 && newInputVideoFrameRate <= 70.0) [[unlikely]]
+	{
+		inputVideoFrameRate = newInputVideoFrameRate;
+		onFrameTimeChanged();
+	}
 }
 
 void A2600System::renderFramebuffer(EmuVideo &video)

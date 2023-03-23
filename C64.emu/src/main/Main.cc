@@ -482,10 +482,10 @@ void C64System::renderFramebuffer(EmuVideo &video)
 	video.startFrameWithAltFormat({}, canvasSrcPix);
 }
 
-void C64System::configAudioRate(IG::FloatSeconds frameTime, int rate)
+void C64System::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	logMsg("set audio rate %d", rate);
-	int mixRate = std::round(rate * (systemFrameRate * frameTime.count()));
+	logMsg("set audio rate %d", outputRate);
+	int mixRate = audioMixRate(outputRate, systemFrameRate, outputFrameTime);
 	int currRate = 0;
 	plugin.resources_get_int("SoundSampleRate", &currRate);
 	if(currRate != mixRate)

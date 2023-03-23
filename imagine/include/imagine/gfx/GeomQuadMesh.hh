@@ -27,7 +27,7 @@ public:
 	ArrayView2<Vertex> v() const;
 
 protected:
-	std::unique_ptr<char[]> vMem{};
+	std::unique_ptr<char[]> vMem;
 	VertexIndex *i{};
 	int verts{};
 	int idxs{};

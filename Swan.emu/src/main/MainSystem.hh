@@ -77,6 +77,7 @@ public:
 	alignas(8) uint32_t pixBuff[vidBufferX*vidBufferY]{};
 	IG::StaticString<16> userName{};
 	WsUserProfile userProfile{defaultUserProfile};
+	uint8_t prevLCDVTotal{};
 	bool showVGamepadYWhenHorizonal = true;
 	bool showVGamepadABWhenVertical{};
 	WsRotation rotation{};
@@ -116,7 +117,8 @@ public:
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	void configAudioRate(FloatSeconds frameTime, int rate);
+	FloatSeconds frameTime() const;
+	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

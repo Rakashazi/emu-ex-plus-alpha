@@ -35,7 +35,6 @@ namespace EmuEx
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 bool EmuSystem::hasBundledGames = true;
 bool EmuSystem::hasCheats = true;
-double EmuSystem::staticFrameTime = 280896. / 16777216.; // ~59.7275Hz
 bool EmuApp::needsGlobalInstance = true;
 constexpr IG::WP lcdSize{240, 160};
 
@@ -196,10 +195,10 @@ void GbaSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	CPULoop(gGba, taskCtx, video, audio);
 }
 
-void GbaSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
+void GbaSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	double mixRate = std::round(rate / staticFrameTime * frameTime.count());
-	logMsg("set audio rate:%d, mix rate:%d", rate, (int)mixRate);
+	double mixRate = audioMixRate(outputRate, outputFrameTime);
+	logMsg("set audio rate:%d, mix rate:%d", outputRate, (int)mixRate);
 	soundSetSampleRate(gGba, mixRate);
 }
 

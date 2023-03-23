@@ -47,7 +47,7 @@ public:
 	using GlyphImageImpl::GlyphImageImpl;
 	PixmapView pixmap();
 	explicit operator bool() const;
-	operator IG::Data::PixmapSource();
+	operator Data::PixmapSource();
 };
 
 class Font : public FontImpl

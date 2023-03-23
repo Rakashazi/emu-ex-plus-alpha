@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Swan.emu"]
- 
+
     steps:
     - name: Checkout emu-ex-plus-alpha repo
       uses: actions/checkout@v3
@@ -22,11 +22,11 @@ jobs:
       run: |
         if [ -z "$DEBUG_KEYSTORE" ]
         then
-           echo "No debug keystore value"
+          echo "No debug keystore value"
         else
-           echo $DEBUG_KEYSTORE > debug.keystore.base64
-           base64 --decode debug.keystore.base64 > debug.keystore
-           sudo cp -f debug.keystore /root/.android/.
+          echo $DEBUG_KEYSTORE > debug.keystore.base64
+          base64 --decode debug.keystore.base64 > debug.keystore
+          sudo cp -f debug.keystore /root/.android/.
         fi
         
     - name: Install build dependencies
@@ -137,7 +137,7 @@ jobs:
       if: ${{ matrix.image == 'MD.emu' }}
       run: |
         cp MD.emu/target/android-release/build/outputs/apk/release/MdEmu-release.apk EX-Emulators/MdEmu-release.apk
-     
+        
     - name: Upload MD.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'MD.emu' }}
@@ -227,7 +227,7 @@ jobs:
       if: ${{ matrix.image == 'PCE.emu' }}
       run: |
         cp PCE.emu/target/android-release/build/outputs/apk/release/PceEmu-release.apk EX-Emulators/PceEmu-release.apk
-     
+
     - name: Upload PCE.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'PCE.emu' }}
@@ -245,7 +245,7 @@ jobs:
       if: ${{ matrix.image == 'Snes9x' }}
       run: |
         cp Snes9x/target/android-release/build/outputs/apk/release/Snes9xEXPlus-release.apk EX-Emulators/Snes9xEXPlus-release.apk
-     
+
     - name: Upload Snes9x artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'Snes9x' }}
@@ -304,6 +304,7 @@ jobs:
           zip -r "../${artifact}.zip" *
           popd
         done
+
     - name: Update Git Tag
       run: |
         git tag -f Pre-release

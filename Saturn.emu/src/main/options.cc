@@ -59,7 +59,6 @@ unsigned SH2Cores = std::size(SH2CoreList) - 1;
 bool EmuApp::hasIcon = false;
 bool EmuSystem::hasSound = !(Config::envIsAndroid || Config::envIsIOS);
 int EmuSystem::forcedSoundRate = 44100;
-bool EmuSystem::constFrameRate = true;
 
 std::span<const AspectRatioInfo> SaturnSystem::aspectRatioInfos()
 {

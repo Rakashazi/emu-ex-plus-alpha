@@ -18,6 +18,7 @@
 #include <stella/common/AudioSettings.hxx>
 #include <stella/common/audio/Resampler.hxx>
 #include <stella/emucore/Sound.hxx>
+#include <imagine/time/Time.hh>
 
 class OSystem;
 class AudioQueue;
@@ -39,10 +40,9 @@ public:
 	SoundEmuEx& operator=(SoundEmuEx&&) = delete;
 	void open(shared_ptr<AudioQueue> audioQueue, EmulationTiming* emulationTiming);
 	void close() final;
-	void setFrameTime(OSystem &osystem, double frameTime, int soundRate, AudioSettings::ResamplingQuality);
+	void setRate(int soundRate, double inputFrameRate, IG::FloatSeconds outputFrameTime, AudioSettings::ResamplingQuality);
 	void setResampleQuality(AudioSettings::ResamplingQuality quality);
 	void setEmuAudio(EmuEx::EmuAudio *audio);
-	void updateRate(OSystem &osystem);
 	void setEnabled(bool enable) final;
 	bool mute(bool state) final;
 	bool toggleMute() final;
@@ -56,9 +56,9 @@ private:
 	unique_ptr<Resampler> myResampler{};
 	EmulationTiming *emulationTiming{};
 	Int16 *currentFragment{};
-	double frameTime{};
-	double configuredVideoFrameRate{};
-	uint32_t soundRate{};
+	double inputFrameRate{};
+	IG::FloatSeconds outputFrameTime{};
+	int32_t outputRate{};
 	AudioSettings::ResamplingQuality resampleQuality{AudioSettings::DEFAULT_RESAMPLING_QUALITY};
 
 	void configForVideoFrameRate(double rate);

@@ -46,8 +46,8 @@ protected:
 	OnFrameDelegate animate;
 	Input::SingleDragTracker<> dragTracker{};
 	VelocityTrackerType velTracker{}; // tracks y velocity as pixels/sec
-	IG::WindowRect scrollBarRect{};
-	IG::FrameTime lastFrameTimestamp{};
+	WRect scrollBarRect{};
+	FrameTime lastFrameTimestamp{};
 	float scrollVel = 0;
 	float scrollAccel = 0;
 	float offsetAsDec = 0;
@@ -59,7 +59,7 @@ protected:
 	bool scrollWholeArea_ = false;
 	bool allowScrollWholeArea_ = false;
 
-	void setContentSize(IG::WP size);
+	void setContentSize(WP size);
 	void drawScrollContent(Gfx::RendererCommands &cmds);
 	bool scrollInputEvent(const Input::MotionEvent &);
 	void setScrollOffset(int o);

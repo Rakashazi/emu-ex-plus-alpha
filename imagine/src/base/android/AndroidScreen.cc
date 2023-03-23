@@ -71,6 +71,7 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass b
 						return;
 					}
 					screen->updateRefreshRate(refreshRate);
+					app.dispatchOnScreenChange(ctx, *screen, ScreenChange::Action::changedFrameRate);
 				}
 			},
 			{
@@ -283,15 +284,16 @@ void Screen::setFrameRate(double rate)
 	frameTimer.setFrameTime(time);
 }
 
-std::vector<double> Screen::supportedFrameRates(ApplicationContext ctx) const
+std::vector<double> Screen::supportedFrameRates() const
 {
 	std::vector<double> rateVec;
+	auto ctx = appContext();
 	if(ctx.androidSDK() < 21)
 	{
 		rateVec.reserve(1);
 		rateVec.emplace_back(frameRate());
 	}
-	auto env = ctx.mainThreadJniEnv();
+	auto env = ctx.thisThreadJniEnv();
 	JNI::InstMethod<jobject()> jGetSupportedRefreshRates{env, (jobject)aDisplay, "getSupportedRefreshRates", "()[F"};
 	auto jRates = (jfloatArray)jGetSupportedRefreshRates(env, aDisplay);
 	std::span<jfloat> rates{env->GetFloatArrayElements(jRates, 0), (size_t)env->GetArrayLength(jRates)};

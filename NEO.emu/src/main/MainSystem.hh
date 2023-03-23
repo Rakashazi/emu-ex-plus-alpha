@@ -49,6 +49,7 @@ public:
 	Byte1Option optionTimerInt{CFGKEY_TIMER_INT, 2};
 	Byte1Option optionCreateAndUseCache{CFGKEY_CREATE_USE_CACHE, 0};
 	Byte1Option optionStrictROMChecking{CFGKEY_STRICT_ROM_CHECKING, 0};
+	static constexpr FloatSeconds staticFrameTime{264. / 15625.}; // ~59.18Hz
 
 	NeoSystem(ApplicationContext ctx);
 	void setTimerIntOption();
@@ -72,7 +73,8 @@ public:
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	void configAudioRate(FloatSeconds frameTime, int rate);
+	FloatSeconds frameTime() const { return staticFrameTime; }
+	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

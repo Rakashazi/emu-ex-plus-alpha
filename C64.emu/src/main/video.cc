@@ -67,9 +67,9 @@ void vsync_do_vsync2(struct video_canvas_s *c)
 
 void vsyncarch_refresh_frequency_changed(double rate)
 {
-	logMsg("system frame rate:%.4f", rate);
-	static_cast<C64System&>(EmuEx::gSystem()).systemFrameRate = rate;
-	EmuEx::gApp().configFrameTime();
+	auto &system = static_cast<C64System&>(EmuEx::gSystem());
+	system.systemFrameRate = rate;
+	system.onFrameTimeChanged();
 }
 
 static bool isValidPixelFormat(IG::PixelFormat fmt)

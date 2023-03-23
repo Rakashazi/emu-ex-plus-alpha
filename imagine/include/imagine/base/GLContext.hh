@@ -31,6 +31,7 @@
 #include <imagine/base/glDefs.hh>
 #include <imagine/util/concepts.hh>
 #include <optional>
+#include <type_traits>
 
 namespace IG
 {
@@ -43,7 +44,7 @@ class ErrorCode;
 class GLBufferConfigAttributes
 {
 public:
-	IG::PixelFormat pixelFormat{};
+	PixelFormat pixelFormat{};
 	bool useAlpha{};
 	bool useDepth{};
 	bool useStencil{};
@@ -145,7 +146,7 @@ public:
 	bool hasSrgbColorSpace() const;
 	void logInfo() const;
 
-	static bool loadSymbol(IG::Pointer auto &symPtr, const char *name)
+	static bool loadSymbol(Pointer auto &symPtr, const char *name)
 	{
 		symPtr = reinterpret_cast<std::remove_reference_t<decltype(symPtr)>>(procAddress(name));
 		return symPtr;

@@ -26,6 +26,8 @@
 #include <imagine/base/timer/CFTimer.hh>
 #endif
 
+#include <chrono>
+
 namespace IG
 {
 
@@ -45,16 +47,16 @@ public:
 	bool isArmed();
 	explicit operator bool() const;
 
-	void runIn(IG::ChronoDuration auto time,
-		IG::ChronoDuration auto repeatTime,
+	void runIn(ChronoDuration auto time,
+		ChronoDuration auto repeatTime,
 		EventLoop loop = {}, CallbackDelegate f = {})
 	{
 		run(std::chrono::duration_cast<Time>(time),
 			std::chrono::duration_cast<Time>(repeatTime), false, loop, f);
 	}
 
-	void runAt(IG::ChronoDuration auto time,
-		IG::ChronoDuration auto repeatTime,
+	void runAt(ChronoDuration auto time,
+		ChronoDuration auto repeatTime,
 		EventLoop loop = {}, CallbackDelegate f = {})
 	{
 		run(std::chrono::duration_cast<Time>(time),
@@ -62,12 +64,12 @@ public:
 	}
 
 	// non-repeating timer
-	void runIn(IG::ChronoDuration auto time, EventLoop loop = {}, CallbackDelegate f = {})
+	void runIn(ChronoDuration auto time, EventLoop loop = {}, CallbackDelegate f = {})
 	{
 		run(std::chrono::duration_cast<Time>(time), Time{}, false, loop, f);
 	}
 
-	void runAt(IG::ChronoDuration auto time, EventLoop loop = {}, CallbackDelegate f = {})
+	void runAt(ChronoDuration auto time, EventLoop loop = {}, CallbackDelegate f = {})
 	{
 		run(std::chrono::duration_cast<Time>(time), Time{}, true, loop, f);
 	}

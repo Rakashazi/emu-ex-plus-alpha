@@ -20,6 +20,7 @@
 #include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/input/inputDefs.hh>
 #include <string>
+#include <string_view>
 #include <variant>
 
 namespace IG
@@ -152,7 +153,7 @@ public:
 	constexpr MotionEvent(Map map, Key button, uint32_t metaState, Action state, int x, int y, PointerId pointerId, Source src, Time time, const Device *device)
 		: BaseEvent{map, button, metaState, state, src, time, device}, pointerId_{pointerId}, x{x}, y{y} {}
 
-	IG::WP pos() const;
+	WP pos() const;
 	PointerId pointerId() const;
 	bool pointerDown(Key btnMask) const;
 	int scrolledVertical() const;

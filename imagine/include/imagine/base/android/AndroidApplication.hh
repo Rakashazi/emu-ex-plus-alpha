@@ -24,6 +24,7 @@
 #include <pthread.h>
 #include <optional>
 #include <string>
+#include <utility>
 
 struct ANativeActivity;
 struct AInputQueue;
@@ -89,13 +90,13 @@ public:
 	FrameTimer makeFrameTimer(Screen &);
 	bool requestPermission(ApplicationContext, Permission);
 	UniqueFileDescriptor openFileUriFd(JNIEnv *, jobject baseActivity, CStringView uri, OpenFlagsMask oFlags = {}) const;
-	bool fileUriExists(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
+	bool fileUriExists(JNIEnv *, jobject baseActivity, CStringView uri) const;
 	Seconds fileUriLastWriteTime(JNIEnv *, jobject baseActivity, CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(JNIEnv *, jobject baseActivity, CStringView uri) const;
-	FS::FileString fileUriDisplayName(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
-	bool removeFileUri(JNIEnv *, jobject baseActivity, IG::CStringView uri, bool isDir) const;
-	bool renameFileUri(JNIEnv *, jobject baseActivity, IG::CStringView oldUri, IG::CStringView newUri) const;
-	bool createDirectoryUri(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
+	FS::FileString fileUriDisplayName(JNIEnv *, jobject baseActivity, CStringView uri) const;
+	bool removeFileUri(JNIEnv *, jobject baseActivity, CStringView uri, bool isDir) const;
+	bool renameFileUri(JNIEnv *, jobject baseActivity, CStringView oldUri, CStringView newUri) const;
+	bool createDirectoryUri(JNIEnv *, jobject baseActivity, CStringView uri) const;
 	bool forEachInDirectoryUri(JNIEnv *, jobject baseActivity, CStringView uri, DirectoryEntryDelegate,
 		FS::DirOpenFlagsMask) const;
 	std::string formatDateAndTime(JNIEnv *, jclass baseActivityClass, WallClockTime timeSinceEpoch);

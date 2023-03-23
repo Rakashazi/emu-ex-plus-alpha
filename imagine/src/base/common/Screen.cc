@@ -28,8 +28,8 @@ namespace IG
 
 Screen::Screen(ApplicationContext ctx, InitParams params):
 	ScreenImpl{ctx, params},
-	windowsPtr{&ctx.application().windows()}
-{}
+	windowsPtr{&ctx.application().windows()},
+	appCtx{ctx} {}
 
 bool Screen::addOnFrame(OnFrameDelegate del, int priority)
 {

@@ -26,7 +26,7 @@ class CallbackDelegate : public DelegateFunc<bool ()>
 public:
 	using DelegateFuncBase::DelegateFuncBase;
 
-	constexpr CallbackDelegate(IG::Callable<void> auto &&f):
+	constexpr CallbackDelegate(Callable<void> auto &&f):
 		DelegateFuncBase
 		{
 			[=]()

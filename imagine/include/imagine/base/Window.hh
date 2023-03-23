@@ -22,6 +22,8 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/utility.h>
+#include <span>
+#include <memory>
 
 namespace IG::Input
 {
@@ -61,8 +63,8 @@ public:
 	NativeWindow nativeObject() const;
 	void setIntendedFrameRate(double rate);
 	void setFormat(NativeWindowFormat);
-	void setFormat(IG::PixelFormat);
-	IG::PixelFormat pixelFormat() const;
+	void setFormat(PixelFormat);
+	PixelFormat pixelFormat() const;
 	bool operator ==(Window const &rhs) const;
 	bool addOnFrame(OnFrameDelegate del, FrameTimeSource src = {}, int priority = 0);
 	bool removeOnFrame(OnFrameDelegate del, FrameTimeSource src = {});
@@ -125,31 +127,31 @@ public:
 	int realHeight() const;
 	int width() const;
 	int height() const;
-	IG::Point2D<int> realSize() const;
-	IG::Point2D<int> size() const;
+	IP realSize() const;
+	IP size() const;
 	bool isPortrait() const;
 	bool isLandscape() const;
-	IG::Point2D<float> sizeMM() const;
-	IG::Point2D<float> sizeScaledMM() const;
+	FP sizeMM() const;
+	FP sizeScaledMM() const;
 	int widthMMInPixels(float mm) const;
 	int heightMMInPixels(float mm) const;
 	int widthScaledMMInPixels(float mm) const;
 	int heightScaledMMInPixels(float mm) const;
-	IG::WindowRect bounds() const;
-	IG::Point2D<int> transformInputPos(IG::Point2D<int> srcPos) const;
+	WRect bounds() const;
+	IP transformInputPos(IP srcPos) const;
 	Viewport viewport(WindowRect rect) const;
 	Viewport viewport() const;
 
 	// content in these bounds isn't blocked by system overlays and receives pointer input
-	IG::WindowRect contentBounds() const;
+	WRect contentBounds() const;
 
 	Rotation softOrientation() const;
 	bool requestOrientationChange(Rotation o);
 	bool setValidOrientations(OrientationMask);
 
-	bool updateSize(IG::Point2D<int> surfaceSize);
-	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM);
-	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<float> surfaceSizeSMM);
+	bool updateSize(IP surfaceSize);
+	bool updatePhysicalSize(FP surfaceSizeMM);
+	bool updatePhysicalSize(FP surfaceSizeMM, FP surfaceSizeSMM);
 	bool updatePhysicalSizeWithCurrentSize();
 	bool hasSurface() const;
 	bool dispatchInputEvent(Input::Event event);
@@ -165,8 +167,8 @@ public:
 	void signalSurfaceChanged(uint8_t surfaceChangeFlags);
 
 private:
-	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);
-	IG::Point2D<float> pixelSizeAsScaledMM(IG::Point2D<int> size);
+	FP pixelSizeAsMM(IP size);
+	FP pixelSizeAsScaledMM(IP size);
 	void draw(bool needsSync = false);
 };
 

@@ -47,8 +47,10 @@ protected:
 	IG_UseMemberIf(Config::SCREEN_FRAME_INTERVAL, TextMenuItem, frameIntervalItem[4]);
 	IG_UseMemberIf(Config::SCREEN_FRAME_INTERVAL, MultiChoiceMenuItem, frameInterval);
 	BoolMenuItem dropLateFrames;
-	TextMenuItem frameRate;
-	TextMenuItem frameRatePAL;
+	TextMenuItem frameRateItems[4];
+	VideoSystem activeVideoSystem{};
+	MultiChoiceMenuItem frameRate;
+	MultiChoiceMenuItem frameRatePAL;
 	StaticArrayList<TextMenuItem, MAX_ASPECT_RATIO_ITEMS> aspectRatioItem;
 	MultiChoiceMenuItem aspectRatio;
 	TextMenuItem zoomItem[6];
@@ -92,8 +94,7 @@ protected:
 	TextHeadingMenuItem systemSpecificHeading;
 	StaticArrayList<MenuItem*, 34> item;
 
-	void pushAndShowFrameRateSelectMenu(VideoSystem, const Input::Event &);
-	bool onFrameTimeChange(VideoSystem vidSys, IG::FloatSeconds time);
+	bool onFrameTimeChange(VideoSystem vidSys, FloatSeconds time);
 	TextMenuItem::SelectDelegate setVideoBrightnessCustomDel(ImageChannel);
 	void setAllColorLevelsSelected(MenuItem::Id);
 	EmuVideo &emuVideo() const;

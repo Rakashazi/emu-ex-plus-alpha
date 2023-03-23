@@ -23,7 +23,7 @@
 #include <imagine/base/linux/FBDevFrameTimer.hh>
 #include <imagine/base/FrameTimerInterface.hh>
 #include <utility>
-#include <memory>
+#include <variant>
 
 namespace IG
 {
@@ -61,7 +61,7 @@ protected:
 	void *xScreen{};
 	FrameTimer frameTimer;
 	float xMM{}, yMM{};
-	IG::FloatSeconds frameTime_{};
+	FloatSeconds frameTime_{};
 	bool reliableFrameTime = true;
 };
 

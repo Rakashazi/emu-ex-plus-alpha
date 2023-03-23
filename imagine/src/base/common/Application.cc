@@ -69,7 +69,7 @@ Screen &BaseApplication::addScreen(ApplicationContext ctx, std::unique_ptr<Scree
 	auto &screen = *ptr.get();
 	screen_.emplace_back(std::move(ptr));
 	if(notify && onScreenChange_)
-		onScreenChange_(ctx, screen, ScreenChange::Action::ADDED);
+		onScreenChange_(ctx, screen, ScreenChange::Action::added);
 	return screen;
 }
 
@@ -87,7 +87,7 @@ std::unique_ptr<Screen> BaseApplication::removeScreen(ApplicationContext ctx, Sc
 {
 	auto removedScreen = IG::moveOutIf(screen_, [&](const auto &s){ return *s == id; });
 	if(notify && removedScreen && onScreenChange_)
-		onScreenChange_(ctx, *removedScreen, ScreenChange::Action::REMOVED);
+		onScreenChange_(ctx, *removedScreen, ScreenChange::Action::removed);
 	return removedScreen;
 }
 
@@ -223,6 +223,12 @@ bool BaseApplication::hasOnInterProcessMessage() const
 void BaseApplication::setOnScreenChange(ScreenChangeDelegate del)
 {
 	onScreenChange_ = del;
+}
+
+void BaseApplication::dispatchOnScreenChange(ApplicationContext ctx, Screen &s, ScreenChange change)
+{
+	if(onScreenChange_)
+		onScreenChange_(ctx, s, change);
 }
 
 void BaseApplication::dispatchOnResume(ApplicationContext ctx, bool focused)

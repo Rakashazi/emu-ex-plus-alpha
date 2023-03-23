@@ -48,7 +48,7 @@ protected:
 		UniqueASensorEventQueue queue{};
 		SensorChangedDelegate del{};
 	};
-	std::unique_ptr<ControlBlock> ctrl{};
+	std::unique_ptr<ControlBlock> ctrl;
 };
 
 using SensorListenerImpl = AndroidSensorListener;

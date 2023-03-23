@@ -23,6 +23,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/utility.h>
 #include <string>
+#include <string_view>
 #include <span>
 #include <memory>
 
@@ -60,22 +61,22 @@ public:
 	using TypeBits = DeviceTypeBits;
 
 	static constexpr TypeBits
-		TYPE_BIT_KEY_MISC = IG::bit(0),
-		TYPE_BIT_KEYBOARD = IG::bit(1),
-		TYPE_BIT_GAMEPAD = IG::bit(2),
-		TYPE_BIT_JOYSTICK = IG::bit(3),
-		TYPE_BIT_VIRTUAL = IG::bit(4),
-		TYPE_BIT_MOUSE = IG::bit(5),
-		TYPE_BIT_TOUCHSCREEN = IG::bit(6),
-		TYPE_BIT_POWER_BUTTON = IG::bit(7);
+		TYPE_BIT_KEY_MISC = bit(0),
+		TYPE_BIT_KEYBOARD = bit(1),
+		TYPE_BIT_GAMEPAD = bit(2),
+		TYPE_BIT_JOYSTICK = bit(3),
+		TYPE_BIT_VIRTUAL = bit(4),
+		TYPE_BIT_MOUSE = bit(5),
+		TYPE_BIT_TOUCHSCREEN = bit(6),
+		TYPE_BIT_POWER_BUTTON = bit(7);
 
 	static constexpr uint32_t
-		AXIS_BIT_X = IG::bit(0), AXIS_BIT_Y = IG::bit(1), AXIS_BIT_Z = IG::bit(2),
-		AXIS_BIT_RX = IG::bit(3), AXIS_BIT_RY = IG::bit(4), AXIS_BIT_RZ = IG::bit(5),
-		AXIS_BIT_HAT_X = IG::bit(6), AXIS_BIT_HAT_Y = IG::bit(7),
-		AXIS_BIT_LTRIGGER = IG::bit(8), AXIS_BIT_RTRIGGER = IG::bit(9),
-		AXIS_BIT_RUDDER = IG::bit(10), AXIS_BIT_WHEEL = IG::bit(11),
-		AXIS_BIT_GAS = IG::bit(12), AXIS_BIT_BRAKE = IG::bit(13);
+		AXIS_BIT_X = bit(0), AXIS_BIT_Y = bit(1), AXIS_BIT_Z = bit(2),
+		AXIS_BIT_RX = bit(3), AXIS_BIT_RY = bit(4), AXIS_BIT_RZ = bit(5),
+		AXIS_BIT_HAT_X = bit(6), AXIS_BIT_HAT_Y = bit(7),
+		AXIS_BIT_LTRIGGER = bit(8), AXIS_BIT_RTRIGGER = bit(9),
+		AXIS_BIT_RUDDER = bit(10), AXIS_BIT_WHEEL = bit(11),
+		AXIS_BIT_GAS = bit(12), AXIS_BIT_BRAKE = bit(13);
 
 	static constexpr uint32_t
 		AXIS_BITS_STICK_1 = AXIS_BIT_X | AXIS_BIT_Y,
@@ -157,8 +158,8 @@ public:
 	}
 
 protected:
-	std::shared_ptr<void> appDataPtr{};
-	std::string name_{};
+	std::shared_ptr<void> appDataPtr;
+	std::string name_;
 	int id_{};
 	TypeBits typeBits_{};
 	uint8_t enumId_{};

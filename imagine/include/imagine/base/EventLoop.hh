@@ -27,6 +27,7 @@
 #endif
 
 #include <imagine/base/eventLoopDefs.hh>
+#include <utility>
 
 namespace IG
 {

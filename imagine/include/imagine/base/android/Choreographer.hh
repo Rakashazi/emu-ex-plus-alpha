@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/util/jni.hh>
+#include <variant>
 
 struct AChoreographer;
 

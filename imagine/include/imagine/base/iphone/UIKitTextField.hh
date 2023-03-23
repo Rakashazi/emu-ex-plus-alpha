@@ -28,14 +28,14 @@ namespace IG::Input
 class UIKitTextField
 {
 public:
-	UIKitTextField(ApplicationContext, TextFieldDelegate, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels);
+	UIKitTextField(ApplicationContext, TextFieldDelegate, CStringView initialText, CStringView promptText, int fontSizePixels);
 	~UIKitTextField();
 	UIKitTextField &operator=(UIKitTextField &&) = delete;
 
 protected:
 	ApplicationContext ctx;
 	void *textField_{};
-	IG::WindowRect textRect{{8, 200}, {8+304, 200+48}};
+	WRect textRect{{8, 200}, {8+304, 200+48}};
 
 	#ifdef __OBJC__
 	IGAppTextField *textField() const { return (__bridge IGAppTextField*)textField_; }

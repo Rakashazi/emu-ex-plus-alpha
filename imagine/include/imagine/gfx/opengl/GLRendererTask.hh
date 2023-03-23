@@ -22,6 +22,7 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/utility.h>
 #include <concepts>
+#include <array>
 
 namespace IG
 {
@@ -76,7 +77,7 @@ public:
 
 	// for iOS EAGLView renderbuffer management
 	void setIOSDrawableDelegates();
-	IG::Point2D<int> makeIOSDrawableRenderbuffer(void *layer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer);
+	IP makeIOSDrawableRenderbuffer(void *layer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer);
 	void deleteIOSDrawableRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffer);
 
 protected:

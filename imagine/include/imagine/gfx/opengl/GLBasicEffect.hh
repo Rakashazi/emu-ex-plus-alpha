@@ -19,6 +19,7 @@
 #include <imagine/gfx/defs.hh>
 #include "GLSLProgram.hh"
 #include <span>
+#include <string_view>
 
 namespace IG::Gfx
 {

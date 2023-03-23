@@ -40,7 +40,7 @@ class LockedTextureBuffer: public LockedTextureBufferImpl
 public:
 	using LockedTextureBufferImpl::LockedTextureBufferImpl;
 	MutablePixmapView pixmap() const;
-	IG::WindowRect sourceDirtyRect() const;
+	WRect sourceDirtyRect() const;
 	explicit operator bool() const;
 };
 
@@ -48,25 +48,25 @@ class Texture: public TextureImpl
 {
 public:
 	static constexpr uint32_t MAX_ASSUME_ALIGN = 8;
-	static constexpr uint32_t WRITE_FLAG_ASYNC = IG::bit(0);
-	static constexpr uint32_t WRITE_FLAG_MAKE_MIPMAPS = IG::bit(1);
-	static constexpr uint32_t BUFFER_FLAG_CLEARED = IG::bit(0);
+	static constexpr uint32_t WRITE_FLAG_ASYNC = bit(0);
+	static constexpr uint32_t WRITE_FLAG_MAKE_MIPMAPS = bit(1);
+	static constexpr uint32_t BUFFER_FLAG_CLEARED = bit(0);
 
 	using TextureImpl::TextureImpl;
 	Texture(RendererTask &, TextureConfig);
-	Texture(RendererTask &, IG::Data::PixmapSource, TextureSamplerConfig, bool makeMipmaps);
+	Texture(RendererTask &, Data::PixmapSource, TextureSamplerConfig, bool makeMipmaps);
 	static int bestAlignment(PixmapView pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
 	int levels() const;
 	ErrorCode setFormat(PixmapDesc, int levels, ColorSpace c = {}, TextureSamplerConfig samplerConf = {});
-	void write(int level, PixmapView pixmap, IG::WP destPos, uint32_t writeFlags = 0);
-	void writeAligned(int level, PixmapView pixmap, IG::WP destPos, int assumedDataAlignment, uint32_t writeFlags = 0);
+	void write(int level, PixmapView pixmap, WP destPos, uint32_t writeFlags = 0);
+	void writeAligned(int level, PixmapView pixmap, WP destPos, int assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear(int level);
 	LockedTextureBuffer lock(int level, uint32_t bufferFlags = 0);
-	LockedTextureBuffer lock(int level, IG::WindowRect rect, uint32_t bufferFlags = 0);
+	LockedTextureBuffer lock(int level, WRect rect, uint32_t bufferFlags = 0);
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
-	IG::WP size(int level) const;
+	WP size(int level) const;
 	PixmapDesc pixmapDesc() const;
 	void setSampler(TextureSamplerConfig);
 	explicit operator bool() const;

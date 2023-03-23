@@ -18,8 +18,8 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/linux/LinuxApplication.hh>
 #include <imagine/base/EventLoop.hh>
-#include <memory>
 #include <string>
+#include <array>
 
 struct _XDisplay;
 union _XEvent;

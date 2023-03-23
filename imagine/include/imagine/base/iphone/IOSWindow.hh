@@ -41,7 +41,7 @@ class IOSWindow : public BaseWindow
 {
 public:
 	void *uiWin_{}; // UIWindow in ObjC
-	IG::WindowRect contentRect{}; // active window content
+	WRect contentRect{}; // active window content
 	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
 	CGFloat pointScale{1.};
 	#else

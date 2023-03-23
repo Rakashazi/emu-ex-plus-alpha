@@ -56,7 +56,7 @@ public:
 		return delegate.size();
 	}
 
-	void runAll(IG::Callable<bool, Delegate> auto &&exec, bool skipRemovedDelegates = false)
+	void runAll(Callable<bool, Delegate> auto &&exec, bool skipRemovedDelegates = false)
 	{
 		auto delegatesSize = size();
 		if(!delegatesSize)
@@ -71,7 +71,7 @@ public:
 			}
 			if(!exec(d.del))
 			{
-				IG::eraseFirst(delegate, d);
+				eraseFirst(delegate, d);
 			}
 		}
 	}
@@ -96,7 +96,7 @@ protected:
 			[&](auto &e) { return e.del == del; });
 	}
 
-	IG::FlatMultiSet<DelegateEntry> delegate{};
+	FlatMultiSet<DelegateEntry> delegate{};
 };
 
 }

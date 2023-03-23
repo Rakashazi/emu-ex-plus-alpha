@@ -21,6 +21,7 @@
 #endif
 #include <imagine/util/string/CStringView.hh>
 #include <span>
+#include <utility>
 
 namespace IG
 {

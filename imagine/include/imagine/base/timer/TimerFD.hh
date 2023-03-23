@@ -28,7 +28,7 @@ namespace IG
 class TimerFD
 {
 public:
-	using Time = IG::Nanoseconds;
+	using Time = Nanoseconds;
 
 	constexpr TimerFD() = default;
 	TimerFD(CallbackDelegate c) : TimerFD{nullptr, c} {}
@@ -36,8 +36,8 @@ public:
 
 protected:
 	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
-	std::unique_ptr<CallbackDelegate> callback_{};
-	FDEventSource fdSrc{};
+	std::unique_ptr<CallbackDelegate> callback_;
+	FDEventSource fdSrc;
 
 	bool arm(timespec ms, timespec repeatInterval, int flags, EventLoop loop);
 	const char *label();

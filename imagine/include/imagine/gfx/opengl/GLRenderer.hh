@@ -24,6 +24,8 @@
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/util/used.hh>
 #include <memory>
+#include <optional>
+#include <string_view>
 #ifdef CONFIG_BASE_GL_PLATFORM_EGL
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -165,7 +167,7 @@ public:
 
 protected:
 	void addEventHandlers(ApplicationContext, RendererTask &);
-	std::optional<GLBufferConfig> makeGLBufferConfig(ApplicationContext, IG::PixelFormat, const Window * = {});
+	std::optional<GLBufferConfig> makeGLBufferConfig(ApplicationContext, PixelFormat, const Window * = {});
 	void setCurrentDrawable(GLDisplay, GLContext, Drawable);
 	void setupNonPow2Textures();
 	void setupNonPow2MipmapTextures();

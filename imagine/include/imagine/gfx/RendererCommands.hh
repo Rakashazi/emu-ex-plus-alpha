@@ -24,6 +24,7 @@
 
 #include <imagine/gfx/SyncFence.hh>
 #include <span>
+#include <chrono>
 
 namespace IG
 {
@@ -68,7 +69,7 @@ class RendererCommands : public RendererCommandsImpl
 public:
 	using RendererCommandsImpl::RendererCommandsImpl;
 	void present();
-	void presentAtTime(IG::FrameTime time);
+	void presentAtTime(FrameTime);
 	void presentNow();
 	void setRenderTarget(Texture &t);
 	void setDefaultRenderTarget();

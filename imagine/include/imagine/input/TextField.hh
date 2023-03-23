@@ -45,8 +45,8 @@ public:
 	using TextFieldImpl::TextFieldImpl;
 	void cancel();
 	void finish();
-	void place(IG::WindowRect rect);
-	IG::WindowRect windowRect() const;
+	void place(WRect rect);
+	WRect windowRect() const;
 };
 
 }

@@ -20,6 +20,8 @@
 #include <imagine/io/ArchiveIO.hh>
 #include <imagine/util/string/CStringView.hh>
 #include <memory>
+#include <iterator>
+#include <string_view>
 
 namespace IG
 {
@@ -45,15 +47,15 @@ public:
 	ArchiveIterator(const ArchiveIterator&) = default;
 	ArchiveIterator(ArchiveIterator&&) = default;
 	ArchiveIterator &operator=(ArchiveIterator &&o) = default;
-	IG::ArchiveEntry& operator*();
-	IG::ArchiveEntry* operator->();
+	ArchiveEntry& operator*();
+	ArchiveEntry* operator->();
 	void operator++();
 	bool operator==(ArchiveIterator const &rhs) const;
 	void rewind();
 	bool hasEntry() const { return (bool)impl; }
 
 private:
-	std::shared_ptr<IG::ArchiveEntry> impl{};
+	std::shared_ptr<ArchiveEntry> impl;
 };
 
 static const ArchiveIterator &begin(const ArchiveIterator &iter)
@@ -66,8 +68,8 @@ static ArchiveIterator end(const ArchiveIterator &)
 	return {};
 }
 
-IG::ArchiveIO fileFromArchive(CStringView archivePath, std::string_view filePath);
-IG::ArchiveIO fileFromArchive(IO archiveIO, std::string_view filePath);
+ArchiveIO fileFromArchive(CStringView archivePath, std::string_view filePath);
+ArchiveIO fileFromArchive(IO archiveIO, std::string_view filePath);
 bool hasArchiveExtension(std::string_view name);
 
 };

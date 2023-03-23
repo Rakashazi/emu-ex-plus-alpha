@@ -113,7 +113,7 @@ public:
 		attach(EventLoop::forThread(), IG_forward(f));
 	}
 
-	void attach(EventLoop loop, IG::Callable<void, Messages> auto &&f)
+	void attach(EventLoop loop, Callable<void, Messages> auto &&f)
 	{
 		pipe.attach(loop,
 			[=](auto &io) -> bool
@@ -124,7 +124,7 @@ public:
 			});
 	}
 
-	void attach(EventLoop loop, IG::Callable<bool, Messages> auto &&f)
+	void attach(EventLoop loop, Callable<bool, Messages> auto &&f)
 	{
 		pipe.attach(loop,
 			[=](auto &io) -> bool

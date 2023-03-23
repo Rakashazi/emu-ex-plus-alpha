@@ -20,6 +20,7 @@
 #include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <CoreFoundation/CoreFoundation.h>
 #include <memory>
+#include <utility>
 
 namespace IG
 {
@@ -49,7 +50,7 @@ public:
 
 protected:
 	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
-	std::unique_ptr<CFFDEventSourceInfo> info{};
+	std::unique_ptr<CFFDEventSourceInfo> info;
 
 	const char *label() const;
 	void deinit();

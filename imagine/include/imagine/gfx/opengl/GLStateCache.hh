@@ -17,6 +17,7 @@
 
 #include <imagine/config/env.hh>
 #include <imagine/gfx/defs.hh>
+#include <array>
 
 class GLStateCache
 {

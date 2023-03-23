@@ -20,6 +20,7 @@
 #include <imagine/pixmap/Pixmap.hh>
 #include <CoreGraphics/CGImage.h>
 #include <memory>
+#include <type_traits>
 
 namespace IG::Data
 {
@@ -33,7 +34,7 @@ public:
 	bool isGrayscale();
 	int width();
 	int height();
-	const IG::PixelFormat pixelFormat();
+	const PixelFormat pixelFormat();
 	explicit operator bool() const;
 
 protected:

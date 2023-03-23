@@ -186,7 +186,7 @@ bool Screen::supportsTimestamps() const
 	return !std::holds_alternative<SimpleFrameTimer>(frameTimer);
 }
 
-std::vector<double> Screen::supportedFrameRates(ApplicationContext) const
+std::vector<double> Screen::supportedFrameRates() const
 {
 	// TODO
 	std::vector<double> rateVec;

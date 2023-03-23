@@ -50,7 +50,7 @@ public:
 		attach({}, IG_forward(f));
 	}
 
-	void attach(EventLoop loop, IG::Callable<bool, PosixIO&> auto &&f)
+	void attach(EventLoop loop, Callable<bool, PosixIO&> auto &&f)
 	{
 		attach(loop,
 			PollEventDelegate

@@ -18,6 +18,7 @@
 #include <imagine/base/EventLoop.hh>
 #include <imagine/util/used.hh>
 #include <imagine/util/utility.h>
+#include <concepts>
 
 namespace IG
 {

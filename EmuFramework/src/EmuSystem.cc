@@ -38,8 +38,6 @@ namespace EmuEx
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
-[[gnu::weak]] double EmuSystem::staticFrameTime = 1. / 60.;
-[[gnu::weak]] double EmuSystem::staticPalFrameTime = 1. / 50.;
 [[gnu::weak]] bool EmuSystem::canRenderRGBA8888 = true;
 [[gnu::weak]] bool EmuSystem::hasResetModes = false;
 [[gnu::weak]] bool EmuSystem::handlesArchiveFiles = false;
@@ -48,7 +46,7 @@ namespace EmuEx
 [[gnu::weak]] bool EmuSystem::hasSound = true;
 [[gnu::weak]] int EmuSystem::forcedSoundRate = 0;
 [[gnu::weak]] IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::i16;
-[[gnu::weak]] bool EmuSystem::constFrameRate = false;
+[[gnu::weak]] FP EmuSystem::validFrameRateRange{minFrameRate, 80.};
 
 bool EmuSystem::stateExists(int slot) const
 {
@@ -293,20 +291,29 @@ IG::Time EmuSystem::benchmark(EmuVideo &video)
 	return after-now;
 }
 
-void EmuSystem::configFrameTime(int rate)
+void EmuSystem::configFrameTime(int outputRate, FloatSeconds outputFrameTime)
 {
-	auto fTime = frameTime();
-	configAudioRate(fTime, rate);
-	audioFramesPerVideoFrame = std::ceil(rate * fTime.count());
-	audioFramesPerVideoFrameFloat = (double)rate * fTime.count();
+	if(!hasContent())
+		return;
+	configAudioRate(outputFrameTime, outputRate);
+	audioFramesPerVideoFrame = std::ceil(outputRate * outputFrameTime.count());
+	audioFramesPerVideoFrameFloat = outputRate * outputFrameTime.count();
 	currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
-	emuTiming.setFrameTime(fTime);
+	emuTiming.setFrameTime(outputFrameTime);
 }
 
-void EmuSystem::configAudioPlayback(EmuAudio &emuAudio, int rate)
+void EmuSystem::onFrameTimeChanged()
 {
-	configFrameTime(rate);
-	emuAudio.setRate(rate);
+	logMsg("frame rate changed:%.2f", frameRate());
+	EmuApp::get(appContext()).configFrameTime();
+}
+
+double EmuSystem::audioMixRate(int outputRate, double inputFrameRate, FloatSeconds outputFrameTime)
+{
+	assumeExpr(outputRate > 0);
+	assumeExpr(inputFrameRate > 0);
+	assumeExpr(outputFrameTime.count() > 0);
+	return std::round(inputFrameRate * outputFrameTime.count() * outputRate);
 }
 
 int EmuSystem::updateAudioFramesPerVideoFrame()
@@ -315,57 +322,6 @@ int EmuSystem::updateAudioFramesPerVideoFrame()
 	double wholeFrames;
 	currentAudioFramesPerVideoFrame = std::modf(currentAudioFramesPerVideoFrame, &wholeFrames) + audioFramesPerVideoFrameFloat;
 	return wholeFrames;
-}
-
-double EmuSystem::frameRate() const
-{
-	return frameRate(videoSystem());
-}
-
-double EmuSystem::frameRate(VideoSystem system) const
-{
-	return 1. / frameTime(system).count();
-}
-
-IG::FloatSeconds EmuSystem::frameTime() const
-{
-	return frameTime(videoSystem());
-}
-
-IG::FloatSeconds EmuSystem::frameTime(VideoSystem system) const
-{
-	return frameTimeVar(system);
-}
-
-IG::FloatSeconds EmuSystem::defaultFrameTime(VideoSystem system)
-{
-	switch(system)
-	{
-		case VideoSystem::NATIVE_NTSC: return IG::FloatSeconds{staticFrameTime};
-		case VideoSystem::PAL: return IG::FloatSeconds{staticPalFrameTime};
-	}
-	return {};
-}
-
-bool EmuSystem::frameTimeIsValid(VideoSystem system, IG::FloatSeconds time)
-{
-	auto rate = 1. / time.count(); // convert to frames per second
-	switch(system)
-	{
-		case VideoSystem::NATIVE_NTSC:
-			return rate >= 55. && rate <= ((1. / staticFrameTime) + 5.);
-		case VideoSystem::PAL:
-			return rate >= 45. && rate <= ((1. / staticPalFrameTime) + 15.);
-	}
-	return false;
-}
-
-bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
-{
-	if(!frameTimeIsValid(system, time))
-		return false;
-	frameTimeVar(system) = time;
-	return true;
 }
 
 [[gnu::weak]] FS::PathString EmuSystem::willLoadContentFromPath(std::string_view path, std::string_view displayName)

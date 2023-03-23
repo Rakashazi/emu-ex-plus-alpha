@@ -66,9 +66,9 @@ protected:
 	};
 	using UniqueArchive = std::unique_ptr<struct archive, ArchiveDeleter>;
 
-	UniqueArchive arch{};
+	UniqueArchive arch;
 	struct archive_entry *ptr{};
-	std::unique_ptr<ArchiveControlBlock> ctrlBlock{};
+	std::unique_ptr<ArchiveControlBlock> ctrlBlock;
 
 	void init(IO);
 	static void freeArchive(struct archive *);

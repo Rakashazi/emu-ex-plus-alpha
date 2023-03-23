@@ -20,7 +20,7 @@
 #include <imagine/gui/ScrollView.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/typeTraits.hh>
-#include <iterator>
+#include <string_view>
 
 namespace IG::Input
 {
@@ -43,7 +43,7 @@ public:
 	TableView(UTF16Convertible auto &&name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
 		ScrollView{attach}, items{items}, item{item}, nameStr{IG_forward(name)} {}
 
-	TableView(ViewAttachParams attach, IG::Container auto &item):
+	TableView(ViewAttachParams attach, Container auto &item):
 		TableView{UTF16String{}, attach, item} {}
 
 	TableView(UTF16Convertible auto &&name, ViewAttachParams attach, Container auto &item):
@@ -52,7 +52,7 @@ public:
 			IG_forward(name),
 			attach,
 			[&item](const TableView &) { return std::size(item); },
-			[&item](const TableView &, size_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
+			[&item](const TableView &, size_t idx) -> MenuItem& { return deref(std::data(item)[idx]); }
 		} {}
 
 	TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item);
@@ -70,7 +70,7 @@ public:
 	void setFocus(bool focused) override;
 	void setOnSelectElement(SelectElementDelegate del);
 	size_t cells() const;
-	IG::WP cellSize() const;
+	WP cellSize() const;
 	void highlightCell(int idx);
 	void setAlign(_2DOrigin align);
 	std::u16string_view name() const override;
@@ -92,7 +92,7 @@ protected:
 	bool hasFocus = true;
 
 	void setYCellSize(int s);
-	IG::WindowRect focusRect();
+	WRect focusRect();
 	void onSelectElement(const Input::Event &, size_t i, MenuItem &);
 	bool elementIsSelectable(MenuItem &item);
 	int nextSelectableElement(int start, int items);

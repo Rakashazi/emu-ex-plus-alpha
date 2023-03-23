@@ -26,6 +26,7 @@
 
 #include <vector>
 #include <span>
+#include <string_view>
 
 namespace IG::Data
 {
@@ -57,7 +58,7 @@ struct TextureBufferModeDesc
 
 struct DrawableConfig
 {
-	IG::PixelFormat pixelFormat{};
+	PixelFormat pixelFormat{};
 	ColorSpace colorSpace{};
 	constexpr bool operator ==(const DrawableConfig&) const = default;
 	explicit constexpr operator bool() const { return (bool)pixelFormat || (bool)colorSpace; }
@@ -92,9 +93,9 @@ public:
 	void setWindowValidOrientations(Window &, OrientationMask);
 	void animateWindowRotation(Window &, float srcAngle, float destAngle);
 	float projectionRollAngle(const Window &) const;
-	static ClipRect makeClipRect(const Window &win, IG::WindowRect rect);
+	static ClipRect makeClipRect(const Window &win, WindowRect rect);
 	bool supportsSyncFences() const;
-	void setPresentationTime(Window &, IG::FrameTime time) const;
+	void setPresentationTime(Window &, FrameTime time) const;
 	bool supportsPresentationTime() const;
 	int maxSwapChainImages() const;
 	void setCorrectnessChecks(bool on);
@@ -114,7 +115,7 @@ public:
 	// resources
 
 	Texture makeTexture(TextureConfig);
-	Texture makeTexture(IG::Data::PixmapSource, TextureSamplerConfig samplerConf = {}, bool makeMipmaps = true);
+	Texture makeTexture(Data::PixmapSource, TextureSamplerConfig samplerConf = {}, bool makeMipmaps = true);
 	PixmapBufferTexture makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false);
 	std::vector<TextureBufferModeDesc> textureBufferModes();
 	TextureBufferMode makeValidTextureBufferMode(TextureBufferMode mode = {});
@@ -124,7 +125,7 @@ public:
 
 	bool supportsColorSpace() const;
 	bool hasSrgbColorSpaceWriteControl() const;
-	static ColorSpace supportedColorSpace(IG::PixelFormat, ColorSpace wantedColorSpace);
+	static ColorSpace supportedColorSpace(PixelFormat, ColorSpace wantedColorSpace);
 
 	// optional features
 

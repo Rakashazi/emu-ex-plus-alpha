@@ -92,11 +92,6 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	}
 	#endif
 
-	if(!ctx.mainScreen().frameRateIsReliable())
-	{
-		optionFrameRate.initDefault(60);
-	}
-
 	if(!EmuApp::hasIcon)
 	{
 		optionNotificationIcon.initDefault(false);
@@ -112,11 +107,6 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	if(!EmuSystem::hasSound)
 	{
 		optionSound.initDefault(0);
-	}
-
-	if(EmuSystem::constFrameRate)
-	{
-		optionFrameRate.isConst = true;
 	}
 }
 
@@ -193,35 +183,6 @@ bool EmuApp::readRecentContent(IG::ApplicationContext ctx, MapIO &io, size_t rea
 		logMsg("added game to recent list:%s, name:%s", added.path.data(), added.name.data());
 	}
 	return true;
-}
-
-std::pair<IG::FloatSeconds, bool> EmuApp::setFrameTime(VideoSystem vidSys, IG::FloatSeconds time)
-{
-	auto wantedTime = time;
-	if(!time.count())
-	{
-		wantedTime = bestFrameTimeForScreen(vidSys);
-	}
-	if(!system().setFrameTime(vidSys, wantedTime))
-	{
-		return {wantedTime, false};
-	}
-	system().configFrameTime(soundRate());
-	frameTimeOption(vidSys) = time.count();
-	return {wantedTime, true};
-}
-
-IG::FloatSeconds EmuApp::frameTime(VideoSystem system) const
-{
-	auto &opt = frameTimeOption(system);
-	if(opt.val)
-		return IG::FloatSeconds(opt.val);
-	return bestFrameTimeForScreen(system);
-}
-
-bool EmuApp::frameTimeIsConst(VideoSystem system) const
-{
-	return frameTimeOption(system).isConst;
 }
 
 void EmuApp::setFrameInterval(int val)

@@ -45,7 +45,7 @@ struct GLShaderDeleter
 		destroyGLShader(*rTask, s);
 	}
 };
-using UniqueGLShader = IG::UniqueResource<NativeShader, GLShaderDeleter>;
+using UniqueGLShader = UniqueResource<NativeShader, GLShaderDeleter>;
 
 using ShaderImpl = UniqueGLShader;
 
@@ -64,7 +64,7 @@ struct GLProgramDeleter
 		destroyGLProgram(*rTask, p);
 	}
 };
-using UniqueGLProgram = IG::UniqueResource<NativeProgram, GLProgramDeleter>;
+using UniqueGLProgram = UniqueResource<NativeProgram, GLProgramDeleter>;
 
 class GLSLProgram
 {

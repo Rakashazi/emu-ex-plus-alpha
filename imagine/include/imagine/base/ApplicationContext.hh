@@ -34,6 +34,8 @@
 #include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <vector>
 #include <optional>
+#include <string>
+#include <string_view>
 
 namespace IG::Input
 {
@@ -105,7 +107,7 @@ public:
 	const WindowContainer &windows() const;
 	Window &mainWindow();
 	bool systemAnimatesWindowRotation() const;
-	IG::PixelFormat defaultWindowPixelFormat() const;
+	PixelFormat defaultWindowPixelFormat() const;
 
 	const ScreenContainer &screens() const;
 	Screen &mainScreen();
@@ -155,8 +157,8 @@ public:
 	void setAcceptIPC(bool on, const char *appId = applicationId);
 
 	// external services
-	void openURL(IG::CStringView url) const;
-	bool packageIsInstalled(IG::CStringView name) const;
+	void openURL(CStringView url) const;
+	bool packageIsInstalled(CStringView name) const;
 
 	// file system paths & asset loading, thread-safe
 	FS::PathString assetPath(const char *appName = applicationName) const;
@@ -169,7 +171,7 @@ public:
 	std::vector<FS::PathLocation> rootFileLocations() const;
 	FS::RootPathInfo rootPathInfo(std::string_view path) const;
 	AssetIO openAsset(CStringView name, IOAccessHint access, OpenFlagsMask oFlags = {}, const char *appName = applicationName) const;
-	FS::AssetDirectoryIterator openAssetDirectory(IG::CStringView path, const char *appName = applicationName);
+	FS::AssetDirectoryIterator openAssetDirectory(CStringView path, const char *appName = applicationName);
 
 	// path/file access using OS-specific URIs such as those in the Android Storage Access Framework,
 	// backwards compatible with regular file system paths, all thread-safe except for picker functions
@@ -204,8 +206,8 @@ public:
 	SensorValues remapSensorValuesForDeviceRotation(SensorValues) const;
 
 	// Notification/Launcher icons
-	void addNotification(IG::CStringView onShow, IG::CStringView title, IG::CStringView message);
-	void addLauncherIcon(IG::CStringView name, IG::CStringView path);
+	void addNotification(CStringView onShow, CStringView title, CStringView message);
+	void addLauncherIcon(CStringView name, CStringView path);
 
 	// Power Management
 	void setIdleDisplayPowerSave(bool on);

@@ -16,6 +16,7 @@
 #pragma once
 
 #include <imagine/io/IOUtils.hh>
+#include <span>
 
 namespace IG
 {

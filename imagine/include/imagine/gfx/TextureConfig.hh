@@ -27,13 +27,13 @@ class TextureConfig
 {
 public:
 	TextureSamplerConfig samplerConfig{};
-	IG::PixmapDesc pixmapDesc{};
+	PixmapDesc pixmapDesc{};
 	uint8_t levels{1};
 	bool genMipmaps{};
 	ColorSpace colorSpace{};
 
 	constexpr TextureConfig() = default;
-	constexpr TextureConfig(IG::PixmapDesc pixDesc, TextureSamplerConfig samplerConfig = {}):
+	constexpr TextureConfig(PixmapDesc pixDesc, TextureSamplerConfig samplerConfig = {}):
 		samplerConfig{samplerConfig}, pixmapDesc{pixDesc} {}
 	constexpr void setAllLevels() { levels = 0; }
 	constexpr bool willGenerateMipmaps() const { return genMipmaps; }

@@ -18,6 +18,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/string/CStringView.hh>
+#include <string>
 
 namespace IG::FS
 {

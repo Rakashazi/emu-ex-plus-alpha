@@ -51,8 +51,8 @@ private:
 	SLObjectItf player{};
 	SLPlayItf playerI{};
 	SLAndroidSimpleBufferQueueItf slBuffQI{};
-	OnSamplesNeededDelegate onSamplesNeeded{};
-	std::unique_ptr<uint8_t[]> buffer{};
+	OnSamplesNeededDelegate onSamplesNeeded;
+	std::unique_ptr<uint8_t[]> buffer;
 	int bufferFrames{};
 	int bufferBytes{};
 	bool isPlaying_{};

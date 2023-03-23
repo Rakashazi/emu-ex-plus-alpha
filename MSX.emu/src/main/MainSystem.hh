@@ -90,7 +90,8 @@ public:
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	void configAudioRate(FloatSeconds frameTime, int rate);
+	FloatSeconds frameTime() const { return FloatSeconds{1. / 59.924}; }
+	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

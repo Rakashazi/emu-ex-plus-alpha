@@ -36,7 +36,7 @@ class GLLockedTextureBuffer
 {
 public:
 	constexpr GLLockedTextureBuffer() = default;
-	constexpr GLLockedTextureBuffer(void *bufferOffset, MutablePixmapView pix, IG::WindowRect srcDirtyRect,
+	constexpr GLLockedTextureBuffer(void *bufferOffset, MutablePixmapView pix, WRect srcDirtyRect,
 		int lockedLevel, bool shouldFreeBuffer, GLuint pbo = 0):
 		bufferOffset_{bufferOffset}, pix{pix},
 		lockedLevel{(int8_t)lockedLevel}, shouldFreeBuffer_{shouldFreeBuffer},
@@ -52,7 +52,7 @@ protected:
 	MutablePixmapView pix{};
 	int8_t lockedLevel{};
 	bool shouldFreeBuffer_{};
-	IG::WindowRect srcDirtyRect{};
+	WRect srcDirtyRect{};
 	GLuint pbo_ = 0;
 };
 
@@ -93,7 +93,7 @@ protected:
 	TextureConfig baseInit(RendererTask &r, TextureConfig config);
 	bool canUseMipmaps(const Renderer &r) const;
 	void updateFormatInfo(PixmapDesc, int8_t levels, GLenum target = GL_TEXTURE_2D);
-	static void setSwizzleForFormatInGL(const Renderer &r, IG::PixelFormatID format, GLuint tex);
+	static void setSwizzleForFormatInGL(const Renderer &r, PixelFormatID format, GLuint tex);
 	static void setSamplerParamsInGL(const Renderer &r, SamplerParams params, GLenum target = GL_TEXTURE_2D);
 	void updateLevelsForMipmapGeneration();
 	#ifdef __ANDROID__

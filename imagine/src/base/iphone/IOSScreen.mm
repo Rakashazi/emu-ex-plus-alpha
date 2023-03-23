@@ -179,7 +179,7 @@ void Screen::setFrameRate(double rate)
 	// unsupported
 }
 
-std::vector<double> Screen::supportedFrameRates(ApplicationContext) const
+std::vector<double> Screen::supportedFrameRates() const
 {
 	// TODO
 	std::vector<double> rateVec;

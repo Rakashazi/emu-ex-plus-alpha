@@ -23,6 +23,8 @@
 #include <imagine/util/enum.hh>
 #include <vector>
 #include <memory>
+#include <string_view>
+#include <type_traits>
 
 namespace Config
 {
@@ -182,8 +184,8 @@ struct WindowSurfaceChange
 		CREATED, CHANGED, DESTROYED
 	};
 
-	static constexpr uint8_t SURFACE_RESIZED = IG::bit(0),
-		CONTENT_RECT_RESIZED = IG::bit(1),
+	static constexpr uint8_t SURFACE_RESIZED = bit(0),
+		CONTENT_RECT_RESIZED = bit(1),
 		RESIZE_BITS = SURFACE_RESIZED | CONTENT_RECT_RESIZED;
 
 	Action action{};
@@ -213,15 +215,17 @@ struct ScreenChange
 {
 	enum class Action : int8_t
 	{
-		ADDED,
-		REMOVED
+		added,
+		removed,
+		changedFrameRate,
 	};
 
 	Action action{};
 
 	constexpr ScreenChange(Action action): action{action} {}
-	constexpr bool added() const { return action == Action::ADDED; }
-	constexpr bool removed() const { return action == Action::REMOVED; }
+	constexpr bool added() const { return action == Action::added; }
+	constexpr bool removed() const { return action == Action::removed; }
+	constexpr bool changedFrameRate() const { return action == Action::changedFrameRate; }
 };
 
 WISE_ENUM_CLASS((SensorType, uint8_t),
@@ -244,14 +248,14 @@ using ScreenContainer = std::vector<std::unique_ptr<Screen>>;
 using InputDeviceContainer = std::vector<std::unique_ptr<Input::Device>>;
 
 using MainThreadMessageDelegate = DelegateFunc<void(ApplicationContext)>;
-using InterProcessMessageDelegate = DelegateFunc<void (ApplicationContext, IG::CStringView filename)>;
+using InterProcessMessageDelegate = DelegateFunc<void (ApplicationContext, CStringView filename)>;
 using ResumeDelegate = DelegateFunc<bool (ApplicationContext, bool focused)>;
 using FreeCachesDelegate = DelegateFunc<void (ApplicationContext, bool running)>;
 using ExitDelegate = DelegateFunc<bool (ApplicationContext, bool backgrounded)>;
 using DeviceOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Rotation newRotation)>;
 using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Rotation oldRotation, Rotation newRotation)>;
 using ScreenChangeDelegate = DelegateFunc<void (ApplicationContext, Screen &s, ScreenChange)>;
-using SystemDocumentPickerDelegate = DelegateFunc<void(IG::CStringView uri, IG::CStringView displayName)>;
+using SystemDocumentPickerDelegate = DelegateFunc<void(CStringView uri, CStringView displayName)>;
 using TextFieldDelegate = DelegateFunc<void (const char *str)>;
 using SensorChangedDelegate = DelegateFunc<void (SensorValues)>;
 
@@ -264,7 +268,7 @@ using WindowSurfaceChangeDelegate = DelegateFunc<void (Window &, WindowSurfaceCh
 using WindowDrawDelegate = DelegateFunc<bool (Window &, WindowDrawParams)>;
 using WindowInputEventDelegate = DelegateFunc<bool (Window &, const Input::Event &)>;
 using WindowFocusChangeDelegate = DelegateFunc<void (Window &, bool in)>;
-using WindowDragDropDelegate = DelegateFunc<void (Window &, IG::CStringView filename)>;
+using WindowDragDropDelegate = DelegateFunc<void (Window &, CStringView filename)>;
 using WindowDismissRequestDelegate = DelegateFunc<void (Window &)>;
 using WindowDismissDelegate = DelegateFunc<void (Window &)>;
 

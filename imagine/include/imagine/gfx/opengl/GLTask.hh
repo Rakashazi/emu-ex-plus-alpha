@@ -19,6 +19,7 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/MessagePort.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/thread/Semaphore.hh>
 #include <imagine/util/utility.h>
 #include <concepts>
 #include <thread>

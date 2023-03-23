@@ -189,8 +189,6 @@ public:
 	static bool inputHasKeyboard;
 	static bool hasBundledGames;
 	static bool hasPALVideoSystem;
-	static double staticFrameTime;
-	static double staticPalFrameTime;
 	static bool canRenderRGBA8888;
 	static bool hasResetModes;
 	static bool handlesArchiveFiles;
@@ -199,9 +197,9 @@ public:
 	static bool hasSound;
 	static int forcedSoundRate;
 	static IG::Audio::SampleFormat audioSampleFormat;
-	static bool constFrameRate;
 	static NameFilterFunc defaultFsFilter;
 	static const char *creditsViewStr;
+	static FP validFrameRateRange;
 
 	EmuSystem(IG::ApplicationContext ctx): appCtx{ctx} {}
 
@@ -218,7 +216,8 @@ public:
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
-	void configAudioRate(FloatSeconds frameTime, int rate);
+	FloatSeconds frameTime() const;
+	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
 
@@ -338,15 +337,11 @@ public:
 	void loadContentFromFile(IG::IO, IG::CStringView path, std::string_view displayName,
 		EmuSystemCreateParams, OnLoadProgressDelegate);
 	int updateAudioFramesPerVideoFrame();
-	double frameRate() const;
-	double frameRate(VideoSystem) const;
-	FloatSeconds frameTime() const;
-	FloatSeconds frameTime(VideoSystem) const;
-	static FloatSeconds defaultFrameTime(VideoSystem system);
-	static bool frameTimeIsValid(VideoSystem system, IG::FloatSeconds time);
-	bool setFrameTime(VideoSystem system, IG::FloatSeconds time);
-	void configAudioPlayback(EmuAudio &, int rate);
-	void configFrameTime(int rate);
+	double frameRate() const { return 1. / frameTime().count(); }
+	void onFrameTimeChanged();
+	static double audioMixRate(int outputRate, double inputFrameRate, FloatSeconds outputFrameTime);
+	double audioMixRate(int outputRate, FloatSeconds outputFrameTime) const { return audioMixRate(outputRate, frameRate(), outputFrameTime); }
+	void configFrameTime(int outputRate, FloatSeconds outputFrameTime);
 	void setStartFrameTime(IG::FrameTime time);
 	EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
 	void setSpeedMultiplier(EmuAudio &, double speed);
@@ -363,8 +358,7 @@ public:
 protected:
 	IG::ApplicationContext appCtx{};
 	EmuTiming emuTiming;
-	IG::FloatSeconds frameTimeNative{1./60.};
-	IG::FloatSeconds frameTimePAL{1./50.};
+protected:
 	double audioFramesPerVideoFrameFloat{};
 	double currentAudioFramesPerVideoFrame{};
 	int audioFramesPerVideoFrame{};
@@ -386,21 +380,10 @@ protected:
 	void updateContentSaveDirectory();
 	void closeAndSetupNew(IG::CStringView path, std::string_view displayName);
 
-	static auto &frameTimeVar(auto &self, VideoSystem system)
-	{
-		switch(system)
-		{
-			case VideoSystem::NATIVE_NTSC: return self.frameTimeNative;
-			case VideoSystem::PAL: return self.frameTimePAL;
-		}
-		__builtin_unreachable();
-	}
-	auto &frameTimeVar(VideoSystem system) { return frameTimeVar(*this, system); }
-	auto &frameTimeVar(VideoSystem system) const { return frameTimeVar(*this, system); }
-
 public:
 	IG::OnFrameDelegate onFrameUpdate;
 	double targetSpeed{1.};
+	static constexpr double minFrameRate = 48.;
 };
 
 // Global instance access if required by the emulated system, valid if EmuApp::needsGlobalInstance initialized to true

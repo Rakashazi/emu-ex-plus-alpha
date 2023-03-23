@@ -37,7 +37,7 @@ public:
 
 	constexpr DelegateFuncBase(std::nullptr_t) {}
 
-	template<IG::CallableClass<R, Args...> F>
+	template<CallableClass<R, Args...> F>
 	requires (sizeof(F) <= StorageSize && Align >= std::alignment_of_v<F>)
 	constexpr DelegateFuncBase(F const &funcObj) :
 		exec
@@ -52,7 +52,7 @@ public:
 		new (store.data()) F(funcObj);
 	}
 
-	constexpr DelegateFuncBase(IG::CallableFunctionPointer<R, Args...> auto const &funcObj)
+	constexpr DelegateFuncBase(CallableFunctionPointer<R, Args...> auto const &funcObj)
 		requires (StorageSize >= sizeof(void*) && Align >= sizeof(void*)):
 		exec
 		{
@@ -72,7 +72,7 @@ public:
 	}
 
 	constexpr R operator()(auto &&...args) const
-		requires IG::ValidInvokeArgs<FreeFuncPtr, decltype(args)...>
+		requires ValidInvokeArgs<FreeFuncPtr, decltype(args)...>
 	{
 		assert(exec);
 		return exec(store, IG_forward(args)...);

@@ -26,6 +26,7 @@
 #include <imagine/base/baseDefs.hh>
 #include <imagine/util/utility.h>
 #include <concepts>
+#include <chrono>
 
 namespace IG::Gfx
 {

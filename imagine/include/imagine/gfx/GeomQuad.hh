@@ -11,6 +11,9 @@
 #include <imagine/util/concepts.hh>
 #include <imagine/util/used.hh>
 #include <span>
+#include <array>
+#include <utility>
+#include <type_traits>
 
 namespace IG::Gfx
 {
@@ -213,7 +216,7 @@ constexpr std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx)
 	}};
 }
 
-inline void drawQuads(RendererCommands &cmds, IG::Container auto &quads,
+inline void drawQuads(RendererCommands &cmds, Container auto &quads,
 	std::span<const std::array<VertexIndex, 6>> quadIdxs)
 {
 	cmds.bindTempVertexBuffer();

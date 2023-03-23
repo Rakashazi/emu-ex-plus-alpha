@@ -20,6 +20,7 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/util/container/VMemArray.hh>
 #include <system_error>
+#include <string_view>
 
 namespace IG::Gfx
 {

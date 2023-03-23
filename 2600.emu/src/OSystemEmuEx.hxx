@@ -26,6 +26,7 @@ class VideoDialog;
 #include <SoundEmuEx.hh>
 #include <EventHandler.hxx>
 #include <FrameBuffer.hxx>
+#include <imagine/time/Time.hh>
 #include <optional>
 
 namespace EmuEx
@@ -61,7 +62,7 @@ public:
 	bool hasConsole() const { return (bool)myConsole; }
 	void makeConsole(unique_ptr<Cartridge>& cart, const Properties& props, const char *gamePath);
 	void deleteConsole();
-	void setFrameTime(double frameTime, int rate, AudioSettings::ResamplingQuality);
+	void setSoundRate(int outputRate, double inputFrameRate, IG::FloatSeconds outputFrameTime, AudioSettings::ResamplingQuality);
 
 	#ifdef DEBUGGER_SUPPORT
 	void createDebugger(Console& console);

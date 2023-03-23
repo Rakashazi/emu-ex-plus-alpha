@@ -47,13 +47,13 @@ public:
 	void freeImageData();
 	int width();
 	int height();
-	IG::PixelFormat pixelFormat();
+	PixelFormat pixelFormat();
 
 protected:
 	png_struct_def *png{};
 	png_info_def *info{};
 	bool premultiplyAlpha{};
-	void setTransforms(IG::PixelFormat outFormat, png_info_def *transInfo);
+	void setTransforms(PixelFormat outFormat, png_info_def *transInfo);
 	static bool supportUncommonConv;
 };
 

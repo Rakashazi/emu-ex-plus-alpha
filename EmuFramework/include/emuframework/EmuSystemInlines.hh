@@ -219,6 +219,11 @@ InputAction EmuSystem::translateInputAction(InputAction action)
 	return static_cast<MainSystem*>(this)->translateInputAction(action);
 }
 
+FloatSeconds EmuSystem::frameTime() const
+{
+	return static_cast<const MainSystem*>(this)->frameTime();
+}
+
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 {
 	static_cast<MainSystem*>(this)->configAudioRate(frameTime, rate);

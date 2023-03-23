@@ -17,6 +17,7 @@
 
 #include <imagine/util/rectangle2.h>
 #include <EGL/egl.h>
+#include <memory>
 
 struct AHardwareBuffer;
 
@@ -35,7 +36,7 @@ public:
 	HardwareBuffer(PixmapDesc desc, uint32_t usage);
 	HardwareBuffer(uint32_t w, uint32_t h, uint32_t format, uint32_t usage);
 	bool lock(uint32_t usage, void **outAddr);
-	bool lock(uint32_t usage, IG::WindowRect rect, void **outAddr);
+	bool lock(uint32_t usage, WRect rect, void **outAddr);
 	void unlock();
 	explicit operator bool() const;
 	uint32_t pitch();

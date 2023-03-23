@@ -51,7 +51,7 @@ private:
 	bool useMmap;
 	std::atomic_bool quitFlag{};
 
-	int setupPcm(Format format, snd_pcm_access_t access, IG::Microseconds wantedLatency);
+	int setupPcm(Format format, snd_pcm_access_t access, Microseconds wantedLatency);
 };
 
 }

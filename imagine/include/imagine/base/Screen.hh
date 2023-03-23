@@ -31,6 +31,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/DelegateFuncSet.hh>
+#include <imagine/util/Point2D.hh>
 #include <vector>
 
 namespace IG
@@ -44,6 +45,7 @@ public:
 	Screen(ApplicationContext, InitParams);
 	int width() const;
 	int height() const;
+	IP sizePx() const { return {width(), height()}; }
 	bool isPosted() const;
 	bool addOnFrame(OnFrameDelegate, int priority = 0);
 	bool removeOnFrame(OnFrameDelegate);
@@ -54,16 +56,19 @@ public:
 	double frameRate() const;
 	FloatSeconds frameTime() const;
 	void setFrameRate(double rate);
-	std::vector<double> supportedFrameRates(ApplicationContext) const;
+	std::vector<double> supportedFrameRates() const;
 	void setFrameInterval(int interval);
 	static bool supportsFrameInterval();
 	bool supportsTimestamps() const;
 	bool frameUpdate(FrameTime timestamp);
 	void setActive(bool active);
+	ApplicationContext appContext() const { return appCtx; }
+	Application &application() const { return appContext().application(); }
 
 private:
 	DelegateFuncSet<OnFrameDelegate> onFrameDelegate{};
 	const WindowContainer *windowsPtr{};
+	ApplicationContext appCtx;
 	bool framePosted{};
 	bool isActive{true};
 

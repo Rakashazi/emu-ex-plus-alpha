@@ -26,6 +26,8 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/string/CStringView.hh>
 #include <vector>
+#include <string>
+#include <string_view>
 
 namespace IG::FS
 {

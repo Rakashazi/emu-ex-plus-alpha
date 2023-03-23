@@ -17,19 +17,20 @@
 
 #include <imagine/util/bitset.hh>
 #include <imagine/util/concepts.hh>
+#include <type_traits>
 
 namespace IG
 {
 
 using SharedLibraryRef = void*;
-static constexpr unsigned RESOLVE_ALL_SYMBOLS_FLAG = IG::bit(0);
+static constexpr unsigned RESOLVE_ALL_SYMBOLS_FLAG = bit(0);
 
 SharedLibraryRef openSharedLibrary(const char *name, unsigned flags = 0);
 void closeSharedLibrary(SharedLibraryRef lib);
 void *loadSymbol(SharedLibraryRef lib, const char *name);
 const char *lastOpenSharedLibraryError();
 
-static bool loadSymbol(IG::Pointer auto &symPtr, SharedLibraryRef lib, const char *name)
+static bool loadSymbol(Pointer auto &symPtr, SharedLibraryRef lib, const char *name)
 {
 	symPtr = reinterpret_cast<std::remove_reference_t<decltype(symPtr)>>(loadSymbol(lib, name));
 	return symPtr;

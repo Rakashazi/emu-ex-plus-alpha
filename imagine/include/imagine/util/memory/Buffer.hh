@@ -108,7 +108,7 @@ public:
 	}
 
 protected:
-	std::unique_ptr<T[], Deleter> data_{};
+	std::unique_ptr<T[], Deleter> data_;
 };
 
 using ByteBuffer = Buffer<uint8_t>;

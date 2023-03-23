@@ -33,7 +33,7 @@ struct CFTimerInfo
 class CFTimer
 {
 public:
-	using Time = IG::FloatSeconds;
+	using Time = FloatSeconds;
 
 	constexpr CFTimer() = default;
 	CFTimer(CallbackDelegate c) : CFTimer{nullptr, c} {}
@@ -45,7 +45,7 @@ public:
 protected:
 	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 	CFRunLoopTimerRef timer{};
-	std::unique_ptr<CFTimerInfo> info{};
+	std::unique_ptr<CFTimerInfo> info;
 
 	void callbackInCFAbsoluteTime(CFAbsoluteTime absTime, CFTimeInterval repeatInterval, CFRunLoopRef loop);
 	void deinit();

@@ -32,8 +32,6 @@ constexpr auto SNES_HEIGHT_480i = SNES_HEIGHT * 2;
 constexpr auto SNES_HEIGHT_EXTENDED_480i = SNES_HEIGHT_EXTENDED * 2;
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
-double EmuSystem::staticFrameTime = 357366. / 21477272.; // ~60.098Hz
-double EmuSystem::staticPalFrameTime = 425568. / 21281370.; // ~50.00Hz
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::canRenderRGBA8888 = false;
 bool EmuApp::needsGlobalInstance = true;
@@ -244,20 +242,19 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 	IPPU.RenderThisFrame = TRUE;
 }
 
-void Snes9xSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
+void Snes9xSystem::configAudioRate(IG::FloatSeconds outputFrameTime, int outputRate)
 {
-	const double systemFrameTime = videoSystem() == VideoSystem::PAL ? staticPalFrameTime : staticFrameTime;
 	#ifndef SNES9X_VERSION_1_4
-	Settings.SoundPlaybackRate = rate;
-	Settings.SoundInputRate = systemFrameTime / frameTime.count() * 32040.;
+	Settings.SoundPlaybackRate = outputRate;
+	Settings.SoundInputRate = frameTime().count() / outputFrameTime.count() * 32040.;
 	S9xUpdateDynamicRate(0, 10);
 	logMsg("sound input rate:%.2f from system frame rate:%f",
-		Settings.SoundInputRate, 1. / systemFrameTime);
+		Settings.SoundInputRate, frameRate());
 	#else
-	Settings.SoundPlaybackRate = std::round(rate / systemFrameTime * frameTime.count());
+	Settings.SoundPlaybackRate = audioMixRate(outputRate, outputFrameTime);
 	S9xSetPlaybackRate(Settings.SoundPlaybackRate);
 	logMsg("sound playback rate:%u from system frame rate:%f",
-		Settings.SoundPlaybackRate, 1. / systemFrameTime);
+		Settings.SoundPlaybackRate, frameRate());
 	#endif
 }
 

@@ -23,6 +23,8 @@ public:
 	IG::MutablePixmapView mSurfacePix{};
 	static constexpr int vidBufferX = 160, vidBufferY = 152;
 	alignas(8) uint32_t pixBuff[vidBufferX*vidBufferY]{};
+	// TODO: Mednafen/Neopop timing is based on 199 lines/frame, verify if this is correct
+	static constexpr FloatSeconds staticFrameTime{199. * 515. / 6144000.}; //~59.95Hz
 
 	NgpSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -44,7 +46,8 @@ public:
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	void configAudioRate(FloatSeconds frameTime, int rate);
+	FloatSeconds frameTime() const { return staticFrameTime; }
+	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

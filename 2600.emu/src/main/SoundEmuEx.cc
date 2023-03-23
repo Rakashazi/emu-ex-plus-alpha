@@ -37,7 +37,6 @@ void SoundEmuEx::open(shared_ptr<AudioQueue> audioQueue, EmulationTiming* emulat
 	this->audioQueue = audioQueue;
 	this->emulationTiming = emulationTiming;
 	currentFragment = nullptr;
-	configuredVideoFrameRate = 0;
 }
 
 void SoundEmuEx::close()
@@ -47,13 +46,14 @@ void SoundEmuEx::close()
 	audioQueue->closeSink(currentFragment);
   audioQueue.reset();
   myResampler.reset();
+  inputFrameRate = {};
 }
 
 void SoundEmuEx::configForVideoFrameRate(double frameRate)
 {
-	assumeExpr(soundRate);
-	assumeExpr(frameTime);
-	auto tiaSoundRate = std::round(soundRate * (frameRate * frameTime));
+	logMsg("configuring audio rate:%d for video frame rate input:%.2f output:%.2f",
+		outputRate, frameRate, 1. / outputFrameTime.count());
+	auto tiaSoundRate = EmuSystem::audioMixRate(outputRate, frameRate, outputFrameTime);
 	emulationTiming->updatePlaybackRate(tiaSoundRate);
 	Resampler::Format formatFrom =
 		Resampler::Format(emulationTiming->audioSampleRate(), audioQueue->fragmentSize(), audioQueue->isStereo());
@@ -82,21 +82,18 @@ void SoundEmuEx::configForVideoFrameRate(double frameRate)
 	logMsg("set sound rate:%.2f resampler type:%d", tiaSoundRate, (int)resampleQuality);
 }
 
-void SoundEmuEx::setFrameTime(OSystem &osystem, double frameTime, int soundRate, AudioSettings::ResamplingQuality resampleQ)
+void SoundEmuEx::setRate(int outputRate, double inputFrameRate, FloatSeconds outputFrameTime, AudioSettings::ResamplingQuality resampleQ)
 {
-	this->soundRate = soundRate;
-	this->frameTime = frameTime;
+	this->outputRate = outputRate;
+	this->inputFrameRate = inputFrameRate;
+	this->outputFrameTime = outputFrameTime;
 	resampleQuality = resampleQ;
 	if(!audioQueue)
 	{
-		logWarn("called setFrameTime() without audio queue");
+		logWarn("called setRate() without audio queue");
 		return;
 	}
-	if(!configuredVideoFrameRate)
-	{
-		configuredVideoFrameRate = osystem.console().timing() == ConsoleTiming::ntsc ? 60. : 50.;
-	}
-	configForVideoFrameRate(configuredVideoFrameRate);
+	configForVideoFrameRate(inputFrameRate);
 }
 
 void SoundEmuEx::setResampleQuality(AudioSettings::ResamplingQuality quality)
@@ -106,9 +103,9 @@ void SoundEmuEx::setResampleQuality(AudioSettings::ResamplingQuality quality)
 		return;
 	}
 	resampleQuality = quality;
-	if(!configuredVideoFrameRate)
+	if(!inputFrameRate)
 		return;
-	configForVideoFrameRate(configuredVideoFrameRate);
+	configForVideoFrameRate(inputFrameRate);
 }
 
 void SoundEmuEx::setEmuAudio(EmuEx::EmuAudio *audio)
@@ -133,18 +130,6 @@ void SoundEmuEx::setEmuAudio(EmuEx::EmuAudio *audio)
 		}
 		//logDMsg("wrote %d audio frames", (int)wroteFrames);
 	};
-}
-
-void SoundEmuEx::updateRate(OSystem &osystem)
-{
-	auto videoFrameRate = osystem.console().currentFrameRate();
-	if(configuredVideoFrameRate != videoFrameRate &&
-		(videoFrameRate >= 50.0 && videoFrameRate <= 60.0))
-	{
-		logMsg("reconfiguring for new video frame rate:%.2f", videoFrameRate);
-		configuredVideoFrameRate = videoFrameRate;
-		configForVideoFrameRate(videoFrameRate);
-	}
 }
 
 void SoundEmuEx::setEnabled(bool enable) {}

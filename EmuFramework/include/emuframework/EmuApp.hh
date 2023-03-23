@@ -27,6 +27,7 @@
 #include <emuframework/TurboInput.hh>
 #include <emuframework/Option.hh>
 #include <emuframework/AutosaveManager.hh>
+#include <emuframework/OutputTimingManager.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/android/MogaManager.hh>
 #include <imagine/gui/ViewManager.hh>
@@ -234,6 +235,8 @@ public:
 	EmuVideoLayer &videoLayer() { return emuVideoLayer; }
 	EmuViewController &viewController();
 	const EmuViewController &viewController() const;
+	const Screen &emuScreen() const;
+	Window &emuWindow();
 	AutosaveManager &autosaveManager() { return autosaveManager_; }
 	void configFrameTime();
 	void setDisabledInputKeys(std::span<const unsigned> keys);
@@ -251,8 +254,6 @@ public:
 	void runFrames(EmuSystemTaskContext, EmuVideo *, EmuAudio *, int frames, bool skipForward);
 	void skipFrames(EmuSystemTaskContext, int frames, EmuAudio *);
 	bool skipForwardFrames(EmuSystemTaskContext, int frames);
-	FloatSeconds bestFrameTimeForScreen(VideoSystem system) const;
-	void applyFrameRates(bool updateFrameTime = true);
 	IG::Audio::Manager &audioManager() { return audioManager_; }
 	void renderSystemFramebuffer(EmuVideo &);
 	bool writeScreenshot(IG::PixmapView, IG::CStringView path);
@@ -328,9 +329,6 @@ public:
 	auto &overlayEffectOption() { return optionOverlayEffect; }
 	bool setOverlayEffectLevel(EmuVideoLayer &, uint8_t val);
 	uint8_t overlayEffectLevel() { return optionOverlayEffectLevel; }
-	std::pair<IG::FloatSeconds, bool> setFrameTime(VideoSystem system, IG::FloatSeconds time);
-	FloatSeconds frameTime(VideoSystem) const;
-	bool frameTimeIsConst(VideoSystem) const;
 	void setFrameInterval(int);
 	int frameInterval() const;
 	void setShouldSkipLateFrames(bool on) { optionSkipLateFrames = on; }
@@ -522,6 +520,9 @@ protected:
 	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetFileID>];
 	VController vController;
 	AutosaveManager autosaveManager_;
+public:
+	OutputTimingManager outputTimingManager;
+protected:
 	DelegateFunc<void ()> onUpdateInputDevices_;
 	KeyConfigContainer customKeyConfigs;
 	InputDeviceSavedConfigContainer savedInputDevs;
@@ -535,8 +536,6 @@ protected:
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr);
 	RecentContentList recentContentList;
 	std::string userScreenshotDir;
-	DoubleOption optionFrameRate;
-	DoubleOption optionFrameRatePAL;
 	Byte4Option optionSoundRate;
 	static constexpr int16_t defaultFastModeSpeed{800};
 	static constexpr int16_t defaultSlowModeSpeed{50};
@@ -615,22 +614,6 @@ protected:
 	void addOnFrameDelegate(IG::OnFrameDelegate);
 	void onFocusChange(bool in);
 	void configureAppForEmulation(bool running);
-
-	const DoubleOption &frameTimeOption(VideoSystem system) const
-	{
-		switch(system)
-		{
-			default:
-			case VideoSystem::NATIVE_NTSC: return optionFrameRate;
-			case VideoSystem::PAL: return optionFrameRatePAL;
-		}
-	}
-
-	DoubleOption &frameTimeOption(VideoSystem system)
-	{
-		return const_cast<DoubleOption&>(std::as_const(*this).frameTimeOption(system));
-	}
-
 	int16_t &altSpeedRef(AltSpeedMode mode) { return mode == AltSpeedMode::slow ? slowModeSpeed : fastModeSpeed; }
 	const int16_t &altSpeedRef(AltSpeedMode mode) const { return mode == AltSpeedMode::slow ? slowModeSpeed : fastModeSpeed; }
 };

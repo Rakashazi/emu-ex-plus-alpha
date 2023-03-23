@@ -24,6 +24,7 @@
 #include <vector>
 #include <iterator>
 #include <memory>
+#include <type_traits>
 
 namespace IG::Input
 {
@@ -46,7 +47,7 @@ public:
 	// Wraps different function signatures into a delegate function with signature:
 	// bool (Item &, View &, const Input::Event &)
 
-	constexpr MenuItemSelectDelegate(IG::Callable<void, Item &, View &, const Input::Event &> auto &&f):
+	constexpr MenuItemSelectDelegate(Callable<void, Item &, View &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
 			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, i, v, e); }
@@ -95,7 +96,7 @@ public:
 
 	// auto-return true if the supplied function doesn't return a value
 	constexpr static bool callAndReturnBool(auto &f, auto &&...args)
-		requires IG::VoidInvokeResult<decltype(f), decltype(args)...>
+		requires VoidInvokeResult<decltype(f), decltype(args)...>
 	{
 		f(IG_forward(args)...);
 		return true;

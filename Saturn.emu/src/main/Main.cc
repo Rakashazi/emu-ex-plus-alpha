@@ -303,9 +303,9 @@ void SaturnSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelega
 	ScspSetFrameAccurate(1);
 }
 
-void SaturnSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
+void SaturnSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	// TODO: use frameTime
+	// TODO
 }
 
 void SaturnSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)

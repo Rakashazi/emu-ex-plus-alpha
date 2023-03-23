@@ -110,16 +110,6 @@ constexpr bool imageEffectPixelFormatIsValid(uint8_t val)
 	return false;
 }
 
-constexpr bool optionFrameTimeIsValid(auto val)
-{
-	return !val || EmuSystem::frameTimeIsValid(VideoSystem::NATIVE_NTSC, IG::FloatSeconds(val));
-}
-
-constexpr bool optionFrameTimePALIsValid(auto val)
-{
-	return !val || EmuSystem::frameTimeIsValid(VideoSystem::PAL, IG::FloatSeconds(val));
-}
-
 constexpr bool optionImageZoomIsValid(uint8_t val)
 {
 	return val == optionImageZoomIntegerOnly || val == optionImageZoomIntegerOnlyY
@@ -139,8 +129,6 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	pixmapReader{ctx},
 	pixmapWriter{ctx},
 	vibrationManager_{ctx},
-	optionFrameRate{CFGKEY_FRAME_RATE, 0, 0, optionFrameTimeIsValid},
-	optionFrameRatePAL{CFGKEY_FRAME_RATE_PAL, 0, !EmuSystem::hasPALVideoSystem, optionFrameTimePALIsValid},
 	optionSoundRate{CFGKEY_SOUND_RATE, 48000, false, isValidSoundRate},
 	optionFontSize{CFGKEY_FONT_Y_SIZE,
 		Config::MACHINE_IS_PANDORA ? 6500 :
@@ -272,6 +260,8 @@ Gfx::TextureSpan EmuApp::collectTextCloseAsset() const
 
 EmuViewController &EmuApp::viewController() { return mainWindowData().viewController; }
 const EmuViewController &EmuApp::viewController() const { return mainWindowData().viewController; }
+const Screen &EmuApp::emuScreen() const { return *viewController().emuWindowScreen(); }
+Window &EmuApp::emuWindow() { return viewController().emuWindow(); }
 
 void EmuApp::setCPUNeedsLowLatency(IG::ApplicationContext ctx, bool needed)
 {
@@ -437,7 +427,8 @@ static IG::Microseconds makeWantedAudioLatencyUSecs(uint8_t buffers, IG::FloatSe
 
 void EmuApp::prepareAudio()
 {
-	system().configAudioPlayback(audio(), optionSoundRate);
+	audio().setRate(optionSoundRate);
+	configFrameTime();
 }
 
 void EmuApp::startAudio()
@@ -586,7 +577,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			winData.viewController.placeElements();
 			winData.viewController.pushAndShowMainMenu(viewAttach, emuVideoLayer, emuAudio);
 			configureSecondaryScreens();
-			applyFrameRates(false);
 			emuVideo.setOnFormatChanged(
 				[this, &viewController = winData.viewController](EmuVideo &)
 				{
@@ -718,6 +708,10 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						logMsg("screen removed");
 						if(hasExtraWindow(appContext()) && *extraWindowScreen(appContext()) == screen)
 							setEmuViewOnExtraWindow(false, screen);
+					}
+					else if(change.changedFrameRate() && screen == emuScreen())
+					{
+						configFrameTime();
 					}
 				});
 
@@ -1530,7 +1524,10 @@ VController &EmuApp::defaultVController()
 
 void EmuApp::configFrameTime()
 {
-	system().configFrameTime(emuAudio.format().rate);
+	auto frameTime = outputTimingManager.frameTime(system(), emuScreen());
+	system().configFrameTime(emuAudio.format().rate, frameTime);
+	if(viewController().isShowingEmulation())
+		emuWindow().setIntendedFrameRate(1. / frameTime.count());
 }
 
 void EmuApp::runFrames(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio, int frames, bool skipForward)
@@ -1704,7 +1701,7 @@ void EmuApp::setSoundRate(int rate)
 	if(!rate)
 		rate = optionSoundRate.defaultVal;
 	optionSoundRate = rate;
-	system().configAudioPlayback(audio(), rate);
+	prepareAudio();
 }
 
 bool EmuApp::setSoundVolume(int vol)
@@ -1787,67 +1784,10 @@ void EmuApp::configureAppForEmulation(bool running)
 	appContext().setHintKeyRepeat(!running);
 }
 
-FloatSeconds EmuApp::bestFrameTimeForScreen(VideoSystem system) const
-{
-	auto &screen = *mainWindowData().viewController.emuWindowScreen();
-	auto targetFrameTime = EmuSystem::defaultFrameTime(system);
-	auto targetFrameRate = 1. / targetFrameTime.count();
-	static auto selectAcceptableRate = [](double rate, double targetRate)
-	{
-		assumeExpr(rate > 0.);
-		assumeExpr(targetRate > 0.);
-		static constexpr double stretchFrameRate = 4.; // accept rates +/- this value
-		do
-		{
-			if(std::abs(rate - targetRate) <= stretchFrameRate)
-				return rate;
-			rate /= 2.; // try half the rate until it falls below the target
-		} while(rate > targetRate);
-		return 0.;
-	};;
-	if(Config::envIsAndroid && appContext().androidSDK() >= 30) // supports setting frame rate dynamically
-	{
-		double acceptableRate{};
-		for(auto rate : screen.supportedFrameRates(appContext()))
-		{
-			if(auto acceptedRate = selectAcceptableRate(rate, targetFrameRate);
-				acceptedRate)
-			{
-				acceptableRate = acceptedRate;
-				logMsg("updated rate:%.2f", acceptableRate);
-			}
-		}
-		if(acceptableRate)
-		{
-			logMsg("screen's frame rate:%.2f is close system's rate:%.2f", acceptableRate, targetFrameRate);
-			return FloatSeconds{1. / acceptableRate};
-		}
-	}
-	else // check the current frame rate
-	{
-		auto screenRate = screen.frameRate();
-		if(auto acceptedRate = selectAcceptableRate(screenRate, targetFrameRate);
-			acceptedRate)
-		{
-			logMsg("screen's frame rate:%.2f is close system's rate:%.2f", screenRate, targetFrameRate);
-			return FloatSeconds{1. / acceptedRate};
-		}
-	}
-	return targetFrameTime;
-}
-
-void EmuApp::applyFrameRates(bool updateFrameTime)
-{
-	system().setFrameTime(VideoSystem::NATIVE_NTSC, frameTime(VideoSystem::NATIVE_NTSC));
-	system().setFrameTime(VideoSystem::PAL, frameTime(VideoSystem::PAL));
-	if(updateFrameTime)
-		system().configFrameTime(soundRate());
-}
-
 double EmuApp::intendedFrameRate(const IG::Window &win) const
 {
 	if(shouldForceMaxScreenFrameRate())
-		return std::ranges::max(win.screen()->supportedFrameRates(appContext()));
+		return std::ranges::max(win.screen()->supportedFrameRates());
 	else
 		return system().frameRate();
 }
@@ -1897,7 +1837,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 				{
 					emuSystemTask.pause();
 					win.moveOnFrame(ctx.mainWindow(), system().onFrameUpdate, windowFrameClockSource());
-					applyFrameRates();
+					configFrameTime();
 				}
 				extraWinData.updateWindowViewport(win, makeViewport(win), renderer);
 				viewController().moveEmuViewToWindow(win);
@@ -1950,7 +1890,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 						{
 							emuSystemTask.pause();
 							mainWindow().moveOnFrame(win, system().onFrameUpdate, windowFrameClockSource());
-							applyFrameRates();
+							configFrameTime();
 						}
 					});
 

@@ -23,7 +23,7 @@ namespace IG
 {
 
 template <class... T>
-constexpr auto formatTo(IG::Container auto &c, fmt::format_string<T...> fmt, const T&... args)
+constexpr auto formatTo(Container auto &c, fmt::format_string<T...> fmt, const T&... args)
 {
 	if constexpr(requires {c.push_back('0');})
 	{
@@ -36,7 +36,7 @@ constexpr auto formatTo(IG::Container auto &c, fmt::format_string<T...> fmt, con
 	}
 }
 
-template <IG::Container Container, class... T>
+template <Container Container, class... T>
 constexpr auto format(fmt::format_string<T...> fmt, const T&... args)
 {
 	Container c{};

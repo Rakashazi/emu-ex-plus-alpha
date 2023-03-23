@@ -12,6 +12,7 @@ EmuSystemTask.cc \
 EmuTiming.cc \
 EmuVideo.cc \
 EmuVideoLayer.cc \
+OutputTimingManager.cc \
 pathUtils.cc \
 VideoImageEffect.cc \
 VideoImageOverlay.cc \

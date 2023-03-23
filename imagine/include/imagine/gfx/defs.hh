@@ -23,6 +23,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <optional>
 #include <stdexcept>
+#include <array>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/gfx-globals.hh>
@@ -50,7 +51,7 @@ class ProjectionPlane;
 struct DrawableConfig;
 struct Color4B;
 
-using GCRect = IG::CoordinateRect<float, true, true>;
+using GCRect = CoordinateRect<float, true, true>;
 
 enum class WrapMode: uint8_t { REPEAT, MIRROR_REPEAT, CLAMP };
 

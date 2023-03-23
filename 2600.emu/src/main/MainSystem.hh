@@ -63,6 +63,7 @@ class A2600System final: public EmuSystem
 {
 public:
 	OSystem osystem;
+	double inputVideoFrameRate{60.};
 	Properties defaultGameProps{};
 	bool p1DiffB = true, p2DiffB = true, vcsColor = true;
 	Controller::Type autoDetectedInput1{};
@@ -106,7 +107,8 @@ public:
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	void configAudioRate(FloatSeconds frameTime, int rate);
+	FloatSeconds frameTime() const { return FloatSeconds{1. / inputVideoFrameRate}; }
+	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

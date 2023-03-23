@@ -22,8 +22,7 @@
 #include <imagine/base/android/Choreographer.hh>
 #include <imagine/base/FrameTimerInterface.hh>
 #include <imagine/util/jni.hh>
-#include <utility>
-#include <memory>
+#include <variant>
 
 namespace IG
 {
@@ -68,7 +67,7 @@ public:
 protected:
 	JNI::UniqueGlobalRef aDisplay{};
 	FrameTimer frameTimer;
-	IG::FloatSeconds frameTime_{};
+	FloatSeconds frameTime_{};
 	float densityDPI_{};
 	float scaledDensityDPI_{};
 	float refreshRate_{};

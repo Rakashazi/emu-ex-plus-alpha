@@ -65,6 +65,7 @@ public:
 	bool detectedRtcGame{};
 	IG_UseMemberIf(Config::SENSORS, GbaSensorType, sensorType){};
 	IG_UseMemberIf(Config::SENSORS, GbaSensorType, detectedSensorType){};
+	static constexpr FloatSeconds staticFrameTime{280896. / 16777216.}; // ~59.7275Hz
 
 	GbaSystem(ApplicationContext ctx):
 		EmuSystem{ctx} {}
@@ -90,7 +91,8 @@ public:
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	void configAudioRate(FloatSeconds frameTime, int rate);
+	FloatSeconds frameTime() const { return staticFrameTime; }
+	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

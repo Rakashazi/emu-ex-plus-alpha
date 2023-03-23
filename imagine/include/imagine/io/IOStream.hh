@@ -116,8 +116,8 @@ public:
 	explicit operator bool() const { return (bool)io; }
 
 protected:
-	std::unique_ptr<char_type[]> buffPtr{};
-	IO io{};
+	std::unique_ptr<char_type[]> buffPtr;
+	IO io;
 };
 
 template <class IO, class StdStream>

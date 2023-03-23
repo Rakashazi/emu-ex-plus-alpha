@@ -20,6 +20,7 @@
 #include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <glib.h>
 #include <memory>
+#include <utility>
 
 namespace IG
 {

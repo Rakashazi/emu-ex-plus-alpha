@@ -19,6 +19,7 @@
 #include <imagine/io/MapIO.hh>
 #include <imagine/util/string/CStringView.hh>
 #include <memory>
+#include <span>
 
 struct AAsset;
 

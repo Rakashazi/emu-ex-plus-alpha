@@ -28,6 +28,7 @@
 #include <memory>
 #include <optional>
 #include <cstdint>
+#include <string_view>
 
 namespace IG
 {
@@ -78,6 +79,7 @@ public:
 	void dispatchOnFreeCaches(ApplicationContext, bool running);
 
 	void setOnScreenChange(ScreenChangeDelegate del);
+	void dispatchOnScreenChange(ApplicationContext ctx, Screen &, ScreenChange);
 	Screen &addScreen(ApplicationContext, std::unique_ptr<Screen>, bool notify);
 	Screen *findScreen(ScreenId) const;
 	std::unique_ptr<Screen> removeScreen(ApplicationContext, ScreenId, bool notify);

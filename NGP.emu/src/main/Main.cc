@@ -32,14 +32,13 @@ namespace EmuEx
 {
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nNeoPop Team\nwww.nih.at";
-// TODO: Mednafen/Neopop timing is based on 199 lines/frame, verify if this is correct
-double EmuSystem::staticFrameTime = (199. * 515.) / 6144000.; //~59.95Hz
+bool EmuApp::needsGlobalInstance = true;
+
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
 		return IG::endsWithAnyCaseless(name, ".ngc", ".ngp", ".npc", ".ngpc");
 	};
-bool EmuApp::needsGlobalInstance = true;
 
 const char *EmuSystem::shortSystemName() const
 {
@@ -128,16 +127,16 @@ bool NgpSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	return false;
 }
 
-void NgpSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
+void NgpSystem::configAudioRate(IG::FloatSeconds outputFrameTime, int outputRate)
 {
-	auto soundRate = std::round(rate / staticFrameTime * frameTime.count());
+	auto soundRate = audioMixRate(outputRate, outputFrameTime);
 	logMsg("emu sound rate:%f", soundRate);
 	MDFN_IEN_NGP::MDFNNGPC_SetSoundRate(soundRate);
 }
 
 void NgpSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	unsigned maxFrames = 48000/54;
+	static constexpr size_t maxFrames = 48000 / minFrameRate;
 	int16 audioBuff[maxFrames*2];
 	EmulateSpecStruct espec{};
 	if(audio)

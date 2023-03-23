@@ -28,13 +28,13 @@ namespace EmuEx
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\n\nPortions (c) the\nGambatte Team\ngambatte.sourceforge.net";
 bool EmuSystem::hasCheats = true;
-double EmuSystem::staticFrameTime = 70224. / 4194304.; // ~59.7275Hz
+constexpr IG::WP lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
+
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
 		return IG::endsWithAnyCaseless(name, ".gb", ".gbc", ".dmg");
 	};
-constexpr IG::WP lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
 
 const char *EmuSystem::shortSystemName() const
 {
@@ -166,13 +166,13 @@ bool GbcSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 	return true;
 }
 
-void GbcSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
+void GbcSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	long outputRate = rate;
-	long inputRate = staticFrameTime / frameTime.count() * 2097152.;
+	long inputRate = frameTime().count() / outputFrameTime.count() * 2097152.;
 	if(optionAudioResampler >= ResamplerInfo::num())
-		optionAudioResampler = std::min((int)ResamplerInfo::num(), 1);
-	if(!resampler || optionAudioResampler != activeResampler || resampler->outRate() != outputRate)
+		optionAudioResampler = std::min(ResamplerInfo::num(), 1zu);
+	if(!resampler || optionAudioResampler != activeResampler
+		|| resampler->outRate() != outputRate  || resampler->inRate() != inputRate)
 	{
 		logMsg("setting up resampler %d for input rate %ldHz", (int)optionAudioResampler, inputRate);
 		resampler.reset(ResamplerInfo::get(optionAudioResampler).create(inputRate, outputRate, 35112 + 2064));

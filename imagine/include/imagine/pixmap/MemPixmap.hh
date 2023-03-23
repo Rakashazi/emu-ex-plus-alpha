@@ -36,8 +36,8 @@ public:
 	PixmapDesc desc() const { return desc_; }
 
 protected:
-	std::unique_ptr<uint8_t[]> buffer{};
-	PixmapDesc desc_{};
+	std::unique_ptr<uint8_t[]> buffer;
+	PixmapDesc desc_;
 };
 
 }

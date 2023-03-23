@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/GeomQuadMesh.hh>
+#include <span>
 
 namespace IG::Gfx
 {

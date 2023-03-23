@@ -53,11 +53,12 @@ struct Point2D : public AssignmentArithmetics< Point2D<T> >
 	template <class Ratio = T>
 	constexpr Ratio ratio() const { return Ratio(x) / Ratio(y); }
 
-	constexpr T vectorLength() { return distance({(T)0, (T)0}); }
-	constexpr T midpoint() { return std::midpoint(x, y); }
-	constexpr T distance() { return std::abs(x - y); }
+	constexpr bool contains(T p) const { return p >= x && p <= y; }
+	constexpr T vectorLength() const { return distance({(T)0, (T)0}); }
+	constexpr T midpoint() const { return std::midpoint(x, y); }
+	constexpr T distance() const { return std::abs(x - y); }
 
-	constexpr T distance(Point2D other)
+	constexpr T distance(Point2D other) const
 	{
 		auto dx = x - other.x;
 		auto dy = y - other.y;

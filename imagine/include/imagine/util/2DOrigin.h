@@ -177,8 +177,8 @@ public:
 		int scaleDiff = inputScale - outputScale;
 		switch(std::abs(scaleDiff))
 		{
-			case 1: return pos - halfSize * IG::sign(scaleDiff);
-			case 2: return pos - fullSize * IG::sign(scaleDiff);
+			case 1: return pos - halfSize * sign(scaleDiff);
+			case 2: return pos - fullSize * sign(scaleDiff);
 		}
 		return pos;
 	}

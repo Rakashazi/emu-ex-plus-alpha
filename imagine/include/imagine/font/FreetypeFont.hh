@@ -110,7 +110,7 @@ protected:
 	FontWeight weight{};
 
 	std::errc loadIntoNextSlot(IO);
-	std::errc loadIntoNextSlot(IG::CStringView name);
+	std::errc loadIntoNextSlot(CStringView name);
 	GlyphRenderData makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::errc &ec);
 };
 

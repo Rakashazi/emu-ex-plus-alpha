@@ -34,8 +34,8 @@ namespace EmuEx
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
 constexpr double masterClockFrac = 21477272.727273 / 3.;
-constexpr double staticFrameTimeWith262Lines = (455. * 262.) / masterClockFrac; // ~60.05Hz
-double EmuSystem::staticFrameTime = (455. * 263.) / masterClockFrac; //~59.82Hz
+constexpr FloatSeconds staticFrameTimeWith262Lines{455. * 262. / masterClockFrac}; // ~60.05Hz
+constexpr FloatSeconds staticFrameTime{455. * 263. / masterClockFrac}; //~59.82Hz
 bool EmuApp::needsGlobalInstance = true;
 
 bool hasHuCardExtension(std::string_view name)
@@ -208,13 +208,12 @@ void PceSystem::updatePixmap(IG::PixelFormat fmt)
 	return;
 }
 
-void PceSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
+FloatSeconds PceSystem::frameTime() const { return isUsing263Lines() ? staticFrameTime : staticFrameTimeWith262Lines; }
+
+void PceSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	const bool using263Lines = isUsing263Lines();
-	prevUsing263Lines = using263Lines;
-	auto systemFrameTime = using263Lines ? staticFrameTime : staticFrameTimeWith262Lines;
-	auto soundRate = std::round(rate / systemFrameTime * frameTime.count());
-	logMsg("emu sound rate:%f, 263 lines:%d", soundRate, using263Lines);
+	auto soundRate = audioMixRate(outputRate, outputFrameTime);
+	logMsg("emu sound rate:%f, 263 lines:%d", soundRate, isUsing263Lines());
 	if(isUsingAccurateCore())
 		MDFN_IEN_PCE::applySoundFormat(soundRate);
 	else
@@ -223,17 +222,13 @@ void PceSystem::configAudioRate(IG::FloatSeconds frameTime, int rate)
 
 void PceSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	unsigned maxFrames = 48000/54;
+	static constexpr size_t maxFrames = 48000 / minFrameRate;
 	int16 audioBuff[maxFrames*2];
 	EmulateSpecStruct espec{};
 	if(audio)
 	{
 		espec.SoundBuf = audioBuff;
 		espec.SoundBufMaxSize = maxFrames;
-		if(prevUsing263Lines != isUsing263Lines()) [[unlikely]]
-		{
-			configFrameTime(audio->format().rate);
-		}
 	}
 	espec.taskCtx = taskCtx;
 	espec.sys = this;
@@ -247,6 +242,11 @@ void PceSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	mdfnGameInfo.Emulate(&espec);
 	if(audio)
 		audio->writeFrames(audioBuff, espec.SoundBufSize);
+	if(prevUsing263Lines != isUsing263Lines()) [[unlikely]]
+	{
+		prevUsing263Lines = isUsing263Lines();
+		onFrameTimeChanged();
+	}
 }
 
 void PceSystem::reset(EmuApp &, ResetMode mode)

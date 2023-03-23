@@ -42,6 +42,8 @@ protected:
 	unsigned long draggerXWin{};
 	unsigned long dragAction{};
 	IG_UseMemberIf(!Config::MACHINE_IS_PANDORA, unsigned long, colormap){};
+public:
+	bool shouldBypassCompositorState{};
 };
 
 using WindowImpl = XWindow;

@@ -93,6 +93,8 @@ public:
 	Byte1Option optionHorizontalVideoCrop{CFGKEY_HORIZONTAL_VIDEO_CROP, 0};
 	Byte1Option optionCorrectLineAspect{CFGKEY_CORRECT_LINE_ASPECT, 0};
 	FS::PathString defaultPalettePath{};
+	static constexpr FloatSeconds ntscFrameTime{16777215./ 1008307711.}; // ~60.099Hz
+	static constexpr FloatSeconds palFrameTime{16777215. / 838977920.}; // ~50.00Hz
 
 	NesSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -124,7 +126,8 @@ public:
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	void configAudioRate(FloatSeconds frameTime, int rate);
+	FloatSeconds frameTime() const { return videoSystem() == VideoSystem::PAL ? palFrameTime : ntscFrameTime; }
+	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions
