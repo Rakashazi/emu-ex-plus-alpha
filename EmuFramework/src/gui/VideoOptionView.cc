@@ -57,7 +57,7 @@ public:
 
 	~DetectFrameRateView() final
 	{
-		window().setIntendedFrameRate(0.);
+		window().setIntendedFrameRate(0);
 		app().setCPUNeedsLowLatency(appContext(), false);
 		window().removeOnFrame(detectFrameRate);
 	}
@@ -281,7 +281,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"Detect Custom Rate", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				window().setIntendedFrameRate(1. / system().frameTime().count());
+				window().setIntendedFrameTime(system().frameTime());
 				auto frView = makeView<DetectFrameRateView>();
 				frView->onDetectFrameTime =
 					[this](FloatSeconds frameTime)

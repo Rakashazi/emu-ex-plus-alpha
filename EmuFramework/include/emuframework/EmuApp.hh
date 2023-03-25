@@ -282,7 +282,7 @@ public:
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &);
 	void setWindowFrameClockSource(IG::Window::FrameTimeSource src) { winFrameTimeSrc = src; }
 	IG::Window::FrameTimeSource windowFrameClockSource() const { return winFrameTimeSrc; }
-	double intendedFrameRate(const IG::Window &) const;
+	void setIntendedFrameRate(Window &, bool isEmuRunning);
 	static std::u16string_view mainViewName();
 	void runBenchmarkOneShot(EmuVideo &);
 	void onSelectFileFromPicker(IG::IO, IG::CStringView path, std::string_view displayName,

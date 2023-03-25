@@ -48,7 +48,7 @@ struct SRTCData			RTCData;
 struct SBSX				BSX;
 struct SMSU1			MSU1;
 struct SMulti			Multi;
-struct SSettings		Settings{};
+struct SSettings		Settings;
 struct SSNESGameFixes	SNESGameFixes;
 #ifdef NETPLAY_SUPPORT
 struct SNetPlay			NetPlay;

@@ -44,7 +44,7 @@ static int unzFindExtension(unzFile &file, const char *ext, bool restart = TRUE,
         if (len >= l + e && strcasecmp(name + len - l, ext) == 0 && unzOpenCurrentFile(file) == UNZ_OK)
         {
             if (print)
-                S9xPrintf("Using msu file %s", name);
+                printf("Using msu file %s", name);
 
             return (port);
         }
@@ -58,27 +58,27 @@ static int unzFindExtension(unzFile &file, const char *ext, bool restart = TRUE,
 
 STREAM S9xMSU1OpenFile(const char *msu_ext, bool skip_unpacked)
 {
-    const char *filename = S9xGetFilename(msu_ext, ROMFILENAME_DIR);
+    auto filename = S9xGetFilename(msu_ext, ROMFILENAME_DIR);
 	STREAM file = 0;
 
 	if (!skip_unpacked)
 	{
-		file = OPEN_STREAM(filename, "rb");
+		file = OPEN_STREAM(filename.c_str(), "rb");
 		if (file)
-			S9xPrintf("Using msu file %s.\n", filename);
+			printf("Using msu file %s.\n", filename.c_str());
 	}
 
 #ifdef UNZIP_SUPPORT
     // look for msu1 pack file in the rom or patch dir if msu data file not found in rom dir
     if (!file)
     {
-        const char *zip_filename = S9xGetFilename(".msu1", ROMFILENAME_DIR);
-		unzFile	unzFile = unzOpen(zip_filename);
+        auto zip_filename = S9xGetFilename(".msu1", ROMFILENAME_DIR);
+		unzFile	unzFile = unzOpen(zip_filename.c_str());
 
 		if (!unzFile)
 		{
 			zip_filename = S9xGetFilename(".msu1", PATCH_DIR);
-			unzFile = unzOpen(zip_filename);
+			unzFile = unzOpen(zip_filename.c_str());
 		}
 
         if (unzFile)
@@ -86,7 +86,6 @@ STREAM S9xMSU1OpenFile(const char *msu_ext, bool skip_unpacked)
             int	port = unzFindExtension(unzFile, msu_ext, true, true, true);
             if (port == UNZ_OK)
             {
-                S9xPrintf(" in %s.\n", zip_filename);
                 file = new unzStream(unzFile);
             }
             else
@@ -113,10 +112,9 @@ static bool AudioOpen()
 
 	AudioClose();
 
-	char ext[_MAX_EXT];
-	snprintf(ext, _MAX_EXT, "-%d.pcm", MSU1.MSU1_CURRENT_TRACK);
+	std::string extension = "-" + std::to_string(MSU1.MSU1_CURRENT_TRACK) + ".pcm";
 
-    audioStream = S9xMSU1OpenFile(ext);
+    audioStream = S9xMSU1OpenFile(extension.c_str());
 	if (audioStream)
 	{
 		if (GETC_STREAM(audioStream) != 'M')
@@ -209,15 +207,14 @@ bool S9xMSU1ROMExists(void)
 		return true;
 	}
 #ifdef UNZIP_SUPPORT
-	char drive[_MAX_DRIVE + 1], dir[_MAX_DIR + 1], def[_MAX_FNAME + 1], ext[_MAX_EXT + 1];
-	_splitpath(Memory.ROMFilename, drive, dir, def, ext);
-	if (!strcasecmp(ext, ".msu1"))
+
+	if (splitpath(Memory.ROMFilename).ext_is(".msu1"))
 		return true;
 
-	unzFile unzFile = unzOpen(S9xGetFilename(".msu1", ROMFILENAME_DIR));
+	unzFile unzFile = unzOpen(S9xGetFilename(".msu1", ROMFILENAME_DIR).c_str());
 
 	if(!unzFile)
-		unzFile = unzOpen(S9xGetFilename(".msu1", PATCH_DIR));
+		unzFile = unzOpen(S9xGetFilename(".msu1", PATCH_DIR).c_str());
 
 	if (unzFile)
 	{

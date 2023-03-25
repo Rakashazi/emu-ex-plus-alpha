@@ -12,10 +12,13 @@
 #define MEMMAP_SHIFT		(12)
 #define MEMMAP_MASK			(MEMMAP_BLOCK_SIZE - 1)
 
+#include <string>
+#include <vector>
+
 struct CMemory
 {
 	enum
-	{ MAX_ROM_SIZE = 0x800000 };
+	{ MAX_ROM_SIZE = 0xC00000 };
 
 	enum file_formats
 	{ FILE_ZIP, FILE_JMA, FILE_DEFAULT };
@@ -53,10 +56,11 @@ struct CMemory
 	uint8	NSRTHeader[32];
 	int32	HeaderCount;
 
-	uint8	*RAM;
-	uint8	*ROM;
-	uint8	*SRAM;
-	uint8	*VRAM;
+	uint8	RAM[0x20000];
+	std::vector<uint8_t> ROMStorage;
+	uint8   *ROM;
+	uint8	SRAM[0x80000];
+	uint8	VRAM[0x10000];
 	uint8	*FillRAM;
 	uint8	*BWRAM;
 	uint8	*C4RAM;
@@ -70,9 +74,8 @@ struct CMemory
 	uint8	BlockIsROM[MEMMAP_NUM_BLOCKS];
 	uint8	ExtendedFormat;
 
-	char	ROMFilename[PATH_MAX + 1];
+	std::string ROMFilename;
 	char	ROMName[ROM_NAME_LEN];
-	char	RawROMName[ROM_NAME_LEN];
 	char	ROMId[5];
 	int32	CompanyId;
 	uint8	ROMRegion;
@@ -120,8 +123,6 @@ struct CMemory
 	bool8	SaveSRTC (void);
 	bool8	SaveMPAK (const char *);
 
-	char *	Safe (const char *);
-	char *	SafeANK (const char *);
 	void	ParseSNESHeader (uint8 *);
 	void	InitROM (void);
 
@@ -170,6 +171,7 @@ struct CMemory
 	bool8	match_nc (const char *);
 	bool8	match_id (const char *);
 	void	ApplyROMFixes (void);
+    std::string SafeString(std::string s, bool allow_jis = false);
 	void	CheckForAnyPatch (const char *, bool8, int32 &);
 
 	void	MakeRomInfoText (char *);
@@ -196,6 +198,11 @@ struct SMulti
 
 extern CMemory	Memory;
 extern SMulti	Multi;
+
+inline bool S9xInterlaceField()
+{
+	return (Memory.FillRAM[0x213F] & 0x80) >> 7;
+}
 
 void S9xAutoSaveSRAM (void);
 bool8 LoadZip(const char *, uint32 *, uint8 *);

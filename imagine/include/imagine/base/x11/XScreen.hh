@@ -61,6 +61,7 @@ protected:
 	void *xScreen{};
 	FrameTimer frameTimer;
 	float xMM{}, yMM{};
+	float frameRate_{};
 	FloatSeconds frameTime_{};
 	bool reliableFrameTime = true;
 };

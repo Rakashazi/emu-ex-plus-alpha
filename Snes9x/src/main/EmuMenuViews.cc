@@ -1,8 +1,3 @@
-#ifndef SNES9X_VERSION_1_4
-#include <apu/apu.h>
-#include <apu/bapu/snes/snes.hpp>
-#include <ppu.h>
-#endif
 #include <emuframework/EmuApp.hh>
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/FilePathOptionView.hh>
@@ -11,8 +6,12 @@
 #include <emuframework/SystemActionsView.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
-#include <snes9x.h>
 #include <imagine/util/format.hh>
+#ifndef SNES9X_VERSION_1_4
+#include <apu/apu.h>
+#include <apu/bapu/snes/snes.hpp>
+#include <ppu.h>
+#endif
 
 namespace EmuEx
 {

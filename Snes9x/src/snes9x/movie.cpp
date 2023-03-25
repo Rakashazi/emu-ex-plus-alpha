@@ -28,8 +28,6 @@
 #define ftruncate chsize
 #endif
 
-#define fopen fopenHelper
-
 #define SMV_MAGIC				0x1a564d53 // SMV0x1a
 #define SMV_VERSION				5
 #define SMV_HEADER_SIZE			64
@@ -742,7 +740,6 @@ int S9xMovieCreate (const char *filename, uint8 controllers_mask, uint8 opts, co
 	}
 
 	Movie.ROMCRC32 = Memory.ROMCRC32;
-	strncpy(Movie.ROMName, Memory.RawROMName, 23);
 
 	write_movie_extrarominfo(fd, &Movie);
 

@@ -48,7 +48,7 @@ enum
 };
 
 #define COUNT(ARRAY)				(sizeof(ARRAY) / sizeof(ARRAY[0]))
-#define Offset(field, structure)	((int) (((char *) (&(((structure) NULL)->field))) - ((char *) NULL)))
+#define Offset(field, structure)	((int) (((char *) (&(((structure) 1)->field))) - ((char *) 1)))
 #define OFFSET(f)					Offset(f, STRUCT *)
 #define DUMMY(f)					Offset(f, struct Obsolete *)
 #define DELETED(f)					(-1)
@@ -1009,13 +1009,9 @@ void S9xResetSaveTimer (bool8 dontsave)
 
 	if (!Settings.DontSaveOopsSnapshot && !dontsave && t != -1 && time(NULL) - t > 300)
 	{
-		char	filename[PATH_MAX + 1];
-		char	drive[_MAX_DRIVE + 1], dir[_MAX_DIR + 1], def[_MAX_FNAME + 1], ext[_MAX_EXT + 1];
-
-		_splitpath(Memory.ROMFilename, drive, dir, def, ext);
-		snprintf(filename, PATH_MAX + 1, "%s%s%s.%.*s", S9xGetDirectory(SNAPSHOT_DIR), SLASH_STR, def, _MAX_EXT - 1, "oops");
+		auto filename = S9xGetFilename("oops", SNAPSHOT_DIR);
 		S9xMessage(S9X_INFO, S9X_FREEZE_FILE_INFO, SAVE_INFO_OOPS);
-		S9xFreezeGame(filename);
+		S9xFreezeGame(filename.c_str());
 	}
 
 	t = time(NULL);
@@ -1047,12 +1043,12 @@ bool8 S9xFreezeGame (const char *filename)
 
 		S9xResetSaveTimer(TRUE);
 
-		const char *base = S9xBasename(filename);
+		auto base = S9xBasename(filename);
 		char String[513];
 		if (S9xMovieActive())
-			sprintf(String, MOVIE_INFO_SNAPSHOT " %s", base);
+			sprintf(String, MOVIE_INFO_SNAPSHOT " %s", base.c_str());
 		else
-			sprintf(String, SAVE_INFO_SNAPSHOT " %s", base);
+			sprintf(String, SAVE_INFO_SNAPSHOT " %s", base.c_str());
 
 		S9xMessage(S9X_INFO, S9X_FREEZE_FILE_INFO, String);
 
@@ -1107,8 +1103,7 @@ bool8 S9xUnfreezeGame (const char *filename)
 {
 	STREAM	stream = NULL;
 	char String[513];
-
-	const char	*base = S9xBasename(filename);
+	auto base = S9xBasename(filename);
 
 	if (S9xOpenSnapshotFile(filename, TRUE, &stream))
 	{
@@ -1119,26 +1114,26 @@ bool8 S9xUnfreezeGame (const char *filename)
 
 		if (result != SUCCESS)
 		{
-            S9xMessageFromResult(result, base);
+            S9xMessageFromResult(result, base.c_str());
 			return (FALSE);
 		}
 
 		if (S9xMovieActive())
 		{
 			if (S9xMovieReadOnly())
-				sprintf(String, MOVIE_INFO_REWIND " %s", base);
+				sprintf(String, MOVIE_INFO_REWIND " %s", base.c_str());
 			else
-				sprintf(String, MOVIE_INFO_RERECORD " %s", base);
+				sprintf(String, MOVIE_INFO_RERECORD " %s", base.c_str());
 		}
 		else
-			sprintf(String, SAVE_INFO_LOAD " %s", base);
+			sprintf(String, SAVE_INFO_LOAD " %s", base.c_str());
 
 		S9xMessage(S9X_INFO, S9X_FREEZE_FILE_INFO, String);
 
 		return (TRUE);
 	}
 
-	sprintf(String, SAVE_ERR_SAVE_NOT_FOUND, base);
+	sprintf(String, SAVE_ERR_SAVE_NOT_FOUND, base.c_str());
 	S9xMessage(S9X_INFO, S9X_FREEZE_FILE_INFO, String);
 
 	return (FALSE);
@@ -1148,7 +1143,7 @@ bool8 S9xUnfreezeScreenshot(const char *filename, uint16 **image_buffer, int &wi
 {
     STREAM	stream = NULL;
 
-    const char	*base = S9xBasename(filename);
+    auto base = S9xBasename(filename);
 
     if(S9xOpenSnapshotFile(filename, TRUE, &stream))
     {
@@ -1159,15 +1154,14 @@ bool8 S9xUnfreezeScreenshot(const char *filename, uint16 **image_buffer, int &wi
 
         if(result != SUCCESS)
         {
-            S9xMessageFromResult(result, base);
+            S9xMessageFromResult(result, base.c_str());
             return (FALSE);
         }
 
         return (TRUE);
     }
-
     char String[513];
-    sprintf(String, SAVE_ERR_SAVE_NOT_FOUND, base);
+    sprintf(String, SAVE_ERR_SAVE_NOT_FOUND, base.c_str());
     S9xMessage(S9X_INFO, S9X_FREEZE_FILE_INFO, String);
 
     return (FALSE);
@@ -1181,7 +1175,7 @@ void S9xFreezeToStream (STREAM stream)
 	sprintf(buffer, "%s:%04d\n", SNAPSHOT_MAGIC, SNAPSHOT_VERSION);
 	WRITE_STREAM(buffer, strlen(buffer), stream);
 
-	sprintf(buffer, "NAM:%06d:%s%c", (int) strlen(Memory.ROMFilename) + 1, Memory.ROMFilename, 0);
+	sprintf(buffer, "NAM:%06d:%s%c", (int) Memory.ROMFilename.length() + 1, Memory.ROMFilename.c_str(), 0);
 	WRITE_STREAM(buffer, strlen(buffer) + 1, stream);
 
 	FreezeStruct(stream, "CPU", &CPU, SnapCPU, COUNT(SnapCPU));
@@ -1195,11 +1189,11 @@ void S9xFreezeToStream (STREAM stream)
 		dma_snap.dma[d] = DMA[d];
 	FreezeStruct(stream, "DMA", &dma_snap, SnapDMA, COUNT(SnapDMA));
 
-	FreezeBlock (stream, "VRA", Memory.VRAM, 0x10000);
+	FreezeBlock (stream, "VRA", Memory.VRAM, sizeof(Memory.VRAM));
 
-	FreezeBlock (stream, "RAM", Memory.RAM, 0x20000);
+	FreezeBlock (stream, "RAM", Memory.RAM, sizeof(Memory.RAM));
 
-	FreezeBlock (stream, "SRA", Memory.SRAM, 0x80000);
+	FreezeBlock (stream, "SRA", Memory.SRAM, sizeof(Memory.SRAM));
 
 	FreezeBlock (stream, "FIL", Memory.FillRAM, 0x8000);
 
@@ -1210,6 +1204,7 @@ void S9xFreezeToStream (STREAM stream)
 	S9xControlPreSaveState(&ctl_snap);
 	FreezeStruct(stream, "CTL", &ctl_snap, SnapControls, COUNT(SnapControls));
 
+	Timings.InterlaceField = S9xInterlaceField();
 	FreezeStruct(stream, "TIM", &Timings, SnapTimings, COUNT(SnapTimings));
 
 	if (Settings.SuperFX)
@@ -1397,16 +1392,16 @@ int S9xUnfreezeFromStream (STREAM stream)
 			break;
 
 		if (fast)
-			result = UnfreezeBlock(stream, "RAM", Memory.RAM, 0x20000);
+			result = UnfreezeBlock(stream, "RAM", Memory.RAM, sizeof(Memory.RAM));
 		else
-			result = UnfreezeBlockCopy(stream, "RAM", &local_ram, 0x20000);
+			result = UnfreezeBlockCopy(stream, "RAM", &local_ram, sizeof(Memory.RAM));
 		if (result != SUCCESS)
 			break;
 
 		if (fast)
-			result = UnfreezeBlock(stream, "SRA", Memory.SRAM, 0x80000);
+			result = UnfreezeBlock(stream, "SRA", Memory.SRAM, sizeof(Memory.SRAM));
 		else
-			result = UnfreezeBlockCopy (stream, "SRA", &local_sram, 0x80000);
+			result = UnfreezeBlockCopy (stream, "SRA", &local_sram, sizeof(Memory.SRAM));
 		if (result != SUCCESS)
 			break;
 
@@ -1581,16 +1576,35 @@ int S9xUnfreezeFromStream (STREAM stream)
 		if (local_fillram)
 			memcpy(Memory.FillRAM, local_fillram, 0x8000);
 
-        if(version < SNAPSHOT_VERSION_BAPU) {
+        if (version < SNAPSHOT_VERSION_BAPU)
+        {
             printf("Using Blargg APU snapshot loading (snapshot version %d, current is %d)\n...", version, SNAPSHOT_VERSION);
             S9xAPULoadBlarggState(local_apu_sound);
-        } else
-		    S9xAPULoadState(local_apu_sound);
+        }
+        else if (version < 12)
+        {
+            printf("Adjusting old APU snapshot (snapshot version %d, current is %d)\n", version, SNAPSHOT_VERSION);
+            const size_t spc_block_size = 65700;
+            const size_t old_dsp_block_size = 513;
+            const size_t added_bytes_v12 = 128;
+            const size_t bytes_afterward = 16;
+            // Shift end to make room for extra 128 bytes
+            memmove(local_apu_sound + spc_block_size + old_dsp_block_size + added_bytes_v12,
+                    local_apu_sound + spc_block_size + old_dsp_block_size,
+                    bytes_afterward);
+            // Copy saved internal registers to external registers
+            memmove(local_apu_sound + spc_block_size + old_dsp_block_size, local_apu_sound + spc_block_size, added_bytes_v12);
+            S9xAPULoadState(local_apu_sound);
+        }
+        else if (version >= 12)
+        {
+            S9xAPULoadState(local_apu_sound);
+        }
 
-		struct SControlSnapshot	ctl_snap;
-		UnfreezeStructFromCopy(&ctl_snap, SnapControls, COUNT(SnapControls), local_control_data, version);
+        struct SControlSnapshot ctl_snap;
+        UnfreezeStructFromCopy(&ctl_snap, SnapControls, COUNT(SnapControls), local_control_data, version);
 
-		UnfreezeStructFromCopy(&Timings, SnapTimings, COUNT(SnapTimings), local_timing_data, version);
+        UnfreezeStructFromCopy(&Timings, SnapTimings, COUNT(SnapTimings), local_timing_data, version);
 
 		if (local_superfx)
 		{
@@ -1695,12 +1709,11 @@ int S9xUnfreezeFromStream (STREAM stream)
 		IPPU.ColorsChanged = TRUE;
 		IPPU.OBJChanged = TRUE;
 		IPPU.RenderThisFrame = TRUE;
-		
-		GFX.InterlaceFrame = Timings.InterlaceField;
+
 		GFX.DoInterlace = 0;
 
 		S9xGraphicsScreenResize();
-		
+
 		if (Settings.FastSavestates == 0)
 			memset(GFX.Screen,0,GFX.Pitch * MAX_SNES_HEIGHT);
 

@@ -236,9 +236,14 @@ NativeWindow Window::nativeObject() const
 	return xWin;
 }
 
-void Window::setIntendedFrameRate(double rate)
+void Window::setIntendedFrameRate(FrameRate rate)
 {
 	screen()->setFrameRate(rate);
+}
+
+void Window::setIntendedFrameTime(FloatSeconds t)
+{
+	screen()->setFrameTime(t);
 }
 
 void Window::setFormat(NativeWindowFormat fmt) {}

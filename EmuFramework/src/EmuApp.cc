@@ -1524,10 +1524,9 @@ VController &EmuApp::defaultVController()
 
 void EmuApp::configFrameTime()
 {
-	auto frameTime = outputTimingManager.frameTime(system(), emuScreen());
-	system().configFrameTime(emuAudio.format().rate, frameTime);
+	system().configFrameTime(emuAudio.format().rate, outputTimingManager.frameTime(system(), emuScreen()));
 	if(viewController().isShowingEmulation())
-		emuWindow().setIntendedFrameRate(1. / frameTime.count());
+		setIntendedFrameRate(emuWindow(), true);
 }
 
 void EmuApp::runFrames(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio, int frames, bool skipForward)
@@ -1784,12 +1783,17 @@ void EmuApp::configureAppForEmulation(bool running)
 	appContext().setHintKeyRepeat(!running);
 }
 
-double EmuApp::intendedFrameRate(const IG::Window &win) const
+void EmuApp::setIntendedFrameRate(Window &win, bool isEmuRunning)
 {
+	if(!isEmuRunning)
+	{
+		win.setIntendedFrameRate(0);
+		return;
+	}
 	if(shouldForceMaxScreenFrameRate())
-		return std::ranges::max(win.screen()->supportedFrameRates());
+		return win.setIntendedFrameRate(std::ranges::max(win.screen()->supportedFrameRates()));
 	else
-		return system().frameRate();
+		return win.setIntendedFrameTime(outputTimingManager.frameTime(system(), *win.screen()));
 }
 
 void EmuApp::onFocusChange(bool in)

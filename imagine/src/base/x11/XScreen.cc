@@ -37,6 +37,7 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 	if(Config::MACHINE_IS_PANDORA)
 	{
 		// TODO: read actual frame rate value
+		frameRate_ = 60;
 		frameTime_ = IG::FloatSeconds(1. / 60.);
 	}
 	else
@@ -63,11 +64,13 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 			{
 				if(modeInfo.hTotal && modeInfo.vTotal)
 				{
-					frameTime_ = IG::FloatSeconds(((double)modeInfo.hTotal * (double)modeInfo.vTotal) / (double)modeInfo.dotClock);
+					frameRate_ = modeInfo.dotClock / (float(modeInfo.hTotal) * modeInfo.vTotal);
+					frameTime_ = FloatSeconds(double(modeInfo.hTotal) * modeInfo.vTotal / modeInfo.dotClock);
 				}
 				else
 				{
 					logWarn("unknown display time");
+					frameRate_ = 60;
 					frameTime_ = IG::FloatSeconds(1. / 60.);
 					reliableFrameTime = false;
 				}
@@ -81,8 +84,7 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 	}
 	frameTimer.setFrameTime(frameTime_);
 	logMsg("screen:%p %dx%d (%dx%dmm) %.2fHz", xScreen,
-		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM,
-		1./ frameTime_.count());
+		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM, frameRate_);
 }
 
 void *XScreen::nativeObject() const
@@ -115,28 +117,23 @@ int Screen::height() const
 	return HeightOfScreen((::Screen*)xScreen);
 }
 
-double Screen::frameRate() const
-{
-	return 1. / frameTime_.count();
-}
+FrameRate Screen::frameRate() const { return frameRate_; }
 
-IG::FloatSeconds Screen::frameTime() const
-{
-	return frameTime_;
-}
+FloatSeconds Screen::frameTime() const { return frameTime_; }
 
 bool Screen::frameRateIsReliable() const
 {
 	return reliableFrameTime;
 }
 
-void Screen::setFrameRate(double rate)
+void Screen::setFrameRate(FrameRate rate)
 {
 	if constexpr(Config::MACHINE_IS_PANDORA)
 	{
-		if(rate == DISPLAY_RATE_DEFAULT)
+		if(!rate)
 			rate = 60;
-		rate = std::round(rate);
+		else
+			rate = std::round(rate);
 		if(rate != 50 && rate != 60)
 		{
 			logWarn("tried to set unsupported frame rate: %f", rate);
@@ -149,14 +146,23 @@ void Screen::setFrameRate(double rate)
 			logErr("error setting frame rate, %d", err);
 			return;
 		}
-		frameTime_ = IG::FloatSeconds(1. / rate);
+		frameRate_ = rate;
+		frameTime_ = FloatSeconds{1. / rate};
 		frameTimer.setFrameTime(frameTime_);
 	}
 	else
 	{
-		auto time = (bool)rate ? IG::FloatSeconds(1. / rate) : frameTime();
-		frameTimer.setFrameTime(time);
+		auto time = rate ? FloatSeconds(1. / rate) : frameTime();
+		setFrameTime(time);
 	}
+}
+
+void Screen::setFrameTime(FloatSeconds t)
+{
+	if constexpr(Config::MACHINE_IS_PANDORA)
+		setFrameRate(t.count() ? 1. / t.count() : frameRate());
+	else
+		frameTimer.setFrameTime(t.count() ? t : frameTime());
 }
 
 void Screen::postFrameTimer()
@@ -186,13 +192,10 @@ bool Screen::supportsTimestamps() const
 	return !std::holds_alternative<SimpleFrameTimer>(frameTimer);
 }
 
-std::vector<double> Screen::supportedFrameRates() const
+std::vector<FrameRate> Screen::supportedFrameRates() const
 {
 	// TODO
-	std::vector<double> rateVec;
-	rateVec.reserve(1);
-	rateVec.emplace_back(frameRate());
-	return rateVec;
+	return {frameRate()};
 }
 
 }

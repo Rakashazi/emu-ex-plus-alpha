@@ -149,7 +149,7 @@ int Screen::height() const
 	return uiScreen().bounds.size.height;
 }
 
-double Screen::frameRate() const
+FrameRate Screen::frameRate() const
 {
 	return 1. / frameTime().count();
 }
@@ -174,18 +174,20 @@ void Screen::unpostFrameTimer()
 	displayLink().paused = YES;
 }
 
-void Screen::setFrameRate(double rate)
+void Screen::setFrameRate(FrameRate rate)
 {
 	// unsupported
 }
 
-std::vector<double> Screen::supportedFrameRates() const
+void Screen::setFrameTime(FloatSeconds t)
+{
+	// unsupported
+}
+
+std::vector<FrameRate> Screen::supportedFrameRates() const
 {
 	// TODO
-	std::vector<double> rateVec;
-	rateVec.reserve(1);
-	rateVec.emplace_back(frameRate());
-	return rateVec;
+	return {frameRate()};
 }
 
 }

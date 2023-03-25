@@ -40,8 +40,6 @@ namespace IG
 class Screen : public ScreenImpl
 {
 public:
-  static constexpr double DISPLAY_RATE_DEFAULT = 0;
-
 	Screen(ApplicationContext, InitParams);
 	int width() const;
 	int height() const;
@@ -53,10 +51,11 @@ public:
 	size_t onFrameDelegates() const;
 	FrameParams makeFrameParams(FrameTime timestamp) const;
 	bool frameRateIsReliable() const;
-	double frameRate() const;
+	FrameRate frameRate() const;
 	FloatSeconds frameTime() const;
-	void setFrameRate(double rate);
-	std::vector<double> supportedFrameRates() const;
+	void setFrameRate(FrameRate);
+	void setFrameTime(FloatSeconds);
+	std::vector<FrameRate> supportedFrameRates() const;
 	void setFrameInterval(int interval);
 	static bool supportsFrameInterval();
 	bool supportsTimestamps() const;

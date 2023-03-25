@@ -138,9 +138,15 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 		// corrections for devices known to report wrong refresh rates
 		auto buildDevice = ctx.androidBuildDevice();
 		if(Config::MACHINE_IS_GENERIC_ARMV7 && buildDevice == "R800at")
+		{
 			refreshRate_ = 61.5;
+			frameTime_ = FloatSeconds(1. / refreshRate_);
+		}
 		else if(Config::MACHINE_IS_GENERIC_ARMV7 && buildDevice == "sholes")
+		{
 			refreshRate_ = 60;
+			frameTime_ = FloatSeconds(1. / refreshRate_);
+		}
 		else
 			reliableRefreshRate = false;
 	}
@@ -213,7 +219,7 @@ void AndroidScreen::updateRefreshRate(float refreshRate)
 		reliableRefreshRate = false;
 	}
 	refreshRate_ = refreshRate;
-	frameTime_ = IG::FloatSeconds(1. / refreshRate);
+	frameTime_ = FloatSeconds(1. / refreshRate);
 }
 
 bool AndroidScreen::operator ==(AndroidScreen const &rhs) const
@@ -236,15 +242,8 @@ int Screen::height() const
 	return height_;
 }
 
-double Screen::frameRate() const
-{
-	return refreshRate_;
-}
-
-IG::FloatSeconds Screen::frameTime() const
-{
-	return IG::FloatSeconds(1. / frameRate());
-}
+FrameRate Screen::frameRate() const { return refreshRate_; }
+FloatSeconds Screen::frameTime() const { return frameTime_; }
 
 bool Screen::frameRateIsReliable() const
 {
@@ -278,31 +277,34 @@ bool Screen::supportsTimestamps() const
 		return !std::holds_alternative<SimpleFrameTimer>(frameTimer);
 }
 
-void Screen::setFrameRate(double rate)
+void Screen::setFrameRate(FrameRate rate)
 {
-	auto time = rate ? IG::FloatSeconds(1. / rate) : frameTime();
-	frameTimer.setFrameTime(time);
+	auto time = rate ? FloatSeconds(1. / rate) : frameTime();
+	setFrameTime(time);
 }
 
-std::vector<double> Screen::supportedFrameRates() const
+void Screen::setFrameTime(FloatSeconds t)
 {
-	std::vector<double> rateVec;
+	frameTimer.setFrameTime(t.count() ? t : frameTime());
+}
+
+std::vector<FrameRate> Screen::supportedFrameRates() const
+{
 	auto ctx = appContext();
 	if(ctx.androidSDK() < 21)
 	{
-		rateVec.reserve(1);
-		rateVec.emplace_back(frameRate());
+		return {frameRate()};
 	}
 	auto env = ctx.thisThreadJniEnv();
 	JNI::InstMethod<jobject()> jGetSupportedRefreshRates{env, (jobject)aDisplay, "getSupportedRefreshRates", "()[F"};
 	auto jRates = (jfloatArray)jGetSupportedRefreshRates(env, aDisplay);
 	std::span<jfloat> rates{env->GetFloatArrayElements(jRates, 0), (size_t)env->GetArrayLength(jRates)};
-	rateVec.reserve(rates.size());
-	logMsg("screen %d supports %zu rate(s):", id_, rates.size());
-	for(auto r : rates)
+	std::vector<FrameRate> rateVec;
+	rateVec.assign(rates.begin(), rates.end());
+	if constexpr(Config::DEBUG_BUILD)
 	{
-		logMsg("%f", r);
-		rateVec.emplace_back(r);
+		logDMsg("screen %d supports %zu rate(s):", id_, rates.size());
+		for(auto r : rates) { logDMsg("%f", r); }
 	}
 	env->ReleaseFloatArrayElements(jRates, rates.data(), 0);
 	return rateVec;

@@ -6,7 +6,6 @@
 #include <imagine/base/Window.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
-#include <snes9x.h>
 #include <memmap.h>
 #include <display.h>
 

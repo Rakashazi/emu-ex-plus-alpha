@@ -6,7 +6,6 @@
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 
-#include <snes9x.h>
 #include <memmap.h>
 #include <display.h>
 #include <snapshot.h>
@@ -200,7 +199,7 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 	IG::fill(Memory.NSRTHeader);
 	#endif
 	Memory.HeaderCount = 0;
-	strncpy(Memory.ROMFilename, contentFileName().data(), sizeof(Memory.ROMFilename));
+	Memory.ROMFilename = contentFileName();
 	auto forceVideoSystemSettings = [&]() -> std::pair<bool, bool> // ForceNTSC, ForcePAL
 	{
 		switch(optionVideoSystem.val)

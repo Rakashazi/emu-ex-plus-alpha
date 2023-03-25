@@ -31,22 +31,22 @@ static FloatSeconds bestOutputTimeForScreen(const Screen &screen, FloatSeconds s
 {
 	auto targetFrameTime = systemFrameTime;
 	auto targetFrameRate = 1. / targetFrameTime.count();
-	static auto selectAcceptableRate = [](double rate, double targetRate)
+	static auto selectAcceptableRate = [](FrameRate rate, FrameRate targetRate) -> FrameRate
 	{
-		assumeExpr(rate > 0.);
-		assumeExpr(targetRate > 0.);
-		static constexpr double stretchFrameRate = 4.; // accept rates +/- this value
+		assumeExpr(rate > 0);
+		assumeExpr(targetRate > 0);
+		static constexpr FrameRate stretchFrameRate = 4.; // accept rates +/- this value
 		do
 		{
 			if(std::abs(rate - targetRate) <= stretchFrameRate)
 				return rate;
-			rate /= 2.; // try half the rate until it falls below the target
+			rate /= FrameRate{2.}; // try half the rate until it falls below the target
 		} while(rate > targetRate);
-		return 0.;
+		return 0;
 	};;
 	if(Config::envIsAndroid && screen.appContext().androidSDK() >= 30) // supports setting frame rate dynamically
 	{
-		double acceptableRate{};
+		FrameRate acceptableRate{};
 		for(auto rate : screen.supportedFrameRates())
 		{
 			if(auto acceptedRate = selectAcceptableRate(rate, targetFrameRate);

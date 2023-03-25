@@ -238,7 +238,7 @@ NativeWindow Window::nativeObject() const
 	return nWin;
 }
 
-void Window::setIntendedFrameRate(double rate)
+void Window::setIntendedFrameRate(FrameRate rate)
 {
 	if(appContext().androidSDK() < 30)
 	{
@@ -256,6 +256,16 @@ void Window::setIntendedFrameRate(double rate)
 	{
 		logErr("error in ANativeWindow_setFrameRate() with window:%p rate:%.2f", nWin, rate);
 	}
+}
+
+void Window::setIntendedFrameTime(FloatSeconds t)
+{
+	if(appContext().androidSDK() < 30)
+	{
+		screen()->setFrameTime(t);
+		return;
+	}
+	return setIntendedFrameRate(t.count() ? 1. / t.count() : 0);
 }
 
 void Window::setFormat(NativeWindowFormat fmt)

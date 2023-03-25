@@ -8,7 +8,7 @@
 #define _SNES9X_H_
 
 #ifndef VERSION
-#define VERSION	"1.61"
+#define VERSION	"1.62"
 #endif
 
 #include "port.h"
@@ -65,6 +65,10 @@ void removeFileHelper(const char *filename);
 
 #define	NTSC_MASTER_CLOCK			21477272.727272 // 21477272 + 8/11 exact
 #define	PAL_MASTER_CLOCK			21281370.0
+#define NTSC_PROGRESSIVE_FRAME_RATE	60.09881389744051
+#define NTSC_INTERLACED_FRAME_RATE	59.94005994
+#define PAL_PROGRESSIVE_FRAME_RATE	50.006977968
+
 
 #define SNES_MAX_NTSC_VCOUNTER		262
 #define SNES_MAX_PAL_VCOUNTER		312
@@ -340,6 +344,12 @@ void S9xExit(void);
 void S9xMessage(int, int, const char *);
 void S9xPrintf(const char* msg, ...) __attribute__ ((format (printf, 1, 2)));
 void S9xPrintfError(const char* msg, ...) __attribute__ ((format (printf, 1, 2)));
+
+#ifndef S9X_NO_WRAPPERS
+#define printf S9xPrintf
+#define remove removeFileHelper
+#define fopen fopenHelper
+#endif
 
 extern struct SSettings			Settings;
 extern struct SCPUState			CPU;

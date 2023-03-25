@@ -273,6 +273,7 @@ using WindowDismissRequestDelegate = DelegateFunc<void (Window &)>;
 using WindowDismissDelegate = DelegateFunc<void (Window &)>;
 
 using ScreenId = std::conditional_t<Config::envIsAndroid, int, void*>;
+using FrameRate = std::conditional_t<Config::envIsIOS, double, float>;
 using NativeDisplayConnection = void*;
 
 }

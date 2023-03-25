@@ -1,12 +1,11 @@
+#include <emuframework/EmuApp.hh>
+#include "MainSystem.hh"
 #ifndef SNES9X_VERSION_1_4
 #include <apu/apu.h>
 #include <apu/bapu/snes/snes.hpp>
 #include <ppu.h>
 #include <fxemu.h>
 #endif
-#include <emuframework/EmuApp.hh>
-#include "MainSystem.hh"
-#include <snes9x.h>
 
 namespace EmuEx
 {

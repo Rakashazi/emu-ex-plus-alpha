@@ -133,13 +133,6 @@ void S9xMainLoop2 (void)
 
 		if (CPU.Flags & SCAN_KEYS_FLAG) [[unlikely]]
 		{
-			#ifdef DEBUGGER
-			if (!(CPU.Flags & FRAME_ADVANCE_FLAG))
-			#endif
-			{
-				S9xSyncSpeed();
-			}
-
 			break;
 		}
 
@@ -285,7 +278,6 @@ void S9xDoHEventProcessing (void)
 			if (CPU.V_Counter >= Timings.V_Max)	// V ranges from 0 to Timings.V_Max - 1
 			{
 				CPU.V_Counter = 0;
-				Timings.InterlaceField ^= 1;
 
 				// From byuu:
 				// [NTSC]
@@ -294,7 +286,7 @@ void S9xDoHEventProcessing (void)
 				// [PAL] <PAL info is unverified on hardware>
 				// interlace mode has 625 scanlines: 313 on the even frame, and 312 on the odd.
 				// non-interlace mode has 624 scanlines: 312 scanlines on both even and odd frames.
-				if (IPPU.Interlace && !Timings.InterlaceField)
+				if (IPPU.Interlace && S9xInterlaceField())
 					Timings.V_Max = Timings.V_Max_Master + 1;	// 263 (NTSC), 313?(PAL)
 				else
 					Timings.V_Max = Timings.V_Max_Master;		// 262 (NTSC), 312?(PAL)
@@ -315,14 +307,14 @@ void S9xDoHEventProcessing (void)
 			// In interlace mode, there are always 341 dots per scanline. Even frames have 263 scanlines,
 			// and odd frames have 262 scanlines.
 			// Interlace mode scanline 240 on odd frames is not missing a dot.
-			if (CPU.V_Counter == 240 && !IPPU.Interlace && Timings.InterlaceField)	// V=240
+			if (CPU.V_Counter == 240 && !IPPU.Interlace && S9xInterlaceField())	// V=240
 				Timings.H_Max = Timings.H_Max_Master - ONE_DOT_CYCLE;	// HC=1360
 			else
 				Timings.H_Max = Timings.H_Max_Master;					// HC=1364
 
 			if (Model->_5A22 == 2)
 			{
-				if (CPU.V_Counter != 240 || IPPU.Interlace || !Timings.InterlaceField)	// V=240
+				if (CPU.V_Counter != 240 || IPPU.Interlace || !S9xInterlaceField())	// V=240
 				{
 					if (Timings.WRAMRefreshPos == SNES_WRAM_REFRESH_HC_v2 - ONE_DOT_CYCLE)	// HC=534
 						Timings.WRAMRefreshPos = SNES_WRAM_REFRESH_HC_v2;					// HC=538
@@ -336,6 +328,12 @@ void S9xDoHEventProcessing (void)
 			if (CPU.V_Counter == PPU.ScreenHeight + FIRST_VISIBLE_LINE)	// VBlank starts from V=225(240).
 			{
 				S9xEndScreenRefresh();
+				#ifdef DEBUGGER
+					if (!(CPU.Flags & FRAME_ADVANCE_FLAG))
+				#endif
+				{
+					S9xSyncSpeed();
+				}
 
 				CPU.Flags |= SCAN_KEYS_FLAG;
 

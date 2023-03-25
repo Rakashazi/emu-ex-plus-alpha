@@ -14,7 +14,7 @@ namespace EmuEx
 int numCheats()
 {
 	#ifndef SNES9X_VERSION_1_4
-	return Cheat.g.size();
+	return Cheat.group.size();
 	#else
 	return Cheat.num_cheats;
 	#endif
@@ -25,7 +25,7 @@ static void setCheatName(int idx, std::string_view name)
 	#ifndef SNES9X_VERSION_1_4
 	if(idx >= numCheats())
 		return;
-	Cheat.g[idx].name = name;
+	Cheat.group[idx].name = name;
 	#else
 	strncpy(Cheat.c[idx].name, name.data(), sizeof(SCheat::name));
 	#endif
@@ -34,7 +34,7 @@ static void setCheatName(int idx, std::string_view name)
 static const char *cheatName(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
-	return Cheat.g[idx].name.c_str();
+	return Cheat.group[idx].name.c_str();
 	#else
 	return Cheat.c[idx].name;
 	#endif
@@ -52,7 +52,7 @@ static void deleteCheat(int idx)
 static bool cheatIsEnabled(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
-	return Cheat.g[idx].enabled;
+	return Cheat.group[idx].enabled;
 	#else
 	return Cheat.c[idx].enabled;
 	#endif
@@ -79,7 +79,7 @@ static void disableCheat(int idx)
 static void setCheatAddress(int idx, uint32_t a)
 {
 	#ifndef SNES9X_VERSION_1_4
-	Cheat.g[idx].c[0].address = a;
+	Cheat.group[idx].cheat[0].address = a;
 	#else
 	Cheat.c[idx].address = a;
 	#endif
@@ -88,7 +88,7 @@ static void setCheatAddress(int idx, uint32_t a)
 static uint32_t cheatAddress(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
-	return Cheat.g[idx].c[0].address;
+	return Cheat.group[idx].cheat[0].address;
 	#else
 	return Cheat.c[idx].address;
 	#endif
@@ -97,7 +97,7 @@ static uint32_t cheatAddress(int idx)
 static void setCheatValue(int idx, uint8 v)
 {
 	#ifndef SNES9X_VERSION_1_4
-	Cheat.g[idx].c[0].byte = v;
+	Cheat.group[idx].cheat[0].byte = v;
 	#else
 	Cheat.c[idx].byte = v;
 	#endif
@@ -106,7 +106,7 @@ static void setCheatValue(int idx, uint8 v)
 static uint8 cheatValue(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
-	return Cheat.g[idx].c[0].byte;
+	return Cheat.group[idx].cheat[0].byte;
 	#else
 	return Cheat.c[idx].byte;
 	#endif
@@ -115,8 +115,8 @@ static uint8 cheatValue(int idx)
 static void setCheatConditionalValue(int idx, bool conditional, uint8 v)
 {
 	#ifndef SNES9X_VERSION_1_4
-	Cheat.g[idx].c[0].conditional = conditional;
-	Cheat.g[idx].c[0].cond_byte = v;
+	Cheat.group[idx].cheat[0].conditional = conditional;
+	Cheat.group[idx].cheat[0].cond_byte = v;
 	#else
 	Cheat.c[idx].saved = conditional;
 	Cheat.c[idx].saved_byte = v;
@@ -126,7 +126,7 @@ static void setCheatConditionalValue(int idx, bool conditional, uint8 v)
 static std::pair<bool, uint8> cheatConditionalValue(int idx)
 {
 	#ifndef SNES9X_VERSION_1_4
-	return {Cheat.g[idx].c[0].conditional, Cheat.g[idx].c[0].cond_byte};
+	return {Cheat.group[idx].cheat[0].conditional, Cheat.group[idx].cheat[0].cond_byte};
 	#else
 	return {Cheat.c[idx].saved, Cheat.c[idx].saved_byte};
 	#endif

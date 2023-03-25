@@ -13,7 +13,6 @@
 
 
 
-
 namespace TileImpl {
 
 	constexpr uint16	BlackColourMap[256]{};
