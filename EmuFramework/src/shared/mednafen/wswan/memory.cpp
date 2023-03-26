@@ -31,6 +31,7 @@
 #include <mednafen/FileStream.h>
 #include <time.h>
 #include <trio/trio.h>
+#include <emuframework/EmuSystem.hh>
 
 namespace MDFN_IEN_WSWAN
 {
@@ -157,7 +158,10 @@ static INLINE void WriteMem(uint32 A, uint8 V)
    }
   }
   else if(sram_size)
+  {
    wsSRAM[(offset | (BankSelector[1] << 16)) & (sram_size - 1)] = V;
+   EmuEx::gSystem().onBackupMemoryWritten();
+  }
  }
 }	
 

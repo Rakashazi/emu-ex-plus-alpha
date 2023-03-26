@@ -67,8 +67,8 @@ static guint setOpenPathListener(LinuxApplication &app, GDBusConnection *bus, co
 			}
 			gchar *openPath;
 			g_variant_get(param, "(s)", &openPath);
-			ApplicationContext ctx{*((Application*)userData)};
-			ctx.dispatchOnInterProcessMessage(openPath);
+			auto &app = *static_cast<Application*>(userData);
+			app.onEvent(ApplicationContext{app}, InterProcessMessageEvent{openPath});
 		},
 		&app,
 		nullptr);

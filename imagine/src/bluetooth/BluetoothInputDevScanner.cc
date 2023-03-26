@@ -198,13 +198,14 @@ void closeDevices(BluetoothAdapter *bta)
 	if(!bta)
 		return; // Bluetooth was never used
 	logMsg("closing all BT input devs");
-	auto &app = bta->appContext().application();
-	app.removeInputDevices(Input::Map::WIIMOTE);
-	app.removeInputDevices(Input::Map::WII_CC);
-	app.removeInputDevices(Input::Map::ICONTROLPAD);
-	app.removeInputDevices(Input::Map::ZEEMOTE);
+	auto ctx = bta->appContext();
+	auto &app = ctx.application();
+	app.removeInputDevices(ctx, Input::Map::WIIMOTE);
+	app.removeInputDevices(ctx, Input::Map::WII_CC);
+	app.removeInputDevices(ctx, Input::Map::ICONTROLPAD);
+	app.removeInputDevices(ctx, Input::Map::ZEEMOTE);
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	app.removeInputDevices(Input::Map::PS3PAD);
+	app.removeInputDevices(ctx, Input::Map::PS3PAD);
 	#endif
 }
 
@@ -264,7 +265,7 @@ uint32_t devsConnected(ApplicationContext ctx)
 namespace IG
 {
 
-void BaseApplication::bluetoothInputDeviceStatus(Input::Device &dev, int status)
+void BaseApplication::bluetoothInputDeviceStatus(ApplicationContext ctx, Input::Device &dev, int status)
 {
 	using namespace Bluetooth;
 	switch(status)
@@ -279,13 +280,13 @@ void BaseApplication::bluetoothInputDeviceStatus(Input::Device &dev, int status)
 			logMsg("moving %p", devPtr.get());
 			if(devPtr)
 			{
-				addInputDevice(std::move(devPtr), true);
+				addInputDevice(ctx, std::move(devPtr), true);
 			}
 			break;
 		}
 		case BluetoothSocket::STATUS_READ_ERROR:
 		case BluetoothSocket::STATUS_CLOSED:
-			removeInputDevice(dev, true);
+			removeInputDevice(ctx, dev, true);
 			break;
 	}
 }

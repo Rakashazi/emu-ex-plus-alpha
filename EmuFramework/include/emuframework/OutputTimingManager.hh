@@ -32,12 +32,18 @@ using namespace IG;
 class OutputTimingManager
 {
 public:
+	struct FrameTimeConfig
+	{
+		FloatSeconds time;
+		FrameRate rate;
+		int refreshMultiplier;
+	};
+
 	static constexpr FloatSeconds autoOption{};
 	static constexpr FloatSeconds originalOption{-1.};
 
 	constexpr OutputTimingManager() = default;
-	FloatSeconds frameTime(const EmuSystem &, const Screen &) const;
-	auto frameRate(const EmuSystem &sys, const Screen &screen) const { return 1. / frameTime(sys, screen).count(); }
+	FrameTimeConfig frameTimeConfig(const EmuSystem &, const Screen &) const;
 	static bool frameTimeOptionIsValid(FloatSeconds time);
 	bool setFrameTimeOption(VideoSystem, FloatSeconds frameTime);
 	FloatSeconds frameTimeOption(VideoSystem vidSys) const { return frameTimeVar(vidSys); }

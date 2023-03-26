@@ -97,18 +97,18 @@ uint32_t Zeemote::statusHandler(BluetoothSocket &sock, uint32_t status)
 	if(status == BluetoothSocket::STATUS_OPENED)
 	{
 		logMsg("Zeemote opened successfully");
-		ctx.application().bluetoothInputDeviceStatus(*this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("Zeemote connection error");
-		ctx.application().bluetoothInputDeviceStatus(*this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
 	}
 	else if(status == BluetoothSocket::STATUS_READ_ERROR)
 	{
 		logErr("Zeemote read error, disconnecting");
-		ctx.application().bluetoothInputDeviceStatus(*this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
 	}
 	return 0;
 }
@@ -131,7 +131,7 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 		if(packetSize > sizeof(inputBuffer))
 		{
 			logErr("can't handle packet, closing Zeemote");
-			ctx.application().bluetoothInputDeviceStatus(*this, BluetoothSocket::STATUS_READ_ERROR);
+			ctx.application().bluetoothInputDeviceStatus(ctx, *this, BluetoothSocket::STATUS_READ_ERROR);
 			return 0;
 		}
 

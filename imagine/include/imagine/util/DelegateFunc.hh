@@ -25,6 +25,8 @@
 namespace IG
 {
 
+constexpr struct DelegateFuncDefaultInit{} delegateFuncDefaultInit;
+
 template <size_t, size_t, class, class ...> class DelegateFuncBase;
 
 template <size_t StorageSize, size_t Align, class R, class ...Args>
@@ -36,6 +38,9 @@ public:
 	constexpr DelegateFuncBase() = default;
 
 	constexpr DelegateFuncBase(std::nullptr_t) {}
+
+	constexpr DelegateFuncBase(DelegateFuncDefaultInit):
+		DelegateFuncBase{[](Args ...args){ return R(); }} {}
 
 	template<CallableClass<R, Args...> F>
 	requires (sizeof(F) <= StorageSize && Align >= std::alignment_of_v<F>)

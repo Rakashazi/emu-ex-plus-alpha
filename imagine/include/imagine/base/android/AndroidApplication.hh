@@ -104,15 +104,15 @@ public:
 	// Input system functions
 	void onInputQueueCreated(ApplicationContext, AInputQueue *);
 	void onInputQueueDestroyed(AInputQueue *);
-	void updateInputConfig(AConfiguration *config);
+	void updateInputConfig(ApplicationContext, AConfiguration *config);
 	int hardKeyboardState() const;
 	int keyboardType() const;
 	bool hasXperiaPlayGamepad() const;
-	Input::AndroidInputDevice *addAndroidInputDevice(Input::AndroidInputDevice, bool notify);
-	Input::AndroidInputDevice *updateAndroidInputDevice(Input::AndroidInputDevice, bool notify);
+	Input::AndroidInputDevice *addAndroidInputDevice(ApplicationContext, Input::AndroidInputDevice, bool notify);
+	Input::AndroidInputDevice *updateAndroidInputDevice(ApplicationContext, Input::AndroidInputDevice, bool notify);
 	Input::AndroidInputDevice *inputDeviceForId(int id) const;
 	std::pair<Input::AndroidInputDevice*, int> inputDeviceForEvent(AInputEvent *);
-	void enumInputDevices(JNIEnv *, jobject baseActivity, bool notify);
+	void enumInputDevices(ApplicationContext ctx, JNIEnv *, jobject baseActivity, bool notify);
 	bool processInputEvent(AInputEvent*, Window &);
 	bool hasTrackball() const;
 	void flushSystemInputEvents();
@@ -164,7 +164,10 @@ private:
 	DeviceFlags deviceFlags{PERMANENT_MENU_KEY_BIT};
 	bool keepScreenOn{};
 	bool trackballNav{};
+public:
+	bool acceptsIntents{};
 
+private:
 	// InputDeviceListener-based device changes
 	JNI::UniqueGlobalRef inputDeviceListenerHelper{};
 	JNI::InstMethod<void()> jRegister{};
@@ -175,9 +178,9 @@ private:
 	int inputDevNotifyFd = -1;
 	int watch = -1;
 
-	void setHardKeyboardState(int hardKeyboardState);
+	void setHardKeyboardState(ApplicationContext ctx, int hardKeyboardState);
 	void initActivity(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
-	void initInput(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
+	void initInput(ApplicationContext ctx, JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initInputConfig(AConfiguration *config);
 	void initChoreographer(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initScreens(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK, ANativeActivity *);

@@ -256,21 +256,21 @@ std::string KeyEvent::keyString(ApplicationContext) const
 
 void init(ApplicationContext ctx)
 {
-	keyDevPtr = static_cast<KeyboardDevice*>(&ctx.application().addInputDevice(std::make_unique<KeyboardDevice>()));
+	keyDevPtr = static_cast<KeyboardDevice*>(&ctx.application().addInputDevice(ctx, std::make_unique<KeyboardDevice>()));
 	GSEventIsHardwareKeyboardAttached = (GSEventIsHardwareKeyboardAttachedProto)dlsym(RTLD_DEFAULT, "GSEventIsHardwareKeyboardAttached");
 	if(GSEventIsHardwareKeyboardAttached)
 	{
 		hardwareKBAttached = GSEventIsHardwareKeyboardAttached();
 		if(hardwareKBAttached)
 			logMsg("hardware keyboard present");
-		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), &ctx.application(),
+		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), std::bit_cast<void*>(ctx),
 			[](CFNotificationCenterRef, void *observer, CFStringRef, const void *, CFDictionaryRef)
 			{
 				hardwareKBAttached = GSEventIsHardwareKeyboardAttached();
 				logMsg("hardware keyboard %s", hardwareKBAttached ? "attached" : "detached");
-				DeviceAction change{hardwareKBAttached ? DeviceAction::SHOWN : DeviceAction::HIDDEN};
-				auto &app = *((Application*)observer);
-				app.dispatchInputDeviceChange(*keyDevPtr, change);
+				auto change = hardwareKBAttached ? DeviceChange::shown : DeviceChange::hidden;
+				auto ctx = std::bit_cast<ApplicationContext>(observer);
+				ctx.application().dispatchInputDeviceChange(ctx, *keyDevPtr, change);
 			},
 			(__bridge CFStringRef)@"GSEventHardwareKeyboardAttached",
 			nullptr, CFNotificationSuspensionBehaviorCoalesce);

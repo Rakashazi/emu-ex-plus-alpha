@@ -35,23 +35,6 @@ class ApplicationContext;
 namespace IG::Input
 {
 
-enum class DeviceAction: uint8_t { ADDED, REMOVED, CHANGED, SHOWN, HIDDEN, CONNECT_ERROR };
-
-class DeviceChange
-{
-public:
-	constexpr DeviceChange(DeviceAction action): action(action) {}
-	constexpr bool added() const { return action == DeviceAction::ADDED; }
-	constexpr bool removed() const { return action == DeviceAction::REMOVED; }
-	constexpr bool changed() const { return action == DeviceAction::CHANGED; }
-	constexpr bool shown() const { return action == DeviceAction::SHOWN; }
-	constexpr bool hidden() const { return action == DeviceAction::HIDDEN; }
-	constexpr bool hadConnectError() const { return action == DeviceAction::CONNECT_ERROR; }
-
-protected:
-	DeviceAction action;
-};
-
 class Axis;
 
 class Device

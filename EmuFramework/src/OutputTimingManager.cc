@@ -27,52 +27,54 @@ bool OutputTimingManager::frameTimeOptionIsValid(FloatSeconds time)
 		EmuSystem::validFrameRateRange.contains(1. / time.count());
 }
 
-static FloatSeconds bestOutputTimeForScreen(const Screen &screen, FloatSeconds systemFrameTime)
+static OutputTimingManager::FrameTimeConfig bestOutputTimeForScreen(const Screen &screen, FloatSeconds systemFrameTime)
 {
 	auto targetFrameTime = systemFrameTime;
 	auto targetFrameRate = 1. / targetFrameTime.count();
-	static auto selectAcceptableRate = [](FrameRate rate, FrameRate targetRate) -> FrameRate
+	static auto selectAcceptableRate = [](FrameRate rate, FrameRate targetRate) -> std::pair<FrameRate, int>
 	{
 		assumeExpr(rate > 0);
 		assumeExpr(targetRate > 0);
+		int refreshMultiplier = 1;
 		static constexpr FrameRate stretchFrameRate = 4.; // accept rates +/- this value
 		do
 		{
+			logMsg("considering %.2fHz for target %.2fHz", rate, targetRate);
 			if(std::abs(rate - targetRate) <= stretchFrameRate)
-				return rate;
+				return {rate, refreshMultiplier};
 			rate /= FrameRate{2.}; // try half the rate until it falls below the target
-		} while(rate > targetRate);
-		return 0;
+			refreshMultiplier++;
+		} while(rate + stretchFrameRate > targetRate);
+		return {};
 	};;
 	if(Config::envIsAndroid && screen.appContext().androidSDK() >= 30) // supports setting frame rate dynamically
 	{
 		FrameRate acceptableRate{};
+		int refreshMultiplier{};
 		for(auto rate : screen.supportedFrameRates())
 		{
-			if(auto acceptedRate = selectAcceptableRate(rate, targetFrameRate);
+			if(auto [acceptedRate, acceptedRefreshMultiplier] = selectAcceptableRate(rate, targetFrameRate);
 				acceptedRate)
 			{
 				acceptableRate = acceptedRate;
-				logMsg("updated rate:%.2f", acceptableRate);
+				refreshMultiplier = acceptedRefreshMultiplier;
 			}
 		}
 		if(acceptableRate)
 		{
-			logMsg("screen's frame rate:%.2f is close system's rate:%.2f", acceptableRate, targetFrameRate);
-			return FloatSeconds{1. / acceptableRate};
+			return {FloatSeconds{1. / acceptableRate}, acceptableRate, refreshMultiplier};
 		}
 	}
 	else // check the current frame rate
 	{
 		auto screenRate = screen.frameRate();
-		if(auto acceptedRate = selectAcceptableRate(screenRate, targetFrameRate);
+		if(auto [acceptedRate, refreshMultiplier] = selectAcceptableRate(screenRate, targetFrameRate);
 			acceptedRate)
 		{
-			logMsg("screen's frame rate:%.2f is close system's rate:%.2f", screenRate, targetFrameRate);
-			return FloatSeconds{1. / acceptedRate};
+			return {FloatSeconds{1. / acceptedRate}, acceptedRate, refreshMultiplier};
 		}
 	}
-	return targetFrameTime;
+	return {targetFrameTime, FrameRate(targetFrameRate), 1};
 }
 
 bool OutputTimingManager::setFrameTimeOption(VideoSystem vidSys, FloatSeconds time)
@@ -83,14 +85,14 @@ bool OutputTimingManager::setFrameTimeOption(VideoSystem vidSys, FloatSeconds ti
 	return true;
 }
 
-FloatSeconds OutputTimingManager::frameTime(const EmuSystem &system, const Screen &screen) const
+OutputTimingManager::FrameTimeConfig OutputTimingManager::frameTimeConfig(const EmuSystem &system, const Screen &screen) const
 {
 	auto t = frameTimeVar(system.videoSystem());
 	assumeExpr(frameTimeOptionIsValid(t));
 	if(t.count() > 0)
-		return t;
+		return {t, FrameRate(1. / t.count()), 1};
 	else if(t == originalOption)
-		return system.frameTime();
+		return {system.frameTime(), FrameRate(system.frameRate()), 1};
 	return bestOutputTimeForScreen(screen, system.frameTime());
 }
 

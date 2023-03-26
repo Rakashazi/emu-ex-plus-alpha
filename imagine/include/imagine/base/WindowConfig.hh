@@ -43,13 +43,7 @@ struct WindowConfig
 	NativeWindowFormat nativeFormat{};
 	Screen *screen_{};
 	const char *title{};
-	WindowSurfaceChangeDelegate onSurfaceChange{};
-	WindowDrawDelegate onDraw{};
-	WindowInputEventDelegate onInputEvent{};
-	WindowFocusChangeDelegate onFocusChange{};
-	WindowDragDropDelegate onDragDrop{};
-	WindowDismissRequestDelegate onDismissRequest{};
-	WindowDismissDelegate onDismiss{};
+	OnWindowEvent onEvent{delegateFuncDefaultInit};
 
 	void setDefaultPosition() { position = {-1, -1}; }
 	bool isDefaultPosition() const { return position == Point2D<int>{-1, -1}; }

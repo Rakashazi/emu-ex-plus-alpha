@@ -259,39 +259,39 @@ const InputDeviceContainer &BaseApplication::inputDevices() const
 	return inputDev;
 }
 
-Input::Device &BaseApplication::addInputDevice(std::unique_ptr<Input::Device> ptr, bool notify)
+Input::Device &BaseApplication::addInputDevice(ApplicationContext ctx, std::unique_ptr<Input::Device> ptr, bool notify)
 {
 	ptr->setEnumId(nextInputDeviceEnumId(ptr->name()));
 	auto &devPtr = inputDev.emplace_back(std::move(ptr));
 	if(notify)
 	{
-		dispatchInputDeviceChange(*devPtr, {Input::DeviceAction::ADDED});
+		onEvent(ctx, Input::DeviceChangeEvent{*devPtr, Input::DeviceChange::added});
 	}
 	return *devPtr;
 }
 
-void BaseApplication::removeInputDevice(Input::Device &d, bool notify)
+void BaseApplication::removeInputDevice(ApplicationContext ctx, Input::Device &d, bool notify)
 {
-	removeInputDeviceIf([&](const auto &devPtr){ return devPtr.get() == &d; }, notify);
+	removeInputDeviceIf(ctx, [&](const auto &devPtr){ return devPtr.get() == &d; }, notify);
 }
 
-void BaseApplication::removeInputDevice(Input::Map map, int id, bool notify)
+void BaseApplication::removeInputDevice(ApplicationContext ctx, Input::Map map, int id, bool notify)
 {
-	removeInputDeviceIf([&](const auto &devPtr){ return devPtr->map() == map && devPtr->id() == id; }, notify);
+	removeInputDeviceIf(ctx, [&](const auto &devPtr){ return devPtr->map() == map && devPtr->id() == id; }, notify);
 }
 
-void BaseApplication::removeInputDevices(Input::Map map, bool notify)
+void BaseApplication::removeInputDevices(ApplicationContext ctx, Input::Map map, bool notify)
 {
 	while(auto removedDevice = IG::moveOutIf(inputDev, [&](const auto &iDev){ return iDev->map() == map; }))
 	{
 		if(notify)
 		{
-			dispatchInputDeviceChange(*removedDevice, {Input::DeviceAction::REMOVED});
+			onEvent(ctx, Input::DeviceChangeEvent{*removedDevice, Input::DeviceChange::removed});
 		}
 	}
 }
 
-void BaseApplication::removeInputDevice(InputDeviceContainer::iterator it, bool notify)
+void BaseApplication::removeInputDevice(ApplicationContext ctx, InputDeviceContainer::iterator it, bool notify)
 {
 	if(it == inputDev.end()) [[unlikely]]
 		return;
@@ -301,7 +301,7 @@ void BaseApplication::removeInputDevice(InputDeviceContainer::iterator it, bool 
 	cancelKeyRepeatTimer();
 	if(notify)
 	{
-		dispatchInputDeviceChange(*removedDevPtr, {Input::DeviceAction::REMOVED});
+		onEvent(ctx, Input::DeviceChangeEvent{*removedDevPtr, Input::DeviceChange::removed});
 	}
 }
 
@@ -342,19 +342,9 @@ bool BaseApplication::dispatchKeyInputEvent(Input::KeyEvent e)
 	return dispatchKeyInputEvent(e, mainWindow());
 }
 
-void BaseApplication::setOnInputDeviceChange(InputDeviceChangeDelegate del)
+void BaseApplication::dispatchInputDeviceChange(ApplicationContext ctx, const Input::Device &d, Input::DeviceChange change)
 {
-	onInputDeviceChange = del;
-}
-
-void BaseApplication::dispatchInputDeviceChange(const Input::Device &d, Input::DeviceChange change)
-{
-	onInputDeviceChange.callCopySafe(d, change);
-}
-
-void BaseApplication::setOnInputDevicesEnumerated(InputDevicesEnumeratedDelegate del)
-{
-	onInputDevicesEnumerated = del;
+	onEvent(ctx, Input::DeviceChangeEvent{d, change});
 }
 
 std::optional<bool> BaseApplication::swappedConfirmKeysOption() const

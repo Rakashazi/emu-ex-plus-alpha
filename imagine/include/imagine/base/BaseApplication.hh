@@ -49,6 +49,8 @@ struct CommandArgs
 class BaseApplication
 {
 public:
+	OnApplicationEvent onEvent{delegateFuncDefaultInit};
+
 	BaseApplication(ApplicationContext);
 	virtual ~BaseApplication() = default;
 	BaseApplication &operator=(BaseApplication &&) = delete;
@@ -75,10 +77,8 @@ public:
 	bool containsOnExit(ExitDelegate) const;
 	void dispatchOnExit(ApplicationContext, bool backgrounded);
 
-	void setOnFreeCaches(FreeCachesDelegate del);
 	void dispatchOnFreeCaches(ApplicationContext, bool running);
 
-	void setOnScreenChange(ScreenChangeDelegate del);
 	void dispatchOnScreenChange(ApplicationContext ctx, Screen &, ScreenChange);
 	Screen &addScreen(ApplicationContext, std::unique_ptr<Screen>, bool notify);
 	Screen *findScreen(ScreenId) const;
@@ -88,8 +88,6 @@ public:
 	bool screensArePosted() const;
 	void setActiveForAllScreens(bool active);
 
-	void setOnInterProcessMessage(InterProcessMessageDelegate);
-	bool hasOnInterProcessMessage() const;
 	void dispatchOnInterProcessMessage(ApplicationContext, const char *filename);
 
 	// Input functions
@@ -98,29 +96,27 @@ public:
 	void deinitKeyRepeatTimer();
 	void setAllowKeyRepeatTimer(bool on);
 	const InputDeviceContainer &inputDevices() const;
-	Input::Device &addInputDevice(std::unique_ptr<Input::Device>, bool notify = false);
-	void removeInputDevice(Input::Device &, bool notify = false);
-	void removeInputDevice(Input::Map map, int id, bool notify = false);
+	Input::Device &addInputDevice(ApplicationContext, std::unique_ptr<Input::Device>, bool notify = false);
+	void removeInputDevice(ApplicationContext, Input::Device &, bool notify = false);
+	void removeInputDevice(ApplicationContext, Input::Map map, int id, bool notify = false);
 
-	void removeInputDeviceIf(auto unaryPredicate, bool notify)
+	void removeInputDeviceIf(ApplicationContext ctx, auto unaryPredicate, bool notify)
 	{
-		removeInputDevice(std::find_if(inputDev.begin(), inputDev.end(), unaryPredicate), notify);
+		removeInputDevice(ctx, std::find_if(inputDev.begin(), inputDev.end(), unaryPredicate), notify);
 	}
 
-	void removeInputDevices(Input::Map matchingMap, bool notify = false);
+	void removeInputDevices(ApplicationContext, Input::Map matchingMap, bool notify = false);
 	bool dispatchRepeatableKeyInputEvent(Input::KeyEvent, Window &);
 	bool dispatchRepeatableKeyInputEvent(Input::KeyEvent);
 	bool dispatchKeyInputEvent(Input::KeyEvent, Window &);
 	bool dispatchKeyInputEvent(Input::KeyEvent);
-	void setOnInputDeviceChange(InputDeviceChangeDelegate);
-	void dispatchInputDeviceChange(const Input::Device &, Input::DeviceChange);
-	void setOnInputDevicesEnumerated(InputDevicesEnumeratedDelegate);
+	void dispatchInputDeviceChange(ApplicationContext, const Input::Device &, Input::DeviceChange);
 	std::optional<bool> swappedConfirmKeysOption() const;
 	bool swappedConfirmKeys() const;
 	void setSwappedConfirmKeys(std::optional<bool>);
 	uint8_t keyEventFlags() const;
 	bool processICadeKey(const Input::KeyEvent &, Window &);
-	void bluetoothInputDeviceStatus(Input::Device &, int status);
+	void bluetoothInputDeviceStatus(ApplicationContext, Input::Device &, int status);
 
 protected:
 	struct CommandMessage
@@ -129,13 +125,8 @@ protected:
 		constexpr explicit operator bool() const { return (bool)del; }
 	};
 
-	InterProcessMessageDelegate onInterProcessMessage_;
 	DelegateFuncSet<ResumeDelegate> onResume_;
-	FreeCachesDelegate onFreeCaches_;
 	DelegateFuncSet<ExitDelegate> onExit_;
-	ScreenChangeDelegate onScreenChange_;
-	InputDeviceChangeDelegate onInputDeviceChange{};
-	InputDevicesEnumeratedDelegate onInputDevicesEnumerated{};
 	WindowContainer window_{};
 	ScreenContainer screen_{};
 	MessagePort<CommandMessage> commandPort{"Main thread messages"};
@@ -149,7 +140,7 @@ protected:
 	void deinitWindows();
 	void removeSecondaryScreens();
 	uint8_t nextInputDeviceEnumId(std::string_view name) const;
-	void removeInputDevice(InputDeviceContainer::iterator, bool notify = false);
+	void removeInputDevice(ApplicationContext, InputDeviceContainer::iterator, bool notify = false);
 };
 
 }

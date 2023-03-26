@@ -71,7 +71,7 @@ MogaManager::~MogaManager()
 		return;
 	logMsg("deinit MOGA input system");
 	jMOGAExit(mogaHelper.jniEnv(), mogaHelper);
-	appContext().application().removeInputDevice(Input::Map::SYSTEM, DEVICE_ID, false);
+	appContext().application().removeInputDevice(appContext(), Input::Map::SYSTEM, DEVICE_ID, false);
 }
 
 AndroidInputDevice MogaManager::makeMOGADevice(const char *name)
@@ -107,13 +107,13 @@ void MogaManager::updateMOGAState(JNIEnv *env, bool connected, bool notify)
 		{
 			logMsg("MOGA connected");
 			const char *name = jMOGAGetState(env, mogaHelper, STATE_SELECTED_VERSION) == ACTION_VERSION_MOGAPRO ? "MOGA Pro Controller" : "MOGA Controller";
-			mogaDev = app.addAndroidInputDevice(makeMOGADevice(name), notify);
+			mogaDev = app.addAndroidInputDevice(appContext(), makeMOGADevice(name), notify);
 		}
 		else
 		{
 			logMsg("MOGA disconnected");
 			mogaDev = {};
-			app.removeInputDevice(Input::Map::SYSTEM, DEVICE_ID, notify);
+			app.removeInputDevice(appContext(), Input::Map::SYSTEM, DEVICE_ID, notify);
 		}
 	}
 }

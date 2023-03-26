@@ -21,6 +21,7 @@
 #include "wswan.h"
 #include "eeprom.h"
 #include "memory.h"
+#include <emuframework/EmuSystem.hh>
 
 namespace MDFN_IEN_WSWAN
 {
@@ -160,8 +161,12 @@ void WSwan_EEPROMWrite(uint32 A, uint8 V)
   case 0xBD: iEEPROM_Address &= 0x00FF; iEEPROM_Address |= (V << 8); break;
   case 0xBE: iEEPROM_Command = V; break;
 
-  case 0xC4: wsEEPROM[(EEPROM_Address << 1) & (eeprom_size - 1)] = V; break;
-  case 0xC5: wsEEPROM[((EEPROM_Address << 1) | 1) & (eeprom_size - 1)] = V; break;
+  case 0xC4: wsEEPROM[(EEPROM_Address << 1) & (eeprom_size - 1)] = V;
+    EmuEx::gSystem().onBackupMemoryWritten();
+  	break;
+  case 0xC5: wsEEPROM[((EEPROM_Address << 1) | 1) & (eeprom_size - 1)] = V;
+    EmuEx::gSystem().onBackupMemoryWritten();
+    break;
 
   case 0xC6: EEPROM_Address &= 0xFF00; EEPROM_Address |= (V << 0); break;
   case 0xC7: EEPROM_Address &= 0x00FF; EEPROM_Address |= (V << 8); break;

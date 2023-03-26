@@ -125,11 +125,6 @@ bool ApplicationContext::isExiting() const
 	return application().isExiting();
 }
 
-void ApplicationContext::setOnInterProcessMessage(InterProcessMessageDelegate del)
-{
-	application().setOnInterProcessMessage(del);
-}
-
 bool ApplicationContext::addOnResume(ResumeDelegate del, int priority)
 {
 	return application().addOnResume(del, priority);
@@ -143,11 +138,6 @@ bool ApplicationContext::removeOnResume(ResumeDelegate del)
 bool ApplicationContext::containsOnResume(ResumeDelegate del) const
 {
 	return application().containsOnResume(del);
-}
-
-void ApplicationContext::setOnFreeCaches(FreeCachesDelegate del)
-{
-	application().setOnFreeCaches(del);
 }
 
 bool ApplicationContext::addOnExit(ExitDelegate del, int priority)
@@ -165,29 +155,9 @@ bool ApplicationContext::containsOnExit(ExitDelegate del) const
 	return application().containsOnExit(del);
 }
 
-void ApplicationContext::dispatchOnInterProcessMessage(const char *filename)
-{
-	application().dispatchOnInterProcessMessage(*this, filename);
-}
-
-bool ApplicationContext::hasOnInterProcessMessage() const
-{
-	return application().hasOnInterProcessMessage();
-}
-
-void ApplicationContext::setOnScreenChange(ScreenChangeDelegate del)
-{
-	application().setOnScreenChange(del);
-}
-
 void ApplicationContext::dispatchOnResume(bool focused)
 {
 	application().dispatchOnResume(*this, focused);
-}
-
-void ApplicationContext::dispatchOnFreeCaches(bool running)
-{
-	application().dispatchOnFreeCaches(*this, running);
 }
 
 void ApplicationContext::dispatchOnExit(bool backgrounded)
@@ -371,16 +341,6 @@ bool ApplicationContext::swappedConfirmKeys() const
 void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 {
 	application().setSwappedConfirmKeys(opt);
-}
-
-void ApplicationContext::setOnInputDeviceChange(InputDeviceChangeDelegate del)
-{
-	application().setOnInputDeviceChange(del);
-}
-
-void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDelegate del)
-{
-	application().setOnInputDevicesEnumerated(del);
 }
 
 [[gnu::weak]] void ApplicationContext::setSysUIStyle(uint32_t flags) {}

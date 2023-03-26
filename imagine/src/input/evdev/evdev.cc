@@ -216,7 +216,7 @@ void EvdevInputDevice::addPollEvent(LinuxApplication &app)
 			if(pollEvents & POLLEV_ERR) [[unlikely]]
 			{
 				logMsg("error %d in input fd %d (%s)", errno, fd, name().data());
-				app.removeInputDevice(*this, true);
+				app.removeInputDevice(ApplicationContext{static_cast<Application&>(app)}, *this, true);
 				return false;
 			}
 			else
@@ -232,7 +232,7 @@ void EvdevInputDevice::addPollEvent(LinuxApplication &app)
 				if(len == -1 && errno != EAGAIN)
 				{
 					logMsg("error %d reading from input fd %d (%s)", errno, fd, name().data());
-					app.removeInputDevice(*this, true);
+					app.removeInputDevice(ApplicationContext{static_cast<Application&>(app)}, *this, true);
 					return false;
 				}
 			}
@@ -319,7 +319,7 @@ static bool processDevNode(LinuxApplication &app, IG::CStringView path, int id, 
 	auto evDev = std::make_unique<EvdevInputDevice>(id, fd, Device::TYPE_BIT_GAMEPAD, nameStr.data(), vendorProductId);
 	fd_setNonblock(fd, 1);
 	evDev->addPollEvent(app);
-	app.addInputDevice(std::move(evDev), notify);
+	app.addInputDevice(ApplicationContext{static_cast<Application&>(app)}, std::move(evDev), notify);
 	return true;
 }
 

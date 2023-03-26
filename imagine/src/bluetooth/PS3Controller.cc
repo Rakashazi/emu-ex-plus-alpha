@@ -170,19 +170,19 @@ uint32_t PS3Controller::statusHandler(BluetoothSocket &sock, uint32_t status)
 	else if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&intSock)
 	{
 		logMsg("PS3 controller opened successfully");
-		ctx.application().bluetoothInputDeviceStatus(*this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
 		sendFeatureReport();
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("PS3 controller connection error");
-		ctx.application().bluetoothInputDeviceStatus(*this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
 	}
 	else if(status == BluetoothSocket::STATUS_READ_ERROR)
 	{
 		logErr("PS3 controller read error, disconnecting");
-		ctx.application().bluetoothInputDeviceStatus(*this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
 	}
 	return 1;
 }

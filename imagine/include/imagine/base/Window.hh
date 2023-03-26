@@ -104,26 +104,6 @@ public:
 		return static_cast<T*>(rendererDataPtr.get());
 	}
 
-	// Called when the state of the window's drawing surface changes,
-	// such as a re-size or if it becomes the current drawing target
-	void setOnSurfaceChange(SurfaceChangeDelegate del);
-	// Called during a Screen frame callback if the window needs to be drawn
-	void setOnDraw(DrawDelegate del);
-	// Called to process an event from an input device
-	void setOnInputEvent(InputEventDelegate del);
-	// Called when app window enters/exits focus
-	void setOnFocusChange(FocusChangeDelegate del);
-	// Called when a file is dropped into into the app's window
-	// if app enables setAcceptDnd()
-	void setOnDragDrop(DragDropDelegate del);
-	// Called when the user performs an action indicating to
-	// to the window manager they wish to dismiss the window
-	// (clicking the close button for example),
-	// by default it will exit the app
-	void setOnDismissRequest(DismissRequestDelegate del);
-	// Called when the window is dismissed
-	void setOnDismiss(DismissDelegate del);
-
 	int realWidth() const;
 	int realHeight() const;
 	int width() const;

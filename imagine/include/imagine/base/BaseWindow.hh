@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/CustomEvent.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/Point2D.hh>
@@ -33,13 +34,8 @@ public:
 	using SurfaceChange = WindowSurfaceChange;
 	using DrawParams = WindowDrawParams;
 	using InitDelegate = WindowInitDelegate;
-	using SurfaceChangeDelegate = WindowSurfaceChangeDelegate;
-	using DrawDelegate = WindowDrawDelegate;
-	using InputEventDelegate = WindowInputEventDelegate;
-	using FocusChangeDelegate = WindowFocusChangeDelegate;
-	using DragDropDelegate = WindowDragDropDelegate;
-	using DismissRequestDelegate = WindowDismissRequestDelegate;
-	using DismissDelegate = WindowDismissDelegate;
+
+	OnWindowEvent onEvent;
 
 	static constexpr bool shouldRunOnInitAfterAddingWindow = true;
 
@@ -55,13 +51,6 @@ protected:
 	};
 
 	OnExit onExit;
-	SurfaceChangeDelegate onSurfaceChange;
-	DrawDelegate onDraw;
-	InputEventDelegate onInputEvent;
-	FocusChangeDelegate onFocusChange;
-	DragDropDelegate onDragDrop;
-	DismissRequestDelegate onDismissRequest;
-	DismissDelegate onDismiss;
 	DelegateFuncSet<OnFrameDelegate> onFrame;
 	std::shared_ptr<void> appDataPtr;
 	std::shared_ptr<void> rendererDataPtr;
@@ -80,13 +69,6 @@ protected:
 	uint8_t surfaceChangeFlags{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
 	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Rotation, Rotation::UP, softOrientation_){Rotation::UP};
 
-	void setOnSurfaceChange(SurfaceChangeDelegate del);
-	void setOnDraw(DrawDelegate del);
-	void setOnInputEvent(InputEventDelegate del);
-	void setOnFocusChange(FocusChangeDelegate del);
-	void setOnDragDrop(DragDropDelegate del);
-	void setOnDismissRequest(DismissRequestDelegate del);
-	void setOnDismiss(DismissDelegate del);
 	FP smmPixelScaler() const;
 	void attachDrawEvent();
 };

@@ -25,6 +25,7 @@
 #include <memory>
 #include <string_view>
 #include <type_traits>
+#include <variant>
 
 namespace Config
 {
@@ -125,9 +126,18 @@ constexpr bool SENSORS = false;
 
 namespace IG::Input
 {
+
 class Event;
 class Device;
-class DeviceChange;
+
+enum class DeviceChange: uint8_t { added, removed, updated, shown, hidden, connectError };
+
+// Sent when a known input device addition/removal/change occurs
+struct DeviceChangeEvent{const Device &device; DeviceChange change;};
+
+// Sent when the device list is rebuilt, all devices should be re-checked
+struct DevicesEnumeratedEvent{};
+
 }
 
 namespace IG
@@ -211,22 +221,7 @@ enum class WindowFrameTimeSource : uint8_t
 	RENDERER,
 };
 
-struct ScreenChange
-{
-	enum class Action : int8_t
-	{
-		added,
-		removed,
-		changedFrameRate,
-	};
-
-	Action action{};
-
-	constexpr ScreenChange(Action action): action{action} {}
-	constexpr bool added() const { return action == Action::added; }
-	constexpr bool removed() const { return action == Action::removed; }
-	constexpr bool changedFrameRate() const { return action == Action::changedFrameRate; }
-};
+enum class ScreenChange : int8_t { added, removed, frameRate };
 
 WISE_ENUM_CLASS((SensorType, uint8_t),
 	(Accelerometer, 1),
@@ -247,30 +242,61 @@ using WindowContainer = std::vector<std::unique_ptr<Window>>;
 using ScreenContainer = std::vector<std::unique_ptr<Screen>>;
 using InputDeviceContainer = std::vector<std::unique_ptr<Input::Device>>;
 
+// App events & delegates
+
+// Sent when another process sends the app a message
+struct InterProcessMessageEvent{CStringView filename;};
+
+// Sent when OS needs app to free any cached data
+struct FreeCachesEvent{bool running;};
+
+// Sent when a Screen is connected/disconnected or its properties change
+struct ScreenChangeEvent{Screen &screen; ScreenChange change;};
+
+using ApplicationEvent = std::variant<InterProcessMessageEvent, FreeCachesEvent,
+	ScreenChangeEvent, Input::DeviceChangeEvent, Input::DevicesEnumeratedEvent>;
+
+using OnApplicationEvent = DelegateFunc<void(ApplicationContext, ApplicationEvent)>;
 using MainThreadMessageDelegate = DelegateFunc<void(ApplicationContext)>;
-using InterProcessMessageDelegate = DelegateFunc<void (ApplicationContext, CStringView filename)>;
 using ResumeDelegate = DelegateFunc<bool (ApplicationContext, bool focused)>;
-using FreeCachesDelegate = DelegateFunc<void (ApplicationContext, bool running)>;
 using ExitDelegate = DelegateFunc<bool (ApplicationContext, bool backgrounded)>;
 using DeviceOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Rotation newRotation)>;
 using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Rotation oldRotation, Rotation newRotation)>;
-using ScreenChangeDelegate = DelegateFunc<void (ApplicationContext, Screen &s, ScreenChange)>;
 using SystemDocumentPickerDelegate = DelegateFunc<void(CStringView uri, CStringView displayName)>;
 using TextFieldDelegate = DelegateFunc<void (const char *str)>;
 using SensorChangedDelegate = DelegateFunc<void (SensorValues)>;
 
-using InputDeviceChangeDelegate = DelegateFunc<void (const Input::Device &dev, Input::DeviceChange)>;
-using InputDevicesEnumeratedDelegate = DelegateFunc<void ()>;
+// Window events & delegates
 
+// Sent when the state of the window's drawing surface changes,
+// such as a re-size or if it becomes the current drawing target
+struct WindowSurfaceChangeEvent{WindowSurfaceChange change;};
+
+// Sent during a Screen frame callback if the window needs to be drawn
+struct DrawEvent{WindowDrawParams params;};
+
+// Sent when app window enters/exits focus
+struct FocusChangeEvent{bool in;};
+
+// Sent when a file is dropped into into the app's window
+// if app enables setAcceptDnd()
+struct DragDropEvent{CStringView filename;};
+
+// Sent when the user performs an action indicating to
+// to the window manager they wish to dismiss the window
+// (clicking the close button for example),
+// by default it will exit the app
+struct DismissRequestEvent{};
+
+// Sent when the window is dismissed
+struct DismissEvent{};
+
+using WindowEvent = std::variant<WindowSurfaceChangeEvent, DrawEvent,
+	Input::Event, FocusChangeEvent, DragDropEvent,
+	DismissRequestEvent, DismissEvent>;
+
+using OnWindowEvent = DelegateFunc<bool(Window &, WindowEvent)>;
 using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window &)>;
-using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window &)>;
-using WindowSurfaceChangeDelegate = DelegateFunc<void (Window &, WindowSurfaceChange)>;
-using WindowDrawDelegate = DelegateFunc<bool (Window &, WindowDrawParams)>;
-using WindowInputEventDelegate = DelegateFunc<bool (Window &, const Input::Event &)>;
-using WindowFocusChangeDelegate = DelegateFunc<void (Window &, bool in)>;
-using WindowDragDropDelegate = DelegateFunc<void (Window &, CStringView filename)>;
-using WindowDismissRequestDelegate = DelegateFunc<void (Window &)>;
-using WindowDismissDelegate = DelegateFunc<void (Window &)>;
 
 using ScreenId = std::conditional_t<Config::envIsAndroid, int, void*>;
 using FrameRate = std::conditional_t<Config::envIsIOS, double, float>;

@@ -49,6 +49,7 @@ private:
 	void setPickerHandlers(IG::Window &);
 	void placeElements(const IG::Window &);
 	void finishTest(IG::Window &, IG::FrameTime);
+	void updateWindowSurface(Window &, Window::SurfaceChange);
 };
 
 static FrameRateTestApplication &mainApp(IG::ApplicationContext ctx)

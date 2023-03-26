@@ -181,15 +181,21 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	if(needsGlobalInstance)
 		gAppPtr = this;
 	ctx.setAcceptIPC(true);
-	ctx.setOnInterProcessMessage(
-		[this](IG::ApplicationContext ctx, const char *path)
+	onEvent = [this](ApplicationContext ctx, ApplicationEvent appEvent)
+	{
+		visit(overloaded
 		{
-			logMsg("got IPC path:%s", path);
-			if(ctx.mainWindow().appData<MainWindowData>())
-				handleOpenFileCommand(path);
-			else
-				system().setInitialLoadPath(path);
-		});
+			[&](InterProcessMessageEvent &e)
+			{
+				logMsg("got IPC path:%s", e.filename.data());
+				if(ctx.mainWindow().appData<MainWindowData>())
+					handleOpenFileCommand(e.filename);
+				else
+					system().setInitialLoadPath(e.filename);
+			},
+			[](auto &) {}
+		}, appEvent);
+	};
 	initOptions(ctx);
 }
 
@@ -524,7 +530,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				closeBluetoothConnections();
 			#endif
 
-			ctx.dispatchOnFreeCaches(false);
+			onEvent(ctx, FreeCachesEvent{false});
 
 			#ifdef CONFIG_BASE_IOS
 			//if(backgrounded)
@@ -649,106 +655,96 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					}
 				};
 
-			win.setOnInputEvent(
-				[this](IG::Window &win, const Input::Event &e)
+			win.onEvent = [this](Window &win, WindowEvent winEvent)
+			{
+				return visit(overloaded
 				{
-					return viewController().inputEvent(e);
-				});
-
-			win.setOnSurfaceChange(
-				[this](IG::Window &win, IG::Window::SurfaceChange change)
-				{
-					if(change.resized())
+					[&](Input::Event &e) { return viewController().inputEvent(e); },
+					[&](DrawEvent &e) { return viewController().drawMainWindow(win, e.params, renderer.task()); },
+					[&](WindowSurfaceChangeEvent &e)
 					{
-						viewController().updateMainWindowViewport(win, makeViewport(win), renderer.task());
-					}
-					renderer.task().updateDrawableForSurfaceChange(win, change);
-				});
-
-			win.setOnDraw(
-				[this](IG::Window &win, IG::Window::DrawParams params)
-				{
-					return viewController().drawMainWindow(win, params, renderer.task());
-				});
-
-			win.setOnDragDrop(
-				[this](IG::Window &win, const char *filename)
-				{
-					logMsg("got DnD: %s", filename);
-					handleOpenFileCommand(filename);
-				});
-
-			win.setOnFocusChange(
-				[this](IG::Window &win, bool in)
-				{
-					windowData(win).focused = in;
-					onFocusChange(in);
-				});
+						if(e.change.resized())
+						{
+							viewController().updateMainWindowViewport(win, makeViewport(win), renderer.task());
+						}
+						renderer.task().updateDrawableForSurfaceChange(win, e.change);
+						return true;
+					},
+					[&](DragDropEvent &e)
+					{
+						logMsg("got DnD: %s", e.filename.data());
+						handleOpenFileCommand(e.filename);
+						return true;
+					},
+					[&](FocusChangeEvent &e)
+					{
+						windowData(win).focused = e.in;
+						onFocusChange(e.in);
+						return true;
+					},
+					[](auto &){ return false; }
+				}, winEvent);
+			};
 
 			onMainWindowCreated(viewAttach, ctx.defaultInputEvent());
 
-			ctx.setOnInterProcessMessage(
-				[this](IG::ApplicationContext, const char *path)
+			onEvent = [this](ApplicationContext ctx, ApplicationEvent appEvent)
+			{
+				visit(overloaded
 				{
-					logMsg("got IPC path:%s", path);
-					handleOpenFileCommand(path);
-				});
-
-			ctx.setOnScreenChange(
-				[this](IG::ApplicationContext ctx, IG::Screen &screen, IG::ScreenChange change)
-				{
-					if(change.added())
+					[&](InterProcessMessageEvent &e)
 					{
-						logMsg("screen added");
-						if(showOnSecondScreenOption() && ctx.screens().size() > 1)
-							setEmuViewOnExtraWindow(true, screen);
-					}
-					else if(change.removed())
+						logMsg("got IPC path:%s", e.filename.data());
+						handleOpenFileCommand(e.filename);
+					},
+					[&](ScreenChangeEvent &e)
 					{
-						logMsg("screen removed");
-						if(hasExtraWindow(appContext()) && *extraWindowScreen(appContext()) == screen)
-							setEmuViewOnExtraWindow(false, screen);
-					}
-					else if(change.changedFrameRate() && screen == emuScreen())
+						if(e.change == ScreenChange::added)
+						{
+							logMsg("screen added");
+							if(showOnSecondScreenOption() && ctx.screens().size() > 1)
+								setEmuViewOnExtraWindow(true, e.screen);
+						}
+						else if(e.change == ScreenChange::removed)
+						{
+							logMsg("screen removed");
+							if(hasExtraWindow(appContext()) && *extraWindowScreen(appContext()) == e.screen)
+								setEmuViewOnExtraWindow(false, e.screen);
+						}
+						else if(e.change == ScreenChange::frameRate && e.screen == emuScreen())
+						{
+							configFrameTime();
+						}
+					},
+					[&](Input::DevicesEnumeratedEvent &)
 					{
-						configFrameTime();
-					}
-				});
-
-			ctx.setOnInputDevicesEnumerated(
-				[this, ctx]()
-				{
-					logMsg("input devs enumerated");
-					updateInputDevices(ctx);
-				});
-
-			ctx.setOnInputDeviceChange(
-				[this, ctx](const Input::Device &dev, Input::DeviceChange change)
-				{
-					logMsg("got input dev change");
-
-					updateInputDevices(ctx);
-
-					if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
+						logMsg("input devs enumerated");
+						updateInputDevices(ctx);
+					},
+					[&](Input::DeviceChangeEvent &e)
 					{
-						postMessage(2, 0, fmt::format("{} {}", inputDevData(dev).displayName, change.added() ? "connected" : "disconnected"));
-					}
-					else if(change.hadConnectError())
+						logMsg("got input dev change");
+						updateInputDevices(ctx);
+						if(optionNotifyInputDeviceChange && (e.change == Input::DeviceChange::added || e.change == Input::DeviceChange::removed))
+						{
+							postMessage(2, 0, fmt::format("{} {}", inputDevData(e.device).displayName, e.change == Input::DeviceChange::added ? "connected" : "disconnected"));
+						}
+						else if(e.change == Input::DeviceChange::connectError)
+						{
+							postMessage(2, 1, fmt::format("{} had a connection error", e.device.name()));
+						}
+						viewController().onInputDevicesChanged();
+					},
+					[&](FreeCachesEvent &e)
 					{
-						postMessage(2, 1, fmt::format("{} had a connection error", dev.name()));
-					}
-
-					viewController().onInputDevicesChanged();
-				});
-
-			ctx.setOnFreeCaches(
-				[this](IG::ApplicationContext, bool running)
-				{
-					viewManager.defaultFace.freeCaches();
-					viewManager.defaultBoldFace.freeCaches();
-					if(running)
-						viewController().prepareDraw();
-				});
+						viewManager.defaultFace.freeCaches();
+						viewManager.defaultBoldFace.freeCaches();
+						if(e.running)
+							viewController().prepareDraw();
+					},
+					[](auto &) {}
+				}, appEvent);
+			};
 
 			ctx.addOnExit(
 				[this](IG::ApplicationContext ctx, bool backgrounded)
@@ -1524,7 +1520,8 @@ VController &EmuApp::defaultVController()
 
 void EmuApp::configFrameTime()
 {
-	system().configFrameTime(emuAudio.format().rate, outputTimingManager.frameTime(system(), emuScreen()));
+	system().configFrameTime(emuAudio.format().rate,
+		outputTimingManager.frameTimeConfig(system(), emuScreen()).time);
 	if(viewController().isShowingEmulation())
 		setIntendedFrameRate(emuWindow(), true);
 }
@@ -1793,7 +1790,7 @@ void EmuApp::setIntendedFrameRate(Window &win, bool isEmuRunning)
 	if(shouldForceMaxScreenFrameRate())
 		return win.setIntendedFrameRate(std::ranges::max(win.screen()->supportedFrameRates()));
 	else
-		return win.setIntendedFrameTime(outputTimingManager.frameTime(system(), *win.screen()));
+		return win.setIntendedFrameRate(outputTimingManager.frameTimeConfig(system(), *win.screen()).rate);
 }
 
 void EmuApp::onFocusChange(bool in)
@@ -1846,57 +1843,57 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 				extraWinData.updateWindowViewport(win, makeViewport(win), renderer);
 				viewController().moveEmuViewToWindow(win);
 
-				win.setOnSurfaceChange(
-					[this](IG::Window &win, IG::Window::SurfaceChange change)
+				win.onEvent = [this](Window &win, WindowEvent winEvent)
+				{
+					return visit(overloaded
 					{
-						if(change.resized())
+						[&](Input::Event &e) { return viewController().extraWindowInputEvent(e); },
+						[&](DrawEvent &e) { return viewController().drawExtraWindow(win, e.params, renderer.task()); },
+						[&](WindowSurfaceChangeEvent &e)
 						{
-							viewController().updateExtraWindowViewport(win, makeViewport(win), renderer.task());
-						}
-						renderer.task().updateDrawableForSurfaceChange(win, change);
-					});
-
-				win.setOnDraw(
-					[this](IG::Window &win, IG::Window::DrawParams params)
-					{
-						return viewController().drawExtraWindow(win, params, renderer.task());
-					});
-
-				win.setOnInputEvent(
-					[this](IG::Window &win, const Input::Event &e)
-					{
-						return viewController().extraWindowInputEvent(e);
-					});
-
-				win.setOnFocusChange(
-					[this](IG::Window &win, bool in)
-					{
-						windowData(win).focused = in;
-						onFocusChange(in);
-					});
-
-				win.setOnDismissRequest(
-					[](IG::Window &win)
-					{
-						win.dismiss();
-					});
-
-				win.setOnDismiss(
-					[this](IG::Window &win)
-					{
-						system().resetFrameTime();
-						logMsg("setting emu view on main window");
-						viewController().moveEmuViewToWindow(appContext().mainWindow());
-						viewController().movePopupToWindow(appContext().mainWindow());
-						viewController().placeEmuViews();
-						mainWindow().postDraw();
-						if(system().isActive())
+							if(e.change.resized())
+							{
+								viewController().updateExtraWindowViewport(win, makeViewport(win), renderer.task());
+							}
+							renderer.task().updateDrawableForSurfaceChange(win, e.change);
+							return true;
+						},
+						[&](DragDropEvent &e)
 						{
-							emuSystemTask.pause();
-							mainWindow().moveOnFrame(win, system().onFrameUpdate, windowFrameClockSource());
-							configFrameTime();
-						}
-					});
+							logMsg("got DnD: %s", e.filename.data());
+							handleOpenFileCommand(e.filename);
+							return true;
+						},
+						[&](FocusChangeEvent &e)
+						{
+							windowData(win).focused = e.in;
+							onFocusChange(e.in);
+							return true;
+						},
+						[&](DismissRequestEvent &e)
+						{
+							win.dismiss();
+							return true;
+						},
+						[&](DismissEvent &e)
+						{
+							system().resetFrameTime();
+							logMsg("setting emu view on main window");
+							viewController().moveEmuViewToWindow(appContext().mainWindow());
+							viewController().movePopupToWindow(appContext().mainWindow());
+							viewController().placeEmuViews();
+							mainWindow().postDraw();
+							if(system().isActive())
+							{
+								emuSystemTask.pause();
+								mainWindow().moveOnFrame(win, system().onFrameUpdate, windowFrameClockSource());
+								configFrameTime();
+							}
+							return true;
+						},
+						[](auto &){ return false; }
+					}, winEvent);
+				};
 
 				win.show();
 				viewController().placeEmuViews();

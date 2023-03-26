@@ -116,23 +116,11 @@ public:
 
 	// App Callbacks
 
-	// Called when another process sends the app a message
-	void setOnInterProcessMessage(InterProcessMessageDelegate);
-	void dispatchOnInterProcessMessage(const char *filename);
-	bool hasOnInterProcessMessage() const;
-
-	// Called when a Screen is connected/disconnected or its properties change
-	void setOnScreenChange(ScreenChangeDelegate del);
-
 	// Called when app returns from backgrounded state
 	bool addOnResume(ResumeDelegate, int priority = APP_ON_RESUME_PRIORITY);
 	bool removeOnResume(ResumeDelegate);
 	bool containsOnResume(ResumeDelegate) const;
 	void dispatchOnResume(bool focused);
-
-	// Called when OS needs app to free any cached data
-	void setOnFreeCaches(FreeCachesDelegate del);
-	void dispatchOnFreeCaches(bool running);
 
 	// Called when app will finish execution
 	// If backgrounded == true, app may eventually resume execution
@@ -234,12 +222,6 @@ public:
 	void flushInputEvents();
 	void flushSystemInputEvents();
 	void flushInternalInputEvents();
-
-	// Called when a known input device addition/removal/change occurs
-	void setOnInputDeviceChange(InputDeviceChangeDelegate);
-
-	// Called when the device list is rebuilt, all devices should be re-checked
-	void setOnInputDevicesEnumerated(InputDevicesEnumeratedDelegate);
 
 	// App exit
 	void exit(int returnVal);

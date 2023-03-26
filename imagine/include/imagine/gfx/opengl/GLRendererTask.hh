@@ -72,7 +72,7 @@ public:
 				auto cmds = makeRendererCommands(ctx, manageSemaphore, notifyWindowAfterPresent, win);
 				f(win, cmds);
 			}, awaitReply);
-		return params.asyncMode == DrawAsyncMode::NONE;
+		return params.asyncMode != DrawAsyncMode::NONE;
 	}
 
 	// for iOS EAGLView renderbuffer management

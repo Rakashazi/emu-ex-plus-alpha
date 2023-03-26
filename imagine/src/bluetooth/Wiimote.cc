@@ -218,7 +218,7 @@ uint32_t Wiimote::statusHandler(BluetoothSocket &sock, uint32_t status)
 	else if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&intSock)
 	{
 		logMsg("Wiimote opened successfully");
-		ctx.application().bluetoothInputDeviceStatus(*this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
 		setLEDs(enumId());
 		requestStatus();
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
@@ -226,12 +226,12 @@ uint32_t Wiimote::statusHandler(BluetoothSocket &sock, uint32_t status)
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("Wiimote connection error");
-		ctx.application().bluetoothInputDeviceStatus(*this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
 	}
 	else if(status == BluetoothSocket::STATUS_READ_ERROR)
 	{
 		logErr("Wiimote read error");
-		ctx.application().bluetoothInputDeviceStatus(*this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
 	}
 	return 1;
 }
@@ -367,7 +367,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 				sendDataModeByExtension();
 				if(!identifiedType)
 				{
-					ctx.application().dispatchInputDeviceChange(*this, {Input::DeviceAction::ADDED});
+					ctx.application().dispatchInputDeviceChange(ctx, *this, Input::DeviceChange::added);
 					identifiedType = 1;
 				}
 			}
@@ -400,7 +400,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						axis[2] = {*this, Input::AxisId::Z, axisClassicRScaler};
 						axis[3] = {*this, Input::AxisId::RZ, axisClassicRScaler};
 						assert(!extDevicePtr);
-						extDevicePtr = &ctx.application().addInputDevice(
+						extDevicePtr = &ctx.application().addInputDevice(ctx,
 							std::make_unique<ExtDevice>(Input::Map::WII_CC, Input::Device::TYPE_BIT_GAMEPAD, "Wii Classic Controller"), true);
 					}
 					else if(memcmp(&packet[7], nunchukType, 6) == 0)
@@ -437,7 +437,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 
 					if(!identifiedType)
 					{
-						ctx.application().dispatchInputDeviceChange(*this, {Input::DeviceAction::ADDED});
+						ctx.application().dispatchInputDeviceChange(ctx, *this, Input::DeviceChange::added);
 						identifiedType = 1;
 					}
 				}
@@ -602,7 +602,7 @@ void Wiimote::removeExtendedDevice()
 {
 	if(extDevicePtr)
 	{
-		ctx.application().removeInputDevice(*extDevicePtr);
+		ctx.application().removeInputDevice(ctx, *extDevicePtr);
 		extDevicePtr = {};
 	}
 }

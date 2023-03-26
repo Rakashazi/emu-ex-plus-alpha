@@ -71,7 +71,7 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass b
 						return;
 					}
 					screen->updateRefreshRate(refreshRate);
-					app.dispatchOnScreenChange(ctx, *screen, ScreenChange::Action::changedFrameRate);
+					app.dispatchOnScreenChange(ctx, *screen, ScreenChange::frameRate);
 				}
 			},
 			{

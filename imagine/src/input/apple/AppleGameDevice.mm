@@ -224,12 +224,12 @@ static void addController(ApplicationContext ctx, GCController *controller, bool
 		return;
 	}
 	logMsg("adding controller: %p", controller);
-	ctx.application().addInputDevice(std::make_unique<AppleGameDevice>(ctx, controller), notify);
+	ctx.application().addInputDevice(ctx, std::make_unique<AppleGameDevice>(ctx, controller), notify);
 }
 
-static void removeController(Application &app, GCController *controller)
+static void removeController(ApplicationContext ctx, Application &app, GCController *controller)
 {
-	app.removeInputDeviceIf(
+	app.removeInputDeviceIf(ctx,
 		[&](auto &devPtr)
 		{
 			auto gameDevPtr = asAppleGameDevice(*devPtr);
@@ -259,7 +259,7 @@ void initAppleGameControllers(ApplicationContext ctx)
 		{
 			logMsg("game controller disconnected");
 			GCController *controller = note.object;
-			removeController(ctx.application(), controller);
+			removeController(ctx, ctx.application(), controller);
 		}];
 	for(GCController *controller in [GCController controllers])
 	{

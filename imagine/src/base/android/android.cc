@@ -73,7 +73,7 @@ AndroidApplication::AndroidApplication(ApplicationInitParams initParams):
 	setNativeActivityCallbacks(initParams.nActivity);
 	initChoreographer(env, baseActivity, baseActivityClass, androidSDK);
 	initScreens(env, baseActivity, baseActivityClass, androidSDK, initParams.nActivity);
-	initInput(env, baseActivity, baseActivityClass, androidSDK);
+	initInput(ctx, env, baseActivity, baseActivityClass, androidSDK);
 	{
 		auto aConfig = AConfiguration_new();
 		auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });
@@ -655,12 +655,13 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				+[](JNIEnv* env, jobject, jlong nUserData, jint devID, jobject jDev, jstring jName, jint src,
 					jint kbType, jint jsAxisBits, jint vendorProductId, jboolean isPowerButton)
 				{
-					auto &app = *((AndroidApplication*)nUserData);
+					ApplicationContext ctx{reinterpret_cast<ANativeActivity*>(nUserData)};
+					auto &app = ctx.application();
 					const char *name = env->GetStringUTFChars(jName, nullptr);
 					Input::AndroidInputDevice sysDev{env, jDev, devID, src,
 						name, kbType, (uint32_t)jsAxisBits, (uint32_t)vendorProductId, (bool)isPowerButton};
 					env->ReleaseStringUTFChars(jName, name);
-					auto devPtr = app.updateAndroidInputDevice(std::move(sysDev), false);
+					auto devPtr = app.updateAndroidInputDevice(ctx, std::move(sysDev), false);
 					// check for special device IDs
 					if(devID == -1)
 					{
@@ -1053,13 +1054,13 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 				logMsg("changed OS orientation");
 				app.setCurrentRotation(ctx, rotation, true);
 			}
-			app.updateInputConfig(aConfig);
+			app.updateInputConfig(ctx, aConfig);
 		};
 	nActivity->callbacks->onLowMemory =
 		[](ANativeActivity *nActivity)
 		{
 			ApplicationContext ctx{nActivity};
-			ctx.dispatchOnFreeCaches(ctx.isRunning());
+			ctx.application().onEvent(ctx, FreeCachesEvent{ctx.isRunning()});
 		};
 	nActivity->callbacks->onWindowFocusChanged =
 		[](ANativeActivity *nActivity, int focused)

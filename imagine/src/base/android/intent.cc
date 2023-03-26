@@ -58,7 +58,7 @@ void ApplicationContext::addLauncherIcon(IG::CStringView name, IG::CStringView p
 
 void AndroidApplication::handleIntent(ApplicationContext ctx)
 {
-	if(!hasOnInterProcessMessage())
+	if(!acceptsIntents)
 		return;
 	auto env = ctx.mainThreadJniEnv();
 	auto baseActivity = ctx.baseActivityObject();
@@ -69,7 +69,7 @@ void AndroidApplication::handleIntent(ApplicationContext ctx)
 	{
 		const char *intentDataPathStr = env->GetStringUTFChars(intentDataPathJStr, nullptr);
 		logMsg("got intent with path: %s", intentDataPathStr);
-		ctx.dispatchOnInterProcessMessage(intentDataPathStr);
+		onEvent(ctx, InterProcessMessageEvent{intentDataPathStr});
 		env->ReleaseStringUTFChars(intentDataPathJStr, intentDataPathStr);
 	}
 }
@@ -141,5 +141,7 @@ void AndroidApplication::handleDocumentIntentResult(const char *uri, const char 
 			}, APP_ON_RESUME_PRIORITY + 100);
 	}
 }
+
+void ApplicationContext::setAcceptIPC(bool on, const char *) { application().acceptsIntents = on; }
 
 }
