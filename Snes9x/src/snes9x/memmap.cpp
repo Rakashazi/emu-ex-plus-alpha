@@ -930,8 +930,11 @@ bool8 CMemory::Init (void)
     }
 
 	ROMStorage.resize(MAX_ROM_SIZE + 0x200 + 0x8000);
+	std::fill(ROMStorage.begin(), ROMStorage.end(), 0);
+	SRAMStorage.resize(SRAM_SIZE);
+	std::fill(SRAMStorage.begin(), SRAMStorage.end(), 0);
+	SRAM = &SRAMStorage[0];
 	memset(RAM, 0,  sizeof(RAM));
-	memset(SRAM, 0, sizeof(SRAM));
 	memset(VRAM, 0, sizeof(VRAM));
 
 	memset(IPPU.TileCache[TILE_2BIT], 0,       MAX_2BIT_TILES * 64);

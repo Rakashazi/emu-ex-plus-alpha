@@ -510,6 +510,37 @@ bool EmuSystem::updateBackupMemoryCounter()
 	return false;
 }
 
+FileIO EmuSystem::staticBackupMemoryFile(CStringView uri, size_t size, uint8_t initValue) const
+{
+	if(!size) [[unlikely]]
+		return {};
+	auto file = appContext().openFileUri(uri, IOAccessHint::Normal, OpenFlagsMask::CreateRW | OpenFlagsMask::Test);
+	if(!file) [[unlikely]]
+		return {};
+	auto fileSize = file.size();
+	if(fileSize != size)
+		file.truncate(size);
+	// size is static so try to use a mapped file for writing
+	bool isMapped = file.tryMap(IOAccessHint::Normal, OpenFlagsMask::CreateRW);
+	if(initValue && fileSize < size)
+	{
+		if(isMapped)
+		{
+			auto buff = file.map();
+			std::fill(&buff[fileSize], &buff[size], initValue);
+		}
+		else
+		{
+			size_t fillSize = size - fileSize;
+			uint8_t fillBuff[fillSize];
+			memset(fillBuff, initValue, fillSize);
+			logMsg("padding %zu bytes at offset %zu with value:0x%X", fillSize, fileSize, initValue);
+			file.writeAtPos(fillBuff, fillSize, fileSize);
+		}
+	}
+	return file;
+}
+
 EmuSystem &gSystem() { return gApp().system(); }
 
 }

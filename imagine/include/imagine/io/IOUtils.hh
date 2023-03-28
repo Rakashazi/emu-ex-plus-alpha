@@ -136,6 +136,7 @@ public:
 	}
 
 	ssize_t readAtPosGeneric(void *buff, size_t bytes, off_t offset);
+	ssize_t writeAtPosGeneric(const void *buff, size_t bytes, off_t offset);
 
 	ssize_t readSized(ResizableContainer auto &c, size_t maxSize)
 	{

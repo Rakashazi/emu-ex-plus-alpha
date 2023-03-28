@@ -272,8 +272,6 @@ IG::PixelFormat Window::pixelFormat() const
 
 void Window::setIntendedFrameRate(FrameRate rate) {}
 
-void Window::setIntendedFrameTime(FloatSeconds t) {}
-
 void WindowConfig::setFormat(IG::PixelFormat) {}
 
 void Window::setSystemGestureExclusionRects(std::span<const WRect>) {}

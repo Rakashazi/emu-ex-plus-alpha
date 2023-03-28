@@ -43,6 +43,9 @@ public:
 	void loadSavedata() { cart_.loadSavedata(); }
 	void saveSavedata() { cart_.saveSavedata(); }
 	std::string const saveBasePath() const { return cart_.saveBasePath(); }
+	std::span<unsigned char> srambank() { return cart_.srambank(); }
+	std::optional<std::time_t> rtcTime() const { return cart_.rtcTime(); }
+	void setRtcTime(std::time_t time) { cart_.setRtcTime(time); }
 
 	#ifndef GAMBATTE_NO_OSD
 	void setOsdElement(transfer_ptr<OsdElement> osdElement) {
@@ -108,10 +111,6 @@ public:
 
 	void setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32) {
 		lcd_.setDmgPaletteColor(palNum, colorNum, rgb32);
-	}
-
-	void setSaveStreamDelegates(SaveInputStreamDelegate iDel, SaveOutputStreamDelegate oDel) {
-		cart_.setSaveStreamDelegates(iDel, oDel);
 	}
 
 	void refreshPalettes() { lcd_.refreshPalettes(); }

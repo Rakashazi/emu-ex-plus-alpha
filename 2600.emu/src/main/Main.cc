@@ -128,13 +128,27 @@ void A2600System::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDeleg
 	Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
 	console.initializeVideo();
 	console.initializeAudio();
-	inputVideoFrameRate = videoSystem() == VideoSystem::PAL ? 50. : 60.;
 	logMsg("is PAL: %s", videoSystem() == VideoSystem::PAL ? "yes" : "no");
+}
+
+FloatSeconds A2600System::frameTime() const
+{
+	if(!osystem.hasConsole())
+		return FloatSeconds{1. / 60.};
+	if(!osystem.console().tia().frameBufferScanlinesLastFrame())
+		return FloatSeconds{1. / (osystem.console().timing() == ConsoleTiming::ntsc ? 60. : 50.)};
+	return FloatSeconds{1. / osystem.console().currentFrameRate()};
 }
 
 void A2600System::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	osystem.setSoundRate(outputRate, inputVideoFrameRate, outputFrameTime, AudioSettings::ResamplingQuality(optionAudioResampleQuality.val));
+	if(!osystem.hasConsole())
+		return;
+	if(!osystem.console().tia().frameBufferScanlinesLastFrame())
+		configuredInputVideoFrameRate = osystem.console().timing() == ConsoleTiming::ntsc ? 60. : 50.;
+	else
+		configuredInputVideoFrameRate = osystem.console().currentFrameRate();
+	osystem.setSoundRate(outputRate, configuredInputVideoFrameRate, outputFrameTime, AudioSettings::ResamplingQuality(optionAudioResampleQuality.val));
 }
 
 static void renderVideo(EmuSystemTaskContext taskCtx, EmuVideo &video, FrameBuffer &fb, TIA &tia)
@@ -167,10 +181,9 @@ void A2600System::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAud
 		renderVideo(taskCtx, *video, os.frameBuffer(), tia);
 	}
 	if(auto newInputVideoFrameRate = osystem.console().currentFrameRate();
-		inputVideoFrameRate != newInputVideoFrameRate
+		configuredInputVideoFrameRate != newInputVideoFrameRate
 		&& newInputVideoFrameRate >= 40.0 && newInputVideoFrameRate <= 70.0) [[unlikely]]
 	{
-		inputVideoFrameRate = newInputVideoFrameRate;
 		onFrameTimeChanged();
 	}
 }

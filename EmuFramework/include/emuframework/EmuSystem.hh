@@ -326,6 +326,7 @@ public:
 	void onBackupMemoryWritten(BackupMemoryDirtyFlags flags = 0xFF);
 	bool updateBackupMemoryCounter();
 	bool usesBackupMemory() const;
+	FileIO staticBackupMemoryFile(CStringView uri, size_t staticSize, uint8_t initValue = 0) const;
 	void sessionOptionSet();
 	void resetSessionOptionsSet() { sessionOptionsSet = false; }
 	bool sessionOptionsAreSet() const { return sessionOptionsSet; }

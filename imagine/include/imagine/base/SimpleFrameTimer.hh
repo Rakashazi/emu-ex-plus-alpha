@@ -31,7 +31,7 @@ public:
 	SimpleFrameTimer(Screen &screen, EventLoop loop = {});
 	void scheduleVSync();
 	void cancel();
-	void setFrameTime(FloatSeconds rate);
+	void setFrameRate(FrameRate);
 
 	explicit operator bool() const
 	{

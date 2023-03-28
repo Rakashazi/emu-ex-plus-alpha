@@ -32,6 +32,9 @@ public:
 	void loadState(SaveState const &state);
 	void loadSavedata() { mem_.loadSavedata(); }
 	void saveSavedata() { mem_.saveSavedata(); }
+	std::span<unsigned char> srambank() { return mem_.srambank(); }
+	std::optional<std::time_t> rtcTime() const { return mem_.rtcTime(); }
+	void setRtcTime(std::time_t time) { mem_.setRtcTime(time); }
 
 	void setVideoBuffer(uint_least32_t *videoBuf, std::ptrdiff_t pitch) {
 		mem_.setVideoBuffer(videoBuf, pitch);
@@ -39,10 +42,6 @@ public:
 
 	void setInputGetter(InputGetter *getInput) {
 		mem_.setInputGetter(getInput);
-	}
-
-	void setSaveStreamDelegates(SaveInputStreamDelegate iDel, SaveOutputStreamDelegate oDel) {
-		mem_.setSaveStreamDelegates(iDel, oDel);
 	}
 
 	void setSaveDir(std::string const &sdir) {

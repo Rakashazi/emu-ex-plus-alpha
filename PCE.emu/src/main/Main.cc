@@ -213,6 +213,7 @@ FloatSeconds PceSystem::frameTime() const { return isUsing263Lines() ? staticFra
 void PceSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
 	auto soundRate = audioMixRate(outputRate, outputFrameTime);
+	configuredFor263Lines = isUsing263Lines();
 	logMsg("emu sound rate:%f, 263 lines:%d", soundRate, isUsing263Lines());
 	if(isUsingAccurateCore())
 		MDFN_IEN_PCE::applySoundFormat(soundRate);
@@ -242,9 +243,8 @@ void PceSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	mdfnGameInfo.Emulate(&espec);
 	if(audio)
 		audio->writeFrames(audioBuff, espec.SoundBufSize);
-	if(prevUsing263Lines != isUsing263Lines()) [[unlikely]]
+	if(configuredFor263Lines != isUsing263Lines()) [[unlikely]]
 	{
-		prevUsing263Lines = isUsing263Lines();
 		onFrameTimeChanged();
 	}
 }

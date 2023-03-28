@@ -38,10 +38,10 @@ namespace MDFN_IEN_WSWAN
 
 static uint32 wsRAMSize;
 uint8 wsRAM[65536];
-static uint8 *wsSRAM = NULL;
+uint8 *wsSRAM = NULL;
 
 uint8 *wsCartROM;
-static uint32 sram_size;
+uint32 sram_size;
 uint32 eeprom_size;
 
 static uint8 ButtonWhich, ButtonReadLatch;

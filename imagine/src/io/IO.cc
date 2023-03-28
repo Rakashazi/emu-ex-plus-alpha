@@ -84,6 +84,17 @@ ssize_t IO::readAtPos(void *buff, size_t bytes, off_t offset)
 	}, *this);
 }
 
+ssize_t IO::writeAtPos(const void *buff, size_t bytes, off_t offset)
+{
+	return visit([&](auto &io)
+	{
+		if constexpr(requires {io.writeAtPos(buff, bytes, offset);})
+			return io.writeAtPos(buff, bytes, offset);
+		else
+			return writeAtPosGeneric(buff, bytes, offset);
+	}, *this);
+}
+
 }
 
 namespace IG::FileUtils

@@ -60,6 +60,7 @@ public:
 
 	// writing
 	ssize_t write(const void *buff, size_t bytes);
+	ssize_t writeAtPos(const void *buff, size_t bytes, off_t offset);
 	bool truncate(off_t offset);
 
 	// seeking

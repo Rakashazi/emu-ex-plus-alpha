@@ -71,13 +71,14 @@ class WsSystem final: public EmuSystem
 {
 public:
 	Mednafen::MDFNGI mdfnGameInfo{EmulatedWSwan};
+	FileIO saveFileIO;
 	uint16_t inputBuff{};
 	IG::MutablePixmapView mSurfacePix{};
 	static constexpr int vidBufferX = 224, vidBufferY = 144;
 	alignas(8) uint32_t pixBuff[vidBufferX*vidBufferY]{};
 	IG::StaticString<16> userName{};
 	WsUserProfile userProfile{defaultUserProfile};
-	uint8_t prevLCDVTotal{};
+	uint8_t configuredLCDVTotal{};
 	bool showVGamepadYWhenHorizonal = true;
 	bool showVGamepadABWhenVertical{};
 	WsRotation rotation{};

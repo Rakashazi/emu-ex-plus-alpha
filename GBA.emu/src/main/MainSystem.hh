@@ -57,6 +57,7 @@ public:
 	[[no_unique_address]] IG::SensorListener sensorListener;
 	Byte1Option optionRtcEmulation{CFGKEY_RTC_EMULATION, std::to_underlying(RtcMode::AUTO), 0, optionIsValidWithMax<2>};
 	Byte4Option optionSaveTypeOverride{CFGKEY_SAVE_TYPE_OVERRIDE, GBA_SAVE_AUTO, 0, optionSaveTypeOverrideIsValid};
+	FileIO saveFileIO;
 	int detectedSaveSize{};
 	int sensorX{}, sensorY{}, sensorZ{};
 	float lightSensorScaleLux{lightSensorScaleLuxDefault};
@@ -116,7 +117,5 @@ using MainSystem = GbaSystem;
 
 void CPULoop(GBASys &, EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *, EmuEx::EmuAudio *);
 void CPUCleanUp();
-bool CPUReadBatteryFile(IG::ApplicationContext, GBASys &gba, const char *);
-bool CPUWriteBatteryFile(IG::ApplicationContext, GBASys &gba, const char *);
 bool CPUReadState(IG::ApplicationContext, GBASys &gba, const char *);
 bool CPUWriteState(IG::ApplicationContext, GBASys &gba, const char *);

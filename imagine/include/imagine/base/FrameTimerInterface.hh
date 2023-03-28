@@ -30,7 +30,7 @@ public:
 
 	void scheduleVSync() { visit([](auto &e){ e.scheduleVSync(); }, *this); }
 	void cancel() { visit([](auto &e){ e.cancel(); }, *this); }
-	void setFrameTime(FloatSeconds rate) { visit([&](auto &e){ e.setFrameTime(rate); }, *this); }
+	void setFrameRate(FrameRate rate) { visit([&](auto &e){ e.setFrameRate(rate); }, *this); }
 };
 
 }

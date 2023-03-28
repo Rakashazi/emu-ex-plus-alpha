@@ -645,7 +645,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 					else
 					{
 						// already in list, update existing
-						screen->updateRefreshRate(refreshRate);
+						screen->updateFrameRate(refreshRate);
 					}
 				}
 			},

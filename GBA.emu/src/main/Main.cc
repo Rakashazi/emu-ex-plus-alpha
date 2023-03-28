@@ -89,23 +89,33 @@ void GbaSystem::loadState(EmuApp &app, IG::CStringView path)
 
 void GbaSystem::loadBackupMemory(EmuApp &app)
 {
-	CPUReadBatteryFile(appContext(), gGba, app.contentSaveFilePath(".sav").c_str());
+	if(coreOptions.saveType == GBA_SAVE_NONE)
+		return;
+	if(!saveFileIO)
+		saveFileIO = staticBackupMemoryFile(app.contentSaveFilePath(".sav"), saveMemorySize(), 0xFF);
+	if(!saveFileIO)
+		throw std::runtime_error("Error accessing .sav file, please verify it has write access");
+	auto buff = saveFileIO.buffer(IOBufferMode::Release);
+	if(buff.isMappedFile())
+		saveFileIO = {};
+	saveMemoryIsMappedFile = buff.isMappedFile();
+	setSaveMemory(std::move(buff));
 }
 
 void GbaSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 {
-	if(!hasContent() || coreOptions.saveType == GBA_SAVE_NONE)
+	if(coreOptions.saveType == GBA_SAVE_NONE)
 		return;
+	const ByteBuffer &saveData = eepromInUse ? eepromData : flashSaveMemory;
 	if(saveMemoryIsMappedFile)
 	{
 		logMsg("flushing backup memory");
-		ByteBuffer &saveData = eepromInUse ? eepromData : flashSaveMemory;
 		msync(saveData.data(), saveData.size(), MS_SYNC);
 	}
 	else
 	{
 		logMsg("saving backup memory");
-		CPUWriteBatteryFile(appContext(), gGba, app.contentSaveFilePath(".sav").c_str());
+		saveFileIO.writeAtPos(saveData.data(), saveData.size(), 0);
 	}
 }
 
@@ -118,6 +128,8 @@ void GbaSystem::closeSystem()
 {
 	assert(hasContent());
 	CPUCleanUp();
+	saveFileIO = {};
+	coreOptions.saveType = GBA_SAVE_NONE;
 	detectedRtcGame = 0;
 	detectedSensorType = {};
 	sensorListener = {};

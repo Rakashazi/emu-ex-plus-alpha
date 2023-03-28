@@ -48,6 +48,7 @@ public:
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
 	std::span<uint8_t> map();
 	ssize_t write(const void *buff, size_t bytes);
+	ssize_t writeAtPos(const void *buff, size_t bytes, off_t offset);
 	bool truncate(off_t offset);
 	off_t seek(off_t offset, SeekMode mode);
 	void sync();
@@ -58,11 +59,12 @@ public:
 	IOBuffer releaseBuffer();
 	UniqueFileDescriptor releaseFd();
 	operator IO();
+	bool tryMap(AccessHint access, OpenFlagsMask);
 
 protected:
 	std::variant<PosixIO, MapIO> ioImpl{};
 
-	void tryMmap(AccessHint access, OpenFlagsMask);
+	void initMmap(AccessHint access, OpenFlagsMask openFlags);
 };
 
 }

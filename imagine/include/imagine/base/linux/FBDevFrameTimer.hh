@@ -31,7 +31,7 @@ public:
 	~FBDevFrameTimer();
 	void scheduleVSync();
 	void cancel();
-	void setFrameTime(FloatSeconds) {}
+	void setFrameRate(FrameRate) {}
 	static bool testSupport();
 
 	explicit operator bool() const

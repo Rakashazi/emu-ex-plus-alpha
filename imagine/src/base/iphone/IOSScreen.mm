@@ -110,9 +110,13 @@ IOSScreen::IOSScreen(ApplicationContext, InitParams initParams)
 			frameTime = 1. / 60.;
 		}
 		frameTime_ = IG::FloatSeconds(frameTime);
+		frameRate_ = 1. / frameTime_;
 	}
 	else
+	{
 		frameTime_ = IG::FloatSeconds(1. / 60.);
+		frameRate_ = 60;
+	}
 }
 
 IOSScreen::~IOSScreen()
@@ -179,15 +183,10 @@ void Screen::setFrameRate(FrameRate rate)
 	// unsupported
 }
 
-void Screen::setFrameTime(FloatSeconds t)
-{
-	// unsupported
-}
-
-std::vector<FrameRate> Screen::supportedFrameRates() const
+std::span<const FrameRate> Screen::supportedFrameRates() const
 {
 	// TODO
-	return {frameRate()};
+	return {&frameRate_, 1};
 }
 
 }

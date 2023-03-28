@@ -87,6 +87,17 @@ ssize_t IOUtils<IO>::readAtPosGeneric(void *buff, size_t bytes, off_t offset)
 }
 
 template <class IO>
+ssize_t IOUtils<IO>::writeAtPosGeneric(const void *buff, size_t bytes, off_t offset)
+{
+	auto &io = *static_cast<IO*>(this);
+	auto savedOffset = io.tell();
+	io.seek(offset);
+	auto bytesWritten = io.write(buff, bytes);
+	io.seek(savedOffset);
+	return bytesWritten;
+}
+
+template <class IO>
 FILE *IOUtils<IO>::toFileStream(const char *opentype)
 {
 	auto &io = *static_cast<IO*>(this);

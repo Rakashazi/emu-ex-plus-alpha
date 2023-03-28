@@ -281,7 +281,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"Detect Custom Rate", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				window().setIntendedFrameTime(system().frameTime());
+				window().setIntendedFrameRate(system().frameRate());
 				auto frView = makeView<DetectFrameRateView>();
 				frView->onDetectFrameTime =
 					[this](FloatSeconds frameTime)
@@ -897,7 +897,7 @@ void VideoOptionView::loadStockItems()
 		item.emplace_back(&imageBuffers);
 	if(IG::used(presentationTime) && renderer().supportsPresentationTime())
 		item.emplace_back(&presentationTime);
-	if(IG::used(forceMaxScreenFrameRate) && appContext().androidSDK() >= 30)
+	if(IG::used(forceMaxScreenFrameRate) && Config::envIsAndroid && appContext().androidSDK() >= 30)
 		item.emplace_back(&forceMaxScreenFrameRate);
 	if(IG::used(secondDisplay))
 		item.emplace_back(&secondDisplay);

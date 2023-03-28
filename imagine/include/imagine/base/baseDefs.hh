@@ -299,7 +299,6 @@ using OnWindowEvent = DelegateFunc<bool(Window &, WindowEvent)>;
 using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window &)>;
 
 using ScreenId = std::conditional_t<Config::envIsAndroid, int, void*>;
-using FrameRate = std::conditional_t<Config::envIsIOS, double, float>;
 using NativeDisplayConnection = void*;
 
 }

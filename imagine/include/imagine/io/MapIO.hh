@@ -42,21 +42,22 @@ public:
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
 	std::span<uint8_t> map();
 	ssize_t write(const void *buff, size_t bytes);
+	ssize_t writeAtPos(const void *buff, size_t bytes, off_t offset);
 	off_t seek(off_t offset, SeekMode mode);
 	size_t size() const;
 	bool eof() const;
 	explicit operator bool() const;
 	void advise(off_t offset, size_t bytes, Advice advice);
 	IOBuffer releaseBuffer();
-	MapIO subView(off_t offset, size_t bytes) const;
+	std::span<uint8_t> subSpan(off_t offset, size_t maxBytes) const;
+	MapIO subView(off_t offset, size_t maxBytes) const;
 
 protected:
-	uint8_t *currPos{};
+	size_t currPos{};
 	IOBuffer buff{};
 
 	uint8_t *data() const;
 	uint8_t *dataEnd() const;
-	ssize_t readAtAddr(void* buff, size_t bytes, const uint8_t *readPos);
 };
 
 }

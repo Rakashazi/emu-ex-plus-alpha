@@ -86,7 +86,7 @@ public:
 	static constexpr int maxFrameBuffWidth = 1365, maxFrameBuffHeight = 270;
 	alignas(8) uint32_t pixBuff[maxFrameBuffWidth * maxFrameBuffHeight];
 	IG::MutablePixmapView mSurfacePix;
-	bool prevUsing263Lines{};
+	bool configuredFor263Lines{};
 	std::vector<CDInterface *> CDInterfaces;
 	FS::PathString sysCardPath;
 	Byte1Option optionArcadeCard{CFGKEY_ARCADE_CARD, 1};

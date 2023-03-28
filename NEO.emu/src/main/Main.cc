@@ -172,18 +172,29 @@ static auto memcardPath(EmuApp &app)
 
 void NeoSystem::loadBackupMemory(EmuApp &app)
 {
-	FileUtils::readFromUri(appContext(), nvramPath(app), {memory.sram, 0x10000});
-	FileUtils::readFromUri(appContext(), memcardPath(app), {memory.memcard, 0x800});
+	logMsg("loading nvram & memcard");
+	if(!nvramFileIO)
+		nvramFileIO = staticBackupMemoryFile(nvramPath(app), 0x10000);
+	if(!memcardFileIO)
+		memcardFileIO = staticBackupMemoryFile(memcardPath(app), 0x800);
+	if(!nvramFileIO || !memcardFileIO)
+		throw std::runtime_error("Error accessing .nv or .memcard file, please verify it has write access");
+	nvramFileIO.readAtPos(memory.sram, 0x10000, 0);
+	memcardFileIO.readAtPos(memory.memcard, 0x800, 0);
 }
 
 void NeoSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags flags)
 {
-	if(!hasContent())
-		return;
 	if(flags & SRAM_DIRTY_BIT)
-		FileUtils::writeToUri(appContext(), nvramPath(app), {memory.sram, 0x10000});
+	{
+		logMsg("saving nvram");
+		nvramFileIO.writeAtPos(memory.sram, 0x10000, 0);
+	}
 	if(flags & MEMCARD_DIRTY_BIT)
-		FileUtils::writeToUri(appContext(), memcardPath(app), {memory.memcard, 0x800});
+	{
+		logMsg("saving memcard");
+		memcardFileIO.writeAtPos(memory.memcard,0x800, 0);
+	}
 }
 
 IG::Time NeoSystem::backupMemoryLastWriteTime(const EmuApp &app) const
@@ -194,6 +205,8 @@ IG::Time NeoSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 void NeoSystem::closeSystem()
 {
 	close_game();
+	nvramFileIO = {};
+	memcardFileIO = {};
 }
 
 static auto openGngeoDataIO(IG::ApplicationContext ctx, IG::CStringView filename)

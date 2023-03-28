@@ -90,4 +90,6 @@ protected:
 	FloatSeconds frameTime_;
 };
 
+using FrameRate = float;
+
 }

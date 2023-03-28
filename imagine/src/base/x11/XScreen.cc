@@ -64,8 +64,8 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 			{
 				if(modeInfo.hTotal && modeInfo.vTotal)
 				{
-					frameRate_ = modeInfo.dotClock / (float(modeInfo.hTotal) * modeInfo.vTotal);
-					frameTime_ = FloatSeconds(double(modeInfo.hTotal) * modeInfo.vTotal / modeInfo.dotClock);
+					frameRate_ = float(modeInfo.dotClock) / (modeInfo.hTotal * modeInfo.vTotal);
+					frameTime_ = FloatSeconds(modeInfo.hTotal * modeInfo.vTotal / double(modeInfo.dotClock));
 				}
 				else
 				{
@@ -82,7 +82,7 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 		XRRFreeScreenResources(screenRes);
 		assert(frameTime_.count());
 	}
-	frameTimer.setFrameTime(frameTime_);
+	frameTimer.setFrameRate(frameRate_);
 	logMsg("screen:%p %dx%d (%dx%dmm) %.2fHz", xScreen,
 		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM, frameRate_);
 }
@@ -148,21 +148,12 @@ void Screen::setFrameRate(FrameRate rate)
 		}
 		frameRate_ = rate;
 		frameTime_ = FloatSeconds{1. / rate};
-		frameTimer.setFrameTime(frameTime_);
+		frameTimer.setFrameRate(rate);
 	}
 	else
 	{
-		auto time = rate ? FloatSeconds(1. / rate) : frameTime();
-		setFrameTime(time);
+		frameTimer.setFrameRate(rate ?: frameRate());
 	}
-}
-
-void Screen::setFrameTime(FloatSeconds t)
-{
-	if constexpr(Config::MACHINE_IS_PANDORA)
-		setFrameRate(t.count() ? 1. / t.count() : frameRate());
-	else
-		frameTimer.setFrameTime(t.count() ? t : frameTime());
 }
 
 void Screen::postFrameTimer()
@@ -192,10 +183,10 @@ bool Screen::supportsTimestamps() const
 	return !std::holds_alternative<SimpleFrameTimer>(frameTimer);
 }
 
-std::vector<FrameRate> Screen::supportedFrameRates() const
+std::span<const FrameRate> Screen::supportedFrameRates() const
 {
 	// TODO
-	return {frameRate()};
+	return {&frameRate_, 1};
 }
 
 }

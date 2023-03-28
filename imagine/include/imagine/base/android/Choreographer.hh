@@ -69,7 +69,7 @@ public:
 	{}
 	void scheduleVSync() { choreographerPtr->scheduleVSync(); }
 	void cancel() {}
-	void setFrameTime(FloatSeconds) {}
+	void setFrameRate(FrameRate) {}
 
 protected:
 	ChoreographerBase *choreographerPtr{};

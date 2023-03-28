@@ -29,52 +29,39 @@ bool OutputTimingManager::frameTimeOptionIsValid(FloatSeconds time)
 
 static OutputTimingManager::FrameTimeConfig bestOutputTimeForScreen(const Screen &screen, FloatSeconds systemFrameTime)
 {
-	auto targetFrameTime = systemFrameTime;
-	auto targetFrameRate = 1. / targetFrameTime.count();
-	static auto selectAcceptableRate = [](FrameRate rate, FrameRate targetRate) -> std::pair<FrameRate, int>
+	const auto systemFrameRate = 1. / systemFrameTime.count();
+	static auto selectAcceptableRate = [](double rate, double targetRate) -> std::pair<double, int>
 	{
 		assumeExpr(rate > 0);
 		assumeExpr(targetRate > 0);
 		int refreshMultiplier = 1;
-		static constexpr FrameRate stretchFrameRate = 4.; // accept rates +/- this value
+		static constexpr double stretchFrameRate = 4.; // accept rates +/- this value
 		do
 		{
 			logMsg("considering %.2fHz for target %.2fHz", rate, targetRate);
 			if(std::abs(rate - targetRate) <= stretchFrameRate)
 				return {rate, refreshMultiplier};
-			rate /= FrameRate{2.}; // try half the rate until it falls below the target
+			rate /= 2.; // try half the rate until it falls below the target
 			refreshMultiplier++;
 		} while(rate + stretchFrameRate > targetRate);
 		return {};
-	};;
-	if(Config::envIsAndroid && screen.appContext().androidSDK() >= 30) // supports setting frame rate dynamically
+	};
+	double acceptableRate{};
+	int refreshMultiplier{};
+	for(auto rate : screen.supportedFrameRates())
 	{
-		FrameRate acceptableRate{};
-		int refreshMultiplier{};
-		for(auto rate : screen.supportedFrameRates())
-		{
-			if(auto [acceptedRate, acceptedRefreshMultiplier] = selectAcceptableRate(rate, targetFrameRate);
-				acceptedRate)
-			{
-				acceptableRate = acceptedRate;
-				refreshMultiplier = acceptedRefreshMultiplier;
-			}
-		}
-		if(acceptableRate)
-		{
-			return {FloatSeconds{1. / acceptableRate}, acceptableRate, refreshMultiplier};
-		}
-	}
-	else // check the current frame rate
-	{
-		auto screenRate = screen.frameRate();
-		if(auto [acceptedRate, refreshMultiplier] = selectAcceptableRate(screenRate, targetFrameRate);
+		if(auto [acceptedRate, acceptedRefreshMultiplier] = selectAcceptableRate(rate, systemFrameRate);
 			acceptedRate)
 		{
-			return {FloatSeconds{1. / acceptedRate}, acceptedRate, refreshMultiplier};
+			acceptableRate = acceptedRate;
+			refreshMultiplier = acceptedRefreshMultiplier;
 		}
 	}
-	return {targetFrameTime, FrameRate(targetFrameRate), 1};
+	if(acceptableRate)
+	{
+		return {FloatSeconds{1. / acceptableRate}, FrameRate(acceptableRate), refreshMultiplier};
+	}
+	return {systemFrameTime, FrameRate(systemFrameRate), 0};
 }
 
 bool OutputTimingManager::setFrameTimeOption(VideoSystem vidSys, FloatSeconds time)
@@ -90,9 +77,9 @@ OutputTimingManager::FrameTimeConfig OutputTimingManager::frameTimeConfig(const 
 	auto t = frameTimeVar(system.videoSystem());
 	assumeExpr(frameTimeOptionIsValid(t));
 	if(t.count() > 0)
-		return {t, FrameRate(1. / t.count()), 1};
+		return {t, FrameRate(1. / t.count()), 0};
 	else if(t == originalOption)
-		return {system.frameTime(), FrameRate(system.frameRate()), 1};
+		return {system.frameTime(), FrameRate(system.frameRate()), 0};
 	return bestOutputTimeForScreen(screen, system.frameTime());
 }
 

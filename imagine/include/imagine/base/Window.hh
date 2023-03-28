@@ -62,7 +62,6 @@ public:
 	Screen *screen() const;
 	NativeWindow nativeObject() const;
 	void setIntendedFrameRate(FrameRate rate);
-	void setIntendedFrameTime(FloatSeconds rate);
 	void setFormat(NativeWindowFormat);
 	void setFormat(PixelFormat);
 	PixelFormat pixelFormat() const;

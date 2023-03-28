@@ -135,6 +135,16 @@ ssize_t PosixIO::write(const void *buff, size_t bytes)
 	return bytesWritten;
 }
 
+ssize_t PosixIO::writeAtPos(const void *buff, size_t bytes, off_t offset)
+{
+	auto bytesWritten = ::pwrite(fd(), buff, bytes, offset);
+	if(bytesWritten == -1)
+	{
+		logErr("error writing %zu bytes at offset %lld", bytes, (long long)offset);
+	}
+	return bytesWritten;
+}
+
 bool PosixIO::truncate(off_t offset)
 {
 	logMsg("truncating at offset %lld", (long long)offset);

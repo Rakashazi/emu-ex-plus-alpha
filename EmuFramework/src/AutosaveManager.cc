@@ -17,6 +17,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
 #include "EmuOptions.hh"
+#include "pathUtils.hh"
 #include <imagine/io/MapIO.hh>
 #include <imagine/io/FileIO.hh>
 
@@ -53,7 +54,18 @@ bool AutosaveManager::load(AutosaveActionSource src, LoadAutosaveMode mode)
 {
 	if(autoSaveSlot == noAutosaveName)
 		return true;
-	system().loadBackupMemory(app);
+	try
+	{
+		system().loadBackupMemory(app);
+	}
+	catch(std::exception &err)
+	{
+		if(!hasWriteAccessToDir(system().contentSaveDirectory()))
+			app.postErrorMessage(8, "Save folder inaccessible, please set it in Options➔File Paths➔Saves");
+		else
+			app.postErrorMessage(4, err.what());
+		return false;
+	}
 	if(saveOnlyBackupMemory && src == AutosaveActionSource::Auto)
 		return true;
 	auto path = statePath();

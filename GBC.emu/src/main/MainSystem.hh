@@ -39,6 +39,8 @@ public:
 	GbcInput gbcInput;
 	std::unique_ptr<Resampler> resampler;
 	const GBPalette *gameBuiltinPalette{};
+	FileIO saveFileIO;
+	FileIO rtcFileIO;
 	std::string cheatsDir;
 	uint64_t totalSamples{};
 	uint32_t totalFrames{};
@@ -56,17 +58,6 @@ public:
 		EmuSystem{ctx}
 	{
 		gbEmu.setInputGetter(&gbcInput);
-		gbEmu.setSaveStreamDelegates(
-			[ctx](std::string_view filenameExt) -> IG::IFStream
-			{
-				auto &app = EmuApp::get(ctx);
-				return {ctx.openFileUri(app.contentSaveFilePath(filenameExt), IOAccessHint::All, OpenFlagsMask::Test)};
-			},
-			[ctx](std::string_view filenameExt) -> IG::OFStream
-			{
-				auto &app = EmuApp::get(ctx);
-				return {ctx.openFileUri(app.contentSaveFilePath(filenameExt), OpenFlagsMask::New | OpenFlagsMask::Test)};
-			});
 	}
 	void applyGBPalette();
 	void applyCheats();

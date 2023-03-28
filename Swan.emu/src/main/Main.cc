@@ -73,12 +73,26 @@ void WsSystem::loadState(EmuApp &, IG::CStringView path)
 
 void WsSystem::loadBackupMemory(EmuApp &app)
 {
-	WSwan_MemoryLoadNV();
+	if(!eeprom_size && !sram_size)
+		return;
+	logMsg("loading sram/eeprom");
+	if(!saveFileIO)
+		saveFileIO = staticBackupMemoryFile(savePathMDFN(app, 0, "sav"), eeprom_size + sram_size);
+	if(eeprom_size)
+		saveFileIO.readAtPos(wsEEPROM, eeprom_size, 0);
+	if(sram_size)
+		saveFileIO.readAtPos(wsSRAM, sram_size, eeprom_size);
 }
 
 void WsSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 {
-	WSwan_MemorySaveNV();
+	if(!eeprom_size && !sram_size)
+		return;
+	logMsg("saving sram/eeprom");
+	if(eeprom_size)
+		saveFileIO.writeAtPos(wsEEPROM, eeprom_size, 0);
+	if(sram_size)
+		saveFileIO.writeAtPos(wsSRAM, sram_size, eeprom_size);
 }
 
 IG::Time WsSystem::backupMemoryLastWriteTime(const EmuApp &app) const
@@ -90,6 +104,7 @@ void WsSystem::closeSystem()
 {
 	mdfnGameInfo.CloseGame();
 	mdfnGameInfo.rotated = MDFN_ROTATE0;
+	saveFileIO = {};
 }
 
 void WsSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
@@ -108,7 +123,6 @@ void WsSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 	mdfnGameInfo.Load(&gf);
 	setupInput(EmuApp::get(appContext()));
 	WSwan_SetPixelFormat(toMDFNSurface(mSurfacePix).format);
-	prevLCDVTotal = 159; // initialize to ~75.47hz
 }
 
 bool WsSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
@@ -122,13 +136,14 @@ bool WsSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 
 static uint8_t lcdVTotal() { return WSwan_GfxRead(0x16) + 1; }
 
-FloatSeconds WsSystem::frameTime() const { return FloatSeconds{lcdVTotal() * 256. / 3072000.}; }
+FloatSeconds WsSystem::frameTime() const { return FloatSeconds{lcdVTotal() * 256 / 3072000.}; }
 
 void WsSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
 	if(!hasContent())
 		return;
 	auto soundRate = audioMixRate(outputRate, outputFrameTime);
+	configuredLCDVTotal = lcdVTotal();
 	logMsg("emu sound rate:%f", soundRate);
 	WSwan_SetSoundRate(soundRate);
 }
@@ -155,9 +170,8 @@ void WsSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio 
 		assert((size_t)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));
 		audio->writeFrames((uint8_t*)audioBuff, espec.SoundBufSize);
 	}
-	if(prevLCDVTotal != lcdVTotal()) [[unlikely]]
+	if(configuredLCDVTotal != lcdVTotal()) [[unlikely]]
 	{
-		prevLCDVTotal = lcdVTotal();
 		onFrameTimeChanged();
 	}
 }

@@ -42,7 +42,10 @@ constexpr GameSettings settings[]
 int systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 SystemColorMap systemColorMap;
 int emulating{};
-CoreOptions coreOptions;
+CoreOptions coreOptions
+{
+	.saveType = GBA_SAVE_NONE
+};
 
 using namespace EmuEx;
 

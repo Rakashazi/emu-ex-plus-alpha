@@ -32,7 +32,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/Point2D.hh>
-#include <vector>
+#include <span>
 
 namespace IG
 {
@@ -54,8 +54,7 @@ public:
 	FrameRate frameRate() const;
 	FloatSeconds frameTime() const;
 	void setFrameRate(FrameRate);
-	void setFrameTime(FloatSeconds);
-	std::vector<FrameRate> supportedFrameRates() const;
+	std::span<const FrameRate> supportedFrameRates() const;
 	void setFrameInterval(int interval);
 	static bool supportsFrameInterval();
 	bool supportsTimestamps() const;

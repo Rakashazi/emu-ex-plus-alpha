@@ -8,6 +8,8 @@ MDFN_HIDE extern uint8 wsRAM[65536];
 MDFN_HIDE extern uint8 *wsCartROM;
 MDFN_HIDE extern uint32 eeprom_size;
 MDFN_HIDE extern uint8 wsEEPROM[2048];
+MDFN_HIDE extern uint32 sram_size;
+MDFN_HIDE extern uint8 *wsSRAM;
 
 MDFN_FASTCALL uint8 WSwan_readmem20(uint32);
 MDFN_FASTCALL void WSwan_writemem20(uint32 address,uint8 data);

@@ -70,7 +70,7 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass b
 						logWarn("screen id:%d changed but isn't in device list", id);
 						return;
 					}
-					screen->updateRefreshRate(refreshRate);
+					screen->updateFrameRate(refreshRate);
 					app.dispatchOnScreenChange(ctx, *screen, ScreenChange::frameRate);
 				}
 			},
@@ -132,25 +132,26 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 		logMsg("init display with id:%d", id_);
 	}
 
-	updateRefreshRate(refreshRate);
+	updateFrameRate(refreshRate);
 	if(ctx.androidSDK() <= 10)
 	{
 		// corrections for devices known to report wrong refresh rates
 		auto buildDevice = ctx.androidBuildDevice();
 		if(Config::MACHINE_IS_GENERIC_ARMV7 && buildDevice == "R800at")
 		{
-			refreshRate_ = 61.5;
-			frameTime_ = FloatSeconds(1. / refreshRate_);
+			frameRate_ = 61.5;
+			frameTime_ = FloatSeconds(1. / frameRate_);
 		}
 		else if(Config::MACHINE_IS_GENERIC_ARMV7 && buildDevice == "sholes")
 		{
-			refreshRate_ = 60;
-			frameTime_ = FloatSeconds(1. / refreshRate_);
+			frameRate_ = 60;
+			frameTime_ = FloatSeconds(1. / frameRate_);
 		}
 		else
-			reliableRefreshRate = false;
+			reliableFrameRate = false;
 	}
-	frameTimer.setFrameTime(static_cast<Screen*>(this)->frameTime());
+	frameTimer.setFrameRate(static_cast<Screen*>(this)->frameRate());
+	updateSupportedFrameRates(ctx, env);
 
 	// DisplayMetrics
 	jclass jDisplayMetricsCls = env->GetObjectClass(metrics);
@@ -178,7 +179,7 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 		auto jDensityDPI = env->GetFieldID(jDisplayMetricsCls, "densityDpi", "I");
 		logMsg("DPI:%fx%f, densityDPI:%d, refresh rate:%.2fHz",
 			metricsXDPI, metricsYDPI, env->GetIntField(metrics, jDensityDPI),
-			(double)refreshRate_);
+			(double)frameRate_);
 	}
 	if(!isStraightRotation)
 		std::swap(widthPixels, heightPixels);
@@ -186,69 +187,46 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 	height_ = heightPixels;
 }
 
-float AndroidScreen::densityDPI() const
+void AndroidScreen::updateFrameRate(float rate)
 {
-	return densityDPI_;
-}
-
-float AndroidScreen::scaledDensityDPI() const
-{
-	return scaledDensityDPI_;
-}
-
-jobject AndroidScreen::displayObject() const
-{
-	return aDisplay;
-}
-
-int AndroidScreen::id() const
-{
-	return id_;
-}
-
-void AndroidScreen::updateRefreshRate(float refreshRate)
-{
-	if(refreshRate_ && refreshRate != refreshRate_)
+	if(frameRate_ && rate != frameRate_)
 	{
-		logMsg("refresh rate updated to:%.2f on screen:%d", refreshRate, id());
+		logMsg("refresh rate updated to:%.2f on screen:%d", rate, id());
 	}
-	if(refreshRate < 20.f || refreshRate > 250.f) // sanity check in case device has a junk value
+	if(rate < 20.f || rate > 250.f) // sanity check in case device has a junk value
 	{
-		logWarn("ignoring unusual refresh rate: %f", (double)refreshRate);
-		refreshRate = 60;
-		reliableRefreshRate = false;
+		logWarn("ignoring unusual refresh rate:%f", rate);
+		rate = 60;
+		reliableFrameRate = false;
 	}
-	refreshRate_ = refreshRate;
-	frameTime_ = FloatSeconds(1. / refreshRate);
+	frameRate_ = rate;
+	frameTime_ = FloatSeconds(1. / rate);
 }
 
-bool AndroidScreen::operator ==(AndroidScreen const &rhs) const
+void AndroidScreen::updateSupportedFrameRates(ApplicationContext ctx, JNIEnv *env)
 {
-	return id_ == rhs.id_;
+	if(ctx.androidSDK() < 21)
+	{
+		supportedFrameRates_ = {frameRate_};
+		return;
+	}
+	JNI::InstMethod<jobject()> jGetSupportedRefreshRates{env, (jobject)aDisplay, "getSupportedRefreshRates", "()[F"};
+	auto jRates = (jfloatArray)jGetSupportedRefreshRates(env, aDisplay);
+	std::span<jfloat> rates{env->GetFloatArrayElements(jRates, 0), (size_t)env->GetArrayLength(jRates)};
+	supportedFrameRates_.assign(rates.begin(), rates.end());
+	if constexpr(Config::DEBUG_BUILD)
+	{
+		logDMsg("screen %d supports %zu rate(s):", id_, rates.size());
+		for(auto r : rates) { logDMsg("%f", r); }
+	}
+	env->ReleaseFloatArrayElements(jRates, rates.data(), 0);
 }
 
-AndroidScreen::operator bool() const
-{
-	return aDisplay;
-}
-
-int Screen::width() const
-{
-	return width_;
-}
-
-int Screen::height() const
-{
-	return height_;
-}
-
-FrameRate Screen::frameRate() const { return refreshRate_; }
+int Screen::width() const { return width_; }
+int Screen::height() const { return height_; }
+FrameRate Screen::frameRate() const { return frameRate_; }
 FloatSeconds Screen::frameTime() const { return frameTime_; }
-
-bool Screen::frameRateIsReliable() const
-{
-	return reliableRefreshRate;
-}
+bool Screen::frameRateIsReliable() const { return reliableFrameRate; }
 
 void Screen::postFrameTimer()
 {
@@ -279,35 +257,12 @@ bool Screen::supportsTimestamps() const
 
 void Screen::setFrameRate(FrameRate rate)
 {
-	auto time = rate ? FloatSeconds(1. / rate) : frameTime();
-	setFrameTime(time);
+	frameTimer.setFrameRate(rate ?: frameRate());
 }
 
-void Screen::setFrameTime(FloatSeconds t)
+std::span<const FrameRate> Screen::supportedFrameRates() const
 {
-	frameTimer.setFrameTime(t.count() ? t : frameTime());
-}
-
-std::vector<FrameRate> Screen::supportedFrameRates() const
-{
-	auto ctx = appContext();
-	if(ctx.androidSDK() < 21)
-	{
-		return {frameRate()};
-	}
-	auto env = ctx.thisThreadJniEnv();
-	JNI::InstMethod<jobject()> jGetSupportedRefreshRates{env, (jobject)aDisplay, "getSupportedRefreshRates", "()[F"};
-	auto jRates = (jfloatArray)jGetSupportedRefreshRates(env, aDisplay);
-	std::span<jfloat> rates{env->GetFloatArrayElements(jRates, 0), (size_t)env->GetArrayLength(jRates)};
-	std::vector<FrameRate> rateVec;
-	rateVec.assign(rates.begin(), rates.end());
-	if constexpr(Config::DEBUG_BUILD)
-	{
-		logDMsg("screen %d supports %zu rate(s):", id_, rates.size());
-		for(auto r : rates) { logDMsg("%f", r); }
-	}
-	env->ReleaseFloatArrayElements(jRates, rates.data(), 0);
-	return rateVec;
+	return supportedFrameRates_;
 }
 
 }

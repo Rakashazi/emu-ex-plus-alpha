@@ -23,6 +23,7 @@
 #include <imagine/base/FrameTimerInterface.hh>
 #include <imagine/util/jni.hh>
 #include <variant>
+#include <vector>
 
 namespace IG
 {
@@ -51,29 +52,27 @@ public:
 	};
 
 	AndroidScreen(ApplicationContext, InitParams);
-	float densityDPI() const;
-	float scaledDensityDPI() const;
-	jobject displayObject() const;
-	int id() const;
-	void updateRefreshRate(float refreshRate);
-	bool operator ==(AndroidScreen const &rhs) const;
-	explicit operator bool() const;
-
-	constexpr bool operator ==(ScreenId id) const
-	{
-		return id_ == id;
-	}
+	float densityDPI() const { return densityDPI_; }
+	float scaledDensityDPI() const { return scaledDensityDPI_; }
+	jobject displayObject() const { return aDisplay; }
+	int id() const { return id_;  }
+	bool operator==(AndroidScreen const &rhs) const { return id_ == rhs.id_; }
+	bool operator==(ScreenId id) const { return id_ == id; }
+	explicit operator bool() const { return aDisplay; }
+	void updateFrameRate(float rate);
+	void updateSupportedFrameRates(ApplicationContext, JNIEnv *);
 
 protected:
-	JNI::UniqueGlobalRef aDisplay{};
+	JNI::UniqueGlobalRef aDisplay;
 	FrameTimer frameTimer;
 	FloatSeconds frameTime_{};
+	std::vector<float> supportedFrameRates_;
 	float densityDPI_{};
 	float scaledDensityDPI_{};
-	float refreshRate_{};
+	float frameRate_{};
 	int width_{}, height_{};
 	int id_{};
-	bool reliableRefreshRate = true;
+	bool reliableFrameRate{true};
 };
 
 using ScreenImpl = AndroidScreen;

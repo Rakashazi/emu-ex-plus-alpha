@@ -19,8 +19,10 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/IOStream.hh>
 #include <resample/resampler.h>
 #include <resample/resamplerinfo.h>
+#include <libgambatte/src/mem/cartridge.h>
 #include <main/Cheats.hh>
 
 namespace EmuEx
@@ -73,10 +75,11 @@ void GbcSystem::applyGBPalette()
 		gbEmu.setDmgPaletteColor(2, i, makeOutputColor(pal.sp2[i]));
 }
 
-void GbcSystem::reset(EmuApp &, ResetMode mode)
+void GbcSystem::reset(EmuApp &app, ResetMode mode)
 {
 	assert(hasContent());
 	gbEmu.reset();
+	loadBackupMemory(app);
 }
 
 FS::FileString GbcSystem::stateFilename(int slot, std::string_view name) const
@@ -86,29 +89,64 @@ FS::FileString GbcSystem::stateFilename(int slot, std::string_view name) const
 
 void GbcSystem::saveState(IG::CStringView path)
 {
-	IG::OFStream stream{appContext().openFileUri(path, OpenFlagsMask::New)};
+	OFStream stream{appContext().openFileUri(path, OpenFlagsMask::New)};
 	if(!gbEmu.saveState(frameBuffer, gambatte::lcd_hres, stream))
 		throwFileWriteError();
 }
 
 void GbcSystem::loadState(EmuApp &app, IG::CStringView path)
 {
-	IG::IFStream stream{app.appContext().openFileUri(path, IO::AccessHint::All)};
+	IFStream stream{app.appContext().openFileUri(path, IO::AccessHint::All)};
 	if(!gbEmu.loadState(stream))
 		throwFileReadError();
 }
 
-void GbcSystem::loadBackupMemory(EmuApp &)
+void GbcSystem::loadBackupMemory(EmuApp &app)
 {
-	gbEmu.loadSavedata();
+	if(auto sram = gbEmu.srambank();
+		sram.size())
+	{
+		logMsg("loading sram");
+		if(!saveFileIO)
+			saveFileIO = staticBackupMemoryFile(app.contentSaveFilePath(".sav"), sram.size(), 0xFF);
+		if(!saveFileIO)
+			throw std::runtime_error("Error accessing .sav file, please verify it has write access");
+		saveFileIO.readAtPos(sram.data(), sram.size(), 0);
+	}
+	if(auto timeOpt = gbEmu.rtcTime();
+		timeOpt)
+	{
+		logMsg("loading rtc");
+		if(!rtcFileIO)
+			rtcFileIO = staticBackupMemoryFile(app.contentSaveFilePath(".rtc"), 4);
+		if(!rtcFileIO)
+			throw std::runtime_error("Error accessing .rtc file, please verify it has write access");
+		unsigned long time = rtcFileIO.get<uint8_t>();
+		time = time << 8 | rtcFileIO.get<uint8_t>();
+		time = time << 8 | rtcFileIO.get<uint8_t>();
+		time = time << 8 | rtcFileIO.get<uint8_t>();
+		gbEmu.setRtcTime(time);
+	}
 }
 
 void GbcSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 {
-	if(!hasContent())
-		return;
-	logMsg("saving backup memory");
-	gbEmu.saveSavedata();
+	if(auto sram = gbEmu.srambank();
+		sram.size())
+	{
+		logMsg("saving sram");
+		saveFileIO.writeAtPos(sram.data(), sram.size(), 0);
+	}
+	if(auto timeOpt = gbEmu.rtcTime();
+		timeOpt)
+	{
+		logMsg("saving rtc");
+		rtcFileIO.rewind();
+		rtcFileIO.write<uint8_t>(*timeOpt >> 24 & 0xFF);
+		rtcFileIO.write<uint8_t>(*timeOpt >> 16 & 0xFF);
+		rtcFileIO.write<uint8_t>(*timeOpt >>  8 & 0xFF);
+		rtcFileIO.write<uint8_t>(*timeOpt       & 0xFF);
+	}
 }
 
 IG::Time GbcSystem::backupMemoryLastWriteTime(const EmuApp &app) const
@@ -119,6 +157,8 @@ IG::Time GbcSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 void GbcSystem::closeSystem()
 {
 	cheatList.clear();
+	saveFileIO = {};
+	rtcFileIO = {};
 	gameBuiltinPalette = nullptr;
 	totalFrames = 0;
 	totalSamples = 0;
@@ -293,4 +333,13 @@ uint_least32_t gbcToRgb32(unsigned const bgr15, unsigned flags)
 	}
 	auto desc = (flags & EmuEx::COLOR_CONVERSION_BGR_BIT) ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
 	return desc.build(outR, outG, outB, 0u);
+}
+
+namespace gambatte
+{
+
+// no-ops, all save data is explicitly loaded/saved
+void Cartridge::loadSavedata() {}
+void Cartridge::saveSavedata() {}
+
 }

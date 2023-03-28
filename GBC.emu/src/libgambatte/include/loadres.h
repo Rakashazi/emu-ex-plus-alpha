@@ -2,9 +2,6 @@
 #define GAMBATTE_LOADRES_H
 
 #include <string>
-#include <imagine/io/IOStream.hh>
-#include <imagine/io/FileIO.hh>
-#include <imagine/util/DelegateFunc.hh>
 
 namespace gambatte {
 
@@ -22,9 +19,6 @@ enum LoadRes {
 };
 
 std::string const to_string(LoadRes);
-
-using SaveInputStreamDelegate = IG::DelegateFunc<IG::IFStream(std::string_view filenameExt)>;
-using SaveOutputStreamDelegate = IG::DelegateFunc<IG::OFStream(std::string_view filenameExt)>;
 
 }
 

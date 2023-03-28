@@ -554,11 +554,6 @@ void Cartridge::setSaveDir(std::string const &dir) {
 	saveDir_ = dir;
 }
 
-void Cartridge::setSaveStreamDelegates(SaveInputStreamDelegate iDel, SaveOutputStreamDelegate oDel) {
-	makeInputStream = iDel;
-	makeOutputStream = oDel;
-}
-
 LoadRes Cartridge::loadROM(const void *romdata, std::size_t size,
                            std::string const &romfilename,
                            bool const forceDmg,
@@ -673,9 +668,12 @@ LoadRes Cartridge::loadROM(const void *romdata, std::size_t size,
 	return LOADRES_OK;
 }
 
+#if 0
 void Cartridge::loadSavedata() {
+	std::string const &sbp = saveBasePath();
+
 	if (hasBattery(memptrs_.romdata()[0x147])) {
-		auto file = makeInputStream(".sav");
+		std::ifstream file((sbp + ".sav").c_str(), std::ios::binary | std::ios::in);
 
 		if (file.is_open()) {
 			file.read(reinterpret_cast<char*>(memptrs_.rambankdata()),
@@ -685,7 +683,7 @@ void Cartridge::loadSavedata() {
 	}
 
 	if (hasRtc(memptrs_.romdata()[0x147])) {
-		auto file = makeInputStream(".rtc");
+		std::ifstream file((sbp + ".rtc").c_str(), std::ios::binary | std::ios::in);
 		if (file) {
 			unsigned long basetime =    file.get() & 0xFF;
 			basetime = basetime << 8 | (file.get() & 0xFF);
@@ -697,20 +695,39 @@ void Cartridge::loadSavedata() {
 }
 
 void Cartridge::saveSavedata() {
+	std::string const &sbp = saveBasePath();
+
 	if (hasBattery(memptrs_.romdata()[0x147])) {
-		auto file = makeOutputStream(".sav");
+		std::ofstream file((sbp + ".sav").c_str(), std::ios::binary | std::ios::out);
 		file.write(reinterpret_cast<char const *>(memptrs_.rambankdata()),
 		           memptrs_.rambankdataend() - memptrs_.rambankdata());
 	}
 
 	if (hasRtc(memptrs_.romdata()[0x147])) {
-		auto file = makeOutputStream(".rtc");
+		std::ofstream file((sbp + ".rtc").c_str(), std::ios::binary | std::ios::out);
 		unsigned long const basetime = rtc_.baseTime();
 		file.put(basetime >> 24 & 0xFF);
 		file.put(basetime >> 16 & 0xFF);
 		file.put(basetime >>  8 & 0xFF);
 		file.put(basetime       & 0xFF);
 	}
+}
+#endif
+
+std::span<unsigned char> Cartridge::srambank()
+{
+	if(hasBattery(memptrs_.romdata()[0x147]))
+		return {memptrs_.rambankdata(), size_t(memptrs_.rambankdataend() - memptrs_.rambankdata())};
+	else
+		return {};
+}
+
+std::optional<std::time_t> Cartridge::rtcTime() const
+{
+	if(hasBattery(memptrs_.romdata()[0x147]))
+		return rtc_.baseTime();
+	else
+		return {};
 }
 
 void Cartridge::applyGameGenie(std::string const &code) {

@@ -55,8 +55,8 @@ struct GB::Priv {
 GB::GB() : p_(new Priv) {}
 
 GB::~GB() {
-	/*if (p_->cpu.loaded())
-		p_->cpu.saveSavedata();*/
+	if (p_->cpu.loaded())
+		p_->cpu.saveSavedata();
 
 	delete p_;
 }
@@ -94,11 +94,6 @@ void GB::reset() {
 
 void GB::setInputGetter(InputGetter *getInput) {
 	p_->cpu.setInputGetter(getInput);
-}
-
-void GB::setSaveStreamDelegates(SaveInputStreamDelegate iDel, SaveOutputStreamDelegate oDel)
-{
-	p_->cpu.setSaveStreamDelegates(iDel, oDel);
 }
 
 void GB::setSaveDir(std::string const &sdir) {
@@ -141,6 +136,26 @@ void GB::saveSavedata() {
 void GB::loadSavedata() {
 	if (p_->cpu.loaded())
 		p_->cpu.loadSavedata();
+}
+
+std::span<unsigned char> GB::srambank()
+{
+	if (p_->cpu.loaded())
+		return p_->cpu.srambank();
+	return {};
+}
+
+std::optional<std::time_t> GB::rtcTime() const
+{
+	if (p_->cpu.loaded())
+		return p_->cpu.rtcTime();
+	return {};
+}
+
+void GB::setRtcTime(std::time_t time)
+{
+	if (p_->cpu.loaded())
+		p_->cpu.setRtcTime(time);
 }
 
 void GB::setDmgPaletteColor(int palNum, int colorNum, unsigned long rgb32) {

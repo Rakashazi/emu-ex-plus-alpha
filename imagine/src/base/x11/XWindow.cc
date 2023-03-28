@@ -241,11 +241,6 @@ void Window::setIntendedFrameRate(FrameRate rate)
 	screen()->setFrameRate(rate);
 }
 
-void Window::setIntendedFrameTime(FloatSeconds t)
-{
-	screen()->setFrameTime(t);
-}
-
 void Window::setFormat(NativeWindowFormat fmt) {}
 
 void Window::setFormat(IG::PixelFormat) {}

@@ -825,10 +825,11 @@ void EmuApp::launchSystem(const Input::Event &e)
 			autosaveManager_.resetSlot(noAutosaveName);
 		static auto finishLaunch = [](EmuApp &app, LoadAutosaveMode mode)
 		{
-			app.autosaveManager_.load(mode);
+			if(!app.autosaveManager_.load(mode))
+				app.closeSystemWithoutSave();
 			if(!app.system().hasContent())
 			{
-				logErr("system was closed while trying to load autosave state");
+				logErr("system was closed while trying to load autosave");
 				return;
 			}
 			app.showEmulation();

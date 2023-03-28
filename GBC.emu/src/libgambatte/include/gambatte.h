@@ -24,6 +24,9 @@
 #include "loadres.h"
 #include <cstddef>
 #include <string>
+#include <span>
+#include <optional>
+#include <ctime>
 #include <imagine/util/DelegateFunc.hh>
 
 namespace gambatte {
@@ -106,8 +109,6 @@ public:
 	/** Sets the callback used for getting input state. */
 	void setInputGetter(InputGetter *getInput);
 
-	void setSaveStreamDelegates(SaveInputStreamDelegate, SaveOutputStreamDelegate);
-
 	/**
 	  * Sets the directory used for storing save data. The default is the same directory as
 	  * the ROM Image file.
@@ -124,6 +125,10 @@ public:
 	void saveSavedata();
 
 	void loadSavedata();
+
+	std::span<unsigned char> srambank();
+	std::optional<std::time_t> rtcTime() const;
+	void setRtcTime(std::time_t time);
 
 	/**
 	  * Saves emulator state to the state slot selected with selectState().

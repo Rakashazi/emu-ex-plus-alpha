@@ -39,6 +39,8 @@ class NeoSystem final: public EmuSystem
 public:
 	static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 	static constexpr int FBResX = 352;
+	FileIO nvramFileIO;
+	FileIO memcardFileIO;
 	GN_Surface sdlSurf{};
 	uint16_t screenBuff[FBResX*256] __attribute__ ((aligned (8))){};
 	FS::PathString datafilePath{};
