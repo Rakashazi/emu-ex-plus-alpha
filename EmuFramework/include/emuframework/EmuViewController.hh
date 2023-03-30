@@ -44,6 +44,7 @@ class EmuApp;
 class EmuAudio;
 class EmuSystem;
 struct WindowData;
+struct FrameTimeConfig;
 class MainMenuView;
 
 class EmuMenuViewStack : public ViewStack
@@ -72,7 +73,7 @@ public:
 	void dismissView(int idx, bool refreshLayout) final;
 	bool inputEvent(const Input::Event &) final;
 	bool extraWindowInputEvent(const Input::Event &e);
-	void showEmulationView();
+	void showEmulationView(FrameTimeConfig);
 	void showMenuView(bool updateTopView);
 	void placeEmuViews();
 	void placeElements();
@@ -116,7 +117,7 @@ protected:
 	EmuMenuViewStack viewStack;
 	bool showingEmulation{};
 
-	void configureWindowForEmulation(IG::Window &win, bool running);
+	void configureWindowForEmulation(Window &, FrameTimeConfig, bool running);
 	EmuVideoLayer &videoLayer() const;
 };
 

@@ -322,7 +322,7 @@ struct SSettings{
 	bool8  SPC7110RTC;
 	bool8  OBC1;
     /* Sound options */
-    uint32 SoundPlaybackRate = 44100;
+    int SoundPlaybackRate = 44100;
 		#ifdef DEBUGGER
     bool8  TraceSoundDSP;
 		#endif

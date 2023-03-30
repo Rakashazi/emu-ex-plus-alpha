@@ -108,7 +108,7 @@ NeoSystem::NeoSystem(ApplicationContext ctx):
 	sdlSurf.pixels = screenBuff;
 	buffer = &sdlSurf;
 	conf.sound = 1;
-	conf.sample_rate = 44100; // must be initialized to any valid value for YM2610Init()
+	conf.sample_rate = 4096; // must be initialized to any valid value for YM2610Init()
 	strcpy(rompathConfItem.data.dt_str.str, ".");
 	if(!Config::envIsAndroid)
 	{
@@ -179,8 +179,8 @@ void NeoSystem::loadBackupMemory(EmuApp &app)
 		memcardFileIO = staticBackupMemoryFile(memcardPath(app), 0x800);
 	if(!nvramFileIO || !memcardFileIO)
 		throw std::runtime_error("Error accessing .nv or .memcard file, please verify it has write access");
-	nvramFileIO.readAtPos(memory.sram, 0x10000, 0);
-	memcardFileIO.readAtPos(memory.memcard, 0x800, 0);
+	nvramFileIO.read(memory.sram, 0x10000, 0);
+	memcardFileIO.read(memory.memcard, 0x800, 0);
 }
 
 void NeoSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags flags)
@@ -188,12 +188,12 @@ void NeoSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags flags)
 	if(flags & SRAM_DIRTY_BIT)
 	{
 		logMsg("saving nvram");
-		nvramFileIO.writeAtPos(memory.sram, 0x10000, 0);
+		nvramFileIO.write(memory.sram, 0x10000, 0);
 	}
 	if(flags & MEMCARD_DIRTY_BIT)
 	{
 		logMsg("saving memcard");
-		memcardFileIO.writeAtPos(memory.memcard,0x800, 0);
+		memcardFileIO.write(memory.memcard, 0x800, 0);
 	}
 }
 
@@ -279,12 +279,12 @@ void NeoSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate 
 
 void NeoSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	conf.sample_rate = audioMixRate(outputRate, outputFrameTime);
-	if(hasContent())
-	{
-		logMsg("setting YM2610 rate to %d", conf.sample_rate);
-		YM2610ChangeSamplerate(conf.sample_rate);
-	}
+	Uint16 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	if(conf.sample_rate == mixRate)
+		return;
+	conf.sample_rate = mixRate;
+	logMsg("set sound mix rate:%d", (int)mixRate);
+	YM2610ChangeSamplerate(mixRate);
 }
 
 void NeoSystem::renderFramebuffer(EmuVideo &video)

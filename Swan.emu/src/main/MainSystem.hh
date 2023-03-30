@@ -7,6 +7,11 @@
 
 extern const Mednafen::MDFNGI EmulatedWSwan;
 
+namespace MDFN_IEN_WSWAN
+{
+uint32 getSoundRate();
+}
+
 namespace EmuEx
 {
 

@@ -35,7 +35,7 @@ static int readIntFileValue(const char *path)
 	{
 		PosixIO f{path};
 		std::array<char, 32> buff{};
-		f.readAtPos(buff.data(), sizeof(buff)-1, 0);
+		f.read(buff.data(), buff.size() - 1, 0);
 		int val = -1;
 		sscanf(buff.data(), "%d", &val);
 		return val;

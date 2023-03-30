@@ -85,8 +85,18 @@ void FSPicker::place()
 	msgText.compile(renderer());
 }
 
-void FSPicker::changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, const Input::Event &e)
+void FSPicker::changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, const Input::Event &e,
+	DepthMode depthMode)
 {
+	if(depthMode == DepthMode::reset)
+		depthCount = 0;
+	else if(depthMode == DepthMode::decrement)
+	{
+		if(depthCount > 0)
+			depthCount--;
+	}
+	else // increment
+		depthCount++;
 	setPath(path, std::move(rootInfo), e);
 	place();
 	postDraw();
@@ -129,7 +139,10 @@ bool FSPicker::inputEvent(const Input::Event &e)
 		auto &keyEv = *e.keyEvent();
 		if(keyEv.pushed(Input::DefaultKey::CANCEL))
 		{
-			dismiss();
+			if(depthCount > 0)
+				onLeftNavBtn(e);
+			else
+				dismiss();
 			return true;
 		}
 		else if(controller.viewHasFocus() && keyEv.pushed(Input::DefaultKey::LEFT))
@@ -185,6 +198,7 @@ void FSPicker::setEmptyPath(std::string_view message)
 	dirListThread.stop();
 	dirListEvent.cancel();
 	root = {};
+	depthCount = 0;
 	dir.clear();
 	msgText.resetString(message);
 	if(mode_ == Mode::FILE_IN_DIR)
@@ -287,7 +301,7 @@ bool FSPicker::isSingleDirectoryMode() const
 void FSPicker::goUpDirectory(const Input::Event &e)
 {
 	clearSelection();
-	changeDirByInput(FS::dirnameUri(root.path), root.info, e);
+	changeDirByInput(FS::dirnameUri(root.path), root.info, e, DepthMode::decrement);
 }
 
 bool FSPicker::isAtRoot() const
@@ -334,7 +348,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 						if(mode_ == Mode::DIR)
 							onSelectPath_.callCopy(*this, uri, displayName, appContext().defaultInputEvent());
 						else
-							changeDirByInput(uri, appContext().rootPathInfo(uri), appContext().defaultInputEvent());
+							changeDirByInput(uri, appContext().rootPathInfo(uri), appContext().defaultInputEvent(), DepthMode::reset);
 					}))
 				{
 					setEmptyPath(failedSystemPickerMsg);
@@ -369,7 +383,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 					if(!ctx.requestPermission(Permission::WRITE_EXT_STORAGE))
 						return;
 				}
-				changeDirByInput(loc.root.path, loc.root.info, e);
+				changeDirByInput(loc.root.path, loc.root.info, e, DepthMode::reset);
 				view.dismiss();
 			});
 	}
@@ -378,7 +392,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 		view->appendItem("Root Filesystem",
 			[this](View &view, const Input::Event &e)
 			{
-				changeDirByInput("/", {}, e);
+				changeDirByInput("/", {}, e, DepthMode::reset);
 				view.dismiss();
 			});
 	}
@@ -394,7 +408,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 						view.dismiss();
 						return false;
 					}
-					changeDirByInput(str, appContext().rootPathInfo(str), appContext().defaultInputEvent());
+					changeDirByInput(str, appContext().rootPathInfo(str), appContext().defaultInputEvent(), DepthMode::reset);
 					dismissPrevious();
 					view.dismiss();
 					return false;

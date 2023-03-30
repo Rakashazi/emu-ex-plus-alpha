@@ -857,42 +857,6 @@ void Mapper119_Init(CartInfo *info) {
 	AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
 }
 
-// ---------------------------- Mapper 134 ------------------------------
-
-static void M134PW(uint32 A, uint8 V) {
-	setprg8(A, (V & 0x1F) | ((EXPREGS[0] & 2) << 4));
-}
-
-static void M134CW(uint32 A, uint8 V) {
-	setchr1(A, (V & 0xFF) | ((EXPREGS[0] & 0x20) << 3));
-}
-
-static DECLFW(M134Write) {
-	EXPREGS[0] = V;
-	FixMMC3CHR(MMC3_cmd);
-	FixMMC3PRG(MMC3_cmd);
-}
-
-static void M134Power(void) {
-	EXPREGS[0] = 0;
-	GenMMC3Power();
-	SetWriteHandler(0x6001, 0x6001, M134Write);
-}
-
-static void M134Reset(void) {
-	EXPREGS[0] = 0;
-	MMC3RegReset();
-}
-
-void Mapper134_Init(CartInfo *info) {
-	GenMMC3_Init(info, 256, 256, 0, 0);
-	pwrap = M134PW;
-	cwrap = M134CW;
-	info->Power = M134Power;
-	info->Reset = M134Reset;
-	AddExState(EXPREGS, 4, 0, "EXPR");
-}
-
 // ---------------------------- Mapper 165 ------------------------------
 
 static void M165CW(uint32 A, uint8 V) {
@@ -1140,55 +1104,54 @@ void Mapper198_Init(CartInfo *info) {
 /* UNIF boardname BMC-JC-016-2
 https://wiki.nesdev.com/w/index.php/INES_Mapper_205 */
 
-/* 2023-02 : Update reg write logic and add solder pad */
-
 static void M205PW(uint32 A, uint8 V) {
 	uint8 bank = V & ((EXPREGS[0] & 0x02) ? 0x0F : 0x1F);
-	if (PRGsize[1]) {  // split-rom variant
-		setprg8r((EXPREGS[0] & 3) ? (EXPREGS[0] - 1) : 0, A, bank);
-	} else {
-		setprg8(A, EXPREGS[0] << 4 | bank);
-	}
+	setprg8(A, EXPREGS[0] << 4 | bank);
 }
 
 static void M205CW(uint32 A, uint8 V) {
 	uint8 bank = V & ((EXPREGS[0] & 0x02) ? 0x7F : 0xFF);
-	if (CHRsize[1]) { // split-rom variant
-		setchr1r((EXPREGS[0] & 3) ? (EXPREGS[0] - 1) : 0, A, bank);
-	} else {
-		setchr1(A, (EXPREGS[0] << 7) | bank);
-	}
+	setchr1(A, (EXPREGS[0] << 7) | bank);
 }
 
-static DECLFW(M205Write) {
-	EXPREGS[0] = V & 3;
-	if (V & 1) {
-		EXPREGS[0] |= EXPREGS[1];
-	}
-	CartBW(A, V);
-	FixMMC3PRG(MMC3_cmd);
-	FixMMC3CHR(MMC3_cmd);
+static DECLFW(M205Write0) {
+	if (EXPREGS[1] == 0) {
+		EXPREGS[0] = V & 0x03;
+		EXPREGS[1] = A & 0x80;
+		FixMMC3PRG(MMC3_cmd);
+		FixMMC3CHR(MMC3_cmd);
+	} else
+		CartBW(A, V);
+}
+
+static DECLFW(M205Write1) {
+	if (EXPREGS[1] == 0) {
+		EXPREGS[0] = V & 0xF0;
+		FixMMC3PRG(MMC3_cmd);
+		FixMMC3CHR(MMC3_cmd);
+	} else
+		CartBW(A, V);
 }
 
 static void M205Reset(void) {
-	EXPREGS[0] = 0;
-	EXPREGS[1] ^= 2; /* solder pad */
+	EXPREGS[0] = EXPREGS[1] = 0;
 	MMC3RegReset();
 }
 
 static void M205Power(void) {
 	EXPREGS[0] = EXPREGS[1] = 0;
 	GenMMC3Power();
-	SetWriteHandler(0x6000, 0x7FFF, M205Write);
+	SetWriteHandler(0x6000, 0x6fff, M205Write0);
+	SetWriteHandler(0x7000, 0x7fff, M205Write1);	/* OK-411 boards, the same logic, but data latched, 2-in-1 frankenstein */
 }
 
 void Mapper205_Init(CartInfo *info) {
-	GenMMC3_Init(info, 256, 128, 0, 0);
+	GenMMC3_Init(info, 256, 128, 8, 0);
 	pwrap = M205PW;
 	cwrap = M205CW;
 	info->Power = M205Power;
 	info->Reset = M205Reset;
-	AddExState(EXPREGS, 2, 0, "EXPR");
+	AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
 /* --------------------------- GN-45 BOARD ------------------------------ */

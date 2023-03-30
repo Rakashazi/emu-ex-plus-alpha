@@ -266,21 +266,28 @@ std::string_view ArchiveIO::name() const
 	return entry.name();
 }
 
-ssize_t ArchiveIO::read(void *buff, size_t bytes)
+ssize_t ArchiveIO::read(void *buff, size_t bytes, std::optional<off_t> offset)
 {
 	if(!*this) [[unlikely]]
 	{
 		return -1;
 	}
-	int bytesRead = archive_read_data(entry.archive(), buff, bytes);
-	if(bytesRead < 0)
+	if(offset)
 	{
-		bytesRead = -1;
+		return readAtPosGeneric(buff, bytes, *offset);
 	}
-	return bytesRead;
+	else
+	{
+		int bytesRead = archive_read_data(entry.archive(), buff, bytes);
+		if(bytesRead < 0)
+		{
+			bytesRead = -1;
+		}
+		return bytesRead;
+	}
 }
 
-ssize_t ArchiveIO::write(const void* buff, size_t bytes)
+ssize_t ArchiveIO::write(const void* buff, size_t bytes, std::optional<off_t> offset)
 {
 	return -1;
 }

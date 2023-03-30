@@ -82,6 +82,8 @@ protected:
 		bool isDir() const { return text.flags() & IS_DIR_FLAG; }
 	};
 
+	enum class DepthMode { increment, decrement, reset };
+
 	FilterFunc filter{};
 	ViewStack controller{};
 	OnChangePathDelegate onChangePath_{};
@@ -94,8 +96,10 @@ protected:
 	bool showHiddenFiles_{};
 	bool highlightFirstDirEntry{};
 	WorkThread dirListThread{};
+	int8_t depthCount{};
 
-	void changeDirByInput(CStringView path, FS::RootPathInfo, const Input::Event &);
+	void changeDirByInput(CStringView path, FS::RootPathInfo, const Input::Event &,
+		DepthMode depthMode = DepthMode::increment);
 	bool isAtRoot() const;
 	Gfx::GlyphTextureSet &face();
 	TableView &fileTableView();

@@ -36,7 +36,7 @@
 
 /* Global variables */
 //t_bitmap bitmap;
-t_snd snd{44100, 60};
+t_snd snd{44100, 1};
 uint32 mcycles_vdp;
 //uint32 Z80.cycleCount;
 //uint32 mcycles_68k;

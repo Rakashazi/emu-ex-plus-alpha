@@ -241,19 +241,23 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 	IPPU.RenderThisFrame = TRUE;
 }
 
-void Snes9xSystem::configAudioRate(IG::FloatSeconds outputFrameTime, int outputRate)
+void Snes9xSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
 	#ifndef SNES9X_VERSION_1_4
+	auto inputRate = frameTime().count() / outputFrameTime.count() * 32040.;
+	if(inputRate == Settings.SoundInputRate && outputRate == Settings.SoundPlaybackRate)
+		return;
 	Settings.SoundPlaybackRate = outputRate;
-	Settings.SoundInputRate = frameTime().count() / outputFrameTime.count() * 32040.;
+	Settings.SoundInputRate = inputRate;
+	logMsg("set sound input rate:%.2f output rate:%d", inputRate, outputRate);
 	S9xUpdateDynamicRate(0, 10);
-	logMsg("sound input rate:%.2f from system frame rate:%f",
-		Settings.SoundInputRate, frameRate());
 	#else
-	Settings.SoundPlaybackRate = audioMixRate(outputRate, outputFrameTime);
+	int mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	if(mixRate == Settings.SoundPlaybackRate)
+		return;
+	Settings.SoundPlaybackRate = mixRate;
+	logMsg("set sound mix rate:%d", mixRate);
 	S9xSetPlaybackRate(Settings.SoundPlaybackRate);
-	logMsg("sound playback rate:%u from system frame rate:%f",
-		Settings.SoundPlaybackRate, frameRate());
 	#endif
 }
 

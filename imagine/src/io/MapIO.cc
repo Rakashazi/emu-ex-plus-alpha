@@ -31,56 +31,14 @@ namespace IG
 
 template class IOUtils<MapIO>;
 
-MapIO::MapIO(IOBuffer buff):
-	buff{std::move(buff)} {}
-
-ssize_t MapIO::read(void *buff, size_t bytesToRead)
+ssize_t MapIO::read(void *buff, size_t bytesToRead, std::optional<off_t> offset)
 {
-	auto bytes = readAtPos(buff, bytesToRead, currPos);
-	if(bytes > 0)
-	{
-		currPos += bytes;
-		assert(currPos <= size());
-	}
-	return bytes;
+	return copyBuffer(buff, bytesToRead, offset);
 }
 
-ssize_t MapIO::readAtPos(void *buff, size_t bytes, off_t offset)
+ssize_t MapIO::write(const void *buff, size_t bytesToWrite, std::optional<off_t> offset)
 {
-	if(!data()) [[unlikely]]
-		return -1;
-	auto span = subSpan(offset, bytes);
-	if(!span.data())
-		return 0;
-	memcpy(buff, span.data(), span.size_bytes());
-	return span.size_bytes();
-}
-
-std::span<uint8_t> MapIO::map()
-{
-	return {data(), size()};
-}
-
-ssize_t MapIO::write(const void *buff, size_t bytesToWrite)
-{
-	auto bytes = writeAtPos(buff, bytesToWrite, currPos);
-	if(bytes > 0)
-	{
-		currPos += bytes;
-		assert(currPos <= size());
-	}
-	return bytes;
-}
-
-ssize_t MapIO::writeAtPos(const void *buff, size_t bytes, off_t offset)
-{
-	if(!data()) [[unlikely]]
-		return -1;
-	auto span = subSpan(offset, bytes);
-	if(!span.data())
-		return 0;
-	memcpy(span.data(), buff, span.size_bytes());
-	return span.size_bytes();
+	return copyBuffer(buff, bytesToWrite, offset);
 }
 
 off_t MapIO::seek(off_t offset, IOSeekMode mode)
@@ -95,19 +53,9 @@ off_t MapIO::seek(off_t offset, IOSeekMode mode)
 	return newPos;
 }
 
-size_t MapIO::size() const
+void MapIO::sync()
 {
-	return buff.size();
-}
-
-bool MapIO::eof() const
-{
-	return currPos == size();
-}
-
-MapIO::operator bool() const
-{
-	return data();
+	msync(data(), size(), MS_SYNC);
 }
 
 static int adviceToMAdv(IOAdvice advice)
@@ -127,26 +75,17 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 	if(!bytes)
 		bytes = size();
 	auto span = subSpan(offset, bytes);
-	if(!span.size())
+	if(!span.data())
 		return;
 	void *pageSrcAddr = roundDownToPageSize(span.data());
 	bytes = span.size_bytes() + (uintptr_t(span.data()) - uintptr_t(pageSrcAddr)); // add extra bytes from rounding down to page size
-	if(madvise(pageSrcAddr, bytes, adviceToMAdv(advice)) != 0 && Config::DEBUG_BUILD)
+	if(madvise(pageSrcAddr, bytes, adviceToMAdv(advice)) != 0)
 	{
-		logWarn("madvise(%p, %zu, %s) failed:%s", pageSrcAddr, bytes, asString(advice), strerror(errno));
-	}
-	else
-	{
-		logWarn("madvise(%p, %zu, %s) failed", pageSrcAddr, bytes, asString(advice));
+		logWarn("madvise(%p, %zu, %s) failed:%s",
+			pageSrcAddr, bytes, asString(advice), Config::DEBUG_BUILD ? strerror(errno) : "");
 	}
 }
 #endif
-
-IOBuffer MapIO::releaseBuffer()
-{
-	logMsg("releasing buffer:%p (%zu bytes)", buff.data(), buff.size());
-	return std::move(buff);
-}
 
 std::span<uint8_t> MapIO::subSpan(off_t offset, size_t maxBytes) const
 {
@@ -156,24 +95,27 @@ std::span<uint8_t> MapIO::subSpan(off_t offset, size_t maxBytes) const
 		return {};
 	}
 	auto bytes = std::min(maxBytes, size_t(size() - offset));
-	if(bytes != maxBytes)
-		logWarn("reduced size of span:%zu to %zu", maxBytes, bytes);
+	//if(bytes != maxBytes) logDMsg("reduced size of span:%zu to %zu", maxBytes, bytes);
 	return {data() + offset, bytes};
 }
 
-MapIO MapIO::subView(off_t offset, size_t maxBytes) const
+ssize_t MapIO::copyBuffer(auto *buff, size_t bytes, std::optional<off_t> offset)
 {
-	return IOBuffer{subSpan(offset, maxBytes), 0};
-}
-
-uint8_t *MapIO::data() const
-{
-	return buff.data();
-}
-
-uint8_t *MapIO::dataEnd() const
-{
-	return data() + buff.size();
+	if(!data()) [[unlikely]]
+		return -1;
+	auto span = subSpan(offset ? *offset : currPos, bytes);
+	if(!span.data())
+		return 0;
+	if constexpr(std::is_const_v<std::remove_pointer_t<decltype(buff)>>)
+		memcpy(span.data(), buff, span.size_bytes()); // write from provided buffer
+	else
+		memcpy(buff, span.data(), span.size_bytes()); // read to provided buffer
+	if(!offset)
+	{
+		currPos += span.size_bytes();
+		assert(currPos <= size());
+	}
+	return span.size_bytes();
 }
 
 }

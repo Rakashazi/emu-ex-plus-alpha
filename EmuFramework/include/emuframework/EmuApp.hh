@@ -228,7 +228,6 @@ public:
 	bool hasSavedSessionOptions();
 	void deleteSessionOptions();
 	void syncEmulationThread();
-	void prepareAudio();
 	void startAudio();
 	EmuAudio &audio() { return emuAudio; }
 	EmuVideo &video() { return emuVideo; }
@@ -238,7 +237,7 @@ public:
 	const Screen &emuScreen() const;
 	Window &emuWindow();
 	AutosaveManager &autosaveManager() { return autosaveManager_; }
-	void configFrameTime();
+	FrameTimeConfig configFrameTime();
 	void setDisabledInputKeys(std::span<const unsigned> keys);
 	void unsetDisabledInputKeys();
 	void updateKeyboardMapping();
@@ -282,7 +281,7 @@ public:
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &);
 	void setWindowFrameClockSource(IG::Window::FrameTimeSource src) { winFrameTimeSrc = src; }
 	IG::Window::FrameTimeSource windowFrameClockSource() const { return winFrameTimeSrc; }
-	void setIntendedFrameRate(Window &, bool isEmuRunning);
+	void setIntendedFrameRate(Window &, FrameTimeConfig);
 	static std::u16string_view mainViewName();
 	void runBenchmarkOneShot(EmuVideo &);
 	void onSelectFileFromPicker(IG::IO, IG::CStringView path, std::string_view displayName,

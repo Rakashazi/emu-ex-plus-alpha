@@ -230,7 +230,7 @@ FreetypeFaceData::FreetypeFaceData(FT_Library library, IO file):
 			stream->pos = offset;
 			if(!count) // no bytes to read
 				return 0;
-			auto bytesRead = io.readAtPos(buffer, count, offset);
+			auto bytesRead = io.read(buffer, count, offset);
 			if(bytesRead == -1)
 			{
 				logErr("error reading bytes in IO func");

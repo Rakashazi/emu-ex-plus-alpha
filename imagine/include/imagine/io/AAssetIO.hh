@@ -46,10 +46,9 @@ public:
 
 	constexpr AAssetIO() = default;
 	AAssetIO(ApplicationContext, CStringView name, AccessHint, OpenFlagsMask oFlags = {});
-	ssize_t read(void *buff, size_t bytes);
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
+	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});
+	ssize_t write(const void *buff, size_t bytes, std::optional<off_t> offset = {});
 	std::span<uint8_t> map();
-	ssize_t write(const void *buff, size_t bytes);
 	off_t seek(off_t offset, SeekMode mode);
 	size_t size();
 	bool eof();

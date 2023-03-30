@@ -94,7 +94,7 @@ static bool readConfigKeys(MapIO io, ON_KEY onKey)
 static void writeConfigHeader(FileIO &io)
 {
 	uint8_t blockHeaderSize = 2;
-	io.write(blockHeaderSize);
+	io.put(blockHeaderSize);
 }
 
 }

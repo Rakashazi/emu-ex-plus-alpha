@@ -417,9 +417,9 @@ void writeCheatFile(EmuSystem &sys_)
 			continue; // ignore incomplete code entries
 		}
 		file.write(e.code.data(), e.code.size());
-		file.write('\t');
+		file.put('\t');
 		file.write(e.name.data(), e.name.size());
-		file.write('\n');
+		file.put('\n');
 		if(e.isOn())
 		{
 			file.write("ON\n", strlen("ON\n"));

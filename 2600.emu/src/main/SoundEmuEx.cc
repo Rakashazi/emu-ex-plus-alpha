@@ -46,19 +46,16 @@ void SoundEmuEx::close()
 	audioQueue->closeSink(currentFragment);
   audioQueue.reset();
   myResampler.reset();
-  inputFrameRate = {};
+  mixRate = {};
 }
 
-void SoundEmuEx::configForVideoFrameRate(double frameRate)
+void SoundEmuEx::updateResampler()
 {
-	logMsg("configuring audio rate:%d for video frame rate input:%.2f output:%.2f",
-		outputRate, frameRate, 1. / outputFrameTime.count());
-	auto tiaSoundRate = EmuSystem::audioMixRate(outputRate, frameRate, outputFrameTime);
-	emulationTiming->updatePlaybackRate(tiaSoundRate);
+	emulationTiming->updatePlaybackRate(mixRate);
 	Resampler::Format formatFrom =
 		Resampler::Format(emulationTiming->audioSampleRate(), audioQueue->fragmentSize(), audioQueue->isStereo());
 	Resampler::Format formatTo =
-		Resampler::Format(tiaSoundRate, audioQueue->fragmentSize(), false);
+		Resampler::Format(mixRate, audioQueue->fragmentSize(), false);
 	Resampler::NextFragmentCallback fragCallback =
 		[this]()
 		{
@@ -79,21 +76,21 @@ void SoundEmuEx::configForVideoFrameRate(double frameRate)
 			myResampler = make_unique<LanczosResampler>(formatFrom, formatTo, fragCallback, 3);
 		break;
 	}
-	logMsg("set sound rate:%.2f resampler type:%d", tiaSoundRate, (int)resampleQuality);
+	logMsg("set sound mix rate:%d resampler type:%d", mixRate, (int)resampleQuality);
 }
 
-void SoundEmuEx::setRate(int outputRate, double inputFrameRate, FloatSeconds outputFrameTime, AudioSettings::ResamplingQuality resampleQ)
+void SoundEmuEx::setMixRate(int mixRate_, AudioSettings::ResamplingQuality resampleQ)
 {
-	this->outputRate = outputRate;
-	this->inputFrameRate = inputFrameRate;
-	this->outputFrameTime = outputFrameTime;
 	resampleQuality = resampleQ;
 	if(!audioQueue)
 	{
 		logWarn("called setRate() without audio queue");
 		return;
 	}
-	configForVideoFrameRate(inputFrameRate);
+	if(mixRate_ == mixRate)
+		return;
+	mixRate = mixRate_;
+	updateResampler();
 }
 
 void SoundEmuEx::setResampleQuality(AudioSettings::ResamplingQuality quality)
@@ -103,9 +100,9 @@ void SoundEmuEx::setResampleQuality(AudioSettings::ResamplingQuality quality)
 		return;
 	}
 	resampleQuality = quality;
-	if(!inputFrameRate)
+	if(!mixRate)
 		return;
-	configForVideoFrameRate(inputFrameRate);
+	updateResampler();
 }
 
 void SoundEmuEx::setEmuAudio(EmuEx::EmuAudio *audio)

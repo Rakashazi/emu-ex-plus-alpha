@@ -44,11 +44,9 @@ public:
 	PosixFileIO(UniqueFileDescriptor fd, OpenFlagsMask);
 	PosixFileIO(CStringView path, AccessHint access, OpenFlagsMask oFlags = {});
 	PosixFileIO(CStringView path, OpenFlagsMask oFlags = {});
-	ssize_t read(void *buff, size_t bytes);
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
+	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});
+	ssize_t write(const void *buff, size_t bytes, std::optional<off_t> offset = {});
 	std::span<uint8_t> map();
-	ssize_t write(const void *buff, size_t bytes);
-	ssize_t writeAtPos(const void *buff, size_t bytes, off_t offset);
 	bool truncate(off_t offset);
 	off_t seek(off_t offset, SeekMode mode);
 	void sync();
@@ -61,7 +59,7 @@ public:
 	operator IO();
 	bool tryMap(AccessHint access, OpenFlagsMask);
 
-protected:
+private:
 	std::variant<PosixIO, MapIO> ioImpl{};
 
 	void initMmap(AccessHint access, OpenFlagsMask openFlags);

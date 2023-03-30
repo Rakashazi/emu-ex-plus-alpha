@@ -92,14 +92,14 @@ void writeCheatFile(EmuSystem &sys_)
 	logMsg("writing cheats file %s", path.data());
 
 	int version = 0;
-	file.write((uint8_t)version);
-	file.write((uint16_t)cheatList.size());
+	file.put(uint8_t(version));
+	file.put(int16_t(cheatList.size()));
 	for(auto &e : cheatList)
 	{
-		file.write((uint8_t)e.flags);
-		file.write((uint16_t)e.name.size());
+		file.put(uint8_t(e.flags));
+		file.put(uint16_t(e.name.size()));
 		file.write(e.name.data(), e.name.size());
-		file.write((uint8_t)e.code.size());
+		file.put(uint8_t(e.code.size()));
 		file.write(e.code.data(), e.code.size());
 	}
 }

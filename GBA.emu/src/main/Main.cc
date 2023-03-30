@@ -115,7 +115,7 @@ void GbaSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 	else
 	{
 		logMsg("saving backup memory");
-		saveFileIO.writeAtPos(saveData.data(), saveData.size(), 0);
+		saveFileIO.write(saveData.span(), 0);
 	}
 }
 
@@ -209,8 +209,8 @@ void GbaSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 
 void GbaSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	double mixRate = audioMixRate(outputRate, outputFrameTime);
-	logMsg("set audio rate:%d, mix rate:%d", outputRate, (int)mixRate);
+	long mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	logMsg("set sound mix rate:%ld", mixRate);
 	soundSetSampleRate(gGba, mixRate);
 }
 

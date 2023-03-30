@@ -62,7 +62,7 @@ public:
 	bool hasConsole() const { return (bool)myConsole; }
 	void makeConsole(unique_ptr<Cartridge>& cart, const Properties& props, const char *gamePath);
 	void deleteConsole();
-	void setSoundRate(int outputRate, double inputFrameRate, IG::FloatSeconds outputFrameTime, AudioSettings::ResamplingQuality);
+	void setSoundMixRate(int mixRate, AudioSettings::ResamplingQuality);
 
 	#ifdef DEBUGGER_SUPPORT
 	void createDebugger(Console& console);

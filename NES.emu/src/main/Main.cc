@@ -379,8 +379,11 @@ bool NesSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 
 void NesSystem::configAudioRate(IG::FloatSeconds outputFrameTime, int outputRate)
 {
-	FCEUI_Sound(audioMixRate(outputRate, outputFrameTime));
-	logMsg("set NES audio rate %d", FSettings.SndRate);
+	uint32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	if(FSettings.SndRate == mixRate)
+		return;
+	logMsg("set sound mix rate:%d", (int)mixRate);
+	FCEUI_Sound(mixRate);
 }
 
 void emulateSound(EmuAudio *audio)

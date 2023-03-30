@@ -70,4 +70,5 @@ class MDFN_PixelFormat;
 namespace MDFN_IEN_NGP
 {
 void applyVideoFormat(Mednafen::MDFN_PixelFormat);
+uint32 MDFNNGPC_GetSoundRate();
 }

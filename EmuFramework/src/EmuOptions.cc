@@ -137,7 +137,7 @@ void EmuApp::writeRecentContent(FileIO &io)
 	for(const auto &e : recentContentList)
 	{
 		auto len = e.path.size();
-		io.write((uint16_t)len);
+		io.put(uint16_t(len));
 		io.write(e.path.data(), len);
 	}
 }

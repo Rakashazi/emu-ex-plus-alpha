@@ -555,7 +555,7 @@ void MsxSystem::loadBlueMSXState(EmuApp &app, const char *filename)
 	// from this point on, errors are fatal and require the existing game to close
 	if(!createBoardFromLoadGame(app))
 	{
-		auto err = fmt::format("Can't initialize machine:{} from save-state", machine->name);
+		auto err = fmt::format("Can't initialize machine: \"{}\" from state", machine->name);
 		app.closeSystemWithoutSave();
 		throw std::runtime_error{err};
 	}
@@ -691,9 +691,11 @@ void MsxSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 void MsxSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
 	assumeExpr(outputRate == 44100);// TODO: not all sound chips handle non-44100Hz sample rate
-	int mixRate = audioMixRate(outputRate, outputFrameTime);
+	UInt32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	if(mixerGetSampleRate(mixer) == mixRate)
+		return;
+	logMsg("set sound mix rate:%d", (int)mixRate);
 	mixerSetSampleRate(mixer, mixRate);
-	logMsg("set mixer rate %d", (int)mixerGetSampleRate(mixer));
 }
 
 static Int32 soundWrite(void *audio, Int16 *buffer, UInt32 samples)

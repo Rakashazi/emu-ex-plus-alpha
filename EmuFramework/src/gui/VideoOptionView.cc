@@ -917,8 +917,6 @@ bool VideoOptionView::onFrameTimeChange(VideoSystem vidSys, FloatSeconds time)
 		app().postMessage(4, true, fmt::format("{:.2f}Hz not in valid range", 1. / time.count()));
 		return false;
 	}
-	if(system().videoSystem() == vidSys)
-		app().configFrameTime();
 	return true;
 }
 

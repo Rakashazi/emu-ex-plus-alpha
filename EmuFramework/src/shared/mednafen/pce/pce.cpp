@@ -736,6 +736,13 @@ void applySoundFormat(double rate)
  SetSoundRate(rate);
 }
 
+double getSoundRate()
+{
+	if(!HRRes)
+		return 0;
+	return HRRes->getOutputRate();
+}
+
 static MDFN_COLD void CloseGame(void)
 {
  Cleanup();

@@ -113,6 +113,11 @@ bool MDFNNGPC_SetSoundRate(uint32 rate)
  return(true);
 }
 
+uint32 MDFNNGPC_GetSoundRate()
+{
+	return st_buf.left()->sample_rate();
+}
+
 int MDFNNGPCSOUND_StateAction(StateMem *sm, int load, int data_only)
 {
  T6W28_ApuState sn_state;

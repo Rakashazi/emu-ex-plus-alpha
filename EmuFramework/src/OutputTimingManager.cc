@@ -27,7 +27,7 @@ bool OutputTimingManager::frameTimeOptionIsValid(FloatSeconds time)
 		EmuSystem::validFrameRateRange.contains(1. / time.count());
 }
 
-static OutputTimingManager::FrameTimeConfig bestOutputTimeForScreen(const Screen &screen, FloatSeconds systemFrameTime)
+static FrameTimeConfig bestOutputTimeForScreen(const Screen &screen, FloatSeconds systemFrameTime)
 {
 	const auto systemFrameRate = 1. / systemFrameTime.count();
 	static auto selectAcceptableRate = [](double rate, double targetRate) -> std::pair<double, int>
@@ -72,7 +72,7 @@ bool OutputTimingManager::setFrameTimeOption(VideoSystem vidSys, FloatSeconds ti
 	return true;
 }
 
-OutputTimingManager::FrameTimeConfig OutputTimingManager::frameTimeConfig(const EmuSystem &system, const Screen &screen) const
+FrameTimeConfig OutputTimingManager::frameTimeConfig(const EmuSystem &system, const Screen &screen) const
 {
 	auto t = frameTimeVar(system.videoSystem());
 	assumeExpr(frameTimeOptionIsValid(t));

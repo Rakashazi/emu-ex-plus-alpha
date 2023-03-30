@@ -29,16 +29,16 @@ namespace EmuEx
 
 using namespace IG;
 
+struct FrameTimeConfig
+{
+	FloatSeconds time;
+	FrameRate rate;
+	int refreshMultiplier;
+};
+
 class OutputTimingManager
 {
 public:
-	struct FrameTimeConfig
-	{
-		FloatSeconds time;
-		FrameRate rate;
-		int refreshMultiplier;
-	};
-
 	static constexpr FloatSeconds autoOption{};
 	static constexpr FloatSeconds originalOption{-1.};
 

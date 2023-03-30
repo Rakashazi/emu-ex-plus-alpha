@@ -41,7 +41,7 @@ void updateCPUFreq(FrameRateTest::TestFramework &test)
 	if(!cpuFreqFile)
 		return;
 	std::array<char, 32> buff{};
-	cpuFreqFile.readAtPos(buff.data(), sizeof(buff)-1, 0);
+	cpuFreqFile.read(buff.data(), buff.size() - 1, 0);
 	// remove any whitespace
 	std::array<char, 32> str{};
 	sscanf(buff.data(), "%s", str.data());

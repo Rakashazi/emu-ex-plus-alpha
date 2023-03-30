@@ -56,24 +56,31 @@ AAssetIO::AAssetIO(ApplicationContext ctx, IG::CStringView name, AccessHint acce
 		makeMapIO();
 }
 
-ssize_t AAssetIO::read(void *buff, size_t bytes)
+ssize_t AAssetIO::read(void *buff, size_t bytes, std::optional<off_t> offset)
 {
 	if(mapIO)
-		return mapIO.read(buff, bytes);
-	auto bytesRead = AAsset_read(asset.get(), buff, bytes);
-	if(bytesRead < 0) [[unlikely]]
+		return mapIO.read(buff, bytes, offset);
+	else
 	{
-		return -1;
+		if(offset)
+		{
+			return readAtPosGeneric(buff, bytes, *offset);
+		}
+		else
+		{
+			auto bytesRead = AAsset_read(asset.get(), buff, bytes);
+			if(bytesRead < 0) [[unlikely]]
+			{
+				return -1;
+			}
+			return bytesRead;
+		}
 	}
-	return bytesRead;
 }
 
-ssize_t AAssetIO::readAtPos(void *buff, size_t bytes, off_t offset)
+ssize_t AAssetIO::write(const void *buff, size_t bytes, std::optional<off_t> offset)
 {
-	if(mapIO)
-		return mapIO.readAtPos(buff, bytes, offset);
-	else
-		return readAtPosGeneric(buff, bytes, offset);
+	return -1;
 }
 
 std::span<uint8_t> AAssetIO::map()
@@ -82,11 +89,6 @@ std::span<uint8_t> AAssetIO::map()
 		return mapIO.map();
 	else
 		return {};
-}
-
-ssize_t AAssetIO::write(const void *buff, size_t bytes)
-{
-	return -1;
 }
 
 off_t AAssetIO::seek(off_t offset, IOSeekMode mode)

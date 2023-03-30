@@ -104,7 +104,7 @@ uint64 FileStream::read(void *data, uint64 count, bool error_on_eos)
 
 uint64 FileStream::readAtPos(void *data, uint64 count, uint64 pos)
 {
-	return io.readAtPos(data, count, pos);
+	return io.read(data, count, pos);
 }
 
 void FileStream::write(const void *data, uint64 count)

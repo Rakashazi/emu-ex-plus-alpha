@@ -130,6 +130,8 @@ class OwlResampler
 	 return SIMDTypeString;
 	}
 
+	double getOutputRate() const { return OutputRate; }
+
 	private:
 
 	// Copy of the parameters passed to the constructor

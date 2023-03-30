@@ -724,7 +724,7 @@ std::span<unsigned char> Cartridge::srambank()
 
 std::optional<std::time_t> Cartridge::rtcTime() const
 {
-	if(hasBattery(memptrs_.romdata()[0x147]))
+	if(hasRtc(memptrs_.romdata()[0x147]))
 		return rtc_.baseTime();
 	else
 		return {};

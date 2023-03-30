@@ -431,12 +431,6 @@ static IG::Microseconds makeWantedAudioLatencyUSecs(uint8_t buffers, IG::FloatSe
 	return buffers * std::chrono::duration_cast<IG::Microseconds>(frameTime);
 }
 
-void EmuApp::prepareAudio()
-{
-	audio().setRate(optionSoundRate);
-	configFrameTime();
-}
-
 void EmuApp::startAudio()
 {
 	audio().start(makeWantedAudioLatencyUSecs(optionSoundBuffers, system().frameTime()),
@@ -713,7 +707,8 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						}
 						else if(e.change == ScreenChange::frameRate && e.screen == emuScreen())
 						{
-							configFrameTime();
+							if(viewController().isShowingEmulation())
+								configFrameTime();
 						}
 					},
 					[&](Input::DevicesEnumeratedEvent &)
@@ -825,8 +820,7 @@ void EmuApp::launchSystem(const Input::Event &e)
 			autosaveManager_.resetSlot(noAutosaveName);
 		static auto finishLaunch = [](EmuApp &app, LoadAutosaveMode mode)
 		{
-			if(!app.autosaveManager_.load(mode))
-				app.closeSystemWithoutSave();
+			app.autosaveManager_.load(mode);
 			if(!app.system().hasContent())
 			{
 				logErr("system was closed while trying to load autosave");
@@ -910,7 +904,7 @@ void EmuApp::showEmulation()
 		return;
 	configureAppForEmulation(true);
 	resetInput();
-	viewController().showEmulationView();
+	viewController().showEmulationView(configFrameTime());
 	startEmulation();
 }
 
@@ -1018,7 +1012,6 @@ void EmuApp::reloadSystem(EmuSystemCreateParams params)
 
 void EmuApp::onSystemCreated()
 {
-	prepareAudio();
 	updateContentRotation();
 	viewController().onSystemCreated();
 }
@@ -1158,7 +1151,7 @@ bool EmuApp::loadState(IG::CStringView path)
 	}
 	catch(std::exception &err)
 	{
-		if(!hasWriteAccessToDir(system().contentSaveDirectory()))
+		if(system().hasContent() && !hasWriteAccessToDir(system().contentSaveDirectory()))
 			postErrorMessage(8, "Save folder inaccessible, please set it in Options➔File Paths➔Saves");
 		else
 			postErrorMessage(4, fmt::format("Can't load state:\n{}", err.what()));
@@ -1519,12 +1512,11 @@ VController &EmuApp::defaultVController()
 	return vController;
 }
 
-void EmuApp::configFrameTime()
+FrameTimeConfig EmuApp::configFrameTime()
 {
-	system().configFrameTime(emuAudio.format().rate,
-		outputTimingManager.frameTimeConfig(system(), emuScreen()).time);
-	if(viewController().isShowingEmulation())
-		setIntendedFrameRate(emuWindow(), true);
+	auto frameTimeConfig = outputTimingManager.frameTimeConfig(system(), emuScreen());
+	system().configFrameTime(emuAudio.format().rate, frameTimeConfig.time);
+	return frameTimeConfig;
 }
 
 void EmuApp::runFrames(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio, int frames, bool skipForward)
@@ -1698,7 +1690,7 @@ void EmuApp::setSoundRate(int rate)
 	if(!rate)
 		rate = optionSoundRate.defaultVal;
 	optionSoundRate = rate;
-	prepareAudio();
+	audio().setRate(rate);
 }
 
 bool EmuApp::setSoundVolume(int vol)
@@ -1781,17 +1773,12 @@ void EmuApp::configureAppForEmulation(bool running)
 	appContext().setHintKeyRepeat(!running);
 }
 
-void EmuApp::setIntendedFrameRate(Window &win, bool isEmuRunning)
+void EmuApp::setIntendedFrameRate(Window &win, FrameTimeConfig config)
 {
-	if(!isEmuRunning)
-	{
-		win.setIntendedFrameRate(0);
-		return;
-	}
 	if(shouldForceMaxScreenFrameRate())
 		return win.setIntendedFrameRate(std::ranges::max(win.screen()->supportedFrameRates()));
 	else
-		return win.setIntendedFrameRate(outputTimingManager.frameTimeConfig(system(), *win.screen()).rate);
+		return win.setIntendedFrameRate(config.rate);
 }
 
 void EmuApp::onFocusChange(bool in)
@@ -1839,7 +1826,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 				{
 					emuSystemTask.pause();
 					win.moveOnFrame(ctx.mainWindow(), system().onFrameUpdate, windowFrameClockSource());
-					configFrameTime();
+					setIntendedFrameRate(win, configFrameTime());
 				}
 				extraWinData.updateWindowViewport(win, makeViewport(win), renderer);
 				viewController().moveEmuViewToWindow(win);
@@ -1888,7 +1875,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 							{
 								emuSystemTask.pause();
 								mainWindow().moveOnFrame(win, system().onFrameUpdate, windowFrameClockSource());
-								configFrameTime();
+								setIntendedFrameRate(mainWindow(), configFrameTime());
 							}
 							return true;
 						},

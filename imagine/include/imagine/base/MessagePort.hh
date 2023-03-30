@@ -141,7 +141,7 @@ public:
 
 	bool send(MsgType msg)
 	{
-		return pipe.sink().write(msg) != -1;
+		return pipe.sink().put(msg) != -1;
 	}
 
 	bool send(MsgType msg, bool awaitReply)
@@ -162,7 +162,7 @@ public:
 		if(semPtr)
 		{
 			msg.setReplySemaphore(semPtr);
-			if(pipe.sink().write(msg) == -1) [[unlikely]]
+			if(pipe.sink().put(msg) == -1) [[unlikely]]
 			{
 				return false;
 			}

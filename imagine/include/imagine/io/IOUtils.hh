@@ -22,6 +22,7 @@
 #include <utility>
 #include <span>
 #include <type_traits>
+#include <optional>
 
 namespace IG
 {
@@ -99,22 +100,19 @@ public:
 
 	IOBuffer buffer(BufferMode mode = BufferMode::Direct);
 
-	template <class T, bool useOffset = false>
-	T getImpl(IOReadWriteResult<sizeof(T)> *resultOut = {}, off_t offset = 0)
+	// TODO: should rework to use std::expected after libc++ update
+	template <class T>
+	T getImpl(IOReadWriteResult<sizeof(T)> *resultOut = {}, std::optional<off_t> offset = {})
 	{
 		if constexpr(std::is_same_v<T, bool>)
 		{
 			// special case to convert value to a valid bool
-			return getImpl<uint8_t, useOffset>(resultOut, offset);
+			return getImpl<uint8_t>(resultOut, offset);
 		}
 		else
 		{
 			T obj;
-			ssize_t size;
-			if constexpr(useOffset)
-				size = static_cast<IO*>(this)->readAtPos(static_cast<void*>(&obj), sizeof(T), offset);
-			else
-				size = static_cast<IO*>(this)->read(static_cast<void*>(&obj), sizeof(T));
+			ssize_t size = static_cast<IO*>(this)->read(static_cast<void*>(&obj), sizeof(T), offset);
 			if(resultOut)
 				*resultOut = size;
 			if(size < (ssize_t)sizeof(T)) [[unlikely]]
@@ -124,21 +122,15 @@ public:
 	}
 
 	template <class T>
-	T get()
+	T get(std::optional<off_t> offset = {})
 	{
-		return getImpl<T>();
-	}
-
-	template <class T>
-	T get(off_t offset)
-	{
-		return getImpl<T, true>({}, offset);
+		return getImpl<T>({}, offset);
 	}
 
 	ssize_t readAtPosGeneric(void *buff, size_t bytes, off_t offset);
 	ssize_t writeAtPosGeneric(const void *buff, size_t bytes, off_t offset);
 
-	ssize_t readSized(ResizableContainer auto &c, size_t maxSize)
+	ssize_t readSized(ResizableContainer auto &c, size_t maxSize, std::optional<off_t> offset = {})
 	{
 		if(c.max_size() < maxSize)
 			return -1;
@@ -148,7 +140,7 @@ public:
 			bool error{};
 			c.resize_and_overwrite(maxSize, [&](char *str, std::size_t allocSize) -> ssize_t
 			{
-				ReadResult result = read(str, std::min(maxSize, allocSize));
+				ReadResult result = read(str, std::min(maxSize, allocSize), offset);
 				if(result.bytes == -1) [[unlikely]]
 				{
 					error = true;
@@ -163,7 +155,7 @@ public:
 		else
 		{
 			c.resize(maxSize);
-			ReadResult result = read(c.data(), maxSize);
+			ReadResult result = read(c.data(), maxSize, offset);
 			if(result.bytes == -1) [[unlikely]]
 				return -1;
 			c.resize(result.items);
@@ -173,60 +165,60 @@ public:
 
 	// read/write objects
 	template <NotPointerDecayable T>
-	IOReadWriteResult<sizeof(T)> read(T &obj)
+	IOReadWriteResult<sizeof(T)> read(T &obj, std::optional<off_t> offset = {})
 	{
 		if constexpr(std::is_same_v<T, bool>)
 		{
 			// special case to convert byte value to a valid bool
 			IOReadWriteResult<sizeof(bool)> result;
-			obj = getImpl<uint8_t>(&result);
+			obj = getImpl<uint8_t>(&result, offset);
 			return result;
 		}
 		else
 		{
-			return static_cast<IO*>(this)->read(static_cast<void*>(&obj), sizeof(T));
+			return static_cast<IO*>(this)->read(static_cast<void*>(&obj), sizeof(T), offset);
 		}
 	}
 
 	template <NotPointerDecayable T>
-	ssize_t write(T &&obj)
+	ssize_t put(T &&obj, std::optional<off_t> offset = {})
 	{
-		return static_cast<IO*>(this)->write(static_cast<const void*>(&obj), sizeof(T));
+		return static_cast<IO*>(this)->write(static_cast<const void*>(&obj), sizeof(T), offset);
 	}
 
 	// read/write whole spans
 	template <class T>
-	IOReadWriteResult<sizeof(T)> read(std::span<T> span)
+	IOReadWriteResult<sizeof(T)> read(std::span<T> span, std::optional<off_t> offset = {})
 	{
-		return static_cast<IO*>(this)->read(static_cast<void*>(span.data()), span.size_bytes());
+		return static_cast<IO*>(this)->read(static_cast<void*>(span.data()), span.size_bytes(), offset);
 	}
 
 	template <class T>
-	IOReadWriteResult<sizeof(T)> write(std::span<T> span)
+	IOReadWriteResult<sizeof(T)> write(std::span<T> span, std::optional<off_t> offset = {})
 	{
-		return static_cast<IO*>(this)->write(static_cast<const void*>(span.data()), span.size_bytes());
+		return static_cast<IO*>(this)->write(static_cast<const void*>(span.data()), span.size_bytes(), offset);
 	}
 
 	// read/write pointer data by element
-	auto read(Pointer auto ptr, size_t size) -> IOReadWriteResult<sizeof(*ptr)>
+	auto read(Pointer auto ptr, size_t size, std::optional<off_t> offset = {}) -> IOReadWriteResult<sizeof(*ptr)>
 	{
-		return static_cast<IO*>(this)->read(static_cast<void*>(ptr), size * sizeof(*ptr));
+		return static_cast<IO*>(this)->read(static_cast<void*>(ptr), size * sizeof(*ptr), offset);
 	}
 
-	auto write(Pointer auto ptr, size_t size) -> IOReadWriteResult<sizeof(*ptr)>
+	auto write(Pointer auto ptr, size_t size, std::optional<off_t> offset = {}) -> IOReadWriteResult<sizeof(*ptr)>
 	{
-		return static_cast<IO*>(this)->write(static_cast<const void*>(ptr), size * sizeof(*ptr));
+		return static_cast<IO*>(this)->write(static_cast<const void*>(ptr), size * sizeof(*ptr), offset);
 	}
 
 	// only return basic size for byte-sized pointers
-	ssize_t read(PointerOfSize<1> auto ptr, size_t size)
+	ssize_t read(PointerOfSize<1> auto ptr, size_t size, std::optional<off_t> offset = {})
 	{
-		return static_cast<IO*>(this)->read(static_cast<void*>(ptr), size);
+		return static_cast<IO*>(this)->read(static_cast<void*>(ptr), size, offset);
 	}
 
-	ssize_t write(PointerOfSize<1> auto ptr, size_t size)
+	ssize_t write(PointerOfSize<1> auto ptr, size_t size, std::optional<off_t> offset = {})
 	{
-		return static_cast<IO*>(this)->write(static_cast<const void*>(ptr), size);
+		return static_cast<IO*>(this)->write(static_cast<const void*>(ptr), size, offset);
 	}
 
 	FILE *toFileStream(const char *opentype);

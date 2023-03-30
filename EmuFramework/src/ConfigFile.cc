@@ -410,26 +410,26 @@ void EmuApp::saveConfigFile(FileIO &io)
 		}
 		// write to config file
 		logMsg("saving %d key configs, %zu bytes", (int)customKeyConfigs.size(), bytes);
-		io.write(uint16_t(bytes));
-		io.write((uint16_t)CFGKEY_INPUT_KEY_CONFIGS);
-		io.write((uint8_t)customKeyConfigs.size());
+		io.put(uint16_t(bytes));
+		io.put(uint16_t(CFGKEY_INPUT_KEY_CONFIGS));
+		io.put(uint8_t(customKeyConfigs.size()));
 		for(uint8_t configs = 0; auto &ePtr : customKeyConfigs)
 		{
 			auto &e = *ePtr;
 			logMsg("writing config %s", e.name.data());
-			io.write(uint8_t(e.map));
+			io.put(uint8_t(e.map));
 			uint8_t nameLen = e.name.size();
-			io.write(nameLen);
+			io.put(nameLen);
 			io.write(e.name.data(), nameLen);
-			io.write(writeCategories[configs]);
+			io.put(writeCategories[configs]);
 			for(auto &cat : inputControlCategories())
 			{
 				uint8_t catIdx = std::distance(inputControlCategories().data(), &cat);
 				if(!writeCategory[configs][catIdx])
 					continue;
-				io.write((uint8_t)catIdx);
+				io.put(uint8_t(catIdx));
 				uint16_t catSize = cat.keys() * sizeof(KeyConfig::Key);
-				io.write(catSize);
+				io.put(catSize);
 				io.write(static_cast<void*>(e.key(cat)), catSize);
 			}
 			configs++;
@@ -469,9 +469,9 @@ void EmuApp::saveConfigFile(FileIO &io)
 		}
 		// write to config file
 		logMsg("saving %d input device configs, %d bytes", (int)savedInputDevs.size(), bytes);
-		io.write((uint16_t)bytes);
-		io.write((uint16_t)CFGKEY_INPUT_DEVICE_CONFIGS);
-		io.write((uint8_t)savedInputDevs.size());
+		io.put(uint16_t(bytes));
+		io.put(uint16_t(CFGKEY_INPUT_DEVICE_CONFIGS));
+		io.put(uint8_t(savedInputDevs.size()));
 		for(auto &ePtr : savedInputDevs)
 		{
 			auto &e = *ePtr;
@@ -479,23 +479,23 @@ void EmuApp::saveConfigFile(FileIO &io)
 			uint8_t enumIdWithFlags = e.enumId;
 			if(e.handleUnboundEvents)
 				enumIdWithFlags |= e.HANDLE_UNBOUND_EVENTS_FLAG;
-			io.write((uint8_t)enumIdWithFlags);
-			io.write((uint8_t)e.enabled);
-			io.write((uint8_t)e.player);
-			io.write((uint8_t)e.joystickAxisAsDpadBits);
+			io.put(uint8_t(enumIdWithFlags));
+			io.put(uint8_t(e.enabled));
+			io.put(uint8_t(e.player));
+			io.put(uint8_t(e.joystickAxisAsDpadBits));
 			#ifdef CONFIG_INPUT_ICADE
-			io.write((uint8_t)e.iCadeMode);
+			io.put(uint8_t(e.iCadeMode));
 			#endif
 			uint8_t nameLen = std::min((size_t)256, e.name.size());
-			io.write(nameLen);
+			io.put(nameLen);
 			io.write(e.name.data(), nameLen);
 			uint8_t keyConfMap = e.keyConf ? (uint8_t)e.keyConf->map : 0;
-			io.write(keyConfMap);
+			io.put(keyConfMap);
 			if(keyConfMap)
 			{
 				logMsg("has key conf %s, map %d", e.keyConf->name.data(), keyConfMap);
 				uint8_t keyConfNameLen = e.keyConf->name.size();
-				io.write(keyConfNameLen);
+				io.put(keyConfNameLen);
 				io.write(e.keyConf->name.data(), keyConfNameLen);
 			}
 		}

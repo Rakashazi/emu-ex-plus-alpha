@@ -26,8 +26,16 @@ namespace IG
 
 template class IOUtils<IO>;
 
-ssize_t IO::read(void *buff, size_t bytes) { return visit([&](auto &io){ return io.read(buff, bytes); }, *this); }
-ssize_t IO::write(const void *buff, size_t bytes) { return visit([&](auto &io){ return io.write(buff, bytes); }, *this); }
+ssize_t IO::read(void *buff, size_t bytes, std::optional<off_t> offset)
+{
+	return visit([&](auto &io){ return io.read(buff, bytes, offset); }, *this);
+}
+
+ssize_t IO::write(const void *buff, size_t bytes, std::optional<off_t> offset)
+{
+	return visit([&](auto &io){ return io.write(buff, bytes, offset);	}, *this);
+}
+
 off_t IO::seek(off_t offset, IOSeekMode mode) { return visit([&](auto &io){ return io.seek(offset, mode); }, *this); }
 size_t IO::size() { return visit([&](auto &io){ return io.size(); }, *this); }
 bool IO::eof() { return visit([&](auto &io){ return io.eof(); }, *this); }
@@ -70,28 +78,6 @@ void IO::advise(off_t offset, size_t bytes, Advice advice)
 	{
 		if constexpr(requires {io.advise(offset, bytes, advice);})
 			return io.advise(offset, bytes, advice);
-	}, *this);
-}
-
-ssize_t IO::readAtPos(void *buff, size_t bytes, off_t offset)
-{
-	return visit([&](auto &io)
-	{
-		if constexpr(requires {io.readAtPos(buff, bytes, offset);})
-			return io.readAtPos(buff, bytes, offset);
-		else
-			return readAtPosGeneric(buff, bytes, offset);
-	}, *this);
-}
-
-ssize_t IO::writeAtPos(const void *buff, size_t bytes, off_t offset)
-{
-	return visit([&](auto &io)
-	{
-		if constexpr(requires {io.writeAtPos(buff, bytes, offset);})
-			return io.writeAtPos(buff, bytes, offset);
-		else
-			return writeAtPosGeneric(buff, bytes, offset);
 	}, *this);
 }
 

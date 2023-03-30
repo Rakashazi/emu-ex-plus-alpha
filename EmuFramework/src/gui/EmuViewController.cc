@@ -212,22 +212,25 @@ void EmuViewController::moveEmuViewToWindow(IG::Window &win)
 		emuView.setLayoutInputView(nullptr);
 }
 
-void EmuViewController::configureWindowForEmulation(IG::Window &win, bool running)
+void EmuViewController::configureWindowForEmulation(IG::Window &win, FrameTimeConfig frameTimeConfig, bool running)
 {
 	if constexpr(Config::SCREEN_FRAME_INTERVAL)
 		win.screen()->setFrameInterval(app().frameInterval());
 	emuView.renderer().setWindowValidOrientations(win, running ? app().emuOrientation() : app().menuOrientation());
-	app().setIntendedFrameRate(win, running);
+	if(running)
+		app().setIntendedFrameRate(win, frameTimeConfig);
+	else
+		win.setIntendedFrameRate(0);
 	movePopupToWindow(running ? emuView.window() : emuInputView.window());
 }
 
-void EmuViewController::showEmulationView()
+void EmuViewController::showEmulationView(FrameTimeConfig frameTimeConfig)
 {
 	if(showingEmulation)
 		return;
 	viewStack.top().onHide();
 	showingEmulation = true;
-	configureWindowForEmulation(emuView.window(), true);
+	configureWindowForEmulation(emuView.window(), frameTimeConfig, true);
 	if(emuView.window() != emuInputView.window())
 		emuInputView.postDraw();
 	emuInputView.resetInput();
@@ -241,7 +244,7 @@ void EmuViewController::showMenuView(bool updateTopView)
 		return;
 	showingEmulation = false;
 	emuInputView.setSystemGestureExclusion(false);
-	configureWindowForEmulation(emuView.window(), false);
+	configureWindowForEmulation(emuView.window(), {}, false);
 	emuView.postDraw();
 	if(updateTopView)
 	{

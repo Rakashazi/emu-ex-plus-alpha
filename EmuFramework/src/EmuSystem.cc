@@ -313,7 +313,7 @@ double EmuSystem::audioMixRate(int outputRate, double inputFrameRate, FloatSecon
 	assumeExpr(outputRate > 0);
 	assumeExpr(inputFrameRate > 0);
 	assumeExpr(outputFrameTime.count() > 0);
-	return std::round(inputFrameRate * outputFrameTime.count() * outputRate);
+	return inputFrameRate * outputFrameTime.count() * outputRate;
 }
 
 int EmuSystem::updateAudioFramesPerVideoFrame()
@@ -535,7 +535,7 @@ FileIO EmuSystem::staticBackupMemoryFile(CStringView uri, size_t size, uint8_t i
 			uint8_t fillBuff[fillSize];
 			memset(fillBuff, initValue, fillSize);
 			logMsg("padding %zu bytes at offset %zu with value:0x%X", fillSize, fileSize, initValue);
-			file.writeAtPos(fillBuff, fillSize, fileSize);
+			file.write(fillBuff, fillSize, fileSize);
 		}
 	}
 	return file;

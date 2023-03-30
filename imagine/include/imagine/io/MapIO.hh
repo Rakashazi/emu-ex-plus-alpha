@@ -35,29 +35,28 @@ public:
 	using IOUtilsBase::toFileStream;
 
 	constexpr MapIO() = default;
-	MapIO(IOBuffer);
+	MapIO(IOBuffer buff): buff{std::move(buff)} {}
 	explicit MapIO(Readable auto &&io): MapIO{io.buffer(BufferMode::Release)} {}
 	explicit MapIO(Readable auto &io): MapIO{io.buffer(BufferMode::Direct)} {}
-	ssize_t read(void *buff, size_t bytes);
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
-	std::span<uint8_t> map();
-	ssize_t write(const void *buff, size_t bytes);
-	ssize_t writeAtPos(const void *buff, size_t bytes, off_t offset);
+	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});
+	ssize_t write(const void *buff, size_t bytes, std::optional<off_t> offset = {});
 	off_t seek(off_t offset, SeekMode mode);
-	size_t size() const;
-	bool eof() const;
-	explicit operator bool() const;
+	size_t size() const { return buff.size(); }
+	bool eof() const { return currPos == size(); }
+	std::span<uint8_t> map() { return {data(), size()}; }
+	void sync();
+	explicit operator bool() const { return data(); }
 	void advise(off_t offset, size_t bytes, Advice advice);
-	IOBuffer releaseBuffer();
+	uint8_t *data() const { return buff.data(); }
+	IOBuffer releaseBuffer() { return std::move(buff); }
 	std::span<uint8_t> subSpan(off_t offset, size_t maxBytes) const;
-	MapIO subView(off_t offset, size_t maxBytes) const;
+	MapIO subView(off_t offset, size_t maxBytes) const { return IOBuffer{subSpan(offset, maxBytes), 0}; }
 
-protected:
+private:
 	size_t currPos{};
 	IOBuffer buff{};
 
-	uint8_t *data() const;
-	uint8_t *dataEnd() const;
+	ssize_t copyBuffer(auto *buff, size_t bytes, std::optional<off_t> offset);
 };
 
 }

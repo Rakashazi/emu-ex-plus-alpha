@@ -63,7 +63,7 @@ class A2600System final: public EmuSystem
 {
 public:
 	OSystem osystem;
-	double configuredInputVideoFrameRate{};
+	float configuredInputVideoFrameRate{};
 	Properties defaultGameProps{};
 	bool p1DiffB = true, p2DiffB = true, vcsColor = true;
 	Controller::Type autoDetectedInput1{};

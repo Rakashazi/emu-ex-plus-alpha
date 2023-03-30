@@ -56,9 +56,9 @@ void OSystem::deleteConsole()
 	myConsole.reset();
 }
 
-void OSystem::setSoundRate(int outputRate, double inputFrameRate, IG::FloatSeconds outputFrameTime, AudioSettings::ResamplingQuality resampleQ)
+void OSystem::setSoundMixRate(int mixRate, AudioSettings::ResamplingQuality resampleQ)
 {
-	mySound.setRate(outputRate, inputFrameRate, outputFrameTime, resampleQ);
+	mySound.setMixRate(mixRate, resampleQ);
 }
 
 FilesystemNode OSystem::stateDir() const

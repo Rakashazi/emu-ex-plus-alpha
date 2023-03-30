@@ -79,9 +79,9 @@ void WsSystem::loadBackupMemory(EmuApp &app)
 	if(!saveFileIO)
 		saveFileIO = staticBackupMemoryFile(savePathMDFN(app, 0, "sav"), eeprom_size + sram_size);
 	if(eeprom_size)
-		saveFileIO.readAtPos(wsEEPROM, eeprom_size, 0);
+		saveFileIO.read(wsEEPROM, eeprom_size, 0);
 	if(sram_size)
-		saveFileIO.readAtPos(wsSRAM, sram_size, eeprom_size);
+		saveFileIO.read(wsSRAM, sram_size, eeprom_size);
 }
 
 void WsSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
@@ -90,9 +90,9 @@ void WsSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 		return;
 	logMsg("saving sram/eeprom");
 	if(eeprom_size)
-		saveFileIO.writeAtPos(wsEEPROM, eeprom_size, 0);
+		saveFileIO.write(wsEEPROM, eeprom_size, 0);
 	if(sram_size)
-		saveFileIO.writeAtPos(wsSRAM, sram_size, eeprom_size);
+		saveFileIO.write(wsSRAM, sram_size, eeprom_size);
 }
 
 IG::Time WsSystem::backupMemoryLastWriteTime(const EmuApp &app) const
@@ -140,12 +140,12 @@ FloatSeconds WsSystem::frameTime() const { return FloatSeconds{lcdVTotal() * 256
 
 void WsSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	if(!hasContent())
-		return;
-	auto soundRate = audioMixRate(outputRate, outputFrameTime);
+	uint32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
 	configuredLCDVTotal = lcdVTotal();
-	logMsg("emu sound rate:%f", soundRate);
-	WSwan_SetSoundRate(soundRate);
+	if(getSoundRate() == mixRate)
+		return;
+	logMsg("set sound mix rate:%d", (int)mixRate);
+	WSwan_SetSoundRate(mixRate);
 }
 
 void WsSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)

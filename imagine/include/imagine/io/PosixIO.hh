@@ -48,10 +48,8 @@ public:
 	PosixIO(CStringView path, OpenFlagsMask oFlags = {});
 	UniqueFileDescriptor releaseFd();
 	int fd() const;
-	ssize_t read(void *buff, size_t bytes);
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
-	ssize_t write(const void *buff, size_t bytes);
-	ssize_t writeAtPos(const void *buff, size_t bytes, off_t offset);
+	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});
+	ssize_t write(const void *buff, size_t bytes, std::optional<off_t> offset = {});
 	bool truncate(off_t offset);
 	off_t seek(off_t offset, SeekMode mode);
 	void sync();

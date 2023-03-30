@@ -660,46 +660,46 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key, size_t size)
 
 static void writeToConfig(const VControllerElement &e, FileIO &io)
 {
-	io.write(e.dPad() ? int8_t(1) : int8_t(0));
+	io.put(e.dPad() ? int8_t(1) : int8_t(0));
 	visit(overloaded
 	{
 		[&](const VControllerButtonGroup &e)
 		{
 			auto config = e.config();
-			io.write(config.layout.rowItems);
-			io.write(config.layout.spacingMM);
-			io.write(config.layout.xPadding);
-			io.write(config.layout.yPadding);
-			io.write(config.layout.staggerType);
-			io.write(config.layout.origin.pack());
-			io.write(config.layout.showBoundingArea);
+			io.put(config.layout.rowItems);
+			io.put(config.layout.spacingMM);
+			io.put(config.layout.xPadding);
+			io.put(config.layout.yPadding);
+			io.put(config.layout.staggerType);
+			io.put(config.layout.origin.pack());
+			io.put(config.layout.showBoundingArea);
 			auto keyCount = uint8_t(std::min(config.keys.size(), 255zu));
-			io.write(keyCount);
+			io.put(keyCount);
 			io.write(config.keys.data(), keyCount);
 		},
 		[&](const VControllerUIButtonGroup &e)
 		{
 			auto config = e.config();
-			io.write(config.layout.rowItems);
-			io.write(config.layout.origin.pack());
+			io.put(config.layout.rowItems);
+			io.put(config.layout.origin.pack());
 			auto keyCount = uint8_t(std::min(config.keys.size(), 255zu));
-			io.write(keyCount);
+			io.put(keyCount);
 			io.write(config.keys.data(), keyCount);
 		},
 		[&](const VControllerDPad &e)
 		{
 			auto config = e.config;
-			io.write(config.keys);
-			io.write(config.diagonalSensitivity);
-			io.write(config.deadzoneMM100x);
-			io.write(config.visualizeBounds);
+			io.put(config.keys);
+			io.put(config.diagonalSensitivity);
+			io.put(config.deadzoneMM100x);
+			io.put(config.visualizeBounds);
 		},
 	}, e);
-	io.write(e.layoutPos[0].pos);
-	io.write(e.layoutPos[0].origin.pack());
-	io.write(e.layoutPos[1].pos);
-	io.write(e.layoutPos[1].origin.pack());
-	io.write(e.state);
+	io.put(e.layoutPos[0].pos);
+	io.put(e.layoutPos[0].origin.pack());
+	io.put(e.layoutPos[1].pos);
+	io.put(e.layoutPos[1].origin.pack());
+	io.put(e.state);
 }
 
 static size_t configDataSizeBytes(const std::vector<VControllerElement> &elems, bool savingUIElems)
@@ -725,11 +725,11 @@ void VController::writeDeviceButtonsConfig(FileIO &io) const
 		logErr("device button data bytes:%zu too large, skipped writing to config", bytes);
 		return;
 	}
-	io.write(uint16_t(bytes));
-	io.write(uint16_t(CFGKEY_VCONTROLLER_DEVICE_BUTTONS));
-	io.write(int8_t(0));
-	io.write(int8_t(0));
-	io.write(uint8_t(std::min(gpElements.size(), 255zu)));
+	io.put(uint16_t(bytes));
+	io.put(uint16_t(CFGKEY_VCONTROLLER_DEVICE_BUTTONS));
+	io.put(int8_t(0));
+	io.put(int8_t(0));
+	io.put(uint8_t(std::min(gpElements.size(), 255zu)));
 	logMsg("wrote emu device button data (%zu bytes) with %zu element(s)", bytes, gpElements.size());
 	for(const auto &e : gpElements) { writeToConfig(e, io); }
 }
@@ -742,10 +742,10 @@ void VController::writeUIButtonsConfig(FileIO &io) const
 		logErr("UI button data bytes:%zu too large, skipped writing to config", bytes);
 		return;
 	}
-	io.write(uint16_t(bytes));
-	io.write(uint16_t(CFGKEY_VCONTROLLER_UI_BUTTONS));
-	io.write(int8_t(0));
-	io.write(uint8_t(std::min(uiElements.size(), 255zu)));
+	io.put(uint16_t(bytes));
+	io.put(uint16_t(CFGKEY_VCONTROLLER_UI_BUTTONS));
+	io.put(int8_t(0));
+	io.put(uint8_t(std::min(uiElements.size(), 255zu)));
 	logMsg("wrote UI button data (%zu bytes) with %zu element(s)", bytes, uiElements.size());
 	for(const auto &e : uiElements) { writeToConfig(e, io); }
 }

@@ -131,24 +131,27 @@ void A2600System::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDeleg
 	logMsg("is PAL: %s", videoSystem() == VideoSystem::PAL ? "yes" : "no");
 }
 
-FloatSeconds A2600System::frameTime() const
+static auto consoleFrameRate(const OSystem &osystem)
 {
 	if(!osystem.hasConsole())
-		return FloatSeconds{1. / 60.};
+		return 60.f;
 	if(!osystem.console().tia().frameBufferScanlinesLastFrame())
-		return FloatSeconds{1. / (osystem.console().timing() == ConsoleTiming::ntsc ? 60. : 50.)};
-	return FloatSeconds{1. / osystem.console().currentFrameRate()};
+		return osystem.console().timing() == ConsoleTiming::ntsc ? 60.f : 50.f;
+	return osystem.console().currentFrameRate();
+}
+
+FloatSeconds A2600System::frameTime() const
+{
+	return FloatSeconds{1. / consoleFrameRate(osystem)};
 }
 
 void A2600System::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
 	if(!osystem.hasConsole())
 		return;
-	if(!osystem.console().tia().frameBufferScanlinesLastFrame())
-		configuredInputVideoFrameRate = osystem.console().timing() == ConsoleTiming::ntsc ? 60. : 50.;
-	else
-		configuredInputVideoFrameRate = osystem.console().currentFrameRate();
-	osystem.setSoundRate(outputRate, configuredInputVideoFrameRate, outputFrameTime, AudioSettings::ResamplingQuality(optionAudioResampleQuality.val));
+	configuredInputVideoFrameRate = consoleFrameRate(osystem);
+	osystem.setSoundMixRate(std::round(audioMixRate(outputRate, configuredInputVideoFrameRate, outputFrameTime)),
+		AudioSettings::ResamplingQuality(optionAudioResampleQuality.val));
 }
 
 static void renderVideo(EmuSystemTaskContext taskCtx, EmuVideo &video, FrameBuffer &fb, TIA &tia)

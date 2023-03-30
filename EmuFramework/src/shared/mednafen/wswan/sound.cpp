@@ -402,6 +402,12 @@ bool WSwan_SetSoundRate(uint32 rate)
  return(true);
 }
 
+uint32 getSoundRate()
+{
+	return sbuf[0]->sample_rate();
+}
+
+
 void WSwan_SoundStateAction(StateMem *sm, const unsigned load, const bool data_only)
 {
  SFORMAT StateRegs[] =

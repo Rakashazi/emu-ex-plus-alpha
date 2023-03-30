@@ -46,7 +46,7 @@ static BluezBluetoothAdapter defaultBluezAdapter;
 void BluezBluetoothAdapter::sendBTScanStatusDelegate(uint8_t type, uint8_t arg = 0)
 {
 	ScanStatusMessage msg {type, arg};
-	statusPipe.sink().write(msg);
+	statusPipe.sink().put(msg);
 //	if(write(statusPipe[1], &msg, sizeof(msg)) == -1)
 //	{
 //		logErr("error writing BT scan status to pipe");

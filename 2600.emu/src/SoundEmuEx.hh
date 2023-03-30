@@ -40,9 +40,9 @@ public:
 	SoundEmuEx& operator=(SoundEmuEx&&) = delete;
 	void open(shared_ptr<AudioQueue> audioQueue, EmulationTiming* emulationTiming);
 	void close() final;
-	void setRate(int soundRate, double inputFrameRate, IG::FloatSeconds outputFrameTime, AudioSettings::ResamplingQuality);
-	void setResampleQuality(AudioSettings::ResamplingQuality quality);
-	void setEmuAudio(EmuEx::EmuAudio *audio);
+	void setMixRate(int mixRate, AudioSettings::ResamplingQuality);
+	void setResampleQuality(AudioSettings::ResamplingQuality);
+	void setEmuAudio(EmuEx::EmuAudio *);
 	void setEnabled(bool enable) final;
 	bool mute(bool state) final;
 	bool toggleMute() final;
@@ -56,10 +56,8 @@ private:
 	unique_ptr<Resampler> myResampler{};
 	EmulationTiming *emulationTiming{};
 	Int16 *currentFragment{};
-	double inputFrameRate{};
-	IG::FloatSeconds outputFrameTime{};
-	int32_t outputRate{};
+	int mixRate{};
 	AudioSettings::ResamplingQuality resampleQuality{AudioSettings::DEFAULT_RESAMPLING_QUALITY};
 
-	void configForVideoFrameRate(double rate);
+	void updateResampler();
 };

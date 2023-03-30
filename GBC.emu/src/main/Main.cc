@@ -77,7 +77,7 @@ void GbcSystem::applyGBPalette()
 
 void GbcSystem::reset(EmuApp &app, ResetMode mode)
 {
-	assert(hasContent());
+	flushBackupMemory(app);
 	gbEmu.reset();
 	loadBackupMemory(app);
 }
@@ -111,7 +111,7 @@ void GbcSystem::loadBackupMemory(EmuApp &app)
 			saveFileIO = staticBackupMemoryFile(app.contentSaveFilePath(".sav"), sram.size(), 0xFF);
 		if(!saveFileIO)
 			throw std::runtime_error("Error accessing .sav file, please verify it has write access");
-		saveFileIO.readAtPos(sram.data(), sram.size(), 0);
+		saveFileIO.read(sram, 0);
 	}
 	if(auto timeOpt = gbEmu.rtcTime();
 		timeOpt)
@@ -121,11 +121,8 @@ void GbcSystem::loadBackupMemory(EmuApp &app)
 			rtcFileIO = staticBackupMemoryFile(app.contentSaveFilePath(".rtc"), 4);
 		if(!rtcFileIO)
 			throw std::runtime_error("Error accessing .rtc file, please verify it has write access");
-		unsigned long time = rtcFileIO.get<uint8_t>();
-		time = time << 8 | rtcFileIO.get<uint8_t>();
-		time = time << 8 | rtcFileIO.get<uint8_t>();
-		time = time << 8 | rtcFileIO.get<uint8_t>();
-		gbEmu.setRtcTime(time);
+		auto rtcData = rtcFileIO.get<std::array<uint8_t, 4>>(0);
+		gbEmu.setRtcTime(rtcData[0] << 24 | rtcData[1] << 16 | rtcData[2] << 8 | rtcData[3]);
 	}
 }
 
@@ -135,17 +132,19 @@ void GbcSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 		sram.size())
 	{
 		logMsg("saving sram");
-		saveFileIO.writeAtPos(sram.data(), sram.size(), 0);
+		saveFileIO.write(sram, 0);
 	}
 	if(auto timeOpt = gbEmu.rtcTime();
 		timeOpt)
 	{
 		logMsg("saving rtc");
-		rtcFileIO.rewind();
-		rtcFileIO.write<uint8_t>(*timeOpt >> 24 & 0xFF);
-		rtcFileIO.write<uint8_t>(*timeOpt >> 16 & 0xFF);
-		rtcFileIO.write<uint8_t>(*timeOpt >>  8 & 0xFF);
-		rtcFileIO.write<uint8_t>(*timeOpt       & 0xFF);
+		rtcFileIO.put(std::array<uint8_t, 4>
+			{
+				uint8_t(*timeOpt >> 24 & 0xFF),
+				uint8_t(*timeOpt >> 16 & 0xFF),
+				uint8_t(*timeOpt >>  8 & 0xFF),
+				uint8_t(*timeOpt       & 0xFF)
+			}, 0);
 	}
 }
 

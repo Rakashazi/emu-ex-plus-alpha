@@ -212,13 +212,18 @@ FloatSeconds PceSystem::frameTime() const { return isUsing263Lines() ? staticFra
 
 void PceSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	auto soundRate = audioMixRate(outputRate, outputFrameTime);
 	configuredFor263Lines = isUsing263Lines();
-	logMsg("emu sound rate:%f, 263 lines:%d", soundRate, isUsing263Lines());
+	auto mixRate = audioMixRate(outputRate, outputFrameTime);
+	if(!isUsingAccurateCore())
+		mixRate = std::round(mixRate);
+	auto currMixRate = isUsingAccurateCore() ? MDFN_IEN_PCE::getSoundRate() : MDFN_IEN_PCE_FAST::getSoundRate();
+	if(mixRate == currMixRate)
+		return;
+	logMsg("set sound mix rate:%.2f for %s video lines", mixRate, isUsing263Lines() ? "263" : "262");
 	if(isUsingAccurateCore())
-		MDFN_IEN_PCE::applySoundFormat(soundRate);
+		MDFN_IEN_PCE::applySoundFormat(mixRate);
 	else
-		MDFN_IEN_PCE_FAST::applySoundFormat(soundRate);
+		MDFN_IEN_PCE_FAST::applySoundFormat(mixRate);
 }
 
 void PceSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)

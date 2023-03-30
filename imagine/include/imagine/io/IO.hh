@@ -23,6 +23,7 @@
 #endif
 #include <variant>
 #include <span>
+#include <optional>
 
 namespace IG
 {
@@ -54,25 +55,19 @@ public:
 	using BufferMode = IOBufferMode;
 	using SeekMode = IOSeekMode;
 
-	// reading
-	ssize_t read(void *buff, size_t bytes);
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
-
-	// writing
-	ssize_t write(const void *buff, size_t bytes);
-	ssize_t writeAtPos(const void *buff, size_t bytes, off_t offset);
-	bool truncate(off_t offset);
-
-	// seeking
+	// core API
+	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});
+	ssize_t write(const void *buff, size_t bytes, std::optional<off_t> offset = {});
 	off_t seek(off_t offset, SeekMode mode);
-
-	// other functions
-	std::span<uint8_t> map();
-	void sync();
 	size_t size();
 	bool eof();
-	void advise(off_t offset, size_t bytes, Advice advice);
 	explicit operator bool() const;
+
+	// optional API
+	bool truncate(off_t offset);
+	std::span<uint8_t> map();
+	void sync();
+	void advise(off_t offset, size_t bytes, Advice advice);
 };
 
 }

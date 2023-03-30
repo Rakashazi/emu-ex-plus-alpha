@@ -428,10 +428,13 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 
 void MdSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	audio_init(outputRate, 1. / outputFrameTime.count());
-	if(hasContent())
-		sound_restore();
-	logMsg("md sound buffer size %d", snd.buffer_size);
+	float outputFrameRate = 1. / outputFrameTime.count();
+	if(snd.sample_rate == outputRate && snd.frame_rate == outputFrameRate)
+		return;
+	logMsg("set sound output rate:%d for fps:%.2f", outputRate, outputFrameRate);
+	audio_init(outputRate, outputFrameRate);
+	sound_restore();
+	//logMsg("set sound buffer size:%d", snd.buffer_size);
 }
 
 bool MdSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)

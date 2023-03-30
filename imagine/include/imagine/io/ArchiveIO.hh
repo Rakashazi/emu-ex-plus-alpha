@@ -91,8 +91,8 @@ public:
 	ArchiveIO(ArchiveEntry entry);
 	ArchiveEntry releaseArchive();
 	std::string_view name() const;
-	ssize_t read(void *buff, size_t bytes);
-	ssize_t write(const void *buff, size_t bytes);
+	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});
+	ssize_t write(const void *buff, size_t bytes, std::optional<off_t> offset = {});
 	off_t seek(off_t offset, SeekMode mode);
 	size_t size();
 	bool eof();

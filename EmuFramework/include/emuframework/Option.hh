@@ -120,14 +120,14 @@ inline void writeOptionValueHeader(Writable auto &io, uint16_t key, uint16_t opt
 {
 	optSize += sizeof key;
 	logMsg("writing option key:%u with size:%u", key, optSize);
-	io.write(optSize);
-	io.write(key);
+	io.put(optSize);
+	io.put(key);
 }
 
 inline void writeOptionValue(Writable auto &io, uint16_t key, const auto &val)
 {
 	writeOptionValueHeader(io, key, sizeof(decltype(val)));
-	io.write(val);
+	io.put(val);
 }
 
 template <class T>
@@ -235,8 +235,8 @@ public:
 	bool writeToIO(Writable auto &io) const
 	{
 		logMsg("writing option key %u after size %zu", KEY, ioSize());
-		io.write(KEY);
-		io.write(val);
+		io.put(KEY);
+		io.put(val);
 		return true;
 	}
 
@@ -244,7 +244,7 @@ public:
 	{
 		if(!isDefault())
 		{
-			io.write((uint16_t)ioSize());
+			io.put(uint16_t(ioSize()));
 			writeToIO(io);
 		}
 		return true;
@@ -291,7 +291,7 @@ inline void writeOptionValue(Writable auto &io, const Option<T> &opt)
 {
 	if(opt.isDefault())
 		return;
-	io.write((uint16_t)opt.ioSize());
+	io.put(uint16_t(opt.ioSize()));
 	opt.writeToIO(io);
 }
 

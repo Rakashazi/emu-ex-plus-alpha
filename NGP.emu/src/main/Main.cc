@@ -129,9 +129,11 @@ bool NgpSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 
 void NgpSystem::configAudioRate(IG::FloatSeconds outputFrameTime, int outputRate)
 {
-	auto soundRate = audioMixRate(outputRate, outputFrameTime);
-	logMsg("emu sound rate:%f", soundRate);
-	MDFN_IEN_NGP::MDFNNGPC_SetSoundRate(soundRate);
+	uint32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	if(mixRate == MDFNNGPC_GetSoundRate())
+		return;
+	logMsg("set sound mix rate:%d", (int)mixRate);
+	MDFN_IEN_NGP::MDFNNGPC_SetSoundRate(mixRate);
 }
 
 void NgpSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)

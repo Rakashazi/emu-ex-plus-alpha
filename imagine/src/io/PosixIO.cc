@@ -100,49 +100,49 @@ PosixIO::PosixIO(IG::CStringView path, OpenFlagsMask openFlags)
 		logMsg("opened (%s) fd:%d @ %s", flagsString(openFlags).data(), fd(), path.data());
 }
 
-ssize_t PosixIO::read(void *buff, size_t bytes)
+ssize_t PosixIO::read(void *buff, size_t bytes, std::optional<off_t> offset)
 {
-	auto bytesRead = ::read(fd(), buff, bytes);
-	if(bytesRead == -1) [[unlikely]]
+	if(offset)
 	{
-		if(Config::DEBUG_BUILD && errno != EAGAIN)
-			logErr("error reading %zu bytes", bytes);
+		auto bytesRead = ::pread(fd(), buff, bytes, *offset);
+		if(bytesRead == -1) [[unlikely]]
+		{
+			logErr("error reading %zu bytes at offset %lld", bytes, (long long)*offset);
+		}
+		return bytesRead;
 	}
 	else
 	{
-		//logMsg("read %zd bytes out of %zu requested from fd_: %d", bytesRead, bytes, fd_);
+		auto bytesRead = ::read(fd(), buff, bytes);
+		if(bytesRead == -1) [[unlikely]]
+		{
+			if(Config::DEBUG_BUILD && errno != EAGAIN)
+				logErr("error reading %zu bytes", bytes);
+		}
+		return bytesRead;
 	}
-	return bytesRead;
 }
 
-ssize_t PosixIO::readAtPos(void *buff, size_t bytes, off_t offset)
+ssize_t PosixIO::write(const void *buff, size_t bytes, std::optional<off_t> offset)
 {
-	auto bytesRead = ::pread(fd(), buff, bytes, offset);
-	if(bytesRead == -1) [[unlikely]]
+	if(offset)
 	{
-		logErr("error reading %zu bytes at offset %lld", bytes, (long long)offset);
+		auto bytesWritten = ::pwrite(fd(), buff, bytes, *offset);
+		if(bytesWritten == -1)
+		{
+			logErr("error writing %zu bytes at offset %lld", bytes, (long long)*offset);
+		}
+		return bytesWritten;
 	}
-	return bytesRead;
-}
-
-ssize_t PosixIO::write(const void *buff, size_t bytes)
-{
-	auto bytesWritten = ::write(fd(), buff, bytes);
-	if(bytesWritten == -1)
+	else
 	{
-		logErr("error writing %zu bytes", bytes);
+		auto bytesWritten = ::write(fd(), buff, bytes);
+		if(bytesWritten == -1)
+		{
+			logErr("error writing %zu bytes", bytes);
+		}
+		return bytesWritten;
 	}
-	return bytesWritten;
-}
-
-ssize_t PosixIO::writeAtPos(const void *buff, size_t bytes, off_t offset)
-{
-	auto bytesWritten = ::pwrite(fd(), buff, bytes, offset);
-	if(bytesWritten == -1)
-	{
-		logErr("error writing %zu bytes at offset %lld", bytes, (long long)offset);
-	}
-	return bytesWritten;
 }
 
 bool PosixIO::truncate(off_t offset)

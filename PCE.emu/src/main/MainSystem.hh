@@ -23,6 +23,7 @@ namespace MDFN_IEN_PCE_FAST
 extern vce_t vce;
 
 void applySoundFormat(double rate);
+double getSoundRate();
 void PCECD_Drive_SetDisc(bool tray_open, CDInterface* cdif, bool no_emu_side_effects = false) MDFN_COLD;
 }
 
@@ -33,6 +34,7 @@ class VCE;
 extern VCE *vce;
 
 void applySoundFormat(double rate);
+double getSoundRate();
 }
 
 namespace EmuEx::Controls

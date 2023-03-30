@@ -484,14 +484,13 @@ void C64System::renderFramebuffer(EmuVideo &video)
 
 void C64System::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
-	logMsg("set audio rate %d", outputRate);
-	int mixRate = audioMixRate(outputRate, systemFrameRate, outputFrameTime);
+	int mixRate = std::round(audioMixRate(outputRate, systemFrameRate, outputFrameTime));
 	int currRate = 0;
 	plugin.resources_get_int("SoundSampleRate", &currRate);
-	if(currRate != mixRate)
-	{
-		setIntResource("SoundSampleRate", mixRate);
-	}
+	if(currRate == mixRate)
+		return;
+	logMsg("set sound mix rate:%d", mixRate);
+	setIntResource("SoundSampleRate", mixRate);
 }
 
 bool C64System::shouldFastForward() const
