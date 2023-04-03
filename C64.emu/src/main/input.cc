@@ -186,39 +186,33 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+constexpr struct VirtualControllerAssets
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
 
-	// js buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})},
+	jsBtn{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})},
 
-	// functions
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 1}}), {1, 2}}, // KB
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 1}, {2, 1}}), {1, 2}}, // Swap JS ports
+	kb{AssetFileID::gamepadOverlay,          gpImageCoords({{6, 0}, {2, 1}}), {1, 2}},
+	swapJsPorts{AssetFileID::gamepadOverlay, gpImageCoords({{6, 1}, {2, 1}}), {1, 2}},
 
-	// f-keys
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}}, // F1
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 1}}), {1, 2}}, // F3
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 3}, {2, 1}}), {1, 2}}, // F5
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 3}, {2, 1}}), {1, 2}}, // F7
-};
+	f1{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}},
+	f3{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 1}}), {1, 2}},
+	f5{AssetFileID::gamepadOverlay, gpImageCoords({{4, 3}, {2, 1}}), {1, 2}},
+	f7{AssetFileID::gamepadOverlay, gpImageCoords({{6, 3}, {2, 1}}), {1, 2}};
+} virtualControllerAssets;
 
 AssetDesc C64App::vControllerAssetDesc(unsigned key) const
 {
-	const int kbOffset = 4;
-	const int switchOffset = kbOffset + 12;
 	switch(key)
 	{
-		case 0: return virtualControllerAssets[0];
-		case c64KeyF1: return virtualControllerAssets[4];
-		case c64KeyF3: return virtualControllerAssets[5];
-		case c64KeyF5: return virtualControllerAssets[6];
-		case c64KeyF7: return virtualControllerAssets[7];
-		case c64KeyToggleKB: return virtualControllerAssets[2];
-		case c64KeyIdxSwapPorts: return virtualControllerAssets[3];
-		default: return virtualControllerAssets[1];
+		case 0: return virtualControllerAssets.dpad;
+		case c64KeyF1: return virtualControllerAssets.f1;
+		case c64KeyF3: return virtualControllerAssets.f3;
+		case c64KeyF5: return virtualControllerAssets.f5;
+		case c64KeyF7: return virtualControllerAssets.f7;
+		case c64KeyToggleKB: return virtualControllerAssets.kb;
+		case c64KeyIdxSwapPorts: return virtualControllerAssets.swapJsPorts;
+		default: return virtualControllerAssets.jsBtn;
 	}
 }
 

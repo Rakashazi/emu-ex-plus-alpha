@@ -75,37 +75,37 @@ constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
-	constexpr FP imageSize{256, 128};
+	constexpr FP imageSize{256, 256};
 	constexpr int cellSize = 32;
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+constexpr struct VirtualControllerAssets
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
 
-	// gamepad buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}}, // select
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 3}, {2, 1}}), {1, 2}}, // start
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // AB
-};
+	a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+	b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
+	select{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}},
+	start{AssetFileID::gamepadOverlay,  gpImageCoords({{4, 3}, {2, 1}}), {1, 2}},
+	ab{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 2}, {2, 2}})},
+
+	blank{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})};
+} virtualControllerAssets;
 
 AssetDesc NesApp::vControllerAssetDesc(unsigned key) const
 {
 	switch(key)
 	{
-		case 0: return virtualControllerAssets[0];
+		case 0: return virtualControllerAssets.dpad;
 		case nesKeyIdxATurbo:
-		case nesKeyIdxA: return virtualControllerAssets[1];
+		case nesKeyIdxA: return virtualControllerAssets.a;
 		case nesKeyIdxBTurbo:
-		case nesKeyIdxB: return virtualControllerAssets[2];
-		case nesKeyIdxSelect: return virtualControllerAssets[3];
-		case nesKeyIdxStart: return virtualControllerAssets[4];
-		case nesKeyIdxAB: return virtualControllerAssets[5];
-		default: return virtualControllerAssets[1];
+		case nesKeyIdxB: return virtualControllerAssets.b;
+		case nesKeyIdxSelect: return virtualControllerAssets.select;
+		case nesKeyIdxStart: return virtualControllerAssets.start;
+		case nesKeyIdxAB: return virtualControllerAssets.ab;
+		default: return virtualControllerAssets.blank;
 	}
 }
 

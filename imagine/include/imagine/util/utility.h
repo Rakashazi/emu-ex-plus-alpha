@@ -108,5 +108,8 @@ constexpr unsigned char charHexDigitInt(char c)
 	}
 }
 
+template <auto val>
+static constexpr auto evalNow = val;
+
 }
 #endif

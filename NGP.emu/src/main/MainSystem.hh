@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of NGP.emu.
+
+	NGP.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	NGP.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with NGP.emu.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <imagine/base/ApplicationContext.hh>
 #include <emuframework/Option.hh>
 #include <mednafen/mednafen.h>
@@ -20,9 +35,9 @@ public:
 	Mednafen::MDFNGI mdfnGameInfo{EmulatedNGP};
 	Byte1Option optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
 	uint8_t inputBuff{};
-	IG::MutablePixmapView mSurfacePix{};
-	static constexpr int vidBufferX = 160, vidBufferY = 152;
-	alignas(8) uint32_t pixBuff[vidBufferX*vidBufferY]{};
+	MutablePixmapView mSurfacePix{};
+	static constexpr IP vidBufferPx{160, 152};
+	alignas(8) uint32_t pixBuff[vidBufferPx.x * vidBufferPx.y]{};
 	// TODO: Mednafen/Neopop timing is based on 199 lines/frame, verify if this is correct
 	static constexpr FloatSeconds staticFrameTime{199. * 515. / 6144000.}; //~59.95Hz
 
@@ -30,6 +45,7 @@ public:
 		EmuSystem{ctx}
 	{
 		Mednafen::MDFNGameInfo = &mdfnGameInfo;
+		mdfnGameInfo.SetInput(0, "gamepad", (uint8*)&inputBuff);
 	}
 
 	// required API functions
@@ -60,15 +76,4 @@ public:
 
 using MainSystem = NgpSystem;
 
-}
-
-namespace Mednafen
-{
-class MDFN_PixelFormat;
-}
-
-namespace MDFN_IEN_NGP
-{
-void applyVideoFormat(Mednafen::MDFN_PixelFormat);
-uint32 MDFNNGPC_GetSoundRate();
 }

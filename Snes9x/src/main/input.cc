@@ -94,42 +94,42 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+constexpr struct VirtualControllerAssets
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
 
-	// gamepad buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // X
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // Y
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})}, // L
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 4}, {2, 2}})}, // R
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // select
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // start
-};
+	a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+	b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
+	x{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 2}, {2, 2}})},
+	y{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 2}, {2, 2}})},
+	l{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 4}, {2, 2}})},
+	r{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 4}, {2, 2}})},
+	select{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+	start{AssetFileID::gamepadOverlay,  gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
+
+	blank{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})};
+} virtualControllerAssets;
 
 AssetDesc Snes9xApp::vControllerAssetDesc(unsigned key) const
 {
 	switch(key)
 	{
-		case 0: return virtualControllerAssets[0];
+		case 0: return virtualControllerAssets.dpad;
 		case s9xKeyIdxATurbo:
-		case s9xKeyIdxA: return virtualControllerAssets[1];
+		case s9xKeyIdxA: return virtualControllerAssets.a;
 		case s9xKeyIdxBTurbo:
-		case s9xKeyIdxB: return virtualControllerAssets[2];
+		case s9xKeyIdxB: return virtualControllerAssets.b;
 		case s9xKeyIdxXTurbo:
-		case s9xKeyIdxX: return virtualControllerAssets[3];
+		case s9xKeyIdxX: return virtualControllerAssets.x;
 		case s9xKeyIdxYTurbo:
-		case s9xKeyIdxY: return virtualControllerAssets[4];
+		case s9xKeyIdxY: return virtualControllerAssets.y;
 		case s9xKeyIdxLTurbo:
-		case s9xKeyIdxL: return virtualControllerAssets[5];
+		case s9xKeyIdxL: return virtualControllerAssets.l;
 		case s9xKeyIdxRTurbo:
-		case s9xKeyIdxR: return virtualControllerAssets[6];
-		case s9xKeyIdxSelect: return virtualControllerAssets[7];
-		case s9xKeyIdxStart: return virtualControllerAssets[8];
-		default: return virtualControllerAssets[1];
+		case s9xKeyIdxR: return virtualControllerAssets.r;
+		case s9xKeyIdxSelect: return virtualControllerAssets.select;
+		case s9xKeyIdxStart: return virtualControllerAssets.start;
+		default: return virtualControllerAssets.blank;
 	}
 }
 

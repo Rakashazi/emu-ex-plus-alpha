@@ -62,7 +62,7 @@ static RavenBuffer* ADPCMBuf = NULL;
 static RavenBuffer* CDDABufs[2] = { NULL, NULL };
 static OwlResampler* HRRes = NULL;
 
-static bool SetSoundRate(double rate);
+bool SetSoundRate(double rate);
 
 static void Cleanup(void);
 
@@ -731,18 +731,6 @@ static MDFN_COLD void Cleanup(void)
  }
 }
 
-void applySoundFormat(double rate)
-{
- SetSoundRate(rate);
-}
-
-double getSoundRate()
-{
-	if(!HRRes)
-		return 0;
-	return HRRes->getOutputRate();
-}
-
 static MDFN_COLD void CloseGame(void)
 {
  Cleanup();
@@ -1168,7 +1156,7 @@ static const FileExtensionSpecStruct KnownExtensions[] =
  { NULL, 0, NULL }
 };
 
-static bool SetSoundRate(double rate)
+bool SetSoundRate(double rate)
 {
  if(HRRes)
  {
@@ -1184,6 +1172,13 @@ static bool SetSoundRate(double rate)
  }
 
  return(true);
+}
+
+double GetSoundRate()
+{
+	if(!HRRes)
+		return 0;
+	return HRRes->getOutputRate();
 }
 
 //MDFN_printf(_("Palette is missing the full set of 512 greyscale entries.  Strip-colorburst entries will be calculated.\n"));

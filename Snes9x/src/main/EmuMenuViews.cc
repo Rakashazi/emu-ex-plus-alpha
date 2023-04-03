@@ -327,7 +327,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 		bsxMenuName(system().bsxBiosPath), &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			pushAndShow(makeViewWithName<DataFileSelectView>("BS-X BIOS",
+			pushAndShow(makeViewWithName<DataFileSelectView<>>("BS-X BIOS",
 				app().validSearchPath(FS::dirnameUri(system().bsxBiosPath)),
 				[this](CStringView path, FS::file_type type)
 				{
@@ -349,7 +349,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 		sufamiMenuName(system().sufamiBiosPath), &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			pushAndShow(makeViewWithName<DataFileSelectView>("Sufami Turbo BIOS",
+			pushAndShow(makeViewWithName<DataFileSelectView<>>("Sufami Turbo BIOS",
 				app().validSearchPath(FS::dirnameUri(system().sufamiBiosPath)),
 				[this](CStringView path, FS::file_type type)
 				{

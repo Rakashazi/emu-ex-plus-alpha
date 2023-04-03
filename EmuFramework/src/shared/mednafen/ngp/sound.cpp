@@ -113,7 +113,7 @@ bool MDFNNGPC_SetSoundRate(uint32 rate)
  return(true);
 }
 
-uint32 MDFNNGPC_GetSoundRate()
+uint32 GetSoundRate()
 {
 	return st_buf.left()->sample_rate();
 }

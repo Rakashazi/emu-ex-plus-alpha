@@ -15,9 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/util/utility.h>
 #include <cstdint>
 #include <array>
 #include <span>
+#include <tuple>
 
 namespace IG
 {
@@ -44,5 +46,15 @@ struct ArrayView2
 
 	constexpr T *data() { return arr; }
 };
+
+constexpr auto toArray = [](auto &&...vals){ return std::array{IG_forward(vals)...}; };
+
+constexpr auto concatToArray(auto &&...vals)
+{
+	return std::apply(toArray, std::tuple_cat(IG_forward(vals)...));
+}
+
+template <auto ...vals>
+static constexpr auto concatToArrayNow = concatToArray(vals...);
 
 }

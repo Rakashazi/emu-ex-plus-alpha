@@ -28,6 +28,12 @@
 #include <mednafen/ngp/sound.h>
 #include <mednafen-emuex/MDFNUtils.hh>
 
+namespace MDFN_IEN_NGP
+{
+void SetPixelFormat(Mednafen::MDFN_PixelFormat);
+uint32 GetSoundRate();
+}
+
 namespace EmuEx
 {
 
@@ -102,62 +108,33 @@ void NgpSystem::closeSystem()
 
 void NgpSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	mdfnGameInfo.name = std::string{EmuSystem::contentName()};
 	static constexpr size_t maxRomSize = 0x400000;
-	auto stream = std::make_unique<MemoryStream>(maxRomSize, true);
-	auto size = io.read(stream->map(), stream->map_size());
-	if(size <= 0)
-		throwFileReadError();
-	stream->setSize(size);
-	MDFNFILE fp(&NVFS, std::move(stream));
-	GameFile gf{&NVFS, std::string{contentDirectory()}, fp.stream(),
-		std::string{withoutDotExtension(contentFileName())},
-		std::string{contentName()}};
-	mdfnGameInfo.Load(&gf);
-	mdfnGameInfo.SetInput(0, "gamepad", (uint8*)&inputBuff);
-	MDFN_IEN_NGP::applyVideoFormat(toMDFNSurface(mSurfacePix).format);
+	EmuEx::loadContent(*this, mdfnGameInfo, io, maxRomSize);
+	MDFN_IEN_NGP::SetPixelFormat(toMDFNSurface(mSurfacePix).format);
 }
 
 bool NgpSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
-	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
+	mSurfacePix = {{vidBufferPx, fmt}, pixBuff};
 	if(!hasContent())
 		return false;
-	MDFN_IEN_NGP::applyVideoFormat(toMDFNSurface(mSurfacePix).format);
+	MDFN_IEN_NGP::SetPixelFormat(toMDFNSurface(mSurfacePix).format);
 	return false;
 }
 
 void NgpSystem::configAudioRate(IG::FloatSeconds outputFrameTime, int outputRate)
 {
 	uint32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
-	if(mixRate == MDFNNGPC_GetSoundRate())
+	if(mixRate == GetSoundRate())
 		return;
 	logMsg("set sound mix rate:%d", (int)mixRate);
-	MDFN_IEN_NGP::MDFNNGPC_SetSoundRate(mixRate);
+	MDFNNGPC_SetSoundRate(mixRate);
 }
 
 void NgpSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	static constexpr size_t maxFrames = 48000 / minFrameRate;
-	int16 audioBuff[maxFrames*2];
-	EmulateSpecStruct espec{};
-	if(audio)
-	{
-		espec.SoundBuf = audioBuff;
-		espec.SoundBufMaxSize = maxFrames;
-	}
-	espec.taskCtx = taskCtx;
-	espec.sys = this;
-	espec.video = video;
-	espec.skip = !video;
-	auto mSurface = toMDFNSurface(mSurfacePix);
-	espec.surface = &mSurface;
-	mdfnGameInfo.Emulate(&espec);
-	if(audio)
-	{
-		assert((unsigned)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));
-		audio->writeFrames((uint8_t*)audioBuff, espec.SoundBufSize);
-	}
+	static constexpr size_t maxAudioFrames = 48000 / minFrameRate;
+	EmuEx::runFrame(*this, mdfnGameInfo, taskCtx, video, mSurfacePix, audio, maxAudioFrames);
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

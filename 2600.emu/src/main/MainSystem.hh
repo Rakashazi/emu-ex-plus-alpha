@@ -44,11 +44,14 @@ static constexpr int TV_PHOSPHOR_AUTO = 2;
 
 inline bool optionIsValidControllerType(uint8_t val)
 {
-	switch((Controller::Type)val)
+	switch(Controller::Type(val))
 	{
 		case Controller::Type::Unknown:
 		case Controller::Type::Joystick:
 		case Controller::Type::Genesis:
+		case Controller::Type::BoosterGrip:
+		case Controller::Type::Keyboard:
+		case Controller::Type::Paddles:
 			return true;
 		default:
 			return false;
@@ -57,7 +60,7 @@ inline bool optionIsValidControllerType(uint8_t val)
 
 const char *optionVideoSystemToStr(uint8_t sysIdx);
 Controller::Type limitToSupportedControllerTypes(Controller::Type type);
-const char *controllerTypeStr(Controller::Type type);
+const char *asString(Controller::Type type);
 
 class A2600System final: public EmuSystem
 {

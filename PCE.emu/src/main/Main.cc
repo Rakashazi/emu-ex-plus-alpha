@@ -137,7 +137,6 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 {
 	mdfnGameInfo = resolvedCore() == EmuCore::Accurate ? EmulatedPCE : EmulatedPCE_Fast;
 	logMsg("using emulator core module:%s", asModuleString(resolvedCore()).data());
-	mdfnGameInfo.name = std::string{EmuSystem::contentName()};
 	auto unloadCD = IG::scopeGuard(
 		[&]()
 		{
@@ -170,16 +169,7 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	else
 	{
 		static constexpr size_t maxRomSize = 0x300000;
-		auto stream = std::make_unique<MemoryStream>(maxRomSize, true);
-		auto size = io.read(stream->map(), stream->map_size());
-		if(size <= 0)
-			throwFileReadError();
-		stream->setSize(size);
-		MDFNFILE fp(&NVFS, std::move(stream));
-		GameFile gf{&NVFS, std::string{contentDirectory()}, fp.stream(),
-			std::string{withoutDotExtension(contentFileName())},
-			std::string{contentName()}};
-		mdfnGameInfo.Load(&gf);
+		EmuEx::loadContent(*this, mdfnGameInfo, io, maxRomSize);
 	}
 	unloadCD.cancel();
 	//logMsg("%d input ports", MDFNGameInfo->InputInfo->InputPorts);
@@ -216,38 +206,21 @@ void PceSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 	auto mixRate = audioMixRate(outputRate, outputFrameTime);
 	if(!isUsingAccurateCore())
 		mixRate = std::round(mixRate);
-	auto currMixRate = isUsingAccurateCore() ? MDFN_IEN_PCE::getSoundRate() : MDFN_IEN_PCE_FAST::getSoundRate();
+	auto currMixRate = isUsingAccurateCore() ? MDFN_IEN_PCE::GetSoundRate() : MDFN_IEN_PCE_FAST::GetSoundRate();
 	if(mixRate == currMixRate)
 		return;
 	logMsg("set sound mix rate:%.2f for %s video lines", mixRate, isUsing263Lines() ? "263" : "262");
 	if(isUsingAccurateCore())
-		MDFN_IEN_PCE::applySoundFormat(mixRate);
+		MDFN_IEN_PCE::SetSoundRate(mixRate);
 	else
-		MDFN_IEN_PCE_FAST::applySoundFormat(mixRate);
+		MDFN_IEN_PCE_FAST::SetSoundRate(mixRate);
 }
 
 void PceSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	static constexpr size_t maxFrames = 48000 / minFrameRate;
-	int16 audioBuff[maxFrames*2];
-	EmulateSpecStruct espec{};
-	if(audio)
-	{
-		espec.SoundBuf = audioBuff;
-		espec.SoundBufMaxSize = maxFrames;
-	}
-	espec.taskCtx = taskCtx;
-	espec.sys = this;
-	espec.video = video;
-	espec.skip = !video;
-	espec.audio = audio;
-	auto mSurface = toMDFNSurface(mSurfacePix);
-	espec.surface = &mSurface;
-	int32 lineWidth[264];
-	espec.LineWidths = lineWidth;
-	mdfnGameInfo.Emulate(&espec);
-	if(audio)
-		audio->writeFrames(audioBuff, espec.SoundBufSize);
+	static constexpr size_t maxAudioFrames = 48000 / minFrameRate;
+	static constexpr size_t maxLineWidths = 264;
+	EmuEx::runFrame(*this, mdfnGameInfo, taskCtx, video, mSurfacePix, audio, maxAudioFrames, maxLineWidths);
 	if(configuredFor263Lines != isUsing263Lines()) [[unlikely]]
 	{
 		onFrameTimeChanged();

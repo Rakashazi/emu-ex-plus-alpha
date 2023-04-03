@@ -35,7 +35,7 @@ class CustomSystemOptionView : public SystemOptionView
 		biosMenuEntryStr(biosPath), &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			pushAndShow(makeViewWithName<DataFileSelectView>("BIOS",
+			pushAndShow(makeViewWithName<DataFileSelectView<>>("BIOS",
 				app().validSearchPath(FS::dirnameUri(biosPath)),
 				[this](CStringView path, FS::file_type type)
 				{

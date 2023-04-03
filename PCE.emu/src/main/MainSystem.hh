@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of PCE.emu.
+
+	PCE.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	PCE.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <imagine/base/ApplicationContext.hh>
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
@@ -22,8 +37,8 @@ namespace MDFN_IEN_PCE_FAST
 {
 extern vce_t vce;
 
-void applySoundFormat(double rate);
-double getSoundRate();
+void SetSoundRate(double rate);
+double GetSoundRate();
 void PCECD_Drive_SetDisc(bool tray_open, CDInterface* cdif, bool no_emu_side_effects = false) MDFN_COLD;
 }
 
@@ -33,8 +48,8 @@ class VCE;
 
 extern VCE *vce;
 
-void applySoundFormat(double rate);
-double getSoundRate();
+bool SetSoundRate(double rate);
+double GetSoundRate();
 }
 
 namespace EmuEx::Controls

@@ -124,7 +124,7 @@ void A2600System::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDeleg
 	os.makeConsole(cartridge, props, contentFileName().data());
 	auto &console = os.console();
 	autoDetectedInput1 = limitToSupportedControllerTypes(console.leftController().type());
-	setControllerType(EmuApp::get(appContext()), console, (Controller::Type)optionInputPort1.val);
+	setControllerType(EmuApp::get(appContext()), console, Controller::Type(optionInputPort1.val));
 	Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
 	console.initializeVideo();
 	console.initializeAudio();

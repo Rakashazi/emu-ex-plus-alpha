@@ -89,40 +89,40 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+constexpr struct VirtualControllerAssets
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
 
-	// gamepad buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // C
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // D
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})}, // ABC
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // select
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // start
-	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 6}, {2, 1}}), {1, 2}}, // test
-};
+	a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+	b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
+	c{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 2}, {2, 2}})},
+	d{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 2}, {2, 2}})},
+	abc{AssetFileID::gamepadOverlay,    gpImageCoords({{0, 4}, {2, 2}})},
+	select{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+	start{AssetFileID::gamepadOverlay,  gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
+	test{AssetFileID::gamepadOverlay,   gpImageCoords({{2, 6}, {2, 1}}), {1, 2}},
+
+	blank{AssetFileID::gamepadOverlay, gpImageCoords({{2, 4}, {2, 2}})};
+} virtualControllerAssets;
 
 AssetDesc NeoApp::vControllerAssetDesc(unsigned key) const
 {
 	switch(key)
 	{
-		case 0: return virtualControllerAssets[0];
+		case 0: return virtualControllerAssets.dpad;
 		case neogeoKeyIdxATurbo:
-		case neogeoKeyIdxA: return virtualControllerAssets[1];
+		case neogeoKeyIdxA: return virtualControllerAssets.a;
 		case neogeoKeyIdxBTurbo:
-		case neogeoKeyIdxB: return virtualControllerAssets[2];
+		case neogeoKeyIdxB: return virtualControllerAssets.b;
 		case neogeoKeyIdxXTurbo:
-		case neogeoKeyIdxX: return virtualControllerAssets[3];
+		case neogeoKeyIdxX: return virtualControllerAssets.c;
 		case neogeoKeyIdxYTurbo:
-		case neogeoKeyIdxY: return virtualControllerAssets[4];
-		case neogeoKeyIdxABC: return virtualControllerAssets[5];
-		case neogeoKeyIdxSelect: return virtualControllerAssets[6];
-		case neogeoKeyIdxStart: return virtualControllerAssets[7];
-		case neogeoKeyIdxTestSwitch: return virtualControllerAssets[8];
-		default: return virtualControllerAssets[1];
+		case neogeoKeyIdxY: return virtualControllerAssets.d;
+		case neogeoKeyIdxABC: return virtualControllerAssets.abc;
+		case neogeoKeyIdxSelect: return virtualControllerAssets.select;
+		case neogeoKeyIdxStart: return virtualControllerAssets.start;
+		case neogeoKeyIdxTestSwitch: return virtualControllerAssets.test;
+		default: return virtualControllerAssets.blank;
 	}
 }
 

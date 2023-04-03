@@ -23,6 +23,7 @@
 #include "MainSystem.hh"
 #include "MainApp.hh"
 #include <imagine/util/math/space.hh>
+#include <imagine/util/container/array.hh>
 
 namespace EmuEx
 {
@@ -37,10 +38,12 @@ enum
 	vcsKeyIdxRightUp,
 	vcsKeyIdxRightDown,
 	vcsKeyIdxLeftDown,
-	vcsKeyIdxJSBtn,
-	vcsKeyIdxJSBtnTurbo,
-	vcsKeyIdxJSBtnAlt,
-	vcsKeyIdxJSBtnAltTurbo,
+	vcsKeyIdxJSBtn1,
+	vcsKeyIdxJSBtn1Turbo,
+	vcsKeyIdxJSBtn2,
+	vcsKeyIdxJSBtn2Turbo,
+	vcsKeyIdxJSBtn3,
+	vcsKeyIdxJSBtn3Turbo,
 
 	vcsKeyIdxUp2,
 	vcsKeyIdxRight2,
@@ -50,10 +53,12 @@ enum
 	vcsKeyIdxRightUp2,
 	vcsKeyIdxRightDown2,
 	vcsKeyIdxLeftDown2,
-	vcsKeyIdxJSBtn2,
-	vcsKeyIdxJSBtnTurbo2,
-	vcsKeyIdxJSBtnAlt2,
-	vcsKeyIdxJSBtnAltTurbo2,
+	vcsKeyIdxJSBtn1P2,
+	vcsKeyIdxJSBtn1P2Turbo,
+	vcsKeyIdxJSBtn2P2,
+	vcsKeyIdxJSBtn2P2Turbo,
+	vcsKeyIdxJSBtn3P2,
+	vcsKeyIdxJSBtn3P2Turbo,
 
 	vcsKeyIdxSelect,
 	vcsKeyIdxReset,
@@ -72,25 +77,43 @@ constexpr std::array<unsigned, 4> dpadButtonCodes
 	vcsKeyIdxLeft,
 };
 
-constexpr unsigned consoleButtonCodes[]
+constexpr std::array<unsigned, 2> consoleButtonCodes
 {
 	vcsKeyIdxSelect,
 	vcsKeyIdxReset,
 };
 
-constexpr unsigned jsButtonCodes[]
+constexpr std::array<unsigned, 3> jsButtonCodes
 {
-	vcsKeyIdxJSBtn,
-	vcsKeyIdxJSBtnAlt,
+	vcsKeyIdxJSBtn1,
+	vcsKeyIdxJSBtn2,
+	vcsKeyIdxJSBtn3,
+};
+
+constexpr std::array<unsigned, 12> kbButtonCodes
+{
+	vcsKeyIdxKeyboard1Base,
+	vcsKeyIdxKeyboard1Base + 1,
+	vcsKeyIdxKeyboard1Base + 2,
+	vcsKeyIdxKeyboard1Base + 3,
+	vcsKeyIdxKeyboard1Base + 4,
+	vcsKeyIdxKeyboard1Base + 5,
+	vcsKeyIdxKeyboard1Base + 6,
+	vcsKeyIdxKeyboard1Base + 7,
+	vcsKeyIdxKeyboard1Base + 8,
+	vcsKeyIdxKeyboard1Base + 9,
+	vcsKeyIdxKeyboard1Base + 10,
+	vcsKeyIdxKeyboard1Base + 11,
 };
 
 constexpr std::array jsComponents
 {
 	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
 	InputComponentDesc{"Joystick Buttons", jsButtonCodes, InputComponent::button, RB2DO},
+	InputComponentDesc{"Keyboard Buttons", kbButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig | InputComponentFlagsMask::rowSize3},
 	InputComponentDesc{"Select", {&consoleButtonCodes[0], 1}, InputComponent::button, LB2DO},
 	InputComponentDesc{"Reset", {&consoleButtonCodes[1], 1}, InputComponent::button, RB2DO},
-	InputComponentDesc{"Console Buttons", consoleButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig | InputComponentFlagsMask::rowSize1},
+	InputComponentDesc{"Console Buttons", consoleButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
 };
 
 constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};
@@ -102,57 +125,58 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+constexpr struct VirtualControllerAssets
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
 
-	// js buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})},
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})},
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})},
+	jsBtn1{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})},
+	jsBtn2{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})},
+	jsBtn3{AssetFileID::gamepadOverlay, gpImageCoords({{6, 4}, {2, 2}})},
 
-	// kb buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{10, 0}, {2, 2}})}, // 1
-	{AssetFileID::gamepadOverlay, gpImageCoords({{12, 0}, {2, 2}})}, // 2
-	{AssetFileID::gamepadOverlay, gpImageCoords({{14, 0}, {2, 2}})}, // 3
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4,  2}, {2, 2}})}, // 4
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6,  2}, {2, 2}})}, // 5
-	{AssetFileID::gamepadOverlay, gpImageCoords({{8,  2}, {2, 2}})}, // 6
-	{AssetFileID::gamepadOverlay, gpImageCoords({{10, 2}, {2, 2}})}, // 7
-	{AssetFileID::gamepadOverlay, gpImageCoords({{12, 2}, {2, 2}})}, // 8
-	{AssetFileID::gamepadOverlay, gpImageCoords({{14, 2}, {2, 2}})}, // 9
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0,  4}, {2, 2}})}, // *
-	{AssetFileID::gamepadOverlay, gpImageCoords({{8,  0}, {2, 2}})}, // 0
-	{AssetFileID::gamepadOverlay, gpImageCoords({{2,  4}, {2, 2}})}, // #
+	one{AssetFileID::gamepadOverlay,   gpImageCoords({{10, 0}, {2, 2}})},
+	two{AssetFileID::gamepadOverlay,   gpImageCoords({{12, 0}, {2, 2}})},
+	three{AssetFileID::gamepadOverlay, gpImageCoords({{14, 0}, {2, 2}})},
+	four{AssetFileID::gamepadOverlay,  gpImageCoords({{4,  2}, {2, 2}})},
+	five{AssetFileID::gamepadOverlay,  gpImageCoords({{6,  2}, {2, 2}})},
+	six{AssetFileID::gamepadOverlay,   gpImageCoords({{8,  2}, {2, 2}})},
+	seven{AssetFileID::gamepadOverlay, gpImageCoords({{10, 2}, {2, 2}})},
+	eight{AssetFileID::gamepadOverlay, gpImageCoords({{12, 2}, {2, 2}})},
+	nine{AssetFileID::gamepadOverlay,  gpImageCoords({{14, 2}, {2, 2}})},
+	star{AssetFileID::gamepadOverlay,  gpImageCoords({{0,  4}, {2, 2}})},
+	zero{AssetFileID::gamepadOverlay,  gpImageCoords({{8,  0}, {2, 2}})},
+	pound{AssetFileID::gamepadOverlay, gpImageCoords({{2,  4}, {2, 2}})},
 
-	// switches
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // Select
-	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 6}, {2, 1}}), {1, 2}}, // P1 Difficulty
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 6}, {2, 1}}), {1, 2}}, // P2 Difficulty
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // Reset
-	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}}, // Color B/W
-};
+	select{AssetFileID::gamepadOverlay,  gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+	p1Diff{AssetFileID::gamepadOverlay,  gpImageCoords({{2, 6}, {2, 1}}), {1, 2}},
+	p2Diff{AssetFileID::gamepadOverlay,  gpImageCoords({{4, 6}, {2, 1}}), {1, 2}},
+	reset{AssetFileID::gamepadOverlay,   gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
+	colorBW{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}},
+
+	blank{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})};
+} virtualControllerAssets;
+
+static_assert(offsetof(VirtualControllerAssets, one) + 11 * sizeof(AssetDesc) == offsetof(VirtualControllerAssets, pound),
+	"keyboard assets must be in sequence");
 
 AssetDesc A2600App::vControllerAssetDesc(unsigned key) const
 {
-	const int kbOffset = 4;
-	const int switchOffset = kbOffset + 12;
 	switch(key)
 	{
-		case 0: return virtualControllerAssets[0];
-		case vcsKeyIdxJSBtn:
-		case vcsKeyIdxJSBtnTurbo: return virtualControllerAssets[1];
-		case vcsKeyIdxJSBtnAlt:
-		case vcsKeyIdxJSBtnAltTurbo: return virtualControllerAssets[2];
+		case 0: return virtualControllerAssets.dpad;
+		case vcsKeyIdxJSBtn1:
+		case vcsKeyIdxJSBtn1Turbo: return virtualControllerAssets.jsBtn1;
+		case vcsKeyIdxJSBtn2:
+		case vcsKeyIdxJSBtn2Turbo: return virtualControllerAssets.jsBtn2;
+		case vcsKeyIdxJSBtn3:
+		case vcsKeyIdxJSBtn3Turbo: return virtualControllerAssets.jsBtn3;
 		case vcsKeyIdxKeyboard1Base ... vcsKeyIdxKeyboard1Base + 11:
-			return virtualControllerAssets[kbOffset + (key - vcsKeyIdxKeyboard1Base)];
-		case vcsKeyIdxSelect: return virtualControllerAssets[switchOffset];
-		case vcsKeyIdxP1Diff: return virtualControllerAssets[switchOffset + 1];
-		case vcsKeyIdxP2Diff: return virtualControllerAssets[switchOffset + 2];
-		case vcsKeyIdxReset: return virtualControllerAssets[switchOffset + 3];
-		case vcsKeyIdxColorBW: return virtualControllerAssets[switchOffset + 4];
-		default: return virtualControllerAssets[1];
+			return (&virtualControllerAssets.one)[key - vcsKeyIdxKeyboard1Base];
+		case vcsKeyIdxSelect: return virtualControllerAssets.select;
+		case vcsKeyIdxP1Diff: return virtualControllerAssets.p1Diff;
+		case vcsKeyIdxP2Diff: return virtualControllerAssets.p2Diff;
+		case vcsKeyIdxReset: return virtualControllerAssets.reset;
+		case vcsKeyIdxColorBW: return virtualControllerAssets.colorBW;
+		default: return virtualControllerAssets.blank;
 	}
 }
 
@@ -191,14 +215,8 @@ static bool isJoystickButton(unsigned input)
 {
 	switch(input)
 	{
-		case vcsKeyIdxJSBtnTurbo:
-		case vcsKeyIdxJSBtn:
-		case vcsKeyIdxJSBtnAltTurbo:
-		case vcsKeyIdxJSBtnAlt:
-		case vcsKeyIdxJSBtnTurbo2:
-		case vcsKeyIdxJSBtn2:
-		case vcsKeyIdxJSBtnAltTurbo2:
-		case vcsKeyIdxJSBtnAlt2:
+		case vcsKeyIdxJSBtn1 ... vcsKeyIdxJSBtn3Turbo:
+		case vcsKeyIdxJSBtn1P2 ... vcsKeyIdxJSBtn3P2Turbo:
 			return true;
 		default: return false;
 	}
@@ -220,10 +238,12 @@ InputAction A2600System::translateInputAction(InputAction action)
 			case vcsKeyIdxRightUp: return Event::LeftJoystickRight | (Event::LeftJoystickUp << 8);
 			case vcsKeyIdxRightDown: return Event::LeftJoystickRight | (Event::LeftJoystickDown << 8);
 			case vcsKeyIdxLeftDown: return Event::LeftJoystickLeft | (Event::LeftJoystickDown << 8);
-			case vcsKeyIdxJSBtnTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case vcsKeyIdxJSBtn: return jsFireMap[0];
-			case vcsKeyIdxJSBtnAltTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case vcsKeyIdxJSBtnAlt: return Event::LeftJoystickFire5;
+			case vcsKeyIdxJSBtn1Turbo: action.setTurboFlag(true); [[fallthrough]];
+			case vcsKeyIdxJSBtn1: return jsFireMap[0];
+			case vcsKeyIdxJSBtn2Turbo: action.setTurboFlag(true); [[fallthrough]];
+			case vcsKeyIdxJSBtn2: return Event::LeftJoystickFire5;
+			case vcsKeyIdxJSBtn3Turbo: action.setTurboFlag(true); [[fallthrough]];
+			case vcsKeyIdxJSBtn3: return Event::LeftJoystickFire9;
 
 			case vcsKeyIdxUp2: return Event::RightJoystickUp;
 			case vcsKeyIdxRight2: return jsRightMap[1];
@@ -233,10 +253,12 @@ InputAction A2600System::translateInputAction(InputAction action)
 			case vcsKeyIdxRightUp2: return Event::RightJoystickRight | (Event::RightJoystickUp << 8);
 			case vcsKeyIdxRightDown2: return Event::RightJoystickRight | (Event::RightJoystickDown << 8);
 			case vcsKeyIdxLeftDown2: return Event::RightJoystickLeft | (Event::RightJoystickDown << 8);
-			case vcsKeyIdxJSBtnTurbo2: action.setTurboFlag(true); [[fallthrough]];
-			case vcsKeyIdxJSBtn2: return jsFireMap[1];
-			case vcsKeyIdxJSBtnAltTurbo2: action.setTurboFlag(true); [[fallthrough]];
-			case vcsKeyIdxJSBtnAlt2: return Event::RightJoystickFire5;
+			case vcsKeyIdxJSBtn1P2Turbo: action.setTurboFlag(true); [[fallthrough]];
+			case vcsKeyIdxJSBtn1P2: return jsFireMap[1];
+			case vcsKeyIdxJSBtn2P2Turbo: action.setTurboFlag(true); [[fallthrough]];
+			case vcsKeyIdxJSBtn2P2: return Event::RightJoystickFire5;
+			case vcsKeyIdxJSBtn3P2Turbo: action.setTurboFlag(true); [[fallthrough]];
+			case vcsKeyIdxJSBtn3P2: return Event::RightJoystickFire9;
 
 			case vcsKeyIdxSelect: return Event::ConsoleSelect;
 			case vcsKeyIdxP1Diff: return Event::Combo1; // toggle P1 diff
@@ -309,43 +331,54 @@ void A2600System::handleInputAction(EmuApp *app, InputAction a)
 	}
 }
 
-static void updateDPadForPaddles(EmuApp &app, Console &console, PaddleRegionMode mode)
+static void updateVirtualDPad(EmuApp &app, Console &console, PaddleRegionMode mode)
 {
-	if(console.leftController().type() == Controller::Type::Paddles)
+	auto leftController = console.leftController().type();
+	if(leftController == Controller::Type::Paddles)
 	{
 		app.defaultVController().setGamepadDPadIsEnabled(mode == PaddleRegionMode::OFF);
 	}
 	else
 	{
-		app.defaultVController().setGamepadDPadIsEnabled(true);
+		app.defaultVController().setGamepadDPadIsEnabled(leftController != Controller::Type::Keyboard);
 	}
 }
 
 void A2600System::updatePaddlesRegionMode(EmuApp &app, PaddleRegionMode mode)
 {
 	optionPaddleAnalogRegion = (uint8_t)mode;
-	updateDPadForPaddles(app, osystem.console(), mode);
+	updateVirtualDPad(app, osystem.console(), mode);
 }
 
 void A2600System::setControllerType(EmuApp &app, Console &console, Controller::Type type)
 {
+	static constexpr std::array<unsigned, 2> js1ButtonCodes{vcsKeyIdxJSBtn1, vcsKeyIdxJSBtn1Turbo};
+	static constexpr std::array<unsigned, 2> js2ButtonCodes{vcsKeyIdxJSBtn2, vcsKeyIdxJSBtn2Turbo};
+	static constexpr std::array<unsigned, 2> js3ButtonCodes{vcsKeyIdxJSBtn3, vcsKeyIdxJSBtn3Turbo};
 	if(type == Controller::Type::Unknown)
 		type = autoDetectedInput1;
 	if(type == Controller::Type::Genesis)
 	{
-		app.unsetDisabledInputKeys();
+		app.setDisabledInputKeys(concatToArrayNow<kbButtonCodes, js3ButtonCodes>);
 	}
-	else
+	else if(type == Controller::Type::BoosterGrip)
 	{
-		static constexpr std::array<unsigned, 2> disableExtraBtn{vcsKeyIdxJSBtnAlt, vcsKeyIdxJSBtnAltTurbo};
-		app.setDisabledInputKeys(disableExtraBtn);
+		app.setDisabledInputKeys(kbButtonCodes);
 	}
-	updateDPadForPaddles(app, console, (PaddleRegionMode)optionPaddleAnalogRegion.val);
+	else if(type == Controller::Type::Keyboard)
+	{
+		app.setDisabledInputKeys(concatToArrayNow<js1ButtonCodes, js2ButtonCodes, js3ButtonCodes>);
+	}
+	else // joystick
+	{
+		app.setDisabledInputKeys(concatToArrayNow<kbButtonCodes, js2ButtonCodes, js3ButtonCodes>);
+	}
+	updateVirtualDPad(app, console, (PaddleRegionMode)optionPaddleAnalogRegion.val);
 	updateJoytickMapping(app, type);
 	Controller &currentController = console.leftController();
 	if(currentController.type() == type)
 	{
-		logMsg("using controller type:%s", controllerTypeStr(type));
+		logMsg("using controller type:%s", asString(type));
 		return;
 	}
 	auto props = console.properties();
@@ -358,7 +391,7 @@ void A2600System::setControllerType(EmuApp &app, Console &console, Controller::T
 	{
 		logMsg("current controller name in console object:%s", console.leftController().name().c_str());
 	}
-	logMsg("set controller to type:%s", controllerTypeStr(type));
+	logMsg("set controller to type:%s", asString(type));
 }
 
 Controller::Type limitToSupportedControllerTypes(Controller::Type type)
@@ -367,6 +400,7 @@ Controller::Type limitToSupportedControllerTypes(Controller::Type type)
 	{
 		case Controller::Type::Joystick:
 		case Controller::Type::Genesis:
+		case Controller::Type::BoosterGrip:
 		case Controller::Type::Keyboard:
 		case Controller::Type::Paddles:
 			return type;
@@ -375,12 +409,13 @@ Controller::Type limitToSupportedControllerTypes(Controller::Type type)
 	}
 }
 
-const char *controllerTypeStr(Controller::Type type)
+const char *asString(Controller::Type type)
 {
 	switch(type)
 	{
 		case Controller::Type::Joystick: return "Joystick";
 		case Controller::Type::Genesis: return "Genesis Gamepad";
+		case Controller::Type::BoosterGrip: return "Booster Grip";
 		case Controller::Type::Keyboard: return "Keyboard";
 		case Controller::Type::Paddles: return "Paddles";
 		default: return "Auto";

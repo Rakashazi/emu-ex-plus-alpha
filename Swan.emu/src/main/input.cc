@@ -1,17 +1,17 @@
-/*  This file is part of NGP.emu.
+/*  This file is part of Swan.emu.
 
-	NGP.emu is free software: you can redistribute it and/or modify
+	Swan.emu is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	NGP.emu is distributed in the hope that it will be useful,
+	Swan.emu is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with NGP.emu.  If not, see <http://www.gnu.org/licenses/> */
+	along with Swan.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
@@ -104,46 +104,46 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+constexpr struct VirtualControllerAssets
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
 
-	// gamepad buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // 1
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // 2
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})}, // 3
-	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 4}, {2, 2}})}, // 4
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // start
-};
+	a{AssetFileID::gamepadOverlay,     gpImageCoords({{4, 0}, {2, 2}})},
+	b{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 0}, {2, 2}})},
+	d1{AssetFileID::gamepadOverlay,    gpImageCoords({{4, 2}, {2, 2}})},
+	d2{AssetFileID::gamepadOverlay,    gpImageCoords({{6, 2}, {2, 2}})},
+	d3{AssetFileID::gamepadOverlay,    gpImageCoords({{0, 4}, {2, 2}})},
+	d4{AssetFileID::gamepadOverlay,    gpImageCoords({{2, 4}, {2, 2}})},
+	start{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+
+	blank{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})};
+} virtualControllerAssets;
 
 AssetDesc WsApp::vControllerAssetDesc(unsigned key) const
 {
 	switch(key)
 	{
-		case 0: return virtualControllerAssets[0];
+		case 0: return virtualControllerAssets.dpad;
 		case wsKeyIdxANoRotation:
 		case wsKeyIdxATurbo:
-		case wsKeyIdxA: return virtualControllerAssets[1];
+		case wsKeyIdxA: return virtualControllerAssets.a;
 		case wsKeyIdxBNoRotation:
 		case wsKeyIdxBTurbo:
-		case wsKeyIdxB: return virtualControllerAssets[2];
+		case wsKeyIdxB: return virtualControllerAssets.b;
 		case wsKeyIdxY1X1:
 		case wsKeyIdxY1Turbo:
-		case wsKeyIdxY1: return virtualControllerAssets[3];
+		case wsKeyIdxY1: return virtualControllerAssets.d1;
 		case wsKeyIdxY2X2:
 		case wsKeyIdxY2Turbo:
-		case wsKeyIdxY2: return virtualControllerAssets[4];
+		case wsKeyIdxY2: return virtualControllerAssets.d2;
 		case wsKeyIdxY3X3:
 		case wsKeyIdxY3Turbo:
-		case wsKeyIdxY3: return virtualControllerAssets[5];
+		case wsKeyIdxY3: return virtualControllerAssets.d3;
 		case wsKeyIdxY4X4:
 		case wsKeyIdxY4Turbo:
-		case wsKeyIdxY4: return virtualControllerAssets[6];
-		case wsKeyIdxStart: return virtualControllerAssets[7];
-		default: return virtualControllerAssets[1];
+		case wsKeyIdxY4: return virtualControllerAssets.d4;
+		case wsKeyIdxStart: return virtualControllerAssets.start;
+		default: return virtualControllerAssets.blank;
 	}
 }
 

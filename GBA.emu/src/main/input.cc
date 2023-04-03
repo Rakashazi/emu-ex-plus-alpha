@@ -101,44 +101,43 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+constexpr struct VirtualControllerAssets
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
 
-	// gamepad buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // AB
-	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 4}, {2, 2}})}, // RB
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})}, // L
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 4}, {2, 2}})}, // R
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // select
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // start
+	a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+	b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
+	ab{AssetFileID::gamepadOverlay,     gpImageCoords({{4, 2}, {2, 2}})},
+	rb{AssetFileID::gamepadOverlay,     gpImageCoords({{2, 4}, {2, 2}})},
+	l{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 4}, {2, 2}})},
+	r{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 4}, {2, 2}})},
+	select{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+	start{AssetFileID::gamepadOverlay,  gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
 
-	// functions
-	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 6}, {2, 1}}), {1, 2}}, // light sensor +
-	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}}, // light sensor -
-};
+	increaseLight{AssetFileID::gamepadOverlay, gpImageCoords({{2, 6}, {2, 1}}), {1, 2}},
+	decreaseLight{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}},
+
+	blank{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})};
+} virtualControllerAssets;
 
 AssetDesc GbaApp::vControllerAssetDesc(unsigned key) const
 {
 	switch(key)
 	{
-		case 0: return virtualControllerAssets[0];
+		case 0: return virtualControllerAssets.dpad;
 		case gbaKeyIdxATurbo:
-		case gbaKeyIdxA: return virtualControllerAssets[1];
+		case gbaKeyIdxA: return virtualControllerAssets.a;
 		case gbaKeyIdxBTurbo:
-		case gbaKeyIdxB: return virtualControllerAssets[2];
-		case gbaKeyIdxAB: return virtualControllerAssets[3];
-		case gbaKeyIdxRB: return virtualControllerAssets[4];
-		case gbaKeyIdxL: return virtualControllerAssets[5];
-		case gbaKeyIdxR: return virtualControllerAssets[6];
-		case gbaKeyIdxSelect: return virtualControllerAssets[7];
-		case gbaKeyIdxStart: return virtualControllerAssets[8];
-		case gbaKeyIdxLightInc: return virtualControllerAssets[9];
-		case gbaKeyIdxLightDec: return virtualControllerAssets[10];
-		default: return virtualControllerAssets[1];
+		case gbaKeyIdxB: return virtualControllerAssets.b;
+		case gbaKeyIdxAB: return virtualControllerAssets.ab;
+		case gbaKeyIdxRB: return virtualControllerAssets.rb;
+		case gbaKeyIdxL: return virtualControllerAssets.l;
+		case gbaKeyIdxR: return virtualControllerAssets.r;
+		case gbaKeyIdxSelect: return virtualControllerAssets.select;
+		case gbaKeyIdxStart: return virtualControllerAssets.start;
+		case gbaKeyIdxLightInc: return virtualControllerAssets.increaseLight;
+		case gbaKeyIdxLightDec: return virtualControllerAssets.decreaseLight;
+		default: return virtualControllerAssets.blank;
 	}
 }
 

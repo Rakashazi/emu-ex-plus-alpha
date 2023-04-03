@@ -121,51 +121,49 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+constexpr struct VirtualControllerAssets
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
 
-	// js buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})},
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})},
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})},
+	a{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})},
+	b{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})},
 
-	// coleco kb buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{8,  0}, {2, 2}})}, // 0
-	{AssetFileID::gamepadOverlay, gpImageCoords({{10, 0}, {2, 2}})}, // 1
-	{AssetFileID::gamepadOverlay, gpImageCoords({{12, 0}, {2, 2}})}, // 2
-	{AssetFileID::gamepadOverlay, gpImageCoords({{14, 0}, {2, 2}})}, // 3
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4,  2}, {2, 2}})}, // 4
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6,  2}, {2, 2}})}, // 5
-	{AssetFileID::gamepadOverlay, gpImageCoords({{8,  2}, {2, 2}})}, // 6
-	{AssetFileID::gamepadOverlay, gpImageCoords({{10, 2}, {2, 2}})}, // 7
-	{AssetFileID::gamepadOverlay, gpImageCoords({{12, 2}, {2, 2}})}, // 8
-	{AssetFileID::gamepadOverlay, gpImageCoords({{14, 2}, {2, 2}})}, // 9
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0,  4}, {2, 2}})}, // *
-	{AssetFileID::gamepadOverlay, gpImageCoords({{2,  4}, {2, 2}})}, // #
+	zero{AssetFileID::gamepadOverlay,  gpImageCoords({{8,  0}, {2, 2}})},
+	one{AssetFileID::gamepadOverlay,   gpImageCoords({{10, 0}, {2, 2}})},
+	two{AssetFileID::gamepadOverlay,   gpImageCoords({{12, 0}, {2, 2}})},
+	three{AssetFileID::gamepadOverlay, gpImageCoords({{14, 0}, {2, 2}})},
+	four{AssetFileID::gamepadOverlay,  gpImageCoords({{4,  2}, {2, 2}})},
+	five{AssetFileID::gamepadOverlay,  gpImageCoords({{6,  2}, {2, 2}})},
+	six{AssetFileID::gamepadOverlay,   gpImageCoords({{8,  2}, {2, 2}})},
+	seven{AssetFileID::gamepadOverlay, gpImageCoords({{10, 2}, {2, 2}})},
+	eight{AssetFileID::gamepadOverlay, gpImageCoords({{12, 2}, {2, 2}})},
+	nine{AssetFileID::gamepadOverlay,  gpImageCoords({{14, 2}, {2, 2}})},
+	star{AssetFileID::gamepadOverlay,  gpImageCoords({{0,  4}, {2, 2}})},
+	pound{AssetFileID::gamepadOverlay, gpImageCoords({{2,  4}, {2, 2}})},
 
-	// functions
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // KB
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // space key
-};
+	kb{AssetFileID::gamepadOverlay,    gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+	space{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
+
+	blank{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})};
+} virtualControllerAssets;
+
+static_assert(offsetof(VirtualControllerAssets, zero) + 11 * sizeof(AssetDesc) == offsetof(VirtualControllerAssets, pound),
+	"keyboard assets must be in sequence");
 
 AssetDesc MsxApp::vControllerAssetDesc(unsigned key) const
 {
-	const int kbOffset = 4;
-	const int switchOffset = kbOffset + 12;
 	switch(key)
 	{
-		case 0: return virtualControllerAssets[0];
+		case 0: return virtualControllerAssets.dpad;
 		case msxKeyIdxJS1Btn:
-		case msxKeyIdxJS1BtnTurbo: return virtualControllerAssets[2];
+		case msxKeyIdxJS1BtnTurbo: return virtualControllerAssets.a;
 		case msxKeyIdxJS2Btn:
-		case msxKeyIdxJS2BtnTurbo: return virtualControllerAssets[3];
+		case msxKeyIdxJS2BtnTurbo: return virtualControllerAssets.b;
 		case msxKeyIdxColeco0Num ... msxKeyIdxColecoHash:
-			return virtualControllerAssets[kbOffset + (key - msxKeyIdxColeco0Num)];
-		case msxKeyIdxToggleKb: return virtualControllerAssets[switchOffset];
-		case msxKeyIdxKbStart + EC_SPACE: return virtualControllerAssets[switchOffset + 1];
-		default: return virtualControllerAssets[1];
+			return (&virtualControllerAssets.zero)[key - msxKeyIdxColeco0Num];
+		case msxKeyIdxToggleKb: return virtualControllerAssets.kb;
+		case msxKeyIdxKbStart + EC_SPACE: return virtualControllerAssets.space;
+		default: return virtualControllerAssets.blank;
 	}
 }
 

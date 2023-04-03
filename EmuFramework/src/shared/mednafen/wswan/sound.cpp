@@ -402,7 +402,7 @@ bool WSwan_SetSoundRate(uint32 rate)
  return(true);
 }
 
-uint32 getSoundRate()
+uint32 GetSoundRate()
 {
 	return sbuf[0]->sample_rate();
 }

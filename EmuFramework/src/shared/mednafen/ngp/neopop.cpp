@@ -69,7 +69,7 @@ int32 ngpc_soundTS = 0;
 //static int32 main_timeaccum;
 static int32 z80_runtime;
 
-void applyVideoFormat(Mednafen::MDFN_PixelFormat format)
+void SetPixelFormat(Mednafen::MDFN_PixelFormat format)
 {
 	NGPGfx->set_pixel_format(format);
 }

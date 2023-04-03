@@ -19,7 +19,7 @@
 namespace EmuEx::Controls
 {
 
-constexpr int joystickKeys = 12;
+constexpr int joystickKeys = 14;
 constexpr int switchKeys = 5;
 constexpr int keyboardKeys = 12;
 const int systemTotalKeys = gameActionKeys + joystickKeys*2 + switchKeys + keyboardKeys*2;
@@ -39,10 +39,12 @@ constexpr std::array<const std::string_view, joystickKeys> gamepadName
 	"Right+Up",
 	"Right+Down",
 	"Left+Down",
-	"Fire",
-	"Fire Turbo",
-	"Extra Fire 1",
-	"Extra Fire 1 Turbo",
+	"Button 1",
+	"Button 1 Turbo",
+	"Button 2",
+	"Button 2 Turbo",
+	"Button 3",
+	"Button 3 Turbo",
 };
 
 constexpr std::array<const std::string_view, switchKeys> switchName

@@ -493,7 +493,7 @@ static MDFN_COLD void LoadCD(std::vector<CDInterface*> *CDInterfaces)
  }
 }
 
-void applySoundFormat(double rate)
+void SetSoundRate(double rate)
 {
 	if(!sbuf)
 		return;
@@ -506,7 +506,7 @@ void applySoundFormat(double rate)
 	}
 }
 
-double getSoundRate()
+double GetSoundRate()
 {
 	if(!sbuf)
 		return 0;

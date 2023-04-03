@@ -562,7 +562,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 		biosMenuEntryStr(fdsBiosPath), &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			pushAndShow(makeViewWithName<DataFileSelectView>("Disk System BIOS",
+			pushAndShow(makeViewWithName<DataFileSelectView<>>("Disk System BIOS",
 				app().validSearchPath(FS::dirnameUri(fdsBiosPath)),
 				[this](CStringView path, FS::file_type type)
 				{
@@ -680,23 +680,14 @@ private:
 	TextMenuItem fdsControl
 	{
 		u"", &defaultFace(),
-		[this](TextMenuItem &item, View &, Input::Event e)
-		{
-			if(system().hasContent() && isFDS)
-			{
-				pushAndShow(makeView<FDSControlView>(), e);
-			}
-			else
-				app().postMessage(2, false, "Disk System not in use");
-		}
+		[this](Input::Event e) { pushAndShow(makeView<FDSControlView>(), e); }
 	};
 
 	void refreshFDSItem()
 	{
-		fdsControl.setActive(isFDS);
 		if(!isFDS)
-			fdsControl.compile("FDS Control", renderer());
-		else if(!FCEU_FDSInserted())
+			return;
+		if(!FCEU_FDSInserted())
 			fdsControl.compile("FDS Control (No Disk)", renderer());
 		else
 			fdsControl.compile(fmt::format("FDS Control (Disk {}:{})", (FCEU_FDSCurrentSide() >> 1) + 1, (FCEU_FDSCurrentSide() & 1) ? 'B' : 'A'),
@@ -706,19 +697,14 @@ private:
 	TextMenuItem options
 	{
 		"Console Options", &defaultFace(),
-		[this](TextMenuItem &, View &, Input::Event e)
-		{
-			if(system().hasContent())
-			{
-				pushAndShow(makeView<ConsoleOptionView>(), e);
-			}
-		}
+		[this](Input::Event e) { pushAndShow(makeView<ConsoleOptionView>(), e); }
 	};
 
 public:
 	CustomSystemActionsView(ViewAttachParams attach): SystemActionsView{attach, true}
 	{
-		item.emplace_back(&fdsControl);
+		if(isFDS)
+			item.emplace_back(&fdsControl);
 		item.emplace_back(&options);
 		loadStandardItems();
 	}

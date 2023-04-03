@@ -1,16 +1,26 @@
 #pragma once
 
+/*  This file is part of Swan.emu.
+
+	Swan.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Swan.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Swan.emu.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <imagine/base/ApplicationContext.hh>
 #include <emuframework/Option.hh>
 #include <mednafen/mednafen.h>
 #include <compare>
 
 extern const Mednafen::MDFNGI EmulatedWSwan;
-
-namespace MDFN_IEN_WSWAN
-{
-uint32 getSoundRate();
-}
 
 namespace EmuEx
 {
@@ -79,8 +89,8 @@ public:
 	FileIO saveFileIO;
 	uint16_t inputBuff{};
 	IG::MutablePixmapView mSurfacePix{};
-	static constexpr int vidBufferX = 224, vidBufferY = 144;
-	alignas(8) uint32_t pixBuff[vidBufferX*vidBufferY]{};
+	static constexpr IP vidBufferPx{224, 144};
+	alignas(8) uint32_t pixBuff[vidBufferPx.x * vidBufferPx.y]{};
 	IG::StaticString<16> userName{};
 	WsUserProfile userProfile{defaultUserProfile};
 	uint8_t configuredLCDVTotal{};

@@ -336,7 +336,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 	{
 		return [this, region](const Input::Event &e)
 		{
-			pushAndShow(makeViewWithName<DataFileSelectView>(biosHeadingStr[regionCodeToIdx(region)],
+			pushAndShow(makeViewWithName<DataFileSelectView<>>(biosHeadingStr[regionCodeToIdx(region)],
 				app().validSearchPath(pathFromRegion(region)),
 				[this, region](CStringView path, FS::file_type type)
 				{

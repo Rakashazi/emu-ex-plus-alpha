@@ -70,28 +70,28 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+constexpr struct VirtualControllerAssets
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
 
-	// gamepad buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}}, // option
-};
+	a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+	b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
+	option{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}},
+
+	blank{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})};
+} virtualControllerAssets;
 
 AssetDesc NgpApp::vControllerAssetDesc(unsigned key) const
 {
 	switch(key)
 	{
-		case 0: return virtualControllerAssets[0];
+		case 0: return virtualControllerAssets.dpad;
 		case ngpKeyIdxATurbo:
-		case ngpKeyIdxA: return virtualControllerAssets[1];
+		case ngpKeyIdxA: return virtualControllerAssets.a;
 		case ngpKeyIdxBTurbo:
-		case ngpKeyIdxB: return virtualControllerAssets[2];
-		case ngpKeyIdxOption: return virtualControllerAssets[3];
-		default: return virtualControllerAssets[1];
+		case ngpKeyIdxB: return virtualControllerAssets.b;
+		case ngpKeyIdxOption: return virtualControllerAssets.option;
+		default: return virtualControllerAssets.blank;
 	}
 }
 

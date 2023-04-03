@@ -72,35 +72,35 @@ constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
-	constexpr FP imageSize{256, 128};
+	constexpr FP imageSize{256, 256};
 	constexpr int cellSize = 32;
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+constexpr struct VirtualControllerAssets
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
 
-	// gamepad buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}}, // select
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 3}, {2, 1}}), {1, 2}}, // start
-};
+	a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+	b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
+	select{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}},
+	start{AssetFileID::gamepadOverlay,  gpImageCoords({{4, 3}, {2, 1}}), {1, 2}},
+
+	blank{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})};
+} virtualControllerAssets;
 
 AssetDesc GbcApp::vControllerAssetDesc(unsigned key) const
 {
 	switch(key)
 	{
-		case 0: return virtualControllerAssets[0];
+		case 0: return virtualControllerAssets.dpad;
 		case gbcKeyIdxATurbo:
-		case gbcKeyIdxA: return virtualControllerAssets[1];
+		case gbcKeyIdxA: return virtualControllerAssets.a;
 		case gbcKeyIdxBTurbo:
-		case gbcKeyIdxB: return virtualControllerAssets[2];
-		case gbcKeyIdxSelect: return virtualControllerAssets[3];
-		case gbcKeyIdxStart: return virtualControllerAssets[4];
-		default: return virtualControllerAssets[1];
+		case gbcKeyIdxB: return virtualControllerAssets.b;
+		case gbcKeyIdxSelect: return virtualControllerAssets.select;
+		case gbcKeyIdxStart: return virtualControllerAssets.start;
+		default: return virtualControllerAssets.blank;
 	}
 }
 

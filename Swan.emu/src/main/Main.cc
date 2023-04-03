@@ -1,17 +1,17 @@
-/*  This file is part of NGP.emu.
+/*  This file is part of Swan.emu.
 
-	NGP.emu is free software: you can redistribute it and/or modify
+	Swan.emu is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	NGP.emu is distributed in the hope that it will be useful,
+	Swan.emu is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with NGP.emu.  If not, see <http://www.gnu.org/licenses/> */
+	along with Swan.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
 #include <emuframework/EmuSystemInlines.hh>
@@ -23,13 +23,18 @@
 #include <imagine/logger/logger.h>
 #include <mednafen/state-driver.h>
 #include <mednafen/hash/md5.h>
-#include <mednafen/MemoryStream.h>
 #include <mednafen-emuex/MDFNUtils.hh>
 #include <mednafen/video/surface.h>
 using namespace Mednafen; // needed for following includes
 #include <mednafen/wswan/gfx.h>
 #include <mednafen/wswan/sound.h>
 #include <mednafen/wswan/memory.h>
+
+namespace MDFN_IEN_WSWAN
+{
+uint32 GetSoundRate();
+}
+
 
 namespace EmuEx
 {
@@ -109,25 +114,15 @@ void WsSystem::closeSystem()
 
 void WsSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	mdfnGameInfo.name = std::string{EmuSystem::contentName()};
 	static constexpr size_t maxRomSize = 0x4000000;
-	auto stream = std::make_unique<MemoryStream>(maxRomSize, true);
-	auto size = io.read(stream->map(), stream->map_size());
-	if(size <= 0)
-		throwFileReadError();
-	stream->setSize(size);
-	MDFNFILE fp(&NVFS, std::move(stream));
-	GameFile gf{&NVFS, std::string{contentDirectory()}, fp.stream(),
-		std::string{withoutDotExtension(contentFileName())},
-		std::string{contentName()}};
-	mdfnGameInfo.Load(&gf);
+	EmuEx::loadContent(*this, mdfnGameInfo, io, maxRomSize);
 	setupInput(EmuApp::get(appContext()));
 	WSwan_SetPixelFormat(toMDFNSurface(mSurfacePix).format);
 }
 
 bool WsSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
-	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
+	mSurfacePix = {{vidBufferPx, fmt}, pixBuff};
 	if(!hasContent())
 		return false;
 	WSwan_SetPixelFormat(toMDFNSurface(mSurfacePix).format);
@@ -142,7 +137,7 @@ void WsSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 {
 	uint32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
 	configuredLCDVTotal = lcdVTotal();
-	if(getSoundRate() == mixRate)
+	if(GetSoundRate() == mixRate)
 		return;
 	logMsg("set sound mix rate:%d", (int)mixRate);
 	WSwan_SetSoundRate(mixRate);
@@ -150,26 +145,8 @@ void WsSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
 
 void WsSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	static constexpr size_t maxFrames = 48000 / minFrameRate;
-	int16 audioBuff[maxFrames*2];
-	EmulateSpecStruct espec{};
-	if(audio)
-	{
-		espec.SoundBuf = audioBuff;
-		espec.SoundBufMaxSize = maxFrames;
-	}
-	espec.taskCtx = taskCtx;
-	espec.sys = this;
-	espec.video = video;
-	espec.skip = !video;
-	auto mSurface = toMDFNSurface(mSurfacePix);
-	espec.surface = &mSurface;
-	mdfnGameInfo.Emulate(&espec);
-	if(audio)
-	{
-		assert((size_t)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));
-		audio->writeFrames((uint8_t*)audioBuff, espec.SoundBufSize);
-	}
+	static constexpr size_t maxAudioFrames = 48000 / minFrameRate;
+	EmuEx::runFrame(*this, mdfnGameInfo, taskCtx, video, mSurfacePix, audio, maxAudioFrames);
 	if(configuredLCDVTotal != lcdVTotal()) [[unlikely]]
 	{
 		onFrameTimeChanged();

@@ -85,38 +85,38 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+constexpr struct VirtualControllerAssets
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
 
-	// gamepad buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // I
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // II
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // III
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // IV
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})}, // V
-	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 4}, {2, 2}})}, // VI
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // select
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}}, // run
-};
+	i{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+	ii{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 0}, {2, 2}})},
+	iii{AssetFileID::gamepadOverlay,    gpImageCoords({{4, 2}, {2, 2}})},
+	iv{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 2}, {2, 2}})},
+	v{AssetFileID::gamepadOverlay,      gpImageCoords({{0, 4}, {2, 2}})},
+	vi{AssetFileID::gamepadOverlay,     gpImageCoords({{2, 4}, {2, 2}})},
+	select{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+	run{AssetFileID::gamepadOverlay,    gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
+
+	blank{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})};
+} virtualControllerAssets;
 
 AssetDesc PceApp::vControllerAssetDesc(unsigned key) const
 {
 	switch(key)
 	{
-		case 0: return virtualControllerAssets[0];
+		case 0: return virtualControllerAssets.dpad;
 		case pceKeyIdxITurbo:
-		case pceKeyIdxI: return virtualControllerAssets[1];
+		case pceKeyIdxI: return virtualControllerAssets.i;
 		case pceKeyIdxIITurbo:
-		case pceKeyIdxII: return virtualControllerAssets[2];
-		case pceKeyIdxIII: return virtualControllerAssets[3];
-		case pceKeyIdxIV: return virtualControllerAssets[4];
-		case pceKeyIdxV: return virtualControllerAssets[5];
-		case pceKeyIdxVI: return virtualControllerAssets[6];
-		case pceKeyIdxSelect: return virtualControllerAssets[7];
-		case pceKeyIdxRun: return virtualControllerAssets[8];
-		default: return virtualControllerAssets[1];
+		case pceKeyIdxII: return virtualControllerAssets.ii;
+		case pceKeyIdxIII: return virtualControllerAssets.iii;
+		case pceKeyIdxIV: return virtualControllerAssets.iv;
+		case pceKeyIdxV: return virtualControllerAssets.v;
+		case pceKeyIdxVI: return virtualControllerAssets.vi;
+		case pceKeyIdxSelect: return virtualControllerAssets.select;
+		case pceKeyIdxRun: return virtualControllerAssets.run;
+		default: return virtualControllerAssets.blank;
 	}
 }
 
