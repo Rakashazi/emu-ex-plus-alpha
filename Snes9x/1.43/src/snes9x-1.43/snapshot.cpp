@@ -648,8 +648,8 @@ void S9xFreezeToStream (STREAM stream)
     }
     sprintf (buffer, "%s:%04d\n", SNAPSHOT_MAGIC, SNAPSHOT_VERSION);
     WRITE_STREAM (buffer, strlen (buffer), stream);
-    sprintf (buffer, "NAM:%06d:%s%c", (int)strlen (Memory.ROMFilename) + 1,
-		Memory.ROMFilename, 0);
+    sprintf (buffer, "NAM:%06d:%s%c", (int)Memory.ROMFilename.size() + 1,
+		Memory.ROMFilename.c_str(), 0);
     WRITE_STREAM (buffer, strlen (buffer) + 1, stream);
     FreezeStruct (stream, "CPU", &CPU, SnapCPU, COUNT (SnapCPU));
     FreezeStruct (stream, "REG", &Registers, SnapRegisters, COUNT (SnapRegisters));
@@ -730,8 +730,8 @@ int S9xUnfreezeFromStream (STREAM stream)
     if ((result = UnfreezeBlock (stream, "NAM", (uint8 *) rom_filename, _MAX_PATH)) != SUCCESS)
 		return (result);
 	
-    if (strcasecmp (rom_filename, Memory.ROMFilename) != 0 &&
-		strcasecmp (S9xBasename (rom_filename), S9xBasename (Memory.ROMFilename)) != 0)
+    if (strcasecmp (rom_filename, Memory.ROMFilename.c_str()) != 0 &&
+		strcasecmp (S9xBasename (rom_filename), S9xBasename (Memory.ROMFilename.c_str())) != 0)
     {
 		S9xMessage (S9X_WARNING, S9X_FREEZE_ROM_NAME,
 			"Current loaded ROM image doesn't match that required by freeze-game file.");

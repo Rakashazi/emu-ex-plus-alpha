@@ -188,10 +188,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 			[&](InterProcessMessageEvent &e)
 			{
 				logMsg("got IPC path:%s", e.filename.data());
-				if(ctx.mainWindow().appData<MainWindowData>())
-					handleOpenFileCommand(e.filename);
-				else
-					system().setInitialLoadPath(e.filename);
+				system().setInitialLoadPath(e.filename);
 			},
 			[](auto &) {}
 		}, appEvent);
@@ -1645,13 +1642,16 @@ unsigned EmuApp::transposeKeyForPlayer(unsigned key, int player) const
 	return key + cat.keys() * transposeOffset;
 }
 
-unsigned EmuApp::validateSystemKey(unsigned key) const
+unsigned EmuApp::validateSystemKey(unsigned key, bool isUIKey) const
 {
 	const auto &cat = categoryOfSystemKey(key);
-	if(key - cat.configOffset > cat.keyName.size())
+	size_t resetIdx = isUIKey ? 0 : 1;
+	if(key - cat.configOffset > cat.keyName.size() ||
+		(isUIKey && &cat != &Controls::categories()[0]) ||
+		(!isUIKey && &cat == &Controls::categories()[0]))
 	{
 		logMsg("resetting invalid system key:%u", key);
-		return Controls::categories()[1].configOffset;
+		return Controls::categories()[resetIdx].configOffset;
 	}
 	return key;
 }

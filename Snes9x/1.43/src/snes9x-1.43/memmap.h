@@ -91,6 +91,7 @@
 #define _memmap_h_
 
 #include "snes9x.h"
+#include <string>
 
 #ifdef FAST_LSB_WORD_ACCESS
 #define READ_WORD(s) (*(uint16a *) (s))
@@ -238,7 +239,7 @@ public:
     uint32 SDD1LoggedDataCountPrev;
     uint32 SDD1LoggedDataCount;
     uint8  SDD1LoggedData [MEMMAP_MAX_SDD1_LOGGED_ENTRIES];
-    char ROMFilename [_MAX_PATH];
+    std::string ROMFilename;
 	uint8 ROMRegion;
     uint32 ROMCRC32;
 	uint8 ExtendedFormat;

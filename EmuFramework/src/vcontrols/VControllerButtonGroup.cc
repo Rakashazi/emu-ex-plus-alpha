@@ -244,7 +244,7 @@ static bool isValidStaggerType(int val) { return val >= 0 && val <= 5; }
 
 void VControllerButtonGroup::Config::validate(const EmuApp &app)
 {
-	for(auto &k : keys) { k =	app.validateSystemKey(k); }
+	for(auto &k : keys) { k =	app.validateSystemKey(k, false); }
 	if(!isValidRowItemCount(layout.rowItems))
 		layout.rowItems = 2;
 	if(!isValidSpacing(layout.spacingMM))
@@ -331,7 +331,7 @@ std::string VControllerUIButtonGroup::name(const EmuApp &app) const
 
 void VControllerUIButtonGroup::Config::validate(const EmuApp &app)
 {
-	for(auto &k : keys) { k =	app.validateSystemKey(k); }
+	for(auto &k : keys) { k =	app.validateSystemKey(k, true); }
 	if(!isValidRowItemCount(layout.rowItems))
 		layout.rowItems = 2;
 }

@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Swan.emu"]
+        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "Lynx.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Swan.emu"]
 
     steps:
     - name: Checkout emu-ex-plus-alpha repo
@@ -126,6 +126,24 @@ jobs:
       with: 
         name: GBCemu
         path: ${{ github.workspace }}/GBC.emu/target/android-release/build/outputs/apk/release/GbcEmu-release.apk
+
+    - name: Build Lynx.emu
+      if: ${{ matrix.image == 'Lynx.emu' }}
+      run: |
+        cd Lynx.emu
+        make -f android-release.mk android-apk V=1 -j2
+
+    - name: Copy Lynx.emu artifact
+      if: ${{ matrix.image == 'Lynx.emu' }}
+      run: |
+        cp Lynx.emu/target/android-release/build/outputs/apk/release/LynxEmu-release.apk EX-Emulators/LynxEmu-release.apk
+
+    - name: Upload Lynx.emu artifact
+      uses: actions/upload-artifact@v3
+      if: ${{ matrix.image == 'Lynx.emu' }}
+      with:
+        name: Lynxemu
+        path: ${{ github.workspace }}/Lynx.emu/target/android-release/build/outputs/apk/release/LynxEmu-release.apk
 
     - name: Build MD.emu
       if: ${{ matrix.image == 'MD.emu' }}

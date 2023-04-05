@@ -611,7 +611,7 @@ again:
 	if (!TotalFileSize)
 		return FALSE;		// it ends here
 	else if(!Settings.NoPatch)
-		CheckForIPSPatch (ROMFilename, HeaderCount != 0, TotalFileSize);
+		CheckForIPSPatch (ROMFilename.c_str(), HeaderCount != 0, TotalFileSize);
 
 	//fix hacked games here.
 	if((strncmp("HONKAKUHA IGO GOSEI", (char*)&ROM[0x7FC0],19)==0)&&(ROM[0x7FD5]!=0x31))
@@ -986,7 +986,7 @@ uint32 CMemory::FileLoader (uint8* buffer, const char* filename, int32 maxsize)
 		if ((ROMFile = OPEN_STREAM (fname, "rb")) == NULL)
 			return (0);
 		
-		strcpy (ROMFilename, fname);
+		ROMFilename = fname;
 		
 		HeaderCount = 0;
 		uint8 *ptr = buffer;
@@ -1722,7 +1722,7 @@ bool8 CMemory::SaveSRAM (const char *filename)
     if (size > 0x20000)
 		size = 0x20000;
 	
-    if (size && *Memory.ROMFilename)
+    if (size && Memory.ROMFilename.size())
     {
 		FILE *file;
 		if ((file = fopen (filename, "wb")))

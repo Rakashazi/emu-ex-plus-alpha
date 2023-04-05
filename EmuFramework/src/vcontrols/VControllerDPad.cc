@@ -186,7 +186,7 @@ std::array<int, 2> VControllerDPad::getInput(WP c) const
 
 void VControllerDPad::Config::validate(const EmuApp &app)
 {
-	for(auto &k : keys) { k = app.validateSystemKey(k); }
+	for(auto &k : keys) { k = app.validateSystemKey(k, false); }
 	if(!isValidDiagonalSensitivity(diagonalSensitivity))
 		diagonalSensitivity = defaultDPadDiagonalSensitivity;
 	if(!isValidDeadzone(deadzoneMM100x))

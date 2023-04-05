@@ -66,11 +66,10 @@ Window &BaseApplication::mainWindow() const
 
 Screen &BaseApplication::addScreen(ApplicationContext ctx, std::unique_ptr<Screen> ptr, bool notify)
 {
-	auto &screen = *ptr.get();
-	screen_.emplace_back(std::move(ptr));
+	auto &newScreen = screen_.emplace_back(std::move(ptr));
 	if(notify)
-		onEvent(ctx, ScreenChangeEvent{screen, ScreenChange::added});
-	return screen;
+		onEvent(ctx, ScreenChangeEvent{*newScreen, ScreenChange::added});
+	return *newScreen;
 }
 
 Screen *BaseApplication::findScreen(ScreenId id) const

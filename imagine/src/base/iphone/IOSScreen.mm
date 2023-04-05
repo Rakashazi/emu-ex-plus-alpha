@@ -110,7 +110,7 @@ IOSScreen::IOSScreen(ApplicationContext, InitParams initParams)
 			frameTime = 1. / 60.;
 		}
 		frameTime_ = IG::FloatSeconds(frameTime);
-		frameRate_ = 1. / frameTime_;
+		frameRate_ = 1. / frameTime_.count();
 	}
 	else
 	{

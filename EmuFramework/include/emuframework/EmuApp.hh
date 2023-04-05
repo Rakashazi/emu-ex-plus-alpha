@@ -264,7 +264,7 @@ public:
 	const KeyCategory &categoryOfSystemKey(unsigned key) const;
 	std::string_view systemKeyName(unsigned key) const;
 	unsigned transposeKeyForPlayer(unsigned keys, int player) const;
-	unsigned validateSystemKey(unsigned key) const;
+	unsigned validateSystemKey(unsigned key, bool isUIKey) const;
 	BluetoothAdapter *bluetoothAdapter();
 	void closeBluetoothConnections();
 	ViewAttachParams attachParams();
