@@ -71,7 +71,7 @@ class CCart : public CLynxBase
 	// Function members
 
 	public:
-		CCart(Stream* fp) MDFN_COLD;
+		CCart(Stream* fp, uint32 fileType) MDFN_COLD;
 		~CCart() MDFN_COLD;
 
 	public:
@@ -104,6 +104,7 @@ class CCart : public CLynxBase
 		void	Poke1(uint8 data);
 		uint8	Peek0(void);
 		uint8	Peek1(void);
+		void SetShifterValue(uint8 a){mShifter=a; mCounter=0;}; // for fake bios
 
 	// Data members
 

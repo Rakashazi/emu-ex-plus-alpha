@@ -125,7 +125,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	using MainAppHelper<CustomAudioOptionView>::system;
 	using MainAppHelper<CustomAudioOptionView>::app;
 
-	BoolMenuItem adpcmFilter
+	BoolMenuItem lowpassFilter
 	{
 		"Low-pass Filter", &defaultFace(),
 		system().lowpassFilter,
@@ -136,7 +136,7 @@ public:
 	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
 	{
 		loadStockItems();
-		item.emplace_back(&adpcmFilter);
+		item.emplace_back(&lowpassFilter);
 	}
 };
 

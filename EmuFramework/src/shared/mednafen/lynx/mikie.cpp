@@ -1030,6 +1030,27 @@ void CMikie::Poke(uint32 addr,uint8 data)
 			TRACE_MIKIE2("Poke(MTEST2,%02x) at PC=%04x",data,mSystem.mCpu->GetPC());
 			break;
 
+    case (0xfd97&0xff): {
+       // This code is to intercept calls to the fake ROM
+       int mPC = mSystem.mCpu->GetPC();
+       if(mPC>=0xFE00 && mPC<0xFFF0) {
+          switch(mPC) {
+             case 0xFE00+3:
+                mSystem.HLE_BIOS_FE00();
+                break;
+             case 0xFE19+3:
+                mSystem.HLE_BIOS_FE19();
+                break;
+             case 0xFE4A+3:
+                mSystem.HLE_BIOS_FE4A();
+                break;
+             case 0xFF80+3:
+                mSystem.HLE_BIOS_FF80();
+                break;
+             }
+          }
+       };
+       break;
 		case (GREEN0&0xff): 
 		case (GREEN1&0xff): 
 		case (GREEN2&0xff): 

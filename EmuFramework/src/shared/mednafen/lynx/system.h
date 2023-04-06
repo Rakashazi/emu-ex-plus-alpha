@@ -55,6 +55,7 @@
 #define HANDY_FILETYPE_HOMEBREW	1
 #define HANDY_FILETYPE_SNAPSHOT	2
 #define HANDY_FILETYPE_ILLEGAL	3
+#define HANDY_FILETYPE_RAW			4
 
 #define HANDY_SCREEN_WIDTH	160
 #define HANDY_SCREEN_HEIGHT	102
@@ -104,6 +105,10 @@ class CSystem : public CSystemBase
 		~CSystem() MDFN_COLD;
 
 	public:
+    void HLE_BIOS_FE00(void);
+    void HLE_BIOS_FE19(void);
+    void HLE_BIOS_FE4A(void);
+    void HLE_BIOS_FF80(void);
 		void	Reset(void) MDFN_COLD;
 
 		inline void Update(void)
@@ -203,5 +208,9 @@ class CSystem : public CSystemBase
 
 		uint32			mFileType;
 };
+
+void lynx_decrypt(unsigned char * result,
+                  const unsigned char * encrypted,
+                  const int length);
 
 #endif

@@ -92,7 +92,7 @@ bool CCart::TestMagic(const uint8 *data, uint32 size)
  return(true);
 }
 
-CCart::CCart(Stream* fp)
+CCart::CCart(Stream* fp, uint32 fileType)
 {
 	uint64 gamesize;
 	uint8 raw_header[HEADER_RAW_SIZE];
@@ -103,7 +103,7 @@ CCart::CCart(Stream* fp)
 	mWriteEnableBank1 = false;
 	mCartRAM = false;
 
-	if(fp)
+	if(fileType == HANDY_FILETYPE_LNX)
 	{
 	 gamesize = fp->size();
 	 // Checkout the header bytes
@@ -114,9 +114,11 @@ CCart::CCart(Stream* fp)
 
 	 fp->read(raw_header, HEADER_RAW_SIZE);
 	}
-	else
+	else // homebrew or raw
 	{
 	 gamesize = HEADER_RAW_SIZE;
+	 if(fp)
+	  gamesize += fp->size();
 	 memset(raw_header, 0, sizeof(raw_header));
 	 memcpy(raw_header, "LYNX", 4);
 	 raw_header[8] = 0x01;
@@ -124,6 +126,8 @@ CCart::CCart(Stream* fp)
 
 	header = DecodeHeader(raw_header);
 	gamesize -= HEADER_RAW_SIZE;
+	if(fileType == HANDY_FILETYPE_RAW)
+	 header.page_size_bank0 = gamesize >> 8;
 
 	InfoROMSize = gamesize;
 

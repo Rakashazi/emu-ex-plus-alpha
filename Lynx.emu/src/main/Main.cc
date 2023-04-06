@@ -41,7 +41,7 @@ bool EmuApp::needsGlobalInstance = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return endsWithAnyCaseless(name, ".lnx");
+		return endsWithAnyCaseless(name, ".lnx", ".o");
 	};
 
 using namespace Mednafen;
@@ -80,8 +80,6 @@ void LynxSystem::closeSystem()
 
 void LynxSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	if(biosPath.empty())
-		throw std::runtime_error("No BIOS ROM, please set a lynxboot.img file in Options➔File Paths");
 	static constexpr size_t maxRomSize = 0x1000000;
 	EmuEx::loadContent(*this, mdfnGameInfo, io, maxRomSize);
 	Lynx_SetPixelFormat(toMDFNSurface(mSurfacePix).format);

@@ -64,7 +64,7 @@ class CRam : public CLynxBase
 	public:
 
 		void	Reset(void) MDFN_COLD;
-
+		void	Clear(void) { memset(mRamData, 0, RAM_SIZE); }
 		void	Poke(uint32 addr, uint8 data){ mRamData[(uint16)addr]=data;};
 		uint8	Peek(uint32 addr){ return(mRamData[(uint16)addr]);};
 		uint32	ReadCycle(void) {return 5;};

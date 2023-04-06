@@ -20,6 +20,7 @@ $(MDFN_COMMON_SRC)
 
 MDFN_SRC := lynx/c65c02.cpp \
 lynx/cart.cpp \
+lynx/lynxdec.cpp \
 lynx/memmap.cpp \
 lynx/mikie.cpp \
 lynx/ram.cpp \

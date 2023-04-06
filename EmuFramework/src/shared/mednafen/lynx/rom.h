@@ -74,6 +74,7 @@ class CRom : public CLynxBase
 
 	public:
 		bool	mWriteEnable;
+		bool	mValid{};
 	private:
 		uint8	mRomData[ROM_SIZE];
 };

@@ -52,15 +52,35 @@
 
 #include <mednafen/FileStream.h>
 
+static void initialise_rom_data(uint8 *rom_data)
+{
+   unsigned i;
+
+   // Initialise ROM
+   for(i = 0; i < ROM_SIZE; i++)
+      rom_data[i] = DEFAULT_ROM_CONTENTS;
+
+   // actually not part of Boot ROM but uninitialized otherwise
+   // Reset Vector etc
+   rom_data[0x1F8] = 0x00;
+   rom_data[0x1F9] = 0x80;
+   rom_data[0x1FA] = 0x00;
+   rom_data[0x1FB] = 0x30;
+   rom_data[0x1FC] = 0x80;
+   rom_data[0x1FD] = 0xFF;
+   rom_data[0x1FE] = 0x80;
+   rom_data[0x1FF] = 0xFF;
+}
+
 CRom::CRom(const char *romfile)
 {
 	mWriteEnable=false;
 	Reset();
 
-	// Initialise ROM
-	for(int loop=0;loop<ROM_SIZE;loop++) mRomData[loop]=DEFAULT_ROM_CONTENTS;
+	initialise_rom_data(mRomData);
 
 	// Load up the file
+	if(strlen(romfile))
 	{
 	 FileStream BIOSFile(romfile, FileStream::MODE_READ);
 
@@ -70,6 +90,7 @@ CRom::CRom(const char *romfile)
 	 }
 
 	 BIOSFile.read(mRomData, 512);
+	 mValid = true;
 	}
 }
 

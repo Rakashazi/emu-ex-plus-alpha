@@ -536,8 +536,15 @@ FILE *fopenUri(ApplicationContext ctx, CStringView path, CStringView mode)
 {
 	if(isUri(path))
 	{
-		auto openFlags = mode.contains('w') ? OpenFlagsMask::New : OpenFlagsMask{};
-		return ctx.openFileUri(path, openFlags | OpenFlagsMask::Test).toFileStream(mode);
+		assert(!mode.contains('a')); //append mode not supported
+		OpenFlagsMask openFlags{OpenFlagsMask::Test};
+		if(mode.contains('r'))
+			openFlags |= OpenFlagsMask::Read;
+		if(mode.contains('w'))
+			openFlags |= OpenFlagsMask::New;
+		if(mode.contains('+'))
+			openFlags |= OpenFlagsMask::Write;
+		return ctx.openFileUri(path, openFlags).toFileStream(mode);
 	}
 	else
 	{
