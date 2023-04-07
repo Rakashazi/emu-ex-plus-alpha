@@ -36,7 +36,7 @@ static constexpr int unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPrivateCh
 
 static constexpr int glyphTableEntries = unicodeBmpUsedChars;
 
-static std::errc mapCharToTable(int c, int &tableIdx);
+static int mapCharToTable(int c);
 
 static int charIsDrawableUnicode(int c)
 {
@@ -74,8 +74,7 @@ void GlyphTextureSet::freeCaches(uint32_t purgeBits)
 			int firstChar = i << 11;
 			for(auto c : std::views::iota(firstChar, 2048))
 			{
-				int tableIdx;
-				if((bool)mapCharToTable(c, tableIdx))
+				if(mapCharToTable(c) == -1)
 				{
 					//logMsg( "%c not a known drawable character, skipping", c);
 					continue;
@@ -134,60 +133,56 @@ bool GlyphTextureSet::setFontSettings(Renderer &r, IG::FontSettings set)
 		return false;
 	resetGlyphTable();
 	settings = set;
-	std::errc ec{};
-	faceSize = font.makeSize(settings, ec);
+	faceSize = font.makeSize(settings);
 	calcMetrics(r);
 	return true;
 }
 
-std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
+bool GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 {
 	assert(settings);
 	auto &[glyph, metrics] = glyphTable[tableIdx];
 	if(metrics.size.y == -1)
 	{
 		// failed to previously cache char
-		return std::errc::invalid_argument;
+		return false;
 	}
 	// make sure applySize() has been called on the font object first
-	std::errc ec{};
-	auto res = font.glyph(c, faceSize, ec);
-	if((bool)ec)
+	auto res = font.glyph(c, faceSize);
+	if(!res.image)
 	{
 		// mark failed attempt
 		metrics.size.y = -1;
-		return ec;
+		return false;
 	}
 	//logMsg("setting up table entry %d", tableIdx);
 	metrics = res.metrics;
 	glyph = r.makeTexture(res.image, glyphSamplerConfig, false);
 	usedGlyphTableBits |= IG::bit((c >> 11) & 0x1F); // use upper 5 BMP plane bits to map in range 0-31
 	//logMsg("used table bits 0x%X", usedGlyphTableBits);
-	return {};
+	return true;
 }
 
-static std::errc mapCharToTable(int c, int &tableIdx)
+static int mapCharToTable(int c)
 {
 	//logMsg("mapping char 0x%X", c);
 	if(c < unicodeBmpChars && charIsDrawableUnicode(c))
 	{
 		if(c < unicodeBmpPrivateStart)
 		{
-			tableIdx = c;
-			return {};
+			return c;
 		}
 		else if(c > unicodeBmpPrivateEnd)
 		{
-			tableIdx = c - unicodeBmpPrivateChars; // surrogate & private chars are a hole in the table
-			return {};
+			return c - unicodeBmpPrivateChars; // surrogate & private chars are a hole in the table
 		}
 		else
 		{
-			return std::errc::invalid_argument;
+			return -1;
 		}
 	}
 	else
-		return std::errc::invalid_argument;
+		return -1;
 }
 
 // TODO: update for unicode
@@ -197,8 +192,8 @@ int GlyphTextureSet::precache(Renderer &r, std::string_view string)
 	int glyphsCached = 0;
 	for(auto c : string)
 	{
-		int tableIdx;
-		if((bool)mapCharToTable(c, tableIdx))
+		int tableIdx = mapCharToTable(c);
+		if(tableIdx == -1)
 		{
 			//logMsg( "%c not a known drawable character, skipping", c);
 			continue;
@@ -218,8 +213,8 @@ int GlyphTextureSet::precache(Renderer &r, std::string_view string)
 const GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c, bool allowCache)
 {
 	assert(settings);
-	int tableIdx;
-	if((bool)mapCharToTable(c, tableIdx))
+	int tableIdx = mapCharToTable(c);
+	if(tableIdx == -1)
 		return nullptr;
 	assert(tableIdx < glyphTableEntries);
 	auto &entry = glyphTable[tableIdx];
@@ -230,7 +225,7 @@ const GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c, bool allowCach
 			logErr("cannot make glyph:%c (0x%X) during draw operation", c, c);
 			return nullptr;
 		}
-		if((bool)cacheChar(r, c, tableIdx))
+		if(!cacheChar(r, c, tableIdx))
 			return nullptr;
 		//logMsg("glyph:%c (0x%X) was not in table", c, c);
 	}

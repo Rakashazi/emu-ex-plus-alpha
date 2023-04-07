@@ -19,6 +19,7 @@
 #include "display.h"
 #include "language.h"
 #include "gfx.h"
+#include <main/wrappers.h>
 
 #ifndef min
 #define min(a,b)	(((a) < (b)) ? (a) : (b))

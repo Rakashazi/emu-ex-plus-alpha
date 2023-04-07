@@ -33,6 +33,8 @@ namespace SNES {
 CPU cpu;
 } // namespace SNES
 
+#include <main/wrappers.h>
+
 namespace spc {
 static apu_callback callback = NULL;
 static void *callback_data = NULL;

@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <iterator>
 #include <string_view>
+#include <memory>
 #if __has_include(<jni.h>)
 #include <jni.h>
 #else

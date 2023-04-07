@@ -36,6 +36,7 @@
 #include "sha256.h"
 #include "snapshot.h"
 #include "apu/bapu/snes/snes.hpp"
+#include <main/wrappers.h>
 
 #ifndef SET_UI_COLOR
 #define SET_UI_COLOR(r, g, b) ;

@@ -4,7 +4,7 @@ endif
 
 include $(buildSysPath)/imagineSDKPath.mk
 
-xzVer := 5.2.5
+xzVer := 5.4.2
 xzSrcDir := $(tempDir)/xz-$(xzVer)
 xzSrcArchive := xz-$(xzVer).tar.xz
 

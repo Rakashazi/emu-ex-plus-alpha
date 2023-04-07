@@ -20,7 +20,6 @@
 #include <imagine/font/GlyphMetrics.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <system_error>
 #include <array>
 #include <memory>
 #include <ft2build.h>
@@ -96,6 +95,8 @@ public:
 	{
 		GlyphMetrics metrics{};
 		FT_Bitmap bitmap{};
+
+		constexpr explicit operator bool() const { return bool(metrics); }
 	};
 
 	constexpr FreetypeFont() = default;
@@ -109,9 +110,9 @@ protected:
 	StaticArrayList<FreetypeFaceData, MAX_FREETYPE_SLOTS> f;
 	FontWeight weight{};
 
-	std::errc loadIntoNextSlot(IO);
-	std::errc loadIntoNextSlot(CStringView name);
-	GlyphRenderData makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::errc &ec);
+	bool loadIntoNextSlot(IO);
+	bool loadIntoNextSlot(CStringView name);
+	GlyphRenderData makeGlyphRenderData(int idx, FreetypeFontSize &, bool keepPixData);
 };
 
 class FreetypeFontManager

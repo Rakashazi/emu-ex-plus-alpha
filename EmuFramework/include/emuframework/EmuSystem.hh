@@ -66,7 +66,7 @@ struct AspectRatioInfo
 	constexpr float asFloat() const { return aspect.ratio<float>(); }
 };
 
-#define EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT {"1:1", {1, 1}}, {"Square Pixels", {-1, 1}}
+#define EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT {"1:1", {1, 1}}
 
 struct BundledGameInfo
 {
@@ -168,14 +168,14 @@ public:
 
 	struct LoadProgressMessage
 	{
-		constexpr LoadProgressMessage() = default;
-		constexpr LoadProgressMessage(LoadProgress progress, int intArg, int intArg2, int intArg3):
-			intArg{intArg}, intArg2{intArg2}, intArg3{intArg3}, progress{progress} {}
-		explicit operator bool() const { return progress != LoadProgress::UNSET; }
 		int intArg{};
 		int intArg2{};
 		int intArg3{};
 		LoadProgress progress{LoadProgress::UNSET};
+
+		constexpr LoadProgressMessage() = default;
+		constexpr LoadProgressMessage(LoadProgress progress, int intArg, int intArg2, int intArg3):
+			intArg{intArg}, intArg2{intArg2}, intArg3{intArg3}, progress{progress} {}
 	};
 
 	using OnLoadProgressDelegate = IG::DelegateFunc<bool(int pos, int max, const char *label)>;
@@ -200,6 +200,7 @@ public:
 	static NameFilterFunc defaultFsFilter;
 	static const char *creditsViewStr;
 	static FP validFrameRateRange;
+	static bool hasRectangularPixels;
 
 	EmuSystem(IG::ApplicationContext ctx): appCtx{ctx} {}
 

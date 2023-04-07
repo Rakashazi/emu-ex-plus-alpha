@@ -39,7 +39,6 @@ class DrawContextSupport;
 class GLRendererTask : public GLTask
 {
 public:
-	using Command = GLTask::Command;
 	using CommandMessage = GLTask::CommandMessage;
 
 	GLRendererTask(ApplicationContext, Renderer &);

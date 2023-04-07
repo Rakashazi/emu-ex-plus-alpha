@@ -25,7 +25,7 @@
 
 namespace IG
 {
-class ViewAttachParams;
+struct ViewAttachParams;
 }
 
 namespace FrameRateTest

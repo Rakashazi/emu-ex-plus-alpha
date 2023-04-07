@@ -345,12 +345,6 @@ void S9xMessage(int, int, const char *);
 void S9xPrintf(const char* msg, ...) __attribute__ ((format (printf, 1, 2)));
 void S9xPrintfError(const char* msg, ...) __attribute__ ((format (printf, 1, 2)));
 
-#ifndef S9X_NO_WRAPPERS
-#define printf S9xPrintf
-#define remove removeFileHelper
-#define fopen fopenHelper
-#endif
-
 extern struct SSettings			Settings;
 extern struct SCPUState			CPU;
 extern struct STimings			Timings;

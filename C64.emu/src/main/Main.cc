@@ -69,6 +69,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2023\nRobe
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::handlesGenericIO = false;
+bool EmuSystem::hasRectangularPixels = true;
 bool EmuApp::needsGlobalInstance = true;
 
 const char *EmuSystem::shortSystemName() const

@@ -8,6 +8,7 @@
 #include "snes9x.h"
 #include "memmap.h"
 #include "cheats.h"
+#include <main/wrappers.h>
 
 #define WRAM_BITS	ALL_BITS
 #define SRAM_BITS	ALL_BITS + (0x20000 >> 5)

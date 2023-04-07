@@ -7,7 +7,7 @@ include $(buildSysPath)/imagineSDKPath.mk
 # Flac configure script doesn't detect Ogg via pkg-config
 OGG_PREFIX = $(IMAGINE_SDK_PLATFORM_PATH)
 
-flacVer := 1.3.4
+flacVer := 1.4.2
 flacSrcDir := $(tempDir)/flac-$(flacVer)
 flacSrcArchive := flac-$(flacVer).tar.xz
 
@@ -35,9 +35,6 @@ $(flacSrcDir)/configure : | $(flacSrcArchive)
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building flac..."
-ifeq ($(ARCH), x86)
-	$(MAKE) -C $(<D)/src/libFLAC/ia32 libFLAC-asm.la
-endif
 	$(MAKE) -C $(<D)/src/libFLAC libFLAC.la
 
 $(makeFile) : $(flacSrcDir)/configure
@@ -45,5 +42,5 @@ $(makeFile) : $(flacSrcDir)/configure
 	@mkdir -p $(@D)
 	dir=`pwd` && cd $(@D) && $(toolchainEnvParams) CFLAGS="$(CPPFLAGS) $(CFLAGS)" \
 	LDFLAGS="$(LDFLAGS) $(LDLIBS)" $(flacSrcDir)/configure \
-	--prefix='$${pcfiledir}/../..' --disable-examples --disable-oggtest --disable-xmms-plugin --disable-cpplibs \
+	--prefix='$${pcfiledir}/../..' --disable-examples --disable-oggtest --disable-cpplibs \
 	--disable-doxygen-docs --disable-shared --host=$(CHOST) --with-ogg=$(OGG_PREFIX) $(buildArg)

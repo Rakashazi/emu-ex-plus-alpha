@@ -2,7 +2,6 @@
 
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
-#define S9X_NO_WRAPPERS
 #include <snes9x.h>
 #include <port.h>
 #include <memmap.h>

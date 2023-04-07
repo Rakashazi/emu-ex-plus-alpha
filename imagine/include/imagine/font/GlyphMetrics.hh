@@ -26,6 +26,8 @@ struct GlyphMetrics
 	SP size{};
 	SP offset{};
 	int16_t xAdvance{};
+
+	constexpr explicit operator bool() const { return size.x; }
 };
 
 }

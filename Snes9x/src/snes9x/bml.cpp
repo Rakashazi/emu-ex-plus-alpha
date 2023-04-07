@@ -9,6 +9,7 @@
 #include <imagine/io/IOStream.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <main/wrappers.h>
 
 bml_node::bml_node()
 {

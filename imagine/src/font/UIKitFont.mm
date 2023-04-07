@@ -32,6 +32,8 @@ struct GlyphRenderData
 	GlyphMetrics metrics{};
 	void *pixData{};
 	void *startOfCharInPixData{};
+
+	constexpr explicit operator bool() const { return bool(metrics); }
 };
 
 static void renderTextIntoBuffer(NSString *str, void *buff, int xSize, int ySize,
@@ -53,7 +55,7 @@ static void renderTextIntoBuffer(NSString *str, void *buff, int xSize, int ySize
 }
 
 static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, CGColorSpaceRef grayColorSpace,
-	CGColorRef textColor, bool keepPixData, std::errc &ec)
+	CGColorRef textColor, bool keepPixData)
 {
 	UniChar uniChar = idx;
 	auto str = [[NSString alloc] initWithCharacters:&uniChar length:1];
@@ -63,10 +65,8 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, CGColorS
 	if(!size.width || !size.height)
 	{
 		logMsg("invalid char 0x%X size %f:%f", idx, size.width, size.height);
-		ec = std::errc::invalid_argument;
 		return {};
 	}
-	ec = (std::errc)0;
 	//logMsg("char %c size %f:%f", idx, size.width, size.height);
 	int cXFullSize = size.width;
 	int cYFullSize = size.height;
@@ -100,7 +100,7 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, CGColorS
 
 	GlyphMetrics metrics;
 	metrics.size = {cXSize, cYSize};
-	metrics.offset = {cXOffset, -cYOffset};
+	metrics.offset = {cXOffset, int16_t(-cYOffset)};
 	metrics.xAdvance = cXFullSize;
 	
 	if(keepPixData)
@@ -142,17 +142,17 @@ Font::operator bool() const
 	return true;
 }
 
-Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
+Font::Glyph Font::glyph(int idx, FontSize &size)
 {
-	auto glyphData = makeGlyphRenderData(idx, size, grayColorSpace, textColor, true, ec);
-	if((bool)ec)
+	auto glyphData = makeGlyphRenderData(idx, size, grayColorSpace, textColor, true);
+	if(!glyphData)
 	{
 		return {};
 	}
 	PixmapView pix
 	{
 		{
-			{glyphData.metrics.xSize, glyphData.metrics.ySize},
+			glyphData.metrics.size.as<int>(),
 			IG::PIXEL_FMT_A8
 		},
 		glyphData.startOfCharInPixData,
@@ -161,24 +161,22 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 	return {{pix, glyphData.pixData}, glyphData.metrics};
 }
 
-GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
+GlyphMetrics Font::metrics(int idx, FontSize &size)
 {
-	auto glyphData = makeGlyphRenderData(idx, size, grayColorSpace, textColor, false, ec);
-	if((bool)ec)
+	auto glyphData = makeGlyphRenderData(idx, size, grayColorSpace, textColor, false);
+	if(!glyphData)
 	{
 		return {};
 	}
 	return glyphData.metrics;
 }
 
-FontSize Font::makeSize(FontSettings settings, std::errc &ec)
+FontSize Font::makeSize(FontSettings settings)
 {
 	if(settings.pixelHeight() <= 0)
 	{
-		ec = std::errc::invalid_argument;
 		return {};
 	}	
-	ec = (std::errc)0;
 	if(weight == FontWeight::BOLD)
 		return {(void*)CFBridgingRetain([UIFont boldSystemFontOfSize:(CGFloat)settings.pixelHeight()])};
 	else

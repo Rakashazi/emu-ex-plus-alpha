@@ -55,25 +55,17 @@ bool GLTask::makeGLContext(GLTaskConfig config)
 				{
 					for(auto msg : msgs)
 					{
-						switch(msg.command)
+						if(msg.func) [[likely]]
 						{
-							case Command::RUN_FUNC:
-							{
-								msg.args.run.func(glDpy, msg.semPtr);
-								break;
-							}
-							case Command::EXIT:
-							{
-								glDpy.resetCurrentContext();
-								logMsg("exiting GL context:%p thread", (NativeGLContext)context);
-								context = {};
-								EventLoop::forThread().stop();
-								return false;
-							}
-							default:
-							{
-								logWarn("unknown ThreadCommandMessage value:%d", (int)msg.command);
-							}
+							msg.func(glDpy, msg.semPtr);
+						}
+						else
+						{
+							glDpy.resetCurrentContext();
+							logMsg("exiting GL context:%p thread", (NativeGLContext)context);
+							context = {};
+							EventLoop::forThread().stop();
+							return false;
 						}
 					}
 					return true;
@@ -119,7 +111,7 @@ GLTask::~GLTask()
 void GLTask::runFunc(FuncDelegate del, bool awaitReply)
 {
 	assert(context);
-	commandPort.send({Command::RUN_FUNC, del}, awaitReply);
+	commandPort.send({.func = del}, awaitReply);
 }
 
 GLBufferConfig GLTask::glBufferConfig() const
@@ -146,7 +138,7 @@ void GLTask::deinit()
 {
 	if(!context)
 		return;
-	commandPort.send({Command::EXIT});
+	commandPort.send({}); // exit
 	onExit.reset();
 	thread.join(); // GL implementation may assign thread destructor so must join() to make sure it completes
 }

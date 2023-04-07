@@ -13,6 +13,7 @@
 #include "apu/bapu/snes/snes.hpp"
 #include <fstream>
 #include <sys/stat.h>
+#include <main/wrappers.h>
 
 STREAM dataStream = NULL;
 STREAM audioStream = NULL;

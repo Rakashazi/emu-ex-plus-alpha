@@ -51,8 +51,7 @@ public:
 			{
 				if(!io) [[unlikely]]
 					return *this;
-				msg = io->get<MsgType>();
-				if(!msg)
+				if(io->read(msg).bytes != sizeof(MsgType))
 				{
 					// end of messages
 					io = nullptr;
@@ -72,7 +71,7 @@ public:
 
 		private:
 			PosixIO *io{};
-			MsgType msg{};
+			MsgType msg;
 		};
 
 		constexpr Messages(PosixIO &io): io{io} {}

@@ -1,4 +1,4 @@
-libcxxVersion := 15.0.0
+libcxxVersion := 16.0.1
 libcxxSrcDir := $(tempDir)/llvm-project-$(libcxxVersion).src/libcxx
 libcxxabiSrcDir := $(tempDir)/llvm-project-$(libcxxVersion).src/libcxxabi
 # Archive containing the libcxx & libcxxabi directories along with a minimal set of cmake support files

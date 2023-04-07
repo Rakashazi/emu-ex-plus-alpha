@@ -126,7 +126,7 @@ void FreetypeFontManager::freeFcConfig(_FcConfig *confPtr)
 	FcFini();
 }
 
-static FT_Size makeFTSize(FT_Face face, int x, int y, std::errc &ec)
+static FT_Size makeFTSize(FT_Face face, int x, int y)
 {
 	logMsg("creating new size object, %dx%d pixels", x, y);
 	FT_Size size{};
@@ -134,42 +134,36 @@ static FT_Size makeFTSize(FT_Face face, int x, int y, std::errc &ec)
 	if(error)
 	{
 		logErr("error creating new size object");
-		ec = std::errc::invalid_argument;
 		return {};
 	}
 	error = FT_Activate_Size(size);
 	if(error)
 	{
 		logErr("error activating size object");
-		ec = std::errc::invalid_argument;
 		return {};
 	}
 	error = FT_Set_Pixel_Sizes(face, x, y);
 	if(error)
 	{
 		logErr("error occurred setting character pixel size");
-		ec = std::errc::invalid_argument;
 		return {};
 	}
-	ec = {};
 	//logMsg("Face max bounds %dx%d,%dx%d, units per EM %d", face->bbox.xMin, face->bbox.xMax, face->bbox.yMin, face->bbox.yMax, face->units_per_EM);
 	//logMsg("scaled ascender x descender %dx%d", (int)size->metrics.ascender >> 6, (int)size->metrics.descender >> 6);
 	return size;
 }
 
-static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Library library, FT_Face face, int c, bool keepPixData, std::errc &ec)
+static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Library library, FT_Face face, int c, bool keepPixData)
 {
 	auto idx = FT_Get_Char_Index(face, c);
 	if(!idx)
 	{
-		ec = std::errc::invalid_argument;
 		return {};
 	}
 	auto error = FT_Load_Glyph(face, idx, FT_LOAD_RENDER);
 	if(error)
 	{
 		logErr("error occurred loading/rendering character 0x%X", c);
-		ec = std::errc::invalid_argument;
 		return {};
 	}
 	auto &glyph = face->glyph;
@@ -182,7 +176,6 @@ static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Library libr
 		if(error)
 		{
 			logErr("error occurred converting character 0x%X", c);
-			ec = std::errc::invalid_argument;
 			return {};
 		}
 		assert(bitmap.num_grays == 2); // only handle 2 gray levels for now
@@ -211,7 +204,6 @@ static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Library libr
 	{
 		FT_Bitmap_Done(library, &bitmap);
 	}
-	ec = {};
 	return {metrics, bitmap};
 }
 
@@ -336,41 +328,36 @@ void FreetypeFaceData::deinit()
 	}
 }
 
-std::errc FreetypeFont::loadIntoNextSlot(IO io)
+bool FreetypeFont::loadIntoNextSlot(IO io)
 {
 	if(f.isFull())
-		return std::errc::no_space_on_device;
+		return false;
 	auto &data = f.emplace_back(library, std::move(io));
 	if(!data.face)
 	{
 		logErr("error reading font");
 		f.pop_back();
-		return std::errc::invalid_argument;
+		return false;
 	}
-	return {};
+	return true;
 }
 
-std::errc FreetypeFont::loadIntoNextSlot(IG::CStringView name)
+bool FreetypeFont::loadIntoNextSlot(CStringView name)
 {
 	if(f.isFull())
-		return std::errc::no_space_on_device;
+		return false;
 	try
 	{
-		if(auto ec = loadIntoNextSlot(FileIO{name, IOAccessHint::All});
-			(bool)ec)
-		{
-			return ec;
-		}
-		return {};
+		return loadIntoNextSlot(FileIO{name, IOAccessHint::All});
 	}
 	catch(...)
 	{
 		logMsg("unable to open file %s", name.data());
-		return std::errc::invalid_argument;
+		return false;
 	}
 }
 
-FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::errc &ec)
+FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData)
 {
 	for(auto i : iotaCount(f.size()))
 	{
@@ -381,12 +368,11 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 		if(ftError)
 		{
 			logErr("error activating size object");
-			ec = std::errc::invalid_argument;
 			return {};
 		}
 		std::errc ec;
-		auto data = makeGlyphRenderDataWithFace(library, font.face, idx, keepPixData, ec);
-		if((bool)ec)
+		auto data = makeGlyphRenderDataWithFace(library, font.face, idx, keepPixData);
+		if(!data)
 		{
 			logMsg("glyph 0x%X not found in slot %zu", idx, i);
 			continue;
@@ -398,62 +384,53 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 	if(f.isFull())
 	{
 		logErr("no slots left");
-		ec = std::errc::no_space_on_device;
 		return {};
 	}
 	auto fontPath = fontPathContainingChar(idx, weight == FontWeight::BOLD ? FC_WEIGHT_BOLD : FC_WEIGHT_MEDIUM);
 	if(fontPath.empty())
 	{
 		logErr("no font file found for char %c (0x%X)", idx, idx);
-		ec = std::errc::no_such_file_or_directory;
 		return {};
 	}
 	auto newSlot = f.size();
-	ec = loadIntoNextSlot(fontPath);
-	if((bool)ec)
+	if(!loadIntoNextSlot(fontPath))
 		return {};
 	auto &font = f[newSlot];
 	auto settings = fontSize.fontSettings();
-	fontSize.sizeArray()[newSlot] = makeFTSize(font.face, settings.pixelWidth(), settings.pixelHeight(), ec);
-	if((bool)ec)
+	if(!(fontSize.sizeArray()[newSlot] = makeFTSize(font.face, settings.pixelWidth(), settings.pixelHeight())))
 	{
 		logErr("couldn't allocate font size");
 		return {};
 	}
-	auto data = makeGlyphRenderDataWithFace(library, font.face, idx, keepPixData, ec);
-	if((bool)ec)
+	auto data = makeGlyphRenderDataWithFace(library, font.face, idx, keepPixData);
+	if(!data)
 	{
 		logMsg("glyph 0x%X still not found", idx);
 		return {};
 	}
 	return data;
 	#else
-	ec = std::errc::invalid_argument;
 	return {};
 	#endif
 }
 
-Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
+Font::Glyph Font::glyph(int idx, FontSize &size)
 {
-	auto data = makeGlyphRenderData(idx, size, true, ec);
-	if((bool)ec)
-	{
+	auto data = makeGlyphRenderData(idx, size, true);
+	if(!data)
 		return {};
-	}
 	return {{library, data.bitmap}, data.metrics};
 }
 
-GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
+GlyphMetrics Font::metrics(int idx, FontSize &size)
 {
-	auto data = makeGlyphRenderData(idx, size, false, ec);
-	if((bool)ec)
-	{
+	auto data = makeGlyphRenderData(idx, size, false);
+	if(!data)
 		return {};
-	}
 	return data.metrics;
 }
 
-FontSize Font::makeSize(FontSettings settings, std::errc &ec)
+FontSize Font::makeSize(FontSettings settings)
 {
 	FontSize size{settings};
 	// create FT_Size objects for slots in use
@@ -463,13 +440,11 @@ FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 		{
 			continue;
 		}
-		size.sizeArray()[i] = makeFTSize(f[i].face, settings.pixelWidth(), settings.pixelHeight(), ec);
-		if((bool)ec)
+		if(!(size.sizeArray()[i] = makeFTSize(f[i].face, settings.pixelWidth(), settings.pixelHeight())))
 		{
 			return {};
 		}
 	}
-	ec = {};
 	return size;
 }
 

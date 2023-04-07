@@ -62,31 +62,11 @@ public:
 	// Align delegate data to 16 bytes in case we store SIMD types
 	using FuncDelegate = DelegateFuncA<sizeof(uintptr_t)*2 + sizeof(int)*16, 16, void(GLDisplay glDpy, std::binary_semaphore *semPtr)>;
 
-	enum class Command: uint8_t
-	{
-		UNSET,
-		RUN_FUNC,
-		EXIT
-	};
-
 	struct CommandMessage
 	{
 		std::binary_semaphore *semPtr{};
-		union Args
-		{
-			struct RunArgs
-			{
-				FuncDelegate func;
-			} run;
-		} args{};
-		Command command{Command::UNSET};
+		FuncDelegate func{};
 
-		constexpr CommandMessage() = default;
-		constexpr CommandMessage(Command command, std::binary_semaphore *semPtr = nullptr):
-			semPtr{semPtr}, command{command} {}
-		constexpr CommandMessage(Command command, FuncDelegate funcDel, std::binary_semaphore *semPtr = nullptr):
-			semPtr{semPtr}, args{funcDel}, command{command} {}
-		explicit operator bool() const { return command != Command::UNSET; }
 		void setReplySemaphore(std::binary_semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 

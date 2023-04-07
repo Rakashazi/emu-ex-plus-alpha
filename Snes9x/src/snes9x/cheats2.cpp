@@ -8,6 +8,7 @@
 #include "cheats.h"
 #include "snes9x.h"
 #include "memmap.h"
+#include <main/wrappers.h>
 
 static inline uint8 S9xGetByteFree(uint32 Address)
 {

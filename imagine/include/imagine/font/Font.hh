@@ -29,7 +29,6 @@
 #include <imagine/font/GlyphMetrics.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/pixmap/Pixmap.hh>
-#include <system_error>
 
 namespace IG
 {
@@ -62,9 +61,9 @@ public:
 	using FontImpl::FontImpl;
 	operator bool() const;
 	int minUsablePixels() const;
-	Glyph glyph(int idx, FontSize &size, std::errc &ec);
-	GlyphMetrics metrics(int idx, FontSize &size, std::errc &ec);
-	FontSize makeSize(FontSettings settings, std::errc &ec);
+	Glyph glyph(int idx, FontSize &);
+	GlyphMetrics metrics(int idx, FontSize &);
+	FontSize makeSize(FontSettings settings);
 };
 
 class FontManager : public FontManagerImpl

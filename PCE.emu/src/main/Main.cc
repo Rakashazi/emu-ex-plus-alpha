@@ -33,6 +33,7 @@ namespace EmuEx
 {
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+bool EmuSystem::hasRectangularPixels = true;
 constexpr double masterClockFrac = 21477272.727273 / 3.;
 constexpr FloatSeconds staticFrameTimeWith262Lines{455. * 262. / masterClockFrac}; // ~60.05Hz
 constexpr FloatSeconds staticFrameTime{455. * 263. / masterClockFrac}; //~59.82Hz

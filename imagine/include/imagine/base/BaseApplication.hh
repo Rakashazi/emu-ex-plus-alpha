@@ -121,8 +121,7 @@ public:
 protected:
 	struct CommandMessage
 	{
-		MainThreadMessageDelegate del{};
-		constexpr explicit operator bool() const { return (bool)del; }
+		MainThreadMessageDelegate del;
 	};
 
 	DelegateFuncSet<ResumeDelegate> onResume_;

@@ -33,8 +33,9 @@ OBJCFLAGS += -fobjc-arc
 ifdef CCTOOLS_TOOCHAIN_PATH
 AR := llvm-ar
 RANLIB := $(AR) s
-CC := $(firstword $(wildcard $(CCTOOLS_TOOCHAIN_PATH)/bin/*-clang))
-CXX := $(firstword $(wildcard $(CCTOOLS_TOOCHAIN_PATH)/bin/*-clang++))
+# Use --no-default-config to prevent distro's Clang config from adding its flags to the build
+CC := $(firstword $(wildcard $(CCTOOLS_TOOCHAIN_PATH)/bin/*-clang)) --no-default-config
+CXX := $(firstword $(wildcard $(CCTOOLS_TOOCHAIN_PATH)/bin/*-clang++)) --no-default-config
 LD := $(CXX)
 iosSimulatorSDKsPath := $(CCTOOLS_TOOCHAIN_PATH)/SDK
 iosSDKsPath := $(CCTOOLS_TOOCHAIN_PATH)/SDK

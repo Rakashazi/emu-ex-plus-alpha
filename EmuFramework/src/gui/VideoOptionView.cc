@@ -365,6 +365,17 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 					app().setVideoAspectRatio(std::bit_cast<float>(item.id()));
 				}, std::bit_cast<MenuItem::Id>(i.aspect.ratio<float>()));
 			}
+			if(EmuSystem::hasRectangularPixels)
+			{
+				aspectRatioItem.emplace_back("Square Pixels", &defaultFace(), [this]()
+				{
+					app().setVideoAspectRatio(-1);
+				}, std::bit_cast<MenuItem::Id>(-1.f));
+			}
+			aspectRatioItem.emplace_back("Fill Display", &defaultFace(), [this]()
+			{
+				app().setVideoAspectRatio(0);
+			}, 0);
 			aspectRatioItem.emplace_back("Custom Value", &defaultFace(), [this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<std::pair<float, float>>(attachParams(), e,
@@ -395,7 +406,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				if(idx == EmuSystem::aspectRatioInfos().size())
+				if(idx == aspectRatioItem.size() - 1)
 				{
 					t.resetString(fmt::format("{:.2f}", app().videoAspectRatio()));
 					return true;
@@ -403,7 +414,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				return false;
 			}
 		},
-		(int)EmuSystem::aspectRatioInfos().size(),
+		std::bit_cast<MenuItem::Id>(app().videoAspectRatio()),
 		aspectRatioItem
 	},
 	zoomItem

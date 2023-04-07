@@ -17,6 +17,7 @@
 
 #include <imagine/base/MessagePort.hh>
 #include <thread>
+#include <variant>
 
 namespace EmuEx
 {
@@ -36,27 +37,24 @@ public:
 		EXIT,
 	};
 
+	struct RunFrameCommand
+	{
+		EmuVideo *video{};
+		EmuAudio *audio{};
+		int8_t frames{};
+		bool skipForward{};
+	};
+
+	struct PauseCommand {};
+	struct ExitCommand {};
+
+	using CommandVariant = std::variant<RunFrameCommand, PauseCommand, ExitCommand>;
+
 	struct CommandMessage
 	{
 		std::binary_semaphore *semPtr{};
-		union Args
-		{
-			struct RunArgs
-			{
-				EmuVideo *video;
-				EmuAudio *audio;
-				int8_t frames;
-				bool skipForward;
-			} run;
-		} args{};
-		Command command{Command::UNSET};
+		CommandVariant command{RunFrameCommand{}};
 
-		constexpr CommandMessage() {}
-		constexpr CommandMessage(Command command, std::binary_semaphore *semPtr = nullptr):
-			semPtr{semPtr}, command{command} {}
-		constexpr CommandMessage(Command command, EmuVideo *video, EmuAudio *audio, int8_t frames, bool skipForward = false):
-			args{video, audio, frames, skipForward}, command{command} {}
-		explicit operator bool() const { return command != Command::UNSET; }
 		void setReplySemaphore(std::binary_semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 

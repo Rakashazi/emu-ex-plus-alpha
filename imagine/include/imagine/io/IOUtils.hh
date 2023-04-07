@@ -23,6 +23,7 @@
 #include <span>
 #include <type_traits>
 #include <optional>
+#include <expected>
 
 namespace IG
 {
@@ -100,31 +101,27 @@ public:
 
 	IOBuffer buffer(BufferMode mode = BufferMode::Direct);
 
-	// TODO: should rework to use std::expected after libc++ update
-	template <class T>
-	T getImpl(IOReadWriteResult<sizeof(T)> *resultOut = {}, std::optional<off_t> offset = {})
+	template <NotPointerDecayable T>
+	std::expected<T, IOReadWriteResult<sizeof(T)>> getExpected(std::optional<off_t> offset = {})
 	{
-		if constexpr(std::is_same_v<T, bool>)
+		#if defined(__clang__) && !defined(NDEBUG)
+		// TODO: Some types don't init properly on Android NDK Clang 14, re-test on updated clang
+		std::expected<T, IOReadWriteResult<sizeof(T)>> tmp;
+		assert(tmp.has_value());
+		#endif
+		T obj;
+		auto result = read(obj, offset);
+		if(result.bytes != ssize_t(sizeof(T))) [[unlikely]]
 		{
-			// special case to convert value to a valid bool
-			return getImpl<uint8_t>(resultOut, offset);
+			return std::unexpected{result};
 		}
-		else
-		{
-			T obj;
-			ssize_t size = static_cast<IO*>(this)->read(static_cast<void*>(&obj), sizeof(T), offset);
-			if(resultOut)
-				*resultOut = size;
-			if(size < (ssize_t)sizeof(T)) [[unlikely]]
-				return {};
-			return obj;
-		}
+		return obj;
 	}
 
-	template <class T>
+	template <NotPointerDecayable T>
 	T get(std::optional<off_t> offset = {})
 	{
-		return getImpl<T>({}, offset);
+		return getExpected<T>(offset).value_or(T{});
 	}
 
 	ssize_t readAtPosGeneric(void *buff, size_t bytes, off_t offset);
@@ -170,8 +167,9 @@ public:
 		if constexpr(std::is_same_v<T, bool>)
 		{
 			// special case to convert byte value to a valid bool
-			IOReadWriteResult<sizeof(bool)> result;
-			obj = getImpl<uint8_t>(&result, offset);
+			uint8_t val;
+			auto result = read(val, offset);
+			obj = val;
 			return result;
 		}
 		else

@@ -106,17 +106,13 @@ Font::operator bool() const
 	return true;
 }
 
-Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
+Font::Glyph Font::glyph(int idx, FontSize &size)
 {
 	auto &mgr = manager();
 	auto env = mgr.app().thisThreadJniEnv();
 	auto [bitmap, metrics] = mgr.makeBitmap(env, idx, size);
 	if(!bitmap)
-	{
-		ec = std::errc::invalid_argument;
 		return {};
-	}
-	ec = {};
 	void *data{};
 	auto res = AndroidBitmap_lockPixels(env, bitmap, &data);
 	auto pix = makePixmapView(env, bitmap, data, PIXEL_A8);
@@ -125,32 +121,24 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 	return {{{env, bitmap, mgr.recycleBitmapMethod()}, pix}, metrics};
 }
 
-GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
+GlyphMetrics Font::metrics(int idx, FontSize &size)
 {
 	auto &mgr = manager();
 	auto env = mgr.app().thisThreadJniEnv();
 	auto metrics = mgr.makeMetrics(env, idx, size);
-	if(!metrics.size.x)
-	{
-		ec = std::errc::invalid_argument;
+	if(!metrics)
 		return {};
-	}
-	ec = {};
 	return metrics;
 }
 
-FontSize Font::makeSize(FontSettings settings, std::errc &ec)
+FontSize Font::makeSize(FontSettings settings)
 {
 	auto &mgr = manager();
 	auto env = mgr.app().thisThreadJniEnv();
 	auto paint = mgr.makePaint(env, settings.pixelHeight(), weight);
 	if(!paint)
-	{
-		ec = std::errc::invalid_argument;
 		return {};
-	}
-	logMsg("allocated new size %dpx @ 0x%p", settings.pixelHeight(), paint);
-	ec = {};
+	logMsg("allocated new size %dpx @ %p", settings.pixelHeight(), paint);
 	return {{env, paint}};
 }
 

@@ -142,6 +142,7 @@ namespace EmuEx
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nYabause Team\nyabause.org";
 bool EmuSystem::handlesGenericIO = false;
+bool EmuSystem::hasRectangularPixels = true;
 static EmuSystemTaskContext emuSysTask{};
 static EmuAudio *emuAudio{};
 static EmuVideo *emuVideo{};

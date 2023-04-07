@@ -19,7 +19,6 @@
 #include <imagine/font/Font.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/util/container/VMemArray.hh>
-#include <system_error>
 #include <string_view>
 
 namespace IG::Gfx
@@ -68,7 +67,7 @@ private:
 
 	void calcMetrics(Renderer &r);
 	void resetGlyphTable();
-	std::errc cacheChar(Renderer &r, int c, int tableIdx);
+	bool cacheChar(Renderer &r, int c, int tableIdx);
 };
 
 }

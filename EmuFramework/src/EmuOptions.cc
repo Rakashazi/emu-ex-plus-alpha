@@ -257,11 +257,13 @@ bool EmuApp::setOverlayEffectLevel(EmuVideoLayer &videoLayer, uint8_t val)
 
 bool isValidAspectRatio(float val)
 {
-	return val == -1. || (val >= 0.1 && val <= 10.);
+	return val == -1.f || (val >= 0.1f && val <= 10.f);
 }
 
 bool EmuApp::setVideoAspectRatio(float ratio)
 {
+	if(ratio == 0.f)
+		ratio = viewController().emuWindow().size().ratio<float>();
 	if(!isValidAspectRatio(ratio))
 		return false;
 	logMsg("set aspect ratio:%.2f", ratio);
