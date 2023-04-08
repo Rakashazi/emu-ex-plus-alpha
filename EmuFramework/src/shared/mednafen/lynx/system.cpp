@@ -352,9 +352,11 @@ void Lynx_SetPixelFormat(MDFN_PixelFormat format)
 	lynxie->DisplaySetAttributes(format, {});
 }
 
-uint8 Lynx_HCount()
+int Lynx_HCount()
 {
-	return lynxie->mMikie->Peek(0);
+	int hCount = lynxie->mMikie->Peek(0) + 1;
+	constexpr int minHCount = 121;
+	return hCount >= minHCount ? hCount : 159;
 }
 
 void Lynx_SetSoundRate(long rate)

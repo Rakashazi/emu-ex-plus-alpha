@@ -80,7 +80,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{:.2f}", app().fontSize() / 1000.));
+				t.resetString(fmt::format("{:g}", app().fontSize() / 1000.));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setFontSize(item.id()); }

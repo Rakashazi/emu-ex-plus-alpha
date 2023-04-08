@@ -409,10 +409,7 @@ void C64System::handleKeyboardInput(InputAction a, bool positionalShift)
 	{
 		mod |= KBD_MOD_SHIFTLOCK;
 	}
-	if(a.state == Input::Action::PUSHED)
-		plugin.keyboard_key_pressed(a.key, mod);
-	else
-		plugin.keyboard_key_released(a.key, mod);
+	plugin.keyboard_key_pressed_direct(a.key, mod, a.state == Input::Action::PUSHED);
 }
 
 void C64System::handleInputAction(EmuApp *app, InputAction a)
@@ -582,7 +579,7 @@ signed long kbd_arch_keyname_to_keynum(char *keynamePtr)
 	else if(keyname == "F6") { return c64KeyF6; }
 	else if(keyname == "F7") { return c64KeyF7; }
 	else if(keyname == "F8") { return c64KeyF8; }
-	else if(keyname == "underscore") { return c64KeyLeftArrow; }
+	else if(keyname == "End") { return c64KeyLeftArrow; }
 	else if(keyname == "1") { return c64Key1; }
 	else if(keyname == "2") { return c64Key2; }
 	else if(keyname == "3") { return c64Key3; }

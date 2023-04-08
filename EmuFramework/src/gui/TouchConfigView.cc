@@ -112,7 +112,7 @@ public:
 			{
 				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 				{
-					t.resetString(fmt::format("{:.2f}mm", elem.dPad()->deadzone() / 100.));
+					t.resetString(fmt::format("{:g}mm", elem.dPad()->deadzone() / 100.));
 					return true;
 				},
 				.defaultItemOnSelect = [this](TextMenuItem &item) { elem.dPad()->setDeadzone(renderer(), item.id(), window()); }
@@ -158,7 +158,7 @@ public:
 			{
 				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 				{
-					t.resetString(fmt::format("{:.1f}%", 100.f - elem.dPad()->diagonalSensitivity() * 100.f));
+					t.resetString(fmt::format("{:g}%", 100.f - elem.dPad()->diagonalSensitivity() * 100.f));
 					return true;
 				},
 				.defaultItemOnSelect = [this](TextMenuItem &item) { elem.dPad()->setDiagonalSensitivity(renderer(), float(item.id()) / 1000.f); }
@@ -755,7 +755,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{:.1f}mm", vController().buttonSize() / 100.));
+				t.resetString(fmt::format("{:g}mm", vController().buttonSize() / 100.));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item){ vController().setButtonSize(item.id()); }

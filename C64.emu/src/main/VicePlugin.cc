@@ -494,16 +494,6 @@ int VicePlugin::cbmimage_create_image(const char *name, unsigned int type)
 	return cbmimage_create_image_(name, type);
 }
 
-void VicePlugin::keyboard_key_pressed(signed long key, int mod)
-{
-	keyboard_key_pressed_(key, mod);
-}
-
-void VicePlugin::keyboard_key_released(signed long key, int mod)
-{
-	keyboard_key_released_(key, mod);
-}
-
 void VicePlugin::keyboard_key_clear(void)
 {
 	keyboard_key_clear_();
@@ -600,8 +590,7 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 	loadSymbolCheck(plugin.video_render_initraw_, lib, "video_render_initraw");
 	loadSymbolCheck(plugin.vdrive_internal_create_format_disk_image_, lib, "vdrive_internal_create_format_disk_image");
 	loadSymbolCheck(plugin.cbmimage_create_image_, lib, "cbmimage_create_image");
-	loadSymbolCheck(plugin.keyboard_key_pressed_, lib, "keyboard_key_pressed");
-	loadSymbolCheck(plugin.keyboard_key_released_, lib, "keyboard_key_released");
+	loadSymbolCheck(plugin.keyboard_key_pressed_direct_, lib, "keyboard_key_pressed_direct");
 	loadSymbolCheck(plugin.keyboard_key_clear_, lib, "keyboard_key_clear");
 	loadSymbolCheck(plugin.vsync_set_warp_mode_, lib, "vsync_set_warp_mode");
 	return plugin;

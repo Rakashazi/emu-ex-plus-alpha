@@ -95,8 +95,7 @@ VICE_API int uimon_out(const char *buffer);
 
 VICE_API int cbmimage_create_image(const char *name, unsigned int type);
 
-VICE_API void keyboard_key_pressed(signed long key, int mod);
-VICE_API void keyboard_key_released(signed long key, int mod);
+VICE_API void keyboard_key_pressed_direct(signed long key, int mod, int pressed);
 VICE_API void keyboard_key_clear(void);
 
 VICE_API void vsync_set_warp_mode(int val);

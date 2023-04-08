@@ -113,7 +113,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{:.2f}x", app().altSpeedAsDouble(AltSpeedMode::fast)));
+				t.resetString(fmt::format("{:g}x", app().altSpeedAsDouble(AltSpeedMode::fast)));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setAltSpeed(AltSpeedMode::fast, item.id()); }
@@ -154,7 +154,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{:.2f}x", app().altSpeedAsDouble(AltSpeedMode::slow)));
+				t.resetString(fmt::format("{:g}x", app().altSpeedAsDouble(AltSpeedMode::slow)));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setAltSpeed(AltSpeedMode::slow, item.id()); }

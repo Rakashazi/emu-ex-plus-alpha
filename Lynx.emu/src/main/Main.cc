@@ -28,14 +28,14 @@
 #include <mednafen/video/surface.h>
 
 void Lynx_SetPixelFormat(Mednafen::MDFN_PixelFormat);
-uint8 Lynx_HCount();
+int Lynx_HCount();
 bool Lynx_SetSoundRate(long rate);
 long Lynx_GetSoundRate();
 
 namespace EmuEx
 {
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
 bool EmuApp::needsGlobalInstance = true;
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
@@ -97,8 +97,7 @@ bool LynxSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 static auto microsecondsPerFrame()
 {
 	static constexpr int linesPerFrame = 105;
-	static constexpr uint8_t minHCount = 120, maxHCount = 255;
-	return Microseconds{(std::clamp(Lynx_HCount(), minHCount, maxHCount) + 1) * linesPerFrame};
+	return Microseconds{Lynx_HCount() * linesPerFrame};
 }
 
 FloatSeconds LynxSystem::frameTime() const { return FloatSeconds{microsecondsPerFrame()}; }

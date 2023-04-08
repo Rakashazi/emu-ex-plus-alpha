@@ -702,6 +702,12 @@ static void kbd_key_pressed(signed long key, int mod, int pressed)
     }
 }
 
+void keyboard_key_pressed_direct(signed long key, int mod, int pressed)
+{
+	kbd_key_pressed(key, mod, pressed);
+	keyboard_latch_matrix(0);
+}
+
 /* keyboard alarm handler, this consumes the host keyboard queue */
 static void keyboard_alarm_handler(CLOCK offset, void *data)
 {

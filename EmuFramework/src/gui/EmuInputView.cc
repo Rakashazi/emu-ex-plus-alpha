@@ -103,18 +103,16 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 					isPushed ? "pushed" : "released", keyEv.device()->keyName(keyEv.key()),
 					keyEv.device()->name()));
 			}
-			if(!isRepeated)
+			for(auto action : actionGroup)
 			{
-				for(auto action : actionGroup)
-				{
-					if(!action)
-						break;
-					using namespace Controls;
-					didAction = true;
-					action--; // action values are offset by 1 due to the null action value
-					if(emuApp.handleKeyInput({action, keyEv.state(), keyEv.metaKeyBits()}, e))
-						break;
-				}
+				if(!action)
+					break;
+				didAction = true;
+				if(isRepeated) // only consume the event
+					break;
+				action--; // action values are offset by 1 due to the null action value
+				if(emuApp.handleKeyInput({action, keyEv.state(), keyEv.metaKeyBits()}, e))
+					break;
 			}
 			return didAction
 				|| keyEv.isGamepad() // consume all gamepad events

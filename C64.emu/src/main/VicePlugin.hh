@@ -93,8 +93,7 @@ struct VicePlugin
 	void (*video_render_initraw_)(struct video_render_config_s *videoconfig){};
 	int (*vdrive_internal_create_format_disk_image_)(const char *filename, const char *diskname, unsigned int type);
 	int (*cbmimage_create_image_)(const char *name, unsigned int type){};
-	void (*keyboard_key_pressed_)(signed long key, int mod){};
-	void (*keyboard_key_released_)(signed long key, int mod){};
+	void (*keyboard_key_pressed_direct_)(signed long key, int mod, int pressed){};
 	void (*keyboard_key_clear_)(void){};
 	void (*vsync_set_warp_mode_)(int val){};
 	int8_t defaultModelId{};
@@ -145,8 +144,7 @@ struct VicePlugin
 	void video_render_initraw(struct video_render_config_s *videoconfig);
 	int vdrive_internal_create_format_disk_image(const char *filename, const char *diskname, unsigned int type);
 	int cbmimage_create_image(const char *name, unsigned int type);
-	void keyboard_key_pressed(signed long key, int mod);
-	void keyboard_key_released(signed long key, int mod);
+	void keyboard_key_pressed_direct(signed long key, int mod, int pressed) { keyboard_key_pressed_direct_(key, mod, pressed); }
 	void keyboard_key_clear(void);
 	void vsync_set_warp_mode(int val);
 

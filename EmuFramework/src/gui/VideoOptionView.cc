@@ -116,7 +116,7 @@ public:
 			{
 				waitForDrawFinished();
 				if(detectedFrameTime.count())
-					fpsText.resetString(fmt::format("{:.2f}fps", 1. / detectedFrameTime.count()));
+					fpsText.resetString(fmt::format("{:g}fps", 1. / detectedFrameTime.count()));
 				else
 					fpsText.resetString("0fps");
 				fpsText.compile(renderer());
@@ -178,7 +178,7 @@ static std::string makeFrameRateStr(VideoSystem vidSys, const OutputTimingManage
 	else if(frameTimeOpt == OutputTimingManager::originalOption)
 		return "Original";
 	else
-		return fmt::format("{:.2f}Hz", 1. / frameTimeOpt.count());
+		return fmt::format("{:g}Hz", 1. / frameTimeOpt.count());
 }
 
 static const char *autoWindowPixelFormatStr(IG::ApplicationContext ctx)
@@ -297,6 +297,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						}
 					};
 				pushAndShowModal(std::move(frView), e);
+				return false;
 			}
 		},
 		{"Custom Rate", &defaultFace(),
@@ -314,6 +315,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						else
 							return false;
 					});
+				return false;
 			}, MenuItem::DEFAULT_ID
 		},
 	},
@@ -408,7 +410,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			{
 				if(idx == aspectRatioItem.size() - 1)
 				{
-					t.resetString(fmt::format("{:.2f}", app().videoAspectRatio()));
+					t.resetString(fmt::format("{:g}", app().videoAspectRatio()));
 					return true;
 				}
 				return false;
@@ -925,7 +927,7 @@ bool VideoOptionView::onFrameTimeChange(VideoSystem vidSys, FloatSeconds time)
 {
 	if(!app().outputTimingManager.setFrameTimeOption(vidSys, time))
 	{
-		app().postMessage(4, true, fmt::format("{:.2f}Hz not in valid range", 1. / time.count()));
+		app().postMessage(4, true, fmt::format("{:g}Hz not in valid range", 1. / time.count()));
 		return false;
 	}
 	return true;
