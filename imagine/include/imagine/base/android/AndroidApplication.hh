@@ -113,7 +113,7 @@ public:
 	Input::AndroidInputDevice *inputDeviceForId(int id) const;
 	std::pair<Input::AndroidInputDevice*, int> inputDeviceForEvent(AInputEvent *);
 	void enumInputDevices(ApplicationContext ctx, JNIEnv *, jobject baseActivity, bool notify);
-	bool processInputEvent(AInputEvent*, Window &);
+	bool processInputEvent(AInputEvent*, Input::AndroidInputDevice *, int devId, Window &);
 	bool hasTrackball() const;
 	void flushSystemInputEvents();
 	bool hasPendingInputQueueEvents() const;

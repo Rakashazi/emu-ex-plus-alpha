@@ -200,7 +200,7 @@ static std::pair<Input::Action, Input::Key> mouseEventAction(uint32_t e, AInputE
 	}
 }
 
-bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
+bool AndroidApplication::processInputEvent(AInputEvent* event, Input::AndroidInputDevice *devPtr, int devId, Window &win)
 {
 	using namespace IG::Input;
 	auto type = AInputEvent_getType(event);
@@ -215,8 +215,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 			{
 				case AINPUT_SOURCE_CLASS_POINTER:
 				{
-					auto [dev, devId] = inputDeviceForEvent(event);
-					if(!dev) [[unlikely]]
+					if(!devPtr) [[unlikely]]
 					{
 						logWarn("pointer motion event from unknown device ID: %d", devId);
 						return false;
@@ -231,7 +230,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 						bool handled = false;
 						auto action = touchEventAction(actionCode);
 						//logMsg("touch motion event: id:%d (%s) action:%s pointers:%d:%d",
-						//	devId, dev->name().data(), actionStr(action), (int)pointers, actionPIdx);
+						//	devId, devPtr->name().data(), actionStr(action), (int)pointers, actionPIdx);
 						for(auto i : iotaCount(pointers))
 						{
 							auto pAction = action;
@@ -244,18 +243,18 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 							auto pos = win.transformInputPos({(int)AMotionEvent_getX(event, i), (int)AMotionEvent_getY(event, i)});
 							auto pId = AMotionEvent_getPointerId(event, i);
 							handled |= win.dispatchInputEvent(MotionEvent{Input::Map::POINTER, Input::Pointer::LBUTTON,
-								metaState, pAction, pos.x, pos.y, pId, src, makeTimeFromMotionEvent(event), dev});
+								metaState, pAction, pos.x, pos.y, pId, src, makeTimeFromMotionEvent(event), devPtr});
 						}
 						return handled;
 					}
 					else // mouse
 					{
 						auto [action, btnState] = mouseEventAction(actionCode, event, win.appContext().androidSDK());
-						//logMsg("mouse motion event: id:%d (%s) action:%s buttons:%d", devId, dev->name().data(), actionStr(action), btnState);
+						//logMsg("mouse motion event: id:%d (%s) action:%s buttons:%d", devId, devPtr->name().data(), actionStr(action), btnState);
 						auto pos = win.transformInputPos({(int)AMotionEvent_getX(event, 0), (int)AMotionEvent_getY(event, 0)});
 						auto pId = AMotionEvent_getPointerId(event, 0);
 						return win.dispatchInputEvent(MotionEvent{Input::Map::POINTER, btnState,
-							metaState, action, pos.x, pos.y, pId, src, makeTimeFromMotionEvent(event), dev});
+							metaState, action, pos.x, pos.y, pId, src, makeTimeFromMotionEvent(event), devPtr});
 					}
 				}
 				case AINPUT_SOURCE_CLASS_NAVIGATION:
@@ -279,30 +278,29 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 				}
 				case AINPUT_SOURCE_CLASS_JOYSTICK:
 				{
-					auto [dev, devId] = inputDeviceForEvent(event);
-					if(!dev) [[unlikely]]
+					if(!devPtr) [[unlikely]]
 					{
 						logWarn("joystick motion event from unknown device ID:%d", devId);
 						return false;
 					}
-					//logMsg("joystick motion event: id:%d (%s)", devId, dev->name().data());
+					//logMsg("joystick motion event: id:%d (%s)", devId, devPtr->name().data());
 					auto time = makeTimeFromMotionEvent(event);
 					if(hasGetAxisValue())
 					{
-						for(auto &axis : dev->jsAxes())
+						for(auto &axis : devPtr->jsAxes())
 						{
 							auto pos = AMotionEvent_getAxisValue(event, (int32_t)axis.id(), 0);
 							//logMsg("axis %d with value: %f", axis.id, (double)pos);
-							axis.update(pos, Map::SYSTEM, time, *dev, win, true);
+							axis.update(pos, Map::SYSTEM, time, *devPtr, win, true);
 						}
 					}
 					else
 					{
 						// no getAxisValue, can only use 2 axis values (X and Y)
-						for(auto i : iotaCount(std::min(dev->jsAxes().size(), 2uz)))
+						for(auto i : iotaCount(std::min(devPtr->jsAxes().size(), 2uz)))
 						{
 							auto pos = i ? AMotionEvent_getY(event, 0) : AMotionEvent_getX(event, 0);
-							dev->jsAxes()[i].update(pos, Map::SYSTEM, time, *dev, win, true);
+							devPtr->jsAxes()[i].update(pos, Map::SYSTEM, time, *devPtr, win, true);
 						}
 					}
 					return true;
@@ -318,7 +316,6 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 		case AINPUT_EVENT_TYPE_KEY:
 		{
 			auto keyCode = AKeyEvent_getKeyCode(event);
-			auto [dev, devID] = inputDeviceForEvent(event);
 			auto repeatCount = AKeyEvent_getRepeatCount(event);
 			auto source = AInputEvent_getSource(event);
 			auto eventSource = isFromSource(source, AINPUT_SOURCE_GAMEPAD) ? Source::GAMEPAD : Source::KEYBOARD;
@@ -332,7 +329,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 					// a repeat count.
 					return repeatCount != 0 && devID == mostRecentKeyEventDevID;
 				};
-			if(!keyWasReallyRepeated(devID, mostRecentKeyEventDevID, repeatCount))
+			if(!keyWasReallyRepeated(devId, mostRecentKeyEventDevID, repeatCount))
 			{
 				if(repeatCount)
 				{
@@ -340,27 +337,27 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 				}
 				repeatCount = 0;
 			}
-			mostRecentKeyEventDevID = devID;
-			if(!dev) [[unlikely]]
+			mostRecentKeyEventDevID = devId;
+			if(!devPtr) [[unlikely]]
 			{
 				if(virtualDev)
 				{
 					//logWarn("re-mapping key event unknown device ID %d to Virtual", devID);
-					dev = virtualDev;
+					devPtr = virtualDev;
 				}
 				else
 				{
-					logWarn("key event from unknown device ID:%d", devID);
+					logWarn("key event from unknown device ID:%d", devId);
 					return false;
 				}
 			}
 			if(Config::DEBUG_BUILD)
 			{
-				//logMsg("key event: code:%d id:%d (%s) repeat:%d action:%s source:%s", keyCode, devID, dev->name().data(),
+				//logMsg("key event: code:%d id:%d (%s) repeat:%d action:%s source:%s", keyCode, devId, devPtr->name().data(),
 				//	repeatCount, keyEventActionStr(AKeyEvent_getAction(event)), sourceStr(eventSource));
 			}
 			auto metaState = AKeyEvent_getMetaState(event);
-			auto [mappedKeyCode, mappedSource] = mapKeycodesForSpecialDevices(*dev, keyCode, metaState, eventSource, event);
+			auto [mappedKeyCode, mappedSource] = mapKeycodesForSpecialDevices(*devPtr, keyCode, metaState, eventSource, event);
 			keyCode = mappedKeyCode;
 			eventSource = mappedSource;
 			if(!keyCode) [[unlikely]] // ignore "unknown" key codes
@@ -373,7 +370,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Window &win)
 			cancelKeyRepeatTimer();
 			Key key = keyCode & 0x1ff;
 			return dispatchKeyInputEvent({Map::SYSTEM, key, key, action, (uint32_t)metaState,
-				repeatCount, eventSource, time, dev}, win);
+				repeatCount, eventSource, time, devPtr}, win);
 		}
 	}
 	logWarn("unknown input event type:%d", type);
@@ -389,12 +386,15 @@ void AndroidApplication::processInputCommon(AInputQueue *inputQueue, AInputEvent
 		AInputQueue_finishEvent(inputQueue, event, 0);
 		return;
 	}
-	if(AInputQueue_preDispatchEvent(inputQueue, event))
+	auto [devPtr, devId] = inputDeviceForEvent(event);
+	// Don't pre-dispatch physical device events since IMEs like SwiftKey
+	// can intercept and replace them with virtual events
+	if(devId == -1 && AInputQueue_preDispatchEvent(inputQueue, event))
 	{
 		//logMsg("event used by pre-dispatch");
 		return;
 	}
-	auto handled = processInputEvent(event, *deviceWindow());
+	auto handled = processInputEvent(event, devPtr, devId, *deviceWindow());
 	AInputQueue_finishEvent(inputQueue, event, handled);
 	//logMsg("input event end: %s", handled ? "handled" : "not handled");
 }
