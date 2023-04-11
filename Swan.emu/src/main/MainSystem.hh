@@ -87,7 +87,6 @@ class WsSystem final: public EmuSystem
 public:
 	Mednafen::MDFNGI mdfnGameInfo{EmulatedWSwan};
 	FileIO saveFileIO;
-	uint16_t inputBuff{};
 	IG::MutablePixmapView mSurfacePix{};
 	static constexpr IP vidBufferPx{224, 144};
 	alignas(8) uint32_t pixBuff[vidBufferPx.x * vidBufferPx.y]{};
@@ -102,8 +101,8 @@ public:
 		EmuSystem{ctx}
 	{
 		Mednafen::MDFNGameInfo = &mdfnGameInfo;
-		mdfnGameInfo.SetInput(0, "gamepad", (uint8*)&inputBuff);
 	}
+
 	void setShowVGamepadYWhenHorizonal(bool);
 	void setShowVGamepadABWhenVertical(bool);
 	void setRotation(WsRotation);

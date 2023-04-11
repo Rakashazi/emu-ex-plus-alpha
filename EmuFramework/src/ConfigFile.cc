@@ -361,6 +361,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 	if(!BluetoothAdapter::scanCacheUsage())
 		writeOptionValue(io, CFGKEY_BLUETOOTH_SCAN_CACHE, false);
 	#endif
+	if(used(cpuAffinityMask) && cpuAffinityMask)
+		writeOptionValue(io, CFGKEY_CPU_AFFINITY_MASK, cpuAffinityMask);
 
 	if(customKeyConfigs.size())
 	{
@@ -617,6 +619,10 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					case CFGKEY_BLUETOOTH_SCAN_CACHE: return readOptionValue<bool>(io, size, [](auto on){BluetoothAdapter::setScanCacheUsage(on);});
 					#endif
 				#endif
+				case CFGKEY_CPU_AFFINITY_MASK:
+					if(used(cpuAffinityMask))
+						return readOptionValue(io, size, cpuAffinityMask);
+					return false;
 				case CFGKEY_SOUND_BUFFERS: return optionSoundBuffers.readFromIO(io, size);
 				case CFGKEY_SOUND_VOLUME: return optionSoundVolume.readFromIO(io, size);
 				case CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: return optionAddSoundBuffersOnUnderrun.readFromIO(io, size);

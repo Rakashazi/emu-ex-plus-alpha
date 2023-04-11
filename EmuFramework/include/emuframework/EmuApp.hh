@@ -357,6 +357,9 @@ public:
 	int16_t altSpeed(AltSpeedMode mode) const { return altSpeedRef(mode); }
 	double altSpeedAsDouble(AltSpeedMode mode) const { return altSpeed(mode) / 100.; }
 	auto &sustainedPerformanceModeOption() { return optionSustainedPerformanceMode; }
+	void setCPUAffinity(int cpuNumber, bool on);
+	bool cpuAffinity(int cpuNumber);
+	void applyCPUAffinity();
 
 	// GUI Options
 	auto &pauseUnfocusedOption() { return optionPauseUnfocused; }
@@ -536,6 +539,7 @@ protected:
 	RecentContentList recentContentList;
 	std::string userScreenshotDir;
 	Byte4Option optionSoundRate;
+	IG_UseMemberIf(Config::envIsAndroid || Config::envIsLinux, uint32_t, cpuAffinityMask){};
 	static constexpr int16_t defaultFastModeSpeed{800};
 	static constexpr int16_t defaultSlowModeSpeed{50};
 	int16_t fastModeSpeed{defaultFastModeSpeed};

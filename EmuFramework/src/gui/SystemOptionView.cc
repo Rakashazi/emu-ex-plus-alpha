@@ -16,6 +16,7 @@
 #include <emuframework/SystemOptionView.hh>
 #include <emuframework/EmuApp.hh>
 #include "../EmuOptions.hh"
+#include "CPUAffinityView.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/fs/FS.hh>
@@ -171,6 +172,14 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			app().sustainedPerformanceModeOption() = item.flipBoolValue(*this);
 		}
+	},
+	cpuAffinity
+	{
+		"Override CPU Affinity", &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeView<CPUAffinityView>(appContext().cpuCount()), e);
+		}
 	}
 {
 	if(!customMenu)
@@ -189,6 +198,8 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&slowModeSpeed);
 	if(used(performanceMode))
 		item.emplace_back(&performanceMode);
+	if(used(cpuAffinity) && appContext().cpuCount() > 1)
+		item.emplace_back(&cpuAffinity);
 }
 
 }

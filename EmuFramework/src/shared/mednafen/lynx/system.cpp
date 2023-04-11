@@ -374,6 +374,11 @@ void Lynx_SetLowpassFilter(bool on)
 	lynxie->mMikie->miksynth.treble_eq(on ? -35 : 0);
 }
 
+void Lynx_SetButtonData(uint32 data)
+{
+	lynxie->SetButtonData(data);
+}
+
 static void Emulate(EmulateSpecStruct *espec)
 {
  espec->DisplayRect.x = 0;
@@ -383,7 +388,7 @@ static void Emulate(EmulateSpecStruct *espec)
 
  uint16 butt_data = chee[0] | (chee[1] << 8);
 
- lynxie->SetButtonData(butt_data);
+ //lynxie->SetButtonData(butt_data);
 
  MDFNMP_ApplyPeriodicCheats();
 

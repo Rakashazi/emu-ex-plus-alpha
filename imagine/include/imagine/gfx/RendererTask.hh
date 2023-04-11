@@ -64,6 +64,7 @@ public:
 	SyncFence clientWaitSyncReset(SyncFence fence, int flags = 0, std::chrono::nanoseconds timeout = SyncFence::IGNORE_TIMEOUT);
 	void waitSync(SyncFence fence);
 	void awaitPending();
+	pid_t threadId() const;
 };
 
 }

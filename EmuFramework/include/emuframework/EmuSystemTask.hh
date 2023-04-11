@@ -16,11 +16,13 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/MessagePort.hh>
-#include <thread>
+#include <imagine/thread/Thread.hh>
 #include <variant>
 
 namespace EmuEx
 {
+
+using namespace IG;
 
 class EmuVideo;
 class EmuAudio;
@@ -68,11 +70,13 @@ public:
 	void sendScreenshotReply(bool success);
 	EmuApp &app() const;
 	bool resetVideoFormatChanged() { return std::exchange(videoFormatChanged, false); }
+	auto threadId() const { return threadId_; }
 
 private:
 	EmuApp *appPtr{};
 	IG::MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
 	std::thread taskThread;
+	ThreadId threadId_{};
 	bool videoFormatChanged{};
 };
 

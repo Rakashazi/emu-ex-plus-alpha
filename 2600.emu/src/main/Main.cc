@@ -169,9 +169,6 @@ void A2600System::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAud
 	auto &console = os.console();
 	auto &sound = os.soundEmuEx();
 	sound.setEmuAudio(audio);
-	console.leftController().update();
-	console.rightController().update();
-	console.switches().update();
 	console.riot().update();
 	auto &tia = console.tia();
 	static constexpr uInt64 maxCyclesPerFrame = 32768;

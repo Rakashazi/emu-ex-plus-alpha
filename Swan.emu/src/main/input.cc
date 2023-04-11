@@ -18,6 +18,11 @@
 #include "MainSystem.hh"
 #include "MainApp.hh"
 
+namespace MDFN_IEN_WSWAN
+{
+extern uint16 WSButtonStatus;
+}
+
 namespace EmuEx
 {
 
@@ -253,12 +258,13 @@ InputAction WsSystem::translateInputAction(InputAction action)
 
 void WsSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	inputBuff = IG::setOrClearBits(inputBuff, (uint16_t)a.key, a.state == Input::Action::PUSHED);
+	using namespace MDFN_IEN_WSWAN;
+	WSButtonStatus = setOrClearBits(WSButtonStatus, uint16_t(a.key), a.state == Input::Action::PUSHED);
 }
 
 void WsSystem::clearInputBuffers(EmuInputView &)
 {
-	inputBuff = {};
+	MDFN_IEN_WSWAN::WSButtonStatus = {};
 }
 
 void WsSystem::setupInput(EmuApp &app)

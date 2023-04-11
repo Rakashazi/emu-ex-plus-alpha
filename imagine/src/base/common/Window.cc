@@ -139,21 +139,12 @@ Screen *Window::screen() const
 
 bool Window::setNeedsDraw(bool needsDraw)
 {
-	if(needsDraw)
+	if(needsDraw && (!hasSurface() || drawEventPriority() == drawEventPriorityLocked))
 	{
-		if(!hasSurface()) [[unlikely]]
-		{
-			drawNeeded = false;
-			return false;
-		}
-		drawNeeded = true;
-		return true;
+		needsDraw = false;
 	}
-	else
-	{
-		drawNeeded = false;
-		return false;
-	}
+	drawNeeded = needsDraw;
+	return needsDraw;
 }
 
 bool Window::needsDraw() const

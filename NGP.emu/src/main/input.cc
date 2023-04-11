@@ -17,6 +17,7 @@
 #include <emuframework/EmuInput.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
+#include <mednafen/ngp/mem.h>
 
 namespace EmuEx
 {
@@ -143,12 +144,14 @@ InputAction NgpSystem::translateInputAction(InputAction action)
 
 void NgpSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	inputBuff = IG::setOrClearBits(inputBuff, (uint8_t)a.key, a.state == Input::Action::PUSHED);
+	inputBuff = setOrClearBits(inputBuff, uint8_t(a.key), a.state == Input::Action::PUSHED);
+	MDFN_IEN_NGP::storeB(0x6F82, inputBuff);
 }
 
 void NgpSystem::clearInputBuffers(EmuInputView &)
 {
 	inputBuff = {};
+	MDFN_IEN_NGP::storeB(0x6F82, 0);
 }
 
 SystemInputDeviceDesc NgpSystem::inputDeviceDesc(int idx) const

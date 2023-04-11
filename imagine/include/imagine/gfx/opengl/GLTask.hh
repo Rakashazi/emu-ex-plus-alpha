@@ -20,6 +20,7 @@
 #include <imagine/base/MessagePort.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/thread/Semaphore.hh>
+#include <imagine/thread/Thread.hh>
 #include <imagine/util/utility.h>
 #include <concepts>
 #include <thread>
@@ -117,6 +118,7 @@ protected:
 	GLBufferConfig bufferConfig{};
 	OnExit onExit;
 	MessagePort<CommandMessage> commandPort{MessagePort<CommandMessage>::NullInit{}};
+	ThreadId threadId_{};
 
 	GLContext makeGLContext(GLManager &, GLBufferConfig bufferConf);
 	void deinit();

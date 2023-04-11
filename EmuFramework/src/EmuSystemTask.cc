@@ -34,6 +34,7 @@ void EmuSystemTask::start()
 	taskThread = makeThreadSync(
 		[this](auto &sem)
 		{
+			threadId_ = thisThreadId();
 			auto eventLoop = IG::EventLoop::makeForThread();
 			bool started = true;
 			commandPort.attach(eventLoop,
@@ -92,6 +93,7 @@ void EmuSystemTask::stop()
 		return;
 	commandPort.send({.command = ExitCommand{}});
 	taskThread.join();
+	threadId_ = 0;
 	app().flushMainThreadMessages();
 }
 
@@ -127,11 +129,7 @@ void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video, std::binary_semaphor
 	}
 	else
 	{
-		app().runOnMainThread(
-			[&video](IG::ApplicationContext)
-			{
-				video.dispatchFrameFinished();
-			});
+		video.dispatchFrameFinished();
 	}
 }
 

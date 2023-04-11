@@ -113,6 +113,7 @@ public:
 	Screen &mainScreen();
 
 	NativeDisplayConnection nativeDisplayConnection() const;
+	int cpuCount() const;
 
 	// App Callbacks
 

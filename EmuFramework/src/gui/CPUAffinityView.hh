@@ -18,33 +18,20 @@
 #include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/util/container/ArrayList.hh>
+#include <vector>
 
 namespace EmuEx
 {
 
 using namespace IG;
 
-class SystemOptionView : public TableView, public EmuAppHelper<SystemOptionView>
+class CPUAffinityView : public TableView, public EmuAppHelper<CPUAffinityView>
 {
 public:
-	SystemOptionView(ViewAttachParams attach, bool customMenu = false);
-	void loadStockItems();
+	CPUAffinityView(ViewAttachParams attach, int cpuCount);
 
 protected:
-	TextMenuItem autosaveTimerItem[4];
-	MultiChoiceMenuItem autosaveTimer;
-	TextMenuItem autosaveLaunchItem[4];
-	MultiChoiceMenuItem autosaveLaunch;
-	BoolMenuItem autosaveContent;
-	BoolMenuItem confirmOverwriteState;
-	TextMenuItem fastModeSpeedItem[6];
-	MultiChoiceMenuItem fastModeSpeed;
-	TextMenuItem slowModeSpeedItem[3];
-	MultiChoiceMenuItem slowModeSpeed;
-	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
-	IG_UseMemberIf(Config::envIsAndroid || Config::envIsLinux, TextMenuItem, cpuAffinity);
-	StaticArrayList<MenuItem*, 27> item;
+	std::vector<BoolMenuItem> cpuAffinityItems;
 };
 
 }

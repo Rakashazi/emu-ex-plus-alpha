@@ -88,7 +88,7 @@ static void Emulate(EmulateSpecStruct *espec)
  espec->DisplayRect.w = 224;
  espec->DisplayRect.h = 144;
 
- WSButtonStatus = MDFN_de16lsb(PortDeviceData);
+ //WSButtonStatus = MDFN_de16lsb(PortDeviceData);
  
  MDFNMP_ApplyPeriodicCheats();
 

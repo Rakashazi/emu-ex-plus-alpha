@@ -40,6 +40,7 @@ bool GLTask::makeGLContext(GLTaskConfig config)
 	thread = IG::makeThreadSync(
 		[this, &config](auto &sem)
 		{
+			threadId_ = thisThreadId();
 			auto &glManager = *config.glManagerPtr;
 			glManager.bindAPI(glAPI);
 			context = makeGLContext(glManager, config.bufferConfig);

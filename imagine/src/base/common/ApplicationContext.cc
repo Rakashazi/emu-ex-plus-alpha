@@ -381,6 +381,8 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 
 [[gnu::weak]] NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const { return {}; }
 
+[[gnu::weak]] int ApplicationContext::cpuCount() const { return 1; }
+
 [[gnu::weak]] bool ApplicationContext::packageIsInstalled(CStringView name) const { return false; }
 
 [[gnu::weak]] int32_t ApplicationContext::androidSDK() const

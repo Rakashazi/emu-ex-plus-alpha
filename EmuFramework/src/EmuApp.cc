@@ -50,6 +50,10 @@
 #include <imagine/util/string.h>
 #include <imagine/thread/Thread.hh>
 #include <cmath>
+#ifdef __linux__
+#include <sched.h>
+#include <sys/syscall.h>
+#endif
 
 namespace EmuEx
 {
@@ -512,22 +516,13 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			}
 			emuAudio.close();
 			audioManager().endSession();
-
 			saveConfigFile(ctx);
 			saveSystemOptions();
-
 			#ifdef CONFIG_INPUT_BLUETOOTH
 			if(bta && (!backgrounded || (backgrounded && !optionKeepBluetoothActive)))
 				closeBluetoothConnections();
 			#endif
-
 			onEvent(ctx, FreeCachesEvent{false});
-
-			#ifdef CONFIG_BASE_IOS
-			//if(backgrounded)
-			//	FsSys::remove("/private/var/mobile/Library/Caches/" CONFIG_APP_ID "/com.apple.opengl/shaders.maps");
-			#endif
-
 			return true;
 		});
 
@@ -537,6 +532,8 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 		[this, appConfig](IG::ApplicationContext ctx, IG::Window &win)
 		{
 			renderer.initMainTask(&win, windowDrawableConfig());
+			if(cpuAffinityMask)
+				applyCPUAffinity();
 			if(!supportsVideoImageBuffersOption(renderer))
 				optionVideoImageBuffers.resetToConst();
 			if(optionTextureBufferMode.val)
@@ -591,6 +588,11 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			emuVideoLayer.setZoom(optionImageZoom);
 			system().onFrameUpdate = [this, &viewController = winData.viewController](IG::FrameParams params)
 				{
+					if(viewController.emuWindow().drawEventPriority() == Window::drawEventPriorityLocked)
+					{
+						//logDMsg("previous async frame not ready yet");
+						return true;
+					}
 					bool skipForward = false;
 					bool altSpeed = false;
 					auto &audio = this->audio();
@@ -623,27 +625,25 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						std::chrono::duration_cast<IG::FloatSeconds>(frameInfo.presentTime).count(),
 						std::chrono::duration_cast<IG::FloatSeconds>(params.presentTime()).count());*/
 					auto &video = this->video();
-					if(framesToEmulate == 1)
+					auto &win = viewController.emuWindow();
+					static constexpr bool syncEmulation = false;
+					if(syncEmulation)
 					{
-						// run common 1-frame case synced until the video frame is ready for more consistent timing
-						emuSystemTask.runFrame(&video, audioPtr, 1, false, true);
+						emuSystemTask.runFrame(&video, audioPtr, framesToEmulate, skipForward, true);
 						if(emuSystemTask.resetVideoFormatChanged())
 						{
 							video.dispatchFormatChanged();
 						}
-						viewController.emuWindow().setNeedsDraw(true);
-						if(usePresentationTime())
-							renderer.setPresentationTime(viewController.emuWindow(), params.presentTime());
-						return true;
+						win.setNeedsDraw(true);
 					}
-					else
+					else // run async and don't update the window until finished
 					{
-						// run multiple frames async and let main loop collect additional input events
+						win.setDrawEventPriority(Window::drawEventPriorityLocked);
 						emuSystemTask.runFrame(&video, audioPtr, framesToEmulate, skipForward, false);
-						if(usePresentationTime())
-							renderer.setPresentationTime(viewController.emuWindow(), params.presentTime());
-						return false;
 					}
+					if(usePresentationTime())
+						renderer.setPresentationTime(win, params.presentTime());
+					return true;
 				};
 
 			win.onEvent = [this](Window &win, WindowEvent winEvent)
@@ -911,10 +911,11 @@ void EmuApp::startEmulation()
 		return;
 	emuVideoLayer.setBrightness(videoBrightnessRGB);
 	video().setOnFrameFinished(
-		[this](EmuVideo &)
+		[&viewController = viewController()](EmuVideo &)
 		{
-			addOnFrame();
-			viewController().emuWindow().drawNow();
+			auto &win = viewController.emuWindow();
+			win.setDrawEventPriority(1);
+			win.postDraw(1);
 		});
 	setCPUNeedsLowLatency(appContext(), true);
 	emuSystemTask.start();
@@ -935,8 +936,8 @@ void EmuApp::showUI(bool updateTopView)
 void EmuApp::pauseEmulation()
 {
 	setCPUNeedsLowLatency(appContext(), false);
-	video().setOnFrameFinished([](EmuVideo &){});
 	emuSystemTask.pause();
+	video().setOnFrameFinished([](EmuVideo &){});
 	system().pause(*this);
 	setRunSpeed(1.);
 	emuVideoLayer.setBrightness(videoBrightnessRGB * pausedVideoBrightnessScale);
@@ -1995,6 +1996,46 @@ bool EmuApp::setAltSpeed(AltSpeedMode mode, int16_t speed)
 		return false;
 	altSpeedRef(mode) = speed;
 	return true;
+}
+
+void EmuApp::applyCPUAffinity()
+{
+#ifdef __linux__
+	logMsg("applying CPU affinity mask 0x%X", cpuAffinityMask);
+	cpu_set_t cpuSet{};
+	if(cpuAffinityMask)
+	{
+		memcpy(&cpuSet, &cpuAffinityMask, sizeof(cpuAffinityMask));
+	}
+	else
+	{
+		uint32_t cpuAffinityMask{0xFFFFFFFF};
+		memcpy(&cpuSet, &cpuAffinityMask, sizeof(cpuAffinityMask));
+	}
+	if(syscall(__NR_sched_setaffinity, 0, sizeof(cpuSet), &cpuSet) == -1)
+		logErr("error in sched_setaffinity() on main thread");
+	if(syscall(__NR_sched_setaffinity, renderer.task().threadId(), sizeof(cpuSet), &cpuSet) == -1)
+		logErr("error in sched_setaffinity() on renderer thread");
+	if(emuSystemTask.threadId() && syscall(__NR_sched_setaffinity, emuSystemTask.threadId(), sizeof(cpuSet), &cpuSet) == -1)
+		logErr("error in sched_setaffinity() on emulator thread");
+#endif
+}
+
+void EmuApp::setCPUAffinity(int cpuNumber, bool on)
+{
+#ifdef __linux__
+	cpuAffinityMask = setOrClearBits(cpuAffinityMask, bit(cpuNumber), on);
+	applyCPUAffinity();
+#endif
+}
+
+bool EmuApp::cpuAffinity(int cpuNumber)
+{
+#ifdef __linux__
+	return cpuAffinityMask & bit(cpuNumber);
+#else
+	return false;
+#endif
 }
 
 std::unique_ptr<View> EmuApp::makeView(ViewAttachParams attach, ViewID id)

@@ -18,6 +18,8 @@
 #include "MainSystem.hh"
 #include "MainApp.hh"
 
+void Lynx_SetButtonData(uint32 data);
+
 namespace EmuEx
 {
 
@@ -187,11 +189,13 @@ InputAction LynxSystem::translateInputAction(InputAction action)
 void LynxSystem::handleInputAction(EmuApp *, InputAction a)
 {
 	inputBuff = IG::setOrClearBits(inputBuff, (uint16_t)a.key, a.state == Input::Action::PUSHED);
+	Lynx_SetButtonData(inputBuff);
 }
 
 void LynxSystem::clearInputBuffers(EmuInputView &)
 {
 	inputBuff = {};
+	Lynx_SetButtonData(0);
 }
 
 SystemInputDeviceDesc LynxSystem::inputDeviceDesc(int idx) const

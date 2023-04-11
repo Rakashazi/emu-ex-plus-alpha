@@ -84,8 +84,8 @@ static void Emulate(EmulateSpecStruct *espec)
 	espec->DisplayRect.h = 152;
 
 
-	NGPJoyLatch = *chee;
-	storeB(0x6F82, *chee);
+	//NGPJoyLatch = *chee;
+	//storeB(0x6F82, *chee);
 
 	MDFNMP_ApplyPeriodicCheats();
 

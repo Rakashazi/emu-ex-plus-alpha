@@ -54,7 +54,6 @@ public:
 		EmuSystem{ctx}
 	{
 		Mednafen::MDFNGameInfo = &mdfnGameInfo;
-		mdfnGameInfo.SetInput(0, "gamepad", (uint8*)&inputBuff);
 	}
 
 	void setRotation(LynxRotation);
