@@ -78,7 +78,7 @@ public:
 	void setOnFrameFinished(FrameFinishedDelegate del);
 	void setOnFormatChanged(FormatChangedDelegate del);
 	void setTextureBufferMode(EmuSystem &, Gfx::TextureBufferMode mode);
-	void setImageBuffers(int num);
+	void setImageBuffers(int num, bool usingPresentTime);
 	int imageBuffers() const;
 	void setSampler(Gfx::TextureSamplerConfig);
 	constexpr auto colorSpace() const { return colSpace; }
@@ -86,6 +86,7 @@ public:
 	IG::PixelFormat renderPixelFormat() const;
 	IG::PixelFormat internalRenderPixelFormat() const;
 	static Gfx::TextureSamplerConfig samplerConfigForLinearFilter(bool useLinearFilter);
+	void updateNeedsFence(bool usingPresentTime);
 
 protected:
 	Gfx::RendererTask *rTask{};
@@ -104,7 +105,6 @@ protected:
 	void doScreenshot(EmuSystemTaskContext, IG::PixmapView pix);
 	void postFrameFinished(EmuSystemTaskContext);
 	void syncImageAccess();
-	void updateNeedsFence();
 	Gfx::TextureSamplerConfig samplerConfig() const { return samplerConfigForLinearFilter(useLinearFilter); }
 };
 

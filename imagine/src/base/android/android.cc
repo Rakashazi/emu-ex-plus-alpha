@@ -849,58 +849,37 @@ bool AndroidApplication::hasFocus() const
 	return aHasFocus;
 }
 
-SustainedPerformanceType AndroidApplicationContext::sustainedPerformanceModeType() const
+bool ApplicationContext::hasSustainedPerformanceMode() const { return androidSDK() >= 24; }
+
+void ApplicationContext::setSustainedPerformanceMode(bool on)
 {
-	int sdk = static_cast<const ApplicationContext*>(this)->androidSDK();
-	if(sdk >= 24)
-	{
-		return SustainedPerformanceType::DEVICE;
-	}
-	if(Config::MACHINE_IS_GENERIC_ARMV7 && sdk >= 16)
-	{
-		return SustainedPerformanceType::NOOP;
-	}
-	return SustainedPerformanceType::NONE;
+	if(!hasSustainedPerformanceMode())
+		return;
+	logMsg("set sustained performance mode:%s", on ? "on" : "off");
+	auto env = mainThreadJniEnv();
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<void(jboolean)> jSetSustainedPerformanceMode{env, baseActivity, "setSustainedPerformanceMode", "(Z)V"};
+	jSetSustainedPerformanceMode(env, baseActivity, on);
 }
 
-void AndroidApplicationContext::setSustainedPerformanceMode(bool on)
+void AndroidApplicationContext::setNoopThreadActive(bool on)
 {
-	switch(sustainedPerformanceModeType())
+	auto &ctx = *static_cast<ApplicationContext*>(this);
+	if(on && ctx.isRunning())
 	{
-		case SustainedPerformanceType::DEVICE:
-		{
-			logMsg("set sustained performance mode:%s", on ? "on" : "off");
-			auto env = mainThreadJniEnv();
-			auto baseActivity = baseActivityObject();
-			JNI::InstMethod<void(jboolean)> jSetSustainedPerformanceMode{env, baseActivity, "setSustainedPerformanceMode", "(Z)V"};
-			jSetSustainedPerformanceMode(env, baseActivity, on);
+		if(noopThread)
 			return;
-		}
-		case SustainedPerformanceType::NOOP:
-		{
-			if(!Config::MACHINE_IS_GENERIC_ARMV7)
-				return;
-			auto &ctx = *static_cast<ApplicationContext*>(this);
-			if(on && ctx.isRunning())
-			{
-				if(noopThread)
-					return;
-				ctx.addOnExit(
-					[](ApplicationContext, bool)
-					{
-						noopThread.stop();
-						return false;
-					}, -1000);
-				noopThread.start();
-			}
-			else
+		ctx.addOnExit(
+			[](ApplicationContext, bool)
 			{
 				noopThread.stop();
-			}
-			return;
-		}
-		default:
-			return;
+				return false;
+			}, -1000);
+		noopThread.start();
+	}
+	else
+	{
+		noopThread.stop();
 	}
 }
 

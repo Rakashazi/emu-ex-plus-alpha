@@ -729,7 +729,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
 				app().videoImageBuffersOption() = item.id();
-				emuVideo().setImageBuffers(item.id());
+				emuVideo().setImageBuffers(item.id(), app().usePresentationTime());
 			}
 		},
 		(MenuItem::Id)app().videoImageBuffersOption().val,

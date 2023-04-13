@@ -28,9 +28,6 @@
 #if defined __unix__ || defined __APPLE__
 #include <unistd.h>
 #endif
-#ifdef __linux__
-#include <sys/resource.h>
-#endif
 #ifdef __ANDROID__
 #include <android/log.h>
 #else
@@ -129,45 +126,6 @@ uint32_t FrameParams::elapsedFrames(FrameTime timestamp, FrameTime lastTimestamp
 	FrameTime diff = timestamp - lastTimestamp;
 	auto elapsed = (uint32_t)std::round(FloatSeconds(diff) / frameTime);
 	return std::max(elapsed, 1u);
-}
-
-void setThisThreadPriority(int nice)
-{
-	#ifdef __linux__
-	assert(nice > -20);
-	auto tid = gettid();
-	if(setpriority(PRIO_PROCESS, tid, nice) == -1)
-	{
-		if(Config::DEBUG_BUILD)
-		{
-			logErr("error:%s setting thread:0x%X nice level:%d", strerror(errno), (unsigned)tid, nice);
-		}
-	}
-	else
-	{
-		//logDMsg("set thread:0x%X nice level:%d", (unsigned)tid, nice);
-	}
-	#endif
-}
-
-int thisThreadPriority()
-{
-	#ifdef __linux__
-	return getpriority(PRIO_PROCESS, gettid());
-	#else
-	return 0;
-	#endif
-}
-
-ThreadId thisThreadId()
-{
-	#ifdef __linux__
-	return gettid();
-	#else
-	uint64_t id{};
-	pthread_threadid_np(nullptr, &id);
-	return id;
-	#endif
 }
 
 WRect Viewport::relRect(WP pos, WP size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const

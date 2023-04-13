@@ -36,7 +36,6 @@ struct GLTaskConfig
 	GLManager *glManagerPtr{};
 	GLBufferConfig bufferConfig{};
 	Drawable initialDrawable{};
-	int threadPriority{};
 };
 
 // Wraps an OpenGL context in a thread + message port

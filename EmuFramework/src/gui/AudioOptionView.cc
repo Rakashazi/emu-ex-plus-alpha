@@ -51,7 +51,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 				app().pushAndShowNewCollectValueRangeInputView<int, 0, 125>(attachParams(), e, "Input 0 to 125", "",
 					[this](EmuApp &app, auto val)
 					{
-						app.setSoundVolume(val);
+						app.audio().setVolume(val);
 						soundVolume.setSelected((MenuItem::Id)val, *this);
 						dismissPrevious();
 						return true;
@@ -66,12 +66,12 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", app().soundVolume()));
+				t.resetString(fmt::format("{}%", app().audio().volume()));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setSoundVolume(item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().audio().setVolume(item.id()); }
 		},
-		(MenuItem::Id)app().soundVolume(),
+		MenuItem::Id(app().audio().volume()),
 		soundVolumeItem
 	},
 	soundBuffersItem
@@ -88,18 +88,18 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Buffer Size In Frames", &defaultFace(),
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setSoundBuffers(item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().audio().soundBuffers = item.id(); }
 		},
-		(MenuItem::Id)app().soundBuffers(),
+		MenuItem::Id(app().audio().soundBuffers),
 		soundBuffersItem
 	},
 	addSoundBuffersOnUnderrun
 	{
 		"Auto-increase Buffer Size", &defaultFace(),
-		app().addSoundBuffersOnUnderrun(),
+		app().audio().addSoundBuffersOnUnderrunSetting,
 		[this](BoolMenuItem &item)
 		{
-			app().setAddSoundBuffersOnUnderrun(item.flipBoolValue(*this));
+			app().audio().addSoundBuffersOnUnderrunSetting = item.flipBoolValue(*this);
 		}
 	},
 	audioRateItem

@@ -33,13 +33,6 @@ namespace IG
 
 class Application;
 
-enum class SustainedPerformanceType
-{
-	NONE,
-	DEVICE,
-	NOOP
-};
-
 class AndroidApplicationContext
 {
 public:
@@ -53,8 +46,7 @@ public:
 	jobject baseActivityObject() const;
 	AAssetManager *aAssetManager() const;
 	std::string androidBuildDevice() const;
-	SustainedPerformanceType sustainedPerformanceModeType() const;
-	void setSustainedPerformanceMode(bool on);
+	void setNoopThreadActive(bool on);
 	FS::PathLocation externalMediaPathLocation() const;
 
 	// Input system functions

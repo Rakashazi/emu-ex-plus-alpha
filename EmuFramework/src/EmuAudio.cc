@@ -14,8 +14,10 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "EmuAudio"
+#include "EmuOptions.hh"
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/Option.hh>
 #include <imagine/audio/Manager.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
@@ -144,11 +146,12 @@ void EmuAudio::resizeAudioBuffer(size_t targetBufferFillBytes)
 void EmuAudio::open(IG::Audio::Api api)
 {
 	close();
-	audioStream.setApi(audioManager(), api);
+	audioStream.setApi(audioManager, api);
 }
 
-void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bufferIncrementUSecs)
+void EmuAudio::start(FloatSeconds bufferDuration)
 {
+	FloatSeconds targetBufferFillDuration = soundBuffers * bufferDuration;
 	if(!audioStream)
 	{
 		logMsg("sound is disabled");
@@ -156,13 +159,13 @@ void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bu
 	}
 	lastUnderrunTime = {};
 	auto inputFormat = format();
-	targetBufferFillBytes = inputFormat.timeToBytes(targetBufferFillUSecs);
-	bufferIncrementBytes = inputFormat.timeToBytes(bufferIncrementUSecs);
+	targetBufferFillBytes = inputFormat.timeToBytes(targetBufferFillDuration);
+	bufferIncrementBytes = inputFormat.timeToBytes(bufferDuration);
 	if(!audioStream.isOpen())
 	{
 		resizeAudioBuffer(targetBufferFillBytes);
 		audioWriteState = AudioWriteState::BUFFER;
-		IG::Audio::Format outputFormat{inputFormat.rate, audioManager().nativeSampleFormat(), inputFormat.channels};
+		IG::Audio::Format outputFormat{inputFormat.rate, audioManager.nativeSampleFormat(), inputFormat.channels};
 		IG::Audio::OutputStreamConfig outputConf
 		{
 			outputFormat,
@@ -178,7 +181,7 @@ void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bu
 					IG::Audio::Format inputFormat = {{}, inputSampleFormat, channels};
 					auto framesReady = inputFormat.bytesToFrames(rBuff.size());
 					auto const framesToRead = std::min(frames, framesReady);
-					auto frameEndAddr = (char*)outputFormat.copyFrames(samples, rBuff.readAddr(), framesToRead, inputFormat, volume);
+					auto frameEndAddr = (char*)outputFormat.copyFrames(samples, rBuff.readAddr(), framesToRead, inputFormat, volume_);
 					rBuff.commitRead(inputFormat.framesToBytes(framesToRead));
 					if(framesToRead < frames) [[unlikely]]
 					{
@@ -348,30 +351,23 @@ void EmuAudio::setSpeedMultiplier(double speed)
 	speedMultiplier = speed;
 	if(speedMultiplier > 1.)
 	{
-		volume = requestedVolume * .5f;
+		volume_ = requestedVolume * .5f;
 	}
 	else
 	{
-		volume = requestedVolume;
+		volume_ = requestedVolume;
 	}
 }
 
-void EmuAudio::setAddSoundBuffersOnUnderrun(bool on)
-{
-	addSoundBuffersOnUnderrun = on;
-}
+static bool isValidVolumeSetting(int8_t vol) { return vol >= 0 && vol <= 125; }
 
-void EmuAudio::setVolume(int8_t vol)
+bool EmuAudio::setVolume(int8_t vol)
 {
-	if(vol == 100)
-	{
-		requestedVolume = volume = 1.f;
-	}
-	else
-	{
-		assumeExpr(vol <= 125);
-		requestedVolume = volume = vol / 100.f;
-	}
+	if(!isValidVolumeSetting(vol))
+		return false;
+	volumeSetting = vol;
+	setRuntimeVolume(vol / 100.f);
+	return true;
 }
 
 IG::Audio::Format EmuAudio::format() const
@@ -385,9 +381,22 @@ EmuAudio::operator bool() const
 	return (bool)rBuff;
 }
 
-const IG::Audio::Manager &EmuAudio::audioManager() const
+void EmuAudio::writeConfig(FileIO &io) const
 {
-	return *audioManagerPtr;
+	writeOptionValueIfNotDefault(io, CFGKEY_SOUND_BUFFERS, soundBuffers, defaultSoundBuffers);
+	writeOptionValueIfNotDefault(io, CFGKEY_SOUND_VOLUME, volumeSetting, 100);
+	writeOptionValueIfNotDefault(io, CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, addSoundBuffersOnUnderrunSetting, false);
+}
+
+bool EmuAudio::readConfig(MapIO &io, unsigned key, size_t size)
+{
+	switch(key)
+	{
+		case CFGKEY_SOUND_BUFFERS: return readOptionValue(io, size, soundBuffers, optionIsValidWithMinMax<1, 7, int8_t>);
+		case CFGKEY_SOUND_VOLUME: return readOptionValue(io, size, volumeSetting, isValidVolumeSetting);
+		case CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: return readOptionValue(io, size, addSoundBuffersOnUnderrunSetting);
+	}
+	return false;
 }
 
 }

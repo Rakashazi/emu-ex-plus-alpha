@@ -17,6 +17,7 @@
 
 #include <imagine/pixmap/Pixmap.hh>
 #include <jni.h>
+#include <atomic>
 
 namespace IG
 {
@@ -29,10 +30,10 @@ public:
 	constexpr NoopThread() {}
 	void start();
 	void stop();
-	explicit operator bool() { return runFlagAddr; }
+	explicit operator bool() { return isRunning.load(std::memory_order_relaxed); }
 
 private:
-	bool *runFlagAddr{};
+	std::atomic_bool isRunning{};
 };
 
 jobject makeSurfaceTexture(ApplicationContext, JNIEnv *, jint texName);

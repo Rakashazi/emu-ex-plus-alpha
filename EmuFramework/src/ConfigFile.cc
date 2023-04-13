@@ -276,7 +276,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 	const auto cfgFileOptions = std::tie
 	(
 		optionSound,
-		optionSoundVolume,
 		optionSoundRate,
 		optionImageZoom,
 		optionViewportZoom,
@@ -314,8 +313,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionKeepBluetoothActive,
 		optionShowBluetoothScan,
 		#endif
-		optionSoundBuffers,
-		optionAddSoundBuffersOnUnderrun,
 		#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 		optionAudioAPI,
 		#endif
@@ -351,6 +348,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_RATE_PAL, outputTimingManager.frameTimeOption(VideoSystem::PAL), OutputTimingManager::autoOption);
 	vController.writeConfig(io);
 	autosaveManager_.writeConfig(io);
+	emuAudio.writeConfig(io);
 	if(IG::used(usePresentationTime_) && !usePresentationTime_)
 		writeOptionValue(io, CFGKEY_RENDERER_PRESENTATION_TIME, false);
 	if(IG::used(forceMaxScreenFrameRate) && forceMaxScreenFrameRate)
@@ -555,6 +553,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 						return true;
 					if(autosaveManager_.readConfig(io, key, size))
 						return true;
+					if(emuAudio.readConfig(io, key, size))
+						return true;
 					logMsg("skipping key %u", (unsigned)key);
 					return false;
 				}
@@ -623,9 +623,6 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					if(used(cpuAffinityMask))
 						return readOptionValue(io, size, cpuAffinityMask);
 					return false;
-				case CFGKEY_SOUND_BUFFERS: return optionSoundBuffers.readFromIO(io, size);
-				case CFGKEY_SOUND_VOLUME: return optionSoundVolume.readFromIO(io, size);
-				case CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: return optionAddSoundBuffersOnUnderrun.readFromIO(io, size);
 				case CFGKEY_AUDIO_SOLO_MIX:
 					audioManager().setSoloMix(readOptionValue<bool>(io, size));
 					return true;

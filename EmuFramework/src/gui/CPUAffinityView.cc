@@ -27,17 +27,20 @@ CPUAffinityView::CPUAffinityView(ViewAttachParams attach, int cpuCount):
 {
 	for(int i : iotaCount(cpuCount))
 	{
-		auto maxFreqFile = fopen(fmt::format("/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq", i).c_str(), "r");
-		if(!maxFreqFile)
-			continue;
-		int freq{};
-		auto items = fscanf(maxFreqFile, "%d", &freq);
-		fclose(maxFreqFile);
-		cpuAffinityItems.emplace_back(fmt::format("{} ({}MHz)", i, freq / 1000),
-			&defaultFace(), app().cpuAffinity(i), [this, i](BoolMenuItem &item)
-		{
-			app().setCPUAffinity(i, item.flipBoolValue());
-		});
+		cpuAffinityItems.emplace_back([&](FILE *maxFreqFile)
+			{
+				if(!maxFreqFile)
+					return fmt::format("{} (Offline)", i);
+				int freq{};
+				auto items = fscanf(maxFreqFile, "%d", &freq);
+				fclose(maxFreqFile);
+				return fmt::format("{} ({}MHz)", i, freq / 1000);
+			}(fopen(fmt::format("/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq", i).c_str(), "r")),
+			&defaultFace(), app().cpuAffinity(i),
+			[this, i](BoolMenuItem &item)
+			{
+				app().setCPUAffinity(i, item.flipBoolValue());
+			});
 	}
 }
 

@@ -19,6 +19,7 @@
 #include <imagine/audio/Format.hh>
 #include <alsa/asoundlib.h>
 #include <atomic>
+#include <thread>
 
 namespace IG
 {
@@ -31,7 +32,7 @@ namespace IG::Audio
 class ALSAOutputStream
 {
 public:
-	constexpr ALSAOutputStream() = default;
+	ALSAOutputStream() = default;
 	~ALSAOutputStream();
 	ALSAOutputStream &operator=(ALSAOutputStream &&) = delete;
 	ErrorCode open(OutputStreamConfig config);
@@ -46,6 +47,7 @@ public:
 private:
 	snd_pcm_t *pcmHnd{};
 	OnSamplesNeededDelegate onSamplesNeeded{};
+	std::thread eventThread;
 	Format pcmFormat;
 	snd_pcm_uframes_t bufferSize, periodSize;
 	bool useMmap;

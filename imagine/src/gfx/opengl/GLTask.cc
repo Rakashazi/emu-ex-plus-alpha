@@ -72,8 +72,6 @@ bool GLTask::makeGLContext(GLTaskConfig config)
 					return true;
 				});
 			logMsg("starting GL context:%p thread event loop", (NativeGLContext)context);
-			if(config.threadPriority)
-				setThisThreadPriority(config.threadPriority);
 			sem.release();
 			eventLoop.run(context);
 			commandPort.detach();

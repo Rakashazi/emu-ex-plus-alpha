@@ -22,12 +22,9 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
-#include <limits>
 
 namespace IG
 {
-
-constexpr int8_t MAX_DRAW_EVENT_PRIORITY = std::numeric_limits<int8_t>::max();
 
 BaseWindow::BaseWindow(ApplicationContext ctx, WindowConfig config):
 	onEvent{config.onEvent},
@@ -36,8 +33,7 @@ BaseWindow::BaseWindow(ApplicationContext ctx, WindowConfig config):
 		[this](ApplicationContext ctx, bool backgrounded)
 		{
 			auto &win = *static_cast<Window*>(this);
-			auto savedDrawEventPriority = win.setDrawEventPriority(MAX_DRAW_EVENT_PRIORITY);
-			drawEvent.cancel();
+			auto savedDrawEventPriority = win.setDrawEventPriority(Window::drawEventPriorityLocked);
 			drawEvent.detach();
 			if(backgrounded)
 			{
@@ -196,6 +192,8 @@ void Window::postFrameReadyToMainThread()
 
 int8_t Window::setDrawEventPriority(int8_t priority)
 {
+	if(priority == drawEventPriorityLocked)
+		unpostDraw();
 	return std::exchange(drawEventPriority_, priority);
 }
 

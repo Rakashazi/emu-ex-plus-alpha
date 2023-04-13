@@ -21,8 +21,16 @@
 #include <memory>
 #include <atomic>
 
+namespace IG
+{
+class MapIO;
+class FileIO;
+}
+
 namespace EmuEx
 {
+
+using namespace IG;
 
 class EmuAudio
 {
@@ -36,9 +44,9 @@ public:
 	};
 
 	constexpr EmuAudio(const IG::Audio::Manager &audioManager):
-		audioManagerPtr{&audioManager} {}
+		audioManager{audioManager} {}
 	void open(IG::Audio::Api);
-	void start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bufferIncrementUSecs);
+	void start(FloatSeconds bufferDuration);
 	void stop();
 	void close();
 	void flush();
@@ -46,32 +54,40 @@ public:
 	void setRate(int rate);
 	void setStereo(bool on);
 	void setSpeedMultiplier(double speed);
-	void setAddSoundBuffersOnUnderrun(bool on);
-	void setVolume(int8_t vol);
+	void setRuntimeVolume(float vol) { requestedVolume = volume_ = vol; }
+	float runtimeVolume() const { return requestedVolume; }
+	bool setVolume(int8_t vol);
+	int8_t volume() const { return volumeSetting; }
 	IG::Audio::Format format() const;
 	explicit operator bool() const;
+	void writeConfig(FileIO &) const;
+	bool readConfig(MapIO &, unsigned key, size_t size);
 
 protected:
 	IG::Audio::OutputStream audioStream;
-	const IG::Audio::Manager *audioManagerPtr{};
-	IG::RingBuffer rBuff;
-	IG::Time lastUnderrunTime{};
-	double speedMultiplier = 1.;
+	const IG::Audio::Manager &audioManager;
+	RingBuffer rBuff;
+	Time lastUnderrunTime{};
+	double speedMultiplier{1.};
 	size_t targetBufferFillBytes{};
 	size_t bufferIncrementBytes{};
 	int rate{};
-	float volume = 1.0;
-	float requestedVolume = 1.0;
-	std::atomic<AudioWriteState> audioWriteState = AudioWriteState::BUFFER;
-	bool addSoundBuffersOnUnderrun = false;
-	int8_t channels = 2;
+	float volume_{1.};
+	float requestedVolume{1.};
+	std::atomic<AudioWriteState> audioWriteState{AudioWriteState::BUFFER};
+	int8_t channels{2};
+	int8_t volumeSetting{100};
+public:
+	bool addSoundBuffersOnUnderrun{};
+	bool addSoundBuffersOnUnderrunSetting{};
+	int8_t defaultSoundBuffers{3};
+	int8_t soundBuffers{defaultSoundBuffers};
 
 	size_t framesFree() const;
 	size_t framesWritten() const;
 	size_t framesCapacity() const;
 	bool shouldStartAudioWrites(size_t bytesToWrite = 0) const;
 	void resizeAudioBuffer(size_t targetBufferFillBytes);
-	const IG::Audio::Manager &audioManager() const;
 };
 
 }

@@ -43,8 +43,9 @@ protected:
 	TextMenuItem slowModeSpeedItem[3];
 	MultiChoiceMenuItem slowModeSpeed;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
+	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, noopThread);
 	IG_UseMemberIf(Config::envIsAndroid || Config::envIsLinux, TextMenuItem, cpuAffinity);
-	StaticArrayList<MenuItem*, 27> item;
+	StaticArrayList<MenuItem*, 28> item;
 };
 
 }

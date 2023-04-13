@@ -246,7 +246,7 @@ public:
 	Gfx::TextureSpan asset(AssetDesc) const;
 	void updateInputDevices(IG::ApplicationContext);
 	void setOnUpdateInputDevices(DelegateFunc<void ()>);
-	VController &defaultVController();
+	VController &defaultVController() { return vController; }
 	static std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
 	void applyOSNavStyle(IG::ApplicationContext, bool inGame);
 	void setCPUNeedsLowLatency(IG::ApplicationContext, bool needed);
@@ -257,7 +257,7 @@ public:
 	void renderSystemFramebuffer(EmuVideo &);
 	bool writeScreenshot(IG::PixmapView, IG::CStringView path);
 	FS::PathString makeNextScreenshotFilename();
-	bool mogaManagerIsActive() const;
+	bool mogaManagerIsActive() const { return bool(mogaManagerPtr); }
 	void setMogaManagerActive(bool on, bool notify);
 	constexpr IG::VibrationManager &vibrationManager() { return vibrationManager_; }
 	std::span<const KeyCategory> inputControlCategories() const;
@@ -301,14 +301,8 @@ public:
 	int soundRate() const { return optionSoundRate; }
 	int soundRateMax() const { return optionSoundRate.defaultVal; }
 	bool canChangeSoundRate() const { return !optionSoundRate.isConst; }
-	bool setSoundVolume(int vol);
-	int soundVolume() const { return optionSoundVolume; }
-	void setSoundBuffers(int buffers);
-	int soundBuffers() const { return optionSoundBuffers; }
 	void setSoundEnabled(bool on);
 	bool soundIsEnabled() const;
-	void setAddSoundBuffersOnUnderrun(bool on);
-	bool addSoundBuffersOnUnderrun() const { return optionAddSoundBuffersOnUnderrun; }
 	void setSoundDuringFastSlowModeEnabled(bool on);
 	bool soundDuringFastSlowModeIsEnabled() const;
 
@@ -339,7 +333,7 @@ public:
 	auto &showOnSecondScreenOption() { return optionShowOnSecondScreen; }
 	auto &textureBufferModeOption() { return optionTextureBufferMode; }
 	auto &videoImageBuffersOption() { return optionVideoImageBuffers; }
-	void setUsePresentationTime(bool on) { usePresentationTime_ = on; }
+	void setUsePresentationTime(bool on);
 	bool usePresentationTime() const { return usePresentationTime_; }
 	void setContentRotation(IG::Rotation);
 	IG::Rotation contentRotation() const { return contentRotation_; }
@@ -548,9 +542,6 @@ protected:
 	Byte1Option optionPauseUnfocused;
 	Byte1Option optionConfirmOverwriteState;
 	Byte1Option optionSound;
-	Byte1Option optionSoundVolume;
-	Byte1Option optionSoundBuffers;
-	Byte1Option optionAddSoundBuffersOnUnderrun;
 	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, Byte1Option, optionAudioAPI);
 	Byte1Option optionNotificationIcon;
 	Byte1Option optionTitleBar;
@@ -587,6 +578,8 @@ protected:
 	IG::WindowFrameTimeSource winFrameTimeSrc{IG::WindowFrameTimeSource::AUTO};
 	IG_UseMemberIf(Config::envIsAndroid, bool, usePresentationTime_){true};
 	IG_UseMemberIf(Config::envIsAndroid, bool, forceMaxScreenFrameRate){};
+public:
+	IG_UseMemberIf(Config::envIsAndroid, bool, useNoopThread){};
 
 protected:
 	struct ConfigParams

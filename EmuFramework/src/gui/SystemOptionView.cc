@@ -173,6 +173,15 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 			app().sustainedPerformanceModeOption() = item.flipBoolValue(*this);
 		}
 	},
+	noopThread
+	{
+		"No-op Thread (Experimental)", &defaultFace(),
+		(bool)app().useNoopThread,
+		[this](BoolMenuItem &item)
+		{
+			app().useNoopThread = item.flipBoolValue(*this);
+		}
+	},
 	cpuAffinity
 	{
 		"Override CPU Affinity", &defaultFace(),
@@ -196,8 +205,10 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&confirmOverwriteState);
 	item.emplace_back(&fastModeSpeed);
 	item.emplace_back(&slowModeSpeed);
-	if(used(performanceMode))
+	if(used(performanceMode) && appContext().hasSustainedPerformanceMode())
 		item.emplace_back(&performanceMode);
+	if(used(noopThread))
+		item.emplace_back(&noopThread);
 	if(used(cpuAffinity) && appContext().cpuCount() > 1)
 		item.emplace_back(&cpuAffinity);
 }

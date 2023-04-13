@@ -79,18 +79,16 @@ void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedD
 
 void NoopThread::start()
 {
-	if(runFlagAddr)
+	if(isRunning.load(std::memory_order_relaxed))
 		return;
-	IG::makeDetachedThreadSync(
-		[this](auto &sem)
+	isRunning.store(true, std::memory_order_relaxed);
+	IG::makeDetachedThread(
+		[this]()
 		{
 			// keep cpu governor busy by running a low priority thread executing no-op instructions
-			setpriority(PRIO_PROCESS, gettid(), 19);
-			bool run = true;
-			runFlagAddr = &run;
+			setpriority(PRIO_PROCESS, 0, 19);
 			logMsg("started no-op thread");
-			sem.release();
-			while(run)
+			while(isRunning.load(std::memory_order_relaxed))
 			{
 				for(auto i : iotaCount(16))
 				{
@@ -103,10 +101,9 @@ void NoopThread::start()
 
 void NoopThread::stop()
 {
-	if(!runFlagAddr)
+	if(!isRunning.load(std::memory_order_relaxed))
 		return;
-	*runFlagAddr = false;
-	runFlagAddr = {};
+	isRunning.store(false, std::memory_order_relaxed);
 }
 
 void ApplicationContext::exitWithMessage(int exitVal, const char *msg)

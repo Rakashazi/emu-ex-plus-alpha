@@ -280,9 +280,10 @@ void EmuVideo::setOnFormatChanged(FormatChangedDelegate del)
 	onFormatChanged = del;
 }
 
-void EmuVideo::updateNeedsFence()
+void EmuVideo::updateNeedsFence(bool usingPresentTime)
 {
-	needsFence = singleBuffer && renderer().maxSwapChainImages() > 2;
+	needsFence = singleBuffer && renderer().maxSwapChainImages() > 2 && !usingPresentTime;
+	logMsg("%s fence for synchronization", needsFence ? "using" : "not using");
 }
 
 void EmuVideo::setTextureBufferMode(EmuSystem &sys, Gfx::TextureBufferMode mode)
@@ -299,7 +300,7 @@ void EmuVideo::setTextureBufferMode(EmuSystem &sys, Gfx::TextureBufferMode mode)
 	resetImage(renderFmt);
 }
 
-void EmuVideo::setImageBuffers(int num)
+void EmuVideo::setImageBuffers(int num, bool usingPresentTime)
 {
 	assumeExpr(num < 3);
 	if(!num)
@@ -309,7 +310,7 @@ void EmuVideo::setImageBuffers(int num)
 	bool useSingleBuffer = num == 1;
 	bool modeChanged = singleBuffer != useSingleBuffer;
 	singleBuffer = useSingleBuffer;
-	updateNeedsFence();
+	updateNeedsFence(usingPresentTime);
 	//logDMsg("image buffer count:%d fences:%s", num, needsFence ? "yes" : "no");
 	if(modeChanged && vidImg)
 		resetImage();

@@ -74,8 +74,7 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 		optionShowBluetoothScan.initDefault(0);
 	}
 	{
-		auto type = ctx.sustainedPerformanceModeType();
-		if(type == IG::SustainedPerformanceType::NONE)
+		if(!ctx.hasSustainedPerformanceMode())
 		{
 			optionSustainedPerformanceMode.initDefault(0);
 			optionSustainedPerformanceMode.isConst = true;
@@ -88,7 +87,7 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	}
 	if(androidSdk < 27) // use safer value for devices defaulting to OpenSL ES
 	{
-		optionSoundBuffers.initDefault(4);
+		audio().soundBuffers = audio().defaultSoundBuffers = 4;
 	}
 	#endif
 

@@ -201,6 +201,8 @@ public:
 	// Power Management
 	void setIdleDisplayPowerSave(bool on);
 	void endIdleByUserActivity();
+	bool hasSustainedPerformanceMode() const;
+	void setSustainedPerformanceMode(bool on);
 
 	// Permissions
 	bool usesPermission(Permission p) const;

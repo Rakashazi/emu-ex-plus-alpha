@@ -347,7 +347,7 @@ void RendererTask::setDebugOutput(bool on)
 		});
 }
 
-pid_t RendererTask::threadId() const { return threadId_; }
+ThreadId RendererTask::threadId() const { return threadId_; }
 
 RendererCommands GLRendererTask::makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
 	bool notifyWindowAfterPresent, Window &win)

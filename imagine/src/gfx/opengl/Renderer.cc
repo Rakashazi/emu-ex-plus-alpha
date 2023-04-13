@@ -78,13 +78,11 @@ void Renderer::initMainTask(Window *initialWindow, DrawableConfig drawableConfig
 		}
 		initialDrawable = (Drawable)winData(*initialWindow).drawable;
 	}
-	constexpr int DRAW_THREAD_PRIORITY = -4;
 	GLTaskConfig conf
 	{
 		.glManagerPtr = &glManager,
 		.bufferConfig = *bufferConfig,
 		.initialDrawable = initialDrawable,
-		.threadPriority = DRAW_THREAD_PRIORITY,
 	};
 	if(!mainTask.makeGLContext(conf)) [[unlikely]]
 	{

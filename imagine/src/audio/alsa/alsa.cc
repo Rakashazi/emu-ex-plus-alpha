@@ -126,7 +126,7 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 	}
 	closePcm.cancel();
 	quitFlag = false;
-	IG::makeDetachedThread(
+	eventThread = std::thread{
 		[this]()
 		{
 			int count = snd_pcm_poll_descriptors_count(pcmHnd);
@@ -224,7 +224,7 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 					//logMsg("wrote %d frames", (int)periodSize);
 				}
 			}
-		});
+		}};
 	if(config.startPlaying)
 		play();
 	return {};
@@ -270,6 +270,7 @@ void ALSAOutputStream::close()
 	quitFlag = true;
 	snd_pcm_drop(pcmHnd);
 	snd_pcm_close(pcmHnd);
+	eventThread.join();
 	pcmHnd = nullptr;
 }
 

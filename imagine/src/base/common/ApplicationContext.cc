@@ -390,6 +390,9 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 	bug_unreachable("Invalid platform-specific function");
 }
 
+[[gnu::weak]] bool ApplicationContext::hasSustainedPerformanceMode() const { return false; }
+[[gnu::weak]] void ApplicationContext::setSustainedPerformanceMode(bool on) {}
+
 [[gnu::weak]] std::string ApplicationContext::formatDateAndTime(WallClockTime time)
 {
 	if(!time.count())

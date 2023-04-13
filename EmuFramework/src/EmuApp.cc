@@ -50,10 +50,6 @@
 #include <imagine/util/string.h>
 #include <imagine/thread/Thread.hh>
 #include <cmath>
-#ifdef __linux__
-#include <sched.h>
-#include <sys/syscall.h>
-#endif
 
 namespace EmuEx
 {
@@ -143,11 +139,6 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 		!(Config::envIsLinux || Config::envIsAndroid)},
 	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
 	optionSound{CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS},
-	optionSoundVolume{CFGKEY_SOUND_VOLUME,
-		100, false, optionIsValidWithMinMax<0, 125, uint8_t>},
-	optionSoundBuffers{CFGKEY_SOUND_BUFFERS,
-		3, 0, optionIsValidWithMinMax<1, 7, uint8_t>},
-	optionAddSoundBuffersOnUnderrun{CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, 1, 0},
 	optionAudioAPI{CFGKEY_AUDIO_API, 0},
 	optionNotificationIcon{CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid},
 	optionTitleBar{CFGKEY_TITLE_BAR, 1, !CAN_HIDE_TITLE_BAR},
@@ -275,6 +266,8 @@ void EmuApp::setCPUNeedsLowLatency(IG::ApplicationContext ctx, bool needed)
 	#ifdef __ANDROID__
 	if(optionSustainedPerformanceMode)
 		ctx.setSustainedPerformanceMode(needed);
+	if(useNoopThread)
+		ctx.setNoopThreadActive(needed);
 	#endif
 }
 
@@ -427,15 +420,9 @@ static bool supportsVideoImageBuffersOption(const Gfx::Renderer &r)
 	return r.supportsSyncFences() && r.maxSwapChainImages() > 2;
 }
 
-static IG::Microseconds makeWantedAudioLatencyUSecs(uint8_t buffers, IG::FloatSeconds frameTime)
-{
-	return buffers * std::chrono::duration_cast<IG::Microseconds>(frameTime);
-}
-
 void EmuApp::startAudio()
 {
-	audio().start(makeWantedAudioLatencyUSecs(optionSoundBuffers, system().frameTime()),
-		makeWantedAudioLatencyUSecs(1, system().frameTime()));
+	audio().start(system().frameTime());
 }
 
 void EmuApp::updateLegacySavePath(IG::ApplicationContext ctx, IG::CStringView path)
@@ -488,7 +475,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 	if(optionSoundRate > optionSoundRate.defaultVal)
 		optionSoundRate.reset();
 	emuAudio.setRate(optionSoundRate);
-	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
 	if(!renderer.supportsColorSpace())
 		windowDrawableConf.colorSpace = {};
 	applyOSNavStyle(ctx, false);
@@ -579,7 +565,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				});
 			emuVideo.setRendererTask(renderer.task());
 			emuVideo.setTextureBufferMode(system(), (Gfx::TextureBufferMode)optionTextureBufferMode.val);
-			emuVideo.setImageBuffers(optionVideoImageBuffers);
+			emuVideo.setImageBuffers(optionVideoImageBuffers, usePresentationTime());
 			emuVideoLayer.setLinearFilter(optionImgFilter); // init the texture sampler before setting format
 			applyRenderPixelFormat();
 			emuVideoLayer.setOverlay((ImageOverlayId)optionOverlayEffect.val);
@@ -1374,11 +1360,11 @@ void EmuApp::resetInput()
 void EmuApp::setRunSpeed(double speed)
 {
 	assumeExpr(speed > 0.);
-	bool active = speed != 1.;
+	bool altSpeedActive = speed != 1.;
 	system().targetSpeed = speed;
-	emuAudio.setAddSoundBuffersOnUnderrun(active ? addSoundBuffersOnUnderrun() : false);
-	auto vol = (active && !soundDuringFastSlowModeIsEnabled()) ? 0 : soundVolume();
-	emuAudio.setVolume(vol);
+	emuAudio.addSoundBuffersOnUnderrun = altSpeedActive ? false : emuAudio.addSoundBuffersOnUnderrunSetting;
+	auto vol = (altSpeedActive && !soundDuringFastSlowModeIsEnabled()) ? 0 : emuAudio.runtimeVolume();
+	emuAudio.setRuntimeVolume(vol);
 }
 
 FS::PathString EmuApp::sessionConfigPath()
@@ -1505,11 +1491,6 @@ void EmuApp::syncEmulationThread()
 	emuSystemTask.pause();
 }
 
-VController &EmuApp::defaultVController()
-{
-	return vController;
-}
-
 FrameTimeConfig EmuApp::configFrameTime()
 {
 	auto frameTimeConfig = outputTimingManager.frameTimeConfig(system(), emuScreen());
@@ -1578,11 +1559,6 @@ FS::PathString EmuApp::makeNextScreenshotFilename()
 	sys.createContentLocalDirectory(userPath, subDirName);
 	return sys.contentLocalDirectory(userPath, subDirName,
 		appContext().formatDateAndTimeAsFilename(wallClockTimestamp()).append(".png"));
-}
-
-bool EmuApp::mogaManagerIsActive() const
-{
-	return (bool)mogaManagerPtr;
 }
 
 void EmuApp::setMogaManagerActive(bool on, bool notify)
@@ -1694,20 +1670,6 @@ void EmuApp::setSoundRate(int rate)
 	audio().setRate(rate);
 }
 
-bool EmuApp::setSoundVolume(int vol)
-{
-	if(!optionSoundVolume.isValidVal(vol))
-		return false;
-	optionSoundVolume = vol;
-	audio().setVolume(vol);
-	return true;
-}
-
-void EmuApp::setSoundBuffers(int buffers)
-{
-	optionSoundBuffers = buffers;
-}
-
 bool EmuApp::soundIsEnabled() const
 {
 	return optionSound & OPTION_SOUND_ENABLED_FLAG;
@@ -1720,12 +1682,6 @@ void EmuApp::setSoundEnabled(bool on)
 		audio().open(audioOutputAPI());
 	else
 		audio().close();
-}
-
-void EmuApp::setAddSoundBuffersOnUnderrun(bool on)
-{
-	optionAddSoundBuffersOnUnderrun = on;
-	audio().setAddSoundBuffersOnUnderrun(on);
 }
 
 bool EmuApp::soundDuringFastSlowModeIsEnabled() const
@@ -2000,42 +1956,31 @@ bool EmuApp::setAltSpeed(AltSpeedMode mode, int16_t speed)
 
 void EmuApp::applyCPUAffinity()
 {
-#ifdef __linux__
-	logMsg("applying CPU affinity mask 0x%X", cpuAffinityMask);
-	cpu_set_t cpuSet{};
-	if(cpuAffinityMask)
-	{
-		memcpy(&cpuSet, &cpuAffinityMask, sizeof(cpuAffinityMask));
-	}
+	logMsg("applying CPU affinity mask 0x%X", (unsigned)cpuAffinityMask);
+	if(emuSystemTask.threadId())
+		setThreadCPUAffinityMask(std::array{ThreadId{}, renderer.task().threadId(), emuSystemTask.threadId()}, cpuAffinityMask);
 	else
-	{
-		uint32_t cpuAffinityMask{0xFFFFFFFF};
-		memcpy(&cpuSet, &cpuAffinityMask, sizeof(cpuAffinityMask));
-	}
-	if(syscall(__NR_sched_setaffinity, 0, sizeof(cpuSet), &cpuSet) == -1)
-		logErr("error in sched_setaffinity() on main thread");
-	if(syscall(__NR_sched_setaffinity, renderer.task().threadId(), sizeof(cpuSet), &cpuSet) == -1)
-		logErr("error in sched_setaffinity() on renderer thread");
-	if(emuSystemTask.threadId() && syscall(__NR_sched_setaffinity, emuSystemTask.threadId(), sizeof(cpuSet), &cpuSet) == -1)
-		logErr("error in sched_setaffinity() on emulator thread");
-#endif
+		setThreadCPUAffinityMask(std::array{ThreadId{}, renderer.task().threadId()}, cpuAffinityMask);
 }
 
 void EmuApp::setCPUAffinity(int cpuNumber, bool on)
 {
-#ifdef __linux__
-	cpuAffinityMask = setOrClearBits(cpuAffinityMask, bit(cpuNumber), on);
-	applyCPUAffinity();
-#endif
+	doIfUsed(cpuAffinityMask, [&](auto &cpuAffinityMask)
+	{
+		cpuAffinityMask = setOrClearBits(cpuAffinityMask, bit(cpuNumber), on);
+		applyCPUAffinity();
+	});
 }
 
 bool EmuApp::cpuAffinity(int cpuNumber)
 {
-#ifdef __linux__
-	return cpuAffinityMask & bit(cpuNumber);
-#else
-	return false;
-#endif
+	return doIfUsed(cpuAffinityMask, [&](auto &cpuAffinityMask) { return cpuAffinityMask & bit(cpuNumber); }, false);
+}
+
+void EmuApp::setUsePresentationTime(bool on)
+{
+	usePresentationTime_ = on;
+	video().updateNeedsFence(on);
 }
 
 std::unique_ptr<View> EmuApp::makeView(ViewAttachParams attach, ViewID id)
