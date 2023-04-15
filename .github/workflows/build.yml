@@ -32,7 +32,7 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends autoconf automake autopoint bash binutils-arm-linux-gnueabi clang cmake file gawk gettext git libtool libtool-bin llvm make nasm openjdk-8-jdk pkg-config unzip
+        sudo apt-get install -y --no-install-recommends autoconf automake autopoint bash binutils-arm-linux-gnueabi clang cmake file gawk gettext git libtool libtool-bin llvm make nasm openjdk-8-jdk pkg-config unzip wget
         
     - name: Set up environment
       run: |
@@ -44,6 +44,7 @@ jobs:
         
     - name: Run script
       run: |
+        bash imagine/bundle/android/toolchains/get-clang-r475365b.sh
         cd imagine/bundle/all
         chmod +x ./makeAll-android.sh
         ./makeAll-android.sh install

@@ -318,7 +318,7 @@ std::errc PngImage::readImage(PixmapView dest)
 
 		for (int i = 0; i < height; i++)
 		{
-			png_read_row(png, (png_bytep)dest.pixel({0, i}), nullptr);
+			png_read_row(png, (png_bytep)&dest[0, i], nullptr);
 		}
 	}
 	else // read the whole image in 1 call with interlace handling, but needs array of row pointers allocated
@@ -328,7 +328,7 @@ std::errc PngImage::readImage(PixmapView dest)
 		for (int i = 0; i < height; i++)
 		{
 			//logr_mPrintf(LOG_MSG,row relative offset = %d", offset);
-			rowPtr[i] = (png_bytep)dest.pixel({0, i});
+			rowPtr[i] = (png_bytep)&dest[0, i];
 			//log_mPrintf(LOG_MSG, "set row pointer %d to %p", i, row_pointers[i]);
 		}
 

@@ -26,7 +26,10 @@ clang-tidy-cxx: $(CXX_SRC)
 clang-tidy-c: $(C_SRC)
 	@$(CLANG_TIDY) -checks=$(clangTidyChecks) $^ -- $(CPPFLAGS) $(CFLAGS)
 
-.PHONY: cppflags cflags cxxflags objcflags asmflags ldflags
+.PHONY: cxx cppflags cflags cxxflags objcflags asmflags ldflags
+
+cxx:
+	@echo C++ Compiler: $(CXX)
 
 cppflags:
 	@echo CPPFLAGS: $(CPPFLAGS)

@@ -8,8 +8,23 @@ ifeq ($(ANDROID_NDK_PATH),)
  $(error setAndroidNDKPath.mk was not included in base makefile)
 endif
 
-ANDROID_CLANG_TOOLCHAIN_PATH ?= $(wildcard $(ANDROID_NDK_PATH)/toolchains/llvm/prebuilt/*)
+# Default to bundled Clang 16 toolchain
+ANDROID_CLANG_TOOLCHAIN_PATH ?= $(wildcard $(IMAGINE_PATH)/bundle/android/toolchains/llvm/clang-r475365b)
+ifeq ($(ANDROID_CLANG_TOOLCHAIN_PATH),)
+ ANDROID_CLANG_TOOLCHAIN_PATH := $(wildcard $(ANDROID_NDK_PATH)/toolchains/llvm/prebuilt/*)
+endif
 ANDROID_CLANG_TOOLCHAIN_BIN_PATH := $(ANDROID_CLANG_TOOLCHAIN_PATH)/bin
+
+ifneq ($(wildcard $(ANDROID_CLANG_TOOLCHAIN_PATH)/sysroot),)
+ ANDROID_CLANG_SYSROOT_PATH := $(ANDROID_CLANG_TOOLCHAIN_PATH)/sysroot
+ android_implicitSysroot := 1
+else # Custom toolchain without sysroot, use one from NDK
+ ANDROID_CLANG_SYSROOT_PATH := $(wildcard $(ANDROID_NDK_PATH)/toolchains/llvm/prebuilt/*/sysroot)
+endif
+
+ifeq ($(ANDROID_CLANG_SYSROOT_PATH),)
+ $(error ANDROID_CLANG_SYSROOT_PATH not found in NDK or in ANDROID_CLANG_TOOLCHAIN_PATH: $(ANDROID_CLANG_TOOLCHAIN_PATH))
+endif
 
 ifdef V
  $(info NDK Clang path: $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH))
@@ -31,7 +46,7 @@ ifdef android_ndkLinkSysroot
   $(info NDK link sysroot path: $(android_ndkLinkSysroot))
  endif
 else
- VPATH += $(ANDROID_CLANG_TOOLCHAIN_PATH)/sysroot/usr/lib/$(CHOST)/$(android_ndkSDK)
+ VPATH += $(ANDROID_CLANG_SYSROOT_PATH)/usr/lib/$(CHOST)/$(android_ndkSDK)
 endif
 
 config_compiler ?= clang
@@ -82,6 +97,10 @@ CFLAGS_TARGET += $(android_cpuFlags) -no-canonical-prefixes
 ASMFLAGS ?= $(CFLAGS_TARGET) -Wa,--noexecstack
 ifdef android_ndkLinkSysroot
  LDFLAGS_SYSTEM += --sysroot=$(android_ndkLinkSysroot)
+else
+ ifndef android_implicitSysroot
+  LDFLAGS_SYSTEM += --sysroot=$(ANDROID_CLANG_SYSROOT_PATH)
+ endif
 endif
 LDFLAGS_SYSTEM += -no-canonical-prefixes \
 -Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now
@@ -89,6 +108,9 @@ linkAction = -Wl,-soname,lib$(android_metadata_soName).so -shared
 LDLIBS_SYSTEM += -lm
 LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID
+ifndef android_implicitSysroot
+ CPPFLAGS += --sysroot=$(ANDROID_CLANG_SYSROOT_PATH)
+endif
 LDFLAGS_SYSTEM += -s \
 -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel,--fatal-warnings \
 -Wl,--exclude-libs,libgcc.a,--exclude-libs,libgcc_real.a -Wl,--exclude-libs,libatomic.a,--lto-whole-program-visibility

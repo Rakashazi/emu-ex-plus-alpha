@@ -8,9 +8,6 @@ do
 		--name=*)
 			name=$optarg
 		;;
-		--id=*)
-			id=$optarg
-		;;
 		--version=*)
 			version=$optarg
 		;;
@@ -90,12 +87,6 @@ then
 	exit 1
 fi
 
-if [ ! $id ]
-then
-	echo "error: no id specified"
-	exit 1
-fi
-
 if [ ! $version ]
 then
 	echo "error: no version specified"
@@ -172,8 +163,7 @@ uiChanges='mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenL
 
 # start XML
 echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
-<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"
-		package=\"$id\""  > $outPath
+<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"" > $outPath
 
 echo '		android:installLocation="auto"' >> $outPath
 

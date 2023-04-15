@@ -269,6 +269,7 @@ $(android_drawableIconPaths) $(android_assetsPath) $(android_stylesXmlFiles)
 	cp $(gradleSrcPath)/gradlew $(gradleSrcPath)/app/build.gradle $(gradleSrcPath)/app/gradle.properties $(@D)
 	cp -r $(gradleSrcPath)/gradle $(@D)
 	echo METADATA_PROJECT=$(android_metadata_project) >> $(@D)/gradle.properties
+	echo METADATA_NAMESPACE=$(android_metadata_id) >> $(@D)/gradle.properties
 	echo METADATA_MIN_SDK=$(android_minSDK) >> $(@D)/gradle.properties
 	echo METADATA_TARGET_SDK=$(android_metadata_target_sdk) >> $(@D)/gradle.properties
 

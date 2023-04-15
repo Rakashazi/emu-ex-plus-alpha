@@ -1,17 +1,17 @@
 buildscript {
     repositories {
         google()
-        mavenCentral()
+        jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.1.2'
+        classpath 'com.android.tools.build:gradle:8.0.0'
     }
 }
 
 allprojects {
     repositories {
         google()
-        mavenCentral()
+        jcenter()
     }
 }
 
@@ -62,6 +62,8 @@ android {
     lintOptions {
     	abortOnError false
 	}
+
+	namespace METADATA_NAMESPACE
 }
 
 dependencies {

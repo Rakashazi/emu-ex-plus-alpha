@@ -13,17 +13,20 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/container/array.hh>
+#include <array>
+#include <cstdint>
 
 namespace IG
 {
 
-ByteArray<3> transformRGB565ToRGB888(uint16_t p)
+using RGBTripleArray = std::array<unsigned char, 3>;
+
+RGBTripleArray transformRGB565ToRGB888(uint16_t p)
 {
 	unsigned b = p       & 0x1F;
 	unsigned g = p >>  5 & 0x3F;
 	unsigned r = p >> 11 & 0x1F;
-	return ByteArray<3>
+	return RGBTripleArray
 		{
 			uint8_t((r * 255 + 15) / 31),
 			uint8_t((g * 255 + 31) / 63),
@@ -31,7 +34,7 @@ ByteArray<3> transformRGB565ToRGB888(uint16_t p)
 		};
 }
 
-uint16_t transformRGB888ToRGB565(ByteArray<3> p)
+uint16_t transformRGB888ToRGB565(RGBTripleArray p)
 {
 	unsigned r = p[0];
 	unsigned g = p[1];
@@ -62,13 +65,13 @@ uint16_t transformRGBX8888ToRGB565(uint32_t p) { return transformRGBX8888ToRGB56
 uint16_t transformBGRX8888ToRGB565(uint32_t p) { return transformRGBX8888ToRGB565Impl<true>(p); }
 
 template <bool BGR_SWAP = false>
-static ByteArray<3> transformRGBX8888ToRGB888Impl(uint32_t p)
+static RGBTripleArray transformRGBX8888ToRGB888Impl(uint32_t p)
 {
 	unsigned r = p       & 0xFF;
 	unsigned g = p >>  8 & 0xFF;
 	unsigned b = p >> 16 & 0xFF;
 	if constexpr(BGR_SWAP) { std::swap(r, b); }
-	return ByteArray<3>
+	return RGBTripleArray
 		{
 			(uint8_t)r,
 			(uint8_t)g,
@@ -76,8 +79,8 @@ static ByteArray<3> transformRGBX8888ToRGB888Impl(uint32_t p)
 		};
 }
 
-ByteArray<3> transformRGBX8888ToRGB888(uint32_t p) { return transformRGBX8888ToRGB888Impl(p); }
-ByteArray<3> transformBGRX8888ToRGB888(uint32_t p) { return transformRGBX8888ToRGB888Impl<true>(p); }
+RGBTripleArray transformRGBX8888ToRGB888(uint32_t p) { return transformRGBX8888ToRGB888Impl(p); }
+RGBTripleArray transformBGRX8888ToRGB888(uint32_t p) { return transformRGBX8888ToRGB888Impl<true>(p); }
 
 template <bool BGR_SWAP = false>
 static uint32_t transformRGB565ToRGBX8888Impl(uint16_t p)
@@ -95,7 +98,7 @@ uint32_t transformRGB565ToRGBX8888(uint16_t p) { return transformRGB565ToRGBX888
 uint32_t transformRGB565ToBGRX8888(uint16_t p) { return transformRGB565ToRGBX8888Impl<true>(p); }
 
 template <bool BGR_SWAP = false>
-static uint32_t transformRGB888ToRGBX8888Impl(ByteArray<3> p)
+static uint32_t transformRGB888ToRGBX8888Impl(RGBTripleArray p)
 {
 	if constexpr(BGR_SWAP) { std::swap(p[0], p[2]); }
 	return p[0] << 16 |
@@ -103,7 +106,7 @@ static uint32_t transformRGB888ToRGBX8888Impl(ByteArray<3> p)
 			p[2];
 }
 
-uint32_t transformRGB888ToRGBX8888(ByteArray<3> p) { return transformRGB888ToRGBX8888Impl(p); }
-uint32_t transformRGB888ToBGRX8888(ByteArray<3> p) { return transformRGB888ToRGBX8888Impl<true>(p); }
+uint32_t transformRGB888ToRGBX8888(RGBTripleArray p) { return transformRGB888ToRGBX8888Impl(p); }
+uint32_t transformRGB888ToBGRX8888(RGBTripleArray p) { return transformRGB888ToRGBX8888Impl<true>(p); }
 
 }

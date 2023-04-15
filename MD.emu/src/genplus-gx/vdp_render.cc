@@ -3777,7 +3777,7 @@ void remap_line(int line, IG::MutablePixmapView pix)
 
   /* Pixel line buffer */
   uint8 *src = &linebuf[0][0x20 - x_offset];
-	auto *dst = (Pixel*)pix.pixel({0, line});
+	auto *dst = (Pixel*)&pix[0, line];
 	do
 	{
 		*dst++ = pixel[*src++];

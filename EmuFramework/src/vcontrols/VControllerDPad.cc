@@ -39,12 +39,13 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
 	{
 		MemPixmap mapMemPix{{padArea.size(), PIXEL_FMT_RGB565}};
 		auto mapPix = mapMemPix.view();
-		for(auto y : iotaCount(mapPix.h()))
-			for(auto x : iotaCount(mapPix.w()))
+		auto pixels = mapPix.mdspan<uint16_t>();
+		for(auto y : iotaCount(pixels.extent(0)))
+			for(auto x : iotaCount(pixels.extent(1)))
 			{
-				auto input = getInput({padArea.xPos(LT2DO) + (int)x, padArea.yPos(LT2DO) + (int)y});
+				auto input = getInput({padArea.xPos(LT2DO) + int(x), padArea.yPos(LT2DO) + int(y)});
 				//logMsg("got input %d", input);
-				*((uint16_t*)mapPix.pixel({(int)x, (int)y})) = input == std::array{-1, -1} ? PIXEL_DESC_RGB565.build(1., 0., 0.)
+				pixels[y, x] = input == std::array{-1, -1} ? PIXEL_DESC_RGB565.build(1., 0., 0.)
 										: (input[0] != -1 && input[1] != -1) ? PIXEL_DESC_RGB565.build(0., 1., 0.)
 										: PIXEL_DESC_RGB565.build(1., 1., 1.);
 			}

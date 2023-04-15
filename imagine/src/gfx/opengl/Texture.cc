@@ -419,7 +419,7 @@ void Texture::writeAligned(int level, PixmapView pixmap, IG::WP destPos, int ass
 				glBindTexture(GL_TEXTURE_2D, texName);
 				glPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
 				if(hasUnpackRowLength)
-					glPixelStorei(GL_UNPACK_ROW_LENGTH, pixmap.pitchPixels());
+					glPixelStorei(GL_UNPACK_ROW_LENGTH, pixmap.pitchPx());
 				GLenum format = makeGLFormat(r, pixmap.format());
 				GLenum dataType = makeGLDataType(pixmap.format());
 				runGLCheckedVerbose(
@@ -442,7 +442,7 @@ void Texture::writeAligned(int level, PixmapView pixmap, IG::WP destPos, int ass
 	else
 	{
 		// must copy to buffer without extra pitch pixels
-		logDMsg("texture:%u needs temporary buffer to copy pixmap with width:%d pitch:%d", texName(), pixmap.w(), pixmap.pitchPixels());
+		logDMsg("texture:%u needs temporary buffer to copy pixmap with width:%d pitch:%d", texName(), pixmap.w(), pixmap.pitchPx());
 		IG::WindowRect lockRect{{}, pixmap.size()};
 		lockRect += destPos;
 		auto lockBuff = lock(level, lockRect);

@@ -15,7 +15,6 @@ ifndef android_metadata_id
   $(error Please specify metadata_id or android_metadata_id)
  endif
 endif
-android_gen_metadata_args += --id=$(android_metadata_id)
 
 ifndef android_metadata_vendor
  android_metadata_vendor := $(metadata_vendor)

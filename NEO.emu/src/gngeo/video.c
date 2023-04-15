@@ -46,7 +46,7 @@ Uint32 *mem_bank_usage;
 //GFX_CACHE gcache;
 
 void draw_one_char_arm(int byte1, int byte2, unsigned short *br);
-int draw_tile_arm_norm(unsigned int tileno, int color, unsigned char *bmp, int zy);
+int draw_tile_arm_norm(unsigned int tileno, int color, unsigned short *bmp, int zy);
 #endif
 
 #ifdef I386_ASM
@@ -256,6 +256,14 @@ static void fix_value_init(void) {
 #include "video_template.h"
 
 #ifdef PROCESSOR_ARM
+
+void draw_tile_arm_yflip_norm(unsigned int tileno, int color, unsigned short *bmp, int zy);
+void draw_tile_arm_xflip_norm(unsigned int tileno, int color, unsigned short *bmp, int zy);
+void draw_tile_arm_xyflip_norm(unsigned int tileno, int color, unsigned short *bmp, int zy);
+void draw_tile_arm_xzoom(unsigned int tileno, int color, unsigned short *bmp, int zy);
+void draw_tile_arm_yflip_xzoom(unsigned int tileno, int color, unsigned short *bmp, int zy);
+void draw_tile_arm_xflip_xzoom(unsigned int tileno, int color, unsigned short *bmp, int zy);
+void draw_tile_arm_xyflip_xzoom(unsigned int tileno, int color, unsigned short *bmp, int zy);
 
 static __inline__ void draw_tile_arm(unsigned int tileno, int sx, int sy, int zx, int zy,
 		int color, int xflip, int yflip, unsigned char *bmp) {

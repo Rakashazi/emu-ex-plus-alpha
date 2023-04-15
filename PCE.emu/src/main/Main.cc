@@ -291,7 +291,7 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 		// scale 256x4, 341x3 + 1x4, 512x2
 		for(auto h : IG::iotaCount(pixHeight))
 		{
-			auto srcPixAddr = (Pixel*)srcPix.pixel({0,(int)h});
+			auto srcPixAddr = (Pixel*)&srcPix[0, h];
 			int width = lineWidth[h];
 			switch(width)
 			{
@@ -339,7 +339,7 @@ static void renderMultiresOutput(EmulateSpecStruct spec, IG::PixmapView srcPix, 
 	{
 		for(auto h : IG::iotaCount(pixHeight))
 		{
-			auto srcPixAddr = (Pixel*)srcPix.pixel({0,(int)h});
+			auto srcPixAddr = (Pixel*)&srcPix[0, h];
 			int width = lineWidth[h];
 			switch(width)
 			{

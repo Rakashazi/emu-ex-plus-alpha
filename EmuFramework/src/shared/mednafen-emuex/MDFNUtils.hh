@@ -42,7 +42,7 @@ inline Mednafen::MDFN_Surface toMDFNSurface(IG::MutablePixmapView pix)
 					bug_unreachable("format id == %d", pix.format().id());
 			};
 		}();
-	return {pix.data(), (uint32)pix.w(), (uint32)pix.h(), (uint32)pix.pitchPixels(), fmt};
+	return {pix.data(), uint32(pix.w()), uint32(pix.h()), uint32(pix.pitchPx()), fmt};
 }
 
 inline FS::FileString stateFilenameMDFN(const Mednafen::MDFNGI &gameInfo, int slot, std::string_view name, char autoChar)

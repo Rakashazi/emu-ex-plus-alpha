@@ -20,29 +20,31 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/ranges.hh>
-#include <imagine/util/container/array.hh>
+#include <imagine/util/mdspan.hh>
 #include <imagine/util/concepts.hh>
 #include <cstring>
 
 namespace IG
 {
 
-ByteArray<3> transformRGB565ToRGB888(uint16_t p);
-uint16_t transformRGB888ToRGB565(ByteArray<3> p);
+using RGBTripleArray = std::array<unsigned char, 3>;
+
+RGBTripleArray transformRGB565ToRGB888(uint16_t p);
+uint16_t transformRGB888ToRGB565(RGBTripleArray p);
 uint32_t transformRGBA8888ToBGRA8888(uint32_t p);
 uint16_t transformRGBX8888ToRGB565(uint32_t p);
 uint16_t transformBGRX8888ToRGB565(uint32_t p);
-ByteArray<3> transformRGBX8888ToRGB888(uint32_t p);
-ByteArray<3> transformBGRX8888ToRGB888(uint32_t p);
+RGBTripleArray transformRGBX8888ToRGB888(uint32_t p);
+RGBTripleArray transformBGRX8888ToRGB888(uint32_t p);
 uint32_t transformRGB565ToRGBX8888(uint16_t p);
 uint32_t transformRGB565ToBGRX8888(uint16_t p);
-uint32_t transformRGB888ToRGBX8888(ByteArray<3> p);
-uint32_t transformRGB888ToBGRX8888(ByteArray<3> p);
+uint32_t transformRGB888ToRGBX8888(RGBTripleArray p);
+uint32_t transformRGB888ToBGRX8888(RGBTripleArray p);
 
 template <class Func>
 concept PixmapTransformFunc =
 		requires (Func &&f, unsigned data){ f(data); } ||
-		requires (Func &&f, ByteArray<3> data){ f(data); };
+		requires (Func &&f, RGBTripleArray data){ f(data); };
 
 enum class PixmapUnits : uint8_t { PIXEL, BYTE };
 struct PitchInit
@@ -62,7 +64,7 @@ public:
 
 	constexpr PixmapViewBase(PixmapDesc desc, Pointer auto data, PitchInit pitch):
 		data_{(PixData*)data},
-		pitch{pitch.units == Units::PIXEL ? pitch.val * desc.format.bytesPerPixel() : pitch.val},
+		pitchPx_{pitch.units == Units::PIXEL ? pitch.val : pitch.val / desc.format.bytesPerPixel()},
 		desc_{desc} {}
 
 	constexpr PixmapViewBase(PixmapDesc desc, Pointer auto data):
@@ -74,7 +76,7 @@ public:
 	// Convert non-const PixData version to const
 	operator PixmapViewBase<std::add_const_t<PixData>>() const requires(dataIsMutable)
 	{
-		return {desc(), data(), {pitch, PixmapUnits::BYTE}};
+		return {desc(), data(), {pitchPx(), PixmapUnits::PIXEL}};
 	}
 
 	constexpr operator bool() const
@@ -93,20 +95,29 @@ public:
 	constexpr WP size() const { return desc().size; }
 	constexpr PixelFormat format() const { return desc().format; }
 
-	constexpr auto pixel(WP pos) const
+	template<class T>
+	constexpr auto mdspan() const
 	{
-		return &ArrayView2<PixData>{data(), (size_t)pitchBytes()}[pos.y][format().pixelBytes(pos.x)];
+		using Ptr = std::conditional_t<dataIsMutable, T*, const T*>;
+		return stridedMdspan2(reinterpret_cast<Ptr>(data()), extents{h(), w()}, pitchPx());
 	}
 
-	constexpr int pitchPixels() const
+	constexpr PixData *data(IP pos) const
 	{
-		return pitch / format().bytesPerPixel();
+		switch(format().bytesPerPixel())
+		{
+			case 1: return (PixData*)&mdspan<uint8_t>()[pos.y, pos.x];
+			case 2: return (PixData*)&mdspan<uint16_t>()[pos.y, pos.x];
+			case 4: return (PixData*)&mdspan<uint32_t>()[pos.y, pos.x];
+		}
+		bug_unreachable("invalid bytes per pixel:%d", format().bytesPerPixel());
 	}
 
-	constexpr int pitchBytes() const
-	{
-		return pitch;
-	}
+	constexpr const PixData &operator[](int x, int y) const { return *data({x, y}); }
+	constexpr PixData &operator[](int x, int y) requires dataIsMutable { return *data({x, y}); }
+
+	constexpr int pitchPx() const { return pitchPx_; }
+	constexpr int pitchBytes() const { return pitchPx() * format().bytesPerPixel(); }
 
 	constexpr int bytes() const
 	{
@@ -120,12 +131,12 @@ public:
 
 	constexpr bool isPadded() const
 	{
-		return w() != pitchPixels();
+		return w() != pitchPx();
 	}
 
 	constexpr int paddingPixels() const
 	{
-		return pitchPixels() - w();
+		return pitchPx() - w();
 	}
 
 	constexpr int paddingBytes() const
@@ -138,7 +149,7 @@ public:
 		//logDMsg("sub-pixmap with pos:%dx%d size:%dx%d", pos.x, pos.y, size.x, size.y);
 		assumeExpr(pos.x >= 0 && pos.y >= 0);
 		assumeExpr(pos.x + size.x <= w() && pos.y + size.y <= h());
-		return PixmapViewBase{desc().makeNewSize(size), pixel(pos), {pitchBytes(), Units::BYTE}};
+		return PixmapViewBase{desc().makeNewSize(size), data(pos), {pitchBytes(), Units::BYTE}};
 	}
 
 	void write(auto pixmap) requires(dataIsMutable)
@@ -155,7 +166,7 @@ public:
 			// line at a time
 			auto srcData = pixmap.data();
 			auto destData = data();
-			auto destPitch = pitch;
+			auto destPitch = pitchBytes();
 			auto lineBytes = format().pixelBytes(pixmap.w());
 			for(auto i : iotaCount(pixmap.h()))
 			{
@@ -225,7 +236,7 @@ public:
 
 	void clear(WP pos, WP size) requires(dataIsMutable)
 	{
-		char *destData = pixel(pos);
+		char *destData = data(pos);
 		if(!isPadded() && (int)w() == size.x)
 		{
 			std::fill_n(destData, format().pixelBytes(size.x * size.y), 0);
@@ -233,6 +244,7 @@ public:
 		else
 		{
 			auto lineBytes = format().pixelBytes(size.x);
+			auto pitch = pitchBytes();
 			for(auto i : iotaCount(size.y))
 			{
 				std::fill_n(destData, lineBytes, 0);
@@ -270,7 +282,7 @@ public:
 		}
 		else
 		{
-			auto dataPitchPixels = pitchPixels();
+			auto dataPitchPixels = pitchPx();
 			auto width = w();
 			for(auto y : iotaCount(h()))
 			{
@@ -309,7 +321,7 @@ public:
 
 protected:
 	PixData *data_{};
-	int pitch{}; // in bytes
+	int pitchPx_{};
 	PixmapDesc desc_{};
 
 	template <class Dest>
@@ -338,7 +350,8 @@ protected:
 		}
 		else
 		{
-			auto destPitchPixels = pitchPixels();
+			auto srcPitchPixels = pixmap.pitchPx();
+			auto destPitchPixels = pitchPx();
 			for(auto h : iotaCount(pixmap.h()))
 			{
 				auto destLineData = destData;
@@ -348,7 +361,7 @@ protected:
 					{
 						return func(srcPixel);
 					});
-				srcData += pixmap.pitchPixels();
+				srcData += srcPitchPixels;
 				destData += destPitchPixels;
 			}
 		}
@@ -361,12 +374,12 @@ protected:
 
 	static void convertRGB888ToRGBX8888(auto dest, auto src)
 	{
-		dest.template writeTransformedDirect<ByteArray<3>, uint32_t>(transformRGB888ToRGBX8888, src);
+		dest.template writeTransformedDirect<RGBTripleArray, uint32_t>(transformRGB888ToRGBX8888, src);
 	}
 
 	static void convertRGB888ToBGRX8888(auto dest, auto src)
 	{
-		dest.template writeTransformedDirect<ByteArray<3>, uint32_t>(transformRGB888ToBGRX8888, src);
+		dest.template writeTransformedDirect<RGBTripleArray, uint32_t>(transformRGB888ToBGRX8888, src);
 	}
 
 	static void convertRGB565ToRGBX8888(auto dest, auto src)
@@ -381,22 +394,22 @@ protected:
 
 	static void convertRGBX8888ToRGB888(auto dest, auto src)
 	{
-		dest.template writeTransformedDirect<uint32_t, ByteArray<3>>(transformRGBX8888ToRGB888, src);
+		dest.template writeTransformedDirect<uint32_t, RGBTripleArray>(transformRGBX8888ToRGB888, src);
 	}
 
 	static void convertBGRX8888ToRGB888(auto dest, auto src)
 	{
-		dest.template writeTransformedDirect<uint32_t, ByteArray<3>>(transformBGRX8888ToRGB888, src);
+		dest.template writeTransformedDirect<uint32_t, RGBTripleArray>(transformBGRX8888ToRGB888, src);
 	}
 
 	static void convertRGB565ToRGB888(auto dest, auto src)
 	{
-		dest.template writeTransformedDirect<uint16_t, ByteArray<3>>(transformRGB565ToRGB888, src);
+		dest.template writeTransformedDirect<uint16_t, RGBTripleArray>(transformRGB565ToRGB888, src);
 	}
 
 	static void convertRGB888ToRGB565(auto dest, auto src)
 	{
-		dest.template writeTransformedDirect<ByteArray<3>, uint16_t>(transformRGB888ToRGB565, src);
+		dest.template writeTransformedDirect<RGBTripleArray, uint16_t>(transformRGB888ToRGB565, src);
 	}
 
 	static void convertRGBX8888ToRGB565(auto dest, auto src)

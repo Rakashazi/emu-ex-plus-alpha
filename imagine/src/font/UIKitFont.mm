@@ -18,7 +18,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/font/Font.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/container/array.hh>
+#include <imagine/util/mdspan.hh>
 #import <CoreGraphics/CGBitmapContext.h>
 #import <CoreGraphics/CGContext.h>
 #import <UIKit/UIKit.h>
@@ -78,12 +78,12 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, CGColorS
 		grayColorSpace, textColor, fontSize.font());
 
 	// measure real bounds
-	auto pixView = IG::ArrayView2<char>{pixBuffer, (size_t)cXFullSize};
+	auto pixView = mdspan{pixBuffer, cYFullSize, cXFullSize};
 	int minX = cXFullSize, maxX = 0, minY = cYFullSize, maxY = 0;
 	for(auto y : iotaCount(cYFullSize))
 		for(auto x : iotaCount(cXFullSize))
 		{
-			if(pixView[y][x])
+			if(pixView[y, x])
 			{
 				if (x < minX) minX = x;
 				if (x > maxX) maxX = x;
@@ -96,7 +96,7 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, CGColorS
 	int16_t cXSize = (maxX - minX) + 1;
 	int16_t cYOffset = minY;
 	int16_t cYSize = (maxY - minY) + 1;
-	auto startOfCharInPixBuffer = &pixView[cYOffset][cXOffset];
+	auto startOfCharInPixBuffer = &pixView[cYOffset, cXOffset];
 
 	GlyphMetrics metrics;
 	metrics.size = {cXSize, cYSize};

@@ -104,11 +104,6 @@ public:
 	template <NotPointerDecayable T>
 	std::expected<T, IOReadWriteResult<sizeof(T)>> getExpected(std::optional<off_t> offset = {})
 	{
-		#if defined(__clang__) && !defined(NDEBUG)
-		// TODO: Some types don't init properly on Android NDK Clang 14, re-test on updated clang
-		std::expected<T, IOReadWriteResult<sizeof(T)>> tmp;
-		assert(tmp.has_value());
-		#endif
 		T obj;
 		auto result = read(obj, offset);
 		if(result.bytes != ssize_t(sizeof(T))) [[unlikely]]

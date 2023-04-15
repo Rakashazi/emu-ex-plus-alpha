@@ -84,7 +84,7 @@ public:
 	void *setCurrentScanline(int line)
 	{
 		currentLine = line;
-		return pix.pixel({0, line});
+		return &pix[0, line];
 	}
 
 	int currentScanline() const
@@ -131,7 +131,7 @@ FrameBuffer* frameBufferFlipDrawFrame() { return &fb; }
 
 FrameBufferData* frameBufferGetActive()
 {
-	return (FrameBufferData*)fb.pixmap().pixel({});
+	return (FrameBufferData*)fb.pixmap().data();
 }
 
 void frameBufferSetActive(FrameBufferData* frameData)

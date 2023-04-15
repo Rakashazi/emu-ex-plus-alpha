@@ -417,7 +417,7 @@ void cpu_68k_fill_state(M68K_STATE *st) {
 void cpu_68k_set_state(M68K_STATE *st) {
 }
 
-int cpu_68k_debuger(void (*execstep)(int),void (*dump)(void)) {
+int cpu_68k_debuger(void (*execstep)(int, void *, void *, void *),void (*dump)(void)) {
 	/* TODO */
 	return 0;
 }
