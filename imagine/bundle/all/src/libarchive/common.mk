@@ -15,6 +15,10 @@ installIncludeDir := $(installDir)/include
 pkgCFlags := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config liblzma --cflags)
 pkgLibs := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config liblzma --libs)
 
+ifeq ($(ENV), android)
+ CPPFLAGS += -Dset_statfs_transfer_size\(a,b\)=
+endif
+
 all : $(outputLibFile)
 
 install : $(outputLibFile)

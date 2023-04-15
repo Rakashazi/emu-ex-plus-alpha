@@ -15,6 +15,11 @@ makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/src/libFLAC/.libs/libFLAC.a
 installIncludeDir := $(installDir)/include/FLAC
 
+ifeq ($(ENV), android)
+ # fseeko & ftello only present in API level 24+
+ CPPFLAGS += -Dfseeko=fseek -Dftello=ftell
+endif
+
 all : $(outputLibFile)
 
 install : $(outputLibFile)
