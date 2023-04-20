@@ -17,6 +17,7 @@
 
 #include <imagine/input/Input.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/time/Time.hh>
 #include <utility>
 
 namespace IG::Input
@@ -42,7 +43,7 @@ struct AxisKeyEmu
 		sysKey{sysKey} {}
 
 	UpdateKeys update(float pos);
-	bool dispatch(float pos, Map map, Time time, const Device &dev, Window &win);
+	bool dispatch(float pos, Map map, SteadyClockTimePoint time, const Device &dev, Window &win);
 };
 
 }

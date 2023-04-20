@@ -81,8 +81,6 @@ public:
 	void updateExtraWindowViewport(IG::Window &, IG::Viewport, Gfx::RendererTask &);
 	bool drawMainWindow(IG::Window &win, IG::WindowDrawParams, Gfx::RendererTask &);
 	bool drawExtraWindow(IG::Window &win, IG::WindowDrawParams, Gfx::RendererTask &);
-	void updateEmuAudioStats(int underruns, int overruns, int callbacks, double avgCallbackFrames, int frames);
-	void clearEmuAudioStats();
 	void popToSystemActionsMenu();
 	void postDrawToEmuWindows();
 	IG::Screen *emuWindowScreen() const;
@@ -98,9 +96,7 @@ public:
 	void onInputDevicesChanged();
 	void onSystemCreated();
 	void onSystemClosed();
-	EmuInputView &inputView();
 	MainMenuView &mainMenu();
-	IG::ToastView &popupMessageView();
 	bool isMenuDismissKey(const Input::KeyEvent &) const;
 	IG::ApplicationContext appContext() const;
 	bool isShowingEmulation() const { return showingEmulation; }
@@ -108,14 +104,16 @@ public:
 	void movePopupToWindow(IG::Window &win);
 	void moveEmuViewToWindow(IG::Window &win);
 
-protected:
-	static constexpr bool HAS_USE_RENDER_TIME = Config::envIsLinux
-		|| (Config::envIsAndroid && Config::ENV_ANDROID_MIN_SDK < 16);
+public:
 	EmuView emuView;
-	EmuInputView emuInputView;
+	EmuInputView inputView;
 	ToastView popup;
+protected:
 	EmuMenuViewStack viewStack;
 	bool showingEmulation{};
+
+	static constexpr bool HAS_USE_RENDER_TIME = Config::envIsLinux
+		|| (Config::envIsAndroid && Config::ENV_ANDROID_MIN_SDK < 16);
 
 	void configureWindowForEmulation(Window &, FrameTimeConfig, bool running);
 	EmuVideoLayer &videoLayer() const;

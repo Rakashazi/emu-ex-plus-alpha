@@ -91,7 +91,7 @@ public:
 	bool requestPermission(ApplicationContext, Permission);
 	UniqueFileDescriptor openFileUriFd(JNIEnv *, jobject baseActivity, CStringView uri, OpenFlagsMask oFlags = {}) const;
 	bool fileUriExists(JNIEnv *, jobject baseActivity, CStringView uri) const;
-	Seconds fileUriLastWriteTime(JNIEnv *, jobject baseActivity, CStringView uri) const;
+	WallClockTimePoint fileUriLastWriteTime(JNIEnv *, jobject baseActivity, CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(JNIEnv *, jobject baseActivity, CStringView uri) const;
 	FS::FileString fileUriDisplayName(JNIEnv *, jobject baseActivity, CStringView uri) const;
 	bool removeFileUri(JNIEnv *, jobject baseActivity, CStringView uri, bool isDir) const;
@@ -99,7 +99,7 @@ public:
 	bool createDirectoryUri(JNIEnv *, jobject baseActivity, CStringView uri) const;
 	bool forEachInDirectoryUri(JNIEnv *, jobject baseActivity, CStringView uri, DirectoryEntryDelegate,
 		FS::DirOpenFlagsMask) const;
-	std::string formatDateAndTime(JNIEnv *, jclass baseActivityClass, WallClockTime timeSinceEpoch);
+	std::string formatDateAndTime(JNIEnv *, jclass baseActivityClass, WallClockTimePoint timeSinceEpoch);
 
 	// Input system functions
 	void onInputQueueCreated(ApplicationContext, AInputQueue *);

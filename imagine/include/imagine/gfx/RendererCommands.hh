@@ -69,7 +69,7 @@ class RendererCommands : public RendererCommandsImpl
 public:
 	using RendererCommandsImpl::RendererCommandsImpl;
 	void present();
-	void presentAtTime(FrameTime);
+	void presentAtTime(SteadyClockTimePoint);
 	void presentNow();
 	void setRenderTarget(Texture &t);
 	void setDefaultRenderTarget();
@@ -93,7 +93,6 @@ public:
 	Color4F color() const;
 	void setImgMode(EnvMode);
 	void setDither(bool on);
-	bool dither();
 	void setSrgbFramebufferWrite(bool on);
 	void setVisibleGeomFace(Faces);
 	void setClipTest(bool on);

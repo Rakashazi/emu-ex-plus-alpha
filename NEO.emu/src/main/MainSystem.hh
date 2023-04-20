@@ -86,7 +86,7 @@ public:
 	bool resetSessionOptions(EmuApp &);
 	void loadBackupMemory(EmuApp &);
 	void onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags);
-	IG::Time backupMemoryLastWriteTime(const EmuApp &) const;
+	WallClockTimePoint backupMemoryLastWriteTime(const EmuApp &) const;
 	FS::FileString contentDisplayNameForPath(IG::CStringView path) const;
 };
 

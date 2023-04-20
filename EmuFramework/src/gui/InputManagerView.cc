@@ -219,7 +219,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 		"General Options", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			pushAndShow(makeView<InputManagerOptionsView>(&app().viewController().inputView()), e);
+			pushAndShow(makeView<InputManagerOptionsView>(&app().viewController().inputView), e);
 		}
 	},
 	deviceListHeading

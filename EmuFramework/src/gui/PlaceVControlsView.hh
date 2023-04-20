@@ -47,7 +47,7 @@ private:
 	};
 	Gfx::Text text;
 	VController &vController;
-	InterpolatorValue<float, IG::FrameTime, IG::InterpolatorType::LINEAR> textFade{};
+	InterpolatorValue<float, SteadyClockTimePoint, IG::InterpolatorType::LINEAR> textFade{};
 	Timer animationStartTimer{"PlaceVControlsView::animationStartTimer"};
 	OnFrameDelegate animate;
 	WRect exitBtnRect{};

@@ -193,7 +193,10 @@ void Window::postFrameReadyToMainThread()
 int8_t Window::setDrawEventPriority(int8_t priority)
 {
 	if(priority == drawEventPriorityLocked)
+	{
 		unpostDraw();
+		drawPhase = DrawPhase::UPDATE;
+	}
 	return std::exchange(drawEventPriority_, priority);
 }
 
@@ -282,8 +285,7 @@ void Window::dispatchOnFrame()
 	}
 	drawPhase = DrawPhase::UPDATE;
 	//logDMsg("running %u onFrame delegates", onFrame.size());
-	auto now = IG::steadyClockTimestamp();
-	FrameParams frameParams{now, screen()->frameTime()};
+	FrameParams frameParams{SteadyClock::now(), screen()->frameTime()};
 	onFrame.runAll([&](OnFrameDelegate del){ return del(frameParams); });
 	if(onFrame.size())
 	{

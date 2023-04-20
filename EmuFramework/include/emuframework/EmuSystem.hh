@@ -238,7 +238,7 @@ public:
 	bool onVideoRenderFormatChange(EmuVideo &, PixelFormat);
 	void loadBackupMemory(EmuApp &);
 	void onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags);
-	IG::Time backupMemoryLastWriteTime(const EmuApp &) const;
+	WallClockTimePoint backupMemoryLastWriteTime(const EmuApp &) const;
 	FS::FileString configName() const;
 	void onOptionsLoaded();
 	void onSessionOptionsLoaded(EmuApp &);
@@ -344,10 +344,9 @@ public:
 	static double audioMixRate(int outputRate, double inputFrameRate, FloatSeconds outputFrameTime);
 	double audioMixRate(int outputRate, FloatSeconds outputFrameTime) const { return audioMixRate(outputRate, frameRate(), outputFrameTime); }
 	void configFrameTime(int outputRate, FloatSeconds outputFrameTime);
-	void setStartFrameTime(IG::FrameTime time);
-	EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
+	EmuFrameTimeInfo advanceFramesWithTime(SteadyClockTimePoint);
 	void setSpeedMultiplier(EmuAudio &, double speed);
-	IG::Time benchmark(EmuVideo &video);
+	SteadyClockTime benchmark(EmuVideo &video);
 	bool hasContent() const;
 	void resetFrameTime();
 	void pause(EmuApp &);

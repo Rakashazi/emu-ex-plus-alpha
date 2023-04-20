@@ -95,7 +95,7 @@ public:
 	float projectionRollAngle(const Window &) const;
 	static ClipRect makeClipRect(const Window &win, WindowRect rect);
 	bool supportsSyncFences() const;
-	void setPresentationTime(Window &, FrameTime time) const;
+	void setPresentationTime(Window &, SteadyClockTimePoint time) const;
 	bool supportsPresentationTime() const;
 	int maxSwapChainImages() const;
 	void setCorrectnessChecks(bool on);

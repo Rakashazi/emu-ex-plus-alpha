@@ -1,6 +1,5 @@
 #pragma once
 
-#include <chrono>
 #include <Carbon/Carbon.h>
 #ifdef __OBJC__
 #import <AppKit/NSEvent.h>
@@ -89,8 +88,6 @@ namespace IG::Input
 {
 
 using PointerIdImpl = void*;
-
-using Time = std::chrono::duration<double>;
 
 using Key = uint16_t;
 

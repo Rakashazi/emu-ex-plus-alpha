@@ -66,7 +66,7 @@ bool EmuApp::shouldOverwriteExistingState() const
 	return !optionConfirmOverwriteState || !system().stateExists(system().stateSlot());
 }
 
-EmuFrameTimeInfo EmuSystem::advanceFramesWithTime(IG::FrameTime time)
+EmuFrameTimeInfo EmuSystem::advanceFramesWithTime(SteadyClockTimePoint time)
 {
 	return emuTiming.advanceFramesWithTime(time);
 }
@@ -274,22 +274,21 @@ void EmuSystem::start(EmuApp &app)
 	state = State::ACTIVE;
 	if(inputHasKeyboard)
 		app.defaultVController().keyboard().setShiftActive(false);
-	clearInputBuffers(app.viewController().inputView());
+	clearInputBuffers(app.viewController().inputView);
 	resetFrameTime();
 	onStart();
 	app.startAudio();
 	app.autosaveManager().startTimer();
 }
 
-IG::Time EmuSystem::benchmark(EmuVideo &video)
+SteadyClockTime EmuSystem::benchmark(EmuVideo &video)
 {
-	auto now = IG::steadyClockTimestamp();
+	auto before = SteadyClock::now();
 	for(auto i : iotaCount(180))
 	{
 		runFrame({}, &video, nullptr);
 	}
-	auto after = IG::steadyClockTimestamp();
-	return after-now;
+	return SteadyClock::now() - before;
 }
 
 void EmuSystem::configFrameTime(int outputRate, FloatSeconds outputFrameTime)

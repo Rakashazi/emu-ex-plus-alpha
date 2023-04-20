@@ -152,14 +152,14 @@ std::string AutosaveManager::stateTimeAsString() const
 	return appContext().fileUriFormatLastWriteTimeLocal(statePath());
 }
 
-IG::Time AutosaveManager::stateTime() const
+WallClockTimePoint AutosaveManager::stateTime() const
 {
 	if(autoSaveSlot == noAutosaveName)
 		return {};
 	return appContext().fileUriLastWriteTime(statePath());
 }
 
-IG::Time AutosaveManager::backupMemoryTime() const
+WallClockTimePoint AutosaveManager::backupMemoryTime() const
 {
 	if(!system().usesBackupMemory() || autoSaveSlot == noAutosaveName)
 		return {};
@@ -177,7 +177,7 @@ FS::PathString AutosaveManager::statePath(std::string_view name) const
 
 void AutosaveManager::pauseTimer()
 {
-	autoSaveTimerElapsedTime = IG::steadyClockTimestamp() - autoSaveTimerStartTime;
+	autoSaveTimerElapsedTime = SteadyClock::now() - autoSaveTimerStartTime;
 	autoSaveTimer.cancel();
 }
 
@@ -189,7 +189,7 @@ void AutosaveManager::cancelTimer()
 
 void AutosaveManager::resetTimer()
 {
-	autoSaveTimerStartTime = IG::steadyClockTimestamp();
+	autoSaveTimerStartTime = SteadyClock::now();
 }
 
 void AutosaveManager::startTimer()
@@ -197,10 +197,10 @@ void AutosaveManager::startTimer()
 	if(!timerFrequency().count())
 		return;
 	autoSaveTimer.run(nextTimerFireTime(), timerFrequency());
-	autoSaveTimerStartTime = IG::steadyClockTimestamp();
+	autoSaveTimerStartTime = SteadyClock::now();
 }
 
-IG::Time AutosaveManager::nextTimerFireTime() const
+SteadyClockTime AutosaveManager::nextTimerFireTime() const
 {
 	auto timerFreq = timerFrequency();
 	if(autoSaveTimerElapsedTime < timerFreq)
@@ -208,7 +208,7 @@ IG::Time AutosaveManager::nextTimerFireTime() const
 	return {};
 }
 
-IG::Time AutosaveManager::timerFrequency() const
+SteadyClockTime AutosaveManager::timerFrequency() const
 {
 	if(autoSaveSlot == noAutosaveName)
 		return {};

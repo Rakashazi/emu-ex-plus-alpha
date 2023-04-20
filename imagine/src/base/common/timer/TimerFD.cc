@@ -116,7 +116,7 @@ void Timer::run(Time time, Time repeatTime, bool isAbsTime, EventLoop loop, Call
 	long repeatLeftoverNs = repeatTime.count() % 1000000000l;
 	if(Config::DEBUG_BUILD)
 	{
-		IG::FloatSeconds relTime = isAbsTime ? time - IG::steadyClockTimestamp() : time;
+		FloatSeconds relTime = isAbsTime ? time - SteadyClock::now().time_since_epoch() : time;
 		logMsg("arming fd:%d (%s) to run in:%.4fs repeats:%.4fs",
 			fdSrc.fd(), label(), relTime.count(), IG::FloatSeconds(repeatTime).count());
 	}

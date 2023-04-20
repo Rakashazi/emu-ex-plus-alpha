@@ -638,7 +638,7 @@ uint32_t Axis::idBit() const
 	}
 }
 
-bool Axis::update(float pos, Map map, Time time, const Device &dev, Window &win, bool normalized)
+bool Axis::update(float pos, Map map, SteadyClockTimePoint time, const Device &dev, Window &win, bool normalized)
 {
 	if(!normalized)
 		pos *= scaler;
@@ -667,7 +667,7 @@ AxisKeyEmu::UpdateKeys AxisKeyEmu::update(float pos)
 	return keys;
 }
 
-bool AxisKeyEmu::dispatch(float pos, Map map, Time time, const Device &dev, Window &win)
+bool AxisKeyEmu::dispatch(float pos, Map map, SteadyClockTimePoint time, const Device &dev, Window &win)
 {
 	auto updateKeys = update(pos);
 	auto src = Source::GAMEPAD;

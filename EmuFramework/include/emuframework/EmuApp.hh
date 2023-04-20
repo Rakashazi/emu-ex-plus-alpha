@@ -279,6 +279,7 @@ public:
 	auto &savedInputDeviceList() { return savedInputDevs; };
 	IG::Viewport makeViewport(const Window &win) const;
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &);
+	void record(FrameTimeStatEvent, SteadyClockTimePoint t = {});
 	void setWindowFrameClockSource(IG::Window::FrameTimeSource src) { winFrameTimeSrc = src; }
 	IG::Window::FrameTimeSource windowFrameClockSource() const { return winFrameTimeSrc; }
 	void setIntendedFrameRate(Window &, FrameTimeConfig);
@@ -353,7 +354,7 @@ public:
 	auto &sustainedPerformanceModeOption() { return optionSustainedPerformanceMode; }
 	void setCPUAffinity(int cpuNumber, bool on);
 	bool cpuAffinity(int cpuNumber);
-	void applyCPUAffinity();
+	void applyCPUAffinity(bool active);
 
 	// GUI Options
 	auto &pauseUnfocusedOption() { return optionPauseUnfocused; }
@@ -400,7 +401,7 @@ public:
 
 	void postMessage(int secs, bool error, UTF16Convertible auto &&msg)
 	{
-		viewController().popupMessageView().post(IG_forward(msg), secs, error);
+		viewController().popup.post(IG_forward(msg), secs, error);
 	}
 
 	void postErrorMessage(UTF16Convertible auto &&msg)
@@ -519,6 +520,7 @@ protected:
 public:
 	OutputTimingManager outputTimingManager;
 protected:
+	IG_UseMemberIf(enableFrameTimeStats, FrameTimeStats, frameTimeStats);
 	DelegateFunc<void ()> onUpdateInputDevices_;
 	KeyConfigContainer customKeyConfigs;
 	InputDeviceSavedConfigContainer savedInputDevs;
@@ -580,6 +582,7 @@ protected:
 	IG_UseMemberIf(Config::envIsAndroid, bool, forceMaxScreenFrameRate){};
 public:
 	IG_UseMemberIf(Config::envIsAndroid, bool, useNoopThread){};
+	IG_UseMemberIf(enableFrameTimeStats, bool, showFrameTimeStats){};
 
 protected:
 	struct ConfigParams

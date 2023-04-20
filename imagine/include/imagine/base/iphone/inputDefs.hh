@@ -15,8 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <chrono>
-
 #if !defined __ARM_ARCH_6K__
 #define CONFIG_INPUT_APPLE_GAME_CONTROLLER
 #endif
@@ -25,8 +23,6 @@ namespace IG::Input
 {
 
 using PointerIdImpl = void*;
-
-using Time = std::chrono::duration<double>;
 
 using Key = uint16_t;
 

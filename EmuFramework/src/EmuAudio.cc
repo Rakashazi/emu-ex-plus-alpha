@@ -188,7 +188,7 @@ void EmuAudio::start(FloatSeconds bufferDuration)
 						auto padFrames = frames - framesToRead;
 						std::fill_n(frameEndAddr, outputFormat.framesToBytes(padFrames), 0);
 						//logMsg("underrun, %d bytes ready out of %d", bytesReady, bytes);
-						auto now = IG::steadyClockTimestamp();
+						auto now = SteadyClock::now();
 						if(now - lastUnderrunTime < IG::Seconds(1))
 						{
 							//logWarn("multiple underruns within a short time");

@@ -140,7 +140,7 @@ void MogaManager::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				assert((uint32_t)keyCode < Keycode::COUNT);
 				ctx.endIdleByUserActivity();
 				Key key = keyCode & 0x1ff;
-				auto time = IG::Nanoseconds(timestamp);
+				auto time = SteadyClockTimePoint{Nanoseconds{timestamp}};
 				KeyEvent event{Map::SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &mogaDev};
 				ctx.application().dispatchRepeatableKeyInputEvent(event);
 			})
@@ -154,7 +154,7 @@ void MogaManager::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				auto &mogaDev = *mogaManager.mogaDev;
 				auto ctx = mogaManager.appContext();
 				ctx.endIdleByUserActivity();
-				auto time = IG::Nanoseconds(timestamp);
+				auto time = SteadyClockTimePoint{Nanoseconds{timestamp}};
 				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
 				auto &win = ctx.mainWindow();
 				auto &axis = mogaDev.jsAxes();

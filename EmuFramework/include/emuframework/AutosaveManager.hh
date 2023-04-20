@@ -63,16 +63,16 @@ public:
 	std::string_view slotName() const { return autoSaveSlot; }
 	std::string slotFullName() const;
 	std::string stateTimeAsString() const;
-	IG::Time stateTime() const;
-	IG::Time backupMemoryTime() const;
+	WallClockTimePoint stateTime() const;
+	WallClockTimePoint backupMemoryTime() const;
 	FS::PathString statePath() const { return statePath(autoSaveSlot); }
 	FS::PathString statePath(std::string_view name) const;
 	void pauseTimer();
 	void cancelTimer();
 	void resetTimer();
 	void startTimer();
-	IG::Time nextTimerFireTime() const;
-	IG::Time timerFrequency() const;
+	SteadyClockTime nextTimerFireTime() const;
+	SteadyClockTime timerFrequency() const;
 	bool readConfig(MapIO &, unsigned key, size_t size);
 	void writeConfig(FileIO &) const;
 	ApplicationContext appContext() const;
@@ -82,11 +82,11 @@ public:
 private:
 	EmuApp &app;
 	std::string autoSaveSlot;
-	IG::Timer autoSaveTimer;
-	IG::Time autoSaveTimerStartTime{};
-	IG::Time autoSaveTimerElapsedTime{};
+	Timer autoSaveTimer;
+	SteadyClockTimePoint autoSaveTimerStartTime{};
+	SteadyClockTime autoSaveTimerElapsedTime{};
 public:
-	IG::Minutes autosaveTimerMins{};
+	Minutes autosaveTimerMins{};
 	AutosaveLaunchMode autosaveLaunchMode{};
 	bool saveOnlyBackupMemory{};
 };

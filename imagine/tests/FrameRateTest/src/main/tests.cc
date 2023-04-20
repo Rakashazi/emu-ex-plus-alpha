@@ -118,7 +118,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 
 		// frame stats
 		bool updatedFrameStats = false;
-		if(!startTime.count())
+		if(!hasTime(startTime))
 		{
 			startTime = timestamp;
 			//logMsg("start time: %llu", (unsigned long long)startTime);
@@ -135,7 +135,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 				skippedFrameStr.clear();
 				IG::formatTo(skippedFrameStr, "Lost {} frame(s) taking {:.3f}s after {} continuous\nat time {:.3f}s",
 					elapsedScreenFrames - 1, IG::FloatSeconds(timestamp - lastFramePresentTime.timestamp).count(),
-					continuousFrames, IG::FloatSeconds(timestamp).count());
+					continuousFrames, IG::FloatSeconds(timestamp.time_since_epoch()).count());
 				updatedFrameStats = true;
 				continuousFrames = 0;
 			}
@@ -199,7 +199,7 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int 
 	}
 }
 
-void TestFramework::finish(Gfx::RendererTask &task, IG::FrameTime frameTime)
+void TestFramework::finish(Gfx::RendererTask &task, SteadyClockTimePoint frameTime)
 {
 	endTime = frameTime;
 	task.deleteSyncFence(presentFence);
@@ -208,7 +208,7 @@ void TestFramework::finish(Gfx::RendererTask &task, IG::FrameTime frameTime)
 		onTestFinished(*this);
 }
 
-void ClearTest::frameUpdateTest(Gfx::RendererTask &, IG::Screen &, IG::FrameTime)
+void ClearTest::frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint)
 {
 	flash ^= true;
 }
@@ -256,7 +256,7 @@ void DrawTest::placeTest(WRect rect)
 	sprite.setPos(rect);
 }
 
-void DrawTest::frameUpdateTest(Gfx::RendererTask &, IG::Screen &, IG::FrameTime)
+void DrawTest::frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint)
 {
 	flash ^= true;
 }
@@ -282,7 +282,7 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	sprite.draw(cmds, cmds.basicEffect());
 }
 
-void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime)
+void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Screen &screen, SteadyClockTimePoint frameTime)
 {
 	DrawTest::frameUpdateTest(rendererTask, screen, frameTime);
 	rendererTask.clientWaitSync(std::exchange(presentFence, {}));

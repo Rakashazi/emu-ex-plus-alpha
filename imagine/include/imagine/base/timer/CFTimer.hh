@@ -33,7 +33,7 @@ struct CFTimerInfo
 class CFTimer
 {
 public:
-	using Time = FloatSeconds;
+	using TimePoint = SteadyClockTimePoint;
 
 	constexpr CFTimer() = default;
 	CFTimer(CallbackDelegate c) : CFTimer{nullptr, c} {}

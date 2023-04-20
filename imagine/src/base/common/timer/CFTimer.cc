@@ -103,7 +103,7 @@ void Timer::run(Time time, Time repeatTime, bool isAbsTime, EventLoop loop, Call
 		setCallback(callback);
 	if(!loop)
 		loop = EventLoop::forThread();
-	CFAbsoluteTime absTime = time.count();
+	CFAbsoluteTime absTime = std::chrono::duration_cast<FloatSeconds>(time).count();
 	if(!isAbsTime)
 		absTime += CFAbsoluteTimeGetCurrent();
 	callbackInCFAbsoluteTime(absTime, repeatTime.count(), loop.nativeObject());

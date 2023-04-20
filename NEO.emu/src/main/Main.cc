@@ -198,7 +198,7 @@ void NeoSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags flags)
 	}
 }
 
-IG::Time NeoSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+WallClockTimePoint NeoSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
 	return appContext().fileUriLastWriteTime(app.contentSavePath("memcard").c_str());
 }

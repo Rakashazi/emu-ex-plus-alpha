@@ -173,7 +173,7 @@ public:
 	FileIO openFileUri(CStringView uri, OpenFlagsMask oFlags = {}) const;
 	UniqueFileDescriptor openFileUriFd(CStringView uri, OpenFlagsMask oFlags = {}) const;
 	bool fileUriExists(CStringView uri) const;
-	Seconds fileUriLastWriteTime(CStringView uri) const;
+	WallClockTimePoint fileUriLastWriteTime(CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(CStringView uri) const;
 	FS::FileString fileUriDisplayName(CStringView uri) const;
 	bool removeFileUri(CStringView uri) const;
@@ -210,8 +210,8 @@ public:
 	bool requestPermission(Permission p);
 
 	// Date & Time
-	std::string formatDateAndTime(WallClockTime timeSinceEpoch);
-	std::string formatDateAndTimeAsFilename(WallClockTime timeSinceEpoch);
+	std::string formatDateAndTime(WallClockTimePoint timeSinceEpoch);
+	std::string formatDateAndTimeAsFilename(WallClockTimePoint timeSinceEpoch);
 
 	// Input
 	const InputDeviceContainer &inputDevices() const;

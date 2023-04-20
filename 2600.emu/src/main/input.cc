@@ -429,7 +429,7 @@ bool A2600System::updatePaddle(Input::DragTrackerState dragState)
 		return false;
 	auto &app = osystem.app();
 	int regionXStart = 0;
-	int regionXEnd = app.viewController().inputView().viewRect().size().x;
+	int regionXEnd = app.viewController().inputView.viewRect().size().x;
 	if(regionMode == PaddleRegionMode::LEFT)
 	{
 		regionXEnd /= 2;

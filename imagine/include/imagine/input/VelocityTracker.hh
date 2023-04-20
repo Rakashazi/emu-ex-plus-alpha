@@ -28,13 +28,13 @@ template <std::floating_point T, size_t D>
 class IntegratingVelocityTracker
 {
 public:
-	using TimeType = std::chrono::nanoseconds;
+	using TimePoint = std::chrono::steady_clock::time_point;
 	using ValArray = std::array<T, D>;
 
 	constexpr IntegratingVelocityTracker() = default;
-	constexpr IntegratingVelocityTracker(TimeType time, std::array<T, D> pos): updateTime{time}, pos{pos} {}
+	constexpr IntegratingVelocityTracker(TimePoint time, std::array<T, D> pos): updateTime{time}, pos{pos} {}
 
-	void update(TimeType time, std::array<T, D> pos_)
+	void update(TimePoint time, std::array<T, D> pos_)
 	{
 		using namespace std::chrono_literals;
 		const auto MIN_TIME_DELTA = 2000000ns; // in nanosecs
@@ -74,7 +74,7 @@ public:
 	T velocity(size_t idx) const { return vel[idx]; }
 
 protected:
-	TimeType updateTime{};
+	TimePoint updateTime{};
 	ValArray pos{};
 	ValArray vel{};
 	uint8_t degree{};

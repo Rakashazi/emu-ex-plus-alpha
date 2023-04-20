@@ -29,6 +29,29 @@ namespace EmuEx
 
 using namespace IG;
 
+enum class FrameTimeStatEvent
+{
+	startOfFrame,
+	startOfEmulation,
+	aboutToSubmitFrame,
+	aboutToPostDraw,
+	startOfDraw,
+	aboutToPresent,
+	endOfDraw,
+};
+
+struct FrameTimeStats
+{
+	SteadyClockTimePoint startOfFrame{};
+	SteadyClockTimePoint startOfEmulation{};
+	SteadyClockTimePoint aboutToSubmitFrame{};
+	SteadyClockTimePoint aboutToPostDraw{};
+	SteadyClockTimePoint startOfDraw{};
+	SteadyClockTimePoint aboutToPresent{};
+	SteadyClockTimePoint endOfDraw{};
+	int missedFrameCallbacks{};
+};
+
 struct FrameTimeConfig
 {
 	FloatSeconds time;

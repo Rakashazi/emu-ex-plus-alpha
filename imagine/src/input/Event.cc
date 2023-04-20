@@ -494,7 +494,7 @@ std::string_view BaseEvent::actionToStr(Action action)
 	}
 }
 
-Time BaseEvent::time() const
+SteadyClockTimePoint BaseEvent::time() const
 {
 	return time_;
 }
@@ -509,7 +509,7 @@ bool KeyEvent::hasSwappedConfirmKeys() const
 	return keyFlags; // currently there is only a single flag
 }
 
-Time Event::time() const { return visit([](auto &e){ return e.time(); }, *this); }
+SteadyClockTimePoint Event::time() const { return visit([](auto &e){ return e.time(); }, *this); }
 
 const Device *Event::device() const { return visit([](auto &e){ return e.device(); }, *this); }
 

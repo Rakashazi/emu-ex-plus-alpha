@@ -100,7 +100,7 @@ void WsSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 		saveFileIO.write(wsSRAM, sram_size, eeprom_size);
 }
 
-IG::Time WsSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+WallClockTimePoint WsSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
 	return appContext().fileUriLastWriteTime(savePathMDFN(app, 0, "sav").c_str());
 }

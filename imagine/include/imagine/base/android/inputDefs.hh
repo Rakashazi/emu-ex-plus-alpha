@@ -15,15 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <chrono>
 #include <cstdint>
 
 namespace IG::Input
 {
 
 using PointerIdImpl = int32_t;
-
-using Time = std::chrono::nanoseconds;
 
 using Key = uint16_t;
 

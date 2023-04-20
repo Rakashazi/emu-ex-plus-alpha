@@ -148,7 +148,7 @@ void GbcSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 	}
 }
 
-IG::Time GbcSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+WallClockTimePoint GbcSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
 	return appContext().fileUriLastWriteTime(app.contentSaveFilePath(".sav").c_str());
 }

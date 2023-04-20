@@ -119,7 +119,7 @@ void GbaSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 	}
 }
 
-IG::Time GbaSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+WallClockTimePoint GbaSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
 	return appContext().fileUriLastWriteTime(app.contentSaveFilePath(".sav").c_str());
 }

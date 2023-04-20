@@ -64,7 +64,7 @@ FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop)
 				return true; // frame request was cancelled
 			}
 			assert(screen.isPosted());
-			if(screen.frameUpdate(IG::Nanoseconds(timestamp)))
+			if(screen.frameUpdate(SteadyClockTimePoint{Nanoseconds{timestamp}}))
 				scheduleVSync();
 			return true;
 		}};
@@ -84,7 +84,7 @@ FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop)
 				{
 					logErr("error in ioctl FBIO_WAITFORVSYNC");
 				}
-				eventfd_t timestamp = IG::steadyClockTimestamp().count();
+				eventfd_t timestamp = SteadyClock::now().time_since_epoch().count();
 				//logMsg("got vsync at time %lu", (long unsigned int)timestamp);
 				auto ret = write(fd, &timestamp, sizeof(timestamp));
 				assert(ret == sizeof(timestamp));

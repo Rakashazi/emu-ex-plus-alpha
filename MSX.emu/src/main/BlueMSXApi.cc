@@ -46,6 +46,8 @@ extern "C"
 	#include <blueMSX/Z80/R800Debug.h>
 }
 
+using namespace IG;
+
 int archCreateDirectory(const char* pathname)
 {
     if(!IG::FS::create_directory(pathname))
@@ -72,7 +74,7 @@ UInt32 archGetSystemUpTime(UInt32 frequency)
 
 UInt32 archGetHiresTimer()
 {
-	return std::chrono::duration_cast<IG::Milliseconds>(IG::steadyClockTimestamp()).count();
+	return std::chrono::duration_cast<Milliseconds>(SteadyClock::now().time_since_epoch()).count();
 }
 
 Properties* propGetGlobalProperties() { assert(0); return 0; }; // TODO: needed in Casette.c

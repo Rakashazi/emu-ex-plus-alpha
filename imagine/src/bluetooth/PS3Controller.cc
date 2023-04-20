@@ -213,7 +213,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 	{
 		case 0xA1:
 		{
-			auto time = IG::steadyClockTimestamp();
+			auto time = SteadyClock::now();
 			const uint8_t *digitalBtnData = &packet[3];
 			for(auto &e : padDataAccess)
 			{

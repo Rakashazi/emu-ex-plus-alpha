@@ -68,12 +68,11 @@ public:
 	void sendVideoFormatChangedReply(EmuVideo &video, std::binary_semaphore *frameFinishedSemPtr);
 	void sendFrameFinishedReply(EmuVideo &video, std::binary_semaphore *frameFinishedSemPtr);
 	void sendScreenshotReply(bool success);
-	EmuApp &app() const;
 	bool resetVideoFormatChanged() { return std::exchange(videoFormatChanged, false); }
 	auto threadId() const { return threadId_; }
 
 private:
-	EmuApp *appPtr{};
+	EmuApp &app;
 	IG::MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
 	std::thread taskThread;
 	ThreadId threadId_{};

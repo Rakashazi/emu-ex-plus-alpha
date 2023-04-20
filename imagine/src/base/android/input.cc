@@ -56,14 +56,14 @@ std::pair<Input::AndroidInputDevice*, int> AndroidApplication::inputDeviceForEve
 	}
 }
 
-static Time makeTimeFromMotionEvent(AInputEvent *event)
+static auto makeTimeFromMotionEvent(AInputEvent *event)
 {
-	return IG::Nanoseconds(AMotionEvent_getEventTime(event));
+	return SteadyClockTimePoint{Nanoseconds{AMotionEvent_getEventTime(event)}};
 }
 
-static Time makeTimeFromKeyEvent(AInputEvent *event)
+static auto makeTimeFromKeyEvent(AInputEvent *event)
 {
-	return IG::Nanoseconds(AKeyEvent_getEventTime(event));
+	return SteadyClockTimePoint{Nanoseconds{AKeyEvent_getEventTime(event)}};
 }
 
 static std::pair<int32_t, Input::Source> mapKeycodesForSpecialDevices(const Input::Device &dev,

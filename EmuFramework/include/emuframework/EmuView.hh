@@ -15,10 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/config.hh>
 #include <imagine/gui/View.hh>
-#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
+#include <imagine/time/Time.hh>
 #include <imagine/gfx/GfxText.hh>
-#endif
 
 namespace EmuEx
 {
@@ -27,6 +27,7 @@ using namespace IG;
 class EmuInputView;
 class EmuVideoLayer;
 class EmuSystem;
+struct FrameTimeStats;
 
 class EmuView : public View
 {
@@ -36,9 +37,11 @@ public:
 	void place() final;
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &__restrict__) final;
+	void drawframeTimeStatsText(Gfx::RendererCommands &__restrict__);
 	bool inputEvent(const Input::Event &) final;
 	bool hasLayer() const { return layer; }
-	void setLayoutInputView(EmuInputView *view);
+	void setLayoutInputView(EmuInputView *view) { inputView = view; }
+	void updateFrameTimeStats(FrameTimeStats, SteadyClockTimePoint currentFrameTimestamp);
 	void updateAudioStats(int underruns, int overruns, int callbacks, double avgCallbackFrames, int frames);
 	void clearAudioStats();
 	EmuVideoLayer *videoLayer() const { return layer; }
@@ -48,10 +51,18 @@ private:
 	EmuVideoLayer *layer{};
 	EmuInputView *inputView{};
 	EmuSystem *sysPtr{};
+	struct FrameTimeStatsUI
+	{
+		Gfx::Text text;
+		WRect rect{};
+	};
+	IG_UseMemberIf(enableFrameTimeStats, FrameTimeStatsUI, frameTimeStats);
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	Gfx::Text audioStatsText{};
 	WRect audioStatsRect{};
 	#endif
+
+	void placeFrameTimeStats();
 };
 
 }

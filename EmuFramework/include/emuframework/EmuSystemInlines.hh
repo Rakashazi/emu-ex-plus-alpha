@@ -60,7 +60,7 @@ void EmuSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags flags)
 		static_cast<MainSystem*>(this)->onFlushBackupMemory(app, flags);
 }
 
-IG::Time EmuSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+WallClockTimePoint EmuSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
 	if(&MainSystem::backupMemoryLastWriteTime != &EmuSystem::backupMemoryLastWriteTime)
 		return static_cast<const MainSystem*>(this)->backupMemoryLastWriteTime(app);

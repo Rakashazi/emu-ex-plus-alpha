@@ -152,7 +152,7 @@ void NesSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 	}
 }
 
-IG::Time NesSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+WallClockTimePoint NesSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
 	return appContext().fileUriLastWriteTime(
 		app.contentSaveFilePath(isFDS ? ".fds.sav" : ".sav").c_str());

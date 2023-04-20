@@ -42,8 +42,7 @@ SimpleFrameTimer::SimpleFrameTimer(Screen &screen, EventLoop loop):
 				}
 			}
 			requested = false;
-			auto timestamp = IG::steadyClockTimestamp();
-			if(screen.frameUpdate(timestamp))
+			if(screen.frameUpdate(SteadyClock::now()))
 				scheduleVSync();
 			return true;
 		}

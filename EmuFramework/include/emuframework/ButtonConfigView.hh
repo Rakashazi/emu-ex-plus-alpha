@@ -69,7 +69,7 @@ private:
 	std::unique_ptr<DualTextMenuItem[]> btn;
 	const KeyCategory *cat{};
 	InputDeviceConfig *devConf{};
-	Input::Time leftKeyPushTime{};
+	SteadyClockTimePoint leftKeyPushTime{};
 
 	void onSet(Input::Key mapKey, int keyToSet);
 	static std::string makeKeyNameStr(Input::Key key, std::string_view name);

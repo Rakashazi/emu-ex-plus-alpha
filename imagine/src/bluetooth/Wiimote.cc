@@ -311,7 +311,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 		logWarn("Unknown report in Wiimote packet");
 		return 1;
 	}
-	auto time = IG::steadyClockTimestamp();
+	auto time = SteadyClock::now();
 	switch(packet[1])
 	{
 		case 0x30:
@@ -498,7 +498,7 @@ void Wiimote::decodeProSticks(const uint8_t *ccSticks, int &lX, int &lY, int &rX
 	rY = (ccSticks[6] | (ccSticks[7] << 8)) - 2047;
 }
 
-void Wiimote::processCoreButtons(const uint8_t *packet, Input::Time time)
+void Wiimote::processCoreButtons(const uint8_t *packet, SteadyClockTimePoint time)
 {
 	using namespace IG::Input;
 	auto btnData = &packet[2];
@@ -516,7 +516,7 @@ void Wiimote::processCoreButtons(const uint8_t *packet, Input::Time time)
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
 }
 
-void Wiimote::processClassicButtons(const uint8_t *packet, Input::Time time)
+void Wiimote::processClassicButtons(const uint8_t *packet, SteadyClockTimePoint time)
 {
 	using namespace IG::Input;
 	auto ccData = &packet[4];
@@ -542,7 +542,7 @@ void Wiimote::processClassicButtons(const uint8_t *packet, Input::Time time)
 	memcpy(prevExtData, ccData, ccDataBytes);
 }
 
-void Wiimote::processProButtons(const uint8_t *packet, Input::Time time)
+void Wiimote::processProButtons(const uint8_t *packet, SteadyClockTimePoint time)
 {
 	using namespace IG::Input;
 	const uint8_t *proData = &packet[4];
@@ -568,7 +568,7 @@ void Wiimote::processProButtons(const uint8_t *packet, Input::Time time)
 	memcpy(prevExtData, proData, proDataBytes);
 }
 
-void Wiimote::processNunchukButtons(const uint8_t *packet, Input::Time time)
+void Wiimote::processNunchukButtons(const uint8_t *packet, SteadyClockTimePoint time)
 {
 	using namespace IG::Input;
 	const uint8_t *nunData = &packet[4];

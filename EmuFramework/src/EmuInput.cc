@@ -454,7 +454,7 @@ void EmuApp::setDisabledInputKeys(std::span<const unsigned> keys)
 	if(!vController.hasWindow())
 		return;
 	vController.place();
-	system().clearInputBuffers(viewController().inputView());
+	system().clearInputBuffers(viewController().inputView);
 }
 
 void EmuApp::unsetDisabledInputKeys()

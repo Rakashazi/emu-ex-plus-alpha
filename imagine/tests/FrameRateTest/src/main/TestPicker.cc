@@ -48,8 +48,8 @@ void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 					{
 						IG::FloatSeconds diff = test.endTime - test.startTime;
 						logMsg("ran from %f to %f, took %f",
-							IG::FloatSeconds(test.startTime).count(),
-							IG::FloatSeconds(test.endTime).count(),
+							IG::FloatSeconds(test.startTime.time_since_epoch()).count(),
+							IG::FloatSeconds(test.endTime.time_since_epoch()).count(),
 							diff.count());
 						auto &entry = testEntry[i];
 						auto fps = double(test.frames-1) / diff.count();

@@ -17,7 +17,7 @@ struct GLRendererWindowData
 	constexpr GLRendererWindowData() = default;
 	GLDrawable drawable{};
 	GLBufferConfig bufferConfig{};
-	InterpolatorValue<float, IG::FrameTime, InterpolatorType::EASEOUTQUAD> projAngleM{};
+	InterpolatorValue<float, SteadyClockTimePoint, InterpolatorType::EASEOUTQUAD> projAngleM{};
 	GLColorSpace colorSpace{};
 	Rect2<int> viewportRect{};
 };

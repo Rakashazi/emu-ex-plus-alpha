@@ -45,14 +45,14 @@ concept FloatScalable =
 		v / scale;
 	};
 
-template <FloatScalable T, class Time = std::chrono::nanoseconds,
+template <FloatScalable T, ChronoTimePoint TimePoint = SteadyClockTimePoint,
 		InterpolatorType INTERPOLATOR_TYPE = InterpolatorType::UNSET>
 class Interpolator
 {
 public:
 	constexpr Interpolator() = default;
 
-	constexpr Interpolator(T start, T end, InterpolatorType type, Time startTime, Time endTime):
+	constexpr Interpolator(T start, T end, InterpolatorType type, TimePoint startTime, TimePoint endTime):
 		startTime_{startTime},
 		endTime_{endTime},
 		startVal{start},
@@ -60,7 +60,7 @@ public:
 		endValDiff{endVal - startVal},
 		type{type} {}
 
-	bool update(Time currentTime, T &val) const
+	bool update(TimePoint currentTime, T &val) const
 	{
 		if(currentTime >= endTime_)
 		{
@@ -151,13 +151,13 @@ public:
 		}
 	}
 
-	constexpr Time duration() const { return endTime_ - startTime_; }
-	constexpr Time startTime() const { return startTime_; }
-	constexpr Time endTime() const { return endTime_; }
+	constexpr auto duration() const { return endTime_ - startTime_; }
+	constexpr TimePoint startTime() const { return startTime_; }
+	constexpr TimePoint endTime() const { return endTime_; }
 
 protected:
-	Time startTime_{};
-	Time endTime_{};
+	TimePoint startTime_{};
+	TimePoint endTime_{};
 	T startVal{};
 	T endVal{};
 	T endValDiff{};
@@ -165,37 +165,38 @@ protected:
 		InterpolatorType, INTERPOLATOR_TYPE, type){InterpolatorType::LINEAR};
 };
 
-template <class T, class Time = std::chrono::nanoseconds, InterpolatorType INTERPOLATOR_TYPE = InterpolatorType::UNSET>
-class InterpolatorValue : public Interpolator<T, Time, INTERPOLATOR_TYPE>
+template <class T, ChronoTimePoint TimePoint = SteadyClockTimePoint, InterpolatorType INTERPOLATOR_TYPE = InterpolatorType::UNSET>
+class InterpolatorValue : public Interpolator<T, TimePoint, INTERPOLATOR_TYPE>
 {
 public:
 	struct AbsoluteTimeInit{};
-	using InterpolatorBase = Interpolator<T, Time, INTERPOLATOR_TYPE>;
+	using InterpolatorBase = Interpolator<T, TimePoint, INTERPOLATOR_TYPE>;
 	T val{};
 
 	constexpr InterpolatorValue() = default;
 
 	constexpr InterpolatorValue(T start, T end, InterpolatorType type,
-		ChronoDuration auto startTime, ChronoDuration auto duration):
-		InterpolatorValue{start, end, type, startTime, startTime + duration, AbsoluteTimeInit{}} {}
+		TimePoint startTime, ChronoDuration auto duration):
+		InterpolatorValue{start, end, type,
+			startTime, startTime + duration,
+			AbsoluteTimeInit{}} {}
 
 	constexpr InterpolatorValue(T start, T end, InterpolatorType type,
-		ChronoDuration auto startTime, ChronoDuration auto endTime,
+		TimePoint startTime, TimePoint endTime,
 		struct AbsoluteTimeInit):
 		InterpolatorBase{start, end, type,
-			std::chrono::duration_cast<Time>(startTime),
-			std::chrono::duration_cast<Time>(endTime)},
+			startTime, endTime},
 		val{start} {}
 
 	constexpr InterpolatorValue(T end):
-		InterpolatorValue{end, end, {}, Time{}, Time{}} {}
+		InterpolatorValue{end, end, {}, {}, Seconds{}} {}
 
 	InterpolatorValue reverse() const
 	{
 		return {endVal, startVal, type, startTime, endTime};
 	}
 
-	bool update(Time time)
+	bool update(TimePoint time)
 	{
 		return InterpolatorBase::update(time, val);
 	}

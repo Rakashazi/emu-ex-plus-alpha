@@ -60,7 +60,7 @@ private:
 	};
 	BluetoothAddr addr;
 
-	void processBtnReport(const char *btnData, Input::Time time);
+	void processBtnReport(const char *btnData, SteadyClockTimePoint time);
 };
 
 }

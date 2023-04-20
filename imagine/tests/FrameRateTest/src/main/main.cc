@@ -103,7 +103,7 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 					{
 						if(windowData(win).activeTest)
 						{
-							finishTest(win, IG::steadyClockTimestamp());
+							finishTest(win, SteadyClock::now());
 						}
 						viewManager.defaultFace.freeCaches();
 					}
@@ -183,7 +183,7 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 {
 	win.addOnFrame([this, &win](IG::FrameParams params)
 	{
-		auto atOnFrame = IG::steadyClockTimestamp();
+		auto atOnFrame = SteadyClock::now();
 		renderer.setPresentationTime(win, params.presentTime());
 		auto &activeTest = windowData(win).activeTest;
 		if(activeTest->started)
@@ -226,7 +226,7 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 					auto rect = winData.testRect;
 					cmds.basicEffect().setModelViewProjection(cmds, Gfx::Mat4::ident(), winData.projM);
 					activeTest->draw(cmds, cmds.renderer().makeClipRect(win, rect), xIndent);
-					activeTest->lastFramePresentTime.atWinPresent = IG::steadyClockTimestamp();
+					activeTest->lastFramePresentTime.atWinPresent = SteadyClock::now();
 					activeTest->presentFence = cmds.clientWaitSyncReset(activeTest->presentFence);
 					cmds.present();
 				});
@@ -286,7 +286,7 @@ void FrameRateTestApplication::placeElements(const IG::Window &win)
 	}
 }
 
-void FrameRateTestApplication::finishTest(IG::Window &win, IG::FrameTime frameTime)
+void FrameRateTestApplication::finishTest(Window &win, SteadyClockTimePoint frameTime)
 {
 	auto app = win.appContext();
 	auto &activeTest = windowData(win).activeTest;

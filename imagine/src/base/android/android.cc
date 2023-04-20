@@ -297,12 +297,12 @@ bool ApplicationContext::fileUriExists(IG::CStringView uri) const
 	return application().fileUriExists(thisThreadJniEnv(), baseActivityObject(), uri);
 }
 
-Seconds AndroidApplication::fileUriLastWriteTime(JNIEnv *env, jobject baseActivity, CStringView uri) const
+WallClockTimePoint AndroidApplication::fileUriLastWriteTime(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
-	return std::chrono::duration_cast<Seconds>(Milliseconds{uriLastModifiedTime(env, baseActivity, env->NewStringUTF(uri))});
+	return WallClockTimePoint{Milliseconds{uriLastModifiedTime(env, baseActivity, env->NewStringUTF(uri))}};
 }
 
-Seconds ApplicationContext::fileUriLastWriteTime(CStringView uri) const
+WallClockTimePoint ApplicationContext::fileUriLastWriteTime(CStringView uri) const
 {
 	if(androidSDK() < 19 || !IG::isUri(uri))
 		return FS::status(uri).lastWriteTime();
@@ -449,15 +449,15 @@ bool ApplicationContext::requestPermission(Permission p)
 	return requestPermission(env, baseActivity, permissionJStr);
 }
 
-std::string AndroidApplication::formatDateAndTime(JNIEnv *env, jclass baseActivityClass, WallClockTime time)
+std::string AndroidApplication::formatDateAndTime(JNIEnv *env, jclass baseActivityClass, WallClockTimePoint time)
 {
-	if(!time.count())
+	if(!hasTime(time))
 		return {};
 	return std::string{JNI::StringChars{env, jFormatDateTime(env, baseActivityClass,
-		std::chrono::duration_cast<Milliseconds>(time).count())}};
+		std::chrono::duration_cast<Milliseconds>(time.time_since_epoch()).count())}};
 }
 
-std::string ApplicationContext::formatDateAndTime(WallClockTime time)
+std::string ApplicationContext::formatDateAndTime(WallClockTimePoint time)
 {
 	auto env = thisThreadJniEnv();
 	return application().formatDateAndTime(env,

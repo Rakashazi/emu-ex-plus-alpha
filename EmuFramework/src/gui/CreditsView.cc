@@ -37,7 +37,7 @@ CreditsView::CreditsView(ViewAttachParams attach, UTF16String str):
 		}
 	}
 {
-	fade = {0., 1., {}, IG::steadyClockTimestamp(), IG::Milliseconds{320}};
+	fade = {0., 1., {}, SteadyClock::now(), Milliseconds{320}};
 	window().addOnFrame(animate);
 	place();
 }

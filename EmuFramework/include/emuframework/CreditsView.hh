@@ -37,8 +37,8 @@ public:
 
 private:
 	Gfx::Text text;
-	IG::InterpolatorValue<float, IG::FrameTime, IG::InterpolatorType::LINEAR> fade;
-	IG::OnFrameDelegate animate;
+	InterpolatorValue<float, SteadyClockTimePoint, InterpolatorType::LINEAR> fade;
+	OnFrameDelegate animate;
 };
 
 }

@@ -140,7 +140,7 @@ public:
 	void closeSystem();
 	void loadBackupMemory(EmuApp &);
 	void onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags);
-	IG::Time backupMemoryLastWriteTime(const EmuApp &app) const;
+	WallClockTimePoint backupMemoryLastWriteTime(const EmuApp &app) const;
 	bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
 	IG::Rotation contentRotation() const;
 	bool resetSessionOptions(EmuApp &app);

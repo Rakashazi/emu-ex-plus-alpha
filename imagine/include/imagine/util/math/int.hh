@@ -87,11 +87,19 @@ constexpr auto divRoundUp(std::integral auto x, std::integral auto y)
 }
 
 // divide rounding to closest integer
-constexpr auto divRoundClosest(std::unsigned_integral auto x, std::unsigned_integral auto y)
+constexpr auto divRoundClosestPositive(std::integral auto x, std::integral auto y)
 {
-	return (x > 0) ?
-	 (x + (y / 2)) / y :
-	 (x - (y / 2)) / y;
+	return (x + (y / 2)) / y;
+}
+
+constexpr auto divRoundClosestNegative(std::integral auto x, std::integral auto y)
+{
+	return (x - (y / 2)) / y;
+}
+
+constexpr auto divRoundClosest(std::integral auto x, std::integral auto y)
+{
+	return (x >= 0) ? divRoundClosestPositive(x, y) : divRoundClosestNegative(x, y);
 }
 
 constexpr auto divRoundClosest(std::floating_point auto x, std::floating_point auto y)

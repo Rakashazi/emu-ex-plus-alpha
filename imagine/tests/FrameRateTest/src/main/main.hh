@@ -48,7 +48,7 @@ private:
 	void setActiveTestHandlers(IG::Window &win);
 	void setPickerHandlers(IG::Window &);
 	void placeElements(const IG::Window &);
-	void finishTest(IG::Window &, IG::FrameTime);
+	void finishTest(Window &, SteadyClockTimePoint);
 	void updateWindowSurface(Window &, Window::SurfaceChange);
 };
 

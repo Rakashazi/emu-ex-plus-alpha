@@ -315,9 +315,9 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 		return true;
 	}
 	auto &win = *destWin;
-	auto time = IG::Milliseconds(ievent.time); // X11 timestamps are in ms
+	auto time = SteadyClockTimePoint{Milliseconds{ievent.time}}; // X11 timestamps are in ms
 	auto updatePointer =
-		[this](Window &win, auto event, Input::Action action, Input::Time time)
+		[this](Window &win, auto event, Input::Action action, SteadyClockTimePoint time)
 		{
 			Input::Key key{};
 			bool sendKeyEvent{};
@@ -353,7 +353,7 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 			}
 		};
 	auto handleKeyEvent =
-		[this](Window &win, XIDeviceEvent event, Input::Time time, bool pushed)
+		[this](Window &win, XIDeviceEvent event, SteadyClockTimePoint time, bool pushed)
 		{
 			auto action = pushed ? Input::Action::PUSHED : Input::Action::RELEASED;
 			if(pushed)

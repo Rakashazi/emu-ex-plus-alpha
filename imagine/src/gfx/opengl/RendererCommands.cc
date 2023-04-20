@@ -247,11 +247,11 @@ void RendererCommands::setZTest(bool on)
 	rTask->verifyCurrentContext();
 	if(on)
 	{
-		glcEnable(GL_DEPTH_TEST);
+		glEnable(GL_DEPTH_TEST);
 	}
 	else
 	{
-		glcDisable(GL_DEPTH_TEST);
+		glDisable(GL_DEPTH_TEST);
 	}
 }
 
@@ -324,18 +324,12 @@ void RendererCommands::setDither(bool on)
 {
 	rTask->verifyCurrentContext();
 	if(on)
-		glcEnable(GL_DITHER);
+		glEnable(GL_DITHER);
 	else
 	{
 		//logMsg("disabling dithering");
-		glcDisable(GL_DITHER);
+		glDisable(GL_DITHER);
 	}
-}
-
-bool RendererCommands::dither()
-{
-	rTask->verifyCurrentContext();
-	return glcIsEnabled(GL_DITHER);
 }
 
 void RendererCommands::setSrgbFramebufferWrite(bool on)

@@ -171,7 +171,7 @@ void PlaceVideoView::updateVideo(int offset)
 	}
 	else
 	{
-		int uiElementHeight = app().viewController().inputView().uiElementHeight();
+		int uiElementHeight = app().viewController().inputView.uiElementHeight();
 		layer.portraitOffset = std::clamp(offset, -uiElementHeight, posOffsetLimit - uiElementHeight);
 	}
 	app().viewController().placeEmuViews();

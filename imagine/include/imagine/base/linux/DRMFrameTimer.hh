@@ -40,7 +40,7 @@ public:
 
 protected:
 	FDEventSource fdSrc{};
-	Time timestamp{};
+	Nanoseconds timestamp{};
 	bool requested{};
 	bool cancelled{};
 };

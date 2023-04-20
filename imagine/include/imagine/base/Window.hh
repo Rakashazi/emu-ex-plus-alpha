@@ -59,6 +59,7 @@ public:
 	static constexpr int8_t drawEventPriorityLocked = 127; // max value passed to setDrawEventPriority() also blocks implicit drawing
 	int8_t setDrawEventPriority(int8_t = 0);
 	int8_t drawEventPriority() const;
+	bool isReady() const { return drawPhase == DrawPhase::READY; }
 	void drawNow(bool needsSync = false);
 	Screen *screen() const;
 	NativeWindow nativeObject() const;

@@ -31,16 +31,12 @@ using Seconds = std::chrono::seconds;
 using FloatSeconds = std::chrono::duration<double>;
 using Minutes = std::chrono::minutes;
 
-#if defined __APPLE__ && TARGET_OS_IPHONE
-using FrameTime = FloatSeconds;
-#else
-using FrameTime = Nanoseconds;
-#endif
-
-using Time = Nanoseconds; // default time resolution
-
-using SteadyClockTime = std::chrono::steady_clock::duration;
-using WallClockTime = std::chrono::system_clock::duration;
+using SteadyClock = std::chrono::steady_clock;
+using WallClock = std::chrono::system_clock;
+using SteadyClockTimePoint = SteadyClock::time_point;
+using WallClockTimePoint = WallClock::time_point;
+using SteadyClockTime = SteadyClock::duration;
+using WallClockTime = WallClock::duration;
 
 template <class T>
 concept ChronoDuration =
@@ -50,16 +46,21 @@ concept ChronoDuration =
 		typename T::period;
 	};
 
-inline SteadyClockTime steadyClockTimestamp() { return std::chrono::steady_clock::now().time_since_epoch(); }
+template <class T>
+concept ChronoTimePoint =
+	requires
+	{
+		typename T::clock;
+		typename T::duration;
+	};
 
-inline WallClockTime wallClockTimestamp() { return std::chrono::system_clock::now().time_since_epoch(); }
+constexpr bool hasTime(ChronoTimePoint auto t) { return t.time_since_epoch().count(); }
 
 inline SteadyClockTime timeFunc(auto &&func, auto &&...args)
 {
-	auto before = steadyClockTimestamp();
+	auto before = SteadyClock::now();
 	func(IG_forward(args)...);
-	auto after = steadyClockTimestamp();
-	return after - before;
+	return SteadyClock::now() - before;
 }
 
 inline SteadyClockTime timeFuncDebug(auto &&func, auto &&...args)
@@ -76,17 +77,17 @@ inline SteadyClockTime timeFuncDebug(auto &&func, auto &&...args)
 class FrameParams
 {
 public:
-	constexpr FrameParams(FrameTime timestamp_, FloatSeconds frameTime_):
+	constexpr FrameParams(SteadyClockTimePoint timestamp_, FloatSeconds frameTime_):
 		timestamp_{timestamp_}, frameTime_{frameTime_} {}
-	FrameTime timestamp() const { return timestamp_; }
+	SteadyClockTimePoint timestamp() const { return timestamp_; }
 	FloatSeconds frameTime() const { return frameTime_; }
-	FrameTime presentTime() const;
-	uint32_t elapsedFrames(FrameTime lastTimestamp) const;
-	static uint32_t elapsedFrames(FrameTime timestamp, FrameTime lastTimestamp, FloatSeconds frameTime);
+	SteadyClockTimePoint presentTime() const;
+	int elapsedFrames(SteadyClockTimePoint lastTimestamp) const;
+	static int elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePoint lastTimestamp, FloatSeconds frameTime);
 
 protected:
-	FrameTime timestamp_;
-	FrameTime lastTimestamp_;
+	SteadyClockTimePoint timestamp_;
+	SteadyClockTimePoint lastTimestamp_;
 	FloatSeconds frameTime_;
 };
 

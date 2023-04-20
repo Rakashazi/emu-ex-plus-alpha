@@ -202,7 +202,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 			// check if inputBuffer is complete
 			if(inputBufferPos == 6)
 			{
-				auto time = IG::steadyClockTimestamp();
+				auto time = SteadyClock::now();
 				for(auto i : iotaCount(4))
 				{
 					if(axis[i].update(inputBuffer[i], Input::Map::ICONTROLPAD, time, *this, ctx.mainWindow()))
@@ -219,7 +219,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 	return 1;
 }
 
-void IControlPad::processBtnReport(const char *btnData, Input::Time time)
+void IControlPad::processBtnReport(const char *btnData, SteadyClockTimePoint time)
 {
 	using namespace IG::Input;
 	for(auto e : iCPDataAccess)

@@ -15,36 +15,37 @@
 
 #include <emuframework/EmuTiming.hh>
 #include <imagine/util/utility.h>
+#include <imagine/util/math/int.hh>
 #include <imagine/logger/logger.h>
 #include <cmath>
 
 namespace EmuEx
 {
 
-EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(IG::FrameTime time)
+EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(SteadyClockTimePoint time)
 {
-	if(!startFrameTime.count()) [[unlikely]]
+	if(!hasTime(startFrameTime)) [[unlikely]]
 	{
 		// first frame
 		startFrameTime = time;
 		lastFrame = 0;
-		return {1, std::chrono::duration_cast<IG::FrameTime>(timePerVideoFrameScaled) + startFrameTime};
+		return {1, timePerVideoFrameScaled + startFrameTime};
 	}
-	assumeExpr(timePerVideoFrame.count() > 0);
-	assumeExpr(startFrameTime.count() > 0);
+	assumeExpr(timePerVideoFrameScaled.count() > 0);
+	assumeExpr(startFrameTime.time_since_epoch().count() > 0);
 	assumeExpr(time > startFrameTime);
 	auto timeTotal = time - startFrameTime;
-	uint32_t now = std::round(IG::FloatSeconds(timeTotal) / timePerVideoFrameScaled);
+	auto now = divRoundClosestPositive(timeTotal.count(), timePerVideoFrameScaled.count());
 	int elapsedFrames = now - lastFrame;
 	lastFrame = now;
-	return {elapsedFrames, std::chrono::duration_cast<IG::FrameTime>(now * timePerVideoFrameScaled) + startFrameTime};
+	return {elapsedFrames, now * timePerVideoFrameScaled + startFrameTime};
 }
 
-void EmuTiming::setFrameTime(IG::FloatSeconds time)
+void EmuTiming::setFrameTime(FloatSeconds time)
 {
-	timePerVideoFrame = time;
+	timePerVideoFrame = std::chrono::round<SteadyClockTime>(time);
 	updateScaledFrameTime();
-	logMsg("configured frame time:%.6f (%.2f fps)", time.count(), 1. / time.count());
+	logMsg("configured frame time:%lldns (%.2f fps)", (long long)timePerVideoFrame.count(), 1. / time.count());
 	reset();
 }
 
@@ -65,7 +66,7 @@ void EmuTiming::setSpeedMultiplier(double newSpeed)
 
 void EmuTiming::updateScaledFrameTime()
 {
-	timePerVideoFrameScaled = timePerVideoFrame / speed;
+	timePerVideoFrameScaled = speed == 1. ? timePerVideoFrame : std::chrono::round<SteadyClockTime>(FloatSeconds{timePerVideoFrame} / speed);
 }
 
 }

@@ -37,12 +37,12 @@ public:
 	using DetectFrameRateDelegate = DelegateFunc<void (IG::FloatSeconds frameTime)>;
 	DetectFrameRateDelegate onDetectFrameTime;
 	IG::OnFrameDelegate detectFrameRate;
-	IG::FrameTime totalFrameTime{};
-	IG::FrameTime lastFrameTimestamp{};
+	SteadyClockTime totalFrameTime{};
+	SteadyClockTimePoint lastFrameTimestamp{};
 	Gfx::Text fpsText;
 	int allTotalFrames{};
 	int callbacks{};
-	std::vector<IG::FrameTime> frameTimeSample{};
+	std::vector<SteadyClockTime> frameTimeSample{};
 	bool useRenderTaskTime = false;
 
 	DetectFrameRateView(ViewAttachParams attach): View(attach),
@@ -85,7 +85,7 @@ public:
 		fpsText.draw(cmds, viewRect().center(), C2DO, ColorName::WHITE);
 	}
 
-	bool runFrameTimeDetection(IG::FrameTime timestampDiff, double slack)
+	bool runFrameTimeDetection(SteadyClockTime timestampDiff, double slack)
 	{
 		const int framesToTime = frameTimeSample.capacity() * 10;
 		allTotalFrames++;
@@ -93,9 +93,9 @@ public:
 		if(frameTimeSample.size() == frameTimeSample.capacity())
 		{
 			bool stableFrameTime = true;
-			IG::FrameTime frameTimeTotal{};
+			SteadyClockTime frameTimeTotal{};
 			{
-				IG::FrameTime lastFrameTime{};
+				SteadyClockTime lastFrameTime{};
 				for(auto frameTime : frameTimeSample)
 				{
 					frameTimeTotal += frameTime;
@@ -151,7 +151,7 @@ public:
 
 	void onAddedToController(ViewController *, const Input::Event &e) final
 	{
-		lastFrameTimestamp = std::chrono::duration_cast<IG::FrameTime>(IG::steadyClockTimestamp());
+		lastFrameTimestamp = SteadyClock::now();
 		detectFrameRate =
 			[this](IG::FrameParams params)
 			{
@@ -354,6 +354,12 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		},
 		app().outputTimingManager.frameTimeOptionAsMenuId(VideoSystem::PAL),
 		frameRateItems
+	},
+	frameTimeStats
+	{
+		"Show Frame Time Stats", &defaultFace(),
+		app().showFrameTimeStats,
+		[this](BoolMenuItem &item) { app().showFrameTimeStats = item.flipBoolValue(*this); }
 	},
 	aspectRatioItem
 	{
@@ -880,6 +886,8 @@ void VideoOptionView::loadStockItems()
 	{
 		item.emplace_back(&frameRatePAL);
 	}
+	if(used(frameTimeStats))
+		item.emplace_back(&frameTimeStats);
 	item.emplace_back(&visualsHeading);
 	item.emplace_back(&imgFilter);
 	item.emplace_back(&imgEffect);

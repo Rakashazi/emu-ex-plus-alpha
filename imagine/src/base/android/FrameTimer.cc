@@ -67,7 +67,7 @@ void AndroidApplication::initChoreographer(JNIEnv *env, jobject baseActivity, jc
 	}
 }
 
-static void updatePostedScreens(auto &choreographer, FrameTime timestamp, AndroidApplication &app)
+static void updatePostedScreens(auto &choreographer, SteadyClockTimePoint timestamp, AndroidApplication &app)
 {
 	bool didUpdate{};
 	app.flushSystemInputEvents();
@@ -104,7 +104,7 @@ JavaChoreographer::JavaChoreographer(AndroidApplication &app, JNIEnv *env, jobje
 			{
 				auto &inst = *((JavaChoreographer*)userData);
 				inst.requested = false;
-				updatePostedScreens(inst, FrameTime{frameTimeNanos}, *inst.appPtr);
+				updatePostedScreens(inst, SteadyClockTimePoint{Nanoseconds{frameTimeNanos}}, *inst.appPtr);
 			}
 		}
 	};
@@ -144,7 +144,7 @@ void NativeChoreographer::scheduleVSync()
 		{
 			auto &inst = *((NativeChoreographer*)userData);
 			inst.requested = false;
-			updatePostedScreens(inst, FrameTime{frameTimeNanos}, *inst.appPtr);
+			updatePostedScreens(inst, SteadyClockTimePoint{Nanoseconds{frameTimeNanos}}, *inst.appPtr);
 		}, this);
 }
 

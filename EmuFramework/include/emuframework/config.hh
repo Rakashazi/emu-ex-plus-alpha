@@ -46,5 +46,6 @@ constexpr bool VCONTROLS_GAMEPAD = false;
 constexpr bool HAS_MULTIPLE_WINDOW_PIXEL_FORMATS = Config::envIsLinux || Config::envIsAndroid || Config::envIsIOS;
 constexpr bool MOGA_INPUT = Config::envIsAndroid;
 constexpr bool CAN_HIDE_TITLE_BAR = !Config::envIsIOS;
+constexpr bool enableFrameTimeStats = Config::DEBUG_BUILD;
 
 }

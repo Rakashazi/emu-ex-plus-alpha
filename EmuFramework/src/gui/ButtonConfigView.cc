@@ -246,7 +246,7 @@ bool ButtonConfigView::inputEvent(const Input::Event &e)
 	if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::LEFT) && selected > 0)
 	{
 		auto &keyEv = *e.keyEvent();
-		auto durationSinceLastKeySet = leftKeyPushTime.count() ? keyEv.time() - leftKeyPushTime : Input::Time{};
+		auto durationSinceLastKeySet = hasTime(leftKeyPushTime) ? keyEv.time() - leftKeyPushTime : SteadyClockTime{};
 		leftKeyPushTime = keyEv.time();
 		if(durationSinceLastKeySet.count() && durationSinceLastKeySet <= IG::Milliseconds(500))
 		{

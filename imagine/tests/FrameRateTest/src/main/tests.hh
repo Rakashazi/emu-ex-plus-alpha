@@ -42,9 +42,9 @@ enum TestID
 
 struct FramePresentTime
 {
-	IG::FrameTime timestamp{};
-	IG::Time atOnFrame{};
-	IG::Time atWinPresent{};
+	SteadyClockTimePoint timestamp{};
+	SteadyClockTimePoint atOnFrame{};
+	SteadyClockTimePoint atWinPresent{};
 
 	constexpr FramePresentTime() {}
 };
@@ -81,7 +81,7 @@ public:
 	unsigned frames{};
 	unsigned droppedFrames{};
 	unsigned continuousFrames{};
-	IG::FrameTime startTime{}, endTime{};
+	SteadyClockTimePoint startTime{}, endTime{};
 	TestFinishedDelegate onTestFinished;
 	FramePresentTime lastFramePresentTime;
 	Gfx::SyncFence presentFence{};
@@ -90,7 +90,7 @@ public:
 	virtual ~TestFramework() {}
 	virtual void initTest(IG::ApplicationContext, Gfx::Renderer &, IG::WP pixmapSize, Gfx::TextureBufferMode) {}
 	virtual void placeTest(WRect testRect) {}
-	virtual void frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime) = 0;
+	virtual void frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint) = 0;
 	virtual void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) = 0;
 	virtual void presentedTest(Gfx::RendererCommands &cmds) {}
 	void init(IG::ApplicationContext, Gfx::Renderer &, Gfx::GlyphTextureSet &face, IG::WP pixmapSize, Gfx::TextureBufferMode);
@@ -98,7 +98,7 @@ public:
 	void frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::FrameParams frameParams);
 	void prepareDraw(Gfx::Renderer &r);
 	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int xIndent);
-	void finish(Gfx::RendererTask &task, IG::FrameTime frameTime);
+	void finish(Gfx::RendererTask &, SteadyClockTimePoint);
 	void setCPUFreqText(std::string_view str);
 	void setCPUUseText(std::string_view str);
 
@@ -124,7 +124,7 @@ protected:
 	bool flash{true};
 
 public:
-	void frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime) override;
+	void frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
 
@@ -138,14 +138,14 @@ protected:
 public:
 	void initTest(IG::ApplicationContext, Gfx::Renderer &, IG::WP pixmapSize, Gfx::TextureBufferMode) override;
 	void placeTest(WRect testRect) override;
-	void frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime) override;
+	void frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
 
 class WriteTest : public DrawTest
 {
 public:
-	void frameUpdateTest(Gfx::RendererTask &rendererTask, IG::Screen &screen, IG::FrameTime frameTime) override;
+	void frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
 

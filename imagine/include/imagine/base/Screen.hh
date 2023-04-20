@@ -49,7 +49,7 @@ public:
 	bool removeOnFrame(OnFrameDelegate);
 	bool containsOnFrame(OnFrameDelegate) const;
 	size_t onFrameDelegates() const;
-	FrameParams makeFrameParams(FrameTime timestamp) const;
+	FrameParams makeFrameParams(SteadyClockTimePoint timestamp) const;
 	bool frameRateIsReliable() const;
 	FrameRate frameRate() const;
 	FloatSeconds frameTime() const;
@@ -58,7 +58,7 @@ public:
 	void setFrameInterval(int interval);
 	static bool supportsFrameInterval();
 	bool supportsTimestamps() const;
-	bool frameUpdate(FrameTime timestamp);
+	bool frameUpdate(SteadyClockTimePoint timestamp);
 	void setActive(bool active);
 	ApplicationContext appContext() const { return appCtx; }
 	Application &application() const { return appContext().application(); }
@@ -70,7 +70,7 @@ private:
 	bool framePosted{};
 	bool isActive{true};
 
-	void runOnFrameDelegates(FrameTime timestamp);
+	void runOnFrameDelegates(SteadyClockTimePoint timestamp);
 	void postFrame();
 	void unpostFrame();
 	void postFrameTimer();

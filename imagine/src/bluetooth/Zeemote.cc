@@ -141,7 +141,7 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 		// check if inputBuffer is complete
 		if(inputBufferPos == packetSize)
 		{
-			auto time = IG::steadyClockTimestamp();
+			auto time = SteadyClock::now();
 			uint32_t rID = inputBuffer[2];
 			logMsg("report id 0x%X, %s", rID, reportIDToStr(rID));
 			switch(rID)
@@ -183,7 +183,7 @@ const char *Zeemote::reportIDToStr(uint32_t id)
 	return "Unknown";
 }
 
-void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time)
+void Zeemote::processBtnReport(const uint8_t *btnData, SteadyClockTimePoint time)
 {
 	using namespace IG::Input;
 	uint8_t btnPush[4] {0};

@@ -83,10 +83,10 @@ private:
 	void sendDataModeByExtension();
 	static void decodeCCSticks(const uint8_t *ccSticks, int &lX, int &lY, int &rX, int &rY);
 	static void decodeProSticks(const uint8_t *proSticks, int &lX, int &lY, int &rX, int &rY);
-	void processCoreButtons(const uint8_t *packet, Input::Time time);
-	void processClassicButtons(const uint8_t *packet, Input::Time time);
-	void processProButtons(const uint8_t *packet, Input::Time time);
-	void processNunchukButtons(const uint8_t *packet, Input::Time time);
+	void processCoreButtons(const uint8_t *packet, SteadyClockTimePoint time);
+	void processClassicButtons(const uint8_t *packet, SteadyClockTimePoint time);
+	void processProButtons(const uint8_t *packet, SteadyClockTimePoint time);
+	void processNunchukButtons(const uint8_t *packet, SteadyClockTimePoint time);
 	void removeExtendedDevice();
 };
 

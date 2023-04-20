@@ -281,7 +281,7 @@ void MdSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 	}
 }
 
-IG::Time MdSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+WallClockTimePoint MdSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
 	return appContext().fileUriLastWriteTime(
 		app.contentSaveFilePath(sCD.isActive ? ".brm" : ".srm").c_str());

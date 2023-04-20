@@ -269,6 +269,8 @@ void EmuApp::setCPUNeedsLowLatency(IG::ApplicationContext ctx, bool needed)
 	if(useNoopThread)
 		ctx.setNoopThreadActive(needed);
 	#endif
+	if(cpuAffinityMask)
+		applyCPUAffinity(needed);
 }
 
 static void suspendEmulation(EmuApp &app)
@@ -518,8 +520,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 		[this, appConfig](IG::ApplicationContext ctx, IG::Window &win)
 		{
 			renderer.initMainTask(&win, windowDrawableConfig());
-			if(cpuAffinityMask)
-				applyCPUAffinity();
 			if(!supportsVideoImageBuffersOption(renderer))
 				optionVideoImageBuffers.resetToConst();
 			if(optionTextureBufferMode.val)
@@ -574,10 +574,10 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			emuVideoLayer.setZoom(optionImageZoom);
 			system().onFrameUpdate = [this, &viewController = winData.viewController](IG::FrameParams params)
 				{
-					if(viewController.emuWindow().drawEventPriority() == Window::drawEventPriorityLocked)
+					if(!viewController.emuWindow().isReady())
 					{
 						//logDMsg("previous async frame not ready yet");
-						return true;
+						doIfUsed(frameTimeStats, [&](auto &stats) { stats.missedFrameCallbacks++; });
 					}
 					bool skipForward = false;
 					bool altSpeed = false;
@@ -604,6 +604,10 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					{
 						frameInfo.advanced = frameInterval();
 					}
+					if(showFrameTimeStats)
+						viewController.emuView.updateFrameTimeStats(frameTimeStats, params.timestamp());
+					record(FrameTimeStatEvent::startOfFrame, params.timestamp());
+					record(FrameTimeStatEvent::startOfEmulation);
 					constexpr int maxFrameSkip = 8;
 					auto framesToEmulate = std::min(frameInfo.advanced, maxFrameSkip);
 					EmuAudio *audioPtr = audio ? &audio : nullptr;
@@ -637,7 +641,12 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				return visit(overloaded
 				{
 					[&](Input::Event &e) { return viewController().inputEvent(e); },
-					[&](DrawEvent &e) { return viewController().drawMainWindow(win, e.params, renderer.task()); },
+					[&](DrawEvent &e)
+					{
+						if(viewController().isShowingEmulation())
+							record(FrameTimeStatEvent::startOfDraw);
+						return viewController().drawMainWindow(win, e.params, renderer.task());
+					},
 					[&](WindowSurfaceChangeEvent &e)
 					{
 						if(e.change.resized())
@@ -743,7 +752,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 								if(viewController().isShowingEmulation() && focused && system().isPaused())
 								{
 									logMsg("resuming emulation due to app resume");
-									viewController().inputView().resetInput();
+									viewController().inputView.resetInput();
 									startEmulation();
 								}
 								return false;
@@ -814,7 +823,7 @@ void EmuApp::launchSystem(const Input::Event &e)
 		auto stateIsOlderThanBackupMemory = [&]
 		{
 			auto stateTime = autosaveManager_.stateTime();
-			return stateTime.count() && stateTime < autosaveManager_.backupMemoryTime();
+			return hasTime(stateTime) && stateTime < autosaveManager_.backupMemoryTime();
 		};
 		if(system().usesBackupMemory() && loadMode == LoadAutosaveMode::Normal &&
 			!autosaveManager_.saveOnlyBackupMemory && stateIsOlderThanBackupMemory())
@@ -897,12 +906,14 @@ void EmuApp::startEmulation()
 		return;
 	emuVideoLayer.setBrightness(videoBrightnessRGB);
 	video().setOnFrameFinished(
-		[&viewController = viewController()](EmuVideo &)
+		[&, &viewController = viewController()](EmuVideo &)
 		{
 			auto &win = viewController.emuWindow();
+			record(FrameTimeStatEvent::aboutToPostDraw);
 			win.setDrawEventPriority(1);
 			win.postDraw(1);
 		});
+	frameTimeStats = {};
 	setCPUNeedsLowLatency(appContext(), true);
 	emuSystemTask.start();
 	system().start(*this);
@@ -1011,14 +1022,14 @@ void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, const Inp
 
 void EmuApp::unpostMessage()
 {
-	viewController().popupMessageView().clear();
+	viewController().popup.clear();
 }
 
 void EmuApp::printScreenshotResult(bool success)
 {
 	postMessage(3, !success, fmt::format("{}{}",
 		success ? "Wrote screenshot at " : "Error writing screenshot at ",
-		appContext().formatDateAndTime(wallClockTimestamp())));
+		appContext().formatDateAndTime(WallClock::now())));
 }
 
 void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view displayName,
@@ -1183,7 +1194,7 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 	{
 		case guiKeyIdxFastForward:
 		{
-			viewController().inputView().setAltSpeedMode(AltSpeedMode::fast, isPushed);
+			viewController().inputView.setAltSpeedMode(AltSpeedMode::fast, isPushed);
 			break;
 		}
 		case guiKeyIdxLoadGame:
@@ -1269,7 +1280,7 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 		{
 			if(!isPushed)
 				break;
-			viewController().inputView().toggleAltSpeedMode(AltSpeedMode::fast);
+			viewController().inputView.toggleAltSpeedMode(AltSpeedMode::fast);
 			break;
 		}
 		case guiKeyIdxLastView:
@@ -1297,14 +1308,14 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 		}
 		case guiKeyIdxSlowMotion:
 		{
-			viewController().inputView().setAltSpeedMode(AltSpeedMode::slow, isPushed);
+			viewController().inputView.setAltSpeedMode(AltSpeedMode::slow, isPushed);
 			break;
 		}
 		case guiKeyIdxToggleSlowMotion:
 		{
 			if(!isPushed)
 				break;
-			viewController().inputView().toggleAltSpeedMode(AltSpeedMode::slow);
+			viewController().inputView.toggleAltSpeedMode(AltSpeedMode::slow);
 			break;
 		}
 		default:
@@ -1558,7 +1569,7 @@ FS::PathString EmuApp::makeNextScreenshotFilename()
 	auto userPath = sys.userPath(userScreenshotDir);
 	sys.createContentLocalDirectory(userPath, subDirName);
 	return sys.contentLocalDirectory(userPath, subDirName,
-		appContext().formatDateAndTimeAsFilename(wallClockTimestamp()).append(".png"));
+		appContext().formatDateAndTimeAsFilename(WallClock::now()).append(".png"));
 }
 
 void EmuApp::setMogaManagerActive(bool on, bool notify)
@@ -1635,7 +1646,7 @@ unsigned EmuApp::validateSystemKey(unsigned key, bool isUIKey) const
 
 ViewAttachParams EmuApp::attachParams()
 {
-	return viewController().inputView().attachParams();
+	return viewController().inputView.attachParams();
 }
 
 void EmuApp::addRecentContent(std::string_view fullPath, std::string_view name)
@@ -1745,7 +1756,7 @@ void EmuApp::onFocusChange(bool in)
 		if(in && system().isPaused())
 		{
 			logMsg("resuming emulation due to window focus");
-			viewController().inputView().resetInput();
+			viewController().inputView.resetInput();
 			startEmulation();
 		}
 		else if(pauseUnfocusedOption() && !system().isPaused() && !allWindowsAreFocused())
@@ -1864,6 +1875,16 @@ void EmuApp::configureSecondaryScreens()
 	}
 }
 
+void EmuApp::record(FrameTimeStatEvent event, SteadyClockTimePoint t)
+{
+	doIfUsed(frameTimeStats, [&](auto &frameTimeStats)
+	{
+		if(!showFrameTimeStats)
+			return;
+		(&frameTimeStats.startOfFrame)[to_underlying(event)] = hasTime(t) ? t : SteadyClock::now();
+	});
+}
+
 IG::OnFrameDelegate EmuApp::onFrameDelayed(int8_t delay)
 {
 	return [this, delay](IG::FrameParams params)
@@ -1954,13 +1975,14 @@ bool EmuApp::setAltSpeed(AltSpeedMode mode, int16_t speed)
 	return true;
 }
 
-void EmuApp::applyCPUAffinity()
+void EmuApp::applyCPUAffinity(bool active)
 {
-	logMsg("applying CPU affinity mask 0x%X", (unsigned)cpuAffinityMask);
+	uint32_t mask = active ? cpuAffinityMask : 0;
+	logMsg("applying CPU affinity mask 0x%X", (unsigned)mask);
 	if(emuSystemTask.threadId())
-		setThreadCPUAffinityMask(std::array{ThreadId{}, renderer.task().threadId(), emuSystemTask.threadId()}, cpuAffinityMask);
+		setThreadCPUAffinityMask(std::array{ThreadId{}, renderer.task().threadId(), emuSystemTask.threadId()}, mask);
 	else
-		setThreadCPUAffinityMask(std::array{ThreadId{}, renderer.task().threadId()}, cpuAffinityMask);
+		setThreadCPUAffinityMask(std::array{ThreadId{}, renderer.task().threadId()}, mask);
 }
 
 void EmuApp::setCPUAffinity(int cpuNumber, bool on)
@@ -1968,7 +1990,6 @@ void EmuApp::setCPUAffinity(int cpuNumber, bool on)
 	doIfUsed(cpuAffinityMask, [&](auto &cpuAffinityMask)
 	{
 		cpuAffinityMask = setOrClearBits(cpuAffinityMask, bit(cpuNumber), on);
-		applyCPUAffinity();
 	});
 }
 

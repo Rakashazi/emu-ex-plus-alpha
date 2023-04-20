@@ -86,7 +86,7 @@ void PceSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 		MDFN_IEN_PCE_FAST::HuC_SaveNV();
 }
 
-IG::Time PceSystem::backupMemoryLastWriteTime(const EmuApp &app) const
+WallClockTimePoint PceSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
 	return appContext().fileUriLastWriteTime(savePathMDFN(app, 0, "sav").c_str());
 }

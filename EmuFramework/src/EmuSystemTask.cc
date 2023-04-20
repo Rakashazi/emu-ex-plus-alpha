@@ -24,8 +24,14 @@ namespace EmuEx
 {
 
 EmuSystemTask::EmuSystemTask(EmuApp &app):
-	appPtr{&app}
-{}
+	app{app} {}
+
+static void releaseAndSet(std::binary_semaphore *semPtr, std::binary_semaphore *newSemPtr)
+{
+	if(semPtr)
+		semPtr->release();
+	semPtr = newSemPtr;
+}
 
 void EmuSystemTask::start()
 {
@@ -35,42 +41,53 @@ void EmuSystemTask::start()
 		[this](auto &sem)
 		{
 			threadId_ = thisThreadId();
-			auto eventLoop = IG::EventLoop::makeForThread();
+			auto eventLoop = EventLoop::makeForThread();
 			bool started = true;
-			commandPort.attach(eventLoop,
-				[this, &started](auto msgs)
+			commandPort.attach(eventLoop, [this, &started](auto msgs)
+			{
+				std::binary_semaphore *semPtr{}; // semaphore of the most recent run frame command, if in sync mode
+				RunFrameCommand runCmd{};
+				for(auto msg : msgs)
 				{
-					for(auto msg : msgs)
+					bool threadIsRunning = visit(overloaded
 					{
-						bool threadIsRunning = visit(overloaded
+						[&](RunFrameCommand &run)
 						{
-							[&](RunFrameCommand &run)
-							{
-								assumeExpr(run.frames);
-								//logMsg("running %d frame(s)", run.frames);
-								app().runFrames({this, msg.semPtr}, run.video, run.audio,
-									run.frames, run.skipForward);
-								return true;
-							},
-							[&](PauseCommand &)
-							{
-								//logMsg("got pause command");
-								assumeExpr(msg.semPtr);
-								msg.semPtr->release();
-								return true;
-							},
-							[&](ExitCommand &)
-							{
-								started = false;
-								EventLoop::forThread().stop();
-								return false;
-							},
-						}, msg.command);
-						if(!threadIsRunning)
+							releaseAndSet(semPtr, msg.semPtr);
+							runCmd.video = run.video;
+							runCmd.audio = run.audio;
+							runCmd.frames += run.frames; // accumulate the total frames from all commands in queue
+							runCmd.skipForward = run.skipForward;
+							return true;
+						},
+						[&](PauseCommand &)
+						{
+							//logMsg("got pause command");
+							releaseAndSet(semPtr, {});
+							runCmd.frames = 0;
+							assumeExpr(msg.semPtr);
+							msg.semPtr->release();
+							return true;
+						},
+						[&](ExitCommand &)
+						{
+							releaseAndSet(semPtr, {});
+							started = false;
+							EventLoop::forThread().stop();
 							return false;
-					}
+						},
+					}, msg.command);
+					if(!threadIsRunning)
+						return false;
+				}
+				if(!runCmd.frames)
 					return true;
-				});
+				assumeExpr(runCmd.frames > 0);
+				//logMsg("running %d frame(s)", runCmd.frames);
+				app.runFrames({this, semPtr}, runCmd.video, runCmd.audio,
+					runCmd.frames, runCmd.skipForward);
+				return true;
+			});
 			sem.release();
 			logMsg("starting thread event loop");
 			eventLoop.run(started);
@@ -84,7 +101,7 @@ void EmuSystemTask::pause()
 	if(!taskThread.joinable())
 		return;
 	commandPort.send({.command = PauseCommand{}}, true);
-	app().flushMainThreadMessages();
+	app.flushMainThreadMessages();
 }
 
 void EmuSystemTask::stop()
@@ -94,12 +111,12 @@ void EmuSystemTask::stop()
 	commandPort.send({.command = ExitCommand{}});
 	taskThread.join();
 	threadId_ = 0;
-	app().flushMainThreadMessages();
+	app.flushMainThreadMessages();
 }
 
 void EmuSystemTask::runFrame(EmuVideo *video, EmuAudio *audio, int8_t frames, bool skipForward, bool runSync)
 {
-	assumeExpr(frames);
+	assumeExpr(frames > 0);
 	if(!taskThread.joinable()) [[unlikely]]
 		return;
 	commandPort.send({.command = RunFrameCommand{video, audio, frames, skipForward}}, runSync);
@@ -113,11 +130,10 @@ void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video, std::binary_sem
 	}
 	else
 	{
-		app().runOnMainThread(
-			[&video](IG::ApplicationContext)
-			{
-				video.dispatchFormatChanged();
-			});
+		app.runOnMainThread([&video](ApplicationContext)
+		{
+			video.dispatchFormatChanged();
+		});
 	}
 }
 
@@ -135,16 +151,10 @@ void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video, std::binary_semaphor
 
 void EmuSystemTask::sendScreenshotReply(bool success)
 {
-	app().runOnMainThread(
-		[=](IG::ApplicationContext ctx)
-		{
-			EmuApp::get(ctx).printScreenshotResult(success);
-		});
-}
-
-EmuApp &EmuSystemTask::app() const
-{
-	return *appPtr;
+	app.runOnMainThread([&app = app, success](ApplicationContext ctx)
+	{
+		app.printScreenshotResult(success);
+	});
 }
 
 }

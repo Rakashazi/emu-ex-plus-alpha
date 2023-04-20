@@ -166,6 +166,7 @@ void EmuVideo::finishFrame(EmuSystemTaskContext taskCtx, Gfx::LockedTextureBuffe
 	{
 		doScreenshot(taskCtx, texBuff.pixmap());
 	}
+	app().record(FrameTimeStatEvent::aboutToSubmitFrame);
 	vidImg.unlock(texBuff);
 	postFrameFinished(taskCtx);
 }
@@ -176,6 +177,7 @@ void EmuVideo::finishFrame(EmuSystemTaskContext taskCtx, IG::PixmapView pix)
 	{
 		doScreenshot(taskCtx, pix);
 	}
+	app().record(FrameTimeStatEvent::aboutToSubmitFrame);
 	syncImageAccess();
 	vidImg.write(pix, vidImg.WRITE_FLAG_ASYNC);
 	postFrameFinished(taskCtx);

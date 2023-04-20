@@ -41,7 +41,7 @@ PlaceVControlsView::PlaceVControlsView(ViewAttachParams attach, VController &vCo
 		[this]()
 		{
 			logMsg("starting fade");
-			textFade = {1., 0., {}, IG::steadyClockTimestamp(), IG::Milliseconds{400}};
+			textFade = {1., 0., {}, SteadyClock::now(), Milliseconds{400}};
 			window().addOnFrame(animate);
 		});
 }

@@ -56,7 +56,7 @@ private:
 		RID_BTN_REPORT = 0x07, RID_8BA_2A_JS_REPORT = 0x08, RID_BATTERY_REPORT = 0x11;
 
 	static const char *reportIDToStr(uint32_t id);
-	void processBtnReport(const uint8_t *btnData, Input::Time time);
+	void processBtnReport(const uint8_t *btnData, SteadyClockTimePoint time);
 };
 
 }

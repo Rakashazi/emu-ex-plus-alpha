@@ -30,7 +30,7 @@
 namespace IG::FS
 {
 
-using file_time_type = std::chrono::seconds;
+using file_time_type = std::chrono::system_clock::time_point;
 
 static constexpr size_t FILE_STRING_SIZE = std::max(512, NAME_MAX + 1);
 using FileStringImpl = StaticString<FILE_STRING_SIZE - 1>;

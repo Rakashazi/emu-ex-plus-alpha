@@ -16,12 +16,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <linux/input.h>
-#include <chrono>
 
 namespace IG::Input
 {
-
-using Time = std::chrono::nanoseconds;
 
 using Key = uint16_t;
 

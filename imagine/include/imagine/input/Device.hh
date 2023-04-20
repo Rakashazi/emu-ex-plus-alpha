@@ -19,6 +19,7 @@
 #include <imagine/input/config.hh>
 #include <imagine/input/inputDefs.hh>
 #include <imagine/input/AxisKeyEmu.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/utility.h>
@@ -161,7 +162,7 @@ public:
 	bool emulatesDirectionKeys() const;
 	constexpr AxisId id() const { return id_; }
 	uint32_t idBit() const;
-	bool update(float pos, Map map, Time time, const Device &, Window &, bool normalized = false);
+	bool update(float pos, Map map, SteadyClockTimePoint time, const Device &, Window &, bool normalized = false);
 
 protected:
 	float scaler{};

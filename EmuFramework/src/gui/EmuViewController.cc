@@ -42,11 +42,11 @@ namespace EmuEx
 EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystem &sys):
 	emuView{viewAttach, &videoLayer, sys},
-	emuInputView{viewAttach, vCtrl, videoLayer},
+	inputView{viewAttach, vCtrl, videoLayer},
 	popup{viewAttach},
 	viewStack{app()}
 {
-	emuInputView.setController(this);
+	inputView.setController(this);
 	auto &win = viewAttach.window;
 	auto &face = viewAttach.viewManager.defaultFace;
 	auto &screen = *viewAttach.window.screen();
@@ -76,7 +76,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 		viewStack.setNavView(std::move(viewNav));
 	}
 	viewStack.showNavView(app().showsTitleBar());
-	emuView.setLayoutInputView(&inputView());
+	emuView.setLayoutInputView(&inputView);
 }
 
 void EmuViewController::pushAndShowMainMenu(ViewAttachParams viewAttach, EmuVideoLayer &videoLayer,
@@ -165,7 +165,7 @@ bool EmuViewController::inputEvent(const Input::Event &e)
 {
 	if(showingEmulation)
 	{
-		return emuInputView.inputEvent(e);
+		return inputView.inputEvent(e);
 	}
 	return viewStack.inputEvent(e);
 }
@@ -174,7 +174,7 @@ bool EmuViewController::extraWindowInputEvent(const Input::Event &e)
 {
 	if(showingEmulation && e.keyEvent())
 	{
-		return emuInputView.inputEvent(e);
+		return inputView.inputEvent(e);
 	}
 	return false;
 }
@@ -207,7 +207,7 @@ void EmuViewController::moveEmuViewToWindow(IG::Window &win)
 	emuView.setWindow(&win);
 	winData.applyViewRect(emuView);
 	if(win == appContext().mainWindow())
-		emuView.setLayoutInputView(&inputView());
+		emuView.setLayoutInputView(&inputView);
 	else
 		emuView.setLayoutInputView(nullptr);
 }
@@ -221,7 +221,7 @@ void EmuViewController::configureWindowForEmulation(IG::Window &win, FrameTimeCo
 		app().setIntendedFrameRate(win, frameTimeConfig);
 	else
 		win.setIntendedFrameRate(0);
-	movePopupToWindow(running ? emuView.window() : emuInputView.window());
+	movePopupToWindow(running ? emuView.window() : inputView.window());
 }
 
 void EmuViewController::showEmulationView(FrameTimeConfig frameTimeConfig)
@@ -231,11 +231,11 @@ void EmuViewController::showEmulationView(FrameTimeConfig frameTimeConfig)
 	viewStack.top().onHide();
 	showingEmulation = true;
 	configureWindowForEmulation(emuView.window(), frameTimeConfig, true);
-	if(emuView.window() != emuInputView.window())
-		emuInputView.postDraw();
-	emuInputView.resetInput();
+	if(emuView.window() != inputView.window())
+		inputView.postDraw();
+	inputView.resetInput();
 	placeEmuViews();
-	emuInputView.setSystemGestureExclusion(true);
+	inputView.setSystemGestureExclusion(true);
 }
 
 void EmuViewController::showMenuView(bool updateTopView)
@@ -243,7 +243,7 @@ void EmuViewController::showMenuView(bool updateTopView)
 	if(!showingEmulation)
 		return;
 	showingEmulation = false;
-	emuInputView.setSystemGestureExclusion(false);
+	inputView.setSystemGestureExclusion(false);
 	configureWindowForEmulation(emuView.window(), {}, false);
 	emuView.postDraw();
 	if(updateTopView)
@@ -256,7 +256,7 @@ void EmuViewController::showMenuView(bool updateTopView)
 void EmuViewController::placeEmuViews()
 {
 	emuView.place();
-	emuInputView.place();
+	inputView.place();
 }
 
 void EmuViewController::placeElements()
@@ -282,7 +282,7 @@ void EmuViewController::updateMainWindowViewport(IG::Window &win, IG::Viewport v
 	{
 		winData.applyViewRect(emuView);
 	}
-	winData.applyViewRect(emuInputView);
+	winData.applyViewRect(inputView);
 	placeElements();
 }
 
@@ -294,16 +294,6 @@ void EmuViewController::updateExtraWindowViewport(IG::Window &win, IG::Viewport 
 	winData.updateWindowViewport(win, viewport, task.renderer());
 	winData.applyViewRect(emuView);
 	emuView.place();
-}
-
-void EmuViewController::updateEmuAudioStats(int underruns, int overruns, int callbacks, double avgCallbackFrames, int frames)
-{
-	emuView.updateAudioStats(underruns, overruns, callbacks, avgCallbackFrames, frames);
-}
-
-void EmuViewController::clearEmuAudioStats()
-{
-	emuView.clearAudioStats();
 }
 
 void EmuViewController::popToSystemActionsMenu()
@@ -364,7 +354,6 @@ bool EmuViewController::drawMainWindow(IG::Window &win, IG::WindowDrawParams par
 	return task.draw(win, params, {},
 		[this](IG::Window &win, Gfx::RendererCommands &cmds)
 	{
-		cmds.clear();
 		auto &winData = windowData(win);
 		cmds.basicEffect().setModelViewProjection(cmds, Gfx::Mat4::ident(), winData.projM);
 		if(showingEmulation)
@@ -373,9 +362,12 @@ bool EmuViewController::drawMainWindow(IG::Window &win, IG::WindowDrawParams par
 			{
 				emuView.draw(cmds);
 			}
-			emuInputView.draw(cmds);
+			inputView.draw(cmds);
+			if(app().showFrameTimeStats)
+				emuView.drawframeTimeStatsText(cmds);
 			if(winData.hasPopup)
 				popup.draw(cmds);
+			app().record(FrameTimeStatEvent::aboutToPresent);
 		}
 		else
 		{
@@ -387,6 +379,9 @@ bool EmuViewController::drawMainWindow(IG::Window &win, IG::WindowDrawParams par
 			popup.draw(cmds);
 		}
 		cmds.present();
+		if(showingEmulation)
+			app().record(FrameTimeStatEvent::endOfDraw);
+		cmds.clear();
 	});
 }
 
@@ -395,7 +390,6 @@ bool EmuViewController::drawExtraWindow(IG::Window &win, IG::WindowDrawParams pa
 	return task.draw(win, params, {},
 		[this](IG::Window &win, Gfx::RendererCommands &cmds)
 	{
-		cmds.clear();
 		auto &winData = windowData(win);
 		cmds.basicEffect().setModelViewProjection(cmds, Gfx::Mat4::ident(), winData.projM);
 		emuView.draw(cmds);
@@ -404,6 +398,7 @@ bool EmuViewController::drawExtraWindow(IG::Window &win, IG::WindowDrawParams pa
 			popup.draw(cmds);
 		}
 		cmds.present();
+		cmds.clear();
 	});
 }
 
@@ -453,19 +448,9 @@ void EmuViewController::onSystemClosed()
 	}
 }
 
-EmuInputView &EmuViewController::inputView()
-{
-	return emuInputView;
-}
-
 MainMenuView &EmuViewController::mainMenu()
 {
 	return static_cast<MainMenuView&>(viewStack.viewAtIdx(0));
-}
-
-IG::ToastView &EmuViewController::popupMessageView()
-{
-	return popup;
 }
 
 EmuVideoLayer &EmuViewController::videoLayer() const

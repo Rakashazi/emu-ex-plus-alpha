@@ -67,7 +67,7 @@ protected:
 	IG::Audio::OutputStream audioStream;
 	const IG::Audio::Manager &audioManager;
 	RingBuffer rBuff;
-	Time lastUnderrunTime{};
+	SteadyClockTimePoint lastUnderrunTime{};
 	double speedMultiplier{1.};
 	size_t targetBufferFillBytes{};
 	size_t bufferIncrementBytes{};

@@ -28,7 +28,7 @@ namespace IG
 class TimerFD
 {
 public:
-	using Time = Nanoseconds;
+	using TimePoint = SteadyClockTimePoint;
 
 	constexpr TimerFD() = default;
 	TimerFD(CallbackDelegate c) : TimerFD{nullptr, c} {}

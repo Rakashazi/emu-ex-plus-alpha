@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/config.hh>
 #include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
@@ -51,6 +52,7 @@ protected:
 	VideoSystem activeVideoSystem{};
 	MultiChoiceMenuItem frameRate;
 	MultiChoiceMenuItem frameRatePAL;
+	IG_UseMemberIf(enableFrameTimeStats, BoolMenuItem, frameTimeStats);
 	StaticArrayList<TextMenuItem, MAX_ASPECT_RATIO_ITEMS> aspectRatioItem;
 	MultiChoiceMenuItem aspectRatio;
 	TextMenuItem zoomItem[6];
@@ -92,7 +94,7 @@ protected:
 	TextHeadingMenuItem colorLevelsHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 34> item;
+	StaticArrayList<MenuItem*, 35> item;
 
 	bool onFrameTimeChange(VideoSystem vidSys, FloatSeconds time);
 	TextMenuItem::SelectDelegate setVideoBrightnessCustomDel(ImageChannel);

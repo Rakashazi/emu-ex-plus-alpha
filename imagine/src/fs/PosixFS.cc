@@ -252,7 +252,7 @@ file_status status(IG::CStringView path)
 		else
 			return {};
 	}
-	return {makeFileType(s), (std::uintmax_t)s.st_size, (file_time_type)s.st_mtime};
+	return {makeFileType(s), (std::uintmax_t)s.st_size, file_time_type{std::chrono::seconds{s.st_mtime}}};
 }
 
 file_status symlink_status(IG::CStringView path)
@@ -267,7 +267,7 @@ file_status symlink_status(IG::CStringView path)
 		else
 			return {};
 	}
-	return {makeFileType(s), (std::uintmax_t)s.st_size, (file_time_type)s.st_mtime};
+	return {makeFileType(s), (std::uintmax_t)s.st_size, file_time_type{std::chrono::seconds{s.st_mtime}}};
 }
 
 void chown(IG::CStringView path, uid_t owner, gid_t group)

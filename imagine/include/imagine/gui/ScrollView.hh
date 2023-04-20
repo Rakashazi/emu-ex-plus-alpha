@@ -47,7 +47,7 @@ protected:
 	Input::SingleDragTracker<> dragTracker{};
 	VelocityTrackerType velTracker{}; // tracks y velocity as pixels/sec
 	WRect scrollBarRect{};
-	FrameTime lastFrameTimestamp{};
+	SteadyClockTimePoint lastFrameTimestamp{};
 	float scrollVel = 0;
 	float scrollAccel = 0;
 	float offsetAsDec = 0;

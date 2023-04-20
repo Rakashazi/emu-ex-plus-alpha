@@ -393,12 +393,12 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 [[gnu::weak]] bool ApplicationContext::hasSustainedPerformanceMode() const { return false; }
 [[gnu::weak]] void ApplicationContext::setSustainedPerformanceMode(bool on) {}
 
-[[gnu::weak]] std::string ApplicationContext::formatDateAndTime(WallClockTime time)
+[[gnu::weak]] std::string ApplicationContext::formatDateAndTime(WallClockTimePoint time)
 {
-	if(!time.count())
+	if(!hasTime(time))
 		return {};
 	std::tm localTime;
-	time_t secs = std::chrono::duration_cast<Seconds>(time).count();
+	time_t secs = std::chrono::duration_cast<Seconds>(time.time_since_epoch()).count();
 	if(!localtime_r(&secs, &localTime)) [[unlikely]]
 	{
 		logErr("localtime_r failed");
@@ -412,7 +412,7 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 	return str;
 }
 
-std::string ApplicationContext::formatDateAndTimeAsFilename(WallClockTime time)
+std::string ApplicationContext::formatDateAndTimeAsFilename(WallClockTimePoint time)
 {
 	auto filename = formatDateAndTime(time);
 	std::ranges::replace(filename, '/', '-');

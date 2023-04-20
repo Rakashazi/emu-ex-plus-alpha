@@ -49,7 +49,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 	auto timestamp = IG::FloatSeconds(displayLink.timestamp);
 	//logMsg("screen:%p, frame time stamp:%f, duration:%f",
 	//	screen.uiScreen(), timestamp.count(), (double)screen.displayLink().duration);
-	if(!screen.frameUpdate(timestamp))
+	if(!screen.frameUpdate(SteadyClockTimePoint{timestamp}))
 	{
 		//logMsg("stopping screen updates");
 		displayLink.paused = YES;

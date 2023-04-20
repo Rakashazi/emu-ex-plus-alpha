@@ -107,23 +107,23 @@ void GLManager::resetCurrentContext() const
 	display().resetCurrentContext();
 }
 
-FrameTime FrameParams::presentTime() const
+SteadyClockTimePoint FrameParams::presentTime() const
 {
-	return timestamp_ + std::chrono::duration_cast<FrameTime>(frameTime_);
+	return timestamp_ + std::chrono::duration_cast<SteadyClockTime>(frameTime_);
 }
 
-uint32_t FrameParams::elapsedFrames(FrameTime lastTimestamp) const
+int FrameParams::elapsedFrames(SteadyClockTimePoint lastTimestamp) const
 {
 	return elapsedFrames(timestamp_, lastTimestamp, frameTime_);
 }
 
-uint32_t FrameParams::elapsedFrames(FrameTime timestamp, FrameTime lastTimestamp, FloatSeconds frameTime)
+int FrameParams::elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePoint lastTimestamp, FloatSeconds frameTime)
 {
-	if(!lastTimestamp.count())
+	if(!hasTime(lastTimestamp))
 		return 1;
 	assumeExpr(timestamp >= lastTimestamp);
 	assumeExpr(frameTime.count() > 0);
-	FrameTime diff = timestamp - lastTimestamp;
+	auto diff = timestamp - lastTimestamp;
 	auto elapsed = (uint32_t)std::round(FloatSeconds(diff) / frameTime);
 	return std::max(elapsed, 1u);
 }

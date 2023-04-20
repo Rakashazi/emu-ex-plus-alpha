@@ -34,6 +34,7 @@ namespace IG
 struct Timer : public TimerImpl
 {
 public:
+	using Time = TimePoint::duration;
 	struct NullInit{};
 
 	using TimerImpl::TimerImpl;
@@ -51,27 +52,25 @@ public:
 		ChronoDuration auto repeatTime,
 		EventLoop loop = {}, CallbackDelegate f = {})
 	{
-		run(std::chrono::duration_cast<Time>(time),
-			std::chrono::duration_cast<Time>(repeatTime), false, loop, f);
+		run(time, repeatTime, false, loop, f);
 	}
 
-	void runAt(ChronoDuration auto time,
+	void runAt(TimePoint time,
 		ChronoDuration auto repeatTime,
 		EventLoop loop = {}, CallbackDelegate f = {})
 	{
-		run(std::chrono::duration_cast<Time>(time),
-			std::chrono::duration_cast<Time>(repeatTime), true, loop, f);
+		run(time.time_since_epoch(), repeatTime, true, loop, f);
 	}
 
 	// non-repeating timer
 	void runIn(ChronoDuration auto time, EventLoop loop = {}, CallbackDelegate f = {})
 	{
-		run(std::chrono::duration_cast<Time>(time), Time{}, false, loop, f);
+		run(time, Time{}, false, loop, f);
 	}
 
-	void runAt(ChronoDuration auto time, EventLoop loop = {}, CallbackDelegate f = {})
+	void runAt(TimePoint time, EventLoop loop = {}, CallbackDelegate f = {})
 	{
-		run(std::chrono::duration_cast<Time>(time), Time{}, true, loop, f);
+		run(time.time_since_epoch(), Time{}, true, loop, f);
 	}
 };
 

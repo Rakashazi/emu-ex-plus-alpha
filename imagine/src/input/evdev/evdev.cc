@@ -131,7 +131,7 @@ void EvdevInputDevice::processInputEvents(LinuxApplication &app, std::span<const
 	for(auto &ev : events)
 	{
 		//logMsg("got event type %d, code %d, value %d", ev.type, ev.code, ev.value);
-		Time time = IG::Seconds{ev.time.tv_sec} + IG::Microseconds{ev.time.tv_usec};
+		auto time = SteadyClockTimePoint{Seconds{ev.time.tv_sec} + Microseconds{ev.time.tv_usec}};
 		switch(ev.type)
 		{
 			case EV_KEY:

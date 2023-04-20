@@ -27,18 +27,10 @@ public:
 	struct GLStateCaps
 	{
 		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		int8_t GL_ALPHA_TEST_state = -1;
-		int8_t GL_FOG_state = -1;
 		int8_t GL_TEXTURE_2D_state = -1;
 		#endif
-		int8_t GL_DEPTH_TEST_state = -1;
 		int8_t GL_BLEND_state = -1;
 		int8_t GL_SCISSOR_TEST_state = -1;
-		int8_t GL_DITHER_state = -1;
-		#ifndef CONFIG_GFX_OPENGL_ES
-		// extensions
-		int8_t GL_MULTISAMPLE_state = -1;
-		#endif
 	};
 
 	struct GLClientStateCaps
