@@ -23,25 +23,46 @@ namespace EmuEx
 {
 
 CPUAffinityView::CPUAffinityView(ViewAttachParams attach, int cpuCount):
-	TableView{"Override CPU Affinity", attach, cpuAffinityItems}
+	TableView{"Configure CPU Affinity", attach, menuItems},
+	affinityModeItems
+	{
+		{"Auto (Use only performance cores or hints for low latency)", &defaultFace(), to_underlying(CPUAffinityMode::Auto)},
+		{"Any (Use any core even if it increases latency)",            &defaultFace(), to_underlying(CPUAffinityMode::Any)},
+		{"Manual (Use cores set in previous menu)",                    &defaultFace(), to_underlying(CPUAffinityMode::Manual)},
+	},
+	affinityMode
+	{
+		"CPU Affinity Mode", &defaultFace(),
+		{
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(wise_enum::to_string(CPUAffinityMode(affinityModeItems[idx].id())));
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().cpuAffinityMode = CPUAffinityMode(item.id()); }
+		},
+		MenuItem::Id(uint8_t(app().cpuAffinityMode)),
+		affinityModeItems
+	},
+	cpusHeading{"Manual CPU Affinity", &defaultBoldFace()}
 {
+	menuItems.emplace_back(&affinityMode);
+	menuItems.emplace_back(&cpusHeading);
+	cpuAffinityItems.reserve(cpuCount);
 	for(int i : iotaCount(cpuCount))
 	{
-		cpuAffinityItems.emplace_back([&](FILE *maxFreqFile)
+		auto &item = cpuAffinityItems.emplace_back([&]
 			{
-				if(!maxFreqFile)
+				auto freq = appContext().maxCPUFrequencyKHz(i);
+				if(!freq)
 					return fmt::format("{} (Offline)", i);
-				int freq{};
-				auto items = fscanf(maxFreqFile, "%d", &freq);
-				fclose(maxFreqFile);
 				return fmt::format("{} ({}MHz)", i, freq / 1000);
-			}(fopen(fmt::format("/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq", i).c_str(), "r")),
+			}(),
 			&defaultFace(), app().cpuAffinity(i),
-			[this, i](BoolMenuItem &item)
-			{
-				app().setCPUAffinity(i, item.flipBoolValue());
-			});
+			[this, i](BoolMenuItem &item) { app().setCPUAffinity(i, item.flipBoolValue(*this)); });
+		menuItems.emplace_back(&item);
 	}
+
 }
 
 }

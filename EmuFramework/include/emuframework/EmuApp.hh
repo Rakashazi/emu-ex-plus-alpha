@@ -37,6 +37,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/VibrationManager.hh>
+#include <imagine/base/PerformanceHintManager.hh>
 #include <imagine/audio/Manager.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Vec3.hh>
@@ -136,6 +137,10 @@ enum class AltSpeedMode
 {
 	fast, slow
 };
+
+WISE_ENUM_CLASS((CPUAffinityMode, uint8_t),
+	Auto, Any, Manual
+);
 
 constexpr float menuVideoBrightnessScale = .25f;
 
@@ -353,7 +358,7 @@ public:
 	double altSpeedAsDouble(AltSpeedMode mode) const { return altSpeed(mode) / 100.; }
 	auto &sustainedPerformanceModeOption() { return optionSustainedPerformanceMode; }
 	void setCPUAffinity(int cpuNumber, bool on);
-	bool cpuAffinity(int cpuNumber);
+	bool cpuAffinity(int cpuNumber) const;
 	void applyCPUAffinity(bool active);
 
 	// GUI Options
@@ -521,6 +526,7 @@ public:
 	OutputTimingManager outputTimingManager;
 protected:
 	IG_UseMemberIf(enableFrameTimeStats, FrameTimeStats, frameTimeStats);
+	IG_UseMemberIf(Config::threadPerformanceHints, SteadyClockTimePoint, frameStartTimePoint){};
 	DelegateFunc<void ()> onUpdateInputDevices_;
 	KeyConfigContainer customKeyConfigs;
 	InputDeviceSavedConfigContainer savedInputDevs;
@@ -530,12 +536,14 @@ protected:
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
 	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
 	[[no_unique_address]] IG::VibrationManager vibrationManager_;
+	[[no_unique_address]] PerformanceHintManager perfHintManager;
+	[[no_unique_address]] PerformanceHintSession perfHintSession;
 	BluetoothAdapter *bta{};
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr);
 	RecentContentList recentContentList;
 	std::string userScreenshotDir;
 	Byte4Option optionSoundRate;
-	IG_UseMemberIf(Config::envIsAndroid || Config::envIsLinux, uint32_t, cpuAffinityMask){};
+	IG_UseMemberIf(Config::envIsAndroid || Config::envIsLinux, CPUMask, cpuAffinityMask){};
 	static constexpr int16_t defaultFastModeSpeed{800};
 	static constexpr int16_t defaultSlowModeSpeed{50};
 	int16_t fastModeSpeed{defaultFastModeSpeed};
@@ -581,7 +589,8 @@ protected:
 	IG_UseMemberIf(Config::envIsAndroid, bool, usePresentationTime_){true};
 	IG_UseMemberIf(Config::envIsAndroid, bool, forceMaxScreenFrameRate){};
 public:
-	IG_UseMemberIf(Config::envIsAndroid, bool, useNoopThread){};
+	IG_UseMemberIf(Config::envIsAndroid || Config::envIsLinux, CPUAffinityMode, cpuAffinityMode){CPUAffinityMode::Auto};
+	IG_UseMemberIf(Config::envIsAndroid && Config::DEBUG_BUILD, bool, useNoopThread){};
 	IG_UseMemberIf(enableFrameTimeStats, bool, showFrameTimeStats){};
 
 protected:
@@ -615,6 +624,7 @@ protected:
 	void configureAppForEmulation(bool running);
 	int16_t &altSpeedRef(AltSpeedMode mode) { return mode == AltSpeedMode::slow ? slowModeSpeed : fastModeSpeed; }
 	const int16_t &altSpeedRef(AltSpeedMode mode) const { return mode == AltSpeedMode::slow ? slowModeSpeed : fastModeSpeed; }
+	void reportFrameWorkTime();
 };
 
 // Global instance access if required by the emulated system, valid if EmuApp::needsGlobalInstance initialized to true

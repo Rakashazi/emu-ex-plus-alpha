@@ -883,8 +883,6 @@ void AndroidApplicationContext::setNoopThreadActive(bool on)
 	}
 }
 
-int ApplicationContext::cpuCount() const { return sysconf(_SC_NPROCESSORS_CONF); }
-
 SensorValues ApplicationContext::remapSensorValuesForDeviceRotation(SensorValues v) const
 {
 	switch(application().currentRotation())

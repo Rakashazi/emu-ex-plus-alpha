@@ -28,6 +28,7 @@
 #include <imagine/base/baseDefs.hh>
 #include <imagine/io/ioDefs.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/thread/Thread.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string/CStringView.hh>
@@ -58,6 +59,7 @@ namespace IG
 {
 
 class PixelFormat;
+class PerformanceHintManager;
 
 using DirectoryEntryDelegate = DelegateFuncS<sizeof(void*)*3, bool(const FS::directory_entry &)>;
 
@@ -113,7 +115,12 @@ public:
 	Screen &mainScreen();
 
 	NativeDisplayConnection nativeDisplayConnection() const;
+
+	// CPU configuration
 	int cpuCount() const;
+	int maxCPUFrequencyKHz(int cpuIdx) const;
+	CPUMask performanceCPUMask() const;
+	PerformanceHintManager performanceHintManager();
 
 	// App Callbacks
 

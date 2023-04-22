@@ -184,7 +184,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	cpuAffinity
 	{
-		"Override CPU Affinity", &defaultFace(),
+		"Configure CPU Affinity", &defaultFace(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<CPUAffinityView>(appContext().cpuCount()), e);

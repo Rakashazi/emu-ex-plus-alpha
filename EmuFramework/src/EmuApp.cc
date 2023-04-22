@@ -129,6 +129,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	pixmapReader{ctx},
 	pixmapWriter{ctx},
 	vibrationManager_{ctx},
+	perfHintManager{ctx.performanceHintManager()},
 	optionSoundRate{CFGKEY_SOUND_RATE, 48000, false, isValidSoundRate},
 	optionFontSize{CFGKEY_FONT_Y_SIZE,
 		Config::MACHINE_IS_PANDORA ? 6500 :
@@ -264,13 +265,12 @@ Window &EmuApp::emuWindow() { return viewController().emuWindow(); }
 void EmuApp::setCPUNeedsLowLatency(IG::ApplicationContext ctx, bool needed)
 {
 	#ifdef __ANDROID__
-	if(optionSustainedPerformanceMode)
-		ctx.setSustainedPerformanceMode(needed);
 	if(useNoopThread)
 		ctx.setNoopThreadActive(needed);
 	#endif
-	if(cpuAffinityMask)
-		applyCPUAffinity(needed);
+	if(optionSustainedPerformanceMode)
+		ctx.setSustainedPerformanceMode(needed);
+	applyCPUAffinity(needed);
 }
 
 static void suspendEmulation(EmuApp &app)
@@ -464,6 +464,11 @@ static IG::Screen *extraWindowScreen(IG::ApplicationContext ctx)
 	return ctx.windows()[1]->screen();
 }
 
+static SteadyClockTime targetFrameTime(const Screen &s)
+{
+	return std::chrono::duration_cast<Nanoseconds>(s.frameTime()) / 2;
+}
+
 void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::ApplicationContext ctx)
 {
 	auto appConfig = loadConfigFile(ctx);
@@ -574,11 +579,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			emuVideoLayer.setZoom(optionImageZoom);
 			system().onFrameUpdate = [this, &viewController = winData.viewController](IG::FrameParams params)
 				{
-					if(!viewController.emuWindow().isReady())
-					{
-						//logDMsg("previous async frame not ready yet");
-						doIfUsed(frameTimeStats, [&](auto &stats) { stats.missedFrameCallbacks++; });
-					}
 					bool skipForward = false;
 					bool altSpeed = false;
 					auto &audio = this->audio();
@@ -604,12 +604,19 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					{
 						frameInfo.advanced = frameInterval();
 					}
-					if(showFrameTimeStats)
-						viewController.emuView.updateFrameTimeStats(frameTimeStats, params.timestamp());
-					record(FrameTimeStatEvent::startOfFrame, params.timestamp());
-					record(FrameTimeStatEvent::startOfEmulation);
-					constexpr int maxFrameSkip = 8;
-					auto framesToEmulate = std::min(frameInfo.advanced, maxFrameSkip);
+					if(viewController.emuWindow().isReady())
+					{
+						if(showFrameTimeStats)
+							viewController.emuView.updateFrameTimeStats(frameTimeStats, params.timestamp());
+						record(FrameTimeStatEvent::startOfFrame, params.timestamp());
+						record(FrameTimeStatEvent::startOfEmulation);
+					}
+					else
+					{
+						//logDMsg("previous async frame not ready yet");
+						doIfUsed(frameTimeStats, [&](auto &stats) { stats.missedFrameCallbacks++; });
+					}
+					auto framesToEmulate = frameInfo.advanced;
 					EmuAudio *audioPtr = audio ? &audio : nullptr;
 					/*logMsg("frame present time:%.4f next display frame:%.4f",
 						std::chrono::duration_cast<IG::FloatSeconds>(frameInfo.presentTime).count(),
@@ -633,6 +640,11 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					}
 					if(usePresentationTime())
 						renderer.setPresentationTime(win, params.presentTime());
+					doIfUsed(frameStartTimePoint, [&](auto &tp)
+					{
+						if(!hasTime(tp))
+							tp = params.timestamp();
+					});
 					return true;
 				};
 
@@ -644,7 +656,10 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					[&](DrawEvent &e)
 					{
 						if(viewController().isShowingEmulation())
+						{
+							reportFrameWorkTime();
 							record(FrameTimeStatEvent::startOfDraw);
+						}
 						return viewController().drawMainWindow(win, e.params, renderer.task());
 					},
 					[&](WindowSurfaceChangeEvent &e)
@@ -700,7 +715,16 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						else if(e.change == ScreenChange::frameRate && e.screen == emuScreen())
 						{
 							if(viewController().isShowingEmulation())
+							{
+								if(perfHintSession)
+								{
+									auto targetTime = targetFrameTime(e.screen);
+									perfHintSession.updateTargetWorkTime(targetTime);
+									logMsg("updated performance hint session with target time:%lldns", (long long)targetTime.count());
+								}
+								syncEmulationThread();
 								configFrameTime();
+							}
 						}
 					},
 					[&](Input::DevicesEnumeratedEvent &)
@@ -914,8 +938,8 @@ void EmuApp::startEmulation()
 			win.postDraw(1);
 		});
 	frameTimeStats = {};
-	setCPUNeedsLowLatency(appContext(), true);
 	emuSystemTask.start();
+	setCPUNeedsLowLatency(appContext(), true);
 	system().start(*this);
 	addOnFrameDelayed();
 }
@@ -1804,7 +1828,11 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 					return visit(overloaded
 					{
 						[&](Input::Event &e) { return viewController().extraWindowInputEvent(e); },
-						[&](DrawEvent &e) { return viewController().drawExtraWindow(win, e.params, renderer.task()); },
+						[&](DrawEvent &e)
+						{
+							reportFrameWorkTime();
+							return viewController().drawExtraWindow(win, e.params, renderer.task());
+						},
 						[&](WindowSurfaceChangeEvent &e)
 						{
 							if(e.change.resized())
@@ -1977,12 +2005,31 @@ bool EmuApp::setAltSpeed(AltSpeedMode mode, int16_t speed)
 
 void EmuApp::applyCPUAffinity(bool active)
 {
-	uint32_t mask = active ? cpuAffinityMask : 0;
+	if(cpuAffinityMode == CPUAffinityMode::Any)
+		return;
+	auto frameThreadGroup = std::array{emuSystemTask.threadId(), renderer.task().threadId()};
+	if(cpuAffinityMode == CPUAffinityMode::Auto && perfHintManager)
+	{
+		if(active)
+		{
+			auto targetTime = targetFrameTime(emuScreen());
+			perfHintSession = perfHintManager.session(frameThreadGroup, targetTime);
+			if(perfHintSession)
+				logMsg("made performance hint session with target time:%lldns", (long long)targetTime.count());
+			else
+				logErr("error making performance hint session");
+		}
+		else
+		{
+			perfHintSession = {};
+			logMsg("closed performance hint session");
+		}
+		return;
+	}
+	auto mask = active ?
+		(cpuAffinityMode == CPUAffinityMode::Auto ? appContext().performanceCPUMask() : CPUMask(cpuAffinityMask)) : 0;
 	logMsg("applying CPU affinity mask 0x%X", (unsigned)mask);
-	if(emuSystemTask.threadId())
-		setThreadCPUAffinityMask(std::array{ThreadId{}, renderer.task().threadId(), emuSystemTask.threadId()}, mask);
-	else
-		setThreadCPUAffinityMask(std::array{ThreadId{}, renderer.task().threadId()}, mask);
+	setThreadCPUAffinityMask(frameThreadGroup, mask);
 }
 
 void EmuApp::setCPUAffinity(int cpuNumber, bool on)
@@ -1993,7 +2040,7 @@ void EmuApp::setCPUAffinity(int cpuNumber, bool on)
 	});
 }
 
-bool EmuApp::cpuAffinity(int cpuNumber)
+bool EmuApp::cpuAffinity(int cpuNumber) const
 {
 	return doIfUsed(cpuAffinityMask, [&](auto &cpuAffinityMask) { return cpuAffinityMask & bit(cpuNumber); }, false);
 }
@@ -2036,6 +2083,15 @@ BluetoothAdapter *EmuApp::bluetoothAdapter()
 void EmuApp::closeBluetoothConnections()
 {
 	Bluetooth::closeBT(std::exchange(bta, {}));
+}
+
+void EmuApp::reportFrameWorkTime()
+{
+	doIfUsed(frameStartTimePoint, [&](auto &tp)
+	{
+		if(perfHintSession && hasTime(tp))
+			perfHintSession.reportActualWorkTime(SteadyClock::now() - std::exchange(tp, {}));
+	});
 }
 
 MainWindowData &EmuApp::mainWindowData() const

@@ -31,7 +31,11 @@ public:
 	CPUAffinityView(ViewAttachParams attach, int cpuCount);
 
 protected:
+	TextMenuItem affinityModeItems[3];
+	MultiChoiceMenuItem affinityMode;
+	TextHeadingMenuItem cpusHeading;
 	std::vector<BoolMenuItem> cpuAffinityItems;
+	std::vector<MenuItem*> menuItems{};
 };
 
 }

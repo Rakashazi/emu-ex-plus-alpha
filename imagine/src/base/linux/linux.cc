@@ -170,8 +170,6 @@ void ApplicationContext::exitWithMessage(int exitVal, const char *msg)
 	::exit(exitVal);
 }
 
-int ApplicationContext::cpuCount() const { return sysconf(_SC_NPROCESSORS_CONF); }
-
 }
 
 int main(int argc, char** argv)

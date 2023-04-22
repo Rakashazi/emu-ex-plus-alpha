@@ -169,10 +169,10 @@ static void dispatchTouches(NSSet *touches, EAGLView *view, Input::Action action
 		CGPoint pos = [touch locationInView:view];
 		pos.x *= win.pointScale;
 		pos.y *= win.pointScale;
-		auto time = IG::FloatSeconds((double)[touch timestamp]);
+		auto time = std::chrono::duration_cast<SteadyClockTime>(FloatSeconds([touch timestamp]));
 		auto transPos = win.transformInputPos({(int)pos.x, (int)pos.y});
 		win.dispatchInputEvent(Input::MotionEvent{Input::Map::POINTER, Input::Pointer::LBUTTON, 1, action,
-			transPos.x, transPos.y, (__bridge void*)touch, Input::Source::TOUCHSCREEN, time, nullptr});
+			transPos.x, transPos.y, (__bridge void*)touch, Input::Source::TOUCHSCREEN, SteadyClockTimePoint{time}, nullptr});
 	}
 }
 

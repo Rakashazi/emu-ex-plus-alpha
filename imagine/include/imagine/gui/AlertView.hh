@@ -19,7 +19,7 @@
 #include <imagine/gui/View.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/concepts.hh>
 #include <vector>
 
 namespace IG
@@ -44,7 +44,7 @@ public:
 			attach,
 			IG_forward(label),
 			[&item](const TableView &) { return std::size(item); },
-			[&item](const TableView &, size_t idx) -> MenuItem& { return deref(std::data(item)[idx]); }
+			[&item](const TableView &, size_t idx) -> MenuItem& { return indirect(std::data(item)[idx]); }
 		} {}
 
 	void place() override;

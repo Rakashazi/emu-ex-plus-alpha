@@ -18,6 +18,7 @@ base/android/inputConfig.cc \
 base/android/textInput.cc \
 base/android/input.cc \
 base/android/moga.cc \
+base/android/PerformanceHintManager.cc \
 base/android/Sensor.cc \
 base/android/system.cc \
 base/android/surfaceTexture.cc \

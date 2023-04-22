@@ -361,6 +361,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 	#endif
 	if(used(cpuAffinityMask) && cpuAffinityMask)
 		writeOptionValue(io, CFGKEY_CPU_AFFINITY_MASK, cpuAffinityMask);
+	if(used(cpuAffinityMode))
+		writeOptionValueIfNotDefault(io, CFGKEY_CPU_AFFINITY_MODE, cpuAffinityMode, CPUAffinityMode::Auto);
 
 	if(customKeyConfigs.size())
 	{
@@ -620,9 +622,9 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					#endif
 				#endif
 				case CFGKEY_CPU_AFFINITY_MASK:
-					if(used(cpuAffinityMask))
-						return readOptionValue(io, size, cpuAffinityMask);
-					return false;
+					return used(cpuAffinityMask) ? readOptionValue(io, size, cpuAffinityMask) : false;
+				case CFGKEY_CPU_AFFINITY_MODE:
+					return used(cpuAffinityMode) ? readOptionValue(io, size, cpuAffinityMode, [](auto m){return m <= lastEnum<CPUAffinityMode>;}) : false;
 				case CFGKEY_AUDIO_SOLO_MIX:
 					audioManager().setSoloMix(readOptionValue<bool>(io, size));
 					return true;

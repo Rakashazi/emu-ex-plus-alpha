@@ -103,4 +103,8 @@ concept ValidInvokeArgs =
 template <class T>
 concept Const = std::is_const_v<T>;
 
+constexpr auto &indirect(Pointer auto &obj) { return *obj; }
+
+constexpr auto &indirect(NotPointer auto &obj) { return obj; }
+
 }

@@ -27,7 +27,7 @@
 namespace IG
 {
 
-void setThreadCPUAffinityMask(std::span<const ThreadId> ids, uint32_t mask)
+void setThreadCPUAffinityMask(std::span<const ThreadId> ids, CPUMask mask)
 {
 	#ifdef __linux__
 	cpu_set_t cpuSet{};

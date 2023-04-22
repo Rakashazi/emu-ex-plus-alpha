@@ -242,11 +242,11 @@ void handleKeyEvent(ApplicationContext ctx, UIEvent *event)
 		return;
 	auto action = eventType == GSEVENT_TYPE_KEYDOWN ? Input::Action::PUSHED : Input::Action::RELEASED;
 	Key key = eventMem[GSEVENTKEY_KEYCODE] & 0xFF; // only using key codes up to 255
-	auto time = IG::FloatSeconds((double)[event timestamp]);
+	auto time = std::chrono::duration_cast<SteadyClockTime>(FloatSeconds([event timestamp]));
 	auto &app = ctx.application();
 	auto &keyDev = *keyDevPtr;
 	auto src = Input::Source::KEYBOARD;
-	app.dispatchKeyInputEvent({Map::SYSTEM, key, key, action, 0, 0, src, time, &keyDev});
+	app.dispatchKeyInputEvent({Map::SYSTEM, key, key, action, 0, 0, src, SteadyClockTimePoint{time}, &keyDev});
 }
 
 std::string KeyEvent::keyString(ApplicationContext) const

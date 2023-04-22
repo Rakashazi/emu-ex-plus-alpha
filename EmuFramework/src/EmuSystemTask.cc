@@ -56,7 +56,9 @@ void EmuSystemTask::start()
 							releaseAndSet(semPtr, msg.semPtr);
 							runCmd.video = run.video;
 							runCmd.audio = run.audio;
-							runCmd.frames += run.frames; // accumulate the total frames from all commands in queue
+							// accumulate the total frames from all commands in queue
+							constexpr int maxFrameSkip = 20;
+							runCmd.frames = std::min(int(runCmd.frames + run.frames), maxFrameSkip);
 							runCmd.skipForward = run.skipForward;
 							return true;
 						},

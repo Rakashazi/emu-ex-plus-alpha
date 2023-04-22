@@ -191,7 +191,7 @@ public:
 			elem.dPad()->showBounds(),
 			[this](BoolMenuItem &item)
 			{
-				elem.dPad()->setShowBounds(renderer(), item.flipBoolValue());
+				elem.dPad()->setShowBounds(renderer(), item.flipBoolValue(*this));
 				vCtrl.place();
 				postDraw();
 			}
@@ -499,7 +499,7 @@ public:
 			elem.buttonGroup() ? elem.buttonGroup()->showsBounds() : false,
 			[this](BoolMenuItem &item)
 			{
-				elem.buttonGroup()->setShowBounds(item.flipBoolValue());
+				elem.buttonGroup()->setShowBounds(item.flipBoolValue(*this));
 				vCtrl.place();
 				postDraw();
 			}

@@ -19,7 +19,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gui/ScrollView.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/concepts.hh>
 #include <string_view>
 
 namespace IG::Input
@@ -52,7 +52,7 @@ public:
 			IG_forward(name),
 			attach,
 			[&item](const TableView &) { return std::size(item); },
-			[&item](const TableView &, size_t idx) -> MenuItem& { return deref(std::data(item)[idx]); }
+			[&item](const TableView &, size_t idx) -> MenuItem& { return indirect(std::data(item)[idx]); }
 		} {}
 
 	TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item);

@@ -18,6 +18,7 @@
 #include <imagine/base/Application.hh>
 #include <imagine/base/VibrationManager.hh>
 #include <imagine/base/Sensor.hh>
+#include <imagine/base/PerformanceHintManager.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/FSUtils.hh>
@@ -30,6 +31,9 @@
 #include <imagine/io/IO.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/ranges.hh>
+#include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/memory/UniqueFileStream.hh>
 #include <imagine/logger/logger.h>
 #include <cstring>
 
@@ -381,7 +385,56 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 
 [[gnu::weak]] NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const { return {}; }
 
-[[gnu::weak]] int ApplicationContext::cpuCount() const { return 1; }
+[[gnu::weak]] int ApplicationContext::cpuCount() const
+{
+	#ifdef __linux__
+	return std::min(sysconf(_SC_NPROCESSORS_CONF), long(maxCPUs));
+	#else
+	return 1;
+	#endif
+}
+
+[[gnu::weak]] int ApplicationContext::maxCPUFrequencyKHz(int cpuIdx) const
+{
+	#ifdef __linux__
+	auto maxFreqFile = UniqueFileStream{fopen(fmt::format("/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq", cpuIdx).c_str(), "r")};
+	if(!maxFreqFile)
+		return 0;
+	int freq{};
+	auto items = fscanf(maxFreqFile.get(), "%d", &freq);
+	return freq;
+	#else
+	return 0;
+	#endif
+}
+
+[[gnu::weak]] CPUMask ApplicationContext::performanceCPUMask() const
+{
+	auto cpus = cpuCount();
+	if(cpus <= 2) // use all cores when count is small
+		return 0;
+	struct CPUFreqInfo{int freq, cpuIdx;};
+	StaticArrayList<CPUFreqInfo, maxCPUs> cpuFreqInfos;
+	for(int i : iotaCount(cpus))
+	{
+		auto freq = maxCPUFrequencyKHz(i);
+		if(freq > 0)
+			cpuFreqInfos.emplace_back(CPUFreqInfo{freq, i});
+	}
+	auto [min, max] = std::ranges::minmax_element(cpuFreqInfos, {}, &CPUFreqInfo::freq);
+	if(min->freq == max->freq) // not heterogeneous
+		return 0;
+	logDMsg("Detected heterogeneous CPUs with min:%d max:%d frequencies", min->freq, max->freq);
+	CPUMask mask{};
+	for(auto info : cpuFreqInfos)
+	{
+		if(info.freq != min->freq)
+			mask |= bit(info.cpuIdx);
+	}
+	return mask;
+}
+
+[[gnu::weak]] PerformanceHintManager ApplicationContext::performanceHintManager() { return {}; }
 
 [[gnu::weak]] bool ApplicationContext::packageIsInstalled(CStringView name) const { return false; }
 
@@ -421,6 +474,12 @@ std::string ApplicationContext::formatDateAndTimeAsFilename(WallClockTimePoint t
 }
 
 [[gnu::weak]] SensorListener::SensorListener(ApplicationContext, SensorType, SensorChangedDelegate) {}
+
+[[gnu::weak]] void PerformanceHintSession::updateTargetWorkTime(Nanoseconds) {}
+[[gnu::weak]] void PerformanceHintSession::reportActualWorkTime(Nanoseconds) {}
+[[gnu::weak]] PerformanceHintSession::operator bool() const { return false; }
+[[gnu::weak]] PerformanceHintSession PerformanceHintManager::session(std::span<const ThreadId>, Nanoseconds) { return {}; }
+[[gnu::weak]] PerformanceHintManager::operator bool() const { return false; }
 
 OnExit::OnExit(ResumeDelegate del, ApplicationContext ctx, int priority): del{del}, ctx{ctx}
 {

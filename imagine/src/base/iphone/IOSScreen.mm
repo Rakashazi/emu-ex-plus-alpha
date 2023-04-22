@@ -17,6 +17,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/base/Screen.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/input/Input.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include "ios.hh"
 
@@ -46,10 +47,10 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 - (void)onFrame:(CADisplayLink *)displayLink
 {
 	auto &screen = *screen_;
-	auto timestamp = IG::FloatSeconds(displayLink.timestamp);
+	auto timestamp = std::chrono::duration_cast<IG::SteadyClockTime>(IG::FloatSeconds(displayLink.timestamp));
 	//logMsg("screen:%p, frame time stamp:%f, duration:%f",
 	//	screen.uiScreen(), timestamp.count(), (double)screen.displayLink().duration);
-	if(!screen.frameUpdate(SteadyClockTimePoint{timestamp}))
+	if(!screen.frameUpdate(IG::SteadyClockTimePoint{timestamp}))
 	{
 		//logMsg("stopping screen updates");
 		displayLink.paused = YES;
