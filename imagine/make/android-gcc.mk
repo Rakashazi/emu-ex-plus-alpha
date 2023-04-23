@@ -8,8 +8,8 @@ ifeq ($(ANDROID_NDK_PATH),)
  $(error setAndroidNDKPath.mk was not included in base makefile)
 endif
 
-# Default to bundled Clang 16 toolchain
-ANDROID_CLANG_TOOLCHAIN_PATH ?= $(wildcard $(IMAGINE_PATH)/bundle/android/toolchains/llvm/clang-r475365b)
+# Default to bundled Clang 16+ toolchain
+ANDROID_CLANG_TOOLCHAIN_PATH ?= $(wildcard $(IMAGINE_PATH)/bundle/android/toolchains/llvm/clang-r487747)
 ifeq ($(ANDROID_CLANG_TOOLCHAIN_PATH),)
  ANDROID_CLANG_TOOLCHAIN_PATH := $(wildcard $(ANDROID_NDK_PATH)/toolchains/llvm/prebuilt/*)
 endif

@@ -932,7 +932,13 @@ static bool CPUReadState(GBASys &gba, gzFile gzFile)
 
   utilGzRead(gzFile, &gba.cpu.reg[0], sizeof(gba.cpu.reg));
 
+  auto backupSaveType = coreOptions.saveType;
   utilReadData(gzFile, saveGameStruct);
+  if(backupSaveType != coreOptions.saveType)
+  {
+    systemMessage(0, "Save type:%d in state was corrected to:%d", coreOptions.saveType, backupSaveType);
+    coreOptions.saveType = backupSaveType;
+  }
   gba.cpu.updateNZFlags(saveNFlag, saveZFlag);
 
   if (version < SAVE_GAME_VERSION_3)

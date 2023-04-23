@@ -51,7 +51,7 @@ jobs:
         
     - name: Run script
       run: |
-        bash imagine/bundle/android/toolchains/get-clang-r475365b.sh
+        bash imagine/bundle/android/toolchains/get-clang-r487747.sh
         cd imagine/bundle/all
         chmod +x ./makeAll-android.sh
         ./makeAll-android.sh install

@@ -225,6 +225,7 @@ then
 				<action android:name="android.intent.action.VIEW" />
 				<category android:name="android.intent.category.DEFAULT" />
 				<category android:name="android.intent.category.BROWSABLE" />
+				<category android:name="android.intent.category.OPENABLE" />
 '
 	for type in $intentMimeTypes
 	do
@@ -241,7 +242,9 @@ then
 				<action android:name="android.intent.action.VIEW" />
 				<category android:name="android.intent.category.DEFAULT" />
 				<category android:name="android.intent.category.BROWSABLE" />
+				<category android:name="android.intent.category.OPENABLE" />
 				<data android:scheme="file" />
+				<data android:scheme="content" />
 				<data android:mimeType="*/*" />
 				<data android:host="*" />
 '

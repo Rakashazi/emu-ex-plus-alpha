@@ -1,4 +1,6 @@
 metadata_version = 1.5.70
+metadata_supportedMIMETypes = application/zip
+metadata_supportedFileExtensions = rar 7z
 android_metadata_versionCodeExtra = 16
 android_metadata_writeExtStore = 1
 android_metadata_bluetooth = 1
@@ -7,6 +9,7 @@ android_metadata_installShortcut = 1
 android_metadata_xperiaPlayOptimized = 1
 android_metadata_legacyStorage = 1
 android_metadata_appExtStorage = 1
+android_metadata_adaptiveIconIsMonochrome = 1
 ios_metadata_setuidPermissionHelper = 1
 pnd_metadata_subcategory = Emulator
 pnd_metadata_website = http://www.explusalpha.com

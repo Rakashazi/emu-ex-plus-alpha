@@ -134,37 +134,61 @@ $(android_drawableXxxhdpiIconPath) :
 	ln -rs $(resPath)/icons/icon-192.png $@
 endif
 
-ifneq ($(wildcard $(resPath)/icons/adaptive-icon-bg.png),)
+ifdef android_metadata_adaptiveIconIsMonochrome
+ androidMonochromeIcon := icon_fg
+else
+ androidMonochromeIcon := icon_monochrome
+endif
+
+ifneq ($(wildcard $(resPath)/icons/adaptive-icon-bg.webp),)
 android_drawableIconV26Path := $(android_resPath)/mipmap-anydpi-v26/icon.xml
 $(android_drawableIconV26Path) :
 	@mkdir -p $(@D)
-	printf '$(xmlDecl)\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n\t<background android:drawable="@mipmap/icon_bg" />\n\t<foreground android:drawable="@mipmap/icon_fg" />\n</adaptive-icon>' > $@
+	printf '$(xmlDecl)\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n\t<background android:drawable="@mipmap/icon_bg" />\n\t<foreground android:drawable="@mipmap/icon_fg" />\n\t<monochrome android:drawable="@mipmap/$(androidMonochromeIcon)" />\n</adaptive-icon>' > $@
 
-android_drawableIconBgPath := $(android_resPath)/mipmap-xhdpi/icon_bg.png
+android_drawableIconBgPath := $(android_resPath)/mipmap-xhdpi/icon_bg.webp
 $(android_drawableIconBgPath) :
 	@mkdir -p $(@D)
-	ln -rs $(resPath)/icons/adaptive-icon-bg.png $@
+	ln -rs $(resPath)/icons/adaptive-icon-bg.webp $@
 
-android_mipmapXhdpiIconFgPath := $(android_resPath)/mipmap-xhdpi/icon_fg.png
+android_mipmapXhdpiIconFgPath := $(android_resPath)/mipmap-xhdpi/icon_fg.webp
 $(android_mipmapXhdpiIconFgPath) :
 	@mkdir -p $(@D)
-	ln -rs $(resPath)/icons/adaptive-icon-fg-216.png $@
+	ln -rs $(resPath)/icons/adaptive-icon-fg-216.webp $@
 
-android_mipmapXxhdpiIconFgPath := $(android_resPath)/mipmap-xxhdpi/icon_fg.png
+android_mipmapXxhdpiIconFgPath := $(android_resPath)/mipmap-xxhdpi/icon_fg.webp
 $(android_mipmapXxhdpiIconFgPath) :
 	@mkdir -p $(@D)
-	ln -rs $(resPath)/icons/adaptive-icon-fg-324.png $@
+	ln -rs $(resPath)/icons/adaptive-icon-fg-324.webp $@
 
-android_mipmapXxxhdpiIconFgPath := $(android_resPath)/mipmap-xxxhdpi/icon_fg.png
+android_mipmapXxxhdpiIconFgPath := $(android_resPath)/mipmap-xxxhdpi/icon_fg.webp
 $(android_mipmapXxxhdpiIconFgPath) :
 	@mkdir -p $(@D)
-	ln -rs $(resPath)/icons/adaptive-icon-fg-432.png $@
+	ln -rs $(resPath)/icons/adaptive-icon-fg-432.webp $@
+endif
+
+ifneq ($(wildcard $(resPath)/icons/monochrome-icon-432.webp),)
+android_mipmapXhdpiIconMonochromePath := $(android_resPath)/mipmap-xhdpi/icon_monochrome.webp
+$(android_mipmapXhdpiIconMonochromePath) :
+	@mkdir -p $(@D)
+	ln -rs $(resPath)/icons/monochrome-icon-216.webp $@
+
+android_mipmapXxhdpiIconMonochromePath := $(android_resPath)/mipmap-xxhdpi/icon_monochrome.webp
+$(android_mipmapXxhdpiIconMonochromePath) :
+	@mkdir -p $(@D)
+	ln -rs $(resPath)/icons/monochrome-icon-324.webp $@
+
+android_mipmapXxxhdpiIconMonochromePath := $(android_resPath)/mipmap-xxxhdpi/icon_monochrome.webp
+$(android_mipmapXxxhdpiIconMonochromePath) :
+	@mkdir -p $(@D)
+	ln -rs $(resPath)/icons/monochrome-icon-432.webp $@
 endif
 
 android_drawableIconPaths := $(android_drawableMdpiIconPath) $(android_drawableHdpiIconPath) \
  $(android_drawableXhdpiIconPath) $(android_drawableXxhdpiIconPath) $(android_drawableXxxhdpiIconPath) \
  $(android_drawableIconV26Path) $(android_drawableIconBgPath) $(android_mipmapXhdpiIconFgPath) \
- $(android_mipmapXxhdpiIconFgPath) $(android_mipmapXxxhdpiIconFgPath) $(android_drawableMdpiBigIconPath)
+ $(android_mipmapXxhdpiIconFgPath) $(android_mipmapXxxhdpiIconFgPath) $(android_drawableMdpiBigIconPath) \
+ $(android_mipmapXhdpiIconMonochromePath) $(android_mipmapXxhdpiIconMonochromePath) $(android_mipmapXxxhdpiIconMonochromePath)
 
 ifneq ($(wildcard $(resPath)/icons/ouya_icon.png),)
  android_drawableXhdpiOuyaIconPath := $(android_resPath)/drawable-xhdpi/ouya_icon.png
@@ -180,8 +204,8 @@ $(android_drawableXhdpiOuyaIconPath) :
 	printf '$(xmlDecl)\n<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/ouya_icon"/>\n' > $(@D)/ouya.xml
 endif
 
-ifneq ($(wildcard $(resPath)/icons/tv-banner.png),)
- android_drawableTVBannerPath := $(android_resPath)/drawable-v21/banner.png
+ifneq ($(wildcard $(resPath)/icons/tv-banner.webp),)
+ android_drawableTVBannerPath := $(android_resPath)/drawable-v21/banner.webp
  android_drawableIconPaths += $(android_drawableTVBannerPath)
  android_gen_metadata_args += --tv
 endif
@@ -189,7 +213,7 @@ endif
 ifdef android_drawableTVBannerPath
 $(android_drawableTVBannerPath) :
 	@mkdir -p $(@D)
-	ln -rs $(resPath)/icons/tv-banner.png $@
+	ln -rs $(resPath)/icons/tv-banner.webp $@
 endif
 
 android_imagineLib9SrcPath := $(IMAGINE_SDK_PATH)/android-java/imagine-v9.aar
