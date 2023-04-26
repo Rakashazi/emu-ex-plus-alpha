@@ -79,7 +79,7 @@ bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTaskContext taskCtx)
 	logMsg("resized to:%dx%d", desc.w(), desc.h());
 	if(taskCtx)
 	{
-		taskCtx.task().sendVideoFormatChangedReply(*this, taskCtx.semPtr);
+		taskCtx.task().sendVideoFormatChangedReply(*this);
 	}
 	else
 	{
@@ -156,7 +156,7 @@ void EmuVideo::postFrameFinished(EmuSystemTaskContext taskCtx)
 {
 	if(taskCtx)
 	{
-		taskCtx.task().sendFrameFinishedReply(*this, taskCtx.semPtr);
+		taskCtx.task().sendFrameFinishedReply(*this);
 	}
 }
 

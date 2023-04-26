@@ -29,7 +29,7 @@ EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(SteadyClockTimePoint time)
 		// first frame
 		startFrameTime = time;
 		lastFrame = 0;
-		return {1, timePerVideoFrameScaled + startFrameTime};
+		return {1};
 	}
 	assumeExpr(timePerVideoFrameScaled.count() > 0);
 	assumeExpr(startFrameTime.time_since_epoch().count() > 0);
@@ -38,7 +38,7 @@ EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(SteadyClockTimePoint time)
 	auto now = divRoundClosestPositive(timeTotal.count(), timePerVideoFrameScaled.count());
 	int elapsedFrames = now - lastFrame;
 	lastFrame = now;
-	return {elapsedFrames, now * timePerVideoFrameScaled + startFrameTime};
+	return {elapsedFrames};
 }
 
 void EmuTiming::setFrameTime(FloatSeconds time)

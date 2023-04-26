@@ -25,19 +25,19 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	snd
 	{
 		"Sound", &defaultFace(),
-		app().soundIsEnabled(),
+		app().audio().isEnabled(),
 		[this](BoolMenuItem &item)
 		{
-			app().setSoundEnabled(item.flipBoolValue(*this));
+			app().audio().setEnabled(item.flipBoolValue(*this));
 		}
 	},
 	soundDuringFastSlowMode
 	{
 		"Sound During Fast/Slow Mode", &defaultFace(),
-		app().soundDuringFastSlowModeIsEnabled(),
+		app().audio().isEnabledDuringAltSpeed(),
 		[this](BoolMenuItem &item)
 		{
-			app().setSoundDuringFastSlowModeEnabled(item.flipBoolValue(*this));
+			app().audio().setEnabledDuringAltSpeed(item.flipBoolValue(*this));
 		}
 	},
 	soundVolumeItem
@@ -51,7 +51,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 				app().pushAndShowNewCollectValueRangeInputView<int, 0, 125>(attachParams(), e, "Input 0 to 125", "",
 					[this](EmuApp &app, auto val)
 					{
-						app.audio().setVolume(val);
+						app.audio().setMaxVolume(val);
 						soundVolume.setSelected((MenuItem::Id)val, *this);
 						dismissPrevious();
 						return true;
@@ -66,12 +66,12 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", app().audio().volume()));
+				t.resetString(fmt::format("{}%", app().audio().maxVolume()));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().audio().setVolume(item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().audio().setMaxVolume(item.id()); }
 		},
-		MenuItem::Id(app().audio().volume()),
+		MenuItem::Id(app().audio().maxVolume()),
 		soundVolumeItem
 	},
 	soundBuffersItem
@@ -109,16 +109,16 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			decltype(audioRateItem) items;
 			items.emplace_back("Device Native", &defaultFace(), [this](View &view)
 			{
-				app().setSoundRate(0);
-				audioRate.setSelected((MenuItem::Id)app().soundRate());
+				app().audio().setRate(0);
+				audioRate.setSelected(MenuItem::Id(app().audio().rate()));
 				view.dismiss();
 				return false;
 			});
-			auto setRateDel = [this](TextMenuItem &item) { app().setSoundRate(item.id()); };
+			auto setRateDel = [this](TextMenuItem &item) { app().audio().setRate(item.id()); };
 			items.emplace_back("22KHz", &defaultFace(), setRateDel, 22050);
 			items.emplace_back("32KHz", &defaultFace(), setRateDel, 32000);
 			items.emplace_back("44KHz", &defaultFace(), setRateDel, 44100);
-			if(app().soundRateMax() >= 48000)
+			if(app().audio().maxRate() >= 48000)
 				items.emplace_back("48KHz", &defaultFace(), setRateDel, 48000);
 			return items;
 		}()
@@ -126,7 +126,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	audioRate
 	{
 		"Sound Rate", &defaultFace(),
-		(MenuItem::Id)app().soundRate(),
+		MenuItem::Id(app().audio().rate()),
 		audioRateItem
 	},
 	audioSoloMix
@@ -145,8 +145,8 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			ApiItemContainer items{};
 			items.emplace_back("Auto", &defaultFace(), [this](View &view)
 			{
-				app().setAudioOutputAPI(Audio::Api::DEFAULT);
-				doIfUsed(api, [&](auto &api){ api.setSelected((MenuItem::Id)app().audioManager().makeValidAPI()); });
+				app().audio().setOutputAPI(Audio::Api::DEFAULT);
+				doIfUsed(api, [&](auto &api){ api.setSelected(MenuItem::Id(app().audioManager().makeValidAPI())); });
 				view.dismiss();
 				return false;
 			});
@@ -155,8 +155,8 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			{
 				items.emplace_back(desc.name, &defaultFace(), [this](TextMenuItem &item)
 				{
-					app().setAudioOutputAPI((Audio::Api)item.id());
-				}, (MenuItem::Id)desc.api);
+					app().audio().setOutputAPI(Audio::Api(item.id()));
+				}, MenuItem::Id(desc.api));
 			}
 			return items;
 		}()
@@ -164,7 +164,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	api
 	{
 		"Audio Driver", &defaultFace(),
-		(MenuItem::Id)app().audioManager().makeValidAPI(app().audioOutputAPI()),
+		MenuItem::Id(app().audioManager().makeValidAPI(app().audio().outputAPI())),
 		apiItem
 	}
 {
@@ -179,7 +179,7 @@ void AudioOptionView::loadStockItems()
 	item.emplace_back(&snd);
 	item.emplace_back(&soundDuringFastSlowMode);
 	item.emplace_back(&soundVolume);
-	if(app().canChangeSoundRate())
+	if(!EmuSystem::forcedSoundRate)
 	{
 		item.emplace_back(&audioRate);
 	}

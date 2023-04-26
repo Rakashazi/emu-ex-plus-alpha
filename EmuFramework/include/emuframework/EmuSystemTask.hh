@@ -45,6 +45,7 @@ public:
 		EmuAudio *audio{};
 		int8_t frames{};
 		bool skipForward{};
+		bool fastForward{};
 	};
 
 	struct PauseCommand {};
@@ -64,19 +65,17 @@ public:
 	void start();
 	void pause();
 	void stop();
-	void runFrame(EmuVideo *video, EmuAudio *audio, int8_t frames, bool skipForward, bool runSync);
-	void sendVideoFormatChangedReply(EmuVideo &video, std::binary_semaphore *frameFinishedSemPtr);
-	void sendFrameFinishedReply(EmuVideo &video, std::binary_semaphore *frameFinishedSemPtr);
+	void runFrame(EmuVideo *, EmuAudio *, int8_t frames, bool skipForward, bool fastForward);
+	void sendVideoFormatChangedReply(EmuVideo &);
+	void sendFrameFinishedReply(EmuVideo &);
 	void sendScreenshotReply(bool success);
-	bool resetVideoFormatChanged() { return std::exchange(videoFormatChanged, false); }
 	auto threadId() const { return threadId_; }
 
 private:
 	EmuApp &app;
-	IG::MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
+	MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
 	std::thread taskThread;
 	ThreadId threadId_{};
-	bool videoFormatChanged{};
 };
 
 }

@@ -36,8 +36,6 @@ namespace EmuEx
 
 void EmuApp::initOptions(IG::ApplicationContext ctx)
 {
-	optionSoundRate.initDefault(audioManager().nativeRate());
-
 	#ifdef CONFIG_BASE_IOS
 	if(ctx.deviceIsIPad())
 		optionFontSize.initDefault(5000);
@@ -95,17 +93,6 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	{
 		optionNotificationIcon.initDefault(false);
 		optionNotificationIcon.isConst = true;
-	}
-
-	if(EmuSystem::forcedSoundRate)
-	{
-		optionSoundRate.initDefault(EmuSystem::forcedSoundRate);
-		optionSoundRate.isConst = true;
-	}
-
-	if(!EmuSystem::hasSound)
-	{
-		optionSound.initDefault(0);
 	}
 }
 
@@ -186,15 +173,13 @@ bool EmuApp::readRecentContent(IG::ApplicationContext ctx, MapIO &io, size_t rea
 
 void EmuApp::setFrameInterval(int val)
 {
+	logMsg("set frame interval:%d", val);
 	optionFrameInterval = val;
 };
 
 int EmuApp::frameInterval() const
 {
-	if constexpr(Config::SCREEN_FRAME_INTERVAL)
-		return optionFrameInterval;
-	else
-		return 1;
+	return optionFrameInterval;
 }
 
 IG::PixelFormat EmuApp::videoEffectPixelFormat() const

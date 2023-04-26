@@ -26,7 +26,6 @@ class EmuSystemTaskContext
 {
 public:
 	EmuSystemTask *taskPtr{};
-	std::binary_semaphore *semPtr{};
 
 	constexpr EmuSystemTask &task() { return *taskPtr; }
 	constexpr operator bool() const { return taskPtr; }

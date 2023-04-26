@@ -300,18 +300,6 @@ public:
 	static EmuApp &get(ApplicationContext);
 	MainWindowData &mainWindowData() const;
 
-	// Audio Options
-	void setAudioOutputAPI(IG::Audio::Api);
-	IG::Audio::Api audioOutputAPI() const;
-	void setSoundRate(int rate);
-	int soundRate() const { return optionSoundRate; }
-	int soundRateMax() const { return optionSoundRate.defaultVal; }
-	bool canChangeSoundRate() const { return !optionSoundRate.isConst; }
-	void setSoundEnabled(bool on);
-	bool soundIsEnabled() const;
-	void setSoundDuringFastSlowModeEnabled(bool on);
-	bool soundDuringFastSlowModeIsEnabled() const;
-
 	// Video Options
 	bool setWindowDrawableConfig(Gfx::DrawableConfig);
 	Gfx::DrawableConfig windowDrawableConfig() const { return windowDrawableConf; }
@@ -339,8 +327,6 @@ public:
 	auto &showOnSecondScreenOption() { return optionShowOnSecondScreen; }
 	auto &textureBufferModeOption() { return optionTextureBufferMode; }
 	auto &videoImageBuffersOption() { return optionVideoImageBuffers; }
-	void setUsePresentationTime(bool on);
-	bool usePresentationTime() const { return usePresentationTime_; }
 	void setContentRotation(IG::Rotation);
 	IG::Rotation contentRotation() const { return contentRotation_; }
 	void updateContentRotation();
@@ -542,8 +528,8 @@ protected:
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr);
 	RecentContentList recentContentList;
 	std::string userScreenshotDir;
-	Byte4Option optionSoundRate;
 	IG_UseMemberIf(Config::envIsAndroid || Config::envIsLinux, CPUMask, cpuAffinityMask){};
+	int savedAdvancedFrames{};
 	static constexpr int16_t defaultFastModeSpeed{800};
 	static constexpr int16_t defaultSlowModeSpeed{50};
 	int16_t fastModeSpeed{defaultFastModeSpeed};
@@ -551,8 +537,6 @@ protected:
 	Byte2Option optionFontSize;
 	Byte1Option optionPauseUnfocused;
 	Byte1Option optionConfirmOverwriteState;
-	Byte1Option optionSound;
-	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, Byte1Option, optionAudioAPI);
 	Byte1Option optionNotificationIcon;
 	Byte1Option optionTitleBar;
 	Byte1Option optionSystemActionsIsDefaultMenu;
@@ -572,7 +556,7 @@ protected:
 	Byte1Option optionImageEffectPixelFormat;
 	Byte1Option optionOverlayEffect;
 	Byte1Option optionOverlayEffectLevel;
-	IG_UseMemberIf(Config::SCREEN_FRAME_INTERVAL, Byte1Option, optionFrameInterval);
+	Byte1Option optionFrameInterval;
 	Byte1Option optionSkipLateFrames;
 	Byte1Option optionImageZoom;
 	Byte1Option optionViewportZoom;
@@ -586,7 +570,6 @@ protected:
 	bool showHiddenFilesInPicker_{};
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, bool, layoutBehindSystemUI){};
 	IG::WindowFrameTimeSource winFrameTimeSrc{IG::WindowFrameTimeSource::AUTO};
-	IG_UseMemberIf(Config::envIsAndroid, bool, usePresentationTime_){true};
 	IG_UseMemberIf(Config::envIsAndroid, bool, forceMaxScreenFrameRate){};
 public:
 	IG_UseMemberIf(Config::envIsAndroid || Config::envIsLinux, CPUAffinityMode, cpuAffinityMode){CPUAffinityMode::Auto};

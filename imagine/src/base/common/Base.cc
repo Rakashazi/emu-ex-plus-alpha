@@ -107,9 +107,9 @@ void GLManager::resetCurrentContext() const
 	display().resetCurrentContext();
 }
 
-SteadyClockTimePoint FrameParams::presentTime() const
+SteadyClockTimePoint FrameParams::presentTime(int frames) const
 {
-	return timestamp_ + std::chrono::duration_cast<SteadyClockTime>(frameTime_);
+	return std::chrono::duration_cast<SteadyClockTime>(frameTime_) * frames + timestamp_;
 }
 
 int FrameParams::elapsedFrames(SteadyClockTimePoint lastTimestamp) const

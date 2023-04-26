@@ -344,7 +344,7 @@ public:
 	static double audioMixRate(int outputRate, double inputFrameRate, FloatSeconds outputFrameTime);
 	double audioMixRate(int outputRate, FloatSeconds outputFrameTime) const { return audioMixRate(outputRate, frameRate(), outputFrameTime); }
 	void configFrameTime(int outputRate, FloatSeconds outputFrameTime);
-	EmuFrameTimeInfo advanceFramesWithTime(SteadyClockTimePoint);
+	auto advanceFramesWithTime(SteadyClockTimePoint time) { return emuTiming.advanceFramesWithTime(time); }
 	void setSpeedMultiplier(EmuAudio &, double speed);
 	SteadyClockTime benchmark(EmuVideo &video);
 	bool hasContent() const;

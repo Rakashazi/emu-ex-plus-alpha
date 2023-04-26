@@ -54,9 +54,6 @@
 namespace EmuEx
 {
 
-constexpr uint8_t OPTION_SOUND_ENABLED_FLAG = IG::bit(0);
-constexpr uint8_t OPTION_SOUND_DURING_FAST_SLOW_MODE_ENABLED_FLAG = IG::bit(1);
-constexpr uint8_t OPTION_SOUND_DEFAULT_FLAGS = OPTION_SOUND_ENABLED_FLAG | OPTION_SOUND_DURING_FAST_SLOW_MODE_ENABLED_FLAG;
 static EmuApp *gAppPtr{};
 [[gnu::weak]] bool EmuApp::hasIcon = true;
 [[gnu::weak]] bool EmuApp::needsGlobalInstance = false;
@@ -86,18 +83,6 @@ constexpr AssetDesc assetDesc[wise_enum::size<AssetID>]
 	{AssetFileID::gamepadOverlay, {{}, {1.f, 1.f}}},
 	{AssetFileID::keyboardOverlay, {{}, {1.f, 1.f}}},
 };
-
-constexpr bool isValidSoundRate(uint32_t rate)
-{
-	switch(rate)
-	{
-		case 22050:
-		case 32000:
-		case 44100:
-		case 48000: return true;
-	}
-	return false;
-}
 
 constexpr bool imageEffectPixelFormatIsValid(uint8_t val)
 {
@@ -130,7 +115,6 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	pixmapWriter{ctx},
 	vibrationManager_{ctx},
 	perfHintManager{ctx.performanceHintManager()},
-	optionSoundRate{CFGKEY_SOUND_RATE, 48000, false, isValidSoundRate},
 	optionFontSize{CFGKEY_FONT_Y_SIZE,
 		Config::MACHINE_IS_PANDORA ? 6500 :
 		(Config::envIsIOS || Config::envIsAndroid) ? 3000 :
@@ -139,8 +123,6 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionPauseUnfocused{CFGKEY_PAUSE_UNFOCUSED, 1,
 		!(Config::envIsLinux || Config::envIsAndroid)},
 	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
-	optionSound{CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS},
-	optionAudioAPI{CFGKEY_AUDIO_API, 0},
 	optionNotificationIcon{CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid},
 	optionTitleBar{CFGKEY_TITLE_BAR, 1, !CAN_HIDE_TITLE_BAR},
 	optionSystemActionsIsDefaultMenu{CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU, 1},
@@ -160,7 +142,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionImageEffectPixelFormat{CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid},
 	optionOverlayEffect{CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<std::to_underlying(lastEnum<ImageOverlayId>)>},
 	optionOverlayEffectLevel{CFGKEY_OVERLAY_EFFECT_LEVEL, 75, 0, optionIsValidWithMax<100>},
-	optionFrameInterval{CFGKEY_FRAME_INTERVAL,	1, !Config::envIsIOS, optionIsValidWithMinMax<1, 4, uint8_t>},
+	optionFrameInterval{CFGKEY_FRAME_INTERVAL, 1, false, optionIsValidWithMinMax<1, 4, uint8_t>},
 	optionSkipLateFrames{CFGKEY_SKIP_LATE_FRAMES, 1, 0},
 	optionImageZoom(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid),
 	optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<50, 100>),
@@ -479,9 +461,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 		launchGame)
 		system().setInitialLoadPath(launchGame);
 	audioManager().setMusicVolumeControlHint();
-	if(optionSoundRate > optionSoundRate.defaultVal)
-		optionSoundRate.reset();
-	emuAudio.setRate(optionSoundRate);
 	if(!renderer.supportsColorSpace())
 		windowDrawableConf.colorSpace = {};
 	applyOSNavStyle(ctx, false);
@@ -490,8 +469,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 		[this](IG::ApplicationContext ctx, bool focused)
 		{
 			audioManager().startSession();
-			if(soundIsEnabled())
-				emuAudio.open(audioOutputAPI());
+			emuAudio.open();
 			return true;
 		});
 
@@ -570,7 +548,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				});
 			emuVideo.setRendererTask(renderer.task());
 			emuVideo.setTextureBufferMode(system(), (Gfx::TextureBufferMode)optionTextureBufferMode.val);
-			emuVideo.setImageBuffers(optionVideoImageBuffers, usePresentationTime());
+			emuVideo.setImageBuffers(optionVideoImageBuffers, renderer.supportsPresentationTime());
 			emuVideoLayer.setLinearFilter(optionImgFilter); // init the texture sampler before setting format
 			applyRenderPixelFormat();
 			emuVideoLayer.setOverlay((ImageOverlayId)optionOverlayEffect.val);
@@ -597,12 +575,18 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					}
 					auto frameInfo = sys.advanceFramesWithTime(params.timestamp());
 					if(!frameInfo.advanced)
-					{
 						return true;
-					}
-					if(!shouldSkipLateFrames() && !altSpeed)
+					int interval = frameInterval();
+					auto videoPtr = &this->video();
+					if(frameInfo.advanced + savedAdvancedFrames < interval)
 					{
-						frameInfo.advanced = frameInterval();
+						// running at a lower target fps, skip current frames
+						savedAdvancedFrames += frameInfo.advanced;
+						videoPtr = {};
+					}
+					else
+					{
+						savedAdvancedFrames = 0;
 					}
 					if(viewController.emuWindow().isReady())
 					{
@@ -616,35 +600,19 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						//logDMsg("previous async frame not ready yet");
 						doIfUsed(frameTimeStats, [&](auto &stats) { stats.missedFrameCallbacks++; });
 					}
-					auto framesToEmulate = frameInfo.advanced;
 					EmuAudio *audioPtr = audio ? &audio : nullptr;
-					/*logMsg("frame present time:%.4f next display frame:%.4f",
-						std::chrono::duration_cast<IG::FloatSeconds>(frameInfo.presentTime).count(),
-						std::chrono::duration_cast<IG::FloatSeconds>(params.presentTime()).count());*/
-					auto &video = this->video();
 					auto &win = viewController.emuWindow();
-					static constexpr bool syncEmulation = false;
-					if(syncEmulation)
+					win.setDrawEventPriority(Window::drawEventPriorityLocked);
+					emuSystemTask.runFrame(videoPtr, audioPtr, frameInfo.advanced, skipForward, altSpeed);
+					if(videoPtr)
 					{
-						emuSystemTask.runFrame(&video, audioPtr, framesToEmulate, skipForward, true);
-						if(emuSystemTask.resetVideoFormatChanged())
+						renderer.setPresentationTime(win, params.presentTime(interval));
+						doIfUsed(frameStartTimePoint, [&](auto &tp)
 						{
-							video.dispatchFormatChanged();
-						}
-						win.setNeedsDraw(true);
+							if(!hasTime(tp))
+								tp = params.timestamp();
+						});
 					}
-					else // run async and don't update the window until finished
-					{
-						win.setDrawEventPriority(Window::drawEventPriorityLocked);
-						emuSystemTask.runFrame(&video, audioPtr, framesToEmulate, skipForward, false);
-					}
-					if(usePresentationTime())
-						renderer.setPresentationTime(win, params.presentTime());
-					doIfUsed(frameStartTimePoint, [&](auto &tp)
-					{
-						if(!hasTime(tp))
-							tp = params.timestamp();
-					});
 					return true;
 				};
 
@@ -1397,9 +1365,6 @@ void EmuApp::setRunSpeed(double speed)
 	assumeExpr(speed > 0.);
 	bool altSpeedActive = speed != 1.;
 	system().targetSpeed = speed;
-	emuAudio.addSoundBuffersOnUnderrun = altSpeedActive ? false : emuAudio.addSoundBuffersOnUnderrunSetting;
-	auto vol = (altSpeedActive && !soundDuringFastSlowModeIsEnabled()) ? 0 : emuAudio.runtimeVolume();
-	emuAudio.setRuntimeVolume(vol);
 }
 
 FS::PathString EmuApp::sessionConfigPath()
@@ -1696,53 +1661,6 @@ void EmuApp::addCurrentContentToRecent()
 	addRecentContent(system().contentLocation(), system().contentDisplayName());
 }
 
-void EmuApp::setSoundRate(int rate)
-{
-	assert(rate <= (int)optionSoundRate.defaultVal);
-	if(!rate)
-		rate = optionSoundRate.defaultVal;
-	optionSoundRate = rate;
-	audio().setRate(rate);
-}
-
-bool EmuApp::soundIsEnabled() const
-{
-	return optionSound & OPTION_SOUND_ENABLED_FLAG;
-}
-
-void EmuApp::setSoundEnabled(bool on)
-{
-	optionSound = IG::setOrClearBits(optionSound.val, OPTION_SOUND_ENABLED_FLAG, on);
-	if(on)
-		audio().open(audioOutputAPI());
-	else
-		audio().close();
-}
-
-bool EmuApp::soundDuringFastSlowModeIsEnabled() const
-{
-	return optionSound & OPTION_SOUND_DURING_FAST_SLOW_MODE_ENABLED_FLAG;
-}
-
-void EmuApp::setSoundDuringFastSlowModeEnabled(bool on)
-{
-	optionSound = IG::setOrClearBits(optionSound.val, OPTION_SOUND_DURING_FAST_SLOW_MODE_ENABLED_FLAG, on);
-}
-
-void EmuApp::setAudioOutputAPI(IG::Audio::Api api)
-{
-	optionAudioAPI = (uint8_t)api;
-	audio().open(api);
-}
-
-IG::Audio::Api EmuApp::audioOutputAPI() const
-{
-	if(IG::used(optionAudioAPI))
-		return (IG::Audio::Api)(uint8_t)optionAudioAPI;
-	else
-		return IG::Audio::Api::DEFAULT;
-}
-
 bool EmuApp::setFontSize(int size)
 {
 	if(!optionFontSize.isValidVal(size))
@@ -1949,6 +1867,7 @@ void EmuApp::addOnFrameDelayed()
 void EmuApp::addOnFrame()
 {
 	addOnFrameDelegate(system().onFrameUpdate);
+	savedAdvancedFrames = 0;
 }
 
 void EmuApp::removeOnFrame()
@@ -2043,12 +1962,6 @@ void EmuApp::setCPUAffinity(int cpuNumber, bool on)
 bool EmuApp::cpuAffinity(int cpuNumber) const
 {
 	return doIfUsed(cpuAffinityMask, [&](auto &cpuAffinityMask) { return cpuAffinityMask & bit(cpuNumber); }, false);
-}
-
-void EmuApp::setUsePresentationTime(bool on)
-{
-	usePresentationTime_ = on;
-	video().updateNeedsFence(on);
 }
 
 std::unique_ptr<View> EmuApp::makeView(ViewAttachParams attach, ViewID id)

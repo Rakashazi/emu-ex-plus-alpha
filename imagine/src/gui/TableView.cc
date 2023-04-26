@@ -64,21 +64,10 @@ void TableView::setAlign(_2DOrigin align)
 
 void TableView::prepareDraw()
 {
-	if(!yCellSize)
-		return;
-	ssize_t cells_ = items(*this);
-	if(!cells_)
-		return;
-	int startYCell = std::min(scrollOffset() / yCellSize, (int)cells_);
-	size_t endYCell = std::clamp(startYCell + visibleCells, 0, (int)cells_);
-	if(startYCell < 0)
+	auto &r = renderer();
+	for(auto i : iotaCount(items(*this)))
 	{
-		// skip non-existent cells
-		startYCell = 0;
-	}
-	for(size_t i = startYCell; i < endYCell; i++)
-	{
-		item(*this, i).prepareDraw(renderer());
+		item(*this, i).prepareDraw(r);
 	}
 }
 

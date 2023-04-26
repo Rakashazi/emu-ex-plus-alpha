@@ -66,11 +66,6 @@ bool EmuApp::shouldOverwriteExistingState() const
 	return !optionConfirmOverwriteState || !system().stateExists(system().stateSlot());
 }
 
-EmuFrameTimeInfo EmuSystem::advanceFramesWithTime(SteadyClockTimePoint time)
-{
-	return emuTiming.advanceFramesWithTime(time);
-}
-
 void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, double speed)
 {
 	emuTiming.setSpeedMultiplier(speed);

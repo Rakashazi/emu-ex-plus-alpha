@@ -25,7 +25,6 @@ using namespace IG;
 struct EmuFrameTimeInfo
 {
 	int advanced;
-	SteadyClockTimePoint presentTime;
 };
 
 class EmuTiming

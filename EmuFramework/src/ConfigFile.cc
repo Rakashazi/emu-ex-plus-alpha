@@ -275,8 +275,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 
 	const auto cfgFileOptions = std::tie
 	(
-		optionSound,
-		optionSoundRate,
 		optionImageZoom,
 		optionViewportZoom,
 		#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
@@ -313,9 +311,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionKeepBluetoothActive,
 		optionShowBluetoothScan,
 		#endif
-		#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-		optionAudioAPI,
-		#endif
 		optionShowBundledGames
 	);
 
@@ -349,8 +344,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 	vController.writeConfig(io);
 	autosaveManager_.writeConfig(io);
 	emuAudio.writeConfig(io);
-	if(IG::used(usePresentationTime_) && !usePresentationTime_)
-		writeOptionValue(io, CFGKEY_RENDERER_PRESENTATION_TIME, false);
 	if(IG::used(forceMaxScreenFrameRate) && forceMaxScreenFrameRate)
 		writeOptionValue(io, CFGKEY_FORCE_MAX_SCREEN_FRAME_RATE, true);
 	if(videoBrightnessRGB != Gfx::Vec3{1.f, 1.f, 1.f})
@@ -560,8 +553,6 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					logMsg("skipping key %u", (unsigned)key);
 					return false;
 				}
-				case CFGKEY_SOUND: return optionSound.readFromIO(io, size);
-				case CFGKEY_SOUND_RATE: return optionSoundRate.readFromIO(io, size);
 				case CFGKEY_FRAME_INTERVAL:
 					return doIfUsed(optionFrameInterval, [&](auto &opt){return opt.readFromIO(io, size);});
 				case CFGKEY_SKIP_LATE_FRAMES: return optionSkipLateFrames.readFromIO(io, size);
@@ -628,9 +619,6 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_AUDIO_SOLO_MIX:
 					audioManager().setSoloMix(readOptionValue<bool>(io, size));
 					return true;
-				#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-				case CFGKEY_AUDIO_API: return optionAudioAPI.readFromIO(io, size);
-				#endif
 				case CFGKEY_SAVE_PATH:
 					return readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){system().setUserSaveDirectory(path);});
 				case CFGKEY_SCREENSHOTS_PATH: return readStringOptionValue(io, size, userScreenshotDir);
@@ -638,7 +626,6 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_WINDOW_PIXEL_FORMAT: return readOptionValue(io, size, pendingWindowDrawableConf.pixelFormat, windowPixelFormatIsValid);
 				case CFGKEY_VIDEO_COLOR_SPACE: return readOptionValue(io, size, pendingWindowDrawableConf.colorSpace, colorSpaceIsValid);
 				case CFGKEY_SHOW_HIDDEN_FILES: return readOptionValue<bool>(io, size, [&](auto on){setShowHiddenFilesInPicker(on);});
-				case CFGKEY_RENDERER_PRESENTATION_TIME: return readOptionValue<bool>(io, size, [&](auto on){setUsePresentationTime(on);});
 				case CFGKEY_FORCE_MAX_SCREEN_FRAME_RATE: return readOptionValue<bool>(io, size, [&](auto on){setForceMaxScreenFrameRate(on);});
 				case CFGKEY_CONTENT_ROTATION: return readOptionValue(io, size, contentRotation_, [](auto r){return r <= lastEnum<Rotation>;});
 				case CFGKEY_VIDEO_LANDSCAPE_ASPECT_RATIO: return readOptionValue(io, size, videoLayer().landscapeAspectRatio, isValidAspectRatio);

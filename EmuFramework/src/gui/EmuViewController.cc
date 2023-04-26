@@ -214,8 +214,6 @@ void EmuViewController::moveEmuViewToWindow(IG::Window &win)
 
 void EmuViewController::configureWindowForEmulation(IG::Window &win, FrameTimeConfig frameTimeConfig, bool running)
 {
-	if constexpr(Config::SCREEN_FRAME_INTERVAL)
-		win.screen()->setFrameInterval(app().frameInterval());
 	emuView.renderer().setWindowValidOrientations(win, running ? app().emuOrientation() : app().menuOrientation());
 	if(running)
 		app().setIntendedFrameRate(win, frameTimeConfig);

@@ -241,11 +241,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Target Frame Rate", &defaultFace(),
 		MultiChoiceMenuItem::Delegates
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item)
-			{
-				app().setFrameInterval(item.id());
-				logMsg("set frame interval:%d", item.id());
-			}
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setFrameInterval(item.id()); }
 		},
 		(MenuItem::Id)app().frameInterval(),
 		frameIntervalItem
@@ -735,7 +731,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
 				app().videoImageBuffersOption() = item.id();
-				emuVideo().setImageBuffers(item.id(), app().usePresentationTime());
+				emuVideo().setImageBuffers(item.id(), renderer().supportsPresentationTime());
 			}
 		},
 		(MenuItem::Id)app().videoImageBuffersOption().val,
@@ -764,15 +760,6 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		},
 		(MenuItem::Id)app().renderPixelFormat().id(),
 		renderPixelFormatItem
-	},
-	presentationTime
-	{
-		"Reduce Compositor Lag", &defaultFace(),
-		app().usePresentationTime(),
-		[this](BoolMenuItem &item)
-		{
-			app().setUsePresentationTime(item.flipBoolValue(*this));
-		}
 	},
 	forceMaxScreenFrameRate
 	{
@@ -916,8 +903,6 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&imgEffectPixelFormat);
 	if(!app().videoImageBuffersOption().isConst)
 		item.emplace_back(&imageBuffers);
-	if(IG::used(presentationTime) && renderer().supportsPresentationTime())
-		item.emplace_back(&presentationTime);
 	if(IG::used(forceMaxScreenFrameRate) && Config::envIsAndroid && appContext().androidSDK() >= 30)
 		item.emplace_back(&forceMaxScreenFrameRate);
 	if(IG::used(secondDisplay))

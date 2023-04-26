@@ -45,8 +45,8 @@ protected:
 
 	StaticArrayList<TextMenuItem, 5> textureBufferModeItem;
 	MultiChoiceMenuItem textureBufferMode;
-	IG_UseMemberIf(Config::SCREEN_FRAME_INTERVAL, TextMenuItem, frameIntervalItem[4]);
-	IG_UseMemberIf(Config::SCREEN_FRAME_INTERVAL, MultiChoiceMenuItem, frameInterval);
+	TextMenuItem frameIntervalItem[4];
+	MultiChoiceMenuItem frameInterval;
 	BoolMenuItem dropLateFrames;
 	TextMenuItem frameRateItems[4];
 	VideoSystem activeVideoSystem{};
@@ -79,7 +79,6 @@ protected:
 	MultiChoiceMenuItem imageBuffers;
 	TextMenuItem renderPixelFormatItem[3];
 	MultiChoiceMenuItem renderPixelFormat;
-	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, presentationTime);
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, forceMaxScreenFrameRate);
 	TextMenuItem brightnessItem[2];
 	TextMenuItem redItem[2];
@@ -94,7 +93,7 @@ protected:
 	TextHeadingMenuItem colorLevelsHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 35> item;
+	StaticArrayList<MenuItem*, 34> item;
 
 	bool onFrameTimeChange(VideoSystem vidSys, FloatSeconds time);
 	TextMenuItem::SelectDelegate setVideoBrightnessCustomDel(ImageChannel);
