@@ -18,7 +18,7 @@
 #include "../EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/util/format.hh>
+#include <format>
 
 namespace EmuEx
 {
@@ -80,7 +80,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{:g}", app().fontSize() / 1000.));
+				t.resetString(std::format("{:g}", app().fontSize() / 1000.));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setFontSize(item.id()); }

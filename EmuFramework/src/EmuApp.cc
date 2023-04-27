@@ -142,8 +142,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionImageEffectPixelFormat{CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid},
 	optionOverlayEffect{CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<std::to_underlying(lastEnum<ImageOverlayId>)>},
 	optionOverlayEffectLevel{CFGKEY_OVERLAY_EFFECT_LEVEL, 75, 0, optionIsValidWithMax<100>},
-	optionFrameInterval{CFGKEY_FRAME_INTERVAL, 1, false, optionIsValidWithMinMax<1, 4, uint8_t>},
-	optionSkipLateFrames{CFGKEY_SKIP_LATE_FRAMES, 1, 0},
+	optionFrameInterval{CFGKEY_FRAME_INTERVAL, 1, false, optionIsValidWithMinMax<0, 4, uint8_t>},
 	optionImageZoom(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid),
 	optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<50, 100>),
 	optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 0},
@@ -327,7 +326,8 @@ static const char *parseCommandArgs(IG::CommandArgs arg)
 bool EmuApp::setWindowDrawableConfig(Gfx::DrawableConfig conf)
 {
 	windowDrawableConf = conf;
-	for(auto &w : appContext().windows())
+	auto ctx = appContext();
+	for(auto &w : ctx.windows())
 	{
 		if(!renderer.setDrawableConfig(*w, conf))
 			return false;
@@ -409,7 +409,7 @@ void EmuApp::startAudio()
 	audio().start(system().frameTime());
 }
 
-void EmuApp::updateLegacySavePath(IG::ApplicationContext ctx, IG::CStringView path)
+void EmuApp::updateLegacySavePath(IG::ApplicationContext ctx, CStringView path)
 {
 	auto oldSaveSubDirs = subDirectoryStrings(ctx, path);
 	if(oldSaveSubDirs.empty())
@@ -481,7 +481,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				suspendEmulation(*this);
 				if(optionNotificationIcon)
 				{
-					auto title = fmt::format("{} was suspended", ctx.applicationName);
+					auto title = std::format("{} was suspended", ctx.applicationName);
 					ctx.addNotification(title, title, system().contentDisplayName());
 				}
 			}
@@ -706,11 +706,11 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						updateInputDevices(ctx);
 						if(optionNotifyInputDeviceChange && (e.change == Input::DeviceChange::added || e.change == Input::DeviceChange::removed))
 						{
-							postMessage(2, 0, fmt::format("{} {}", inputDevData(e.device).displayName, e.change == Input::DeviceChange::added ? "connected" : "disconnected"));
+							postMessage(2, 0, std::format("{} {}", inputDevData(e.device).displayName, e.change == Input::DeviceChange::added ? "connected" : "disconnected"));
 						}
 						else if(e.change == Input::DeviceChange::connectError)
 						{
-							postMessage(2, 1, fmt::format("{} had a connection error", e.device.name()));
+							postMessage(2, 1, std::format("{} had a connection error", e.device.name()));
 						}
 						viewController().onInputDevicesChanged();
 					},
@@ -835,7 +835,7 @@ void EmuApp::launchSystem(const Input::Event &e)
 	}
 }
 
-void EmuApp::onSelectFileFromPicker(IO io, IG::CStringView path, std::string_view displayName,
+void EmuApp::onSelectFileFromPicker(IO io, CStringView path, std::string_view displayName,
 	const Input::Event &e, EmuSystemCreateParams params, ViewAttachParams attachParams)
 {
 	createSystemWithMedia(std::move(io), path, displayName, e, params, attachParams,
@@ -846,12 +846,12 @@ void EmuApp::onSelectFileFromPicker(IO io, IG::CStringView path, std::string_vie
 		});
 }
 
-void EmuApp::handleOpenFileCommand(IG::CStringView path)
+void EmuApp::handleOpenFileCommand(CStringView path)
 {
 	auto name = appContext().fileUriDisplayName(path);
 	if(name.empty())
 	{
-		postErrorMessage(fmt::format("Can't access path name for:\n{}", path));
+		postErrorMessage(std::format("Can't access path name for:\n{}", path));
 		return;
 	}
 	if(!IG::isUri(path) && FS::status(path).type() == FS::file_type::directory)
@@ -879,7 +879,7 @@ void EmuApp::runBenchmarkOneShot(EmuVideo &emuVideo)
 	autosaveManager_.resetSlot(noAutosaveName);
 	closeSystem();
 	logMsg("done in: %f", time.count());
-	postMessage(2, 0, fmt::format("{:.2f} fps", double(180.)/time.count()));
+	postMessage(2, 0, std::format("{:.2f} fps", 180. / time.count()));
 }
 
 void EmuApp::showEmulation()
@@ -1019,12 +1019,12 @@ void EmuApp::unpostMessage()
 
 void EmuApp::printScreenshotResult(bool success)
 {
-	postMessage(3, !success, fmt::format("{}{}",
+	postMessage(3, !success, std::format("{}{}",
 		success ? "Wrote screenshot at " : "Error writing screenshot at ",
 		appContext().formatDateAndTime(WallClock::now())));
 }
 
-void EmuApp::createSystemWithMedia(IO io, IG::CStringView path, std::string_view displayName,
+void EmuApp::createSystemWithMedia(IO io, CStringView path, std::string_view displayName,
 	const Input::Event &e, EmuSystemCreateParams params, ViewAttachParams attachParams,
 	CreateSystemCompleteDelegate onComplete)
 {
@@ -1095,7 +1095,7 @@ FS::PathString EmuApp::contentSaveFilePath(std::string_view ext) const
 		return system().contentSaveFilePath(ext);
 }
 
-bool EmuApp::saveState(IG::CStringView path)
+bool EmuApp::saveState(CStringView path)
 {
 	if(!system().hasContent())
 	{
@@ -1111,7 +1111,7 @@ bool EmuApp::saveState(IG::CStringView path)
 	}
 	catch(std::exception &err)
 	{
-		postErrorMessage(4, fmt::format("Can't save state:\n{}", err.what()));
+		postErrorMessage(4, std::format("Can't save state:\n{}", err.what()));
 		return false;
 	}
 }
@@ -1121,7 +1121,7 @@ bool EmuApp::saveStateWithSlot(int slot)
 	return saveState(system().statePath(slot));
 }
 
-bool EmuApp::loadState(IG::CStringView path)
+bool EmuApp::loadState(CStringView path)
 {
 	if(!system().hasContent()) [[unlikely]]
 	{
@@ -1141,7 +1141,7 @@ bool EmuApp::loadState(IG::CStringView path)
 		if(system().hasContent() && !hasWriteAccessToDir(system().contentSaveDirectory()))
 			postErrorMessage(8, "Save folder inaccessible, please set it in Options➔File Paths➔Saves");
 		else
-			postErrorMessage(4, fmt::format("Can't load state:\n{}", err.what()));
+			postErrorMessage(4, std::format("Can't load state:\n{}", err.what()));
 		return false;
 	}
 }
@@ -1250,7 +1250,7 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 			if(!isPushed)
 				break;
 			system().decStateSlot();
-			postMessage(1, false, fmt::format("State Slot: {}", system().stateSlotName()));
+			postMessage(1, false, std::format("State Slot: {}", system().stateSlotName()));
 			return true;
 		}
 		case guiKeyIdxIncStateSlot:
@@ -1258,7 +1258,7 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 			if(!isPushed)
 				break;
 			system().incStateSlot();
-			postMessage(1, false, fmt::format("State Slot: {}", system().stateSlotName()));
+			postMessage(1, false, std::format("State Slot: {}", system().stateSlotName()));
 			return true;
 		}
 		case guiKeyIdxGameScreenshot:
@@ -1546,7 +1546,7 @@ bool EmuApp::skipForwardFrames(EmuSystemTaskContext taskCtx, int frames)
 	return true;
 }
 
-bool EmuApp::writeScreenshot(IG::PixmapView pix, IG::CStringView path)
+bool EmuApp::writeScreenshot(IG::PixmapView pix, CStringView path)
 {
 	return pixmapWriter.writeToFile(pix, path);
 }

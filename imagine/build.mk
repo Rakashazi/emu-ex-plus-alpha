@@ -33,9 +33,6 @@ include $(imagineSrcDir)/vmem/system.mk
 include $(imagineSrcDir)/logger/system.mk
 include $(buildSysPath)/package/stdc++.mk
 
-# fmtlib 9.1.0
-SRC += fmt/format.cc
-
 libName := imagine$(libNameExt)
 ifndef RELEASE
  libName := $(libName)-debug

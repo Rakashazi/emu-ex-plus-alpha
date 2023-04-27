@@ -22,9 +22,9 @@
 
 #include "shared.h"
 #include <imagine/logger/logger.h>
-#include <imagine/util/format.hh>
 #include <system_error>
 #include <memory>
+#include <format>
 
 static unsigned oldStateSizeAfterZ80Regs()
 {
@@ -115,7 +115,7 @@ void state_load(const unsigned char *buffer)
 		if(result != Z_OK)
 		{
 			//logErr("error %d in uncompress loading state", result);
-			throw std::runtime_error(fmt::format("Error {} during uncompress", result));
+			throw std::runtime_error(std::format("Error {} during uncompress", result));
 		}
   }
 
@@ -290,7 +290,7 @@ void state_load(const unsigned char *buffer)
 	if(bufferptr != outbytes)
 	{
 		system_reset();
-		throw std::runtime_error(fmt::format("Expected {} size state but got {}", bufferptr, (int)outbytes));
+		throw std::runtime_error(std::format("Expected {} size state but got {}", bufferptr, (int)outbytes));
 	}
 }
 

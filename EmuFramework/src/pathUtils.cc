@@ -83,7 +83,7 @@ void updateLegacySavePathOnStoragePath(ApplicationContext ctx, EmuSystem &sys)
 	}
 }
 
-bool hasWriteAccessToDir(IG::CStringView path)
+bool hasWriteAccessToDir(CStringView path)
 {
 	// on Android test file creation since
 	// access() can still claim emulated storage is writable

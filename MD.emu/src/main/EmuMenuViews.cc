@@ -329,7 +329,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 	std::string biosMenuEntryStr(uint8_t region, IG::CStringView path) const
 	{
 		auto regionStr = biosHeadingStr[regionCodeToIdx(region)];
-		return fmt::format("{}: {}", regionStr, appContext().fileUriDisplayName(path));
+		return std::format("{}: {}", regionStr, appContext().fileUriDisplayName(path));
 	}
 
 	TextMenuItem::SelectDelegate setCDBiosPathDel(uint8_t region)

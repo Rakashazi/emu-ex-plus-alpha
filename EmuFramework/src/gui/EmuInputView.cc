@@ -23,8 +23,8 @@
 #include "../privateInput.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/util/format.hh>
 #include <imagine/util/variant.hh>
+#include <format>
 
 namespace EmuEx
 {
@@ -99,7 +99,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 			static constexpr bool printKeyEvent = false;
 			if(printKeyEvent && !isRepeated)
 			{
-				app().postMessage(fmt::format("{} key: {} from device: {}",
+				app().postMessage(std::format("{} key: {} from device: {}",
 					isPushed ? "pushed" : "released", keyEv.device()->keyName(keyEv.key()),
 					keyEv.device()->name()));
 			}

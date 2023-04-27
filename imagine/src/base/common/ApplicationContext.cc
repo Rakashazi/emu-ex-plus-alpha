@@ -397,7 +397,7 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 [[gnu::weak]] int ApplicationContext::maxCPUFrequencyKHz(int cpuIdx) const
 {
 	#ifdef __linux__
-	auto maxFreqFile = UniqueFileStream{fopen(fmt::format("/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq", cpuIdx).c_str(), "r")};
+	auto maxFreqFile = UniqueFileStream{fopen(std::format("/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq", cpuIdx).c_str(), "r")};
 	if(!maxFreqFile)
 		return 0;
 	int freq{};
@@ -573,7 +573,7 @@ IOBuffer bufferFromUri(ApplicationContext ctx, CStringView uri, OpenFlagsMask op
 		if(to_underlying(openFlags & OpenFlagsMask::Test))
 			return {};
 		else
-			throw std::runtime_error(fmt::format("{} exceeds {} byte limit", uri.data(), sizeLimit));
+			throw std::runtime_error(std::format("{} exceeds {} byte limit", uri, sizeLimit));
 	}
 	return file.buffer(IOBufferMode::Release);
 }

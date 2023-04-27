@@ -72,7 +72,7 @@ void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, double speed)
 	emuAudio.setSpeedMultiplier(speed);
 }
 
-void EmuSystem::setupContentUriPaths(IG::CStringView uri, std::string_view displayName)
+void EmuSystem::setupContentUriPaths(CStringView uri, std::string_view displayName)
 {
 	contentFileName_ = displayName;
 	contentName_ = IG::withoutDotExtension(contentFileName_);
@@ -81,7 +81,7 @@ void EmuSystem::setupContentUriPaths(IG::CStringView uri, std::string_view displ
 	updateContentSaveDirectory();
 }
 
-void EmuSystem::setupContentFilePaths(IG::CStringView filePath, std::string_view displayName)
+void EmuSystem::setupContentFilePaths(CStringView filePath, std::string_view displayName)
 {
 	contentFileName_ = displayName;
 	contentName_ = IG::withoutDotExtension(contentFileName_);
@@ -167,7 +167,7 @@ FS::PathString EmuSystem::contentSaveFilePath(std::string_view ext) const
 	return FS::uriString(contentSaveDirectory(), FS::FileString{contentName()}.append(ext));
 }
 
-void EmuSystem::setUserSaveDirectory(IG::CStringView path)
+void EmuSystem::setUserSaveDirectory(CStringView path)
 {
 	logMsg("set user save path:%s", path.data());
 	userSaveDirectory_ = path;
@@ -324,7 +324,7 @@ int EmuSystem::updateAudioFramesPerVideoFrame()
 	return FS::PathString{path};
 }
 
-void EmuSystem::closeAndSetupNew(IG::CStringView path, std::string_view displayName)
+void EmuSystem::closeAndSetupNew(CStringView path, std::string_view displayName)
 {
 	auto &app = EmuApp::get(appContext());
 	closeRuntimeSystem(app);
@@ -336,7 +336,7 @@ void EmuSystem::closeAndSetupNew(IG::CStringView path, std::string_view displayN
 	app.loadSessionOptions();
 }
 
-void EmuSystem::createWithMedia(IO io, IG::CStringView path, std::string_view displayName,
+void EmuSystem::createWithMedia(IO io, CStringView path, std::string_view displayName,
 	EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	if(io)
@@ -345,7 +345,7 @@ void EmuSystem::createWithMedia(IO io, IG::CStringView path, std::string_view di
 		loadContentFromPath(path, displayName, params, onLoadProgress);
 }
 
-void EmuSystem::loadContentFromPath(IG::CStringView pathStr, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadContentFromPath(CStringView pathStr, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	auto path = willLoadContentFromPath(pathStr, displayName);
 	if(!handlesGenericIO)
@@ -359,7 +359,7 @@ void EmuSystem::loadContentFromPath(IG::CStringView pathStr, std::string_view di
 	loadContentFromFile(appContext().openFileUri(path, IOAccessHint::Sequential), path, displayName, params, onLoadProgress);
 }
 
-void EmuSystem::loadContentFromFile(IO file, IG::CStringView path, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadContentFromFile(IO file, CStringView path, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	if(EmuApp::hasArchiveExtension(displayName))
 	{
@@ -440,12 +440,12 @@ void EmuSystem::setContentDisplayName(std::string_view name)
 	contentDisplayName_ = name;
 }
 
-FS::FileString EmuSystem::contentDisplayNameForPathDefaultImpl(IG::CStringView path) const
+FS::FileString EmuSystem::contentDisplayNameForPathDefaultImpl(CStringView path) const
 {
 	return FS::FileString{IG::withoutDotExtension(appContext().fileUriDisplayName(path))};
 }
 
-void EmuSystem::setInitialLoadPath(IG::CStringView path)
+void EmuSystem::setInitialLoadPath(CStringView path)
 {
 	assert(contentName_.empty());
 	contentLocation_ = path;

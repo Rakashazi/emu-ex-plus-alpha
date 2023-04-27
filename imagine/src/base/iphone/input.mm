@@ -171,7 +171,7 @@ static void setupTextView(ApplicationContext ctx, UITextField *vkbdField, NSStri
 	logMsg("init vkeyboard");
 }
 
-UIKitTextField::UIKitTextField(ApplicationContext ctx, TextFieldDelegate del, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels):
+UIKitTextField::UIKitTextField(ApplicationContext ctx, TextFieldDelegate del, CStringView initialText, CStringView promptText, int fontSizePixels):
 	ctx{ctx}
 {
 	auto uiTextField = [[UITextField alloc] initWithFrame: toCGRect(*ctx.deviceWindow(), textRect)];

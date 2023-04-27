@@ -33,7 +33,7 @@ static void setupBaseActivityJni(JNIEnv* env, jobject baseActivity)
 	jNewTextEntry = {env, baseActivity, "newTextEntry", "(Ljava/lang/String;Ljava/lang/String;IIIIIJ)Lcom/imagine/TextEntry;"};
 }
 
-AndroidTextField::AndroidTextField(ApplicationContext ctx, TextFieldDelegate del, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels):
+AndroidTextField::AndroidTextField(ApplicationContext ctx, TextFieldDelegate del, CStringView initialText, CStringView promptText, int fontSizePixels):
 	ctx{ctx},
 	textDelegate{del}
 {

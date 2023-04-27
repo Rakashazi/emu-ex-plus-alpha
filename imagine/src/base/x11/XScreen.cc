@@ -19,9 +19,9 @@
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/format.hh>
 #include <X11/extensions/Xrandr.h>
 #include <cmath>
+#include <format>
 
 namespace IG
 {
@@ -139,7 +139,7 @@ void Screen::setFrameRate(FrameRate rate)
 			logWarn("tried to set unsupported frame rate: %f", rate);
 			return;
 		}
-		auto cmd = fmt::format("sudo /usr/pandora/scripts/op_lcdrate.sh {}", (unsigned int)rate);
+		auto cmd = std::format("sudo /usr/pandora/scripts/op_lcdrate.sh {}", (unsigned int)rate);
 		int err = system(cmd.data());
 		if(err)
 		{

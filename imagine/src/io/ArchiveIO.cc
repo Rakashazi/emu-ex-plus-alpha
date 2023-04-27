@@ -18,12 +18,12 @@
 #include <imagine/io/IO.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FSDefs.hh>
-#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
 #include "IOUtils.hh"
 #include <archive.h>
 #include <archive_entry.h>
+#include <format>
 
 namespace IG
 {
@@ -159,7 +159,7 @@ void ArchiveEntry::init(IO io)
 		auto errString = archive_error_string(newArch.get());
 		if(Config::DEBUG_BUILD)
 			logErr("error opening archive:%s", errString);
-		throw std::runtime_error{fmt::format("Error opening archive: {}", errString)};
+		throw std::runtime_error{std::format("Error opening archive: {}", errString)};
 	}
 	logMsg("opened archive:%p", newArch.get());
 	arch = std::move(newArch);

@@ -15,9 +15,9 @@
 
 #include "CPUAffinityView.hh"
 #include <emuframework/EmuApp.hh>
-#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <cstdio>
+#include <format>
 
 namespace EmuEx
 {
@@ -55,8 +55,8 @@ CPUAffinityView::CPUAffinityView(ViewAttachParams attach, int cpuCount):
 			{
 				auto freq = appContext().maxCPUFrequencyKHz(i);
 				if(!freq)
-					return fmt::format("{} (Offline)", i);
-				return fmt::format("{} ({}MHz)", i, freq / 1000);
+					return std::format("{} (Offline)", i);
+				return std::format("{} ({}MHz)", i, freq / 1000);
 			}(),
 			&defaultFace(), app().cpuAffinity(i),
 			[this, i](BoolMenuItem &item) { app().setCPUAffinity(i, item.flipBoolValue(*this)); });

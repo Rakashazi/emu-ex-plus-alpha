@@ -18,6 +18,7 @@
 #include <imagine/util/bitset.hh>
 #include <imagine/util/enum.hh>
 #include <unistd.h> // for SEEK_*
+#include <cstdint>
 
 namespace IG
 {

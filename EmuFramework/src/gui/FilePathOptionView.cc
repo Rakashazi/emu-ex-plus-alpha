@@ -45,12 +45,12 @@ static FS::FileString savePathStrToDisplayName(IG::ApplicationContext ctx, std::
 
 static auto savesMenuName(IG::ApplicationContext ctx, std::string_view savePath)
 {
-	return fmt::format("Saves: {}", savePathStrToDisplayName(ctx, savePath));
+	return std::format("Saves: {}", savePathStrToDisplayName(ctx, savePath));
 }
 
 static auto screenshotsMenuName(IG::ApplicationContext ctx, std::string_view userPath)
 {
-	return fmt::format("Screenshots: {}", userPathToDisplayName(ctx, userPath));
+	return std::format("Screenshots: {}", userPathToDisplayName(ctx, userPath));
 }
 
 FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu):
@@ -101,7 +101,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 				[this](View &view, const Input::Event &e)
 				{
 					pushAndShowModal(makeView<YesNoAlertView>(
-						fmt::format("Please select the \"Game Data/{}\" folder from an old version of the app to use its existing saves "
+						std::format("Please select the \"Game Data/{}\" folder from an old version of the app to use its existing saves "
 							"and convert it to a regular save path (this is only needed once)", system().shortSystemName()),
 						YesNoAlertView::Delegates
 						{
@@ -120,7 +120,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 										}
 										if(ctx.fileUriDisplayName(path) != system().shortSystemName())
 										{
-											app().postErrorMessage(fmt::format("Please select the {} folder", system().shortSystemName()));
+											app().postErrorMessage(std::format("Please select the {} folder", system().shortSystemName()));
 											return;
 										}
 										EmuApp::updateLegacySavePath(ctx, path);
@@ -168,7 +168,7 @@ void FilePathOptionView::onSavePathChange(std::string_view path)
 {
 	if(path == optionSavePathDefaultToken)
 	{
-		app().postMessage(4, false, fmt::format("App Folder:\n{}", system().fallbackSaveDirectory()));
+		app().postMessage(4, false, std::format("App Folder:\n{}", system().fallbackSaveDirectory()));
 	}
 	savePath.compile(savesMenuName(appContext(), path), renderer());
 }

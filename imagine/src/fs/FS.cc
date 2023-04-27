@@ -25,7 +25,7 @@
 namespace IG::FS
 {
 
-PathString makeAppPathFromLaunchCommand(IG::CStringView launchCmd)
+PathString makeAppPathFromLaunchCommand(CStringView launchCmd)
 {
 	logMsg("app path from launch command:%s", launchCmd.data());
 	PathStringArray realPath;
@@ -37,17 +37,17 @@ PathString makeAppPathFromLaunchCommand(IG::CStringView launchCmd)
 	return realPath.data();
 }
 
-FileString basename(IG::CStringView path)
+FileString basename(CStringView path)
 {
 	return basenameImpl(path);
 }
 
-PathString dirname(IG::CStringView path)
+PathString dirname(CStringView path)
 {
 	return dirnameImpl(path);
 }
 
-FileString displayName(IG::CStringView path)
+FileString displayName(CStringView path)
 {
 	if(path.empty() || !FS::exists(path))
 		return {};
@@ -55,7 +55,7 @@ FileString displayName(IG::CStringView path)
 		return basename(path);
 }
 
-PathString dirnameUri(IG::CStringView pathOrUri)
+PathString dirnameUri(CStringView pathOrUri)
 {
 	if(pathOrUri.empty())
 		return {};
@@ -98,14 +98,14 @@ std::pair<std::string_view, size_t> uriPathSegment(std::string_view uri, std::st
 	return {pathStart.substr(0, pathStart.find('/')), pathPos};
 }
 
-size_t directoryItems(IG::CStringView path)
+size_t directoryItems(CStringView path)
 {
 	size_t items = 0;
 	forEachInDirectory(path, [&](auto &entry){ items++; return true; });
 	return items;
 }
 
-bool forEachInDirectory(IG::CStringView path, DirectoryEntryDelegate del, DirOpenFlagsMask flags)
+bool forEachInDirectory(CStringView path, DirectoryEntryDelegate del, DirOpenFlagsMask flags)
 {
 	bool entriesRead{};
 	for(FS::DirectoryStream dirStream{path, flags}; dirStream.hasEntry(); dirStream.readNextDir())

@@ -20,7 +20,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/util/format.hh>
+#include <format>
 
 namespace EmuEx
 {
@@ -114,7 +114,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{:g}x", app().altSpeedAsDouble(AltSpeedMode::fast)));
+				t.resetString(std::format("{:g}x", app().altSpeedAsDouble(AltSpeedMode::fast)));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setAltSpeed(AltSpeedMode::fast, item.id()); }
@@ -155,7 +155,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{:g}x", app().altSpeedAsDouble(AltSpeedMode::slow)));
+				t.resetString(std::format("{:g}x", app().altSpeedAsDouble(AltSpeedMode::slow)));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setAltSpeed(AltSpeedMode::slow, item.id()); }

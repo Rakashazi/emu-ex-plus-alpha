@@ -489,7 +489,7 @@ void Gb_Noise::run( blip_time_t time, blip_time_t end_time )
 		if ( dac_enabled() )
 		{
 			if ( enabled )
-				vol = this->volume;
+				vol = this->volume * 2;
 
 			amp = -dac_bias;
 			if ( mode == Gb_Apu::mode_agb )

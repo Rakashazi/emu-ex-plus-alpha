@@ -19,7 +19,7 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <imagine/fmt/core.h>
+#include <format>
 
 namespace EmuEx
 {
@@ -104,17 +104,17 @@ inline FS::FileString userPathToDisplayName(IG::ApplicationContext ctx, std::str
 
 inline auto cheatsMenuName(IG::ApplicationContext ctx, std::string_view userPath)
 {
-	return fmt::format("Cheats: {}", userPathToDisplayName(ctx, userPath));
+	return std::format("Cheats: {}", std::string_view{userPathToDisplayName(ctx, userPath)});
 }
 
 inline auto patchesMenuName(IG::ApplicationContext ctx, std::string_view userPath)
 {
-	return fmt::format("Patches: {}", userPathToDisplayName(ctx, userPath));
+	return std::format("Patches: {}", std::string_view{userPathToDisplayName(ctx, userPath)});
 }
 
 inline auto palettesMenuName(IG::ApplicationContext ctx, std::string_view userPath)
 {
-	return fmt::format("Palettes: {}", userPathToDisplayName(ctx, userPath));
+	return std::format("Palettes: {}", std::string_view{userPathToDisplayName(ctx, userPath)});
 }
 
 }

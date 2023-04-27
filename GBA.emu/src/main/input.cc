@@ -15,10 +15,10 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include <imagine/util/format.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
 #include <vbam/gba/GBA.h>
+#include <format>
 
 namespace EmuEx
 {
@@ -224,7 +224,7 @@ void GbaSystem::handleInputAction(EmuApp *app, InputAction a)
 			darknessLevel = std::clamp(darknessLevel + darknessChange, 0, 0xff);
 			if(app)
 			{
-				app->postMessage(1, false, fmt::format("Light sensor level: {}%", IG::remap(darknessLevel, 0xff, 0, 0, 100)));
+				app->postMessage(1, false, std::format("Light sensor level: {}%", remap(darknessLevel, 0xff, 0, 0, 100)));
 			}
 		}
 	}

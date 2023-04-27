@@ -18,7 +18,6 @@
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/util/format.hh>
 #include <imagine/util/ranges.hh>
 #include "internalDefs.hh"
 #include "utils.hh"
@@ -29,6 +28,7 @@
 #include <string>
 #include <cassert>
 #include <cctype>
+#include <format>
 
 namespace IG::Gfx
 {
@@ -56,7 +56,7 @@ static void printFeatures(DrawContextSupport support)
 	featuresStr.reserve(256);
 
 	featuresStr.append(" [Texture Size:");
-	featuresStr.append(fmt::format("{}", support.textureSizeSupport.maxXSize));
+	featuresStr.append(std::format("{}", support.textureSizeSupport.maxXSize));
 	featuresStr.append("]");
 	if(support.textureSizeSupport.nonPow2)
 	{

@@ -81,7 +81,7 @@ public:
 		timestamp_{timestamp_}, frameTime_{frameTime_} {}
 	SteadyClockTimePoint timestamp() const { return timestamp_; }
 	FloatSeconds frameTime() const { return frameTime_; }
-	SteadyClockTimePoint presentTime(int frames) const;
+	SteadyClockTimePoint presentTime(int frames = 1) const;
 	int elapsedFrames(SteadyClockTimePoint lastTimestamp) const;
 	static int elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePoint lastTimestamp, FloatSeconds frameTime);
 

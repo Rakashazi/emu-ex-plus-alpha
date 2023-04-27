@@ -27,9 +27,9 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/util/format.hh>
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
+#include <format>
 
 namespace EmuEx
 {
@@ -167,7 +167,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 			auto devConnected = Bluetooth::devsConnected(appContext());
 			if(devConnected)
 			{
-				pushAndShowModal(makeView<YesNoAlertView>(fmt::format("Really disconnect {} Bluetooth device(s)?", devConnected),
+				pushAndShowModal(makeView<YesNoAlertView>(std::format("Really disconnect {} Bluetooth device(s)?", devConnected),
 					YesNoAlertView::Delegates{.onYes = [this]{ app().closeBluetoothConnections(); }}), e);
 			}
 		}
@@ -262,7 +262,7 @@ static void onScanStatus(EmuApp &app, unsigned status, int arg)
 		}
 		case BluetoothAdapter::SCAN_PROCESSING:
 		{
-			app.postMessage(2, 0, fmt::format("Checking {} device(s)...", arg));
+			app.postMessage(2, 0, std::format("Checking {} device(s)...", arg));
 			break;
 		}
 		case BluetoothAdapter::SCAN_NAME_FAILED:
@@ -275,7 +275,7 @@ static void onScanStatus(EmuApp &app, unsigned status, int arg)
 			int devs = Bluetooth::pendingDevs();
 			if(devs)
 			{
-				app.postMessage(2, 0, fmt::format("Connecting to {} device(s)...", devs));
+				app.postMessage(2, 0, std::format("Connecting to {} device(s)...", devs));
 				Bluetooth::connectPendingDevs(app.bluetoothAdapter());
 			}
 			else
@@ -405,7 +405,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 			"Beta Testing Opt-in/out", &defaultFace(),
 			[this]()
 			{
-				appContext().openURL(fmt::format("https://play.google.com/apps/testing/{}", appContext().applicationId));
+				appContext().openURL(std::format("https://play.google.com/apps/testing/{}", appContext().applicationId));
 			}
 		};
 	}

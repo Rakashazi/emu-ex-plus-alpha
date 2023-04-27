@@ -199,7 +199,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	std::string biosMenuEntryStr(std::string_view path) const
 	{
-		return fmt::format("System Card: {}", appContext().fileUriDisplayName(path));
+		return std::format("System Card: {}", appContext().fileUriDisplayName(path));
 	}
 
 public:
@@ -424,7 +424,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 			{
 				.onSetDisplayString = [this, type](auto idx, Gfx::Text &t)
 				{
-					t.resetString(fmt::format("{}%", system().volume(type)));
+					t.resetString(std::format("{}%", system().volume(type)));
 					return true;
 				}
 			},

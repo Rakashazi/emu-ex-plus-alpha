@@ -203,7 +203,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", system().optionSuperFXClockMultiplier.val));
+				t.resetString(std::format("{}%", system().optionSuperFXClockMultiplier.val));
 				return true;
 			}
 		},
@@ -304,7 +304,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	static std::string satMenuName(IG::ApplicationContext ctx, std::string_view userPath)
 	{
-		return fmt::format("Satellaview Files: {}", userPathToDisplayName(ctx, userPath));
+		return std::format("Satellaview Files: {}", userPathToDisplayName(ctx, userPath));
 	}
 
 	TextMenuItem satPath
@@ -341,7 +341,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	std::string bsxMenuName(CStringView path) const
 	{
-		return fmt::format("BS-X BIOS: {}", appContext().fileUriDisplayName(path));
+		return std::format("BS-X BIOS: {}", appContext().fileUriDisplayName(path));
 	}
 
 	TextMenuItem sufamiBios
@@ -363,7 +363,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	std::string sufamiMenuName(CStringView path) const
 	{
-		return fmt::format("Sufami Turbo BIOS: {}", appContext().fileUriDisplayName(path));
+		return std::format("Sufami Turbo BIOS: {}", appContext().fileUriDisplayName(path));
 	}
 
 public:

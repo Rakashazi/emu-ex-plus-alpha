@@ -188,7 +188,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	std::string machinePathMenuEntryStr(IG::CStringView path) const
 	{
-		return fmt::format("BIOS: {}", appContext().fileUriDisplayName(path));
+		return std::format("BIOS: {}", appContext().fileUriDisplayName(path));
 	}
 
 	TextMenuItem machineFilePath
@@ -209,7 +209,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 					machineFilePath.compile(machinePathMenuEntryStr(path), renderer());
 					if(type == FS::file_type::none)
 					{
-						app().postMessage(4, false, fmt::format("Using fallback path:\n{}", machineBasePath(system())));
+						app().postMessage(4, false, std::format("Using fallback path:\n{}", machineBasePath(system())));
 					}
 					return true;
 				}), e);
@@ -250,7 +250,7 @@ public:
 
 	void updateHDText(int slot)
 	{
-		hdSlot[slot].setName(fmt::format("{} {}", hdSlotPrefix[slot], hdName[slot]));
+		hdSlot[slot].setName(std::format("{} {}", hdSlotPrefix[slot], hdName[slot]));
 	}
 
 	void updateHDStatusFromCartSlot(int cartSlot)
@@ -328,7 +328,7 @@ public:
 
 	void updateROMText(int slot)
 	{
-		romSlot[slot].setName(fmt::format("{} {}", romSlotPrefix[slot], system().cartName[slot]));
+		romSlot[slot].setName(std::format("{} {}", romSlotPrefix[slot], system().cartName[slot]));
 	}
 
 	void onROMMediaChange(std::string_view name, int slot)
@@ -410,7 +410,7 @@ public:
 
 	void updateDiskText(int slot)
 	{
-		diskSlot[slot].setName(fmt::format("{} {}", diskSlotPrefix[slot], system().diskName[slot]));
+		diskSlot[slot].setName(std::format("{} {}", diskSlotPrefix[slot], system().diskName[slot]));
 	}
 
 	void onDiskMediaChange(std::string_view name, int slot)
@@ -739,7 +739,7 @@ protected:
 			{
 				.onSetDisplayString = [this, type](auto idx, Gfx::Text &t)
 				{
-					t.resetString(fmt::format("{}%", mixerVolumeOption(type)));
+					t.resetString(std::format("{}%", mixerVolumeOption(type)));
 					return true;
 				}
 			},
@@ -812,7 +812,7 @@ protected:
 			{
 				.onSetDisplayString = [this, type](auto idx, Gfx::Text &t)
 				{
-					t.resetString(fmt::format("{}%", mixerPanOption(type)));
+					t.resetString(std::format("{}%", mixerPanOption(type)));
 					return true;
 				}
 			},

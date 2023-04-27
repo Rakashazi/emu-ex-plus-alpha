@@ -54,10 +54,10 @@ void ApplicationContext::exit(int returnVal)
 	::exit(returnVal);
 }
 
-void ApplicationContext::openURL(IG::CStringView url) const
+void ApplicationContext::openURL(CStringView url) const
 {
 	logMsg("opening url:%s", url.data());
-	auto ret = system(fmt::format("xdg-open {}", url).data());
+	auto ret = system(std::format("xdg-open {}", url).data());
 }
 
 FS::PathString ApplicationContext::assetPath(const char *) const
@@ -165,7 +165,7 @@ void LinuxApplication::setAppPath(FS::PathString path)
 
 void ApplicationContext::exitWithMessage(int exitVal, const char *msg)
 {
-	auto cmd = fmt::format("zenity --warning --title='Exited with error' --text='{}'", msg);
+	auto cmd = std::format("zenity --warning --title='Exited with error' --text='{}'", msg);
 	auto cmdResult = system(cmd.data());
 	::exit(exitVal);
 }

@@ -26,7 +26,6 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/format.hh>
-#include <imagine/fmt/chrono.h>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
@@ -66,15 +65,16 @@ protected:
 
 static auto autoSaveName(EmuApp &app)
 {
-	return fmt::format("Autosave Slot ({})", app.autosaveManager().slotFullName());
+	return std::format("Autosave Slot ({})", app.autosaveManager().slotFullName());
 }
 
 static std::string saveAutosaveName(EmuApp &app)
 {
-	if(!app.autosaveManager().timerFrequency().count())
+	auto &autosaveManager = app.autosaveManager();
+	if(!autosaveManager.timerFrequency().count())
 		return "Save Autosave State";
-	return fmt::format("Save Autosave State (Timer In {:%M:%S})",
-		std::chrono::duration_cast<Seconds>(app.autosaveManager().nextTimerFireTime()));
+	return std::format("Save Autosave State (Timer In {:%M:%S})",
+		std::chrono::duration_cast<Seconds>(autosaveManager.nextTimerFireTime()));
 }
 
 SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
@@ -152,7 +152,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 				app().postMessage("No saved state");
 				return;
 			}
-			pushAndShowModal(makeView<YesNoAlertView>(fmt::format("Really load state from: {}?", saveTime),
+			pushAndShowModal(makeView<YesNoAlertView>(std::format("Really load state from: {}?", saveTime),
 				YesNoAlertView::Delegates
 				{
 					.onYes = [this]
@@ -187,7 +187,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 				[this](EmuApp &app, auto str)
 				{
 					appContext().addLauncherIcon(str, app.system().contentLocation());
-					app.postMessage(2, false, fmt::format("Added shortcut:\n{}", str));
+					app.postMessage(2, false, std::format("Added shortcut:\n{}", str));
 					return true;
 				});
 		}
@@ -205,7 +205,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 				app().postMessage("Save path isn't valid");
 				return;
 			}
-			pushAndShowModal(makeView<YesNoAlertView>(fmt::format("Save screenshot to folder {}?", pathName),
+			pushAndShowModal(makeView<YesNoAlertView>(std::format("Save screenshot to folder {}?", pathName),
 				YesNoAlertView::Delegates
 				{
 					.onYes = [this]

@@ -295,7 +295,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionNotifyInputDeviceChange,
 		#endif
 		optionFrameInterval,
-		optionSkipLateFrames,
 		optionNotificationIcon,
 		optionTitleBar,
 		optionIdleDisplayPowerSave,
@@ -553,9 +552,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					logMsg("skipping key %u", (unsigned)key);
 					return false;
 				}
-				case CFGKEY_FRAME_INTERVAL:
-					return doIfUsed(optionFrameInterval, [&](auto &opt){return opt.readFromIO(io, size);});
-				case CFGKEY_SKIP_LATE_FRAMES: return optionSkipLateFrames.readFromIO(io, size);
+				case CFGKEY_FRAME_INTERVAL: return optionFrameInterval.readFromIO(io, size);;
 				case CFGKEY_FRAME_RATE: return readOptionValue<FloatSeconds>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::NATIVE_NTSC, val);});
 				case CFGKEY_FRAME_RATE_PAL: return readOptionValue<FloatSeconds>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::PAL, val);});
 				case CFGKEY_LAST_DIR:

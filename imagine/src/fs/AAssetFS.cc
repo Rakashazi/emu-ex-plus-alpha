@@ -23,14 +23,14 @@
 namespace IG::FS
 {
 
-AAssetDirectory::AAssetDirectory(AAssetManager *mgr, IG::CStringView path):
+AAssetDirectory::AAssetDirectory(AAssetManager *mgr, CStringView path):
 	dir{AAssetManager_openDir(mgr, path)}
 {
 	if(!dir) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("AAssetManager_openDir(%p, %s) error", mgr, path.data());
-		throw std::runtime_error{fmt::format("error opening asset directory: {}", path)};
+		throw std::runtime_error{std::format("error opening asset directory: {}", path)};
 	}
 	logMsg("opened asset directory:%s", path.data());
 	basePath = path;
@@ -86,7 +86,7 @@ static std::shared_ptr<AAssetDirectory> makeDirEntryPtr(Args&& ...args)
 	}
 }
 
-AAssetIterator::AAssetIterator(AAssetManager *mgr, IG::CStringView path):
+AAssetIterator::AAssetIterator(AAssetManager *mgr, CStringView path):
 	impl{makeDirEntryPtr(mgr, path)} {}
 
 AAssetDirectory& AAssetIterator::operator*()

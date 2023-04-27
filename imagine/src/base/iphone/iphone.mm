@@ -437,7 +437,7 @@ void ApplicationContext::exit(int returnVal)
 	::exit(returnVal);
 }
 
-void ApplicationContext::openURL(IG::CStringView url) const
+void ApplicationContext::openURL(CStringView url) const
 {
 	[uiApp() openURL:[NSURL URLWithString:
 		[NSString stringWithCString:url encoding:NSASCIIStringEncoding]]];

@@ -16,16 +16,16 @@
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
-#include <imagine/util/format.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/logger/logger.h>
+#include <format>
 
 namespace EmuEx
 {
 
 static auto slotHeadingName(EmuSystem &sys)
 {
-	return fmt::format("Set State Slot ({})", sys.stateSlot());
+	return std::format("Set State Slot ({})", sys.stateSlot());
 }
 
 StateSlotView::StateSlotView(ViewAttachParams attach):
@@ -91,9 +91,9 @@ void StateSlotView::refreshSlot(int slot)
 	auto str = [&]()
 	{
 		if(fileExists)
-			return fmt::format("{} ({})", sys.stateSlotName(slot), modTimeStr);
+			return std::format("{} ({})", sys.stateSlotName(slot), modTimeStr);
 		else
-			return fmt::format("{}", sys.stateSlotName(slot));
+			return std::format("{}", sys.stateSlotName(slot));
 	};
 	auto &s = stateSlot[slot];
 	s = {str(), &defaultFace(), nullptr};

@@ -85,7 +85,7 @@ void FSPicker::place()
 	msgText.compile(renderer());
 }
 
-void FSPicker::changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, const Input::Event &e,
+void FSPicker::changeDirByInput(CStringView path, FS::RootPathInfo rootInfo, const Input::Event &e,
 	DepthMode depthMode)
 {
 	if(depthMode == DepthMode::reset)
@@ -216,7 +216,7 @@ void FSPicker::setEmptyPath()
 	setEmptyPath("No folder is set");
 }
 
-void FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInfo, const Input::Event &e)
+void FSPicker::setPath(CStringView path, FS::RootPathInfo rootInfo, const Input::Event &e)
 {
 	if(!strlen(path))
 	{
@@ -245,7 +245,7 @@ void FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInfo, const In
 		logMsg("root info:%d:%s", (int)rootInfo.length, rootInfo.name.data());
 		root.info = rootInfo;
 		if(pathLen > rootInfo.length)
-			rootedPath = IG::format<FS::PathString>("{}{}", rootInfo.name, &path[rootInfo.length]);
+			rootedPath = format<FS::PathString>("{}{}", rootInfo.name, &path[rootInfo.length]);
 		else
 			rootedPath = rootInfo.name;
 	}
@@ -263,17 +263,17 @@ void FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInfo, const In
 	onChangePath_.callSafe(*this, e);
 }
 
-void FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInfo)
+void FSPicker::setPath(CStringView path, FS::RootPathInfo rootInfo)
 {
 	return setPath(path, std::move(rootInfo), appContext().defaultInputEvent());
 }
 
-void FSPicker::setPath(IG::CStringView path, const Input::Event &e)
+void FSPicker::setPath(CStringView path, const Input::Event &e)
 {
 	return setPath(path, appContext().rootPathInfo(path), e);
 }
 
-void FSPicker::setPath(IG::CStringView path)
+void FSPicker::setPath(CStringView path)
 {
 	return setPath(path, appContext().rootPathInfo(path));
 }
@@ -342,7 +342,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 			[this](View &view, const Input::Event &e)
 			{
 				if(!appContext().showSystemPathPicker(
-					[this, &view](IG::CStringView uri, IG::CStringView displayName)
+					[this, &view](CStringView uri, CStringView displayName)
 					{
 						view.dismiss();
 						if(mode_ == Mode::DIR)
@@ -362,7 +362,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 			[this](View &view, const Input::Event &e)
 			{
 				if(!appContext().showSystemDocumentPicker(
-					[this, &view](IG::CStringView uri, IG::CStringView displayName)
+					[this, &view](CStringView uri, CStringView displayName)
 					{
 						onSelectPath_.callCopy(*this, uri, displayName, appContext().defaultInputEvent());
 					}))
@@ -468,7 +468,7 @@ void FSPicker::startDirectoryListThread(CStringView path)
 	}, std::string{path});
 }
 
-void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
+void FSPicker::listDirectory(CStringView path, ThreadStop &stop)
 {
 	try
 	{
@@ -550,7 +550,7 @@ void FSPicker::listDirectory(IG::CStringView path, ThreadStop &stop)
 		logErr("can't open %s", path.data());
 		auto ec = err.code();
 		std::string_view extraMsg = mode_ == Mode::FILE_IN_DIR ? "" : "\nPick a path from the top bar";
-		msgText.resetString(fmt::format("Can't open directory:\n{}{}", ec.message(), extraMsg));
+		msgText.resetString(std::format("Can't open directory:\n{}{}", ec.message(), extraMsg));
 	}
 }
 

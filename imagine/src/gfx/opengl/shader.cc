@@ -18,10 +18,10 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <imagine/util/format.hh>
 #include "internalDefs.hh"
 #include "utils.hh"
 #include <cstring>
+#include <format>
 
 namespace IG::Gfx
 {
@@ -291,7 +291,7 @@ static GLuint makeGLShader(RendererTask &rTask, std::span<std::string_view> srcs
 					for(auto &s : srcs)
 					{
 						logger_printfn(LOG_E, "[part %zu]", (size_t)std::distance(srcs.data(), &s));
-						logger_printfn(LOG_E, "%s", fmt::format("{}", s).c_str());
+						logger_printfn(LOG_E, "%s", std::format("{}", s).c_str());
 					}
 				}
 			}

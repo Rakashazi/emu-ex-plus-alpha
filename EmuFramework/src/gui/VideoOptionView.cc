@@ -26,7 +26,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/TextTableView.hh>
-#include <imagine/util/format.hh>
+#include <format>
 
 namespace EmuEx
 {
@@ -116,7 +116,7 @@ public:
 			{
 				waitForDrawFinished();
 				if(detectedFrameTime.count())
-					fpsText.resetString(fmt::format("{:g}fps", 1. / detectedFrameTime.count()));
+					fpsText.resetString(std::format("{:g}fps", 1. / detectedFrameTime.count()));
 				else
 					fpsText.resetString("0fps");
 				fpsText.compile(renderer());
@@ -178,7 +178,7 @@ static std::string makeFrameRateStr(VideoSystem vidSys, const OutputTimingManage
 	else if(frameTimeOpt == OutputTimingManager::originalOption)
 		return "Original";
 	else
-		return fmt::format("{:g}Hz", 1. / frameTimeOpt.count());
+		return std::format("{:g}Hz", 1. / frameTimeOpt.count());
 }
 
 static const char *autoWindowPixelFormatStr(IG::ApplicationContext ctx)
@@ -231,10 +231,11 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	frameIntervalItem
 	{
-		{"Full", &defaultFace(), 1},
-		{"1/2",  &defaultFace(), 2},
-		{"1/3",  &defaultFace(), 3},
-		{"1/4",  &defaultFace(), 4},
+		{"Full (No Skip)", &defaultFace(), 0},
+		{"Full",           &defaultFace(), 1},
+		{"1/2",            &defaultFace(), 2},
+		{"1/3",            &defaultFace(), 3},
+		{"1/4",            &defaultFace(), 4},
 	},
 	frameInterval
 	{
@@ -243,17 +244,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setFrameInterval(item.id()); }
 		},
-		(MenuItem::Id)app().frameInterval(),
+		MenuItem::Id(app().frameInterval()),
 		frameIntervalItem
-	},
-	dropLateFrames
-	{
-		"Skip Late Frames", &defaultFace(),
-		(bool)app().shouldSkipLateFrames(),
-		[this](BoolMenuItem &item)
-		{
-			app().setShouldSkipLateFrames(item.flipBoolValue(*this));
-		}
 	},
 	frameRateItems
 	{
@@ -412,7 +404,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			{
 				if(idx == aspectRatioItem.size() - 1)
 				{
-					t.resetString(fmt::format("{:g}", app().videoAspectRatio()));
+					t.resetString(std::format("{:g}", app().videoAspectRatio()));
 					return true;
 				}
 				return false;
@@ -451,7 +443,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			{
 				if(app().videoZoom() <= 100)
 				{
-					t.resetString(fmt::format("{}%", app().videoZoom()));
+					t.resetString(std::format("{}%", app().videoZoom()));
 					return true;
 				}
 				return false;
@@ -487,7 +479,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", app().viewportZoom()));
+				t.resetString(std::format("{}%", app().viewportZoom()));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setViewportZoom(item.id()); }
@@ -612,7 +604,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", app().overlayEffectLevel()));
+				t.resetString(std::format("{}%", app().overlayEffectLevel()));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setOverlayEffectLevel(*videoLayer, item.id()); }
@@ -811,7 +803,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Red)));
+				t.resetString(std::format("{}%", app().videoBrightnessAsInt(ImageChannel::Red)));
 				return true;
 			}
 		},
@@ -824,7 +816,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Green)));
+				t.resetString(std::format("{}%", app().videoBrightnessAsInt(ImageChannel::Green)));
 				return true;
 			}
 		},
@@ -837,7 +829,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", app().videoBrightnessAsInt(ImageChannel::Blue)));
+				t.resetString(std::format("{}%", app().videoBrightnessAsInt(ImageChannel::Blue)));
 				return true;
 			}
 		},
@@ -865,9 +857,7 @@ void VideoOptionView::place()
 
 void VideoOptionView::loadStockItems()
 {
-	if(used(frameInterval))
-		item.emplace_back(&frameInterval);
-	item.emplace_back(&dropLateFrames);
+	item.emplace_back(&frameInterval);
 	item.emplace_back(&frameRate);
 	if(EmuSystem::hasPALVideoSystem)
 	{
@@ -920,7 +910,7 @@ bool VideoOptionView::onFrameTimeChange(VideoSystem vidSys, FloatSeconds time)
 {
 	if(!app().outputTimingManager.setFrameTimeOption(vidSys, time))
 	{
-		app().postMessage(4, true, fmt::format("{:g}Hz not in valid range", 1. / time.count()));
+		app().postMessage(4, true, std::format("{:g}Hz not in valid range", 1. / time.count()));
 		return false;
 	}
 	return true;

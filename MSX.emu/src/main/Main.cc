@@ -148,7 +148,7 @@ void MsxSystem::insertMedia(EmuApp &app)
 				logMsg("loading ROM %s", cartName[i].data());
 				if(!insertROM(app, cartName[i].data(), i))
 				{
-					throw std::runtime_error(fmt::format("Error loading ROM{}:\n{}", i, cartName[i]));
+					throw std::runtime_error(std::format("Error loading ROM{}:\n{}", i, cartName[i]));
 				}
 			}
 		}
@@ -161,7 +161,7 @@ void MsxSystem::insertMedia(EmuApp &app)
 		logMsg("loading Disk %s", diskName[i].data());
 		if(!insertDisk(app, diskName[i].data(), i))
 		{
-			throw std::runtime_error(fmt::format("Error loading Disk{}:\n{}", i, diskName[i]));
+			throw std::runtime_error(std::format("Error loading Disk{}:\n{}", i, diskName[i]));
 		}
 	}
 
@@ -172,7 +172,7 @@ void MsxSystem::insertMedia(EmuApp &app)
 		logMsg("loading HD %s", hdName[i].data());
 		if(!insertDisk(app, hdName[i].data(), diskGetHdDriveId(i / 2, i % 2)))
 		{
-			throw std::runtime_error(fmt::format("Error loading HD{}:\n{}", i, hdName[i]));
+			throw std::runtime_error(std::format("Error loading HD{}:\n{}", i, hdName[i]));
 		}
 	}
 }
@@ -287,7 +287,7 @@ bool MsxSystem::createBoardFromLoadGame(EmuApp &app)
 
 static void throwMachineInitError(std::string_view machineName)
 {
-	throw std::runtime_error(fmt::format("Error loading machine files for\n\"{}\",\nplease check Options➔File Paths➔BIOS",
+	throw std::runtime_error(std::format("Error loading machine files for\n\"{}\",\nplease check Options➔File Paths➔BIOS",
 		machineName));
 }
 
@@ -338,7 +338,7 @@ void MsxSystem::setCurrentMachineName(EmuApp &app, std::string_view machineName,
 	}
 	if(!createBoardFromLoadGame(app))
 	{
-		throw std::runtime_error(fmt::format("Error initializing {}", machine->name));
+		throw std::runtime_error(std::format("Error initializing {}", machine->name));
 	}
 	if(insertMediaFiles)
 		insertMedia(app);
@@ -556,7 +556,7 @@ void MsxSystem::loadBlueMSXState(EmuApp &app, const char *filename)
 	// from this point on, errors are fatal and require the existing game to close
 	if(!createBoardFromLoadGame(app))
 	{
-		auto err = fmt::format("Can't initialize machine: \"{}\" from state", machine->name);
+		auto err = std::format("Can't initialize machine: \"{}\" from state", machine->name);
 		app.closeSystemWithoutSave();
 		throw std::runtime_error{err};
 	}

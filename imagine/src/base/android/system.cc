@@ -38,7 +38,7 @@ std::string AndroidApplicationContext::androidBuildDevice() const
 	return application().androidBuildDevice(env, env->GetObjectClass(baseActivityObject()));
 }
 
-bool ApplicationContext::packageIsInstalled(IG::CStringView name) const
+bool ApplicationContext::packageIsInstalled(CStringView name) const
 {
 	auto env = mainThreadJniEnv();
 	auto baseActivity = baseActivityObject();

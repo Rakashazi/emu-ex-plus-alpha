@@ -107,7 +107,7 @@ std::string InputDeviceData::makeDisplayName(std::string_view name, unsigned id)
 {
 	if(id)
 	{
-		return fmt::format("{} #{}", name, id + 1);
+		return std::format("{} #{}", name, id + 1);
 	}
 	else
 	{
@@ -312,7 +312,7 @@ KeyConfig *InputDeviceConfig::makeMutableKeyConf(EmuApp &app)
 		logMsg("current config not mutable, creating one");
 		auto name = uniqueCustomConfigName(customKeyConfigs);
 		conf = setKeyConfCopiedFromExisting(name, customKeyConfigs, app.savedInputDeviceList());
-		app.postMessage(3, false, fmt::format("Automatically created profile: {}", conf->name));
+		app.postMessage(3, false, std::format("Automatically created profile: {}", conf->name));
 	}
 	return conf;
 }

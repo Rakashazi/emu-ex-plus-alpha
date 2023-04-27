@@ -32,7 +32,7 @@ void AndroidApplication::addNotification(JNIEnv *env, jobject baseActivity, cons
 	jAddNotification(env, baseActivity, env->NewStringUTF(onShow), env->NewStringUTF(title), env->NewStringUTF(message));
 }
 
-void ApplicationContext::addNotification(IG::CStringView onShow, IG::CStringView title, IG::CStringView message)
+void ApplicationContext::addNotification(CStringView onShow, CStringView title, CStringView message)
 {
 	return application().addNotification(mainThreadJniEnv(), baseActivityObject(), onShow, title, message);
 }
@@ -47,7 +47,7 @@ void AndroidApplication::removePostedNotifications(JNIEnv *env, jobject baseActi
 	jRemoveNotification(env, baseActivity);
 }
 
-void ApplicationContext::addLauncherIcon(IG::CStringView name, IG::CStringView path)
+void ApplicationContext::addLauncherIcon(CStringView name, CStringView path)
 {
 	logMsg("adding launcher icon:%s, for location:%s", name.data(), path.data());
 	auto env = mainThreadJniEnv();
@@ -74,7 +74,7 @@ void AndroidApplication::handleIntent(ApplicationContext ctx)
 	}
 }
 
-void ApplicationContext::openURL(IG::CStringView url) const
+void ApplicationContext::openURL(CStringView url) const
 {
 	auto env = mainThreadJniEnv();
 	auto baseActivity = baseActivityObject();

@@ -55,7 +55,7 @@ static auto protectionFlagsString(int flags)
 	return logFlagsStr;
 }
 
-PosixIO::PosixIO(IG::CStringView path, OpenFlagsMask openFlags)
+PosixIO::PosixIO(CStringView path, OpenFlagsMask openFlags)
 {
 	constexpr mode_t defaultOpenMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 	int flags = 0;

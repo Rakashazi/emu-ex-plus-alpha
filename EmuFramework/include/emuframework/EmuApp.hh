@@ -177,7 +177,7 @@ public:
 
 	void mainInitCommon(IG::ApplicationInitParams, IG::ApplicationContext);
 	static void onCustomizeNavView(NavView &v);
-	void createSystemWithMedia(IG::IO, IG::CStringView path, std::string_view displayName,
+	void createSystemWithMedia(IG::IO, CStringView path, std::string_view displayName,
 		const Input::Event &, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
 	void closeSystem();
 	void closeSystemWithoutSave();
@@ -206,16 +206,16 @@ public:
 	void printScreenshotResult(bool success);
 	FS::PathString contentSavePath(std::string_view name) const;
 	FS::PathString contentSaveFilePath(std::string_view ext) const;
-	bool saveState(IG::CStringView path);
+	bool saveState(CStringView path);
 	bool saveStateWithSlot(int slot);
-	bool loadState(IG::CStringView path);
+	bool loadState(CStringView path);
 	bool loadStateWithSlot(int slot);
 	bool shouldOverwriteExistingState() const;
 	const auto &contentSearchPath() const { return contentSearchPath_; }
 	FS::PathString contentSearchPath(std::string_view name) const;
 	void setContentSearchPath(std::string_view path);
 	FS::PathString validSearchPath(const FS::PathString &) const;
-	static void updateLegacySavePath(IG::ApplicationContext, IG::CStringView path);
+	static void updateLegacySavePath(IG::ApplicationContext, CStringView path);
 	const auto &userScreenshotPath() const { return userScreenshotDir; }
 	void setUserScreenshotPath(CStringView path) { userScreenshotDir = path; }
 	auto screenshotDirectory() const { return system().userPath(userScreenshotDir); }
@@ -260,7 +260,7 @@ public:
 	bool skipForwardFrames(EmuSystemTaskContext, int frames);
 	IG::Audio::Manager &audioManager() { return audioManager_; }
 	void renderSystemFramebuffer(EmuVideo &);
-	bool writeScreenshot(IG::PixmapView, IG::CStringView path);
+	bool writeScreenshot(IG::PixmapView, CStringView path);
 	FS::PathString makeNextScreenshotFilename();
 	bool mogaManagerIsActive() const { return bool(mogaManagerPtr); }
 	void setMogaManagerActive(bool on, bool notify);
@@ -290,9 +290,9 @@ public:
 	void setIntendedFrameRate(Window &, FrameTimeConfig);
 	static std::u16string_view mainViewName();
 	void runBenchmarkOneShot(EmuVideo &);
-	void onSelectFileFromPicker(IG::IO, IG::CStringView path, std::string_view displayName,
+	void onSelectFileFromPicker(IG::IO, CStringView path, std::string_view displayName,
 		const Input::Event &, EmuSystemCreateParams, ViewAttachParams);
-	void handleOpenFileCommand(IG::CStringView path);
+	void handleOpenFileCommand(CStringView path);
 	static bool hasGooglePlayStoreFeatures();
 	EmuSystem &system();
 	const EmuSystem &system() const;
@@ -318,8 +318,6 @@ public:
 	uint8_t overlayEffectLevel() { return optionOverlayEffectLevel; }
 	void setFrameInterval(int);
 	int frameInterval() const;
-	void setShouldSkipLateFrames(bool on) { optionSkipLateFrames = on; }
-	bool shouldSkipLateFrames() const { return optionSkipLateFrames; }
 	bool setVideoZoom(uint8_t val);
 	uint8_t videoZoom() const { return optionImageZoom; }
 	bool setViewportZoom(uint8_t val);
@@ -448,7 +446,7 @@ public:
 
 	template<class T, ScanValueMode mode = ScanValueMode::NORMAL>
 	void pushAndShowNewCollectValueInputView(ViewAttachParams attach, const Input::Event &e,
-		IG::CStringView msgText, IG::CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
+		CStringView msgText, CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
 	{
 		pushAndShowNewCollectTextInputView(attach, e, msgText, initialContent,
 			[collectedValueFunc](CollectTextInputView &view, const char *str)
@@ -479,7 +477,7 @@ public:
 
 	template<class T, T low, T high>
 	void pushAndShowNewCollectValueRangeInputView(ViewAttachParams attach, const Input::Event &e,
-			IG::CStringView msgText, IG::CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
+			CStringView msgText, CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
 	{
 		pushAndShowNewCollectValueInputView<int>(attach, e, msgText, initialContent,
 			[collectedValueFunc](EmuApp &app, auto val)
@@ -557,7 +555,6 @@ protected:
 	Byte1Option optionOverlayEffect;
 	Byte1Option optionOverlayEffectLevel;
 	Byte1Option optionFrameInterval;
-	Byte1Option optionSkipLateFrames;
 	Byte1Option optionImageZoom;
 	Byte1Option optionViewportZoom;
 	Byte1Option optionShowOnSecondScreen;

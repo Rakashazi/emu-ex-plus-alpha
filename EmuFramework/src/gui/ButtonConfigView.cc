@@ -21,9 +21,9 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/math/int.hh>
-#include <imagine/util/format.hh>
 #include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
+#include <format>
 
 namespace EmuEx
 {
@@ -146,7 +146,7 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 					{
 						savedDev = d;
 						app().postMessage(7, false,
-							fmt::format("You pushed a key from device:\n{}\nPush another from it to open its config menu",
+							std::format("You pushed a key from device:\n{}\nPush another from it to open its config menu",
 							inputDevData(*d).displayName));
 						postDraw();
 					}
@@ -188,9 +188,9 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
 void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Event &e)
 {
 	if(e.motionEvent())
-		text.resetString(fmt::format("Push key to set:\n{}", actionStr));
+		text.resetString(std::format("Push key to set:\n{}", actionStr));
 	else
-		text.resetString(fmt::format("Push key to set:\n{}\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr));
+		text.resetString(std::format("Push key to set:\n{}\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr));
 	if(e.motionEvent())
 	{
 		initPointerUI();
@@ -227,7 +227,7 @@ std::string ButtonConfigView::makeKeyNameStr(Input::Key key, std::string_view na
 	}
 	else
 	{
-		return fmt::format("Key Code {:#X}", key);
+		return std::format("Key Code {:#X}", key);
 	}
 }
 
@@ -333,7 +333,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 							{
 								// prompt to resolve key conflict
 								auto alertView = makeView<KeyConflictAlertView>(
-									fmt::format("Key \"{}\" already used for action \"{}\", unbind it before setting?",
+									std::format("Key \"{}\" already used for action \"{}\", unbind it before setting?",
 									devConf->device().keyName(mapKey),
 									conflictCat->keyName[conflictKey]));
 								alertView->ctx = {mapKey, keyToSet, conflictCat, conflictKey};

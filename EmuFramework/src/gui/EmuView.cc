@@ -18,8 +18,8 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/OutputTimingManager.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/util/format.hh>
 #include <algorithm>
+#include <format>
 
 namespace EmuEx
 {
@@ -124,7 +124,7 @@ void EmuView::updateFrameTimeStats(FrameTimeStats stats, SteadyClockTimePoint cu
 	auto frameTime = std::chrono::duration_cast<Milliseconds>(stats.endOfDraw - stats.startOfFrame);
 	doIfUsed(frameTimeStats, [&](auto &statsUI)
 	{
-		statsUI.text.resetString(fmt::format("Frame Time Stats\n\n"
+		statsUI.text.resetString(std::format("Frame Time Stats\n\n"
 			"Timestamp Diff: {}ms\n"
 			"Frame Callback: {}ms\n"
 			"Emulate: {}ms\n"
@@ -143,7 +143,7 @@ void EmuView::updateFrameTimeStats(FrameTimeStats stats, SteadyClockTimePoint cu
 void EmuView::updateAudioStats(int underruns, int overruns, int callbacks, double avgCallbackFrames, int frames)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-	audioStatsText.setString(fmt::format("Underruns:{}\nOverruns:{}\nCallbacks per second:{}\nFrames per callback:{:g}\nTotal frames:{}",
+	audioStatsText.setString(std::format("Underruns:{}\nOverruns:{}\nCallbacks per second:{}\nFrames per callback:{:g}\nTotal frames:{}",
 		underruns, overruns, callbacks, avgCallbackFrames, frames), &View::defaultFace);
 	place();
 	#endif

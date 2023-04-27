@@ -127,7 +127,7 @@ bool EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 	return false;
 }
 
-FS::FileString EmuSystem::contentDisplayNameForPath(IG::CStringView path) const
+FS::FileString EmuSystem::contentDisplayNameForPath(CStringView path) const
 {
 	if(&MainSystem::contentDisplayNameForPath != &EmuSystem::contentDisplayNameForPath)
 		return static_cast<const MainSystem*>(this)->contentDisplayNameForPath(path);
@@ -199,12 +199,12 @@ void EmuSystem::runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *a
 	static_cast<MainSystem*>(this)->runFrame(task, video, audio);
 }
 
-void EmuSystem::loadState(EmuApp &app, IG::CStringView uri)
+void EmuSystem::loadState(EmuApp &app, CStringView uri)
 {
 	static_cast<MainSystem*>(this)->loadState(app, uri);
 }
 
-void EmuSystem::saveState(IG::CStringView uri)
+void EmuSystem::saveState(CStringView uri)
 {
 	static_cast<MainSystem*>(this)->saveState(uri);
 }

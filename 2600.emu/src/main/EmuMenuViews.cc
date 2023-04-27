@@ -281,7 +281,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}", system().optionPaddleDigitalSensitivity.val));
+				t.resetString(std::format("{}", system().optionPaddleDigitalSensitivity.val));
 				return true;
 			}
 		},

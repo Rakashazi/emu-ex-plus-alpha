@@ -39,7 +39,8 @@ Renderer::Renderer(ApplicationContext ctx):
 
 Renderer::~Renderer()
 {
-	for(auto &w : appContext().windows())
+	auto ctx = appContext();
+	for(auto &w : ctx.windows())
 	{
 		detachWindow(*w);
 	}

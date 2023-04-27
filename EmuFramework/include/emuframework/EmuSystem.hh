@@ -271,8 +271,8 @@ public:
 	FS::FileString contentFileName() const;
 	std::string contentDisplayName() const;
 	void setContentDisplayName(std::string_view name);
-	FS::FileString contentDisplayNameForPathDefaultImpl(IG::CStringView path) const;
-	void setInitialLoadPath(IG::CStringView path);
+	FS::FileString contentDisplayNameForPathDefaultImpl(CStringView path) const;
+	void setInitialLoadPath(CStringView path);
 	FS::PathString fallbackSaveDirectory(bool create = false);
 	const auto &contentSaveDirectory() const { return contentSaveDirectory_; }
 
@@ -310,7 +310,7 @@ public:
 	const char *contentSaveDirectoryPtr() { return contentSaveDirectory_.data(); }
 	FS::PathString contentSaveFilePath(std::string_view ext) const;
 	const auto &userSaveDirectory() const { return userSaveDirectory_; }
-	void setUserSaveDirectory(IG::CStringView path);
+	void setUserSaveDirectory(CStringView path);
 	FS::FileString stateFilename(int slot) const { return stateFilename(slot, contentName_); }
 	FS::FileString stateFilename(std::string_view name) const;
 	FS::PathString statePath(std::string_view filename, std::string_view basePath) const;
@@ -331,12 +331,12 @@ public:
 	void sessionOptionSet();
 	void resetSessionOptionsSet() { sessionOptionsSet = false; }
 	bool sessionOptionsAreSet() const { return sessionOptionsSet; }
-	void createWithMedia(IG::IO, IG::CStringView path,
+	void createWithMedia(IG::IO, CStringView path,
 		std::string_view displayName, EmuSystemCreateParams, OnLoadProgressDelegate);
 	FS::PathString willLoadContentFromPath(std::string_view path, std::string_view displayName);
-	void loadContentFromPath(IG::CStringView path, std::string_view displayName,
+	void loadContentFromPath(CStringView path, std::string_view displayName,
 		EmuSystemCreateParams, OnLoadProgressDelegate);
-	void loadContentFromFile(IG::IO, IG::CStringView path, std::string_view displayName,
+	void loadContentFromFile(IG::IO, CStringView path, std::string_view displayName,
 		EmuSystemCreateParams, OnLoadProgressDelegate);
 	int updateAudioFramesPerVideoFrame();
 	double frameRate() const { return 1. / frameTime().count(); }
@@ -376,10 +376,10 @@ protected:
 	FS::PathString contentSaveDirectory_;
 	FS::PathString userSaveDirectory_;
 
-	void setupContentUriPaths(IG::CStringView uri, std::string_view displayName);
-	void setupContentFilePaths(IG::CStringView filePath, std::string_view displayName);
+	void setupContentUriPaths(CStringView uri, std::string_view displayName);
+	void setupContentFilePaths(CStringView filePath, std::string_view displayName);
 	void updateContentSaveDirectory();
-	void closeAndSetupNew(IG::CStringView path, std::string_view displayName);
+	void closeAndSetupNew(CStringView path, std::string_view displayName);
 
 public:
 	IG::OnFrameDelegate onFrameUpdate;

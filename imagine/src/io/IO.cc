@@ -114,7 +114,7 @@ IOBuffer bufferFromPath(CStringView path, OpenFlagsMask openFlags, size_t sizeLi
 		if(to_underlying(openFlags & OpenFlagsMask::Test))
 			return {};
 		else
-			throw std::runtime_error(fmt::format("{} exceeds {} byte limit", path.data(), sizeLimit));
+			throw std::runtime_error(std::format("{} exceeds {} byte limit", path, sizeLimit));
 	}
 	return file.buffer(IOBufferMode::Release);
 }

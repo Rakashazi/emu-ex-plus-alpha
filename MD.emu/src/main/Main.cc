@@ -369,15 +369,15 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 		}();
 		if(biosPath.empty())
 		{
-			throw std::runtime_error(fmt::format("Set a {} BIOS in the Options", biosName));
+			throw std::runtime_error(std::format("Set a {} BIOS in the Options", biosName));
 		}
 		auto [biosSize, biosFilename] = FileUtils::readFromUriWithArchiveScan(appContext(), biosPath, {cart.rom, MAXROMSIZE}, hasMDExtension);
 		if(biosSize <= 0)
-			throw std::runtime_error(fmt::format("Error loading BIOS: {}", biosPath));
+			throw std::runtime_error(std::format("Error loading BIOS: {}", biosPath));
 		init_rom(biosSize, "");
 		if(!sCD.isActive)
 		{
-			throw std::runtime_error(fmt::format("Invalid BIOS: {}", biosPath));
+			throw std::runtime_error(std::format("Invalid BIOS: {}", biosPath));
 		}
 	}
 	else

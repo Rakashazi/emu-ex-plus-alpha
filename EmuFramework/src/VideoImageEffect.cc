@@ -149,7 +149,7 @@ void VideoImageEffect::compile(Gfx::Renderer &r, EffectDesc desc, Gfx::TextureSa
 		catch(std::exception &fallbackErr)
 		{
 			auto &app = EmuApp::get(r.appContext());
-			app.postErrorMessage(5, fmt::format("{}, {}", err.what(), fallbackErr.what()));
+			app.postErrorMessage(5, std::format("{}, {}", err.what(), fallbackErr.what()));
 			return;
 		}
 	}

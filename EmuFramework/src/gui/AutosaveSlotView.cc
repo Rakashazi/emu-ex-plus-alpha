@@ -16,7 +16,7 @@
 #include "AutosaveSlotView.hh"
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/AlertView.hh>
-#include <imagine/fmt/core.h>
+#include <format>
 
 namespace EmuEx
 {
@@ -134,7 +134,7 @@ void ManageAutosavesView::updateItem(std::string_view name, std::string_view new
 	}
 	else
 	{
-		it->setName(fmt::format("{}: {}", newName, slotDescription(app(), newName)));
+		it->setName(std::format("{}: {}", newName, slotDescription(app(), newName)));
 		it->slotName = newName;
 	}
 	place();
@@ -189,7 +189,7 @@ void AutosaveSlotView::refreshSlots()
 {
 	mainSlot =
 	{
-		fmt::format("Main: {}", slotDescription(app(), "")),
+		std::format("Main: {}", slotDescription(app(), "")),
 		&defaultFace(), [this]()
 		{
 			if(app().autosaveManager().setSlot(""))
@@ -208,7 +208,7 @@ void AutosaveSlotView::refreshSlots()
 	{
 		if(e.type() != FS::file_type::directory)
 			return true;
-		auto &item = extraSlotItems.emplace_back(e.name(), fmt::format("{}: {}", e.name(), slotDescription(app(), e.name())),
+		auto &item = extraSlotItems.emplace_back(e.name(), std::format("{}: {}", e.name(), slotDescription(app(), e.name())),
 			&defaultFace(), [this](TextMenuItem &item)
 		{
 			if(app().autosaveManager().setSlot(static_cast<SlotTextMenuItem&>(item).slotName))
@@ -271,7 +271,7 @@ void AutosaveSlotView::updateItem(std::string_view name, std::string_view newNam
 	}
 	else
 	{
-		it->setName(fmt::format("{}: {}", newName, slotDescription(app(), newName)));
+		it->setName(std::format("{}: {}", newName, slotDescription(app(), newName)));
 		it->slotName = newName;
 	}
 	place();

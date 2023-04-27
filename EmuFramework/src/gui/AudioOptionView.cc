@@ -15,7 +15,7 @@
 
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/EmuApp.hh>
-#include <imagine/util/format.hh>
+#include <format>
 
 namespace EmuEx
 {
@@ -66,7 +66,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", app().audio().maxVolume()));
+				t.resetString(std::format("{}%", app().audio().maxVolume()));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().audio().setMaxVolume(item.id()); }

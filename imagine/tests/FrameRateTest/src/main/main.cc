@@ -24,7 +24,6 @@
 #include <imagine/base/Application.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/util/format.hh>
 #include <imagine/util/variant.hh>
 #include "tests.hh"
 #include "TestPicker.hh"
@@ -32,6 +31,7 @@
 #include "main.hh"
 #include <meta.h>
 #include <memory>
+#include <format>
 
 namespace FrameRateTest
 {
@@ -75,9 +75,9 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 			IG::WP pixmapSize{256, 256};
 			for(auto desc: renderer.textureBufferModes())
 			{
-				testDesc.emplace_back(TEST_DRAW, fmt::format("Draw RGB565 {}x{} ({})", pixmapSize.x, pixmapSize.y, desc.name),
+				testDesc.emplace_back(TEST_DRAW, std::format("Draw RGB565 {}x{} ({})", pixmapSize.x, pixmapSize.y, desc.name),
 					pixmapSize, desc.mode);
-				testDesc.emplace_back(TEST_WRITE, fmt::format("Write RGB565 {}x{} ({})", pixmapSize.x, pixmapSize.y, desc.name),
+				testDesc.emplace_back(TEST_WRITE, std::format("Write RGB565 {}x{} ({})", pixmapSize.x, pixmapSize.y, desc.name),
 					pixmapSize, desc.mode);
 			}
 			auto &picker = winData.picker;

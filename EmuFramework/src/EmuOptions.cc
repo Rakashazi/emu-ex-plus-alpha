@@ -29,7 +29,6 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/MapIO.hh>
-#include <imagine/util/format.hh>
 
 namespace EmuEx
 {

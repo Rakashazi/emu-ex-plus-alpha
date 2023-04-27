@@ -28,8 +28,8 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/io/IO.hh>
-#include <imagine/util/format.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 
 extern "C"
 {
@@ -336,10 +336,10 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 					if(type == FS::file_type::none)
 					{
 						if constexpr(Config::envIsLinux)
-							app().postMessage(5, false, fmt::format("Using fallback paths:\n{}\n{}", sysFilePath[3], sysFilePath[4]));
+							app().postMessage(5, false, std::format("Using fallback paths:\n{}\n{}", sysFilePath[3], sysFilePath[4]));
 						else
 						{
-							app().postMessage(5, false, fmt::format("Using fallback paths:\n{}\n{}", sysFilePath[1], sysFilePath[2]));
+							app().postMessage(5, false, std::format("Using fallback paths:\n{}\n{}", sysFilePath[1], sysFilePath[2]));
 						}
 					}
 					return true;
@@ -362,7 +362,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	std::string sysPathMenuEntryStr(IG::CStringView path)
 	{
-		return fmt::format("VICE System Files: {}", appContext().fileUriDisplayName(path));
+		return std::format("VICE System Files: {}", appContext().fileUriDisplayName(path));
 	}
 
 public:
@@ -480,7 +480,7 @@ private:
 
 	void updateTapeCounter()
 	{
-		tapeCounter.setName(fmt::format("Tape Counter: {}", EmuEx::tapeCounter));
+		tapeCounter.setName(std::format("Tape Counter: {}", EmuEx::tapeCounter));
 	}
 
 	void onShow() final
@@ -496,7 +496,7 @@ private:
 	void updateTapeText()
 	{
 		auto name = system().plugin.tape_get_file_name(0);
-		tapeSlot.setName(fmt::format("Tape: {}", name ? appContext().fileUriDisplayName(name) : ""));
+		tapeSlot.setName(std::format("Tape: {}", name ? appContext().fileUriDisplayName(name) : ""));
 		datasetteControls.setActive(name);
 	}
 
@@ -570,7 +570,7 @@ private:
 	void updateROMText()
 	{
 		auto name = system().plugin.cartridge_get_file_name(system().plugin.cart_getid_slotmain());
-		romSlot.setName(fmt::format("ROM: {}", name ? appContext().fileUriDisplayName(name) : ""));
+		romSlot.setName(std::format("ROM: {}", name ? appContext().fileUriDisplayName(name) : ""));
 	}
 
 public:
@@ -630,7 +630,7 @@ private:
 	void updateDiskText(int slot)
 	{
 		auto name = system().plugin.file_system_get_disk_name(slot+8, 0);
-		diskSlot[slot].setName(fmt::format("{}: {}", driveMenuPrefix[slot], name ? appContext().fileUriDisplayName(name) : ""));
+		diskSlot[slot].setName(std::format("{}: {}", driveMenuPrefix[slot], name ? appContext().fileUriDisplayName(name) : ""));
 	}
 
 	void onDiskMediaChange(int slot)
@@ -1422,7 +1422,7 @@ class CustomMainMenuView : public MainMenuView, public MainAppHelper<CustomMainM
 		item.emplace_back(&loadNoAutostart);
 		item.emplace_back(&startWithBlankDisk);
 		item.emplace_back(&startWithBlankTape);
-		systemPlugin.setName(fmt::format("System: {}", VicePlugin::systemName(system().currSystem)));
+		systemPlugin.setName(std::format("System: {}", VicePlugin::systemName(system().currSystem)));
 		item.emplace_back(&systemPlugin);
 		loadStandardItems();
 	}

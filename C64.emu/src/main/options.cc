@@ -95,11 +95,12 @@ void C64System::onOptionsLoaded()
 	plugin = loadVicePlugin(currSystem, appContext().libPath().data());
 	if(!plugin)
 	{
-		throw std::runtime_error(fmt::format("Error loading plugin for system {}: {}",
+		throw std::runtime_error(std::format("Error loading plugin for system {}: {}",
 			VicePlugin::systemName(currSystem), lastOpenSharedLibraryError()));
 	}
-	IG::formatTo(externalPaletteResStr, "{}ExternalPalette", videoChipStr());
-	IG::formatTo(paletteFileResStr, "{}PaletteFile", videoChipStr());
+	auto vcStr = videoChipStr();
+	externalPaletteResStr = formatArray<sizeof(externalPaletteResStr)>("{}ExternalPalette", vcStr);
+	paletteFileResStr = formatArray<sizeof(paletteFileResStr)>("{}PaletteFile", vcStr);
 	optionDefaultModel = SByte1Option{CFGKEY_DEFAULT_MODEL, plugin.defaultModelId, false, modelIdIsValid};
 	optionModel = SByte1Option{CFGKEY_MODEL, -1, false, modelIdIsValid};
 }

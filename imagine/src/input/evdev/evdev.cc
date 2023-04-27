@@ -274,7 +274,7 @@ static bool isEvdevInputDevice(Input::Device &d)
 	return d.map() == Input::Map::SYSTEM && (d.typeBits() & Input::Device::TYPE_BIT_GAMEPAD);
 }
 
-static bool processDevNode(LinuxApplication &app, IG::CStringView path, int id, bool notify)
+static bool processDevNode(LinuxApplication &app, CStringView path, int id, bool notify)
 {
 	if(access(path, R_OK) != 0)
 	{
@@ -323,7 +323,7 @@ static bool processDevNode(LinuxApplication &app, IG::CStringView path, int id, 
 	return true;
 }
 
-static bool processDevNodeName(IG::CStringView name, uint32_t &id)
+static bool processDevNodeName(CStringView name, uint32_t &id)
 {
 	// extract id number from "event*" name and get the full path
 	if(sscanf(name, "event%u", &id) != 1)

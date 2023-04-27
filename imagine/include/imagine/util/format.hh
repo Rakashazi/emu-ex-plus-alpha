@@ -16,40 +16,60 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/concepts.hh>
-#include <imagine/fmt/core.h>
+#include <format>
 #include <array>
+
+namespace boost::static_strings
+{
+template<std::size_t N, typename CharT, typename Traits>
+class basic_static_string;
+}
+
+namespace IG::FS
+{
+class PathString;
+class FileString;
+}
 
 namespace IG
 {
 
+class CStringView;
+
 template <class... T>
-constexpr auto formatTo(Container auto &c, fmt::format_string<T...> fmt, const T&... args)
+constexpr auto formatTo(ResizableContainer auto &c, std::format_string<T...> fmt, T&&... args)
 {
-	if constexpr(requires {c.push_back('0');})
-	{
-		return fmt::vformat_to(std::back_inserter(c), fmt, fmt::make_format_args(args...));
-	}
-	else
-	{
-		// static array case
-		return fmt::vformat_to_n(std::data(c), std::size(c) - 1, fmt, fmt::make_format_args(args...));
-	}
+	return std::vformat_to(std::back_inserter(c), fmt.get(), std::make_format_args(args...));
 }
 
-template <Container Container, class... T>
-constexpr auto format(fmt::format_string<T...> fmt, const T&... args)
+template <ResizableContainer Container, class... T>
+constexpr auto format(std::format_string<T...> fmt, T&&... args)
 {
-	Container c{};
-	formatTo(c, fmt, args...);
+	Container c;
+	std::vformat_to(std::back_inserter(c), fmt.get(), std::make_format_args(args...));
 	return c;
 }
 
 template <size_t S, class... T>
-constexpr auto formatArray(fmt::format_string<T...> fmt, const T&... args)
+constexpr auto formatArray(std::format_string<T...> fmt, T&&... args)
 {
 	std::array<char, S> arr{};
-	formatTo(arr, fmt, args...);
+	if(std::formatted_size(fmt, args...) > S - 1)
+		return arr;
+	std::vformat_to(arr.begin(), fmt.get(), std::make_format_args(args...));
 	return arr;
 }
 
 }
+
+template<>
+struct std::formatter<IG::CStringView> : std::formatter<std::string_view> {};
+
+template<std::size_t N, typename CharT, typename Traits>
+struct std::formatter<boost::static_strings::basic_static_string<N, CharT, Traits>> : std::formatter<std::string_view> {};
+
+template<>
+struct std::formatter<IG::FS::PathString> : std::formatter<std::string_view> {};
+
+template<>
+struct std::formatter<IG::FS::FileString> : std::formatter<std::string_view> {};

@@ -40,7 +40,7 @@ static int asAAssetMode(IOAccessHint advice)
 	}
 }
 
-AAssetIO::AAssetIO(ApplicationContext ctx, IG::CStringView name, AccessHint access, OpenFlagsMask openFlags):
+AAssetIO::AAssetIO(ApplicationContext ctx, CStringView name, AccessHint access, OpenFlagsMask openFlags):
 	asset{AAssetManager_open(ctx.aAssetManager(), name, asAAssetMode(access))}
 {
 	if(!asset) [[unlikely]]
@@ -49,7 +49,7 @@ AAssetIO::AAssetIO(ApplicationContext ctx, IG::CStringView name, AccessHint acce
 		if(to_underlying(openFlags & OpenFlagsMask::Test))
 			return;
 		else
-			throw std::runtime_error{fmt::format("Error opening asset: {}", name)};
+			throw std::runtime_error{std::format("Error opening asset: {}", name)};
 	}
 	logMsg("opened asset:%p name:%s access:%s", asset.get(), name.data(), asString(access));
 	if(access == IOAccessHint::All)

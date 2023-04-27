@@ -270,5 +270,10 @@
 
 #define MDFN_DISABLE_PICPIE_ERRWARN
 
+// avoid gettext() macros conflicting with libintl.h
+#if __has_include(<libintl.h>)
+#define ENABLE_NLS 1
+#endif
+
 // Don't export mpcdec symbols
 #define MPC_API

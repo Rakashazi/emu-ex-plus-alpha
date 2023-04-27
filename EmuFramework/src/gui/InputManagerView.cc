@@ -130,7 +130,8 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 								{
 									logMsg("deleting device settings for:%s,%d",
 										deleteDeviceConfigPtr->name.data(), deleteDeviceConfigPtr->enumId);
-									for(auto &devPtr : appContext().inputDevices())
+									auto ctx = appContext();
+									for(auto &devPtr : ctx.inputDevices())
 									{
 										auto &inputDevConf = inputDevData(*devPtr).devConf;
 										if(inputDevConf.hasSavedConf(*deleteDeviceConfigPtr))
@@ -188,12 +189,13 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 		{
 			appContext().enumInputDevices();
 			int devices = 0;
-			for(auto &e : appContext().inputDevices())
+			auto ctx = appContext();
+			for(auto &e : ctx.inputDevices())
 			{
 				if(e->map() == Input::Map::SYSTEM || e->map() == Input::Map::ICADE)
 					devices++;
 			}
-			app().postMessage(2, false, fmt::format("{} OS devices present", devices));
+			app().postMessage(2, false, std::format("{} OS devices present", devices));
 		}
 	},
 	identDevice
@@ -250,6 +252,7 @@ InputManagerView::~InputManagerView()
 
 void InputManagerView::loadItems()
 {
+	auto ctx = appContext();
 	item.clear();
 	item.reserve(16);
 	item.emplace_back(&identDevice);
@@ -258,13 +261,13 @@ void InputManagerView::loadItems()
 	item.emplace_back(&deleteProfile);
 	doIfUsed(rescanOSDevices, [&](auto &mItem)
 	{
-		if(appContext().androidSDK() >= 12 && appContext().androidSDK() < 16)
+		if(ctx.androidSDK() >= 12 && ctx.androidSDK() < 16)
 			item.emplace_back(&mItem);
 	});
 	item.emplace_back(&deviceListHeading);
 	inputDevName.clear();
-	inputDevName.reserve(appContext().inputDevices().size());
-	for(auto &devPtr : appContext().inputDevices())
+	inputDevName.reserve(ctx.inputDevices().size());
+	for(auto &devPtr : ctx.inputDevices())
 	{
 		auto &devItem = inputDevName.emplace_back(inputDevData(*devPtr).displayName, &defaultFace(),
 			[this, &dev = *devPtr](const Input::Event &e)
@@ -726,7 +729,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	},
 	devConf{&inputDevData(dev).devConf}
 {
-	loadProfile.setName(fmt::format("Profile: {}", devConf->keyConf().name));
+	loadProfile.setName(std::format("Profile: {}", devConf->keyConf().name));
 	renameProfile.setActive(devConf->mutableKeyConf(customKeyConfigs()));
 	deleteProfile.setActive(devConf->mutableKeyConf(customKeyConfigs()));
 	loadItems();
@@ -789,7 +792,7 @@ void InputManagerDeviceView::loadItems()
 void InputManagerDeviceView::onShow()
 {
 	TableView::onShow();
-	loadProfile.compile(fmt::format("Profile: {}", devConf->keyConf().name), renderer());
+	loadProfile.compile(std::format("Profile: {}", devConf->keyConf().name), renderer());
 	bool keyConfIsMutable = devConf->mutableKeyConf(customKeyConfigs());
 	renameProfile.setActive(keyConfIsMutable);
 	deleteProfile.setActive(keyConfIsMutable);

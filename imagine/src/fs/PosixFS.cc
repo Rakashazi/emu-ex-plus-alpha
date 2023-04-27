@@ -149,13 +149,13 @@ file_type directory_entry::symlink_type() const
 	return linkType_;
 }
 
-static std::shared_ptr<DirectoryStream> makeDirectoryStream(IG::CStringView path)
+static std::shared_ptr<DirectoryStream> makeDirectoryStream(CStringView path)
 {
 	auto streamPtr = std::make_shared<DirectoryStream>(path);
 	return streamPtr->hasEntry() ? streamPtr : nullptr;
 }
 
-directory_iterator::directory_iterator(IG::CStringView path):
+directory_iterator::directory_iterator(CStringView path):
 	impl{makeDirectoryStream(path)} {}
 
 directory_entry& directory_iterator::operator*()
@@ -216,7 +216,7 @@ PathString current_path()
 	return wDir.data();
 }
 
-void current_path(IG::CStringView path)
+void current_path(CStringView path)
 {
 	if(chdir(path) == -1) [[unlikely]]
 	{
@@ -225,12 +225,12 @@ void current_path(IG::CStringView path)
 	}
 }
 
-bool exists(IG::CStringView path)
+bool exists(CStringView path)
 {
 	return access(path, acc::e);
 }
 
-std::uintmax_t file_size(IG::CStringView path)
+std::uintmax_t file_size(CStringView path)
 {
 	auto s = status(path);
 	if(s.type() != file_type::regular)
@@ -240,7 +240,7 @@ std::uintmax_t file_size(IG::CStringView path)
 	return s.size();
 }
 
-file_status status(IG::CStringView path)
+file_status status(CStringView path)
 {
 	struct stat s;
 	if(stat(path, &s) == -1)
@@ -255,7 +255,7 @@ file_status status(IG::CStringView path)
 	return {makeFileType(s), (std::uintmax_t)s.st_size, file_time_type{std::chrono::seconds{s.st_mtime}}};
 }
 
-file_status symlink_status(IG::CStringView path)
+file_status symlink_status(CStringView path)
 {
 	struct stat s;
 	if(lstat(path, &s) == -1)
@@ -270,7 +270,7 @@ file_status symlink_status(IG::CStringView path)
 	return {makeFileType(s), (std::uintmax_t)s.st_size, file_time_type{std::chrono::seconds{s.st_mtime}}};
 }
 
-void chown(IG::CStringView path, uid_t owner, gid_t group)
+void chown(CStringView path, uid_t owner, gid_t group)
 {
 	if(::chown(path, owner, group) == -1) [[unlikely]]
 	{
@@ -280,7 +280,7 @@ void chown(IG::CStringView path, uid_t owner, gid_t group)
 	}
 }
 
-bool access(IG::CStringView path, acc type)
+bool access(CStringView path, acc type)
 {
 	if(::access(path, (int)type) == -1)
 	{
@@ -295,7 +295,7 @@ bool access(IG::CStringView path, acc type)
 	return true;
 }
 
-bool remove(IG::CStringView path)
+bool remove(CStringView path)
 {
 	if(::remove(path) == -1) [[unlikely]]
 	{
@@ -307,7 +307,7 @@ bool remove(IG::CStringView path)
 	return true;
 }
 
-bool create_directory(IG::CStringView path)
+bool create_directory(CStringView path)
 {
 	const mode_t defaultOpenMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
 	if(::mkdir(path, defaultOpenMode) == -1)
@@ -328,7 +328,7 @@ bool create_directory(IG::CStringView path)
 	return true;
 }
 
-bool rename(IG::CStringView oldPath, IG::CStringView newPath)
+bool rename(CStringView oldPath, CStringView newPath)
 {
 	if(::rename(oldPath, newPath) == -1) [[unlikely]]
 	{

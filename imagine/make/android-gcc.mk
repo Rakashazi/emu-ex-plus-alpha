@@ -80,9 +80,10 @@ CFLAGS_TARGET += -target $(clangTarget)
 android_useExternalLibcxx := 1
 ifdef android_useExternalLibcxx
  ifneq ($(pkgName),libcxx) # check we aren't building lib++ itself
-  STDCXXLIB = -nostdlib++ -lc++ -lc++abi $(android_cxxSupportLibs)
+  STDCXXLIB = -nostdlib++ -lc++ -lc++abi -lc++experimental $(android_cxxSupportLibs)
   CPPFLAGS += -nostdinc++ -I$(IMAGINE_SDK_PLATFORM_PATH)/include/c++/v1
   android_staticLibcxxName := libc++.a
+  android_staticLibcxxExperimentalName := libc++experimental.a
  endif
 else
  STDCXXLIB = -static-libstdc++
@@ -117,5 +118,5 @@ LDFLAGS_SYSTEM += -s \
 
 # Don't include public libc++ symbols in main shared object file unless other linked objects need them  
 ifndef cxxStdLibLinkedObjects
- LDFLAGS_SYSTEM += -Wl,--exclude-libs,libc++abi.a,--exclude-libs,$(android_staticLibcxxName)
+ LDFLAGS_SYSTEM += -Wl,--exclude-libs,libc++abi.a,--exclude-libs,$(android_staticLibcxxName),--exclude-libs,$(android_staticLibcxxExperimentalName)
 endif

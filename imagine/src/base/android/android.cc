@@ -38,7 +38,6 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/ScopeGuard.hh>
-#include <imagine/util/format.hh>
 #include "android.hh"
 #include "AndroidInputDevice.hh"
 
@@ -283,14 +282,14 @@ UniqueFileDescriptor ApplicationContext::openFileUriFd(CStringView uri, OpenFlag
 	return application().openFileUriFd(thisThreadJniEnv(), baseActivityObject(), uri, openFlags);
 }
 
-bool AndroidApplication::fileUriExists(JNIEnv *env, jobject baseActivity, IG::CStringView uri) const
+bool AndroidApplication::fileUriExists(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
 	bool exists = uriExists(env, baseActivity, env->NewStringUTF(uri));
 	logMsg("URI %s:%s", exists ? "exists" : "doesn't exist", uri.data());
 	return exists;
 }
 
-bool ApplicationContext::fileUriExists(IG::CStringView uri) const
+bool ApplicationContext::fileUriExists(CStringView uri) const
 {
 	if(androidSDK() < 19 || !IG::isUri(uri))
 		return FS::exists(uri);
@@ -309,72 +308,72 @@ WallClockTimePoint ApplicationContext::fileUriLastWriteTime(CStringView uri) con
 	return application().fileUriLastWriteTime(thisThreadJniEnv(), baseActivityObject(), uri);
 }
 
-std::string AndroidApplication::fileUriFormatLastWriteTimeLocal(JNIEnv *env, jobject baseActivity, IG::CStringView uri) const
+std::string AndroidApplication::fileUriFormatLastWriteTimeLocal(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
 	//logMsg("getting modification time for URI:%s", uri.data());
 	return std::string{JNI::StringChars{env, uriLastModified(env, baseActivity, env->NewStringUTF(uri))}};
 }
 
-std::string ApplicationContext::fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const
+std::string ApplicationContext::fileUriFormatLastWriteTimeLocal(CStringView uri) const
 {
 	if(androidSDK() < 19 || !IG::isUri(uri))
 		return FS::formatLastWriteTimeLocal(*this, uri);
 	return application().fileUriFormatLastWriteTimeLocal(thisThreadJniEnv(), baseActivityObject(), uri);
 }
 
-FS::FileString AndroidApplication::fileUriDisplayName(JNIEnv *env, jobject baseActivity, IG::CStringView uri) const
+FS::FileString AndroidApplication::fileUriDisplayName(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
 	//logMsg("getting display name for URI:%s", uri.data());
 	return FS::FileString{JNI::StringChars{env, uriDisplayName(env, baseActivity, env->NewStringUTF(uri))}};
 }
 
-FS::FileString ApplicationContext::fileUriDisplayName(IG::CStringView uri) const
+FS::FileString ApplicationContext::fileUriDisplayName(CStringView uri) const
 {
 	if(androidSDK() < 19 || !IG::isUri(uri))
 		return FS::displayName(uri);
 	return application().fileUriDisplayName(thisThreadJniEnv(), baseActivityObject(), uri);
 }
 
-bool AndroidApplication::removeFileUri(JNIEnv *env, jobject baseActivity, IG::CStringView uri, bool isDir) const
+bool AndroidApplication::removeFileUri(JNIEnv *env, jobject baseActivity, CStringView uri, bool isDir) const
 {
 	logMsg("removing %s URI:%s", isDir ? "directory" : "file", uri.data());
 	return deleteUri(env, baseActivity, env->NewStringUTF(uri), isDir);
 }
 
-bool ApplicationContext::removeFileUri(IG::CStringView uri) const
+bool ApplicationContext::removeFileUri(CStringView uri) const
 {
 	if(androidSDK() < 19 || !IG::isUri(uri))
 		return FS::remove(uri);
 	return application().removeFileUri(thisThreadJniEnv(), baseActivityObject(), uri, false);
 }
 
-bool AndroidApplication::renameFileUri(JNIEnv *env, jobject baseActivity, IG::CStringView oldUri, IG::CStringView newUri) const
+bool AndroidApplication::renameFileUri(JNIEnv *env, jobject baseActivity, CStringView oldUri, CStringView newUri) const
 {
 	logMsg("renaming file URI:%s -> %s", oldUri.data(), newUri.data());
 	return renameUri(env, baseActivity, env->NewStringUTF(oldUri), env->NewStringUTF(newUri));
 }
 
-bool ApplicationContext::renameFileUri(IG::CStringView oldUri, IG::CStringView newUri) const
+bool ApplicationContext::renameFileUri(CStringView oldUri, CStringView newUri) const
 {
 	if(androidSDK() < 24 || !IG::isUri(oldUri))
 		return FS::rename(oldUri, newUri);
 	return application().renameFileUri(thisThreadJniEnv(), baseActivityObject(), oldUri, newUri);
 }
 
-bool AndroidApplication::createDirectoryUri(JNIEnv *env, jobject baseActivity, IG::CStringView uri) const
+bool AndroidApplication::createDirectoryUri(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
 	logMsg("creating directory URI:%s", uri.data());
 	return createDirUri(env, baseActivity, env->NewStringUTF(uri));
 }
 
-bool ApplicationContext::createDirectoryUri(IG::CStringView uri) const
+bool ApplicationContext::createDirectoryUri(CStringView uri) const
 {
 	if(androidSDK() < 21 || !IG::isUri(uri))
 		return FS::create_directory(uri);
 	return application().createDirectoryUri(thisThreadJniEnv(), baseActivityObject(), uri);
 }
 
-bool ApplicationContext::removeDirectoryUri(IG::CStringView uri) const
+bool ApplicationContext::removeDirectoryUri(CStringView uri) const
 {
 	if(androidSDK() < 19 || !IG::isUri(uri))
 		return FS::remove(uri);

@@ -23,8 +23,8 @@
 #include "MainApp.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/io/IO.hh>
-#include <imagine/util/format.hh>
 #include <imagine/util/string.h>
+#include <format>
 
 extern "C"
 {
@@ -544,7 +544,7 @@ public:
 					}
 					else
 					{
-						app().postMessage(3, 1, fmt::format("{} not present", entry.name));
+						app().postMessage(3, 1, std::format("{} not present", entry.name));
 					}
 					return true;
 				});

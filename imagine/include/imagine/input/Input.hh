@@ -17,8 +17,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/input/inputDefs.hh>
+#include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/time/Time.hh>
 #include <string>
 #include <string_view>

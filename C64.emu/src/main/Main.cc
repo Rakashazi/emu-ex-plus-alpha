@@ -338,7 +338,7 @@ void C64System::initC64(EmuApp &app)
   {
   	logErr("error in init_main()");
   	c64FailedInit = true;
-  	throw std::runtime_error{fmt::format("Missing system file {}, please check Options➔File Paths➔VICE System Files", lastMissingSysFile)};
+  	throw std::runtime_error{std::format("Missing system file {}, please check Options➔File Paths➔VICE System Files", lastMissingSysFile)};
 	}
 	c64IsInit = true;
 }
@@ -348,7 +348,7 @@ bool C64App::willCreateSystem(ViewAttachParams attach, const Input::Event &e)
 	if(!system().c64FailedInit)
 		return true;
 	pushAndShowModalView(std::make_unique<YesNoAlertView>(attach,
-		fmt::format("A system file {} failed loading, you must restart the app and try again after verifying the file", system().lastMissingSysFile),
+		std::format("A system file {} failed loading, you must restart the app and try again after verifying the file", system().lastMissingSysFile),
 		"Exit Now", "Cancel", YesNoAlertView::Delegates{ .onYes = [](View &v) { v.appContext().exit(); } }), e);
 	return false;
 }

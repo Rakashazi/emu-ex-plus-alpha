@@ -18,7 +18,6 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/util/format.hh>
 #include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
 #include "PlaceVideoView.hh"
@@ -29,6 +28,7 @@
 #include <array>
 #include <span>
 #include <ranges>
+#include <format>
 
 namespace EmuEx
 {
@@ -112,7 +112,7 @@ public:
 			{
 				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 				{
-					t.resetString(fmt::format("{:g}mm", elem.dPad()->deadzone() / 100.));
+					t.resetString(std::format("{:g}mm", elem.dPad()->deadzone() / 100.));
 					return true;
 				},
 				.defaultItemOnSelect = [this](TextMenuItem &item) { elem.dPad()->setDeadzone(renderer(), item.id(), window()); }
@@ -158,7 +158,7 @@ public:
 			{
 				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 				{
-					t.resetString(fmt::format("{:g}%", 100.f - elem.dPad()->diagonalSensitivity() * 100.f));
+					t.resetString(std::format("{:g}%", 100.f - elem.dPad()->diagonalSensitivity() * 100.f));
 					return true;
 				},
 				.defaultItemOnSelect = [this](TextMenuItem &item) { elem.dPad()->setDiagonalSensitivity(renderer(), float(item.id()) / 1000.f); }
@@ -419,7 +419,7 @@ public:
 			{
 				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 				{
-					t.resetString(fmt::format("{}mm", elem.buttonGroup()->spacing()));
+					t.resetString(std::format("{}mm", elem.buttonGroup()->spacing()));
 					return true;
 				},
 				.defaultItemOnSelect = [this](TextMenuItem &item)
@@ -755,7 +755,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{:g}mm", vController().buttonSize() / 100.));
+				t.resetString(std::format("{:g}mm", vController().buttonSize() / 100.));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item){ vController().setButtonSize(item.id()); }

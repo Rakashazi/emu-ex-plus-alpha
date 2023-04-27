@@ -45,9 +45,8 @@ protected:
 
 	StaticArrayList<TextMenuItem, 5> textureBufferModeItem;
 	MultiChoiceMenuItem textureBufferMode;
-	TextMenuItem frameIntervalItem[4];
+	TextMenuItem frameIntervalItem[5];
 	MultiChoiceMenuItem frameInterval;
-	BoolMenuItem dropLateFrames;
 	TextMenuItem frameRateItems[4];
 	VideoSystem activeVideoSystem{};
 	MultiChoiceMenuItem frameRate;
@@ -93,7 +92,7 @@ protected:
 	TextHeadingMenuItem colorLevelsHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 34> item;
+	StaticArrayList<MenuItem*, 33> item;
 
 	bool onFrameTimeChange(VideoSystem vidSys, FloatSeconds time);
 	TextMenuItem::SelectDelegate setVideoBrightnessCustomDel(ImageChannel);

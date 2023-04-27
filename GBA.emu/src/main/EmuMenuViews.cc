@@ -22,10 +22,10 @@
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
 #include <imagine/gui/AlertView.hh>
-#include <imagine/util/format.hh>
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/RTC.h>
 #include <vbam/gba/Sound.h>
+#include <format>
 
 namespace EmuEx
 {
@@ -263,7 +263,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 			{
 				.onSetDisplayString = [this, gbVol](auto idx, Gfx::Text &t)
 				{
-					t.resetString(fmt::format("{}%", soundVolumeAsInt(gGba, gbVol)));
+					t.resetString(std::format("{}%", soundVolumeAsInt(gGba, gbVol)));
 					return true;
 				}
 			},
@@ -333,7 +333,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{}%", soundFilteringAsInt(gGba)));
+				t.resetString(std::format("{}%", soundFilteringAsInt(gGba)));
 				return true;
 			}
 		},
@@ -403,7 +403,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(fmt::format("{} lux", (int)system().lightSensorScaleLux));
+				t.resetString(std::format("{} lux", (int)system().lightSensorScaleLux));
 				return true;
 			}
 		},

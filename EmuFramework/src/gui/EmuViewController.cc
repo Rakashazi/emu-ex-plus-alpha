@@ -34,7 +34,6 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/ToastView.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/util/format.hh>
 
 namespace EmuEx
 {

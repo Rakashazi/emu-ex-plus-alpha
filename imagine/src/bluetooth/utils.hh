@@ -44,7 +44,7 @@ static int bachk(const char *str)
 
 static BluetoothAddrString ba2str(BluetoothAddr ba)
 {
-	return IG::format<BluetoothAddrString>("{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+	return formatArray<sizeof(BluetoothAddrString)>("{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
 		ba.data()[5], ba.data()[4], ba.data()[3], ba.data()[2], ba.data()[1], ba.data()[0]);
 }
 

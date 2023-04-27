@@ -49,7 +49,7 @@ class CustomSystemOptionView : public SystemOptionView
 
 	std::string biosMenuEntryStr(std::string_view path) const
 	{
-		return fmt::format("BIOS: {}", appContext().fileUriDisplayName(path));
+		return std::format("BIOS: {}", appContext().fileUriDisplayName(path));
 	}
 
 	StaticArrayList<TextMenuItem, MAX_SH2_CORES> sh2CoreItem;

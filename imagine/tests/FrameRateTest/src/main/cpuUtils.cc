@@ -14,12 +14,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "cpu-stat"
-#include <unistd.h>
-#include <cstdio>
 #include "tests.hh"
 #include <imagine/io/FileIO.hh>
-#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
+#include <unistd.h>
+#include <cstdio>
+#include <format>
 
 struct CPUTime
 {
@@ -114,7 +114,7 @@ void updateCPULoad(FrameRateTest::TestFramework &test)
 		double virtualDelta = newTime.virt - cpuTime.virt;
 		double totalDelta = newTime.total - cpuTime.total;
 		double usagePercent = (niceDelta + userDelta + systemAllDelta + stealDelta + virtualDelta) / totalDelta * (double)100.0;
-		useStr = fmt::format("{:.2f}%", usagePercent);
+		useStr = std::format("{:.2f}%", usagePercent);
 	}
 	cpuTime = newTime;
 	test.setCPUUseText(useStr);

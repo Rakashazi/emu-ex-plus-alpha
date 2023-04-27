@@ -576,7 +576,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	std::string biosMenuEntryStr(CStringView path) const
 	{
-		return fmt::format("Disk System BIOS: {}", appContext().fileUriDisplayName(path));
+		return std::format("Disk System BIOS: {}", appContext().fileUriDisplayName(path));
 	}
 
 public:
@@ -690,7 +690,7 @@ private:
 		if(!FCEU_FDSInserted())
 			fdsControl.compile("FDS Control (No Disk)", renderer());
 		else
-			fdsControl.compile(fmt::format("FDS Control (Disk {}:{})", (FCEU_FDSCurrentSide() >> 1) + 1, (FCEU_FDSCurrentSide() & 1) ? 'B' : 'A'),
+			fdsControl.compile(std::format("FDS Control (Disk {}:{})", (FCEU_FDSCurrentSide() >> 1) + 1, (FCEU_FDSCurrentSide() & 1) ? 'B' : 'A'),
 				renderer());
 	}
 

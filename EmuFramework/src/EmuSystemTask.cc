@@ -39,7 +39,7 @@ void EmuSystemTask::start()
 			commandPort.attach(eventLoop, [this, &started](auto msgs)
 			{
 				constexpr int frameProccessLimit = 20;
-				const int maxFrameSkip = app.shouldSkipLateFrames() ? frameProccessLimit : app.frameInterval();
+				const int maxFrames = app.frameInterval() ? frameProccessLimit : 1;
 				int fastForwardFrames{};
 				RunFrameCommand runCmd{};
 				for(auto msg : msgs)
@@ -50,8 +50,9 @@ void EmuSystemTask::start()
 						{
 							runCmd.video = run.video;
 							runCmd.audio = run.audio;
-							if(!runCmd.fastForward) // accumulate the total frames from all commands in queue
-								runCmd.frames = std::min(runCmd.frames + run.frames, maxFrameSkip);
+							// accumulate the total frames from all commands in queue
+							if(!run.fastForward)
+								runCmd.frames = std::min(runCmd.frames + run.frames, maxFrames);
 							else
 								fastForwardFrames += run.frames;
 							runCmd.skipForward = run.skipForward;
