@@ -184,16 +184,25 @@ void GbaSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	readCheatFile(*this);
 }
 
+static void updateColorMap(auto &map, const PixelDesc &pxDesc)
+{
+	for(auto i : iotaCount(0x10000))
+	{
+		auto r = remap(i & 0x1f, 0, 0x1f, 0.f, 1.f);
+		auto g = remap((i & 0x3e0) >> 5, 0, 0x1f, 0.f, 1.f);
+		auto b = remap((i & 0x7c00) >> 10, 0, 0x1f, 0.f, 1.f);
+		map[i] = pxDesc.build(r, g, b, 1.f);
+	}
+}
+
 bool GbaSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
 	logMsg("updating system color maps");
 	video.setFormat({lcdSize, fmt});
-	if(fmt == IG::PIXEL_RGB565)
-		utilUpdateSystemColorMaps(16, 11, 6, 0);
-	else if(fmt == IG::PIXEL_BGRA8888)
-		utilUpdateSystemColorMaps(32, 19, 11, 3);
+	if(fmt == PIXEL_RGB565)
+		updateColorMap(systemColorMap.map16, PIXEL_DESC_RGB565);
 	else
-		utilUpdateSystemColorMaps(32, 3, 11, 19);
+		updateColorMap(systemColorMap.map32, fmt.desc().nativeOrder());
 	return true;
 }
 
