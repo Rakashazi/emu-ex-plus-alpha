@@ -36,6 +36,7 @@ fceu/file.cpp \
 fceu/filter.cpp \
 fceu/ines.cpp \
 fceu/input.cpp \
+fceu/nsf.cpp \
 fceu/palette.cpp \
 fceu/ppu.cpp \
 fceu/sound.cpp \

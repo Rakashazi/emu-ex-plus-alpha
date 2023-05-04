@@ -1836,7 +1836,10 @@ int FCEUPPU_Loop(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::NesSystem &sys, Emu
 			kook ^= 1;
 		}
 		if (GameInfo->type == GIT_NSF)
+		{
 			X6502_Run((256 + 85) * normalscanlines);
+			FCEUPPU_FrameReady(taskCtx, sys, video, nullptr);
+		}
 		#ifdef FRAMESKIP
 		else if (skip) {
 			int y;

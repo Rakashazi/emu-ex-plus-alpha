@@ -475,7 +475,7 @@ static BMAPPING bmap[] = {
 	{ "T4A54A", Mapper134_Init, 0 },
 	{ "BS-400R", Mapper422_Init, 0 },
 	{ "BS-4040R", Mapper422_Init, 0 },
-	{ "COOLGIRL", COOLGIRL_Init, 0 },
+	{ "COOLGIRL", COOLGIRL_Init, BMCFLAG_256KCHRR },
 	{ "JC-016-2", Mapper205_Init, 0 },
 
 	{ 0, 0, 0 }

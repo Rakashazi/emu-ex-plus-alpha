@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of NES.emu.
+
+	NES.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	NES.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <fceu/driver.h>
@@ -28,9 +43,12 @@ enum
 	CFGKEY_HORIZONTAL_VIDEO_CROP = 284, CFGKEY_CORRECT_LINE_ASPECT = 285,
 	CFGKEY_FF_DURING_FDS_ACCESS = 286, CFGKEY_CHEATS_PATH = 287,
 	CFGKEY_PATCHES_PATH = 288, CFGKEY_PALETTE_PATH = 289,
+	CFGKEY_OVERCLOCKING = 290, CFGKEY_OVERCLOCK_EXTRA_LINES = 291,
+	CFGKEY_OVERCLOCK_VBLANK_MULTIPLIER = 292,
 };
 
-extern FS::PathString fdsBiosPath;
+constexpr int maxExtraLinesPerFrame = 30000;
+constexpr int maxVBlankMultiplier  = 16;
 
 constexpr bool isSupportedStartingLine(uint8_t line)
 {
@@ -66,16 +84,19 @@ public:
 	uint8_t fcExtData{};
 	bool usingZapper{};
 	uint8_t autoDetectedRegion{};
-	IG::PixelFormat pixFmt{};
+	PixelFormat pixFmt{};
 	PalArray defaultPal{};
 	union
 	{
 		uint16_t col16[256];
 		uint32_t col32[256];
 	} nativeCol;
+	alignas(16) uint8 XBufData[256 * 256 + 16]{};
 	std::string cheatsDir;
 	std::string patchesDir;
 	std::string palettesDir;
+	std::string defaultPalettePath;
+	std::string fdsBiosPath;
 	bool fastForwardDuringFdsAccess = true;
 	bool fdsIsAccessing{};
 	Byte1Option optionFourScore{CFGKEY_FOUR_SCORE, 0};
@@ -92,19 +113,10 @@ public:
 	Byte1Option optionVisibleVideoLines{CFGKEY_VISIBLE_VIDEO_LINES, 224, false, isSupportedLineCount};
 	Byte1Option optionHorizontalVideoCrop{CFGKEY_HORIZONTAL_VIDEO_CROP, 0};
 	Byte1Option optionCorrectLineAspect{CFGKEY_CORRECT_LINE_ASPECT, 0};
-	FS::PathString defaultPalettePath{};
 	static constexpr FloatSeconds ntscFrameTime{16777215./ 1008307711.}; // ~60.099Hz
 	static constexpr FloatSeconds palFrameTime{16777215. / 838977920.}; // ~50.00Hz
 
-	NesSystem(ApplicationContext ctx):
-		EmuSystem{ctx}
-	{
-		backupSavestates = 0;
-		if(!FCEUI_Initialize())
-		{
-			throw std::runtime_error{"Error in FCEUI_Initialize"};
-		}
-	}
+	NesSystem(ApplicationContext);
 	void connectNESInput(int port, ESI type);
 	void setupNESInputPorts();
 	void setupNESFourScore();
@@ -159,3 +171,8 @@ void emulateSound(EmuAudio *audio);
 void setRegion(int region, int defaultRegion, int detectedRegion);
 
 }
+
+struct FCEUGI;
+struct FCEUFILE;
+
+FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int OverwriteVidMode, bool silent);

@@ -118,6 +118,7 @@ bool movieSubtitles = true; //Toggle for displaying movie subtitles
 bool DebuggerWasUpdated = false; //To prevent the debugger from updating things without being updated.
 bool AutoResumePlay = false;
 char romNameWhenClosingEmulator[2048] = {0};
+static unsigned int pauseTimer = 0;
 int pal_emulation = 0;
 
 #if 0
@@ -164,7 +165,6 @@ static void FCEU_CloseGame(void)
 		}
 
 #ifdef __WIN_DRIVER__
-		extern char LoadedRomFName[2048];
 		if (storePreferences(mass_replace(LoadedRomFName, "|", ".").c_str()))
 			FCEUD_PrintError("Couldn't store debugging data");
 		CDLoggerROMClosed();
@@ -406,7 +406,7 @@ FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int Overwr
 	int lastpal = PAL;
 	int lastdendy = dendy;
 
-	const char* romextensions[] = { "nes", "fds", 0 };
+	const char* romextensions[] = { "nes", "fds", "nsf", 0 };
 
 	// indicator for if the operaton was canceled by user
 	// currently there's only one situation:
@@ -476,7 +476,11 @@ FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int Overwr
 		load_result = iNESLoad(fullname.c_str(), fp, OverwriteVidMode);
 		if (load_result == LOADER_INVALID_FORMAT)
 		{
-			load_result = UNIFLoad(fullname.c_str(), fp);
+			load_result = NSFLoad(fullname.c_str(), fp);
+			if (load_result == LOADER_INVALID_FORMAT)
+			{
+				load_result = UNIFLoad(fullname.c_str(), fp);
+			}
 		}
 	}
 	if (load_result == LOADER_OK)
@@ -581,21 +585,9 @@ FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int Overwr
 	return GameInfo;
 }
 
-FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silent)
-{
-	const char* romextensions[] = { "nes", "fds", 0 };
-	auto fp = FCEU_fopen(name, 0, "rb", 0, -1, romextensions);
-	return FCEUI_LoadGameWithFileVirtual(fp, name, OverwriteVidMode, silent);
-}
-
 FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode, bool silent)
 {
 	return FCEUI_LoadGameVirtual(name, OverwriteVidMode, silent);
-}
-
-FCEUGI *FCEUI_LoadGameWithFile(FCEUFILE *file, const char *name, int OverwriteVidMode, bool silent)
-{
-	return FCEUI_LoadGameWithFileVirtual(file, name, OverwriteVidMode, silent);
 }
 
 
@@ -755,6 +747,22 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
 #endif
 	}
 
+	if (EmulationPaused & EMULATIONPAUSED_TIMER)
+	{
+		if (pauseTimer > 0)
+		{
+			pauseTimer--;
+		}
+		else
+		{
+			EmulationPaused &= ~EMULATIONPAUSED_TIMER;
+		}
+		if (EmulationPaused & EMULATIONPAUSED_PAUSED)
+		{
+			EmulationPaused &= ~EMULATIONPAUSED_TIMER;
+		}
+	}
+
 	if (EmulationPaused & EMULATIONPAUSED_FA)
 	{
 		// the user is holding Frame Advance key
@@ -778,7 +786,7 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
 			RefreshThrottleFPS();
 		}
 #endif
-		if (EmulationPaused & EMULATIONPAUSED_PAUSED)
+		if (EmulationPaused & (EMULATIONPAUSED_PAUSED | EMULATIONPAUSED_TIMER) )
 		{
 			// emulator is paused
 			memcpy(XBuf, XBackBuf, 256*256);
@@ -1255,6 +1263,33 @@ void FCEUI_FrameAdvanceEnd(void) {
 void FCEUI_FrameAdvance(void) {
 	frameAdvance_Delay_count = 0;
 	frameAdvanceRequested = true;
+}
+
+void FCEUI_PauseForDuration(int secs)
+{
+	int framesPerSec;
+
+	// If already paused, do nothing
+	if (EmulationPaused & EMULATIONPAUSED_PAUSED)
+	{
+		return;
+	}
+
+	if (PAL || dendy)
+	{
+		framesPerSec = 50;
+	}
+	else
+	{
+		framesPerSec = 60;
+	}
+	pauseTimer = framesPerSec * secs;
+	EmulationPaused |= EMULATIONPAUSED_TIMER;
+}
+
+int FCEUI_PauseFramesRemaining(void)
+{
+	return (EmulationPaused & EMULATIONPAUSED_TIMER) ? pauseTimer : 0;
 }
 
 static int AutosaveCounter = 0;

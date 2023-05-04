@@ -207,7 +207,54 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		}
 	};
 
-	std::array<MenuItem*, 7> menuItem
+	TextHeadingMenuItem overclocking{"Overclocking", &defaultBoldFace()};
+
+	BoolMenuItem overclockingEnabled
+	{
+		"Enabled", &defaultFace(),
+		overclock_enabled,
+		[this](BoolMenuItem &item)
+		{
+			system().sessionOptionSet();
+			overclock_enabled = item.flipBoolValue(*this);
+		}
+	};
+
+	DualTextMenuItem extraLines
+	{
+		"Extra Lines Per Frame", std::to_string(postrenderscanlines), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			app().pushAndShowNewCollectValueRangeInputView<int, 0, maxExtraLinesPerFrame>(attachParams(), e,
+				"Input 0 to 30000", std::to_string(postrenderscanlines),
+				[this](EmuApp &app, auto val)
+				{
+					system().sessionOptionSet();
+					postrenderscanlines = val;
+					extraLines.set2ndName(std::to_string(val));
+					return true;
+				});
+		}
+	};
+
+	DualTextMenuItem vblankMultipler
+	{
+		"Vertical Blank Line Multiplier", std::to_string(vblankscanlines), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			app().pushAndShowNewCollectValueRangeInputView<int, 0, maxVBlankMultiplier>(attachParams(), e,
+				"Input 0 to 16", std::to_string(vblankscanlines),
+				[this](EmuApp &app, auto val)
+				{
+					system().sessionOptionSet();
+					vblankscanlines = val;
+					vblankMultipler.set2ndName(std::to_string(val));
+					return true;
+				});
+		}
+	};
+
+	std::array<MenuItem*, 11> menuItem
 	{
 		&inputPorts,
 		&fourScore,
@@ -216,6 +263,10 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		&videoSystem,
 		&visibleVideoLines,
 		&horizontalVideoCrop,
+		&overclocking,
+		&overclockingEnabled,
+		&extraLines,
+		&vblankMultipler,
 	};
 
 public:
@@ -559,14 +610,14 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem fdsBios
 	{
-		biosMenuEntryStr(fdsBiosPath), &defaultFace(),
+		biosMenuEntryStr(system().fdsBiosPath), &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			pushAndShow(makeViewWithName<DataFileSelectView<>>("Disk System BIOS",
-				app().validSearchPath(FS::dirnameUri(fdsBiosPath)),
+				app().validSearchPath(FS::dirnameUri(system().fdsBiosPath)),
 				[this](CStringView path, FS::file_type type)
 				{
-					fdsBiosPath = path;
+					system().fdsBiosPath = path;
 					logMsg("set fds bios:%s", path.data());
 					fdsBios.compile(biosMenuEntryStr(path), renderer());
 					return true;

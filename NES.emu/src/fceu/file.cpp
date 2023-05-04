@@ -471,9 +471,9 @@ const char *FCEUI_GetBaseDirectory(void)
 	return BaseDirectory.c_str();
 }
 
-static const char *odirs[FCEUIOD__COUNT]{};     // odirs, odors. ^_^
+static char *odirs[FCEUIOD__COUNT]={0,0,0,0,0,0,0,0,0,0,0,0,0};     // odirs, odors. ^_^
 
-void FCEUI_SetDirOverride(int which, const char *n)
+void FCEUI_SetDirOverride(int which, char *n)
 {
 	//	FCEU_PrintError("odirs[%d]=%s->%s", which, odirs[which], n);
 	if (which < FCEUIOD__COUNT)
@@ -693,7 +693,7 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 			break;
 		case FCEUMKF_FDS:
 			if(odirs[FCEUIOD_NV])
-				sprintf(ret,"%s" PSS "%s.fds.sav",odirs[FCEUIOD_NV],FileBase);
+				sprintf(ret,"%s" PSS "%s.fds",odirs[FCEUIOD_NV],FileBase);
 			else
 				sprintf(ret,"%s" PSS "sav" PSS "%s.fds",BaseDirectory.c_str(),FileBase);
 			break;

@@ -35,10 +35,9 @@ void ApplyDeemphasisComplete(pal* pal512);
 void FCEU_setDefaultPalettePtr(pal *ptr);
 void ApplyIPS(FILE *ips, FCEUFILE* fp);
 
-static uint8 XBufData[256 * 256 + 16]{};
 // Separate front & back buffers not needed for our video implementation
-uint8 *XBuf = XBufData;
-uint8 *XBackBuf = XBufData;
+uint8 *XBuf{};
+uint8 *XBackBuf{};
 uint8 *XDBuf{};
 uint8 *XDBackBuf{};
 int dendy = 0;
@@ -73,7 +72,7 @@ static bool hasROMExtension(std::string_view name)
 
 static bool hasNESExtension(std::string_view name)
 {
-	return hasROMExtension(name) || hasFDSExtension(name);
+	return hasROMExtension(name) || hasFDSExtension(name) || endsWithAnyCaseless(name, ".nsf");
 }
 
 const char *EmuSystem::shortSystemName() const
@@ -87,6 +86,18 @@ const char *EmuSystem::systemName() const
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasNESExtension;
+
+NesSystem::NesSystem(ApplicationContext ctx):
+	EmuSystem{ctx}
+{
+	XBuf = XBufData;
+	XBackBuf = XBufData;
+	backupSavestates = false;
+	if(!FCEUI_Initialize())
+	{
+		throw std::runtime_error{"Error in FCEUI_Initialize"};
+	}
+}
 
 void NesSystem::reset(EmuApp &app, ResetMode mode)
 {
@@ -126,13 +137,11 @@ void NesSystem::loadState(EmuApp &app, IG::CStringView path)
 
 void NesSystem::loadBackupMemory(EmuApp &app)
 {
-	if(!hasContent())
-		return;
 	if(isFDS)
 	{
 		FCEU_FDSReadModifiedDisk();
 	}
-	else
+	else if(currCartInfo)
 	{
 		FCEU_LoadGameSave(currCartInfo);
 	}
@@ -140,13 +149,11 @@ void NesSystem::loadBackupMemory(EmuApp &app)
 
 void NesSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 {
-	if(!hasContent())
-		return;
 	if(isFDS)
 	{
 		FCEU_FDSWriteModifiedDisk();
 	}
-	else
+	else if(currCartInfo)
 	{
 		FCEU_SaveGameSave(currCartInfo);
 	}
@@ -357,7 +364,7 @@ void NesSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	{
 		ApplyIPS(ipsFile, file);
 	}
-	if(!FCEUI_LoadGameWithFile(file, contentFileName().data(), 0))
+	if(!FCEUI_LoadGameWithFileVirtual(file, contentFileName().data(), 0, false))
 	{
 		throw std::runtime_error("Error loading game");
 	}

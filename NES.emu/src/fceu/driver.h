@@ -107,7 +107,6 @@ void FCEUI_GetRenderPlanes(bool& sprites, bool& bg);
 
 //name=path and file to load.  returns null if it failed
 FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode, bool silent = false);
-FCEUGI *FCEUI_LoadGameWithFile(FCEUFILE *file, const char *name, int OverwriteVidMode, bool silent = false);
 
 //same as FCEUI_LoadGame, except that it can load from a tempfile.
 //name is the logical path to open; archiveFilename is the archive which contains name
@@ -178,8 +177,8 @@ int FCEUI_SelectState(int, int);
 extern void FCEUI_SelectStateNext(int);
 
 //"fname" overrides the default save state filename code if non-NULL.
-int FCEUI_SaveState(const char *fname, bool display_message=true);
-int FCEUI_LoadState(const char *fname, bool display_message=true);
+bool FCEUI_SaveState(const char *fname, bool display_message=true);
+bool FCEUI_LoadState(const char *fname, bool display_message=true);
 
 void FCEUD_SaveStateAs(void);
 void FCEUD_LoadStateFrom(void);
@@ -241,7 +240,7 @@ void FCEUI_CheatSearchSetCurrentAsOriginal(void);
 #define FCEUIOD_AVI		12	//default file for avi output
 #define FCEUIOD__COUNT  13	//base directory override?
 
-void FCEUI_SetDirOverride(int which, const char *n);
+void FCEUI_SetDirOverride(int which, char *n);
 
 void FCEUI_MemDump(uint16 a, int32 len, void (*callb)(uint16 a, uint8 v));
 uint8 FCEUI_MemSafePeek(uint16 A);
@@ -272,7 +271,7 @@ void FCEUI_FDSInsert(void); //mbg merge 7/17/06 changed to void fn(void) to make
 void FCEUI_FDSSelect(void);
 int FCEUD_FDSReadBIOS(void *buff, uint32 size);
 
-int FCEUI_DatachSet(const uint8 *rcode);
+int FCEUI_DatachSet(uint8 *rcode);
 
 ///returns a flag indicating whether emulation is paused
 int FCEUI_EmulationPaused();
@@ -284,6 +283,8 @@ void FCEUI_ClearEmulationFrameStepped();
 void FCEUI_SetEmulationPaused(int val);
 ///toggles the paused bit (bit0) for EmulationPaused. caused FCEUD_DebugUpdate() to fire if the emulation pauses
 void FCEUI_ToggleEmulationPause();
+void FCEUI_PauseForDuration(int secs);
+int FCEUI_PauseFramesRemaining();
 
 //indicates whether input aids should be drawn (such as crosshairs, etc; usually in fullscreen mode)
 bool FCEUD_ShouldDrawInputAids();

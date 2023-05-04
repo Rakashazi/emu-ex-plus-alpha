@@ -194,7 +194,20 @@ void NesSystem::handleInputAction(EmuApp *, InputAction a)
 	int player = a.key >> 8;
 	auto key = a.key & 0xFF;
 	bool isPushed = a.state == Input::Action::PUSHED;
-	if(GameInfo->type == GIT_VSUNI) // TODO: make coin insert separate key
+	if(GameInfo->type == GIT_NSF)
+	{
+		if(key == bit(4))
+			FCEUI_NSFChange(10);
+		else if(key == bit(5))
+			FCEUI_NSFChange(-10);
+		else if(key == bit(7))
+			FCEUI_NSFChange(1);
+		else if(key == bit(6))
+			FCEUI_NSFChange(-1);
+		else if(key == bit(3))
+			FCEUI_NSFChange(0);
+	}
+	else if(GameInfo->type == GIT_VSUNI) // TODO: make coin insert separate key
 	{
 		if(isPushed && key == IG::bit(3))
 			FCEUI_VSUniCoin();

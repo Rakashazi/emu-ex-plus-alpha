@@ -34,9 +34,11 @@ void *FCEU_amalloc(size_t size, size_t alignment)
 
 	#ifdef _MSC_VER
 	void *ret = _aligned_malloc(size,alignment);
-	#else
+	#elif defined __ANDROID__
 	void *ret{};
 	posix_memalign(&ret, alignment, size);
+	#else
+	void *ret = aligned_alloc(alignment,size);
 	#endif
 
 	if(!ret)

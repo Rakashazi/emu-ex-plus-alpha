@@ -214,7 +214,9 @@ void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC
 int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 {
 	using namespace EmuEx;
-	auto appCtx = EmuEx::gAppContext();
+	auto &sys = static_cast<NesSystem&>(EmuEx::gSystem());
+	auto appCtx = sys.appContext();
+	const auto &fdsBiosPath = sys.fdsBiosPath;
 	if(fdsBiosPath.empty())
 	{
 		throw std::runtime_error{"No FDS BIOS set"};
@@ -280,11 +282,6 @@ void FCEU_DrawRecordingStatus(uint8* XBuf) {}
 void FCEU_DrawNumberRow(uint8 *XBuf, int *nstatus, int cur) {}
 void DrawTextTrans(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor) {}
 void DrawTextTransWH(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor, int max_w, int max_h, int border) {}
-
-// from nsf.cpp
-NSF_HEADER NSFHeader;
-void DoNSFFrame(void) {}
-int NSFLoad(const char *name, FCEUFILE *fp) { return 0; }
 
 // from debug.cpp
 volatile int datacount, undefinedcount;
