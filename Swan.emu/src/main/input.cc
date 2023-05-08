@@ -51,10 +51,10 @@ enum
 	wsKeyIdxY4Turbo,
 	wsKeyIdxANoRotation,
 	wsKeyIdxBNoRotation,
-	wsKeyIdxY1X1,
-	wsKeyIdxY2X2,
-	wsKeyIdxY3X3,
-	wsKeyIdxY4X4,
+	wsKeyIdxY1X2,
+	wsKeyIdxY2X3,
+	wsKeyIdxY3X4,
+	wsKeyIdxY4X1,
 };
 
 constexpr std::array<unsigned, 4> dpadButtonCodes
@@ -75,20 +75,20 @@ constexpr unsigned faceButtonCodes[]
 
 constexpr unsigned oppositeDPadButtonCodes[]
 {
-	wsKeyIdxY4X4,
-	wsKeyIdxY3X3,
-	wsKeyIdxY1X1,
-	wsKeyIdxY2X2,
+	wsKeyIdxY4X1,
+	wsKeyIdxY3X4,
+	wsKeyIdxY1X2,
+	wsKeyIdxY2X3,
 };
 
 constexpr unsigned faceButtonCombinedCodes[]
 {
 	wsKeyIdxBNoRotation,
 	wsKeyIdxANoRotation,
-	wsKeyIdxY4X4,
-	wsKeyIdxY3X3,
-	wsKeyIdxY1X1,
-	wsKeyIdxY2X2,
+	wsKeyIdxY4X1,
+	wsKeyIdxY3X4,
+	wsKeyIdxY1X2,
+	wsKeyIdxY2X3,
 };
 
 constexpr std::array gamepadComponents
@@ -135,16 +135,16 @@ AssetDesc WsApp::vControllerAssetDesc(unsigned key) const
 		case wsKeyIdxBNoRotation:
 		case wsKeyIdxBTurbo:
 		case wsKeyIdxB: return virtualControllerAssets.b;
-		case wsKeyIdxY1X1:
+		case wsKeyIdxY1X2:
 		case wsKeyIdxY1Turbo:
 		case wsKeyIdxY1: return virtualControllerAssets.d1;
-		case wsKeyIdxY2X2:
+		case wsKeyIdxY2X3:
 		case wsKeyIdxY2Turbo:
 		case wsKeyIdxY2: return virtualControllerAssets.d2;
-		case wsKeyIdxY3X3:
+		case wsKeyIdxY3X4:
 		case wsKeyIdxY3Turbo:
 		case wsKeyIdxY3: return virtualControllerAssets.d3;
-		case wsKeyIdxY4X4:
+		case wsKeyIdxY4X1:
 		case wsKeyIdxY4Turbo:
 		case wsKeyIdxY4: return virtualControllerAssets.d4;
 		case wsKeyIdxStart: return virtualControllerAssets.start;
@@ -212,10 +212,10 @@ InputAction WsSystem::translateInputAction(InputAction action)
 				case wsKeyIdxB: return X1_BIT;
 				case wsKeyIdxANoRotation: return A_BIT;
 				case wsKeyIdxBNoRotation: return B_BIT;
-				case wsKeyIdxY1X1: return X1_BIT;
-				case wsKeyIdxY2X2: return X2_BIT;
-				case wsKeyIdxY3X3: return X3_BIT;
-				case wsKeyIdxY4X4: return X4_BIT;
+				case wsKeyIdxY1X2: return X2_BIT;
+				case wsKeyIdxY2X3: return X3_BIT;
+				case wsKeyIdxY3X4: return X4_BIT;
+				case wsKeyIdxY4X1: return X1_BIT;
 			}
 		}
 		else
@@ -245,10 +245,10 @@ InputAction WsSystem::translateInputAction(InputAction action)
 				case wsKeyIdxB: return B_BIT;
 				case wsKeyIdxANoRotation: return A_BIT;
 				case wsKeyIdxBNoRotation: return B_BIT;
-				case wsKeyIdxY1X1: return Y1_BIT;
-				case wsKeyIdxY2X2: return Y2_BIT;
-				case wsKeyIdxY3X3: return Y3_BIT;
-				case wsKeyIdxY4X4: return Y4_BIT;
+				case wsKeyIdxY1X2: return Y1_BIT;
+				case wsKeyIdxY2X3: return Y2_BIT;
+				case wsKeyIdxY3X4: return Y3_BIT;
+				case wsKeyIdxY4X1: return Y4_BIT;
 			}
 		}
 		bug_unreachable("invalid key");
