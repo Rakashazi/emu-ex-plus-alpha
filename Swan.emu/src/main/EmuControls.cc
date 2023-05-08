@@ -47,10 +47,10 @@ constexpr std::array<const std::string_view, gamepadKeys> gamepadName
 	"Turbo Y4",
 	"A",
 	"B",
-	"Y1 ↷ X1",
-	"Y2 ↷ X2",
-	"Y3 ↷ X3",
-	"Y4 ↷ X4",
+	"Y1 ↷ X2",
+	"Y2 ↷ X3",
+	"Y3 ↷ X4",
+	"Y4 ↷ X1",
 };
 
 constexpr int gamepadKeyOffset = gameActionKeys;
