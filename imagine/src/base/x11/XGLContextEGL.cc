@@ -17,6 +17,9 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/util/egl.hh>
+#include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/ranges.hh>
 #include <imagine/logger/logger.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -51,10 +54,44 @@ bool GLManager::bindAPI(GL::API api)
 		return eglBindAPI(EGL_OPENGL_API);
 }
 
-std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext, GLBufferConfigAttributes attr, GL::API api, int majorVersion) const
+std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext ctx, GLBufferConfigAttributes attr, GL::API api, int majorVersion) const
 {
 	auto renderableType = makeRenderableType(api, majorVersion);
-	return chooseConfig(display(), renderableType, attr);
+	if(attr.translucentWindow)
+	{
+		std::array<EGLConfig, 4> configs;
+		auto configCount = chooseConfigs(display(), renderableType, attr, configs);
+		if(!configCount)
+		{
+			logErr("no usable EGL configs found with renderable type:%s", eglRenderableTypeToStr(renderableType));
+			return {};
+		}
+		// find the config with a visual bits/channel == 8
+		auto xDpy = static_cast<Display*>(ctx.nativeDisplayConnection());
+		for(auto conf : configs | std::views::take(configCount))
+		{
+			XVisualInfo visualTemplate{};
+			visualTemplate.c_class = TrueColor;
+			visualTemplate.visualid = eglConfigAttrib(display(), conf, EGL_NATIVE_VISUAL_ID);
+			int count;
+			auto infoPtr = XGetVisualInfo(xDpy, VisualIDMask | VisualClassMask, &visualTemplate, &count);
+			if(!infoPtr)
+				continue;
+			auto freeInfo = scopeGuard([&](){ XFree(infoPtr); });
+			if(infoPtr->bits_per_rgb == 8)
+			{
+				if(Config::DEBUG_BUILD)
+					printEGLConf(display(), conf);
+				return conf;
+			}
+		}
+		logErr("no EGL configs with matching visual bits/channel found");
+		return {};
+	}
+	else
+	{
+		return chooseConfig(display(), renderableType, attr);
+	}
 }
 
 NativeWindowFormat GLManager::nativeWindowFormat(ApplicationContext ctx, GLBufferConfig glConfig) const

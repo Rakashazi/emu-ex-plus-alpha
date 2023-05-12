@@ -27,9 +27,10 @@ final class DisplayListenerHelper
 	private static final String logTag = "DisplayListenerHelper";
 	private DisplayManager displayManager;
 	private long nativeUserData;
-	private native void displayAdd(long nActivityAddr, int id, Display dpy, float refreshRate, DisplayMetrics metrics);
-	private native void displayChange(long nActivityAddr,int id, float refreshRate);
-	private native void displayRemove(long nActivityAddr,int id);
+	private native void displayAdd(long nActivityAddr, int id, Display dpy, float refreshRate,
+		long presentationDeadline, DisplayMetrics metrics);
+	private native void displayChange(long nActivityAddr, int id, float refreshRate);
+	private native void displayRemove(long nActivityAddr, int id);
 	private final class Listener implements DisplayManager.DisplayListener
 	{
 		@Override public void onDisplayAdded(int deviceId)
@@ -43,7 +44,8 @@ final class DisplayListenerHelper
 				//Log.i(logTag, "skipped adding display with id: " + deviceId);
 				return;
 			}
-			displayAdd(nativeUserData, deviceId, dpy, dpy.getRefreshRate(), displayMetrics(dpy));
+			displayAdd(nativeUserData, deviceId, dpy, dpy.getRefreshRate(),
+				BaseActivity.getPresentationDeadlineNanos(dpy), displayMetrics(dpy));
 		}
 
 		@Override public void onDisplayChanged(int deviceId)
@@ -81,7 +83,7 @@ final class DisplayListenerHelper
 		for(Display dpy : displayManager.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION))
 		{
 			act.displayEnumerated(nativeUserData, dpy, dpy.getDisplayId(), dpy.getRefreshRate(),
-				Surface.ROTATION_0, displayMetrics(dpy));
+				BaseActivity.getPresentationDeadlineNanos(dpy), Surface.ROTATION_0, displayMetrics(dpy));
 		}
 	}
 

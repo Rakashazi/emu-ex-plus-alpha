@@ -95,8 +95,8 @@ public:
 	float projectionRollAngle(const Window &) const;
 	static ClipRect makeClipRect(const Window &win, WindowRect rect);
 	bool supportsSyncFences() const;
-	void setPresentationTime(Window &, SteadyClockTimePoint time) const;
 	bool supportsPresentationTime() const;
+	PresentMode evalPresentMode(const Window &, PresentMode) const;
 	int maxSwapChainImages() const;
 	void setCorrectnessChecks(bool on);
 	std::vector<DrawableConfigDesc> supportedDrawableConfigs() const;

@@ -427,9 +427,9 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 	applyCheats();
 }
 
-void MdSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
+void MdSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 {
-	float outputFrameRate = 1. / outputFrameTime.count();
+	float outputFrameRate = toHz(outputFrameTime);
 	if(snd.sample_rate == outputRate && snd.frame_rate == outputFrameRate)
 		return;
 	logMsg("set sound output rate:%d for fps:%.2f", outputRate, outputFrameRate);

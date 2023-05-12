@@ -448,7 +448,11 @@ static IG::Screen *extraWindowScreen(IG::ApplicationContext ctx)
 
 static SteadyClockTime targetFrameTime(const Screen &s)
 {
-	return std::chrono::duration_cast<Nanoseconds>(s.frameTime()) / 2;
+	auto total = s.frameTime() - s.presentationDeadline();
+	auto lowerBound = Milliseconds{1};
+	if(total < lowerBound)
+		total = lowerBound;
+	return total;
 }
 
 void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::ApplicationContext ctx)
@@ -530,13 +534,13 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			auto &screen = *win.screen();
 			if(!screen.supportsTimestamps() && (!Config::envIsLinux || screen.frameRate() < 100.))
 			{
-				setWindowFrameClockSource(IG::Window::FrameTimeSource::RENDERER);
+				windowFrameTimeSource = WindowFrameTimeSource::RENDERER;
 			}
 			else
 			{
-				setWindowFrameClockSource(IG::Window::FrameTimeSource::SCREEN);
+				windowFrameTimeSource = WindowFrameTimeSource::SCREEN;
 			}
-			logMsg("timestamp source:%s", windowFrameClockSource() == IG::Window::FrameTimeSource::RENDERER ? "renderer" : "screen");
+			logMsg("timestamp source:%s", windowFrameTimeSource == WindowFrameTimeSource::RENDERER ? "renderer" : "screen");
 			winData.viewController.placeElements();
 			winData.viewController.pushAndShowMainMenu(viewAttach, emuVideoLayer, emuAudio);
 			configureSecondaryScreens();
@@ -548,7 +552,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				});
 			emuVideo.setRendererTask(renderer.task());
 			emuVideo.setTextureBufferMode(system(), (Gfx::TextureBufferMode)optionTextureBufferMode.val);
-			emuVideo.setImageBuffers(optionVideoImageBuffers, renderer.supportsPresentationTime());
+			emuVideo.setImageBuffers(optionVideoImageBuffers);
 			emuVideoLayer.setLinearFilter(optionImgFilter); // init the texture sampler before setting format
 			applyRenderPixelFormat();
 			emuVideoLayer.setOverlay((ImageOverlayId)optionOverlayEffect.val);
@@ -573,7 +577,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						altSpeed = sys.targetSpeed != 1.;
 						sys.setSpeedMultiplier(audio, sys.targetSpeed);
 					}
-					auto frameInfo = sys.advanceFramesWithTime(params.timestamp());
+					auto frameInfo = sys.advanceFramesWithTime(params.timestamp);
 					if(!frameInfo.advanced)
 						return true;
 					int interval = frameInterval();
@@ -588,29 +592,33 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					{
 						savedAdvancedFrames = 0;
 					}
-					if(viewController.emuWindow().isReady())
+					auto &win = viewController.emuWindow();
+					if(videoPtr)
 					{
-						if(showFrameTimeStats)
-							viewController.emuView.updateFrameTimeStats(frameTimeStats, params.timestamp());
-						record(FrameTimeStatEvent::startOfFrame, params.timestamp());
-						record(FrameTimeStatEvent::startOfEmulation);
-					}
-					else
-					{
-						//logDMsg("previous async frame not ready yet");
-						doIfUsed(frameTimeStats, [&](auto &stats) { stats.missedFrameCallbacks++; });
+						if(win.isReady())
+						{
+							if(showFrameTimeStats)
+								viewController.emuView.updateFrameTimeStats(frameTimeStats, params.timestamp);
+							record(FrameTimeStatEvent::startOfFrame, params.timestamp);
+							record(FrameTimeStatEvent::startOfEmulation);
+						}
+						else
+						{
+							//logDMsg("previous async frame not ready yet");
+							doIfUsed(frameTimeStats, [&](auto &stats) { stats.missedFrameCallbacks++; });
+						}
+						win.setDrawEventPriority(Window::drawEventPriorityLocked);
 					}
 					EmuAudio *audioPtr = audio ? &audio : nullptr;
-					auto &win = viewController.emuWindow();
-					win.setDrawEventPriority(Window::drawEventPriorityLocked);
 					emuSystemTask.runFrame(videoPtr, audioPtr, frameInfo.advanced, skipForward, altSpeed);
 					if(videoPtr)
 					{
-						renderer.setPresentationTime(win, params.presentTime(interval));
+						if(usePresentationTime)
+							viewController.presentTime = params.presentTime(interval);
 						doIfUsed(frameStartTimePoint, [&](auto &tp)
 						{
 							if(!hasTime(tp))
-								tp = params.timestamp();
+								tp = params.timestamp;
 						});
 					}
 					return true;
@@ -623,11 +631,12 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					[&](Input::Event &e) { return viewController().inputEvent(e); },
 					[&](DrawEvent &e)
 					{
-						if(viewController().isShowingEmulation())
+						record(FrameTimeStatEvent::startOfDraw);
+						auto reportTime = scopeGuard([&]
 						{
-							reportFrameWorkTime();
-							record(FrameTimeStatEvent::startOfDraw);
-						}
+							if(viewController().isShowingEmulation())
+								reportFrameWorkTime();
+						});
 						return viewController().drawMainWindow(win, e.params, renderer.task());
 					},
 					[&](WindowSurfaceChangeEvent &e)
@@ -875,10 +884,10 @@ void EmuApp::handleOpenFileCommand(CStringView path)
 void EmuApp::runBenchmarkOneShot(EmuVideo &emuVideo)
 {
 	logMsg("starting benchmark");
-	IG::FloatSeconds time = system().benchmark(emuVideo);
+	auto time = system().benchmark(emuVideo);
 	autosaveManager_.resetSlot(noAutosaveName);
 	closeSystem();
-	logMsg("done in: %f", time.count());
+	logMsg("done in: %f", duration_cast<FloatSeconds>(time).count());
 	postMessage(2, 0, std::format("{:.2f} fps", 180. / time.count()));
 }
 
@@ -1735,7 +1744,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 				if(system().isActive())
 				{
 					emuSystemTask.pause();
-					win.moveOnFrame(ctx.mainWindow(), system().onFrameUpdate, windowFrameClockSource());
+					win.moveOnFrame(ctx.mainWindow(), system().onFrameUpdate, windowFrameTimeSource);
 					setIntendedFrameRate(win, configFrameTime());
 				}
 				extraWinData.updateWindowViewport(win, makeViewport(win), renderer);
@@ -1748,7 +1757,11 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 						[&](Input::Event &e) { return viewController().extraWindowInputEvent(e); },
 						[&](DrawEvent &e)
 						{
-							reportFrameWorkTime();
+							auto reportTime = scopeGuard([&]
+							{
+								if(viewController().isShowingEmulation())
+									reportFrameWorkTime();
+							});
 							return viewController().drawExtraWindow(win, e.params, renderer.task());
 						},
 						[&](WindowSurfaceChangeEvent &e)
@@ -1788,7 +1801,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 							if(system().isActive())
 							{
 								emuSystemTask.pause();
-								mainWindow().moveOnFrame(win, system().onFrameUpdate, windowFrameClockSource());
+								mainWindow().moveOnFrame(win, system().onFrameUpdate, windowFrameTimeSource);
 								setIntendedFrameRate(mainWindow(), configFrameTime());
 							}
 							return true;
@@ -1825,7 +1838,7 @@ void EmuApp::record(FrameTimeStatEvent event, SteadyClockTimePoint t)
 {
 	doIfUsed(frameTimeStats, [&](auto &frameTimeStats)
 	{
-		if(!showFrameTimeStats)
+		if(!showFrameTimeStats || !viewController().isShowingEmulation())
 			return;
 		(&frameTimeStats.startOfFrame)[to_underlying(event)] = hasTime(t) ? t : SteadyClock::now();
 	});
@@ -1853,7 +1866,7 @@ IG::OnFrameDelegate EmuApp::onFrameDelayed(int8_t delay)
 
 void EmuApp::addOnFrameDelegate(IG::OnFrameDelegate onFrame)
 {
-	viewController().emuWindow().addOnFrame(onFrame, windowFrameClockSource());
+	viewController().emuWindow().addOnFrame(onFrame, windowFrameTimeSource);
 }
 
 void EmuApp::addOnFrameDelayed()
@@ -1872,7 +1885,7 @@ void EmuApp::addOnFrame()
 
 void EmuApp::removeOnFrame()
 {
-	viewController().emuWindow().removeOnFrame(system().onFrameUpdate, windowFrameClockSource());
+	viewController().emuWindow().removeOnFrame(system().onFrameUpdate, windowFrameTimeSource);
 }
 
 static auto &videoBrightnessVal(ImageChannel ch, auto &videoBrightnessRGB)
@@ -1934,7 +1947,9 @@ void EmuApp::applyCPUAffinity(bool active)
 			auto targetTime = targetFrameTime(emuScreen());
 			perfHintSession = perfHintManager.session(frameThreadGroup, targetTime);
 			if(perfHintSession)
-				logMsg("made performance hint session with target time:%lldns", (long long)targetTime.count());
+				logMsg("made performance hint session with target time:%lldns (%lld - %lld)",
+					(long long)targetTime.count(), (long long)emuScreen().frameTime().count(),
+					(long long)emuScreen().presentationDeadline().count());
 			else
 				logErr("error making performance hint session");
 		}

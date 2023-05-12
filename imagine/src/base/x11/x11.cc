@@ -179,6 +179,8 @@ bool XApplication::eventHandler(XEvent event)
 				auto wmBypassCompositor = XInternAtom(dpy, "_NET_WM_BYPASS_COMPOSITOR", False);
 				int32_t val = newShouldBypassCompositorState ? 1 : 0;
 				XChangeProperty(dpy, win.nativeObject(), wmBypassCompositor, XA_CARDINAL, 32, PropModeReplace, (unsigned char*)&val, 1);
+				// work around mutter 44 issue that prevents full-screen redirection when decorations are present
+				win.setDecorations(!newShouldBypassCompositorState);
 			}
 			break;
 		}

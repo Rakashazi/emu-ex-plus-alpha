@@ -483,7 +483,7 @@ void C64System::renderFramebuffer(EmuVideo &video)
 	video.startFrameWithAltFormat({}, canvasSrcPix);
 }
 
-void C64System::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
+void C64System::configAudioRate(FrameTime outputFrameTime, int outputRate)
 {
 	int mixRate = std::round(audioMixRate(outputRate, systemFrameRate, outputFrameTime));
 	int currRate = 0;

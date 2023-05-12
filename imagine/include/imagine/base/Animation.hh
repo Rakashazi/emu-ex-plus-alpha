@@ -52,7 +52,7 @@ public:
 		animate =
 			[this, onUpdate = IG_forward(onUpdate)](FrameParams params)
 			{
-				bool updating = animator.update(params.timestamp());
+				bool updating = animator.update(params.timestamp);
 				onUpdate(*clock, (T)animator);
 				if(!updating)
 				{
@@ -70,7 +70,7 @@ public:
 	void finish()
 	{
 		cancel();
-		animate(FrameParams{animator.endTime(), FloatSeconds{}});
+		animate(FrameParams{.timestamp = animator.endTime()});
 	}
 
 	bool isFinished() const { return animator.isFinished(); }

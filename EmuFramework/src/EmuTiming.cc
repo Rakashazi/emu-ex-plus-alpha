@@ -41,11 +41,11 @@ EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(SteadyClockTimePoint time)
 	return {elapsedFrames};
 }
 
-void EmuTiming::setFrameTime(FloatSeconds time)
+void EmuTiming::setFrameTime(SteadyClockTime time)
 {
-	timePerVideoFrame = std::chrono::round<SteadyClockTime>(time);
+	timePerVideoFrame = time;
 	updateScaledFrameTime();
-	logMsg("configured frame time:%lldns (%.2f fps)", (long long)timePerVideoFrame.count(), 1. / time.count());
+	logMsg("configured frame time:%lldns (%.2f fps)", (long long)timePerVideoFrame.count(), toHz(time));
 	reset();
 }
 
@@ -66,7 +66,7 @@ void EmuTiming::setSpeedMultiplier(double newSpeed)
 
 void EmuTiming::updateScaledFrameTime()
 {
-	timePerVideoFrameScaled = speed == 1. ? timePerVideoFrame : std::chrono::round<SteadyClockTime>(FloatSeconds{timePerVideoFrame} / speed);
+	timePerVideoFrameScaled = speed == 1. ? timePerVideoFrame : round<SteadyClockTime>(FloatSeconds{timePerVideoFrame} / speed);
 }
 
 }

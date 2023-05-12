@@ -121,6 +121,12 @@ void RendererCommands::present()
 	doPresent();
 }
 
+void RendererCommands::present(SteadyClockTimePoint t)
+{
+	r->glManager.setPresentationTime(drawable, t);
+	present();
+}
+
 SyncFence RendererCommands::addSyncFence()
 {
 	if(!renderer().support.hasSyncFences())

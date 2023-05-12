@@ -84,8 +84,10 @@ public:
 	Byte1Option optionSuperFXClockMultiplier{CFGKEY_SUPERFX_CLOCK_MULTIPLIER, 100, false, optionIsValidWithMinMax<5, 250>};
 	Byte1Option optionAudioDSPInterpolation{CFGKEY_AUDIO_DSP_INTERPOLATON, DSP_INTERPOLATION_GAUSSIAN, false, optionIsValidWithMax<4>};
 	#endif
-	static constexpr FloatSeconds ntscFrameTime{357366. / 21477272.}; // ~60.098Hz
-	static constexpr FloatSeconds palFrameTime{425568. / 21281370.}; // ~50.00Hz
+	static constexpr FloatSeconds ntscFrameTimeSecs{357366. / 21477272.}; // ~60.098Hz
+	static constexpr FloatSeconds palFrameTimeSecs{425568. / 21281370.}; // ~50.00Hz
+	static constexpr auto ntscFrameTime{round<FrameTime>(ntscFrameTimeSecs)};
+	static constexpr auto palFrameTime{round<FrameTime>(palFrameTimeSecs)};
 
 	Snes9xSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -110,6 +112,7 @@ public:
 	}
 	void setupSNESInput(VController &);
 	static bool hasBiosExtension(std::string_view name);
+	FloatSeconds frameTimeSecs() const { return videoSystem() == VideoSystem::PAL ? palFrameTimeSecs : ntscFrameTimeSecs; }
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -125,8 +128,8 @@ public:
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	FloatSeconds frameTime() const { return videoSystem() == VideoSystem::PAL ? palFrameTime : ntscFrameTime; }
-	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
+	FrameTime frameTime() const { return videoSystem() == VideoSystem::PAL ? palFrameTime : ntscFrameTime; }
+	void configAudioRate(FrameTime outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

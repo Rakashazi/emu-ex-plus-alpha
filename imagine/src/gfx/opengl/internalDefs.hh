@@ -12,6 +12,8 @@ class ApplicationContext;
 namespace IG::Gfx
 {
 
+enum class PresentMode : uint8_t;
+
 struct GLRendererWindowData
 {
 	constexpr GLRendererWindowData() = default;
@@ -19,6 +21,7 @@ struct GLRendererWindowData
 	GLBufferConfig bufferConfig{};
 	InterpolatorValue<float, SteadyClockTimePoint, InterpolatorType::EASEOUTQUAD> projAngleM{};
 	GLColorSpace colorSpace{};
+	int8_t swapInterval{1};
 	Rect2<int> viewportRect{};
 };
 
@@ -35,5 +38,6 @@ static constexpr GL::API glAPI =
 	Config::Gfx::OPENGL_ES ? GL::API::OPENGL_ES : GL::API::OPENGL;
 
 float rotationRadians(Rotation o);
+int toSwapInterval(Window &win, PresentMode mode);
 
 }

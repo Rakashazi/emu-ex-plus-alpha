@@ -71,6 +71,7 @@ public:
 	bool addOnFrame(OnFrameDelegate del, FrameTimeSource src = {}, int priority = 0);
 	bool removeOnFrame(OnFrameDelegate del, FrameTimeSource src = {});
 	bool moveOnFrame(Window &srcWin, OnFrameDelegate, FrameTimeSource src = {});
+	FrameTimeSource defaultFrameTimeSource() const;
 	void resetAppData();
 	void resetRendererData();
 	bool isMainWindow() const;
@@ -78,6 +79,7 @@ public:
 	Application &application() const;
 	void setCursorVisible(bool);
 	void setSystemGestureExclusionRects(std::span<const WRect>);
+	void setDecorations(bool);
 
 	template <class T>
 	T &makeAppData(auto &&... args)

@@ -108,6 +108,7 @@ public:
 	EmuView emuView;
 	EmuInputView inputView;
 	ToastView popup;
+	IG_UseMemberIf(Gfx::supportsPresentationTime, SteadyClockTimePoint, presentTime){};
 protected:
 	EmuMenuViewStack viewStack;
 	bool showingEmulation{};

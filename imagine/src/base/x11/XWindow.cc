@@ -152,6 +152,25 @@ static IG::WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig 
 	return winRect;
 }
 
+struct VisualConfig
+{
+	Visual *visual{};
+	int depth{};
+};
+
+static VisualConfig defaultVisualConfig(Display *dpy, ::Screen* screen)
+{
+	return {DefaultVisualOfScreen(screen), DefaultDepthOfScreen(screen)};
+}
+
+static VisualConfig defaultTranslucentVisualConfig(Display *dpy, ::Screen* screen)
+{
+	XVisualInfo info{};
+	if(!XMatchVisualInfo(dpy, XScreenNumberOfScreen(screen), 32, TrueColor, &info))
+		return defaultVisualConfig(dpy, screen);
+	return {info.visual, info.depth};
+}
+
 Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 	XWindow{ctx, config}
 {
@@ -165,23 +184,30 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 	updateSize({winRect.xSize(), winRect.ySize()});
 	{
 		XSetWindowAttributes attr{};
+		unsigned long valueMask = CWEventMask | CWBorderPixel;
 		attr.event_mask = ExposureMask | PropertyChangeMask | StructureNotifyMask;
-		unsigned long valueMask = CWEventMask;
-		Visual *visual = DefaultVisualOfScreen(xScreen);
+		attr.border_pixel = 0;
+		VisualConfig visualConf{};
 		if(config.nativeFormat)
 		{
-			visual = (Visual*)config.nativeFormat;
-			attr.colormap = XCreateColormap(dpy, rootWindow, visual, AllocNone);
-			valueMask |= CWColormap;
+			visualConf.visual = (Visual*)config.nativeFormat;
 		}
+		else
+		{
+			if(config.translucent)
+				visualConf = defaultTranslucentVisualConfig(dpy, xScreen);
+			else
+				visualConf = defaultVisualConfig(dpy, xScreen);
+		}
+		colormap = attr.colormap = XCreateColormap(dpy, rootWindow, visualConf.visual, AllocNone);
+		valueMask |= CWColormap;
 		xWin = XCreateWindow(dpy, rootWindow, winRect.x, winRect.y, width(), height(), 0,
-			CopyFromParent, InputOutput, visual, valueMask, &attr);
+			visualConf.depth, InputOutput, visualConf.visual, valueMask, &attr);
 		if(!xWin)
 		{
 			logErr("error initializing window");
 			return;
 		}
-		colormap = attr.colormap;
 	}
 	logMsg("made window with XID %d, drawable depth %d", (int)xWin, xDrawableDepth(dpy, xWin));
 	ctx.application().initPerWindowInputData(xWin);
@@ -317,6 +343,22 @@ void XWindow::toggleFullScreen()
 
 void WindowConfig::setFormat(IG::PixelFormat) {}
 
-void Window::setSystemGestureExclusionRects(std::span<const WRect>) {}
+struct MotifWMHints
+{
+	unsigned long flags{};
+	unsigned long functions{};
+	unsigned long decorations{};
+	long input_mode{};
+	unsigned long status{};
+};
+
+void Window::setDecorations(bool on)
+{
+	logMsg("setting window decorations:%s", on ? "on" : "off");
+  Atom wmHintsAtom = XInternAtom(dpy, "_MOTIF_WM_HINTS", True);
+  MotifWMHints hints{.flags = bit(1), .decorations = on};
+	XChangeProperty(dpy, xWin, wmHintsAtom, wmHintsAtom, 32, PropModeReplace, (unsigned char*)&hints,
+		sizeof(MotifWMHints) / sizeof(long));
+}
 
 }

@@ -91,6 +91,7 @@ protected:
 	IG_UseMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, debugEnabled){};
 
 	void doPreDraw(Window &win, WindowDrawParams winParams, DrawParams &params) const;
+	void updateDrawable(Drawable, IRect viewportRect, int swapInterval);
 };
 
 using RendererTaskImpl = GLRendererTask;

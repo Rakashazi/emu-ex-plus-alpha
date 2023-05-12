@@ -62,7 +62,15 @@ CPUAffinityView::CPUAffinityView(ViewAttachParams attach, int cpuCount):
 			[this, i](BoolMenuItem &item) { app().setCPUAffinity(i, item.flipBoolValue(*this)); });
 		menuItems.emplace_back(&item);
 	}
+}
 
+void CPUAffinityView::onShow()
+{
+	bool isInManualMode = app().cpuAffinityMode == CPUAffinityMode::Manual;
+	for(auto &item : cpuAffinityItems)
+	{
+		item.setActive(isInManualMode);
+	}
 }
 
 }

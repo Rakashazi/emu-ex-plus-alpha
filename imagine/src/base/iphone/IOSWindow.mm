@@ -274,8 +274,6 @@ void Window::setIntendedFrameRate(FrameRate rate) {}
 
 void WindowConfig::setFormat(IG::PixelFormat) {}
 
-void Window::setSystemGestureExclusionRects(std::span<const WRect>) {}
-
 }
 
 @implementation ImagineUIViewController

@@ -52,7 +52,8 @@ public:
 	FrameParams makeFrameParams(SteadyClockTimePoint timestamp) const;
 	bool frameRateIsReliable() const;
 	FrameRate frameRate() const;
-	FloatSeconds frameTime() const;
+	SteadyClockTime frameTime() const;
+	SteadyClockTime presentationDeadline() const;
 	void setFrameRate(FrameRate);
 	std::span<const FrameRate> supportedFrameRates() const;
 	void setFrameInterval(int interval);

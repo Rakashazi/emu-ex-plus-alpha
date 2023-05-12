@@ -60,9 +60,9 @@ public:
 protected:
 	void *xScreen{};
 	FrameTimer frameTimer;
+	SteadyClockTime frameTime_{};
 	float xMM{}, yMM{};
 	float frameRate_{};
-	FloatSeconds frameTime_{};
 	bool reliableFrameTime = true;
 };
 

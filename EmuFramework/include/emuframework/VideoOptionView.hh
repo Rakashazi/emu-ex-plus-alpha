@@ -76,9 +76,12 @@ protected:
 	IG_UseMemberIf(Config::BASE_MULTI_SCREEN && Config::BASE_MULTI_WINDOW, BoolMenuItem, showOnSecondScreen);
 	TextMenuItem imageBuffersItem[3];
 	MultiChoiceMenuItem imageBuffers;
+	IG_UseMemberIf(Gfx::supportsPresentModes, TextMenuItem, presentModeItems[3]);
+	IG_UseMemberIf(Gfx::supportsPresentModes, MultiChoiceMenuItem, presentMode);
 	TextMenuItem renderPixelFormatItem[3];
 	MultiChoiceMenuItem renderPixelFormat;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, forceMaxScreenFrameRate);
+	IG_UseMemberIf(Gfx::supportsPresentationTime, BoolMenuItem, presentationTime);
 	TextMenuItem brightnessItem[2];
 	TextMenuItem redItem[2];
 	TextMenuItem greenItem[2];
@@ -92,9 +95,9 @@ protected:
 	TextHeadingMenuItem colorLevelsHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 33> item;
+	StaticArrayList<MenuItem*, 35> item;
 
-	bool onFrameTimeChange(VideoSystem vidSys, FloatSeconds time);
+	bool onFrameTimeChange(VideoSystem vidSys, SteadyClockTime time);
 	TextMenuItem::SelectDelegate setVideoBrightnessCustomDel(ImageChannel);
 	void setAllColorLevelsSelected(MenuItem::Id);
 	EmuVideo &emuVideo() const;

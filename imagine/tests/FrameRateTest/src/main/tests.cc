@@ -91,7 +91,7 @@ void TestFramework::place(Gfx::Renderer &r, WRect viewBounds_, WRect testRect)
 
 void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::FrameParams frameParams)
 {
-	auto timestamp = frameParams.timestamp();
+	auto timestamp = frameParams.timestamp;
 	// CPU stats
 	auto &screen = *win.screen();
 	bool updatedCPUStats = false;
@@ -129,7 +129,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 			//logMsg("elapsed: %d", screen.elapsedFrames(frameTime));
 			if(elapsedScreenFrames > 1)
 			{
-				lostFrameProcessTime = std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count();
+				lostFrameProcessTime = duration_cast<Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count();
 
 				droppedFrames++;
 				skippedFrameStr.clear();
@@ -144,9 +144,9 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 		{
 			statsStr.clear();
 			IG::formatTo(statsStr, "Total Draw Time: {:02}ms ({:02}ms)\nTimestamp Diff: {:02}ms",
-				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count(),
+				(unsigned long)duration_cast<Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count(),
 				lostFrameProcessTime,
-				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(timestamp - lastFramePresentTime.timestamp).count());
+				(unsigned long)duration_cast<Milliseconds>(timestamp - lastFramePresentTime.timestamp).count());
 			updatedFrameStats = true;
 		}
 		if(updatedFrameStats)

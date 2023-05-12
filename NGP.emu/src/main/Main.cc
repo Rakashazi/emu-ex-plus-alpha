@@ -122,7 +122,7 @@ bool NgpSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	return false;
 }
 
-void NgpSystem::configAudioRate(IG::FloatSeconds outputFrameTime, int outputRate)
+void NgpSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 {
 	uint32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
 	if(mixRate == GetSoundRate())

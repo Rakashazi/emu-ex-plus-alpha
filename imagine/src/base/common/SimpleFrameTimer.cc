@@ -76,7 +76,7 @@ void SimpleFrameTimer::cancel()
 
 void SimpleFrameTimer::setFrameRate(FrameRate rate)
 {
-	interval = std::chrono::duration_cast<Nanoseconds>(FloatSeconds{1. / rate});
+	interval = fromHz<Nanoseconds>(rate);
 	logMsg("set frame rate:%.2f (timer interval:%ldns)", rate, long(interval.count()));
 	if(timer.isArmed())
 	{

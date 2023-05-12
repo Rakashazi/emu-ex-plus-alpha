@@ -82,31 +82,38 @@ static const char* eglConfigCaveatToStr(EGLint cav)
 	return "unknown";
 }
 
+static EGLint eglConfigAttrib(EGLDisplay display, EGLConfig config, EGLint attrId)
+{
+	EGLint val{};
+	eglGetConfigAttrib(display, config, attrId, &val);
+	return val;
+}
+
 static void printEGLConf(EGLDisplay display, EGLConfig config)
 {
-	EGLint id, buffSize, redSize, greenSize, blueSize, alphaSize, cav, depthSize, stencilSize, nID, nRend,
-		sType, minSwap, maxSwap, sampleBuff, renderType;
-	eglGetConfigAttrib(display, config, EGL_CONFIG_ID, &id);
-	eglGetConfigAttrib(display, config, EGL_BUFFER_SIZE, &buffSize);
-	eglGetConfigAttrib(display, config, EGL_RED_SIZE, &redSize);
-	eglGetConfigAttrib(display, config, EGL_GREEN_SIZE, &greenSize);
-	eglGetConfigAttrib(display, config, EGL_BLUE_SIZE, &blueSize);
-	eglGetConfigAttrib(display, config, EGL_ALPHA_SIZE, &alphaSize);
-	eglGetConfigAttrib(display, config, EGL_CONFIG_CAVEAT, &cav);
-	eglGetConfigAttrib(display, config, EGL_DEPTH_SIZE, &depthSize);
-	eglGetConfigAttrib(display, config, EGL_STENCIL_SIZE, &stencilSize);
-	eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &nID);
-	eglGetConfigAttrib(display, config, EGL_NATIVE_RENDERABLE, &nRend);
-	eglGetConfigAttrib(display, config, EGL_SURFACE_TYPE, &sType);
-	eglGetConfigAttrib(display, config, EGL_RENDERABLE_TYPE, &renderType);
-	eglGetConfigAttrib(display, config, EGL_MIN_SWAP_INTERVAL, &minSwap);
-	eglGetConfigAttrib(display, config, EGL_MAX_SWAP_INTERVAL, &maxSwap);
-	eglGetConfigAttrib(display, config, EGL_SAMPLE_BUFFERS, &sampleBuff);
-	logMsg("config:0x%X %d:%d:%d:%d (%d) cav:%s(0x%X) d:%d sten:%d nid:%d nrend:%d stype:%s(0x%X) rtype:%s(0x%X) sampleBuff:%d swap:%d-%d",
+	EGLint id = eglConfigAttrib(display, config, EGL_CONFIG_ID);
+	EGLint buffSize = eglConfigAttrib(display, config, EGL_BUFFER_SIZE);
+	EGLint redSize = eglConfigAttrib(display, config, EGL_RED_SIZE);
+	EGLint greenSize = eglConfigAttrib(display, config, EGL_GREEN_SIZE);
+	EGLint blueSize = eglConfigAttrib(display, config, EGL_BLUE_SIZE);
+	EGLint alphaSize = eglConfigAttrib(display, config, EGL_ALPHA_SIZE);
+	EGLint cav = eglConfigAttrib(display, config, EGL_CONFIG_CAVEAT);
+	EGLint depthSize = eglConfigAttrib(display, config, EGL_DEPTH_SIZE);
+	EGLint stencilSize = eglConfigAttrib(display, config, EGL_STENCIL_SIZE);
+	EGLint nID = eglConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID);
+	EGLint nRend = eglConfigAttrib(display, config, EGL_NATIVE_RENDERABLE);
+	EGLint nType = eglConfigAttrib(display, config, EGL_NATIVE_VISUAL_TYPE);
+	EGLint sType = eglConfigAttrib(display, config, EGL_SURFACE_TYPE);
+	EGLint renderType = eglConfigAttrib(display, config, EGL_RENDERABLE_TYPE);
+	EGLint minSwap = eglConfigAttrib(display, config, EGL_MIN_SWAP_INTERVAL);
+	EGLint maxSwap = eglConfigAttrib(display, config, EGL_MAX_SWAP_INTERVAL);
+	EGLint samples = eglConfigAttrib(display, config, EGL_SAMPLES);
+	EGLint sampleBuffs = eglConfigAttrib(display, config, EGL_SAMPLE_BUFFERS);
+	logMsg("config:0x%X %d:%d:%d:%d (%d) cav:%s(0x%X) ds:%d-%d nid:0x%X nrend:%d ntype:0x%X stype:%s(0x%X) rtype:%s(0x%X) ms:%d %d swap:%d-%d",
 			id, redSize, greenSize, blueSize, alphaSize, buffSize,
 			eglConfigCaveatToStr(cav), cav, depthSize, stencilSize,
-			nID, nRend,eglSurfaceTypeToStr(sType), sType,
-			eglRenderableTypeToStr(renderType), renderType, sampleBuff,
+			nID, nRend, nType, eglSurfaceTypeToStr(sType), sType,
+			eglRenderableTypeToStr(renderType), renderType, samples, sampleBuffs,
 			minSwap, maxSwap);
 }
 

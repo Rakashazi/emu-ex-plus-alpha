@@ -355,6 +355,10 @@ void EmuApp::saveConfigFile(FileIO &io)
 		writeOptionValue(io, CFGKEY_CPU_AFFINITY_MASK, cpuAffinityMask);
 	if(used(cpuAffinityMode))
 		writeOptionValueIfNotDefault(io, CFGKEY_CPU_AFFINITY_MODE, cpuAffinityMode, CPUAffinityMode::Auto);
+	if(used(presentMode) && supportsPresentModes())
+		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENT_MODE, presentMode, Gfx::PresentMode::Auto);
+	if(used(usePresentationTime) && renderer.supportsPresentationTime())
+		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENTATION_TIME, usePresentationTime, true);
 
 	if(customKeyConfigs.size())
 	{
@@ -553,8 +557,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					return false;
 				}
 				case CFGKEY_FRAME_INTERVAL: return optionFrameInterval.readFromIO(io, size);;
-				case CFGKEY_FRAME_RATE: return readOptionValue<FloatSeconds>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::NATIVE_NTSC, val);});
-				case CFGKEY_FRAME_RATE_PAL: return readOptionValue<FloatSeconds>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::PAL, val);});
+				case CFGKEY_FRAME_RATE: return readOptionValue<FrameTime>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::NATIVE_NTSC, val);});
+				case CFGKEY_FRAME_RATE_PAL: return readOptionValue<FrameTime>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::PAL, val);});
 				case CFGKEY_LAST_DIR:
 					return readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){setContentSearchPath(path);});
 				case CFGKEY_FONT_Y_SIZE: return optionFontSize.readFromIO(io, size);
@@ -613,6 +617,10 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					return used(cpuAffinityMask) ? readOptionValue(io, size, cpuAffinityMask) : false;
 				case CFGKEY_CPU_AFFINITY_MODE:
 					return used(cpuAffinityMode) ? readOptionValue(io, size, cpuAffinityMode, [](auto m){return m <= lastEnum<CPUAffinityMode>;}) : false;
+				case CFGKEY_RENDERER_PRESENT_MODE:
+					return used(presentMode) && supportsPresentModes() ? readOptionValue(io, size, presentMode, [](auto m){return m <= lastEnum<Gfx::PresentMode>;}) : false;
+				case CFGKEY_RENDERER_PRESENTATION_TIME:
+					return used(usePresentationTime) ? readOptionValue(io, size, usePresentationTime) : false;
 				case CFGKEY_AUDIO_SOLO_MIX:
 					audioManager().setSoloMix(readOptionValue<bool>(io, size));
 					return true;

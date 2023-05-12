@@ -31,7 +31,7 @@ PlaceVControlsView::PlaceVControlsView(ViewAttachParams attach, VController &vCo
 		{
 			window().setNeedsDraw(true);
 			//logMsg("updating fade");
-			return textFade.update(params.timestamp());
+			return textFade.update(params.timestamp);
 		}
 	}
 {

@@ -17,12 +17,13 @@
 
 #include <imagine/util/utility.h>
 #include <chrono>
-#if defined __APPLE__
-#include <TargetConditionals.h>
-#endif
+#include <concepts>
 
 namespace IG
 {
+
+using std::chrono::duration_cast;
+using std::chrono::round;
 
 using Nanoseconds = std::chrono::nanoseconds;
 using Microseconds = std::chrono::microseconds;
@@ -56,6 +57,23 @@ concept ChronoTimePoint =
 
 constexpr bool hasTime(ChronoTimePoint auto t) { return t.time_since_epoch().count(); }
 
+template<ChronoDuration T>
+constexpr T fromSeconds(std::floating_point auto secs)
+{
+	return std::chrono::round<T>(FloatSeconds{secs});
+}
+
+constexpr double toHz(ChronoDuration auto t)
+{
+	return 1. / std::chrono::duration_cast<FloatSeconds>(t).count();
+}
+
+template<ChronoDuration T>
+constexpr T fromHz(std::floating_point auto hz)
+{
+	return fromSeconds<T>(1. / hz);
+}
+
 inline SteadyClockTime timeFunc(auto &&func, auto &&...args)
 {
 	auto before = SteadyClock::now();
@@ -77,18 +95,12 @@ inline SteadyClockTime timeFuncDebug(auto &&func, auto &&...args)
 class FrameParams
 {
 public:
-	constexpr FrameParams(SteadyClockTimePoint timestamp_, FloatSeconds frameTime_):
-		timestamp_{timestamp_}, frameTime_{frameTime_} {}
-	SteadyClockTimePoint timestamp() const { return timestamp_; }
-	FloatSeconds frameTime() const { return frameTime_; }
-	SteadyClockTimePoint presentTime(int frames = 1) const;
-	int elapsedFrames(SteadyClockTimePoint lastTimestamp) const;
-	static int elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePoint lastTimestamp, FloatSeconds frameTime);
+	SteadyClockTimePoint timestamp;
+	SteadyClockTime frameTime;
 
-protected:
-	SteadyClockTimePoint timestamp_;
-	SteadyClockTimePoint lastTimestamp_;
-	FloatSeconds frameTime_;
+	SteadyClockTimePoint presentTime(int frames) const;
+	int elapsedFrames(SteadyClockTimePoint lastTimestamp) const;
+	static int elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePoint lastTimestamp, SteadyClockTime frameTime);
 };
 
 using FrameRate = float;

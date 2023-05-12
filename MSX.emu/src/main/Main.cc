@@ -689,7 +689,7 @@ void MsxSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 	destroyMachineOnReturn.cancel();
 }
 
-void MsxSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
+void MsxSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 {
 	assumeExpr(outputRate == 44100);// TODO: not all sound chips handle non-44100Hz sample rate
 	UInt32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));

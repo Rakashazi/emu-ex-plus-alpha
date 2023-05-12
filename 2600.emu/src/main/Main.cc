@@ -141,12 +141,12 @@ static auto consoleFrameRate(const OSystem &osystem)
 	return osystem.console().currentFrameRate();
 }
 
-FloatSeconds A2600System::frameTime() const
+FrameTime A2600System::frameTime() const
 {
-	return FloatSeconds{1. / consoleFrameRate(osystem)};
+	return fromHz<FrameTime>(consoleFrameRate(osystem));
 }
 
-void A2600System::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
+void A2600System::configAudioRate(FrameTime outputFrameTime, int outputRate)
 {
 	if(!osystem.hasConsole())
 		return;

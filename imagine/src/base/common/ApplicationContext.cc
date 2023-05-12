@@ -451,7 +451,7 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 	if(!hasTime(time))
 		return {};
 	std::tm localTime;
-	time_t secs = std::chrono::duration_cast<Seconds>(time.time_since_epoch()).count();
+	time_t secs = duration_cast<Seconds>(time.time_since_epoch()).count();
 	if(!localtime_r(&secs, &localTime)) [[unlikely]]
 	{
 		logErr("localtime_r failed");

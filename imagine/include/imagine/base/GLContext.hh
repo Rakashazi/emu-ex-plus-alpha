@@ -48,6 +48,7 @@ public:
 	bool useAlpha{};
 	bool useDepth{};
 	bool useStencil{};
+	bool translucentWindow{};
 };
 
 class GLContextAttributes
@@ -117,12 +118,14 @@ public:
 	void setCurrentContext(NativeGLDrawable) const;
 	void setCurrentDrawable(NativeGLDrawable) const;
 	void present(NativeGLDrawable) const;
+	void setSwapInterval(int);
 };
 
 class GLManager : public GLManagerImpl
 {
 public:
 	using GLManagerImpl::GLManagerImpl;
+	static constexpr bool hasSwapInterval = GLManagerImpl::hasSwapInterval;
 
 	GLManager(NativeDisplayConnection);
 	GLManager(NativeDisplayConnection, GL::API);
@@ -144,6 +147,8 @@ public:
 	bool hasNoErrorContextAttribute() const;
 	bool hasNoConfigContext() const;
 	bool hasSrgbColorSpace() const;
+	bool hasPresentationTime() const;
+	void setPresentationTime(NativeGLDrawable, SteadyClockTimePoint) const;
 	void logInfo() const;
 
 	static bool loadSymbol(Pointer auto &symPtr, const char *name)

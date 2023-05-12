@@ -23,9 +23,11 @@
 #include <imagine/base/WindowConfig.hh>
 #include <imagine/base/glDefs.hh>
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include <optional>
 #include <memory>
 #include <type_traits>
+#include <span>
 
 namespace IG
 {
@@ -125,6 +127,8 @@ protected:
 class EGLManager
 {
 public:
+	static constexpr bool hasSwapInterval{true};
+
 	constexpr EGLManager() = default;
 	static const char *errorString(EGLint error);
 	static int makeRenderableType(GL::API, int majorVersion);
@@ -139,6 +143,7 @@ protected:
 		}
 	};
 	using UniqueEGLDisplay = std::unique_ptr<std::remove_pointer_t<EGLDisplay>, EGLDisplayDeleter>;
+	using PresentationTimeFunc = EGLBoolean (EGLAPIENTRY *)(EGLDisplay dpy, EGLSurface surface, EGLnsecsANDROID time);
 
 	UniqueEGLDisplay dpy{};
 	bool supportsSurfaceless{};
@@ -146,9 +151,11 @@ protected:
 	bool supportsNoError{};
 	bool supportsSrgbColorSpace{};
 	IG_UseMemberIf(Config::envIsLinux, bool, supportsTripleBufferSurfaces){};
+	IG_UseMemberIf(Config::envIsAndroid, PresentationTimeFunc, presentationTime){};
 
 	ErrorCode initDisplay(EGLDisplay);
 	static std::optional<EGLConfig> chooseConfig(GLDisplay, int renderableType, GLBufferConfigAttributes, bool allowFallback = true);
+	static int chooseConfigs(GLDisplay, int renderableType, GLBufferConfigAttributes, std::span<EGLConfig>);
 	void logFeatures() const;
 	static void terminateEGL(EGLDisplay);
 };

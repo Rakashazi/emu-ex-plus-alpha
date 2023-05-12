@@ -21,6 +21,8 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/logger/logger.h>
 #include "ios.hh"
 
+using namespace IG;
+
 @interface UIScreen ()
 - (double)_refreshRate;
 @end
@@ -28,13 +30,13 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 @interface DisplayLinkHelper : NSObject
 {
 @private
-	IG::Screen *screen_;
+	Screen *screen_;
 }
 @end
 
 @implementation DisplayLinkHelper
 
-- (id)initWithScreen:(IG::Screen *)screen
+- (id)initWithScreen:(Screen *)screen
 {
 	self = [super init];
 	if(self)
@@ -47,10 +49,10 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 - (void)onFrame:(CADisplayLink *)displayLink
 {
 	auto &screen = *screen_;
-	auto timestamp = std::chrono::duration_cast<IG::SteadyClockTime>(IG::FloatSeconds(displayLink.timestamp));
+	auto timestamp = fromSeconds<SteadyClockTime>(displayLink.timestamp);
 	//logMsg("screen:%p, frame time stamp:%f, duration:%f",
 	//	screen.uiScreen(), timestamp.count(), (double)screen.displayLink().duration);
-	if(!screen.frameUpdate(IG::SteadyClockTimePoint{timestamp}))
+	if(!screen.frameUpdate(SteadyClockTimePoint{timestamp}))
 	{
 		//logMsg("stopping screen updates");
 		displayLink.paused = YES;
@@ -110,12 +112,12 @@ IOSScreen::IOSScreen(ApplicationContext, InitParams initParams)
 			logWarn("ignoring unusual refresh rate: %f", 1. / frameTime);
 			frameTime = 1. / 60.;
 		}
-		frameTime_ = IG::FloatSeconds(frameTime);
-		frameRate_ = 1. / frameTime_.count();
+		frameTime_ = fromSeconds<SteadyClockTime>(frameTime);
+		frameRate_ = 1. / frameTime;
 	}
 	else
 	{
-		frameTime_ = IG::FloatSeconds(1. / 60.);
+		frameTime_ = fromHz<SteadyClockTime>(60.);
 		frameRate_ = 60;
 	}
 }
@@ -154,15 +156,8 @@ int Screen::height() const
 	return uiScreen().bounds.size.height;
 }
 
-FrameRate Screen::frameRate() const
-{
-	return 1. / frameTime().count();
-}
-
-IG::FloatSeconds Screen::frameTime() const
-{
-	return frameTime_;
-}
+FrameRate Screen::frameRate() const { return frameRate_; }
+SteadyClockTime Screen::frameTime() const { return frameTime_; }
 
 bool Screen::frameRateIsReliable() const
 {

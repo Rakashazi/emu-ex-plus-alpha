@@ -242,10 +242,10 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 	IPPU.RenderThisFrame = TRUE;
 }
 
-void Snes9xSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
+void Snes9xSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 {
 	#ifndef SNES9X_VERSION_1_4
-	auto inputRate = frameTime().count() / outputFrameTime.count() * 32040.;
+	auto inputRate = frameTimeSecs().count() / duration_cast<FloatSeconds>(outputFrameTime).count() * 32040.;
 	if(inputRate == Settings.SoundInputRate && outputRate == Settings.SoundPlaybackRate)
 		return;
 	Settings.SoundPlaybackRate = outputRate;

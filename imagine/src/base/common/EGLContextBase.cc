@@ -288,6 +288,15 @@ void GLContext::present(NativeGLDrawable drawable) const
 	}
 }
 
+void GLContext::setSwapInterval(int i)
+{
+	bool success = eglSwapInterval(display(), i);
+	if(Config::DEBUG_BUILD && !success)
+	{
+		logErr("error:%s in eglSwapInterval(%d)", EGLManager::errorString(eglGetError()), i);
+	}
+}
+
 // GLManager
 
 GLManager::GLManager(NativeDisplayConnection ctx, GL::API api)
@@ -307,19 +316,14 @@ GLManager::GLManager(NativeDisplayConnection ctx, GL::API api)
 std::optional<EGLConfig> EGLManager::chooseConfig(GLDisplay display, int renderableType, GLBufferConfigAttributes attr, bool allowFallback)
 {
 	EGLConfig config;
-	EGLint configs = 0;
-	{
-		auto eglAttr = glConfigAttrsToEGLAttrs(renderableType, attr);
-		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
-	}
-	if(allowFallback && !configs)
+	int configCount = chooseConfigs(display, renderableType, attr, std::span{&config, 1});
+	if(allowFallback && !configCount)
 	{
 		logErr("no EGL configs found, retrying with no color bits set");
 		attr.pixelFormat = {};
-		auto eglAttr = glConfigAttrsToEGLAttrs(renderableType, attr);
-		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
+		configCount = chooseConfigs(display, renderableType, attr, std::span{&config, 1});
 	}
-	if(!configs)
+	if(!configCount)
 	{
 		logErr("no usable EGL configs found with renderable type:%s", eglRenderableTypeToStr(renderableType));
 		return {};
@@ -327,6 +331,14 @@ std::optional<EGLConfig> EGLManager::chooseConfig(GLDisplay display, int rendera
 	if(Config::DEBUG_BUILD)
 		printEGLConf(display, config);
 	return config;
+}
+
+int EGLManager::chooseConfigs(GLDisplay display, int renderableType, GLBufferConfigAttributes attr, std::span<EGLConfig> configs)
+{
+	auto eglAttr = glConfigAttrsToEGLAttrs(renderableType, attr);
+	EGLint count{};
+	eglChooseConfig(display, &eglAttr[0], configs.data(), configs.size(), &count);
+	return count;
 }
 
 void *GLManager::procAddress(const char *funcName)
@@ -381,7 +393,10 @@ void EGLManager::logFeatures() const
 	{
 		featuresStr.append(" [sRGB Color Space]");
 	}
-
+	if(presentationTime)
+	{
+		featuresStr.append(" [Presentation Time]");
+	}
 	if(featuresStr.empty())
 		return;
 	logMsg("features:%s", featuresStr.c_str());
@@ -406,6 +421,13 @@ IG::ErrorCode EGLManager::initDisplay(EGLDisplay display)
 	{
 		supportsTripleBufferSurfaces = extStr.contains("EGL_NV_triple_buffer");
 	}
+	doIfUsed(presentationTime, [&](auto &presentationTime)
+	{
+		if(extStr.contains("EGL_ANDROID_presentation_time"))
+		{
+			GLManager::loadSymbol(presentationTime, "eglPresentationTimeANDROID");
+		}
+	});
 	logFeatures();
 	return {};
 }
@@ -534,6 +556,20 @@ bool GLManager::hasNoConfigContext() const
 bool GLManager::hasSrgbColorSpace() const
 {
 	return supportsSrgbColorSpace;
+}
+
+bool GLManager::hasPresentationTime() const { return presentationTime; }
+
+void GLManager::setPresentationTime(NativeGLDrawable drawable, SteadyClockTimePoint time) const
+{
+	if(!hasPresentationTime() || !hasTime(time))
+		return;
+	bool success = presentationTime(display(), drawable, time.time_since_epoch().count());
+	if(Config::DEBUG_BUILD && !success)
+	{
+		logErr("error:%s in eglPresentationTimeANDROID(%p, %lld)",
+			errorString(eglGetError()), drawable, (long long)time.time_since_epoch().count());
+	}
 }
 
 void GLManager::logInfo() const

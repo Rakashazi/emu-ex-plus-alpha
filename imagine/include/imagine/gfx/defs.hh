@@ -218,4 +218,7 @@ struct AttribDesc
 	bool normalize{};
 };
 
+constexpr bool supportsPresentModes = Config::envIsLinux || Config::envIsAndroid;
+constexpr bool supportsPresentationTime = Config::envIsAndroid;
+
 }

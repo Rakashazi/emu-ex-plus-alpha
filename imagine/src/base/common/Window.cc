@@ -64,16 +64,14 @@ void BaseWindow::attachDrawEvent()
 		});
 }
 
-static Window::FrameTimeSource frameClock(const Screen &screen, Window::FrameTimeSource clock)
+static auto frameClock(const Window &win, WindowFrameTimeSource clock)
 {
-	if(clock == Window::FrameTimeSource::AUTO)
-		return screen.supportsTimestamps() ? Window::FrameTimeSource::SCREEN : Window::FrameTimeSource::RENDERER;
-	return clock;
+	return clock == Window::FrameTimeSource::AUTO ? win.defaultFrameTimeSource() : clock;
 }
 
 bool Window::addOnFrame(OnFrameDelegate del, FrameTimeSource clock, int priority)
 {
-	clock = frameClock(*screen(), clock);
+	clock = frameClock(*this, clock);
 	if(clock == FrameTimeSource::SCREEN)
 	{
 		return screen()->addOnFrame(del);
@@ -93,7 +91,7 @@ bool Window::addOnFrame(OnFrameDelegate del, FrameTimeSource clock, int priority
 
 bool Window::removeOnFrame(OnFrameDelegate del, FrameTimeSource clock)
 {
-	clock = frameClock(*screen(), clock);
+	clock = frameClock(*this, clock);
 	if(clock == FrameTimeSource::SCREEN)
 	{
 		return screen()->removeOnFrame(del);
@@ -108,6 +106,11 @@ bool Window::moveOnFrame(Window &srcWin, OnFrameDelegate del, FrameTimeSource sr
 {
 	srcWin.removeOnFrame(del, src);
 	return addOnFrame(del, src);
+}
+
+WindowFrameTimeSource Window::defaultFrameTimeSource() const
+{
+	return screen()->supportsTimestamps() ? FrameTimeSource::SCREEN : FrameTimeSource::RENDERER;
 }
 
 void Window::resetAppData()
@@ -285,7 +288,7 @@ void Window::dispatchOnFrame()
 	}
 	drawPhase = DrawPhase::UPDATE;
 	//logDMsg("running %u onFrame delegates", onFrame.size());
-	FrameParams frameParams{SteadyClock::now(), screen()->frameTime()};
+	FrameParams frameParams{.timestamp = SteadyClock::now(), .frameTime = screen()->frameTime()};
 	onFrame.runAll([&](OnFrameDelegate del){ return del(frameParams); });
 	if(onFrame.size())
 	{
@@ -542,5 +545,8 @@ Application &Window::application() const
 {
 	return appContext().application();
 }
+
+[[gnu::weak]] void Window::setSystemGestureExclusionRects(std::span<const WRect>) {}
+[[gnu::weak]] void Window::setDecorations(bool) {}
 
 }

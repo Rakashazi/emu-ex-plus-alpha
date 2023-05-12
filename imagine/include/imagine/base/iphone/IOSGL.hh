@@ -36,6 +36,8 @@ class GLContextAttributes;
 class GLManagerImpl
 {
 public:
+	static constexpr bool hasSwapInterval{};
+
 	explicit constexpr operator bool() const { return true; }
 	constexpr bool operator ==(GLManagerImpl const&) const = default;
 };

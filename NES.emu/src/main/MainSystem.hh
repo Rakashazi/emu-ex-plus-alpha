@@ -113,8 +113,8 @@ public:
 	Byte1Option optionVisibleVideoLines{CFGKEY_VISIBLE_VIDEO_LINES, 224, false, isSupportedLineCount};
 	Byte1Option optionHorizontalVideoCrop{CFGKEY_HORIZONTAL_VIDEO_CROP, 0};
 	Byte1Option optionCorrectLineAspect{CFGKEY_CORRECT_LINE_ASPECT, 0};
-	static constexpr FloatSeconds ntscFrameTime{16777215./ 1008307711.}; // ~60.099Hz
-	static constexpr FloatSeconds palFrameTime{16777215. / 838977920.}; // ~50.00Hz
+	static constexpr auto ntscFrameTime{fromSeconds<FrameTime>(16777215./ 1008307711.)}; // ~60.099Hz
+	static constexpr auto palFrameTime{fromSeconds<FrameTime>(16777215. / 838977920.)}; // ~50.00Hz
 
 	NesSystem(ApplicationContext);
 	void connectNESInput(int port, ESI type);
@@ -138,8 +138,8 @@ public:
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	FloatSeconds frameTime() const { return videoSystem() == VideoSystem::PAL ? palFrameTime : ntscFrameTime; }
-	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
+	FrameTime frameTime() const { return videoSystem() == VideoSystem::PAL ? palFrameTime : ntscFrameTime; }
+	void configAudioRate(FrameTime outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

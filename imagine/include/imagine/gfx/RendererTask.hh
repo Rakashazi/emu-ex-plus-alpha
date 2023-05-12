@@ -31,12 +31,17 @@
 namespace IG::Gfx
 {
 
+WISE_ENUM_CLASS((PresentMode, uint8_t),
+	Auto, Immediate, FIFO
+);
+
 class RendererTask : public RendererTaskImpl
 {
 public:
 	using RendererTaskImpl::RendererTaskImpl;
 	void updateDrawableForSurfaceChange(Window &, WindowSurfaceChange);
-	void setDefaultViewport(Window &win, Viewport v);
+	void setPresentMode(Window &, PresentMode);
+	void setDefaultViewport(Window &, Viewport);
 	void releaseShaderCompiler();
 	void flush();
 	void setDebugOutput(bool on);

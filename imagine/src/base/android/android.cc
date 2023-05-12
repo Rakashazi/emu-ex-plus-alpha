@@ -453,7 +453,7 @@ std::string AndroidApplication::formatDateAndTime(JNIEnv *env, jclass baseActivi
 	if(!hasTime(time))
 		return {};
 	return std::string{JNI::StringChars{env, jFormatDateTime(env, baseActivityClass,
-		std::chrono::duration_cast<Milliseconds>(time.time_since_epoch()).count())}};
+		duration_cast<Milliseconds>(time.time_since_epoch()).count())}};
 }
 
 std::string ApplicationContext::formatDateAndTime(WallClockTimePoint time)
@@ -628,9 +628,9 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				}
 			},
 			{
-				"displayEnumerated", "(JLandroid/view/Display;IFILandroid/util/DisplayMetrics;)V",
+				"displayEnumerated", "(JLandroid/view/Display;IFJILandroid/util/DisplayMetrics;)V",
 				(void*)
-				+[](JNIEnv* env, jobject, jlong nActivityAddr, jobject disp, jint id, jfloat refreshRate, jint rotation, jobject metrics)
+				+[](JNIEnv* env, jobject, jlong nActivityAddr, jobject disp, jint id, jfloat refreshRate, jlong presentationDeadline, jint rotation, jobject metrics)
 				{
 					ApplicationContext ctx{(ANativeActivity*)nActivityAddr};
 					auto &app = ctx.application();
@@ -638,7 +638,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 					if(!screen)
 					{
 						app.addScreen(ctx, std::make_unique<Screen>(ctx,
-							Screen::InitParams{env, disp, metrics, id, refreshRate, (Rotation)rotation}), false);
+							Screen::InitParams{env, disp, metrics, id, refreshRate, Nanoseconds{presentationDeadline}, Rotation(rotation)}), false);
 						return;
 					}
 					else

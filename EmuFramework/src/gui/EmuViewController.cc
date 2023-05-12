@@ -214,6 +214,7 @@ void EmuViewController::moveEmuViewToWindow(IG::Window &win)
 void EmuViewController::configureWindowForEmulation(IG::Window &win, FrameTimeConfig frameTimeConfig, bool running)
 {
 	emuView.renderer().setWindowValidOrientations(win, running ? app().emuOrientation() : app().menuOrientation());
+	emuView.renderer().task().setPresentMode(win, running ? app().presentMode : Gfx::PresentMode::Auto);
 	if(running)
 		app().setIntendedFrameRate(win, frameTimeConfig);
 	else
@@ -365,6 +366,7 @@ bool EmuViewController::drawMainWindow(IG::Window &win, IG::WindowDrawParams par
 			if(winData.hasPopup)
 				popup.draw(cmds);
 			app().record(FrameTimeStatEvent::aboutToPresent);
+			cmds.present(presentTime);
 		}
 		else
 		{
@@ -374,10 +376,9 @@ bool EmuViewController::drawMainWindow(IG::Window &win, IG::WindowDrawParams par
 			}
 			viewStack.draw(cmds);
 			popup.draw(cmds);
+			cmds.present();
 		}
-		cmds.present();
-		if(showingEmulation)
-			app().record(FrameTimeStatEvent::endOfDraw);
+		app().record(FrameTimeStatEvent::endOfDraw);
 		cmds.clear();
 	});
 }
@@ -394,7 +395,7 @@ bool EmuViewController::drawExtraWindow(IG::Window &win, IG::WindowDrawParams pa
 		{
 			popup.draw(cmds);
 		}
-		cmds.present();
+		cmds.present(presentTime);
 		cmds.clear();
 	});
 }

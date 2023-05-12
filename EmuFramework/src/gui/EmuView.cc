@@ -18,6 +18,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/OutputTimingManager.hh>
 #include <imagine/input/Input.hh>
+#include <imagine/base/Screen.hh>
 #include <algorithm>
 #include <format>
 
@@ -114,17 +115,21 @@ bool EmuView::inputEvent(const Input::Event &e)
 
 void EmuView::updateFrameTimeStats(FrameTimeStats stats, SteadyClockTimePoint currentFrameTimestamp)
 {
-	auto timestampDiff = std::chrono::duration_cast<Milliseconds>(currentFrameTimestamp - stats.startOfFrame);
-	auto callbackOverhead = std::chrono::duration_cast<Milliseconds>(stats.startOfEmulation - stats.startOfFrame);
-	auto emulationTime = std::chrono::duration_cast<Milliseconds>(stats.aboutToSubmitFrame - stats.startOfEmulation);
-	auto submitFrameTime = std::chrono::duration_cast<Milliseconds>(stats.aboutToPostDraw - stats.aboutToSubmitFrame);
-	auto postDrawTime = std::chrono::duration_cast<Milliseconds>(stats.startOfDraw - stats.aboutToPostDraw);
-	auto drawTime = std::chrono::duration_cast<Milliseconds>(stats.aboutToPresent - stats.startOfDraw);
-	auto presentTime = std::chrono::duration_cast<Milliseconds>(stats.endOfDraw - stats.aboutToPresent);
-	auto frameTime = std::chrono::duration_cast<Milliseconds>(stats.endOfDraw - stats.startOfFrame);
+	auto screenFrameTime = duration_cast<Milliseconds>(screen()->frameTime());
+	auto deadline = duration_cast<Milliseconds>(screen()->presentationDeadline());
+	auto timestampDiff = duration_cast<Milliseconds>(currentFrameTimestamp - stats.startOfFrame);
+	auto callbackOverhead = duration_cast<Milliseconds>(stats.startOfEmulation - stats.startOfFrame);
+	auto emulationTime = duration_cast<Milliseconds>(stats.aboutToSubmitFrame - stats.startOfEmulation);
+	auto submitFrameTime = duration_cast<Milliseconds>(stats.aboutToPostDraw - stats.aboutToSubmitFrame);
+	auto postDrawTime = duration_cast<Milliseconds>(stats.startOfDraw - stats.aboutToPostDraw);
+	auto drawTime = duration_cast<Milliseconds>(stats.aboutToPresent - stats.startOfDraw);
+	auto presentTime = duration_cast<Milliseconds>(stats.endOfDraw - stats.aboutToPresent);
+	auto frameTime = duration_cast<Milliseconds>(stats.endOfDraw - stats.startOfFrame);
 	doIfUsed(frameTimeStats, [&](auto &statsUI)
 	{
 		statsUI.text.resetString(std::format("Frame Time Stats\n\n"
+			"Screen Frame Time: {}ms\n"
+			"Deadline: {}ms\n"
 			"Timestamp Diff: {}ms\n"
 			"Frame Callback: {}ms\n"
 			"Emulate: {}ms\n"
@@ -134,8 +139,8 @@ void EmuView::updateFrameTimeStats(FrameTimeStats stats, SteadyClockTimePoint cu
 			"Present: {}ms\n"
 			"Total: {}ms\n"
 			"Missed Callbacks: {}",
-			timestampDiff.count(), callbackOverhead.count(), emulationTime.count(), submitFrameTime.count(), postDrawTime.count(),
-			drawTime.count(), presentTime.count(), frameTime.count(), stats.missedFrameCallbacks));
+			screenFrameTime.count(), deadline.count(), timestampDiff.count(), callbackOverhead.count(), emulationTime.count(), submitFrameTime.count(),
+			postDrawTime.count(), drawTime.count(), presentTime.count(), frameTime.count(), stats.missedFrameCallbacks));
 		placeFrameTimeStats();
 	});
 }

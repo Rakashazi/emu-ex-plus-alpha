@@ -50,8 +50,8 @@ public:
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	FloatSeconds frameTime() const { return FloatSeconds{1. / 60.}; }
-	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
+	FrameTime frameTime() const { return fromHz<FrameTime>(60.); }
+	void configAudioRate(FrameTime outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

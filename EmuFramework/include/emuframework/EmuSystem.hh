@@ -144,6 +144,8 @@ enum class VideoSystem: uint8_t
 	NATIVE_NTSC, PAL
 };
 
+using FrameTime = Nanoseconds;
+
 constexpr const char *optionUserPathContentToken = ":CONTENT:";
 
 class EmuSystem
@@ -217,8 +219,8 @@ public:
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);
 	InputAction translateInputAction(InputAction);
-	FloatSeconds frameTime() const;
-	void configAudioRate(FloatSeconds outputFrameTime, int outputRate);
+	FrameTime frameTime() const;
+	void configAudioRate(FrameTime outputFrameTime, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
 
@@ -339,11 +341,11 @@ public:
 	void loadContentFromFile(IG::IO, CStringView path, std::string_view displayName,
 		EmuSystemCreateParams, OnLoadProgressDelegate);
 	int updateAudioFramesPerVideoFrame();
-	double frameRate() const { return 1. / frameTime().count(); }
+	double frameRate() const { return toHz(frameTime()); }
 	void onFrameTimeChanged();
-	static double audioMixRate(int outputRate, double inputFrameRate, FloatSeconds outputFrameTime);
-	double audioMixRate(int outputRate, FloatSeconds outputFrameTime) const { return audioMixRate(outputRate, frameRate(), outputFrameTime); }
-	void configFrameTime(int outputRate, FloatSeconds outputFrameTime);
+	static double audioMixRate(int outputRate, double inputFrameRate, FrameTime outputFrameTime);
+	double audioMixRate(int outputRate, FrameTime outputFrameTime) const { return audioMixRate(outputRate, frameRate(), outputFrameTime); }
+	void configFrameTime(int outputRate, FrameTime outputFrameTime);
 	auto advanceFramesWithTime(SteadyClockTimePoint time) { return emuTiming.advanceFramesWithTime(time); }
 	void setSpeedMultiplier(EmuAudio &, double speed);
 	SteadyClockTime benchmark(EmuVideo &video);

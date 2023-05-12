@@ -285,8 +285,7 @@ public:
 	IG::Viewport makeViewport(const Window &win) const;
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &);
 	void record(FrameTimeStatEvent, SteadyClockTimePoint t = {});
-	void setWindowFrameClockSource(IG::Window::FrameTimeSource src) { winFrameTimeSrc = src; }
-	IG::Window::FrameTimeSource windowFrameClockSource() const { return winFrameTimeSrc; }
+	bool supportsPresentModes() const { return windowFrameTimeSource != WindowFrameTimeSource::RENDERER; }
 	void setIntendedFrameRate(Window &, FrameTimeConfig);
 	static std::u16string_view mainViewName();
 	void runBenchmarkOneShot(EmuVideo &);
@@ -566,12 +565,14 @@ protected:
 	IG::Rotation contentRotation_{IG::Rotation::ANY};
 	bool showHiddenFilesInPicker_{};
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, bool, layoutBehindSystemUI){};
-	IG::WindowFrameTimeSource winFrameTimeSrc{IG::WindowFrameTimeSource::AUTO};
 	IG_UseMemberIf(Config::envIsAndroid, bool, forceMaxScreenFrameRate){};
 public:
+	WindowFrameTimeSource windowFrameTimeSource{WindowFrameTimeSource::AUTO};
 	IG_UseMemberIf(Config::envIsAndroid || Config::envIsLinux, CPUAffinityMode, cpuAffinityMode){CPUAffinityMode::Auto};
 	IG_UseMemberIf(Config::envIsAndroid && Config::DEBUG_BUILD, bool, useNoopThread){};
 	IG_UseMemberIf(enableFrameTimeStats, bool, showFrameTimeStats){};
+	IG_UseMemberIf(Gfx::supportsPresentModes, Gfx::PresentMode, presentMode){};
+	IG_UseMemberIf(Gfx::supportsPresentationTime, bool, usePresentationTime){true};
 
 protected:
 	struct ConfigParams

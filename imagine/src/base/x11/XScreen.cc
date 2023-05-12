@@ -38,7 +38,7 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 	{
 		// TODO: read actual frame rate value
 		frameRate_ = 60;
-		frameTime_ = IG::FloatSeconds(1. / 60.);
+		frameTime_ = fromHz<SteadyClockTime>(60.);
 	}
 	else
 	{
@@ -65,13 +65,13 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 				if(modeInfo.hTotal && modeInfo.vTotal)
 				{
 					frameRate_ = float(modeInfo.dotClock) / (modeInfo.hTotal * modeInfo.vTotal);
-					frameTime_ = FloatSeconds(modeInfo.hTotal * modeInfo.vTotal / double(modeInfo.dotClock));
+					frameTime_ = fromSeconds<SteadyClockTime>(modeInfo.hTotal * modeInfo.vTotal / double(modeInfo.dotClock));
 				}
 				else
 				{
 					logWarn("unknown display time");
 					frameRate_ = 60;
-					frameTime_ = IG::FloatSeconds(1. / 60.);
+					frameTime_ = fromHz<SteadyClockTime>(60.);
 					reliableFrameTime = false;
 				}
 				break;
@@ -118,8 +118,7 @@ int Screen::height() const
 }
 
 FrameRate Screen::frameRate() const { return frameRate_; }
-
-FloatSeconds Screen::frameTime() const { return frameTime_; }
+SteadyClockTime Screen::frameTime() const { return frameTime_; }
 
 bool Screen::frameRateIsReliable() const
 {
@@ -147,7 +146,7 @@ void Screen::setFrameRate(FrameRate rate)
 			return;
 		}
 		frameRate_ = rate;
-		frameTime_ = FloatSeconds{1. / rate};
+		frameTime_ = fromHz<SteadyClockTime>(rate);
 		frameTimer.setFrameRate(rate);
 	}
 	else

@@ -278,7 +278,7 @@ void NeoSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate 
 	}
 }
 
-void NeoSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
+void NeoSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 {
 	Uint16 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
 	if(conf.sample_rate == mixRate)

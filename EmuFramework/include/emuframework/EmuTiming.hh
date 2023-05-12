@@ -31,7 +31,7 @@ class EmuTiming
 {
 public:
 	EmuFrameTimeInfo advanceFramesWithTime(SteadyClockTimePoint);
-	void setFrameTime(IG::FloatSeconds time);
+	void setFrameTime(SteadyClockTime time);
 	void reset();
 	void setSpeedMultiplier(double newSpeed);
 

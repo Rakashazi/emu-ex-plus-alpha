@@ -69,8 +69,7 @@ class RendererCommands : public RendererCommandsImpl
 public:
 	using RendererCommandsImpl::RendererCommandsImpl;
 	void present();
-	void presentAtTime(SteadyClockTimePoint);
-	void presentNow();
+	void present(SteadyClockTimePoint);
 	void setRenderTarget(Texture &t);
 	void setDefaultRenderTarget();
 	Renderer &renderer() const;

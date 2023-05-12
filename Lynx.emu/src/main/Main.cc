@@ -100,9 +100,9 @@ static auto microsecondsPerFrame()
 	return Microseconds{Lynx_HCount() * linesPerFrame};
 }
 
-FloatSeconds LynxSystem::frameTime() const { return FloatSeconds{microsecondsPerFrame()}; }
+FrameTime LynxSystem::frameTime() const { return FrameTime{microsecondsPerFrame()}; }
 
-void LynxSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
+void LynxSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 {
 	long mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
 	configuredHCount = Lynx_HCount();

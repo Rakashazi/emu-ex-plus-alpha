@@ -67,8 +67,8 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	private static final String logTag = "BaseActivity";
 	static native void onContentRectChanged(long nativeUserData,
 		int left, int top, int right, int bottom, int windowWidth, int windowHeight);
-	static native void displayEnumerated(long nativeUserData, Display dpy, int id,
-		float refreshRate, int rotation, DisplayMetrics metrics);
+	static native void displayEnumerated(long nativeUserData, Display dpy, int id, float refreshRate,
+		long presentationDeadline, int rotation, DisplayMetrics metrics);
 	static native void inputDeviceEnumerated(long nativeUserData,
 		int devID, InputDevice dev, String name, int src, int kbType,
 		int jsAxisBits, int vendorProductId, boolean isPowerButton);
@@ -128,11 +128,20 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return defaultDpy.getRotation();
 	}
 
+	static long getPresentationDeadlineNanos(Display dpy)
+	{
+		if(android.os.Build.VERSION.SDK_INT >= 21)
+		{
+			return dpy.getPresentationDeadlineNanos();
+		}
+		return 16666666; // assume 16ms
+	}
+
 	void enumDisplays(long nativeUserData)
 	{
 		displayEnumerated(nativeUserData, defaultDpy, Display.DEFAULT_DISPLAY,
-			defaultDpy.getRefreshRate(), defaultDpy.getRotation(),
-			getResources().getDisplayMetrics());
+			defaultDpy.getRefreshRate(), getPresentationDeadlineNanos(defaultDpy),
+			defaultDpy.getRotation(), getResources().getDisplayMetrics());
 		if(android.os.Build.VERSION.SDK_INT >= 17)
 		{
 			DisplayListenerHelper.enumPresentationDisplays(this, nativeUserData);

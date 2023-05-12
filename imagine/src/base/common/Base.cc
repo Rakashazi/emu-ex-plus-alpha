@@ -20,6 +20,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/util/math/Point2D.hh>
+#include <imagine/util/math/int.hh>
 #include <imagine/util/ranges.hh>
 #include <imagine/logger/logger.h>
 #include <cstdlib>
@@ -109,23 +110,25 @@ void GLManager::resetCurrentContext() const
 
 SteadyClockTimePoint FrameParams::presentTime(int frames) const
 {
-	return std::chrono::duration_cast<SteadyClockTime>(frameTime_) * frames + timestamp_;
+	if(frames <= 1)
+		return {};
+	return frameTime * frames + timestamp;
 }
 
 int FrameParams::elapsedFrames(SteadyClockTimePoint lastTimestamp) const
 {
-	return elapsedFrames(timestamp_, lastTimestamp, frameTime_);
+	return elapsedFrames(timestamp, lastTimestamp, frameTime);
 }
 
-int FrameParams::elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePoint lastTimestamp, FloatSeconds frameTime)
+int FrameParams::elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePoint lastTimestamp, SteadyClockTime frameTime)
 {
 	if(!hasTime(lastTimestamp))
 		return 1;
 	assumeExpr(timestamp >= lastTimestamp);
 	assumeExpr(frameTime.count() > 0);
 	auto diff = timestamp - lastTimestamp;
-	auto elapsed = (uint32_t)std::round(FloatSeconds(diff) / frameTime);
-	return std::max(elapsed, 1u);
+	auto elapsed = divRoundClosestPositive(diff.count(), frameTime.count());
+	return std::max(elapsed, decltype(elapsed){1});
 }
 
 WRect Viewport::relRect(WP pos, WP size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const

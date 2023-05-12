@@ -48,6 +48,7 @@ public:
 		jobject metrics;
 		int id;
 		float refreshRate;
+		Nanoseconds presentationDeadline;
 		Rotation rotation;
 	};
 
@@ -65,7 +66,8 @@ public:
 protected:
 	JNI::UniqueGlobalRef aDisplay;
 	FrameTimer frameTimer;
-	FloatSeconds frameTime_{};
+	SteadyClockTime frameTime_{};
+	SteadyClockTime presentationDeadline_{};
 	std::vector<float> supportedFrameRates_;
 	float densityDPI_{};
 	float scaledDensityDPI_{};

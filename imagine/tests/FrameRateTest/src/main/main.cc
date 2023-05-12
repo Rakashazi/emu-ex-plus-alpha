@@ -88,11 +88,6 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 				[this, &win](IG::ApplicationContext, bool focused)
 				{
 					windowData(win).picker.prepareDraw();
-					auto &activeTest = windowData(win).activeTest;
-					if(activeTest)
-					{
-						activeTest->prepareDraw(renderer);
-					}
 					return true;
 				});
 
@@ -184,8 +179,11 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 	win.addOnFrame([this, &win](IG::FrameParams params)
 	{
 		auto atOnFrame = SteadyClock::now();
-		renderer.setPresentationTime(win, params.presentTime());
 		auto &activeTest = windowData(win).activeTest;
+		if(!activeTest)
+		{
+			return false;
+		}
 		if(activeTest->started)
 		{
 			activeTest->frameUpdate(renderer.task(), win, params);
@@ -194,11 +192,11 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 		{
 			activeTest->started = true;
 		}
-		activeTest->lastFramePresentTime.timestamp = params.timestamp();
+		activeTest->lastFramePresentTime.timestamp = params.timestamp;
 		activeTest->lastFramePresentTime.atOnFrame = atOnFrame;
 		if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
 		{
-			finishTest(win, params.timestamp());
+			finishTest(win, params.timestamp);
 			return false;
 		}
 		else

@@ -113,7 +113,7 @@ void Screen::setActive(bool active)
 
 FrameParams Screen::makeFrameParams(SteadyClockTimePoint timestamp) const
 {
-	return {timestamp, frameTime()};
+	return {.timestamp = timestamp, .frameTime = frameTime()};
 }
 
 void Screen::postFrame()
@@ -137,6 +137,8 @@ void Screen::unpostFrame()
 	framePosted = false;
 	unpostFrameTimer();
 }
+
+[[gnu::weak]] SteadyClockTime Screen::presentationDeadline() const { return {}; }
 
 
 }

@@ -44,6 +44,7 @@ struct WindowConfig
 	Screen *screen_{};
 	const char *title{};
 	OnWindowEvent onEvent{delegateFuncDefaultInit};
+	bool translucent{};
 
 	void setDefaultPosition() { position = {-1, -1}; }
 	bool isDefaultPosition() const { return position == Point2D<int>{-1, -1}; }

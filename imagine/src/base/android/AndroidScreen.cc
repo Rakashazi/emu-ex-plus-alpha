@@ -42,9 +42,9 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass b
 		JNINativeMethod method[]
 		{
 			{
-				"displayAdd", "(JILandroid/view/Display;FLandroid/util/DisplayMetrics;)V",
+				"displayAdd", "(JILandroid/view/Display;FJLandroid/util/DisplayMetrics;)V",
 				(void*)
-				+[](JNIEnv* env, jobject thiz, jlong nActivityAddr, jint id, jobject disp, jfloat refreshRate, jobject metrics)
+				+[](JNIEnv* env, jobject thiz, jlong nActivityAddr, jint id, jobject disp, jfloat refreshRate, jlong presentationDeadline, jobject metrics)
 				{
 					ApplicationContext ctx{(ANativeActivity*)nActivityAddr};
 					auto &app = ctx.application();
@@ -54,7 +54,7 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass b
 						return;
 					}
 					app.addScreen(ctx, std::make_unique<Screen>(ctx,
-						Screen::InitParams{env, disp, metrics, id, refreshRate, Rotation::UP}), true);
+						Screen::InitParams{env, disp, metrics, id, refreshRate, Nanoseconds{presentationDeadline}, Rotation::UP}), true);
 				}
 			},
 			{
@@ -114,7 +114,7 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass b
 AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 	frameTimer{ctx.application().makeFrameTimer(*static_cast<Screen*>(this))}
 {
-	auto [env, aDisplay, metrics, id, refreshRate, rotation] = params;
+	auto [env, aDisplay, metrics, id, refreshRate, presentationDeadline, rotation] = params;
 	assert(aDisplay);
 	assert(metrics);
 	this->aDisplay = {env, aDisplay};
@@ -131,7 +131,7 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 		id_ = id;
 		logMsg("init display with id:%d", id_);
 	}
-
+	presentationDeadline_ = presentationDeadline;
 	updateFrameRate(refreshRate);
 	if(ctx.androidSDK() <= 10)
 	{
@@ -140,12 +140,12 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 		if(Config::MACHINE_IS_GENERIC_ARMV7 && buildDevice == "R800at")
 		{
 			frameRate_ = 61.5;
-			frameTime_ = FloatSeconds(1. / frameRate_);
+			frameTime_ = fromHz<SteadyClockTime>(frameRate_);
 		}
 		else if(Config::MACHINE_IS_GENERIC_ARMV7 && buildDevice == "sholes")
 		{
 			frameRate_ = 60;
-			frameTime_ = FloatSeconds(1. / frameRate_);
+			frameTime_ = fromHz<SteadyClockTime>(frameRate_);
 		}
 		else
 			reliableFrameRate = false;
@@ -200,7 +200,7 @@ void AndroidScreen::updateFrameRate(float rate)
 		reliableFrameRate = false;
 	}
 	frameRate_ = rate;
-	frameTime_ = FloatSeconds(1. / rate);
+	frameTime_ = fromHz<SteadyClockTime>(rate);
 }
 
 void AndroidScreen::updateSupportedFrameRates(ApplicationContext ctx, JNIEnv *env)
@@ -225,7 +225,8 @@ void AndroidScreen::updateSupportedFrameRates(ApplicationContext ctx, JNIEnv *en
 int Screen::width() const { return width_; }
 int Screen::height() const { return height_; }
 FrameRate Screen::frameRate() const { return frameRate_; }
-FloatSeconds Screen::frameTime() const { return frameTime_; }
+SteadyClockTime Screen::frameTime() const { return frameTime_; }
+SteadyClockTime Screen::presentationDeadline() const { return presentationDeadline_; }
 bool Screen::frameRateIsReliable() const { return reliableFrameRate; }
 
 void Screen::postFrameTimer()

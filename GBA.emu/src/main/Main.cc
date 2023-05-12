@@ -216,7 +216,7 @@ void GbaSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	CPULoop(gGba, taskCtx, video, audio);
 }
 
-void GbaSystem::configAudioRate(FloatSeconds outputFrameTime, int outputRate)
+void GbaSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 {
 	long mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
 	logMsg("set sound mix rate:%ld", mixRate);

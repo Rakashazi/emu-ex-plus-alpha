@@ -116,6 +116,8 @@ void GLContext::present(NativeGLDrawable) const
 	[context() presentRenderbuffer:GL_RENDERBUFFER];
 }
 
+void GLContext::setSwapInterval(int) {}
+
 // GLManager
 
 GLManager::GLManager(NativeDisplayConnection ctx, GL::API api)

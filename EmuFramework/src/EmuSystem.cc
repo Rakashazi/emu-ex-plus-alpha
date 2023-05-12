@@ -286,13 +286,13 @@ SteadyClockTime EmuSystem::benchmark(EmuVideo &video)
 	return SteadyClock::now() - before;
 }
 
-void EmuSystem::configFrameTime(int outputRate, FloatSeconds outputFrameTime)
+void EmuSystem::configFrameTime(int outputRate, FrameTime outputFrameTime)
 {
 	if(!hasContent())
 		return;
 	configAudioRate(outputFrameTime, outputRate);
-	audioFramesPerVideoFrame = std::ceil(outputRate * outputFrameTime.count());
-	audioFramesPerVideoFrameFloat = outputRate * outputFrameTime.count();
+	audioFramesPerVideoFrameFloat = outputRate * duration_cast<FloatSeconds>(outputFrameTime).count();
+	audioFramesPerVideoFrame = std::ceil(audioFramesPerVideoFrameFloat);
 	currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
 	emuTiming.setFrameTime(outputFrameTime);
 }
@@ -303,12 +303,12 @@ void EmuSystem::onFrameTimeChanged()
 	EmuApp::get(appContext()).configFrameTime();
 }
 
-double EmuSystem::audioMixRate(int outputRate, double inputFrameRate, FloatSeconds outputFrameTime)
+double EmuSystem::audioMixRate(int outputRate, double inputFrameRate, FrameTime outputFrameTime)
 {
 	assumeExpr(outputRate > 0);
 	assumeExpr(inputFrameRate > 0);
 	assumeExpr(outputFrameTime.count() > 0);
-	return inputFrameRate * outputFrameTime.count() * outputRate;
+	return inputFrameRate * duration_cast<FloatSeconds>(outputFrameTime).count() * outputRate;
 }
 
 int EmuSystem::updateAudioFramesPerVideoFrame()

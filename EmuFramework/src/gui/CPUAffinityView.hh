@@ -29,6 +29,7 @@ class CPUAffinityView : public TableView, public EmuAppHelper<CPUAffinityView>
 {
 public:
 	CPUAffinityView(ViewAttachParams attach, int cpuCount);
+	void onShow() final;
 
 protected:
 	TextMenuItem affinityModeItems[3];

@@ -65,7 +65,7 @@ public:
 protected:
 	void *uiScreen_{}; // UIScreen in ObjC
 	void *displayLink_{}; // CADisplayLink in ObjC
-	FloatSeconds frameTime_{};
+	SteadyClockTime frameTime_{};
 	float frameRate_{};
 	bool displayLinkActive{};
 };

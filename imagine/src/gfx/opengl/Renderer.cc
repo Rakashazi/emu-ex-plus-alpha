@@ -156,6 +156,7 @@ bool GLRenderer::makeWindowDrawable(RendererTask &task, Window &win, GLBufferCon
 	auto &rData = winData(win);
 	rData.bufferConfig = bufferConfig;
 	rData.colorSpace = colorSpace;
+	rData.swapInterval = toSwapInterval(win, Gfx::PresentMode::Auto);
 	task.destroyDrawable(rData.drawable);
 	GLDrawableAttributes attr{bufferConfig};
 	attr.colorSpace = colorSpace;
@@ -285,28 +286,24 @@ bool Renderer::supportsSyncFences() const
 	return support.hasSyncFences();
 }
 
-void Renderer::setPresentationTime(Window &win, SteadyClockTimePoint time) const
+bool Renderer::supportsPresentationTime() const { return glManager.hasPresentationTime(); }
+
+int GLRenderer::toSwapInterval(const Window &win, PresentMode mode) const
 {
-	#ifdef __ANDROID__
-	if(!supportsPresentationTime())
-		return;
-	auto drawable = (Drawable)winData(win).drawable;
-	bool success = support.eglPresentationTimeANDROID(glDisplay(), drawable, time.time_since_epoch().count());
-	if(Config::DEBUG_BUILD && !success)
+	switch(mode)
 	{
-		logErr("error:%s in eglPresentationTimeANDROID(%p, %llu)",
-			GLManager::errorString(eglGetError()), (EGLSurface)drawable, (unsigned long long)time.time_since_epoch().count());
+		case PresentMode::Auto: return toSwapInterval(win, static_cast<const Renderer*>(this)->evalPresentMode(win, mode));
+		case PresentMode::Immediate: return 0;
+		case PresentMode::FIFO: return 1;
 	}
-	#endif
+	std::unreachable();
 }
 
-bool Renderer::supportsPresentationTime() const
+PresentMode Renderer::evalPresentMode(const Window &win, PresentMode mode) const
 {
-	#ifdef __ANDROID__
-	return support.eglPresentationTimeANDROID;
-	#else
-	return false;
-	#endif
+	if(mode == PresentMode::Auto)
+		return PresentMode::FIFO;
+	return mode;
 }
 
 int Renderer::maxSwapChainImages() const
@@ -482,7 +479,7 @@ void Renderer::animateWindowRotation(Window &win, float srcAngle, float destAngl
 	win.addOnFrame([this, &win](FrameParams params)
 	{
 		win.signalSurfaceChanged(WindowSurfaceChange::CONTENT_RECT_RESIZED);
-		bool didUpdate = winData(win).projAngleM.update(params.timestamp());
+		bool didUpdate = winData(win).projAngleM.update(params.timestamp);
 		return didUpdate;
 	});
 }

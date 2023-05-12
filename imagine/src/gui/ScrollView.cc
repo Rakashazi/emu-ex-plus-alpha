@@ -44,7 +44,7 @@ ScrollView::ScrollView(ViewAttachParams attach):
 	{
 		[this](IG::FrameParams params)
 		{
-			auto frames = params.elapsedFrames(std::exchange(lastFrameTimestamp, params.timestamp()));
+			auto frames = params.elapsedFrames(std::exchange(lastFrameTimestamp, params.timestamp));
 			auto prevOffset = offset;
 			if(scrollVel) // scrolling deceleration
 			{

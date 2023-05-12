@@ -124,12 +124,6 @@ static void printFeatures(DrawContextSupport support)
 	{
 		featuresStr.append(" [sRGB FB Write Control]");
 	}
-	#ifdef __ANDROID__
-	if(support.eglPresentationTimeANDROID)
-	{
-		featuresStr.append(" [Presentation Time]");
-	}
-	#endif
 	if(!support.useFixedFunctionPipeline)
 	{
 		featuresStr.append(" [GLSL:");
@@ -320,16 +314,6 @@ void GLRenderer::setupMemoryBarrier()
 	#else
 	support.hasMemoryBarrier = true;
 	#endif*/
-}
-
-void GLRenderer::setupPresentationTime(std::string_view eglExtenstionStr)
-{
-	#ifdef __ANDROID__
-	if(eglExtenstionStr.contains("EGL_ANDROID_presentation_time"))
-	{
-		glManager.loadSymbol(support.eglPresentationTimeANDROID, "eglPresentationTimeANDROID");
-	}
-	#endif
 }
 
 void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs)
@@ -536,7 +520,6 @@ void Renderer::configureRenderer()
 			{
 				auto extStr = ctx.glDisplay().queryExtensions();
 				setupEglFenceSync(extStr);
-				setupPresentationTime(extStr);
 			}
 			#endif
 
