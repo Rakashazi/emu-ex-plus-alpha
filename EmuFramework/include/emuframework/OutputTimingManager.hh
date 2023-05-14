@@ -18,11 +18,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/gui/MenuItem.hh>
-
-namespace IG
-{
-class Screen;
-}
+#include <span>
 
 namespace EmuEx
 {
@@ -66,7 +62,7 @@ public:
 	static constexpr FrameTime originalOption{-1};
 
 	constexpr OutputTimingManager() = default;
-	FrameTimeConfig frameTimeConfig(const EmuSystem &, const Screen &) const;
+	FrameTimeConfig frameTimeConfig(const EmuSystem &, std::span<const FrameRate> supportedFrameRates) const;
 	static bool frameTimeOptionIsValid(FrameTime time);
 	bool setFrameTimeOption(VideoSystem, FrameTime frameTime);
 	FrameTime frameTimeOption(VideoSystem vidSys) const { return frameTimeVar(vidSys); }

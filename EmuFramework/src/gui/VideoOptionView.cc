@@ -778,20 +778,35 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		(MenuItem::Id)app().renderPixelFormat().id(),
 		renderPixelFormatItem
 	},
-	forceMaxScreenFrameRate
+	screenFrameRateItems
 	{
-		"Force Max Screen Frame Rate", &defaultFace(),
-		app().shouldForceMaxScreenFrameRate(),
-		[this](BoolMenuItem &item)
+		[&]
 		{
-			app().setForceMaxScreenFrameRate(item.flipBoolValue(*this));
-		}
+			std::vector<TextMenuItem> items;
+			auto setRateDel = [this](TextMenuItem &item) { app().overrideScreenFrameRate = std::bit_cast<FrameRate>(item.id()); };
+			items.emplace_back("Off", &defaultFace(), setRateDel, 0);
+			for(auto rate : app().emuScreen().supportedFrameRates())
+				items.emplace_back(std::format("{:g}Hz", rate), &defaultFace(), setRateDel, std::bit_cast<MenuItem::Id>(rate));
+			return items;
+		}()
+	},
+	screenFrameRate
+	{
+		"Override Screen Frame Rate", &defaultFace(),
+		std::bit_cast<MenuItem::Id>(FrameRate(app().overrideScreenFrameRate)),
+		screenFrameRateItems
 	},
 	presentationTime
 	{
 		"Precise Frame Pacing", &defaultFace(),
 		app().usePresentationTime,
 		[this](BoolMenuItem &item) { app().usePresentationTime = item.flipBoolValue(*this); }
+	},
+	blankFrameInsertion
+	{
+		"Allow Blank Frame Insertion", &defaultFace(),
+		app().allowBlankFrameInsertion,
+		[this](BoolMenuItem &item) { app().allowBlankFrameInsertion = item.flipBoolValue(*this); }
 	},
 	brightnessItem
 	{
@@ -928,8 +943,9 @@ void VideoOptionView::loadStockItems()
 		item.emplace_back(&presentMode);
 	if(used(presentationTime) && renderer().supportsPresentationTime())
 		item.emplace_back(&presentationTime);
-	if(used(forceMaxScreenFrameRate) && Config::envIsAndroid && appContext().androidSDK() >= 30)
-		item.emplace_back(&forceMaxScreenFrameRate);
+	item.emplace_back(&blankFrameInsertion);
+	if(used(screenFrameRate) && app().emuScreen().supportedFrameRates().size() > 1)
+		item.emplace_back(&screenFrameRate);
 	if(used(secondDisplay))
 		item.emplace_back(&secondDisplay);
 	if(used(showOnSecondScreen) && !app().showOnSecondScreenOption().isConst)

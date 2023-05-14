@@ -375,7 +375,7 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 		cmds.setColor(whiteCol);
 		kb.draw(cmds);
 	}
-	else if(gamepadIsVisible)
+	else if(gamepadIsVisible || showHidden)
 	{
 		for(const auto &e : gpElements)
 		{

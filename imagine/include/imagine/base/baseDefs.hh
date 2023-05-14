@@ -122,11 +122,11 @@ constexpr bool SENSORS = true;
 constexpr bool SENSORS = false;
 #endif
 
-#if defined __ANDROID__
-constexpr bool threadPerformanceHints = true;
-#else
-constexpr bool threadPerformanceHints = false;
-#endif
+constexpr bool threadPerformanceHints = Config::envIsAndroid;
+
+constexpr bool multipleScreenFrameRates = Config::envIsAndroid;
+
+constexpr bool cpuAffinity = Config::envIsAndroid || Config::envIsLinux;
 
 }
 

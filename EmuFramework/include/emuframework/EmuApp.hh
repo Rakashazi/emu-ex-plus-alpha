@@ -327,8 +327,6 @@ public:
 	void setContentRotation(IG::Rotation);
 	IG::Rotation contentRotation() const { return contentRotation_; }
 	void updateContentRotation();
-	bool shouldForceMaxScreenFrameRate() const { return forceMaxScreenFrameRate; }
-	void setForceMaxScreenFrameRate(bool on) { forceMaxScreenFrameRate = on; }
 	float videoBrightness(ImageChannel) const;
 	const Gfx::Vec3 &videoBrightnessAsRGB() const { return videoBrightnessRGB; }
 	int videoBrightnessAsInt(ImageChannel ch) const { return videoBrightness(ch) * 100.f; }
@@ -525,7 +523,7 @@ protected:
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr);
 	RecentContentList recentContentList;
 	std::string userScreenshotDir;
-	IG_UseMemberIf(Config::envIsAndroid || Config::envIsLinux, CPUMask, cpuAffinityMask){};
+	IG_UseMemberIf(Config::cpuAffinity, CPUMask, cpuAffinityMask){};
 	int savedAdvancedFrames{};
 	static constexpr int16_t defaultFastModeSpeed{800};
 	static constexpr int16_t defaultSlowModeSpeed{50};
@@ -565,14 +563,16 @@ protected:
 	IG::Rotation contentRotation_{IG::Rotation::ANY};
 	bool showHiddenFilesInPicker_{};
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, bool, layoutBehindSystemUI){};
-	IG_UseMemberIf(Config::envIsAndroid, bool, forceMaxScreenFrameRate){};
 public:
+	IG_UseMemberIf(Config::multipleScreenFrameRates, FrameRate, overrideScreenFrameRate){};
 	WindowFrameTimeSource windowFrameTimeSource{WindowFrameTimeSource::AUTO};
-	IG_UseMemberIf(Config::envIsAndroid || Config::envIsLinux, CPUAffinityMode, cpuAffinityMode){CPUAffinityMode::Auto};
+	IG_UseMemberIf(Config::cpuAffinity, CPUAffinityMode, cpuAffinityMode){CPUAffinityMode::Auto};
 	IG_UseMemberIf(Config::envIsAndroid && Config::DEBUG_BUILD, bool, useNoopThread){};
 	IG_UseMemberIf(enableFrameTimeStats, bool, showFrameTimeStats){};
 	IG_UseMemberIf(Gfx::supportsPresentModes, Gfx::PresentMode, presentMode){};
 	IG_UseMemberIf(Gfx::supportsPresentationTime, bool, usePresentationTime){true};
+	bool allowBlankFrameInsertion{};
+	bool enableBlankFrameInsertion{};
 
 protected:
 	struct ConfigParams

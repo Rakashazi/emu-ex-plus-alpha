@@ -343,8 +343,11 @@ void EmuApp::saveConfigFile(FileIO &io)
 	vController.writeConfig(io);
 	autosaveManager_.writeConfig(io);
 	emuAudio.writeConfig(io);
-	if(IG::used(forceMaxScreenFrameRate) && forceMaxScreenFrameRate)
-		writeOptionValue(io, CFGKEY_FORCE_MAX_SCREEN_FRAME_RATE, true);
+	doIfUsed(overrideScreenFrameRate, [&](auto &rate)
+	{
+		writeOptionValueIfNotDefault(io, CFGKEY_OVERRIDE_SCREEN_FRAME_RATE, rate, FrameRate{0});
+	});
+	writeOptionValueIfNotDefault(io, CFGKEY_BLANK_FRAME_INSERTION, allowBlankFrameInsertion, false);
 	if(videoBrightnessRGB != Gfx::Vec3{1.f, 1.f, 1.f})
 		writeOptionValue(io, CFGKEY_VIDEO_BRIGHTNESS, videoBrightnessRGB);
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
@@ -631,7 +634,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_WINDOW_PIXEL_FORMAT: return readOptionValue(io, size, pendingWindowDrawableConf.pixelFormat, windowPixelFormatIsValid);
 				case CFGKEY_VIDEO_COLOR_SPACE: return readOptionValue(io, size, pendingWindowDrawableConf.colorSpace, colorSpaceIsValid);
 				case CFGKEY_SHOW_HIDDEN_FILES: return readOptionValue<bool>(io, size, [&](auto on){setShowHiddenFilesInPicker(on);});
-				case CFGKEY_FORCE_MAX_SCREEN_FRAME_RATE: return readOptionValue<bool>(io, size, [&](auto on){setForceMaxScreenFrameRate(on);});
+				case CFGKEY_OVERRIDE_SCREEN_FRAME_RATE: return readOptionValue(io, size, overrideScreenFrameRate);
+				case CFGKEY_BLANK_FRAME_INSERTION: return readOptionValue(io, size, allowBlankFrameInsertion);
 				case CFGKEY_CONTENT_ROTATION: return readOptionValue(io, size, contentRotation_, [](auto r){return r <= lastEnum<Rotation>;});
 				case CFGKEY_VIDEO_LANDSCAPE_ASPECT_RATIO: return readOptionValue(io, size, videoLayer().landscapeAspectRatio, isValidAspectRatio);
 				case CFGKEY_VIDEO_PORTRAIT_ASPECT_RATIO: return readOptionValue(io, size, videoLayer().portraitAspectRatio, isValidAspectRatio);

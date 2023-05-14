@@ -80,8 +80,10 @@ protected:
 	IG_UseMemberIf(Gfx::supportsPresentModes, MultiChoiceMenuItem, presentMode);
 	TextMenuItem renderPixelFormatItem[3];
 	MultiChoiceMenuItem renderPixelFormat;
-	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, forceMaxScreenFrameRate);
+	IG_UseMemberIf(Config::multipleScreenFrameRates, std::vector<TextMenuItem>, screenFrameRateItems);
+	IG_UseMemberIf(Config::multipleScreenFrameRates, MultiChoiceMenuItem, screenFrameRate);
 	IG_UseMemberIf(Gfx::supportsPresentationTime, BoolMenuItem, presentationTime);
+	BoolMenuItem blankFrameInsertion;
 	TextMenuItem brightnessItem[2];
 	TextMenuItem redItem[2];
 	TextMenuItem greenItem[2];
@@ -95,7 +97,7 @@ protected:
 	TextHeadingMenuItem colorLevelsHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 35> item;
+	StaticArrayList<MenuItem*, 37> item;
 
 	bool onFrameTimeChange(VideoSystem vidSys, SteadyClockTime time);
 	TextMenuItem::SelectDelegate setVideoBrightnessCustomDel(ImageChannel);

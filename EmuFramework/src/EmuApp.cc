@@ -565,6 +565,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					bool altSpeed = false;
 					auto &audio = this->audio();
 					auto &sys = system();
+					auto &win = viewController.emuWindow();
 					if(sys.shouldFastForward()) [[unlikely]]
 					{
 						// for skipping loading on disk-based computers
@@ -579,7 +580,14 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					}
 					auto frameInfo = sys.advanceFramesWithTime(params.timestamp);
 					if(!frameInfo.advanced)
+					{
+						if(enableBlankFrameInsertion)
+						{
+							viewController.drawBlankFrame = true;
+							win.postDraw(1);
+						}
 						return true;
+					}
 					int interval = frameInterval();
 					auto videoPtr = &this->video();
 					if(frameInfo.advanced + savedAdvancedFrames < interval)
@@ -592,7 +600,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					{
 						savedAdvancedFrames = 0;
 					}
-					auto &win = viewController.emuWindow();
 					if(videoPtr)
 					{
 						if(win.isReady())
@@ -1502,7 +1509,8 @@ void EmuApp::syncEmulationThread()
 
 FrameTimeConfig EmuApp::configFrameTime()
 {
-	auto frameTimeConfig = outputTimingManager.frameTimeConfig(system(), emuScreen());
+	auto supportedRates = overrideScreenFrameRate ? std::span<const FrameRate>{&overrideScreenFrameRate, 1} : emuScreen().supportedFrameRates();
+	auto frameTimeConfig = outputTimingManager.frameTimeConfig(system(), supportedRates);
 	system().configFrameTime(emuAudio.format().rate, frameTimeConfig.time);
 	return frameTimeConfig;
 }
@@ -1694,10 +1702,17 @@ void EmuApp::configureAppForEmulation(bool running)
 
 void EmuApp::setIntendedFrameRate(Window &win, FrameTimeConfig config)
 {
-	if(shouldForceMaxScreenFrameRate())
-		return win.setIntendedFrameRate(std::ranges::max(win.screen()->supportedFrameRates()));
-	else
-		return win.setIntendedFrameRate(config.rate);
+	enableBlankFrameInsertion = false;
+	if(allowBlankFrameInsertion && config.refreshMultiplier > 1)
+	{
+		enableBlankFrameInsertion = true;
+		if(!overrideScreenFrameRate)
+		{
+			config.rate *= config.refreshMultiplier;
+			logMsg("Multiplied intended frame rate to:%.2f", config.rate);
+		}
+	}
+	return win.setIntendedFrameRate(overrideScreenFrameRate ? FrameRate(overrideScreenFrameRate) : config.rate);
 }
 
 void EmuApp::onFocusChange(bool in)
