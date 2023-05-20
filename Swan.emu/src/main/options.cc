@@ -45,6 +45,7 @@ bool WsSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readS
 				{
 					userProfile = WsUserProfile::unpack(v);
 				});
+			case CFGKEY_NO_MD5_FILENAMES: return readOptionValue(io, readSize, noMD5InFilenames);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -70,6 +71,7 @@ void WsSystem::writeConfig(ConfigType type, FileIO &io)
 			writeStringOptionValue(io, CFGKEY_USER_NAME, userName);
 		if(userProfile != defaultUserProfile)
 			writeOptionValue(io, CFGKEY_USER_PROFILE, WsUserProfile::pack(userProfile));
+		writeOptionValueIfNotDefault(io, CFGKEY_NO_MD5_FILENAMES, noMD5InFilenames, false);
 	}
 	else if(type == ConfigType::SESSION)
 	{

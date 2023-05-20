@@ -61,7 +61,7 @@ void WsSystem::reset(EmuApp &, ResetMode mode)
 
 FS::FileString WsSystem::stateFilename(int slot, std::string_view name) const
 {
-	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'a');
+	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'a', noMD5InFilenames);
 }
 
 void WsSystem::saveState(IG::CStringView path)
@@ -82,7 +82,7 @@ void WsSystem::loadBackupMemory(EmuApp &app)
 		return;
 	logMsg("loading sram/eeprom");
 	if(!saveFileIO)
-		saveFileIO = staticBackupMemoryFile(savePathMDFN(app, 0, "sav"), eeprom_size + sram_size);
+		saveFileIO = staticBackupMemoryFile(savePathMDFN(app, 0, "sav", noMD5InFilenames), eeprom_size + sram_size);
 	if(eeprom_size)
 		saveFileIO.read(wsEEPROM, eeprom_size, 0);
 	if(sram_size)
@@ -102,7 +102,7 @@ void WsSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 
 WallClockTimePoint WsSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
-	return appContext().fileUriLastWriteTime(savePathMDFN(app, 0, "sav").c_str());
+	return appContext().fileUriLastWriteTime(savePathMDFN(app, 0, "sav", noMD5InFilenames).c_str());
 }
 
 void WsSystem::closeSystem()

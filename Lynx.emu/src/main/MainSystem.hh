@@ -28,7 +28,7 @@ namespace EmuEx
 enum
 {
 	CFGKEY_BIOS = 256, CFGKEY_LYNX_ROTATION = 257,
-	CFGKEY_LOWPASS_FILTER = 258,
+	CFGKEY_LOWPASS_FILTER = 258, CFGKEY_NO_MD5_FILENAMES = 259,
 };
 
 WISE_ENUM_CLASS((LynxRotation, uint8_t),
@@ -48,6 +48,7 @@ public:
 	uint8_t configuredHCount{};
 	LynxRotation rotation{};
 	bool lowpassFilter{};
+	bool noMD5InFilenames{};
 	FS::PathString biosPath;
 
 	LynxSystem(ApplicationContext ctx):

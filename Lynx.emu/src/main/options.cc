@@ -44,6 +44,7 @@ bool LynxSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t rea
 		{
 			case CFGKEY_BIOS: return readStringOptionValue(io, readSize, biosPath);
 			case CFGKEY_LOWPASS_FILTER: return readOptionValue(io, readSize, lowpassFilter);
+			case CFGKEY_NO_MD5_FILENAMES: return readOptionValue(io, readSize, noMD5InFilenames);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -65,6 +66,7 @@ void LynxSystem::writeConfig(ConfigType type, FileIO &io)
 	{
 		writeStringOptionValue(io, CFGKEY_BIOS, biosPath);
 		writeOptionValueIfNotDefault(io, CFGKEY_LOWPASS_FILTER, lowpassFilter, false);
+		writeOptionValueIfNotDefault(io, CFGKEY_NO_MD5_FILENAMES, noMD5InFilenames, false);
 	}
 	else if(type == ConfigType::SESSION)
 	{

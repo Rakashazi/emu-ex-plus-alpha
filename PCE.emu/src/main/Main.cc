@@ -88,12 +88,12 @@ void PceSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 
 WallClockTimePoint PceSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
-	return appContext().fileUriLastWriteTime(savePathMDFN(app, 0, "sav").c_str());
+	return appContext().fileUriLastWriteTime(savePathMDFN(app, 0, "sav", noMD5InFilenames).c_str());
 }
 
 FS::FileString PceSystem::stateFilename(int slot, std::string_view name) const
 {
-	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'q');
+	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'q', noMD5InFilenames);
 }
 
 void PceSystem::closeSystem()

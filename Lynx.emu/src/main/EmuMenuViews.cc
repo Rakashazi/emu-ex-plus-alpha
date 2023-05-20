@@ -16,7 +16,9 @@
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/DataPathSelectView.hh>
 #include <emuframework/SystemActionsView.hh>
+#include <emuframework/SystemOptionView.hh>
 #include <emuframework/AudioOptionView.hh>
+#include <mednafen-emuex/MDFNUtils.hh>
 #include "MainApp.hh"
 #include <imagine/util/string.h>
 #include <imagine/util/format.hh>
@@ -140,11 +142,26 @@ public:
 	}
 };
 
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
+{
+	using MainAppHelper<CustomSystemOptionView>::system;
+
+	BoolMenuItem saveFilenameType = saveFilenameTypeMenuItem(*this, system());
+
+public:
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	{
+		loadStockItems();
+		item.emplace_back(&saveFilenameType);
+	}
+};
+
 std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
+		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
 		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		default: return nullptr;

@@ -14,6 +14,7 @@
 	along with NGP.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/SystemOptionView.hh>
+#include <mednafen-emuex/MDFNUtils.hh>
 #include "MainApp.hh"
 
 namespace EmuEx
@@ -37,11 +38,14 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		}
 	};
 
+	BoolMenuItem saveFilenameType = saveFilenameTypeMenuItem(*this, system());
+
 public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&ngpLanguage);
+		item.emplace_back(&saveFilenameType);
 	}
 };
 

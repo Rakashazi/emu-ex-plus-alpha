@@ -23,6 +23,7 @@
 #include "xlibutils.h"
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/Xfixes.h>
 
 namespace IG
 {

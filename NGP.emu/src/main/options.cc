@@ -41,6 +41,7 @@ bool NgpSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 		switch(key)
 		{
 			case CFGKEY_NGPKEY_LANGUAGE: return optionNGPLanguage.readFromIO(io, readSize);
+			case CFGKEY_NO_MD5_FILENAMES: return readOptionValue(io, readSize, noMD5InFilenames);
 		}
 	}
 	return false;
@@ -51,6 +52,7 @@ void NgpSystem::writeConfig(ConfigType type, FileIO &io)
 	if(type == ConfigType::MAIN)
 	{
 		optionNGPLanguage.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, CFGKEY_NO_MD5_FILENAMES, noMD5InFilenames, false);
 	}
 }
 

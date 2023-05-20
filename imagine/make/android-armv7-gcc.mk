@@ -22,12 +22,8 @@ include $(buildSysPath)/android-gcc.mk
 
 # Directly call the GNU assembler until assembly in projects is updated for clang's integrated assembler
 
-ifneq ($(wildcard $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/arm-linux-androideabi-as),) # check for GNU assember included in NDK <= r23
- AS = $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/arm-linux-androideabi-as
+ifneq ($(shell which arm-none-linux-gnueabi-as),)
+ AS = arm-none-linux-gnueabi-as
 else
- ifneq ($(shell which arm-none-linux-gnueabi-as),)
-  AS = arm-none-linux-gnueabi-as
- else
-  AS = arm-linux-gnueabi-as
- endif
+ AS = arm-linux-gnueabi-as
 endif

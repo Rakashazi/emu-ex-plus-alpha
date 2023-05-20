@@ -20,6 +20,7 @@
 #include <emuframework/DataPathSelectView.hh>
 #include <emuframework/SystemActionsView.hh>
 #include <emuframework/EmuInput.hh>
+#include <mednafen-emuex/MDFNUtils.hh>
 #include "MainApp.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/gui/AlertView.hh>
@@ -341,12 +342,15 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		};
 	}
 
+	BoolMenuItem saveFilenameType = saveFilenameTypeMenuItem(*this, system());
+
 public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&emuCore);
 		item.emplace_back(&cdSpeed);
+		item.emplace_back(&saveFilenameType);
 	}
 };
 

@@ -24,6 +24,7 @@
 #include "xlibutils.h"
 #include <X11/XKBlib.h>
 #include <X11/cursorfont.h>
+#include <X11/extensions/Xfixes.h>
 #include <memory>
 
 namespace IG

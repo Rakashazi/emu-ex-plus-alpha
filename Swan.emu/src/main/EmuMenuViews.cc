@@ -15,6 +15,7 @@
 
 #include <emuframework/SystemOptionView.hh>
 #include <emuframework/SystemActionsView.hh>
+#include <mednafen-emuex/MDFNUtils.hh>
 #include "MainApp.hh"
 #include <mednafen/wswan/wswan.h>
 
@@ -154,10 +155,13 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		bloodTypeItem
 	};
 
+	BoolMenuItem saveFilenameType = saveFilenameTypeMenuItem(*this, system());
+
 public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
+		item.emplace_back(&saveFilenameType);
 		item.emplace_back(&userProfile);
 		item.emplace_back(&language);
 		item.emplace_back(&name);

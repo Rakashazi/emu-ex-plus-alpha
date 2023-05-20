@@ -64,7 +64,7 @@ void NgpSystem::reset(EmuApp &, ResetMode mode)
 
 FS::FileString NgpSystem::stateFilename(int slot, std::string_view name) const
 {
-	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'a');
+	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'a', noMD5InFilenames);
 }
 
 void NgpSystem::saveState(IG::CStringView path)

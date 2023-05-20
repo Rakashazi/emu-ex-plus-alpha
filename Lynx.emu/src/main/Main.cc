@@ -57,7 +57,7 @@ void LynxSystem::reset(EmuApp &, ResetMode mode)
 
 FS::FileString LynxSystem::stateFilename(int slot, std::string_view name) const
 {
-	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'a');
+	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'a', noMD5InFilenames);
 }
 
 void LynxSystem::saveState(IG::CStringView path)

@@ -29,7 +29,7 @@ enum
 {
 	CFGKEY_USER_NAME = 256, CFGKEY_USER_PROFILE = 257,
 	CFGKEY_SHOW_VGAMEPAD_Y_HORIZ = 258, CFGKEY_SHOW_VGAMEPAD_AB_VERT = 259,
-	CFGKEY_WS_ROTATION = 260,
+	CFGKEY_WS_ROTATION = 260, CFGKEY_NO_MD5_FILENAMES = 261,
 };
 
 struct WsUserProfile
@@ -95,6 +95,7 @@ public:
 	uint8_t configuredLCDVTotal{};
 	bool showVGamepadYWhenHorizonal = true;
 	bool showVGamepadABWhenVertical{};
+	bool noMD5InFilenames{};
 	WsRotation rotation{};
 
 	WsSystem(ApplicationContext ctx):

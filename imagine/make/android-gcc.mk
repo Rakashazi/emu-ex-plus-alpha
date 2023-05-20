@@ -9,7 +9,7 @@ ifeq ($(ANDROID_NDK_PATH),)
 endif
 
 # Default to bundled Clang 16+ toolchain
-ANDROID_CLANG_TOOLCHAIN_PATH ?= $(wildcard $(IMAGINE_PATH)/bundle/android/toolchains/llvm/clang-r487747)
+ANDROID_CLANG_TOOLCHAIN_PATH ?= $(wildcard $(IMAGINE_PATH)/bundle/android/toolchains/llvm/clang-r487747c)
 ifeq ($(ANDROID_CLANG_TOOLCHAIN_PATH),)
  ANDROID_CLANG_TOOLCHAIN_PATH := $(wildcard $(ANDROID_NDK_PATH)/toolchains/llvm/prebuilt/*)
 endif
@@ -49,29 +49,15 @@ else
  VPATH += $(ANDROID_CLANG_SYSROOT_PATH)/usr/lib/$(CHOST)/$(android_ndkSDK)
 endif
 
-config_compiler ?= clang
-
-ifeq ($(origin CC), default)
- CC := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang
- CXX := $(CC)++
- AR := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-ar
- RANLIB := $(AR) s
- STRIP := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-strip
- OBJDUMP := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-objdump
- CLANG_TIDY := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang-tidy
- toolchainEnvParams += STRIP="$(STRIP)" OBJDUMP="$(OBJDUMP)"
-else
- # TODO: user-defined compiler
- ifneq ($(findstring $(shell $(CC) -v), "clang version"),)
-  $(info detected clang compiler)
-  config_compiler = clang
- endif
- $(error user-defined compiler not yet supported)
-endif
-
-ifneq ($(config_compiler),clang)
- $(error config_compiler must be set to clang)
-endif
+config_compiler := clang
+CC := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang
+CXX := $(CC)++
+AR := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-ar
+RANLIB := $(AR) s
+STRIP := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-strip
+OBJDUMP := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-objdump
+CLANG_TIDY := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang-tidy
+toolchainEnvParams += STRIP="$(STRIP)" OBJDUMP="$(OBJDUMP)"
 
 include $(buildSysPath)/clang.mk
 CFLAGS_TARGET += -target $(clangTarget)
@@ -83,16 +69,12 @@ ifdef android_useExternalLibcxx
   STDCXXLIB = -nostdlib++ -lc++ -lc++abi -lc++experimental $(android_cxxSupportLibs)
   CPPFLAGS += -nostdinc++ -I$(IMAGINE_SDK_PLATFORM_PATH)/include/c++/v1
   android_staticLibcxxName := libc++.a
-  android_staticLibcxxExperimentalName := libc++experimental.a
  endif
 else
  STDCXXLIB = -static-libstdc++
  android_staticLibcxxName := libc++_static.a
 endif
-
-ifdef ANDROID_APK_SIGNATURE_HASH
- CPPFLAGS += -DANDROID_APK_SIGNATURE_HASH=$(ANDROID_APK_SIGNATURE_HASH)
-endif
+android_staticLibcxxExperimentalName := libc++experimental.a
 
 CFLAGS_TARGET += $(android_cpuFlags) -no-canonical-prefixes
 ASMFLAGS ?= $(CFLAGS_TARGET) -Wa,--noexecstack
@@ -103,16 +85,13 @@ else
   LDFLAGS_SYSTEM += --sysroot=$(ANDROID_CLANG_SYSROOT_PATH)
  endif
 endif
-LDFLAGS_SYSTEM += -no-canonical-prefixes \
--Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now
 linkAction = -Wl,-soname,lib$(android_metadata_soName).so -shared
-LDLIBS_SYSTEM += -lm
-LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID
 ifndef android_implicitSysroot
  CPPFLAGS += --sysroot=$(ANDROID_CLANG_SYSROOT_PATH)
 endif
-LDFLAGS_SYSTEM += -s \
+LDFLAGS_SYSTEM += -s -no-canonical-prefixes \
+-Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now \
 -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel,--fatal-warnings \
 -Wl,--exclude-libs,libgcc.a,--exclude-libs,libgcc_real.a -Wl,--exclude-libs,libatomic.a,--lto-whole-program-visibility
 

@@ -70,6 +70,7 @@ enum
 	CFGKEY_NO_SPRITE_LIMIT = 281, CFGKEY_CD_SPEED = 282,
 	CFGKEY_CDDA_VOLUME = 283, CFGKEY_ADPCM_VOLUME = 284,
 	CFGKEY_ADPCM_FILTER = 285, CFGKEY_EMU_CORE = 286,
+	CFGKEY_NO_MD5_FILENAMES = 287,
 };
 
 void set6ButtonPadEnabled(EmuApp &, bool);
@@ -116,6 +117,7 @@ public:
 	bool noSpriteLimit{};
 	bool correctLineAspect{};
 	bool adpcmFilter{};
+	bool noMD5InFilenames{};
 	EmuCore defaultCore{};
 	EmuCore core{};
 

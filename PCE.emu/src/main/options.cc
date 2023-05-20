@@ -72,6 +72,7 @@ bool PceSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_ADPCM_VOLUME: return readOptionValue(io, readSize, adpcmVolume, [](auto val){return val <= 200;});
 			case CFGKEY_ADPCM_FILTER: return readOptionValue(io, readSize, adpcmFilter);
 			case CFGKEY_EMU_CORE: return readOptionValue(io, readSize, defaultCore, [](auto val){return val <= lastEnum<EmuCore>;});
+			case CFGKEY_NO_MD5_FILENAMES: return readOptionValue(io, readSize, noMD5InFilenames);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -107,6 +108,7 @@ void PceSystem::writeConfig(ConfigType type, FileIO &io)
 		if(adpcmFilter)
 			writeOptionValue(io, CFGKEY_ADPCM_FILTER, adpcmFilter);
 		writeOptionValueIfNotDefault(io, CFGKEY_EMU_CORE, defaultCore, EmuCore::Auto);
+		writeOptionValueIfNotDefault(io, CFGKEY_NO_MD5_FILENAMES, noMD5InFilenames, false);
 	}
 	else if(type == ConfigType::SESSION)
 	{
