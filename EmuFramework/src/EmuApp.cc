@@ -1703,7 +1703,7 @@ void EmuApp::configureAppForEmulation(bool running)
 void EmuApp::setIntendedFrameRate(Window &win, FrameTimeConfig config)
 {
 	enableBlankFrameInsertion = false;
-	if(allowBlankFrameInsertion && config.refreshMultiplier > 1)
+	if(allowBlankFrameInsertion && config.refreshMultiplier > 1 && frameInterval() <= 1)
 	{
 		enableBlankFrameInsertion = true;
 		if(!overrideScreenFrameRate)
