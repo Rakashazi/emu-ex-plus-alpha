@@ -80,6 +80,9 @@ public:
 	void setCursorVisible(bool);
 	void setSystemGestureExclusionRects(std::span<const WRect>);
 	void setDecorations(bool);
+	void setPosition(WPt pos);
+	void setSize(WSize size);
+	void toggleFullScreen();
 
 	template <class T>
 	T &makeAppData(auto &&... args)
@@ -111,18 +114,18 @@ public:
 	int realHeight() const;
 	int width() const;
 	int height() const;
-	IP realSize() const;
-	IP size() const;
+	WSize realSize() const;
+	WSize size() const;
 	bool isPortrait() const;
 	bool isLandscape() const;
-	FP sizeMM() const;
-	FP sizeScaledMM() const;
+	F2Size sizeMM() const;
+	F2Size sizeScaledMM() const;
 	int widthMMInPixels(float mm) const;
 	int heightMMInPixels(float mm) const;
 	int widthScaledMMInPixels(float mm) const;
 	int heightScaledMMInPixels(float mm) const;
 	WRect bounds() const;
-	IP transformInputPos(IP srcPos) const;
+	WPt transformInputPos(WPt srcPos) const;
 	Viewport viewport(WindowRect rect) const;
 	Viewport viewport() const;
 
@@ -133,9 +136,9 @@ public:
 	bool requestOrientationChange(Rotation o);
 	bool setValidOrientations(OrientationMask);
 
-	bool updateSize(IP surfaceSize);
-	bool updatePhysicalSize(FP surfaceSizeMM);
-	bool updatePhysicalSize(FP surfaceSizeMM, FP surfaceSizeSMM);
+	bool updateSize(WSize surfaceSize);
+	bool updatePhysicalSize(F2Size surfaceSizeMM);
+	bool updatePhysicalSize(F2Size surfaceSizeMM, F2Size surfaceSizeSMM);
 	bool updatePhysicalSizeWithCurrentSize();
 	bool hasSurface() const;
 	bool dispatchInputEvent(Input::Event event);
@@ -151,8 +154,8 @@ public:
 	void signalSurfaceChanged(uint8_t surfaceChangeFlags);
 
 private:
-	FP pixelSizeAsMM(IP size);
-	FP pixelSizeAsScaledMM(IP size);
+	F2Size pixelSizeAsMM(WSize size);
+	F2Size pixelSizeAsScaledMM(WSize size);
 	void draw(bool needsSync = false);
 };
 

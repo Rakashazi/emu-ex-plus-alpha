@@ -416,11 +416,6 @@ std::string XApplication::inputKeyString(Input::Key rawKey, uint32_t modifiers) 
 	return {str.data(), size};
 }
 
-void ApplicationContext::flushSystemInputEvents()
-{
-	application().runX11Events();
-}
-
 bool XApplication::hasPendingX11Events() const
 {
 	return XPending(dpy);

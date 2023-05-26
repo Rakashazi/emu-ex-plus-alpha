@@ -12,8 +12,11 @@ EmuSystemTask.cc \
 EmuTiming.cc \
 EmuVideo.cc \
 EmuVideoLayer.cc \
+InputDeviceConfig.cc \
+InputDeviceData.cc \
 OutputTimingManager.cc \
 pathUtils.cc \
+TurboInput.cc \
 VideoImageEffect.cc \
 VideoImageOverlay.cc \
 gui/AudioOptionView.cc \

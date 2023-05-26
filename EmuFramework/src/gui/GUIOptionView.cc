@@ -205,10 +205,10 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	showHiddenFiles
 	{
 		"Show Hidden Files", &defaultFace(),
-		app().showHiddenFilesInPicker(),
+		app().showHiddenFilesInPicker,
 		[this](BoolMenuItem &item)
 		{
-			app().setShowHiddenFilesInPicker(item.flipBoolValue(*this));
+			app().showHiddenFilesInPicker = item.flipBoolValue(*this);
 		}
 	},
 	orientationHeading
@@ -257,6 +257,25 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			app().setLayoutBehindSystemUI(item.flipBoolValue(*this));
 		}
+	},
+	setWindowSize
+	{
+		"Set Window Size", &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			app().pushAndShowNewCollectValuePairRangeInputView<int, 320, 8192, 240, 8192>(attachParams(), e,
+				"Input Width & Height", "",
+				[this](EmuApp &app, auto val)
+				{
+					app.emuWindow().setSize({val.first, val.second});
+					return true;
+				});
+		}
+	},
+	toggleFullScreen
+	{
+		"Toggle Full Screen", &defaultFace(),
+		[this]{ app().emuWindow().toggleFullScreen(); }
 	}
 {
 	if(!customMenu)
@@ -285,6 +304,14 @@ void GUIOptionView::loadStockItems()
 	}
 	item.emplace_back(&systemActionsIsDefaultMenu);
 	item.emplace_back(&fontSize);
+	if(used(setWindowSize))
+	{
+		item.emplace_back(&setWindowSize);
+	}
+	if(used(toggleFullScreen))
+	{
+		item.emplace_back(&toggleFullScreen);
+	}
 	item.emplace_back(&idleDisplayPowerSave);
 	if(used(lowProfileOSNav))
 	{

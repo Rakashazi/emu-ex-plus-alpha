@@ -104,7 +104,7 @@ constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
-	constexpr FP imageSize{256, 256};
+	constexpr F2Size imageSize{256, 256};
 	constexpr int cellSize = 32;
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }

@@ -18,7 +18,7 @@
 namespace IG::Input
 {
 
-void DragTrackerState::update(IG::WP pos, int dragStartPixels)
+void DragTrackerState::update(WPt pos, int dragStartPixels)
 {
 	assert(isTracking());
 	pos_ = pos;

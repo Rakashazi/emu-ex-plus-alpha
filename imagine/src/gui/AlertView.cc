@@ -34,21 +34,7 @@ void BaseAlertView::init()
 	menu.setOnSelectElement(
 		[this](const Input::Event &e, int i, MenuItem &item)
 		{
-			bool wasDismissed = false;
-			setOnDismiss(
-				[&wasDismissed](View &)
-				{
-					logMsg("called alert onDismiss");
-					wasDismissed = true;
-					return false;
-				});
 			bool shouldDismiss = item.select(*this, e);
-			if(wasDismissed)
-			{
-				logDMsg("dismissed in onSelect");
-				return;
-			}
-			setOnDismiss(nullptr);
 			if(shouldDismiss)
 			{
 				logMsg("dismissing");

@@ -161,7 +161,7 @@ public:
 	void onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags);
 	WallClockTimePoint backupMemoryLastWriteTime(const EmuApp &) const;
 	bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
-	WP multiresVideoBaseSize() const;
+	WSize multiresVideoBaseSize() const;
 	void onSessionOptionsLoaded(EmuApp &);
 	bool resetSessionOptions(EmuApp &);
 	double videoAspectRatioScale() const;

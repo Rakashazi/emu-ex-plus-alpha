@@ -190,7 +190,7 @@ void PixmapBufferTexture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFla
 	visit([&](auto &t){ t.unlock(lockBuff, writeFlags); }, directTex);
 }
 
-IG::WP PixmapBufferTexture::size() const
+WSize PixmapBufferTexture::size() const
 {
 	return visit([&](auto &t){ return t.size(0); }, directTex);
 }

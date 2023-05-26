@@ -247,12 +247,12 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		{
 			cmds.setClipRect(renderer().makeClipRect(window(), textRect));
 			cmds.setClipTest(true);
-			text.draw(cmds, textRect.pos(RC2DO) - WP{xIndent, 0}, RC2DO, ColorName::WHITE);
+			text.draw(cmds, textRect.pos(RC2DO) - WPt{xIndent, 0}, RC2DO, ColorName::WHITE);
 			cmds.setClipTest(false);
 		}
 		else
 		{
-			text.draw(cmds, textRect.pos(LC2DO) + WP{xIndent, 0}, LC2DO, ColorName::WHITE);
+			text.draw(cmds, textRect.pos(LC2DO) + WPt{xIndent, 0}, LC2DO, ColorName::WHITE);
 		}
 	}
 	if(control[0].isActive)

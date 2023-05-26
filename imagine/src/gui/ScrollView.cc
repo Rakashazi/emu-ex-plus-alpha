@@ -124,9 +124,8 @@ int ScrollView::overScroll() const
 		0;
 }
 
-void ScrollView::setContentSize(IG::WP size)
+void ScrollView::setContentSize(WSize contentSize)
 {
-	IG::WP contentSize = {size.x, size.y};
 	overScrollVelScale = OVER_SCROLL_VEL_SCALE / screen()->frameRate();
 	dragTracker.setDragStartPixels(std::max(1, Config::envIsAndroid ? window().heightMMInPixels(1.5) : window().heightMMInPixels(1.)));
 	const auto viewFrame = viewRect();

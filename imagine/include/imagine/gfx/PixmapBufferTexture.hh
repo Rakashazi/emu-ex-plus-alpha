@@ -45,7 +45,7 @@ public:
 	void clear();
 	LockedTextureBuffer lock(uint32_t bufferFlags = 0);
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
-	WP size() const;
+	WSize size() const;
 	PixmapDesc pixmapDesc() const;
 	void setSampler(TextureSamplerConfig);
 	explicit operator bool() const;

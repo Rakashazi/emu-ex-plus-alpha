@@ -181,7 +181,7 @@ constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
-	constexpr FP imageSize{256, 128};
+	constexpr F2Size imageSize{256, 128};
 	constexpr int cellSize = 32;
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }

@@ -50,7 +50,7 @@ constexpr uint32_t crtCol(uint8_t r, uint8_t g, uint8_t b)
 	return IG::PIXEL_DESC_RGBA8888_NATIVE.build(r, g, b, 0xff);
 }
 
-constexpr IP crtTexSize{4, 4};
+constexpr WSize crtTexSize{4, 4};
 
 constexpr uint32_t crtMaskPixmapBuff[crtTexSize.x * crtTexSize.y]
 {
@@ -123,7 +123,7 @@ void VideoImageOverlay::setIntensity(float i)
 	intensity = i;
 }
 
-void VideoImageOverlay::place(const Gfx::Sprite &disp, IG::WRect contentRect, WP videoPixels, IG::Rotation r)
+void VideoImageOverlay::place(const Gfx::Sprite &disp, WRect contentRect, WSize videoPixels, Rotation r)
 {
 	if(!spr.hasTexture() || videoPixels.y <= 1)
 		return;
@@ -134,8 +134,8 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, IG::WRect contentRect, WP
 	const bool is240p = videoPixels.y <= 256;
 	const float lines = is240p ? videoPixels.y : videoPixels.y * .5f;
 	const float lines2x = is240p ? videoPixels.y * 2.f : videoPixels.y;
-	const FP crtDots = {contentRect.xSize() / float(crtTexSize.x), contentRect.ySize() / float(crtTexSize.y * 2)};
-	const FP crtDotsHalf = crtDots / FP{2.f, 1.f};
+	const F2Size crtDots = {contentRect.xSize() / float(crtTexSize.x), contentRect.ySize() / float(crtTexSize.y * 2)};
+	const F2Size crtDotsHalf = crtDots / F2Size{2.f, 1.f};
 	spr.set([&]() -> TextureSpan
 	{
 		switch(overlayId)

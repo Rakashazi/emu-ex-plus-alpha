@@ -444,7 +444,7 @@ void KeyEvent::setRepeatCount(int count)
 	repeatCount = count;
 }
 
-IG::WP MotionEvent::pos() const
+WPt MotionEvent::pos() const
 {
 	return {x, y};
 }

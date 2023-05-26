@@ -34,14 +34,13 @@ public:
 	~XWindow();
 	std::pair<unsigned long, unsigned long> xdndData() const;
 	explicit operator bool() const;
-	void toggleFullScreen();
 
 protected:
 	_XDisplay *dpy{};
 	unsigned long xWin{};
 	unsigned long draggerXWin{};
 	unsigned long dragAction{};
-	IG_UseMemberIf(!Config::MACHINE_IS_PANDORA, unsigned long, colormap){};
+	unsigned long colormap{};
 public:
 	bool shouldBypassCompositorState{};
 };

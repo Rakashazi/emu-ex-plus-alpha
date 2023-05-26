@@ -391,7 +391,7 @@ ErrorCode Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace,
 	return {};
 }
 
-void Texture::writeAligned(int level, PixmapView pixmap, IG::WP destPos, int assumeAlign, uint32_t writeFlags)
+void Texture::writeAligned(int level, PixmapView pixmap, WPt destPos, int assumeAlign, uint32_t writeFlags)
 {
 	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
 	if(!texName()) [[unlikely]]
@@ -457,7 +457,7 @@ void Texture::writeAligned(int level, PixmapView pixmap, IG::WP destPos, int ass
 	}
 }
 
-void Texture::write(int level, PixmapView pixmap, IG::WP destPos, uint32_t commitFlags)
+void Texture::write(int level, PixmapView pixmap, WPt destPos, uint32_t commitFlags)
 {
 	writeAligned(level, pixmap, destPos, bestAlignment(pixmap), commitFlags);
 }
@@ -517,7 +517,7 @@ void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 	}
 	task().run(
 		[&r = std::as_const(renderer()), pix = lockBuff.pixmap(), bufferOffset = lockBuff.bufferOffset(),
-		 texName = texName(), destPos = IG::WP{lockBuff.sourceDirtyRect().x, lockBuff.sourceDirtyRect().y},
+		 texName = texName(), destPos = WPt{lockBuff.sourceDirtyRect().x, lockBuff.sourceDirtyRect().y},
 		 pbo = lockBuff.pbo(), level = lockBuff.level(),
 		 shouldFreeBuffer = lockBuff.shouldFreeBuffer(), makeMipmaps]()
 		{
@@ -559,7 +559,7 @@ void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 		});
 }
 
-IG::WP Texture::size(int level) const
+WSize Texture::size(int level) const
 {
 	assert(levels_);
 	int w = pixDesc.w(), h = pixDesc.h();

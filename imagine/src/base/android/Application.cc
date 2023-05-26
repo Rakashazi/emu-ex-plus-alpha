@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "Base"
+#define LOGTAG "App"
 #include <cstdlib>
 #include <android/window.h>
 #include <android/configuration.h>
@@ -21,9 +21,7 @@
 #include <android/native_activity.h>
 #include <android/api-level.h>
 #include <android/bitmap.h>
-#include <android/hardware_buffer.h>
 #include <dlfcn.h>
-#include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Window.hh>
@@ -31,7 +29,6 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/fs/FSUtils.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/io/FileIO.hh>
@@ -40,15 +37,15 @@
 #include <imagine/util/ScopeGuard.hh>
 #include "android.hh"
 #include "AndroidInputDevice.hh"
+#include <imagine/logger/logger.h>
 
 namespace IG
 {
 
 static JavaVM* jVM{};
 static void *mainLibHandle{};
-static constexpr bool unloadNativeLibOnDestroy = false;
-static NoopThread noopThread{};
-static pid_t mainThreadId{};
+static constexpr bool unloadNativeLibOnDestroy{};
+pid_t mainThreadId{};
 
 static void setNativeActivityCallbacks(ANativeActivity *nActivity);
 
@@ -75,13 +72,13 @@ AndroidApplication::AndroidApplication(ApplicationInitParams initParams):
 	initInput(ctx, env, baseActivity, baseActivityClass, androidSDK);
 	{
 		auto aConfig = AConfiguration_new();
-		auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });
+		auto freeConfig = scopeGuard([&](){ AConfiguration_delete(aConfig); });
 		AConfiguration_fromAssetManager(aConfig, ctx.aAssetManager());
 		initInputConfig(aConfig);
 	}
 }
 
-IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat)
+PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat)
 {
 	switch(androidFormat)
 	{
@@ -98,7 +95,7 @@ IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat)
 	}
 }
 
-MutablePixmapView makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFormat format)
+MutablePixmapView makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, PixelFormat format)
 {
 	AndroidBitmapInfo info;
 	auto res = AndroidBitmap_getInfo(env, bitmap, &info);
@@ -126,130 +123,16 @@ void ApplicationContext::exit(int returnVal)
 	jFinish(env, baseActivity);
 }
 
-FS::PathString ApplicationContext::assetPath(const char *) const { return {}; }
-
-FS::PathString ApplicationContext::supportPath(const char *) const
-{
-	if(androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
-	{
-		//logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
-		auto env = thisThreadJniEnv();
-		auto baseActivity = baseActivityObject();
-		JNI::InstMethod<jstring()> filesDir{env, baseActivity, "filesDir", "()Ljava/lang/String;"};
-		return FS::PathString{JNI::StringChars{env, filesDir(env, baseActivity)}};
-	}
-	else
-		return act->internalDataPath;
-}
-
-FS::PathString ApplicationContext::storagePath(const char *) const
-{
-	if(androidSDK() < 19)
-		return sharedStoragePath();
-	else // Android 4.4+ can use external storage without write permission
-		return act->externalDataPath;
-}
-
-FS::PathString ApplicationContext::cachePath(const char *) const
-{
-	auto env = thisThreadJniEnv();
-	auto baseActivityCls = (jclass)env->GetObjectClass(baseActivityObject());
-	JNI::ClassMethod<jstring()> cacheDir{env, baseActivityCls, "cacheDir", "()Ljava/lang/String;"};
-	return FS::PathString{JNI::StringChars{env, cacheDir(env, baseActivityCls)}};
-}
-
-FS::PathString ApplicationContext::sharedStoragePath() const
-{
-	auto env = thisThreadJniEnv();
-	return application().sharedStoragePath(env, env->GetObjectClass(baseActivityObject()));
-}
-
 FS::PathString AndroidApplication::sharedStoragePath(JNIEnv *env, jclass baseActivityClass) const
 {
 	JNI::ClassMethod<jstring()> extStorageDir{env, baseActivityClass, "extStorageDir", "()Ljava/lang/String;"};
 	return FS::PathString{JNI::StringChars{env, extStorageDir(env, baseActivityClass)}};
 }
 
-FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
-{
-	auto path = sharedStoragePath();
-	return {path, "Storage Media", "Media"};
-}
-
 FS::PathString AndroidApplication::externalMediaPath(JNIEnv *env, jobject baseActivity) const
 {
 	JNI::InstMethod<jstring()> extMediaDir{env, baseActivity, "extMediaDir", "()Ljava/lang/String;"};
 	return FS::PathString{JNI::StringChars{env, extMediaDir(env, baseActivity)}};
-}
-
-FS::PathLocation AndroidApplicationContext::externalMediaPathLocation() const
-{
-	auto path = application().externalMediaPath(thisThreadJniEnv(), baseActivityObject());
-	return {path, "App Media Folder", "Media"};
-}
-
-std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
-{
-	if(androidSDK() >= 30)
-	{
-		// When using scoped storage on Android 11+, provide the app's media directory since it's
-		// the only file location that's globally readable/writable
-		return {externalMediaPathLocation()};
-	}
-	if(androidSDK() < 14)
-	{
-		return {sharedStoragePathLocation()};
-	}
-	else if(androidSDK() < 24)
-	{
-		FS::PathString storageDevicesPath{"/storage"};
-		return
-			{
-				sharedStoragePathLocation(),
-				{storageDevicesPath, "Storage Devices", "Storage"}
-			};
-	}
-	else
-	{
-		std::vector<FS::PathLocation> rootLocation{sharedStoragePathLocation()};
-		logMsg("enumerating storage volumes");
-		auto env = thisThreadJniEnv();
-		auto baseActivity = baseActivityObject();
-		JNI::InstMethod<jobject()> jNewStorageManagerHelper{env, baseActivity, "storageManagerHelper", "()Lcom/imagine/StorageManagerHelper;"};
-		auto storageManagerHelper = jNewStorageManagerHelper(env, baseActivity);
-		auto storageManagerHelperCls = env->GetObjectClass(storageManagerHelper);
-		JNINativeMethod method[]
-		{
-			{
-				"volumeEnumerated", "(JLjava/lang/String;Ljava/lang/String;)V",
-				(void*)(void (*)(JNIEnv*, jobject, jlong, jstring, jstring))
-				([](JNIEnv* env, jobject thiz, jlong userData, jstring jName, jstring jPath)
-				{
-					auto rootLocation = (std::vector<FS::PathLocation>*)userData;
-					FS::PathString path{JNI::StringChars(env, jPath)};
-					FS::FileString name{JNI::StringChars(env, jName)};
-					logMsg("volume:%s with path:%s", name.data(), path.data());
-					rootLocation->emplace_back(path, name);
-				})
-			},
-		};
-		env->RegisterNatives(storageManagerHelperCls, method, std::size(method));
-		JNI::ClassMethod<void(jobject, jlong)> jEnumVolumes{env, storageManagerHelperCls, "enumVolumes", "(Landroid/app/Activity;J)V"};
-		jEnumVolumes(env, storageManagerHelperCls, baseActivityObject(), (jlong)&rootLocation);
-		return rootLocation;
-	}
-}
-
-FS::PathString ApplicationContext::libPath(const char *) const
-{
-	if(androidSDK() < 24)
-	{
-		auto env = thisThreadJniEnv();
-		auto baseActivity = baseActivityObject();
-		JNI::InstMethod<jstring()> libDir{env, baseActivity, "libDir", "()Ljava/lang/String;"};
-		return FS::PathString{JNI::StringChars{env, libDir(env, baseActivity)}};
-	}
-	return {};
 }
 
 UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject baseActivity, CStringView uri, OpenFlagsMask openFlags) const
@@ -268,20 +151,6 @@ UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject base
 	return fd;
 }
 
-FileIO ApplicationContext::openFileUri(CStringView uri, IOAccessHint access, OpenFlagsMask openFlags) const
-{
-	if(androidSDK() < 19 || !IG::isUri(uri))
-		return {uri, access, openFlags};
-	return {application().openFileUriFd(thisThreadJniEnv(), baseActivityObject(), uri, openFlags), access, openFlags};
-}
-
-UniqueFileDescriptor ApplicationContext::openFileUriFd(CStringView uri, OpenFlagsMask openFlags) const
-{
-	if(androidSDK() < 19 || !IG::isUri(uri))
-		return PosixIO{uri, openFlags}.releaseFd();
-	return application().openFileUriFd(thisThreadJniEnv(), baseActivityObject(), uri, openFlags);
-}
-
 bool AndroidApplication::fileUriExists(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
 	bool exists = uriExists(env, baseActivity, env->NewStringUTF(uri));
@@ -289,23 +158,9 @@ bool AndroidApplication::fileUriExists(JNIEnv *env, jobject baseActivity, CStrin
 	return exists;
 }
 
-bool ApplicationContext::fileUriExists(CStringView uri) const
-{
-	if(androidSDK() < 19 || !IG::isUri(uri))
-		return FS::exists(uri);
-	return application().fileUriExists(thisThreadJniEnv(), baseActivityObject(), uri);
-}
-
 WallClockTimePoint AndroidApplication::fileUriLastWriteTime(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
 	return WallClockTimePoint{Milliseconds{uriLastModifiedTime(env, baseActivity, env->NewStringUTF(uri))}};
-}
-
-WallClockTimePoint ApplicationContext::fileUriLastWriteTime(CStringView uri) const
-{
-	if(androidSDK() < 19 || !IG::isUri(uri))
-		return FS::status(uri).lastWriteTime();
-	return application().fileUriLastWriteTime(thisThreadJniEnv(), baseActivityObject(), uri);
 }
 
 std::string AndroidApplication::fileUriFormatLastWriteTimeLocal(JNIEnv *env, jobject baseActivity, CStringView uri) const
@@ -314,24 +169,10 @@ std::string AndroidApplication::fileUriFormatLastWriteTimeLocal(JNIEnv *env, job
 	return std::string{JNI::StringChars{env, uriLastModified(env, baseActivity, env->NewStringUTF(uri))}};
 }
 
-std::string ApplicationContext::fileUriFormatLastWriteTimeLocal(CStringView uri) const
-{
-	if(androidSDK() < 19 || !IG::isUri(uri))
-		return FS::formatLastWriteTimeLocal(*this, uri);
-	return application().fileUriFormatLastWriteTimeLocal(thisThreadJniEnv(), baseActivityObject(), uri);
-}
-
 FS::FileString AndroidApplication::fileUriDisplayName(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
 	//logMsg("getting display name for URI:%s", uri.data());
 	return FS::FileString{JNI::StringChars{env, uriDisplayName(env, baseActivity, env->NewStringUTF(uri))}};
-}
-
-FS::FileString ApplicationContext::fileUriDisplayName(CStringView uri) const
-{
-	if(androidSDK() < 19 || !IG::isUri(uri))
-		return FS::displayName(uri);
-	return application().fileUriDisplayName(thisThreadJniEnv(), baseActivityObject(), uri);
 }
 
 bool AndroidApplication::removeFileUri(JNIEnv *env, jobject baseActivity, CStringView uri, bool isDir) const
@@ -340,44 +181,16 @@ bool AndroidApplication::removeFileUri(JNIEnv *env, jobject baseActivity, CStrin
 	return deleteUri(env, baseActivity, env->NewStringUTF(uri), isDir);
 }
 
-bool ApplicationContext::removeFileUri(CStringView uri) const
-{
-	if(androidSDK() < 19 || !IG::isUri(uri))
-		return FS::remove(uri);
-	return application().removeFileUri(thisThreadJniEnv(), baseActivityObject(), uri, false);
-}
-
 bool AndroidApplication::renameFileUri(JNIEnv *env, jobject baseActivity, CStringView oldUri, CStringView newUri) const
 {
 	logMsg("renaming file URI:%s -> %s", oldUri.data(), newUri.data());
 	return renameUri(env, baseActivity, env->NewStringUTF(oldUri), env->NewStringUTF(newUri));
 }
 
-bool ApplicationContext::renameFileUri(CStringView oldUri, CStringView newUri) const
-{
-	if(androidSDK() < 24 || !IG::isUri(oldUri))
-		return FS::rename(oldUri, newUri);
-	return application().renameFileUri(thisThreadJniEnv(), baseActivityObject(), oldUri, newUri);
-}
-
 bool AndroidApplication::createDirectoryUri(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
 	logMsg("creating directory URI:%s", uri.data());
 	return createDirUri(env, baseActivity, env->NewStringUTF(uri));
-}
-
-bool ApplicationContext::createDirectoryUri(CStringView uri) const
-{
-	if(androidSDK() < 21 || !IG::isUri(uri))
-		return FS::create_directory(uri);
-	return application().createDirectoryUri(thisThreadJniEnv(), baseActivityObject(), uri);
-}
-
-bool ApplicationContext::removeDirectoryUri(CStringView uri) const
-{
-	if(androidSDK() < 19 || !IG::isUri(uri))
-		return FS::remove(uri);
-	return application().removeFileUri(thisThreadJniEnv(), baseActivityObject(), uri, true);
 }
 
 bool AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity,
@@ -394,16 +207,6 @@ bool AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity
 	return true;
 }
 
-bool ApplicationContext::forEachInDirectoryUri(CStringView uri, DirectoryEntryDelegate del,
-	FS::DirOpenFlagsMask flags) const
-{
-	if(androidSDK() < 21 || !IG::isUri(uri))
-	{
-		return forEachInDirectory(uri, del, flags);
-	}
-	return application().forEachInDirectoryUri(thisThreadJniEnv(), baseActivityObject(), uri, del, flags);
-}
-
 static FS::PathString mainSOPath(ApplicationContext ctx)
 {
 	if(ctx.androidSDK() < 24)
@@ -411,41 +214,6 @@ static FS::PathString mainSOPath(ApplicationContext ctx)
 		return FS::pathString(ctx.libPath(nullptr), "libmain.so");
 	}
 	return "libmain.so";
-}
-
-static jstring permissionToJString(JNIEnv *env, Permission p)
-{
-	switch(p)
-	{
-		case Permission::WRITE_EXT_STORAGE: return env->NewStringUTF("android.permission.WRITE_EXTERNAL_STORAGE");
-		case Permission::COARSE_LOCATION: return env->NewStringUTF("android.permission.ACCESS_COARSE_LOCATION");
-		default: return nullptr;
-	}
-}
-
-bool ApplicationContext::usesPermission(Permission p) const
-{
-	if(androidSDK() < 23 || androidSDK() >= 30)
-		return false;
-	return true;
-}
-
-bool ApplicationContext::permissionIsRestricted(Permission p) const
-{
-	return p == Permission::WRITE_EXT_STORAGE ? androidSDK() >= 30 : false;
-}
-
-bool ApplicationContext::requestPermission(Permission p)
-{
-	if(androidSDK() < 23)
-		return false;
-	auto env = mainThreadJniEnv();
-	auto permissionJStr = permissionToJString(env, p);
-	if(!permissionJStr)
-		return false;
-	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<jboolean(jstring)> requestPermission{env, baseActivity, "requestPermission", "(Ljava/lang/String;)Z"};
-	return requestPermission(env, baseActivity, permissionJStr);
 }
 
 std::string AndroidApplication::formatDateAndTime(JNIEnv *env, jclass baseActivityClass, WallClockTimePoint time)
@@ -463,35 +231,6 @@ std::string ApplicationContext::formatDateAndTime(WallClockTimePoint time)
 		(jclass)env->GetObjectClass(baseActivityObject()), time);
 }
 
-JNIEnv *AndroidApplicationContext::mainThreadJniEnv() const
-{
-	assert(mainThreadId == gettid());
-	return act->env;
-}
-
-jobject AndroidApplicationContext::baseActivityObject() const
-{
-	return act->clazz;
-}
-
-AAssetManager *AndroidApplicationContext::aAssetManager() const
-{
-	return act->assetManager;
-}
-
-bool ApplicationContext::hasHardwareNavButtons() const
-{
-	return application().hasHardwareNavButtons();
-}
-
-int32_t ApplicationContext::androidSDK() const
-{
-	#ifdef ANDROID_COMPAT_API
-	static_assert(__ANDROID_API__ <= 19, "Compiling with ANDROID_COMPAT_API and API higher than 19");
-	#endif
-	return std::max(ANDROID_MIN_API, act->sdkVersion);
-}
-
 void AndroidApplication::setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
 {
 	onSystemOrientationChanged = del;
@@ -503,16 +242,6 @@ bool AndroidApplication::systemAnimatesWindowRotation() const
 		return !(deviceFlags & HANDLE_ROTATION_ANIMATION_BIT);
 	else
 		return true;
-}
-
-void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
-{
-	application().setOnSystemOrientationChanged(del);
-}
-
-bool ApplicationContext::systemAnimatesWindowRotation() const
-{
-	return application().systemAnimatesWindowRotation();
 }
 
 void AndroidApplication::setRequestedOrientation(JNIEnv *env, jobject baseActivity, int orientation)
@@ -547,7 +276,7 @@ jobject AndroidApplication::makeFontRenderer(JNIEnv *env, jobject baseActivity)
 	return jNewFontRenderer(env, baseActivity);
 }
 
-uint32_t toAHardwareBufferFormat(IG::PixelFormatID format)
+uint32_t toAHardwareBufferFormat(PixelFormatID format)
 {
 	switch(format)
 	{
@@ -579,7 +308,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				return;
 			if(Config::DEBUG_BUILD)
 			{
-				logDMsg("detaching JNI thread:%d", IG::thisThreadId());
+				logDMsg("detaching JNI thread:%d", thisThreadId());
 			}
 			jVM->DetachCurrentThread();
 		});
@@ -738,7 +467,7 @@ JNIEnv* AndroidApplication::thisThreadJniEnv() const
 	{
 		if(Config::DEBUG_BUILD)
 		{
-			logDMsg("attaching JNI thread:%d", IG::thisThreadId());
+			logDMsg("attaching JNI thread:%d", thisThreadId());
 		}
 		assumeExpr(jVM);
 		if(jVM->AttachCurrentThread(&env, nullptr) != 0)
@@ -749,11 +478,6 @@ JNIEnv* AndroidApplication::thisThreadJniEnv() const
 		pthread_setspecific(jEnvKey, env);
 	}
 	return env;
-}
-
-JNIEnv* AndroidApplicationContext::thisThreadJniEnv() const
-{
-	return application().thisThreadJniEnv();
 }
 
 void AndroidApplication::setIdleDisplayPowerSave(JNIEnv *env, jobject baseActivity, bool on)
@@ -769,11 +493,6 @@ void AndroidApplication::setIdleDisplayPowerSave(JNIEnv *env, jobject baseActivi
 	keepScreenOn = keepOn; // cache value for endIdleByUserActivity()
 }
 
-void ApplicationContext::setIdleDisplayPowerSave(bool on)
-{
-	application().setIdleDisplayPowerSave(mainThreadJniEnv(), baseActivityObject(), on);
-}
-
 void AndroidApplication::endIdleByUserActivity(ApplicationContext ctx)
 {
 	if(!keepScreenOn)
@@ -782,7 +501,7 @@ void AndroidApplication::endIdleByUserActivity(ApplicationContext ctx)
 		// quickly toggle KEEP_SCREEN_ON flag to brighten screen,
 		// waiting about 20ms before toggling it back off triggers the screen to brighten if it was already dim
 		jSetWinFlags(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), AWINDOW_FLAG_KEEP_SCREEN_ON, AWINDOW_FLAG_KEEP_SCREEN_ON);
-		userActivityCallback.runIn(IG::Milliseconds(20), {},
+		userActivityCallback.runIn(Milliseconds(20), {},
 			[this, ctx]()
 			{
 				if(!keepScreenOn)
@@ -791,11 +510,6 @@ void AndroidApplication::endIdleByUserActivity(ApplicationContext ctx)
 				}
 			});
 	}
-}
-
-void ApplicationContext::endIdleByUserActivity()
-{
-	application().endIdleByUserActivity(*this);
 }
 
 void AndroidApplication::setStatusBarHidden(JNIEnv *env, jobject baseActivity, bool hidden)
@@ -831,68 +545,9 @@ void AndroidApplication::setSysUIStyle(JNIEnv *env, jobject baseActivity, int32_
 	}
 }
 
-void ApplicationContext::setSysUIStyle(uint32_t flags)
-{
-	return application().setSysUIStyle(mainThreadJniEnv(), baseActivityObject(), androidSDK(), flags);
-}
-
-bool ApplicationContext::hasTranslucentSysUI() const
-{
-	return androidSDK() >= 19;
-}
-
-bool ApplicationContext::hasDisplayCutout() const { return application().hasDisplayCutout(); }
-
 bool AndroidApplication::hasFocus() const
 {
 	return aHasFocus;
-}
-
-bool ApplicationContext::hasSustainedPerformanceMode() const { return androidSDK() >= 24; }
-
-void ApplicationContext::setSustainedPerformanceMode(bool on)
-{
-	if(!hasSustainedPerformanceMode())
-		return;
-	logMsg("set sustained performance mode:%s", on ? "on" : "off");
-	auto env = mainThreadJniEnv();
-	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<void(jboolean)> jSetSustainedPerformanceMode{env, baseActivity, "setSustainedPerformanceMode", "(Z)V"};
-	jSetSustainedPerformanceMode(env, baseActivity, on);
-}
-
-void AndroidApplicationContext::setNoopThreadActive(bool on)
-{
-	auto &ctx = *static_cast<ApplicationContext*>(this);
-	if(on && ctx.isRunning())
-	{
-		if(noopThread)
-			return;
-		ctx.addOnExit(
-			[](ApplicationContext, bool)
-			{
-				noopThread.stop();
-				return false;
-			}, -1000);
-		noopThread.start();
-	}
-	else
-	{
-		noopThread.stop();
-	}
-}
-
-SensorValues ApplicationContext::remapSensorValuesForDeviceRotation(SensorValues v) const
-{
-	switch(application().currentRotation())
-	{
-		case Rotation::ANY:
-		case Rotation::UP: return v;
-		case Rotation::RIGHT: return {-v[1], v[0], v[2]};
-		case Rotation::DOWN: return {v[0], -v[1], v[2]};
-		case Rotation::LEFT: return {v[1], v[0], v[2]};
-	}
-	bug_unreachable("invalid Rotation");
 }
 
 Window *AndroidApplication::deviceWindow() const
@@ -938,6 +593,91 @@ void AndroidApplication::onInputQueueDestroyed(AInputQueue *queue)
 	logMsg("input queue destroyed");
 	inputQueue = {};
 	AInputQueue_detachLooper(queue);
+}
+
+std::string AndroidApplication::androidBuildDevice(JNIEnv *env, jclass baseActivityClass) const
+{
+	JNI::ClassMethod<jstring()> jDevName{env, baseActivityClass, "devName", "()Ljava/lang/String;"};
+	return std::string{JNI::StringChars{env, jDevName(env, baseActivityClass)}};
+}
+
+void AndroidApplication::addNotification(JNIEnv *env, jobject baseActivity, const char *onShow, const char *title, const char *message)
+{
+	logMsg("adding notificaion icon");
+	if(!jAddNotification) [[unlikely]]
+	{
+		jAddNotification = {env, baseActivity, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"};
+	}
+	jAddNotification(env, baseActivity, env->NewStringUTF(onShow), env->NewStringUTF(title), env->NewStringUTF(message));
+}
+
+void AndroidApplication::removePostedNotifications(JNIEnv *env, jobject baseActivity)
+{
+	// check if notification functions were used at some point
+	// and remove the posted notification
+	if(!jAddNotification)
+		return;
+	JNI::InstMethod<void()> jRemoveNotification{env, baseActivity, "removeNotification", "()V"};
+	jRemoveNotification(env, baseActivity);
+}
+
+void AndroidApplication::handleIntent(ApplicationContext ctx)
+{
+	if(!acceptsIntents)
+		return;
+	auto env = ctx.mainThreadJniEnv();
+	auto baseActivity = ctx.baseActivityObject();
+	// check for view intents
+	JNI::InstMethod<jstring()> jIntentDataPath{env, baseActivity, "intentDataPath", "()Ljava/lang/String;"};
+	jstring intentDataPathJStr = jIntentDataPath(env, baseActivity);
+	if(intentDataPathJStr)
+	{
+		const char *intentDataPathStr = env->GetStringUTFChars(intentDataPathJStr, nullptr);
+		logMsg("got intent with path: %s", intentDataPathStr);
+		onEvent(ctx, InterProcessMessageEvent{intentDataPathStr});
+		env->ReleaseStringUTFChars(intentDataPathJStr, intentDataPathStr);
+	}
+}
+
+bool AndroidApplication::openDocumentTreeIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
+{
+	onSystemDocumentPicker = del;
+	JNI::InstMethod<jboolean(jlong)> jOpenDocumentTree{env, env->GetObjectClass(baseActivity), "openDocumentTree", "(J)Z"};
+	return jOpenDocumentTree(env, baseActivity, (jlong)this);
+}
+
+bool AndroidApplication::openDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
+{
+	onSystemDocumentPicker = del;
+	JNI::InstMethod<jboolean(jlong)> jOpenDocument{env, env->GetObjectClass(baseActivity), "openDocument", "(J)Z"};
+	return jOpenDocument(env, baseActivity, (jlong)this);
+}
+
+bool AndroidApplication::createDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
+{
+	onSystemDocumentPicker = del;
+	JNI::InstMethod<jboolean(jlong)> jCreateDocument{env, env->GetObjectClass(baseActivity), "createDocument", "(J)Z"};
+	return jCreateDocument(env, baseActivity, (jlong)this);
+}
+
+void AndroidApplication::handleDocumentIntentResult(const char *uri, const char *name)
+{
+	if(isRunning())
+	{
+		std::exchange(onSystemDocumentPicker, {})(uri, name);
+	}
+	else
+	{
+		// wait until after app resumes before handling result
+		addOnResume(
+			[uriCopy = strdup(uri), nameCopy = strdup(name)](ApplicationContext ctx, bool focused)
+			{
+				std::exchange(ctx.application().onSystemDocumentPicker, {})(uriCopy, nameCopy);
+				::free(nameCopy);
+				::free(uriCopy);
+				return false;
+			}, APP_ON_RESUME_PRIORITY + 100);
+	}
 }
 
 static void setNativeActivityCallbacks(ANativeActivity *nActivity)
@@ -1024,7 +764,7 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 			ApplicationContext ctx{nActivity};
 			auto &app = ctx.application();
 			auto aConfig = AConfiguration_new();
-			auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });
+			auto freeConfig = scopeGuard([&](){ AConfiguration_delete(aConfig); });
 			AConfiguration_fromAssetManager(aConfig, nActivity->assetManager);
 			auto rotation = app.mainDisplayRotation(nActivity->env, nActivity->clazz);
 			if(rotation != app.currentRotation())

@@ -259,7 +259,7 @@ void EmuVideoImage::endFrame()
 	emuVideo->finishFrame(taskCtx, texBuff);
 }
 
-IG::WP EmuVideo::size() const
+WSize EmuVideo::size() const
 {
 	if(!vidImg)
 		return {1, 1};

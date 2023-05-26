@@ -435,12 +435,11 @@ public:
 
 using WindowRect = CoordinateRect<int, true, false>;
 using WRect = WindowRect;
-using WP = IP;
 using IRect = Rect2<int>;
 using SRect = Rect2<int16_t>;
 using FRect = Rect2<float>;
 
-constexpr static WindowRect makeWindowRectRel(WP pos, WP size)
+constexpr static WindowRect makeWindowRectRel(WPt pos, WPt size)
 {
 	return WindowRect::makeRel(pos, size);
 }

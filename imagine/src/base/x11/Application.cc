@@ -282,11 +282,6 @@ void XApplication::runX11Events()
 	return dpy;
 }
 
-NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const
-{
-	return (NativeDisplayConnection)application().xDisplay();
-}
-
 void XApplication::setWindowCursor(::Window xWin, bool on)
 {
 	auto cursor = on ? normalCursor : blankCursor;

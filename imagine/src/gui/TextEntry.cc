@@ -218,7 +218,7 @@ void CollectTextInputView::place()
 		},
 		[&]()
 		{
-			textRect.setPosRel(viewRect().pos(C2DO) - WP{0, viewRect().ySize() / 4}, {xSize, ySize}, C2DO);
+			textRect.setPosRel(viewRect().pos(C2DO) - WPt{0, viewRect().ySize() / 4}, {xSize, ySize}, C2DO);
 			textField.place(textRect);
 		});
 }

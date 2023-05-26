@@ -137,7 +137,7 @@ public:
 	void onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags);
 	WallClockTimePoint backupMemoryLastWriteTime(const EmuApp &) const;
 	void renderFramebuffer(EmuVideo &);
-	WP multiresVideoBaseSize() const;
+	WSize multiresVideoBaseSize() const;
 	void onOptionsLoaded();
 	void onSessionOptionsLoaded(EmuApp &);
 	bool resetSessionOptions(EmuApp &);
@@ -149,7 +149,7 @@ public:
 
 protected:
 	void applyInputPortOption(int portVal, VController &vCtrl);
-	WP updateAbsolutePointerPosition(IG::WindowRect gameRect, WP pos);
+	WPt updateAbsolutePointerPosition(WRect gameRect, WPt pos);
 	IOBuffer readSufamiTurboBios() const;
 };
 

@@ -32,7 +32,7 @@ public:
 		originRect{originRect}, rect{rect}, softRotation_{softOrientation} {}
 	constexpr Viewport(WRect rect, Rotation softOrientation = Rotation::UP):
 		Viewport{rect, rect, softOrientation} {}
-	constexpr Viewport(WP size):
+	constexpr Viewport(WSize size):
 		Viewport{{{}, size}} {}
 	constexpr WRect realBounds() const { return isSideways() ? bounds().makeInverted() : bounds(); }
 	constexpr WRect bounds() const { return rect; }
@@ -47,8 +47,8 @@ public:
 	constexpr bool isPortrait() const { return width() < height(); }
 	constexpr bool isSideways() const { return IG::isSideways(softRotation_); }
 	constexpr bool operator==(Viewport const &) const = default;
-	WRect relRect(WP pos, WP size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
-	WRect relRectBestFit(WP pos, float aspectRatio, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
+	WRect relRect(WPt pos, WSize size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
+	WRect relRectBestFit(WPt pos, float aspectRatio, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
 
 private:
 	WRect originRect{};

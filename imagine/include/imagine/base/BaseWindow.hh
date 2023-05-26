@@ -56,12 +56,12 @@ protected:
 	std::shared_ptr<void> rendererDataPtr;
 	IG_UseMemberIf(Config::BASE_MULTI_SCREEN, Screen*, screen_){};
 	CustomEvent drawEvent{"Window::drawEvent"};
-	IP winSizePixels{}; // size of full window surface
-	FP winSizeMM{}; // size in millimeter
-	FP mmToPixelScaler{};
+	WSize winSizePixels{}; // size of full window surface
+	F2Size winSizeMM{}; // size in millimeter
+	F2Size mmToPixelScaler{};
 	 // size in millimeter scaled by OS
-	IG_UseMemberIf(Config::envIsAndroid, FP, winSizeSMM){};
-	IG_UseMemberIf(Config::envIsAndroid, FP, smmToPixelScaler){};
+	IG_UseMemberIf(Config::envIsAndroid, F2Size, winSizeSMM){};
+	IG_UseMemberIf(Config::envIsAndroid, F2Size, smmToPixelScaler){};
 	bool drawNeeded{};
 	DrawPhase drawPhase{DrawPhase::READY};
 	int8_t drawEventPriority_{};
@@ -69,7 +69,7 @@ protected:
 	uint8_t surfaceChangeFlags{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
 	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Rotation, Rotation::UP, softOrientation_){Rotation::UP};
 
-	FP smmPixelScaler() const;
+	F2Size smmPixelScaler() const;
 	void attachDrawEvent();
 };
 

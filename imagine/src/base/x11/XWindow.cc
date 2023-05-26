@@ -28,11 +28,6 @@
 namespace IG
 {
 
-IG::PixelFormat ApplicationContext::defaultWindowPixelFormat() const
-{
-	return Config::MACHINE_IS_PANDORA ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
-}
-
 void Window::setAcceptDnd(bool on)
 {
 	if(!Config::XDND)
@@ -63,12 +58,12 @@ bool Window::hasSurface() const
 	return true;
 }
 
-IG::WindowRect Window::contentBounds() const
+WindowRect Window::contentBounds() const
 {
 	return bounds();
 }
 
-IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
+Point2D<float> Window::pixelSizeAsMM(Point2D<int> size)
 {
 	auto &s = *screen();
 	auto [xMM, yMM] = s.mmSize();
@@ -76,9 +71,9 @@ IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 	return {xMM * ((float)size.x/(float)s.width()), yMM * ((float)size.y/(float)s.height())};
 }
 
-static IG::WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig &config, ::Window rootWindow)
+static WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig &config, ::Window rootWindow)
 {
-	IG::WindowRect workAreaRect;
+	WindowRect workAreaRect;
 	{
 		long *workArea;
 		int format;
@@ -103,7 +98,7 @@ static IG::WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig 
 		}
 	}
 
-	IG::WindowRect winRect;
+	WindowRect winRect;
 
 	// set window size
 	if(config.isDefaultSize())
@@ -180,7 +175,7 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 	auto xScreen = (::Screen*)screen.nativeObject();
 	auto rootWindow = RootWindowOfScreen(xScreen);
 	auto dpy = DisplayOfScreen(xScreen);
-	auto winRect = Config::MACHINE_IS_PANDORA ? IG::WindowRect{{}, {800, 480}} :
+	auto winRect = Config::MACHINE_IS_PANDORA ? WindowRect{{}, {800, 480}} :
 		makeWindowRectWithConfig(dpy, config, rootWindow);
 	updateSize({winRect.xSize(), winRect.ySize()});
 	{
@@ -270,14 +265,14 @@ void Window::setIntendedFrameRate(FrameRate rate)
 
 void Window::setFormat(NativeWindowFormat fmt) {}
 
-void Window::setFormat(IG::PixelFormat) {}
+void Window::setFormat(PixelFormat) {}
 
-IG::PixelFormat Window::pixelFormat() const
+PixelFormat Window::pixelFormat() const
 {
 	auto xScreen = (::Screen*)screen()->nativeObject();
 	if(DefaultDepthOfScreen(xScreen) == 16)
-		return IG::PIXEL_FMT_RGB565;
-	return IG::PIXEL_FMT_RGBA8888;
+		return PIXEL_FMT_RGB565;
+	return PIXEL_FMT_RGBA8888;
 }
 
 std::pair<unsigned long, unsigned long> XWindow::xdndData() const
@@ -336,13 +331,13 @@ static void ewmhFullscreen(Display *dpy, ::Window win, int action)
 	}
 }
 
-void XWindow::toggleFullScreen()
+void Window::toggleFullScreen()
 {
 	logMsg("toggling fullscreen");
 	ewmhFullscreen(dpy, xWin, _NET_WM_STATE_TOGGLE);
 }
 
-void WindowConfig::setFormat(IG::PixelFormat) {}
+void WindowConfig::setFormat(PixelFormat) {}
 
 struct MotifWMHints
 {
@@ -360,6 +355,16 @@ void Window::setDecorations(bool on)
   MotifWMHints hints{.flags = bit(1), .decorations = on};
 	XChangeProperty(dpy, xWin, wmHintsAtom, wmHintsAtom, 32, PropModeReplace, (unsigned char*)&hints,
 		sizeof(MotifWMHints) / sizeof(long));
+}
+
+void Window::setPosition(WPt pos)
+{
+	XMoveWindow(dpy, xWin, pos.x, pos.y);
+}
+
+void Window::setSize(WSize size)
+{
+	XResizeWindow(dpy, xWin, size.x, size.y);
 }
 
 }

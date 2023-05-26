@@ -78,7 +78,7 @@ void EmuSystem::savePathChanged()
 		static_cast<MainSystem*>(this)->savePathChanged();
 }
 
-WP EmuSystem::multiresVideoBaseSize() const
+WSize EmuSystem::multiresVideoBaseSize() const
 {
 	if(&MainSystem::multiresVideoBaseSize != &EmuSystem::multiresVideoBaseSize)
 		return static_cast<const MainSystem*>(this)->multiresVideoBaseSize();

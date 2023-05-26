@@ -131,7 +131,7 @@ int FrameParams::elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePo
 	return std::max(elapsed, decltype(elapsed){1});
 }
 
-WRect Viewport::relRect(WP pos, WP size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
+WRect Viewport::relRect(WPt pos, WSize size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
 {
 	// adjust to the requested origin on the screen
 	auto newX = LT2DO.adjustX(pos.x, width(), screenOrigin.invertYIfCartesian());
@@ -141,7 +141,7 @@ WRect Viewport::relRect(WP pos, WP size, _2DOrigin posOrigin, _2DOrigin screenOr
 	return rect;
 }
 
-WRect Viewport::relRectBestFit(WP pos, float aspectRatio, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
+WRect Viewport::relRectBestFit(WPt pos, float aspectRatio, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
 {
 	auto size = sizesWithRatioBestFit(aspectRatio, width(), height());
 	return relRect(pos, size, posOrigin, screenOrigin);

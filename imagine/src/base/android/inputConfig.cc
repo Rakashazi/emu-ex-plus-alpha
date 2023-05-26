@@ -484,6 +484,8 @@ void ApplicationContext::enumInputDevices() const
 	application().enumInputDevices(*this, mainThreadJniEnv(), baseActivityObject(), true);
 }
 
+bool ApplicationContext::hasInputDeviceHotSwap() const { return androidSDK() >= 12; }
+
 void AndroidApplication::enumInputDevices(ApplicationContext ctx, JNIEnv* env, jobject baseActivity, bool notify)
 {
 	logMsg("doing input device scan");

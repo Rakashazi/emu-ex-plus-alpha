@@ -24,7 +24,6 @@
 #include <emuframework/EmuViewController.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/VController.hh>
-#include <emuframework/TurboInput.hh>
 #include <emuframework/Option.hh>
 #include <emuframework/AutosaveManager.hh>
 #include <emuframework/OutputTimingManager.hh>
@@ -116,7 +115,7 @@ struct AssetDesc
 {
 	AssetFileID fileID;
 	FRect texBounds;
-	IP aspectRatio{1, 1};
+	WSize aspectRatio{1, 1};
 
 	constexpr size_t fileIdx() const { return to_underlying(fileID); }
 	constexpr auto filename() const { return assetFilename[fileIdx()]; }
@@ -216,15 +215,10 @@ public:
 	void setContentSearchPath(std::string_view path);
 	FS::PathString validSearchPath(const FS::PathString &) const;
 	static void updateLegacySavePath(IG::ApplicationContext, CStringView path);
-	const auto &userScreenshotPath() const { return userScreenshotDir; }
-	void setUserScreenshotPath(CStringView path) { userScreenshotDir = path; }
-	auto screenshotDirectory() const { return system().userPath(userScreenshotDir); }
+	auto screenshotDirectory() const { return system().userPath(userScreenshotPath); }
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
 	bool handleKeyInput(InputAction, const Input::Event &srcEvent);
 	void handleSystemKeyInput(InputAction);
-	void addTurboInputEvent(unsigned action);
-	void removeTurboInputEvent(unsigned action);
-	void removeTurboInputEvents() { turboActions = {}; }
 	void runTurboInputEvents();
 	void resetInput();
 	void setRunSpeed(double speed);
@@ -249,9 +243,7 @@ public:
 	void toggleKeyboard();
 	Gfx::TextureSpan asset(AssetID) const;
 	Gfx::TextureSpan asset(AssetDesc) const;
-	void updateInputDevices(IG::ApplicationContext);
-	void setOnUpdateInputDevices(DelegateFunc<void ()>);
-	VController &defaultVController() { return vController; }
+	VController &defaultVController() { return inputManager.vController; }
 	static std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
 	void applyOSNavStyle(IG::ApplicationContext, bool inGame);
 	void setCPUNeedsLowLatency(IG::ApplicationContext, bool needed);
@@ -265,7 +257,7 @@ public:
 	bool mogaManagerIsActive() const { return bool(mogaManagerPtr); }
 	void setMogaManagerActive(bool on, bool notify);
 	constexpr IG::VibrationManager &vibrationManager() { return vibrationManager_; }
-	std::span<const KeyCategory> inputControlCategories() const;
+	static std::span<const KeyCategory> inputControlCategories();
 	const KeyCategory &categoryOfSystemKey(unsigned key) const;
 	std::string_view systemKeyName(unsigned key) const;
 	unsigned transposeKeyForPlayer(unsigned keys, int player) const;
@@ -278,10 +270,8 @@ public:
 	RecentContentList &recentContent() { return recentContentList; };
 	void writeRecentContent(FileIO &);
 	bool readRecentContent(IG::ApplicationContext, MapIO &, size_t readSize_);
-	bool showHiddenFilesInPicker(){ return showHiddenFilesInPicker_; };
-	void setShowHiddenFilesInPicker(bool on){ showHiddenFilesInPicker_ = on; };
-	auto &customKeyConfigList() { return customKeyConfigs; };
-	auto &savedInputDeviceList() { return savedInputDevs; };
+	auto &customKeyConfigList() { return inputManager.customKeyConfigs; };
+	auto &savedInputDeviceList() { return inputManager.savedInputDevs; };
 	IG::Viewport makeViewport(const Window &win) const;
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &);
 	void record(FrameTimeStatEvent, SteadyClockTimePoint t = {});
@@ -337,7 +327,6 @@ public:
 	bool setAltSpeed(AltSpeedMode mode, int16_t speed);
 	int16_t altSpeed(AltSpeedMode mode) const { return altSpeedRef(mode); }
 	double altSpeedAsDouble(AltSpeedMode mode) const { return altSpeed(mode) / 100.; }
-	auto &sustainedPerformanceModeOption() { return optionSustainedPerformanceMode; }
 	void setCPUAffinity(int cpuNumber, bool on);
 	bool cpuAffinity(int cpuNumber) const;
 	void applyCPUAffinity(bool active);
@@ -370,10 +359,6 @@ public:
 	bool showsBluetoothScanItems() const { return optionShowBluetoothScan; }
 	void setLayoutBehindSystemUI(bool);
 	bool doesLayoutBehindSystemUI() const { return layoutBehindSystemUI; };
-
-	// Input Options
-	auto &notifyInputDeviceChangeOption() { return optionNotifyInputDeviceChange; }
-	auto &keepBluetoothActiveOption() { return optionKeepBluetoothActive; }
 
 	void postMessage(UTF16Convertible auto &&msg)
 	{
@@ -441,6 +426,16 @@ public:
 		return {{val, denom}, items};
 	}
 
+	template <class T>
+	requires std::same_as<T, std::pair<int, int>>
+	static std::pair<T, int> scanValue(const char *str, ScanValueMode)
+	{
+		using PairValue = typename T::first_type;
+		PairValue val, val2{};
+		int items = sscanf(str, "%d %d", &val, &val2);
+		return {{val, val2}, items};
+	}
+
 	template<class T, ScanValueMode mode = ScanValueMode::NORMAL>
 	void pushAndShowNewCollectValueInputView(ViewAttachParams attach, const Input::Event &e,
 		CStringView msgText, CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
@@ -474,9 +469,9 @@ public:
 
 	template<class T, T low, T high>
 	void pushAndShowNewCollectValueRangeInputView(ViewAttachParams attach, const Input::Event &e,
-			CStringView msgText, CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
+		CStringView msgText, CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
 	{
-		pushAndShowNewCollectValueInputView<int>(attach, e, msgText, initialContent,
+		pushAndShowNewCollectValueInputView<T>(attach, e, msgText, initialContent,
 			[collectedValueFunc](EmuApp &app, auto val)
 			{
 				if(val >= low && val <= high)
@@ -486,6 +481,25 @@ public:
 				else
 				{
 					app.postErrorMessage("Value not in range");
+					return false;
+				}
+			});
+	}
+
+	template<class T, T low, T high, T low2, T high2>
+	void pushAndShowNewCollectValuePairRangeInputView(ViewAttachParams attach, const Input::Event &e,
+		CStringView msgText, CStringView initialContent, Callable<bool, EmuApp&, std::pair<T, T>> auto &&collectedValueFunc)
+	{
+		pushAndShowNewCollectValueInputView<std::pair<T, T>>(attach, e, msgText, initialContent,
+			[collectedValueFunc](EmuApp &app, auto val)
+			{
+				if(val.first >= low && val.first <= high && val.second >= low2 && val.second <= high2)
+				{
+					return collectedValueFunc(app, val);
+				}
+				else
+				{
+					app.postErrorMessage("Values not in range");
 					return false;
 				}
 			});
@@ -501,17 +515,13 @@ protected:
 	EmuVideoLayer emuVideoLayer;
 	EmuSystemTask emuSystemTask;
 	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetFileID>];
-	VController vController;
 	AutosaveManager autosaveManager_;
 public:
+	InputManager inputManager;
 	OutputTimingManager outputTimingManager;
 protected:
 	IG_UseMemberIf(enableFrameTimeStats, FrameTimeStats, frameTimeStats);
 	IG_UseMemberIf(Config::threadPerformanceHints, SteadyClockTimePoint, frameStartTimePoint){};
-	DelegateFunc<void ()> onUpdateInputDevices_;
-	KeyConfigContainer customKeyConfigs;
-	InputDeviceSavedConfigContainer savedInputDevs;
-	TurboInput turboActions;
 	Gfx::Vec3 videoBrightnessRGB{1.f, 1.f, 1.f};
 	FS::PathString contentSearchPath_;
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
@@ -522,7 +532,9 @@ protected:
 	BluetoothAdapter *bta{};
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr);
 	RecentContentList recentContentList;
-	std::string userScreenshotDir;
+public:
+	std::string userScreenshotPath;
+protected:
 	IG_UseMemberIf(Config::cpuAffinity, CPUMask, cpuAffinityMask){};
 	int savedAdvancedFrames{};
 	static constexpr int16_t defaultFastModeSpeed{800};
@@ -539,13 +551,10 @@ protected:
 	IG_UseMemberIf(Config::NAVIGATION_BAR, Byte1Option, optionLowProfileOSNav);
 	IG_UseMemberIf(Config::NAVIGATION_BAR, Byte1Option, optionHideOSNav);
 	IG_UseMemberIf(Config::STATUS_BAR, Byte1Option, optionHideStatusBar);
-	IG_UseMemberIf(Config::Input::DEVICE_HOTSWAP, Byte1Option, optionNotifyInputDeviceChange);
 	Byte1Option optionEmuOrientation;
 	Byte1Option optionMenuOrientation;
 	Byte1Option optionShowBundledGames;
-	IG_UseMemberIf(Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, Byte1Option, optionKeepBluetoothActive);
 	IG_UseMemberIf(Config::Input::BLUETOOTH, Byte1Option, optionShowBluetoothScan);
-	IG_UseMemberIf(Config::envIsAndroid, Byte1Option, optionSustainedPerformanceMode);
 	Byte1Option optionImgFilter;
 	Byte1Option optionImgEffect;
 	Byte1Option optionImageEffectPixelFormat;
@@ -561,9 +570,12 @@ protected:
 	Gfx::DrawableConfig windowDrawableConf;
 	IG::PixelFormat renderPixelFmt;
 	IG::Rotation contentRotation_{IG::Rotation::ANY};
-	bool showHiddenFilesInPicker_{};
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, bool, layoutBehindSystemUI){};
 public:
+	bool showHiddenFilesInPicker{};
+	IG_UseMemberIf(Config::envIsAndroid, bool, useSustainedPerformanceMode){};
+	IG_UseMemberIf(Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, bool, keepBluetoothActive){};
+	IG_UseMemberIf(Config::Input::DEVICE_HOTSWAP, bool, notifyOnInputDeviceChange){true};
 	IG_UseMemberIf(Config::multipleScreenFrameRates, FrameRate, overrideScreenFrameRate){};
 	WindowFrameTimeSource windowFrameTimeSource{WindowFrameTimeSource::AUTO};
 	IG_UseMemberIf(Config::cpuAffinity, CPUAffinityMode, cpuAffinityMode){CPUAffinityMode::Auto};

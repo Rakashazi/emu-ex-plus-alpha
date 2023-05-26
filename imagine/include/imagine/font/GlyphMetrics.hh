@@ -23,8 +23,8 @@ namespace IG
 
 struct GlyphMetrics
 {
-	SP size{};
-	SP offset{};
+	S2Size size{};
+	S2Pt offset{};
 	int16_t xAdvance{};
 
 	constexpr explicit operator bool() const { return size.x; }

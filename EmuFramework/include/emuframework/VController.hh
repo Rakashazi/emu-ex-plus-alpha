@@ -53,15 +53,15 @@ enum class VControllerState : uint8_t
 
 struct VControllerLayoutPosition
 {
-	SP pos{-1, -1};
+	S2Pt pos{-1, -1};
 	_2DOrigin origin{LT2DO};
 
 	constexpr VControllerLayoutPosition() = default;
-	constexpr VControllerLayoutPosition(_2DOrigin origin, WP pos):
+	constexpr VControllerLayoutPosition(_2DOrigin origin, WPt pos):
 		pos{pos.as<int16_t>()}, origin{origin} {}
 
-	static VControllerLayoutPosition fromPixelPos(WP pos, WP size, WindowRect viewBounds);
-	WP toPixelPos(WindowRect viewBounds) const;
+	static VControllerLayoutPosition fromPixelPos(WPt pos, WSize size, WindowRect viewBounds);
+	WPt toPixelPos(WindowRect viewBounds) const;
 };
 
 constexpr int16_t defaultDPadDeadzoneMM100x = 135;
@@ -89,10 +89,10 @@ public:
 	void draw(Gfx::RendererCommands &__restrict__, float alpha) const;
 	void setShowBounds(Gfx::Renderer &r, bool on);
 	bool showBounds() const { return config.visualizeBounds; }
-	std::array<int, 2> getInput(WP c) const;
+	std::array<int, 2> getInput(WPt c) const;
 	WRect bounds() const { return padBaseArea; }
 	WRect realBounds() const { return padArea; }
-	void setPos(WP pos, WindowRect viewBounds);
+	void setPos(WPt pos, WindowRect viewBounds);
 	void setSize(Gfx::Renderer &, int sizeInPixels);
 	bool setDeadzone(Gfx::Renderer &, int newDeadzone, const Window &);
 	auto deadzone() const { return config.deadzoneMM100x; }
@@ -143,7 +143,7 @@ public:
 	void setImg(Gfx::Renderer &r, Gfx::TextureSpan img);
 	void place(int btnSize, int yOffset, WRect viewBounds);
 	void draw(Gfx::RendererCommands &__restrict__) const;
-	int getInput(WP c) const;
+	int getInput(WPt c) const;
 	unsigned translateInput(int idx) const;
 	bool keyInput(VController &v, Gfx::Renderer &r, const Input::KeyEvent &e);
 	[[nodiscard]] WindowRect selectKey(unsigned x, unsigned y);
@@ -176,8 +176,8 @@ class VControllerButton
 {
 public:
 	constexpr VControllerButton(unsigned key): key{key} {}
-	void setPos(WP pos, WRect viewBounds, _2DOrigin = C2DO);
-	void setSize(WP size, WP extendedSize = {});
+	void setPos(WPt pos, WRect viewBounds, _2DOrigin = C2DO);
+	void setSize(WSize size, WSize extendedSize = {});
 	void setImage(Gfx::TextureSpan, int aR = 1);
 	WRect bounds() const { return bounds_; }
 	WRect realBounds() const { return extendedBounds_; }
@@ -185,7 +185,7 @@ public:
 	void drawBounds(Gfx::RendererCommands &__restrict__, float alpha) const;
 	void drawSprite(Gfx::RendererCommands &__restrict__, float alpha) const;
 	std::string name(const EmuApp &) const;
-	bool overlaps(WP windowPos) const { return enabled && realBounds().overlaps(windowPos); }
+	bool overlaps(WPt windowPos) const { return enabled && realBounds().overlaps(windowPos); }
 
 protected:
 	Gfx::Sprite spr;
@@ -225,20 +225,20 @@ public:
 	VControllerButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin, int8_t rowItems);
 	VControllerButtonGroup(const Config &);
 	Config config() const;
-	void setPos(WP pos, WindowRect viewBounds);
+	void setPos(WPt pos, WindowRect viewBounds);
 	void setButtonSize(int sizePx);
 	void setStaggerType(uint8_t);
 	auto stagger() const { return layout.staggerType; }
 	bool setSpacing(int8_t spacingMM, const Window &);
 	auto spacing() const { return layout.spacingMM; }
-	WP paddingPixels() const { return {int(spacingPixels + btnSize * (layout.xPadding / 100.f)), int(spacingPixels + btnSize * (layout.yPadding / 100.f))}; }
+	WSize paddingPixels() const { return {int(spacingPixels + btnSize * (layout.xPadding / 100.f)), int(spacingPixels + btnSize * (layout.yPadding / 100.f))}; }
 	bool showsBounds() const { return layout.showBoundingArea; }
 	void setShowBounds(bool on) { layout.showBoundingArea = on; }
 	auto bounds() const { return bounds_; }
 	WRect paddingRect() const { return {{int(-paddingPixels().x), int(-paddingPixels().y)}, {int(paddingPixels().x), int(paddingPixels().y)}}; }
 	WRect realBounds() const { return bounds() + paddingRect(); }
 	int rows() const;
-	std::array<int, 2> findButtonIndices(WP windowPos) const;
+	std::array<int, 2> findButtonIndices(WPt windowPos) const;
 	void draw(Gfx::RendererCommands &__restrict__, float alpha) const;
 	std::string name(const EmuApp &) const;
 	void updateMeasurements(const Window &win);
@@ -294,7 +294,7 @@ public:
 	VControllerUIButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin);
 	VControllerUIButtonGroup(const Config &);
 	Config config() const;
-	void setPos(WP pos, WindowRect viewBounds);
+	void setPos(WPt pos, WRect viewBounds);
 	void setButtonSize(int sizePx);
 	auto bounds() const { return bounds_; }
 	WRect realBounds() const { return bounds(); }
@@ -347,7 +347,7 @@ public:
 
 	WRect bounds() const { return visit([](auto &e){ return e.bounds(); }, *this); }
 	WRect realBounds() const { return visit([](auto &e){ return e.realBounds(); }, *this); }
-	void setPos(WP pos, WRect viewBounds) { visit([&](auto &e){ e.setPos(pos, viewBounds); }, *this); }
+	void setPos(WPt pos, WRect viewBounds) { visit([&](auto &e){ e.setPos(pos, viewBounds); }, *this); }
 
 	static bool shouldDraw(VControllerState state, bool showHidden)
 	{
@@ -576,7 +576,7 @@ private:
 	IG_UseMemberIf(Config::DISPLAY_CUTOUT, bool, allowButtonsPastContentBounds_){};
 	IG_UseMemberIf(Config::BASE_SUPPORTS_VIBRATOR, bool, vibrateOnTouchInput_){};
 
-	std::array<int, 2> findGamepadElements(WP pos);
+	std::array<int, 2> findGamepadElements(WPt pos);
 	int keyboardKeyFromPointer(const Input::MotionEvent &);
 	void applyButtonSize();
 	void resetEmulatedDevicePositions(std::vector<VControllerElement> &) const;

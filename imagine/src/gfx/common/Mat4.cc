@@ -75,7 +75,7 @@ Mat4 Mat4::projectionPlane(Viewport viewport, float z, float rollAngle)
 	auto w = upperRight.x - lowerLeft.x;
 	auto h = upperRight.y - lowerLeft.y;
 	auto insetRect = windowBounds - bounds;
-	return scale(FP{w / float(bounds.xSize()), -h / float(bounds.ySize())})
+	return scale(F2Size{w / float(bounds.xSize()), -h / float(bounds.ySize())})
 		.rollRotate(rollAngle)
 		.translate(Vec3{-bounds.xSize() / 2.f + insetRect.x, -bounds.ySize() / 2.f + insetRect.y, upperRight.z});
 }

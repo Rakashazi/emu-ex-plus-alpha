@@ -60,13 +60,13 @@ public:
 	bool generateMipmaps();
 	int levels() const;
 	ErrorCode setFormat(PixmapDesc, int levels, ColorSpace c = {}, TextureSamplerConfig samplerConf = {});
-	void write(int level, PixmapView pixmap, WP destPos, uint32_t writeFlags = 0);
-	void writeAligned(int level, PixmapView pixmap, WP destPos, int assumedDataAlignment, uint32_t writeFlags = 0);
+	void write(int level, PixmapView pixmap, WPt destPos, uint32_t writeFlags = 0);
+	void writeAligned(int level, PixmapView pixmap, WPt destPos, int assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear(int level);
 	LockedTextureBuffer lock(int level, uint32_t bufferFlags = 0);
 	LockedTextureBuffer lock(int level, WRect rect, uint32_t bufferFlags = 0);
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
-	WP size(int level) const;
+	WSize size(int level) const;
 	PixmapDesc pixmapDesc() const;
 	void setSampler(TextureSamplerConfig);
 	explicit operator bool() const;

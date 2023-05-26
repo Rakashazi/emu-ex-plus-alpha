@@ -129,11 +129,11 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 		}
 		if(viewportAspectRatio < 1.f && inputView)
 		{
-			contentRect_.setPos(viewRect.pos(CT2DO) + WP{0, inputView->uiElementHeight() + portraitOffset}, CT2DO);
+			contentRect_.setPos(viewRect.pos(CT2DO) + WPt{0, inputView->uiElementHeight() + portraitOffset}, CT2DO);
 		}
 		else
 		{
-			contentRect_.setPos(displayRect.center() + WP{landscapeOffset, 0}, C2DO);
+			contentRect_.setPos(displayRect.center() + WPt{landscapeOffset, 0}, C2DO);
 		}
 		contentRect_.fitIn(displayRect);
 		disp.setPos(contentRect_);

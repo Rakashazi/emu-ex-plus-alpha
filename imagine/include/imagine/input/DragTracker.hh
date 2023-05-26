@@ -28,32 +28,32 @@ class DragTrackerState
 {
 public:
 	constexpr DragTrackerState() = default;
-	constexpr DragTrackerState(PointerId id, WP pos)
+	constexpr DragTrackerState(PointerId id, WPt pos)
 	{
 		start(id, pos);
 	}
 
-	constexpr void start(PointerId id, WP pos)
+	constexpr void start(PointerId id, WPt pos)
 	{
 		id_ = id;
 		downPos_ = pos_ = pos;
 		isDragging_ = false;
 	}
 
-	void update(WP pos, int dragStartPixels);
+	void update(WPt pos, int dragStartPixels);
 	void finish();
 	constexpr PointerId id() const { return id_; }
-	constexpr WP pos() const { return pos_; }
-	constexpr WP downPos() const { return downPos_; }
-	constexpr WP downPosDiff() const { return pos_ - downPos_; }
+	constexpr WPt pos() const { return pos_; }
+	constexpr WPt downPos() const { return downPos_; }
+	constexpr WPt downPosDiff() const { return pos_ - downPos_; }
 	constexpr bool isDragging() const { return isDragging_; }
 	constexpr bool isTracking() const { return id_ != NULL_POINTER_ID; }
 	constexpr bool isTracking(PointerId id) const { return id_ == id; }
 
 protected:
 	PointerId id_{NULL_POINTER_ID};
-	WP pos_{};
-	WP downPos_{};
+	WPt pos_{};
+	WPt downPos_{};
 	bool isDragging_ = false;
 };
 

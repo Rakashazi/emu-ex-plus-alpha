@@ -30,7 +30,7 @@ namespace EmuEx
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\n\nPortions (c) the\nGambatte Team\ngambatte.sourceforge.net";
 bool EmuSystem::hasCheats = true;
-constexpr IG::WP lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
+constexpr WSize lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)

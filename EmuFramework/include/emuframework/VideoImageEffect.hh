@@ -42,12 +42,12 @@ public:
 	{
 		const char *vShaderFilename;
 		const char *fShaderFilename;
-		IG::WP scale;
+		WSize scale;
 	};
 
 	constexpr	VideoImageEffect() = default;
-	VideoImageEffect(Gfx::Renderer &r, Id effect, IG::PixelFormat, Gfx::ColorSpace, Gfx::TextureSamplerConfig, IG::WP size);
-	void setImageSize(Gfx::Renderer &r, IG::WP size, Gfx::TextureSamplerConfig);
+	VideoImageEffect(Gfx::Renderer &r, Id effect, PixelFormat, Gfx::ColorSpace, Gfx::TextureSamplerConfig, WSize size);
+	void setImageSize(Gfx::Renderer &r, WSize size, Gfx::TextureSamplerConfig);
 	void setFormat(Gfx::Renderer &r, IG::PixelFormat, Gfx::ColorSpace, Gfx::TextureSamplerConfig);
 	void setSampler(Gfx::TextureSamplerConfig);
 	Gfx::Program &program();
@@ -62,9 +62,9 @@ private:
 	int srcTexelDeltaU{};
 	int srcTexelHalfDeltaU{};
 	int srcPixelsU{};
-	IG::WP renderTargetScale;
-	IG::WP renderTargetImgSize;
-	IG::WP inputImgSize{1, 1};
+	WSize renderTargetScale;
+	WSize renderTargetImgSize;
+	WSize inputImgSize{1, 1};
 	IG::PixelFormat format;
 	Gfx::ColorSpace colorSpace{Gfx::ColorSpace::LINEAR};
 

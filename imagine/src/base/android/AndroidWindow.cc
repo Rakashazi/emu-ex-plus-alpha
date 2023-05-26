@@ -83,14 +83,14 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 	env->RegisterNatives(cls, method, std::size(method));
 }
 
-IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
+Point2D<float> Window::pixelSizeAsMM(Point2D<int> size)
 {
 	auto densityDPI = screen()->densityDPI();
 	assumeExpr(densityDPI > 0);
 	return {((float)size.x / densityDPI) * 25.4f, ((float)size.y / densityDPI) * 25.4f};
 }
 
-IG::Point2D<float> Window::pixelSizeAsScaledMM(IG::Point2D<int> size)
+Point2D<float> Window::pixelSizeAsScaledMM(Point2D<int> size)
 {
 	auto densityDPI = screen()->scaledDensityDPI();
 	assumeExpr(densityDPI > 0);
@@ -125,7 +125,7 @@ bool Window::requestOrientationChange(Rotation o)
 	return false;
 }
 
-IG::PixelFormat ApplicationContext::defaultWindowPixelFormat() const
+PixelFormat ApplicationContext::defaultWindowPixelFormat() const
 {
 	return ((Config::ARM_ARCH && Config::ARM_ARCH < 7) || androidSDK() < 11) ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
 }
@@ -286,12 +286,12 @@ void Window::setFormat(NativeWindowFormat fmt)
 	// for example eglCreateWindowSurface() will set it implicitly so no need to call ANativeWindow_setBuffersGeometry()
 }
 
-void Window::setFormat(IG::PixelFormat fmt)
+void Window::setFormat(PixelFormat fmt)
 {
 	setFormat(toAHardwareBufferFormat(fmt));
 }
 
-IG::PixelFormat Window::pixelFormat() const
+PixelFormat Window::pixelFormat() const
 {
 	return makePixelFormatFromAndroidFormat(nPixelFormat);
 }
@@ -325,7 +325,7 @@ void AndroidWindow::systemRequestsRedraw(bool sync)
 	}
 }
 
-void AndroidWindow::setContentRect(WindowRect rect, WP winSize)
+void AndroidWindow::setContentRect(WindowRect rect, WSize winSize)
 {
 	logMsg("content rect changed: %d:%d:%d:%d in %dx%d",
 		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
@@ -351,7 +351,7 @@ void Window::setTitle(const char *name) {}
 
 void Window::setAcceptDnd(bool on) {}
 
-void WindowConfig::setFormat(IG::PixelFormat fmt)
+void WindowConfig::setFormat(PixelFormat fmt)
 {
 	nativeFormat = toAHardwareBufferFormat(fmt);
 }

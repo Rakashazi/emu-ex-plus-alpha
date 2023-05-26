@@ -389,6 +389,8 @@ void ApplicationContext::flushInternalInputEvents()
 	// TODO
 }
 
+[[gnu::weak]] bool ApplicationContext::hasInputDeviceHotSwap() const { return Config::Input::DEVICE_HOTSWAP; }
+
 [[gnu::weak]] void ApplicationContext::flushSystemInputEvents() {}
 
 bool BaseApplication::processICadeKey(const Input::KeyEvent &e, Window &win)

@@ -57,7 +57,7 @@ void PlaceVControlsView::place()
 	dragTracker.reset();
 	auto exitBtnPos = viewRect().pos(C2DO);
 	int exitBtnSize = window().widthMMInPixels(10.);
-	exitBtnRect = IG::makeWindowRectRel(exitBtnPos - IG::WP{exitBtnSize/2, exitBtnSize/2}, {exitBtnSize, exitBtnSize});
+	exitBtnRect = makeWindowRectRel(exitBtnPos - WPt{exitBtnSize/2, exitBtnSize/2}, {exitBtnSize, exitBtnSize});
 	text.compile(renderer());
 }
 

@@ -52,7 +52,7 @@ const BundledGameInfo &EmuSystem::bundledGameInfo(int idx) const
 	return info[0];
 }
 
-static IG::PixmapView snesPixmapView(IG::WP size)
+static PixmapView snesPixmapView(WSize size)
 {
 	return {{size, srcPixFmt}, GFX.Screen, {(int)GFX.Pitch, PixmapView::Units::BYTE}};
 }
@@ -143,7 +143,7 @@ WallClockTimePoint Snes9xSystem::backupMemoryLastWriteTime(const EmuApp &app) co
 }
 
 VideoSystem Snes9xSystem::videoSystem() const { return Settings.PAL ? VideoSystem::PAL : VideoSystem::NATIVE_NTSC; }
-WP Snes9xSystem::multiresVideoBaseSize() const { return {256, 239}; }
+WSize Snes9xSystem::multiresVideoBaseSize() const { return {256, 239}; }
 
 static bool isSufamiTurboCart(const IOBuffer &buff)
 {

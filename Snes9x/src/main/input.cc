@@ -89,7 +89,7 @@ constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
-	constexpr FP imageSize{256, 256};
+	constexpr F2Size imageSize{256, 256};
 	constexpr int cellSize = 32;
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
@@ -390,7 +390,7 @@ void Snes9xSystem::setupSNESInput(VController &vCtrl)
 	#endif
 }
 
-WP Snes9xSystem::updateAbsolutePointerPosition(IG::WindowRect gameRect, WP pos)
+WPt Snes9xSystem::updateAbsolutePointerPosition(WRect gameRect, WPt pos)
 {
 	int xRel = pos.x - gameRect.x, yRel = pos.y - gameRect.y;
 	snesPointerX = IG::remap(xRel, 0, gameRect.xSize(), 0, 256);

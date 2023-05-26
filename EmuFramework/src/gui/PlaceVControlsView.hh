@@ -43,7 +43,7 @@ private:
 	struct DragData
 	{
 		VControllerElement *elem{};
-		WP startPos{};
+		WPt startPos{};
 	};
 	Gfx::Text text;
 	VController &vController;

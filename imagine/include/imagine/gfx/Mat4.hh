@@ -38,7 +38,7 @@ public:
 
 	static Mat4 ident();
 	static Mat4 makeTranslate(Vec3 translation);
-	static Mat4 makeTranslate(IP p) { return makeTranslate(Vec3{float(p.x), float(p.y), 0.f}); }
+	static Mat4 makeTranslate(WPt p) { return makeTranslate(Vec3{float(p.x), float(p.y), 0.f}); }
 	static Mat4 makePerspectiveFovRH(float fovy, float aspect, float znear, float zfar);
 	Mat4 projectionPlane(Viewport viewport, float z, float rollAngle);
 	Mat4 translate(Vec3 translation) const;
@@ -50,7 +50,7 @@ public:
 
 	// Convenience functions
 	Mat4 scale(float s) const { return scale({s, s, 1.}); }
-	Mat4 scale(FP p) const { return scale({p.x, p.y, 1.}); }
+	Mat4 scale(F2Size p) const { return scale({p.x, p.y, 1.}); }
 	Mat4 pitchRotate(float t) const { return rotate(t, {1., 0., 0.}); }
 	Mat4 rollRotate(float t) const { return rotate(t, {0., 0., 1.}); }
 	Mat4 yawRotate(float t) const { return rotate(t, {0., 1., 0.}); }

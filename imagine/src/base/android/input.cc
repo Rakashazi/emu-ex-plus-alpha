@@ -478,11 +478,6 @@ static const char* aInputSourceToStr(uint32_t source)
 	}
 }
 
-void ApplicationContext::flushSystemInputEvents()
-{
-	application().flushSystemInputEvents();
-}
-
 void AndroidApplication::flushSystemInputEvents()
 {
 	auto queue = inputQueue;

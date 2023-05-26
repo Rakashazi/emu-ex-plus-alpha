@@ -232,6 +232,7 @@ public:
 	void flushInputEvents();
 	void flushSystemInputEvents();
 	void flushInternalInputEvents();
+	bool hasInputDeviceHotSwap() const;
 
 	// App exit
 	void exit(int returnVal);

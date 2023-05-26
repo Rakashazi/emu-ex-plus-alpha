@@ -206,7 +206,7 @@ void VController::toggleKeyboard()
 	system().onVKeyboardShown(kb, kbMode);
 }
 
-std::array<int, 2> VController::findGamepadElements(IG::WP pos)
+std::array<int, 2> VController::findGamepadElements(WPt pos)
 {
 	for(const auto &gpElem : gpElements)
 	{
@@ -882,7 +882,7 @@ std::vector<VControllerElement> VController::defaultUIGroups() const
 	return uiElements;
 }
 
-VControllerLayoutPosition VControllerLayoutPosition::fromPixelPos(IG::WP pos, IG::WP size, IG::WindowRect windowBounds)
+VControllerLayoutPosition VControllerLayoutPosition::fromPixelPos(WPt pos, WSize size, IG::WindowRect windowBounds)
 {
 	IG::WindowRect bound {pos - size/2, pos + size/2};
 
@@ -912,7 +912,7 @@ VControllerLayoutPosition VControllerLayoutPosition::fromPixelPos(IG::WP pos, IG
 	return {origin, {x, y}};
 }
 
-IG::WP VControllerLayoutPosition::toPixelPos(IG::WindowRect windowBounds) const
+WPt VControllerLayoutPosition::toPixelPos(WRect windowBounds) const
 {
 	int x = (origin.xScaler() == 0) ? pos.x + windowBounds.xSize() / 2 :
 		(origin.xScaler() == 1) ? pos.x + windowBounds.xSize() : pos.x;

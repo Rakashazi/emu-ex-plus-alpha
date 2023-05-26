@@ -166,11 +166,11 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	performanceMode
 	{
 		"Performance Mode", &defaultFace(),
-		(bool)app().sustainedPerformanceModeOption(),
+		app().useSustainedPerformanceMode,
 		"Normal", "Sustained",
 		[this](BoolMenuItem &item)
 		{
-			app().sustainedPerformanceModeOption() = item.flipBoolValue(*this);
+			app().useSustainedPerformanceMode = item.flipBoolValue(*this);
 		}
 	},
 	noopThread

@@ -85,7 +85,7 @@ static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, i
 	{
 		if(b.skipLayout || !b.enabled)
 			continue;
-		WP pos = layoutBounds.pos(o) + WP{x, y + staggerOffset} + (size / 2);
+		auto pos = layoutBounds.pos(o) + WPt{x, y + staggerOffset} + (size / 2);
 		b.setPos(pos, viewBounds);
 		x += size + spacing;
 		staggerOffset -= stagger;
@@ -100,7 +100,7 @@ static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, i
 	}
 }
 
-void VControllerButtonGroup::setPos(WP pos, WindowRect viewBounds)
+void VControllerButtonGroup::setPos(WPt pos, WindowRect viewBounds)
 {
 	bounds_.setPos(pos, C2DO);
 	bounds_.fitIn(viewBounds);
@@ -116,7 +116,7 @@ void VControllerButtonGroup::setButtonSize(int sizePx)
 	int xSizePixel = sizePx * btnsPerRow + spacingPixels*(btnsPerRow-1) + std::abs(btnRowShift*((int)rows()-1));
 	int ySizePixel = sizePx * rows() + spacingPixels*(rows()-1) + std::abs(btnStagger*((int)btnsPerRow-1));
 	bounds_ = makeWindowRectRel({0, 0}, {xSizePixel, ySizePixel});
-	WP extendedSize = paddingPixels();
+	auto extendedSize = paddingPixels();
 	for(auto &b : buttons)
 	{
 		b.setSize({sizePx, sizePx}, extendedSize);
@@ -176,7 +176,7 @@ int VControllerButtonGroup::rows() const
 	return divRoundUp(buttonsToLayout(buttons), layout.rowItems);
 }
 
-std::array<int, 2> VControllerButtonGroup::findButtonIndices(WP windowPos) const
+std::array<int, 2> VControllerButtonGroup::findButtonIndices(WPt windowPos) const
 {
 	std::array<int, 2> btnOut{-1, -1};
 	for(size_t count = 0; auto &b : buttons)
@@ -286,7 +286,7 @@ VControllerUIButtonGroup::Config VControllerUIButtonGroup::config() const
 	return conf;
 }
 
-void VControllerUIButtonGroup::setPos(WP pos, WindowRect viewBounds)
+void VControllerUIButtonGroup::setPos(WPt pos, WRect viewBounds)
 {
 	bounds_.setPos(pos, C2DO);
 	bounds_.fitIn(viewBounds);

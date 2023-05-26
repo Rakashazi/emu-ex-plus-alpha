@@ -42,7 +42,7 @@ public:
 	explicit operator bool() const;
 	void setNativeWindow(ApplicationContext, ANativeWindow *);
 	int nativePixelFormat();
-	void setContentRect(WindowRect bounds, WP winSize);
+	void setContentRect(WRect bounds, WSize winSize);
 	void systemRequestsRedraw(bool sync = true);
 
 protected:

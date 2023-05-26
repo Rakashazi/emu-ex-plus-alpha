@@ -99,7 +99,7 @@ void VControllerDPad::setSize(Gfx::Renderer &r, int sizeInPixels)
 	}
 }
 
-void VControllerDPad::setPos(WP pos, WindowRect viewBounds)
+void VControllerDPad::setPos(WPt pos, WRect viewBounds)
 {
 	padBaseArea.setPos(pos, C2DO);
 	padBaseArea.fitIn(viewBounds);
@@ -157,7 +157,7 @@ void VControllerDPad::draw(Gfx::RendererCommands &__restrict__ cmds, float alpha
 	}
 }
 
-std::array<int, 2> VControllerDPad::getInput(WP c) const
+std::array<int, 2> VControllerDPad::getInput(WPt c) const
 {
 	std::array<int, 2> pad{-1, -1};
 	if(!padArea.overlaps(c))

@@ -138,7 +138,7 @@ bool Text::compile(Renderer &r, TextLayoutConfig conf)
 	return true;
 }
 
-static void drawSpan(RendererCommands &cmds, WP pos,
+static void drawSpan(RendererCommands &cmds, WPt pos,
 	std::u16string_view strView, auto &vArr, GlyphTextureSet *face_, int spaceSize)
 {
 	for(auto c : strView)
@@ -167,13 +167,13 @@ static void drawSpan(RendererCommands &cmds, WP pos,
 	}
 }
 
-void Text::draw(RendererCommands &cmds, WP pos, _2DOrigin o, Color c) const
+void Text::draw(RendererCommands &cmds, WPt pos, _2DOrigin o, Color c) const
 {
 	cmds.setColor(c);
 	draw(cmds, pos, o);
 }
 
-void Text::draw(RendererCommands &cmds, WP pos, _2DOrigin o) const
+void Text::draw(RendererCommands &cmds, WPt pos, _2DOrigin o) const
 {
 	if(!hasText()) [[unlikely]]
 		return;

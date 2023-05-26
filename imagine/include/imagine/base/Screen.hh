@@ -43,7 +43,7 @@ public:
 	Screen(ApplicationContext, InitParams);
 	int width() const;
 	int height() const;
-	IP sizePx() const { return {width(), height()}; }
+	WSize sizePx() const { return {width(), height()}; }
 	bool isPosted() const;
 	bool addOnFrame(OnFrameDelegate, int priority = 0);
 	bool removeOnFrame(OnFrameDelegate);

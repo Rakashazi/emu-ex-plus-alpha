@@ -66,7 +66,6 @@ public:
 class View
 {
 public:
-	using DismissDelegate = DelegateFunc<bool (View &view)>;
 	static constexpr auto imageSamplerConfig = ViewDefs::imageSamplerConfig;
 	enum class Direction: uint8_t
 	{
@@ -117,7 +116,6 @@ public:
 	void show();
 	bool moveFocusToNextView(const Input::Event &e, _2DOrigin direction);
 	void setWindow(Window *w);
-	void setOnDismiss(DismissDelegate del);
 	void onDismiss();
 	void setController(ViewController *c, const Input::Event &e);
 	void setController(ViewController *c);
@@ -126,7 +124,7 @@ public:
 	WindowRect displayRect() const { return displayRect_; }
 	WindowRect displayInsetRect(Direction) const;
 	static WindowRect displayInsetRect(Direction, WindowRect viewRect, WindowRect displayRect);
-	bool pointIsInView(WP pos);
+	bool pointIsInView(WPt pos);
 	void waitForDrawFinished();
 
 	template<class T>
@@ -152,7 +150,6 @@ protected:
 	Gfx::RendererTask *rendererTask_{};
 	ViewManager *manager_{};
 	ViewController *controller_{};
-	DismissDelegate dismissDel{};
 	WRect viewRect_{};
 	WRect displayRect_{};
 };

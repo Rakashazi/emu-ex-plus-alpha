@@ -76,7 +76,7 @@ public:
 
 	// for iOS EAGLView renderbuffer management
 	void setIOSDrawableDelegates();
-	IP makeIOSDrawableRenderbuffer(void *layer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer);
+	WSize makeIOSDrawableRenderbuffer(void *layer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer);
 	void deleteIOSDrawableRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffer);
 
 protected:

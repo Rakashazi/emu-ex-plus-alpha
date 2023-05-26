@@ -38,7 +38,7 @@ EmuInputView::EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideo
 
 void EmuInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
-	vController->draw(cmds, speedToggleActive);
+	vController->draw(cmds);
 }
 
 void EmuInputView::place()

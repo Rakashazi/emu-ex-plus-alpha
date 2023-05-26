@@ -32,7 +32,7 @@ public:
 
 	explicit operator bool() const { return (bool)buffer; }
 	MutablePixmapView view() const { return {desc(), buffer.get()}; }
-	MutablePixmapView subView(WP pos, WP size) const { return view().subView(pos, size); }
+	MutablePixmapView subView(WPt pos, WSize size) const { return view().subView(pos, size); }
 	PixmapDesc desc() const { return desc_; }
 
 protected:

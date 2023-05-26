@@ -100,7 +100,7 @@ static PixelFormat effectFormat(IG::PixelFormat format, Gfx::ColorSpace colSpace
 }
 
 VideoImageEffect::VideoImageEffect(Gfx::Renderer &r, Id effect, IG::PixelFormat fmt, Gfx::ColorSpace colSpace,
-	Gfx::TextureSamplerConfig samplerConf, IG::WP size):
+	Gfx::TextureSamplerConfig samplerConf, WSize size):
 		inputImgSize{size}, format{effectFormat(fmt, colSpace)}, colorSpace{colSpace}
 {
 	logMsg("compiling effect:%s", effectName(effect));
@@ -200,9 +200,9 @@ void VideoImageEffect::updateProgramUniforms(Gfx::Renderer &r)
 		prog.uniform(srcPixelsU, (float)inputImgSize.x, (float)inputImgSize.y);
 }
 
-void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size, Gfx::TextureSamplerConfig samplerConf)
+void VideoImageEffect::setImageSize(Gfx::Renderer &r, WSize size, Gfx::TextureSamplerConfig samplerConf)
 {
-	if(size == IG::WP{0, 0})
+	if(size == WSize{0, 0})
 		return;
 	if(inputImgSize == size)
 		return;

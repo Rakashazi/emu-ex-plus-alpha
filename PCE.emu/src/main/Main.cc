@@ -132,7 +132,7 @@ static void writeCDMD5(MDFNGI &mdfnGameInfo, CDInterface &cdInterface)
 	memcpy(mdfnGameInfo.MD5, LayoutMD5, 16);
 }
 
-WP PceSystem::multiresVideoBaseSize() const { return {512, 0}; }
+WSize PceSystem::multiresVideoBaseSize() const { return {512, 0}; }
 
 void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {

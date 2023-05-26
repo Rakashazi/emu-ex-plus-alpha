@@ -74,7 +74,7 @@ void EmuView::drawframeTimeStatsText(Gfx::RendererCommands &__restrict__ cmds)
 		cmds.setColor({0., 0., 0., .7});
 		cmds.drawRect(stats.rect);
 		cmds.basicEffect().enableAlphaTexture(cmds);
-		stats.text.draw(cmds, stats.rect.pos(LC2DO) + IP{stats.text.spaceWidth(), 0}, LC2DO, ColorName::WHITE);
+		stats.text.draw(cmds, stats.rect.pos(LC2DO) + WPt{stats.text.spaceWidth(), 0}, LC2DO, ColorName::WHITE);
 	});
 }
 

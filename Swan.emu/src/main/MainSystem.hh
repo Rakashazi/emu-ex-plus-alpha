@@ -88,7 +88,7 @@ public:
 	Mednafen::MDFNGI mdfnGameInfo{EmulatedWSwan};
 	FileIO saveFileIO;
 	IG::MutablePixmapView mSurfacePix{};
-	static constexpr IP vidBufferPx{224, 144};
+	static constexpr WSize vidBufferPx{224, 144};
 	alignas(8) uint32_t pixBuff[vidBufferPx.x * vidBufferPx.y]{};
 	IG::StaticString<16> userName{};
 	WsUserProfile userProfile{defaultUserProfile};

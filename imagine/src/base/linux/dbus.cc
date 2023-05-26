@@ -203,12 +203,4 @@ void LinuxApplication::setAcceptIPC(bool on, const char *name)
 	}
 }
 
-void ApplicationContext::setIdleDisplayPowerSave(bool on) { application().setIdleDisplayPowerSave(on); }
-
-void ApplicationContext::endIdleByUserActivity() { application().endIdleByUserActivity(); }
-
-bool ApplicationContext::registerInstance(ApplicationInitParams initParams, const char *name) { return application().registerInstance(initParams, name); }
-
-void ApplicationContext::setAcceptIPC(bool on, const char *name) { application().setAcceptIPC(on, name); }
-
 }

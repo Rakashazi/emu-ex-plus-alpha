@@ -109,8 +109,8 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	emuAudio{audioManager_},
 	emuVideoLayer{emuVideo, defaultVideoAspectRatio()},
 	emuSystemTask{*this},
-	vController{ctx},
 	autosaveManager_{*this},
+	inputManager{ctx},
 	pixmapReader{ctx},
 	pixmapWriter{ctx},
 	vibrationManager_{ctx},
@@ -130,13 +130,10 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionLowProfileOSNav{CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAndroid},
 	optionHideOSNav{CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid},
 	optionHideStatusBar{CFGKEY_HIDE_STATUS_BAR, 1, !Config::envIsAndroid && !Config::envIsIOS},
-	optionNotifyInputDeviceChange{CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Config::Input::DEVICE_HOTSWAP, !Config::Input::DEVICE_HOTSWAP},
 	optionEmuOrientation{CFGKEY_GAME_ORIENTATION, 0, false, optionIsValidWithMax<std::to_underlying(IG::OrientationMask::ALL)>},
 	optionMenuOrientation{CFGKEY_MENU_ORIENTATION, 0, false, optionIsValidWithMax<std::to_underlying(IG::OrientationMask::ALL)>},
 	optionShowBundledGames{CFGKEY_SHOW_BUNDLED_GAMES, 1},
-	optionKeepBluetoothActive{CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0},
 	optionShowBluetoothScan{CFGKEY_SHOW_BLUETOOTH_SCAN, 1},
-	optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 0},
 	optionImgFilter{CFGKEY_GAME_IMG_FILTER, 1, 0},
 	optionImgEffect{CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<std::to_underlying(lastEnum<ImageEffectId>)>},
 	optionImageEffectPixelFormat{CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid},
@@ -249,7 +246,7 @@ void EmuApp::setCPUNeedsLowLatency(IG::ApplicationContext ctx, bool needed)
 	if(useNoopThread)
 		ctx.setNoopThreadActive(needed);
 	#endif
-	if(optionSustainedPerformanceMode)
+	if(useSustainedPerformanceMode)
 		ctx.setSustainedPerformanceMode(needed);
 	applyCPUAffinity(needed);
 }
@@ -494,7 +491,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			saveConfigFile(ctx);
 			saveSystemOptions();
 			#ifdef CONFIG_INPUT_BLUETOOTH
-			if(bta && (!backgrounded || (backgrounded && !optionKeepBluetoothActive)))
+			if(bta && (!backgrounded || (backgrounded && !keepBluetoothActive)))
 				closeBluetoothConnections();
 			#endif
 			onEvent(ctx, FreeCachesEvent{false});
@@ -521,11 +518,12 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			viewManager.defaultFace = {renderer, fontManager.makeSystem(), fontSettings(win)};
 			viewManager.defaultBoldFace = {renderer, fontManager.makeBoldSystem(), fontSettings(win)};
 			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
+			auto &vController = inputManager.vController;
 			auto &winData = win.makeAppData<MainWindowData>(viewAttach, vController, emuVideoLayer, system());
 			winData.updateWindowViewport(win, makeViewport(win), renderer);
 			win.setAcceptDnd(true);
 			renderer.setWindowValidOrientations(win, menuOrientation());
-			updateInputDevices(ctx);
+			inputManager.updateInputDevices(ctx);
 			vController.configure(win, renderer, viewManager.defaultFace);
 			if(EmuSystem::inputHasKeyboard)
 			{
@@ -714,13 +712,13 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					[&](Input::DevicesEnumeratedEvent &)
 					{
 						logMsg("input devs enumerated");
-						updateInputDevices(ctx);
+						inputManager.updateInputDevices(ctx);
 					},
 					[&](Input::DeviceChangeEvent &e)
 					{
 						logMsg("got input dev change");
-						updateInputDevices(ctx);
-						if(optionNotifyInputDeviceChange && (e.change == Input::DeviceChange::added || e.change == Input::DeviceChange::removed))
+						inputManager.updateInputDevices(ctx);
+						if(notifyOnInputDeviceChange && (e.change == Input::DeviceChange::added || e.change == Input::DeviceChange::removed))
 						{
 							postMessage(2, 0, std::format("{} {}", inputDevData(e.device).displayName, e.change == Input::DeviceChange::added ? "connected" : "disconnected"));
 						}
@@ -789,7 +787,7 @@ IG::Viewport EmuApp::makeViewport(const IG::Window &win) const
 	IG::WindowRect viewRect = layoutBehindSystemUI ? win.bounds() : win.contentBounds();
 	if((int)optionViewportZoom != 100)
 	{
-		IG::WP viewCenter{viewRect.xSize() / 2, viewRect.ySize() / 2};
+		WPt viewCenter{viewRect.xSize() / 2, viewRect.ySize() / 2};
 		viewRect -= viewCenter;
 		viewRect *= optionViewportZoom / 100.f;
 		viewRect += viewCenter;
@@ -1303,7 +1301,7 @@ bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
 		{
 			turboModifierActive = isPushed;
 			if(!isPushed)
-				removeTurboInputEvents();
+				inputManager.turboActions = {};
 			break;
 		}
 		case guiKeyIdxExitApp:
@@ -1343,36 +1341,26 @@ void EmuApp::handleSystemKeyInput(InputAction action)
 	{
 		if(action.state == Input::Action::PUSHED)
 		{
-			addTurboInputEvent(action.key);
+			inputManager.turboActions.addEvent(action.key);
 		}
 		else
 		{
-			removeTurboInputEvent(action.key);
+			inputManager.turboActions.removeEvent(action.key);
 		}
 	}
 	system().handleInputAction(this, action);
 }
 
-void EmuApp::addTurboInputEvent(unsigned action)
-{
-	turboActions.addEvent(action);
-}
-
-void EmuApp::removeTurboInputEvent(unsigned action)
-{
-	turboActions.removeEvent(action);
-}
-
 void EmuApp::runTurboInputEvents()
 {
 	assert(system().hasContent());
-	turboActions.update(*this);
+	inputManager.turboActions.update(*this);
 }
 
 void EmuApp::resetInput()
 {
 	turboModifierActive = false;
-	removeTurboInputEvents();
+	inputManager.turboActions = {};
 	setRunSpeed(1.);
 }
 
@@ -1572,7 +1560,7 @@ FS::PathString EmuApp::makeNextScreenshotFilename()
 {
 	static constexpr std::string_view subDirName = "screenshots";
 	auto &sys = system();
-	auto userPath = sys.userPath(userScreenshotDir);
+	auto userPath = sys.userPath(userScreenshotPath);
 	sys.createContentLocalDirectory(userPath, subDirName);
 	return sys.contentLocalDirectory(userPath, subDirName,
 		appContext().formatDateAndTimeAsFilename(WallClock::now()).append(".png"));
@@ -1590,7 +1578,7 @@ void EmuApp::setMogaManagerActive(bool on, bool notify)
 		});
 }
 
-std::span<const KeyCategory> EmuApp::inputControlCategories() const
+std::span<const KeyCategory> EmuApp::inputControlCategories()
 {
 	return Controls::categories();
 }

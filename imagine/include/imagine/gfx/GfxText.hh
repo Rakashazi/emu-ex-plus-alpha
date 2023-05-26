@@ -55,9 +55,9 @@ public:
 	GlyphTextureSet *face() const { return face_; }
 	void makeGlyphs(Renderer &);
 	bool compile(Renderer &, TextLayoutConfig conf = {});
-	void draw(RendererCommands &, WP pos, _2DOrigin, Color) const;
-	void draw(RendererCommands &, WP pos, _2DOrigin) const;
-	WP pixelSize() const { return {xSize, ySize}; }
+	void draw(RendererCommands &, WPt pos, _2DOrigin, Color) const;
+	void draw(RendererCommands &, WPt pos, _2DOrigin) const;
+	WSize pixelSize() const { return {xSize, ySize}; }
 	int width() const { return xSize; }
 	int height() const { return ySize; }
 	auto nominalHeight() const { return metrics.nominalHeight; }

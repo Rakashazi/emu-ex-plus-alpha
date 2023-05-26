@@ -58,10 +58,6 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 		if(androidSdk >= 17)
 			optionNotificationIcon.isConst = true;
 	}
-	if(androidSdk < 12)
-	{
-		optionNotifyInputDeviceChange.isConst = 1;
-	}
 	if(androidSdk < 17)
 	{
 		optionShowOnSecondScreen.isConst = true;
@@ -69,13 +65,6 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	else
 	{
 		optionShowBluetoothScan.initDefault(0);
-	}
-	{
-		if(!ctx.hasSustainedPerformanceMode())
-		{
-			optionSustainedPerformanceMode.initDefault(0);
-			optionSustainedPerformanceMode.isConst = true;
-		}
 	}
 	if(androidSdk < 11)
 	{

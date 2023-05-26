@@ -13,7 +13,8 @@ endif
 
 configDefs += CONFIG_BASE_X11
 
-SRC += base/x11/x11.cc \
+SRC += base/x11/Application.cc \
+ base/x11/ApplicationContext.cc \
  base/x11/XWindow.cc \
  base/x11/XScreen.cc \
  base/x11/xdnd.cc \

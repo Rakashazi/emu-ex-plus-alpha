@@ -139,14 +139,14 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 	},
 	screenshotPath
 	{
-		screenshotsMenuName(appContext(), app().userScreenshotPath()), &defaultFace(),
+		screenshotsMenuName(appContext(), app().userScreenshotPath), &defaultFace(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Screenshots", app().screenshotDirectory(),
 				[this](CStringView path)
 				{
 					logMsg("set screenshots path:%s", path.data());
-					app().setUserScreenshotPath(path);
+					app().userScreenshotPath = path;
 					screenshotPath.compile(screenshotsMenuName(appContext(), path), renderer());
 				}), e);
 		}

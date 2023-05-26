@@ -255,15 +255,7 @@ void View::setWindow(Window *w)
 	win = w;
 }
 
-void View::setOnDismiss(DismissDelegate del)
-{
-	dismissDel = del;
-}
-
-void View::onDismiss()
-{
-	dismissDel.callSafe(*this);
-}
+void View::onDismiss() {}
 
 void View::setController(ViewController *c, const Input::Event &e)
 {
@@ -301,7 +293,7 @@ WindowRect View::displayInsetRect(Direction d, WindowRect viewRect, WindowRect d
 	bug_unreachable("Direction == %d", (int)d);
 }
 
-bool View::pointIsInView(IG::WP pos)
+bool View::pointIsInView(WPt pos)
 {
 	return viewRect().overlaps(pos);
 }

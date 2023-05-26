@@ -116,7 +116,7 @@ void TextField::finish()
 	jTextEntry.reset();
 }
 
-void TextField::place(IG::WindowRect rect)
+void TextField::place(WindowRect rect)
 {
 	if(!jTextEntry)
 		return;
@@ -125,7 +125,7 @@ void TextField::place(IG::WindowRect rect)
 	jPlaceTextInput(ctx.mainThreadJniEnv(), jTextEntry, rect.x, rect.y, rect.xSize(), rect.ySize());
 }
 
-IG::WindowRect TextField::windowRect() const
+WindowRect TextField::windowRect() const
 {
 	return textRect;
 }

@@ -43,7 +43,7 @@ public:
 	Mednafen::MDFNGI mdfnGameInfo{EmulatedLynx};
 	uint16_t inputBuff{};
 	IG::MutablePixmapView mSurfacePix{};
-	static constexpr IP vidBufferPx{160, 102};
+	static constexpr WSize vidBufferPx{160, 102};
 	alignas(8) uint32_t pixBuff[vidBufferPx.x * vidBufferPx.y]{};
 	uint8_t configuredHCount{};
 	LynxRotation rotation{};

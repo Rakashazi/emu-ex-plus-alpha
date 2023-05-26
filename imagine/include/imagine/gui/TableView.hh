@@ -70,7 +70,7 @@ public:
 	void setFocus(bool focused) override;
 	void setOnSelectElement(SelectElementDelegate del);
 	size_t cells() const;
-	WP cellSize() const;
+	WSize cellSize() const;
 	void highlightCell(int idx);
 	void setAlign(_2DOrigin align);
 	std::u16string_view name() const override;

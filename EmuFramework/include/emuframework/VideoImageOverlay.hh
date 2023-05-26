@@ -40,7 +40,7 @@ public:
 	constexpr	VideoImageOverlay() = default;
 	void setEffect(Gfx::Renderer &, ImageOverlayId, Gfx::ColorSpace);
 	void setIntensity(float intensity);
-	void place(const Gfx::Sprite &, IG::WRect contentRect, WP videoPixels, IG::Rotation);
+	void place(const Gfx::Sprite &, WRect contentRect, WSize videoPixels, Rotation);
 	void draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness);
 
 private:

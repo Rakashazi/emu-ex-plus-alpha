@@ -59,7 +59,7 @@ protected:
 	bool scrollWholeArea_ = false;
 	bool allowScrollWholeArea_ = false;
 
-	void setContentSize(WP size);
+	void setContentSize(WSize size);
 	void drawScrollContent(Gfx::RendererCommands &cmds);
 	bool scrollInputEvent(const Input::MotionEvent &);
 	void setScrollOffset(int o);

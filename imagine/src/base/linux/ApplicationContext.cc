@@ -13,38 +13,18 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "Base"
-#include <imagine/logger/logger.h>
+#define LOGTAG "AppCtx"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
-#include <imagine/base/EventLoop.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
+#include <imagine/logger/logger.h>
 #include <sys/stat.h>
-#include <cstring>
 
 namespace IG
 {
 
 constexpr mode_t defaultDirMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
-
-LinuxApplication::LinuxApplication(ApplicationInitParams initParams):
-	BaseApplication{*initParams.ctxPtr}
-{
-	setAppPath(FS::makeAppPathFromLaunchCommand(initParams.argv[0]));
-	#ifdef CONFIG_BASE_DBUS
-	initDBus();
-	#endif
-	initEvdev(initParams.eventLoop);
-}
-
-LinuxApplication::~LinuxApplication()
-{
-	#ifdef CONFIG_BASE_DBUS
-	deinitDBus();
-	#endif
-}
 
 void ApplicationContext::exit(int returnVal)
 {
@@ -153,16 +133,6 @@ FS::PathString ApplicationContext::libPath(const char *) const
 	return application().appPath();
 }
 
-const FS::PathString &LinuxApplication::appPath() const
-{
-	return appPath_;
-}
-
-void LinuxApplication::setAppPath(FS::PathString path)
-{
-	appPath_ = std::move(path);
-}
-
 void ApplicationContext::exitWithMessage(int exitVal, const char *msg)
 {
 	auto cmd = std::format("zenity --warning --title='Exited with error' --text='{}'", msg);
@@ -170,19 +140,12 @@ void ApplicationContext::exitWithMessage(int exitVal, const char *msg)
 	::exit(exitVal);
 }
 
-}
+void ApplicationContext::setIdleDisplayPowerSave(bool on) { application().setIdleDisplayPowerSave(on); }
 
-int main(int argc, char** argv)
-{
-	using namespace IG;
-	logger_setLogDirectoryPrefix(".");
-	auto eventLoop = EventLoop::makeForThread();
-	ApplicationContext ctx{};
-	ApplicationInitParams initParams{eventLoop, &ctx, argc, argv};
-	ctx.dispatchOnInit(initParams);
-	ctx.application().setRunningActivityState();
-	ctx.dispatchOnResume(true);
-	bool eventLoopRunning = true;
-	eventLoop.run(eventLoopRunning);
-	return 0;
+void ApplicationContext::endIdleByUserActivity() { application().endIdleByUserActivity(); }
+
+bool ApplicationContext::registerInstance(ApplicationInitParams initParams, const char *name) { return application().registerInstance(initParams, name); }
+
+void ApplicationContext::setAcceptIPC(bool on, const char *name) { application().setAcceptIPC(on, name); }
+
 }

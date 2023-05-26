@@ -52,13 +52,13 @@ struct FramePresentTime
 struct TestParams
 {
 	TestID test{};
-	IG::WP pixmapSize{};
+	WSize pixmapSize{};
 	Gfx::TextureBufferMode bufferMode{};
 
 	constexpr TestParams(TestID test)
 		: test{test} {}
 
-	constexpr TestParams(TestID test, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
+	constexpr TestParams(TestID test, WSize pixmapSize, Gfx::TextureBufferMode bufferMode)
 		: test{test}, pixmapSize{pixmapSize}, bufferMode{bufferMode} {}
 };
 
@@ -67,7 +67,7 @@ struct TestDesc
 	TestParams params;
 	std::string name;
 
-	TestDesc(TestID test, std::string name, IG::WP pixmapSize = {},
+	TestDesc(TestID test, std::string name, WSize pixmapSize = {},
 		Gfx::TextureBufferMode bufferMode = {})
 		: params{test, pixmapSize, bufferMode}, name{name} {}
 };
@@ -88,12 +88,12 @@ public:
 
 	TestFramework() {}
 	virtual ~TestFramework() {}
-	virtual void initTest(IG::ApplicationContext, Gfx::Renderer &, IG::WP pixmapSize, Gfx::TextureBufferMode) {}
+	virtual void initTest(IG::ApplicationContext, Gfx::Renderer &, WSize pixmapSize, Gfx::TextureBufferMode) {}
 	virtual void placeTest(WRect testRect) {}
 	virtual void frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint) = 0;
 	virtual void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) = 0;
 	virtual void presentedTest(Gfx::RendererCommands &cmds) {}
-	void init(IG::ApplicationContext, Gfx::Renderer &, Gfx::GlyphTextureSet &face, IG::WP pixmapSize, Gfx::TextureBufferMode);
+	void init(IG::ApplicationContext, Gfx::Renderer &, Gfx::GlyphTextureSet &face, WSize pixmapSize, Gfx::TextureBufferMode);
 	void place(Gfx::Renderer &r, WRect viewBounds, WRect testRect);
 	void frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::FrameParams frameParams);
 	void prepareDraw(Gfx::Renderer &r);
@@ -136,7 +136,7 @@ protected:
 	Gfx::Sprite sprite;
 
 public:
-	void initTest(IG::ApplicationContext, Gfx::Renderer &, IG::WP pixmapSize, Gfx::TextureBufferMode) override;
+	void initTest(IG::ApplicationContext, Gfx::Renderer &, WSize pixmapSize, Gfx::TextureBufferMode) override;
 	void placeTest(WRect testRect) override;
 	void frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;

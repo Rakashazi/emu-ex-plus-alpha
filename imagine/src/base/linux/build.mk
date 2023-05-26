@@ -7,7 +7,8 @@ include $(imagineSrcDir)/util/fdUtils.mk
 
 LDLIBS += -lpthread -ldl
 
-SRC += base/linux/linux.cc \
+SRC += base/linux/Application.cc \
+ base/linux/ApplicationContext.cc \
  base/linux/DRMFrameTimer.cc \
  base/linux/FBDevFrameTimer.cc \
  base/common/SimpleFrameTimer.cc \

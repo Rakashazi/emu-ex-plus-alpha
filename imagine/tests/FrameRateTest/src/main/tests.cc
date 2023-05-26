@@ -41,12 +41,12 @@ const char *testIDToStr(TestID id)
 	}
 }
 
-void TestFramework::init(IG::ApplicationContext app, Gfx::Renderer &r,
-	Gfx::GlyphTextureSet &face, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
+void TestFramework::init(ApplicationContext ctx, Gfx::Renderer &r,
+	Gfx::GlyphTextureSet &face, WSize pixmapSize, Gfx::TextureBufferMode bufferMode)
 {
 	cpuStatsText = {&face};
 	frameStatsText = {&face};
-	initTest(app, r, pixmapSize, bufferMode);
+	initTest(ctx, r, pixmapSize, bufferMode);
 }
 
 void TestFramework::setCPUFreqText(std::string_view str)
@@ -232,7 +232,7 @@ void ClearTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect)
 	}
 }
 
-void DrawTest::initTest(IG::ApplicationContext app, Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
+void DrawTest::initTest(IG::ApplicationContext app, Gfx::Renderer &r, WSize pixmapSize, Gfx::TextureBufferMode bufferMode)
 {
 	using namespace IG::Gfx;
 	IG::PixmapDesc pixmapDesc = {pixmapSize, IG::PIXEL_FMT_RGB565};

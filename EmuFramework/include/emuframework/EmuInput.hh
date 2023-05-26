@@ -18,6 +18,7 @@
 #include <emuframework/config.hh>
 #include <emuframework/inGameActionKeys.hh>
 #include <emuframework/VController.hh>
+#include <emuframework/TurboInput.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/container/VMemArray.hh>
 #include <imagine/util/string/StaticString.hh>
@@ -112,6 +113,24 @@ struct InputDeviceSavedConfig
 
 using KeyConfigContainer = std::vector<std::unique_ptr<KeyConfig>>;
 using InputDeviceSavedConfigContainer = std::vector<std::unique_ptr<InputDeviceSavedConfig>>;
+
+class InputManager
+{
+public:
+	VController vController;
+	KeyConfigContainer customKeyConfigs;
+	InputDeviceSavedConfigContainer savedInputDevs;
+	TurboInput turboActions;
+	DelegateFunc<void ()> onUpdateDevices;
+
+	InputManager(ApplicationContext ctx):
+		vController{ctx} {}
+	void updateInputDevices(ApplicationContext);
+	void writeCustomKeyConfigs(FileIO &);
+	void writeSavedInputDevices(FileIO &);
+	bool readCustomKeyConfigs(MapIO &, size_t size, std::span<const KeyCategory>);
+	bool readSavedInputDevices(MapIO &, size_t size);
+};
 
 }
 

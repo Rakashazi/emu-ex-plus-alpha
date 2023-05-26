@@ -123,7 +123,8 @@ void RendererCommands::present()
 
 void RendererCommands::present(SteadyClockTimePoint t)
 {
-	r->glManager.setPresentationTime(drawable, t);
+	if constexpr(Config::GL_PLATFORM_EGL)
+		r->glManager.setPresentationTime(drawable, t);
 	present();
 }
 

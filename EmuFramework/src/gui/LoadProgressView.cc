@@ -128,7 +128,7 @@ void LoadProgressView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		basicEffect.disableTexture(cmds);
 		cmds.setColor({.0, .0, .75});
 		int barHeight = text.height() * 1.5f;
-		auto bar = WRect::makeRel(displayRect().pos(LC2DO) - WP{0, barHeight/2},
+		auto bar = WRect::makeRel(displayRect().pos(LC2DO) - WPt{0, barHeight/2},
 			{int(IG::remap(int64_t(pos), 0, max, 0, displayRect().xSize())), barHeight});
 		cmds.drawRect(bar);
 	}

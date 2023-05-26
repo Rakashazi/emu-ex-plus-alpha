@@ -17,6 +17,7 @@
 
 #include <imagine/pixmap/Pixmap.hh>
 #include <jni.h>
+#include <sys/types.h>
 #include <atomic>
 
 namespace IG
@@ -36,6 +37,8 @@ private:
 	std::atomic_bool isRunning{};
 };
 
+extern pid_t mainThreadId;
+
 jobject makeSurfaceTexture(ApplicationContext, JNIEnv *, jint texName);
 jobject makeSurfaceTexture(ApplicationContext, JNIEnv *, jint texName, jboolean singleBufferMode);
 bool releaseSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture);
@@ -45,7 +48,7 @@ void releaseSurfaceTexture(JNIEnv *env, jobject surfaceTexture);
 jobject makeSurface(JNIEnv *env, jobject surfaceTexture);
 void releaseSurface(JNIEnv *env, jobject surface);
 
-uint32_t toAHardwareBufferFormat(IG::PixelFormatID);
+uint32_t toAHardwareBufferFormat(PixelFormatID);
 const char *aHardwareBufferFormatStr(uint32_t format);
 
 PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat);

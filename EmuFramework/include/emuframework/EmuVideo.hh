@@ -73,7 +73,7 @@ public:
 	Gfx::PixmapBufferTexture &image();
 	Gfx::Renderer &renderer() const;
 	IG::ApplicationContext appContext() const;
-	IG::WP size() const;
+	WSize size() const;
 	bool formatIsEqual(IG::PixmapDesc desc) const;
 	void setOnFrameFinished(FrameFinishedDelegate del);
 	void setOnFormatChanged(FormatChangedDelegate del);

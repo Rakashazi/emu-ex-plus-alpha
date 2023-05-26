@@ -548,5 +548,8 @@ Application &Window::application() const
 
 [[gnu::weak]] void Window::setSystemGestureExclusionRects(std::span<const WRect>) {}
 [[gnu::weak]] void Window::setDecorations(bool) {}
+[[gnu::weak]] void Window::setPosition(WPt) {}
+[[gnu::weak]] void Window::setSize(WSize) {}
+[[gnu::weak]] void Window::toggleFullScreen() {}
 
 }

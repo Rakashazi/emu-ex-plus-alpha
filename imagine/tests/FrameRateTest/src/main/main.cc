@@ -72,7 +72,7 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 			auto &winData = win.makeAppData<WindowData>(IG::ViewAttachParams{viewManager, win, renderer.task()});
 			std::vector<TestDesc> testDesc;
 			testDesc.emplace_back(TEST_CLEAR, "Clear");
-			IG::WP pixmapSize{256, 256};
+			WSize pixmapSize{256, 256};
 			for(auto desc: renderer.textureBufferModes())
 			{
 				testDesc.emplace_back(TEST_DRAW, std::format("Draw RGB565 {}x{} ({})", pixmapSize.x, pixmapSize.y, desc.name),

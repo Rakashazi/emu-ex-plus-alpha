@@ -36,7 +36,7 @@ public:
 	Byte1Option optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
 	uint8_t inputBuff{};
 	MutablePixmapView mSurfacePix{};
-	static constexpr IP vidBufferPx{160, 152};
+	static constexpr WSize vidBufferPx{160, 152};
 	alignas(8) uint32_t pixBuff[vidBufferPx.x * vidBufferPx.y]{};
 	bool noMD5InFilenames{};
 	// TODO: Mednafen/Neopop timing is based on 199 lines/frame, verify if this is correct

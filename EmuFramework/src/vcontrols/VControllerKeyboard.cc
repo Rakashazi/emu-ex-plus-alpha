@@ -84,7 +84,7 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds) const
 	}
 }
 
-int VControllerKeyboard::getInput(IG::WP c) const
+int VControllerKeyboard::getInput(WPt c) const
 {
 	if(!bound.overlaps(c))
 		return -1;

@@ -92,7 +92,7 @@ public:
 	constexpr PixmapDesc desc() const { return desc_; }
 	constexpr int w() const { return desc().w(); }
 	constexpr int h() const { return desc().h(); }
-	constexpr WP size() const { return desc().size; }
+	constexpr WSize size() const { return desc().size; }
 	constexpr PixelFormat format() const { return desc().format; }
 
 	template<class T>
@@ -102,7 +102,7 @@ public:
 		return stridedMdspan2(reinterpret_cast<Ptr>(data()), extents{h(), w()}, pitchPx());
 	}
 
-	constexpr PixData *data(IP pos) const
+	constexpr PixData *data(WPt pos) const
 	{
 		switch(format().bytesPerPixel())
 		{
@@ -144,7 +144,7 @@ public:
 		return pitchBytes() - format().pixelBytes(w());
 	}
 
-	constexpr PixmapViewBase subView(WP pos, WP size) const
+	constexpr PixmapViewBase subView(WPt pos, WSize size) const
 	{
 		//logDMsg("sub-pixmap with pos:%dx%d size:%dx%d", pos.x, pos.y, size.x, size.y);
 		assumeExpr(pos.x >= 0 && pos.y >= 0);
@@ -177,7 +177,7 @@ public:
 		}
 	}
 
-	void write(auto pixmap, WP destPos) requires(dataIsMutable)
+	void write(auto pixmap, WPt destPos) requires(dataIsMutable)
 	{
 		subView(destPos, size() - destPos).write(pixmap);
 	}
@@ -229,12 +229,12 @@ public:
 		}
 	}
 
-	void writeConverted(auto pixmap, WP destPos) requires(dataIsMutable)
+	void writeConverted(auto pixmap, WPt destPos) requires(dataIsMutable)
 	{
 		subView(destPos, size() - destPos).writeConverted(pixmap);
 	}
 
-	void clear(WP pos, WP size) requires(dataIsMutable)
+	void clear(WPt pos, WSize size) requires(dataIsMutable)
 	{
 		char *destData = data(pos);
 		if(!isPadded() && (int)w() == size.x)
@@ -308,7 +308,7 @@ public:
 		}
 	}
 
-	void writeTransformed(PixmapTransformFunc auto &&func, auto pixmap, WP destPos) requires(dataIsMutable)
+	void writeTransformed(PixmapTransformFunc auto &&func, auto pixmap, WPt destPos) requires(dataIsMutable)
 	{
 		subView(destPos, size() - destPos).writeTransformed(func, pixmap);
 	}

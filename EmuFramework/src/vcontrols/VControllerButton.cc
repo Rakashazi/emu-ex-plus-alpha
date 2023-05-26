@@ -22,7 +22,7 @@
 namespace EmuEx
 {
 
-void VControllerButton::setPos(WP pos, WRect viewBounds, _2DOrigin o)
+void VControllerButton::setPos(WPt pos, WRect viewBounds, _2DOrigin o)
 {
 	bounds_.setPos(pos, o);
 	bounds_.fitIn(viewBounds);
@@ -30,7 +30,7 @@ void VControllerButton::setPos(WP pos, WRect viewBounds, _2DOrigin o)
 	spr.setPos(bounds_);
 }
 
-void VControllerButton::setSize(WP size, WP extendedSize)
+void VControllerButton::setSize(WSize size, WSize extendedSize)
 {
 	size.y /= aspectRatio;
 	bounds_ = makeWindowRectRel(bounds_.pos(C2DO), size);

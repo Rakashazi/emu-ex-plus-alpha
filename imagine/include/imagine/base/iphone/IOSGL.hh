@@ -96,7 +96,7 @@ struct GLBufferConfig
 
 using GLDrawableImpl = EAGLViewDrawable;
 using GLContextImpl = IOSGLContext;
-using EAGLViewMakeRenderbufferDelegate = DelegateFunc<IP(void *, unsigned int &, unsigned int &)>;
+using EAGLViewMakeRenderbufferDelegate = DelegateFunc<WSize(void *, unsigned int &, unsigned int &)>;
 using EAGLViewDeleteRenderbufferDelegate = DelegateFunc<void(unsigned int colorRenderbuffer, unsigned int depthRenderbuffer)>;
 
 extern EAGLViewMakeRenderbufferDelegate makeRenderbuffer;

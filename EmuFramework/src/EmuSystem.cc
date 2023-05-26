@@ -46,7 +46,7 @@ namespace EmuEx
 [[gnu::weak]] bool EmuSystem::hasSound = true;
 [[gnu::weak]] int EmuSystem::forcedSoundRate = 0;
 [[gnu::weak]] IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::i16;
-[[gnu::weak]] FP EmuSystem::validFrameRateRange{minFrameRate, 80.};
+[[gnu::weak]] F2Size EmuSystem::validFrameRateRange{minFrameRate, 80.};
 [[gnu::weak]] bool EmuSystem::hasRectangularPixels = false;
 
 bool EmuSystem::stateExists(int slot) const

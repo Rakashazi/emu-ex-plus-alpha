@@ -229,17 +229,15 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 		"Individual Device Settings", &defaultBoldFace(),
 	}
 {
-	app().setOnUpdateInputDevices(
-		[this]()
-		{
-			popTo(*this);
-			auto selectedCell = selected;
-			waitForDrawFinished();
-			loadItems();
-			highlightCell(selectedCell);
-			place();
-			show();
-		});
+	app().inputManager.onUpdateDevices = [this]()
+	{
+		popTo(*this);
+		auto selectedCell = selected;
+		loadItems();
+		highlightCell(selectedCell);
+		place();
+		show();
+	};
 	deleteDeviceConfig.setActive(savedInputDevs_.size());
 	deleteProfile.setActive(customKeyConfigs_.size());
 	loadItems();
@@ -247,7 +245,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 
 InputManagerView::~InputManagerView()
 {
-	app().setOnUpdateInputDevices(nullptr);
+	app().inputManager.onUpdateDevices = {};
 }
 
 void InputManagerView::loadItems()
@@ -326,10 +324,10 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	notifyDeviceChange
 	{
 		"Notify If Devices Change", &defaultFace(),
-		(bool)app().notifyInputDeviceChangeOption().val,
+		app().notifyOnInputDeviceChange,
 		[this](BoolMenuItem &item)
 		{
-			app().notifyInputDeviceChangeOption() = item.flipBoolValue(*this);
+			app().notifyOnInputDeviceChange = item.flipBoolValue(*this);
 		}
 	},
 	bluetoothHeading
@@ -339,10 +337,10 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	keepBtActive
 	{
 		"Keep Connections In Background", &defaultFace(),
-		(bool)app().keepBluetoothActiveOption(),
+		app().keepBluetoothActive,
 		[this](BoolMenuItem &item)
 		{
-			app().keepBluetoothActiveOption() = item.flipBoolValue(*this);
+			app().keepBluetoothActive = item.flipBoolValue(*this);
 		}
 	},
 	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
@@ -435,12 +433,9 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 		item.emplace_back(&relativePointerDecel);
 	}
 	#endif
-	if constexpr(Config::Input::DEVICE_HOTSWAP)
+	if(appContext().hasInputDeviceHotSwap())
 	{
-		if(!app().notifyInputDeviceChangeOption().isConst)
-		{
-			item.emplace_back(&notifyDeviceChange);
-		}
+		item.emplace_back(&notifyDeviceChange);
 	}
 	if(used(bluetoothHeading))
 	{

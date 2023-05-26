@@ -36,7 +36,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2022\nRobe
 bool EmuSystem::hasBundledGames = true;
 bool EmuSystem::hasCheats = true;
 bool EmuApp::needsGlobalInstance = true;
-constexpr IG::WP lcdSize{240, 160};
+constexpr WSize lcdSize{240, 160};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)

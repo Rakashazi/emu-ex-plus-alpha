@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,23 +13,26 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/pixmap/PixelFormat.hh>
-#include <imagine/util/Point2D.hh>
 
 namespace IG
 {
 
-struct PixmapDesc
+void ApplicationContext::flushSystemInputEvents()
 {
-	WSize size{};
-	PixelFormat format{};
+	application().runX11Events();
+}
 
-	constexpr int w() const { return size.x; }
-	constexpr int h() const { return size.y; }
-	constexpr int bytes() const { return format.pixelBytes(w() * h()); }
-	constexpr PixmapDesc makeNewSize(WSize newSize) const { return {newSize, format}; }
-	constexpr bool operator ==(const PixmapDesc &) const = default;
-};
+NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const
+{
+	return (NativeDisplayConnection)application().xDisplay();
+}
+
+PixelFormat ApplicationContext::defaultWindowPixelFormat() const
+{
+	return Config::MACHINE_IS_PANDORA ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
+}
 
 }

@@ -40,7 +40,7 @@ size_t TableView::cells() const
 	return items(*this);
 }
 
-IG::WP TableView::cellSize() const
+WSize TableView::cellSize() const
 {
 	return {viewRect().x, yCellSize};
 }
@@ -272,7 +272,7 @@ void TableView::setYCellSize(int s)
 IG::WindowRect TableView::focusRect()
 {
 	if(selected >= 0)
-		return IG::makeWindowRectRel(viewRect().pos(LT2DO) + IG::WP{0, yCellSize*selected}, {viewRect().xSize(), yCellSize});
+		return makeWindowRectRel(viewRect().pos(LT2DO) + WPt{0, yCellSize*selected}, {viewRect().xSize(), yCellSize});
 	else
 		return {};
 }

@@ -201,7 +201,7 @@ public:
 	static IG::Audio::SampleFormat audioSampleFormat;
 	static NameFilterFunc defaultFsFilter;
 	static const char *creditsViewStr;
-	static FP validFrameRateRange;
+	static F2Size validFrameRateRange;
 	static bool hasRectangularPixels;
 
 	EmuSystem(IG::ApplicationContext ctx): appCtx{ctx} {}
@@ -235,7 +235,7 @@ public:
 	VController::KbMap vControllerKeyboardMap(VControllerKbMode mode);
 	VideoSystem videoSystem() const;
 	void renderFramebuffer(EmuVideo &);
-	WP multiresVideoBaseSize() const;
+	WSize multiresVideoBaseSize() const;
 	double videoAspectRatioScale() const;
 	bool onVideoRenderFormatChange(EmuVideo &, PixelFormat);
 	void loadBackupMemory(EmuApp &);

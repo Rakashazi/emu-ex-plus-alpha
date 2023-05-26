@@ -69,8 +69,16 @@ struct Point2D : public AssignmentArithmetics< Point2D<T> >
 	constexpr Point2D<NewType> as() const { return {NewType(x), NewType(y)}; }
 };
 
-using IP = Point2D<int>;
-using SP = Point2D<int16_t>;
-using FP = Point2D<float>;
+// common 2D point types
+using I2Pt = Point2D<int>;
+using S2Pt = Point2D<int16_t>;
+using F2Pt = Point2D<float>;
+using I2Size = I2Pt;
+using S2Size = S2Pt;
+using F2Size = F2Pt;
+
+// 2D window point types
+using WPt = I2Pt;
+using WSize = I2Size;
 
 }

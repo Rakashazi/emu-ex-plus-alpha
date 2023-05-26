@@ -57,7 +57,7 @@ FilePicker::FilePicker(ViewAttachParams attach, EmuApp &app,
 		mode
 	}
 {
-	if(app.showHiddenFilesInPicker())
+	if(app.showHiddenFilesInPicker)
 		setShowHiddenFiles(true);
 }
 
