@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/keyRemappingUtils.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
 #include <vbam/gba/GBA.h>
@@ -25,74 +26,154 @@ namespace EmuEx
 
 using namespace IG;
 
-enum
+const int EmuSystem::maxPlayers = 1;
+
+enum class GbaKey : KeyCode
 {
-	gbaKeyIdxUp = Controls::systemKeyMapStart,
-	gbaKeyIdxRight,
-	gbaKeyIdxDown,
-	gbaKeyIdxLeft,
-	gbaKeyIdxLeftUp,
-	gbaKeyIdxRightUp,
-	gbaKeyIdxRightDown,
-	gbaKeyIdxLeftDown,
-	gbaKeyIdxSelect,
-	gbaKeyIdxStart,
-	gbaKeyIdxA,
-	gbaKeyIdxB,
-	gbaKeyIdxL,
-	gbaKeyIdxR,
-	gbaKeyIdxATurbo,
-	gbaKeyIdxBTurbo,
-	gbaKeyIdxAB,
-	gbaKeyIdxRB,
-	gbaKeyIdxLightInc,
-	gbaKeyIdxLightDec,
+	Up = 7,
+	Right = 5,
+	Down = 8,
+	Left = 6,
+	Select = 3,
+	Start = 4,
+	A = 1,
+	B = 2,
+	L = 9,
+	R = 10,
+
+	// Special key codes
+	LightInc = 11,
+	LightDec,
 };
 
-constexpr std::array<unsigned, 4> dpadButtonCodes
+constexpr auto dpadKeyInfo = makeArray<KeyInfo>
+(
+	GbaKey::Up,
+	GbaKey::Right,
+	GbaKey::Down,
+	GbaKey::Left
+);
+
+constexpr auto centerKeyInfo = makeArray<KeyInfo>
+(
+	GbaKey::Select,
+	GbaKey::Start
+);
+
+constexpr auto faceKeyInfo = makeArray<KeyInfo>
+(
+	GbaKey::B,
+	GbaKey::A
+);
+
+constexpr auto turboFaceKeyInfo = turbo(faceKeyInfo);
+
+constexpr auto faceLRKeyInfo = makeArray<KeyInfo>
+(
+	GbaKey::B,
+	GbaKey::L,
+	GbaKey::A,
+	GbaKey::R
+);
+
+constexpr std::array comboKeyInfo
 {
-	gbaKeyIdxUp,
-	gbaKeyIdxRight,
-	gbaKeyIdxDown,
-	gbaKeyIdxLeft,
+	KeyInfo{std::array{GbaKey::A, GbaKey::B}},
+	KeyInfo{std::array{GbaKey::R, GbaKey::B}}
 };
 
-constexpr unsigned centerButtonCodes[]
+constexpr auto lKeyInfo = makeArray<KeyInfo>(GbaKey::L);
+constexpr auto rKeyInfo = makeArray<KeyInfo>(GbaKey::R);
+
+constexpr auto gpKeyInfo = concatToArrayNow<dpadKeyInfo, centerKeyInfo, faceLRKeyInfo, turboFaceKeyInfo, comboKeyInfo>;
+
+std::span<const KeyCategory> GbaApp::keyCategories()
 {
-	gbaKeyIdxSelect,
-	gbaKeyIdxStart,
-};
+	static constexpr std::array categories
+	{
+		KeyCategory{"Gamepad", gpKeyInfo},
+	};
+	return categories;
+}
 
-constexpr unsigned faceButtonCodes[]
+std::string_view GbaApp::systemKeyCodeToString(KeyCode c)
 {
-	gbaKeyIdxB,
-	gbaKeyIdxA,
-};
+	switch(GbaKey(c))
+	{
+		case GbaKey::Up: return "Up";
+		case GbaKey::Right: return "Right";
+		case GbaKey::Down: return "Down";
+		case GbaKey::Left: return "Left";
+		case GbaKey::Select: return "Select";
+		case GbaKey::Start: return "Start";
+		case GbaKey::A: return "A";
+		case GbaKey::B: return "B";
+		case GbaKey::L: return "L";
+		case GbaKey::R: return "R";
+		case GbaKey::LightInc: return "Light Sensor Level +";
+		case GbaKey::LightDec: return "Light Sensor Level -";
+		default: return "";
+	}
+}
 
-constexpr unsigned faceButtonLRCodes[]
+std::span<const KeyConfigDesc> GbaApp::defaultKeyConfigs()
 {
-	gbaKeyIdxB,
-	gbaKeyIdxL,
-	gbaKeyIdxA,
-	gbaKeyIdxR,
-};
+	using namespace IG::Input;
 
-constexpr unsigned lButtonCode[]{gbaKeyIdxL};
-constexpr unsigned rButtonCode[]{gbaKeyIdxR};
+	static constexpr std::array pcKeyboardMap
+	{
+		KeyMapping{GbaKey::Up, Keycode::UP},
+		KeyMapping{GbaKey::Right, Keycode::RIGHT},
+		KeyMapping{GbaKey::Down, Keycode::DOWN},
+		KeyMapping{GbaKey::Left, Keycode::LEFT},
+		KeyMapping{GbaKey::Select, Keycode::SPACE},
+		KeyMapping{GbaKey::Start, Keycode::ENTER},
+		KeyMapping{GbaKey::A, Keycode::X},
+		KeyMapping{GbaKey::B, Keycode::Z},
+		KeyMapping{GbaKey::L, Keycode::A},
+		KeyMapping{GbaKey::R, Keycode::S},
+	};
 
-constexpr std::array gamepadComponents
+	static constexpr std::array genericGamepadMap
+	{
+		KeyMapping{GbaKey::Up, Keycode::UP},
+		KeyMapping{GbaKey::Right, Keycode::RIGHT},
+		KeyMapping{GbaKey::Down, Keycode::DOWN},
+		KeyMapping{GbaKey::Left, Keycode::LEFT},
+		KeyMapping{GbaKey::Select, Keycode::GAME_SELECT},
+		KeyMapping{GbaKey::Start, Keycode::GAME_START},
+		KeyMapping{GbaKey::A, Keycode::GAME_A},
+		KeyMapping{GbaKey::B, Keycode::GAME_X},
+		KeyMapping{GbaKey::L, Keycode::GAME_L1},
+		KeyMapping{GbaKey::R, Keycode::GAME_R1},
+	};
+
+	static constexpr std::array wiimoteMap
+	{
+		KeyMapping{GbaKey::Up, Wiimote::UP},
+		KeyMapping{GbaKey::Right, Wiimote::RIGHT},
+		KeyMapping{GbaKey::Down, Wiimote::DOWN},
+		KeyMapping{GbaKey::Left, Wiimote::LEFT},
+		KeyMapping{GbaKey::B, Wiimote::_1},
+		KeyMapping{GbaKey::A, Wiimote::_2},
+		KeyMapping{GbaKey::L, Wiimote::B},
+		KeyMapping{GbaKey::R, Wiimote::A},
+		KeyMapping{GbaKey::Select, Wiimote::MINUS},
+		KeyMapping{GbaKey::Start, Wiimote::PLUS},
+	};
+
+	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();
+}
+
+bool GbaApp::allowsTurboModifier(KeyCode c)
 {
-	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO},
-	InputComponentDesc{"Face Buttons + Inline L/R", faceButtonLRCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
-	InputComponentDesc{"L", lButtonCode, InputComponent::trigger, LB2DO},
-	InputComponentDesc{"R", rButtonCode, InputComponent::trigger, RB2DO},
-	InputComponentDesc{"Select", {&centerButtonCodes[0], 1}, InputComponent::button, LB2DO},
-	InputComponentDesc{"Start", {&centerButtonCodes[1], 1}, InputComponent::button, RB2DO},
-	InputComponentDesc{"Select/Start", centerButtonCodes, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
-};
-
-constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+	switch(GbaKey(c))
+	{
+		case GbaKey::A ... GbaKey::R:
+			return true;
+		default: return false;
+	}
+}
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
@@ -101,136 +182,62 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr struct VirtualControllerAssets
+AssetDesc GbaApp::vControllerAssetDesc(KeyInfo key) const
 {
-	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
-
-	a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
-	b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
-	ab{AssetFileID::gamepadOverlay,     gpImageCoords({{4, 2}, {2, 2}})},
-	rb{AssetFileID::gamepadOverlay,     gpImageCoords({{2, 4}, {2, 2}})},
-	l{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 4}, {2, 2}})},
-	r{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 4}, {2, 2}})},
-	select{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
-	start{AssetFileID::gamepadOverlay,  gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
-
-	increaseLight{AssetFileID::gamepadOverlay, gpImageCoords({{2, 6}, {2, 1}}), {1, 2}},
-	decreaseLight{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}},
-
-	blank{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})};
-} virtualControllerAssets;
-
-AssetDesc GbaApp::vControllerAssetDesc(unsigned key) const
-{
-	switch(key)
+	static constexpr struct VirtualControllerAssets
 	{
-		case 0: return virtualControllerAssets.dpad;
-		case gbaKeyIdxATurbo:
-		case gbaKeyIdxA: return virtualControllerAssets.a;
-		case gbaKeyIdxBTurbo:
-		case gbaKeyIdxB: return virtualControllerAssets.b;
-		case gbaKeyIdxAB: return virtualControllerAssets.ab;
-		case gbaKeyIdxRB: return virtualControllerAssets.rb;
-		case gbaKeyIdxL: return virtualControllerAssets.l;
-		case gbaKeyIdxR: return virtualControllerAssets.r;
-		case gbaKeyIdxSelect: return virtualControllerAssets.select;
-		case gbaKeyIdxStart: return virtualControllerAssets.start;
-		case gbaKeyIdxLightInc: return virtualControllerAssets.increaseLight;
-		case gbaKeyIdxLightDec: return virtualControllerAssets.decreaseLight;
+		AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+		a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+		b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
+		ab{AssetFileID::gamepadOverlay,     gpImageCoords({{4, 2}, {2, 2}})},
+		rb{AssetFileID::gamepadOverlay,     gpImageCoords({{2, 4}, {2, 2}})},
+		l{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 4}, {2, 2}})},
+		r{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 4}, {2, 2}})},
+		select{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+		start{AssetFileID::gamepadOverlay,  gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
+
+		increaseLight{AssetFileID::gamepadOverlay, gpImageCoords({{2, 6}, {2, 1}}), {1, 2}},
+		decreaseLight{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}},
+
+		blank{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})};
+	} virtualControllerAssets;
+
+	if(key[0] == 0)
+		return virtualControllerAssets.dpad;
+	switch(GbaKey(key[0]))
+	{
+		case GbaKey::A: return GbaKey(key[1]) == GbaKey::B ? virtualControllerAssets.ab : virtualControllerAssets.a;
+		case GbaKey::B: return virtualControllerAssets.b;
+		case GbaKey::L: return virtualControllerAssets.l;
+		case GbaKey::R: return GbaKey(key[1]) == GbaKey::B ? virtualControllerAssets.rb : virtualControllerAssets.r;
+		case GbaKey::Select: return virtualControllerAssets.select;
+		case GbaKey::Start: return virtualControllerAssets.start;
+		case GbaKey::LightInc: return virtualControllerAssets.increaseLight;
+		case GbaKey::LightDec: return virtualControllerAssets.decreaseLight;
 		default: return virtualControllerAssets.blank;
 	}
 }
 
-const int EmuSystem::maxPlayers = 1;
-constexpr int gbaKeypadBits = 10;
-constexpr unsigned gbaKeypadMask = 0x3FF;
-
-enum ActionBits : unsigned
-{
-	A = bit(0),
-	B = bit(1),
-	SELECT = bit(2),
-	START = bit(3),
-	RIGHT = bit(4),
-	LEFT = bit(5),
-	UP = bit(6),
-	DOWN = bit(7),
-	R = bit(8),
-	L = bit(9),
-};
-
-constexpr unsigned lightIncKey = 1;
-constexpr unsigned lightDecKey = 2;
-
-static bool isGamepadButton(unsigned input)
-{
-	switch(input)
-	{
-		case gbaKeyIdxSelect:
-		case gbaKeyIdxStart:
-		case gbaKeyIdxATurbo:
-		case gbaKeyIdxA:
-		case gbaKeyIdxBTurbo:
-		case gbaKeyIdxB:
-		case gbaKeyIdxL:
-		case gbaKeyIdxR:
-			return true;
-		default: return false;
-	}
-}
-
-InputAction GbaSystem::translateInputAction(InputAction action)
-{
-	if(!isGamepadButton(action.key))
-		action.setTurboFlag(false);
-	action.key = [&] -> unsigned
-	{
-		switch(action.key)
-		{
-			case gbaKeyIdxUp: return UP;
-			case gbaKeyIdxRight: return RIGHT;
-			case gbaKeyIdxDown: return DOWN;
-			case gbaKeyIdxLeft: return LEFT;
-			case gbaKeyIdxLeftUp: return UP | LEFT;
-			case gbaKeyIdxRightUp: return UP | RIGHT;
-			case gbaKeyIdxRightDown: return DOWN | RIGHT;
-			case gbaKeyIdxLeftDown: return DOWN | LEFT;
-			case gbaKeyIdxSelect: return SELECT;
-			case gbaKeyIdxStart: return START;
-			case gbaKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
-			case gbaKeyIdxA: return A;
-			case gbaKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case gbaKeyIdxB: return B;
-			case gbaKeyIdxL: return L;
-			case gbaKeyIdxR: return R;
-			case gbaKeyIdxAB: return A | B;
-			case gbaKeyIdxRB: return R | B;
-			case gbaKeyIdxLightInc: return lightIncKey << gbaKeypadBits;
-			case gbaKeyIdxLightDec: return lightDecKey << gbaKeypadBits;
-		}
-		bug_unreachable("invalid key");
-	}();
-	return action;
-}
-
 void GbaSystem::handleInputAction(EmuApp *app, InputAction a)
 {
-	if(auto exKey = a.key >> gbaKeypadBits;
-		exKey)
+	auto key = GbaKey(a.code);
+	switch(key)
 	{
-		if(a.state == Input::Action::PUSHED && (exKey == lightIncKey || exKey == lightDecKey))
+		case GbaKey::LightInc:
+		case GbaKey::LightDec:
 		{
-			int darknessChange = exKey == lightDecKey ? 17 : -17;
+			int darknessChange = key == GbaKey::LightDec ? 17 : -17;
 			darknessLevel = std::clamp(darknessLevel + darknessChange, 0, 0xff);
 			if(app)
 			{
 				app->postMessage(1, false, std::format("Light sensor level: {}%", remap(darknessLevel, 0xff, 0, 0, 100)));
 			}
+			break;
 		}
-	}
-	else
-	{
-		P1 = IG::setOrClearBits(P1, uint16_t(a.key & gbaKeypadMask), a.state != Input::Action::PUSHED);
+		default:
+			P1 = setOrClearBits(P1, bit(a.code - 1), !a.isPushed());
+			break;
 	}
 }
 
@@ -242,6 +249,20 @@ void GbaSystem::clearInputBuffers(EmuInputView &)
 
 SystemInputDeviceDesc GbaSystem::inputDeviceDesc(int idx) const
 {
+	static constexpr std::array gamepadComponents
+	{
+		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
+		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO},
+		InputComponentDesc{"Face Buttons + Inline L/R", faceLRKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
+		InputComponentDesc{"L", lKeyInfo, InputComponent::trigger, LB2DO},
+		InputComponentDesc{"R", rKeyInfo, InputComponent::trigger, RB2DO},
+		InputComponentDesc{"Select", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
+		InputComponentDesc{"Start", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},
+		InputComponentDesc{"Select/Start", centerKeyInfo, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
+	};
+
+	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 	return gamepadDesc;
 }
 

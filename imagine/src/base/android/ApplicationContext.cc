@@ -280,7 +280,7 @@ bool ApplicationContext::hasHardwareNavButtons() const
 int32_t ApplicationContext::androidSDK() const
 {
 	#ifdef ANDROID_COMPAT_API
-	static_assert(__ANDROID_API__ <= 19, "Compiling with ANDROID_COMPAT_API and API higher than 19");
+	static_assert(__ANDROID_API__ <= 21, "Compiling with ANDROID_COMPAT_API and API higher than 21");
 	#endif
 	return std::max(ANDROID_MIN_API, act->sdkVersion);
 }

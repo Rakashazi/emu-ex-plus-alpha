@@ -6,8 +6,8 @@ android_abi := x86
 android_ndkSDK ?= 16
 android_ndkArch := x86
 android_cxxSupportLibs := -landroid_support
-# Must declare min API 19 to compile with NDK r24+ headers
-clangTarget := i686-none-linux-android19
+# Must declare min API 21 to compile with NDK r26+ headers
+clangTarget := i686-none-linux-android21
 CFLAGS_CODEGEN += -fPIC -mstackrealign
 
 include $(buildSysPath)/android-gcc.mk

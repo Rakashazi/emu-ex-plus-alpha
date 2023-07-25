@@ -423,6 +423,19 @@ const char *Device::keyName(Key k) const
 	}
 }
 
+std::string Device::keyString(Key k) const
+{
+	if(auto name = keyName(k);
+		std::string_view{name}.size())
+	{
+		return std::string{name};
+	}
+	else
+	{
+		return std::format("Key Code {:#X}", k);
+	}
+}
+
 Map Device::map() const
 {
 	return iCadeMode() ? Input::Map::ICADE : map_;

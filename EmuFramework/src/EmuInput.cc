@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/AppKeyCode.hh>
 #include "privateInput.hh"
 #include "EmuOptions.hh"
 
@@ -26,92 +27,75 @@ void InputManager::updateInputDevices(ApplicationContext ctx)
 	for(auto &devPtr : ctx.inputDevices())
 	{
 		logMsg("input device:%s, id:%d, map:%d", devPtr->name().data(), devPtr->enumId(), (int)devPtr->map());
-		auto &appData = devPtr->makeAppData<InputDeviceData>(*devPtr, savedInputDevs);
+		auto &appData = devPtr->makeAppData<InputDeviceData>(*this, *devPtr);
 	}
 	vController.setPhysicalControlsPresent(ctx.keyInputIsPresent());
 	onUpdateDevices.callCopySafe();
 }
 
-void InputManager::writeCustomKeyConfigs(FileIO &io)
+KeyConfig *InputManager::customKeyConfig(std::string_view name, const Input::Device &dev) const
 {
-	if(!customKeyConfigs.size())
-		return;
-	auto categories = EmuApp::inputControlCategories();
-	bool writeCategory[customKeyConfigs.size()][categories.size()];
-	uint8_t writeCategories[customKeyConfigs.size()];
-	std::fill_n(writeCategories, customKeyConfigs.size(), 0);
-	// compute total size
-	static_assert(sizeof(KeyConfig::name) <= 255, "key config name array is too large");
-	size_t bytes = 2; // config key size
-	bytes += 1; // number of configs
-	for(auto [i, ePtr] : enumerate(customKeyConfigs))
+	if(auto it = std::ranges::find_if(customKeyConfigs,
+		[&](auto &ptr){ return ptr->name == name && ptr->desc().map == dev.map(); });
+		it != customKeyConfigs.end())
+	{
+		return it->get();
+	}
+	return nullptr;
+}
+
+KeyConfigDesc InputManager::keyConfig(std::string_view name, const Input::Device &dev) const
+{
+	auto conf = customKeyConfig(name, dev);
+	if(conf)
+		return conf->desc();
+	for(auto &conf : EmuApp::defaultKeyConfigs())
+	{
+		if(conf.name == name)
+			return conf;
+	}
+	return {};
+}
+
+static void removeKeyConfFromAllDevices(InputManager &inputManager, std::string_view conf, ApplicationContext ctx)
+{
+	logMsg("removing saved key config %s from all devices", conf.data());
+	for(auto &ePtr : inputManager.savedInputDevs)
 	{
 		auto &e = *ePtr;
-		bytes += 1; // input map type
-		bytes += 1; // name string length
-		bytes += e.name.size(); // name string
-		bytes += 1; // number of categories present
-		for(auto &cat : EmuApp::inputControlCategories())
+		if(e.keyConfName == conf)
 		{
-			bool write{};
-			const auto key = e.key(cat);
-			for(auto k : iotaCount(cat.keys()))
-			{
-				if(key[k]) // check if category has any keys defined
-				{
-					write = true;
-					break;
-				}
-			}
-			writeCategory[i][std::distance(EmuApp::inputControlCategories().data(), &cat)] = write;
-			if(!write)
-			{
-				logMsg("category:%s of key conf:%s skipped", cat.name.data(), e.name.data());
-				continue;
-			}
-			writeCategories[i]++;
-			bytes += 1; // category index
-			bytes += 2; // category key array size
-			bytes += cat.keys() * sizeof(KeyConfig::Key); // keys array
+			logMsg("used by saved device config %s,%d", e.name.data(), e.enumId);
+			e.keyConfName.clear();
 		}
-	}
-	if(bytes > 0xFFFF)
-	{
-		bug_unreachable("excessive key config size, should not happen");
-	}
-	// write to config file
-	logMsg("saving %d key configs, %zu bytes", (int)customKeyConfigs.size(), bytes);
-	io.put(uint16_t(bytes));
-	io.put(uint16_t(CFGKEY_INPUT_KEY_CONFIGS));
-	io.put(uint8_t(customKeyConfigs.size()));
-	for(auto [i, ePtr] : enumerate(customKeyConfigs))
-	{
-		auto &e = *ePtr;
-		logMsg("writing config %s", e.name.data());
-		io.put(uint8_t(e.map));
-		uint8_t nameLen = e.name.size();
-		io.put(nameLen);
-		io.write(e.name.data(), nameLen);
-		io.put(writeCategories[i]);
-		for(auto &cat : EmuApp::inputControlCategories())
+		auto devIt = std::ranges::find_if(ctx.inputDevices(), [&](auto &devPtr){ return e.matchesDevice(*devPtr); });
+		if(devIt != ctx.inputDevices().end())
 		{
-			uint8_t catIdx = std::distance(EmuApp::inputControlCategories().data(), &cat);
-			if(!writeCategory[i][catIdx])
-				continue;
-			io.put(uint8_t(catIdx));
-			uint16_t catSize = cat.keys() * sizeof(KeyConfig::Key);
-			io.put(catSize);
-			io.write(static_cast<void*>(e.key(cat)), catSize);
+			inputDevData(*devIt->get()).buildKeyMap(inputManager, *devIt->get());
 		}
 	}
 }
 
-void InputManager::writeSavedInputDevices(FileIO &io)
+void InputManager::deleteKeyProfile(ApplicationContext ctx, KeyConfig *profile)
+{
+	removeKeyConfFromAllDevices(*this, profile->name, ctx);
+	std::erase_if(customKeyConfigs, [&](auto &confPtr){ return confPtr.get() == profile; });
+}
+
+void InputManager::writeCustomKeyConfigs(FileIO &io) const
+{
+	for(const auto &c : customKeyConfigs)
+	{
+		c->writeConfig(io);
+	}
+}
+
+void InputManager::writeSavedInputDevices(ApplicationContext ctx, FileIO &io) const
 {
 	if(!savedInputDevs.size())
 		return;
 	// compute total size
-	unsigned bytes = 2; // config key size
+	ssize_t bytes = 2; // config key size
 	bytes += 1; // number of configs
 	for(auto &ePtr : savedInputDevs)
 	{
@@ -120,16 +104,17 @@ void InputManager::writeSavedInputDevices(FileIO &io)
 		bytes += 1; // enabled
 		bytes += 1; // player
 		bytes += 1; // mapJoystickAxis1ToDpad
-		#ifdef CONFIG_INPUT_ICADE
-		bytes += 1; // iCade mode
-		#endif
+		if(hasICadeInput)
+			bytes += 1; // iCade mode
 		bytes += 1; // name string length
-		bytes += std::min((size_t)256, e.name.size()); // name string
+		uint8_t nameSize = e.name.size();
+		bytes += nameSize; // name string
 		bytes += 1; // key config map
-		if(e.keyConf)
+		if(e.keyConfName.size())
 		{
 			bytes += 1; // name of key config string length
-			bytes += e.keyConf->name.size(); // name of key config string
+			uint8_t keyConfNameSize = e.keyConfName.size();
+			bytes += keyConfNameSize; // name of key config string
 		}
 	}
 	if(bytes > 0xFFFF)
@@ -137,8 +122,9 @@ void InputManager::writeSavedInputDevices(FileIO &io)
 		bug_unreachable("excessive input device config size, should not happen");
 	}
 	// write to config file
-	logMsg("saving %d input device configs, %d bytes", (int)savedInputDevs.size(), bytes);
+	logMsg("saving %d input device configs, %d bytes", (int)savedInputDevs.size(), (int)bytes);
 	io.put(uint16_t(bytes));
+	auto startOffset = io.tell();
 	io.put(uint16_t(CFGKEY_INPUT_DEVICE_CONFIGS));
 	io.put(uint8_t(savedInputDevs.size()));
 	for(auto &ePtr : savedInputDevs)
@@ -152,216 +138,73 @@ void InputManager::writeSavedInputDevices(FileIO &io)
 		io.put(uint8_t(e.enabled));
 		io.put(uint8_t(e.player));
 		io.put(uint8_t(e.joystickAxisAsDpadBits));
-		#ifdef CONFIG_INPUT_ICADE
-		io.put(uint8_t(e.iCadeMode));
-		#endif
-		uint8_t nameLen = std::min((size_t)256, e.name.size());
+		if(hasICadeInput)
+			io.put(uint8_t(e.iCadeMode));
+		uint8_t nameLen = e.name.size();
 		io.put(nameLen);
 		io.write(e.name.data(), nameLen);
-		uint8_t keyConfMap = e.keyConf ? (uint8_t)e.keyConf->map : 0;
+		auto devPtr = ctx.inputDevice(e.name, e.enumId);
+		uint8_t keyConfMap = devPtr ? (uint8_t)devPtr->map() : 0;
 		io.put(keyConfMap);
 		if(keyConfMap)
 		{
-			logMsg("has key conf %s, map %d", e.keyConf->name.data(), keyConfMap);
-			uint8_t keyConfNameLen = e.keyConf->name.size();
+			logMsg("has key conf %s, map %d", e.keyConfName.data(), keyConfMap);
+			uint8_t keyConfNameLen = e.keyConfName.size();
 			io.put(keyConfNameLen);
-			io.write(e.keyConf->name.data(), keyConfNameLen);
+			io.write(e.keyConfName.data(), keyConfNameLen);
 		}
+	}
+	if(auto writtenBytes = io.tell() - startOffset;
+		writtenBytes != bytes)
+	{
+		logErr("expected %d bytes written, got %d", (int)bytes, (int)writtenBytes);
 	}
 }
 
-bool InputManager::readCustomKeyConfigs(MapIO &io, size_t size, std::span<const KeyCategory> categorySpan)
+bool InputManager::readCustomKeyConfig(MapIO &io)
 {
-	static constexpr int KEY_CONFIGS_HARD_LIMIT = 256;
-	auto confs = io.get<uint8_t>(); // TODO: unused currently, use to pre-allocate memory for configs
-	size--;
-	if(!size)
-		return false;
-
-	while(size)
+	auto conf = KeyConfig::readConfig(io);
+	if(conf)
 	{
-		KeyConfig keyConf{};
-
-		keyConf.map = (Input::Map)io.get<uint8_t>();
-		size--;
-		if(!size)
-			return false;
-
-		auto nameLen = io.get<uint8_t>();
-		size--;
-		if(size < nameLen)
-			return false;
-
-		if(io.readSized(keyConf.name, nameLen) != nameLen)
-			return false;
-		size -= nameLen;
-		if(!size)
-			return false;
-
-		auto categories = io.get<uint8_t>();
-		size--;
-		if(categories > categorySpan.size())
-		{
-			return false;
-		}
-
-		for(auto i : iotaCount(categories))
-		{
-			if(!size)
-				return false;
-
-			auto categoryIdx = io.get<uint8_t>();
-			size--;
-			if(categoryIdx >= categorySpan.size())
-			{
-				return false;
-			}
-			if(size < 2)
-			{
-				return false;
-			}
-			auto &cat = categorySpan[categoryIdx];
-			auto catSize = io.get<uint16_t>();
-			size -= 2;
-			if(size < catSize)
-				return false;
-
-			if(catSize > cat.keys() * sizeof(KeyConfig::Key))
-				return false;
-			auto key = keyConf.key(cat);
-			if(io.read(static_cast<void*>(key), catSize) != catSize)
-				return false;
-			size -= catSize;
-
-			// verify keys
-			{
-				const auto keyMax = Input::KeyEvent::mapNumKeys(keyConf.map);
-				for(auto i : iotaCount(cat.keys()))
-				{
-					if(key[i] >= keyMax)
-					{
-						logWarn("key code 0x%X out of range for map type %d", key[i], (int)keyConf.map);
-						key[i] = 0;
-					}
-				}
-			}
-
-			logMsg("read category %d", categoryIdx);
-		}
-
-		logMsg("read key config %s", keyConf.name.data());
-		customKeyConfigs.emplace_back(std::make_unique<KeyConfig>(keyConf));
-
-		if(customKeyConfigs.size() == KEY_CONFIGS_HARD_LIMIT)
-		{
-			logWarn("reached custom key config hard limit:%d", KEY_CONFIGS_HARD_LIMIT);
-			break;
-		}
+		customKeyConfigs.emplace_back(std::make_unique<KeyConfig>(conf));
 	}
 	return true;
 }
 
-bool InputManager::readSavedInputDevices(MapIO &io, size_t size)
+bool InputManager::readSavedInputDevices(MapIO &io)
 {
-	static constexpr int INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
-	auto confs = io.get<uint8_t>(); // TODO: unused currently, use to pre-allocate memory for configs
-	size--;
-	if(!size)
-		return false;
-
-	while(size)
+	auto confs = io.get<uint8_t>();
+	for(auto confIdx : iotaCount(confs))
 	{
 		InputDeviceSavedConfig devConf;
-
 		auto enumIdWithFlags = io.get<uint8_t>();
-		size--;
-		if(!size)
-			return false;
 		devConf.handleUnboundEvents = enumIdWithFlags & devConf.HANDLE_UNBOUND_EVENTS_FLAG;
 		devConf.enumId = enumIdWithFlags & devConf.ENUM_ID_MASK;
-
 		devConf.enabled = io.get<uint8_t>();
-		size--;
-		if(!size)
-			return false;
-
 		devConf.player = io.get<uint8_t>();
 		if(devConf.player != InputDeviceConfig::PLAYER_MULTI && devConf.player > EmuSystem::maxPlayers)
 		{
 			logWarn("player %d out of range", devConf.player);
 			devConf.player = 0;
 		}
-		size--;
-		if(!size)
-			return false;
-
 		devConf.joystickAxisAsDpadBits = io.get<uint8_t>();
-		size--;
-		if(!size)
-			return false;
-
-		#ifdef CONFIG_INPUT_ICADE
-		devConf.iCadeMode = io.get<uint8_t>();
-		size--;
-		if(!size)
-			return false;
-		#endif
-
+		if(hasICadeInput)
+		{
+			devConf.iCadeMode = io.get<uint8_t>();
+		}
 		auto nameLen = io.get<uint8_t>();
-		size--;
-		if(size < nameLen)
-			return false;
-
 		io.readSized(devConf.name, nameLen);
-		size -= nameLen;
-		if(!size)
-			return false;
-
 		auto keyConfMap = Input::validateMap(io.get<uint8_t>());
-		size--;
-
 		if(keyConfMap != Input::Map::UNKNOWN)
 		{
-			if(!size)
-				return false;
-
 			auto keyConfNameLen = io.get<uint8_t>();
-			size--;
-			if(size < keyConfNameLen)
-				return false;
-
 			char keyConfName[keyConfNameLen + 1];
 			if(io.read(keyConfName, keyConfNameLen) != keyConfNameLen)
 				return false;
 			keyConfName[keyConfNameLen] = '\0';
-			size -= keyConfNameLen;
-
-			for(auto &ePtr : customKeyConfigs)
-			{
-				auto &e = *ePtr;
-				if(e.map == keyConfMap && e.name == keyConfName)
-				{
-					logMsg("found referenced custom key config %s while reading input device config", keyConfName);
-					devConf.keyConf = &e;
-					break;
-				}
-			}
-
-			if(!devConf.keyConf) // check built-in configs after user-defined ones
-			{
-				for(const auto &conf : KeyConfig::defaultConfigsForInputMap(keyConfMap))
-				{
-					if(conf.name == keyConfName)
-					{
-						logMsg("found referenced built-in key config %s while reading input device config", keyConfName);
-						devConf.keyConf = &conf;
-						break;
-					}
-				}
-			}
+			devConf.keyConfName = keyConfName;
 		}
-
-		if(!IG::containsIf(savedInputDevs, [&](const auto &confPtr){ return *confPtr == devConf;}))
+		if(!containsIf(savedInputDevs, [&](const auto &confPtr){ return *confPtr == devConf;}))
 		{
 			logMsg("read input device config:%s, id:%d", devConf.name.data(), devConf.enumId);
 			savedInputDevs.emplace_back(std::make_unique<InputDeviceSavedConfig>(devConf));
@@ -370,139 +213,60 @@ bool InputManager::readSavedInputDevices(MapIO &io, size_t size)
 		{
 			logMsg("ignoring duplicate input device config:%s, id:%d", devConf.name.data(), devConf.enumId);
 		}
-
-		if(savedInputDevs.size() == INPUT_DEVICE_CONFIGS_HARD_LIMIT)
-		{
-			logWarn("reached input device config hard limit:%d", INPUT_DEVICE_CONFIGS_HARD_LIMIT);
-			return false;
-		}
 	}
 	return true;
 }
 
-
-// KeyConfig
-
-const KeyConfig &KeyConfig::defaultConfigForDevice(const Input::Device &dev)
+KeyConfigDesc InputManager::defaultConfig(const Input::Device &dev) const
 {
-	switch(dev.map())
+	KeyConfigDesc firstConfig{}, firstSubtypeConfig{};
+	for(const auto &conf : EmuApp::defaultKeyConfigs())
 	{
-		default: return defaultConfigsForDevice(dev)[0];
-		case Input::Map::SYSTEM:
-		{
-			if constexpr(Config::envIsAndroid || Config::envIsLinux)
-			{
-				for(const auto &c : defaultConfigsForDevice(dev))
-				{
-					// Look for the first config to match the device subtype
-					if(dev.subtype() == c.devSubtype)
-					{
-						return c;
-					}
-				}
-			}
-			return defaultConfigsForDevice(dev)[0];
-		}
+		if(dev.map() == conf.map && !firstConfig)
+			firstConfig = conf;
+		if(dev.subtype() == conf.devSubtype && !firstSubtypeConfig)
+			firstSubtypeConfig = conf;
 	}
+	return firstSubtypeConfig ?: firstConfig;
 }
 
-std::span<const KeyConfig> KeyConfig::defaultConfigsForInputMap(Input::Map map)
+KeyInfo InputManager::transpose(KeyInfo c, int index) const
 {
-	switch(map)
+	c.flags.deviceId = index;
+	return c;
+}
+
+std::string InputManager::toString(KeyInfo k) const
+{
+	std::string s{toString(k.codes[0], k.flags)};
+	for(const auto &c : k.codes | std::ranges::views::drop(1))
 	{
-		default: return {};
-		case Input::Map::SYSTEM:
-			return {Controls::defaultKeyProfile, Controls::defaultKeyProfiles};
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Input::Map::WIIMOTE:
-			return {Controls::defaultWiimoteProfile, Controls::defaultWiimoteProfiles};
-		case Input::Map::WII_CC:
-			return {Controls::defaultWiiCCProfile, Controls::defaultWiiCCProfiles};
-		case Input::Map::ICONTROLPAD:
-			return {Controls::defaultIControlPadProfile, Controls::defaultIControlPadProfiles};
-		case Input::Map::ZEEMOTE:
-			return {Controls::defaultZeemoteProfile, Controls::defaultZeemoteProfiles};
-		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Input::Map::PS3PAD:
-			return {Controls::defaultPS3Profile, Controls::defaultPS3Profiles};
-		#endif
-		#ifdef CONFIG_INPUT_ICADE
-		case Input::Map::ICADE:
-			return {Controls::defaultICadeProfile, Controls::defaultICadeProfiles};
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Input::Map::APPLE_GAME_CONTROLLER:
-			return {Controls::defaultAppleGCProfile, Controls::defaultAppleGCProfiles};
-		#endif
+		s += " + ";
+		s += toString(c, k.flags);
 	}
+	if(k.flags.turbo)
+		s += " (Turbo)";
+	return s;
 }
 
-std::span<const KeyConfig> KeyConfig::defaultConfigsForDevice(const Input::Device &dev)
+std::string InputManager::toString(KeyCode c, KeyFlags flags) const
 {
-	auto conf = defaultConfigsForInputMap(dev.map());
-	if(!conf.data())
-	{
-		bug_unreachable("device map:%d missing default configs", (int)dev.map());
-	}
-	return conf;
+	if(flags.appCode)
+		return std::string{EmuEx::toString(AppKeyCode(c))};
+	return std::string{EmuApp::systemKeyCodeToString(c)};
 }
 
-namespace Controls
+void InputManager::updateKeyboardMapping()
 {
+	vController.updateKeyboardMapping();
+}
 
-void generic2PlayerTranspose(KeyConfig::KeyArray &key, int player, int startCategory)
+void InputManager::toggleKeyboard()
 {
-	if(player == 0)
-	{
-		// clear P2 joystick keys
-		auto cat2 = categories()[startCategory+1];
-		std::fill_n(&key[cat2.configOffset], cat2.keys(), 0);
-	}
-	else
-	{
-		// transpose joystick keys
-		auto cat = categories()[startCategory];
-		auto cat2 = categories()[startCategory+1];
-		std::copy_n(&key[cat.configOffset], cat.keys(), &key[cat2.configOffset]);
-		std::fill_n(&key[cat.configOffset], cat.keys(), 0);
-	}
+	vController.toggleKeyboard();
 }
 
-void genericMultiplayerTranspose(KeyConfig::KeyArray &key, int player, int startCategory)
-{
-	for(int i : iotaCount(EmuSystem::maxPlayers))
-	{
-		if(player && i == player)
-		{
-			//logMsg("moving to player %d map", i);
-			auto cat = categories()[startCategory];
-			auto cat2 = categories()[startCategory+i];
-			std::copy_n(&key[cat.configOffset], cat.keys(), &key[cat2.configOffset]);
-			std::fill_n(&key[cat.configOffset], cat.keys(), 0);
-		}
-		else if(i)
-		{
-			//logMsg("clearing player %d map", i);
-			auto cat2 = categories()[startCategory+i];
-			std::fill_n(&key[cat2.configOffset], cat2.keys(), 0);
-		}
-	}
-}
-
-}
-
-void EmuApp::updateKeyboardMapping()
-{
-	defaultVController().updateKeyboardMapping();
-}
-
-void EmuApp::toggleKeyboard()
-{
-	defaultVController().toggleKeyboard();
-}
-
-void EmuApp::setDisabledInputKeys(std::span<const unsigned> keys)
+void EmuApp::setDisabledInputKeys(std::span<const KeyCode> keys)
 {
 	auto &vController = inputManager.vController;
 	vController.setDisabledInputKeys(keys);
@@ -517,39 +281,57 @@ void EmuApp::unsetDisabledInputKeys()
 	setDisabledInputKeys({});
 }
 
-bool KeyConfig::operator ==(KeyConfig const& rhs) const
-{
-	return name == rhs.name;
-}
-
-KeyConfig::Key *KeyConfig::key(const KeyCategory &category)
-{
-	assert(category.configOffset + category.keys() <= MAX_KEY_CONFIG_KEYS);
-	return &key_[category.configOffset];
-}
-
-const KeyConfig::Key *KeyConfig::key(const KeyCategory &category) const
-{
-	assert(category.configOffset + category.keys() <= MAX_KEY_CONFIG_KEYS);
-	return &key_[category.configOffset];
-}
-
-void KeyConfig::unbindCategory(const KeyCategory &category)
-{
-	std::fill_n(key(category), category.keys(), 0);
-}
-
 bool InputDeviceSavedConfig::matchesDevice(const Input::Device &dev) const
 {
 	//logMsg("checking against device %s,%d", name, devId);
 	return dev.enumId() == enumId && dev.name() == name;
 }
 
+const KeyCategory *InputManager::categoryOfKeyCode(KeyInfo key) const
+{
+	if(key.isAppKey())
+		return &appKeyCategory;
+	for(const auto &cat : EmuApp::keyCategories())
+	{
+		if(contains(cat.keys, key))
+			return &cat;
+	}
+	return {};
 }
 
-namespace EmuEx::Controls
+KeyInfo InputManager::validateSystemKey(KeyInfo key, bool isUIKey) const
 {
+	if(!categoryOfKeyCode(key))
+	{
+		logMsg("resetting invalid system key:%u", key.codes[0]);
+		if(isUIKey)
+			return appKeyCategory.keys[0];
+		else
+			return EmuApp::keyCategories()[0].keys[0];
+	}
+	return key;
+}
 
-[[gnu::weak]] void transposeKeysForPlayer(KeyConfig::KeyArray &key, int player) {}
+std::string_view toString(AppKeyCode code)
+{
+	switch(code)
+	{
+		case AppKeyCode::openContent: return "Open Content";
+		case AppKeyCode::openSystemActions: return "Open System Actions";
+		case AppKeyCode::saveState: return "Save State";
+		case AppKeyCode::loadState: return "Load State";
+		case AppKeyCode::decStateSlot: return "Decrement State Slot";
+		case AppKeyCode::incStateSlot: return "Increment State Slot";
+		case AppKeyCode::fastForward: return "Fast-forward";
+		case AppKeyCode::takeScreenshot: return "Take Screenshot";
+		case AppKeyCode::openMenu: return "Open Menu";
+		case AppKeyCode::toggleFastForward: return "Toggle Fast-forward";
+		case AppKeyCode::turboModifier: return "Turbo Modifier";
+		case AppKeyCode::exitApp: return "Exit App";
+		case AppKeyCode::slowMotion: return "Slow-motion";
+		case AppKeyCode::toggleSlowMotion: return "Toggle Slow-motion";
+	};
+	return "";
+}
 
 }

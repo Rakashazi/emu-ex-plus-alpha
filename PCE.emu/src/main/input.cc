@@ -15,68 +15,157 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/keyRemappingUtils.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
 
 namespace EmuEx
 {
 
-enum
+const int EmuSystem::maxPlayers = 5;
+
+enum class PceKey : KeyCode
 {
-	pceKeyIdxUp = Controls::systemKeyMapStart,
-	pceKeyIdxRight,
-	pceKeyIdxDown,
-	pceKeyIdxLeft,
-	pceKeyIdxLeftUp,
-	pceKeyIdxRightUp,
-	pceKeyIdxRightDown,
-	pceKeyIdxLeftDown,
-	pceKeyIdxSelect,
-	pceKeyIdxRun,
-	pceKeyIdxI,
-	pceKeyIdxII,
-	pceKeyIdxITurbo,
-	pceKeyIdxIITurbo,
-	pceKeyIdxIII,
-	pceKeyIdxIV,
-	pceKeyIdxV,
-	pceKeyIdxVI
+	Up = 5,
+	Right = 6,
+	Down = 7,
+	Left = 8,
+	Select = 3,
+	Run = 4,
+	I = 1,
+	II = 2,
+	III = 9,
+	IV = 10,
+	V = 11,
+	VI = 12
 };
 
-constexpr std::array<unsigned, 4> dpadButtonCodes
-{
-	pceKeyIdxUp,
-	pceKeyIdxRight,
-	pceKeyIdxDown,
-	pceKeyIdxLeft,
-};
+constexpr auto dpadKeyInfo = makeArray<KeyInfo>
+(
+	PceKey::Up,
+	PceKey::Right,
+	PceKey::Down,
+	PceKey::Left
+);
 
-constexpr unsigned centerButtonCodes[]
-{
-	pceKeyIdxSelect,
-	pceKeyIdxRun,
-};
+constexpr auto centerKeyInfo = makeArray<KeyInfo>
+(
+	PceKey::Select,
+	PceKey::Run
+);
 
-constexpr unsigned faceButtonCodes[]
-{
-	pceKeyIdxIII,
-	pceKeyIdxII,
-	pceKeyIdxI,
-	pceKeyIdxIV,
-	pceKeyIdxV,
-	pceKeyIdxVI,
-};
+constexpr auto faceKeyInfo = makeArray<KeyInfo>
+(
+	PceKey::III,
+	PceKey::II,
+	PceKey::I,
+	PceKey::IV,
+	PceKey::V,
+	PceKey::VI
+);
 
-constexpr std::array gamepadComponents
-{
-	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO},
-	InputComponentDesc{"Select", {&centerButtonCodes[0], 1}, InputComponent::button, LB2DO},
-	InputComponentDesc{"Run", {&centerButtonCodes[1], 1}, InputComponent::button, RB2DO},
-	InputComponentDesc{"Select/Run", centerButtonCodes, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
-};
+constexpr auto turboFaceKeyInfo = turbo(faceKeyInfo);
 
-constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+constexpr auto gpKeyInfo = concatToArrayNow<dpadKeyInfo, centerKeyInfo, faceKeyInfo, turboFaceKeyInfo>;
+constexpr auto gp2KeyInfo = transpose(gpKeyInfo, 1);
+constexpr auto gp3KeyInfo = transpose(gpKeyInfo, 2);
+constexpr auto gp4KeyInfo = transpose(gpKeyInfo, 3);
+constexpr auto gp5KeyInfo = transpose(gpKeyInfo, 4);
+
+std::span<const KeyCategory> PceApp::keyCategories()
+{
+	static constexpr std::array categories
+	{
+		KeyCategory{"Gamepad", gpKeyInfo},
+		KeyCategory{"Gamepad 2", gp2KeyInfo, 1},
+		KeyCategory{"Gamepad 3", gp3KeyInfo, 2},
+		KeyCategory{"Gamepad 4", gp4KeyInfo, 3},
+		KeyCategory{"Gamepad 5", gp4KeyInfo, 4},
+	};
+	return categories;
+}
+
+std::string_view PceApp::systemKeyCodeToString(KeyCode c)
+{
+	switch(PceKey(c))
+	{
+		case PceKey::Up: return "Up";
+		case PceKey::Right: return "Right";
+		case PceKey::Down: return "Down";
+		case PceKey::Left: return "Left";
+		case PceKey::Select: return "Select";
+		case PceKey::Run: return "Run";
+		case PceKey::I: return "I";
+		case PceKey::II: return "II";
+		case PceKey::III: return "III";
+		case PceKey::IV: return "IV";
+		case PceKey::V: return "V";
+		case PceKey::VI: return "VI";
+		default: return "";
+	}
+}
+
+std::span<const KeyConfigDesc> PceApp::defaultKeyConfigs()
+{
+	using namespace IG::Input;
+
+	static constexpr std::array pcKeyboardMap
+	{
+		KeyMapping{PceKey::Up, Keycode::UP},
+		KeyMapping{PceKey::Right, Keycode::RIGHT},
+		KeyMapping{PceKey::Down, Keycode::DOWN},
+		KeyMapping{PceKey::Left, Keycode::LEFT},
+		KeyMapping{PceKey::Select, Keycode::SPACE},
+		KeyMapping{PceKey::Run, Keycode::ENTER},
+		KeyMapping{PceKey::I, Keycode::Z},
+		KeyMapping{PceKey::II, Keycode::X},
+		KeyMapping{PceKey::III, Keycode::C},
+		KeyMapping{PceKey::IV, Keycode::A},
+		KeyMapping{PceKey::V, Keycode::S},
+		KeyMapping{PceKey::VI, Keycode::D},
+	};
+
+	static constexpr std::array genericGamepadMap
+	{
+		KeyMapping{PceKey::Up, Keycode::UP},
+		KeyMapping{PceKey::Right, Keycode::RIGHT},
+		KeyMapping{PceKey::Down, Keycode::DOWN},
+		KeyMapping{PceKey::Left, Keycode::LEFT},
+		KeyMapping{PceKey::Select, Keycode::GAME_SELECT},
+		KeyMapping{PceKey::Run, Keycode::GAME_START},
+		KeyMapping{PceKey::I, Keycode::GAME_X},
+		KeyMapping{PceKey::II, Keycode::GAME_A},
+		KeyMapping{PceKey::III, Keycode::GAME_B},
+		KeyMapping{PceKey::IV, Keycode::GAME_L1},
+		KeyMapping{PceKey::V, Keycode::GAME_Y},
+		KeyMapping{PceKey::VI, Keycode::GAME_R1},
+	};
+
+	static constexpr std::array wiimoteMap
+	{
+		KeyMapping{PceKey::Up, Wiimote::UP},
+		KeyMapping{PceKey::Right, Wiimote::RIGHT},
+		KeyMapping{PceKey::Down, Wiimote::DOWN},
+		KeyMapping{PceKey::Left, Wiimote::LEFT},
+		KeyMapping{PceKey::I, Wiimote::_1},
+		KeyMapping{PceKey::II, Wiimote::_2},
+		KeyMapping{PceKey::Select, Wiimote::MINUS},
+		KeyMapping{PceKey::Run, Wiimote::PLUS},
+	};
+
+	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();
+}
+
+bool PceApp::allowsTurboModifier(KeyCode c)
+{
+	switch(PceKey(c))
+	{
+		case PceKey::I ... PceKey::II:
+		case PceKey::III ... PceKey::VI:
+			return true;
+		default: return false;
+	}
+}
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
@@ -85,104 +174,45 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr struct VirtualControllerAssets
+AssetDesc PceApp::vControllerAssetDesc(KeyInfo key) const
 {
-	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
-
-	i{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
-	ii{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 0}, {2, 2}})},
-	iii{AssetFileID::gamepadOverlay,    gpImageCoords({{4, 2}, {2, 2}})},
-	iv{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 2}, {2, 2}})},
-	v{AssetFileID::gamepadOverlay,      gpImageCoords({{0, 4}, {2, 2}})},
-	vi{AssetFileID::gamepadOverlay,     gpImageCoords({{2, 4}, {2, 2}})},
-	select{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
-	run{AssetFileID::gamepadOverlay,    gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
-
-	blank{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})};
-} virtualControllerAssets;
-
-AssetDesc PceApp::vControllerAssetDesc(unsigned key) const
-{
-	switch(key)
+	constexpr struct VirtualControllerAssets
 	{
-		case 0: return virtualControllerAssets.dpad;
-		case pceKeyIdxITurbo:
-		case pceKeyIdxI: return virtualControllerAssets.i;
-		case pceKeyIdxIITurbo:
-		case pceKeyIdxII: return virtualControllerAssets.ii;
-		case pceKeyIdxIII: return virtualControllerAssets.iii;
-		case pceKeyIdxIV: return virtualControllerAssets.iv;
-		case pceKeyIdxV: return virtualControllerAssets.v;
-		case pceKeyIdxVI: return virtualControllerAssets.vi;
-		case pceKeyIdxSelect: return virtualControllerAssets.select;
-		case pceKeyIdxRun: return virtualControllerAssets.run;
+		AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+		i{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+		ii{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 0}, {2, 2}})},
+		iii{AssetFileID::gamepadOverlay,    gpImageCoords({{4, 2}, {2, 2}})},
+		iv{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 2}, {2, 2}})},
+		v{AssetFileID::gamepadOverlay,      gpImageCoords({{0, 4}, {2, 2}})},
+		vi{AssetFileID::gamepadOverlay,     gpImageCoords({{2, 4}, {2, 2}})},
+		select{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+		run{AssetFileID::gamepadOverlay,    gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
+
+		blank{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})};
+	} virtualControllerAssets;
+
+	if(key[0] == 0)
+		return virtualControllerAssets.dpad;
+	switch(PceKey(key[0]))
+	{
+		case PceKey::I: return virtualControllerAssets.i;
+		case PceKey::II: return virtualControllerAssets.ii;
+		case PceKey::III: return virtualControllerAssets.iii;
+		case PceKey::IV: return virtualControllerAssets.iv;
+		case PceKey::V: return virtualControllerAssets.v;
+		case PceKey::VI: return virtualControllerAssets.vi;
+		case PceKey::Select: return virtualControllerAssets.select;
+		case PceKey::Run: return virtualControllerAssets.run;
 		default: return virtualControllerAssets.blank;
 	}
 }
 
-const int EmuSystem::maxPlayers = 5;
-unsigned playerBit = 13;
-
-static bool isGamepadButton(unsigned input)
-{
-	switch(input)
-	{
-		case pceKeyIdxSelect:
-		case pceKeyIdxRun:
-		case pceKeyIdxITurbo:
-		case pceKeyIdxI:
-		case pceKeyIdxIITurbo:
-		case pceKeyIdxII:
-		case pceKeyIdxIII:
-		case pceKeyIdxIV:
-		case pceKeyIdxV:
-		case pceKeyIdxVI:
-			return true;
-		default: return false;
-	}
-}
-
-InputAction PceSystem::translateInputAction(InputAction action)
-{
-	if(!isGamepadButton(action.key))
-		action.setTurboFlag(false);
-	assert(action.key >= pceKeyIdxUp);
-	unsigned player = (action.key - pceKeyIdxUp) / Controls::gamepadKeys;
-	unsigned playerMask = player << playerBit;
-	action.key -= Controls::gamepadKeys * player;
-	action.key = [&] -> unsigned
-	{
-		switch(action.key)
-		{
-			case pceKeyIdxUp: return bit(4) | playerMask;
-			case pceKeyIdxRight: return bit(5) | playerMask;
-			case pceKeyIdxDown: return bit(6) | playerMask;
-			case pceKeyIdxLeft: return bit(7) | playerMask;
-			case pceKeyIdxLeftUp: return bit(7) | bit(4) | playerMask;
-			case pceKeyIdxRightUp: return bit(5) | bit(4) | playerMask;
-			case pceKeyIdxRightDown: return bit(5) | bit(6) | playerMask;
-			case pceKeyIdxLeftDown: return bit(7) | bit(6) | playerMask;
-			case pceKeyIdxSelect: return bit(2) | playerMask;
-			case pceKeyIdxRun: return bit(3) | playerMask;
-			case pceKeyIdxITurbo: action.setTurboFlag(true); [[fallthrough]];
-			case pceKeyIdxI: return bit(0) | playerMask;
-			case pceKeyIdxIITurbo: action.setTurboFlag(true); [[fallthrough]];
-			case pceKeyIdxII: return bit(1) | playerMask;
-			case pceKeyIdxIII: return bit(8) | playerMask;
-			case pceKeyIdxIV: return bit(9) | playerMask;
-			case pceKeyIdxV: return bit(10) | playerMask;
-			case pceKeyIdxVI: return bit(11) | playerMask;
-		}
-		bug_unreachable("invalid key");
-	}();
-	return action;
-}
-
 void PceSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	auto player = a.key >> playerBit;
+	auto player = a.flags.deviceId;
 	assumeExpr(player < maxPlayers);
-	inputBuff[player] = IG::setOrClearBits(inputBuff[player], (uint16)a.key, a.state == Input::Action::PUSHED);
+	inputBuff[player] = setOrClearBits(inputBuff[player], bit(a.code - 1), a.state == Input::Action::PUSHED);
 }
 
 void PceSystem::clearInputBuffers(EmuInputView &)
@@ -203,13 +233,24 @@ void set6ButtonPadEnabled(EmuApp &app, bool on)
 	}
 	else
 	{
-		static constexpr unsigned extraCodes[]{pceKeyIdxIII, pceKeyIdxIV, pceKeyIdxV, pceKeyIdxVI};
+		static constexpr std::array extraCodes{KeyCode(PceKey::III), KeyCode(PceKey::IV), KeyCode(PceKey::V), KeyCode(PceKey::VI)};
 		app.setDisabledInputKeys(extraCodes);
 	}
 }
 
 SystemInputDeviceDesc PceSystem::inputDeviceDesc(int idx) const
 {
+	static constexpr std::array gamepadComponents
+	{
+		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
+		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO},
+		InputComponentDesc{"Select", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
+		InputComponentDesc{"Run", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},
+		InputComponentDesc{"Select/Run", centerKeyInfo, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
+	};
+
+	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 	return gamepadDesc;
 }
 

@@ -115,7 +115,6 @@ stellaPath := stella/emucore
 SRC += main/Main.cc \
 main/options.cc \
 main/input.cc \
-main/EmuControls.cc \
 main/EmuMenuViews.cc \
 main/SoundEmuEx.cc \
 main/FrameBuffer.cc \

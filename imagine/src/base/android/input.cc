@@ -33,7 +33,7 @@ static const char* aInputSourceToStr(uint32_t source);
 
 Input::AndroidInputDevice *AndroidApplication::inputDeviceForId(int id) const
 {
-	auto existingIt = std::find_if(inputDev.cbegin(), inputDev.cend(),
+	auto existingIt = std::ranges::find_if(inputDev,
 		[=](const auto &e)
 		{ return e->map() == Input::Map::SYSTEM && e->id() == id; });
 	if(existingIt == inputDev.end())

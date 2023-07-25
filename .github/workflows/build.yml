@@ -45,13 +45,15 @@ jobs:
       run: |
         mkdir imagine-sdk
         mkdir EX-Emulators
+        wget "https://dl.google.com/android/repository/android-ndk-r26-beta1-linux.zip"
+        unzip android-ndk-r26-beta1-linux.zip
+        echo "ANDROID_NDK_PATH=${{ github.workspace }}/android-ndk-r26-beta1" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
         
     - name: Run script
       run: |
-        bash imagine/bundle/android/toolchains/get-clang-prebuilt.sh
         cd imagine/bundle/all
         chmod +x ./makeAll-android.sh
         ./makeAll-android.sh install

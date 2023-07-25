@@ -14,6 +14,7 @@ EmuVideo.cc \
 EmuVideoLayer.cc \
 InputDeviceConfig.cc \
 InputDeviceData.cc \
+KeyConfig.cc \
 OutputTimingManager.cc \
 pathUtils.cc \
 TurboInput.cc \

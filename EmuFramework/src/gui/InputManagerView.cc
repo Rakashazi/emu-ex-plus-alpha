@@ -16,6 +16,7 @@
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/ButtonConfigView.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/AppKeyCode.hh>
 #include "../EmuOptions.hh"
 #include "../privateInput.hh"
 #include <imagine/gui/TextEntry.hh>
@@ -82,43 +83,23 @@ void IdentInputDeviceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	text.draw(cmds, viewRect().center(), C2DO, ColorName::WHITE);
 }
 
-static void removeKeyConfFromAllDevices(auto &savedInputDevs, const KeyConfig *conf, IG::ApplicationContext ctx)
-{
-	logMsg("removing saved key config %s from all devices", conf->name.data());
-	for(auto &ePtr : savedInputDevs)
-	{
-		auto &e = *ePtr;
-		if(e.keyConf == conf)
-		{
-			logMsg("used by saved device config %s,%d", e.name.data(), e.enumId);
-			e.keyConf = nullptr;
-		}
-		auto devIt = std::ranges::find_if(ctx.inputDevices(), [&](auto &devPtr){ return e.matchesDevice(*devPtr); });
-		if(devIt != ctx.inputDevices().end())
-		{
-			inputDevData(*devIt->get()).buildKeyMap(*devIt->get());
-		}
-	}
-}
-
 InputManagerView::InputManagerView(ViewAttachParams attach,
-	KeyConfigContainer &customKeyConfigs_,
-	InputDeviceSavedConfigContainer &savedInputDevs_):
+	InputManager &inputManager_):
 	TableView{"Key/Gamepad Input Setup", attach, item},
-	customKeyConfigsPtr{&customKeyConfigs_},
-	savedInputDevsPtr{&savedInputDevs_},
+	inputManager{inputManager_},
 	deleteDeviceConfig
 	{
 		"Delete Saved Device Settings", &defaultFace(),
 		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
-			if(!savedInputDevs().size())
+			auto &savedInputDevs = inputManager.savedInputDevs;
+			if(!savedInputDevs.size())
 			{
 				app().postMessage("No saved device settings");
 				return;
 			}
-			auto multiChoiceView = makeViewWithName<TextTableView>(item, savedInputDevs().size());
-			for(auto &ePtr : savedInputDevs())
+			auto multiChoiceView = makeViewWithName<TextTableView>(item, savedInputDevs.size());
+			for(auto &ePtr : savedInputDevs)
 			{
 				multiChoiceView->appendItem(InputDeviceData::makeDisplayName(ePtr->name, ePtr->enumId),
 					[this, deleteDeviceConfigPtr = ePtr.get()](const Input::Event &e)
@@ -137,11 +118,11 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 										if(inputDevConf.hasSavedConf(*deleteDeviceConfigPtr))
 										{
 											logMsg("removing from active device");
-											inputDevConf.setSavedConf(nullptr);
+											inputDevConf.setSavedConf(inputManager, nullptr);
 											break;
 										}
 									}
-									std::erase_if(savedInputDevs(), [&](auto &ptr){ return ptr.get() == deleteDeviceConfigPtr; });
+									std::erase_if(inputManager.savedInputDevs, [&](auto &ptr){ return ptr.get() == deleteDeviceConfigPtr; });
 									dismissPrevious();
 								}
 							}), e);
@@ -155,13 +136,14 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 		"Delete Saved Key Profile", &defaultFace(),
 		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
-			if(!customKeyConfigs().size())
+			auto &customKeyConfigs = inputManager.customKeyConfigs;
+			if(!customKeyConfigs.size())
 			{
 				app().postMessage("No saved profiles");
 				return;
 			}
-			auto multiChoiceView = makeViewWithName<TextTableView>(item, customKeyConfigs().size());
-			for(auto &ePtr : customKeyConfigs())
+			auto multiChoiceView = makeViewWithName<TextTableView>(item, customKeyConfigs.size());
+			for(auto &ePtr : customKeyConfigs)
 			{
 				multiChoiceView->appendItem(ePtr->name,
 					[this, deleteProfilePtr = ePtr.get()](const Input::Event &e)
@@ -172,8 +154,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 								.onYes = [this, deleteProfilePtr]
 								{
 									logMsg("deleting profile: %s", deleteProfilePtr->name.data());
-									removeKeyConfFromAllDevices(savedInputDevs(), deleteProfilePtr, appContext());
-									std::erase_if(customKeyConfigs(), [&](auto &confPtr){ return confPtr.get() == deleteProfilePtr; });
+									inputManager.deleteKeyProfile(appContext(), deleteProfilePtr);
 									dismissPrevious();
 								}
 							}), e);
@@ -229,7 +210,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 		"Individual Device Settings", &defaultBoldFace(),
 	}
 {
-	app().inputManager.onUpdateDevices = [this]()
+	inputManager.onUpdateDevices = [this]()
 	{
 		popTo(*this);
 		auto selectedCell = selected;
@@ -238,14 +219,14 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 		place();
 		show();
 	};
-	deleteDeviceConfig.setActive(savedInputDevs_.size());
-	deleteProfile.setActive(customKeyConfigs_.size());
+	deleteDeviceConfig.setActive(inputManager.savedInputDevs.size());
+	deleteProfile.setActive(inputManager.customKeyConfigs.size());
 	loadItems();
 }
 
 InputManagerView::~InputManagerView()
 {
-	app().inputManager.onUpdateDevices = {};
+	inputManager.onUpdateDevices = {};
 }
 
 void InputManagerView::loadItems()
@@ -286,14 +267,13 @@ void InputManagerView::loadItems()
 void InputManagerView::onShow()
 {
 	TableView::onShow();
-	deleteDeviceConfig.setActive(savedInputDevs().size());
-	deleteProfile.setActive(customKeyConfigs().size());
+	deleteDeviceConfig.setActive(inputManager.savedInputDevs.size());
+	deleteProfile.setActive(inputManager.customKeyConfigs.size());
 }
 
 void InputManagerView::pushAndShowDeviceView(const Input::Device &dev, const Input::Event &e)
 {
-	pushAndShow(makeViewWithName<InputManagerDeviceView>(inputDevData(dev).displayName, *this, dev,
-		customKeyConfigs(), savedInputDevs()), e);
+	pushAndShow(makeViewWithName<InputManagerDeviceView>(inputDevData(dev).displayName, *this, dev, inputManager), e);
 }
 
 #ifdef CONFIG_BLUETOOTH_SCAN_SECS
@@ -456,23 +436,22 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 class ProfileSelectMenu : public TextTableView
 {
 public:
-	using ProfileChangeDelegate = DelegateFunc<void (const KeyConfig &profile)>;
+	using ProfileChangeDelegate = DelegateFunc<void (std::string_view profile)>;
 
 	ProfileChangeDelegate onProfileChange{};
 
-	ProfileSelectMenu(ViewAttachParams attach, Input::Device &dev, std::string_view selectedName,
-		auto &customKeyConfigList):
+	ProfileSelectMenu(ViewAttachParams attach, Input::Device &dev, std::string_view selectedName, const InputManager &mgr):
 		TextTableView
 		{
 			"Key Profile",
 			attach,
-			customKeyConfigList.size() + MAX_DEFAULT_KEY_CONFIGS_PER_TYPE
+			mgr.customKeyConfigs.size() + 8 // reserve space for built-in configs
 		}
 	{
-		for(auto &confPtr : customKeyConfigList)
+		for(auto &confPtr : mgr.customKeyConfigs)
 		{
 			auto &conf = *confPtr;
-			if(conf.map == dev.map())
+			if(conf.desc().map == dev.map())
 			{
 				if(selectedName == conf.name)
 				{
@@ -483,12 +462,14 @@ public:
 					{
 						auto del = onProfileChange;
 						dismiss();
-						del(conf);
+						del(conf.name);
 					});
 			}
 		}
-		for(const auto &conf : KeyConfig::defaultConfigsForDevice(dev))
+		for(const auto &conf : EmuApp::defaultKeyConfigs())
 		{
+			if(dev.map() != conf.map)
+				continue;
 			if(selectedName == conf.name)
 				activeItem = textItem.size();
 			textItem.emplace_back(conf.name, &defaultFace(),
@@ -496,7 +477,7 @@ public:
 				{
 					auto del = onProfileChange;
 					dismiss();
-					del(conf);
+					del(conf.name);
 				});
 		}
 	}
@@ -508,12 +489,9 @@ static bool customKeyConfigsContainName(auto &customKeyConfigs, std::string_view
 }
 
 InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParams attach,
-	InputManagerView &rootIMView_, const Input::Device &dev,
-	KeyConfigContainer &customKeyConfigs_,
-	InputDeviceSavedConfigContainer &savedInputDevs_):
+	InputManagerView &rootIMView_, const Input::Device &dev, InputManager &inputManager_):
 	TableView{std::move(name), attach, item},
-	customKeyConfigsPtr{&customKeyConfigs_},
-	savedInputDevsPtr{&savedInputDevs_},
+	inputManager{inputManager_},
 	rootIMView{rootIMView_},
 	playerItem
 	{
@@ -533,8 +511,8 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 				auto playerVal = item.id();
 				bool changingMultiplayer = (playerVal == InputDeviceConfig::PLAYER_MULTI && devConf->player() != InputDeviceConfig::PLAYER_MULTI) ||
 					(playerVal != InputDeviceConfig::PLAYER_MULTI && devConf->player() == InputDeviceConfig::PLAYER_MULTI);
-				devConf->setPlayer(playerVal);
-				devConf->save(savedInputDevs());
+				devConf->setPlayer(inputManager, playerVal);
+				devConf->save(inputManager);
 				if(changingMultiplayer)
 				{
 					loadItems();
@@ -554,14 +532,14 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 		[this](const Input::Event &e)
 		{
 			auto profileSelectMenu = makeView<ProfileSelectMenu>(devConf->device(),
-				devConf->keyConf().name, customKeyConfigs());
+				devConf->keyConf(inputManager).name, inputManager);
 			profileSelectMenu->onProfileChange =
-				[this](const KeyConfig &profile)
-				{
-					logMsg("set key profile %s", profile.name.data());
-					devConf->setKeyConf(profile, savedInputDevs());
-					onShow();
-				};
+					[this](std::string_view profile)
+					{
+						logMsg("set key profile %s", profile.data());
+						devConf->setKeyConfName(inputManager, profile);
+						onShow();
+					};
 			pushAndShow(std::move(profileSelectMenu), e);
 		}
 	},
@@ -570,22 +548,21 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 		"Rename Profile", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(!devConf->mutableKeyConf(customKeyConfigs()))
+			if(!devConf->mutableKeyConf(inputManager))
 			{
 				app().postMessage(2, "Can't rename a built-in profile");
 				return;
 			}
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", devConf->keyConf().name,
+			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", devConf->keyConf(inputManager).name,
 				[this](EmuApp &app, auto str)
 				{
-					if(customKeyConfigsContainName(customKeyConfigs(), str))
+					if(customKeyConfigsContainName(inputManager.customKeyConfigs, str))
 					{
 						app.postErrorMessage("Another profile is already using this name");
 						postDraw();
 						return false;
 					}
-					assert(devConf->mutableKeyConf(customKeyConfigs()));
-					devConf->mutableKeyConf(customKeyConfigs())->name = str;
+					devConf->mutableKeyConf(inputManager)->name = str;
 					onShow();
 					postDraw();
 					return true;
@@ -606,13 +583,13 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 						app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", "",
 							[this](EmuApp &app, auto str)
 							{
-								if(customKeyConfigsContainName(customKeyConfigs(), str))
+								if(customKeyConfigsContainName(inputManager.customKeyConfigs, str))
 								{
 									app.postErrorMessage("Another profile is already using this name");
 									return false;
 								}
-								devConf->setKeyConfCopiedFromExisting(str, customKeyConfigs(), savedInputDevs());
-								logMsg("created new profile %s", devConf->keyConf().name.data());
+								devConf->setKeyConfCopiedFromExisting(inputManager, str);
+								logMsg("created new profile %s", devConf->keyConf(inputManager).name.data());
 								onShow();
 								postDraw();
 								return true;
@@ -626,7 +603,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 		"Delete Profile", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(!devConf->mutableKeyConf(customKeyConfigs()))
+			if(!devConf->mutableKeyConf(inputManager))
 			{
 				app().postMessage(2, "Can't delete a built-in profile");
 				return;
@@ -636,19 +613,17 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 				{
 					.onYes = [this]
 					{
-						auto conf = devConf->mutableKeyConf(customKeyConfigs());
+						auto conf = devConf->mutableKeyConf(inputManager);
 						if(!conf)
 						{
 							bug_unreachable("confirmed deletion of a read-only key config, should never happen");
 						}
 						logMsg("deleting profile: %s", conf->name.data());
-						removeKeyConfFromAllDevices(savedInputDevs(), conf, appContext());
-						std::erase_if(customKeyConfigs(), [&](auto &confPtr){ return confPtr.get() == conf; });
+						inputManager.deleteKeyProfile(appContext(), conf);
 					}
 				}), e);
 		}
 	},
-	#if defined CONFIG_INPUT_ICADE
 	iCadeMode
 	{
 		"iCade Mode", &defaultFace(),
@@ -672,7 +647,6 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 			}
 		}
 	},
-	#endif
 	joystickAxis1DPad
 	{
 		"Joystick X/Y Axis 1 as D-Pad", &defaultFace(),
@@ -683,7 +657,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 			auto bits = devConf->joystickAxisAsDpadBits();
 			bits = IG::updateBits(bits, on ? Input::Device::AXIS_BITS_STICK_1 : 0, Input::Device::AXIS_BITS_STICK_1);
 			devConf->setJoystickAxisAsDpadBits(bits);
-			devConf->save(savedInputDevs());
+			devConf->save(inputManager);
 		}
 	},
 	joystickAxis2DPad
@@ -696,7 +670,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 			auto bits = devConf->joystickAxisAsDpadBits();
 			bits = IG::updateBits(bits, on ? Input::Device::AXIS_BITS_STICK_2 : 0, Input::Device::AXIS_BITS_STICK_2);
 			devConf->setJoystickAxisAsDpadBits(bits);
-			devConf->save(savedInputDevs());
+			devConf->save(inputManager);
 		}
 	},
 	joystickAxisHatDPad
@@ -709,63 +683,68 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 			auto bits = devConf->joystickAxisAsDpadBits();
 			bits = IG::updateBits(bits, on ? Input::Device::AXIS_BITS_HAT : 0, Input::Device::AXIS_BITS_HAT);
 			devConf->setJoystickAxisAsDpadBits(bits);
-			devConf->save(savedInputDevs());
+			devConf->save(inputManager);
 		}
 	},
 	consumeUnboundKeys
 	{
 		"Handle Unbound Keys", &defaultFace(),
-		inputDevData(dev).devConf.shouldConsumeUnboundKeys(),
+		inputDevData(dev).devConf.shouldHandleUnboundKeys,
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			devConf->setConsumeUnboundKeys(item.flipBoolValue(*this));
-			devConf->save(savedInputDevs());
+			devConf->shouldHandleUnboundKeys = item.flipBoolValue(*this);
+			devConf->save(inputManager);
 		}
 	},
 	devConf{&inputDevData(dev).devConf}
 {
-	loadProfile.setName(std::format("Profile: {}", devConf->keyConf().name));
-	renameProfile.setActive(devConf->mutableKeyConf(customKeyConfigs()));
-	deleteProfile.setActive(devConf->mutableKeyConf(customKeyConfigs()));
+	loadProfile.setName(std::format("Profile: {}", devConf->keyConf(inputManager).name));
+	renameProfile.setActive(devConf->mutableKeyConf(inputManager));
+	deleteProfile.setActive(devConf->mutableKeyConf(inputManager));
 	loadItems();
+}
+
+void InputManagerDeviceView::addCategoryItem(const KeyCategory &cat)
+{
+	auto &catItem = inputCategory.emplace_back(cat.name, &defaultFace(),
+		[this, &cat](const Input::Event &e)
+		{
+			pushAndShow(makeView<ButtonConfigView>(rootIMView, cat, *devConf), e);
+		});
+	item.emplace_back(&catItem);
 }
 
 void InputManagerDeviceView::loadItems()
 {
 	item.clear();
-	item.reserve(app().inputControlCategories().size() + 11);
+	auto totalCategories = 1 + EmuApp::keyCategories().size();
+	item.reserve(totalCategories + 11);
 	inputCategory.clear();
-	inputCategory.reserve(app().inputControlCategories().size());
+	inputCategory.reserve(totalCategories);
 	if(EmuSystem::maxPlayers > 1)
 	{
 		item.emplace_back(&player);
 	}
 	item.emplace_back(&loadProfile);
-	for(auto &cat : app().inputControlCategories())
+	addCategoryItem(appKeyCategory);
+	for(auto &cat : EmuApp::keyCategories())
 	{
 		if(cat.multiplayerIndex && devConf->player() != InputDeviceConfig::PLAYER_MULTI)
 		{
 			//logMsg("skipping category %s (%d)", cat.name, (int)c_i);
 			continue;
 		}
-		auto &catItem = inputCategory.emplace_back(cat.name, &defaultFace(),
-			[this, &cat](const Input::Event &e)
-			{
-				pushAndShow(makeView<ButtonConfigView>(rootIMView, cat, *this->devConf), e);
-			});
-		item.emplace_back(&catItem);
+		addCategoryItem(cat);
 	}
 	item.emplace_back(&newProfile);
 	item.emplace_back(&renameProfile);
 	item.emplace_back(&deleteProfile);
-	#if defined CONFIG_INPUT_ICADE
 	auto &dev = devConf->device();
-	if((dev.map() == Input::Map::SYSTEM && dev.hasKeyboard())
-			|| dev.map() == Input::Map::ICADE)
+	if(hasICadeInput &&
+		((dev.map() == Input::Map::SYSTEM && dev.hasKeyboard()) || dev.map() == Input::Map::ICADE))
 	{
 		item.emplace_back(&iCadeMode);
 	}
-	#endif
 	if(dev.motionAxis(Input::AxisId::X))
 	{
 		item.emplace_back(&joystickAxis1DPad);
@@ -787,19 +766,17 @@ void InputManagerDeviceView::loadItems()
 void InputManagerDeviceView::onShow()
 {
 	TableView::onShow();
-	loadProfile.compile(std::format("Profile: {}", devConf->keyConf().name), renderer());
-	bool keyConfIsMutable = devConf->mutableKeyConf(customKeyConfigs());
+	loadProfile.compile(std::format("Profile: {}", devConf->keyConf(inputManager).name), renderer());
+	bool keyConfIsMutable = devConf->mutableKeyConf(inputManager);
 	renameProfile.setActive(keyConfIsMutable);
 	deleteProfile.setActive(keyConfIsMutable);
 }
 
-#ifdef CONFIG_INPUT_ICADE
 void InputManagerDeviceView::confirmICadeMode()
 {
-	devConf->setICadeMode(iCadeMode.flipBoolValue(*this), savedInputDevs());
+	devConf->setICadeMode(inputManager, iCadeMode.flipBoolValue(*this));
 	onShow();
 	app().defaultVController().setPhysicalControlsPresent(appContext().keyInputIsPresent());
 }
-#endif
 
 }

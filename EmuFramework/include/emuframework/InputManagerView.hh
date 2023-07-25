@@ -32,6 +32,7 @@ namespace EmuEx
 using namespace IG;
 class InputDeviceConfig;
 class EmuInputView;
+struct KeyCategory;
 
 class IdentInputDeviceView : public View
 {
@@ -51,14 +52,13 @@ private:
 class InputManagerView final: public TableView, public EmuAppHelper<InputManagerView>
 {
 public:
-	InputManagerView(ViewAttachParams attach, KeyConfigContainer &, InputDeviceSavedConfigContainer &);
+	InputManagerView(ViewAttachParams attach, InputManager &);
 	~InputManagerView() final;
 	void onShow() final;
 	void pushAndShowDeviceView(const Input::Device &, const Input::Event &);
 
 private:
-	KeyConfigContainer *customKeyConfigsPtr{};
-	InputDeviceSavedConfigContainer *savedInputDevsPtr{};
+	InputManager &inputManager;
 	TextMenuItem deleteDeviceConfig;
 	TextMenuItem deleteProfile;
 	IG_UseMemberIf(Config::envIsAndroid, TextMenuItem, rescanOSDevices);
@@ -69,8 +69,6 @@ private:
 	std::vector<MenuItem*> item;
 
 	void loadItems();
-	KeyConfigContainer &customKeyConfigs() const { return *customKeyConfigsPtr; };
-	InputDeviceSavedConfigContainer &savedInputDevs() const { return *savedInputDevsPtr; };
 };
 
 class InputManagerOptionsView : public TableView, public EmuAppHelper<InputManagerOptionsView>
@@ -99,13 +97,11 @@ class InputManagerDeviceView : public TableView, public EmuAppHelper<InputManage
 {
 public:
 	InputManagerDeviceView(UTF16String name, ViewAttachParams,
-		InputManagerView &rootIMView, const Input::Device &,
-		KeyConfigContainer &, InputDeviceSavedConfigContainer &);
+		InputManagerView &rootIMView, const Input::Device &, InputManager &);
 	void onShow() final;
 
 private:
-	KeyConfigContainer *customKeyConfigsPtr{};
-	InputDeviceSavedConfigContainer *savedInputDevsPtr{};
+	InputManager &inputManager;
 	InputManagerView &rootIMView;
 	TextMenuItem playerItem[6];
 	MultiChoiceMenuItem player;
@@ -113,9 +109,7 @@ private:
 	TextMenuItem renameProfile;
 	TextMenuItem newProfile;
 	TextMenuItem deleteProfile;
-	#if defined CONFIG_INPUT_ICADE
-	BoolMenuItem iCadeMode;
-	#endif
+	IG_UseMemberIf(hasICadeInput, BoolMenuItem, iCadeMode);
 	BoolMenuItem joystickAxis1DPad;
 	BoolMenuItem joystickAxis2DPad;
 	BoolMenuItem joystickAxisHatDPad;
@@ -127,8 +121,7 @@ private:
 
 	void confirmICadeMode();
 	void loadItems();
-	KeyConfigContainer &customKeyConfigs() const { return *customKeyConfigsPtr; };
-	InputDeviceSavedConfigContainer &savedInputDevs() const { return *savedInputDevsPtr; };
+	void addCategoryItem(const KeyCategory &cat);
 };
 
 }

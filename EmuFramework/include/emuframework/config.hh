@@ -26,11 +26,6 @@
 #endif
 #define CREDITS_INFO_STRING "Built : " __DATE__ "\n" PLATFORM_INFO_STR "\n\n"
 
-#if defined CONFIG_INPUT_KEYBOARD_DEVICES
-#define CONFIG_INPUT_ICADE
-#endif
-
-
 namespace EmuEx
 {
 
@@ -47,5 +42,6 @@ constexpr bool HAS_MULTIPLE_WINDOW_PIXEL_FORMATS = Config::envIsLinux || Config:
 constexpr bool MOGA_INPUT = Config::envIsAndroid;
 constexpr bool CAN_HIDE_TITLE_BAR = !Config::envIsIOS;
 constexpr bool enableFrameTimeStats = Config::DEBUG_BUILD;
+constexpr bool hasICadeInput = Config::Input::KEYBOARD_DEVICES;
 
 }

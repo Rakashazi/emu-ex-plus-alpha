@@ -26,7 +26,7 @@
 namespace EmuEx
 {
 
-VControllerButtonGroup::VControllerButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin, int8_t rowItems):
+VControllerButtonGroup::VControllerButtonGroup(std::span<const KeyInfo> buttonCodes, _2DOrigin layoutOrigin, int8_t rowItems):
 	layout
 	{
 		.rowItems = rowItems,
@@ -166,7 +166,7 @@ void VControllerButtonGroup::transposeKeysForPlayer(const EmuApp &app, int playe
 {
 	for(auto &b : buttons)
 	{
-		b.key = app.transposeKeyForPlayer(b.key, player);
+		b.key = app.inputManager.transpose(b.key, player);
 	}
 }
 
@@ -176,9 +176,9 @@ int VControllerButtonGroup::rows() const
 	return divRoundUp(buttonsToLayout(buttons), layout.rowItems);
 }
 
-std::array<int, 2> VControllerButtonGroup::findButtonIndices(WPt windowPos) const
+std::array<KeyInfo, 2> VControllerButtonGroup::findButtonIndices(WPt windowPos) const
 {
-	std::array<int, 2> btnOut{-1, -1};
+	std::array<KeyInfo, 2> btnOut{};
 	for(size_t count = 0; auto &b : buttons)
 	{
 		if(b.overlaps(windowPos))
@@ -222,13 +222,12 @@ static std::string namesString(auto &buttons, const EmuApp &app)
 {
 	if(buttons.empty())
 		return "Empty Group";
-	std::string s;
-	for(const auto &b : buttons | std::ranges::views::take(buttons.size() - 1))
+	std::string s{buttons.front().name(app)};
+	for(const auto &b : buttons | std::ranges::views::drop(1))
 	{
-		s += b.name(app);
 		s += " | ";
+		s += b.name(app);
 	}
-	s += buttons.back().name(app);
 	return s;
 }
 
@@ -244,7 +243,7 @@ static bool isValidStaggerType(int val) { return val >= 0 && val <= 5; }
 
 void VControllerButtonGroup::Config::validate(const EmuApp &app)
 {
-	for(auto &k : keys) { k =	app.validateSystemKey(k, false); }
+	for(auto &k : keys) { k =	app.inputManager.validateSystemKey(k, false); }
 	if(!isValidRowItemCount(layout.rowItems))
 		layout.rowItems = 2;
 	if(!isValidSpacing(layout.spacingMM))
@@ -257,7 +256,7 @@ void VControllerButtonGroup::Config::validate(const EmuApp &app)
 		layout.staggerType = 2;
 }
 
-VControllerUIButtonGroup::VControllerUIButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin):
+VControllerUIButtonGroup::VControllerUIButtonGroup(std::span<const KeyInfo> buttonCodes, _2DOrigin layoutOrigin):
 	layout
 	{
 		.rowItems = 4,
@@ -331,7 +330,7 @@ std::string VControllerUIButtonGroup::name(const EmuApp &app) const
 
 void VControllerUIButtonGroup::Config::validate(const EmuApp &app)
 {
-	for(auto &k : keys) { k =	app.validateSystemKey(k, true); }
+	for(auto &k : keys) { k =	app.inputManager.validateSystemKey(k, true); }
 	if(!isValidRowItemCount(layout.rowItems))
 		layout.rowItems = 2;
 }

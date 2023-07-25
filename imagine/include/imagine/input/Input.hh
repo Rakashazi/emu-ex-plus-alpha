@@ -20,9 +20,9 @@
 #include <imagine/input/inputDefs.hh>
 #include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/util/variant.hh>
 #include <string>
 #include <string_view>
-#include <variant>
 
 namespace IG
 {
@@ -180,6 +180,8 @@ public:
 	constexpr auto motionEvent() const { return std::get_if<MotionEvent>(this); }
 	constexpr auto keyEvent() { return std::get_if<KeyEvent>(this); }
 	constexpr auto keyEvent() const { return std::get_if<KeyEvent>(this); }
+	constexpr auto state() const { return visit([](auto &e){ return e.state(); }, *this); }
+	constexpr auto metaKeyBits() const { return visit([](auto &e){ return e.metaKeyBits(); }, *this); }
 
 	SteadyClockTimePoint time() const;
 	const Device *device() const;

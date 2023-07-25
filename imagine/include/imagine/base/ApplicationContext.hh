@@ -222,6 +222,7 @@ public:
 
 	// Input
 	const InputDeviceContainer &inputDevices() const;
+	Input::Device *inputDevice(std::string_view name, int enumId) const;
 	void enumInputDevices() const;
 	void setHintKeyRepeat(bool on);
 	Input::Event defaultInputEvent() const;

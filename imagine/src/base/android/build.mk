@@ -32,6 +32,11 @@ base/common/EGLContextBase.cc \
 base/common/SimpleFrameTimer.cc \
 util/jni.cc
 
+ifneq ($(filter 9 16, $(android_ndkSDK)),)
+# add missing libc functions when compiling with newer NDK headers
+SRC += base/android/compat.c
+endif
+
 LDLIBS += -landroid
 
 endif

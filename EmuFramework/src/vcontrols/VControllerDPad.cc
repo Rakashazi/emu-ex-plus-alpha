@@ -45,8 +45,8 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
 			{
 				auto input = getInput({padArea.xPos(LT2DO) + int(x), padArea.yPos(LT2DO) + int(y)});
 				//logMsg("got input %d", input);
-				pixels[y, x] = input == std::array{-1, -1} ? PIXEL_DESC_RGB565.build(1., 0., 0.)
-										: (input[0] != -1 && input[1] != -1) ? PIXEL_DESC_RGB565.build(0., 1., 0.)
+				pixels[y, x] = input == std::array<KeyInfo, 2>{} ? PIXEL_DESC_RGB565.build(1., 0., 0.)
+										: (input[0] && input[1]) ? PIXEL_DESC_RGB565.build(0., 1., 0.)
 										: PIXEL_DESC_RGB565.build(1., 1., 1.);
 			}
 		mapImg = r.makeTexture({mapPix.desc(), View::imageSamplerConfig});
@@ -142,7 +142,7 @@ void VControllerDPad::transposeKeysForPlayer(const EmuApp &app, int player)
 {
 	for(auto &k : config.keys)
 	{
-		k = app.transposeKeyForPlayer(k, player);
+		k = app.inputManager.transpose(k, player);
 	}
 }
 
@@ -157,9 +157,9 @@ void VControllerDPad::draw(Gfx::RendererCommands &__restrict__ cmds, float alpha
 	}
 }
 
-std::array<int, 2> VControllerDPad::getInput(WPt c) const
+std::array<KeyInfo, 2> VControllerDPad::getInput(WPt c) const
 {
-	std::array<int, 2> pad{-1, -1};
+	std::array<KeyInfo, 2> pad{};
 	if(!padArea.overlaps(c))
 		return pad;
 	c -= padArea.center();
@@ -187,7 +187,7 @@ std::array<int, 2> VControllerDPad::getInput(WPt c) const
 
 void VControllerDPad::Config::validate(const EmuApp &app)
 {
-	for(auto &k : keys) { k = app.validateSystemKey(k, false); }
+	for(auto &k : keys) { k = app.inputManager.validateSystemKey(k, false); }
 	if(!isValidDiagonalSensitivity(diagonalSensitivity))
 		diagonalSensitivity = defaultDPadDiagonalSensitivity;
 	if(!isValidDeadzone(deadzoneMM100x))

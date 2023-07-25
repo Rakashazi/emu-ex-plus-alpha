@@ -18,7 +18,7 @@
 // TODO: Some Stella types collide with MacTypes.h
 #define Debugger DebuggerMac
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuInput.hh>
+#include <emuframework/keyRemappingUtils.hh>
 #undef Debugger
 #include "MainSystem.hh"
 #include "MainApp.hh"
@@ -28,95 +28,183 @@
 namespace EmuEx
 {
 
-enum
+const int EmuSystem::maxPlayers = 2;
+
+constexpr auto consoleKeyInfo = makeArray<KeyInfo>
+(
+	Event::ConsoleSelect,
+	Event::ConsoleReset,
+	Event::ConsoleLeftDiffToggle,
+	Event::ConsoleRightDiffToggle,
+	Event::ConsoleColorToggle
+);
+
+constexpr std::array dpadKeyInfo = makeArray<KeyInfo>
+(
+	Event::LeftJoystickUp,
+	Event::LeftJoystickRight,
+	Event::LeftJoystickDown,
+	Event::LeftJoystickLeft
+);
+
+constexpr std::array triggerKeyInfo = makeArray<KeyInfo>
+(
+	Event::LeftJoystickFire,
+	Event::LeftJoystickFire5,
+	Event::LeftJoystickFire9
+);
+
+constexpr auto turboTriggerKeyInfo = turbo(triggerKeyInfo);
+
+constexpr std::array kbKeyInfo = makeArray<KeyInfo>
+(
+	Event::LeftKeyboard1,
+	Event::LeftKeyboard2,
+	Event::LeftKeyboard3,
+	Event::LeftKeyboard4,
+	Event::LeftKeyboard5,
+	Event::LeftKeyboard6,
+	Event::LeftKeyboard7,
+	Event::LeftKeyboard8,
+	Event::LeftKeyboard9,
+	Event::LeftKeyboardStar,
+	Event::LeftKeyboard0,
+	Event::LeftKeyboardPound
+);
+
+constexpr auto jsKeyInfo = concatToArrayNow<dpadKeyInfo, triggerKeyInfo, turboTriggerKeyInfo>;
+constexpr auto js2KeyInfo = transpose(jsKeyInfo, 1);
+constexpr auto kb2KeyInfo = transpose(kbKeyInfo, 1);
+
+std::span<const KeyCategory> A2600App::keyCategories()
 {
-	vcsKeyIdxUp = Controls::systemKeyMapStart,
-	vcsKeyIdxRight,
-	vcsKeyIdxDown,
-	vcsKeyIdxLeft,
-	vcsKeyIdxLeftUp,
-	vcsKeyIdxRightUp,
-	vcsKeyIdxRightDown,
-	vcsKeyIdxLeftDown,
-	vcsKeyIdxJSBtn1,
-	vcsKeyIdxJSBtn1Turbo,
-	vcsKeyIdxJSBtn2,
-	vcsKeyIdxJSBtn2Turbo,
-	vcsKeyIdxJSBtn3,
-	vcsKeyIdxJSBtn3Turbo,
+	static constexpr std::array categories
+	{
+		KeyCategory{"Joystick", jsKeyInfo},
+		KeyCategory{"Joystick 2", js2KeyInfo, 1},
+		KeyCategory{"Console Switches", consoleKeyInfo},
+		KeyCategory{"Keyboard", kbKeyInfo},
+		KeyCategory{"Keyboard 2", kb2KeyInfo, 1},
+	};
+	return categories;
+}
 
-	vcsKeyIdxUp2,
-	vcsKeyIdxRight2,
-	vcsKeyIdxDown2,
-	vcsKeyIdxLeft2,
-	vcsKeyIdxLeftUp2,
-	vcsKeyIdxRightUp2,
-	vcsKeyIdxRightDown2,
-	vcsKeyIdxLeftDown2,
-	vcsKeyIdxJSBtn1P2,
-	vcsKeyIdxJSBtn1P2Turbo,
-	vcsKeyIdxJSBtn2P2,
-	vcsKeyIdxJSBtn2P2Turbo,
-	vcsKeyIdxJSBtn3P2,
-	vcsKeyIdxJSBtn3P2Turbo,
-
-	vcsKeyIdxSelect,
-	vcsKeyIdxReset,
-	vcsKeyIdxP1Diff,
-	vcsKeyIdxP2Diff,
-	vcsKeyIdxColorBW,
-	vcsKeyIdxKeyboard1Base,
-	vcsKeyIdxKeyboard2Base = vcsKeyIdxKeyboard1Base + 12,
-};
-
-constexpr std::array<unsigned, 4> dpadButtonCodes
+std::string_view A2600App::systemKeyCodeToString(KeyCode c)
 {
-	vcsKeyIdxUp,
-	vcsKeyIdxRight,
-	vcsKeyIdxDown,
-	vcsKeyIdxLeft,
-};
+	switch(c)
+	{
+		case Event::LeftJoystickUp: return "Up";
+		case Event::LeftJoystickRight: return "Right";
+		case Event::LeftJoystickDown: return "Down";
+		case Event::LeftJoystickLeft: return "Left";
+		case Event::LeftJoystickFire: return "Button 1";
+		case Event::LeftJoystickFire5: return "Button 2";
+		case Event::LeftJoystickFire9: return "Button 3";
+		case Event::ConsoleSelect: return "Select";
+		case Event::ConsoleReset: return "Reset";
+		case Event::ConsoleLeftDiffToggle: return "Left (P1) Difficulty";
+		case Event::ConsoleRightDiffToggle: return "Right (P2) Difficulty";
+		case Event::ConsoleColorToggle: return "Color/B&W";
+		case Event::LeftKeyboard1: return "1";
+		case Event::LeftKeyboard2: return "2";
+		case Event::LeftKeyboard3: return "3";
+		case Event::LeftKeyboard4: return "4";
+		case Event::LeftKeyboard5: return "5";
+		case Event::LeftKeyboard6: return "6";
+		case Event::LeftKeyboard7: return "7";
+		case Event::LeftKeyboard8: return "8";
+		case Event::LeftKeyboard9: return "9";
+		case Event::LeftKeyboardStar: return "*";
+		case Event::LeftKeyboard0: return "0";
+		case Event::LeftKeyboardPound: return "#";
+		default: return "";
+	}
+}
 
-constexpr std::array<unsigned, 2> consoleButtonCodes
+std::span<const KeyConfigDesc> A2600App::defaultKeyConfigs()
 {
-	vcsKeyIdxSelect,
-	vcsKeyIdxReset,
-};
+	using namespace IG::Input;
 
-constexpr std::array<unsigned, 3> jsButtonCodes
+	static constexpr std::array pcKeyboardMap
+	{
+		KeyMapping{::Event::LeftJoystickUp, Keycode::UP},
+		KeyMapping{::Event::LeftJoystickRight, Keycode::RIGHT},
+		KeyMapping{::Event::LeftJoystickDown, Keycode::DOWN},
+		KeyMapping{::Event::LeftJoystickLeft, Keycode::LEFT},
+		KeyMapping{::Event::LeftJoystickFire, Keycode::Z},
+		KeyMapping{::Event::LeftJoystickFire5, Keycode::X},
+		KeyMapping{::Event::LeftJoystickFire9, Keycode::C},
+		KeyMapping{::Event::ConsoleSelect, Keycode::SPACE},
+		KeyMapping{::Event::ConsoleReset, Keycode::ENTER},
+		KeyMapping{::Event::ConsoleLeftDiffToggle, Keycode::A},
+		KeyMapping{::Event::ConsoleRightDiffToggle, Keycode::S},
+		KeyMapping{::Event::ConsoleColorToggle, Keycode::D},
+		KeyMapping{::Event::LeftKeyboard1, Keycode::_1},
+		KeyMapping{::Event::LeftKeyboard2, Keycode::_2},
+		KeyMapping{::Event::LeftKeyboard3, Keycode::_3},
+		KeyMapping{::Event::LeftKeyboard4, Keycode::_4},
+		KeyMapping{::Event::LeftKeyboard5, Keycode::_5},
+		KeyMapping{::Event::LeftKeyboard6, Keycode::_6},
+		KeyMapping{::Event::LeftKeyboard7, Keycode::_7},
+		KeyMapping{::Event::LeftKeyboard8, Keycode::_8},
+		KeyMapping{::Event::LeftKeyboard9, Keycode::_9},
+		KeyMapping{::Event::LeftKeyboardStar, Keycode::MINUS},
+		KeyMapping{::Event::LeftKeyboard0, Keycode::_0},
+		KeyMapping{::Event::LeftKeyboardPound, Keycode::EQUALS},
+		KeyMapping{transpose(::Event::LeftKeyboard1, 1), Keycode::Q},
+		KeyMapping{transpose(::Event::LeftKeyboard2, 1), Keycode::W},
+		KeyMapping{transpose(::Event::LeftKeyboard3, 1), Keycode::E},
+		KeyMapping{transpose(::Event::LeftKeyboard4, 1), Keycode::R},
+		KeyMapping{transpose(::Event::LeftKeyboard5, 1), Keycode::T},
+		KeyMapping{transpose(::Event::LeftKeyboard6, 1), Keycode::Y},
+		KeyMapping{transpose(::Event::LeftKeyboard7, 1), Keycode::U},
+		KeyMapping{transpose(::Event::LeftKeyboard8, 1), Keycode::I},
+		KeyMapping{transpose(::Event::LeftKeyboard9, 1), Keycode::O},
+		KeyMapping{transpose(::Event::LeftKeyboardStar, 1), Keycode::P},
+		KeyMapping{transpose(::Event::LeftKeyboard0, 1), Keycode::LEFT_BRACKET},
+		KeyMapping{transpose(::Event::LeftKeyboardPound, 1), Keycode::RIGHT_BRACKET},
+	};
+
+	static constexpr std::array genericGamepadMap
+	{
+		KeyMapping{::Event::LeftJoystickUp, Keycode::UP},
+		KeyMapping{::Event::LeftJoystickRight, Keycode::RIGHT},
+		KeyMapping{::Event::LeftJoystickDown, Keycode::DOWN},
+		KeyMapping{::Event::LeftJoystickLeft, Keycode::LEFT},
+		KeyMapping{::Event::LeftJoystickFire, Keycode::GAME_A},
+		KeyMapping{::Event::LeftJoystickFire5, Keycode::GAME_X},
+		KeyMapping{::Event::ConsoleSelect, Keycode::GAME_R1},
+		KeyMapping{::Event::ConsoleReset, Keycode::GAME_START},
+		KeyMapping{::Event::ConsoleLeftDiffToggle, Keycode::GAME_Y},
+		KeyMapping{::Event::ConsoleRightDiffToggle, Keycode::GAME_B},
+		KeyMapping{::Event::ConsoleColorToggle, Keycode::GAME_L1},
+	};
+
+	static constexpr std::array wiimoteMap
+	{
+		KeyMapping{::Event::LeftJoystickUp, Wiimote::UP},
+		KeyMapping{::Event::LeftJoystickRight, Wiimote::RIGHT},
+		KeyMapping{::Event::LeftJoystickDown, Wiimote::DOWN},
+		KeyMapping{::Event::LeftJoystickLeft, Wiimote::LEFT},
+		KeyMapping{::Event::LeftJoystickFire, Wiimote::_1},
+		KeyMapping{::Event::LeftJoystickFire5, Wiimote::_2},
+		KeyMapping{::Event::ConsoleSelect, Wiimote::MINUS},
+		KeyMapping{::Event::ConsoleReset, Wiimote::PLUS},
+		KeyMapping{::Event::ConsoleLeftDiffToggle, Wiimote::A},
+	};
+
+	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();
+}
+
+bool A2600App::allowsTurboModifier(KeyCode c)
 {
-	vcsKeyIdxJSBtn1,
-	vcsKeyIdxJSBtn2,
-	vcsKeyIdxJSBtn3,
-};
-
-constexpr std::array<unsigned, 12> kbButtonCodes
-{
-	vcsKeyIdxKeyboard1Base,
-	vcsKeyIdxKeyboard1Base + 1,
-	vcsKeyIdxKeyboard1Base + 2,
-	vcsKeyIdxKeyboard1Base + 3,
-	vcsKeyIdxKeyboard1Base + 4,
-	vcsKeyIdxKeyboard1Base + 5,
-	vcsKeyIdxKeyboard1Base + 6,
-	vcsKeyIdxKeyboard1Base + 7,
-	vcsKeyIdxKeyboard1Base + 8,
-	vcsKeyIdxKeyboard1Base + 9,
-	vcsKeyIdxKeyboard1Base + 10,
-	vcsKeyIdxKeyboard1Base + 11,
-};
-
-constexpr std::array jsComponents
-{
-	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Joystick Buttons", jsButtonCodes, InputComponent::button, RB2DO},
-	InputComponentDesc{"Keyboard Buttons", kbButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig | InputComponentFlagsMask::rowSize3},
-	InputComponentDesc{"Select", {&consoleButtonCodes[0], 1}, InputComponent::button, LB2DO},
-	InputComponentDesc{"Reset", {&consoleButtonCodes[1], 1}, InputComponent::button, RB2DO},
-	InputComponentDesc{"Console Buttons", consoleButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
-};
-
-constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};
+	switch(c)
+	{
+		case Event::LeftJoystickFire ... Event::LeftJoystickFire9:
+			return true;
+		default: return false;
+	}
+}
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
@@ -125,62 +213,58 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr struct VirtualControllerAssets
+AssetDesc A2600App::vControllerAssetDesc(KeyInfo key) const
 {
-	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
-
-	jsBtn1{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})},
-	jsBtn2{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})},
-	jsBtn3{AssetFileID::gamepadOverlay, gpImageCoords({{6, 4}, {2, 2}})},
-
-	one{AssetFileID::gamepadOverlay,   gpImageCoords({{10, 0}, {2, 2}})},
-	two{AssetFileID::gamepadOverlay,   gpImageCoords({{12, 0}, {2, 2}})},
-	three{AssetFileID::gamepadOverlay, gpImageCoords({{14, 0}, {2, 2}})},
-	four{AssetFileID::gamepadOverlay,  gpImageCoords({{4,  2}, {2, 2}})},
-	five{AssetFileID::gamepadOverlay,  gpImageCoords({{6,  2}, {2, 2}})},
-	six{AssetFileID::gamepadOverlay,   gpImageCoords({{8,  2}, {2, 2}})},
-	seven{AssetFileID::gamepadOverlay, gpImageCoords({{10, 2}, {2, 2}})},
-	eight{AssetFileID::gamepadOverlay, gpImageCoords({{12, 2}, {2, 2}})},
-	nine{AssetFileID::gamepadOverlay,  gpImageCoords({{14, 2}, {2, 2}})},
-	star{AssetFileID::gamepadOverlay,  gpImageCoords({{0,  4}, {2, 2}})},
-	zero{AssetFileID::gamepadOverlay,  gpImageCoords({{8,  0}, {2, 2}})},
-	pound{AssetFileID::gamepadOverlay, gpImageCoords({{2,  4}, {2, 2}})},
-
-	select{AssetFileID::gamepadOverlay,  gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
-	p1Diff{AssetFileID::gamepadOverlay,  gpImageCoords({{2, 6}, {2, 1}}), {1, 2}},
-	p2Diff{AssetFileID::gamepadOverlay,  gpImageCoords({{4, 6}, {2, 1}}), {1, 2}},
-	reset{AssetFileID::gamepadOverlay,   gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
-	colorBW{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}},
-
-	blank{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})};
-} virtualControllerAssets;
-
-static_assert(offsetof(VirtualControllerAssets, one) + 11 * sizeof(AssetDesc) == offsetof(VirtualControllerAssets, pound),
-	"keyboard assets must be in sequence");
-
-AssetDesc A2600App::vControllerAssetDesc(unsigned key) const
-{
-	switch(key)
+	static constexpr struct VirtualControllerAssets
 	{
-		case 0: return virtualControllerAssets.dpad;
-		case vcsKeyIdxJSBtn1:
-		case vcsKeyIdxJSBtn1Turbo: return virtualControllerAssets.jsBtn1;
-		case vcsKeyIdxJSBtn2:
-		case vcsKeyIdxJSBtn2Turbo: return virtualControllerAssets.jsBtn2;
-		case vcsKeyIdxJSBtn3:
-		case vcsKeyIdxJSBtn3Turbo: return virtualControllerAssets.jsBtn3;
-		case vcsKeyIdxKeyboard1Base ... vcsKeyIdxKeyboard1Base + 11:
-			return (&virtualControllerAssets.one)[key - vcsKeyIdxKeyboard1Base];
-		case vcsKeyIdxSelect: return virtualControllerAssets.select;
-		case vcsKeyIdxP1Diff: return virtualControllerAssets.p1Diff;
-		case vcsKeyIdxP2Diff: return virtualControllerAssets.p2Diff;
-		case vcsKeyIdxReset: return virtualControllerAssets.reset;
-		case vcsKeyIdxColorBW: return virtualControllerAssets.colorBW;
+		AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+		jsBtn1{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})},
+		jsBtn2{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})},
+		jsBtn3{AssetFileID::gamepadOverlay, gpImageCoords({{6, 4}, {2, 2}})},
+
+		one{AssetFileID::gamepadOverlay,   gpImageCoords({{10, 0}, {2, 2}})},
+		two{AssetFileID::gamepadOverlay,   gpImageCoords({{12, 0}, {2, 2}})},
+		three{AssetFileID::gamepadOverlay, gpImageCoords({{14, 0}, {2, 2}})},
+		four{AssetFileID::gamepadOverlay,  gpImageCoords({{4,  2}, {2, 2}})},
+		five{AssetFileID::gamepadOverlay,  gpImageCoords({{6,  2}, {2, 2}})},
+		six{AssetFileID::gamepadOverlay,   gpImageCoords({{8,  2}, {2, 2}})},
+		seven{AssetFileID::gamepadOverlay, gpImageCoords({{10, 2}, {2, 2}})},
+		eight{AssetFileID::gamepadOverlay, gpImageCoords({{12, 2}, {2, 2}})},
+		nine{AssetFileID::gamepadOverlay,  gpImageCoords({{14, 2}, {2, 2}})},
+		star{AssetFileID::gamepadOverlay,  gpImageCoords({{0,  4}, {2, 2}})},
+		zero{AssetFileID::gamepadOverlay,  gpImageCoords({{8,  0}, {2, 2}})},
+		pound{AssetFileID::gamepadOverlay, gpImageCoords({{2,  4}, {2, 2}})},
+
+		select{AssetFileID::gamepadOverlay,  gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+		p1Diff{AssetFileID::gamepadOverlay,  gpImageCoords({{2, 6}, {2, 1}}), {1, 2}},
+		p2Diff{AssetFileID::gamepadOverlay,  gpImageCoords({{4, 6}, {2, 1}}), {1, 2}},
+		reset{AssetFileID::gamepadOverlay,   gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
+		colorBW{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}},
+
+		blank{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})};
+	} virtualControllerAssets;
+
+	static_assert(offsetof(VirtualControllerAssets, one) + 11 * sizeof(AssetDesc) == offsetof(VirtualControllerAssets, pound),
+		"keyboard assets must be in sequence");
+
+	if(key[0] == 0)
+		return virtualControllerAssets.dpad;
+	switch(key[0])
+	{
+		case Event::LeftJoystickFire: return virtualControllerAssets.jsBtn1;
+		case Event::LeftJoystickFire5: return virtualControllerAssets.jsBtn2;
+		case Event::LeftJoystickFire9: return virtualControllerAssets.jsBtn3;
+		case Event::LeftKeyboard1 ... Event::LeftKeyboardPound:
+			return (&virtualControllerAssets.one)[key[0] - to_underlying(Event::LeftKeyboard1)];
+		case Event::ConsoleSelect: return virtualControllerAssets.select;
+		case Event::ConsoleLeftDiffToggle: return virtualControllerAssets.p1Diff;
+		case Event::ConsoleRightDiffToggle: return virtualControllerAssets.p2Diff;
+		case Event::ConsoleReset: return virtualControllerAssets.reset;
+		case Event::ConsoleColorToggle: return virtualControllerAssets.colorBW;
 		default: return virtualControllerAssets.blank;
 	}
 }
-
-const int EmuSystem::maxPlayers = 2;
 
 void A2600System::clearInputBuffers(EmuInputView &)
 {
@@ -211,82 +295,13 @@ void A2600System::updateJoytickMapping(EmuApp &app, Controller::Type type)
 	}
 }
 
-static bool isJoystickButton(unsigned input)
-{
-	switch(input)
-	{
-		case vcsKeyIdxJSBtn1 ... vcsKeyIdxJSBtn3Turbo:
-		case vcsKeyIdxJSBtn1P2 ... vcsKeyIdxJSBtn3P2Turbo:
-			return true;
-		default: return false;
-	}
-}
-
-InputAction A2600System::translateInputAction(InputAction action)
-{
-	if(!isJoystickButton(action.key))
-		action.setTurboFlag(false);
-	action.key = [&] -> unsigned
-	{
-		switch(action.key)
-		{
-			case vcsKeyIdxUp: return Event::LeftJoystickUp;
-			case vcsKeyIdxRight: return jsRightMap[0];
-			case vcsKeyIdxDown: return Event::LeftJoystickDown;
-			case vcsKeyIdxLeft: return jsLeftMap[0];
-			case vcsKeyIdxLeftUp: return Event::LeftJoystickLeft | (Event::LeftJoystickUp << 8);
-			case vcsKeyIdxRightUp: return Event::LeftJoystickRight | (Event::LeftJoystickUp << 8);
-			case vcsKeyIdxRightDown: return Event::LeftJoystickRight | (Event::LeftJoystickDown << 8);
-			case vcsKeyIdxLeftDown: return Event::LeftJoystickLeft | (Event::LeftJoystickDown << 8);
-			case vcsKeyIdxJSBtn1Turbo: action.setTurboFlag(true); [[fallthrough]];
-			case vcsKeyIdxJSBtn1: return jsFireMap[0];
-			case vcsKeyIdxJSBtn2Turbo: action.setTurboFlag(true); [[fallthrough]];
-			case vcsKeyIdxJSBtn2: return Event::LeftJoystickFire5;
-			case vcsKeyIdxJSBtn3Turbo: action.setTurboFlag(true); [[fallthrough]];
-			case vcsKeyIdxJSBtn3: return Event::LeftJoystickFire9;
-
-			case vcsKeyIdxUp2: return Event::RightJoystickUp;
-			case vcsKeyIdxRight2: return jsRightMap[1];
-			case vcsKeyIdxDown2: return Event::RightJoystickDown;
-			case vcsKeyIdxLeft2: return jsLeftMap[1];
-			case vcsKeyIdxLeftUp2: return Event::RightJoystickLeft | (Event::RightJoystickUp << 8);
-			case vcsKeyIdxRightUp2: return Event::RightJoystickRight | (Event::RightJoystickUp << 8);
-			case vcsKeyIdxRightDown2: return Event::RightJoystickRight | (Event::RightJoystickDown << 8);
-			case vcsKeyIdxLeftDown2: return Event::RightJoystickLeft | (Event::RightJoystickDown << 8);
-			case vcsKeyIdxJSBtn1P2Turbo: action.setTurboFlag(true); [[fallthrough]];
-			case vcsKeyIdxJSBtn1P2: return jsFireMap[1];
-			case vcsKeyIdxJSBtn2P2Turbo: action.setTurboFlag(true); [[fallthrough]];
-			case vcsKeyIdxJSBtn2P2: return Event::RightJoystickFire5;
-			case vcsKeyIdxJSBtn3P2Turbo: action.setTurboFlag(true); [[fallthrough]];
-			case vcsKeyIdxJSBtn3P2: return Event::RightJoystickFire9;
-
-			case vcsKeyIdxSelect: return Event::ConsoleSelect;
-			case vcsKeyIdxP1Diff: return Event::Combo1; // toggle P1 diff
-			case vcsKeyIdxP2Diff: return Event::Combo2; // toggle P2 diff
-			case vcsKeyIdxColorBW: return Event::Combo3; // toggle Color/BW
-			case vcsKeyIdxReset: return Event::ConsoleReset;
-			case vcsKeyIdxKeyboard1Base ... vcsKeyIdxKeyboard1Base + 11:
-				return Event::LeftKeyboard1 + (action.key - vcsKeyIdxKeyboard1Base);
-			case vcsKeyIdxKeyboard2Base ... vcsKeyIdxKeyboard2Base + 11:
-				return Event::RightKeyboard1 + (action.key - vcsKeyIdxKeyboard2Base);
-		}
-		bug_unreachable("invalid key");
-	}();
-	return action;
-}
-
-void A2600System::handleInputAction(EmuApp *app, InputAction a)
+void A2600System::handleInputAction(EmuApp *app, InputAction act)
 {
 	auto &ev = osystem.eventHandler().event();
-	auto event1 = a.key & 0xFF;
-	bool isPushed = a.state == Input::Action::PUSHED;
-
-	//logMsg("got key %d", emuKey);
-
-	switch(event1)
+	switch(act.code)
 	{
-		case Event::Combo1:
-			if(!isPushed)
+		case Event::ConsoleLeftDiffToggle:
+			if(!act.isPushed())
 				break;
 			p1DiffB ^= true;
 			if(app)
@@ -296,8 +311,8 @@ void A2600System::handleInputAction(EmuApp *app, InputAction a)
 			ev.set(Event::ConsoleLeftDiffB, p1DiffB);
 			ev.set(Event::ConsoleLeftDiffA, !p1DiffB);
 			break;
-		case Event::Combo2:
-			if(!isPushed)
+		case Event::ConsoleRightDiffToggle:
+			if(!act.isPushed())
 				break;
 			p2DiffB ^= true;
 			if(app)
@@ -307,8 +322,8 @@ void A2600System::handleInputAction(EmuApp *app, InputAction a)
 			ev.set(Event::ConsoleRightDiffB, p2DiffB);
 			ev.set(Event::ConsoleRightDiffA, !p2DiffB);
 			break;
-		case Event::Combo3:
-			if(!isPushed)
+		case Event::ConsoleColorToggle:
+			if(!act.isPushed())
 				break;
 			vcsColor ^= true;
 			if(app)
@@ -318,16 +333,38 @@ void A2600System::handleInputAction(EmuApp *app, InputAction a)
 			ev.set(Event::ConsoleColor, vcsColor);
 			ev.set(Event::ConsoleBlackWhite, !vcsColor);
 			break;
-		case Event::LeftKeyboard1 ... Event::RightKeyboardPound:
-			ev.set(Event::Type(event1), isPushed);
-			break;
 		default:
-			ev.set(Event::Type(event1), isPushed);
-			auto event2 = a.key >> 8;
-			if(event2) // extra event for diagonals
+		{
+			auto e = [&] -> Event::Type
 			{
-				ev.set(Event::Type(event2), isPushed);
-			}
+				bool isLeftPort = act.flags.deviceId == 0;
+				if(isLeftPort)
+				{
+					switch(act.code)
+					{
+						case Event::LeftJoystickRight: return jsRightMap[0];
+						case Event::LeftJoystickLeft: return jsLeftMap[0];
+						case Event::LeftJoystickFire: return jsFireMap[0];
+					}
+				}
+				else
+				{
+					switch(act.code)
+					{
+						case Event::LeftJoystickUp: return Event::RightJoystickUp;
+						case Event::LeftJoystickRight: return jsRightMap[1];
+						case Event::LeftJoystickDown: return Event::RightJoystickDown;
+						case Event::LeftJoystickLeft: return jsLeftMap[1];
+						case Event::LeftJoystickFire: return jsFireMap[1];
+						case Event::LeftKeyboard1 ... Event::LeftKeyboardPound:
+							return Event::Type(act.code + (Event::RightKeyboard1 - Event::LeftKeyboard1));
+					}
+				}
+				return Event::Type(act.code);
+			}();
+			ev.set(e, act.isPushed());
+			break;
+		}
 	}
 }
 
@@ -352,9 +389,24 @@ void A2600System::updatePaddlesRegionMode(EmuApp &app, PaddleRegionMode mode)
 
 void A2600System::setControllerType(EmuApp &app, Console &console, Controller::Type type)
 {
-	static constexpr std::array<unsigned, 2> js1ButtonCodes{vcsKeyIdxJSBtn1, vcsKeyIdxJSBtn1Turbo};
-	static constexpr std::array<unsigned, 2> js2ButtonCodes{vcsKeyIdxJSBtn2, vcsKeyIdxJSBtn2Turbo};
-	static constexpr std::array<unsigned, 2> js3ButtonCodes{vcsKeyIdxJSBtn3, vcsKeyIdxJSBtn3Turbo};
+	static constexpr std::array js1ButtonCodes{KeyCode(Event::LeftJoystickFire)};
+	static constexpr std::array js2ButtonCodes{KeyCode(Event::LeftJoystickFire5)};
+	static constexpr std::array js3ButtonCodes{KeyCode(Event::LeftJoystickFire9)};
+	static constexpr std::array kbButtonCodes
+	{
+		KeyCode(Event::LeftKeyboard1),
+		KeyCode(Event::LeftKeyboard2),
+		KeyCode(Event::LeftKeyboard3),
+		KeyCode(Event::LeftKeyboard4),
+		KeyCode(Event::LeftKeyboard5),
+		KeyCode(Event::LeftKeyboard6),
+		KeyCode(Event::LeftKeyboard7),
+		KeyCode(Event::LeftKeyboard8),
+		KeyCode(Event::LeftKeyboard9),
+		KeyCode(Event::LeftKeyboardStar),
+		KeyCode(Event::LeftKeyboard0),
+		KeyCode(Event::LeftKeyboardPound),
+	};
 	if(type == Controller::Type::Unknown)
 		type = autoDetectedInput1;
 	if(type == Controller::Type::Genesis)
@@ -475,6 +527,18 @@ bool A2600System::onPointerInputUpdate(const Input::MotionEvent &, Input::DragTr
 
 SystemInputDeviceDesc A2600System::inputDeviceDesc(int idx) const
 {
+	static constexpr std::array jsComponents
+	{
+		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
+		InputComponentDesc{"Joystick Buttons", triggerKeyInfo, InputComponent::button, RB2DO},
+		InputComponentDesc{"Keyboard Buttons", kbKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig | InputComponentFlagsMask::rowSize3},
+		InputComponentDesc{"Select", {&consoleKeyInfo[0], 1}, InputComponent::button, LB2DO},
+		InputComponentDesc{"Reset", {&consoleKeyInfo[1], 1}, InputComponent::button, RB2DO},
+		InputComponentDesc{"Console Buttons", consoleKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
+	};
+
+	static constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};
+
 	return jsDesc;
 }
 

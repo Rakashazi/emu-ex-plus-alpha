@@ -31,7 +31,11 @@ public:
 
 	auto &system() { return snes9xSystem;  }
 	const auto &system() const { return snes9xSystem;  }
-	AssetDesc vControllerAssetDesc(unsigned key) const;
+	AssetDesc vControllerAssetDesc(KeyInfo) const;
+	static std::span<const KeyCategory> keyCategories();
+	static std::span<const KeyConfigDesc> defaultKeyConfigs();
+	static std::string_view systemKeyCodeToString(KeyCode);
+	static bool allowsTurboModifier(KeyCode);
 };
 
 using MainApp = Snes9xApp;

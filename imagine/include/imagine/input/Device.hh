@@ -121,6 +121,7 @@ public:
 	virtual std::span<Axis> motionAxes();
 
 	virtual const char *keyName(Key k) const;
+	std::string keyString(Key k) const;
 
 	// TODO
 	//bool isDisconnectable() { return 0; }

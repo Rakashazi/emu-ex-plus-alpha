@@ -37,6 +37,8 @@ WISE_ENUM_CLASS((LynxRotation, uint8_t),
 	VerticalLeft,
 	VerticalRight);
 
+enum class LynxKey : KeyCode;
+
 class LynxSystem final: public EmuSystem
 {
 public:
@@ -72,7 +74,6 @@ public:
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);
-	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
 	FrameTime frameTime() const;
 	void configAudioRate(FrameTime outputFrameTime, int outputRate);
@@ -85,7 +86,7 @@ public:
 	bool resetSessionOptions(EmuApp &app);
 
 private:
-	unsigned rotateDPadKeycode(unsigned code) const;
+	LynxKey rotateDPadKeycode(LynxKey) const;
 };
 
 using MainSystem = LynxSystem;

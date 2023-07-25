@@ -16,6 +16,7 @@
 #pragma once
 #include <emuframework/config.hh>
 #include <emuframework/EmuAppHelper.hh>
+#include <emuframework/inputDefs.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/GfxSprite.hh>
@@ -73,7 +74,7 @@ class VControllerDPad
 public:
 	struct Config
 	{
-		std::array<unsigned, 4> keys{};
+		std::array<KeyInfo, 4> keys{};
 		float diagonalSensitivity{defaultDPadDiagonalSensitivity};
 		int16_t deadzoneMM100x{defaultDPadDeadzoneMM100x};
 		bool visualizeBounds{};
@@ -82,14 +83,14 @@ public:
 	};
 
 	constexpr VControllerDPad() = default;
-	constexpr VControllerDPad(std::span<const unsigned, 4> keys):
+	constexpr VControllerDPad(std::span<const KeyInfo, 4> keys):
 		config{.keys{keys[0], keys[1], keys[2], keys[3]}} {}
 	constexpr VControllerDPad(const Config &config): config{config} {}
 	void setImage(Gfx::TextureSpan);
 	void draw(Gfx::RendererCommands &__restrict__, float alpha) const;
 	void setShowBounds(Gfx::Renderer &r, bool on);
 	bool showBounds() const { return config.visualizeBounds; }
-	std::array<int, 2> getInput(WPt c) const;
+	std::array<KeyInfo, 2> getInput(WPt c) const;
 	WRect bounds() const { return padBaseArea; }
 	WRect realBounds() const { return padArea; }
 	void setPos(WPt pos, WindowRect viewBounds);
@@ -135,8 +136,8 @@ public:
 	static constexpr int VKEY_COLS = 20;
 	static constexpr int KEY_ROWS = 4;
 	static constexpr int KEY_COLS = VKEY_COLS/2;
-	using KeyTable = std::array<std::array<unsigned, VKEY_COLS>, KEY_ROWS>;
-	using KbMap = std::array<unsigned, KEY_ROWS * KEY_COLS>;
+	using KeyTable = std::array<std::array<KeyInfo, VKEY_COLS>, KEY_ROWS>;
+	using KbMap = std::array<KeyInfo, KEY_ROWS * KEY_COLS>;
 
 	constexpr VControllerKeyboard() = default;
 	void updateImg(Gfx::Renderer &r);
@@ -144,14 +145,14 @@ public:
 	void place(int btnSize, int yOffset, WRect viewBounds);
 	void draw(Gfx::RendererCommands &__restrict__) const;
 	int getInput(WPt c) const;
-	unsigned translateInput(int idx) const;
+	KeyInfo translateInput(int idx) const;
 	bool keyInput(VController &v, Gfx::Renderer &r, const Input::KeyEvent &e);
-	[[nodiscard]] WindowRect selectKey(unsigned x, unsigned y);
+	[[nodiscard]] WindowRect selectKey(int x, int y);
 	void selectKeyRel(int x, int y);
 	void unselectKey();
 	[[nodiscard]] WindowRect extendKeySelection(WindowRect);
-	unsigned currentKey() const;
-	unsigned currentKey(int x, int y) const;
+	KeyInfo currentKey() const;
+	KeyInfo currentKey(int x, int y) const;
 	VControllerKbMode mode() const { return mode_; }
 	void setMode(EmuSystem &, Gfx::Renderer &, VControllerKbMode mode);
 	void cycleMode(EmuSystem &, Gfx::Renderer &);
@@ -175,7 +176,7 @@ protected:
 class VControllerButton
 {
 public:
-	constexpr VControllerButton(unsigned key): key{key} {}
+	constexpr VControllerButton(KeyInfo key): key{key} {}
 	void setPos(WPt pos, WRect viewBounds, _2DOrigin = C2DO);
 	void setSize(WSize size, WSize extendedSize = {});
 	void setImage(Gfx::TextureSpan, int aR = 1);
@@ -194,7 +195,7 @@ protected:
 	int aspectRatio{1};
 public:
 	Gfx::Color color{};
-	unsigned key{};
+	KeyInfo key{};
 	bool enabled = true;
 	bool skipLayout{};
 };
@@ -215,14 +216,14 @@ public:
 
 	struct Config
 	{
-		std::vector<unsigned> keys{};
+		std::vector<KeyInfo> keys{};
 		LayoutConfig layout{};
 
 		void validate(const EmuApp &);
 	};
 
 	constexpr VControllerButtonGroup() = default;
-	VControllerButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin, int8_t rowItems);
+	VControllerButtonGroup(std::span<const KeyInfo> buttonCodes, _2DOrigin layoutOrigin, int8_t rowItems);
 	VControllerButtonGroup(const Config &);
 	Config config() const;
 	void setPos(WPt pos, WindowRect viewBounds);
@@ -238,7 +239,7 @@ public:
 	WRect paddingRect() const { return {{int(-paddingPixels().x), int(-paddingPixels().y)}, {int(paddingPixels().x), int(paddingPixels().y)}}; }
 	WRect realBounds() const { return bounds() + paddingRect(); }
 	int rows() const;
-	std::array<int, 2> findButtonIndices(WPt windowPos) const;
+	std::array<KeyInfo, 2> findButtonIndices(WPt windowPos) const;
 	void draw(Gfx::RendererCommands &__restrict__, float alpha) const;
 	std::string name(const EmuApp &) const;
 	void updateMeasurements(const Window &win);
@@ -257,7 +258,7 @@ public:
 
 	size_t configSize() const
 	{
-		return 1 + buttons.size() * sizeof(unsigned) + layoutConfigSize();
+		return 1 + buttons.size() * sizeof(KeyInfo) + layoutConfigSize();
 	}
 
 	std::vector<VControllerButton> buttons;
@@ -284,14 +285,14 @@ public:
 
 	struct Config
 	{
-		std::vector<unsigned> keys{};
+		std::vector<KeyInfo> keys{};
 		LayoutConfig layout{};
 
 		void validate(const EmuApp &);
 	};
 
 	constexpr VControllerUIButtonGroup() = default;
-	VControllerUIButtonGroup(std::span<const unsigned> buttonCodes, _2DOrigin layoutOrigin);
+	VControllerUIButtonGroup(std::span<const KeyInfo> buttonCodes, _2DOrigin layoutOrigin);
 	VControllerUIButtonGroup(const Config &);
 	Config config() const;
 	void setPos(WPt pos, WRect viewBounds);
@@ -310,7 +311,7 @@ public:
 
 	size_t configSize() const
 	{
-		return 1 + buttons.size() * sizeof(unsigned) + layoutConfigSize();
+		return 1 + buttons.size() * sizeof(KeyInfo) + layoutConfigSize();
 	}
 
 	std::vector<VControllerButton> buttons;
@@ -424,7 +425,7 @@ public:
 		}, *this);
 	}
 
-	void add(unsigned keyCode)
+	void add(KeyInfo keyCode)
 	{
 		visit([&](auto &e)
 		{
@@ -475,8 +476,8 @@ enum class VControllerVisibility : uint8_t
 class VController : public EmuAppHelper<VController>
 {
 public:
-	static constexpr unsigned TOGGLE_KEYBOARD = 65536;
-	static constexpr unsigned CHANGE_KEYBOARD_MODE = 65537;
+	static constexpr KeyInfo TOGGLE_KEYBOARD = KeyInfo::appKey(254);
+	static constexpr KeyInfo CHANGE_KEYBOARD_MODE = KeyInfo::appKey(255);
 	using KbMap = VControllerKeyboard::KbMap;
 	static constexpr uint8_t GAMEPAD_DPAD_BIT = IG::bit(0);
 	static constexpr uint8_t GAMEPAD_BUTTONS_BIT = IG::bit(1);
@@ -487,10 +488,10 @@ public:
 	int yMMSizeToPixel(const Window &win, float mm) const;
 	void setInputPlayer(int8_t player);
 	auto inputPlayer() const { return inputPlayer_; }
-	void setDisabledInputKeys(std::span<const unsigned> keys);
+	void setDisabledInputKeys(std::span<const KeyCode> keys);
 	void updateKeyboardMapping();
 	void updateTextures();
-	void inputAction(Input::Action action, unsigned vBtn);
+	void inputAction(Input::Action action, KeyInfo vBtn);
 	void resetInput();
 	void updateAltSpeedModeInput(AltSpeedMode, bool on);
 	void place();
@@ -561,7 +562,7 @@ private:
 	std::vector<VControllerElement> gpElements{};
 	std::vector<VControllerElement> uiElements{};
 	float alphaF{};
-	Input::DragTracker<std::array<int, 2>> dragTracker{};
+	Input::DragTracker<std::array<KeyInfo, 2>> dragTracker{};
 	int16_t defaultButtonSize{};
 	int16_t btnSize{};
 	bool showOnTouchInput_ = true;
@@ -576,8 +577,8 @@ private:
 	IG_UseMemberIf(Config::DISPLAY_CUTOUT, bool, allowButtonsPastContentBounds_){};
 	IG_UseMemberIf(Config::BASE_SUPPORTS_VIBRATOR, bool, vibrateOnTouchInput_){};
 
-	std::array<int, 2> findGamepadElements(WPt pos);
-	int keyboardKeyFromPointer(const Input::MotionEvent &);
+	std::array<KeyInfo, 2> findGamepadElements(WPt pos);
+	KeyInfo keyboardKeyFromPointer(const Input::MotionEvent &);
 	void applyButtonSize();
 	void resetEmulatedDevicePositions(std::vector<VControllerElement> &) const;
 	std::vector<VControllerElement> defaultEmulatedDeviceGroups() const;

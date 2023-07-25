@@ -152,10 +152,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENTATION_TIME, usePresentationTime, true);
 
 	inputManager.writeCustomKeyConfigs(io);
-
-	// input device configs must be saved after key configs since
-	// they reference the key configs when read back from the config file
-	inputManager.writeSavedInputDevices(io);
+	inputManager.writeSavedInputDevices(appContext(), io);
 
 	writeStringOptionValue(io, CFGKEY_LAST_DIR, contentSearchPath());
 	writeStringOptionValue(io, CFGKEY_SAVE_PATH, system().userSaveDirectory());
@@ -298,8 +295,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_VIDEO_LANDSCAPE_OFFSET: return readOptionValue(io, size, videoLayer().landscapeOffset, [](auto v){return v >= -4096 && v <= 4096;});
 				case CFGKEY_VIDEO_PORTRAIT_OFFSET: return readOptionValue(io, size, videoLayer().portraitOffset, [](auto v){return v >= -4096 && v <= 4096;});
 				case CFGKEY_VIDEO_BRIGHTNESS: return readOptionValue(io, size, videoBrightnessRGB);
-				case CFGKEY_INPUT_KEY_CONFIGS: return inputManager.readCustomKeyConfigs(io, size, inputControlCategories());
-				case CFGKEY_INPUT_DEVICE_CONFIGS: return inputManager.readSavedInputDevices(io, size);
+				case CFGKEY_INPUT_KEY_CONFIGS_V2: return inputManager.readCustomKeyConfig(io);
+				case CFGKEY_INPUT_DEVICE_CONFIGS: return inputManager.readSavedInputDevices(io);
 			}
 			return false;
 		});

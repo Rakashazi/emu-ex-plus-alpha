@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuAppHelper.hh>
+#include <emuframework/EmuInput.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
@@ -34,7 +35,7 @@ struct KeyCategory;
 class ButtonConfigSetView : public View, public EmuAppHelper<ButtonConfigSetView>
 {
 public:
-	using SetDelegate = DelegateFunc<void (const Input::KeyEvent &)>;
+	using SetDelegate = DelegateFunc<void (const MappedKeys &)>;
 
 	ButtonConfigSetView(ViewAttachParams attach, InputManagerView &rootIMView,
 		Input::Device &dev, std::string_view actionName, SetDelegate onSet);
@@ -67,12 +68,11 @@ private:
 	InputManagerView &rootIMView;
 	TextMenuItem reset;
 	std::unique_ptr<DualTextMenuItem[]> btn;
-	const KeyCategory *cat{};
+	const KeyCategory &cat;
 	InputDeviceConfig *devConf{};
 	SteadyClockTimePoint leftKeyPushTime{};
 
-	void onSet(Input::Key mapKey, int keyToSet);
-	static std::string makeKeyNameStr(Input::Key key, std::string_view name);
+	void onSet(int catIdx, MappedKeys);
 };
 
 }

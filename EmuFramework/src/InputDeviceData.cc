@@ -15,48 +15,55 @@
 
 #define LOGTAG "InputDevData"
 #include "privateInput.hh"
+#include <emuframework/AppKeyCode.hh>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
-InputDeviceData::InputDeviceData(Input::Device &dev, InputDeviceSavedConfigContainer &savedInputDevs):
+InputDeviceData::InputDeviceData(const InputManager &mgr, Input::Device &dev):
 	devConf{dev},
 	displayName{makeDisplayName(dev.name(), dev.enumId())}
 {
 	dev.setJoystickAxisAsDpadBits(Input::Device::AXIS_BITS_STICK_1 | Input::Device::AXIS_BITS_HAT);
-	for(auto &savedPtr : savedInputDevs)
+	for(auto &savedPtr : mgr.savedInputDevs)
 	{
 		if(savedPtr->matchesDevice(dev))
 		{
 			logMsg("has saved config");
-			devConf.setSavedConf(savedPtr.get(), false);
+			devConf.setSavedConf(mgr, savedPtr.get(), false);
 		}
 	}
-	buildKeyMap(dev);
+	buildKeyMap(mgr, dev);
 }
 
-void InputDeviceData::buildKeyMap(const Input::Device &d)
+void InputDeviceData::buildKeyMap(const InputManager &mgr, const Input::Device &d)
 {
 	auto totalKeys = Input::KeyEvent::mapNumKeys(d.map());
-	if(!totalKeys || !devConf.isEnabled()) [[unlikely]]
+	if(!totalKeys || !devConf.isEnabled) [[unlikely]]
 		return;
 	logMsg("allocating key mapping for:%s with player:%d", d.name().data(), devConf.player()+1);
 	actionTable = {totalKeys};
-	KeyConfig::KeyArray key = devConf.keyConf().key();
-	if(devConf.player() != InputDeviceConfig::PLAYER_MULTI)
+	for(auto [key, value] : devConf.keyConf(mgr).keyMap)
 	{
-		Controls::transposeKeysForPlayer(key, devConf.player());
+		if(!key.isAppKey())
+			key = mgr.transpose(key, devConf.player());
+		for(auto mapKey : value)
+		{
+			logMsg("mapping key %s to %s (%u)", d.keyName(mapKey), mgr.toString(key).data(), key.codes[0]);
+			assert(mapKey < totalKeys);
+			actionTable[mapKey].tryPushBack(key);
+		}
 	}
-	for(auto k : iotaCount(MAX_KEY_CONFIG_KEYS))
+	/*for(auto [group, i] : std::views::zip(actionTable, iotaCount(actionTable.size())))
 	{
-		//logMsg("mapping key %d to %u %s", k, key[k], d.keyName(key[k]));
-		assert(key[k] < totalKeys);
-		auto &group = actionTable[key[k]];
-		auto slot = std::ranges::find_if(group, [](auto &a){ return a == 0; });
-		if(slot != group.end())
-			*slot = k+1; // add 1 to avoid 0 value (considered unmapped)
-	}
+		for(auto code : group)
+		{
+			if(!code)
+				break;
+			logMsg("key %s (%u) mapped as %s", mgr.keyCodeToString(code).data(), code, d.keyName(i));
+		}
+	}*/
 }
 
 std::string InputDeviceData::makeDisplayName(std::string_view name, unsigned id)

@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/keyRemappingUtils.hh>
 #include <imagine/util/math/math.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
@@ -23,55 +24,129 @@
 namespace EmuEx
 {
 
-enum
+const int EmuSystem::maxPlayers = 4;
+
+enum class NesKey : KeyCode
 {
-	nesKeyIdxUp = Controls::systemKeyMapStart,
-	nesKeyIdxRight,
-	nesKeyIdxDown,
-	nesKeyIdxLeft,
-	nesKeyIdxLeftUp,
-	nesKeyIdxRightUp,
-	nesKeyIdxRightDown,
-	nesKeyIdxLeftDown,
-	nesKeyIdxSelect,
-	nesKeyIdxStart,
-	nesKeyIdxA,
-	nesKeyIdxB,
-	nesKeyIdxATurbo,
-	nesKeyIdxBTurbo,
-	nesKeyIdxAB,
+	Up = 5,
+	Right = 8,
+	Down = 6,
+	Left = 7,
+	Select = 3,
+	Start = 4,
+	A = 1,
+	B = 2,
 };
 
-constexpr std::array<unsigned, 4> dpadButtonCodes
-{
-	nesKeyIdxUp,
-	nesKeyIdxRight,
-	nesKeyIdxDown,
-	nesKeyIdxLeft,
-};
+constexpr auto dpadKeyInfo = makeArray<KeyInfo>
+(
+	NesKey::Up,
+	NesKey::Right,
+	NesKey::Down,
+	NesKey::Left
+);
 
-constexpr unsigned centerButtonCodes[]
-{
-	nesKeyIdxSelect,
-	nesKeyIdxStart,
-};
+constexpr auto centerKeyInfo = makeArray<KeyInfo>
+(
+	NesKey::Select,
+	NesKey::Start
+);
 
-constexpr unsigned faceButtonCodes[]
-{
-	nesKeyIdxB,
-	nesKeyIdxA,
-};
+constexpr auto faceKeyInfo = makeArray<KeyInfo>
+(
+	NesKey::B,
+	NesKey::A
+);
 
-constexpr std::array gamepadComponents
-{
-	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO},
-	InputComponentDesc{"Select", {&centerButtonCodes[0], 1}, InputComponent::button, LB2DO},
-	InputComponentDesc{"Start", {&centerButtonCodes[1], 1}, InputComponent::button, RB2DO},
-	InputComponentDesc{"Select/Start", centerButtonCodes, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
-};
+constexpr auto turboFaceKeyInfo = turbo(faceKeyInfo);
 
-constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+constexpr std::array comboKeyInfo{KeyInfo{std::array{NesKey::A, NesKey::B}}};
+
+constexpr auto gpKeyInfo = concatToArrayNow<dpadKeyInfo, centerKeyInfo, faceKeyInfo, turboFaceKeyInfo, comboKeyInfo>;
+constexpr auto gp2KeyInfo = transpose(gpKeyInfo, 1);
+constexpr auto gp3KeyInfo = transpose(gpKeyInfo, 2);
+constexpr auto gp4KeyInfo = transpose(gpKeyInfo, 3);
+
+std::span<const KeyCategory> NesApp::keyCategories()
+{
+	static constexpr std::array categories
+	{
+		KeyCategory{"Gamepad", gpKeyInfo},
+		KeyCategory{"Gamepad 2", gp2KeyInfo, 1},
+		KeyCategory{"Gamepad 3", gp2KeyInfo, 2},
+		KeyCategory{"Gamepad 4", gp2KeyInfo, 3},
+	};
+	return categories;
+}
+
+std::string_view NesApp::systemKeyCodeToString(KeyCode c)
+{
+	switch(NesKey(c))
+	{
+		case NesKey::Up: return "Up";
+		case NesKey::Right: return "Right";
+		case NesKey::Down: return "Down";
+		case NesKey::Left: return "Left";
+		case NesKey::Select: return "Select";
+		case NesKey::Start: return "Start";
+		case NesKey::A: return "A";
+		case NesKey::B: return "B";
+		default: return "";
+	}
+}
+
+std::span<const KeyConfigDesc> NesApp::defaultKeyConfigs()
+{
+	using namespace IG::Input;
+
+	static constexpr std::array pcKeyboardMap
+	{
+		KeyMapping{NesKey::Up, Keycode::UP},
+		KeyMapping{NesKey::Right, Keycode::RIGHT},
+		KeyMapping{NesKey::Down, Keycode::DOWN},
+		KeyMapping{NesKey::Left, Keycode::LEFT},
+		KeyMapping{NesKey::Select, Keycode::SPACE},
+		KeyMapping{NesKey::Start, Keycode::ENTER},
+		KeyMapping{NesKey::B, Keycode::Z},
+		KeyMapping{NesKey::A, Keycode::X},
+	};
+
+	static constexpr std::array genericGamepadMap
+	{
+		KeyMapping{NesKey::Up, Keycode::UP},
+		KeyMapping{NesKey::Right, Keycode::RIGHT},
+		KeyMapping{NesKey::Down, Keycode::DOWN},
+		KeyMapping{NesKey::Left, Keycode::LEFT},
+		KeyMapping{NesKey::Select, Keycode::GAME_SELECT},
+		KeyMapping{NesKey::Start, Keycode::GAME_START},
+		KeyMapping{NesKey::B, Keycode::GAME_X},
+		KeyMapping{NesKey::A, Keycode::GAME_A},
+	};
+
+	static constexpr std::array wiimoteMap
+	{
+		KeyMapping{NesKey::Up, Wiimote::UP},
+		KeyMapping{NesKey::Right, Wiimote::RIGHT},
+		KeyMapping{NesKey::Down, Wiimote::DOWN},
+		KeyMapping{NesKey::Left, Wiimote::LEFT},
+		KeyMapping{NesKey::B, Wiimote::_1},
+		KeyMapping{NesKey::A, Wiimote::_2},
+		KeyMapping{NesKey::Select, Wiimote::MINUS},
+		KeyMapping{NesKey::Start, Wiimote::PLUS},
+	};
+
+	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();
+}
+
+bool NesApp::allowsTurboModifier(KeyCode c)
+{
+	switch(NesKey(c))
+	{
+		case NesKey::A ... NesKey::B:
+			return true;
+		default: return false;
+	}
+}
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
@@ -80,36 +155,32 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr struct VirtualControllerAssets
+AssetDesc NesApp::vControllerAssetDesc(KeyInfo key) const
 {
-	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
-
-	a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
-	b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
-	select{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}},
-	start{AssetFileID::gamepadOverlay,  gpImageCoords({{4, 3}, {2, 1}}), {1, 2}},
-	ab{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 2}, {2, 2}})},
-
-	blank{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})};
-} virtualControllerAssets;
-
-AssetDesc NesApp::vControllerAssetDesc(unsigned key) const
-{
-	switch(key)
+	static constexpr struct VirtualControllerAssets
 	{
-		case 0: return virtualControllerAssets.dpad;
-		case nesKeyIdxATurbo:
-		case nesKeyIdxA: return virtualControllerAssets.a;
-		case nesKeyIdxBTurbo:
-		case nesKeyIdxB: return virtualControllerAssets.b;
-		case nesKeyIdxSelect: return virtualControllerAssets.select;
-		case nesKeyIdxStart: return virtualControllerAssets.start;
-		case nesKeyIdxAB: return virtualControllerAssets.ab;
+		AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+		a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+		b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
+		select{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}},
+		start{AssetFileID::gamepadOverlay,  gpImageCoords({{4, 3}, {2, 1}}), {1, 2}},
+		ab{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 2}, {2, 2}})},
+
+		blank{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})};
+	} virtualControllerAssets;
+
+	if(key[0] == 0)
+		return virtualControllerAssets.dpad;
+	switch(NesKey(key[0]))
+	{
+		case NesKey::A: return NesKey(key[1]) == NesKey::B ? virtualControllerAssets.ab : virtualControllerAssets.a;
+		case NesKey::B: return virtualControllerAssets.b;
+		case NesKey::Select: return virtualControllerAssets.select;
+		case NesKey::Start: return virtualControllerAssets.start;
 		default: return virtualControllerAssets.blank;
 	}
 }
-
-const int EmuSystem::maxPlayers = 4;
 
 void NesSystem::connectNESInput(int port, ESI type)
 {
@@ -141,88 +212,40 @@ static unsigned playerInputShift(int player)
 	return 0;
 }
 
-static bool isGamepadButton(unsigned input)
-{
-	switch(input)
-	{
-		case nesKeyIdxSelect:
-		case nesKeyIdxStart:
-		case nesKeyIdxATurbo:
-		case nesKeyIdxA:
-		case nesKeyIdxBTurbo:
-		case nesKeyIdxB:
-			return true;
-		default: return false;
-	}
-}
-
-InputAction NesSystem::translateInputAction(InputAction action)
-{
-	if(!isGamepadButton(action.key))
-		action.setTurboFlag(false);
-	assert(action.key >= nesKeyIdxUp);
-	int player = (action.key - nesKeyIdxUp) / Controls::gamepadKeys;
-	unsigned playerMask = player << 8;
-	action.key -= Controls::gamepadKeys * player;
-	action.key = [&] -> unsigned
-	{
-		switch(action.key)
-		{
-			case nesKeyIdxUp: return bit(4) | playerMask;
-			case nesKeyIdxRight: return bit(7) | playerMask;
-			case nesKeyIdxDown: return bit(5) | playerMask;
-			case nesKeyIdxLeft: return bit(6) | playerMask;
-			case nesKeyIdxLeftUp: return bit(6) | bit(4) | playerMask;
-			case nesKeyIdxRightUp: return bit(7) | bit(4) | playerMask;
-			case nesKeyIdxRightDown: return bit(7) | bit(5) | playerMask;
-			case nesKeyIdxLeftDown: return bit(6) | bit(5) | playerMask;
-			case nesKeyIdxSelect: return bit(2) | playerMask;
-			case nesKeyIdxStart: return bit(3) | playerMask;
-			case nesKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
-			case nesKeyIdxA: return bit(0) | playerMask;
-			case nesKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case nesKeyIdxB: return bit(1) | playerMask;
-			case nesKeyIdxAB: return bit(0) | bit(1) | playerMask;
-		}
-		bug_unreachable("invalid key");
-	}();
-	return action;
-}
-
 void NesSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	int player = a.key >> 8;
-	auto key = a.key & 0xFF;
-	bool isPushed = a.state == Input::Action::PUSHED;
-	if(GameInfo->type == GIT_NSF)
+	int player = a.flags.deviceId;
+	auto key = NesKey(a.code);
+	auto gpBits = bit(a.code - 1);
+	if(GameInfo->type == GIT_NSF && a.isPushed())
 	{
-		if(key == bit(4))
+		if(key == NesKey::Up)
 			FCEUI_NSFChange(10);
-		else if(key == bit(5))
+		else if(key == NesKey::Down)
 			FCEUI_NSFChange(-10);
-		else if(key == bit(7))
+		else if(key == NesKey::Right)
 			FCEUI_NSFChange(1);
-		else if(key == bit(6))
+		else if(key == NesKey::Left)
 			FCEUI_NSFChange(-1);
-		else if(key == bit(3))
+		else if(key == NesKey::B)
 			FCEUI_NSFChange(0);
 	}
 	else if(GameInfo->type == GIT_VSUNI) // TODO: make coin insert separate key
 	{
-		if(isPushed && key == IG::bit(3))
+		if(a.isPushed() && key == NesKey::Start)
 			FCEUI_VSUniCoin();
 	}
 	else if(GameInfo->inputfc == SIFC_HYPERSHOT)
 	{
-		if(auto hsKey = key & 0x3;
+		if(auto hsKey = gpBits & 0x3;
 			hsKey)
 		{
 			hsKey = hsKey == 0x3 ? 0x3 : hsKey ^ 0x3; // swap the 2 bits
 			auto hsPlayerInputShift = player == 1 ? 3 : 1;
-			fcExtData = IG::setOrClearBits(fcExtData, hsKey << hsPlayerInputShift, isPushed);
+			fcExtData = IG::setOrClearBits(fcExtData, hsKey << hsPlayerInputShift, a.isPushed());
 		}
 	}
-	padData = IG::setOrClearBits(padData, key << playerInputShift(player), isPushed);
+	padData = setOrClearBits(padData, gpBits << playerInputShift(player), a.isPushed());
 }
 
 bool NesSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)
@@ -266,6 +289,17 @@ void NesSystem::clearInputBuffers(EmuInputView &)
 
 SystemInputDeviceDesc NesSystem::inputDeviceDesc(int idx) const
 {
+	static constexpr std::array gamepadComponents
+	{
+		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
+		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO},
+		InputComponentDesc{"Select", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
+		InputComponentDesc{"Start", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},
+		InputComponentDesc{"Select/Start", centerKeyInfo, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
+	};
+
+	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 	return gamepadDesc;
 }
 

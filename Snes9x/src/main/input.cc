@@ -1,6 +1,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/keyRemappingUtils.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/util/math/math.hh>
 #include <imagine/base/Window.hh>
@@ -12,80 +13,163 @@
 namespace EmuEx
 {
 
-enum
+const int EmuSystem::maxPlayers = 5;
+
+enum class SnesKey : KeyCode
 {
-	s9xKeyIdxUp = Controls::systemKeyMapStart,
-	s9xKeyIdxRight,
-	s9xKeyIdxDown,
-	s9xKeyIdxLeft,
-	s9xKeyIdxLeftUp,
-	s9xKeyIdxRightUp,
-	s9xKeyIdxRightDown,
-	s9xKeyIdxLeftDown,
-	s9xKeyIdxSelect,
-	s9xKeyIdxStart,
-	s9xKeyIdxA,
-	s9xKeyIdxB,
-	s9xKeyIdxX,
-	s9xKeyIdxY,
-	s9xKeyIdxL,
-	s9xKeyIdxR,
-	s9xKeyIdxATurbo,
-	s9xKeyIdxBTurbo,
-	s9xKeyIdxXTurbo,
-	s9xKeyIdxYTurbo,
-	s9xKeyIdxLTurbo,
-	s9xKeyIdxRTurbo,
+	Up = 11,
+	Right = 8,
+	Down = 10,
+	Left = 9,
+	Select = 13,
+	Start = 12,
+	A = 7,
+	B = 15,
+	X = 6,
+	Y = 14,
+	L = 5,
+	R = 4,
 };
 
-constexpr std::array<unsigned, 4> dpadButtonCodes
+constexpr auto dpadKeyInfo = makeArray<KeyInfo>
+(
+	SnesKey::Up,
+	SnesKey::Right,
+	SnesKey::Down,
+	SnesKey::Left
+);
+
+constexpr auto centerKeyInfo = makeArray<KeyInfo>
+(
+	SnesKey::Select,
+	SnesKey::Start
+);
+
+constexpr auto faceKeyInfo = makeArray<KeyInfo>
+(
+	SnesKey::B,
+	SnesKey::A,
+	SnesKey::Y,
+	SnesKey::X
+);
+
+constexpr auto turboFaceKeyInfo = turbo(faceKeyInfo);
+
+constexpr auto faceLRKeyInfo = makeArray<KeyInfo>
+(
+	SnesKey::B,
+	SnesKey::A,
+	SnesKey::R,
+	SnesKey::Y,
+	SnesKey::X,
+	SnesKey::L
+);
+
+constexpr auto lKeyInfo = makeArray<KeyInfo>(SnesKey::L);
+constexpr auto rKeyInfo = makeArray<KeyInfo>(SnesKey::R);
+
+constexpr auto gpKeyInfo = concatToArrayNow<dpadKeyInfo, centerKeyInfo, faceLRKeyInfo, turboFaceKeyInfo>;
+constexpr auto gp2KeyInfo = transpose(gpKeyInfo, 1);
+constexpr auto gp3KeyInfo = transpose(gpKeyInfo, 2);
+constexpr auto gp4KeyInfo = transpose(gpKeyInfo, 3);
+constexpr auto gp5KeyInfo = transpose(gpKeyInfo, 4);
+
+std::span<const KeyCategory> Snes9xApp::keyCategories()
 {
-	s9xKeyIdxUp,
-	s9xKeyIdxRight,
-	s9xKeyIdxDown,
-	s9xKeyIdxLeft,
-};
+	static constexpr std::array categories
+	{
+		KeyCategory{"Gamepad", gpKeyInfo},
+		KeyCategory{"Gamepad 2", gp2KeyInfo, 1},
+		KeyCategory{"Gamepad 3", gp3KeyInfo, 2},
+		KeyCategory{"Gamepad 4", gp4KeyInfo, 3},
+		KeyCategory{"Gamepad 5", gp4KeyInfo, 4},
+	};
+	return categories;
+}
 
-constexpr unsigned centerButtonCodes[]
+std::string_view Snes9xApp::systemKeyCodeToString(KeyCode c)
 {
-	s9xKeyIdxSelect,
-	s9xKeyIdxStart,
-};
+	switch(SnesKey(c))
+	{
+		case SnesKey::Up: return "Up";
+		case SnesKey::Right: return "Right";
+		case SnesKey::Down: return "Down";
+		case SnesKey::Left: return "Left";
+		case SnesKey::Select: return "Select";
+		case SnesKey::Start: return "Start";
+		case SnesKey::A: return "A";
+		case SnesKey::B: return "B";
+		case SnesKey::X: return "X";
+		case SnesKey::Y: return "Y";
+		case SnesKey::L: return "L";
+		case SnesKey::R: return "R";
+		default: return "";
+	}
+}
 
-constexpr unsigned faceButtonCodes[]
+std::span<const KeyConfigDesc> Snes9xApp::defaultKeyConfigs()
 {
-	s9xKeyIdxB,
-	s9xKeyIdxA,
-	s9xKeyIdxY,
-	s9xKeyIdxX,
-};
+	using namespace IG::Input;
 
-constexpr unsigned faceButtonLRCodes[]
+	static constexpr std::array pcKeyboardMap
+	{
+		KeyMapping{SnesKey::Up, Keycode::UP},
+		KeyMapping{SnesKey::Right, Keycode::RIGHT},
+		KeyMapping{SnesKey::Down, Keycode::DOWN},
+		KeyMapping{SnesKey::Left, Keycode::LEFT},
+		KeyMapping{SnesKey::Select, Keycode::SPACE},
+		KeyMapping{SnesKey::Start, Keycode::ENTER},
+		KeyMapping{SnesKey::B, Keycode::Z},
+		KeyMapping{SnesKey::A, Keycode::X},
+		KeyMapping{SnesKey::Y, Keycode::A},
+		KeyMapping{SnesKey::X, Keycode::S},
+		KeyMapping{SnesKey::L, Keycode::Q},
+		KeyMapping{SnesKey::R, Keycode::W},
+	};
+
+	static constexpr std::array genericGamepadMap
+	{
+		KeyMapping{SnesKey::Up, Keycode::UP},
+		KeyMapping{SnesKey::Right, Keycode::RIGHT},
+		KeyMapping{SnesKey::Down, Keycode::DOWN},
+		KeyMapping{SnesKey::Left, Keycode::LEFT},
+		KeyMapping{SnesKey::Select, Keycode::GAME_SELECT},
+		KeyMapping{SnesKey::Start, Keycode::GAME_START},
+		KeyMapping{SnesKey::B, Keycode::GAME_A},
+		KeyMapping{SnesKey::A, Keycode::GAME_B},
+		KeyMapping{SnesKey::Y, Keycode::GAME_X},
+		KeyMapping{SnesKey::X, Keycode::GAME_Y},
+		KeyMapping{SnesKey::L, Keycode::GAME_L1},
+		KeyMapping{SnesKey::R, Keycode::GAME_R1},
+	};
+
+	static constexpr std::array wiimoteMap
+	{
+		KeyMapping{SnesKey::Up, Wiimote::UP},
+		KeyMapping{SnesKey::Right, Wiimote::RIGHT},
+		KeyMapping{SnesKey::Down, Wiimote::DOWN},
+		KeyMapping{SnesKey::Left, Wiimote::LEFT},
+		KeyMapping{SnesKey::B, Wiimote::_1},
+		KeyMapping{SnesKey::A, Wiimote::_2},
+		KeyMapping{SnesKey::Y, Wiimote::A},
+		KeyMapping{SnesKey::X, Wiimote::B},
+		KeyMapping{SnesKey::Select, Wiimote::MINUS},
+		KeyMapping{SnesKey::Start, Wiimote::PLUS},
+	};
+
+	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();
+}
+
+bool Snes9xApp::allowsTurboModifier(KeyCode c)
 {
-	s9xKeyIdxB,
-	s9xKeyIdxA,
-	s9xKeyIdxR,
-	s9xKeyIdxY,
-	s9xKeyIdxX,
-	s9xKeyIdxL,
-};
-
-constexpr unsigned lButtonCode[]{s9xKeyIdxL};
-constexpr unsigned rButtonCode[]{s9xKeyIdxR};
-
-constexpr std::array gamepadComponents
-{
-	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::staggeredLayout},
-	InputComponentDesc{"Face Buttons + Inline L/R", faceButtonLRCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig | InputComponentFlagsMask::staggeredLayout},
-	InputComponentDesc{"L", lButtonCode, InputComponent::trigger, LB2DO},
-	InputComponentDesc{"R", rButtonCode, InputComponent::trigger, RB2DO},
-	InputComponentDesc{"Select", {&centerButtonCodes[0], 1}, InputComponent::button, LB2DO},
-	InputComponentDesc{"Start", {&centerButtonCodes[1], 1}, InputComponent::button, RB2DO},
-	InputComponentDesc{"Select/Start", centerButtonCodes, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
-};
-
-constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+	switch(SnesKey(c))
+	{
+		case SnesKey::R ... SnesKey::A:
+		case SnesKey::Y ... SnesKey::B:
+			return true;
+		default: return false;
+	}
+}
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
@@ -94,46 +178,39 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr struct VirtualControllerAssets
+AssetDesc Snes9xApp::vControllerAssetDesc(KeyInfo key) const
 {
-	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
-
-	a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
-	b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
-	x{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 2}, {2, 2}})},
-	y{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 2}, {2, 2}})},
-	l{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 4}, {2, 2}})},
-	r{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 4}, {2, 2}})},
-	select{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
-	start{AssetFileID::gamepadOverlay,  gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
-
-	blank{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})};
-} virtualControllerAssets;
-
-AssetDesc Snes9xApp::vControllerAssetDesc(unsigned key) const
-{
-	switch(key)
+	static constexpr struct VirtualControllerAssets
 	{
-		case 0: return virtualControllerAssets.dpad;
-		case s9xKeyIdxATurbo:
-		case s9xKeyIdxA: return virtualControllerAssets.a;
-		case s9xKeyIdxBTurbo:
-		case s9xKeyIdxB: return virtualControllerAssets.b;
-		case s9xKeyIdxXTurbo:
-		case s9xKeyIdxX: return virtualControllerAssets.x;
-		case s9xKeyIdxYTurbo:
-		case s9xKeyIdxY: return virtualControllerAssets.y;
-		case s9xKeyIdxLTurbo:
-		case s9xKeyIdxL: return virtualControllerAssets.l;
-		case s9xKeyIdxRTurbo:
-		case s9xKeyIdxR: return virtualControllerAssets.r;
-		case s9xKeyIdxSelect: return virtualControllerAssets.select;
-		case s9xKeyIdxStart: return virtualControllerAssets.start;
+		AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+		a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+		b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
+		x{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 2}, {2, 2}})},
+		y{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 2}, {2, 2}})},
+		l{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 4}, {2, 2}})},
+		r{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 4}, {2, 2}})},
+		select{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+		start{AssetFileID::gamepadOverlay,  gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
+
+		blank{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})};
+	} virtualControllerAssets;
+
+	if(key[0] == 0)
+		return virtualControllerAssets.dpad;
+	switch(SnesKey(key[0]))
+	{
+		case SnesKey::A: return virtualControllerAssets.a;
+		case SnesKey::B: return virtualControllerAssets.b;
+		case SnesKey::X: return virtualControllerAssets.x;
+		case SnesKey::Y: return virtualControllerAssets.y;
+		case SnesKey::L: return virtualControllerAssets.l;
+		case SnesKey::R: return virtualControllerAssets.r;
+		case SnesKey::Select: return virtualControllerAssets.select;
+		case SnesKey::Start: return virtualControllerAssets.start;
 		default: return virtualControllerAssets.blank;
 	}
 }
-
-const int EmuSystem::maxPlayers = 5;
 
 // from controls.cpp
 #define SUPERSCOPE_FIRE			0x80
@@ -146,71 +223,6 @@ const int EmuSystem::maxPlayers = 5;
 #define JUSTIFIER_START			0x20
 #define JUSTIFIER_SELECT		0x08
 
-constexpr unsigned playerBitShift = 28; // player is encoded in 3 bits, last bit of input code is reserved
-
-static bool isGamepadButton(unsigned input)
-{
-	switch(input)
-	{
-		case s9xKeyIdxSelect:
-		case s9xKeyIdxStart:
-		case s9xKeyIdxXTurbo:
-		case s9xKeyIdxX:
-		case s9xKeyIdxYTurbo:
-		case s9xKeyIdxY:
-		case s9xKeyIdxATurbo:
-		case s9xKeyIdxA:
-		case s9xKeyIdxBTurbo:
-		case s9xKeyIdxB:
-		case s9xKeyIdxLTurbo:
-		case s9xKeyIdxL:
-		case s9xKeyIdxRTurbo:
-		case s9xKeyIdxR:
-			return true;
-		default: return false;
-	}
-}
-
-InputAction Snes9xSystem::translateInputAction(InputAction action)
-{
-	if(!isGamepadButton(action.key))
-		action.setTurboFlag(false);
-	assert(action.key >= s9xKeyIdxUp);
-	unsigned player = (action.key - s9xKeyIdxUp) / Controls::gamepadKeys;
-	unsigned playerMask = player << playerBitShift;
-	action.key -= Controls::gamepadKeys * player;
-	action.key = [&] -> unsigned
-	{
-		switch(action.key)
-		{
-			case s9xKeyIdxUp: return SNES_UP_MASK | playerMask;
-			case s9xKeyIdxRight: return SNES_RIGHT_MASK | playerMask;
-			case s9xKeyIdxDown: return SNES_DOWN_MASK | playerMask;
-			case s9xKeyIdxLeft: return SNES_LEFT_MASK | playerMask;
-			case s9xKeyIdxLeftUp: return SNES_LEFT_MASK | SNES_UP_MASK | playerMask;
-			case s9xKeyIdxRightUp: return SNES_RIGHT_MASK | SNES_UP_MASK | playerMask;
-			case s9xKeyIdxRightDown: return SNES_RIGHT_MASK | SNES_DOWN_MASK | playerMask;
-			case s9xKeyIdxLeftDown: return SNES_LEFT_MASK | SNES_DOWN_MASK | playerMask;
-			case s9xKeyIdxSelect: return SNES_SELECT_MASK | playerMask;
-			case s9xKeyIdxStart: return SNES_START_MASK | playerMask;
-			case s9xKeyIdxXTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case s9xKeyIdxX: return SNES_X_MASK | playerMask;
-			case s9xKeyIdxYTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case s9xKeyIdxY: return SNES_Y_MASK | playerMask;
-			case s9xKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
-			case s9xKeyIdxA: return SNES_A_MASK | playerMask;
-			case s9xKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case s9xKeyIdxB: return SNES_B_MASK | playerMask;
-			case s9xKeyIdxLTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case s9xKeyIdxL: return SNES_TL_MASK | playerMask;
-			case s9xKeyIdxRTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case s9xKeyIdxR: return SNES_TR_MASK | playerMask;
-		}
-		bug_unreachable("invalid key");
-	}();
-	return action;
-}
-
 #ifdef SNES9X_VERSION_1_4
 static uint16 *S9xGetJoypadBits(unsigned idx)
 {
@@ -220,10 +232,10 @@ static uint16 *S9xGetJoypadBits(unsigned idx)
 
 void Snes9xSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	auto player = a.key >> playerBitShift;
+	auto player = a.flags.deviceId;
 	assert(player < maxPlayers);
 	auto &padData = *S9xGetJoypadBits(player);
-	padData = IG::setOrClearBits(padData, (uint16)(a.key & 0xFFFF), a.state == Input::Action::PUSHED);
+	padData = setOrClearBits(padData, bit(a.code), a.isPushed());
 }
 
 void Snes9xSystem::clearInputBuffers(EmuInputView &view)
@@ -576,6 +588,20 @@ bool Snes9xSystem::onPointerInputEnd(const Input::MotionEvent &e, Input::DragTra
 
 SystemInputDeviceDesc Snes9xSystem::inputDeviceDesc(int idx) const
 {
+	static constexpr std::array gamepadComponents
+	{
+		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
+		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::staggeredLayout},
+		InputComponentDesc{"Face Buttons + Inline L/R", faceLRKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig | InputComponentFlagsMask::staggeredLayout},
+		InputComponentDesc{"L", lKeyInfo, InputComponent::trigger, LB2DO},
+		InputComponentDesc{"R", rKeyInfo, InputComponent::trigger, RB2DO},
+		InputComponentDesc{"Select", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
+		InputComponentDesc{"Start", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},
+		InputComponentDesc{"Select/Start", centerKeyInfo, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
+	};
+
+	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 	return gamepadDesc;
 }
 

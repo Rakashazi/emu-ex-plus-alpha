@@ -319,6 +319,14 @@ const InputDeviceContainer &ApplicationContext::inputDevices() const
 	return application().inputDevices();
 }
 
+Input::Device *ApplicationContext::inputDevice(std::string_view name, int enumId) const
+{
+	auto it = std::ranges::find_if(inputDevices(), [&](auto &devPtr){ return devPtr->name() == name; });
+	if(it == inputDevices().end())
+		return {};
+	return it->get();
+}
+
 void ApplicationContext::setHintKeyRepeat(bool on)
 {
 	application().setAllowKeyRepeatTimer(on);

@@ -19,47 +19,36 @@
 namespace EmuEx
 {
 
-void TurboInput::addEvent(unsigned action)
+void TurboInput::addEvent(KeyInfo key)
 {
-	Action *slot = std::ranges::find_if(activeAction, [](Action a){ return a == 0; });
-	if(slot != activeAction.end())
+	if(keys.tryPushBack(key))
 	{
-		*slot = action;
-		logMsg("added turbo event action %d", action);
+		logMsg("added turbo event action %d", key.codes[0]);
 	}
 }
 
-void TurboInput::removeEvent(unsigned action)
+void TurboInput::removeEvent(KeyInfo key)
 {
-	for(auto &e : activeAction)
+	if(erase(keys, key))
 	{
-		if(e == action)
-		{
-			e = 0;
-			logMsg("removed turbo event action %d", action);
-		}
+		logMsg("removed turbo event action %d", key.codes[0]);
 	}
 }
-
 
 void TurboInput::update(EmuApp &app)
 {
-	static const int turboFrames = 4;
-
-	for(auto e : activeAction)
+	const int turboFrames = 4;
+	for(auto k : keys)
 	{
-		if(e)
+		if(clock == 0)
 		{
-			if(clock == 0)
-			{
-				//logMsg("turbo push for player %d, action %d", e.player, e.action);
-				app.system().handleInputAction(&app, {e, Input::Action::PUSHED});
-			}
-			else if(clock == turboFrames/2)
-			{
-				//logMsg("turbo release for player %d, action %d", e.player, e.action);
-				app.system().handleInputAction(&app, {e, Input::Action::RELEASED});
-			}
+			//logMsg("turbo push for player %d, action %d", e.player, e.action);
+			app.handleSystemKeyInput(k, Input::Action::PUSHED);
+		}
+		else if(clock == turboFrames/2)
+		{
+			//logMsg("turbo release for player %d, action %d", e.player, e.action);
+			app.handleSystemKeyInput(k, Input::Action::RELEASED);
 		}
 	}
 	clock++;

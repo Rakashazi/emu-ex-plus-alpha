@@ -70,7 +70,6 @@ main/Main.cc \
 main/input.cc \
 main/options.cc \
 main/S9XApi.cc \
-main/EmuControls.cc \
 main/EmuMenuViews.cc \
 main/Cheats.cc \
 $(addprefix $(snes9xPath)/,$(snes9xSrc))

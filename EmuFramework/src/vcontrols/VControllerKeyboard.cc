@@ -60,9 +60,11 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	auto &basicEffect = cmds.basicEffect();
 	spr.draw(cmds, basicEffect);
+	constexpr auto selectCol = Gfx::Color{.2, .71, .9, 1./3.}.multiplyAlpha();
+	constexpr auto shiftCol = Gfx::Color{.2, .71, .9, .5}.multiplyAlpha();
 	if(selected.x != -1)
 	{
-		cmds.setColor({.2, .71, .9, 1./3.});
+		cmds.setColor(selectCol);
 		basicEffect.disableTexture(cmds);
 		IG::WindowRect rect{};
 		rect.x = bound.x + (selected.x * keyXSize);
@@ -73,7 +75,7 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds) const
 	}
 	if(shiftIsActive() && mode_ == VControllerKbMode::LAYOUT_1)
 	{
-		cmds.setColor({.2, .71, .9, 1./2.});
+		cmds.setColor(shiftCol);
 		basicEffect.disableTexture(cmds);
 		IG::WindowRect rect{};
 		rect.x = bound.x + (shiftRect.x * keyXSize);
@@ -96,7 +98,7 @@ int VControllerKeyboard::getInput(WPt c) const
 	return idx;
 }
 
-unsigned VControllerKeyboard::translateInput(int idx) const
+KeyInfo VControllerKeyboard::translateInput(int idx) const
 {
 	assumeExpr(idx < VKEY_COLS * KEY_ROWS);
 	return table[0][idx];
@@ -136,11 +138,11 @@ bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, const Input
 		}
 		else if(e.pushed())
 		{
-			v.system().handleInputAction(&v.app(), {currentKey(), Input::Action::PUSHED});
+			v.app().handleSystemKeyInput(currentKey(), Input::Action::PUSHED, 0);
 		}
 		else
 		{
-			v.system().handleInputAction(&v.app(), {currentKey(), Input::Action::RELEASED});
+			v.app().handleSystemKeyInput(currentKey(), Input::Action::RELEASED, 0);
 		}
 		return true;
 	}
@@ -171,14 +173,14 @@ bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, const Input
 	return false;
 }
 
-IG::WindowRect VControllerKeyboard::selectKey(unsigned x, unsigned y)
+WRect VControllerKeyboard::selectKey(int x, int y)
 {
 	if(x >= VKEY_COLS || y >= KEY_ROWS)
 	{
 		logErr("selected key:%dx%d out of range", x, y);
 		return {{-1, -1}, {-1, -1}};
 	}
-	return extendKeySelection({{(int)x, (int)y}, {(int)x, (int)y}});
+	return extendKeySelection({{x, y}, {x, y}});
 }
 
 void VControllerKeyboard::selectKeyRel(int x, int y)
@@ -232,12 +234,12 @@ IG::WindowRect VControllerKeyboard::extendKeySelection(IG::WindowRect selected)
 	return selected;
 }
 
-unsigned VControllerKeyboard::currentKey(int x, int y) const
+KeyInfo VControllerKeyboard::currentKey(int x, int y) const
 {
 	return table[y][x];
 }
 
-unsigned VControllerKeyboard::currentKey() const
+KeyInfo VControllerKeyboard::currentKey() const
 {
 	return currentKey(selected.x, selected.y);
 }

@@ -146,6 +146,8 @@ struct Color4F
 			}()
 		} {}
 
+	constexpr Color4F multiplyAlpha() const { return {r * a, g * a, b * a, a}; }
+	constexpr Color4F multiplyAlpha(float a) const { return {r * a, g * a, b * a, a}; }
 	constexpr operator Color4B() const;
 	constexpr operator std::array<float, 4>() const { return rgba; }
 	constexpr bool operator ==(Color4F const &rhs) const { return rgba == rhs.rgba; }

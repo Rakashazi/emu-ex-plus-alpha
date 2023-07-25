@@ -15,6 +15,7 @@
 
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/AppKeyCode.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -59,11 +60,12 @@ static void drawVControllerElement(Gfx::RendererCommands &__restrict__ cmds, con
 static void addCategories(EmuApp &app, VControllerElement &elem, auto &&addCategory)
 {
 	if(elem.uiButtonGroup())
-		addCategory(app.inputControlCategories()[0]);
+	{
+		addCategory(appKeyCategory);
+	}
 	else
 	{
-		for(auto &cat : app.inputControlCategories() | std::views::drop(1)
-			| std::views::filter([](auto &c){return !c.multiplayerIndex;}))
+		for(auto &cat : EmuApp::keyCategories() | std::views::filter([](auto &c){return !c.multiplayerIndex;}))
 		{
 			addCategory(cat);
 		}
@@ -218,19 +220,19 @@ public:
 		actions
 		{
 			{
-				"Up", app().systemKeyName(elem.dPad()->config.keys[0]), &defaultFace(),
+				"Up", app().inputManager.toString(elem.dPad()->config.keys[0]), &defaultFace(),
 				[this](const Input::Event &e) { assignAction(0, e); }
 			},
 			{
-				"Right", app().systemKeyName(elem.dPad()->config.keys[1]), &defaultFace(),
+				"Right", app().inputManager.toString(elem.dPad()->config.keys[1]), &defaultFace(),
 				[this](const Input::Event &e) { assignAction(1, e); }
 			},
 			{
-				"Down", app().systemKeyName(elem.dPad()->config.keys[2]), &defaultFace(),
+				"Down", app().inputManager.toString(elem.dPad()->config.keys[2]), &defaultFace(),
 				[this](const Input::Event &e) { assignAction(2, e); }
 			},
 			{
-				"Left", app().systemKeyName(elem.dPad()->config.keys[3]), &defaultFace(),
+				"Left", app().inputManager.toString(elem.dPad()->config.keys[3]), &defaultFace(),
 				[this](const Input::Event &e) { assignAction(3, e); }
 			}
 		} {}
@@ -263,13 +265,13 @@ private:
 		auto multiChoiceView = makeViewWithName<TextTableView>("Assign Action", 16);
 		addCategories(app(), elem, [&](const KeyCategory &cat)
 		{
-			for(auto i : iotaCount(cat.keys()))
+			for(auto &k : cat.keys)
 			{
-				multiChoiceView->appendItem(cat.keyName[i],
-					[this, keyCode = cat.configOffset + i](TextMenuItem &item, View &parentView, const Input::Event &)
+				multiChoiceView->appendItem(app().inputManager.toString(k),
+					[this, k](TextMenuItem &item, View &parentView, const Input::Event &)
 					{
-						elem.dPad()->config.keys[item.id()] = keyCode;
-						actions[item.id()].set2ndName(app().systemKeyName(keyCode));
+						elem.dPad()->config.keys[item.id()] = k;
+						actions[item.id()].set2ndName(app().inputManager.toString(k));
 						parentView.dismiss();
 					}).setId(idx);
 			}
@@ -291,19 +293,19 @@ public:
 		onChange{onChange_},
 		key
 		{
-			"Action", app().systemKeyName(btn_.key), &defaultFace(),
+			"Action", app().inputManager.toString(btn_.key), &defaultFace(),
 			[this](const Input::Event &e)
 			{
 				auto multiChoiceView = makeViewWithName<TextTableView>("Assign Action", 16);
 				addCategories(app(), elem, [&](const KeyCategory &cat)
 				{
-					for(auto i : iotaCount(cat.keys()))
+					for(auto &k : cat.keys)
 					{
-						multiChoiceView->appendItem(cat.keyName[i],
-							[this, keyCode = cat.configOffset + i](View &parentView)
+						multiChoiceView->appendItem(app().inputManager.toString(k),
+							[this, k](View &parentView)
 							{
-								btn.key = keyCode;
-								key.set2ndName(app().systemKeyName(keyCode));
+								btn.key = k;
+								key.set2ndName(app().inputManager.toString(k));
 								vCtrl.update(elem);
 								onChange.callSafe();
 								vCtrl.place();
@@ -512,12 +514,12 @@ public:
 				auto multiChoiceView = makeViewWithName<TextTableView>("Add Button", 16);
 				addCategories(app(), elem, [&](const KeyCategory &cat)
 				{
-					for(auto i : iotaCount(cat.keys()))
+					for(auto &k : cat.keys)
 					{
-						multiChoiceView->appendItem(cat.keyName[i],
-							[this, keyCode = cat.configOffset + i](View &parentView, const Input::Event &e)
+						multiChoiceView->appendItem(app().inputManager.toString(k),
+							[this, k](View &parentView, const Input::Event &e)
 							{
-								elem.add(keyCode);
+								elem.add(k);
 								vCtrl.update(elem);
 								vCtrl.place();
 								confView.reloadItems();

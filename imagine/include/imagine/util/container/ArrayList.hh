@@ -156,6 +156,14 @@ public:
 		return first;
 	}
 
+	constexpr bool tryPushBack(const T &d)
+	{
+		if(isFull())
+			return false;
+		push_back(d);
+		return true;
+	}
+
 	constexpr operator std::span<T>() const
 	{
 		return {data(), size()};
@@ -169,9 +177,19 @@ private:
 	constexpr const T *storage() const { return arr; }
 };
 
-template<class T, size_t SIZE, class Pred>
+template<class T, size_t SIZE>
 static constexpr typename StaticArrayList<T,SIZE>::size_type
-	erase_if(StaticArrayList<T,SIZE>& c, Pred pred)
+	erase(StaticArrayList<T,SIZE>& c, const auto &val)
+{
+	auto it = std::remove(c.begin(), c.end(), val);
+	auto r = std::distance(it, c.end());
+	c.erase(it, c.end());
+	return r;
+}
+
+template<class T, size_t SIZE>
+static constexpr typename StaticArrayList<T,SIZE>::size_type
+	erase_if(StaticArrayList<T,SIZE>& c, auto pred)
 {
 	auto it = std::remove_if(c.begin(), c.end(), pred);
 	auto r = std::distance(it, c.end());

@@ -214,11 +214,6 @@ void EmuSystem::clearInputBuffers(EmuInputView &view)
 	static_cast<MainSystem*>(this)->clearInputBuffers(view);
 }
 
-InputAction EmuSystem::translateInputAction(InputAction action)
-{
-	return static_cast<MainSystem*>(this)->translateInputAction(action);
-}
-
 FrameTime EmuSystem::frameTime() const
 {
 	return static_cast<const MainSystem*>(this)->frameTime();

@@ -7,7 +7,6 @@ SRC += main/Main.cc \
 main/input.cc \
 main/options.cc \
 main/unzip.cc \
-main/EmuControls.cc \
 main/EmuMenuViews.cc
 
 CPPFLAGS += -I$(projectPath)/src \

@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/keyRemappingUtils.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
 
@@ -26,81 +27,175 @@ extern uint16 WSButtonStatus;
 namespace EmuEx
 {
 
-enum
+const int EmuSystem::maxPlayers = 1;
+constexpr KeyCode altCodeBit = 0x10;
+
+enum class SwanKey : KeyCode
 {
-	wsKeyIdxUp = Controls::systemKeyMapStart,
-	wsKeyIdxRight,
-	wsKeyIdxDown,
-	wsKeyIdxLeft,
-	wsKeyIdxLeftUp,
-	wsKeyIdxRightUp,
-	wsKeyIdxRightDown,
-	wsKeyIdxLeftDown,
-	wsKeyIdxStart,
-	wsKeyIdxA,
-	wsKeyIdxB,
-	wsKeyIdxY1,
-	wsKeyIdxY2,
-	wsKeyIdxY3,
-	wsKeyIdxY4,
-	wsKeyIdxATurbo,
-	wsKeyIdxBTurbo,
-	wsKeyIdxY1Turbo,
-	wsKeyIdxY2Turbo,
-	wsKeyIdxY3Turbo,
-	wsKeyIdxY4Turbo,
-	wsKeyIdxANoRotation,
-	wsKeyIdxBNoRotation,
-	wsKeyIdxY1X1,
-	wsKeyIdxY2X2,
-	wsKeyIdxY3X3,
-	wsKeyIdxY4X4,
+	Up = 1,
+	Right = 2,
+	Down = 3,
+	Left = 4,
+	Start = 9,
+	A = 10,
+	B = 11,
+	Y1 = 5,
+	Y2 = 6,
+	Y3 = 7,
+	Y4 = 8,
+	ANoRotation = altCodeBit | 10,
+	BNoRotation = altCodeBit | 11,
+	Y1X1 = altCodeBit | 1,
+	Y2X2 = altCodeBit | 2,
+	Y3X3 = altCodeBit | 3,
+	Y4X4 = altCodeBit | 4,
 };
 
-constexpr std::array<unsigned, 4> dpadButtonCodes
+constexpr auto dpadKeyInfo = makeArray<KeyInfo>
+(
+	SwanKey::Up,
+	SwanKey::Right,
+	SwanKey::Down,
+	SwanKey::Left
+);
+
+constexpr auto centerKeyInfo = makeArray<KeyInfo>(SwanKey::Start);
+
+constexpr auto faceKeyInfo = makeArray<KeyInfo>
+(
+	SwanKey::BNoRotation,
+	SwanKey::ANoRotation
+);
+
+constexpr auto turboFaceKeyInfo = turbo(faceKeyInfo);
+
+constexpr auto oppositeDPadKeyInfo = makeArray<KeyInfo>
+(
+	SwanKey::Y4X4,
+	SwanKey::Y3X3,
+	SwanKey::Y1X1,
+	SwanKey::Y2X2
+);
+
+constexpr auto faceButtonCombinedCodes = makeArray<KeyInfo>
+(
+	SwanKey::BNoRotation,
+	SwanKey::ANoRotation,
+	SwanKey::Y4X4,
+	SwanKey::Y3X3,
+	SwanKey::Y1X1,
+	SwanKey::Y2X2
+);
+
+constexpr auto allFaceKeyInfo = makeArray<KeyInfo>
+(
+	SwanKey::A,
+	SwanKey::B,
+	SwanKey::Y1,
+	SwanKey::Y2,
+	SwanKey::Y4,
+	SwanKey::Y3,
+	SwanKey::BNoRotation,
+	SwanKey::ANoRotation,
+	SwanKey::Y4X4,
+	SwanKey::Y3X3,
+	SwanKey::Y1X1,
+	SwanKey::Y2X2
+);
+
+constexpr auto gpKeyInfo = concatToArrayNow<dpadKeyInfo, centerKeyInfo, allFaceKeyInfo, turboFaceKeyInfo>;
+
+std::span<const KeyCategory> WsApp::keyCategories()
 {
-	wsKeyIdxUp,
-	wsKeyIdxRight,
-	wsKeyIdxDown,
-	wsKeyIdxLeft,
-};
+	static constexpr KeyCategory categories[]
+	{
+		{"Gamepad", gpKeyInfo},
+	};
+	return categories;
+}
 
-constexpr unsigned centerButtonCodes[]{wsKeyIdxStart};
-
-constexpr unsigned faceButtonCodes[]
+std::string_view WsApp::systemKeyCodeToString(KeyCode c)
 {
-	wsKeyIdxBNoRotation,
-	wsKeyIdxANoRotation,
-};
+	switch(SwanKey(c))
+	{
+		case SwanKey::Up: return "Up X1 ↷ Y2";
+		case SwanKey::Right: return "Right X2 ↷ Y3";
+		case SwanKey::Down: return "Down X3 ↷ Y4";
+		case SwanKey::Left: return "Left X4 ↷ Y1";
+		case SwanKey::Start: return "Start";
+		case SwanKey::A: return "A ↷ X4";
+		case SwanKey::B: return "B ↷ X1";
+		case SwanKey::Y1: return "Y1 ↷ B";
+		case SwanKey::Y2: return "Y2 ↷ A";
+		case SwanKey::Y3: return "Y3 ↷ X3";
+		case SwanKey::Y4: return "Y4 ↷ X2";
+		case SwanKey::ANoRotation: return "A";
+		case SwanKey::BNoRotation: return "B";
+		case SwanKey::Y1X1: return "Y4 ↷ X1";
+		case SwanKey::Y2X2: return "Y4 ↷ X2";
+		case SwanKey::Y3X3: return "Y4 ↷ X3";
+		case SwanKey::Y4X4: return "Y4 ↷ X4";
+		default: return "";
+	}
+}
 
-constexpr unsigned oppositeDPadButtonCodes[]
+std::span<const KeyConfigDesc> WsApp::defaultKeyConfigs()
 {
-	wsKeyIdxY4X4,
-	wsKeyIdxY3X3,
-	wsKeyIdxY1X1,
-	wsKeyIdxY2X2,
-};
+	using namespace IG::Input;
 
-constexpr unsigned faceButtonCombinedCodes[]
+	static constexpr std::array pcKeyboardMap
+	{
+		KeyMapping{SwanKey::Up, Keycode::UP},
+		KeyMapping{SwanKey::Right, Keycode::RIGHT},
+		KeyMapping{SwanKey::Down, Keycode::DOWN},
+		KeyMapping{SwanKey::Left, Keycode::LEFT},
+		KeyMapping{SwanKey::Start, Keycode::ENTER},
+		KeyMapping{SwanKey::A, Keycode::X},
+		KeyMapping{SwanKey::B, Keycode::Z},
+		KeyMapping{SwanKey::Y1, Keycode::Q},
+		KeyMapping{SwanKey::Y2, Keycode::W},
+		KeyMapping{SwanKey::Y3, Keycode::S},
+		KeyMapping{SwanKey::Y4, Keycode::A},
+	};
+
+	static constexpr std::array genericGamepadMap
+	{
+		KeyMapping{SwanKey::Up, Keycode::UP},
+		KeyMapping{SwanKey::Right, Keycode::RIGHT},
+		KeyMapping{SwanKey::Down, Keycode::DOWN},
+		KeyMapping{SwanKey::Left, Keycode::LEFT},
+		KeyMapping{SwanKey::Start, Keycode::GAME_START},
+		KeyMapping{SwanKey::A, Keycode::GAME_A},
+		KeyMapping{SwanKey::B, Keycode::GAME_X},
+		KeyMapping{SwanKey::Y1, Keycode::GAME_L1},
+		KeyMapping{SwanKey::Y2, Keycode::GAME_R1},
+		KeyMapping{SwanKey::Y3, Keycode::GAME_B},
+		KeyMapping{SwanKey::Y4, Keycode::GAME_Y},
+	};
+
+	static constexpr std::array wiimoteMap
+	{
+		KeyMapping{SwanKey::Up, Wiimote::UP},
+		KeyMapping{SwanKey::Right, Wiimote::RIGHT},
+		KeyMapping{SwanKey::Down, Wiimote::DOWN},
+		KeyMapping{SwanKey::Left, Wiimote::LEFT},
+		KeyMapping{SwanKey::B, Wiimote::_1},
+		KeyMapping{SwanKey::A, Wiimote::_2},
+		KeyMapping{SwanKey::Start, Wiimote::PLUS},
+	};
+
+	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();
+}
+
+bool WsApp::allowsTurboModifier(KeyCode c)
 {
-	wsKeyIdxBNoRotation,
-	wsKeyIdxANoRotation,
-	wsKeyIdxY4X4,
-	wsKeyIdxY3X3,
-	wsKeyIdxY1X1,
-	wsKeyIdxY2X2,
-};
-
-constexpr std::array gamepadComponents
-{
-	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Face Buttons + Opposite D-Pad Buttons", faceButtonCombinedCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::rowSize2},
-	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
-	InputComponentDesc{"Opposite D-Pad Buttons", oppositeDPadButtonCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig | InputComponentFlagsMask::staggeredLayout},
-	InputComponentDesc{"Start", centerButtonCodes, InputComponent::button, RB2DO},
-};
-
-constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+	switch(SwanKey(c))
+	{
+		case SwanKey::A ... SwanKey::B:
+			return true;
+		default: return false;
+	}
+}
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
@@ -109,52 +204,45 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr struct VirtualControllerAssets
+AssetDesc WsApp::vControllerAssetDesc(KeyInfo key) const
 {
-	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
-
-	a{AssetFileID::gamepadOverlay,     gpImageCoords({{4, 0}, {2, 2}})},
-	b{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 0}, {2, 2}})},
-	d1{AssetFileID::gamepadOverlay,    gpImageCoords({{4, 2}, {2, 2}})},
-	d2{AssetFileID::gamepadOverlay,    gpImageCoords({{6, 2}, {2, 2}})},
-	d3{AssetFileID::gamepadOverlay,    gpImageCoords({{0, 4}, {2, 2}})},
-	d4{AssetFileID::gamepadOverlay,    gpImageCoords({{2, 4}, {2, 2}})},
-	start{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
-
-	blank{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})};
-} virtualControllerAssets;
-
-AssetDesc WsApp::vControllerAssetDesc(unsigned key) const
-{
-	switch(key)
+	static constexpr struct VirtualControllerAssets
 	{
-		case 0: return virtualControllerAssets.dpad;
-		case wsKeyIdxANoRotation:
-		case wsKeyIdxATurbo:
-		case wsKeyIdxA: return virtualControllerAssets.a;
-		case wsKeyIdxBNoRotation:
-		case wsKeyIdxBTurbo:
-		case wsKeyIdxB: return virtualControllerAssets.b;
-		case wsKeyIdxY1X1:
-		case wsKeyIdxY1Turbo:
-		case wsKeyIdxY1: return virtualControllerAssets.d1;
-		case wsKeyIdxY2X2:
-		case wsKeyIdxY2Turbo:
-		case wsKeyIdxY2: return virtualControllerAssets.d2;
-		case wsKeyIdxY3X3:
-		case wsKeyIdxY3Turbo:
-		case wsKeyIdxY3: return virtualControllerAssets.d3;
-		case wsKeyIdxY4X4:
-		case wsKeyIdxY4Turbo:
-		case wsKeyIdxY4: return virtualControllerAssets.d4;
-		case wsKeyIdxStart: return virtualControllerAssets.start;
+		AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+		a{AssetFileID::gamepadOverlay,     gpImageCoords({{4, 0}, {2, 2}})},
+		b{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 0}, {2, 2}})},
+		d1{AssetFileID::gamepadOverlay,    gpImageCoords({{4, 2}, {2, 2}})},
+		d2{AssetFileID::gamepadOverlay,    gpImageCoords({{6, 2}, {2, 2}})},
+		d3{AssetFileID::gamepadOverlay,    gpImageCoords({{0, 4}, {2, 2}})},
+		d4{AssetFileID::gamepadOverlay,    gpImageCoords({{2, 4}, {2, 2}})},
+		start{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+
+		blank{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})};
+	} virtualControllerAssets;
+
+	if(key[0] == 0)
+		return virtualControllerAssets.dpad;
+	switch(SwanKey(key[0]))
+	{
+		case SwanKey::ANoRotation:
+		case SwanKey::A: return virtualControllerAssets.a;
+		case SwanKey::BNoRotation:
+		case SwanKey::B: return virtualControllerAssets.b;
+		case SwanKey::Y1X1:
+		case SwanKey::Y1: return virtualControllerAssets.d1;
+		case SwanKey::Y2X2:
+		case SwanKey::Y2: return virtualControllerAssets.d2;
+		case SwanKey::Y3X3:
+		case SwanKey::Y3: return virtualControllerAssets.d3;
+		case SwanKey::Y4X4:
+		case SwanKey::Y4: return virtualControllerAssets.d4;
+		case SwanKey::Start: return virtualControllerAssets.start;
 		default: return virtualControllerAssets.blank;
 	}
 }
 
-const int EmuSystem::maxPlayers = 1;
-
-enum KeypadMask: unsigned
+enum KeypadMask: uint16_t
 {
 	X1_BIT = bit(0),
 	X2_BIT = bit(1),
@@ -169,97 +257,60 @@ enum KeypadMask: unsigned
 	B_BIT = bit(10),
 };
 
-static bool isGamepadButton(unsigned input)
+void WsSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	switch(input)
-	{
-		case wsKeyIdxA ... wsKeyIdxY4X4:
-			return true;
-		default: return false;
-	}
-}
-
-InputAction WsSystem::translateInputAction(InputAction action)
-{
-	if(!isGamepadButton(action.key))
-		action.setTurboFlag(false);
-	action.key = [&] -> unsigned
+	using namespace MDFN_IEN_WSWAN;
+	auto gpBits = [&] -> uint16_t
 	{
 		if(isRotated())
 		{
-			switch(action.key)
+			switch(SwanKey(a.code))
 			{
-				case wsKeyIdxUp: return Y2_BIT;
-				case wsKeyIdxRight: return Y3_BIT;
-				case wsKeyIdxDown: return Y4_BIT;
-				case wsKeyIdxLeft: return Y1_BIT;
-				case wsKeyIdxLeftUp: return Y1_BIT | Y2_BIT;
-				case wsKeyIdxRightUp: return Y3_BIT | Y2_BIT;
-				case wsKeyIdxRightDown: return Y3_BIT | Y4_BIT;
-				case wsKeyIdxLeftDown: return Y1_BIT | Y4_BIT;
-				case wsKeyIdxY1Turbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxY1: return B_BIT;
-				case wsKeyIdxY2Turbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxY2: return A_BIT;
-				case wsKeyIdxY3Turbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxY3: return X3_BIT;
-				case wsKeyIdxY4Turbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxY4: return X2_BIT;
-				case wsKeyIdxStart: return START_BIT;
-				case wsKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxA: return X4_BIT;
-				case wsKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxB: return X1_BIT;
-				case wsKeyIdxANoRotation: return A_BIT;
-				case wsKeyIdxBNoRotation: return B_BIT;
-				case wsKeyIdxY1X1: return X1_BIT;
-				case wsKeyIdxY2X2: return X2_BIT;
-				case wsKeyIdxY3X3: return X3_BIT;
-				case wsKeyIdxY4X4: return X4_BIT;
+				case SwanKey::Up: return Y2_BIT;
+				case SwanKey::Right: return Y3_BIT;
+				case SwanKey::Down: return Y4_BIT;
+				case SwanKey::Left: return Y1_BIT;
+				case SwanKey::Y1: return B_BIT;
+				case SwanKey::Y2: return A_BIT;
+				case SwanKey::Y3: return X3_BIT;
+				case SwanKey::Y4: return X2_BIT;
+				case SwanKey::Start: return START_BIT;
+				case SwanKey::A: return X4_BIT;
+				case SwanKey::B: return X1_BIT;
+				case SwanKey::ANoRotation: return A_BIT;
+				case SwanKey::BNoRotation: return B_BIT;
+				case SwanKey::Y1X1: return X1_BIT;
+				case SwanKey::Y2X2: return X2_BIT;
+				case SwanKey::Y3X3: return X3_BIT;
+				case SwanKey::Y4X4: return X4_BIT;
 			}
 		}
 		else
 		{
-			switch(action.key)
+			switch(SwanKey(a.code))
 			{
-				case wsKeyIdxUp: return X1_BIT;
-				case wsKeyIdxRight: return X2_BIT;
-				case wsKeyIdxDown: return X3_BIT;
-				case wsKeyIdxLeft: return X4_BIT;
-				case wsKeyIdxLeftUp: return X4_BIT | X1_BIT;
-				case wsKeyIdxRightUp: return X2_BIT | X1_BIT;
-				case wsKeyIdxRightDown: return X2_BIT | X3_BIT;
-				case wsKeyIdxLeftDown: return X4_BIT | X3_BIT;
-				case wsKeyIdxY1Turbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxY1: return Y1_BIT;
-				case wsKeyIdxY2Turbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxY2: return Y2_BIT;
-				case wsKeyIdxY3Turbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxY3: return Y3_BIT;
-				case wsKeyIdxY4Turbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxY4: return Y4_BIT;
-				case wsKeyIdxStart: return START_BIT;
-				case wsKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxA: return A_BIT;
-				case wsKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
-				case wsKeyIdxB: return B_BIT;
-				case wsKeyIdxANoRotation: return A_BIT;
-				case wsKeyIdxBNoRotation: return B_BIT;
-				case wsKeyIdxY1X1: return Y1_BIT;
-				case wsKeyIdxY2X2: return Y2_BIT;
-				case wsKeyIdxY3X3: return Y3_BIT;
-				case wsKeyIdxY4X4: return Y4_BIT;
+				case SwanKey::Up: return X1_BIT;
+				case SwanKey::Right: return X2_BIT;
+				case SwanKey::Down: return X3_BIT;
+				case SwanKey::Left: return X4_BIT;
+				case SwanKey::Y1: return Y1_BIT;
+				case SwanKey::Y2: return Y2_BIT;
+				case SwanKey::Y3: return Y3_BIT;
+				case SwanKey::Y4: return Y4_BIT;
+				case SwanKey::Start: return START_BIT;
+				case SwanKey::A: return A_BIT;
+				case SwanKey::B: return B_BIT;
+				case SwanKey::ANoRotation: return A_BIT;
+				case SwanKey::BNoRotation: return B_BIT;
+				case SwanKey::Y1X1: return Y1_BIT;
+				case SwanKey::Y2X2: return Y2_BIT;
+				case SwanKey::Y3X3: return Y3_BIT;
+				case SwanKey::Y4X4: return Y4_BIT;
 			}
 		}
 		bug_unreachable("invalid key");
 	}();
-	return action;
-}
-
-void WsSystem::handleInputAction(EmuApp *, InputAction a)
-{
-	using namespace MDFN_IEN_WSWAN;
-	WSButtonStatus = setOrClearBits(WSButtonStatus, uint16_t(a.key), a.state == Input::Action::PUSHED);
+	WSButtonStatus = setOrClearBits(WSButtonStatus, gpBits, a.isPushed());
 }
 
 void WsSystem::clearInputBuffers(EmuInputView &)
@@ -269,24 +320,38 @@ void WsSystem::clearInputBuffers(EmuInputView &)
 
 void WsSystem::setupInput(EmuApp &app)
 {
+	constexpr std::array faceKeyInfo{KeyCode(SwanKey::BNoRotation), KeyCode(SwanKey::ANoRotation)};
+	constexpr std::array oppositeDPadKeyInfo{KeyCode(SwanKey::Y4X4), KeyCode(SwanKey::Y3X3),
+		KeyCode(SwanKey::Y1X1), KeyCode(SwanKey::Y2X2)};
 	if(isRotated())
 	{
 		if(showVGamepadABWhenVertical)
 			app.unsetDisabledInputKeys();
 		else
-			app.setDisabledInputKeys(faceButtonCodes);
+			app.setDisabledInputKeys(faceKeyInfo);
 	}
 	else
 	{
 		if(showVGamepadYWhenHorizonal)
 			app.unsetDisabledInputKeys();
 		else
-			app.setDisabledInputKeys(oppositeDPadButtonCodes);
+			app.setDisabledInputKeys(oppositeDPadKeyInfo);
 	}
 }
 
 SystemInputDeviceDesc WsSystem::inputDeviceDesc(int idx) const
 {
+	static constexpr std::array gamepadComponents
+	{
+		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
+		InputComponentDesc{"Face Buttons + Opposite D-Pad Buttons", faceButtonCombinedCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::rowSize2},
+		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
+		InputComponentDesc{"Opposite D-Pad Buttons", oppositeDPadKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig | InputComponentFlagsMask::staggeredLayout},
+		InputComponentDesc{"Start", centerKeyInfo, InputComponent::button, RB2DO},
+	};
+
+	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 	return gamepadDesc;
 }
 

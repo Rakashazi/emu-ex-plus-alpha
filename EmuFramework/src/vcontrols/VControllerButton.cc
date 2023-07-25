@@ -45,7 +45,7 @@ void VControllerButton::setImage(Gfx::TextureSpan tex, int aR)
 
 std::string VControllerButton::name(const EmuApp &app) const
 {
-	return std::string{app.systemKeyName(key)};
+	return std::string{app.inputManager.toString(key)};
 }
 
 void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds, float alpha) const
@@ -58,7 +58,7 @@ void VControllerButton::drawSprite(Gfx::RendererCommands &__restrict__ cmds, flo
 {
 	if(color != Gfx::Color{})
 	{
-		cmds.setColor({color.r * alpha, color.g * alpha, color.b * alpha, alpha});
+		cmds.setColor(color.multiplyAlpha(alpha));
 	}
 	else
 	{

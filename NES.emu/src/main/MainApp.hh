@@ -34,7 +34,11 @@ public:
 
 	auto &system() { return nesSystem;  }
 	const auto &system() const { return nesSystem;  }
-	AssetDesc vControllerAssetDesc(unsigned key) const;
+	AssetDesc vControllerAssetDesc(KeyInfo) const;
+	static std::span<const KeyCategory> keyCategories();
+	static std::span<const KeyConfigDesc> defaultKeyConfigs();
+	static std::string_view systemKeyCodeToString(KeyCode);
+	static bool allowsTurboModifier(KeyCode);
 };
 
 using MainApp = NesApp;

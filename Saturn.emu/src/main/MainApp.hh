@@ -31,7 +31,11 @@ public:
 
 	auto &system() { return saturnSystem;  }
 	const auto &system() const { return saturnSystem;  }
-	AssetDesc vControllerAssetDesc(unsigned key) const;
+	AssetDesc vControllerAssetDesc(KeyInfo) const;
+	static std::span<const KeyCategory> keyCategories();
+	static std::span<const KeyConfigDesc> defaultKeyConfigs();
+	static std::string_view systemKeyCodeToString(KeyCode);
+	static bool allowsTurboModifier(KeyCode);
 };
 
 using MainApp = SaturnApp;

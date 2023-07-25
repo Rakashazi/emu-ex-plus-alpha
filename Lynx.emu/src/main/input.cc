@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/keyRemappingUtils.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
 
@@ -23,57 +24,128 @@ void Lynx_SetButtonData(uint32 data);
 namespace EmuEx
 {
 
-enum
+const int EmuSystem::maxPlayers = 1;
+
+enum class LynxKey : KeyCode
 {
-	lynxKeyIdxUp = Controls::systemKeyMapStart,
-	lynxKeyIdxRight,
-	lynxKeyIdxDown,
-	lynxKeyIdxLeft,
-	lynxKeyIdxLeftUp,
-	lynxKeyIdxRightUp,
-	lynxKeyIdxRightDown,
-	lynxKeyIdxLeftDown,
-	lynxKeyIdxOption1,
-	lynxKeyIdxOption2,
-	lynxKeyIdxPause,
-	lynxKeyIdxA,
-	lynxKeyIdxB,
-	lynxKeyIdxATurbo,
-	lynxKeyIdxBTurbo,
-	lynxKeyIdxAB,
+	Up = 7,
+	Right = 6,
+	Down = 8,
+	Left = 5,
+	Option1 = 4,
+	Option2 = 3,
+	Pause = 9,
+	A = 2,
+	B = 1,
 };
 
-constexpr std::array<unsigned, 4> dpadButtonCodes
+constexpr auto dpadKeyInfo = makeArray<KeyInfo>
+(
+	LynxKey::Up,
+	LynxKey::Right,
+	LynxKey::Down,
+	LynxKey::Left
+);
+
+constexpr std::array optionKeyInfo = makeArray<KeyInfo>
+(
+	LynxKey::Option1,
+	LynxKey::Option2
+);
+
+constexpr std::array pauseKeyInfo = makeArray<KeyInfo>(LynxKey::Pause);
+
+constexpr std::array faceKeyInfo = makeArray<KeyInfo>
+(
+	LynxKey::B,
+	LynxKey::A
+);
+
+constexpr auto turboFaceKeyInfo = turbo(faceKeyInfo);
+
+constexpr auto gpKeyInfo = concatToArrayNow<dpadKeyInfo, optionKeyInfo, pauseKeyInfo, faceKeyInfo, turboFaceKeyInfo>;
+
+std::span<const KeyCategory> LynxApp::keyCategories()
 {
-	lynxKeyIdxUp,
-	lynxKeyIdxRight,
-	lynxKeyIdxDown,
-	lynxKeyIdxLeft,
-};
+	static constexpr KeyCategory categories[]
+	{
+		{"Gamepad", gpKeyInfo},
+	};
+	return categories;
+}
 
-constexpr unsigned optionButtonCodes[]
+std::string_view LynxApp::systemKeyCodeToString(KeyCode c)
 {
-	lynxKeyIdxOption1,
-	lynxKeyIdxOption2,
-};
+	switch(LynxKey(c))
+	{
+		case LynxKey::Up: return "Up";
+		case LynxKey::Right: return "Right";
+		case LynxKey::Down: return "Down";
+		case LynxKey::Left: return "Left";
+		case LynxKey::Option1: return "Option 1";
+		case LynxKey::Option2: return "Option 1";
+		case LynxKey::Pause: return "Pause";
+		case LynxKey::A: return "A";
+		case LynxKey::B: return "B";
+		default: return "";
+	}
+}
 
-constexpr unsigned pauseButtonCode[]{lynxKeyIdxPause};
-
-constexpr unsigned faceButtonCodes[]
+std::span<const KeyConfigDesc> LynxApp::defaultKeyConfigs()
 {
-	lynxKeyIdxB,
-	lynxKeyIdxA,
-};
+	using namespace IG::Input;
 
-constexpr std::array gamepadComponents
+	static constexpr std::array pcKeyboardMap
+	{
+		KeyMapping{LynxKey::Up, Keycode::UP},
+		KeyMapping{LynxKey::Right, Keycode::RIGHT},
+		KeyMapping{LynxKey::Down, Keycode::DOWN},
+		KeyMapping{LynxKey::Left, Keycode::LEFT},
+		KeyMapping{LynxKey::Option1, Keycode::A},
+		KeyMapping{LynxKey::Option2, Keycode::S},
+		KeyMapping{LynxKey::Pause, Keycode::ENTER},
+		KeyMapping{LynxKey::A, Keycode::X},
+		KeyMapping{LynxKey::B, Keycode::Z},
+	};
+
+	static constexpr std::array genericGamepadMap
+	{
+		KeyMapping{LynxKey::Up, Keycode::UP},
+		KeyMapping{LynxKey::Right, Keycode::RIGHT},
+		KeyMapping{LynxKey::Down, Keycode::DOWN},
+		KeyMapping{LynxKey::Left, Keycode::LEFT},
+		KeyMapping{LynxKey::Option1, Keycode::GAME_L1},
+		KeyMapping{LynxKey::Option2, Keycode::GAME_R1},
+		KeyMapping{LynxKey::Pause, Keycode::GAME_START},
+		KeyMapping{LynxKey::A, Keycode::GAME_A},
+		KeyMapping{LynxKey::B, Keycode::GAME_X},
+	};
+
+	static constexpr std::array wiimoteMap
+	{
+		KeyMapping{LynxKey::Up, Wiimote::UP},
+		KeyMapping{LynxKey::Right, Wiimote::RIGHT},
+		KeyMapping{LynxKey::Down, Wiimote::DOWN},
+		KeyMapping{LynxKey::Left, Wiimote::LEFT},
+		KeyMapping{LynxKey::B, Wiimote::_1},
+		KeyMapping{LynxKey::A, Wiimote::_2},
+		KeyMapping{LynxKey::Option1, Wiimote::A},
+		KeyMapping{LynxKey::Option1, Wiimote::B},
+		KeyMapping{LynxKey::Pause, Wiimote::PLUS},
+	};
+
+	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();
+}
+
+bool LynxApp::allowsTurboModifier(KeyCode c)
 {
-	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO},
-	InputComponentDesc{"Option Buttons", optionButtonCodes, InputComponent::button, LB2DO},
-	InputComponentDesc{"Pause", pauseButtonCode, InputComponent::button,RB2DO},
-};
-
-constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+	switch(LynxKey(c))
+	{
+		case LynxKey::B ... LynxKey::A:
+			return true;
+		default: return false;
+	}
+}
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
@@ -82,113 +154,57 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr struct VirtualControllerAssets
+AssetDesc LynxApp::vControllerAssetDesc(KeyInfo key) const
 {
-	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
-
-	a{AssetFileID::gamepadOverlay,       gpImageCoords({{4, 0}, {2, 2}})},
-	b{AssetFileID::gamepadOverlay,       gpImageCoords({{6, 0}, {2, 2}})},
-	blank{AssetFileID::gamepadOverlay,   gpImageCoords({{4, 2}, {2, 2}})},
-	ab{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 2}, {2, 2}})},
-	pause{AssetFileID::gamepadOverlay,   gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
-	option1{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
-	option2{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}};
-} virtualControllerAssets;
-
-AssetDesc LynxApp::vControllerAssetDesc(unsigned key) const
-{
-	switch(key)
+	static constexpr struct VirtualControllerAssets
 	{
-		case 0: return virtualControllerAssets.dpad;
-		case lynxKeyIdxATurbo:
-		case lynxKeyIdxA: return virtualControllerAssets.a;
-		case lynxKeyIdxBTurbo:
-		case lynxKeyIdxB: return virtualControllerAssets.b;
-		case lynxKeyIdxAB: return virtualControllerAssets.ab;
-		case lynxKeyIdxPause: return virtualControllerAssets.pause;
-		case lynxKeyIdxOption1: return virtualControllerAssets.option1;
-		case lynxKeyIdxOption2: return virtualControllerAssets.option2;
+		AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+		a{AssetFileID::gamepadOverlay,       gpImageCoords({{4, 0}, {2, 2}})},
+		b{AssetFileID::gamepadOverlay,       gpImageCoords({{6, 0}, {2, 2}})},
+		blank{AssetFileID::gamepadOverlay,   gpImageCoords({{4, 2}, {2, 2}})},
+		ab{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 2}, {2, 2}})},
+		pause{AssetFileID::gamepadOverlay,   gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
+		option1{AssetFileID::gamepadOverlay, gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
+		option2{AssetFileID::gamepadOverlay, gpImageCoords({{2, 7}, {2, 1}}), {1, 2}};
+	} virtualControllerAssets;
+
+	if(key[0] == 0)
+		return virtualControllerAssets.dpad;
+	switch(LynxKey(key[0]))
+	{
+		case LynxKey::A: return virtualControllerAssets.a;
+		case LynxKey::B: return virtualControllerAssets.b;
+		case LynxKey::Pause: return virtualControllerAssets.pause;
+		case LynxKey::Option1: return virtualControllerAssets.option1;
+		case LynxKey::Option2: return virtualControllerAssets.option2;
 		default: return virtualControllerAssets.blank;
 	}
 }
 
-const int EmuSystem::maxPlayers = 1;
-
-enum KeypadMask: unsigned
-{
-	PAUSE_BIT = bit(8),
-	UP_BIT = bit(6),
-	DOWN_BIT = bit(7),
-	LEFT_BIT = bit(4),
-	RIGHT_BIT = bit(5),
-	OPTION1_BIT = bit(3),
-	OPTION2_BIT = bit(2),
-	B_BIT = bit(1),
-	A_BIT = bit(0),
-};
-
-static bool isGamepadButton(unsigned input)
-{
-	switch(input)
-	{
-		case lynxKeyIdxA ... lynxKeyIdxB:
-			return true;
-		default: return false;
-	}
-}
-
-static unsigned rotateDPadKeycode(unsigned key, Rotation rotation)
+static LynxKey rotateDPadKeycode(LynxKey key, Rotation rotation)
 {
 	if(rotation == Rotation::UP)
 		return key;
 	switch(key)
 	{
-		case UP_BIT: return rotation == Rotation::RIGHT ? RIGHT_BIT : LEFT_BIT;
-		case RIGHT_BIT: return rotation == Rotation::RIGHT ? DOWN_BIT : UP_BIT;
-		case DOWN_BIT: return rotation == Rotation::RIGHT ? LEFT_BIT : RIGHT_BIT;
-		case LEFT_BIT: return rotation == Rotation::RIGHT ? UP_BIT : DOWN_BIT;
+		case LynxKey::Up: return rotation == Rotation::RIGHT ? LynxKey::Right : LynxKey::Left;
+		case LynxKey::Right: return rotation == Rotation::RIGHT ? LynxKey::Down : LynxKey::Up;
+		case LynxKey::Down: return rotation == Rotation::RIGHT ? LynxKey::Left : LynxKey::Right;
+		case LynxKey::Left: return rotation == Rotation::RIGHT ? LynxKey::Up : LynxKey::Down;
+		default: return key;
 	}
-	bug_unreachable("invalid key");
 }
 
-unsigned LynxSystem::rotateDPadKeycode(unsigned key) const
+LynxKey LynxSystem::rotateDPadKeycode(LynxKey key) const
 {
 	return EmuEx::rotateDPadKeycode(key, contentRotation());
 }
 
-InputAction LynxSystem::translateInputAction(InputAction action)
-{
-	if(!isGamepadButton(action.key))
-		action.setTurboFlag(false);
-	action.key = [&] -> unsigned
-	{
-		switch(action.key)
-		{
-			case lynxKeyIdxUp: return rotateDPadKeycode(UP_BIT);
-			case lynxKeyIdxRight: return rotateDPadKeycode(RIGHT_BIT);
-			case lynxKeyIdxDown: return rotateDPadKeycode(DOWN_BIT);
-			case lynxKeyIdxLeft: return rotateDPadKeycode(LEFT_BIT);
-			case lynxKeyIdxLeftUp: return rotateDPadKeycode(LEFT_BIT) | rotateDPadKeycode(UP_BIT);
-			case lynxKeyIdxRightUp: return rotateDPadKeycode(RIGHT_BIT) | rotateDPadKeycode(UP_BIT);
-			case lynxKeyIdxRightDown: return rotateDPadKeycode(RIGHT_BIT) | rotateDPadKeycode(DOWN_BIT);
-			case lynxKeyIdxLeftDown: return rotateDPadKeycode(LEFT_BIT) | rotateDPadKeycode(DOWN_BIT);
-			case lynxKeyIdxOption1: return OPTION1_BIT;
-			case lynxKeyIdxOption2: return OPTION2_BIT;
-			case lynxKeyIdxPause: return PAUSE_BIT;
-			case lynxKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
-			case lynxKeyIdxA: return A_BIT;
-			case lynxKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case lynxKeyIdxB: return B_BIT;
-			case lynxKeyIdxAB: return A_BIT | B_BIT;
-		}
-		bug_unreachable("invalid key");
-	}();
-	return action;
-}
-
 void LynxSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	inputBuff = IG::setOrClearBits(inputBuff, (uint16_t)a.key, a.state == Input::Action::PUSHED);
+	auto key = rotateDPadKeycode(LynxKey(a.code));
+	inputBuff = setOrClearBits(inputBuff, bit(to_underlying(key) - 1), a.isPushed());
 	Lynx_SetButtonData(inputBuff);
 }
 
@@ -200,6 +216,16 @@ void LynxSystem::clearInputBuffers(EmuInputView &)
 
 SystemInputDeviceDesc LynxSystem::inputDeviceDesc(int idx) const
 {
+	static constexpr std::array gamepadComponents
+	{
+		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
+		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO},
+		InputComponentDesc{"Option Buttons", optionKeyInfo, InputComponent::button, LB2DO},
+		InputComponentDesc{"Pause", pauseKeyInfo, InputComponent::button,RB2DO},
+	};
+
+	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 	return gamepadDesc;
 }
 

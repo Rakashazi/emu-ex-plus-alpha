@@ -14,7 +14,6 @@ CXXFLAGS_WARN += -Wno-missing-field-initializers
 SRC += main/Main.cc \
 main/options.cc \
 main/input.cc \
-main/EmuControls.cc \
 main/EmuMenuViews.cc \
 $(MDFN_COMMON_SRC)
 

@@ -15,7 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <array>
+#include <emuframework/inputDefs.hh>
+#include <imagine/util/container/ArrayList.hh>
 
 namespace EmuEx
 {
@@ -24,14 +25,12 @@ class EmuApp;
 
 struct TurboInput
 {
-	using Action = unsigned;
+	IG::StaticArrayList<KeyInfo, 5> keys;
+	int clock{};
 
-	std::array<Action, 5> activeAction{};
-	int clock = 0;
-
-	constexpr TurboInput() {}
-	void addEvent(unsigned action);
-	void removeEvent(unsigned action);
+	constexpr TurboInput() = default;
+	void addEvent(KeyInfo);
+	void removeEvent(KeyInfo);
 	void update(EmuApp &);
 };
 

@@ -15,180 +15,207 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/keyRemappingUtils.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
 
 namespace EmuEx
 {
 
-enum
+const int EmuSystem::maxPlayers = 2;
+
+enum class SaturnKey : KeyCode
 {
-	ssKeyIdxUp = Controls::systemKeyMapStart,
-	ssKeyIdxRight,
-	ssKeyIdxDown,
-	ssKeyIdxLeft,
-	ssKeyIdxLeftUp,
-	ssKeyIdxRightUp,
-	ssKeyIdxRightDown,
-	ssKeyIdxLeftDown,
-	ssKeyIdxStart,
-	ssKeyIdxA,
-	ssKeyIdxB,
-	ssKeyIdxC,
-	ssKeyIdxX,
-	ssKeyIdxY,
-	ssKeyIdxZ,
-	ssKeyIdxL,
-	ssKeyIdxR,
-	ssKeyIdxATurbo,
-	ssKeyIdxBTurbo,
-	ssKeyIdxCTurbo,
-	ssKeyIdxXTurbo,
-	ssKeyIdxYTurbo,
-	ssKeyIdxZTurbo,
-	ssKeyIdxLastGamepad = ssKeyIdxZTurbo
+	Up = 1,
+	Right,
+	Down,
+	Left,
+	Start,
+	A,
+	B,
+	C,
+	X,
+	Y,
+	Z,
+	L,
+	R,
 };
 
-constexpr std::array<unsigned, 4> dpadButtonCodes
+constexpr auto dpadButtonCodes = makeArray<KeyInfo>
+(
+	SaturnKey::Up,
+	SaturnKey::Right,
+	SaturnKey::Down,
+	SaturnKey::Left
+);
+
+constexpr auto centerButtonCodes = makeArray<KeyInfo>(SaturnKey::Start);
+
+constexpr auto faceButtonCodes = makeArray<KeyInfo>
+(
+	SaturnKey::A,
+	SaturnKey::B,
+	SaturnKey::C,
+	SaturnKey::X,
+	SaturnKey::Y,
+	SaturnKey::Z
+);
+
+constexpr auto gpKeyInfo = concatToArrayNow<dpadButtonCodes, centerButtonCodes, faceButtonCodes>;
+constexpr auto gp2KeyInfo = transpose(gpKeyInfo, 1);
+
+std::span<const KeyCategory> SaturnApp::keyCategories()
 {
-	ssKeyIdxUp,
-	ssKeyIdxRight,
-	ssKeyIdxDown,
-	ssKeyIdxLeft,
-};
+	static constexpr std::array categories
+	{
+		KeyCategory{"Gamepad", gpKeyInfo},
+		KeyCategory{"Gamepad 2", gp2KeyInfo, 1},
+	};
+	return categories;
+}
 
-constexpr unsigned centerButtonCodes[]{ssKeyIdxStart};
-
-constexpr unsigned faceButtonCodes[]
+std::string_view SaturnApp::systemKeyCodeToString(KeyCode c)
 {
-	ssKeyIdxA,
-	ssKeyIdxB,
-	ssKeyIdxC,
-	ssKeyIdxX,
-	ssKeyIdxY,
-	ssKeyIdxZ,
-};
+	switch(SaturnKey(c))
+	{
+		case SaturnKey::Up: return "Up";
+		case SaturnKey::Right: return "Right";
+		case SaturnKey::Down: return "Down";
+		case SaturnKey::Left: return "Left";
+		case SaturnKey::Start: return "Start";
+		case SaturnKey::A: return "A";
+		case SaturnKey::B: return "B";
+		case SaturnKey::C: return "C";
+		case SaturnKey::X: return "X";
+		case SaturnKey::Y: return "Y";
+		case SaturnKey::Z: return "Z";
+		default: return "";
+	}
+}
 
-constexpr std::array gamepadComponents
+std::span<const KeyConfigDesc> SaturnApp::defaultKeyConfigs()
 {
-	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO},
-	InputComponentDesc{"Start", centerButtonCodes, InputComponent::button, RB2DO},
-};
+	using namespace IG::Input;
 
-constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+	static constexpr std::array pcKeyboardMap
+	{
+		KeyMapping{SaturnKey::Up, Keycode::UP},
+		KeyMapping{SaturnKey::Right, Keycode::RIGHT},
+		KeyMapping{SaturnKey::Down, Keycode::DOWN},
+		KeyMapping{SaturnKey::Left, Keycode::LEFT},
+		KeyMapping{SaturnKey::Start, Keycode::ENTER},
+		KeyMapping{SaturnKey::A, Keycode::Z},
+		KeyMapping{SaturnKey::B, Keycode::X},
+		KeyMapping{SaturnKey::C, Keycode::C},
+		KeyMapping{SaturnKey::X, Keycode::A},
+		KeyMapping{SaturnKey::Y, Keycode::S},
+		KeyMapping{SaturnKey::Z, Keycode::D},
+	};
+
+	static constexpr std::array genericGamepadMap
+	{
+		KeyMapping{SaturnKey::Up, Keycode::UP},
+		KeyMapping{SaturnKey::Right, Keycode::RIGHT},
+		KeyMapping{SaturnKey::Down, Keycode::DOWN},
+		KeyMapping{SaturnKey::Left, Keycode::LEFT},
+		KeyMapping{SaturnKey::Start, Keycode::GAME_START},
+		KeyMapping{SaturnKey::A, Keycode::GAME_X},
+		KeyMapping{SaturnKey::B, Keycode::GAME_A},
+		KeyMapping{SaturnKey::C, Keycode::GAME_B},
+		KeyMapping{SaturnKey::X, Keycode::GAME_L1},
+		KeyMapping{SaturnKey::Y, Keycode::GAME_Y},
+		KeyMapping{SaturnKey::Z, Keycode::GAME_R1},
+	};
+
+	static constexpr std::array wiimoteMap
+	{
+		KeyMapping{SaturnKey::Up, Wiimote::UP},
+		KeyMapping{SaturnKey::Right, Wiimote::RIGHT},
+		KeyMapping{SaturnKey::Down, Wiimote::DOWN},
+		KeyMapping{SaturnKey::Left, Wiimote::LEFT},
+		KeyMapping{SaturnKey::A, Wiimote::_1},
+		KeyMapping{SaturnKey::B, Wiimote::_2},
+		KeyMapping{SaturnKey::C, Wiimote::B},
+		KeyMapping{SaturnKey::Start, Wiimote::PLUS},
+	};
+
+	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();
+}
+
+bool SaturnApp::allowsTurboModifier(KeyCode c)
+{
+	switch(SaturnKey(c))
+	{
+		case SaturnKey::A ... SaturnKey::Z:
+			return true;
+		default: return false;
+	}
+}
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
-	constexpr FP imageSize{256, 256};
+	constexpr F2Size imageSize{256, 256};
 	constexpr int cellSize = 32;
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr AssetDesc virtualControllerAssets[]
+AssetDesc SaturnApp::vControllerAssetDesc(KeyInfo key) const
 {
-	// d-pad
-	{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
-
-	// gamepad buttons
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // C
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // X
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})}, // Y
-	{AssetFileID::gamepadOverlay, gpImageCoords({{2, 4}, {2, 2}})}, // Z
-	{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})}, // L
-	{AssetFileID::gamepadOverlay, gpImageCoords({{6, 4}, {2, 2}})}, // R
-	{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // start
-};
-
-AssetDesc SaturnApp::vControllerAssetDesc(unsigned key) const
-{
-	switch(key)
+	static constexpr AssetDesc virtualControllerAssets[]
 	{
-		case 0: return virtualControllerAssets[0];
-		case ssKeyIdxATurbo:
-		case ssKeyIdxA: return virtualControllerAssets[1];
-		case ssKeyIdxBTurbo:
-		case ssKeyIdxB: return virtualControllerAssets[2];
-		case ssKeyIdxCTurbo:
-		case ssKeyIdxC: return virtualControllerAssets[3];
-		case ssKeyIdxXTurbo:
-		case ssKeyIdxX: return virtualControllerAssets[4];
-		case ssKeyIdxYTurbo:
-		case ssKeyIdxY: return virtualControllerAssets[5];
-		case ssKeyIdxZTurbo:
-		case ssKeyIdxZ: return virtualControllerAssets[6];
-		case ssKeyIdxL: return virtualControllerAssets[7];
-		case ssKeyIdxR: return virtualControllerAssets[8];
-		case ssKeyIdxStart: return virtualControllerAssets[9];
+		// d-pad
+		{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+		// gamepad buttons
+		{AssetFileID::gamepadOverlay, gpImageCoords({{4, 0}, {2, 2}})}, // A
+		{AssetFileID::gamepadOverlay, gpImageCoords({{6, 0}, {2, 2}})}, // B
+		{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 2}})}, // C
+		{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})}, // X
+		{AssetFileID::gamepadOverlay, gpImageCoords({{0, 4}, {2, 2}})}, // Y
+		{AssetFileID::gamepadOverlay, gpImageCoords({{2, 4}, {2, 2}})}, // Z
+		{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})}, // L
+		{AssetFileID::gamepadOverlay, gpImageCoords({{6, 4}, {2, 2}})}, // R
+		{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}}, // start
+	};
+
+	if(key[0] == 0)
+		return virtualControllerAssets[0];
+	switch(SaturnKey(key[0]))
+	{
+		case SaturnKey::A: return virtualControllerAssets[1];
+		case SaturnKey::B: return virtualControllerAssets[2];
+		case SaturnKey::C: return virtualControllerAssets[3];
+		case SaturnKey::X: return virtualControllerAssets[4];
+		case SaturnKey::Y: return virtualControllerAssets[5];
+		case SaturnKey::Z: return virtualControllerAssets[6];
+		case SaturnKey::L: return virtualControllerAssets[7];
+		case SaturnKey::R: return virtualControllerAssets[8];
+		case SaturnKey::Start: return virtualControllerAssets[9];
 		default: return virtualControllerAssets[1];
-	}
-}
-
-const int EmuSystem::maxPlayers = 2;
-
-InputAction SaturnSystem::translateInputAction(InputAction action)
-{
-	switch(action.key)
-	{
-		case ssKeyIdxXTurbo:
-		case ssKeyIdxYTurbo:
-		case ssKeyIdxZTurbo:
-		case ssKeyIdxATurbo:
-		case ssKeyIdxBTurbo:
-		case ssKeyIdxCTurbo:
-		case ssKeyIdxXTurbo + Controls::gamepadKeys:
-		case ssKeyIdxYTurbo + Controls::gamepadKeys:
-		case ssKeyIdxZTurbo + Controls::gamepadKeys:
-		case ssKeyIdxATurbo + Controls::gamepadKeys:
-		case ssKeyIdxBTurbo + Controls::gamepadKeys:
-		case ssKeyIdxCTurbo + Controls::gamepadKeys:
-			action.setTurboFlag(true); [[fallthrough]];
-		default: return action;
 	}
 }
 
 void SaturnSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	unsigned player = 0;
-	if(a.key > ssKeyIdxLastGamepad)
-	{
-		player = 1;
-		a.key -= Controls::gamepadKeys;
-	}
+	auto player = a.flags.deviceId;
 	PerPad_struct *p = (player == 1) ? pad[1] : pad[0];
 	bool pushed = a.state == Input::Action::PUSHED;
-	switch(a.key)
+	switch(SaturnKey(a.code))
 	{
-		case ssKeyIdxUp: if(pushed) PerPadUpPressed(p); else PerPadUpReleased(p); break;
-		case ssKeyIdxRight: if(pushed) PerPadRightPressed(p); else PerPadRightReleased(p); break;
-		case ssKeyIdxDown: if(pushed) PerPadDownPressed(p); else PerPadDownReleased(p); break;
-		case ssKeyIdxLeft: if(pushed) PerPadLeftPressed(p); else PerPadLeftReleased(p); break;
-		case ssKeyIdxLeftUp: if(pushed) { PerPadLeftPressed(p); PerPadUpPressed(p); }
-			else { PerPadLeftReleased(p); PerPadUpReleased(p); } break;
-		case ssKeyIdxRightUp: if(pushed) { PerPadRightPressed(p); PerPadUpPressed(p); }
-			else { PerPadRightReleased(p); PerPadUpReleased(p); } break;
-		case ssKeyIdxRightDown: if(pushed) { PerPadRightPressed(p); PerPadDownPressed(p); }
-			else { PerPadRightReleased(p); PerPadDownReleased(p); } break;
-		case ssKeyIdxLeftDown: if(pushed) { PerPadLeftPressed(p); PerPadDownPressed(p); }
-			else { PerPadLeftReleased(p); PerPadDownReleased(p); } break;
-		case ssKeyIdxStart: if(pushed) PerPadStartPressed(p); else PerPadStartReleased(p); break;
-		case ssKeyIdxXTurbo:
-		case ssKeyIdxX: if(pushed) PerPadXPressed(p); else PerPadXReleased(p); break;
-		case ssKeyIdxYTurbo:
-		case ssKeyIdxY: if(pushed) PerPadYPressed(p); else PerPadYReleased(p); break;
-		case ssKeyIdxZTurbo:
-		case ssKeyIdxZ: if(pushed) PerPadZPressed(p); else PerPadZReleased(p); break;
-		case ssKeyIdxATurbo:
-		case ssKeyIdxA: if(pushed) PerPadAPressed(p); else PerPadAReleased(p); break;
-		case ssKeyIdxBTurbo:
-		case ssKeyIdxB: if(pushed) PerPadBPressed(p); else PerPadBReleased(p); break;
-		case ssKeyIdxCTurbo:
-		case ssKeyIdxC: if(pushed) PerPadCPressed(p); else PerPadCReleased(p); break;
-		case ssKeyIdxL: if(pushed) PerPadLTriggerPressed(p); else PerPadLTriggerReleased(p); break;
-		case ssKeyIdxR: if(pushed) PerPadRTriggerPressed(p); else PerPadRTriggerReleased(p); break;
-		default: bug_unreachable("input == %d", a.key);
+		case SaturnKey::Up: if(pushed) PerPadUpPressed(p); else PerPadUpReleased(p); break;
+		case SaturnKey::Right: if(pushed) PerPadRightPressed(p); else PerPadRightReleased(p); break;
+		case SaturnKey::Down: if(pushed) PerPadDownPressed(p); else PerPadDownReleased(p); break;
+		case SaturnKey::Left: if(pushed) PerPadLeftPressed(p); else PerPadLeftReleased(p); break;
+		case SaturnKey::Start: if(pushed) PerPadStartPressed(p); else PerPadStartReleased(p); break;
+		case SaturnKey::X: if(pushed) PerPadXPressed(p); else PerPadXReleased(p); break;
+		case SaturnKey::Y: if(pushed) PerPadYPressed(p); else PerPadYReleased(p); break;
+		case SaturnKey::Z: if(pushed) PerPadZPressed(p); else PerPadZReleased(p); break;
+		case SaturnKey::A: if(pushed) PerPadAPressed(p); else PerPadAReleased(p); break;
+		case SaturnKey::B: if(pushed) PerPadBPressed(p); else PerPadBReleased(p); break;
+		case SaturnKey::C: if(pushed) PerPadCPressed(p); else PerPadCReleased(p); break;
+		case SaturnKey::L: if(pushed) PerPadLTriggerPressed(p); else PerPadLTriggerReleased(p); break;
+		case SaturnKey::R: if(pushed) PerPadRTriggerPressed(p); else PerPadRTriggerReleased(p); break;
+		default: bug_unreachable("input == %d", a.code);
 	}
 }
 
@@ -201,6 +228,15 @@ void SaturnSystem::clearInputBuffers(EmuInputView &)
 
 SystemInputDeviceDesc SaturnSystem::inputDeviceDesc(int idx) const
 {
+	static constexpr std::array gamepadComponents
+	{
+		InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
+		InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO},
+		InputComponentDesc{"Start", centerButtonCodes, InputComponent::button, RB2DO},
+	};
+
+	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 	return gamepadDesc;
 }
 

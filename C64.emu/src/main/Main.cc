@@ -520,7 +520,7 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, const Input::Event &e)
 {
 	auto &sys = static_cast<C64System&>(system());
 	sys.plugin.init();
-	updateKeyboardMapping();
+	inputManager.updateKeyboardMapping();
 	sys.setSysModel(sys.optionDefaultModel);
 	auto ctx = attach.appContext();
 	auto prgDiskPath = autostartPrgDiskImagePath(system());

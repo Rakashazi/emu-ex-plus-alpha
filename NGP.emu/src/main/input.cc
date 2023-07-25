@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/keyRemappingUtils.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
 #include <mednafen/ngp/mem.h>
@@ -22,47 +23,112 @@
 namespace EmuEx
 {
 
-enum
+const int EmuSystem::maxPlayers = 1;
+
+enum class NgpKey : KeyCode
 {
-	ngpKeyIdxUp = Controls::systemKeyMapStart,
-	ngpKeyIdxRight,
-	ngpKeyIdxDown,
-	ngpKeyIdxLeft,
-	ngpKeyIdxLeftUp,
-	ngpKeyIdxRightUp,
-	ngpKeyIdxRightDown,
-	ngpKeyIdxLeftDown,
-	ngpKeyIdxOption,
-	ngpKeyIdxA,
-	ngpKeyIdxB,
-	ngpKeyIdxATurbo,
-	ngpKeyIdxBTurbo
+	Up = 1,
+	Right = 4,
+	Down = 2,
+	Left = 3,
+	Option = 7,
+	A = 5,
+	B = 6,
 };
 
-constexpr std::array<unsigned, 4> dpadButtonCodes
+constexpr auto dpadKeyInfo = makeArray<KeyInfo>
+(
+	NgpKey::Up,
+	NgpKey::Right,
+	NgpKey::Down,
+	NgpKey::Left
+);
+
+constexpr auto optionKeyInfo = makeArray<KeyInfo>(NgpKey::Option);
+
+constexpr auto faceKeyInfo = makeArray<KeyInfo>
+(
+	NgpKey::A,
+	NgpKey::B
+);
+
+constexpr auto turboFaceKeyInfo = turbo(faceKeyInfo);
+
+constexpr auto gpKeyInfo = concatToArrayNow<dpadKeyInfo, optionKeyInfo, faceKeyInfo, turboFaceKeyInfo>;
+
+std::span<const KeyCategory> NgpApp::keyCategories()
 {
-	ngpKeyIdxUp,
-	ngpKeyIdxRight,
-	ngpKeyIdxDown,
-	ngpKeyIdxLeft,
-};
+	static constexpr std::array categories
+	{
+		KeyCategory{"Gamepad", gpKeyInfo},
+	};
+	return categories;
+}
 
-constexpr unsigned optionButtonCode[]{ngpKeyIdxOption};
-
-constexpr unsigned faceButtonCodes[]
+std::string_view NgpApp::systemKeyCodeToString(KeyCode c)
 {
-	ngpKeyIdxA,
-	ngpKeyIdxB,
-};
+	switch(NgpKey(c))
+	{
+		case NgpKey::Up: return "Up";
+		case NgpKey::Right: return "Right";
+		case NgpKey::Down: return "Down";
+		case NgpKey::Left: return "Left";
+		case NgpKey::Option: return "Option";
+		case NgpKey::A: return "A";
+		case NgpKey::B: return "B";
+		default: return "";
+	}
+}
 
-constexpr std::array gamepadComponents
+std::span<const KeyConfigDesc> NgpApp::defaultKeyConfigs()
 {
-	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO},
-	InputComponentDesc{"Option", optionButtonCode, InputComponent::button, RB2DO},
-};
+	using namespace IG::Input;
 
-constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+	static constexpr std::array pcKeyboardMap
+	{
+		KeyMapping{NgpKey::Up, Keycode::UP},
+		KeyMapping{NgpKey::Right, Keycode::RIGHT},
+		KeyMapping{NgpKey::Down, Keycode::DOWN},
+		KeyMapping{NgpKey::Left, Keycode::LEFT},
+		KeyMapping{NgpKey::Option, Keycode::ENTER},
+		KeyMapping{NgpKey::B, Keycode::Z},
+		KeyMapping{NgpKey::A, Keycode::X},
+	};
+
+	static constexpr std::array genericGamepadMap
+	{
+		KeyMapping{NgpKey::Up, Keycode::UP},
+		KeyMapping{NgpKey::Right, Keycode::RIGHT},
+		KeyMapping{NgpKey::Down, Keycode::DOWN},
+		KeyMapping{NgpKey::Left, Keycode::LEFT},
+		KeyMapping{NgpKey::Option, Keycode::GAME_START},
+		KeyMapping{NgpKey::B, Keycode::GAME_X},
+		KeyMapping{NgpKey::A, Keycode::GAME_A},
+	};
+
+	static constexpr std::array wiimoteMap
+	{
+		KeyMapping{NgpKey::Up, Wiimote::UP},
+		KeyMapping{NgpKey::Right, Wiimote::RIGHT},
+		KeyMapping{NgpKey::Down, Wiimote::DOWN},
+		KeyMapping{NgpKey::Left, Wiimote::LEFT},
+		KeyMapping{NgpKey::B, Wiimote::_1},
+		KeyMapping{NgpKey::A, Wiimote::_2},
+		KeyMapping{NgpKey::Option, Wiimote::PLUS},
+	};
+
+	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();
+}
+
+bool NgpApp::allowsTurboModifier(KeyCode c)
+{
+	switch(NgpKey(c))
+	{
+		case NgpKey::A ... NgpKey::B:
+			return true;
+		default: return false;
+	}
+}
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
@@ -71,80 +137,33 @@ constexpr FRect gpImageCoords(IRect cellRelBounds)
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
 
-constexpr struct VirtualControllerAssets
+AssetDesc NgpApp::vControllerAssetDesc(KeyInfo key) const
 {
-	AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
-
-	a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
-	b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
-	option{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}},
-
-	blank{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})};
-} virtualControllerAssets;
-
-AssetDesc NgpApp::vControllerAssetDesc(unsigned key) const
-{
-	switch(key)
+	static constexpr struct VirtualControllerAssets
 	{
-		case 0: return virtualControllerAssets.dpad;
-		case ngpKeyIdxATurbo:
-		case ngpKeyIdxA: return virtualControllerAssets.a;
-		case ngpKeyIdxBTurbo:
-		case ngpKeyIdxB: return virtualControllerAssets.b;
-		case ngpKeyIdxOption: return virtualControllerAssets.option;
+		AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+
+		a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
+		b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
+		option{AssetFileID::gamepadOverlay, gpImageCoords({{4, 2}, {2, 1}}), {1, 2}},
+
+		blank{AssetFileID::gamepadOverlay, gpImageCoords({{6, 2}, {2, 2}})};
+	} virtualControllerAssets;
+
+	if(key[0] == 0)
+		return virtualControllerAssets.dpad;
+	switch(NgpKey(key[0]))
+	{
+		case NgpKey::A: return virtualControllerAssets.a;
+		case NgpKey::B: return virtualControllerAssets.b;
+		case NgpKey::Option: return virtualControllerAssets.option;
 		default: return virtualControllerAssets.blank;
 	}
 }
 
-const int EmuSystem::maxPlayers = 1;
-
-constexpr unsigned ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,
-		ctrlABit = 0x10, ctrlBBit = 0x20, ctrlOptionBit = 0x40;
-
-static bool isGamepadButton(unsigned input)
-{
-	switch(input)
-	{
-		case ngpKeyIdxOption:
-		case ngpKeyIdxATurbo:
-		case ngpKeyIdxA:
-		case ngpKeyIdxBTurbo:
-		case ngpKeyIdxB:
-			return true;
-		default: return false;
-	}
-}
-
-InputAction NgpSystem::translateInputAction(InputAction action)
-{
-	if(!isGamepadButton(action.key))
-		action.setTurboFlag(false);
-	action.key = [&] -> unsigned
-	{
-		switch(action.key)
-		{
-			case ngpKeyIdxUp: return ctrlUpBit;
-			case ngpKeyIdxRight: return ctrlRightBit;
-			case ngpKeyIdxDown: return ctrlDownBit;
-			case ngpKeyIdxLeft: return ctrlLeftBit;
-			case ngpKeyIdxLeftUp: return ctrlLeftBit | ctrlUpBit;
-			case ngpKeyIdxRightUp: return ctrlRightBit | ctrlUpBit;
-			case ngpKeyIdxRightDown: return ctrlRightBit | ctrlDownBit;
-			case ngpKeyIdxLeftDown: return ctrlLeftBit | ctrlDownBit;
-			case ngpKeyIdxOption: return ctrlOptionBit;
-			case ngpKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
-			case ngpKeyIdxA: return ctrlABit;
-			case ngpKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case ngpKeyIdxB: return ctrlBBit;
-		}
-		bug_unreachable("invalid key");
-	}();
-	return action;
-}
-
 void NgpSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	inputBuff = setOrClearBits(inputBuff, uint8_t(a.key), a.state == Input::Action::PUSHED);
+	inputBuff = setOrClearBits(inputBuff, bit(a.code - 1), a.state == Input::Action::PUSHED);
 	MDFN_IEN_NGP::storeB(0x6F82, inputBuff);
 }
 
@@ -156,6 +175,15 @@ void NgpSystem::clearInputBuffers(EmuInputView &)
 
 SystemInputDeviceDesc NgpSystem::inputDeviceDesc(int idx) const
 {
+	static constexpr std::array gamepadComponents
+	{
+		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
+		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO},
+		InputComponentDesc{"Option", optionKeyInfo, InputComponent::button, RB2DO},
+	};
+
+	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 	return gamepadDesc;
 }
 

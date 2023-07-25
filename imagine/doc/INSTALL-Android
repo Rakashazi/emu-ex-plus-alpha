@@ -18,9 +18,9 @@ android_arch : Optional, default set by app
 2. Dependencies
 ===============
 
-If needed, install Clang 16+ from android.googlesource.com via the script bundle/android/toolchains/get-clang-r487747.sh. Note that NDK r25 only has Clang 14 so this is required until a newer NDK releases.
+If needed, install Clang r487747c (LLVM 17 dev version) or higher from android.googlesource.com via the script bundle/android/toolchains/get-clang-prebuilt.sh. Note that NDK r26 includes a sufficiently up to date version so this is optional.
 
-Install the SDK platform for Android 11.0 (API 30), Android NDK Revision 25 (tested on 25.0.8775105), and the Android Support Library from Android Studio's SDK tools menu
+Install the SDK platform for Android 11.0 (API 30), Android NDK Revision 26 (tested on 26.0.10404224), and the Android Support Library from Android Studio's SDK tools menu
 
 3. Building
 ===========

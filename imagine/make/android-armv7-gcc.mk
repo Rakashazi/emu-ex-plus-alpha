@@ -6,8 +6,8 @@ CHOST := arm-linux-androideabi
 android_abi := armeabi-v7a
 android_ndkSDK ?= 9
 android_ndkArch := arm
-# Must declare min API 19 to compile with NDK r24+ headers
-clangTarget := armv7-none-linux-androideabi19
+# Must declare min API 21 to compile with NDK r26+ headers
+clangTarget := armv7-none-linux-androideabi21
 CFLAGS_CODEGEN += -fpic
 armv7CPUFlags ?= -march=armv7-a -mtune=generic
 android_cpuFlags ?= $(armv7CPUFlags)

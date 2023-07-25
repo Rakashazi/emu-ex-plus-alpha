@@ -52,9 +52,31 @@ bool EmuApp::willCreateSystem(ViewAttachParams attach, const Input::Event &e)
 	return true;
 }
 
-AssetDesc EmuApp::vControllerAssetDesc(unsigned key) const
+bool EmuApp::allowsTurboModifier(KeyCode c)
+{
+	if(&MainApp::allowsTurboModifier != &EmuApp::allowsTurboModifier)
+		return MainApp::allowsTurboModifier(c);
+	return true;
+}
+
+AssetDesc EmuApp::vControllerAssetDesc(KeyInfo key) const
 {
 	return static_cast<const MainApp*>(this)->vControllerAssetDesc(key);
+}
+
+std::span<const KeyCategory> EmuApp::keyCategories()
+{
+	return MainApp::keyCategories();
+}
+
+std::span<const KeyConfigDesc> EmuApp::defaultKeyConfigs()
+{
+	return MainApp::defaultKeyConfigs();
+}
+
+std::string_view EmuApp::systemKeyCodeToString(KeyCode c)
+{
+	return MainApp::systemKeyCodeToString(c);
 }
 
 }

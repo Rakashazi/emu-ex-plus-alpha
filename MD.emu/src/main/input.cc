@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/keyRemappingUtils.hh>
 #include <imagine/util/math/math.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
@@ -27,66 +28,149 @@
 namespace EmuEx
 {
 
-enum
+const int EmuSystem::maxPlayers = 4;
+
+enum class MdKey : KeyCode
 {
-	mdKeyIdxUp = Controls::systemKeyMapStart,
-	mdKeyIdxRight,
-	mdKeyIdxDown,
-	mdKeyIdxLeft,
-	mdKeyIdxLeftUp,
-	mdKeyIdxRightUp,
-	mdKeyIdxRightDown,
-	mdKeyIdxLeftDown,
-	mdKeyIdxMode,
-	mdKeyIdxStart,
-	mdKeyIdxA,
-	mdKeyIdxB,
-	mdKeyIdxC,
-	mdKeyIdxX,
-	mdKeyIdxY,
-	mdKeyIdxZ,
-	mdKeyIdxATurbo,
-	mdKeyIdxBTurbo,
-	mdKeyIdxCTurbo,
-	mdKeyIdxXTurbo,
-	mdKeyIdxYTurbo,
-	mdKeyIdxZTurbo
+	Up = 1,
+	Right = 4,
+	Down = 2,
+	Left = 3,
+	Mode = 12,
+	Start = 8,
+	A = 7,
+	B = 5,
+	C = 6,
+	X = 11,
+	Y = 10,
+	Z = 9,
 };
 
-constexpr std::array<unsigned, 4> dpadButtonCodes
-{
-	mdKeyIdxUp,
-	mdKeyIdxRight,
-	mdKeyIdxDown,
-	mdKeyIdxLeft,
-};
+constexpr auto dpadKeyInfo = makeArray<KeyInfo>
+(
+	MdKey::Up,
+	MdKey::Right,
+	MdKey::Down,
+	MdKey::Left
+);
 
-constexpr unsigned centerButtonCodes[]
-{
-	mdKeyIdxMode,
-	mdKeyIdxStart,
-};
+constexpr auto centerKeyInfo = makeArray<KeyInfo>
+(
+	MdKey::Mode,
+	MdKey::Start
+);
 
-constexpr unsigned faceButtonCodes[]
-{
-	mdKeyIdxA,
-	mdKeyIdxB,
-	mdKeyIdxC,
-	mdKeyIdxX,
-	mdKeyIdxY,
-	mdKeyIdxZ,
-};
+constexpr auto faceKeyInfo = makeArray<KeyInfo>
+(
+	MdKey::A,
+	MdKey::B,
+	MdKey::C,
+	MdKey::X,
+	MdKey::Y,
+	MdKey::Z
+);
 
-constexpr std::array gamepadComponents
-{
-	InputComponentDesc{"D-Pad", dpadButtonCodes, InputComponent::dPad, LB2DO},
-	InputComponentDesc{"Face Buttons", faceButtonCodes, InputComponent::button, RB2DO},
-	InputComponentDesc{"Mode", {&centerButtonCodes[0], 1}, InputComponent::button, LB2DO},
-	InputComponentDesc{"Start", {&centerButtonCodes[1], 1}, InputComponent::button, RB2DO},
-	InputComponentDesc{"Mode/Start", centerButtonCodes, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
-};
+constexpr auto turboFaceKeyInfo = turbo(faceKeyInfo);
 
-constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+constexpr auto gpKeyInfo = concatToArrayNow<dpadKeyInfo, centerKeyInfo, faceKeyInfo, turboFaceKeyInfo>;
+constexpr auto gp2KeyInfo = transpose(gpKeyInfo, 1);
+constexpr auto gp3KeyInfo = transpose(gpKeyInfo, 2);
+constexpr auto gp4KeyInfo = transpose(gpKeyInfo, 3);
+
+std::span<const KeyCategory> MdApp::keyCategories()
+{
+	static constexpr std::array categories
+	{
+		KeyCategory{"Gamepad", gpKeyInfo},
+		KeyCategory{"Gamepad 2", gp2KeyInfo, 1},
+		KeyCategory{"Gamepad 3", gp3KeyInfo, 2},
+		KeyCategory{"Gamepad 4", gp4KeyInfo, 3},
+	};
+	return categories;
+}
+
+std::string_view MdApp::systemKeyCodeToString(KeyCode c)
+{
+	switch(MdKey(c))
+	{
+		case MdKey::Up: return "Up";
+		case MdKey::Right: return "Right";
+		case MdKey::Down: return "Down";
+		case MdKey::Left: return "Left";
+		case MdKey::Mode: return "Mode";
+		case MdKey::Start: return "Start";
+		case MdKey::A: return "A";
+		case MdKey::B: return "B";
+		case MdKey::C: return "C";
+		case MdKey::X: return "X";
+		case MdKey::Y: return "Y";
+		case MdKey::Z: return "Z";
+		default: return "";
+	}
+}
+
+std::span<const KeyConfigDesc> MdApp::defaultKeyConfigs()
+{
+	using namespace IG::Input;
+
+	static constexpr std::array pcKeyboardMap
+	{
+		KeyMapping{MdKey::Up, Keycode::UP},
+		KeyMapping{MdKey::Right, Keycode::RIGHT},
+		KeyMapping{MdKey::Down, Keycode::DOWN},
+		KeyMapping{MdKey::Left, Keycode::LEFT},
+		KeyMapping{MdKey::Mode, Keycode::SPACE},
+		KeyMapping{MdKey::Start, Keycode::ENTER},
+		KeyMapping{MdKey::A, Keycode::Z},
+		KeyMapping{MdKey::B, Keycode::X},
+		KeyMapping{MdKey::C, Keycode::C},
+		KeyMapping{MdKey::X, Keycode::A},
+		KeyMapping{MdKey::Y, Keycode::S},
+		KeyMapping{MdKey::Z, Keycode::D},
+	};
+
+	static constexpr std::array genericGamepadMap
+	{
+		KeyMapping{MdKey::Up, Keycode::UP},
+		KeyMapping{MdKey::Right, Keycode::RIGHT},
+		KeyMapping{MdKey::Down, Keycode::DOWN},
+		KeyMapping{MdKey::Left, Keycode::LEFT},
+		KeyMapping{MdKey::Mode, Keycode::GAME_SELECT},
+		KeyMapping{MdKey::Start, Keycode::GAME_START},
+		KeyMapping{MdKey::A, Keycode::GAME_X},
+		KeyMapping{MdKey::B, Keycode::GAME_A},
+		KeyMapping{MdKey::C, Keycode::GAME_B},
+		KeyMapping{MdKey::X, Keycode::GAME_L1},
+		KeyMapping{MdKey::Y, Keycode::GAME_Y},
+		KeyMapping{MdKey::Z, Keycode::GAME_R1},
+	};
+
+	static constexpr std::array wiimoteMap
+	{
+		KeyMapping{MdKey::Up, Wiimote::UP},
+		KeyMapping{MdKey::Right, Wiimote::RIGHT},
+		KeyMapping{MdKey::Down, Wiimote::DOWN},
+		KeyMapping{MdKey::Left, Wiimote::LEFT},
+		KeyMapping{MdKey::A, Wiimote::_1},
+		KeyMapping{MdKey::B, Wiimote::_2},
+		KeyMapping{MdKey::C, Wiimote::B},
+		KeyMapping{MdKey::C, Wiimote::A},
+		KeyMapping{MdKey::Mode, Wiimote::MINUS},
+		KeyMapping{MdKey::Start, Wiimote::PLUS},
+	};
+
+	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();
+}
+
+bool MdApp::allowsTurboModifier(KeyCode c)
+{
+	switch(MdKey(c))
+	{
+		case MdKey::Up ... MdKey::Mode:
+			return true;
+		default: return false;
+	}
+}
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
@@ -111,108 +195,38 @@ constexpr struct VirtualControllerAssets
 	blank{AssetFileID::gamepadOverlay, gpImageCoords({{4, 4}, {2, 2}})};
 } virtualControllerAssets;
 
-AssetDesc MdApp::vControllerAssetDesc(unsigned key) const
+AssetDesc MdApp::vControllerAssetDesc(KeyInfo key) const
 {
-	switch(key)
+	if(key[0] == 0)
+		return virtualControllerAssets.dpad;
+	switch(MdKey(key[0]))
 	{
-		case 0: return virtualControllerAssets.dpad;
-		case mdKeyIdxATurbo:
-		case mdKeyIdxA: return virtualControllerAssets.a;
-		case mdKeyIdxBTurbo:
-		case mdKeyIdxB: return virtualControllerAssets.b;
-		case mdKeyIdxCTurbo:
-		case mdKeyIdxC: return virtualControllerAssets.c;
-		case mdKeyIdxXTurbo:
-		case mdKeyIdxX: return virtualControllerAssets.x;
-		case mdKeyIdxYTurbo:
-		case mdKeyIdxY: return virtualControllerAssets.y;
-		case mdKeyIdxZTurbo:
-		case mdKeyIdxZ: return virtualControllerAssets.z;
-		case mdKeyIdxMode: return virtualControllerAssets.mode;
-		case mdKeyIdxStart: return virtualControllerAssets.start;
+		case MdKey::A: return virtualControllerAssets.a;
+		case MdKey::B: return virtualControllerAssets.b;
+		case MdKey::C: return virtualControllerAssets.c;
+		case MdKey::X: return virtualControllerAssets.x;
+		case MdKey::Y: return virtualControllerAssets.y;
+		case MdKey::Z: return virtualControllerAssets.z;
+		case MdKey::Mode: return virtualControllerAssets.mode;
+		case MdKey::Start: return virtualControllerAssets.start;
 		default: return virtualControllerAssets.blank;
 	}
 }
 
-const int EmuSystem::maxPlayers = 4;
-
-constexpr unsigned m3MissingCodes[]{mdKeyIdxMode, mdKeyIdxA, mdKeyIdxX, mdKeyIdxY, mdKeyIdxZ};
-constexpr unsigned md6BtnExtraCodes[]{mdKeyIdxMode, mdKeyIdxX, mdKeyIdxY, mdKeyIdxZ};
-
-static bool isGamepadButton(unsigned input)
-{
-	switch(input)
-	{
-		case mdKeyIdxMode:
-		case mdKeyIdxStart:
-		case mdKeyIdxATurbo:
-		case mdKeyIdxA:
-		case mdKeyIdxBTurbo:
-		case mdKeyIdxB:
-		case mdKeyIdxCTurbo:
-		case mdKeyIdxC:
-		case mdKeyIdxXTurbo:
-		case mdKeyIdxX:
-		case mdKeyIdxYTurbo:
-		case mdKeyIdxY:
-		case mdKeyIdxZTurbo:
-		case mdKeyIdxZ:
-			return true;
-		default: return false;
-	}
-}
-
-InputAction MdSystem::translateInputAction(InputAction action)
-{
-	if(!isGamepadButton(action.key))
-		action.setTurboFlag(false);
-	assert(action.key >= mdKeyIdxUp);
-	unsigned player = (action.key - mdKeyIdxUp) / Controls::gamepadKeys;
-	unsigned playerMask = player << 30;
-	action.key -= Controls::gamepadKeys * player;
-	if((input.system[1] == SYSTEM_MENACER && (action.key == mdKeyIdxB || action.key == mdKeyIdxC)) ||
-		(input.system[1] == SYSTEM_JUSTIFIER && (action.key == mdKeyIdxStart)))
-	{
-		playerMask = 1 << 30;
-	}
-	action.key = [&] -> unsigned
-	{
-		switch(action.key)
-		{
-			case mdKeyIdxUp: return INPUT_UP | playerMask;
-			case mdKeyIdxRight: return INPUT_RIGHT | playerMask;
-			case mdKeyIdxDown: return INPUT_DOWN | playerMask;
-			case mdKeyIdxLeft: return INPUT_LEFT | playerMask;
-			case mdKeyIdxLeftUp: return INPUT_LEFT | INPUT_UP | playerMask;
-			case mdKeyIdxRightUp: return INPUT_RIGHT | INPUT_UP | playerMask;
-			case mdKeyIdxRightDown: return INPUT_RIGHT | INPUT_DOWN | playerMask;
-			case mdKeyIdxLeftDown: return INPUT_LEFT | INPUT_DOWN | playerMask;
-			case mdKeyIdxMode: return INPUT_MODE | playerMask;
-			case mdKeyIdxStart: return INPUT_START | playerMask;
-			case mdKeyIdxATurbo: action.setTurboFlag(true); [[fallthrough]];
-			case mdKeyIdxA: return INPUT_A | playerMask;
-			case mdKeyIdxBTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case mdKeyIdxB: return INPUT_B | playerMask;
-			case mdKeyIdxCTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case mdKeyIdxC: return INPUT_C | playerMask;
-			case mdKeyIdxXTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case mdKeyIdxX: return INPUT_X | playerMask;
-			case mdKeyIdxYTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case mdKeyIdxY: return INPUT_Y | playerMask;
-			case mdKeyIdxZTurbo: action.setTurboFlag(true); [[fallthrough]];
-			case mdKeyIdxZ: return INPUT_Z | playerMask;
-		}
-		bug_unreachable("invalid key");
-	}();
-	return action;
-}
+constexpr std::array m3MissingCodes{KeyCode(MdKey::Mode), KeyCode(MdKey::A), KeyCode(MdKey::X), KeyCode(MdKey::Y), KeyCode(MdKey::Z)};
+constexpr std::array md6BtnExtraCodes{KeyCode(MdKey::Mode), KeyCode(MdKey::X), KeyCode(MdKey::Y), KeyCode(MdKey::Z)};
 
 void MdSystem::handleInputAction(EmuApp *, InputAction a)
 {
-	auto player = a.key >> 30; // player is encoded in upper 2 bits of input code
-	assert(player <= 4);
+	auto player = a.flags.deviceId;
+	auto key = MdKey(a.code);
+	if((input.system[1] == SYSTEM_MENACER && (key == MdKey::B || key == MdKey::C)) ||
+		(input.system[1] == SYSTEM_JUSTIFIER && (key == MdKey::Start)))
+	{
+		player = 1;
+	}
 	uint16 &padData = input.pad[playerIdxMap[player]];
-	padData = IG::setOrClearBits(padData, (uint16)a.key, a.state == Input::Action::PUSHED);
+	padData = setOrClearBits(padData, bit(a.code - 1), a.isPushed());
 }
 
 static void updateGunPos(IG::WindowRect gameRect, const Input::MotionEvent &e, int idx)
@@ -386,6 +400,17 @@ void MdSystem::setupInput(EmuApp &app)
 
 SystemInputDeviceDesc MdSystem::inputDeviceDesc(int idx) const
 {
+	static constexpr std::array gamepadComponents
+	{
+		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
+		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO},
+		InputComponentDesc{"Mode", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
+		InputComponentDesc{"Start", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},
+		InputComponentDesc{"Mode/Start", centerKeyInfo, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
+	};
+
+	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
+
 	return gamepadDesc;
 }
 

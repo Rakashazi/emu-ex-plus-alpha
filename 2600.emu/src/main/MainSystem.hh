@@ -108,7 +108,6 @@ public:
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);
-	InputAction translateInputAction(InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
 	FrameTime frameTime() const;
 	void configAudioRate(FrameTime outputFrameTime, int outputRate);

@@ -171,8 +171,14 @@ public:
 	EmuApp(IG::ApplicationInitParams, IG::ApplicationContext &);
 
 	// required sub-class API functions
+	AssetDesc vControllerAssetDesc(KeyInfo) const;
+	static std::span<const KeyCategory> keyCategories();
+	static std::span<const KeyConfigDesc> defaultKeyConfigs();
+	static std::string_view systemKeyCodeToString(KeyCode);
+
+	// optional sub-class API functions
 	bool willCreateSystem(ViewAttachParams, const Input::Event &);
-	AssetDesc vControllerAssetDesc(unsigned key) const;
+	static bool allowsTurboModifier(KeyCode);
 
 	void mainInitCommon(IG::ApplicationInitParams, IG::ApplicationContext);
 	static void onCustomizeNavView(NavView &v);
@@ -217,7 +223,9 @@ public:
 	static void updateLegacySavePath(IG::ApplicationContext, CStringView path);
 	auto screenshotDirectory() const { return system().userPath(userScreenshotPath); }
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
+	bool handleKeyInput(KeyInfo, const Input::Event &srcEvent);
 	bool handleKeyInput(InputAction, const Input::Event &srcEvent);
+	void handleSystemKeyInput(KeyInfo, Input::Action, uint32_t metaState = 0);
 	void handleSystemKeyInput(InputAction);
 	void runTurboInputEvents();
 	void resetInput();
@@ -237,10 +245,8 @@ public:
 	Window &emuWindow();
 	AutosaveManager &autosaveManager() { return autosaveManager_; }
 	FrameTimeConfig configFrameTime();
-	void setDisabledInputKeys(std::span<const unsigned> keys);
+	void setDisabledInputKeys(std::span<const KeyCode> keys);
 	void unsetDisabledInputKeys();
-	void updateKeyboardMapping();
-	void toggleKeyboard();
 	Gfx::TextureSpan asset(AssetID) const;
 	Gfx::TextureSpan asset(AssetDesc) const;
 	VController &defaultVController() { return inputManager.vController; }
@@ -257,11 +263,6 @@ public:
 	bool mogaManagerIsActive() const { return bool(mogaManagerPtr); }
 	void setMogaManagerActive(bool on, bool notify);
 	constexpr IG::VibrationManager &vibrationManager() { return vibrationManager_; }
-	static std::span<const KeyCategory> inputControlCategories();
-	const KeyCategory &categoryOfSystemKey(unsigned key) const;
-	std::string_view systemKeyName(unsigned key) const;
-	unsigned transposeKeyForPlayer(unsigned keys, int player) const;
-	unsigned validateSystemKey(unsigned key, bool isUIKey) const;
 	BluetoothAdapter *bluetoothAdapter();
 	void closeBluetoothConnections();
 	ViewAttachParams attachParams();
@@ -566,7 +567,6 @@ protected:
 	Byte1Option optionShowOnSecondScreen;
 	Byte1Option optionTextureBufferMode;
 	Byte1Option optionVideoImageBuffers;
-	bool turboModifierActive{};
 	Gfx::DrawableConfig windowDrawableConf;
 	IG::PixelFormat renderPixelFmt;
 	IG::Rotation contentRotation_{IG::Rotation::ANY};

@@ -8,8 +8,6 @@ ifeq ($(ANDROID_NDK_PATH),)
  $(error setAndroidNDKPath.mk was not included in base makefile)
 endif
 
-# Default to bundled Clang 16+ toolchain
-ANDROID_CLANG_TOOLCHAIN_PATH ?= $(wildcard $(IMAGINE_PATH)/bundle/android/toolchains/llvm/clang-r487747c)
 ifeq ($(ANDROID_CLANG_TOOLCHAIN_PATH),)
  ANDROID_CLANG_TOOLCHAIN_PATH := $(wildcard $(ANDROID_NDK_PATH)/toolchains/llvm/prebuilt/*)
 endif
@@ -35,7 +33,7 @@ ifneq ($(wildcard $(ANDROID_NDK_PATH)/sysroot),)
 endif
 
 ifneq ($(filter 9 16, $(android_ndkSDK)),)
- # SDK 9 no longer supported since NDK r16 & SDK 16 since NDK r24, enable compatibilty work-arounds
+ # SDK 9 no longer supported since NDK r16 & SDK 16 since NDK r24, use bundled system lib stubs
  CPPFLAGS += -DANDROID_COMPAT_API=$(android_ndkSDK)
  android_ndkLinkSysroot := $(IMAGINE_PATH)/bundle/android/$(CHOST)/$(android_ndkSDK)
 endif

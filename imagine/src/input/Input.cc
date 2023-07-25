@@ -310,7 +310,7 @@ uint8_t BaseApplication::nextInputDeviceEnumId(std::string_view name) const
 	static constexpr uint8_t maxEnum = 64;
 	for(auto i : iotaCount(maxEnum))
 	{
-		auto it = std::find_if(inputDev.begin(), inputDev.end(),
+		auto it = std::ranges::find_if(inputDev,
 			[&](auto &devPtr){ return devPtr->name() == name && devPtr->enumId() == i; });
 		if(it == inputDev.end())
 			return i;
