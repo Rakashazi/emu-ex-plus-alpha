@@ -115,6 +115,8 @@ private:
 	BoolMenuItem joystickAxisHatDPad;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, consumeUnboundKeys);
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
+	TextHeadingMenuItem categories;
+	TextHeadingMenuItem options;
 	std::vector<TextMenuItem> inputCategory;
 	std::vector<MenuItem*> item;
 	InputDeviceConfig *devConf{};

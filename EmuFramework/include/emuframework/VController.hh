@@ -491,7 +491,6 @@ public:
 	void setDisabledInputKeys(std::span<const KeyCode> keys);
 	void updateKeyboardMapping();
 	void updateTextures();
-	void inputAction(Input::Action action, KeyInfo vBtn);
 	void resetInput();
 	void updateAltSpeedModeInput(AltSpeedMode, bool on);
 	void place();

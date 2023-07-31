@@ -41,6 +41,8 @@ struct KeyFlags
 using KeyCode = uint8_t;
 using KeyCodeArray = ZArray<KeyCode, 3>;
 
+constexpr KeyCode comboKeyCode = 255;
+
 struct KeyInfo
 {
 	KeyCodeArray codes;
@@ -64,7 +66,13 @@ struct KeyInfo
 		return KeyInfo{code, KeyFlags{.appCode = 1}};
 	}
 
+	static constexpr auto comboKey(KeyCode idx)
+	{
+		return KeyInfo{std::array{comboKeyCode, idx}, KeyFlags{.appCode = 1}};
+	}
+
 	constexpr bool isAppKey() const { return flags.appCode; }
+	constexpr bool isComboKey() const { return isAppKey() && codes[0] == comboKeyCode; }
 	constexpr bool operator==(const KeyInfo &) const = default;
 	constexpr explicit operator bool() { return codes[0]; }
 	constexpr auto &operator[](size_t pos) { return codes[pos]; }

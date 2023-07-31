@@ -135,11 +135,6 @@ void VController::applyButtonSize()
 	setButtonSizes(emulatedDeviceButtonPixelSize(), uiButtonPixelSize());
 }
 
-void VController::inputAction(Input::Action action, KeyInfo vBtn)
-{
-	app().handleSystemKeyInput(vBtn, action);
-}
-
 void VController::resetInput()
 {
 	for(auto &e : dragTracker.stateList())
@@ -147,7 +142,7 @@ void VController::resetInput()
 		for(auto &vBtn : e.data)
 		{
 			if(vBtn) // release old key, if any
-				inputAction(Input::Action::RELEASED, vBtn);
+				app().handleSystemKeyInput(vBtn, Input::Action::RELEASED);
 		}
 	}
 	dragTracker.reset();
@@ -263,6 +258,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 	{
 		for(const auto &grp: uiElements)
 		{
+			if(grp.state == VControllerState::OFF)
+				continue;
 			for(const auto &btn: grp.uiButtonGroup()->buttons)
 			{
 				if(btn.bounds().overlaps(e.pos()))
@@ -296,7 +293,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 				if(vBtn && !contains(currElements, vBtn))
 				{
 					//logMsg("releasing %d", vBtn[0]);
-					inputAction(Input::Action::RELEASED, vBtn);
+					app().handleSystemKeyInput(vBtn, Input::Action::RELEASED);
 				}
 			}
 			// push new buttons
@@ -305,7 +302,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 				if(vBtn && !contains(prevElements, vBtn))
 				{
 					//logMsg("pushing %d", vBtn[0]);
-					inputAction(Input::Action::PUSHED, vBtn);
+					app().handleSystemKeyInput(vBtn, Input::Action::PUSHED);
 					if(vibrateOnTouchInput())
 					{
 						app().vibrationManager().vibrate(IG::Milliseconds{32});

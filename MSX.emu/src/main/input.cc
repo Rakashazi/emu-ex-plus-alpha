@@ -495,7 +495,7 @@ void setupVKeyboardMap(EmuApp &app, unsigned boardType)
 	{
 		for(auto i : iotaCount(10)) // 1 - 0
 			kbToEventMap2[10 + i] = EC_1 + i;
-		kbToEventMap2[23] = EC_3 | (EC_LSHIFT << 8);
+		kbToEventMap2[23] = std::array{EC_3, EC_LSHIFT};
 	}
 	else
 	{

@@ -110,7 +110,7 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 		},
 		[&](const Input::KeyEvent &keyEv)
 		{
-			if(keyEv.pushed())
+			if(keyEv.pushed() && !keyEv.repeated())
 			{
 				auto d = keyEv.device();
 				if(d != &dev)
@@ -132,14 +132,25 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 					}
 					return true;
 				}
-				auto onSet = onSetD;
-				dismiss();
-				onSet(MappedKeys{keyEv.mapKey()});
+				pushedKeys.tryPushBack(keyEv.mapKey());
 				return true;
+			}
+			else if(keyEv.released())
+			{
+				if(pushedKeys.size())
+					finalize();
 			}
 			return false;
 		}
 	}, e);
+}
+
+void ButtonConfigSetView::finalize()
+{
+	auto onSet = onSetD;
+	auto mappedKeys = pushedKeys;
+	dismiss();
+	onSet(mappedKeys);
 }
 
 void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
@@ -168,9 +179,9 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
 void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Event &e)
 {
 	if(e.motionEvent())
-		text.resetString(std::format("Push key to set:\n{}", actionStr));
+		text.resetString(std::format("Push up to 3 keys, release any to set:\n{}", actionStr));
 	else
-		text.resetString(std::format("Push key to set:\n{}\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr));
+		text.resetString(std::format("Push up to 3 keys, release any to set:\n{}\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr));
 	if(e.motionEvent())
 	{
 		initPointerUI();
@@ -179,11 +190,12 @@ void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Eve
 
 static std::string keyNames(MappedKeys keys, const Input::Device &dev)
 {
-	std::string s{dev.keyString(keys[0])};
+	Input::KeyNameFlags flags{.basicModifiers = keys.size() > 1};
+	std::string s{dev.keyString(keys[0], flags)};
 	for(const auto &b : keys | std::ranges::views::drop(1))
 	{
 		s += " + ";
-		s += dev.keyString(b);
+		s += dev.keyString(b, flags);
 	}
 	return s;
 }
@@ -209,7 +221,7 @@ bool ButtonConfigView::inputEvent(const Input::Event &e)
 		{
 			// unset key
 			leftKeyPushTime = {};
-			onSet(selected - 1, {0});
+			onSet(selected - 1, {});
 			postDraw();
 		}
 		return true;

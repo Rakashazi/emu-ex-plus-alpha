@@ -696,6 +696,8 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 			devConf->save(inputManager);
 		}
 	},
+	categories{"Action Categories", &defaultBoldFace()},
+	options{"Options", &defaultBoldFace()},
 	devConf{&inputDevData(dev).devConf}
 {
 	loadProfile.setName(std::format("Profile: {}", devConf->keyConf(inputManager).name));
@@ -726,6 +728,7 @@ void InputManagerDeviceView::loadItems()
 		item.emplace_back(&player);
 	}
 	item.emplace_back(&loadProfile);
+	item.emplace_back(&categories);
 	addCategoryItem(appKeyCategory);
 	for(auto &cat : EmuApp::keyCategories())
 	{
@@ -736,6 +739,7 @@ void InputManagerDeviceView::loadItems()
 		}
 		addCategoryItem(cat);
 	}
+	item.emplace_back(&options);
 	item.emplace_back(&newProfile);
 	item.emplace_back(&renameProfile);
 	item.emplace_back(&deleteProfile);

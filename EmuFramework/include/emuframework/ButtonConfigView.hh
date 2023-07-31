@@ -53,9 +53,11 @@ private:
 	const Input::Device *savedDev{};
 	InputManagerView &rootIMView;
 	std::string actionStr;
+	MappedKeys pushedKeys;
 
 	void initPointerUI();
 	bool pointerUIIsInit();
+	void finalize();
 };
 
 class ButtonConfigView : public TableView, public EmuAppHelper<ButtonConfigView>

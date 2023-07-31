@@ -38,6 +38,11 @@ namespace IG::Input
 
 class Axis;
 
+struct KeyNameFlags
+{
+	bool basicModifiers{};
+};
+
 class Device
 {
 public:
@@ -101,6 +106,41 @@ public:
 		return typeBits() & TYPE_BIT_POWER_BUTTON;
 	}
 
+	constexpr bool isModifierKey(Key k) const
+	{
+		if(map() != Map::SYSTEM)
+			return false;
+		using namespace Keycode;
+		switch(k)
+		{
+			case LALT:
+			case RALT:
+			case LSHIFT:
+			case RSHIFT:
+			case LCTRL:
+			case RCTRL:
+				return true;
+		}
+		return false;
+	}
+
+	constexpr Key swapModifierKey(Key k) const
+	{
+		if(map() != Map::SYSTEM)
+			return false;
+		using namespace Keycode;
+		switch(k)
+		{
+			case LALT: return RALT;
+			case RALT: return LALT;
+			case LSHIFT: return RSHIFT;
+			case RSHIFT: return LSHIFT;
+			case LCTRL: return RCTRL;
+			case RCTRL: return LCTRL;
+		}
+		return k;
+	}
+
 	int id() const { return id_; }
 	uint8_t enumId() const { return enumId_; }
 	void setEnumId(uint8_t id) { enumId_ = id; }
@@ -121,7 +161,7 @@ public:
 	virtual std::span<Axis> motionAxes();
 
 	virtual const char *keyName(Key k) const;
-	std::string keyString(Key k) const;
+	std::string keyString(Key k, KeyNameFlags flags = {}) const;
 
 	// TODO
 	//bool isDisconnectable() { return 0; }

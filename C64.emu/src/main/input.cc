@@ -137,7 +137,6 @@ enum class C64Key : KeyCode
 	KeyboardGreater,
 	KeyboardQuestion,
 	KeyboardApostrophe,
-	KeyboardShiftPound,
 
 	KeyboardLastEnum = KeyboardApostrophe,
 };
@@ -175,7 +174,6 @@ constexpr auto kbKeyInfo = makeArray<KeyInfo>
 	C64Key::KeyboardF6,
 	C64Key::KeyboardF7,
 	C64Key::KeyboardF8,
-	C64Key::KeyboardLeftArrow,
 	C64Key::Keyboard1,
 	C64Key::Keyboard2,
 	C64Key::Keyboard3,
@@ -186,8 +184,18 @@ constexpr auto kbKeyInfo = makeArray<KeyInfo>
 	C64Key::Keyboard8,
 	C64Key::Keyboard9,
 	C64Key::Keyboard0,
+	C64Key::KeyboardExclam,
+	C64Key::KeyboardAt,
+	C64Key::KeyboardNumberSign,
+	C64Key::KeyboardDollar,
+	C64Key::KeyboardPercent,
+	C64Key::KeyboardAmpersand,
+	C64Key::KeyboardAsterisk,
+	C64Key::KeyboardParenLeft,
+	C64Key::KeyboardParenRight,
 	C64Key::KeyboardPlus,
 	C64Key::KeyboardMinus,
+	C64Key::KeyboardLeftArrow,
 	C64Key::KeyboardPound,
 	C64Key::KeyboardClrHome,
 	C64Key::KeyboardInstDel,
@@ -202,8 +210,6 @@ constexpr auto kbKeyInfo = makeArray<KeyInfo>
 	C64Key::KeyboardI,
 	C64Key::KeyboardO,
 	C64Key::KeyboardP,
-	C64Key::KeyboardAt,
-	C64Key::KeyboardAsterisk,
 	C64Key::KeyboardUpArrow,
 	C64Key::KeyboardRestore,
 	C64Key::KeyboardRunStop,
@@ -217,8 +223,8 @@ constexpr auto kbKeyInfo = makeArray<KeyInfo>
 	C64Key::KeyboardJ,
 	C64Key::KeyboardK,
 	C64Key::KeyboardL,
-	C64Key::KeyboardColon,
 	C64Key::KeyboardSemiColon,
+	C64Key::KeyboardColon,
 	C64Key::KeyboardEquals,
 	C64Key::KeyboardReturn,
 	C64Key::KeyboardCommodore,
@@ -233,6 +239,11 @@ constexpr auto kbKeyInfo = makeArray<KeyInfo>
 	C64Key::KeyboardComma,
 	C64Key::KeyboardPeriod,
 	C64Key::KeyboardSlash,
+	C64Key::KeyboardApostrophe,
+	C64Key::KeyboardLess,
+	C64Key::KeyboardGreater,
+	C64Key::KeyboardQuestion,
+	C64Key::KeyboardQuoteDbl,
 	C64Key::KeyboardRightShift,
 	C64Key::KeyboardUp,
 	C64Key::KeyboardRight,
@@ -240,21 +251,8 @@ constexpr auto kbKeyInfo = makeArray<KeyInfo>
 	C64Key::KeyboardLeft,
 	C64Key::KeyboardSpace,
 	C64Key::KeyboardCtrlLock,
-	C64Key::KeyboardExclam,
-	C64Key::KeyboardQuoteDbl,
-	C64Key::KeyboardNumberSign,
-	C64Key::KeyboardDollar,
-	C64Key::KeyboardPercent,
-	C64Key::KeyboardAmpersand,
-	C64Key::KeyboardParenLeft,
-	C64Key::KeyboardParenRight,
 	C64Key::KeyboardBracketLeft,
-	C64Key::KeyboardBracketRight,
-	C64Key::KeyboardLess,
-	C64Key::KeyboardGreater,
-	C64Key::KeyboardQuestion,
-	C64Key::KeyboardApostrophe,
-	C64Key::KeyboardShiftPound
+	C64Key::KeyboardBracketRight
 );
 
 constexpr auto jsKeyInfo = concatToArrayNow<dpadKeyInfo, triggerKeyInfo, turboTriggerKeyInfo>;
@@ -292,18 +290,18 @@ std::string_view C64App::systemKeyCodeToString(KeyCode c)
 		case C64Key::KeyboardF7: return "F7";
 		case C64Key::KeyboardF8: return "F8";
 		case C64Key::KeyboardLeftArrow: return "←";
-		case C64Key::Keyboard1: return "1 ⇧!";
-		case C64Key::Keyboard2: return "2 ⇧@";
-		case C64Key::Keyboard3: return "3 ⇧#";
-		case C64Key::Keyboard4: return "4 ⇧$";
-		case C64Key::Keyboard5: return "5 ⇧%";
+		case C64Key::Keyboard1: return "1";
+		case C64Key::Keyboard2: return "2";
+		case C64Key::Keyboard3: return "3";
+		case C64Key::Keyboard4: return "4";
+		case C64Key::Keyboard5: return "5";
 		case C64Key::Keyboard6: return "6";
-		case C64Key::Keyboard7: return "7 ⇧&";
-		case C64Key::Keyboard8: return "8 ⇧(";
-		case C64Key::Keyboard9: return "9 ⇧)";
+		case C64Key::Keyboard7: return "7";
+		case C64Key::Keyboard8: return "8";
+		case C64Key::Keyboard9: return "9";
 		case C64Key::Keyboard0: return "0";
 		case C64Key::KeyboardPlus: return "+";
-		case C64Key::KeyboardMinus: return "- ⇧←";
+		case C64Key::KeyboardMinus: return "-";
 		case C64Key::KeyboardPound: return "£";
 		case C64Key::KeyboardClrHome: return "Clr Home";
 		case C64Key::KeyboardInstDel: return "Inst Del";
@@ -334,7 +332,7 @@ std::string_view C64App::systemKeyCodeToString(KeyCode c)
 		case C64Key::KeyboardK: return "K";
 		case C64Key::KeyboardL: return "L";
 		case C64Key::KeyboardColon: return ":";
-		case C64Key::KeyboardSemiColon: return "; ⇧:";
+		case C64Key::KeyboardSemiColon: return ";";
 		case C64Key::KeyboardEquals: return "=";
 		case C64Key::KeyboardReturn: return "Return";
 		case C64Key::KeyboardCommodore: return "Commodore Logo";
@@ -346,9 +344,9 @@ std::string_view C64App::systemKeyCodeToString(KeyCode c)
 		case C64Key::KeyboardB: return "B";
 		case C64Key::KeyboardN: return "N";
 		case C64Key::KeyboardM: return "M";
-		case C64Key::KeyboardComma: return ", ⇧<";
-		case C64Key::KeyboardPeriod: return ". ⇧>";
-		case C64Key::KeyboardSlash: return "/ ⇧?";
+		case C64Key::KeyboardComma: return ",";
+		case C64Key::KeyboardPeriod: return ".";
+		case C64Key::KeyboardSlash: return "/";
 		case C64Key::KeyboardRightShift: return "Right Shift";
 		case C64Key::KeyboardUp: return "Up";
 		case C64Key::KeyboardRight: return "Right";
@@ -369,7 +367,7 @@ std::string_view C64App::systemKeyCodeToString(KeyCode c)
 		case C64Key::KeyboardLess: return "<";
 		case C64Key::KeyboardGreater: return ">";
 		case C64Key::KeyboardQuestion: return "?";
-		case C64Key::KeyboardApostrophe: return "' ⇧\"";
+		case C64Key::KeyboardApostrophe: return "'";
 		default: return "";
 	}
 }
@@ -404,7 +402,17 @@ std::span<const KeyConfigDesc> C64App::defaultKeyConfigs()
 		KeyMapping{C64Key::Keyboard8, Keycode::_8},
 		KeyMapping{C64Key::Keyboard9, Keycode::_9},
 		KeyMapping{C64Key::Keyboard0, Keycode::_0},
+		KeyMapping{C64Key::KeyboardExclam, {Keycode::LSHIFT, Keycode::_1}},
+		KeyMapping{C64Key::KeyboardAt, {Keycode::LSHIFT, Keycode::_2}},
+		KeyMapping{C64Key::KeyboardNumberSign, {Keycode::LSHIFT, Keycode::_3}},
+		KeyMapping{C64Key::KeyboardDollar, {Keycode::LSHIFT, Keycode::_4}},
+		KeyMapping{C64Key::KeyboardPercent, {Keycode::LSHIFT, Keycode::_5}},
+		KeyMapping{C64Key::KeyboardAmpersand, {Keycode::LSHIFT, Keycode::_7}},
+		KeyMapping{C64Key::KeyboardAsterisk, {Keycode::LSHIFT, Keycode::_8}},
+		KeyMapping{C64Key::KeyboardParenLeft, {Keycode::LSHIFT, Keycode::_9}},
+		KeyMapping{C64Key::KeyboardParenRight, {Keycode::LSHIFT, Keycode::_0}},
 		KeyMapping{C64Key::KeyboardMinus, Keycode::MINUS},
+		KeyMapping{C64Key::KeyboardLeftArrow, {Keycode::LSHIFT, Keycode::MINUS}},
 		KeyMapping{C64Key::KeyboardPound, Keycode::BACKSLASH},
 		KeyMapping{C64Key::KeyboardClrHome, Keycode::HOME},
 		KeyMapping{C64Key::KeyboardInstDel, Keycode::BACK_SPACE},
@@ -433,7 +441,9 @@ std::span<const KeyConfigDesc> C64App::defaultKeyConfigs()
 		KeyMapping{C64Key::KeyboardK, Keycode::K},
 		KeyMapping{C64Key::KeyboardL, Keycode::L},
 		KeyMapping{C64Key::KeyboardSemiColon, Keycode::SEMICOLON},
+		KeyMapping{C64Key::KeyboardColon, {Keycode::LSHIFT, Keycode::SEMICOLON}},
 		KeyMapping{C64Key::KeyboardEquals, Keycode::EQUALS},
+		KeyMapping{C64Key::KeyboardPlus, {Keycode::LSHIFT, Keycode::EQUALS}},
 		KeyMapping{C64Key::KeyboardReturn, Keycode::ENTER},
 		KeyMapping{C64Key::KeyboardCommodore, Keycode::TAB},
 		KeyMapping{C64Key::KeyboardLeftShift, Keycode::LSHIFT},
@@ -445,14 +455,18 @@ std::span<const KeyConfigDesc> C64App::defaultKeyConfigs()
 		KeyMapping{C64Key::KeyboardN, Keycode::N},
 		KeyMapping{C64Key::KeyboardM, Keycode::M},
 		KeyMapping{C64Key::KeyboardComma, Keycode::COMMA},
+		KeyMapping{C64Key::KeyboardLess, {Keycode::LSHIFT, Keycode::COMMA}},
 		KeyMapping{C64Key::KeyboardPeriod, Keycode::PERIOD},
+		KeyMapping{C64Key::KeyboardGreater, {Keycode::LSHIFT, Keycode::PERIOD}},
 		KeyMapping{C64Key::KeyboardSlash, Keycode::SLASH},
+		KeyMapping{C64Key::KeyboardQuestion, {Keycode::LSHIFT, Keycode::SLASH}},
 		KeyMapping{C64Key::KeyboardRightShift, Keycode::RSHIFT},
 		KeyMapping{C64Key::KeyboardSpace, Keycode::SPACE},
 		KeyMapping{C64Key::KeyboardCtrlLock, Keycode::INSERT},
 		KeyMapping{C64Key::KeyboardBracketLeft, Keycode::LEFT_BRACKET},
 		KeyMapping{C64Key::KeyboardBracketRight, Keycode::RIGHT_BRACKET},
 		KeyMapping{C64Key::KeyboardApostrophe, Keycode::APOSTROPHE},
+		KeyMapping{C64Key::KeyboardQuoteDbl, {Keycode::LSHIFT, Keycode::APOSTROPHE}},
 	};
 
 	static constexpr std::array genericGamepadMap
@@ -552,31 +566,6 @@ VController::KbMap C64System::vControllerKeyboardMap(VControllerKbMode mode)
 	return mode == VControllerKbMode::LAYOUT_2 ? kbToEventMap2 : kbToEventMap;
 }
 
-static KeyCode shiftKeycodeSymbolic(C64Key keycode)
-{
-	switch(keycode)
-	{
-		case C64Key::KeyboardEquals: return KeyCode(C64Key::KeyboardPlus);
-		case C64Key::KeyboardSemiColon: return KeyCode(C64Key::KeyboardColon);
-		case C64Key::KeyboardMinus: return KeyCode(C64Key::KeyboardLeftArrow);
-		case C64Key::KeyboardComma: return KeyCode(C64Key::KeyboardLess);
-		case C64Key::KeyboardPeriod: return KeyCode(C64Key::KeyboardGreater);
-		case C64Key::KeyboardSlash: return KeyCode(C64Key::KeyboardQuestion);
-		case C64Key::KeyboardApostrophe: return KeyCode(C64Key::KeyboardQuoteDbl);
-		case C64Key::KeyboardPound: return KeyCode(C64Key::KeyboardShiftPound);
-		case C64Key::Keyboard1: return KeyCode(C64Key::KeyboardExclam);
-		case C64Key::Keyboard2: return KeyCode(C64Key::KeyboardAt);
-		case C64Key::Keyboard3: return KeyCode(C64Key::KeyboardNumberSign);
-		case C64Key::Keyboard4: return KeyCode(C64Key::KeyboardDollar);
-		case C64Key::Keyboard5: return KeyCode(C64Key::KeyboardPercent);
-		case C64Key::Keyboard7: return KeyCode(C64Key::KeyboardAmpersand);
-		case C64Key::Keyboard8: return KeyCode(C64Key::KeyboardAsterisk);
-		case C64Key::Keyboard9: return KeyCode(C64Key::KeyboardParenLeft);
-		case C64Key::Keyboard0: return KeyCode(C64Key::KeyboardParenRight);
-		default: return KeyCode(keycode);
-	}
-}
-
 static KeyCode shiftKeycodePositional(C64Key keycode)
 {
 	switch(keycode)
@@ -586,7 +575,6 @@ static KeyCode shiftKeycodePositional(C64Key keycode)
 		case C64Key::KeyboardComma: return KeyCode(C64Key::KeyboardLess);
 		case C64Key::KeyboardPeriod: return KeyCode(C64Key::KeyboardGreater);
 		case C64Key::KeyboardSlash: return KeyCode(C64Key::KeyboardQuestion);
-		case C64Key::KeyboardPound: return KeyCode(C64Key::KeyboardShiftPound);
 		case C64Key::Keyboard1: return KeyCode(C64Key::KeyboardExclam);
 		case C64Key::Keyboard2: return KeyCode(C64Key::KeyboardQuoteDbl);
 		case C64Key::Keyboard3: return KeyCode(C64Key::KeyboardNumberSign);
@@ -600,11 +588,6 @@ static KeyCode shiftKeycodePositional(C64Key keycode)
 	}
 }
 
-static KeyCode shiftKeycode(C64Key keycode, bool positional)
-{
-	return positional ? shiftKeycodePositional(keycode) : shiftKeycodeSymbolic(keycode);
-}
-
 void C64System::handleKeyboardInput(InputAction a, bool positionalShift)
 {
 	//logMsg("key:%u %d", key, (int)action);
@@ -612,7 +595,8 @@ void C64System::handleKeyboardInput(InputAction a, bool positionalShift)
 	if(a.metaState & Input::Meta::SHIFT)
 	{
 		mod |= KBD_MOD_LSHIFT;
-		a.code = shiftKeycode(C64Key(a.code), positionalShift);
+		if(positionalShift)
+			a.code = shiftKeycodePositional(C64Key(a.code));
 	}
 	if(a.metaState & Input::Meta::CAPS_LOCK)
 	{
@@ -884,7 +868,6 @@ signed long kbd_arch_keyname_to_keynum(char *keynamePtr)
 	else if(keyname == "question") { return long(C64Key::KeyboardQuestion); }
 	else if(keyname == "apostrophe") { return long(C64Key::KeyboardApostrophe); }
 	else if(keyname == "Caps_Lock") { return long(C64Key::KeyboardShiftLock); }
-	else if(keyname == "bar") { return long(C64Key::KeyboardShiftPound); }
 	//logWarn("unknown keyname:%s", keyname.data());
 	return 0;
 }

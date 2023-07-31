@@ -44,15 +44,39 @@ void InputDeviceData::buildKeyMap(const InputManager &mgr, const Input::Device &
 		return;
 	logMsg("allocating key mapping for:%s with player:%d", d.name().data(), devConf.player()+1);
 	actionTable = {totalKeys};
-	for(auto [key, value] : devConf.keyConf(mgr).keyMap)
+	keyCombos.clear();
+	for(auto [key, mapKeys] : devConf.keyConf(mgr).keyMap)
 	{
 		if(!key.isAppKey())
 			key = mgr.transpose(key, devConf.player());
-		for(auto mapKey : value)
+		if(mapKeys.size() > 1)
 		{
-			logMsg("mapping key %s to %s (%u)", d.keyName(mapKey), mgr.toString(key).data(), key.codes[0]);
-			assert(mapKey < totalKeys);
-			actionTable[mapKey].tryPushBack(key);
+			bool hasModifierKeys{};
+			keyCombos.emplace_back(key, mapKeys);
+			for(auto mapKey : mapKeys)
+			{
+				if(d.isModifierKey(mapKey))
+					hasModifierKeys = true;
+				else
+					actionTable[mapKey].tryInsert(actionTable[mapKey].begin(), KeyInfo::comboKey(keyCombos.size() - 1));
+			}
+			if(hasModifierKeys) // add extra mapping to account for left/right modifier keys
+			{
+				for(auto &mapKey : mapKeys)
+					mapKey = d.swapModifierKey(mapKey);
+				keyCombos.emplace_back(key, mapKeys);
+				for(auto mapKey : mapKeys)
+				{
+					if(!d.isModifierKey(mapKey))
+						actionTable[mapKey].tryInsert(actionTable[mapKey].begin(), KeyInfo::comboKey(keyCombos.size() - 1));
+				}
+			}
+		}
+		else
+		{
+			logMsg("mapping key %s to %s (%u)", d.keyName(mapKeys[0]), mgr.toString(key).data(), key.codes[0]);
+			assert(mapKeys[0] < totalKeys);
+			actionTable[mapKeys[0]].tryPushBack(key);
 		}
 	}
 	/*for(auto [group, i] : std::views::zip(actionTable, iotaCount(actionTable.size())))
@@ -66,7 +90,7 @@ void InputDeviceData::buildKeyMap(const InputManager &mgr, const Input::Device &
 	}*/
 }
 
-std::string InputDeviceData::makeDisplayName(std::string_view name, unsigned id)
+std::string InputDeviceData::makeDisplayName(std::string_view name, int id)
 {
 	if(id)
 	{
@@ -76,6 +100,40 @@ std::string InputDeviceData::makeDisplayName(std::string_view name, unsigned id)
 	{
 		return std::string{name};
 	}
+}
+
+void InputDeviceData::updateInputKey(const Input::KeyEvent &keyEv)
+{
+	if(keyEv.repeated())
+		return;
+	if(keyEv.pushed())
+	{
+		addInputKey(keyEv.mapKey());
+	}
+	else
+	{
+		removeInputKey(keyEv.mapKey());
+	}
+}
+
+void InputDeviceData::addInputKey(Input::Key key)
+{
+	pushedInputKeys.push_back(key);
+}
+
+void InputDeviceData::removeInputKey(Input::Key key)
+{
+	std::ranges::replace(pushedInputKeys, key, Input::Key{});
+}
+
+bool InputDeviceData::keysArePushed(MappedKeys mapKeys)
+{
+	for(auto k : mapKeys)
+	{
+		if(!contains(pushedInputKeys, k))
+			return false;
+	}
+	return true;
 }
 
 }

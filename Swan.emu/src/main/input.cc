@@ -131,9 +131,9 @@ std::string_view WsApp::systemKeyCodeToString(KeyCode c)
 		case SwanKey::Y4: return "Y4 ↷ X2";
 		case SwanKey::ANoRotation: return "A";
 		case SwanKey::BNoRotation: return "B";
-		case SwanKey::Y1X1: return "Y4 ↷ X1";
-		case SwanKey::Y2X2: return "Y4 ↷ X2";
-		case SwanKey::Y3X3: return "Y4 ↷ X3";
+		case SwanKey::Y1X1: return "Y1 ↷ X1";
+		case SwanKey::Y2X2: return "Y2 ↷ X2";
+		case SwanKey::Y3X3: return "Y3 ↷ X3";
 		case SwanKey::Y4X4: return "Y4 ↷ X4";
 		default: return "";
 	}

@@ -88,24 +88,12 @@ constexpr std::array genericWiimoteAppKeyCodeMap
 
 constexpr std::array genericKeyboardAppKeyCodeMap
 {
-	KeyMapping{appKeys.openContent, Input::Keycode::F2},
+	KeyMapping{appKeys.openContent, {Input::Keycode::LCTRL, Input::Keycode::_2}},
 	KeyMapping{appKeys.openSystemActions, Input::Keycode::MENU},
-	KeyMapping{appKeys.saveState, Input::Keycode::F1},
-	KeyMapping{appKeys.loadState, Input::Keycode::F4},
-	KeyMapping{appKeys.decStateSlot, Input::Keycode::LEFT_BRACKET},
-	KeyMapping{appKeys.incStateSlot, Input::Keycode::RIGHT_BRACKET},
-	KeyMapping{appKeys.fastForward, Input::Keycode::GRAVE},
-	KeyMapping{appKeys.openMenu, Input::Keycode::BACK_KEY},
-};
-
-constexpr std::array genericKeyboardModifierAppKeyCodeMap
-{
-	KeyMapping{appKeys.openContent, {Input::Keycode::LCTRL, Input::Keycode::F2}},
-	KeyMapping{appKeys.openSystemActions, Input::Keycode::MENU},
-	KeyMapping{appKeys.saveState, {Input::Keycode::LCTRL, Input::Keycode::F1}},
-	KeyMapping{appKeys.loadState, {Input::Keycode::LCTRL, Input::Keycode::F4}},
-	KeyMapping{appKeys.decStateSlot, {Input::Keycode::RCTRL, Input::Keycode::LEFT_BRACKET}},
-	KeyMapping{appKeys.incStateSlot, {Input::Keycode::RCTRL, Input::Keycode::RIGHT_BRACKET}},
+	KeyMapping{appKeys.saveState, {Input::Keycode::LCTRL, Input::Keycode::_1}},
+	KeyMapping{appKeys.loadState, {Input::Keycode::LCTRL, Input::Keycode::_4}},
+	KeyMapping{appKeys.decStateSlot, {Input::Keycode::LCTRL, Input::Keycode::LEFT_BRACKET}},
+	KeyMapping{appKeys.incStateSlot, {Input::Keycode::LCTRL, Input::Keycode::RIGHT_BRACKET}},
 	KeyMapping{appKeys.fastForward, {Input::Keycode::LCTRL, Input::Keycode::GRAVE}},
 	KeyMapping{appKeys.openMenu, Input::Keycode::BACK_KEY},
 };

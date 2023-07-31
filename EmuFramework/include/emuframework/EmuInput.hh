@@ -20,8 +20,6 @@
 #include <emuframework/TurboInput.hh>
 #include <emuframework/inputDefs.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/util/container/VMemArray.hh>
-#include <imagine/util/string/StaticString.hh>
 #include <string>
 #include <string_view>
 #include <memory>

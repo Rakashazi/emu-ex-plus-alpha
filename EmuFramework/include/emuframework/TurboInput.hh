@@ -31,6 +31,7 @@ struct TurboInput
 	constexpr TurboInput() = default;
 	void addEvent(KeyInfo);
 	void removeEvent(KeyInfo);
+	void updateEvent(EmuApp &, KeyInfo, Input::Action);
 	void update(EmuApp &);
 };
 

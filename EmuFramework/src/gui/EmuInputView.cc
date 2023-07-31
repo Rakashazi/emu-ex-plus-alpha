@@ -59,7 +59,6 @@ bool EmuInputView::toggleAltSpeedMode(AltSpeedMode mode)
 
 bool EmuInputView::setAltSpeedMode(AltSpeedMode mode, bool on)
 {
-	logMsg("alt speed state:%d", on);
 	speedToggleActive = on;
 	vController->updateAltSpeedModeInput(mode, on);
 	updateRunSpeed(mode);
@@ -103,6 +102,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 					isPushed ? "pushed" : "released", keyEv.device()->keyName(keyEv.key()),
 					keyEv.device()->name()));
 			}
+			devData.updateInputKey(keyEv);
 			for(auto keyInfo : actionGroup)
 			{
 				if(!keyInfo)
@@ -110,8 +110,27 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 				didAction = true;
 				if(isRepeated) // only consume the event
 					break;
-				if(emuApp.handleKeyInput(keyInfo, e))
-					break;
+				if(keyInfo.isComboKey())
+				{
+					auto &comboKeyMapping = devData.keyCombos[keyInfo.codes[1]];
+					if(isPushed)
+					{
+						if(devData.keysArePushed(comboKeyMapping.mapKey))
+						{
+							emuApp.handleKeyInput(comboKeyMapping.key, e);
+							break; // combo keys are always first and short-circuit the loop when pushed (e.g. "Shift + A" doesn't trigger "A")
+						}
+					}
+					else
+					{
+						emuApp.handleKeyInput(comboKeyMapping.key, e);
+					}
+				}
+				else
+				{
+					if(emuApp.handleKeyInput(keyInfo, e))
+						break;
+				}
 			}
 			return didAction
 				|| keyEv.isGamepad() // consume all gamepad events

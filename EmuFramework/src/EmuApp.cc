@@ -616,6 +616,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						win.setDrawEventPriority(Window::drawEventPriorityLocked);
 					}
 					EmuAudio *audioPtr = audio ? &audio : nullptr;
+					runTurboInputEvents();
 					emuSystemTask.runFrame(videoPtr, audioPtr, frameInfo.advanced, skipForward, altSpeed);
 					if(videoPtr)
 					{
@@ -1361,16 +1362,12 @@ void EmuApp::handleSystemKeyInput(InputAction action)
 		action.flags.turbo = 1;
 	if(action.flags.turbo)
 	{
-		if(action.state == Input::Action::PUSHED)
-		{
-			inputManager.turboActions.addEvent(action.code);
-		}
-		else
-		{
-			inputManager.turboActions.removeEvent(action.code);
-		}
+		inputManager.turboActions.updateEvent(*this, action.code, action.state);
 	}
-	system().handleInputAction(this, action);
+	else
+	{
+		system().handleInputAction(this, action);
+	}
 }
 
 void EmuApp::runTurboInputEvents()
@@ -1544,7 +1541,6 @@ void EmuApp::runFrames(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *
 	{
 		skipFrames(taskCtx, frames - 1, audio);
 	}
-	runTurboInputEvents();
 	system().runFrame(taskCtx, video, audio);
 	system().updateBackupMemoryCounter();
 }
@@ -1554,7 +1550,6 @@ void EmuApp::skipFrames(EmuSystemTaskContext taskCtx, int frames, EmuAudio *audi
 	assert(system().hasContent());
 	for(auto i : iotaCount(frames))
 	{
-		runTurboInputEvents();
 		system().runFrame(taskCtx, nullptr, audio);
 	}
 }

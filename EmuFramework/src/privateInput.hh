@@ -17,7 +17,7 @@
 
 #include <imagine/input/Input.hh>
 #include <imagine/input/Device.hh>
-#include <imagine/util/string/StaticString.hh>
+#include <imagine/util/container/VMemArray.hh>
 #include <imagine/util/container/array.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #include <emuframework/EmuInput.hh>
@@ -75,13 +75,19 @@ struct InputDeviceData
 	static constexpr int maxKeyActions = 4;
 	using ActionGroup = ZArray<KeyInfo, maxKeyActions>;
 
-	VMemArray<ActionGroup> actionTable{};
-	InputDeviceConfig devConf{};
-	std::string displayName{};
+	VMemArray<ActionGroup> actionTable;
+	std::vector<KeyMapping> keyCombos;
+	RingArray<Input::Key, 8> pushedInputKeys;
+	InputDeviceConfig devConf;
+	std::string displayName;
 
 	InputDeviceData(const InputManager &, Input::Device &);
 	void buildKeyMap(const InputManager &, const Input::Device &d);
-	static std::string makeDisplayName(std::string_view name, unsigned id);
+	static std::string makeDisplayName(std::string_view name, int id);
+	void updateInputKey(const Input::KeyEvent &);
+	void addInputKey(Input::Key);
+	void removeInputKey(Input::Key);
+	bool keysArePushed(MappedKeys);
 };
 
 static InputDeviceData& inputDevData(const Input::Device &d)

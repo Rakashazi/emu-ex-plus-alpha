@@ -21,6 +21,9 @@ namespace EmuEx
 
 void TurboInput::addEvent(KeyInfo key)
 {
+	key.flags.turbo = 0;
+	if(keys.empty())
+		clock = 0; // Reset the clock so new turbo event takes effect next frame
 	if(keys.tryPushBack(key))
 	{
 		logMsg("added turbo event action %d", key.codes[0]);
@@ -29,9 +32,24 @@ void TurboInput::addEvent(KeyInfo key)
 
 void TurboInput::removeEvent(KeyInfo key)
 {
+	key.flags.turbo = 0;
 	if(erase(keys, key))
 	{
 		logMsg("removed turbo event action %d", key.codes[0]);
+	}
+}
+
+void TurboInput::updateEvent(EmuApp &app, KeyInfo key, Input::Action act)
+{
+	key.flags.turbo = 0;
+	if(act == Input::Action::PUSHED)
+	{
+		addEvent(key);
+	}
+	else
+	{
+		removeEvent(key);
+		app.handleSystemKeyInput(key, Input::Action::RELEASED);
 	}
 }
 

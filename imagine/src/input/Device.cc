@@ -423,11 +423,24 @@ const char *Device::keyName(Key k) const
 	}
 }
 
-std::string Device::keyString(Key k) const
+std::string Device::keyString(Key k, KeyNameFlags flags) const
 {
 	if(auto name = keyName(k);
 		std::string_view{name}.size())
 	{
+		if(flags.basicModifiers && map() == Map::SYSTEM)
+		{
+			using namespace Keycode;
+			switch(k)
+			{
+				case LALT:
+				case RALT: return "Alt";
+				case LSHIFT:
+				case RSHIFT: return "Shift";
+				case LCTRL:
+				case RCTRL: return "Ctrl";
+			}
+		}
 		return std::string{name};
 	}
 	else
