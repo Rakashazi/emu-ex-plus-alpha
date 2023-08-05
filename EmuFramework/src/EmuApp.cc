@@ -904,6 +904,7 @@ void EmuApp::showEmulation()
 		return;
 	configureAppForEmulation(true);
 	resetInput();
+	inputManager.vController.applySavedButtonAlpha();
 	viewController().showEmulationView(configFrameTime());
 	startEmulation();
 }
@@ -1197,153 +1198,154 @@ FS::PathString EmuApp::validSearchPath(const FS::PathString &path) const
 
 bool EmuApp::handleKeyInput(KeyInfo keyInfo, const Input::Event &srcEvent)
 {
-	for(auto c : keyInfo.codes)
+	if(!keyInfo.flags.appCode)
 	{
-		if(handleKeyInput({c, keyInfo.flags, srcEvent.state(), srcEvent.metaKeyBits()}, srcEvent))
-			return true;
+		handleSystemKeyInput(keyInfo, srcEvent.state(), srcEvent.metaKeyBits());
+	}
+	else
+	{
+		for(auto c : keyInfo.codes)
+		{
+			if(handleAppActionKeyInput({c, keyInfo.flags, srcEvent.state(), srcEvent.metaKeyBits()}, srcEvent))
+				return true;
+		}
 	}
 	return false;
 }
 
-bool EmuApp::handleKeyInput(InputAction action, const Input::Event &srcEvent)
+bool EmuApp::handleAppActionKeyInput(InputAction action, const Input::Event &srcEvent)
 {
 	bool isPushed = action.state == Input::Action::PUSHED;
-	if(action.flags.appCode)
+	assert(action.flags.appCode);
+	using enum AppKeyCode;
+	switch(AppKeyCode(action.code))
 	{
-		using enum AppKeyCode;
-		switch(AppKeyCode(action.code))
+		case fastForward:
 		{
-			case fastForward:
-			{
-				viewController().inputView.setAltSpeedMode(AltSpeedMode::fast, isPushed);
-				break;
-			}
-			case openContent:
-			{
-				if(!isPushed)
-					break;
-				logMsg("show load game view from key event");
-				viewController().popToRoot();
-				viewController().pushAndShow(FilePicker::forLoading(attachParams(), srcEvent), srcEvent, false);
-				return true;
-			}
-			case openSystemActions:
-			{
-				if(!isPushed)
-					break;
-				logMsg("show system actions view from key event");
-				showSystemActionsViewFromSystem(attachParams(), srcEvent);
-				return true;
-			}
-			case saveState:
-			{
-				if(!isPushed)
-					break;
-				static auto doSaveState = [](EmuApp &app, bool notify)
-				{
-					if(app.saveStateWithSlot(app.system().stateSlot()) && notify)
-					{
-						app.postMessage("State Saved");
-					}
-				};
-				if(shouldOverwriteExistingState())
-				{
-					syncEmulationThread();
-					doSaveState(*this, confirmOverwriteStateOption());
-				}
-				else
-				{
-					viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attachParams(), "Really Overwrite State?",
-						YesNoAlertView::Delegates
-						{
-							.onYes = [this]
-							{
-								doSaveState(*this, false);
-								showEmulation();
-							},
-							.onNo = [this]{ showEmulation(); }
-						}), srcEvent, false);
-				}
-				return true;
-			}
-			case loadState:
-			{
-				if(!isPushed)
-					break;
-				syncEmulationThread();
-				loadStateWithSlot(system().stateSlot());
-				return true;
-			}
-			case decStateSlot:
-			{
-				if(!isPushed)
-					break;
-				system().decStateSlot();
-				postMessage(1, false, std::format("State Slot: {}", system().stateSlotName()));
-				return true;
-			}
-			case incStateSlot:
-			{
-				if(!isPushed)
-					break;
-				system().incStateSlot();
-				postMessage(1, false, std::format("State Slot: {}", system().stateSlotName()));
-				return true;
-			}
-			case takeScreenshot:
-			{
-				if(!isPushed)
-					break;
-				video().takeGameScreenshot();
-				return true;
-			}
-			case toggleFastForward:
-			{
-				if(!isPushed)
-					break;
-				viewController().inputView.toggleAltSpeedMode(AltSpeedMode::fast);
-				break;
-			}
-			case openMenu:
-			{
-				if(!isPushed)
-					break;
-				logMsg("show last view from key event");
-				showLastViewFromSystem(attachParams(), srcEvent);
-				return true;
-			}
-			case turboModifier:
-			{
-				inputManager.turboModifierActive = isPushed;
-				if(!isPushed)
-					inputManager.turboActions = {};
-				break;
-			}
-			case exitApp:
-			{
-				if(!isPushed)
-					break;
-				viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attachParams(), "Really Exit?",
-					YesNoAlertView::Delegates{.onYes = [this]{ appContext().exit(); }}), srcEvent, false);
-				break;
-			}
-			case slowMotion:
-			{
-				viewController().inputView.setAltSpeedMode(AltSpeedMode::slow, isPushed);
-				break;
-			}
-			case toggleSlowMotion:
-			{
-				if(!isPushed)
-					break;
-				viewController().inputView.toggleAltSpeedMode(AltSpeedMode::slow);
-				break;
-			}
+			viewController().inputView.setAltSpeedMode(AltSpeedMode::fast, isPushed);
+			break;
 		}
-	}
-	else
-	{
-		handleSystemKeyInput(action);
+		case openContent:
+		{
+			if(!isPushed)
+				break;
+			logMsg("show load game view from key event");
+			viewController().popToRoot();
+			viewController().pushAndShow(FilePicker::forLoading(attachParams(), srcEvent), srcEvent, false);
+			return true;
+		}
+		case openSystemActions:
+		{
+			if(!isPushed)
+				break;
+			logMsg("show system actions view from key event");
+			showSystemActionsViewFromSystem(attachParams(), srcEvent);
+			return true;
+		}
+		case saveState:
+		{
+			if(!isPushed)
+				break;
+			static auto doSaveState = [](EmuApp &app, bool notify)
+			{
+				if(app.saveStateWithSlot(app.system().stateSlot()) && notify)
+				{
+					app.postMessage("State Saved");
+				}
+			};
+			if(shouldOverwriteExistingState())
+			{
+				syncEmulationThread();
+				doSaveState(*this, confirmOverwriteStateOption());
+			}
+			else
+			{
+				viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attachParams(), "Really Overwrite State?",
+					YesNoAlertView::Delegates
+					{
+						.onYes = [this]
+						{
+							doSaveState(*this, false);
+							showEmulation();
+						},
+						.onNo = [this]{ showEmulation(); }
+					}), srcEvent, false);
+			}
+			return true;
+		}
+		case loadState:
+		{
+			if(!isPushed)
+				break;
+			syncEmulationThread();
+			loadStateWithSlot(system().stateSlot());
+			return true;
+		}
+		case decStateSlot:
+		{
+			if(!isPushed)
+				break;
+			system().decStateSlot();
+			postMessage(1, false, std::format("State Slot: {}", system().stateSlotName()));
+			return true;
+		}
+		case incStateSlot:
+		{
+			if(!isPushed)
+				break;
+			system().incStateSlot();
+			postMessage(1, false, std::format("State Slot: {}", system().stateSlotName()));
+			return true;
+		}
+		case takeScreenshot:
+		{
+			if(!isPushed)
+				break;
+			video().takeGameScreenshot();
+			return true;
+		}
+		case toggleFastForward:
+		{
+			if(!isPushed)
+				break;
+			viewController().inputView.toggleAltSpeedMode(AltSpeedMode::fast);
+			break;
+		}
+		case openMenu:
+		{
+			if(!isPushed)
+				break;
+			logMsg("show last view from key event");
+			showLastViewFromSystem(attachParams(), srcEvent);
+			return true;
+		}
+		case turboModifier:
+		{
+			inputManager.turboModifierActive = isPushed;
+			if(!isPushed)
+				inputManager.turboActions = {};
+			break;
+		}
+		case exitApp:
+		{
+			if(!isPushed)
+				break;
+			viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attachParams(), "Really Exit?",
+				YesNoAlertView::Delegates{.onYes = [this]{ appContext().exit(); }}), srcEvent, false);
+			break;
+		}
+		case slowMotion:
+		{
+			viewController().inputView.setAltSpeedMode(AltSpeedMode::slow, isPushed);
+			break;
+		}
+		case toggleSlowMotion:
+		{
+			if(!isPushed)
+				break;
+			viewController().inputView.toggleAltSpeedMode(AltSpeedMode::slow);
+			break;
+		}
 	}
 	return false;
 }
@@ -1354,6 +1356,7 @@ void EmuApp::handleSystemKeyInput(KeyInfo keyInfo, Input::Action act, uint32_t m
 	{
 		handleSystemKeyInput({code, keyInfo.flags, act, metaState});
 	}
+	defaultVController().updateSystemKeys(keyInfo, act == Input::Action::PUSHED);
 }
 
 void EmuApp::handleSystemKeyInput(InputAction action)

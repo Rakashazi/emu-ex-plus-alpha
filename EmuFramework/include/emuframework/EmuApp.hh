@@ -224,7 +224,7 @@ public:
 	auto screenshotDirectory() const { return system().userPath(userScreenshotPath); }
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
 	bool handleKeyInput(KeyInfo, const Input::Event &srcEvent);
-	bool handleKeyInput(InputAction, const Input::Event &srcEvent);
+	bool handleAppActionKeyInput(InputAction, const Input::Event &srcEvent);
 	void handleSystemKeyInput(KeyInfo, Input::Action, uint32_t metaState = 0);
 	void handleSystemKeyInput(InputAction);
 	void runTurboInputEvents();

@@ -36,6 +36,7 @@ public:
 	void place() final;
 	bool inputEvent(const Input::Event &e) final;
 	void draw(Gfx::RendererCommands &__restrict__) final;
+	void onShow() final;
 
 private:
 	EmuVideoLayer &layer;

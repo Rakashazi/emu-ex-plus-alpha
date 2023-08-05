@@ -74,7 +74,7 @@ class VControllerDPad
 public:
 	struct Config
 	{
-		std::array<KeyInfo, 4> keys{};
+		std::array<KeyInfo, 4> keys;
 		float diagonalSensitivity{defaultDPadDiagonalSensitivity};
 		int16_t deadzoneMM100x{defaultDPadDeadzoneMM100x};
 		bool visualizeBounds{};
@@ -87,7 +87,7 @@ public:
 		config{.keys{keys[0], keys[1], keys[2], keys[3]}} {}
 	constexpr VControllerDPad(const Config &config): config{config} {}
 	void setImage(Gfx::TextureSpan);
-	void draw(Gfx::RendererCommands &__restrict__, float alpha) const;
+	void draw(Gfx::RendererCommands &__restrict__) const;
 	void setShowBounds(Gfx::Renderer &r, bool on);
 	bool showBounds() const { return config.visualizeBounds; }
 	std::array<KeyInfo, 2> getInput(WPt c) const;
@@ -102,6 +102,7 @@ public:
 	std::string name(const EmuApp &) const { return "D-Pad"; }
 	void updateMeasurements(const Window &win);
 	void transposeKeysForPlayer(const EmuApp &, int player);
+	void setAlpha(float alpha);
 
 	static size_t configSize()
 	{
@@ -112,14 +113,15 @@ public:
 	}
 
 protected:
-	Gfx::Sprite spr;
-	Gfx::Sprite mapSpr;
+	Gfx::LitSprite spr;
+	Gfx::LitSprite mapSpr;
 	Gfx::Texture mapImg;
 	WRect padBaseArea, padArea;
 	int deadzonePixels{};
 	int btnSizePixels{};
 public:
 	Config config;
+	bool isHighlighted[4]{};
 
 	void updateBoundingAreaGfx(Gfx::Renderer &);
 };
@@ -182,14 +184,15 @@ public:
 	void setImage(Gfx::TextureSpan, int aR = 1);
 	WRect bounds() const { return bounds_; }
 	WRect realBounds() const { return extendedBounds_; }
-	const Gfx::Sprite &sprite() const { return spr; }
-	void drawBounds(Gfx::RendererCommands &__restrict__, float alpha) const;
-	void drawSprite(Gfx::RendererCommands &__restrict__, float alpha) const;
+	const auto &sprite() const { return spr; }
+	void drawBounds(Gfx::RendererCommands &__restrict__) const;
+	void drawSprite(Gfx::RendererCommands &__restrict__) const;
 	std::string name(const EmuApp &) const;
 	bool overlaps(WPt windowPos) const { return enabled && realBounds().overlaps(windowPos); }
+	void setAlpha(float alpha);
 
 protected:
-	Gfx::Sprite spr;
+	Gfx::LitSprite spr;
 	WRect bounds_{};
 	WRect extendedBounds_{};
 	int aspectRatio{1};
@@ -198,6 +201,7 @@ public:
 	KeyInfo key{};
 	bool enabled = true;
 	bool skipLayout{};
+	bool isHighlighted{};
 };
 
 class VControllerButtonGroup
@@ -240,10 +244,11 @@ public:
 	WRect realBounds() const { return bounds() + paddingRect(); }
 	int rows() const;
 	std::array<KeyInfo, 2> findButtonIndices(WPt windowPos) const;
-	void draw(Gfx::RendererCommands &__restrict__, float alpha) const;
+	void draw(Gfx::RendererCommands &__restrict__) const;
 	std::string name(const EmuApp &) const;
 	void updateMeasurements(const Window &win);
 	void transposeKeysForPlayer(const EmuApp &, int player);
+	void setAlpha(float alpha) { for(auto &b : buttons) { b.setAlpha(alpha); } }
 
 	static size_t layoutConfigSize()
 	{
@@ -269,7 +274,7 @@ protected:
 	int16_t btnStagger{};
 	int16_t btnRowShift{};
 
-	void drawButtons(Gfx::RendererCommands &__restrict__, float alpha) const;
+	void drawButtons(Gfx::RendererCommands &__restrict__) const;
 public:
 	LayoutConfig layout{};
 };
@@ -300,8 +305,9 @@ public:
 	auto bounds() const { return bounds_; }
 	WRect realBounds() const { return bounds(); }
 	int rows() const;
-	void draw(Gfx::RendererCommands &__restrict__, float alpha) const;
+	void draw(Gfx::RendererCommands &__restrict__) const;
 	std::string name(const EmuApp &) const;
+	void setAlpha(float alpha) { for(auto &b : buttons) { b.setAlpha(alpha); } }
 
 	static size_t layoutConfigSize()
 	{
@@ -349,17 +355,18 @@ public:
 	WRect bounds() const { return visit([](auto &e){ return e.bounds(); }, *this); }
 	WRect realBounds() const { return visit([](auto &e){ return e.realBounds(); }, *this); }
 	void setPos(WPt pos, WRect viewBounds) { visit([&](auto &e){ e.setPos(pos, viewBounds); }, *this); }
+	void setAlpha(float alpha) { visit([&](auto &e){ e.setAlpha(alpha); }, *this); }
 
 	static bool shouldDraw(VControllerState state, bool showHidden)
 	{
 		return state == VControllerState::SHOWN || (showHidden && state != VControllerState::OFF);
 	}
 
-	void draw(Gfx::RendererCommands &__restrict__ cmds, float alpha, bool showHidden) const
+	void draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden) const
 	{
 		if(!shouldDraw(state, showHidden))
 			return;
-		visit([&](auto &e){ e.draw(cmds, alpha); }, *this);
+		visit([&](auto &e){ e.draw(cmds); }, *this);
 	}
 
 	void place(WRect viewBounds, WRect windowBounds, int layoutIdx)
@@ -498,10 +505,11 @@ public:
 	bool pointerInputEvent(const Input::MotionEvent &, WindowRect gameRect);
 	bool keyInput(const Input::KeyEvent &);
 	void draw(Gfx::RendererCommands &__restrict__, bool showHidden = false);
-	void draw(Gfx::RendererCommands &__restrict__, bool showHidden, float alpha);
 	bool isInKeyboardMode() const;
 	void setKeyboardImage(Gfx::TextureSpan img);
 	void setButtonAlpha(std::optional<uint8_t>);
+	void applyButtonAlpha(float);
+	void applySavedButtonAlpha();
 	constexpr uint8_t buttonAlpha() const { return alpha; }
 	VControllerKeyboard &keyboard() { return kb; }
 	void setRenderer(Gfx::Renderer &renderer) { renderer_ = &renderer; }
@@ -550,6 +558,7 @@ public:
 	std::span<VControllerElement> deviceElements() { return gpElements; }
 	std::span<VControllerElement> guiElements() { return uiElements; }
 	WRect layoutBounds() const;
+	void updateSystemKeys(KeyInfo, bool isPushed);
 
 private:
 	ApplicationContext appCtx{};
@@ -575,7 +584,10 @@ private:
 	uint8_t alpha{};
 	IG_UseMemberIf(Config::DISPLAY_CUTOUT, bool, allowButtonsPastContentBounds_){};
 	IG_UseMemberIf(Config::BASE_SUPPORTS_VIBRATOR, bool, vibrateOnTouchInput_){};
+public:
+	bool highlightPushedButtons{true};
 
+private:
 	std::array<KeyInfo, 2> findGamepadElements(WPt pos);
 	KeyInfo keyboardKeyFromPointer(const Input::MotionEvent &);
 	void applyButtonSize();

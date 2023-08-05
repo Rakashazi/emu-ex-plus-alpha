@@ -38,8 +38,8 @@ enum class GbaKey : KeyCode
 	Start = 4,
 	A = 1,
 	B = 2,
-	L = 9,
-	R = 10,
+	L = 10,
+	R = 9,
 
 	// Special key codes
 	LightInc = 11,

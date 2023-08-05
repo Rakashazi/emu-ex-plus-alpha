@@ -146,10 +146,9 @@ void VControllerDPad::transposeKeysForPlayer(const EmuApp &app, int player)
 	}
 }
 
-void VControllerDPad::draw(Gfx::RendererCommands &__restrict__ cmds, float alpha) const
+void VControllerDPad::draw(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	cmds.basicEffect().enableTexture(cmds);
-	cmds.setColor({alpha, alpha, alpha, alpha});
 	spr.draw(cmds);
 	if(config.visualizeBounds)
 	{
@@ -192,6 +191,25 @@ void VControllerDPad::Config::validate(const EmuApp &app)
 		diagonalSensitivity = defaultDPadDiagonalSensitivity;
 	if(!isValidDeadzone(deadzoneMM100x))
 		deadzoneMM100x = defaultDPadDeadzoneMM100x;
+}
+
+void VControllerDPad::setAlpha(float alpha)
+{
+	std::array<Gfx::Color, 4> colors;
+	colors.fill({alpha});
+	if(isHighlighted[0] || isHighlighted[3])
+		colors[0] = colors[0].multiplyRGB(2.f);
+	if(isHighlighted[2] || isHighlighted[1])
+		colors[3] = colors[3].multiplyRGB(2.f);
+	if(isHighlighted[2] || isHighlighted[3])
+		colors[1] = colors[1].multiplyRGB(2.f);
+	if(isHighlighted[0] || isHighlighted[1])
+		colors[2] = colors[2].multiplyRGB(2.f);
+	for(auto &&[i, vtx] : enumerate(spr)) { vtx.color = colors[i]; }
+	if(config.visualizeBounds)
+	{
+		for(auto &&[i, vtx] : enumerate(mapSpr)) { vtx.color = colors[i]; }
+	}
 }
 
 }

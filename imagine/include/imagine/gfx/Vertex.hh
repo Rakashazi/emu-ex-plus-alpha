@@ -161,4 +161,11 @@ struct Vertex2ITexIColI
 	PackedColor color;
 };
 
+struct Vertex2ITexIColF
+{
+	glm::i16vec2 pos;
+	glm::i16vec2 texCoord;
+	Color color;
+};
+
 }

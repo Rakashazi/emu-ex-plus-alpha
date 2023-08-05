@@ -141,7 +141,7 @@ bool PlaceVControlsView::inputEvent(const Input::Event &e)
 void PlaceVControlsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
-	vController.draw(cmds, true, .75);
+	vController.draw(cmds, true);
 	cmds.setColor({.5, .5, .5});
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
@@ -159,6 +159,11 @@ void PlaceVControlsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		basicEffect.enableAlphaTexture(cmds);
 		text.draw(cmds, viewRect().pos(C2DO), C2DO, Color{1., 1., 1., textFade});
 	}
+}
+
+void PlaceVControlsView::onShow()
+{
+	vController.applyButtonAlpha(.75);
 }
 
 }

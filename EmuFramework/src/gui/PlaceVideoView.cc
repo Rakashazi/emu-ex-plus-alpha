@@ -145,7 +145,7 @@ bool PlaceVideoView::inputEvent(const Input::Event &e)
 void PlaceVideoView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
-	vController.draw(cmds, true, .50);
+	vController.draw(cmds, true);
 	cmds.setColor({.5, .5, .5});
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
@@ -176,6 +176,11 @@ void PlaceVideoView::updateVideo(int offset)
 	}
 	app().viewController().placeEmuViews();
 	app().viewController().postDrawToEmuWindows();
+}
+
+void PlaceVideoView::onShow()
+{
+	vController.applyButtonAlpha(.50);
 }
 
 }

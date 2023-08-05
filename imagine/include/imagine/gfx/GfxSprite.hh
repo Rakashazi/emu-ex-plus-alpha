@@ -88,5 +88,6 @@ private:
 
 using Sprite = SpriteBase<Vertex2ITexI>;
 using ShadedSprite = SpriteBase<Vertex2ITexIColI>;
+using LitSprite = SpriteBase<Vertex2ITexIColF>;
 
 }

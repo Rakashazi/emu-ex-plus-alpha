@@ -353,18 +353,12 @@ bool VController::keyInput(const Input::KeyEvent &e)
 
 void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden)
 {
-	draw(cmds, showHidden, alphaF);
-}
-
-void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden, float alpha)
-{
 	if(alpha == 0.f) [[unlikely]]
 		return;
 	cmds.set(Gfx::BlendMode::PREMULT_ALPHA);
 	if(isInKeyboardMode())
 	{
-		Gfx::Color whiteCol{alpha, alpha, alpha, alpha};
-		cmds.setColor(whiteCol);
+		cmds.setColor(Gfx::Color{alphaF});
 		kb.draw(cmds);
 	}
 	else if(gamepadIsVisible || showHidden)
@@ -375,12 +369,12 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 				continue;
 			if(e.dPad() && gamepadDisabledFlags & VController::GAMEPAD_DPAD_BIT)
 				continue;
-			e.draw(cmds, alpha, showHidden);
+			e.draw(cmds, showHidden);
 		}
 	}
 	for(auto &e : uiElements)
 	{
-		e.draw(cmds, alpha, showHidden);
+		e.draw(cmds, showHidden);
 	}
 }
 
@@ -433,6 +427,18 @@ void VController::setButtonAlpha(std::optional<uint8_t> opt)
 		return;
 	alpha = *opt;
 	alphaF = *opt / 255.f;
+	applyButtonAlpha(alphaF);
+}
+
+void VController::applySavedButtonAlpha()
+{
+	applyButtonAlpha(alphaF);
+}
+
+void VController::applyButtonAlpha(float alpha)
+{
+	for(auto &e : gpElements) { e.setAlpha(alpha); }
+	for(auto &e : uiElements) { e.setAlpha(alpha); }
 }
 
 void VController::setWindow(const IG::Window &win_)
@@ -622,6 +628,7 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key, size_t size)
 			setVibrateOnTouchInput(app, readOptionValue<bool>(io, size));
 			return true;
 		case CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS: return readOptionValue(io, size, allowButtonsPastContentBounds_);
+		case CFGKEY_VCONTROLLER_HIGHLIGHT_PUSHED_BUTTONS: return readOptionValue(io, size, highlightPushedButtons);
 		case CFGKEY_VCONTROLLER_DEVICE_BUTTONS_V2:
 		{
 			gpElements.clear();
@@ -758,6 +765,7 @@ void VController::writeConfig(FileIO &io) const
 		writeOptionValue(io, CFGKEY_TOUCH_CONTROL_VIRBRATE, vibrateOnTouchInput());
 	if(allowButtonsPastContentBounds_)
 		writeOptionValue(io, CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS, true);
+	writeOptionValueIfNotDefault(io, CFGKEY_VCONTROLLER_HIGHLIGHT_PUSHED_BUTTONS, highlightPushedButtons, true);
 	writeDeviceButtonsConfig(io);
 	writeUIButtonsConfig(io);
 }
@@ -981,6 +989,44 @@ bool VController::remove(VControllerElement &elemToErase)
 WRect VController::layoutBounds() const
 {
 	return allowButtonsPastContentBounds() ? windowData().windowBounds() : windowData().contentBounds();
+}
+
+void VController::updateSystemKeys(KeyInfo key, bool isPushed)
+{
+	if(!highlightPushedButtons)
+		return;
+	for(auto &e : gpElements)
+	{
+		visit(overloaded
+		{
+			[&](VControllerButtonGroup &grp)
+			{
+				for(auto &btn : grp.buttons)
+				{
+					if(btn.key == key)
+					{
+						btn.isHighlighted = isPushed;
+						btn.setAlpha(alphaF);
+					}
+				}
+			},
+			[&](VControllerDPad &dpad)
+			{
+				bool didUpdate{};
+				for(auto &&[i, k] : enumerate(dpad.config.keys))
+				{
+					if(k == key)
+					{
+						dpad.isHighlighted[i] = isPushed;
+						didUpdate = true;
+					}
+				}
+				if(didUpdate)
+					dpad.setAlpha(alphaF);
+			},
+			[](auto &e){}
+		}, e);
+	}
 }
 
 }

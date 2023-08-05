@@ -104,6 +104,8 @@ public:
 		TexCoordRect textureBounds{};
 	};
 
+	static constexpr int tlIdx = 0, blIdx = 1, trIdx = 2, brIdx = 3;
+
 	std::array<V, 4> v;
 
 	constexpr QuadGeneric() = default;
@@ -184,13 +186,17 @@ public:
 	}
 
 	constexpr auto &operator[](size_t idx) { return v[idx]; }
-	constexpr auto &bl() { return v[0]; }
-	constexpr auto &tl() { return v[1]; }
-	constexpr auto &tr() { return v[3]; }
-	constexpr auto &br() { return v[2]; }
+	constexpr auto &bl() { return v[blIdx]; }
+	constexpr auto &tl() { return v[tlIdx]; }
+	constexpr auto &tr() { return v[trIdx]; }
+	constexpr auto &br() { return v[brIdx]; }
 	constexpr operator std::array<V, 4>&() { return v; }
 	constexpr auto data() const { return v.data(); }
 	constexpr auto size() const { return v.size(); }
+	constexpr auto begin() { return v.begin(); }
+	constexpr auto begin() const { return v.begin(); }
+	constexpr auto end() { return v.end(); }
+	constexpr auto end() const { return v.end(); }
 };
 
 using Quad = QuadGeneric<Vertex2F>;

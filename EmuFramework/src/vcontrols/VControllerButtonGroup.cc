@@ -191,7 +191,7 @@ std::array<KeyInfo, 2> VControllerButtonGroup::findButtonIndices(WPt windowPos) 
 	return btnOut;
 }
 
-void VControllerButtonGroup::draw(Gfx::RendererCommands &__restrict__ cmds, float alpha) const
+void VControllerButtonGroup::draw(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	auto &basicEffect = cmds.basicEffect();
 	if(layout.showBoundingArea)
@@ -201,20 +201,20 @@ void VControllerButtonGroup::draw(Gfx::RendererCommands &__restrict__ cmds, floa
 		{
 			if(!b.enabled)
 				continue;
-			b.drawBounds(cmds, alpha);
+			b.drawBounds(cmds);
 		}
 	}
-	drawButtons(cmds, alpha);
+	drawButtons(cmds);
 }
 
-void VControllerButtonGroup::drawButtons(Gfx::RendererCommands &__restrict__ cmds, float alpha) const
+void VControllerButtonGroup::drawButtons(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	cmds.basicEffect().enableTexture(cmds);
 	for(auto &b : buttons)
 	{
 		if(!b.enabled)
 			continue;
-		b.drawSprite(cmds, alpha);
+		b.drawSprite(cmds);
 	}
 }
 
@@ -312,14 +312,14 @@ int VControllerUIButtonGroup::rows() const
 	return divRoundUp(buttonsToLayout(buttons), layout.rowItems);
 }
 
-void VControllerUIButtonGroup::draw(Gfx::RendererCommands &__restrict__ cmds, float alpha) const
+void VControllerUIButtonGroup::draw(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	cmds.basicEffect().enableTexture(cmds);
 	for(auto &b : buttons)
 	{
 		if(!b.enabled)
 			continue;
-		b.drawSprite(cmds, alpha);
+		b.drawSprite(cmds);
 	}
 }
 

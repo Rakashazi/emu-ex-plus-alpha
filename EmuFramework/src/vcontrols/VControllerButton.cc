@@ -48,23 +48,34 @@ std::string VControllerButton::name(const EmuApp &app) const
 	return std::string{app.inputManager.toString(key)};
 }
 
-void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds, float alpha) const
+void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds) const
 {
-	cmds.setColor({alpha, alpha, alpha, alpha});
+	float brightness = isHighlighted ? 2.f : 1.f;
+	cmds.setColor(Gfx::Color{.5f}.multiplyRGB(brightness));
 	cmds.drawRect(extendedBounds_);
 }
 
-void VControllerButton::drawSprite(Gfx::RendererCommands &__restrict__ cmds, float alpha) const
+void VControllerButton::drawSprite(Gfx::RendererCommands &__restrict__ cmds) const
 {
+	sprite().draw(cmds);
+}
+
+void VControllerButton::setAlpha(float alpha)
+{
+	float brightness = isHighlighted ? 2.f : 1.f;
+	Gfx::Color spriteColor{};
 	if(color != Gfx::Color{})
 	{
-		cmds.setColor(color.multiplyAlpha(alpha));
+		spriteColor = color.multiplyRGB(alpha).multiplyRGB(brightness);
 	}
 	else
 	{
-		cmds.setColor({alpha, alpha, alpha, alpha});
+		if(key.flags.turbo)
+			spriteColor = Gfx::Color{alpha * 2.f, alpha, alpha, alpha}.multiplyRGB(brightness);
+		else
+			spriteColor = Gfx::Color{alpha}.multiplyRGB(brightness);
 	}
-	sprite().draw(cmds);
+	for(auto &vtx : spr) { vtx.color = spriteColor; }
 }
 
 }

@@ -38,6 +38,7 @@ public:
 	void place() final;
 	bool inputEvent(const Input::Event &e) final;
 	void draw(Gfx::RendererCommands &__restrict__ cmds) final;
+	void onShow() final;
 
 private:
 	struct DragData

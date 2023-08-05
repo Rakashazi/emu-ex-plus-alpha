@@ -37,9 +37,10 @@ public:
 	void place() final;
 	void draw(Gfx::RendererCommands &__restrict__) final;
 	void reloadItems();
+	void onShow() final;
 
 protected:
-	VController *vControllerPtr{};
+	VController &vController;
 	TextMenuItem touchCtrlItem[3];
 	MultiChoiceMenuItem touchCtrl;
 	TextMenuItem pointerInputItem[5];
@@ -48,6 +49,7 @@ protected:
 	MultiChoiceMenuItem size;
 	BoolMenuItem vibrate;
 	BoolMenuItem showOnTouch;
+	BoolMenuItem highlightPushedButtons;
 	TextMenuItem alphaItem[6];
 	MultiChoiceMenuItem alpha;
 	TextMenuItem btnPlace;
@@ -64,7 +66,6 @@ protected:
 	std::vector<TextMenuItem> elementItems;
 	std::vector<MenuItem*> item;
 
-	VController &vController() { return *vControllerPtr; }
 	void refreshTouchConfigMenu();
 };
 

@@ -125,6 +125,7 @@ struct Color4F
 	constexpr Color4F(float r, float g, float b, float a = 1.f):
 		r{r}, g{g}, b{b}, a{a} {}
 	constexpr Color4F(std::array<float, 4> rgba): rgba{rgba} {}
+	constexpr Color4F(float i): Color4F{i, i, i, i} {}
 
 	constexpr Color4F(ColorName c):
 		rgba
@@ -146,8 +147,10 @@ struct Color4F
 			}()
 		} {}
 
+	[[nodiscard]]
 	constexpr Color4F multiplyAlpha() const { return {r * a, g * a, b * a, a}; }
-	constexpr Color4F multiplyAlpha(float a) const { return {r * a, g * a, b * a, a}; }
+	[[nodiscard]]
+	constexpr Color4F multiplyRGB(float l) const { return {r * l, g * l, b * l, a}; }
 	constexpr operator Color4B() const;
 	constexpr operator std::array<float, 4>() const { return rgba; }
 	constexpr bool operator ==(Color4F const &rhs) const { return rgba == rhs.rgba; }
