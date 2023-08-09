@@ -184,7 +184,7 @@ void RendererTask::setDefaultViewport(Window &win, Viewport v)
 	renderer().setDefaultViewport(win, v);
 	auto &data = winData(win);
 	GLTask::run(
-		[drawable = (Drawable)data.drawable, v = asYUpRelRect(v)](TaskContext ctx)
+		[drawable = (Drawable)data.drawable, v = v.asYUpRelRect()](TaskContext ctx)
 		{
 			// update viewport if drawable is currently in use
 			if(GLManager::hasCurrentDrawable(drawable))

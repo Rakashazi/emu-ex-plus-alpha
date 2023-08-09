@@ -182,7 +182,7 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool use
 		{"srcTexelHalfDelta", &srcTexelHalfDeltaU},
 		{"srcPixels", &srcPixelsU},
 	};
-	prog = {r.task(), vShader, fShader, Gfx::ProgramFlagsMask::HAS_TEXTURE, uniformDescs};
+	prog = {r.task(), vShader, fShader, {.hasTexture = true}, uniformDescs};
 	if(!prog)
 	{
 		throw std::runtime_error{"GPU rejected shader (link error)"};

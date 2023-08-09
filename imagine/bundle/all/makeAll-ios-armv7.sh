@@ -11,7 +11,7 @@ makefilesToRun='
 	
 	src/libarchive/ios-armv7.mk
 	
-	src/boost/ios-armv7.mk
+	src/libcxx/ios-armv7.mk
 '
 
 source runMakefiles.sh

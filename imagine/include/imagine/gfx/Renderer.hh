@@ -90,7 +90,7 @@ public:
 	void setDefaultViewport(Window &, Viewport);
 	bool canRenderToMultiplePixelFormats() const;
 	NativeWindowFormat nativeWindowFormat() const;
-	void setWindowValidOrientations(Window &, OrientationMask);
+	void setWindowValidOrientations(Window &, Orientations);
 	void animateWindowRotation(Window &, float srcAngle, float destAngle);
 	float projectionRollAngle(const Window &) const;
 	static ClipRect makeClipRect(const Window &win, WindowRect rect);

@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "ALSA"
 #include <imagine/audio/alsa/ALSAOutputStream.hh>
 #include <imagine/audio/OutputStream.hh>
 #include <imagine/logger/logger.h>
@@ -27,6 +26,8 @@
 
 namespace IG::Audio
 {
+
+constexpr SystemLogger log{"ALSA"};
 
 static const SampleFormat &alsaFormatToPcm(snd_pcm_format_t format)
 {
@@ -56,15 +57,15 @@ static snd_pcm_format_t pcmFormatToAlsa(const SampleFormat &format)
 static bool recoverPCM(snd_pcm_t *handle)
 {
 	int state = snd_pcm_state(handle);
-	//logMsg("state:%d", state);
+	//log.info("state:{}", state);
 	switch(state)
 	{
 		case SND_PCM_STATE_XRUN:
-			logMsg("recovering from xrun");
+			log.info("recovering from xrun");
 			snd_pcm_recover(handle, -EPIPE, 0);
 			return true;
 		case SND_PCM_STATE_SUSPENDED:
-			logMsg("resuming PCM");
+			log.info("resuming PCM");
 			snd_pcm_resume(handle);
 			return true;
 		case SND_PCM_STATE_PREPARED:
@@ -83,22 +84,22 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
 	{
-		logMsg("already open");
+		log.info("already open");
 		return {};
 	}
 	auto format = config.format;
 	pcmFormat = format;
 	onSamplesNeeded = config.onSamplesNeeded;
 	const char* name = "default";
-	logMsg("Opening playback device: %s", name);
+	log.info("Opening playback device:{}", name);
 	if(int err = snd_pcm_open(&pcmHnd, name, SND_PCM_STREAM_PLAYBACK, 0);
 		err < 0)
 	{
-		logErr("Playback open error: %s", snd_strerror(err));
+		log.error("Playback open error: {}", snd_strerror(err));
 		return {EINVAL};
 	}
 	auto closePcm = IG::scopeGuard([this](){ snd_pcm_close(pcmHnd); pcmHnd = {}; });
-	logMsg("Stream parameters: %iHz, %s, %i channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(format.sample)), format.channels);
+	log.info("Stream parameters: {}Hz, {}, {} channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(format.sample)), format.channels);
 	bool allowMmap = true;
 	int err = -1;
 	auto wantedLatency = config.wantedLatencyHint.count() ? config.wantedLatencyHint : IG::Microseconds{10000};
@@ -107,7 +108,7 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 		err = setupPcm(format, SND_PCM_ACCESS_MMAP_INTERLEAVED, wantedLatency);
 		if(err < 0)
 		{
-			logErr("failed opening in MMAP mode");
+			log.error("failed opening in MMAP mode");
 		}
 	}
 	if(err < 0)
@@ -115,11 +116,11 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 		err = setupPcm(format, SND_PCM_ACCESS_RW_INTERLEAVED, wantedLatency);
 		if(err < 0)
 		{
-			logErr("failed opening in normal mode");
+			log.error("failed opening in normal mode");
 		}
 	}
 	//snd_pcm_dump(alsaHnd, output);
-	//logMsg("pcm state: %s", alsaPcmStateToString(snd_pcm_state(pcmHnd)));
+	//log.info("pcm state: {}", alsaPcmStateToString(snd_pcm_state(pcmHnd)));
 	if(err < 0)
 	{
 		return {EINVAL};
@@ -141,19 +142,19 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 						if(quitFlag)
 							return -ENODEV;
 						unsigned short revents = 0;
-						//logMsg("waiting for events");
+						//log.info("waiting for events");
 						snd_pcm_poll_descriptors_revents(handle, ufds, count, &revents);
 						if(revents & POLLERR)
 						{
-							logMsg("got POLLERR");
+							log.info("got POLLERR");
 							return -EIO;
 						}
 						if(revents & POLLOUT)
 						{
-							//logMsg("got POLLOUT");
+							//log.info("got POLLOUT");
 							return 0;
 						}
-						logMsg("got other events:0x%X", revents);
+						log.info("got other events:{:#X}", revents);
 					}
 				};
 			while(true)
@@ -167,12 +168,12 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 					}
 					if(!recoverPCM(pcmHnd))
 					{
-						logErr("couldn't recover PCM");
+						log.error("couldn't recover PCM");
 						return;
 					}
 					continue;
 				}
-				//logMsg("state:%d", snd_pcm_state(pcmHnd));
+				//log.info("state:{}", snd_pcm_state(pcmHnd));
 				if(useMmap)
 				{
 					snd_pcm_avail_update(pcmHnd);
@@ -184,10 +185,10 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 						snd_pcm_uframes_t frames = framesToWrite;
 						if(snd_pcm_mmap_begin(pcmHnd, &areas, &offset, &frames) < 0)
 						{
-							logErr("error in snd_pcm_mmap_begin");
+							log.error("error in snd_pcm_mmap_begin");
 							if(!recoverPCM(pcmHnd))
 							{
-								logErr("couldn't recover PCM");
+								log.error("couldn't recover PCM");
 								return;
 							}
 							break;
@@ -196,15 +197,15 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 						onSamplesNeeded(buff, frames);
 						if(snd_pcm_mmap_commit(pcmHnd, offset, frames) < 0)
 						{
-							logErr("error in snd_pcm_mmap_begin");
+							log.error("error in snd_pcm_mmap_begin");
 							if(!recoverPCM(pcmHnd))
 							{
-								logErr("couldn't recover PCM");
+								log.error("couldn't recover PCM");
 								return;
 							}
 							break;
 						}
-						//logMsg("wrote %d frames with mmap", (int)frames);
+						//log.info("wrote {} frames with mmap", frames);
 						framesToWrite -= frames;
 					}
 				}
@@ -217,11 +218,11 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 					{
 						if(!recoverPCM(pcmHnd))
 						{
-							logErr("couldn't recover PCM");
+							log.error("couldn't recover PCM");
 							return;
 						}
 					}
-					//logMsg("wrote %d frames", (int)periodSize);
+					//log.info("wrote {} frames", periodSize);
 				}
 			}
 		}};
@@ -234,19 +235,19 @@ void ALSAOutputStream::play()
 {
 	if(!isOpen()) [[unlikely]]
 		return;
-	//logMsg("pcm state: %s", alsaPcmStateToString(state));
+	//log.info("pcm state: {}", alsaPcmStateToString(state));
 	auto playFromState = [](snd_pcm_t *pcmHnd, int state)
 		{
 			switch(state)
 			{
 				case SND_PCM_STATE_PREPARED:
-					logMsg("starting PCM");
+					log.info("starting PCM");
 					return snd_pcm_start(pcmHnd);
 				case SND_PCM_STATE_PAUSED:
-					logMsg("unpausing PCM");
+					log.info("unpausing PCM");
 					return snd_pcm_pause(pcmHnd, 0);
 				case SND_PCM_STATE_SUSPENDED:
-					logMsg("resuming PCM");
+					log.info("resuming PCM");
 					return snd_pcm_resume(pcmHnd);
 			}
 			return 0;
@@ -258,7 +259,7 @@ void ALSAOutputStream::pause()
 {
 	if(!isOpen()) [[unlikely]]
 		return;
-	logMsg("pausing playback");
+	log.info("pausing playback");
 	snd_pcm_pause(pcmHnd, 1);
 }
 
@@ -278,7 +279,7 @@ void ALSAOutputStream::flush()
 {
 	if(!isOpen()) [[unlikely]]
 		return;
-	logMsg("clearing queued samples");
+	log.info("clearing queued samples");
 	snd_pcm_drop(pcmHnd);
 	snd_pcm_prepare(pcmHnd);
 	snd_pcm_start(pcmHnd);
@@ -312,7 +313,7 @@ int ALSAOutputStream::setupPcm(Format format, snd_pcm_access_t access, IG::Micro
 		wantedLatency.count());
 		err < 0)
 	{
-		logErr("Error setting pcm parameters: %s", snd_strerror(err));
+		log.error("Error setting pcm parameters:{}", snd_strerror(err));
 		return err;
 	}
 
@@ -324,12 +325,12 @@ int ALSAOutputStream::setupPcm(Format format, snd_pcm_access_t access, IG::Micro
 	if(int err = snd_pcm_get_params(pcmHnd, &bufferSize, &periodSize);
 		err < 0)
 	{
-		logErr("Error getting pcm buffer/period size parameters");
+		log.error("Error getting pcm buffer/period size parameters");
 		return err;
 	}
 	else
 	{
-		logMsg("buffer size %d, period size %d, mmap %d", (int)bufferSize, (int)periodSize, useMmap);
+		log.info("buffer size {}, period size {}, mmap {}", bufferSize, periodSize, useMmap);
 		return 0;
 	}
 }

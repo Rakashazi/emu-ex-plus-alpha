@@ -653,7 +653,7 @@ RendererTask &Renderer::task()
 	return mainTask;
 }
 
-void Renderer::setWindowValidOrientations(Window &win, OrientationMask validO)
+void Renderer::setWindowValidOrientations(Window &win, Orientations validO)
 {
 	if(!win.isMainWindow())
 		return;

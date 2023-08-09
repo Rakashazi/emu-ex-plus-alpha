@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "PulseAudio"
 #include <imagine/audio/pulseaudio/PAOutputStream.hh>
 #include <imagine/audio/OutputStream.hh>
 #include <imagine/logger/logger.h>
@@ -27,6 +26,8 @@
 
 namespace IG::Audio
 {
+
+constexpr SystemLogger log{"PulseAudio"};
 
 static pa_sample_format_t pcmFormatToPA(const SampleFormat &format)
 {
@@ -61,7 +62,7 @@ PAOutputStream::PAOutputStream()
 	auto freeMain = IG::scopeGuard([this](){ freeMainLoop(); });
 	if(!context)
 	{
-		logErr("unable to create context");
+		log.error("unable to create context");
 		return;
 	}
 	auto unrefContext = IG::scopeGuard([this](){ pa_context_unref(context); context = {}; });
@@ -84,7 +85,7 @@ PAOutputStream::PAOutputStream()
 		}, &result);
 	if(pa_context_connect(context, nullptr, PA_CONTEXT_NOFLAGS, nullptr) < 0)
 	{
-		logErr("unable to connect context");
+		log.error("unable to connect context");
 		return;
 	}
 	lockMainLoop();
@@ -93,7 +94,7 @@ PAOutputStream::PAOutputStream()
 	pa_context_set_state_callback(context, nullptr, nullptr);
 	if(result.state != PA_CONTEXT_READY)
 	{
-		logErr("context connection failed");
+		log.error("context connection failed");
 		unlockMainLoop();
 		stopMainLoop();
 		return;
@@ -117,7 +118,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
 	{
-		logMsg("audio already open");
+		log.info("audio already open");
 		return {};
 	}
 	if(!context) [[unlikely]]
@@ -137,7 +138,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 	stream = pa_stream_new_with_proplist(context, "Playback", &spec, nullptr, props);
 	if(!stream)
 	{
-		logErr("error creating stream");
+		log.error("error creating stream");
 		pa_proplist_free(props);
 		return {EINVAL};
 	}
@@ -167,7 +168,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 			if(int err = pa_stream_begin_write(stream, &buff, &bytes);
 				err < 0)
 			{
-				logErr("error:%d in pa_stream_begin_write with %d bytes", err, (int)bytes);
+				log.error("error:{} in pa_stream_begin_write with {} bytes", err, bytes);
 				return;
 			}
 			assumeExpr(thisPtr->onSamplesNeeded);
@@ -175,7 +176,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 			if(int err = pa_stream_write(stream, buff, bytes, nullptr, 0, PA_SEEK_RELATIVE);
 				err < 0)
 			{
-				logWarn("error writing %d bytes", (int)bytes);
+				log.warn("error writing {} bytes", bytes);
 			}
 		}, this);
 	const auto wantedLatency = config.wantedLatencyHint.count() ? config.wantedLatencyHint : IG::Microseconds{10000};
@@ -188,7 +189,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 		pa_stream_flags_t(PA_STREAM_ADJUST_LATENCY /*| PA_STREAM_AUTO_TIMING_UPDATE | PA_STREAM_INTERPOLATE_TIMING*/),
 		nullptr, nullptr) < 0)
 	{
-		logErr("error connecting playback stream");
+		log.error("error connecting playback stream");
 		close();
 		return {EINVAL};
 	}
@@ -196,7 +197,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 	pa_stream_set_state_callback(stream, nullptr, nullptr);
 	if(result.state != PA_STREAM_READY)
 	{
-		logErr("error connecting playback stream async");
+		log.error("error connecting playback stream async");
 		close();
 		return {EINVAL};
 	}
@@ -213,7 +214,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 	}
 	unlockMainLoop();
 	assert(serverAttr);
-	logMsg("opened stream with target fill bytes: %d", serverAttr->tlength);
+	log.info("opened stream with target fill bytes:{}", serverAttr->tlength);
 	return {};
 }
 
@@ -232,7 +233,7 @@ void PAOutputStream::pause()
 {
 	if(!isOpen()) [[unlikely]]
 		return;
-	logMsg("pausing playback");
+	log.info("pausing playback");
 	lockMainLoop();
 	pa_stream_cork(stream, 1, nullptr, nullptr);
 	unlockMainLoop();
@@ -259,7 +260,7 @@ void PAOutputStream::flush()
 {
 	if(!isOpen()) [[unlikely]]
 		return;
-	logMsg("clearing queued samples");
+	log.info("clearing queued samples");
 	lockMainLoop();
 	pa_stream_flush(stream, nullptr, nullptr);
 	unlockMainLoop();
@@ -304,7 +305,7 @@ void PAOutputStream::unlockMainLoop()
 void PAOutputStream::signalMainLoop()
 {
 	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
-	logMsg("signaling main loop");
+	log.info("signaling main loop");
 	assert(!mainLoopSignaled);
 	mainLoopSignaled = true;
 	#else
@@ -320,7 +321,7 @@ void PAOutputStream::iterateMainLoop()
 	{
 		iterations++;
 	}
-	//logMsg("ran %d GLIB iterations", iterations);
+	//log.info("ran {} GLIB iterations", iterations);
 	#else
 	// no-op, running in separate thread
 	#endif
@@ -336,7 +337,7 @@ void PAOutputStream::waitMainLoop()
 		iterations++;
 	}
 	mainLoopSignaled = false;
-	logMsg("signaled after %d GLIB iterations", iterations);
+	log.info("signaled after {} GLIB iterations", iterations);
 	#else
 	pa_threaded_mainloop_wait(mainloop);
 	#endif

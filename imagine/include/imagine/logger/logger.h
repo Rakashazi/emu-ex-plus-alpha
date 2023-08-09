@@ -43,3 +43,51 @@ static const uint8_t LOG_E = LOGGER_ERROR;
 #define logDMsgNoBreak(msg, ...) logger_modulePrintf(LOG_D, msg, ## __VA_ARGS__)
 #define logWarnNoBreak(msg, ...) logger_modulePrintf(LOG_W, msg, ## __VA_ARGS__)
 #define logErrNoBreak(msg, ...) logger_modulePrintf(LOG_E, msg, ## __VA_ARGS__)
+
+#ifdef __cplusplus
+
+#include <format>
+
+namespace IG::Log
+{
+
+void print(LoggerSeverity lv, std::string_view tag, std::string_view format, std::format_args args);
+
+}
+
+namespace IG
+{
+
+class SystemLogger
+{
+public:
+	std::string_view tag;
+
+	template <class... T>
+	void info(std::format_string<T...> format, T&&... args) const
+	{
+		Log::print(LOG_M, tag, format.get(), std::make_format_args(args...));
+	}
+
+	template <class... T>
+	void debug(std::format_string<T...> format, T&&... args) const
+	{
+		Log::print(LOG_D, tag, format.get(), std::make_format_args(args...));
+	}
+
+	template <class... T>
+	void warn(std::format_string<T...> format, T&&... args) const
+	{
+		Log::print(LOG_W, tag, format.get(), std::make_format_args(args...));
+	}
+
+	template <class... T>
+	void error(std::format_string<T...> format, T&&... args) const
+	{
+		Log::print(LOG_E, tag, format.get(), std::make_format_args(args...));
+	}
+};
+
+}
+
+#endif

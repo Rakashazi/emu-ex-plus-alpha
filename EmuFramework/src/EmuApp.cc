@@ -131,8 +131,6 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionLowProfileOSNav{CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAndroid},
 	optionHideOSNav{CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid},
 	optionHideStatusBar{CFGKEY_HIDE_STATUS_BAR, 1, !Config::envIsAndroid && !Config::envIsIOS},
-	optionEmuOrientation{CFGKEY_GAME_ORIENTATION, 0, false, optionIsValidWithMax<std::to_underlying(IG::OrientationMask::ALL)>},
-	optionMenuOrientation{CFGKEY_MENU_ORIENTATION, 0, false, optionIsValidWithMax<std::to_underlying(IG::OrientationMask::ALL)>},
 	optionShowBundledGames{CFGKEY_SHOW_BUNDLED_GAMES, 1},
 	optionShowBluetoothScan{CFGKEY_SHOW_BLUETOOTH_SCAN, 1},
 	optionImgFilter{CFGKEY_GAME_IMG_FILTER, 1, 0},

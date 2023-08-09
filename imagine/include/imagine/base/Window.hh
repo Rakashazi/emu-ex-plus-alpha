@@ -134,7 +134,7 @@ public:
 
 	Rotation softOrientation() const;
 	bool requestOrientationChange(Rotation o);
-	bool setValidOrientations(OrientationMask);
+	bool setValidOrientations(Orientations);
 
 	bool updateSize(WSize surfaceSize);
 	bool updatePhysicalSize(F2Size surfaceSizeMM);

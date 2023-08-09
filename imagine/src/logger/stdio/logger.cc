@@ -15,6 +15,7 @@
 
 #define LOGTAG "LoggerStdio"
 #include <imagine/fs/FS.hh>
+#include <imagine/util/string/StaticString.hh>
 #include <imagine/logger/logger.h>
 #include <cstdio>
 #include <cstring>
@@ -106,7 +107,7 @@ static int severityToLogLevel(LoggerSeverity severity)
 	#endif
 }
 
-static const char *severityToColorCode(LoggerSeverity severity)
+constexpr std::string_view severityToColorCode(LoggerSeverity severity)
 {
 	switch(severity)
 	{
@@ -158,7 +159,7 @@ void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 	else
 		asl_vlog(nullptr, nullptr, severityToLogLevel(severity), msg, args);
 	#else
-	fprintf(stderr, "%s", severityToColorCode(severity));
+	fprintf(stderr, "%s", severityToColorCode(severity).data());
 	vfprintf(stderr, msg, args);
 	#endif
 }
@@ -171,4 +172,37 @@ void logger_printf(LoggerSeverity severity, const char* msg, ...)
 	va_start(args, msg);
 	logger_vprintf(severity, msg, args);
 	va_end(args);
+}
+
+namespace IG::Log
+{
+
+void print(LoggerSeverity lv, std::string_view tag, std::string_view format, std::format_args args)
+{
+	if(!logEnabled || lv > loggerVerbosity)
+		return;
+	StaticString<512> str;
+	if(tag.size())
+	{
+		str += tag;
+		str += ": ";
+	}
+	std::vformat_to(std::back_inserter(str), format, args);
+	if(logExternalFile)
+	{
+		fwrite(str.data(), 1, str.size(), logExternalFile);
+		fflush(logExternalFile);
+	}
+	#ifdef __ANDROID__
+	__android_log_write(severityToLogLevel(lv), "imagine", str.c_str());
+	#elif defined __APPLE__
+	asl_log(nullptr, nullptr, severityToLogLevel(lv), "%s", str.c_str());
+	#else
+	auto colorStr = severityToColorCode(lv);
+	fwrite(colorStr.data(), 1, colorStr.size(), stderr);
+	fwrite(str.data(), 1, str.size(), stderr);
+	putc('\n', stderr);
+	#endif
+}
+
 }

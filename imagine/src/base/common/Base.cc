@@ -41,20 +41,19 @@
 namespace IG
 {
 
-std::string_view asString(OrientationMask o)
+std::string_view asString(Orientations o)
 {
-	using enum OrientationMask;
 	switch(o)
 	{
-		case UNSET: return "Unset";
-		case PORTRAIT: return "Portrait";
-		case LANDSCAPE_RIGHT: return "Landscape Right";
-		case PORTRAIT_UPSIDE_DOWN: return "Portrait Upside-Down";
-		case LANDSCAPE_LEFT: return "Landscape Left";
-		case ALL_LANDSCAPE: return "Either Landscape";
-		case ALL_PORTRAIT: return "Either Portrait";
-		case ALL_BUT_UPSIDE_DOWN: return "All But Upside-Down";
-		case ALL: return "All";
+		case Orientations{}: return "Unset";
+		case Orientations{.portrait = 1}: return "Portrait";
+		case Orientations{.landscapeRight = 1}: return "Landscape Right";
+		case Orientations{.portraitUpsideDown = 1}: return "Portrait Upside-Down";
+		case Orientations{.landscapeLeft = 1}: return "Landscape Left";
+		case Orientations::allLandscape(): return "Either Landscape";
+		case Orientations::allPortrait(): return "Either Portrait";
+		case Orientations::allButUpsideDown(): return "All But Upside-Down";
+		case Orientations::all(): return "All";
 	}
 	return "Unknown";
 }

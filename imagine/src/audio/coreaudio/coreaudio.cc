@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "CoreAudio"
 #include <imagine/audio/coreaudio/CAOutputStream.hh>
 #include <imagine/audio/OutputStream.hh>
 #include <imagine/logger/logger.h>
@@ -24,9 +23,11 @@
 namespace IG::Audio
 {
 
+constexpr SystemLogger log{"CoreAudio"};
+
 CAOutputStream::CAOutputStream()
 {
-	logMsg("setting up playback audio unit");
+	log.info("setting up playback audio unit");
 	AudioComponentDescription defaultOutputDescription
 	{
 		.componentType = kAudioUnitType_Output,
@@ -42,7 +43,7 @@ CAOutputStream::CAOutputStream()
 	auto err = AudioComponentInstanceNew(defaultOutput, &outputUnit);
 	if(!outputUnit)
 	{
-		bug_unreachable("error creating output unit: %d", (int)err);
+		bug_unreachable("error creating output unit:%d", (int)err);
 	}
 	AURenderCallbackStruct renderCallbackProp
 	{
@@ -63,7 +64,7 @@ CAOutputStream::CAOutputStream()
 	    0, &renderCallbackProp, sizeof(renderCallbackProp));
 	if(err)
 	{
-		bug_unreachable("error setting callback: %d", (int)err);
+		bug_unreachable("error setting callback:%d", (int)err);
 	}
 }
 
@@ -79,7 +80,7 @@ IG::ErrorCode CAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
 	{
-		logWarn("audio unit already open");
+		log.warn("audio unit already open");
 		return {};
 	}
 	auto format = config.format;
@@ -92,12 +93,12 @@ IG::ErrorCode CAOutputStream::open(OutputStreamConfig config)
 	streamFormat.mBytesPerFrame = format.framesToBytes(1);
 	streamFormat.mChannelsPerFrame = format.channels;
 	streamFormat.mBitsPerChannel = format.sample.bits();
-	logMsg("creating unit %dHz %d channels", (int)streamFormat.mSampleRate, (int)streamFormat.mChannelsPerFrame);
+	log.info("creating unit {}Hz {} channels", streamFormat.mSampleRate, streamFormat.mChannelsPerFrame);
 	if(auto err = AudioUnitSetProperty(outputUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input,
 			0, &streamFormat, sizeof(AudioStreamBasicDescription));
 		err)
 	{
-		logErr("error %d setting stream format", (int)err);
+		log.error("error:{} setting stream format", err);
 		return {EINVAL};
 	}
 	onSamplesNeeded = config.onSamplesNeeded;
@@ -115,7 +116,7 @@ void CAOutputStream::play()
 	if(auto err = AudioOutputUnitStart(outputUnit);
 		err)
 	{
-		logErr("error %d in AudioOutputUnitStart", (int)err);
+		log.error("error:{} in AudioOutputUnitStart", err);
 	}
 	else
 		isPlaying_ = true;
@@ -133,14 +134,14 @@ void CAOutputStream::close()
 {
 	if(!isOpen())
 	{
-		logWarn("audio unit already closed");
+		log.warn("audio unit already closed");
 		return;
 	}
 	AudioOutputUnitStop(outputUnit);
 	AudioUnitUninitialize(outputUnit);
 	isPlaying_ = false;
 	isOpen_ = false;
-	logMsg("closed audio unit");
+	log.info("closed audio unit");
 }
 
 void CAOutputStream::flush()

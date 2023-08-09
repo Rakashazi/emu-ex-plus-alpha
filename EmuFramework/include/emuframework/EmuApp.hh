@@ -349,10 +349,10 @@ public:
 	Tristate lowProfileOSNavMode() const { return (Tristate)(uint8_t)optionLowProfileOSNav; }
 	Tristate hideOSNavMode() const { return (Tristate)(uint8_t)optionHideOSNav; }
 	Tristate hideStatusBarMode() const { return (Tristate)(uint8_t)optionHideStatusBar; }
-	void setEmuOrientation(OrientationMask);
-	void setMenuOrientation(OrientationMask);
-	OrientationMask emuOrientation() const { return (OrientationMask)optionEmuOrientation.val; }
-	OrientationMask menuOrientation() const { return (OrientationMask)optionMenuOrientation.val; }
+	void setEmuOrientation(Orientations);
+	void setMenuOrientation(Orientations);
+	Orientations emuOrientation() const { return optionEmuOrientation; }
+	Orientations menuOrientation() const { return optionMenuOrientation; }
 	void setShowsBundledGames(bool);
 	bool showsBundledGames() const { return optionShowBundledGames; }
 	auto &notificationIconOption() { return optionNotificationIcon; }
@@ -552,8 +552,8 @@ protected:
 	IG_UseMemberIf(Config::NAVIGATION_BAR, Byte1Option, optionLowProfileOSNav);
 	IG_UseMemberIf(Config::NAVIGATION_BAR, Byte1Option, optionHideOSNav);
 	IG_UseMemberIf(Config::STATUS_BAR, Byte1Option, optionHideStatusBar);
-	Byte1Option optionEmuOrientation;
-	Byte1Option optionMenuOrientation;
+	Orientations optionEmuOrientation;
+	Orientations optionMenuOrientation;
 	Byte1Option optionShowBundledGames;
 	IG_UseMemberIf(Config::Input::BLUETOOTH, Byte1Option, optionShowBluetoothScan);
 	Byte1Option optionImgFilter;

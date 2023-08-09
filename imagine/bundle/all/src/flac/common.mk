@@ -7,7 +7,7 @@ include $(buildSysPath)/imagineSDKPath.mk
 # Flac configure script doesn't detect Ogg via pkg-config
 OGG_PREFIX = $(IMAGINE_SDK_PLATFORM_PATH)
 
-flacVer := 1.4.2
+flacVer := 1.4.3
 flacSrcDir := $(tempDir)/flac-$(flacVer)
 flacSrcArchive := flac-$(flacVer).tar.xz
 

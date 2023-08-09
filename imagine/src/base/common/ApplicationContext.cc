@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "AppContext"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/VibrationManager.hh>
@@ -39,6 +38,8 @@
 
 namespace IG
 {
+
+constexpr SystemLogger log{"AppContext"};
 
 void ApplicationContext::dispatchOnInit(ApplicationInitParams initParams)
 {
@@ -184,16 +185,16 @@ FS::RootPathInfo ApplicationContext::rootPathInfo(std::string_view path) const
 			Config::envIsAndroid && treePos != std::string_view::npos)
 		{
 			auto [docPath, docPos] = FS::uriPathSegment(path, FS::uriPathSegmentDocumentName);
-			//logMsg("tree path segment:%s", FS::PathString{treePath}.data());
-			//logMsg("document path segment:%s", FS::PathString{docPath}.data());
+			//log.info("tree path segment:{}", FS::PathString{treePath});
+			//log.info("document path segment:{}", FS::PathString{docPath});
 			if(docPos == std::string_view::npos || docPath.size() < treePath.size())
 			{
-				logErr("invalid document path in tree URI:%s", path.data());
+				log.error("invalid document path in tree URI:{}", path);
 				return {};
 			}
 			auto rootLen = docPos + treePath.size();
 			FS::PathString rootDocUri{path.data(), rootLen};
-			logMsg("found root document URI:%s", rootDocUri.data());
+			log.info("found root document URI:{}", rootDocUri);
 			auto name = fileUriDisplayName(rootDocUri);
 			if(rootDocUri.ends_with("%3A"))
 				name += ':';
@@ -201,7 +202,7 @@ FS::RootPathInfo ApplicationContext::rootPathInfo(std::string_view path) const
 		}
 		else
 		{
-			logErr("rootPathInfo() unsupported URI:%s", path.data());
+			log.error("rootPathInfo() unsupported URI:{}", path);
 			return {};
 		}
 	}
@@ -221,7 +222,7 @@ FS::RootPathInfo ApplicationContext::rootPathInfo(std::string_view path) const
 	}
 	if(!lastMatchOffset)
 		return {};
-	logMsg("found root location:%s with length:%d", nearestPtr->root.info.name.data(), (int)nearestPtr->root.info.length);
+	log.info("found root location:{} with length:{}", nearestPtr->root.info.name, nearestPtr->root.info.length);
 	return nearestPtr->root.info;
 }
 
@@ -371,7 +372,7 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 
 [[gnu::weak]] void ApplicationContext::setSystemOrientation(Rotation) {}
 
-[[gnu::weak]] OrientationMask ApplicationContext::defaultSystemOrientations() const { return OrientationMask::ALL; }
+[[gnu::weak]] Orientations ApplicationContext::defaultSystemOrientations() const { return Orientations::all(); }
 
 [[gnu::weak]] void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate) {}
 
@@ -432,7 +433,7 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 	auto [min, max] = std::ranges::minmax_element(cpuFreqInfos, {}, &CPUFreqInfo::freq);
 	if(min->freq == max->freq) // not heterogeneous
 		return 0;
-	logDMsg("Detected heterogeneous CPUs with min:%d max:%d frequencies", min->freq, max->freq);
+	log.debug("Detected heterogeneous CPUs with min:{} max:{} frequencies", min->freq, max->freq);
 	CPUMask mask{};
 	for(auto info : cpuFreqInfos)
 	{
@@ -462,7 +463,7 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 	time_t secs = duration_cast<Seconds>(time.time_since_epoch()).count();
 	if(!localtime_r(&secs, &localTime)) [[unlikely]]
 	{
-		logErr("localtime_r failed");
+		log.error("localtime_r failed");
 		return {};
 	}
 	std::string str;
@@ -560,7 +561,7 @@ std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext
 				return {entry.releaseIO().read(dest).bytes, FS::PathString{name}};
 			}
 		}
-		logErr("no recognized files in archive:%s", uri.data());
+		log.error("no recognized files in archive:{}", uri);
 		return {-1, {}};
 	}
 	else

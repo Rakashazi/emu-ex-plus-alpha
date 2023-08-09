@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "Screen"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Screen.hh>
@@ -25,6 +24,8 @@
 
 namespace IG
 {
+
+constexpr SystemLogger log{"Screen"};
 
 Screen::Screen(ApplicationContext ctx, InitParams params):
 	ScreenImpl{ctx, params},
@@ -98,14 +99,14 @@ void Screen::setActive(bool active)
 {
 	if(active && !isActive)
 	{
-		logMsg("screen:%p activated", this);
+		log.info("screen:{} activated", (void*)this);
 		isActive = true;
 		if(onFrameDelegate.size())
 			postFrame();
 	}
 	else if(!active && isActive)
 	{
-		logMsg("screen:%p deactivated", this);
+		log.info("screen:{} deactivated", (void*)this);
 		isActive = false;
 		unpostFrame();
 	}
@@ -120,12 +121,12 @@ void Screen::postFrame()
 {
 	if(!isActive) [[unlikely]]
 	{
-		logMsg("skipped posting inactive screen:%p", this);
+		log.info("skipped posting inactive screen:{}", (void*)this);
 		return;
 	}
 	if(framePosted)
 		return;
-	//logMsg("posting frame");
+	//log.info("posting frame");
 	framePosted = true;
 	postFrameTimer();
 }

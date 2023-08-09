@@ -15,17 +15,15 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-
-#ifdef CONFIG_GFX_OPENGL
-#include <imagine/gfx/opengl/GLTexture.hh>
-#endif
-
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureConfig.hh>
 #include <imagine/gfx/TextureSamplerConfig.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <utility>
+
+#ifdef CONFIG_GFX_OPENGL
+#include <imagine/gfx/opengl/GLTexture.hh>
+#endif
 
 namespace IG::Data
 {

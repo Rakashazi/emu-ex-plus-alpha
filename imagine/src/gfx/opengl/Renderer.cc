@@ -224,7 +224,7 @@ bool Renderer::setDrawableConfig(Window &win, DrawableConfig config)
 
 void Renderer::setDefaultViewport(Window &win, Viewport v)
 {
-	winData(win).viewportRect = asYUpRelRect(v);
+	winData(win).viewportRect = v.asYUpRelRect();
 }
 
 bool Renderer::canRenderToMultiplePixelFormats() const

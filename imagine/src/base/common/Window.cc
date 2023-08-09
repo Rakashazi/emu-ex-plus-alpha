@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "Window"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Window.hh>
@@ -25,6 +24,8 @@
 
 namespace IG
 {
+
+constexpr SystemLogger log{"Window"};
 
 BaseWindow::BaseWindow(ApplicationContext ctx, WindowConfig config):
 	onEvent{config.onEvent},
@@ -58,7 +59,7 @@ void BaseWindow::attachDrawEvent()
 	drawEvent.attach(
 		[&win = *static_cast<Window*>(this)]()
 		{
-			//logDMsg("running window events");
+			//log.debug("running window events");
 			win.dispatchOnFrame();
 			win.dispatchOnDraw();
 		});
@@ -155,21 +156,21 @@ void Window::postDraw(int8_t priority)
 {
 	if(priority < drawEventPriority())
 	{
-		logDMsg("skipped posting draw with priority:%u < %u", priority, drawEventPriority());
+		log.debug("skipped posting draw with priority:{} < {}", priority, drawEventPriority());
 		return;
 	}
 	if(!setNeedsDraw(true))
 		return;
 	if(drawPhase != DrawPhase::DRAW)
 		drawEvent.notify();
-	//logDMsg("window:%p needs draw", this);
+	//log.debug("window:{} needs draw", this);
 }
 
 void Window::unpostDraw()
 {
 	setNeedsDraw(false);
 	drawEvent.cancel();
-	//logDMsg("window:%p cancelled draw", this);
+	//log.debug("window:{} cancelled draw", this);
 }
 
 void Window::postFrameReady()
@@ -287,7 +288,7 @@ void Window::dispatchOnFrame()
 		return;
 	}
 	drawPhase = DrawPhase::UPDATE;
-	//logDMsg("running %u onFrame delegates", onFrame.size());
+	//log.debug("running {} onFrame delegates", onFrame.size());
 	FrameParams frameParams{.timestamp = SteadyClock::now(), .frameTime = screen()->frameTime()};
 	onFrame.runAll([&](OnFrameDelegate del){ return del(frameParams); });
 	if(onFrame.size())
@@ -320,7 +321,7 @@ bool Window::updateSize(IG::Point2D<int> surfaceSize)
 	auto oldSize = std::exchange(winSizePixels, surfaceSize);
 	if(oldSize == winSizePixels)
 	{
-		logMsg("same window size %d,%d", realWidth(), realHeight());
+		log.info("same window size {},{}", realWidth(), realHeight());
 		return false;
 	}
 	if constexpr(Config::envIsAndroid)
@@ -357,12 +358,12 @@ bool Window::updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<fl
 	}
 	if(softOrientation_ == Rotation::UP)
 	{
-		logMsg("updated window size:%dx%d (%.2fx%.2fmm, scaled %.2fx%.2fmm)",
+		log.info("updated window size:{}x{} ({:g}x{:g}mm, scaled {:g}x{:g}mm)",
 			width(), height(), sizeMM().x, sizeMM().y, sizeScaledMM().x, sizeScaledMM().y);
 	}
 	else
 	{
-		logMsg("updated window size:%dx%d (%.2fx%.2fmm, scaled %.2fx%.2fmm) with rotation, real size:%dx%d",
+		log.info("updated window size:{}x{} ({:g}x{:g}mm, scaled {:g}x{:g}mm) with rotation, real size:{}x{}",
 			width(), height(), sizeMM().x, sizeMM().y, sizeScaledMM().x, sizeScaledMM().y, realWidth(), realHeight());
 	}
 	return changed;
@@ -383,15 +384,15 @@ bool Window::updatePhysicalSizeWithCurrentSize()
 }
 
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
-bool Window::setValidOrientations(OrientationMask oMask)
+bool Window::setValidOrientations(Orientations o)
 {
-	if(to_underlying(oMask & OrientationMask::PORTRAIT))
+	if(o.portrait)
 		return requestOrientationChange(Rotation::UP);
-	else if(to_underlying(oMask & OrientationMask::LANDSCAPE_RIGHT))
+	else if(o.landscapeRight)
 		return requestOrientationChange(Rotation::RIGHT);
-	else if(to_underlying(oMask & OrientationMask::PORTRAIT_UPSIDE_DOWN))
+	else if(o.portraitUpsideDown)
 		return requestOrientationChange(Rotation::DOWN);
-	else if(to_underlying(oMask & OrientationMask::LANDSCAPE_LEFT))
+	else if(o.landscapeLeft)
 		return requestOrientationChange(Rotation::LEFT);
 	else
 		return requestOrientationChange(Rotation::UP);
@@ -401,7 +402,7 @@ bool Window::requestOrientationChange(Rotation o)
 {
 	if(softOrientation_ != o)
 	{
-		logMsg("setting orientation %s", wise_enum::to_string(o).data());
+		log.info("setting orientation %s", wise_enum::to_string(o).data());
 		int savedRealWidth = realWidth();
 		int savedRealHeight = realHeight();
 		softOrientation_ = o;

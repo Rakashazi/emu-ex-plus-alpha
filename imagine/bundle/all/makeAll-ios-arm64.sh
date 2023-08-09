@@ -10,8 +10,8 @@ makefilesToRun='
 	src/xz/ios-arm64.mk
 	
 	src/libarchive/ios-arm64.mk
-	
-	src/boost/ios-arm64.mk
+
+	src/libcxx/ios-arm64.mk
 '
 
 source runMakefiles.sh

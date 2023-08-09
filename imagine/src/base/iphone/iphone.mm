@@ -420,9 +420,9 @@ void ApplicationContext::setSystemOrientation(Rotation o)
 	}
 }
 
-OrientationMask ApplicationContext::defaultSystemOrientations() const
+Orientations ApplicationContext::defaultSystemOrientations() const
 {
-	return isIPad ? OrientationMask::ALL : OrientationMask::ALL_BUT_UPSIDE_DOWN;
+	return isIPad ? Orientations::all() : Orientations::allButUpsideDown();
 }
 
 void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)

@@ -160,4 +160,30 @@ struct ends_with_fn {
 
 inline constexpr ends_with_fn ends_with{};
 
+constexpr auto remap(auto val, auto origMin, auto origMax, auto newMin, auto newMax)
+{
+	auto origSize = origMax - origMin;
+	auto newSize = newMax - newMin;
+	return newMin + (val - origMin) * newSize / origSize;
+}
+
+constexpr auto remapClamp(auto val, auto origMin, auto origMax, auto newMin, auto newMax)
+{
+	auto mappedVal = remap(val, origMin, origMax, newMin, newMax);
+	using MappedVal = decltype(mappedVal);
+	return std::clamp(mappedVal, static_cast<MappedVal>(newMin), static_cast<MappedVal>(newMax));
+}
+
+template <class Limit>
+constexpr auto remap(auto val, auto origMin, auto origMax, std::numeric_limits<Limit> limit)
+{
+	return remap(val, origMin, origMax, limit.min(), limit.max());
+}
+
+template <class Limit>
+constexpr auto remapClamp(auto val, auto origMin, auto origMax, std::numeric_limits<Limit> limit)
+{
+	return remapClamp(val, origMin, origMax, limit.min(), limit.max());
+}
+
 }

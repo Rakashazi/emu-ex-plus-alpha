@@ -3,7 +3,7 @@
 
 #include "../common/Types.h"
 #include "GBA.h"
-#include <imagine/util/preprocessor/repeat.h>
+#include <array>
 
 #define VERBOSE_SWI                  1
 #define VERBOSE_UNALIGNED_MEMORY     2
@@ -22,41 +22,46 @@
 #define PP_ZERO_REPEAT(n) BOOST_PP_REPEAT(n, PP_ZERO, )
 #define PP_ONE_REPEAT(n) BOOST_PP_REPEAT(n, PP_ONE, )
 
-static const bool ioReadable[0x400] =
+constexpr std::array<bool, 0x400> ioReadable = []
 {
-	  PP_ONE_REPEAT(16)
-	  PP_ZERO_REPEAT(56)
-	  PP_ONE_REPEAT(4)
-	  PP_ZERO_REPEAT(4)
-	  PP_ONE_REPEAT(4)
-	  PP_ZERO_REPEAT(12)
-	  PP_ONE_REPEAT(44)
-	  PP_ZERO_REPEAT(4)
-	  PP_ONE_REPEAT(16)
-	  PP_ZERO_REPEAT(24)
-	  PP_ONE_REPEAT(4)
-	  PP_ZERO_REPEAT(8)
-	  PP_ONE_REPEAT(4)
-	  PP_ZERO_REPEAT(8)
-	  PP_ONE_REPEAT(4)
-	  PP_ZERO_REPEAT(8)
-	  PP_ONE_REPEAT(4)
-	  PP_ZERO_REPEAT(32)
-	  PP_ONE_REPEAT(16)
-	  PP_ZERO_REPEAT(16)
-	  PP_ONE_REPEAT(12)
-	  PP_ZERO_REPEAT(4)
-	  PP_ONE_REPEAT(8)
-	  PP_ZERO_REPEAT(8)
-	  PP_ONE_REPEAT(4)
-	  PP_ZERO_REPEAT(12)
-	  PP_ONE_REPEAT(12)
-	  PP_ZERO_REPEAT(164)
-	  PP_ONE_REPEAT(12)
-	  PP_ZERO_REPEAT(244)
-	  PP_ONE_REPEAT(4)
-	  PP_ZERO_REPEAT(252)
-};
+	std::array<bool, 0x400> ioReadable;
+	int i;
+	for (i = 0; i < 0x400; i++)
+		ioReadable[i] = true;
+	for (i = 0x10; i < 0x48; i++)
+		ioReadable[i] = false;
+	for (i = 0x4c; i < 0x50; i++)
+		ioReadable[i] = false;
+	for (i = 0x54; i < 0x60; i++)
+		ioReadable[i] = false;
+	for (i = 0x8c; i < 0x90; i++)
+		ioReadable[i] = false;
+	for (i = 0xa0; i < 0xb8; i++)
+		ioReadable[i] = false;
+	for (i = 0xbc; i < 0xc4; i++)
+		ioReadable[i] = false;
+	for (i = 0xc8; i < 0xd0; i++)
+		ioReadable[i] = false;
+	for (i = 0xd4; i < 0xdc; i++)
+		ioReadable[i] = false;
+	for (i = 0xe0; i < 0x100; i++)
+		ioReadable[i] = false;
+	for (i = 0x110; i < 0x120; i++)
+		ioReadable[i] = false;
+	for (i = 0x12c; i < 0x130; i++)
+		ioReadable[i] = false;
+	for (i = 0x138; i < 0x140; i++)
+		ioReadable[i] = false;
+	for (i = 0x144; i < 0x150; i++)
+		ioReadable[i] = false;
+	for (i = 0x15c; i < 0x200; i++)
+		ioReadable[i] = false;
+	for (i = 0x20c; i < 0x300; i++)
+		ioReadable[i] = false;
+	for (i = 0x304; i < 0x400; i++)
+		ioReadable[i] = false;
+	return ioReadable;
+}();
 
 static const uint32_t stop = 0x08000568;
 extern bool gba_joybus_enabled;

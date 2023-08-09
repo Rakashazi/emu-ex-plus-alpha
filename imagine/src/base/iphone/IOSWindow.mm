@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 static_assert(__has_feature(objc_arc), "This file requires ARC");
-#define LOGTAG "IOSWindow"
 #import "MainApp.hh"
 #import <QuartzCore/QuartzCore.h>
 #include "private.hh"
@@ -32,6 +31,8 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 
 namespace IG
 {
+
+constexpr SystemLogger log{"Window"};
 
 #ifndef CONFIG_GFX_SOFT_ORIENTATION
 static unsigned validO = UIInterfaceOrientationMaskAllButUpsideDown;
@@ -61,22 +62,22 @@ static auto defaultValidOrientationMask()
 	return isIPad ? UIInterfaceOrientationMaskAll : UIInterfaceOrientationMaskAllButUpsideDown;
 }
 
-bool Window::setValidOrientations(OrientationMask oMask)
+bool Window::setValidOrientations(Orientations o)
 {
 	validO = 0;
-	if(to_underlying(oMask & OrientationMask::PORTRAIT))
+	if(o.portrait)
 		validO |= UIInterfaceOrientationMaskPortrait;
-	if(to_underlying(oMask & OrientationMask::LANDSCAPE_LEFT))
+	if(o.landscapeLeft)
 		validO |= UIInterfaceOrientationMaskLandscapeLeft;
-	if(to_underlying(oMask & OrientationMask::PORTRAIT_UPSIDE_DOWN))
+	if(o.portraitUpsideDown)
 		validO |= UIInterfaceOrientationMaskPortraitUpsideDown;
-	if(to_underlying(oMask & OrientationMask::LANDSCAPE_RIGHT))
+	if(o.landscapeRight)
 		validO |= UIInterfaceOrientationMaskLandscapeRight;
 	auto currO = [uiApp() statusBarOrientation];
-	logMsg("set valid orientation mask 0x%X, current orientation: %s", validO, uiInterfaceOrientationToStr(currO));
+	log.info("set valid orientation mask:{:X}, current orientation:{}", validO, uiInterfaceOrientationToStr(currO));
 	if(!(validO & (1 << currO)))
 	{
-		logMsg("current orientation no longer valid, resetting root view controller");
+		log.info("current orientation no longer valid, resetting root view controller");
 		auto rootViewCtrl = uiWin().rootViewController;
 		uiWin().rootViewController = nil;
 		uiWin().rootViewController = rootViewCtrl;
@@ -127,7 +128,7 @@ void IOSWindow::updateContentRect(int width, int height, Rotation softOrientatio
 	contentRect.y2 = height;
 	auto sharedApp = uiApp();
 	bool hasStatusBar = isDeviceWindow() && !sharedApp.statusBarHidden;
-	//logMsg("has status bar %d", hasStatusBar);
+	//log.info("has status bar {}", hasStatusBar);
 	if(hasStatusBar)
 	{
 		CGFloat statusBarHeight;
@@ -145,12 +146,12 @@ void IOSWindow::updateContentRect(int width, int height, Rotation softOrientatio
 			statusBarHeight = sharedApp.statusBarFrame.size.height * pointScale;
 			contentRect.y = statusBarHeight;
 		}
-		logMsg("adjusted content rect to %d:%d:%d:%d for status bar height %d",
-			contentRect.x, contentRect.y, contentRect.x2, contentRect.y2, (int)statusBarHeight);
+		log.info("adjusted content rect to {}:{}:{}:{} for status bar height {}",
+			contentRect.x, contentRect.y, contentRect.x2, contentRect.y2, statusBarHeight);
 	}
 	else
 	{
-		logMsg("using full window size for content rect %d,%d", contentRect.x2, contentRect.y2);
+		log.info("using full window size for content rect {},{}", contentRect.x2, contentRect.y2);
 	}
 	surfaceChangeFlags |= WindowSurfaceChange::CONTENT_RECT_RESIZED;
 }
@@ -180,7 +181,7 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
 	pointScale = hasAtLeastIOS8() ? [screen()->uiScreen() nativeScale] : [screen()->uiScreen() scale];
 	if(pointScale > 1.)
-		logMsg("using point scale: %f", (double)pointScale);
+		log.info("using point scale:{:g}", pointScale);
 	#endif
 	#ifndef CONFIG_GFX_SOFT_ORIENTATION
 	validO = defaultValidOrientationMask();
@@ -190,7 +191,7 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 	{
 		uiWin().screen = screen()->uiScreen();
 	}
-	//logMsg("setting root view controller");
+	//log.info("setting root view controller");
 	auto rootViewCtrl = [[ImagineUIViewController alloc] init];
 	#if __IPHONE_OS_VERSION_MIN_REQUIRED < 70000
 	rootViewCtrl.wantsFullScreenLayout = YES;
@@ -203,7 +204,7 @@ IOSWindow::~IOSWindow()
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	if(uiWin_)
 	{
-		logMsg("deinit window %p", uiWin_);
+		log.info("deinit window {}", (void*)uiWin_);
 		CFRelease(uiWin_);
 	}
 	#endif
@@ -211,7 +212,7 @@ IOSWindow::~IOSWindow()
 
 void Window::show()
 {
-	logMsg("showing window");
+	log.info("showing window");
 	if(isDeviceWindow())
 		[uiWin() makeKeyAndVisible];
 	else
@@ -295,7 +296,7 @@ void WindowConfig::setFormat(IG::PixelFormat) {}
 	// for iOS 5 (testing-only, this OS should use GLKit for orientations)
 	- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 	{
-		//logMsg("reporting if should autorotate to: %s", uiInterfaceOrientationToStr(interfaceOrientation));
+		//log.info("reporting if should autorotate to:{}", uiInterfaceOrientationToStr(interfaceOrientation));
 		return interfaceOrientation == UIInterfaceOrientationPortrait;
 	}
 	#endif
@@ -304,40 +305,40 @@ void WindowConfig::setFormat(IG::PixelFormat) {}
 
 /*- (BOOL)shouldAutorotate
 {
-	//logMsg("reporting if should autorotate");
+	//log.info("reporting if should autorotate");
 	return YES;
 }*/
 
 // for iOS 6 and up
 - (NSUInteger)supportedInterfaceOrientations
 {
-	//logMsg("reporting supported orientations");
+	//log.info("reporting supported orientations");
 	return IG::validO;
 }
 
 // for iOS 5
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 {
-	//logMsg("reporting if should autorotate to: %s", uiInterfaceOrientationToStr(interfaceOrientation));
+	//log.info("reporting if should autorotate to:{}", uiInterfaceOrientationToStr(interfaceOrientation));
 	return (IG::validO & (1 << interfaceOrientation)) ? YES : NO;
 }
 
 #ifndef NDEBUG
 - (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation duration:(NSTimeInterval)duration
 {
-	logMsg("animating to new orientation");
+	IG::log.info("animating to new orientation");
 }
 #endif
 
 //- (UIStatusBarStyle)preferredStatusBarStyle
 //{
-//	logMsg("reporting preferred status bar style");
+//	log.info("reporting preferred status bar style");
 //	return UIStatusBarStyleLightContent;
 //}
 //
 //- (BOOL)prefersStatusBarHidden
 //{
-//	logMsg("reporting prefers status bar hidden");
+//	log.info("reporting prefers status bar hidden");
 //	return hideStatusBar;
 //}
 

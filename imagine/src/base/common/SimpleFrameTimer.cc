@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "SimpleFrameTimer"
 #include <imagine/base/SimpleFrameTimer.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/time/Time.hh>
@@ -21,6 +20,8 @@
 
 namespace IG
 {
+
+constexpr SystemLogger log{"SimpleFrameTimer"};
 
 SimpleFrameTimer::SimpleFrameTimer(Screen &screen, EventLoop loop):
 	timer
@@ -65,7 +66,7 @@ void SimpleFrameTimer::scheduleVSync()
 		return;
 	}
 	assert(interval.count());
-	timer.runIn(IG::Nanoseconds(1), interval, eventLoop);
+	timer.runIn(Nanoseconds{1}, interval, eventLoop);
 }
 
 void SimpleFrameTimer::cancel()
@@ -77,7 +78,7 @@ void SimpleFrameTimer::cancel()
 void SimpleFrameTimer::setFrameRate(FrameRate rate)
 {
 	interval = fromHz<Nanoseconds>(rate);
-	logMsg("set frame rate:%.2f (timer interval:%ldns)", rate, long(interval.count()));
+	log.info("set frame rate:{:g} (timer interval:{}ns)", rate, interval.count());
 	if(timer.isArmed())
 	{
 		timer.runIn(Nanoseconds{1}, interval, eventLoop);

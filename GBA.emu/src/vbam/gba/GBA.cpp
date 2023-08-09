@@ -50,28 +50,30 @@
 extern int emulating;
 bool debugger{};
 
-#define PP_DUMMY_MAP(z, n, text) memoryMap{ dummyArr, 0, nullptr, nullptr, nullptr },
-#define PP_DUMMY_MAP_REPEAT(n) BOOST_PP_REPEAT(n, PP_DUMMY_MAP, )
 static uint8_t dummyArr[4]{};
-constexpr std::array<memoryMap, 256> gbaMap
+constexpr std::array<memoryMap, 256> gbaMap = []
 {
-	memoryMap{gGba.mem.bios, 0x3FFF , biosRead8, biosRead16, biosRead32 },
-	memoryMap{dummyArr, 0, nullptr, nullptr, nullptr},
-	memoryMap{gGba.mem.workRAM, 0x3FFFF, nullptr, nullptr, nullptr},
-	memoryMap{gGba.mem.internalRAM, 0x7FFF, nullptr, nullptr, nullptr},
-	memoryMap{gGba.mem.ioMem.b, 0x3FF , ioMemRead8, ioMemRead16, ioMemRead32},
-	memoryMap{gGba.lcd.paletteRAM, 0x3FF, nullptr, nullptr, nullptr},
-	memoryMap{gGba.lcd.vram, 0x1FFFF , vramRead8, vramRead16, vramRead32},
-	memoryMap{gGba.lcd.oam, 0x3FF, nullptr, nullptr, nullptr},
-	memoryMap{gGba.mem.rom, 0x1FFFFFF , nullptr, rtcRead16, nullptr},
-	memoryMap{gGba.mem.rom, 0x1FFFFFF, nullptr, nullptr, nullptr},
-	memoryMap{gGba.mem.rom, 0x1FFFFFF, nullptr, nullptr, nullptr},
-	memoryMap{dummyArr, 0, nullptr, nullptr, nullptr},
-	memoryMap{gGba.mem.rom, 0x1FFFFFF, nullptr, nullptr, nullptr},
-	memoryMap{dummyArr, 0 , eepromRead32, eepromRead32, eepromRead32},
-	memoryMap{dummyArr, 0xFFFF , flashRead32, flashRead32, flashRead32},
-	PP_DUMMY_MAP_REPEAT(241)
-};
+	std::array<memoryMap, 256> gbaMap
+	{
+		memoryMap{gGba.mem.bios, 0x3FFF , biosRead8, biosRead16, biosRead32 },
+		memoryMap{dummyArr, 0, nullptr, nullptr, nullptr},
+		memoryMap{gGba.mem.workRAM, 0x3FFFF, nullptr, nullptr, nullptr},
+		memoryMap{gGba.mem.internalRAM, 0x7FFF, nullptr, nullptr, nullptr},
+		memoryMap{gGba.mem.ioMem.b, 0x3FF , ioMemRead8, ioMemRead16, ioMemRead32},
+		memoryMap{gGba.lcd.paletteRAM, 0x3FF, nullptr, nullptr, nullptr},
+		memoryMap{gGba.lcd.vram, 0x1FFFF , vramRead8, vramRead16, vramRead32},
+		memoryMap{gGba.lcd.oam, 0x3FF, nullptr, nullptr, nullptr},
+		memoryMap{gGba.mem.rom, 0x1FFFFFF , nullptr, rtcRead16, nullptr},
+		memoryMap{gGba.mem.rom, 0x1FFFFFF, nullptr, nullptr, nullptr},
+		memoryMap{gGba.mem.rom, 0x1FFFFFF, nullptr, nullptr, nullptr},
+		memoryMap{dummyArr, 0, nullptr, nullptr, nullptr},
+		memoryMap{gGba.mem.rom, 0x1FFFFFF, nullptr, nullptr, nullptr},
+		memoryMap{dummyArr, 0 , eepromRead32, eepromRead32, eepromRead32},
+		memoryMap{dummyArr, 0xFFFF , flashRead32, flashRead32, flashRead32}
+	};
+	for(auto &m : gbaMap | std::views::drop(15)) { m = {dummyArr, 0, nullptr, nullptr, nullptr}; };
+	return gbaMap;
+}();
 
 GBASys gGba;
 

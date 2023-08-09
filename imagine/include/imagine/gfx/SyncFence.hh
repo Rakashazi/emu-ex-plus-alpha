@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
+#include <imagine/gfx/defs.hh>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/GLSyncFence.hh>

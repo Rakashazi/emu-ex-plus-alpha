@@ -16,13 +16,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/Viewport.hh>
 #include <imagine/pixmap/PixelDesc.hh>
-#include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/DelegateFunc.hh>
-#include <optional>
-#include <stdexcept>
 #include <array>
 
 #ifdef CONFIG_GFX_OPENGL
@@ -200,12 +195,6 @@ constexpr Color4F::operator Color4B() const { return Color4B::format.build(r, g,
 
 using PackedColor = Color4B;
 using Color = Color4F;
-
-// converts to a relative rectangle in OpenGL coordinate system
-constexpr Rect2<int> asYUpRelRect(Viewport v)
-{
-	return {{v.realBounds().x, v.realOriginBounds().ySize() - v.realBounds().y2}, {v.realWidth(), v.realHeight()}};
-}
 
 enum class AttribType
 {

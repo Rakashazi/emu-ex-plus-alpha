@@ -10,10 +10,7 @@ makefilesToRun='
 	src/xz/ios-armv6.mk
 	
 	src/libarchive/ios-armv6.mk
-	
-	src/boost/ios-armv6.mk
-	
-	src/libcxxabi/ios-armv6.mk
+
 	src/libcxx/ios-armv6.mk
 '
 

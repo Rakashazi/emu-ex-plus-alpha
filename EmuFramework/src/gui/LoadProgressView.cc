@@ -21,6 +21,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"LoadProgressView"};
+
 LoadProgressView::LoadProgressView(ViewAttachParams attach, const Input::Event &e, EmuApp::CreateSystemCompleteDelegate onComplete):
 	View{attach},
 	onComplete{onComplete},
@@ -74,10 +76,11 @@ LoadProgressView::LoadProgressView(ViewAttachParams attach, const Input::Event &
 								size_t len = msg.intArg3;
 								if(!len)
 									break;
-								char labelStr[len];
-								msgs.readExtraData(std::span{labelStr, len});
-								setLabel(std::string_view{labelStr, len});
-								logMsg("set custom string:%s", labelStr);
+								char labelBuff[len];
+								msgs.readExtraData(std::span{labelBuff, len});
+								std::string_view labelStr{labelBuff, len};
+								setLabel(labelStr);
+								log.info("set custom string:{}", labelStr);
 							}
 						}
 						place();
@@ -86,7 +89,7 @@ LoadProgressView::LoadProgressView(ViewAttachParams attach, const Input::Event &
 					}
 					default:
 					{
-						logWarn("Unknown LoadProgressMessage value:%d", (int)msg.progress);
+						log.warn("Unknown LoadProgressMessage value:{}", (int)msg.progress);
 					}
 				}
 			}

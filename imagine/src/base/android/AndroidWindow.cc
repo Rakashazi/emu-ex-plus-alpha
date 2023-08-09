@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "Window"
 #include "android.hh"
 #include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
@@ -28,6 +27,7 @@
 namespace IG
 {
 
+constexpr SystemLogger log{"Window"};
 static JNI::InstMethod<jobject(jobject, jlong)> jPresentation{};
 static JNI::InstMethod<void()> jPresentationDeinit{};
 static int32_t (*ANativeWindow_setFrameRate)(ANativeWindow* window, float frameRate, int8_t compatibility){};
@@ -36,7 +36,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 {
 	if(jPresentationDeinit)
 		return; // already init
-	logMsg("Setting up Presentation JNI functions");
+	log.info("Setting up Presentation JNI functions");
 	auto cls = env->GetObjectClass(presentation);
 	jPresentationDeinit = {env, cls, "deinit", "()V"};
 	JNINativeMethod method[] =
@@ -97,24 +97,24 @@ Point2D<float> Window::pixelSizeAsScaledMM(Point2D<int> size)
 	return {((float)size.x / densityDPI) * 25.4f, ((float)size.y / densityDPI) * 25.4f};
 }
 
-bool Window::setValidOrientations(OrientationMask oMask)
+bool Window::setValidOrientations(Orientations o)
 {
-	logMsg("requested orientation change to %s", asString(oMask).data());
-	auto maskToOrientation = [](OrientationMask oMask)
+	log.info("requested orientation change to {}", asString(o));
+	auto asNativeOrientations = [](Orientations o)
 		{
-			switch(oMask)
+			switch(o)
 			{
 				default: return -1; // SCREEN_ORIENTATION_UNSPECIFIED
-				case OrientationMask::PORTRAIT: return 1; // SCREEN_ORIENTATION_PORTRAIT
-				case OrientationMask::LANDSCAPE_RIGHT: return 0; // SCREEN_ORIENTATION_LANDSCAPE
-				case OrientationMask::PORTRAIT_UPSIDE_DOWN: return 9; // SCREEN_ORIENTATION_REVERSE_PORTRAIT
-				case OrientationMask::LANDSCAPE_LEFT: return 8; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
-				case OrientationMask::ALL_LANDSCAPE: return 6; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-				case OrientationMask::ALL_PORTRAIT: return 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
-				case OrientationMask::ALL: return 10; // SCREEN_ORIENTATION_FULL_SENSOR
+				case Orientations{.portrait = 1}: return 1; // SCREEN_ORIENTATION_PORTRAIT
+				case Orientations{.landscapeRight = 1}: return 0; // SCREEN_ORIENTATION_LANDSCAPE
+				case Orientations{.portraitUpsideDown = 1}: return 9; // SCREEN_ORIENTATION_REVERSE_PORTRAIT
+				case Orientations{.landscapeLeft = 1}: return 8; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+				case Orientations::allLandscape(): return 6; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+				case Orientations::allPortrait(): return 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
+				case Orientations::all(): return 10; // SCREEN_ORIENTATION_FULL_SENSOR
 			}
 		};
-	int toSet = maskToOrientation(oMask);
+	int toSet = asNativeOrientations(o);
 	application().setRequestedOrientation(appContext().mainThreadJniEnv(), appContext().baseActivityObject(), toSet);
 	return true;
 }
@@ -145,14 +145,14 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate onInit_
 		jWin = {env, jPresentation(env, baseActivity, screen.displayObject(), (jlong)this)};
 		initPresentationJNI(env, jWin);
 		type = Type::PRESENTATION;
-		logMsg("made presentation window:%p", (jobject)jWin);
+		log.info("made presentation window:{}", (void*)jobject(jWin));
 	}
 	else
 	{
 		JNI::InstMethod<jobject(jlong)> jSetMainContentView(env, baseActivity, "setMainContentView", "(J)Landroid/view/Window;");
 		jWin = {env, jSetMainContentView(env, baseActivity, (jlong)this)};
 		type = Type::MAIN;
-		logMsg("made device window:%p", (jobject)jWin);
+		log.info("made device window:{}", (void*)jobject(jWin));
 	}
 	nPixelFormat = config.nativeFormat ? config.nativeFormat : toAHardwareBufferFormat(ctx.defaultWindowPixelFormat());
 	// default to screen's size
@@ -167,7 +167,7 @@ AndroidWindow::~AndroidWindow()
 	{
 		if(type == Type::PRESENTATION)
 		{
-			logMsg("dismissing presentation window:%p", (jobject)jWin);
+			log.info("dismissing presentation window:{}", (void*)jobject(jWin));
 			jPresentationDeinit(jWin.jniEnv(), jWin);
 		}
 	}
@@ -254,7 +254,7 @@ void Window::setIntendedFrameRate(FrameRate rate)
 	}
 	if(ANativeWindow_setFrameRate(nWin, rate, 0))
 	{
-		logErr("error in ANativeWindow_setFrameRate() with window:%p rate:%.2f", nWin, rate);
+		log.error("error in ANativeWindow_setFrameRate() with window:{} rate:{:g}", (void*)nWin, rate);
 	}
 }
 
@@ -275,7 +275,7 @@ void Window::setFormat(NativeWindowFormat fmt)
 			jclass jLayoutParamsCls = env->GetObjectClass(attrs);
 			auto jFormat = env->GetFieldID(jLayoutParamsCls, "format", "I");
 			auto currFmt = env->GetIntField(attrs, jFormat);
-			logMsg("setting window format:%s -> %s",
+			log.info("setting window format:{} -> {}",
 				aHardwareBufferFormatStr(currFmt), aHardwareBufferFormatStr(fmt));
 		}
 		JNI::InstMethod<void(jint)> jSetWinFormat{env, (jobject)jWin, "setFormat", "(I)V"};
@@ -307,10 +307,10 @@ void AndroidWindow::systemRequestsRedraw(bool sync)
 	win.setNeedsDraw(true);
 	if(!win.appContext().isRunning())
 	{
-		logMsg("deferring window surface redraw until app resumes");
+		log.info("deferring window surface redraw until app resumes");
 		return;
 	}
-	logMsg("window surface redraw needed");
+	log.info("window surface redraw needed");
 	win.dispatchOnDraw(sync);
 	if(sync)
 	{
@@ -327,7 +327,7 @@ void AndroidWindow::systemRequestsRedraw(bool sync)
 
 void AndroidWindow::setContentRect(WindowRect rect, WSize winSize)
 {
-	logMsg("content rect changed: %d:%d:%d:%d in %dx%d",
+	log.info("content rect changed: {}:{}:{}:{} in {}x{}",
 		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
 	auto &win = *static_cast<Window*>(this);
 	if(win.updateSize(winSize))

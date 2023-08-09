@@ -68,8 +68,8 @@ Mat4 Mat4::projectionPlane(Viewport viewport, float z, float rollAngle)
 	auto matInv = invert();
 	auto bounds = viewport.bounds();
 	auto windowBounds = viewport.originBounds();
-	auto lowerLeft = unproject(asYUpRelRect(viewport), {(float)bounds.x, (float)bounds.y, z}, matInv);
-	auto upperRight = unproject(asYUpRelRect(viewport), {(float)bounds.x2, (float)bounds.y2, z}, matInv);
+	auto lowerLeft = unproject(viewport.asYUpRelRect(), {(float)bounds.x, (float)bounds.y, z}, matInv);
+	auto upperRight = unproject(viewport.asYUpRelRect(), {(float)bounds.x2, (float)bounds.y2, z}, matInv);
 	//logMsg("Lower-left projection point %d,%d -> %f %f %f", bounds.x, bounds.y, (double)lowerLeft.x, (double)lowerLeft.y, (double)lowerLeft.z);
 	//logMsg("Upper-right projection point %d,%d -> %f %f %f", bounds.x2, bounds.y2, (double)upperRight.x, (double)upperRight.y, (double)upperRight.z);
 	auto w = upperRight.x - lowerLeft.x;

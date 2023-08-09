@@ -4,7 +4,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.0.0'
+        classpath 'com.android.tools.build:gradle:8.1.0'
     }
 }
 
@@ -18,7 +18,7 @@ allprojects {
 apply plugin: 'android'
 
 android {
-    compileSdkVersion 30
+    compileSdk 30
 
     defaultConfig {
         minSdkVersion METADATA_MIN_SDK

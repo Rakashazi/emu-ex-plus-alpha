@@ -15,16 +15,14 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-
-#ifdef CONFIG_GFX_OPENGL
-#include <imagine/gfx/opengl/GLSLProgram.hh>
-#endif
-
 #include <imagine/gfx/defs.hh>
 #include <imagine/util/bitset.hh>
 #include <span>
 #include <string_view>
+
+#ifdef CONFIG_GFX_OPENGL
+#include <imagine/gfx/opengl/GLSLProgram.hh>
+#endif
 
 namespace IG::Gfx
 {
@@ -52,20 +50,19 @@ struct UniformLocationDesc
 	int *locationPtr;
 };
 
-enum class ProgramFlagsMask
+struct ProgramFlags
 {
-	HAS_COLOR = bit(0),
-	HAS_TEXTURE = bit(1),
+	uint8_t
+	hasColor:1{},
+	hasTexture:1{};
 };
-
-IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(ProgramFlagsMask);
 
 class Program : public ProgramImpl
 {
 public:
 	using ProgramImpl::ProgramImpl;
 	Program(RendererTask &, NativeShader vShader, NativeShader fShader,
-		ProgramFlagsMask, std::span<UniformLocationDesc>);
+		ProgramFlags, std::span<UniformLocationDesc>);
 	int uniformLocation(const char *name);
 	void uniform(int location, float v1);
 	void uniform(int location, float v1, float v2);

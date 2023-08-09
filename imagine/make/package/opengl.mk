@@ -37,11 +37,4 @@ else ifeq ($(ENV), webos)
  LDLIBS += -lGLES_CM $(webos_libm)
 endif
 
-ifeq ($(openGLAPI), gles)
- ifndef openGLESVersion
-  $(error openGLESVersion isn't defined)
- endif
- configDefs += CONFIG_GFX_OPENGL_ES=$(openGLESVersion)
-endif
-
 endif

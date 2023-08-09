@@ -421,7 +421,7 @@ void GLRendererCommands::setViewport(Rect2<int> v)
 
 void RendererCommands::setViewport(Viewport v)
 {
-	GLRendererCommands::setViewport(asYUpRelRect(v));
+	GLRendererCommands::setViewport(v.asYUpRelRect());
 }
 
 void RendererCommands::restoreViewport()

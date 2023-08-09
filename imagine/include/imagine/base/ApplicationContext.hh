@@ -194,7 +194,7 @@ public:
 	bool hasTranslucentSysUI() const;
 	bool hasHardwareNavButtons() const;
 	void setSystemOrientation(Rotation);
-	OrientationMask defaultSystemOrientations() const;
+	Orientations defaultSystemOrientations() const;
 	bool hasDisplayCutout() const;
 
 	// Sensors

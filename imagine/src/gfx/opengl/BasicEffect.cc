@@ -33,7 +33,7 @@ bool GLBasicEffect::setShaders(RendererTask &task, std::span<std::string_view> v
 	Program newProg{task,
 		Shader{task, vertSrcs, ShaderType::VERTEX, Shader::CompileMode::COMPAT},
 		Shader{task, fragSrcs, ShaderType::FRAGMENT, Shader::CompileMode::COMPAT},
-		ProgramFlagsMask::HAS_COLOR | ProgramFlagsMask::HAS_TEXTURE, uniformDescs};
+		{.hasColor = true, .hasTexture = true}, uniformDescs};
 	if(!newProg) [[unlikely]]
 		return false;
 	program = newProg.release();

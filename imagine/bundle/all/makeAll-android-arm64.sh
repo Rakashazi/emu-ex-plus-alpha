@@ -10,8 +10,6 @@ makefilesToRun='
 	src/xz/android-arm64.mk
 	
 	src/libarchive/android-arm64.mk
-	
-	src/boost/android-arm64.mk
 '
 
 source runMakefiles.sh

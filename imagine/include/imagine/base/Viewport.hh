@@ -50,6 +50,12 @@ public:
 	WRect relRect(WPt pos, WSize size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
 	WRect relRectBestFit(WPt pos, float aspectRatio, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
 
+	// converts to a relative rectangle in OpenGL coordinate system
+	constexpr Rect2<int> asYUpRelRect() const
+	{
+		return {{realBounds().x, realOriginBounds().ySize() - realBounds().y2}, {realWidth(), realHeight()}};
+	}
+
 private:
 	WRect originRect{};
 	WRect rect{};

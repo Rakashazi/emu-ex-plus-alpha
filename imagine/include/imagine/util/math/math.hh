@@ -15,11 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/utility.h>
 #include <concepts>
-#include <algorithm>
 #include <numbers>
-#include <limits>
 #include <cmath>
 
 namespace IG
@@ -67,32 +64,6 @@ constexpr bool isInRange(auto val, auto min, auto max)
 constexpr auto sign(auto num)
 {
 	return static_cast<decltype(num)>(num >= 0 ? 1 : -1);
-}
-
-constexpr auto remap(auto val, auto origMin, auto origMax, auto newMin, auto newMax)
-{
-	auto origSize = origMax - origMin;
-	auto newSize = newMax - newMin;
-	return newMin + (val - origMin) * newSize / origSize;
-}
-
-constexpr auto remapClamp(auto val, auto origMin, auto origMax, auto newMin, auto newMax)
-{
-	auto mappedVal = remap(val, origMin, origMax, newMin, newMax);
-	using MappedVal = decltype(mappedVal);
-	return std::clamp(mappedVal, static_cast<MappedVal>(newMin), static_cast<MappedVal>(newMax));
-}
-
-template <class Limit>
-constexpr auto remap(auto val, auto origMin, auto origMax, std::numeric_limits<Limit> limit)
-{
-	return remap(val, origMin, origMax, limit.min(), limit.max());
-}
-
-template <class Limit>
-constexpr auto remapClamp(auto val, auto origMin, auto origMax, std::numeric_limits<Limit> limit)
-{
-	return remapClamp(val, origMin, origMax, limit.min(), limit.max());
 }
 
 constexpr auto wrapMax(auto x, auto max)

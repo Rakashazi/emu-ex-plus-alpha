@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "AAudio"
 #include <imagine/audio/android/AAudioOutputStream.hh>
 #include <imagine/audio/OutputStream.hh>
 #include <imagine/audio/Manager.hh>
@@ -23,6 +22,8 @@
 
 namespace IG::Audio
 {
+
+constexpr SystemLogger log{"AAudio"};
 
 static aaudio_result_t (*AAudio_createStreamBuilder)(AAudioStreamBuilder** builder){};
 static aaudio_result_t (*AAudioStreamBuilder_openStream)(AAudioStreamBuilder* builder, AAudioStream** stream){};
@@ -53,11 +54,11 @@ static void loadAAudioLib(const Manager &manager)
 {
 	if(loadedAAudioLib())
 		return;
-	logMsg("loading libaaudio.so functions");
+	log.info("loading libaaudio.so functions");
 	auto lib = openSharedLibrary("libaaudio.so", RESOLVE_ALL_SYMBOLS_FLAG);
 	if(!lib)
 	{
-		logErr("error opening libaaudio.so");
+		log.error("error opening libaaudio.so");
 		return;
 	}
 	loadSymbol(AAudio_createStreamBuilder, lib, "AAudio_createStreamBuilder");
@@ -135,12 +136,12 @@ AAudioOutputStream::AAudioOutputStream(const Manager &manager)
 		{
 			if(!stream)
 				return;
-			logMsg("trying to re-open stream after disconnect");
+			log.info("trying to re-open stream after disconnect");
 			AAudioStream_close(std::exchange(stream, {}));
 			if(auto res = AAudioStreamBuilder_openStream(builder, &stream);
 				res != AAUDIO_OK)
 			{
-				logErr("error:%s creating stream", streamResultStr(res));
+				log.error("error:{} creating stream", streamResultStr(res));
 				return;
 			}
 			play();
@@ -158,24 +159,23 @@ IG::ErrorCode AAudioOutputStream::open(OutputStreamConfig config)
 	assert(loadedAAudioLib());
 	if(stream)
 	{
-		logWarn("stream already open");
+		log.warn("stream already open");
 		return {};
 	}
 	bool lowLatencyMode = config.wantedLatencyHint < Microseconds{20000};
 	auto format = config.format;
 	if(format.sample != SampleFormats::i16 && format.sample != SampleFormats::f32)
 	{
-		logErr("only i16 and f32 sample formats are supported");
+		log.error("only i16 and f32 sample formats are supported");
 		return {EINVAL};
 	}
-	logMsg("creating stream %dHz, %d channels, low-latency:%s", format.rate, format.channels,
-		lowLatencyMode ? "y" : "n");
+	log.info("creating stream {}Hz, {} channels, low-latency:{}", format.rate, format.channels, lowLatencyMode);
 	onSamplesNeeded = config.onSamplesNeeded;
 	setBuilderData(builder, format, lowLatencyMode);
 	if(auto res = AAudioStreamBuilder_openStream(builder, &stream);
 		res != AAUDIO_OK)
 	{
-		logErr("error:%s creating stream", streamResultStr(res));
+		log.error("error:{} creating stream", streamResultStr(res));
 		return {EINVAL};
 	}
 	if(config.startPlaying)
@@ -207,12 +207,12 @@ static void waitUntilState(AAudioStream *stream, aaudio_stream_state_t wantedSta
 	while(res == AAUDIO_OK && currentState != wantedState)
 	{
 		res = AAudioStream_waitForStateChange(stream, inputState, &currentState, INT64_MAX);
-		logMsg("transitioned state:%s -> %s", streamStateStr(inputState), streamStateStr(currentState));
+		log.info("transitioned state:{} -> {}", streamStateStr(inputState), streamStateStr(currentState));
 		inputState = currentState;
 	}
 	if(res != AAUDIO_OK)
 	{
-		logErr("error:%s waiting for state:%s", streamResultStr(res), streamStateStr(wantedState));
+		log.error("error:{} waiting for state:{}", streamResultStr(res), streamStateStr(wantedState));
 	}
 }
 
@@ -220,7 +220,7 @@ void AAudioOutputStream::close()
 {
 	if(!stream) [[unlikely]]
 		return;
-	logMsg("closing stream:%p", stream);
+	log.info("closing stream:{}", (void*)stream);
 	isPlaying_ = false;
 	// Devices like the Samsung A3 (2017) have spurious callbacks after AAudioStream_close()
 	// To avoid this make sure the stream is fully stopped before closing
@@ -230,7 +230,7 @@ void AAudioOutputStream::close()
 	if(auto res = AAudioStream_close(std::exchange(stream, {}));
 		res != AAUDIO_OK)
 	{
-		logErr("error:%s closing stream", streamResultStr(res));
+		log.error("error:{} closing stream", streamResultStr(res));
 	}
 }
 
@@ -279,7 +279,7 @@ void AAudioOutputStream::setBuilderData(AAudioStreamBuilder *builder, Format for
 	AAudioStreamBuilder_setErrorCallback(builder,
 		[](AAudioStream *stream, void *userData, aaudio_result_t error)
 		{
-			//logErr("got error:%s callback", streamResultStr(error));
+			//log.error("got error:{} callback", streamResultStr(error));
 			if(error == AAUDIO_ERROR_DISCONNECTED)
 			{
 				// can't re-open stream on worker thread callback, notify main thread

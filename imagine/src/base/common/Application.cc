@@ -13,19 +13,19 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "App"
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
 {
 
-const char *copyright = "Imagine is Copyright 2010-2022 Robert Broglia";
+const char *copyright = "Imagine is Copyright 2010-2023 Robert Broglia";
+constexpr SystemLogger log{"App"};
 
 BaseApplication::BaseApplication(ApplicationContext ctx)
 {
-	logDMsg("%s", copyright);
-	logDMsg("compiled on %s %s", __DATE__, __TIME__);
+	log.debug("{}", copyright);
+	log.debug("compiled on {} {}", __DATE__, __TIME__);
 
 	commandPort.attach({},
 		[ctx](auto msgs)

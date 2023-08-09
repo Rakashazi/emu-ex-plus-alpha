@@ -13,8 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "VMem"
-#include <imagine/config/env.hh>
+#include <imagine/config/defs.hh>
 #include <imagine/vmem/memory.hh>
 #include <imagine/util/utility.h>
 #include <imagine/logger/logger.h>
@@ -24,16 +23,18 @@
 namespace IG
 {
 
+constexpr SystemLogger log{"VMem"};
+
 void *allocVMem(size_t size)
 {
 	if(Config::DEBUG_BUILD && size != adjustVMemAllocSize(size))
 	{
-		logErr("size:%lu is not a multiple of page size", (unsigned long)size);
+		log.error("size:{} is not a multiple of page size", size);
 	}
 	vm_address_t addr;
 	if(vm_allocate(mach_task_self(), &addr, size, VM_FLAGS_ANYWHERE) != KERN_SUCCESS) [[unlikely]]
 	{
-		logErr("error in vm_allocate");
+		log.error("error in vm_allocate");
 		return nullptr;
 	}
 	return (void*)addr;
@@ -45,7 +46,7 @@ void freeVMem(void *vMemPtr, size_t size)
 		return;
 	if(vm_deallocate(mach_task_self(), (vm_address_t)vMemPtr, size) != KERN_SUCCESS)
 	{
-		logWarn("error in vm_deallocate");
+		log.warn("error in vm_deallocate");
 	}
 }
 
@@ -68,7 +69,7 @@ void *allocMirroredBuffer(size_t size)
 	// chance of it causing a problem is very low.
 	if(vm_deallocate(mach_task_self(), addr + size, size) != KERN_SUCCESS)
 	{
-		logWarn("error in vm_deallocate for 2nd half, buffer may not stay in sync");
+		log.warn("error in vm_deallocate for 2nd half, buffer may not stay in sync");
 	}
 	#endif
 	vm_prot_t currProtect, maxProtect;
@@ -77,7 +78,7 @@ void *allocMirroredBuffer(size_t size)
 		VM_FLAGS_FIXED | VM_FLAGS_OVERWRITE, mach_task_self(), addr,
 		0, &currProtect, &maxProtect, VM_INHERIT_COPY) != KERN_SUCCESS)
 	{
-		logErr("error in vm_remap");
+		log.error("error in vm_remap");
 		freeMirroredBuffer((void*)addr, size);
 		return nullptr;
 	}

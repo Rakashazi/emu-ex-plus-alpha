@@ -90,9 +90,6 @@ template<class F, class Return, class... Args>
 concept CallableFunctionPointer = Pointer<F> && Callable<F, Return, Args...>;
 
 template<class F, class... Args>
-concept Predicate = std::invocable<F, Args...> && ConvertibleInvokeResult<F, bool, Args...>;
-
-template<class F, class... Args>
 concept ValidInvokeArgs =
 	requires(F f, Args &&...args)
 	{

@@ -29,9 +29,12 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/MapIO.hh>
+#include <imagine/util/format.hh>
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"App"};
 
 void EmuApp::initOptions(IG::ApplicationContext ctx)
 {
@@ -87,7 +90,7 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 void EmuApp::applyFontSize(Window &win)
 {
 	auto settings = fontSettings(win);
-	logMsg("setting up font with pixel height:%d", settings.pixelHeight());
+	log.info("setting up font with pixel height:{}", settings.pixelHeight());
 	viewManager.defaultFace.setFontSettings(renderer, settings);
 	viewManager.defaultBoldFace.setFontSettings(renderer, settings);
 }
@@ -106,7 +109,7 @@ void EmuApp::writeRecentContent(FileIO &io)
 		strSizes += 2;
 		strSizes += e.path.size();
 	}
-	logMsg("writing recent list");
+	log.info("writing recent list");
 	writeOptionValueHeader(io, CFGKEY_RECENT_GAMES, strSizes);
 	for(const auto &e : recentContentList)
 	{
@@ -123,7 +126,7 @@ bool EmuApp::readRecentContent(IG::ApplicationContext ctx, MapIO &io, size_t rea
 	{
 		if(readSize < 2)
 		{
-			logMsg("expected string length but only %zu bytes left", readSize);
+			log.info("expected string length but only {} bytes left", readSize);
 			return false;
 		}
 
@@ -132,7 +135,7 @@ bool EmuApp::readRecentContent(IG::ApplicationContext ctx, MapIO &io, size_t rea
 
 		if(len > readSize)
 		{
-			logMsg("string length %d longer than %zu bytes left", len, readSize);
+			log.info("string length {} longer than {} bytes left", len, readSize);
 			return false;
 		}
 
@@ -140,7 +143,7 @@ bool EmuApp::readRecentContent(IG::ApplicationContext ctx, MapIO &io, size_t rea
 		auto bytesRead = io.readSized(path, len);
 		if(bytesRead == -1)
 		{
-			logErr("error reading string option");
+			log.error("error reading string option");
 			return false;
 		}
 		if(!bytesRead)
@@ -149,19 +152,19 @@ bool EmuApp::readRecentContent(IG::ApplicationContext ctx, MapIO &io, size_t rea
 		auto displayName = system().contentDisplayNameForPath(path);
 		if(displayName.empty())
 		{
-			logMsg("skipping missing recent content:%s", path.data());
+			log.info("skipping missing recent content:{}", path);
 			continue;
 		}
 		RecentContentInfo info{path, displayName};
 		const auto &added = recentContentList.emplace_back(info);
-		logMsg("added game to recent list:%s, name:%s", added.path.data(), added.name.data());
+		log.info("added game to recent list:{}, name:{}", added.path, added.name);
 	}
 	return true;
 }
 
 void EmuApp::setFrameInterval(int val)
 {
-	logMsg("set frame interval:%d", val);
+	log.info("set frame interval:{}", val);
 	optionFrameInterval = val;
 };
 
@@ -182,7 +185,7 @@ bool EmuApp::setVideoZoom(uint8_t val)
 	if(!optionImageZoom.isValidVal(val))
 		return false;
 	optionImageZoom = val;
-	logMsg("set video zoom: %d", int(optionImageZoom));
+	log.info("set video zoom:{}", int(optionImageZoom));
 	emuVideoLayer.setZoom(val);
 	viewController().placeEmuViews();
 	viewController().postDrawToEmuWindows();
@@ -194,7 +197,7 @@ bool EmuApp::setViewportZoom(uint8_t val)
 	if(!optionViewportZoom.isValidVal(val))
 		return false;
 	optionViewportZoom = val;
-	logMsg("set viewport zoom: %d", int(optionViewportZoom));
+	log.info("set viewport zoom:{}", int(optionViewportZoom));
 	auto &win = appContext().mainWindow();
 	viewController().updateMainWindowViewport(win, makeViewport(win), renderer.task());
 	viewController().postDrawToEmuWindows();
@@ -238,7 +241,7 @@ bool EmuApp::setVideoAspectRatio(float ratio)
 		ratio = viewController().emuWindow().size().ratio<float>();
 	if(!isValidAspectRatio(ratio))
 		return false;
-	logMsg("set aspect ratio:%.2f", ratio);
+	log.info("set aspect ratio:{:g}", ratio);
 	if(viewController().emuWindow().isLandscape())
 		emuVideoLayer.landscapeAspectRatio = ratio;
 	else
@@ -289,17 +292,17 @@ void EmuApp::setHideStatusBarMode(Tristate mode)
 	applyOSNavStyle(appContext(), false);
 }
 
-void EmuApp::setEmuOrientation(OrientationMask o)
+void EmuApp::setEmuOrientation(Orientations o)
 {
-	optionEmuOrientation = std::to_underlying(o);
-	logMsg("set game orientation: %s", asString(o).data());
+	optionEmuOrientation = o;
+	log.info("set game orientation:{}", asString(o).data());
 }
 
-void EmuApp::setMenuOrientation(OrientationMask o)
+void EmuApp::setMenuOrientation(Orientations o)
 {
-	optionMenuOrientation = std::to_underlying(o);
+	optionMenuOrientation = o;
 	renderer.setWindowValidOrientations(appContext().mainWindow(), o);
-	logMsg("set menu orientation: %s", asString(o).data());
+	log.info("set menu orientation:{}", asString(o).data());
 }
 
 void EmuApp::setShowsBundledGames(bool on)

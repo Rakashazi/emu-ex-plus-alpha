@@ -36,7 +36,7 @@ template <class T>
 constexpr bool isAlwaysValid(const T &) { return true; }
 
 template <class T>
-inline std::optional<T> readOptionValue(Readable auto &io, size_t bytesToRead, Predicate<T> auto &&isValid)
+inline std::optional<T> readOptionValue(Readable auto &io, size_t bytesToRead, std::predicate<T> auto &&isValid)
 {
 	if(bytesToRead != sizeof(T))
 	{
@@ -57,7 +57,7 @@ inline std::optional<T> readOptionValue(Readable auto &io, size_t bytesToRead)
 
 template <class T>
 inline bool readOptionValue(Readable auto &io, size_t bytesToRead,
-	Callable<void, T> auto &&func, Predicate<T> auto &&isValid)
+	Callable<void, T> auto &&func, std::predicate<T> auto &&isValid)
 {
 	return doOptionally(readOptionValue<T>(io, bytesToRead, IG_forward(isValid)),
 		IG_forward(func));
@@ -72,7 +72,7 @@ inline bool readOptionValue(Readable auto &io, size_t bytesToRead,
 
 template <class T>
 inline bool readOptionValue(Readable auto &io, size_t bytesToRead, T &output,
-	Predicate<T> auto &&isValid)
+	std::predicate<T> auto &&isValid)
 {
 	return readOptionValue<T>(io, bytesToRead,
 		[&](auto &&val){ output = IG_forward(val); }, IG_forward(isValid));

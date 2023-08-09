@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "X11"
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
@@ -28,6 +27,8 @@ static constexpr char ASCII_CR = 0xD;
 
 namespace IG
 {
+
+constexpr SystemLogger log{"X11"};
 
 struct XGlibSource : public GSource
 {
@@ -58,7 +59,7 @@ static GSourceFuncs x11SourceFuncs
 	{
 		[](GSource *src, GSourceFunc, gpointer)
 		{
-			//logMsg("events for X fd");
+			//log.info("events for X fd");
 			auto &xGlibSrc = *static_cast<XGlibSource*>(src);
 			xGlibSrc.appPtr->runX11Events(xGlibSrc.xDisplay);
 			return (gboolean)TRUE;
@@ -80,7 +81,7 @@ XApplication::~XApplication()
 {
 	deinitWindows();
 	deinitInputSystem();
-	logMsg("closing X display");
+	log.info("closing X display");
 	XCloseDisplay(dpy);
 }
 
@@ -152,7 +153,7 @@ static bool shouldBypassCompositor(const Window &win)
 
 bool XApplication::eventHandler(XEvent event)
 {
-	//logMsg("got event type %s (%d)", xEventTypeToString(event.type), event.type);
+	//log.info("got event type {} ({})", xEventTypeToString(event.type), event.type);
 
 	switch(event.type)
 	{
@@ -165,7 +166,7 @@ bool XApplication::eventHandler(XEvent event)
 		}
 		case ConfigureNotify:
 		{
-			//logMsg("ConfigureNotify");
+			//log.info("ConfigureNotify");
 			auto &win = *windowForXWindow(event.xconfigure.window);
 			if(event.xconfigure.width == win.width() && event.xconfigure.height == win.height())
 				break;
@@ -174,7 +175,7 @@ bool XApplication::eventHandler(XEvent event)
 				win.shouldBypassCompositorState != newShouldBypassCompositorState)
 			{
 				// allow bypassing compositor on WMs without full screen unredirect support like KWin, needed for VRR
-				logMsg("setting bypass compositor hint:%d", newShouldBypassCompositorState);
+				log.info("setting bypass compositor hint:{}", newShouldBypassCompositorState);
 				win.shouldBypassCompositorState = newShouldBypassCompositorState;
 				auto wmBypassCompositor = XInternAtom(dpy, "_NET_WM_BYPASS_COMPOSITOR", False);
 				int32_t val = newShouldBypassCompositorState ? 1 : 0;
@@ -189,17 +190,17 @@ bool XApplication::eventHandler(XEvent event)
 			auto &win = *windowForXWindow(event.xclient.window);
 			auto type = event.xclient.message_type;
 			char *clientMsgName = XGetAtomName(dpy, type);
-			//logDMsg("got client msg %s", clientMsgName);
+			//log.debug("got client msg {}", clientMsgName);
 			if(std::string_view{clientMsgName} == "WM_PROTOCOLS")
 			{
 				if((Atom)event.xclient.data.l[0] == XInternAtom(dpy, "WM_DELETE_WINDOW", True))
 				{
-					//logMsg("got window manager delete window message");
+					//log.info("got window manager delete window message");
 					win.dispatchDismissRequest();
 				}
 				else
 				{
-					logMsg("unknown WM_PROTOCOLS message");
+					log.info("unknown WM_PROTOCOLS message");
 				}
 			}
 			else if(Config::XDND && xdndIsInit())
@@ -212,12 +213,12 @@ bool XApplication::eventHandler(XEvent event)
 		}
 		case PropertyNotify:
 		{
-			//logMsg("PropertyNotify");
+			//log.info("PropertyNotify");
 			break;
 		}
 		case SelectionNotify:
 		{
-			logMsg("SelectionNotify");
+			log.info("SelectionNotify");
 			if(Config::XDND && event.xselection.property != None)
 			{
 				auto &win = *windowForXWindow(event.xselection.requestor);
@@ -227,8 +228,8 @@ bool XApplication::eventHandler(XEvent event)
 				unsigned char *prop;
 				Atom type;
 				XGetWindowProperty(dpy, win.nativeObject(), event.xselection.property, 0, 256, False, AnyPropertyType, &type, &format, &numItems, &bytesAfter, &prop);
-				logMsg("property read %lu items, in %d format, %lu bytes left", numItems, format, bytesAfter);
-				logMsg("property is %s", prop);
+				log.info("property read {} items, in {} format, {} bytes left", numItems, format, bytesAfter);
+				log.info("property is {}", (char*)prop);
 				auto [draggerXWin, dragAction] = win.xdndData();
 				sendDNDFinished(win.nativeObject(), draggerXWin, dragAction);
 				auto filename = (char*)prop;
@@ -240,12 +241,12 @@ bool XApplication::eventHandler(XEvent event)
 		}
 		case MapNotify:
 		{
-			//logDMsg("MapNotfiy");
+			//log.debug("MapNotfiy");
 			break;
 		}
 		case ReparentNotify:
 		{
-			//logDMsg("ReparentNotify");
+			//log.debug("ReparentNotify");
 			break;
 		}
 		case GenericEvent:
@@ -254,7 +255,7 @@ bool XApplication::eventHandler(XEvent event)
 		}
 		default:
 		{
-			logDMsg("got unhandled message type %d", event.type);
+			log.debug("got unhandled message type {}", event.type);
 		}
 		break;
 	}
@@ -309,7 +310,7 @@ FDEventSource XApplication::makeXDisplayConnection(EventLoop loop)
 	auto xDisplay = XOpenDisplay({});
 	if(!xDisplay)
 	{
-		logErr("couldn't open display");
+		log.error("couldn't open display");
 		return {};
 	}
 	dpy = xDisplay;

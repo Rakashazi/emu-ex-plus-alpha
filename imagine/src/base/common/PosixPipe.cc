@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "Pipe"
 #include <imagine/base/Pipe.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/logger/logger.h>
@@ -23,6 +22,8 @@
 
 namespace IG
 {
+
+constexpr SystemLogger log{"Pipe"};
 
 static auto makePipe()
 {
@@ -34,7 +35,7 @@ static auto makePipe()
 	#endif
 	if(res == -1)
 	{
-		logErr("error creating pipe");
+		log.error("error creating pipe");
 	}
 	return std::array<PosixIO, 2>{UniqueFileDescriptor{fd[0]}, UniqueFileDescriptor{fd[1]}};
 }
@@ -44,7 +45,7 @@ Pipe::Pipe(const char *debugLabel, int preferredSize):
 	io{makePipe()},
 	fdSrc{label(), io[0].fd()}
 {
-	logMsg("opened fds:%d,%d (%s)", io[0].fd(), io[1].fd(), label());
+	log.info("opened fds:{},{} ({})", io[0].fd(), io[1].fd(), label());
 	if(preferredSize)
 	{
 		setPreferredSize(preferredSize);
@@ -65,7 +66,7 @@ void Pipe::attach(EventLoop loop, PollEventDelegate callback)
 {
 	if(io[0].fd() == -1)
 	{
-		logMsg("can't add null pipe to event loop");
+		log.info("can't add null pipe to event loop");
 		return;
 	}
 	fdSrc.attach(loop, callback);
@@ -90,7 +91,7 @@ void Pipe::setPreferredSize(int size)
 {
 	#ifdef __linux__
 	fcntl(io[1].fd(), F_SETPIPE_SZ, size);
-	logDMsg("set size:%d (%s)", size, label());
+	log.debug("set size:{} ({})", size, label());
 	#endif
 }
 

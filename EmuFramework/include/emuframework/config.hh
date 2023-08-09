@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/env.hh>
+#include <imagine/config/defs.hh>
 #include <imagine/input/config.hh>
 #include <imagine/bluetooth/config.hh>
 

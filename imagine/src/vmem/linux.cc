@@ -13,8 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "VMem"
-#include <imagine/config/env.hh>
+#include <imagine/config/defs.hh>
 #include <imagine/vmem/memory.hh>
 #include <imagine/vmem/pageSize.hh>
 #include <imagine/util/utility.h>
@@ -39,17 +38,19 @@ static void *mremap(void *old_address, size_t old_size, size_t new_size, int fla
 namespace IG
 {
 
+constexpr SystemLogger log{"VMem"};
+
 static void *allocVMem(size_t size, bool shared)
 {
 	if(Config::DEBUG_BUILD && size != adjustVMemAllocSize(size))
 	{
-		logErr("size:%lu is not a multiple of page size", (unsigned long)size);
+		log.error("size:{} is not a multiple of page size", size);
 	}
 	int flags = (shared ? MAP_SHARED : MAP_PRIVATE) | MAP_ANONYMOUS;
 	void *buff = mmap(nullptr, size, PROT_READ | PROT_WRITE, flags, -1, 0);
 	if(buff == MAP_FAILED) [[unlikely]]
 	{
-		logErr("error in mmap");
+		log.error("error in mmap");
 		return nullptr;
 	}
 	return buff;
@@ -66,7 +67,7 @@ void freeVMem(void *vMemPtr, size_t size)
 		return;
 	if(munmap(vMemPtr, size) == -1)
 	{
-		logWarn("error in unmap");
+		log.warn("error in unmap");
 	}
 }
 
@@ -87,7 +88,7 @@ void *allocMirroredBuffer(size_t size)
 	auto mirror = mremap(buff, 0, size, MREMAP_MAYMOVE | MREMAP_FIXED, buff + size);
 	if(mirror == MAP_FAILED) [[unlikely]]
 	{
-		logErr("error in mremap");
+		log.error("error in mremap");
 		freeMirroredBuffer(buff, size);
 		return nullptr;
 	}

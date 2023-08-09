@@ -91,15 +91,16 @@ public:
 
 	constexpr static bool callAndReturnBool(auto &f, auto &&...args)
 	{
-		return f(IG_forward(args)...);
-	}
-
-	// auto-return true if the supplied function doesn't return a value
-	constexpr static bool callAndReturnBool(auto &f, auto &&...args)
-		requires VoidInvokeResult<decltype(f), decltype(args)...>
-	{
-		f(IG_forward(args)...);
-		return true;
+		if constexpr(VoidInvokeResult<decltype(f), decltype(args)...>)
+		{
+			// auto-return true if the supplied function doesn't return a value
+			f(IG_forward(args)...);
+			return true;
+		}
+		else
+		{
+			return f(IG_forward(args)...);
+		}
 	}
 };
 

@@ -11,9 +11,7 @@ makefilesToRun='
 	
 	src/libarchive/ios-x86.mk
 	
-	src/minizip/ios-x86.mk
-	
-	src/boost/ios-x86.mk
+	src/libcxx/ios-x86.mk
 '
 
 source runMakefiles.sh

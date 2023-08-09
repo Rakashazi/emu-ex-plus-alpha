@@ -75,8 +75,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionOverlayEffectLevel,
 		optionFontSize,
 		optionPauseUnfocused,
-		optionEmuOrientation,
-		optionMenuOrientation,
 		optionConfirmOverwriteState,
 		optionFrameInterval,
 		optionNotificationIcon,
@@ -98,6 +96,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 	std::apply([&](auto &...opt){ (writeOptionValue(io, opt), ...); }, cfgFileOptions);
 
 	writeRecentContent(io);
+	writeOptionValueIfNotDefault(io, CFGKEY_GAME_ORIENTATION, optionEmuOrientation, Orientations{});
+	writeOptionValueIfNotDefault(io, CFGKEY_MENU_ORIENTATION, optionMenuOrientation, Orientations{});
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
 	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager().soloMixOption());
@@ -217,8 +217,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_LAST_DIR:
 					return readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){setContentSearchPath(path);});
 				case CFGKEY_FONT_Y_SIZE: return optionFontSize.readFromIO(io, size);
-				case CFGKEY_GAME_ORIENTATION: return optionEmuOrientation.readFromIO(io, size);
-				case CFGKEY_MENU_ORIENTATION: return optionMenuOrientation.readFromIO(io, size);
+				case CFGKEY_GAME_ORIENTATION: return readOptionValue(io, size, optionEmuOrientation);
+				case CFGKEY_MENU_ORIENTATION: return readOptionValue(io, size, optionMenuOrientation);
 				case CFGKEY_GAME_IMG_FILTER: return optionImgFilter.readFromIO(io, size);
 				case CFGKEY_IMAGE_ZOOM: return optionImageZoom.readFromIO(io, size);
 				case CFGKEY_VIEWPORT_ZOOM: return optionViewportZoom.readFromIO(io, size);

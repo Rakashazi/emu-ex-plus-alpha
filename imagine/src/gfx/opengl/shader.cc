@@ -97,7 +97,7 @@ void destroyGLProgram(RendererTask &rTask, NativeProgram p)
 }
 
 Program::Program(RendererTask &rTask, NativeShader vShader, NativeShader fShader,
-	ProgramFlagsMask flagsMask, std::span<UniformLocationDesc> uniformDescs)
+	ProgramFlags flags, std::span<UniformLocationDesc> uniformDescs)
 {
 	GLuint programOut{};
 	rTask.runSync(
@@ -111,7 +111,7 @@ Program::Program(RendererTask &rTask, NativeShader vShader, NativeShader fShader
 				{
 					glBindAttribLocation(program, VATTR_POS, "pos");
 				}, "glBindAttribLocation(..., pos)");
-			if(to_underlying(flagsMask & ProgramFlagsMask::HAS_COLOR))
+			if(flags.hasColor)
 			{
 				runGLChecked(
 					[&]()
@@ -119,7 +119,7 @@ Program::Program(RendererTask &rTask, NativeShader vShader, NativeShader fShader
 						glBindAttribLocation(program, VATTR_COLOR, "color");
 					}, "glBindAttribLocation(..., color)");
 			}
-			if(to_underlying(flagsMask & ProgramFlagsMask::HAS_TEXTURE))
+			if(flags.hasTexture)
 			{
 				runGLChecked(
 					[&]()
