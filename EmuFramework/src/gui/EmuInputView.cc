@@ -145,9 +145,9 @@ void EmuInputView::setSystemGestureExclusion(bool on)
 	{
 		auto rectsSize = vController->deviceElements().size();
 		WRect rects[rectsSize];
-		for(int i = 0; const auto &e : vController->deviceElements())
+		for(auto &&[i, e] : enumerate(vController->deviceElements()))
 		{
-			rects[i++] = e.realBounds();
+			rects[i] = e.realBounds();
 		}
 		window().setSystemGestureExclusionRects({rects, rectsSize});
 	}

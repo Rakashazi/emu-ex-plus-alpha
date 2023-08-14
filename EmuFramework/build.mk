@@ -17,6 +17,7 @@ InputDeviceData.cc \
 KeyConfig.cc \
 OutputTimingManager.cc \
 pathUtils.cc \
+ToggleInput.cc \
 TurboInput.cc \
 VideoImageEffect.cc \
 VideoImageOverlay.cc \

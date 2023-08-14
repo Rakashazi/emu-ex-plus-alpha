@@ -87,7 +87,8 @@ public:
 		config{.keys{keys[0], keys[1], keys[2], keys[3]}} {}
 	constexpr VControllerDPad(const Config &config): config{config} {}
 	void setImage(Gfx::TextureSpan);
-	void draw(Gfx::RendererCommands &__restrict__) const;
+	void drawButtons(Gfx::RendererCommands &__restrict__) const;
+	void drawBounds(Gfx::RendererCommands &__restrict__) const;
 	void setShowBounds(Gfx::Renderer &r, bool on);
 	bool showBounds() const { return config.visualizeBounds; }
 	std::array<KeyInfo, 2> getInput(WPt c) const;
@@ -191,6 +192,12 @@ public:
 	bool overlaps(WPt windowPos) const { return enabled && realBounds().overlaps(windowPos); }
 	void setAlpha(float alpha);
 
+	void updateColor(Gfx::Color c, float alpha)
+	{
+		color = c;
+		setAlpha(alpha);
+	}
+
 protected:
 	Gfx::LitSprite spr;
 	WRect bounds_{};
@@ -244,7 +251,8 @@ public:
 	WRect realBounds() const { return bounds() + paddingRect(); }
 	int rows() const;
 	std::array<KeyInfo, 2> findButtonIndices(WPt windowPos) const;
-	void draw(Gfx::RendererCommands &__restrict__) const;
+	void drawButtons(Gfx::RendererCommands &__restrict__) const;
+	void drawBounds(Gfx::RendererCommands &__restrict__) const;
 	std::string name(const EmuApp &) const;
 	void updateMeasurements(const Window &win);
 	void transposeKeysForPlayer(const EmuApp &, int player);
@@ -273,8 +281,6 @@ protected:
 	int spacingPixels{};
 	int16_t btnStagger{};
 	int16_t btnRowShift{};
-
-	void drawButtons(Gfx::RendererCommands &__restrict__) const;
 public:
 	LayoutConfig layout{};
 };
@@ -305,7 +311,7 @@ public:
 	auto bounds() const { return bounds_; }
 	WRect realBounds() const { return bounds(); }
 	int rows() const;
-	void draw(Gfx::RendererCommands &__restrict__) const;
+	void drawButtons(Gfx::RendererCommands &__restrict__) const;
 	std::string name(const EmuApp &) const;
 	void setAlpha(float alpha) { for(auto &b : buttons) { b.setAlpha(alpha); } }
 
@@ -362,11 +368,30 @@ public:
 		return state == VControllerState::SHOWN || (showHidden && state != VControllerState::OFF);
 	}
 
-	void draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden) const
+	void drawButtons(Gfx::RendererCommands &__restrict__ cmds, bool showHidden) const
 	{
 		if(!shouldDraw(state, showHidden))
 			return;
-		visit([&](auto &e){ e.draw(cmds); }, *this);
+		visit([&](auto &e){ e.drawButtons(cmds); }, *this);
+	}
+
+	void drawBounds(Gfx::RendererCommands &__restrict__ cmds, bool showHidden) const
+	{
+		if(!shouldDraw(state, showHidden))
+			return;
+		visit([&](auto &e)
+		{
+			if constexpr(requires {e.drawBounds(cmds);})
+			{
+				e.drawBounds(cmds);
+			}
+		}, *this);
+	}
+
+	void draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden) const
+	{
+		drawBounds(cmds, showHidden);
+		drawButtons(cmds, showHidden);
 	}
 
 	void place(WRect viewBounds, WRect windowBounds, int layoutIdx)
@@ -495,7 +520,9 @@ public:
 	int yMMSizeToPixel(const Window &win, float mm) const;
 	void setInputPlayer(int8_t player);
 	auto inputPlayer() const { return inputPlayer_; }
+	bool keyIsEnabled(KeyInfo) const;
 	void setDisabledInputKeys(std::span<const KeyCode> keys);
+	void updateEnabledButtons(VControllerButtonGroup &) const;
 	void updateKeyboardMapping();
 	void updateTextures();
 	void resetInput();
@@ -569,6 +596,7 @@ private:
 	VControllerKeyboard kb{};
 	std::vector<VControllerElement> gpElements{};
 	std::vector<VControllerElement> uiElements{};
+	std::span<const KeyCode> disabledKeys{};
 	float alphaF{};
 	Input::DragTracker<std::array<KeyInfo, 2>> dragTracker{};
 	int16_t defaultButtonSize{};

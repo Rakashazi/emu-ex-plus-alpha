@@ -244,8 +244,12 @@ std::string InputManager::toString(KeyInfo k) const
 		s += " + ";
 		s += toString(c, k.flags);
 	}
-	if(k.flags.turbo)
+	if(k.flags.turbo && k.flags.toggle)
+		s += " (Turbo Toggle)";
+	else if(k.flags.turbo)
 		s += " (Turbo)";
+	else if(k.flags.toggle)
+		s += " (Toggle)";
 	return s;
 }
 
@@ -293,7 +297,7 @@ const KeyCategory *InputManager::categoryOfKeyCode(KeyInfo key) const
 		return &appKeyCategory;
 	for(const auto &cat : EmuApp::keyCategories())
 	{
-		if(contains(cat.keys, key))
+		if(containsIf(cat.keys, [&](auto &k) { return k.codes == key.codes; }))
 			return &cat;
 	}
 	return {};

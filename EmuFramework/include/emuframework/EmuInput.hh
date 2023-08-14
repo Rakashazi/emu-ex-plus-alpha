@@ -18,6 +18,7 @@
 #include <emuframework/config.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/TurboInput.hh>
+#include <emuframework/ToggleInput.hh>
 #include <emuframework/inputDefs.hh>
 #include <imagine/input/Input.hh>
 #include <string>
@@ -145,6 +146,7 @@ public:
 	std::vector<std::unique_ptr<KeyConfig>> customKeyConfigs;
 	std::vector<std::unique_ptr<InputDeviceSavedConfig>> savedInputDevs;
 	TurboInput turboActions;
+	ToggleInput toggleInput;
 	DelegateFunc<void ()> onUpdateDevices;
 	bool turboModifierActive{};
 

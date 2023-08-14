@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of EmuFramework.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,24 +13,33 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/inputDefs.hh>
-#include <imagine/util/container/ArrayList.hh>
+#include <emuframework/ToggleInput.hh>
+#include <emuframework/EmuApp.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
-class EmuApp;
+constexpr SystemLogger log{"ToggleInput"};
 
-struct TurboInput
+void ToggleInput::updateEvent(EmuApp &app, KeyInfo key, Input::Action act)
 {
-	StaticArrayList<KeyInfo, 5> keys;
-	int clock{};
-
-	constexpr TurboInput() = default;
-	void addEvent(KeyInfo);
-	void removeEvent(KeyInfo);
-	void updateEvent(EmuApp &, KeyInfo, Input::Action);
-	void update(EmuApp &);
-};
+	if(act != Input::Action::PUSHED)
+		return;
+	key.flags.toggle = 0;
+	if(!contains(keys, key))
+	{
+		if(keys.tryPushBack(key))
+		{
+			log.info("added event action {}", key.codes[0]);
+			app.handleSystemKeyInput(key, Input::Action::PUSHED);
+		}
+	}
+	else if(erase(keys, key))
+	{
+		log.info("removed event action {}", key.codes[0]);
+		app.handleSystemKeyInput(key, Input::Action::RELEASED);
+	}
+}
 
 }

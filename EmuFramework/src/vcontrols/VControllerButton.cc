@@ -70,8 +70,12 @@ void VControllerButton::setAlpha(float alpha)
 	}
 	else
 	{
-		if(key.flags.turbo)
+		if(key.flags.turbo && key.flags.toggle)
+			spriteColor = Gfx::Color{alpha * 2.f, alpha * 2.f, alpha, alpha}.multiplyRGB(brightness);
+		else if(key.flags.turbo)
 			spriteColor = Gfx::Color{alpha * 2.f, alpha, alpha, alpha}.multiplyRGB(brightness);
+		else if(key.flags.toggle)
+			spriteColor = Gfx::Color{alpha, alpha * 2.f, alpha, alpha}.multiplyRGB(brightness);
 		else
 			spriteColor = Gfx::Color{alpha}.multiplyRGB(brightness);
 	}

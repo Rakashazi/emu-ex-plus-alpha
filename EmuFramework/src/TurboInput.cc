@@ -15,9 +15,12 @@
 
 #include <emuframework/TurboInput.hh>
 #include <emuframework/EmuApp.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"TurboInput"};
 
 void TurboInput::addEvent(KeyInfo key)
 {
@@ -26,7 +29,7 @@ void TurboInput::addEvent(KeyInfo key)
 		clock = 0; // Reset the clock so new turbo event takes effect next frame
 	if(keys.tryPushBack(key))
 	{
-		logMsg("added turbo event action %d", key.codes[0]);
+		log.info("added event action {}", key.codes[0]);
 	}
 }
 
@@ -35,7 +38,7 @@ void TurboInput::removeEvent(KeyInfo key)
 	key.flags.turbo = 0;
 	if(erase(keys, key))
 	{
-		logMsg("removed turbo event action %d", key.codes[0]);
+		log.info("removed event action {}", key.codes[0]);
 	}
 }
 
@@ -60,12 +63,10 @@ void TurboInput::update(EmuApp &app)
 	{
 		if(clock == 0)
 		{
-			//logMsg("turbo push for player %d, action %d", e.player, e.action);
 			app.handleSystemKeyInput(k, Input::Action::PUSHED);
 		}
 		else if(clock == turboFrames/2)
 		{
-			//logMsg("turbo release for player %d, action %d", e.player, e.action);
 			app.handleSystemKeyInput(k, Input::Action::RELEASED);
 		}
 	}

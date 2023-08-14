@@ -93,6 +93,7 @@ struct InputAction
 	uint32_t metaState{};
 
 	constexpr bool isPushed() const { return state == Input::Action::PUSHED; }
+	constexpr operator KeyInfo() const { return {code, flags}; }
 };
 
 enum class InputComponent : uint8_t

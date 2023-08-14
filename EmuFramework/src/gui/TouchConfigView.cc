@@ -310,7 +310,10 @@ public:
 							[this, k](View &parentView)
 							{
 								btn.key = k;
+								btn.enabled = vCtrl.keyIsEnabled(k);
 								key.set2ndName(app().inputManager.toString(k));
+								turbo.setBoolValue(k.flags.turbo, *this);
+								toggle.setBoolValue(k.flags.toggle, *this);
 								vCtrl.update(elem);
 								onChange.callSafe();
 								vCtrl.place();
@@ -319,6 +322,30 @@ public:
 					}
 				});
 				pushAndShow(std::move(multiChoiceView), e);
+			}
+		},
+		turbo
+		{
+			"Turbo", &defaultFace(),
+			bool(btn_.key.flags.turbo),
+			[this](BoolMenuItem &item)
+			{
+				btn.key.flags.turbo = item.flipBoolValue(*this);
+				key.set2ndName(app().inputManager.toString(btn.key));
+				key.compile2nd(renderer());
+				onChange.callSafe();
+			}
+		},
+		toggle
+		{
+			"Toggle", &defaultFace(),
+			bool(btn_.key.flags.toggle),
+			[this](BoolMenuItem &item)
+			{
+				btn.key.flags.toggle = item.flipBoolValue(*this);
+				key.set2ndName(app().inputManager.toString(btn.key));
+				key.compile2nd(renderer());
+				onChange.callSafe();
 			}
 		},
 		remove
@@ -338,7 +365,10 @@ public:
 						}
 					}), e);
 			}
-		} {}
+		}
+	{
+		reloadItems();
+	}
 
 private:
 	VController &vCtrl;
@@ -346,8 +376,22 @@ private:
 	VControllerButton &btn;
 	OnChange onChange;
 	DualTextMenuItem key;
+	BoolMenuItem turbo;
+	BoolMenuItem toggle;
 	TextMenuItem remove;
-	std::array<MenuItem*, 2> item{&key, &remove};
+	std::vector<MenuItem*> item;
+
+	void reloadItems()
+	{
+		item.clear();
+		item.emplace_back(&key);
+		if(!btn.key.flags.appCode)
+		{
+			item.emplace_back(&turbo);
+			item.emplace_back(&toggle);
+		}
+		item.emplace_back(&remove);
+	}
 };
 
 class ButtonGroupElementConfigView : public TableView, public EmuAppHelper<ButtonGroupElementConfigView>

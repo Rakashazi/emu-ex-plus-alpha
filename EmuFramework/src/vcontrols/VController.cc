@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "VController"
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/AppKeyCode.hh>
@@ -30,11 +29,12 @@
 namespace EmuEx
 {
 
-static constexpr uint8_t DEFAULT_ALPHA = 255. * .5;
+constexpr SystemLogger log{"VController"};
+constexpr uint8_t defaultAlpha = 255. * .5;
 
 VController::VController(IG::ApplicationContext ctx):
 	appCtx{ctx},
-	alphaF{DEFAULT_ALPHA / 255.},
+	alphaF{defaultAlpha / 255.},
 	defaultButtonSize
 	{
 		#ifdef CONFIG_BASE_IOS
@@ -44,7 +44,7 @@ VController::VController(IG::ApplicationContext ctx):
 		#endif
 	},
 	btnSize{defaultButtonSize},
-	alpha{DEFAULT_ALPHA}
+	alpha{defaultAlpha}
 {
 	// set dummy buttons to indicate uninitialized state
 	gpElements.emplace_back(std::in_place_type<VControllerButtonGroup>);
@@ -157,11 +157,11 @@ void VController::updateAltSpeedModeInput(AltSpeedMode mode, bool on)
 		{
 			if(b.key.codes[0] == KeyCode(AppKeyCode::fastForward) || b.key.codes[0] == KeyCode(AppKeyCode::toggleFastForward))
 			{
-				b.color = on && mode == AltSpeedMode::fast ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{};
+				b.updateColor(on && mode == AltSpeedMode::fast ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{}, alphaF);
 			}
 			else if(b.key.codes[0] == KeyCode(AppKeyCode::slowMotion) || b.key.codes[0] == KeyCode(AppKeyCode::toggleSlowMotion))
 			{
-				b.color = on && mode == AltSpeedMode::slow ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{};
+				b.updateColor(on && mode == AltSpeedMode::slow ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{}, alphaF);
 			}
 		}
 	}
@@ -190,7 +190,7 @@ void VController::place()
 
 void VController::toggleKeyboard()
 {
-	logMsg("toggling keyboard");
+	log.info("toggling keyboard");
 	resetInput();
 	kbMode ^= true;
 	system().onVKeyboardShown(kb, kbMode);
@@ -236,14 +236,14 @@ KeyInfo VController::keyboardKeyFromPointer(const Input::MotionEvent &e)
 	{
 		if(!e.pushed())
 			return {};
-		logMsg("dismiss kb");
+		log.info("dismiss kb");
 		toggleKeyboard();
 	}
 	else if(kb.translateInput(kbIdx) == CHANGE_KEYBOARD_MODE)
 	{
 		if(!e.pushed())
 			return {};
-		logMsg("switch kb mode");
+		log.info("switch kb mode");
 		kb.cycleMode(system(), renderer());
 		resetInput();
 	}
@@ -292,7 +292,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 			{
 				if(vBtn && !contains(currElements, vBtn))
 				{
-					//logMsg("releasing %d", vBtn[0]);
+					//log.info("releasing {}", vBtn[0]);
 					app().handleSystemKeyInput(vBtn, Input::Action::RELEASED);
 				}
 			}
@@ -301,7 +301,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 			{
 				if(vBtn && !contains(prevElements, vBtn))
 				{
-					//logMsg("pushing %d", vBtn[0]);
+					//log.info("pushing {}", vBtn[0]);
 					app().handleSystemKeyInput(vBtn, Input::Action::PUSHED);
 					if(vibrateOnTouchInput())
 					{
@@ -337,7 +337,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 	 if(!elementsArePushed && !gamepadControlsVisible() && shouldShowOnTouchInput()
 			&& !isInKeyboardMode() && e.isTouch() && e.pushed()) [[unlikely]]
 		{
-			logMsg("turning on on-screen controls from touch input");
+			log.info("turning on on-screen controls from touch input");
 			setGamepadControlsVisible(true);
 			app().viewController().placeEmuViews();
 		}
@@ -363,18 +363,18 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 	}
 	else if(gamepadIsVisible || showHidden)
 	{
-		for(const auto &e : gpElements)
+		auto elementIsEnabled = [&](const VControllerElement &e)
 		{
-			if(e.buttonGroup() && gamepadDisabledFlags & VController::GAMEPAD_BUTTONS_BIT)
-				continue;
-			if(e.dPad() && gamepadDisabledFlags & VController::GAMEPAD_DPAD_BIT)
-				continue;
-			e.draw(cmds, showHidden);
-		}
+			return !((e.buttonGroup() && gamepadDisabledFlags & VController::GAMEPAD_BUTTONS_BIT) ||
+				(e.dPad() && gamepadDisabledFlags & VController::GAMEPAD_DPAD_BIT));
+		};
+		auto activeElements = gpElements | std::views::filter(elementIsEnabled);
+		for(const auto &e : activeElements) { e.drawBounds(cmds, showHidden); }
+		for(const auto &e : activeElements) { e.drawButtons(cmds, showHidden); }
 	}
 	for(auto &e : uiElements)
 	{
-		e.draw(cmds, showHidden);
+		e.drawButtons(cmds, showHidden);
 	}
 }
 
@@ -392,23 +392,33 @@ void VController::setInputPlayer(int8_t player)
 	}
 }
 
-void VController::setDisabledInputKeys(std::span<const KeyCode> disabledKeys)
+bool VController::keyIsEnabled(KeyInfo k) const
 {
+	if(!disabledKeys.size())
+		return true;
+	return !contains(disabledKeys, k.codes[0])
+		&& !contains(disabledKeys, k.codes[1])
+		&& !contains(disabledKeys, k.codes[2]);
+}
+
+void VController::setDisabledInputKeys(std::span<const KeyCode> disabledKeys_)
+{
+	disabledKeys = disabledKeys_;
 	for(auto &e : gpElements)
 	{
 		visit(overloaded
 		{
-			[&](VControllerButtonGroup &grp)
-			{
-				for(auto &btn : grp.buttons)
-					btn.enabled = !contains(disabledKeys, btn.key.codes[0])
-						&& !contains(disabledKeys, btn.key.codes[1])
-						&& !contains(disabledKeys, btn.key.codes[2]);
-			},
+			[&](VControllerButtonGroup &grp) { updateEnabledButtons(grp); },
 			[](auto &e){}
 		}, e);
 	}
 	place();
+}
+
+void VController::updateEnabledButtons(VControllerButtonGroup &grp) const
+{
+	for(auto &btn : grp.buttons)
+		btn.enabled = keyIsEnabled(btn.key);
 }
 
 void VController::updateKeyboardMapping()
@@ -518,7 +528,7 @@ void VController::setPhysicalControlsPresent(bool present)
 {
 	if(present != physicalControlsPresent)
 	{
-		logMsg("Physical controls present:%s", present ? "y" : "n");
+		log.info("Physical controls present:{}", present ? "y" : "n");
 	}
 	physicalControlsPresent = present;
 	updateAutoOnScreenControlVisible();
@@ -530,13 +540,13 @@ bool VController::updateAutoOnScreenControlVisible()
 	{
 		if(gamepadIsVisible && physicalControlsPresent)
 		{
-			logMsg("auto-turning off on-screen controls");
+			log.info("auto-turning off on-screen controls");
 			gamepadIsVisible = false;
 			return true;
 		}
 		else if(!gamepadIsVisible && !physicalControlsPresent)
 		{
-			logMsg("auto-turning on on-screen controls");
+			log.info("auto-turning on on-screen controls");
 			gamepadIsVisible = true;
 			return true;
 		}
@@ -591,7 +601,7 @@ static bool readVControllerElement(EmuApp &app, MapIO &io, std::vector<VControll
 	}
 	else
 	{
-		logErr("bad VControllerElement type from config");
+		log.error("bad VControllerElement type from config");
 		elems.clear();
 		if(readingUIElems)
 			elems.emplace_back(std::in_place_type<VControllerUIButtonGroup>);
@@ -635,7 +645,7 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key, size_t size)
 			auto emuDeviceId = io.get<uint8_t>(); // reserved for future use
 			auto configId = io.get<uint8_t>(); // reserved for future use
 			auto elements = io.get<uint8_t>();
-			logMsg("read emu device button data (%zu bytes) with %u element(s)", size, elements);
+			log.info("read emu device button data ({} bytes) with {} element(s)", size, elements);
 			for(auto i : iotaCount(elements))
 			{
 				if(!readVControllerElement(app, io, gpElements, false))
@@ -648,7 +658,7 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key, size_t size)
 			uiElements.clear();
 			auto configId = io.get<uint8_t>(); // reserved for future use
 			auto elements = io.get<uint8_t>();
-			logMsg("read UI button data (%zu bytes) with %u element(s)", size, elements);
+			log.info("read UI button data ({} bytes) with {} element(s)", size, elements);
 			for(auto i : iotaCount(elements))
 			{
 				if(!readVControllerElement(app, io, uiElements, true))
@@ -723,7 +733,7 @@ void VController::writeDeviceButtonsConfig(FileIO &io) const
 	auto bytes = configDataSizeBytes(gpElements, false);
 	if(bytes > std::numeric_limits<uint16_t>::max())
 	{
-		logErr("device button data bytes:%zu too large, skipped writing to config", bytes);
+		log.error("device button data bytes:{} too large, skipped writing to config", bytes);
 		return;
 	}
 	io.put(uint16_t(bytes));
@@ -731,7 +741,7 @@ void VController::writeDeviceButtonsConfig(FileIO &io) const
 	io.put(int8_t(0));
 	io.put(int8_t(0));
 	io.put(uint8_t(std::min(gpElements.size(), 255zu)));
-	logMsg("wrote emu device button data (%zu bytes) with %zu element(s)", bytes, gpElements.size());
+	log.info("wrote emu device button data ({} bytes) with {} element(s)", bytes, gpElements.size());
 	for(const auto &e : gpElements) { writeToConfig(e, io); }
 }
 
@@ -740,20 +750,20 @@ void VController::writeUIButtonsConfig(FileIO &io) const
 	auto bytes = configDataSizeBytes(uiElements, true);
 	if(bytes > std::numeric_limits<uint16_t>::max())
 	{
-		logErr("UI button data bytes:%zu too large, skipped writing to config", bytes);
+		log.error("UI button data bytes:{} too large, skipped writing to config", bytes);
 		return;
 	}
 	io.put(uint16_t(bytes));
 	io.put(uint16_t(CFGKEY_VCONTROLLER_UI_BUTTONS_V2));
 	io.put(int8_t(0));
 	io.put(uint8_t(std::min(uiElements.size(), 255zu)));
-	logMsg("wrote UI button data (%zu bytes) with %zu element(s)", bytes, uiElements.size());
+	log.info("wrote UI button data ({} bytes) with {} element(s)", bytes, uiElements.size());
 	for(const auto &e : uiElements) { writeToConfig(e, io); }
 }
 
 void VController::writeConfig(FileIO &io) const
 {
-	if(buttonAlpha() != DEFAULT_ALPHA)
+	if(buttonAlpha() != defaultAlpha)
 		writeOptionValue(io, CFGKEY_TOUCH_CONTROL_ALPHA, buttonAlpha());
 	if(buttonSize() != defaultButtonSize)
 		writeOptionValue(io, CFGKEY_TOUCH_CONTROL_SIZE, buttonSize());
@@ -776,7 +786,11 @@ void VController::configure(IG::Window &win, Gfx::Renderer &renderer, const Gfx:
 	setRenderer(renderer);
 	setFace(face);
 	for(auto &e : uiElements) { update(e); };
-	for(auto &e : gpElements) { update(e); };
+	for(auto &e : gpElements)
+	{
+		update(e);
+		if(e.dPad()) e.dPad()->updateBoundingAreaGfx(renderer);
+	};
 	if(uiElements.size() && uiElements[0].layoutPos[0].pos.x == -1)
 		resetUIGroups();
 	if(gpElements.size() && gpElements[0].layoutPos[0].pos.x == -1)
@@ -787,7 +801,7 @@ void VController::configure(IG::Window &win, Gfx::Renderer &renderer, const Gfx:
 void VController::resetEmulatedDevicePositions(std::vector<VControllerElement> &gpElements) const
 {
 	auto &win = window();
-	logMsg("resetting emulated device controls to default positions");
+	log.info("resetting emulated device controls to default positions");
 	const int shortSidePadding = xMMSizeToPixel(win, 1);
 	const int longSidePadding = xMMSizeToPixel(win, 3);
 	const int yBottomPadding = xMMSizeToPixel(win, 3);
@@ -829,7 +843,7 @@ void VController::resetEmulatedDevicePositions() { resetEmulatedDevicePositions(
 
 void VController::resetEmulatedDeviceGroups()
 {
-	logMsg("setting default emu device button groups");
+	log.info("setting default emu device button groups");
 	gpElements = defaultEmulatedDeviceGroups();
 }
 
@@ -849,7 +863,7 @@ std::vector<VControllerElement> VController::defaultEmulatedDeviceGroups() const
 void VController::resetUIPositions(std::vector<VControllerElement> &uiElements) const
 {
 	auto &win = window();
-	logMsg("resetting UI controls to default positions");
+	log.info("resetting UI controls to default positions");
 	const auto sidePadding = xMMSizeToPixel(win, 2);
 	const int yTop = win.contentBounds().y;
 	for(int leftY{yTop}, rightY{yTop}; auto &e : uiElements)
@@ -869,7 +883,7 @@ void VController::resetUIPositions() { resetUIPositions(uiElements); }
 
 void VController::resetUIGroups()
 {
-	logMsg("setting default UI button groups");
+	log.info("setting default UI button groups");
 	uiElements = defaultUIGroups();
 }
 
@@ -949,14 +963,17 @@ VControllerElement &VController::add(std::vector<VControllerElement> &elems, Inp
 				return elems.emplace_back(std::in_place_type<VControllerDPad>, std::span<const KeyInfo, 4>{c.keyCodes.data(), 4});
 			case InputComponent::button:
 			case InputComponent::trigger:
-				return elems.emplace_back(std::in_place_type<VControllerButtonGroup>, c.keyCodes, c.layoutOrigin, rowSize(c));
+			{
+				auto &e = elems.emplace_back(std::in_place_type<VControllerButtonGroup>, c.keyCodes, c.layoutOrigin, rowSize(c));
+				auto &grp = *e.buttonGroup();
+				updateEnabledButtons(grp);
+				if(to_underlying(c.flags & InputComponentFlagsMask::staggeredLayout))
+					grp.setStaggerType(5);
+				return e;
+			}
 		}
 		bug_unreachable("invalid InputComponent");
 	}();
-	if(to_underlying(c.flags & InputComponentFlagsMask::staggeredLayout) && elem.buttonGroup())
-	{
-		elem.buttonGroup()->setStaggerType(5);
-	}
 	if(hasWindow())
 	{
 		auto layoutPos = VControllerLayoutPosition::fromPixelPos(layoutBounds().center(), elem.bounds().size(), window().bounds());
@@ -995,6 +1012,12 @@ void VController::updateSystemKeys(KeyInfo key, bool isPushed)
 {
 	if(!highlightPushedButtons)
 		return;
+	auto stripFlags = [](KeyInfo k)
+	{
+		k.flags.turbo = 0;
+		k.flags.toggle = 0;
+		return k;
+	};
 	for(auto &e : gpElements)
 	{
 		visit(overloaded
@@ -1003,7 +1026,7 @@ void VController::updateSystemKeys(KeyInfo key, bool isPushed)
 			{
 				for(auto &btn : grp.buttons)
 				{
-					if(btn.key == key)
+					if(stripFlags(btn.key) == key)
 					{
 						btn.isHighlighted = isPushed;
 						btn.setAlpha(alphaF);
@@ -1015,7 +1038,7 @@ void VController::updateSystemKeys(KeyInfo key, bool isPushed)
 				bool didUpdate{};
 				for(auto &&[i, k] : enumerate(dpad.config.keys))
 				{
-					if(k == key)
+					if(stripFlags(k) == key)
 					{
 						dpad.isHighlighted[i] = isPushed;
 						didUpdate = true;

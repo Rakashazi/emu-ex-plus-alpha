@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "VControllerGamepad"
 #include <emuframework/VController.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
@@ -28,6 +27,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"VControllerGamepad"};
+
 void VControllerDPad::setImage(Gfx::TextureSpan img)
 {
 	spr.set(img);
@@ -35,25 +36,24 @@ void VControllerDPad::setImage(Gfx::TextureSpan img)
 
 void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
 {
-	if(config.visualizeBounds && padArea.xSize())
-	{
-		MemPixmap mapMemPix{{padArea.size(), PIXEL_FMT_RGB565}};
-		auto mapPix = mapMemPix.view();
-		auto pixels = mapPix.mdspan<uint16_t>();
-		for(auto y : iotaCount(pixels.extent(0)))
-			for(auto x : iotaCount(pixels.extent(1)))
-			{
-				auto input = getInput({padArea.xPos(LT2DO) + int(x), padArea.yPos(LT2DO) + int(y)});
-				//logMsg("got input %d", input);
-				pixels[y, x] = input == std::array<KeyInfo, 2>{} ? PIXEL_DESC_RGB565.build(1., 0., 0.)
-										: (input[0] && input[1]) ? PIXEL_DESC_RGB565.build(0., 1., 0.)
-										: PIXEL_DESC_RGB565.build(1., 1., 1.);
-			}
-		mapImg = r.makeTexture({mapPix.desc(), View::imageSamplerConfig});
-		mapImg.write(0, mapPix, {});
-		mapSpr.set(mapImg);
-		mapSpr.setPos(padArea);
-	}
+	if(!config.visualizeBounds || !padArea.xSize())
+		return;
+	MemPixmap mapMemPix{{padArea.size(), PIXEL_FMT_RGB565}};
+	auto mapPix = mapMemPix.view();
+	auto pixels = mapPix.mdspan<uint16_t>();
+	for(auto y : iotaCount(pixels.extent(0)))
+		for(auto x : iotaCount(pixels.extent(1)))
+		{
+			auto input = getInput({padArea.xPos(LT2DO) + int(x), padArea.yPos(LT2DO) + int(y)});
+			//log.info("got input {}", input);
+			pixels[y, x] = input == std::array<KeyInfo, 2>{} ? PIXEL_DESC_RGB565.build(1., 0., 0.)
+									: (input[0] && input[1]) ? PIXEL_DESC_RGB565.build(0., 1., 0.)
+									: PIXEL_DESC_RGB565.build(1., 1., 1.);
+		}
+	mapImg = r.makeTexture({mapPix.desc(), View::imageSamplerConfig});
+	mapImg.write(0, mapPix, {});
+	mapSpr.set(mapImg);
+	mapSpr.setPos(padArea);
 }
 
 static bool isValidDeadzone(int val) { return val >= 100 && val <= 300; }
@@ -78,7 +78,7 @@ bool VControllerDPad::setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonal
 		return false;
 	if(config.diagonalSensitivity == newDiagonalSensitivity)
 		return true;
-	logMsg("set diagonal sensitivity: %f", (double)newDiagonalSensitivity);
+	log.info("set diagonal sensitivity: {}", (double)newDiagonalSensitivity);
 	config.diagonalSensitivity = newDiagonalSensitivity;
 	updateBoundingAreaGfx(r);
 	return true;
@@ -86,17 +86,14 @@ bool VControllerDPad::setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonal
 
 void VControllerDPad::setSize(Gfx::Renderer &r, int sizeInPixels)
 {
-	//logMsg("set dpad pixel size: %d", sizeInPixels);
+	//log.info("set dpad pixel size: {}", sizeInPixels);
 	btnSizePixels = sizeInPixels;
 	auto rect = makeWindowRectRel({0, 0}, {btnSizePixels, btnSizePixels});
 	bool changedSize = rect.xSize() != padBaseArea.xSize();
 	padBaseArea = rect;
 	padArea = {{}, {int(padBaseArea.xSize() * 1.5f), int(padBaseArea.xSize() * 1.5f)}};
-	if(config.visualizeBounds)
-	{
-		if(changedSize)
-			updateBoundingAreaGfx(r);
-	}
+	if(changedSize)
+		updateBoundingAreaGfx(r);
 }
 
 void VControllerDPad::setPos(WPt pos, WRect viewBounds)
@@ -104,7 +101,7 @@ void VControllerDPad::setPos(WPt pos, WRect viewBounds)
 	padBaseArea.setPos(pos, C2DO);
 	padBaseArea.fitIn(viewBounds);
 	spr.setPos(padBaseArea);
-	//logMsg("set dpad pos %d:%d:%d:%d, %f:%f:%f:%f", padBaseArea.x, padBaseArea.y, padBaseArea.x2, padBaseArea.y2,
+	//log.info("set dpad pos {}:{}:{}:{}, {}:{}:{}:{}", padBaseArea.x, padBaseArea.y, padBaseArea.x2, padBaseArea.y2,
 	//	(double)padBase.x, (double)padBase.y, (double)padBase.x2, (double)padBase.y2);
 	padArea.setPos(padBaseArea.pos(C2DO), C2DO);
 	if(config.visualizeBounds)
@@ -120,12 +117,8 @@ void VControllerDPad::setShowBounds(Gfx::Renderer &r, bool on)
 	config.visualizeBounds = on;
 	if(!on)
 	{
-		if(mapSpr.hasTexture())
-		{
-			logMsg("deallocating bounding box display resources");
-			mapSpr = {};
-			mapImg = {};
-		}
+		log.info("deallocating bounding box display resources");
+		mapImg = {};
 	}
 	else
 	{
@@ -146,14 +139,18 @@ void VControllerDPad::transposeKeysForPlayer(const EmuApp &app, int player)
 	}
 }
 
-void VControllerDPad::draw(Gfx::RendererCommands &__restrict__ cmds) const
+void VControllerDPad::drawButtons(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	cmds.basicEffect().enableTexture(cmds);
 	spr.draw(cmds);
-	if(config.visualizeBounds)
-	{
-		mapSpr.draw(cmds);
-	}
+}
+
+void VControllerDPad::drawBounds(Gfx::RendererCommands &__restrict__ cmds) const
+{
+	cmds.basicEffect().enableTexture(cmds);
+	if(!config.visualizeBounds)
+		return;
+	mapSpr.draw(cmds);
 }
 
 std::array<KeyInfo, 2> VControllerDPad::getInput(WPt c) const
@@ -206,10 +203,7 @@ void VControllerDPad::setAlpha(float alpha)
 	if(isHighlighted[0] || isHighlighted[1])
 		colors[2] = colors[2].multiplyRGB(2.f);
 	for(auto &&[i, vtx] : enumerate(spr)) { vtx.color = colors[i]; }
-	if(config.visualizeBounds)
-	{
-		for(auto &&[i, vtx] : enumerate(mapSpr)) { vtx.color = colors[i]; }
-	}
+	for(auto &&[i, vtx] : enumerate(mapSpr)) { vtx.color = colors[i]; }
 }
 
 }

@@ -23,16 +23,12 @@ namespace EmuEx
 
 class EmuApp;
 
-struct TurboInput
+struct ToggleInput
 {
 	StaticArrayList<KeyInfo, 5> keys;
-	int clock{};
 
-	constexpr TurboInput() = default;
-	void addEvent(KeyInfo);
-	void removeEvent(KeyInfo);
+	constexpr ToggleInput() = default;
 	void updateEvent(EmuApp &, KeyInfo, Input::Action);
-	void update(EmuApp &);
 };
 
 }

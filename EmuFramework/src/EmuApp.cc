@@ -55,6 +55,7 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"App"};
 static EmuApp *gAppPtr{};
 [[gnu::weak]] bool EmuApp::hasIcon = true;
 [[gnu::weak]] bool EmuApp::needsGlobalInstance = false;
@@ -160,7 +161,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 		{
 			[&](InterProcessMessageEvent &e)
 			{
-				logMsg("got IPC path:%s", e.filename.data());
+				log.info("got IPC path:{}", e.filename);
 				system().setInitialLoadPath(e.filename);
 			},
 			[](auto &) {}
@@ -223,7 +224,7 @@ Gfx::TextureSpan EmuApp::asset(AssetDesc desc) const
 		}
 		catch(...)
 		{
-			logErr("error loading asset:%s", desc.filename());
+			log.error("error loading asset:{}", desc.filename());
 		}
 	}
 	return {&res, desc.texBounds};
@@ -315,7 +316,7 @@ static const char *parseCommandArgs(IG::CommandArgs arg)
 		return nullptr;
 	}
 	auto launchPath = arg.v[1];
-	logMsg("starting content from command line:%s", launchPath);
+	log.info("starting content from command line:{}", launchPath);
 	return launchPath;
 }
 
@@ -378,7 +379,7 @@ void EmuApp::applyRenderPixelFormat()
 		fmt = windowPixelFormat();
 	if(!EmuSystem::canRenderRGBA8888 && fmt != IG::PIXEL_RGB565)
 	{
-		logMsg("Using RGB565 render format since emulated system can't render RGBA8888");
+		log.info("Using RGB565 render format since emulated system can't render RGBA8888");
 		fmt = IG::PIXEL_RGB565;
 	}
 	emuVideoLayer.setFormat(system(), fmt, videoEffectPixelFormat(), windowDrawableConf.colorSpace);
@@ -391,7 +392,7 @@ void EmuApp::renderSystemFramebuffer(EmuVideo &video)
 		video.clear();
 		return;
 	}
-	logMsg("updating video with current framebuffer content");
+	log.info("updating video with current framebuffer content");
 	system().renderFramebuffer(video);
 }
 
@@ -410,7 +411,7 @@ void EmuApp::updateLegacySavePath(IG::ApplicationContext ctx, CStringView path)
 	auto oldSaveSubDirs = subDirectoryStrings(ctx, path);
 	if(oldSaveSubDirs.empty())
 	{
-		logMsg("no legacy save folders in:%s", path.data());
+		log.info("no legacy save folders in:{}", path);
 		return;
 	}
 	flattenSubDirectories(ctx, oldSaveSubDirs, path);
@@ -537,7 +538,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			{
 				windowFrameTimeSource = WindowFrameTimeSource::SCREEN;
 			}
-			logMsg("timestamp source:%s", windowFrameTimeSource == WindowFrameTimeSource::RENDERER ? "renderer" : "screen");
+			log.info("timestamp source:{}", windowFrameTimeSource == WindowFrameTimeSource::RENDERER ? "renderer" : "screen");
 			winData.viewController.placeElements();
 			winData.viewController.pushAndShowMainMenu(viewAttach, emuVideoLayer, emuAudio);
 			configureSecondaryScreens();
@@ -608,7 +609,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						}
 						else
 						{
-							//logDMsg("previous async frame not ready yet");
+							//log.debug("previous async frame not ready yet");
 							doIfUsed(frameTimeStats, [&](auto &stats) { stats.missedFrameCallbacks++; });
 						}
 						win.setDrawEventPriority(Window::drawEventPriorityLocked);
@@ -655,7 +656,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					},
 					[&](DragDropEvent &e)
 					{
-						logMsg("got DnD: %s", e.filename.data());
+						log.info("got DnD:{}", e.filename);
 						handleOpenFileCommand(e.filename);
 						return true;
 					},
@@ -677,20 +678,20 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				{
 					[&](InterProcessMessageEvent &e)
 					{
-						logMsg("got IPC path:%s", e.filename.data());
+						log.info("got IPC path:{}", e.filename);
 						handleOpenFileCommand(e.filename);
 					},
 					[&](ScreenChangeEvent &e)
 					{
 						if(e.change == ScreenChange::added)
 						{
-							logMsg("screen added");
+							log.info("screen added");
 							if(showOnSecondScreenOption() && ctx.screens().size() > 1)
 								setEmuViewOnExtraWindow(true, e.screen);
 						}
 						else if(e.change == ScreenChange::removed)
 						{
-							logMsg("screen removed");
+							log.info("screen removed");
 							if(hasExtraWindow(appContext()) && *extraWindowScreen(appContext()) == e.screen)
 								setEmuViewOnExtraWindow(false, e.screen);
 						}
@@ -702,7 +703,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 								{
 									auto targetTime = targetFrameTime(e.screen);
 									perfHintSession.updateTargetWorkTime(targetTime);
-									logMsg("updated performance hint session with target time:%lldns", (long long)targetTime.count());
+									log.info("updated performance hint session with target time:{}", targetTime);
 								}
 								syncEmulationThread();
 								configFrameTime();
@@ -711,12 +712,12 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					},
 					[&](Input::DevicesEnumeratedEvent &)
 					{
-						logMsg("input devs enumerated");
+						log.info("input devs enumerated");
 						inputManager.updateInputDevices(ctx);
 					},
 					[&](Input::DeviceChangeEvent &e)
 					{
-						logMsg("got input dev change");
+						log.info("got input dev change");
 						inputManager.updateInputDevices(ctx);
 						if(notifyOnInputDeviceChange && (e.change == Input::DeviceChange::added || e.change == Input::DeviceChange::removed))
 						{
@@ -757,7 +758,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 								viewController().prepareDraw();
 								if(viewController().isShowingEmulation() && focused && system().isPaused())
 								{
-									logMsg("resuming emulation due to app resume");
+									log.info("resuming emulation due to app resume");
 									viewController().inputView.resetInput();
 									startEmulation();
 								}
@@ -821,7 +822,7 @@ void EmuApp::launchSystem(const Input::Event &e)
 			app.autosaveManager_.load(mode);
 			if(!app.system().hasContent())
 			{
-				logErr("system was closed while trying to load autosave");
+				log.error("system was closed while trying to load autosave");
 				return;
 			}
 			app.showEmulation();
@@ -870,7 +871,7 @@ void EmuApp::handleOpenFileCommand(CStringView path)
 	}
 	if(!IG::isUri(path) && FS::status(path).type() == FS::file_type::directory)
 	{
-		logMsg("changing to dir %s from external command", path.data());
+		log.info("changing to dir {} from external command", path);
 		showUI(false);
 		viewController().popToRoot();
 		setContentSearchPath(path);
@@ -880,7 +881,7 @@ void EmuApp::handleOpenFileCommand(CStringView path)
 			false);
 		return;
 	}
-	logMsg("opening file %s from external command", path.data());
+	log.info("opening file {} from external command", path);
 	showUI();
 	viewController().popToRoot();
 	onSelectFileFromPicker({}, path, name, Input::KeyEvent{}, {}, attachParams());
@@ -888,11 +889,11 @@ void EmuApp::handleOpenFileCommand(CStringView path)
 
 void EmuApp::runBenchmarkOneShot(EmuVideo &emuVideo)
 {
-	logMsg("starting benchmark");
+	log.info("starting benchmark");
 	auto time = system().benchmark(emuVideo);
 	autosaveManager_.resetSlot(noAutosaveName);
 	closeSystem();
-	logMsg("done in: %f", duration_cast<FloatSeconds>(time).count());
+	log.info("done in:{}", duration_cast<FloatSeconds>(time));
 	postMessage(2, 0, std::format("{:.2f} fps", 180. / time.count()));
 }
 
@@ -1007,7 +1008,7 @@ void EmuApp::reloadSystem(EmuSystemCreateParams params)
 	}
 	catch(...)
 	{
-		logErr("Error reloading system");
+		log.error("Error reloading system");
 		system().clearGamePaths();
 	}
 }
@@ -1061,7 +1062,7 @@ void EmuApp::createSystemWithMedia(IO io, CStringView path, std::string_view dis
 	IG::makeDetachedThread(
 		[this, io{std::move(io)}, pathStr = FS::PathString{path}, nameStr = FS::FileString{displayName}, &msgPort, params]() mutable
 		{
-			logMsg("starting loader thread");
+			log.info("starting loader thread");
 			try
 			{
 				system().createWithMedia(std::move(io), pathStr, nameStr, params,
@@ -1073,7 +1074,7 @@ void EmuApp::createSystemWithMedia(IO io, CStringView path, std::string_view dis
 						return true;
 					});
 				msgPort.send({EmuSystem::LoadProgress::OK, 0, 0, 0});
-				logMsg("loader thread finished");
+				log.info("loader thread finished");
 			}
 			catch(std::exception &err)
 			{
@@ -1082,11 +1083,11 @@ void EmuApp::createSystemWithMedia(IO io, CStringView path, std::string_view dis
 				auto len = errStr.size();
 				if(len > 1024)
 				{
-					logWarn("truncating long error size:%zu", len);
+					log.warn("truncating long error size:{}", len);
 					len = 1024;
 				}
 				msgPort.sendWithExtraData({EmuSystem::LoadProgress::FAILED, 0, 0, int(len)}, std::span{errStr.data(), len});
-				logErr("loader thread failed");
+				log.error("loader thread failed");
 				return;
 			}
 		});
@@ -1118,7 +1119,7 @@ bool EmuApp::saveState(CStringView path)
 		return false;
 	}
 	syncEmulationThread();
-	logMsg("saving state %s", path.data());
+	log.info("saving state {}", path);
 	try
 	{
 		system().saveState(path);
@@ -1143,7 +1144,7 @@ bool EmuApp::loadState(CStringView path)
 		postErrorMessage("System not running");
 		return false;
 	}
-	logMsg("loading state %s", path.data());
+	log.info("loading state {}", path);
 	syncEmulationThread();
 	try
 	{
@@ -1227,7 +1228,7 @@ bool EmuApp::handleAppActionKeyInput(InputAction action, const Input::Event &src
 		{
 			if(!isPushed)
 				break;
-			logMsg("show load game view from key event");
+			log.info("show load game view from key event");
 			viewController().popToRoot();
 			viewController().pushAndShow(FilePicker::forLoading(attachParams(), srcEvent), srcEvent, false);
 			return true;
@@ -1236,7 +1237,7 @@ bool EmuApp::handleAppActionKeyInput(InputAction action, const Input::Event &src
 		{
 			if(!isPushed)
 				break;
-			logMsg("show system actions view from key event");
+			log.info("show system actions view from key event");
 			showSystemActionsViewFromSystem(attachParams(), srcEvent);
 			return true;
 		}
@@ -1313,7 +1314,7 @@ bool EmuApp::handleAppActionKeyInput(InputAction action, const Input::Event &src
 		{
 			if(!isPushed)
 				break;
-			logMsg("show last view from key event");
+			log.info("show last view from key event");
 			showLastViewFromSystem(attachParams(), srcEvent);
 			return true;
 		}
@@ -1350,24 +1351,23 @@ bool EmuApp::handleAppActionKeyInput(InputAction action, const Input::Event &src
 
 void EmuApp::handleSystemKeyInput(KeyInfo keyInfo, Input::Action act, uint32_t metaState)
 {
-	for(auto code : keyInfo.codes)
+	if(inputManager.turboModifierActive && std::ranges::all_of(keyInfo.codes, allowsTurboModifier))
+		keyInfo.flags.turbo = 1;
+	if(keyInfo.flags.toggle)
 	{
-		handleSystemKeyInput({code, keyInfo.flags, act, metaState});
+		inputManager.toggleInput.updateEvent(*this, keyInfo, act);
 	}
-	defaultVController().updateSystemKeys(keyInfo, act == Input::Action::PUSHED);
-}
-
-void EmuApp::handleSystemKeyInput(InputAction action)
-{
-	if(inputManager.turboModifierActive && allowsTurboModifier(action.code))
-		action.flags.turbo = 1;
-	if(action.flags.turbo)
+	else if(keyInfo.flags.turbo)
 	{
-		inputManager.turboActions.updateEvent(*this, action.code, action.state);
+		inputManager.turboActions.updateEvent(*this, keyInfo, act);
 	}
 	else
 	{
-		system().handleInputAction(this, action);
+		for(auto code : keyInfo.codes)
+		{
+			system().handleInputAction(this, {code, keyInfo.flags, act, metaState});
+		}
+		defaultVController().updateSystemKeys(keyInfo, act == Input::Action::PUSHED);
 	}
 }
 
@@ -1429,16 +1429,16 @@ void EmuApp::saveSessionOptions()
 			// delete file if only header was written
 			configFile = {};
 			ctx.removeFileUri(configFilePath);
-			logMsg("deleted empty session config file:%s", configFilePath.data());
+			log.info("deleted empty session config file:{}", configFilePath);
 		}
 		else
 		{
-			logMsg("wrote session config file:%s", configFilePath.data());
+			log.info("wrote session config file:{}", configFilePath);
 		}
 	}
 	catch(...)
 	{
-		logMsg("error creating session config file:%s", configFilePath.data());
+		log.info("error creating session config file:{}", configFilePath);
 	}
 }
 
@@ -1455,7 +1455,7 @@ void EmuApp::loadSessionOptions()
 				{
 					if(!system().readConfig(ConfigType::SESSION, io, key, size))
 					{
-						logMsg("skipping unknown key %u", (unsigned)key);
+						log.info("skipping unknown key {}", key);
 					}
 				}
 			}
@@ -1475,7 +1475,7 @@ void EmuApp::loadSystemOptions()
 		{
 			if(!system().readConfig(ConfigType::CORE, io, key, size))
 			{
-				logMsg("skipping unknown system config key:%u", (unsigned)key);
+				log.info("skipping unknown system config key:{}", key);
 			}
 		});
 }
@@ -1495,12 +1495,12 @@ void EmuApp::saveSystemOptions()
 			// delete file if only header was written
 			configFile = {};
 			FS::remove(configFilePath);
-			logMsg("deleted empty system config file");
+			log.info("deleted empty system config file");
 		}
 	}
 	catch(...)
 	{
-		logErr("error writing system config file");
+		log.error("error writing system config file");
 	}
 }
 
@@ -1562,7 +1562,7 @@ bool EmuApp::skipForwardFrames(EmuSystemTaskContext taskCtx, int frames)
 		skipFrames(taskCtx, 1, nullptr);
 		if(!system().shouldFastForward())
 		{
-			logMsg("skip-forward ended early after %u frame(s)", i);
+			log.info("skip-forward ended early after {} frame(s)", i);
 			return false;
 		}
 	}
@@ -1605,17 +1605,17 @@ void EmuApp::addRecentContent(std::string_view fullPath, std::string_view name)
 {
 	if(fullPath.empty())
 		return;
-	logMsg("adding %s @ %s to recent list, current size: %zu", name.data(), fullPath.data(), recentContentList.size());
+	log.info("adding {} @ {} to recent list, current size:{}", name, fullPath, recentContentList.size());
 	RecentContentInfo recent{FS::PathString{fullPath}, FS::FileString{name}};
 	IG::eraseFirst(recentContentList, recent); // remove existing entry so it's added to the front
 	if(recentContentList.isFull()) // list full
 		recentContentList.pop_back();
 	recentContentList.insert(recentContentList.begin(), recent);
 
-	/*logMsg("list contents:");
+	/*log.info("list contents:");
 	for(auto &e : recentContentList)
 	{
-		logMsg("path: %s name: %s", e.path.data(), e.name.data());
+		log.info("path: {} name: {}", e.path, e.name);
 	}*/
 }
 
@@ -1655,7 +1655,7 @@ void EmuApp::setIntendedFrameRate(Window &win, FrameTimeConfig config)
 		if(!overrideScreenFrameRate)
 		{
 			config.rate *= config.refreshMultiplier;
-			logMsg("Multiplied intended frame rate to:%.2f", config.rate);
+			log.info("Multiplied intended frame rate to:{:g}", config.rate);
 		}
 	}
 	return win.setIntendedFrameRate(overrideScreenFrameRate ? FrameRate(overrideScreenFrameRate) : config.rate);
@@ -1667,13 +1667,13 @@ void EmuApp::onFocusChange(bool in)
 	{
 		if(in && system().isPaused())
 		{
-			logMsg("resuming emulation due to window focus");
+			log.info("resuming emulation due to window focus");
 			viewController().inputView.resetInput();
 			startEmulation();
 		}
 		else if(pauseUnfocusedOption() && !system().isPaused() && !allWindowsAreFocused())
 		{
-			logMsg("pausing emulation with all windows unfocused");
+			log.info("pausing emulation with all windows unfocused");
 			pauseEmulation();
 			viewController().postDrawToEmuWindows();
 		}
@@ -1690,7 +1690,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 	auto ctx = appContext();
 	if(on && !hasExtraWindow(ctx))
 	{
-		logMsg("setting emu view on extra window");
+		log.info("setting emu view on extra window");
 		IG::WindowConfig winConf{ .title = ctx.applicationName };
 		winConf.setScreen(screen);
 		winConf.setFormat(windowDrawableConfig().pixelFormat);
@@ -1736,7 +1736,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 						},
 						[&](DragDropEvent &e)
 						{
-							logMsg("got DnD: %s", e.filename.data());
+							log.info("got DnD:{}", e.filename);
 							handleOpenFileCommand(e.filename);
 							return true;
 						},
@@ -1754,7 +1754,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 						[&](DismissEvent &e)
 						{
 							system().resetFrameTime();
-							logMsg("setting emu view on main window");
+							log.info("setting emu view on main window");
 							viewController().moveEmuViewToWindow(appContext().mainWindow());
 							viewController().movePopupToWindow(appContext().mainWindow());
 							viewController().placeEmuViews();
@@ -1777,7 +1777,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 			});
 		if(!extraWin)
 		{
-			logErr("error creating extra window");
+			log.error("error creating extra window");
 			return;
 		}
 	}
@@ -1834,7 +1834,7 @@ void EmuApp::addOnFrameDelayed()
 {
 	// delay before adding onFrame handler to let timestamps stabilize
 	auto delay = viewController().emuWindowScreen()->frameRate() / 4;
-	//logMsg("delaying onFrame handler by %d frames", onFrameHandlerDelay);
+	//log.info("delaying onFrame handler by {} frames", onFrameHandlerDelay);
 	addOnFrameDelegate(onFrameDelayed(delay));
 }
 
@@ -1908,22 +1908,21 @@ void EmuApp::applyCPUAffinity(bool active)
 			auto targetTime = targetFrameTime(emuScreen());
 			perfHintSession = perfHintManager.session(frameThreadGroup, targetTime);
 			if(perfHintSession)
-				logMsg("made performance hint session with target time:%lldns (%lld - %lld)",
-					(long long)targetTime.count(), (long long)emuScreen().frameTime().count(),
-					(long long)emuScreen().presentationDeadline().count());
+				log.info("made performance hint session with target time:{} ({} - {})",
+					targetTime, emuScreen().frameTime(), emuScreen().presentationDeadline());
 			else
-				logErr("error making performance hint session");
+				log.error("error making performance hint session");
 		}
 		else
 		{
 			perfHintSession = {};
-			logMsg("closed performance hint session");
+			log.info("closed performance hint session");
 		}
 		return;
 	}
 	auto mask = active ?
 		(cpuAffinityMode == CPUAffinityMode::Auto ? appContext().performanceCPUMask() : CPUMask(cpuAffinityMask)) : 0;
-	logMsg("applying CPU affinity mask 0x%X", (unsigned)mask);
+	log.info("applying CPU affinity mask {:X}", mask);
 	setThreadCPUAffinityMask(frameThreadGroup, mask);
 }
 
@@ -1964,7 +1963,7 @@ BluetoothAdapter *EmuApp::bluetoothAdapter()
 	{
 		return bta;
 	}
-	logMsg("initializing Bluetooth");
+	log.info("initializing Bluetooth");
 	bta = BluetoothAdapter::defaultAdapter(appContext());
 	return bta;
 }
