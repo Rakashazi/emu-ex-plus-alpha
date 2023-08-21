@@ -49,14 +49,14 @@ static bool isDotName(std::string_view name)
 	return name == "." || name == "..";
 }
 
-DirectoryStream::DirectoryStream(CStringView path, DirOpenFlagsMask flags):
+DirectoryStream::DirectoryStream(CStringView path, DirOpenFlags flags):
 	dir{opendir(path)}
 {
 	if(!dir)
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("opendir(%s) error:%s", path.data(), strerror(errno));
-		if(to_underlying(flags & FS::DirOpenFlagsMask::Test))
+		if(flags.test)
 			return;
 		else
 			throw std::system_error{errno, std::system_category(), path};

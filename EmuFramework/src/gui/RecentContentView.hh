@@ -16,7 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuAppHelper.hh>
-#include <emuframework/EmuApp.hh>
+#include <emuframework/RecentContent.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <vector>
@@ -24,15 +24,15 @@
 namespace EmuEx
 {
 
-class RecentGameView : public TableView, public EmuAppHelper<RecentGameView>
+class RecentContentView : public TableView, public EmuAppHelper<RecentContentView>
 {
 public:
-	RecentGameView(ViewAttachParams attach, EmuApp::RecentContentList &list);
+	RecentContentView(ViewAttachParams attach, RecentContent &);
 
 private:
-	std::vector<TextMenuItem> recentGame{};
+	std::vector<TextMenuItem> recentItems{};
 	TextMenuItem clear{};
-	EmuApp::RecentContentList &list;
+	RecentContent &recentContent;
 };
 
 }

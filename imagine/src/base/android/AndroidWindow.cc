@@ -333,14 +333,14 @@ void AndroidWindow::setContentRect(WindowRect rect, WSize winSize)
 	if(win.updateSize(winSize))
 	{
 		contentRect = rect;
-		surfaceChangeFlags |= WindowSurfaceChange::CONTENT_RECT_RESIZED;
+		surfaceChangeFlags.contentRectResized = true;
 	}
 	else
 	{
 		contentRect.start(*static_cast<Window*>(this), contentRect.value(), rect, Milliseconds{165},
 			[](auto &win, auto newRect)
 			{
-				win.surfaceChangeFlags |= WindowSurfaceChange::CONTENT_RECT_RESIZED;
+				win.surfaceChangeFlags.contentRectResized = true;
 				win.setNeedsDraw(true);
 			});
 	}

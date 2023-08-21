@@ -27,6 +27,7 @@
 #include <emuframework/Option.hh>
 #include <emuframework/AutosaveManager.hh>
 #include <emuframework/OutputTimingManager.hh>
+#include <emuframework/RecentContent.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/android/MogaManager.hh>
 #include <imagine/gui/ViewManager.hh>
@@ -44,7 +45,6 @@
 #include <imagine/data-type/image/PixmapWriter.hh>
 #include <imagine/font/Font.hh>
 #include <imagine/util/used.hh>
-#include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/enum.hh>
 #include <cstring>
 #include <optional>
@@ -63,17 +63,6 @@ namespace EmuEx
 
 struct MainWindowData;
 class EmuMainMenuView;
-
-struct RecentContentInfo
-{
-	FS::PathString path{};
-	FS::FileString name{};
-
-	constexpr bool operator ==(RecentContentInfo const& rhs) const
-	{
-		return path == rhs.path;
-	}
-};
 
 enum class Tristate : uint8_t
 {
@@ -148,8 +137,6 @@ class EmuApp : public IG::Application
 public:
 	using CreateSystemCompleteDelegate = DelegateFunc<void (const Input::Event &)>;
 	using NavView = BasicNavView;
-	static constexpr int MAX_RECENT = 10;
-	using RecentContentList = StaticArrayList<RecentContentInfo, MAX_RECENT>;
 
 	enum class ViewID
 	{
@@ -265,11 +252,6 @@ public:
 	BluetoothAdapter *bluetoothAdapter();
 	void closeBluetoothConnections();
 	ViewAttachParams attachParams();
-	void addRecentContent(std::string_view path, std::string_view name);
-	void addCurrentContentToRecent();
-	RecentContentList &recentContent() { return recentContentList; };
-	void writeRecentContent(FileIO &);
-	bool readRecentContent(IG::ApplicationContext, MapIO &, size_t readSize_);
 	auto &customKeyConfigList() { return inputManager.customKeyConfigs; };
 	auto &savedInputDeviceList() { return inputManager.savedInputDevs; };
 	IG::Viewport makeViewport(const Window &win) const;
@@ -531,8 +513,8 @@ protected:
 	[[no_unique_address]] PerformanceHintSession perfHintSession;
 	BluetoothAdapter *bta{};
 	IG_UseMemberIf(MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr);
-	RecentContentList recentContentList;
 public:
+	RecentContent recentContent;
 	std::string userScreenshotPath;
 protected:
 	IG_UseMemberIf(Config::cpuAffinity, CPUMask, cpuAffinityMask){};

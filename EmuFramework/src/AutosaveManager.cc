@@ -124,7 +124,7 @@ bool AutosaveManager::deleteSlot(std::string_view name)
 		{
 			ctx.removeFileUri(e.path());
 			return true;
-		}, FS::DirOpenFlagsMask::Test))
+		}, {.test = true}))
 	{
 		return false;
 	}

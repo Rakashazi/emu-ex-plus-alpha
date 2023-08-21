@@ -402,7 +402,7 @@ void writeCheatFile(EmuSystem &sys_)
 		return;
 	}
 
-	auto file = ctx.openFileUri(path, OpenFlagsMask::New | OpenFlagsMask::Test);
+	auto file = ctx.openFileUri(path, OpenFlags::testNewFile());
 	if(!file)
 	{
 		logMsg("error creating cheats file %s", path.data());
@@ -431,7 +431,7 @@ void readCheatFile(EmuSystem &sys_)
 {
 	auto &sys = static_cast<MdSystem&>(sys_);
 	auto path = sys.userFilePath(sys.cheatsDir, ".pat");
-	auto file = sys.appContext().openFileUri(path, IOAccessHint::All, OpenFlagsMask::Test);
+	auto file = sys.appContext().openFileUri(path, IOAccessHint::All, {.test = true});
 	if(!file)
 	{
 		return;

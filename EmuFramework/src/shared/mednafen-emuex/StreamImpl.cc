@@ -29,7 +29,7 @@ IG::ApplicationContext gAppContext();
 namespace Mednafen
 {
 
-static std::pair<IG::OpenFlagsMask, uint8_t> modeToAttribs(uint32 mode)
+static std::pair<IG::OpenFlags, uint8_t> modeToAttribs(uint32 mode)
 {
 	using namespace IG;
 	switch(mode)
@@ -38,19 +38,19 @@ static std::pair<IG::OpenFlagsMask, uint8_t> modeToAttribs(uint32 mode)
 			throw MDFN_Error(0, _("Unknown FileStream mode."));
 
 		case FileStream::MODE_READ:
-			return {OpenFlagsMask::Read, Stream::ATTRIBUTE_READABLE};
+			return {{.read = true}, Stream::ATTRIBUTE_READABLE};
 
 		case FileStream::MODE_READ_WRITE:
-			return {OpenFlagsMask::CreateRW, Stream::ATTRIBUTE_READABLE | Stream::ATTRIBUTE_WRITEABLE};
+			return {OpenFlags::createFile(), Stream::ATTRIBUTE_READABLE | Stream::ATTRIBUTE_WRITEABLE};
 
 		case FileStream::MODE_WRITE:
-			return {OpenFlagsMask::New, Stream::ATTRIBUTE_WRITEABLE};
+			return {OpenFlags::newFile(), Stream::ATTRIBUTE_WRITEABLE};
 
 		case FileStream::MODE_WRITE_INPLACE:
-			return {OpenFlagsMask::Write | OpenFlagsMask::Create, Stream::ATTRIBUTE_WRITEABLE};
+			return {{.write = true, .create = true}, Stream::ATTRIBUTE_WRITEABLE};
 
 		case FileStream::MODE_WRITE_SAFE:
-			return {OpenFlagsMask::Write, Stream::ATTRIBUTE_WRITEABLE};
+			return {{.write = true}, Stream::ATTRIBUTE_WRITEABLE};
 	}
 }
 

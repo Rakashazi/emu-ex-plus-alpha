@@ -89,7 +89,7 @@ FS::FileString GbcSystem::stateFilename(int slot, std::string_view name) const
 
 void GbcSystem::saveState(IG::CStringView path)
 {
-	OFStream stream{appContext().openFileUri(path, OpenFlagsMask::New)};
+	OFStream stream{appContext().openFileUri(path, OpenFlags::newFile())};
 	if(!gbEmu.saveState(frameBuffer, gambatte::lcd_hres, stream))
 		throwFileWriteError();
 }

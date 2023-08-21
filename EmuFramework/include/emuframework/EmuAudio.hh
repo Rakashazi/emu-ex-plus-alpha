@@ -19,8 +19,6 @@
 #include <imagine/time/Time.hh>
 #include <imagine/vmem/RingBuffer.hh>
 #include <imagine/util/used.hh>
-#include <imagine/util/bitset.hh>
-#include <imagine/util/enum.hh>
 #include <memory>
 #include <atomic>
 
@@ -35,14 +33,16 @@ namespace EmuEx
 
 using namespace IG;
 
-enum class AudioFlagsMask: uint8_t
+struct AudioFlags
 {
-	enabled = bit(0),
-	enabledDuringAltSpeed = bit(1),
-	defaultMask = enabled | enabledDuringAltSpeed,
+	uint8_t
+	enabled{},
+	enabledDuringAltSpeed{};
+
+	constexpr bool operator ==(AudioFlags const &) const = default;
 };
 
-IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(AudioFlagsMask);
+constexpr AudioFlags defaultAudioFlags{.enabled = 1, .enabledDuringAltSpeed = 1};
 
 class EmuAudio
 {
@@ -95,7 +95,7 @@ protected:
 	float currentVolume{1.};
 	std::atomic<AudioWriteState> audioWriteState{AudioWriteState::BUFFER};
 	int8_t channels{2};
-	AudioFlagsMask flagsMask{AudioFlagsMask::defaultMask};
+	AudioFlags flags{defaultAudioFlags};
 	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, IG::Audio::Api, audioAPI){};
 	bool addSoundBuffersOnUnderrun{};
 public:

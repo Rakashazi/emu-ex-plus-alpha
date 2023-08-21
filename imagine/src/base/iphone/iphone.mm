@@ -342,9 +342,9 @@ static void setStatusBarHidden(ApplicationContext ctx, bool hidden)
 	}
 }
 
-void ApplicationContext::setSysUIStyle(uint32_t flags)
+void ApplicationContext::setSysUIStyle(SystemUIStyleFlags flags)
 {
-	setStatusBarHidden(uiApp(), flags & SYS_UI_STYLE_HIDE_STATUS);
+	setStatusBarHidden(uiApp(), flags.hideStatus);
 }
 
 bool ApplicationContext::hasTranslucentSysUI() const

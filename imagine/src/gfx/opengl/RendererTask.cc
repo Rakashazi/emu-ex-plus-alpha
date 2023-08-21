@@ -144,7 +144,7 @@ void RendererTask::updateDrawableForSurfaceChange(Window &win, WindowSurfaceChan
 			r->makeWindowDrawable(*this, win, data.bufferConfig, data.colorSpace);
 			return;
 		case WindowSurfaceChange::Action::CHANGED:
-			if(change.surfaceResized())
+			if(change.flags.surfaceResized)
 			{
 				GLTask::run(
 					[this, drawable = (Drawable)drawable, v = data.viewportRect, swapInterval = data.swapInterval](TaskContext ctx)

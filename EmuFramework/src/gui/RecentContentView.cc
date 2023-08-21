@@ -13,7 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "RecentGameView.hh"
+#include "RecentContentView.hh"
+#include <emuframework/EmuApp.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/io/IO.hh>
@@ -21,18 +22,18 @@
 namespace EmuEx
 {
 
-RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentList &list):
+RecentContentView::RecentContentView(ViewAttachParams attach, RecentContent &recentContent_):
 	TableView
 	{
 		"Recent Content",
 		attach,
 		[this](const TableView &)
 		{
-			return 1 + recentGame.size();
+			return 1 + recentItems.size();
 		},
 		[this](const TableView &, size_t idx) -> MenuItem&
 		{
-			return idx < recentGame.size() ? recentGame[idx] : clear;
+			return idx < recentItems.size() ? recentItems[idx] : clear;
 		}
 	},
 	clear
@@ -45,18 +46,18 @@ RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentLis
 				{
 					.onYes = [this]
 					{
-						this->list.clear();
+						recentItems.clear();
 						dismiss();
 					}
 				}), e);
 		}
 	},
-	list{list}
+	recentContent{recentContent_}
 {
-	recentGame.reserve(list.size());
-	for(auto &entry : list)
+	recentItems.reserve(recentContent_.size());
+	for(auto &entry : recentContent_)
 	{
-		auto &recentItem = recentGame.emplace_back(entry.name, &defaultFace(),
+		auto &recentItem = recentItems.emplace_back(entry.name, &defaultFace(),
 			[this, &entry](const Input::Event &e)
 			{
 				app().createSystemWithMedia({}, entry.path, appContext().fileUriDisplayName(entry.path), e, {}, attachParams(),
@@ -66,7 +67,7 @@ RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentLis
 					});
 			});
 	}
-	clear.setActive(list.size());
+	clear.setActive(recentContent_.size());
 }
 
 }

@@ -344,9 +344,9 @@ SystemInputDeviceDesc WsSystem::inputDeviceDesc(int idx) const
 	static constexpr std::array gamepadComponents
 	{
 		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
-		InputComponentDesc{"Face Buttons + Opposite D-Pad Buttons", faceButtonCombinedCodes, InputComponent::button, RB2DO, InputComponentFlagsMask::rowSize2},
-		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
-		InputComponentDesc{"Opposite D-Pad Buttons", oppositeDPadKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig | InputComponentFlagsMask::staggeredLayout},
+		InputComponentDesc{"Face Buttons + Opposite D-Pad Buttons", faceButtonCombinedCodes, InputComponent::button, RB2DO, {.rowSize = 2}},
+		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO, {.altConfig = true}},
+		InputComponentDesc{"Opposite D-Pad Buttons", oppositeDPadKeyInfo, InputComponent::button, RB2DO, {.altConfig = true, .staggeredLayout = true}},
 		InputComponentDesc{"Start", centerKeyInfo, InputComponent::button, RB2DO},
 	};
 

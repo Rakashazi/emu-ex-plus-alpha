@@ -220,7 +220,7 @@ void AutosaveSlotView::refreshSlots()
 		if(app().autosaveManager().slotName() == e.name())
 			item.setHighlighted(true);
 		return true;
-	}, FS::DirOpenFlagsMask::Test);
+	}, {.test = true});
 	noSaveSlot =
 	{
 		"No Save",

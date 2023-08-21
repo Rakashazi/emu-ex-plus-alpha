@@ -768,7 +768,7 @@ SystemInputDeviceDesc C64System::inputDeviceDesc(int idx) const
 	{
 		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
 		InputComponentDesc{"Joystick Button", triggerKeyInfo, InputComponent::button, RB2DO},
-		InputComponentDesc{"F1 & Keyboard Toggle", shortcutKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::rowSize1},
+		InputComponentDesc{"F1 & Keyboard Toggle", shortcutKeyInfo, InputComponent::button, RB2DO, {.rowSize = 1}},
 	};
 
 	static constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};

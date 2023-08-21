@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/defs.hh>
-#include <imagine/util/bitset.hh>
 #include <span>
 #include <string_view>
 

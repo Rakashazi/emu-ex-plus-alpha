@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/bitset.hh>
 #include <imagine/util/concepts.hh>
 #include <type_traits>
 
@@ -23,9 +22,14 @@ namespace IG
 {
 
 using SharedLibraryRef = void*;
-static constexpr unsigned RESOLVE_ALL_SYMBOLS_FLAG = bit(0);
 
-SharedLibraryRef openSharedLibrary(const char *name, unsigned flags = 0);
+struct OpenSharedLibraryFlags
+{
+	uint8_t
+	resolveAllSymbols:1{};
+};
+
+SharedLibraryRef openSharedLibrary(const char *name, OpenSharedLibraryFlags flags = {});
 void closeSharedLibrary(SharedLibraryRef lib);
 void *loadSymbol(SharedLibraryRef lib, const char *name);
 const char *lastOpenSharedLibraryError();

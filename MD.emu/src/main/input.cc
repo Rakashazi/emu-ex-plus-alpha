@@ -406,7 +406,7 @@ SystemInputDeviceDesc MdSystem::inputDeviceDesc(int idx) const
 		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO},
 		InputComponentDesc{"Mode", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
 		InputComponentDesc{"Start", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},
-		InputComponentDesc{"Mode/Start", centerKeyInfo, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
+		InputComponentDesc{"Mode/Start", centerKeyInfo, InputComponent::button, CB2DO, {.altConfig = true}},
 	};
 
 	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};

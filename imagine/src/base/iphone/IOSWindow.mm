@@ -153,7 +153,7 @@ void IOSWindow::updateContentRect(int width, int height, Rotation softOrientatio
 	{
 		log.info("using full window size for content rect {},{}", contentRect.x2, contentRect.y2);
 	}
-	surfaceChangeFlags |= WindowSurfaceChange::CONTENT_RECT_RESIZED;
+	surfaceChangeFlags.contentRectResized = true;
 }
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)

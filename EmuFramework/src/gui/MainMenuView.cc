@@ -22,7 +22,7 @@
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/BundledGamesView.hh>
-#include "RecentGameView.hh"
+#include "RecentContentView.hh"
 #include "../EmuOptions.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/ApplicationContext.hh>
@@ -86,9 +86,9 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 		"Recent Content", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(app().recentContent().size())
+			if(app().recentContent.size())
 			{
-				pushAndShow(makeView<RecentGameView>(app().recentContent()), e);
+				pushAndShow(makeView<RecentContentView>(app().recentContent), e);
 			}
 		}
 	},
@@ -295,7 +295,7 @@ void MainMenuView::onShow()
 {
 	TableView::onShow();
 	logMsg("refreshing main menu state");
-	recentGames.setActive(app().recentContent().size());
+	recentGames.setActive(app().recentContent.size());
 	systemActions.setActive(system().hasContent());
 	bluetoothDisconnect.setActive(Bluetooth::devsConnected(appContext()));
 }

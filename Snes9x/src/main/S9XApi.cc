@@ -381,8 +381,8 @@ void removeFileHelper(const char* filename)
 
 gzFile gzopenHelper(const char *filename, const char *mode)
 {
-	auto openFlags = std::string_view{mode}.contains('w') ? IG::OpenFlagsMask::New : IG::OpenFlagsMask{};
-	return gzdopen(gAppContext().openFileUriFd(filename, openFlags | IG::OpenFlagsMask::Test).release(), mode);
+	auto openFlags = std::string_view{mode}.contains('w') ? OpenFlags::newFile() : OpenFlags{};
+	return gzdopen(gAppContext().openFileUriFd(filename, openFlags | OpenFlags{.test = true}).release(), mode);
 }
 
 // from screenshot.h

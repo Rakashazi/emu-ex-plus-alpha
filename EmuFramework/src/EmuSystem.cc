@@ -509,14 +509,14 @@ FileIO EmuSystem::staticBackupMemoryFile(CStringView uri, size_t size, uint8_t i
 {
 	if(!size) [[unlikely]]
 		return {};
-	auto file = appContext().openFileUri(uri, IOAccessHint::Normal, OpenFlagsMask::CreateRW | OpenFlagsMask::Test);
+	auto file = appContext().openFileUri(uri, IOAccessHint::Normal, OpenFlags::testCreateFile());
 	if(!file) [[unlikely]]
 		return {};
 	auto fileSize = file.size();
 	if(fileSize != size)
 		file.truncate(size);
 	// size is static so try to use a mapped file for writing
-	bool isMapped = file.tryMap(IOAccessHint::Normal, OpenFlagsMask::CreateRW);
+	bool isMapped = file.tryMap(IOAccessHint::Normal, OpenFlags::createFile());
 	if(initValue && fileSize < size)
 	{
 		if(isMapped)

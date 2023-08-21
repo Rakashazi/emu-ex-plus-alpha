@@ -69,9 +69,9 @@ bool FDEventSource::attach(PollEventDelegate callback, uint32_t events)
 	return attach({}, callback, events);
 }
 
-SharedLibraryRef openSharedLibrary(const char *name, unsigned flags)
+SharedLibraryRef openSharedLibrary(const char *name, OpenSharedLibraryFlags flags)
 {
-	int mode = flags & RESOLVE_ALL_SYMBOLS_FLAG ? RTLD_NOW : RTLD_LAZY;
+	int mode = flags.resolveAllSymbols ? RTLD_NOW : RTLD_LAZY;
 	auto lib = dlopen(name, mode);
 	if(Config::DEBUG_BUILD && !lib)
 	{

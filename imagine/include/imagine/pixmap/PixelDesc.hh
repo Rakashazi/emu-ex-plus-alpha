@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/bitset.hh>
+#include <imagine/util/bit.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/utility.h>
 #include <concepts>

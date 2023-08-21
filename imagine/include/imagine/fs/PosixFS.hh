@@ -54,7 +54,7 @@ protected:
 class DirectoryStream
 {
 public:
-	DirectoryStream(CStringView path, DirOpenFlagsMask flags = {});
+	DirectoryStream(CStringView path, DirOpenFlags flags = {});
 	bool readNextDir();
 	bool hasEntry() const;
 	directory_entry &entry() { return entry_; }

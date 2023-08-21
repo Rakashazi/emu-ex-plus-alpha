@@ -37,13 +37,13 @@ template class IOUtils<PosixIO>;
 constexpr int MAP_POPULATE = 0;
 #endif
 
-static auto flagsString(OpenFlagsMask openFlags)
+static auto flagsString(OpenFlags openFlags)
 {
 	IG::StaticString<5> logFlagsStr{};
-	if(to_underlying(openFlags & OpenFlagsMask::Read)) logFlagsStr += 'r';
-	if(to_underlying(openFlags & OpenFlagsMask::Write)) logFlagsStr += 'w';
-	if(to_underlying(openFlags & OpenFlagsMask::Create)) logFlagsStr += 'c';
-	if(to_underlying(openFlags & OpenFlagsMask::Truncate)) logFlagsStr += 't';
+	if(openFlags.read) logFlagsStr += 'r';
+	if(openFlags.write) logFlagsStr += 'w';
+	if(openFlags.create) logFlagsStr += 'c';
+	if(openFlags.truncate) logFlagsStr += 't';
 	return logFlagsStr;
 }
 
@@ -55,16 +55,16 @@ static auto protectionFlagsString(int flags)
 	return logFlagsStr;
 }
 
-PosixIO::PosixIO(CStringView path, OpenFlagsMask openFlags)
+PosixIO::PosixIO(CStringView path, OpenFlags openFlags)
 {
 	constexpr mode_t defaultOpenMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 	int flags = 0;
 	mode_t openMode{};
 
 	// setup flags
-	if(to_underlying(openFlags & OpenFlagsMask::Write))
+	if(openFlags.write)
 	{
-		if(to_underlying(openFlags & OpenFlagsMask::Read))
+		if(openFlags.read)
 		{
 			flags |= O_RDWR;
 		}
@@ -77,11 +77,11 @@ PosixIO::PosixIO(CStringView path, OpenFlagsMask openFlags)
 	{
 		flags |= O_RDONLY;
 	}
-	if(to_underlying(openFlags & OpenFlagsMask::Create))
+	if(openFlags.create)
 	{
 		flags |= O_CREAT;
 		openMode = defaultOpenMode;
-		if(to_underlying(openFlags & OpenFlagsMask::Truncate))
+		if(openFlags.truncate)
 		{
 			flags |= O_TRUNC;
 		}
@@ -91,7 +91,7 @@ PosixIO::PosixIO(CStringView path, OpenFlagsMask openFlags)
 	{
 		if constexpr(Config::DEBUG_BUILD)
 			logErr("error opening file (%s) @ %s:%s", flagsString(openFlags).data(), path.data(), strerror(errno));
-		if(to_underlying(openFlags & OpenFlagsMask::Test))
+		if(openFlags.test)
 			return;
 		else
 			throw std::system_error{errno, std::system_category(), path};
@@ -231,16 +231,16 @@ IOBuffer PosixIO::releaseBuffer()
 		flags = 0;
 	}
 	bool isWritable = (flags & O_WRONLY) || (flags & O_RDWR);
-	return mapRange(0, size(), isWritable ? IOMapFlagsMask::Write : IOMapFlagsMask{});
+	return mapRange(0, size(), isWritable ? IOMapFlags{.write = true} : IOMapFlags{});
 }
 
-IOBuffer PosixIO::mapRange(off_t start, size_t size, IOMapFlagsMask mapFlags)
+IOBuffer PosixIO::mapRange(off_t start, size_t size, IOMapFlags mapFlags)
 {
 	int flags = MAP_SHARED;
-	if(to_underlying(mapFlags & IOMapFlagsMask::PopulatePages))
+	if(mapFlags.populatePages)
 		flags |= MAP_POPULATE;
 	int prot = PROT_READ;
-	if(to_underlying(mapFlags & IOMapFlagsMask::Write))
+	if(mapFlags.write)
 		prot |= PROT_WRITE;
 	void *data = mmap(nullptr, size, prot, flags, fd(), start);
 	if(data == MAP_FAILED) [[unlikely]]
@@ -256,7 +256,7 @@ IOBuffer PosixIO::byteBufferFromMmap(void *data, size_t size)
 {
 	return
 	{
-		{(uint8_t*)data, size}, IOBuffer::MAPPED_FILE_BIT,
+		{(uint8_t*)data, size}, {.mappedFile = true},
 		[](const uint8_t *ptr, size_t size)
 		{
 			logMsg("unmapping:%p (%zu bytes)", ptr, size);

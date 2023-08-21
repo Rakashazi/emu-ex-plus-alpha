@@ -45,46 +45,46 @@ static void applyAccessHint(PosixFileIO &io, IOAccessHint access, bool isMapped)
 	}
 }
 
-PosixFileIO::PosixFileIO(UniqueFileDescriptor fd_, IOAccessHint access, OpenFlagsMask openFlags):
+PosixFileIO::PosixFileIO(UniqueFileDescriptor fd_, IOAccessHint access, OpenFlags openFlags):
 	ioImpl{std::in_place_type<PosixIO>, std::move(fd_)}
 {
 	initMmap(access, openFlags);
 }
 
-PosixFileIO::PosixFileIO(UniqueFileDescriptor fd, OpenFlagsMask openFlags):
+PosixFileIO::PosixFileIO(UniqueFileDescriptor fd, OpenFlags openFlags):
 	PosixFileIO{std::move(fd), IOAccessHint::Normal, openFlags} {}
 
-PosixFileIO::PosixFileIO(CStringView path, IOAccessHint access, OpenFlagsMask openFlags):
+PosixFileIO::PosixFileIO(CStringView path, IOAccessHint access, OpenFlags openFlags):
 	ioImpl{std::in_place_type<PosixIO>, path, openFlags}
 {
 	initMmap(access, openFlags);
 }
 
-PosixFileIO::PosixFileIO(CStringView path, OpenFlagsMask openFlags):
+PosixFileIO::PosixFileIO(CStringView path, OpenFlags openFlags):
 	PosixFileIO{path, IOAccessHint::Normal, openFlags} {}
 
-void PosixFileIO::initMmap(IOAccessHint access, OpenFlagsMask openFlags)
+void PosixFileIO::initMmap(IOAccessHint access, OpenFlags openFlags)
 {
 	if(!*std::get_if<PosixIO>(&ioImpl))
 		return;
-	if(to_underlying(openFlags & OpenFlagsMask::Write)
+	if(openFlags.write
 		|| !tryMap(access, openFlags)) // try to open as memory map only if read-only
 	{
 		applyAccessHint(*this, access, false);
 	}
 }
 
-bool PosixFileIO::tryMap(IOAccessHint access, OpenFlagsMask openFlags)
+bool PosixFileIO::tryMap(IOAccessHint access, OpenFlags openFlags)
 {
 	return visit(overloaded
 	{
 		[&](PosixIO &io)
 		{
-			IOMapFlagsMask flags{};
+			IOMapFlags flags{};
 			if(access == IOAccessHint::All)
-				flags |= IOMapFlagsMask::PopulatePages;
-			if(to_underlying(openFlags & OpenFlagsMask::Write))
-				flags |= IOMapFlagsMask::Write;
+				flags.populatePages = true;
+			if(openFlags.write)
+				flags.write = true;
 			MapIO mappedFile{io.mapRange(0, io.size(), flags)};
 			if(!mappedFile)
 				return false;

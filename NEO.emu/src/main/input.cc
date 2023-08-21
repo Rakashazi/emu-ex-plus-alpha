@@ -262,10 +262,10 @@ SystemInputDeviceDesc NeoSystem::inputDeviceDesc(int idx) const
 	static constexpr std::array gamepadComponents
 	{
 		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
-		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::staggeredLayout},
+		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO, {.staggeredLayout = true}},
 		InputComponentDesc{"Select", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
 		InputComponentDesc{"Start", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},
-		InputComponentDesc{"Select/Start", centerKeyInfo, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
+		InputComponentDesc{"Select/Start", centerKeyInfo, InputComponent::button, CB2DO, {.altConfig = true}},
 	};
 
 	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};

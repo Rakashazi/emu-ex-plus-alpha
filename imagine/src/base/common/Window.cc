@@ -253,7 +253,7 @@ void Window::dispatchDismissRequest()
 void Window::dispatchSurfaceCreated()
 {
 	onEvent.callCopy(*this, WindowSurfaceChangeEvent{SurfaceChange::Action::CREATED});
-	surfaceChangeFlags |= SurfaceChange::SURFACE_RESIZED;
+	surfaceChangeFlags.surfaceResized = true;
 }
 
 void Window::dispatchSurfaceChanged()
@@ -263,12 +263,12 @@ void Window::dispatchSurfaceChanged()
 
 void Window::dispatchSurfaceDestroyed()
 {
-	surfaceChangeFlags = 0;
+	surfaceChangeFlags = {};
 	unpostDraw();
 	onEvent.callCopy(*this, WindowSurfaceChangeEvent{SurfaceChange::Action::DESTROYED});
 }
 
-void Window::signalSurfaceChanged(uint8_t flags)
+void Window::signalSurfaceChanged(WindowSurfaceChangeFlags flags)
 {
 	surfaceChangeFlags |= flags;
 	postDraw();
@@ -301,7 +301,7 @@ void Window::draw(bool needsSync)
 {
 	DrawParams params;
 	params.needsSync = needsSync;
-	if(surfaceChangeFlags) [[unlikely]]
+	if(asInt(surfaceChangeFlags)) [[unlikely]]
 	{
 		dispatchSurfaceChanged();
 		params.wasResized = true;
@@ -332,7 +332,7 @@ bool Window::updateSize(IG::Point2D<int> surfaceSize)
 	{
 		updatePhysicalSize(pixelSizeAsMM({realWidth(), realHeight()}));
 	}
-	surfaceChangeFlags |= SurfaceChange::SURFACE_RESIZED;
+	surfaceChangeFlags.surfaceResized = true;
 	return true;
 }
 

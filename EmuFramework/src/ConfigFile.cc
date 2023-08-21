@@ -95,7 +95,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 
 	std::apply([&](auto &...opt){ (writeOptionValue(io, opt), ...); }, cfgFileOptions);
 
-	writeRecentContent(io);
+	recentContent.writeConfig(io);
 	writeOptionValueIfNotDefault(io, CFGKEY_GAME_ORIENTATION, optionEmuOrientation, Orientations{});
 	writeOptionValueIfNotDefault(io, CFGKEY_MENU_ORIENTATION, optionMenuOrientation, Orientations{});
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
@@ -193,7 +193,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 	#endif
 	ConfigParams appConfig{};
 	Gfx::DrawableConfig pendingWindowDrawableConf{};
-	readConfigKeys(FileUtils::bufferFromPath(configFilePath, OpenFlagsMask::Test),
+	readConfigKeys(FileUtils::bufferFromPath(configFilePath, {.test = true}),
 		[&](auto key, auto size, auto &io) -> bool
 		{
 			switch(key)
@@ -207,6 +207,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					if(autosaveManager_.readConfig(io, key, size))
 						return true;
 					if(emuAudio.readConfig(io, key, size))
+						return true;
+					if(recentContent.readConfig(io, key, size, system()))
 						return true;
 					logMsg("skipping key %u", (unsigned)key);
 					return false;
@@ -233,7 +235,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_VIDEO_IMAGE_BUFFERS: return optionVideoImageBuffers.readFromIO(io, size);
 				case CFGKEY_OVERLAY_EFFECT: return optionOverlayEffect.readFromIO(io, size);
 				case CFGKEY_OVERLAY_EFFECT_LEVEL: return optionOverlayEffectLevel.readFromIO(io, size);
-				case CFGKEY_RECENT_GAMES: return readRecentContent(ctx, io, size);
+				case CFGKEY_RECENT_CONTENT: return recentContent.readLegacyConfig(io, system());
 				case CFGKEY_SWAPPED_GAMEPAD_CONFIM:
 					setSwappedConfirmKeys(readOptionValue<bool>(io, size));
 					return true;
@@ -317,7 +319,7 @@ void EmuApp::saveConfigFile(IG::ApplicationContext ctx)
 	auto configFilePath = FS::pathString(ctx.supportPath(), "config");
 	try
 	{
-		FileIO file{configFilePath, OpenFlagsMask::New};
+		FileIO file{configFilePath, OpenFlags::newFile()};
 		saveConfigFile(file);
 	}
 	catch(...)

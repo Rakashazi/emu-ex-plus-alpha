@@ -398,7 +398,7 @@ PixmapImage PixmapReader::load(const char *name, PixmapReaderParams params) cons
 		logErr("suffix doesn't match PNG image");
 		return {};
 	}
-	return load(FileIO{name, IOAccessHint::All, OpenFlagsMask::Test}, params);
+	return load(FileIO{name, IOAccessHint::All, {.test = true}}, params);
 }
 
 PixmapImage PixmapReader::loadAsset(const char *name, PixmapReaderParams params, const char *appName) const
@@ -408,7 +408,7 @@ PixmapImage PixmapReader::loadAsset(const char *name, PixmapReaderParams params,
 
 bool PixmapWriter::writeToFile(PixmapView pix, const char *path) const
 {
-	FileIO fp{path, OpenFlagsMask::New | OpenFlagsMask::Test};
+	FileIO fp{path, OpenFlags::testNewFile()};
 	if(!fp)
 	{
 		return false;

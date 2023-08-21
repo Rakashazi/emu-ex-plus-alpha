@@ -74,18 +74,17 @@ void InputDeviceData::buildKeyMap(const InputManager &mgr, const Input::Device &
 		}
 		else
 		{
-			logMsg("mapping key %s to %s (%u)", d.keyName(mapKeys[0]), mgr.toString(key).data(), key.codes[0]);
 			assert(mapKeys[0] < totalKeys);
 			actionTable[mapKeys[0]].tryPushBack(key);
 		}
 	}
 	/*for(auto [group, i] : std::views::zip(actionTable, iotaCount(actionTable.size())))
 	{
-		for(auto code : group)
+		for(auto key : group)
 		{
-			if(!code)
+			if(!key)
 				break;
-			logMsg("key %s (%u) mapped as %s", mgr.keyCodeToString(code).data(), code, d.keyName(i));
+			logMsg("mapped key %s to %s (%u)", d.keyName(i), mgr.toString(key).data(), key.codes[0]);
 		}
 	}*/
 }

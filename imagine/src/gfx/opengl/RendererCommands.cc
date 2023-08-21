@@ -506,10 +506,10 @@ void GLRendererCommands::setupVertexArrayPointers(const char *v, int stride,
 #endif
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-void GLRendererCommands::setupShaderVertexArrayPointers(const char *v, int stride, VertexLayoutAttribMask enableMask,
+void GLRendererCommands::setupShaderVertexArrayPointers(const char *v, int stride, VertexLayoutFlags enabledLayout,
 	AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib)
 {
-	if(currentVertexLayoutEnableMask != enableMask)
+	if(currentEnabledVertexLayout != enabledLayout)
 	{
 		if(textureAttrib.size)
 			glEnableVertexAttribArray(VATTR_TEX_UV);
@@ -519,7 +519,7 @@ void GLRendererCommands::setupShaderVertexArrayPointers(const char *v, int strid
 			glEnableVertexAttribArray(VATTR_COLOR);
 		else
 			glDisableVertexAttribArray(VATTR_COLOR);
-		currentVertexLayoutEnableMask = enableMask;
+		currentEnabledVertexLayout = enabledLayout;
 	}
 	glVertexAttribPointer(VATTR_POS, posAttrib.size, asGLType(posAttrib.type),
 		posAttrib.normalize, stride, v + posAttrib.offset);

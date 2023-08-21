@@ -15,8 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/bitset.hh>
-#include <imagine/util/enum.hh>
+
+#include <imagine/util/bit.hh>
 #include <unistd.h> // for SEEK_*
 #include <cstdint>
 
@@ -46,26 +46,33 @@ enum class IOSeekMode
 	End = SEEK_END,
 };
 
-enum class OpenFlagsMask: uint8_t
+struct OpenFlags
 {
+	using BitSetClassInt = uint8_t;
+
+	BitSetClassInt
 	// allow reading file
-	Read = bit(0),
+	read:1{},
 	// allow modifying file
-	Write = bit(1),
+	write:1{},
 	// create a new file if it doesn't already exist
-	Create = bit(2),
+	create:1{},
 	// if using WRITE, truncate any existing file to 0 bytes
-	Truncate = bit(3),
+	truncate:1{},
 	// return from constructor without throwing exception if opening fails,
 	// used to avoid redundant FS::exists() tests when searching for a file to open
-	Test = bit(4),
+	test:1{};
 
-	// common flag combinations
-	New = Write | Create | Truncate,
-	CreateRW = Read | Write | Create
+	constexpr bool operator==(OpenFlags const&) const = default;
+
+	// common flag combinations:
+	// create a file for writing, clobbering an existing one
+	static constexpr OpenFlags newFile() { return {.write = 1, .create = 1, .truncate = 1}; }
+	static constexpr OpenFlags testNewFile() { return {.write = 1, .create = 1, .truncate = 1, .test = 1}; }
+	// create a file for reading/writing, keeping an existing one
+	static constexpr OpenFlags createFile() { return {.read = 1, .write = 1, .create = 1}; }
+	static constexpr OpenFlags testCreateFile() { return {.read = 1, .write = 1, .create = 1, .test = 1}; }
 };
-
-IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(OpenFlagsMask);
 
 template <class T>
 concept Readable =

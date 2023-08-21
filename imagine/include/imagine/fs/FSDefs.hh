@@ -17,10 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/utility.h>
-#include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/string/StaticString.hh>
-#include <imagine/util/bitset.hh>
-#include <imagine/util/enum.hh>
 #include <chrono>
 #include <array>
 #include <algorithm>
@@ -133,13 +130,14 @@ protected:
 	file_type type_ = file_type::none;
 };
 
-enum class DirOpenFlagsMask: uint8_t
+struct DirOpenFlags
 {
+	 uint8_t
 	// return from constructor without throwing exception if opening fails
-	Test = bit(0),
-};
+	test:1{};
 
-IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(DirOpenFlagsMask);
+	constexpr bool operator ==(DirOpenFlags const &) const = default;
+};
 
 class directory_entry;
 class AssetDirectoryIterator;

@@ -66,7 +66,7 @@ protected:
 	DrawPhase drawPhase{DrawPhase::READY};
 	int8_t drawEventPriority_{};
 	// all windows need an initial onSurfaceChange call
-	uint8_t surfaceChangeFlags{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
+	WindowSurfaceChangeFlags surfaceChangeFlags{.surfaceResized = true, .contentRectResized = true};
 	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Rotation, Rotation::UP, softOrientation_){Rotation::UP};
 
 	F2Size smmPixelScaler() const;

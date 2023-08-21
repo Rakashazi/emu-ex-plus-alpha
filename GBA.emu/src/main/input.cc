@@ -253,12 +253,12 @@ SystemInputDeviceDesc GbaSystem::inputDeviceDesc(int idx) const
 	{
 		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
 		InputComponentDesc{"Face Buttons", faceKeyInfo, InputComponent::button, RB2DO},
-		InputComponentDesc{"Face Buttons + Inline L/R", faceLRKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
+		InputComponentDesc{"Face Buttons + Inline L/R", faceLRKeyInfo, InputComponent::button, RB2DO, {.altConfig = true}},
 		InputComponentDesc{"L", lKeyInfo, InputComponent::trigger, LB2DO},
 		InputComponentDesc{"R", rKeyInfo, InputComponent::trigger, RB2DO},
 		InputComponentDesc{"Select", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
 		InputComponentDesc{"Start", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},
-		InputComponentDesc{"Select/Start", centerKeyInfo, InputComponent::button, CB2DO, InputComponentFlagsMask::altConfig},
+		InputComponentDesc{"Select/Start", centerKeyInfo, InputComponent::button, CB2DO, {.altConfig = true}},
 	};
 
 	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};

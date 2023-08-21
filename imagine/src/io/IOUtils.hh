@@ -69,7 +69,7 @@ IOBuffer IOUtils<IO>::buffer(IOBufferMode mode)
 		{
 			auto map = io.map();
 			if(map.data())
-				return {map, IOBuffer::MAPPED_FILE_BIT};
+				return {map, {.mappedFile = true}};
 		}
 	}
 	return makeBufferCopy(io);

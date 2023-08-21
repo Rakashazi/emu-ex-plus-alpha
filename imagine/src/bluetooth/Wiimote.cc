@@ -19,7 +19,7 @@
 #include <imagine/base/Error.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
-#include <imagine/util/bitset.hh>
+#include <imagine/util/bit.hh>
 #include <imagine/util/ranges.hh>
 #include "../input/PackedInputAccess.hh"
 

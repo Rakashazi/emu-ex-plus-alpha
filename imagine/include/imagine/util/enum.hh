@@ -24,12 +24,3 @@ template <class WiseEnum>
 constexpr auto lastEnum = wise_enum::range<WiseEnum>.back().value;
 
 }
-
-#define IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(T) \
-constexpr T operator~(T a) { return static_cast<T>(~std::to_underlying(a)); } \
-constexpr T operator|(T a, T b) { return static_cast<T>(std::to_underlying(a) | std::to_underlying(b)); } \
-constexpr T operator&(T a, T b) { return static_cast<T>(std::to_underlying(a) & std::to_underlying(b)); } \
-constexpr T operator^(T a, T b) { return static_cast<T>(std::to_underlying(a) ^ std::to_underlying(b)); } \
-constexpr T& operator|= (T& a, T b) { a = a | b; return a; } \
-constexpr T& operator&= (T& a, T b) { a = a & b; return a; } \
-constexpr T& operator^= (T& a, T b) { a = a ^ b; return a; }

@@ -25,7 +25,6 @@
 #include <emuframework/MainMenuView.hh>
 #include "../EmuOptions.hh"
 #include "../WindowData.hh"
-#include "../configFile.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/gfx/Renderer.hh>

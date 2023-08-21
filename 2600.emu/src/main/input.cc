@@ -531,10 +531,10 @@ SystemInputDeviceDesc A2600System::inputDeviceDesc(int idx) const
 	{
 		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
 		InputComponentDesc{"Joystick Buttons", triggerKeyInfo, InputComponent::button, RB2DO},
-		InputComponentDesc{"Keyboard Buttons", kbKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig | InputComponentFlagsMask::rowSize3},
+		InputComponentDesc{"Keyboard Buttons", kbKeyInfo, InputComponent::button, RB2DO, {.altConfig = true, .rowSize = 3}},
 		InputComponentDesc{"Select", {&consoleKeyInfo[0], 1}, InputComponent::button, LB2DO},
 		InputComponentDesc{"Reset", {&consoleKeyInfo[1], 1}, InputComponent::button, RB2DO},
-		InputComponentDesc{"Console Buttons", consoleKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::altConfig},
+		InputComponentDesc{"Console Buttons", consoleKeyInfo, InputComponent::button, RB2DO, {.altConfig = true}},
 	};
 
 	static constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};

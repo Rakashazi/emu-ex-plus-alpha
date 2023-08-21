@@ -17,6 +17,7 @@ InputDeviceData.cc \
 KeyConfig.cc \
 OutputTimingManager.cc \
 pathUtils.cc \
+RecentContent.cc \
 ToggleInput.cc \
 TurboInput.cc \
 VideoImageEffect.cc \
@@ -39,7 +40,7 @@ gui/LoadProgressView.cc \
 gui/MainMenuView.cc \
 gui/PlaceVControlsView.cc \
 gui/PlaceVideoView.cc \
-gui/RecentGameView.cc \
+gui/RecentContentView.cc \
 gui/StateSlotView.cc \
 gui/SystemActionsView.cc \
 gui/SystemOptionView.cc \

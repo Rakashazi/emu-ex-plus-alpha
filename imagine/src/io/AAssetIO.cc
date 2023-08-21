@@ -40,13 +40,13 @@ static int asAAssetMode(IOAccessHint advice)
 	}
 }
 
-AAssetIO::AAssetIO(ApplicationContext ctx, CStringView name, AccessHint access, OpenFlagsMask openFlags):
+AAssetIO::AAssetIO(ApplicationContext ctx, CStringView name, AccessHint access, OpenFlags openFlags):
 	asset{AAssetManager_open(ctx.aAssetManager(), name, asAAssetMode(access))}
 {
 	if(!asset) [[unlikely]]
 	{
 		logErr("error in AAssetManager_open(%s, %s)", name.data(), asString(access));
-		if(to_underlying(openFlags & OpenFlagsMask::Test))
+		if(openFlags.test)
 			return;
 		else
 			throw std::runtime_error{std::format("Error opening asset: {}", name)};
@@ -151,7 +151,7 @@ IOBuffer AAssetIO::releaseBuffer()
 		return {};
 	auto map = mapIO.map();
 	logMsg("releasing asset:%p with buffer:%p (%zu bytes)", asset.get(), map.data(), map.size());
-	return {map, 0,
+	return {map, {},
 		[asset = asset.release()](const uint8_t *ptr, size_t)
 		{
 			logMsg("closing released asset:%p", asset);

@@ -135,14 +135,14 @@ FS::PathString AndroidApplication::externalMediaPath(JNIEnv *env, jobject baseAc
 	return FS::PathString{JNI::StringChars{env, extMediaDir(env, baseActivity)}};
 }
 
-UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject baseActivity, CStringView uri, OpenFlagsMask openFlags) const
+UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject baseActivity, CStringView uri, OpenFlags openFlags) const
 {
-	int fd = openUriFd(env, baseActivity, env->NewStringUTF(uri), (jint)openFlags);
+	int fd = openUriFd(env, baseActivity, env->NewStringUTF(uri), jint(std::bit_cast<uint8_t>(openFlags)));
 	if(fd == -1)
 	{
 		if constexpr(Config::DEBUG_BUILD)
 			logErr("error opening URI:%s", uri.data());
-		if(to_underlying(openFlags & OpenFlagsMask::Test))
+		if(openFlags.test)
 			return -1;
 		else
 			throw std::system_error{ENOENT, std::system_category(), uri};
@@ -194,12 +194,12 @@ bool AndroidApplication::createDirectoryUri(JNIEnv *env, jobject baseActivity, C
 }
 
 bool AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity,
-	CStringView uri, DirectoryEntryDelegate del, FS::DirOpenFlagsMask flags) const
+	CStringView uri, DirectoryEntryDelegate del, FS::DirOpenFlags flags) const
 {
 	logMsg("listing directory URI:%s", uri.data());
 	if(!listUriFiles(env, baseActivity, (jlong)&del, env->NewStringUTF(uri)))
 	{
-		if(to_underlying(flags & FS::DirOpenFlagsMask::Test))
+		if(flags.test)
 			return false;
 		else
 			throw std::system_error{ENOENT, std::system_category(), uri};
@@ -522,26 +522,27 @@ void AndroidApplication::setStatusBarHidden(JNIEnv *env, jobject baseActivity, b
 	}
 }
 
-void AndroidApplication::setSysUIStyle(JNIEnv *env, jobject baseActivity, int32_t androidSDK, uint32_t flags)
+void AndroidApplication::setSysUIStyle(JNIEnv *env, jobject baseActivity, int32_t androidSDK, SystemUIStyleFlags flags)
 {
 	// Flags mapped directly to SYSTEM_UI_FLAG_*
-	// SYS_UI_STYLE_DIM_NAV -> SYSTEM_UI_FLAG_LOW_PROFILE (0)
-	// SYS_UI_STYLE_HIDE_NAV -> SYSTEM_UI_FLAG_HIDE_NAVIGATION (1)
-	// SYS_UI_STYLE_HIDE_STATUS -> SYSTEM_UI_FLAG_FULLSCREEN (2)
-	// SYS_UI_STYLE_NO_FLAGS -> SYSTEM_UI_FLAG_VISIBLE (no bits set)
+	// dimNavigation -> SYSTEM_UI_FLAG_LOW_PROFILE (0)
+	// hideNavigation -> SYSTEM_UI_FLAG_HIDE_NAVIGATION (1)
+	// hideStatus -> SYSTEM_UI_FLAG_FULLSCREEN (2)
+	// (unset) -> SYSTEM_UI_FLAG_VISIBLE (no bits set)
 
 	// always handle status bar hiding via full-screen window flag
 	// even on SDK level >= 11 so our custom view has the correct insets
-	setStatusBarHidden(env, baseActivity, flags & SYS_UI_STYLE_HIDE_STATUS);
+	setStatusBarHidden(env, baseActivity, flags.hideStatus);
 	if(androidSDK >= 11)
 	{
 		constexpr uint32_t SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x1000;
+		uint32_t nativeFlags = std::bit_cast<uint8_t>(flags);
 		// Add SYSTEM_UI_FLAG_IMMERSIVE_STICKY for use with Android 4.4+ if flags contain OS_NAV_STYLE_HIDDEN
-		if(flags & SYS_UI_STYLE_HIDE_NAV)
-			flags |= SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-		logMsg("setting UI visibility: 0x%X", flags);
-		uiVisibilityFlags = flags;
-		jSetUIVisibility(env, baseActivity, flags);
+		if(flags.hideNavigation)
+			nativeFlags |= SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+		logMsg("setting UI visibility: 0x%X", nativeFlags);
+		uiVisibilityFlags = nativeFlags;
+		jSetUIVisibility(env, baseActivity, nativeFlags);
 	}
 }
 

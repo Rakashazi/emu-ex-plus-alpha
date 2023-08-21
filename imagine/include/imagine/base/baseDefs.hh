@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/DelegateFunc.hh>
-#include <imagine/util/bitset.hh>
 #include <imagine/util/string/CStringView.hh>
 #include <imagine/util/enum.hh>
 #include <vector>
@@ -196,6 +195,15 @@ static constexpr int APP_ON_RESUME_PRIORITY = 0;
 
 // Window/Screen helper classes
 
+struct WindowSurfaceChangeFlags
+{
+	using BitSetClassInt = uint8_t;
+
+	BitSetClassInt
+	surfaceResized:1{},
+	contentRectResized:1{};
+};
+
 struct WindowSurfaceChange
 {
 	enum class Action : uint8_t
@@ -203,18 +211,12 @@ struct WindowSurfaceChange
 		CREATED, CHANGED, DESTROYED
 	};
 
-	static constexpr uint8_t SURFACE_RESIZED = bit(0),
-		CONTENT_RECT_RESIZED = bit(1),
-		RESIZE_BITS = SURFACE_RESIZED | CONTENT_RECT_RESIZED;
-
 	Action action{};
-	uint8_t flags{};
+	WindowSurfaceChangeFlags flags{};
 
-	constexpr WindowSurfaceChange(Action action, uint8_t flags = 0):
+	constexpr WindowSurfaceChange(Action action, WindowSurfaceChangeFlags flags = {}):
 		action{action}, flags{flags} {}
 	constexpr bool resized() const { return action == Action::CHANGED; }
-	constexpr bool surfaceResized() const { return flags & SURFACE_RESIZED; }
-	constexpr bool contentRectResized() const { return flags & CONTENT_RECT_RESIZED; }
 };
 
 struct WindowDrawParams

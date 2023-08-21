@@ -15,7 +15,7 @@
 
 #define LOGTAG "GlyphTexture"
 
-#include <imagine/util/bitset.hh>
+#include <imagine/util/bit.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/data-type/image/PixmapSource.hh>

@@ -478,7 +478,7 @@ void Renderer::animateWindowRotation(Window &win, float srcAngle, float destAngl
 	winData(win).projAngleM = {srcAngle, destAngle, {}, SteadyClock::now(), Milliseconds{165}};
 	win.addOnFrame([this, &win](FrameParams params)
 	{
-		win.signalSurfaceChanged(WindowSurfaceChange::CONTENT_RECT_RESIZED);
+		win.signalSurfaceChanged({.contentRectResized = true});
 		bool didUpdate = winData(win).projAngleM.update(params.timestamp);
 		return didUpdate;
 	});

@@ -276,13 +276,13 @@ void EmuApp::closeSystemWithoutSave()
 
 void EmuApp::applyOSNavStyle(IG::ApplicationContext ctx, bool inGame)
 {
-	auto flags = IG::SYS_UI_STYLE_NO_FLAGS;
+	SystemUIStyleFlags flags;
 	if((int)optionLowProfileOSNav > (inGame ? 0 : 1))
-		flags |= IG::SYS_UI_STYLE_DIM_NAV;
+		flags.dimNavigation = true;
 	if((int)optionHideOSNav > (inGame ? 0 : 1))
-		flags |= IG::SYS_UI_STYLE_HIDE_NAV;
+		flags.hideNavigation = true;
 	if((int)optionHideStatusBar > (inGame ? 0 : 1))
-		flags |= IG::SYS_UI_STYLE_HIDE_STATUS;
+		flags.hideStatus = true;
 	ctx.setSysUIStyle(flags);
 }
 
@@ -856,7 +856,7 @@ void EmuApp::onSelectFileFromPicker(IO io, CStringView path, std::string_view di
 	createSystemWithMedia(std::move(io), path, displayName, e, params, attachParams,
 		[this](const Input::Event &e)
 		{
-			addCurrentContentToRecent();
+			recentContent.add(system());
 			launchSystem(e);
 		});
 }
@@ -1420,7 +1420,7 @@ void EmuApp::saveSessionOptions()
 	try
 	{
 		auto ctx = appContext();
-		auto configFile = ctx.openFileUri(configFilePath, OpenFlagsMask::New);
+		auto configFile = ctx.openFileUri(configFilePath, OpenFlags::newFile());
 		writeConfigHeader(configFile);
 		system().writeConfig(ConfigType::SESSION, configFile);
 		system().resetSessionOptionsSet();
@@ -1446,7 +1446,7 @@ void EmuApp::loadSessionOptions()
 {
 	if(!system().resetSessionOptions(*this))
 		return;
-	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), OpenFlagsMask::Test),
+	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), {.test = true}),
 		[this](uint16_t key, uint16_t size, auto &io)
 		{
 			switch(key)
@@ -1470,7 +1470,7 @@ void EmuApp::loadSystemOptions()
 	auto configName = system().configName();
 	if(configName.empty())
 		return;
-	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), OpenFlagsMask::Test),
+	readConfigKeys(FileUtils::bufferFromPath(FS::pathString(appContext().supportPath(), configName), {.test = true}),
 		[this](uint16_t key, uint16_t size, auto &io)
 		{
 			if(!system().readConfig(ConfigType::CORE, io, key, size))
@@ -1488,7 +1488,7 @@ void EmuApp::saveSystemOptions()
 	try
 	{
 		auto configFilePath = FS::pathString(appContext().supportPath(), configName);
-		auto configFile = FileIO{configFilePath, OpenFlagsMask::New};
+		auto configFile = FileIO{configFilePath, OpenFlags::newFile()};
 		saveSystemOptions(configFile);
 		if(configFile.size() == 1)
 		{
@@ -1599,29 +1599,6 @@ void EmuApp::setMogaManagerActive(bool on, bool notify)
 ViewAttachParams EmuApp::attachParams()
 {
 	return viewController().inputView.attachParams();
-}
-
-void EmuApp::addRecentContent(std::string_view fullPath, std::string_view name)
-{
-	if(fullPath.empty())
-		return;
-	log.info("adding {} @ {} to recent list, current size:{}", name, fullPath, recentContentList.size());
-	RecentContentInfo recent{FS::PathString{fullPath}, FS::FileString{name}};
-	IG::eraseFirst(recentContentList, recent); // remove existing entry so it's added to the front
-	if(recentContentList.isFull()) // list full
-		recentContentList.pop_back();
-	recentContentList.insert(recentContentList.begin(), recent);
-
-	/*log.info("list contents:");
-	for(auto &e : recentContentList)
-	{
-		log.info("path: {} name: {}", e.path, e.name);
-	}*/
-}
-
-void EmuApp::addCurrentContentToRecent()
-{
-	addRecentContent(system().contentLocation(), system().contentDisplayName());
 }
 
 bool EmuApp::setFontSize(int size)

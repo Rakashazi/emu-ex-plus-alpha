@@ -16,7 +16,7 @@
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/container/ArrayList.hh>
-#include <imagine/util/bitset.hh>
+#include <imagine/util/bit.hh>
 #include <imagine/util/string.h>
 #include <emuframework/EmuSystem.hh>
 

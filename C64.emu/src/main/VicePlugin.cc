@@ -695,7 +695,7 @@ VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 	};
 	auto libPath = makePluginLibPath(libName[std::to_underlying(system)], libBasePath);
 	logMsg("loading VICE plugin:%s", libPath.data());
-	auto lib = IG::openSharedLibrary(libPath.data(), IG::RESOLVE_ALL_SYMBOLS_FLAG);
+	auto lib = IG::openSharedLibrary(libPath.data(), {.resolveAllSymbols = true});
 	if(!lib)
 	{
 		return {};

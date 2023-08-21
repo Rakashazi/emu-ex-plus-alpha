@@ -16,8 +16,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Input.hh>
-#include <imagine/util/enum.hh>
-#include <imagine/util/bitset.hh>
 #include <imagine/util/container/array.hh>
 #include <array>
 #include <cstdint>

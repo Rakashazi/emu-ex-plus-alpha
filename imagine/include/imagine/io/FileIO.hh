@@ -67,9 +67,9 @@ ssize_t readFromUri(ApplicationContext, CStringView uri, std::span<unsigned char
 	IOAccessHint accessHint = IOAccessHint::All);
 std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext, CStringView uri,
 	std::span<unsigned char> dest, bool(*nameMatchFunc)(std::string_view), IOAccessHint accessHint = IOAccessHint::All);
-IOBuffer bufferFromPath(CStringView path, OpenFlagsMask oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
-IOBuffer bufferFromUri(ApplicationContext, CStringView uri, OpenFlagsMask oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
-IOBuffer rwBufferFromUri(ApplicationContext, CStringView uri, OpenFlagsMask extraOFlags, size_t size, uint8_t initValue = 0);
+IOBuffer bufferFromPath(CStringView path, OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
+IOBuffer bufferFromUri(ApplicationContext, CStringView uri, OpenFlags oFlags = {}, size_t sizeLimit = defaultBufferReadSizeLimit);
+IOBuffer rwBufferFromUri(ApplicationContext, CStringView uri, OpenFlags extraOFlags, size_t size, uint8_t initValue = 0);
 FILE *fopenUri(ApplicationContext, CStringView path, CStringView mode);
 
 }

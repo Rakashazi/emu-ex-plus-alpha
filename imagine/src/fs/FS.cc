@@ -105,7 +105,7 @@ size_t directoryItems(CStringView path)
 	return items;
 }
 
-bool forEachInDirectory(CStringView path, DirectoryEntryDelegate del, DirOpenFlagsMask flags)
+bool forEachInDirectory(CStringView path, DirectoryEntryDelegate del, DirOpenFlags flags)
 {
 	bool entriesRead{};
 	for(FS::DirectoryStream dirStream{path, flags}; dirStream.hasEntry(); dirStream.readNextDir())

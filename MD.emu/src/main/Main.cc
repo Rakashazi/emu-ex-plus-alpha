@@ -176,7 +176,7 @@ void MdSystem::loadBackupMemory(EmuApp &app)
 	if(sCD.isActive)
 	{
 		auto saveStr = bramSaveFilename(app);
-		auto bramFile = appContext().openFileUri(saveStr, IOAccessHint::All, OpenFlagsMask::Test);
+		auto bramFile = appContext().openFileUri(saveStr, IOAccessHint::All, {.test = true});
 		if(!bramFile)
 		{
 			logMsg("no BRAM on disk, formatting");
@@ -230,7 +230,7 @@ void MdSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 	{
 		logMsg("saving BRAM");
 		auto saveStr = bramSaveFilename(app);
-		auto bramFile = appContext().openFileUri(saveStr, OpenFlagsMask::New | OpenFlagsMask::Test);
+		auto bramFile = appContext().openFileUri(saveStr, OpenFlags::testNewFile());
 		if(!bramFile)
 			logMsg("error creating bram file");
 		else

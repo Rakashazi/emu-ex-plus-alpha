@@ -36,7 +36,7 @@ struct BufferDeleter
 
 	constexpr void operator()(T *ptr) const
 	{
-		del(ptr, size);
+		del.callSafe(ptr, size);
 	}
 
 	constexpr bool operator ==(BufferDeleter const&) const = default;
@@ -55,7 +55,7 @@ public:
 
 	constexpr Buffer() = default;
 
-	constexpr Buffer(std::span<T> span, DeleterFunc deleter = [](const T*, size_t){}):
+	constexpr Buffer(std::span<T> span, DeleterFunc deleter = {}):
 		data_{span.data(), {deleter, span.size()}} {}
 
 	constexpr Buffer(size_t size):

@@ -87,8 +87,8 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, std::unique_ptr<Stream> str):
 
 extern int openFdHelper(const char *file, int oflag, mode_t mode)
 {
-	auto openFlags = (oflag & O_CREAT) ? IG::OpenFlagsMask::New : IG::OpenFlagsMask{};
-	return EmuEx::gAppContext().openFileUriFd(file, openFlags | IG::OpenFlagsMask::Test).release();
+	auto openFlags = (oflag & O_CREAT) ? IG::OpenFlags::newFile() : IG::OpenFlags{};
+	return EmuEx::gAppContext().openFileUriFd(file, openFlags | IG::OpenFlags{.test = true}).release();
 }
 
 extern FILE *fopenHelper(const char* filename, const char* mode)

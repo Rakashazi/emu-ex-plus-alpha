@@ -18,7 +18,6 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/variant.hh>
-#include <imagine/logger/logger.h>
 #include "IOUtils.hh"
 
 namespace IG
@@ -88,30 +87,30 @@ namespace IG::FileUtils
 
 ssize_t writeToPath(CStringView path, std::span<const unsigned char> src)
 {
-	auto f = FileIO{path, OpenFlagsMask::New | OpenFlagsMask::Test};
+	auto f = FileIO{path, OpenFlags::testNewFile()};
 	return f.write(src).bytes;
 }
 
 ssize_t writeToPath(CStringView path, IO &io)
 {
-	auto f = FileIO{path, OpenFlagsMask::New | OpenFlagsMask::Test};
+	auto f = FileIO{path, OpenFlags::testNewFile()};
 	return io.send(f, nullptr, io.size());
 }
 
 ssize_t readFromPath(CStringView path, std::span<unsigned char> dest, IO::AccessHint accessHint)
 {
-	FileIO f{path, accessHint, OpenFlagsMask::Test};
+	FileIO f{path, accessHint, {.test = true}};
 	return f.read(dest).bytes;
 }
 
-IOBuffer bufferFromPath(CStringView path, OpenFlagsMask openFlags, size_t sizeLimit)
+IOBuffer bufferFromPath(CStringView path, OpenFlags openFlags, size_t sizeLimit)
 {
 	FileIO file{path, IOAccessHint::All, openFlags};
 	if(!file)
 		return {};
 	if(file.size() > sizeLimit)
 	{
-		if(to_underlying(openFlags & OpenFlagsMask::Test))
+		if(openFlags.test)
 			return {};
 		else
 			throw std::runtime_error(std::format("{} exceeds {} byte limit", path, sizeLimit));

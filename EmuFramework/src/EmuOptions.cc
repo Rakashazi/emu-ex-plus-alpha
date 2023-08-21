@@ -101,67 +101,6 @@ IG::FontSettings EmuApp::fontSettings(Window &win) const
 	return {win.heightScaledMMInPixels(size)};
 }
 
-void EmuApp::writeRecentContent(FileIO &io)
-{
-	size_t strSizes = 0;
-	for(const auto &e : recentContentList)
-	{
-		strSizes += 2;
-		strSizes += e.path.size();
-	}
-	log.info("writing recent list");
-	writeOptionValueHeader(io, CFGKEY_RECENT_GAMES, strSizes);
-	for(const auto &e : recentContentList)
-	{
-		auto len = e.path.size();
-		io.put(uint16_t(len));
-		io.write(e.path.data(), len);
-	}
-}
-
-bool EmuApp::readRecentContent(IG::ApplicationContext ctx, MapIO &io, size_t readSize_)
-{
-	auto readSize = readSize_;
-	while(readSize && !recentContentList.isFull())
-	{
-		if(readSize < 2)
-		{
-			log.info("expected string length but only {} bytes left", readSize);
-			return false;
-		}
-
-		auto len = io.get<uint16_t>();
-		readSize -= 2;
-
-		if(len > readSize)
-		{
-			log.info("string length {} longer than {} bytes left", len, readSize);
-			return false;
-		}
-
-		FS::PathString path{};
-		auto bytesRead = io.readSized(path, len);
-		if(bytesRead == -1)
-		{
-			log.error("error reading string option");
-			return false;
-		}
-		if(!bytesRead)
-			continue; // don't add empty paths
-		readSize -= len;
-		auto displayName = system().contentDisplayNameForPath(path);
-		if(displayName.empty())
-		{
-			log.info("skipping missing recent content:{}", path);
-			continue;
-		}
-		RecentContentInfo info{path, displayName};
-		const auto &added = recentContentList.emplace_back(info);
-		log.info("added game to recent list:{}, name:{}", added.path, added.name);
-	}
-	return true;
-}
-
 void EmuApp::setFrameInterval(int val)
 {
 	log.info("set frame interval:{}", val);

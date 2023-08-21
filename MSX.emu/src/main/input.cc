@@ -550,7 +550,7 @@ SystemInputDeviceDesc MsxSystem::inputDeviceDesc(int idx) const
 	{
 		InputComponentDesc{"D-Pad", dpadKeyInfo, InputComponent::dPad, LB2DO},
 		InputComponentDesc{"Joystick Buttons", faceKeyInfo, InputComponent::button, RB2DO},
-		InputComponentDesc{"Space & Keyboard Toggle", shortcutKeyInfo, InputComponent::button, RB2DO, InputComponentFlagsMask::rowSize1},
+		InputComponentDesc{"Space & Keyboard Toggle", shortcutKeyInfo, InputComponent::button, RB2DO, {.rowSize = 1}},
 	};
 
 	static constexpr SystemInputDeviceDesc jsDesc{"Joystick", jsComponents};

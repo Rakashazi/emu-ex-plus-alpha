@@ -22,13 +22,12 @@
 namespace IG
 {
 
-enum class IOMapFlagsMask: uint8_t
+struct IOMapFlags
 {
-	Write = bit(0),
-	PopulatePages = bit(1),
+	uint8_t
+	write:1{},
+	populatePages:1{};
 };
-
-IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(IOMapFlagsMask);
 
 class PosixIO : public IOUtils<PosixIO>
 {
@@ -45,7 +44,7 @@ public:
 
 	constexpr PosixIO() = default;
 	PosixIO(UniqueFileDescriptor fd):fd_{std::move(fd)} {}
-	PosixIO(CStringView path, OpenFlagsMask oFlags = {});
+	PosixIO(CStringView path, OpenFlags oFlags = {});
 	UniqueFileDescriptor releaseFd();
 	int fd() const;
 	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});
@@ -58,7 +57,7 @@ public:
 	void advise(off_t offset, size_t bytes, Advice advice);
 	explicit operator bool() const;
 	IOBuffer releaseBuffer();
-	IOBuffer mapRange(off_t start, size_t size, IOMapFlagsMask);
+	IOBuffer mapRange(off_t start, size_t size, IOMapFlags);
 	static IOBuffer byteBufferFromMmap(void *data, size_t size);
 
 protected:

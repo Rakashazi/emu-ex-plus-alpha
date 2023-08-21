@@ -402,12 +402,12 @@ void EmuAudio::setOutputAPI(IG::Audio::Api api)
 
 bool EmuAudio::isEnabled() const
 {
-	return to_underlying(flagsMask & AudioFlagsMask::enabled);
+	return flags.enabled;
 }
 
 void EmuAudio::setEnabled(bool on)
 {
-	flagsMask = setOrClearBits(flagsMask, AudioFlagsMask::enabled, on);
+	flags.enabled = on;
 	if(on)
 		open();
 	else
@@ -416,12 +416,12 @@ void EmuAudio::setEnabled(bool on)
 
 bool EmuAudio::isEnabledDuringAltSpeed() const
 {
-	return to_underlying(flagsMask & AudioFlagsMask::enabledDuringAltSpeed);
+	return flags.enabledDuringAltSpeed;
 }
 
 void EmuAudio::setEnabledDuringAltSpeed(bool on)
 {
-	flagsMask = IG::setOrClearBits(flagsMask, AudioFlagsMask::enabledDuringAltSpeed, on);
+	flags.enabledDuringAltSpeed = on;
 	updateAddBuffersOnUnderrun();
 }
 
@@ -445,7 +445,7 @@ constexpr bool isValidSoundRate(int rate)
 
 void EmuAudio::writeConfig(FileIO &io) const
 {
-	writeOptionValueIfNotDefault(io, CFGKEY_SOUND, flagsMask, AudioFlagsMask::defaultMask);
+	writeOptionValueIfNotDefault(io, CFGKEY_SOUND, flags, defaultAudioFlags);
 	if(!EmuSystem::forcedSoundRate)
 		writeOptionValueIfNotDefault(io, CFGKEY_SOUND_RATE, rate_, defaultRate);
 	writeOptionValueIfNotDefault(io, CFGKEY_SOUND_BUFFERS, soundBuffers, defaultSoundBuffers);
@@ -459,7 +459,7 @@ bool EmuAudio::readConfig(MapIO &io, unsigned key, size_t size)
 {
 	switch(key)
 	{
-		case CFGKEY_SOUND: return readOptionValue(io, size, flagsMask);
+		case CFGKEY_SOUND: return readOptionValue(io, size, flags);
 		case CFGKEY_SOUND_RATE: return EmuSystem::forcedSoundRate ? false : readOptionValue(io, size, rate_, isValidSoundRate);
 		case CFGKEY_SOUND_BUFFERS: return readOptionValue(io, size, soundBuffers, optionIsValidWithMinMax<1, 7, int8_t>);
 		case CFGKEY_SOUND_VOLUME: return readOptionValue<int8_t>(io, size, [&](auto v){ setMaxVolume(v); }, isValidVolumeSetting);

@@ -151,7 +151,7 @@ public:
 	void dispatchSurfaceCreated();
 	void dispatchSurfaceChanged();
 	void dispatchSurfaceDestroyed();
-	void signalSurfaceChanged(uint8_t surfaceChangeFlags);
+	void signalSurfaceChanged(WindowSurfaceChangeFlags);
 
 private:
 	F2Size pixelSizeAsMM(WSize size);

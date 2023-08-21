@@ -49,6 +49,7 @@ protected:
 	BoolMenuItem showBundledGames;
 	BoolMenuItem showBluetoothScan;
 	BoolMenuItem showHiddenFiles;
+	DualTextMenuItem maxRecentContent;
 	TextHeadingMenuItem orientationHeading;
 	TextMenuItem menuOrientationItem[5];
 	MultiChoiceMenuItem menuOrientation;
@@ -57,7 +58,7 @@ protected:
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, BoolMenuItem, layoutBehindSystemUI);
 	IG_UseMemberIf(Config::freeformWindows, TextMenuItem, setWindowSize);
 	IG_UseMemberIf(Config::freeformWindows, TextMenuItem, toggleFullScreen);
-	StaticArrayList<MenuItem*, 22> item;
+	StaticArrayList<MenuItem*, 23> item;
 };
 
 }

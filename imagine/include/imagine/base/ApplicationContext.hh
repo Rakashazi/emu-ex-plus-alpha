@@ -27,9 +27,9 @@
 
 #include <imagine/base/baseDefs.hh>
 #include <imagine/io/ioDefs.hh>
+#include <imagine/fs/FSDefs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Thread.hh>
-#include <imagine/util/bitset.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string/CStringView.hh>
 #include <imagine/util/memory/UniqueFileDescriptor.hh>
@@ -46,13 +46,8 @@ class Device;
 
 namespace IG::FS
 {
-class PathString;
-class FileString;
-struct PathLocation;
-struct RootPathInfo;
 class AssetDirectoryIterator;
 class directory_entry;
-enum class DirOpenFlagsMask: uint8_t;
 }
 
 namespace IG
@@ -69,11 +64,16 @@ enum class Permission
 	COARSE_LOCATION
 };
 
-static constexpr uint32_t
-	SYS_UI_STYLE_NO_FLAGS = 0,
-	SYS_UI_STYLE_DIM_NAV = bit(0),
-	SYS_UI_STYLE_HIDE_NAV = bit(1),
-	SYS_UI_STYLE_HIDE_STATUS = bit(2);
+struct SystemUIStyleFlags
+{
+	uint8_t
+	dimNavigation:1{},
+	hideNavigation:1{},
+	hideStatus:1{};
+
+	constexpr bool operator ==(SystemUIStyleFlags const &) const = default;
+};
+
 
 class ApplicationContext : public ApplicationContextImpl
 {
@@ -166,7 +166,7 @@ public:
 	FS::PathLocation sharedStoragePathLocation() const;
 	std::vector<FS::PathLocation> rootFileLocations() const;
 	FS::RootPathInfo rootPathInfo(std::string_view path) const;
-	AssetIO openAsset(CStringView name, IOAccessHint access, OpenFlagsMask oFlags = {}, const char *appName = applicationName) const;
+	AssetIO openAsset(CStringView name, IOAccessHint access, OpenFlags oFlags = {}, const char *appName = applicationName) const;
 	FS::AssetDirectoryIterator openAssetDirectory(CStringView path, const char *appName = applicationName);
 
 	// path/file access using OS-specific URIs such as those in the Android Storage Access Framework,
@@ -176,9 +176,9 @@ public:
 	bool hasSystemDocumentPicker() const;
 	bool showSystemDocumentPicker(SystemDocumentPickerDelegate);
 	bool showSystemCreateDocumentPicker(SystemDocumentPickerDelegate);
-	FileIO openFileUri(CStringView uri, IOAccessHint, OpenFlagsMask oFlags = {}) const;
-	FileIO openFileUri(CStringView uri, OpenFlagsMask oFlags = {}) const;
-	UniqueFileDescriptor openFileUriFd(CStringView uri, OpenFlagsMask oFlags = {}) const;
+	FileIO openFileUri(CStringView uri, IOAccessHint, OpenFlags oFlags = {}) const;
+	FileIO openFileUri(CStringView uri, OpenFlags oFlags = {}) const;
+	UniqueFileDescriptor openFileUriFd(CStringView uri, OpenFlags oFlags = {}) const;
 	bool fileUriExists(CStringView uri) const;
 	WallClockTimePoint fileUriLastWriteTime(CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(CStringView uri) const;
@@ -187,10 +187,10 @@ public:
 	bool renameFileUri(CStringView oldUri, CStringView newUri) const;
 	bool createDirectoryUri(CStringView uri) const;
 	bool removeDirectoryUri(CStringView uri) const;
-	bool forEachInDirectoryUri(CStringView uri, DirectoryEntryDelegate, FS::DirOpenFlagsMask flags = {}) const;
+	bool forEachInDirectoryUri(CStringView uri, DirectoryEntryDelegate, FS::DirOpenFlags flags = {}) const;
 
 	// OS UI management (status & navigation bar)
-	void setSysUIStyle(uint32_t flags);
+	void setSysUIStyle(SystemUIStyleFlags);
 	bool hasTranslucentSysUI() const;
 	bool hasHardwareNavButtons() const;
 	void setSystemOrientation(Rotation);

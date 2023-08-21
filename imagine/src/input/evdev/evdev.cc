@@ -15,7 +15,7 @@
 
 #define LOGTAG "Evdev"
 #include "EvdevInputDevice.hh"
-#include <imagine/util/bitset.hh>
+#include <imagine/util/bit.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/fs/FS.hh>

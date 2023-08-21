@@ -861,7 +861,7 @@ static bool CPUWriteState(GBASys &gba, gzFile gzFile)
 
 bool CPUWriteState(IG::ApplicationContext ctx, GBASys &gba, const char* file)
 {
-  gzFile gzFile = utilGzOpen(ctx.openFileUriFd(file, IG::OpenFlagsMask::New | IG::OpenFlagsMask::Test).release(), "wb");
+  gzFile gzFile = utilGzOpen(ctx.openFileUriFd(file, IG::OpenFlags::testNewFile()).release(), "wb");
 
   if (gzFile == NULL) {
     systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"), file);
@@ -1364,7 +1364,7 @@ bool CPUImportEepromFile(GBASys &gba, const char* fileName)
 
 bool CPUReadBatteryFile(IG::ApplicationContext ctx, GBASys &gba, const char* fileName)
 {
-  auto buff = IG::FileUtils::rwBufferFromUri(ctx, fileName, IG::OpenFlagsMask::Test, saveMemorySize(), 0xFF);
+  auto buff = IG::FileUtils::rwBufferFromUri(ctx, fileName, {.test = true}, saveMemorySize(), 0xFF);
   if(!buff)
     return false;
   saveMemoryIsMappedFile = buff.isMappedFile();

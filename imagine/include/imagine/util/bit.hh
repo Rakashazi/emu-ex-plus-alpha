@@ -17,9 +17,61 @@
 
 #include <concepts>
 #include <bit>
+#include <limits>
 
 namespace IG
 {
+
+template <class T>
+concept BitSet =
+	requires(T &&v)
+	{
+		~v;
+		v | T{};
+		v & T{};
+		v ^ T{};
+	};
+
+template <class T>
+constexpr inline auto bitSize = std::numeric_limits<T>::digits;
+
+template <std::unsigned_integral T = unsigned>
+constexpr T bit(int bitIdx)
+{
+	return T{1} << bitIdx;
+}
+
+template <std::unsigned_integral T = unsigned>
+constexpr T bits(int numBits)
+{
+	return numBits ? std::numeric_limits<T>::max() >> (bitSize<T> - numBits) : 0;
+}
+
+constexpr auto clearBits(BitSet auto x, BitSet auto mask)
+{
+	return x & ~mask; // AND with the NOT of mask to unset
+}
+
+constexpr auto setOrClearBits(BitSet auto x, BitSet auto mask, bool condition)
+{
+	return condition ? (x | mask) : clearBits(x, mask);
+}
+
+constexpr auto updateBits(BitSet auto x, BitSet auto mask, BitSet auto updateMask)
+{
+	return clearBits(x, updateMask) | mask;
+}
+
+constexpr auto swapBits(std::integral auto x, std::integral auto range1, std::integral auto range2, std::integral auto rangeSize)
+{
+	auto t = ((x >> range1) ^ (x >> range2)) & ((1 << rangeSize) - 1); // XOR temporary
+	return x ^ ((t << range1) | (t << range2));
+}
+
+constexpr bool isBitMaskSet(BitSet auto x, BitSet auto mask)
+{
+	return (x & mask) == mask; //AND mask, if the result equals mask, all bits match
+}
 
 constexpr int ctz(unsigned int x)
 {
@@ -55,5 +107,30 @@ constexpr int fls(std::unsigned_integral auto x)
 {
 	return x ? sizeof(x) * 8 - clz(x) : 0;
 }
+
+// Utility functions for classes representing bit sets, define BitSetClassInt as the underlying int type
+template <class T>
+concept BitSetClass = requires {typename T::BitSetClassInt;};
+
+template<BitSetClass T>
+constexpr auto asInt(const T &val) {return std::bit_cast<typename T::BitSetClassInt>(val); }
+
+template<BitSetClass T>
+constexpr T operator|(T lhs, T rhs)
+{
+	return std::bit_cast<T>(typename T::BitSetClassInt(asInt(lhs) | asInt(rhs)));
+};
+
+template<BitSetClass T>
+constexpr T& operator|=(T &lhs, T rhs) { lhs = lhs | rhs; return lhs; }
+
+template<BitSetClass T>
+constexpr T operator&(T lhs, T rhs)
+{
+	return std::bit_cast<T>(typename T::BitSetClassInt(asInt(lhs) & asInt(rhs)));
+};
+
+template<BitSetClass T>
+constexpr T& operator&=(T &lhs, T rhs) { lhs = lhs & rhs; return lhs; }
 
 }

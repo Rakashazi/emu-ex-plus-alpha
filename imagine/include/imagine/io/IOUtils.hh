@@ -32,14 +32,16 @@ class IOBuffer : public ByteBuffer
 {
 public:
 	using ByteBuffer::ByteBuffer;
-	using Flags = uint8_t;
 
-	static constexpr Flags MAPPED_FILE_BIT = bit(0);
+	struct Flags
+	{
+		uint8_t mappedFile:1{};
+	};
 
-	constexpr IOBuffer(std::span<uint8_t> span, Flags flags, DeleterFunc deleter = [](const uint8_t*, size_t){}):
+	constexpr IOBuffer(std::span<uint8_t> span, Flags flags, DeleterFunc deleter = {}):
 		ByteBuffer{span, deleter}, flags{flags} {}
 
-	constexpr bool isMappedFile() const { return flags & MAPPED_FILE_BIT; }
+	constexpr bool isMappedFile() const { return flags.mappedFile; }
 
 protected:
 	Flags flags{};

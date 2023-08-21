@@ -20,7 +20,7 @@
 #include <imagine/input/inputDefs.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/bitset.hh>
+#include <imagine/util/bit.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/utility.h>
 #include <string>

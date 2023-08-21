@@ -18,7 +18,7 @@
 #include <emuframework/MainMenuView.hh>
 #include <emuframework/SystemActionsView.hh>
 #include <imagine/gui/AlertView.hh>
-#include <imagine/util/bitset.hh>
+#include <imagine/util/bit.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include "MainApp.hh"
 #include <imagine/fs/FS.hh>
@@ -488,7 +488,7 @@ private:
 		app().createSystemWithMedia({}, gamePath, appContext().fileUriDisplayName(gamePath), e, {}, attachParams(),
 			[this](Input::Event e)
 			{
-				app().addCurrentContentToRecent();
+				app().recentContent.add(system());
 				app().launchSystem(e);
 			});
 	}

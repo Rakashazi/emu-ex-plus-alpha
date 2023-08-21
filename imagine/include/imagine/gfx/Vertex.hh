@@ -18,6 +18,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/glm/ext/vector_float2.hpp>
 #include <imagine/glm/ext/vector_int2_sized.hpp>
+#include <imagine/util/bit.hh>
 
 namespace IG::Gfx
 {
@@ -36,43 +37,44 @@ concept VertexLayout = requires
     T::pos;
 };
 
-enum class VertexLayoutAttribMask : uint8_t
+struct VertexLayoutFlags
 {
-	Position = bit(0),
-	TextureCoordinate = bit(1),
-	Color = bit(2),
+	using BitSetClassInt = uint8_t;
+
+	BitSetClassInt
+	position:1{},
+	textureCoordinate:1{},
+	color:1{};
+
+	constexpr bool operator==(VertexLayoutFlags const&) const = default;
 };
 
-IG_DEFINE_ENUM_BIT_FLAG_FUNCTIONS(VertexLayoutAttribMask);
-
 template <VertexLayout V>
-constexpr VertexLayoutAttribMask vertexLayoutEnableMask()
+constexpr VertexLayoutFlags vertexLayoutEnableMask()
 {
-	using enum VertexLayoutAttribMask;
 	if constexpr(requires {V::pos; V::texCoord; V::color;})
-		return Position | TextureCoordinate | Color;
+		return {.position = true, .textureCoordinate = true, .color = true};
 	else if constexpr(requires {V::pos; V::color;})
-		return Position | Color;
+		return {.position = true, .color = true};
 	else if constexpr(requires {V::pos; V::texCoord;})
-		return Position | TextureCoordinate;
+		return {.position = true, .textureCoordinate = true};
 	else
-		return Position;
+		return {.position = true};
 }
 
 template <VertexLayout V>
-constexpr VertexLayoutAttribMask vertexLayoutIntNormalizeMask()
+constexpr VertexLayoutFlags vertexLayoutIntNormalizeMask()
 {
-	using enum VertexLayoutAttribMask;
 	if constexpr(requires {V::intNormalizeMask;})
 		return V::intNormalizeMask;
 	else
-		return TextureCoordinate | Color;
+		return {.textureCoordinate = true, .color = true};
 }
 
 template <VertexLayout V>
-constexpr bool shouldNormalize(AttribType type, VertexLayoutAttribMask attribMask)
+constexpr bool shouldNormalize(AttribType type, VertexLayoutFlags attribMask)
 {
-	return type != AttribType::Float && to_underlying(vertexLayoutIntNormalizeMask<V>() & attribMask);
+	return type != AttribType::Float && asInt(vertexLayoutIntNormalizeMask<V>() & attribMask);
 }
 
 template <VertexLayout V>
@@ -80,7 +82,7 @@ constexpr AttribDesc posAttribDesc()
 {
 	using T = decltype(V::pos.x);
 	auto type = attribType<T>;
-	return {offsetof(V, pos), sizeof(V::pos) / sizeof(T), type, shouldNormalize<V>(type, VertexLayoutAttribMask::Position)};
+	return {offsetof(V, pos), sizeof(V::pos) / sizeof(T), type, shouldNormalize<V>(type, {.position = true})};
 }
 
 template <VertexLayout V>
@@ -90,7 +92,7 @@ constexpr AttribDesc colorAttribDesc()
 	{
 		using T = decltype(V::color.r);
 		auto type = attribType<T>;
-		return {offsetof(V, color), sizeof(V::color) / sizeof(T), type, shouldNormalize<V>(type, VertexLayoutAttribMask::Color)};
+		return {offsetof(V, color), sizeof(V::color) / sizeof(T), type, shouldNormalize<V>(type, {.color = true})};
 	}
 	else
 	{
@@ -105,7 +107,7 @@ constexpr AttribDesc texCoordAttribDesc()
 	{
 		using T = decltype(V::texCoord.x);
 		auto type = attribType<T>;
-		return {offsetof(V, texCoord), sizeof(V::texCoord) / sizeof(T), type, shouldNormalize<V>(type, VertexLayoutAttribMask::TextureCoordinate)};
+		return {offsetof(V, texCoord), sizeof(V::texCoord) / sizeof(T), type, shouldNormalize<V>(type, {.textureCoordinate = true})};
 	}
 	else
 	{

@@ -852,7 +852,7 @@ std::vector<VControllerElement> VController::defaultEmulatedDeviceGroups() const
 	std::vector<VControllerElement> gpElements;
 	for(const auto &c : system().inputDeviceDesc(0).components)
 	{
-		if(!to_underlying(c.flags & InputComponentFlagsMask::altConfig))
+		if(!c.flags.altConfig)
 			add(gpElements, c);
 	}
 	if(hasWindow())
@@ -943,7 +943,7 @@ bool VController::gamepadIsActive() const
 
 static int8_t rowSize(InputComponentDesc c)
 {
-	auto size = to_underlying(c.flags & InputComponentFlagsMask::rowSizeBits) >> 1;
+	auto size = c.flags.rowSize;
 	if(size)
 		return size;
 	else
@@ -967,7 +967,7 @@ VControllerElement &VController::add(std::vector<VControllerElement> &elems, Inp
 				auto &e = elems.emplace_back(std::in_place_type<VControllerButtonGroup>, c.keyCodes, c.layoutOrigin, rowSize(c));
 				auto &grp = *e.buttonGroup();
 				updateEnabledButtons(grp);
-				if(to_underlying(c.flags & InputComponentFlagsMask::staggeredLayout))
+				if(c.flags.staggeredLayout)
 					grp.setStaggerType(5);
 				return e;
 			}

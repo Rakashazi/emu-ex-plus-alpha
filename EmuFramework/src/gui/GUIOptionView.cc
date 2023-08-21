@@ -211,6 +211,21 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			app().showHiddenFilesInPicker = item.flipBoolValue(*this);
 		}
 	},
+	maxRecentContent
+	{
+		"Max Recent Content Items", std::to_string(app().recentContent.maxRecentContent), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			app().pushAndShowNewCollectValueRangeInputView<int, 1, 100>(attachParams(), e,
+				"Input 1 to 100", std::to_string(app().recentContent.maxRecentContent),
+				[this](EmuApp &app, auto val)
+				{
+					app.recentContent.maxRecentContent = val;
+					maxRecentContent.set2ndName(std::to_string(val));
+					return true;
+				});
+		}
+	},
 	orientationHeading
 	{
 		"Orientation", &defaultBoldFace()
@@ -336,6 +351,7 @@ void GUIOptionView::loadStockItems()
 	if(used(showBluetoothScan))
 		item.emplace_back(&showBluetoothScan);
 	item.emplace_back(&showHiddenFiles);
+	item.emplace_back(&maxRecentContent);
 	item.emplace_back(&orientationHeading);
 	item.emplace_back(&emuOrientation);
 	item.emplace_back(&menuOrientation);

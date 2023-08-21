@@ -55,7 +55,7 @@ static void loadAAudioLib(const Manager &manager)
 	if(loadedAAudioLib())
 		return;
 	log.info("loading libaaudio.so functions");
-	auto lib = openSharedLibrary("libaaudio.so", RESOLVE_ALL_SYMBOLS_FLAG);
+	auto lib = openSharedLibrary("libaaudio.so", {.resolveAllSymbols = true});
 	if(!lib)
 	{
 		log.error("error opening libaaudio.so");
