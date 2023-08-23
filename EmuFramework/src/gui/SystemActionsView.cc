@@ -243,7 +243,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 			pushAndShowModal(makeView<YesNoAlertView>("Really close current content?",
 				YesNoAlertView::Delegates
 				{
-					.onYes = [this] { app().closeSystem(); } // pops any System Actions views in the stack
+					.onYes = [this] { app().closeSystem(); return false; } // pops any System Actions views in the stack
 				}), e);
 		}
 	}
