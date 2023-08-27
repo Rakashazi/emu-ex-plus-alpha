@@ -229,6 +229,7 @@ protected:
 	void startCanvasRunningFrame();
 	void setCanvasSkipFrame(bool on);
 	bool updateCanvasPixelFormat(struct video_canvas_s *, PixelFormat);
+	void tryLoadingSplitVic20Cart();
 };
 
 using MainSystem = C64System;

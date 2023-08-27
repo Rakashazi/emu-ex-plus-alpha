@@ -50,6 +50,7 @@
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include <imagine/thread/Thread.hh>
+#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #include <cmath>
 
 namespace EmuEx

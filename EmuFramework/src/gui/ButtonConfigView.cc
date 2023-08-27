@@ -20,7 +20,6 @@
 #include "../privateInput.hh"
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
-#include <imagine/util/math/int.hh>
 #include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
 #include <format>
@@ -28,20 +27,147 @@
 namespace EmuEx
 {
 
-bool ButtonConfigSetView::pointerUIIsInit()
+constexpr SystemLogger log;
+constexpr int resetItemsSize = 2;
+
+static std::string keyNames(MappedKeys keys, const Input::Device &dev)
 {
-	return unbindB.x != unbindB.x2;
+	Input::KeyNameFlags flags{.basicModifiers = keys.size() > 1};
+	std::string s{dev.keyString(keys[0], flags)};
+	for(const auto &b : keys | std::ranges::views::drop(1))
+	{
+		s += " + ";
+		s += dev.keyString(b, flags);
+	}
+	return s;
 }
 
-void ButtonConfigSetView::initPointerUI()
-{
-	if(!pointerUIIsInit())
+ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView_, const KeyCategory &cat_, InputDeviceConfig &devConf_):
+	TableView
 	{
-		logMsg("init pointer UI elements");
-		waitForDrawFinished();
-		unbind = {"Unbind", &defaultFace()};
-		cancel = {"Cancel", &defaultFace()};
-		unbindB.x2 = 1;
+		cat_.name,
+		attach,
+		[this](const TableView &)
+		{
+			return resetItemsSize + cat.keys.size();
+		},
+		[this](const TableView &, size_t idx) -> MenuItem&
+		{
+			if(idx == 0)
+				return resetDefaults;
+			else if(idx == 1)
+				return reset;
+			else
+				return btn[idx - resetItemsSize];
+		}
+	},
+	rootIMView{rootIMView_},
+	reset
+	{
+		"Unbind All", &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShowModal(makeView<YesNoAlertView>("Really unbind all keys in this category?",
+				YesNoAlertView::Delegates
+				{
+					.onYes = [this]
+					{
+						auto conf = devConf.makeMutableKeyConf(app());
+						if(!conf)
+							return;
+						conf->unbindCategory(cat);
+						updateKeyNames(*conf);
+						devConf.buildKeyMap(app().inputManager);
+					}
+				}), e);
+		}
+	},
+	resetDefaults
+	{
+		"Reset Defaults", &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			pushAndShowModal(makeView<YesNoAlertView>("Really reset all keys in this category to defaults?",
+				YesNoAlertView::Delegates
+				{
+					.onYes = [this]
+					{
+						auto conf = devConf.mutableKeyConf(app().inputManager);
+						if(!conf)
+							return;
+						conf->resetCategory(cat, app().inputManager.defaultConfig(devConf.device()));
+						updateKeyNames(*conf);
+						devConf.buildKeyMap(app().inputManager);
+					}
+				}), e);
+		}
+	},
+	cat{cat_},
+	devConf{devConf_}
+{
+	log.info("init button config view for {}", Input::KeyEvent::mapName(devConf_.device().map()));
+	auto keyConfig = devConf_.keyConf(app().inputManager);
+	btn = std::make_unique<DualTextMenuItem[]>(cat_.keys.size());
+	for(auto &&[i, key]: enumerate(cat.keys))
+	{
+		btn[i] =
+		{
+			app().inputManager.toString(key),
+			keyNames(keyConfig.get(key), devConf_.device()),
+			&defaultFace(),
+			[this, keyIdxToSet = i](const Input::Event &e)
+			{
+				auto btnSetView = makeView<ButtonConfigSetView>(rootIMView,
+					devConf.device(), app().inputManager.toString(cat.keys[keyIdxToSet]),
+					[this, keyIdxToSet](const MappedKeys &val)
+					{
+						onSet(keyIdxToSet, val);
+					});
+				pushAndShowModal(std::move(btnSetView), e);
+			}
+		};
+		btn[i].text2Color = Gfx::ColorName::YELLOW;
+	}
+}
+
+void ButtonConfigView::onSet(int catIdx, MappedKeys mapKey)
+{
+	if(!devConf.setKey(app(), cat.keys[catIdx], mapKey))
+		return;
+	devConf.buildKeyMap(app().inputManager);
+	auto &b = btn[catIdx];
+	b.set2ndName(keyNames(mapKey, devConf.device()));
+	b.compile2nd(renderer());
+}
+
+bool ButtonConfigView::inputEvent(const Input::Event &e)
+{
+	if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::LEFT) && selected >= resetItemsSize)
+	{
+		auto &keyEv = *e.keyEvent();
+		auto durationSinceLastKeySet = hasTime(leftKeyPushTime) ? keyEv.time() - leftKeyPushTime : SteadyClockTime{};
+		leftKeyPushTime = keyEv.time();
+		if(durationSinceLastKeySet.count() && durationSinceLastKeySet <= Milliseconds(500))
+		{
+			// unset key
+			leftKeyPushTime = {};
+			onSet(selected - resetItemsSize, {});
+			postDraw();
+		}
+		return true;
+	}
+	else
+	{
+		return TableView::inputEvent(e);
+	}
+}
+
+void ButtonConfigView::updateKeyNames(const KeyConfig &conf)
+{
+	for(auto &&[i, key]: enumerate(cat.keys))
+	{
+		btn[i].set2ndName(keyNames(conf.get(key), devConf.device()));
+		btn[i].compile2nd(renderer());
 	}
 }
 
@@ -55,16 +181,29 @@ ButtonConfigSetView::ButtonConfigSetView(ViewAttachParams attach,
 		rootIMView{rootIMView},
 		actionStr{actionName} {}
 
+bool ButtonConfigSetView::pointerUIIsInit()
+{
+	return unbindB.x != unbindB.x2;
+}
+
+void ButtonConfigSetView::initPointerUI()
+{
+	if(pointerUIIsInit())
+		return;
+	log.info("init pointer UI elements");
+	unbind = {"Unbind", &defaultFace()};
+	cancel = {"Cancel", &defaultFace()};
+	unbindB.x2 = 1;
+}
+
 void ButtonConfigSetView::place()
 {
 	text.compile(renderer());
-
 	if(pointerUIIsInit())
 	{
 		unbind.compile(renderer());
 		cancel.compile(renderer());
-
-		IG::WindowRect btnFrame;
+		WRect btnFrame;
 		btnFrame.setPosRel(viewRect().pos(LB2DO), unbind.nominalHeight() * 2, LB2DO);
 		unbindB = btnFrame;
 		unbindB.x = (viewRect().xSize()/2)*0;
@@ -94,7 +233,7 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 			{
 				if(unbindB.overlaps(motionEv.pos()))
 				{
-					logMsg("unbinding key");
+					log.info("unbinding key");
 					auto onSet = onSetD;
 					dismiss();
 					onSet(MappedKeys{});
@@ -185,120 +324,6 @@ void ButtonConfigSetView::onAddedToController(ViewController *, const Input::Eve
 	if(e.motionEvent())
 	{
 		initPointerUI();
-	}
-}
-
-static std::string keyNames(MappedKeys keys, const Input::Device &dev)
-{
-	Input::KeyNameFlags flags{.basicModifiers = keys.size() > 1};
-	std::string s{dev.keyString(keys[0], flags)};
-	for(const auto &b : keys | std::ranges::views::drop(1))
-	{
-		s += " + ";
-		s += dev.keyString(b, flags);
-	}
-	return s;
-}
-
-void ButtonConfigView::onSet(int catIdx, MappedKeys mapKey)
-{
-	if(!devConf->setKey(app(), cat.keys[catIdx], mapKey))
-		return;
-	devConf->buildKeyMap(app().inputManager);
-	auto &b = btn[catIdx];
-	b.set2ndName(keyNames(mapKey, devConf->device()));
-	b.compile2nd(renderer());
-}
-
-bool ButtonConfigView::inputEvent(const Input::Event &e)
-{
-	if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::LEFT) && selected > 0)
-	{
-		auto &keyEv = *e.keyEvent();
-		auto durationSinceLastKeySet = hasTime(leftKeyPushTime) ? keyEv.time() - leftKeyPushTime : SteadyClockTime{};
-		leftKeyPushTime = keyEv.time();
-		if(durationSinceLastKeySet.count() && durationSinceLastKeySet <= IG::Milliseconds(500))
-		{
-			// unset key
-			leftKeyPushTime = {};
-			onSet(selected - 1, {});
-			postDraw();
-		}
-		return true;
-	}
-	else
-	{
-		return TableView::inputEvent(e);
-	}
-}
-
-ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView_, const KeyCategory &cat_, InputDeviceConfig &devConf_):
-	TableView
-	{
-		cat_.name,
-		attach,
-		[this](const TableView &)
-		{
-			return 1 + cat.keys.size();
-		},
-		[this](const TableView &, size_t idx) -> MenuItem&
-		{
-			if(idx == 0)
-				return reset;
-			else
-				return btn[idx-1];
-		}
-	},
-	rootIMView{rootIMView_},
-	reset
-	{
-		"Unbind All", &defaultFace(),
-		[this](const Input::Event &e)
-		{
-			pushAndShowModal(makeView<YesNoAlertView>("Really unbind all keys in this category?",
-				YesNoAlertView::Delegates
-				{
-					.onYes = [this]
-					{
-						auto conf = devConf->makeMutableKeyConf(app());
-						if(!conf)
-							return;
-						conf->unbindCategory(cat);
-						for(auto &&[i, key]: enumerate(cat.keys))
-						{
-							btn[i].set2ndName(keyNames(conf->get(key), devConf->device()));
-							btn[i].compile2nd(renderer());
-						}
-						devConf->buildKeyMap(app().inputManager);
-					}
-				}), e);
-		}
-	},
-	cat{cat_}
-{
-	logMsg("init button config view for %s", Input::KeyEvent::mapName(devConf_.device().map()).data());
-	devConf = &devConf_;
-	auto keyConfig = devConf_.keyConf(app().inputManager);
-	btn = std::make_unique<DualTextMenuItem[]>(cat_.keys.size());
-	for(auto &&[i, key]: enumerate(cat.keys))
-	{
-		btn[i] =
-		{
-			app().inputManager.toString(key),
-			keyNames(keyConfig.get(key), devConf_.device()),
-			&defaultFace(),
-			[this, keyIdxToSet = i](const Input::Event &e)
-			{
-				auto btnSetView = makeView<ButtonConfigSetView>(rootIMView,
-					devConf->device(), app().inputManager.toString(cat.keys[keyIdxToSet]),
-					[this, keyIdxToSet](const MappedKeys &val)
-					{
-						onSet(keyIdxToSet, val);
-					});
-				pushAndShowModal(std::move(btnSetView), e);
-			}
-		};
-		btn[i].text2Color = Gfx::ColorName::YELLOW;
 	}
 }
 

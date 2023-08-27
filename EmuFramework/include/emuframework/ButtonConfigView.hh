@@ -69,12 +69,14 @@ public:
 private:
 	InputManagerView &rootIMView;
 	TextMenuItem reset;
+	TextMenuItem resetDefaults;
 	std::unique_ptr<DualTextMenuItem[]> btn;
 	const KeyCategory &cat;
-	InputDeviceConfig *devConf{};
+	InputDeviceConfig &devConf;
 	SteadyClockTimePoint leftKeyPushTime{};
 
 	void onSet(int catIdx, MappedKeys);
+	void updateKeyNames(const KeyConfig &);
 };
 
 }

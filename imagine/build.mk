@@ -47,7 +47,7 @@ prefix ?= $(IMAGINE_SDK_PLATFORM_PATH)
 imaginePkgconfigTemplate := $(IMAGINE_PATH)/pkgconfig/imagine.pc
 pkgName := $(libName)
 pkgDescription := Game/Multimedia Engine
-pkgVersion := 1.5.73
+pkgVersion := 1.5.74
 LDLIBS := -l$(libName) $(LDLIBS)
 ifdef libNameExt
  pkgCFlags := -DIMAGINE_CONFIG_H=$(configFilename)

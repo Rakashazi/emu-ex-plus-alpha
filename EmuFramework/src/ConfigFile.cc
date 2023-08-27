@@ -21,6 +21,7 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/input/config.hh>
+#include <imagine/bluetooth/sys.hh>
 #include <imagine/util/ScopeGuard.hh>
 
 namespace EmuEx
@@ -150,15 +151,12 @@ void EmuApp::saveConfigFile(FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENT_MODE, presentMode, Gfx::PresentMode::Auto);
 	if(used(usePresentationTime) && renderer.supportsPresentationTime())
 		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENTATION_TIME, usePresentationTime, true);
-
-	inputManager.writeCustomKeyConfigs(io);
-	inputManager.writeSavedInputDevices(appContext(), io);
-
 	writeStringOptionValue(io, CFGKEY_LAST_DIR, contentSearchPath());
 	writeStringOptionValue(io, CFGKEY_SAVE_PATH, system().userSaveDirectory());
 	writeStringOptionValue(io, CFGKEY_SCREENSHOTS_PATH, userScreenshotPath);
-
 	system().writeConfig(ConfigType::MAIN, io);
+	inputManager.writeCustomKeyConfigs(io);
+	inputManager.writeSavedInputDevices(appContext(), io);
 }
 
 EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)

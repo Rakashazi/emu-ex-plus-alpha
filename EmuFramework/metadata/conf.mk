@@ -1,4 +1,4 @@
-metadata_version = 1.5.73
+metadata_version = 1.5.74
 metadata_supportedMIMETypes = application/zip
 metadata_supportedFileExtensions = rar 7z
 android_metadata_versionCodeExtra = 16

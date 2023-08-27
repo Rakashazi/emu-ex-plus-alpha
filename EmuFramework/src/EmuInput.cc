@@ -124,7 +124,6 @@ void InputManager::writeSavedInputDevices(ApplicationContext ctx, FileIO &io) co
 	// write to config file
 	logMsg("saving %d input device configs, %d bytes", (int)savedInputDevs.size(), (int)bytes);
 	io.put(uint16_t(bytes));
-	auto startOffset = io.tell();
 	io.put(uint16_t(CFGKEY_INPUT_DEVICE_CONFIGS));
 	io.put(uint8_t(savedInputDevs.size()));
 	for(auto &ePtr : savedInputDevs)
@@ -146,18 +145,13 @@ void InputManager::writeSavedInputDevices(ApplicationContext ctx, FileIO &io) co
 		auto devPtr = ctx.inputDevice(e.name, e.enumId);
 		uint8_t keyConfMap = devPtr ? (uint8_t)devPtr->map() : 0;
 		io.put(keyConfMap);
-		if(keyConfMap)
+		if(e.keyConfName.size())
 		{
 			logMsg("has key conf %s, map %d", e.keyConfName.data(), keyConfMap);
 			uint8_t keyConfNameLen = e.keyConfName.size();
 			io.put(keyConfNameLen);
 			io.write(e.keyConfName.data(), keyConfNameLen);
 		}
-	}
-	if(auto writtenBytes = io.tell() - startOffset;
-		writtenBytes != bytes)
-	{
-		logErr("expected %d bytes written, got %d", (int)bytes, (int)writtenBytes);
 	}
 }
 

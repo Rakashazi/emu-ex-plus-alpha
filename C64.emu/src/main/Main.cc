@@ -210,7 +210,8 @@ bool hasC64TapeExtension(std::string_view name)
 
 bool hasC64CartExtension(std::string_view name)
 {
-	return IG::endsWithAnyCaseless(name, ".bin", ".crt");
+	return endsWithAnyCaseless(name, ".bin", ".crt",
+		".20", ".40", ".60", ".70", ".a0", ".b0"); // VIC-20 headerless carts
 }
 
 static bool hasC64Extension(std::string_view name)
@@ -353,21 +354,19 @@ bool C64App::willCreateSystem(ViewAttachParams attach, const Input::Event &e)
 	return false;
 }
 
-static FS::PathString vic20ExtraCartPath(IG::ApplicationContext ctx, std::string_view baseCartName, std::string_view searchPath)
+static FS::PathString vic20ExtraCartPath(ApplicationContext ctx, std::string_view baseCartName, std::string_view searchPath)
 {
-	auto findAddrSuffixOffset =
-	[](std::string_view baseCartName) -> uintptr_t
+	auto findAddrSuffixOffset = [](std::string_view baseCartName) -> uintptr_t
 	{
-		constexpr std::array<std::string_view, 5> addrSuffixStr
-		{
-			"-2000.", "-4000.", "-6000.", "-a000.", "-b000."
-		};
-		for(auto suffixStr : addrSuffixStr)
+		for(auto suffixStr : std::array{
+			"-2000.", "-4000.", "-6000.", "-a000.", "-b000.",
+			"[2000]", "[4000]", "[6000]", "[A000]", "[B000]", // TOSEC names
+			".20", ".40", ".60", ".a0", ".b0"})
 		{
 			if(auto offset = baseCartName.rfind(suffixStr);
 				offset != baseCartName.npos)
 			{
-				return offset;
+				return offset + 1; // skip '-', '[', or '.'
 			}
 		}
 		return 0;
@@ -377,17 +376,14 @@ static FS::PathString vic20ExtraCartPath(IG::ApplicationContext ctx, std::string
 	{
 		return {};
 	}
-	addrSuffixOffset++; // skip '-'
-	constexpr std::array<char, 5> addrSuffixChar
+	const auto &addrSuffixChar = baseCartName[addrSuffixOffset];
+	bool addrCharIsUpper = addrSuffixChar == 'A' || addrSuffixChar == 'B';
+	for(auto c : std::array{'2', '4', '6', 'a', 'b'}) // looks for a matching file with a valid memory address suffix
 	{
-		'2', '4', '6', 'a', 'b'
-	};
-	for(auto suffixChar : addrSuffixChar) // looks for a matching file with a valid memory address suffix
-	{
-		if(suffixChar == baseCartName[addrSuffixOffset])
+		if(c == tolower(addrSuffixChar))
 			continue; // skip original filename
 		FS::FileString cartName{baseCartName};
-		cartName[addrSuffixOffset] = suffixChar;
+		cartName[addrSuffixOffset] = addrCharIsUpper ? toupper(c) : c;
 		auto cartPath = FS::uriString(searchPath, cartName);
 		if(ctx.fileUriExists(cartPath))
 		{
@@ -395,6 +391,21 @@ static FS::PathString vic20ExtraCartPath(IG::ApplicationContext ctx, std::string
 		}
 	}
 	return {};
+}
+
+void C64System::tryLoadingSplitVic20Cart()
+{
+	if(!contentDirectory().size())
+		return;
+	auto extraCartPath = vic20ExtraCartPath(appContext(), contentFileName(), contentDirectory());
+	if(extraCartPath.size())
+	{
+		logMsg("loading extra cart image:%s", extraCartPath.data());
+		if(plugin.cartridge_attach_image(CARTRIDGE_VIC20_DETECT, extraCartPath.data()) != 0)
+		{
+			EmuSystem::throwFileReadError();
+		}
+	}
 }
 
 void C64System::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
@@ -405,12 +416,20 @@ void C64System::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDe
 	if(shouldAutostart && plugin.autostart_autodetect_)
 	{
 		logMsg("loading & autostarting:%s", contentLocation().data());
-		if(IG::endsWithAnyCaseless(contentFileName(), ".prg"))
+		if(endsWithAnyCaseless(contentFileName(), ".prg"))
 		{
 			// needed to store AutostartPrgDisk.d64
 			fallbackSaveDirectory(true);
 		}
-		if(plugin.autostart_autodetect(contentLocation().data(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
+		if(currSystem == ViceSystem::VIC20 && hasC64CartExtension(contentFileName()))
+		{
+			if(plugin.cartridge_attach_image(CARTRIDGE_VIC20_DETECT, contentLocation().data()) != 0)
+			{
+				EmuSystem::throwFileReadError();
+			}
+			tryLoadingSplitVic20Cart();
+		}
+		else if(plugin.autostart_autodetect(contentLocation().data(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 		{
 			EmuSystem::throwFileReadError();
 		}
@@ -440,17 +459,9 @@ void C64System::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDe
 			{
 				EmuSystem::throwFileReadError();
 			}
-			if(currSystem == ViceSystem::VIC20 && contentDirectory().size()) // check if the cart is part of a *-x000.prg pair
+			if(currSystem == ViceSystem::VIC20)
 			{
-				auto extraCartPath = vic20ExtraCartPath(appContext(), contentFileName(), contentDirectory());
-				if(extraCartPath.size())
-				{
-					logMsg("loading extra cart image:%s", extraCartPath.data());
-					if(plugin.cartridge_attach_image(systemCartType(currSystem), extraCartPath.data()) != 0)
-					{
-						EmuSystem::throwFileReadError();
-					}
-				}
+				tryLoadingSplitVic20Cart();
 			}
 		}
 		optionAutostartOnLaunch = false;

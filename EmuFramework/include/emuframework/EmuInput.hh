@@ -107,7 +107,7 @@ public:
 	void unbindCategory(const KeyCategory &category);
 	void resetCategory(const KeyCategory &category, KeyConfigDesc defaultConf);
 	constexpr auto find(KeyInfo key) { return std::ranges::find_if(keyMap, [&](auto &val){ return val.key == key; }); }
-	constexpr MappedKeys get(KeyInfo key) { return desc().get(key); }
+	constexpr MappedKeys get(KeyInfo key) const { return desc().get(key); }
 	static KeyConfig readConfig(MapIO &);
 	void writeConfig(FileIO &) const;
 

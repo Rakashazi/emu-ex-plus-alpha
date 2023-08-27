@@ -24,6 +24,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/bluetooth/sys.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/variant.hh>

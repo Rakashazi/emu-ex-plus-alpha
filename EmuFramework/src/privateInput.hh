@@ -19,10 +19,8 @@
 #include <imagine/input/Device.hh>
 #include <imagine/util/container/VMemArray.hh>
 #include <imagine/util/container/array.hh>
-#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/VController.hh>
 #include <memory>
 #include <string>
 
