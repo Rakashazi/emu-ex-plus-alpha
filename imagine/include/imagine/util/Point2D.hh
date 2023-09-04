@@ -42,6 +42,7 @@ struct Point2D : public AssignmentArithmetics< Point2D<T> >
 	constexpr Point2D operator -(const Point2D& rhs) const { return {T(x - rhs.x), T(y - rhs.y)}; }
 	constexpr Point2D operator *(const Point2D& rhs) const { return {T(x * rhs.x), T(y * rhs.y)}; }
 	constexpr Point2D operator /(const Point2D& rhs) const { return {T(x / rhs.x), T(y / rhs.y)}; }
+	constexpr Point2D operator %(const Point2D& rhs) const { return {T(x % rhs.x), T(y % rhs.y)}; }
 	constexpr Point2D operator-() const { return {T(-x), T(-y)}; }
 	constexpr Point2D negateX() const { return {T(-x), T(y)}; }
 	constexpr Point2D negateY() const { return {T(x), T(-y)}; }
@@ -49,6 +50,7 @@ struct Point2D : public AssignmentArithmetics< Point2D<T> >
 	constexpr Point2D operator -(T const& rhs) const { return {T(x - rhs), T(y - rhs)}; }
 	constexpr Point2D operator *(T const& rhs) const { return {T(x * rhs), T(y * rhs)}; }
 	constexpr Point2D operator /(T const& rhs) const { return {T(x / rhs), T(y / rhs)}; }
+	constexpr Point2D operator %(T const& rhs) const { return {T(x % rhs), T(y % rhs)}; }
 
 	template <class Ratio = T>
 	constexpr Ratio ratio() const { return Ratio(x) / Ratio(y); }

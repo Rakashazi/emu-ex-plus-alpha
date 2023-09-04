@@ -18,7 +18,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/AppKeyCode.hh>
 #include "../EmuOptions.hh"
-#include "../privateInput.hh"
+#include "../InputDeviceData.hh"
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gui/AlertView.hh>
@@ -28,10 +28,13 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/variant.hh>
+#include <imagine/util/bit.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"InputManagerView"};
 static const char *confirmDeleteDeviceSettingsStr = "Delete device settings from the configuration file? Any key profiles in use are kept";
 static const char *confirmDeleteProfileStr = "Delete profile from the configuration file? Devices using it will revert to their default profile";
 
@@ -110,15 +113,15 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 							{
 								.onYes = [this, deleteDeviceConfigPtr]
 								{
-									logMsg("deleting device settings for:%s,%d",
-										deleteDeviceConfigPtr->name.data(), deleteDeviceConfigPtr->enumId);
+									log.info("deleting device settings for:{},{}",
+										deleteDeviceConfigPtr->name, deleteDeviceConfigPtr->enumId);
 									auto ctx = appContext();
 									for(auto &devPtr : ctx.inputDevices())
 									{
 										auto &inputDevConf = inputDevData(*devPtr).devConf;
 										if(inputDevConf.hasSavedConf(*deleteDeviceConfigPtr))
 										{
-											logMsg("removing from active device");
+											log.info("removing from active device");
 											inputDevConf.setSavedConf(inputManager, nullptr);
 											break;
 										}
@@ -154,7 +157,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 							{
 								.onYes = [this, deleteProfilePtr]
 								{
-									logMsg("deleting profile: %s", deleteProfilePtr->name.data());
+									log.info("deleting profile:{}", deleteProfilePtr->name);
 									inputManager.deleteKeyProfile(appContext(), deleteProfilePtr);
 									dismissPrevious();
 								}
@@ -260,7 +263,7 @@ void InputManagerView::loadItems()
 		}
 		else
 		{
-			logMsg("not adding device:%s to list", devPtr->name().data());
+			log.info("not adding device:{} to list", devPtr->name());
 		}
 	}
 }
@@ -281,7 +284,7 @@ void InputManagerView::pushAndShowDeviceView(const Input::Device &dev, const Inp
 static void setBTScanSecs(int secs)
 {
 	BluetoothAdapter::scanSecs = secs;
-	logMsg("set bluetooth scan time %d", BluetoothAdapter::scanSecs);
+	log.info("set bluetooth scan time {}", BluetoothAdapter::scanSecs);
 }
 #endif
 
@@ -510,10 +513,10 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
 				auto playerVal = item.id();
-				bool changingMultiplayer = (playerVal == InputDeviceConfig::PLAYER_MULTI && devConf->player() != InputDeviceConfig::PLAYER_MULTI) ||
-					(playerVal != InputDeviceConfig::PLAYER_MULTI && devConf->player() == InputDeviceConfig::PLAYER_MULTI);
-				devConf->setPlayer(inputManager, playerVal);
-				devConf->save(inputManager);
+				bool changingMultiplayer = (playerVal == InputDeviceConfig::PLAYER_MULTI && devConf.player() != InputDeviceConfig::PLAYER_MULTI) ||
+					(playerVal != InputDeviceConfig::PLAYER_MULTI && devConf.player() == InputDeviceConfig::PLAYER_MULTI);
+				devConf.setPlayer(inputManager, playerVal);
+				devConf.save(inputManager);
 				if(changingMultiplayer)
 				{
 					loadItems();
@@ -532,13 +535,13 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 		u"", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			auto profileSelectMenu = makeView<ProfileSelectMenu>(devConf->device(),
-				devConf->keyConf(inputManager).name, inputManager);
+			auto profileSelectMenu = makeView<ProfileSelectMenu>(devConf.device(),
+				devConf.keyConf(inputManager).name, inputManager);
 			profileSelectMenu->onProfileChange =
 					[this](std::string_view profile)
 					{
-						logMsg("set key profile %s", profile.data());
-						devConf->setKeyConfName(inputManager, profile);
+						log.info("set key profile:{}", profile);
+						devConf.setKeyConfName(inputManager, profile);
 						onShow();
 					};
 			pushAndShow(std::move(profileSelectMenu), e);
@@ -549,12 +552,12 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 		"Rename Profile", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(!devConf->mutableKeyConf(inputManager))
+			if(!devConf.mutableKeyConf(inputManager))
 			{
 				app().postMessage(2, "Can't rename a built-in profile");
 				return;
 			}
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", devConf->keyConf(inputManager).name,
+			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", devConf.keyConf(inputManager).name,
 				[this](EmuApp &app, auto str)
 				{
 					if(customKeyConfigsContainName(inputManager.customKeyConfigs, str))
@@ -563,7 +566,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 						postDraw();
 						return false;
 					}
-					devConf->mutableKeyConf(inputManager)->name = str;
+					devConf.mutableKeyConf(inputManager)->name = str;
 					onShow();
 					postDraw();
 					return true;
@@ -589,8 +592,8 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 									app.postErrorMessage("Another profile is already using this name");
 									return false;
 								}
-								devConf->setKeyConfCopiedFromExisting(inputManager, str);
-								logMsg("created new profile %s", devConf->keyConf(inputManager).name.data());
+								devConf.setKeyConfCopiedFromExisting(inputManager, str);
+								log.info("created new profile:{}", devConf.keyConf(inputManager).name);
 								onShow();
 								postDraw();
 								return true;
@@ -604,7 +607,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 		"Delete Profile", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(!devConf->mutableKeyConf(inputManager))
+			if(!devConf.mutableKeyConf(inputManager))
 			{
 				app().postMessage(2, "Can't delete a built-in profile");
 				return;
@@ -614,12 +617,12 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 				{
 					.onYes = [this]
 					{
-						auto conf = devConf->mutableKeyConf(inputManager);
+						auto conf = devConf.mutableKeyConf(inputManager);
 						if(!conf)
 						{
 							bug_unreachable("confirmed deletion of a read-only key config, should never happen");
 						}
-						logMsg("deleting profile: %s", conf->name.data());
+						log.info("deleting profile:{}", conf->name);
 						inputManager.deleteKeyProfile(appContext(), conf);
 					}
 				}), e);
@@ -651,40 +654,31 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	joystickAxis1DPad
 	{
 		"Joystick X/Y Axis 1 as D-Pad", &defaultFace(),
-		bool(inputDevData(dev).devConf.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_X),
+		inputDevData(dev).devConf.joystickAxesAsDpad(Input::AxisSetId::stick1),
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			bool on = item.flipBoolValue(*this);
-			auto bits = devConf->joystickAxisAsDpadBits();
-			bits = IG::updateBits(bits, on ? Input::Device::AXIS_BITS_STICK_1 : 0, Input::Device::AXIS_BITS_STICK_1);
-			devConf->setJoystickAxisAsDpadBits(bits);
-			devConf->save(inputManager);
+			devConf.setJoystickAxesAsDpad(Input::AxisSetId::stick1, item.flipBoolValue(*this));
+			devConf.save(inputManager);
 		}
 	},
 	joystickAxis2DPad
 	{
 		"Joystick X/Y Axis 2 as D-Pad", &defaultFace(),
-		bool(inputDevData(dev).devConf.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_Z),
+		inputDevData(dev).devConf.joystickAxesAsDpad(Input::AxisSetId::stick2),
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			bool on = item.flipBoolValue(*this);
-			auto bits = devConf->joystickAxisAsDpadBits();
-			bits = IG::updateBits(bits, on ? Input::Device::AXIS_BITS_STICK_2 : 0, Input::Device::AXIS_BITS_STICK_2);
-			devConf->setJoystickAxisAsDpadBits(bits);
-			devConf->save(inputManager);
+			devConf.setJoystickAxesAsDpad(Input::AxisSetId::stick2, item.flipBoolValue(*this));
+			devConf.save(inputManager);
 		}
 	},
 	joystickAxisHatDPad
 	{
 		"Joystick POV Hat as D-Pad", &defaultFace(),
-		bool(inputDevData(dev).devConf.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_HAT_X),
+		inputDevData(dev).devConf.joystickAxesAsDpad(Input::AxisSetId::hat),
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			bool on = item.flipBoolValue(*this);
-			auto bits = devConf->joystickAxisAsDpadBits();
-			bits = IG::updateBits(bits, on ? Input::Device::AXIS_BITS_HAT : 0, Input::Device::AXIS_BITS_HAT);
-			devConf->setJoystickAxisAsDpadBits(bits);
-			devConf->save(inputManager);
+			devConf.setJoystickAxesAsDpad(Input::AxisSetId::hat, item.flipBoolValue(*this));
+			devConf.save(inputManager);
 		}
 	},
 	consumeUnboundKeys
@@ -693,17 +687,17 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 		inputDevData(dev).devConf.shouldHandleUnboundKeys,
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
-			devConf->shouldHandleUnboundKeys = item.flipBoolValue(*this);
-			devConf->save(inputManager);
+			devConf.shouldHandleUnboundKeys = item.flipBoolValue(*this);
+			devConf.save(inputManager);
 		}
 	},
 	categories{"Action Categories", &defaultBoldFace()},
 	options{"Options", &defaultBoldFace()},
-	devConf{&inputDevData(dev).devConf}
+	devConf{inputDevData(dev).devConf}
 {
-	loadProfile.setName(std::format("Profile: {}", devConf->keyConf(inputManager).name));
-	renameProfile.setActive(devConf->mutableKeyConf(inputManager));
-	deleteProfile.setActive(devConf->mutableKeyConf(inputManager));
+	loadProfile.setName(std::format("Profile: {}", devConf.keyConf(inputManager).name));
+	renameProfile.setActive(devConf.mutableKeyConf(inputManager));
+	deleteProfile.setActive(devConf.mutableKeyConf(inputManager));
 	loadItems();
 }
 
@@ -712,7 +706,7 @@ void InputManagerDeviceView::addCategoryItem(const KeyCategory &cat)
 	auto &catItem = inputCategory.emplace_back(cat.name, &defaultFace(),
 		[this, &cat](const Input::Event &e)
 		{
-			pushAndShow(makeView<ButtonConfigView>(rootIMView, cat, *devConf), e);
+			pushAndShow(makeView<ButtonConfigView>(rootIMView, cat, devConf), e);
 		});
 	item.emplace_back(&catItem);
 }
@@ -733,18 +727,15 @@ void InputManagerDeviceView::loadItems()
 	addCategoryItem(appKeyCategory);
 	for(auto &cat : EmuApp::keyCategories())
 	{
-		if(cat.multiplayerIndex && devConf->player() != InputDeviceConfig::PLAYER_MULTI)
-		{
-			//logMsg("skipping category %s (%d)", cat.name, (int)c_i);
+		if(cat.multiplayerIndex && devConf.player() != InputDeviceConfig::PLAYER_MULTI)
 			continue;
-		}
 		addCategoryItem(cat);
 	}
 	item.emplace_back(&options);
 	item.emplace_back(&newProfile);
 	item.emplace_back(&renameProfile);
 	item.emplace_back(&deleteProfile);
-	auto &dev = devConf->device();
+	auto &dev = devConf.device();
 	if(hasICadeInput &&
 		((dev.map() == Input::Map::SYSTEM && dev.hasKeyboard()) || dev.map() == Input::Map::ICADE))
 	{
@@ -771,15 +762,15 @@ void InputManagerDeviceView::loadItems()
 void InputManagerDeviceView::onShow()
 {
 	TableView::onShow();
-	loadProfile.compile(std::format("Profile: {}", devConf->keyConf(inputManager).name), renderer());
-	bool keyConfIsMutable = devConf->mutableKeyConf(inputManager);
+	loadProfile.compile(std::format("Profile: {}", devConf.keyConf(inputManager).name), renderer());
+	bool keyConfIsMutable = devConf.mutableKeyConf(inputManager);
 	renameProfile.setActive(keyConfIsMutable);
 	deleteProfile.setActive(keyConfIsMutable);
 }
 
 void InputManagerDeviceView::confirmICadeMode()
 {
-	devConf->setICadeMode(inputManager, iCadeMode.flipBoolValue(*this));
+	devConf.setICadeMode(inputManager, iCadeMode.flipBoolValue(*this));
 	onShow();
 	app().defaultVController().setPhysicalControlsPresent(appContext().keyInputIsPresent());
 }

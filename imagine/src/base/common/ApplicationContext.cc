@@ -18,7 +18,7 @@
 #include <imagine/base/VibrationManager.hh>
 #include <imagine/base/Sensor.hh>
 #include <imagine/base/PerformanceHintManager.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/FSUtils.hh>
 #include <imagine/fs/AssetFS.hh>
@@ -33,6 +33,7 @@
 #include <imagine/util/ranges.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/memory/UniqueFileStream.hh>
+#include <imagine/util/bit.hh>
 #include <imagine/logger/logger.h>
 #include <cstring>
 

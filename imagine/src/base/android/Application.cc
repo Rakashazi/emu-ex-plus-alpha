@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "App"
 #include <cstdlib>
 #include <android/window.h>
 #include <android/configuration.h>
@@ -27,7 +26,6 @@
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Timer.hh>
-#include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/pixmap/Pixmap.hh>
@@ -35,6 +33,7 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 #include "android.hh"
 #include "AndroidInputDevice.hh"
 #include <imagine/logger/logger.h>
@@ -42,6 +41,7 @@
 namespace IG
 {
 
+constexpr SystemLogger log{"App"};
 static JavaVM* jVM{};
 static void *mainLibHandle{};
 static constexpr bool unloadNativeLibOnDestroy{};
@@ -61,9 +61,9 @@ AndroidApplication::AndroidApplication(ApplicationInitParams initParams):
 	{
 		auto extPath = sharedStoragePath(env, baseActivityClass);
 		logger_setLogDirectoryPrefix(extPath.data());
-		logMsg("SDK API Level:%d", androidSDK);
-		logMsg("internal storage path: %s", ctx.supportPath({}).data());
-		logMsg("external storage path: %s", extPath.data());
+		log.info("SDK API Level:{}", androidSDK);
+		log.info("internal storage path:{}", ctx.supportPath({}));
+		log.info("external storage path:{}", extPath);
 	}
 	initActivity(env, baseActivity, baseActivityClass, androidSDK);
 	setNativeActivityCallbacks(initParams.nActivity);
@@ -89,7 +89,7 @@ PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat)
 		case ANDROID_BITMAP_FORMAT_A_8: return PIXEL_FMT_I8;
 		default:
 		{
-			logErr("unhandled format");
+			log.error("unhandled format");
 			return PIXEL_FMT_I8;
 		}
 	}
@@ -101,10 +101,10 @@ MutablePixmapView makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, Pixe
 	auto res = AndroidBitmap_getInfo(env, bitmap, &info);
 	if(res != ANDROID_BITMAP_RESULT_SUCCESS) [[unlikely]]
 	{
-		logMsg("error getting bitmap info");
+		log.info("error getting bitmap info");
 		return {};
 	}
-	//logMsg("android bitmap info:size %ux%u, stride:%u", info.width, info.height, info.stride);
+	//log.info("android bitmap info:size {}x{}, stride:{}", info.width, info.height, info.stride);
 	if(format == PIXEL_FMT_NONE)
 	{
 		// use format from bitmap info
@@ -141,20 +141,20 @@ UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject base
 	if(fd == -1)
 	{
 		if constexpr(Config::DEBUG_BUILD)
-			logErr("error opening URI:%s", uri.data());
+			log.error("error opening URI:{}", uri);
 		if(openFlags.test)
 			return -1;
 		else
 			throw std::system_error{ENOENT, std::system_category(), uri};
 	}
-	logMsg("opened fd:%d file URI:%s", fd, uri.data());
+	log.info("opened fd:{} file URI:{}", fd, uri);
 	return fd;
 }
 
 bool AndroidApplication::fileUriExists(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
 	bool exists = uriExists(env, baseActivity, env->NewStringUTF(uri));
-	logMsg("URI %s:%s", exists ? "exists" : "doesn't exist", uri.data());
+	log.info("URI {}:{}", exists ? "exists" : "doesn't exist", uri);
 	return exists;
 }
 
@@ -165,38 +165,38 @@ WallClockTimePoint AndroidApplication::fileUriLastWriteTime(JNIEnv *env, jobject
 
 std::string AndroidApplication::fileUriFormatLastWriteTimeLocal(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
-	//logMsg("getting modification time for URI:%s", uri.data());
+	//log.info("getting modification time for URI:{}", uri);
 	return std::string{JNI::StringChars{env, uriLastModified(env, baseActivity, env->NewStringUTF(uri))}};
 }
 
 FS::FileString AndroidApplication::fileUriDisplayName(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
-	//logMsg("getting display name for URI:%s", uri.data());
+	//log.info("getting display name for URI:{}", uri);
 	return FS::FileString{JNI::StringChars{env, uriDisplayName(env, baseActivity, env->NewStringUTF(uri))}};
 }
 
 bool AndroidApplication::removeFileUri(JNIEnv *env, jobject baseActivity, CStringView uri, bool isDir) const
 {
-	logMsg("removing %s URI:%s", isDir ? "directory" : "file", uri.data());
+	log.info("removing {} URI:{}", isDir ? "directory" : "file", uri);
 	return deleteUri(env, baseActivity, env->NewStringUTF(uri), isDir);
 }
 
 bool AndroidApplication::renameFileUri(JNIEnv *env, jobject baseActivity, CStringView oldUri, CStringView newUri) const
 {
-	logMsg("renaming file URI:%s -> %s", oldUri.data(), newUri.data());
+	log.info("renaming file URI:{} -> {}", oldUri, newUri);
 	return renameUri(env, baseActivity, env->NewStringUTF(oldUri), env->NewStringUTF(newUri));
 }
 
 bool AndroidApplication::createDirectoryUri(JNIEnv *env, jobject baseActivity, CStringView uri) const
 {
-	logMsg("creating directory URI:%s", uri.data());
+	log.info("creating directory URI:{}", uri);
 	return createDirUri(env, baseActivity, env->NewStringUTF(uri));
 }
 
 bool AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity,
 	CStringView uri, DirectoryEntryDelegate del, FS::DirOpenFlags flags) const
 {
-	logMsg("listing directory URI:%s", uri.data());
+	log.info("listing directory URI:{}", uri);
 	if(!listUriFiles(env, baseActivity, (jlong)&del, env->NewStringUTF(uri)))
 	{
 		if(flags.test)
@@ -239,7 +239,7 @@ void AndroidApplication::setOnSystemOrientationChanged(SystemOrientationChangedD
 bool AndroidApplication::systemAnimatesWindowRotation() const
 {
 	if(Config::MACHINE_IS_GENERIC_ARMV7)
-		return !(deviceFlags & HANDLE_ROTATION_ANIMATION_BIT);
+		return !deviceFlags.handleRotationAnimation;
 	else
 		return true;
 }
@@ -308,7 +308,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				return;
 			if(Config::DEBUG_BUILD)
 			{
-				logDMsg("detaching JNI thread:%d", thisThreadId());
+				log.debug("detaching JNI thread:{}", thisThreadId());
 			}
 			jVM->DetachCurrentThread();
 		});
@@ -381,13 +381,13 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				"inputDeviceEnumerated", "(JILandroid/view/InputDevice;Ljava/lang/String;IIIIZ)V",
 				(void*)
 				+[](JNIEnv* env, jobject, jlong nUserData, jint devID, jobject jDev, jstring jName, jint src,
-					jint kbType, jint jsAxisBits, jint vendorProductId, jboolean isPowerButton)
+					jint kbType, jint jsAxisFlags, jint vendorProductId, jboolean isPowerButton)
 				{
 					ApplicationContext ctx{reinterpret_cast<ANativeActivity*>(nUserData)};
 					auto &app = ctx.application();
 					const char *name = env->GetStringUTFChars(jName, nullptr);
 					Input::AndroidInputDevice sysDev{env, jDev, devID, src,
-						name, kbType, (uint32_t)jsAxisBits, (uint32_t)vendorProductId, (bool)isPowerButton};
+						name, kbType, std::bit_cast<Input::AxisFlags>(jsAxisFlags), (uint32_t)vendorProductId, (bool)isPowerButton};
 					env->ReleaseStringUTFChars(jName, name);
 					auto devPtr = app.updateAndroidInputDevice(ctx, std::move(sysDev), false);
 					// check for special device IDs
@@ -410,7 +410,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 					auto &app = *((AndroidApplication*)nUserData);
 					auto uri = JNI::StringChars{env, jUri};
 					auto name = JNI::StringChars{env, jDisplayName};
-					logMsg("picked URI:%s name:%s", uri.data(), name.data());
+					log.info("picked URI:{} name:{}", uri.data(), name.data());
 					app.handleDocumentIntentResult(uri, name);
 				}
 			},
@@ -431,18 +431,18 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 	if(androidSDK >= 14)
 	{
 		JNI::InstMethod<jint()> jDeviceFlags{env, baseActivityClass, "deviceFlags", "()I"};
-		deviceFlags = jDeviceFlags(env, baseActivity);
-		if(deviceFlags & PERMANENT_MENU_KEY_BIT)
+		deviceFlags = std::bit_cast<DeviceFlags>(uint8_t(jDeviceFlags(env, baseActivity)));
+		if(deviceFlags.permanentMenuKey)
 		{
-			logMsg("device has hardware nav/menu keys");
+			log.info("device has hardware nav/menu keys");
 		}
-		if(deviceFlags & DISPLAY_CUTOUT_BIT)
+		if(deviceFlags.displayCutout)
 		{
-			logMsg("device has display cutout");
+			log.info("device has display cutout");
 		}
-		if(deviceFlags & HANDLE_ROTATION_ANIMATION_BIT)
+		if(deviceFlags.handleRotationAnimation)
 		{
-			logMsg("app handles rotation animations");
+			log.info("app handles rotation animations");
 		}
 	}
 
@@ -456,7 +456,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 		dlclose(mainLibHandle);
 		#endif
 		if(!mainLibHandle)
-			logWarn("unable to get native lib handle");
+			log.warn("unable to get native lib handle");
 	}*/
 }
 
@@ -467,12 +467,12 @@ JNIEnv* AndroidApplication::thisThreadJniEnv() const
 	{
 		if(Config::DEBUG_BUILD)
 		{
-			logDMsg("attaching JNI thread:%d", thisThreadId());
+			log.debug("attaching JNI thread:{}", thisThreadId());
 		}
 		assumeExpr(jVM);
 		if(jVM->AttachCurrentThread(&env, nullptr) != 0)
 		{
-			logErr("error attaching JNI thread");
+			log.error("error attaching JNI thread");
 			return nullptr;
 		}
 		pthread_setspecific(jEnvKey, env);
@@ -487,7 +487,7 @@ void AndroidApplication::setIdleDisplayPowerSave(JNIEnv *env, jobject baseActivi
 		false : (bool)(jWinFlags(env, baseActivity) & AWINDOW_FLAG_KEEP_SCREEN_ON);
 	if(keepOn != keepsScreenOn)
 	{
-		logMsg("keep screen on: %d", keepOn);
+		log.info("keep screen on:{}", (bool)keepOn);
 		jSetWinFlags(env, baseActivity, keepOn ? AWINDOW_FLAG_KEEP_SCREEN_ON : 0, AWINDOW_FLAG_KEEP_SCREEN_ON);
 	}
 	keepScreenOn = keepOn; // cache value for endIdleByUserActivity()
@@ -497,7 +497,7 @@ void AndroidApplication::endIdleByUserActivity(ApplicationContext ctx)
 {
 	if(!keepScreenOn)
 	{
-		//logMsg("signaling user activity to the OS");
+		//log.info("signaling user activity to the OS");
 		// quickly toggle KEEP_SCREEN_ON flag to brighten screen,
 		// waiting about 20ms before toggling it back off triggers the screen to brighten if it was already dim
 		jSetWinFlags(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), AWINDOW_FLAG_KEEP_SCREEN_ON, AWINDOW_FLAG_KEEP_SCREEN_ON);
@@ -517,7 +517,7 @@ void AndroidApplication::setStatusBarHidden(JNIEnv *env, jobject baseActivity, b
 	auto statusBarIsHidden = (bool)(jWinFlags(env, baseActivity) & AWINDOW_FLAG_FULLSCREEN);
 	if(hidden != statusBarIsHidden)
 	{
-		logMsg("setting app window fullscreen: %u", hidden);
+		log.info("setting app window fullscreen: {}", hidden);
 		jSetWinFlags(env, baseActivity, hidden ? AWINDOW_FLAG_FULLSCREEN : 0, AWINDOW_FLAG_FULLSCREEN);
 	}
 }
@@ -540,7 +540,7 @@ void AndroidApplication::setSysUIStyle(JNIEnv *env, jobject baseActivity, int32_
 		// Add SYSTEM_UI_FLAG_IMMERSIVE_STICKY for use with Android 4.4+ if flags contain OS_NAV_STYLE_HIDDEN
 		if(flags.hideNavigation)
 			nativeFlags |= SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-		logMsg("setting UI visibility: 0x%X", nativeFlags);
+		log.info("setting UI visibility:0x{:X}", nativeFlags);
 		uiVisibilityFlags = nativeFlags;
 		jSetUIVisibility(env, baseActivity, nativeFlags);
 	}
@@ -561,7 +561,7 @@ Window *AndroidApplication::deviceWindow() const
 void AndroidApplication::onWindowFocusChanged(ApplicationContext ctx, int focused)
 {
 	aHasFocus = focused;
-	logMsg("focus change:%d", focused);
+	log.info("focus change:{}", focused);
 	if(focused && ctx.androidSDK() >= 11)
 	{
 		// re-apply UI visibility flags
@@ -579,7 +579,7 @@ void AndroidApplication::onInputQueueCreated(ApplicationContext ctx, AInputQueue
 {
 	assert(!inputQueue);
 	inputQueue = queue;
-	logMsg("made & attached input queue");
+	log.info("made & attached input queue");
 	AInputQueue_attachLooper(queue, EventLoop::forThread().nativeObject(), ALOOPER_POLL_CALLBACK,
 		[](int, int, void *data)
 		{
@@ -591,7 +591,7 @@ void AndroidApplication::onInputQueueCreated(ApplicationContext ctx, AInputQueue
 
 void AndroidApplication::onInputQueueDestroyed(AInputQueue *queue)
 {
-	logMsg("input queue destroyed");
+	log.info("input queue destroyed");
 	inputQueue = {};
 	AInputQueue_detachLooper(queue);
 }
@@ -604,7 +604,7 @@ std::string AndroidApplication::androidBuildDevice(JNIEnv *env, jclass baseActiv
 
 void AndroidApplication::addNotification(JNIEnv *env, jobject baseActivity, const char *onShow, const char *title, const char *message)
 {
-	logMsg("adding notificaion icon");
+	log.info("adding notificaion icon");
 	if(!jAddNotification) [[unlikely]]
 	{
 		jAddNotification = {env, baseActivity, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"};
@@ -634,7 +634,7 @@ void AndroidApplication::handleIntent(ApplicationContext ctx)
 	if(intentDataPathJStr)
 	{
 		const char *intentDataPathStr = env->GetStringUTFChars(intentDataPathJStr, nullptr);
-		logMsg("got intent with path: %s", intentDataPathStr);
+		log.info("got intent with path:{}", intentDataPathStr);
 		onEvent(ctx, InterProcessMessageEvent{intentDataPathStr});
 		env->ReleaseStringUTFChars(intentDataPathJStr, intentDataPathStr);
 	}
@@ -691,12 +691,12 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 			jVM = {}; // clear VM pointer to let Android framework detach main thread
 			if(mainLibHandle)
 			{
-				logMsg("closing main lib:%p", mainLibHandle);
+				log.info("closing main lib:{}", mainLibHandle);
 				dlclose(mainLibHandle);
 			}
 			else
 			{
-				logMsg("exiting process");
+				log.info("exiting process");
 				delete static_cast<BaseApplication*>(nActivity->instance);
 				::exit(0);
 			}
@@ -706,7 +706,7 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 		{
 			ApplicationContext ctx{nActivity};
 			auto &app = ctx.application();
-			logMsg("app started");
+			log.info("app started");
 			app.setActiveForAllScreens(true);
 			if(ctx.androidSDK() >= 11)
 			{
@@ -719,7 +719,7 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 		{
 			ApplicationContext ctx{nActivity};
 			auto &app = ctx.application();
-			logMsg("app resumed");
+			log.info("app resumed");
 			if(ctx.androidSDK() < 11)
 			{
 				app.setRunningActivityState();
@@ -736,12 +736,12 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 			if(ctx.androidSDK() < 11)
 			{
 				app.setPausedActivityState();
-				logMsg("app %s", app.isPaused() ? "paused" : "exiting");
+				log.info("app {}", app.isPaused() ? "paused" : "exiting");
 				// App is killable in Android 2.3, run exit handler to save volatile data
 				app.dispatchOnExit(ctx, app.isPaused());
 			}
 			else
-				logMsg("app paused");
+				log.info("app paused");
 			app.deinitKeyRepeatTimer();
 		};
 	nActivity->callbacks->onStop =
@@ -752,11 +752,11 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 			if(ctx.androidSDK() >= 11)
 			{
 				app.setPausedActivityState();
-				logMsg("app %s", app.isPaused() ? "stopped" : "exiting");
+				log.info("app {}", app.isPaused() ? "stopped" : "exiting");
 				app.dispatchOnExit(ctx, app.isPaused());
 			}
 			else
-				logMsg("app stopped");
+				log.info("app stopped");
 			app.setActiveForAllScreens(false);
 		};
 	nActivity->callbacks->onConfigurationChanged =
@@ -770,7 +770,7 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 			auto rotation = app.mainDisplayRotation(nActivity->env, nActivity->clazz);
 			if(rotation != app.currentRotation())
 			{
-				logMsg("changed OS orientation");
+				log.info("changed OS orientation");
 				app.setCurrentRotation(ctx, rotation, true);
 			}
 			app.updateInputConfig(ctx, aConfig);
@@ -841,7 +841,7 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity *nActivity, void* s
 	if(Config::DEBUG_BUILD)
 	{
 		mainThreadId = gettid();
-		logMsg("called ANativeActivity_onCreate, thread ID %d", mainThreadId);
+		IG::log.info("called ANativeActivity_onCreate, thread ID:{}", mainThreadId);
 	}
 	jVM = nActivity->vm;
 	ApplicationInitParams initParams{nActivity};
@@ -850,6 +850,6 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity *nActivity, void* s
 	if(Config::DEBUG_BUILD)
 	{
 		if(!ctx.windows().size())
-			logWarn("didn't create a window");
+			IG::log.warn("didn't create a window");
 	}
 }

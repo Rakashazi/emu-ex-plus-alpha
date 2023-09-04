@@ -21,7 +21,6 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/MessagePort.hh>
-#include <imagine/input/Input.hh>
 #include <imagine/input/Device.hh>
 #include <imagine/util/DelegateFuncSet.hh>
 #include <vector>
@@ -29,6 +28,7 @@
 #include <optional>
 #include <cstdint>
 #include <string_view>
+#include <algorithm>
 
 namespace IG
 {
@@ -102,7 +102,7 @@ public:
 
 	void removeInputDeviceIf(ApplicationContext ctx, auto unaryPredicate, bool notify)
 	{
-		removeInputDevice(ctx, std::find_if(inputDev.begin(), inputDev.end(), unaryPredicate), notify);
+		removeInputDevice(ctx, std::ranges::find_if(inputDev, unaryPredicate), notify);
 	}
 
 	void removeInputDevices(ApplicationContext, Input::Map matchingMap, bool notify = false);

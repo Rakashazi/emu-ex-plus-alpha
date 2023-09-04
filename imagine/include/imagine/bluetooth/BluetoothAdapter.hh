@@ -127,7 +127,7 @@ protected:
 class BluetoothInputDevice : public Input::Device
 {
 public:
-	BluetoothInputDevice(ApplicationContext, Input::Map, TypeBits, const char *name);
+	BluetoothInputDevice(ApplicationContext, Input::Map, Input::DeviceTypeFlags, const char *name);
 	virtual IG::ErrorCode open(BluetoothAdapter &adapter) = 0;
 
 protected:

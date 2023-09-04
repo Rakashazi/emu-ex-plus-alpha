@@ -16,49 +16,33 @@
 #include "PlaceVControlsView.hh"
 #include <emuframework/EmuApp.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
+constexpr std::array snapPxSizes{0, 2, 4, 8, 16, 32, 64};
+
 PlaceVControlsView::PlaceVControlsView(ViewAttachParams attach, VController &vController_):
 	View{attach},
-	text{"Click center to go back", &defaultFace()},
-	vController{vController_},
-	animate
-	{
-		[this](IG::FrameParams params)
-		{
-			window().setNeedsDraw(true);
-			//logMsg("updating fade");
-			return textFade.update(params.timestamp);
-		}
-	}
+	exitText{"Exit", &defaultFace()},
+	snapText{"Snap: 0px", &defaultFace()},
+	vController{vController_}
 {
 	app().applyOSNavStyle(appContext(), true);
-	textFade = {1.};
-	animationStartTimer.runIn(IG::Seconds{2}, {},
-		[this]()
-		{
-			logMsg("starting fade");
-			textFade = {1., 0., {}, SteadyClock::now(), Milliseconds{400}};
-			window().addOnFrame(animate);
-		});
 }
 
 PlaceVControlsView::~PlaceVControlsView()
 {
 	app().applyOSNavStyle(appContext(), false);
-	window().removeOnFrame(animate);
 }
 
 void PlaceVControlsView::place()
 {
 	dragTracker.reset();
-	auto exitBtnPos = viewRect().pos(C2DO);
-	int exitBtnSize = window().widthMMInPixels(10.);
-	exitBtnRect = makeWindowRectRel(exitBtnPos - WPt{exitBtnSize/2, exitBtnSize/2}, {exitBtnSize, exitBtnSize});
-	text.compile(renderer());
+	exitText.compile(renderer());
+	snapText.compile(renderer());
+	exitBtnRect = WRect{{}, exitText.pixelSize()} + (viewRect().pos(C2DO) - exitText.pixelSize() / 2) + WPt{0, exitText.height()};
+	snapBtnRect = WRect{{}, snapText.pixelSize()} + (viewRect().pos(C2DO) - snapText.pixelSize() / 2) - WPt{0, exitText.height()};
 }
 
 bool PlaceVControlsView::inputEvent(const Input::Event &e)
@@ -76,10 +60,6 @@ bool PlaceVControlsView::inputEvent(const Input::Event &e)
 		},
 		[&](const Input::MotionEvent &e)
 		{
-			if(e.pushed() && animationStartTimer.isArmed())
-			{
-				animationStartTimer.dispatchEarly();
-			}
 			size_t layoutIdx = window().isPortrait();
 			dragTracker.inputEvent(e,
 				[&](Input::DragTrackerState, DragData &d)
@@ -115,6 +95,15 @@ bool PlaceVControlsView::inputEvent(const Input::Event &e)
 					if(d.elem)
 					{
 						auto newPos = d.startPos + state.downPosDiff();
+						if(snapPxIdx)
+						{
+							auto snapPx = snapPxSizes[snapPxIdx];
+							auto remainder = newPos % snapPx;
+							if(remainder.x)
+								newPos.x = newPos.x + snapPx - remainder.x;
+							if(remainder.y)
+								newPos.y = newPos.y + snapPx - remainder.y;
+						}
 						auto bounds = window().bounds();
 						d.elem->setPos(newPos, bounds);
 						auto layoutPos = VControllerLayoutPosition::fromPixelPos(d.elem->bounds().pos(C2DO), d.elem->bounds().size(), bounds);
@@ -128,9 +117,18 @@ bool PlaceVControlsView::inputEvent(const Input::Event &e)
 				},
 				[&](Input::DragTrackerState state, DragData &d)
 				{
-					if(!d.elem && exitBtnRect.overlaps(state.pos()) && exitBtnRect.overlaps(state.downPos()))
+					if(d.elem)
+						return;
+					if(exitBtnRect.overlaps(state.pos()) && exitBtnRect.overlaps(state.downPos()))
 					{
 						dismiss();
+					}
+					else if(snapBtnRect.overlaps(state.pos()) && snapBtnRect.overlaps(state.downPos()))
+					{
+						snapPxIdx = (snapPxIdx + 1) % snapPxSizes.size();
+						snapText.resetString(std::format("Snap: {}px", snapPxSizes[snapPxIdx]));
+						snapText.compile(renderer());
+						postDraw();
 					}
 				});
 			return true;
@@ -150,15 +148,12 @@ void PlaceVControlsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		{viewRect().x2, viewRect().yCenter() + lineSize}});
 	cmds.drawRect({{viewRect().xCenter(), viewRect().y},
 		{viewRect().xCenter() + lineSize, viewRect().y2}});
-
-	if(textFade != 0.)
-	{
-		cmds.setColor({0, 0, 0, textFade / 2.f});
-		cmds.drawRect({viewRect().pos(C2DO) - text.pixelSize() / 2 - text.spaceWidth(),
-			viewRect().pos(C2DO) + text.pixelSize() / 2 + text.spaceWidth()});
-		basicEffect.enableAlphaTexture(cmds);
-		text.draw(cmds, viewRect().pos(C2DO), C2DO, Color{1., 1., 1., textFade});
-	}
+	cmds.setColor({0, 0, 0, .5});
+	cmds.drawRect(exitBtnRect);
+	cmds.drawRect(snapBtnRect);
+	basicEffect.enableAlphaTexture(cmds);
+	exitText.draw(cmds, exitBtnRect.pos(C2DO), C2DO, ColorName::WHITE);
+	snapText.draw(cmds, snapBtnRect.pos(C2DO), C2DO, ColorName::WHITE);
 }
 
 void PlaceVControlsView::onShow()

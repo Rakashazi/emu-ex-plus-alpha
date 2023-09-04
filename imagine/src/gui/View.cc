@@ -19,7 +19,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
 #include <imagine/util/math/space.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/logger/logger.h>

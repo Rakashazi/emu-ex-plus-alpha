@@ -20,7 +20,7 @@
 #include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/BasicEffect.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 

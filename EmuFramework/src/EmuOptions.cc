@@ -20,7 +20,6 @@
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VController.hh>
-#include "privateInput.hh"
 #include "WindowData.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>

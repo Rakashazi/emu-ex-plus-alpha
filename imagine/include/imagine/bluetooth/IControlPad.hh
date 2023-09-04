@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/bluetooth/sys.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/inputDefs.hh>
 
 namespace IG
 {

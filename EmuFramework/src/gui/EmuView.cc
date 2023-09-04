@@ -17,7 +17,6 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/OutputTimingManager.hh>
-#include <imagine/input/Input.hh>
 #include <imagine/base/Screen.hh>
 #include <algorithm>
 #include <format>

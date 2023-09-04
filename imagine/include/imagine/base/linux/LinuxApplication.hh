@@ -22,16 +22,10 @@
 #include <gio/gio.h>
 #endif
 #include <imagine/base/EventLoop.hh>
-#include <vector>
 #include <memory>
 
 struct _XDisplay;
 union _XEvent;
-
-namespace IG::FS
-{
-class PathString;
-}
 
 namespace IG
 {

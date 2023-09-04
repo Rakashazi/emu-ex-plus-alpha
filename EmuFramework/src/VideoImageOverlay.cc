@@ -18,7 +18,6 @@
 #include <emuframework/EmuSystem.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
@@ -114,7 +113,7 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id, Gfx::Colo
 	texConf.colorSpace = colorSpace;
 	texConf.setWillGenerateMipmaps(true);
 	img = r.makeTexture(texConf);
-	img.write(0, desc.pixView, {}, Gfx::Texture::WRITE_FLAG_MAKE_MIPMAPS);
+	img.write(0, desc.pixView, {}, {.makeMipmaps = true});
 	spr.set(img);
 }
 
@@ -128,7 +127,6 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, WRect contentRect, WSize 
 	if(!spr.hasTexture() || videoPixels.y <= 1)
 		return;
 	using namespace IG::Gfx;
-	//logMsg("placing overlay with %d lines in image", videoPixels.y);
 	spr.setPos(disp);
 	const float width2x = videoPixels.x * 2.f;
 	const bool is240p = videoPixels.y <= 256;

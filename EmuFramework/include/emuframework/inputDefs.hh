@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/input/Input.hh>
+#include <imagine/input/inputDefs.hh>
 #include <imagine/util/container/array.hh>
 #include <array>
 #include <cstdint>

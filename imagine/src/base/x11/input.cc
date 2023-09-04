@@ -17,10 +17,12 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
+#include <imagine/input/Device.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/bit.hh>
 #include "xlibutils.h"
 #include <X11/XKBlib.h>
 #include <X11/cursorfont.h>
@@ -37,29 +39,26 @@ struct XInputDevice : public Input::Device
 	bool iCadeMode_ = false;
 
 	XInputDevice() = default;
-	XInputDevice(TypeBits, std::string name);
+	XInputDevice(Input::DeviceTypeFlags, std::string name);
 	XInputDevice(XIDeviceInfo, bool isPointingDevice, bool isPowerButton);
 	void setICadeMode(bool on) final;
 	bool iCadeMode() const final;
 };
 
-XInputDevice::XInputDevice(TypeBits typeBits, std::string name):
-	Device{0, Input::Map::SYSTEM, typeBits, std::move(name)} {}
+XInputDevice::XInputDevice(Input::DeviceTypeFlags typeFlags, std::string name):
+	Device{0, Input::Map::SYSTEM, typeFlags, std::move(name)} {}
 
 XInputDevice::XInputDevice(XIDeviceInfo info, bool isPointingDevice, bool isPowerButton):
-	Device{info.deviceid, Input::Map::SYSTEM, 0, info.name}
+	Device{info.deviceid, Input::Map::SYSTEM, {}, info.name}
 {
 	if(isPointingDevice)
 	{
-		typeBits_ = Input::Device::TYPE_BIT_MOUSE;
+		typeFlags_.mouse = true;
 	}
 	else
 	{
-		typeBits_ = Input::Device::TYPE_BIT_KEYBOARD;
-		if(isPowerButton)
-		{
-			typeBits_ |= Input::Device::TYPE_BIT_POWER_BUTTON;
-		}
+		typeFlags_.keyboard = true;
+		typeFlags_.powerButton = isPowerButton;
 	}
 }
 
@@ -76,7 +75,7 @@ bool XInputDevice::iCadeMode() const
 
 static bool isXInputDevice(Input::Device &d)
 {
-	return d.map() == Input::Map::SYSTEM && (d.typeBits() & (Input::Device::TYPE_BIT_MOUSE | Input::Device::TYPE_BIT_KEYBOARD));
+	return d.map() == Input::Map::SYSTEM && (d.typeFlags().mouse || d.typeFlags().keyboard);
 }
 
 static bool hasXInputDeviceId(Input::Device &d, int id)
@@ -227,7 +226,8 @@ void XApplication::initInputSystem()
 	}
 
 	// setup device list
-	vkbDevice = &addInputDevice(ApplicationContext{static_cast<Application&>(*this)}, std::make_unique<XInputDevice>(Input::Device::TYPE_BIT_VIRTUAL | Input::Device::TYPE_BIT_KEYBOARD | Input::Device::TYPE_BIT_KEY_MISC, "Virtual"));
+	vkbDevice = &addInputDevice(ApplicationContext{static_cast<Application&>(*this)},
+		std::make_unique<XInputDevice>(Input::virtualDeviceFlags, "Virtual"));
 	int devices;
 	::XIDeviceInfo *device = XIQueryDevice(dpy, XIAllDevices, &devices);
 	for(auto &d : std::span<::XIDeviceInfo>{device, (size_t)devices})
@@ -426,10 +426,10 @@ bool XApplication::hasPendingX11Events() const
 namespace IG::Input
 {
 
-bool Device::anyTypeBitsPresent(ApplicationContext, TypeBits typeBits)
+bool Device::anyTypeFlagsPresent(ApplicationContext, DeviceTypeFlags typeFlags)
 {
 	// TODO
-	if(typeBits & TYPE_BIT_KEYBOARD)
+	if(typeFlags.keyboard)
 	{
 		return true;
 	}

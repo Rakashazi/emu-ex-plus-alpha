@@ -26,6 +26,7 @@
 #endif
 
 #include <imagine/base/baseDefs.hh>
+#include <imagine/input/Event.hh>
 #include <imagine/util/Point2D.hh>
 
 namespace IG

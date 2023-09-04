@@ -17,9 +17,10 @@
 #include <imagine/base/Application.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/variant.hh>
+#include <imagine/util/bit.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG

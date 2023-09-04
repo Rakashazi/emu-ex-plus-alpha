@@ -15,19 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/input/Input.hh>
-#include <imagine/input/Device.hh>
-#include <imagine/util/container/VMemArray.hh>
-#include <imagine/util/container/array.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuSystem.hh>
-#include <memory>
-#include <string>
+#include <imagine/input/Device.hh>
+#include <string_view>
 
 namespace EmuEx
 {
-
-class EmuViewController;
 
 class InputDeviceConfig
 {
@@ -42,8 +36,8 @@ public:
 	void deleteConf(InputManager &);
 	bool setICadeMode(InputManager &, bool on);
 	bool iCadeMode();
-	unsigned joystickAxisAsDpadBits();
-	void setJoystickAxisAsDpadBits(unsigned axisMask);
+	bool joystickAxesAsDpad(Input::AxisSetId);
+	void setJoystickAxesAsDpad(Input::AxisSetId, bool on);
 	KeyConfigDesc keyConf(const InputManager &) const;
 	void setDefaultKeyConf();
 	void setKeyConfName(InputManager &, std::string_view name);
@@ -67,30 +61,5 @@ public:
 	bool isEnabled{true};
 	IG_UseMemberIf(Config::envIsAndroid, bool, shouldHandleUnboundKeys){};
 };
-
-struct InputDeviceData
-{
-	static constexpr int maxKeyActions = 4;
-	using ActionGroup = ZArray<KeyInfo, maxKeyActions>;
-
-	VMemArray<ActionGroup> actionTable;
-	std::vector<KeyMapping> keyCombos;
-	RingArray<Input::Key, 8> pushedInputKeys;
-	InputDeviceConfig devConf;
-	std::string displayName;
-
-	InputDeviceData(const InputManager &, Input::Device &);
-	void buildKeyMap(const InputManager &, const Input::Device &d);
-	static std::string makeDisplayName(std::string_view name, int id);
-	void updateInputKey(const Input::KeyEvent &);
-	void addInputKey(Input::Key);
-	void removeInputKey(Input::Key);
-	bool keysArePushed(MappedKeys);
-};
-
-static InputDeviceData& inputDevData(const Input::Device &d)
-{
-	return *d.appData<InputDeviceData>();
-}
 
 }

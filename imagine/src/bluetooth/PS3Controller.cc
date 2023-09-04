@@ -111,7 +111,7 @@ static const char *ps3ButtonName(Input::Key k)
 }
 
 PS3Controller::PS3Controller(ApplicationContext ctx, BluetoothAddr addr):
-	BluetoothInputDevice{ctx, Input::Map::PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"},
+	BluetoothInputDevice{ctx, Input::Map::PS3PAD, {.gamepad = true}, "PS3 Controller"},
 	ctlSock{ctx}, intSock{ctx},
 	addr{addr}
 {}

@@ -50,8 +50,8 @@ void BluetoothAdapter::setAppContext(ApplicationContext ctx_)
 }
 
 BluetoothInputDevice::BluetoothInputDevice(ApplicationContext ctx, Input::Map map,
-	Input::DeviceTypeBits typeBits, const char *name):
-	Device{0, map, typeBits, name},
+	Input::DeviceTypeFlags typeFlags, const char *name):
+	Device{0, map, typeFlags, name},
 	ctx{ctx}
 {}
 

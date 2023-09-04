@@ -20,6 +20,12 @@
 #include <array>
 #include <type_traits>
 
+namespace IG
+{
+struct InputDeviceTypeFlags;
+struct InputAxisFlags;
+}
+
 namespace IG::Input
 {
 
@@ -69,6 +75,20 @@ enum class DeviceSubtype : uint8_t
 	_8BITDO_M30_GAMEPAD = 12
 };
 
+enum class Action : uint8_t
+{
+	UNUSED,
+	RELEASED,
+	PUSHED,
+	MOVED,
+	MOVED_RELATIVE,
+	EXIT_VIEW,
+	ENTER_VIEW,
+	SCROLL_UP,
+	SCROLL_DOWN,
+	CANCELED,
+};
+
 using PointerId = PointerIdImpl;
 
 static constexpr PointerId NULL_POINTER_ID
@@ -82,8 +102,7 @@ static constexpr PointerId NULL_POINTER_ID
 	}()
 };
 
-using DeviceTypeBits = uint8_t;
-
+class Event;
 class Device;
 
 #ifdef CONFIG_INPUT_GAMEPAD_DEVICES

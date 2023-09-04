@@ -21,7 +21,7 @@
 #include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/variant.hh>

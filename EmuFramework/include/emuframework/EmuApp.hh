@@ -28,7 +28,7 @@
 #include <emuframework/AutosaveManager.hh>
 #include <emuframework/OutputTimingManager.hh>
 #include <emuframework/RecentContent.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/inputDefs.hh>
 #include <imagine/input/android/MogaManager.hh>
 #include <imagine/gui/ViewManager.hh>
 #include <imagine/gui/TextEntry.hh>

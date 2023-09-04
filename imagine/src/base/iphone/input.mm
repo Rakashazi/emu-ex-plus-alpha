@@ -18,7 +18,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <CoreFoundation/CoreFoundation.h>
 #include <dlfcn.h>
 #include <imagine/base/Application.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
 #include <imagine/input/TextField.hh>
 #include <imagine/input/Device.hh>
 #include <imagine/time/Time.hh>
@@ -86,9 +86,7 @@ struct KeyboardDevice : public Device
 {
 	bool iCadeMode_ = false;
 
-	KeyboardDevice(): Device{0, Map::SYSTEM,
-		Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Keyboard/iCade"}
-	{}
+	KeyboardDevice(): Device{0, Map::SYSTEM, virtualDeviceFlags, "Keyboard/iCade"} {}
 
 	void setICadeMode(bool on) final
 	{
@@ -218,11 +216,11 @@ void TextField::finish()
 	[textField().uiTextField resignFirstResponder];
 }
 
-bool Device::anyTypeBitsPresent(ApplicationContext ctx, TypeBits typeBits)
+bool Device::anyTypeFlagsPresent(ApplicationContext ctx, DeviceTypeFlags typeFlags)
 {
-	if((typeBits & TYPE_BIT_KEYBOARD) && hardwareKBAttached)
+	if((typeFlags.keyboard) && hardwareKBAttached)
 		return true;
-	if(typeBits & TYPE_BIT_GAMEPAD)
+	if(typeFlags.gamepad)
 	{
 		// A gamepad is present if iCade mode is in use on the iCade device (always first device)
 		// or the device list size is not 1 due to BTstack connections from other controllers

@@ -32,13 +32,6 @@ struct GlyphEntry
 	GlyphMetrics metrics;
 };
 
-struct GlyphSetMetrics
-{
-	int16_t nominalHeight{};
-	int16_t spaceSize{};
-	int16_t yLineStart{};
-};
-
 class GlyphTextureSet
 {
 public:

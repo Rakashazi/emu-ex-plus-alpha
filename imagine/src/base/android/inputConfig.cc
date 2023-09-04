@@ -19,6 +19,7 @@
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/bit.hh>
 #include "AndroidInputDevice.hh"
 #include <android/configuration.h>
 #include <android/input.h>
@@ -55,8 +56,7 @@ static constexpr int DEVICE_REMOVED = 2;
 
 static AndroidInputDevice makeGenericKeyDevice()
 {
-	return {-1, Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC,
-		"Key Input (All Devices)"};
+	return {-1, virtualDeviceFlags, "Key Input (All Devices)"};
 }
 
 // NAVHIDDEN_* mirrors KEYSHIDDEN_*
@@ -84,36 +84,24 @@ static const char *inputDeviceKeyboardTypeToStr(int type)
 	return "Unknown";
 }
 
-AndroidInputDevice::AndroidInputDevice(int osId, TypeBits typeBits, std::string name):
-	Device{osId, Map::SYSTEM, typeBits, std::move(name)}
+AndroidInputDevice::AndroidInputDevice(int osId, DeviceTypeFlags typeFlags, std::string name):
+	Device{osId, Map::SYSTEM, typeFlags, std::move(name)}
 {}
 
 AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
-	int osId, int src, std::string devName, int kbType, uint32_t jsAxisBits,
+	int osId, int src, std::string devName, int kbType, AxisFlags jsAxisFlags,
 	uint32_t vendorProductId, bool isPowerButton):
-	Device{osId, Map::SYSTEM, Device::TYPE_BIT_KEY_MISC, std::move(devName)}
+	Device{osId, Map::SYSTEM, {.miscKeys = true}, std::move(devName)}
 {
-	if(osId == -1)
-	{
-		typeBits_ |= Device::TYPE_BIT_VIRTUAL;
-	}
-	if(isPowerButton)
-	{
-		typeBits_ |= Device::TYPE_BIT_POWER_BUTTON;
-	}
+	typeFlags_.virtualInput = osId == -1;
+	typeFlags_.powerButton = isPowerButton;
 	if(src & AINPUT_SOURCE_CLASS_POINTER)
 	{
-		if(IG::isBitMaskSet(src, (int)AINPUT_SOURCE_TOUCHSCREEN))
-		{
-			typeBits_ |= Device::TYPE_BIT_TOUCHSCREEN;
-		}
-		if(IG::isBitMaskSet(src, (int)AINPUT_SOURCE_MOUSE))
-		{
-			typeBits_ |= Device::TYPE_BIT_MOUSE;
-		}
+		typeFlags_ .touchscreen = isBitMaskSet(src, AINPUT_SOURCE_TOUCHSCREEN);
+		typeFlags_ .mouse = isBitMaskSet(src, AINPUT_SOURCE_MOUSE);
 	}
 	auto &name = name_;
-	if(IG::isBitMaskSet(src, (int)AINPUT_SOURCE_GAMEPAD))
+	if(isBitMaskSet(src, AINPUT_SOURCE_GAMEPAD))
 	{
 		bool isGamepad = true;
 		if(Config::MACHINE_IS_GENERIC_ARMV7 && name.contains("-zeus"))
@@ -131,10 +119,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 			isGamepad = false;
 		}
 		updateGamepadSubtype(name, vendorProductId);
-		if(isGamepad)
-		{
-			typeBits_ |= Device::TYPE_BIT_GAMEPAD;
-		}
+		typeFlags_ .gamepad = isGamepad;
 	}
 	if(kbType)
 	{
@@ -144,18 +129,18 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 		if(kbType == AINPUT_KEYBOARD_TYPE_ALPHABETIC
 			|| src == AINPUT_SOURCE_KEYBOARD)
 		{
-			typeBits_ |= Device::TYPE_BIT_KEYBOARD;
+			typeFlags_ .keyboard = true;
 			logMsg("has keyboard type: %s", inputDeviceKeyboardTypeToStr(kbType));
 		}
 	}
 	if(IG::isBitMaskSet(src, (int)AINPUT_SOURCE_JOYSTICK))
 	{
-		typeBits_ |= Device::TYPE_BIT_JOYSTICK;
+		typeFlags_.joystick = true;
 		logMsg("detected a joystick");
 		if(subtype_ == Subtype::NONE
-			&& (typeBits_ & Device::TYPE_BIT_GAMEPAD)
-			&& !(typeBits_ & Device::TYPE_BIT_KEYBOARD)
-			&& !(typeBits_ & Device::TYPE_BIT_VIRTUAL))
+			&& typeFlags_.gamepad
+			&& !typeFlags_.keyboard
+			&& !typeFlags_.virtualInput)
 		{
 			logMsg("device looks like a generic gamepad");
 			subtype_ = Device::Subtype::GENERIC_GAMEPAD;
@@ -163,11 +148,11 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 		// check joystick axes
 		static constexpr AxisId stickAxes[]{AxisId::X, AxisId::Y, AxisId::Z, AxisId::RX, AxisId::RY, AxisId::RZ,
 				AxisId::HAT0X, AxisId::HAT0Y, AxisId::RUDDER, AxisId::WHEEL};
-		static constexpr uint32_t stickAxesBits[]{AXIS_BIT_X, AXIS_BIT_Y, AXIS_BIT_Z, AXIS_BIT_RX, AXIS_BIT_RY, AXIS_BIT_RZ,
-				AXIS_BIT_HAT_X, AXIS_BIT_HAT_Y, AXIS_BIT_RUDDER, AXIS_BIT_WHEEL};
+		static constexpr AxisFlags stickAxesBits[]{{.x = true}, {.y = true}, {.z = true}, {.rx = true}, {.ry = true}, {.rz = true},
+				{.hatX = true}, {.hatY = true}, {.rudder = true}, {.wheel = true}};
 		for(auto &axisId : stickAxes)
 		{
-			bool hasAxis = jsAxisBits & stickAxesBits[std::distance(stickAxes, &axisId)];
+			bool hasAxis = asInt(jsAxisFlags & stickAxesBits[std::distance(stickAxes, &axisId)]);
 			if(!hasAxis)
 			{
 				continue;
@@ -178,10 +163,10 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 		}
 		// check trigger axes
 		static constexpr AxisId triggerAxes[]{AxisId::LTRIGGER, AxisId::RTRIGGER, AxisId::GAS, AxisId::BRAKE};
-		static constexpr uint32_t triggerAxesBits[]{AXIS_BIT_LTRIGGER, AXIS_BIT_RTRIGGER, AXIS_BIT_GAS, AXIS_BIT_BRAKE};
+		static constexpr AxisFlags triggerAxesBits[]{{.lTrigger = true}, {.rTrigger = true}, {.gas = true}, {.brake = true}};
 		for(auto &axisId : triggerAxes)
 		{
-			bool hasAxis = jsAxisBits & triggerAxesBits[std::distance(triggerAxes, &axisId)];
+			bool hasAxis = asInt(jsAxisFlags & triggerAxesBits[std::distance(triggerAxes, &axisId)]);
 			if(!hasAxis)
 			{
 				continue;
@@ -197,8 +182,6 @@ bool AndroidInputDevice::operator ==(AndroidInputDevice const& rhs) const
 {
 	return id() == rhs.id() && name_ == rhs.name_;
 }
-
-void AndroidInputDevice::setTypeBits(TypeBits bits) { typeBits_ = bits; }
 
 std::span<Axis> AndroidInputDevice::motionAxes()
 {
@@ -219,15 +202,15 @@ bool AndroidInputDevice::iCadeMode() const
 void AndroidInputDevice::update(const AndroidInputDevice &other)
 {
 	name_ = other.name_;
-	typeBits_ = other.typeBits_;
+	typeFlags_ = other.typeFlags_;
 	subtype_ = other.subtype_;
 	axis = other.axis;
 }
 
-bool Device::anyTypeBitsPresent(ApplicationContext ctx, TypeBits typeBits)
+bool Device::anyTypeFlagsPresent(ApplicationContext ctx, DeviceTypeFlags typeFlags)
 {
 	auto &app = ctx.application();
-	if(typeBits & TYPE_BIT_KEYBOARD)
+	if(typeFlags.keyboard)
 	{
 		if(app.keyboardType() == ACONFIGURATION_KEYBOARD_QWERTY)
 		{
@@ -241,11 +224,11 @@ bool Device::anyTypeBitsPresent(ApplicationContext ctx, TypeBits typeBits)
 				return true;
 			}
 		}
-		typeBits = IG::clearBits(typeBits, TYPE_BIT_KEYBOARD); // ignore keyboards in device list
+		typeFlags.keyboard = false; // ignore keyboards in device list
 	}
 
 	if(Config::MACHINE_IS_GENERIC_ARMV7 && app.hasXperiaPlayGamepad() &&
-		(typeBits & TYPE_BIT_GAMEPAD) && app.hardKeyboardState() != ACONFIGURATION_KEYSHIDDEN_YES)
+		typeFlags.gamepad && app.hardKeyboardState() != ACONFIGURATION_KEYSHIDDEN_YES)
 	{
 		logDMsg("Xperia-play gamepad in use");
 		return true;
@@ -254,10 +237,10 @@ bool Device::anyTypeBitsPresent(ApplicationContext ctx, TypeBits typeBits)
 	for(auto &devPtr : app.inputDevices())
 	{
 		auto &e = *devPtr;
-		if((e.isVirtual() && ((typeBits & TYPE_BIT_KEY_MISC) & e.typeBits())) // virtual devices count as TYPE_BIT_KEY_MISC only
-				|| (!e.isVirtual() && (e.typeBits() & typeBits)))
+		if((e.isVirtual() && (typeFlags.miscKeys && e.typeFlags().miscKeys)) // virtual devices count as miscKeys flag only
+			|| (!e.isVirtual() && asInt(e.typeFlags() & typeFlags)))
 		{
-			logDMsg("device:%s has bits:0x%X", e.name().data(), typeBits);
+			logDMsg("device:%s has bits:0x%X", e.name().data(), std::bit_cast<uint8_t>(typeFlags));
 			return true;
 		}
 	}
@@ -334,7 +317,7 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 					"deviceChanged", "(JIILandroid/view/InputDevice;Ljava/lang/String;IIII)V",
 					(void*)
 					+[](JNIEnv* env, jobject thiz, jlong nUserData, jint change, jint devID, jobject jDev,
-						jstring jName, jint src, jint kbType, jint jsAxisBits, jint vendorProductId)
+						jstring jName, jint src, jint kbType, jint jsAxisFlags, jint vendorProductId)
 					{
 						ApplicationContext ctx{reinterpret_cast<ANativeActivity*>(nUserData)};
 						auto &app = ctx.application();
@@ -346,7 +329,7 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 						{
 							const char *name = env->GetStringUTFChars(jName, nullptr);
 							Input::AndroidInputDevice sysDev{env, jDev, devID,
-								src, name, kbType, (uint32_t)jsAxisBits, (uint32_t)vendorProductId, false};
+								src, name, kbType, std::bit_cast<Input::AxisFlags>(jsAxisFlags), (uint32_t)vendorProductId, false};
 							env->ReleaseStringUTFChars(jName, name);
 							app.updateAndroidInputDevice(ctx, std::move(sysDev), true);
 						}
@@ -495,7 +478,7 @@ void AndroidApplication::enumInputDevices(ApplicationContext ctx, JNIEnv* env, j
 	{
 		logMsg("no \"Virtual\" device id found, adding one");
 		virtualDev = addAndroidInputDevice(ctx,
-			{-1, Input::Device::TYPE_BIT_VIRTUAL | Input::Device::TYPE_BIT_KEYBOARD | Input::Device::TYPE_BIT_KEY_MISC, "Virtual"},
+			{-1, Input::virtualDeviceFlags, "Virtual"},
 			false);
 	}
 	if(notify) { onEvent(ctx, Input::DevicesEnumeratedEvent{}); }

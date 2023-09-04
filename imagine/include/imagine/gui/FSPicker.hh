@@ -74,12 +74,12 @@ public:
 protected:
 	struct FileEntry
 	{
-		static constexpr auto IS_DIR_FLAG = MenuItem::USER_FLAG_START;
+		static constexpr auto isDirFlag = bit(0);
 
 		std::string path{};
 		TextMenuItem text{};
 
-		bool isDir() const { return text.flags() & IS_DIR_FLAG; }
+		bool isDir() const { return text.flags.user & isDirFlag; }
 	};
 
 	enum class DepthMode { increment, decrement, reset };

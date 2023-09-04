@@ -17,7 +17,8 @@
 #include <emuframework/AppKeyCode.hh>
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/EmuApp.hh>
-#include "../privateInput.hh"
+#include "../InputDeviceConfig.hh"
+#include "../InputDeviceData.hh"
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/variant.hh>

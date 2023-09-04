@@ -31,8 +31,8 @@ class HardwareSingleBufferStorage final: public Texture
 public:
 	HardwareSingleBufferStorage(RendererTask &, TextureConfig config);
 	ErrorCode setFormat(PixmapDesc, ColorSpace, TextureSamplerConfig);
-	LockedTextureBuffer lock(uint32_t bufferFlags);
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags);
+	LockedTextureBuffer lock(TextureBufferFlags bufferFlags);
+	void unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags);
 
 protected:
 	Buffer buffer{};
@@ -45,8 +45,8 @@ class HardwareBufferStorage final: public Texture
 public:
 	HardwareBufferStorage(RendererTask &, TextureConfig config);
 	ErrorCode setFormat(PixmapDesc, ColorSpace, TextureSamplerConfig);
-	LockedTextureBuffer lock(uint32_t bufferFlags);
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags);
+	LockedTextureBuffer lock(TextureBufferFlags bufferFlags);
+	void unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags);
 
 protected:
 	struct EGLImageDeleter

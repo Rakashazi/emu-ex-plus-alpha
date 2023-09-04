@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/input/Input.hh>
+#include <imagine/input/inputDefs.hh>
 
 namespace IG::Input
 {

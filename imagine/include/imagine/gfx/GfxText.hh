@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string/utf16.hh>
 #include <limits>
@@ -25,6 +24,8 @@
 
 namespace IG::Gfx
 {
+
+class GlyphTextureSet;
 
 struct TextLayoutConfig
 {

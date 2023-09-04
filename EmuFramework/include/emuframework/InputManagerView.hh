@@ -119,7 +119,7 @@ private:
 	TextHeadingMenuItem options;
 	std::vector<TextMenuItem> inputCategory;
 	std::vector<MenuItem*> item;
-	InputDeviceConfig *devConf{};
+	InputDeviceConfig &devConf;
 
 	void confirmICadeMode();
 	void loadItems();

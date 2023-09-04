@@ -24,12 +24,12 @@ namespace IG::Input
 class AndroidInputDevice : public Device
 {
 public:
-	AndroidInputDevice(int osId, TypeBits, std::string name);
+	AndroidInputDevice(int osId, DeviceTypeFlags, std::string name);
 	AndroidInputDevice(JNIEnv* env, jobject aDev, int osId, int src,
-		std::string name, int kbType, uint32_t axisBits,
+		std::string name, int kbType, AxisFlags,
 		uint32_t vendorProductId, bool isPowerButton);
 	bool operator ==(AndroidInputDevice const& rhs) const;
-	void setTypeBits(TypeBits);
+	void setTypeFlags(DeviceTypeFlags f) { typeFlags_ = f; }
 	std::span<Axis> motionAxes() final;
 	void setICadeMode(bool on) final;
 	bool iCadeMode() const final;

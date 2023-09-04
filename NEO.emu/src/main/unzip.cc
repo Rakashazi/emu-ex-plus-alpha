@@ -20,6 +20,7 @@
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/bit.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 #include <cstdlib>

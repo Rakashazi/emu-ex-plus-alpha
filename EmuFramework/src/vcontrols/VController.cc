@@ -18,7 +18,6 @@
 #include <emuframework/AppKeyCode.hh>
 #include "../EmuOptions.hh"
 #include "../WindowData.hh"
-#include "../privateInput.hh"
 #include <imagine/util/math/int.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -365,8 +364,8 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 	{
 		auto elementIsEnabled = [&](const VControllerElement &e)
 		{
-			return !((e.buttonGroup() && gamepadDisabledFlags & VController::GAMEPAD_BUTTONS_BIT) ||
-				(e.dPad() && gamepadDisabledFlags & VController::GAMEPAD_DPAD_BIT));
+			return !((e.buttonGroup() && gamepadDisabledFlags.buttons) ||
+				(e.dPad() && gamepadDisabledFlags.dpad));
 		};
 		auto activeElements = gpElements | std::views::filter(elementIsEnabled);
 		for(const auto &e : activeElements) { e.drawBounds(cmds, showHidden); }

@@ -16,7 +16,6 @@
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/base/Screen.hh>
 #include <imagine/base/ApplicationContext.hh>
-#include <imagine/input/Input.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include "ios.hh"

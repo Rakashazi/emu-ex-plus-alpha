@@ -17,7 +17,7 @@
 #include <emuframework/config.hh>
 #include <emuframework/EmuAppHelper.hh>
 #include <emuframework/inputDefs.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/inputDefs.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/Texture.hh>
@@ -505,15 +505,23 @@ enum class VControllerVisibility : uint8_t
 	OFF, ON, AUTO
 };
 
+struct VControllerGamepadFlags
+{
+	uint8_t
+	dpad:1{},
+	buttons:1{};
+
+	constexpr bool operator==(VControllerGamepadFlags const&) const = default;
+
+	static constexpr VControllerGamepadFlags all() { return {.dpad = true, .buttons = true}; }
+};
+
 class VController : public EmuAppHelper<VController>
 {
 public:
 	static constexpr KeyInfo TOGGLE_KEYBOARD = KeyInfo::appKey(254);
 	static constexpr KeyInfo CHANGE_KEYBOARD_MODE = KeyInfo::appKey(255);
 	using KbMap = VControllerKeyboard::KbMap;
-	static constexpr uint8_t GAMEPAD_DPAD_BIT = IG::bit(0);
-	static constexpr uint8_t GAMEPAD_BUTTONS_BIT = IG::bit(1);
-	static constexpr uint8_t GAMEPAD_BITS = GAMEPAD_DPAD_BIT | GAMEPAD_BUTTONS_BIT;
 
 	VController(ApplicationContext);
 	int xMMSizeToPixel(const Window &win, float mm) const;
@@ -569,12 +577,12 @@ public:
 	void resetEmulatedDeviceGroups();
 	void resetUIPositions();
 	void resetUIGroups();
-	void setGamepadIsEnabled(bool on) { gamepadDisabledFlags = on ? 0 : GAMEPAD_BITS; }
-	void setGamepadDPadIsEnabled(bool on) { gamepadDisabledFlags = IG::setOrClearBits(gamepadDisabledFlags, GAMEPAD_DPAD_BIT, !on); }
-	void setGamepadButtonsAreEnabled(bool on) { gamepadDisabledFlags = IG::setOrClearBits(gamepadDisabledFlags, GAMEPAD_BUTTONS_BIT, !on); }
-	bool gamepadIsEnabled() const { return gamepadDisabledFlags != GAMEPAD_BITS; }
-	bool gamepadDPadIsEnabled() const { return !(gamepadDisabledFlags & GAMEPAD_DPAD_BIT); }
-	bool gamepadButtonsAreEnabled() const { return !(gamepadDisabledFlags & GAMEPAD_BUTTONS_BIT); }
+	void setGamepadIsEnabled(bool on) { gamepadDisabledFlags = on ? VControllerGamepadFlags{} : VControllerGamepadFlags::all(); }
+	void setGamepadDPadIsEnabled(bool on) { gamepadDisabledFlags.dpad = !on; }
+	void setGamepadButtonsAreEnabled(bool on) { gamepadDisabledFlags.buttons = !on; }
+	bool gamepadIsEnabled() const { return gamepadDPadIsEnabled() || gamepadButtonsAreEnabled(); }
+	bool gamepadDPadIsEnabled() const { return !gamepadDisabledFlags.dpad; }
+	bool gamepadButtonsAreEnabled() const { return !gamepadDisabledFlags.buttons; }
 	bool gamepadIsActive() const;
 	bool allowButtonsPastContentBounds() const { return allowButtonsPastContentBounds_; }
 	bool setAllowButtonsPastContentBounds(bool on) { return allowButtonsPastContentBounds_ = on; }
@@ -607,7 +615,7 @@ private:
 	int8_t inputPlayer_{};
 	bool physicalControlsPresent{};
 	bool gamepadIsVisible{gamepadControlsVisibility_ != VControllerVisibility::OFF};
-	uint8_t gamepadDisabledFlags{};
+	VControllerGamepadFlags gamepadDisabledFlags{};
 	bool kbMode{};
 	uint8_t alpha{};
 	IG_UseMemberIf(Config::DISPLAY_CUTOUT, bool, allowButtonsPastContentBounds_){};

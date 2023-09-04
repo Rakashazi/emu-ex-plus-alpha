@@ -33,18 +33,15 @@ class PixmapBufferTexture: public PixmapBufferTextureImpl
 {
 public:
 	static constexpr uint32_t MAX_ASSUME_ALIGN = Texture::MAX_ASSUME_ALIGN;
-	static constexpr uint32_t WRITE_FLAG_ASYNC = Texture::WRITE_FLAG_ASYNC;
-	static constexpr uint32_t WRITE_FLAG_MAKE_MIPMAPS = Texture::WRITE_FLAG_MAKE_MIPMAPS;
-	static constexpr uint32_t BUFFER_FLAG_CLEARED = Texture::BUFFER_FLAG_CLEARED;
 
 	using PixmapBufferTextureImpl::PixmapBufferTextureImpl;
 	PixmapBufferTexture(RendererTask &, TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false);
 	ErrorCode setFormat(PixmapDesc desc, ColorSpace c = {}, TextureSamplerConfig samplerConf = {});
-	void write(PixmapView pixmap, uint32_t writeFlags = 0);
-	void writeAligned(PixmapView pixmap, int assumedDataAlignment, uint32_t writeFlags = 0);
+	void write(PixmapView pixmap, TextureWriteFlags writeFlags = {});
+	void writeAligned(PixmapView pixmap, int assumedDataAlignment, TextureWriteFlags writeFlags = {});
 	void clear();
-	LockedTextureBuffer lock(uint32_t bufferFlags = 0);
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
+	LockedTextureBuffer lock(TextureBufferFlags bufferFlags = {});
+	void unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags = {});
 	WSize size() const;
 	PixmapDesc pixmapDesc() const;
 	void setSampler(TextureSamplerConfig);

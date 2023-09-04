@@ -104,18 +104,24 @@ public:
 	}
 };
 
+struct MenuItemFlags
+{
+	uint32_t
+	selectable:1{},
+	active:1{},
+	highlight:1{},
+	impl:4{},
+	user:4{};
+};
+
 class MenuItem
 {
 public:
 	using IdInt = int32_t;
 	enum Id : IdInt{};
-	static constexpr uint32_t SELECTABLE_FLAG = bit(0);
-	static constexpr uint32_t ACTIVE_FLAG = bit(1);
-	static constexpr uint32_t HIGHLIGHT_FLAG = bit(2);
-	static constexpr uint32_t IMPL_FLAG_START = bit(3);
-	static constexpr uint32_t USER_FLAG_START = bit(16);
-	static constexpr uint32_t DEFAULT_FLAGS = SELECTABLE_FLAG | ACTIVE_FLAG;
+
 	static constexpr Id DEFAULT_ID = static_cast<Id>(std::numeric_limits<IdInt>::min());
+	MenuItemFlags flags{.selectable = true, .active = true};
 
 	constexpr MenuItem() = default;
 	MenuItem(UTF16Convertible auto &&name, Gfx::GlyphTextureSet *face, IdInt id = {}):
@@ -129,14 +135,12 @@ public:
 	int ySize() const;
 	int xSize() const;
 	virtual bool select(View &, const Input::Event &) = 0;
-	constexpr auto flags() const { return flags_; }
-	constexpr void setFlags(uint32_t flags) { flags_ = flags; }
-	constexpr bool selectable() const { return flags_ & SELECTABLE_FLAG; }
-	constexpr void setSelectable(bool on) { flags_ = setOrClearBits(flags_, SELECTABLE_FLAG, on); }
-	constexpr bool active() const { return flags_ & ACTIVE_FLAG; }
-	constexpr void setActive(bool on) { flags_ = setOrClearBits(flags_, ACTIVE_FLAG, on); }
-	constexpr bool highlighted() const { return flags_ & HIGHLIGHT_FLAG; }
-	constexpr void setHighlighted(bool on) { flags_ = setOrClearBits(flags_, HIGHLIGHT_FLAG, on); }
+	constexpr bool selectable() const { return flags.selectable; }
+	constexpr void setSelectable(bool on) { flags.selectable = on; }
+	constexpr bool active() const { return flags.active; }
+	constexpr void setActive(bool on) { flags.active = on; }
+	constexpr bool highlighted() const { return flags.highlight; }
+	constexpr void setHighlighted(bool on) { flags.highlight = on; }
 	constexpr Id id() const { return (Id)id_; }
 	constexpr void setId(IdInt id) { id_ = id; }
 
@@ -156,7 +160,6 @@ public:
 	const Gfx::Text &text() const;
 
 protected:
-	uint32_t flags_{DEFAULT_FLAGS};
 	IdInt id_{};
 	Gfx::Text t;
 };
@@ -242,8 +245,8 @@ class BoolMenuItem : public BaseDualTextMenuItem
 {
 public:
 	using SelectDelegate = MenuItemSelectDelegate<BoolMenuItem>;
-	static constexpr uint32_t ON_FLAG = IMPL_FLAG_START;
-	static constexpr uint32_t ON_OFF_STYLE_FLAG = IMPL_FLAG_START << 1;
+	static constexpr uint32_t onFlag = bit(0);
+	static constexpr uint32_t onOffStyleFlag = bit(1);
 
 	SelectDelegate onSelect;
 
@@ -254,8 +257,8 @@ public:
 		onSelect{onSelect}
 	{
 		if(val)
-			flags_ |= ON_FLAG;
-		flags_ |= ON_OFF_STYLE_FLAG;
+			flags.impl |= onFlag;
+		flags.impl |= onOffStyleFlag;
 	}
 
 	BoolMenuItem(UTF16Convertible auto &&name, Gfx::GlyphTextureSet *face, bool val,
@@ -266,7 +269,7 @@ public:
 		onStr{IG_forward(onStr)}
 	{
 		if(val)
-			flags_ |= ON_FLAG;
+			flags.impl |= onFlag;
 	}
 
 	bool boolValue() const;

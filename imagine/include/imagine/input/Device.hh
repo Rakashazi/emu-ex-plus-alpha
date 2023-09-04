@@ -20,7 +20,6 @@
 #include <imagine/input/inputDefs.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/bit.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/utility.h>
 #include <string>
@@ -30,81 +29,91 @@
 
 namespace IG
 {
+
 class ApplicationContext;
+
+struct InputDeviceTypeFlags
+{
+	using BitSetClassInt = uint8_t;
+
+	BitSetClassInt
+	miscKeys:1{},
+	keyboard:1{},
+	gamepad:1{},
+	joystick:1{},
+	virtualInput:1{},
+	mouse:1{},
+	touchscreen:1{},
+	powerButton:1{};
+
+	constexpr bool operator==(InputDeviceTypeFlags const&) const = default;
+};
+
+struct InputAxisFlags
+{
+	using BitSetClassInt = uint32_t;
+
+	BitSetClassInt
+	x:1{},  y:1{},  z:1{},
+	rx:1{}, ry:1{}, rz:1{},
+	hatX:1{}, hatY:1{},
+	lTrigger:1{}, rTrigger:1{},
+	rudder:1{}, wheel:1{},
+	gas:1{}, brake:1{};
+
+	constexpr bool operator==(InputAxisFlags const&) const = default;
+};
+
 }
 
 namespace IG::Input
 {
 
 class Axis;
+using DeviceTypeFlags = InputDeviceTypeFlags;
+using AxisFlags = InputAxisFlags;
+
+enum class AxisSetId : uint8_t
+{
+	stick1,
+	stick2,
+	hat
+};
+
+constexpr std::pair<AxisId, AxisId> toAxisIds(AxisSetId id)
+{
+	using enum AxisSetId;
+	switch(id)
+	{
+		case stick1: return {AxisId::X, AxisId::Y};
+		case stick2: return {AxisId::Z, AxisId::RZ};
+		case hat: return {AxisId::HAT0X, AxisId::HAT0Y};
+	}
+	std::unreachable();
+}
 
 struct KeyNameFlags
 {
 	bool basicModifiers{};
 };
 
+constexpr DeviceTypeFlags virtualDeviceFlags{.miscKeys = true, .keyboard = true, .virtualInput = true};
+
 class Device
 {
 public:
 	using Subtype = DeviceSubtype;
-	using TypeBits = DeviceTypeBits;
-
-	static constexpr TypeBits
-		TYPE_BIT_KEY_MISC = bit(0),
-		TYPE_BIT_KEYBOARD = bit(1),
-		TYPE_BIT_GAMEPAD = bit(2),
-		TYPE_BIT_JOYSTICK = bit(3),
-		TYPE_BIT_VIRTUAL = bit(4),
-		TYPE_BIT_MOUSE = bit(5),
-		TYPE_BIT_TOUCHSCREEN = bit(6),
-		TYPE_BIT_POWER_BUTTON = bit(7);
-
-	static constexpr uint32_t
-		AXIS_BIT_X = bit(0), AXIS_BIT_Y = bit(1), AXIS_BIT_Z = bit(2),
-		AXIS_BIT_RX = bit(3), AXIS_BIT_RY = bit(4), AXIS_BIT_RZ = bit(5),
-		AXIS_BIT_HAT_X = bit(6), AXIS_BIT_HAT_Y = bit(7),
-		AXIS_BIT_LTRIGGER = bit(8), AXIS_BIT_RTRIGGER = bit(9),
-		AXIS_BIT_RUDDER = bit(10), AXIS_BIT_WHEEL = bit(11),
-		AXIS_BIT_GAS = bit(12), AXIS_BIT_BRAKE = bit(13);
-
-	static constexpr uint32_t
-		AXIS_BITS_STICK_1 = AXIS_BIT_X | AXIS_BIT_Y,
-		AXIS_BITS_STICK_2 = AXIS_BIT_Z | AXIS_BIT_RZ,
-		AXIS_BITS_HAT = AXIS_BIT_HAT_X | AXIS_BIT_HAT_Y;
 
 	Device() = default;
-	Device(int id, Map map, TypeBits, std::string name);
+	Device(int id, Map map, DeviceTypeFlags, std::string name);
 	virtual ~Device() = default;
 
-	bool hasKeyboard() const
-	{
-		return typeBits() & TYPE_BIT_KEYBOARD;
-	}
-
-	bool hasGamepad() const
-	{
-		return typeBits() & TYPE_BIT_GAMEPAD;
-	}
-
-	bool hasJoystick() const
-	{
-		return typeBits() & TYPE_BIT_JOYSTICK;
-	}
-
-	bool isVirtual() const
-	{
-		return typeBits() & TYPE_BIT_VIRTUAL;
-	}
-
-	bool hasKeys() const
-	{
-		return hasKeyboard() || hasGamepad() || typeBits() & TYPE_BIT_KEY_MISC;
-	}
-
-	bool isPowerButton() const
-	{
-		return typeBits() & TYPE_BIT_POWER_BUTTON;
-	}
+	bool hasKeyboard() const { return typeFlags().keyboard; }
+	bool hasGamepad() const { return typeFlags().gamepad; }
+	bool hasJoystick() const { return typeFlags().joystick; }
+	bool isVirtual() const { return typeFlags().virtualInput; }
+	bool hasKeys() const { return hasKeyboard() || hasGamepad() || typeFlags().miscKeys; }
+	bool isPowerButton() const { return typeFlags().powerButton; }
 
 	constexpr bool isModifierKey(Key k) const
 	{
@@ -146,28 +155,24 @@ public:
 	void setEnumId(uint8_t id) { enumId_ = id; }
 	std::string_view name() const { return name_; }
 	Map map() const;
-	TypeBits typeBits() const;
+	DeviceTypeFlags typeFlags() const { return iCadeMode() ? DeviceTypeFlags{.gamepad = true} : typeFlags_; }
 	Subtype subtype() const { return subtype_; }
 	void setSubtype(Subtype s) { subtype_ = s; }
-
-	bool operator ==(Device const& rhs) const = default;
-
+	bool operator==(Device const&) const = default;
 	virtual void setICadeMode(bool on);
 	[[nodiscard]]
 	virtual bool iCadeMode() const;
-	void setJoystickAxisAsDpadBits(uint32_t axisMask);
-	uint32_t joystickAxisAsDpadBits();
+	void setJoystickAxesAsDpad(AxisSetId, bool on);
+	bool joystickAxesAsDpad(AxisSetId);
 	Axis *motionAxis(AxisId);
 	virtual std::span<Axis> motionAxes();
-
 	virtual const char *keyName(Key k) const;
 	std::string keyString(Key k, KeyNameFlags flags = {}) const;
+	static bool anyTypeFlagsPresent(ApplicationContext, DeviceTypeFlags);
 
 	// TODO
 	//bool isDisconnectable() { return 0; }
 	//void disconnect() { }
-
-	static bool anyTypeBitsPresent(ApplicationContext, TypeBits);
 
 	template <class T>
 	T &makeAppData(auto &&...args)
@@ -186,7 +191,7 @@ protected:
 	std::shared_ptr<void> appDataPtr;
 	std::string name_;
 	int id_{};
-	TypeBits typeBits_{};
+	DeviceTypeFlags typeFlags_{};
 	uint8_t enumId_{};
 	Map map_{Map::UNKNOWN};
 	Subtype subtype_{};
@@ -202,7 +207,7 @@ public:
 	void setEmulatesDirectionKeys(const Device &, bool);
 	bool emulatesDirectionKeys() const;
 	constexpr AxisId id() const { return id_; }
-	uint32_t idBit() const;
+	AxisFlags idBit() const;
 	bool update(float pos, Map map, SteadyClockTimePoint time, const Device &, Window &, bool normalized = false);
 
 protected:

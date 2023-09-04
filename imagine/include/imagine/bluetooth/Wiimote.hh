@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/bluetooth/sys.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/inputDefs.hh>
 
 namespace IG
 {
@@ -58,8 +58,8 @@ private:
 	struct ExtDevice : public Device
 	{
 		ExtDevice() {}
-		ExtDevice(Input::Map map, uint8_t typeBits, std::string name):
-			Device{0, map, typeBits, std::move(name)} {}
+		ExtDevice(Input::Map map, Input::DeviceTypeFlags typeFlags, std::string name):
+			Device{0, map, typeFlags, std::move(name)} {}
 		const char *keyName(Input::Key k) const final;
 	};
 	Input::Device *extDevicePtr{};

@@ -17,7 +17,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
 #include <imagine/input/Device.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/coreFoundation.h>
@@ -37,13 +37,13 @@ struct AppleGameDevice : public Device
 	bool pushState[AppleGC::COUNT]{};
 	
 	AppleGameDevice(ApplicationContext ctx, GCController *gcController):
-		Device{0, Map::APPLE_GAME_CONTROLLER, TYPE_BIT_GAMEPAD, [gcController.vendorName UTF8String]},
+		Device{0, Map::APPLE_GAME_CONTROLLER, {.gamepad = true}, [gcController.vendorName UTF8String]},
 		ctx{ctx}, gcController{gcController}
 	{
 		auto extGamepad = gcController.extendedGamepad;
 		if(extGamepad)
 		{
-			typeBits_ |= TYPE_BIT_JOYSTICK;
+			typeFlags_.joystick = true;
 			subtype_ = Subtype::APPLE_EXTENDED_GAMEPAD;
 			axis[0] = {*this, Input::AxisId::X};
 			axis[1] = {*this, Input::AxisId::Y};

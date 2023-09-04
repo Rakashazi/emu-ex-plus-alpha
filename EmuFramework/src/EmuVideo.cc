@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "EmuVideo"
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/gfx/Renderer.hh>
@@ -23,6 +22,8 @@
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"EmuVideo"};
 
 void EmuVideo::resetImage(IG::PixelFormat newFmt)
 {
@@ -76,7 +77,7 @@ bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTaskContext taskCtx)
 	{
 		vidImg.setFormat(desc, colSpace, samplerConfig());
 	}
-	logMsg("resized to:%dx%d", desc.w(), desc.h());
+	log.info("resized to:{}x{}", desc.w(), desc.h());
 	if(taskCtx)
 	{
 		taskCtx.task().sendVideoFormatChangedReply(*this);
@@ -148,7 +149,7 @@ void EmuVideo::startUnchangedFrame(EmuSystemTaskContext taskCtx)
 
 void EmuVideo::dispatchFrameFinished()
 {
-	//logDMsg("frame finished");
+	//log.debug("frame finished");
 	onFrameFinished(*this);
 }
 
@@ -179,7 +180,7 @@ void EmuVideo::finishFrame(EmuSystemTaskContext taskCtx, IG::PixmapView pix)
 	}
 	app().record(FrameTimeStatEvent::aboutToSubmitFrame);
 	syncImageAccess();
-	vidImg.write(pix, vidImg.WRITE_FLAG_ASYNC);
+	vidImg.write(pix, {.async = true});
 	postFrameFinished(taskCtx);
 }
 
@@ -285,7 +286,7 @@ void EmuVideo::setOnFormatChanged(FormatChangedDelegate del)
 void EmuVideo::updateNeedsFence()
 {
 	needsFence = singleBuffer && renderer().maxSwapChainImages() > 2;
-	logMsg("%s fence for synchronization", needsFence ? "using" : "not using");
+	log.info("{} fence for synchronization", needsFence ? "using" : "not using");
 }
 
 void EmuVideo::setTextureBufferMode(EmuSystem &sys, Gfx::TextureBufferMode mode)
@@ -313,7 +314,7 @@ void EmuVideo::setImageBuffers(int num)
 	bool modeChanged = singleBuffer != useSingleBuffer;
 	singleBuffer = useSingleBuffer;
 	updateNeedsFence();
-	//logDMsg("image buffer count:%d fences:%s", num, needsFence ? "yes" : "no");
+	//log.debug("image buffer count:{} fences:{}", num, needsFence ? "yes" : "no");
 	if(modeChanged && vidImg)
 		resetImage();
 }
@@ -334,7 +335,7 @@ bool EmuVideo::setRenderPixelFormat(EmuSystem &sys, IG::PixelFormat fmt, Gfx::Co
 	if(colorSpace != colSpace)
 	{
 		colSpace = colorSpace;
-		logMsg("set sRGB color space:%s", colorSpace == Gfx::ColorSpace::SRGB ? "on" : "off");
+		log.info("set sRGB color space:{}", colorSpace == Gfx::ColorSpace::SRGB ? "on" : "off");
 		renderFmt = {}; // reset image
 		if(colorSpace == Gfx::ColorSpace::SRGB)
 		{
@@ -347,7 +348,7 @@ bool EmuVideo::setRenderPixelFormat(EmuSystem &sys, IG::PixelFormat fmt, Gfx::Co
 		fmt = IG::PIXEL_BGRA8888;
 	if(renderFmt == fmt)
 		return false;
-	logMsg("setting render pixel format:%s", fmt.name());
+	log.info("setting render pixel format:{}", fmt.name());
 	renderFmt = fmt;
 	auto oldPixDesc = deleteImage();
 	if(!sys.onVideoRenderFormatChange(*this, fmt) && oldPixDesc.w())

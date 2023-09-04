@@ -13,24 +13,26 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "InputDevData"
-#include "privateInput.hh"
+#include "InputDeviceData.hh"
 #include <emuframework/AppKeyCode.hh>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"InputDevData"};
+
 InputDeviceData::InputDeviceData(const InputManager &mgr, Input::Device &dev):
 	devConf{dev},
 	displayName{makeDisplayName(dev.name(), dev.enumId())}
 {
-	dev.setJoystickAxisAsDpadBits(Input::Device::AXIS_BITS_STICK_1 | Input::Device::AXIS_BITS_HAT);
+	dev.setJoystickAxesAsDpad(Input::AxisSetId::stick1, true);
+	dev.setJoystickAxesAsDpad(Input::AxisSetId::hat, true);
 	for(auto &savedPtr : mgr.savedInputDevs)
 	{
 		if(savedPtr->matchesDevice(dev))
 		{
-			logMsg("has saved config");
+			log.info("has saved config");
 			devConf.setSavedConf(mgr, savedPtr.get(), false);
 		}
 	}
@@ -42,7 +44,7 @@ void InputDeviceData::buildKeyMap(const InputManager &mgr, const Input::Device &
 	auto totalKeys = Input::KeyEvent::mapNumKeys(d.map());
 	if(!totalKeys || !devConf.isEnabled) [[unlikely]]
 		return;
-	logMsg("allocating key mapping for:%s with player:%d", d.name().data(), devConf.player()+1);
+	log.info("allocating key mapping for:{} with player:{}", d.name(), devConf.player() + 1);
 	actionTable = {totalKeys};
 	keyCombos.clear();
 	for(auto [key, mapKeys] : devConf.keyConf(mgr).keyMap)
@@ -84,7 +86,7 @@ void InputDeviceData::buildKeyMap(const InputManager &mgr, const Input::Device &
 		{
 			if(!key)
 				break;
-			logMsg("mapped key %s to %s (%u)", d.keyName(i), mgr.toString(key).data(), key.codes[0]);
+			log.info("mapped key {} to {} ({})", d.keyName(i), mgr.toString(key), key.codes[0]);
 		}
 	}*/
 }

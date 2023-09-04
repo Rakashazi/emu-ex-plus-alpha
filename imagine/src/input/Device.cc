@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Device.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
 #ifdef CONFIG_INPUT_BLUETOOTH
 #include <imagine/bluetooth/Wiimote.hh>
 #include <imagine/bluetooth/Zeemote.hh>
@@ -26,6 +26,7 @@
 #ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 #include "apple/AppleGameDevice.hh"
 #endif
+#include <imagine/util/bit.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG::Input
@@ -349,28 +350,24 @@ static const char *openPandoraButtonName(Key b)
 }
 #endif
 
-Device::Device(int id, Map map, uint8_t type, std::string name):
-	name_{std::move(name)}, id_{id}, typeBits_{type}, map_{map} {}
+Device::Device(int id, Map map, DeviceTypeFlags typeFlags, std::string name):
+	name_{std::move(name)}, id_{id}, typeFlags_{typeFlags}, map_{map} {}
 
 bool Device::iCadeMode() const { return false; }
 
-void Device::setJoystickAxisAsDpadBits(uint32_t axisMask)
+void Device::setJoystickAxesAsDpad(AxisSetId id, bool on)
 {
-	for(auto &axis : motionAxes())
-	{
-		axis.setEmulatesDirectionKeys(*this, axisMask & axis.idBit());
-	}
+	if(auto axis1 = motionAxis(toAxisIds(id).first))
+		axis1->setEmulatesDirectionKeys(*this, on);
+	if(auto axis2 = motionAxis(toAxisIds(id).second))
+		axis2->setEmulatesDirectionKeys(*this, on);
 }
 
-uint32_t Device::joystickAxisAsDpadBits()
+bool Device::joystickAxesAsDpad(AxisSetId id)
 {
-	uint32_t bits{};
-	for(auto &axis : motionAxes())
-	{
-		if(axis.emulatesDirectionKeys())
-			bits |= axis.idBit();
-	}
-	return bits;
+	if(auto axis1 = motionAxis(toAxisIds(id).first))
+		return axis1->emulatesDirectionKeys();
+	return false;
 }
 
 Axis *Device::motionAxis(AxisId id)
@@ -452,11 +449,6 @@ std::string Device::keyString(Key k, KeyNameFlags flags) const
 Map Device::map() const
 {
 	return iCadeMode() ? Input::Map::ICADE : map_;
-}
-
-DeviceTypeBits Device::typeBits() const
-{
-	return iCadeMode() ? TYPE_BIT_GAMEPAD :	typeBits_;
 }
 
 void Device::setICadeMode(bool on)
@@ -636,30 +628,30 @@ bool Axis::emulatesDirectionKeys() const
 	return keyEmu.sysKey != joystickKeys(id());
 }
 
-uint32_t Axis::idBit() const
+AxisFlags Axis::idBit() const
 {
 	switch(id())
 	{
-		case AxisId::X: return Device::AXIS_BIT_X;
-		case AxisId::Y: return Device::AXIS_BIT_Y;
-		case AxisId::Z: return Device::AXIS_BIT_Z;
-		case AxisId::RX: return Device::AXIS_BIT_RX;
-		case AxisId::RY: return Device::AXIS_BIT_RY;
-		case AxisId::RZ: return Device::AXIS_BIT_RZ;
+		case AxisId::X: return {.x = true};
+		case AxisId::Y: return {.y = true};
+		case AxisId::Z: return {.z = true};
+		case AxisId::RX: return {.rx = true};
+		case AxisId::RY: return {.ry = true};
+		case AxisId::RZ: return {.rz = true};
 		case AxisId::HAT0X:
 		case AxisId::HAT1X:
 		case AxisId::HAT2X:
-		case AxisId::HAT3X: return Device::AXIS_BIT_HAT_X;
+		case AxisId::HAT3X: return {.hatX = true};
 		case AxisId::HAT0Y:
 		case AxisId::HAT1Y:
 		case AxisId::HAT2Y:
-		case AxisId::HAT3Y: return Device::AXIS_BIT_HAT_Y;
-		case AxisId::LTRIGGER: return Device::AXIS_BIT_LTRIGGER;
-		case AxisId::RTRIGGER: return Device::AXIS_BIT_RTRIGGER;
-		case AxisId::RUDDER: return Device::AXIS_BIT_RUDDER;
-		case AxisId::WHEEL: return Device::AXIS_BIT_WHEEL;
-		case AxisId::GAS: return Device::AXIS_BIT_GAS;
-		case AxisId::BRAKE: return Device::AXIS_BIT_BRAKE;
+		case AxisId::HAT3Y: return {.hatY = true};
+		case AxisId::LTRIGGER: return {.lTrigger = true};
+		case AxisId::RTRIGGER: return {.rTrigger = true};
+		case AxisId::RUDDER: return {.rudder = true};
+		case AxisId::WHEEL: return {.wheel = true};
+		case AxisId::GAS: return {.gas = true};
+		case AxisId::BRAKE: return {.brake = true};
 		default: return {};
 	}
 }

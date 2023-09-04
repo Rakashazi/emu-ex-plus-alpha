@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "GLTexture"
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Texture.hh>
@@ -70,6 +69,8 @@
 namespace IG::Gfx
 {
 
+constexpr SystemLogger log{"GLTexture"};
+
 static int makeUnpackAlignment(uintptr_t addr)
 {
 	// find best alignment with lower 3 bits
@@ -86,7 +87,7 @@ static int unpackAlignForAddrAndPitch(const void *srcAddr, uint32_t pitch)
 	int alignmentForPitch = makeUnpackAlignment(pitch);
 	if(alignmentForAddr < alignmentForPitch)
 	{
-		/*logMsg("using lowest alignment of address %p (%d) and pitch %d (%d)",
+		/*log.info("using lowest alignment of address {} ({}) and pitch {} ({})",
 			srcAddr, alignmentForAddr, pitch, alignmentForPitch);*/
 	}
 	return std::min(alignmentForPitch, alignmentForAddr);
@@ -194,10 +195,10 @@ static TextureConfig configWithLoadedImagePixmap(PixmapDesc desc, bool makeMipma
 static ErrorCode loadImageSource(Texture &texture, Data::PixmapSource img, bool makeMipmaps)
 {
 	auto imgPix = img.pixmapView();
-	uint32_t writeFlags = makeMipmaps ? Texture::WRITE_FLAG_MAKE_MIPMAPS : 0;
+	TextureWriteFlags writeFlags{.makeMipmaps = makeMipmaps};
 	if(imgPix)
 	{
-		//logDMsg("writing image source pixmap to texture");
+		//log.debug("writing image source pixmap to texture");
 		texture.write(0, imgPix, {}, writeFlags);
 	}
 	else
@@ -205,7 +206,7 @@ static ErrorCode loadImageSource(Texture &texture, Data::PixmapSource img, bool 
 		auto lockBuff = texture.lock(0);
 		if(!lockBuff) [[unlikely]]
 			return {ENOMEM};
-		//logDMsg("writing image source into texture pixel buffer");
+		//log.debug("writing image source into texture pixel buffer");
 		img.write(lockBuff.pixmap());
 		texture.unlock(lockBuff, writeFlags);
 	}
@@ -259,7 +260,7 @@ void GLTexture::init(RendererTask &r, TextureConfig config)
 
 void destroyGLTextureRef(RendererTask &task, TextureRef texName)
 {
-	logMsg("deleting texture:0x%X", texName);
+	log.info("deleting texture:0x{:X}", texName);
 	task.run(
 		[texName]()
 		{
@@ -292,7 +293,7 @@ bool Texture::generateMipmaps()
 {
 	if(!texName()) [[unlikely]]
 	{
-		logErr("called generateMipmaps() on uninitialized texture");
+		log.error("called generateMipmaps() on uninitialized texture");
 		return false;
 	}
 	if(!canUseMipmaps())
@@ -301,7 +302,7 @@ bool Texture::generateMipmaps()
 		[&r = std::as_const(renderer()), texName = texName()]()
 		{
 			glBindTexture(GL_TEXTURE_2D, texName);
-			logMsg("generating mipmaps for texture:0x%X", texName);
+			log.info("generating mipmaps for texture:0x{:X}", texName);
 			r.support.generateMipmaps(GL_TEXTURE_2D);
 		});
 	updateLevelsForMipmapGeneration();
@@ -338,7 +339,7 @@ ErrorCode Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace,
 				ctx.notifySemaphore();
 				glBindTexture(GL_TEXTURE_2D, texName);
 				auto internalFormat = makeGLSizedInternalFormat(r, desc.format, isSrgb);
-				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s %s",
+				log.info("texture:0x{:X} storage size:{}x{} levels:{} internal format:{} {}",
 					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat),
 					desc.format == IG::PIXEL_BGRA8888 ? "write format:BGRA" : "");
 				runGLChecked(
@@ -367,7 +368,7 @@ ErrorCode Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace,
 				auto format = makeGLFormat(r, desc.format);
 				auto dataType = makeGLDataType(desc.format);
 				auto internalFormat = makeGLInternalFormat(r, desc.format, false);
-				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s %s",
+				log.info("texture:0x{:X} storage size:{}x{} levels:{} internal format:{} image format:{}:{} {}",
 					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat),
 					glImageFormatToString(format), glDataTypeToString(dataType),
 					desc.format == IG::PIXEL_BGRA8888 && internalFormat != GL_BGRA ? "write format:BGRA" : "");
@@ -391,12 +392,12 @@ ErrorCode Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace,
 	return {};
 }
 
-void Texture::writeAligned(int level, PixmapView pixmap, WPt destPos, int assumeAlign, uint32_t writeFlags)
+void Texture::writeAligned(int level, PixmapView pixmap, WPt destPos, int assumeAlign, TextureWriteFlags writeFlags)
 {
-	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
+	//log.debug("writing pixmap {}x{} to pos {}x{}", pixmap.x, pixmap.y, destPos.x, destPos.y);
 	if(!texName()) [[unlikely]]
 	{
-		logErr("called writeAligned() on uninitialized texture");
+		log.error("called writeAligned() on uninitialized texture");
 		return;
 	}
 	auto &r = renderer();
@@ -410,7 +411,7 @@ void Texture::writeAligned(int level, PixmapView pixmap, WPt destPos, int assume
 		bug_unreachable("expected data from address %p to be aligned to %u bytes", pixmap.data(), assumeAlign);
 	}
 	auto hasUnpackRowLength = r.support.hasUnpackRowLength;
-	bool makeMipmaps = writeFlags & WRITE_FLAG_MAKE_MIPMAPS && canUseMipmaps();
+	bool makeMipmaps = writeFlags.makeMipmaps && canUseMipmaps();
 	if(hasUnpackRowLength || !pixmap.isPadded())
 	{
 		task().run(
@@ -430,10 +431,10 @@ void Texture::writeAligned(int level, PixmapView pixmap, WPt destPos, int assume
 					}, "glTexSubImage2D()");
 				if(makeMipmaps)
 				{
-					logMsg("generating mipmaps for texture:0x%X", texName);
+					log.info("generating mipmaps for texture:0x{:X}", texName);
 					r.support.generateMipmaps(GL_TEXTURE_2D);
 				}
-			}, !(writeFlags & WRITE_FLAG_ASYNC));
+			}, !writeFlags.async);
 		if(makeMipmaps)
 		{
 			updateLevelsForMipmapGeneration();
@@ -442,13 +443,13 @@ void Texture::writeAligned(int level, PixmapView pixmap, WPt destPos, int assume
 	else
 	{
 		// must copy to buffer without extra pitch pixels
-		logDMsg("texture:%u needs temporary buffer to copy pixmap with width:%d pitch:%d", texName(), pixmap.w(), pixmap.pitchPx());
+		log.debug("texture:%u needs temporary buffer to copy pixmap with width:{} pitch:{}", texName(), pixmap.w(), pixmap.pitchPx());
 		IG::WindowRect lockRect{{}, pixmap.size()};
 		lockRect += destPos;
 		auto lockBuff = lock(level, lockRect);
 		if(!lockBuff) [[unlikely]]
 		{
-			logErr("error getting buffer for writeAligned()");
+			log.error("error getting buffer for writeAligned()");
 			return;
 		}
 		assumeExpr(pixmap.format().bytesPerPixel() == lockBuff.pixmap().format().bytesPerPixel());
@@ -457,52 +458,52 @@ void Texture::writeAligned(int level, PixmapView pixmap, WPt destPos, int assume
 	}
 }
 
-void Texture::write(int level, PixmapView pixmap, WPt destPos, uint32_t commitFlags)
+void Texture::write(int level, PixmapView pixmap, WPt destPos, TextureWriteFlags commitFlags)
 {
 	writeAligned(level, pixmap, destPos, bestAlignment(pixmap), commitFlags);
 }
 
 void Texture::clear(int level)
 {
-	auto lockBuff = lock(level, BUFFER_FLAG_CLEARED);
+	auto lockBuff = lock(level, {.clear = true});
 	if(!lockBuff) [[unlikely]]
 	{
-		logErr("error getting buffer for clear()");
+		log.error("error getting buffer for clear()");
 		return;
 	}
 	unlock(lockBuff);
 }
 
-LockedTextureBuffer Texture::lock(int level, uint32_t bufferFlags)
+LockedTextureBuffer Texture::lock(int level, TextureBufferFlags bufferFlags)
 {
 	return lock(level, {{}, size(level)}, bufferFlags);
 }
 
-LockedTextureBuffer Texture::lock(int level, IG::WindowRect rect, uint32_t bufferFlags)
+LockedTextureBuffer Texture::lock(int level, IG::WindowRect rect, TextureBufferFlags bufferFlags)
 {
 	if(!texName()) [[unlikely]]
 	{
-		logErr("called lock() on uninitialized texture");
+		log.error("called lock() on uninitialized texture");
 		return {};
 	}
 	assumeExpr(rect.x2  <= size(level).x);
 	assumeExpr(rect.y2 <= size(level).y);
 	const auto bufferBytes = pixDesc.format.pixelBytes(rect.xSize() * rect.ySize());
 	char *data;
-	if(bufferFlags & BUFFER_FLAG_CLEARED)
+	if(bufferFlags.clear)
 		data = (char*)std::calloc(1, bufferBytes);
 	else
 		data = (char*)std::malloc(bufferBytes);
 	if(!data) [[unlikely]]
 	{
-		logErr("failed allocating %u bytes for pixel buffer", bufferBytes);
+		log.error("failed allocating {} bytes for pixel buffer", bufferBytes);
 		return {};
 	}
 	MutablePixmapView pix{{rect.size(), pixDesc.format}, data};
 	return {data, pix, rect, level, true};
 }
 
-void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
+void Texture::unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags)
 {
 	if(!lockBuff) [[unlikely]]
 		return;
@@ -510,7 +511,7 @@ void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 	{
 		assert(renderer().support.hasPBOFuncs);
 	}
-	bool makeMipmaps = writeFlags & WRITE_FLAG_MAKE_MIPMAPS && canUseMipmaps();
+	bool makeMipmaps = writeFlags.makeMipmaps && canUseMipmaps();
 	if(makeMipmaps)
 	{
 		updateLevelsForMipmapGeneration();
@@ -553,7 +554,7 @@ void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 			}
 			if(makeMipmaps)
 			{
-				logMsg("generating mipmaps for texture:0x%X", texName);
+				log.info("generating mipmaps for texture:0x{:X}", texName);
 				r.support.generateMipmaps(GL_TEXTURE_2D);
 			}
 		});
@@ -710,7 +711,7 @@ void GLTexture::initWithEGLImage(EGLImageKHR eglImg, PixmapDesc desc, SamplerPar
 				glBindTexture(GL_TEXTURE_2D, texName);
 				if(eglImg)
 				{
-					logMsg("setting immutable texture:%d with EGL image:%p", texName, eglImg);
+					log.info("setting immutable texture:{} with EGL image:{}", texName, eglImg);
 					runGLChecked(
 						[&]()
 						{
@@ -738,7 +739,7 @@ void GLTexture::initWithEGLImage(EGLImageKHR eglImg, PixmapDesc desc, SamplerPar
 				glBindTexture(GL_TEXTURE_2D, texName);
 				if(eglImg)
 				{
-					logMsg("setting texture:%d with EGL image:%p", texName, eglImg);
+					log.info("setting texture:0x{:X} with EGL image:{}", texName, eglImg);
 					runGLChecked(
 						[&]()
 						{
@@ -780,12 +781,12 @@ void GLTexture::updateLevelsForMipmapGeneration()
 	}
 }
 
-LockedTextureBuffer GLTexture::lockedBuffer(void *data, int pitchBytes, uint32_t bufferFlags)
+LockedTextureBuffer GLTexture::lockedBuffer(void *data, int pitchBytes, TextureBufferFlags bufferFlags)
 {
 	auto &tex = *static_cast<Texture*>(this);
 	IG::WindowRect fullRect{{}, tex.size(0)};
 	MutablePixmapView pix{tex.pixmapDesc(), data, {pitchBytes, MutablePixmapView::Units::BYTE}};
-	if(bufferFlags & Texture::BUFFER_FLAG_CLEARED)
+	if(bufferFlags.clear)
 		pix.clear();
 	return {nullptr, pix, fullRect, 0, false};
 }

@@ -31,6 +31,8 @@ class Renderer;
 class RendererTask;
 class RendererCommands;
 class SyncFence;
+struct TextureBufferFlags;
+struct TextureWriteFlags;
 class TextureConfig;
 class Texture;
 class PixmapBufferTexture;
@@ -214,5 +216,12 @@ struct AttribDesc
 
 constexpr bool supportsPresentModes = Config::envIsLinux || Config::envIsAndroid;
 constexpr bool supportsPresentationTime = Config::envIsAndroid;
+
+struct GlyphSetMetrics
+{
+	int16_t nominalHeight{};
+	int16_t spaceSize{};
+	int16_t yLineStart{};
+};
 
 }

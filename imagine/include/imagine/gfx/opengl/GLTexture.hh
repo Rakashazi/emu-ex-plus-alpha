@@ -100,7 +100,7 @@ protected:
 	void initWithEGLImage(EGLImageKHR, PixmapDesc, SamplerParams, bool isMutable);
 	void updateWithEGLImage(EGLImageKHR eglImg);
 	#endif
-	LockedTextureBuffer lockedBuffer(void *data, int pitchBytes, uint32_t bufferFlags);
+	LockedTextureBuffer lockedBuffer(void *data, int pitchBytes, TextureBufferFlags bufferFlags);
 	RendererTask *taskPtr() const;
 	Renderer &renderer() const;
 	RendererTask &task() const;

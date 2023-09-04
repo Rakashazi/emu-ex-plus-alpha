@@ -16,7 +16,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/AppKeyCode.hh>
-#include "privateInput.hh"
+#include "InputDeviceData.hh"
 #include "EmuOptions.hh"
 
 namespace EmuEx
@@ -136,7 +136,7 @@ void InputManager::writeSavedInputDevices(ApplicationContext ctx, FileIO &io) co
 		io.put(uint8_t(enumIdWithFlags));
 		io.put(uint8_t(e.enabled));
 		io.put(uint8_t(e.player));
-		io.put(uint8_t(e.joystickAxisAsDpadBits));
+		io.put(std::bit_cast<uint8_t>(e.joystickAxisAsDpadFlags));
 		if(hasICadeInput)
 			io.put(uint8_t(e.iCadeMode));
 		uint8_t nameLen = e.name.size();
@@ -181,7 +181,7 @@ bool InputManager::readSavedInputDevices(MapIO &io)
 			logWarn("player %d out of range", devConf.player);
 			devConf.player = 0;
 		}
-		devConf.joystickAxisAsDpadBits = io.get<uint8_t>();
+		devConf.joystickAxisAsDpadFlags = std::bit_cast<AxisAsDpadFlags>(io.get<uint8_t>());
 		if(hasICadeInput)
 		{
 			devConf.iCadeMode = io.get<uint8_t>();

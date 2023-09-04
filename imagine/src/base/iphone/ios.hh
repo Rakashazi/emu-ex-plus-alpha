@@ -4,7 +4,6 @@
 #import <QuartzCore/QuartzCore.h>
 #import <OpenGLES/EAGLDrawable.h>
 #import "MainApp.hh"
-#include <imagine/input/Input.hh>
 
 namespace IG
 {

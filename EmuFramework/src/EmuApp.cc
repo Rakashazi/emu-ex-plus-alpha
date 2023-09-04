@@ -30,7 +30,7 @@
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/AppKeyCode.hh>
 #include "gui/AutosaveSlotView.hh"
-#include "privateInput.hh"
+#include "InputDeviceData.hh"
 #include "WindowData.hh"
 #include "configFile.hh"
 #include "EmuOptions.hh"

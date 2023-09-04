@@ -76,7 +76,7 @@ MogaManager::~MogaManager()
 
 AndroidInputDevice MogaManager::makeMOGADevice(const char *name)
 {
-	AndroidInputDevice dev{DEVICE_ID, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK, name};
+	AndroidInputDevice dev{DEVICE_ID, {.gamepad = true, .joystick = true}, name};
 	dev.setSubtype(Device::Subtype::GENERIC_GAMEPAD);
 	// set joystick axes
 	{

@@ -135,7 +135,7 @@ bool BoolMenuItem::setBoolValue(bool val)
 	if(val != boolValue())
 	{
 		//logMsg("setting bool: %d", val);
-		flags_ = setOrClearBits(flags_, ON_FLAG, val);
+		flags.impl = setOrClearBits(flags.impl, onFlag, val);
 		t2.resetString(val ? onStr : offStr);
 		return true;
 	}
@@ -144,7 +144,7 @@ bool BoolMenuItem::setBoolValue(bool val)
 
 bool BoolMenuItem::boolValue() const
 {
-	return flags_ & ON_FLAG;
+	return flags.impl & onFlag;
 }
 
 bool BoolMenuItem::flipBoolValue(View &view)
@@ -164,7 +164,7 @@ void BoolMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int 
 {
 	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
 	Gfx::Color color2;
-	if(!(flags_ & ON_OFF_STYLE_FLAG)) // custom strings
+	if(!(flags.impl & onOffStyleFlag)) // custom strings
 		color2 = Gfx::Color{0.f, .8f, 1.f};
 	else if(boolValue())
 		color2 = Gfx::Color{.27f, 1.f, .27f};

@@ -116,6 +116,12 @@ template<BitSetClass T>
 constexpr auto asInt(const T &val) {return std::bit_cast<typename T::BitSetClassInt>(val); }
 
 template<BitSetClass T>
+constexpr T operator~(T val)
+{
+	return std::bit_cast<T>(typename T::BitSetClassInt(~asInt(val)));
+};
+
+template<BitSetClass T>
 constexpr T operator|(T lhs, T rhs)
 {
 	return std::bit_cast<T>(typename T::BitSetClassInt(asInt(lhs) | asInt(rhs)));
@@ -132,5 +138,15 @@ constexpr T operator&(T lhs, T rhs)
 
 template<BitSetClass T>
 constexpr T& operator&=(T &lhs, T rhs) { lhs = lhs & rhs; return lhs; }
+
+template<BitSetClass T>
+constexpr T operator^(T lhs, T rhs)
+{
+	return std::bit_cast<T>(typename T::BitSetClassInt(asInt(lhs) ^ asInt(rhs)));
+};
+
+template<BitSetClass T>
+constexpr T& operator^=(T &lhs, T rhs) { lhs = lhs ^ rhs; return lhs; }
+
 
 }

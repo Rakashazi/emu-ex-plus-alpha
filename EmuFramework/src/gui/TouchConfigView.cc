@@ -23,7 +23,6 @@
 #include <imagine/logger/logger.h>
 #include "PlaceVideoView.hh"
 #include "PlaceVControlsView.hh"
-#include "../privateInput.hh"
 #include <utility>
 #include <vector>
 #include <array>

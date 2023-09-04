@@ -143,7 +143,7 @@ ErrorCode PixmapBufferTexture::setFormat(PixmapDesc desc, ColorSpace colorSpace,
 	return visit([&](auto &t){ return t.setFormat(desc, colorSpace, samplerConf); }, directTex);
 }
 
-void PixmapBufferTexture::writeAligned(PixmapView pixmap, int assumeAlign, uint32_t writeFlags)
+void PixmapBufferTexture::writeAligned(PixmapView pixmap, int assumeAlign, TextureWriteFlags writeFlags)
 {
 	visit([&](auto &t)
 	{
@@ -164,14 +164,14 @@ void PixmapBufferTexture::writeAligned(PixmapView pixmap, int assumeAlign, uint3
 	}, directTex);
 }
 
-void PixmapBufferTexture::write(PixmapView pixmap, uint32_t writeFlags)
+void PixmapBufferTexture::write(PixmapView pixmap, TextureWriteFlags writeFlags)
 {
 	writeAligned(pixmap, Texture::bestAlignment(pixmap), writeFlags);
 }
 
 void PixmapBufferTexture::clear()
 {
-	auto lockBuff = lock(Texture::BUFFER_FLAG_CLEARED);
+	auto lockBuff = lock({.clear = true});
 	if(!lockBuff) [[unlikely]]
 	{
 		logErr("error getting buffer for clear()");
@@ -180,12 +180,12 @@ void PixmapBufferTexture::clear()
 	unlock(lockBuff);
 }
 
-LockedTextureBuffer PixmapBufferTexture::lock(uint32_t bufferFlags)
+LockedTextureBuffer PixmapBufferTexture::lock(TextureBufferFlags bufferFlags)
 {
 	return visit([&](auto &t){ return t.lock(bufferFlags); }, directTex);
 }
 
-void PixmapBufferTexture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
+void PixmapBufferTexture::unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags)
 {
 	visit([&](auto &t){ t.unlock(lockBuff, writeFlags); }, directTex);
 }
@@ -239,7 +239,7 @@ ErrorCode GLTextureStorage<Impl, BufferInfo>::setFormat(PixmapDesc desc, ColorSp
 }
 
 template<class Impl, class BufferInfo>
-LockedTextureBuffer GLTextureStorage<Impl, BufferInfo>::lock(uint32_t bufferFlags)
+LockedTextureBuffer GLTextureStorage<Impl, BufferInfo>::lock(TextureBufferFlags bufferFlags)
 {
 	if(!texName()) [[unlikely]]
 	{
@@ -249,7 +249,7 @@ LockedTextureBuffer GLTextureStorage<Impl, BufferInfo>::lock(uint32_t bufferFlag
 	auto bufferInfo = currentBuffer();
 	IG::WindowRect fullRect{{}, size(0)};
 	MutablePixmapView pix{{fullRect.size(), pixmapDesc().format}, bufferInfo.data};
-	if(bufferFlags & Texture::BUFFER_FLAG_CLEARED)
+	if(bufferFlags.clear)
 		pix.clear();
 	GLuint pbo{};
 	if constexpr(requires {static_cast<Impl*>(this)->pbo();})
@@ -260,14 +260,14 @@ LockedTextureBuffer GLTextureStorage<Impl, BufferInfo>::lock(uint32_t bufferFlag
 }
 
 template<class Impl, class BufferInfo>
-void GLTextureStorage<Impl, BufferInfo>::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
+void GLTextureStorage<Impl, BufferInfo>::unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags)
 {
 	Texture::unlock(lockBuff, writeFlags);
 	swapBuffer();
 }
 
 template<class Impl, class BufferInfo>
-void GLTextureStorage<Impl, BufferInfo>::writeAligned(PixmapView pixmap, int assumeAlign, uint32_t writeFlags)
+void GLTextureStorage<Impl, BufferInfo>::writeAligned(PixmapView pixmap, int assumeAlign, TextureWriteFlags writeFlags)
 {
 	if(renderer().support.hasUnpackRowLength || !pixmap.isPadded())
 	{

@@ -52,7 +52,7 @@ static const char *zeemoteButtonName(Input::Key k)
 }
 
 Zeemote::Zeemote(ApplicationContext ctx, BluetoothAddr addr):
-	BluetoothInputDevice{ctx, Input::Map::ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"},
+	BluetoothInputDevice{ctx, Input::Map::ZEEMOTE, {.gamepad = true}, "Zeemote"},
 	sock{ctx},
 	addr{addr}
 {}

@@ -17,7 +17,7 @@
 #include <imagine/gui/ViewStack.hh>
 #include <imagine/gui/NavView.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/BasicEffect.hh>

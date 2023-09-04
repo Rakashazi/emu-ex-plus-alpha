@@ -16,11 +16,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/rectangle2.h>
 #include <imagine/input/inputDefs.hh>
-#include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/variant.hh>
+#include <imagine/util/Point2D.hh>
 #include <string>
 #include <string_view>
 
@@ -35,20 +34,6 @@ namespace IG::Input
 {
 
 class Device;
-
-enum class Action : uint8_t
-{
-	UNUSED,
-	RELEASED,
-	PUSHED,
-	MOVED,
-	MOVED_RELATIVE,
-	EXIT_VIEW,
-	ENTER_VIEW,
-	SCROLL_UP,
-	SCROLL_DOWN,
-	CANCELED,
-};
 
 enum class DefaultKey : uint8_t
 {

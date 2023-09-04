@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
 #include <imagine/input/Device.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Timer.hh>
@@ -375,7 +375,7 @@ uint8_t BaseApplication::keyEventFlags() const
 
 bool ApplicationContext::keyInputIsPresent() const
 {
-	return Input::Device::anyTypeBitsPresent(*this, Input::Device::TYPE_BIT_KEYBOARD | Input::Device::TYPE_BIT_GAMEPAD);
+	return Input::Device::anyTypeFlagsPresent(*this, {.keyboard = true, .gamepad = true});
 }
 
 void ApplicationContext::flushInputEvents()

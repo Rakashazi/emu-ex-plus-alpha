@@ -64,7 +64,7 @@ IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(PixmapDesc desc, Co
 }
 
 template<class Buffer>
-LockedTextureBuffer HardwareSingleBufferStorage<Buffer>::lock(uint32_t bufferFlags)
+LockedTextureBuffer HardwareSingleBufferStorage<Buffer>::lock(TextureBufferFlags bufferFlags)
 {
 	void *data{};
 	if(!buffer.lock(lockUsage, &data)) [[unlikely]]
@@ -76,7 +76,7 @@ LockedTextureBuffer HardwareSingleBufferStorage<Buffer>::lock(uint32_t bufferFla
 }
 
 template<class Buffer>
-void HardwareSingleBufferStorage<Buffer>::unlock(LockedTextureBuffer, uint32_t)
+void HardwareSingleBufferStorage<Buffer>::unlock(LockedTextureBuffer, TextureWriteFlags)
 {
 	buffer.unlock();
 }
@@ -120,7 +120,7 @@ ErrorCode HardwareBufferStorage<Buffer>::setFormat(PixmapDesc desc, ColorSpace c
 }
 
 template<class Buffer>
-LockedTextureBuffer HardwareBufferStorage<Buffer>::lock(uint32_t bufferFlags)
+LockedTextureBuffer HardwareBufferStorage<Buffer>::lock(TextureBufferFlags bufferFlags)
 {
 	void *data{};
 	auto &[buff, eglImg, pitchBytes] = bufferInfo[bufferIdx];
@@ -133,7 +133,7 @@ LockedTextureBuffer HardwareBufferStorage<Buffer>::lock(uint32_t bufferFlags)
 }
 
 template<class Buffer>
-void HardwareBufferStorage<Buffer>::unlock(LockedTextureBuffer, uint32_t)
+void HardwareBufferStorage<Buffer>::unlock(LockedTextureBuffer, TextureWriteFlags)
 {
 	bufferInfo[bufferIdx].buffer.unlock();
 	swapBuffer();

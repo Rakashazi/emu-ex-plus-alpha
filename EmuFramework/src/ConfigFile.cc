@@ -15,7 +15,6 @@
 
 #include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
-#include "privateInput.hh"
 #include "configFile.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/io/FileIO.hh>

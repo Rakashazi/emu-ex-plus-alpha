@@ -17,12 +17,13 @@
 
 #include <variant>
 #include <utility>
+#include <type_traits>
 
 namespace IG
 {
 
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+template<class... Ts> overloaded(Ts&&...) -> overloaded<std::decay_t<Ts>...>;
 
 // Use a switch statement to implement visit() for better code generation,
 // TODO: remove when clang implements a similar optimization,

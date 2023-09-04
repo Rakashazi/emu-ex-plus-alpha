@@ -105,7 +105,7 @@ static const char *icpButtonName(Key b)
 }
 
 IControlPad::IControlPad(ApplicationContext ctx, BluetoothAddr addr):
-	BluetoothInputDevice{ctx, Input::Map::ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"},
+	BluetoothInputDevice{ctx, Input::Map::ICONTROLPAD, {.gamepad = true}, "iControlPad"},
 	sock{ctx},
 	addr{addr}
 {}

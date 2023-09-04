@@ -33,8 +33,8 @@ public:
 	SurfaceTextureStorage &operator=(SurfaceTextureStorage &&o) noexcept;
 	~SurfaceTextureStorage();
 	ErrorCode setFormat(PixmapDesc desc, ColorSpace, TextureSamplerConfig);
-	LockedTextureBuffer lock(uint32_t bufferFlags);
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags);
+	LockedTextureBuffer lock(TextureBufferFlags bufferFlags);
+	void unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags);
 
 protected:
 	jobject surfaceTex{};

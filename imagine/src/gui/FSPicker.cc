@@ -497,7 +497,7 @@ void FSPicker::listDirectory(CStringView path, ThreadStop &stop)
 				}
 				auto &item = dir.emplace_back(FileEntry{std::string{entry.path()}, {entry.name(), &face(), nullptr}});
 				if(isDir)
-					item.text.setFlags(item.text.flags() | FileEntry::IS_DIR_FLAG);
+					item.text.flags.user |= FileEntry::isDirFlag;
 				if(mode_ == Mode::DIR && !isDir)
 					item.text.setActive(false);
 				return true;

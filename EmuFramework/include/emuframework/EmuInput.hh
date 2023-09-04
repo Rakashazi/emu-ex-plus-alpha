@@ -20,7 +20,7 @@
 #include <emuframework/TurboInput.hh>
 #include <emuframework/ToggleInput.hh>
 #include <emuframework/inputDefs.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/inputDefs.hh>
 #include <string>
 #include <string_view>
 #include <memory>
@@ -117,6 +117,18 @@ private:
 	Input::DeviceSubtype devSubtype{};
 };
 
+struct AxisAsDpadFlags
+{
+	uint8_t
+	stick1:1{},
+	unused1:1{},
+	stick2:1{},
+	unused2:3{},
+	hat:1{};
+
+	constexpr bool operator==(AxisAsDpadFlags const&) const = default;
+};
+
 struct InputDeviceSavedConfig
 {
 	static constexpr uint8_t ENUM_ID_MASK = 0x1F;
@@ -127,7 +139,7 @@ struct InputDeviceSavedConfig
 	uint8_t enumId{};
 	int8_t player{};
 	bool enabled = true;
-	uint8_t joystickAxisAsDpadBits{};
+	AxisAsDpadFlags joystickAxisAsDpadFlags;
 	IG_UseMemberIf(hasICadeInput, bool, iCadeMode){};
 	IG_UseMemberIf(Config::envIsAndroid, bool, handleUnboundEvents){};
 

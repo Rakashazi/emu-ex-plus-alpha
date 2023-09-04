@@ -146,7 +146,7 @@ ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace color
 	return {};
 }
 
-LockedTextureBuffer SurfaceTextureStorage::lock(uint32_t bufferFlags)
+LockedTextureBuffer SurfaceTextureStorage::lock(TextureBufferFlags bufferFlags)
 {
 	if(!nativeWin) [[unlikely]]
 	{
@@ -182,7 +182,7 @@ LockedTextureBuffer SurfaceTextureStorage::lock(uint32_t bufferFlags)
 	return lockedBuffer(winBuffer.bits, (uint32_t)winBuffer.stride * bpp, bufferFlags);
 }
 
-void SurfaceTextureStorage::unlock(LockedTextureBuffer, uint32_t)
+void SurfaceTextureStorage::unlock(LockedTextureBuffer, TextureWriteFlags)
 {
 	if(!nativeWin) [[unlikely]]
 	{

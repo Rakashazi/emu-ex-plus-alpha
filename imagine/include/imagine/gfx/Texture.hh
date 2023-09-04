@@ -42,13 +42,23 @@ public:
 	explicit operator bool() const;
 };
 
+struct TextureWriteFlags
+{
+	uint8_t
+	async:1{},
+	makeMipmaps:1{};
+};
+
+struct TextureBufferFlags
+{
+	uint8_t
+	clear:1{};
+};
+
 class Texture: public TextureImpl
 {
 public:
 	static constexpr uint32_t MAX_ASSUME_ALIGN = 8;
-	static constexpr uint32_t WRITE_FLAG_ASYNC = bit(0);
-	static constexpr uint32_t WRITE_FLAG_MAKE_MIPMAPS = bit(1);
-	static constexpr uint32_t BUFFER_FLAG_CLEARED = bit(0);
 
 	using TextureImpl::TextureImpl;
 	Texture(RendererTask &, TextureConfig);
@@ -58,12 +68,12 @@ public:
 	bool generateMipmaps();
 	int levels() const;
 	ErrorCode setFormat(PixmapDesc, int levels, ColorSpace c = {}, TextureSamplerConfig samplerConf = {});
-	void write(int level, PixmapView pixmap, WPt destPos, uint32_t writeFlags = 0);
-	void writeAligned(int level, PixmapView pixmap, WPt destPos, int assumedDataAlignment, uint32_t writeFlags = 0);
+	void write(int level, PixmapView pixmap, WPt destPos, TextureWriteFlags writeFlags = {});
+	void writeAligned(int level, PixmapView pixmap, WPt destPos, int assumedDataAlignment, TextureWriteFlags writeFlags = {});
 	void clear(int level);
-	LockedTextureBuffer lock(int level, uint32_t bufferFlags = 0);
-	LockedTextureBuffer lock(int level, WRect rect, uint32_t bufferFlags = 0);
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
+	LockedTextureBuffer lock(int level, TextureBufferFlags bufferFlags = {});
+	LockedTextureBuffer lock(int level, WRect rect, TextureBufferFlags bufferFlags = {});
+	void unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags = {});
 	WSize size(int level) const;
 	PixmapDesc pixmapDesc() const;
 	void setSampler(TextureSamplerConfig);

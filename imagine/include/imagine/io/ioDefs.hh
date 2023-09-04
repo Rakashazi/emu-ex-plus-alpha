@@ -15,8 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-
-#include <imagine/util/bit.hh>
 #include <unistd.h> // for SEEK_*
 #include <cstdint>
 
@@ -57,7 +55,7 @@ struct OpenFlags
 	write:1{},
 	// create a new file if it doesn't already exist
 	create:1{},
-	// if using WRITE, truncate any existing file to 0 bytes
+	// if using write flag, truncate any existing file to 0 bytes
 	truncate:1{},
 	// return from constructor without throwing exception if opening fails,
 	// used to avoid redundant FS::exists() tests when searching for a file to open
@@ -67,11 +65,11 @@ struct OpenFlags
 
 	// common flag combinations:
 	// create a file for writing, clobbering an existing one
-	static constexpr OpenFlags newFile() { return {.write = 1, .create = 1, .truncate = 1}; }
-	static constexpr OpenFlags testNewFile() { return {.write = 1, .create = 1, .truncate = 1, .test = 1}; }
+	static constexpr OpenFlags newFile() { return {.write = true, .create = true, .truncate = true}; }
+	static constexpr OpenFlags testNewFile() { return {.write = true, .create = true, .truncate = true, .test = true}; }
 	// create a file for reading/writing, keeping an existing one
-	static constexpr OpenFlags createFile() { return {.read = 1, .write = 1, .create = 1}; }
-	static constexpr OpenFlags testCreateFile() { return {.read = 1, .write = 1, .create = 1, .test = 1}; }
+	static constexpr OpenFlags createFile() { return {.read = true, .write = true, .create = true}; }
+	static constexpr OpenFlags testCreateFile() { return {.read = true, .write = true, .create = true, .test = true}; }
 };
 
 template <class T>

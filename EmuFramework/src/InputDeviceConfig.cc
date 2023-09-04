@@ -13,8 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "InputDevConf"
-#include "privateInput.hh"
+#include "InputDeviceConfig.hh"
+#include "InputDeviceData.hh"
 #include <emuframework/EmuApp.hh>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
@@ -22,17 +22,19 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"InputDevConf"};
+
 static StaticString<16> uniqueCustomConfigName(auto &customKeyConfigs)
 {
 	for(auto i : iotaCount(100)) // Try up to "Custom 99"
 	{
 		auto name = format<StaticString<16>>("Custom {}", i+1);
 		// Check if this name is free
-		logMsg("checking:%s", name.data());
+		log.info("checking:{}", name);
 		bool exists{};
 		for(auto &ePtr : customKeyConfigs)
 		{
-			logMsg("against:%s", ePtr->name.data());
+			log.info("against:{}", ePtr->name);
 			if(ePtr->name == std::string_view{name})
 			{
 				exists = true;
@@ -41,7 +43,7 @@ static StaticString<16> uniqueCustomConfigName(auto &customKeyConfigs)
 		}
 		if(!exists)
 		{
-			logMsg("unique custom key config name: %s", name.data());
+			log.info("unique custom key config name:{}", name);
 			return name;
 		}
 	}
@@ -52,7 +54,7 @@ void InputDeviceConfig::deleteConf(InputManager &mgr)
 {
 	if(!savedConf)
 		return;
-	logMsg("removing device config for %s", savedConf->name.data());
+	log.info("removing device config for {}", savedConf->name);
 	std::erase_if(mgr.savedInputDevs, [&](auto &ptr){ return ptr.get() == savedConf; });
 	savedConf = nullptr;
 }
@@ -66,7 +68,7 @@ bool InputDeviceConfig::setICadeMode(InputManager &mgr, bool on)
 	save(mgr);
 	if(!savedConf)
 	{
-		logErr("can't save iCade mode");
+		log.error("can't save iCade mode");
 		return 0;
 	}
 	savedConf->iCadeMode = on;
@@ -78,14 +80,14 @@ bool InputDeviceConfig::iCadeMode()
 	return dev->iCadeMode();
 }
 
-unsigned InputDeviceConfig::joystickAxisAsDpadBits()
+bool InputDeviceConfig::joystickAxesAsDpad(Input::AxisSetId id)
 {
-	return dev->joystickAxisAsDpadBits();
+	return dev->joystickAxesAsDpad(id);
 }
 
-void InputDeviceConfig::setJoystickAxisAsDpadBits(unsigned axisMask)
+void InputDeviceConfig::setJoystickAxesAsDpad(Input::AxisSetId id, bool on)
 {
-	dev->setJoystickAxisAsDpadBits(axisMask);
+	dev->setJoystickAxesAsDpad(id, on);
 }
 
 void InputDeviceConfig::setKeyConfName(InputManager &mgr, std::string_view name)
@@ -104,7 +106,7 @@ KeyConfigDesc InputDeviceConfig::keyConf(const InputManager &mgr) const
 	assert(dev);
 	if(savedConf && savedConf->keyConfName.size())
 	{
-		//logMsg("has saved config:%s", savedConf->keyConfName.c_str());
+		//log.info("has saved config:{}", savedConf->keyConfName);
 		auto conf = mgr.keyConfig(savedConf->keyConfName, *dev);
 		if(conf)
 			return conf;
@@ -132,7 +134,7 @@ KeyConfig *InputDeviceConfig::makeMutableKeyConf(EmuApp &app)
 	auto conf = mutableKeyConf(mgr);
 	if(!conf)
 	{
-		logMsg("current config not mutable, creating one");
+		log.info("current config not mutable, creating one");
 		auto name = uniqueCustomConfigName(mgr.customKeyConfigs);
 		conf = setKeyConfCopiedFromExisting(mgr, name);
 		app.postMessage(3, false, std::format("Automatically created profile: {}", conf->name));
@@ -153,12 +155,14 @@ void InputDeviceConfig::save(InputManager &mgr)
 	if(!savedConf)
 	{
 		savedConf = mgr.savedInputDevs.emplace_back(std::make_unique<InputDeviceSavedConfig>()).get();
-		logMsg("allocated new device config, %d total", (int)mgr.savedInputDevs.size());
+		log.info("allocated new device config, {} total", mgr.savedInputDevs.size());
 	}
 	savedConf->player = player_;
 	savedConf->enabled = isEnabled;
 	savedConf->enumId = dev->enumId();
-	savedConf->joystickAxisAsDpadBits = dev->joystickAxisAsDpadBits();
+	savedConf->joystickAxisAsDpadFlags.stick1 = dev->joystickAxesAsDpad(Input::AxisSetId::stick1);
+	savedConf->joystickAxisAsDpadFlags.stick2 = dev->joystickAxesAsDpad(Input::AxisSetId::stick2);
+	savedConf->joystickAxisAsDpadFlags.hat = dev->joystickAxesAsDpad(Input::AxisSetId::hat);
 	savedConf->iCadeMode = dev->iCadeMode();
 	savedConf->handleUnboundEvents = shouldHandleUnboundKeys;
 	savedConf->name = dev->name();
@@ -171,7 +175,9 @@ void InputDeviceConfig::setSavedConf(const InputManager &mgr, InputDeviceSavedCo
 	{
 		player_ = savedConf->player;
 		isEnabled = savedConf->enabled;
-		dev->setJoystickAxisAsDpadBits(savedConf->joystickAxisAsDpadBits);
+		dev->setJoystickAxesAsDpad(Input::AxisSetId::stick1, savedConf->joystickAxisAsDpadFlags.stick1);
+		dev->setJoystickAxesAsDpad(Input::AxisSetId::stick2, savedConf->joystickAxisAsDpadFlags.stick2);
+		dev->setJoystickAxesAsDpad(Input::AxisSetId::hat, savedConf->joystickAxisAsDpadFlags.hat);
 		dev->setICadeMode(savedConf->iCadeMode);
 		shouldHandleUnboundKeys = savedConf->handleUnboundEvents;
 	}
@@ -179,7 +185,8 @@ void InputDeviceConfig::setSavedConf(const InputManager &mgr, InputDeviceSavedCo
 	{
 		player_ = dev->enumId() < EmuSystem::maxPlayers ? dev->enumId() : 0;
 		isEnabled = true;
-		dev->setJoystickAxisAsDpadBits(Input::Device::AXIS_BITS_STICK_1 | Input::Device::AXIS_BITS_HAT);
+		dev->setJoystickAxesAsDpad(Input::AxisSetId::stick1, true);
+		dev->setJoystickAxesAsDpad(Input::AxisSetId::hat, true);
 		dev->setICadeMode(false);
 		shouldHandleUnboundKeys = false;
 	}

@@ -171,7 +171,7 @@ static const char *wiiKeyName(Input::Key k, Input::Map map)
 }
 
 Wiimote::Wiimote(ApplicationContext ctx, BluetoothAddr addr):
-	BluetoothInputDevice{ctx, Input::Map::WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"},
+	BluetoothInputDevice{ctx, Input::Map::WIIMOTE, {.gamepad = true}, "Wiimote"},
 	ctlSock{ctx}, intSock{ctx},
 	addr{addr}
 {}
@@ -401,7 +401,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						axis[3] = {*this, Input::AxisId::RZ, axisClassicRScaler};
 						assert(!extDevicePtr);
 						extDevicePtr = &ctx.application().addInputDevice(ctx,
-							std::make_unique<ExtDevice>(Input::Map::WII_CC, Input::Device::TYPE_BIT_GAMEPAD, "Wii Classic Controller"), true);
+							std::make_unique<ExtDevice>(Input::Map::WII_CC, DeviceTypeFlags{.gamepad = true}, "Wii Classic Controller"), true);
 					}
 					else if(memcmp(&packet[7], nunchukType, 6) == 0)
 					{

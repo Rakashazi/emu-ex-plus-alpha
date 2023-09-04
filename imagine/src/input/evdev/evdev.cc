@@ -19,7 +19,7 @@
 #include <imagine/util/math/int.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/fs/FS.hh>
-#include <imagine/input/Input.hh>
+#include <imagine/input/Event.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/base/Application.hh>
@@ -110,14 +110,14 @@ static constexpr bool isBitSetInArray(const T (&arr)[S], unsigned int bit)
 
 EvdevInputDevice::EvdevInputDevice() {}
 
-EvdevInputDevice::EvdevInputDevice(int id, int fd, TypeBits typeBits, std::string name_, uint32_t vendorProductId):
-	Device{id, Map::SYSTEM, typeBits, std::move(name_)},
+EvdevInputDevice::EvdevInputDevice(int id, int fd, DeviceTypeFlags typeFlags, std::string name_, uint32_t vendorProductId):
+	Device{id, Map::SYSTEM, typeFlags, std::move(name_)},
 	fd{fd}
 {
 	subtype_ = Device::Subtype::GENERIC_GAMEPAD;
 	updateGamepadSubtype(name(), vendorProductId);
 	if(setupJoystickBits())
-		typeBits_ |= Device::TYPE_BIT_JOYSTICK;
+		typeFlags_.joystick = true;
 }
 
 EvdevInputDevice::~EvdevInputDevice()
@@ -271,7 +271,7 @@ static bool devIsGamepad(int fd)
 
 static bool isEvdevInputDevice(Input::Device &d)
 {
-	return d.map() == Input::Map::SYSTEM && (d.typeBits() & Input::Device::TYPE_BIT_GAMEPAD);
+	return d.map() == Input::Map::SYSTEM && d.typeFlags().gamepad;
 }
 
 static bool processDevNode(LinuxApplication &app, CStringView path, int id, bool notify)
@@ -316,7 +316,7 @@ static bool processDevNode(LinuxApplication &app, CStringView path, int id, bool
 		logWarn("unable to get device info");
 	}
 	auto vendorProductId = ((devInfo.vendor & 0xFFFF) << 16) | (devInfo.product & 0xFFFF);
-	auto evDev = std::make_unique<EvdevInputDevice>(id, fd, Device::TYPE_BIT_GAMEPAD, nameStr.data(), vendorProductId);
+	auto evDev = std::make_unique<EvdevInputDevice>(id, fd, DeviceTypeFlags{.gamepad = true}, nameStr.data(), vendorProductId);
 	fd_setNonblock(fd, 1);
 	evDev->addPollEvent(app);
 	app.addInputDevice(ApplicationContext{static_cast<Application&>(app)}, std::move(evDev), notify);
