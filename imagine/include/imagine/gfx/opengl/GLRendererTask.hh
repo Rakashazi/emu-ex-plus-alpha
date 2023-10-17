@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include "GLTask.hh"
-#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/utility.h>
 #include <concepts>
@@ -43,8 +42,6 @@ public:
 
 	GLRendererTask(ApplicationContext, Renderer &);
 	GLRendererTask(ApplicationContext, const char *debugLabel, Renderer &);
-	void initVBOs();
-	GLuint getVBO();
 	void initVAO();
 	void initDefaultFramebuffer();
 	GLuint defaultFBO() const { return defaultFB; }
@@ -83,8 +80,6 @@ protected:
 	Renderer *r{};
 	#ifndef CONFIG_GFX_OPENGL_ES
 	GLuint streamVAO = 0;
-	std::array<GLuint, 6> streamVBO{};
-	uint32_t streamVBOIdx = 0;
 	#endif
 	IG_UseMemberIf(Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER, GLuint, defaultFB){};
 	GLuint fbo = 0;

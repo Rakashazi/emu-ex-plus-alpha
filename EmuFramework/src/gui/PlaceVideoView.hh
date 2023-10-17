@@ -18,6 +18,7 @@
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gfx/GfxText.hh>
+#include <imagine/gfx/GeomQuad.hh>
 #include <emuframework/EmuAppHelper.hh>
 
 namespace EmuEx
@@ -42,6 +43,7 @@ private:
 	EmuVideoLayer &layer;
 	VController &vController;
 	Gfx::Text exitText, resetText;
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> rectVerts;
 	WRect exitBounds{}, resetBounds{};
 	Input::DragTrackerState dragState;
 	int startPosOffset{};

@@ -40,7 +40,6 @@
 #include <imagine/base/PerformanceHintManager.hh>
 #include <imagine/audio/Manager.hh>
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/gfx/Vec3.hh>
 #include <imagine/data-type/image/PixmapReader.hh>
 #include <imagine/data-type/image/PixmapWriter.hh>
 #include <imagine/font/Font.hh>

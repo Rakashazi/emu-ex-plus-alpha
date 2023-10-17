@@ -18,6 +18,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/OutputTimingManager.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <algorithm>
 #include <format>
 
@@ -30,7 +31,7 @@ EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer, EmuSystem &sys):
 	View{attach},
 	layer{layer},
 	sysPtr{&sys},
-	frameTimeStats{&defaultFace()} {}
+	frameTimeStats{&defaultFace(), Gfx::VertexBuffer<Gfx::IQuad::Vertex>{attach.rendererTask, {.size = 4}}} {}
 
 void EmuView::prepareDraw()
 {
@@ -71,7 +72,7 @@ void EmuView::drawframeTimeStatsText(Gfx::RendererCommands &__restrict__ cmds)
 		cmds.basicEffect().disableTexture(cmds);
 		cmds.set(BlendMode::ALPHA);
 		cmds.setColor({0., 0., 0., .7});
-		cmds.drawRect(stats.rect);
+		cmds.drawQuad(stats.bgVerts, 0);
 		cmds.basicEffect().enableAlphaTexture(cmds);
 		stats.text.draw(cmds, stats.rect.pos(LC2DO) + WPt{stats.text.spaceWidth(), 0}, LC2DO, ColorName::WHITE);
 	});
@@ -100,9 +101,11 @@ void EmuView::placeFrameTimeStats()
 	{
 		if(stats.text.compile(renderer()))
 		{
-			stats.rect = {{},
+			WRect rect = {{},
 				{stats.text.pixelSize().x + stats.text.spaceWidth() * 2, stats.text.fullHeight()}};
-			stats.rect.setPos(viewRect().pos(LC2DO), LC2DO);
+			rect.setPos(viewRect().pos(LC2DO), LC2DO);
+			stats.rect = rect;
+			Gfx::IQuad::write(stats.bgVerts, 0, {.bounds = rect.as<int16_t>()});
 		}
 	});
 }

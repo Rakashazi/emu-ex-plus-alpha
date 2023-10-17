@@ -26,7 +26,8 @@ PlaceVControlsView::PlaceVControlsView(ViewAttachParams attach, VController &vCo
 	View{attach},
 	exitText{"Exit", &defaultFace()},
 	snapText{"Snap: 0px", &defaultFace()},
-	vController{vController_}
+	vController{vController_},
+	rectVerts{attach.rendererTask, {.size = 4 * 4}}
 {
 	app().applyOSNavStyle(appContext(), true);
 }
@@ -43,6 +44,13 @@ void PlaceVControlsView::place()
 	snapText.compile(renderer());
 	exitBtnRect = WRect{{}, exitText.pixelSize()} + (viewRect().pos(C2DO) - exitText.pixelSize() / 2) + WPt{0, exitText.height()};
 	snapBtnRect = WRect{{}, snapText.pixelSize()} + (viewRect().pos(C2DO) - snapText.pixelSize() / 2) - WPt{0, exitText.height()};
+	const int lineSize = 1;
+	Gfx::IQuad::write(rectVerts, 0, {.bounds = WRect{{viewRect().x, viewRect().yCenter()},
+		{viewRect().x2, viewRect().yCenter() + lineSize}}.as<int16_t>()});
+	Gfx::IQuad::write(rectVerts, 1, {.bounds = WRect{{viewRect().xCenter(), viewRect().y},
+		{viewRect().xCenter() + lineSize, viewRect().y2}}.as<int16_t>()});
+	Gfx::IQuad::write(rectVerts, 2, {.bounds = exitBtnRect.as<int16_t>()});
+	Gfx::IQuad::write(rectVerts, 3, {.bounds = snapBtnRect.as<int16_t>()});
 }
 
 bool PlaceVControlsView::inputEvent(const Input::Event &e)
@@ -143,14 +151,10 @@ void PlaceVControlsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.setColor({.5, .5, .5});
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
-	const int lineSize = 1;
-	cmds.drawRect({{viewRect().x, viewRect().yCenter()},
-		{viewRect().x2, viewRect().yCenter() + lineSize}});
-	cmds.drawRect({{viewRect().xCenter(), viewRect().y},
-		{viewRect().xCenter() + lineSize, viewRect().y2}});
+	cmds.setVertexArray(rectVerts);
+	cmds.drawQuads(0, 2); // centering lines
 	cmds.setColor({0, 0, 0, .5});
-	cmds.drawRect(exitBtnRect);
-	cmds.drawRect(snapBtnRect);
+	cmds.drawQuads(2, 2); // button bg
 	basicEffect.enableAlphaTexture(cmds);
 	exitText.draw(cmds, exitBtnRect.pos(C2DO), C2DO, ColorName::WHITE);
 	snapText.draw(cmds, snapBtnRect.pos(C2DO), C2DO, ColorName::WHITE);

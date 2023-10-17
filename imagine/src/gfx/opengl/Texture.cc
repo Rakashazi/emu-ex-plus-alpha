@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/base/Error.hh>
@@ -800,6 +799,13 @@ bool TextureSizeSupport::supportsMipmaps(int imageX, int imageY) const
 TextureSpan::operator bool() const
 {
 	return texturePtr && (bool)*texturePtr;
+}
+
+TextureSpan::operator TextureBinding() const
+{
+	if(!texturePtr)
+		return {};
+	return texturePtr->binding();
 }
 
 }

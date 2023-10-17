@@ -27,7 +27,8 @@ void VControllerButton::setPos(WPt pos, WRect viewBounds, _2DOrigin o)
 	bounds_.setPos(pos, o);
 	bounds_.fitIn(viewBounds);
 	extendedBounds_.setPos(bounds_.pos(C2DO), C2DO);
-	spr.setPos(bounds_);
+	Gfx::IQuad::write(rectVerts, 0, {.bounds = extendedBounds_.as<int16_t>()});
+	updateSprite();
 }
 
 void VControllerButton::setSize(WSize size, WSize extendedSize)
@@ -35,12 +36,16 @@ void VControllerButton::setSize(WSize size, WSize extendedSize)
 	size.y /= aspectRatio;
 	bounds_ = makeWindowRectRel(bounds_.pos(C2DO), size);
 	extendedBounds_ = bounds_ + WRect{{-extendedSize}, {extendedSize}};
+	Gfx::IQuad::write(rectVerts, 0, {.bounds = extendedBounds_.as<int16_t>()});
 }
 
-void VControllerButton::setImage(Gfx::TextureSpan tex, int aR)
+void VControllerButton::setImage(Gfx::RendererTask &task, Gfx::TextureSpan t, int aR)
 {
-	spr.set(tex);
+	spriteVerts = {task, {.size = 4}};
+	rectVerts = {task, {.size = 4}};
+	tex = t;
 	aspectRatio = aR;
+	updateSprite();
 }
 
 std::string VControllerButton::name(const EmuApp &app) const
@@ -52,18 +57,17 @@ void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds) con
 {
 	float brightness = isHighlighted ? 2.f : 1.f;
 	cmds.setColor(Gfx::Color{.5f}.multiplyRGB(brightness));
-	cmds.drawRect(extendedBounds_);
+	cmds.drawQuad(rectVerts, 0);
 }
 
 void VControllerButton::drawSprite(Gfx::RendererCommands &__restrict__ cmds) const
 {
-	sprite().draw(cmds);
+	cmds.basicEffect().drawSprite(cmds, spriteVerts, 0, tex);
 }
 
 void VControllerButton::setAlpha(float alpha)
 {
 	float brightness = isHighlighted ? 2.f : 1.f;
-	Gfx::Color spriteColor{};
 	if(color != Gfx::Color{})
 	{
 		spriteColor = color.multiplyRGB(alpha).multiplyRGB(brightness);
@@ -79,7 +83,13 @@ void VControllerButton::setAlpha(float alpha)
 		else
 			spriteColor = Gfx::Color{alpha}.multiplyRGB(brightness);
 	}
-	for(auto &vtx : spr) { vtx.color = spriteColor; }
+	updateSprite();
+}
+
+void VControllerButton::updateSprite()
+{
+	auto map = spriteVerts.map();
+	Gfx::LitSprite::write(map, 0, {.bounds = bounds_.as<int16_t>(), .color = spriteColor}, tex);
 }
 
 }

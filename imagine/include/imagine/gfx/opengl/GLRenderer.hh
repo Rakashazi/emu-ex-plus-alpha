@@ -20,6 +20,7 @@
 #include <imagine/base/CustomEvent.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureSizeSupport.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/util/used.hh>

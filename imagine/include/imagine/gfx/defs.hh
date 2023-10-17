@@ -35,6 +35,7 @@ struct TextureBufferFlags;
 struct TextureWriteFlags;
 class TextureConfig;
 class Texture;
+struct TextureBinding;
 class PixmapBufferTexture;
 class TextureSamplerConfig;
 class TextureSampler;
@@ -43,10 +44,14 @@ class Vec3;
 class Vec4;
 class Shader;
 class Program;
+class BasicEffect;
 class GlyphTextureSet;
 class ProjectionPlane;
 struct DrawableConfig;
 struct Color4B;
+enum class BufferType : uint8_t;
+template<class T, BufferType type>
+class Buffer;
 
 using GCRect = CoordinateRect<float, true, true>;
 
@@ -82,10 +87,11 @@ enum class TextureType : uint8_t
 class TextureSpan
 {
 public:
-	const Texture *texturePtr;
+	const Texture *texturePtr{};
 	FRect bounds{{}, {1.f, 1.f}};
 
 	explicit operator bool() const;
+	operator TextureBinding() const;
 };
 
 enum class TextureBufferMode : uint8_t
@@ -212,6 +218,8 @@ struct AttribDesc
 	size_t size{};
 	AttribType type{};
 	bool normalize{};
+
+	constexpr bool operator==(AttribDesc const&) const = default;
 };
 
 constexpr bool supportsPresentModes = Config::envIsLinux || Config::envIsAndroid;
@@ -222,6 +230,26 @@ struct GlyphSetMetrics
 	int16_t nominalHeight{};
 	int16_t spaceSize{};
 	int16_t yLineStart{};
+};
+
+constexpr std::array<uint8_t, 6> makeRectIndexArray(uint8_t baseIdx)
+{
+	baseIdx *= 4;
+	return
+	{{
+		baseIdx,
+		uint8_t(baseIdx+1),
+		uint8_t(baseIdx+3),
+		baseIdx,
+		uint8_t(baseIdx+3),
+		uint8_t(baseIdx+2),
+	}};
+}
+
+enum class BufferType : uint8_t
+{
+	vertex,
+	index,
 };
 
 }

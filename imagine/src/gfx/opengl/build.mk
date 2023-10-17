@@ -27,12 +27,11 @@ endif
 
 include $(IMAGINE_PATH)/make/package/opengl.mk
 
-SRC += gfx/common/GeomQuadMesh.cc \
- gfx/common/GfxLGradient.cc \
- gfx/common/GfxText.cc \
+SRC += gfx/common/GfxText.cc \
  gfx/common/GlyphTextureSet.cc \
  gfx/common/Mat4.cc \
  gfx/opengl/BasicEffect.cc \
+ gfx/opengl/Buffer.cc \
  gfx/opengl/config.cc \
  gfx/opengl/debug.cc \
  gfx/opengl/GLStateCache.cc \

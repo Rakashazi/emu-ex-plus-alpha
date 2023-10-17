@@ -15,7 +15,6 @@
 
 #define LOGTAG "SurfaceTexStorage"
 #include <imagine/gfx/opengl/android/SurfaceTextureStorage.hh>
-#include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/base/Error.hh>
 #include "../../../base/android/android.hh"

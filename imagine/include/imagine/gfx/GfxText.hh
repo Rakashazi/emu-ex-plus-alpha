@@ -15,8 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
+#include <imagine/gfx/Buffer.hh>
+#include <imagine/gfx/Vertex.hh>
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string/utf16.hh>
 #include <limits>
@@ -27,6 +28,11 @@ namespace IG::Gfx
 
 class GlyphTextureSet;
 
+enum class TextAlignment
+{
+	left, center, right
+};
+
 struct TextLayoutConfig
 {
 	static constexpr auto noMaxLines = std::numeric_limits<int>::max();
@@ -34,6 +40,7 @@ struct TextLayoutConfig
 
 	int maxLineSize = noMaxLineSize;
 	int maxLines = noMaxLines;
+	TextAlignment alignment{};
 };
 
 class Text
@@ -44,6 +51,10 @@ public:
 	Text(GlyphTextureSet *face): Text{UTF16String{}, face} {}
 	Text(UTF16Convertible auto &&str, GlyphTextureSet *face = nullptr):
 		textStr{IG_forward(str)}, face_{face} {}
+	Text(const Text &) noexcept;
+	Text &operator=(const Text &) noexcept;
+	Text(Text &&) = default;
+	Text &operator=(Text &&) = default;
 
 	void resetString(UTF16Convertible auto &&str)
 	{
@@ -89,6 +100,7 @@ protected:
 	int xSize{};
 	int ySize{};
 	GlyphSetMetrics metrics;
+	VertexBuffer<Vertex2ITexI> verts;
 
 	bool hasText() const;
 };

@@ -85,7 +85,7 @@ protected:
 	enum class DepthMode { increment, decrement, reset };
 
 	FilterFunc filter{};
-	ViewStack controller{};
+	ViewStack controller;
 	OnChangePathDelegate onChangePath_{};
 	OnSelectPathDelegate onSelectPath_{};
 	std::vector<FileEntry> dir{};

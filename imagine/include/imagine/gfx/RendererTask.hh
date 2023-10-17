@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/SyncFence.hh>
 #include <imagine/util/utility.h>
 #include <concepts>
 #include <chrono>
@@ -74,6 +73,15 @@ public:
 	void waitSync(SyncFence fence);
 	void awaitPending();
 	ThreadId threadId() const;
+
+	// buffers
+	void write(auto &buff, auto &&data, ssize_t offset)
+	{
+		run([=, &buff]()
+		{
+			buff.writeSubData(offset * buff.elemSize, std::size(data) * buff.elemSize, std::data(data));
+		});
+	}
 };
 
 }

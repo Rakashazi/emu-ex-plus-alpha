@@ -16,6 +16,7 @@
 #define LOGTAG "ToastView"
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/input/Event.hh>
@@ -35,7 +36,8 @@ ToastView::ToastView(ViewAttachParams attach): View{attach},
 		{
 			unpost();
 		}
-	} {}
+	},
+	msgFrameVerts{attach.rendererTask, {.size = 4}} {}
 
 void ToastView::setFace(Gfx::GlyphTextureSet &face)
 {
@@ -60,6 +62,7 @@ void ToastView::place()
 	//logMsg("label y size:%d", labelYSize);
 	msgFrame.setPosRel(viewRect().pos(CB2DO),
 		{viewRect().xSize(), labelYSize}, CB2DO);
+	Gfx::IQuad::write(msgFrameVerts, 0, {.bounds = msgFrame.as<int16_t>()});
 }
 
 void ToastView::unpost()
@@ -93,7 +96,7 @@ void ToastView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		cmds.setColor({1., 0, 0, .7});
 	else
 		cmds.setColor({0, 0, 1., .7});
-	cmds.drawRect(msgFrame);
+	cmds.drawQuad(msgFrameVerts, 0);
 	basicEffect.enableAlphaTexture(cmds);
 	text.draw(cmds, {msgFrame.xCenter(), msgFrame.pos(C2DO).y}, C2DO, ColorName::WHITE);
 }

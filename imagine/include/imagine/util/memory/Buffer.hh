@@ -101,6 +101,10 @@ public:
 
 	constexpr T& operator[] (size_t idx) { return data()[idx]; }
 	constexpr const T& operator[] (size_t idx) const { return data()[idx]; }
+	constexpr auto begin() { return data(); }
+	constexpr auto end() { return data() + size(); }
+	constexpr auto begin() const { return data(); }
+	constexpr auto end() const { return data() + size(); }
 
 	constexpr explicit operator bool() const
 	{

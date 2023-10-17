@@ -115,6 +115,19 @@ constexpr AttribDesc texCoordAttribDesc()
 	}
 }
 
+struct VertexLayoutDesc
+{
+	AttribDesc pos, color, texCoord;
+
+	constexpr bool operator==(VertexLayoutDesc const&) const = default;
+};
+
+template<VertexLayout V>
+constexpr VertexLayoutDesc vertexLayoutDesc()
+{
+	return {posAttribDesc<V>(), colorAttribDesc<V>(), texCoordAttribDesc<V>()};
+}
+
 struct Vertex2F
 {
 	glm::vec2 pos;

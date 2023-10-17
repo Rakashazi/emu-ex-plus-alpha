@@ -19,6 +19,7 @@
 #include <imagine/gui/View.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
+#include <imagine/gfx/Buffer.hh>
 #include <imagine/util/concepts.hh>
 #include <vector>
 
@@ -30,6 +31,7 @@ class BaseAlertView : public View
 public:
 	BaseAlertView(ViewAttachParams attach, UTF16Convertible auto &&label, TableView::ItemsDelegate items, TableView::ItemDelegate item):
 		View{attach},
+		bgVerts{attach.rendererTask, {.size = 4 * 2}},
 		text{IG_forward(label), &defaultFace()},
 		menu
 		{
@@ -56,6 +58,7 @@ public:
 
 protected:
 	WRect labelFrame;
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> bgVerts;
 	Gfx::Text text;
 	TableView menu;
 

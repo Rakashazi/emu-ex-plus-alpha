@@ -19,7 +19,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/input/Event.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
-#include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
@@ -96,6 +96,9 @@ void BasicViewController::draw(Gfx::RendererCommands &cmds)
 	view->draw(cmds);
 }
 
+ViewStack::ViewStack(ViewAttachParams attach):
+	bottomGradientVerts{attach.rendererTask, {.size = 4}} {}
+
 void ViewStack::setNavView(std::unique_ptr<NavView> navView)
 {
 	if(view.size())
@@ -146,9 +149,11 @@ void ViewStack::place()
 	top().place();
 	if(customDisplayRect.y2 > customViewRect.y2) // add a basic gradient in the OS navigation bar area
 	{
+		Gfx::IColQuad bottomGradient;
 		bottomGradient.setPos(View::displayInsetRect(View::Direction::BOTTOM, customViewRect, customDisplayRect));
 		bottomGradient.bl().color = bottomGradient.br().color = Gfx::PackedColor::format.build(0., 0., 0., 1.);
 		bottomGradient.tl().color = bottomGradient.tr().color = Gfx::PackedColor::format.build(0., 0., 0., 0.);
+		bottomGradientVerts.task().write(bottomGradientVerts, bottomGradient.v, 0);
 	}
 }
 
@@ -233,9 +238,8 @@ void ViewStack::draw(Gfx::RendererCommands &cmds)
 	{
 		using namespace Gfx;
 		cmds.set(BlendMode::ALPHA);
-		cmds.setColor(ColorName::WHITE);
 		cmds.basicEffect().disableTexture(cmds);
-		bottomGradient.draw(cmds);
+		cmds.drawQuad(bottomGradientVerts, 0);
 	}
 }
 

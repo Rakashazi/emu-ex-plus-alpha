@@ -18,6 +18,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Vec3.hh>
 
 namespace EmuEx
 {
@@ -101,10 +102,11 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id, Gfx::Colo
 	overlayId = id;
 	if(!to_underlying(id)) // turn off effect
 	{
-		spr = {};
+		spriteVerts = {};
 		img = {};
 		return;
 	}
+	spriteVerts = {r.mainTask, {.size = 4}};
 	multiplyBlend = isCrtOverlay(id);
 	auto desc = overlayDesc(id);
 	Gfx::TextureSamplerConfig samplerConf{ .mipFilter = Gfx::MipFilter::NEAREST };
@@ -114,7 +116,6 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id, Gfx::Colo
 	texConf.setWillGenerateMipmaps(true);
 	img = r.makeTexture(texConf);
 	img.write(0, desc.pixView, {}, {.makeMipmaps = true});
-	spr.set(img);
 }
 
 void VideoImageOverlay::setIntensity(float i)
@@ -122,19 +123,18 @@ void VideoImageOverlay::setIntensity(float i)
 	intensity = i;
 }
 
-void VideoImageOverlay::place(const Gfx::Sprite &disp, WRect contentRect, WSize videoPixels, Rotation r)
+void VideoImageOverlay::place(WRect contentRect, WSize videoPixels, Rotation r)
 {
-	if(!spr.hasTexture() || videoPixels.y <= 1)
+	if(!img || videoPixels.y <= 1)
 		return;
 	using namespace IG::Gfx;
-	spr.setPos(disp);
 	const float width2x = videoPixels.x * 2.f;
 	const bool is240p = videoPixels.y <= 256;
 	const float lines = is240p ? videoPixels.y : videoPixels.y * .5f;
 	const float lines2x = is240p ? videoPixels.y * 2.f : videoPixels.y;
 	const F2Size crtDots = {contentRect.xSize() / float(crtTexSize.x), contentRect.ySize() / float(crtTexSize.y * 2)};
 	const F2Size crtDotsHalf = crtDots / F2Size{2.f, 1.f};
-	spr.set([&]() -> TextureSpan
+	auto tex = [&] -> TextureSpan
 	{
 		switch(overlayId)
 		{
@@ -152,12 +152,13 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, WRect contentRect, WSize 
 				return {&img, {{}, crtDotsHalf}};
 		}
 		bug_unreachable("invalid ImageOverlayId");
-	}(), r);
+	}();
+	Sprite::write(spriteVerts, 0, {.bounds = contentRect.as<int16_t>(), .rotation = r}, tex);
 }
 
 void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness)
 {
-	if(!spr.hasTexture())
+	if(!img)
 		return;
 	using namespace IG::Gfx;
 	if(multiplyBlend)
@@ -172,7 +173,7 @@ void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness)
 		cmds.setColor({brightness.r, brightness.g, brightness.b, intensity});
 		cmds.set(BlendMode::PREMULT_ALPHA);
 	}
-	spr.draw(cmds, cmds.basicEffect());
+	cmds.basicEffect().drawSprite(cmds, spriteVerts, 0, img);
 }
 
 }

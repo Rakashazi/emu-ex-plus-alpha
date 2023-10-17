@@ -101,8 +101,10 @@ static PixelFormat effectFormat(IG::PixelFormat format, Gfx::ColorSpace colSpace
 
 VideoImageEffect::VideoImageEffect(Gfx::Renderer &r, Id effect, IG::PixelFormat fmt, Gfx::ColorSpace colSpace,
 	Gfx::TextureSamplerConfig samplerConf, WSize size):
+		spriteVerts{r.mainTask, {.size = 4}},
 		inputImgSize{size}, format{effectFormat(fmt, colSpace)}, colorSpace{colSpace}
 {
+	Gfx::Sprite::write(spriteVerts, 0, { .bounds = {{-1, -1}, {1, 1}}});
 	logMsg("compiling effect:%s", effectName(effect));
 	compile(r, effectDesc(effect), samplerConf);
 }
@@ -232,11 +234,11 @@ Gfx::Texture &VideoImageEffect::renderTarget()
 	return renderTarget_;
 }
 
-void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, const Gfx::TextureSpan span)
+void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, Gfx::TextureSpan texSpan)
 {
 	cmds.setViewport(renderTargetImgSize);
-	Gfx::Sprite spr{{{-1, -1}, {1, 1}}, {span.texturePtr, {{}, {1.f, 1.f}}}};
-	spr.draw(cmds);
+	cmds.set(texSpan);
+	cmds.drawQuad(spriteVerts, 0);
 }
 
 void VideoImageEffect::setSampler(Gfx::TextureSamplerConfig samplerConf)

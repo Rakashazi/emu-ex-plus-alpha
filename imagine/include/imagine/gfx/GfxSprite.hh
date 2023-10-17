@@ -15,18 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/GeomQuad.hh>
-#include <imagine/gfx/Texture.hh>
-#include <imagine/gfx/BasicEffect.hh>
 
 namespace IG::Gfx
 {
-
-class Texture;
-class RendererCommands;
-class Mat4;
 
 template<VertexLayout V>
 class SpriteBase : public QuadGeneric<V>
@@ -36,21 +29,13 @@ public:
 	using PosRect = typename BaseQuad::PosRect;
 	using TexCoord = typename BaseQuad::TexCoord;
 	using TexCoordRect = typename BaseQuad::TexCoordRect;
+	using RectInitParams = BaseQuad::RectInitParams;
 
 	constexpr SpriteBase():
 		BaseQuad{{.textureBounds = remapTexCoordRect<TexCoordRect>({{}, {1.f, 1.f}})}} {}
 
 	constexpr SpriteBase(PosRect pos, TextureSpan span = {}):
-		BaseQuad{{.bounds = pos, .textureBounds = remapTexCoordRect<TexCoordRect>(span.bounds)}},
-		texBinding{span.texturePtr ? span.texturePtr->binding() : TextureBinding{}} {}
-
-	constexpr void set(const Texture *tex)
-	{
-		if(tex)
-			texBinding = tex->binding();
-		else
-			texBinding = {};
-	}
+		BaseQuad{{.bounds = pos, .textureBounds = remapTexCoordRect<TexCoordRect>(span.bounds)}} {}
 
 	constexpr void set(TextureSpan span, Rotation r = Rotation::UP)
 	{
@@ -63,27 +48,27 @@ public:
 		BaseQuad::setUV(uvBounds, r);
 	}
 
-	void draw(RendererCommands &cmds) const
+	static void write(Buffer<V, BufferType::vertex> &buff, ssize_t offset, RectInitParams rectParams, TextureSpan texSpan = {})
 	{
-		if(!texBinding.name) [[unlikely]]
-			return;
-		cmds.set(texBinding);
-		BaseQuad::draw(cmds);
+		rectParams.textureBounds = texSpan ? BaseQuad::remapTexCoordRect(texSpan.bounds) : BaseQuad::unitTexCoordRect();
+		BaseQuad::write(buff, offset, rectParams);
 	}
 
-	void draw(RendererCommands &cmds, BasicEffect &prog) const
+	constexpr static void write(std::span<V> span, ssize_t offset, RectInitParams rectParams, TextureSpan texSpan = {})
 	{
-		if(!texBinding.name) [[unlikely]]
-			return;
-		prog.enableTexture(cmds, texBinding);
-		BaseQuad::draw(cmds);
+		rectParams.textureBounds = texSpan ? BaseQuad::remapTexCoordRect(texSpan.bounds) : BaseQuad::unitTexCoordRect();
+		BaseQuad::write(span, offset, rectParams);
 	}
 
-	constexpr TextureBinding textureBinding() const { return texBinding; }
-	constexpr bool hasTexture() const { return texBinding.name; }
+	void write(Buffer<V, BufferType::vertex> &buff, ssize_t offset) const
+	{
+		buff.task().write(buff, BaseQuad::v, offset * 4);
+	}
 
-private:
-	TextureBinding texBinding{};
+	constexpr void write(std::span<V> span, ssize_t offset) const
+	{
+		std::ranges::copy(BaseQuad::v, span.begin() + offset * 4);
+	}
 };
 
 using Sprite = SpriteBase<Vertex2ITexI>;

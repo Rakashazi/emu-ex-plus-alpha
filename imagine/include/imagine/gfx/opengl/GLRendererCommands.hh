@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/opengl/GLStateCache.hh>
-#include <imagine/gfx/Mat4.hh>
 #include <imagine/gfx/Vertex.hh>
 #include <imagine/thread/Semaphore.hh>
 #include "GLSLProgram.hh"
@@ -55,8 +54,7 @@ public:
 	#endif
 	void setupVertexArrayPointers(const char *v, int stride,
 		AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib);
-	void setupShaderVertexArrayPointers(const char *v, int stride, VertexLayoutFlags enabledLayout,
-		AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib);
+	void setupShaderVertexArrayPointers(int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc);
 
 protected:
 	bool setCurrentDrawable(Drawable win);
@@ -79,8 +77,7 @@ protected:
 	template<VertexLayout V>
 	void setupShaderVertexArrayPointers(const V *v)
 	{
-		setupShaderVertexArrayPointers((const char*)v, sizeof(V), vertexLayoutEnableMask<V>(),
-			texCoordAttribDesc<V>(), colorAttribDesc<V>(), posAttribDesc<V>());
+		setupShaderVertexArrayPointers(sizeof(V), vertexLayoutEnableMask<V>(), vertexLayoutDesc<V>());
 	}
 
 	void setVertexAttribs(VertexLayout auto *v)
@@ -98,6 +95,9 @@ protected:
 		setupShaderVertexArrayPointers(v);
 		#endif
 	}
+
+	template<class T>
+	void setVertexBuffer(const Buffer<T, BufferType::vertex> &verts) { bindGLArrayBuffer(verts.name()); }
 
 	RendererTask *rTask{};
 	Renderer *r{};

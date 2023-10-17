@@ -40,11 +40,12 @@ static const char *confirmDeleteProfileStr = "Delete profile from the configurat
 
 IdentInputDeviceView::IdentInputDeviceView(ViewAttachParams attach):
 	View(attach),
-	text{"Push a key on any input device enter its configuration menu", &defaultFace()}
-{}
+	text{"Push a key on any input device enter its configuration menu", &defaultFace()},
+	rectVerts{attach.rendererTask, {.size = 4}} {}
 
 void IdentInputDeviceView::place()
 {
+	Gfx::IQuad::write(rectVerts, 0, {.bounds = displayRect().as<int16_t>()});
 	text.compile(renderer(), {.maxLineSize = int(viewRect().xSize() * 0.95f)});
 }
 
@@ -82,7 +83,7 @@ void IdentInputDeviceView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.set(BlendMode::OFF);
 	basicEffect.disableTexture(cmds);
 	cmds.setColor({.4, .4, .4});
-	cmds.drawRect(displayRect());
+	cmds.drawQuad(rectVerts, 0);
 	basicEffect.enableAlphaTexture(cmds);
 	text.draw(cmds, viewRect().center(), C2DO, ColorName::WHITE);
 }

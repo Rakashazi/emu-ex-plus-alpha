@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gui/NavView.hh>
+#include <imagine/gfx/Buffer.hh>
 #include <vector>
 #include <memory>
 #include <string_view>
@@ -52,7 +53,7 @@ protected:
 class ViewStack : public ViewController
 {
 public:
-	constexpr ViewStack() = default;
+	ViewStack(ViewAttachParams);
 	void setNavView(std::unique_ptr<NavView> nav);
 	NavView *navView() const;
 	void place(WindowRect viewRect, WindowRect displayRect);
@@ -103,7 +104,7 @@ protected:
 	//ViewController *nextController{};
 	WindowRect viewRect{}, customViewRect{};
 	WindowRect displayRect{}, customDisplayRect{};
-	Gfx::IColQuad bottomGradient{};
+	Gfx::VertexBuffer<Gfx::IColQuad::Vertex> bottomGradientVerts;
 	bool showNavBackBtn = true;
 	bool showNavView_ = true;
 	bool navViewHasFocus = false;

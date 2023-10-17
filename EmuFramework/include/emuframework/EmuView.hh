@@ -19,6 +19,7 @@
 #include <imagine/gui/View.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/gfx/GfxText.hh>
+#include <imagine/gfx/GeomQuad.hh>
 
 namespace EmuEx
 {
@@ -54,6 +55,7 @@ private:
 	struct FrameTimeStatsUI
 	{
 		Gfx::Text text;
+		Gfx::VertexBuffer<Gfx::IQuad::Vertex> bgVerts;
 		WRect rect{};
 	};
 	IG_UseMemberIf(enableFrameTimeStats, FrameTimeStatsUI, frameTimeStats);

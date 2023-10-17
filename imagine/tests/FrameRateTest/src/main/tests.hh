@@ -19,6 +19,8 @@
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/gfx/SyncFence.hh>
+#include <imagine/gfx/Buffer.hh>
+#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/base/ApplicationContext.hh>
@@ -85,6 +87,7 @@ public:
 	TestFinishedDelegate onTestFinished;
 	FramePresentTime lastFramePresentTime;
 	Gfx::SyncFence presentFence{};
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> statsRectVerts;
 
 	TestFramework() {}
 	virtual ~TestFramework() {}
@@ -133,7 +136,7 @@ class DrawTest : public TestFramework
 protected:
 	int flash{true};
 	Gfx::PixmapBufferTexture texture;
-	Gfx::Sprite sprite;
+	Gfx::VertexBuffer<Gfx::Sprite::Vertex> verts;
 
 public:
 	void initTest(IG::ApplicationContext, Gfx::Renderer &, WSize pixmapSize, Gfx::TextureBufferMode) override;

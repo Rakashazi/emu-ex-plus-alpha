@@ -30,6 +30,8 @@ namespace IG
 class TextEntry
 {
 public:
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> bgVerts;
+
 	TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face);
 	void setAcceptingInput(bool on);
 	bool isAcceptingInput() const;
@@ -68,7 +70,8 @@ public:
 protected:
 	WRect cancelBtn;
 	// TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
-	IG_UseMemberIf(!Config::envIsAndroid, Gfx::Sprite, cancelSpr);
+	IG_UseMemberIf(!Config::envIsAndroid, Gfx::VertexBuffer<Gfx::Sprite::Vertex>, spriteVerts);
+	IG_UseMemberIf(!Config::envIsAndroid, Gfx::TextureSpan, cancelTex);
 	Gfx::Text message;
 	[[no_unique_address]] Input::TextField textField;
 	IG_UseMemberIf(!Config::Input::SYSTEM_COLLECTS_TEXT, TextEntry, textEntry);

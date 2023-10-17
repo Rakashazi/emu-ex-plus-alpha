@@ -18,16 +18,18 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
 {
 
+constexpr SystemLogger log;
+
 NavView::NavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face):
 	View{attach},
-	text{"", face}
-{}
+	text{"", face} {}
 
 void NavView::setOnPushLeftBtn(OnPushDelegate del)
 {
@@ -99,13 +101,13 @@ bool NavView::inputEvent(const Input::Event &e)
 				}
 				else if(moveFocusToNextView(keyEv, keyEv.isDefaultDownButton() ? CB2DO : CT2DO))
 				{
-					logMsg("nav focus moved");
+					log.info("nav focus moved");
 					selected = -1;
 					return true;
 				}
 				else
 				{
-					logMsg("nav focus not moved");
+					log.info("nav focus not moved");
 				}
 			}
 			else if(keyEv.isDefaultLeftButton())
@@ -183,32 +185,42 @@ Gfx::PackedColor NavView::separatorColor() const
 // BasicNavView
 
 BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes):
-	NavView{attach, face}
+	NavView{attach, face},
+	selectVerts{attach.rendererTask, {.size = 4}},
+	bgVerts{attach.rendererTask, {.size = 0}},
+	spriteVerts{attach.rendererTask, {.size = 8}}
 {
-	bool compiled = false;
+	Gfx::IQuad::write(selectVerts, 0, {.bounds = {{}, {1, 1}}});
 	if(backRes)
 	{
-		leftSpr.set(backRes);
+		leftTex = backRes;
 		control[0].isActive = true;
 	}
 	if(closeRes)
 	{
-		rightSpr.set(closeRes);
+		rightTex = closeRes;
 		control[2].isActive = true;
 	}
 }
 
 void BasicNavView::setBackImage(Gfx::TextureSpan img)
 {
-	leftSpr.set(img);
-	control[0].isActive = leftSpr.hasTexture();
+	leftTex = img;
+	control[0].isActive = bool(img);
+	place();
 }
 
 void BasicNavView::setBackgroundGradient(std::span<const Gfx::LGradientStopDesc> gradStops)
 {
+	if(!gradStops.size())
+	{
+		gradientStops = {};
+		bgVerts = {};
+		return;
+	}
 	gradientStops = std::make_unique<Gfx::LGradientStopDesc[]>(gradStops.size());
-	std::copy(gradStops.begin(), gradStops.end(), gradientStops.get());
-	bg.setPos({gradientStops.get(), gradStops.size()}, {});
+	std::ranges::copy(gradStops, gradientStops.get());
+	gradientStopsSize = gradStops.size();
 }
 
 void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
@@ -216,24 +228,20 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	using namespace IG::Gfx;
 	auto const &textRect = control[1].rect;
 	auto &basicEffect = cmds.basicEffect();
-	if(bg)
+	basicEffect.setModelView(cmds, Mat4::ident());
+	if(bgVerts.size())
 	{
 		cmds.set(BlendMode::OFF);
 		basicEffect.disableTexture(cmds);
-		if(viewRect().y > displayRect().y)
-		{
-			cmds.setColor(PackedColor::format.rgbaNorm(bg.mesh().v().data()->color));
-			topBg.draw(cmds);
-		}
-		cmds.setColor(ColorName::WHITE);
-		bg.draw(cmds);
+		cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, bgVerts, 0, bgVerts.size());
 	}
 	if(selected != -1 && control[selected].isActive)
 	{
 		cmds.set(BlendMode::ALPHA);
 		cmds.setColor({.2, .71, .9, 1./3.});
 		basicEffect.disableTexture(cmds);
-		cmds.drawRect(control[selected].rect);
+		basicEffect.setModelView(cmds, Mat4::makeTranslateScale(control[selected].rect));
+		cmds.drawQuad(selectVerts, 0);
 	}
 	basicEffect.enableAlphaTexture(cmds);
 	if(centerTitle)
@@ -255,24 +263,24 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 			text.draw(cmds, textRect.pos(LC2DO) + WPt{xIndent, 0}, LC2DO, ColorName::WHITE);
 		}
 	}
-	if(control[0].isActive)
+	if(control[0].isActive || control[2].isActive)
 	{
-		assumeExpr(leftSpr.hasTexture());
 		cmds.set(BlendMode::PREMULT_ALPHA);
 		cmds.setColor(ColorName::WHITE);
+		cmds.setVertexArray(spriteVerts);
+	}
+	if(control[0].isActive)
+	{
 		auto trans = Mat4::makeTranslate(control[0].rect.pos(C2DO));
 		if(rotateLeftBtn)
 			trans = trans.rollRotate(radians(-90.f));
 		basicEffect.setModelView(cmds, trans);
-		leftSpr.draw(cmds, basicEffect);
+		basicEffect.drawSprite(cmds, 0, leftTex);
 	}
 	if(control[2].isActive)
 	{
-		assumeExpr(rightSpr.hasTexture());
-		cmds.set(BlendMode::PREMULT_ALPHA);
-		cmds.setColor(ColorName::WHITE);
 		basicEffect.setModelView(cmds, Mat4::makeTranslate(control[2].rect.pos(C2DO)));
-		rightSpr.draw(cmds, basicEffect);
+		basicEffect.drawSprite(cmds, 1, rightTex);
 	}
 	basicEffect.setModelView(cmds, Mat4::ident());
 }
@@ -282,29 +290,30 @@ void BasicNavView::place()
 	using namespace IG::Gfx;
 	auto &r = renderer();
 	NavView::place();
-	if(leftSpr.hasTexture())
+	if(leftTex)
 	{
 		auto rect = control[0].rect;
 		WRect scaledRect{-rect.size() / 3, rect.size() / 3};
-		leftSpr.setPos(scaledRect);
+		Gfx::Sprite::write(spriteVerts, 0, {.bounds = scaledRect.as<int16_t>()}, leftTex);
 	}
-	if(rightSpr.hasTexture())
+	if(rightTex)
 	{
 		auto rect = control[2].rect;
 		WRect scaledRect{-rect.size() / 3, rect.size() / 3};
-		rightSpr.setPos(scaledRect);
+		Gfx::Sprite::write(spriteVerts, 1, {.bounds = scaledRect.as<int16_t>()}, rightTex);
 	}
+	bool needsTopPadding = viewRect().y > displayRect().y;
+	auto bgVertsSize = LGradient::vertexSize(gradientStopsSize, needsTopPadding ? LGradientPadMode::top : LGradientPadMode::none);
+	bgVerts.reset({.size = bgVertsSize});
+	auto bgVertsMap = bgVerts.map();
 	auto rect = displayRect().xRect() + viewRect().yRect();
-	bg.setPos({gradientStops.get(), (size_t)bg.stops()}, rect);
-	if(viewRect().y > displayRect().y)
-	{
-		topBg.setPos(displayInsetRect(Direction::TOP));
-	}
+	std::optional<int> topPadding = needsTopPadding ? displayInsetRect(Direction::TOP).y : std::optional<int>{};
+	LGradient::write(bgVertsMap, 0, std::span{gradientStops.get(), gradientStopsSize}, rect, topPadding);
 }
 
 void BasicNavView::showLeftBtn(bool show)
 {
-	control[0].isActive = show && leftSpr.hasTexture();
+	control[0].isActive = show && leftTex;
 	if(!show && selected == 0)
 	{
 		if(control[2].isActive)
@@ -316,7 +325,7 @@ void BasicNavView::showLeftBtn(bool show)
 
 void BasicNavView::showRightBtn(bool show)
 {
-	control[2].isActive = show && rightSpr.hasTexture();
+	control[2].isActive = show && rightTex;
 	if(!show && selected == 1)
 	{
 		if(control[0].isActive)

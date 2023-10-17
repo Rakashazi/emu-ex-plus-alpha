@@ -17,12 +17,7 @@
 
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Vertex.hh>
-#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/edge.h>
-#include <imagine/util/math/math.hh>
-#include <imagine/util/concepts.hh>
-#include <imagine/util/used.hh>
 #include <span>
 #include <array>
 #include <utility>
@@ -103,6 +98,7 @@ template<VertexLayout V>
 class QuadGeneric
 {
 public:
+	using Vertex = V;
 	using Pos = decltype(V::pos.x);
 	using PosRect = Rect2<Pos>;
 	using PosPoint = Point2D<Pos>;
@@ -115,6 +111,7 @@ public:
 		PosRect bounds{};
 		Color color{};
 		TexCoordRect textureBounds{};
+		Rotation rotation = Rotation::UP;
 	};
 
 	static constexpr int tlIdx = 0, blIdx = 1, trIdx = 2, brIdx = 3;
@@ -137,7 +134,7 @@ public:
 		}
 		if constexpr(requires {V::texCoord;})
 		{
-			setUV(params.textureBounds);
+			setUV(params.textureBounds, params.rotation);
 		}
 	}
 
@@ -179,23 +176,16 @@ public:
 
 	static constexpr TexCoordRect unitTexCoordRect() { return remapTexCoordRect({{}, {1.f, 1.f}}); }
 
-	void draw(RendererCommands &cmds) const
-	{
-		cmds.bindTempVertexBuffer();
-		cmds.vertexBufferData(v.data(), sizeof(v));
-		cmds.setVertexAttribs(v.data());
-		cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
-	}
-
-	static void draw(RendererCommands &cmds, RectInitParams params)
+	static void write(Buffer<V, BufferType::vertex> &buff, ssize_t offset, RectInitParams params)
 	{
 		QuadGeneric rect{params};
-		rect.draw(cmds);
+		buff.task().write(buff, rect.v, offset * 4);
 	}
 
-	static void draw(RendererCommands &cmds, PosRect bounds)
+	static constexpr void write(std::span<V> span, ssize_t offset, RectInitParams params)
 	{
-		draw(cmds, RectInitParams{.bounds = bounds});
+		QuadGeneric rect{params};
+		std::ranges::copy(rect, span.begin() + offset * 4);
 	}
 
 	constexpr auto &operator[](size_t idx) { return v[idx]; }
@@ -220,28 +210,5 @@ using IQuad = QuadGeneric<Vertex2I>;
 using ITexQuad = QuadGeneric<Vertex2ITexI>;
 using IColQuad = QuadGeneric<Vertex2IColI>;
 using IColTexQuad = QuadGeneric<Vertex2ITexIColI>;
-
-constexpr std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx)
-{
-	baseIdx *= 4;
-	return
-	{{
-		baseIdx,
-		VertexIndex(baseIdx+1),
-		VertexIndex(baseIdx+3),
-		baseIdx,
-		VertexIndex(baseIdx+3),
-		VertexIndex(baseIdx+2),
-	}};
-}
-
-inline void drawQuads(RendererCommands &cmds, Container auto &quads,
-	std::span<const std::array<VertexIndex, 6>> quadIdxs)
-{
-	cmds.bindTempVertexBuffer();
-	cmds.vertexBufferData(quads.data(), sizeof(quads[0]) * quads.size());
-	cmds.setVertexAttribs(quads[0].data());
-	cmds.drawPrimitiveElements(Primitive::TRIANGLE, {quadIdxs[0].data(), quadIdxs.size() * 6});
-}
 
 }

@@ -28,34 +28,10 @@ namespace IG::Gfx
 {
 
 GLRendererTask::GLRendererTask(ApplicationContext ctx, Renderer &r):
-	GLRendererTask{ctx, nullptr, r}
-{}
+	GLRendererTask{ctx, nullptr, r} {}
 
 GLRendererTask::GLRendererTask(ApplicationContext ctx, const char *debugLabel, Renderer &r):
-	GLTask{ctx, debugLabel}, r{&r}
-{}
-
-void GLRendererTask::initVBOs()
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(streamVBO[0]) [[likely]]
-		return;
-	logMsg("making stream VBO");
-	glGenBuffers(streamVBO.size(), streamVBO.data());
-	#endif
-}
-
-GLuint GLRendererTask::getVBO()
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	assert(streamVBO[streamVBOIdx]);
-	auto vbo = streamVBO[streamVBOIdx];
-	streamVBOIdx = (streamVBOIdx+1) % streamVBO.size();
-	return vbo;
-	#else
-	return 0;
-	#endif
-}
+	GLTask{ctx, debugLabel}, r{&r} {}
 
 void GLRendererTask::initVAO()
 {
@@ -216,8 +192,6 @@ void GLRendererTask::runInitialCommandsInGL(TaskContext ctx, DrawContextSupport 
 		debugEnabled = true;
 		support.setGLDebugOutput(true);
 	}
-	if(support.hasVBOFuncs)
-		initVBOs();
 	#ifndef CONFIG_GFX_OPENGL_ES
 	if(!support.useFixedFunctionPipeline)
 		initVAO();

@@ -18,6 +18,7 @@
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VideoImageEffect.hh>
 #include <imagine/gfx/GfxSprite.hh>
+#include <imagine/gfx/Buffer.hh>
 #include <imagine/gfx/Vec3.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/container/ArrayList.hh>
@@ -36,6 +37,7 @@ public:
 	EmuVideoLayer(EmuVideo &video, float defaultAspectRatio);
 	void place(IG::WindowRect viewRect, IG::WindowRect displayRect, EmuInputView *inputView, EmuSystem &sys);
 	void draw(Gfx::RendererCommands &cmds);
+	void setRendererTask(Gfx::RendererTask &);
 	void setFormat(EmuSystem &, IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace);
 	void setOverlay(ImageOverlayId id);
 	void setOverlayIntensity(float intensity);
@@ -62,7 +64,8 @@ private:
 	IG::StaticArrayList<VideoImageEffect*, 1> effects;
 	EmuVideo &video;
 	VideoImageEffect userEffect;
-	Gfx::Sprite disp;
+	Gfx::VertexBuffer<Gfx::Sprite::Vertex> spriteVerts;
+	Gfx::TextureSpan videoTex;
 	IG::WindowRect contentRect_;
 	Gfx::Vec3 brightness{1.f, 1.f, 1.f};
 	Gfx::Vec3 brightnessSrgb{1.f, 1.f, 1.f};

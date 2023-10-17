@@ -17,6 +17,7 @@
 
 #include <imagine/gui/View.hh>
 #include <imagine/gfx/GfxText.hh>
+#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/input/DragTracker.hh>
 #include <emuframework/EmuAppHelper.hh>
 
@@ -51,6 +52,7 @@ private:
 	WRect snapBtnRect{};
 	Input::DragTracker<DragData> dragTracker;
 	size_t snapPxIdx{};
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> rectVerts;
 };
 
 }

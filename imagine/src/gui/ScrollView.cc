@@ -20,7 +20,9 @@
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/BasicEffect.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/util/math/math.hh>
@@ -92,8 +94,8 @@ ScrollView::ScrollView(ViewAttachParams attach):
 			lastFrameTimestamp = {};
 			return false;
 		}
-	}
-{}
+	},
+	scrollBarVerts{attach.rendererTask, {.size = 4}} {}
 
 ScrollView::~ScrollView()
 {
@@ -141,10 +143,13 @@ void ScrollView::setContentSize(WSize contentSize)
 	contentIsBiggerThanView = contentSize.y > viewFrame.ySize();
 	auto scrollBarRightPadding = std::max(2, IG::makeEvenRoundedUp(window().widthMMInPixels(.4)));
 	auto scrollBarWidth = std::max(2, IG::makeEvenRoundedUp(window().widthMMInPixels(.3)));
+	WRect scrollBarRect;
 	scrollBarRect.x = (viewFrame.x2 - scrollBarRightPadding) - scrollBarWidth;
 	scrollBarRect.x2 = scrollBarRect.x + scrollBarWidth;
 	scrollBarRect.y = 0;
 	scrollBarRect.y2 = std::max(10, (int)(viewFrame.ySize() * (viewFrame.ySize() / (float)contentSize.y)));
+	scrollBarYSize = scrollBarRect.ySize();
+	Gfx::IQuad::write(scrollBarVerts, 0, {.bounds = scrollBarRect.as<int16_t>()});
 }
 
 void ScrollView::drawScrollContent(Gfx::RendererCommands &cmds)
@@ -163,9 +168,9 @@ void ScrollView::drawScrollContent(Gfx::RendererCommands &cmds)
 		}
 		else
 			cmds.setColor({.5, .5, .5});
-		scrollBarRect.setYPos(
-			IG::remap((float)offset, 0.f, float(offsetMax), (float)viewRect().y, float(viewRect().y2 - scrollBarRect.ySize())));
-		cmds.drawRect(scrollBarRect);
+		cmds.basicEffect().setModelView(cmds, Mat4::makeTranslate(WPt{0,
+			remap(offset, 0, offsetMax, viewRect().y, viewRect().y2 - scrollBarYSize)}));
+		cmds.drawQuad(scrollBarVerts, 0);
 	}
 }
 

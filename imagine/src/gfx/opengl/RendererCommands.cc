@@ -21,6 +21,7 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/TextureSampler.hh>
 #include <imagine/gfx/GeomQuad.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Viewport.hh>
@@ -98,14 +99,6 @@ void GLRendererCommands::notifyPresentComplete()
 	if(winPtr)
 	{
 		winPtr->postFrameReadyToMainThread();
-	}
-}
-
-void RendererCommands::bindTempVertexBuffer()
-{
-	if(renderer().support.hasVBOFuncs)
-	{
-		bindGLArrayBuffer(rTask->getVBO());
 	}
 }
 
@@ -429,12 +422,9 @@ void RendererCommands::restoreViewport()
 	GLRendererCommands::setViewport(winViewport);
 }
 
-void RendererCommands::vertexBufferData(const void *v, size_t size)
+void RendererCommands::vertexBufferData(ssize_t offset, const void *data, size_t size)
 {
-	if(renderer().support.hasVBOFuncs)
-	{
-		glBufferData(GL_ARRAY_BUFFER, size, v, GL_STREAM_DRAW);
-	}
+	glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
 }
 
 constexpr GLenum asGLType(AttribType type)
@@ -459,17 +449,16 @@ void RendererCommands::drawPrimitives(Primitive mode, int start, int count)
 	}, "glDrawArrays()");
 }
 
-void RendererCommands::drawPrimitiveElements(Primitive mode, std::span<const VertexIndex> idxs)
+void RendererCommands::drawPrimitiveElements(Primitive mode, VertexIndexSpan idxs)
 {
-	runGLCheckedVerbose([&]()
+	visit([&](auto &span)
 	{
-		glDrawElements((GLenum)mode, idxs.size(), asGLType(attribType<VertexIndex>), idxs.data());
-	}, "glDrawElements()");
-}
-
-void RendererCommands::drawRect(WRect bounds)
-{
-	IQuad::draw(*this, bounds.as<int16_t>());
+		GLenum type = asGLType(std::holds_alternative<std::span<const uint8_t>>(idxs) ? AttribType::UByte : AttribType::Short);
+		runGLCheckedVerbose([&]()
+		{
+			glDrawElements((GLenum)mode, span.size(), type, span.data());
+		}, "glDrawElements()");
+	}, idxs);
 }
 
 bool GLRendererCommands::hasVBOFuncs() const { return r->support.hasVBOFuncs; }
@@ -506,32 +495,31 @@ void GLRendererCommands::setupVertexArrayPointers(const char *v, int stride,
 #endif
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-void GLRendererCommands::setupShaderVertexArrayPointers(const char *v, int stride, VertexLayoutFlags enabledLayout,
-	AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib)
+void GLRendererCommands::setupShaderVertexArrayPointers(int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc layoutDesc)
 {
 	if(currentEnabledVertexLayout != enabledLayout)
 	{
-		if(textureAttrib.size)
+		if(layoutDesc.texCoord.size)
 			glEnableVertexAttribArray(VATTR_TEX_UV);
 		else
 			glDisableVertexAttribArray(VATTR_TEX_UV);
-		if(colorAttrib.size)
+		if(layoutDesc.color.size)
 			glEnableVertexAttribArray(VATTR_COLOR);
 		else
 			glDisableVertexAttribArray(VATTR_COLOR);
 		currentEnabledVertexLayout = enabledLayout;
 	}
-	glVertexAttribPointer(VATTR_POS, posAttrib.size, asGLType(posAttrib.type),
-		posAttrib.normalize, stride, v + posAttrib.offset);
-	if(textureAttrib.size)
+	glVertexAttribPointer(VATTR_POS, layoutDesc.pos.size, asGLType(layoutDesc.pos.type),
+		layoutDesc.pos.normalize, stride, (const void*)layoutDesc.pos.offset);
+	if(layoutDesc.texCoord.size)
 	{
-		glVertexAttribPointer(VATTR_TEX_UV, textureAttrib.size, asGLType(textureAttrib.type),
-			textureAttrib.normalize, stride, v + textureAttrib.offset);
+		glVertexAttribPointer(VATTR_TEX_UV, layoutDesc.texCoord.size, asGLType(layoutDesc.texCoord.type),
+			layoutDesc.texCoord.normalize, stride, (const void*)layoutDesc.texCoord.offset);
 	}
-	if(colorAttrib.size)
+	if(layoutDesc.color.size)
 	{
-		glVertexAttribPointer(VATTR_COLOR, colorAttrib.size, asGLType(colorAttrib.type),
-			colorAttrib.normalize, stride, v + colorAttrib.offset);
+		glVertexAttribPointer(VATTR_COLOR, layoutDesc.color.size, asGLType(layoutDesc.color.type),
+			layoutDesc.color.normalize, stride, (const void*)layoutDesc.color.offset);
 	}
 }
 #endif

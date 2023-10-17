@@ -48,6 +48,7 @@ private:
 	IG::WindowRect unbindB, cancelB;
 	Gfx::Text text;
 	Gfx::Text unbind, cancel;
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> rectVerts;
 	SetDelegate onSetD;
 	const Input::Device &dev;
 	const Input::Device *savedDev{};

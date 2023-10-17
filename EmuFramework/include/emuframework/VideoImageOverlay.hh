@@ -17,6 +17,7 @@
 
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/Buffer.hh>
 #include <imagine/util/enum.hh>
 #include <array>
 
@@ -40,7 +41,7 @@ public:
 	constexpr	VideoImageOverlay() = default;
 	void setEffect(Gfx::Renderer &, ImageOverlayId, Gfx::ColorSpace);
 	void setIntensity(float intensity);
-	void place(const Gfx::Sprite &, WRect contentRect, WSize videoPixels, Rotation);
+	void place(WRect contentRect, WSize videoPixels, Rotation);
 	void draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness);
 
 private:
@@ -52,7 +53,7 @@ private:
 	using Sprite = Gfx::SpriteBase<Vertex>;
 
 	Gfx::Texture img;
-	Sprite spr;
+	Gfx::VertexBuffer<Sprite::Vertex> spriteVerts;
 	float intensity = 0.75f;
 	ImageOverlayId overlayId{};
 	bool multiplyBlend{};

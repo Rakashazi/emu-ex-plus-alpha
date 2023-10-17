@@ -21,12 +21,10 @@
 #include <imagine/gfx/opengl/GLBasicEffect.hh>
 #endif
 
+#include <imagine/gfx/RendererCommands.hh>
+
 namespace IG::Gfx
 {
-
-class RendererCommands;
-class Mat4;
-class Texture;
 
 class BasicEffect : public BasicEffectImpl
 {
@@ -41,6 +39,32 @@ public:
 	void setProjection(RendererCommands &, Mat4);
 	void setModelViewProjection(RendererCommands &, Mat4 modelView, Mat4 proj);
 	void prepareDraw(RendererCommands &);
+
+	void drawSprite(RendererCommands &cmds, ssize_t startIdx, auto &&texture)
+	{
+		enableTexture(cmds, texture);
+		cmds.drawQuad(startIdx);
+	}
+
+	void drawSprites(RendererCommands &cmds, ssize_t startIdx, size_t size, auto &&texture)
+	{
+		enableTexture(cmds, texture);
+		cmds.drawQuads(startIdx, size);
+	}
+
+	template<class T>
+	void drawSprite(RendererCommands &cmds, const Buffer<T, BufferType::vertex> &verts, ssize_t startIdx, auto &&texture)
+	{
+		enableTexture(cmds, texture);
+		cmds.drawQuad(verts, startIdx);
+	}
+
+	template<class T>
+	void drawSprites(RendererCommands &cmds, const Buffer<T, BufferType::vertex> &verts, ssize_t startIdx, size_t size, auto &&texture)
+	{
+		enableTexture(cmds, texture);
+		cmds.drawQuads(verts, startIdx, size);
+	}
 };
 
 }

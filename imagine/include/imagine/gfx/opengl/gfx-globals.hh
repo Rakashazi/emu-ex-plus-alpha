@@ -21,6 +21,8 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/memory/UniqueResource.hh>
 #include <array>
+#include <variant>
+#include <span>
 
 namespace IG::Gfx
 {
@@ -28,7 +30,8 @@ namespace IG::Gfx
 class RendererTask;
 
 using TextureRef = GLuint;
-using VertexIndex = uint8_t;
+
+using VertexIndexSpan = std::variant<std::span<const uint8_t>, std::span<const uint16_t>>;
 
 static constexpr int TRIANGLE_IMPL = GL_TRIANGLES;
 static constexpr int TRIANGLE_STRIP_IMPL = GL_TRIANGLE_STRIP;

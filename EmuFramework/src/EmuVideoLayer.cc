@@ -24,6 +24,8 @@
 #include <imagine/base/Window.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Vec3.hh>
+#include <imagine/glm/common.hpp>
 #include <imagine/glm/gtc/color_space.hpp>
 #include <imagine/logger/logger.h>
 #include <algorithm>
@@ -136,7 +138,7 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 			contentRect_.setPos(displayRect.center() + WPt{landscapeOffset, 0}, C2DO);
 		}
 		contentRect_.fitIn(displayRect);
-		disp.setPos(contentRect_);
+		Gfx::Sprite::write(spriteVerts, 0, { .bounds = contentRect_.as<int16_t>(), .rotation = rotation }, videoTex);
 		logMsg("placed game rect, at pixels %d:%d:%d:%d",
 			contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2);
 	}
@@ -145,6 +147,8 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 
 void EmuVideoLayer::draw(Gfx::RendererCommands &cmds)
 {
+	if(!videoTex)
+		return;
 	using namespace IG::Gfx;
 	bool srgbOutput = srgbColorSpace();
 	auto c = srgbOutput ? brightnessSrgb : brightness;
@@ -169,11 +173,16 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds)
 	}
 	if(srgbOutput)
 		cmds.setSrgbFramebufferWrite(true);
-	disp.draw(cmds, cmds.basicEffect());
+	cmds.basicEffect().drawSprite(cmds, spriteVerts, 0, videoTex);
 	video.addFence(cmds);
 	vidImgOverlay.draw(cmds, c);
 	if(srgbOutput)
 		cmds.setSrgbFramebufferWrite(false);
+}
+
+void EmuVideoLayer::setRendererTask(Gfx::RendererTask &task)
+{
+	spriteVerts = {task, {.size = 4}};
 }
 
 void EmuVideoLayer::setFormat(EmuSystem &sys, IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace colorSpace)
@@ -210,7 +219,7 @@ void EmuVideoLayer::setOverlayIntensity(float intensity)
 
 void EmuVideoLayer::placeOverlay()
 {
-	vidImgOverlay.place(disp, contentRect(), video.size(), rotation);
+	vidImgOverlay.place(contentRect(), video.size(), rotation);
 }
 
 void EmuVideoLayer::setEffectFormat(IG::PixelFormat fmt)
@@ -268,7 +277,7 @@ void EmuVideoLayer::onVideoFormatChanged(IG::PixelFormat effectFmt)
 void EmuVideoLayer::setRotation(IG::Rotation r)
 {
 	rotation = r;
-	disp.setUVBounds(disp.unitTexCoordRect(), r);
+	Gfx::Sprite::write(spriteVerts, 0, {.bounds = contentRect_.as<int16_t>(), .rotation = rotation}, videoTex);
 	placeOverlay();
 }
 
@@ -333,12 +342,12 @@ void EmuVideoLayer::updateSprite()
 {
 	if(effects.size())
 	{
-		disp.set(effects.back()->renderTarget(), rotation);
+		videoTex = effects.back()->renderTarget();
 		video.setSampler(Gfx::SamplerConfigs::noLinearNoMipClamp);
 	}
 	else
 	{
-		disp.set(video.image(), rotation);
+		videoTex = video.image();
 		video.setSampler(samplerConfig());
 	}
 }

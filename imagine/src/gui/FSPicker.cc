@@ -37,6 +37,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 	FilterFunc filter, Mode mode, Gfx::GlyphTextureSet *face_):
 	View{attach},
 	filter{filter},
+	controller{attach},
 	msgText{face_ ? face_ : &defaultFace()},
 	mode_{mode}
 {

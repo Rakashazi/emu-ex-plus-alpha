@@ -19,6 +19,7 @@
 #include <imagine/gui/ViewManager.hh>
 #include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/input/Event.hh>
 #include <imagine/logger/logger.h>
@@ -56,12 +57,14 @@ void BaseAlertView::place()
 			{xSize, labelYSize + menuYSize}, C2DO);
 
 	labelFrame = {{viewFrame.x, viewFrame.y}, {viewFrame.x2, viewFrame.y + labelYSize}};
+	IQuad::write(bgVerts, 0, {.bounds = labelFrame.as<int16_t>()});
 
 	WRect menuViewFrame;
 	menuViewFrame.setPosRel({viewFrame.x, viewFrame.y + (int)labelYSize},
 			{viewFrame.xSize(), menuYSize}, LT2DO);
 	menu.setViewRect(menuViewFrame);
 	menu.place();
+	IQuad::write(bgVerts, 1, {.bounds = menu.viewRect().as<int16_t>()});
 }
 
 bool BaseAlertView::inputEvent(const Input::Event &e)
@@ -86,10 +89,11 @@ void BaseAlertView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	auto &basicEffect = cmds.basicEffect();
 	cmds.set(BlendMode::ALPHA);
 	basicEffect.disableTexture(cmds);
+	cmds.setVertexArray(bgVerts);
 	cmds.setColor({.4, .4, .4, .8});
-	cmds.drawRect(labelFrame);
+	cmds.drawQuad(0);
 	cmds.setColor({.1, .1, .1, .6});
-	cmds.drawRect(menu.viewRect());
+	cmds.drawQuad(1);
 	basicEffect.enableAlphaTexture(cmds);
 	text.draw(cmds, {labelFrame.xPos(C2DO), labelFrame.yPos(C2DO)}, C2DO, ColorName::WHITE);
 	menu.draw(cmds);

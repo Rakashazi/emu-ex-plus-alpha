@@ -17,8 +17,8 @@
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/GeomQuad.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ctype.hh>
 #include <imagine/logger/logger.h>
@@ -27,6 +27,22 @@
 
 namespace IG::Gfx
 {
+
+Text::Text(const Text &t) noexcept
+{
+	*this = t;
+}
+
+Text &Text::operator=(const Text &t) noexcept
+{
+	textStr = t.textStr;
+	face_ = t.face_;
+	sizeBeforeLineSpans = t.sizeBeforeLineSpans;
+	xSize = t.xSize;
+	ySize = t.ySize;
+	metrics = t.metrics;
+	return *this;
+}
 
 static int xSizeOfChar(Renderer &r, GlyphTextureSet *face_, int c, int spaceX)
 {
@@ -50,6 +66,33 @@ void Text::makeGlyphs(Renderer &r)
 	{
 		face_->glyphEntry(r, c);
 	}
+}
+
+auto writeSpan(Renderer &r, auto quadsIt, WPt pos, std::u16string_view strView, GlyphTextureSet *face_, int spaceSize)
+{
+	for(auto c : strView)
+	{
+		if(c == '\n')
+		{
+			continue;
+		}
+		auto gly = face_->glyphEntry(r, c, false);
+		if(!gly)
+		{
+			//logMsg("no glyph for %X", c);
+			pos.x += spaceSize;
+			continue;
+		}
+		auto &[glyph, metrics] = *gly;
+		auto drawPos = pos.as<int16_t>() + metrics.offset.negateY();
+		pos.x += metrics.xAdvance;
+		ITexQuad quad
+		{
+			{.bounds = {drawPos, (drawPos + metrics.size)}, .textureBounds = ITexQuad::unitTexCoordRect()}
+		};
+		quadsIt = std::ranges::copy(quad.v, quadsIt).out;
+	}
+	return quadsIt;
 }
 
 bool Text::compile(Renderer &r, TextLayoutConfig conf)
@@ -135,36 +178,65 @@ bool Text::compile(Renderer &r, TextLayoutConfig conf)
 	maxXLineSize = std::max(xLineSize, maxXLineSize);
 	xSize = maxXLineSize;
 	ySize = nominalHeight * lines;
+
+	// write vertex data
+	WPt pos{0, nominalHeight - yLineStart};
+	verts.setTask(r.task());
+	verts.reset({.size = size_t(charIdx) * 4});
+	auto mappedVerts = verts.map();
+	if(lines > 1)
+	{
+		auto s = textStr.data();
+		auto spansPtr = &textStr[sizeBeforeLineSpans];
+		auto vertsIt = mappedVerts.begin();
+		auto startingXPos = [&](auto xLineSize)
+		{
+			switch(conf.alignment)
+			{
+				case TextAlignment::left: return 0;
+				case TextAlignment::center: return (xSize - xLineSize) / 2;
+				case TextAlignment::right: return xSize - xLineSize;
+			}
+			std::unreachable();
+		};
+		for(auto i : iotaCount(lines))
+		{
+			auto [xLineSize, charsToDraw] = LineSpan::decode({spansPtr, LineSpan::encodedChar16Size});
+			spansPtr += LineSpan::encodedChar16Size;
+			pos.x = startingXPos(xLineSize);
+			//logMsg("line:%d chars:%d ", i, charsToDraw);
+			vertsIt = writeSpan(r, vertsIt, pos, std::u16string_view{s, charsToDraw}, face_, spaceSize);
+			s += charsToDraw;
+			pos.y += nominalHeight;
+		}
+	}
+	else
+	{
+		writeSpan(r, mappedVerts.begin(), pos, std::u16string_view{textStr}, face_, spaceSize);
+	}
 	return true;
 }
 
-static void drawSpan(RendererCommands &cmds, WPt pos,
-	std::u16string_view strView, auto &vArr, GlyphTextureSet *face_, int spaceSize)
+static int drawSpan(RendererCommands &cmds, std::u16string_view strView, int spriteOffset, GlyphTextureSet *face_)
 {
+	auto &renderer = cmds.renderer();
+	auto &basicEffect = cmds.basicEffect();
 	for(auto c : strView)
 	{
 		if(c == '\n')
 		{
 			continue;
 		}
-		auto gly = face_->glyphEntry(cmds.renderer(), c, false);
+		auto gly = face_->glyphEntry(renderer, c, false);
 		if(!gly)
 		{
 			//logMsg("no glyph for %X", c);
-			pos.x += spaceSize;
 			continue;
 		}
 		auto &[glyph, metrics] = *gly;
-		auto drawPos = pos.as<int16_t>() + metrics.offset.negateY();
-		pos.x += metrics.xAdvance;
-		vArr =
-		{
-			{.bounds = {drawPos, (drawPos + metrics.size)}, .textureBounds = vArr.unitTexCoordRect()}
-		};
-		cmds.vertexBufferData(vArr.data(), sizeof(vArr));
-		cmds.setTexture(glyph);
-		cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
+		basicEffect.drawSprite(cmds, spriteOffset++, glyph);
 	}
+	return spriteOffset;
 }
 
 void Text::draw(RendererCommands &cmds, WPt pos, _2DOrigin o, Color c) const
@@ -178,44 +250,32 @@ void Text::draw(RendererCommands &cmds, WPt pos, _2DOrigin o) const
 	if(!hasText()) [[unlikely]]
 		return;
 	cmds.set(BlendMode::ALPHA);
-	cmds.bindTempVertexBuffer();
-	ITexQuad vArr;
-	cmds.setVertexAttribs(vArr.data());
 	pos.x = o.adjustX(pos.x, xSize, LT2DO);
 	if(o.onBottom())
 		pos.y -= ySize;
 	else if(o.onYCenter())
 		pos.y -= ySize / 2;
 	//logMsg("drawing text @ %d,%d, size:%d,%d", xPos, yPos, xSize, ySize);
-	auto [nominalHeight, spaceSize, yLineStart] = metrics;
-	pos.y += nominalHeight - yLineStart;
-	auto xOrig = pos.x;
-	auto startingXPos =
-		[&](auto xLineSize)
-		{
-			return LT2DO.adjustX(xOrig, xSize - xLineSize, o);
-		};
+	cmds.basicEffect().setModelView(cmds, Mat4::makeTranslate({pos.x, pos.y, 0}));
+	cmds.setVertexArray(verts);
 	auto lines = currentLines();
 	if(lines > 1)
 	{
 		auto s = textStr.data();
 		auto spansPtr = &textStr[sizeBeforeLineSpans];
+		int spriteOffset = 0;
 		for(auto i : iotaCount(lines))
 		{
 			auto [xLineSize, charsToDraw] = LineSpan::decode({spansPtr, LineSpan::encodedChar16Size});
 			spansPtr += LineSpan::encodedChar16Size;
-			pos.x = startingXPos(xLineSize);
 			//logMsg("line:%d chars:%d ", i, charsToDraw);
-			drawSpan(cmds, pos, std::u16string_view{s, charsToDraw}, vArr, face_, spaceSize);
+			spriteOffset = drawSpan(cmds, std::u16string_view{s, charsToDraw}, spriteOffset, face_);
 			s += charsToDraw;
-			pos.y += nominalHeight;
 		}
 	}
 	else
 	{
-		auto xLineSize = xSize;
-		pos.x = startingXPos(xLineSize);
-		drawSpan(cmds, pos, std::u16string_view{textStr}, vArr, face_, spaceSize);
+		drawSpan(cmds, std::u16string_view{textStr}, 0, face_);
 	}
 }
 

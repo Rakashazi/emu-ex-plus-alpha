@@ -55,7 +55,7 @@ void CreditsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 
 void CreditsView::place()
 {
-	text.compile(renderer());
+	text.compile(renderer(), {.alignment = Gfx::TextAlignment::center});
 }
 
 bool CreditsView::inputEvent(const Input::Event &e)

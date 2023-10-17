@@ -23,6 +23,7 @@
 #endif
 
 #include <imagine/gfx/SyncFence.hh>
+#include <imagine/util/ranges.hh>
 #include <span>
 #include <chrono>
 
@@ -33,12 +34,6 @@ class Viewport;
 
 namespace IG::Gfx
 {
-
-class Renderer;
-class Program;
-class Texture;
-class Mat4;
-class BasicEffect;
 
 enum class Primitive
 {
@@ -101,8 +96,9 @@ public:
 	void setTextureSampler(const TextureSampler &sampler);
 	void setViewport(Viewport v);
 	void restoreViewport();
-	void vertexBufferData(const void *v, size_t size);
-	void bindTempVertexBuffer();
+	void vertexBufferData(ssize_t offset, const void *data, size_t size);
+	template<class T>
+	void setVertexBuffer(const Buffer<T, BufferType::vertex> &verts) { RendererCommandsImpl::setVertexBuffer(verts); }
 	void flush();
 
 	// shaders
@@ -121,6 +117,7 @@ public:
 	BasicEffect &basicEffect();
 
 	// synchronization
+
 	SyncFence addSyncFence();
 	void deleteSyncFence(SyncFence fence);
 	void clientWaitSync(SyncFence fence, int flags = 0, std::chrono::nanoseconds timeoutNS = SyncFence::IGNORE_TIMEOUT);
@@ -129,11 +126,56 @@ public:
 
 	// rendering
 
-	void setVertexAttribs(VertexLayout auto *v) { RendererCommandsImpl::setVertexAttribs(v); }
 	void clear();
 	void drawPrimitives(Primitive mode, int start, int count);
-	void drawPrimitiveElements(Primitive, std::span<const VertexIndex>);
-	void drawRect(WRect bounds);
+	void drawPrimitiveElements(Primitive, VertexIndexSpan);
+	void setVertexAttribs(VertexLayout auto *v) { RendererCommandsImpl::setVertexAttribs(v); }
+
+	template<class T>
+	void setVertexArray(const Buffer<T, BufferType::vertex> &verts) { setVertexBuffer(verts); setVertexAttribs((T*){}); }
+
+	template<class T>
+	void drawPrimitives(Primitive mode, const Buffer<T, BufferType::vertex> &verts, int start, int count)
+	{
+		setVertexArray(verts);
+		drawPrimitives(mode, start, count);
+	}
+
+	void drawQuad(ssize_t startIdx)
+	{
+		drawPrimitives(Primitive::TRIANGLE_STRIP, startIdx * 4, 4);
+	}
+
+	template<class T>
+	void drawQuad(const Buffer<T, BufferType::vertex> &verts, ssize_t startIdx)
+	{
+		setVertexArray(verts);
+		drawQuad(startIdx);
+	}
+
+	template<class Index>
+	void drawQuads(ssize_t startIdx, size_t size, std::span<const Index> indices)
+	{
+		drawPrimitiveElements(Primitive::TRIANGLE, indices);
+	}
+
+	void drawQuads(ssize_t startIdx, size_t size)
+	{
+		using Index = uint8_t;
+		std::array<Index, 6> indexArrays[size];
+		for(auto i : iotaCount(size))
+		{
+			indexArrays[i] = makeRectIndexArray(startIdx + i);
+		}
+		drawQuads(startIdx, size, std::span<const Index>{indexArrays[0].data(), size * 6});
+	}
+
+	template<class T>
+	void drawQuads(const Buffer<T, BufferType::vertex> &verts, ssize_t startIdx, size_t size)
+	{
+		setVertexArray(verts);
+		drawQuads(startIdx, size);
+	}
 };
 
 }

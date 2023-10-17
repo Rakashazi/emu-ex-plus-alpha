@@ -19,6 +19,7 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GfxLGradient.hh>
 #include <imagine/gfx/GfxSprite.hh>
+#include <imagine/gfx/Buffer.hh>
 #include <imagine/gui/View.hh>
 #include <memory>
 #include <array>
@@ -78,9 +79,11 @@ public:
 
 protected:
 	std::unique_ptr<Gfx::LGradientStopDesc[]> gradientStops;
-	Gfx::Sprite leftSpr, rightSpr;
-	Gfx::LGradient bg;
-	Gfx::IQuad topBg{};
+	size_t gradientStopsSize{};
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> selectVerts;
+	Gfx::VertexBuffer<Gfx::IColQuad::Vertex> bgVerts;
+	Gfx::VertexBuffer<Gfx::Sprite::Vertex> spriteVerts;
+	Gfx::TextureSpan leftTex, rightTex;
 	bool centerTitle = true;
 	bool rotateLeftBtn{};
 };

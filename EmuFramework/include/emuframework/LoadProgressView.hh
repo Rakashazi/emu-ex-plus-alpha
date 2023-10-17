@@ -42,8 +42,11 @@ private:
 	MessagePortType msgPort{"LoadProgressView"};
 	EmuApp::CreateSystemCompleteDelegate onComplete;
 	Gfx::Text text;
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> progessBarVerts;
 	Input::Event originalEvent;
-	int pos{}, max{};
+	int pos{}, max{1};
+
+	void updateProgressRect();
 };
 
 }

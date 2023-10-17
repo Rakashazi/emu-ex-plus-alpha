@@ -50,7 +50,7 @@ class MainMenuView;
 class EmuMenuViewStack : public ViewStack
 {
 public:
-	EmuMenuViewStack(EmuApp &app): emuAppPtr{&app} {}
+	EmuMenuViewStack(ViewAttachParams, EmuApp &);
 	bool inputEvent(const Input::Event &) final;
 	constexpr EmuApp &app() { return *emuAppPtr; }
 

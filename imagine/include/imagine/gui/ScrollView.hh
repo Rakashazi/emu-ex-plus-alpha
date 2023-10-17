@@ -18,6 +18,8 @@
 #include <imagine/config/defs.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/input/VelocityTracker.hh>
+#include <imagine/gfx/Buffer.hh>
+#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/gui/View.hh>
 
@@ -44,20 +46,21 @@ protected:
 	using VelocityTrackerType = Input::VelocityTracker<float, 1>;
 
 	OnFrameDelegate animate;
-	Input::SingleDragTracker<> dragTracker{};
-	VelocityTrackerType velTracker{}; // tracks y velocity as pixels/sec
-	WRect scrollBarRect{};
-	SteadyClockTimePoint lastFrameTimestamp{};
-	float scrollVel = 0;
-	float scrollAccel = 0;
-	float offsetAsDec = 0;
-	float overScrollVelScale = 0;
-	int offset = 0;
-	int offsetMax = 0;
-	int onDragOffset = 0;
-	bool contentIsBiggerThanView = false;
-	bool scrollWholeArea_ = false;
-	bool allowScrollWholeArea_ = false;
+	Input::SingleDragTracker<> dragTracker;
+	VelocityTrackerType velTracker; // tracks y velocity as pixels/sec
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> scrollBarVerts;
+	SteadyClockTimePoint lastFrameTimestamp;
+	float scrollVel{};
+	float scrollAccel{};
+	float offsetAsDec{};
+	float overScrollVelScale{};
+	int offset{};
+	int offsetMax{};
+	int onDragOffset{};
+	int scrollBarYSize{};
+	bool contentIsBiggerThanView{};
+	bool scrollWholeArea_{};
+	bool allowScrollWholeArea_{};
 
 	void setContentSize(WSize size);
 	void drawScrollContent(Gfx::RendererCommands &cmds);

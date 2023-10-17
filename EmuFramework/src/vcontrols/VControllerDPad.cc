@@ -29,9 +29,10 @@ namespace EmuEx
 
 constexpr SystemLogger log{"VControllerGamepad"};
 
-void VControllerDPad::setImage(Gfx::TextureSpan img)
+void VControllerDPad::setImage(Gfx::RendererTask &task, Gfx::TextureSpan img)
 {
-	spr.set(img);
+	spriteVerts = {task, {.size = 4 * 2}};
+	tex = img;
 }
 
 void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
@@ -52,8 +53,7 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
 		}
 	mapImg = r.makeTexture({mapPix.desc(), View::imageSamplerConfig});
 	mapImg.write(0, mapPix, {});
-	mapSpr.set(mapImg);
-	mapSpr.setPos(padArea);
+	updateSprite();
 }
 
 static bool isValidDeadzone(int val) { return val >= 100 && val <= 300; }
@@ -100,14 +100,10 @@ void VControllerDPad::setPos(WPt pos, WRect viewBounds)
 {
 	padBaseArea.setPos(pos, C2DO);
 	padBaseArea.fitIn(viewBounds);
-	spr.setPos(padBaseArea);
 	//log.info("set dpad pos {}:{}:{}:{}, {}:{}:{}:{}", padBaseArea.x, padBaseArea.y, padBaseArea.x2, padBaseArea.y2,
 	//	(double)padBase.x, (double)padBase.y, (double)padBase.x2, (double)padBase.y2);
 	padArea.setPos(padBaseArea.pos(C2DO), C2DO);
-	if(config.visualizeBounds)
-	{
-		mapSpr.setPos(padArea);
-	}
+	updateSprite();
 }
 
 void VControllerDPad::setShowBounds(Gfx::Renderer &r, bool on)
@@ -141,16 +137,14 @@ void VControllerDPad::transposeKeysForPlayer(const EmuApp &app, int player)
 
 void VControllerDPad::drawButtons(Gfx::RendererCommands &__restrict__ cmds) const
 {
-	cmds.basicEffect().enableTexture(cmds);
-	spr.draw(cmds);
+	cmds.basicEffect().drawSprite(cmds, spriteVerts, 0, tex);
 }
 
 void VControllerDPad::drawBounds(Gfx::RendererCommands &__restrict__ cmds) const
 {
-	cmds.basicEffect().enableTexture(cmds);
 	if(!config.visualizeBounds)
 		return;
-	mapSpr.draw(cmds);
+	cmds.basicEffect().drawSprite(cmds, spriteVerts, 1, mapImg);
 }
 
 std::array<KeyInfo, 2> VControllerDPad::getInput(WPt c) const
@@ -190,8 +184,16 @@ void VControllerDPad::Config::validate(const EmuApp &app)
 		deadzoneMM100x = defaultDPadDeadzoneMM100x;
 }
 
-void VControllerDPad::setAlpha(float alpha)
+void VControllerDPad::setAlpha(float a)
 {
+	alpha = a;
+	updateSprite();
+}
+
+void VControllerDPad::updateSprite()
+{
+	Gfx::LitSprite spr{padBaseArea.as<int16_t>(), tex};
+	Gfx::LitSprite mapSpr{padArea.as<int16_t>(), mapImg};
 	std::array<Gfx::Color, 4> colors;
 	colors.fill({alpha});
 	if(isHighlighted[0] || isHighlighted[3])
@@ -204,6 +206,10 @@ void VControllerDPad::setAlpha(float alpha)
 		colors[2] = colors[2].multiplyRGB(2.f);
 	for(auto &&[i, vtx] : enumerate(spr)) { vtx.color = colors[i]; }
 	for(auto &&[i, vtx] : enumerate(mapSpr)) { vtx.color = colors[i]; }
+	auto map = spriteVerts.map();
+	spr.write(map, 0);
+	if(config.visualizeBounds)
+		mapSpr.write(map, 1);
 }
 
 }

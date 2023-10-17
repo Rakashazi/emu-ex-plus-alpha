@@ -41,7 +41,9 @@ public:
 	using SelectElementDelegate = DelegateFunc<void (const Input::Event &, int i, MenuItem &)>;
 
 	TableView(UTF16Convertible auto &&name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
-		ScrollView{attach}, items{items}, item{item}, nameStr{IG_forward(name)} {}
+		ScrollView{attach}, items{items}, item{item}, nameStr{IG_forward(name)},
+		selectVerts{attach.rendererTask, {.size = 4}},
+		separatorVerts{attach.rendererTask, {.size = 4 * maxSeparators, .usageHint = Gfx::BufferUsageHint::streaming}} {}
 
 	TableView(ViewAttachParams attach, Container auto &item):
 		TableView{UTF16String{}, attach, item} {}
@@ -55,7 +57,9 @@ public:
 			[&item](const TableView &, size_t idx) -> MenuItem& { return indirect(std::data(item)[idx]); }
 		} {}
 
-	TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item);
+	TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
+		TableView{UTF16String{}, attach, items, item} {}
+
 	void prepareDraw() override;
 	void draw(Gfx::RendererCommands &__restrict__) override;
 	void place() override;
@@ -79,10 +83,13 @@ public:
 	void setItemsDelegate(ItemsDelegate items_ = [](const TableView &){ return 0; }) { items = items_; }
 
 protected:
+	static constexpr size_t maxSeparators = 30;
 	ItemsDelegate items{};
 	ItemDelegate item{};
 	SelectElementDelegate selectElementDel{};
 	UTF16String nameStr{};
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> selectVerts;
+	Gfx::VertexBuffer<Gfx::IColQuad::Vertex> separatorVerts;
 	int yCellSize = 0;
 	int selected = -1;
 	int visibleCells = 0;

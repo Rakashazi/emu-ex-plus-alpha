@@ -47,6 +47,7 @@ public:
 
 private:
 	Gfx::Text text;
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> rectVerts;
 };
 
 class InputManagerView final: public TableView, public EmuAppHelper<InputManagerView>

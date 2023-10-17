@@ -18,6 +18,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/Mat4.hh>
 
 namespace IG::Gfx
 {

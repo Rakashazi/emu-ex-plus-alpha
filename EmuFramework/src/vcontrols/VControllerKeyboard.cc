@@ -18,24 +18,26 @@
 #include <emuframework/EmuApp.hh>
 #include <imagine/util/math/space.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
-void VControllerKeyboard::updateImg(Gfx::Renderer &r)
+void VControllerKeyboard::updateImg()
 {
-	if(mode_ == VControllerKbMode::LAYOUT_2)
-		spr.setUVBounds(spr.remapTexCoordRect({{0., .5}, {texXEnd, 1.}}));
-	else
-		spr.setUVBounds(spr.remapTexCoordRect({{}, {texXEnd, .5}}));
+	kbTex.bounds = mode_ == VControllerKbMode::LAYOUT_2 ? FRect{{0., .5}, {texXEnd, 1.}} : FRect{{}, {texXEnd, .5}};
+	Gfx::Sprite::write(spriteVerts, 0, {.bounds = bound.as<int16_t>()}, kbTex);
 }
 
-void VControllerKeyboard::setImg(Gfx::Renderer &r, Gfx::TextureSpan img)
+void VControllerKeyboard::setImg(Gfx::RendererTask &task, Gfx::TextureSpan img)
 {
-	spr.set(img);
+	spriteVerts = {task, {.size = 4}};
+	rectVerts = {task, {.size = 4}};
+	Gfx::IQuad::write(rectVerts, 0, {.bounds = {{}, {1, 1}}});
+	kbTex = img;
 	texXEnd = img.bounds.x2;
-	updateImg(r);
+	updateImg();
 }
 
 void VControllerKeyboard::place(int btnSize, int yOffset, WRect viewBounds)
@@ -49,17 +51,18 @@ void VControllerKeyboard::place(int btnSize, int yOffset, WRect viewBounds)
 	}
 	WRect bounds {{}, {xSize, ySize}};
 	bounds.setPos({viewBounds.xCenter(), viewBounds.y2 - yOffset}, CB2DO);
-	spr.setPos(bounds);
 	bound = bounds;
 	keyXSize = std::max(bound.xSize() / VKEY_COLS, 1);
 	keyYSize = std::max(bound.ySize() / KEY_ROWS, 1);
 	logMsg("key size %dx%d", keyXSize, keyYSize);
+	updateImg();
 }
 
 void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds) const
 {
+	using namespace IG::Gfx;
 	auto &basicEffect = cmds.basicEffect();
-	spr.draw(cmds, basicEffect);
+	basicEffect.drawSprite(cmds, spriteVerts, 0, kbTex);
 	constexpr auto selectCol = Gfx::Color{.2, .71, .9, 1./3.}.multiplyAlpha();
 	constexpr auto shiftCol = Gfx::Color{.2, .71, .9, .5}.multiplyAlpha();
 	if(selected.x != -1)
@@ -67,22 +70,24 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds) const
 		cmds.setColor(selectCol);
 		basicEffect.disableTexture(cmds);
 		IG::WindowRect rect{};
-		rect.x = bound.x + (selected.x * keyXSize);
-		rect.x2 = bound.x + ((selected.x2 + 1) * keyXSize);
-		rect.y = bound.y + (selected.y * keyYSize);
+		rect.x = bound.x + 1 + (selected.x * keyXSize);
+		rect.x2 = bound.x + 1 + ((selected.x2 + 1) * keyXSize);
+		rect.y = bound.y + 1 + (selected.y * keyYSize);
 		rect.y2 = rect.y + keyYSize;
-		cmds.drawRect(rect);
+		basicEffect.setModelView(cmds, Mat4::makeTranslateScale(rect));
+		cmds.drawQuad(rectVerts, 0);
 	}
 	if(shiftIsActive() && mode_ == VControllerKbMode::LAYOUT_1)
 	{
 		cmds.setColor(shiftCol);
 		basicEffect.disableTexture(cmds);
 		IG::WindowRect rect{};
-		rect.x = bound.x + (shiftRect.x * keyXSize);
-		rect.x2 = bound.x + ((shiftRect.x2 + 1) * keyXSize);
-		rect.y = bound.y + (shiftRect.y * keyYSize);
+		rect.x = bound.x + 1 + (shiftRect.x * keyXSize);
+		rect.x2 = bound.x + 1 + ((shiftRect.x2 + 1) * keyXSize);
+		rect.y = bound.y + 1 + (shiftRect.y * keyYSize);
 		rect.y2 = rect.y + keyYSize;
-		cmds.drawRect(rect);
+		basicEffect.setModelView(cmds, Mat4::makeTranslateScale(rect));
+		cmds.drawQuad(rectVerts, 0);
 	}
 }
 
@@ -247,7 +252,7 @@ KeyInfo VControllerKeyboard::currentKey() const
 void VControllerKeyboard::setMode(EmuSystem &sys, Gfx::Renderer &r, VControllerKbMode mode)
 {
 	mode_ = mode;
-	updateImg(r);
+	updateImg();
 	updateKeyboardMapping(sys);
 }
 

@@ -17,6 +17,8 @@
 
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/Program.hh>
+#include <imagine/gfx/Buffer.hh>
+#include <imagine/gfx/GfxSprite.hh>
 #include <imagine/util/enum.hh>
 #include <optional>
 
@@ -52,11 +54,12 @@ public:
 	void setSampler(Gfx::TextureSamplerConfig);
 	Gfx::Program &program();
 	Gfx::Texture &renderTarget();
-	void drawRenderTarget(Gfx::RendererCommands &, const Gfx::TextureSpan);
+	void drawRenderTarget(Gfx::RendererCommands &, Gfx::TextureSpan);
 	constexpr IG::PixelFormat imageFormat() const { return format; }
 	operator bool() const { return (bool)prog; }
 
 private:
+	Gfx::VertexBuffer<Gfx::Sprite::Vertex> spriteVerts;
 	Gfx::Texture renderTarget_;
 	Gfx::Program prog;
 	int srcTexelDeltaU{};

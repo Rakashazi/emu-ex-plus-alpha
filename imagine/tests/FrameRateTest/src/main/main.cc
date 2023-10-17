@@ -20,6 +20,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Screen.hh>

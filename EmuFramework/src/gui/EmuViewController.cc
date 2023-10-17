@@ -42,7 +42,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	emuView{viewAttach, &videoLayer, sys},
 	inputView{viewAttach, vCtrl, videoLayer},
 	popup{viewAttach},
-	viewStack{app()}
+	viewStack{viewAttach, app()}
 {
 	inputView.setController(this);
 	auto &win = viewAttach.window;
@@ -89,6 +89,9 @@ static bool shouldExitFromViewRootWithoutPrompt(const Input::KeyEvent &e)
 {
 	return e.map() == Input::Map::SYSTEM && (Config::envIsAndroid || Config::envIsLinux);
 }
+
+EmuMenuViewStack::EmuMenuViewStack(ViewAttachParams attach, EmuApp &app):
+	ViewStack(attach), emuAppPtr{&app} {}
 
 bool EmuMenuViewStack::inputEvent(const Input::Event &e)
 {

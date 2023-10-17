@@ -21,6 +21,7 @@
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/Buffer.hh>
 #include <imagine/util/variant.hh>
 #include <vector>
 #include <span>
@@ -86,7 +87,7 @@ public:
 	constexpr VControllerDPad(std::span<const KeyInfo, 4> keys):
 		config{.keys{keys[0], keys[1], keys[2], keys[3]}} {}
 	constexpr VControllerDPad(const Config &config): config{config} {}
-	void setImage(Gfx::TextureSpan);
+	void setImage(Gfx::RendererTask &, Gfx::TextureSpan);
 	void drawButtons(Gfx::RendererCommands &__restrict__) const;
 	void drawBounds(Gfx::RendererCommands &__restrict__) const;
 	void setShowBounds(Gfx::Renderer &r, bool on);
@@ -114,12 +115,15 @@ public:
 	}
 
 protected:
-	Gfx::LitSprite spr;
-	Gfx::LitSprite mapSpr;
+	Gfx::VertexBuffer<Gfx::LitSprite::Vertex> spriteVerts;
+	Gfx::TextureSpan tex;
 	Gfx::Texture mapImg;
 	WRect padBaseArea, padArea;
 	int deadzonePixels{};
 	int btnSizePixels{};
+	float alpha{};
+
+	void updateSprite();
 public:
 	Config config;
 	bool isHighlighted[4]{};
@@ -143,8 +147,8 @@ public:
 	using KbMap = std::array<KeyInfo, KEY_ROWS * KEY_COLS>;
 
 	constexpr VControllerKeyboard() = default;
-	void updateImg(Gfx::Renderer &r);
-	void setImg(Gfx::Renderer &r, Gfx::TextureSpan img);
+	void updateImg();
+	void setImg(Gfx::RendererTask &, Gfx::TextureSpan);
 	void place(int btnSize, int yOffset, WRect viewBounds);
 	void draw(Gfx::RendererCommands &__restrict__) const;
 	int getInput(WPt c) const;
@@ -166,7 +170,9 @@ public:
 	bool shiftIsActive() const;
 
 protected:
-	Gfx::Sprite spr;
+	Gfx::VertexBuffer<Gfx::Sprite::Vertex> spriteVerts;
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> rectVerts;
+	Gfx::TextureSpan kbTex;
 	WRect bound;
 	int keyXSize{}, keyYSize{};
 	WRect selected{{-1, -1}, {-1, -1}};
@@ -182,10 +188,9 @@ public:
 	constexpr VControllerButton(KeyInfo key): key{key} {}
 	void setPos(WPt pos, WRect viewBounds, _2DOrigin = C2DO);
 	void setSize(WSize size, WSize extendedSize = {});
-	void setImage(Gfx::TextureSpan, int aR = 1);
+	void setImage(Gfx::RendererTask &, Gfx::TextureSpan, int aR = 1);
 	WRect bounds() const { return bounds_; }
 	WRect realBounds() const { return extendedBounds_; }
-	const auto &sprite() const { return spr; }
 	void drawBounds(Gfx::RendererCommands &__restrict__) const;
 	void drawSprite(Gfx::RendererCommands &__restrict__) const;
 	std::string name(const EmuApp &) const;
@@ -199,10 +204,15 @@ public:
 	}
 
 protected:
-	Gfx::LitSprite spr;
+	Gfx::VertexBuffer<Gfx::LitSprite::Vertex> spriteVerts;
+	Gfx::VertexBuffer<Gfx::IQuad::Vertex> rectVerts;
+	Gfx::TextureSpan tex;
+	Gfx::Color spriteColor;
 	WRect bounds_{};
 	WRect extendedBounds_{};
 	int aspectRatio{1};
+
+	void updateSprite();
 public:
 	Gfx::Color color{};
 	KeyInfo key{};
@@ -601,7 +611,7 @@ private:
 	const Window *win{};
 	const WindowData *winData{};
 	const Gfx::GlyphTextureSet *facePtr{};
-	VControllerKeyboard kb{};
+	VControllerKeyboard kb;
 	std::vector<VControllerElement> gpElements{};
 	std::vector<VControllerElement> uiElements{};
 	std::span<const KeyCode> disabledKeys{};

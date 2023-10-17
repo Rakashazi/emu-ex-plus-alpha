@@ -27,6 +27,7 @@ LoadProgressView::LoadProgressView(ViewAttachParams attach, const Input::Event &
 	View{attach},
 	onComplete{onComplete},
 	text{"Loading...", &defaultFace()},
+	progessBarVerts{attach.rendererTask, {.size = 4}},
 	originalEvent{e}
 {
 	msgPort.attach(
@@ -96,22 +97,34 @@ LoadProgressView::LoadProgressView(ViewAttachParams attach, const Input::Event &
 		});
 }
 
+void LoadProgressView::updateProgressRect()
+{
+	int barHeight = text.height() * 1.5f;
+	auto bar = WRect::makeRel(displayRect().pos(LC2DO) - WPt{0, barHeight/2},
+		{int(IG::remap(int64_t(pos), 0, max, 0, displayRect().xSize())), barHeight});
+	Gfx::IQuad::write(progessBarVerts, 0, {.bounds = bar.as<int16_t>()});
+}
+
 void LoadProgressView::setMax(int val)
 {
-	if(val)
-	{
-		max = val;
-	}
+	if(!val || max == val)
+		return;
+	max = val;
+	updateProgressRect();
 }
 
 void LoadProgressView::setPos(int val)
 {
+	if(pos == val)
+		return;
 	pos = val;
+	updateProgressRect();
 }
 
 void LoadProgressView::place()
 {
 	text.compile(renderer());
+	updateProgressRect();
 }
 
 bool LoadProgressView::inputEvent(const Input::Event &e)
@@ -130,10 +143,7 @@ void LoadProgressView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	{
 		basicEffect.disableTexture(cmds);
 		cmds.setColor({.0, .0, .75});
-		int barHeight = text.height() * 1.5f;
-		auto bar = WRect::makeRel(displayRect().pos(LC2DO) - WPt{0, barHeight/2},
-			{int(IG::remap(int64_t(pos), 0, max, 0, displayRect().xSize())), barHeight});
-		cmds.drawRect(bar);
+		cmds.drawQuad(progessBarVerts, 0);
 	}
 	basicEffect.enableAlphaTexture(cmds);
 	text.draw(cmds, displayRect().center(), C2DO, ColorName::WHITE);

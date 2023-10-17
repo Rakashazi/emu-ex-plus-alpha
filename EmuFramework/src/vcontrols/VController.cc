@@ -60,24 +60,24 @@ int VController::yMMSizeToPixel(const IG::Window &win, float mm) const
 	return win.heightMMInPixels(mm);
 }
 
-static void updateTexture(const EmuApp &app, VControllerElement &e)
+static void updateTexture(const EmuApp &app, VControllerElement &e, Gfx::RendererTask &task)
 {
 	visit(overloaded
 	{
-		[&](VControllerDPad &dpad){ dpad.setImage(app.asset(app.vControllerAssetDesc(0))); },
+		[&](VControllerDPad &dpad){ dpad.setImage(task, app.asset(app.vControllerAssetDesc(0))); },
 		[&](VControllerButtonGroup &grp)
 		{
 			for(auto &btn : grp.buttons)
 			{
 				auto desc = app.vControllerAssetDesc(btn.key);
-				btn.setImage(app.asset(desc), desc.aspectRatio.y);
+				btn.setImage(task, app.asset(desc), desc.aspectRatio.y);
 			}
 		},
 		[&](VControllerUIButtonGroup &grp)
 		{
 			for(auto &btn : grp.buttons)
 			{
-				btn.setImage([&]
+				btn.setImage(task, [&]
 				{
 					using enum AppKeyCode;
 					switch(AppKeyCode(btn.key.codes[0]))
@@ -106,8 +106,8 @@ static void updateTexture(const EmuApp &app, VControllerElement &e)
 
 void VController::updateTextures()
 {
-	for(auto &e : gpElements) { updateTexture(app(), e); }
-	for(auto &e : uiElements) { updateTexture(app(), e); }
+	for(auto &e : gpElements) { updateTexture(app(), e, renderer().mainTask); }
+	for(auto &e : uiElements) { updateTexture(app(), e, renderer().mainTask); }
 }
 
 static void setSize(VControllerElement &elem, int sizePx, Gfx::Renderer &r)
@@ -427,7 +427,7 @@ void VController::updateKeyboardMapping()
 
 void VController::setKeyboardImage(Gfx::TextureSpan img)
 {
-	kb.setImg(renderer(), img);
+	kb.setImg(renderer().mainTask, img);
 }
 
 void VController::setButtonAlpha(std::optional<uint8_t> opt)
@@ -991,7 +991,7 @@ void VController::update(VControllerElement &elem) const
 {
 	if(!hasWindow())
 		return;
-	updateTexture(app(), elem);
+	updateTexture(app(), elem, renderer_->mainTask);
 	setSize(elem, elem.uiButtonGroup() ? uiButtonPixelSize() : emulatedDeviceButtonPixelSize(), *renderer_);
 	elem.updateMeasurements(window());
 }

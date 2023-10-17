@@ -17,6 +17,7 @@
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include "internalDefs.hh"
 #include "utils.hh"
