@@ -26,12 +26,7 @@ class NesApp final: public EmuApp
 public:
 	NesSystem nesSystem;
 
-	NesApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, nesSystem{ctx}
-	{
-		audio().setStereo(false);
-	}
-
+	NesApp(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return nesSystem;  }
 	const auto &system() const { return nesSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

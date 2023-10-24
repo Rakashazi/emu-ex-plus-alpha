@@ -15,7 +15,6 @@
 
 #define LOGTAG "main"
 #include <imagine/logger/logger.h>
-#include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
@@ -70,6 +69,7 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 			defaultFace.precacheAlphaNum(renderer);
 			defaultFace.precache(renderer, ":.%()");
 			viewManager.defaultFace = std::move(defaultFace);
+			viewManager.quadIndices = {renderer.mainTask, 32};
 			auto &winData = win.makeAppData<WindowData>(IG::ViewAttachParams{viewManager, win, renderer.task()});
 			std::vector<TestDesc> testDesc;
 			testDesc.emplace_back(TEST_CLEAR, "Clear");

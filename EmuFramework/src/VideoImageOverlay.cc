@@ -102,11 +102,12 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id, Gfx::Colo
 	overlayId = id;
 	if(!to_underlying(id)) // turn off effect
 	{
-		spriteVerts = {};
-		img = {};
+		quad = {};
+		texture = {};
 		return;
 	}
-	spriteVerts = {r.mainTask, {.size = 4}};
+	quad.setTask(r.mainTask);
+	quad.reset({.size = 1});
 	multiplyBlend = isCrtOverlay(id);
 	auto desc = overlayDesc(id);
 	Gfx::TextureSamplerConfig samplerConf{ .mipFilter = Gfx::MipFilter::NEAREST };
@@ -114,8 +115,8 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id, Gfx::Colo
 	Gfx::TextureConfig texConf{desc.pixView.desc(), samplerConf};
 	texConf.colorSpace = colorSpace;
 	texConf.setWillGenerateMipmaps(true);
-	img = r.makeTexture(texConf);
-	img.write(0, desc.pixView, {}, {.makeMipmaps = true});
+	texture = r.makeTexture(texConf);
+	texture.write(0, desc.pixView, {}, {.makeMipmaps = true});
 }
 
 void VideoImageOverlay::setIntensity(float i)
@@ -125,7 +126,7 @@ void VideoImageOverlay::setIntensity(float i)
 
 void VideoImageOverlay::place(WRect contentRect, WSize videoPixels, Rotation r)
 {
-	if(!img || videoPixels.y <= 1)
+	if(!texture || videoPixels.y <= 1)
 		return;
 	using namespace IG::Gfx;
 	const float width2x = videoPixels.x * 2.f;
@@ -139,26 +140,26 @@ void VideoImageOverlay::place(WRect contentRect, WSize videoPixels, Rotation r)
 		switch(overlayId)
 		{
 			case ImageOverlayId::SCANLINES:
-				return {&img, {{}, {1.f, lines}}};
+				return {&texture, {{}, {1.f, lines}}};
 			case ImageOverlayId::SCANLINES_2:
-				return {&img, {{}, {1.f, lines2x}}};
+				return {&texture, {{}, {1.f, lines2x}}};
 			case ImageOverlayId::LCD:
-				return {&img, {{}, {width2x, lines2x}}};
+				return {&texture, {{}, {width2x, lines2x}}};
 			case ImageOverlayId::CRT_MASK:
 			case ImageOverlayId::CRT_GRILLE:
-				return {&img, {{}, crtDots}};
+				return {&texture, {{}, crtDots}};
 			case ImageOverlayId::CRT_MASK_2:
 			case ImageOverlayId::CRT_GRILLE_2:
-				return {&img, {{}, crtDotsHalf}};
+				return {&texture, {{}, crtDotsHalf}};
 		}
 		bug_unreachable("invalid ImageOverlayId");
 	}();
-	Sprite::write(spriteVerts, 0, {.bounds = contentRect.as<int16_t>(), .rotation = r}, tex);
+	quad.write(0, {.bounds = contentRect.as<int16_t>(), .textureSpan = tex, .rotation = r});
 }
 
 void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness)
 {
-	if(!img)
+	if(!texture)
 		return;
 	using namespace IG::Gfx;
 	if(multiplyBlend)
@@ -173,7 +174,7 @@ void VideoImageOverlay::draw(Gfx::RendererCommands &cmds, Gfx::Vec3 brightness)
 		cmds.setColor({brightness.r, brightness.g, brightness.b, intensity});
 		cmds.set(BlendMode::PREMULT_ALPHA);
 	}
-	cmds.basicEffect().drawSprite(cmds, spriteVerts, 0, img);
+	cmds.basicEffect().drawSprite(cmds, quad, 0, texture);
 }
 
 }

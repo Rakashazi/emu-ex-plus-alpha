@@ -42,6 +42,9 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 		return IG::endsWithAnyCaseless(name, ".smc", ".sfc", ".swc", ".bs", ".st", ".fig", ".mgd");
 	};
 
+Snes9xApp::Snes9xApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, snes9xSystem{ctx} {}
+
 const BundledGameInfo &EmuSystem::bundledGameInfo(int idx) const
 {
 	static constexpr BundledGameInfo info[]

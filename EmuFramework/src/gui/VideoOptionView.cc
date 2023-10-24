@@ -19,6 +19,7 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/VideoImageEffect.hh>
+#include <emuframework/EmuViewController.hh>
 #include "../EmuOptions.hh"
 #include "PlaceVideoView.hh"
 #include <imagine/base/Screen.hh>

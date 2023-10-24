@@ -40,7 +40,7 @@ public:
 private:
 	IG::FontManager fontManager;
 	Gfx::Renderer renderer;
-	IG::ViewManager viewManager{};
+	IG::ViewManager viewManager;
 	#ifdef __ANDROID__
 	std::optional<IG::RootCpufreqParamSetter> cpuFreq{};
 	#endif

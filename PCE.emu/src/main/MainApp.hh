@@ -26,9 +26,7 @@ class PceApp final: public EmuApp
 public:
 	PceSystem pceSystem;
 
-	PceApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, pceSystem{ctx} {}
-
+	PceApp(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return pceSystem;  }
 	const auto &system() const { return pceSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

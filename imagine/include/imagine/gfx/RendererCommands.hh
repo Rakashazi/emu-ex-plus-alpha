@@ -127,18 +127,37 @@ public:
 	// rendering
 
 	void clear();
-	void drawPrimitives(Primitive mode, int start, int count);
-	void drawPrimitiveElements(Primitive, VertexIndexSpan);
-	void setVertexAttribs(VertexLayout auto *v) { RendererCommandsImpl::setVertexAttribs(v); }
+	void drawPrimitives(Primitive, int start, int count);
+	void drawPrimitiveElements(Primitive, int start, int count, AttribType);
 
-	template<class T>
-	void setVertexArray(const Buffer<T, BufferType::vertex> &verts) { setVertexBuffer(verts); setVertexAttribs((T*){}); }
+	template<VertexLayout V>
+	void setVertexAttribs() { RendererCommandsImpl::setVertexAttribs<V>(); }
 
-	template<class T>
-	void drawPrimitives(Primitive mode, const Buffer<T, BufferType::vertex> &verts, int start, int count)
+	template<VertexLayout V>
+	void setVertexArray(const Buffer<V, BufferType::vertex> &verts) { setVertexBuffer(verts); setVertexAttribs<V>(); }
+
+	template<class I>
+	void setIndexArray(const Buffer<I, BufferType::index> &idxs) { setIndexBuffer(idxs); }
+
+	template<VertexLayout V>
+	void drawPrimitives(Primitive mode, const Buffer<V, BufferType::vertex> &verts, int start, int count)
 	{
 		setVertexArray(verts);
 		drawPrimitives(mode, start, count);
+	}
+
+	template<class I>
+	void drawPrimitiveElements(const Buffer<I, BufferType::index> &idxs, Primitive mode, int start, int count)
+	{
+		setIndexArray(idxs);
+		drawPrimitiveElements(mode, start, count, attribType<I>);
+	}
+
+	template<VertexLayout V, class I>
+	void drawPrimitiveElements(const Buffer<V, BufferType::vertex> &verts, const Buffer<I, BufferType::index> &idxs, Primitive mode, int start, int count)
+	{
+		setVertexArray(verts);
+		drawPrimitiveElements(idxs, mode, start, count);
 	}
 
 	void drawQuad(ssize_t startIdx)
@@ -146,35 +165,24 @@ public:
 		drawPrimitives(Primitive::TRIANGLE_STRIP, startIdx * 4, 4);
 	}
 
-	template<class T>
-	void drawQuad(const Buffer<T, BufferType::vertex> &verts, ssize_t startIdx)
+	template<VertexLayout V>
+	void drawQuad(const Buffer<V, BufferType::vertex> &verts, ssize_t startIdx)
 	{
 		setVertexArray(verts);
 		drawQuad(startIdx);
 	}
 
-	template<class Index>
-	void drawQuads(ssize_t startIdx, size_t size, std::span<const Index> indices)
+	template<class I>
+	void drawQuads(const Buffer<I, BufferType::index> &idxs, ssize_t startIdx, size_t size)
 	{
-		drawPrimitiveElements(Primitive::TRIANGLE, indices);
+		drawPrimitiveElements(idxs, Primitive::TRIANGLE, startIdx * 6, size * 6);
 	}
 
-	void drawQuads(ssize_t startIdx, size_t size)
-	{
-		using Index = uint8_t;
-		std::array<Index, 6> indexArrays[size];
-		for(auto i : iotaCount(size))
-		{
-			indexArrays[i] = makeRectIndexArray(startIdx + i);
-		}
-		drawQuads(startIdx, size, std::span<const Index>{indexArrays[0].data(), size * 6});
-	}
-
-	template<class T>
-	void drawQuads(const Buffer<T, BufferType::vertex> &verts, ssize_t startIdx, size_t size)
+	template<VertexLayout V, class I>
+	void drawQuads(const Buffer<V, BufferType::vertex> &verts, const Buffer<I, BufferType::index> &idxs, ssize_t startIdx, size_t size)
 	{
 		setVertexArray(verts);
-		drawQuads(startIdx, size);
+		drawQuads(idxs, startIdx, size);
 	}
 };
 

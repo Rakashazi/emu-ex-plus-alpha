@@ -138,7 +138,7 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 			contentRect_.setPos(displayRect.center() + WPt{landscapeOffset, 0}, C2DO);
 		}
 		contentRect_.fitIn(displayRect);
-		Gfx::Sprite::write(spriteVerts, 0, { .bounds = contentRect_.as<int16_t>(), .rotation = rotation }, videoTex);
+		quad.write(0, {.bounds = contentRect_.as<int16_t>(), .textureSpan = texture, .rotation = rotation});
 		logMsg("placed game rect, at pixels %d:%d:%d:%d",
 			contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2);
 	}
@@ -147,7 +147,7 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 
 void EmuVideoLayer::draw(Gfx::RendererCommands &cmds)
 {
-	if(!videoTex)
+	if(!texture)
 		return;
 	using namespace IG::Gfx;
 	bool srgbOutput = srgbColorSpace();
@@ -173,7 +173,7 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds)
 	}
 	if(srgbOutput)
 		cmds.setSrgbFramebufferWrite(true);
-	cmds.basicEffect().drawSprite(cmds, spriteVerts, 0, videoTex);
+	cmds.basicEffect().drawSprite(cmds, quad, 0, texture);
 	video.addFence(cmds);
 	vidImgOverlay.draw(cmds, c);
 	if(srgbOutput)
@@ -182,7 +182,7 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds)
 
 void EmuVideoLayer::setRendererTask(Gfx::RendererTask &task)
 {
-	spriteVerts = {task, {.size = 4}};
+	quad = {task, {.size = 1}};
 }
 
 void EmuVideoLayer::setFormat(EmuSystem &sys, IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace colorSpace)
@@ -277,7 +277,7 @@ void EmuVideoLayer::onVideoFormatChanged(IG::PixelFormat effectFmt)
 void EmuVideoLayer::setRotation(IG::Rotation r)
 {
 	rotation = r;
-	Gfx::Sprite::write(spriteVerts, 0, {.bounds = contentRect_.as<int16_t>(), .rotation = rotation}, videoTex);
+	quad.write(0, {.bounds = contentRect_.as<int16_t>(), .textureSpan = texture, .rotation = rotation});
 	placeOverlay();
 }
 
@@ -342,12 +342,12 @@ void EmuVideoLayer::updateSprite()
 {
 	if(effects.size())
 	{
-		videoTex = effects.back()->renderTarget();
+		texture = effects.back()->renderTarget();
 		video.setSampler(Gfx::SamplerConfigs::noLinearNoMipClamp);
 	}
 	else
 	{
-		videoTex = video.image();
+		texture = video.image();
 		video.setSampler(samplerConfig());
 	}
 }

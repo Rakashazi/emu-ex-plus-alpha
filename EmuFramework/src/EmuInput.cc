@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuViewController.hh>
 #include <emuframework/AppKeyCode.hh>
 #include "InputDeviceData.hh"
 #include "EmuOptions.hh"

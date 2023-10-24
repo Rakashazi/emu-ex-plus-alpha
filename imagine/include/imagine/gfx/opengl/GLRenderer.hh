@@ -124,7 +124,6 @@ public:
 	TextureSizeSupport textureSizeSupport{};
 	//bool hasMemoryBarrier = false;
 	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, hasBGRPixels){};
-	bool hasVBOFuncs{};
 	bool hasTextureSwizzle{};
 	bool hasUnpackRowLength = !Config::Gfx::OPENGL_ES;
 	bool hasSamplerObjects = !Config::Gfx::OPENGL_ES;

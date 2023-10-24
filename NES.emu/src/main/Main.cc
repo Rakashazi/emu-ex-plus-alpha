@@ -55,6 +55,12 @@ bool EmuSystem::hasRectangularPixels = true;
 bool EmuApp::needsGlobalInstance = true;
 unsigned fceuCheats = 0;
 
+NesApp::NesApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, nesSystem{ctx}
+{
+	audio().setStereo(false);
+}
+
 bool hasFDSBIOSExtension(std::string_view name)
 {
 	return IG::endsWithAnyCaseless(name, ".rom", ".bin");

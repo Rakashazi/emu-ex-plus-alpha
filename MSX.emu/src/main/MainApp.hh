@@ -26,9 +26,7 @@ class MsxApp final: public EmuApp
 public:
 	MsxSystem msxSystem;
 
-	MsxApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, msxSystem{ctx} {}
-
+	MsxApp(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return msxSystem;  }
 	const auto &system() const { return msxSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

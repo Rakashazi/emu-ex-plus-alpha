@@ -38,6 +38,9 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 		return IG::endsWithAnyCaseless(name, ".gb", ".gbc", ".dmg");
 	};
 
+GbcApp::GbcApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, gbcSystem{ctx} {}
+
 const char *EmuSystem::shortSystemName() const
 {
 	return "GB";

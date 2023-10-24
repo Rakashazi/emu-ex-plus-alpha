@@ -20,7 +20,6 @@
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/TextureSampler.hh>
-#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
@@ -50,6 +49,14 @@ GLRendererCommands::GLRendererCommands(RendererTask &rTask, Window *winPtr, Draw
 void GLRendererCommands::bindGLArrayBuffer(GLuint vbo)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+}
+
+void GLRendererCommands::bindGLIndexBuffer(GLuint ibo)
+{
+	if(currIndexBufferName == ibo)
+		return;
+	currIndexBufferName = ibo;
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 }
 
 bool GLRendererCommands::setCurrentDrawable(Drawable drawable)
@@ -445,48 +452,37 @@ void RendererCommands::drawPrimitives(Primitive mode, int start, int count)
 {
 	runGLCheckedVerbose([&]()
 	{
-		glDrawArrays((GLenum)mode, start, count);
+		glDrawArrays(GLenum(mode), start, count);
 	}, "glDrawArrays()");
 }
 
-void RendererCommands::drawPrimitiveElements(Primitive mode, VertexIndexSpan idxs)
+void RendererCommands::drawPrimitiveElements(Primitive mode, int start, int count, AttribType type)
 {
-	visit([&](auto &span)
+	runGLCheckedVerbose([&]()
 	{
-		GLenum type = asGLType(std::holds_alternative<std::span<const uint8_t>>(idxs) ? AttribType::UByte : AttribType::Short);
-		runGLCheckedVerbose([&]()
-		{
-			glDrawElements((GLenum)mode, span.size(), type, span.data());
-		}, "glDrawElements()");
-	}, idxs);
+		glDrawElements(GLenum(mode), count, asGLType(type), (const void*)(intptr_t)start);
+	}, "glDrawElements()");
 }
-
-bool GLRendererCommands::hasVBOFuncs() const { return r->support.hasVBOFuncs; }
 
 bool GLRendererCommands::useFixedFunctionPipeline() const { return r->support.useFixedFunctionPipeline; }
 
 #ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-void GLRendererCommands::setupVertexArrayPointers(const char *v, int stride,
+void GLRendererCommands::setupVertexArrayPointers(int stride,
 	AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib)
 {
-	if(hasVBOFuncs() && v) // turn off VBO when rendering from memory
-	{
-		//logMsg("un-binding VBO");
-		bindGLArrayBuffer(0);
-	}
 	glcEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(posAttrib.size, asGLType(posAttrib.type), stride, v + posAttrib.offset);
+	glVertexPointer(posAttrib.size, asGLType(posAttrib.type), stride, (const void*)posAttrib.offset);
 	if(textureAttrib.size)
 	{
 		glcEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		glTexCoordPointer(textureAttrib.size, asGLType(textureAttrib.type), stride, v + textureAttrib.offset);
+		glTexCoordPointer(textureAttrib.size, asGLType(textureAttrib.type), stride, (const void*)textureAttrib.offset);
 	}
 	else
 		glcDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	if(colorAttrib.size)
 	{
 		glcEnableClientState(GL_COLOR_ARRAY);
-		glColorPointer(colorAttrib.size, asGLType(colorAttrib.type), stride, v + colorAttrib.offset);
+		glColorPointer(colorAttrib.size, asGLType(colorAttrib.type), stride, (const void*)colorAttrib.offset);
 		glState.colorState[0] = -1; //invalidate glColor state cache
 	}
 	else

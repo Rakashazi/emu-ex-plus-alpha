@@ -104,6 +104,7 @@ public:
 	ApplicationContext appContext() const;
 	template<class T> T &applicationAs() const { return appContext().applicationAs<T>(); }
 	static std::u16string nameString(const MenuItem &item);
+	Gfx::QuadIndexArray<uint8_t> &quadIndices();
 	Gfx::GlyphTextureSet &defaultFace();
 	Gfx::GlyphTextureSet &defaultBoldFace();
 	static Gfx::Color menuTextColor(bool isSelected);

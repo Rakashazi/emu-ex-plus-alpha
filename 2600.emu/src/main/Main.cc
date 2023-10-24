@@ -55,6 +55,12 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 		return IG::endsWithAnyCaseless(name, ".a26", ".bin");
 	};
 
+A2600App::A2600App(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, a2600System{ctx, *this}
+{
+	audio().setStereo(false); // TODO: stereo mode
+}
+
 const char *EmuSystem::shortSystemName() const
 {
 	return "2600";

@@ -26,9 +26,7 @@ class NeoApp final: public EmuApp
 public:
 	NeoSystem neoSystem;
 
-	NeoApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, neoSystem{ctx} {}
-
+	NeoApp(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return neoSystem;  }
 	const auto &system() const { return neoSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

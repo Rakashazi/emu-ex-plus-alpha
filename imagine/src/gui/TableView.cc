@@ -18,7 +18,6 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/ViewManager.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Mat4.hh>
@@ -96,7 +95,6 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	int selectedCellY = INT_MAX;
 	{
 		StaticArrayList<IColQuad, maxSeparators> vRect;
-		StaticArrayList<std::array<uint8_t, 6>, vRect.capacity()> vRectIdx;
 		const auto headingColor = PackedColor::format.build(.4, .4, .4, 1.);
 		const auto regularColor = PackedColor::format.build(.2, .2, .2, 1.);
 		auto regularYSize = std::max(1, window().heightMMInPixels(.2));
@@ -116,7 +114,6 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 					ySize = headingYSize;
 					color = headingColor;
 				}
-				vRectIdx.emplace_back(makeRectIndexArray(vRect.size()));
 				auto rect = makeWindowRectRel({x, y-1}, {viewRect().xSize(), ySize}).as<int16_t>();
 				vRect.emplace_back(IColQuad::RectInitParams{.bounds = rect, .color = color});
 			}
@@ -128,9 +125,9 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		{
 			cmds.set(BlendMode::OFF);
 			cmds.setColor(ColorName::WHITE);
-			cmds.setVertexArray(separatorVerts);
+			cmds.setVertexArray(separatorQuads);
 			cmds.vertexBufferData(0, vRect.data(), vRect.size() * sizeof(IColQuad));
-			cmds.drawQuads(0, vRect.size(), std::span<const uint8_t>{vRectIdx[0].data(), vRectIdx.size() * 6});
+			cmds.drawQuads(quadIndices(), 0, vRect.size());
 		}
 	}
 
@@ -146,7 +143,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		else
 			cmds.setColor({.2 / 3., .71 / 3., .9 / 3., 1./3.});
 		cmds.basicEffect().setModelView(cmds, Mat4::makeTranslate({x, selectedCellY}));
-		cmds.drawQuad(selectVerts, 0);
+		cmds.drawQuad(selectQuads, 0);
 	}
 
 	// draw elements
@@ -174,7 +171,7 @@ void TableView::place()
 		setYCellSize(IG::makeEvenRoundedUp(item(*this, 0).ySize()*2));
 		visibleCells = IG::divRoundUp(displayRect().ySize(), yCellSize) + 1;
 		scrollToFocusRect();
-		Gfx::IQuad::write(selectVerts, 0, {.bounds = WRect{{}, {viewRect().xSize(), yCellSize-1}}.as<int16_t>()});
+		selectQuads.write(0, {.bounds = WRect{{}, {viewRect().xSize(), yCellSize-1}}.as<int16_t>()});
 	}
 	else
 		visibleCells = 0;

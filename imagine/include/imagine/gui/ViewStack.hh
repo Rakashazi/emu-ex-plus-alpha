@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gui/NavView.hh>
-#include <imagine/gfx/Buffer.hh>
+#include <imagine/gfx/Quads.hh>
 #include <vector>
 #include <memory>
 #include <string_view>
@@ -104,7 +104,7 @@ protected:
 	//ViewController *nextController{};
 	WindowRect viewRect{}, customViewRect{};
 	WindowRect displayRect{}, customDisplayRect{};
-	Gfx::VertexBuffer<Gfx::IColQuad::Vertex> bottomGradientVerts;
+	Gfx::IColQuads bottomGradientQuads;
 	bool showNavBackBtn = true;
 	bool showNavView_ = true;
 	bool navViewHasFocus = false;

@@ -26,9 +26,7 @@ class GbaApp final: public EmuApp
 public:
 	GbaSystem gbaSystem;
 
-	GbaApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, gbaSystem{ctx} {}
-
+	GbaApp(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return gbaSystem;  }
 	const auto &system() const { return gbaSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

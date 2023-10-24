@@ -34,8 +34,6 @@ public:
 	void loadStockItems();
 
 protected:
-	static constexpr int MAX_APIS = 2;
-
 	BoolMenuItem snd;
 	BoolMenuItem soundDuringFastSlowMode;
 	TextMenuItem soundVolumeItem[4];
@@ -46,7 +44,7 @@ protected:
 	StaticArrayList<TextMenuItem, 5> audioRateItem;
 	MultiChoiceMenuItem audioRate;
 	IG_UseMemberIf(IG::Audio::Manager::HAS_SOLO_MIX, BoolMenuItem, audioSoloMix);
-	using ApiItemContainer = StaticArrayList<TextMenuItem, MAX_APIS + 1>;
+	using ApiItemContainer = StaticArrayList<TextMenuItem, Audio::systemApis.size() + 1>;
 	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, ApiItemContainer, apiItem);
 	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, MultiChoiceMenuItem, api);
 	StaticArrayList<MenuItem*, 22> item;

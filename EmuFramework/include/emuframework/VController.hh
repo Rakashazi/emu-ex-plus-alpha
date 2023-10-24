@@ -19,9 +19,8 @@
 #include <emuframework/inputDefs.hh>
 #include <imagine/input/inputDefs.hh>
 #include <imagine/input/DragTracker.hh>
-#include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/Texture.hh>
-#include <imagine/gfx/Buffer.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/util/variant.hh>
 #include <vector>
 #include <span>
@@ -115,7 +114,7 @@ public:
 	}
 
 protected:
-	Gfx::VertexBuffer<Gfx::LitSprite::Vertex> spriteVerts;
+	Gfx::ILitTexQuads spriteQuads;
 	Gfx::TextureSpan tex;
 	Gfx::Texture mapImg;
 	WRect padBaseArea, padArea;
@@ -170,9 +169,9 @@ public:
 	bool shiftIsActive() const;
 
 protected:
-	Gfx::VertexBuffer<Gfx::Sprite::Vertex> spriteVerts;
-	Gfx::VertexBuffer<Gfx::IQuad::Vertex> rectVerts;
-	Gfx::TextureSpan kbTex;
+	Gfx::ITexQuads kbQuad;
+	Gfx::IQuads selectQuads;
+	Gfx::TextureSpan texture;
 	WRect bound;
 	int keyXSize{}, keyYSize{};
 	WRect selected{{-1, -1}, {-1, -1}};
@@ -204,9 +203,9 @@ public:
 	}
 
 protected:
-	Gfx::VertexBuffer<Gfx::LitSprite::Vertex> spriteVerts;
-	Gfx::VertexBuffer<Gfx::IQuad::Vertex> rectVerts;
-	Gfx::TextureSpan tex;
+	Gfx::ILitTexQuads quad;
+	Gfx::IQuads boundQuads;
+	Gfx::TextureSpan texture;
 	Gfx::Color spriteColor;
 	WRect bounds_{};
 	WRect extendedBounds_{};

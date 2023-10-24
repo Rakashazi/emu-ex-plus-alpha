@@ -50,6 +50,9 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 		return IG::endsWithAnyCaseless(name, ".ws", ".wsc", ".bin");
 	};
 
+WsApp::WsApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, wsSystem{ctx} {}
+
 const char *EmuSystem::shortSystemName() const { return "WS"; }
 const char *EmuSystem::systemName() const { return "WonderSwan"; }
 

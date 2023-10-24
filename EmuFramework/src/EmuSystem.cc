@@ -19,6 +19,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
+#include <emuframework/EmuViewController.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FSUtils.hh>
@@ -63,7 +64,7 @@ std::string_view EmuSystem::stateSlotName(int slot)
 
 bool EmuApp::shouldOverwriteExistingState() const
 {
-	return !optionConfirmOverwriteState || !system().stateExists(system().stateSlot());
+	return !confirmOverwriteState || !system().stateExists(system().stateSlot());
 }
 
 void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, double speed)

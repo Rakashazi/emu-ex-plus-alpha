@@ -14,10 +14,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/GfxText.hh>
-#include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ctype.hh>
@@ -181,9 +179,9 @@ bool Text::compile(Renderer &r, TextLayoutConfig conf)
 
 	// write vertex data
 	WPt pos{0, nominalHeight - yLineStart};
-	verts.setTask(r.task());
-	verts.reset({.size = size_t(charIdx) * 4});
-	auto mappedVerts = verts.map();
+	quads.setTask(r.task());
+	quads.reset({.size = size_t(charIdx)});
+	auto mappedVerts = quads.map();
 	if(lines > 1)
 	{
 		auto s = textStr.data();
@@ -257,7 +255,7 @@ void Text::draw(RendererCommands &cmds, WPt pos, _2DOrigin o) const
 		pos.y -= ySize / 2;
 	//logMsg("drawing text @ %d,%d, size:%d,%d", xPos, yPos, xSize, ySize);
 	cmds.basicEffect().setModelView(cmds, Mat4::makeTranslate({pos.x, pos.y, 0}));
-	cmds.setVertexArray(verts);
+	cmds.setVertexArray(quads);
 	auto lines = currentLines();
 	if(lines > 1)
 	{

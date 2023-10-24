@@ -17,6 +17,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuVideo.hh>
+#include <emuframework/EmuViewController.hh>
 #include <emuframework/CreditsView.hh>
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/InputManagerView.hh>

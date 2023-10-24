@@ -35,7 +35,7 @@ public:
 	size_t size;
 	BufferUsageHint usageHint{BufferUsageHint::dynamic};
 
-	BufferConfig<char> toByteConfig() const
+	constexpr BufferConfig<char> toByteConfig() const
 	{
 		return
 		{

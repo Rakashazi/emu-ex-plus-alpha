@@ -26,12 +26,7 @@ class C64App final: public EmuApp
 public:
 	C64System c64System;
 
-	C64App(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, c64System{ctx}
-	{
-		audio().setStereo(false);
-	}
-
+	C64App(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return c64System;  }
 	const auto &system() const { return c64System;  }
 	bool willCreateSystem(ViewAttachParams, const Input::Event &);

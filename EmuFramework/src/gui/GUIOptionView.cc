@@ -15,6 +15,7 @@
 
 #include <emuframework/GUIOptionView.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuViewController.hh>
 #include "../EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
@@ -34,10 +35,10 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	pauseUnfocused
 	{
 		"Pause if unfocused", &defaultFace(),
-		(bool)app().pauseUnfocusedOption(),
+		app().pauseUnfocused,
 		[this](BoolMenuItem &item)
 		{
-			app().pauseUnfocusedOption() = item.flipBoolValue(*this);
+			app().pauseUnfocused = item.flipBoolValue(*this);
 		}
 	},
 	fontSizeItem
@@ -177,11 +178,11 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	systemActionsIsDefaultMenu
 	{
 		"Default Menu", &defaultFace(),
-		(bool)app().systemActionsIsDefaultMenuOption().val,
+		app().systemActionsIsDefaultMenu,
 		"Last Used", "System Actions",
 		[this](BoolMenuItem &item)
 		{
-			app().systemActionsIsDefaultMenuOption() = item.flipBoolValue(*this);
+			app().systemActionsIsDefaultMenu = item.flipBoolValue(*this);
 		}
 	},
 	showBundledGames
@@ -301,7 +302,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 
 void GUIOptionView::loadStockItems()
 {
-	if(!app().pauseUnfocusedOption().isConst)
+	if(used(pauseUnfocused))
 	{
 		item.emplace_back(&pauseUnfocused);
 	}

@@ -60,7 +60,8 @@ public:
 	};
 
 	// Align delegate data to 16 bytes in case we store SIMD types
-	using FuncDelegate = DelegateFuncA<sizeof(uintptr_t)*2 + sizeof(int)*16, 16, void(GLDisplay glDpy, std::binary_semaphore *semPtr)>;
+	static constexpr size_t FuncDelegateStorageSize = sizeof(uintptr_t)*2 + sizeof(int)*16;
+	using FuncDelegate = DelegateFuncA<FuncDelegateStorageSize, 16, void(GLDisplay glDpy, std::binary_semaphore *semPtr)>;
 
 	struct CommandMessage
 	{

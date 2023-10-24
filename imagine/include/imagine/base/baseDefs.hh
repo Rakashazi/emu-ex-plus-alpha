@@ -128,6 +128,8 @@ constexpr bool multipleScreenFrameRates = Config::envIsAndroid;
 constexpr bool cpuAffinity = Config::envIsAndroid || Config::envIsLinux;
 
 constexpr bool freeformWindows = Config::envIsLinux;
+
+constexpr bool windowFocus = Config::envIsAndroid || Config::envIsLinux;
 }
 
 namespace IG::Input

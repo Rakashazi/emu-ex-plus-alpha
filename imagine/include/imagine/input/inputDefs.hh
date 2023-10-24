@@ -29,6 +29,12 @@ struct InputAxisFlags;
 namespace IG::Input
 {
 
+class Event;
+class Device;
+struct AxisKeyEmu;
+class TextField;
+class MogaManager;
+
 enum class Source : uint8_t
 {
 	UNKNOWN,
@@ -67,7 +73,6 @@ enum class DeviceSubtype : uint8_t
 	OUYA_CONTROLLER = 4,
 	PANDORA_HANDHELD = 5,
 	XBOX_360_CONTROLLER = 6,
-	NVIDIA_SHIELD = 7,
 	GENERIC_GAMEPAD = 8,
 	APPLE_EXTENDED_GAMEPAD = 9,
 	_8BITDO_SF30_PRO = 10,
@@ -101,9 +106,6 @@ static constexpr PointerId NULL_POINTER_ID
 			return -1;
 	}()
 };
-
-class Event;
-class Device;
 
 #ifdef CONFIG_INPUT_GAMEPAD_DEVICES
 

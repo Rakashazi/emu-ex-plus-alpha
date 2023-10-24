@@ -529,7 +529,7 @@ void Renderer::configureRenderer()
 			support.useFixedFunctionPipeline = glVer < 33;
 			if(glVer >= 15)
 			{
-				support.hasVBOFuncs = true;
+				// safe to use VBOs
 			}
 			if(glVer >= 20)
 			{

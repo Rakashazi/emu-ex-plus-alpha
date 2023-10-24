@@ -51,6 +51,7 @@
 #include <imagine/util/string.h>
 #include <imagine/thread/Thread.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
+#include <imagine/input/android/MogaManager.hh>
 #include <cmath>
 
 namespace EmuEx
@@ -123,13 +124,8 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 		(Config::envIsIOS || Config::envIsAndroid) ? 3000 :
 		8000,
 		false, optionIsValidWithMinMax<2000, 10000, uint16_t>},
-	optionPauseUnfocused{CFGKEY_PAUSE_UNFOCUSED, 1,
-		!(Config::envIsLinux || Config::envIsAndroid)},
-	optionConfirmOverwriteState{CFGKEY_CONFIRM_OVERWRITE_STATE, 1},
 	optionNotificationIcon{CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid},
 	optionTitleBar{CFGKEY_TITLE_BAR, 1, !CAN_HIDE_TITLE_BAR},
-	optionSystemActionsIsDefaultMenu{CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU, 1},
-	optionIdleDisplayPowerSave{CFGKEY_IDLE_DISPLAY_POWER_SAVE, 0},
 	optionLowProfileOSNav{CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAndroid},
 	optionHideOSNav{CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid},
 	optionHideStatusBar{CFGKEY_HIDE_STATUS_BAR, 1, !Config::envIsAndroid && !Config::envIsIOS},
@@ -238,6 +234,7 @@ Gfx::TextureSpan EmuApp::collectTextCloseAsset() const
 
 EmuViewController &EmuApp::viewController() { return mainWindowData().viewController; }
 const EmuViewController &EmuApp::viewController() const { return mainWindowData().viewController; }
+IG::ToastView &EmuApp::toastView() { return viewController().popup; }
 const Screen &EmuApp::emuScreen() const { return *viewController().emuWindowScreen(); }
 Window &EmuApp::emuWindow() { return viewController().emuWindow(); }
 
@@ -294,7 +291,7 @@ void EmuApp::showSystemActionsViewFromSystem(ViewAttachParams attach, const Inpu
 
 void EmuApp::showLastViewFromSystem(ViewAttachParams attach, const Input::Event &e)
 {
-	if(optionSystemActionsIsDefaultMenu)
+	if(systemActionsIsDefaultMenu)
 	{
 		showSystemActionsViewFromSystem(attach, e);
 	}
@@ -516,6 +513,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					optionTextureBufferMode.reset();
 				}
 			}
+			viewManager.quadIndices = {renderer.mainTask, 32};
 			viewManager.defaultFace = {renderer, fontManager.makeSystem(), fontSettings(win)};
 			viewManager.defaultBoldFace = {renderer, fontManager.makeBoldSystem(), fontSettings(win)};
 			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
@@ -1257,7 +1255,7 @@ bool EmuApp::handleAppActionKeyInput(InputAction action, const Input::Event &src
 			if(shouldOverwriteExistingState())
 			{
 				syncEmulationThread();
-				doSaveState(*this, confirmOverwriteStateOption());
+				doSaveState(*this, confirmOverwriteState);
 			}
 			else
 			{
@@ -1650,7 +1648,7 @@ void EmuApp::onFocusChange(bool in)
 			viewController().inputView.resetInput();
 			startEmulation();
 		}
-		else if(pauseUnfocusedOption() && !system().isPaused() && !allWindowsAreFocused())
+		else if(pauseUnfocused && !system().isPaused() && !allWindowsAreFocused())
 		{
 			log.info("pausing emulation with all windows unfocused");
 			pauseEmulation();

@@ -26,16 +26,16 @@ namespace EmuEx
 
 void VControllerKeyboard::updateImg()
 {
-	kbTex.bounds = mode_ == VControllerKbMode::LAYOUT_2 ? FRect{{0., .5}, {texXEnd, 1.}} : FRect{{}, {texXEnd, .5}};
-	Gfx::Sprite::write(spriteVerts, 0, {.bounds = bound.as<int16_t>()}, kbTex);
+	texture.bounds = mode_ == VControllerKbMode::LAYOUT_2 ? FRect{{0., .5}, {texXEnd, 1.}} : FRect{{}, {texXEnd, .5}};
+	kbQuad.write(0, {.bounds = bound.as<int16_t>(), .textureSpan = texture});
 }
 
 void VControllerKeyboard::setImg(Gfx::RendererTask &task, Gfx::TextureSpan img)
 {
-	spriteVerts = {task, {.size = 4}};
-	rectVerts = {task, {.size = 4}};
-	Gfx::IQuad::write(rectVerts, 0, {.bounds = {{}, {1, 1}}});
-	kbTex = img;
+	kbQuad = {task, {.size = 1}};
+	texture = img;
+	selectQuads = {task, {.size = 1}};
+	selectQuads.write(0, {.bounds = {{}, {1, 1}}});
 	texXEnd = img.bounds.x2;
 	updateImg();
 }
@@ -62,7 +62,7 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	using namespace IG::Gfx;
 	auto &basicEffect = cmds.basicEffect();
-	basicEffect.drawSprite(cmds, spriteVerts, 0, kbTex);
+	basicEffect.drawSprite(cmds, kbQuad, 0, texture);
 	constexpr auto selectCol = Gfx::Color{.2, .71, .9, 1./3.}.multiplyAlpha();
 	constexpr auto shiftCol = Gfx::Color{.2, .71, .9, .5}.multiplyAlpha();
 	if(selected.x != -1)
@@ -75,7 +75,7 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds) const
 		rect.y = bound.y + 1 + (selected.y * keyYSize);
 		rect.y2 = rect.y + keyYSize;
 		basicEffect.setModelView(cmds, Mat4::makeTranslateScale(rect));
-		cmds.drawQuad(rectVerts, 0);
+		cmds.drawQuad(selectQuads, 0);
 	}
 	if(shiftIsActive() && mode_ == VControllerKbMode::LAYOUT_1)
 	{
@@ -87,7 +87,7 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &__restrict__ cmds) const
 		rect.y = bound.y + 1 + (shiftRect.y * keyYSize);
 		rect.y2 = rect.y + keyYSize;
 		basicEffect.setModelView(cmds, Mat4::makeTranslateScale(rect));
-		cmds.drawQuad(rectVerts, 0);
+		cmds.drawQuad(selectQuads, 0);
 	}
 }
 

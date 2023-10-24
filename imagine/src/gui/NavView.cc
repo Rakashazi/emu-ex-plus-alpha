@@ -186,11 +186,11 @@ Gfx::PackedColor NavView::separatorColor() const
 
 BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes):
 	NavView{attach, face},
-	selectVerts{attach.rendererTask, {.size = 4}},
+	selectQuad{attach.rendererTask, {.size = 1}},
 	bgVerts{attach.rendererTask, {.size = 0}},
-	spriteVerts{attach.rendererTask, {.size = 8}}
+	buttonQuads{attach.rendererTask, {.size = 2}}
 {
-	Gfx::IQuad::write(selectVerts, 0, {.bounds = {{}, {1, 1}}});
+	selectQuad.write(0, {.bounds = {{}, {1, 1}}});
 	if(backRes)
 	{
 		leftTex = backRes;
@@ -241,7 +241,7 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		cmds.setColor({.2, .71, .9, 1./3.});
 		basicEffect.disableTexture(cmds);
 		basicEffect.setModelView(cmds, Mat4::makeTranslateScale(control[selected].rect));
-		cmds.drawQuad(selectVerts, 0);
+		cmds.drawQuad(selectQuad, 0);
 	}
 	basicEffect.enableAlphaTexture(cmds);
 	if(centerTitle)
@@ -267,7 +267,7 @@ void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	{
 		cmds.set(BlendMode::PREMULT_ALPHA);
 		cmds.setColor(ColorName::WHITE);
-		cmds.setVertexArray(spriteVerts);
+		cmds.setVertexArray(buttonQuads);
 	}
 	if(control[0].isActive)
 	{
@@ -294,13 +294,13 @@ void BasicNavView::place()
 	{
 		auto rect = control[0].rect;
 		WRect scaledRect{-rect.size() / 3, rect.size() / 3};
-		Gfx::Sprite::write(spriteVerts, 0, {.bounds = scaledRect.as<int16_t>()}, leftTex);
+		buttonQuads.write(0, {.bounds = scaledRect.as<int16_t>(), .textureSpan = leftTex});
 	}
 	if(rightTex)
 	{
 		auto rect = control[2].rect;
 		WRect scaledRect{-rect.size() / 3, rect.size() / 3};
-		Gfx::Sprite::write(spriteVerts, 1, {.bounds = scaledRect.as<int16_t>()}, rightTex);
+		buttonQuads.write(1, {.bounds = scaledRect.as<int16_t>(), .textureSpan = rightTex});
 	}
 	bool needsTopPadding = viewRect().y > displayRect().y;
 	auto bgVertsSize = LGradient::vertexSize(gradientStopsSize, needsTopPadding ? LGradientPadMode::top : LGradientPadMode::none);

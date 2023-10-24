@@ -18,7 +18,7 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/gui/View.hh>
-#include <imagine/gfx/GeomQuad.hh>
+#include <imagine/gfx/Quads.hh>
 #include <cstdio>
 #include <array>
 
@@ -51,7 +51,7 @@ public:
 private:
 	Gfx::Text text{};
 	Timer unpostTimer{Timer::NullInit{}};
-	Gfx::VertexBuffer<Gfx::IQuad::Vertex> msgFrameVerts;
+	Gfx::IQuads msgFrameQuads;
 	WRect msgFrame{};
 	bool error = false;
 

@@ -471,7 +471,7 @@ static DeviceSubtype gamepadSubtype(std::string_view name)
 	else if(name.contains("NVIDIA Controller"))
 	{
 		logMsg("detected NVidia Shield gamepad");
-		return Device::Subtype::NVIDIA_SHIELD;
+		return {};
 	}
 	else if(name == "Xbox 360 Wireless Receiver")
 	{

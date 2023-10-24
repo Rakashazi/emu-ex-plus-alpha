@@ -18,6 +18,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppHelper.hh>
 #include <imagine/base/MessagePort.hh>
+#include <imagine/gfx/Quads.hh>
 
 namespace EmuEx
 {
@@ -42,7 +43,7 @@ private:
 	MessagePortType msgPort{"LoadProgressView"};
 	EmuApp::CreateSystemCompleteDelegate onComplete;
 	Gfx::Text text;
-	Gfx::VertexBuffer<Gfx::IQuad::Vertex> progessBarVerts;
+	Gfx::IQuads progessBarQuads;
 	Input::Event originalEvent;
 	int pos{}, max{1};
 

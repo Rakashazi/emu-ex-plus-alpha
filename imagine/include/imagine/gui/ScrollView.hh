@@ -18,8 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/input/VelocityTracker.hh>
-#include <imagine/gfx/Buffer.hh>
-#include <imagine/gfx/GeomQuad.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/gui/View.hh>
 
@@ -48,7 +47,7 @@ protected:
 	OnFrameDelegate animate;
 	Input::SingleDragTracker<> dragTracker;
 	VelocityTrackerType velTracker; // tracks y velocity as pixels/sec
-	Gfx::VertexBuffer<Gfx::IQuad::Vertex> scrollBarVerts;
+	Gfx::IQuads scrollBarQuads;
 	SteadyClockTimePoint lastFrameTimestamp;
 	float scrollVel{};
 	float scrollAccel{};

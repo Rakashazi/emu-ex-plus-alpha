@@ -46,7 +46,7 @@ RecentContentView::RecentContentView(ViewAttachParams attach, RecentContent &rec
 				{
 					.onYes = [this]
 					{
-						recentItems.clear();
+						recentContent.clear();
 						dismiss();
 					}
 				}), e);

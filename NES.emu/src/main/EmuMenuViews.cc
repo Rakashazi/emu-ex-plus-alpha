@@ -14,6 +14,7 @@
 	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuViewController.hh>
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/VideoOptionView.hh>
 #include <emuframework/FilePathOptionView.hh>

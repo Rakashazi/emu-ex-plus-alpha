@@ -72,10 +72,10 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	confirmOverwriteState
 	{
 		"Confirm Overwrite State", &defaultFace(),
-		(bool)app().confirmOverwriteStateOption(),
+		app().confirmOverwriteState,
 		[this](BoolMenuItem &item)
 		{
-			app().confirmOverwriteStateOption() = item.flipBoolValue(*this);
+			app().confirmOverwriteState = item.flipBoolValue(*this);
 		}
 	},
 	fastModeSpeedItem

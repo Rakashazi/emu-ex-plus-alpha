@@ -15,9 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/Texture.hh>
-#include <imagine/gfx/Buffer.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/util/enum.hh>
 #include <array>
 
@@ -50,10 +49,10 @@ private:
 		glm::i16vec2 pos;
 		glm::vec2 texCoord;
 	};
-	using Sprite = Gfx::SpriteBase<Vertex>;
+	using Quads = Gfx::BaseQuads<Vertex>;
 
-	Gfx::Texture img;
-	Gfx::VertexBuffer<Sprite::Vertex> spriteVerts;
+	Quads quad;
+	Gfx::Texture texture;
 	float intensity = 0.75f;
 	ImageOverlayId overlayId{};
 	bool multiplyBlend{};

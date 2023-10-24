@@ -46,24 +46,25 @@ public:
 		cmds.drawQuad(startIdx);
 	}
 
-	void drawSprites(RendererCommands &cmds, ssize_t startIdx, size_t size, auto &&texture)
+	template<class I>
+	void drawSprites(RendererCommands &cmds, const Buffer<I, BufferType::index> &idxs, ssize_t startIdx, size_t size, auto &&texture)
 	{
 		enableTexture(cmds, texture);
-		cmds.drawQuads(startIdx, size);
+		cmds.drawQuads(idxs, startIdx, size);
 	}
 
-	template<class T>
-	void drawSprite(RendererCommands &cmds, const Buffer<T, BufferType::vertex> &verts, ssize_t startIdx, auto &&texture)
+	template<VertexLayout V>
+	void drawSprite(RendererCommands &cmds, const Buffer<V, BufferType::vertex> &verts, ssize_t startIdx, auto &&texture)
 	{
 		enableTexture(cmds, texture);
 		cmds.drawQuad(verts, startIdx);
 	}
 
-	template<class T>
-	void drawSprites(RendererCommands &cmds, const Buffer<T, BufferType::vertex> &verts, ssize_t startIdx, size_t size, auto &&texture)
+	template<VertexLayout V, class I>
+	void drawSprites(RendererCommands &cmds, const Buffer<V, BufferType::vertex> &verts, const Buffer<I, BufferType::index> &idxs, ssize_t startIdx, size_t size, auto &&texture)
 	{
 		enableTexture(cmds, texture);
-		cmds.drawQuads(verts, startIdx, size);
+		cmds.drawQuads(verts, idxs, startIdx, size);
 	}
 };
 

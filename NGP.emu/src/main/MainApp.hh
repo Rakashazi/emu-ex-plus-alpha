@@ -26,9 +26,7 @@ class NgpApp final: public EmuApp
 public:
 	NgpSystem ngpSystem;
 
-	NgpApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, ngpSystem{ctx} {}
-
+	NgpApp(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return ngpSystem;  }
 	const auto &system() const { return ngpSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

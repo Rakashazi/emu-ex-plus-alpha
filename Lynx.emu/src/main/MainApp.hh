@@ -26,9 +26,7 @@ class LynxApp final: public EmuApp
 public:
 	LynxSystem lynxSystem;
 
-	LynxApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, lynxSystem{ctx} {}
-
+	LynxApp(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return lynxSystem;  }
 	const auto &system() const { return lynxSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

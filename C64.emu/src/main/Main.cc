@@ -72,6 +72,12 @@ bool EmuSystem::handlesGenericIO = false;
 bool EmuSystem::hasRectangularPixels = true;
 bool EmuApp::needsGlobalInstance = true;
 
+C64App::C64App(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, c64System{ctx}
+{
+	audio().setStereo(false);
+}
+
 const char *EmuSystem::shortSystemName() const
 {
 	return "C64";

@@ -16,7 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/GfxText.hh>
-#include <imagine/gfx/GfxSprite.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/input/config.hh>
 #include <imagine/input/TextField.hh>
@@ -30,7 +30,7 @@ namespace IG
 class TextEntry
 {
 public:
-	Gfx::VertexBuffer<Gfx::IQuad::Vertex> bgVerts;
+	Gfx::IQuads bgQuads;
 
 	TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face);
 	void setAcceptingInput(bool on);
@@ -68,10 +68,14 @@ public:
 	void draw(Gfx::RendererCommands &__restrict__) override;
 
 protected:
-	WRect cancelBtn;
+	struct CancelButton
+	{
+		WRect bounds;
+		Gfx::ITexQuads quad;
+		Gfx::TextureSpan texture;
+	};
 	// TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
-	IG_UseMemberIf(!Config::envIsAndroid, Gfx::VertexBuffer<Gfx::Sprite::Vertex>, spriteVerts);
-	IG_UseMemberIf(!Config::envIsAndroid, Gfx::TextureSpan, cancelTex);
+	IG_UseMemberIf(!Config::envIsAndroid, CancelButton, cancelButton);
 	Gfx::Text message;
 	[[no_unique_address]] Input::TextField textField;
 	IG_UseMemberIf(!Config::Input::SYSTEM_COLLECTS_TEXT, TextEntry, textEntry);

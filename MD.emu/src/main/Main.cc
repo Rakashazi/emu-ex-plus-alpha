@@ -53,6 +53,9 @@ bool EmuSystem::canRenderRGBA8888 = RENDER_BPP == 32;
 bool EmuSystem::hasRectangularPixels = true;
 bool EmuApp::needsGlobalInstance = true;
 
+MdApp::MdApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, mdSystem{ctx} {}
+
 static bool hasBinExtension(std::string_view name)
 {
 	return IG::endsWithAnyCaseless(name, ".bin");

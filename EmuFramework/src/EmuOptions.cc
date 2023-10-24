@@ -68,11 +68,6 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	{
 		optionShowBluetoothScan.initDefault(0);
 	}
-	if(androidSdk < 11)
-	{
-		// never run ctx in onPaused state on Android 2.3
-		optionPauseUnfocused.isConst = true;
-	}
 	if(androidSdk < 27) // use safer value for devices defaulting to OpenSL ES
 	{
 		audio().soundBuffers = audio().defaultSoundBuffers = 4;
@@ -208,8 +203,8 @@ void EmuApp::setShowsTitleBar(bool on)
 
 void EmuApp::setIdleDisplayPowerSave(bool on)
 {
-	optionIdleDisplayPowerSave = on;
-	appContext().setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
+	idleDisplayPowerSave_ = on;
+	appContext().setIdleDisplayPowerSave(idleDisplayPowerSave_);
 }
 
 void EmuApp::setLowProfileOSNavMode(Tristate mode)

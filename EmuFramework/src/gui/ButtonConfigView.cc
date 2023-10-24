@@ -177,7 +177,7 @@ ButtonConfigSetView::ButtonConfigSetView(ViewAttachParams attach,
 	SetDelegate onSet):
 		View{attach},
 		text{&defaultFace()},
-		rectVerts{attach.rendererTask, {.size = 4 * 3}},
+		quads{attach.rendererTask, {.size = 3}},
 		onSetD{onSet},
 		dev{dev},
 		rootIMView{rootIMView},
@@ -201,7 +201,9 @@ void ButtonConfigSetView::initPointerUI()
 void ButtonConfigSetView::place()
 {
 	text.compile(renderer(), {.alignment = Gfx::TextAlignment::center});
-	Gfx::IQuad::write(rectVerts, 0, {.bounds = viewRect().as<int16_t>()});
+	using Quad = decltype(quads)::Quad;
+	auto map = quads.map();
+	Quad{{.bounds = viewRect().as<int16_t>()}}.write(map, 0);
 	if(pointerUIIsInit())
 	{
 		unbind.compile(renderer());
@@ -214,8 +216,8 @@ void ButtonConfigSetView::place()
 		cancelB = btnFrame;
 		cancelB.x = (viewRect().xSize()/2)*1;
 		cancelB.x2 = (viewRect().xSize()/2)*2;
-		Gfx::IQuad::write(rectVerts, 1, {.bounds = unbindB.as<int16_t>()});
-		Gfx::IQuad::write(rectVerts, 2, {.bounds = cancelB.as<int16_t>()});
+		Quad{{.bounds = unbindB.as<int16_t>()}}.write(map, 1);
+		Quad{{.bounds = cancelB.as<int16_t>()}}.write(map, 2);
 	}
 }
 
@@ -304,12 +306,12 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.set(BlendMode::OFF);
 	basicEffect.disableTexture(cmds);
 	cmds.setColor({.4, .4, .4});
-	cmds.setVertexArray(rectVerts);
+	cmds.setVertexArray(quads);
 	cmds.drawQuad(0); // bg
 	if(pointerUIIsInit())
 	{
 		cmds.setColor({.2, .2, .2});
-		cmds.drawQuads(1, 2); // button bg
+		cmds.drawQuads(quadIndices(), 1, 2); // button bg
 	}
 	basicEffect.enableAlphaTexture(cmds);
 	if(pointerUIIsInit())

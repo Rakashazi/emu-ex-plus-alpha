@@ -17,7 +17,6 @@
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
-#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/input/Event.hh>
 #include <imagine/logger/logger.h>
@@ -37,7 +36,7 @@ ToastView::ToastView(ViewAttachParams attach): View{attach},
 			unpost();
 		}
 	},
-	msgFrameVerts{attach.rendererTask, {.size = 4}} {}
+	msgFrameQuads{attach.rendererTask, {.size = 1}} {}
 
 void ToastView::setFace(Gfx::GlyphTextureSet &face)
 {
@@ -57,12 +56,12 @@ void ToastView::clear()
 
 void ToastView::place()
 {
-	text.compile(renderer(), {.maxLineSize = int(viewRect().xSize() * 0.95f), .maxLines = 6});
+	text.compile(renderer(), {.maxLineSize = int(viewRect().xSize() * 0.95f), .maxLines = 6, .alignment = Gfx::TextAlignment::center});
 	int labelYSize = IG::makeEvenRoundedUp(text.fullHeight());
 	//logMsg("label y size:%d", labelYSize);
 	msgFrame.setPosRel(viewRect().pos(CB2DO),
 		{viewRect().xSize(), labelYSize}, CB2DO);
-	Gfx::IQuad::write(msgFrameVerts, 0, {.bounds = msgFrame.as<int16_t>()});
+	msgFrameQuads.write(0, {.bounds = msgFrame.as<int16_t>()});
 }
 
 void ToastView::unpost()
@@ -96,7 +95,7 @@ void ToastView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		cmds.setColor({1., 0, 0, .7});
 	else
 		cmds.setColor({0, 0, 1., .7});
-	cmds.drawQuad(msgFrameVerts, 0);
+	cmds.drawQuad(msgFrameQuads, 0);
 	basicEffect.enableAlphaTexture(cmds);
 	text.draw(cmds, {msgFrame.xCenter(), msgFrame.pos(C2DO).y}, C2DO, ColorName::WHITE);
 }

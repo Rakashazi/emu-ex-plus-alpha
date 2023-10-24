@@ -144,6 +144,8 @@ void View::dismissPrevious()
 	}
 }
 
+Gfx::QuadIndexArray<uint8_t> &View::quadIndices() { return manager().quadIndices; }
+
 Gfx::GlyphTextureSet &View::defaultFace() { return manager().defaultFace; }
 
 Gfx::GlyphTextureSet &View::defaultBoldFace() { return manager().defaultBoldFace; }

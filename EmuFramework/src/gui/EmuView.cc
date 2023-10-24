@@ -31,7 +31,7 @@ EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer, EmuSystem &sys):
 	View{attach},
 	layer{layer},
 	sysPtr{&sys},
-	frameTimeStats{&defaultFace(), Gfx::VertexBuffer<Gfx::IQuad::Vertex>{attach.rendererTask, {.size = 4}}} {}
+	frameTimeStats{&defaultFace(), Gfx::IQuads{attach.rendererTask, {.size = 1}}} {}
 
 void EmuView::prepareDraw()
 {
@@ -72,7 +72,7 @@ void EmuView::drawframeTimeStatsText(Gfx::RendererCommands &__restrict__ cmds)
 		cmds.basicEffect().disableTexture(cmds);
 		cmds.set(BlendMode::ALPHA);
 		cmds.setColor({0., 0., 0., .7});
-		cmds.drawQuad(stats.bgVerts, 0);
+		cmds.drawQuad(stats.bgQuads, 0);
 		cmds.basicEffect().enableAlphaTexture(cmds);
 		stats.text.draw(cmds, stats.rect.pos(LC2DO) + WPt{stats.text.spaceWidth(), 0}, LC2DO, ColorName::WHITE);
 	});
@@ -105,7 +105,7 @@ void EmuView::placeFrameTimeStats()
 				{stats.text.pixelSize().x + stats.text.spaceWidth() * 2, stats.text.fullHeight()}};
 			rect.setPos(viewRect().pos(LC2DO), LC2DO);
 			stats.rect = rect;
-			Gfx::IQuad::write(stats.bgVerts, 0, {.bounds = rect.as<int16_t>()});
+			stats.bgQuads.write(0, {.bounds = rect.as<int16_t>()});
 		}
 	});
 }

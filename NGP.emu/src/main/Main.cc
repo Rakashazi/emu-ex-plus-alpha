@@ -46,6 +46,9 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 		return IG::endsWithAnyCaseless(name, ".ngc", ".ngp", ".npc", ".ngpc");
 	};
 
+NgpApp::NgpApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, ngpSystem{ctx} {}
+
 const char *EmuSystem::shortSystemName() const
 {
 	return "NGP";

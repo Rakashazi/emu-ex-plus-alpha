@@ -39,6 +39,9 @@ constexpr auto pceFrameTimeWith262Lines{fromSeconds<FrameTime>(455. * 262. / mas
 constexpr auto pceFrameTime{fromSeconds<FrameTime>(455. * 263. / masterClockFrac)}; //~59.82Hz
 bool EmuApp::needsGlobalInstance = true;
 
+PceApp::PceApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, pceSystem{ctx} {}
+
 bool hasHuCardExtension(std::string_view name)
 {
 	return IG::endsWithAnyCaseless(name, ".pce", ".sgx");

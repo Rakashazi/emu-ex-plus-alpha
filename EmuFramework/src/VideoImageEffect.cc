@@ -101,10 +101,10 @@ static PixelFormat effectFormat(IG::PixelFormat format, Gfx::ColorSpace colSpace
 
 VideoImageEffect::VideoImageEffect(Gfx::Renderer &r, Id effect, IG::PixelFormat fmt, Gfx::ColorSpace colSpace,
 	Gfx::TextureSamplerConfig samplerConf, WSize size):
-		spriteVerts{r.mainTask, {.size = 4}},
+		quad{r.mainTask, {.size = 1}},
 		inputImgSize{size}, format{effectFormat(fmt, colSpace)}, colorSpace{colSpace}
 {
-	Gfx::Sprite::write(spriteVerts, 0, { .bounds = {{-1, -1}, {1, 1}}});
+	quad.write(0, {.bounds = {{-1, -1}, {1, 1}}});
 	logMsg("compiling effect:%s", effectName(effect));
 	compile(r, effectDesc(effect), samplerConf);
 }
@@ -238,7 +238,7 @@ void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, Gfx::Textur
 {
 	cmds.setViewport(renderTargetImgSize);
 	cmds.set(texSpan);
-	cmds.drawQuad(spriteVerts, 0);
+	cmds.drawQuad(quad, 0);
 }
 
 void VideoImageEffect::setSampler(Gfx::TextureSamplerConfig samplerConf)

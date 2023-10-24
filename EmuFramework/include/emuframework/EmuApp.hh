@@ -21,18 +21,16 @@
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuVideoLayer.hh>
-#include <emuframework/EmuViewController.hh>
 #include <emuframework/EmuInput.hh>
-#include <emuframework/VController.hh>
 #include <emuframework/Option.hh>
 #include <emuframework/AutosaveManager.hh>
 #include <emuframework/OutputTimingManager.hh>
 #include <emuframework/RecentContent.hh>
 #include <imagine/input/inputDefs.hh>
-#include <imagine/input/android/MogaManager.hh>
 #include <imagine/gui/ViewManager.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/MenuItem.hh>
+#include <imagine/gui/ToastView.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
@@ -62,6 +60,7 @@ namespace EmuEx
 
 struct MainWindowData;
 class EmuMainMenuView;
+class EmuViewController;
 
 enum class Tristate : uint8_t
 {
@@ -226,6 +225,7 @@ public:
 	EmuVideoLayer &videoLayer() { return emuVideoLayer; }
 	EmuViewController &viewController();
 	const EmuViewController &viewController() const;
+	IG::ToastView &toastView();
 	const Screen &emuScreen() const;
 	Window &emuWindow();
 	AutosaveManager &autosaveManager() { return autosaveManager_; }
@@ -304,7 +304,6 @@ public:
 	void setVideoBrightness(float brightness, ImageChannel);
 
 	// System Options
-	auto &confirmOverwriteStateOption() { return optionConfirmOverwriteState; }
 	bool setAltSpeed(AltSpeedMode mode, int16_t speed);
 	int16_t altSpeed(AltSpeedMode mode) const { return altSpeedRef(mode); }
 	double altSpeedAsDouble(AltSpeedMode mode) const { return altSpeed(mode) / 100.; }
@@ -313,10 +312,8 @@ public:
 	void applyCPUAffinity(bool active);
 
 	// GUI Options
-	auto &pauseUnfocusedOption() { return optionPauseUnfocused; }
-	auto &systemActionsIsDefaultMenuOption() { return optionSystemActionsIsDefaultMenu; }
 	void setIdleDisplayPowerSave(bool on);
-	bool idleDisplayPowerSave() const { return optionIdleDisplayPowerSave; }
+	bool idleDisplayPowerSave() const { return idleDisplayPowerSave_; }
 	bool setFontSize(int size); // size in micro-meters
 	int fontSize() const;
 	void applyFontSize(Window &win);
@@ -353,7 +350,7 @@ public:
 
 	void postMessage(int secs, bool error, UTF16Convertible auto &&msg)
 	{
-		viewController().popup.post(IG_forward(msg), secs, error);
+		toastView().post(IG_forward(msg), secs, error);
 	}
 
 	void postErrorMessage(UTF16Convertible auto &&msg)
@@ -523,12 +520,8 @@ protected:
 	int16_t fastModeSpeed{defaultFastModeSpeed};
 	int16_t slowModeSpeed{defaultSlowModeSpeed};
 	Byte2Option optionFontSize;
-	Byte1Option optionPauseUnfocused;
-	Byte1Option optionConfirmOverwriteState;
 	Byte1Option optionNotificationIcon;
 	Byte1Option optionTitleBar;
-	Byte1Option optionSystemActionsIsDefaultMenu;
-	Byte1Option optionIdleDisplayPowerSave;
 	IG_UseMemberIf(Config::NAVIGATION_BAR, Byte1Option, optionLowProfileOSNav);
 	IG_UseMemberIf(Config::NAVIGATION_BAR, Byte1Option, optionHideOSNav);
 	IG_UseMemberIf(Config::STATUS_BAR, Byte1Option, optionHideStatusBar);
@@ -551,8 +544,12 @@ protected:
 	IG::PixelFormat renderPixelFmt;
 	IG::Rotation contentRotation_{IG::Rotation::ANY};
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, bool, layoutBehindSystemUI){};
+	bool idleDisplayPowerSave_{};
 public:
 	bool showHiddenFilesInPicker{};
+	bool confirmOverwriteState{true};
+	bool systemActionsIsDefaultMenu{true};
+	IG_UseMemberIf(Config::windowFocus, bool, pauseUnfocused){true};
 	IG_UseMemberIf(Config::envIsAndroid, bool, useSustainedPerformanceMode){};
 	IG_UseMemberIf(Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, bool, keepBluetoothActive){};
 	IG_UseMemberIf(Config::Input::DEVICE_HOTSWAP, bool, notifyOnInputDeviceChange){true};

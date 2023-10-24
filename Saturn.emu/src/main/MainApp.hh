@@ -26,9 +26,7 @@ class SaturnApp final: public EmuApp
 public:
 	SaturnSystem saturnSystem;
 
-	SaturnApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, saturnSystem{ctx} {}
-
+	SaturnApp(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return saturnSystem;  }
 	const auto &system() const { return saturnSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

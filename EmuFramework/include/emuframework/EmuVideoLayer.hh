@@ -17,8 +17,7 @@
 
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VideoImageEffect.hh>
-#include <imagine/gfx/GfxSprite.hh>
-#include <imagine/gfx/Buffer.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/gfx/Vec3.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/container/ArrayList.hh>
@@ -64,8 +63,8 @@ private:
 	IG::StaticArrayList<VideoImageEffect*, 1> effects;
 	EmuVideo &video;
 	VideoImageEffect userEffect;
-	Gfx::VertexBuffer<Gfx::Sprite::Vertex> spriteVerts;
-	Gfx::TextureSpan videoTex;
+	Gfx::ITexQuads quad;
+	Gfx::TextureSpan texture;
 	IG::WindowRect contentRect_;
 	Gfx::Vec3 brightness{1.f, 1.f, 1.f};
 	Gfx::Vec3 brightnessSrgb{1.f, 1.f, 1.f};

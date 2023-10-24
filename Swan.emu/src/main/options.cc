@@ -14,6 +14,7 @@
 	along with Swan.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuViewController.hh>
 #include <emuframework/Option.hh>
 #include "MainSystem.hh"
 #include <mednafen-emuex/MDFNUtils.hh>

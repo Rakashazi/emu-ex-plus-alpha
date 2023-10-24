@@ -32,7 +32,7 @@ public:
 	void loadStockItems();
 
 protected:
-	BoolMenuItem pauseUnfocused;
+	IG_UseMemberIf(Config::windowFocus, BoolMenuItem, pauseUnfocused);
 	TextMenuItem fontSizeItem[10];
 	MultiChoiceMenuItem fontSize;
 	BoolMenuItem notificationIcon;

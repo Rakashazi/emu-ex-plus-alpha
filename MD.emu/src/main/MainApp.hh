@@ -26,9 +26,7 @@ class MdApp final: public EmuApp
 public:
 	MdSystem mdSystem;
 
-	MdApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, mdSystem{ctx} {}
-
+	MdApp(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return mdSystem;  }
 	const auto &system() const { return mdSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

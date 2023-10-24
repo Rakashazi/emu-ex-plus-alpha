@@ -16,11 +16,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/GfxText.hh>
-#include <imagine/gfx/GfxSprite.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/gfx/SyncFence.hh>
-#include <imagine/gfx/Buffer.hh>
-#include <imagine/gfx/GeomQuad.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/base/ApplicationContext.hh>
@@ -87,7 +85,7 @@ public:
 	TestFinishedDelegate onTestFinished;
 	FramePresentTime lastFramePresentTime;
 	Gfx::SyncFence presentFence{};
-	Gfx::VertexBuffer<Gfx::IQuad::Vertex> statsRectVerts;
+	Gfx::IQuads statsRectQuads;
 
 	TestFramework() {}
 	virtual ~TestFramework() {}
@@ -115,7 +113,7 @@ protected:
 	WRect viewBounds{};
 	WRect cpuStatsRect{};
 	WRect frameStatsRect{};
-	unsigned lostFrameProcessTime = 0;
+	unsigned lostFrameProcessTime{};
 
 	void placeCPUStatsText(Gfx::Renderer &r);
 	void placeFrameStatsText(Gfx::Renderer &r);
@@ -135,8 +133,8 @@ class DrawTest : public TestFramework
 {
 protected:
 	int flash{true};
+	Gfx::ITexQuads quad;
 	Gfx::PixmapBufferTexture texture;
-	Gfx::VertexBuffer<Gfx::Sprite::Vertex> verts;
 
 public:
 	void initTest(IG::ApplicationContext, Gfx::Renderer &, WSize pixmapSize, Gfx::TextureBufferMode) override;

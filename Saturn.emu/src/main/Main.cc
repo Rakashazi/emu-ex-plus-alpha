@@ -58,6 +58,9 @@ CDInterface *CDCoreList[] =
 
 #define SNDCORE_IMAGINE 1
 
+SaturnApp::SaturnApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, saturnSystem{ctx} {}
+
 // EmuFramework is in charge of audio setup & parameters
 static int SNDImagineInit() { logMsg("called sound core init"); return 0; }
 static void SNDImagineDeInit() {}

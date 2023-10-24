@@ -15,6 +15,7 @@
 
 #include "PlaceVideoView.hh"
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuViewController.hh>
 #include <imagine/gfx/RendererCommands.hh>
 
 namespace EmuEx
@@ -26,7 +27,7 @@ PlaceVideoView::PlaceVideoView(ViewAttachParams attach, EmuVideoLayer &layer, VC
 	vController{vController},
 	exitText{"Exit", &defaultFace()},
 	resetText{"Reset", &defaultFace()},
-	rectVerts{attach.rendererTask, {.size = 4 * 4}}
+	quads{attach.rendererTask, {.size = 4}}
 {
 	app().applyOSNavStyle(appContext(), true);
 	layer.setBrightness(app().videoBrightnessAsRGB());
@@ -52,12 +53,14 @@ void PlaceVideoView::place()
 	resetBounds = btnBounds;
 	resetBounds.x = viewRect().xSize() / 2;
 	const int lineSize = 1;
-	Gfx::IQuad::write(rectVerts, 0, {.bounds = WRect{{viewRect().x, viewRect().yCenter()},
-		{viewRect().x2, viewRect().yCenter() + lineSize}}.as<int16_t>()});
-	Gfx::IQuad::write(rectVerts, 1, {.bounds = WRect{{viewRect().xCenter(), viewRect().y},
-		{viewRect().xCenter() + lineSize, viewRect().y2}}.as<int16_t>()});
-	Gfx::IQuad::write(rectVerts, 2, {.bounds = exitBounds.as<int16_t>()});
-	Gfx::IQuad::write(rectVerts, 3, {.bounds = resetBounds.as<int16_t>()});
+	using Quad = decltype(quads)::Quad;
+	auto map = quads.map();
+	Quad{{.bounds = WRect{{viewRect().x, viewRect().yCenter()},
+		{viewRect().x2, viewRect().yCenter() + lineSize}}.as<int16_t>()}}.write(map, 0);
+	Quad{{.bounds = WRect{{viewRect().xCenter(), viewRect().y},
+		{viewRect().xCenter() + lineSize, viewRect().y2}}.as<int16_t>()}}.write(map, 1);
+	Quad{{.bounds = exitBounds.as<int16_t>()}}.write(map, 2);
+	Quad{{.bounds = resetBounds.as<int16_t>()}}.write(map, 3);
 }
 
 bool PlaceVideoView::inputEvent(const Input::Event &e)
@@ -157,10 +160,10 @@ void PlaceVideoView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.setColor({.5, .5, .5});
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
-	cmds.setVertexArray(rectVerts);
-	cmds.drawQuads(0, 2); // centering lines
+	cmds.setVertexArray(quads);
+	cmds.drawQuads(quadIndices(), 0, 2); // centering lines
 	cmds.setColor({.2, .2, .2, .5});
-	cmds.drawQuads(2, 2); // button bg
+	cmds.drawQuads(quadIndices(), 2, 2); // button bg
 	basicEffect.enableAlphaTexture(cmds);
 	cmds.setColor(ColorName::WHITE);
 	exitText.draw(cmds, exitBounds.pos(C2DO), C2DO);

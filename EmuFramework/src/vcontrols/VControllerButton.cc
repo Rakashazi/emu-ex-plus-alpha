@@ -27,7 +27,7 @@ void VControllerButton::setPos(WPt pos, WRect viewBounds, _2DOrigin o)
 	bounds_.setPos(pos, o);
 	bounds_.fitIn(viewBounds);
 	extendedBounds_.setPos(bounds_.pos(C2DO), C2DO);
-	Gfx::IQuad::write(rectVerts, 0, {.bounds = extendedBounds_.as<int16_t>()});
+	boundQuads.write(0, {.bounds = extendedBounds_.as<int16_t>()});
 	updateSprite();
 }
 
@@ -36,14 +36,14 @@ void VControllerButton::setSize(WSize size, WSize extendedSize)
 	size.y /= aspectRatio;
 	bounds_ = makeWindowRectRel(bounds_.pos(C2DO), size);
 	extendedBounds_ = bounds_ + WRect{{-extendedSize}, {extendedSize}};
-	Gfx::IQuad::write(rectVerts, 0, {.bounds = extendedBounds_.as<int16_t>()});
+	boundQuads.write(0, {.bounds = extendedBounds_.as<int16_t>()});
 }
 
 void VControllerButton::setImage(Gfx::RendererTask &task, Gfx::TextureSpan t, int aR)
 {
-	spriteVerts = {task, {.size = 4}};
-	rectVerts = {task, {.size = 4}};
-	tex = t;
+	quad = {task, {.size = 1}};
+	texture = t;
+	boundQuads = {task, {.size = 1}};
 	aspectRatio = aR;
 	updateSprite();
 }
@@ -57,12 +57,12 @@ void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds) con
 {
 	float brightness = isHighlighted ? 2.f : 1.f;
 	cmds.setColor(Gfx::Color{.5f}.multiplyRGB(brightness));
-	cmds.drawQuad(rectVerts, 0);
+	cmds.drawQuad(boundQuads, 0);
 }
 
 void VControllerButton::drawSprite(Gfx::RendererCommands &__restrict__ cmds) const
 {
-	cmds.basicEffect().drawSprite(cmds, spriteVerts, 0, tex);
+	cmds.basicEffect().drawSprite(cmds, quad, 0, texture);
 }
 
 void VControllerButton::setAlpha(float alpha)
@@ -88,8 +88,7 @@ void VControllerButton::setAlpha(float alpha)
 
 void VControllerButton::updateSprite()
 {
-	auto map = spriteVerts.map();
-	Gfx::LitSprite::write(map, 0, {.bounds = bounds_.as<int16_t>(), .color = spriteColor}, tex);
+	quad.write(0, {.bounds = bounds_.as<int16_t>(), .color = spriteColor, .textureSpan = texture});
 }
 
 }

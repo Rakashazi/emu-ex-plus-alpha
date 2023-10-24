@@ -46,6 +46,9 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 
 using namespace Mednafen;
 
+LynxApp::LynxApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, lynxSystem{ctx} {}
+
 const char *EmuSystem::shortSystemName() const { return "Lynx"; }
 const char *EmuSystem::systemName() const { return "Lynx"; }
 

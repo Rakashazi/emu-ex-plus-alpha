@@ -17,8 +17,7 @@
 
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/Program.hh>
-#include <imagine/gfx/Buffer.hh>
-#include <imagine/gfx/GfxSprite.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/util/enum.hh>
 #include <optional>
 
@@ -59,7 +58,7 @@ public:
 	operator bool() const { return (bool)prog; }
 
 private:
-	Gfx::VertexBuffer<Gfx::Sprite::Vertex> spriteVerts;
+	Gfx::ITexQuads quad;
 	Gfx::Texture renderTarget_;
 	Gfx::Program prog;
 	int srcTexelDeltaU{};

@@ -97,6 +97,9 @@ bool EmuSystem::canRenderRGBA8888 = false;
 bool EmuSystem::hasRectangularPixels = true;
 bool EmuApp::needsGlobalInstance = true;
 
+NeoApp::NeoApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, neoSystem{ctx} {}
+
 NeoSystem::NeoSystem(ApplicationContext ctx):
 	EmuSystem{ctx}
 {

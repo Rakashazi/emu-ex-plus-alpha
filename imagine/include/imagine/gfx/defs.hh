@@ -52,6 +52,8 @@ struct Color4B;
 enum class BufferType : uint8_t;
 template<class T, BufferType type>
 class Buffer;
+template<class T>
+class QuadIndexArray;
 
 using GCRect = CoordinateRect<float, true, true>;
 

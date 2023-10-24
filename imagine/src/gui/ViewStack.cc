@@ -97,7 +97,7 @@ void BasicViewController::draw(Gfx::RendererCommands &cmds)
 }
 
 ViewStack::ViewStack(ViewAttachParams attach):
-	bottomGradientVerts{attach.rendererTask, {.size = 4}} {}
+	bottomGradientQuads{attach.rendererTask, {.size = 1}} {}
 
 void ViewStack::setNavView(std::unique_ptr<NavView> navView)
 {
@@ -149,11 +149,11 @@ void ViewStack::place()
 	top().place();
 	if(customDisplayRect.y2 > customViewRect.y2) // add a basic gradient in the OS navigation bar area
 	{
-		Gfx::IColQuad bottomGradient;
+		decltype(bottomGradientQuads)::Quad bottomGradient;
 		bottomGradient.setPos(View::displayInsetRect(View::Direction::BOTTOM, customViewRect, customDisplayRect));
 		bottomGradient.bl().color = bottomGradient.br().color = Gfx::PackedColor::format.build(0., 0., 0., 1.);
 		bottomGradient.tl().color = bottomGradient.tr().color = Gfx::PackedColor::format.build(0., 0., 0., 0.);
-		bottomGradientVerts.task().write(bottomGradientVerts, bottomGradient.v, 0);
+		bottomGradientQuads.write(0, bottomGradient);
 	}
 }
 
@@ -239,7 +239,7 @@ void ViewStack::draw(Gfx::RendererCommands &cmds)
 		using namespace Gfx;
 		cmds.set(BlendMode::ALPHA);
 		cmds.basicEffect().disableTexture(cmds);
-		cmds.drawQuad(bottomGradientVerts, 0);
+		cmds.drawQuad(bottomGradientQuads, 0);
 	}
 }
 

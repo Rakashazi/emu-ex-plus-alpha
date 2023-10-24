@@ -40,6 +40,21 @@ enum class Api: uint8_t
 	AAUDIO,
 };
 
+#if defined __ANDROID__
+constexpr std::array systemApis{Api::AAUDIO, Api::OPENSL_ES};
+#elif defined __APPLE__
+constexpr std::array systemApis{Api::COREAUDIO};
+#else
+	constexpr std::array systemApis{
+	#ifdef CONFIG_AUDIO_PULSEAUDIO
+	Api::PULSEAUDIO,
+	#endif
+	#ifdef CONFIG_AUDIO_ALSA
+	Api::ALSA,
+	#endif
+	};
+#endif
+
 struct ApiDesc
 {
 	const char *name = "";

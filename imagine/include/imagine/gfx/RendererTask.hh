@@ -77,10 +77,18 @@ public:
 	// buffers
 	void write(auto &buff, auto &&data, ssize_t offset)
 	{
-		run([=, &buff]()
+		if constexpr(sizeof(&buff) + sizeof(offset) + sizeof(data) <= FuncDelegateStorageSize)
 		{
-			buff.writeSubData(offset * buff.elemSize, std::size(data) * buff.elemSize, std::data(data));
-		});
+			run([&buff, offset, data]()
+			{
+				buff.writeSubData(offset * buff.elemSize, std::size(data) * buff.elemSize, std::data(data));
+			});
+		}
+		else
+		{
+			auto map = buff.map();
+			std::ranges::copy(data, map.begin() + offset);
+		}
 	}
 };
 

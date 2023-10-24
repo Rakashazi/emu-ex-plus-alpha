@@ -74,14 +74,10 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionOverlayEffect,
 		optionOverlayEffectLevel,
 		optionFontSize,
-		optionPauseUnfocused,
-		optionConfirmOverwriteState,
 		optionFrameInterval,
 		optionNotificationIcon,
 		optionTitleBar,
-		optionIdleDisplayPowerSave,
 		optionHideStatusBar,
-		optionSystemActionsIsDefaultMenu,
 		optionTextureBufferMode,
 		#if defined __ANDROID__
 		optionLowProfileOSNav,
@@ -96,6 +92,11 @@ void EmuApp::saveConfigFile(FileIO &io)
 	std::apply([&](auto &...opt){ (writeOptionValue(io, opt), ...); }, cfgFileOptions);
 
 	recentContent.writeConfig(io);
+	writeOptionValueIfNotDefault(io, CFGKEY_IDLE_DISPLAY_POWER_SAVE, idleDisplayPowerSave_, false);
+	writeOptionValueIfNotDefault(io, CFGKEY_CONFIRM_OVERWRITE_STATE, confirmOverwriteState, true);
+	writeOptionValueIfNotDefault(io, CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU, systemActionsIsDefaultMenu, true);
+	if(used(pauseUnfocused))
+		writeOptionValueIfNotDefault(io, CFGKEY_PAUSE_UNFOCUSED, pauseUnfocused, true);
 	writeOptionValueIfNotDefault(io, CFGKEY_GAME_ORIENTATION, optionEmuOrientation, Orientations{});
 	writeOptionValueIfNotDefault(io, CFGKEY_MENU_ORIENTATION, optionMenuOrientation, Orientations{});
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
@@ -236,17 +237,17 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_SWAPPED_GAMEPAD_CONFIM:
 					setSwappedConfirmKeys(readOptionValue<bool>(io, size));
 					return true;
-				case CFGKEY_PAUSE_UNFOCUSED: return optionPauseUnfocused.readFromIO(io, size);
+				case CFGKEY_PAUSE_UNFOCUSED: return used(pauseUnfocused) ? readOptionValue(io, size, pauseUnfocused) : false;
 				case CFGKEY_NOTIFICATION_ICON: return optionNotificationIcon.readFromIO(io, size);
 				case CFGKEY_TITLE_BAR: return optionTitleBar.readFromIO(io, size);
 				case CFGKEY_BACK_NAVIGATION:
 					return readOptionValue(io, size, viewManager.needsBackControl);
-				case CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: return optionSystemActionsIsDefaultMenu.readFromIO(io, size);
-				case CFGKEY_IDLE_DISPLAY_POWER_SAVE: return optionIdleDisplayPowerSave.readFromIO(io, size);
+				case CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: return readOptionValue(io, size, systemActionsIsDefaultMenu);
+				case CFGKEY_IDLE_DISPLAY_POWER_SAVE: return readOptionValue(io, size, idleDisplayPowerSave_);
 				case CFGKEY_HIDE_STATUS_BAR: return doIfUsed(optionHideStatusBar, [&](auto &opt){ return opt.readFromIO(io, size); });
 				case CFGKEY_LAYOUT_BEHIND_SYSTEM_UI:
 					return ctx.hasTranslucentSysUI() ? readOptionValue(io, size, layoutBehindSystemUI) : false;
-				case CFGKEY_CONFIRM_OVERWRITE_STATE: return optionConfirmOverwriteState.readFromIO(io, size);
+				case CFGKEY_CONFIRM_OVERWRITE_STATE: return readOptionValue(io, size, confirmOverwriteState);
 				case CFGKEY_FAST_MODE_SPEED: return readOptionValue(io, size, fastModeSpeed, isValidFastSpeed);
 				case CFGKEY_SLOW_MODE_SPEED: return readOptionValue(io, size, slowModeSpeed, isValidSlowSpeed);
 				#ifdef CONFIG_INPUT_DEVICE_HOTSWAP

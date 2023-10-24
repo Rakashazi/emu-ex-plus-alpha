@@ -26,9 +26,7 @@ class Snes9xApp final: public EmuApp
 public:
 	Snes9xSystem snes9xSystem;
 
-	Snes9xApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, snes9xSystem{ctx} {}
-
+	Snes9xApp(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return snes9xSystem;  }
 	const auto &system() const { return snes9xSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

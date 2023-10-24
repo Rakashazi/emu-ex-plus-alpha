@@ -16,8 +16,6 @@
 #define LOGTAG "test"
 #include <imagine/gui/TableView.hh>
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/gfx/RendererTask.hh>
-#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/format.hh>
 #include <imagine/util/string/StaticString.hh>
@@ -46,7 +44,7 @@ void TestFramework::init(ApplicationContext ctx, Gfx::Renderer &r,
 {
 	cpuStatsText = {&face};
 	frameStatsText = {&face};
-	statsRectVerts = {r.mainTask, {.size = 8}};
+	statsRectQuads = {r.mainTask, {.size = 2}};
 	initTest(ctx, r, pixmapSize, bufferMode);
 }
 
@@ -69,7 +67,7 @@ void TestFramework::placeCPUStatsText(Gfx::Renderer &r)
 		cpuStatsRect = viewBounds;
 		cpuStatsRect.y2 = (cpuStatsRect.y + cpuStatsText.nominalHeight() * cpuStatsText.currentLines())
 			+ cpuStatsText.nominalHeight() / 2; // adjust to top
-		Gfx::IQuad::write(statsRectVerts, 0, {.bounds = cpuStatsRect.as<int16_t>()});
+		statsRectQuads.write(0, {.bounds = cpuStatsRect.as<int16_t>()});
 	}
 }
 
@@ -80,7 +78,7 @@ void TestFramework::placeFrameStatsText(Gfx::Renderer &r)
 		frameStatsRect = viewBounds;
 		frameStatsRect.y = (frameStatsRect.y2 - frameStatsText.nominalHeight() * frameStatsText.currentLines())
 			- cpuStatsText.nominalHeight() / 2; // adjust to bottom
-		Gfx::IQuad::write(statsRectVerts, 1, {.bounds = frameStatsRect.as<int16_t>()});
+		statsRectQuads.write(1, {.bounds = frameStatsRect.as<int16_t>()});
 	}
 }
 
@@ -185,7 +183,7 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int 
 		basicEffect.disableTexture(cmds);
 		cmds.set(BlendMode::ALPHA);
 		cmds.setColor({0., 0., 0., .7});
-		cmds.drawQuad(statsRectVerts, 0);
+		cmds.drawQuad(statsRectQuads, 0);
 		basicEffect.enableAlphaTexture(cmds);
 		cpuStatsText.draw(cmds, {cpuStatsRect.x + xIndent,
 			cpuStatsRect.yCenter()}, LC2DO, ColorName::WHITE);
@@ -195,7 +193,7 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int 
 		basicEffect.disableTexture(cmds);
 		cmds.set(BlendMode::ALPHA);
 		cmds.setColor({0., 0., 0., .7});
-		cmds.drawQuad(statsRectVerts, 1);
+		cmds.drawQuad(statsRectQuads, 1);
 		basicEffect.enableAlphaTexture(cmds);
 		frameStatsText.draw(cmds, {frameStatsRect.x + xIndent,
 			frameStatsRect.yCenter()}, LC2DO, ColorName::WHITE);
@@ -251,12 +249,12 @@ void DrawTest::initTest(IG::ApplicationContext app, Gfx::Renderer &r, WSize pixm
 	assert(lockedBuff);
 	memset(lockedBuff.pixmap().data(), 0xFF, lockedBuff.pixmap().bytes());
 	texture.unlock(lockedBuff);
-	verts = {r.mainTask, {.size = 4}};
+	quad = {r.mainTask, {.size = 1}};
 }
 
 void DrawTest::placeTest(WRect rect)
 {
-	Gfx::Sprite::write(verts, 0, {.bounds = rect.as<int16_t>()});
+	quad.write(0, {.bounds = rect.as<int16_t>()});
 }
 
 void DrawTest::frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint)
@@ -282,7 +280,7 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	}
 	else
 		cmds.setColor(0);
-	cmds.basicEffect().drawSprite(cmds, verts, 0, texture);
+	cmds.basicEffect().drawSprite(cmds, quad, 0, texture);
 }
 
 void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Screen &screen, SteadyClockTimePoint frameTime)
@@ -320,7 +318,7 @@ void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.setClipRect(bounds);
 	cmds.set(BlendMode::OFF);
 	cmds.setColor(ColorName::WHITE);
-	cmds.basicEffect().drawSprite(cmds, verts, 0, texture);
+	cmds.basicEffect().drawSprite(cmds, quad, 0, texture);
 }
 
 }

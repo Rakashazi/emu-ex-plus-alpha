@@ -15,6 +15,7 @@
 
 #include "PlaceVControlsView.hh"
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuViewController.hh>
 #include <imagine/gfx/RendererCommands.hh>
 
 namespace EmuEx
@@ -27,7 +28,7 @@ PlaceVControlsView::PlaceVControlsView(ViewAttachParams attach, VController &vCo
 	exitText{"Exit", &defaultFace()},
 	snapText{"Snap: 0px", &defaultFace()},
 	vController{vController_},
-	rectVerts{attach.rendererTask, {.size = 4 * 4}}
+	quads{attach.rendererTask, {.size = 4}}
 {
 	app().applyOSNavStyle(appContext(), true);
 }
@@ -45,12 +46,14 @@ void PlaceVControlsView::place()
 	exitBtnRect = WRect{{}, exitText.pixelSize()} + (viewRect().pos(C2DO) - exitText.pixelSize() / 2) + WPt{0, exitText.height()};
 	snapBtnRect = WRect{{}, snapText.pixelSize()} + (viewRect().pos(C2DO) - snapText.pixelSize() / 2) - WPt{0, exitText.height()};
 	const int lineSize = 1;
-	Gfx::IQuad::write(rectVerts, 0, {.bounds = WRect{{viewRect().x, viewRect().yCenter()},
-		{viewRect().x2, viewRect().yCenter() + lineSize}}.as<int16_t>()});
-	Gfx::IQuad::write(rectVerts, 1, {.bounds = WRect{{viewRect().xCenter(), viewRect().y},
-		{viewRect().xCenter() + lineSize, viewRect().y2}}.as<int16_t>()});
-	Gfx::IQuad::write(rectVerts, 2, {.bounds = exitBtnRect.as<int16_t>()});
-	Gfx::IQuad::write(rectVerts, 3, {.bounds = snapBtnRect.as<int16_t>()});
+	using Quad = decltype(quads)::Quad;
+	auto map = quads.map();
+	Quad{{.bounds = WRect{{viewRect().x, viewRect().yCenter()},
+		{viewRect().x2, viewRect().yCenter() + lineSize}}.as<int16_t>()}}.write(map, 0);
+	Quad{{.bounds = WRect{{viewRect().xCenter(), viewRect().y},
+		{viewRect().xCenter() + lineSize, viewRect().y2}}.as<int16_t>()}}.write(map, 1);
+	Quad{{.bounds = exitBtnRect.as<int16_t>()}}.write(map, 2);
+	Quad{{.bounds = snapBtnRect.as<int16_t>()}}.write(map, 3);
 }
 
 bool PlaceVControlsView::inputEvent(const Input::Event &e)
@@ -151,10 +154,10 @@ void PlaceVControlsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.setColor({.5, .5, .5});
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
-	cmds.setVertexArray(rectVerts);
-	cmds.drawQuads(0, 2); // centering lines
+	cmds.setVertexArray(quads);
+	cmds.drawQuads(quadIndices(), 0, 2); // centering lines
 	cmds.setColor({0, 0, 0, .5});
-	cmds.drawQuads(2, 2); // button bg
+	cmds.drawQuads(quadIndices(), 2, 2); // button bg
 	basicEffect.enableAlphaTexture(cmds);
 	exitText.draw(cmds, exitBtnRect.pos(C2DO), C2DO, ColorName::WHITE);
 	snapText.draw(cmds, snapBtnRect.pos(C2DO), C2DO, ColorName::WHITE);

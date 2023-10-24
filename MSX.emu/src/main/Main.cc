@@ -73,6 +73,9 @@ static const char saveStateVersion[] = "blueMSX - state  v 8";
 
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
+MsxApp::MsxApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, msxSystem{ctx} {}
+
 FS::PathString machineBasePath(MsxSystem &sys)
 {
 	if(sys.firmwarePath.empty())

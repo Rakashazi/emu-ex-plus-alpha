@@ -17,6 +17,7 @@
 
 #include <imagine/gui/viewDefs.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/util/used.hh>
 #include <optional>
 
@@ -39,6 +40,7 @@ public:
 	static constexpr bool needsBackControlDefault = ViewDefs::needsBackControlDefault;
 	static constexpr bool needsBackControlIsMutable = ViewDefs::needsBackControlIsMutable;
 
+	Gfx::QuadIndexArray<uint8_t> quadIndices;
 	Gfx::GlyphTextureSet defaultFace;
 	Gfx::GlyphTextureSet defaultBoldFace;
 	int tableXIndentPx{};
@@ -46,7 +48,6 @@ public:
 	IG_UseMemberIfOrConstant(needsBackControlIsMutable,
 		bool, needsBackControlDefault, needsBackControl){needsBackControlDefault};
 
-	constexpr ViewManager() = default;
 	std::optional<bool> needsBackControlOption() const;
 	void setTableXIndentMM(float indentMM, const Window &);
 	float defaultTableXIndentMM(const Window &);

@@ -18,6 +18,7 @@
 #include <emuframework/EmuAppHelper.hh>
 #include <emuframework/EmuInput.hh>
 #include <imagine/gfx/GfxText.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/input/config.hh>
@@ -48,7 +49,7 @@ private:
 	IG::WindowRect unbindB, cancelB;
 	Gfx::Text text;
 	Gfx::Text unbind, cancel;
-	Gfx::VertexBuffer<Gfx::IQuad::Vertex> rectVerts;
+	Gfx::IQuads quads;
 	SetDelegate onSetD;
 	const Input::Device &dev;
 	const Input::Device *savedDev{};

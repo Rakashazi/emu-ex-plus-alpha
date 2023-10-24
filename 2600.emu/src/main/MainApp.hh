@@ -26,12 +26,7 @@ class A2600App final: public EmuApp
 public:
 	A2600System a2600System;
 
-	A2600App(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, a2600System{ctx, *this}
-	{
-		audio().setStereo(false); // TODO: stereo mode
-	}
-
+	A2600App(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return a2600System;  }
 	const auto &system() const { return a2600System;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

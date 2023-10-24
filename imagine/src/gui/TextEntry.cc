@@ -26,7 +26,7 @@ namespace IG
 {
 
 TextEntry::TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face):
-	bgVerts{r.mainTask, {.size = 4}},
+	bgQuads{r.mainTask, {.size = 1}},
 	t{initText, face},
 	str{initText}
 {
@@ -133,7 +133,7 @@ void TextEntry::place(Gfx::Renderer &r)
 void TextEntry::place(Gfx::Renderer &r, WindowRect rect)
 {
 	b = rect;
-	Gfx::IQuad::write(bgVerts, 0, {.bounds = rect.as<int16_t>()});
+	bgQuads.write(0, {.bounds = rect.as<int16_t>()});
 	place(r);
 }
 
@@ -179,13 +179,13 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, CStringView 
 	onTextD{onText}
 {
 	face = face ? face : &attach.viewManager.defaultFace;
-	cancelTex = closeRes;
-	doIfUsed(spriteVerts,
-		[&](auto &spriteVerts)
+	doIfUsed(cancelButton,
+		[&](auto &cancelButton)
 		{
 			if(manager().needsBackControl && closeRes)
 			{
-				spriteVerts = {attach.rendererTask, {.size = 4}};
+				cancelButton.quad = {attach.rendererTask, {.size = 4}};
+				cancelButton.texture = closeRes;
 			}
 		});
 	message = {msgText, face};
@@ -200,13 +200,13 @@ void CollectTextInputView::place()
 {
 	using namespace Gfx;
 	auto &face = *message.face();
-	doIfUsed(spriteVerts,
-		[&](auto &spriteVerts)
+	doIfUsed(cancelButton,
+		[&](auto &cancelButton)
 		{
-			if(cancelTex)
+			if(cancelButton.texture)
 			{
-				cancelBtn.setPosRel(viewRect().pos(RT2DO), face.nominalHeight() * 1.75f, RT2DO);
-				Gfx::Sprite::write(spriteVerts, 0, {.bounds = cancelBtn.as<int16_t>()}, cancelTex);
+				cancelButton.bounds.setPosRel(viewRect().pos(RT2DO), face.nominalHeight() * 1.75f, RT2DO);
+				cancelButton.quad.write(0, {.bounds = cancelButton.bounds.template as<int16_t>(), .textureSpan = cancelButton.texture});
 			}
 		});
 	message.compile(renderer(), {.maxLineSize = int(viewRect().xSize() * 0.95f)});
@@ -230,7 +230,13 @@ bool CollectTextInputView::inputEvent(const Input::Event &e)
 {
 	if(visit(overloaded
 		{
-			[&](const Input::MotionEvent &e) { return e.pushed() && cancelBtn.overlaps(e.pos()); },
+			[&](const Input::MotionEvent &e) -> bool
+			{
+				return doIfUsed(cancelButton, [&](auto &cancelButton)
+				{
+					return e.pushed() && cancelButton.bounds.overlaps(e.pos());
+				});
+			},
 			[&](const Input::KeyEvent &e)	{ return e.pushed(Input::DefaultKey::CANCEL); }
 		}, e))
 	{
@@ -272,14 +278,14 @@ void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace Gfx;
 	auto &basicEffect = cmds.basicEffect();
-	doIfUsed(spriteVerts,
-		[&](auto &spriteVerts)
+	doIfUsed(cancelButton,
+		[&](auto &cancelButton)
 		{
-			if(cancelTex)
+			if(cancelButton.texture)
 			{
 				cmds.setColor(ColorName::WHITE);
 				cmds.set(BlendMode::PREMULT_ALPHA);
-				basicEffect.drawSprite(cmds, spriteVerts, 0, cancelTex);
+				basicEffect.drawSprite(cmds, cancelButton.quad, 0, cancelButton.texture);
 			}
 		});
 	doIfUsedOr(textEntry,
@@ -287,7 +293,7 @@ void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		{
 			cmds.setColor(0.25);
 			basicEffect.disableTexture(cmds);
-			cmds.drawQuad(textEntry.bgVerts, 0);
+			cmds.drawQuad(textEntry.bgQuads, 0);
 			textEntry.draw(cmds);
 			basicEffect.enableAlphaTexture(cmds);
 			message.draw(cmds, {viewRect().xCenter(), textEntry.bgRect().pos(C2DO).y - message.nominalHeight()}, CB2DO, ColorName::WHITE);

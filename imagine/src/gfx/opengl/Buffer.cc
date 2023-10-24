@@ -82,7 +82,7 @@ void GLBuffer<type>::reset(ByteBufferConfig config)
 			GLuint name;
 			glGenBuffers(1, &name);
 			buffer.get() = name;
-			log.info("created buffer object:0x{:X} size:{}", name, size);
+			//log.info("created buffer object:0x{:X} size:{}", name, size);
 			ctx.notifySemaphore();
 			allocBufferData(toGLEnum(type), name, size, usage);
 		});
@@ -91,7 +91,7 @@ void GLBuffer<type>::reset(ByteBufferConfig config)
 	{
 		task().run([name = name(), size = config.size, usage]()
 		{
-			log.info("reset buffer object:0x{:X} size:{}", name, size);
+			//log.info("reset buffer object:0x{:X} size:{}", name, size);
 			allocBufferData(toGLEnum(type), name, size, usage);
 		});
 	}
@@ -156,7 +156,7 @@ void destroyGLBufferRef(RendererTask &rTask, GLBufferRef name)
 {
 	rTask.run([name]()
 	{
-		log.debug("deleting buffer object:0x{:X}", name);
+		//log.debug("deleting buffer object:0x{:X}", name);
 		glDeleteBuffers(1, &name);
 	});
 }

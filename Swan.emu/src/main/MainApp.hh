@@ -26,9 +26,7 @@ class WsApp final: public EmuApp
 public:
 	WsSystem wsSystem;
 
-	WsApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, wsSystem{ctx} {}
-
+	WsApp(ApplicationInitParams initParams, ApplicationContext &ctx);
 	auto &system() { return wsSystem;  }
 	const auto &system() const { return wsSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

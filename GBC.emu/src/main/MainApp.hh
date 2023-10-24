@@ -26,9 +26,7 @@ class GbcApp final: public EmuApp
 public:
 	GbcSystem gbcSystem;
 
-	GbcApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-		EmuApp{initParams, ctx}, gbcSystem{ctx} {}
-
+	GbcApp(ApplicationInitParams, ApplicationContext &);
 	auto &system() { return gbcSystem;  }
 	const auto &system() const { return gbcSystem;  }
 	AssetDesc vControllerAssetDesc(KeyInfo) const;

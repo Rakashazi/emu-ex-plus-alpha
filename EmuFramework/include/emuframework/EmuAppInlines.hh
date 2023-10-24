@@ -18,6 +18,8 @@
 #include <meta.h>
 #include <imagine/config/version.h>
 #include <main/MainApp.hh>
+#include <imagine/gui/NavView.hh>
+#include <imagine/input/android/MogaManager.hh>
 
 const char *const IG::ApplicationContext::applicationName{CONFIG_APP_NAME};
 const char *const IG::ApplicationContext::applicationId{CONFIG_APP_ID};

@@ -17,7 +17,9 @@
 
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Vertex.hh>
+#include <imagine/gfx/Buffer.hh>
 #include <imagine/util/rectangle2.h>
+#include <imagine/util/ranges.hh>
 #include <span>
 #include <array>
 #include <utility>
@@ -25,6 +27,23 @@
 
 namespace IG::Gfx
 {
+
+template <class T>
+class QuadIndexArray : public IndexBuffer<T>
+{
+public:
+	constexpr QuadIndexArray() = default;
+
+	QuadIndexArray(RendererTask &rTask, size_t maxQuads, BufferUsageHint usageHint = BufferUsageHint::constant):
+		IndexBuffer<T>{rTask, {.size = maxQuads * 6, .usageHint = usageHint}}
+	{
+		auto indices = this->map();
+		for(auto i : iotaCount(maxQuads))
+		{
+			std::ranges::copy(makeRectIndexArray(i), indices.begin() + (i * 6));
+		}
+	}
+};
 
 template<VertexLayout V>
 constexpr auto mapQuadUV(std::array<V, 4> v, Rectangle auto rect, Rotation r = Rotation::UP)
@@ -95,7 +114,7 @@ constexpr OutRect remapTexCoordRect(FRect rect)
 }
 
 template<VertexLayout V>
-class QuadGeneric
+class BaseQuad
 {
 public:
 	using Vertex = V;
@@ -110,7 +129,8 @@ public:
 	{
 		PosRect bounds{};
 		Color color{};
-		TexCoordRect textureBounds{};
+		TexCoordRect textureBounds = unitTexCoordRect();
+		TextureSpan textureSpan{};
 		Rotation rotation = Rotation::UP;
 	};
 
@@ -118,14 +138,9 @@ public:
 
 	std::array<V, 4> v;
 
-	constexpr QuadGeneric() = default;
+	constexpr BaseQuad() = default;
 
-	constexpr QuadGeneric(PosPoint bl, PosPoint tl, PosPoint tr, PosPoint br)
-	{
-		setPos(bl, tl, tr, br);
-	}
-
-	constexpr QuadGeneric(RectInitParams params)
+	constexpr BaseQuad(RectInitParams params)
 	{
 		setPos(params.bounds);
 		if constexpr(requires {V::color;})
@@ -134,6 +149,8 @@ public:
 		}
 		if constexpr(requires {V::texCoord;})
 		{
+			if(params.textureSpan)
+				params.textureBounds = remapTexCoordRect(params.textureSpan.bounds);
 			setUV(params.textureBounds, params.rotation);
 		}
 	}
@@ -169,23 +186,28 @@ public:
 
 	static constexpr TexCoordRect remapTexCoordRect(FRect rect)
 	{
-		if(texCoordAttribDesc<V>().normalize)
-			return Gfx::remapTexCoordRect<TexCoordRect>(rect);
-		return rect.as<TexCoord>();
+		if constexpr(requires {V::texCoord;})
+		{
+			if(texCoordAttribDesc<V>().normalize)
+				return Gfx::remapTexCoordRect<TexCoordRect>(rect);
+			return rect.as<TexCoord>();
+		}
+		else
+		{
+			return {};
+		}
 	}
 
 	static constexpr TexCoordRect unitTexCoordRect() { return remapTexCoordRect({{}, {1.f, 1.f}}); }
 
-	static void write(Buffer<V, BufferType::vertex> &buff, ssize_t offset, RectInitParams params)
+	void write(Buffer<V, BufferType::vertex> &buff, ssize_t offset) const
 	{
-		QuadGeneric rect{params};
-		buff.task().write(buff, rect.v, offset * 4);
+		buff.task().write(buff, v, offset * 4);
 	}
 
-	static constexpr void write(std::span<V> span, ssize_t offset, RectInitParams params)
+	constexpr void write(std::span<V> span, ssize_t offset) const
 	{
-		QuadGeneric rect{params};
-		std::ranges::copy(rect, span.begin() + offset * 4);
+		std::ranges::copy(v, span.begin() + offset * 4);
 	}
 
 	constexpr auto &operator[](size_t idx) { return v[idx]; }
@@ -202,13 +224,54 @@ public:
 	constexpr auto end() const { return v.end(); }
 };
 
-using Quad = QuadGeneric<Vertex2F>;
-using TexQuad = QuadGeneric<Vertex2FTexF>;
-using ColQuad = QuadGeneric<Vertex2FColI>;
-using ColTexQuad = QuadGeneric<Vertex2FTexFColI>;
-using IQuad = QuadGeneric<Vertex2I>;
-using ITexQuad = QuadGeneric<Vertex2ITexI>;
-using IColQuad = QuadGeneric<Vertex2IColI>;
-using IColTexQuad = QuadGeneric<Vertex2ITexIColI>;
+using Quad = BaseQuad<Vertex2F>;
+using TexQuad = BaseQuad<Vertex2FTexF>;
+using ColQuad = BaseQuad<Vertex2FColI>;
+using ColTexQuad = BaseQuad<Vertex2FTexFColI>;
+using IQuad = BaseQuad<Vertex2I>;
+using ITexQuad = BaseQuad<Vertex2ITexI>;
+using IColQuad = BaseQuad<Vertex2IColI>;
+using IColTexQuad = BaseQuad<Vertex2ITexIColI>;
+using ILitTexQuad = BaseQuad<Vertex2ITexIColF>;
+
+template<class T>
+class QuadsConfig
+{
+public:
+	size_t size;
+	BufferUsageHint usageHint{BufferUsageHint::dynamic};
+
+	constexpr BufferConfig<T> toBufferConfig() const
+	{
+		return
+		{
+			.size = size * 4,
+			.usageHint = usageHint,
+		};
+	}
+};
+
+template<VertexLayout V>
+class BaseQuads : public VertexBuffer<V>
+{
+public:
+	using Quad = BaseQuad<V>;
+
+	constexpr BaseQuads() = default;
+	BaseQuads(RendererTask &rTask, QuadsConfig<V> config): VertexBuffer<V>{rTask, config.toBufferConfig()} {}
+	void reset(QuadsConfig<V> config) { VertexBuffer<V>::reset(config.toBufferConfig()); }
+	void write(ssize_t offset, Quad quad) { quad.write(*this, offset); }
+	void write(ssize_t offset, Quad::RectInitParams params) { write(offset, Quad{params}); }
+};
+
+using Quads = BaseQuads<Vertex2F>;
+using TexQuads = BaseQuads<Vertex2FTexF>;
+using ColQuads = BaseQuads<Vertex2FColI>;
+using ColTexQuads = BaseQuads<Vertex2FTexFColI>;
+using IQuads = BaseQuads<Vertex2I>;
+using ITexQuads = BaseQuads<Vertex2ITexI>;
+using IColQuads = BaseQuads<Vertex2IColI>;
+using IColTexQuads = BaseQuads<Vertex2ITexIColI>;
+using ILitTexQuads = BaseQuads<Vertex2ITexIColF>;
 
 }

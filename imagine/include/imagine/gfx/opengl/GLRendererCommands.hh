@@ -39,6 +39,7 @@ public:
 	GLRendererCommands(RendererTask &rTask, Window *winPtr, Drawable drawable, Rect2<int> viewport,
 		GLDisplay glDpy, const GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr);
 	void bindGLArrayBuffer(GLuint vbo);
+	void bindGLIndexBuffer(GLuint ibo);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	void glcMatrixMode(GLenum mode);
 	#endif
@@ -52,7 +53,7 @@ public:
 	void glcDisableClientState(GLenum cap);
 	void glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
 	#endif
-	void setupVertexArrayPointers(const char *v, int stride,
+	void setupVertexArrayPointers(int stride,
 		AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib);
 	void setupShaderVertexArrayPointers(int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc);
 
@@ -64,40 +65,41 @@ protected:
 	void notifyDrawComplete();
 	void notifyPresentComplete();
 	const GLContext &glContext() const;
-	bool hasVBOFuncs() const;
 	bool useFixedFunctionPipeline() const;
 
 	template<VertexLayout V>
-	void setupVertexArrayPointers(const V *v)
+	void setupVertexArrayPointers()
 	{
-		setupVertexArrayPointers((const char*)v, sizeof(V),
+		setupVertexArrayPointers(sizeof(V),
 			texCoordAttribDesc<V>(), colorAttribDesc<V>(), posAttribDesc<V>());
 	}
 
 	template<VertexLayout V>
-	void setupShaderVertexArrayPointers(const V *v)
+	void setupShaderVertexArrayPointers()
 	{
 		setupShaderVertexArrayPointers(sizeof(V), vertexLayoutEnableMask<V>(), vertexLayoutDesc<V>());
 	}
 
-	void setVertexAttribs(VertexLayout auto *v)
+	template<VertexLayout V>
+	void setVertexAttribs()
 	{
-		if(hasVBOFuncs())
-			v = nullptr;
 		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 		if(useFixedFunctionPipeline())
 		{
-			setupVertexArrayPointers(v);
+			setupVertexArrayPointers<V>();
 			return;
 		}
 		#endif
 		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-		setupShaderVertexArrayPointers(v);
+		setupShaderVertexArrayPointers<V>();
 		#endif
 	}
 
-	template<class T>
-	void setVertexBuffer(const Buffer<T, BufferType::vertex> &verts) { bindGLArrayBuffer(verts.name()); }
+	template<VertexLayout V>
+	void setVertexBuffer(const Buffer<V, BufferType::vertex> &verts) { bindGLArrayBuffer(verts.name()); }
+
+	template<class I>
+	void setIndexBuffer(const Buffer<I, BufferType::index> &idxs) { bindGLIndexBuffer(idxs.name()); }
 
 	RendererTask *rTask{};
 	Renderer *r{};
@@ -108,6 +110,7 @@ protected:
 	Drawable drawable{};
 	Rect2<int> winViewport{};
 	GLuint currSamplerName{};
+	GLuint currIndexBufferName{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	NativeProgram currProgram{};
 	VertexLayoutFlags currentEnabledVertexLayout{};

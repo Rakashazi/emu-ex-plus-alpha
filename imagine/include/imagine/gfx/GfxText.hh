@@ -16,8 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/Buffer.hh>
-#include <imagine/gfx/Vertex.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string/utf16.hh>
 #include <limits>
@@ -100,7 +99,7 @@ protected:
 	int xSize{};
 	int ySize{};
 	GlyphSetMetrics metrics;
-	VertexBuffer<Vertex2ITexI> verts;
+	ITexQuads quads;
 
 	bool hasText() const;
 };

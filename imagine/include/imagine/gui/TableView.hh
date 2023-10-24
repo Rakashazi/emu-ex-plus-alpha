@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/gui/ScrollView.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/concepts.hh>
@@ -42,8 +43,8 @@ public:
 
 	TableView(UTF16Convertible auto &&name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
 		ScrollView{attach}, items{items}, item{item}, nameStr{IG_forward(name)},
-		selectVerts{attach.rendererTask, {.size = 4}},
-		separatorVerts{attach.rendererTask, {.size = 4 * maxSeparators, .usageHint = Gfx::BufferUsageHint::streaming}} {}
+		selectQuads{attach.rendererTask, {.size = 1}},
+		separatorQuads{attach.rendererTask, {.size = maxSeparators, .usageHint = Gfx::BufferUsageHint::streaming}} {}
 
 	TableView(ViewAttachParams attach, Container auto &item):
 		TableView{UTF16String{}, attach, item} {}
@@ -88,8 +89,8 @@ protected:
 	ItemDelegate item{};
 	SelectElementDelegate selectElementDel{};
 	UTF16String nameStr{};
-	Gfx::VertexBuffer<Gfx::IQuad::Vertex> selectVerts;
-	Gfx::VertexBuffer<Gfx::IColQuad::Vertex> separatorVerts;
+	Gfx::IQuads selectQuads;
+	Gfx::IColQuads separatorQuads;
 	int yCellSize = 0;
 	int selected = -1;
 	int visibleCells = 0;
