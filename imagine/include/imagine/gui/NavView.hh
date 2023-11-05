@@ -20,6 +20,7 @@
 #include <imagine/gfx/GfxLGradient.hh>
 #include <imagine/gfx/Quads.hh>
 #include <imagine/gui/View.hh>
+#include <imagine/util/memory/DynArray.hh>
 #include <memory>
 #include <array>
 #include <span>
@@ -77,8 +78,7 @@ public:
 	void setRotateLeftButton(bool on);
 
 protected:
-	std::unique_ptr<Gfx::LGradientStopDesc[]> gradientStops;
-	size_t gradientStopsSize{};
+	DynArray<Gfx::LGradientStopDesc> gradientStops;
 	Gfx::IQuads selectQuad;
 	Gfx::VertexBuffer<Gfx::Vertex2IColI> bgVerts;
 	Gfx::ITexQuads buttonQuads;

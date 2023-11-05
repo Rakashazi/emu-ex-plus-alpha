@@ -133,7 +133,7 @@ int mame_z80_irq_callback(int a)
     return 0;
 }
 
-void cpu_z80_mkstate(gzFile gzf,int mode) {
+void cpu_z80_mkstate(Stream *gzf,int mode) {
 	mkstate_data(gzf, z80_stateData(), z80_stateDataSize, mode);
 	mkstate_data(gzf, mame_z80mem, 0x10000, mode);
 	if (mode==STREAD) {

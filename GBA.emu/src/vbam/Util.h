@@ -46,15 +46,14 @@ void utilGBAFindSave(const uint8_t *rom, const int);
 void utilUpdateSystemColorMaps(int colorDepth, int redShift, int greenShift, int blueShift, bool lcd = false);
 bool utilFileExists(const char *filename);
 
-#ifdef __LIBRETRO__
 void utilWriteIntMem(uint8_t *&data, int);
 void utilWriteMem(uint8_t *&data, const void *in_data, unsigned size);
-void utilWriteDataMem(uint8_t *&data, variable_desc *);
+void utilWriteDataMem(uint8_t *&data, const variable_desc *);
 
 int utilReadIntMem(const uint8_t *&data);
 void utilReadMem(void *buf, const uint8_t *&data, unsigned size);
-void utilReadDataMem(const uint8_t *&data, variable_desc *);
-#else
+void utilReadDataMem(const uint8_t *&data, const variable_desc *);
+
 gzFile utilGzOpen(int fd, const char *mode);
 gzFile utilMemGzOpen(char *memory, int available, const char *mode);
 int utilGzWrite(gzFile file, const voidp buffer, unsigned int len);
@@ -67,6 +66,5 @@ void utilReadData(gzFile, const variable_desc *);
 void utilReadDataSkip(gzFile, const variable_desc *);
 int utilReadInt(gzFile);
 void utilWriteInt(gzFile, int);
-#endif
 
 #endif // UTIL_H

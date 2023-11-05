@@ -58,9 +58,6 @@ CDInterface *CDCoreList[] =
 
 #define SNDCORE_IMAGINE 1
 
-SaturnApp::SaturnApp(ApplicationInitParams initParams, ApplicationContext &ctx):
-	EmuApp{initParams, ctx}, saturnSystem{ctx} {}
-
 // EmuFramework is in charge of audio setup & parameters
 static int SNDImagineInit() { logMsg("called sound core init"); return 0; }
 static void SNDImagineDeInit() {}
@@ -150,6 +147,9 @@ static EmuSystemTaskContext emuSysTask{};
 static EmuAudio *emuAudio{};
 static EmuVideo *emuVideo{};
 PerPad_struct *pad[2];
+
+SaturnApp::SaturnApp(ApplicationInitParams initParams, ApplicationContext &ctx):
+	EmuApp{initParams, ctx}, saturnSystem{ctx} {}
 
 static bool hasCDExtension(std::string_view name)
 {
@@ -258,17 +258,9 @@ FS::FileString SaturnSystem::stateFilename(int slot, std::string_view name) cons
 	return IG::format<FS::FileString>("{}.0{}.yss", name, saveSlotCharUpper(slot));
 }
 
-void SaturnSystem::saveState(IG::CStringView path)
-{
-	if(YabSaveState(path) != 0)
-		throwFileWriteError();
-}
-
-void SaturnSystem::loadState(EmuApp &, IG::CStringView path)
-{
-	if(YabLoadState(path) != 0)
-		throwFileReadError();
-}
+size_t SaturnSystem::stateSize() { return 0; }
+void SaturnSystem::readState(EmuApp &app, std::span<uint8_t> buff) {}
+size_t SaturnSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags) { return 0; }
 
 void SaturnSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 {

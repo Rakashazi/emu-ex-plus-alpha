@@ -277,14 +277,14 @@ int VicePlugin::resources_get_default_value(const char *name, void *value_return
 	return -1;
 }
 
-int VicePlugin::machine_write_snapshot(const char *name, int save_roms, int save_disks, int even_mode)
+int VicePlugin::machine_write_snapshot(const char *name, int save_roms, int save_disks, int even_mode) const
 {
 	if(machine_write_snapshot_)
 		return machine_write_snapshot_(name, save_roms, save_disks, even_mode);
 	return -1;
 }
 
-int VicePlugin::machine_read_snapshot(const char *name, int event_mode)
+int VicePlugin::machine_read_snapshot(const char *name, int event_mode) const
 {
 	if(machine_read_snapshot_)
 		return machine_read_snapshot_(name, event_mode);
@@ -308,7 +308,7 @@ struct drive_type_info_s *VicePlugin::machine_drive_get_type_info_list()
 	return machine_drive_get_type_info_list_();
 }
 
-void VicePlugin::interrupt_maincpu_trigger_trap(void trap_func(uint16_t, void *data), void *data)
+void VicePlugin::interrupt_maincpu_trigger_trap(void trap_func(uint16_t, void *data), void *data) const
 {
 	if(interrupt_maincpu_trigger_trap_)
 		interrupt_maincpu_trigger_trap_(trap_func, data);

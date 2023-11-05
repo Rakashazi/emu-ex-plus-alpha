@@ -281,7 +281,7 @@ static void MyWrite32(unsigned int a,unsigned int   d) {
 	mem68k_store_invalid_long(a, d);
 }
 
-void cpu_68k_mkstate(gzFile gzf,int mode) {
+void cpu_68k_mkstate(Stream *gzf,int mode) {
 	Uint8 save_buffer[128];
 	logMsg("Save state mode %s PC=%08x",(mode==STREAD?"READ":"WRITE"),MyCyclone.pc-MyCyclone.membase);
 	if (mode==STWRITE) CyclonePack(&MyCyclone, save_buffer);

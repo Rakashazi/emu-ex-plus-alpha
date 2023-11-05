@@ -162,13 +162,13 @@ extern void CPUUpdateRender(GBASys &gba);
 extern void CPUUpdateRenderBuffers(bool);
 extern bool CPUReadMemState(GBASys &gba, char *, int);
 extern bool CPUWriteMemState(GBASys &gba, char *, int);
-#ifdef __LIBRETRO__
-extern bool CPUReadState(const uint8_t*);
-extern unsigned int CPUWriteState(uint8_t* data, unsigned int size);
-#else
+
+extern bool CPUReadState(GBASys &gba, const uint8_t*);
+extern unsigned int CPUWriteState(GBASys &gba, uint8_t* data);
+
 extern bool CPUReadState(GBASys &gba, const char*);
 extern bool CPUWriteState(GBASys &gba, const char*);
-#endif
+
 extern int CPULoadRom(GBASys &gba, const char *);
 extern int CPULoadRomWithIO(GBASys &gba, IG::IO &);
 extern void doMirroring(GBASys &gba, bool);

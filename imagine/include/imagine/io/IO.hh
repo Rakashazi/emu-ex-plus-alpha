@@ -55,6 +55,8 @@ public:
 	using BufferMode = IOBufferMode;
 	using SeekMode = IOSeekMode;
 
+	IO(IOBuffer buff): IOVariant{std::in_place_type<MapIO>, std::move(buff)} {}
+
 	// core API
 	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});
 	ssize_t write(const void *buff, size_t bytes, std::optional<off_t> offset = {});

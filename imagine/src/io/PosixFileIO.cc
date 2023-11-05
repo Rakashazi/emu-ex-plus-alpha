@@ -15,10 +15,11 @@
 
 #define LOGTAG "PosixFileIO"
 #include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/variant.hh>
-#include "IOUtils.hh"
+#include <imagine/io/IOUtils-impl.hh>
 #include <cstring>
 
 namespace IG
@@ -62,6 +63,10 @@ PosixFileIO::PosixFileIO(CStringView path, IOAccessHint access, OpenFlags openFl
 
 PosixFileIO::PosixFileIO(CStringView path, OpenFlags openFlags):
 	PosixFileIO{path, IOAccessHint::Normal, openFlags} {}
+
+PosixFileIO::PosixFileIO(PosixIO io): ioImpl{std::move(io)} {}
+
+PosixFileIO::PosixFileIO(MapIO io): ioImpl{std::move(io)} {}
 
 void PosixFileIO::initMmap(IOAccessHint access, OpenFlags openFlags)
 {

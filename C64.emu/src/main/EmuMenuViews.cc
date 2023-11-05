@@ -324,24 +324,21 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				app().validSearchPath(system().sysFilePath[0]),
 				[this](CStringView path, FS::file_type type)
 				{
-					if(type == FS::file_type::directory && !appContext().fileUriExists(FS::uriString(path, "DRIVES")))
+					const auto &sysFilePath = system().sysFilePath;
+					if(type == FS::file_type::none && sysFilePath.size() > 1)
 					{
-						app().postErrorMessage("Path is missing DRIVES folder");
-						return false;
+						system().setSystemFilesPath(appContext(), path, type);
+						app().postMessage(5, false, std::format("Using fallback paths:\n{}\n{}", sysFilePath[1], sysFilePath[2]));
 					}
-					logMsg("set firmware path:%s", path.data());
-					systemFilePath.compile(sysPathMenuEntryStr(path), renderer());
-					auto &sysFilePath = system().sysFilePath;
-					sysFilePath[0] = path;
-					if(type == FS::file_type::none)
+					else
 					{
-						if constexpr(Config::envIsLinux)
-							app().postMessage(5, false, std::format("Using fallback paths:\n{}\n{}", sysFilePath[3], sysFilePath[4]));
-						else
+						if(!system().setSystemFilesPath(appContext(), path, type))
 						{
-							app().postMessage(5, false, std::format("Using fallback paths:\n{}\n{}", sysFilePath[1], sysFilePath[2]));
+							app().postErrorMessage("Path is missing DRIVES folder");
+							return false;
 						}
 					}
+					systemFilePath.compile(sysPathMenuEntryStr(path), renderer());
 					return true;
 				});
 			view->appendItem(downloadSystemFiles);

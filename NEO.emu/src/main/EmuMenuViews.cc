@@ -505,16 +505,23 @@ public:
 		auto ctx = appContext();
 		std::string fileList{}; // hold concatenated list of relevant filenames for fast checking
 		fileList.reserve(4095); // avoid initial small re-allocations
-		ctx.forEachInDirectoryUri(app().contentSearchPath(),
-			[&](auto &entry)
-			{
-				if(entry.type() == FS::file_type::directory)
+		try
+		{
+			ctx.forEachInDirectoryUri(app().contentSearchPath(),
+				[&](auto &entry)
+				{
+					if(entry.type() == FS::file_type::directory)
+						return true;
+					if(entry.name().size() > 13) // MAME filenames follow 8.3 convention but names may have 9 characters
+						return true;
+					fileList += entry.name();
 					return true;
-				if(entry.name().size() > 13) // MAME filenames follow 8.3 convention but names may have 9 characters
-					return true;
-				fileList += entry.name();
-				return true;
-			});
+				});
+		}
+		catch(...)
+		{
+			return;
+		}
 		for(const auto &entry : romlist)
 		{
 			ROM_DEF *drv = res_load_drv(&ctx, entry.name);
@@ -681,7 +688,7 @@ private:
 			auto gameListMenu = makeView<GameListView>();
 			if(!gameListMenu->games())
 			{
-				app().postMessage(6, true, "No games found, use \"Load Game\" command to browse to a directory with valid games.");
+				app().postMessage(6, true, "No content found, use \"Open Content\" command to browse to a folder with ROM archives.");
 				return;
 			}
 			pushAndShow(std::move(gameListMenu), e);

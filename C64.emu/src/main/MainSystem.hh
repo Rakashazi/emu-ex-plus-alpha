@@ -20,6 +20,7 @@
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/fs/ArchiveFS.hh>
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <vector>
@@ -91,6 +92,7 @@ public:
 	struct video_canvas_s *activeCanvas{};
 	const char *sysFileDir{};
 	VicePlugin plugin{};
+	mutable FS::ArchiveIterator viceSysFilesArchiveIt;
 	std::string defaultPaletteName{};
 	std::string lastMissingSysFile;
 	IG::PixmapView canvasSrcPix{};
@@ -182,14 +184,18 @@ public:
 	bool currSystemIsC64Or128() const;
 	void setRuntimeReuSize(int size);
 	void resetCanvasSourcePixmap(struct video_canvas_s *c);
+	FS::ArchiveIterator &systemFilesArchiveIterator(ApplicationContext, std::string_view path) const;
+	void returnSystemFilesArchiveIO(ArchiveIO);
+	bool setSystemFilesPath(ApplicationContext, CStringView path, FS::file_type);
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
 	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	std::string_view stateFilenameExt() const { return ".vsf"; }
-	void loadState(EmuApp &, CStringView uri);
-	void saveState(CStringView path);
+	size_t stateSize();
+	void readState(EmuApp &, std::span<uint8_t> buff);
+	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
 	bool readConfig(ConfigType, MapIO &io, unsigned key, size_t readSize);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);

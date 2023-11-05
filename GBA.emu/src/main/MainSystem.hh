@@ -58,6 +58,8 @@ public:
 	Byte1Option optionRtcEmulation{CFGKEY_RTC_EMULATION, std::to_underlying(RtcMode::AUTO), 0, optionIsValidWithMax<2>};
 	Byte4Option optionSaveTypeOverride{CFGKEY_SAVE_TYPE_OVERRIDE, GBA_SAVE_AUTO, 0, optionSaveTypeOverrideIsValid};
 	FileIO saveFileIO;
+	static constexpr size_t maxStateSize{0x1FFFFF};
+	size_t saveStateSize{};
 	int detectedSaveSize{};
 	int sensorX{}, sensorY{}, sensorZ{};
 	float lightSensorScaleLux{lightSensorScaleLuxDefault};
@@ -83,8 +85,9 @@ public:
 	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	std::string_view stateFilenameExt() const { return ".gqs"; }
-	void loadState(EmuApp &, CStringView uri);
-	void saveState(CStringView path);
+	size_t stateSize() { return saveStateSize; }
+	void readState(EmuApp &, std::span<uint8_t> buff);
+	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
 	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);

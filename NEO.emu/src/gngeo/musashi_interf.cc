@@ -368,7 +368,7 @@ CLINK Uint32 cpu_68k_getpc(void)
 	return mm68k.pc;
 }
 
-CLINK void cpu_68k_mkstate(gzFile gzf,int mode)
+CLINK void cpu_68k_mkstate(Stream *gzf,int mode)
 {
 	mkstate_data(gzf, &mm68k.cycleCount, sizeof(mm68k.cycleCount), mode);
 	if(mode == STWRITE)

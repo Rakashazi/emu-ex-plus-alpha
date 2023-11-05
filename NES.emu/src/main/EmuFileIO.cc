@@ -21,7 +21,10 @@ namespace EmuEx
 {
 
 EmuFileIO::EmuFileIO(IG::IO &srcIO):
-	io{srcIO}
+	EmuFileIO{IG::MapIO{srcIO}} {}
+
+EmuFileIO::EmuFileIO(IG::MapIO srcIO):
+	io{std::move(srcIO)}
 {
 	if(!io) [[unlikely]]
 	{
@@ -31,12 +34,24 @@ EmuFileIO::EmuFileIO(IG::IO &srcIO):
 
 int EmuFileIO::fgetc() { return IG::fgetc(io); }
 
+int EmuFileIO::fputc(int c)
+{
+	io.put(c);
+	return c;
+}
+
 size_t EmuFileIO::_fread(const void *ptr, size_t bytes)
 {
 	ssize_t ret = io.read((void*)ptr, bytes);
 	if(ret < (ssize_t)bytes)
 		failbit = true;
 	return ret;
+}
+
+void EmuFileIO::fwrite(const void *ptr, size_t bytes)
+{
+	if(io.write(ptr, bytes) == (ssize_t)bytes)
+		failbit = true;
 }
 
 int EmuFileIO::fseek(long int offset, int origin)

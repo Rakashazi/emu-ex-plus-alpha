@@ -98,7 +98,7 @@ void pd4990a_init_save_state(void) {
 }
 #endif
 
-void pd4990a_mkstate(gzFile gzf,int mode)
+void pd4990a_mkstate(Stream *gzf,int mode)
 {
 	mkstate_data(gzf, &pd4990a, sizeof(pd4990a), mode);
 }

@@ -25,6 +25,7 @@
 #include "Stream.h"
 #include "VirtualFS.h"
 #include <imagine/io/FileIO.hh>
+#include <span>
 
 namespace Mednafen
 {
@@ -61,6 +62,7 @@ class FileStream : public Stream
  };
 
  FileStream(const std::string& path, const uint32 mode, const int do_lock = false, const uint32 buffer_size = 4096);
+ FileStream(std::span<uint8_t> buff);
  virtual ~FileStream() override;
 
  virtual uint64 attributes(void) override;

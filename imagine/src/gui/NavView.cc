@@ -218,9 +218,8 @@ void BasicNavView::setBackgroundGradient(std::span<const Gfx::LGradientStopDesc>
 		bgVerts = {};
 		return;
 	}
-	gradientStops = std::make_unique<Gfx::LGradientStopDesc[]>(gradStops.size());
-	std::ranges::copy(gradStops, gradientStops.get());
-	gradientStopsSize = gradStops.size();
+	gradientStops.reset(gradStops.size());
+	std::ranges::copy(gradStops, gradientStops.begin());
 }
 
 void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
@@ -303,12 +302,12 @@ void BasicNavView::place()
 		buttonQuads.write(1, {.bounds = scaledRect.as<int16_t>(), .textureSpan = rightTex});
 	}
 	bool needsTopPadding = viewRect().y > displayRect().y;
-	auto bgVertsSize = LGradient::vertexSize(gradientStopsSize, needsTopPadding ? LGradientPadMode::top : LGradientPadMode::none);
+	auto bgVertsSize = LGradient::vertexSize(gradientStops.size(), needsTopPadding ? LGradientPadMode::top : LGradientPadMode::none);
 	bgVerts.reset({.size = bgVertsSize});
 	auto bgVertsMap = bgVerts.map();
 	auto rect = displayRect().xRect() + viewRect().yRect();
 	std::optional<int> topPadding = needsTopPadding ? displayInsetRect(Direction::TOP).y : std::optional<int>{};
-	LGradient::write(bgVertsMap, 0, std::span{gradientStops.get(), gradientStopsSize}, rect, topPadding);
+	LGradient::write(bgVertsMap, 0, gradientStops, rect, topPadding);
 }
 
 void BasicNavView::showLeftBtn(bool show)

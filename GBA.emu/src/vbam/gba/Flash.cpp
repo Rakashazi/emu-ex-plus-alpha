@@ -232,18 +232,25 @@ static auto flashSaveData3(uint8_t *flashSaveMemory, int &flashSize)
   }};
 };
 
-#ifdef __LIBRETRO__
 void flashSaveGame(uint8_t*& data)
 {
-    utilWriteDataMem(data, flashSaveData3);
+    uint8_t flashSaveMemoryTemp[SIZE_FLASH1M]{};
+    IG::copy_n(flashSaveMemory.data(), flashSaveMemory.size(), flashSaveMemoryTemp);
+    utilWriteDataMem(data, flashSaveData3(flashSaveMemoryTemp, flashSize).data());
 }
 
 void flashReadGame(const uint8_t*& data)
 {
-    utilReadDataMem(data, flashSaveData3);
+  uint8_t flashSaveMemoryTemp[SIZE_FLASH1M]{};
+  int flashSizeTemp = flashSize;
+  utilReadDataMem(data, flashSaveData3(flashSaveMemoryTemp, flashSizeTemp).data());
+  if(flashSizeTemp != flashSize)
+  {
+      logWarn("expected flash size:%d but got %d from state", flashSize, flashSizeTemp);
+  }
+  IG::copy_n(flashSaveMemoryTemp, flashSaveMemory.size(), flashSaveMemory.data());
 }
 
-#else // !__LIBRETRO__
 static auto flashSaveData(uint8_t *flashSaveMemory)
 {
   return std::array<variable_desc, 4>
@@ -306,4 +313,3 @@ void flashReadGameSkip(gzFile gzFile, int version)
         utilReadDataSkip(gzFile, flashSaveData3(flashSaveMemoryTemp, flashSizeTemp).data());
     }
 }
-#endif

@@ -21,6 +21,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/audio/SampleFormat.hh>
 #include <imagine/util/rectangle2.h>
+#include <imagine/util/memory/DynArray.hh>
 #include <emuframework/EmuTiming.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/EmuInput.hh>
@@ -131,6 +132,11 @@ using FrameTime = Nanoseconds;
 
 constexpr const char *optionUserPathContentToken = ":CONTENT:";
 
+struct SaveStateFlags
+{
+	uint8_t uncompressed:1{};
+};
+
 class EmuSystem
 {
 public:
@@ -194,8 +200,9 @@ public:
 	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	std::string_view stateFilenameExt() const;
-	void loadState(EmuApp &, CStringView uri);
-	void saveState(CStringView path);
+	size_t stateSize();
+	void readState(EmuApp &, std::span<uint8_t> buff);
+	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
 	bool readConfig(ConfigType, MapIO &io, unsigned key, size_t readSize);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
@@ -236,6 +243,10 @@ public:
 	bool isActive() const { return state == State::ACTIVE; }
 	bool isStarted() const { return state == State::ACTIVE || state == State::PAUSED; }
 	bool isPaused() const { return state == State::PAUSED; }
+	void loadState(EmuApp &, CStringView uri);
+	void saveState(CStringView uri);
+	DynArray<uint8_t> saveState();
+	DynArray<uint8_t> uncompressGzipState(std::span<uint8_t> buff, size_t expectedSize);
 	bool stateExists(int slot) const;
 	static std::string_view stateSlotName(int slot);
 	std::string_view stateSlotName() { return stateSlotName(stateSlot()); }

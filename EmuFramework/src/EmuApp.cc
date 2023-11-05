@@ -830,7 +830,7 @@ void EmuApp::launchSystem(const Input::Event &e)
 		auto stateIsOlderThanBackupMemory = [&]
 		{
 			auto stateTime = autosaveManager_.stateTime();
-			return hasTime(stateTime) && stateTime < autosaveManager_.backupMemoryTime();
+			return hasTime(stateTime) && (autosaveManager_.backupMemoryTime() - stateTime) > Seconds{1};
 		};
 		if(system().usesBackupMemory() && loadMode == LoadAutosaveMode::Normal &&
 			!autosaveManager_.saveOnlyBackupMemory && stateIsOlderThanBackupMemory())

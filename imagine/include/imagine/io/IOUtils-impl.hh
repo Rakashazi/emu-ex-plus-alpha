@@ -15,8 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/io/IO.hh>
-#include <array>
+#include <imagine/io/IOUtils.hh>
 
 namespace IG
 {
@@ -43,7 +42,7 @@ static IOBuffer makeBufferCopy(auto &io)
 {
 	auto size = io.size();
 	auto buff = std::make_unique<uint8_t[]>(size);
-	if(io.read(buff.get(), size) != (ssize_t)size)
+	if(io.read(buff.get(), size, 0) != (ssize_t)size)
 	{
 		return {};
 	}
@@ -171,6 +170,17 @@ FILE *IOUtils<IO>::toFileStream(const char *opentype)
 	#endif
 	assert(f);
 	return f;
+}
+
+inline auto transformOffsetToAbsolute(IOSeekMode mode, auto offset, auto startPos, auto endPos, auto currentPos)
+{
+	switch(mode)
+	{
+		case IOSeekMode::Set: return offset + startPos;
+		case IOSeekMode::End: return offset + endPos;
+		case IOSeekMode::Cur: return offset + currentPos;
+	}
+	bug_unreachable("IOSeekMode == %d", (int)mode);
 }
 
 }

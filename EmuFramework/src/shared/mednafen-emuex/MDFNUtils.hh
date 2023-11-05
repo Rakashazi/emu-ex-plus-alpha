@@ -18,11 +18,13 @@
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/zlib.hh>
 #include <emuframework/EmuApp.hh>
 #include <mednafen/types.h>
 #include <mednafen/video/surface.h>
 #include <mednafen/hash/md5.h>
 #include <mednafen/git.h>
+#include <mednafen/FileStream.h>
 #include <mednafen/MemoryStream.h>
 #include <main/MainSystem.hh>
 #include <string_view>
@@ -134,6 +136,57 @@ inline void runFrame(EmuSystem &sys, Mednafen::MDFNGI &mdfnGameInfo, EmuSystemTa
 	{
 		assert((unsigned)espec.SoundBufSize <= audioPtr->format().bytesToFrames(sizeof(audioBuff)));
 		audioPtr->writeFrames((uint8_t*)audioBuff, espec.SoundBufSize);
+	}
+}
+
+// Save states
+
+inline size_t stateSizeMDFN()
+{
+	using namespace Mednafen;
+	MemoryStream s;
+	MDFNSS_SaveSM(&s);
+	return s.size();
+}
+
+inline void readStateMDFN(EmuApp &app, std::span<uint8_t> buff)
+{
+	using namespace Mednafen;
+	if(hasGzipHeader(buff))
+	{
+		MemoryStream s{stateSizeMDFN(), -1};
+		auto outputSize = uncompressGzip({s.map(), size_t(s.size())}, buff);
+		if(!outputSize)
+			throw std::runtime_error("Error uncompressing state");
+		if(outputSize <= 32)
+			throw std::runtime_error("Invalid state size");
+		auto sizeFromHeader = MDFN_de32lsb(s.map() + 16 + 4) & 0x7FFFFFFF;
+		if(sizeFromHeader != outputSize)
+			throw std::runtime_error(std::format("Bad state header size, got {} but expected {}", sizeFromHeader, outputSize));
+		s.setSize(outputSize);
+		MDFNSS_LoadSM(&s);
+	}
+	else
+	{
+		FileStream s{buff};
+		MDFNSS_LoadSM(&s);
+	}
+}
+
+inline size_t writeStateMDFN(std::span<uint8_t> buff, SaveStateFlags flags)
+{
+	using namespace Mednafen;
+	if(flags.uncompressed)
+	{
+		FileStream s{buff};
+		MDFNSS_SaveSM(&s);
+		return s.size();
+	}
+	else
+	{
+		MemoryStream s;
+		MDFNSS_SaveSM(&s);
+		return compressGzip(buff, {s.map(), size_t(s.size())}, MDFN_GetSettingI("filesys.state_comp_level"));
 	}
 }
 

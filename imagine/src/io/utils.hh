@@ -7,17 +7,6 @@
 namespace IG
 {
 
-inline auto transformOffsetToAbsolute(IOSeekMode mode, auto offset, auto startPos, auto endPos, auto currentPos)
-{
-	switch(mode)
-	{
-		case IOSeekMode::Set: return offset + startPos;
-		case IOSeekMode::End: return offset + endPos;
-		case IOSeekMode::Cur: return offset + currentPos;
-	}
-	bug_unreachable("IOSeekMode == %d", (int)mode);
-}
-
 inline auto asString(IOAccessHint access)
 {
 	switch(access)

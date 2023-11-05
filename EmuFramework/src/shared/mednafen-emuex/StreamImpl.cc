@@ -67,6 +67,9 @@ catch(std::system_error &err)
 	throw MDFN_Error(ene.Errno(), _("Error opening file \"%s\": %s"), path.c_str(), ene.StrError());
 }
 
+FileStream::FileStream(std::span<uint8_t> buff):
+	io{IG::MapIO{buff}} {}
+
 FileStream::~FileStream() {}
 
 uint64 FileStream::attributes(void)

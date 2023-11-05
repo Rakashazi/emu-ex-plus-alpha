@@ -145,22 +145,15 @@ static FS::PathString bramSaveFilename(EmuApp &app)
 	return app.contentSaveFilePath(".brm");
 }
 
-static const unsigned maxSaveStateSize = STATE_SIZE+4;
-
-void MdSystem::saveState(IG::CStringView path)
+void MdSystem::readState(EmuApp &app, std::span<uint8_t> buff)
 {
-	auto stateData = std::make_unique<uint8_t[]>(maxSaveStateSize);
-	logMsg("saving state data");
-	size_t size = state_save(stateData.get());
-	logMsg("writing to file");
-	if(FileUtils::writeToUri(appContext(), path, {stateData.get(), size}) == -1)
-		throwFileWriteError();
-	logMsg("wrote %zu byte state", size);
+	state_load(buff.data());
 }
 
-void MdSystem::loadState(EmuApp &app, IG::CStringView path)
+size_t MdSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
 {
-	state_load(FileUtils::bufferFromUri(app.appContext(), path).data());
+	assert(buff.size() == maxSaveStateSize);
+	return state_save(buff.data());
 }
 
 static bool sramHasContent(std::span<uint8> sram)

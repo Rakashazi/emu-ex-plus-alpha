@@ -20,6 +20,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/span.hh>
 #include <sys/time.h>
 
 extern "C"
@@ -65,6 +66,7 @@ extern "C"
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"main"};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nvice-emu.sourceforge.io";
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
@@ -243,54 +245,86 @@ FS::FileString C64System::stateFilename(int slot, std::string_view name) const
 
 struct SnapshotTrapData
 {
-	VicePlugin &plugin;
-	const char *pathStr{};
-	bool hasError = true;
+	const VicePlugin &plugin;
+	uint8_t *buffData{};
+	size_t buffSize{};
+	bool hasError{true};
 };
+
+static std::array<char, 32> snapshotVPath(SnapshotTrapData &data)
+{
+	std::array<char, 32> fileStr;
+	// Encode the data/size pointers after the string null terminator
+	if(data.buffData)
+	{
+		auto it = std::ranges::copy(":::B", std::begin(fileStr)).out;
+		it = std::ranges::copy(addressAsBytes(data.buffSize), it).out;
+		std::ranges::copy(asBytes(data.buffData), it);
+		//log.info("encoded size ptr:{} data ptr:{}", (void*)&data.buffSize, (void*)data.buffData);
+	}
+	else
+	{
+		auto it = std::ranges::copy(":::N", std::begin(fileStr)).out;
+		std::ranges::copy(addressAsBytes(data.buffSize), it);
+		//log.info("encoded size ptr:{}", (void*)&data.buffSize);
+	}
+	return fileStr;
+}
 
 static void loadSnapshotTrap(uint16_t, void *data)
 {
-	auto snapData = (SnapshotTrapData*)data;
-	logMsg("loading state: %s", snapData->pathStr);
-	if(snapData->plugin.machine_read_snapshot(snapData->pathStr, 0) < 0)
-		snapData->hasError = true;
+	auto &snapData = *((SnapshotTrapData*)data);
+	assumeExpr(snapData.buffData);
+	log.info("loading state at:{} size:{}", (void*)snapData.buffData, snapData.buffSize);
+	if(snapData.plugin.machine_read_snapshot(snapshotVPath(snapData).data(), 0) < 0)
+		snapData.hasError = true;
 	else
-		snapData->hasError = false;
+		snapData.hasError = false;
 }
 
 static void saveSnapshotTrap(uint16_t, void *data)
 {
-	auto snapData = (SnapshotTrapData*)data;
-	logMsg("saving state: %s", snapData->pathStr);
-	if(snapData->plugin.machine_write_snapshot(snapData->pathStr, 1, 1, 0) < 0)
-		snapData->hasError = true;
+	auto &snapData = *((SnapshotTrapData*)data);
+	log.info("saving state at:{} size:{}", (void*)snapData.buffData, snapData.buffSize);
+	if(snapData.plugin.machine_write_snapshot(snapshotVPath(snapData).data(), 1, 1, 0) < 0)
+		snapData.hasError = true;
 	else
-		snapData->hasError = false;
+		snapData.hasError = false;
 }
 
-void C64System::saveState(IG::CStringView path)
+size_t C64System::stateSize()
 {
-	SnapshotTrapData data{.plugin{plugin}, .pathStr{path}};
+	SnapshotTrapData data{.plugin{plugin}};
 	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 	execC64Frame(); // execute cpu trap
 	if(data.hasError)
-		throwFileWriteError();
+		return 0;
+	return data.buffSize;
 }
 
-void C64System::loadState(EmuApp &, IG::CStringView path)
+void C64System::readState(EmuApp &app, std::span<uint8_t> buff)
 {
 	plugin.vsync_set_warp_mode(0);
-	SnapshotTrapData data{.plugin{plugin}, .pathStr{path}};
+	SnapshotTrapData data{.plugin{plugin}, .buffData = buff.data(), .buffSize = buff.size()};
 	execC64Frame(); // run extra frame in case C64 was just started
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	execC64Frame(); // execute cpu trap, snapshot load may cause reboot from a C64 model change
 	if(data.hasError)
-		return throwFileReadError();
+		throw std::runtime_error("Invalid state data");
 	// reload snapshot in case last load caused a reboot
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	execC64Frame(); // execute cpu trap
 	if(data.hasError)
-		return throwFileReadError();
+		throw std::runtime_error("Invalid state data");
+}
+
+size_t C64System::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
+{
+	SnapshotTrapData data{.plugin{plugin}, .buffData = buff.data(), .buffSize = buff.size()};
+	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
+	execC64Frame(); // execute cpu trap
+	assert(!data.hasError);
+	return data.buffSize;
 }
 
 VideoSystem C64System::videoSystem() const

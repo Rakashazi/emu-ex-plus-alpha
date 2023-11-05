@@ -3315,7 +3315,7 @@ next_frame:
 #endif
 
 
-void ym2610_mkstate(gzFile gzf,int mode) {
+void ym2610_mkstate(Stream *gzf,int mode) {
 	//mkstate_data(gzf, &YM2610, sizeof (YM2610), mode);
 
 	mkstate_data(gzf, &YM2610.regs, 512, mode);

@@ -4,6 +4,7 @@
 #include <emuframework/Option.hh>
 #include "genplus-config.h"
 #include "system.h"
+#include "state.h"
 
 extern t_config config;
 
@@ -49,6 +50,7 @@ public:
 	#ifndef NO_SCD
 	FS::PathString cdBiosUSAPath{}, cdBiosJpnPath{}, cdBiosEurPath{};
 	#endif
+	static constexpr size_t maxSaveStateSize = STATE_SIZE + 4;
 	static constexpr auto ntscFrameTime{fromSeconds<FrameTime>(262. * MCYCLES_PER_LINE / 53693175.)}; // ~59.92Hz
 	static constexpr auto palFrameTime{fromSeconds<FrameTime>(313. * MCYCLES_PER_LINE / 53203424.)}; // ~49.70Hz
 
@@ -61,8 +63,9 @@ public:
 	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	std::string_view stateFilenameExt() const { return ".gp"; }
-	void loadState(EmuApp &, CStringView uri);
-	void saveState(CStringView path);
+	size_t stateSize() { return maxSaveStateSize; }
+	void readState(EmuApp &, std::span<uint8_t> buff);
+	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
 	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);

@@ -858,10 +858,9 @@ void soundReadGame(GBASys &gba, gzFile in, int version)
 #endif // !__LIBRETRO__
 
 
-#ifdef __LIBRETRO__
 void soundSaveGame(uint8_t*& out)
 {
-    gb_apu->save_state(&state.apu);
+    gb_apu.save_state(&state.apu);
 
     // Be sure areas for expansion get written as zero
     memset(dummy_state, 0, sizeof dummy_state);
@@ -869,17 +868,16 @@ void soundSaveGame(uint8_t*& out)
     utilWriteDataMem(out, gba_state);
 }
 
-void soundReadGame(const uint8_t*& in)
+void soundReadGame(GBASys &gba, const uint8_t*& in)
 {
     // Prepare APU and default state
     reset_apu();
-    gb_apu->save_state(&state.apu);
+    gb_apu.save_state(&state.apu);
 
     utilReadDataMem(in, gba_state);
 
-    gb_apu->load_state(state.apu);
-    write_SGCNT0_H(READ16LE(&ioMem[SGCNT0_H]) & 0x770F);
+    gb_apu.load_state(state.apu);
+    write_SGCNT0_H(gba, READ16LE(&ioMem[SGCNT0_H]) & 0x770F);
 
-    apply_muting();
+    apply_muting(gba);
 }
-#endif // __LIBRETRO__

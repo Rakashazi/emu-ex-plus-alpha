@@ -19,6 +19,8 @@ extern Machine *machine;
 
 bool zipStartWrite(const char *fileName);
 void zipEndWrite();
+void setZipMemBuffer(std::span<uint8_t> buff);
+size_t zipMemBufferSize();
 IG::PixmapView frameBufferPixmap();
 HdType boardGetHdType(int hdIndex);
 
@@ -81,8 +83,9 @@ public:
 	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	std::string_view stateFilenameExt() const { return ".sta"; }
-	void loadState(EmuApp &, CStringView uri);
-	void saveState(CStringView path);
+	size_t stateSize() { return 0x200000; }
+	void readState(EmuApp &, std::span<uint8_t> buff);
+	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
 	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);

@@ -129,16 +129,19 @@ FS::FileString NesSystem::stateFilename(int slot, std::string_view name) const
 	return IG::format<FS::FileString>("{}.fc{}", name, saveSlotCharNES(slot));
 }
 
-void NesSystem::saveState(IG::CStringView path)
+void NesSystem::readState(EmuApp &app, std::span<uint8_t> buff)
 {
-	if(!FCEUI_SaveState(path))
-		EmuSystem::throwFileWriteError();
+	EmuFileIO memFile{buff};
+	if(!FCEUSS_LoadFP(&memFile, SSLOADPARAM_NOBACKUP))
+		throw std::runtime_error("Invalid state data");
 }
 
-void NesSystem::loadState(EmuApp &app, IG::CStringView path)
+size_t NesSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
 {
-	if(!FCEUI_LoadState(path))
-		EmuSystem::throwFileReadError();
+	assert(buff.size() >= saveStateSize);
+	EmuFileIO memFile{buff};
+	FCEUSS_SaveMS(&memFile, -1);
+	return memFile.ftell();
 }
 
 void NesSystem::loadBackupMemory(EmuApp &app)
@@ -379,8 +382,10 @@ void NesSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	FCEUI_ListCheats(cheatCallback, 0);
 	if(fceuCheats)
 		logMsg("%d total cheats", fceuCheats);
-
 	setupNESInputPorts();
+	EMUFILE_MEMORY stateMemFile;
+	FCEUSS_SaveMS(&stateMemFile, 0);
+	saveStateSize = stateMemFile.get_vec()->size();
 }
 
 bool NesSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)

@@ -10,6 +10,7 @@
 #include <emuframework/EmuApp.hh>
 #include "MainSystem.hh"
 #include <sys/stat.h>
+#include <zlib.h>
 #ifndef SNES9X_VERSION_1_4
 #include <apu/apu.h>
 #include <controls.h>

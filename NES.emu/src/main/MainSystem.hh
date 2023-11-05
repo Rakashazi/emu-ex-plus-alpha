@@ -78,6 +78,7 @@ class NesSystem final: public EmuSystem
 public:
 	using PalArray = std::array<pal, 512>;
 
+	size_t saveStateSize{};
 	ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
 	uint32 padData{};
 	uint32 zapperData[3]{};
@@ -129,8 +130,9 @@ public:
 	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	std::string_view stateFilenameExt() const { return ".fcs"; }
-	void loadState(EmuApp &, CStringView uri);
-	void saveState(CStringView path);
+	size_t stateSize() { return saveStateSize; }
+	void readState(EmuApp &, std::span<uint8_t> buff);
+	size_t writeState(std::span<uint8_t> buff, SaveStateFlags);
 	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);

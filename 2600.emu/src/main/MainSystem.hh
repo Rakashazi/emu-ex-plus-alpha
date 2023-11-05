@@ -66,6 +66,7 @@ class A2600System final: public EmuSystem
 {
 public:
 	OSystem osystem;
+	size_t saveStateSize{};
 	float configuredInputVideoFrameRate{};
 	Properties defaultGameProps{};
 	bool p1DiffB = true, p2DiffB = true, vcsColor = true;
@@ -101,8 +102,9 @@ public:
 	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	std::string_view stateFilenameExt() const { return ".sta"; }
-	void loadState(EmuApp &, CStringView uri);
-	void saveState(CStringView path);
+	size_t stateSize() { return saveStateSize; }
+	void readState(EmuApp &, std::span<uint8_t> buff);
+	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
 	bool readConfig(ConfigType, MapIO &io, unsigned key, size_t readSize);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);

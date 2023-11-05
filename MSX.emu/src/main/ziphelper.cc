@@ -28,6 +28,8 @@
 namespace EmuEx
 {
 IG::ApplicationContext gAppContext();
+
+constexpr SystemLogger log{"zipHelper"};
 }
 
 using namespace EmuEx;
@@ -35,20 +37,46 @@ using namespace EmuEx;
 static struct archive *writeArch{};
 static FS::ArchiveIterator cachedZipIt{};
 static FS::PathString cachedZipName{};
+static uint8_t *buffData{};
+static size_t buffSize{};
 
-void zipCacheReadOnlyZip(const char* zipName)
+void setZipMemBuffer(std::span<uint8_t> buff)
 {
-	if(zipName && strlen(zipName))
+	buffData = buff.data();
+	buffSize = buff.size();
+}
+
+size_t zipMemBufferSize() { return buffSize; }
+
+static void unsetCachedReadZip()
+{
+	cachedZipIt = {};
+	cachedZipName = {};
+	EmuEx::log.info("unset cached read zip archive");
+}
+
+void zipCacheReadOnlyZip(const char* zipName_)
+{
+	if(!zipName_ || !strlen(zipName_))
 	{
-		logMsg("setting cached read zip archive:%s", zipName);
-		cachedZipIt = {EmuEx::gAppContext().openFileUri(zipName)};
-		cachedZipName = zipName;
+		unsetCachedReadZip();
+		return;
 	}
 	else
 	{
-		cachedZipIt = {};
-		cachedZipName = {};
-		logMsg("unset cached read zip archive");
+		std::string_view zipName{zipName_};
+		cachedZipName = zipName;
+		if(zipName == ":::B")
+		{
+			EmuEx::log.info("using memory buffer as cached read zip archive");
+			std::span buff{buffData, buffSize};
+			cachedZipIt = IO{buff};
+		}
+		else
+		{
+			EmuEx::log.info("setting cached read zip archive:{}", zipName);
+			cachedZipIt = {EmuEx::gAppContext().openFileUri(zipName)};
+		}
 	}
 }
 
@@ -104,14 +132,27 @@ bool zipStartWrite(const char *fileName)
 	assert(!writeArch);
 	writeArch = archive_write_new();
 	archive_write_set_format_zip(writeArch);
-	int fd = EmuEx::gAppContext().openFileUriFd(fileName, IG::OpenFlags::testNewFile()).release();
-	if(archive_write_open_fd(writeArch, fd) != ARCHIVE_OK)
+	if(std::string_view{fileName} == ":::B")
 	{
-		archive_write_free(writeArch);
-		writeArch = {};
-		if(fd != -1)
-			::close(fd);
-		return false;
+		EmuEx::log.info("using memory buffer for zip write");
+		if(archive_write_open_memory(writeArch, buffData, buffSize, &buffSize) != ARCHIVE_OK)
+		{
+			archive_write_free(writeArch);
+			writeArch = {};
+			return false;
+		}
+	}
+	else
+	{
+		int fd = EmuEx::gAppContext().openFileUriFd(fileName, IG::OpenFlags::testNewFile()).release();
+		if(archive_write_open_fd(writeArch, fd) != ARCHIVE_OK)
+		{
+			archive_write_free(writeArch);
+			writeArch = {};
+			if(fd != -1)
+				::close(fd);
+			return false;
+		}
 	}
 	return true;
 }

@@ -16,6 +16,7 @@
 #define LOGTAG "main"
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuSystemInlines.hh>
+#include <emuframework/OutSizeTracker.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/fs/FS.hh>
@@ -90,18 +91,19 @@ FS::FileString GbcSystem::stateFilename(int slot, std::string_view name) const
 	return IG::format<FS::FileString>("{}.0{}.gqs", name, saveSlotCharUpper(slot));
 }
 
-void GbcSystem::saveState(IG::CStringView path)
+void GbcSystem::readState(EmuApp &app, std::span<uint8_t> buff)
 {
-	OFStream stream{appContext().openFileUri(path, OpenFlags::newFile())};
-	if(!gbEmu.saveState(frameBuffer, gambatte::lcd_hres, stream))
-		throwFileWriteError();
+	IStream<MapIO> stream{buff};
+	if(!gbEmu.loadState(stream))
+		throw std::runtime_error("Invalid state data");
 }
 
-void GbcSystem::loadState(EmuApp &app, IG::CStringView path)
+size_t GbcSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
 {
-	IFStream stream{app.appContext().openFileUri(path, IO::AccessHint::All)};
-	if(!gbEmu.loadState(stream))
-		throwFileReadError();
+	assert(saveStateSize == buff.size());
+	OStream<MapIO> stream{buff};
+	gbEmu.saveState(frameBuffer, gambatte::lcd_hres, stream);
+	return saveStateSize;
 }
 
 void GbcSystem::loadBackupMemory(EmuApp &app)
@@ -188,6 +190,9 @@ void GbcSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	}
 	readCheatFile(*this);
 	applyCheats();
+	saveStateSize = 0;
+	OStream<OutSizeTracker> stream{&saveStateSize};
+	gbEmu.saveState(frameBuffer, gambatte::lcd_hres, stream);
 }
 
 bool GbcSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)

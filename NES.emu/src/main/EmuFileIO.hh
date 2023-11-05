@@ -26,27 +26,26 @@ class IO;
 namespace EmuEx
 {
 
-class EmuFileIO final : public EMUFILE {
-protected:
-	IG::MapIO io{};
-
+class EmuFileIO final : public EMUFILE
+{
 public:
+	IG::MapIO io;
 
 	EmuFileIO(IG::IO &);
+	EmuFileIO(IG::MapIO);
 	~EmuFileIO() = default;
 	FILE *get_fp() final { return nullptr; }
 	EMUFILE* memwrap() final { return nullptr; }
 	void truncate(size_t length) final {}
 	int fprintf(const char *format, ...) final { return 0; };
 	int fgetc() final;
-	int fputc(int c) final { return 0; }
+	int fputc(int c) final;
 	size_t _fread(const void *ptr, size_t bytes) final;
-	void fwrite(const void *ptr, size_t bytes) final { failbit = true; }
+	void fwrite(const void *ptr, size_t bytes) final;
 	int fseek(long int offset, int origin) final;
 	long int ftell() final;
 	size_t size() final { return io.size(); }
 	void fflush() final {}
-
 };
 
 }

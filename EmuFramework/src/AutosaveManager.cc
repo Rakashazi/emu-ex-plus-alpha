@@ -20,9 +20,12 @@
 #include "pathUtils.hh"
 #include <imagine/io/MapIO.hh>
 #include <imagine/io/FileIO.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"AutosaveMgr"};
 
 AutosaveManager::AutosaveManager(EmuApp &app_):
 	app{app_},
@@ -31,8 +34,7 @@ AutosaveManager::AutosaveManager(EmuApp &app_):
 		"AutosaveManager::autosaveTimer",
 		[this]()
 		{
-			logMsg("running autosave timer");
-			app.syncEmulationThread();
+			log.info("running autosave timer");
 			save();
 			resetTimer();
 			return true;
@@ -43,11 +45,11 @@ bool AutosaveManager::save(AutosaveActionSource src)
 {
 	if(autoSaveSlot == noAutosaveName)
 		return true;
-	logMsg("saving autosave slot:%s", autoSaveSlot.c_str());
+	log.info("saving autosave slot:{}", autoSaveSlot);
 	system().flushBackupMemory(app);
 	if(saveOnlyBackupMemory && src == AutosaveActionSource::Auto)
 		return true;
-	return app.saveState(statePath());
+	return saveState();
 }
 
 bool AutosaveManager::load(AutosaveActionSource src, LoadAutosaveMode mode)
@@ -57,6 +59,24 @@ bool AutosaveManager::load(AutosaveActionSource src, LoadAutosaveMode mode)
 	try
 	{
 		system().loadBackupMemory(app);
+		if(saveOnlyBackupMemory && src == AutosaveActionSource::Auto)
+			return true;
+		if(!stateIO)
+			stateIO = appContext().openFileUri(statePath(), {}, OpenFlags::createFile());
+		if(stateIO.getExpected<uint8_t>(0)) // check if state contains data
+		{
+			if(mode == LoadAutosaveMode::NoState)
+			{
+				log.info("skipped loading autosave state");
+				return true;
+			}
+			return loadState();
+		}
+		else
+		{
+			log.info("autosave state doesn't exist, creating");
+			return saveState();
+		}
 	}
 	catch(std::exception &err)
 	{
@@ -66,23 +86,36 @@ bool AutosaveManager::load(AutosaveActionSource src, LoadAutosaveMode mode)
 			app.postErrorMessage(4, err.what());
 		return false;
 	}
-	if(saveOnlyBackupMemory && src == AutosaveActionSource::Auto)
-		return true;
-	auto path = statePath();
-	if(appContext().fileUriExists(path))
+}
+
+bool AutosaveManager::saveState()
+{
+	log.info("saving autosave state");
+	stateIO.truncate(0);
+	app.syncEmulationThread();
+	auto state = app.system().saveState();
+	if(stateIO.write(state.span(), 0).bytes != ssize_t(state.size()))
 	{
-		if(mode == LoadAutosaveMode::NoState)
-		{
-			logMsg("skipped loading autosave state");
-			return true;
-		}
-		logMsg("loading autosave state");
-		return app.loadState(path);
+		app.postErrorMessage(4, "Error writing autosave state");
+		return false;
 	}
-	else
+	return true;
+}
+
+bool AutosaveManager::loadState()
+{
+	log.info("loading autosave state");
+	app.syncEmulationThread();
+	try
 	{
-		logMsg("autosave state doesn't exist, creating");
-		return app.saveState(path);
+		app.system().readState(app, stateIO.buffer(IOBufferMode::Direct));
+		resetTimer();
+		return true;
+	}
+	catch(std::exception &err)
+	{
+		app.postErrorMessage(4, std::format("Error loading autosave state:\n{}", err.what()));
+		return false;
 	}
 }
 
@@ -97,8 +130,7 @@ bool AutosaveManager::setSlot(std::string_view name)
 		if(!system().createContentLocalSaveDirectory(name))
 			return false;
 	}
-	autoSaveSlot = name;
-	autoSaveTimerElapsedTime = {};
+	resetSlot(name);
 	return load();
 }
 

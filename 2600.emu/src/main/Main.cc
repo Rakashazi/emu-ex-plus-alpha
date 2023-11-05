@@ -136,6 +136,9 @@ void A2600System::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDeleg
 	console.initializeVideo();
 	console.initializeAudio();
 	logMsg("is PAL: %s", videoSystem() == VideoSystem::PAL ? "yes" : "no");
+	Serializer state;
+	osystem.state().saveState(state);
+	saveStateSize = state.size();
 }
 
 static auto consoleFrameRate(const OSystem &osystem)
@@ -222,23 +225,23 @@ void A2600System::reset(EmuApp &, ResetMode mode)
 	}
 }
 
-void A2600System::saveState(IG::CStringView path)
+void A2600System::readState(EmuApp &app, std::span<uint8_t> buff)
 {
-	Serializer state{path.data()};
-	if(!osystem.state().saveState(state))
-	{
-		throwFileWriteError();
-	}
+	Serializer state;
+	state.putByteArray(buff.data(), buff.size());
+	if(!osystem.state().loadState(state))
+		throw std::runtime_error("Invalid state data");
+	updateSwitchValues();
 }
 
-void A2600System::loadState(EmuApp &, IG::CStringView path)
+size_t A2600System::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
 {
-	Serializer state{path.data(), Serializer::Mode::ReadOnly};
-	if(!osystem.state().loadState(state))
-	{
-		throwFileReadError();
-	}
-	updateSwitchValues();
+	Serializer state;
+	osystem.state().saveState(state);
+	assert(state.size() == saveStateSize);
+	assert(state.size() <= buff.size());
+	state.getByteArray(buff.data(), buff.size());
+	return saveStateSize;
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

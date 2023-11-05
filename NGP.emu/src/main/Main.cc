@@ -70,17 +70,9 @@ FS::FileString NgpSystem::stateFilename(int slot, std::string_view name) const
 	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'a', noMD5InFilenames);
 }
 
-void NgpSystem::saveState(IG::CStringView path)
-{
-	if(!MDFNI_SaveState(path, 0, 0, 0, 0))
-		throwFileWriteError();
-}
-
-void NgpSystem::loadState(EmuApp &, IG::CStringView path)
-{
-	if(!MDFNI_LoadState(path, 0))
-		throwFileReadError();
-}
+size_t NgpSystem::stateSize() { return stateSizeMDFN(); }
+void NgpSystem::readState(EmuApp &app, std::span<uint8_t> buff) { readStateMDFN(app, buff); }
+size_t NgpSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags) { return writeStateMDFN(buff, flags); }
 
 static FS::PathString saveFilename(const EmuApp &app)
 {

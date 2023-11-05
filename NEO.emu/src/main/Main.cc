@@ -21,6 +21,7 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/zlib.hh>
 
 extern "C"
 {
@@ -150,18 +151,81 @@ FS::FileString NeoSystem::stateFilename(int slot, std::string_view name) const
 	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotCharUpper(slot));
 }
 
-void NeoSystem::saveState(IG::CStringView path)
+size_t NeoSystem::stateSize()
 {
-	auto ctx = appContext();
-	if(!save_stateWithName(&ctx, path))
-		return EmuSystem::throwFileWriteError();
+	return saveStateSize;
 }
 
-void NeoSystem::loadState(EmuApp &app, IG::CStringView path)
+void NeoSystem::readState(EmuApp &app, std::span<uint8_t> buff)
 {
-	auto ctx = app.appContext();
-	if(!load_stateWithName(&ctx, path))
-		return EmuSystem::throwFileReadError();
+	/* Save pointers */
+	Uint8 *ng_lo = memory.ng_lo;
+	Uint8 *fix_game_usage=memory.fix_game_usage;
+	Uint8 *bksw_unscramble = memory.bksw_unscramble;
+	int *bksw_offset=memory.bksw_offset;
+
+	DynArray<uint8_t> uncompArr;
+	if(hasGzipHeader(buff))
+	{
+		uncompArr = uncompressGzipState(buff, saveStateSize);
+		buff = uncompArr;
+	}
+	MapIO buffIO{buff};
+	if(!openState(buffIO, STREAD))
+		throw std::runtime_error("Invalid state data");
+	makeState(buffIO, STREAD);
+
+	/* Restore them */
+	memory.ng_lo=ng_lo;
+	memory.fix_game_usage=fix_game_usage;
+	memory.bksw_unscramble=bksw_unscramble;
+	memory.bksw_offset=bksw_offset;
+
+	cpu_68k_bankswitch(bankaddress);
+	if (memory.current_vector==0)
+		memcpy(memory.rom.cpu_m68k.p, memory.rom.bios_m68k.p, 0x80);
+	else
+		memcpy(memory.rom.cpu_m68k.p, memory.game_vector, 0x80);
+	if (memory.vid.currentpal)
+	{
+		current_pal = memory.vid.pal_neo[1];
+		current_pc_pal = (Uint32 *) memory.vid.pal_host[1];
+	}
+	else
+	{
+		current_pal = memory.vid.pal_neo[0];
+		current_pc_pal = (Uint32 *) memory.vid.pal_host[0];
+	}
+	if (memory.vid.currentfix)
+	{
+		current_fix = memory.rom.game_sfix.p;
+		fix_usage = memory.fix_game_usage;
+	}
+	else
+	{
+		current_fix = memory.rom.bios_sfix.p;
+		fix_usage = memory.fix_board_usage;
+	}
+}
+
+size_t NeoSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
+{
+	if(flags.uncompressed)
+	{
+		MapIO buffIO{buff};
+		openState(buffIO, STWRITE);
+		makeState(buffIO, STWRITE);
+		return buffIO.tell();
+	}
+	else
+	{
+		assert(saveStateSize);
+		auto stateArr = DynArray<uint8_t>{saveStateSize};
+		MapIO buffIO{stateArr};
+		openState(buffIO, STWRITE);
+		makeState(buffIO, STWRITE);
+		return compressGzip(buff, stateArr, Z_DEFAULT_COMPRESSION);
+	}
 }
 
 static auto nvramPath(EmuApp &app)
@@ -279,6 +343,8 @@ void NeoSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate 
 		FileUtils::readFromUri(ctx, sharedMemcardPath, {memory.memcard, 0x800});
 		FileUtils::writeToUri(ctx, memcardPath, {memory.memcard, 0x800});
 	}
+	static constexpr size_t maxStateSize = 0x60000;
+	saveStateSize = writeState(std::span{std::make_unique<uint8_t[]>(maxStateSize).get(), maxStateSize}, {.uncompressed = true});
 }
 
 void NeoSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)

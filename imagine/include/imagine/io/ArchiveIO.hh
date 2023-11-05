@@ -53,6 +53,7 @@ public:
 	void reset(ArchiveIO io);
 	bool readNextEntry();
 	bool hasEntry() const;
+	bool hasArchive() const { return arch.get(); }
 	void rewind();
 	struct archive* archive() const { return arch.get(); }
 

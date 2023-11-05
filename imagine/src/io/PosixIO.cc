@@ -21,7 +21,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
-#include "IOUtils.hh"
+#include <imagine/io/IOUtils-impl.hh>
 #include <cstring>
 #include <sys/stat.h>
 #include <fcntl.h>

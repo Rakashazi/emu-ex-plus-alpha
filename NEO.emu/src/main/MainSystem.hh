@@ -39,6 +39,7 @@ class NeoSystem final: public EmuSystem
 public:
 	static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 	static constexpr int FBResX = 352;
+	size_t saveStateSize{};
 	FileIO nvramFileIO;
 	FileIO memcardFileIO;
 	GN_Surface sdlSurf{};
@@ -66,8 +67,9 @@ public:
 	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	std::string_view stateFilenameExt() const { return ".sta"; }
-	void loadState(EmuApp &, CStringView uri);
-	void saveState(CStringView path);
+	size_t stateSize();
+	void readState(EmuApp &, std::span<uint8_t> buff);
+	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
 	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
@@ -90,6 +92,9 @@ public:
 };
 
 using MainSystem = NeoSystem;
+
+bool openState(MapIO &io, int mode);
+void makeState(MapIO &io, int mode);
 
 }
 

@@ -40,6 +40,8 @@ void cheatsDisable(ARM7TDMI &cpu, int number);
 #ifndef __LIBRETRO__
 void cheatsSaveGame(gzFile file);
 void cheatsReadGame(gzFile file, int version);
+void cheatsSaveGame(uint8_t*& data);
+void cheatsReadGame(const uint8_t*& data);
 void cheatsReadGameSkip(gzFile file, int version);
 void cheatsSaveCheatList(IG::ApplicationContext, const char *file);
 bool cheatsLoadCheatList(IG::ApplicationContext, const char *file);

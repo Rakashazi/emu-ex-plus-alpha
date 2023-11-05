@@ -48,22 +48,24 @@ void eepromReset()
     eepromAddress = 0;
 }
 
-#ifdef __LIBRETRO__
 void eepromSaveGame(uint8_t*& data)
 {
-    utilWriteDataMem(data, eepromSaveData);
+    uint8_t eepromDataTemp[SIZE_EEPROM_8K]{};
+    IG::copy_n(eepromData.data(), eepromData.size(), eepromDataTemp);
+    utilWriteDataMem(data, eepromSaveData(eepromDataTemp).data());
     utilWriteIntMem(data, eepromSize);
-    utilWriteMem(data, eepromData, SIZE_EEPROM_8K);
+    utilWriteMem(data, eepromDataTemp, SIZE_EEPROM_8K);
 }
 
 void eepromReadGame(const uint8_t*& data)
 {
-    utilReadDataMem(data, eepromSaveData);
+    uint8_t eepromDataTemp[SIZE_EEPROM_8K]{};
+    utilReadDataMem(data, eepromSaveData(eepromDataTemp).data());
     eepromSize = utilReadIntMem(data);
-    utilReadMem(eepromData, data, SIZE_EEPROM_8K);
+    utilReadMem(eepromDataTemp, data, SIZE_EEPROM_8K);
+    IG::copy_n(eepromDataTemp, eepromData.size(), eepromData.data());
 }
 
-#else // !__LIBRETRO__
 
 void eepromSaveGame(gzFile gzFile)
 {
@@ -101,7 +103,6 @@ void eepromReadGameSkip(gzFile gzFile, int version)
         utilGzSeek(gzFile, SIZE_EEPROM_8K, SEEK_CUR);
     }
 }
-#endif
 
 int eepromRead(uint32_t /* address */)
 {

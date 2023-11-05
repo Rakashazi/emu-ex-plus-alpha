@@ -36,6 +36,7 @@ public:
 
 	constexpr MapIO() = default;
 	MapIO(IOBuffer buff): buff{std::move(buff)} {}
+	MapIO(std::span<uint8_t> buff): MapIO{IOBuffer{buff}} {}
 	explicit MapIO(Readable auto &&io): MapIO{io.buffer(BufferMode::Release)} {}
 	explicit MapIO(Readable auto &io): MapIO{io.buffer(BufferMode::Direct)} {}
 	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});

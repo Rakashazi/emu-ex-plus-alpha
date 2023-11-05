@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
-#include "IOUtils.hh"
+#include <imagine/io/IOUtils-impl.hh>
 #include <cerrno>
 #include <cstring>
 #if defined __linux__ || defined __APPLE__

@@ -29,6 +29,7 @@
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/zlib.hh>
 #include <algorithm>
 #include <cstring>
 #include "pathUtils.hh"
@@ -65,6 +66,37 @@ std::string_view EmuSystem::stateSlotName(int slot)
 bool EmuApp::shouldOverwriteExistingState() const
 {
 	return !confirmOverwriteState || !system().stateExists(system().stateSlot());
+}
+
+void EmuSystem::loadState(EmuApp &app, CStringView uri)
+{
+	auto file = appContext().openFileUri(uri, IOAccessHint::All, {});
+	readState(app, file.buffer(IOBufferMode::Release));
+}
+
+void EmuSystem::saveState(CStringView uri)
+{
+	auto file = appContext().openFileUri(uri, {}, OpenFlags::newFile());
+	file.write(saveState().span());
+}
+
+DynArray<uint8_t> EmuSystem::saveState()
+{
+	DynArray<uint8_t> stateArr{stateSize()};
+	stateArr.trim(writeState(stateArr));
+	return stateArr;
+}
+
+DynArray<uint8_t> EmuSystem::uncompressGzipState(std::span<uint8_t> buff, size_t expectedSize)
+{
+	assert(expectedSize);
+	auto uncompArr = DynArray<uint8_t>{expectedSize};
+	auto size = uncompressGzip(uncompArr, buff);
+	if(!size)
+		throw std::runtime_error("Error uncompressing state");
+	if(size != expectedSize)
+		throw std::runtime_error("Invalid state size");
+	return uncompArr;
 }
 
 void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, double speed)

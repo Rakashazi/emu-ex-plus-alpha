@@ -14,29 +14,55 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/fs/ArchiveFS.hh>
-#include <imagine/io/IO.hh>
-#include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
+#include <imagine/util/span.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
+#include <emuframework/OutSizeTracker.hh>
 #include "MainSystem.hh"
+#include <imagine/logger/logger.h>
 
 extern "C"
 {
 	#include "zfile.h"
 }
 
+using namespace IG;
 using namespace EmuEx;
 
-CLINK FILE *zfile_fopen(const char *path, const char *mode_)
+namespace EmuEx
 {
+constexpr SystemLogger log{"zfile"};
+}
+
+CLINK FILE *zfile_fopen(const char *path_, const char *mode_)
+{
+	using namespace IG;
+	std::string_view path{path_};
 	std::string_view mode{mode_};
 	auto appContext = gAppContext();
-	if(EmuApp::hasArchiveExtension(appContext.fileUriDisplayName(path)))
+	if(path == ":::N") // null output
+	{
+		size_t *buffSizePtr;
+		std::ranges::copy(std::span{path_ + 5, sizeof(buffSizePtr)}, asWritableBytes(buffSizePtr).begin());
+		//EmuEx::log.info("decoded size ptr:{}", (void*)buffSizePtr);
+		return OutSizeTracker{buffSizePtr}.toFileStream(mode_);
+	}
+	else if(path == ":::B") // buffer input/output
+	{
+		size_t *buffSizePtr;
+		auto it = std::ranges::copy(std::span{path_ + 5, sizeof(buffSizePtr)}, asWritableBytes(buffSizePtr).begin()).in;
+		uint8_t *buffDataPtr;
+		std::ranges::copy(std::span{it, sizeof(buffDataPtr)}, asWritableBytes(buffDataPtr).begin());
+		//EmuEx::log.info("decoded size ptr:{} ({}) buff ptr:{}", (void*)buffSizePtr, *buffSizePtr, (void*)buffDataPtr);
+		return MapIO{IOBuffer{std::span<uint8_t>{buffDataPtr, *buffSizePtr},
+			[buffSizePtr](const uint8_t *, size_t size){ *buffSizePtr = size; }}}.toFileStream(mode_);
+	}
+	else if(EmuApp::hasArchiveExtension(appContext.fileUriDisplayName(path)))
 	{
 		if(mode.contains('w') || mode.contains('+'))
 		{
-			logErr("opening archive %s with write mode not supported", path);
+			EmuEx::log.error("opening archive {} with write mode not supported", path);
 			return nullptr;
 		}
 		try
@@ -49,15 +75,15 @@ CLINK FILE *zfile_fopen(const char *path, const char *mode_)
 				}
 				if(EmuSystem::defaultFsFilter(entry.name()))
 				{
-					logMsg("archive file entry:%s", entry.name().data());
+					EmuEx::log.info("archive file entry:{}", entry.name());
 					return MapIO{entry.releaseIO()}.toFileStream(mode_);
 				}
 			}
-			logErr("no recognized file extensions in archive:%s", path);
+			EmuEx::log.error("no recognized file extensions in archive:{}", path);
 		}
 		catch(...)
 		{
-			logErr("error opening archive:%s", path);
+			EmuEx::log.error("error opening archive:{}", path);
 		}
 		return nullptr;
 	}

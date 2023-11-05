@@ -111,12 +111,12 @@ struct VicePlugin
 	int resources_get_int(const char *name, int *value_return) const;
 	int resources_set_int(const char *name, int value);
 	int resources_get_default_value(const char *name, void *value_return) const;
-	int machine_write_snapshot(const char *name, int save_roms, int save_disks, int even_mode);
-	int machine_read_snapshot(const char *name, int event_mode);
+	int machine_write_snapshot(const char *name, int save_roms, int save_disks, int even_mode) const;
+	int machine_read_snapshot(const char *name, int event_mode) const;
 	void machine_set_restore_key(int v);
 	void machine_trigger_reset(const unsigned int mode);
 	struct drive_type_info_s *machine_drive_get_type_info_list();
-	void interrupt_maincpu_trigger_trap(void trap_func(uint16_t, void *data), void *data);
+	void interrupt_maincpu_trigger_trap(void trap_func(uint16_t, void *data), void *data) const;
 	int init_main();
 	void maincpu_mainloop();
 	int autostart_autodetect(const char *file_name, const char *program_name,

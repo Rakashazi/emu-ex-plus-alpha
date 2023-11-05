@@ -706,18 +706,20 @@ static void CPUUpdateRenderBuffers(GBASys &gba, bool force)
 
 #define CPUUpdateRenderBuffers(force) CPUUpdateRenderBuffers(gba, force)
 
-#ifdef __LIBRETRO__
 #include <stddef.h>
 
-unsigned int CPUWriteState(uint8_t* data)
+unsigned int CPUWriteState(GBASys &gba, uint8_t* data)
 {
+	  auto &cpu = gba.cpu;
     uint8_t* orig = data;
 
     utilWriteIntMem(data, SAVE_GAME_VERSION);
     utilWriteMem(data, &rom[0xa0], 16);
     utilWriteIntMem(data, coreOptions.useBios);
-    utilWriteMem(data, &reg[0], sizeof(reg));
+    utilWriteMem(data, &cpu.reg[0], sizeof(cpu.reg));
 
+    saveNFlag = gba.cpu.nFlag();
+    saveZFlag = gba.cpu.zFlag();
     utilWriteDataMem(data, saveGameStruct);
 
     utilWriteIntMem(data, stopState);
@@ -728,19 +730,22 @@ unsigned int CPUWriteState(uint8_t* data)
     utilWriteMem(data, workRAM, SIZE_WRAM);
     utilWriteMem(data, vram, SIZE_VRAM);
     utilWriteMem(data, oam, SIZE_OAM);
-    utilWriteMem(data, pix, SIZE_PIX);
-    utilWriteMem(data, ioMem, SIZE_IOMEM);
+    uint32_t dummyPix[241*162]{};
+    utilWriteMem(data, dummyPix, SIZE_PIX);
+    utilWriteMem(data, gba.mem.ioMem.b, SIZE_IOMEM);
 
     eepromSaveGame(data);
     flashSaveGame(data);
     soundSaveGame(data);
+    cheatsSaveGame(data);
     rtcSaveGame(data);
 
     return (ptrdiff_t)data - (ptrdiff_t)orig;
 }
 
-bool CPUReadState(const uint8_t* data)
+bool CPUReadState(GBASys &gba, const uint8_t* data)
 {
+	  auto &cpu = gba.cpu;
     // Don't really care about version.
     int version = utilReadIntMem(data);
     if (version != SAVE_GAME_VERSION)
@@ -754,9 +759,10 @@ bool CPUReadState(const uint8_t* data)
     // Don't care about use bios ...
     utilReadIntMem(data);
 
-    utilReadMem(&reg[0], data, sizeof(reg));
+    utilReadMem(&cpu.reg[0], data, sizeof(cpu.reg));
 
     utilReadDataMem(data, saveGameStruct);
+    gba.cpu.updateNZFlags(saveNFlag, saveZFlag);
 
     stopState = utilReadIntMem(data) ? true : false;
 
@@ -773,19 +779,21 @@ bool CPUReadState(const uint8_t* data)
     utilReadMem(workRAM, data, SIZE_WRAM);
     utilReadMem(vram, data, SIZE_VRAM);
     utilReadMem(oam, data, SIZE_OAM);
-    utilReadMem(pix, data, SIZE_PIX);
-    utilReadMem(ioMem, data, SIZE_IOMEM);
+    uint32_t dummyPix[241*162];
+    utilReadMem(dummyPix, data, SIZE_PIX);
+    utilReadMem(gba.mem.ioMem.b, data, SIZE_IOMEM);
 
     eepromReadGame(data);
     flashReadGame(data);
-    soundReadGame(data);
+    soundReadGame(gba, data);
+    cheatsReadGame(data);
     rtcReadGame(data);
 
     //// Copypasta stuff ...
     // set pointers!
     layerEnable = coreOptions.layerSettings & DISPCNT;
 
-    CPUUpdateRender();
+    CPUUpdateRender(gba);
 
     // CPU Update Render Buffers set to true
     CLEAR_ARRAY(line0);
@@ -800,18 +808,16 @@ bool CPUReadState(const uint8_t* data)
     SetSaveType(coreOptions.saveType);
 
     systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
-    if (armState) {
-        ARM_PREFETCH;
+    if (gba.cpu.armState) {
+    	gba.cpu.ARM_PREFETCH();
     } else {
-        THUMB_PREFETCH;
+    	gba.cpu.THUMB_PREFETCH();
     }
 
-    CPUUpdateRegister(0x204, CPUReadHalfWordQuick(0x4000204));
+    CPUUpdateRegister(gba.cpu, 0x204, CPUReadHalfWordQuick(gba.cpu, 0x4000204));
 
     return true;
 }
-
-#else // !__LIBRETRO__
 
 static bool CPUWriteState(GBASys &gba, gzFile gzFile)
 {
@@ -1073,7 +1079,6 @@ bool CPUReadState(IG::ApplicationContext ctx, GBASys &gba, const char * file)
 
   return res;
 }
-#endif
 
 bool CPUExportEepromFile(const char* fileName)
 {

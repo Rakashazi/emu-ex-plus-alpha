@@ -63,17 +63,9 @@ FS::FileString LynxSystem::stateFilename(int slot, std::string_view name) const
 	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'a', noMD5InFilenames);
 }
 
-void LynxSystem::saveState(IG::CStringView path)
-{
-	if(!MDFNI_SaveState(path, 0, 0, 0, 0))
-		throwFileWriteError();
-}
-
-void LynxSystem::loadState(EmuApp &, IG::CStringView path)
-{
-	if(!MDFNI_LoadState(path, 0))
-		throwFileReadError();
-}
+size_t LynxSystem::stateSize() { return stateSizeMDFN(); }
+void LynxSystem::readState(EmuApp &app, std::span<uint8_t> buff) { readStateMDFN(app, buff); }
+size_t LynxSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags) { return writeStateMDFN(buff, flags); }
 
 void LynxSystem::closeSystem()
 {

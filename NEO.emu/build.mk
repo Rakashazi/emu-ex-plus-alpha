@@ -6,6 +6,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 SRC += main/Main.cc \
 main/input.cc \
 main/options.cc \
+main/state.cc \
 main/unzip.cc \
 main/EmuMenuViews.cc
 
@@ -31,7 +32,6 @@ $(GEO)/neoboot.c \
 $(GEO)/neocrypt.c \
 $(GEO)/pd4990a.c \
 $(GEO)/roms.c \
-$(GEO)/state.c \
 $(GEO)/timer.c \
 $(GEO)/video.c
 

@@ -39,6 +39,7 @@ public:
 	using difference_type = ptrdiff_t;
 	using pointer = value_type*;
 	using reference = value_type&;
+	struct Sentinel {};
 
 	constexpr ArchiveIterator() = default;
 	ArchiveIterator(CStringView path);
@@ -50,22 +51,23 @@ public:
 	ArchiveEntry& operator*();
 	ArchiveEntry* operator->();
 	void operator++();
-	bool operator==(ArchiveIterator const &rhs) const;
+	bool operator==(Sentinel) const { return !hasEntry(); }
 	void rewind();
-	bool hasEntry() const { return (bool)impl; }
+	bool hasEntry() const { return impl.get() && impl->hasEntry(); }
+	bool hasArchive() const { return impl.get() && impl->hasArchive(); }
 
 private:
 	std::shared_ptr<ArchiveEntry> impl;
 };
 
-static const ArchiveIterator &begin(const ArchiveIterator &iter)
+static const auto &begin(const ArchiveIterator &iter)
 {
 	return iter;
 }
 
-static ArchiveIterator end(const ArchiveIterator &)
+static auto end(const ArchiveIterator &)
 {
-	return {};
+	return ArchiveIterator::Sentinel{};
 }
 
 ArchiveIO fileFromArchive(CStringView archivePath, std::string_view filePath);

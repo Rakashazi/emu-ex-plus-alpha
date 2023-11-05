@@ -321,3 +321,60 @@ void setSaveMemory(IG::ByteBuffer buff)
   	eepromData = std::move(buff);
   }
 }
+
+void utilWriteIntMem(uint8_t*& data, int val)
+{
+	memcpy(data, &val, sizeof(int));
+	data += sizeof(int);
+}
+
+void utilWriteMem(uint8_t*& data, const void* in_data, unsigned size)
+{
+	memcpy(data, in_data, size);
+	data += size;
+}
+
+void utilWriteDataMem(uint8_t*& data, const variable_desc* desc)
+{
+	while (desc->address)
+	{
+		utilWriteMem(data, desc->address, desc->size);
+		desc++;
+	}
+}
+
+int utilReadIntMem(const uint8_t*& data)
+{
+	int res;
+	memcpy(&res, data, sizeof(int));
+	data += sizeof(int);
+	return res;
+}
+
+void utilReadMem(void* buf, const uint8_t*& data, unsigned size)
+{
+	memcpy(buf, data, size);
+	data += size;
+}
+
+void utilReadDataMem(const uint8_t*& data, const variable_desc* desc)
+{
+	while (desc->address)
+	{
+		utilReadMem(desc->address, data, desc->size);
+		desc++;
+	}
+}
+
+void cheatsSaveGame(uint8_t*& data)
+{
+	utilWriteIntMem(data, cheatsList.size());
+	utilWriteMem(data, cheatsList.data(), CHEATS_LIST_DATA_SIZE);
+}
+
+void cheatsReadGame(const uint8_t*& data)
+{
+  int cheats = utilReadIntMem(data);
+  cheatsList.resize(cheats);
+  utilReadMem(cheatsList.data(), data, CHEATS_LIST_DATA_SIZE);
+}

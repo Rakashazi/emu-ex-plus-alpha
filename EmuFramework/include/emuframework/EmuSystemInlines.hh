@@ -199,14 +199,23 @@ void EmuSystem::runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *a
 	static_cast<MainSystem*>(this)->runFrame(task, video, audio);
 }
 
-void EmuSystem::loadState(EmuApp &app, CStringView uri)
+size_t EmuSystem::stateSize()
 {
-	static_cast<MainSystem*>(this)->loadState(app, uri);
+	if(&MainSystem::stateSize != &EmuSystem::stateSize)
+		return static_cast<MainSystem*>(this)->stateSize();
+	return 0;
 }
 
-void EmuSystem::saveState(CStringView uri)
+void EmuSystem::readState(EmuApp &app, std::span<uint8_t> buff)
 {
-	static_cast<MainSystem*>(this)->saveState(uri);
+	if(&MainSystem::readState != &EmuSystem::readState)
+		static_cast<MainSystem*>(this)->readState(app, buff);
+}
+
+size_t EmuSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
+{
+	if(&MainSystem::writeState != &EmuSystem::writeState)
+		return static_cast<MainSystem*>(this)->writeState(buff, flags);
 }
 
 void EmuSystem::clearInputBuffers(EmuInputView &view)

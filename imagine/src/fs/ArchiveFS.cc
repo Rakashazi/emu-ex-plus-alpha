@@ -58,14 +58,8 @@ ArchiveEntry* ArchiveIterator::operator->()
 
 void ArchiveIterator::operator++()
 {
-	assumeExpr(impl); // incrementing end-iterator is undefined
-	if(!impl->readNextEntry())
-		impl.reset();
-}
-
-bool ArchiveIterator::operator==(ArchiveIterator const &rhs) const
-{
-	return impl == rhs.impl;
+	assumeExpr(impl->hasEntry()); // incrementing end-iterator is undefined
+	impl->readNextEntry();
 }
 
 void ArchiveIterator::rewind()

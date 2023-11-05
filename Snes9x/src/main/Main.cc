@@ -5,6 +5,7 @@
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/zlib.hh>
 
 #include <memmap.h>
 #include <display.h>
@@ -108,20 +109,65 @@ static FS::PathString sramFilename(EmuApp &app)
 	return app.contentSaveFilePath(".srm");
 }
 
-void Snes9xSystem::saveState(IG::CStringView path)
+size_t Snes9xSystem::stateSize()
 {
-	if(!S9xFreezeGame(path))
-		return throwFileWriteError();
+	return saveStateSize;
 }
 
-void Snes9xSystem::loadState(EmuApp &, IG::CStringView path)
+#ifdef SNES9X_VERSION_1_4
+static uint32 S9xFreezeSize()
 {
-	if(S9xUnfreezeGame(path))
+	DynArray<uint8_t> arr{0x100000};
+	auto stream = MapIO{arr}.toFileStream("wb");
+	S9xFreezeToStream(stream);
+	return ftell(stream);
+}
+#endif
+
+static int unfreezeStateFrom(std::span<uint8_t> buff)
+{
+	#ifndef SNES9X_VERSION_1_4
+	return S9xUnfreezeGameMem(buff.data(), buff.size());
+	#else
+	return S9xUnfreezeFromStream(MapIO{buff}.toFileStream("rb"));
+	#endif
+}
+
+void Snes9xSystem::readState(EmuApp &, std::span<uint8_t> buff)
+{
+	DynArray<uint8_t> uncompArr;
+	if(hasGzipHeader(buff))
 	{
-		IPPU.RenderThisFrame = TRUE;
+		uncompArr = uncompressGzipState(buff, saveStateSize);
+		buff = uncompArr;
+	}
+	if(!unfreezeStateFrom(buff))
+		throw std::runtime_error("Invalid state data");
+	IPPU.RenderThisFrame = TRUE;
+}
+
+static void freezeStateTo(std::span<uint8_t> buff)
+{
+	#ifndef SNES9X_VERSION_1_4
+	S9xFreezeGameMem(buff.data(), buff.size());
+	#else
+	S9xFreezeToStream(MapIO{buff}.toFileStream("wb"));
+	#endif
+}
+
+size_t Snes9xSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
+{
+	if(flags.uncompressed)
+	{
+		freezeStateTo(buff);
+		return saveStateSize;
 	}
 	else
-		return throwFileReadError();
+	{
+		auto uncompArr = DynArray<uint8_t>(saveStateSize);
+		freezeStateTo(uncompArr);
+		return compressGzip(buff, uncompArr, Z_DEFAULT_COMPRESSION);
+	}
 }
 
 void Snes9xSystem::loadBackupMemory(EmuApp &app)
@@ -242,6 +288,7 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 		}
 	}
 	setupSNESInput(EmuApp::get(appContext()).defaultVController());
+	saveStateSize = S9xFreezeSize();
 	IPPU.RenderThisFrame = TRUE;
 }
 

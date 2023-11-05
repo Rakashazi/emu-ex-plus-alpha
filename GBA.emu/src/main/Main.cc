@@ -20,6 +20,7 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/zlib.hh>
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/GBAGfx.h>
 #include <vbam/gba/Sound.h>
@@ -78,16 +79,32 @@ FS::FileString GbaSystem::stateFilename(int slot, std::string_view name) const
 	return IG::format<FS::FileString>("{}{}.sgm", name, saveSlotChar(slot));
 }
 
-void GbaSystem::saveState(IG::CStringView path)
+void GbaSystem::readState(EmuApp &app, std::span<uint8_t> buff)
 {
-	if(!CPUWriteState(appContext(), gGba, path))
-		return throwFileWriteError();
+	DynArray<uint8_t> uncompArr;
+	if(hasGzipHeader(buff))
+	{
+		uncompArr = uncompressGzipState(buff, saveStateSize);
+		buff = uncompArr;
+	}
+	if(!CPUReadState(gGba, buff.data()))
+		throw std::runtime_error("Invalid state data");
 }
 
-void GbaSystem::loadState(EmuApp &app, IG::CStringView path)
+size_t GbaSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
 {
-	if(!CPUReadState(app.appContext(), gGba, path))
-		return throwFileReadError();
+	assert(buff.size() >= saveStateSize);
+	if(flags.uncompressed)
+	{
+		return CPUWriteState(gGba, buff.data());
+	}
+	else
+	{
+		assert(saveStateSize);
+		auto stateArr = DynArray<uint8_t>(saveStateSize);
+		CPUWriteState(gGba, stateArr.data());
+		return compressGzip(buff, stateArr, Z_DEFAULT_COMPRESSION);
+	}
 }
 
 void GbaSystem::loadBackupMemory(EmuApp &app)
@@ -184,6 +201,7 @@ void GbaSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	applyGamePatches(gGba.mem.rom, size);
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
+	saveStateSize = CPUWriteState(gGba, DynArray<uint8_t>{maxStateSize}.data());
 	readCheatFile(*this);
 }
 

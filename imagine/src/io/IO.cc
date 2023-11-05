@@ -18,7 +18,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/variant.hh>
-#include "IOUtils.hh"
+#include <imagine/io/IOUtils-impl.hh>
 
 namespace IG
 {

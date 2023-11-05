@@ -18,6 +18,8 @@
 #include <concepts>
 #include <bit>
 #include <limits>
+#include <array>
+#include <cstdint>
 
 namespace IG
 {
@@ -71,6 +73,11 @@ constexpr auto swapBits(std::integral auto x, std::integral auto range1, std::in
 constexpr bool isBitMaskSet(BitSet auto x, BitSet auto mask)
 {
 	return (x & mask) == mask; //AND mask, if the result equals mask, all bits match
+}
+
+constexpr auto addressAsBytes(auto &v)
+{
+	return std::bit_cast<std::array<uint8_t, sizeof(&v)>>(&v);
 }
 
 constexpr int ctz(unsigned int x)

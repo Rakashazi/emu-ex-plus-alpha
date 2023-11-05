@@ -516,11 +516,6 @@ void MsxSystem::saveBlueMSXState(const char *filename)
 	zipEndWrite();
 }
 
-void MsxSystem::saveState(IG::CStringView path)
-{
-	return saveBlueMSXState(path);
-}
-
 static FS::FileString saveStateGetFileString(SaveState* state, const char* tagName)
 {
 	FS::FileStringArray name{};
@@ -592,9 +587,18 @@ void MsxSystem::loadBlueMSXState(EmuApp &app, const char *filename)
 	logMsg("state loaded with machine:%s", machine->name);
 }
 
-void MsxSystem::loadState(EmuApp &app, IG::CStringView path)
+void MsxSystem::readState(EmuApp &app, std::span<uint8_t> buff)
 {
-	return loadBlueMSXState(app, path);
+	setZipMemBuffer(buff);
+	loadBlueMSXState(app, ":::B");
+}
+
+size_t MsxSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
+{
+	assert(buff.size() == stateSize());
+	setZipMemBuffer(buff);
+	saveBlueMSXState(":::B");
+	return zipMemBufferSize();
 }
 
 void MsxSystem::closeSystem()

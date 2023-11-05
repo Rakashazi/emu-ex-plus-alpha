@@ -19,6 +19,7 @@
 #include <emuframework/Option.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/fs/FSDefs.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/enum.hh>
 #include <string>
 #include <string_view>
@@ -57,7 +58,12 @@ public:
 	bool load(LoadAutosaveMode m) { return load(AutosaveActionSource::Auto, m); }
 	bool load(AutosaveActionSource src = AutosaveActionSource::Auto) { return load(src, LoadAutosaveMode::Normal); }
 	bool setSlot(std::string_view name);
-	void resetSlot(std::string_view name = "") { autoSaveSlot = name; }
+	void resetSlot(std::string_view name = "")
+	{
+		autoSaveSlot = name;
+		autoSaveTimerElapsedTime = {};
+		stateIO = {};
+	}
 	bool renameSlot(std::string_view name, std::string_view newName);
 	bool deleteSlot(std::string_view name);
 	std::string_view slotName() const { return autoSaveSlot; }
@@ -82,9 +88,14 @@ public:
 private:
 	EmuApp &app;
 	std::string autoSaveSlot;
+	FileIO stateIO;
 	Timer autoSaveTimer;
 	SteadyClockTimePoint autoSaveTimerStartTime{};
 	SteadyClockTime autoSaveTimerElapsedTime{};
+
+	bool saveState();
+	bool loadState();
+
 public:
 	Minutes autosaveTimerMins{};
 	AutosaveLaunchMode autosaveLaunchMode{};

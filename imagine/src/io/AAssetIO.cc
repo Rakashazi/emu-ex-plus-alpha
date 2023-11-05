@@ -19,7 +19,7 @@
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
-#include "IOUtils.hh"
+#include <imagine/io/IOUtils-impl.hh>
 #include <android/asset_manager.h>
 #include <unistd.h>
 #include <sys/mman.h>

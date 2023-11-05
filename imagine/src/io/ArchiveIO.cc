@@ -20,7 +20,7 @@
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
-#include "IOUtils.hh"
+#include <imagine/io/IOUtils-impl.hh>
 #include <archive.h>
 #include <archive_entry.h>
 #include <format>
@@ -214,7 +214,9 @@ bool ArchiveEntry::readNextEntry()
 {
 	if(!arch) [[unlikely]]
 		return false;
-	auto ret = archive_read_next_header(arch.get(), &ptr);
+	ptr = {};
+	struct archive_entry *entryPtr{};
+	auto ret = archive_read_next_header(arch.get(), &entryPtr);
 	if(ret == ARCHIVE_EOF)
 	{
 		logMsg("reached archive end");
@@ -231,12 +233,13 @@ bool ArchiveEntry::readNextEntry()
 		if(Config::DEBUG_BUILD)
 			logWarn("warning reading archive entry:%s", archive_error_string(arch.get()));
 	}
+	ptr = entryPtr;
 	return true;
 }
 
 bool ArchiveEntry::hasEntry() const
 {
-	return ptr;
+	return arch && ptr;
 }
 
 void ArchiveEntry::rewind()

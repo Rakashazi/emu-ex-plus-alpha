@@ -42,6 +42,7 @@ public:
 	FileIO saveFileIO;
 	FileIO rtcFileIO;
 	std::string cheatsDir;
+	size_t saveStateSize{};
 	uint64_t totalSamples{};
 	uint32_t totalFrames{};
 	uint8_t activeResampler = 1;
@@ -69,8 +70,9 @@ public:
 	[[gnu::hot]] void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	FS::FileString stateFilename(int slot, std::string_view name) const;
 	std::string_view stateFilenameExt() const { return ".sta"; }
-	void loadState(EmuApp &, CStringView uri);
-	void saveState(CStringView path);
+	size_t stateSize() { return saveStateSize; }
+	void readState(EmuApp &, std::span<uint8_t> buff);
+	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
 	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
@@ -90,6 +92,7 @@ public:
 	bool resetSessionOptions(EmuApp &);
 	bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
 	void renderFramebuffer(EmuVideo &);
+
 protected:
 	uint_least32_t makeOutputColor(uint_least32_t rgb888) const;
 	size_t runUntilVideoFrame(gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
