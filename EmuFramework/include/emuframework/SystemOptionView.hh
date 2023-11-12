@@ -42,10 +42,13 @@ protected:
 	MultiChoiceMenuItem fastModeSpeed;
 	TextMenuItem slowModeSpeedItem[3];
 	MultiChoiceMenuItem slowModeSpeed;
+	TextMenuItem rewindStatesItem[4];
+	MultiChoiceMenuItem rewindStates;
+	DualTextMenuItem rewindTimeInterval;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
 	IG_UseMemberIf(Config::envIsAndroid && Config::DEBUG_BUILD, BoolMenuItem, noopThread);
 	IG_UseMemberIf(Config::cpuAffinity, TextMenuItem, cpuAffinity);
-	StaticArrayList<MenuItem*, 28> item;
+	StaticArrayList<MenuItem*, 30> item;
 };
 
 }

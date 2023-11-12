@@ -41,6 +41,7 @@ enum class AppKeyCode : KeyCode
 	takeScreenshot,
 	turboModifier,
 	exitApp,
+	rewind,
 };
 
 constexpr struct AppKeys
@@ -57,6 +58,7 @@ constexpr struct AppKeys
 	toggleFastForward = KeyInfo::appKey(AppKeyCode::toggleFastForward),
 	slowMotion = KeyInfo::appKey(AppKeyCode::slowMotion),
 	toggleSlowMotion = KeyInfo::appKey(AppKeyCode::toggleSlowMotion),
+	rewind = KeyInfo::appKey(AppKeyCode::rewind),
 	takeScreenshot = KeyInfo::appKey(AppKeyCode::takeScreenshot),
 	turboModifier = KeyInfo::appKey(AppKeyCode::turboModifier),
 	exitApp = KeyInfo::appKey(AppKeyCode::exitApp);
@@ -95,6 +97,7 @@ constexpr std::array genericKeyboardAppKeyCodeMap
 	KeyMapping{appKeys.decStateSlot, {Input::Keycode::LCTRL, Input::Keycode::LEFT_BRACKET}},
 	KeyMapping{appKeys.incStateSlot, {Input::Keycode::LCTRL, Input::Keycode::RIGHT_BRACKET}},
 	KeyMapping{appKeys.fastForward, {Input::Keycode::LCTRL, Input::Keycode::GRAVE}},
+	KeyMapping{appKeys.rewind, {Input::Keycode::LCTRL, Input::Keycode::R}},
 	KeyMapping{appKeys.openMenu, Input::Keycode::BACK_KEY},
 };
 

@@ -15,7 +15,6 @@
 
 #include <emuframework/AutosaveManager.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuSystem.hh>
 #include "EmuOptions.hh"
 #include "pathUtils.hh"
 #include <imagine/io/MapIO.hh>
@@ -26,17 +25,19 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"AutosaveMgr"};
+constexpr Minutes defaultSaveFreq{5};
 
 AutosaveManager::AutosaveManager(EmuApp &app_):
 	app{app_},
-	autoSaveTimer
+	saveTimer
 	{
+		defaultSaveFreq,
 		"AutosaveManager::autosaveTimer",
 		[this]()
 		{
-			log.info("running autosave timer");
+			log.debug("running autosave timer");
 			save();
-			resetTimer();
+			saveTimer.update();
 			return true;
 		}
 	} {}
@@ -92,8 +93,7 @@ bool AutosaveManager::saveState()
 {
 	log.info("saving autosave state");
 	stateIO.truncate(0);
-	app.syncEmulationThread();
-	auto state = app.system().saveState();
+	auto state = app.saveState();
 	if(stateIO.write(state.span(), 0).bytes != ssize_t(state.size()))
 	{
 		app.postErrorMessage(4, "Error writing autosave state");
@@ -105,11 +105,9 @@ bool AutosaveManager::saveState()
 bool AutosaveManager::loadState()
 {
 	log.info("loading autosave state");
-	app.syncEmulationThread();
 	try
 	{
-		app.system().readState(app, stateIO.buffer(IOBufferMode::Direct));
-		resetTimer();
+		app.readState(stateIO.buffer(IOBufferMode::Direct));
 		return true;
 	}
 	catch(std::exception &err)
@@ -207,44 +205,33 @@ FS::PathString AutosaveManager::statePath(std::string_view name) const
 	return system().contentLocalSaveDirectory(name, system().stateFilename(defaultAutosaveFilename));
 }
 
-void AutosaveManager::pauseTimer()
-{
-	autoSaveTimerElapsedTime = SteadyClock::now() - autoSaveTimerStartTime;
-	autoSaveTimer.cancel();
-}
-
-void AutosaveManager::cancelTimer()
-{
-	autoSaveTimerElapsedTime = {};
-	autoSaveTimer.cancel();
-}
-
-void AutosaveManager::resetTimer()
-{
-	autoSaveTimerStartTime = SteadyClock::now();
-}
-
 void AutosaveManager::startTimer()
 {
 	if(!timerFrequency().count())
 		return;
-	autoSaveTimer.run(nextTimerFireTime(), timerFrequency());
-	autoSaveTimerStartTime = SteadyClock::now();
+	saveTimer.start();
 }
 
-SteadyClockTime AutosaveManager::nextTimerFireTime() const
+void AutosaveManager::pauseTimer()
 {
-	auto timerFreq = timerFrequency();
-	if(autoSaveTimerElapsedTime < timerFreq)
-		return timerFreq - autoSaveTimerElapsedTime;
-	return {};
+	saveTimer.pause();
+}
+
+void AutosaveManager::cancelTimer()
+{
+	saveTimer.cancel();
+}
+
+void AutosaveManager::resetTimer()
+{
+	saveTimer.reset();
 }
 
 SteadyClockTime AutosaveManager::timerFrequency() const
 {
 	if(autoSaveSlot == noAutosaveName)
 		return {};
-	return autosaveTimerMins;
+	return saveTimer.frequency;
 }
 
 bool AutosaveManager::readConfig(MapIO &io, unsigned key, size_t size)
@@ -253,10 +240,10 @@ bool AutosaveManager::readConfig(MapIO &io, unsigned key, size_t size)
 	{
 		default: return false;
 		case CFGKEY_AUTOSAVE_LAUNCH_MODE: return readOptionValue(io, size, autosaveLaunchMode, [](auto m){return m <= lastEnum<AutosaveLaunchMode>;});
-		case CFGKEY_AUTOSAVE_TIMER_MINS: return readOptionValue<decltype(autosaveTimerMins.count())>(io, size, [&](auto m)
+		case CFGKEY_AUTOSAVE_TIMER_MINS: return readOptionValue<decltype(saveTimer.frequency.count())>(io, size, [&](auto m)
 		{
 			if(m >= 0 && m <= 15)
-				autosaveTimerMins = IG::Minutes{m};
+				saveTimer.frequency = IG::Minutes{m};
 		});
 		case CFGKEY_AUTOSAVE_CONTENT: return readOptionValue(io, size, saveOnlyBackupMemory);
 	}
@@ -265,7 +252,7 @@ bool AutosaveManager::readConfig(MapIO &io, unsigned key, size_t size)
 void AutosaveManager::writeConfig(FileIO &io) const
 {
 	writeOptionValueIfNotDefault(io, CFGKEY_AUTOSAVE_LAUNCH_MODE, autosaveLaunchMode, AutosaveLaunchMode::Load);
-	writeOptionValueIfNotDefault(io, CFGKEY_AUTOSAVE_TIMER_MINS, autosaveTimerMins.count(), 5);
+	writeOptionValueIfNotDefault(io, CFGKEY_AUTOSAVE_TIMER_MINS, saveTimer.frequency.count(), defaultSaveFreq.count());
 	writeOptionValueIfNotDefault(io, CFGKEY_AUTOSAVE_CONTENT, saveOnlyBackupMemory, false);
 }
 

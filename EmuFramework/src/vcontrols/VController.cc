@@ -96,6 +96,7 @@ static void updateTexture(const EmuApp &app, VControllerElement &e, Gfx::Rendere
 						case exitApp: return app.asset(AssetID::close); break;
 						case slowMotion:
 						case toggleSlowMotion: return app.asset(AssetID::slow); break;
+						case rewind: return app.asset(AssetID::rewind); break;
 					}
 					return app.asset(AssetID::more);
 				}());

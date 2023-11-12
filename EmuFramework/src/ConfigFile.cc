@@ -131,6 +131,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_RATE_PAL, outputTimingManager.frameTimeOption(VideoSystem::PAL), OutputTimingManager::autoOption);
 	inputManager.vController.writeConfig(io);
 	autosaveManager_.writeConfig(io);
+	rewindManager.writeConfig(io);
 	emuAudio.writeConfig(io);
 	doIfUsed(overrideScreenFrameRate, [&](auto &rate)
 	{
@@ -203,6 +204,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					if(inputManager.vController.readConfig(*this, io, key, size))
 						return true;
 					if(autosaveManager_.readConfig(io, key, size))
+						return true;
+					if(rewindManager.readConfig(io, key, size))
 						return true;
 					if(emuAudio.readConfig(io, key, size))
 						return true;

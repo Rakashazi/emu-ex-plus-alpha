@@ -50,6 +50,7 @@ namespace EmuEx
 [[gnu::weak]] IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::i16;
 [[gnu::weak]] F2Size EmuSystem::validFrameRateRange{minFrameRate, 80.};
 [[gnu::weak]] bool EmuSystem::hasRectangularPixels = false;
+[[gnu::weak]] bool EmuSystem::stateSizeChangesAtRuntime = false;
 
 bool EmuSystem::stateExists(int slot) const
 {
@@ -273,6 +274,7 @@ void EmuSystem::closeRuntimeSystem(EmuApp &app)
 		flushBackupMemory(app);
 		closeSystem();
 		app.autosaveManager().cancelTimer();
+		app.rewindManager.clear();
 		state = State::OFF;
 	}
 	clearGamePaths();
@@ -294,6 +296,7 @@ void EmuSystem::pause(EmuApp &app)
 		state = State::PAUSED;
 	app.audio().stop();
 	app.autosaveManager().pauseTimer();
+	app.rewindManager.pauseTimer();
 	onStop();
 }
 
@@ -307,6 +310,13 @@ void EmuSystem::start(EmuApp &app)
 	onStart();
 	app.startAudio();
 	app.autosaveManager().startTimer();
+	if(stateSizeChangesAtRuntime && app.rewindManager.maxStates)
+	{
+		auto newStateSize = stateSize();
+		if(newStateSize != app.rewindManager.stateSize)
+			app.rewindManager.reset(newStateSize);
+	}
+	app.rewindManager.startTimer();
 }
 
 SteadyClockTime EmuSystem::benchmark(EmuVideo &video)

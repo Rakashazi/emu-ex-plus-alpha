@@ -105,18 +105,27 @@ void state_load(const unsigned char *buffer)
   unsigned bufferptr = 0;
 
   /* uncompress savestate */
-  uint32 inbytes32;
+  int32 inbytes32;
   memcpy(&inbytes32, buffer, 4);
-  unsigned long inbytes = inbytes32;
   unsigned long outbytes = STATE_SIZE;
-  logMsg("uncompressing %d bytes to buffer of %d size", (int)inbytes, (int)outbytes);
+  if(inbytes32 > 0)
   {
-  	int result = uncompress((Bytef *)state.get(), &outbytes, (Bytef *)(buffer + 4), inbytes);
-		if(result != Z_OK)
+		unsigned long inbytes = inbytes32;
+		outbytes = STATE_SIZE;
+		logMsg("uncompressing %d bytes to buffer of %d size", (int)inbytes, (int)outbytes);
 		{
-			//logErr("error %d in uncompress loading state", result);
-			throw std::runtime_error(std::format("Error {} during uncompress", result));
+			int result = uncompress((Bytef *)state.get(), &outbytes, (Bytef *)(buffer + 4), inbytes);
+			if(result != Z_OK)
+			{
+				//logErr("error %d in uncompress loading state", result);
+				throw std::runtime_error(std::format("Error {} during uncompress", result));
+			}
 		}
+  }
+  else // not compressed
+  {
+  	memcpy(state.get(), buffer + 4, -inbytes32);
+  	outbytes = -inbytes32;
   }
 
   /* signature check (GENPLUS-GX x.x.x) */
@@ -294,7 +303,7 @@ void state_load(const unsigned char *buffer)
 	}
 }
 
-int state_save(unsigned char *buffer)
+int state_save(unsigned char *buffer, bool uncompressed)
 {
 	auto state = std::make_unique<unsigned char[]>(STATE_SIZE);
 
@@ -392,15 +401,24 @@ int state_save(unsigned char *buffer)
 	}
 	#endif
 
-  /* compress state file */
-  unsigned long inbytes   = bufferptr;
-  unsigned long outbytes  = STATE_SIZE;
-  logMsg("compressing %d bytes to buffer of %d size", (int)inbytes, (int)outbytes);
-  int ret = compress2 ((Bytef *)(buffer + 4), &outbytes, (Bytef *)state.get(), inbytes, 9);
-  logMsg("compress2 returned %d, reduced to %d bytes", ret, (int)outbytes);
-  uint32 outbytes32 = outbytes; // assumes no save states will ever be over 4GB
-  memcpy(buffer, &outbytes32, 4);
-
-  /* return total size */
-  return (outbytes32 + 4);
+	int32 outbytes32;
+  if(uncompressed)
+  {
+  	memcpy(buffer + 4, state.get(), bufferptr);
+  	outbytes32 = -bufferptr; // use negative size to indicate uncompressed state
+  	memcpy(buffer, &outbytes32, 4);
+  	outbytes32 = bufferptr;
+  	return bufferptr + 4;
+  }
+  else
+  {
+		unsigned long inbytes   = bufferptr;
+		unsigned long outbytes  = STATE_SIZE;
+		logMsg("compressing %d bytes to buffer of %d size", (int)inbytes, (int)outbytes);
+		int ret = compress2 ((Bytef *)(buffer + 4), &outbytes, (Bytef *)state.get(), inbytes, 9);
+		logMsg("compress2 returned %d, reduced to %d bytes", ret, (int)outbytes);
+		outbytes32 = outbytes;
+		memcpy(buffer, &outbytes32, 4);
+		return outbytes + 4;
+  }
 }

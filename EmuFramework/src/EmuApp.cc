@@ -80,10 +80,11 @@ constexpr AssetDesc assetDesc[wise_enum::size<AssetID>]
 	{AssetFileID::ui, {{.25, .5}, {.5,  .75}}},
 	{AssetFileID::ui, {{.5,  .5}, {.75, .75}}},
 	{AssetFileID::ui, {{.75, .5}, {1.,  .75}}},
-	// display, screenshot, openFile
+	// display, screenshot, openFile, rewind
 	{AssetFileID::ui, {{0,   .75}, {.25, 1.}}},
 	{AssetFileID::ui, {{.25, .75}, {.5,  1.}}},
 	{AssetFileID::ui, {{.5,  .75}, {.75, 1.}}},
+	{AssetFileID::ui, {{.75, .75}, {1.,  1.}}},
 	{AssetFileID::gamepadOverlay, {{}, {1.f, 1.f}}},
 	{AssetFileID::keyboardOverlay, {{}, {1.f, 1.f}}},
 };
@@ -115,6 +116,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	emuSystemTask{*this},
 	autosaveManager_{*this},
 	inputManager{ctx},
+	rewindManager{*this},
 	pixmapReader{ctx},
 	pixmapWriter{ctx},
 	vibrationManager_{ctx},
@@ -263,6 +265,7 @@ void EmuApp::closeSystem()
 	emuSystemTask.stop();
 	system().closeRuntimeSystem(*this);
 	autosaveManager_.resetSlot();
+	rewindManager.clear();
 	viewController().onSystemClosed();
 }
 
@@ -1016,6 +1019,10 @@ void EmuApp::reloadSystem(EmuSystemCreateParams params)
 void EmuApp::onSystemCreated()
 {
 	updateContentRotation();
+	if(!rewindManager.reset(system().stateSize()))
+	{
+		postErrorMessage(4, "Not enough memory for rewind states");
+	}
 	viewController().onSystemCreated();
 }
 
@@ -1109,6 +1116,26 @@ FS::PathString EmuApp::contentSaveFilePath(std::string_view ext) const
 		return system().contentLocalSaveDirectory(slotName, FS::FileString{"auto"}.append(ext));
 	else
 		return system().contentSaveFilePath(ext);
+}
+
+void EmuApp::readState(std::span<uint8_t> buff)
+{
+	syncEmulationThread();
+	system().readState(*this, buff);
+	system().clearInputBuffers(viewController().inputView);
+	autosaveManager_.resetTimer();
+}
+
+size_t EmuApp::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
+{
+	syncEmulationThread();
+	return system().writeState(buff, flags);
+}
+
+DynArray<uint8_t> EmuApp::saveState()
+{
+	syncEmulationThread();
+	return system().saveState();
 }
 
 bool EmuApp::saveState(CStringView path)
@@ -1343,6 +1370,16 @@ bool EmuApp::handleAppActionKeyInput(InputAction action, const Input::Event &src
 			if(!isPushed)
 				break;
 			viewController().inputView.toggleAltSpeedMode(AltSpeedMode::slow);
+			break;
+		}
+		case rewind:
+		{
+			if(!isPushed)
+				break;
+			if(rewindManager.maxStates)
+				rewindManager.rewindState(*this);
+			else
+				postMessage(3, false, "Please set rewind states in Options➔System");
 			break;
 		}
 	}

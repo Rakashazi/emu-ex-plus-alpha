@@ -187,6 +187,7 @@ public:
 	FS::ArchiveIterator &systemFilesArchiveIterator(ApplicationContext, std::string_view path) const;
 	void returnSystemFilesArchiveIO(ArchiveIO);
 	bool setSystemFilesPath(ApplicationContext, CStringView path, FS::file_type);
+	void execC64Frame();
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -231,7 +232,6 @@ protected:
 	void handleKeyboardInput(InputAction, bool positionalShift = {});
 	void setModel(int model);
 	void applyInitialOptionResources();
-	void execC64Frame();
 	void startCanvasRunningFrame();
 	void setCanvasSkipFrame(bool on);
 	bool updateCanvasPixelFormat(struct video_canvas_s *, PixelFormat);

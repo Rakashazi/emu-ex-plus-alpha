@@ -72,6 +72,7 @@ bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::handlesGenericIO = false;
 bool EmuSystem::hasRectangularPixels = true;
+bool EmuSystem::stateSizeChangesAtRuntime = true;
 bool EmuApp::needsGlobalInstance = true;
 
 C64App::C64App(ApplicationInitParams initParams, ApplicationContext &ctx):
@@ -248,7 +249,8 @@ struct SnapshotTrapData
 	const VicePlugin &plugin;
 	uint8_t *buffData{};
 	size_t buffSize{};
-	bool hasError{true};
+	bool hasError{};
+	bool ranTrap{};
 };
 
 static std::array<char, 32> snapshotVPath(SnapshotTrapData &data)
@@ -280,6 +282,7 @@ static void loadSnapshotTrap(uint16_t, void *data)
 		snapData.hasError = true;
 	else
 		snapData.hasError = false;
+	snapData.ranTrap = true;
 }
 
 static void saveSnapshotTrap(uint16_t, void *data)
@@ -290,15 +293,25 @@ static void saveSnapshotTrap(uint16_t, void *data)
 		snapData.hasError = true;
 	else
 		snapData.hasError = false;
+	snapData.ranTrap = true;
+}
+
+static void runTrap(C64System &sys, auto trapFunc, SnapshotTrapData &snapData)
+{
+	sys.plugin.interrupt_maincpu_trigger_trap(trapFunc, (void*)&snapData);
+	for(auto i : iotaCount(15))
+	{
+		sys.execC64Frame(); // execute cpu trap
+		if(snapData.ranTrap)
+			break;
+	}
 }
 
 size_t C64System::stateSize()
 {
 	SnapshotTrapData data{.plugin{plugin}};
-	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
-	execC64Frame(); // execute cpu trap
-	if(data.hasError)
-		return 0;
+	runTrap(*this, saveSnapshotTrap, data);
+	assert(!data.hasError);
 	return data.buffSize;
 }
 
@@ -306,14 +319,11 @@ void C64System::readState(EmuApp &app, std::span<uint8_t> buff)
 {
 	plugin.vsync_set_warp_mode(0);
 	SnapshotTrapData data{.plugin{plugin}, .buffData = buff.data(), .buffSize = buff.size()};
-	execC64Frame(); // run extra frame in case C64 was just started
-	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
-	execC64Frame(); // execute cpu trap, snapshot load may cause reboot from a C64 model change
+	runTrap(*this, loadSnapshotTrap, data); // execute cpu trap, snapshot load may cause reboot from a C64 model change
 	if(data.hasError)
 		throw std::runtime_error("Invalid state data");
 	// reload snapshot in case last load caused a reboot
-	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
-	execC64Frame(); // execute cpu trap
+	runTrap(*this, loadSnapshotTrap, data);
 	if(data.hasError)
 		throw std::runtime_error("Invalid state data");
 }
@@ -321,8 +331,7 @@ void C64System::readState(EmuApp &app, std::span<uint8_t> buff)
 size_t C64System::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
 {
 	SnapshotTrapData data{.plugin{plugin}, .buffData = buff.data(), .buffSize = buff.size()};
-	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
-	execC64Frame(); // execute cpu trap
+	runTrap(*this, saveSnapshotTrap, data);
 	assert(!data.hasError);
 	return data.buffSize;
 }

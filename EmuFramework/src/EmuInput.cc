@@ -227,7 +227,8 @@ KeyConfigDesc InputManager::defaultConfig(const Input::Device &dev) const
 
 KeyInfo InputManager::transpose(KeyInfo c, int index) const
 {
-	c.flags.deviceId = index;
+	if(index != InputDeviceConfig::PLAYER_MULTI)
+		c.flags.deviceId = index;
 	return c;
 }
 
@@ -329,6 +330,7 @@ std::string_view toString(AppKeyCode code)
 		case AppKeyCode::exitApp: return "Exit App";
 		case AppKeyCode::slowMotion: return "Slow-motion";
 		case AppKeyCode::toggleSlowMotion: return "Toggle Slow-motion";
+		case AppKeyCode::rewind: return "Rewind";
 	};
 	return "";
 }

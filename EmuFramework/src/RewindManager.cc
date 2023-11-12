@@ -1,0 +1,123 @@
+/*  This file is part of EmuFramework.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <emuframework/RewindManager.hh>
+#include <emuframework/EmuApp.hh>
+#include "EmuOptions.hh"
+#include <imagine/logger/logger.h>
+
+namespace EmuEx
+{
+
+constexpr SystemLogger log{"RewindMgr"};
+constexpr Seconds defaultSaveFreq{1};
+
+RewindManager::RewindManager(EmuApp &app):
+	saveTimer
+	{
+		defaultSaveFreq,
+		"RewindManager::saveStateTimer",
+		[this, &app]()
+		{
+			//log.debug("running rewind save state timer");
+			saveState(app);
+			saveTimer.update();
+			return true;
+		}
+	} {}
+
+void RewindManager::clear()
+{
+	saveTimer.cancel();
+	stateEntries = {};
+	stateIdx = 0;
+	stateSize = 0;
+}
+
+bool RewindManager::reset()
+{
+	if(!stateSize)
+		return true;
+	try
+	{
+		if(maxStates)
+			log.info("allocating {} states of size:{}", maxStates, stateSize);
+		stateEntries.reset(maxStates, stateSize);
+		stateIdx = 0;
+		return true;
+	}
+	catch(...)
+	{
+		return false;
+	}
+}
+
+void RewindManager::saveState(EmuApp &app)
+{
+	assert(maxStates);
+	//log.debug("saving rewind state index:{}", stateIdx);
+	auto &entry = stateEntries[stateIdx];
+	entry.size = app.writeState({entry.data, stateSize}, {.uncompressed = true});
+	stateIdx = (stateIdx + 1) % maxStates;
+}
+
+void RewindManager::rewindState(EmuApp &app)
+{
+	if(!maxStates)
+		return;
+	auto prevIdx = (stateIdx - 1) % maxStates;
+	auto &entry = stateEntries[prevIdx];
+	if(!entry.size)
+		return;
+	log.info("rewinding to state index:{}", prevIdx);
+	app.readState({entry.data, std::exchange(entry.size, 0)});
+	stateIdx = prevIdx;
+	saveTimer.reset();
+}
+
+void RewindManager::startTimer()
+{
+	if(!stateEntries.size())
+		return;
+	saveTimer.start();
+}
+
+void RewindManager::pauseTimer()
+{
+	saveTimer.pause();
+}
+
+bool RewindManager::readConfig(MapIO &io, unsigned key, size_t size)
+{
+	switch(key)
+	{
+		default: return false;
+		case CFGKEY_REWIND_STATES: return readOptionValue<uint32_t>(io, size, [&](auto m){ maxStates = m; });
+		case CFGKEY_REWIND_TIMER_SECS: return readOptionValue<int16_t>(io, size, [&](auto s)
+		{
+			if(s > 0)
+				saveTimer.frequency = Seconds{s};
+		});
+	}
+}
+
+void RewindManager::writeConfig(FileIO &io) const
+{
+	writeOptionValueIfNotDefault(io, CFGKEY_REWIND_STATES, uint32_t(maxStates), 0u);
+	writeOptionValueIfNotDefault(io, CFGKEY_REWIND_TIMER_SECS, int16_t(saveTimer.frequency.count()), defaultSaveFreq.count());
+}
+
+
+}

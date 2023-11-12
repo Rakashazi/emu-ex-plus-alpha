@@ -41,6 +41,6 @@
 
 /* Function prototypes */
 void state_load(const unsigned char *buffer);
-int state_save(unsigned char *buffer);
+int state_save(unsigned char *buffer, bool uncompressed = false);
 
 #endif

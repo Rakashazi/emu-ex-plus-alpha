@@ -153,7 +153,7 @@ void MdSystem::readState(EmuApp &app, std::span<uint8_t> buff)
 size_t MdSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
 {
 	assert(buff.size() == maxSaveStateSize);
-	return state_save(buff.data());
+	return state_save(buff.data(), flags.uncompressed);
 }
 
 static bool sramHasContent(std::span<uint8> sram)

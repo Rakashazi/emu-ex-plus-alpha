@@ -26,6 +26,7 @@
 #include <emuframework/AutosaveManager.hh>
 #include <emuframework/OutputTimingManager.hh>
 #include <emuframework/RecentContent.hh>
+#include <emuframework/RewindManager.hh>
 #include <imagine/input/inputDefs.hh>
 #include <imagine/gui/ViewManager.hh>
 #include <imagine/gui/TextEntry.hh>
@@ -88,6 +89,7 @@ WISE_ENUM_CLASS((AssetID, size_t),
 	display,
 	screenshot,
 	openFile,
+	rewind,
 	gamepadOverlay,
 	keyboardOverlay);
 
@@ -196,6 +198,9 @@ public:
 	void printScreenshotResult(bool success);
 	FS::PathString contentSavePath(std::string_view name) const;
 	FS::PathString contentSaveFilePath(std::string_view ext) const;
+	void readState(std::span<uint8_t> buff);
+	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
+	DynArray<uint8_t> saveState();
 	bool saveState(CStringView path);
 	bool saveStateWithSlot(int slot);
 	bool loadState(CStringView path);
@@ -497,6 +502,7 @@ protected:
 public:
 	InputManager inputManager;
 	OutputTimingManager outputTimingManager;
+	RewindManager rewindManager;
 protected:
 	IG_UseMemberIf(enableFrameTimeStats, FrameTimeStats, frameTimeStats);
 	IG_UseMemberIf(Config::threadPerformanceHints, SteadyClockTimePoint, frameStartTimePoint){};

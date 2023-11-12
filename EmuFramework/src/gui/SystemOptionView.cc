@@ -38,9 +38,9 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Autosave Timer", &defaultFace(),
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager().autosaveTimerMins = IG::Minutes{item.id()}; }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager().saveTimer.frequency = IG::Minutes{item.id()}; }
 		},
-		(MenuItem::Id)app().autosaveManager().autosaveTimerMins.count(),
+		MenuItem::Id(app().autosaveManager().saveTimer.frequency.count()),
 		autosaveTimerItem
 	},
 	autosaveLaunchItem
@@ -163,6 +163,55 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		(MenuItem::Id)app().altSpeed(AltSpeedMode::slow),
 		slowModeSpeedItem
 	},
+	rewindStatesItem
+	{
+		{"0", &defaultFace(), 0},
+		{"30", &defaultFace(), 30},
+		{"60", &defaultFace(), 60},
+		{"Custom Value", &defaultFace(), [this](const Input::Event &e)
+			{
+				app().pushAndShowNewCollectValueRangeInputView<int, 0, 50000>(attachParams(), e,
+					"Input 0 to 50000", std::to_string(app().rewindManager.maxStates),
+					[this](EmuApp &app, auto val)
+					{
+						app.rewindManager.updateMaxStates(val);
+						rewindStates.setSelected(val, *this);
+						dismissPrevious();
+						return true;
+					});
+				return false;
+			}, MenuItem::DEFAULT_ID
+		},
+	},
+	rewindStates
+	{
+		"Rewind States", &defaultFace(),
+		{
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(std::format("{}", app().rewindManager.maxStates));
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().rewindManager.updateMaxStates(item.id()); }
+		},
+		MenuItem::Id(app().rewindManager.maxStates),
+		rewindStatesItem
+	},
+	rewindTimeInterval
+	{
+		"Rewind State Interval (Seconds)", std::to_string(app().rewindManager.saveTimer.frequency.count()), &defaultFace(),
+		[this](const Input::Event &e)
+		{
+			app().pushAndShowNewCollectValueRangeInputView<int, 1, 60>(attachParams(), e,
+				"Input 1 to 60", std::to_string(app().rewindManager.saveTimer.frequency.count()),
+				[this](EmuApp &app, auto val)
+				{
+					app.rewindManager.saveTimer.frequency = Seconds{val};
+					rewindTimeInterval.set2ndName(std::to_string(val));
+					return true;
+				});
+		}
+	},
 	performanceMode
 	{
 		"Performance Mode", &defaultFace(),
@@ -205,6 +254,8 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&confirmOverwriteState);
 	item.emplace_back(&fastModeSpeed);
 	item.emplace_back(&slowModeSpeed);
+	item.emplace_back(&rewindStates);
+	item.emplace_back(&rewindTimeInterval);
 	if(used(performanceMode) && appContext().hasSustainedPerformanceMode())
 		item.emplace_back(&performanceMode);
 	if(used(noopThread))

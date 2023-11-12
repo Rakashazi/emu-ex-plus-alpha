@@ -119,12 +119,14 @@ void InputDeviceData::updateInputKey(const Input::KeyEvent &keyEv)
 
 void InputDeviceData::addInputKey(Input::Key key)
 {
-	pushedInputKeys.push_back(key);
+	if(contains(pushedInputKeys, key))
+		return;
+	pushedInputKeys.tryPushBack(key);
 }
 
 void InputDeviceData::removeInputKey(Input::Key key)
 {
-	std::ranges::replace(pushedInputKeys, key, Input::Key{});
+	erase(pushedInputKeys, key);
 }
 
 bool InputDeviceData::keysArePushed(MappedKeys mapKeys)

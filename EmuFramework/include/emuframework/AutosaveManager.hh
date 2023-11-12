@@ -17,7 +17,7 @@
 
 #include <emuframework/config.hh>
 #include <emuframework/Option.hh>
-#include <imagine/base/Timer.hh>
+#include <imagine/base/PausableTimer.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/enum.hh>
@@ -61,7 +61,7 @@ public:
 	void resetSlot(std::string_view name = "")
 	{
 		autoSaveSlot = name;
-		autoSaveTimerElapsedTime = {};
+		saveTimer.cancel();
 		stateIO = {};
 	}
 	bool renameSlot(std::string_view name, std::string_view newName);
@@ -73,11 +73,10 @@ public:
 	WallClockTimePoint backupMemoryTime() const;
 	FS::PathString statePath() const { return statePath(autoSaveSlot); }
 	FS::PathString statePath(std::string_view name) const;
+	void startTimer();
 	void pauseTimer();
 	void cancelTimer();
 	void resetTimer();
-	void startTimer();
-	SteadyClockTime nextTimerFireTime() const;
 	SteadyClockTime timerFrequency() const;
 	bool readConfig(MapIO &, unsigned key, size_t size);
 	void writeConfig(FileIO &) const;
@@ -89,15 +88,12 @@ private:
 	EmuApp &app;
 	std::string autoSaveSlot;
 	FileIO stateIO;
-	Timer autoSaveTimer;
-	SteadyClockTimePoint autoSaveTimerStartTime{};
-	SteadyClockTime autoSaveTimerElapsedTime{};
 
 	bool saveState();
 	bool loadState();
 
 public:
-	Minutes autosaveTimerMins{};
+	PausableTimer<Minutes> saveTimer;
 	AutosaveLaunchMode autosaveLaunchMode{};
 	bool saveOnlyBackupMemory{};
 };

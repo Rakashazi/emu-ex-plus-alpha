@@ -18,6 +18,7 @@ KeyConfig.cc \
 OutputTimingManager.cc \
 pathUtils.cc \
 RecentContent.cc \
+RewindManager.cc \
 ToggleInput.cc \
 TurboInput.cc \
 VideoImageEffect.cc \

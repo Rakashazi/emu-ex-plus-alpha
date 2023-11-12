@@ -192,6 +192,7 @@ public:
 	static const char *creditsViewStr;
 	static F2Size validFrameRateRange;
 	static bool hasRectangularPixels;
+	static bool stateSizeChangesAtRuntime;
 
 	EmuSystem(IG::ApplicationContext ctx): appCtx{ctx} {}
 

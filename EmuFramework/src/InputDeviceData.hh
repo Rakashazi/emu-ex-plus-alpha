@@ -18,7 +18,7 @@
 #include "InputDeviceConfig.hh"
 #include <imagine/input/inputDefs.hh>
 #include <imagine/util/container/VMemArray.hh>
-#include <imagine/util/container/array.hh>
+#include <imagine/util/container/ArrayList.hh>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -34,7 +34,7 @@ struct InputDeviceData
 
 	VMemArray<ActionGroup> actionTable;
 	std::vector<KeyMapping> keyCombos;
-	RingArray<Input::Key, 8> pushedInputKeys;
+	StaticArrayList<Input::Key, 8> pushedInputKeys;
 	InputDeviceConfig devConf;
 	std::string displayName;
 
