@@ -34,7 +34,7 @@ public:
 		player_{int8_t(dev.enumId() < EmuSystem::maxPlayers ? dev.enumId() : 0)} {}
 
 	void deleteConf(InputManager &);
-	bool setICadeMode(InputManager &, bool on);
+	void setICadeMode(bool on);
 	bool iCadeMode();
 	bool joystickAxesAsDpad(Input::AxisSetId);
 	void setJoystickAxesAsDpad(Input::AxisSetId, bool on);

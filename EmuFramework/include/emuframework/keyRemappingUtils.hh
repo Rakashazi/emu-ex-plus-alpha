@@ -185,27 +185,6 @@ constexpr Input::Key genericGamepadKeycodeToICP(Input::Key k)
 	}
 }
 
-constexpr Input::Key genericGamepadKeycodeToICade(Input::Key k)
-{
-	using namespace Input;
-	switch(k)
-	{
-		case Keycode::UP: return ICade::UP;
-		case Keycode::RIGHT: return ICade::RIGHT;
-		case Keycode::DOWN: return ICade::DOWN;
-		case Keycode::LEFT: return ICade::LEFT;
-		case Keycode::GAME_A: return ICade::A;
-		case Keycode::GAME_B: return ICade::B;
-		case Keycode::GAME_X: return ICade::X;
-		case Keycode::GAME_Y: return ICade::Y;
-		case Keycode::GAME_SELECT: return ICade::SELECT;
-		case Keycode::GAME_START: return ICade::START;
-		case Keycode::GAME_L1: return ICade::Z;
-		case Keycode::GAME_R1: return ICade::C;
-		default: return 0;
-	}
-}
-
 constexpr Input::Key genericGamepadKeycodeToPS3(Input::Key k)
 {
 	using namespace Input;
@@ -286,7 +265,6 @@ constexpr std::span<const KeyConfigDesc> genericKeyConfigs()
 	static constexpr std::array wiimoteMap = concatToArrayNow<genericWiimoteAppKeyCodeMap, wiimoteBaseMap>;
 	static constexpr std::array wiiCCMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToWiiCC);
 	static constexpr std::array icpMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToICP);
-	static constexpr std::array iCadeMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToICade);
 	static constexpr std::array ps3Map = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToPS3);
 	static constexpr std::array zeemoteMap = transformMappedKeys(wiimoteBaseMap, wiimoteKeycodeToZeemote);
 
@@ -315,7 +293,6 @@ constexpr std::span<const KeyConfigDesc> genericKeyConfigs()
 		KeyConfigDesc{Map::ICONTROLPAD, "Default", icpMap},
 		KeyConfigDesc{Map::ZEEMOTE, "Default", zeemoteMap},
 		#endif
-		KeyConfigDesc{Map::ICADE, "Default", iCadeMap},
 		#ifdef CONFIG_BLUETOOTH_SERVER
 		KeyConfigDesc{Map::PS3PAD, "Default", ps3Map},
 		#endif

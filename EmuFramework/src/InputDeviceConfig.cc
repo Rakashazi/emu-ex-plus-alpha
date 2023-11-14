@@ -59,20 +59,9 @@ void InputDeviceConfig::deleteConf(InputManager &mgr)
 	savedConf = nullptr;
 }
 
-bool InputDeviceConfig::setICadeMode(InputManager &mgr, bool on)
+void InputDeviceConfig::setICadeMode(bool on)
 {
-	// delete device's config since its properties will change with iCade mode switch
-	deleteConf(mgr);
 	dev->setICadeMode(on);
-	buildKeyMap(mgr);
-	save(mgr);
-	if(!savedConf)
-	{
-		log.error("can't save iCade mode");
-		return 0;
-	}
-	savedConf->iCadeMode = on;
-	return 1;
 }
 
 bool InputDeviceConfig::iCadeMode()

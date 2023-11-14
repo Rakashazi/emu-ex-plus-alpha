@@ -26,3 +26,14 @@ constexpr bool needsBackControlIsMutable = !Config::envIsIOS;
 constexpr auto imageSamplerConfig = Gfx::SamplerConfigs::nearestMipClamp;
 
 }
+
+namespace IG
+{
+
+struct TableUIState
+{
+	int highlightedCell{-1};
+	int scrollOffset{};
+};
+
+}

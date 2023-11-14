@@ -179,7 +179,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 			auto ctx = appContext();
 			for(auto &e : ctx.inputDevices())
 			{
-				if(e->map() == Input::Map::SYSTEM || e->map() == Input::Map::ICADE)
+				if(e->map() == Input::Map::SYSTEM)
 					devices++;
 			}
 			app().postMessage(2, false, std::format("{} OS devices present", devices));
@@ -738,8 +738,7 @@ void InputManagerDeviceView::loadItems()
 	item.emplace_back(&renameProfile);
 	item.emplace_back(&deleteProfile);
 	auto &dev = devConf.device();
-	if(hasICadeInput &&
-		((dev.map() == Input::Map::SYSTEM && dev.hasKeyboard()) || dev.map() == Input::Map::ICADE))
+	if(hasICadeInput && (dev.map() == Input::Map::SYSTEM && dev.hasKeyboard()))
 	{
 		item.emplace_back(&iCadeMode);
 	}
@@ -772,7 +771,7 @@ void InputManagerDeviceView::onShow()
 
 void InputManagerDeviceView::confirmICadeMode()
 {
-	devConf.setICadeMode(inputManager, iCadeMode.flipBoolValue(*this));
+	devConf.setICadeMode(iCadeMode.flipBoolValue(*this));
 	onShow();
 	app().defaultVController().setPhysicalControlsPresent(appContext().keyInputIsPresent());
 }

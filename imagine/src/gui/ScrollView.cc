@@ -264,11 +264,6 @@ void ScrollView::setScrollOffset(int o)
 	offset = std::clamp(o, 0, offsetMax);
 }
 
-int ScrollView::scrollOffset() const
-{
-	return offset;
-}
-
 void ScrollView::stopScrollAnimation()
 {
 	lastFrameTimestamp = {};

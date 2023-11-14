@@ -40,6 +40,8 @@ public:
 	bool isDoingScrollGesture() const;
 	bool isOverScrolled() const;
 	int overScroll() const;
+	void setScrollOffset(int);
+	int scrollOffset() const { return offset; }
 
 protected:
 	using VelocityTrackerType = Input::VelocityTracker<float, 1>;
@@ -64,8 +66,6 @@ protected:
 	void setContentSize(WSize size);
 	void drawScrollContent(Gfx::RendererCommands &cmds);
 	bool scrollInputEvent(const Input::MotionEvent &);
-	void setScrollOffset(int o);
-	int scrollOffset() const;
 	void stopScrollAnimation();
 };
 

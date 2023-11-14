@@ -113,27 +113,4 @@ static constexpr uint8_t MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	static const uint32_t COUNT = 9;
 	}
 
-	namespace ICade
-	{
-	// Due to lack of naming standard and for clarity,
-	// face buttons are labeled like a SEGA Saturn controller
-	// with E1 and E2 as SELECT and START respectively
-
-	static const uint32_t UP = Keycode::UP,
-	RIGHT = Keycode::RIGHT,
-	DOWN = Keycode::DOWN,
-	LEFT = Keycode::LEFT,
-	X = Keycode::GAME_X,
-	A = Keycode::GAME_A,
-	Y = Keycode::GAME_Y,
-	B = Keycode::GAME_B,
-	Z = Keycode::GAME_Z,
-	C = Keycode::GAME_C,
-	SELECT = Keycode::GAME_SELECT,
-	START = Keycode::GAME_START
-	;
-
-	static const uint32_t COUNT = Keycode::COUNT;
-	}
-
 }

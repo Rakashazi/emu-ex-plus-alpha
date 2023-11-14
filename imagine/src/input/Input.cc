@@ -31,8 +31,8 @@ static constexpr Key iCadeMap[12]
 	Keycode::UP, Keycode::RIGHT, Keycode::DOWN, Keycode::LEFT,
 	Keycode::GAME_X, Keycode::GAME_B,
 	Keycode::GAME_A, Keycode::GAME_Y,
-	Keycode::GAME_C, Keycode::GAME_Z,
-	Keycode::GAME_START, Keycode::GAME_SELECT
+	Keycode::GAME_R1, Keycode::GAME_L1,
+	Keycode::GAME_START, Keycode::GAME_SELECT // labeled E1 & E2 on some controllers
 };
 
 static Key keyToICadeOnKey(Key key)
@@ -92,7 +92,6 @@ std::string_view BaseEvent::mapName(Map map)
 		#ifdef CONFIG_BLUETOOTH_SERVER
 		case Map::PS3PAD: return "PS3 Gamepad";
 		#endif
-		case Map::ICADE: return "iCade";
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case Map::APPLE_GAME_CONTROLLER: return "Apple Game Controller";
 		#endif
@@ -114,7 +113,6 @@ uint32_t BaseEvent::mapNumKeys(Map map)
 		#ifdef CONFIG_BLUETOOTH_SERVER
 		case Map::PS3PAD: return Input::PS3::COUNT;
 		#endif
-		case Map::ICADE: return Input::ICade::COUNT;
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case Map::APPLE_GAME_CONTROLLER: return Input::AppleGC::COUNT;
 		#endif
@@ -169,7 +167,6 @@ Map validateMap(uint8_t mapValue)
 		#ifdef CONFIG_BLUETOOTH_SERVER
 		case (uint8_t)Map::PS3PAD:
 		#endif
-		case (uint8_t)Map::ICADE:
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case (uint8_t)Map::APPLE_GAME_CONTROLLER:
 		#endif
@@ -401,7 +398,7 @@ bool BaseApplication::processICadeKey(const Input::KeyEvent &e, Window &win)
 		if(e.state() == Action::PUSHED)
 		{
 			//logMsg("pushed iCade keyboard key: %s", dev.keyName(key));
-			dispatchRepeatableKeyInputEvent({Map::ICADE, onKey, onKey, Action::PUSHED, 0, 0, Source::GAMEPAD, e.time(), e.device()}, win);
+			dispatchRepeatableKeyInputEvent({Map::SYSTEM, onKey, onKey, Action::PUSHED, 0, 0, Source::GAMEPAD, e.time(), e.device()}, win);
 		}
 		return true;
 	}
@@ -409,7 +406,7 @@ bool BaseApplication::processICadeKey(const Input::KeyEvent &e, Window &win)
 	{
 		if(e.state() == Action::PUSHED)
 		{
-			dispatchRepeatableKeyInputEvent({Map::ICADE, offKey, offKey, Action::RELEASED, 0, 0, Source::GAMEPAD, e.time(), e.device()}, win);
+			dispatchRepeatableKeyInputEvent({Map::SYSTEM, offKey, offKey, Action::RELEASED, 0, 0, Source::GAMEPAD, e.time(), e.device()}, win);
 		}
 		return true;
 	}

@@ -250,39 +250,6 @@ static const char *keyButtonName(Key b)
 	return "";
 }
 
-static const char *iCadeButtonName(Key b)
-{
-	switch(b)
-	{
-		case 0: return "None";
-		#ifdef CONFIG_BASE_IOS
-		// Show the iControlPad buttons only on iOS
-		case ICade::X: return "5 (iCP A)";
-		case ICade::A: return "6 (iCP X)";
-		case ICade::Y: return "7 (iCP Y)";
-		case ICade::B: return "8 (iCP B)";
-		case ICade::Z: return "9 (iCP L)";
-		case ICade::C: return "0 (iCP R)";
-		case ICade::SELECT: return "E1 (iCP Select)";
-		case ICade::START: return "E2 (iCP Start)";
-		#else
-		case ICade::X: return "5";
-		case ICade::A: return "6";
-		case ICade::Y: return "7";
-		case ICade::B: return "8";
-		case ICade::Z: return "9";
-		case ICade::C: return "0";
-		case ICade::SELECT: return "E1";
-		case ICade::START: return "E2";
-		#endif
-		case ICade::UP: return "Up";
-		case ICade::RIGHT: return "Right";
-		case ICade::DOWN: return "Down";
-		case ICade::LEFT: return "Left";
-	}
-	return nullptr;
-}
-
 static const char *ps3SysButtonName(Key b)
 {
 	#if defined __ANDROID__
@@ -408,15 +375,6 @@ const char *Device::keyName(Key k) const
 				return keyButtonName(k);
 			return name;
 		}
-		case Map::ICADE:
-		{
-			auto name = iCadeButtonName(k);
-			if(!name)
-			{
-				return keyButtonName(k); // if it's not an iCade button, fall back to regular keys
-			}
-			return name;
-		}
 	}
 }
 
@@ -448,7 +406,7 @@ std::string Device::keyString(Key k, KeyNameFlags flags) const
 
 Map Device::map() const
 {
-	return iCadeMode() ? Input::Map::ICADE : map_;
+	return map_;
 }
 
 void Device::setICadeMode(bool on)

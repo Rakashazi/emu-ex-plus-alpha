@@ -18,6 +18,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/BasicEffect.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/input/Event.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
@@ -90,6 +91,7 @@ void ToastView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		return;
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
+	basicEffect.setModelView(cmds, Gfx::Mat4::ident());
 	cmds.set(BlendMode::ALPHA);
 	if(error)
 		cmds.setColor({1., 0, 0, .7});

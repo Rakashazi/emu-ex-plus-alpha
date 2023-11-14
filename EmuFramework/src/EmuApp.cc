@@ -896,8 +896,9 @@ void EmuApp::runBenchmarkOneShot(EmuVideo &emuVideo)
 	auto time = system().benchmark(emuVideo);
 	autosaveManager_.resetSlot(noAutosaveName);
 	closeSystem();
-	log.info("done in:{}", duration_cast<FloatSeconds>(time));
-	postMessage(2, 0, std::format("{:.2f} fps", 180. / time.count()));
+	auto timeSecs = duration_cast<FloatSeconds>(time);
+	log.info("done in:{}", timeSecs);
+	postMessage(2, 0, std::format("{:.2f} fps", 180. / timeSecs.count()));
 }
 
 void EmuApp::showEmulation()

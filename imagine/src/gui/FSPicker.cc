@@ -13,8 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "FSPicker"
-
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gui/TextEntry.hh>
@@ -32,6 +30,8 @@
 
 namespace IG
 {
+
+constexpr SystemLogger log{"FSPicker"};
 
 FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes,
 	FilterFunc filter, Mode mode, Gfx::GlyphTextureSet *face_):
@@ -89,15 +89,23 @@ void FSPicker::place()
 void FSPicker::changeDirByInput(CStringView path, FS::RootPathInfo rootInfo, const Input::Event &e,
 	DepthMode depthMode)
 {
+	newFileUIState = {};
 	if(depthMode == DepthMode::reset)
-		depthCount = 0;
+	{
+		fileUIStates.clear();
+	}
 	else if(depthMode == DepthMode::decrement)
 	{
-		if(depthCount > 0)
-			depthCount--;
+		if(fileUIStates.size())
+		{
+			newFileUIState = fileUIStates.back();
+			fileUIStates.pop_back();
+		}
 	}
 	else // increment
-		depthCount++;
+	{
+		fileUIStates.push_back(fileTableView().saveUIState());
+	}
 	setPath(path, std::move(rootInfo), e);
 	place();
 	postDraw();
@@ -140,7 +148,7 @@ bool FSPicker::inputEvent(const Input::Event &e)
 		auto &keyEv = *e.keyEvent();
 		if(keyEv.pushed(Input::DefaultKey::CANCEL))
 		{
-			if(depthCount > 0)
+			if(fileUIStates.size())
 				onLeftNavBtn(e);
 			else
 				dismiss();
@@ -195,11 +203,12 @@ void FSPicker::onAddedToController(ViewController *, const Input::Event &e)
 
 void FSPicker::setEmptyPath(std::string_view message)
 {
-	logMsg("setting empty path");
+	log.info("setting empty path");
 	dirListThread.stop();
 	dirListEvent.cancel();
 	root = {};
-	depthCount = 0;
+	newFileUIState = {};
+	fileUIStates.clear();
 	dir.clear();
 	msgText.resetString(message);
 	if(mode_ == Mode::FILE_IN_DIR)
@@ -224,14 +233,15 @@ void FSPicker::setPath(CStringView path, FS::RootPathInfo rootInfo, const Input:
 		setEmptyPath();
 		return;
 	}
-	highlightFirstDirEntry = e.keyEvent();
+	if(e.keyEvent() && newFileUIState.highlightedCell == -1)
+		newFileUIState.highlightedCell = 0;
 	startDirectoryListThread(path);
 	root.path = path;
 	auto pathLen = path.size();
 	// verify root info
 	if(rootInfo.length && rootInfo.length > pathLen)
 	{
-		logWarn("invalid root length:%zu with path length:%zu", rootInfo.length, pathLen);
+		log.warn("invalid root length:{} with path length:{}", rootInfo.length, pathLen);
 		rootInfo.length = 0;
 	}
 	// if the path is a URI and no root info is provided, root at the URI itself
@@ -243,7 +253,7 @@ void FSPicker::setPath(CStringView path, FS::RootPathInfo rootInfo, const Input:
 	FS::PathString rootedPath{};
 	if(rootInfo.length)
 	{
-		logMsg("root info:%d:%s", (int)rootInfo.length, rootInfo.name.data());
+		log.info("root info:{}:{}", rootInfo.length, rootInfo.name);
 		root.info = rootInfo;
 		if(pathLen > rootInfo.length)
 			rootedPath = format<FS::PathString>("{}{}", rootInfo.name, &path[rootInfo.length]);
@@ -252,7 +262,7 @@ void FSPicker::setPath(CStringView path, FS::RootPathInfo rootInfo, const Input:
 	}
 	else
 	{
-		logMsg("no root info");
+		log.info("no root info");
 		root.info = {};
 		rootedPath = root.path;
 	}
@@ -438,7 +448,7 @@ void FSPicker::startDirectoryListThread(CStringView path)
 {
 	if(dirListThread.isWorking())
 	{
-		logMsg("deferring listing directory until worker thread stops");
+		log.info("deferring listing directory until worker thread stops");
 		dirListThread.requestStop();
 		dirListEvent.setCallback([this]()
 		{
@@ -451,11 +461,8 @@ void FSPicker::startDirectoryListThread(CStringView path)
 	dirListEvent.setCallback([this]()
 	{
 		fileTableView().setItemsDelegate([&d = dir](const TableView &) { return d.size(); });
-		if(highlightFirstDirEntry)
-			fileTableView().highlightCell(0);
-		else
-			fileTableView().resetScroll();
 		place();
+		fileTableView().restoreUIState(std::exchange(newFileUIState, {}));
 		postDraw();
 	});
 	dirListEvent.cancel();
@@ -476,10 +483,10 @@ void FSPicker::listDirectory(CStringView path, ThreadStop &stop)
 		appContext().forEachInDirectoryUri(path,
 			[this, &stop](auto &entry)
 			{
-				//logMsg("entry:%s", entry.path().data());
+				//log.info("entry:{}", entry.path());
 				if(stop) [[unlikely]]
 				{
-					logMsg("interrupted listing directory");
+					log.info("interrupted listing directory");
 					return false;
 				}
 				bool isDir = entry.type() == FS::file_type::directory;
@@ -526,7 +533,7 @@ void FSPicker::listDirectory(CStringView path, ThreadStop &stop)
 						{
 							assert(!isSingleDirectoryMode());
 							auto path = std::move(dirPath);
-							logMsg("entering dir:%s", path.data());
+							log.info("entering dir:{}", path);
 							changeDirByInput(path, root.info, e);
 						};
 				}
@@ -548,7 +555,7 @@ void FSPicker::listDirectory(CStringView path, ThreadStop &stop)
 	}
 	catch(std::system_error &err)
 	{
-		logErr("can't open %s", path.data());
+		log.error("can't open:{}", path);
 		auto ec = err.code();
 		std::string_view extraMsg = mode_ == Mode::FILE_IN_DIR ? "" : "\nPick a path from the top bar";
 		msgText.resetString(std::format("Can't open directory:\n{}{}", ec.message(), extraMsg));

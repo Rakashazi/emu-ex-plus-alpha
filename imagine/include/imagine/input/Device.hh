@@ -155,7 +155,13 @@ public:
 	void setEnumId(uint8_t id) { enumId_ = id; }
 	std::string_view name() const { return name_; }
 	Map map() const;
-	DeviceTypeFlags typeFlags() const { return iCadeMode() ? DeviceTypeFlags{.gamepad = true} : typeFlags_; }
+	DeviceTypeFlags typeFlags() const
+	{
+		auto flags = typeFlags_;
+		if(iCadeMode())
+			flags.gamepad = true;
+		return flags;
+	}
 	Subtype subtype() const { return subtype_; }
 	void setSubtype(Subtype s) { subtype_ = s; }
 	bool operator==(Device const&) const = default;

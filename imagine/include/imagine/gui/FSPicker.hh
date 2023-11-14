@@ -86,17 +86,17 @@ protected:
 
 	FilterFunc filter{};
 	ViewStack controller;
-	OnChangePathDelegate onChangePath_{};
-	OnSelectPathDelegate onSelectPath_{};
-	std::vector<FileEntry> dir{};
-	FS::RootedPath root{};
-	Gfx::Text msgText{};
+	OnChangePathDelegate onChangePath_;
+	OnSelectPathDelegate onSelectPath_;
+	std::vector<FileEntry> dir;
+	std::vector<TableUIState> fileUIStates;
+	FS::RootedPath root;
+	Gfx::Text msgText;
 	CustomEvent dirListEvent{"FSPicker::dirListEvent", {}};
+	TableUIState newFileUIState{};
 	Mode mode_{};
 	bool showHiddenFiles_{};
-	bool highlightFirstDirEntry{};
 	WorkThread dirListThread{};
-	int8_t depthCount{};
 
 	void changeDirByInput(CStringView path, FS::RootPathInfo, const Input::Event &,
 		DepthMode depthMode = DepthMode::increment);

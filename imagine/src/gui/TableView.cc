@@ -123,6 +123,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 		}
 		if(vRect.size())
 		{
+			cmds.basicEffect().setModelView(cmds, Gfx::Mat4::ident());
 			cmds.set(BlendMode::OFF);
 			cmds.setColor(ColorName::WHITE);
 			cmds.setVertexArray(separatorQuads);
@@ -502,6 +503,18 @@ bool TableView::elementIsSelectable(MenuItem &item)
 std::u16string_view TableView::name() const
 {
 	return nameStr;
+}
+
+TableUIState TableView::saveUIState() const
+{
+	return {.highlightedCell = highlightedCell(), .scrollOffset = scrollOffset()};
+}
+
+void TableView::restoreUIState(TableUIState state)
+{
+	if(state.highlightedCell != -1)
+		highlightCell(state.highlightedCell);
+	setScrollOffset(state.scrollOffset);
 }
 
 }

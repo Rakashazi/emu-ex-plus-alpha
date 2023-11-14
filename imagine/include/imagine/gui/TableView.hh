@@ -77,6 +77,9 @@ public:
 	size_t cells() const;
 	WSize cellSize() const;
 	void highlightCell(int idx);
+	int highlightedCell() const { return selected; }
+	[[nodiscard]] TableUIState saveUIState() const;
+	void restoreUIState(TableUIState);
 	void setAlign(_2DOrigin align);
 	std::u16string_view name() const override;
 	void resetName(UTF16Convertible auto &&name) { nameStr = IG_forward(name); }

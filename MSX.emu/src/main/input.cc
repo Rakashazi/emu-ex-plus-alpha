@@ -211,6 +211,18 @@ std::string_view MsxApp::systemKeyCodeToString(KeyCode c)
 		case EC_JOY1_LEFT: return "Left";
 		case EC_JOY1_BUTTON1: return "Button 1";
 		case EC_JOY1_BUTTON2: return "Button 2";
+		case EC_COLECO1_0: return "Coleco 0";
+		case EC_COLECO1_1: return "Coleco 1";
+		case EC_COLECO1_2: return "Coleco 2";
+		case EC_COLECO1_3: return "Coleco 3";
+		case EC_COLECO1_4: return "Coleco 4";
+		case EC_COLECO1_5: return "Coleco 5";
+		case EC_COLECO1_6: return "Coleco 6";
+		case EC_COLECO1_7: return "Coleco 7";
+		case EC_COLECO1_8: return "Coleco 8";
+		case EC_COLECO1_9: return "Coleco 9";
+		case EC_COLECO1_STAR: return "Coleco *";
+		case EC_COLECO1_HASH: return "Coleco #";
 		case EC_TOGGLE_KB: return "Toggle Keyboard";
 		case EC_F1: return "F1";
 		case EC_F2: return "F2";
@@ -304,6 +316,7 @@ std::string_view MsxApp::systemKeyCodeToString(KeyCode c)
 		case EC_NUMPER: return "Num Period";
 		case EC_NUMCOM: return "Num Comma";
 		case EC_NUMADD: return "Num Add";
+		case EC_PRINT: return "Print";
 		default: return "";
 	}
 }

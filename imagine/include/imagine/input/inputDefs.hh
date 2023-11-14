@@ -58,7 +58,6 @@ enum class Map : uint8_t
 
 	ICONTROLPAD = 20,
 	ZEEMOTE = 21,
-	ICADE = 22,
 	PS3PAD = 23,
 
 	APPLE_GAME_CONTROLLER = 31
