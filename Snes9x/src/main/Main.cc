@@ -138,7 +138,8 @@ void Snes9xSystem::readState(EmuApp &, std::span<uint8_t> buff)
 	DynArray<uint8_t> uncompArr;
 	if(hasGzipHeader(buff))
 	{
-		uncompArr = uncompressGzipState(buff, saveStateSize);
+		// can't use exact state size since old version 12 snapshots may store variable length file names
+		uncompArr = uncompressGzipState(buff, 0x100000, {.estimatedExpectedSize = true});
 		buff = uncompArr;
 	}
 	if(!unfreezeStateFrom(buff))
@@ -249,7 +250,6 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 	IG::fill(Memory.NSRTHeader);
 	#endif
 	Memory.HeaderCount = 0;
-	Memory.ROMFilename = contentFileName();
 	auto forceVideoSystemSettings = [&]() -> std::pair<bool, bool> // ForceNTSC, ForcePAL
 	{
 		switch(optionVideoSystem.val)
@@ -271,6 +271,7 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 	if(isSufamiTurboCart(buff)) // TODO: loading dual carts
 	{
 		logMsg("detected Sufami Turbo cart");
+		Memory.ROMFilename = contentFileName();
 		auto biosBuff = readSufamiTurboBios();
 		if(!Memory.LoadMultiCartMem((const uint8*)buff.data(), buff.size(),
 			nullptr, 0,
@@ -282,7 +283,7 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 	else
 	#endif
 	{
-		if(!Memory.LoadROMMem((const uint8*)buff.data(), buff.size()))
+		if(!Memory.LoadROMMem((const uint8*)buff.data(), buff.size(), contentFileName().data()))
 		{
 			throw std::runtime_error("Error loading ROM");
 		}

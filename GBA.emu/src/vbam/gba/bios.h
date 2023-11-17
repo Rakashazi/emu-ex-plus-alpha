@@ -30,6 +30,7 @@ extern void BIOS_SndDriverMode(ARM7TDMI &cpu);
 extern void BIOS_SndDriverMain(ARM7TDMI &cpu);
 extern void BIOS_SndDriverVSync(ARM7TDMI &cpu);
 extern void BIOS_SndDriverVSyncOff(ARM7TDMI &cpu);
+extern void BIOS_SndDriverVSyncOn(ARM7TDMI &cpu);
 extern void BIOS_SndChannelClear(ARM7TDMI &cpu);
 
 #endif // BIOS_H

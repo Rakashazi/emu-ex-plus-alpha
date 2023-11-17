@@ -12,6 +12,7 @@
 #include "../System.h"
 #include "../Util.h"
 #include "../common/Port.h"
+#include "../common/sizes.h"
 #include "Cheats.h"
 #include "EEprom.h"
 #include "Flash.h"
@@ -1750,6 +1751,9 @@ int CPULoadRomWithIO(GBASys &gba, IG::IO &io)
 
 void doMirroring (GBASys &gba, bool b)
 {
+    if (romSize > k32MiB)
+        return;
+
     int romSizeRounded = romSize;
     romSizeRounded--;
     romSizeRounded |= romSizeRounded >> 1;
@@ -2139,8 +2143,8 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
   case 0x02:
 #ifdef GBA_LOGGING
     if (systemVerbose & VERBOSE_SWI) {
-      /*log("Halt: (VCOUNT = %2d)\n",
-          VCOUNT);*/
+      log("Halt: (VCOUNT = %2d)\n",
+          VCOUNT);
     }
 #endif
     holdState = true;
@@ -2150,8 +2154,8 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
   case 0x03:
 #ifdef GBA_LOGGING
     if (systemVerbose & VERBOSE_SWI) {
-      /*log("Stop: (VCOUNT = %2d)\n",
-          VCOUNT);*/
+      log("Stop: (VCOUNT = %2d)\n",
+          VCOUNT);
     }
 #endif
     holdState = true;
@@ -2327,12 +2331,15 @@ void CPUSoftwareInterrupt(ARM7TDMI &cpu, int comment)
     case 0x1E:
          BIOS_SndChannelClear(cpu);
     break;
-    case 0x28:
-         BIOS_SndDriverVSyncOff(cpu);
-    break;
     case 0x1F:
          BIOS_MidiKey2Freq(cpu);
-    break;
+         break;
+    case 0x28:
+         BIOS_SndDriverVSyncOff(cpu);
+         break;
+    case 0x29:
+         BIOS_SndDriverVSyncOn(cpu);
+         break;
     case 0xE0:
     case 0xE1:
     case 0xE2:

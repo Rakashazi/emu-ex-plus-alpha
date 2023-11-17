@@ -218,7 +218,7 @@ void BasicNavView::setBackgroundGradient(std::span<const Gfx::LGradientStopDesc>
 		bgVerts = {};
 		return;
 	}
-	gradientStops.reset(gradStops.size());
+	gradientStops.resetForOverwrite(gradStops.size());
 	std::ranges::copy(gradStops, gradientStops.begin());
 }
 

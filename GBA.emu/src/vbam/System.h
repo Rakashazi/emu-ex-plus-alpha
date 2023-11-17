@@ -61,6 +61,7 @@ struct EmulatedSystem {
 extern struct CoreOptions {
     bool cpuIsMultiBoot = false;
     static constexpr bool mirroringEnable = true;
+    static constexpr bool skipBios = false;
     static constexpr bool parseDebug = true;
     static constexpr bool speedHack = false;
     static constexpr bool speedup = false;
@@ -71,7 +72,6 @@ extern struct CoreOptions {
     static constexpr int layerSettings = 0xff00;
     static constexpr int rtcEnabled = 1;
     int saveType = 0;
-    static constexpr int skipBios = 0;
     static constexpr int skipSaveGameBattery = 0;
     static constexpr int skipSaveGameCheats = 0;
     int useBios = 0;
@@ -116,10 +116,6 @@ extern void systemShowSpeed(int);
 extern void system10Frames();
 extern void systemFrame();
 extern void systemGbBorderOn();
-extern void Sm60FPS_Init();
-extern bool Sm60FPS_CanSkipFrame();
-extern void Sm60FPS_Sleep();
-extern void DbgMsg(const char *msg, ...);
 extern void (*dbgOutput)(const char *s, uint32_t addr);
 extern void (*dbgSignal)(int sig, int number);
 

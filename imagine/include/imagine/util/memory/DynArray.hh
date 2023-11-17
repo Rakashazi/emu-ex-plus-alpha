@@ -27,34 +27,41 @@ template<class T>
 class DynArray
 {
 public:
+	struct ForOverwrite{};
+
 	constexpr DynArray() = default;
 	constexpr explicit DynArray(size_t size):
 		ptr{std::make_unique<T[]>(size)},
 		size_{size} {}
+	constexpr DynArray(size_t size, ForOverwrite):
+		ptr{std::make_unique_for_overwrite<T[]>(size)},
+		size_{size} {}
+	constexpr T *data() const { return ptr.get(); }
+	constexpr size_t size() const { return size_; }
+	constexpr T& operator[] (size_t idx) { return data()[idx]; }
+	constexpr const T& operator[] (size_t idx) const { return data()[idx]; }
+	constexpr auto begin() { return data(); }
+	constexpr auto end() { return data() + size(); }
+	constexpr auto begin() const { return data(); }
+	constexpr auto end() const { return data() + size(); }
+	constexpr std::span<T> span() const { return {data(), size()}; }
+	constexpr operator std::span<T>() const { return span(); }
+	auto reset(size_t size) { *this = DynArray{size}; }
+	auto resetForOverwrite(size_t size) { *this = DynArray{size, ForOverwrite{}}; }
+	auto release() { return ptr.release(); }
 
-		constexpr T *data() const { return ptr.get(); }
-		constexpr size_t size() const { return size_; }
-		constexpr T& operator[] (size_t idx) { return data()[idx]; }
-		constexpr const T& operator[] (size_t idx) const { return data()[idx]; }
-		constexpr auto begin() { return data(); }
-		constexpr auto end() { return data() + size(); }
-		constexpr auto begin() const { return data(); }
-		constexpr auto end() const { return data() + size(); }
-		constexpr std::span<T> span() const { return {data(), size()}; }
-		constexpr operator std::span<T>() const { return span(); }
-		auto reset(size_t size) { *this = DynArray{size}; }
-		auto release() { return ptr.release(); }
-
-		constexpr void trim(size_t smallerSize)
-		{
-			if(smallerSize < size_)
-				size_ = smallerSize;
-		}
+	constexpr void trim(size_t smallerSize)
+	{
+		if(smallerSize < size_)
+			size_ = smallerSize;
+	}
 
 private:
 	std::unique_ptr<T[]> ptr;
 	size_t size_{};
 };
 
+template<class T>
+inline DynArray<T> dynArrayForOverwrite(size_t size) { return {size, typename DynArray<T>::ForOverwrite{}}; }
 
 }

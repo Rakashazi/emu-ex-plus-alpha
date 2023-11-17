@@ -82,21 +82,24 @@ static void updateTexture(const EmuApp &app, VControllerElement &e, Gfx::Rendere
 					using enum AppKeyCode;
 					switch(AppKeyCode(btn.key.codes[0]))
 					{
-						case openMenu: return app.asset(AssetID::more); break;
-						case openContent: return app.asset(AssetID::openFile); break;
-						case saveState: return app.asset(AssetID::save); break;
-						case loadState: return app.asset(AssetID::load); break;
-						case decStateSlot: return app.asset(AssetID::leftSwitch); break;
-						case incStateSlot: return app.asset(AssetID::rightSwitch); break;
+						case openMenu: return app.asset(AssetID::more);
+						case openContent: return app.asset(AssetID::openFile);
+						case saveState: return app.asset(AssetID::save);
+						case loadState: return app.asset(AssetID::load);
+						case decStateSlot: return app.asset(AssetID::leftSwitch);
+						case incStateSlot: return app.asset(AssetID::rightSwitch);
 						case fastForward:
-						case toggleFastForward: return app.asset(AssetID::fast); break;
-						case takeScreenshot: return app.asset(AssetID::screenshot); break;
-						case openSystemActions: return app.asset(AssetID::menu); break;
-						case turboModifier: return app.asset(AssetID::speed); break;
-						case exitApp: return app.asset(AssetID::close); break;
+						case toggleFastForward: return app.asset(AssetID::fast);
+						case takeScreenshot: return app.asset(AssetID::screenshot);
+						case openSystemActions: return app.asset(AssetID::menu);
+						case turboModifier: return app.asset(AssetID::speed);
+						case exitApp: return app.asset(AssetID::close);
 						case slowMotion:
-						case toggleSlowMotion: return app.asset(AssetID::slow); break;
-						case rewind: return app.asset(AssetID::rewind); break;
+						case toggleSlowMotion: return app.asset(AssetID::slow);
+						case rewind: return app.asset(AssetID::rewind);
+						case softReset:
+						case hardReset:
+						case resetMenu: return app.asset(AssetID::arrow);
 					}
 					return app.asset(AssetID::more);
 				}());

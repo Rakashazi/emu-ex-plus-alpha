@@ -42,6 +42,9 @@ enum class AppKeyCode : KeyCode
 	turboModifier,
 	exitApp,
 	rewind,
+	softReset,
+	hardReset,
+	resetMenu,
 };
 
 constexpr struct AppKeys
@@ -61,6 +64,9 @@ constexpr struct AppKeys
 	rewind = KeyInfo::appKey(AppKeyCode::rewind),
 	takeScreenshot = KeyInfo::appKey(AppKeyCode::takeScreenshot),
 	turboModifier = KeyInfo::appKey(AppKeyCode::turboModifier),
+	softReset = KeyInfo::appKey(AppKeyCode::softReset),
+	hardReset = KeyInfo::appKey(AppKeyCode::hardReset),
+	resetMenu = KeyInfo::appKey(AppKeyCode::resetMenu),
 	exitApp = KeyInfo::appKey(AppKeyCode::exitApp);
 
 	constexpr const KeyInfo *data() const { return &openMenu; }

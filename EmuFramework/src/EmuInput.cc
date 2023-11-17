@@ -331,6 +331,9 @@ std::string_view toString(AppKeyCode code)
 		case AppKeyCode::slowMotion: return "Slow-motion";
 		case AppKeyCode::toggleSlowMotion: return "Toggle Slow-motion";
 		case AppKeyCode::rewind: return "Rewind";
+		case AppKeyCode::softReset: return "Soft Reset";
+		case AppKeyCode::hardReset: return "Hard Reset";
+		case AppKeyCode::resetMenu: return "Open Reset Menu";
 	};
 	return "";
 }

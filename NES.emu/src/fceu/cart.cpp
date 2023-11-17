@@ -552,6 +552,7 @@ void FCEU_SaveGameSave(CartInfo *LocalHWInfo)
 					fwrite(LocalHWInfo->SaveGame[x].bufptr, 1,
 						     LocalHWInfo->SaveGame[x].buflen, sp);
 				}
+			fclose(sp);
 		}
 	}
 }
@@ -579,6 +580,7 @@ void FCEU_LoadGameSave(CartInfo *LocalHWInfo)
 					}
 				}
 			}
+			fclose(sp);
 		}
 	}
 }

@@ -269,6 +269,7 @@ static const int	ptrspeeds[4] = { 1, 1, 4, 8 };
 	S(ToggleBG1), \
 	S(ToggleBG2), \
 	S(ToggleBG3), \
+	S(ToggleBackdrop), \
 	S(ToggleEmuTurbo), \
 	S(ToggleSprites), \
 	S(ToggleTransparency) \
@@ -2309,7 +2310,7 @@ void S9xApplyCommand (s9xcommand_t cmd, int16 data1, int16 data2)
 
 						if (S9xUnfreezeGame(filename.c_str()))
 						{
-							snprintf(buf, 256, "Quick save-state %s loaded", ext.c_str());
+							snprintf(buf, 256, "%s loaded", S9xBasename(filename).c_str());
 							S9xSetInfoString(buf);
 						}
 						else
@@ -2330,13 +2331,13 @@ void S9xApplyCommand (s9xcommand_t cmd, int16 data1, int16 data2)
 					case QuickSave009:
 					case QuickSave010:
 					{
-						std::string ext = std::to_string(i - QuickLoad000);
+						std::string ext = std::to_string(i - QuickSave000);
 						while (ext.length() < 3)
 							ext = '0' + ext;
 
 						auto filename = S9xGetFilename(ext, SNAPSHOT_DIR);
 
-						snprintf(buf, 256, "Quick save-state %s saved", ext.c_str());
+						snprintf(buf, 256, "%s saved", S9xBasename(filename).c_str());
 						S9xSetInfoString(buf);
 
 						S9xFreezeGame(filename.c_str());
@@ -2367,6 +2368,26 @@ void S9xApplyCommand (s9xcommand_t cmd, int16 data1, int16 data2)
 					case SoundChannelsOn:
 						S9xToggleSoundChannel(8);
 						S9xSetInfoString("All sound channels on");
+						break;
+
+					case ToggleBackdrop:
+						switch (Settings.ForcedBackdrop)
+						{
+						case 0:
+							Settings.ForcedBackdrop = 0xf81f;
+							break;
+						case 0xf81f:
+							Settings.ForcedBackdrop = 0x07e0;
+							break;
+						case 0x07e0:
+							Settings.ForcedBackdrop = 0x07ff;
+							break;
+						default:
+							Settings.ForcedBackdrop = 0;
+							break;
+						}
+						sprintf(buf, "Setting backdrop to 0x%04x", Settings.ForcedBackdrop);
+						S9xSetInfoString(buf);
 						break;
 
 					case ToggleBG0:

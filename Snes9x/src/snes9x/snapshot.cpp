@@ -1176,7 +1176,7 @@ void S9xFreezeToStream (STREAM stream)
 	sprintf(buffer, "%s:%04d\n", SNAPSHOT_MAGIC, SNAPSHOT_VERSION);
 	WRITE_STREAM(buffer, strlen(buffer), stream);
 
-	sprintf(buffer, "NAM:%06d:%s%c", (int) Memory.ROMFilename.length() + 1, Memory.ROMFilename.c_str(), 0);
+	sprintf(buffer, "NAM:%06d:%s%c", 8, "Removed", 0);
 	WRITE_STREAM(buffer, strlen(buffer) + 1, stream);
 
 	FreezeStruct(stream, "CPU", &CPU, SnapCPU, COUNT(SnapCPU));
@@ -1599,6 +1599,8 @@ int S9xUnfreezeFromStream (STREAM stream)
             memmove(local_apu_sound + new_dsp_registers_position,
                                         local_apu_sound + spc_block_size,
                                         added_bytes_v12);
+            // the extra 0 byte between external registers and bytes_afterward is already present due to memset in S9xAPUSaveState
+
             S9xAPULoadState(local_apu_sound);
         }
         else if (version >= 12)

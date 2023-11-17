@@ -14,6 +14,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 struct CMemory
 {
@@ -108,8 +109,7 @@ struct CMemory
 	int		First512BytesCountZeroes() const;
 	uint32	HeaderRemove (uint32, uint8 *);
 	uint32	FileLoader (uint8 *, const char *, uint32);
-    uint32  MemLoader (uint8 *, const char*, uint32);
-    bool8   LoadROMMem (const uint8 *, uint32);
+    bool8   LoadROMMem (const uint8 *, uint32, const char* optional_rom_filename = NULL);
 	bool8	LoadROM (const char *);
     bool8	LoadROMInt (int32);
     bool8   LoadMultiCartMem (const uint8 *, uint32, const uint8 *, uint32, const uint8 *, uint32);
@@ -177,6 +177,7 @@ struct CMemory
 	void	CheckForAnyPatch (const char *, bool8, int32 &);
 
 	void	MakeRomInfoText (char *);
+	std::string GetMultilineROMInfo();
 
 	const char *	MapType (void);
 	const char *	StaticRAMSize (void);

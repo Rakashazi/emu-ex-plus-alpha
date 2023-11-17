@@ -674,147 +674,134 @@ void BIOS_HuffUnComp(ARM7TDMI &cpu)
 void BIOS_LZ77UnCompVram(ARM7TDMI &cpu)
 {
 #ifdef GBA_LOGGING
-  if (systemVerbose & VERBOSE_SWI) {
-    log("LZ77UnCompVram: 0x%08x,0x%08x (VCOUNT=%d)\n",
-        reg[0].I,
-        reg[1].I,
-        VCOUNT);
-  }
+    if (systemVerbose & VERBOSE_SWI) {
+        log("LZ77UnCompVram: 0x%08x,0x%08x (VCOUNT=%d)\n",
+            reg[0].I,
+            reg[1].I,
+            VCOUNT);
+    }
 #endif
 
-  uint32_t source = reg[0].I;
-  uint32_t dest = reg[1].I;
+    uint32_t source = reg[0].I;
+    uint32_t dest = reg[1].I;
 
-  uint32_t header = CPUReadMemory(source);
-  source += 4;
+    uint32_t header = CPUReadMemory(source);
+    source += 4;
 
-  if (((source & 0xe000000) == 0) || ((source + ((header >> 8) & 0x1fffff)) & 0xe000000) == 0)
-    return;
+    if (((source & 0xe000000) == 0) || ((source + ((header >> 8) & 0x1fffff)) & 0xe000000) == 0)
+        return;
 
-  int byteCount = 0;
-  int byteShift = 0;
-  uint32_t writeValue = 0;
+    int byteCount = 0;
+    int byteShift = 0;
+    uint32_t writeValue = 0;
 
-  int len = header >> 8;
+    int len = header >> 8;
 
-  while (len > 0) {
-    uint8_t d = CPUReadByte(source++);
+    while (len > 0) {
+        uint8_t d = CPUReadByte(source++);
 
-    if (d) {
-      for (int i = 0; i < 8; i++) {
-        if (d & 0x80) {
-          uint16_t data = CPUReadByte(source++) << 8;
-          data |= CPUReadByte(source++);
-          int length = (data >> 12) + 3;
-          int offset = (data & 0x0FFF);
-          uint32_t windowOffset = dest + byteCount - offset - 1;
-          for (int i2 = 0; i2 < length; i2++) {
-            writeValue |= (CPUReadByte(windowOffset++) << byteShift);
-            byteShift += 8;
-            byteCount++;
+        for (int i = 0; i < 8; i++) {
+            if (d & 0x80) {
+                uint16_t data = CPUReadByte(source++) << 8;
+                data |= CPUReadByte(source++);
+                int length = (data >> 12) + 3;
+                int offset = (data & 0x0FFF);
+                uint32_t windowOffset = dest + byteCount - offset - 1;
+                for (int i2 = 0; i2 < length; i2++) {
+                    writeValue |= (CPUReadByte(windowOffset++) << byteShift);
+                    byteShift += 8;
+                    byteCount++;
 
-            if (byteCount == 2) {
-            	CPUWriteHalfWord(dest, DowncastU16(writeValue));
-              dest += 2;
-              byteCount = 0;
-              byteShift = 0;
-              writeValue = 0;
+                    if (byteCount == 2) {
+                        CPUWriteHalfWord(dest, DowncastU16(writeValue));
+                        dest += 2;
+                        byteCount = 0;
+                        byteShift = 0;
+                        writeValue = 0;
+                    }
+                    len--;
+                }
+            } else {
+                writeValue |= (CPUReadByte(source++) << byteShift);
+                byteShift += 8;
+                byteCount++;
+                if (byteCount == 2) {
+                    CPUWriteHalfWord(dest, DowncastU16(writeValue));
+                    dest += 2;
+                    byteCount = 0;
+                    byteShift = 0;
+                    writeValue = 0;
+                }
+                len--;
             }
-            len--;
-            if (len == 0)
-              return;
-          }
-        } else {
-          writeValue |= (CPUReadByte(source++) << byteShift);
-          byteShift += 8;
-          byteCount++;
-          if (byteCount == 2) {
-          	CPUWriteHalfWord(dest, DowncastU16(writeValue));
-            dest += 2;
-            byteCount = 0;
-            byteShift = 0;
-            writeValue = 0;
-          }
-          len--;
-          if (len == 0)
-            return;
+
+            d <<= 1;
+
+            if (len <= 0) {
+                // This can happen if the parameter was incorrectly set. Real
+                // hardware does a buffer overflow so we do it here too.
+                break;
+            }
         }
-        d <<= 1;
-      }
-    } else {
-      for (int i = 0; i < 8; i++) {
-        writeValue |= (CPUReadByte(source++) << byteShift);
-        byteShift += 8;
-        byteCount++;
-        if (byteCount == 2) {
-        	CPUWriteHalfWord(dest, DowncastU16(writeValue));
-          dest += 2;
-          byteShift = 0;
-          byteCount = 0;
-          writeValue = 0;
-        }
-        len--;
-        if (len == 0)
-          return;
-      }
     }
-  }
+
+    reg[0].I = source;
+    reg[1].I = dest;
+    reg[3].I = 0;
 }
 
 void BIOS_LZ77UnCompWram(ARM7TDMI &cpu)
 {
 #ifdef GBA_LOGGING
-  if (systemVerbose & VERBOSE_SWI) {
-    log("LZ77UnCompWram: 0x%08x,0x%08x (VCOUNT=%d)\n", reg[0].I, reg[1].I,
-        VCOUNT);
-  }
+    if (systemVerbose & VERBOSE_SWI) {
+        log("LZ77UnCompWram: 0x%08x,0x%08x (VCOUNT=%d)\n", reg[0].I, reg[1].I,
+            VCOUNT);
+    }
 #endif
 
-  uint32_t source = reg[0].I;
-  uint32_t dest = reg[1].I;
+    uint32_t source = reg[0].I;
+    uint32_t dest = reg[1].I;
 
-  uint32_t header = CPUReadMemory(source);
-  source += 4;
+    uint32_t header = CPUReadMemory(source);
+    source += 4;
 
-  if (((source & 0xe000000) == 0) || ((source + ((header >> 8) & 0x1fffff)) & 0xe000000) == 0)
-    return;
+    if (((source & 0xe000000) == 0) || ((source + ((header >> 8) & 0x1fffff)) & 0xe000000) == 0)
+        return;
 
-  int len = header >> 8;
+    int len = header >> 8;
 
-  while (len > 0) {
-    uint8_t d = CPUReadByte(source++);
+    while (len > 0) {
+        uint8_t d = CPUReadByte(source++);
 
-    if (d) {
-      for (int i = 0; i < 8; i++) {
-        if (d & 0x80) {
-          uint16_t data = CPUReadByte(source++) << 8;
-          data |= CPUReadByte(source++);
-          int length = (data >> 12) + 3;
-          int offset = (data & 0x0FFF);
-          uint32_t windowOffset = dest - offset - 1;
-          for (int i2 = 0; i2 < length; i2++) {
-            CPUWriteByte(dest++, CPUReadByte(windowOffset++));
-            len--;
-            if (len == 0)
-              return;
-          }
-        } else {
-          CPUWriteByte(dest++, CPUReadByte(source++));
-          len--;
-          if (len == 0)
-            return;
+        for (int i = 0; i < 8; i++) {
+            if (d & 0x80) {
+                uint16_t data = CPUReadByte(source++) << 8;
+                data |= CPUReadByte(source++);
+                int length = (data >> 12) + 3;
+                int offset = (data & 0x0FFF);
+                uint32_t windowOffset = dest - offset - 1;
+                for (int i2 = 0; i2 < length; i2++) {
+                    CPUWriteByte(dest++, CPUReadByte(windowOffset++));
+                    len--;
+                }
+            } else {
+                CPUWriteByte(dest++, CPUReadByte(source++));
+                len--;
+            }
+
+            d <<= 1;
+
+            if (len <= 0) {
+                // This can happen if the parameter was incorrectly set. Real
+                // hardware does a buffer overflow so we do it here too.
+                break;
+            }
         }
-        d <<= 1;
-      }
-    } else {
-      for (int i = 0; i < 8; i++) {
-        CPUWriteByte(dest++, CPUReadByte(source++));
-        len--;
-        if (len == 0)
-          return;
-      }
     }
-  }
+
+    reg[0].I = source;
+    reg[1].I = dest;
+    reg[3].I = 0;
 }
 
 void BIOS_ObjAffineSet(ARM7TDMI &cpu)
@@ -1711,6 +1698,13 @@ void BIOS_SndDriverVSync(ARM7TDMI &cpu)
 
 void BIOS_SndDriverVSyncOff(ARM7TDMI &cpu) // 0x1878
 {
+#ifdef GBA_LOGGING
+    if (systemVerbose & VERBOSE_SWI) {
+        log("SndDriverVSyncOff: (VCOUNT = %2d)\n",
+            VCOUNT);
+    }
+#endif
+
     uint32_t const puser1 = CPUReadMemory(0x3007FF0); // 7FC0 + 0x30
     uint32_t user1 = CPUReadMemory(puser1);
 
@@ -1732,6 +1726,20 @@ void BIOS_SndDriverVSyncOff(ARM7TDMI &cpu) // 0x1878
         CPUWriteMemory(puser1, (--user1)); // this ret is common among funcs
     }
     //0x18b0
+}
+
+void BIOS_SndDriverVSyncOn(ARM7TDMI &cpu)
+{
+#ifdef GBA_LOGGING
+    if (systemVerbose & VERBOSE_SWI) {
+        log("SndDriverVSyncOn: (VCOUNT = %2d)\n",
+            VCOUNT);
+    }
+#endif
+
+    const uint16_t r1 = 0x8600; // 91 << 9
+    CPUWriteHalfWord(base1 + 0x6, r1);
+    CPUWriteHalfWord(base1 + 0x12, r1);
 }
 
 // This functions is verified but lacks proper register settings before calling user func

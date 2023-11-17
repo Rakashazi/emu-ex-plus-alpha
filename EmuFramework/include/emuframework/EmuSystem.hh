@@ -137,6 +137,11 @@ struct SaveStateFlags
 	uint8_t uncompressed:1{};
 };
 
+struct UncompressStateFlags
+{
+	uint8_t estimatedExpectedSize:1{};
+};
+
 class EmuSystem
 {
 public:
@@ -247,7 +252,7 @@ public:
 	void loadState(EmuApp &, CStringView uri);
 	void saveState(CStringView uri);
 	DynArray<uint8_t> saveState();
-	DynArray<uint8_t> uncompressGzipState(std::span<uint8_t> buff, size_t expectedSize);
+	DynArray<uint8_t> uncompressGzipState(std::span<uint8_t> buff, size_t expectedSize, UncompressStateFlags flags = {});
 	bool stateExists(int slot) const;
 	static std::string_view stateSlotName(int slot);
 	std::string_view stateSlotName() { return stateSlotName(stateSlot()); }

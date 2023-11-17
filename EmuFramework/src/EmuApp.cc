@@ -30,6 +30,7 @@
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/AppKeyCode.hh>
 #include "gui/AutosaveSlotView.hh"
+#include "gui/ResetAlertView.hh"
 #include "InputDeviceData.hh"
 #include "WindowData.hh"
 #include "configFile.hh"
@@ -1381,6 +1382,29 @@ bool EmuApp::handleAppActionKeyInput(InputAction action, const Input::Event &src
 				rewindManager.rewindState(*this);
 			else
 				postMessage(3, false, "Please set rewind states in Options➔System");
+			break;
+		}
+		case softReset:
+		{
+			if(!isPushed)
+				break;
+			syncEmulationThread();
+			system().reset(*this, EmuSystem::ResetMode::SOFT);
+			break;
+		}
+		case hardReset:
+		{
+			if(!isPushed)
+				break;
+			syncEmulationThread();
+			system().reset(*this, EmuSystem::ResetMode::HARD);
+			break;
+		}
+		case resetMenu:
+		{
+			if(!isPushed)
+				break;
+			viewController().pushAndShowModal(resetAlertView(attachParams(), *this), srcEvent, false);
 			break;
 		}
 	}

@@ -37,7 +37,7 @@
 #define NR51 0x81
 #define NR52 0x84
 
-constexpr int SOUND_CLOCK_TICKS_ = 167772; // 1/100 second
+constexpr int SOUND_CLOCK_TICKS_ = 280896; // ~1074 samples per frame
 
 const int SOUND_CLOCK_TICKS = SOUND_CLOCK_TICKS_;
 

@@ -23,7 +23,7 @@
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/BundledGamesView.hh>
 #include "AutosaveSlotView.hh"
-#include <imagine/gui/AlertView.hh>
+#include "ResetAlertView.hh"
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/format.hh>
@@ -31,38 +31,6 @@
 
 namespace EmuEx
 {
-
-class ResetAlertView : public BaseAlertView, public EmuAppHelper<ResetAlertView>
-{
-public:
-	ResetAlertView(ViewAttachParams attach, UTF16Convertible auto &&label, EmuSystem &sys):
-		BaseAlertView{attach, IG_forward(label), items},
-		items
-		{
-			TextMenuItem
-			{
-				"Soft Reset", &defaultFace(),
-				[this, &sys]()
-				{
-					sys.reset(app(), EmuSystem::ResetMode::SOFT);
-					app().showEmulation();
-				}
-			},
-			TextMenuItem
-			{
-				"Hard Reset", &defaultFace(),
-				[this, &sys]()
-				{
-					sys.reset(app(), EmuSystem::ResetMode::HARD);
-					app().showEmulation();
-				}
-			},
-			TextMenuItem{"Cancel", &defaultFace(), [](){}}
-		} {}
-
-protected:
-	std::array<TextMenuItem, 3> items;
-};
 
 static auto autoSaveName(EmuApp &app)
 {
@@ -96,25 +64,9 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 		"Reset", &defaultFace(),
 		[this](const Input::Event &e)
 		{
-			if(system().hasContent())
-			{
-				if(EmuSystem::hasResetModes)
-				{
-					pushAndShowModal(makeView<ResetAlertView>("Really reset?", system()), e);
-				}
-				else
-				{
-					pushAndShowModal(makeView<YesNoAlertView>("Really reset?",
-						YesNoAlertView::Delegates
-						{
-							.onYes = [this]
-							{
-								system().reset(app(), EmuSystem::ResetMode::SOFT);
-								app().showEmulation();
-							}
-						}), e);
-				}
-			}
+			if(!system().hasContent())
+				return;
+			pushAndShowModal(resetAlertView(attachParams(), app()), e);
 		}
 	},
 	autosaveSlot

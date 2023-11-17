@@ -3,12 +3,6 @@
 
 #include "../common/Types.h"
 
-extern int gbRomSizeMask;
-extern int gbRomSize;
-extern int gbRamSize;
-extern int gbRamSizeMask;
-extern int gbTAMA5ramSize;
-
 extern uint8_t* bios;
 
 extern uint8_t* gbRom;
@@ -23,21 +17,20 @@ extern uint8_t* gbMemoryMap[16];
 
 extern int gbFrameSkip;
 extern uint16_t gbColorFilter[32768];
-extern int gbColorOption;
-extern int gbPaletteOption;
-extern int gbEmulatorType;
-extern int gbBorderOn;
-extern int gbBorderAutomatic;
-extern int gbCgbMode;
-extern int gbSgbMode;
+extern uint32_t gbEmulatorType;
+extern uint32_t gbPaletteOption;
+extern bool gbCgbMode;
+extern bool gbSgbMode;
 extern int gbWindowLine;
 extern int gbSpeed;
 extern uint8_t gbBgp[4];
 extern uint8_t gbObp0[4];
 extern uint8_t gbObp1[4];
 extern uint16_t gbPalette[128];
+extern bool gbBorderAutomatic;
+extern bool gbBorderOn;
+extern bool gbColorOption;
 extern bool gbScreenOn;
-extern bool gbDrawWindow;
 extern uint8_t gbSCYLine[300];
 // gbSCXLine is used for the emulation (bug) of the SX change
 // found in the Artic Zone game.
@@ -60,7 +53,6 @@ extern uint8_t register_VBK;
 extern uint8_t oldRegister_WY;
 
 extern int emulating;
-extern bool genericflashcardEnable;
 
 extern int gbBorderLineSkip;
 extern int gbBorderRowSkip;

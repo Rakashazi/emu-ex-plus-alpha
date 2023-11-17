@@ -83,19 +83,19 @@ void EmuSystem::saveState(CStringView uri)
 
 DynArray<uint8_t> EmuSystem::saveState()
 {
-	DynArray<uint8_t> stateArr{stateSize()};
+	auto stateArr = dynArrayForOverwrite<uint8_t>(stateSize());
 	stateArr.trim(writeState(stateArr));
 	return stateArr;
 }
 
-DynArray<uint8_t> EmuSystem::uncompressGzipState(std::span<uint8_t> buff, size_t expectedSize)
+DynArray<uint8_t> EmuSystem::uncompressGzipState(std::span<uint8_t> buff, size_t expectedSize, UncompressStateFlags flags)
 {
 	assert(expectedSize);
-	auto uncompArr = DynArray<uint8_t>{expectedSize};
+	auto uncompArr = dynArrayForOverwrite<uint8_t>(expectedSize);
 	auto size = uncompressGzip(uncompArr, buff);
 	if(!size)
 		throw std::runtime_error("Error uncompressing state");
-	if(size != expectedSize)
+	if(!flags.estimatedExpectedSize && size != expectedSize)
 		throw std::runtime_error("Invalid state size");
 	return uncompArr;
 }

@@ -5,6 +5,8 @@
 \*****************************************************************************/
 
 #include <string>
+#include <iomanip>
+#include <sstream>
 #include <numeric>
 #include <assert.h>
 
@@ -1080,7 +1082,7 @@ int CMemory::ScoreHiROM (bool8 skip_header, int32 romoff)
 	// Check for extended HiROM expansion used in Mother 2 Deluxe et al.
 	// Looks for size byte 13 (8MB) and an actual ROM size greater than 4MB
 	if (buf[0xd7] == 13 && CalculatedSize > 1024 * 1024 * 4)
-		score += 5;
+		score += 3;
 
 	if (buf[0xd5] & 0x1)
 		score += 2;
@@ -1114,7 +1116,7 @@ int CMemory::ScoreHiROM (bool8 skip_header, int32 romoff)
 	if (CalculatedSize > 1024 * 1024 * 3)
 		score += 4;
 
-	if ((1 << (buf[0xd7] - 7)) > 48)
+	if (buf[0xd7] > 12)
 		score -= 1;
 
 	if (!allASCII(&buf[0xb0], 6))
@@ -1301,10 +1303,15 @@ uint32 CMemory::FileLoader (uint8 *buffer, const char *filename, uint32 maxsize)
 	return ((uint32) totalSize);
 }
 
-bool8 CMemory::LoadROMMem (const uint8 *source, uint32 sourceSize)
+bool8 CMemory::LoadROMMem (const uint8 *source, uint32 sourceSize, const char* optional_rom_filename /*= NULL*/)
 {
     if(!source || sourceSize > MAX_ROM_SIZE)
         return FALSE;
+
+    if (optional_rom_filename)
+        ROMFilename = optional_rom_filename;
+    else
+        ROMFilename = "MemoryROM";
 
     int32 romSize = 0;
     do
@@ -2423,9 +2430,16 @@ void CMemory::InitROM (void)
 
 	char String[513];
 	sprintf(String, "\"%s\" [%s] %s, %s, %s, %s, SRAM:%s, ID:%s, CRC32:%08X",
-		SafeString(ROMName).c_str(), isChecksumOK ? "checksum ok" : ((Multi.cartType == 4) ? "no checksum" : "bad checksum"),
+		SafeString(ROMName).c_str(),
+		 isChecksumOK ? "checksum ok"
+		 : Settings.IsPatched == 3 ? "UPS Patched"
+		 : Settings.IsPatched == 2 ? "BPS Patched"
+		 : Settings.IsPatched == 1 ? "IPS Patched"
+		 : ((Multi.cartType == 4) ? "no checksum"
+		 : "bad checksum"),
 		MapType(), Size(), KartContents(), Settings.PAL ? "PAL" : "NTSC", StaticRAMSize(), ROMId, ROMCRC32);
-	S9xMessage(S9X_INFO, S9X_ROM_INFO, String);
+
+	S9xMessage(S9X_INFO, S9X_ROM_INFO, GetMultilineROMInfo().c_str());
 
 	Settings.ForceLoROM = FALSE;
 	Settings.ForceHiROM = FALSE;
@@ -3247,7 +3261,7 @@ const char * CMemory::StaticRAMSize (void)
 	if (SRAMSize > 16)
 		strcpy(str, "Corrupt");
 	else
-		sprintf(str, "%dKbits", 8 * (SRAMMask + 1) / 1024);
+		sprintf(str, "%d Kbit", 8 * (SRAMMask + 1) / 1024);
 
 	return (str);
 }
@@ -3261,7 +3275,7 @@ const char * CMemory::Size (void)
 	else if (ROMSize < 7 || ROMSize - 7 > 23)
 		strcpy(str, "Corrupt");
 	else
-		sprintf(str, "%dMbits", 1 << (ROMSize - 7));
+		sprintf(str, "%d Mbit", 1 << (ROMSize - 7));
 
 	return (str);
 }
@@ -3353,6 +3367,27 @@ const char * CMemory::PublishingCompany (void)
 		return ("Unknown");
 
 	return (nintendo_licensees[CompanyId]);
+}
+
+std::string CMemory::GetMultilineROMInfo()
+{
+    bool8 isChecksumOK = (Memory.ROMChecksum + Memory.ROMComplementChecksum == 0xffff) &&
+                         (Memory.ROMChecksum == Memory.CalculatedChecksum);
+    std::string utf8_romname = Memory.ROMName;
+    std::string tvstandard = Settings.PAL ? "PAL" : "NTSC";
+	std::string romid = Memory.ROMId;
+    std::string checksum = isChecksumOK              ? "Checksum OK"
+                           : Settings.IsPatched == 3 ? "UPS patched"
+                           : Settings.IsPatched == 2 ? "BPS patched"
+                           : Settings.IsPatched == 1 ? "IPS patched"
+                                                     : "Invalid Checksum";
+
+    std::stringstream ss;
+    ss << "\"" << utf8_romname << "\" (" + tvstandard + ") version " << Memory.Revision() << "\n";
+    ss << Memory.KartContents() << ": " << Memory.MapType() << ": " << Memory.Size() << ", SRAM: " << Memory.StaticRAMSize() << "\n";
+    ss << "ID: " << romid << ", CRC32: " << std::setfill('0') << std::setw(8) << std::setbase(16) << Memory.ROMCRC32 << ", " << checksum;
+
+	return ss.str();
 }
 
 void CMemory::MakeRomInfoText (char *romtext)
@@ -3961,7 +3996,8 @@ void CMemory::CheckForAnyPatch(const char *rom_filename, bool8 header, int32 &ro
             if (!flag)
                 try_zip_ips_sequence("ip%d");
 
-            assert(unzClose(file) == UNZ_OK);
+            int close_ret = unzClose(file);
+            assert(close_ret == UNZ_OK);
 
             if (flag)
                 return;

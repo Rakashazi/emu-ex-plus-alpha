@@ -8,7 +8,7 @@
 #define _SNES9X_H_
 
 #ifndef VERSION
-#define VERSION	"1.62.2"
+#define VERSION	"1.62.3"
 #endif
 
 #include "port.h"
@@ -254,16 +254,19 @@ struct SSettings
 	static const bool8	Transparency = 1;
 	uint8	BG_Forced = 0;
 	static const bool8	DisableGraphicWindows = 0;
+	uint16  ForcedBackdrop = 0;
 
 	static const bool8	DisplayTime = 0;
 	static const bool8	DisplayFrameRate = 0;
 	static const bool8	DisplayWatchedAddresses = 0;
 	static const bool8	DisplayPressedKeys = 0;
 	static const bool8	DisplayMovieFrame = 0;
+	static const bool	DisplayIndicators = 0;
 	static const bool8	AutoDisplayMessages = 0;
 	static const uint32	InitialInfoStringTimeout = 0;
 	static uint16	DisplayColor;
 	static const bool8	BilinearFilter = 0;
+	static const bool	ShowOverscan = 0;
 
 	static const bool8	Multi = 0;
 	char	CartAName[PATH_MAX + 1]{};
