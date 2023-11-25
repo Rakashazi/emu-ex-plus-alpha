@@ -20,6 +20,7 @@
 #include "MainSystem.hh"
 #include "MainApp.hh"
 #include <fceu/fceu.h>
+#include <fceu/fds.h>
 
 namespace EmuEx
 {
@@ -36,6 +37,8 @@ enum class NesKey : KeyCode
 	Start = 4,
 	A = 1,
 	B = 2,
+
+	toggleDiskSide = 255,
 };
 
 constexpr auto dpadKeyInfo = makeArray<KeyInfo>
@@ -62,6 +65,11 @@ constexpr auto turboFaceKeyInfo = turbo(faceKeyInfo);
 
 constexpr std::array comboKeyInfo{KeyInfo{std::array{NesKey::A, NesKey::B}}};
 
+constexpr auto exKeyInfo = makeArray<KeyInfo>
+(
+	NesKey::toggleDiskSide
+);
+
 constexpr auto gpKeyInfo = concatToArrayNow<dpadKeyInfo, centerKeyInfo, faceKeyInfo, turboFaceKeyInfo, comboKeyInfo>;
 constexpr auto gp2KeyInfo = transpose(gpKeyInfo, 1);
 constexpr auto gp3KeyInfo = transpose(gpKeyInfo, 2);
@@ -75,6 +83,7 @@ std::span<const KeyCategory> NesApp::keyCategories()
 		KeyCategory{"Gamepad 2", gp2KeyInfo, 1},
 		KeyCategory{"Gamepad 3", gp2KeyInfo, 2},
 		KeyCategory{"Gamepad 4", gp2KeyInfo, 3},
+		KeyCategory{"Extra Functions", exKeyInfo},
 	};
 	return categories;
 }
@@ -91,6 +100,7 @@ std::string_view NesApp::systemKeyCodeToString(KeyCode c)
 		case NesKey::Start: return "Start";
 		case NesKey::A: return "A";
 		case NesKey::B: return "B";
+		case NesKey::toggleDiskSide: return "Eject Disk/Switch Side";
 		default: return "";
 	}
 }
@@ -212,40 +222,74 @@ static unsigned playerInputShift(int player)
 	return 0;
 }
 
-void NesSystem::handleInputAction(EmuApp *, InputAction a)
+void NesSystem::handleInputAction(EmuApp *app, InputAction a)
 {
 	int player = a.flags.deviceId;
 	auto key = NesKey(a.code);
-	auto gpBits = bit(a.code - 1);
-	if(GameInfo->type == GIT_NSF && a.isPushed())
+	if(key == NesKey::toggleDiskSide)
 	{
-		if(key == NesKey::Up)
-			FCEUI_NSFChange(10);
-		else if(key == NesKey::Down)
-			FCEUI_NSFChange(-10);
-		else if(key == NesKey::Right)
-			FCEUI_NSFChange(1);
-		else if(key == NesKey::Left)
-			FCEUI_NSFChange(-1);
-		else if(key == NesKey::B)
-			FCEUI_NSFChange(0);
-	}
-	else if(GameInfo->type == GIT_VSUNI) // TODO: make coin insert separate key
-	{
-		if(a.isPushed() && key == NesKey::Start)
-			FCEUI_VSUniCoin();
-	}
-	else if(GameInfo->inputfc == SIFC_HYPERSHOT)
-	{
-		if(auto hsKey = gpBits & 0x3;
-			hsKey)
+		if(!isFDS || !a.isPushed())
+			return;
+		if(app)
+			app->syncEmulationThread();
+		if(FCEU_FDSInserted())
 		{
-			hsKey = hsKey == 0x3 ? 0x3 : hsKey ^ 0x3; // swap the 2 bits
-			auto hsPlayerInputShift = player == 1 ? 3 : 1;
-			fcExtData = IG::setOrClearBits(fcExtData, hsKey << hsPlayerInputShift, a.isPushed());
+			FCEU_FDSInsert();
+			if(app)
+				app->postMessage("Disk ejected, push again to switch side");
+		}
+		else
+		{
+			FCEU_FDSSelect();
+			FCEU_FDSInsert();
+			auto fdsSideToString = [](uint8_t side)
+			{
+				switch(side)
+				{
+					case 0: return "Disk 1 Side A";
+					case 1: return "Disk 1 Side B";
+					case 2: return "Disk 2 Side A";
+					case 3: return "Disk 2 Side B";
+				}
+				std::unreachable();
+			};
+			if(app)
+				app->postMessage(std::format("Set {}", fdsSideToString(FCEU_FDSCurrentSide())));
 		}
 	}
-	padData = setOrClearBits(padData, gpBits << playerInputShift(player), a.isPushed());
+	else // gamepad bits
+	{
+		auto gpBits = bit(a.code - 1);
+		if(GameInfo->type == GIT_NSF && a.isPushed())
+		{
+			if(key == NesKey::Up)
+				FCEUI_NSFChange(10);
+			else if(key == NesKey::Down)
+				FCEUI_NSFChange(-10);
+			else if(key == NesKey::Right)
+				FCEUI_NSFChange(1);
+			else if(key == NesKey::Left)
+				FCEUI_NSFChange(-1);
+			else if(key == NesKey::B)
+				FCEUI_NSFChange(0);
+		}
+		else if(GameInfo->type == GIT_VSUNI) // TODO: make coin insert separate key
+		{
+			if(a.isPushed() && key == NesKey::Start)
+				FCEUI_VSUniCoin();
+		}
+		else if(GameInfo->inputfc == SIFC_HYPERSHOT)
+		{
+			if(auto hsKey = gpBits & 0x3;
+				hsKey)
+			{
+				hsKey = hsKey == 0x3 ? 0x3 : hsKey ^ 0x3; // swap the 2 bits
+				auto hsPlayerInputShift = player == 1 ? 3 : 1;
+				fcExtData = IG::setOrClearBits(fcExtData, hsKey << hsPlayerInputShift, a.isPushed());
+			}
+		}
+		padData = setOrClearBits(padData, gpBits << playerInputShift(player), a.isPushed());
+	}
 }
 
 bool NesSystem::onPointerInputStart(const Input::MotionEvent &e, Input::DragTrackerState, IG::WindowRect gameRect)

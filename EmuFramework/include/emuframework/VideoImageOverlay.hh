@@ -49,7 +49,8 @@ private:
 		glm::i16vec2 pos;
 		glm::vec2 texCoord;
 	};
-	using Quads = Gfx::BaseQuads<Vertex>;
+	using Quad = Gfx::BaseQuad<Vertex>;
+	using Quads = Gfx::ObjectVertexBuffer<Quad>;
 
 	Quads quad;
 	Gfx::Texture texture;

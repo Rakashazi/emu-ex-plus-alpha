@@ -86,8 +86,8 @@ public:
 		}
 		else
 		{
-			auto map = buff.map();
-			std::ranges::copy(data, map.begin() + offset);
+			auto map = buff.map(offset, std::size(data));
+			std::ranges::copy(data, map.begin());
 		}
 	}
 };

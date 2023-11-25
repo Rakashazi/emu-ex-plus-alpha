@@ -50,12 +50,6 @@ constexpr int touchCtrlExtraBtnSizeMenuVal[4]
 	0, 10, 20, 30
 };
 
-static void drawVControllerElement(Gfx::RendererCommands &__restrict__ cmds, const VControllerElement &elem, size_t layoutIdx)
-{
-	cmds.set(Gfx::BlendMode::PREMULT_ALPHA);
-	elem.draw(cmds, layoutIdx);
-}
-
 static void addCategories(EmuApp &app, VControllerElement &elem, auto &&addCategory)
 {
 	if(elem.uiButtonGroup())
@@ -238,7 +232,7 @@ public:
 
 	void draw(Gfx::RendererCommands &__restrict__ cmds) final
 	{
-		drawVControllerElement(cmds, elem, window().isPortrait());
+		vCtrl.draw(cmds, elem, true);
 		TableView::draw(cmds);
 	}
 
@@ -604,7 +598,7 @@ public:
 
 	void draw(Gfx::RendererCommands &__restrict__ cmds) final
 	{
-		drawVControllerElement(cmds, elem, window().isPortrait());
+		vCtrl.draw(cmds, elem, true);
 		TableView::draw(cmds);
 	}
 

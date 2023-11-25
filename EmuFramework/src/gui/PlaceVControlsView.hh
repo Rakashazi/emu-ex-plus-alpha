@@ -53,6 +53,7 @@ private:
 	Input::DragTracker<DragData> dragTracker;
 	size_t snapPxIdx{};
 	Gfx::IQuads quads;
+	Gfx::QuadIndexArray<uint16_t> gridIdxs;
 };
 
 }

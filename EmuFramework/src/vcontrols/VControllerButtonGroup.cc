@@ -105,6 +105,7 @@ void VControllerButtonGroup::setPos(WPt pos, WindowRect viewBounds)
 	bounds_.fitIn(viewBounds);
 	layoutButtons(buttons, bounds_, viewBounds, btnSize,
 		spacingPixels, btnStagger, btnRowShift, layout.rowItems, LB2DO);
+	updateSprites();
 }
 
 void VControllerButtonGroup::setButtonSize(int sizePx)
@@ -120,6 +121,7 @@ void VControllerButtonGroup::setButtonSize(int sizePx)
 	{
 		b.setSize({sizePx, sizePx}, extendedSize);
 	}
+	updateSprites();
 }
 
 void VControllerButtonGroup::setStaggerType(uint8_t type)
@@ -190,28 +192,12 @@ std::array<KeyInfo, 2> VControllerButtonGroup::findButtonIndices(WPt windowPos) 
 	return btnOut;
 }
 
-void VControllerButtonGroup::drawButtons(Gfx::RendererCommands &__restrict__ cmds) const
-{
-	cmds.basicEffect().enableTexture(cmds);
-	for(auto &b : buttons)
-	{
-		if(!b.enabled)
-			continue;
-		b.drawSprite(cmds);
-	}
-}
-
 void VControllerButtonGroup::drawBounds(Gfx::RendererCommands &__restrict__ cmds) const
 {
-	if(!layout.showBoundingArea)
+	if(!layout.showBoundingArea || !enabledBtns)
 		return;
 	cmds.basicEffect().disableTexture(cmds);
-	for(const auto &b : buttons)
-	{
-		if(!b.enabled)
-			continue;
-		b.drawBounds(cmds);
-	}
+	cmds.drawQuads<uint8_t>(boundQuads, 0, enabledBtns);
 }
 
 static std::string namesString(auto &buttons, const EmuApp &app)
@@ -287,6 +273,7 @@ void VControllerUIButtonGroup::setPos(WPt pos, WRect viewBounds)
 	bounds_.fitIn(viewBounds);
 	layoutButtons(buttons, bounds_, viewBounds, btnSize,
 		0, 0, 0, layout.rowItems, LT2DO);
+	updateSprites();
 }
 
 void VControllerUIButtonGroup::setButtonSize(int sizePx)
@@ -300,23 +287,13 @@ void VControllerUIButtonGroup::setButtonSize(int sizePx)
 	{
 		b.setSize({sizePx, sizePx});
 	}
+	updateSprites();
 }
 
 int VControllerUIButtonGroup::rows() const
 {
 	assert(layout.rowItems);
 	return divRoundUp(buttonsToLayout(buttons), layout.rowItems);
-}
-
-void VControllerUIButtonGroup::drawButtons(Gfx::RendererCommands &__restrict__ cmds) const
-{
-	cmds.basicEffect().enableTexture(cmds);
-	for(auto &b : buttons)
-	{
-		if(!b.enabled)
-			continue;
-		b.drawSprite(cmds);
-	}
 }
 
 std::string VControllerUIButtonGroup::name(const EmuApp &app) const
@@ -330,5 +307,63 @@ void VControllerUIButtonGroup::Config::validate(const EmuApp &app)
 	if(!isValidRowItemCount(layout.rowItems))
 		layout.rowItems = 2;
 }
+
+template<class Group>
+void BaseVControllerButtonGroup<Group>::drawButtons(Gfx::RendererCommands &__restrict__ cmds) const
+{
+	auto &g = static_cast<const Group&>(*this);
+	if(!g.enabledBtns)
+		return;
+	cmds.drawQuads<uint8_t>(g.quads, 0, g.enabledBtns);
+}
+
+template<class Group>
+void BaseVControllerButtonGroup<Group>::updateSprites()
+{
+	auto &g = static_cast<Group&>(*this);
+	if(!g.quads.hasTask())
+		return;
+	g.quads.reset({.size = g.buttons.size()});
+	Gfx::MappedBuffer<Gfx::Vertex2IColI> boundQuadsMap;
+	if constexpr(requires {g.boundQuads;})
+	{
+		g.boundQuads.reset({.size = g.buttons.size()});
+		boundQuadsMap = g.boundQuads.map();
+	}
+	auto quadsMap = g.quads.map();
+	g.enabledBtns = 0;
+	for(auto &b : g.buttons)
+	{
+		if(!b.enabled)
+			continue;
+		b.spriteIdx = g.enabledBtns++;
+		if constexpr(requires {g.boundQuads;})
+			b.updateSprite(quadsMap, boundQuadsMap);
+		else
+			b.updateSprite(quadsMap);
+	}
+}
+
+template<class Group>
+void BaseVControllerButtonGroup<Group>::updateSprite(VControllerButton &b)
+{
+	auto &g = static_cast<Group&>(*this);
+	assert(b.spriteIdx < g.quads.size());
+	if constexpr(requires {g.boundQuads;})
+		b.updateSprite(g.quads, g.boundQuads);
+	else
+		b.updateSprite(g.quads);
+}
+
+template<class Group>
+void BaseVControllerButtonGroup<Group>::setAlpha(float alpha)
+{
+	auto &g = static_cast<Group&>(*this);
+	for(auto &b : g.buttons) { b.setAlpha(alpha); }
+	updateSprites();
+}
+
+template class BaseVControllerButtonGroup<VControllerButtonGroup>;
+template class BaseVControllerButtonGroup<VControllerUIButtonGroup>;
 
 }

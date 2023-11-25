@@ -234,20 +234,6 @@ struct GlyphSetMetrics
 	int16_t yLineStart{};
 };
 
-constexpr std::array<uint8_t, 6> makeRectIndexArray(uint8_t baseIdx)
-{
-	baseIdx *= 4;
-	return
-	{{
-		baseIdx,
-		uint8_t(baseIdx+1),
-		uint8_t(baseIdx+3),
-		baseIdx,
-		uint8_t(baseIdx+3),
-		uint8_t(baseIdx+2),
-	}};
-}
-
 enum class BufferType : uint8_t
 {
 	vertex,

@@ -527,7 +527,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			win.setAcceptDnd(true);
 			renderer.setWindowValidOrientations(win, menuOrientation());
 			inputManager.updateInputDevices(ctx);
-			vController.configure(win, renderer, viewManager.defaultFace);
+			vController.configure(win, renderer, viewManager.defaultFace, viewManager.quadIndices);
 			if(EmuSystem::inputHasKeyboard)
 			{
 				vController.setKeyboardImage(asset(AssetID::keyboardOverlay));

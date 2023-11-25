@@ -70,14 +70,15 @@ static void updateTexture(const EmuApp &app, VControllerElement &e, Gfx::Rendere
 			for(auto &btn : grp.buttons)
 			{
 				auto desc = app.vControllerAssetDesc(btn.key);
-				btn.setImage(task, app.asset(desc), desc.aspectRatio.y);
+				btn.setImage(app.asset(desc), desc.aspectRatio.y);
 			}
+			grp.setTask(task);
 		},
 		[&](VControllerUIButtonGroup &grp)
 		{
 			for(auto &btn : grp.buttons)
 			{
-				btn.setImage(task, [&]
+				btn.setImage([&]
 				{
 					using enum AppKeyCode;
 					switch(AppKeyCode(btn.key.codes[0]))
@@ -104,6 +105,7 @@ static void updateTexture(const EmuApp &app, VControllerElement &e, Gfx::Rendere
 					return app.asset(AssetID::more);
 				}());
 			}
+			grp.setTask(task);
 		}
 	}, e);
 }
@@ -160,11 +162,11 @@ void VController::updateAltSpeedModeInput(AltSpeedMode mode, bool on)
 		{
 			if(b.key.codes[0] == KeyCode(AppKeyCode::fastForward) || b.key.codes[0] == KeyCode(AppKeyCode::toggleFastForward))
 			{
-				b.updateColor(on && mode == AltSpeedMode::fast ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{}, alphaF);
+				b.updateColor(on && mode == AltSpeedMode::fast ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{}, alphaF, e);
 			}
 			else if(b.key.codes[0] == KeyCode(AppKeyCode::slowMotion) || b.key.codes[0] == KeyCode(AppKeyCode::toggleSlowMotion))
 			{
-				b.updateColor(on && mode == AltSpeedMode::slow ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{}, alphaF);
+				b.updateColor(on && mode == AltSpeedMode::slow ? Gfx::Color{Gfx::ColorName::RED} : Gfx::Color{}, alphaF, e);
 			}
 		}
 	}
@@ -361,6 +363,7 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 	cmds.set(Gfx::BlendMode::PREMULT_ALPHA);
 	if(isInKeyboardMode())
 	{
+		cmds.setIndexArray(*quadIdxsPtr);
 		cmds.setColor(Gfx::Color{alphaF});
 		kb.draw(cmds);
 	}
@@ -372,13 +375,41 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 				(e.dPad() && gamepadDisabledFlags.dpad));
 		};
 		auto activeElements = gpElements | std::views::filter(elementIsEnabled);
-		for(const auto &e : activeElements) { e.drawBounds(cmds, showHidden); }
-		for(const auto &e : activeElements) { e.drawButtons(cmds, showHidden); }
+		if(!activeElements.empty())
+		{
+			cmds.setIndexArray(*quadIdxsPtr);
+			for(const auto &e : activeElements) { e.drawBounds(cmds, showHidden); }
+			cmds.basicEffect().enableTexture(cmds, gamepadTex);
+			for(const auto &e : activeElements)
+			{
+				setIndexArray(cmds, e);
+				e.drawButtons(cmds, showHidden);
+			}
+		}
 	}
-	for(auto &e : uiElements)
+	if(uiElements.size())
 	{
-		e.drawButtons(cmds, showHidden);
+		cmds.basicEffect().enableTexture(cmds, uiTex);
+		cmds.setIndexArray(*quadIdxsPtr); // all UI elements use quad indices
+		for(auto &e : uiElements)
+		{
+			e.drawButtons(cmds, showHidden);
+		}
 	}
+}
+
+void VController::draw(Gfx::RendererCommands &__restrict__ cmds, const VControllerElement &elem, bool showHidden) const
+{
+	cmds.set(Gfx::BlendMode::PREMULT_ALPHA);
+	setIndexArray(cmds, elem);
+	elem.drawBounds(cmds, showHidden);
+	cmds.basicEffect().enableTexture(cmds, elem.uiButtonGroup() ? uiTex : gamepadTex);
+	elem.drawButtons(cmds, showHidden);
+}
+
+void VController::setIndexArray(Gfx::RendererCommands &__restrict__ cmds, const VControllerElement &elem) const
+{
+	cmds.setIndexArray(elem.dPad() ? fanQuadIdxs : *quadIdxsPtr);
 }
 
 bool VController::isInKeyboardMode() const
@@ -783,11 +814,22 @@ void VController::writeConfig(FileIO &io) const
 	writeUIButtonsConfig(io);
 }
 
-void VController::configure(IG::Window &win, Gfx::Renderer &renderer, const Gfx::GlyphTextureSet &face)
+void VController::configure(IG::Window &win, Gfx::Renderer &renderer, const Gfx::GlyphTextureSet &face, const Gfx::IndexBuffer<uint8_t> &quadIdxs)
 {
 	setWindow(win);
 	setRenderer(renderer);
 	setFace(face);
+	quadIdxsPtr = &quadIdxs; // common index buffer from view manager class
+	fanQuadIdxs = {renderer.mainTask, {.size = 24}}; // for rendering DPads with FanQuads
+	{
+		auto indices = fanQuadIdxs.map();
+		for(auto i : iotaCount(2))
+		{
+			std::ranges::copy(Gfx::mapFanQuadIndices(i), indices.begin() + (i * 12));
+		}
+	}
+	gamepadTex = app().asset(AssetID::gamepadOverlay);
+	uiTex = app().asset(AssetID::more);
 	for(auto &e : uiElements) { update(e); };
 	for(auto &e : gpElements)
 	{
@@ -1032,7 +1074,7 @@ void VController::updateSystemKeys(KeyInfo key, bool isPushed)
 					if(stripFlags(btn.key) == key)
 					{
 						btn.isHighlighted = isPushed;
-						btn.setAlpha(alphaF);
+						btn.setAlpha(alphaF, grp);
 					}
 				}
 			},

@@ -33,7 +33,8 @@ template<class T>
 class MappedBuffer
 {
 public:
-	constexpr MappedBuffer(ByteBuffer buff):
+	constexpr MappedBuffer() = default;
+	constexpr MappedBuffer(MappedByteBuffer buff):
 		buff{std::move(buff)} {}
 	constexpr operator std::span<T>() const { return span(); }
 	constexpr std::span<T> span() const { return {data(), size()}; }
@@ -48,7 +49,7 @@ public:
 	constexpr auto end() const { return data() + size(); }
 
 protected:
-	ByteBuffer buff;
+	MappedByteBuffer buff;
 };
 
 template<class T, BufferType type>
@@ -63,11 +64,13 @@ public:
 	Buffer(RendererTask &rTask, BufferConfig<T> config): BaseBuffer(rTask, config.toByteConfig()) {}
 	explicit operator bool() const { return BaseBuffer::operator bool(); }
 	Renderer &renderer() const { return task().renderer(); }
-	RendererTask &task() const { return BaseBuffer::task(); }
+	RendererTask &task() const { return *BaseBuffer::taskPtr(); }
+	bool hasTask() const { return BaseBuffer::taskPtr(); }
 	void setTask(RendererTask &task) { return BaseBuffer::setTask(task); }
 	void reset(BufferConfig<T> config) { BaseBuffer::reset(config.toByteConfig()); }
 	size_t size() const { return BaseBuffer::sizeBytes() / elemSize; }
-	MappedBuffer<T> map() { return {BaseBuffer::map()}; }
+	MappedBuffer<T> map(ssize_t offset, size_t size) { return {BaseBuffer::map(offset * elemSize, size * elemSize)}; }
+	MappedBuffer<T> map() { return map(0, 0); }
 };
 
 template<VertexLayout T>
@@ -75,5 +78,40 @@ using VertexBuffer = Buffer<T, BufferType::vertex>;
 
 template<class T>
 using IndexBuffer = Buffer<T, BufferType::index>;
+
+template<class T>
+class ObjectBufferConfig
+{
+public:
+	size_t size;
+	BufferUsageHint usageHint{BufferUsageHint::dynamic};
+
+	constexpr BufferConfig<typename T::Vertex> toBufferConfig() const
+	{
+		return
+		{
+			.size = size * T::vertexCount,
+			.usageHint = usageHint,
+		};
+	}
+};
+
+template<class T>
+class ObjectVertexBuffer : public VertexBuffer<typename T::Vertex>
+{
+public:
+	using Type = T;
+	using Vertex = T::Vertex;
+	using BaseBuffer = VertexBuffer<Vertex>;
+	using BaseBuffer::map;
+
+	constexpr ObjectVertexBuffer() = default;
+	ObjectVertexBuffer(RendererTask &rTask, ObjectBufferConfig<T> config): VertexBuffer<Vertex>{rTask, config.toBufferConfig()} {}
+	void reset(ObjectBufferConfig<T> config) { VertexBuffer<Vertex>::reset(config.toBufferConfig()); }
+	size_t size() const { return BaseBuffer::size() / T::vertexCount; }
+	MappedBuffer<Vertex> map(ssize_t offset, size_t size) { return BaseBuffer::map(offset * T::vertexCount, size * T::vertexCount); }
+	void write(ssize_t offset, T obj) { obj.write(*this, offset); }
+	void write(ssize_t offset, T::InitParams params) { write(offset, T{params}); }
+};
 
 }

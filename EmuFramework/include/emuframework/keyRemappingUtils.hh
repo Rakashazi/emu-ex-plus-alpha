@@ -49,19 +49,6 @@ constexpr Input::Key genericGamepadKeycodeToOuya(Input::Key k)
 		default: return k;
 	}
 }
-
-constexpr Input::Key genericGamepadKeycodeToBitdo(Input::Key k)
-{
-	using namespace Input;
-	switch(k)
-	{
-		case Keycode::GAME_A: return Keycode::GAME_B;
-		case Keycode::GAME_B: return Keycode::GAME_A;
-		case Keycode::GAME_X: return Keycode::GAME_Y;
-		case Keycode::GAME_Y: return Keycode::GAME_X;
-		default: return k;
-	}
-}
 #endif
 
 #if defined(__ANDROID__) && __ARM_ARCH == 7
@@ -247,7 +234,6 @@ constexpr std::span<const KeyConfigDesc> genericKeyConfigs()
 	static constexpr auto genericGamepadMap = concatToArrayNow<genericGamepadAppKeyCodeMap, genericGamepadBaseMap>;
 	static constexpr auto ps3GamepadMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToPS3HID);
 	static constexpr auto ouyaGamepadMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToOuya);
-	static constexpr auto eightBitdoGamepadMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToBitdo);
 	#endif
 
 	#if defined(__ANDROID__) && __ARM_ARCH == 7
@@ -275,17 +261,15 @@ constexpr std::span<const KeyConfigDesc> genericKeyConfigs()
 		KeyConfigDesc{Map::SYSTEM, DeviceSubtype::GENERIC_GAMEPAD, "Generic Gamepad", genericGamepadMap},
 		KeyConfigDesc{Map::SYSTEM, DeviceSubtype::PS3_CONTROLLER, "PS3 Controller", ps3GamepadMap},
 		KeyConfigDesc{Map::SYSTEM, DeviceSubtype::OUYA_CONTROLLER, "OUYA Controller", ouyaGamepadMap},
-		KeyConfigDesc{Map::SYSTEM, DeviceSubtype::_8BITDO_SF30_PRO, "8Bitdo SF30 Pro", eightBitdoGamepadMap},
-		KeyConfigDesc{Map::SYSTEM, DeviceSubtype::_8BITDO_SN30_PRO_PLUS, "8BitDo SN30 Pro+", eightBitdoGamepadMap},
 		#endif
 		#if defined(__ANDROID__) && __ARM_ARCH == 7
-		KeyConfigDesc{Map::SYSTEM, DeviceSubtype::XPERIA_PLAY,	"Xperia Play", xperiaPlayGamepadMap},
+		KeyConfigDesc{Map::SYSTEM, DeviceSubtype::XPERIA_PLAY, "Xperia Play", xperiaPlayGamepadMap},
 		#endif
 		#ifdef CONFIG_MACHINE_PANDORA
 		KeyConfigDesc{Map::SYSTEM, DeviceSubtype::PANDORA_HANDHELD, "Pandora Keys", pandoraKeysMap},
 		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		KeyConfigDesc{Map::APPLE_GAME_CONTROLLER,"Default", appleGamepadMap},
+		KeyConfigDesc{Map::APPLE_GAME_CONTROLLER, "Default", appleGamepadMap},
 		#endif
 		#ifdef CONFIG_INPUT_BLUETOOTH
 		KeyConfigDesc{Map::WIIMOTE, "Default", wiimoteMap},

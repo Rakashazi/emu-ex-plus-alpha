@@ -375,7 +375,10 @@ void NesSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	}
 	if(!FCEUI_LoadGameWithFileVirtual(file, contentFileName().data(), 0, false))
 	{
-		throw std::runtime_error("Error loading game");
+		if(loaderErrorString.size())
+			throw std::runtime_error(std::exchange(loaderErrorString, {}));
+		else
+			throw std::runtime_error("Error loading game");
 	}
 	autoDetectedRegion = regionFromName(contentFileName());
 	setRegion(optionVideoSystem.val, optionDefaultVideoSystem.val, autoDetectedRegion);

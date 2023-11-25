@@ -201,7 +201,7 @@ void ButtonConfigSetView::initPointerUI()
 void ButtonConfigSetView::place()
 {
 	text.compile(renderer(), {.alignment = Gfx::TextAlignment::center});
-	using Quad = decltype(quads)::Quad;
+	using Quad = decltype(quads)::Type;
 	auto map = quads.map();
 	Quad{{.bounds = viewRect().as<int16_t>()}}.write(map, 0);
 	if(pointerUIIsInit())
@@ -278,15 +278,24 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 					}
 					return true;
 				}
+				if(contains(pushedKeys, keyEv.mapKey()))
+				{
+					return true;
+				}
+				if((contains(pushedKeys, Input::Keycode::GAME_L2) || contains(pushedKeys, Input::Keycode::GAME_R2)) &&
+					(keyEv.mapKey() == Input::Keycode::JS_LTRIGGER_AXIS || keyEv.mapKey() == Input::Keycode::JS_RTRIGGER_AXIS))
+				{
+					log.info("ignoring trigger axis to avoid duplicate events since L2/R2 keys are pushed");
+					return true;
+				}
 				pushedKeys.tryPushBack(keyEv.mapKey());
-				return true;
 			}
 			else if(keyEv.released())
 			{
 				if(pushedKeys.size())
 					finalize();
 			}
-			return false;
+			return true;
 		}
 	}, e);
 }

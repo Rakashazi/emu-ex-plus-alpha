@@ -27,8 +27,6 @@ void VControllerButton::setPos(WPt pos, WRect viewBounds, _2DOrigin o)
 	bounds_.setPos(pos, o);
 	bounds_.fitIn(viewBounds);
 	extendedBounds_.setPos(bounds_.pos(C2DO), C2DO);
-	boundQuads.write(0, {.bounds = extendedBounds_.as<int16_t>()});
-	updateSprite();
 }
 
 void VControllerButton::setSize(WSize size, WSize extendedSize)
@@ -36,33 +34,17 @@ void VControllerButton::setSize(WSize size, WSize extendedSize)
 	size.y /= aspectRatio;
 	bounds_ = makeWindowRectRel(bounds_.pos(C2DO), size);
 	extendedBounds_ = bounds_ + WRect{{-extendedSize}, {extendedSize}};
-	boundQuads.write(0, {.bounds = extendedBounds_.as<int16_t>()});
 }
 
-void VControllerButton::setImage(Gfx::RendererTask &task, Gfx::TextureSpan t, int aR)
+void VControllerButton::setImage(Gfx::TextureSpan t, int aR)
 {
-	quad = {task, {.size = 1}};
 	texture = t;
-	boundQuads = {task, {.size = 1}};
 	aspectRatio = aR;
-	updateSprite();
 }
 
 std::string VControllerButton::name(const EmuApp &app) const
 {
 	return std::string{app.inputManager.toString(key)};
-}
-
-void VControllerButton::drawBounds(Gfx::RendererCommands &__restrict__ cmds) const
-{
-	float brightness = isHighlighted ? 2.f : 1.f;
-	cmds.setColor(Gfx::Color{.5f}.multiplyRGB(brightness));
-	cmds.drawQuad(boundQuads, 0);
-}
-
-void VControllerButton::drawSprite(Gfx::RendererCommands &__restrict__ cmds) const
-{
-	cmds.basicEffect().drawSprite(cmds, quad, 0, texture);
 }
 
 void VControllerButton::setAlpha(float alpha)
@@ -83,12 +65,6 @@ void VControllerButton::setAlpha(float alpha)
 		else
 			spriteColor = Gfx::Color{alpha}.multiplyRGB(brightness);
 	}
-	updateSprite();
-}
-
-void VControllerButton::updateSprite()
-{
-	quad.write(0, {.bounds = bounds_.as<int16_t>(), .color = spriteColor, .textureSpan = texture});
 }
 
 }

@@ -115,7 +115,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 					color = headingColor;
 				}
 				auto rect = makeWindowRectRel({x, y-1}, {viewRect().xSize(), ySize}).as<int16_t>();
-				vRect.emplace_back(IColQuad::RectInitParams{.bounds = rect, .color = color});
+				vRect.emplace_back(IColQuad::InitParams{.bounds = rect, .color = color});
 			}
 			y += yCellSize;
 			if(vRect.size() == vRect.capacity()) [[unlikely]]

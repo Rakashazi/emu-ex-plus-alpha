@@ -150,7 +150,7 @@ public:
 	void drawPrimitiveElements(const Buffer<I, BufferType::index> &idxs, Primitive mode, int start, int count)
 	{
 		setIndexArray(idxs);
-		drawPrimitiveElements(mode, start, count, attribType<I>);
+		drawPrimitiveElements(mode, start * sizeof(I), count, attribType<I>);
 	}
 
 	template<VertexLayout V, class I>
@@ -183,6 +183,13 @@ public:
 	{
 		setVertexArray(verts);
 		drawQuads(idxs, startIdx, size);
+	}
+
+	template<class I, VertexLayout V>
+	void drawQuads(const Buffer<V, BufferType::vertex> &verts, ssize_t startIdx, size_t size)
+	{
+		setVertexArray(verts);
+		drawPrimitiveElements(Primitive::TRIANGLE, startIdx * 6 * sizeof(I), size * 6, attribType<I>);
 	}
 };
 

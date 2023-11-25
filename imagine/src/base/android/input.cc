@@ -88,21 +88,6 @@ static std::pair<int32_t, Input::Source> mapKeycodesForSpecialDevices(const Inpu
 			}
 			break;
 		}
-		case Device::Subtype::XBOX_360_CONTROLLER:
-		{
-			if(keyCode)
-				break;
-			// map d-pad on wireless controller adapter
-			auto scanCode = AKeyEvent_getScanCode(event);
-			switch(scanCode)
-			{
-				case 704: return {Keycode::LEFT, src};
-				case 705: return {Keycode::RIGHT, src};
-				case 706: return {Keycode::UP, src};
-				case 707: return {Keycode::DOWN, src};
-			}
-			break;
-		}
 		default:
 			switch(keyCode) // map volume/media keys to keyboard source
 			{

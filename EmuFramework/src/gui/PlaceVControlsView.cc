@@ -17,10 +17,12 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuViewController.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"PlaceVControlsView"};
 constexpr std::array snapPxSizes{0, 2, 4, 8, 16, 32, 64};
 
 PlaceVControlsView::PlaceVControlsView(ViewAttachParams attach, VController &vController_):
@@ -28,7 +30,8 @@ PlaceVControlsView::PlaceVControlsView(ViewAttachParams attach, VController &vCo
 	exitText{"Exit", &defaultFace()},
 	snapText{"Snap: 0px", &defaultFace()},
 	vController{vController_},
-	quads{attach.rendererTask, {.size = 4}}
+	quads{attach.rendererTask, {.size = 4}},
+	gridIdxs{attach.rendererTask, 2, 2}
 {
 	app().applyOSNavStyle(appContext(), true);
 }
@@ -46,14 +49,37 @@ void PlaceVControlsView::place()
 	exitBtnRect = WRect{{}, exitText.pixelSize()} + (viewRect().pos(C2DO) - exitText.pixelSize() / 2) + WPt{0, exitText.height()};
 	snapBtnRect = WRect{{}, snapText.pixelSize()} + (viewRect().pos(C2DO) - snapText.pixelSize() / 2) - WPt{0, exitText.height()};
 	const int lineSize = 1;
-	using Quad = decltype(quads)::Quad;
+	auto snapPxSize = snapPxSizes[snapPxIdx];
+	size_t hLines = snapPxSize >= 16 ? std::max(viewRect().ySize() / snapPxSize, 1) : 1;
+	size_t vLines = snapPxSize >= 16 ? std::max(viewRect().xSize() / snapPxSize, 1) : 1;
+	quads.reset({.size = 2 + hLines + vLines});
+	using Quad = decltype(quads)::Type;
 	auto map = quads.map();
-	Quad{{.bounds = WRect{{viewRect().x, viewRect().yCenter()},
-		{viewRect().x2, viewRect().yCenter() + lineSize}}.as<int16_t>()}}.write(map, 0);
-	Quad{{.bounds = WRect{{viewRect().xCenter(), viewRect().y},
-		{viewRect().xCenter() + lineSize, viewRect().y2}}.as<int16_t>()}}.write(map, 1);
-	Quad{{.bounds = exitBtnRect.as<int16_t>()}}.write(map, 2);
-	Quad{{.bounds = snapBtnRect.as<int16_t>()}}.write(map, 3);
+	Quad{{.bounds = exitBtnRect.as<int16_t>()}}.write(map, 0);
+	Quad{{.bounds = snapBtnRect.as<int16_t>()}}.write(map, 1);
+	if(hLines == 1 && vLines == 1) // center lines
+	{
+		Quad{{.bounds = WRect{{viewRect().x, viewRect().yCenter()},
+			{viewRect().x2, viewRect().yCenter() + lineSize}}.as<int16_t>()}}.write(map, 2);
+		Quad{{.bounds = WRect{{viewRect().xCenter(), viewRect().y},
+			{viewRect().xCenter() + lineSize, viewRect().y2}}.as<int16_t>()}}.write(map, 3);
+	}
+	else // full grid
+	{
+		for(auto i : iotaCount(hLines))
+		{
+			int yPos = viewRect().y + ((i + 1) * snapPxSize);
+			Quad{{.bounds = WRect{{viewRect().x, yPos},
+				{viewRect().x2, yPos + lineSize}}.as<int16_t>()}}.write(map, 2 + i);
+		}
+		for(auto i : iotaCount(vLines))
+		{
+			int xPos = viewRect().x + ((i + 1) * snapPxSize);
+			Quad{{.bounds = WRect{{xPos, viewRect().y},
+				{xPos + lineSize, viewRect().y2}}.as<int16_t>()}}.write(map, 2 + hLines + i);
+		}
+	}
+	gridIdxs.reset(hLines + vLines, 2);
 }
 
 bool PlaceVControlsView::inputEvent(const Input::Event &e)
@@ -118,7 +144,7 @@ bool PlaceVControlsView::inputEvent(const Input::Event &e)
 						auto bounds = window().bounds();
 						d.elem->setPos(newPos, bounds);
 						auto layoutPos = VControllerLayoutPosition::fromPixelPos(d.elem->bounds().pos(C2DO), d.elem->bounds().size(), bounds);
-						//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
+						//log.info("set pos {},{} from {},{}", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
 						auto &vCtrlLayoutPos = d.elem->layoutPos[layoutIdx];
 						vCtrlLayoutPos.origin = layoutPos.origin;
 						vCtrlLayoutPos.pos = layoutPos.pos;
@@ -138,7 +164,7 @@ bool PlaceVControlsView::inputEvent(const Input::Event &e)
 					{
 						snapPxIdx = (snapPxIdx + 1) % snapPxSizes.size();
 						snapText.resetString(std::format("Snap: {}px", snapPxSizes[snapPxIdx]));
-						snapText.compile(renderer());
+						place();
 						postDraw();
 					}
 				});
@@ -150,14 +176,14 @@ bool PlaceVControlsView::inputEvent(const Input::Event &e)
 void PlaceVControlsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
 	using namespace IG::Gfx;
-	vController.draw(cmds, true);
 	cmds.setColor({.5, .5, .5});
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
-	cmds.setVertexArray(quads);
-	cmds.drawQuads(quadIndices(), 0, 2); // centering lines
+	cmds.drawQuads(quads, gridIdxs, 0, quads.size() - 2); // grid
+	vController.draw(cmds, true);
 	cmds.setColor({0, 0, 0, .5});
-	cmds.drawQuads(quadIndices(), 2, 2); // button bg
+	basicEffect.disableTexture(cmds);
+	cmds.drawQuads(quads, quadIndices(), 0, 2); // button bg
 	basicEffect.enableAlphaTexture(cmds);
 	exitText.draw(cmds, exitBtnRect.pos(C2DO), C2DO, ColorName::WHITE);
 	snapText.draw(cmds, snapBtnRect.pos(C2DO), C2DO, ColorName::WHITE);

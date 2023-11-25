@@ -21,6 +21,7 @@
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/Quads.hh>
+#include <imagine/gfx/FanQuads.hh>
 #include <imagine/util/variant.hh>
 #include <vector>
 #include <span>
@@ -114,7 +115,7 @@ public:
 	}
 
 protected:
-	Gfx::ILitTexQuads spriteQuads;
+	Gfx::ILitTexFanQuads spriteQuads;
 	Gfx::TextureSpan tex;
 	Gfx::Texture mapImg;
 	WRect padBaseArea, padArea;
@@ -187,42 +188,67 @@ public:
 	constexpr VControllerButton(KeyInfo key): key{key} {}
 	void setPos(WPt pos, WRect viewBounds, _2DOrigin = C2DO);
 	void setSize(WSize size, WSize extendedSize = {});
-	void setImage(Gfx::RendererTask &, Gfx::TextureSpan, int aR = 1);
+	void setImage(Gfx::TextureSpan, int aR = 1);
 	WRect bounds() const { return bounds_; }
 	WRect realBounds() const { return extendedBounds_; }
-	void drawBounds(Gfx::RendererCommands &__restrict__) const;
-	void drawSprite(Gfx::RendererCommands &__restrict__) const;
 	std::string name(const EmuApp &) const;
 	bool overlaps(WPt windowPos) const { return enabled && realBounds().overlaps(windowPos); }
 	void setAlpha(float alpha);
 
-	void updateColor(Gfx::Color c, float alpha)
+	void setAlpha(float alpha, auto &container)
 	{
-		color = c;
 		setAlpha(alpha);
+		container.updateSprite(*this);
 	}
 
-protected:
-	Gfx::ILitTexQuads quad;
-	Gfx::IQuads boundQuads;
+	void updateColor(Gfx::Color c, float alpha, auto &container)
+	{
+		color = c;
+		setAlpha(alpha, container);
+	}
+
+	void updateSprite(auto &quads)
+	{
+		Gfx::ILitTexQuad({.bounds = bounds_.as<int16_t>(), .color = spriteColor, .textureSpan = texture}).write(quads, spriteIdx);
+	}
+
+	void updateSprite(auto &quads, auto &boundQuads)
+	{
+		updateSprite(quads);
+		float brightness = isHighlighted ? 2.f : 1.f;
+		Gfx::IColQuad({.bounds = extendedBounds_.as<int16_t>(), .color = Gfx::Color{.5f}.multiplyRGB(brightness)}).write(boundQuads, spriteIdx);
+	}
+
 	Gfx::TextureSpan texture;
+protected:
 	Gfx::Color spriteColor;
 	WRect bounds_{};
 	WRect extendedBounds_{};
 	int aspectRatio{1};
-
-	void updateSprite();
 public:
 	Gfx::Color color{};
 	KeyInfo key{};
-	bool enabled = true;
+	uint8_t spriteIdx{};
+	bool enabled{true};
 	bool skipLayout{};
 	bool isHighlighted{};
 };
 
-class VControllerButtonGroup
+template<class Group>
+class BaseVControllerButtonGroup
 {
 public:
+	void drawButtons(Gfx::RendererCommands &__restrict__) const;
+	void updateSprites();
+	void updateSprite(VControllerButton &);
+	void setAlpha(float alpha);
+};
+
+class VControllerButtonGroup : public BaseVControllerButtonGroup<VControllerButtonGroup>
+{
+public:
+	friend class BaseVControllerButtonGroup<VControllerButtonGroup>;
+
 	struct LayoutConfig
 	{
 		int8_t rowItems{1};
@@ -260,12 +286,11 @@ public:
 	WRect realBounds() const { return bounds() + paddingRect(); }
 	int rows() const;
 	std::array<KeyInfo, 2> findButtonIndices(WPt windowPos) const;
-	void drawButtons(Gfx::RendererCommands &__restrict__) const;
 	void drawBounds(Gfx::RendererCommands &__restrict__) const;
 	std::string name(const EmuApp &) const;
 	void updateMeasurements(const Window &win);
 	void transposeKeysForPlayer(const EmuApp &, int player);
-	void setAlpha(float alpha) { for(auto &b : buttons) { b.setAlpha(alpha); } }
+	void setTask(Gfx::RendererTask &task) { quads.setTask(task); boundQuads.setTask(task); }
 
 	static size_t layoutConfigSize()
 	{
@@ -285,7 +310,10 @@ public:
 
 	std::vector<VControllerButton> buttons;
 protected:
+	Gfx::ILitTexQuads quads;
+	Gfx::IColQuads boundQuads;
 	WRect bounds_;
+	int enabledBtns{};
 	int btnSize{};
 	int spacingPixels{};
 	int16_t btnStagger{};
@@ -294,9 +322,11 @@ public:
 	LayoutConfig layout{};
 };
 
-class VControllerUIButtonGroup
+class VControllerUIButtonGroup : public BaseVControllerButtonGroup<VControllerUIButtonGroup>
 {
 public:
+	friend class BaseVControllerButtonGroup<VControllerUIButtonGroup>;
+
 	struct LayoutConfig
 	{
 		int8_t rowItems{1};
@@ -320,9 +350,8 @@ public:
 	auto bounds() const { return bounds_; }
 	WRect realBounds() const { return bounds(); }
 	int rows() const;
-	void drawButtons(Gfx::RendererCommands &__restrict__) const;
 	std::string name(const EmuApp &) const;
-	void setAlpha(float alpha) { for(auto &b : buttons) { b.setAlpha(alpha); } }
+	void setTask(Gfx::RendererTask &task) { quads.setTask(task); }
 
 	static size_t layoutConfigSize()
 	{
@@ -337,7 +366,9 @@ public:
 
 	std::vector<VControllerButton> buttons;
 protected:
+	Gfx::ILitTexQuads quads;
 	WRect bounds_{};
+	int enabledBtns{};
 	int btnSize{};
 public:
 	LayoutConfig layout{};
@@ -395,12 +426,6 @@ public:
 				e.drawBounds(cmds);
 			}
 		}, *this);
-	}
-
-	void draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden) const
-	{
-		drawBounds(cmds, showHidden);
-		drawButtons(cmds, showHidden);
 	}
 
 	void place(WRect viewBounds, WRect windowBounds, int layoutIdx)
@@ -507,6 +532,15 @@ public:
 				return 1;
 		}, *this);
 	}
+
+	void updateSprite(VControllerButton &b)
+	{
+		visit([&](auto &e)
+		{
+			if constexpr(requires {e.updateSprite(b);})
+				e.updateSprite(b);
+		}, *this);
+	}
 };
 
 enum class VControllerVisibility : uint8_t
@@ -549,6 +583,7 @@ public:
 	bool pointerInputEvent(const Input::MotionEvent &, WindowRect gameRect);
 	bool keyInput(const Input::KeyEvent &);
 	void draw(Gfx::RendererCommands &__restrict__, bool showHidden = false);
+	void draw(Gfx::RendererCommands &__restrict__, const VControllerElement &elem, bool showHidden = false) const;
 	bool isInKeyboardMode() const;
 	void setKeyboardImage(Gfx::TextureSpan img);
 	void setButtonAlpha(std::optional<uint8_t>);
@@ -581,7 +616,7 @@ public:
 	bool updateAutoOnScreenControlVisible();
 	bool readConfig(EmuApp &, MapIO &, unsigned key, size_t size);
 	void writeConfig(FileIO &) const;
-	void configure(Window &, Gfx::Renderer &, const Gfx::GlyphTextureSet &face);
+	void configure(Window &, Gfx::Renderer &, const Gfx::GlyphTextureSet &face, const Gfx::IndexBuffer<uint8_t> &quadIdxs);
 	void resetEmulatedDevicePositions();
 	void resetEmulatedDeviceGroups();
 	void resetUIPositions();
@@ -610,6 +645,9 @@ private:
 	const Window *win{};
 	const WindowData *winData{};
 	const Gfx::GlyphTextureSet *facePtr{};
+	const Gfx::IndexBuffer<uint8_t> *quadIdxsPtr{};
+	Gfx::IndexBuffer<uint8_t> fanQuadIdxs;
+	Gfx::TextureBinding gamepadTex, uiTex;
 	VControllerKeyboard kb;
 	std::vector<VControllerElement> gpElements{};
 	std::vector<VControllerElement> uiElements{};
@@ -646,6 +684,7 @@ private:
 	int uiButtonPixelSize() const;
 	void writeDeviceButtonsConfig(FileIO &) const;
 	void writeUIButtonsConfig(FileIO &) const;
+	void setIndexArray(Gfx::RendererCommands &__restrict__, const VControllerElement &) const;
 };
 
 }

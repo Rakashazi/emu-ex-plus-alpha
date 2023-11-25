@@ -53,7 +53,7 @@ void PlaceVideoView::place()
 	resetBounds = btnBounds;
 	resetBounds.x = viewRect().xSize() / 2;
 	const int lineSize = 1;
-	using Quad = decltype(quads)::Quad;
+	using Quad = decltype(quads)::Type;
 	auto map = quads.map();
 	Quad{{.bounds = WRect{{viewRect().x, viewRect().yCenter()},
 		{viewRect().x2, viewRect().yCenter() + lineSize}}.as<int16_t>()}}.write(map, 0);

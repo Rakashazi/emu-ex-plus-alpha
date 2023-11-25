@@ -219,7 +219,8 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 	const auto &fdsBiosPath = sys.fdsBiosPath;
 	if(fdsBiosPath.empty())
 	{
-		throw std::runtime_error{"No FDS BIOS set"};
+		sys.loaderErrorString = "No FDS BIOS set";
+		return -1;
 	}
 	logMsg("loading FDS BIOS:%s", fdsBiosPath.data());
 	if(EmuApp::hasArchiveExtension(appCtx.fileUriDisplayName(fdsBiosPath)))
@@ -236,19 +237,22 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 				auto io = entry.releaseIO();
 				if(io.size() != size)
 				{
-					throw std::runtime_error{"Incompatible FDS BIOS"};
+					sys.loaderErrorString = "Incompatible FDS BIOS";
+					return -1;
 				}
 				return io.read(buff, size);
 			}
 		}
-		throw std::runtime_error{"Error opening FDS BIOS"};
+		sys.loaderErrorString = "Error opening FDS BIOS";
+		return -1;
 	}
 	else
 	{
 		auto io = appCtx.openFileUri(fdsBiosPath, IOAccessHint::All);
 		if(io.size() != size)
 		{
-			throw std::runtime_error{"Incompatible FDS BIOS"};
+			sys.loaderErrorString = "Incompatible FDS BIOS";
+			return -1;
 		}
 		return io.read(buff, size);
 	}

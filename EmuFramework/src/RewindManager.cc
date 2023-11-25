@@ -66,18 +66,20 @@ bool RewindManager::reset()
 
 void RewindManager::saveState(EmuApp &app)
 {
-	assert(maxStates);
+	assumeExpr(maxStates);
+	assumeExpr(stateIdx < maxStates);
 	//log.debug("saving rewind state index:{}", stateIdx);
 	auto &entry = stateEntries[stateIdx];
+	stateIdx = stateIdx + 1 == maxStates ? 0 : stateIdx + 1;
 	entry.size = app.writeState({entry.data, stateSize}, {.uncompressed = true});
-	stateIdx = (stateIdx + 1) % maxStates;
 }
 
 void RewindManager::rewindState(EmuApp &app)
 {
 	if(!maxStates)
 		return;
-	auto prevIdx = (stateIdx - 1) % maxStates;
+	assumeExpr(stateIdx < maxStates);
+	auto prevIdx = stateIdx ? stateIdx - 1 : maxStates - 1;
 	auto &entry = stateEntries[prevIdx];
 	if(!entry.size)
 		return;

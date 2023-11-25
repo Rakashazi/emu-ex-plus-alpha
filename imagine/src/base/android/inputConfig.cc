@@ -164,9 +164,11 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 		// check trigger axes
 		static constexpr AxisId triggerAxes[]{AxisId::LTRIGGER, AxisId::RTRIGGER, AxisId::GAS, AxisId::BRAKE};
 		static constexpr AxisFlags triggerAxesBits[]{{.lTrigger = true}, {.rTrigger = true}, {.gas = true}, {.brake = true}};
+		AxisFlags addedTriggers{};
 		for(auto &axisId : triggerAxes)
 		{
-			bool hasAxis = asInt(jsAxisFlags & triggerAxesBits[std::distance(triggerAxes, &axisId)]);
+			auto triggerAxisBits = triggerAxesBits[std::distance(triggerAxes, &axisId)];
+			bool hasAxis = asInt(jsAxisFlags & triggerAxisBits);
 			if(!hasAxis)
 			{
 				continue;
@@ -174,6 +176,9 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 			logMsg("trigger axis:%d", (int)axisId);
 			axis.emplace_back(*this, axisId);
 			assert(!axis.isFull());
+			addedTriggers |= triggerAxisBits;
+			if(addedTriggers == AxisFlags{.lTrigger = true, .rTrigger = true})
+				break; // don't parse Gas/Brake if triggers are present to avoid duplicate events
 		}
 	}
 }
@@ -429,7 +434,6 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 			else if(buildDevice == "sholes")
 			{
 				logMsg("detected Droid/Milestone keyboard");
-				genericKeyDev.setSubtype(Input::Device::Subtype::MOTO_DROID_KEYBOARD);
 			}
 		}
 		builtinKeyboardDev = addAndroidInputDevice(ctx, std::move(genericKeyDev), false);

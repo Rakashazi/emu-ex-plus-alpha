@@ -26,10 +26,10 @@
 namespace IG
 {
 
-template<class T>
+template<class T, size_t deleterSize>
 struct BufferDeleter
 {
-	using DeleterFunc = DelegateFuncS<sizeof(void*), void(T *dataPtr, size_t size)>;
+	using DeleterFunc = DelegateFuncS<deleterSize, void(T *dataPtr, size_t size)>;
 
 	DeleterFunc del{};
 	size_t size{};
@@ -45,11 +45,11 @@ struct BufferDeleter
 // Wrapper around unique_ptr with custom deleter & a size, used to pass buffers allocated
 // with different APIs (new, mmap, Android Assets, etc.) using the same interface
 
-template<class T>
+template<class T, size_t deleterSize = sizeof(void*)>
 class Buffer
 {
 public:
-	using Deleter = BufferDeleter<std::add_const_t<T>>;
+	using Deleter = BufferDeleter<std::add_const_t<T>, deleterSize>;
 	using DeleterFunc = typename Deleter::DeleterFunc;
 	friend Buffer<std::add_const_t<T>>;
 
@@ -117,5 +117,11 @@ protected:
 
 using ByteBuffer = Buffer<uint8_t>;
 using ConstByteBuffer = Buffer<const uint8_t>;
+
+template<size_t deleterSize>
+using ByteBufferS = Buffer<uint8_t, deleterSize>;
+
+template<size_t deleterSize>
+using ConstByteBufferS = Buffer<const uint8_t, deleterSize>;
 
 }

@@ -137,14 +137,17 @@ void VControllerDPad::transposeKeysForPlayer(const EmuApp &app, int player)
 
 void VControllerDPad::drawButtons(Gfx::RendererCommands &__restrict__ cmds) const
 {
-	cmds.basicEffect().drawSprite(cmds, spriteQuads, 0, tex);
+	cmds.setVertexArray(spriteQuads);
+	cmds.drawPrimitiveElements(Gfx::Primitive::TRIANGLE, 0, 12, Gfx::attribType<uint8_t>);
 }
 
 void VControllerDPad::drawBounds(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	if(!config.visualizeBounds)
 		return;
-	cmds.basicEffect().drawSprite(cmds, spriteQuads, 1, mapImg);
+	cmds.setVertexArray(spriteQuads);
+	cmds.basicEffect().enableTexture(cmds, mapImg);
+	cmds.drawPrimitiveElements(Gfx::Primitive::TRIANGLE, 12, 12, Gfx::attribType<uint8_t>);
 }
 
 std::array<KeyInfo, 2> VControllerDPad::getInput(WPt c) const
@@ -192,17 +195,25 @@ void VControllerDPad::setAlpha(float a)
 
 void VControllerDPad::updateSprite()
 {
-	decltype(spriteQuads)::Quad spr{{.bounds = padBaseArea.as<int16_t>(), .textureSpan = tex}};
-	decltype(spriteQuads)::Quad mapSpr{{.bounds = padArea.as<int16_t>(), .textureSpan = mapImg}};
-	std::array<Gfx::Color, 4> colors;
+	decltype(spriteQuads)::Type spr{{.bounds = padBaseArea.as<int16_t>(), .textureSpan = tex}};
+	decltype(spriteQuads)::Type mapSpr{{.bounds = padArea.as<int16_t>(), .textureSpan = mapImg}};
+	std::array<Gfx::Color, 5> colors;
 	colors.fill({alpha});
-	if(isHighlighted[0] || isHighlighted[3])
+	bool exclusiveLeftIsHighlighted =  isHighlighted[3] && !isHighlighted[0] && !isHighlighted[2];
+	bool exclusiveUpIsHighlighted =    isHighlighted[0] && !isHighlighted[1] && !isHighlighted[3];
+	bool exclusiveRightIsHighlighted = isHighlighted[1] && !isHighlighted[0] && !isHighlighted[2];
+	bool exclusiveDownIsHighlighted =  isHighlighted[2] && !isHighlighted[1] && !isHighlighted[3];
+	if((isHighlighted[0] && isHighlighted[3]) // up-left
+		|| exclusiveLeftIsHighlighted || exclusiveUpIsHighlighted)
 		colors[0] = colors[0].multiplyRGB(2.f);
-	if(isHighlighted[2] || isHighlighted[1])
+	if((isHighlighted[2] && isHighlighted[1]) // down-right
+		|| exclusiveRightIsHighlighted || exclusiveDownIsHighlighted)
 		colors[3] = colors[3].multiplyRGB(2.f);
-	if(isHighlighted[2] || isHighlighted[3])
+	if((isHighlighted[2] && isHighlighted[3]) // bottom left
+		|| exclusiveLeftIsHighlighted || exclusiveDownIsHighlighted)
 		colors[1] = colors[1].multiplyRGB(2.f);
-	if(isHighlighted[0] || isHighlighted[1])
+	if((isHighlighted[0] && isHighlighted[1]) // top right
+		|| exclusiveRightIsHighlighted || exclusiveUpIsHighlighted)
 		colors[2] = colors[2].multiplyRGB(2.f);
 	for(auto &&[i, vtx] : enumerate(spr)) { vtx.color = colors[i]; }
 	for(auto &&[i, vtx] : enumerate(mapSpr)) { vtx.color = colors[i]; }

@@ -98,6 +98,7 @@ public:
 	std::string palettesDir;
 	std::string defaultPalettePath;
 	std::string fdsBiosPath;
+	std::string loaderErrorString;
 	bool fastForwardDuringFdsAccess = true;
 	bool fdsIsAccessing{};
 	Byte1Option optionFourScore{CFGKEY_FOUR_SCORE, 0};

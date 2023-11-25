@@ -772,6 +772,7 @@ void InputManagerDeviceView::onShow()
 void InputManagerDeviceView::confirmICadeMode()
 {
 	devConf.setICadeMode(iCadeMode.flipBoolValue(*this));
+	devConf.save(inputManager);
 	onShow();
 	app().defaultVController().setPhysicalControlsPresent(appContext().keyInputIsPresent());
 }

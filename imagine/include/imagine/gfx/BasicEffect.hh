@@ -66,6 +66,13 @@ public:
 		enableTexture(cmds, texture);
 		cmds.drawQuads(verts, idxs, startIdx, size);
 	}
+
+	template<class I, VertexLayout V>
+	void drawSprites(RendererCommands &cmds, const Buffer<V, BufferType::vertex> &verts, ssize_t startIdx, size_t size, auto &&texture)
+	{
+		enableTexture(cmds, texture);
+		cmds.drawQuads<I>(verts, startIdx, size);
+	}
 };
 
 }

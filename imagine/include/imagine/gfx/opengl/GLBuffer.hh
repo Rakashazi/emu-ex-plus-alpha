@@ -39,6 +39,8 @@ struct GLBufferRefDeleter
 };
 using UniqueGLBufferRef = UniqueResource<GLBufferRef, GLBufferRefDeleter>;
 
+using MappedByteBuffer = ByteBufferS<sizeof(void*) + sizeof(ssize_t)>;
+
 template<BufferType type>
 class GLBuffer
 {
@@ -46,12 +48,13 @@ public:
 	constexpr GLBuffer() = default;
 	GLBuffer(RendererTask &, ByteBufferConfig);
 	explicit operator bool() const { return bool(buffer); }
-	RendererTask &task() const { return *buffer.get_deleter().rTaskPtr; }
+	RendererTask *taskPtr() const { return buffer.get_deleter().rTaskPtr; }
+	RendererTask &task() const { return *taskPtr(); }
 	void setTask(RendererTask &task) { buffer.get_deleter().rTaskPtr = &task; }
 	GLBufferRef name() const { return buffer.get(); }
 	void reset(ByteBufferConfig);
 	size_t sizeBytes() const { return sizeBytes_; }
-	ByteBuffer map();
+	MappedByteBuffer map(ssize_t offset, size_t size);
 	void writeSubData(ssize_t offset, size_t size, const void *data);
 	static void writeSubData(GLuint name, ssize_t offset, size_t size, const void *data);
 

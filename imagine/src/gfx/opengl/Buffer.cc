@@ -18,6 +18,10 @@
 #include "internalDefs.hh"
 #include <imagine/logger/logger.h>
 
+#ifndef GL_MAP_INVALIDATE_RANGE_BIT
+#define GL_MAP_INVALIDATE_RANGE_BIT 0x0004
+#endif
+
 #ifndef GL_MAP_INVALIDATE_BUFFER_BIT
 #define GL_MAP_INVALIDATE_BUFFER_BIT 0x0008
 #endif
@@ -98,20 +102,23 @@ void GLBuffer<type>::reset(ByteBufferConfig config)
 }
 
 template<BufferType type>
-ByteBuffer GLBuffer<type>::map()
+MappedByteBuffer GLBuffer<type>::map(ssize_t offset, size_t size)
 {
+	assert(offset + size <= sizeBytes());
+	if(!size)
+		size = sizeBytes();
 	if(hasBufferMap(task().renderer()))
 	{
 		void *ptr;
-		task().run([this, &ptr]()
+		task().run([this, &ptr, offset, size]()
 		{
 			auto target = toGLEnum(type);
 			glBindBuffer(target, name());
 			ptr = task().renderer().support.glMapBufferRange(target,
-				0, sizeBytes(), GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_WRITE_BIT);
-			//log.debug("mapped buffer:0x{:X} to {}", name(), ptr);
+				offset, size, GL_MAP_WRITE_BIT);
+			//log.debug("mapped offset:{} size:{} of buffer:0x{:X} to {}", offset, size, name(), ptr);
 		}, true);
-		return {{static_cast<uint8_t*>(ptr), sizeBytes()}, [this](const uint8_t *ptr, size_t)
+		return {{static_cast<uint8_t*>(ptr), size}, [this](const uint8_t *ptr, size_t)
 		{
 			task().run([name = name(), &support = task().renderer().support]()
 			{
@@ -124,12 +131,12 @@ ByteBuffer GLBuffer<type>::map()
 	}
 	else
 	{
-		return {{std::make_unique<uint8_t[]>(sizeBytes()).release(), sizeBytes()}, [this](const uint8_t *ptr, size_t)
+		return {{std::make_unique<uint8_t[]>(size).release(), size}, [this, offset](const uint8_t *ptr, size_t size)
 		{
-			task().run([name = name(), sizeBytes = sizeBytes(), dataPtr = ptr]()
+			task().run([name = name(), offset = offset, sizeBytes = size, dataPtr = ptr]()
 			{
 				//log.debug("writing mapped data to buffer:0x{:X}", name);
-				writeSubData(name, 0, sizeBytes, dataPtr);
+				writeSubData(name, offset, sizeBytes, dataPtr);
 				delete[] dataPtr;
 			});
 		}};
