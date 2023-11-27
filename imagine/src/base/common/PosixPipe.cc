@@ -15,6 +15,7 @@
 
 #include <imagine/base/Pipe.hh>
 #include <imagine/util/fd-utils.h>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <cstring>
 #include <fcntl.h>
@@ -43,9 +44,9 @@ static auto makePipe()
 Pipe::Pipe(const char *debugLabel, int preferredSize):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
 	io{makePipe()},
-	fdSrc{label(), io[0].fd()}
+	fdSrc{debugLabel, io[0].fd()}
 {
-	log.info("opened fds:{},{} ({})", io[0].fd(), io[1].fd(), label());
+	log.info("opened fds:{},{} ({})", io[0].fd(), io[1].fd(), debugLabel);
 	if(preferredSize)
 	{
 		setPreferredSize(preferredSize);
@@ -91,7 +92,7 @@ void Pipe::setPreferredSize(int size)
 {
 	#ifdef __linux__
 	fcntl(io[1].fd(), F_SETPIPE_SZ, size);
-	log.debug("set size:{} ({})", size, label());
+	log.debug("set size:{} ({})", size, debugLabel);
 	#endif
 }
 
@@ -108,11 +109,6 @@ bool Pipe::isReadNonBlocking() const
 Pipe::operator bool() const
 {
 	return io[0].fd() != -1;
-}
-
-const char *Pipe::label() const
-{
-	return debugLabel;
 }
 
 }

@@ -830,16 +830,26 @@ void VController::configure(IG::Window &win, Gfx::Renderer &renderer, const Gfx:
 	}
 	gamepadTex = app().asset(AssetID::gamepadOverlay);
 	uiTex = app().asset(AssetID::more);
-	for(auto &e : uiElements) { update(e); };
-	for(auto &e : gpElements)
-	{
-		update(e);
-		if(e.dPad()) e.dPad()->updateBoundingAreaGfx(renderer);
-	};
 	if(uiElements.size() && uiElements[0].layoutPos[0].pos.x == -1)
+	{
 		resetUIGroups();
+	}
+	else
+	{
+		for(auto &e : uiElements) { update(e); };
+	}
 	if(gpElements.size() && gpElements[0].layoutPos[0].pos.x == -1)
+	{
 		resetEmulatedDeviceGroups();
+	}
+	else
+	{
+		for(auto &e : gpElements)
+		{
+			update(e);
+			if(e.dPad()) e.dPad()->updateBoundingAreaGfx(renderer);
+		};
+	}
 	setInputPlayer(0);
 }
 
@@ -1091,6 +1101,28 @@ void VController::updateSystemKeys(KeyInfo key, bool isPushed)
 				}
 				if(didUpdate)
 					dpad.setAlpha(alphaF);
+			},
+			[](auto &e){}
+		}, e);
+	}
+}
+
+void VController::resetHighlightedKeys()
+{
+	for(auto &e : gpElements)
+	{
+		visit(overloaded
+		{
+			[&](VControllerButtonGroup &grp)
+			{
+				for(auto &btn : grp.buttons)
+				{
+					if(btn.isHighlighted)
+					{
+						btn.isHighlighted = false;
+						btn.setAlpha(alphaF, grp);
+					}
+				}
 			},
 			[](auto &e){}
 		}, e);

@@ -49,7 +49,6 @@ protected:
 	std::unique_ptr<ALooperFDEventSourceInfo> info;
 	MaybeUniqueFileDescriptor fd_;
 
-	const char *label() const;
 	void deinit();
 };
 

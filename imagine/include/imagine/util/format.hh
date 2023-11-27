@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/concepts.hh>
+#include <imagine/util/used.hh>
 #include <format>
 #include <array>
 
@@ -73,3 +74,10 @@ struct std::formatter<IG::FS::PathString> : std::formatter<std::string_view> {};
 
 template<>
 struct std::formatter<IG::FS::FileString> : std::formatter<std::string_view> {};
+
+template<class T, int Tag>
+struct std::formatter<IG::UnusedType<T, Tag>>
+{
+	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+	constexpr auto format(const IG::UnusedType<T, Tag> &obj, auto &ctx) const { return ctx.out(); }
+};

@@ -40,7 +40,6 @@ protected:
 	FDEventSource fdSrc;
 
 	bool arm(timespec ms, timespec repeatInterval, int flags, EventLoop loop);
-	const char *label();
 };
 
 using TimerImpl = TimerFD;

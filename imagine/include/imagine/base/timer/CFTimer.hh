@@ -49,7 +49,6 @@ protected:
 
 	void callbackInCFAbsoluteTime(CFAbsoluteTime absTime, CFTimeInterval repeatInterval, CFRunLoopRef loop);
 	void deinit();
-	const char *label();
 };
 
 using TimerImpl = CFTimer;

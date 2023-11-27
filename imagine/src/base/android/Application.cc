@@ -50,7 +50,7 @@ pid_t mainThreadId{};
 static void setNativeActivityCallbacks(ANativeActivity *nActivity);
 
 AndroidApplication::AndroidApplication(ApplicationInitParams initParams):
-	BaseApplication{initParams.nActivity}
+	BaseApplication{({initParams.nActivity->instance = this; initParams.nActivity;})}
 {
 	ApplicationContext ctx{initParams.nActivity};
 	auto env = ctx.mainThreadJniEnv();

@@ -263,6 +263,7 @@ void InputManager::updateKeyboardMapping()
 
 void InputManager::toggleKeyboard()
 {
+	vController.resetHighlightedKeys();
 	vController.toggleKeyboard();
 }
 

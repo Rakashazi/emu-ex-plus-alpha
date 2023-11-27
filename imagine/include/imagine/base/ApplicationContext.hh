@@ -95,9 +95,7 @@ public:
 	template<class T>
 	T &initApplication(auto &&... args)
 	{
-		auto appStoragePtr = ::operator new(sizeof(T)); // allocate the storage
-		setApplicationPtr((T*)appStoragePtr); // point the context to the storage
-		return *(new(appStoragePtr) T(IG_forward(args)...)); // construct the application with the storage
+		return *new T{IG_forward(args)...}; // Application constructor assigns this pointer to ApplicationContext and frees it when the app exits
 	}
 
 	Application &application() const;

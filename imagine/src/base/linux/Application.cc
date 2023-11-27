@@ -27,7 +27,7 @@ namespace IG
 {
 
 LinuxApplication::LinuxApplication(ApplicationInitParams initParams):
-	BaseApplication{*initParams.ctxPtr}
+	BaseApplication{({initParams.ctxPtr->setApplicationPtr(static_cast<Application*>(this)); *initParams.ctxPtr;})}
 {
 	setAppPath(FS::makeAppPathFromLaunchCommand(initParams.argv[0]));
 	#ifdef CONFIG_BASE_DBUS

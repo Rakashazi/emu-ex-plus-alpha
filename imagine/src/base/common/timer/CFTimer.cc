@@ -14,11 +14,14 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/Timer.hh>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <limits>
 
 namespace IG
 {
+
+constexpr SystemLogger log{"Timer"};
 
 CFTimer::CFTimer(const char *debugLabel, CallbackDelegate c):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
@@ -66,7 +69,7 @@ void CFTimer::callbackInCFAbsoluteTime(CFAbsoluteTime absTime, CFTimeInterval re
 		timer = CFRunLoopTimerCreate(nullptr, absTime, realRepeatInterval, 0, 0,
 			[](CFRunLoopTimerRef timer, void *infoPtr)
 			{
-				logMsg("running callback for timer: %p", timer);
+				log.info("running callback for timer:{}", (void*)timer);
 				auto &info = *((CFTimerInfo*)infoPtr);
 				bool keep = info.callback();
 				if(!keep)
@@ -76,7 +79,7 @@ void CFTimer::callbackInCFAbsoluteTime(CFAbsoluteTime absTime, CFTimeInterval re
 				}
 			}, &context);
 		createdTimer = true;
-		logMsg("created timer:%p (%s)", timer, label());
+		log.info("created timer:{} ({})", (void*)timer, debugLabel);
 	}
 	else
 	{
@@ -84,9 +87,9 @@ void CFTimer::callbackInCFAbsoluteTime(CFAbsoluteTime absTime, CFTimeInterval re
 	}
 	if(Config::DEBUG_BUILD)
 	{
-		logMsg("%stimer:%p (%s) to run in:%.4fs repeats:%.4fs",
+		log.info("{}timer:{} ({}) to run in:{}s repeats:{}s",
 			createdTimer ? "created " : "",
-			timer, label(), makeRelativeSecs(absTime), (double)repeatInterval);
+			(void*)timer, debugLabel, makeRelativeSecs(absTime), (double)repeatInterval);
 	}
 	if(loop != info->loop)
 	{
@@ -137,16 +140,11 @@ void CFTimer::deinit()
 {
 	if(!timer)
 		return;
-	logMsg("closing timer: %p", timer);
+	log.info("closing timer:{}", (void*)timer);
 	CFRunLoopTimerInvalidate(timer);
 	CFRelease(timer);
 	timer = {};
 	info->loop = {};
-}
-
-const char *CFTimer::label()
-{
-	return debugLabel;
 }
 
 }

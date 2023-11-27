@@ -13,16 +13,18 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "GLTextureSampler"
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/TextureSampler.hh>
 #include <imagine/util/variant.hh>
+#include <imagine/util/format.hh>
 #include "utils.hh"
 #include <limits>
 
 namespace IG::Gfx
 {
+
+constexpr SystemLogger log{"GLTextureSampler"};
 
 static void setSamplerParameteriImpl(const Renderer &r, GLuint sampler, GLenum pname, GLint param, const char *pnameStr)
 {
@@ -115,7 +117,7 @@ GLTextureSampler::GLTextureSampler(RendererTask &rTask, TextureSamplerConfig con
 			if(yWrapMode != GL_REPEAT) // GL_REPEAT​​ is the default
 				setSamplerParameteri(r, name, GL_TEXTURE_WRAP_T, yWrapMode);
 		});
-	logMsg("created sampler object:0x%X (%s)", name(), label());
+	log.info("created sampler object:{:X} ({})", name(), config.debugLabel);
 }
 
 Renderer &TextureSampler::renderer() const
@@ -133,7 +135,7 @@ void destroyGLSamplerRef(RendererTask &rTask, GLSamplerRef name)
 	rTask.run(
 		[&r = std::as_const(rTask.renderer()), name]()
 		{
-			logDMsg("deleting sampler object:0x%X", name);
+			log.debug("deleting sampler object:{:X}", name);
 			r.support.glDeleteSamplers(1, &name);
 		});
 }
@@ -146,11 +148,6 @@ TextureSampler::operator bool() const
 GLuint GLTextureSampler::name() const
 {
 	return sampler.get();
-}
-
-const char *GLTextureSampler::label() const
-{
-	return debugLabel;
 }
 
 }

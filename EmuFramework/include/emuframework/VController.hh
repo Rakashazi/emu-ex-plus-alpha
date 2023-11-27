@@ -638,6 +638,7 @@ public:
 	std::span<VControllerElement> guiElements() { return uiElements; }
 	WRect layoutBounds() const;
 	void updateSystemKeys(KeyInfo, bool isPushed);
+	void resetHighlightedKeys();
 
 private:
 	ApplicationContext appCtx{};

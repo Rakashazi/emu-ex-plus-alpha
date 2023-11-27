@@ -13,10 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "TimerFD"
 #include <imagine/base/Timer.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/format.hh>
 #include <imagine/util/utility.h>
 #include <unistd.h>
 #include <cerrno>
@@ -64,14 +64,16 @@ static int timerfd_gettime(int ufd,
 namespace IG
 {
 
+constexpr SystemLogger log{"Timer"};
+
 TimerFD::TimerFD(const char *debugLabel, CallbackDelegate c):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
 	callback_{std::make_unique<CallbackDelegate>(c)},
-	fdSrc{label(), UniqueFileDescriptor{timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC)}}
+	fdSrc{debugLabel, UniqueFileDescriptor{timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC)}}
 {
 	if(fdSrc.fd() == -1)
 	{
-		logErr("error creating timerfd");
+		log.error("error creating timerfd");
 	}
 }
 
@@ -84,13 +86,13 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, int flags, EventLoop l
 		fdSrc.attach(loop,
 			[callback = callback_.get()](int fd, int)
 			{
-				//logMsg("callback ready for fd:%d", fd);
+				//log.debug("callback ready for fd:{}", fd);
 				uint64_t timesFired;
 				auto ret = ::read(fd, &timesFired, 8);
 				if(ret == -1)
 				{
 					if(Config::DEBUG_BUILD && errno != EAGAIN)
-						logErr("error reading timerfd in callback");
+						log.error("error reading timerfd in callback");
 					return false;
 				}
 				bool keepTimer = (*callback)();
@@ -100,7 +102,7 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, int flags, EventLoop l
 	struct itimerspec newTime{repeatInterval, time};
 	if(timerfd_settime(fdSrc.fd(), flags, &newTime, nullptr) != 0)
 	{
-		logErr("error in timerfd_settime: %s (%s)", strerror(errno), label());
+		log.error("error in timerfd_settime:{} ({})", strerror(errno), debugLabel);
 		return false;
 	}
 	return true;
@@ -117,12 +119,12 @@ void Timer::run(Time time, Time repeatTime, bool isAbsTime, EventLoop loop, Call
 	if(Config::DEBUG_BUILD)
 	{
 		FloatSeconds relTime = isAbsTime ? time - SteadyClock::now().time_since_epoch() : time;
-		logMsg("arming fd:%d (%s) to run in:%.4fs repeats:%.4fs",
-			fdSrc.fd(), label(), relTime.count(), IG::FloatSeconds(repeatTime).count());
+		log.info("arming fd:{} ({}) to run in:{}s repeats:{}s",
+			fdSrc.fd(), debugLabel, relTime.count(), IG::FloatSeconds(repeatTime).count());
 	}
 	if(!arm({seconds, leftoverNs}, {repeatSeconds, repeatLeftoverNs}, isAbsTime ? TFD_TIMER_ABSTIME : 0, loop))
 	{
-		logErr("failed to setup timer, OS resources may be low or bad parameters present");
+		log.error("failed to setup timer, OS resources may be low or bad parameters present");
 	}
 }
 
@@ -152,11 +154,6 @@ bool Timer::isArmed()
 Timer::operator bool() const
 {
 	return fdSrc.fd() != -1;
-}
-
-const char *TimerFD::label()
-{
-	return debugLabel;
 }
 
 }

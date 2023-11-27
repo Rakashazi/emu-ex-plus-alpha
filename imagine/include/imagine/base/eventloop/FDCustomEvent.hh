@@ -65,7 +65,6 @@ protected:
 	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 	FDEventSource fdSrc{};
 
-	const char *label();
 	static bool shouldPerformCallback(int fd);
 };
 

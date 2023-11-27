@@ -219,6 +219,7 @@ void FSPicker::setEmptyPath(std::string_view message)
 	{
 		fileTableView().resetName("Select File Location");
 	}
+	place();
 }
 
 void FSPicker::setEmptyPath()
@@ -551,6 +552,7 @@ void FSPicker::listDirectory(CStringView path, ThreadStop &stop)
 		else // no entries, show a message instead
 		{
 			msgText.resetString("Empty Directory");
+			msgText.compile(renderer());
 		}
 	}
 	catch(std::system_error &err)
@@ -559,6 +561,7 @@ void FSPicker::listDirectory(CStringView path, ThreadStop &stop)
 		auto ec = err.code();
 		std::string_view extraMsg = mode_ == Mode::FILE_IN_DIR ? "" : "\nPick a path from the top bar";
 		msgText.resetString(std::format("Can't open directory:\n{}{}", ec.message(), extraMsg));
+		msgText.compile(renderer());
 	}
 }
 

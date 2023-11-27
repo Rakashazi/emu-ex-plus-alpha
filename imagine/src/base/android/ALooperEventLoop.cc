@@ -13,13 +13,15 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "EventLoop"
 #include <imagine/base/EventLoop.hh>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <unistd.h>
 
 namespace IG
 {
+
+constexpr SystemLogger log{"EventLoop"};
 
 static int eventCallback(int fd, int events, void *data)
 {
@@ -59,7 +61,7 @@ ALooperFDEventSource::~ALooperFDEventSource()
 
 bool FDEventSource::attach(EventLoop loop, PollEventDelegate callback, uint32_t events)
 {
-	logMsg("adding fd:%d to looper:%p (%s)", (int)fd_, loop.nativeObject(), label());
+	log.info("adding fd:{} to looper:{} ({})", fd_.get(), (void*)loop.nativeObject(), debugLabel);
 	assumeExpr(info);
 	detach();
 	if(!loop)
@@ -78,7 +80,7 @@ void FDEventSource::detach()
 {
 	if(!info || !info->looper)
 		return;
-	logMsg("removing fd %d from looper (%s)", (int)fd_, label());
+	log.info("removing fd:{} from looper ({})", fd_.get(), debugLabel);
 	ALooper_removeFd(info->looper, fd_);
 	info->looper = {};
 }
@@ -87,7 +89,7 @@ void FDEventSource::setEvents(uint32_t events)
 {
 	if(!hasEventLoop())
 	{
-		logErr("trying to set events while not attached to event loop");
+		log.error("trying to set events while not attached to event loop");
 		return;
 	}
 	ALooper_addFd(info->looper, fd_, ALOOPER_POLL_CALLBACK, events, eventCallback, info.get());
@@ -102,7 +104,7 @@ void FDEventSource::setCallback(PollEventDelegate callback)
 {
 	if(!hasEventLoop())
 	{
-		logErr("trying to set callback while not attached to event loop");
+		log.error("trying to set callback while not attached to event loop");
 		return;
 	}
 	info->callback = callback;
@@ -122,11 +124,6 @@ int FDEventSource::fd() const
 void ALooperFDEventSource::deinit()
 {
 	static_cast<FDEventSource*>(this)->detach();
-}
-
-const char *ALooperFDEventSource::label() const
-{
-	return debugLabel;
 }
 
 EventLoop EventLoop::forThread()
@@ -155,7 +152,7 @@ void EventLoop::run()
 {
 	int res = ALooper_pollAll(-1, nullptr, nullptr, nullptr);
 	if(res != ALOOPER_POLL_WAKE)
-		logDMsg("ALooper_pollAll returned:%s", aLooperPollResultStr(res));
+		log.debug("ALooper_pollAll returned:{}", aLooperPollResultStr(res));
 }
 
 void EventLoop::stop()

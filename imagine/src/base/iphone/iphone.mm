@@ -98,7 +98,7 @@ static Screen &setupUIScreen(ApplicationContext ctx, UIScreen *screen, bool setO
 }
 
 IOSApplication::IOSApplication(ApplicationInitParams initParams):
-	BaseApplication{(__bridge UIApplication*)initParams.uiAppPtr}
+	BaseApplication{({appPtr = static_cast<Application*>(this); (__bridge UIApplication*)initParams.uiAppPtr;})}
 {
 	ApplicationContext ctx{(__bridge UIApplication*)initParams.uiAppPtr};
 	auto sharedApp = ctx.uiApp();

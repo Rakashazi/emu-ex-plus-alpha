@@ -14,14 +14,17 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/EventLoop.hh>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
 {
 
+constexpr SystemLogger log{"EventLoop"};
+
 static void eventCallback(CFFileDescriptorRef fdRef, CFOptionFlags callbackEventTypes, void *infoPtr)
 {
-	//logMsg("got fd events: 0x%X", (int)callbackEventTypes);
+	//log.debug("got fd events: {:X}", callbackEventTypes);
 	auto &info = *((CFFDEventSourceInfo*)infoPtr);
 	auto fd = CFFileDescriptorGetNativeDescriptor(fdRef);
 	if(info.callback(fd, callbackEventTypes))
@@ -86,7 +89,7 @@ bool FDEventSource::attach(EventLoop loop, PollEventDelegate callback, uint32_t 
 	detach();
 	if(Config::DEBUG_BUILD)
 	{
-		logMsg("adding fd %d to run loop (%s)", fd(), label());
+		log.info("adding fd:{} to run loop ({})", fd(), debugLabel);
 	}
 	info->callback = callback;
 	CFFileDescriptorEnableCallBacks(info->fdRef, events);
@@ -104,7 +107,7 @@ void FDEventSource::detach()
 		return;
 	if(Config::DEBUG_BUILD)
 	{
-		logMsg("removing fd %d from run loop (%s)", fd(), label());
+		log.info("removing fd:{} from run loop ({})", fd(), debugLabel);
 	}
 	info->detachSource();
 }
@@ -114,7 +117,7 @@ void FDEventSource::setEvents(uint32_t events)
 	assumeExpr(info);
 	if(!hasEventLoop())
 	{
-		logErr("trying to set events while not attached to event loop");
+		log.error("trying to set events while not attached to event loop");
 		return;
 	}
 	uint32_t disableEvents = ~events & 0x3;
@@ -135,7 +138,7 @@ void FDEventSource::setCallback(PollEventDelegate callback)
 	assumeExpr(info);
 	if(!hasEventLoop())
 	{
-		logErr("trying to set callback while not attached to event loop");
+		log.error("trying to set callback while not attached to event loop");
 		return;
 	}
 	info->callback = callback;
@@ -163,11 +166,6 @@ void CFFDEventSource::deinit()
 		releaseCFFileDescriptor(info->fdRef);
 		info->fdRef = {};
 	}
-}
-
-const char *CFFDEventSource::label() const
-{
-	return debugLabel;
 }
 
 EventLoop EventLoop::forThread()

@@ -26,6 +26,10 @@
 #define GL_MAP_INVALIDATE_BUFFER_BIT 0x0008
 #endif
 
+#ifndef GL_MAP_WRITE_BIT
+#define GL_MAP_WRITE_BIT 0x0002
+#endif
+
 namespace IG::Gfx
 {
 
@@ -104,9 +108,11 @@ void GLBuffer<type>::reset(ByteBufferConfig config)
 template<BufferType type>
 MappedByteBuffer GLBuffer<type>::map(ssize_t offset, size_t size)
 {
+	if(!size)
+		size = sizeBytes() - offset;
 	assert(offset + size <= sizeBytes());
 	if(!size)
-		size = sizeBytes();
+		return {};
 	if(hasBufferMap(task().renderer()))
 	{
 		void *ptr;
@@ -115,7 +121,7 @@ MappedByteBuffer GLBuffer<type>::map(ssize_t offset, size_t size)
 			auto target = toGLEnum(type);
 			glBindBuffer(target, name());
 			ptr = task().renderer().support.glMapBufferRange(target,
-				offset, size, GL_MAP_WRITE_BIT);
+				offset, size, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			//log.debug("mapped offset:{} size:{} of buffer:0x{:X} to {}", offset, size, name(), ptr);
 		}, true);
 		return {{static_cast<uint8_t*>(ptr), size}, [this](const uint8_t *ptr, size_t)

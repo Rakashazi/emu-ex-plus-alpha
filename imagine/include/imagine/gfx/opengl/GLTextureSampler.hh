@@ -56,7 +56,6 @@ public:
 	constexpr GLTextureSampler() = default;
 	GLTextureSampler(RendererTask &rTask, TextureSamplerConfig config);
 	GLSamplerRef name() const;
-	const char *label() const;
 
 protected:
 	UniqueGLSamplerRef sampler{};

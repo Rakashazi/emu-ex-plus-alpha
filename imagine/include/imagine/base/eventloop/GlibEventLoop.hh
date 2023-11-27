@@ -56,8 +56,6 @@ protected:
 	gpointer tag{};
 	MaybeUniqueFileDescriptor fd_{};
 	IG_UseMemberIfOrConstant(Config::DEBUG_BUILD, bool, true, usingGlibSource){};
-
-	const char *label() const;
 };
 
 using FDEventSourceImpl = GlibFDEventSource;

@@ -1425,11 +1425,11 @@ void EmuApp::handleSystemKeyInput(KeyInfo keyInfo, Input::Action act, uint32_t m
 	}
 	else
 	{
+		defaultVController().updateSystemKeys(keyInfo, act == Input::Action::PUSHED);
 		for(auto code : keyInfo.codes)
 		{
 			system().handleInputAction(this, {code, keyInfo.flags, act, metaState});
 		}
-		defaultVController().updateSystemKeys(keyInfo, act == Input::Action::PUSHED);
 	}
 }
 
