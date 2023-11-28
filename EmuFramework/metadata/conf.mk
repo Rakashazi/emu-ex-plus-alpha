@@ -1,4 +1,4 @@
-metadata_version = 1.5.74
+metadata_version = 1.5.75
 metadata_supportedMIMETypes = application/zip
 metadata_supportedFileExtensions = rar 7z
 android_metadata_versionCodeExtra = 16
@@ -15,4 +15,4 @@ pnd_metadata_subcategory = Emulator
 pnd_metadata_website = http://www.explusalpha.com
 pnd_metadata_license = GPLv3+
 pnd_metadata_licenseURL = http://www.gnu.org/licenses/gpl.html
-pnd_metadata_sourceCodeURL = http://www.explusalpha.com/home/general-info/development
+pnd_metadata_sourceCodeURL = http://www.explusalpha.com/contents/emuex
