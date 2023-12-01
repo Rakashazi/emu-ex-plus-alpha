@@ -13,11 +13,6 @@
 #include <apu.h>
 #endif
 
-namespace EmuEx::Controls
-{
-extern const int gamepadKeys;
-}
-
 namespace EmuEx
 {
 

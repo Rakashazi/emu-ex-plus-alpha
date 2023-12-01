@@ -57,7 +57,7 @@ ZFILE *gn_unzip_fopen(PKZIP *archPtr, const char *filename, uint32_t fileCRC)
 		if((loadByName && entry.name() == filename) || crc == fileCRC)
 		{
 			//logMsg("opened archive entry file:%s crc32:0x%X", name, crc);
-			return new ZFILE{entry.releaseIO(), archPtr};
+			return new ZFILE{std::move(entry), archPtr};
 		}
 	}
 	logMsg("file:%s crc32:0x%X not found in archive", filename, fileCRC);
@@ -67,7 +67,7 @@ ZFILE *gn_unzip_fopen(PKZIP *archPtr, const char *filename, uint32_t fileCRC)
 void gn_unzip_fclose(ZFILE *z)
 {
 	//logMsg("done with archive entry");
-	*z->arch = z->io.releaseArchive();
+	*z->arch = std::move(z->io);
 	delete z;
 }
 

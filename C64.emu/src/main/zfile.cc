@@ -76,7 +76,7 @@ CLINK FILE *zfile_fopen(const char *path_, const char *mode_)
 				if(EmuSystem::defaultFsFilter(entry.name()))
 				{
 					EmuEx::log.info("archive file entry:{}", entry.name());
-					return MapIO{entry.releaseIO()}.toFileStream(mode_);
+					return MapIO{std::move(entry)}.toFileStream(mode_);
 				}
 			}
 			EmuEx::log.error("no recognized file extensions in archive:{}", path);

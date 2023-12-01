@@ -8,6 +8,8 @@
 #define trio_sscanf sscanf
 #define trio_fscanf fscanf
 #define trio_vasprintf vasprintf
+#define trio_vprintf vprintf
+#define trio_sprintf sprintf
 
 inline char *trio_vaprintf(const char *format, va_list args)
 {

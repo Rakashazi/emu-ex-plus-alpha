@@ -185,7 +185,6 @@ public:
 	void setRuntimeReuSize(int size);
 	void resetCanvasSourcePixmap(struct video_canvas_s *c);
 	FS::ArchiveIterator &systemFilesArchiveIterator(ApplicationContext, std::string_view path) const;
-	void returnSystemFilesArchiveIO(ArchiveIO);
 	bool setSystemFilesPath(ApplicationContext, CStringView path, FS::file_type);
 	void execC64Frame();
 

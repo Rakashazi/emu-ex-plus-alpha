@@ -288,7 +288,7 @@ static void loadSnapshotTrap(uint16_t, void *data)
 static void saveSnapshotTrap(uint16_t, void *data)
 {
 	auto &snapData = *((SnapshotTrapData*)data);
-	log.info("saving state at:{} size:{}", (void*)snapData.buffData, snapData.buffSize);
+	//log.info("saving state at:{} size:{}", (void*)snapData.buffData, snapData.buffSize);
 	if(snapData.plugin.machine_write_snapshot(snapshotVPath(snapData).data(), 1, 1, 0) < 0)
 		snapData.hasError = true;
 	else

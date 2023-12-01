@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "EmuSystem"
 #include <emuframework/EmuSystem.hh>
 #include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>
@@ -30,12 +29,16 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/zlib.hh>
+#include <imagine/util/format.hh>
+#include <imagine/logger/logger.h>
 #include <algorithm>
 #include <cstring>
 #include "pathUtils.hh"
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"EmuSystem"};
 
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
@@ -129,7 +132,7 @@ void EmuSystem::setupContentFilePaths(CStringView filePath, std::string_view dis
 	else if(FS::PathStringArray realPath;
 		!realpath(fileDir.data(), realPath.data()))
 	{
-		logErr("error in realpath() while setting content directory");
+		log.error("error in realpath() while setting content directory");
 		contentDirectory_ = fileDir;
 		contentLocation_ = filePath;
 	}
@@ -137,7 +140,7 @@ void EmuSystem::setupContentFilePaths(CStringView filePath, std::string_view dis
 	{
 		contentDirectory_ = realPath.data();
 		contentLocation_ = FS::pathString(contentDirectory_, contentFileName_);
-		logMsg("set content directory:%s", contentDirectory_.data());
+		log.info("set content directory:{}", contentDirectory_);
 	}
 	updateContentSaveDirectory();
 }
@@ -160,7 +163,7 @@ void EmuSystem::updateContentSaveDirectory()
 		else
 			contentSaveDirectory_ = fallbackSaveDirectory(true);
 	}
-	logMsg("updated content save path:%s", contentSaveDirectory_.data());
+	log.info("updated content save path:%s", contentSaveDirectory_);
 }
 
 FS::PathString EmuSystem::fallbackSaveDirectory(bool create)
@@ -174,7 +177,7 @@ FS::PathString EmuSystem::fallbackSaveDirectory(bool create)
 	}
 	catch(...)
 	{
-		logErr("error making fallback save dir");
+		log.error("error making fallback save dir");
 		return {};
 	}
 }
@@ -203,7 +206,7 @@ FS::PathString EmuSystem::contentSaveFilePath(std::string_view ext) const
 
 void EmuSystem::setUserSaveDirectory(CStringView path)
 {
-	logMsg("set user save path:%s", path.data());
+	log.info("set user save path:{}", path);
 	userSaveDirectory_ = path;
 	updateContentSaveDirectory();
 	savePathChanged();
@@ -270,7 +273,7 @@ void EmuSystem::closeRuntimeSystem(EmuApp &app)
 		app.audio().flush();
 		app.autosaveManager().save();
 		app.saveSessionOptions();
-		logMsg("closing game:%s", contentName_.data());
+		log.info("closing game:{}", contentName_);
 		flushBackupMemory(app);
 		closeSystem();
 		app.autosaveManager().cancelTimer();
@@ -342,7 +345,7 @@ void EmuSystem::configFrameTime(int outputRate, FrameTime outputFrameTime)
 
 void EmuSystem::onFrameTimeChanged()
 {
-	logMsg("frame rate changed:%.2f", frameRate());
+	log.info("frame rate changed:{}", frameRate());
 	EmuApp::get(appContext()).configFrameTime();
 }
 
@@ -364,7 +367,7 @@ int EmuSystem::updateAudioFramesPerVideoFrame()
 
 [[gnu::weak]] FS::PathString EmuSystem::willLoadContentFromPath(std::string_view path, std::string_view displayName)
 {
-	return FS::PathString{path};
+	return {};
 }
 
 void EmuSystem::closeAndSetupNew(CStringView path, std::string_view displayName)
@@ -375,7 +378,7 @@ void EmuSystem::closeAndSetupNew(CStringView path, std::string_view displayName)
 		setupContentFilePaths(path, displayName);
 	else
 		setupContentUriPaths(path, displayName);
-	logMsg("set content name:%s location:%s", contentName_.data(), contentLocation_.data());
+	log.info("set content name:{} location:{}", contentName_, contentLocation_);
 	app.loadSessionOptions();
 }
 
@@ -388,9 +391,22 @@ void EmuSystem::createWithMedia(IO io, CStringView path, std::string_view displa
 		loadContentFromPath(path, displayName, params, onLoadProgress);
 }
 
-void EmuSystem::loadContentFromPath(CStringView pathStr, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadContentFromPath(CStringView pathStr, std::string_view displayNameStr, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
-	auto path = willLoadContentFromPath(pathStr, displayName);
+	FS::PathString path;
+	FS::FileString displayName;
+	if(auto altPath = willLoadContentFromPath(pathStr, displayName);
+		altPath.size() && appContext().fileUriExists(altPath))
+	{
+		log.info("loading {} instead of {}", altPath, pathStr);
+		path = altPath;
+		displayName = appContext().fileUriDisplayName(altPath);
+	}
+	else
+	{
+		path = pathStr;
+		displayName = displayNameStr;
+	}
 	if(!handlesGenericIO)
 	{
 		closeAndSetupNew(path, displayName);
@@ -398,7 +414,7 @@ void EmuSystem::loadContentFromPath(CStringView pathStr, std::string_view displa
 		loadContent(nullIO, params, onLoadProgress);
 		return;
 	}
-	logMsg("load from %s:%s", IG::isUri(path) ? "uri" : "path", path.data());
+	log.info("load from {}:{}", IG::isUri(path) ? "uri" : "path", path);
 	loadContentFromFile(appContext().openFileUri(path, IOAccessHint::Sequential), path, displayName, params, onLoadProgress);
 }
 
@@ -415,11 +431,11 @@ void EmuSystem::loadContentFromFile(IO file, CStringView path, std::string_view 
 				continue;
 			}
 			auto name = entry.name();
-			logMsg("archive file entry:%s", name.data());
+			log.info("archive file entry:{}", name);
 			if(EmuSystem::defaultFsFilter(name))
 			{
 				originalName = name;
-				io = entry.releaseIO();
+				io = std::move(entry);
 				break;
 			}
 		}
@@ -479,7 +495,7 @@ FS::FileString EmuSystem::contentFileName() const
 
 void EmuSystem::setContentDisplayName(std::string_view name)
 {
-	logMsg("set content display name:%s", name.data());
+	log.info("set content display name:{}", name);
 	contentDisplayName_ = name;
 }
 
@@ -572,7 +588,7 @@ FileIO EmuSystem::staticBackupMemoryFile(CStringView uri, size_t size, uint8_t i
 			size_t fillSize = size - fileSize;
 			uint8_t fillBuff[fillSize];
 			memset(fillBuff, initValue, fillSize);
-			logMsg("padding %zu bytes at offset %zu with value:0x%X", fillSize, fileSize, initValue);
+			log.info("padding {} bytes at offset {} with value:{:X}", fillSize, fileSize, initValue);
 			file.write(fillBuff, fillSize, fileSize);
 		}
 	}

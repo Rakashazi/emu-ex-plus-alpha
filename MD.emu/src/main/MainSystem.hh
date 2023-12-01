@@ -8,11 +8,6 @@
 
 extern t_config config;
 
-namespace EmuEx::Controls
-{
-extern const int gamepadKeys;
-}
-
 namespace EmuEx
 {
 

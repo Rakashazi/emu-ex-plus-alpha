@@ -78,7 +78,7 @@ static int loadSysFile(Readable auto &file, const char *name, uint8_t *dest, int
 	return (int)rsize;
 }
 
-static ArchiveIO archiveIOForSysFile(C64System &system, IG::CStringView archivePath, std::string_view sysFileName, std::string_view subPath, char **complete_path_return)
+static ArchiveIO *archiveIOForSysFile(C64System &system, IG::CStringView archivePath, std::string_view sysFileName, std::string_view subPath, char **complete_path_return)
 {
 	auto sysFilePath = FS::pathString(subPath, sysFileName);
 	try
@@ -98,7 +98,7 @@ static ArchiveIO archiveIOForSysFile(C64System &system, IG::CStringView archiveP
 				*complete_path_return = strdup(name.data());
 				assert(*complete_path_return);
 			}
-			return entry.releaseIO();
+			return &entry;
 		}
 		logErr("not found in archive:%s", archivePath.data());
 	}
@@ -135,11 +135,6 @@ FS::ArchiveIterator &C64System::systemFilesArchiveIterator(ApplicationContext ct
 		viceSysFilesArchiveIt.rewind();
 	}
 	return viceSysFilesArchiveIt;
-}
-
-void C64System::returnSystemFilesArchiveIO(ArchiveIO entry)
-{
-	viceSysFilesArchiveIt = {entry.releaseArchive()};
 }
 
 static bool archiveHasDirectory(CStringView path, std::string_view dirName)
@@ -248,11 +243,11 @@ CLINK FILE *sysfile_open(const char *name, const char *subPath, char **complete_
 			continue;
 		if(EmuApp::hasArchiveExtension(displayName))
 		{
-			auto io = archiveIOForSysFile(system, basePath, name, subPath, complete_path_return);
-			if(!io)
+			auto ioPtr = archiveIOForSysFile(system, basePath, name, subPath, complete_path_return);
+			if(!ioPtr)
 				continue;
 			// Uncompress file into memory and wrap in FILE
-			return MapIO{std::move(io)}.toFileStream(open_mode);
+			return MapIO{*ioPtr}.toFileStream(open_mode);
 		}
 		else
 		{
@@ -295,10 +290,9 @@ CLINK int sysfile_locate(const char *name, const char *subPath, char **complete_
 			continue;
 		if(EmuApp::hasArchiveExtension(displayName))
 		{
-			auto io = archiveIOForSysFile(system, basePath, name, subPath, complete_path_return);
-			if(!io)
+			auto ioPtr = archiveIOForSysFile(system, basePath, name, subPath, complete_path_return);
+			if(!ioPtr)
 				continue;
-			system.returnSystemFilesArchiveIO(std::move(io));
 			return 0;
 		}
 		else
@@ -344,11 +338,10 @@ CLINK int sysfile_load(const char *name, const char *subPath, uint8_t *dest, int
 			continue;
 		if(EmuApp::hasArchiveExtension(displayName))
 		{
-			auto io = archiveIOForSysFile(system, basePath, name, subPath, nullptr);
-			if(!io)
+			auto ioPtr = archiveIOForSysFile(system, basePath, name, subPath, nullptr);
+			if(!ioPtr)
 				continue;
-			auto size = loadSysFile(io, name, dest, minsize, maxsize);
-			system.returnSystemFilesArchiveIO(std::move(io));
+			auto size = loadSysFile(*ioPtr, name, dest, minsize, maxsize);
 			if(size == -1)
 			{
 				logErr("failed loading system file:%s from:%s", name, basePath.data());

@@ -559,7 +559,7 @@ std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext
 			auto name = entry.name();
 			if(nameMatchFunc(name))
 			{
-				return {entry.releaseIO().read(dest).bytes, FS::PathString{name}};
+				return {entry.read(dest).bytes, FS::PathString{name}};
 			}
 		}
 		log.error("no recognized files in archive:{}", uri);

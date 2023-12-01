@@ -30,32 +30,44 @@ enum class file_type : int8_t;
 namespace IG
 {
 
-class ArchiveIO;
 class IO;
 
 // data used by libarchive callbacks allocated in its own memory block
 struct ArchiveControlBlock;
 
-class ArchiveEntry
+class ArchiveIO : public IOUtils<ArchiveIO>
 {
 public:
-	ArchiveEntry();
-	~ArchiveEntry();
-	ArchiveEntry(CStringView path);
-	explicit ArchiveEntry(IO);
-	ArchiveEntry(ArchiveEntry&&) noexcept;
-	ArchiveEntry &operator=(ArchiveEntry&&) noexcept;
+	using IOUtilsBase = IOUtils<ArchiveIO>;
+	using IOUtilsBase::read;
+	using IOUtilsBase::write;
+	using IOUtilsBase::seek;
+	using IOUtilsBase::tell;
+	using IOUtilsBase::send;
+	using IOUtilsBase::buffer;
+	using IOUtilsBase::get;
+	using IOUtilsBase::toFileStream;
+
+	ArchiveIO();
+	~ArchiveIO();
+	ArchiveIO(CStringView path);
+	explicit ArchiveIO(IO);
+	ArchiveIO(ArchiveIO&&) noexcept;
+	ArchiveIO &operator=(ArchiveIO&&) noexcept;
 	std::string_view name() const;
 	FS::file_type type() const;
-	size_t size() const;
 	uint32_t crc32() const;
-	ArchiveIO releaseIO();
-	void reset(ArchiveIO io);
 	bool readNextEntry();
 	bool hasEntry() const;
 	bool hasArchive() const { return arch.get(); }
 	void rewind();
 	struct archive* archive() const { return arch.get(); }
+	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});
+	ssize_t write(const void *buff, size_t bytes, std::optional<off_t> offset = {});
+	off_t seek(off_t offset, SeekMode mode);
+	size_t size();
+	bool eof();
+	explicit operator bool() const;
 
 protected:
 	struct ArchiveDeleter
@@ -73,34 +85,6 @@ protected:
 
 	void init(IO);
 	static void freeArchive(struct archive *);
-};
-
-class ArchiveIO : public IOUtils<ArchiveIO>
-{
-public:
-	using IOUtilsBase = IOUtils<ArchiveIO>;
-	using IOUtilsBase::read;
-	using IOUtilsBase::write;
-	using IOUtilsBase::seek;
-	using IOUtilsBase::tell;
-	using IOUtilsBase::send;
-	using IOUtilsBase::buffer;
-	using IOUtilsBase::get;
-	using IOUtilsBase::toFileStream;
-
-	constexpr ArchiveIO() = default;
-	ArchiveIO(ArchiveEntry entry);
-	ArchiveEntry releaseArchive();
-	std::string_view name() const;
-	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});
-	ssize_t write(const void *buff, size_t bytes, std::optional<off_t> offset = {});
-	off_t seek(off_t offset, SeekMode mode);
-	size_t size();
-	bool eof();
-	explicit operator bool() const;
-
-protected:
-	ArchiveEntry entry{};
 };
 
 }

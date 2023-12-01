@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "main"
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuSystemInlines.hh>
 #include "system.h"
@@ -32,9 +31,11 @@
 #include <scd/scd.h>
 #include <mednafen/mednafen.h>
 #include <mednafen/cdrom/CDAccess.h>
+#include <mednafen-emuex/ArchiveVFS.hh>
 #endif
 #include "Cheats.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/fs/ArchiveFS.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/ScopeGuard.hh>
@@ -46,6 +47,7 @@ bool config_ym2413_enabled = true;
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"App"};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\nsegaretro.org/Genesis_Plus";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
@@ -98,7 +100,6 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMDWithCDExtension;
 
 void MdSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	//logMsg("frame start");
 	RAMCheatUpdate();
 	system_frame(taskCtx, video);
 
@@ -106,10 +107,8 @@ void MdSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio 
 	int frames = audio_update(audioBuff);
 	if(audio)
 	{
-		//logMsg("%d frames", frames);
 		audio->writeFrames(audioBuff, frames);
 	}
-	//logMsg("frame end");
 }
 
 void MdSystem::renderFramebuffer(EmuVideo &video)
@@ -175,7 +174,7 @@ void MdSystem::loadBackupMemory(EmuApp &app)
 		auto bramFile = appContext().openFileUri(saveStr, IOAccessHint::All, {.test = true});
 		if(!bramFile)
 		{
-			logMsg("no BRAM on disk, formatting");
+			log.info("no BRAM on disk, formatting");
 			IG::fill(bram);
 			memcpy(bram + sizeof(bram) - sizeof(fmtBram), fmtBram, sizeof(fmtBram));
 			auto sramFormatStart = sram.sram + 0x10000 - sizeof(fmt64kSram);
@@ -193,7 +192,7 @@ void MdSystem::loadBackupMemory(EmuApp &app)
 			{
 				std::swap(sram.sram[i], sram.sram[i+1]);
 			}
-			logMsg("loaded BRAM from disk");
+			log.info("loaded BRAM from disk");
 		}
 	}
 	else
@@ -203,9 +202,9 @@ void MdSystem::loadBackupMemory(EmuApp &app)
 		auto saveStr = saveFilename(app);
 
 		if(FileUtils::readFromUri(appContext(), saveStr, {sram.sram, 0x10000}) <= 0)
-			logMsg("no SRAM on disk");
+			log.info("no SRAM on disk");
 		else
-			logMsg("loaded SRAM from disk%s", optionBigEndianSram ? ", will byte-swap" : "");
+			log.info("loaded SRAM from disk{}", optionBigEndianSram ? ", will byte-swap" : "");
 
 		if(optionBigEndianSram)
 		{
@@ -224,11 +223,11 @@ void MdSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 	#ifndef NO_SCD
 	if(sCD.isActive)
 	{
-		logMsg("saving BRAM");
+		log.info("saving BRAM");
 		auto saveStr = bramSaveFilename(app);
 		auto bramFile = appContext().openFileUri(saveStr, OpenFlags::testNewFile());
 		if(!bramFile)
-			logMsg("error creating bram file");
+			log.error("error creating bram file");
 		else
 		{
 			bramFile.write(bram, sizeof(bram));
@@ -248,7 +247,7 @@ void MdSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 		auto saveStr = saveFilename(app);
 		if(sramHasContent({sram.sram, 0x10000}))
 		{
-			logMsg("saving SRAM%s", optionBigEndianSram ? ", byte-swapped" : "");
+			log.info("saving SRAM{}", optionBigEndianSram ? ", byte-swapped" : "");
 			uint8_t sramTemp[0x10000];
 			uint8_t *sramPtr = sram.sram;
 			if(optionBigEndianSram)
@@ -266,12 +265,12 @@ void MdSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 			}
 			catch(...)
 			{
-				logMsg("error creating sram file");
+				log.error("error creating sram file");
 			}
 		}
 		else
 		{
-			logMsg("SRAM wasn't written to");
+			log.info("SRAM wasn't written to");
 			appContext().removeFileUri(saveStr);
 		}
 	}
@@ -316,14 +315,10 @@ FS::PathString EmuSystem::willLoadContentFromPath(std::string_view path, std::st
 	{
 		FS::PathString possibleCuePath{path};
 		possibleCuePath.replace(possibleCuePath.end() - 3, possibleCuePath.end(), "cue");
-		if(appContext().fileUriExists(possibleCuePath))
-		{
-			logMsg("loading %s instead of .bin file", possibleCuePath.data());
-			return possibleCuePath;
-		}
+		return possibleCuePath;
 	}
 	#endif
-	return FS::PathString{path};
+	return {};
 }
 
 void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
@@ -335,11 +330,41 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 	if(hasMDCDExtension(contentFileName()) ||
 		(hasBinExtension(contentFileName()) && io.size() > 1024*1024*10)) // CD
 	{
-		if(contentDirectory().empty())
+		bool isArchive = std::holds_alternative<ArchiveIO>(io);
+		if(contentDirectory().empty() && !isArchive)
 		{
 			throwMissingContentDirError();
 		}
-		cd = CDAccess_Open(&NVFS, std::string{contentLocation()}, false);
+		if(isArchive)
+		{
+			if(endsWithAnyCaseless(contentFileName(), ".bin", ".iso"))
+			{
+				log.info("looking for a .cue file in archive");
+				// check the archive for a .cue and load that instead
+				FS::ArchiveIterator archIt{std::move(io)};
+				for(auto &entry : archIt)
+				{
+					if(entry.type() == FS::file_type::directory)
+					{
+						continue;
+					}
+					auto name = entry.name();
+					if(endsWithAnyCaseless(name, ".cue"))
+					{
+						log.info("found:{}", name);
+						contentFileName_ = name;
+						break;
+					}
+				}
+				io = std::move(*archIt);
+			}
+			ArchiveVFS archVFS{std::move(io)};
+			cd = CDAccess_Open(&archVFS, std::string{contentFileName()}, true);
+		}
+		else
+		{
+			cd = CDAccess_Open(&NVFS, std::string{contentLocation()}, false);
+		}
 
 		unsigned region = REGION_USA;
 		if (config.region_detect == 1) region = REGION_USA;
@@ -380,7 +405,7 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 	#endif
 	// ROM
 	{
-		logMsg("loading ROM %s", contentLocation().data());
+		log.info("loading ROM:{}", contentLocation());
 		auto size = io.read(cart.rom, MAXROMSIZE);
 		if(size <= 0)
 			throwFileReadError();
@@ -396,7 +421,7 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 		vdp_pal = 1;
 	}
 	if(videoSystem() == VideoSystem::PAL)
-		logMsg("using PAL timing");
+		log.info("using PAL timing");
 
 	system_init();
 	for(auto i : iotaCount(2))
@@ -428,7 +453,7 @@ void MdSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 	float outputFrameRate = toHz(outputFrameTime);
 	if(snd.sample_rate == outputRate && snd.frame_rate == outputFrameRate)
 		return;
-	logMsg("set sound output rate:%d for fps:%.2f", outputRate, outputFrameRate);
+	log.info("set sound output rate:{} for fps:{}", outputRate, outputFrameRate);
 	audio_init(outputRate, outputFrameRate);
 	sound_restore();
 	//logMsg("set sound buffer size:%d", snd.buffer_size);

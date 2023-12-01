@@ -235,8 +235,7 @@ void S9xReadBSXBios(uint8 *data)
 		{
 			if(entry.type() == FS::file_type::directory || !Snes9xSystem::hasBiosExtension(entry.name()))
 				continue;
-			auto io = entry.releaseIO();
-			auto size = io.read(data, BsxBiosSize);
+			auto size = entry.read(data, BsxBiosSize);
 			if(!isBsxBios(data, size))
 				throw std::runtime_error{"Incompatible BS-X BIOS"};
 			return;

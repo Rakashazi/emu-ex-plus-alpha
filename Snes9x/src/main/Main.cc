@@ -223,7 +223,7 @@ IOBuffer Snes9xSystem::readSufamiTurboBios() const
 		{
 			if(entry.type() == FS::file_type::directory || !hasBiosExtension(entry.name()))
 				continue;
-			auto buff = entry.releaseIO().buffer(IOBufferMode::Release);
+			auto buff = entry.buffer(IOBufferMode::Release);
 			if(!isSufamiTurboBios(buff))
 				throw std::runtime_error{"Incompatible Sufami Turbo BIOS"};
 			return buff;

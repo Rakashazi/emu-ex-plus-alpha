@@ -234,13 +234,12 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 			if(hasFDSBIOSExtension(entry.name()))
 			{
 				logMsg("archive file entry:%s", entry.name().data());
-				auto io = entry.releaseIO();
-				if(io.size() != size)
+				if(entry.size() != size)
 				{
 					sys.loaderErrorString = "Incompatible FDS BIOS";
 					return -1;
 				}
-				return io.read(buff, size);
+				return entry.read(buff, size);
 			}
 		}
 		sys.loaderErrorString = "Error opening FDS BIOS";

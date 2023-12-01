@@ -18,6 +18,7 @@
 #include <imagine/io/IO.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FSDefs.hh>
+#include <imagine/util/variant.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
 #include <imagine/io/IOUtils-impl.hh>
@@ -67,25 +68,29 @@ static void setReadSupport(struct archive *arch)
 	archive_read_support_format_zip(arch);
 }
 
-ArchiveEntry::ArchiveEntry() = default;
+ArchiveIO::ArchiveIO() = default;
 
-ArchiveEntry::~ArchiveEntry() = default;
+ArchiveIO::~ArchiveIO() = default;
 
-ArchiveEntry::ArchiveEntry(ArchiveEntry&&) noexcept = default;
+ArchiveIO::ArchiveIO(ArchiveIO&&) noexcept = default;
 
-ArchiveEntry &ArchiveEntry::operator=(ArchiveEntry &&) noexcept = default;
+ArchiveIO &ArchiveIO::operator=(ArchiveIO &&) noexcept = default;
 
-ArchiveEntry::ArchiveEntry(CStringView path)
+ArchiveIO::ArchiveIO(CStringView path)
 {
 	init(FileIO{path, IOAccessHint::Sequential});
 }
 
-ArchiveEntry::ArchiveEntry(IO io)
+ArchiveIO::ArchiveIO(IO io)
 {
-	init(std::move(io));
+	visit(overloaded
+	{
+		[&](ArchiveIO &&io) { *this = std::move(io); },
+		[&](auto &&io) { init(std::move(io)); }
+	}, std::move(io));
 }
 
-void ArchiveEntry::init(IO io)
+void ArchiveIO::init(IO io)
 {
 	UniqueArchive newArch{archive_read_new()};
 	setReadSupport(newArch.get());
@@ -167,7 +172,7 @@ void ArchiveEntry::init(IO io)
 	readNextEntry(); // go to first entry
 }
 
-void ArchiveEntry::freeArchive(struct archive *arch)
+void ArchiveIO::freeArchive(struct archive *arch)
 {
 	if(!arch)
 		return;
@@ -175,42 +180,32 @@ void ArchiveEntry::freeArchive(struct archive *arch)
 	archive_read_free(arch);
 }
 
-std::string_view ArchiveEntry::name() const
+std::string_view ArchiveIO::name() const
 {
 	assumeExpr(ptr);
 	auto name = archive_entry_pathname(ptr);
 	return name ? name : "";
 }
 
-FS::file_type ArchiveEntry::type() const
+FS::file_type ArchiveIO::type() const
 {
 	assumeExpr(ptr);
 	return makeEntryType(archive_entry_filetype(ptr));
 }
 
-size_t ArchiveEntry::size() const
+size_t ArchiveIO::size()
 {
 	assumeExpr(ptr);
 	return archive_entry_size(ptr);
 }
 
-uint32_t ArchiveEntry::crc32() const
+uint32_t ArchiveIO::crc32() const
 {
 	assumeExpr(ptr);
 	return archive_entry_crc32(ptr);
 }
 
-ArchiveIO ArchiveEntry::releaseIO()
-{
-	return ArchiveIO{std::move(*this)};
-}
-
-void ArchiveEntry::reset(ArchiveIO io)
-{
-	*this = io.releaseArchive();
-}
-
-bool ArchiveEntry::readNextEntry()
+bool ArchiveIO::readNextEntry()
 {
 	if(!arch) [[unlikely]]
 		return false;
@@ -237,12 +232,12 @@ bool ArchiveEntry::readNextEntry()
 	return true;
 }
 
-bool ArchiveEntry::hasEntry() const
+bool ArchiveIO::hasEntry() const
 {
 	return arch && ptr;
 }
 
-void ArchiveEntry::rewind()
+void ArchiveIO::rewind()
 {
 	if(!arch) [[unlikely]]
 		return;
@@ -253,20 +248,6 @@ void ArchiveEntry::rewind()
 	arch = {};
 	ctrlBlock = {};
 	init(std::move(io));
-}
-
-ArchiveIO::ArchiveIO(ArchiveEntry entry):
-	entry{std::move(entry)}
-{}
-
-ArchiveEntry ArchiveIO::releaseArchive()
-{
-	return std::move(entry);
-}
-
-std::string_view ArchiveIO::name() const
-{
-	return entry.name();
 }
 
 ssize_t ArchiveIO::read(void *buff, size_t bytes, std::optional<off_t> offset)
@@ -281,7 +262,7 @@ ssize_t ArchiveIO::read(void *buff, size_t bytes, std::optional<off_t> offset)
 	}
 	else
 	{
-		int bytesRead = archive_read_data(entry.archive(), buff, bytes);
+		int bytesRead = archive_read_data(archive(), buff, bytes);
 		if(bytesRead < 0)
 		{
 			bytesRead = -1;
@@ -301,28 +282,27 @@ off_t ArchiveIO::seek(off_t offset, IOSeekMode mode)
 	{
 		return -1;
 	}
-	long newPos = archive_seek_data(entry.archive(), offset, (int)mode);
+	long newPos = archive_seek_data(archive(), offset, (int)mode);
 	if(newPos < 0)
 	{
+		if(offset == 0 && mode == IOSeekMode::Cur) // archive not seekable, report position as 0
+		{
+			return 0;
+		}
 		logErr("seek to offset %lld failed", (long long)offset);
 		return -1;
 	}
 	return newPos;
 }
 
-size_t ArchiveIO::size()
-{
-	return entry.size();
-}
-
 bool ArchiveIO::eof()
 {
-	return tell() == (off_t)entry.size();
+	return tell() == (off_t)size();
 }
 
 ArchiveIO::operator bool() const
 {
-	return (bool)entry.archive();
+	return (bool)archive();
 }
 
 }

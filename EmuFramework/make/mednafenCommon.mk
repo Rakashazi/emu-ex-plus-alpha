@@ -34,6 +34,7 @@ MDFN_CDROM_CPPFLAGS = -I$(EMUFRAMEWORK_PATH)/include/shared/lzma \
  -I$(EMUFRAMEWORK_PATH)/include/shared \
 
 MDFN_CDROM_SRC := mednafen-emuex/CDImpl.cc \
+ mednafen-emuex/ArchiveVFS.cc \
  mednafen/cdrom/CDAFReader.cpp \
  mednafen/cdrom/CDAFReader_FLAC.cpp \
  mednafen/cdrom/CDAFReader_MPC.cpp \

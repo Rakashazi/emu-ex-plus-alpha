@@ -62,9 +62,8 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, const std::string& path, const std::vector<Fi
 				if(hasKnownExtension(entry.name(), known_ext))
 				{
 					log.info("archive file entry:{}", entry.name());
-					auto io = entry.releaseIO();
-					str = std::make_unique<MemoryStream>(io.size(), true);
-					if(io.read(str->map(), str->map_size()) != (int)str->map_size())
+					str = std::make_unique<MemoryStream>(entry.size(), true);
+					if(entry.read(str->map(), str->map_size()) != (int)str->map_size())
 					{
 						throw MDFN_Error(0, "Error reading archive");
 					}

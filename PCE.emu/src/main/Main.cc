@@ -28,6 +28,7 @@
 #include <mednafen/pce_fast/huc.h>
 #include <mednafen/pce_fast/vdc.h>
 #include <mednafen-emuex/MDFNUtils.hh>
+#include <mednafen-emuex/ArchiveVFS.hh>
 
 namespace EmuEx
 {
@@ -153,7 +154,8 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 		});
 	if(hasCDExtension(contentFileName()))
 	{
-		if(contentDirectory().empty())
+		bool isArchive = std::holds_alternative<ArchiveIO>(io);
+		if(contentDirectory().empty() && !isArchive)
 		{
 			throwMissingContentDirError();
 		}
@@ -162,7 +164,15 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 			throw std::runtime_error("No System Card Set");
 		}
 		CDInterfaces.reserve(1);
-		CDInterfaces.push_back(CDInterface::Open(&NVFS, contentLocation().data(), false, 0));
+		if(isArchive)
+		{
+			ArchiveVFS archVFS{std::move(io)};
+			CDInterfaces.push_back(CDInterface::Open(&archVFS, std::string{contentFileName()}, true, 0));
+		}
+		else
+		{
+			CDInterfaces.push_back(CDInterface::Open(&NVFS, std::string{contentLocation()}, false, 0));
+		}
 		writeCDMD5(mdfnGameInfo, *CDInterfaces[0]);
 		mdfnGameInfo.LoadCD(&CDInterfaces);
 		if(isUsingAccurateCore())

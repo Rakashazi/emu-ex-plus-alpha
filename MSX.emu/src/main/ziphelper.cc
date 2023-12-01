@@ -91,12 +91,10 @@ static void *loadFromArchiveIt(FS::ArchiveIterator &it, const char* zipName, con
 		//logMsg("archive file entry:%s", entry.name());
 		if(entry.name() == fileName)
 		{
-			auto io = entry.releaseIO();
-			int fileSize = io.size();
+			int fileSize = entry.size();
 			void *buff = malloc(fileSize);
-			io.read(buff, fileSize);
+			entry.read(buff, fileSize);
 			*size = fileSize;
-			entry.reset(std::move(io));
 			return buff;
 		}
 	}

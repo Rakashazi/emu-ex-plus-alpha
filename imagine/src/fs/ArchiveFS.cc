@@ -23,12 +23,12 @@ namespace IG::FS
 {
 
 template <class... Args>
-static std::shared_ptr<ArchiveEntry> makeArchiveEntryPtr(Args&& ...args)
+static std::shared_ptr<ArchiveIO> makeArchiveEntryPtr(Args&& ...args)
 {
-	ArchiveEntry entry{std::forward<Args>(args)...};
+	ArchiveIO entry{std::forward<Args>(args)...};
 	if(entry.hasEntry())
 	{
-		return std::make_shared<ArchiveEntry>(std::move(entry));
+		return std::make_shared<ArchiveIO>(std::move(entry));
 	}
 	else
 	{
@@ -43,15 +43,15 @@ ArchiveIterator::ArchiveIterator(CStringView path):
 ArchiveIterator::ArchiveIterator(IO io):
 	impl{makeArchiveEntryPtr(std::move(io))} {}
 
-ArchiveIterator::ArchiveIterator(ArchiveEntry entry):
-	impl{entry.hasEntry() ? std::make_shared<ArchiveEntry>(std::move(entry)) : std::shared_ptr<ArchiveEntry>{}} {}
+ArchiveIterator::ArchiveIterator(ArchiveIO entry):
+	impl{entry.hasEntry() ? std::make_shared<ArchiveIO>(std::move(entry)) : std::shared_ptr<ArchiveIO>{}} {}
 
-ArchiveEntry& ArchiveIterator::operator*()
+ArchiveIO& ArchiveIterator::operator*()
 {
 	return *impl;
 }
 
-ArchiveEntry* ArchiveIterator::operator->()
+ArchiveIO* ArchiveIterator::operator->()
 {
 	return impl.get();
 }
@@ -77,7 +77,7 @@ static ArchiveIO fileFromArchiveGeneric(auto &&init, std::string_view filePath)
 		}
 		if(entry.name() == filePath)
 		{
-			return entry.releaseIO();
+			return std::move(entry);
 		}
 	}
 	return {};

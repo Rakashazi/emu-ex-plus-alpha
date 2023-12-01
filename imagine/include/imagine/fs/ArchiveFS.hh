@@ -35,7 +35,7 @@ class ArchiveIterator
 {
 public:
 	using iterator_category = std::input_iterator_tag;
-	using value_type = ArchiveEntry;
+	using value_type = ArchiveIO;
 	using difference_type = ptrdiff_t;
 	using pointer = value_type*;
 	using reference = value_type&;
@@ -44,12 +44,12 @@ public:
 	constexpr ArchiveIterator() = default;
 	ArchiveIterator(CStringView path);
 	ArchiveIterator(IO);
-	ArchiveIterator(ArchiveEntry);
+	ArchiveIterator(ArchiveIO);
 	ArchiveIterator(const ArchiveIterator&) = default;
 	ArchiveIterator(ArchiveIterator&&) = default;
 	ArchiveIterator &operator=(ArchiveIterator &&o) = default;
-	ArchiveEntry& operator*();
-	ArchiveEntry* operator->();
+	ArchiveIO& operator*();
+	ArchiveIO* operator->();
 	void operator++();
 	bool operator==(Sentinel) const { return !hasEntry(); }
 	void rewind();
@@ -57,7 +57,7 @@ public:
 	bool hasArchive() const { return impl.get() && impl->hasArchive(); }
 
 private:
-	std::shared_ptr<ArchiveEntry> impl;
+	std::shared_ptr<ArchiveIO> impl;
 };
 
 static const auto &begin(const ArchiveIterator &iter)
