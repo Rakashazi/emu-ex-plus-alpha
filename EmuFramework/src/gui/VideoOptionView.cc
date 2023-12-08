@@ -425,7 +425,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"Custom Value", &defaultFace(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueRangeInputView<int, 10, 100>(attachParams(), e, "Input 10 to 100", "",
+				app().pushAndShowNewCollectValueRangeInputView<int, 10, 200>(attachParams(), e, "Input 10 to 200", "",
 					[this](EmuApp &app, auto val)
 					{
 						app.setVideoZoom(val);
@@ -443,7 +443,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				if(app().videoZoom() <= 100)
+				if(app().videoZoom() <= 200)
 				{
 					t.resetString(std::format("{}%", app().videoZoom()));
 					return true;

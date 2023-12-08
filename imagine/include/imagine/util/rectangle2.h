@@ -247,8 +247,7 @@ public:
 	{
 		if(xSize() > r.xSize())
 		{
-			setXPos(r.x - xSize()/2);
-			return 1;
+			return 0;
 		}
 		else if(x < r.x)
 		{
@@ -268,8 +267,7 @@ public:
 	{
 		if(ySize() > r.ySize())
 		{
-			setYPos(r.y - ySize()/2);
-			return 1;
+			return 0;
 		}
 		else if(y < r.y)
 		{

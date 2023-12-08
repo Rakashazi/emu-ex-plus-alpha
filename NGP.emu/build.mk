@@ -15,9 +15,8 @@ SRC += main/Main.cc \
 main/options.cc \
 main/input.cc \
 main/EmuMenuViews.cc \
-$(MDFN_COMMON_SRC)
-
-MDFN_SRC := ngp/bios.cpp \
+$(MDFN_COMMON_SRC) \
+ngp/bios.cpp \
 ngp/biosHLE.cpp \
 ngp/dma.cpp \
 ngp/flash.cpp \
@@ -38,10 +37,8 @@ ngp/TLCS-900h/TLCS900h_registers.cpp \
 ngp/TLCS-900h/TLCS900h_interpret_reg.cpp \
 ngp/TLCS-900h/TLCS900h_interpret_src.cpp \
 ngp/TLCS-900h/TLCS900h_interpret_dst.cpp \
-hw_cpu/z80-fuse/z80.cpp \
-hw_cpu/z80-fuse/z80_ops.cpp
-
-SRC += $(addprefix mednafen/,$(MDFN_SRC))
+mednafen/hw_cpu/z80-fuse/z80.cpp \
+mednafen/hw_cpu/z80-fuse/z80_ops.cpp
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk

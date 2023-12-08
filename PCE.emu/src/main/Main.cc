@@ -24,9 +24,9 @@
 #include <mednafen/state-driver.h>
 #include <mednafen/hash/md5.h>
 #include <mednafen/MemoryStream.h>
-#include <mednafen/pce/huc.h>
-#include <mednafen/pce_fast/huc.h>
-#include <mednafen/pce_fast/vdc.h>
+#include <pce/huc.h>
+#include <pce_fast/huc.h>
+#include <pce_fast/vdc.h>
 #include <mednafen-emuex/MDFNUtils.hh>
 #include <mednafen-emuex/ArchiveVFS.hh>
 
@@ -103,37 +103,7 @@ FS::FileString PceSystem::stateFilename(int slot, std::string_view name) const
 void PceSystem::closeSystem()
 {
 	mdfnGameInfo.CloseGame();
-	if(CDInterfaces.size())
-	{
-		assert(CDInterfaces.size() == 1);
-		delete CDInterfaces[0];
-		CDInterfaces.clear();
-	}
-}
-
-static void writeCDMD5(MDFNGI &mdfnGameInfo, CDInterface &cdInterface)
-{
-	CDUtility::TOC toc;
-	md5_context layout_md5;
-
-	cdInterface.ReadTOC(&toc);
-
-	layout_md5.starts();
-
-	layout_md5.update_u32_as_lsb(toc.first_track);
-	layout_md5.update_u32_as_lsb(toc.last_track);
-	layout_md5.update_u32_as_lsb(toc.tracks[100].lba);
-
-	for(uint32 track = toc.first_track; track <= toc.last_track; track++)
-	{
-		layout_md5.update_u32_as_lsb(toc.tracks[track].lba);
-		layout_md5.update_u32_as_lsb(toc.tracks[track].control & 0x4);
-	}
-
-	uint8 LayoutMD5[16];
-	layout_md5.finish(LayoutMD5);
-
-	memcpy(mdfnGameInfo.MD5, LayoutMD5, 16);
+	clearCDInterfaces(CDInterfaces);
 }
 
 WSize PceSystem::multiresVideoBaseSize() const { return {512, 0}; }
@@ -142,16 +112,6 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 {
 	mdfnGameInfo = resolvedCore() == EmuCore::Accurate ? EmulatedPCE : EmulatedPCE_Fast;
 	logMsg("using emulator core module:%s", asModuleString(resolvedCore()).data());
-	auto unloadCD = IG::scopeGuard(
-		[&]()
-		{
-			if(CDInterfaces.size())
-			{
-				assert(CDInterfaces.size() == 1);
-				delete CDInterfaces[0];
-				CDInterfaces.clear();
-			}
-		});
 	if(hasCDExtension(contentFileName()))
 	{
 		bool isArchive = std::holds_alternative<ArchiveIO>(io);
@@ -163,7 +123,7 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 		{
 			throw std::runtime_error("No System Card Set");
 		}
-		CDInterfaces.reserve(1);
+		auto unloadCD = scopeGuard([&]() { clearCDInterfaces(CDInterfaces); });
 		if(isArchive)
 		{
 			ArchiveVFS archVFS{std::move(io)};
@@ -179,13 +139,13 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 			Mednafen::SCSICD_SetDisc(false, CDInterfaces[0]);
 		else
 			MDFN_IEN_PCE_FAST::PCECD_Drive_SetDisc(false, CDInterfaces[0]);
+		unloadCD.cancel();
 	}
 	else
 	{
 		static constexpr size_t maxRomSize = 0x300000;
 		EmuEx::loadContent(*this, mdfnGameInfo, io, maxRomSize);
 	}
-	unloadCD.cancel();
 	//logMsg("%d input ports", MDFNGameInfo->InputInfo->InputPorts);
 	for(auto i : iotaCount(5))
 	{

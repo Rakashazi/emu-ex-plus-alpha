@@ -198,6 +198,7 @@ public:
 	void printScreenshotResult(bool success);
 	FS::PathString contentSavePath(std::string_view name) const;
 	FS::PathString contentSaveFilePath(std::string_view ext) const;
+	void setupStaticBackupMemoryFile(FileIO &, std::string_view ext, size_t staticSize, uint8_t initValue = 0) const;
 	void readState(std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
 	DynArray<uint8_t> saveState();

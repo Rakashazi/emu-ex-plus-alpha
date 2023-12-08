@@ -24,7 +24,6 @@ namespace Mednafen
 class ArchiveVFS : public VirtualFS
 {
 public:
-	ArchiveVFS() = default;
 	ArchiveVFS(IG::FS::ArchiveIterator);
 	Stream* open(const std::string& path, const uint32 mode, const int do_lock = false, const bool throw_on_noent = true, const CanaryType canary = CanaryType::open) override;
 	bool mkdir(const std::string& path, const bool throw_on_exist = false) override;

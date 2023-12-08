@@ -15,9 +15,8 @@ SRC += main/Main.cc \
 main/options.cc \
 main/input.cc \
 main/EmuMenuViews.cc \
-$(MDFN_COMMON_SRC)
-
-MDFN_SRC := wswan/comm.cpp \
+$(MDFN_COMMON_SRC) \
+wswan/comm.cpp \
 wswan/gfx.cpp \
 wswan/memory.cpp \
 wswan/tcache.cpp \
@@ -27,8 +26,6 @@ wswan/v30mz.cpp \
 wswan/eeprom.cpp \
 wswan/main.cpp \
 wswan/sound.cpp
-
-SRC += $(addprefix mednafen/,$(MDFN_SRC))
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk

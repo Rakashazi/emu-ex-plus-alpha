@@ -228,25 +228,11 @@ size_t NeoSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
 	}
 }
 
-static auto nvramPath(EmuApp &app)
-{
-	return app.contentSaveFilePath(".nv");
-}
-
-static auto memcardPath(EmuApp &app)
-{
-	return app.contentSaveFilePath(".memcard");
-}
-
 void NeoSystem::loadBackupMemory(EmuApp &app)
 {
 	logMsg("loading nvram & memcard");
-	if(!nvramFileIO)
-		nvramFileIO = staticBackupMemoryFile(nvramPath(app), 0x10000);
-	if(!memcardFileIO)
-		memcardFileIO = staticBackupMemoryFile(memcardPath(app), 0x800);
-	if(!nvramFileIO || !memcardFileIO)
-		throw std::runtime_error("Error accessing .nv or .memcard file, please verify it has write access");
+	app.setupStaticBackupMemoryFile(nvramFileIO, ".nv", 0x10000);
+	app.setupStaticBackupMemoryFile(memcardFileIO, ".memcard", 0x800);
 	nvramFileIO.read(memory.sram, 0x10000, 0);
 	memcardFileIO.read(memory.memcard, 0x800, 0);
 }

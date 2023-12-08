@@ -112,20 +112,14 @@ void GbcSystem::loadBackupMemory(EmuApp &app)
 		sram.size())
 	{
 		logMsg("loading sram");
-		if(!saveFileIO)
-			saveFileIO = staticBackupMemoryFile(app.contentSaveFilePath(".sav"), sram.size(), 0xFF);
-		if(!saveFileIO)
-			throw std::runtime_error("Error accessing .sav file, please verify it has write access");
+		app.setupStaticBackupMemoryFile(saveFileIO, ".sav", sram.size(), 0xFF);
 		saveFileIO.read(sram, 0);
 	}
 	if(auto timeOpt = gbEmu.rtcTime();
 		timeOpt)
 	{
 		logMsg("loading rtc");
-		if(!rtcFileIO)
-			rtcFileIO = staticBackupMemoryFile(app.contentSaveFilePath(".rtc"), 4);
-		if(!rtcFileIO)
-			throw std::runtime_error("Error accessing .rtc file, please verify it has write access");
+		app.setupStaticBackupMemoryFile(rtcFileIO, ".rtc", 4);
 		auto rtcData = rtcFileIO.get<std::array<uint8_t, 4>>(0);
 		gbEmu.setRtcTime(rtcData[0] << 24 | rtcData[1] << 16 | rtcData[2] << 8 | rtcData[3]);
 	}

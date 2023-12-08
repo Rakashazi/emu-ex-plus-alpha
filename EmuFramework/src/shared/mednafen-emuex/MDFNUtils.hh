@@ -26,6 +26,7 @@
 #include <mednafen/git.h>
 #include <mednafen/FileStream.h>
 #include <mednafen/MemoryStream.h>
+#include <mednafen/cdrom/CDInterface.h>
 #include <main/MainSystem.hh>
 #include <string_view>
 
@@ -65,6 +66,18 @@ inline FS::FileString stateFilenameMDFN(const Mednafen::MDFNGI &gameInfo, int sl
 		return format<FS::FileString>("{}.nc{}", name, saveSlotChar);
 	else
 		return format<FS::FileString>("{}.{}.nc{}", name, Mednafen::md5_context::asciistr(gameInfo.MD5, 0), saveSlotChar);
+}
+
+inline FS::FileString saveExtMDFN(std::string_view ext, bool skipMD5)
+{
+	IG::FileString str{'.'};
+	if(!skipMD5)
+	{
+		str += Mednafen::md5_context::asciistr(Mednafen::MDFNGameInfo->MD5, 0);
+		str += '.';
+	}
+	str += ext;
+	return str;
 }
 
 inline std::string savePathMDFN(const EmuApp &app, int id1, const char *cd1, bool skipMD5)
@@ -188,6 +201,40 @@ inline size_t writeStateMDFN(std::span<uint8_t> buff, SaveStateFlags flags)
 		MDFNSS_SaveSM(&s);
 		return compressGzip(buff, {s.map(), size_t(s.size())}, MDFN_GetSettingI("filesys.state_comp_level"));
 	}
+}
+
+inline void writeCDMD5(Mednafen::MDFNGI &mdfnGameInfo, Mednafen::CDInterface &cdInterface)
+{
+	Mednafen::CDUtility::TOC toc;
+	Mednafen::md5_context layout_md5;
+
+	cdInterface.ReadTOC(&toc);
+
+	layout_md5.starts();
+
+	layout_md5.update_u32_as_lsb(toc.first_track);
+	layout_md5.update_u32_as_lsb(toc.last_track);
+	layout_md5.update_u32_as_lsb(toc.tracks[100].lba);
+
+	for(uint32 track = toc.first_track; track <= toc.last_track; track++)
+	{
+		layout_md5.update_u32_as_lsb(toc.tracks[track].lba);
+		layout_md5.update_u32_as_lsb(toc.tracks[track].control & 0x4);
+	}
+
+	uint8 LayoutMD5[16];
+	layout_md5.finish(LayoutMD5);
+
+	memcpy(mdfnGameInfo.MD5, LayoutMD5, 16);
+}
+
+inline void clearCDInterfaces(std::vector<Mednafen::CDInterface *> &ifaces)
+{
+	if(!ifaces.size())
+		return;
+	assert(ifaces.size() == 1);
+	delete ifaces[0];
+	ifaces.clear();
 }
 
 }

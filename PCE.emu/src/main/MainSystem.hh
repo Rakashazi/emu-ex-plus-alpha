@@ -19,9 +19,9 @@
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <mednafen/mednafen.h>
-#include <mednafen/pce/vce.h>
-#include <mednafen/pce_fast/pce.h>
-#include <mednafen/pce_fast/vdc.h>
+#include <pce/vce.h>
+#include <pce_fast/pce.h>
+#include <pce_fast/vdc.h>
 
 extern const Mednafen::MDFNGI EmulatedPCE_Fast;
 extern const Mednafen::MDFNGI EmulatedPCE;

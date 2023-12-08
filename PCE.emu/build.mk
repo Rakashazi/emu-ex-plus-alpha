@@ -19,9 +19,8 @@ main/options.cc \
 main/input.cc \
 main/EmuMenuViews.cc \
 $(MDFN_COMMON_SRC) \
-$(MDFN_CDROM_SRC)
-
-MDFN_SRC := pce_fast/input.cpp \
+$(MDFN_CDROM_SRC) \
+pce_fast/input.cpp \
 pce_fast/vdc.cpp \
 pce_fast/huc6280.cpp \
 pce_fast/pce.cpp \
@@ -40,15 +39,13 @@ pce/vce.cpp \
 pce/input/gamepad.cpp \
 pce/input/mouse.cpp \
 pce/input/tsushinkb.cpp \
-cputest/cputest.c \
-sound/DSPUtility.cpp \
-sound/okiadpcm.cpp \
-sound/OwlResampler.cpp \
-hw_misc/arcade_card/arcade_card.cpp \
-hw_sound/pce_psg/pce_psg.cpp \
-hw_video/huc6270/vdc.cpp
-
-SRC += $(addprefix mednafen/,$(MDFN_SRC))
+mednafen/cputest/cputest.c \
+mednafen/sound/DSPUtility.cpp \
+mednafen/sound/okiadpcm.cpp \
+mednafen/sound/OwlResampler.cpp \
+mednafen/hw_misc/arcade_card/arcade_card.cpp \
+mednafen/hw_sound/pce_psg/pce_psg.cpp \
+mednafen/hw_video/huc6270/vdc.cpp
 
 %/mednafen/sound/DSPUtility.o : CFLAGS_OPTIMIZE += -fno-fast-math
 

@@ -104,7 +104,7 @@ constexpr bool imageEffectPixelFormatIsValid(uint8_t val)
 constexpr bool optionImageZoomIsValid(uint8_t val)
 {
 	return val == optionImageZoomIntegerOnly || val == optionImageZoomIntegerOnlyY
-		|| (val >= 10 && val <= 100);
+		|| (val >= 10 && val <= 200);
 }
 
 EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
@@ -1118,6 +1118,15 @@ FS::PathString EmuApp::contentSaveFilePath(std::string_view ext) const
 		return system().contentLocalSaveDirectory(slotName, FS::FileString{"auto"}.append(ext));
 	else
 		return system().contentSaveFilePath(ext);
+}
+
+void EmuApp::setupStaticBackupMemoryFile(FileIO &io, std::string_view ext, size_t size, uint8_t initValue) const
+{
+	if(io)
+		return;
+	io = system().openStaticBackupMemoryFile(system().contentSaveFilePath(ext), size, initValue);
+	if(!io) [[unlikely]]
+		throw std::runtime_error(std::format("Error opening {}, please verify save path has write access", system().contentNameExt(ext)));
 }
 
 void EmuApp::readState(std::span<uint8_t> buff)

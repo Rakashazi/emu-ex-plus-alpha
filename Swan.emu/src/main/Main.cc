@@ -26,9 +26,9 @@
 #include <mednafen-emuex/MDFNUtils.hh>
 #include <mednafen/video/surface.h>
 using namespace Mednafen; // needed for following includes
-#include <mednafen/wswan/gfx.h>
-#include <mednafen/wswan/sound.h>
-#include <mednafen/wswan/memory.h>
+#include <wswan/gfx.h>
+#include <wswan/sound.h>
+#include <wswan/memory.h>
 
 namespace MDFN_IEN_WSWAN
 {
@@ -76,8 +76,7 @@ void WsSystem::loadBackupMemory(EmuApp &app)
 	if(!eeprom_size && !sram_size)
 		return;
 	logMsg("loading sram/eeprom");
-	if(!saveFileIO)
-		saveFileIO = staticBackupMemoryFile(savePathMDFN(app, 0, "sav", noMD5InFilenames), eeprom_size + sram_size);
+	app.setupStaticBackupMemoryFile(saveFileIO, saveExtMDFN("sav", noMD5InFilenames), eeprom_size + sram_size);
 	if(eeprom_size)
 		saveFileIO.read(wsEEPROM, eeprom_size, 0);
 	if(sram_size)

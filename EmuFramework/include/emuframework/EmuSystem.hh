@@ -268,6 +268,12 @@ public:
 	FS::PathString contentFilePath(std::string_view ext) const;
 	const auto &contentLocation() const { return contentLocation_; }
 	const char *contentLocationPtr() { return contentLocation_.data(); }
+	FS::FileString contentNameExt(std::string_view ext) const
+	{
+		FS::FileString name{contentName_};
+		name += ext;
+		return name;
+	}
 	const auto &contentName() const { return contentName_; }
 	FS::FileString contentFileName() const;
 	std::string contentDisplayName() const;
@@ -328,7 +334,7 @@ public:
 	void onBackupMemoryWritten(BackupMemoryDirtyFlags flags = 0xFF);
 	bool updateBackupMemoryCounter();
 	bool usesBackupMemory() const;
-	FileIO staticBackupMemoryFile(CStringView uri, size_t staticSize, uint8_t initValue = 0) const;
+	FileIO openStaticBackupMemoryFile(CStringView uri, size_t staticSize, uint8_t initValue = 0) const;
 	void sessionOptionSet();
 	void resetSessionOptionsSet() { sessionOptionsSet = false; }
 	bool sessionOptionsAreSet() const { return sessionOptionsSet; }

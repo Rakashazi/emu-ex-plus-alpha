@@ -57,9 +57,9 @@ static std::pair<IG::OpenFlags, uint8_t> modeToAttribs(uint32 mode)
 FileStream::FileStream(const std::string& path, const uint32 mode, const int do_lock, const uint32 buffer_size)
 try:
 	io{EmuEx::gAppContext().openFileUri(path, IG::IOAccessHint::Sequential, modeToAttribs(mode).first)},
-	attribs{modeToAttribs(mode).second}
+ attribs{modeToAttribs(mode).second}
 {
-	assert(!do_lock);
+ assert(!do_lock);
 }
 catch(std::system_error &err)
 {

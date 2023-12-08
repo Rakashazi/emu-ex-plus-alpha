@@ -96,7 +96,7 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 			contentRect_.x2 = x * scaleFactor;
 			contentRect_.y2 = y * scaleFactor;
 		}
-		if(zoom <= 100 || zoom == optionImageZoomIntegerOnlyY)
+		if(zoom <= 200 || zoom == optionImageZoomIntegerOnlyY)
 		{
 			auto aR = evalAspectRatio(viewportAspectRatio < 1.f ? portraitAspectRatio : landscapeAspectRatio)
 				* sys.videoAspectRatioScale();
@@ -121,7 +121,7 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 				}
 				contentRect_.x2 = size.x;
 				contentRect_.y2 = size.y;
-				if(zoom < 100)
+				if(zoom != 100)
 				{
 					auto scaler = zoom / 100.f;
 					contentRect_.x2 *= scaler;

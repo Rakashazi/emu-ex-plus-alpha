@@ -15,9 +15,8 @@ SRC += main/Main.cc \
 main/options.cc \
 main/input.cc \
 main/EmuMenuViews.cc \
-$(MDFN_COMMON_SRC)
-
-MDFN_SRC := lynx/c65c02.cpp \
+$(MDFN_COMMON_SRC) \
+lynx/c65c02.cpp \
 lynx/cart.cpp \
 lynx/lynxdec.cpp \
 lynx/memmap.cpp \
@@ -26,8 +25,6 @@ lynx/ram.cpp \
 lynx/rom.cpp \
 lynx/susie.cpp \
 lynx/system.cpp
-
-SRC += $(addprefix mednafen/,$(MDFN_SRC))
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk

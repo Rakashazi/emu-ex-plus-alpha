@@ -16,9 +16,9 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
 #include "MainSystem.hh"
-#include <mednafen/pce/pcecd.h>
-#include <mednafen/pce/vce.h>
-#include <mednafen/pce_fast/pcecd.h>
+#include <pce/pcecd.h>
+#include <pce/vce.h>
+#include <pce_fast/pcecd.h>
 #include <mednafen-emuex/MDFNUtils.hh>
 #include <mednafen/general.h>
 

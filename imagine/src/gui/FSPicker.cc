@@ -219,7 +219,8 @@ void FSPicker::setEmptyPath(std::string_view message)
 	{
 		fileTableView().resetName("Select File Location");
 	}
-	place();
+	if(viewRect().x)
+		place();
 }
 
 void FSPicker::setEmptyPath()

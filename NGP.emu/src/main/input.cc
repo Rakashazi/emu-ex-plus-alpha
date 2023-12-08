@@ -18,7 +18,7 @@
 #include <emuframework/keyRemappingUtils.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
-#include <mednafen/ngp/mem.h>
+#include <ngp/mem.h>
 
 namespace EmuEx
 {

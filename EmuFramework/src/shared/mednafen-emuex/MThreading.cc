@@ -16,6 +16,8 @@
 #include <mednafen/types.h>
 #include <mednafen/MThreading.h>
 #include <imagine/util/utility.h>
+#include <imagine/thread/Semaphore.hh>
+#include <imagine/logger/logger.h>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -23,12 +25,18 @@
 namespace Mednafen::MThreading
 {
 
+constexpr IG::SystemLogger log{"MDFNThreading"};
+
 struct Thread : public std::thread
 {
 	using thread::thread;
 };
 struct Mutex : public std::mutex {};
 struct Cond : public std::condition_variable {};
+struct Sem : public std::counting_semaphore<0x80000>
+{
+	using counting_semaphore<0x80000>::counting_semaphore;
+};
 
 Thread* Thread_Create(int (*fn)(void *), void *data, const char* debug_name)
 {
@@ -98,6 +106,52 @@ bool Cond_Wait(Cond* cond, Mutex* mutex) noexcept
 	cond->wait(lock);
 	lock.release();
 	return true;
+}
+
+
+Sem* Sem_Create(void)
+{
+	return new Sem{0};
+}
+
+void Sem_Destroy(Sem* sem) noexcept
+{
+	delete sem;
+}
+
+bool Sem_Wait(Sem* sem) noexcept
+{
+	assumeExpr(sem);
+	sem->acquire();
+	return true;
+}
+
+bool Sem_TimedWait(Sem* sem, unsigned ms) noexcept
+{
+	assumeExpr(sem);
+	bool acquired = sem->try_acquire_for(std::chrono::milliseconds{ms});
+	if(!acquired)
+	{
+		//log.debug("Semaphore:{} waited on longer than {}ms", (void*)sem, ms);
+	}
+	return acquired;
+}
+
+bool Sem_Post(Sem* sem) noexcept
+{
+	assumeExpr(sem);
+	sem->release();
+	return true;
+}
+
+}
+
+namespace Mednafen::Time
+{
+
+void SleepMS(uint32) noexcept
+{
+	sched_yield();
 }
 
 }

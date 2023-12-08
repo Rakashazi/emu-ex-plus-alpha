@@ -111,10 +111,7 @@ void GbaSystem::loadBackupMemory(EmuApp &app)
 {
 	if(coreOptions.saveType == GBA_SAVE_NONE)
 		return;
-	if(!saveFileIO)
-		saveFileIO = staticBackupMemoryFile(app.contentSaveFilePath(".sav"), saveMemorySize(), 0xFF);
-	if(!saveFileIO)
-		throw std::runtime_error("Error accessing .sav file, please verify it has write access");
+	app.setupStaticBackupMemoryFile(saveFileIO, ".sav", saveMemorySize(), 0xFF);
 	auto buff = saveFileIO.buffer(IOBufferMode::Release);
 	if(buff.isMappedFile())
 		saveFileIO = {};

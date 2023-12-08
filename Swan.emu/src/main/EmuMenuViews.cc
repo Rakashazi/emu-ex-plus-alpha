@@ -17,7 +17,7 @@
 #include <emuframework/SystemActionsView.hh>
 #include <mednafen-emuex/MDFNUtils.hh>
 #include "MainApp.hh"
-#include <mednafen/wswan/wswan.h>
+#include <wswan/wswan.h>
 
 namespace EmuEx
 {

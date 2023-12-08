@@ -23,9 +23,9 @@
 #include <imagine/logger/logger.h>
 #include <mednafen/state-driver.h>
 #include <mednafen/MemoryStream.h>
-#include <mednafen/ngp/neopop.h>
-#include <mednafen/ngp/flash.h>
-#include <mednafen/ngp/sound.h>
+#include <ngp/neopop.h>
+#include <ngp/flash.h>
+#include <ngp/sound.h>
 #include <mednafen-emuex/MDFNUtils.hh>
 
 namespace MDFN_IEN_NGP
