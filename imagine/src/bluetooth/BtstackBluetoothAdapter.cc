@@ -20,6 +20,7 @@
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/ranges.hh>
+#include <imagine/util/algorithm.h>
 
 namespace IG
 {

@@ -135,16 +135,16 @@ std::span<const KeyConfigDesc> NeoApp::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{NeoKey::Up, Wiimote::UP},
-		KeyMapping{NeoKey::Right, Wiimote::RIGHT},
-		KeyMapping{NeoKey::Down, Wiimote::DOWN},
-		KeyMapping{NeoKey::Left, Wiimote::LEFT},
-		KeyMapping{NeoKey::B, Wiimote::_1},
-		KeyMapping{NeoKey::D, Wiimote::_2},
-		KeyMapping{NeoKey::A, Wiimote::B},
-		KeyMapping{NeoKey::C, Wiimote::A},
-		KeyMapping{NeoKey::Select, Wiimote::MINUS},
-		KeyMapping{NeoKey::Start, Wiimote::PLUS},
+		KeyMapping{NeoKey::Up, WiimoteKey::UP},
+		KeyMapping{NeoKey::Right, WiimoteKey::RIGHT},
+		KeyMapping{NeoKey::Down, WiimoteKey::DOWN},
+		KeyMapping{NeoKey::Left, WiimoteKey::LEFT},
+		KeyMapping{NeoKey::B, WiimoteKey::_1},
+		KeyMapping{NeoKey::D, WiimoteKey::_2},
+		KeyMapping{NeoKey::A, WiimoteKey::B},
+		KeyMapping{NeoKey::C, WiimoteKey::A},
+		KeyMapping{NeoKey::Select, WiimoteKey::MINUS},
+		KeyMapping{NeoKey::Start, WiimoteKey::PLUS},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

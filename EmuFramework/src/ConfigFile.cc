@@ -19,7 +19,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/input/config.hh>
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/util/ScopeGuard.hh>
 

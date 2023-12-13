@@ -17,6 +17,7 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/inputDefs.hh>
+#include <imagine/input/Axis.hh>
 
 namespace IG
 {
@@ -29,12 +30,12 @@ public:
 	static constexpr std::array<uint8_t, 3> btClass{0x00, 0x1F, 0x00};
 
 	IControlPad(ApplicationContext, BluetoothAddr);
-	ErrorCode open(BluetoothAdapter &adapter) final;
+	ErrorCode open(BluetoothAdapter &, Input::Device &) final;
 	void close();
-	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
-	bool dataHandler(const char *packet, size_t size);
-	const char *keyName(Input::Key k) const final;
-	std::span<Input::Axis> motionAxes() final;
+	uint32_t statusHandler(Input::Device &, BluetoothSocket &, uint32_t status);
+	bool dataHandler(Input::Device &, const char *packet, size_t size);
+	const char *keyName(Input::Key k) const;
+	std::span<Input::Axis> motionAxes() { return axis; }
 	static bool isSupportedClass(std::array<uint8_t, 3> devClass);
 	static std::pair<Input::Key, Input::Key> joystickKeys(Input::AxisId);
 
@@ -53,14 +54,14 @@ private:
 	char prevBtnData[2]{};
 	Input::Axis axis[4]
 	{
-		{*this, Input::AxisId::X, axisScaler}, // Left X Axis
-		{*this, Input::AxisId::Y, axisScaler}, // Left Y Axis
-		{*this, Input::AxisId::Z, axisScaler}, // Right X Axis
-		{*this, Input::AxisId::RZ, axisScaler} // Right Y Axis
+		{Input::Map::ICONTROLPAD, Input::AxisId::X, axisScaler}, // Left X Axis
+		{Input::Map::ICONTROLPAD, Input::AxisId::Y, axisScaler}, // Left Y Axis
+		{Input::Map::ICONTROLPAD, Input::AxisId::Z, axisScaler}, // Right X Axis
+		{Input::Map::ICONTROLPAD, Input::AxisId::RZ, axisScaler} // Right Y Axis
 	};
 	BluetoothAddr addr;
 
-	void processBtnReport(const char *btnData, SteadyClockTimePoint time);
+	void processBtnReport(Input::Device &, const char *btnData, SteadyClockTimePoint time);
 };
 
 }

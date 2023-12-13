@@ -26,6 +26,7 @@
 #include <bluetooth/hidp.h>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/ranges.hh>
+#include <imagine/util/algorithm.h>
 #include <cerrno>
 
 #ifdef __ANDROID__

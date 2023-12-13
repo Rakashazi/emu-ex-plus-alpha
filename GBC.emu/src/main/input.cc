@@ -117,14 +117,14 @@ std::span<const KeyConfigDesc> GbcApp::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{GbcKey::Up, Wiimote::UP},
-		KeyMapping{GbcKey::Right, Wiimote::RIGHT},
-		KeyMapping{GbcKey::Down, Wiimote::DOWN},
-		KeyMapping{GbcKey::Left, Wiimote::LEFT},
-		KeyMapping{GbcKey::B, Wiimote::_1},
-		KeyMapping{GbcKey::A, Wiimote::_2},
-		KeyMapping{GbcKey::Select, Wiimote::MINUS},
-		KeyMapping{GbcKey::Start, Wiimote::PLUS},
+		KeyMapping{GbcKey::Up, WiimoteKey::UP},
+		KeyMapping{GbcKey::Right, WiimoteKey::RIGHT},
+		KeyMapping{GbcKey::Down, WiimoteKey::DOWN},
+		KeyMapping{GbcKey::Left, WiimoteKey::LEFT},
+		KeyMapping{GbcKey::B, WiimoteKey::_1},
+		KeyMapping{GbcKey::A, WiimoteKey::_2},
+		KeyMapping{GbcKey::Select, WiimoteKey::MINUS},
+		KeyMapping{GbcKey::Start, WiimoteKey::PLUS},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

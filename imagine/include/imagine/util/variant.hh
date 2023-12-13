@@ -15,8 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/util/utility.h>
 #include <variant>
-#include <utility>
 #include <type_traits>
 
 namespace IG
@@ -76,6 +76,22 @@ constexpr decltype(auto) visit(auto &&func, auto &v)
 {
   return visitVariant(std::forward<decltype(func)>(func),
     asVariant(std::forward<decltype(v)>(v)));
+}
+
+template<class T, class... VTypes>
+constexpr T& getAs(std::variant<VTypes...> &v)
+{
+	auto vPtr = std::get_if<T>(&v);
+	assumeExpr(vPtr);
+	return *vPtr;
+}
+
+template<class T, class... VTypes>
+constexpr const T& getAs(const std::variant<VTypes...> &v)
+{
+	auto vPtr = std::get_if<T>(&v);
+	assumeExpr(vPtr);
+	return *vPtr;
 }
 
 }

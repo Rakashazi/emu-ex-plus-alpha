@@ -23,7 +23,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/input/Device.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
-#include "../../input/apple/AppleGameDevice.hh"
 #include "ios.hh"
 
 @interface UIEvent ()
@@ -82,25 +81,7 @@ static constexpr int GSEVENT_TYPE_KEYUP = 11;
 
 static constexpr double MSEC_PER_SEC = 1000;
 
-struct KeyboardDevice : public Device
-{
-	bool iCadeMode_ = false;
-
-	KeyboardDevice(): Device{0, Map::SYSTEM, virtualDeviceFlags, "Keyboard/iCade"} {}
-
-	void setICadeMode(bool on) final
-	{
-		logMsg("set iCade mode %s", on ? "on" : "off");
-		iCadeMode_ = on;
-	}
-
-	bool iCadeMode() const final
-	{
-		return iCadeMode_;
-	}
-};
-
-static KeyboardDevice *keyDevPtr;
+static Input::Device *keyDevPtr;
 static bool hardwareKBAttached = false;
 
 using GSEventIsHardwareKeyboardAttachedProto = BOOL(*)();
@@ -254,7 +235,7 @@ std::string KeyEvent::keyString(ApplicationContext) const
 
 void init(ApplicationContext ctx)
 {
-	keyDevPtr = static_cast<KeyboardDevice*>(&ctx.application().addInputDevice(ctx, std::make_unique<KeyboardDevice>()));
+	keyDevPtr = &ctx.application().addInputDevice(ctx, std::make_unique<Input::Device>(std::in_place_type<Input::KeyboardDevice>));
 	GSEventIsHardwareKeyboardAttached = (GSEventIsHardwareKeyboardAttachedProto)dlsym(RTLD_DEFAULT, "GSEventIsHardwareKeyboardAttached");
 	if(GSEventIsHardwareKeyboardAttached)
 	{

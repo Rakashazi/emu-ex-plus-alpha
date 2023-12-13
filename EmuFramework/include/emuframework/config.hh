@@ -16,7 +16,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/input/config.hh>
 #include <imagine/bluetooth/config.hh>
 
 #ifdef ENV_NOTE

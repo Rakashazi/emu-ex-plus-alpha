@@ -17,6 +17,7 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/inputDefs.hh>
+#include <imagine/input/Axis.hh>
 
 namespace IG
 {
@@ -27,15 +28,15 @@ class PS3Controller : public BluetoothInputDevice
 {
 public:
 	PS3Controller(ApplicationContext, BluetoothAddr);
-	IG::ErrorCode open(BluetoothAdapter &adapter) final;
-	IG::ErrorCode open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
+	IG::ErrorCode open(BluetoothAdapter &, Input::Device &) final;
+	IG::ErrorCode open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending, Input::Device &);
 	IG::ErrorCode open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
 	void close();
-	bool dataHandler(const char *data, size_t size);
-	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
+	bool dataHandler(Input::Device &, const char *data, size_t size);
+	uint32_t statusHandler(Input::Device &, BluetoothSocket &, uint32_t status);
 	void setLEDs(uint32_t player);
-	const char *keyName(Input::Key k) const final;
-	std::span<Input::Axis> motionAxes() final;
+	const char *keyName(Input::Key k) const;
+	std::span<Input::Axis> motionAxes() { return axis; };
 	static std::pair<Input::Key, Input::Key> joystickKeys(Input::AxisId);
 
 private:
@@ -44,10 +45,10 @@ private:
 	bool didSetLEDs = false;
 	Input::Axis axis[4]
 	{
-		{*this, Input::AxisId::X,	axisScaler}, // Left X Axis
-		{*this, Input::AxisId::Y, axisScaler}, // Left Y Axis
-		{*this, Input::AxisId::Z, axisScaler}, // Right X Axis
-		{*this, Input::AxisId::RZ, axisScaler} // Right Y Axis
+		{Input::Map::PS3PAD, Input::AxisId::X,	axisScaler}, // Left X Axis
+		{Input::Map::PS3PAD, Input::AxisId::Y,  axisScaler}, // Left Y Axis
+		{Input::Map::PS3PAD, Input::AxisId::Z,  axisScaler}, // Right X Axis
+		{Input::Map::PS3PAD, Input::AxisId::RZ, axisScaler} // Right Y Axis
 	};
 	BluetoothSocketSys ctlSock, intSock;
 	BluetoothAddr addr;

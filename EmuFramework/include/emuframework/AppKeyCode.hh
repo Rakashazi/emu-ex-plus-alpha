@@ -77,21 +77,21 @@ constexpr KeyCategory appKeyCategory{"In-Emulation Actions", appKeys};
 
 constexpr std::array genericGamepadAppKeyCodeMap
 {
-	KeyMapping{appKeys.openSystemActions, Input::Keycode::MENU},
-	KeyMapping{appKeys.fastForward, Input::Keycode::JS_RTRIGGER_AXIS},
+	KeyMapping{appKeys.openSystemActions, Input::Keycode::GAME_MODE},
+	KeyMapping{appKeys.fastForward, Input::Keycode::GAME_R2},
 	KeyMapping{appKeys.openMenu, Input::Keycode::BACK},
 };
 
 constexpr std::array genericGamepadModifierAppKeyCodeMap
 {
-	KeyMapping{appKeys.openSystemActions, Input::Keycode::MENU},
-	KeyMapping{appKeys.fastForward, {Input::Keycode::JS_RTRIGGER_AXIS, Input::Keycode::JS2_XAXIS_POS}},
+	KeyMapping{appKeys.openSystemActions, Input::Keycode::GAME_MODE},
+	KeyMapping{appKeys.fastForward, {Input::Keycode::GAME_R2, Input::Keycode::JS2_XAXIS_POS}},
 	KeyMapping{appKeys.openMenu, Input::Keycode::BACK},
 };
 
 constexpr std::array genericWiimoteAppKeyCodeMap
 {
-	KeyMapping{appKeys.openSystemActions, Input::Wiimote::HOME},
+	KeyMapping{appKeys.openSystemActions, Input::WiimoteKey::HOME},
 };
 
 constexpr std::array genericKeyboardAppKeyCodeMap

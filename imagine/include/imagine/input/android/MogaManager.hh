@@ -34,10 +34,10 @@ private:
 	JNI::UniqueGlobalRef mogaHelper{};
 	JNI::InstMethod<jint(jint)> jMOGAGetState{};
 	JNI::InstMethod<void()> jMOGAOnPause{}, jMOGAOnResume{}, jMOGAExit{};
-	AndroidInputDevice *mogaDev{};
+	Device *mogaDev{};
 	OnExit onExit;
 
-	static AndroidInputDevice makeMOGADevice(const char *name);
+	static std::unique_ptr<Device> makeMOGADevice(const char *name);
 	void initMOGAJNIAndDevice(JNIEnv *, jobject mogaHelper);
 	void onResumeMOGA(JNIEnv *, bool notify);
 	void updateMOGAState(JNIEnv *env, bool connected, bool notify);

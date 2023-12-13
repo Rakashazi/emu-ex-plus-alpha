@@ -35,7 +35,7 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include "android.hh"
-#include "AndroidInputDevice.hh"
+#include <imagine/base/android/AndroidInputDevice.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
@@ -386,8 +386,8 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 					ApplicationContext ctx{reinterpret_cast<ANativeActivity*>(nUserData)};
 					auto &app = ctx.application();
 					const char *name = env->GetStringUTFChars(jName, nullptr);
-					Input::AndroidInputDevice sysDev{env, jDev, devID, src,
-						name, kbType, std::bit_cast<Input::AxisFlags>(jsAxisFlags), (uint32_t)vendorProductId, (bool)isPowerButton};
+					auto sysDev = std::make_unique<Input::Device>(std::in_place_type<Input::AndroidInputDevice>, env, jDev, devID, src,
+						name, kbType, std::bit_cast<Input::AxisFlags>(jsAxisFlags), (uint32_t)vendorProductId, (bool)isPowerButton);
 					env->ReleaseStringUTFChars(jName, name);
 					auto devPtr = app.updateAndroidInputDevice(ctx, std::move(sysDev), false);
 					// check for special device IDs

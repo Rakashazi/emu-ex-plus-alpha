@@ -466,15 +466,14 @@ IG::ApplicationContext EmuViewController::appContext() const
 bool EmuViewController::isMenuDismissKey(const Input::KeyEvent &e) const
 {
 	using namespace IG::Input;
-	Key dismissKey = Keycode::MENU;
-	Key dismissKey2 = Keycode::GAME_Y;
+	std::array dismissKeys{Keycode::MENU, Keycode::GAME_Y, Keycode::GAME_MODE};
 	if(Config::MACHINE_IS_PANDORA && e.device()->subtype() == Device::Subtype::PANDORA_HANDHELD)
 	{
 		if(hasModalView()) // make sure not performing text input
 			return false;
-		dismissKey = Keycode::SPACE;
+		dismissKeys[0] = Keycode::SPACE;
 	}
-	return e.key() == dismissKey || e.key() == dismissKey2;
+	return std::ranges::any_of(dismissKeys, [&](auto &k){return e.key() == k;});
 }
 
 void EmuViewController::onHide()

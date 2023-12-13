@@ -411,14 +411,14 @@ std::span<const KeyConfigDesc> MsxApp::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{EC_JOY1_UP, Wiimote::UP},
-		KeyMapping{EC_JOY1_RIGHT, Wiimote::RIGHT},
-		KeyMapping{EC_JOY1_DOWN, Wiimote::DOWN},
-		KeyMapping{EC_JOY1_LEFT, Wiimote::LEFT},
-		KeyMapping{EC_JOY1_BUTTON1, Wiimote::_1},
-		KeyMapping{EC_JOY1_BUTTON2, Wiimote::_2},
-		KeyMapping{EC_F2, Wiimote::MINUS},
-		KeyMapping{EC_F1, Wiimote::PLUS},
+		KeyMapping{EC_JOY1_UP, WiimoteKey::UP},
+		KeyMapping{EC_JOY1_RIGHT, WiimoteKey::RIGHT},
+		KeyMapping{EC_JOY1_DOWN, WiimoteKey::DOWN},
+		KeyMapping{EC_JOY1_LEFT, WiimoteKey::LEFT},
+		KeyMapping{EC_JOY1_BUTTON1, WiimoteKey::_1},
+		KeyMapping{EC_JOY1_BUTTON2, WiimoteKey::_2},
+		KeyMapping{EC_F2, WiimoteKey::MINUS},
+		KeyMapping{EC_F1, WiimoteKey::PLUS},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

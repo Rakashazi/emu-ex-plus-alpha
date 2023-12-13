@@ -123,15 +123,15 @@ std::span<const KeyConfigDesc> LynxApp::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{LynxKey::Up, Wiimote::UP},
-		KeyMapping{LynxKey::Right, Wiimote::RIGHT},
-		KeyMapping{LynxKey::Down, Wiimote::DOWN},
-		KeyMapping{LynxKey::Left, Wiimote::LEFT},
-		KeyMapping{LynxKey::B, Wiimote::_1},
-		KeyMapping{LynxKey::A, Wiimote::_2},
-		KeyMapping{LynxKey::Option1, Wiimote::A},
-		KeyMapping{LynxKey::Option1, Wiimote::B},
-		KeyMapping{LynxKey::Pause, Wiimote::PLUS},
+		KeyMapping{LynxKey::Up, WiimoteKey::UP},
+		KeyMapping{LynxKey::Right, WiimoteKey::RIGHT},
+		KeyMapping{LynxKey::Down, WiimoteKey::DOWN},
+		KeyMapping{LynxKey::Left, WiimoteKey::LEFT},
+		KeyMapping{LynxKey::B, WiimoteKey::_1},
+		KeyMapping{LynxKey::A, WiimoteKey::_2},
+		KeyMapping{LynxKey::Option1, WiimoteKey::A},
+		KeyMapping{LynxKey::Option1, WiimoteKey::B},
+		KeyMapping{LynxKey::Pause, WiimoteKey::PLUS},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

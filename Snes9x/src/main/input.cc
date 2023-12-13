@@ -145,16 +145,16 @@ std::span<const KeyConfigDesc> Snes9xApp::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{SnesKey::Up, Wiimote::UP},
-		KeyMapping{SnesKey::Right, Wiimote::RIGHT},
-		KeyMapping{SnesKey::Down, Wiimote::DOWN},
-		KeyMapping{SnesKey::Left, Wiimote::LEFT},
-		KeyMapping{SnesKey::B, Wiimote::_1},
-		KeyMapping{SnesKey::A, Wiimote::_2},
-		KeyMapping{SnesKey::Y, Wiimote::A},
-		KeyMapping{SnesKey::X, Wiimote::B},
-		KeyMapping{SnesKey::Select, Wiimote::MINUS},
-		KeyMapping{SnesKey::Start, Wiimote::PLUS},
+		KeyMapping{SnesKey::Up, WiimoteKey::UP},
+		KeyMapping{SnesKey::Right, WiimoteKey::RIGHT},
+		KeyMapping{SnesKey::Down, WiimoteKey::DOWN},
+		KeyMapping{SnesKey::Left, WiimoteKey::LEFT},
+		KeyMapping{SnesKey::B, WiimoteKey::_1},
+		KeyMapping{SnesKey::A, WiimoteKey::_2},
+		KeyMapping{SnesKey::Y, WiimoteKey::A},
+		KeyMapping{SnesKey::X, WiimoteKey::B},
+		KeyMapping{SnesKey::Select, WiimoteKey::MINUS},
+		KeyMapping{SnesKey::Start, WiimoteKey::PLUS},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

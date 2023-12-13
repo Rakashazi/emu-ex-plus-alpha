@@ -486,12 +486,12 @@ std::span<const KeyConfigDesc> C64App::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{C64Key::Up, Wiimote::UP},
-		KeyMapping{C64Key::Right, Wiimote::RIGHT},
-		KeyMapping{C64Key::Down, Wiimote::DOWN},
-		KeyMapping{C64Key::Left, Wiimote::LEFT},
-		KeyMapping{C64Key::JSTrigger, Wiimote::_1},
-		KeyMapping{C64Key::KeyboardF1, Wiimote::PLUS},
+		KeyMapping{C64Key::Up, WiimoteKey::UP},
+		KeyMapping{C64Key::Right, WiimoteKey::RIGHT},
+		KeyMapping{C64Key::Down, WiimoteKey::DOWN},
+		KeyMapping{C64Key::Left, WiimoteKey::LEFT},
+		KeyMapping{C64Key::JSTrigger, WiimoteKey::_1},
+		KeyMapping{C64Key::KeyboardF1, WiimoteKey::PLUS},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

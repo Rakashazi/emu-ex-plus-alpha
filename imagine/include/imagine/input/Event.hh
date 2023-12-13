@@ -136,22 +136,24 @@ class MotionEvent : public BaseEvent
 public:
 	constexpr MotionEvent() = default;
 
-	constexpr MotionEvent(Map map, Key button, uint32_t metaState, Action state, int x, int y, PointerId pointerId, Source src, SteadyClockTimePoint time, const Device *device)
+	constexpr MotionEvent(Map map, Key button, uint32_t metaState, Action state, float x, float y, PointerId pointerId, Source src, SteadyClockTimePoint time, const Device *device)
 		: BaseEvent{map, button, metaState, state, src, time, device}, pointerId_{pointerId}, x{x}, y{y} {}
 
-	WPt pos() const;
+	WPt pos() const { return {int(x), int(y)}; }
+	F2Pt posF() const { return {x, y}; }
 	PointerId pointerId() const;
 	bool pointerDown(Key btnMask) const;
 	int scrolledVertical() const;
 	bool canceled() const;
 	bool isOff() const;
 	bool moved() const;
-	bool isAbsolute() const;
+	bool isPointer() const;
+	bool isJoystick() const;
 	bool isRelative() const;
 	bool isTouch() const;
 protected:
 	PointerId pointerId_{};
-	int x{}, y{};
+	float x{}, y{};
 };
 
 using EventVariant = std::variant<MotionEvent, KeyEvent>;

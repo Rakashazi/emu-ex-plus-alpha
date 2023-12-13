@@ -31,19 +31,19 @@ using namespace IG::Input;
 
 static const PackedInputAccess iCPDataAccess[] =
 {
-	{ 0, bit(2), iControlPad::LEFT, Keycode::LEFT },
-	{ 0, bit(1), iControlPad::RIGHT, Keycode::RIGHT },
-	{ 0, bit(3), iControlPad::DOWN, Keycode::DOWN },
-	{ 0, bit(0), iControlPad::UP, Keycode::UP },
-	{ 0, bit(4), iControlPad::L, Keycode::GAME_L1 },
+	{ 0, bit(2), iControlPadKey::LEFT, Keycode::LEFT },
+	{ 0, bit(1), iControlPadKey::RIGHT, Keycode::RIGHT },
+	{ 0, bit(3), iControlPadKey::DOWN, Keycode::DOWN },
+	{ 0, bit(0), iControlPadKey::UP, Keycode::UP },
+	{ 0, bit(4), iControlPadKey::L, Keycode::GAME_L1 },
 
-	{ 1, bit(3), iControlPad::A, Keycode::GAME_X },
-	{ 1, bit(4), iControlPad::X, Keycode::GAME_A },
-	{ 1, bit(5), iControlPad::B, Keycode::GAME_B },
-	{ 1, bit(6), iControlPad::R, Keycode::GAME_R1 },
-	{ 1, bit(0), iControlPad::SELECT, Keycode::GAME_SELECT },
-	{ 1, bit(2), iControlPad::Y, Keycode::GAME_Y },
-	{ 1, bit(1), iControlPad::START, Keycode::GAME_START },
+	{ 1, bit(3), iControlPadKey::A, Keycode::GAME_X },
+	{ 1, bit(4), iControlPadKey::X, Keycode::GAME_A },
+	{ 1, bit(5), iControlPadKey::B, Keycode::GAME_B },
+	{ 1, bit(6), iControlPadKey::R, Keycode::GAME_R1 },
+	{ 1, bit(0), iControlPadKey::SELECT, Keycode::GAME_SELECT },
+	{ 1, bit(2), iControlPadKey::Y, Keycode::GAME_Y },
+	{ 1, bit(1), iControlPadKey::START, Keycode::GAME_START },
 };
 
 static const uint8_t CMD_SPP_GP_REPORTS = 0xAD;
@@ -80,26 +80,26 @@ static const char *icpButtonName(Key b)
 	switch(b)
 	{
 		case 0: return "None";
-		case iControlPad::A: return "A";
-		case iControlPad::B: return "B";
-		case iControlPad::X: return "X";
-		case iControlPad::Y: return "Y";
-		case iControlPad::L: return "L";
-		case iControlPad::R: return "R";
-		case iControlPad::START: return "Start";
-		case iControlPad::SELECT: return "Select";
-		case iControlPad::LNUB_LEFT: return "L:Left";
-		case iControlPad::LNUB_RIGHT: return "L:Right";
-		case iControlPad::LNUB_UP: return "L:Up";
-		case iControlPad::LNUB_DOWN: return "L:Down";
-		case iControlPad::RNUB_LEFT: return "R:Left";
-		case iControlPad::RNUB_RIGHT: return "R:Right";
-		case iControlPad::RNUB_UP: return "R:Up";
-		case iControlPad::RNUB_DOWN: return "R:Down";
-		case iControlPad::UP: return "Up";
-		case iControlPad::RIGHT: return "Right";
-		case iControlPad::DOWN: return "Down";
-		case iControlPad::LEFT: return "Left";
+		case iControlPadKey::A: return "A";
+		case iControlPadKey::B: return "B";
+		case iControlPadKey::X: return "X";
+		case iControlPadKey::Y: return "Y";
+		case iControlPadKey::L: return "L";
+		case iControlPadKey::R: return "R";
+		case iControlPadKey::START: return "Start";
+		case iControlPadKey::SELECT: return "Select";
+		case iControlPadKey::LNUB_LEFT: return "L:Left";
+		case iControlPadKey::LNUB_RIGHT: return "L:Right";
+		case iControlPadKey::LNUB_UP: return "L:Up";
+		case iControlPadKey::LNUB_DOWN: return "L:Down";
+		case iControlPadKey::RNUB_LEFT: return "R:Left";
+		case iControlPadKey::RNUB_RIGHT: return "R:Right";
+		case iControlPadKey::RNUB_UP: return "R:Up";
+		case iControlPadKey::RNUB_DOWN: return "R:Down";
+		case iControlPadKey::UP: return "Up";
+		case iControlPadKey::RIGHT: return "Right";
+		case iControlPadKey::DOWN: return "Down";
+		case iControlPadKey::LEFT: return "Left";
 	}
 	return "";
 }
@@ -115,18 +115,18 @@ const char *IControlPad::keyName(Key k) const
 	return icpButtonName(k);
 }
 
-IG::ErrorCode IControlPad::open(BluetoothAdapter &adapter)
+IG::ErrorCode IControlPad::open(BluetoothAdapter &adapter, Input::Device &dev)
 {
 	logMsg("connecting to iCP");
 	sock.onData() =
-		[this](const char *packet, size_t size)
+		[&dev](const char *packet, size_t size)
 		{
-			return dataHandler(packet, size);
+			return getAs<IControlPad>(dev).dataHandler(dev, packet, size);
 		};
 	sock.onStatus() =
-		[this](BluetoothSocket &sock, uint32_t status)
+		[&dev](BluetoothSocket &sock, uint32_t status)
 		{
-			return statusHandler(sock, status);
+			return getAs<IControlPad>(dev).statusHandler(dev, sock, status);
 		};
 	if(auto err = sock.openRfcomm(adapter, addr, 1);
 		err)
@@ -142,12 +142,12 @@ void IControlPad::close()
 	sock.close();
 }
 
-uint32_t IControlPad::statusHandler(BluetoothSocket &sock, uint32_t status)
+uint32_t IControlPad::statusHandler(Input::Device &dev, BluetoothSocket &sock, uint32_t status)
 {
 	if(status == BluetoothSocket::STATUS_OPENED)
 	{
 		logMsg("iCP opened successfully");
-		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 		sock.write(setLEDPulseInverse, sizeof setLEDPulseInverse);
 		function = FUNC_SET_LED_MODE;
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
@@ -155,17 +155,17 @@ uint32_t IControlPad::statusHandler(BluetoothSocket &sock, uint32_t status)
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("iCP connection error");
-		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 	}
 	else if(status == BluetoothSocket::STATUS_READ_ERROR)
 	{
 		logErr("iCP read error, disconnecting");
-		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 	}
 	return 0;
 }
 
-bool IControlPad::dataHandler(const char *packetPtr, size_t size)
+bool IControlPad::dataHandler(Input::Device &dev, const char *packetPtr, size_t size)
 {
 	auto packet = (const uint8_t*)packetPtr;
 	uint32_t bytesLeft = size;
@@ -177,7 +177,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 			if(packet[size-bytesLeft] != RESP_OKAY)
 			{
 				logErr("error: iCP didn't respond with OK");
-				ctx.application().bluetoothInputDeviceStatus(ctx, *this, BluetoothSocket::STATUS_READ_ERROR);
+				ctx.application().bluetoothInputDeviceStatus(ctx, dev, BluetoothSocket::STATUS_READ_ERROR);
 				return 0;
 			}
 			logMsg("got OK reply");
@@ -205,10 +205,10 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 				auto time = SteadyClock::now();
 				for(auto i : iotaCount(4))
 				{
-					if(axis[i].update(inputBuffer[i], Input::Map::ICONTROLPAD, time, *this, ctx.mainWindow()))
+					if(axis[i].dispatchInputEvent(inputBuffer[i], Input::Map::ICONTROLPAD, time, dev, ctx.mainWindow()))
 						ctx.endIdleByUserActivity();
 				}
-				processBtnReport(&inputBuffer[4], time);
+				processBtnReport(dev, &inputBuffer[4], time);
 				inputBufferPos = 0;
 			}
 			bytesLeft -= processBytes;
@@ -219,7 +219,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 	return 1;
 }
 
-void IControlPad::processBtnReport(const char *btnData, SteadyClockTimePoint time)
+void IControlPad::processBtnReport(Input::Device &dev, const char *btnData, SteadyClockTimePoint time)
 {
 	using namespace IG::Input;
 	for(auto e : iCPDataAccess)
@@ -230,7 +230,7 @@ void IControlPad::processBtnReport(const char *btnData, SteadyClockTimePoint tim
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			KeyEvent event{Map::ICONTROLPAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+			KeyEvent event{Map::ICONTROLPAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}
@@ -242,19 +242,14 @@ bool IControlPad::isSupportedClass(std::array<uint8_t, 3> devClass)
 	return devClass == btClass;
 }
 
-std::span<Input::Axis> IControlPad::motionAxes()
-{
-	return axis;
-}
-
 std::pair<Input::Key, Input::Key> IControlPad::joystickKeys(Input::AxisId axisId)
 {
 	switch(axisId)
 	{
-		case Input::AxisId::X: return {Input::iControlPad::LNUB_LEFT, Input::iControlPad::LNUB_RIGHT};
-		case Input::AxisId::Y: return {Input::iControlPad::LNUB_DOWN, Input::iControlPad::LNUB_UP};
-		case Input::AxisId::Z: return {Input::iControlPad::RNUB_LEFT, Input::iControlPad::RNUB_RIGHT};
-		case Input::AxisId::RZ: return {Input::iControlPad::RNUB_DOWN, Input::iControlPad::RNUB_UP};
+		case Input::AxisId::X: return {Input::iControlPadKey::LNUB_LEFT, Input::iControlPadKey::LNUB_RIGHT};
+		case Input::AxisId::Y: return {Input::iControlPadKey::LNUB_DOWN, Input::iControlPadKey::LNUB_UP};
+		case Input::AxisId::Z: return {Input::iControlPadKey::RNUB_LEFT, Input::iControlPadKey::RNUB_RIGHT};
+		case Input::AxisId::RZ: return {Input::iControlPadKey::RNUB_DOWN, Input::iControlPadKey::RNUB_UP};
 		default: return {};
 	}
 }

@@ -80,7 +80,7 @@ public:
 		std::invocable<DragTrackerState, DragTrackerState, UserData&> auto &&onMove,
 		std::invocable<DragTrackerState, UserData&> auto &&onUp)
 	{
-		if(!e.isAbsolute())
+		if(!e.isPointer())
 			return false;
 		auto pID = e.pointerId();
 		switch(e.state())

@@ -76,7 +76,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 	{
 		[&](const Input::MotionEvent &motionEv)
 		{
-			if(!motionEv.isAbsolute())
+			if(!motionEv.isPointer())
 				return false;
 			return vController->pointerInputEvent(motionEv, videoLayer->contentRect());
 		},

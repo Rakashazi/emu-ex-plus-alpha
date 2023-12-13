@@ -17,11 +17,20 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/inputDefs.hh>
+#include <imagine/input/Axis.hh>
 
 namespace IG
 {
 
 class ErrorCode;
+
+struct WiimoteExtDevice : public Input::BaseDevice
+{
+	WiimoteExtDevice() {}
+	WiimoteExtDevice(Input::Map map, Input::DeviceTypeFlags typeFlags, std::string name):
+		BaseDevice{0, map, typeFlags, std::move(name)} {}
+	const char *keyName(Input::Key k) const;
+};
 
 class Wiimote final: public BluetoothInputDevice
 {
@@ -32,16 +41,16 @@ public:
 
 	Wiimote(ApplicationContext, BluetoothAddr);
 	~Wiimote();
-	ErrorCode open(BluetoothAdapter &adapter) final;
-	bool dataHandler(const char *data, size_t size);
-	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
+	ErrorCode open(BluetoothAdapter &, Input::Device &) final;
+	bool dataHandler(Input::Device &, const char *data, size_t size);
+	uint32_t statusHandler(Input::Device &, BluetoothSocket &, uint32_t status);
 	void requestStatus();
 	void setLEDs(uint8_t player);
 	void sendDataMode(uint8_t mode);
 	void writeReg(uint8_t offset, uint8_t val);
 	void readReg(uint32_t offset, uint8_t size);
-	const char *keyName(Input::Key k) const final;
-	std::span<Input::Axis> motionAxes() final;
+	const char *keyName(Input::Key k) const;
+	std::span<Input::Axis> motionAxes() { return axis; }
 	static bool isSupportedClass(std::array<uint8_t, 3> devClass);
 	static std::pair<Input::Key, Input::Key> joystickKeys(Input::Map, Input::AxisId);
 
@@ -53,16 +62,8 @@ private:
 	uint8_t prevBtnData[2]{};
 	uint8_t prevExtData[11]{};
 	BluetoothAddr addr;
-	bool identifiedType = false;
-
-	struct ExtDevice : public Device
-	{
-		ExtDevice() {}
-		ExtDevice(Input::Map map, Input::DeviceTypeFlags typeFlags, std::string name):
-			Device{0, map, typeFlags, std::move(name)} {}
-		const char *keyName(Input::Key k) const final;
-	};
 	Input::Device *extDevicePtr{};
+	bool identifiedType = false;
 
 	enum
 	{
@@ -83,10 +84,10 @@ private:
 	void sendDataModeByExtension();
 	static void decodeCCSticks(const uint8_t *ccSticks, int &lX, int &lY, int &rX, int &rY);
 	static void decodeProSticks(const uint8_t *proSticks, int &lX, int &lY, int &rX, int &rY);
-	void processCoreButtons(const uint8_t *packet, SteadyClockTimePoint time);
-	void processClassicButtons(const uint8_t *packet, SteadyClockTimePoint time);
-	void processProButtons(const uint8_t *packet, SteadyClockTimePoint time);
-	void processNunchukButtons(const uint8_t *packet, SteadyClockTimePoint time);
+	void processCoreButtons(Input::Device &, const uint8_t *packet, SteadyClockTimePoint time);
+	void processClassicButtons(Input::Device &, const uint8_t *packet, SteadyClockTimePoint time);
+	void processProButtons(Input::Device &, const uint8_t *packet, SteadyClockTimePoint time);
+	void processNunchukButtons(Input::Device &, const uint8_t *packet, SteadyClockTimePoint time);
 	void removeExtendedDevice();
 };
 

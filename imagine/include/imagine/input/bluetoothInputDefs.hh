@@ -15,15 +15,14 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-#include <imagine/input/config.hh>
+#include <cstdint>
 
 namespace IG::Input
 {
 
 static constexpr uint8_t MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 
-	namespace PS3
+	namespace PS3Key
 	{
 	static const uint32_t CROSS = 1,
 	CIRCLE = 2,
@@ -46,7 +45,7 @@ static constexpr uint8_t MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	static const uint32_t COUNT = 26;
 	}
 
-	namespace Wiimote
+	namespace WiimoteKey
 	{
 	static const uint32_t PLUS = 1,
 	MINUS = 2,
@@ -64,7 +63,7 @@ static constexpr uint8_t MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	static const uint32_t COUNT = 18;
 	}
 
-	namespace WiiCC
+	namespace WiiCCKey
 	{
 	static const uint32_t PLUS = 1,
 	MINUS = 2,
@@ -82,7 +81,7 @@ static constexpr uint8_t MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	static const uint32_t COUNT = 26;
 	}
 
-	namespace iControlPad
+	namespace iControlPadKey
 	{
 	static const uint32_t A = 1,
 	B = 2,
@@ -100,7 +99,7 @@ static constexpr uint8_t MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	static const uint32_t COUNT = 21;
 	}
 
-	namespace Zeemote
+	namespace ZeemoteKey
 	{
 	static const uint32_t A = 1,
 	B = 2,

@@ -17,8 +17,8 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/base/x11/XInputDevice.hh>
 #include <imagine/input/Event.hh>
-#include <imagine/input/Device.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/ScopeGuard.hh>
@@ -31,25 +31,17 @@
 
 namespace IG
 {
-
 struct XIDeviceInfo : public ::XIDeviceInfo {};
+}
 
-struct XInputDevice : public Input::Device
+namespace IG::Input
 {
-	bool iCadeMode_ = false;
-
-	XInputDevice() = default;
-	XInputDevice(Input::DeviceTypeFlags, std::string name);
-	XInputDevice(XIDeviceInfo, bool isPointingDevice, bool isPowerButton);
-	void setICadeMode(bool on) final;
-	bool iCadeMode() const final;
-};
 
 XInputDevice::XInputDevice(Input::DeviceTypeFlags typeFlags, std::string name):
-	Device{0, Input::Map::SYSTEM, typeFlags, std::move(name)} {}
+	BaseDevice{0, Input::Map::SYSTEM, typeFlags, std::move(name)} {}
 
 XInputDevice::XInputDevice(XIDeviceInfo info, bool isPointingDevice, bool isPowerButton):
-	Device{info.deviceid, Input::Map::SYSTEM, {}, info.name}
+	BaseDevice{info.deviceid, Input::Map::SYSTEM, {}, info.name}
 {
 	if(isPointingDevice)
 	{
@@ -62,16 +54,25 @@ XInputDevice::XInputDevice(XIDeviceInfo info, bool isPointingDevice, bool isPowe
 	}
 }
 
-void XInputDevice::setICadeMode(bool on)
+bool Device::anyTypeFlagsPresent(ApplicationContext, DeviceTypeFlags typeFlags)
 {
-	logMsg("set iCade mode %s for %s", on ? "on" : "off", name().data());
-	iCadeMode_ = on;
+	// TODO
+	if(typeFlags.keyboard)
+	{
+		return true;
+	}
+	return false;
 }
 
-bool XInputDevice::iCadeMode() const
+std::string KeyEvent::keyString(ApplicationContext ctx) const
 {
-	return iCadeMode_;
+	return ctx.application().inputKeyString(rawKey, metaState);
 }
+
+}
+
+namespace IG
+{
 
 static bool isXInputDevice(Input::Device &d)
 {
@@ -181,10 +182,10 @@ void XApplication::addXInputDevice(XIDeviceInfo xDevInfo, bool notify, bool isPo
 	}
 	logMsg("adding X input device %d (%s) to device list", xDevInfo.deviceid, xDevInfo.name);
 	std::string_view devName{xDevInfo.name};
-	auto devPtr = std::make_unique<XInputDevice>(xDevInfo, isPointingDevice, isPowerButtonName(devName));
+	auto devPtr = std::make_unique<Input::Device>(std::in_place_type<Input::XInputDevice>, xDevInfo, isPointingDevice, isPowerButtonName(devName));
 	if(Config::MACHINE_IS_PANDORA && (devName == "gpio-keys" || devName == "keypad"))
 	{
-		devPtr->setSubtype(Input::Device::Subtype::PANDORA_HANDHELD);
+		devPtr->setSubtype(Input::DeviceSubtype::PANDORA_HANDHELD);
 	}
 	addInputDevice(ApplicationContext{static_cast<Application&>(*this)}, std::move(devPtr), notify);
 }
@@ -227,7 +228,7 @@ void XApplication::initInputSystem()
 
 	// setup device list
 	vkbDevice = &addInputDevice(ApplicationContext{static_cast<Application&>(*this)},
-		std::make_unique<XInputDevice>(Input::virtualDeviceFlags, "Virtual"));
+		std::make_unique<Input::Device>(std::in_place_type<Input::XInputDevice>, Input::virtualDeviceFlags, "Virtual"));
 	int devices;
 	::XIDeviceInfo *device = XIQueryDevice(dpy, XIAllDevices, &devices);
 	for(auto &d : std::span<::XIDeviceInfo>{device, (size_t)devices})
@@ -347,7 +348,7 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 			}
 			else
 			{
-				auto pos = win.transformInputPos({(int)event.event_x, (int)event.event_y});
+				auto pos = win.transformInputPos({float(event.event_x), float(event.event_y)});
 				Input::PointerId p = event.deviceid;
 				win.dispatchInputEvent(Input::MotionEvent{Input::Map::POINTER, (Input::Key)key, (uint32_t)event.mods.effective,
 					action, pos.x, pos.y, p, Input::Source::MOUSE, time, dev});
@@ -422,24 +423,3 @@ bool XApplication::hasPendingX11Events() const
 }
 
 }
-
-namespace IG::Input
-{
-
-bool Device::anyTypeFlagsPresent(ApplicationContext, DeviceTypeFlags typeFlags)
-{
-	// TODO
-	if(typeFlags.keyboard)
-	{
-		return true;
-	}
-	return false;
-}
-
-std::string KeyEvent::keyString(ApplicationContext ctx) const
-{
-	return ctx.application().inputKeyString(rawKey, metaState);
-}
-
-}
-

@@ -125,7 +125,7 @@ public:
 	int widthScaledMMInPixels(float mm) const;
 	int heightScaledMMInPixels(float mm) const;
 	WRect bounds() const;
-	WPt transformInputPos(WPt srcPos) const;
+	F2Pt transformInputPos(F2Pt srcPos) const;
 	Viewport viewport(WindowRect rect) const;
 	Viewport viewport() const;
 

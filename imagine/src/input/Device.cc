@@ -14,23 +14,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Device.hh>
-#include <imagine/input/Event.hh>
-#ifdef CONFIG_INPUT_BLUETOOTH
-#include <imagine/bluetooth/Wiimote.hh>
-#include <imagine/bluetooth/Zeemote.hh>
-#include <imagine/bluetooth/IControlPad.hh>
-#endif
-#ifdef CONFIG_BLUETOOTH_SERVER
-#include <imagine/bluetooth/PS3Controller.hh>
-#endif
-#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-#include "apple/AppleGameDevice.hh"
-#endif
-#include <imagine/util/bit.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG::Input
 {
+
+constexpr SystemLogger log{"InputDev"};
 
 static const char *keyButtonName(Key b)
 {
@@ -317,17 +306,35 @@ static const char *openPandoraButtonName(Key b)
 }
 #endif
 
-Device::Device(int id, Map map, DeviceTypeFlags typeFlags, std::string name):
+BaseDevice::BaseDevice(int id, Map map, DeviceTypeFlags typeFlags, std::string name):
 	name_{std::move(name)}, id_{id}, typeFlags_{typeFlags}, map_{map} {}
 
-bool Device::iCadeMode() const { return false; }
+void Device::setICadeMode(bool on)
+{
+	visit([&](auto &d)
+	{
+		if constexpr(requires {d.setICadeMode(on);})
+			d.setICadeMode(on);
+	}, *this);
+}
+
+bool Device::iCadeMode() const
+{
+	return visit([](auto &d)
+	{
+		if constexpr(requires {d.iCadeMode();})
+			return d.iCadeMode();
+		else
+			return false;
+	}, *this);
+}
 
 void Device::setJoystickAxesAsDpad(AxisSetId id, bool on)
 {
 	if(auto axis1 = motionAxis(toAxisIds(id).first))
-		axis1->setEmulatesDirectionKeys(*this, on);
+		axis1->setEmulatesDirectionKeys(map(), on);
 	if(auto axis2 = motionAxis(toAxisIds(id).second))
-		axis2->setEmulatesDirectionKeys(*this, on);
+		axis2->setEmulatesDirectionKeys(map(), on);
 }
 
 bool Device::joystickAxesAsDpad(AxisSetId id)
@@ -346,10 +353,17 @@ Axis *Device::motionAxis(AxisId id)
 	return &(*it);
 }
 
-std::span<Axis> Device::motionAxes() { return {}; }
-
 const char *Device::keyName(Key k) const
 {
+	auto customName = visit([&](auto &d) -> const char *
+	{
+		if constexpr(requires {d.keyName(k);})
+			return d.keyName(k);
+		else
+			return nullptr;
+	}, *this);
+	if(customName)
+		return customName;
 	switch(map())
 	{
 		default: return "";
@@ -360,12 +374,12 @@ const char *Device::keyName(Key k) const
 					switch(subtype)
 					{
 						#ifdef __ANDROID__
-						case Device::Subtype::XPERIA_PLAY: return xperiaPlayButtonName(k);
-						case Device::Subtype::OUYA_CONTROLLER: return ouyaButtonName(k);
-						case Device::Subtype::PS3_CONTROLLER: return ps3SysButtonName(k);
+						case Subtype::XPERIA_PLAY: return xperiaPlayButtonName(k);
+						case Subtype::OUYA_CONTROLLER: return ouyaButtonName(k);
+						case Subtype::PS3_CONTROLLER: return ps3SysButtonName(k);
 						#endif
 						#ifdef CONFIG_MACHINE_PANDORA
-						case Device::Subtype::PANDORA_HANDHELD: return openPandoraButtonName(k);
+						case Subtype::PANDORA_HANDHELD: return openPandoraButtonName(k);
 						#endif
 						default: return {};
 					}
@@ -406,25 +420,20 @@ std::string Device::keyString(Key k, KeyNameFlags flags) const
 
 Map Device::map() const
 {
-	return map_;
-}
-
-void Device::setICadeMode(bool on)
-{
-	logWarn("setICadeMode called but unimplemented");
+	return visit([](auto &d){ return d.map_; }, *this);
 }
 
 static DeviceSubtype gamepadSubtype(std::string_view name)
 {
 	if(name == "Sony PLAYSTATION(R)3 Controller")
 	{
-		logMsg("detected PS3 gamepad");
-		return Device::Subtype::PS3_CONTROLLER;
+		log.info("detected PS3 gamepad");
+		return DeviceSubtype::PS3_CONTROLLER;
 	}
 	else if(name == "OUYA Game Controller")
 	{
-		logMsg("detected OUYA gamepad");
-		return Device::Subtype::OUYA_CONTROLLER;
+		log.info("detected OUYA gamepad");
+		return DeviceSubtype::OUYA_CONTROLLER;
 	}
 	return {};
 }
@@ -433,13 +442,13 @@ static std::string_view gamepadName(uint32_t vendorProductId)
 {
 	if(vendorProductId == 0x054c05c4) // DualShock 4
 	{
-		logMsg("detected DualShock 4 gamepad");
+		log.info("detected DualShock 4 gamepad");
 		return "DualShock 4";
 	}
 	return {};
 }
 
-void Device::updateGamepadSubtype(std::string_view name, uint32_t vendorProductId)
+void BaseDevice::updateGamepadSubtype(std::string_view name, uint32_t vendorProductId)
 {
 	if(auto updatedSubtype = gamepadSubtype(name);
 		updatedSubtype != DeviceSubtype::NONE)
@@ -451,191 +460,6 @@ void Device::updateGamepadSubtype(std::string_view name, uint32_t vendorProductI
 	{
 		name_ = updatedName;
 	}
-}
-
-static std::pair<Key, Key> joystickKeys(AxisId axisId)
-{
-	switch(axisId)
-	{
-		case AxisId::X: return {Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS};
-		case AxisId::Y: return {Keycode::JS1_YAXIS_NEG, Keycode::JS1_YAXIS_POS};
-		case AxisId::Z: return {Keycode::JS2_XAXIS_NEG, Keycode::JS2_XAXIS_POS};
-		case AxisId::RZ: return {Keycode::JS2_YAXIS_NEG, Keycode::JS2_YAXIS_POS};
-		case AxisId::RX: return {Keycode::JS3_XAXIS_NEG, Keycode::JS3_XAXIS_POS};
-		case AxisId::RY: return {Keycode::JS3_YAXIS_NEG, Keycode::JS3_YAXIS_POS};
-		case AxisId::HAT0X:
-		case AxisId::HAT1X:
-		case AxisId::HAT2X:
-		case AxisId::HAT3X: return {Keycode::JS_POV_XAXIS_NEG, Keycode::JS_POV_XAXIS_POS};
-		case AxisId::HAT0Y:
-		case AxisId::HAT1Y:
-		case AxisId::HAT2Y:
-		case AxisId::HAT3Y: return {Keycode::JS_POV_YAXIS_NEG, Keycode::JS_POV_YAXIS_POS};
-		case AxisId::RUDDER: return {Keycode::JS_RUDDER_AXIS_NEG, Keycode::JS_RUDDER_AXIS_POS};
-		case AxisId::WHEEL: return {Keycode::JS_WHEEL_AXIS_NEG, Keycode::JS_WHEEL_AXIS_POS};
-		case AxisId::LTRIGGER: return {0, Keycode::JS_LTRIGGER_AXIS};
-		case AxisId::RTRIGGER: return {0, Keycode::JS_RTRIGGER_AXIS};
-		// map brake/gas to L/R triggers for now
-		case AxisId::BRAKE : return {0, Keycode::JS_LTRIGGER_AXIS};//return Keycode::JS_BRAKE_AXIS;
-		case AxisId::GAS : return {0, Keycode::JS_RTRIGGER_AXIS};//return Keycode::JS_GAS_AXIS;
-	}
-	return {};
-}
-
-static std::pair<Key, Key> joystickKeys(Map map, AxisId axisId)
-{
-	switch(map)
-	{
-		case Map::SYSTEM: return joystickKeys(axisId);
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE:
-		case Map::WII_CC: return ::IG::Wiimote::joystickKeys(map, axisId);
-		case Map::ICONTROLPAD: return ::IG::IControlPad::joystickKeys(axisId);
-		case Map::ZEEMOTE: return ::IG::Zeemote::joystickKeys(axisId);
-		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return ::IG::PS3Controller::joystickKeys(axisId);
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return appleJoystickKeys(axisId);
-		#endif
-		default: return {};
-	}
-}
-
-Axis::Axis(const Device &d, AxisId id, float scaler):
-	scaler{scaler},
-	keyEmu
-	{
-		joystickKeys(d.map(), id),
-		joystickKeys(id)
-	},
-	id_{id} {}
-
-static std::pair<Key, Key> emulatedDirectionKeys(Map map, AxisId id, bool invertY)
-{
-	auto keys = directionKeys(map);
-	std::pair<Key, Key> yKeys = {keys.up, keys.down};
-	if(invertY)
-		std::swap(yKeys.first, yKeys.second);
-	switch(id)
-	{
-		case AxisId::X:
-		case AxisId::RX:
-		case AxisId::Z:
-		case AxisId::HAT0X:
-		case AxisId::HAT1X:
-		case AxisId::HAT2X:
-		case AxisId::HAT3X: return {keys.left, keys.right};
-		case AxisId::Y:
-		case AxisId::RY:
-		case AxisId::RZ:
-		case AxisId::HAT0Y:
-		case AxisId::HAT1Y:
-		case AxisId::HAT2Y:
-		case AxisId::HAT3Y: return yKeys;
-		default: return {};
-	}
-}
-
-void Axis::setEmulatesDirectionKeys(const Device &d, bool on)
-{
-	if(on)
-	{
-		const bool invertY = Config::Input::BLUETOOTH && d.map() != Map::SYSTEM;
-		auto dpadKeys = emulatedDirectionKeys(d.map(), id(), invertY);
-		if(!dpadKeys.first)
-			return;
-		keyEmu.key = dpadKeys;
-		keyEmu.sysKey = emulatedDirectionKeys(Map::SYSTEM, id(), invertY);
-	}
-	else
-	{
-		keyEmu.key = joystickKeys(d.map(), id());
-		keyEmu.sysKey = joystickKeys(id());
-	}
-}
-
-bool Axis::emulatesDirectionKeys() const
-{
-	return keyEmu.sysKey != joystickKeys(id());
-}
-
-AxisFlags Axis::idBit() const
-{
-	switch(id())
-	{
-		case AxisId::X: return {.x = true};
-		case AxisId::Y: return {.y = true};
-		case AxisId::Z: return {.z = true};
-		case AxisId::RX: return {.rx = true};
-		case AxisId::RY: return {.ry = true};
-		case AxisId::RZ: return {.rz = true};
-		case AxisId::HAT0X:
-		case AxisId::HAT1X:
-		case AxisId::HAT2X:
-		case AxisId::HAT3X: return {.hatX = true};
-		case AxisId::HAT0Y:
-		case AxisId::HAT1Y:
-		case AxisId::HAT2Y:
-		case AxisId::HAT3Y: return {.hatY = true};
-		case AxisId::LTRIGGER: return {.lTrigger = true};
-		case AxisId::RTRIGGER: return {.rTrigger = true};
-		case AxisId::RUDDER: return {.rudder = true};
-		case AxisId::WHEEL: return {.wheel = true};
-		case AxisId::GAS: return {.gas = true};
-		case AxisId::BRAKE: return {.brake = true};
-		default: return {};
-	}
-}
-
-bool Axis::update(float pos, Map map, SteadyClockTimePoint time, const Device &dev, Window &win, bool normalized)
-{
-	if(!normalized)
-		pos *= scaler;
-	return keyEmu.dispatch(pos, map, time, dev, win);
-}
-
-AxisKeyEmu::UpdateKeys AxisKeyEmu::update(float pos)
-{
-	UpdateKeys keys;
-	auto newState = (pos <= limit.first) ? -1 :
-		(pos >= limit.second) ? 1 :
-		0;
-	if(newState != state)
-	{
-		const bool stateHigh = (state > 0);
-		const bool stateLow = (state < 0);
-		keys.released = stateHigh ? key.second : stateLow ? key.first : 0;
-		keys.sysReleased = stateHigh ? sysKey.second : stateLow ? sysKey.first : 0;
-		const bool newStateHigh = (newState > 0);
-		const bool newStateLow = (newState < 0);
-		keys.pushed = newStateHigh ? key.second : newStateLow ? key.first : 0;
-		keys.sysPushed = newStateHigh ? sysKey.second : newStateLow ? sysKey.first : 0;
-		keys.updated = true;
-		state = (int8_t)newState;
-	}
-	return keys;
-}
-
-bool AxisKeyEmu::dispatch(float pos, Map map, SteadyClockTimePoint time, const Device &dev, Window &win)
-{
-	auto updateKeys = update(pos);
-	auto src = Source::GAMEPAD;
-	if(!updateKeys.updated)
-	{
-		return false; // no change
-	}
-	if(updateKeys.released)
-	{
-		win.dispatchRepeatableKeyInputEvent(KeyEvent{map, updateKeys.released, updateKeys.sysReleased, Action::RELEASED, 0, 0, src, time, &dev});
-	}
-	if(updateKeys.pushed)
-	{
-		KeyEvent event{map, updateKeys.pushed, updateKeys.sysPushed, Action::PUSHED, 0, 0, src, time, &dev};
-		win.dispatchRepeatableKeyInputEvent(event);
-	}
-	return true;
 }
 
 }

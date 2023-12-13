@@ -108,13 +108,13 @@ std::span<const KeyConfigDesc> NgpApp::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{NgpKey::Up, Wiimote::UP},
-		KeyMapping{NgpKey::Right, Wiimote::RIGHT},
-		KeyMapping{NgpKey::Down, Wiimote::DOWN},
-		KeyMapping{NgpKey::Left, Wiimote::LEFT},
-		KeyMapping{NgpKey::B, Wiimote::_1},
-		KeyMapping{NgpKey::A, Wiimote::_2},
-		KeyMapping{NgpKey::Option, Wiimote::PLUS},
+		KeyMapping{NgpKey::Up, WiimoteKey::UP},
+		KeyMapping{NgpKey::Right, WiimoteKey::RIGHT},
+		KeyMapping{NgpKey::Down, WiimoteKey::DOWN},
+		KeyMapping{NgpKey::Left, WiimoteKey::LEFT},
+		KeyMapping{NgpKey::B, WiimoteKey::_1},
+		KeyMapping{NgpKey::A, WiimoteKey::_2},
+		KeyMapping{NgpKey::Option, WiimoteKey::PLUS},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

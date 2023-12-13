@@ -105,13 +105,13 @@ uint32_t BaseEvent::mapNumKeys(Map map)
 		default: return 0;
 		case Map::SYSTEM: return Input::Keycode::COUNT;
 		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE: return Input::Wiimote::COUNT;
-		case Map::WII_CC: return Input::WiiCC::COUNT;
-		case Map::ICONTROLPAD: return Input::iControlPad::COUNT;
-		case Map::ZEEMOTE: return Input::Zeemote::COUNT;
+		case Map::WIIMOTE: return Input::WiimoteKey::COUNT;
+		case Map::WII_CC: return Input::WiiCCKey::COUNT;
+		case Map::ICONTROLPAD: return Input::iControlPadKey::COUNT;
+		case Map::ZEEMOTE: return Input::ZeemoteKey::COUNT;
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return Input::PS3::COUNT;
+		case Map::PS3PAD: return Input::PS3Key::COUNT;
 		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case Map::APPLE_GAME_CONTROLLER: return Input::AppleGC::COUNT;
@@ -180,13 +180,13 @@ DirectionKeys directionKeys(Map map)
 	{
 		case Map::SYSTEM: return {Keycode::UP, Keycode::RIGHT, Keycode::DOWN, Keycode::LEFT};
 		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE: return {Wiimote::UP, Wiimote::RIGHT, Wiimote::DOWN, Wiimote::LEFT};
-		case Map::WII_CC: return {WiiCC::UP, WiiCC::RIGHT, WiiCC::DOWN, WiiCC::LEFT};
-		case Map::ICONTROLPAD: return {iControlPad::UP, iControlPad::RIGHT, iControlPad::DOWN, iControlPad::LEFT};
-		case Map::ZEEMOTE: return {Zeemote::UP, Zeemote::RIGHT, Zeemote::DOWN, Zeemote::LEFT};
+		case Map::WIIMOTE: return {WiimoteKey::UP, WiimoteKey::RIGHT, WiimoteKey::DOWN, WiimoteKey::LEFT};
+		case Map::WII_CC: return {WiiCCKey::UP, WiiCCKey::RIGHT, WiiCCKey::DOWN, WiiCCKey::LEFT};
+		case Map::ICONTROLPAD: return {iControlPadKey::UP, iControlPadKey::RIGHT, iControlPadKey::DOWN, iControlPadKey::LEFT};
+		case Map::ZEEMOTE: return {ZeemoteKey::UP, ZeemoteKey::RIGHT, ZeemoteKey::DOWN, ZeemoteKey::LEFT};
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return {PS3::UP, PS3::RIGHT, PS3::DOWN, PS3::LEFT};
+		case Map::PS3PAD: return {PS3Key::UP, PS3Key::RIGHT, PS3Key::DOWN, PS3Key::LEFT};
 		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case Map::APPLE_GAME_CONTROLLER: return {AppleGC::UP, AppleGC::RIGHT, AppleGC::DOWN, AppleGC::LEFT};

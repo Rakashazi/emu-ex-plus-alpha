@@ -137,9 +137,9 @@ FS::ArchiveIterator &C64System::systemFilesArchiveIterator(ApplicationContext ct
 	return viceSysFilesArchiveIt;
 }
 
-static bool archiveHasDirectory(CStringView path, std::string_view dirName)
+static bool archiveHasDirectory(ApplicationContext ctx, CStringView path, std::string_view dirName)
 {
-	for(auto &entry : FS::ArchiveIterator{path})
+	for(auto &entry : FS::ArchiveIterator{ctx.openFileUri(path)})
 	{
 		if(entry.type() == FS::file_type::directory &&
 			entry.name().ends_with(dirName))
@@ -150,17 +150,16 @@ static bool archiveHasDirectory(CStringView path, std::string_view dirName)
 	return false;
 }
 
-bool C64System::setSystemFilesPath(ApplicationContext ctx, CStringView path, FS::file_type type)
+void C64System::setSystemFilesPath(ApplicationContext ctx, CStringView path, FS::file_type type)
 {
 	log.info("set firmware path:{}", path);
 	if((type == FS::file_type::directory && !ctx.fileUriExists(FS::uriString(path, "DRIVES")))
-		|| (EmuApp::hasArchiveExtension(path) && !archiveHasDirectory(path, "DRIVES/")))
+		|| (EmuApp::hasArchiveExtension(path) && !archiveHasDirectory(ctx, path, "DRIVES/")))
 	{
-		return false;
+		throw std::runtime_error{"Path is missing DRIVES folder"};
 	}
 	sysFilePath[0] = path;
 	viceSysFilesArchiveIt = {};
-	return true;
 }
 
 std::vector<std::string> C64System::systemFilesWithExtension(const char *ext) const

@@ -39,14 +39,14 @@ static const char *zeemoteButtonName(Input::Key k)
 	switch(k)
 	{
 		case 0: return "None";
-		case Input::Zeemote::A: return "A";
-		case Input::Zeemote::B: return "B";
-		case Input::Zeemote::C: return "C";
-		case Input::Zeemote::POWER: return "Power";
-		case Input::Zeemote::UP: return "Up";
-		case Input::Zeemote::RIGHT: return "Right";
-		case Input::Zeemote::DOWN: return "Down";
-		case Input::Zeemote::LEFT: return "Left";
+		case Input::ZeemoteKey::A: return "A";
+		case Input::ZeemoteKey::B: return "B";
+		case Input::ZeemoteKey::C: return "C";
+		case Input::ZeemoteKey::POWER: return "Power";
+		case Input::ZeemoteKey::UP: return "Up";
+		case Input::ZeemoteKey::RIGHT: return "Right";
+		case Input::ZeemoteKey::DOWN: return "Down";
+		case Input::ZeemoteKey::LEFT: return "Left";
 	}
 	return "";
 }
@@ -62,18 +62,18 @@ const char *Zeemote::keyName(Input::Key k) const
 	return zeemoteButtonName(k);
 }
 
-IG::ErrorCode Zeemote::open(BluetoothAdapter &adapter)
+IG::ErrorCode Zeemote::open(BluetoothAdapter &adapter, Input::Device &dev)
 {
 	logMsg("connecting to Zeemote");
 	sock.onData() =
-		[this](const char *packet, size_t size)
+		[&dev](const char *packet, size_t size)
 		{
-			return dataHandler(packet, size);
+			return getAs<Zeemote>(dev).dataHandler(dev, packet, size);
 		};
 	sock.onStatus() =
-		[this](BluetoothSocket &sock, uint32_t status)
+		[&dev](BluetoothSocket &sock, uint32_t status)
 		{
-			return statusHandler(sock, status);
+			return getAs<Zeemote>(dev).statusHandler(dev, sock, status);
 		};
 	#ifdef CONFIG_BLUETOOTH_BTSTACK
 	sock.setPin("0000", 4);
@@ -92,28 +92,28 @@ void Zeemote::close()
 	sock.close();
 }
 
-uint32_t Zeemote::statusHandler(BluetoothSocket &sock, uint32_t status)
+uint32_t Zeemote::statusHandler(Input::Device &dev, BluetoothSocket &sock, uint32_t status)
 {
 	if(status == BluetoothSocket::STATUS_OPENED)
 	{
 		logMsg("Zeemote opened successfully");
-		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("Zeemote connection error");
-		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 	}
 	else if(status == BluetoothSocket::STATUS_READ_ERROR)
 	{
 		logErr("Zeemote read error, disconnecting");
-		ctx.application().bluetoothInputDeviceStatus(ctx, *this, status);
+		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 	}
 	return 0;
 }
 
-bool Zeemote::dataHandler(const char *packet, size_t size)
+bool Zeemote::dataHandler(Input::Device &dev, const char *packet, size_t size)
 {
 	//logMsg("%d bytes ready", size);
 	uint32_t bytesLeft = size;
@@ -131,7 +131,7 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 		if(packetSize > sizeof(inputBuffer))
 		{
 			logErr("can't handle packet, closing Zeemote");
-			ctx.application().bluetoothInputDeviceStatus(ctx, *this, BluetoothSocket::STATUS_READ_ERROR);
+			ctx.application().bluetoothInputDeviceStatus(ctx, dev, BluetoothSocket::STATUS_READ_ERROR);
 			return 0;
 		}
 
@@ -150,14 +150,14 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 				{
 					const uint8_t *key = &inputBuffer[3];
 					//logMsg("got button report %X %X %X %X %X %X", key[0], key[1], key[2], key[3], key[4], key[5]);
-					processBtnReport(key, time);
+					processBtnReport(dev, key, time);
 					break;
 				}
 				case RID_8BA_2A_JS_REPORT:
 					//logMsg("got analog report %d %d", (int8_t)inputBuffer[4], (int8_t)inputBuffer[5]);
 				for(auto i : iotaCount(2))
 					{
-						if(axis[i].update((int8_t)inputBuffer[4+i], Input::Map::ZEEMOTE, time, *this, ctx.mainWindow()))
+						if(axis[i].dispatchInputEvent((int8_t)inputBuffer[4+i], Input::Map::ZEEMOTE, time, dev, ctx.mainWindow()))
 							ctx.endIdleByUserActivity();
 					}
 			}
@@ -183,7 +183,7 @@ const char *Zeemote::reportIDToStr(uint32_t id)
 	return "Unknown";
 }
 
-void Zeemote::processBtnReport(const uint8_t *btnData, SteadyClockTimePoint time)
+void Zeemote::processBtnReport(Input::Device &dev, const uint8_t *btnData, SteadyClockTimePoint time)
 {
 	using namespace IG::Input;
 	uint8_t btnPush[4] {0};
@@ -201,7 +201,7 @@ void Zeemote::processBtnReport(const uint8_t *btnData, SteadyClockTimePoint time
 			uint32_t code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			KeyEvent event{Map::ZEEMOTE, (Key)code, sysKeyMap[i], newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+			KeyEvent event{Map::ZEEMOTE, (Key)code, sysKeyMap[i], newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
 			ctx.application().dispatchRepeatableKeyInputEvent( event);
 		}
 	}
@@ -213,17 +213,12 @@ bool Zeemote::isSupportedClass(std::array<uint8_t, 3> devClass)
 	return devClass == btClass;
 }
 
-std::span<Input::Axis> Zeemote::motionAxes()
-{
-	return axis;
-}
-
 std::pair<Input::Key, Input::Key> Zeemote::joystickKeys(Input::AxisId axisId)
 {
 	switch(axisId)
 	{
-		case Input::AxisId::X: return {Input::Zeemote::LEFT, Input::Zeemote::RIGHT};
-		case Input::AxisId::Y: return {Input::Zeemote::DOWN, Input::Zeemote::UP};
+		case Input::AxisId::X: return {Input::ZeemoteKey::LEFT, Input::ZeemoteKey::RIGHT};
+		case Input::AxisId::Y: return {Input::ZeemoteKey::DOWN, Input::ZeemoteKey::UP};
 		default: return {};
 	}
 }

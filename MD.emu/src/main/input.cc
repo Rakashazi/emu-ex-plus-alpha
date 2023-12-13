@@ -147,16 +147,16 @@ std::span<const KeyConfigDesc> MdApp::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{MdKey::Up, Wiimote::UP},
-		KeyMapping{MdKey::Right, Wiimote::RIGHT},
-		KeyMapping{MdKey::Down, Wiimote::DOWN},
-		KeyMapping{MdKey::Left, Wiimote::LEFT},
-		KeyMapping{MdKey::A, Wiimote::_1},
-		KeyMapping{MdKey::B, Wiimote::_2},
-		KeyMapping{MdKey::C, Wiimote::B},
-		KeyMapping{MdKey::C, Wiimote::A},
-		KeyMapping{MdKey::Mode, Wiimote::MINUS},
-		KeyMapping{MdKey::Start, Wiimote::PLUS},
+		KeyMapping{MdKey::Up, WiimoteKey::UP},
+		KeyMapping{MdKey::Right, WiimoteKey::RIGHT},
+		KeyMapping{MdKey::Down, WiimoteKey::DOWN},
+		KeyMapping{MdKey::Left, WiimoteKey::LEFT},
+		KeyMapping{MdKey::A, WiimoteKey::_1},
+		KeyMapping{MdKey::B, WiimoteKey::_2},
+		KeyMapping{MdKey::C, WiimoteKey::B},
+		KeyMapping{MdKey::C, WiimoteKey::A},
+		KeyMapping{MdKey::Mode, WiimoteKey::MINUS},
+		KeyMapping{MdKey::Start, WiimoteKey::PLUS},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

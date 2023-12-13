@@ -70,7 +70,7 @@ PosixFileIO::PosixFileIO(MapIO io): ioImpl{std::move(io)} {}
 
 void PosixFileIO::initMmap(IOAccessHint access, OpenFlags openFlags)
 {
-	if(!*std::get_if<PosixIO>(&ioImpl))
+	if(!getAs<PosixIO>(ioImpl))
 		return;
 	if(openFlags.write
 		|| !tryMap(access, openFlags)) // try to open as memory map only if read-only

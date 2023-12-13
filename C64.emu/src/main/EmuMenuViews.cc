@@ -332,9 +332,13 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 					}
 					else
 					{
-						if(!system().setSystemFilesPath(appContext(), path, type))
+						try
 						{
-							app().postErrorMessage("Path is missing DRIVES folder");
+							system().setSystemFilesPath(appContext(), path, type);
+						}
+						catch(std::exception &err)
+						{
+							app().postErrorMessage(err.what());
 							return false;
 						}
 					}

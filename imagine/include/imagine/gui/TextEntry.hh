@@ -18,7 +18,6 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/Quads.hh>
 #include <imagine/gui/View.hh>
-#include <imagine/input/config.hh>
 #include <imagine/input/TextField.hh>
 #include <imagine/util/used.hh>
 #include <imagine/util/string/StaticString.hh>

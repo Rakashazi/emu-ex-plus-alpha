@@ -13,12 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "Evdev"
-#include "EvdevInputDevice.hh"
 #include <imagine/util/bit.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/fs/FS.hh>
+#include <imagine/input/evdev/EvdevInputDevice.hh>
 #include <imagine/input/Event.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/time/Time.hh>
@@ -36,6 +35,8 @@ static constexpr uint32_t MAX_STICK_AXES = 6; // 6 possible axes defined in key 
 
 namespace IG::Input
 {
+
+constexpr SystemLogger log{"Evdev"};
 
 static Key toSysKey(Key key)
 {
@@ -111,11 +112,11 @@ static constexpr bool isBitSetInArray(const T (&arr)[S], unsigned int bit)
 EvdevInputDevice::EvdevInputDevice() {}
 
 EvdevInputDevice::EvdevInputDevice(int id, int fd, DeviceTypeFlags typeFlags, std::string name_, uint32_t vendorProductId):
-	Device{id, Map::SYSTEM, typeFlags, std::move(name_)},
+	BaseDevice{id, Map::SYSTEM, typeFlags, std::move(name_)},
 	fd{fd}
 {
-	subtype_ = Device::Subtype::GENERIC_GAMEPAD;
-	updateGamepadSubtype(name(), vendorProductId);
+	subtype_ = DeviceSubtype::GENERIC_GAMEPAD;
+	updateGamepadSubtype(name_, vendorProductId);
 	if(setupJoystickBits())
 		typeFlags_.joystick = true;
 }
@@ -126,33 +127,36 @@ EvdevInputDevice::~EvdevInputDevice()
 	::close(fd);
 }
 
-void EvdevInputDevice::processInputEvents(LinuxApplication &app, std::span<const input_event> events)
+void EvdevInputDevice::processInputEvents(Device &dev, LinuxApplication &app, std::span<const input_event> events)
 {
 	for(auto &ev : events)
 	{
-		//logMsg("got event type %d, code %d, value %d", ev.type, ev.code, ev.value);
+		//log.debug("got event type {}, code {}, value {}", ev.type, ev.code, ev.value);
 		auto time = SteadyClockTimePoint{Seconds{ev.time.tv_sec} + Microseconds{ev.time.tv_usec}};
 		switch(ev.type)
 		{
 			case EV_KEY:
 			{
-				//logMsg("got key event code:0x%X value:%d", ev.code, ev.value);
+				//log.debug("got key event code:{:X} value:{}", ev.code, ev.value);
 				auto key = toSysKey(ev.code);
-				KeyEvent event{Map::SYSTEM, key, key, ev.value ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+				KeyEvent event{Map::SYSTEM, key, key, ev.value ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
 				app.dispatchRepeatableKeyInputEvent(event);
 				break;
 			}
 			case EV_ABS:
 			{
+				auto &evDev = getAs<EvdevInputDevice>(dev);
+				auto &axis = evDev.axis;
 				auto axisIt = std::ranges::find_if(axis, [&](auto &axis){ return ev.code == (uint8_t)axis.id(); });
 				if(axisIt == axis.end())
 				{
-					//logMsg("event from unused axis:%d", ev.code);
+					log.debug("event from unused axis:{}", ev.code);
 					continue;
 				}
-				auto offset = axisRangeOffset[std::distance(axis.begin(), axisIt)];
-				//logMsg("got abs event code 0x%X, value %d", ev.code, ev.value);
-				axisIt->update(ev.value + offset, Map::SYSTEM, time, *this, app.mainWindow());
+				auto offset = evDev.axisRangeOffset[std::distance(axis.begin(), axisIt)];
+				float val = (ev.value + offset) * axisIt->scale();
+				//log.debug("got abs event code {:X}, value {} ({})", ev.code, ev.value, val);
+				axisIt->dispatchInputEvent(val, Map::SYSTEM, time, dev, app.mainWindow());
 			}
 		}
 	}
@@ -170,7 +174,7 @@ bool EvdevInputDevice::setupJoystickBits()
 	ulong absBit[IG::divRoundUp(ABS_MAX, IG::bitSize<ulong>)]{};
 	if((ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(absBit)), absBit) < 0))
 	{
-		logErr("unable to check abs bits");
+		log.error("unable to check abs bits");
 		return false;
 	}
 
@@ -178,12 +182,12 @@ bool EvdevInputDevice::setupJoystickBits()
 	{
 		static constexpr AxisId stickAxes[] { AxisId::X, AxisId::Y, AxisId::Z, AxisId::RX, AxisId::RY, AxisId::RZ,
 			AxisId::HAT0X, AxisId::HAT0Y, AxisId::HAT1X, AxisId::HAT1Y, AxisId::HAT2X, AxisId::HAT2Y, AxisId::HAT3X, AxisId::HAT3Y,
-			AxisId::RUDDER, AxisId::WHEEL };
+			AxisId::LTRIGGER, AxisId::RTRIGGER, AxisId::RUDDER, AxisId::WHEEL };
 		for(auto axisId : stickAxes)
 		{
 			if(!isBitSetInArray(absBit, (int)axisId))
 				continue;
-			logMsg("joystick axis:%d", (int)axisId);
+			log.info("joystick axis:{}", (int)axisId);
 			struct input_absinfo info;
 			if(ioctl(fd, EVIOCGABS((int)axisId), &info) < 0)
 			{
@@ -192,13 +196,13 @@ bool EvdevInputDevice::setupJoystickBits()
 			}
 			auto rangeSize = info.maximum - info.minimum;
 			float scale = 2.f / rangeSize;
-			axis.emplace_back(*this, axisId, scale);
-			axisRangeOffset[axis.size() - 1] = (std::abs(info.minimum) - std::abs(info.maximum)) / 2;
-			logMsg("min:%d max:%d fuzz:%d flat:%d range offset:%d", info.minimum, info.maximum, info.fuzz, info.flat,
+			auto &currAxis = axis.emplace_back(Map::SYSTEM, axisId, scale);
+			axisRangeOffset[axis.size() - 1] = currAxis.isTrigger() ? 0 : (std::abs(info.minimum) - std::abs(info.maximum)) / 2;
+			log.info("min:{} max:{} fuzz:{} flat:{} range offset:{}", info.minimum, info.maximum, info.fuzz, info.flat,
 				axisRangeOffset[axis.size() - 1]);
 			if(axis.isFull())
 			{
-				logMsg("reached maximum joystick axes");
+				log.info("reached maximum joystick axes");
 				break;
 			}
 		}
@@ -207,16 +211,17 @@ bool EvdevInputDevice::setupJoystickBits()
 	return true;
 }
 
-void EvdevInputDevice::addPollEvent(LinuxApplication &app)
+void EvdevInputDevice::addPollEvent(Device &dev, LinuxApplication &app)
 {
-	assert(fd >= 0);
-	fdSrc = {"EvdevInputDevice", fd, {},
-		[this, &app](int fd, int pollEvents)
+	auto &evDev = getAs<EvdevInputDevice>(dev);
+	assert(evDev.fd >= 0);
+	evDev.fdSrc = {"EvdevInputDevice", evDev.fd, {},
+		[&dev, &app](int fd, int pollEvents)
 		{
 			if(pollEvents & POLLEV_ERR) [[unlikely]]
 			{
-				logMsg("error %d in input fd %d (%s)", errno, fd, name().data());
-				app.removeInputDevice(ApplicationContext{static_cast<Application&>(app)}, *this, true);
+				log.error("error:{} in input fd:{} ({})", errno, fd, dev.name());
+				app.removeInputDevice(ApplicationContext{static_cast<Application&>(app)}, dev, true);
 				return false;
 			}
 			else
@@ -227,12 +232,12 @@ void EvdevInputDevice::addPollEvent(LinuxApplication &app)
 				{
 					uint32_t events = len / sizeof(struct input_event);
 					//logMsg("read %d bytes from input fd %d, %d events", len, this->fd, events);
-					processInputEvents(app, {event, events});
+					processInputEvents(dev, app, {event, events});
 				}
 				if(len == -1 && errno != EAGAIN)
 				{
-					logMsg("error %d reading from input fd %d (%s)", errno, fd, name().data());
-					app.removeInputDevice(ApplicationContext{static_cast<Application&>(app)}, *this, true);
+					log.info("error:{} reading from input fd:{} ({})", errno, fd, dev.name());
+					app.removeInputDevice(ApplicationContext{static_cast<Application&>(app)}, dev, true);
 					return false;
 				}
 			}
@@ -240,29 +245,19 @@ void EvdevInputDevice::addPollEvent(LinuxApplication &app)
 		}};
 }
 
-std::span<Axis> EvdevInputDevice::motionAxes()
-{
-	return axis;
-}
-
-int EvdevInputDevice::fileDesc() const
-{
-	return fd;
-}
-
 static bool devIsGamepad(int fd)
 {
 	ulong keyBit[IG::divRoundUp(KEY_MAX, IG::bitSize<ulong>)] {0};
 	if((ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(keyBit)), keyBit) < 0))
 	{
-		logErr("unable to check key bits");
+		log.error("unable to check key bits");
 		return false;
 	}
 	for(uint32_t i = BTN_JOYSTICK; i < BTN_DIGI; i++)
 	{
 		if(isBitSetInArray(keyBit, i))
 		{
-			logMsg("has joystick/gamepad button: 0x%X", i);
+			log.info("has joystick/gamepad button:{:X}", i);
 			return true;
 		}
 	}
@@ -316,9 +311,9 @@ static bool processDevNode(LinuxApplication &app, CStringView path, int id, bool
 		logWarn("unable to get device info");
 	}
 	auto vendorProductId = ((devInfo.vendor & 0xFFFF) << 16) | (devInfo.product & 0xFFFF);
-	auto evDev = std::make_unique<EvdevInputDevice>(id, fd, DeviceTypeFlags{.gamepad = true}, nameStr.data(), vendorProductId);
+	auto evDev = std::make_unique<Device>(std::in_place_type<EvdevInputDevice>, id, fd, DeviceTypeFlags{.gamepad = true}, nameStr.data(), vendorProductId);
 	fd_setNonblock(fd, 1);
-	evDev->addPollEvent(app);
+	EvdevInputDevice::addPollEvent(*evDev, app);
 	app.addInputDevice(ApplicationContext{static_cast<Application&>(app)}, std::move(evDev), notify);
 	return true;
 }

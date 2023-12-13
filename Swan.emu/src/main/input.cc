@@ -175,13 +175,13 @@ std::span<const KeyConfigDesc> WsApp::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{SwanKey::Up, Wiimote::UP},
-		KeyMapping{SwanKey::Right, Wiimote::RIGHT},
-		KeyMapping{SwanKey::Down, Wiimote::DOWN},
-		KeyMapping{SwanKey::Left, Wiimote::LEFT},
-		KeyMapping{SwanKey::B, Wiimote::_1},
-		KeyMapping{SwanKey::A, Wiimote::_2},
-		KeyMapping{SwanKey::Start, Wiimote::PLUS},
+		KeyMapping{SwanKey::Up, WiimoteKey::UP},
+		KeyMapping{SwanKey::Right, WiimoteKey::RIGHT},
+		KeyMapping{SwanKey::Down, WiimoteKey::DOWN},
+		KeyMapping{SwanKey::Left, WiimoteKey::LEFT},
+		KeyMapping{SwanKey::B, WiimoteKey::_1},
+		KeyMapping{SwanKey::A, WiimoteKey::_2},
+		KeyMapping{SwanKey::Start, WiimoteKey::PLUS},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

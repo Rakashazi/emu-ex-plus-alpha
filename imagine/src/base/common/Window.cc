@@ -221,7 +221,7 @@ bool Window::dispatchInputEvent(Input::Event event)
 	return visit(overloaded{
 		[&](const Input::MotionEvent &e)
 		{
-			return handled || (e.isAbsolute() && contentBounds().overlaps(e.pos()));
+			return handled || (e.isPointer() && contentBounds().overlaps(e.pos()));
 		},
 		[&](const Input::KeyEvent &e) { return handled; }
 	}, event);
@@ -503,14 +503,14 @@ IG::WindowRect Window::bounds() const
 	return {{}, size()};
 }
 
-IG::Point2D<int> Window::transformInputPos(IG::Point2D<int> srcPos) const
+F2Pt Window::transformInputPos(F2Pt srcPos) const
 {
 	enum class PointerMode {NORMAL, INVERT};
 	const auto xPointerTransform = softOrientation() == Rotation::UP || softOrientation() == Rotation::RIGHT ? PointerMode::NORMAL : PointerMode::INVERT;
 	const auto yPointerTransform = softOrientation() == Rotation::UP || softOrientation() == Rotation::LEFT ? PointerMode::NORMAL : PointerMode::INVERT;
 	const auto pointerAxis = softOrientation() == Rotation::UP || softOrientation() == Rotation::DOWN ? PointerMode::NORMAL : PointerMode::INVERT;
 
-	IG::Point2D<int> pos;
+	F2Pt pos;
 	// x,y axis is swapped first
 	pos.x = pointerAxis == PointerMode::INVERT ? srcPos.y : srcPos.x;
 	pos.y = pointerAxis == PointerMode::INVERT ? srcPos.x : srcPos.y;

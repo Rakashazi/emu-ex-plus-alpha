@@ -29,11 +29,11 @@
 namespace IG::Bluetooth
 {
 
-static std::vector<std::unique_ptr<BluetoothInputDevice>> btInputDevPendingList;
+static std::vector<std::unique_ptr<Input::Device>> btInputDevPendingList;
 static bool hidServiceActive = false;
 
 #ifdef CONFIG_BLUETOOTH_SERVER
-static PS3Controller *pendingPS3Controller = nullptr;
+static std::unique_ptr<Input::Device> pendingPS3Controller;
 static BluetoothPendingSocket pendingSocket;
 static BluetoothAdapter::OnStatusDelegate onServerStatus;
 static Timer unregisterHIDServiceCallback{"unregisterHIDServiceCallback"};
@@ -72,8 +72,8 @@ bool listenForDevices(ApplicationContext ctx, BluetoothAdapter &bta, const Bluet
 			else if(pending.channel() == 0x13 && pendingPS3Controller)
 			{
 				logMsg("request for PSM 0x13");
-				pendingPS3Controller->open2Int(bta, pending);
-				pendingPS3Controller = nullptr;
+				getAs<PS3Controller>(*pendingPS3Controller).open2Int(bta, pending);
+				pendingPS3Controller = {};
 			}
 			else if(pending.channel() == 0x11)
 			{
@@ -93,15 +93,15 @@ bool listenForDevices(ApplicationContext ctx, BluetoothAdapter &bta, const Bluet
 						{
 							if(strstr(name, "PLAYSTATION(R)3"))
 							{
-								auto *dev = new PS3Controller(ctx, addr);
+								auto dev = std::make_unique<Input::Device>(std::in_place_type<PS3Controller>, ctx, addr);
 								if(!dev)
 								{
 									logErr("out of memory");
 									return;
 								}
-								dev->open1Ctl(bta, pendingSocket);
+								getAs<PS3Controller>(*dev).open1Ctl(bta, pendingSocket, *dev);
 								pendingSocket = {};
-								pendingPS3Controller = dev;
+								pendingPS3Controller = std::move(dev);
 							}
 						}
 					}
@@ -177,15 +177,15 @@ bool scanForDevices(ApplicationContext ctx, BluetoothAdapter &bta, BluetoothAdap
 				}
 				if(strstr(name, "Nintendo RVL-CNT-01"))
 				{
-					btInputDevPendingList.emplace_back(std::make_unique<Wiimote>(ctx, addr));
+					btInputDevPendingList.emplace_back(std::make_unique<Input::Device>(std::in_place_type<Wiimote>, ctx, addr));
 				}
 				else if(strstr(name, "iControlPad-"))
 				{
-					btInputDevPendingList.emplace_back(std::make_unique<IControlPad>(ctx, addr));
+					btInputDevPendingList.emplace_back(std::make_unique<Input::Device>(std::in_place_type<IControlPad>, ctx, addr));
 				}
 				else if(strstr(name, "Zeemote JS1"))
 				{
-					btInputDevPendingList.emplace_back(std::make_unique<Zeemote>(ctx, addr));
+					btInputDevPendingList.emplace_back(std::make_unique<Input::Device>(std::in_place_type<Zeemote>, ctx, addr));
 				}
 			}
 		);
@@ -219,7 +219,11 @@ void connectPendingDevs(BluetoothAdapter *bta)
 	logMsg("connecting to %d devices", (int)btInputDevPendingList.size());
 	for(auto &e : btInputDevPendingList)
 	{
-		e->open(*bta);
+		visit([&](auto &btDev)
+		{
+			if constexpr(requires {btDev.open(*bta, *e);})
+				btDev.open(*bta, *e);
+		}, *e);
 	}
 }
 

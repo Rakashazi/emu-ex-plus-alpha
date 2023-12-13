@@ -135,14 +135,14 @@ std::span<const KeyConfigDesc> NesApp::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{NesKey::Up, Wiimote::UP},
-		KeyMapping{NesKey::Right, Wiimote::RIGHT},
-		KeyMapping{NesKey::Down, Wiimote::DOWN},
-		KeyMapping{NesKey::Left, Wiimote::LEFT},
-		KeyMapping{NesKey::B, Wiimote::_1},
-		KeyMapping{NesKey::A, Wiimote::_2},
-		KeyMapping{NesKey::Select, Wiimote::MINUS},
-		KeyMapping{NesKey::Start, Wiimote::PLUS},
+		KeyMapping{NesKey::Up, WiimoteKey::UP},
+		KeyMapping{NesKey::Right, WiimoteKey::RIGHT},
+		KeyMapping{NesKey::Down, WiimoteKey::DOWN},
+		KeyMapping{NesKey::Left, WiimoteKey::LEFT},
+		KeyMapping{NesKey::B, WiimoteKey::_1},
+		KeyMapping{NesKey::A, WiimoteKey::_2},
+		KeyMapping{NesKey::Select, WiimoteKey::MINUS},
+		KeyMapping{NesKey::Start, WiimoteKey::PLUS},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

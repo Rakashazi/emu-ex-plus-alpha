@@ -227,7 +227,7 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 	{
 		[&](const Input::MotionEvent &motionEv)
 		{
-			if(!Config::Input::POINTING_DEVICES || !motionEv.isAbsolute())
+			if(!Config::Input::POINTING_DEVICES || !motionEv.isPointer())
 				return false;
 			if(!pointerUIIsInit())
 			{

@@ -17,6 +17,7 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/inputDefs.hh>
+#include <imagine/input/Axis.hh>
 
 namespace IG
 {
@@ -29,12 +30,12 @@ public:
 	static constexpr std::array<uint8_t, 3> btClass{0x84, 0x05, 0x00};
 
 	Zeemote(ApplicationContext ctx, BluetoothAddr addr);
-	ErrorCode open(BluetoothAdapter &adapter) final;
+	ErrorCode open(BluetoothAdapter &, Input::Device &) final;
 	void close();
-	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
-	bool dataHandler(const char *packet, size_t size);
-	const char *keyName(Input::Key k) const final;
-	std::span<Input::Axis> motionAxes() final;
+	uint32_t statusHandler(Input::Device &, BluetoothSocket &, uint32_t status);
+	bool dataHandler(Input::Device &, const char *packet, size_t size);
+	const char *keyName(Input::Key k) const;
+	std::span<Input::Axis> motionAxes() { return axis; };
 	static bool isSupportedClass(std::array<uint8_t, 3> devClass);
 	static std::pair<Input::Key, Input::Key> joystickKeys(Input::AxisId);
 
@@ -47,8 +48,8 @@ private:
 	uint32_t packetSize = 0;
 	Input::Axis axis[2]
 	{
-		{*this, Input::AxisId::X, axisScaler},
-		{*this, Input::AxisId::Y, axisScaler}
+		{Input::Map::ZEEMOTE, Input::AxisId::X, axisScaler},
+		{Input::Map::ZEEMOTE, Input::AxisId::Y, axisScaler}
 	};
 	BluetoothAddr addr;
 
@@ -56,7 +57,7 @@ private:
 		RID_BTN_REPORT = 0x07, RID_8BA_2A_JS_REPORT = 0x08, RID_BATTERY_REPORT = 0x11;
 
 	static const char *reportIDToStr(uint32_t id);
-	void processBtnReport(const uint8_t *btnData, SteadyClockTimePoint time);
+	void processBtnReport(Input::Device &, const uint8_t *btnData, SteadyClockTimePoint time);
 };
 
 }

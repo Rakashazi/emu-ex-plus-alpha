@@ -21,7 +21,6 @@
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/Quads.hh>
-#include <imagine/input/config.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <vector>
 #include <array>

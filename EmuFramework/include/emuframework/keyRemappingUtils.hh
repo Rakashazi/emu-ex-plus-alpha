@@ -115,14 +115,14 @@ constexpr Input::Key wiimoteKeycodeToZeemote(Input::Key k)
 	using namespace Input;
 	switch(k)
 	{
-		case Wiimote::UP: return Zeemote::UP;
-		case Wiimote::RIGHT: return Zeemote::RIGHT;
-		case Wiimote::DOWN: return Zeemote::DOWN;
-		case Wiimote::LEFT: return Zeemote::LEFT;
-		case Wiimote::_1: return Zeemote::A;
-		case Wiimote::_2: return Zeemote::B;
-		case Wiimote::A: return Zeemote::C;
-		case Wiimote::B: return Zeemote::POWER;
+		case WiimoteKey::UP: return ZeemoteKey::UP;
+		case WiimoteKey::RIGHT: return ZeemoteKey::RIGHT;
+		case WiimoteKey::DOWN: return ZeemoteKey::DOWN;
+		case WiimoteKey::LEFT: return ZeemoteKey::LEFT;
+		case WiimoteKey::_1: return ZeemoteKey::A;
+		case WiimoteKey::_2: return ZeemoteKey::B;
+		case WiimoteKey::A: return ZeemoteKey::C;
+		case WiimoteKey::B: return ZeemoteKey::POWER;
 		default: return 0;
 	}
 }
@@ -132,21 +132,21 @@ constexpr Input::Key genericGamepadKeycodeToWiiCC(Input::Key k)
 	using namespace Input;
 	switch(k)
 	{
-		case Keycode::UP: return WiiCC::UP;
-		case Keycode::RIGHT: return WiiCC::RIGHT;
-		case Keycode::DOWN: return WiiCC::DOWN;
-		case Keycode::LEFT: return WiiCC::LEFT;
-		case Keycode::GAME_A: return WiiCC::B;
-		case Keycode::GAME_B: return WiiCC::A;
-		case Keycode::GAME_X: return WiiCC::Y;
-		case Keycode::GAME_Y: return WiiCC::X;
-		case Keycode::GAME_SELECT: return WiiCC::MINUS;
-		case Keycode::GAME_START: return WiiCC::PLUS;
-		case Keycode::GAME_L1: return WiiCC::L;
-		case Keycode::GAME_L2: return WiiCC::ZL;
-		case Keycode::GAME_R1: return WiiCC::R;
-		case Keycode::GAME_R2: return WiiCC::ZR;
-		case Keycode::MENU: return WiiCC::HOME;
+		case Keycode::UP: return WiiCCKey::UP;
+		case Keycode::RIGHT: return WiiCCKey::RIGHT;
+		case Keycode::DOWN: return WiiCCKey::DOWN;
+		case Keycode::LEFT: return WiiCCKey::LEFT;
+		case Keycode::GAME_A: return WiiCCKey::B;
+		case Keycode::GAME_B: return WiiCCKey::A;
+		case Keycode::GAME_X: return WiiCCKey::Y;
+		case Keycode::GAME_Y: return WiiCCKey::X;
+		case Keycode::GAME_SELECT: return WiiCCKey::MINUS;
+		case Keycode::GAME_START: return WiiCCKey::PLUS;
+		case Keycode::GAME_L1: return WiiCCKey::L;
+		case Keycode::GAME_L2: return WiiCCKey::ZL;
+		case Keycode::GAME_R1: return WiiCCKey::R;
+		case Keycode::GAME_R2: return WiiCCKey::ZR;
+		case Keycode::MENU: return WiiCCKey::HOME;
 		default: return 0;
 	}
 }
@@ -156,18 +156,18 @@ constexpr Input::Key genericGamepadKeycodeToICP(Input::Key k)
 	using namespace Input;
 	switch(k)
 	{
-		case Keycode::UP: return iControlPad::UP;
-		case Keycode::RIGHT: return iControlPad::RIGHT;
-		case Keycode::DOWN: return iControlPad::DOWN;
-		case Keycode::LEFT: return iControlPad::LEFT;
-		case Keycode::GAME_A: return iControlPad::X;
-		case Keycode::GAME_B: return iControlPad::B;
-		case Keycode::GAME_X: return iControlPad::A;
-		case Keycode::GAME_Y: return iControlPad::Y;
-		case Keycode::GAME_SELECT: return iControlPad::SELECT;
-		case Keycode::GAME_START: return iControlPad::START;
-		case Keycode::GAME_L1: return iControlPad::L;
-		case Keycode::GAME_R1: return iControlPad::R;
+		case Keycode::UP: return iControlPadKey::UP;
+		case Keycode::RIGHT: return iControlPadKey::RIGHT;
+		case Keycode::DOWN: return iControlPadKey::DOWN;
+		case Keycode::LEFT: return iControlPadKey::LEFT;
+		case Keycode::GAME_A: return iControlPadKey::X;
+		case Keycode::GAME_B: return iControlPadKey::B;
+		case Keycode::GAME_X: return iControlPadKey::A;
+		case Keycode::GAME_Y: return iControlPadKey::Y;
+		case Keycode::GAME_SELECT: return iControlPadKey::SELECT;
+		case Keycode::GAME_START: return iControlPadKey::START;
+		case Keycode::GAME_L1: return iControlPadKey::L;
+		case Keycode::GAME_R1: return iControlPadKey::R;
 		default: return 0;
 	}
 }
@@ -177,21 +177,21 @@ constexpr Input::Key genericGamepadKeycodeToPS3(Input::Key k)
 	using namespace Input;
 	switch(k)
 	{
-		case Keycode::UP: return PS3::UP;
-		case Keycode::RIGHT: return PS3::RIGHT;
-		case Keycode::DOWN: return PS3::DOWN;
-		case Keycode::LEFT: return PS3::LEFT;
-		case Keycode::GAME_A: return PS3::CROSS;
-		case Keycode::GAME_B: return PS3::CIRCLE;
-		case Keycode::GAME_X: return PS3::SQUARE;
-		case Keycode::GAME_Y: return PS3::TRIANGLE;
-		case Keycode::GAME_SELECT: return PS3::SELECT;
-		case Keycode::GAME_START: return PS3::START;
-		case Keycode::GAME_L1: return PS3::L1;
-		case Keycode::GAME_L2: return PS3::L2;
-		case Keycode::GAME_R1: return PS3::R1;
-		case Keycode::GAME_R2: return PS3::R2;
-		case Keycode::MENU: return PS3::PS;
+		case Keycode::UP: return PS3Key::UP;
+		case Keycode::RIGHT: return PS3Key::RIGHT;
+		case Keycode::DOWN: return PS3Key::DOWN;
+		case Keycode::LEFT: return PS3Key::LEFT;
+		case Keycode::GAME_A: return PS3Key::CROSS;
+		case Keycode::GAME_B: return PS3Key::CIRCLE;
+		case Keycode::GAME_X: return PS3Key::SQUARE;
+		case Keycode::GAME_Y: return PS3Key::TRIANGLE;
+		case Keycode::GAME_SELECT: return PS3Key::SELECT;
+		case Keycode::GAME_START: return PS3Key::START;
+		case Keycode::GAME_L1: return PS3Key::L1;
+		case Keycode::GAME_L2: return PS3Key::L2;
+		case Keycode::GAME_R1: return PS3Key::R1;
+		case Keycode::GAME_R2: return PS3Key::R2;
+		case Keycode::MENU: return PS3Key::PS;
 		default: return 0;
 	}
 }
@@ -230,8 +230,8 @@ constexpr std::span<const KeyConfigDesc> genericKeyConfigs()
 
 	static constexpr auto pcKeyboardMap = concatToArrayNow<genericKeyboardAppKeyCodeMap, pcKeyboardBaseMap>;
 
-	#ifdef CONFIG_INPUT_GAMEPAD_DEVICES
 	static constexpr auto genericGamepadMap = concatToArrayNow<genericGamepadAppKeyCodeMap, genericGamepadBaseMap>;
+	#ifdef CONFIG_INPUT_GAMEPAD_DEVICES
 	static constexpr auto ps3GamepadMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToPS3HID);
 	static constexpr auto ouyaGamepadMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToOuya);
 	#endif

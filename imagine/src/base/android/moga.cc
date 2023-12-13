@@ -15,10 +15,10 @@
 
 #define LOGTAG "MOGAInput"
 #include <imagine/base/Application.hh>
+#include <imagine/base/android/AndroidInputDevice.hh>
 #include <imagine/input/android/MogaManager.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
-#include "AndroidInputDevice.hh"
 #include <android/input.h>
 
 namespace IG::Input
@@ -74,16 +74,17 @@ MogaManager::~MogaManager()
 	appContext().application().removeInputDevice(appContext(), Input::Map::SYSTEM, DEVICE_ID, false);
 }
 
-AndroidInputDevice MogaManager::makeMOGADevice(const char *name)
+std::unique_ptr<Input::Device> MogaManager::makeMOGADevice(const char *name)
 {
-	AndroidInputDevice dev{DEVICE_ID, {.gamepad = true, .joystick = true}, name};
-	dev.setSubtype(Device::Subtype::GENERIC_GAMEPAD);
+	auto devPtr = std::make_unique<Input::Device>(std::in_place_type<AndroidInputDevice>, DEVICE_ID, InputDeviceTypeFlags{.gamepad = true, .joystick = true}, name);
+	devPtr->setSubtype(DeviceSubtype::GENERIC_GAMEPAD);
+	auto &axes = getAs<AndroidInputDevice>(*devPtr).jsAxes();
 	// set joystick axes
 	{
 		static constexpr AxisId stickAxes[] { AxisId::X, AxisId::Y, AxisId::Z, AxisId::RZ };
 		for(auto axisId : stickAxes)
 		{
-			dev.jsAxes().emplace_back(dev, axisId);
+			axes.emplace_back(Map::SYSTEM, axisId);
 		}
 	}
 	// set trigger axes
@@ -91,10 +92,10 @@ AndroidInputDevice MogaManager::makeMOGADevice(const char *name)
 		static constexpr AxisId triggerAxes[] { AxisId::LTRIGGER, AxisId::RTRIGGER };
 		for(auto axisId : triggerAxes)
 		{
-			dev.jsAxes().emplace_back(dev, axisId);
+			axes.emplace_back(Map::SYSTEM, axisId);
 		}
 	}
-	return dev;
+	return devPtr;
 }
 
 void MogaManager::updateMOGAState(JNIEnv *env, bool connected, bool notify)
@@ -157,7 +158,7 @@ void MogaManager::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				auto time = SteadyClockTimePoint{Nanoseconds{timestamp}};
 				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
 				auto &win = ctx.mainWindow();
-				auto &axis = mogaDev.jsAxes();
+				auto axis = mogaDev.motionAxes();
 				axis[0].update(x, Map::SYSTEM, time, mogaDev, win, true);
 				axis[1].update(y, Map::SYSTEM, time, mogaDev, win, true);
 				axis[2].update(z, Map::SYSTEM, time, mogaDev, win, true);

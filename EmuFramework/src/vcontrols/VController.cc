@@ -230,6 +230,7 @@ std::array<KeyInfo, 2> VController::findGamepadElements(WPt pos)
 KeyInfo VController::keyboardKeyFromPointer(const Input::MotionEvent &e)
 {
 	assert(isInKeyboardMode());
+	assumeExpr(e.isPointer());
 	if(e.pushed())
 	{
 		kb.unselectKey();
@@ -259,6 +260,7 @@ KeyInfo VController::keyboardKeyFromPointer(const Input::MotionEvent &e)
 
 bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect gameRect)
 {
+	assumeExpr(e.isPointer());
 	if(e.pushed() || e.released())
 	{
 		for(const auto &grp: uiElements)

@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/input/Device.hh>
+#include <imagine/input/Axis.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <array>
@@ -29,17 +29,16 @@ class LinuxApplication;
 namespace IG::Input
 {
 
-class EvdevInputDevice : public Device
+class EvdevInputDevice : public BaseDevice
 {
 public:
 	EvdevInputDevice();
 	EvdevInputDevice(int id, int fd, DeviceTypeFlags, std::string name, uint32_t vendorProductId);
 	~EvdevInputDevice();
-	void processInputEvents(LinuxApplication &app, std::span<const input_event> events);
 	bool setupJoystickBits();
-	void addPollEvent(LinuxApplication &app);
-	std::span<Axis> motionAxes() final;
-	int fileDesc() const;
+	std::span<Axis> motionAxes() { return axis; };
+	int fileDesc() const { return fd; }
+	static void addPollEvent(Device &, LinuxApplication &);
 
 protected:
 	static constexpr unsigned AXIS_SIZE = 24;
@@ -47,6 +46,8 @@ protected:
 	StaticArrayList<Axis, AXIS_SIZE> axis;
 	std::array<int, AXIS_SIZE> axisRangeOffset{};
 	FDEventSource fdSrc{-1};
+
+	static void processInputEvents(Device &, LinuxApplication &, std::span<const input_event> events);
 };
 
 }

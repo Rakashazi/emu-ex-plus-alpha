@@ -33,7 +33,7 @@ struct AInputEvent;
 
 namespace IG::Input
 {
-class AndroidInputDevice;
+class Device;
 }
 
 namespace IG::FS
@@ -108,12 +108,12 @@ public:
 	int hardKeyboardState() const;
 	int keyboardType() const;
 	bool hasXperiaPlayGamepad() const;
-	Input::AndroidInputDevice *addAndroidInputDevice(ApplicationContext, Input::AndroidInputDevice, bool notify);
-	Input::AndroidInputDevice *updateAndroidInputDevice(ApplicationContext, Input::AndroidInputDevice, bool notify);
-	Input::AndroidInputDevice *inputDeviceForId(int id) const;
-	std::pair<Input::AndroidInputDevice*, int> inputDeviceForEvent(AInputEvent *);
+	Input::Device *addAndroidInputDevice(ApplicationContext, std::unique_ptr<Input::Device>, bool notify);
+	Input::Device *updateAndroidInputDevice(ApplicationContext, std::unique_ptr<Input::Device>, bool notify);
+	Input::Device *inputDeviceForId(int id) const;
+	std::pair<Input::Device*, int> inputDeviceForEvent(AInputEvent *);
 	void enumInputDevices(ApplicationContext ctx, JNIEnv *, jobject baseActivity, bool notify);
-	bool processInputEvent(AInputEvent*, Input::AndroidInputDevice *, int devId, Window &);
+	bool processInputEvent(AInputEvent*, Input::Device *, int devId, Window &);
 	bool hasTrackball() const;
 	void flushSystemInputEvents();
 	bool hasPendingInputQueueEvents() const;
@@ -154,8 +154,8 @@ private:
 	using ProcessInputFunc = void (AndroidApplication::*)(AInputQueue *);
 	IG_UseMemberIf(Config::ENV_ANDROID_MIN_SDK < 12, ProcessInputFunc, processInput_){&AndroidApplication::processInputWithHasEvents};
 	AInputQueue *inputQueue{};
-	Input::AndroidInputDevice *builtinKeyboardDev{};
-	Input::AndroidInputDevice *virtualDev{};
+	Input::Device *builtinKeyboardDev{};
+	Input::Device *virtualDev{};
 	Choreographer choreographer{};
 	pthread_key_t jEnvKey{};
 	uint32_t uiVisibilityFlags{};

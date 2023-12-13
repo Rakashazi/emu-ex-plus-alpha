@@ -20,7 +20,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ranges.hh>
-#include "AndroidInputDevice.hh"
+#include <imagine/base/android/AndroidInputDevice.hh>
 #include <android/input.h>
 #include <ranges>
 
@@ -31,7 +31,7 @@ extern int32_t (*AMotionEvent_getActionButton_)(const AInputEvent* motion_event)
 
 static const char* aInputSourceToStr(uint32_t source);
 
-Input::AndroidInputDevice *AndroidApplication::inputDeviceForId(int id) const
+Input::Device *AndroidApplication::inputDeviceForId(int id) const
 {
 	auto existingIt = std::ranges::find_if(inputDev,
 		[=](const auto &e)
@@ -40,10 +40,10 @@ Input::AndroidInputDevice *AndroidApplication::inputDeviceForId(int id) const
 	{
 		return nullptr;
 	}
-	return static_cast<Input::AndroidInputDevice*>(existingIt->get());
+	return existingIt->get();
 }
 
-std::pair<Input::AndroidInputDevice*, int> AndroidApplication::inputDeviceForEvent(AInputEvent *event)
+std::pair<Input::Device*, int> AndroidApplication::inputDeviceForEvent(AInputEvent *event)
 {
 	if(hasMultipleInputDeviceSupport())
 	{
@@ -72,7 +72,7 @@ static std::pair<int32_t, Input::Source> mapKeycodesForSpecialDevices(const Inpu
 	using namespace IG::Input;
 	switch(dev.subtype())
 	{
-		case Device::Subtype::XPERIA_PLAY:
+		case DeviceSubtype::XPERIA_PLAY:
 		{
 			if(!Config::MACHINE_IS_GENERIC_ARMV7)
 				break;
@@ -185,7 +185,7 @@ static std::pair<Input::Action, Input::Key> mouseEventAction(uint32_t e, AInputE
 	}
 }
 
-bool AndroidApplication::processInputEvent(AInputEvent* event, Input::AndroidInputDevice *devPtr, int devId, Window &win)
+bool AndroidApplication::processInputEvent(AInputEvent* event, Input::Device *devPtr, int devId, Window &win)
 {
 	using namespace IG::Input;
 	auto type = AInputEvent_getType(event);
@@ -225,7 +225,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Input::AndroidInp
 								//logMsg("non-action pointer idx %d", i);
 								pAction = Input::Action::MOVED;
 							}
-							auto pos = win.transformInputPos({(int)AMotionEvent_getX(event, i), (int)AMotionEvent_getY(event, i)});
+							auto pos = win.transformInputPos({AMotionEvent_getX(event, i), AMotionEvent_getY(event, i)});
 							auto pId = AMotionEvent_getPointerId(event, i);
 							handled |= win.dispatchInputEvent(MotionEvent{Input::Map::POINTER, Input::Pointer::LBUTTON,
 								metaState, pAction, pos.x, pos.y, pId, src, makeTimeFromMotionEvent(event), devPtr});
@@ -236,7 +236,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Input::AndroidInp
 					{
 						auto [action, btnState] = mouseEventAction(actionCode, event, win.appContext().androidSDK());
 						//logMsg("mouse motion event: id:%d (%s) action:%s buttons:%d", devId, devPtr->name().data(), actionStr(action), btnState);
-						auto pos = win.transformInputPos({(int)AMotionEvent_getX(event, 0), (int)AMotionEvent_getY(event, 0)});
+						auto pos = win.transformInputPos({AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0)});
 						auto pId = AMotionEvent_getPointerId(event, 0);
 						return win.dispatchInputEvent(MotionEvent{Input::Map::POINTER, btnState,
 							metaState, action, pos.x, pos.y, pId, src, makeTimeFromMotionEvent(event), devPtr});
@@ -248,7 +248,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Input::AndroidInp
 					auto x = AMotionEvent_getX(event, 0);
 					auto y = AMotionEvent_getY(event, 0);
 					auto time = makeTimeFromMotionEvent(event);
-					int iX = x * 1000., iY = y * 1000.;
+					float iX = x * 1000.f, iY = y * 1000.f;
 					auto pos = win.transformInputPos({iX, iY});
 					//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 					auto src = Source::KEYBOARD;
@@ -270,22 +270,23 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Input::AndroidInp
 					}
 					//logMsg("joystick motion event: id:%d (%s)", devId, devPtr->name().data());
 					auto time = makeTimeFromMotionEvent(event);
+					auto &axes = getAs<AndroidInputDevice>(*devPtr).jsAxes();
 					if(hasGetAxisValue())
 					{
-						for(auto &axis : devPtr->jsAxes())
+						for(auto &axis : axes)
 						{
 							auto pos = AMotionEvent_getAxisValue(event, (int32_t)axis.id(), 0);
 							//logMsg("axis %d with value: %f", axis.id, (double)pos);
-							axis.update(pos, Map::SYSTEM, time, *devPtr, win, true);
+							axis.dispatchInputEvent(pos, Input::Map::SYSTEM, time, *devPtr, win);
 						}
 					}
 					else
 					{
 						// no getAxisValue, can only use 2 axis values (X and Y)
-						for(auto i : iotaCount(std::min(devPtr->jsAxes().size(), 2uz)))
+						for(auto i : iotaCount(std::min(axes.size(), 2uz)))
 						{
 							auto pos = i ? AMotionEvent_getY(event, 0) : AMotionEvent_getX(event, 0);
-							devPtr->jsAxes()[i].update(pos, Map::SYSTEM, time, *devPtr, win, true);
+							axes[i].dispatchInputEvent(pos, Input::Map::SYSTEM, time, *devPtr, win);
 						}
 					}
 					return true;

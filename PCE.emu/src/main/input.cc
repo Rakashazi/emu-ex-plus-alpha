@@ -143,14 +143,14 @@ std::span<const KeyConfigDesc> PceApp::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{PceKey::Up, Wiimote::UP},
-		KeyMapping{PceKey::Right, Wiimote::RIGHT},
-		KeyMapping{PceKey::Down, Wiimote::DOWN},
-		KeyMapping{PceKey::Left, Wiimote::LEFT},
-		KeyMapping{PceKey::I, Wiimote::_1},
-		KeyMapping{PceKey::II, Wiimote::_2},
-		KeyMapping{PceKey::Select, Wiimote::MINUS},
-		KeyMapping{PceKey::Run, Wiimote::PLUS},
+		KeyMapping{PceKey::Up, WiimoteKey::UP},
+		KeyMapping{PceKey::Right, WiimoteKey::RIGHT},
+		KeyMapping{PceKey::Down, WiimoteKey::DOWN},
+		KeyMapping{PceKey::Left, WiimoteKey::LEFT},
+		KeyMapping{PceKey::I, WiimoteKey::_1},
+		KeyMapping{PceKey::II, WiimoteKey::_2},
+		KeyMapping{PceKey::Select, WiimoteKey::MINUS},
+		KeyMapping{PceKey::Run, WiimoteKey::PLUS},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

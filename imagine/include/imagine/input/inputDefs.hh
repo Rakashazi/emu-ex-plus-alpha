@@ -15,15 +15,62 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/input/config.hh>
-#include <imagine/util/DelegateFunc.hh>
-#include <array>
-#include <type_traits>
+#include <imagine/config/defs.hh>
+
+#ifdef CONFIG_BASE_X11
+#include <imagine/base/x11/inputDefs.hh>
+#elif defined __ANDROID__
+#include <imagine/base/android/inputDefs.hh>
+#elif defined CONFIG_BASE_IOS
+#include <imagine/base/iphone/inputDefs.hh>
+#elif defined CONFIG_BASE_MACOSX
+#include <imagine/base/osx/inputDefs.hh>
+#elif defined CONFIG_BASE_WIN32
+#include <imagine/base/win32/inputDefs.hh>
+#endif
+#ifdef CONFIG_INPUT_BLUETOOTH
+#include <imagine/input/bluetoothInputDefs.hh>
+#endif
+
+#include <string>
+#include <string_view>
+#include <memory>
 
 namespace IG
 {
-struct InputDeviceTypeFlags;
-struct InputAxisFlags;
+
+struct InputAxisFlags
+{
+	using BitSetClassInt = uint32_t;
+
+	BitSetClassInt
+	x:1{},  y:1{},  z:1{},
+	rx:1{}, ry:1{}, rz:1{},
+	hatX:1{}, hatY:1{},
+	lTrigger:1{}, rTrigger:1{},
+	rudder:1{}, wheel:1{},
+	gas:1{}, brake:1{};
+
+	constexpr bool operator==(InputAxisFlags const&) const = default;
+};
+
+struct InputDeviceTypeFlags
+{
+	using BitSetClassInt = uint8_t;
+
+	BitSetClassInt
+	miscKeys:1{},
+	keyboard:1{},
+	gamepad:1{},
+	joystick:1{},
+	virtualInput:1{},
+	mouse:1{},
+	touchscreen:1{},
+	powerButton:1{};
+
+	constexpr bool operator==(InputDeviceTypeFlags const&) const = default;
+};
+
 }
 
 namespace IG::Input
@@ -34,6 +81,9 @@ class Device;
 struct AxisKeyEmu;
 class TextField;
 class MogaManager;
+
+using DeviceTypeFlags = InputDeviceTypeFlags;
+using AxisFlags = InputAxisFlags;
 
 enum class Source : uint8_t
 {
@@ -143,5 +193,36 @@ namespace Keycode
 }
 
 #endif
+
+enum class AxisSetId : uint8_t
+{
+	stick1,
+	stick2,
+	hat
+};
+
+constexpr DeviceTypeFlags virtualDeviceFlags{.miscKeys = true, .keyboard = true, .virtualInput = true};
+
+class BaseDevice
+{
+public:
+	friend class Device;
+	using Subtype = DeviceSubtype;
+
+	BaseDevice() = default;
+	BaseDevice(int id, Map map, DeviceTypeFlags, std::string name);
+	bool operator==(BaseDevice const&) const = default;
+
+protected:
+	std::shared_ptr<void> appDataPtr;
+	std::string name_;
+	int id_{};
+	DeviceTypeFlags typeFlags_{};
+	uint8_t enumId_{};
+	Map map_{Map::UNKNOWN};
+	Subtype subtype_{};
+
+	void updateGamepadSubtype(std::string_view name, uint32_t vendorProductId);
+};
 
 }

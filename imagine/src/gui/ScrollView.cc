@@ -175,7 +175,7 @@ void ScrollView::drawScrollContent(Gfx::RendererCommands &cmds)
 
 bool ScrollView::scrollInputEvent(const Input::MotionEvent &e)
 {
-	if(!dragTracker.isDragging() && !pointIsInView(e.pos()))
+	if(!e.isPointer() || (!dragTracker.isDragging() && !pointIsInView(e.pos())))
 		return false;
 	// mouse wheel scroll
 	if(Config::Input::MOUSE_DEVICES && !dragTracker.isDragging() && e.scrolledVertical())

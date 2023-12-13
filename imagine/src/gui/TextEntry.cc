@@ -57,7 +57,7 @@ bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 	{
 		[&](const Input::MotionEvent &motionEv)
 		{
-			if(motionEv.isAbsolute() && motionEv.pushed() && b.overlaps(motionEv.pos()))
+			if(motionEv.pushed() && b.overlaps(motionEv.pos()))
 			{
 				setAcceptingInput(true);
 				return true;

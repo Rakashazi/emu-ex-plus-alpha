@@ -183,15 +183,15 @@ std::span<const KeyConfigDesc> A2600App::defaultKeyConfigs()
 
 	static constexpr std::array wiimoteMap
 	{
-		KeyMapping{::Event::LeftJoystickUp, Wiimote::UP},
-		KeyMapping{::Event::LeftJoystickRight, Wiimote::RIGHT},
-		KeyMapping{::Event::LeftJoystickDown, Wiimote::DOWN},
-		KeyMapping{::Event::LeftJoystickLeft, Wiimote::LEFT},
-		KeyMapping{::Event::LeftJoystickFire, Wiimote::_1},
-		KeyMapping{::Event::LeftJoystickFire5, Wiimote::_2},
-		KeyMapping{::Event::ConsoleSelect, Wiimote::MINUS},
-		KeyMapping{::Event::ConsoleReset, Wiimote::PLUS},
-		KeyMapping{::Event::ConsoleLeftDiffToggle, Wiimote::A},
+		KeyMapping{::Event::LeftJoystickUp, WiimoteKey::UP},
+		KeyMapping{::Event::LeftJoystickRight, WiimoteKey::RIGHT},
+		KeyMapping{::Event::LeftJoystickDown, WiimoteKey::DOWN},
+		KeyMapping{::Event::LeftJoystickLeft, WiimoteKey::LEFT},
+		KeyMapping{::Event::LeftJoystickFire, WiimoteKey::_1},
+		KeyMapping{::Event::LeftJoystickFire5, WiimoteKey::_2},
+		KeyMapping{::Event::ConsoleSelect, WiimoteKey::MINUS},
+		KeyMapping{::Event::ConsoleReset, WiimoteKey::PLUS},
+		KeyMapping{::Event::ConsoleLeftDiffToggle, WiimoteKey::A},
 	};
 
 	return genericKeyConfigs<pcKeyboardMap, genericGamepadMap, wiimoteMap>();

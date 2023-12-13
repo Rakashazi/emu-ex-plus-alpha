@@ -21,7 +21,6 @@
 #include <imagine/gfx/Quads.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/input/config.hh>
 #include <string>
 #include <string_view>
 

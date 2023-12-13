@@ -19,7 +19,7 @@
 #include <imagine/bluetooth/config.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/base/ApplicationContext.hh>
-#include <imagine/input/Device.hh>
+#include <imagine/input/inputDefs.hh>
 #include <array>
 
 namespace IG
@@ -124,11 +124,11 @@ protected:
 	OnStatusDelegate onStatusD{};
 };
 
-class BluetoothInputDevice : public Input::Device
+class BluetoothInputDevice : public Input::BaseDevice
 {
 public:
 	BluetoothInputDevice(ApplicationContext, Input::Map, Input::DeviceTypeFlags, const char *name);
-	virtual IG::ErrorCode open(BluetoothAdapter &adapter) = 0;
+	virtual IG::ErrorCode open(BluetoothAdapter &, Input::Device &) = 0;
 
 protected:
 	ApplicationContext ctx;
